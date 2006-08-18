@@ -1,0 +1,36 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_intersect_vertex,
+ [
+  {adv_submenu,
+   [
+    {1,"Rester sur la ligne, deplace l'intersection avec le plan"},
+    {2,"Rester sur le plan, deplace vers la ligne"},
+    {3,"Choisir ligne et plan"}
+   ]},
+  {intersect,
+   [
+    {1,"Ligne et plan sont presque parallele:\nimpossible de trouver une intersection."}
+   ]},
+  {menu_item,
+   [
+    {1,"Intersection"},
+    {2,"Rester sur la ligne"},
+    {3,"Deplacer les points le long de la LIGNE en choisissant la direction de l'intersection avec le PLAN envisage"},
+    {4,"Rester sur le plan"},
+    {5,"Deplacer les points le long du PLAN en choisissant la normale de l'intersection avec la LIGNE envisagee"},
+    {6,"Tout choisir"},
+    {7,"Deplacer les points le long de la LIGNE en choisissant la direction et l'emplacement du PLAN avec sa normale et sa localisation"},
+    {8,"Intersection"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Choisir le direction de la ligne - la ligne doit passer a travers la selection du(des) point(s)"},
+    {2,"Choisir l'intesection du plan"},
+    {3,"Choisir la normale du plan - le plan doit passer a travers la selection du(des) point(s)"},
+    {4,"Choisir l'intesection de la ligne"},
+    {5,"choisir la direction de la ligne"},
+    {6,"Choisir le point pour la ligne passe a travers"},
+    {7,"Choisir la normale du plan"},
+    {8,"Choisir le point pour le plan passe a travers"}
+   ]}
+ ]}.

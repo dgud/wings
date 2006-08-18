@@ -1,0 +1,2727 @@
+%%                  -*- mode:erlang; erlang-indent-level: 2; coding:utf-8 -*-
+%%  wings_cs.lang --
+%%
+%%     Czech language strings.
+%%
+%%  Copyright (c) 2005 Libor Diviš
+%%  www.musculus.cz (info@musculus.cz) 
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wings_cs.lang,v 1.9 2005/09/21 06:04:18 bjorng Exp $
+%%
+{wings,
+ [
+  {cannot_repeat,
+   [
+    {1,"Nelze opakovat"}
+   ]},
+  {crash_handler,
+   [
+    {1,"Vnitřní chyba - log uložen do"},
+    {2,"Klikněte myší pro pokračování práce"},
+    {3,"Pokračovat v práci"}
+   ]},
+  {define_command,
+   [
+    {1,"Chcete definovat"},
+    {2,"jako výchozí příkaz"}
+   ]},
+  {edit_menu,
+   [
+    {1,"Vymazat historii vracení kvůli uvolnění paměti"},
+    {3,"Zpět/Vpřed"},
+    {4,"Zpět nebo vpřed posledního příkazu"},
+    {5,"Vpřed"},
+    {6,"Zopakování posledního zrušeného příkazu"},
+    {7,"Zpět"},
+    {8,"Zrušení posledního příkazu"},
+    {9,"Opakovat"},
+    {10,"Opakovat parametr"},
+    {11,"Opakovat tažení"},
+    {12,"Nastavení Plug-inů"},
+    {13,"Vyčištění historie vracení"}
+   ]},
+  {geom_title,
+   [
+    {1,"Geometrie"},
+    {2,"Geometrie #"}
+   ]},
+  {halt_loop,
+   [
+    {1,"Kritická vnitřní chyba - log zapsán do ~s\n"},
+    {2,"<Neznámý název okna>"},
+    {3,"Kritická vnitřní chyba - log zapsán do ~s\n"}
+   ]},
+  {handle_drop_1,
+   [
+    {1,"Zrušit výběr"},
+    {2,"Zrušit ukončení operace"},
+    {3,"Přiřadit materiál vybraným plochám"},
+    {4,"Přiřadit materiál \""},
+    {5,"\" pouze pro vybrané plochy"},
+    {6,"Aplikovat materiál na všechny plochy"},
+    {7,"Aplikovat materiál \""},
+    {8,"\" na všechny plochy vybraného objektu"},
+    {9,"Aplikovat materiál na všechny plochy"},
+    {10,"Aplikovat materiál \""},
+    {11,"\" na všechny plochy vybraného objektu"}
+   ]},
+  {handle_event_3,
+   [
+    {1,"Výběr"},
+    {2,"Zobrazit menu"}
+   ]},
+  {info_1,
+   [
+    {1,"Vertex (vrchol) ~p vybraný"},
+    {2,"Vrcholy"},
+    {3,"~p vybrané vrcholy"},
+    {4,"Hrana ~p vybraná"},
+    {5,"Hrany"},
+    {6,"~p vybrané hrany"},
+    {7,"Plocha ~p vybraná"},
+    {8,"Plochy"},
+    {9,"~p vybrané plochy"},
+    {10,"~p vrcholy vybrané v ~p objektech"},
+    {11,"~p hrany vybrané v ~p objektech"},
+    {12,"~p plochy vybrané in ~p objektech"}
+   ]},
+  {init_menubar,
+   [
+    {1,"Soubor"},
+    {2,"Úpravy"},
+    {3,"Zobrazení"},
+    {4,"Výběr"},
+    {5,"Nástroje"},
+    {6,"Okno"},
+    {7,"Nápověda"}
+   ]},
+  {item_list,
+   [
+    {1," vybráno"}
+   ]},
+  {measure,
+   [
+    {1,". Pozice ~s ~s ~s"},
+    {2,". Vzdálenost ~s"},
+    {3,". Střed ~s ~s ~s. Délka ~s"},
+    {4,". Střed ~s ~s ~s.\n Materiál ~s"}
+   ]},
+  {patches,
+   [
+    {1,"Použít "}
+   ]},
+  {purge_undo,
+   [
+    {1,"Vrácení stavu: "},
+    {2,"Opakování stavu: "},
+    {3,"Není co odstranit"},
+    {4,"Odstranit všechny stavy (Nevratný krok!)?"}
+   ]},
+  {shape_info,
+   [
+    {object_info,
+     "Objekt ~p \"~s\" has ~p polygony, ~p hrany, ~p vrcholy.\nRežim je ~s"},
+    {2,"~p objekty, ~p plochy, ~p hrany, ~p vrcholy"}
+   ]},
+  {tools_menu,
+   [
+    {8,"Zarovnání"},
+    {9,"Vycentrování"},
+    {10,"Uložit (Bounding Box)"},
+    {11,"Změna velikosti uloženého BB"},
+    {12,"Proporcionální změna velikosti uloženého BB"},
+    {13,"Přesun do uloženého BB"},
+    {14,"Nastavení výchozích os"},
+    {15,"Definování a uložení os (s výchozím bodem) pro pozdější použití"},
+    {16,"\"Výchozí osy\" příkaz (např. Změna velikosti|Výchozí nastavení os)"},
+    {17,"Zrcadlový obraz"},
+    {18,"Vytvořit"},
+    {19,"Vybrat plochy, nastavit zrcadlový obraz (mirror)"},
+    {20,"Přerušit"},
+    {21,"Odstranit zrcadlové obrazy všech objektů"},
+    {22,"Zamrznout"},
+    {23,"Vytvořit reálnou geometrii ze zrcadlového obrazu"},
+    {24,"Sejmutí obrazovky"},
+    {25,"Zachytit obraz okna (export obrysu)"}
+   ]},
+  {undo_info,
+   [
+    {1,"není co vrátit zpět"},
+    {2,"možnost vrátit se o jeden krok"},
+    {3,"možnost vrátit ~p kroků"},
+    {4,"; jedna operace může být přepracována"},
+    {5,"; ~p operací může být přepracováno"}
+   ]},
+  {window_menu,
+   [
+    {1,"Graf geometrie"},
+    {2,"Graf geometrie #"},
+    {3,"Přehled"},
+    {4,"Otevřít okno s přehledem (přehled materiálů a objektů)"},
+    {5,"Otevřít okno s grafem geometrie (přehled objektů)"},
+    {6,"Paleta barev"},
+    {7,"Otevřít okno s paletou barev"},
+    {8,"Nové okno geometrie"},
+    {9,"Otevřít nové okno geometrie"},
+    {10,"Ovládací panel"},
+    {11,"Otevřít ovládací panel se zprávami"}
+   ]}
+ ]}.
+{wings_ask,
+ [
+  {button_label,
+   [
+    {1,"OK"}
+   ]},
+  {frame_event,
+   [
+    {1,"Roztáhnout tento rám; zavřít ostatní rámy"},
+    {2,"Roztáhnout tento rám"},
+    {3,"Zavřít tento rám"}
+   ]},
+  {mktree,
+   [
+    {1,"Prohledat"}
+   ]}
+ ]}.
+{wings_body,
+ [
+  {arealight_conv,
+   [
+    {1,"Světlo typu 'AREA' na objekt"},
+    {2,"Převést vybrané světlo 'AREA' na objekty"},
+    {3,"Objekt na světlo typu 'AREA'"},
+    {4,"Převést vybrané objekty na světla typu 'AREA'"}
+   ]},
+  {auto_smooth,
+   [
+    {1,"Parametry automatického vyhlazení"},
+    {2,"Crease úhel"}
+   ]},
+  {clean_isolated_vertices,
+   [
+    {1,"Odstraněný 1 izolovaný vrchol\n"},
+    {2,"Odstranění ~p izolovaných vrcholů\n"}
+   ]},
+  {cleanup,
+   [
+    {1,"Krátké hrany"},
+    {2,"Velká tolerance"},
+    {3,"Izolované vrcholy"},
+    {4,"Vyčištění"}
+   ]},
+  {cleanup_rep_1,
+   [
+    {1,"Opakované vrcholy ~p na ploše ~p\n"}
+   ]},
+  {cleanup_waists_1,
+   [
+    {1,"Odstraněné waist vrcholy: ~p\n"}
+   ]},
+  {color_material,
+   [
+    {1,"barva_"}
+   ]},
+  {delete_2edged_faces_1,
+   [
+    {1,"Plocha"},
+    {2,"má pouze 1 hranu"}
+   ]},
+  {mat_col_conv,
+   [
+    {1,"Barva na materiál"},
+    {2,"Převést barvu vrcholu na materiál"},
+    {3,"Materiál na barvu"},
+    {4,"Převést materiály na barvy vrcholů"}
+   ]},
+  {menu,
+   [
+    {1,"Operace s objekty"},
+    {2,"Přesun"},
+    {3,"Převrácení"},
+    {5,"Převrácení objektu around"},
+    {10,"Invertovat"},
+    {11,"Převrácení všech normál, otočení objektu naruby"},
+    {12,"Stáhnout (Tighten)"},
+    {13,"Posunout vrcholy směrem ke středovému bodu"},
+    {14,"Vyhladit (Smooth)"},
+    {15,"Rozdělení všech ploch kvůli lepšímu vyhlazení objektu"},
+    {16,"Spojit"},
+    {17,"Spojit několik objektů do jediného"},
+    {18,"Oddělit"},
+    {19,"Rozdělit sloučené objekty na jednotlivé komponenty"},
+    {20,"Svařit (Weld)"},
+    {21,"Spojit 2 plochy, které jsou téměř totožné"},
+    {22,"Vyčistit"},
+    {23,"Odstranit různé defekty"},
+    {24,"Automatické vyhlazení (Auto-Smooth)"},
+    {25,"Nastavit hrany tvrdé nebo měkký v závislosti na úhlu mezi plochami"},
+    {26,"Duplikovat"},
+    {27,"Smazat"},
+    {28,"Smazat označené objekty"},
+    {29,"Přejmenovat..."},
+    {30,"Přejmenovat vybrané objekty"},
+    {31,"Zobrazit vše"},
+    {32,"Zobrazit všechny plochy tohoto objektu"}
+   ]},
+  {mode_conv,
+   [
+    {1,"Režim barevné vrcholy"},
+    {2,"Změnit režim objektu na řežim barvy vrcholů (materiály zůstanou rezervovány, ale nebudou zobrazeny)"},
+    {3,"Režim materiál"},
+    {4,"Změnit režim objektu na režim materiál (barvy vrcholů zůstanou rezervovány, ale nebudou zobrazeny)"}
+   ]},
+  {rename_1,
+   [
+    {1,"Přejmenovat"}
+   ]},
+  {unify_modes,
+   [
+    {1,"Objekty s barvami vrcholů nemohou být kombinovány s objekty s materiály."}
+   ]},
+  {vertex_color_item,
+   [
+    {1,"Barvy vrcholů"},
+    {2,"Aplikovat barvy vrcholů na vybrané objekty (první změna režimu na režim barvy vrcholu - pokud je potřeba)"}
+   ]},
+  {weld,
+   [
+    {1,"Tolerance vzdálenosti"},
+    {2,"Svařit (Weld)"}
+   ]},
+  {weld_1,
+   [
+    {1,"Nenalezeny žádné plochy ke svaření."}
+   ]}
+ ]}.
+{wings_camera,
+ [
+  {desc,
+   [
+    {1,"Jedno"},
+    {2,"Dvě"},
+    {3,"Tři"}
+   ]},
+  {help,
+   [
+    {1,"Nastavení kamery"}
+   ]},
+  {info,
+   [
+    {1,"Upozornění: Jednotlačítková myš může být použita pouze v režimu kamery Nendo"},
+    {2,"Upozornění: Dvoutlačítková myš může být použita pouze v režimu kamery Nendo a Blender"},
+    {3,"Upozornění:  "},
+    {4," režim kamery vyžaduje minimálně dvoutlačítkovou myš"},
+    {5,"Upozornění:  "},
+    {6," režim kamery vyžaduje třítlačítkovou myš"}
+   ]},
+  {message,
+   [
+    {2,"Táhnout ke kameře"},
+    {3,"Táhnout myší (to tumble)"},
+    {4,"[Q]"},
+    {5,"Táhnout myší (to track)"},
+    {6,"Zrušit/obnovit pohled"},
+    {7,"Obnovit pohled"}
+   ]},
+  {mode_help,
+   [
+    {1,"Posun"},
+    {2,"Kamerový vozík"},
+    {3,"Otáčení, naklánění"}
+   ]},
+  {prefs,
+   [
+    {1,"Tlačítka myši"},
+    {2,"Režim kamery"},
+    {3,"Rychlost reagování (Pan Speed)"},
+    {4,"Přiblížení (Wheel Zooms)"},
+    {5,"Přiblížení"},
+    {6,"Oddálení"},
+    {7,"Faktor zvětšení"},
+    {9,"Scroll Wheel"}
+   ]}
+ ]}.
+{wings_collapse,
+ [
+  {check_consistency,
+   [
+    {1,"Zborcení by způsobilo nestabilní strukturu objektu."}
+   ]},
+  {check_vertices_1,
+   [
+    {1,"Non-collapsible vrchol"},
+    {2,"opustit.\n"}
+   ]}
+ ]}.
+{wings_color,
+ [
+  {choose_1,
+   [
+    {1,"Výběr barvy"}
+   ]}
+ ]}.
+{wings_console,
+ [
+  {do_window,
+   [
+    {1,"Konzole "},
+    {2,"x"}
+   ]},
+  {handle_action,
+   [
+    {1,"Zapsat"},
+    {3,"Textový soubor"},
+    {4,"Zapsat chybu: ~w"}
+   ]},
+  {popup_menu,
+   [
+    {1,"Zapsat do souboru"},
+    {2,"Zapsat obsah konzole do souboru"}
+   ]},
+  {server_loop,
+   [
+    {1,":~w Příjem neznámý: ~p~n"}
+   ]}
+ ]}.
+{wings_deform,
+ [
+  {check_range,
+   [
+    {1,"Podélná šířka (Extent along) "},
+    {2,"osa je příliš krátká."}
+   ]},
+  {crumple_dirs,
+   [
+    {1,"Náhodně"},
+    {2,"náhodný směr"},
+    {4,"normála"},
+    {8,"Posun každého vrcholu o náhlodnou vzdálenost"}
+   ]},
+  {dir,
+   [
+    {1," Zkroutit vybrané vrcholy okolo "},
+    {2," přechod skrze střed výběru"},
+    {3," přechod skrz střed"}
+   ]},
+  {inflate_fun,
+   [
+    {1,"Vybrat střed a úhel"},
+    {2,"Nafouknout elementy"},
+    {3,"Vybrat středový bod"},
+    {4,"Vybrat bod pro definování úhlu"}
+   ]},
+  {sub_menu,
+   [
+    {1,"Nafouknout elementy"},
+    {2,"Vybrat střed a úhel"},
+    {3,"Zmačkat"},
+    {4,"Náhodně posunout vrcholy"},
+    {5,"Nafouknout"},
+    {6,"Zúžit"},
+    {7,"Stočit"},
+    {8,"Zkroutit"}
+   ]},
+  {taper_item,
+   [
+    {1,"Zúžení podél "},
+    {2," (s vlivem na"},
+    {3,")"},
+    {4,"Zvolte ovlivněnou osu"},
+    {5,"Zvolte centrum os"},
+    {6,"Vybrat originální zúžení"},
+    {7,"Působit na "}
+   ]}
+ ]}.
+{wings_dissolve,
+ [
+  {dissolve_1,
+   [
+    {1,"Uvolnění by způsobilo neslučitelnou strukturu objektu."}
+   ]}
+ ]}.
+{wings_drag,
+ [
+  {help_message,
+   [
+    {1,"Číselné zadání"}
+   ]},
+  {make_query_1,
+   [
+    {2,"A"}
+   ]},
+  {numeric_input,
+   [
+    {1,"Číselný vstup"}
+   ]},
+  {qstr,
+   [
+    {1,"Dx"},
+    {2,"Dx"},
+    {3,"Dy"},
+    {4,"Dz"},
+    {5,"R"},
+    {6,"A"}
+   ]},
+  {standard_mode_fun,
+   [
+    {1,"[Shift] a/nebo [Ctrl] Omezení"},
+    {2,"[+] nebo [-] Nastavení úhlu"}
+   ]},
+  {zmove_help,
+   [
+    {1,"Posun podél osy Z"},
+    {2,"Táhnout k nastavení 3. parametru"}
+   ]}
+ ]}.
+{wings_edge,
+ [
+  {dissolve_edge_2,
+   [
+    {1,"Rozpuštění by způsobilo zhroucení ploch."}
+   ]}
+ ]}.
+{wings_edge_cmd,
+ [
+  {cut_command,
+   [
+    {1,"Rozdělit"}
+   ]},
+  {cut_entry,
+   [
+    {1,"Rozdělit na "},
+    {2," hrany stejné délky"}
+   ]},
+  {cut_fun,
+   [
+    {1,"Rozdělit na hrany stejné délky"},
+    {2,"Rozdělit v libovolném místě"}
+   ]},
+  {cut_pick_error,
+   [
+    {1,"Pouze jedna hrana může být rozdělena v libovolném místě."}
+   ]},
+  {loop_cut,
+   [
+    {1,"Okraj z hran nemůže být rozdělen do 2 či více částí."}
+   ]},
+  {menu,
+   [
+    {1,"Operace s hranami"},
+    {2,"Přesunout"},
+    {3,"Sklouznutí"},
+    {4,"Skluz hran podle nejbližší hrany"},
+    {5,"Vytažení (Extrude)"},
+    {6,"Spojit (Connect)"},
+    {7,"Vytvořit novou hranu spojením středů vybraných hran"},
+    {8,"Okraj (Bevel)"},
+    {9,"Zakulatit vybrané hrany"},
+    {10,"Prolnout (Dissolve)"},
+    {11,"Odstranění označených hran"},
+    {12,"Zrušit (Collapse)"},
+    {13,"Vymazat hrany, nahradit vrcholy"},
+    {14,"Tvrdost (Hardness)"},
+    {15,"Měkká (Soft)"},
+    {16,"Tvrdá (Hard)"},
+    {17,"Řez smyčkou (Loop Cut)"},
+    {18,"Řez do dvou objektů podle hrany smyčky"},
+    {19,"Barva vrcholů"},
+    {20,"Aplikovat barvu vrcholů na vybrané hrany"}
+   ]},
+  {plain_cut_menu,
+   [
+    {2,"Rozdělit 2 hrany na stejné díly"}
+   ]},
+  {slide_help_mode,
+   [
+    {1,"Absolutně"},
+    {2,"Relativně"},
+    {3,"Zablokovaný směr"},
+    {4,"Uvolnění směru"},
+    {5,"Zastavit na další hraně"},
+    {6,"Pokračovat minulou hranou"}
+   ]}
+ ]}.
+{wings_export,
+ [
+  {export,
+   [
+    {1,"exportování"},
+    {2,"příprava"},
+    {4,"Chyba exportu"}
+   ]}
+ ]}.
+{wings_extrude_edge,
+ [
+  {bevel_faces,
+   [
+    {1,"Objekt je příliš malý pro zešikmení (bevel)."}
+   ]},
+  {extrude_problem,
+   [
+    {1,"Nelze vytáhnout/zkosit; dva nebo více vrcholů jsou pravděpodobně příliš blízko sebe.\nZkuste zrušit příkaz."}
+   ]}
+ ]}.
+{wings_face_cmd,
+ [
+  {bridge,
+   [
+    {1,"Plochy musí mít stejný počet vrcholů."},
+    {2,"Plochy nesmějí směřovat stejným směrem."},
+    {3,"Plochy spolu nesmějí sousedit."}
+   ]},
+  {bridge_error,
+   [
+    {1,"Vybrány musejí být 2 plochy."}
+   ]},
+  {clone_on,
+   [
+    {1,"Vybrána musí být pouze 1 plocha."}
+   ]},
+  {clone_on_selection,
+   [
+    {1,"Vyberte cíl, který chcete zduplikovat"}
+   ]},
+  {lift_check_selection,
+   [
+    {1,"Výběry ploch a hran se neshodují."},
+    {2,"Výběry ploch a vrcholů se neshodují."}
+   ]},
+  {lift_fun,
+   [
+    {1,"Protažení (Lift), otočení plochy kolem hrany nebo vrcholu"},
+    {2,"Protažení (Lift) stardartním směrem"}
+   ]},
+  {lift_sel_mismatch,
+   [
+    {1,"Výběr plochy a hrany se neshoduje."}
+   ]},
+  {lift_selection,
+   [
+    {1,"Výběr hrany nebo vrcholu k použití coby pantu."}
+   ]},
+  {lift_vtx_sel_mismatch,
+   [
+    {1,"Výběr plochy a vrcholu se neshoduje."}
+   ]},
+  {menu,
+   [
+    {1,"Operace s plochami"},
+    {2,"Přesun (Move)"},
+    {3,"Vytažení (Extrude)"},
+    {4,"Vytažení oblasti"},
+    {5,"Vytažení (Extract) oblasti"},
+    {6,"Výřez (Inset)"},
+    {7,"Výřez uvnitř vybrané plochy"},
+    {8,"Vytvořit dutinu (Intrude)"},
+    {9,"Odstranění vnitřku objektů, vytvořit dutiny z vybraných ploch"},
+    {10,"Zkosení (Bevel)"},
+    {11,"Zakulacení hran vybraných ploch"},
+    {12,"Most (propojení - Bridge)"},
+    {13,"Vytvořit most mezi dvěma plochami"},
+    {14,"Vyboulení (Bump)"},
+    {15,"Vytvořit vyboulení (Bump) vybrané plochy"},
+    {16,"Protažení (Lift)"},
+    {17,"Připojit (Put On)"},
+    {18,"Přesun a rotace objektu, zarovnání vybrané plochy k dalšímu prvku"},
+    {19,"Duplikování objektu na jeden či několik prvků"},
+    {20,"Zrcadlo (Mirror)"},
+    {21,"Zrcadlový obraz okolo vybrané plochy a sloučení s objektem"},
+    {22,"Zrcadlový obraz a vytvoření oddělených objektů"},
+    {23,"Zrušení (Dissolve)"},
+    {24,"Odstranit všechny hrany mezi vybranými plochami"},
+    {25,"Stlačení (Collapse)"},
+    {26,"Vymazat plochy, nahradit je vrcholy"},
+    {27,"Vyhlazení (Smooth)"},
+    {28,"Rozdělit vybrané plochy pro jejich vyhlazení(Catmull-Clark)"},
+    {29,"Vydláždit (Tesselate)"},
+    {30,"Barva vrcholů"},
+    {31,"Aplikovat barvu vrcholů na vybrané plochy"},
+    {32,"Skrýt (Hide)"},
+    {33,"Skrýt vybrané plochy"}
+   ]},
+  {put_on,
+   [
+    {1,"Musí být vybrána pouze jedna plocha."}
+   ]},
+  {put_on_check_selection,
+   [
+    {1,"Výběr nesmí být ve stejném objektu."},
+    {2,"Vyberte pouze jeden prvek."}
+   ]},
+  {put_on_selection,
+   [
+    {1,"Vyberte cílový prvek ke kterému chcete zdrojový objekt přilepit (put)."}
+   ]},
+  {smooth,
+   [
+    {1,"vyhlazení"}
+   ]},
+  {unify_modes,
+   [
+    {1,"Objekt s barevnými vrcholy nelze propojit (bridged) s objektem v režimu materiálů."}
+   ]}
+ ]}.
+{wings_ff_ndo,
+ [
+  {check_size,
+   [
+    {1,"Objekt \""},
+    {2,"\" nemůže být exportován "},
+    {3,"do formátu Nendo (příliš mnoho hran)."}
+   ]},
+  {clean_bad_edges,
+   [
+    {1,"Špatné hrany: ~w\n"}
+   ]},
+  {import,
+   [
+    {1,"Formát Nendo 1.0 není podporován"},
+    {2,"nejedná se o soubor Nendo"}
+   ]},
+  {import_1,
+   [
+    {1,"~w objekt(s)\n"}
+   ]},
+  {read_edges,
+   [
+    {1," hrany ~w\n"}
+   ]},
+  {read_object_1,
+   [
+    {1,"~w: ~s: vis=~p citlivost=~p\n"}
+   ]},
+  {read_objects,
+   [
+    {1,"  ~w prázdný objekt(s)\n"},
+    {2,"  odpad: ~w\n"}
+   ]},
+  {read_vertices,
+   [
+    {1," vrcholy ~w\n"}
+   ]},
+  {skip_faces,
+   [
+    {1," plochy ~w\n"}
+   ]}
+ ]}.
+{wings_ff_wings,
+ [
+  {export,
+   [
+    {1,"ukládání"},
+    {2,"světla"},
+    {3,"přepočítání"},
+    {4,"objekty"},
+    {5,"komprese"},
+    {6,"zápis souboru"}
+   ]},
+  {import,
+   [
+    {1,"otevírání souboru typu WINGS"},
+    {2,"čtení souboru"}
+   ]},
+  {import_1,
+   [
+    {1,"binární konverze"},
+    {2,"Před v.0.80 Wings formát není již nadále podporován."},
+    {3,"Před v.0.92 Wings formát není již nadále podporován."},
+    {4,"neznámý wings formát"},
+    {5,"zničený soubor typu Wings"},
+    {6,"není Wings soubor (nebo je to starý Wings formát)"}
+   ]},
+  {import_image,
+   [
+    {1,"nepojmenovaný obrázek"},
+    {2,"Špatný obrázek: ~p\n"}
+   ]},
+  {import_object_mode,
+   [
+    {1,"Změnit nedefinované režimy na materiál\n"}
+   ]},
+  {import_props,
+   [
+    {1,"<Uložený výběr>"}
+   ]},
+  {import_vsn2,
+   [
+    {1,"obrázky a materiály"},
+    {2,"objekty"}
+   ]},
+  {translate_map_images_2,
+   [
+    {1,"Materiál ~p, ~p textura: reference k neexistujícímu obrázku ~p\n"}
+   ]}
+ ]}.
+{wings_file,
+ [
+  {autosave,
+   [
+    {1,"Automatické ukládání \"~s\" chyba: ~s"}
+   ]},
+  {command,
+   [
+    {1,"Návrat selhal: "},
+    {2,"Export"},
+    {3,"Export vybraného"},
+    {4,"Chcete uložit změny před ukončením?"},
+    {5,"Tento soubor byl přesunut nebo vymazán."}
+   ]},
+  {confirmed_open,
+   [
+    {1,"Čtení selhalo: "}
+   ]},
+  {confirmed_open_dialog,
+   [
+    {1,"Otevřít"}
+   ]},
+  {export_filename,
+   [
+    {1,"Export"}
+   ]},
+  {import_filename,
+   [
+    {1,"Import"}
+   ]},
+  {import_image,
+   [
+    {1,"Nahrávání selhalo \"~s\": ~s\n"}
+   ]},
+  {import_ndo,
+   [
+    {1,"Import selhal: "}
+   ]},
+  {install_plugin,
+   [
+    {1,"Instalace Plug-Inu"},
+    {2,"Zkomprimovaný soubor typu"},
+    {3,"Soubor typu Tar"},
+    {4,"Zkomprimovaný soubor Tar"},
+    {5,"Soubor Beam"}
+   ]},
+  {menu,
+   [
+    {3,"Nový"},
+    {4,"Vytvořit novou, prázdnou scénu"},
+    {5,"Otevřít..."},
+    {6,"Otevřít naposledy uloženou scénu"},
+    {7,"Připojit (Merge - sloučit))..."},
+    {8,"Připojit naposledy uloženou scénu do vybrané scény"},
+    {9,"Uložit"},
+    {10,"Uložit vybranou scénu"},
+    {11,"Uložit jako..."},
+    {12,"Uložit vybranou scénu pod novým jménem"},
+    {13,"Uložit vybrané..."},
+    {14,"Uložit pouze vybrané objekty nebo plochy"},
+    {15,"Uložit Incrementally (název + 1)"},
+    {16,"Vrátit"},
+    {17,"Vrátit vybranou scénu k uloženému stavu"},
+    {18,"Import"},
+    {19,"Export"},
+    {20,"Export vybraného"},
+    {21,"Importovat obrázek..."},
+    {22,"Import souboru s obrázkem"},
+    {23,"Vykreslení (Render)"},
+    {24,"Instalovat Plug-In"},
+    {25,"Konec (Exit)"},
+    {26,"Vygenerovat nový název souboru a uložit"},
+    {27,"Instalovat plug-in"},
+    {28,"Ukončit Wings 3D"}
+   ]},
+  {merge,
+   [
+    {1,"Připojit (Merge - sloučit)"},
+    {2,"Čtení se nepodařilo: "}
+   ]},
+  {recent_files,
+   [
+    {1,"Otevřít naposledy používaný soubor"}
+   ]},
+  {save_as,
+   [
+    {1,"Uložit"}
+   ]},
+  {save_now,
+   [
+    {1,"Uložení se nezdařilo: "}
+   ]},
+  {save_selected,
+   [
+    {1,"Tento příkaz vyžaduje nějaký výběr."},
+    {2,"Uložit vybrané"}
+   ]},
+  {str_save_changes,
+   [
+    {1,"Chcete uložit změny?"}
+   ]},
+  {use_autosave_1,
+   [
+    {1,"automaticky uložený soubor je starší než tento; chcete místo něj nahrát automaticky uložený?"}
+   ]}
+ ]}.
+{wings_help,
+ [
+  {advanced_menus,
+   [
+    {1,"Do (v) "},
+    {4,"dialog, je tam check box (zaškrtávací čtvereček) pro \"Rozšířené Menu\"."},
+    {5,"Aktivujování rozšířeného menu poskytne následující přídavné možnosti:"},
+    {6,"Nové příkazy: "},
+    {7,"Plocha"},
+    {8,"Připojit (Put On)"},
+    {9," a "},
+    {10,"Plocha"},
+    {11,"Vyzdvižení (Lift)"},
+    {12,"Vektorová operace: To znamená specifikovat osy (nebo vektor) a umožnit přesun do nového bodu."},
+    {13,"Operace Magnet: Nástroj umožnující vytvořit plynulé modifikace / přechody z okolního prostředí - pomocí nějakého platného nástroje."},
+    {14,"Vektorové a magnetické operace je možno kombinovat."},
+    {15,"Při zapnutém rozšířeném menu mnoho příkazů dělá různé věci v závislosti na tom, které tlačítko myši stisknete."},
+    {16,"Například kliknutí na pravé tlačítko myši v menu ROTACE vám dovolí zvolit osu (nebo vektor) kolem které se váš výběr bude otáčet, zatímco kliknutí na prostřední tlačítko myši vám umožní definovat osy a nový bod, skrze který ty osy projdou. (Vektor nemusí být paralelní s osou x, y nebo z.)"},
+    {17,"Čtení textů stavového řádku je vřele doporučováno, pokud používáte rozšířené menu."}
+   ]},
+  {def_commands,
+   [
+    {1,"V (do)"},
+    {4," dialog, můžete zapnout \"Výchozí příkazy\"."},
+    {5,"Dva standardní příkazy mohou být definované. Pro uložení naposledy vykonaného příkazu použijte jeden z:"},
+    {8,"Při použití, který příkaz má být touto cestou definovaný, užijte jeden z:"},
+    {11,"Poznámka: Když používáte "},
+    {13," nebo "},
+    {15," Režim KAMERA, druhý standardní příkaz nemůže být použit."}
+   ]},
+  {def_hotkeys,
+   [
+    {1,"Každému příkazu, který najdete v menu, může být přiřazena klávesová zkratka (hotkey)."},
+    {2,"Pro přiřazení klávesové zkratky k příkazu otevřete menu obsahující příkaz. na rozsvíceném příkazu  stiskněte [Insert] nebo klávesu [/], a poté stiskněte klávesu, kterou chcete danému příkazu přidělit."},
+    {3,"Pro vymazání klávesové zkratky, podobně rozsviťte příkaz v menu, a stiskněte [Del] nebo klávesy [\\]."}
+   ]},
+  {edit_prefs,
+   [
+    {1,"Úpravy (Edit)"},
+    {2,"Předvolby (Preferences)"}
+   ]},
+  {getting_started,
+   [
+    {1,"Když se učíte ovládat WINGS, sledujte informace v informační lince na spodu obrazovky. Zpravidla zde najdete informace o tom, ce udělá stisknutí tlačítka myši."},
+    {2,"Akce pro tlačítka myši se zobrazují nejdříve, popisem"},
+    {7,"Zpravidla levé tlačítko myši je užívané pro výběr a potvrzení, prostřední tlačítko myši pro manipulaci s kamerou, a pravé tlačítko myši zpřístupnuje kontextové (Pop-up) menu."},
+    {left_def,"left mouse button"},
+    {middle_def,"middle button or scroll wheel"},
+    {right_def,"right button"},
+    {two_a,"followed by any hotkey actions."}
+   ]},
+  {header,
+   [
+    {1,"Start"},
+    {2,"Používání myši s jedním nebo dvěma tlačítky"},
+    {3,"Francouzská a německá klávesnice"},
+    {4,"Definované klávesové zkratky"},
+    {5,"Jak definovat klávesové zkratky"},
+    {6,"Základy práce se světly"},
+    {7,"Rozšířená menu"},
+    {8,"Výchozí nastavení"},
+    {9,"Tipy"},
+    {10,"Informace o OpenGL"},
+    {11,"O programu Wings 3D"}
+   ]},
+  {help_window,
+   [
+    {1,"Žádná nápověda"}
+   ]},
+  {international,
+   [
+    {1,"Bohužel, na francouzské a německé klávesnici (a možná i jiných), příkaz ZPĚT/VPŘED není spjatý s klávesou [Z]. (Toto může být změněno v dalších verzích WINGS.)"},
+    {2,"Na francouzské klávesnici je příkaz VPŘED/ZPĚT pod klávesou [W]  ([Ctrl]+[W], [Ctrl]+[Alt]+[W] atd.)."},
+    {3,"Na německé klávesnici najdete klávesovou zkratku pro příkaz ZPĚT/VPŘED pod klávesou [Y] ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] atd.)."}
+   ]},
+  {lights,
+   [
+    {1,"1. Vytvořit světlo pomocí příkazu Světlo v základním menu (pravé tlačítko myši pro zrušení)."},
+    {2,"2. Vyberte typ světla kliknutím levého tlačítla myši na výběr. Pokud je vybráno nějaké světlo, objeví se speciální menu po kliknutí pravého tlačítka myši."},
+    {3,"3. Pro zjištění, jaká světla jste vytvořili, použijte "},
+    {4,"Zobrazení"},
+    {5,"Osvětlení scény"},
+    {6," příkaz."}
+   ]},
+  {message,
+   [
+    {1,"Zavřít okno nápovědy"}
+   ]},
+  {one_or_two,
+   [
+    {1,"Všimněte si, že pouze "},
+    {2," a "},
+    {3," režim může být používán s dvoutlačítkovou myší, Pouze "},
+    {4," režim může být používán s jednotlačítkovou myší. Pouze "}
+   ]},
+  {opengl_info,
+   [
+    {1,"Prodejce: "},
+    {2,"Vykreslovač (Renderer): "},
+    {3,"Verze: "},
+    {4,"Verze produktu: "},
+    {5,"Červená (bitů)"},
+    {6,"Zelená (bitů)"},
+    {7,"Modrá (bitů)"},
+    {8,"Průhlednost (bitů)"},
+    {9,"Bitová hloubka"},
+    {10,"Šablona (bitů)"},
+    {11,"Accum. červená (bitů)"},
+    {12,"Accum. zelená (bitů)"},
+    {13,"Accum. modrá (bitů)"},
+    {14,"Accum. průhlednost (bitů)"},
+    {15,"Maximální počet světel"},
+    {16,"Maximum clip planes"},
+    {17,"Maximální modelview stack depth"},
+    {18,"Max projection stack depth"},
+    {19,"Max texture stack depth"},
+    {20,"Subpixel bits"},
+    {21,"Maximální velikost 3D textury"},
+    {22,"Maximální velikost textury"},
+    {23,"Max pixel map table"},
+    {24,"Max name stack depth"},
+    {25,"Max display-list call nesting"},
+    {26,"Max evaluator polynomial order"},
+    {27,"Maximální rozlišení obrazovky"},
+    {28,"Max depth of attribute stack"},
+    {29,"Max depth of client attribute stack"},
+    {30,"Number of auxiliary buffers"},
+    {31,"Color buffers store RGBA"},
+    {32,"Color buffers store indices"},
+    {33,"Double buffering"},
+    {34,"Stereo buffers"},
+    {35,"Range of aliased point sizes"},
+    {36,"Range of antialised point sizes"},
+    {37,"Range of aliased line widths"},
+    {38,"Range of antialised line widths"},
+    {39,"Recommended max number of indices for drawRangeElement()"},
+    {40,"Recommended max number of vertices for drawRangeElement()"},
+    {41,"Max number of texturing units"},
+    {42,"Number of compression formats"},
+    {43,"Maximální počet vrcholů"},
+    {44,"OpenGL Extensions"}
+   ]},
+  {performance_tips,
+   [
+    {1,"Výkon WINGSu je závislý na mnoha různých věcech, jako "},
+    {2,"rychlost procesoru"},
+    {3,"typ a velikost vyrovnávací paměti procesoru (CPU cache)"},
+    {4,"velikost a rychlost operační paměti"},
+    {5,"typ grafické karty"},
+    {6,"velikost paměti videokarty"},
+    {7,"fáze měsíce"},
+    {8,"Nicméně, je těžký dát jakoukoliv spolehlivou radu, jak zlepšit výkon WINGSu. Následující tipy mohou pomoci zlepšit výkon:"},
+    {9,"Zkuste různé bitové hloubky barev a různé rozlišení monitoru. Zvláště pokud Vaše grafická karta nemá moc paměti, velká bitová hloubka barev a vysoké rozlišení monitoru může drasticky snížit výkon. Používání nemaximalizovaného režimu může také pomoci."},
+    {10,"Zavřete nepotřebná okna uvnitř WINGSu."},
+    {11,"Ujistěte se, že se rámy oken nepřekrývají."},
+    {12,"Užívejte poze několik (aktivních) světel. Mnoho světel zpomaluje výkon u většiny grafických karet."},
+    {13,"Jestli je to možné, použijte "},
+    {14,"Nástroje"},
+    {15,"Zrcadlení (Virtual Mirror)"},
+    {16," příkaz."},
+    {17,"Skryjte modely, se kterými momentálně nepracujete."},
+    {18,"Použijte "},
+    {19,"Zobrazení"},
+    {20,"Zobraz barvy"},
+    {21," příkaz vypne zobrazení barev vrcholů pokud je Váš model má."},
+    {22,"Použijte "},
+    {23,"Zobrazení"},
+    {24,"Zobraz textury"},
+    {25," příkaz vypne textury během modelování."},
+    {26,"Práce v režimu drátového zobrazení."},
+    {27,"Některé grafické karty zobrazují hrany pomalu. Vypněte zobrazování hran použitím "},
+    {28,"Zobraz"},
+    {29,"Zobraz hrany"},
+    {30," příkaz."}
+   ]},
+  {splash_contents,
+   [
+    {1,"Wings 3D je 3D modelář inspirovaný "},
+    {2,"programy Nendo a Mirai od IZware."},
+    {3,"Wings 3D je plně bez záruky,"},
+    {4,"ale je zcela volný pro jakýkoliv druh využití"},
+    {5,"(včetně komerčního)."},
+    {6,"Copyright"},
+    {7,"a statní"},
+    {8,"JPEG library: Copyright"}
+   ]},
+  {use_one_or_two,
+   [
+    {1,"Pokud chcete používat jedno nebo dvoutlačítkovou myš, musíte o tom informovat program Wings 3D v "},
+    {2," dialogovém okně."}
+   ]}
+ ]}.
+{wings_hotkey,
+ [
+  {keyname,
+   [
+    {1,"Bksp"},
+    {2,"Tab"},
+    {3,"Space"},
+    {4,"Shift+"}
+   ]},
+  {list_header,
+   [
+    {1,"Klávesové zkratky ve všech režimech"},
+    {2,"Klávesové zkratky v režimu objekt"},
+    {3,"Klávesové zkratky v režimu hran"},
+    {4,"Klávesové zkratky v režimu ploch"},
+    {5,"Klávesové zkratky v režimu světel"},
+    {6,"Klávesové zkratky v režimu vrcholů"}
+   ]},
+  {list_keys,
+   [
+    {1," (uživatelské nastavení)"},
+    {2," (nastavení plug-inů)"}
+   ]},
+  {vkeyname,
+   [
+    {1,"Bksp"},
+    {2,"Tab"},
+    {3,"Enter"},
+    {4,"Pause"},
+    {5,"Esc"},
+    {6,"Space"},
+    {7,"Delete"},
+    {8,"Del"},
+    {9,"Div"},
+    {10,"Mul"},
+    {11,"-"},
+    {12,"+"},
+    {13,"Enter"},
+    {14,"="},
+    {15,"Up"},
+    {16,"Down"},
+    {17,"Right"},
+    {18,"Left"},
+    {19,"Insert"},
+    {20,"Home"},
+    {21,"End"},
+    {22,"Page Up"},
+    {23,"Page Down"},
+    {24,"UKEY"}
+   ]}
+ ]}.
+{wings_image,
+ [
+  {create_default,
+   [
+    {1,"~p Neznám typ ~p; ignorovat\n"}
+   ]},
+  {create_image,
+   [
+    {1,"Délka"},
+    {2,"Výška"},
+    {3,"Pattern (vzorek)"},
+    {4,"Mřížka (Grid)"},
+    {5,"Checkerboard"},
+    {6,"Vertikální cal Bars"},
+    {7,"Horizontal Bars"},
+    {8,"Bílý"},
+    {9,"Černý"},
+    {10,"Vytvořit obrázek"}
+   ]},
+  {event,
+   [
+    {1,"Zobrazit menu"}
+   ]},
+  {event_1,
+   [
+    {1,"Zobrazit v přirozené velikosti"}
+   ]},
+  {screenshot,
+   [
+    {1,"<<Screenshot>>"}
+   ]},
+  {window_params,
+   [
+    {1,"Obrázek: ~s [~wx~wx~w]"}
+   ]}
+ ]}.
+{wings_init,
+ [
+  {display_actual_mode,
+   [
+    {1,"Aktuální: RGBA: ~p ~p ~p ~p Hloubka: ~p Stencil: ~p Accum: ~p ~p ~p ~p\n"}
+   ]},
+  {try_video_modes,
+   [
+    {1,"Zkusit OpenGL režimy\n"}
+   ]},
+  {video_mode_failure,
+   [
+    {2,"Nebyl nalezen žádný vhodný OpenGL režim.\n\n"},
+    {3,"Jste si jisti, že máte ovladač OpenGL nainstalován.\n\n"},
+    {5,"Žádný vhodný OpenGL režim nebyl nalezen (máte nainstalované OpenGL ovladače?)"}
+   ]}
+ ]}.
+{wings_light,
+ [
+  {attenuation,
+   [
+    {1,"Žádné bodové nebo kuželové světlo."}
+   ]},
+  {color,
+   [
+    {1,"Vyberte pouze jedno světlo."}
+   ]},
+  {edit,
+   [
+    {1,"Vyberte pouze jedno světlo."},
+    {2,"Ambient (okolní) světlo - nastavení"},
+    {3,"Vlastnosti světla"}
+   ]},
+  {edit_ambient_dialog,
+   [
+    {1,"Ambient (okolní)"},
+    {2,"Barva"},
+    {3,"OK"}
+   ]},
+  {edit_dialog,
+   [
+    {1,"Diffuse (rozptýlení)"},
+    {2,"Ambient (okolní světlo)"},
+    {3,"Specular (zrcadlení - odraz)"},
+    {4,"Barvy"},
+    {5,"OK"}
+   ]},
+  {export_camera_lights,
+   [
+    {1,"Ambient (okolní světlo)"},
+    {2,"Infinite (nekonečné)"},
+    {3,"Infinite1 (nekonečné)"},
+    {4,"Infinite2 (nekonečné)"}
+   ]},
+  {info,
+   [
+    {1,"Světlo ~s"},
+    {2,": Pozice ~s ~s ~s"}
+   ]},
+  {info_1,
+   [
+    {1,". Aim ~s ~s ~s. Dir ~s ~s ~s"},
+    {2,". Úhel ~s~c"}
+   ]},
+  {light_types,
+   [
+    {1,"Infinite (nekonečné)"},
+    {2,"Vytvoří vzdálené, směrové světlo (jako slunce)"},
+    {3,"Bod"},
+    {4,"Vytvoří světlo, které vyzařuje světlo do každého směru"},
+    {5,"Spot"},
+    {6,"Vytvoří světlo - světelný kužel"},
+    {7,"Ambient"},
+    {8,"Vytvoří zdroj ambient světla"},
+    {9,"Area (Plocha)"},
+    {10,"Vytvoří plochu vyzařující světlo"}
+   ]},
+  {menu,
+   [
+    {1,"Operace se světlem"},
+    {2,"Přesun"},
+    {3,"Pozice světelného zdroje"},
+    {4,"Umístění cílového bodu nebo umístění světla"},
+    {5,"Barva"},
+    {6,"Interaktivní nastavení odstínu, hodnoty a saturace"},
+    {7,"Attenuation (nastavení útlumu)"},
+    {8,"Lineární"},
+    {9,"Interaktivní nastavení útlumu světla v závislosti na vzdálenosti od zdroje (lineární útlum)"},
+    {10,"Kvadratické"},
+    {11,"Interaktivní nastavení útlumu světla v závislosti na vzdálenosti od zdroje (kvadratický útlum)"},
+    {12,"Úhel kuželu kuželového světla"},
+    {13,"Interaktivní nastavení úhlu kuželového světla"},
+    {14,"Spot Falloff"},
+    {15,"Interaktivní nastavení útlumu světla v závislosti na vzdálenosti od centra kuželového světla"},
+    {16,"Editovat nastavení..."},
+    {17,"Nastavení vlastností světla"},
+    {18,"Udělat kopii"},
+    {19,"Udělat kopii a přesunout vybrané světlo"},
+    {20,"Vymazat"},
+    {21,"Vymazat vybraná světla"}
+   ]},
+  {plugin_results,
+   [
+    {1,"Editor světel plugin(s) left garbage:~n    ~P~n"},
+    {2,"Plugin(y) left garbage"}
+   ]},
+  {qs_att,
+   [
+    {1,"Lineární"},
+    {2,"Kvadratické"},
+    {3,"Útlum (Attenuation)"}
+   ]},
+  {qs_specific,
+   [
+    {1,"Úhel"},
+    {2,"Falloff"},
+    {3,"Parametry kužele světla"}
+   ]},
+  {selected_light,
+   [
+    {1,"Vyberte pouze jedno světlo."}
+   ]},
+  {spot_angle,
+   [
+    {1,"Nejedná se o kuželové světlo."}
+   ]},
+  {spot_falloff,
+   [
+    {1,"Nejedná se o kuželové světlo."}
+   ]}
+ ]}.
+{wings_magnet,
+ [
+  {check_radius,
+   [
+    {1,"Příliš malý rádius."}
+   ]},
+  {common_dialog,
+   [{4,"Distance Route"}
+   ]},
+  {dialog,
+   [
+    {1,"Nastavení magnetu"},
+    {2,"Influence Radius"},
+    {3,"Nastavení magnetu"}
+   ]},
+  {drag_help,
+   [
+    {1,"[+] or [-] Nastavení úhlu  "}
+   ]},
+  {info_string,
+   [
+    {1,"Dráha magnetu (Magnet route):"}
+   ]},
+  {magnet_route,
+   [{shortest,"Nejkratší"},
+    {midpoint,"Střední"},
+    {surface,"Povrch (Surface)"}]}
+ ]}.
+{wings_material,
+ [
+  {edit,
+   [
+    {1,"Vlastnosti materiálu: "}
+   ]},
+  {edit_dialog,
+   [
+    {1,"Diffuse"},
+    {2,"Ambient"},
+    {3,"Specular"},
+    {4,"Emission"},
+    {5,"Shininess"},
+    {6,"Průhlednost"},
+    {7,"OK"}
+   ]},
+  {load_map_1,
+   [
+    {1,"Chyba při nahrávání"}
+   ]},
+  {material_fun,
+   [
+    {1,"Přiřadit existující materiál výběru"},
+    {2,"Vytvořit a přiřadit nový materiál"}
+   ]},
+  {material_menu,
+   [
+    {1,"Materiál"},
+    {2,"Nový..."},
+    {3,"Vytvořit nový materiál a přiřadit jej vybraným plochám"},
+    {4,"Materiál"}
+   ]},
+  {new_1,
+   [
+    {1,"Nový materiál"},
+    {2,"Název materiálu"},
+    {3,"Nový materiál"}
+   ]},
+  {plugin_results,
+   [
+    {1,"Material editor plugin(s) left garbage:~n    ~P~n"},
+    {2,"Plugin(s) left garbage"}
+   ]},
+  {rename,
+   [
+    {1,"Přejmenovat"}
+   ]},
+  {show_map,
+   [
+    {1,"~p: <obrzek vymazán>"},
+    {2,"~p: ~p [~px~px~p]"},
+    {3,"Vymazat"}
+   ]},
+  {show_maps,
+   [
+    {1,"Textury"}
+   ]}
+ ]}.
+{wings_menu,
+ [
+  {get_hotkey,
+   [
+    {1,"Stiskni klávesu pro přiřazení k příkazu."}
+   ]},
+  {handle_key_event,
+   [
+    {1,"Tato klávesa je již přiřazena k "},
+    {2," příkazu. Cheš ji předefinovat?"}
+   ]},
+  {help_text_1,
+   [
+    {1," podmenu"}
+   ]},
+  {magnet_help,
+   [
+    {2,"Klikněte pro režim Magnet"}
+   ]},
+  {norm_help_adv,
+   [
+    {1,"Otevřít dialog nastavení"}
+   ]}
+ ]}.
+{wings_menu_util,
+ [
+  {adv_scale_1,
+   [
+    {1,"Změna velikosti proporcionální (Uniform)"},
+    {2,"Změna velikosti podle osy"},
+    {3,"Změna velikosti radiální"}
+   ]},
+  {basic_scale,
+   [
+    {1,"Změna velikosti (Scale)"}
+   ]},
+  {dir_help,
+   [
+    {3,"naposledy použitá osa"},
+    {4,"výchozí osa"},
+    {7,"okolo"},
+    {10,"okolo normály"},
+    {11,"volně křížem krážem "},
+    {12,"změna velikosti volně křížem krážem "}
+   ]},
+  {dir_help_1,
+   [
+    {1,"Přesunout každý prvek "},
+    {2,"Volná rotace"},
+    {3,"Otočit podle normály každého prvku"},
+    {4,"Vytáhnout (Extrude) každý prvek, a pak jej posunout"},
+    {5,"Vytáhnout (Extrude) plochy jako region, poté posunout plochy podle normály regionu"},
+    {6,"Vytáhnout (Extrude) plochy jako region, poté plochy posunout "},
+    {7,"Extrahovat (Extract) plochy, poté je posunout podél normály regionu"},
+    {8,"Extrahovat (Extract) plochy, poté je posunout "},
+    {9,"Vyrovnat prvky s normálou plochy (Plane)"},
+    {10,"Vyzdvihnout plochu podél jeho normály"},
+    {11,"Vyzdvihnout plochu a posunout ji "},
+    {12,"Zkopírovat a volně posunout "},
+    {13,"Posunout každý prvek podél "},
+    {14,"Vytáhnout (Extrude) prvky, poté je posunout podél "},
+    {15,"Vytáhnout (Extrude) plochy jako region, poté je posunout podle "},
+    {16,"Extrahovat plochy (Extract faces), poté je posunout podle "},
+    {17,"Rotovat (otočit) kolem "},
+    {18,"Změna velikosti "},
+    {19,"Změna velikosti podle "},
+    {20,"Zarovnat (Flatten) k "},
+    {21,"Zarovnat (Flatten) a posunout k "},
+    {22,"Vyzdvihnout (Lift) plochu podle "},
+    {23,"Zkopírovat, poté posunout podle "}
+   ]},
+  {dirs,
+   [
+    {1,"Přesun podle standartních os"},
+    {2,"Zvolte osu pro přesun podél ní"},
+    {3,"Přesun podél standartních os"},
+    {4,"Přesun podél normály výběru"},
+    {5,"Zvolte osu pro přesun podél ní"},
+    {6,"Vytažení (Extrude) podél standartních os"},
+    {7,"Vytažení (Extrude) podle normály výběru"},
+    {8,"Zvolte osu pro vytažení podél ní"},
+    {9,"Vytažení (Extrude) podél standartních os"},
+    {10,"Vytažení (Extrude) podél normály výběru"},
+    {11,"Zvolte osu pro vytažení podél ní"},
+    {12,"Extrakce (Extract) podél standartních os"},
+    {13,"Extrakce (Extract) podél normály výběru"},
+    {14,"Zvolte osu pro extrakci podél ní"},
+    {15,"Vytvořit kopii; přesun podél standartních os"},
+    {16,"Vytvořit kopii; nepřesunovat"},
+    {17,"Vytvořit kopii; zvolte osu pro přesun podél ní"}
+   ]},
+  {flatten,
+   [
+    {1,"Zarovnat (Flatten)"},
+    {2,"Zarovnat (Flatten) se základní rovinou"},
+    {3,"Zvolte rovinu a referenční bod na ní"},
+    {4,"Zvolte rovinu (plane)"}
+   ]},
+  {flatten_fun_1,
+   [
+    {1,"Zvolte bod na rovině (plane)"}
+   ]},
+  {rotate,
+   [
+    {1,"Rotace okolo standartních os"},
+    {2,"Zvolte osu a referenční bod"},
+    {3,"Zvolte osu pro rotaci okolo ní"}
+   ]},
+  {rotate_1,
+   [
+    {1,"Otočit (Rotate)"}
+   ]},
+  {rotate_fun,
+   [
+    {1,"Zvolte bod pro osu průniku (pass through)"}
+   ]},
+  {scale,
+   [
+    {1,"Změna velikosti podle standartních os"},
+    {2,"Zvolte osu a bod pro změnu velikosti"},
+    {3,"Zvolte osu pro změnu velikosti (zmenšení)"},
+    {4,"Změna velikosti podle standartních os"},
+    {5,"Zvolte osu pro změnu velikosti"},
+    {6,"Zvolte osu pro změnu velikosti podle"}
+   ]},
+  {scale_fun,
+   [
+    {1,"Zvolte bod pro změnu velikosti podle"}
+   ]},
+  {uniform_scale,
+   [
+    {1,"Zvolte bod pro změnu velikosti"},
+    {2,"Rovnoměrná změna velikosti podle středu výběru"}
+   ]}
+ ]}.
+{wings_outliner,
+ [
+  {command,
+   [
+    {1,"NYI: ~p\n"}
+   ]},
+  {common_image_menu,
+   [
+    {1,"Export..."},
+    {2,"Export obrázku"},
+    {3,"Vytvořit kopii (Duplicate)"},
+    {4,"Vytvořit kopii vybraného obrázku"},
+    {5,"Smazat"},
+    {6,"Vymazat vybraný obrázek"},
+    {7,"Přejmenovat"},
+    {8,"Přejmenovat vybraný obrázek"}
+   ]},
+  {delete_image,
+   [
+    {1,"Obrázek je použitý jako materiál."},
+    {2,"Jste si jisti, že chcete vymazat obrázek (nevratný krok)?"}
+   ]},
+  {do_menu,
+   [
+    {1,"Editovat materiál..."},
+    {2,"Editovat vlastnosti materiálu"},
+    {3,"Přiřadit k výběru"},
+    {4,"Přiřadit materiál k vybraným plochám či objektům"},
+    {5,"Výběr"},
+    {6,"Vybrat všechny plochy s tímto materiálem"},
+    {7,"Vytvořit kopii (Duplicate)"},
+    {8,"Vytvořit kopii tohoto materiálu"},
+    {9,"Vymazat"},
+    {10,"Vymazat tento materiál"},
+    {11,"Přejmenovat"},
+    {12,"Přejmenovat tento materiál"},
+    {13,"Vytvořit kopii (Duplicate)"},
+    {14,"Vytvořit kopii (Duplicate) tohoto objektu"},
+    {15,"Smazat"},
+    {16,"Smazat tento objekt"},
+    {17,"Přejmenovat"},
+    {18,"Přejmenovat tento objekt"},
+    {19,"Editovat světlo..."},
+    {20,"Editovat vlastnosti světla"},
+    {21,"Vytvořit kopii (Duplicate)"},
+    {22,"Vytvořit kopii (Duplicate) toto světlo"},
+    {23,"Smazat"},
+    {24,"Smazat toto světlo"},
+    {25,"Přejmenovat"},
+    {26,"Přejmenovat toto světlo"}
+   ]},
+  {event,
+   [
+    {1,"Výběr"},
+    {2,"Zobraz outliner menu (pokud existuje výběr) nebo creation menu (pokud výběr neexistuje)"}
+   ]},
+  {handle_drop,
+   [
+    {1,"Typ textury"},
+    {2,"Diffuse"},
+    {3,"Gloss"},
+    {4,"Bump"}
+   ]},
+  {image_menu,
+   [
+    {1,"Zobrazit"},
+    {2,"Zobrazit obrázek v okně"}
+   ]},
+  {image_menu_1,
+   [
+    {1,"Vytvořit externí..."},
+    {2,"Obnovit (Refresh)"},
+    {3,"Vytvořit vnitřní"}
+   ]},
+  {make_external,
+   [
+    {1,"Vytvořit vnější"}
+   ]},
+  {refresh_image,
+   [
+    {1,"Chyba při obnovení \""}
+   ]},
+  {rename_image,
+   [
+    {1,"Přejmenovat obrázek"}
+   ]},
+  {title,
+   [
+    {1,"Outliner"}
+   ]}
+ ]}.
+{wings_palette,
+ [
+  {command,
+   [
+    {1,"Žádná počáteční barva nenalezena."},
+    {2,"Žádná konečná barva nenalezena"},
+    {3,"Export"},
+    {5,"Wings paleta"},
+    {6,"Chyba při exportu: ~w"},
+    {7,"Import"},
+    {9,"Wings paleta"},
+    {10,"Paleta nenalezena"},
+    {11,"Chyba při importu: ~w"},
+    {12,"Chyba při importu: ~w"}
+   ]},
+  {do_menu,
+   [
+    {1,"Editovat"},
+    {2,"Editovat barvu"},
+    {3,"Interpolovat"},
+    {4,"Interpolovat prázdné barvy"},
+    {5,"Vyčistit vše"},
+    {6,"Vyčistit paletu"},
+    {7,"Kompaktní"},
+    {8,"Kompaktní paleta"},
+    {9,"Scanovat barvy"},
+    {10,"Scanovat barvy z vybraných objektů"},
+    {11,"Export"},
+    {12,"Export barevné palety do souboru"},
+    {13,"Import"},
+    {14,"Import barevné palety ze souboru"}
+   ]},
+  {event,
+   [
+    {1,"Přiřadit barvu výběru"},
+    {2,"Editovat barvu"},
+    {3,"Zobrazit menu"},
+    {4,"Vymazat barvu"}
+   ]},
+  {title,
+   [
+    {1,"Paleta"}
+   ]}
+ ]}.
+{wings_pb,
+ [
+  {loop,
+   [
+    {1,"done"}
+   ]}
+ ]}.
+{wings_pick,
+ [
+  {clear_hilite_marquee_mode,
+   [
+    {ctrl_action,"Deselect"},
+    {shift_action,"(De)select only elements wholly inside marquee"}
+   ]},
+  {handle_hilite_event,
+   [
+    {2,"(v zrcadle)"}
+   ]}
+ ]}.
+{wings_plugin,
+ [
+  {def_ui_plugin,
+   [
+    {1,"Reinstalovat Wings. Chybějící plugin for ~p."}
+   ]},
+  {install,
+   [
+    {1,"Plug-in byl úspěšně nainstalován."}
+   ]},
+  {install_beam,
+   [
+    {1,"Instalace \"~s\" se nepodařila: ~p"},
+    {2,"Soubor \"~s\" není plug-in modulem programu Wings"}
+   ]},
+  {install_file_type,
+   [
+    {1,"Soubor \"~s\": Neznámý typ souboru"}
+   ]},
+  {install_verify_files,
+   [
+    {1,"Soubor \"~s\" obsahuje soubor s absolutně udanou cestou"},
+    {2,"Soubor \"~s\" neobsahuje žádný Wings plug-in modul"}
+   ]},
+  {plugin_dir,
+   [
+    {1,"Žádný \"plugins\" adresář nenalezen"}
+   ]}
+ ]}.
+{wings_pref_dlg,
+ [
+  {advanced_prefs,
+   [
+    {1,"Výchozí příkazy"},
+    {2,"Dovolit definování příkazu, který může být vyvolán stiskem Ctrl+L nebo Ctrl+M"},
+    {3,"Užívat zvýraznění jako dosný výběr"},
+    {4,"Pokud neexistuje žádný výběr, "},
+    {5,"dovolit působení příkazů na zvýrazněný prvek"},
+    {6,"Skrýt výběr při přesouvání"},
+    {7,"Nezobrazovat výběr in any interactive command"},
+    {8,"Skrýt výběr při manipulaci s kamerou"},
+    {9,"Nezobrazovat výběr při posunování kamerou"},
+    {10,"Rozšířené menu"},
+    {11,"Více příkazů a více nastavení, např. jako magnet"},
+    {12,"Uživatelská moc dočasného výběru"},
+    {13,"V režimu druhotného výběru, stisknutí pravého tlačítka myši s prostředním tlačítkem přidá k výběru"},
+    {14,"Délka"},
+    {15,"Délka vektoru u sekundárního výběru"},
+    {16,"Délka"},
+    {17,"Délka vektoru (v pixelech)"},
+    {18,"Barva"},
+    {19,"Barva vektoru"},
+    {20,"Zobrazit vektor"}
+   ]},
+  {command,
+   [
+    {1,"Hlavní (General)"},
+    {2,"Kamera"},
+    {3,"Rozšířené (Advanced)"},
+    {4,"Uživatelské rozhraní"},
+    {5,"Misc"},
+    {6,"Nastavení"}
+   ]},
+  {gen_prefs,
+   [
+    {1,"Nevybraná velikost"},
+    {2,"Velikost v pixel nevybraných vrcholů (0.0 znamená nezobrazený)"},
+    {3,"Velikost vybraného (Selected Size)"},
+    {4,"Velikost vybraných vrcholů v pixelech"},
+    {5,"Zobrazení vrcholů"},
+    {6,"Unselected délka"},
+    {7,"Délka nevybraných hran v pixelech"},
+    {8,"Selected délka"},
+    {9,"Délka vybraných hran v pixelech"},
+    {10,"Měkké hrany (Soft Edges)"},
+    {11,"Barva měkkých hran"},
+    {12,"Tvrdé hrany (Hard Edges)"},
+    {13,"Barva tvrdých hran"},
+    {14,"Zobrazení hran"},
+    {15,"Vrcholy"},
+    {16,"Hrany (Edges)"},
+    {17,"Plochy (Faces)"},
+    {18,"Objekty (Objects)"},
+    {19,"Nevybrané (Unselected)"},
+    {20,"Vybrané (Selected)"},
+    {21,"Malé zvýraznění (Smart Highlighting)"},
+    {22,"Zvýraznění (Highlighting)"},
+    {23,"Výběr pevných ploch (Solid Face Selections)"},
+    {24,"Výběr Stippled ploch"},
+    {25,"Barva výběru (Selection Color)"},
+    {26,"Výběr (Selection)"},
+    {27,"Text"},
+    {28,"Barva informačního textu"},
+    {29,"Pozadí (Background)"},
+    {30,"Barva pozadí informačního textu (včetně průhlednosti)"},
+    {31,"Informační text"},
+    {32,"Barva"},
+    {33,"Force osově zarovnaná mřížka"},
+    {34,"Always show the grid when the view is aligned along one of the major axes"},
+    {35,"Mřížka (Grid)"},
+    {36,"Zobrazit popis os"},
+    {37,"+X Barva"},
+    {38,"+Y Barva"},
+    {39,"+Z Barva"},
+    {40,"-X Barva"},
+    {41,"-Y Barva"},
+    {42,"-Z Barva"},
+    {43,"Osy"},
+    {aa_ortho1,"Force Axis-Aligned Ortho"},
+    {aa_ortho2,"Always go into orthogonal mode when the view is aligned along one of the major axes"}
+   ]},
+  {menu,
+   [
+    {1,"Předvolby..."},
+    {2,"Nastavení předvoleb pro Wings"}
+   ]},
+  {misc_prefs,
+   [
+    {1,"Průhlednost v této verzi OpenGL není podporována"},
+    {2,"Automaticky ukládat každých"},
+    {3,"minut"},
+    {4,"Úrovně vracení (Undo levels)"},
+    {5,"Úhel (Angle)"},
+    {6,"Zpoždění (ms)"},
+    {7,"Automatické otáčení"},
+    {8,"Cage"},
+    {9,"Některé okraje"},
+    {10,"Všechny okraje"},
+    {11,"Stínovaný model hran"},
+    {12,"Pevná průhlednost"},
+    {13,"Moving Opacity (průhlednosti)"},
+    {14,"Proxy režim"},
+    {15,"Text in menus and dialogs disappear"},
+    {16,"Problém nastane na nějakých Matrox kartách"},
+    {17,"Wings havaruje v případě, že jsou osy vypnuté"},
+    {18,"Problém nastane na nějakých Matrox kartách"},
+    {19,"Camera moves and interactive commands are jumpy"},
+    {20,"Problém nastane na OS Mac X 10.3 (Panther)"},
+    {21,"Workarounds"}
+   ]},
+  {smart_set_value_1,
+   [
+    {1,"Změna nastavení systémového písma bude mít účinek teprve při příštím spuštění Wings 3D."}
+   ]},
+  {ui_prefs,
+   [
+    {1,"Systémový font písma"},
+    {2,"Desktop/Geometry pozadí"},
+    {3,"Text menu"},
+    {4,"Zvýraznění menu"},
+    {5,"Zvýrazněný text menu"},
+    {6,"Pozadí menu"},
+    {7,"Text dialogu"},
+    {8,"Text (vypnutý) dialogu"},
+    {9,"Pozadí dialogu"},
+    {10,"Text titulku"},
+    {11,"Pozadí titulku (pasivní)"},
+    {12,"Pozadí titulku (aktivní)"},
+    {13,"Barvy"},
+    {14,"Bez ukazatele průběhu"},
+    {15,"Font konzole"},
+    {16,"Délka"},
+    {17,"Výška"},
+    {18,"Uložit řádky"},
+    {19,"Pozadí"},
+    {20,"Text"},
+    {21,"Kurzor"},
+    {22,"Konzole"},
+    {23,"Jazyk"}
+   ]},
+  {workaround_1,
+   [
+    {1,"Problém"},
+    {2,"použít Workaround?"}
+   ]}
+ ]}.
+{wings_rotate,
+ [
+  {edges_to_vertices,
+   [
+    {1,"Rotace magnetu při mnohonásobném výběru hran vyžaduje jednoznačný zdroj otáčení."}
+   ]},
+  {faces_to_vertices,
+   [
+    {1,"Rotace magnetu při mnohonásobném výběru hran vyžaduje jednoznačný zdroj otáčení."}
+   ]}
+ ]}.
+{wings_s,
+ [
+  {accept,
+   [
+    {1,"Přijmout"}
+   ]},
+  {camera_mode,
+   [
+    {blender,"Blender"},
+    {maya,"Maya"},
+    {mb,"Motionbuilder"},
+    {mirai,"Mirai"},
+    {nendo,"Nendo"},
+    {tds,"3ds max"}
+   ]},
+  {cancel,
+   [
+    {1,"Storno"}
+   ]},
+  {dir,
+   [
+    {all,"Vše"},
+    {da,"Výchozí souřadnice"},
+    {f,"Volně"},
+    {la,"poslední osa"},
+    {n,"Podle normály"},
+    {r,"Radiálně"},
+    {the_axis,"osy ~s "},
+    {u,"Rovnoměrně"},
+    {x,"X"},
+    {y,"Y"},
+    {z,"Z"}
+   ]},
+  {mod,
+   [
+    {alt,"Alt"},
+    {command,"Command"},
+    {ctrl,"Ctrl"},
+    {shift,"Shift"}
+   ]},
+  {mouse_b,
+   [
+    {l,"L"},
+    {m,"M"},
+    {r,"R"}
+   ]},
+  {no,
+   [
+    {1,"Ne"}
+   ]},
+  {yes,
+   [
+    {1,"Ano"}
+   ]}
+ ]}.
+{wings_scale,
+ [
+  {edges_to_vertices,
+   [
+    {1,"Změna velikosti magnetu při mnohonásobném výběru hran vyžaduje jednoznačný základ změny velikosti."}
+   ]},
+  {faces_to_vertices,
+   [
+    {1,"Magnet scale on multiple face regions requires an explicit scale origin."}
+   ]},
+  {inset_face,
+   [
+    {1,"Tam jsou příliš krátké hrany - u jedné nebo více vybraných plochách. (Použijte vyčištění.)"}
+   ]}
+ ]}.
+{wings_sel_cmd,
+ [
+  {ask,
+   [
+    {1,"Vybrat podle Id"}
+   ]},
+  {group_title,
+   [
+    {1,"vrchol: "},
+    {2,"hrana: "},
+    {3,"plocha: "},
+    {4,"tělo: "}
+   ]},
+  {groups_menu,
+   [
+    {1,"Vymazat skupinu"},
+    {2,"Vymazat skupinu \""},
+    {4,"Přidat do skupiny"},
+    {5,"Přidat současný výběr do skupiny \""},
+    {7,"Vyjmout ze skupiny"},
+    {8,"Odebrat nynější výběr ze skupiny \""},
+    {10,"Vybrat skupinu"},
+    {11,"Vybrat skupinu \""},
+    {13,"Spojení skupiny"},
+    {14,"Spojení skupiny \""},
+    {15,"\" se současným výběrem"},
+    {16,"Odebrat skupinu"},
+    {17,"Odebrat skupinu \""},
+    {18,"\" ze současného výběru"},
+    {19,"Průsečík skupiny"},
+    {20,"Průsečík skupina \""},
+    {21,"\" se současným výběrem"}
+   ]},
+  {item_by_id,
+   [
+    {1,"Nic na výběr."},
+    {2,"Id objektu"}
+   ]},
+  {less_help,
+   [
+    {1,"Odznačit všechny vrcholy přiléhající k nevybranému vrcholu"},
+    {2,"Odznačit všechny hrany přiléhající k nevybrané hraně"},
+    {3,"Odznačit všechny plochy přiléhající k nevybrané ploše"}
+   ]},
+  {menu,
+   [
+    {1,"Odznačit"},
+    {2,"Vyčistit výběr"},
+    {3,"Více"},
+    {4,"Méně"},
+    {5,"Podobné"},
+    {6,"Obvod hran"},
+    {7,"Obvod hran"},
+    {8,"Rozšířit vybranou hranu na smyčku; "},
+    {9,"konvertovat výběr ploch na výběr hran"},
+    {10,"Edge Loop na Region"},
+    {11,"Vybrat všechny plochy na jednu stranu edge loop"},
+    {12,"Edge Ring"},
+    {13,"Rozšířit výběr hran na kroužek (Ring)"},
+    {14,"Minulý výběr Edge Loop"},
+    {15,"Vybrat předchozí edge loop"},
+    {16,"Další Edge Loop"},
+    {17,"Vybrat další edge loop"},
+    {18,"Zvětšit Edge Loop"},
+    {19,"Zvětšit výběr hran by one edge in loop directions"},
+    {20,"Zmenšit Edge Loop"},
+    {21,"Zmenšit výběr hran by one in loop direction"},
+    {22,"Zvětšit kroužak hran"},
+    {23,"Zvětšit výběr hran by one edge in ring direction"},
+    {24,"Zmenšit kroužek hran"},
+    {25,"Shrink edge selection by one edge in ring directions"},
+    {26,"Sousedící"},
+    {27,"Vrcholy"},
+    {28,"Hrany"},
+    {29,"Plochy"},
+    {30,"Objekty"},
+    {31,"podle"},
+    {32,"Tvrdé hrany"},
+    {33,"Vybrat všechny tvrdé hrany"},
+    {34,"Izolovat vrcholy"},
+    {35,"Vybrat všechny izolované vrcholy"},
+    {36,"Vrcholy s"},
+    {37,"2 hrany"},
+    {38,"3 hrany"},
+    {39,"4 hrany"},
+    {40,"5 hran"},
+    {41,"Plochy s"},
+    {42,"2 hrany"},
+    {43,"3 hrany"},
+    {44,"4 hrany"},
+    {45,"5 nebo více"},
+    {46,"Náhodně"},
+    {56,"Krátké hrany"},
+    {57,"Vybrat příliš krátké hrany"},
+    {58,"Hrany materiálu"},
+    {59,"Vybrat všechny hramy mezi rozdílnými materiály"},
+    {60,"UV-mapované plochy"},
+    {61,"Vybrat všechny hrany s UV koordináty"},
+    {62,"Id..."},
+    {63,"Výběr podle čísla id"},
+    {64,"Světla"},
+    {65,"Vybrat všechna světla"},
+    {66,"Vybrat všechny prvky"},
+    {67,"Inverzně"},
+    {68,"Invertovat výběr"},
+    {69,"Schovat vybrané"},
+    {70,"Skrýt všechny (částečně nebo zcela) vybrané objekty"},
+    {71,"Skrýt nevybrané"},
+    {72,"Schovat objekty, které nemají žádný výběr"},
+    {73,"Uzamknout nevybrané"},
+    {74,"Uzamknout objekty, které nemají žádný výběr"},
+    {75,"Zobrazit všechno"},
+    {76,"Zobrazit všechny skryté objekty"},
+    {77,"Odemknout vše"},
+    {78,"Odemknout všechny zamčené objekty"},
+    {79,"Uložit výběr"},
+    {80,"Uložit výběrdo výběru skupiny pojmenované  \"Uložený výběr\""},
+    {81,"Zrušit výběr"},
+    {82,"Zrušit výběr ze skupinového výběru pojmenovaného \"Uložený výběr\""},
+    {83,"Nová skupina..."},
+    {84,"Vytvořit novou skupinu výběru"}
+   ]},
+  {more_help,
+   [
+    {1,"Vybrat všechny vrcholy přiléhající k vybranému vrcholu"},
+    {2,"Vybrat všechny hrany přiléhající k vybrané hraně"},
+    {3,"Vybrat všechny plochy sdílené nějakým vrcholem s vybranou plochou"}
+   ]},
+  {new_group,
+   [
+    {1,"Vytvořit novou skupinu"},
+    {2,"Název skupiny"}
+   ]},
+  {new_group_name,
+   [
+    {exists,"již existuje."}
+   ]},
+  {sel_all_str,
+   [
+    {1,"Všechny vrcholy"},
+    {2,"Všechny hrany"},
+    {3,"Všechny plochy"},
+    {4,"Všechny objekty"}
+   ]},
+  {short_edges,
+   [
+    {1,"Délková tolerance"},
+    {2,"Vybrat krátké hrany"}
+   ]},
+  {similar_help,
+   [
+    {1,"Vybrat vrcholy shodné s již označenými vrcholy"},
+    {2,"Vybrat hrany shodné s již označenými hranami"},
+    {3,"Vybrat plochy shodné s již označenými plochami"},
+    {4,"Vybrat objekty se stejným počtem hran, ploch a vrcholů"}
+   ]},
+  {valid_sel,
+   [
+    {1,"Id objektu "},
+    {2," je neplatné."},
+    {3," "},
+    {4," je neplatné."}
+   ]}
+ ]}.
+{wings_shape,
+ [
+  {do_menu,
+   [
+    {1,"Duplikovat (vytvořit kopii)"},
+    {2,"Duplikovat vybrané objekty"},
+    {3,"Smazat (Delete)"},
+    {4,"Smazat vybraný objekt"},
+    {5,"Přejmenovat (Rename)"},
+    {6,"Přejmenovat vybrané objekty"}
+   ]},
+  {help,
+   [
+    {1,"Vybrat (Select)"},
+    {2,"Zobrazit menu"},
+    {3,"Toggle viditelnost aktivního objektu"},
+    {4,"Toggle viditelnost všech ostatních objektů"},
+    {5,"Zamknout/odemknout aktivní object"},
+    {6,"Zamknout/odemknout včechny objekty"},
+    {7,"Toggle výběr pro aktivní objekt"},
+    {8,"Toggle výběr pro všechny ostatní objekty"},
+    {9,"Toggle stínovaný/drátový pro aktivní objekt"},
+    {10,"Toggle stínovaný/drátový pro všechny ostatní objekty"}
+   ]},
+  {title,
+   [
+    {1,"Graf geometrie"},
+    {2,"Graf geometrie #"}
+   ]}
+ ]}.
+{wings_shapes,
+ [
+  {cone,
+   [
+    {1,"Sekce"}
+   ]},
+  {cylinder,
+   [
+    {1,"Sekce"}
+   ]},
+  {grid,
+   [
+    {1,"Řádky/sloupce"}
+   ]},
+  {menu,
+   [
+    {15,"Více"},
+    {16,"Více primitiv (základních objektů)"}
+   ]},
+  {prim_help,
+   [
+    {cone,"Vytvořit kužel"},
+    {cube,"Vytvořit krychli"},
+    {cylinder,"Vytvořit válec"},
+    {dodecahedron,"Vytvořit dodecahedron"},
+    {grid,"Vytvořit mřížku (grid)"},
+    {icosahedron,"Vytvořit icosahedron"},
+    {image,"Vytvořit obrázek..."},
+    {light,"Vytvořit světlo"},
+    {material,"Vytvořit materiál..."},
+    {octahedron,"Vytvořit octahedron"},
+    {octotoad,"Vytvořit octotoad"},
+    {sphere,"Vytvořit kouli"},
+    {tetrahedron,"Vytvořit tetrahedron"},
+    {torus,"Vytvořit torus"}
+   ]},
+  {prim_name,
+   [
+    {cone,"Kužel"},
+    {cube,"Krychle"},
+    {cylinder,"Válec"},
+    {dodecahedron,"Dodecahedron"},
+    {grid,"Mřížka (Grid)"},
+    {icosahedron,"Icosahedron"},
+    {image,"Obrázek..."},
+    {light,"Světlo"},
+    {material,"Materiál..."},
+    {octahedron,"Octahedron"},
+    {octotoad,"Octotoad"},
+    {sphere,"Koule"},
+    {tetrahedron,"Tetrahedron"},
+    {torus,"Torus"}
+   ]},
+  {sphere,
+   [
+    {1,"Sekcí"},
+    {2,"Částí (Slices)"}
+   ]},
+  {torus,
+   [
+    {1,"Sekcí"},
+    {2,"Částí"},
+    {3,"Major Radius"},
+    {4,"Minor Radius"}
+   ]}
+ ]}.
+{wings_subdiv,
+ [
+  {face_centers,
+   [
+    {1,"Plocha "},
+    {2," má pouze 2 hrany."}
+   ]},
+  {smooth,
+   [
+    {1,"vyhlazení"},
+    {2,"výpočet středů ploch"},
+    {3,"rozdělit hrany (cutting edges)"},
+    {4,"aktualizovat materiály"},
+    {5,"vytvořit nové plochy"},
+    {6,"přesunout vrcholy"},
+    {7,"konečná úprava (finishing)"}
+   ]}
+ ]}.
+{wings_tesselation,
+ [
+  {submenu,
+   [
+    {1,"Triangulate"},
+    {2,"Quadrangulate"}
+   ]}
+ ]}.
+{wings_toolbar,
+ [
+  {button_help_1,
+   [
+    {1,"Odznačit (Deselect)"}
+   ]},
+  {button_help_2,
+   [
+    {1,"Vybrat sousedící vrcholy"},
+    {2,"Přepnout do režimu výběru vrcholů"},
+    {3,"Vybrat sousedící hrany"},
+    {4,"Přepnout do řežimu výběru hran"},
+    {5,"Vybrat sousedících ploch"},
+    {6,"Přepnout do řežimu výběru ploch"},
+    {7,"Přepnout do řežimu výběru objektů"}
+   ]},
+  {messages,
+   [
+    {axes,"osy"},
+    {change_to,"Změnit"},
+    {flat,"plošné stínování (flat shading)"},
+    {groundplane,"zemní plocha (ground plane)"},
+    {hide,"Schovat"},
+    {orthogonal,"ortogonální pohled"},
+    {perspective,"perspektiva"},
+    {show,"Zobrazit"},
+    {show_objects,"Zobrazit objekty"},
+    {smooth,"vyhlazené stínování (smooth shading)"}
+   ]}
+ ]}.
+{wings_u,
+ [
+  {caption,
+   [
+    {1,"automaticky uložený"}
+   ]}
+ ]}.
+{wings_vec,
+ [
+  {add_help_text,
+   [
+    {1,"Zvolte si osu (a bod)"},
+    {2,"Zvolte si osu"},
+    {3,"Zvolte bod"},
+    {4,"Zvolte vnější hraniční bod pro ovlivnění magnetem"}
+   ]},
+  {add_magnet,
+   [
+    {1,"Zvolte vnější hraniční bod pro ovlivnění magnetem"}
+   ]},
+  {check_magnet_point,
+   [
+    {1,"Středový bod výběru uložen."}
+   ]},
+  {check_point,
+   [
+    {1,"Středový bod výběru uložen."},
+    {2,"Nevšímat si zrcadlového obrazu při výpočtu vztažného bodu"},
+    {3,"Včetně zrcadlového obrazu při výpočtu vztažného bodu"}
+   ]},
+  {check_vector,
+   [
+    {1,"Vybrat části pouze jednoho objektu"}
+   ]},
+  {common_magnet_message,
+   [
+    {1,"Magnet"}
+   ]},
+  {common_message,
+   [
+    {1,"Vykonat"},
+    {2,"Pokračovat"}
+   ]},
+  {exit_menu,
+   [
+    {2,"Zrušit vybraný příkaz"}
+   ]},
+  {get_vec,
+   [
+    {1,"Uložit hranu jako osu"},
+    {2,"Uložit hranu jako normálu"},
+    {3,"Normála hrany uložena jako osu"},
+    {4,"Uložit směr hrany"},
+    {5,"Směr mezi hranami uložen jako osu."},
+    {6,"Nornála kruhu hran uložena jako osa."},
+    {7,"Mnohonásobný výběr hran musí tvořit uzavřenou smyčku."},
+    {8,"Vrchol normály uložen."},
+    {9,"Směr mezi vrcholy uložen jako osa."},
+    {10,"Použít střed normály vrcholu jako osu"},
+    {11,"Střed normály vrcholu uložen jako osa."},
+    {12,"Použít směr mezi vrcholy jako osu."},
+    {13,"3-point perp. normály uloženy jako osa."},
+    {14,"Normála smyčky vrcholů (vertex loop) uložena jako osa."},
+    {15,"Mnohonásobný výběr vrcholů musí tvořit uzavřenou smyčku."},
+    {16,"Normála plochy uložena jako osa."},
+    {17,"Směr mezi středy ploch uložen jako osa."},
+    {18,"Použít průměr normál ploch"},
+    {19,"Průměr normál ploch uložen jako osa."},
+    {20,"Použít směr mezi středy ploch"},
+    {21,"Normála smyčky hran regionu uložena jako osa."},
+    {22,"Mnohonásobný výběr ploch musí mít jednu smyčku hran (edge loop)."},
+    {23,"Výběr vrcholů, hran, nebo ploch."}
+   ]},
+  {magnet_message,
+   [
+    {1,"Provést (vykonat) "},
+    {2,"Volby magnetu (Magnet options)"}
+   ]}
+ ]}.
+{wings_vertex_cmd,
+ [
+  {menu,
+   [
+    {1,"Operace s vrcholy"},
+    {2,"Přesunout (Move)"},
+    {3,"Vytáhnout (Extrude)"},
+    {4,"Spojit (Connect)"},
+    {5,"Vytvořit novou hranu spojením vybraných vrcholů"},
+    {6,"Stáhnout (Tighten)"},
+    {7,"Přesunout vybrané vrcholy směrem ke středu úsečky"},
+    {8,"Zkosení (Bevel)"},
+    {9,"Vytvořit plochu z vybraných vrcholů"},
+    {10,"Rozplynout (Dissolve)"},
+    {11,"Smyzat vybrané vrcholy (clearing selection)"},
+    {12,"Spojit (Collapse)"},
+    {13,"Smazat vybrané vrcholy (creating a face selection)"},
+    {14,"Deformace"},
+    {15,"Barva vrcholu"},
+    {16,"Aplikovat barvy vrcholů na vybrané vrcholy"}
+   ]}
+ ]}.
+{wings_view,
+ [
+  {auto_rotate_help,
+   [
+    {1,"Zastavit rotaci (otáčení)"},
+    {2,"Zvýšit rychlost"},
+    {3,"Snížit rychlost"}
+   ]},
+  {camera,
+   [
+    {1,"Negative Format"},
+    {4,"Uživatelská"},
+    {5,"x"},
+    {6,"Širokoúhlý objektiv"},
+    {7,"Mírně širokoúhlý objektiv"},
+    {8,"Standartní objektiv"},
+    {9,"Obrazový teleobjektiv"},
+    {10,"Teleobjektiv"},
+    {11,"Uživatelský objektiv"},
+    {12,"Délka"},
+    {13,"x Přiblížení (Zoom)"},
+    {14,"Objektiv"},
+    {15,"Zorné pole"},
+    {16,"Near Clipping Plane"},
+    {17,"Far Clipping Plane"},
+    {18,"Nastavení kamery"}
+   ]},
+  {help,
+   [
+    {1,"Nastavení kamery: zorné pole"},
+    {2,"Nastavení vertikálního pole pohledu, tzn. úhlu mezi dolním a horním viditelným okrajem. "},
+    {3,"Nastavení zorného pole objektivu apod. je vhodné přinejmenším pro fotografy."},
+    {4,"Nastavení objektivu nastaví výšku obrázku podle vybrané čočky - je potřeba dodržet poměr stran, jinak dojde k chybě."},
+    {5,"Poznámka: the zoom factor is relative a standard lens length of the negative diagonal, while only the negative height affects the effective lens length."}
+   ]},
+  {menu,
+   [
+    {1,"Mřížka"},
+    {2,"Zobrazit mřížku"},
+    {3,"Osy"},
+    {4,"Zobrazit koordináty os"},
+    {5,"Pracovní režim"},
+    {6,"Nastavit ploché/hladké stínování"},
+    {7,"Drátové zobrazení (Wireframe)"},
+    {8,"Zobrazit vybrané objekty jako drátový model (stejně tak i  pro všechny objekty, pokud není nic vybráno)"},
+    {9,"Stín (Shade)"},
+    {10,"Zobrazit vybrané objekty stínovaně (stejně tak i  pro všechny objekty, pokud není nic vybráno)"},
+    {11,"Režim drátového modelu (Wireframe)"},
+    {12,"Nastavit režim zobrazení vybraných objektů (stejně tak i  pro všechny objekty, pokud není nic vybráno)"},
+    {13,"Proxy režim"},
+    {14,"Nastavit vyhlazovaný proxy režim u vybraných objektů"},
+    {15,"Rychlý vyhlazený náhled"},
+    {16,"Vyhlazený proxy režim u všech objektů"},
+    {17,"Zobrazit uložený Bounding Box"},
+    {18,"Zobrazit každý uložený bounding box"},
+    {19,"Zobrazit hrany"},
+    {20,"Zobrazit hrany v pracovním režimu"},
+    {21,"Zobrazit drátovým zobrazením zadní plochy"},
+    {22,"Zobrazit drátovým zobrazením zadní plochy"},
+    {23,"Zobrazit normály"},
+    {24,"Zobrazit normály vybraných prvků"},
+    {25,"Resetovat pohled"},
+    {26,"Resetovat pohled na výchozí pohled"},
+    {27,"Zaměření (Aim)"},
+    {28,"Zaměření kamery na vybraný prvek"},
+    {29,"Rámeček (Frame)"},
+    {30,"Kamerový vozík nastavit tak, aby byly vidět všechny vybrané prvky (nebo všechny objekty, pokud není vybráno nic)"},
+    {31,"Orthografický pohled"},
+    {32,"Přepínání mezi orthografickým a perspektivním zobrazením"},
+    {33,"Uložené pohledy: "},
+    {34,"Nastavení kamery..."},
+    {35,"Set field of view, and near and far clipping planes"},
+    {36,"Osvětlení scény"},
+    {37,"Použít světla definovaná ve scéně"},
+    {38,"Dvě světla"},
+    {39,"Jedno světlo"},
+    {40,"Použít dvě vytvořená světla"},
+    {41,"Použít jedno vytvořené světlo"},
+    {42,"Zobrazit barvy"},
+    {43,"Zobrazit barvy vrcholů objektů v režimu \"vrcholů\" "},
+    {44,"Zobrazit materiály"},
+    {45,"Zobrazit materiály objektů v režimu \"materiálu\" "},
+    {46,"Zobrazit textury"},
+    {47,"Zobrazit textury objektů v režimu \"materiálu\" "},
+    {48,"Zobrazit informační text"},
+    {49,"Ukázat informační text v horní části tohoto okna geometrie"},
+    {50,"Zobrazit podle osy"},
+    {51,"+X"},
+    {52,"+Y"},
+    {53,"+Z"},
+    {54,"-X"},
+    {55,"-Y"},
+    {56,"-Z"},
+    {57,"Zarovnat k výběru"},
+    {58,"Zarovnat pohled k normále výběru"},
+    {59,"Automaická rotace (otáčení)"},
+    {60,"Rotace zorného pole"}
+   ]},
+  {view_legend,
+   [
+    {from,"Od"},
+    {distance,"vzdálenost"},
+    {2,"podél +X"},
+    {3,"podél +Y"},
+    {4,"podél +Z"},
+    {5,"podél -X"},
+    {6,"podél -Y"},
+    {7,"podél -Z"},
+    {8,"směrem k Origin"},
+    {9,"směrem "}
+   ]},
+  {views,
+   [
+    {1,"Tento pohled je již vybraný"},
+    {2,"Žádné uložené pohledy"},
+    {3,"Přejmenovat pohled"},
+    {4,"Nacházíte se ve vybraném pohledu"},
+    {5,"Jste si jist, že chcete vymazat všechny uložené pohledy?"}
+   ]},
+  {views_jump,
+   [
+    {1,"No such view slot"}
+   ]},
+  {views_jumpmenu,
+   [
+    {1,"Skočit (Jump)"},
+    {2,"Žádné uložené pohledy!"},
+    {3,"Skočit na předchozí["},
+    {5,"Skočit na nynější["},
+    {7,"Skočit na další["},
+    {9,"Skočit na ["},
+    {11,"Skočit"}
+   ]},
+  {views_move,
+   [
+    {1,"Žádné nalezené pohledy ["}
+   ]},
+  {views_movemenu,
+   [
+    {1,"Přesun"},
+    {2,"Žádné uložené pohledy!"},
+    {3,"Přesunout \""},
+    {5,"] k předchozímu["},
+    {7,"Přesunout \""},
+    {9,"] žádný"},
+    {10,"Přesunout \""},
+    {12,"] k dalšímu["},
+    {14,"Přesunout \""},
+    {16,"] k ["},
+    {18,"Přesun aktuálního"}
+   ]},
+  {views_rename_qs,
+   [
+    {1,"Jméno"}
+   ]},
+  {views_save_dialog,
+   [
+    {1,"Uložit pohled jako"}
+   ]},
+  {views_submenu,
+   [
+    {1,"Další"},
+    {2,"Aktuální (Current)"},
+    {3,"Předchozí"},
+    {4,"Uložit"},
+    {5,"Uložit tento pohled jako "},
+    {7,"Přejmenovat..."},
+    {8,"Smazat"},
+    {9,"Smazat všechny..."}
+   ]},
+  {views_submenu_help,
+   [
+    {1,"Žádné uložené pohledy!"},
+    {2,"Skočit na \""},
+    {5,"Přejmenovat \""},
+    {8,"Smazat \""},
+    {11,"Smazat všechny uložené pohledy"}
+   ]},
+  {virtual_mirror,
+   [
+    {1,"Zrcadlové zobrazení (Virtual mirror) vyžaduje výběr ploch."}
+   ]},
+  {virtual_mirror_fun,
+   [
+    {1,"Na objektu musí být vybrána pouze jedna plocha."}
+   ]}
+ ]}.
+{wings_we,
+ [
+  {all_soft,
+   [
+    {1,"příprava (preparing)"},
+    {2,"sbírání (collecting)"}
+   ]},
+  {mixed_edges,
+   [
+    {1,"příprava (preparing)"},
+    {2,"normály vrcholů (vertex normals)"},
+    {3,"normály vrcholů na ploše"}
+   ]},
+  {normals_2,
+   [
+    {1,"spočítat měkké normály"}
+   ]}
+ ]}.
+{wings_wm,
+ [
+  {message_event,
+   [
+    {1,"Toto je informační řádka"}
+   ]}
+ ]}.
+{wings_wm_toplevel,
+ [
+  {close_event,
+   [
+    {1,"Zavřít toto okno"}
+   ]},
+  {ctrl_command,
+   [
+    {1,"Délka"},
+    {2,"Výška"},
+    {3,"Nastavit velikost okna"}
+   ]},
+  {ctrl_menu,
+   [
+    {1,"Přizpůsobit (Fit)"},
+    {2,"Oba (Both)"},
+    {3,"Využít prostor okna"},
+    {4,"Horizontálně"},
+    {5,"Využít prostor okna roztažením v horizontálním směru"},
+    {6,"Vertikálně"},
+    {7,"Využít prostor okna roztažením ve vertikálním směru"},
+    {8,"Velikost (Size)"},
+    {9,"Nastavit velikost okna numericky"}
+   ]},
+  {ctrl_menu_toolbar,
+   [
+    {1,"Schovat Toolbar"},
+    {2,"Schovat toolbar"},
+    {3,"Zobrazit Toolbar"},
+    {4,"Zobrazit toolbar"}
+   ]},
+  {ctrl_message,
+   [
+    {1,"Drag to Move"},
+    {2,"Přizpůsobit (Fit)"},
+    {3,"Zobrazit menu"}
+   ]},
+  {ctrl_resize,
+   [
+    {1,"Nastavena příliš velká velikost"}
+   ]},
+  {resize_event,
+   [
+    {1,"Změna velikosti (Resize)"},
+    {2,"Změnit velikost, zachovat nynější poměr"}
+   ]}
+ ]}.
+{wpa,
+ [
+  {dialog_template,
+   [
+    {1,"Prohodit osy Y a Z"},
+    {6,"Sub-division kroky"},
+    {7,"Výchozí typ textur"},
+    {color,"Export barev vrcholů"},
+    {norms,"Export normals/smoothing skupin"},
+    {tess,"Dláždění (Tesselation - mozaika)"},
+    {tess0,"Nic"},
+    {tess3,"Triangulace"},
+    {tess4,"Quadrangulace"},
+    {uv,"Export UV souřadnic"}
+   ]},
+  {do_import,
+   [
+    {1,"číst soubor"}
+   ]},
+  {export_scale_s,
+   [
+    {1,"Exportní poměr"}
+   ]},
+  {export_selected,
+   [
+    {1,"Výběr objektů nebo ploch."}
+   ]},
+  {format_error,
+   [
+    {1,"Vnitřní chyba: ~P\n"}
+   ]},
+  {import,
+   [
+    {1,"Import selhal: "}
+   ]},
+  {import_scale_s,
+   [
+    {1,"Importní poměr"}
+   ]}
+ ]}.
+
+
+{wings,
+ [
+  {object_mode,
+   [
+    {material,"materiál"},
+    {vertex,"barva vertexů"}
+   ]}
+ ]}.
+{wings_magnet,
+ [
+  {magnet_shape_str,
+   [
+    {bell,"Zvon"},
+    {dome,"Kopule"},
+    {spike,"Špička"},
+    {straight,"Rovně"}
+   ]}
+ ]}.
+{wings_sel_cmd,
+ [
+  {group_mode_string,
+   [
+    {body,"Skupinový výběr objektů"},
+    {edge,"Skupinový výběr hran"},
+    {face,"Skupinový výběr ploch"},
+    {vertex,"Skupinový výběr vrcholů"}
+   ]}
+ ]}.
+
+{wings,
+ [
+  {measure,
+   [
+    {6,". Úhel ~s"},
+    {5,". Vzdálenost ~s  <~s, ~s, ~s>"}
+   ]}
+ ]}.
+{wings_edge_cmd,
+ [
+  {cut_ask_entry,
+   [
+    {1,"Rozdělit na <N> segmentů"},
+    {2,"Vlož číslo..."}
+   ]},
+  {command,
+   [
+    {1,"Segmenty"}
+   ]}
+ ]}.
+{wings_pref_dlg,
+ [
+  {ui_prefs,
+   [
+    {24,"Objekty v Outlineru"}
+   ]},
+  {advanced_prefs,
+   [
+    {22,"Výchozí používání virtuálního zrcadlení pro sekundární výběry"},
+    {21,"Použít zrcadlový obraz pro výběry"}
+   ]}
+ ]}.
+{wings_sel_cmd,
+ [
+  {oriented_faces_menu,
+   [
+    {1,"Shodné normály"},
+    {2,"Vybrat plochy se stejnými normálami, jako mají již vybrané plochy"}
+   ]},
+  {oriented_faces,
+   [
+    {1,"Tolerance úhlu"},
+    {2,"Výběr stejně orientovaných ploch"}
+   ]},
+  {nonplanar_faces,
+   [
+    {1,"Tolerance vzdálenosti"},
+    {2,"Výběr neplanárních ploch"}
+   ]},
+  {menu,
+   [
+    {86,"Výběr všech neplanárních ploch"},
+    {85,"Neplanární plochy"}
+   ]}
+ ]}.
+
+
+{wings_pref_dlg,
+ [
+  {viewer_prefs,
+   [
+    {1,"Prohlížeč"},
+    {2,"Nastavení"},
+    {3,"..jméno souboru.."}
+   ]},
+  {ui_prefs,
+   [
+    {25,"Zobrazit obrázek po vykreslení"}
+   ]},
+  {misc_prefs,
+   [
+    {23,"Vyrovnání hran:"},
+    {22,"Zobrazit problémy s hranami?"}
+   ]}
+ ]}.

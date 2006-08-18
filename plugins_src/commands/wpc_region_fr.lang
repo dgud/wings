@@ -1,0 +1,19 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_region,
+ [
+  {menu,
+   [
+    {1,"Region"},
+    {2,"Deplacer la region le long de la normale de cette boucle d'aretes."},
+    {3,"Region"},
+    {4,"Agrandir la region depuis le plan de cette boucle d'aretes."},
+    {5,"Region"},
+    {6,"Tourner la region a partir de la normale de cette boucle d'aretes."},
+    {7,"Region"},
+    {8,"Aplanir la region a partir de la normale de cette boucle d'aretes."}
+   ]},
+  {region_error,
+   [
+    {1,"Chaque region doit voir exactement une boucle d'arete."}
+   ]}
+ ]}.

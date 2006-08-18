@@ -1,0 +1,39 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_untriangulate,
+ [
+  {get_ask_list,
+   [
+    {1,"Intensite de l'Algorithme"},
+    {2,"Une intensite supérieur de l'algorithme sont plus lents, mais peut produire de meilleurs resultats"},
+    {3,"Angle d'arete maximum"},
+    {4,"Angle Maximum des aretes qui se fondent"},
+    {5,"Verifier les materiaux"},
+    {6,"Ne pas fondre les aretes le long des limites du materiau"},
+    {7,"Verifier les coordonnees UV"},
+    {8,"Ne pas fondre les aretes le long des limites des coordonnees de la texture disjointe"},
+    {9,"Verifier les aretes dures"},
+    {10,"Ne pas fondre les aretes dures"},
+    {11,"Verifier la concavite"},
+    {12,"Ne pas produire de polygones concaves"}
+   ]},
+  {menu,
+   [
+    {1,"De-trianguler"},
+    {2,"Convertir les polygones triangulaires en quadrangles"},
+    {3,"De-trianguler"}
+   ]},
+  {pref_edit,
+   [
+    {1,"Preferences de de-triangulation (v0.2)"}
+   ]},
+  {process_edges,
+   [
+    {1,"De-trianguler"},
+    {2,"Choisir les aretes cibles"},
+    {3,"Realiser un arbre de selections"}
+   ]},
+  {untriangulate,
+   [
+    {1,"De-trianguler (v0.2)"}
+   ]}
+ ]}.

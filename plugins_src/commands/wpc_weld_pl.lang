@@ -1,0 +1,42 @@
+%%                              -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_weld_pl.lang --
+%%
+%%     Polish language strings for Vertex Weld.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_weld_pl.lang,v 1.3 2006/07/10 17:16:15 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek & Maciej Milewski
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_weld,
+ [
+  {draw_menu,
+   [
+    {1,"Spawaj"},
+    {2,"Przyspawaj zaznaczony punkt do innego punktu połączonego z nim krawędzią"}
+   ]},
+  {weld,
+   [
+    {1,"Nie możesz spawać punktów płaszczyzny lustra"},
+    {2,"Obiekt musi mieć przynajmniej 4 punkty"},
+    {3,"Możesz spawać tylko pojedyncze punkty"}
+   ]},
+  {weld_check_selection,
+   [
+    {1,"Nie możesz spawać punktu z samym sobą"},
+    {2,"Pomiędzy punktami które chcesz spawać musi znajdować się krawędź"},
+    {3,"Możesz spawać tylko do jednego punktu"},
+    {4,"Nic nie zaznaczono"},
+    {5,"Możesz spawać tylko w tym samym obiekcie"}
+   ]},
+  {weld_select,
+   [
+    {1,"Zaznacz punkt do którego chcesz spawać"}
+   ]}
+ ]}.

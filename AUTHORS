@@ -1,0 +1,114 @@
+$Id: AUTHORS,v 1.32 2005/06/01 14:27:11 dgud Exp $
+
+Björn Gustavsson:
+	Has written the bulk of code.
+	Started writing Wings beginning of April 2001.
+	Most of the Nendo functionality (except Rotate Free/Plane Cut)
+	was in place in the middle of July 2001.
+
+Jakob Cederlund:
+	Implemented the Tube, Cone, Sphere, and Torus objects.
+	Brain-storming and discussion partner.
+	Implemented the Collapse commands. Original idea and
+        implementation of the Intrude and Select Similar.
+	Implemented the original plug-in architecture.
+	Wrote the Spiral plug-in.
+
+Dan Gudmundsson:
+	Wrote the ESDL package that made it possible.
+	Ideas and inspiration.
+	Wrote the e3d_image modules.
+	Wrote the original material editor.
+	Principal author of Auto-UV.
+
+Vlad Dumitrescu: Bugfix for middle-mouse button emulation.
+
+Patrik Nyblom: User interface plugins for file dialogs. Makefiles for Windows.
+
+Anthony D'Agostino: Provided me with info on the NDO format.
+	Wrote the Torus Knot, Torus, and Plane plug-ins
+
+Gregg Griffin: Designed icons and the new look of Wings.
+
+Chris Osgood (WingsOne):
+	Wrote the qt_file plugin.
+
+	Contributed working code for several new features, such as
+	axis letters and showing the grid whenever the view is
+	axis-aligned.
+
+	Implemented advanced menus, named vectors, secondary
+	selections, and other new features in a set of patches.
+	These ideas, and some of the code, is now included in
+	the core of Wings.
+
+Howard Trickey:
+	Wrote the new, much better triangulator (and a quadrilator)
+	in e3d_mesh.
+	Wrote the AI import, Triangulate & Quadrangulate, and Text
+	plug-ins.
+	Wrote the Hash A:M exporter.
+
+Anders Conradi: Wrote the Select|Edge Ring command (originally as a plug-in).
+
+Sean Hinde (Earlyriser):
+	Wrote the VRML exporter.
+	Got Wings working on Mac OS X.
+	Packaged Wings an a Mac application.
+
+Danni Coy (KayosIII):
+	Significantly enhanced the Renderman exporter. Added the Render
+	command.
+
+Patrick de Klein (TheChalker):
+	Designed the Wings icon that is used on the Windows version of Wings.
+
+Clarence Vidalies (clacos):
+	Implemented the File|Save Incrementally command.
+
+Mark Luffel:
+	Implemented named selections groups.
+
+Chris Wayles:
+	Made nicer eye and pyramid icons for the Object and Outliner window.
+
+Raimo Niskanen (ratmapper):
+	Wrote the Yafray plug-in.
+
+Keith Bauer:
+	Created Mac OS X document icons for all file types that Wings supports.
+
+Dmitry Efremov:
+	Implemented the Cartoon Edges export plugin.
+
+Riccardo Venier (verme@insiberia.net):
+	Translated all the strings in the Wings core to Italian, and implemented
+	a mechanism for changing langugages.
+
+Paul M (elrond79):
+	Wrote intersect (vertex/edge) commands and force ortho view option when
+	camera is on one of the major axis.
+	Improved 3DS import so that all triangles are converted to polygons
+	(unless doing so would create holes or create isolated vertices).
+
+Nicolas Bouillard (syndarion):
+	French translation.
+
+Libor Divis:
+	Czech translation.
+
+Luiz Fonte Boa:
+	Portuguese translation.
+
+A. Giniewicz, M. Napiontek, and K. Giniewicz:
+	Polish translation.
+
+Tapio Ryynänen / Mostlymop:
+	Finnish translation.	
+
+Auto-UV credits
+===============
+
+Dan Gudmundsson (idea; principal author)
+Bjorn Gustavsson
+Raimo Niskanen (implemented the Least Square Conformal Map algorithm)

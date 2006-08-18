@@ -1,0 +1,40 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wp9_dialogs,
+ [
+  {check_filename,
+   [
+    {1," n'existe pas"}
+   ]},
+  {dialog_1,
+   [
+    {1,"Regarder a l'interieur"},
+    {2,"En haut"},
+    {3,"Nom du fichier"},
+    {4,"Format du fichier"},
+    {5,"Annulation"},
+    {6," existe; ecraser?"},
+    {7,"Oui"},
+    {8,"Non"}
+   ]},
+  {file_filters,
+   [
+    {1,"Fichier Wings"},
+    {2,"Tous les fichiers (*)"}
+   ]},
+  {file_list,
+   [
+    {1,"Nom de fichier"}
+   ]},
+  {image_formats,
+   [
+    {1,"Fichier Bitmap BMp"},
+    {2,"Tiff Bitmap"},
+    {3,"Fichier PNG"},
+    {4,"Fichier Targa"}
+   ]},
+  {ui,
+   [
+    {1,"Ouvrir"},
+    {2,"Sauver"}
+   ]}
+ ]}.

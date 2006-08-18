@@ -1,0 +1,27 @@
+%%
+%%  wpc_wood.auv --
+%%
+%%     Config file for simple wood shader
+%%
+%%  Copyright (c) 2006 Dan Gudmundsson
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_wood.auv,v 1.2 2006/01/27 15:17:56 dgud Exp $
+%%
+ 
+%%  Everything behind a '%' is a comment
+
+{name, "Wood"}.  % The name in the shader selector
+{vertex_shader, "standard.vs"}. % Vertex shader used
+{fragment_shader, "wood.fs"}.  % Fragment shader used
+{auv, auv_noise}.               % Use builtin 3d noise texture
+{auv, auv_bbpos3d}.             % Use bounding box for positions
+%% Uses these uniforms:  
+%% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
+{uniform, color, "darkWood", {0.45,0.22,0.0,1.0}, "Dark Rings"}.
+{uniform, color, "liteWood", {0.85,0.42,0.20,1.0}, "Lite Background"}.
+{uniform, float, "frequency", 3.0, "Frequency"}.
+{uniform, float, "noiseScale", 8.0, "Noise Scale"}.
+{uniform, float, "scale", 1.0, "Scale"}.

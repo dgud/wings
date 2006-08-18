@@ -1,0 +1,37 @@
+%%                    -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_rwx_pl.lang --
+%%
+%%     Polish language strings for Criterion Renderware i/e.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_rwx_pl.lang,v 1.1 2006/01/08 18:07:00 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_rwx,
+ [
+  {dialog,
+   [
+    {1,"Płaszczyznowe próbkowanie światła"},
+    {2,"Optymalizacja rozmiaru plików"},
+    {3,"Otoczenie"},
+    {4,"Rozproszenie"},
+    {5,"Odblask"},
+    {6,"Skala eksportu"},
+    {7,"Kroki wygładzania"}
+   ]},
+  {do_export,
+   [
+    {1,"Opcje eksportu Renderware"}
+   ]},
+  {props,
+   [
+    {1,"Pliki Criterion Renderware"}
+   ]}
+ ]}.

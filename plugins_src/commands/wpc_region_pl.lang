@@ -1,0 +1,34 @@
+%%                       -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_region_pl.lang --
+%%
+%%     Polish language strings for Region.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_region_pl.lang,v 1.2 2006/07/10 17:16:09 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek & Maciej Milewski
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_region,
+ [
+  {menu,
+   [
+    {1,"Obszar"},
+    {2,"Przesuń obszar wzdłuż wektora normalnego jego pętli krawędziowej."},
+    {3,"Obszar"},
+    {4,"Skaluj obszar po jego pętli krawędziowej."},
+    {5,"Obszar"},
+    {6,"Obróć obszar względem wektora normalnego jego pętli krawędziowej."},
+    {7,"Obszar"},
+    {8,"Wyrównaj obszar do jego pętli krawędziowej."}
+   ]},
+  {region_error,
+   [
+    {1,"Każdy obszar musi mieć dokładnie jedną pętlę krawędziową."}
+   ]}
+ ]}.

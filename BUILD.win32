@@ -1,0 +1,188 @@
+BUILDING WINGS 3D ON WINDOWS
+============================
+
+This guide describes how you can build Wings 3D from the
+sources on a Windows system.
+
+$Revision: 1.12 $
+$Date: 2005/04/08 06:02:27 $
+
+Required software
+=================
+
+From Wings 0.98.16b and higher, Wings can be built on Windows
+using only free/open-source software.
+
+The following software is needed:
+
+- The Wings source. http://www.wings3d.com
+
+- Cygwin, a unix-like environment for Windows. http://www.cygwin.com
+
+- Erlang/OTP R10B-4 or later. http://www.erlang.org
+  (Download the pre-built binaries for Windows.)
+
+- ESDL 0.94.1025 or later. http://esdl.sf.net
+  (I recommend downloading the pre-built binaries for Windows.)
+
+- MinGW, a C compiler and libraries for building native Windows applications.
+  http://www.mingw.org
+
+- NSIS 2.02 or higher, an installer/uinstaller maker.
+  (The beta releases of NSIS 2.0 will no longer work.)
+  http://nsis.sf.net.
+
+Installing the software
+=======================
+
+In general, you should follow the instructions for each package.
+
+Installing Cygwin
+-----------------
+
+Make sure that you install the GNU Make program. It will be needed
+later in the build process.
+
+Setting up the environment
+==========================
+
+A few environment variables need to be set. They can be set
+for Windows globally from "My Computer", or only in the Cygwin shell
+by adding them to ".profile".
+
+ESDL_PATH need to be set to path of the directory you installed ESDL in.
+
+Modify the PATH environment variable so that the following programs 
+are runnable from a Cygwin (bash) shell.
+
+   make         (Cygwin, if you installed Make)
+
+   erlc.exe     (Erlang/OTP)
+
+   mingw32-gcc  (MinGW)
+
+   makensis.exe (NSIS)
+
+An easy way to check that the programs are runnable is to use the
+"which" command in a cygwin shell like this:
+
+$ which make
+/usr/bin/make
+$
+
+Unpacking the Wings source code
+===============================
+
+Give the "-j" flag to the "tar" program to tell it to decompress using
+the "bunzip2" program.
+
+Example:
+
+$ tar jxf wings-0.98.16b.tar.bz2
+
+The build steps that follow assume that you are in the wings source
+directory.
+
+Example:
+
+$ cd wings-0.98.16b.tar.bz2
+
+Basic build
+===========
+
+To build a minimal Wings that can be used for development purposes,
+all you need is to run make from inside the directory where the
+sources where unpacked.
+
+Example:
+
+$ pwd
+/home/bjorng/wings-0.98.16b
+$ make
+.
+.
+.
+<A lot of output follows>
+.
+.
+.
+$ 
+
+Running Wings
+============
+
+To run the Wings you have just build, you'll need to write a command line
+similar to this:
+
+	werl -pa $ESDL_PATH/ebin -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt
+
+where you should substitute <MY_WINGS_PATH> with the path to the Wings
+source directory.
+
+Example:
+
+$ werl -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-0.98.16b/ebin -run wings_start start_halt
+$
+
+An Erlang console should appear, followed by the Wings window.
+It should work OK except that there will be no file dialog boxes
+if you try File|Open or File|Save. (See the next section on how
+to remedy that.)
+
+Instead of writing the command line every time you want to start Wings,
+you can package it in a script like this:
+
+#!/bin/bash
+exec werl -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-0.98.16b/ebin -run wings_start start_halt ${1+"$@"}
+
+Notes:
+
+[1] "exec" kills the shell process running the script, saving a
+    tiny amount of system memory.
+
+[2] The "${1+"$@"}" thing passes along any arguments (or none) to Wings,
+    allowing Wings to open up a wings file when it starts.
+
+You could also package the command line into a standard windows shortcut.
+(That is what I do.)
+
+Building the file dialog plug-in
+================================
+
+To get native Windows file dialog boxes, you'll need to compile
+the file dialog plug-in the "plugins_src/win32_file" directory.
+
+$ cd plugins_src/win32_file
+$ make
+<Some output>
+$
+
+Building all
+============
+
+Make sure that you current directory is the directory in which the
+sources where unpacked.
+
+Example:
+
+$ pwd
+/home/bjorng/wings_releases/wings-0.98.16b
+$
+
+To build all (including the installer), run the following command:
+
+$ make win32
+.
+.
+.
+<A lot of output follows>
+.
+.
+.
+$
+
+When everything is done, there should be a file named like
+
+	wings-0.98.16b.exe
+
+in the current directory.

@@ -1,0 +1,398 @@
+%%                   -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  autouv_pl.lang --
+%%
+%%     Polish language strings for AutoUV.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: autouv_pl.lang,v 1.9 2006/07/10 17:15:37 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek & Maciej Milewski
+%%  Verification: Krzysztof Giniewicz
+%%
+{auv_mapping,
+ [
+  {chart_normal,
+   [
+    {1,"Nie można obliczyć wektora normalnego dla arkusza."}
+   ]},
+  {find_axes,
+   [
+    {1,"Na chwilę obecną niemożliwe jest sferyczne lub cylindryczne mapowanie tego typu arkuszy,\nnie można można ustalić układu odniesienia,\ndo zmapowania tego arkusza proszę użyć rozkładania lub projekcji."}
+   ]},
+  {get_face_vspos,
+   [
+    {1,"Błąd: Płaszczyzna ~p z punktami ~p nie tworzy trójkątu"}
+   ]},
+  {map_chart,
+   [
+    {1,"Zamknięta powierznia nie może zostać zmapowana. (Podziel ją na więcej arkuszy lub przetnij ją wzdłóż któryś krawędzi.)"},
+    {2,"Cięcia w zamkniętej powierzchni muszą składać się z przynajmniej dwóch krawędzi."},
+    {3,"Przynajmniej po dwa punkty na arkusz muszą być zaznaczone"},
+    {4,"Błąd:"},
+    {5,"Błąd programu"}
+   ]},
+  {map_chart_1,
+   [
+    {1,"Problem numeryczny, prawdopodobnie w modelu występuje płaszczyzna o zerowym polu."},
+    {2,"Błąd programu:"},
+    {3,"Błąd"}
+   ]},
+  {stretch_iter,
+   [
+    {1,"iteracja"}
+   ]},
+  {stretch_opt,
+   [
+    {1,"optymalizacja"},
+    {2,"inicjalizacja"},
+    {3,"Średnia suma po rozciągnięciu ~p"}
+   ]},
+  {stretch_setup,
+   [
+    {1,"Suma rozciągnięcia (najgorsza) ~p"},
+    {2,"Suma rozciągnięcia (średnia) ~p"}
+   ]}
+ ]}.
+{auv_seg_ui,
+ [
+  {mappers,
+   [
+    {1,"Rozkład"},
+    {2,"Projekcja wzdłuż normalnej"},
+    {3,"Projekcja względem kamery"},
+    {4,"Mapowanie sferyczne"},
+    {5,"Mapowanie cylindryczne"}
+   ]},
+  {seg_event,
+   [
+    {1,"Dzielenie"}
+   ]},
+  {seg_event_3,
+   [
+    {1,"Kontynuuj"},
+    {2,"Dziel według"},
+    {3,"Projekcja"},
+    {4,"Rozpoznawanie własności"}
+   ]},
+  {seg_init_message,
+   [
+    {1,"Zaznacz"},
+    {2,"Pokaż menu"}
+   ]},
+  {seg_map_charts,
+   [
+    {1,"przygotowuję mapowanie"},
+    {2,"dzielę"},
+    {3,"ujednolicam"},
+    {4,"tnę"},
+    {5,"Nie ma płaszczyzn które można by zmapować."},
+    {6,"mapuję"}
+   ]},
+  {seg_map_charts_1,
+   [
+    {1,"arkusz"}
+   ]},
+  {seg_mode_menu,
+   [
+    {1,"Zaznacz krawędzie do cięcia"},
+    {2,"Odznacz krawędzie"},
+    {3,"Wybierz zaznaczone krawędzie"},
+    {4,"Ignoruj zaznaczone płaszczyzny"},
+    {5,"Zaznacz"}
+   ]}
+ ]}.
+{auv_texture,
+ [
+  {background,
+   [
+    {1,"Tło"}
+   ]},
+  {draw_options,
+   [
+    {1,"Rozmiar"},
+    {2,"Renderuj"},
+    {3,"Opcje rysowania"},
+    {4,"Nowy kanał"},
+    {5,"Usuń nieużywane kanały"}
+   ]},
+  {options,
+   [
+    {1,"Obraz"},
+    {2,"Kolor"},
+    {3,"Nanieś wszystkie krawędzie"},
+    {4,"Nanieś krawędzie brzegu"},
+    {5,"Kolor krawędzi:"},
+    {6,"Grubość krawędzi:"},
+    {7,"Użyj materiału płaszczyzn/punktów (na brzegu)"},
+    {8,"Użyj koloru materiału"},
+    {9,"Użyj istniejącej tekstury/koloru punktów"},
+    {10,"Ilość świateł:"}
+   ]},
+  {render_passes,
+   [
+    {1,"Tło"},
+    {2,"Opcje"},
+    {3,"Opcje"}
+   ]},
+  {renderers,
+   [
+    {1,"Nic"},
+    {2,"Krawędzie"},
+    {3,"Płaszczyzny"}
+   ]}
+ ]}.
+{wpc_autouv,
+ [
+  {align_error,
+   [
+    {1,"Zaznacz dwa punkty lub jedną krawędź"}
+   ]},
+  {auv_menu,
+   [
+    {1,"Mapowanie UV"},
+    {2,"Generuj mapowanie UV lub teksturę"},
+    {3,"Wymuś przejście do trybu dzielenia"},
+    {4,"Bezpośrednio"},
+    {5,"Otwórz okno UV bezpośrednio jeśli zaznaczenie zawiera już koordynaty"},
+    {6,"Wymuś dzielenie (skasuj poprzednie)"},
+    {7,"Skasuj stare koordynaty UV i zacznij od dzielenia"},
+    {8,"Wymuś dzielenie (zatrzymaj poprzednie)"},
+    {9,"Zachowaj stare koordynaty UV i zacznij od dzielenia"},
+    {25,"Podziel ponownie"}
+   ]},
+  {command_menu,
+   [
+    {1,"Operacje na arkuszach"},
+    {2,"Przesuń"},
+    {3,"Przesuń zaznaczony arkusz"},
+    {4,"Skaluj"},
+    {5,"Skaluj zaznaczony arkusz"},
+    {6,"Obróć"},
+    {7,"Obróć zaznaczony arkusz"},
+    {8,"Przesuń na..."},
+    {9,"Środek"},
+    {10,"Wyśrodkuj"},
+    {11,"Środek X"},
+    {12,"Wyśrodkuj poziomo"},
+    {13,"Środek Y"},
+    {14,"Wyśrodkuj pionowo"},
+    {15,"Dół"},
+    {16,"Przesuń zaznaczenie do dolnej krawędzi"},
+    {17,"Górę"},
+    {18,"Przesuń zaznaczenie do górnej krawędzi"},
+    {19,"Lewo"},
+    {20,"Przesuń zaznaczenie do lewej krawędzi"},
+    {21,"Prawo"},
+    {22,"Przesuń zaznaczenie do prawej krawędzi"},
+    {23,"Przesuń arkusze na wyznaczone miejsce"},
+    {24,"Odbij"},
+    {25,"Poziomo"},
+    {26,"Odbij zaznaczone elementy w poziomie"},
+    {27,"Pionowo"},
+    {28,"Odbij zaznaczone elementy w pionie"},
+    {29,"Tworzy lustrzane odbicie zaznaczonych arkuszy"},
+    {30,"Zacieśnij"},
+    {31,"Przesuń koordynaty UV w kierunku punktu środkowego"},
+    {32,"Ukryj"},
+    {33,"Ukryj zaznaczone arkusze (zachowując koordynaty)"},
+    {34,"Usuń"},
+    {35,"Usuń koordynaty zaznaczonych arkuszy"},
+    {36,"Mapuj ponownie"},
+    {37,"Optymalizuj rozciągnięcie"},
+    {38,"Optymalizuj rozciągnięcie arkusza"},
+    {39,"Rozłóż"},
+    {40,"Rozłóż arkusz"},
+    {41,"Wykonaj projekcję normalną"},
+    {42,"Wykonaj projekcję UV według wektora normalnego arkusza"},
+    {43,"Mapuj sferycznie"},
+    {44,"Mapuj sferycznie zaznaczony arkusz"},
+    {45,"Oblicz ponownie koordynaty według wybranego algorytmu"},
+    {46,"Operacje na płaszczyznach"},
+    {47,"Przesuń"},
+    {48,"Przesuń zaznaczone płaszczyzny"},
+    {49,"Skaluj"},
+    {50,"Skaluj zaznaczone płaszczyzny"},
+    {51,"Obróć"},
+    {52,"Obróć zaznaczone płaszczyzny"},
+    {53,"Krawędzie"},
+    {54,"Obróć zaznaczone krawędzie"},
+    {55,"Arkusz do poziomu"},
+    {56,"Obróź cały arkusz tak, aby zaznaczona krawędź usytuowana była poziomo"},
+    {57,"Arkusz do pionu"},
+    {58,"Obróź cały arkusz tak, aby zaznaczona krawędź usytuowana była pionowo"},
+    {59,"Operacje na krawędziach"},
+    {60,"Przesuń"},
+    {61,"Przesuń zaznaczone krawędzie"},
+    {62,"Skaluj"},
+    {63,"Skaluj zaznaczone krawędzie"},
+    {64,"Obróć"},
+    {65,"Pokaż możliwe komendy"},
+    {66,"Sklej"},
+    {67,"Sklej krawędzie/arkusze"},
+    {68,"Przetnij"},
+    {69,"Przetnij na zaznaczonych krawędziach"},
+    {70,"Punkty"},
+    {71,"Obróć zaznaczone punkty"},
+    {72,"Arkusz do poziomu"},
+    {73,"Obróć cały arkusz tak aby punky leżały na jednej lini poziomej"},
+    {74,"Arkusz do pionu"},
+    {75,"Obróć cały arkusz tak aby punky leżały na jednej lini pionowej"},
+    {76,"Operacje na punktach"},
+    {77,"Przesuń"},
+    {78,"Przesuń zaznaczone punkty"},
+    {79,"Skaluj"},
+    {80,"Skaluj krawędzie pomiędzy zaznaczonymi punktami"},
+    {81,"Obróć"},
+    {82,"Pokaż możliwe komendy"},
+    {83,"Wyrównaj"},
+    {84,"Wyrównaj w poziomie"},
+    {85,"Wyrównaj w pionie"},
+    {86,"Wyrównaj pozycje zaznaczonych punktów"},
+    {87,"Zacieśnij"},
+    {88,"Przesuń koordynaty UV w kierunku punktu środkowego"},
+    {89,"Rozłóż"},
+    {90,"Rozłóż zachowując naturalną pozycję zaznaczonych punktów"},
+    {91,"Mapuj sferycznie"},
+    {92,"Mapuj sferycznie używając zaznaczonych punktów jako biegunów południowego i północnego"},
+    {411,"Ujednolić rozmiar"},
+    {412,"Ujednolić rozmiar arkuszy aby ich pola odpowiadały modelowi"},
+    {521,"Wykonaj projekcję-rozłóż"},
+    {522,"Wykonaj projekcję normalną zaznaczonych płaszczyzn i rozłóż pozostałą część arkusza"},
+    {641,"Przesuń po krawędziach"},
+    {642,"Przesuń po sąsiednich krawędziach"},
+    {643,"Rozmieść"},
+    {644,"Rozmieść w poziomie"},
+    {645,"Rozmieść w pionie"},
+    {646,"Rozmieść równomiernie"}
+   ]},
+  {create_window,
+   [
+    {1,"Dzielenie"}
+   ]},
+  {drag_filter,
+   [
+    {1,"Opuść: Zmień plik tekstury"}
+   ]},
+  {handle_event_3,
+   [
+    {1,"Zaznacz"},
+    {2,"Pokaż menu"}
+   ]},
+  {menu,
+   [
+    {1,"Edytor UV"},
+    {2,"Otwórz okno edytora UV dla zaznaczonych obiektów"}
+   ]},
+  {menubar,
+   [
+    {1,"Edycja"},
+    {2,"Cofnij/Ponów"},
+    {3,"Cofa następnie ponawia ostatnią czynność"},
+    {4,"Ponów"},
+    {5,"Ponawia ostatnio cofniętą czynność"},
+    {6,"Cofnij"},
+    {7,"Cofa ostatnią czynność"},
+    {8,"Widok"},
+    {9,"Pokaż/Ukryj bitmapę tła"},
+    {10,"Przełącza wyświetlanie bitmapy tła"},
+    {11,"Zaznaczenie"},
+    {71,"Powtórz"},
+    {72,"Powtórz ostatnią komendę"},
+    {74,"Powtórz z argumentem"},
+    {75,"Powtórz ostatnią komendę zachowując argumenty"},
+    {76,"Powtórz z przesunięciem"},
+    {77,"Powtórz ostatnią komendę zachowując argumenty i przesunięcie"}
+   ]},
+  {option_menu,
+   [
+    {1,"Stwórz teksturę"},
+    {2,"Stwórz i załóż teksturę na obiekt"}
+   ]},
+  {remap,
+   [
+    {1,"ponownie mapuję"},
+    {2,"arkusz"}
+   ]},
+  {reunfold,
+   [
+    {1,"Wybierz dwa punkty, biegun północny i południowy"},
+    {2,"Przynajmniej dwa punkty muszą być zaznaczone"},
+    {3,"ponowne mapowanie"},
+    {4,"arkusz"}
+   ]},
+  {scale_directions,
+   [
+    {1,"Równomiernie"},
+    {2,"Skaluj równomiernie we wszystkich kierunkach"},
+    {3,"W poziomie"},
+    {4,"Skaluj w poziomie"},
+    {5,"W pionie"},
+    {6,"Skaluj w pionie"}
+   ]},
+  {start_uvmap,
+   [
+    {1,"Nic nie zaznaczono"}
+   ]},
+  {stitch_charts,
+   [
+    {1,"Niestety, nie można skleić tylu arkuszy na raz"}
+   ]},
+  {stretch_directions,
+   [
+    {1,"Dopasuj"},
+    {2,"Skaluj arkusz zachowując proporcje, tak, aby jego rozmiar dopasowany był do tła"},
+    {3,"Dopasuj poziomo"},
+    {4,"Skaluj arkusz tak, aby jego szerokość dopasowana była do tła"},
+    {5,"Dopasuj pionowo"},
+    {6,"Skaluj arkusz tak, aby jego wysokość dopasowana była do tła"}
+   ]}
+ ]}.
+{wpc_snap,
+ [
+  {menu,
+   [
+    {1,"Opuść obraz"},
+    {2,"Uaktywnij tryb opuszczania aby \"opuścić\" koordynaty UV na obraz tła"},
+    {3,"Wyjdź z trybu opuszczania"},
+    {4,"Wyjdź z trybu opuszczania obrazu"},
+    {5,"Opuść obraz"},
+    {6,"Umieść obraz tła na zaznaczonych płaszczyznach przydzielając im koordynaty UV"}
+   ]},
+  {select_image,
+   [
+    {1,"Nie ma obrazów, musisz zaimportować obrazy."},
+    {2,"Wybierz obraz do opuszczenia"}
+   ]},
+  {set_materials,
+   [
+    {1,"Nie można założyć obrazu kiedy obiekt ma przydzielone kolory punktów"}
+   ]},
+  {snap_menu,
+   [
+    {1,"Poziomo"},
+    {2,"Skaluj obraz tła w poziomie"},
+    {3,"Pionowo"},
+    {4,"Skaluj obraz tła w pionie"},
+    {5,"Dowolnie"},
+    {6,"Skaluj obraz tła"},
+    {7,"Równomiernie"},
+    {8,"Skaluj obraz tła zachowując proporcje"},
+    {9,"Poziomo"},
+    {10,"Przesuń obraz tła w poziomie"},
+    {11,"Pionowo"},
+    {12,"Przesuń obraz tła w pionie"},
+    {13,"Dowolnie"},
+    {14,"Przesuń obraz tła"},
+    {15,"Skaluj obraz"},
+    {16,"Skaluj obraz tła"},
+    {17,"Przesuń obraz"},
+    {18,"Przesuń obraz tła"},
+    {19,"Wyjdź z trybu opuszczania"},
+    {20,"Wyjdź z trybu opuszczania obrazu"}
+   ]}
+ ]}.

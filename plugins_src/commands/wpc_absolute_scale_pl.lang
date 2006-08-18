@@ -1,0 +1,33 @@
+%%                               -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_absolute_scale_pl.lang --
+%%
+%%     Polish language strings for Absolute Scale.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_absolute_scale_pl.lang,v 1.1 2006/06/29 19:57:58 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_absolute_scale,
+ [
+  {draw,
+   [
+    {1,"Operacje bezwzględne"},
+    {2,"Skaluj"},
+    {3,"Przeskaluj do koordynatów bezwzględnych."}
+   ]},
+  {draw_window1,
+   [
+    {1,"Opcje skalowania"},
+    {2,"Podaj rozmiar"},
+    {3,"Podaj środek przekształcenia"},
+    {4,"Skaluj cały obiekt"},
+    {5,"Skaluj całe obiekty"}
+   ]}
+ ]}.

@@ -1,0 +1,225 @@
+#
+#  fbx.ops --
+#
+#     Operations and enumerations for communicating between wpc_fbx
+#     and the driver.
+#
+#  Copyright (c) 2003-2005 Bjorn Gustavsson
+#
+#  See the file "license.terms" for information on usage and redistribution
+#  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#
+#     $Id: fbx.ops,v 1.7 2005/03/16 20:26:15 bjorng Exp $
+#
+
+#
+# Response codes.
+#
+RespError
+RespBoolean
+RespFloat
+RespInteger
+RespString
+RespMappingMode
+RespReferenceMode
+RespPasswordProtected
+
+#
+# Shading modes.
+#
+EnumHardShading
+EnumWireFrame
+EnumFlatShading
+EnumLightShading
+EnumTextureShading
+EnumLightTextureShading
+
+#
+# Light types.
+#
+LightPoint
+LightDirectional
+LightSpot
+
+#
+# Material mapping modes.
+#
+MappingByControlPoint
+MappingByPolygonVertex
+MappingByPolygon
+MappingAllSame
+
+#
+# Reference modes.
+#
+RefModeDirect
+RefModeIndex
+RefIndexToDirect
+
+#
+# General.
+#
+
+ExpInitialize
+ExpDestroy
+
+#
+# Export operations.
+#
+
+ExpNumObjects
+ExpLinkObjects
+ExpSetFileFormat
+ExpSaveScene
+
+# File formats.
+ExpFileFormatFbx5
+ExpFileFormatFbx6
+ExpFileFormatFbx5Ascii
+ExpFileFormatFbx6Ascii
+
+# Mesh operations.
+ExpCreateMesh
+ExpInitControlPoints
+ExpInitNormals
+ExpPoint
+ExpInitUVs
+ExpUV
+ExpBeginPolygon
+ExpAddPolygon
+ExpEndPolygon
+
+# Node operations.
+ExpCreateNode
+ExpAssignMesh
+ExpSetShadingMode
+ExpSetDefaultT
+ExpSetDefaultR
+
+# Material operations.
+ExpMaterial
+ExpAmbient
+ExpDiffuse
+ExpSpecular
+ExpEmissive
+ExpOpacity
+ExpShininess
+
+# Texture operations.
+ExpInitTextures
+ExpCreateTexture
+ExpTextureFilename
+
+# Light operations.
+ExpCreateLight
+ExpLightType
+ExpLightColor
+ExpLightConeAngle
+ExpAssignLight
+ExpAmbientColor
+
+ExpAxisAlignmentInEulerAngle
+
+# Vertex colors.
+ExpInitVertexColorTable
+ExpVertexColor
+ExpVertexColorIndex
+
+#
+# Import operations.
+#
+ImpLoadScene
+ImpVersion
+
+ImpGlobalAmbient
+ImpNumChildren
+ImpEnterChildNode
+ImpPopNode
+ImpNodeType
+ImpNodeName
+ImpIsVisible
+ImpDefaultT
+ImpDefaultR
+ImpDefaultS
+ImpMesh
+ImpConvertToMesh
+ImpNumVertices
+ImpVertices
+ImpNormals
+ImpUVs
+ImpPoint
+ImpUV
+ImpNumPolygons
+ImpPolygonSize
+ImpPolygonVertex
+ImpPolygonUV
+ImpLocalTransformation
+ImpNumLinks
+ImpNumShapes
+
+# Mapping mode for the current layer element (e.g. material, UVs etc).
+ImpMappingMode
+ImpReferenceMode
+
+# Materials.
+ImpInitMaterials
+ImpMaterialIndices
+ImpMaterialIndex
+ImpNumMaterials
+ImpMaterial
+ImpMaterialName
+ImpAmbient
+ImpDiffuse
+ImpSpecular
+ImpEmissive
+ImpShininess
+ImpOpacity
+
+# UVs.
+ImpInitUVs
+
+# Textures.
+ImpInitTextures
+ImpNumTextures
+ImpNumUVs
+ImpTxMappingType
+ImpTexture
+ImpTextureFileName
+ImpTextureIndices
+ImpTextureIndex
+ImpLight
+ImpLightType
+ImpLightColor
+ImpConeAngle
+
+# Vertex colors.
+ImpInitVertexColors
+
+#
+# Node attribute types.
+#
+NodeEmpty
+NodeNull
+NodeMarker
+NodeSkeleton
+NodeMesh
+NodeNurb
+NodePatch
+NodeCamera
+NodeCameraSwitcher
+NodeLight
+NodeOpticalReference
+NodeOpticalMarker
+NodeUnknown
+
+#
+# Tx Mapping Types.
+#
+TxMapNull
+TxMapPlanar
+TxMapSpherical
+TxMapCylindrical
+TxMapBox
+TxMapFace
+TxMapUV
+TxMapEnvironment

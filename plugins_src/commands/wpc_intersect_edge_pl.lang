@@ -1,0 +1,52 @@
+%%                               -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_intersect_edge_pl.lang --
+%%
+%%     Polish language strings for Intersect Edge.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_intersect_edge_pl.lang,v 1.1 2005/10/04 20:31:15 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_intersect_edge,
+ [
+  {intersect,
+   [
+    {1,"Zaznaczone krawędzie nie mogą mieć wspólnych końców"}
+   ]},
+  {intersect_edges,
+   [
+    {1,"Krawędzie i płaszczyzna są prawie równoległe:\n nie można odnaleść punktu przecięcia."}
+   ]},
+  {intl_vec,
+   [
+    {1,"ostatni wektor"},
+    {2,"standardowy wektor"}
+   ]},
+  {menu_item,
+   [
+    {1,"Dociągnij"}
+   ]},
+  {standard_plane_fun,
+   [
+    {1,"Dociągnij krawędzie do płaszczyzny zdefiniowanej przez"},
+    {2,"Dociągnij krawędzie do płaszczyzny zdefiniowanej przez osi"},
+    {3,""},
+    {4,"Wybierz punkt na płaszczyźnie"}
+   ]},
+  {submenu,
+   [
+    {1,"Dociągnij do standardowych płaszczyzn"},
+    {2,"Wybierz płaszczyznę i punkt przez który przechodzi"},
+    {3,"Wybierz płaszczyznę"},
+    {4,"Wybierz wektor normalny do płaszczyzny"},
+    {5,"Wybierz punkt przez który przechodzić będzie płaszczyzna"},
+    {6,"Wybierz wektor normalny do płaszczyzny (jego początek będzie punktem przez który przechodzić będzie płaszczyzna)"}
+   ]}
+ ]}.

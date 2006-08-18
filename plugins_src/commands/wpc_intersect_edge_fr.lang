@@ -1,0 +1,37 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_intersect_edge,
+ [
+  {intersect,
+   [
+    {1,"Les aretes selectionnees ne doivent partager aucun points"}
+   ]},
+  {intersect_edges,
+   [
+    {1,"Ligne et plan sont presque parrallele:\nimpossible de trouver une intersection."}
+   ]},
+  {intl_vec,
+   [
+    {1,"dernier axe"},
+    {2,"axe par defaut"}
+   ]},
+  {menu_item,
+   [
+    {1,"Intersection"}
+   ]},
+  {standard_plane_fun,
+   [
+    {1,"L'intersection de l'arete avec le plan est defini par le"},
+    {2,"L'intersection de l'arete avec le"},
+    {3,"plan"},
+    {4,"Choisir le point sur le plan"}
+   ]},
+  {submenu,
+   [
+    {1,"L'intersection standard du plan"},
+    {2,"Choisir le plan et la reference du point sur le plan"},
+    {3,"Choisir le plan"},
+    {4,"Choisir l'axe perpendiculaire au plan"},
+    {5,"Choisir le point qui passe a travers le plan"},
+    {6,"Choisir l'axe perpendiculaire au plan (le plan doit passer a travers la base des axes)"}
+   ]}
+ ]}.

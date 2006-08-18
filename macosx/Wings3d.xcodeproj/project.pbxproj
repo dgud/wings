@@ -1,0 +1,470 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4C72473F085C300D006ED218 /* MyController.h in Headers */ = {isa = PBXBuildFile; fileRef = F5B807F10227DA2101000102 /* MyController.h */; };
+		4C724746085C300D006ED218 /* Erlang.nib in Resources */ = {isa = PBXBuildFile; fileRef = 29B97318FDCFA39411CA2CEA /* Erlang.nib */; };
+		4C724747085C300D006ED218 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
+		4C724748085C300D006ED218 /* wings3d.icns in Resources */ = {isa = PBXBuildFile; fileRef = F5EEDC2902282D6701000102 /* wings3d.icns */; };
+		4C724749085C300D006ED218 /* 3ds.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15CFF0489F65500A8000A /* 3ds.icns */; };
+		4C72474A085C300D006ED218 /* wings.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15D000489F65500A8000A /* wings.icns */; };
+		4C72474B085C300D006ED218 /* mtl.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15D010489F65500A8000A /* mtl.icns */; };
+		4C72474C085C300D006ED218 /* obj.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15D020489F65500A8000A /* obj.icns */; };
+		4C72474D085C300D006ED218 /* wrl.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15D030489F65500A8000A /* wrl.icns */; };
+		4C72474E085C300D006ED218 /* ndo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15D040489F65500A8000A /* ndo.icns */; };
+		4C724750085C300D006ED218 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
+		4C724751085C300D006ED218 /* MyController.m in Sources */ = {isa = PBXBuildFile; fileRef = F5B807F20227DA2101000102 /* MyController.m */; };
+		4C724753085C300D006ED218 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXBuildStyle section */
+		4A9504CCFFE6A4B311CA0CBA /* Development */ = {
+			isa = PBXBuildStyle;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OPTIMIZATION_CFLAGS = "-O0";
+				ZERO_LINK = YES;
+			};
+			name = Development;
+		};
+		4A9504CDFFE6A4B311CA0CBA /* Deployment */ = {
+			isa = PBXBuildStyle;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				ZERO_LINK = NO;
+			};
+			name = Deployment;
+		};
+/* End PBXBuildStyle section */
+
+/* Begin PBXFileReference section */
+		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
+		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		29B97319FDCFA39411CA2CEA /* Erlang.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = Erlang.nib; path = English.lproj/Erlang.nib; sourceTree = "<group>"; };
+		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
+		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
+		4C724758085C300D006ED218 /* Wings3d.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Wings3d.plist; sourceTree = "<group>"; };
+		4C724759085C300E006ED218 /* Wings3d.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wings3d.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CB15CFF0489F65500A8000A /* 3ds.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = 3ds.icns; sourceTree = "<group>"; };
+		4CB15D000489F65500A8000A /* wings.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = wings.icns; sourceTree = "<group>"; };
+		4CB15D010489F65500A8000A /* mtl.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = mtl.icns; sourceTree = "<group>"; };
+		4CB15D020489F65500A8000A /* obj.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = obj.icns; sourceTree = "<group>"; };
+		4CB15D030489F65500A8000A /* wrl.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = wrl.icns; sourceTree = "<group>"; };
+		4CB15D040489F65500A8000A /* ndo.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = ndo.icns; sourceTree = "<group>"; };
+		4CB15D050489F65500A8000A /* mdl.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = mdl.icns; sourceTree = "<group>"; };
+		F5B807F10227DA2101000102 /* MyController.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MyController.h; sourceTree = "<group>"; };
+		F5B807F20227DA2101000102 /* MyController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MyController.m; sourceTree = "<group>"; };
+		F5EEDC2902282D6701000102 /* wings3d.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = wings3d.icns; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4C724752085C300D006ED218 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4C724753085C300D006ED218 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		080E96DDFE201D6D7F000001 /* Classes */ = {
+			isa = PBXGroup;
+			children = (
+				F5B807F10227DA2101000102 /* MyController.h */,
+				F5B807F20227DA2101000102 /* MyController.m */,
+			);
+			name = Classes;
+			sourceTree = "<group>";
+		};
+		1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */,
+			);
+			name = "Linked Frameworks";
+			sourceTree = "<group>";
+		};
+		1058C7A2FEA54F0111CA2CBB /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				29B97325FDCFA39411CA2CEA /* Foundation.framework */,
+				29B97324FDCFA39411CA2CEA /* AppKit.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		19C28FACFE9D520D11CA2CBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4C724759085C300E006ED218 /* Wings3d.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		29B97314FDCFA39411CA2CEA /* Wings3d */ = {
+			isa = PBXGroup;
+			children = (
+				080E96DDFE201D6D7F000001 /* Classes */,
+				29B97315FDCFA39411CA2CEA /* Other Sources */,
+				29B97317FDCFA39411CA2CEA /* Resources */,
+				29B97323FDCFA39411CA2CEA /* Frameworks */,
+				19C28FACFE9D520D11CA2CBB /* Products */,
+				4C724758085C300D006ED218 /* Wings3d.plist */,
+			);
+			name = Wings3d;
+			sourceTree = "<group>";
+		};
+		29B97315FDCFA39411CA2CEA /* Other Sources */ = {
+			isa = PBXGroup;
+			children = (
+				29B97316FDCFA39411CA2CEA /* main.m */,
+			);
+			name = "Other Sources";
+			sourceTree = "<group>";
+		};
+		29B97317FDCFA39411CA2CEA /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4CB15CFF0489F65500A8000A /* 3ds.icns */,
+				4CB15D000489F65500A8000A /* wings.icns */,
+				4CB15D010489F65500A8000A /* mtl.icns */,
+				4CB15D020489F65500A8000A /* obj.icns */,
+				4CB15D030489F65500A8000A /* wrl.icns */,
+				4CB15D040489F65500A8000A /* ndo.icns */,
+				4CB15D050489F65500A8000A /* mdl.icns */,
+				F5EEDC2902282D6701000102 /* wings3d.icns */,
+				29B97318FDCFA39411CA2CEA /* Erlang.nib */,
+				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */,
+				1058C7A2FEA54F0111CA2CBB /* Other Frameworks */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		4C72473E085C300D006ED218 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4C72473F085C300D006ED218 /* MyController.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		4C72473D085C300D006ED218 /* Wings3d */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C724754085C300D006ED218 /* Build configuration list for PBXNativeTarget "Wings3d" */;
+			buildPhases = (
+				4C72473E085C300D006ED218 /* Headers */,
+				4C724740085C300D006ED218 /* ShellScript */,
+				4C724741085C300D006ED218 /* ShellScript */,
+				4C724742085C300D006ED218 /* ShellScript */,
+				4C724743085C300D006ED218 /* ShellScript */,
+				4C724744085C300D006ED218 /* ShellScript */,
+				4C724745085C300D006ED218 /* Resources */,
+				4C72474F085C300D006ED218 /* Sources */,
+				4C724752085C300D006ED218 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			buildSettings = {
+				ERLANG_PATH = /usr/local/lib/erlang;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GGC_VERSION = 3.x;
+				HEADER_SEARCH_PATHS = "";
+				INSTALL_PATH = "$(HOME)/Applications";
+				JAVA_COMPILER_DEBUGGING_SYMBOLS = NO;
+				LIBRARY_SEARCH_PATHS = "";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "-s";
+				PRODUCT_NAME = Wings3d;
+				SECTORDER_FLAGS = "";
+				USE_GCC3_PFE_SUPPORT = NO;
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+				);
+				WRAPPER_EXTENSION = app;
+			};
+			dependencies = (
+			);
+			name = Wings3d;
+			productInstallPath = "$(HOME)/Applications";
+			productName = Wings3d;
+			productReference = 4C724759085C300E006ED218 /* Wings3d.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		29B97313FDCFA39411CA2CEA /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 4CA8398B085C2B4300C48A7F /* Build configuration list for PBXProject "Wings3d" */;
+			buildSettings = {
+			};
+			buildStyles = (
+				4A9504CCFFE6A4B311CA0CBA /* Development */,
+				4A9504CDFFE6A4B311CA0CBA /* Deployment */,
+			);
+			hasScannedForEncodings = 1;
+			mainGroup = 29B97314FDCFA39411CA2CEA /* Wings3d */;
+			projectDirPath = "";
+			targets = (
+				4C72473D085C300D006ED218 /* Wings3d */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4C724745085C300D006ED218 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4C724746085C300D006ED218 /* Erlang.nib in Resources */,
+				4C724747085C300D006ED218 /* InfoPlist.strings in Resources */,
+				4C724748085C300D006ED218 /* wings3d.icns in Resources */,
+				4C724749085C300D006ED218 /* 3ds.icns in Resources */,
+				4C72474A085C300D006ED218 /* wings.icns in Resources */,
+				4C72474B085C300D006ED218 /* mtl.icns in Resources */,
+				4C72474C085C300D006ED218 /* obj.icns in Resources */,
+				4C72474D085C300D006ED218 /* wrl.icns in Resources */,
+				4C72474E085C300D006ED218 /* ndo.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		4C724740085C300D006ED218 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Copy the Wings application.\n\nINSTALL=/usr/bin/install\nlatest_wings=`(cd ..; pwd)`\n\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources/lib/`basename $latest_wings`\n\n$INSTALL -d $dest $dest/ebin $dest/patches\n\ncd $latest_wings\n\n$INSTALL -c -m 644 README AUTHORS license.terms $dest\n$INSTALL -c -m 644 ebin/* $dest/ebin\nrm -f $dest/ebin/user_default.beam\n\n$INSTALL -d $dest/fonts \\\n $dest/plugins/accel \\\n $dest/plugins/import_export \\\n $dest/plugins/commands \\\n $dest/plugins/primitives $dest/plugins/mac_file \\\n $dest/plugins/autouv \\\n $dest/plugins/fbx \\\n $dest/plugins/default\n$INSTALL -c -m 644 fonts/* $dest/fonts\n$INSTALL -c -m 644 plugins/accel/* $dest/plugins/accel\n$INSTALL -c -m 644 plugins/default/* $dest/plugins/default\n$INSTALL -c -m 644 plugins/import_export/* $dest/plugins/import_export\n$INSTALL -c -m 644 plugins/commands/* $dest/plugins/commands\n$INSTALL -c -m 644 plugins/primitives/* $dest/plugins/primitives\n$INSTALL -c -m 644 plugins/mac_file/* $dest/plugins/mac_file\n$INSTALL -c -m 644 plugins/autouv/* $dest/plugins/autouv\n$INSTALL -c -m 644 plugins/fbx/* $dest/plugins/fbx\n\nfind $dest/plugins -name '*.so' | xargs macosx/strip_mac_driver\nfind $dest/plugins -name README | xargs rm\nrm $dest/plugins/default/wpc_test_ask.beam\n";
+		};
+		4C724741085C300D006ED218 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Copy the relevant parts of Erlang/OTP\n# into the application.\nINSTALL=/usr/bin/install\nsrc=$ERLANG_PATH\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources\nerts_src=$src/erts-*\nerts=`basename $erts_src`\nstdlib=`basename $src/lib/stdlib-*`\nkernel=`basename $src/lib/kernel-*`\n\n$INSTALL -d $dest/bin $dest/lib/$stdlib/ebin $dest/lib/$kernel/ebin\n$INSTALL -c -m 644 $src/lib/kernel-*/ebin/* $dest/lib/$kernel/ebin\n$INSTALL -c -m 644 $src/lib/stdlib-*/ebin/* $dest/lib/$stdlib/ebin\n\n../tools/wings_reduce_otp $dest\n\n$INSTALL -c -s $erts_src/bin/erlexec $dest/bin\n$INSTALL -c -s $erts_src/bin/child_setup $dest/bin\n$INSTALL -c $erts_src/bin/beam $dest/bin\n$INSTALL -c $erts_src/bin/inet_gethost $dest/bin/inet_gethost\n$INSTALL -c -m 644 $src/bin/start.boot $dest/bin\n\nstrip -x $dest/bin/beam\nstrip $dest/bin/erlexec\nstrip $dest/bin/child_setup\nstrip $dest/bin/inet_gethost\n";
+		};
+		4C724742085C300D006ED218 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Copy the relevant parts of ESDL into the application.\nINSTALL=/usr/bin/install\nsrc=$ERLANG_PATH\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources/lib/`basename $ESDL_PATH`\n\n$INSTALL -d $dest/ebin $dest/priv\n$INSTALL -c -m 644  $ESDL_PATH/ebin/* $dest/ebin\n$INSTALL -c -m 644  $ESDL_PATH/priv/sdl_driver.so $dest/priv\n./strip_mac_driver $dest/priv/sdl_driver.so\n";
+		};
+		4C724743085C300D006ED218 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Copy the SDL framework.\nINSTALL=/usr/bin/install\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources/Frameworks\n\n$INSTALL -d $dest\n\nfor i in \"/Library/Frameworks\" \"$HOME/Library/Frameworks\"; do\n    if [ -d $i/SDL.framework ]; then\n        sdl_framework=$i/SDL.framework\n    fi\ndone\nif [ -d $dest/SDL.framework ]; then\n    rm -rf $dest/SDL.framework\nfi\ncp -r $sdl_framework $dest/SDL.framework\nif [ -d $dest/SDL.framework/Headers ]; then\n    rm -rf $dest/SDL.framework/Headers\nfi\nfor i in $dest/SDL.framework/Versions/*; do\n    if [ -d $i/Headers ]; then\n        rm -rf $i/Headers\n    fi\ndone\n\nstrip -x $dest/SDL.framework/SDL\n";
+		};
+		4C724744085C300D006ED218 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Strip debug information from all beam files.\ntemp=$OBJROOT\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources\n\nerlc -o $temp ../tools/strip.erl\n(cd $dest; erl -noshell -pa $temp -run strip strip)\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4C72474F085C300D006ED218 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4C724750085C300D006ED218 /* main.m in Sources */,
+				4C724751085C300D006ED218 /* MyController.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		089C165CFE840E0CC02AAC07 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				089C165DFE840E0CC02AAC07 /* English */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		29B97318FDCFA39411CA2CEA /* Erlang.nib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				29B97319FDCFA39411CA2CEA /* Erlang.nib */,
+			);
+			name = Erlang.nib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		4C724755085C300D006ED218 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				ERLANG_PATH = /usr/local/lib/erlang;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_USE_GCC3_PFE_SUPPORT = NO;
+				GGC_VERSION = 4.x;
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_FILE = Wings3d.plist;
+				INSTALL_PATH = "$(HOME)/Applications";
+				JAVA_COMPILER_DEBUGGING_SYMBOLS = NO;
+				LIBRARY_SEARCH_PATHS = "";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "-s";
+				PRODUCT_NAME = Wings3d;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+				);
+				WRAPPER_EXTENSION = app;
+				ZERO_LINK = YES;
+			};
+			name = Debug;
+		};
+		4C724756085C300D006ED218 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				ERLANG_PATH = /usr/local/lib/erlang;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_USE_GCC3_PFE_SUPPORT = NO;
+				GGC_VERSION = 4.x;
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_FILE = Wings3d.plist;
+				INSTALL_PATH = "$(HOME)/Applications";
+				JAVA_COMPILER_DEBUGGING_SYMBOLS = NO;
+				LIBRARY_SEARCH_PATHS = "";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "-s";
+				PRODUCT_NAME = Wings3d;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+				);
+				WRAPPER_EXTENSION = app;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		4C724757085C300D006ED218 /* Default */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ERLANG_PATH = /usr/local/lib/erlang;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GCC_USE_GCC3_PFE_SUPPORT = NO;
+				GGC_VERSION = 4.x;
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_FILE = Wings3d.plist;
+				INSTALL_PATH = "$(HOME)/Applications";
+				JAVA_COMPILER_DEBUGGING_SYMBOLS = NO;
+				LIBRARY_SEARCH_PATHS = "";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "-s";
+				PRODUCT_NAME = Wings3d;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = (
+					"-Wmost",
+					"-Wno-four-char-constants",
+					"-Wno-unknown-pragmas",
+				);
+				WRAPPER_EXTENSION = app;
+			};
+			name = Default;
+		};
+		4CA8398C085C2B4300C48A7F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		4CA8398D085C2B4300C48A7F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		4CA8398E085C2B4300C48A7F /* Default */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Default;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4C724754085C300D006ED218 /* Build configuration list for PBXNativeTarget "Wings3d" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C724755085C300D006ED218 /* Debug */,
+				4C724756085C300D006ED218 /* Release */,
+				4C724757085C300D006ED218 /* Default */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Default;
+		};
+		4CA8398B085C2B4300C48A7F /* Build configuration list for PBXProject "Wings3d" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4CA8398C085C2B4300C48A7F /* Debug */,
+				4CA8398D085C2B4300C48A7F /* Release */,
+				4CA8398E085C2B4300C48A7F /* Default */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Default;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 29B97313FDCFA39411CA2CEA /* Project object */;
+}

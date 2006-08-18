@@ -1,0 +1,51 @@
+%%                                 -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_intersect_vertex_pl.lang --
+%%
+%%     Polish language strings for Intersect Vertex.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_intersect_vertex_pl.lang,v 1.2 2006/07/10 17:15:59 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek & Maciej Milewski
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_intersect_vertex,
+ [
+  {adv_submenu,
+   [
+    {1,"Pozostań na linii, przesuń do przecięcia z płaszczyzną"},
+    {2,"Pozostań na płaszczyźnie, przesuń do przecięcia z linią"},
+    {3,"Wybierz linię i płaszczyznę"}
+   ]},
+  {intersect,
+   [
+    {1,"Linia i płaszczyzna są prawie równoległe:\n nie można odnaleść punktu przecięcia."}
+   ]},
+  {menu_item,
+   [
+    {1,"Rzutuj"},
+    {2,"Pozostań na linii"},
+    {3,"Przesuń punkty wzdłuż linii wybranego kierunku do przecięcia z wybraną płaszczyzną"},
+    {4,"Pozostań na płaszczyźnie"},
+    {5,"Przesuń punkty po płaszczyźnie o wybranym wektorze normalnym do przecięcia z wybraną linią"},
+    {6,"Wybierz oba"},
+    {7,"Przesuń punkty do miejsca przecięcia linii o wybranym kierunku i zaczepieniu z płaszczyzną o wybranym wektorze normalnym i zaczepieniu"},
+    {8,"Rzutuj"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Wybierz kierunek prostej - będzie przechodzić przez zaznaczone punkty"},
+    {2,"Wybierz płaszczyznę rzutowania"},
+    {3,"Wybierz wektor normalny płaszczyzny rzutowania - będzie przechodzić przez zaznaczone punkty"},
+    {4,"Wybierz prostą rzutowania"},
+    {5,"Wybierz kierunek prostej rzutowania"},
+    {6,"Wybierz punkt przez który przechodzić będzie prosta"},
+    {7,"Wybierz wektor normalny płaszczyzny rzutowania"},
+    {8,"Wybierz punkt przez który przechodzić będzie płaszczyzna"}
+   ]}
+ ]}.

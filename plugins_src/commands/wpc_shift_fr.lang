@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_shift,
+ [
+  {adv_submenu,
+   [
+    {1,"Decalage planaire"},
+    {2,"Decalage spherique"},
+    {3,"Decalage cylindrique"}
+   ]},
+  {menu,
+   [
+    {1,"Decalage"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Choisir les axes"},
+    {2,"Choisir le point"},
+    {3,"Choisir le centre"},
+    {4,"Choisir les axes"},
+    {5,"Choisir le point"}
+   ]}
+ ]}.

@@ -1,0 +1,62 @@
+%%                     -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_bend_pl.lang --
+%%
+%%     Polish language strings for Bend.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_bend_pl.lang,v 1.1 2005/10/04 20:31:15 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_bend,
+ [
+  {adv_submenu_clamped,
+   [
+    {1,"Zagnij plastycznie (ograniczenie)"},
+    {2,"Zagnij osiowo (ograniczenie)"},
+    {3,"Zagnij szerokokątnie (ograniczenie)"}
+   ]},
+  {adv_submenu_noclamp,
+   [
+    {1,"Zagnij plastycznie"},
+    {2,"Zagnij osiowo"},
+    {3,"Zagnij szerokokątnie"}
+   ]},
+  {bend_vertex,
+   [
+    {1,"Kąt"}
+   ]},
+  {bend_verts,
+   [
+    {1,"Ustawienia nie pozwalają zagiąć obiektu"}
+   ]},
+  {menu,
+   [
+    {1,"Zagnij"},
+    {2,"Zagnij ograniczenie"}
+   ]},
+  {submenu_clamp,
+   [
+    {1,"Wybierz ograniczenie z góry"},
+    {2,"Wybierz ograniczenie z dołu"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Wybierz środek drogi"},
+    {2,"Wybierz zasięg drogi"},
+    {3,"Wybierz wektor zagięcia"},
+    {4,"Wybierz środek drogi"},
+    {5,"Wybierz zasięg drogi"},
+    {6,"Wybierz kierunek osi"},
+    {7,"Wybierz położenie osi"},
+    {8,"Wybierz środek drogi"},
+    {9,"Wybierz zasięg drogi"},
+    {10,"Wybierz wektor zagięcia"}
+   ]}
+ ]}.

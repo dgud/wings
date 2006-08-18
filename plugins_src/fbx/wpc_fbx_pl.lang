@@ -1,0 +1,62 @@
+%%                    -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_fbx_pl.lang --
+%%
+%%     Polish language strings for FBX i/e.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_fbx_pl.lang,v 1.1 2006/01/20 14:47:02 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_fbx,
+ [
+  {ask_for_password,
+   [
+    {1,"Podaj hasło"}
+   ]},
+  {dialog,
+   [
+    {1,"Skala importu"},
+    {2,"Skala eksportu"},
+    {3,"Skala importu"},
+    {4,"Skala eksportu"},
+    {5,"Hasło"},
+    {6,"Format pliku"}
+   ]},
+  {do_export,
+   [
+    {1,"Opcje eksportu FBX"}
+   ]},
+  {do_import,
+   [
+    {1,"Opcje importu FBX"}
+   ]},
+  {do_import_2,
+   [
+    {1,"wersja FBX:"}
+   ]},
+  {import_mat_mapping,
+   [
+    {1,"Tryb mapowania materiału nie obsługiwany:"}
+   ]},
+  {import_uvs_1,
+   [
+    {1,"Tryb mapowania nie obsługiany:"}
+   ]},
+  {import_vc_1,
+   [
+    {1,"NYI: import koloru punktów:"},
+    {2,"tryb mapowania"},
+    {3,"tryb odniesienia"}
+   ]},
+  {props,
+   [
+    {1,"Pliki Alias FBX"}
+   ]}
+ ]}.

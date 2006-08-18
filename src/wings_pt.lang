@@ -1,0 +1,2620 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%%
+%%  wings_pt.lang --
+%%
+%%     Portuguese translation
+%%
+%%  Copyright (c) 2005 Luiz Fonte Boa
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wings_pt.lang,v 1.8 2005/06/26 08:25:44 bjorng Exp $
+%%
+
+{wpa,
+ [
+  {dialog_template,
+   [
+    {1,"Inverte os eixos Y e Z"},
+    {6,"Níveis de subdivisão"},
+    {7,"Arquivo padrão de textura"},
+    {uv,"Exportar coordenadas UV"},
+    {tess4,"Transformar em faces quadrangulares"},
+    {tess3,"Transformar em triângulos"},
+    {tess0,"Nenhum"},
+    {tess,"Tecelagem"},
+    {norms,"Exportar perpendiculares e grupos de suavização"},
+    {color,"Exportar cores de vértices"} 
+  ]},
+  {do_import,
+   [
+    {1,"lendo arquivo"}
+   ]},
+  {export_scale_s,
+   [
+    {1,"Exportar escala"}
+   ]},
+  {export_selected,
+   [
+    {1,"Selecione objetos ou faces."}
+   ]},
+  {format_error,
+   [
+    {1,"Erro interno: ~P\n"}
+   ]},
+  {import,
+   [
+    {1,"Falha ao importar: "}
+   ]},
+  {import_scale_s,
+   [
+    {1,"Importar escala"}
+   ]}
+ ]}.
+{wings_wm_toplevel,
+ [
+  {close_event,
+   [
+    {1,"Fecha essa janela"}
+   ]},
+  {ctrl_command,
+   [
+    {1,"Largura"},
+    {2,"Altura"},
+    {3,"Estabelecer Tamanho da Janela"}
+   ]},
+  {ctrl_menu,
+   [
+    {1,"Encaixar"},
+    {2,"Ambos"},
+    {3,"Permite à janela usar todo o espaço disponível, expandindo-se em todas as direções"},
+    {4,"Horizontal"},
+    {5,"Permite à janela usar todo o espaço disponível, expandindo-se horizontalmente"},
+    {6,"Vertical"},
+    {7,"Permite à janela usar todo o espaço disponível, expandindo-se verticalmente"},
+    {8,"Tamanho"},
+    {9,"Define o tamanho da janela numericamente"}
+   ]},
+  {ctrl_menu_toolbar,
+   [
+    {1,"Esconder a Barra de Ferramentas"},
+    {2,"Esconde a barra de ferramentas"},
+    {3,"Exibir a Barra de Ferramentas"},
+    {4,"Exibe a barra de ferramentas"}
+   ]},
+  {ctrl_message,
+   [
+    {1,"Arraste para mover"},
+    {2,"Ajustar"},
+    {3,"Exibir menu"}
+   ]},
+  {ctrl_resize,
+   [
+    {1,"Tamanho especificado muito grande"}
+   ]},
+  {resize_event,
+   [
+    {1,"Redimensionar"},
+    {2,"Redimensiona, mantendo a atual proporção"}
+   ]}
+ ]}.
+{wings_wm,
+ [
+  {message_event,
+   [
+    {1,"Essa é linha de informação"}
+   ]}
+ ]}.
+{wings_we,
+ [
+  {all_soft,
+   [
+    {1,"preparando"},
+    {2,"reunindo"}
+   ]},
+  {mixed_edges,
+   [
+    {1,"preparando"},
+    {2,"eixo perpendicular do vértice"},
+    {3,"eixo perpendicular do vértice por face"}
+   ]},
+  {normals_2,
+   [
+    {1,"calculando os eixos perpendiculares suaves"}
+   ]}
+ ]}.
+{wings_view,
+ [
+  {auto_rotate_help,
+   [
+    {1,"Pára a rotação"},
+    {2,"Aumenta a velocidade"},
+    {3,"Diminui a velocidade"}
+   ]},
+  {camera,
+   [
+    {1,"Formato negativo"},
+    {4,"Personalizado"},
+    {5,"x"},
+    {6,"Grande Angular"},
+    {7,"Grande Angular Moderada"},
+    {8,"Lente Standard"},
+    {9,"Teleobjetiva para Retrato"},
+    {10,"Teleobjetiva"},
+    {11,"Lente personalizada"},
+    {12,"Length"},
+    {13,"x Zoom"},
+    {14,"Lente"},
+    {15,"Campo de visão"},
+    {16,"Plano de Corte Próximo"},
+    {17,"Plano de Corte Distante"},
+    {18,"Parâmetros da Câmera"}
+   ]},
+  {help,
+   [
+    {1,"Parâmetros da Câmera: Campo de Visão"},
+    {2,"Estabelece o campo de visão vertical, ou seja, o ângulo entre a borda mais baixa e a mais alta visto da câmera. "},
+    {3,"The Lens controls sets the field of view according to other perhaps more well-known entities, at least for a photographer. The negative size is stored among the user preferences."},
+    {4,"The Lens controls make the height of the picture right for the choosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."},
+    {5,"Note: the zoom factor is relative a standard lens length of the negative diagonal, while only the negative height affects the effective lens length."}
+   ]},
+  {menu,
+   [
+    {1,"Grade"},
+    {2,"Exibe a Grade"},
+    {3,"Eixos"},
+    {4,"Exibe os eixos de coordenadas"},
+    {5,"Modo de trabalho"},
+    {6,"Alterna entre o sombreado chapado e suavizado"},
+    {7,"Aramado"},
+    {8,"Exibe os objetos selecionados como um aramado (o mesmo para todos objetos se nada estiver selecionado)"},
+    {9,"Sombreado"},
+    {10,"Exibe os objetos selecionados sombreados (o mesmo para todos os objetos se nada estiver selecionado)"},
+    {11,"Alternar para aramado"},
+    {12,"Alterna os modos de exibição entre os objetos selecionados (o mesmo para todos objetos se nada estiver selecionado)"},
+    {13,"Trocar as visualizações"},
+    {14,"Alterna os modos de sombreamento/subdivisão entre os objetos selecionados"},
+    {15,"Previsualização rápida do objeto subdividido"},
+    {16,"Alterna os modos de sombreamento/subdivisão entre todos os objetos"},
+    {17,"Exibir a Caixa-Limite salva"},
+    {18,"Exibe qualquer Caixa-Limite salva"},
+    {19,"Exibir Arestas"},
+    {20,"Exibe as arestas no modo de trabalho"},
+    {21,"Exibir o Lado de Trás do Aramado"},
+    {22,"Exibe o lado de trás do aramado"},
+    {23,"Exibir as perpendiculares"},
+    {24,"Exibe as perpendiculares dos elementos selecionados"},
+    {25,"Resetar a vista"},
+    {26,"Reseta a vista à sua posição padrão"},
+    {27,"Mirar"},
+    {28,"Mira a câmera no elemento selecionado"},
+    {29,"Enquadrar"},
+    {30,"Aproxima/afasta para exibir todos os elementos selecionados (ou todos os objetos se nada estiver selecionado)"},
+    {31,"Vista Ortográfica"},
+    {32,"Alterna entre as vistas ortográfica e em perspectiva"},
+    {33,"Vistas salvas: "},
+    {34,"Parâmetros da Câmera..."},
+    {35,"Estebelece o campo de visão e os planos de corte próximo e distante"},
+    {36,"Luzes da Cena"},
+    {37,"Usa as luzes definidas na cena"},
+    {38,"Duas Luzes"},
+    {39,"Uma Luz"},
+    {40,"Usa duas luzes de trabalho"},
+    {41,"Usa uma luz de trabalho"},
+    {42,"Exibir Cores"},
+    {43,"Exibe as cores de vértice nos objetos no modo \"vertex\" "},
+    {44,"Exibir Materiais"},
+    {45,"Exibe os materiais nos objetos no modo \"material\" "},
+    {46,"Exibir Texturas"},
+    {47,"Exibe a textura nos objetos no modo \"material\" "},
+    {48,"Exibir Texto de Informação"},
+    {49,"Exibe um texto informativo no topo dessa janela de Geometria"},
+    {50,"Visualizar ao longo"},
+    {51,"+X"},
+    {52,"+Y"},
+    {53,"+Z"},
+    {54,"-X"},
+    {55,"-Y"},
+    {56,"-Z"},
+    {57,"Alinhar à Seleção"},
+    {58,"Alinha a vista à perpendicular da seleção"},
+    {59,"Auto Rotacionar"},
+    {60,"Gira a vista"}
+   ]},
+  {view_legend,
+   [
+    {from,"From"},
+    {distance,"distance"},
+    {2,"ao longo de +X"},
+    {3,"ao longo de +Y"},
+    {4,"ao longo de +Z"},
+    {5,"ao longo de -X"},
+    {6,"ao longo de -Y"},
+    {7,"ao longo de -Z"},
+    {8,"towards Origin"},
+    {9,"towards "}
+   ]},
+  {views,
+   [
+    {1,"Esta vista já é a atual"},
+    {2,"Nenhum vista salva"},
+    {3,"Renomear a vista"},
+    {4,"Você deve estar na vista atual"},
+    {5,"Você está certo de que deseja apagar todas as vistas salvas?"}
+   ]},
+  {views_jump,
+   [
+    {1,"No such view slot"}
+   ]},
+  {views_jumpmenu,
+   [
+    {1,"Alternar"},
+    {2,"Nenhum vista salva!"},
+    {3,"Vai para a vista anterior["},
+    {5,"Vai para a vista atual["},
+    {7,"Pular para a próxima vista["},
+    {9,"Pular para ["},
+    {11,"Pular"}
+   ]},
+  {views_move,
+   [
+    {1,"Não existe a vista ["}
+   ]},
+  {views_movemenu,
+   [
+    {1,"Move a vista atual"},
+    {2,"Nenhuma vista salva!"},
+    {3,"Vai da vista \""},
+    {5,"] para a anterior["},
+    {7,"Vai da vista \""},
+    {9,"] para a atual"},
+    {10,"Vai da vista \""},
+    {12,"] para a próxima["},
+    {14,"Vai da vista \""},
+    {16,"] para ["},
+    {18,"Muda a vista atual"}
+   ]},
+  {views_rename_qs,
+   [
+    {1,"Nome"}
+   ]},
+  {views_save_dialog,
+   [
+    {1,"Salvar vista como"}
+   ]},
+  {views_submenu,
+   [
+    {1,"Próxima"},
+    {2,"Atual"},
+    {3,"Anterior"},
+    {4,"Salvar"},
+    {5,"Salvar esta vista como "},
+    {7,"Renomear..."},
+    {8,"Apagar"},
+    {9,"Apagar todas..."}
+   ]},
+  {views_submenu_help,
+   [
+    {1,"Nenhuma vista foi salva ainda!"},
+    {2,"Pular para \""},
+    {5,"Renomear \""},
+    {8,"Apagar \""},
+    {11,"Apagar todas as vistas salvas"}
+   ]},
+  {virtual_mirror,
+   [
+    {1,"Espelhamento exige a seleção de uma face."}
+   ]},
+  {virtual_mirror_fun,
+   [
+    {1,"Apenas uma face deve ser selecionada por objeto."}
+   ]}
+ ]}.
+{wings_vertex_cmd,
+ [
+  {menu,
+   [
+    {1,"Operações com vértices"},
+    {2,"Mover"},
+    {3,"Projetar"},
+    {4,"Conectar"},
+    {5,"Cria uma nova aresta conectando os vértices selecionados"},
+    {6,"Apertar/Afrouxar"},
+    {7,"Move os vértices selecionados em relação a seu ponto mediano"},
+    {8,"Chanfrar"},
+    {9,"Cria faces a partir dos vértices selecionados"},
+    {10,"Dissolver"},
+    {11,"Apaga os vértices selecionados (desfazendo a seleção)"},
+    {12,"Colapsar"},
+    {13,"Apaga os vértices selecionados (criando uma seleção de faces)"},
+    {14,"Deformar"},
+    {15,"Cor de vértice"},
+    {16,"Transforma os vértices selecionados em vértices coloridos"}
+   ]}
+ ]}.
+{wings_u,
+ [
+  {caption,
+   [
+    {1,"auto-saved"}
+   ]}
+ ]}.
+{wings_vec,
+ [
+  {add_help_text,
+   [
+    {1,"Escolha um eixo (e um ponto)"},
+    {2,"Escolha um eixo"},
+    {3,"Escolha um ponto"},
+    {4,"Escolha o ponto de limite externo para a influência do magneto"}
+   ]},
+  {add_magnet,
+   [
+    {1,"Escolha o ponto de limite externo para a influência do magneto"}
+   ]},
+  {check_magnet_point,
+   [
+    {1,"Ponto central da seleção salvo."}
+   ]},
+  {check_point,
+   [
+    {1,"Ponto central da seleção salvo."},
+    {2,"Despreza o espelhamento no cálculo do ponto de referência"},
+    {3,"Inclui o espelhamento no cálculo do ponto de referência"}
+   ]},
+  {check_vector,
+   [
+    {1,"Selecione partes de apenas um objeto"}
+   ]},
+  {common_magnet_message,
+   [
+    {1,"Magneto"}
+   ]},
+  {common_message,
+   [
+    {1,"Executar"},
+    {2,"Continuar"}
+   ]},
+  {exit_menu,
+   [
+    {2,"Cancela o atual comando"}
+   ]},
+  {get_vec,
+   [
+    {1,"Aresta salva como eixo"},
+    {2,"Salvar a perpendicular da aresta"},
+    {3,"Perpendicular da aresta salva como eixo"},
+    {4,"Salvar direção da aresta"},
+    {5,"Direção entre arestas salva como eixo."},
+    {6,"Perpendicular da seqüência de arestas salva como eixo."},
+    {7,"A seleção de várias arestas deve formar uma única seqüência de arestas fechada."},
+    {8,"Perpendicular do vértice salva."},
+    {9,"Direção entre vértices salva como eixo."},
+    {10,"Usar a perpendicular média dos vértices como eixo"},
+    {11,"Perpendicular média dos vértices salva como eixo."},
+    {12,"Usar a direção entre os vértices como eixo"},
+    {13,"Perpendicular baseada em 3 pontos salva como eixo."},
+    {14,"Perpendicular da seqüência de vértices salva como eixo."},
+    {15,"A seleção de vários vértices deve formar ua única seqüência de arestas fechada."},
+    {16,"Perpendicular da face salva como eixo."},
+    {17,"Direção entre os centros das faces salva como eixo."},
+    {18,"Usar a perpendicular média das faces"},
+    {19,"Perpendicular média das faces salva como eixo."},
+    {20,"Usar a direção entre os centros das faces"},
+    {21,"Perpendicular da região formada por uma seqüência de arestas salva como eixo."},
+    {22,"A seleção de várias faces deve ter uma única seqüência de arestas."},
+    {23,"Selecionar vértices, arestas, ou faces."}
+   ]},
+  {magnet_message,
+   [
+    {1,"Executar "},
+    {2,"Opções de Magneto"}
+   ]}
+ ]}.
+{wings_toolbar,
+ [
+  {button_help_1,
+   [
+    {1,"Deselect"}
+   ]},
+  {button_help_2,
+   [
+    {1,"Selecionar vértices adjacentes"},
+    {2,"Alterna para o modo de seleção de vértices"},
+    {3,"Selecionar arestas adjacentes"},
+    {4,"Muda para o modo de seleção de arestas"},
+    {5,"Seleciona as faces adjacentes"},
+    {6,"Muda para o modo de seleção de faces"},
+    {7,"Muda para o modo de seleção de objetos"}
+   ]},
+  {messages,
+   [
+    {axes,"eixos"},
+    {change_to,"Muda para"},
+    {flat,"sombreamento chapado"},
+    {groundplane,"Grade"},
+    {hide,"Esconder"},
+    {orthogonal,"vista ortogonal"},
+    {perspective,"vista em perspectiva"},
+    {show,"Exibir"},
+    {show_objects,"Exibe objetos com"},
+    {smooth,"sombreamento suavizado"}
+   ]}
+ ]}.
+{wings_tesselation,
+ [
+  {submenu,
+   [
+    {1,"Transformar em triângulos"},
+    {2,"Transformar em faces quadrangulares"}
+   ]}
+ ]}.
+{wings_subdiv,
+ [
+  {face_centers,
+   [
+    {1,"A face "},
+    {2," tem somente duas arestas."}
+   ]},
+  {smooth,
+   [
+    {1,"subdividindo"},
+    {2,"calculando o centro das faces"},
+    {3,"cortando arestas"},
+    {4,"atualizando materiais"},
+    {5,"criando novas faces"},
+    {6,"movendo vértices"},
+    {7,"finalizando"}
+   ]}
+ ]}.
+{wings_shapes,
+ [
+  {cone,
+   [
+    {1,"Seções"}
+   ]},
+  {cylinder,
+   [
+    {1,"Seções"}
+   ]},
+  {grid,
+   [
+    {1,"Linhas/colunas"}
+   ]},
+  {menu,
+   [
+    {15,"Mais"},
+    {16,"Mais geometrias primitivas"}
+   ]},
+  {prim_help,
+   [
+    {cone,"Cria um cone"},
+    {cube,"Cria um cubo"},
+    {cylinder,"Cria um cilindro"},
+    {dodecahedron,"Cria um dodecaedro"},
+    {grid,"Cria uma rede"},
+    {icosahedron,"Cria um icosaedro"},
+    {image,"Cria uma imagem..."},
+    {light,"Cria uma luz"},
+    {material,"Cria um material..."},
+    {octahedron,"Cria um octaedro"},
+    {octotoad,"Create an octotoad"},
+    {sphere,"Cria uma esfera"},
+    {tetrahedron,"Cria um tetraedro"},
+    {torus,"Cria um toróide"}
+   ]},
+  {prim_name,
+   [
+    {cone,"Cone"},
+    {cube,"Cubo"},
+    {cylinder,"Cilindro"},
+    {dodecahedron,"Dodecaedro"},
+    {grid,"Rede"},
+    {icosahedron,"Icosaedro"},
+    {image,"Imagem..."},
+    {light,"Luz"},
+    {material,"Material..."},
+    {octahedron,"Octaedro"},
+    {octotoad,"Octotoad"},
+    {sphere,"Esfera"},
+    {tetrahedron,"Tetraedro"},
+    {torus,"Toróide"}
+   ]},
+  {sphere,
+   [
+    {1,"Seções"},
+    {2,"Fatias"}
+   ]},
+  {torus,
+   [
+    {1,"Seções"},
+    {2,"Fatias"},
+    {3,"Raio Maior"},
+    {4,"Raio Menor"}
+   ]}
+ ]}.
+{wings_shape,
+ [
+  {do_menu,
+   [
+    {1,"Duplicar"},
+    {2,"Duplica os objetos selecionados"},
+    {3,"Apagar"},
+    {4,"Apaga os objetos selecionados"},
+    {5,"Renomear"},
+    {6,"Renomeia os objetos selecionados"}
+   ]},
+  {help,
+   [
+    {1,"Selecionar"},
+    {2,"Exibir menu"},
+    {3,"Liga/Desliga a visibilidade do objeto ativo"},
+    {4,"Liga/Desliga a visibilidade de todos os outros objetos"},
+    {5,"Trava/Destrava o objeto ativo"},
+    {6,"Trava/Destrava todos os objetos"},
+    {7,"Seleciona/Deseleciona o objeto ativo"},
+    {8,"Seleciona/Deseleciona todos os outros objetos"},
+    {9,"Alterna a visualização do objeto ativo entre sombreado e aramado"},
+    {10,"Alterna entre sombreado e aramado a visualização de todos os outros objetos"}
+   ]},
+  {title,
+   [
+    {1,"Índice das Geometrias e Luzes"},
+    {2,"Índice das Geometrias e Luzes #"}
+   ]}
+ ]}.
+{wings_sel_cmd,
+ [
+  {ask,
+   [
+    {1,"Selecionar por Id"}
+   ]},
+  {group_title,
+   [
+    {1,"vértice: "},
+    {2,"aresta: "},
+    {3,"face: "},
+    {4,"objeto: "}
+   ]},
+  {groups_menu,
+   [
+    {1,"Apagar Grupo"},
+    {2,"Apaga o grupo \""},
+    {4,"Acrescentar ao Grupo"},
+    {5,"Acrescenta a atual seleção ao grupo \""},
+    {7,"Subtrair do Grupo"},
+    {8,"Subtrai a atual seleção do grupo \""},
+    {10,"Selecionar Grupo"},
+    {11,"Seleciona grupo \""},
+    {13,"União de Grupos"},
+    {14,"Une o grupo \""},
+    {15,"\" com a atual seleção"},
+    {16,"Subtração de Grupos"},
+    {17,"Subtrai o grupo \""},
+    {18,"\" da atual seleção"},
+    {19,"Interseção de Grupos"},
+    {20,"Intersecciona o grupo \""},
+    {21,"\" com a atual seleção"}
+   ]},
+  {item_by_id,
+   [
+    {1,"Nothing to select."},
+    {2,"Id de Objeto"}
+   ]},
+  {less_help,
+   [
+    {1,"Deseleciona todos os vértices adjacentes a um vértice selecionado"},
+    {2,"Deseleciona todos as arestas adjacentes a uma aresta selecionada"},
+    {3,"Deseleciona todas as faces que compartilham um vértice com uma face selecionada"}
+   ]},
+  {menu,
+   [
+    {1,"Desmarcar a seleção"},
+    {2,"Limpa a seleção"},
+    {3,"Mais"},
+    {4,"Menos"},
+    {5,"Similar"},
+    {6,"Seqüência de Arestas"},
+    {7,"Seqüência de Arestas"},
+    {8,"Expande a seleção de arestas para uma seqüência; "},
+    {9,"converte a seleção de faces em seleção das arestas que formam sua borda"},
+    {10,"Seqüência de Arestas para Região"},
+    {11,"Seleciona todas as faces internas de uma seqüência de arestas"},
+    {12,"Anel de arestas"},
+    {13,"Expande a seleção de arestas para um anel"},
+    {14,"Seqüência de Arestas anterior"},
+    {15,"Seleciona a seqüência de arestas anterior"},
+    {16,"Seqüência de Arestas posterior"},
+    {17,"Seleciona a seqüência de arestas posterior"},
+    {18,"Expandir a Seqüência de Arestas"},
+    {19,"Expande uma aresta na seleção de arestas em ambas as direções da seqüência"},
+    {20,"Contrair a Seqüência de Arestas"},
+    {21,"Contrai uma aresta na seleção de arestas na direção da seqüência"},
+    {22,"Expandir o Anel de Arestas"},
+    {23,"Expande uma aresta na seleção de arestas na direção do anel"},
+    {24,"Contrair o Anel de Arestas"},
+    {25,"Contrai uma aresta na seleção de arestas na direção do anel"},
+    {26,"Adjacente"},
+    {27,"Vértices"},
+    {28,"Arestas"},
+    {29,"Faces"},
+    {30,"Objetos"},
+    {31,"Por"},
+    {32,"Arestas Rígidas"},
+    {33,"Seleciona todas as arestas duras"},
+    {34,"Vértices isolados"},
+    {35,"Seleciona todos os vértices isolados"},
+    {36,"Vértices Com"},
+    {37,"2 Arestas"},
+    {38,"3 Arestas"},
+    {39,"4 Arestas"},
+    {40,"5 Arestas"},
+    {41,"Faces Com"},
+    {42,"2 Arestas"},
+    {43,"3 Arestas"},
+    {44,"4 Arestas"},
+    {45,"5 ou mais"},
+    {46,"Aleatório"},
+    {56,"Arestas Curtas"},
+    {57,"Seleciona (também) as arestas curtas"},
+    {58,"Arestas que dividem materiais"},
+    {59,"Seleciona todas as arestas entre materiais diferentes"},
+    {60,"Faces UV-Mapeadas"},
+    {61,"Seleciona todas as arestas que tem coordenadas UV"},
+    {62,"Id..."},
+    {63,"Seleciona por ID numérico"},
+    {64,"Luzes"},
+    {65,"Selecionar todas as luzes"},
+    {66,"Seleciona todos os elementos"},
+    {67,"Inverter"},
+    {68,"Inverte a seleção"},
+    {69,"Ocultar Selecionado"},
+    {70,"Oculta todos (parcial ou inteiramente) os objetos selecionados"},
+    {71,"Ocultar o não-selecionado"},
+    {72,"Oculta os objetos que não estiverem selecionados"},
+    {73,"Travar o não-selecionado"},
+    {74,"Trava os objetos que não estiverem selecionados"},
+    {75,"Exibir Tudo"},
+    {76,"Exibe todos os objetos que foram ocultados"},
+    {77,"Destravar Tudo"},
+    {78,"Destrava todos os objetos travados"},
+    {79,"Armazenar Seleção"},
+    {80,"Armazena a seleção em um grupo de seleção chamado \"StoredSelection\""},
+    {81,"Restaurar a Seleção"},
+    {82,"Restaura a seleção a partir de um grupo de seleção chamado \"StoredSelection\""},
+    {83,"Novo Grupo..."},
+    {84,"Cria um novo grupo de seleção"}
+   ]},
+  {more_help,
+   [
+    {1,"Seleciona todos os vértices adjacentes a um vértice selecionado"},
+    {2,"Seleciona todas as arestas adjacentes ao uma aresta selecionada"},
+    {3,"Seleciona todas as faces que compartilham um vértice com uma face selecionada"}
+   ]},
+  {new_group,
+   [
+    {1,"Criar um Novo Grupo"},
+    {2,"Nome do Grupo"}
+   ]},
+  {sel_all_str,
+   [
+    {1,"Todos os Vértices"},
+    {2,"Todas as Arestas"},
+    {3,"Todas as Faces"},
+    {4,"Todos os Objetos"}
+   ]},
+  {short_edges,
+   [
+    {1,"Tolerância de comprimento"},
+    {2,"Selecionar Arestas Curtas"}
+   ]},
+  {similar_help,
+   [
+    {1,"Selecionar vértices similares aos vértices já selecionados"},
+    {2,"Seleciona as arestas similares às arestas já selecionadas"},
+    {3,"Seleciona as faces similares às faces já selecionadas"},
+    {4,"Seleciona os objetos com o mesmo número de arestas, faces e vértices"}
+   ]},
+  {valid_sel,
+   [
+    {1,"O Objeto com o ID "},
+    {2," é inválido."},
+    {3,"A "},
+    {4," é inválida."}
+   ]}
+ ]}.
+{wings_scale,
+ [
+  {edges_to_vertices,
+   [
+    {1,"Uma operação de escala com magneto em múltiplas regiões de arestas exige uma origem explícita da escala."}
+   ]},
+  {faces_to_vertices,
+   [
+    {1,"Uma operação de escala com magneto em múltiplas regiões de faces exige uma origem explícita da escala."}
+   ]},
+  {inset_face,
+   [
+    {1,"Existem arestas muito pequenas em uma ou mais faces selecionadas. (Use Limpar.)"}
+   ]}
+ ]}.
+{wings_s,
+ [
+  {accept,
+   [
+    {1,"Aceitar"}
+   ]},
+  {camera_mode,
+   [
+    {blender,"Blender"},
+    {maya,"Maya"},
+    {mb,"Motionbuilder"},
+    {mirai,"Mirai"},
+    {nendo,"Nendo"},
+    {tds,"3ds max"}
+   ]},
+  {cancel,
+   [
+    {1,"Cancelar"}
+   ]},
+  {dir,
+   [
+    {all,"All"},
+    {da,"eixo padrão"},
+    {f,"Livre"},
+    {la,"Último eixo"},
+    {n,"Perpendicular"},
+    {r,"Radial"},
+    {the_axis,"eixo ~s"},
+    {u,"Uniforme"},
+    {x,"X"},
+    {y,"Y"},
+    {z,"Z"}
+   ]},
+  {mod,
+   [
+    {alt,"Alt"},
+    {command,"Command"},
+    {ctrl,"Ctrl"},
+    {shift,"Shift"}
+   ]},
+  {mouse_b,
+   [
+    {l,"E"},
+    {m,"M"},
+    {r,"D"}
+   ]},
+  {no,
+   [
+    {1,"Não"}
+   ]},
+  {yes,
+   [
+    {1,"Sim"}
+   ]}
+ ]}.
+{wings_rotate,
+ [
+  {edges_to_vertices,
+   [
+    {1,"Uma operação de rotação com Magneto sobre múltiplas regiões de arestas exige uma origem explícita para para a rotação."}
+   ]},
+  {faces_to_vertices,
+   [
+    {1,"Uma operação de rotação com Magneto sobre múltiplas regiões de faces exige uma origem explícita para para a rotação."}
+   ]}
+ ]}.
+{wings_pref_dlg,
+ [
+  {advanced_prefs,
+   [
+    {1,"Comandos padrão"},
+    {2,"Permite definir comandos que podem ser acionados através de Ctrl+Botão Esquerdo ou Ctrl+Botão do Meio"},
+    {3,"Usar o realce como seleção temporária"},
+    {4,"Se não houver nada selecionado, "},
+    {5,"permite que comandos atuem sobre um elemento realçado"},
+    {6,"Esconder a seleção enquanto se arrasta um elemento"},
+    {7,"Não exibe a seleção em um comando interativo"},
+    {8,"Esconder a seleção enquanto se move a Câmera"},
+    {9,"Não exibe a seleção quando a câmera estiver sendo movida"},
+    {10,"Menus Avançados"},
+    {11,"Mais comandos e opções, como os magnetos"},
+    {12,"Seleções temporárias forçadas pelo usuário"},
+    {13,"No modo de seleção secundário, o Botão Direito do Mouse sempre acrescenta à seleção"},
+    {14,"Comprimendo"},
+    {15,"Comprimento de um vetor em uma seleção secundária"},
+    {16,"Largura"},
+    {17,"Largura do vetor (em pixels)"},
+    {18,"Cor"},
+    {19,"Cor do vetor"},
+    {20,"Aspecto do vetor"}
+   ]},
+  {command,
+   [
+    {1,"Geral"},
+    {2,"Câmera"},
+    {3,"Avançado"},
+    {4,"Interface do Usuário"},
+    {5,"Miscelânea"},
+    {6,"Preferências"}
+   ]},
+  {gen_prefs,
+   [
+    {1,"Tamanho do não-Selecionado"},
+    {2,"Tamanho em pixels dos vértices não-selecionados (0.0 significa que não serão exibidos)"},
+    {3,"Tamanho do Selecionado"},
+    {4,"Tamanho em pixels dos vértices selecionados"},
+    {5,"Aspecto do Vertice"},
+    {6,"Largura da não-Selecionada"},
+    {7,"Largura em pixels das arestas não-selecionadas"},
+    {8,"Largura da Selecionada"},
+    {9,"Largura em pixels das arestas selecionadas"},
+    {10,"Arestas Suaves"},
+    {11,"Cor das arestas suaves"},
+    {12,"Arestas Duras"},
+    {13,"Cor das arestas duras"},
+    {14,"Aspecto da Aresta"},
+    {15,"Vértices"},
+    {16,"Arestas"},
+    {17,"Faces"},
+    {18,"Objetos"},
+    {19,"Não-Selecionado"},
+    {20,"Selecionado"},
+    {21,"Realce Inteligente"},
+    {22,"Realce"},
+    {23,"Seleção sólida de faces"},
+    {24,"Seleção sombreada de faces"},
+    {25,"Cor da Seleção"},
+    {26,"Seleção"},
+    {27,"Texto"},
+    {28,"Cor do texto de informação"},
+    {29,"Fundo"},
+    {30,"Cor do fundo para texto de informação (inclusive transparência)"},
+    {31,"Texto de Informação"},
+    {32,"Cor"},
+    {33,"Eixo alinhado à Grade"},
+    {34,"Sempre exibe a Grade quando a vista está alinhada ao longo de um dos eixos principais"},
+    {35,"Grade"},
+    {36,"Exibir Letras dos Eixos"},
+    {37,"+X Cor"},
+    {38,"+Y Cor"},
+    {39,"+Z Cor"},
+    {40,"-X Cor"},
+    {41,"-Y Cor"},
+    {42,"-Z Cor"},
+    {43,"Eixos"},
+    {aa_ortho1,"Eixo alinhado ortograficamente"},
+    {aa_ortho2,"Sempre vai para o modo ortogonal quando a vista está alinhada ao longo de um dos eixos principais"}
+   ]},
+  {menu,
+   [
+    {1,"Preferências..."},
+    {2,"Edite as preferências para o Wings"}
+   ]},
+  {misc_prefs,
+   [
+    {1,"Definições de transparência não suportadas nessa versão do OpenGL"},
+    {2,"Salvar automaticamente a cada"},
+    {3,"minutos"},
+    {4,"Níveis de Desfazer"},
+    {5,"Ângulo"},
+    {6,"Atraso (ms)"},
+    {7,"Auto rotacionar"},
+    {8,"Gaiola"},
+    {9,"Algumas Arestas"},
+    {10,"Todas as Arestas"},
+    {11,"Estilo de Sombreamento das Arestas"},
+    {12,"Transparência quando imóvel"},
+    {13,"Transparência ao mover"},
+    {14,"Proxy Mode"},
+    {15,"Texto nos menus e janelas de diálogo desaparecem"},
+    {16,"Problema acontece com algumas placas Matrox"},
+    {17,"Wings finaliza se os eixos não desligados"},
+    {18,"Problema acontece com algumas placas Matrox"},
+    {19,"Camera moves and interactive commands are jumpy"},
+    {20,"Problema acontece no Mac OS X 10.3 (Panther)"},
+    {21,"Soluções provisórias"}
+   ]},
+  {smart_set_value_1,
+   [
+    {1,"A mudança da fonte de sistema só terá efeito na próxima vez que o Wings 3D for iniciado."}
+   ]},
+  {ui_prefs,
+   [
+    {1,"Fonte de Sistema"},
+    {2,"Área de Trabalho/Janela de Geometria"},
+    {3,"Texto do Menu"},
+    {4,"Menu Realçado"},
+    {5,"Texto de Menu Realçado"},
+    {6,"Menu de Fundo"},
+    {7,"Texto de Janela de Diálogo"},
+    {8,"Texto de Janela de Diálogo Desabilitado"},
+    {9,"Janela de Diálogo de Fundo"},
+    {10,"Texto de Título"},
+    {11,"Título de Fundo Passivo"},
+    {12,"Título de Fundo Ativo"},
+    {13,"Cores"},
+    {14,"Sem Barra de Progresso"},
+    {15,"Fonte do Console"},
+    {16,"Largura"},
+    {17,"Altura"},
+    {18,"Salvar Linhas"},
+    {19,"Fundo"},
+    {20,"Texto"},
+    {21,"Cursor"},
+    {22,"Console"},
+    {23,"Linguagem"}
+   ]},
+  {workaround_1,
+   [
+    {1,"Problema"},
+    {2,"Usar solução provisória?"}
+   ]}
+ ]}.
+{wings_plugin,
+ [
+  {def_ui_plugin,
+   [
+    {1,"Reinstale o Wings. Falta o plugin para ~p."}
+   ]},
+  {install,
+   [
+    {1,"O plugin foi instalado perfeitamente."}
+   ]},
+  {install_beam,
+   [
+    {1,"Falha na instalação de \"~s\"  : ~p"},
+    {2,"O arquivo \"~s\" não é um módulo de plugin para Wings."}
+   ]},
+  {install_file_type,
+   [
+    {1,"Arquivo \"~s\": arquivo de tipo desconhecido"}
+   ]},
+  {install_verify_files,
+   [
+    {1,"O arquivo \"~s\" tem um caminho absoluto"},
+    {2,"O arquivo \"~s\" Não contém nenhum módulo de plugin para Wings"}
+   ]},
+  {plugin_dir,
+   [
+    {1,"Diretório \"plugins\" não encontrado"}
+   ]}
+ ]}.
+{wings_pick,
+ [
+  {clear_hilite_marquee_mode,
+   [
+    {ctrl_action,"Desmarcar a seleção"},
+    {shift_action,"(De)seleciona somente os elementos inteiramente dentro da janela de seleção"}
+   ]},
+  {handle_hilite_event,
+   [
+    {2,"(em espelho)"}
+   ]}
+ ]}.
+{wings_pb,
+ [
+  {loop,
+   [
+    {1,"concluído"}
+   ]}
+ ]}.
+{wings_palette,
+ [
+  {command,
+   [
+    {1,"Cor inicial não encontrada."},
+    {2,"Cor final não encontrada."},
+    {3,"Exportar"},
+    {5,"Palheta do Wings"},
+    {6,"Erro ao exportar: ~w"},
+    {7,"Importar"},
+    {9,"Palheta do Wings"},
+    {10,"Nenhuma palheta encontrada"},
+    {11,"Erro ao importar: ~w"},
+    {12,"Erro ao importar: ~w"}
+   ]},
+  {do_menu,
+   [
+    {1,"Editar"},
+    {2,"Edita a cor"},
+    {3,"Interpolar"},
+    {4,"Interpola cores ainda não-definidas"},
+    {5,"Apagar tudo"},
+    {6,"Apaga a Palheta"},
+    {7,"Compactar"},
+    {8,"Compacta a Palheta"},
+    {9,"Detectar cores"},
+    {10,"Detecta as cores dos objetos selecionados"},
+    {11,"Exportar"},
+    {12,"Exporta a Palheta para um arquivo"},
+    {13,"Importar"},
+    {14,"Importa a Palheta de um arquivo"}
+   ]},
+  {event,
+   [
+    {1,"Aplicar cor à seleção"},
+    {2,"Editar cor"},
+    {3,"Exibir menu"},
+    {4,"Apagar a cor"}
+   ]},
+  {title,
+   [
+    {1,"Palheta"}
+   ]}
+ ]}.
+{wings_outliner,
+ [
+  {command,
+   [
+    {1,"NYI: ~p\n"}
+   ]},
+  {common_image_menu,
+   [
+    {1,"Exportar..."},
+    {2,"Exporta a imagem"},
+    {3,"Duplicar"},
+    {4,"Duplica a imagem selecionada"},
+    {5,"Apagar"},
+    {6,"Apaga a imagem selecionada"},
+    {7,"Renomear"},
+    {8,"Renomeia a imagem selecionada"}
+   ]},
+  {delete_image,
+   [
+    {1,"A imagem está sendo usada por um material."},
+    {2,"Você está certo de que deseja apagar a imagem (NÃO será possível desfazer)?"}
+   ]},
+  {do_menu,
+   [
+    {1,"Editar Material..."},
+    {2,"Edita as propriedades do material"},
+    {3,"Aplcar à seleção"},
+    {4,"Aplica o material às faces ou objetos selecionados"},
+    {5,"Selecionar"},
+    {6,"Seleciona todas as faces que têm esse material"},
+    {7,"Duplicar"},
+    {8,"Duplica esse material"},
+    {9,"Apagar"},
+    {10,"Apaga esse material"},
+    {11,"Renomear"},
+    {12,"Renomeia esse material"},
+    {13,"Duplicar"},
+    {14,"Duplica esse objeto"},
+    {15,"Apagar"},
+    {16,"Apaga esse objeto"},
+    {17,"Renomear"},
+    {18,"Renomeia esse objeto"},
+    {19,"Editar Luz..."},
+    {20,"Edita as propriedades da luz"},
+    {21,"Duplicar"},
+    {22,"Duplica essa luz"},
+    {23,"Apagar"},
+    {24,"Apaga essa luz"},
+    {25,"Renomear"},
+    {26,"Renomeia essa luz"}
+   ]},
+  {event,
+   [
+    {1,"Selecionar"},
+    {2,"Exibe o menu do Índice Geral (se houver seleção) ou o menu de criação (se não houver seleção)"}
+   ]},
+  {handle_drop,
+   [
+    {1,"Tipo de Textura"},
+    {2,"Difusa"},
+    {3,"Lustro"},
+    {4,"Relevo"}
+   ]},
+  {image_menu,
+   [
+    {1,"Exibir"},
+    {2,"Exibe a imagem em uma janela"}
+   ]},
+  {image_menu_1,
+   [
+    {1,"Tornar Externa..."},
+    {2,"Atualizar"},
+    {3,"Tornar Interna"}
+   ]},
+  {make_external,
+   [
+    {1,"Tornar Externa"}
+   ]},
+  {refresh_image,
+   [
+    {1,"Falha ao atualizar \""}
+   ]},
+  {rename_image,
+   [
+    {1,"Renomear a Imagem"}
+   ]},
+  {title,
+   [
+    {1,"Índice Geral"}
+   ]}
+ ]}.
+{wings_menu_util,
+ [
+  {adv_scale_1,
+   [
+    {1,"Alterar Escala Uniformemente"},
+    {2,"Alterar Escala por um Eixo"},
+    {3,"Alterar Escala por um Raio"}
+   ]},
+  {basic_scale,
+   [
+    {1,"Escala"}
+   ]},
+  {dir_help,
+   [
+    {3,"o último eixo"},
+    {4,"o eixo padrão"},
+    {7,"em torno"},
+    {10,"ao longo de sua perpendicular"},
+    {11,"livremente em todas as direções"},
+    {12,"Altera a escala igualmente em todas as direções"}
+   ]},
+  {dir_help_1,
+   [
+    {1,"Move cada elemento "},
+    {2,"Gira livremente"},
+    {3,"Gira ao redor da perpendicular de cada elemento"},
+    {4,"Projeta cada elemento e então o move "},
+    {5,"Projeta faces como uma região e então move estas faces ao longo da perpendicular da região"},
+    {6,"Projeta faces como uma região e então move as faces "},
+    {7,"Extrai faces e então move estas faces ao longo da perpendicular da região"},
+    {8,"Extrai faces e então move estas faces "},
+    {9,"Achata os elementos num plano perpendicular"},
+    {10,"Alça uma face ao longo de sua perpendicular"},
+    {11,"Alça uma face e a move "},
+    {12,"Duplica e move livremente "},
+    {13,"Move cada elemento ao longo "},
+    {14,"Projeta elementos e então os move ao longo "},
+    {15,"Projeta faces como uma região e então as move ao longo "},
+    {16,"Extrai faces e então as move ao longo "},
+    {17,"Gira ao redor "},
+    {18,"Alterar escala "},
+    {19,"Altera a escala ao longo de "},
+    {20,"Achatar no "},
+    {21,"Achata e então move para "},
+    {22,"Alça face ao longo "},
+    {23,"Duplica e então move ao longo "}
+   ]},
+  {dirs,
+   [
+    {1,"Move ao longo do eixo padrão"},
+    {2,"Escolha o eixo ao longo do qual mover"},
+    {3,"Move ao longo do eixo padrão"},
+    {4,"Move ao longo da perpendicular da seleção"},
+    {5,"Escolha o eixo ao longo do qual mover"},
+    {6,"Projeta ao longo do eixo padrão"},
+    {7,"Projeta ao longo da perpendicular da seleção"},
+    {8,"Escolha o eixo ao longo do qual projetar"},
+    {9,"Projeta ao longo do eixo padrão"},
+    {10,"Projeta ao longo da perpendicular da seleção"},
+    {11,"Escolha o eixo ao longo do qual projetar"},
+    {12,"Extrai ao longo do eixo padrão"},
+    {13,"Extrai ao longo da perpendicular da seleção"},
+    {14,"Escolha o eixo ao longo do qual extrair"},
+    {15,"Duplica, movendo ao longo do eixo padrão"},
+    {16,"Duplica, sem mover"},
+    {17,"Duplica, permitindo escolher o eixo ao longo do qual mover"}
+   ]},
+  {flatten,
+   [
+    {1,"Achatar"},
+    {2,"Achata nos planos standard"},
+    {3,"Escolha um plano e um ponto de referência no plano"},
+    {4,"Escolha um plano"}
+   ]},
+  {flatten_fun_1,
+   [
+    {1,"Escolha um ponto no plano"}
+   ]},
+  {rotate,
+   [
+    {1,"Gira em torno do eixo padrão"},
+    {2,"Escolha um eixo e um ponto de referência"},
+    {3,"Escolha um eixo em torno do qual girar"}
+   ]},
+  {rotate_1,
+   [
+    {1,"Girar"}
+   ]},
+  {rotate_fun,
+   [
+    {1,"Escolha o ponto por onde o eixo passará"}
+   ]},
+  {scale,
+   [
+    {1,"Altera a Escala em relação ao eixo standard"},
+    {2,"Escolha um eixo e um ponto a partir do qual alterar a escala"},
+    {3,"Escolha um eixo a partir do qual alterar a escala"},
+    {4,"Altera a escala ao longo do eixo standard"},
+    {5,"Escolha um eixo e um ponto de onde alterar a escala"},
+    {6,"Escolha um eixo ao longo do qual alterar a escala"}
+   ]},
+  {scale_fun,
+   [
+    {1,"Escolha o ponto de onde alterar a escala"}
+   ]},
+  {uniform_scale,
+   [
+    {1,"Escolha o ponto a partir do qual alterar a escala"},
+    {2,"Altera a escala uniformemente a partir do ponto central da seleção"}
+   ]}
+ ]}.
+{wings_menu,
+ [
+  {get_hotkey,
+   [
+    {1,"Pressione a tecla à qual associar o comando."}
+   ]},
+  {handle_key_event,
+   [
+    {1,"Essa tecla já está atribuída ao comando "},
+    {2," . Você quer redefini-la?"}
+   ]},
+  {help_text_1,
+   [
+    {1," <<submenu>>"}
+   ]},
+  {magnet_help,
+   [
+    {2,"Clique para Magneto"}
+   ]},
+  {norm_help_adv,
+   [
+    {1,"Abre janela de diálogo"}
+   ]}
+ ]}.
+{wings_material,
+ [
+  {edit,
+   [
+    {1,"Propriedades do Material: "}
+   ]},
+  {edit_dialog,
+   [
+    {1,"Difusa"},
+    {2,"Ambiente"},
+    {3,"Especular"},
+    {4,"Emissão"},
+    {5,"Brilho"},
+    {6,"Transparência"},
+    {7,"OK"}
+   ]},
+  {load_map_1,
+   [
+    {1,"Falha ao carregar"}
+   ]},
+  {material_fun,
+   [
+    {1,"Aplica o material existente à seleção"},
+    {2,"Cria e aplica um novo material"}
+   ]},
+  {material_menu,
+   [
+    {1,"Material"},
+    {2,"Novo..."},
+    {3,"Criar um novo material e atribuí-lo às faces selecionadas
+"},
+    {4,"Material"}
+   ]},
+  {new_1,
+   [
+    {1,"Novo Material"},
+    {2,"Nome do Material"},
+    {3,"Novo Material"}
+   ]},
+  {plugin_results,
+   [
+    {1,"Material editor plugin(s) left garbage:~n    ~P~n"},
+    {2,"Plugin(s) left garbage"}
+   ]},
+  {rename,
+   [
+    {1,"Renomear"}
+   ]},
+  {show_map,
+   [
+    {1,"~p: <imagem apagada>"},
+    {2,"~p: ~p [~px~px~p]"},
+    {3,"Apagar"}
+   ]},
+  {show_maps,
+   [
+    {1,"Texturas"}
+   ]}
+ ]}.
+{wings_magnet,
+ [
+  {check_radius,
+   [
+    {1,"Raio de influência muito curto."}
+   ]},
+  {common_dialog,
+   [{4,"Trajetória"}
+   ]},
+  {dialog,
+   [
+    {1,"Opções do Magneto"},
+    {2,"Raio de Influência"},
+    {3,"Opções do Magneto"}
+   ]},
+  {drag_help,
+   [
+    {1,"[+] ou [-] para ajustar o raio  "}
+   ]},
+  {info_string,
+   [
+    {1,"Trajetória do Magneto:"}
+   ]},
+  {magnet_route,
+   [{shortest,"Mais próximo"},
+    {midpoint,"Ponto central"},
+    {surface,"Superfície"}]}
+ ]}.
+{wings_light,
+ [
+  {attenuation,
+   [
+    {1,"Não se trata de uma Luz Puntual ou de um Holofote."}
+   ]},
+  {color,
+   [
+    {1,"Selecione somente uma luz."}
+   ]},
+  {edit,
+   [
+    {1,"Selecione somente uma luz."},
+    {2,"Propriedades da Luz Ambiente"},
+    {3,"Propriedades da Luz"}
+   ]},
+  {edit_ambient_dialog,
+   [
+    {1,"Ambiente"},
+    {2,"Cor"},
+    {3,"OK"}
+   ]},
+  {edit_dialog,
+   [
+    {1,"Difusa"},
+    {2,"Ambiente"},
+    {3,"Especular"},
+    {4,"Cores"},
+    {5,"OK"}
+   ]},
+  {export_camera_lights,
+   [
+    {1,"Ambiente"},
+    {2,"Infinita"},
+    {3,"Infinita1"},
+    {4,"Infinita2"}
+   ]},
+  {info,
+   [
+    {1,"Luz ~s"},
+    {2,": Pos ~s ~s ~s"}
+   ]},
+  {info_1,
+   [
+    {1,". Aim ~s ~s ~s. Dir ~s ~s ~s"},
+    {2,". Ângulo ~s~c"}
+   ]},
+  {light_types,
+   [
+    {1,"Infinita"},
+    {2,"Cria uma luz distante e direcional (como o sol)"},
+    {3,"Puntual"},
+    {4,"Cria uma luz que irradia em todas as direções"},
+    {5,"Holofote"},
+    {6,"Cria um holofote"},
+    {7,"Ambiente"},
+    {8,"Cria uma fonte de luz ambiente"},
+    {9,"Área"},
+    {10,"Cria uma área que irradia luz"}
+   ]},
+  {menu,
+   [
+    {1,"Operações com Luz"},
+    {2,"Mover"},
+    {3,"Posicionar o ponto de brilho"},
+    {4,"Posiciona o alvo ou a localização da luz"},
+    {5,"Cor"},
+    {6,"Ajusta interativamente tonalidade, valor e saturação"},
+    {7,"Atenuação"},
+    {8,"Linear"},
+    {9,"Ajusta interativamente o quanto uma luz enfraquece a partir de sua origem (fator linear)"},
+    {10,"Quadrático"},
+    {11,"Ajusta interativamente o quanto uma luz enfraquece a partir de sua origem (fator quadrático)"},
+    {12,"Ângulo do holofote"},
+    {13,"Ajusta interativamente o ângulo do cone do holofote"},
+    {14,"Esmaecimento das bordas"},
+    {15,"Ajusta interativamente o quanto uma luz enfraquece ao se afastar do centro do cone do holofote"},
+    {16,"Editar propriedades..."},
+    {17,"Edita as propriedades da luz"},
+    {18,"Duplicar"},
+    {19,"Duplica e move as luzes selecionadas"},
+    {20,"Apagar"},
+    {21,"Apaga as luzes selecionadas"}
+   ]},
+  {plugin_results,
+   [
+    {1,"Light editor plugin(s) left garbage:~n    ~P~n"},
+    {2,"Plugin(s) left garbage"}
+   ]},
+  {qs_att,
+   [
+    {1,"Linear"},
+    {2,"Quadrático"},
+    {3,"Atenuação"}
+   ]},
+  {qs_specific,
+   [
+    {1,"Ângulo"},
+    {2,"Esmaecimento"},
+    {3,"Parâmetros do holofote"}
+   ]},
+  {selected_light,
+   [
+    {1,"Selecione somente uma luz."}
+   ]},
+  {spot_angle,
+   [
+    {1,"Não é um holofote."}
+   ]},
+  {spot_falloff,
+   [
+    {1,"Não é um holofote."}
+   ]}
+ ]}.
+{wings_init,
+ [
+  {display_actual_mode,
+   [
+    {1,"Actual: RGBA: ~p ~p ~p ~p Depth: ~p Stencil: ~p Accum: ~p ~p ~p ~p\n"}
+   ]},
+  {try_video_modes,
+   [
+    {1,"Experimentando os modos de OpenGL\n"}
+   ]},
+  {video_mode_failure,
+   [
+    {2,"Falha em encontrar qualquer modo OpenGL adeqüado..\n\n"},
+    {3,"Verifique se os drivers OpenGL estão instalados..\n\n"},
+    {5,"Nenhum modo OpenGL adequado foi encontrado (os drivers OpenGL estão instalados?)"}
+   ]}
+ ]}.
+{wings_image,
+ [
+  {create_default,
+   [
+    {1,"~p Tipo ~p desconhecido; ignorando\n"}
+   ]},
+  {create_image,
+   [
+    {1,"Largura"},
+    {2,"Altura"},
+    {3,"Padronagem"},
+    {4,"Grade"},
+    {5,"Quadriculado"},
+    {6,"Barras Verticais"},
+    {7,"Barras Horizontais"},
+    {8,"Branco"},
+    {9,"Preto"},
+    {10,"Criar Imagem"}
+   ]},
+  {event,
+   [
+    {1,"Exibir Menu"}
+   ]},
+  {event_1,
+   [
+    {1,"Exibir no tamanho real"}
+   ]},
+  {screenshot,
+   [
+    {1,"<<Imagem da Tela>>"}
+   ]},
+  {window_params,
+   [
+    {1,"Imagem: ~s [~wx~wx~w]"}
+   ]}
+ ]}.
+{wings_hotkey,
+ [
+  {keyname,
+   [
+    {1,"Bksp"},
+    {2,"Tab"},
+    {3,"Space"},
+    {4,"Shift+"}
+   ]},
+  {list_header,
+   [
+    {1,"Atalhos para todos os modos"},
+    {2,"Atalhos para o modo objeto"},
+    {3,"Atalhos para o modo aresta"},
+    {4,"Atalhos para o modo face"},
+    {5,"Atalhos para luzes"},
+    {6,"Atalhos para o modo vértice"}
+   ]},
+  {list_keys,
+   [
+    {1," (definidos pelo usuário)"},
+    {2," (definido por plugin)"}
+   ]},
+  {vkeyname,
+   [
+    {1,"Bksp"},
+    {2,"Tab"},
+    {3,"Enter"},
+    {4,"Pause"},
+    {5,"Esc"},
+    {6,"Space"},
+    {7,"Delete"},
+    {8,"Del"},
+    {9,"Div"},
+    {10,"Mul"},
+    {11,"-"},
+    {12,"+"},
+    {13,"Enter"},
+    {14,"="},
+    {15,"Up"},
+    {16,"Down"},
+    {17,"Right"},
+    {18,"Left"},
+    {19,"Insert"},
+    {20,"Home"},
+    {21,"End"},
+    {22,"Page Up"},
+    {23,"Page Down"},
+    {24,"UKEY"}
+   ]}
+ ]}.
+{wings_help,
+ [
+  {advanced_menus,
+   [
+    {1,"Na caixa de diálogo "},
+    {4,", há uma opção para acessar os \"Menus Avançados\"."},
+    {5,"Ativar os menus avançados acrescenta as seguintes ferramentas adiconais:"},
+    {6,"Novos comandos: "},
+    {7,"Face"},
+    {8,"Encostar"},
+    {9," e "},
+    {10,"Face"},
+    {11,"Levantar/Alçar"},
+    {12,"Operações baseadas em vetor: significa especificar um eixo (ou vetor) e ser capaz de relocalizá-lo para que ele passe por um novo ponto."},
+    {13,"Operações com magneto: Uma facilidade que permite conseguir modificações/transições suaves na geometria vizinha durante a operação de qualquer ferramenta válida. O tipo de magneto e raio de influência permitem opções adicionais de controle."},
+    {14,"Operações de vetor e magneto podem ser combinadas."},
+    {15,"Com os menus avançados ligados, muitos comandos fazem coisas diferentes dependendo de qual botão do mouse você usar para chamá-los."},
+    {16,"Por exemplo, um clique do Botão Direito no comando Girar permite que você especifique um eixo (ou vetor) em torno do qual girar sua seleção, enquando que um clique do Botão do Meio permite que você defina um eixo - e um novo ponto através do qual aquele eixo passará. (Um vetor não tem que ser paralelo a um eixo x, y ou z.)"},
+    {17,"Ler os item na linha de informação embaixo da janela do Wings é recomendável quando estiver usando menus avançados."}
+   ]},
+  {def_commands,
+   [
+    {1,"Na caixa de diálogo "},
+    {4," , você pode ativar \"Comandos Padrão\"."},
+    {5,"Dois comandos padrão podem ser definidos. Para savar o último comando executado, use um desses procedimentos:"},
+    {8,"Para usar um comando que foi definido dessa maneira, use um desses procedimentos:"},
+    {11,"Nota: Quando usar o modo de câmera "},
+    {13," ou "},
+    {15," , o segundo comando padrão não pode ser usado."}
+   ]},
+  {def_hotkeys,
+   [
+    {1,"Qualquer comando que apareça em um menu pode ser atribuído a um atalho de teclado."},
+    {2,"Para atribuir um atalho a um comando, abra o menu contendo o comando. Com o comando realçado, tecle [Insert] ou a tecla [/], e então pressione a tecla à qual você deseja atribuir o comando."},
+    {3,"Para apagar um atalho, do mesmo modo realce o comando em um menu, e pressione a tecla [Del} ou {\\}."}
+   ]},
+  {edit_prefs,
+   [
+    {1,"Editar"},
+    {2,"Preferências"}
+   ]},
+  {getting_started,
+   [
+    {1,"Enquanto você aprende Wings, mantenha um olho na linha de informação embaixo da tela. Geralmente ela mostra o que os botões do mouse podem fazer naquele momento específico."},
+    {2,"As ações para os botões do mouse são denominadas: "},
+    {7,"Geralmente, o Botão Esquerdo é usado para seleção e confirmação, o Botão do Meio para operar a câmera, e o Botão Direito para acessar os menus pop-up sensíveis ao contexto."},
+    {left_def,"Botão Esquerdo"},
+    {middle_def,"Botão do Meio ou Botão de Rolagem"},
+    {right_def,"Botão Direito"},
+    {two_a,"seguido por qualquer tecla de atalho."}
+   ]},
+  {header,
+   [
+    {1,"Começando"},
+    {2,"Usando um Mouse com Um ou Dois Botões"},
+    {3,"Teclados Francês e Alemão"},
+    {4,"Atalhos Definidos"},
+    {5,"Como Definir Atalhos"},
+    {6,"Luz: o Básico"},
+    {7,"Menus Avançados"},
+    {8,"Comandos Padrão"},
+    {9,"Dicas de Performance"},
+    {10,"Informação sobre OpenGL"},
+    {11,"Sobre o Wings 3D"}
+   ]},
+  {help_window,
+   [
+    {1,"Não há texto de ajuda"}
+   ]},
+  {international,
+   [
+    {1,"Infelizmente, nos teclados Francês e Alemão (e possivelmente outros), os comandos Desfazer/Repetir não serão definidos pela tecla [Z]. (Isso poderá ser alterado em uma futura versão do Wings.)"},
+    {2,"No teclado francês, os comandos Desfazer/Repetir estão associados à tecla [W] ([Ctrl]+[W], [Ctrl]+[Alt]+[W] etc)."},
+    {3,"No teclado alemão, os comandos Desfazer/Repetir estão associados à tecla [Y] ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] etc)."}
+   ]},
+  {lights,
+   [
+    {1,"1. Crie luzes usando o comando Luz no menu de elementos básicos (Botão Direito quando nada estiver selecionado)."},
+    {2,"2. Selecione uma luz clicando nela com o Botão Esquerdo. Quando uma luz estiver selecionada, um menu especial de Luz pode ser aberto com o Botão Direito."},
+    {3,"3. Para instruir ao Wings a exibir a cena sob as luzes que você criou, use o comando "},
+    {4,"Visualizar"},
+    {5,"Luzes da Cena"},
+    {6,"."}
+   ]},
+  {message,
+   [
+    {1,"Fecha a janela de ajuda"}
+   ]},
+  {one_or_two,
+   [
+    {1,"Observe que somente os modos "},
+    {2," e "},
+    {3," podem ser usados com um mouse de dois botões. Somente o modo "},
+    {4," pode ser usado com um mouse de um botão."}
+   ]},
+  {opengl_info,
+   [
+    {1,"Vendor: "},
+    {2,"Renderer: "},
+    {3,"Version: "},
+    {4,"Version tuple: "},
+    {5,"Red bits"},
+    {6,"Green bits"},
+    {7,"Blue bits"},
+    {8,"Alpha bits"},
+    {9,"Depth bits"},
+    {10,"Stencil bits"},
+    {11,"Accum. red bits"},
+    {12,"Accum. green bits"},
+    {13,"Accum. blue bits"},
+    {14,"Accum. alpha bits"},
+    {15,"Max number of lights"},
+    {16,"Max clip planes"},
+    {17,"Max modelview stack depth"},
+    {18,"Max projection stack depth"},
+    {19,"Max texture stack depth"},
+    {20,"Subpixel bits"},
+    {21,"Max 3D texture size"},
+    {22,"Max texture size"},
+    {23,"Max pixel map table"},
+    {24,"Max name stack depth"},
+    {25,"Max display-list call nesting"},
+    {26,"Max evaluator polynomial order"},
+    {27,"Max viewport dimensions"},
+    {28,"Max depth of attribute stack"},
+    {29,"Max depth of client attribute stack"},
+    {30,"Number of auxiliary buffers"},
+    {31,"Color buffers store RGBA"},
+    {32,"Color buffers store indices"},
+    {33,"Double buffering"},
+    {34,"Stereo buffers"},
+    {35,"Range of aliased point sizes"},
+    {36,"Range of antialised point sizes"},
+    {37,"Range of aliased line widths"},
+    {38,"Range of antialised line widths"},
+    {39,"Recommended max number of indices for drawRangeElement()"},
+    {40,"Recommended max number of vertices for drawRangeElement()"},
+    {41,"Max number of texturing units"},
+    {42,"Number of compression formats"},
+    {43,"Max number of vertex units"},
+    {44,"OpenGL Extensions"}
+   ]},
+  {performance_tips,
+   [
+    {1,"O desempenho do Wings depende de várias coisas diferentes, como"},
+    {2,"a velocidade da CPU"},
+    {3,"tipo e tamanho do cache da CPU"},
+    {4,"quantidade e velocidade da memória"},
+    {5,"tipo de placa de vídeo"},
+    {6,"quantidade de memória de vídeo"},
+    {7,"a fase da lua"},
+    {8,"Entretanto, é difícil dar algum conselho sobre como aumentar o desempenho do Wings. As dicas seguintes PODEM TALVEZ melhorar o desempenho:"},
+    {9,"Tente diferentes números de cores e diferentes resoluções de tela. Especialmente se a plca de vídeo não tem muita memória, muitas cores e/ou altas resoluções podem reduzir drasticamente o desempenho. Usando um janela menor do Wings (não maximizada) pode também ajudar."},
+    {10,"Feche janelas desnecessárias dentro do Wings."},
+    {11,"Assegure-se de que Janelas de Geometria não irão se superpor."},
+    {12,"Use o menor número possível de luzes ativas. Mais luzes significa menos velocidade na maioria das placas gráficas."},
+    {13,"Se possível, use o comando "},
+    {14,"Ferramentas"},
+    {15,"Espelhamento"},
+    {16,"."},
+    {17,"Esconda os modelos com os quais você não estiver trabalhando no momento."},
+    {18,"Use o comando "},
+    {19,"Visualizar"},
+    {20,"Exibir Cores"},
+    {21," para desligar a visualização dos vértices coloridos se seu modelo usa esse recurso."},
+    {22,"Use o comando "},
+    {23,"Visualizar"},
+    {24,"Exibir Texturas"},
+    {25," para desligar as textura durante a modelagem."},
+    {26,"Trabalhe no modo aramado."},
+    {27,"Algumas placas gráficas exibemm as arestas com lentidão. Desligue a visualização das arestas usando o comando "},
+    {28,"Visualizar"},
+    {29,"Exibir Arestas"},
+    {30,"."}
+   ]},
+  {splash_contents,
+   [
+    {1,"Wings 3D é um modelador por subdivisão inspirado"},
+    {2,"pelo Nendo e Mirai da IZware."},
+    {3,"Wings 3D vem com absolutamente nenhuma garantia,"},
+    {4,"mas é completamente livre para qualquer tipo de uso"},
+    {5,"(inclusive comercial)."},
+    {6,"Copyright"},
+    {7,"& Outros"},
+    {8,"livraria JPEG: Copyright"}
+   ]},
+  {use_one_or_two,
+   [
+    {1,"Para usar mouses com somente um ou dois botões, você deve informar ao Wings quantos botões o seu mouse tem na caixa de diálogo "},
+    {2," ."}
+   ]}
+ ]}.
+{wings_file,
+ [
+  {autosave,
+   [
+    {1,"Falha no autosalvamento de \"~s\" : ~s"}
+   ]},
+  {command,
+   [
+    {1,"Falha ao reverter: "},
+    {2,"Exportar"},
+    {3,"Exporta a seleção"},
+    {4,"Você quer salvar suas alterações antes de sair?"},
+    {5,"Esse arquivo foi movido ou apagado."}
+   ]},
+  {confirmed_open,
+   [
+    {1,"Falha de leitura: "}
+   ]},
+  {confirmed_open_dialog,
+   [
+    {1,"Abrir"}
+   ]},
+  {export_filename,
+   [
+    {1,"Exportar"}
+   ]},
+  {import_filename,
+   [
+    {1,"Importar"}
+   ]},
+  {import_image,
+   [
+    {1,"Falha ao abrir \"~s\": ~s\n"}
+   ]},
+  {import_ndo,
+   [
+    {1,"Falha ao importar: "}
+   ]},
+  {install_plugin,
+   [
+    {1,"Instalar Plugin"},
+    {2,"Arquivo compactado GZip"},
+    {3,"Arquivo Tar"},
+    {4,"Arquivo Tar compactado"},
+    {5,"Arquivo Beam"}
+   ]},
+  {menu,
+   [
+    {3,"Novo"},
+    {4,"Cria uma cena nova e vazia"},
+    {5,"Abrir..."},
+    {6,"Abre uma cena previamente salva"},
+    {7,"Incorporar..."},
+    {8,"Incorpora uma cena previamente salva na atual cena"},
+    {9,"Salvar"},
+    {10,"Salva a cena atual"},
+    {11,"Salvar Como..."},
+    {12,"Salva a cena atual com um novo nome"},
+    {13,"Salvar Selecionado..."},
+    {14,"Salva somente os objetos ou faces selecionados"},
+    {15,"Salvar Incrementalmente"},
+    {16,"Reverter"},
+    {17,"Reverte a atual cena para os itens salvos"},
+    {18,"Importar"},
+    {19,"Exportar"},
+    {20,"Exportar Selecionado"},
+    {21,"Importar Imagem..."},
+    {22,"Importa um arquivo de imagem"},
+    {23,"Renderizar"},
+    {24,"Instalar um Plugin"},
+    {25,"Sair"},
+    {26,"Gera um novo nome de arquivo e salva"},
+    {27,"Instala um plugin"},
+    {28,"Sai do Wings 3D"}
+   ]},
+  {merge,
+   [
+    {1,"Incorporar"},
+    {2,"Falha na leitura: "}
+   ]},
+  {recent_files,
+   [
+    {1,"Abrir esse arquivo recentemente usado"}
+   ]},
+  {save_as,
+   [
+    {1,"Salvar"}
+   ]},
+  {save_now,
+   [
+    {1,"Falha ao salvar: "}
+   ]},
+  {save_selected,
+   [
+    {1,"Esse comando exige uma seleção."},
+    {2,"Salvar o selecionado"}
+   ]},
+  {str_save_changes,
+   [
+    {1,"Você deseja salvar as alterações feitas?"}
+   ]},
+  {use_autosave_1,
+   [
+    {1,"Existe um arquivo gerado por auto-salvamento um pouco mais recente; deseja carregá-lo ao invés do arquivo salvo?"}
+   ]}
+ ]}.
+{wings_ff_wings,
+ [
+  {export,
+   [
+    {1,"salvando"},
+    {2,"luzes"},
+    {3,"renumerando"},
+    {4,"objetos"},
+    {5,"comprimindo"},
+    {6,"escrevendo arquivo"}
+   ]},
+  {import,
+   [
+    {1,"abrindo arquivo do wings"},
+    {2,"lendo arquivo"}
+   ]},
+  {import_1,
+   [
+    {1,"convertendo binário"},
+    {2,"Formato Wings Pre-0.80 não é mais suportado."},
+    {3,"Formato Wings Pre-0.92 não é mais suportado."},
+    {4,"Formato desconhecido do wings"},
+    {5,"Arquivo Wings corrompido"},
+    {6,"não é um arquivo Wings (ou é um formato antigo do Wings)"}
+   ]},
+  {import_image,
+   [
+    {1,"Imagem sem nome"},
+    {2,"Imagem ruim: ~p\n"}
+   ]},
+  {import_object_mode,
+   [
+    {1,"Muda de modo indefinido para material\n"}
+   ]},
+  {import_props,
+   [
+    {1,"<Seleção armazenada>"}
+   ]},
+  {import_vsn2,
+   [
+    {1,"imagens e materiais"},
+    {2,"objetos"}
+   ]},
+  {translate_map_images_2,
+   [
+    {1,"Material ~p, ~p textura: referência a uma imagem inexistente ~p\n"}
+   ]}
+ ]}.
+{wings_ff_ndo,
+ [
+  {check_size,
+   [
+    {1,"Objeto \""},
+    {2,"\" não pode ser exportado "},
+    {3,"para o formato Nendo (muitas arestas)."}
+   ]},
+  {clean_bad_edges,
+   [
+    {1,"Aresta incorreta: ~w\n"}
+   ]},
+  {import,
+   [
+    {1,"Arquivos Nendo 1.0 não são suportados"},
+    {2,"não é um arquivo Nendo"}
+   ]},
+  {import_1,
+   [
+    {1,"~w objeto(s)\n"}
+   ]},
+  {read_edges,
+   [
+    {1," arestas ~w\n"}
+   ]},
+  {read_object_1,
+   [
+    {1,"~w: ~s: vis=~p sensibilidade=~p\n"}
+   ]},
+  {read_objects,
+   [
+    {1,"  ~w objeto(s) vazios\n"},
+    {2,"  lixo: ~w\n"}
+   ]},
+  {read_vertices,
+   [
+    {1," vértices ~w\n"}
+   ]},
+  {skip_faces,
+   [
+    {1," faces ~w\n"}
+   ]}
+ ]}.
+{wings_face_cmd,
+ [
+  {bridge,
+   [
+    {1,"As faces devem ter o mesmo número de vértices."},
+    {2,"As faces não podem estar apontadas para a mesma direção."},
+    {3,"As faces não podem ser vizinhas."}
+   ]},
+  {bridge_error,
+   [
+    {1,"Exatamente duas faces devem estar selecionadas."}
+   ]},
+  {clone_on,
+   [
+    {1,"Deve haver apenas uma face selecionada."}
+   ]},
+  {clone_on_selection,
+   [
+    {1,"Selecione os elementos-alvo onde deverão ser colocados os clones"}
+   ]},
+  {lift_check_selection,
+   [
+    {1,"As seleções de face e aresta não correspondem."},
+    {2,"As seleções de face e vértice não correspondem."}
+   ]},
+  {lift_fun,
+   [
+    {1,"Alçar, girando uma face ao redor de uma aresta ou vértice"},
+    {2,"Alçar nas direções padrão"}
+   ]},
+  {lift_sel_mismatch,
+   [
+    {1,"As seleções de face e aresta não correspondem."}
+   ]},
+  {lift_selection,
+   [
+    {1,"Selecione a aresta ou vértice para funcionar como dobradiça"}
+   ]},
+  {lift_vtx_sel_mismatch,
+   [
+    {1,"As seleções de face e vértice não correspondem."}
+   ]},
+  {menu,
+   [
+    {1,"Operações com faces"},
+    {2,"Mover"},
+    {3,"Projetar"},
+    {4,"Projetar uma Região"},
+    {5,"Extrair Região"},
+    {6,"Inserir"},
+    {7,"Insere uma face no lado de dentro da face selecionada"},
+    {8,"Furar"},
+    {9,"Entalha o interior de um objeto, tornando as faces selecionadas buracos"},
+    {10,"Chanfrar/abaular"},
+    {11,"Arredonda as arestas das faces selecionadas"},
+    {12,"Ligar"},
+    {13,"Cria uma ponte ou túnel entre duas faces"},
+    {14,"Amassar/Estufar"},
+    {15,"Cria uma protuberância com as faces selecionadas"},
+    {16,"Levantar/Alçar"},
+    {17,"Encostar"},
+    {18,"Move e roda o objeto, alinhando a face selecionada com outro elemento"},
+    {19,"Clona um objeto em um ou mais elementos"},
+    {20,"Espelhar"},
+    {21,"Espelha um objeto em torno das faces selecionadas e o incorpora"},
+    {22,"Espelha e cria objetos separados"},
+    {23,"Dissolver"},
+    {24,"Elimina todas as arestas entre as faces selecionadas"},
+    {25,"Colapsar"},
+    {26,"Apaga as faces, substituindo-as com vértices"},
+    {27,"Subdividir"},
+    {28,"Subdivide as faces selecionadas para suavizá-las (Catmull-Clark)"},
+    {29,"Tecer"},
+    {30,"Cor de vértice"},
+    {31,"Aplica cores de vértice às faces selecionadas"},
+    {32,"Esconder"},
+    {33,"Esconde as faces selecionadas"}
+   ]},
+  {put_on,
+   [
+    {1,"Deve haver apenas uma face selecionada."}
+   ]},
+  {put_on_check_selection,
+   [
+    {1,"A seleção não deve ser no mesmo objeto."},
+    {2,"Selecione somente um elemento."}
+   ]},
+  {put_on_selection,
+   [
+    {1,"Selecione o elemento-alvo no qual colocar o objeto de origem"}
+   ]},
+  {smooth,
+   [
+    {1,"subdividindo"}
+   ]},
+  {unify_modes,
+   [
+    {1,"Um objeto com vértices coloridos não pode ser ligado a um objeto com materiais."}
+   ]}
+ ]}.
+{wings_extrude_edge,
+ [
+  {bevel_faces,
+   [
+    {1,"Objeto muito pequeno para ser chanfrado."}
+   ]},
+  {extrude_problem,
+   [
+    {1,"Impossível Projetar/Chanfrar; dois ou mais vértices estão provavelmente muito próximos um do outro.\Tente o comando Limpar."}
+   ]}
+ ]}.
+{wings_export,
+ [
+  {export,
+   [
+    {1,"exportando"},
+    {2,"preparando"},
+    {4,"Falha do exportador"}
+   ]}
+ ]}.
+{wings_edge,
+ [
+  {dissolve_edge_2,
+   [
+    {1,"Dissolver geraria uma face incorretamente formada."}
+   ]}
+ ]}.
+{wings_edge_cmd,
+ [
+  {cut_command,
+   [
+    {1,"Corta"}
+   ]},
+  {cut_entry,
+   [
+    {1,"Cortar em "},
+    {2," arestas do mesmo comprimento"}
+   ]},
+  {cut_fun,
+   [
+    {1,"Corta em arestas do mesmo comprimento"},
+    {2,"Corta numa posição arbitrária"}
+   ]},
+  {cut_pick_error,
+   [
+    {1,"Somente uma aresta pode ser cortada numa posição arbitrária."}
+   ]},
+  {loop_cut,
+   [
+    {1,"A seqüência de arestas não divide ~p  em duas (ou mais) partes."}
+   ]},
+  {menu,
+   [
+    {1,"Operação com arestas"},
+    {2,"Mover"},
+    {3,"Deslizar"},
+    {4,"Desliza arestas ao longo das arestas vizinhas"},
+    {5,"Projetar"},
+    {6,"Conectar"},
+    {7,"Cria uma nova aresta conectando os pontos centrais das arestas selecionadas"},
+    {8,"Chanfrar"},
+    {9,"Arredonda/abaula as arestas selecionadas"},
+    {10,"Dissolver"},
+    {11,"Elimina as arestas selecionadas"},
+    {12,"Colapsar"},
+    {13,"Apaga arestas, substituindo-as por vértices"},
+    {14,"Aspecto da aresta"},
+    {15,"Suave"},
+    {16,"Rígida"},
+    {17,"Cortar ao longo da seqüência"},
+    {18,"Corta um objeto em dois usando uma seqüência de arestas"},
+    {19,"Vértice colorido"},
+    {20,"Aplica cores de vértice às arestas selecionadas"}
+   ]},
+  {plain_cut_menu,
+   [
+    {2,"Divide em arestas de mesmo comprimento"}
+   ]},
+  {slide_help_mode,
+   [
+    {1,"Absoluto"},
+    {2,"Relativo"},
+    {3,"Congela a direção"},
+    {4,"Descongela a direção"},
+    {5,"Pára nas outras arestas"},
+    {6,"Continua além das outras arestas"}
+   ]}
+ ]}.
+{wings_dissolve,
+ [
+  {dissolve_1,
+   [
+    {1,"Dissolver causaria uma estrutura inconsistente do objeto."}
+   ]}
+ ]}.
+{wings_drag,
+ [
+  {help_message,
+   [
+    {1,"Entrada numérica"}
+   ]},
+  {make_query_1,
+   [
+    {2,"A"}
+   ]},
+  {numeric_input,
+   [
+    {1,"Entrada de números"}
+   ]},
+  {qstr,
+   [
+    {1,"Dx"},
+    {2,"Dx"},
+    {3,"Dy"},
+    {4,"Dz"},
+    {5,"R"},
+    {6,"A"}
+   ]},
+  {standard_mode_fun,
+   [
+    {1,"[Shift] e/ou [Ctrl] constrange"},
+    {2,"[+] ou [-] ajusta o raio"}
+   ]},
+  {zmove_help,
+   [
+    {1,"Arraste o mouse para mover ao longo do eixo Z"},
+    {2,"Arraste o mouse para ajustar o terceiro parâmetro"}
+   ]}
+ ]}.
+{wings_deform,
+ [
+  {check_range,
+   [
+    {1,"Estende ao longo "},
+    {2,"eixo é muito curto."}
+   ]},
+  {crumple_dirs,
+   [
+    {1,"Aleatório"},
+    {2,"uma direção aleatória"},
+    {4,"sua perpendicular"},
+    {8,"Move cada vértice aleatoriamente ao longo de"}
+   ]},
+  {dir,
+   [
+    {1,"Torce os vértices selecionados ao redor do eixo "},
+    {2," passando através do centro da seleção"},
+    {3," passando através da origem"}
+   ]},
+  {inflate_fun,
+   [
+    {1,"Escolha o centro e o raio"},
+    {2,"Inflar elementos"},
+    {3,"Escolha o ponto central"},
+    {4,"Escolha o ponto que define o raio"}
+   ]},
+  {sub_menu,
+   [
+    {1,"Inflar elementos"},
+    {2,"Escolha o centro e o raio"},
+    {3,"Amarrotar"},
+    {4,"Move os vértices aleatoriamente"},
+    {5,"Inflar"},
+    {6,"Afinar"},
+    {7,"Torcer"},
+    {8,"Enrolar"}
+   ]},
+  {taper_item,
+   [
+    {1,"Afinar ao longo de"},
+    {2," (com efeito sobre "},
+    {3,")"},
+    {4,"Escolha o eixo para o efeito"},
+    {5,"Escolha a localização do centro do eixo"},
+    {6,"Escolha a origem da operação de afinar"},
+    {7,"Efeito sobre "}
+   ]}
+ ]}.
+{wings_console,
+ [
+  {do_window,
+   [
+    {1,"Console "},
+    {2,"x"}
+   ]},
+  {handle_action,
+   [
+    {1,"Escrever"},
+    {3,"Arquivo de texto"},
+    {4,"Erro ao escrever: ~w"}
+   ]},
+  {popup_menu,
+   [
+    {1,"Escrever em um arquivo"},
+    {2,"Escrever os itens do console em um arquivo"}
+   ]},
+  {server_loop,
+   [
+    {1,":~w recebido de tipo desconhecido: ~p~n"}
+   ]}
+ ]}.
+{wings_color,
+ [
+  {choose_1,
+   [
+    {1,"Escolher Cor"}
+   ]}
+ ]}.
+{wings_collapse,
+ [
+  {check_consistency,
+   [
+    {1,"Colapsar geraria um objeto de estrutura inconsistente."}
+   ]},
+  {check_vertices_1,
+   [
+    {1,"Este vértice não pode ser colapsado"},
+    {2,"would leave waist.\n"}
+   ]}
+ ]}.
+{wings_camera,
+ [
+  {desc,
+   [
+    {1,"Um"},
+    {2,"Dois"},
+    {3,"Três"}
+   ]},
+  {help,
+   [
+    {1,"Start camera"}
+   ]},
+  {info,
+   [
+    {1,"Nota: Somente o modo de câmera Nendo pode ser usado com um mouse de um botão"},
+    {2,"Nota: Somento os modos de câmera Nendo e Blender podem ser usados com um mouse de 2 botões"},
+    {3,"Nota: O modo de câmera "},
+    {4," exige pelo menos um mouse de dois botões"},
+    {5,"Nota: o modo de câmera "},
+    {6," exige 3 botões de mouse"}
+   ]},
+  {message,
+   [
+    {2,"Arraste o mouse para Aproximar/Afastar"},
+    {3,"Mova o mouse para rodar a vista"},
+    {4,"[Q]"},
+    {5,"Mova o mouse para Percorrer a vista"},
+    {6,"Cancela/Restaura a vista"},
+    {7,"Restaura a vista"}
+   ]},
+  {mode_help,
+   [
+    {1,"Percorrer a vista"},
+    {2,"Aproximar/Afastar"},
+    {3,"Rodar a vista"}
+   ]},
+  {prefs,
+   [
+    {1,"Botões de Mouse"},
+    {2,"Modo da Câmera"},
+    {3,"Velocidade da Pan"},
+    {4,"Botão de aproximação/afastamento"},
+    {5,"Rolar para frente aproxima"},
+    {6,"Rolar para frente afasta"},
+    {7,"Fator de Aproximação"},
+    {9,"Botão de Rolagem"}
+   ]}
+ ]}.
+{wings_body,
+ [
+  {arealight_conv,
+   [
+    {1,"Área de Luz para Objeto"},
+    {2,"Converte as áreas de luz selecionadas em objetos"},
+    {3,"Objeto para Área de Luz"},
+    {4,"Converte os objetos selecionados em áreas de luz"}
+   ]},
+  {auto_smooth,
+   [
+    {1,"Parâmetros de auto-suavização"},
+    {2,"Ângulo agudo"}
+   ]},
+  {clean_isolated_vertices,
+   [
+    {1,"Removido um vértice isolado\n"},
+    {2,"Removidos ~p vértices isolados\n"}
+   ]},
+  {cleanup,
+   [
+    {1,"Arestas curtas"},
+    {2,"Tolerância de comprimento"},
+    {3,"Vértices isolados"},
+    {4,"Limpar"}
+   ]},
+  {cleanup_rep_1,
+   [
+    {1,"Vértice ~p repetido na face ~p\n"}
+   ]},
+  {cleanup_waists_1,
+   [
+    {1,"Removido vértice perdido: ~p\n"}
+   ]},
+  {color_material,
+   [
+    {1,"cor_"}
+   ]},
+  {delete_2edged_faces_1,
+   [
+    {1,"Face"},
+    {2,"tem somente uma aresta"}
+   ]},
+  {mat_col_conv,
+   [
+    {1,"Cores para Materiais"},
+    {2,"Converte vértices coloridos em materiais"},
+    {3,"Materiais para Cores"},
+    {4,"Converte materiais em vértices coloridos"}
+   ]},
+  {menu,
+   [
+    {1,"Operações com Objeto"},
+    {2,"Mover"},
+    {3,"Virar"},
+    {5,"Gira um objeto em um sentido"},
+    {10,"Inverter"},
+    {11,"Inverte todas as perpendiculares, virando o objeto pelo avesso"},
+    {12,"Apertar/Afrouxar"},
+    {13,"Move os vértices selecionados em relação ao seu ponto mediano"},
+    {14,"Subdividir"},
+    {15,"Subdivide todas as faces para dar ao objeto uma aparência suavizada"},
+    {16,"Combinar"},
+    {17,"Combina vários objetos em um único objeto"},
+    {18,"Separar"},
+    {19,"Separa objetos combinados em seus componentes"},
+    {20,"Soldar"},
+    {21,"Funde um par de faces que estão quase coincidentes"},
+    {22,"Limpar"},
+    {23,"Remove os vértices isolados e/ou as arestas muito pequenas"},
+    {24,"Auto-Suavizar"},
+    {25,"Estabelece arestas rígidas ou suaves dependendo do ângulo entre as faces"},
+    {26,"Duplicar"},
+    {27,"Apagar"},
+    {28,"Apaga os objetos selecionados"},
+    {29,"Renomear..."},
+    {30,"Renomeia os objetos selecionados"},
+    {31,"Exibe tudo"},
+    {32,"Exibe todas as faces desse objeto"}
+   ]},
+  {mode_conv,
+   [
+    {1,"Modo Cor de Vértice"},
+    {2,"Muda do Modo Objeto para o Modo Cor de Vértice (os materiais serão mantidos, mas não mostrados)"},
+    {3,"Modo Material"},
+    {4,"Muda do Modo Objeto para o Modo Material (vértices coloridos serão mantidos, mas não mostrados)"}
+   ]},
+  {rename_1,
+   [
+    {1,"Renomear"}
+   ]},
+  {unify_modes,
+   [
+    {1,"Objetos com vértices coloridos não podem ser combinados com objetos com materiais."}
+   ]},
+  {vertex_color_item,
+   [
+    {1,"Cor de vértice"},
+    {2,"Aplica cores aos vértices dos objetos selecionados (mudando primeiro para o modo Cor de vértice, se necessário)"}
+   ]},
+  {weld,
+   [
+    {1,"Tolerância de distância"},
+    {2,"Soldar"}
+   ]},
+  {weld_1,
+   [
+    {1,"Não foram encontradas faces para soldar."}
+   ]}
+ ]}.
+{wings_ask,
+ [
+  {button_label,
+   [
+    {1,"OK"}
+   ]},
+  {frame_event,
+   [
+    {1,"Expand this frame; collapse other frames"},
+    {2,"Expand this frame"},
+    {3,"Collapse this frame"}
+   ]},
+  {mktree,
+   [
+    {1,"Organizar"}
+   ]}
+ ]}.
+{wings,
+ [
+  {cannot_repeat,
+   [
+    {1,"Impossível repetir"}
+   ]},
+  {crash_handler,
+   [
+    {1,"Erro interno - arquivo de log foi escrito"},
+    {2,"Clique um botão do mouse para continuar trabalhando"},
+    {3,"Continue trabalhando"}
+   ]},
+  {define_command,
+   [
+    {1,"Você deseja definir"},
+    {2,"como um comando padrão"}
+   ]},
+  {edit_menu,
+   [
+    {1,"Apaga o histórico de desfazer para recuperar memória"},
+    {3,"Desfazer/Refazer"},
+    {4,"Desfaz ou refaz o último comando"},
+    {5,"Refazer"},
+    {6,"Refaz o último comando que foi desfeito"},
+    {7,"Desfazer"},
+    {8,"Desfaz o último comando"},
+    {9,"Repetir"},
+    {10,"Repete Args"},
+    {11,"Repete Drag"},
+    {12,"Preferências de Plugin"},
+    {13,"Limpar o Histórico de Desfazer"}
+   ]},
+  {geom_title,
+   [
+    {1,"Janela de Geometria"},
+    {2,"Janela de Geometria #"}
+   ]},
+  {halt_loop,
+   [
+    {1,"Erro interno fatal - log escrito no arquivo ~s\n"},
+    {2,"<Nome de janela desconhecido>"},
+    {3,"Erro interno fatal - log escrito no arquivo ~s\n"}
+   ]},
+  {handle_drop_1,
+   [
+    {1,"Nada está selecionado"},
+    {2,"Cancel drop operation"},
+    {3,"Aplicar material nas faces selecionadas"},
+    {4,"Aplica o material \""},
+    {5,"\" somente nas faces selecionadas"},
+    {6,"Aplicar o material em todas as faces"},
+    {7,"Aplica o material \""},
+    {8,"\" a todas as faces dos objetos que tiverem algo selecionado"},
+    {9,"Aplica o material a todas as faces"},
+    {10,"Aplica o material \""},
+    {11,"\" a todas as faces dos objetos que tiverem algo selecionado"}
+   ]},
+  {handle_event_3,
+   [
+    {1,"Selecionar"},
+    {2,"Exibir Menu"}
+   ]},
+  {info_1,
+   [
+    {1,"Vértice ~p selecionado"},
+    {2,"Vértices"},
+    {3,"~p vértices selecionados"},
+    {4,"Aresta ~p selecionada"},
+    {5,"Arestas"},
+    {6,"~p arestas selecionadas"},
+    {7,"Face ~p selecionada"},
+    {8,"Faces"},
+    {9,"~p faces selecionadas"},
+    {10,"~p vértices selecionados em ~p objetos"},
+    {11,"~p arestas selecionadas em ~p objetos"},
+    {12,"~p faces selecionadas em ~p objetos"}
+   ]},
+  {init_menubar,
+   [
+    {1,"Arquivo"},
+    {2,"Editar"},
+    {3,"Visualizar"},
+    {4,"Selecionar"},
+    {5,"Ferramentas"},
+    {6,"Janela"},
+    {7,"Ajuda"}
+   ]},
+  {item_list,
+   [
+    {1," selecionado"}
+   ]},
+  {measure,
+   [
+    {1,". Posição ~s ~s ~s"},
+    {2,". Distância ~s"},
+    {3,". Ponto Médio ~s ~s ~s. Comprimento ~s"},
+    {4,". Ponto Médio ~s ~s ~s.\nMaterial ~s"}
+   ]},
+  {patches,
+   [
+    {1,"Use "}
+   ]},
+  {purge_undo,
+   [
+    {1,"Estados de desfazer: "},
+    {2,"Estados de refazer: "},
+    {3,"Nada a ser removido"},
+    {4,"Remove todos os estados (não é possível desfazer)?"}
+   ]},
+  {shape_info,
+   [
+    {object_info,
+     "Objeto ~p \"~s\" tem ~p polígonos, ~p arestas, ~p vértices.\nModo é ~s"},
+    {2,"~p objetos, ~p faces, ~p arestas, ~p vértices"}
+   ]},
+  {tools_menu,
+   [
+    {8,"Alinhar"},
+    {9,"Centralizar"},
+    {10,"Salvar uma Caixa-Limite"},
+    {11,"Alterar a Escala para a Caixa-Limite salva"},
+    {12,"Alterar a Escala para a Caixa-Limite salva Proporcionalmente"},
+    {13,"Mover para a Caixa-Limite Salva"},
+    {14,"Definir Eixo Padrão"},
+    {15,"Definir e armazenar eixo (com ponto de referência) para uso posterior no "},
+    {16,"comando \"Eixo Padrão\" (por exemplo, Alterar Escala|eixo padrão)"},
+    {17,"Espelhamento"},
+    {18,"Criar"},
+    {19,"A partir da seleção de uma face, estabelece um espelhamento do objeto"},
+    {20,"Quebrar"},
+    {21,"Remove o Espelhamento de todos os objetos"},
+    {22,"Congelar"},
+    {23,"Cria uma geometria real a partir do Espelhamento"},
+    {24,"Imagem da tela"},
+    {25,"Captura uma imagem da janela (exporta para o Índice Geral)"}
+   ]},
+  {undo_info,
+   [
+    {1,"não estados de desfazer"},
+    {2,"há um estado de desfazer"},
+    {3,"há ~p estados de desfazer"},
+    {4,"; uma operação pode ser repetida"},
+    {5,"; ~p operações podem ser repetidas"}
+   ]},
+  {window_menu,
+   [
+    {1,"Índice das Geometrias e Luzes"},
+    {2,"Índice das Geometrias e Luzes #"},
+    {3,"Índice Geral"},
+    {4,"Abre a janela do Índice Geral (mostrando materiais e objetos)"},
+    {5,"Abre uma janela do Índice das Geometrias e Luzes (mostrando objetos e luzes)"},
+    {6,"Palheta"},
+    {7,"Abre uma janela com a palheta de cores"},
+    {8,"Nova Janela de Geometria"},
+    {9,"Abre uma nova janela de Geometria"},
+    {10,"Console"},
+    {11,"Abre uma janela de console para mensagens de informação"}
+   ]}
+ ]}.

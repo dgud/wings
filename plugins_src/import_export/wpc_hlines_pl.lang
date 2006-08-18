@@ -1,0 +1,64 @@
+%%                       -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_hlines_pl.lang --
+%%
+%%     Polish language strings for Cartoon edges i/e.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_hlines_pl.lang,v 1.1 2006/01/14 11:47:41 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_hlines,
+ [
+  {dialog,
+   [
+    {1,"pkt"},
+    {2,"Szerokość"},
+    {3,"Wysokość"},
+    {4,"Prostokąt ograniczający"},
+    {5,"Kroki wygładzania"},
+    {6,"Pre-renderowanie"},
+    {7,"Wszystkie"},
+    {8,"Twarde"},
+    {9,"Żadne"},
+    {10,"Wyświetl krawędzie"},
+    {11,"Kąt zakrzywienia"},
+    {12,"Obrysu"},
+    {13,"Twardych"},
+    {14,"Zakrzywień"},
+    {15,"Materiału"},
+    {16,"Zwykłych"},
+    {17,"Wszystkich"},
+    {18,"Szerokość krawędzi"},
+    {19,"Trzony"},
+    {20,"Kółka"},
+    {21,"Kwadraty"},
+    {22,"Zakończenia linii"},
+    {23,"Połącz linie różniące się o:"},
+    {24,"Kąt"},
+    {25,"Odległość"},
+    {26,"Linie zbliżone (opcja eksperymentalna)"}
+   ]},
+  {do_export,
+   [
+    {1,"czytanie obiektów"},
+    {2,"Czytanie obiektu ~B z"},
+    {3,"wykonano"},
+    {4,"czytanie obiektów"},
+    {5,"Trwa eksport"},
+    {6,"wykonano"},
+    {7,"wykonano w ~.1f sek"}
+   ]},
+  {export,
+   [
+    {1,"Opcje renderera Cartoon edges"},
+    {2,"Eksportuj"},
+    {3,"Pliki Encapsulated Postscript"}
+   ]}
+ ]}.

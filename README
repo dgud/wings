@@ -1,0 +1,29 @@
+WINGS 3D
+========
+
+$Revision: 1.7 $
+$Date: 2003/09/29 05:28:57 $
+
+Wings on the net
+----------------
+
+http://www.wings3d.com
+
+System Requirements for Running Wings
+-------------------------------------
+
+A working OpenGL driver.
+
+How to build Wings 3D
+---------------------
+
+If you want to build Wings yourself, you'll need to the
+to download the source tar file from http://www.wings3d.com.
+
+Build instructions are found in one of the following text files
+included in the source tar file.
+
+BUILD.unix	How to build for a unix-like system, such as
+		GNU Linux or MacOS X.
+
+BUILD.win32	How to build for Microsoft Windows.

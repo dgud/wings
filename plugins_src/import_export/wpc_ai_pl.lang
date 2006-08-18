@@ -1,0 +1,34 @@
+%%                   -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_ai_pl.lang --
+%%
+%%     Polish language strings for Adobe Illustrator i/e.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_ai_pl.lang,v 1.1 2006/01/08 18:07:00 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_ai,
+ [
+  {command,
+   [
+    {1,"Opcje importu AI"},
+    {2,"Ilość dodatkowych cięć krawędzi"},
+    {3,"Pliki Adobe Illustrator"}
+   ]},
+  {make_ai,
+   [
+    {1,"Import AI się nie powiódł"},
+    {2,"Import AI się nie powiódł z powodu błędu wewnętrznego"}
+   ]},
+  {tryimport,
+   [
+    {1,"To nie jest plik Adobe Illustrator (Wersja 8 lub wcześniejsza)"}
+   ]}
+ ]}.

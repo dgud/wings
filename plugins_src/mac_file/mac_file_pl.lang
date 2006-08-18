@@ -1,0 +1,45 @@
+%%                         -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_mac_file_pl.lang --
+%%
+%%     Polish language strings for file dialog (Mac).
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: mac_file_pl.lang,v 1.1 2006/01/20 14:47:03 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wp8_mac_file,
+ [
+  {fileop_1,
+   [
+    {1,"Otwórz"},
+    {2,"Zapisz"}
+   ]}
+ ]}.
+{wp8_mac_image,
+ [
+  {format_error,
+   [
+    {1,"Nieznany lub nieobsługiwany format."}
+   ]},
+  {image_formats,
+   [
+    {1,"Pliki PNG"},
+    {2,"Pliki Compuserve GIF"},
+    {3,"Pliki JPEG"}
+   ]}
+ ]}.
+{wpc_mac_misc,
+ [
+  {mac_stuff,
+   [
+    {1,"Menadżer plików Mac OS"},
+    {2,"Wybierz czy chcesz używać standardowego okna plików z systemu Mac OS czy wewnętrznego okna plików programu Wings"}
+   ]}
+ ]}.

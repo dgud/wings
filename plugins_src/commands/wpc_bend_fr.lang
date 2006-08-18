@@ -1,0 +1,47 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_bend,
+ [
+  {adv_submenu_clamped,
+   [
+    {1,"Serrer la plasticite du pli"},
+    {2,"Serrer le pivot du pli"},
+    {3,"Serrer le topad du pli"}
+   ]},
+  {adv_submenu_noclamp,
+   [
+    {1,"Plasticite du pli"},
+    {2,"Pivot du pli"},
+    {3,"TopRad du pli"}
+   ]},
+  {bend_vertex,
+   [
+    {1,"Angle"}
+   ]},
+  {bend_verts,
+   [
+    {1,"Configuration ne donne aucun resultat ans la pliure/courbe"}
+   ]},
+  {menu,
+   [
+    {1,"Pli"},
+    {2,"Serrage du pli"}
+   ]},
+  {submenu_clamp,
+   [
+    {1,"Choisir de serrer le point au-dessus"},
+    {2,"Choisir de serrer le point en-dessous"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Choisir une tige au centre"},
+    {2,"Choisir une tige au-dessus"},
+    {3,"Choisir la normale du pli"},
+    {4,"Choisir une tige au centre"},
+    {5,"Choisir une tige au-dessus"},
+    {6,"Choisir l'axe du pivot"},
+    {7,"Choisir la localisation du pivot"},
+    {8,"Choisir une tige au centre"},
+    {9,"Choisir une tige au-dessus"},
+    {10,"Choisir la normale du pli"}
+   ]}
+ ]}.

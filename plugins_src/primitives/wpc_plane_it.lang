@@ -1,0 +1,56 @@
+%%                       -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_plane_it.lang --
+%%
+%%     Italian language strings for Plane
+%%
+%%  Copyright (c) 2006 Anthony D'Agostino
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_plane_it.lang,v 1.1 2006/07/31 19:58:06 antoneos Exp $
+%%
+{wpc_plane,
+ [
+  {plane_menu,
+   [
+    {1,"Piano Regulare"},
+    {2,"Piano Tumolo"},
+    {3,"Piano Ondolato"},
+    {4,"Piano Sombrero"}
+   ]},
+  {make_regular_plane,
+   [
+    {1,"Creare Piano Regulare"},
+    {2,"Resoluzzione"},
+    {3,"Largura"},
+    {4,"Dopiezza"}
+   ]},
+  {make_lumpy_plane,
+   [
+    {1,"Creare Piano Tumolo"},
+    {2,"Resoluzzione"},
+    {3,"Largura"},
+    {4,"Tumoli"},
+    {5,"Dopiezza"}
+   ]},
+  {make_wavy_plane,
+   [
+    {1,"Make Wavy Plane"},
+    {2,"Resoluzzione"},
+    {3,"Largura"},
+    {4,"Onde"},
+    {5,"Altura"},
+    {6,"Dopiezza"}
+   ]},
+  {make_sombrero_plane,
+   [
+    {1,"Make Sombrero Plane"},
+    {2,"Resoluzzione"},
+    {3,"Largura"},
+    {4,"Onde"},
+    {5,"Scadenza"},
+    {6,"Altura"},
+    {7,"Dopiezza"}
+   ]}
+ ]}.

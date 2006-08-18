@@ -1,0 +1,32 @@
+%%                      -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_image_pl.lang --
+%%
+%%     Polish language strings for Image.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_image_pl.lang,v 1.1 2005/12/12 18:03:59 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_image,
+ [
+  {image_menu,
+   [
+    {1,"Płaszczyzna obrazu..."},
+    {2,"Utwórz płaszczyznę zawierającą obraz"}
+   ]},
+  {make_image,
+   [
+    {1,"Nie udało się załadować - \"~s\": ~s\n"}
+   ]},
+  {make_image_1,
+   [
+    {1,"Obraz nie może zostać załadowany jako tekstura (prawdopodobnie jest za duży)."}
+   ]}
+ ]}.

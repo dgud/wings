@@ -1,0 +1,27 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_tweak,
+ [
+  {help,
+   [
+    {1,"Tirer librement"},
+    {2,"Quitter le mode Modifier"},
+    {3,"Le long de la normale"},
+    {4,"Magnetisme Ouvert"},
+    {5,"Le long de la normale"},
+    {6,"Tirer"},
+    {7,"Quitter"},
+    {8,"Magnetisme Ferme"},
+    {9,"Modifier R"}
+   ]},
+  {intl_type,
+   [
+    {1,"Dome"},
+    {2,"Ligne droite"},
+    {3,"Pointe"}
+   ]},
+  {menu,
+   [
+    {1,"Modifier"},
+    {2,"Systeme pour deplacer interactivement, rapidement et librement des elements seuls"}
+   ]}
+ ]}.

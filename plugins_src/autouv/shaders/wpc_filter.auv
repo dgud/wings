@@ -1,0 +1,41 @@
+%%
+%%  wpc_filter.auv --
+%%
+%%     Config file for noise shader
+%%
+%%  Copyright (c) 2006 Dan Gudmundsson
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_filter.auv,v 1.3 2006/01/22 15:13:44 dgud Exp $
+%%
+ 
+%%  Everything behind a '%' is a comment
+
+{name, "Filter"}.                      % The name in the shader selector
+{vertex_shader, "standard.vs"}.        % Vertex shader used
+{fragment_shader, "image_filter.fs"}.  % Fragment shader used
+%% Asks what data to send to the shader
+{auv, {auv_send_texture,"Filter the entire Image",true}}. 
+{auv, auv_bg}.                         % Work on the bg texture
+{auv, auv_texsz}.                      % vec2 width and height
+
+% Uniform, type, UniformVar, Default,  array of constant values
+{uniform, menu, "kernel", "Gaussian",
+ [{"Gaussian",  [1.0,2.0,1.0,  
+		 2.0,4.0,2.0, 
+		 1.0,2.0,1.0]},
+  {"Mean Blur", [1.0,1.0,1.0,  
+		 1.0,1.0,1.0, 
+		 1.0,1.0,1.0]},
+  {"Laplacian", [0.0,1.0,0.0,  
+		 1.0,-4.0,1.0, 
+		 0.0,1.0,0.0]},
+  {"Emboss",    [2.0,0.0,0.0,  
+		 0.0,-1.0,0.0, 
+		 0.0,0.0,-1.0]},
+  {"Sharpness", [-1.0,-1.0,-1.0,  
+		 -1.0, 9.0,-1.0, 
+		 -1.0,-1.0,-1.0]}]}.
+  

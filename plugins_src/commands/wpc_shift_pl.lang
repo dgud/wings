@@ -1,0 +1,37 @@
+%%                      -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_shift_pl.lang --
+%%
+%%     Polish language strings for Shift.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_shift_pl.lang,v 1.1 2005/10/04 20:31:15 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_shift,
+ [
+  {adv_submenu,
+   [
+    {1,"Przemieść po płaszczyźnie"},
+    {2,"Przemieść po sferze"},
+    {3,"Przemieść po walcu"}
+   ]},
+  {menu,
+   [
+    {1,"Przemieść"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Wybierz kierunek"},
+    {2,"Wybierz punkt"},
+    {3,"Wybierz środek"},
+    {4,"Wybierz kierunek"},
+    {5,"Wybierz punkt"}
+   ]}
+ ]}.

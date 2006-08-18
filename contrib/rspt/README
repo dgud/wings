@@ -1,0 +1,57 @@
+Comments about the source
+
+The source code is written testing against wings 0.98.09 and esdl
+0.93.03143.
+
+The Renderer
+Basic render with vertex and fragment capability that renders
+ each light in its own pass and sums the all lights using eithr Accumlation buffer
+ or a Texture buffer. Each spotlight has some additional passes used to create 
+ a z-buffer view for depth shadow calculations. Shadow calculations are corrected
+ by rendering backsides of objects, hence no z-offset needed.
+
+
+The tree view
+Basic tree view, needed for more advanced material editing, rather basic.
+Adds the posibility to apply textures to materials and using a number of "shaders".
+These are realy various different types of vertex/fragment programs. Includes per pixel
+phong shader, normal shader, cel shader. 
+
+The uv-mapper
+More or less a clone of some free software that was called uv-mapper. Uses a window
+with displaing all vertexes with their UV-coordinates. A sort of hands on editor.
+
+
+
+Known issues incomplete list
+
+
+-povray exporter does not work with the code
+-depth shadowing only available for spotlights (not realy an error)
+-depth shadowing for project lights pointing straight down does not work
+-z-offset option is still not implemented (does not affect shadow quality)
+-parallel mesh line may cause the uv-cube mapper to fail
+-reflection "shader" is currently broken because of mispelling of an atom
+-no support for transparency in the global light model
+-missing support for older GPU
+-combiner program is not implemented but visible
+-the tree material editor is not recursive (needed to implement the combiner)
+-names in the material editor are the internal atom names 
+-no option to turn off depth shadowing for spotlights
+-incomplete help
+-tree material editor is missing a tree height calculation
+-vertex and fragment programs are untested on ATI hardware, 
+  ATI hardware may have problems due to shorter maximum frag/vertex programs lengths
+
+There are probably more ..
+
+
+Most of the advanced features in the render require a decently new card
+like GeForceFX 5200 or equivalent. 
+
+
+
+
+
+Rolf Stenholm 
+rolfstenholm@yahoo.se

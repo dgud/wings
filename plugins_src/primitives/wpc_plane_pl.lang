@@ -1,0 +1,60 @@
+%%                      -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_plane_pl.lang --
+%%
+%%     Polish language strings for Plane.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_plane_pl.lang,v 1.1 2006/08/01 15:19:56 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_plane,
+ [
+  {make_lumpy_plane,
+   [
+    {1,"Utwórz powierzchnię górzystą"},
+    {2,"Gęstość"},
+    {3,"Rozmiar"},
+    {4,"Wypukłości"},
+    {5,"Grubość"}
+   ]},
+  {make_regular_plane,
+   [
+    {1,"Utwórz powierzchnię prostą"},
+    {2,"Gęstość"},
+    {3,"Rozmiar"},
+    {4,"Grubość"}
+   ]},
+  {make_sombrero_plane,
+   [
+    {1,"Utwórz powierzchnię \"sombrero\""},
+    {2,"Gęstość"},
+    {3,"Rozmiar"},
+    {4,"Fale"},
+    {5,"Wygaszanie"},
+    {6,"Wysokość"},
+    {7,"Grubość"}
+   ]},
+  {make_wavy_plane,
+   [
+    {1,"Utwórz powierzchnię falistą"},
+    {2,"Gęstość"},
+    {3,"Rozmiar"},
+    {4,"Fale"},
+    {5,"Wysokość"},
+    {6,"Grubość"}
+   ]},
+  {plane_menu,
+   [
+    {1,"Powierzchnia prosta"},
+    {2,"Powierzchnia górzysta"},
+    {3,"Powierzchnia falista"},
+    {4,"Powierzchnia \"sombrero\""}
+   ]}
+ ]}.

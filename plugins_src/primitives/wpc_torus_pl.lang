@@ -1,0 +1,53 @@
+%%                      -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_torus_pl.lang --
+%%
+%%     Polish language strings for Torus.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_torus_pl.lang,v 1.1 2005/12/12 18:03:59 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_torus,
+ [
+  {make_lutorus,
+   [
+    {1,"Utwórz torus wypukły"},
+    {2,"Gęstość U:"},
+    {3,"Gęstość V:"},
+    {4,"Promień zewnętrzny:"},
+    {5,"Promień wewnętrzny:"},
+    {6,"Wypukłości:"},
+    {7,"Amplituda:"}
+   ]},
+  {make_sptorus,
+   [
+    {1,"Utwórz torus spiralny"},
+    {2,"Gęstość U:"},
+    {3,"Gęstość V:"},
+    {4,"Promień zewnętrzny:"},
+    {5,"Promień wewnętrzny:"},
+    {6,"Pętle:"},
+    {7,"Promień pętli:"}
+   ]},
+  {make_uvtorus,
+   [
+    {1,"Utwórz torus UV:"},
+    {2,"Gęstość U:"},
+    {3,"Gęstość V:"},
+    {4,"Promień zewnętrzny:"},
+    {5,"Promień wewnętrzny:"}
+   ]},
+  {torus_menu,
+   [
+    {1,"Torus UV"},
+    {2,"Torus wypukły"},
+    {3,"Torus spiralny"}
+   ]}
+ ]}.

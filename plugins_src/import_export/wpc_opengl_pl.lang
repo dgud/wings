@@ -1,0 +1,62 @@
+%%                       -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_opengl_pl.lang --
+%%
+%%     Polish language strings for OpenGL rendering.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_opengl_pl.lang,v 1.2 2006/07/10 17:16:37 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek & Maciej Milewski
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_opengl,
+ [
+  {aa_frame,
+   [
+    {1,"Szkicowa jakość (bez AA)"},
+    {2,"Zwykła jakość (standardowy AA)"},
+    {3,"Dobra jakość"},
+    {4,"Wysoka jakość"}
+   ]},
+  {create_dls,
+   [
+    {1,"Generowanie cieni i danych wypukłości dla każdego światła"},
+    {2,"Renderowanie"}
+   ]},
+  {dialog_qs,
+   [
+    {1,"Pliki Targa"},
+    {2,"Kroki wygładzania"},
+    {3,"Kolor tła"},
+    {4,"Renderuj kanał alfa"},
+    {5,"Renderuj cienie"},
+    {6,"Renderuj cienie własne (do map wypukłości)"},
+    {7,"Okno obrazu"},
+    {8,"Plik"},
+    {9,"Wyjście renderowania"}
+   ]},
+  {do_render,
+   [
+    {1,"Opcje renderingu"},
+    {2,"Renderowanie"}
+   ]},
+  {load_program,
+   [
+    {1,"Błąd podczas ładowania programu"}
+   ]},
+  {prepare_mesh,
+   [
+    {1,"Triangulacja"},
+    {2,"Wygładzanie i triangulacja"},
+    {3,"Generowanie danych brył"}
+   ]},
+  {render_redraw,
+   [
+    {1,"<<Wyrenderowany>>"}
+   ]}
+ ]}.

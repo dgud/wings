@@ -1,0 +1,51 @@
+#!/bin/bash
+#
+# Reduce size of OTP by removing beam files that are not needed.
+#
+# $Id: wings_reduce_otp,v 1.6 2004/10/29 15:50:15 bjorng Exp $
+#
+
+erl_top="$1"
+stdlib=`echo "$erl_top"/lib/stdlib-*`
+kernel=`echo "$erl_top"/lib/kernel-*`
+
+#
+# Remove files not needed in kernel and stdlib. Be conservative.
+#
+td="$kernel/ebin"
+rm -rf "$td/kernel.app"
+rm -rf "$td/kernel.appup"
+
+# The pre-loaded files are not needed.
+rm -rf "$td/otp_ring0.beam"
+rm -rf "$td/init.beam"
+rm -rf "$td/erl_prim_loader.beam"
+rm -rf "$td/prim_file.beam"
+rm -rf "$td/prim_inet.beam"
+
+# In R9C, erlang.beam is also pre-loaded.
+rm -rf "$td/erlang.beam"
+
+# No need for IPv6, socks, or erl_boot_server.
+rm -rf "$td/inet6_tcp.beam"
+rm -rf "$td/inet6_tcp_dist.beam"
+rm -rf "$td/inet6_udp.beam"
+rm -rf "$td/socks5.beam"
+rm -rf "$td/socks5_auth.beam"
+rm -rf "$td/socks5_tcp.beam"
+rm -rf "$td/socks5_udp.beam"
+rm -rf "$td/erl_boot_server.beam"
+
+# Stdlib
+td="$stdlib/ebin"
+rm -rf "$td/stdlib.app"
+rm -rf "$td/stdlib.appup"
+
+# The following are not useful without a compiler.
+rm -rf "$td/erl_compile.beam"
+rm -rf "$td/ms_transform.beam"
+rm -rf "$td/epp.beam"
+
+# Old obsolete stuff.
+rm -rf "$td/pg.beam"
+rm -rf "$td/pool.beam"

@@ -1,0 +1,49 @@
+%%                              -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_absolute_move_pl.lang --
+%%
+%%     Polish language strings for Absolute Move.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_absolute_move_pl.lang,v 1.11 2006/07/25 21:54:55 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_absolute_move,
+ [
+  {draw,
+   [
+    {1,"Operacje bezwzględne"},
+    {2,"Pozycjonuj"},
+    {3,"Przesuń w koordynatach bezwzględnych."},
+    {4,"Przyciągnij"},
+    {5,"Przesuń do drugiego zaznaczenia."},
+    {6,"Przesuń używając środka jako punktu odniesienia."},
+    {7,"Przesuń (z oknem opcji)."}
+   ]},
+  {draw_window1,
+   [
+    {1,"Opcje pozycjonowania"},
+    {2,"Podaj współrzędne"},
+    {3,"Przesuń obiekt"},
+    {4,"Przesuń obiekty"},
+    {5,"Kopie"},
+    {6,"Wyrównaj"},
+    {7,"Wypłaszcz"},
+    {8,"Punkt odniesienia to"}
+   ]},
+  {mirror_error,
+   [
+    {1,"Nie możesz przesuwać punktów z lustra."}
+   ]},
+  {selection_ask,
+   [
+    {1,"Wybierz punkt odniesienia"},
+    {2,"Wybierz punkt docelowy"}
+   ]}
+ ]}.

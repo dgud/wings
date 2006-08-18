@@ -1,0 +1,75 @@
+#!/usr/bin/perl -w
+#
+# Script for checking out the Wings source from CVS.
+#
+# $Id: wings_src_rel,v 1.4 2004/04/30 06:28:25 bjorng Exp $
+#
+use strict;
+#my $CVSROOT = ':pserver:anonymous@cvs.sf.net:/cvsroot/wings';
+my $CVSROOT = 'bjorng@cvs.sf.net:/cvsroot/wings';
+
+my $cmd;
+my $ver;
+
+if (@ARGV) {
+    $ver = shift;
+    $ver =~ m/^\d+/ or die "$0: '$ver' does not look like a version number\n";
+}
+
+#
+# Check current directory.
+#
+-d 'CVS' and die "$0: Current directory looks like a CVS directory\n";
+my @garbage;
+while (<wings*>) {
+    next unless -d $_;
+    push @garbage, $_;
+}
+
+if (@garbage) {
+    $cmd = "rm -rf @garbage";
+    system $cmd;
+}
+
+#
+# Extract from CVS and pack.
+#
+
+if ($CVSROOT =~ m/^:pserver/) {
+    print "Press ENTER when the password prompt appears.\n";
+    $cmd = "cvs -d$CVSROOT login";
+    system $cmd;
+}
+
+$cmd = "cvs -z8 -d$CVSROOT export -D today wings";
+system $cmd;
+
+my $vsn_file = "wings/vsn.mk";
+my $vsn;
+
+if (defined $ver) {
+    open(VSN, ">$vsn_file") or die "$0: Could not write $vsn_file\n";
+    print VSN "WINGS_VSN=$ver\n";
+    close VSN;
+}
+
+open(VSN, $vsn_file) or die "$0: Could not find $vsn_file\n";
+while (<VSN>) {
+    next if m/^\s*$/;
+    chomp;
+    if (m/^WINGS_VSN=(.*)/) {
+	$vsn = $1;
+	last;
+    }
+}
+close VSN;
+
+my $name = "wings-$vsn";
+my $tar = "${name}.tar";
+unlink $tar;
+rename("wings", $name);
+mkdir "$name/ebin";
+mkdir "$name/patches";
+system "tar cf $tar $name";
+unlink "$tar.bz2";
+system "bzip2 $tar";

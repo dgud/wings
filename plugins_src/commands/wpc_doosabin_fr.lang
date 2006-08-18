@@ -1,0 +1,29 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_doosabin,
+ [
+  {add_menu,
+   [
+    {1,"DS subdivision"},
+    {2,"Makes a Doo-Sabin subdivision according to WasaMonkey (warning messes up all uv-coords)"},
+    {3,"DS subdivision"},
+    {4,"Makes a Doo-Sabin subdivision according to WasaMonkey"}
+   ]},
+  {doo_sabin,
+   [
+    {1,"Doo-Sabin"},
+    {2,"Smoothing pass1"},
+    {3,"Smoothing pass 2"},
+    {4,"Dissolving pass 1"},
+    {5,"Dissolving pass 2"},
+    {6,"Updating Selection"}
+   ]},
+  {menu,
+   [
+    {1,"Doo Sabin subd"}
+   ]},
+  {pref_edit,
+   [
+    {1,"Doo Sabin Preferences"},
+    {2,"Enabled"}
+   ]}
+ ]}.

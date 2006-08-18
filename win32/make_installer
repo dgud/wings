@@ -1,0 +1,121 @@
+#!/bin/bash
+#
+# Script for creating a self-contained Wings package for Windows.
+#
+# $Id: make_installer,v 1.13 2005/09/10 08:02:02 bjorng Exp $
+#
+OS=`uname -o`
+if [ X$OS != XCygwin ]; then
+    echo "This script is supposed to be run in the" \
+	 "cygwin environment on windows only." >&2
+    exit 1
+fi
+
+# Configurable stuff.
+INSTALL=/usr/bin/install
+NSIS=`which makensis 2>/dev/null`
+if [ -z "$NSIS" ]; then
+    NSIS=c:/program/nsis/makensis
+fi
+
+DEST_ROOT="build"
+
+if [ -z "$ESDL_PATH" ]; then
+    echo "The environment variable ESDL_PATH must be set to " \
+	 "the top of the ESDL installation." >&2
+    exit 1
+fi
+ESDL_NAME=`basename $ESDL_PATH`
+
+ERLANG_PATH=`which erl`
+ERLANG_PATH=`dirname $ERLANG_PATH`
+ERLANG_PATH=`dirname $ERLANG_PATH`
+
+# Copy the Wings application.
+
+WINGS_DIR="`pwd`"
+WINGS_APP=`basename "$WINGS_DIR"`
+WINGS_VSN=`echo "$WINGS_APP" | sed -e 's/.*wings-//'`
+
+dest="$DEST_ROOT"
+
+$INSTALL -d "$dest"
+$INSTALL -c -m 644 README AUTHORS license.terms vsn.mk "$dest"
+$INSTALL -c -m 644 win32/wings.nsi "$dest"
+$INSTALL -c -m 644 win32/Wings3D.exe "$dest"
+$INSTALL -c -m 644 win32/wings.ico "$dest"
+$INSTALL -c -m 644 win32/install.ico "$dest"
+$INSTALL -c -m 644 win32/uninstall.ico "$dest"
+
+dest="$DEST_ROOT/lib/$WINGS_APP"
+
+$INSTALL -d "$dest" "$dest/ebin" "$dest/patches"
+$INSTALL -c -m 644 ebin/* "$dest/ebin"
+$INSTALL -d  "$dest/fonts"
+
+$INSTALL -d "$dest/plugins/default" "$dest/plugins/accel" \
+ "$dest/plugins/import_export" "$dest/plugins/commands" \
+ "$dest/plugins/primitives" "$dest/plugins/win32_file" \
+ "$dest/plugins/autouv" "$dest/plugins/jpeg" "$dest/plugins/fbx"
+
+$INSTALL -c -m 644 fonts/* "$dest/fonts"
+
+$INSTALL -c -m 644 plugins/default/wp9_dialogs* "$dest/plugins/default"
+$INSTALL -c -m 644 plugins/accel/* "$dest/plugins/accel"
+$INSTALL -c -m 644 plugins/import_export/* "$dest/plugins/import_export"
+$INSTALL -c -m 644 plugins/commands/* "$dest/plugins/commands"
+$INSTALL -c -m 644 plugins/primitives/* "$dest/plugins/primitives"
+$INSTALL -c -m 644 plugins/win32_file/* "$dest/plugins/win32_file"
+$INSTALL -c -m 644 plugins/autouv/* "$dest/plugins/autouv"
+$INSTALL -c -m 644 plugins/jpeg/* "$dest/plugins/jpeg"
+$INSTALL -c -m 644 plugins/fbx/* "$dest/plugins/fbx"
+
+# Copy the relevant parts of Erlang/OTP.
+
+src="$ERLANG_PATH"
+dest="$DEST_ROOT"
+erts_src=`echo "$src"/erts-*`
+stdlib=`basename "$src"/lib/stdlib-*`
+kernel=`basename "$src"/lib/kernel-*`
+compiler=`basename "$src"/lib/compiler-*`
+
+$INSTALL -d "$dest/bin" "$dest/lib/$stdlib/ebin" "$dest/lib/$kernel/ebin"
+$INSTALL -c -m 644 "$src"/lib/kernel-*/ebin/* "$dest/lib/$kernel/ebin"
+$INSTALL -c -m 644 "$src"/lib/stdlib-*/ebin/* "$dest/lib/$stdlib/ebin"
+
+# Unfortunately, the shell in R10B needs the sys_pre_expand module
+# from the compiler directory. We'll copy just that module.
+$INSTALL -d "$dest/lib/$compiler/ebin"
+$INSTALL -c -m 644 "$src"/lib/compiler-*/ebin/sys_pre_expand.beam "$dest/lib/$compiler/ebin/sys_pre_expand.beam"
+
+$INSTALL -c "$erts_src/bin/werl.exe" "$dest/bin"
+$INSTALL -c "$erts_src/bin/erlexec.dll" "$dest/bin"
+$INSTALL -c "$erts_src/bin/beam.dll" "$dest/bin"
+$INSTALL -c -m 644 "$src/bin/start.boot" "$dest/bin"
+$INSTALL -c "$erts_src/bin/inet_gethost.exe" "$dest/bin/inet_gethost.exe"
+
+# Copy the relevant parts of ESDL.
+dest="$DEST_ROOT/lib/$ESDL_NAME"
+$INSTALL -d "$dest/ebin" "$dest/priv"
+$INSTALL -c -m 644  "$ESDL_PATH"/ebin/* "$dest/ebin"
+$INSTALL -c -m 644  "$ESDL_PATH"/priv/sdl_driver.dll "$dest/priv"
+$INSTALL -c -m 644  "$ESDL_PATH"/priv/SDL.dll "$dest/priv"
+strip --strip-debug --strip-unneeded "$dest/priv/sdl_driver.dll"
+rm -rf "$dest/ebin/sdl_audio.beam" "$dest/ebin/sdl_joystick.beam"
+
+#
+# Remove files from OTP not needed.
+#
+$WINGS_DIR/tools/wings_reduce_otp "$DEST_ROOT"
+
+# Strip debug information from all beam files.
+cd "$latest_wings"
+erlc -o`cygpath -m /tmp` tools/strip.erl
+cd "$DEST_ROOT"
+erl -noshell -pa `cygpath -m /tmp` -run strip strip
+
+# Run NSIS
+"$NSIS" /DWINGS_VERSION=$WINGS_VSN wings.nsi
+
+cd "$WINGS_DIR"
+cp wings*.exe ..

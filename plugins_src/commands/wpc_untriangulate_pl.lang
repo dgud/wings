@@ -1,0 +1,54 @@
+%%                              -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_untriangulate_pl.lang --
+%%
+%%     Polish language strings for Untriangulate.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_untriangulate_pl.lang,v 1.1 2005/10/04 20:31:15 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_untriangulate,
+ [
+  {get_ask_list,
+   [
+    {1,"Siła algorytmu"},
+    {2,"Im wyższa siła algorytmu tym lepszy rezultat, ale i dłuższy czas pracy"},
+    {3,"Maksymalny kąt"},
+    {4,"Maksymalny kąt pomiędzy krawędziami które zostaną usunięte"},
+    {5,"Sprawdź materiały"},
+    {6,"Nie usuwaj krawędzi na granicach materiałów"},
+    {7,"Sprawdź koordynaty UV"},
+    {8,"Nie usuwaj krawędzi na granicach arkuszy mapowania"},
+    {9,"Sprawdź ostre krawędzi"},
+    {10,"Nie usuwaj ostrych krawędzi"},
+    {11,"Sprawdź wklęsłości"},
+    {12,"Nie generuj wklęsłych poligonów"}
+   ]},
+  {menu,
+   [
+    {1,"Detrianguluj"},
+    {2,"Konwertuj trójkątną siatkę na siatkę czworokątną"},
+    {3,"Detriangulacja"}
+   ]},
+  {pref_edit,
+   [
+    {1,"Opcje detriangulacji (v0.2)"}
+   ]},
+  {process_edges,
+   [
+    {1,"Detriangulacja"},
+    {2,"Wybieranie krawędzi"},
+    {3,"Przygotowywanie drzewa selekcji"}
+   ]},
+  {untriangulate,
+   [
+    {1,"Detriangulacja (v0.2)"}
+   ]}
+ ]}.

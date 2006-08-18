@@ -1,0 +1,44 @@
+%%                         -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_doosabin_pl.lang --
+%%
+%%     Polish language strings for Doo-Sabin.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_doosabin_pl.lang,v 1.1 2005/10/04 20:31:15 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_doosabin,
+ [
+  {add_menu,
+   [
+    {1,"Wygładź (DS)"},
+    {2,"Podziel wszystkie płaszczyzny, aby uzyskać łagodniejszy kształt aglorytmem Doo-Sabin według WasaMonkey (UWAGA: koordynaty UV zostaną zniszczone)"},
+    {3,"Wygładź (DS)"},
+    {4,"Podziel wszystkie płaszczyzny, aby uzyskać łagodniejszy kształt aglorytmem Doo-Sabin według WasaMonkey"}
+   ]},
+  {doo_sabin,
+   [
+    {1,"Doo-Sabin"},
+    {2,"Wygładzanie krok 1"},
+    {3,"Wygładzanie krok 2"},
+    {4,"Czyszczenie krok 1"},
+    {5,"Czyszczenie krok 2"},
+    {6,"Uaktualnianie zaznaczenia"}
+   ]},
+  {menu,
+   [
+    {1,"Wygładzanie Doo Sabin"}
+   ]},
+  {pref_edit,
+   [
+    {1,"Opcje wygładzania Doo Sabin"},
+    {2,"Włączone"}
+   ]}
+ ]}.

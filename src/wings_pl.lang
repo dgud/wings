@@ -1,0 +1,2716 @@
+%%               -*- mode:erlang; erlang-indent-level: 2; coding:utf-8  -*-
+%%  wings_pl.lang --
+%%
+%%     Polish language strings.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wings_pl.lang,v 1.25 2006/08/01 15:19:57 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek & Maciej Milewski
+%%  Verification: Krzysztof Giniewicz
+%%
+{wings,
+ [
+  {cannot_repeat,
+   [
+    {1,"Nie można powtórzyć "}
+   ]},
+  {crash_handler,
+   [
+    {1,"Błąd programu - plik dziennika zapisano do"},
+    {2,"Naciśnij lewy przycisk myszy aby kontynuować pracę"},
+    {3,"Kontynuacja pracy"}
+   ]},
+  {define_command,
+   [
+    {1,"Czy chcesz zdefiniować"},
+    {2,"jako standardową komendę"}
+   ]},
+  {edit_menu,
+   [
+    {1,"Skasuj historię cofania aby zwolnić pamięć"},
+    {3,"Cofnij/Ponów"},
+    {4,"Cofa następnie ponawia ostatnią czynność"},
+    {5,"Ponów"},
+    {6,"Ponawia ostatnią cofniętą czynność"},
+    {7,"Cofnij"},
+    {8,"Cofa ostatnią czynność"},
+    {9,"Ponów"},
+    {10,"Ponów z kierunkiem"},
+    {11,"Ponów z wartością"},
+    {12,"Opcje wtyczek"},
+    {13,"Wyczyść historię cofania"}
+   ]},
+  {geom_title,
+   [
+    {1,"Okno obiektu"},
+    {2,"Okno obiektu #"}
+   ]},
+  {halt_loop,
+   [
+    {1,"Błąd krytyczny - plik dziennika zapisano do ~s\n"},
+    {2,"<nazwa okna nieznana>"},
+    {3,"Błąd krytyczny - plik dziennika zapisano do ~s\n"}
+   ]},
+  {handle_drop_1,
+   [
+    {1,"Brak zaznaczenia"},
+    {2,"Anuluj przypisanie materiału"},
+    {3,"Przypisz materiał do wybranych poligonów"},
+    {4,"Przypisuje materiał \""},
+    {5,"\" tylko do wybranych poligonów"},
+    {6,"Przypisz materiał do wszystkich poligonów"},
+    {7,"Przypisuje materiał \""},
+    {8,"\" do wszystkich poligonów obiektów z których pochodzą poligony zaznaczone"},
+    {9,"Przypisz materiał do wszystkich poligonów"},
+    {10,"Przypisuje materiał \""},
+    {11,"\" do wszystkich poligonów obiektów z których pochodzą poligony zaznaczone"}
+   ]},
+  {handle_event_3,
+   [
+    {1,"Wybierz"},
+    {2,"Pokaż menu kontekstowe"}
+   ]},
+  {info_1,
+   [
+    {1,"Punkt ~p zaznaczony"},
+    {2,"Punkty"},
+    {3,"~p punktów zaznaczonych"},
+    {4,"Krawędź ~p zaznaczona"},
+    {5,"Krawędzie"},
+    {6,"~p krawędzi zaznaczonych"},
+    {7,"Powierzchnia ~p zaznaczona"},
+    {8,"Powierzchnie"},
+    {9,"~p powierzchni zaznaczonych"},
+    {10,"Punktów zaznaczonych: ~p (w ~p objektach)"},
+    {11,"Krawędzi zaznaczonych: ~p (w ~p objektach)"},
+    {12,"Powierzchni zaznaczonych: ~p (w ~p objektach)"}
+   ]},
+  {init_menubar,
+   [
+    {1,"Plik"},
+    {2,"Edycja"},
+    {3,"Widok"},
+    {4,"Zaznaczenie"},
+    {5,"Narzędzia"},
+    {6,"Okno"},
+    {7,"Pomoc"}
+   ]},
+  {item_list,
+   [
+    {1," zaznaczone"}
+   ]},
+  {measure,
+   [
+    {1,". Pozycja ~s ~s ~s"},
+    {2,". Odległość ~s"},
+    {3,". Środek ~s ~s ~s. Długość ~s"},
+    {4,". Środek ~s ~s ~s.\nMateriał: ~s"},
+    {5,". Odległość ~s  <~s, ~s, ~s>"},
+    {6,". Kąt ~s"}
+   ]},
+  {object_mode,
+   [
+    {material,"materiału"},
+    {vertex,"koloru punktów"}
+   ]},
+  {patches,
+   [
+    {1,"Użyj "}
+   ]},
+  {purge_undo,
+   [
+    {1,"Zapisanych cofnięć: "},
+    {2,"Zapisanych wznowień: "},
+    {3,"Nie ma nic do usunięcia"},
+    {4,"Usunąć wszystkie (nieodwracalne)?"}
+   ]},
+  {shape_info,
+   [
+    {2,"Obiektów: ~p, płaszczyzn: ~p, krawędzi: ~p, punktów: ~p"},
+    {object_info,"Obiekt numer ~p (\"~s\") poligonów: ~p, krawędzi: ~p, punktów ~p.\nJest w trybie ~s."}
+   ]},
+  {tools_menu,
+   [
+    {8,"Wyrównaj"},
+    {9,"Wyśrodkuj"},
+    {10,"Zapisz obramowanie obiektu"},
+    {11,"Przeskaluj do obramowania"},
+    {12,"Przeskaluj proporcjonalnie do obramowania"},
+    {13,"Przesuń do obramowania"},
+    {14,"Ustaw wektor standardowy"},
+    {15,"Definiuje i zapamiętuje kierunek (z punktem odniesienia) dla późniejszego użycia z dowolnym "},
+    {16,"narzędziem obsługującym \"Wektor standardowy\" (np. Skaluj|Wektor standardowy)"},
+    {17,"Wirtualne lustro"},
+    {18,"Stwórz"},
+    {19,"Tworzy wirtualne lustro według zaznaczonych poligonów"},
+    {20,"Zniszcz"},
+    {21,"Usuwa wirtualne lustra wszystkich obiektów"},
+    {22,"Połącz"},
+    {23,"Łączy lustra tworząc zwykły obiekt"},
+    {24,"Zrzut ekranu"},
+    {25,"Tworzy zrzut ekranu (możesz go wyeksportować używając okna \"schemat\")"}
+   ]},
+  {undo_info,
+   [
+    {1,"nie ma zapamiętanych cofnięć"},
+    {2,"dostępne jest jedno zapisane cofnięcie"},
+    {3,"ilość zapisanych cofnięć: ~p"},
+    {4,"; jedna operacja może być ponowiona"},
+    {5,"; operacji możliwych do ponowienia: ~p"}
+   ]},
+  {window_menu,
+   [
+    {1,"Schemat okna obiektu"},
+    {2,"Schemat okna obiektu #"},
+    {3,"Schemat sceny"},
+    {4,"Otwiera okno pokazujące listę obiektów i materiałów wspólne dla wszystkich okien"},
+    {5,"Otwiera okno pokazujące listę obiektów dla danego okna obiektu"},
+    {6,"Paleta"},
+    {7,"Otwiera okno palety kolorów"},
+    {8,"Nowe okno obiektu"},
+    {9,"Otwiera nowe okno obiektu"},
+    {10,"Konsola"},
+    {11,"Otwiera okno konsoli w którym wyświetlane są komunikaty"}
+   ]}
+ ]}.
+{wings_ask,
+ [
+  {button_label,
+   [
+    {1,"Zatwierdź"}
+   ]},
+  {frame_event,
+   [
+    {1,"Rozwiń tę ramkę; zwiń pozostałe"},
+    {2,"Rozwiń tę ramkę"},
+    {3,"Zwiń tę ramkę"}
+   ]},
+  {mktree,
+   [
+    {1,"Przeglądaj"}
+   ]}
+ ]}.
+{wings_body,
+ [
+  {arealight_conv,
+   [
+    {1,"Światło strefowe na obiekt"},
+    {2,"Konwertuj zaznaczone światło strefowe na obiekt"},
+    {3,"Obiekt na światło strefowe"},
+    {4,"Konwertuj zaznaczony obiekt na światło strefowe"}
+   ]},
+  {auto_smooth,
+   [
+    {1,"Parametry autowygładzania"},
+    {2,"Kąt zagięcia:"}
+   ]},
+  {clean_isolated_vertices,
+   [
+    {1,"Usunięto 1 punkt izolowany\n"},
+    {2,"Ilość usuniętych punktów izolowanych: ~p\n"}
+   ]},
+  {cleanup,
+   [
+    {1,"Krótkie krawędzie"},
+    {2,"Tolerancja długości:"},
+    {3,"Punkty izolowane"},
+    {4,"Czyszczenie siatki"}
+   ]},
+  {cleanup_rep_1,
+   [
+    {1,"Punkt ~p powtórzony na płaszczyźnie ~p\n"}
+   ]},
+  {cleanup_waists_1,
+   [
+    {1,"Usunięto punkt przewężenia: ~p\n"}
+   ]},
+  {color_material,
+   [
+    {1,"kolor_"}
+   ]},
+  {delete_2edged_faces_1,
+   [
+    {1,"Poligon"},
+    {2,"ma tylko jedną krawędź"}
+   ]},
+  {mat_col_conv,
+   [
+    {1,"Kolor na materiał"},
+    {2,"Konwertuj kolory punktów na materiał"},
+    {3,"Materiał na kolor"},
+    {4,"Konwertuj materiał na kolory punktów"}
+   ]},
+  {menu,
+   [
+    {1,"Operacje na obiektach"},
+    {2,"Przesuń"},
+    {3,"Przewróć"},
+    {5,"Przewraca obiekt według wybranej osi"},
+    {10,"Odwróć"},
+    {11,"Odwróć wektory normalne obiektu"},
+    {12,"Zaciśnij"},
+    {13,"Przesuń punkty w kierunku środka"},
+    {14,"Wygładź"},
+    {15,"Podziel wszystkie płaszczyzny, aby uzyskać łagodniejszy kształt"},
+    {16,"Połącz"},
+    {17,"Połącz kilka obiektów w jeden"},
+    {18,"Rozłącz"},
+    {19,"Ponownie rozłącz połączone wcześniej obiekty"},
+    {20,"Spawaj"},
+    {21,"Połącz pary płaszczyzn leżące blisko siebie"},
+    {22,"Czyść obiekt"},
+    {23,"Usuń szereg defektów"},
+    {24,"Autowygładzanie"},
+    {25,"Ustaw krawędzie na twarde lub miękkie w zależności od kąta pomiędzy płaszczyznami"},
+    {26,"Zduplikuj"},
+    {27,"Usuń"},
+    {28,"Skasuj zaznaczone obiekty"},
+    {29,"Zmień nazwę..."},
+    {30,"Zmień nazwę zaznaczonego obiektu"},
+    {31,"Pokaż wszystkie"},
+    {32,"Odkryj ukryte płaszczyzny obiektu"}
+   ]},
+  {mode_conv,
+   [
+    {1,"Tryb koloru punktów"},
+    {2,"Zmień tryb obiektu na kolor punktów (materiał zostanie zachowany, ale nie będzie używany)"},
+    {3,"Tryb materiału"},
+    {4,"Zmień tryb obiektu na materiał (kolor punktów zostanie zachowany, ale nie będzie używany)"}
+   ]},
+  {rename_1,
+   [
+    {1,"Zmiana nazwy"}
+   ]},
+  {unify_modes,
+   [
+    {1,"Obiekt w trybie koloru punktów nie może być połączony z obiektem w trybie materiału."}
+   ]},
+  {vertex_color_item,
+   [
+    {1,"Kolor punktów"},
+    {2,"Zastosuj wybrany kolor do punktów obiektu (konieczna jest wcześniejsza zmiana trybu na kolor punktów)"}
+   ]},
+  {weld,
+   [
+    {1,"Tolerancja odległości:"},
+    {2,"Spawanie płaszczyzn"}
+   ]},
+  {weld_1,
+   [
+    {1,"Nie znaleziono płaszczyzn do połączenia."}
+   ]}
+ ]}.
+{wings_camera,
+ [
+  {desc,
+   [
+    {1,"Jeden"},
+    {2,"Dwa"},
+    {3,"Trzy"}
+   ]},
+  {help,
+   [
+    {1,"Uruchom kamerę"}
+   ]},
+  {info,
+   [
+    {1,"Uwaga: Mysz jednoprzyciskowa może być używana tylko z kamerą w trybie Nendo"},
+    {2,"Uwaga: Mysz dwuprzyciskowa może być używana tylko z kamerą w trybach Nendo lub Blender"},
+    {3,"Uwaga: Kamera w trybie "},
+    {4," wymaga myszki z co najmniej dwoma przyciskami"},
+    {5,"Uwaga: Kamera w trybie "},
+    {6," wymaga myszki z co najmniej trzema przyciskami"}
+   ]},
+  {message,
+   [
+    {2,"Przeciągnij aby przybliżyć/oddalić kamerę"},
+    {3,"Przesuń mysz aby obrócić kamerę"},
+    {4,"[Q]"},
+    {5,"Przesuń mysz aby przesunąć kamerę"},
+    {6,"Anuluj/przywróć widok"},
+    {7,"Przywróć widok"}
+   ]},
+  {mode_help,
+   [
+    {1,"Przesuń kamerę"},
+    {2,"Przybliż kamerę"},
+    {3,"Obróć kamerę"}
+   ]},
+  {prefs,
+   [
+    {1,"Przyciski myszy"},
+    {2,"Tryb kamery"},
+    {3,"Szybkość przesuwania"},
+    {4,"Przybliżanie kółkiem myszy"},
+    {5,"Przód przybliża"},
+    {6,"Przód oddala"},
+    {7,"Współczynnik przybliżenia"},
+    {9,"Kółko myszy"}
+   ]}
+ ]}.
+{wings_collapse,
+ [
+  {check_consistency,
+   [
+    {1,"Usuwanie punktów spowoduje powstanie niezgodności w obiekcie."}
+   ]},
+  {check_vertices_1,
+   [
+    {1,"Nieusuwalne punkty"},
+    {2,"pozostawią przewężenia.\n"}
+   ]}
+ ]}.
+{wings_color,
+ [
+  {choose_1,
+   [
+    {1,"Wybierz kolor"}
+   ]}
+ ]}.
+{wings_console,
+ [
+  {do_window,
+   [
+    {1,"Konsola: "},
+    {2," na "}
+   ]},
+  {handle_action,
+   [
+    {1,"Zapisz"},
+    {3,"Plik tekstowy"},
+    {4,"Błąd zapisu: ~w"}
+   ]},
+  {popup_menu,
+   [
+    {1,"Zapisz do pliku"},
+    {2,"Zapisz zawartość konsoli do pliku"}
+   ]},
+  {server_loop,
+   [
+    {1,":~w Otrzymano nieznany: ~p~n"}
+   ]}
+ ]}.
+{wings_deform,
+ [
+  {check_range,
+   [
+    {1,"Przestrzeń przy osi "},
+    {2,"jest zbyt mała."}
+   ]},
+  {crumple_dirs,
+   [
+    {1,"Losowo"},
+    {2,"losowo wybranego kierunku"},
+    {4,"wektora normalnego"},
+    {8,"Przesuń każdy punkt o losową wartość według"}
+   ]},
+  {dir,
+   [
+    {1,"Przekręć zaznaczone punkty według osi "},
+    {2," według środka wyznaczonego przez zaznaczone punkty"},
+    {3," według środka obiektu"}
+   ]},
+  {inflate_fun,
+   [
+    {1,"Wybierz środek i promień"},
+    {2,"Uwypuklij elementy"},
+    {3,"Wybierz punkt środka"},
+    {4,"Wybierz punkt wyznaczający promień"}
+   ]},
+  {sub_menu,
+   [
+    {1,"Uwypuklij elementy"},
+    {2,"Wybierz środek i promień"},
+    {3,"Pognij"},
+    {4,"Przesuń punkty losowo"},
+    {5,"Uwypuklij"},
+    {6,"Zwęź"},
+    {7,"Zakręć"},
+    {8,"Obróć"}
+   ]},
+  {taper_item,
+   [
+    {1,"Zwęź wzdłuż "},
+    {2," (z efektem na "},
+    {3,")"},
+    {4,"Wybierz kierunek efektu"},
+    {5,"Wybierz punkt umieszczenia wektora kierunku"},
+    {6,"Ustal środek zwężenia"},
+    {7,"Efekt na "}
+   ]}
+ ]}.
+{wings_dissolve,
+ [
+  {dissolve_1,
+   [
+    {1,"Usuwanie punktów spowoduje powstanie niezgodności w obiekcie."}
+   ]}
+ ]}.
+{wings_drag,
+ [
+  {help_message,
+   [
+    {1,"Wpisz wartość"}
+   ]},
+  {make_query_1,
+   [
+    {2,"A"}
+   ]},
+  {numeric_input,
+   [
+    {1,"Wprowadzanie numeryczne"}
+   ]},
+  {qstr,
+   [
+    {1,"Dx"},
+    {2,"Dx"},
+    {3,"Dy"},
+    {4,"Dz"},
+    {5,"R"},
+    {6,"A"}
+   ]},
+  {standard_mode_fun,
+   [
+    {1,"[Shift] i/lub [Ctrl]: Skala wartości"},
+    {2,"[+] lub [-]: Dostosuj promień"}
+   ]},
+  {zmove_help,
+   [
+    {1,"Przeciągnij, aby przesunąć wzdłuż osi Z"},
+    {2,"Przeciągnij, aby wyregulować trzeci parametr"}
+   ]}
+ ]}.
+{wings_edge,
+ [
+  {dissolve_edge_2,
+   [
+    {1,"Usunięcie krawędzi spowoduje pojawienie się niewłaściwie zbudowanej płaszczyzny."}
+   ]}
+ ]}.
+{wings_edge_cmd,
+ [
+  {command,
+   [
+    {1,"Segmenty"}
+   ]},
+  {cut_ask_entry,
+   [
+    {1,"Potnij krawędź na dowolną ilość równych części"},
+    {2,"Wpisz ilość..."}
+   ]},
+  {cut_command,
+   [
+    {1,"Tnij"}
+   ]},
+  {cut_entry,
+   [
+    {1,"Potnij krawędź na "},
+    {2," części równej długości"}
+   ]},
+  {cut_fun,
+   [
+    {1,"Tnij na krawędzie równej długości"},
+    {2,"Tnij w wyznaczonym miejscu"}
+   ]},
+  {cut_pick_error,
+   [
+    {1,"Tylko jedna krawędź może być przecięta w wyznaczonym miejscu."}
+   ]},
+  {loop_cut,
+   [
+    {1,"Pętla nie dzieli ~p na dwie lub więcej części."}
+   ]},
+  {menu,
+   [
+    {1,"Operacje na krawędziach"},
+    {2,"Przesuń"},
+    {3,"Ślizgaj"},
+    {4,"Przesuwa krawędź wzdłuż sąsiednich krawędzi"},
+    {5,"Wyciągnij"},
+    {6,"Połącz"},
+    {7,"Stwórz krawędzie łączące środki zaznaczonych krawędzi"},
+    {8,"Spłaszcz"},
+    {9,"Zamień krawędź na płaszczyznę wybranej szerokości"},
+    {10,"Skasuj"},
+    {11,"Usuń zaznaczone krawędzie"},
+    {12,"Zniweluj"},
+    {13,"Zniweluj krawędzie łącząc je w punkty"},
+    {14,"Typ krawędzi"},
+    {15,"Miękka"},
+    {16,"Ostra"},
+    {17,"Przekrój według pętli"},
+    {18,"Tnij obiekt na dwie części według zaznaczonej pętli"},
+    {19,"Kolor punktów"},
+    {20,"Zastosuj kolor punktów do zaznaczonych krawędzi"}
+   ]},
+  {plain_cut_menu,
+   [
+    {2,"Tnij na krawędzie równej długości"}
+   ]},
+  {slide_help_mode,
+   [
+    {1,"Bezwzględnie"},
+    {2,"Względnie"},
+    {3,"Stały kierunek"},
+    {4,"Zmienny kierunek"},
+    {5,"Zatrzymaj na krawędzi"},
+    {6,"Kontynuuj poza krawędzią"}
+   ]}
+ ]}.
+{wings_export,
+ [
+  {export,
+   [
+    {1,"eksportowanie"},
+    {2,"przygotowywanie"},
+    {4,"Eksporter wygenerował błąd"}
+   ]}
+ ]}.
+{wings_extrude_edge,
+ [
+  {bevel_faces,
+   [
+    {1,"Obiekt jest za mały by spłaszczyć."}
+   ]},
+  {extrude_problem,
+   [
+    {1,"Nie można spłaszczyć/wyciągnąć; dwa lub więcej punktów znajduje się prawdopodobnie zbyt blisko siebie.\nSpróbuj użyć komendy Czyść obiekt."}
+   ]}
+ ]}.
+{wings_face_cmd,
+ [
+  {bridge,
+   [
+    {1,"Płaszczyzny muszą mieć tyle samo punktów."},
+    {2,"Płaszczyzny nie mogą być skierowane w tę samą stronę."},
+    {3,"Płaszczyzny nie mogą ze sobą sąsiadować."}
+   ]},
+  {bridge_error,
+   [
+    {1,"Dokładnie dwie płaszczyzny muszą być zaznaczone."}
+   ]},
+  {clone_on,
+   [
+    {1,"Musi być zaznaczona dokładnie jedna płaszczyzna."}
+   ]},
+  {clone_on_selection,
+   [
+    {1,"Zaznacz element na którym umieścić klon obiektu."}
+   ]},
+  {lift_check_selection,
+   [
+    {1,"Wybrane płaszczyzny i zaznaczone krawędzie nie współgrają ze sobą."},
+    {2,"Wybrane płaszczyzny i zaznaczone punkty nie współgrają ze sobą."}
+   ]},
+  {lift_fun,
+   [
+    {1,"Unieś (i obróć) płaszczyznę według wybranych krawędzi lub punktów"},
+    {2,"Unieś według standardowych kierunków"}
+   ]},
+  {lift_sel_mismatch,
+   [
+    {1,"Wybrana płaszczyzna i zaznaczone krawędzie nie współgrają ze sobą."}
+   ]},
+  {lift_selection,
+   [
+    {1,"Wybierz punkty lub krawędzie będące podstawą unoszenia płaszczyzn"}
+   ]},
+  {lift_vtx_sel_mismatch,
+   [
+    {1,"Wybrana płaszczyzna i zaznaczone punkty nie współgrają ze sobą."}
+   ]},
+  {menu,
+   [
+    {1,"Operacje na płaszczyznach"},
+    {2,"Przesuń"},
+    {3,"Wyciągnij"},
+    {4,"Wyciągnij obszar"},
+    {5,"Wyekstraktuj obszar"},
+    {6,"Wstaw"},
+    {7,"Wstaw płaszczyznę do wnętrza zaznaczonej płaszczyzny"},
+    {8,"Wnętrze"},
+    {9,"Stwórz wnętrze obiektu, zaznaczone płaszczyzny czyniąc dziurami"},
+    {10,"Spłaszcz"},
+    {11,"Spłaszcz krawędzie zaznaczonej płaszczyzny"},
+    {12,"Most"},
+    {13,"Stwórz most pomiędzy dwiema płaszczyznami"},
+    {14,"Wyciągnij"},
+    {15,"Wyciągnij zaznaczone płaszczyzny"},
+    {16,"Unieś"},
+    {17,"Połóż na"},
+    {18,"Przesuń i obróć obiekt, tak aby leżał na innym, stykając się zaznaczonymi płaszczyznami"},
+    {19,"Sklonuj obiekt na jeden lub więcej elementów"},
+    {20,"Lustro"},
+    {21,"Odbij obiekt według zaznaczonej płaszczyzny i połącz z oryginałem"},
+    {22,"Odbij obiekt według zaznaczonej płaszczyzny i stwórz nowy obiekt"},
+    {23,"Scal"},
+    {24,"Usuń krawędzie pomiędzy zaznaczonymi płaszczyznami"},
+    {25,"Zniweluj"},
+    {26,"Zniweluj płaszczyzny łącząc je w punkty"},
+    {27,"Wygładź"},
+    {28,"Podziel zaznaczone płaszczyzny aby uzyskać łagodniejszy kształt (metoda Catmull-Clark)"},
+    {29,"Podziel na..."},
+    {30,"Kolor punktów"},
+    {31,"Zastosuj kolor punktów do zaznaczonych płaszczyzn"},
+    {32,"Ukryj"},
+    {33,"Ukryj zaznaczone płaszczyzny"}
+   ]},
+  {put_on,
+   [
+    {1,"Może być zaznaczona tylko jedna płaszczyzna."}
+   ]},
+  {put_on_check_selection,
+   [
+    {1,"Zaznaczenie nie może być w tym samym obiekcie."},
+    {2,"Zaznacz tylko jeden element."}
+   ]},
+  {put_on_selection,
+   [
+    {1,"Zaznacz element docelowy, na którym chcesz umieścić ten obiekt"}
+   ]},
+  {smooth,
+   [
+    {1,"trwa wygładzanie"}
+   ]},
+  {unify_modes,
+   [
+    {1,"Obiekt w trybie koloru punktów nie może być połączony mostem z obiektem w trybie materiału."}
+   ]}
+ ]}.
+{wings_ff_ndo,
+ [
+  {check_size,
+   [
+    {1,"Obiekt \""},
+    {2,"\" nie może być wyeksportowany "},
+    {3,"do formatu Nendo (zbyt dużo krawędzi)."}
+   ]},
+  {clean_bad_edges,
+   [
+    {1,"Niewłaściwa krawędź: ~w\n"}
+   ]},
+  {import,
+   [
+    {1,"Pliki w formacie Nendo 1.0 nie są obsługiwane"},
+    {2,"To nie jest plik Nendo"}
+   ]},
+  {import_1,
+   [
+    {1,"~w obiekt(ów)\n"}
+   ]},
+  {read_edges,
+   [
+    {1," krawędzi ~w\n"}
+   ]},
+  {read_object_1,
+   [
+    {1,"~w: ~s: widoczność=~p czułość=~p\n"}
+   ]},
+  {read_objects,
+   [
+    {1,"  ~w pusty(ch) obiekt(ów)\n"},
+    {2,"  odpadki: ~w\n"}
+   ]},
+  {read_vertices,
+   [
+    {1," punktów ~w\n"}
+   ]},
+  {skip_faces,
+   [
+    {1," płaszczyzn ~w\n"}
+   ]}
+ ]}.
+{wings_ff_wings,
+ [
+  {export,
+   [
+    {1,"zapisywanie"},
+    {2,"światła"},
+    {3,"zmiana numeracji"},
+    {4,"obiekty"},
+    {5,"kompresowanie"},
+    {6,"zapisywanie do pliku"}
+   ]},
+  {import,
+   [
+    {1,"otwieranie pliku wings"},
+    {2,"czytanie pliku"}
+   ]},
+  {import_1,
+   [
+    {1,"konwertowanie pliku binarnego"},
+    {2,"Format sprzed wersji 0.80 nie jest już obsługiwany."},
+    {3,"Format sprzed wersji 0.92 nie jest już obsługiwany."},
+    {4,"nieznany format pliku wings"},
+    {5,"uszkodzony plik wings"},
+    {6,"to nie jest plik w formacie wings (lub bardzo stara wersja)"}
+   ]},
+  {import_image,
+   [
+    {1,"obraz bez nazwy"},
+    {2,"Zły obraz: ~p\n"}
+   ]},
+  {import_object_mode,
+   [
+    {1,"Zmieniono tryb niezdefiniowany na materiał\n"}
+   ]},
+  {import_props,
+   [
+    {1,"<Zapisane zaznaczenie>"}
+   ]},
+  {import_vsn2,
+   [
+    {1,"obrazy i materiały"},
+    {2,"obiekty"}
+   ]},
+  {translate_map_images_2,
+   [
+    {1,"Materiał ~p, ~p tekstura: odniesienie do nieistniejącego obrazu ~p\n"}
+   ]}
+ ]}.
+{wings_file,
+ [
+  {autosave,
+   [
+    {1,"Autozapis \"~s\" nie powiódł się: ~s"}
+   ]},
+  {command,
+   [
+    {1,"Przywrócenie nie powiodło się: "},
+    {2,"Eksportuj"},
+    {3,"Eksportuj zaznaczone"},
+    {4,"Czy chcesz zapisać zmiany przed opuszczeniem programu?"},
+    {5,"Plik został przeniesiony lub skasowany."}
+   ]},
+  {confirmed_open,
+   [
+    {1,"Odczyt nie powiódł się: "}
+   ]},
+  {confirmed_open_dialog,
+   [
+    {1,"Otwórz"}
+   ]},
+  {export_filename,
+   [
+    {1,"Eksportuj"}
+   ]},
+  {import_filename,
+   [
+    {1,"Importuj"}
+   ]},
+  {import_image,
+   [
+    {1,"Załadowanie \"~s\" nie powiodło: ~s\n"}
+   ]},
+  {import_ndo,
+   [
+    {1,"Importowanie nie powiodło się: "}
+   ]},
+  {install_plugin,
+   [
+    {1,"Zainstaluj wtyczkę"},
+    {2,"Plik skompresowany programem GZip"},
+    {3,"Plik w postaci archiwum TAR"},
+    {4,"Skompresowany plik TAR"},
+    {5,"Plik wtyczki Beam"}
+   ]},
+  {menu,
+   [
+    {3,"Nowy"},
+    {4,"Tworzy nową, pustą scenę"},
+    {5,"Otwórz..."},
+    {6,"Otwiera wcześniej zapisaną scenę"},
+    {7,"Dołącz..."},
+    {8,"Dołącza zapisaną wcześniej scenę do aktualnie otwartej"},
+    {9,"Zapisz"},
+    {10,"Zapisuje aktualną scenę"},
+    {11,"Zapisz jako..."},
+    {12,"Zapisuje aktualną scenę pod nową nazwą"},
+    {13,"Zapisz zaznaczone..."},
+    {14,"Zapisuje tylko wybrane obiekty lub płaszczyzny"},
+    {15,"Zapisz numerując"},
+    {16,"Przywróć"},
+    {17,"Przywraca scenę do ostatnio zapisanego stanu"},
+    {18,"Importuj"},
+    {19,"Eksportuj"},
+    {20,"Eksportuj zaznaczone"},
+    {21,"Importuj obraz..."},
+    {22,"Importuje plik obrazu"},
+    {23,"Renderuj"},
+    {24,"Zainstaluj wtyczki"},
+    {25,"Wyjdź"},
+    {26,"Generuje nową nazwę zwiększając lub dodając licznik i zapisuje jako nowy plik"},
+    {27,"Instaluje wtyczkę"},
+    {28,"Wychodzi z programu Wings 3D"}
+   ]},
+  {merge,
+   [
+    {1,"Dołącz"},
+    {2,"Odczyt nie powiódł się: "}
+   ]},
+  {recent_files,
+   [
+    {1,"Otwiera ostatnio używany plik"}
+   ]},
+  {save_as,
+   [
+    {1,"Zapisz"}
+   ]},
+  {save_now,
+   [
+    {1,"Zapis nie powiódł się: "}
+   ]},
+  {save_selected,
+   [
+    {1,"Ta komenda wymaga zaznaczenia obiektów lub płaszczyzn."},
+    {2,"Zapisz zaznaczone"}
+   ]},
+  {str_save_changes,
+   [
+    {1,"Czy chcesz zapisać zmiany?"}
+   ]},
+  {use_autosave_1,
+   [
+    {1,"Znaleziono plik autozapisu z późniejszą datą; czy chcesz go odczytać zamiast wybranego pliku?"}
+   ]},
+  {wings_prop,
+   [
+    {1,"Pliki Wings"}
+   ]}
+ ]}.
+{wings_help,
+ [
+  {advanced_menus,
+   [
+    {1,"W menu "},
+    {4,", znajduje się pole do zaznaczenia \"Zaawansowanego trybu menu\"."},
+    {5,"Aktywowanie zaawansowanego trybu menu dodaje następujące możliwości:"},
+    {6,"Nowe komendy: "},
+    {7,"Płaszczyzna"},
+    {8,"Połóź na"},
+    {9," i "},
+    {10,"Płaszczyzna"},
+    {11,"Unieś."},
+    {12,"Operacje wektorowe: Masz możliwość wyznaczenia wektora (np.: przekształcenia) i zmiany jego punktu zaczepienia."},
+    {13,"Operacje magnetyczne: Technika pozwalająca na dokonywanie łagodnych modyfikacji poprzez wpływ narzędzia również na otaczające elementy. Typ i siła przyciągania mogą być dowolnie dostosowywane."},
+    {14,"Operacje wektorowe i magnetyczne mogą być używane jednocześnie."},
+    {15,"Jeśli masz włączony zaawansowany tryb menu, wiele komend zachowuje się różnie w zależności od tego którego przycisku myszy użyjesz do włączenia tejże komendy."},
+    {16,"Na przykład naciśnięcie prawym (P) przyciskiem myszy na komendzie Obróć, pozwala ci wybrać kierunek wektora wokół którego chcesz obrócić obiekt, natomiast naciśnięcie środkowym (Ś) pozwala na wybranie kierunku i punktu zaczepienia tegoż wektora (wektor ten nie musi być równoległy do osi), podczas gdy naciśnięcie nań lewym (L) przyciskiem myszy pozwala na wybranie kierunku obrotu spośród osi, wolnego obrotu lub zdefiniowanego wcześniej wektora."},
+    {17,"Na początku bardzo ważne jest dokładne czytanie zawarości linii informacyjnej na dole okna, która podaje dostępne możliwości wywołania danej komendy."}
+   ]},
+  {def_commands,
+   [
+    {1,"W menu "},
+    {4,", możesz włączyć \"Komendy standardowe\"."},
+    {5,"Możesz zdefiniować dwie standardowe komendy. Aby zapisać wcześniej wykonane komendy, użyj jednej z poniższych kombinacji klawiszy:"},
+    {8,"Tak zdefiniowaną komendę możesz wywołać używając poniższych kombinacji klawiszy:"},
+    {11,"Uwaga: Gdy pracujesz z kamerą w trybie "},
+    {13," lub "},
+    {15,", druga standardowa komenda nie może być używana."}
+   ]},
+  {def_hotkeys,
+   [
+    {1,"Dowolna komenda, która pokazuje się w menu może być przypisana do skrótu klawiszowego."},
+    {2,"Aby przyporządkować jakąś opcję do danego klawisza, otwórz menu które zawiera tę komendę i podświetl interesującą cię opcję. Wtedy naciśnij [Insert] lub [/] a zaraz potem klawisz do którego chcesz przyporządkować tę komendę."},
+    {3,"Aby usunąć przyporządkowaną komendę podobnie podświetl interesującą cię opcję i naciśnij klawisz [Del] lub [\\]"}
+   ]},
+  {edit_prefs,
+   [
+    {1,"Edycja"},
+    {2,"Opcje"}
+   ]},
+  {getting_started,
+   [
+    {1,"Ucząc się programu Wings 3D często zerkaj na linię informacyjną znajdującą się na dole ekranu. Ogólnie pokazuje jakie kombinacje klawiszy klawiatury i myszy mogą być użyte w danym momencie."},
+    {2,"Możliwe akcje dla myszy podane są najpierw, oznaczane "},
+    {7,"Ogólnie, L (lewy przycisk myszy) używany jest do zaznaczania i potwierdzania, Ś (środkowy przycisk myszy) do sterowania kamerą, natomiast P (prawy przycisk myszy) otwiera menu kontekstowe."},
+    {left_def,"lewy przycisk myszy"},
+    {middle_def,"środkowy przycisk myszy lub rolka"},
+    {right_def,"prawy przycisk myszy"},
+    {two_a,"a zaraz potem dowolne skróty klawiszowe."}
+   ]},
+  {header,
+   [
+    {1,"Na dobry początek..."},
+    {2,"Używanie jedno- lub dwuprzyciskowej myszki"},
+    {3,"Klawiatura francuska i niemiecka"},
+    {4,"Zdefiniowane skróty klawiszowe"},
+    {5,"Jak definiować skróty klawiszowe"},
+    {6,"Podstawy oświetlenia"},
+    {7,"Zaawansowany tryb menu"},
+    {8,"Komendy standardowe"},
+    {9,"Porady wydajnościowe"},
+    {10,"Możliwości OpenGL"},
+    {11,"O programie..."}
+   ]},
+  {help_window,
+   [
+    {1,"Brak pomocy odnośnie tego tematu"}
+   ]},
+  {international,
+   [
+    {1,"Niestety, na klawiaturze francuskiej i niemieckiej (możliwe, że również na innych), komenda Cofnij/Ponów nie będzie przyporządkowana do klawisza [Z] (może to ulec zmianie w późniejszych wydaniach programu Wings 3D)."},
+    {2,"Na klawiaturze francuskiej komendy Cofnij/Ponów możesz znaleźć pod klawiszem [W] ([Ctrl]+[W], [Ctrl]+[Alt]+[W] i tak dalej)."},
+    {3,"Na klawiaturze niemieckiej komendy Cofnij/Ponów możesz znaleźć pod klawiszem [Y] ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] i tak dalej)."}
+   ]},
+  {lights,
+   [
+    {1,"1. Światła tworzymy używając komendy Światła w menu kontekstowym tworzenia obiektów, czyli gdy nie masz zaznaczonego żadnego obiektu. Jeśli nie widzisz rozwijanej listy, to znaczy, że masz włączony zaawansowany tryb menu, i możesz dostać się do niej klikając prawym przyciskiem myszy na podświetlonym napisie Światła."},
+    {2,"2. Zaznacz światło klikając na nim lewym przyciskiem myszy. Kiedy światło jest zaznaczone gdy naciśniesz prawy przycisk myszy, pojawi się menu kontekstowe świateł."},
+    {3,"3. Aby Wings korzystał ze stworzonych przez ciebie świateł, musisz włączyć opcję "},
+    {4,"Widok"},
+    {5,"Światło sceny"},
+    {6,"."}
+   ]},
+  {message,
+   [
+    {1,"Zamknij okno pomocy"}
+   ]},
+  {one_or_two,
+   [
+    {1,"Zauważ, że tylko tryby kamery "},
+    {2," i "},
+    {3," mogą być używane z myszką dwuprzyciskową, natomiast z myszką jednoprzyciskową współpracuje tylko kamera w trybie "},
+    {4,"."}
+   ]},
+  {opengl_info,
+   [
+    {1,"Producent: "},
+    {2,"Karta: "},
+    {3,"Wersja: "},
+    {4,"Numer wersji: "},
+    {5,"Red bits"},
+    {6,"Green bits"},
+    {7,"Blue bits"},
+    {8,"Alpha bits"},
+    {9,"Depth bits"},
+    {10,"Stencil bits"},
+    {11,"Accum. red bits"},
+    {12,"Accum. green bits"},
+    {13,"Accum. blue bits"},
+    {14,"Accum. alpha bits"},
+    {15,"Max number of lights"},
+    {16,"Max clip planes"},
+    {17,"Max modelview stack depth"},
+    {18,"Max projection stack depth"},
+    {19,"Max texture stack depth"},
+    {20,"Subpixel bits"},
+    {21,"Max 3D texture size"},
+    {22,"Max texture size"},
+    {23,"Max pixel map table"},
+    {24,"Max name stack depth"},
+    {25,"Max display-list call nesting"},
+    {26,"Max evaluator polynomial order"},
+    {27,"Max viewport dimensions"},
+    {28,"Max depth of attribute stack"},
+    {29,"Max depth of client attribute stack"},
+    {30,"Number of auxiliary buffers"},
+    {31,"Color buffers store RGBA"},
+    {32,"Color buffers store indices"},
+    {33,"Double buffering"},
+    {34,"Stereo buffers"},
+    {35,"Range of aliased point sizes"},
+    {36,"Range of antialised point sizes"},
+    {37,"Range of aliased line widths"},
+    {38,"Range of antialised line widths"},
+    {39,"Recommended max number of indices for drawRangeElement()"},
+    {40,"Recommended max number of vertices for drawRangeElement()"},
+    {41,"Max number of texturing units"},
+    {42,"Number of compression formats"},
+    {43,"Max number of vertex units"},
+    {44,"Rozszerzenia OpenGL"}
+   ]},
+  {performance_tips,
+   [
+    {1,"Wydajność programu Wings 3D zależy od wielu rzeczy, takich jak:"},
+    {2,"prędkość procesora"},
+    {3,"typ i rozmiar pamięci podręcznej procesora"},
+    {4,"ilość i szybkość pamięci"},
+    {5,"typ karty graficznej"},
+    {6,"ilość pamięci na karcie graficznej"},
+    {7,"faza księżyca"},
+    {8,"Jak widać przy takiej ilości składowych trudno podać jednoznaczną odpowiedź jak poprawić wydajność pracy Winga. Poniższe podpowiedzi MOGĄ poprawić wydajność, ale nie MUSZĄ:"},
+    {9,"Wypróbuj różnych ilości kolorów i rozdzielczości ekranu. Szczególnie jeśli twoja karta graficzna nie posiada sporej ilości pamięci, duża ilość kolorów i/lub rozdzielczość mogą obniżyć wydajność. Używanie mniejszych okien (nie zmaksymalizowanych) również może pomóc."},
+    {10,"Zamknij niepotrzebne okna wewnątrz głównego okna programu Wings."},
+    {11,"Upewnij się, że okna obiektu nie nachodzą na siebie."},
+    {12,"Używaj jak najmniejszej ilości aktywnych świateł. Na większości kart graficznych duża ilość świateł znacznie obniża wydajność."},
+    {13,"Jeśli jest to możliwe (model jest symetryczny) użyj komendy "},
+    {14,"Narzędzia"},
+    {15,"Wirtualne lustro"},
+    {16,"."},
+    {17,"Ukryj obiekty nad którymi nie pracujesz w danej chwili."},
+    {18,"Użyj komendy "},
+    {19,"Widok"},
+    {20,"Pokaż kolory"},
+    {21," aby wyłączyć wyświetlanie koloru punktów jeśli posiadasz obiekty w tym trybie."},
+    {22,"Użyj komendy "},
+    {23,"Widok"},
+    {24,"Pokaż tekstury"},
+    {25," aby wyłączyć wyświetlanie tekstur podczas modelowania."},
+    {26,"Pracuj w trybie siatki."},
+    {27,"Niektóre karty graficzne mają problemy z wyświetlaniem krawędzi. Jeśli i z twoją tak jest, wyłącz wyświetlanie krawędzi używając komendy "},
+    {28,"Widok"},
+    {29,"Pokaż krawędzie"},
+    {30,"."}
+   ]},
+  {splash_contents,
+   [
+    {1,"Wings 3D jest programem do modelowania metodą"},
+    {2,"\"subdivision\", inspirowanym przez Nendo i Mirai z IZware."},
+    {3,"Wings 3D nie zapewnia żadnych gwarancji osiągnięcia"},
+    {4,"zamierzonych efektów, lecz jest programem zupełnie"},
+    {5,"darmowym do dowolnego użycia (włączając komercyjne)."},
+    {6,"Copyright"},
+    {7,"i inni"},
+    {8,"Biblioteka JPEG: Copyright"}
+   ]},
+  {use_one_or_two,
+   [
+    {1,"Aby używać myszki dwu- lub jednoprzyciskowej musisz wybrać ilość przycisków twojej myszki w zakładce Kamera w menu "},
+    {2,"."} 
+   ]}
+ ]}.
+{wings_hotkey,
+ [
+  {keyname,
+   [
+    {1,"Bksp"},
+    {2,"Tab"},
+    {3,"Spacja"},
+    {4,"Shift+"}
+   ]},
+  {list_header,
+   [
+    {1,"Skróty do wszystkich trybów"},
+    {2,"Skróty do trybu obiektów"},
+    {3,"Skróty do trybu krawędzi"},
+    {4,"Skróty do trybu płaszczyzn"},
+    {5,"Skróty do trybu świateł"},
+    {6,"Skróty do trybu punktów"}
+   ]},
+  {list_keys,
+   [
+    {1," (zdefiniowany przez użytkownika)"},
+    {2," (zdefiniowany przez wtyczkę)"}
+   ]},
+  {vkeyname,
+   [
+    {1,"Bksp"},
+    {2,"Tab"},
+    {3,"Enter"},
+    {4,"Pause"},
+    {5,"Esc"},
+    {6,"Space"},
+    {7,"Delete"},
+    {8,"Num ."},
+    {9,"Num \\"},
+    {10,"Num *"},
+    {11,"-"},
+    {12,"+"},
+    {13,"Enter"},
+    {14,"="},
+    {15,"Góra"},
+    {16,"Dół"},
+    {17,"Prawa"},
+    {18,"Lewa"},
+    {19,"Insert"},
+    {20,"Home"},
+    {21,"End"},
+    {22,"Page Up"},
+    {23,"Page Down"},
+    {24,"UKEY"}
+   ]}
+ ]}.
+{wings_image,
+ [
+  {create_default,
+   [
+    {1,"~p Nic nie wiem o typie ~p; ignoruje\n"}
+   ]},
+  {create_image,
+   [
+    {1,"Wysokość:"},
+    {2,"Szerokość:"},
+    {3,"Wzór:"},
+    {4,"Siatka"},
+    {5,"Szachownica"},
+    {6,"Pionowe paski"},
+    {7,"Poziome paski"},
+    {8,"Biały"},
+    {9,"Czarny"},
+    {10,"Stwórz obraz"}
+   ]},
+  {event,
+   [
+    {1,"Pokaż menu"}
+   ]},
+  {event_1,
+   [
+    {1,"Pokaż w naturalnym rozmiarze"}
+   ]},
+  {screenshot,
+   [
+    {1,"<<Zrzut ekranu>>"}
+   ]},
+  {window_params,
+   [
+    {1,"Obraz: ~s [~wx~wx~w]"}
+   ]}
+ ]}.
+{wings_init,
+ [
+  {display_actual_mode,
+   [
+    {1,"Aktualnie: RGBA: ~p ~p ~p ~p Głębia: ~p Matryca: ~p Akumulacyjnie: ~p ~p ~p ~p\n"}
+   ]},
+  {try_video_modes,
+   [
+    {1,"Szukanie odpowiedniego trybu OpenGL\n"}
+   ]},
+  {video_mode_failure,
+   [
+    {2,"Nie odnaleziono żadnego możliwego do wykorzystania trybu OpenGL.\n\n"},
+    {3,"Upewnij się, że masz zainstalowany sterownik OpenGL.\n\n"},
+    {5,"Nie ma odpowiedniego trybu OpenGL, czy sterowniki są zainstalowane?"}
+   ]}
+ ]}.
+{wings_light,
+ [
+  {attenuation,
+   [
+    {1,"To nie jest ani punktowe ani kierunkowe światło."}
+   ]},
+  {color,
+   [
+    {1,"Zaznacz tylko jedno światło."}
+   ]},
+  {edit,
+   [
+    {1,"Zaznacz tylko jedno światło."},
+    {2,"Opcje światła otaczającego"},
+    {3,"Opcje światła"}
+   ]},
+  {edit_ambient_dialog,
+   [
+    {1,"Otoczenie"},
+    {2,"Kolor"},
+    {3,"Zastosuj"}
+   ]},
+  {edit_dialog,
+   [
+    {1,"Rozproszenie"},
+    {2,"Otoczenie"},
+    {3,"Odblask"},
+    {4,"Kolory"},
+    {5,"Zastosuj"}
+   ]},
+  {export_camera_lights,
+   [
+    {1,"Otoczenie"},
+    {2,"Nieskończone"},
+    {3,"Nieskończone1"},
+    {4,"Nieskończone2"}
+   ]},
+  {info,
+   [
+    {1,"Światło ~s"},
+    {2,": Pozycja ~s ~s ~s"}
+   ]},
+  {info_1,
+   [
+    {1,". Cel ~s ~s ~s. Kierunek ~s ~s ~s"},
+    {2,". Kąt ~s~c"}
+   ]},
+  {light_types,
+   [
+    {1,"Nieskończone"},
+    {2,"Tworzy bardzo odległe światło kierunkowe (np.: słoneczne)"},
+    {3,"Punktowe"},
+    {4,"Tworzy światło działające równomiernie w każdym kierunku"},
+    {5,"Reflektorowe"},
+    {6,"Tworzy światło reflektorowe"},
+    {7,"Otoczeniowe"},
+    {8,"Tworzy światło otoczeniowe"},
+    {9,"Strefowe"},
+    {10,"Stworzy strefę równomiernie emanującą światło z każdego punktu strefy"}
+   ]},
+  {menu,
+   [
+    {1,"Operacje na światłach"},
+    {2,"Przesuń"},
+    {3,"Ustaw światło"},
+    {4,"Ustawia cel lub położenie światła"},
+    {5,"Kolor"},
+    {6,"Interaktywnie ustawia barwę, wartość i nasycenie światła"},
+    {7,"Osłabienie"},
+    {8,"Liniowe"},
+    {9,"Określa stopień słabnięcia światła w zależności od odległości od jego źródła (mnożnik liniowy)"},
+    {10,"Kwadratowe"},
+    {11,"Określa stopień słabnięcia światła w zależności od odległości od jego źródła (mnożnik kwadratowy)"},
+    {12,"Kąt reflektora"},
+    {13,"Interaktywnie ustawia kąt stożka światła reflektorowego"},
+    {14,"Wytłumienie reflektora"},
+    {15,"Interaktywnie ustawia stopień słabnięcia światła reflektorowego w zależności od odległości od osi stożka"},
+    {16,"Edytuj opcje..."},
+    {17,"Edytuje opcje światła"},
+    {18,"Duplikuj"},
+    {19,"Duplikuje i przesuwa zaznaczone światło"},
+    {20,"Usuń"},
+    {21,"Usuwa zaznaczone światło"}
+   ]},
+  {plugin_results,
+   [
+    {1,"Wtyczki edytujące światła pozostawiły śmieci:~n    ~P~n"},
+    {2,"Wtyczki pozostawiły śmieci"}
+   ]},
+  {qs_att,
+   [
+    {1,"Liniowe"},
+    {2,"Kwadratowe"},
+    {3,"Osłabienie"}
+   ]},
+  {qs_specific,
+   [
+    {1,"Kąt"},
+    {2,"Wytłumienie"},
+    {3,"Parametry stożka światła"}
+   ]},
+  {selected_light,
+   [
+    {1,"Zaznacz tylko jedno światło."}
+   ]},
+  {spot_angle,
+   [
+    {1,"To nie jest światło reflektorowe."}
+   ]},
+  {spot_falloff,
+   [
+    {1,"To nie jest światło reflektorowe."}
+   ]}
+ ]}.
+{wings_magnet,
+ [
+  {check_radius,
+   [
+    {1,"Za mały promień wpływu."}
+   ]},
+  {common_dialog,
+   [
+    {4,"Działanie magnesu:"}
+   ]},
+  {dialog,
+   [
+    {1,"Opcje magnesu"},
+    {2,"Promień wpływu"},
+    {3,"Opcje magnesu"}
+   ]},
+  {drag_help,
+   [
+    {1,"[+] lub [-] Regulacja promienia  "}
+   ]},
+  {info_string,
+   [
+    {1,"Działanie magnesu: "}
+   ]},
+  {magnet_route,
+   [
+    {midpoint,"Punkt środkowy"},
+    {shortest,"Najbliższe otoczenie"},
+    {surface,"Płaszczyzna"}
+   ]},
+  {magnet_shape_str,
+   [
+    {bell,"Dzwonowe"},
+    {dome,"Kopułowe"},
+    {spike,"Ostre"},
+    {straight,"Proste"}
+   ]}
+ ]}.
+{wings_material,
+ [
+  {edit,
+   [
+    {1,"Parametry materiału: "}
+   ]},
+  {edit_dialog,
+   [
+    {1,"Rozproszenie"},
+    {2,"Otoczenie"},
+    {3,"Odblask"},
+    {4,"Emisja światła"},
+    {5,"Połysk"},
+    {6,"Przenikalność"},
+    {7,"Zastosuj"}
+   ]},
+  {load_map_1,
+   [
+    {1,"Nie udało się odczytać"}
+   ]},
+  {material_fun,
+   [
+    {1,"Zastosuj istniejący materiał do zaznaczenia"},
+    {2,"Stwórz i zastosuj nowy materiał do zaznaczenia"}
+   ]},
+  {material_menu,
+   [
+    {1,"Materiał"},
+    {2,"Nowy..."},
+    {3,"Stwórz i zastosuj nowy materiał do zaznaczenia"},
+    {4,"Materiał"}
+   ]},
+  {new_1,
+   [
+    {1,"Nowy materiał"},
+    {2,"Nazwa materiału"},
+    {3,"Nowy"}
+   ]},
+  {plugin_results,
+   [
+    {1,"Wtyczki edytujące światła pozostawiły śmieci:~n    ~P~n"},
+    {2,"Wtyczki pozostawiły śmieci"}
+   ]},
+  {rename,
+   [
+    {1,"Zmień nazwę"}
+   ]},
+  {show_map,
+   [
+    {1,"~p: <obraz usunięty>"},
+    {2,"~p: ~p [~px~px~p]"},
+    {3,"Skasuj"}
+   ]},
+  {show_maps,
+   [
+    {1,"Tekstury"}
+   ]}
+ ]}.
+{wings_menu,
+ [
+  {get_hotkey,
+   [
+    {1,"Naciśnij klawisz do którego chcesz przyporządkować tę komendę."}
+   ]},
+  {handle_key_event,
+   [
+    {1,"Ten klawisz jest już przyporządkowany do komendy "},
+    {2,". Czy chcesz go przedefiniować?"}
+   ]},
+  {help_text_1,
+   [
+    {1," - przejdź do podmenu"}
+   ]},
+  {magnet_help,
+   [
+    {2,"Włącz magnes"}
+   ]},
+  {norm_help_adv,
+   [
+    {1,"Otwórz ekran opcji"}
+   ]}
+ ]}.
+{wings_menu_util,
+ [
+  {adv_scale_1,
+   [
+    {1,"Skaluj równomiernie"},
+    {2,"Skaluj według osi"},
+    {3,"Skaluj radialnie"}
+   ]},
+  {basic_scale,
+   [
+    {1,"Skaluj"}
+   ]},
+  {dir_help,
+   [
+    {3,"ostatniego wektora"},
+    {4,"wektora standardowego"},
+    {7,"wokół"},
+    {10,"wokół wektora normalnego"},
+    {11,"dowolnie we wszystkich kierunkach"},
+    {12,"Skaluje równomiernie we wszystkich kierunkach"}
+   ]},
+  {dir_help_1,
+   [
+    {1,"Przesuń każdy element "},
+    {2,"Obróć dowolnie"},
+    {3,"Obróć wokół wektora normalnego każdego elementu"},
+    {4,"Wyciągnij element potem go przesuń "},
+    {5,"Wyciągnij element jako obszar, potem przesuń powstałe płaszczyzny wzdłuż ich wektora normalnego"},
+    {6,"Wyciągnij element jako obszar, potem przesuń powstałe płaszczyzny "},
+    {7,"Wyekstraktuj płaszczyzny, stwórz z nich nowy obiekt i przesuń je wzdłuż ich wektora normalnego"},
+    {8,"Wyekstraktuj płaszczyzny, stwórz z nich nowy obiekt i przesuń je "},
+    {9,"Wyrównaj elementy do płaszczyzny normalnej"},
+    {10,"Unieś płaszczyznę według jej wektora normalnego"},
+    {11,"Unieś płaszczyznę i przesuń ją "},
+    {12,"Zduplikuj i przesuń dowolnie "},
+    {13,"Przesuń każdy element wzdłuż "},
+    {14,"Wyciągnij elementy i przesuń wzdłuż "},
+    {15,"Wyciągnij elementy jako obszar i przesuń wzdłuż "},
+    {16,"Wyekstraktuj elementy i przesuń wzdłuż "},
+    {17,"Obróć wokół "},
+    {18,"Skaluj "},
+    {19,"Skaluj według "},
+    {20,"Wyrównaj do "},
+    {21,"wyrównaj i przesuń do "},
+    {22,"Unieś elementy według "},
+    {23,"Zduplikuj i przesuń według "}
+   ]},
+  {dirs,
+   [
+    {1,"Przesuń wzdłuż standardowych osi"},
+    {2,"Wybierz wektor wzdłuż którego chcesz przesunąć elementy"},
+    {3,"Przesuń wzdłuż standardowych osi"},
+    {4,"Przesuń wzdłuż wektora normalnego zaznaczenia"},
+    {5,"Wybierz wektor wzdłuż którego chcesz przesunąć elementy"},
+    {6,"Wyciągnij wzdłuż standardowych osi"},
+    {7,"Wyciągnij wzdłuż wektora normalnego zaznaczenia"},
+    {8,"Wybierz wektor wzdłuż którego chcesz wyciągnąć elementy"},
+    {9,"Wyciągnij wzdłuż standardowych osi"},
+    {10,"Wyciągnij wzdłuż wektora normalnego zaznaczenia"},
+    {11,"Wybierz wektor wzdłuż którego chcesz wyciągnąć elementy"},
+    {12,"Wyekstraktuj wzdłuż standardowych osi"},
+    {13,"Wyekstraktuj wzdłuż wektora normalnego zaznaczenia"},
+    {14,"Wybierz wektor wzdłuż którego chcesz wyekstraktować elementy"},
+    {15,"Zduplikuj i przesuń wzdłuż standardowych osi"},
+    {16,"Zduplikuj i nie przesuwaj"},
+    {17,"Zduplikuj i wybierz wektor wzdłuż którego chcesz przesunąć elementy"}
+   ]},
+  {flatten,
+   [
+    {1,"Wyrównaj"},
+    {2,"Wyrównaj do standardowych płaszczyzn"},
+    {3,"Wybierz płaszczyznę i punkt odniesienia na płaszczyźnie"},
+    {4,"Wybierz płaszczyznę"}
+   ]},
+  {flatten_fun_1,
+   [
+    {1,"Wybierz punkt na płaszczyźnie"}
+   ]},
+  {rotate,
+   [
+    {1,"Obróć wokół standardowych osi"},
+    {2,"Wybierz wektor obrotu i punkt odniesienia"},
+    {3,"Wybierz wektor wokół którego chcesz obrócić elementy"}
+   ]},
+  {rotate_1,
+   [
+    {1,"Obróć"}
+   ]},
+  {rotate_fun,
+   [
+    {1,"Wybierz punkt przez który przechodzić będzie oś obrotu"}
+   ]},
+  {scale,
+   [
+    {1,"Skaluj wzdłuż standardowych osi"},
+    {2,"Wybierz wektor skalowania i punkt odniesienia"},
+    {3,"Wybierz wektor skalowania"},
+    {4,"Skaluj wzdłuż standardowych osi"},
+    {5,"Wybierz wektor skalowania i punkt odniesienia"},
+    {6,"Wybierz wektor skalowania"}
+   ]},
+  {scale_fun,
+   [
+    {1,"Wybierz punkt odniesienia dla skalowania"}
+   ]},
+  {uniform_scale,
+   [
+    {1,"Wybierz punkt odniesienia dla skalowania"},
+    {2,"Skaluj równomiernie od środka obiektu"}
+   ]}
+ ]}.
+{wings_outliner,
+ [
+  {command,
+   [
+    {1,"NYI: ~p\n"}
+   ]},
+  {common_image_menu,
+   [
+    {1,"Eksportuj..."},
+    {2,"Eksportuj obraz"},
+    {3,"Zduplikuj"},
+    {4,"Zduplikuj obraz"},
+    {5,"Usuń"},
+    {6,"Usuń obraz"},
+    {7,"Zmień nazwę"},
+    {8,"Zmień nazwę obrazu"},
+    {9,"Wybierz obraz"},
+    {10,"Wybierz obraz do późniejszego opuszczenia na materiale jako teksturę"}
+   ]},
+  {delete_image,
+   [
+    {1,"Ten obraz jest używany przez materiał."},
+    {2,"Czy na pewno chcesz go usunąć (bezpowrotnie)?"}
+   ]},
+  {do_menu,
+   [
+    {1,"Edytuj materiał..."},
+    {2,"Edytuj parametry materiału"},
+    {3,"Zastosuj do zaznaczenia"},
+    {4,"Zastosuj wybrany materiał do zaznaczonych płaszczyzn obiektów"},
+    {5,"Wybierz"},
+    {6,"Zaznacz wszystkie płaszczyzny do których zastosowany jest dany materiał"},
+    {7,"Zduplikuj"},
+    {8,"Zduplikuj materiał"},
+    {9,"Usuń"},
+    {10,"Usuń materiał"},
+    {11,"Zmień nazwę"},
+    {12,"Zmień nazwę materiału"},
+    {13,"Zduplikuj"},
+    {14,"Zduplikuj obiekt"},
+    {15,"Usuń"},
+    {16,"Usuń obiekt"},
+    {17,"Zmień nazwę"},
+    {18,"Zmień nazwę obiektu"},
+    {19,"Edytuj światło..."},
+    {20,"Edytuj parametry światła"},
+    {21,"Zduplikuj"},
+    {22,"Zduplikuj światło"},
+    {23,"Usuń"},
+    {24,"Usuń światło"},
+    {25,"Zmień nazwę"},
+    {26,"Zmień nazwę światła"},
+    {121,"Opuść wybrany obiekt"},    
+    {122,"Opuść wybrany wcześniej obiekt na tym materiale"}
+   ]},
+  {event,
+   [
+    {1,"Wybierz"},
+    {2,"Pokaż menu schematu sceny (gdy coś jest zaznaczone) lub menu kontekstowe (gdy nie masz zaznaczenia)"}
+   ]},
+  {handle_drop,
+   [
+    {1,"Typ tekstury"},
+    {2,"Rozproszenie"},
+    {3,"Odblask"},
+    {4,"Mapa typu bump"},
+    {5,"Mapa wektorów normalnych"}
+   ]},
+  {image_menu,
+   [
+    {1,"Pokaż"},
+    {2,"Pokaż obraz w oknie"}
+   ]},
+  {image_menu_1,
+   [
+    {1,"Uczyń zewnętrznym..."},
+    {2,"Odśwież"},
+    {3,"Uczyń wewnętrznym"}
+   ]},
+  {make_external,
+   [
+    {1,"Uczyń zewnętrznym"}
+   ]},
+  {refresh_image,
+   [
+    {1,"Nie udało się odświeżyć \""}
+   ]},
+  {rename_image,
+   [
+    {1,"Zmień nazwę obrazu"}
+   ]},
+  {title,
+   [
+    {1,"Schemat sceny"}
+   ]}
+ ]}.
+{wings_palette,
+ [
+  {command,
+   [
+    {1,"Nie znaleziono koloru początkowego."},
+    {2,"Nie znaleziono koloru końcowego."},
+    {3,"Eksportuj"},
+    {5,"Paleta programu Wings"},
+    {6,"Błąd eksportu: ~w"},
+    {7,"Importuj"},
+    {9,"Paleta programu Wings"},
+    {10,"Nie znaleziono palety"},
+    {11,"Błąd importu: ~w"},
+    {12,"Błąd importu: ~w"}
+   ]},
+  {do_menu,
+   [
+    {1,"Edytuj"},
+    {2,"Edytuj kolor"},
+    {3,"Uśrednij"},
+    {4,"Uśrednij puste kolory według sąsiadów"},
+    {5,"Czyść wszystko"},
+    {6,"Wyczyść całą paletę"},
+    {7,"Zagęść"},
+    {8,"Uporządkuj paletę usuwając puste kolory (wolne miejsca)"},
+    {9,"Pobierz"},
+    {10,"Pobierz kolor z zaznaczonego obiektu"},
+    {11,"Eksportuj"},
+    {12,"Eksportuj paletę do pliku"},
+    {13,"Importuj"},
+    {14,"Importuj paletę z pliku"}
+   ]},
+  {event,
+   [
+    {1,"Zastosuj kolor do zaznaczenia"},
+    {2,"Edytuj kolor"},
+    {3,"Pokaż menu"},
+    {4,"Czyść kolor"}
+   ]},
+  {title,
+   [
+    {1,"Paleta"}
+   ]}
+ ]}.
+{wings_pb,
+ [
+  {loop,
+   [
+    {1,"wykonane"}
+   ]}
+ ]}.
+{wings_pick,
+ [
+  {clear_hilite_marquee_mode,
+   [
+    {ctrl_action,"Odznacz"},
+    {shift_action,"Odznacza/zaznacza tylko elementy całkowicie wewnątrz obszaru zaznaczenia"}
+   ]},
+  {handle_hilite_event,
+   [
+    {2,"(w lustrze)"}
+   ]}
+ ]}.
+{wings_plugin,
+ [
+  {def_ui_plugin,
+   [
+    {1,"Zainstaluj ponownie program Wings 3D, nie można odnalźć wtyczki ~p."}
+   ]},
+  {install,
+   [
+    {1,"Wtyczka została pomyślnie zainstalowana."}
+   ]},
+  {install_beam,
+   [
+    {1,"Instalacja \"~s\" nie powiodła się: ~p"},
+    {2,"Plik \"~s\" nie jest wtyczką programu Wings 3D"}
+   ]},
+  {install_file_type,
+   [
+    {1,"Plik \"~s\" zapisany jest w nieznanym formacie"}
+   ]},
+  {install_verify_files,
+   [
+    {1,"Plik \"~s\" zawiera pliki ze ścieżkami bezwzględnymi"},
+    {2,"Plik \"~s\" nie zawiera żadnych wtyczek programu Wings 3D"}
+   ]},
+  {plugin_dir,
+   [
+    {1,"Nie znaleziono ścieżki \"wtyczek\"."}
+   ]}
+ ]}.
+{wings_pref_dlg,
+ [
+  {advanced_prefs,
+   [
+    {1,"Komendy standardowe"},
+    {2,"Pozwala zdefiniować komendy których możesz używać przez naciśnięcie Ctrl+L lub Ctrl+Ś"},
+    {3,"Użyj podświetlenia jako zaznaczenia tymczasowego"},
+    {4,"Gdy nie ma innego zaznaczenia, "},
+    {5,"pozwala komendom oddziaływać na podświetlone elementy bez konieczności ich zaznaczania"},
+    {6,"Ukryj zaznaczenia podczas przeciągania"},
+    {7,"Podczas komend interaktywnych ukrywa wszystkie zaznaczenia"},
+    {8,"Ukryj zaznaczenia podczas ruchu kamerą"},
+    {9,"Podczas operowania kamerą ukrywa wszystkie zaznaczenia"},
+    {10,"Menu w trybie zaawansowanym"},
+    {11,"Więcej komend i opcji, inne działanie menu"},
+    {12,"Zaawansowane zaznaczenia tymczasowe"},
+    {13,"W drugorzędnym trybie selekcji prawy przycisk myszy zawsze dodaje do zaznaczenia"},
+    {14,"Długość wektorów"},
+    {15,"Długość wektorów w drugorzędnym trybie selekcji"},
+    {16,"Grubość wektorów"},
+    {17,"Grubość wektorów (w pikselach)"},
+    {18,"Kolor"},
+    {19,"Kolor wektorów"},
+    {20,"Wyświetlanie wektorów"},
+    {21,"Użyj lustra dla selekcji"},
+    {22,"Włącza wirtualne lustro dla drugorzędnego trybu selekcji"}
+   ]},
+  {command,
+   [
+    {1,"Ogólne"},
+    {2,"Kamera"},
+    {3,"Zaawansowane"},
+    {4,"Interfejs użytkownika"},
+    {5,"Różne"},
+    {6,"Opcje"}
+   ]},
+  {gen_prefs,
+   [
+    {1,"Rozmiar niezaznaczonego"},
+    {2,"Rozmiar niezaznaczonego punktu w pikselach (0.0, oznacza nie pokazuj)"},
+    {3,"Rozmiar zaznaczonego"},
+    {4,"Rozmiar zaznaczonego punktu w pikselach"},
+    {5,"Wyświetlanie punktów"},
+    {6,"Grubość niezaznaczonej"},
+    {7,"Grubość niezaznaczonej krawędzi w pikselach"},
+    {8,"Grubość zaznaczonej"},
+    {9,"Grubość zaznaczonej krawędzi w pikselach"},
+    {10,"Miękkie krawędzie"},
+    {11,"Kolor miękkich krawędzi"},
+    {12,"Twarde krawędzie"},
+    {13,"Kolor twardych krawędzi"},
+    {14,"Wyświetlanie krawędzi"},
+    {15,"Punkty"},
+    {16,"Krawędzie"},
+    {17,"Płaszczyzny"},
+    {18,"Obiekty"},
+    {19,"Niezaznaczone"},
+    {20,"Zaznaczone"},
+    {21,"Inteligentne podświetlanie"},
+    {22,"Podświetlanie"},
+    {23,"Pełne podświetlanie płaszczyzn"},
+    {24,"Punktowe podświetlanie płaszczyzn"},
+    {25,"Kolor zaznaczenia"},
+    {26,"Zaznaczenie"},
+    {27,"Tekst"},
+    {28,"Kolor tekstu informacyjnego"},
+    {29,"Tło"},
+    {30,"Kolor tła tekstu informacyjnego (włączając przezroczystość)"},
+    {31,"Tekst informacyjny"},
+    {32,"Kolor"},
+    {33,"Wymuś siatkę gdy prostopadły widok"},
+    {34,"Zawsze pokazuj siatkę gdy kamera jest ustawiona wzdłuż którejś z osi"},
+    {35,"Siatka"},
+    {36,"Pokaż oznaczenia osi"},
+    {37,"Kolor osi +X"},
+    {38,"Kolor osi +Y"},
+    {39,"Kolor osi +Z"},
+    {40,"Kolor osi -X"},
+    {41,"Kolor osi -Y"},
+    {42,"Kolor osi -Z"},
+    {43,"Osie"},
+    {44,"Długość"},
+    {45,"Długość wektorów normalnych"},
+    {46,"Kolor"},
+    {47,"Kolor wektorów normalnych"},
+    {48,"Wyświetlanie wektorów normalnych"},
+    {49,"Długość osi zgodna z rozmiarem siatki"},
+    {aa_ortho1,"Wymuś widok ortogonalny gdy prostopadły"},
+    {aa_ortho2,"Zawsze przełączaj na widok ortograficzny gdy kamera jest ustawiona wzdłuż którejś z osi"}
+   ]},
+  {menu,
+   [
+    {1,"Opcje..."},
+    {2,"Otwiera okno opcji programu Wings"}
+   ]},
+  {misc_prefs,
+   [
+    {1,"Ustawienia przenikalności nie są dostępne z powodu używanej wersji OpenGL"},
+    {2,"Zapisuj automatycznie co"},
+    {3,"minut"},
+    {4,"Poziomy cofnięć"},
+    {5,"Kąt"},
+    {6,"Odstęp czasowy (ms)"},
+    {7,"Automatyczny obrót"},
+    {8,"Klatka"},
+    {9,"Niektóre krawędzie"},
+    {10,"Wszystkie krawędzie"},
+    {11,"Tryb cieniowanych krawędzi"},
+    {12,"Stała przenikalność"},
+    {13,"Zmienna przenikalność"},
+    {14,"Tryb przedstawiania"},
+    {15,"Tekst w menu i oknach znika"},
+    {16,"Problem występuje na niektórych kartach Matrox"},
+    {17,"Wings generuje błędy gdy osi są wyłączone"},
+    {18,"Problem występuje na niektórych kartach Matrox"},
+    {19,"Ruchy kamery i komendy interaktywne działają skokowo"},
+    {20,"Problem występuje w systemie Mac OS X 10.3 (Panther)"},
+    {21,"Obejścia"},
+    {22,"Problemy z wyświetlaniem krawędzi?"},
+    {23,"Regulacja krawędzi:"}
+   ]},
+  {smart_set_value_1,
+   [
+    {1,"Czcionka zostanie zmieniona przy następnym uruchomieniu programu Wings 3D."},
+    {2,"Zestaw ikon zostanie zmieniony przy następnym uruchomieniu programu Wings 3D."}
+   ]},
+  {ui_prefs,
+   [
+    {1,"Czcionka systemowa"},
+    {2,"Tło okien głównych"},
+    {3,"Tekst w menu"},
+    {4,"Tło podświetlonego menu"},
+    {5,"Tekst w podświetlonym menu"},
+    {6,"Tło menu"},
+    {7,"Tekst okna dialogowego"},
+    {8,"Tekst nieaktywnego okna dialogowego"},
+    {9,"Tło okna dialogowego"},
+    {10,"Tekst paska tytułowego"},
+    {11,"Kolor nieaktywnego paska tytułowego"},
+    {12,"Kolor aktywnego paska tytułowego"},
+    {13,"Kolory"},
+    {14,"Nie używaj paska postępu"},
+    {15,"Czcionka konsoli"},
+    {16,"Szerokość"},
+    {17,"Wysokość"},
+    {18,"Zapamiętaj ilość linii"},
+    {19,"Tło"},
+    {20,"Tekst"},
+    {21,"Kursor"},
+    {22,"Konsola"},
+    {23,"Język"},
+    {24,"Wyświetlaj obiekty w oknie schematu sceny"},
+    {25,"Wyświetl gotowy obraz po zakończeniu renderingu"},
+    {26,"Załaduj gotowy obraz po zakończeniu renderingu"},
+    {50,"Zestaw ikon"}
+   ]},
+  {viewer_prefs,
+   [
+    {1,"Przeglądarka obrazów"},
+    {2,"Opcje"},
+    {3,"..nazwa pliku.."}
+   ]},
+  {workaround_1,
+   [
+    {1,"Problem"},
+    {2,"Użyć obejścia?"}
+   ]}
+ ]}.
+{wings_rotate,
+ [
+  {edges_to_vertices,
+   [
+    {1,"Magnetyczne obracanie wielu krawędzi wymaga jednoznacznego określenia środka obrotu."}
+   ]},
+  {faces_to_vertices,
+   [
+    {1,"Magnetyczne obracanie wielu płaszczyzn wymaga jednoznacznego określenia środka obrotu."}
+   ]}
+ ]}.
+{wings_s,
+ [
+  {accept,
+   [
+    {1,"Akceptuj"}
+   ]},
+  {camera_mode,
+   [
+    {blender,"Blender"},
+    {maya,"Maya"},
+    {mb,"Motionbuilder"},
+    {mirai,"Mirai"},
+    {nendo,"Nendo"},
+    {tds,"3ds max"}
+   ]},
+  {cancel,
+   [
+    {1,"Anuluj"}
+   ]},
+ {dir,
+   [
+    {all,"Wszystkie"},
+    {da,"Wektor standardowy"},
+    {f,"Dowolnie"},
+    {la,"Ostatni wektor"},
+    {n,"Wektor normalny"},
+    {r,"Radialnie:"},
+    {the_axis,"osi ~s"},
+    {u,"Równomiernie"},
+    {x,"X"},
+    {y,"Y"},
+    {z,"Z"}
+   ]},
+  {mod,
+   [
+    {alt,"Alt"},
+    {command,"Command"},
+    {ctrl,"Ctrl"},
+    {shift,"Shift"}
+   ]},
+  {mouse_b,
+   [
+    {l,"L"},
+    {m,"Ś"},
+    {r,"P"}
+   ]},
+  {no,
+   [
+    {1,"Nie"}
+   ]},
+  {yes,
+   [
+    {1,"Tak"}
+   ]}
+ ]}.
+{wings_scale,
+ [
+  {edges_to_vertices,
+   [
+    {1,"Magnetyczne skalowanie wielu krawędzi wymaga jednoznacznego określenia punktu odniesienia."}
+   ]},
+  {faces_to_vertices,
+   [
+    {1,"Magnetyczne skalowanie wielu płaszczyzn wymaga jednoznacznego określenia punktu odniesienia."}
+   ]},
+  {inset_face,
+   [
+    {1,"W zaznaczonych płaszczyznach znajdują się zbyt krótkie krawędzie (użyj komendy Czyść obiekt)."}
+   ]}
+ ]}.
+{wings_sel_cmd,
+ [
+  {ask,
+   [
+    {1,"Wybierz po numerze id"}
+   ]},
+  {group_mode_string,
+   [
+    {body,"Grupa zaznaczenia obiektów"},
+    {edge,"Grupa zaznaczenia krawędzi"},
+    {face,"Grupa zaznaczenia płaszczyzn"},
+    {vertex,"Grupa zaznaczenia punktów"}
+   ]},
+  {group_title,
+   [
+    {1,"punkt: "},
+    {2,"krawędź: "},
+    {3,"płaszczyzna: "},
+    {4,"obiekt: "}
+   ]},
+  {groups_menu,
+   [
+    {1,"Usuń grupę"},
+    {2,"Usuwa grupę \""},
+    {4,"Dodaj do grupy"},
+    {5,"Dodaje zaznaczenie do grupy \""},
+    {7,"Wyłącz z grupy"},
+    {8,"Wyłącza aktualne zaznaczenie z grupy \""},
+    {10,"Zaznacz grupę"},
+    {11,"Zaznacza grupę \""},
+    {13,"Połącz grupy"},
+    {14,"Włącza grupę \""},
+    {15,"\" do aktualnego zaznaczenia"},
+    {16,"Odejmij grupę"},
+    {17,"Wyłącza grupę \""},
+    {18,"\" z aktualnego zaznaczenia"},
+    {19,"Przetnij grupę"},
+    {20,"Przecina grupę \""},
+    {21,"\" z aktualnem zaznaczeniem (odznacza pozostałe)"}
+   ]},
+  {item_by_id,
+   [
+    {1,"Nie ma nic do zaznaczenia."},
+    {2,"Numer identyfikacyjny"}
+   ]},
+  {less_help,
+   [
+    {1,"Odznacz wszystkie punkty przyległe do niezaznaczonego punktu"},
+    {2,"Odznacz wszystkie krawędzie przyległe do niezaznaczonej krawędzi"},
+    {3,"Odznacza wszystkie płaszczyzny przyległe do niezaznaczonej płaszczyzny"}
+   ]},
+  {menu,
+   [
+    {1,"Odznacz"},
+    {2,"Czyści zaznaczenie"},
+    {3,"Więcej"},
+    {4,"Mniej"},
+    {5,"Podobne"},
+    {6,"Narzędzie krawędziowe"},
+    {7,"Pętla"},
+    {8,"Rozwija zaznaczenie krawędziowe na pętlę; "},
+    {9,"Zaznacza krawędzie otaczające zaznaczone płaszczyzny"},
+    {10,"Pętla na obszar"},
+    {11,"Zaznacza wszystkie płaszczyzny po jednej stronie pętli"},
+    {12,"Pierścień"},
+    {13,"Rozwija zaznaczenie krawędziowe na pierścień"},
+    {14,"Poprzednia pętla"},
+    {15,"Wybiera poprzednią pętlę"},
+    {16,"Następna pętla"},
+    {17,"Wybiera następną pętlę"},
+    {18,"Popchnij pętlę"},
+    {19,"Dodaje po jednej krawędzi na końcach pętli"},
+    {20,"Pociągnij pętlę"},
+    {21,"Usuwa po jednej krawędzi na końcach pętli"},
+    {22,"Popchnij pierścień"},
+    {23,"Dodaje po jednej krawędzi na końcach pierścienia"},
+    {24,"Pociągnij pierścień"},
+    {25,"Usuwa po jednej krawędzi na końcach pierścienia"},
+    {26,"Przyległe"},
+    {27,"punkty"},
+    {28,"krawędzie"},
+    {29,"płaszczyzny"},
+    {30,"obiekty"},
+    {31,"Wybierz..."},
+    {32,"Ostre krawędzie"},
+    {33,"Zaznacza wszystkie ostre krawędzie"},
+    {34,"Punkty izolowane"},
+    {35,"Zaznacza wszystkie punkty izolowane"},
+    {36,"Punkty z"},
+    {37,"2 krawędziami"},
+    {38,"3 krawędziami"},
+    {39,"4 krawędziami"},
+    {40,"5 krawędziami"},
+    {41,"Płaszczyzny z"},
+    {42,"2 krawędziami"},
+    {43,"3 krawędziami"},
+    {44,"4 krawędziami"},
+    {45,"5 lub więcej krawędziami"},
+    {46,"Losowo"},
+    {56,"Krótkie krawędzie"},
+    {57,"Zaznacza (za) krótkie krawędzie"},
+    {58,"Granice materiałów"},
+    {59,"Zaznacza wszystkie krawędzie które są pomiędzy płaszczyznami o różnych materiałach"},
+    {60,"Zmapowane płaszczyzny"},
+    {61,"Zaznacza wszystkie krawędzie które mają koordynaty UV"},
+    {62,"Po numerze identyfikacyjnym..."},
+    {63,"Wybiera po numerze identyfikacyjnym"},
+    {64,"Światła"},
+    {65,"Zaznacza wszystkie światła"},
+    {66,"Zaznacza wszystkie elementy"},
+    {67,"Odwróć"},
+    {68,"Odwraca zaznaczenie"},
+    {69,"Ukryj zaznaczenie"},
+    {70,"Ukrywa wszystkie zaznaczone obiekty lub ich części"},
+    {71,"Ukryj niezaznaczone"},
+    {72,"Ukrywa wszystkie niezaznaczone obiekty lub ich części"},
+    {73,"Zablokuj niezaznaczone"},
+    {74,"Blokuje niezaznaczone obiekty"},
+    {75,"Pokaż wszystko"},
+    {76,"Pokazuje wszystkie ukryte obiekty"},
+    {77,"Odblokuj wszystko"},
+    {78,"Odblokowuje wszystkie ukryte obiekty lub ich części"},
+    {79,"Zapisz zaznaczenie"},
+    {80,"Zapisuje zaznaczenie do grupy o nazwie \"StoredSelection\""},
+    {81,"Przywołaj zaznaczenie"},
+    {82,"Odczytuje zaznaczenie z grupy o nazwie \"StoredSelection\""},
+    {83,"Nowa grupa..."},
+    {84,"Tworzy nową grupę zaznaczenia"},
+    {85,"Krzywizny"},
+    {86,"Zaznacz wszystkie krzywizny"},
+    {87,"Kanty"},
+    {88,"Zaznacz wszystkie krawędzie tworzące kant"},
+    {401,"6 lub więcej krawędziami"},
+    {nq0,"Płaszczyzny nie kwadratowe"},
+    {nq1,"Wszystkie płaszczyzny"},
+    {nq2,"Nieparzyste płaszczyzny"},
+    {nq3,"Parzyste płaszczyzny"}
+   ]},
+  {more_help,
+   [
+    {1,"Zaznacz punkty przyległe do  zaznaczonego punktu"},
+    {2,"Zaznacz krawędzie przyległe do  zaznaczonej krawędzi"},
+    {3,"Zaznacza płaszczyzny przyległe do  zaznaczonej płaszczyzny"}
+   ]},
+  {new_group,
+   [
+    {1,"Stwórz grupę"},
+    {2,"Nazwa grupy"}
+   ]},
+  {new_group_name,
+   [
+    {exists,"już istnieje."}
+   ]},
+  {nonplanar_faces,
+   [
+    {1,"Tolerancja odległości"},
+    {2,"Zaznacz krzywiznę"}
+   ]},
+  {oriented_faces,
+   [
+    {1,"Tolerancja nachylenia"},
+    {2,"Zaznacz płaszczyzny o zbliżonym nachyleniu"}
+   ]},
+  {oriented_faces_menu,
+   [
+    {1,"Podobne wektory normalne"},
+    {2,"Zaznacza płaszczyzny z wektorami normalnymi podobnymi do tych w już zaznaczonych płaszczyznach"}
+   ]},
+  {sel_all_str,
+   [
+    {1,"Wszystkie punkty"},
+    {2,"Wszystkie krawędzie"},
+    {3,"Wszystkie płaszczyzny"},
+    {4,"Wszystkie obiekty"}
+   ]},
+  {sharp_edges,
+   [
+    {1,"Maksymalny kąt:"},
+    {2,"Wybierz kanty"}
+   ]},
+  {short_edges,
+   [
+    {1,"Tolerancja długości:"},
+    {2,"Wybierz krótkie krawędzie"}
+   ]},
+  {similar_help,
+   [
+    {1,"Zaznacz punkty podobne do już zaznaczonych punktów"},
+    {2,"Zaznacz krawędzie podobne do już zaznaczonych krawędzi"},
+    {3,"Zaznacza płaszczyzny podobne do już zaznaczonych płaszczyzn"},
+    {4,"Zaznacz obiekty z tą samą ilością krawędzi, płaszczyzn i punktów"}
+   ]},
+  {valid_sel,
+   [
+    {1,"Numer identyfikacyjny "},
+    {2," jest nieprawidłowy."},
+    {3,"Identyfikator "},
+    {4," jest nieprawidłowy."}
+   ]}
+ ]}.
+{wings_shape,
+ [
+  {do_menu,
+   [
+    {1,"Duplikuj"},
+    {2,"Duplikuje zaznaczone obiekty"},
+    {3,"Usuń"},
+    {4,"Usuwa zaznaczone obiekty"},
+    {5,"Zmień nazwę"},
+    {6,"Zmienia nazwę zaznaczonego obiektu"}
+   ]},
+  {help,
+   [
+    {1,"Wybierz"},
+    {2,"Pokaż menu"},
+    {3,"Ukryj/pokaż aktywne obiekty"},
+    {4,"Ukryj/pokaż wszystkie obiekty"},
+    {5,"Odblokuj/zablokuj aktywne obiekty"},
+    {6,"Odblokuj/zablokuj wszystkie obiekty"},
+    {7,"Zaznacz aktywny obiekt"},
+    {8,"Zaznacz nieaktywne obiekty"},
+    {9,"Przełącz widok (siatka/wypełniony) dla aktywnych obiektów"},
+    {10,"Przełącz widok (siatka/wypełniony) dla wszystkich obiektów"}
+   ]},
+  {title,
+   [
+    {1,"Schemat okna obiektu"},
+    {2,"Schemat okna obiektu #"}
+   ]}
+ ]}.
+{wings_shapes,
+ [
+  {cone,
+   [
+    {1,"Segmenty ściany bocznej:"}
+   ]},
+  {cylinder,
+   [
+    {1,"Segmenty ściany bocznej:"}
+   ]},
+  {grid,
+   [
+    {1,"Rzędy/kolumny:"}
+   ]},
+  {menu,
+   [
+    {15,"Więcej"},
+    {16,"Więcej brył"}
+   ]},
+  {prim_help,
+   [
+    {cone,"Utwórz stożek"},
+    {cube,"Utwórz sześcian"},
+    {cylinder,"Utwórz walec"},
+    {dodecahedron,"Utwórz dwunastościan"},
+    {grid,"Utwórz siatkę"},
+    {icosahedron,"Utwórz dwudziestościan"},
+    {image,"Utwórz obraz..."},
+    {light,"Utwórz światło"},
+    {material,"Utwórz materiał..."},
+    {octahedron,"Utwórz ośmiościan"},
+    {octotoad,"Utwórz dwudziestosześciościan"},
+    {sphere,"Utwórz sferę"},
+    {tetrahedron,"Utwórz czworościan foremny"},
+    {torus,"Utwórz torus"}
+   ]},
+  {prim_name,
+   [
+    {cone,"Stożek"},
+    {cube,"Sześcian"},
+    {cylinder,"Walec"},
+    {dodecahedron,"Dwunastościa"},
+    {grid,"Siatka"},
+    {icosahedron,"Dwudziestościan"},
+    {image,"Obraz..."},
+    {light,"Światło"},
+    {material,"Materiał..."},
+    {octahedron,"Ośmiościan"},
+    {octotoad,"Dwudziestosześciościan"},
+    {sphere,"Sfera"},
+    {tetrahedron,"Czworościan"},
+    {torus,"Torus"}
+   ]},
+  {sphere,
+   [
+    {1,"Segmenty:"},
+    {2,"Cięcia:"}
+   ]},
+  {torus,
+   [
+    {1,"Segmenty:"},
+    {2,"Cięcia:"},
+    {3,"Promień zewnętrzny:"},
+    {4,"Promień wewnętrzny:"}
+   ]}
+ ]}.
+{wings_subdiv,
+ [
+  {face_centers,
+   [
+    {1,"Płaszczyzna "},
+    {2," ma tylko dwie krawędzie."}
+   ]},
+  {smooth,
+   [
+    {1,"wygładzanie"},
+    {2,"wyznaczanie środków płaszczyzn"},
+    {3,"cięcie krawędzi"},
+    {4,"uaktualnianie materiałów"},
+    {5,"tworzenie nowych powierzchni"},
+    {6,"przesuwanie punktów"},
+    {7,"wykańczanie"}
+   ]}
+ ]}.
+{wings_tesselation,
+ [
+  {submenu,
+   [
+    {1,"Trójkąty"},
+    {2,"Kwadraty"}
+   ]}
+ ]}.
+{wings_toolbar,
+ [
+  {button_help_1,
+   [
+    {1,"Odznacz"}
+   ]},
+  {button_help_2,
+   [
+    {1,"Zaznacza przylegające punkty"},
+    {2,"Przechodzi w tryb wyboru punktów"},
+    {3,"Zaznacza przylegające krawędzie"},
+    {4,"Przechodzi w tryb wyboru krawędzi"},
+    {5,"Zaznacza przylegające płaszczyzny"},
+    {6,"Przechodzi w tryb wyboru płaszczyzn"},
+    {7,"Przechodzi w tryb wyboru obiektów"}
+   ]},
+  {messages,
+   [
+    {axes,"osie"},
+    {change_to,"Zmienia na"},
+    {flat,"cieniowania prostego"},
+    {groundplane,"siatkę podłoża"},
+    {hide,"Wyłącza"},
+    {orthogonal,"widok ortogonalny"},
+    {perspective,"widok perspektywiczny"},
+    {show,"Włącza"},
+    {show_objects,"Pokazuje obiekty w trybie"},
+    {smooth,"gładkiego cieniowania"}
+   ]}
+ ]}.
+{wings_u,
+ [
+  {caption,
+   [
+    {1,"dokonano autozapisu"}
+   ]}
+ ]}.
+{wings_vec,
+ [
+  {add_help_text,
+   [
+    {1,"Wybierz wektor (i punkt zaczepienia)"},
+    {2,"Wybierz wektor"},
+    {3,"Wybierz punkt zaczepienia"},
+    {4,"Wybierz punkt który wyznaczał będzie zasięg wpływu magnesu"}
+   ]},
+  {add_magnet,
+   [
+    {1,"Wybierz punkt który wyznaczał będzie zasięg wpływu magnesu"}
+   ]},
+  {check_magnet_point,
+   [
+    {1,"Punkt środkowy zaznaczenia zapisany."}
+   ]},
+  {check_point,
+   [
+    {1,"Punkt środkowy zaznaczenia zapisany."},
+    {2,"Punkt środkowy zaznaczenia zapisany."},
+    {3,"Ignoruj wirtualne lustro w obliczeniach punktu środkowego"}
+   ]},
+  {check_vector,
+   [
+    {1,"Zaznacz części tylko jednego obiektu"}
+   ]},
+  {common_magnet_message,
+   [
+    {1,"Magnes"}
+   ]},
+  {common_message,
+   [
+    {1,"Wykonaj"},
+    {2,"Kontynuuj"}
+   ]},
+  {exit_menu,
+   [
+    {2,"Anuluj aktualną komendę"}
+   ]},
+  {get_vec,
+   [
+    {1,"Krawędź zapisana jako wektor"},
+    {2,"Zapisz wektor normalny krawędzi"},
+    {3,"Wektor normalny krawędzi zapisany"},
+    {4,"Zapisz kierunek krawędzi"},
+    {5,"Kierunek wskazany przez krawędzie zapisany jako wektor."},
+    {6,"Wektor normalny pętli zapisany."},
+    {7,"Zaznaczenie wielu krawędzi jest dopuszczalne tylko gdy tworzą zamkniętą pętlę"},
+    {8,"Wektor normalny punktu zapisany."},
+    {9,"Kierunek wskazany przez punkty zapisany jako wektor."},
+    {10,"Użyj wypadkowej wektorów normalnych punktów"},
+    {11,"Wypadkowa wektorów normalnych punktów zapisana."},
+    {12,"Użyj kierunku wyznaczonego przez punkty jako wektora"},
+    {13,"Wektor normalny trzech prostopadłych punktów zapisany."},
+    {14,"Wektor normalny pętli punktów zapisany."},
+    {15,"Zaznaczenie wielu punktów jest dopuszczalne tylko gdy krawędzie je łączące tworzą zamkniętą pętlę."},
+    {16,"Wektor normalny płaszczyzny zapisany."},
+    {17,"Kierunek wyznaczony przez środki płaszczyzn zapisany jako wektor."},
+    {18,"Użyj wypadkowej wektorów normalnych płaszczyzn"},
+    {19,"Wypadkowa wektorów normalnych płaszczyzn zapisana."},
+    {20,"Użyj kierunku wyznaczonego przez środki płaszczyzn"},
+    {21,"Wektor normalny pętli dla obszaru zapisany."},
+    {22,"Obszar musi być odcięty zamkniętą pętlą."},
+    {23,"Wybierz punkty, krawędzie lub płaszczyzny."}
+   ]},
+  {magnet_message,
+   [
+    {1,"Wykonaj "},
+    {2,"Opcje magnesu"}
+   ]}
+ ]}.
+{wings_vertex_cmd,
+ [
+  {menu,
+   [
+    {1,"Operacje na punktach"},
+    {2,"Przesuń"},
+    {3,"Wyciągnij"},
+    {4,"Połącz"},
+    {5,"Stwórz krawędzie pomiędzy zaznaczonymi punktami"},
+    {6,"Zaciśnij"},
+    {7,"Przemieść zaznaczone punkty w kierunku punktu środkowego"},
+    {8,"Spłaszcz"},
+    {9,"Spłaszcz otoczenie punktu na płaszczyznę"},
+    {10,"Skasuj"},
+    {11,"Skasuj punkt, pozostaje w trybie wyboru punktów"},
+    {12,"Zniweluj"},
+    {13,"Zniweluj punkt generując odpowiednią płaszczyznę"},
+    {14,"Zniekształć"},
+    {15,"Kolor punktów"},
+    {16,"Zastosuj kolor punktów do wybranych punktów"}
+   ]}
+ ]}.
+{wings_view,
+ [
+  {auto_rotate_help,
+   [
+    {1,"Zatrzymaj obracanie"},
+    {2,"Zwiększ prędkość"},
+    {3,"Zmniejsz prędkość"}
+   ]},
+  {camera,
+   [
+    {1,"Rozmiar negatywu"},
+    {4,"Niestandardowy"},
+    {5," na "},
+    {6,"Rybie oko"},
+    {7,"Obiektyw szerokokątny"},
+    {8,"Obiektyw standardowy"},
+    {9,"Obiektyw portretowy"},
+    {10,"Teleobiektyw"},
+    {11,"Obiektyw niestandardowy"},
+    {12,"Szerokość"},
+    {13,"Powiększenie"},
+    {14,"Soczewka"},
+    {15,"Pole widoku"},
+    {16,"Bliska granica obcinania"},
+    {17,"Daleka granica obcinania"},
+    {18,"Ustawienia kamery"}
+   ]},
+  {help,
+   [
+    {1,"Ustawienia kamery: Pole widoku"},
+    {2,"Ustawia pionowe pole widzenia, dokładniej kąt pomiędzy dolną i górną krawędzią widzianą z aparatu. "},
+    {3,"Ustawienia soczewki określają pole widzenia w bardziej zrozumiały (przynajmniej dla osób mających doświadczenie z fotografiką) sposób. Rozmiar negatywu jest zapamiętywany w opcjach użytkownika i nie ulega zmianie po ponownym uruchomieniu programu."},
+    {4,"Kontrola soczewki ustawia wysokość obrazu odpowiednią do danej soczewki, więc jeśli nie masz ustawionej tej samej skali dla negatywu jak dla okna obiektu, będzie ono niewłaściwie wyświetlać jego zawartość."},
+    {5,"Uwaga: mnożnik powiększenia jest relatywny do soczewkowej negatywu, podczas gdy tylko wysokość negatywu ma wpływ na efektywną szerokość obrazu."}
+   ]},
+  {menu,
+   [
+    {1,"Siatka podłoża"},
+    {2,"Pokazuje siatkę podłoża"},
+    {3,"Osie"},
+    {4,"Pokazuje osie układu współrzędnych"},
+    {5,"Roboczy"},
+    {6,"Przełącza proste/gładkie cieniowanie"},
+    {7,"Siatka"},
+    {8,"Pokazuje zaznaczone (lub wszystkie gdy nie ma zaznaczenia) obiekty jako siatkę"},
+    {9,"Cieniowanie"},
+    {10,"Wyświetla zaznaczony (lub wszystkie gdy nie ma zaznaczenia) obiekt bez siatki, gdy jest on w trybie cieniowania gładkiego"},
+    {11,"Przełącz siatkę"},
+    {12,"Przełącza tryb siatki dla zaznaczonego (lub wszystkich gdy nie ma zaznaczenia) obiektu"},
+    {13,"Przełącz tryb przybliżony"},
+    {14,"Przełącza zaznaczony obiekt na tryb przybliżonego wygładzania"},
+    {15,"Szybki podgląd wygładzania"},
+    {16,"Włącza/wyłącza tryb przybliżony dla wszystkich obiektów"},
+    {17,"Pokaż zapisane obramowanie obiektu"},
+    {18,"Pokazuje dowolne zapisane obramowanie obiektu"},
+    {19,"Pokaż krawędzie"},
+    {20,"Wyświetla krawędzie w trybie roboczym"},
+    {21,"Pokaż zasłoniętą siatkę"},
+    {22,"Pokazuje siatkę zasłoniętą przez sam obiekt"},
+    {23,"Pokaż wektory normalne"},
+    {24,"Pokazuje wektory normalne dla danego trybu edycji"},
+    {25,"Zresetuj widok"},
+    {26,"Przywraca widok do standardowego stanu"},
+    {27,"Centrowanie"},
+    {28,"Kieruje kamerę w kierunku zaznaczonego obiektu"},
+    {29,"Najazd"},
+    {30,"Ustawia przybliżenie takie, przy którym wszystkie zaznaczone obiekty są widoczne przy tym jak największe"},
+    {31,"Widok ortogonalny"},
+    {32,"Przełącza pomiędzy widokiem ortogonalnym i perspektywicznym"},
+    {33,"Zapisane widoki: "},
+    {34,"Ustawienia kamery..."},
+    {35,"Ustawia pole widoku oraz bliską i daleką granicę obcinania"},
+    {36,"Światło sceny"},
+    {37,"Włącza światła zdefiniowane w scenie"},
+    {38,"Dwa światła"},
+    {39,"Jedno światło"},
+    {40,"Włącza dwa światła robocze"},
+    {41,"Włącza jedno światło robocze"},
+    {42,"Pokaż kolory"},
+    {43,"Pokazuje kolory punktów na obiektach w trybie koloru punktów"},
+    {44,"Pokaż materiały"},
+    {45,"Pokazuje materiał na obiektach w trybie materiału"},
+    {46,"Pokaż tekstury"},
+    {47,"Pokazuje tekstury na obiektach w trybie materiału"},
+    {48,"Pokaż tekst informacyjny"},
+    {49,"Wyświetla dodatkowe informacje u góry tego okna obiektu"},
+    {50,"Ustaw widok według osi"},
+    {51,"+X"},
+    {52,"+Y"},
+    {53,"+Z"},
+    {54,"-X"},
+    {55,"-Y"},
+    {56,"-Z"},
+    {57,"Ustawia widok na zaznaczenie"},
+    {58,"Ustawia widok wzdłuż wypadkowej wektorów normalnych zaznaczenia"},
+    {59,"Automatyczny obrót"},
+    {60,"Automatycznie objeżdża kamerą obiekt"}
+   ]},
+  {view_legend,
+   [
+    {2,"wzdłuż +X"},
+    {3,"wzdłuż +Y"},
+    {4,"wzdłuż +Z"},
+    {5,"wzdłuż -X"},
+    {6,"wzdłuż -Y"},
+    {7,"wzdłuż -Z"},
+    {8,"w kierunku środka"},
+    {9,"w kierunku "},
+    {distance,"w odległości"},
+    {from,"Z"}
+   ]},
+  {views,
+   [
+    {1,"Ten widok jest aktywny"},
+    {2,"Nie ma zapisanych widoków"},
+    {3,"Zmień nazwę widoku"},
+    {4,"Musisz być w aktualnym widoku"},
+    {5,"Jesteś pewny, że chcesz usunąć wszystkie zapisane widoki?"}
+   ]},
+  {views_jump,
+   [
+    {1,"Nie ma takiego bloku"}
+   ]},
+  {views_jumpmenu,
+   [
+    {1,"Skocz do widoku"},
+    {2,"Nie ma zapisanych widoków!"},
+    {3,"Skocz do poprzedniego["},
+    {5,"Skocz do aktualnego["},
+    {7,"Skocz do następnego["},
+    {9,"Skocz do ["},
+    {11,"Skocz do widoku"}
+   ]},
+  {views_move,
+   [
+    {1,"Nie ma takiego widoku ["}
+   ]},
+  {views_movemenu,
+   [
+    {1,"Przemieść aktualny"},
+    {2,"Nie ma zapisanych widoków!"},
+    {3,"Przemieść \""},
+    {5,"] na poprzedni["},
+    {7,"Pozostaw \""},
+    {9,"] na miejscu"},
+    {10,"Przemieść \""},
+    {12,"] na następny["},
+    {14,"Przemieść \""},
+    {16,"] na ["},
+    {18,"Przemieść aktualny"}
+   ]},
+  {views_rename_qs,
+   [
+    {1,"Nazwa"}
+   ]},
+  {views_save_dialog,
+   [
+    {1,"Zapisz widok jako"}
+   ]},
+  {views_submenu,
+   [
+    {1,"Następny"},
+    {2,"Aktualny"},
+    {3,"Poprzedni"},
+    {4,"Zapisz"},
+    {5,"Zapisz widok na "},
+    {7,"Zmień nazwę..."},
+    {8,"Skasuj"},
+    {9,"Skasuj wszystkie..."}
+   ]},
+  {views_submenu_help,
+   [
+    {1,"Nie ma zapisanych widoków!"},
+    {2,"Skocz do \""},
+    {5,"Zmień nazwę \""},
+    {8,"Skasuj \""},
+    {11,"Skasuj wszystkie zapisane widoki"}
+   ]},
+  {virtual_mirror,
+   [
+    {1,"Wirtualne lustro wymaga zaznaczonych płaszczyzn."}
+   ]},
+  {virtual_mirror_fun,
+   [
+    {1,"Możesz mieć zaznaczoną tylko jedną płaszczyznę na obiekt."}
+   ]}
+ ]}.
+{wings_we,
+ [
+  {all_soft,
+   [
+    {1,"przygotowanie"},
+    {2,"kolekcjonowanie"}
+   ]},
+  {mixed_edges,
+   [
+    {1,"przygotowanie"},
+    {2,"wektory normalne"},
+    {3,"wektory normalne na płaszczyznę"}
+   ]},
+  {normals_2,
+   [
+    {1,"obliczanie nowych wartości wektorów normalnych"}
+   ]}
+ ]}.
+{wings_wm,
+ [
+  {message_event,
+   [
+    {1,"To jest linia informacyjna"}
+   ]}
+ ]}.
+{wings_wm_toplevel,
+ [
+  {close_event,
+   [
+    {1,"Zamknij to okno"}
+   ]},
+  {ctrl_command,
+   [
+    {1,"Szerokość:"},
+    {2,"Wysokość:"},
+    {3,"Ustal rozmiary okna"}
+   ]},
+  {ctrl_menu,
+   [
+    {1,"Dopasuj"},
+    {2,"Oba"},
+    {3,"Okno dopasuje się wykorzystując całą dostępną przestrzeń"},
+    {4,"Pionowo"},
+    {5,"Okno dopasuje się wykorzystując całą dostępną przestrzeń w pionie"},
+    {6,"Poziomo"},
+    {7,"Okno dopasuje się wykorzystując całą dostępną przestrzeń w poziomie"},
+    {8,"Rozmiar"},
+    {9,"Pozwala wpisać rozmiar okna z klawiatury"}
+   ]},
+  {ctrl_menu_toolbar,
+   [
+    {1,"Ukryj pasek narzędzi"},
+    {2,"Ukrywa pasek narzędzi"},
+    {3,"Pokaż pasek narzędzi"},
+    {4,"Odkrywa pasek narzędzi"}
+   ]},
+  {ctrl_message,
+   [
+    {1,"Przeciągnij aby przesunąć"},
+    {2,"Dopasuj"},
+    {3,"Pokaż menu"}
+   ]},
+  {ctrl_resize,
+   [
+    {1,"Podano za duży rozmiar"}
+   ]},
+  {resize_event,
+   [
+    {1,"Zmień rozmiar"},
+    {2,"Zmień rozmiar zachowując skalę"}
+   ]}
+ ]}.
+{wpa,
+ [
+  {dialog_template,
+   [
+    {1,"Zamień oś Y z osią Z"},
+    {6,"Kroki wygładzania"},
+    {7,"Standardowy typ pliku tekstury"},
+    {color,"Eksportuj kolor punktów"},
+    {norms,"Eksportuj wektory normalne i grupy wygładzania"},
+    {tess,"Teselacja"},
+    {tess0,"Brak"},
+    {tess3,"Trójkątna"},
+    {tess4,"Czworokątna"},
+    {uv,"Eksportuj koordynaty UV"}
+   ]},
+  {do_import,
+   [
+    {1,"czytanie pliku"}
+   ]},
+  {export_scale_s,
+   [
+    {1,"Skala eksportu"}
+   ]},
+  {export_selected,
+   [
+    {1,"Zaznacz obiekt lub płaszczyzny."}
+   ]},
+  {format_error,
+   [
+    {1,"Błąd programu: ~P\n"}
+   ]},
+  {import,
+   [
+    {1,"Import nie powiódł się: "}
+   ]},
+  {import_scale_s,
+   [
+    {1,"Skala importu"}
+   ]}
+ ]}.

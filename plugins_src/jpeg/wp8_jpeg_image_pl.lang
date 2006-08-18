@@ -1,0 +1,28 @@
+%%                           -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wp8_jpeg_image_pl.lang --
+%%
+%%     Polish language strings for JPEG.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wp8_jpeg_image_pl.lang,v 1.1 2006/01/19 22:02:07 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wp8_jpeg_image,
+ [
+  {format_error,
+   [
+    {1,"Format pliku nie rozpoznany"},
+    {2,"Błąd nieznany"}
+   ]},
+  {image_formats,
+   [
+    {1,"Pliki JPEG"}
+   ]}
+ ]}.

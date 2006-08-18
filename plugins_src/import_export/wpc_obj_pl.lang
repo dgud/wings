@@ -1,0 +1,36 @@
+%%                    -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_obj_pl.lang --
+%%
+%%     Polish language strings for Wavefront i/e.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_obj_pl.lang,v 1.1 2006/01/08 18:07:00 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_obj,
+ [
+  {dialog,
+   [
+    {1,"Eksportuj po jednej grupie na materiał"},
+    {2,"Zastosuj obejście \"Vue d'Esprit\""}
+   ]},
+  {do_export,
+   [
+    {1,"Opcje eksportu Wavefront"}
+   ]},
+  {do_import,
+   [
+    {1,"Opcje importu Wavefront"}
+   ]},
+  {props,
+   [
+    {1,"Pliki Wavefront"}
+   ]}
+ ]}.

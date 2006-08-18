@@ -1,0 +1,184 @@
+--- 0.98.XX -----------------------------------------------------------------
+
+- Absolute snap now can pick reference point, old snap that used center of
+  selection as reference point was moved to MMB option. [Giniu]
+
+- Added new preference: constrain axes to grid. [Scorpius]
+
+- Added "Blue Cube" interface icons. The original icons are in the "Classic"
+  bundle. Switching between icon sets is easily accomplished through the
+  User Interface preference tab. [Scorpius]
+
+- Revived the Plane Plugin, which was removed from a previous release
+  because it created invalid objects. This has been fixed by adding a
+  thickness parameter; thereby creating a properly closed mesh. [Scorpius]
+
+- Added two new primitives (look under the More menu):
+  Tube: generates a hollow tube or pipe with an actual wall-thickness.
+  Gear: generates a very simple gear. Allows the user to specify the number
+  of teeth and the tooth height. [Scorpius]
+
+- Added two more primitives:
+  Ncube: Generates a cube with an arbitrary level of subdivisions (simply
+  specify the number of cuts per edge) plus a spherize option.
+  Ngon: Generates a polygon with an arbitrary number of vertices. This may
+  look like a single-sided polygon but, in fact, has two faces. [Scorpius]
+
+- New GeoDome primitive. Generates a geodesic dome with an arbitrary level
+  of subdivisions. Has three base objects, spherize and half-dome options.
+  [Scorpius]
+
+- New *.stl import/export plugin. Stereolithography files can be sent to
+  a service bureau to create an actual plastic prototype of your model.
+  [Scorpius]
+
+- New command in tools menu: "Scene Info: Area & Volume." Calculates the
+  area and volume for each object in the scene and displays the info in
+  a pop-up window. [Scorpius]
+
+- Bug fix: Language support now works for all operating systems, regardless 
+  if the file path has an underscore. [Scorpius]
+
+- Added X export plugin.
+  [contributed by Ed Kolis (Ekolis)]
+
+--- 0.98.35 -----------------------------------------------------------------
+
+- Move absolute now works for lights. [Giniu]
+
+- Added very basic version of absolute scale, it would be extended 
+  after feedback. [Giniu]
+
+- Both absolute scale and move is now placed in one menu group,
+  in absolute commands. [Giniu]
+
+- New absolute tool was added - snap - it is similar to move but
+  works with secondary selection. There two snap modes, quick LMB and
+  full RMB. Simple weld was eaten by quick version of snap. [Giniu]
+
+- Fixed bug in View -> Align to Selection. [Giniu]
+
+- Turn Edge plugin now have option dialog to choose between clasic 
+  turn method, clockwise rotate and counterclockwise rotate. [Giniu]
+
+- An improved modelling lighting for people with newer gfx cards,
+  select 'one light' [Dgud]
+
+- Improved rotate command again when using constraints [Dgud]
+
+- Change the automatic chart rotation again in autouv [Dgud]
+
+- Hopefully fixed the unfold issue from inside the autouv window [Dgud]
+
+- New selection method: by sharp edges.
+  [contributed by Anthony D'Agostino (Scorpius)]
+
+- Polish translation fixes.
+  [contributed by Maciej Milewski]
+
+- Minor corrections for Mac and Windows to work with R11B and newest
+  SDL and esdl. For Mac, Mac OS 10.4 or higher ("Tiger") is now required.
+  (Unless you build from source yourself.) Sorry for that. [bjorng]
+
+--- 0.98.34 -----------------------------------------------------------------
+
+- Minor autouv fixes.
+
+- Fixed stored selection bug reported by LoTekK.
+
+- Added a loop cut mode to (tools) connect tool.
+
+- Fixed very small bug in vertex weld (troubles with undo).
+
+- Added second vertex weld mode for those who prefers just moving vertices 
+  to target position and then clean mesh (it's under RMB click on "Weld").
+  
+- Totally rewrote absolute move so now is works for any selection mode, 
+  and is able to align, move whole objects and create multiple duplicates of object.
+  [Giniu]
+
+- Should now hopefully work on Mac OS 10.3.9 ("Panther").
+  Erlang/OTP updated to R10B-10, which has a fix for a rare
+  start-up problem. [Bjorn]
+
+--- 0.98.33 -----------------------------------------------------------------
+
+- Dan fixed (hopefully finally) the Rotate commands speed so they work as before.
+
+- Dan fixed rotate in vertex mode so it centers around all selected vertices.
+
+- Giniu made all active (compilable) plug-ins translatable and translated them to Polish 
+  (the toxic and yafray plugins still needs to be translated, but are translatable).
+
+- Giniu added 4 selection methods: select by vertices with 6 or more edges,
+  select by non quadrangle faces (all faces, faces with odd or even number of edges).
+  
+- Giniu added two new tools - "move->absolute" for positioning in absolute 
+  coordinates and "weld" for welding single vertex to other one.
+
+- DesiredUserName/MicrobeSoft implemented pick-up and drop images in outliner.
+
+- Syndarion updated the French translation.
+
+- AUTOUV changes (Dan): 
+  - In face mode added a combined project from normal and unfolding command.
+  - In segmenting mode, when uv-mapping failes the good charts gets uv-mapped and
+    the failed charts stays in the segmenting window.
+  - MMB on uv-mapping, finds and marks the old chart cuts.
+  - Repeat implemented.
+  - Other minor stuff, uv-grid and changed material/image handling.
+  - Re-written the texture image creator, move images with your uv's or 
+    use it to draw vertex color or materials it can also use opengl shaders.
+
+- Programmers: 
+  Update to the latest erlang release. (png requires it)
+  Both the #we and #st have a new field pst (plugin state)
+    That requires a re-compilation of most (all?) of the external plugins.
+    Plugins that use the pst field should export two functions: 
+       PLUGIN:merge_we([We1,We2..]) and PLUGIN:merge_st(NewData,OldSt) both should
+       return the new data of the plugin.
+
+--- 0.98.32b -----------------------------------------------------------------
+
+- Giniu made AutoUV and almost all other plug-ins translatable and
+  translated them to Polish.
+
+- Import, especially 3DS import, improved.
+
+- Dan G fixed crash in the Connect tool. (Problem reported by Fonte Boa.)
+
+- The Image creation command now correctly create images
+  with size which are not multiples of 8 or 16.
+
+- Dan G made sure wings files containing bad images created by previous
+  versions of Wings can now be loaded, but with the faulty images
+  missing. (Problem reported by Hanzaa.)
+
+- Dan G fixed file open problem reported by Bob19971.
+
+- The length and color of normals shown by View|Show Normals can now
+  be changed in the preferences. (By Giniu.)
+
+- Dmitry Efremov has updated the hlines plug-in.
+
+- Changed toxic to render png instead of tga. (By Dan G.)
+
+- Dan G fixed the Rotate commands speed so they work as before.
+
+- Raimo added an option for loading rendered image into
+  internal viewer independent from external viewer option.
+
+AutoUV (by Dan G):
+
+- New commands in edge mode: slide, distribute evenly.
+
+- New commands in object mode:Normalize Chart sizes.
+
+- The Scale and Rotate commands now have magnets.
+
+
+For developers:
+
+- New function e3d_mesh:make_polygons/1. e3d_mesh:make_quads/1 changed back
+  to only make quads.
+

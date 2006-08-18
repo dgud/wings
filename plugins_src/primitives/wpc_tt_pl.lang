@@ -1,0 +1,67 @@
+%%                   -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_tt_pl.lang --
+%%
+%%     Polish language strings for TrueType.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_tt_pl.lang,v 1.2 2006/07/10 17:17:03 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek & Maciej Milewski
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_tt,
+ [
+  {findtab,
+   [
+    {1,"Nie ma tablicy "},
+    {2,""}
+   ]},
+  {font_file,
+   [
+    {1,"Czcionki"}
+   ]},
+  {gen,
+   [
+    {1,"Błąd pluginu text: "},
+    {2,"Przechwycono błąd: "},
+    {3,"Błąd pluginu text: błąd wewnętrzny"}
+   ]},
+  {getdirs,
+   [
+    {1,"Zły format ścieżki"}
+   ]},
+  {gettabs,
+   [
+    {1,"Zła tablica przesunięć/rozmiarów"}
+   ]},
+  {make_text,
+   [
+    {1,"Utwórz tekst"},
+    {2,"Tekst:"},
+    {3,"Czcionka (TrueType):"},
+    {4,"Ścieżka czcionek:"},
+    {5,"Ilość dodatkowych krawędzi:"}
+   ]},
+  {menu_entry,
+   [
+    {1,"Tekst"},
+    {2,"Konwertuj tekst na obiekt 3D"}
+   ]},
+  {parsecmaptab,
+   [
+    {1,"Nie odnaleziono odpowiedniej mapy znaków"}
+   ]},
+  {parsett,
+   [
+    {1,"Zła tablica przesunięć"}
+   ]},
+  {trygen,
+   [
+    {1,"Nie można odnaleźć sekcji TrueType w "}
+   ]}
+ ]}.

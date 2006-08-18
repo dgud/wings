@@ -1,0 +1,23 @@
+%%                     -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_knot_pl.lang --
+%%
+%%     Polish language strings for Knot.
+%%
+%%  Copyright (c) 2005 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_knot_pl.lang,v 1.1 2005/12/12 18:03:59 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wpc_knot,
+ [
+  {torus_menu,
+   [
+    {1,"Torus wiązany"}
+   ]}
+ ]}.
