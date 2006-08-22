@@ -61,7 +61,7 @@ snap_fun(Mode) ->
        (_, _) -> ignore
     end.
 
-command({_,{absolute,Mode}},St) ->
+command({_,{absolute,Mode}},St) when Mode == snap; Mode == csnap; Mode == nsnap ->
     Mirror = check_mirror(St),
     if
         Mirror -> 
