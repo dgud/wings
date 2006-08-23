@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings.erl,v 1.339 2006/08/05 19:27:51 antoneos Exp $
+%%     $Id: wings.erl,v 1.340 2006/08/23 02:30:56 antoneos Exp $
 %%
 
 -module(wings).
@@ -652,6 +652,8 @@ command({tools, screenshot}, St) ->
 command({tools, area_volume_info}, St) ->
     area_volume_info(St),
     St;
+command({tools, put_on_ground}, St) ->
+    {save_state,wings_align:put_on_ground(St)};
 
 %% wings_job action events.
 command({wings_job,Command}, St) ->
@@ -748,7 +750,9 @@ tools_menu(_) ->
       ?__(25,"Grab an image of the window (export it from the outliner)")},
      separator,
      {?__(26,"Scene Info: Area & Volume"), area_volume_info,
-      ?__(27,"Calculate area and volume for each object in the scene")}].
+      ?__(27,"Calculate area and volume for each object in the scene")},
+     {?__(28,"Put on Ground"), put_on_ground,
+      ?__(29,"Put selected objects on the ground plane")}].
 
 window_menu(_) ->
     Name = case wings_wm:this() of

@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_pref_dlg.erl,v 1.15 2006/07/28 18:54:27 antoneos Exp $
+%%     $Id: wings_pref_dlg.erl,v 1.16 2006/08/23 02:56:49 antoneos Exp $
 %%
 
 -module(wings_pref_dlg).
@@ -165,7 +165,9 @@ advanced_prefs() ->
 ui_prefs() ->
     Fonts = wings_text:fonts(),
     Langs0 = wings_lang:available_languages(),
-    InterfaceIcons = [{"Classic", classic}, {"Blue Cube", bluecube}],
+    InterfaceIcons = [{"Classic", classic},
+		      {"Blue Cube", bluecube},
+		      {"Purple Tube", purpletube}],
     Langs = [{language_name(L),L} || L <- Langs0],
     {vframe,
      [{hframe,

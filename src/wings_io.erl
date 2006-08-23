@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_io.erl,v 1.142 2006/07/28 18:54:27 antoneos Exp $
+%%     $Id: wings_io.erl,v 1.143 2006/08/23 02:56:49 antoneos Exp $
 %%
 
 -module(wings_io).
@@ -81,7 +81,8 @@ read_icons() ->
     Ebin = filename:dirname(code:which(?MODULE)),
     case wings_pref:get_value(interface_icons) of
 	classic -> IconFile = filename:join(Ebin, "wings_icon_classic.bundle");
-	bluecube -> IconFile = filename:join(Ebin, "wings_icon_bluecube.bundle")
+	bluecube -> IconFile = filename:join(Ebin, "wings_icon_bluecube.bundle");
+	purpletube -> IconFile = filename:join(Ebin, "wings_icon_purpletube.bundle")
     end,
     {ok,Bin} = file:read_file(IconFile),
     Bin.

@@ -8,7 +8,7 @@
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-#     $Id: Makefile,v 1.6 2006/08/01 15:19:56 giniu Exp $
+#     $Id: Makefile,v 1.7 2006/08/23 02:56:49 antoneos Exp $
 #
 
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
@@ -20,7 +20,8 @@ ERLC=erlc
 
 ICONSETS= \
 	classic \
-	bluecube
+	bluecube \
+	purpletube
 
 # ----------------------------------------------------
 # FLAGS

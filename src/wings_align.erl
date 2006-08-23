@@ -8,12 +8,12 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_align.erl,v 1.17 2003/05/08 07:00:56 bjorng Exp $
+%%     $Id: wings_align.erl,v 1.18 2006/08/23 02:30:56 antoneos Exp $
 %%
 
 -module(wings_align).
 -export([align/2,center/2,copy_bb/1,
-	 scale_to_bb/2,scale_to_bb_prop/2,move_to_bb/2]).
+	 scale_to_bb/2,scale_to_bb_prop/2,move_to_bb/2,put_on_ground/1]).
 
 -include("wings.hrl").
 -import(lists, [map/2,foldr/3,foldl/3,reverse/1]).
@@ -145,3 +145,12 @@ offset(Offset, Vtab0) ->
 			 [{V,e3d_vec:add(Pos, Offset)}|A]
 		 end, [], gb_trees:to_list(Vtab0)),
     gb_trees:from_orddict(reverse(Vtab)).
+
+put_on_ground(St) ->
+    wings_sel:map(fun(_, We) -> move_to_ground(We) end, St).
+
+move_to_ground(We) ->
+    [{_,Ymin,_},_] = wings_vertex:bounding_box(We),
+    Matrix = e3d_mat:translate(0.0, -Ymin, 0.0),
+    wings_we:transform_vs(Matrix, We).
+

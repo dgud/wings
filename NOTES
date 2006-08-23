@@ -42,6 +42,12 @@
 - Added X export plugin.
   [contributed by Ed Kolis (Ekolis)]
 
+- New command in tools menu: "Put on Ground." It simply moves the selected
+  objects vertically until they rest on the ground plane. [Scorpius]
+
+- Added "Purple Tube" interface icons. Check the User Interface preference
+  tab to switch between icon sets. [Scorpius]
+
 --- 0.98.35 -----------------------------------------------------------------
 
 - Move absolute now works for lights. [Giniu]
