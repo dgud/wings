@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings.erl,v 1.340 2006/08/23 02:30:56 antoneos Exp $
+%%     $Id: wings.erl,v 1.341 2006/09/06 22:59:55 antoneos Exp $
 %%
 
 -module(wings).
@@ -654,6 +654,8 @@ command({tools, area_volume_info}, St) ->
     St;
 command({tools, put_on_ground}, St) ->
     {save_state,wings_align:put_on_ground(St)};
+command({tools, unitize}, St) ->
+    {save_state,wings_align:unitize(St)};
 
 %% wings_job action events.
 command({wings_job,Command}, St) ->
@@ -752,7 +754,9 @@ tools_menu(_) ->
      {?__(26,"Scene Info: Area & Volume"), area_volume_info,
       ?__(27,"Calculate area and volume for each object in the scene")},
      {?__(28,"Put on Ground"), put_on_ground,
-      ?__(29,"Put selected objects on the ground plane")}].
+      ?__(29,"Put selected objects on the ground plane")},
+     {?__(30,"Unitize"), unitize,
+      ?__(31,"Scale selected objects to fit inside a unit sphere and move to origin")}].
 
 window_menu(_) ->
     Name = case wings_wm:this() of
