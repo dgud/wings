@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_sel_cmd.erl,v 1.66 2006/07/10 10:56:15 giniu Exp $
+%%     $Id: wings_sel_cmd.erl,v 1.67 2006/09/16 19:20:25 antoneos Exp $
 %%
 
 -module(wings_sel_cmd).
@@ -98,6 +98,12 @@ menu(St) ->
 	    short_edges,?__(57,"Select (too) short edges"),[option]},
            {?__(87,"Sharp Edges"),
             sharp_edges,?__(88,"Select sharp edges"),[option]},
+	   {?__(89,"Fewest Edges Path"),
+	    fewest_edges_path,?__(90,"Select the path with the fewest edges between two vertices")},
+	   {?__(91,"Shortest Path (Dijkstra)"),
+	    dijkstra_shortest_path,?__(92,"Select the shortest path between two vertices (Dijkstra)")},
+	   {?__(93,"Shortest Path (A-Star)"),
+	    astar_shortest_path,?__(94,"Select the shortest path between two vertices (A-Star)")},
 	   {?__(58,"Material Edges"),material_edges,
 	    ?__(59,"Select all edges between different materials")},
 	   {?__(60,"UV-Mapped Faces"),uv_mapped_faces,
@@ -355,6 +361,12 @@ by_command({short_edges,Ask}, St) ->
     short_edges(Ask, St);
 by_command({sharp_edges,Ask}, St) ->
     sharp_edges(Ask, St);
+by_command(fewest_edges_path, St) ->
+    fewest_edges_path(St);
+by_command(dijkstra_shortest_path, St) ->
+    dijkstra_shortest_path(St);
+by_command(astar_shortest_path, St) ->
+    astar_shortest_path(St);
 by_command(uv_mapped_faces, St) ->
     uv_mapped_faces(St);
 by_command(id, St) ->
@@ -947,3 +959,251 @@ sharp_edge(CosTolerance, Edge, #we{es=Etab}=We) ->
     Lfn = wings_face:normal(Lf, Edge, We),
     Rfn = wings_face:normal(Rf, Edge, We),
     e3d_vec:dot(Lfn,Rfn) < CosTolerance.
+
+%%%
+%%% Select shortest path (fewest edges)
+%%%
+
+fewest_edges_path(St) ->
+    #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
+    case (Mode==vertex) and (length(Sel)==1) of
+	true -> ok;
+	false -> wings_u:error(?__(1,"Exactly two vertices must be\n selected on the same object."))
+    end,
+    [{Id,Vsel}] = Sel,
+    case gb_sets:size(Vsel)==2 of
+	true -> ok;
+	false -> wings_u:error(?__(2,"Exactly two vertices must be selected."))
+    end,
+    We = gb_trees:get(Id, Shapes),
+    EndPoints = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(Vsel)],
+    PathVs = find_path_verts(We, EndPoints),
+    SelFun = fun(Vert, We2) -> vert_in_path(PathVs, Vert, We2) end,
+    St2 = wings_sel:make(SelFun, vertex, St),
+    St3 = wings_sel_conv:mode(edge, St2),
+    {save_state,wings_sel_conv:less(St3)}.
+
+find_path_verts(We, EndPoints) ->
+    #we{es=Etab,vp=Vtab} = We,
+    [Pa,Pb] = EndPoints,
+    Graph = digraph:new(),
+    AddEdge = fun(EdgeIdx) ->
+		build_digraph(Graph, gb_trees:get(EdgeIdx,Etab), Vtab)
+	      end,
+    lists:foreach(AddEdge, gb_trees:keys(Etab)),
+    Start_time = now(),
+    PathVs = digraph:get_short_path(Graph, Pa, Pb),
+    End_time = now(),
+    io:fwrite("\nLength: ~p",[path_len(PathVs)]),
+    io:fwrite(" (~.2f seconds",[timer:now_diff(End_time,Start_time) / 1.0e6]),
+    io:fwrite(" Digraph)"),
+    digraph:delete(Graph),
+    PathVs.
+
+%%%
+%%% Select shortest path (Dijkstra algorithm)
+%%%
+
+dijkstra_shortest_path(St) ->
+    #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
+    %io:fwrite("\n~p",[Sel]),
+    case (Mode==vertex) and (length(Sel)==1) of
+	true -> ok;
+	false -> wings_u:error(?__(1,"Exactly two vertices must be\n selected on the same object."))
+    end,
+    [{Id,Vsel}] = Sel,
+    case gb_sets:size(Vsel)==2 of
+	true -> ok;
+	false -> wings_u:error(?__(2,"Exactly two vertices must be selected."))
+    end,
+    We = gb_trees:get(Id, Shapes),
+    EndPoints = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(Vsel)],
+    PathVs = dijkstra_find_path_verts(We, EndPoints),
+    SelFun = fun(Vert, We2) -> vert_in_path(PathVs, Vert, We2) end,
+    St2 = wings_sel:make(SelFun, vertex, St),
+    St3 = wings_sel_conv:mode(edge, St2),
+    {save_state,wings_sel_conv:less(St3)}.
+
+dijkstra_find_path_verts(We, EndPoints) ->
+    #we{es=Etab,vp=Vtab} = We,
+    [Pa,Pb] = EndPoints,
+    Graph = digraph:new(),
+    AddEdge = fun(EdgeIdx) ->
+		build_digraph(Graph, gb_trees:get(EdgeIdx,Etab), Vtab)
+	      end,
+    lists:foreach(AddEdge, gb_trees:keys(Etab)),
+    {Gcosts,PrevNodes,Open} = dijkstra_init(Graph, Pa),
+    Start_time = now(),
+    {Pm,Gm} = dijkstra_loop(Open, Gcosts, PrevNodes, Graph, Pb, false),
+    PathVs = get_path(Pb, Pm),
+    End_time = now(),
+    io:fwrite("\nLength: ~p",[dict:fetch(Pb,Gm)]),
+    io:fwrite(" (~.2f seconds",[timer:now_diff(End_time,Start_time) / 1.0e6]),
+    io:fwrite(" Dijkstra)"),
+    %io:fwrite(" Len: ~p",[path_len(PathVs)]),
+    digraph:delete(Graph),
+    PathVs.
+
+dijkstra_init(Graph, Pa) ->
+    Vs = digraph:vertices(Graph),
+    Gcosts = dict:from_list([{V,1.0e6} || V <- Vs] ++ [{Pa,0.0}]),
+    PrevNodes = dict:from_list([{V,none} || V <- Vs]),
+    Open = gb_sets:from_list([{V,K} || {K,V} <- dict:to_list(Gcosts)]),
+    {Gcosts,PrevNodes,Open}.
+
+dijkstra_loop(_Open, Gcosts, PrevNodes, _Graph, _Pb, Done) when Done==true ->
+    {PrevNodes,Gcosts};
+dijkstra_loop(Open, Gcosts, PrevNodes, Graph, Pb, false) ->
+    {{_,U},Open2} = gb_sets:take_smallest(Open),
+    OutNeighbours = digraph:out_neighbours(Graph, U),
+    {Gm,Om,Pm} = dijkstra_relax_all(U, OutNeighbours, Gcosts, Open2, PrevNodes),
+    Done = (gb_sets:is_empty(Om)) or (U==Pb),
+    dijkstra_loop(Om, Gm, Pm, Graph, Pb, Done).
+
+dijkstra_relax(U, V, Gcosts, Open, PrevNodes) ->
+    NewDist = dict:fetch(U,Gcosts) + e3d_vec:dist(U,V),
+    case NewDist < dict:fetch(V,Gcosts) of
+	true ->
+	    Om = gb_sets:add({NewDist,V}, Open),
+	    Pm = dict:store(V, U, PrevNodes),
+	    Gm = dict:store(V, NewDist, Gcosts),
+	    {Gm,Om,Pm};
+	false ->
+	    {Gcosts,Open,PrevNodes}
+    end.
+
+dijkstra_relax_all(_, [], Gcosts, Open, PrevNodes) ->
+    {Gcosts,Open,PrevNodes};
+dijkstra_relax_all(U, ONs, Gcosts, Open, PrevNodes) ->
+    [V|Tail] = ONs,
+    {Gm,Om,Pm} = dijkstra_relax(U, V, Gcosts, Open, PrevNodes),
+    dijkstra_relax_all(U, Tail, Gm, Om, Pm).
+
+%%%
+%%% Select shortest path (A-star algorithm from GPWiki)
+%%%
+
+astar_shortest_path(St) ->
+    #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
+    case (Mode==vertex) and (length(Sel)==1) of
+	true -> ok;
+	false -> wings_u:error(?__(1,"Exactly two vertices must be\n selected on the same object."))
+    end,
+    [{Id,Vsel}] = Sel,
+    case gb_sets:size(Vsel)==2 of
+	true -> ok;
+	false -> wings_u:error(?__(2,"Exactly two vertices must be selected."))
+    end,
+    We = gb_trees:get(Id, Shapes),
+    EndPoints = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(Vsel)],
+    PathVs = astar_find_path_verts(We, EndPoints),
+    SelFun = fun(Vert, We2) -> vert_in_path(PathVs, Vert, We2) end,
+    St2 = wings_sel:make(SelFun, vertex, St),
+    St3 = wings_sel_conv:mode(edge, St2),
+    {save_state,wings_sel_conv:less(St3)}.
+
+astar_find_path_verts(We, EndPoints) ->
+    #we{es=Etab,vp=Vtab} = We,
+    [Pa,Pb] = EndPoints,
+    Graph = digraph:new(),
+    AddEdge = fun(EdgeIdx) ->
+		build_digraph(Graph, gb_trees:get(EdgeIdx,Etab), Vtab)
+	      end,
+    lists:foreach(AddEdge, gb_trees:keys(Etab)),
+    {Gcosts,PrevNodes,Closed,Open} = astar_init(Graph, Pa),
+    Start_time = now(),
+    {Pm,Gm} = astar_loop(Open, Closed, Gcosts, PrevNodes, Graph, Pb, false),
+    PathVs = get_path(Pb, Pm),
+    End_time = now(),
+    io:fwrite("\nLength: ~p",[dict:fetch(Pb,Gm)]),
+    io:fwrite(" (~.2f seconds",[timer:now_diff(End_time,Start_time) / 1.0e6]),
+    io:fwrite(" Astar)"),
+    %io:fwrite(" Len: ~p",[path_len(PathVs)]),
+    digraph:delete(Graph),
+    PathVs.
+
+astar_init(_Graph, Pa) ->
+    Open = gb_sets:from_list([{0.0,Pa}]),
+    Closed = sets:new(),
+    PrevNodes = dict:from_list([{Pa,none}]),
+    Gcosts = dict:from_list([{Pa,0.0}]),
+    {Gcosts,PrevNodes,Closed,Open}.
+
+astar_loop(_, _Closed, Gcosts, PrevNodes, _Graph, _Pb, Done) when Done==true ->
+    {PrevNodes,Gcosts};
+astar_loop(Open, Closed, Gcosts, PrevNodes, Graph, Pb, false) ->
+    {{_,U}, Open2} = gb_sets:take_smallest(Open),
+    Closed2 = sets:add_element(U, Closed),
+    OutNeighbours = sets:from_list(digraph:out_neighbours(Graph, U)),
+    OutNeighbours2 = sets:to_list(sets:subtract(OutNeighbours, Closed2)),
+    {Gm,Om,Pm} = astar_relax_all(U, OutNeighbours2, Gcosts, Open2, PrevNodes, Pb),
+    Done = (gb_sets:is_empty(Om)) or (U==Pb),
+    astar_loop(Om, Closed2, Gm, Pm, Graph, Pb, Done).
+
+astar_relax(U, V, Gcosts, Open, PrevNodes, Pb) ->
+    Gcost = dict:fetch(U,Gcosts) + e3d_vec:dist(U,V),
+    Hcost = e3d_vec:dist(V,Pb),
+    Fcost = Gcost + Hcost,
+    %Open2 = gb_sets:from_list([Val || {_Key,Val} <- gb_sets:to_list(Open)]),
+    %case gb_sets:is_member(V, Open2) of
+    case dict:is_key(V, PrevNodes) of
+	false ->
+	    Om = gb_sets:add({Fcost,V}, Open),	% add to open
+	    Pm = dict:store(V, U, PrevNodes),	% U is parent of V
+	    Gm = dict:store(V, Gcost, Gcosts),	% record cost
+	    {Gm,Om,Pm};
+	true ->
+	    case Gcost < dict:fetch(V,Gcosts) of
+		true ->
+		    Om = gb_sets:add({Fcost,V}, Open),  % update
+		    Pm = dict:store(V, U, PrevNodes),
+		    Gm = dict:store(V, Gcost, Gcosts),
+		    {Gm,Om,Pm};
+		false ->
+		    {Gcosts,Open,PrevNodes}
+	    end
+    end.
+
+astar_relax_all(_, [], Gcosts, Open, PrevNodes, _Pb) ->
+    {Gcosts,Open,PrevNodes};
+astar_relax_all(U, ONs, Gcosts, Open, PrevNodes, Pb) ->
+    [V|Tail] = ONs,
+    {Gm,Om,Pm} = astar_relax(U, V, Gcosts, Open, PrevNodes, Pb),
+    astar_relax_all(U, Tail, Gm, Om, Pm, Pb).
+
+%%%
+%%% Common shortest path functions
+%%%
+
+vert_in_path(PathVs, Vert, We) ->
+    #we{vp=Vtab} = We,
+    Vpos = gb_trees:get(Vert, Vtab),
+    lists:member(Vpos, PathVs).
+
+get_path(none, _) -> [];
+get_path(Key, Dict) ->
+    Val = dict:fetch(Key, Dict),
+    [Key | get_path(Val,Dict)].
+
+path_len(PathVs) ->
+    calc_path_len(PathVs, 0.0).
+
+calc_path_len([], Length) -> Length;
+calc_path_len(PathVs, Length) ->
+    [U|Tail] = PathVs,
+    case length(Tail) of
+	0 -> V = U;
+	_ -> V = hd(Tail)
+    end,
+    Dist = e3d_vec:dist(U,V),
+    calc_path_len(Tail, Length+Dist).
+
+build_digraph(Graph, E, Vtab) ->
+    #edge{vs=Va,ve=Vb} = E,
+    PosA = wings_vertex:pos(Va, Vtab),
+    PosB = wings_vertex:pos(Vb, Vtab),
+    digraph:add_vertex(Graph, PosA),
+    digraph:add_vertex(Graph, PosB),
+    digraph:add_edge(Graph, PosA, PosB),
+    digraph:add_edge(Graph, PosB, PosA).
+

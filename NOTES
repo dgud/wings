@@ -48,6 +48,11 @@
 - Added "Purple Tube" interface icons. Check the User Interface preference
   tab to switch between icon sets. [Scorpius]
 
+- New commands in 'Select->By' menu: "Fewest Edges Path" selects a path
+  (between any two selected vertices) with the fewest number of edges.
+  "Shortest Path" selects a path with the shortest distance. If more than one
+  possible solution exists, the first one found will be selected. [Scorpius]
+
 --- 0.98.35 -----------------------------------------------------------------
 
 - Move absolute now works for lights. [Giniu]
