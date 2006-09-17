@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_sel_cmd.erl,v 1.67 2006/09/16 19:20:25 antoneos Exp $
+%%     $Id: wings_sel_cmd.erl,v 1.68 2006/09/16 20:40:16 antoneos Exp $
 %%
 
 -module(wings_sel_cmd).
@@ -976,16 +976,15 @@ fewest_edges_path(St) ->
 	false -> wings_u:error(?__(2,"Exactly two vertices must be selected."))
     end,
     We = gb_trees:get(Id, Shapes),
-    EndPoints = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(Vsel)],
-    PathVs = find_path_verts(We, EndPoints),
+    [Pa,Pb] = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(Vsel)],
+    PathVs = find_path_verts(We, Pa, Pb),
     SelFun = fun(Vert, We2) -> vert_in_path(PathVs, Vert, We2) end,
     St2 = wings_sel:make(SelFun, vertex, St),
     St3 = wings_sel_conv:mode(edge, St2),
     {save_state,wings_sel_conv:less(St3)}.
 
-find_path_verts(We, EndPoints) ->
+find_path_verts(We, Pa, Pb) ->
     #we{es=Etab,vp=Vtab} = We,
-    [Pa,Pb] = EndPoints,
     Graph = digraph:new(),
     AddEdge = fun(EdgeIdx) ->
 		build_digraph(Graph, gb_trees:get(EdgeIdx,Etab), Vtab)
@@ -1017,16 +1016,15 @@ dijkstra_shortest_path(St) ->
 	false -> wings_u:error(?__(2,"Exactly two vertices must be selected."))
     end,
     We = gb_trees:get(Id, Shapes),
-    EndPoints = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(Vsel)],
-    PathVs = dijkstra_find_path_verts(We, EndPoints),
+    [Pa,Pb] = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(Vsel)],
+    PathVs = dijkstra_find_path_verts(We, Pa, Pb),
     SelFun = fun(Vert, We2) -> vert_in_path(PathVs, Vert, We2) end,
     St2 = wings_sel:make(SelFun, vertex, St),
     St3 = wings_sel_conv:mode(edge, St2),
     {save_state,wings_sel_conv:less(St3)}.
 
-dijkstra_find_path_verts(We, EndPoints) ->
+dijkstra_find_path_verts(We, Pa, Pb) ->
     #we{es=Etab,vp=Vtab} = We,
-    [Pa,Pb] = EndPoints,
     Graph = digraph:new(),
     AddEdge = fun(EdgeIdx) ->
 		build_digraph(Graph, gb_trees:get(EdgeIdx,Etab), Vtab)
@@ -1095,16 +1093,15 @@ astar_shortest_path(St) ->
 	false -> wings_u:error(?__(2,"Exactly two vertices must be selected."))
     end,
     We = gb_trees:get(Id, Shapes),
-    EndPoints = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(Vsel)],
-    PathVs = astar_find_path_verts(We, EndPoints),
+    [Pa,Pb] = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(Vsel)],
+    PathVs = astar_find_path_verts(We, Pa, Pb),
     SelFun = fun(Vert, We2) -> vert_in_path(PathVs, Vert, We2) end,
     St2 = wings_sel:make(SelFun, vertex, St),
     St3 = wings_sel_conv:mode(edge, St2),
     {save_state,wings_sel_conv:less(St3)}.
 
-astar_find_path_verts(We, EndPoints) ->
+astar_find_path_verts(We, Pa, Pb) ->
     #we{es=Etab,vp=Vtab} = We,
-    [Pa,Pb] = EndPoints,
     Graph = digraph:new(),
     AddEdge = fun(EdgeIdx) ->
 		build_digraph(Graph, gb_trees:get(EdgeIdx,Etab), Vtab)
