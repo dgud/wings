@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_yafray.erl,v 1.116 2006/01/08 18:02:00 giniu Exp $
+%%     $Id: wpc_yafray.erl,v 1.117 2006/10/20 16:49:12 giniu Exp $
 %%
 
 -module(wpc_yafray).
@@ -3917,7 +3917,7 @@ help(text, pref_dialog) ->
      ++wings_help:cmd([?__(36,"File"),?__(37,"Export"),?__(38,"YafRay")])++", "
      ++wings_help:cmd([?__(39,"File"),?__(40,"Export Selected"),?__(41,"YafRay")])++" "++?__(42,"and")++" "
      ++wings_help:cmd([?__(43,"File"),?__(44,"Render"),?__(45,"YafRay")])++" "++
-     ?__(46,"are enabled if the rendering executable is found (in the path), "++
+     ?__(46,"are enabled if the rendering executable is found (in the path), "
      "or if the rendering executable is specified with an absolute path."),
      %%
      ?__(47,"Disabled Dialogs:")++" "
