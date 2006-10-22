@@ -56,6 +56,9 @@
 - New secondary mode for dissolve, called clean dissolve.
   [contributed by Richard Jones (Optigon)]
 
+- Added ability to set alternate zoom speed, check camera preferences.
+  [contributed by Richard Jones (Optigon)]
+
 --- 0.98.35 -----------------------------------------------------------------
 
 - Move absolute now works for lights. [Giniu]

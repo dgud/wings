@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_camera.erl,v 1.114 2005/01/31 14:34:11 dgud Exp $
+%%     $Id: wings_camera.erl,v 1.115 2006/10/22 17:11:13 giniu Exp $
 %%
 
 -module(wings_camera).
@@ -20,6 +20,8 @@
 -import(lists, [foreach/2,map/2,foldl/3,sort/1,reverse/1,append/1]).
 
 -define(ZOOM_FACTOR, 20).
+-define(ZOOM_FACTOR_ALT, 1).
+
 -define(CAMDIV, 4).
 -define(CAMMAX, 150).  %% Always larger than 300 on my pc
 
@@ -48,6 +50,7 @@ init() ->
 prefs() ->
     ZoomFlag0 = wings_pref:get_value(wheel_zooms, true),
     ZoomFactor0 = wings_pref:get_value(wheel_zoom_factor, ?ZOOM_FACTOR),
+    ZoomFactorAlt = wings_pref:get_value(wheel_zoom_factor_alt, ?ZOOM_FACTOR_ALT),
     PanSpeed0 = wings_pref:get_value(pan_speed),
     InvertZW = wings_pref:get_value(inverted_wheel_zoom),
     Hook = {hook,fun (is_disabled, {_Var,_I,Sto}) ->
@@ -72,7 +75,14 @@ prefs() ->
 	   [{key,wheel_zoom_factor},
 	    {range,{1,50}},
 	    Hook]},
-	  {label,"%",[Hook]}]} ],[{title,?__(9,"Scroll Wheel")}] } ]}.
+	  {label,"%",[Hook]}]},
+	 {hframe,
+	  [{label,?__(10,"Alternate Zoom Factor(Alt+Scroll)"),[Hook]},
+	   {text,ZoomFactorAlt,
+	    [{key,wheel_zoom_factor_alt},
+	     {range,{1,50}},
+	     Hook]},
+	   {label,"%",[Hook]}]} ],[{title,?__(9,"Scroll Wheel")}] } ]}.
 
 mouse_buttons() ->
     {menu,[{desc(1),1,[{info,info(1)}]},
@@ -137,12 +147,17 @@ help() ->
 
 %% Event handler.
 event(Ev, St=#st{}) -> 
-    event(Ev,St,none).
-
+    	event(Ev,St,none).
+event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
+  when Mod band ?ALT_BITS =:= 0 ->
+    	zoom_step(-1);
 event(#mousebutton{button=4,state=?SDL_RELEASED}, _, _Redraw) ->
-    zoom_step(-1);
+  	zoom_step_alt(-1);
+event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
+  when Mod band ?ALT_BITS =:= 0 ->
+	zoom_step(1);
 event(#mousebutton{button=5,state=?SDL_RELEASED}, _, _Redraw) ->
-    zoom_step(1);
+  	zoom_step_alt(1);
 event(#mousebutton{button=B}, _, _Redraw) when B==4; B==5 ->
     keep;
 event(Ev, St, Redraw) ->
@@ -534,10 +549,16 @@ generic_event(redraw, _Camera, #state{st=St, func=none}) ->
 generic_event(redraw, _Camera, #state{func=Redraw}) when is_function(Redraw) ->
     Redraw(),
     keep;
+generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
+  when Mod band ?ALT_BITS =:= 0 ->
+  	zoom_step(-1);
 generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, _Camera, _Redraw) ->
-    zoom_step(-1);
+  	zoom_step_alt(-1);
+generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
+  when Mod band ?ALT_BITS =:= 0 ->
+	zoom_step(1);
 generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _Camera, _Redraw) ->
-    zoom_step(1);
+  	zoom_step_alt(1);
 generic_event(_, _, _) -> keep.
 
 rotate(Dx, Dy) ->
@@ -550,6 +571,22 @@ rotate(Dx, Dy) ->
 	    El = El0 + Dy,
 	    View = View0#view{azimuth=Az,elevation=El,along_axis=none},
 	    wings_view:set_current(View)
+    end.
+
+zoom_step_alt(Dir) ->
+    case wings_pref:get_value(wheel_zooms, true) of
+	false -> keep;
+	true ->
+	    wings_wm:dirty(),
+	    #view{distance=Dist} = View = wings_view:current(),
+	    ZoomPercent0 = wings_pref:get_value(wheel_zoom_factor_alt, ?ZOOM_FACTOR_ALT)/100,
+	    ZoomPercent = case wings_pref:get_value(inverted_wheel_zoom) of
+			      false -> ZoomPercent0;
+			      true -> -ZoomPercent0
+			  end,
+	    Delta = dist_factor(Dist)*Dir*ZoomPercent,
+	    wings_view:set_current(View#view{distance=Dist+Delta}),
+	    keep
     end.
 
 zoom_step(Dir) ->
