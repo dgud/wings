@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_edge_cmd.erl,v 1.8 2005/06/26 08:25:44 bjorng Exp $
+%%     $Id: wings_edge_cmd.erl,v 1.9 2006/10/22 16:33:54 giniu Exp $
 %%
 
 -module(wings_edge_cmd).
@@ -43,9 +43,10 @@ menu(X, Y, St) ->
 	    {?__(8,"Bevel"),bevel,
 	     ?__(9,"Round off selected edges")},
 	    separator,
-	    {?__(10,"Dissolve"),dissolve,
-	     ?__(11,"Eliminate selected edges")},
-	    {?__(12,"Collapse"),collapse,
+	    {?__(10,"Dissolve"), dslv(),
+		 {?__(11,"Eliminate selected edges"), "",
+		  ?__(50,"Eliminate selected edges and remove remaining isolated verts")},[]},
+		{?__(12,"Collapse"),collapse,
 	     ?__(13,"Delete edges, replacing them with vertices")},
 	    separator,
 	    {?__(14,"Hardness"),
@@ -58,6 +59,13 @@ menu(X, Y, St) ->
 	    {?__(19,"Vertex Color"),vertex_color,
 	     ?__(20,"Apply vertex colors to selected edges")}],
     wings_menu:popup_menu(X, Y, edge, Menu).
+
+dslv() ->
+	fun
+		(1, _Ns) -> {edge,dissolve};
+		(3, _Ns) -> {edge,clean_dissolve};
+		(_, _) -> ignore
+	end.
 
 cut_line(#st{sel=[{_,Es}]}) ->
     case gb_sets:size(Es) of
@@ -117,6 +125,8 @@ command({cut,Num}, St) ->
     {save_state,cut(Num, St)};
 command(connect, St) ->
     {save_state,connect(St)};
+command(clean_dissolve, St) ->
+    {save_state,clean_dissolve(St)};
 command(dissolve, St) ->
     {save_state,dissolve(St)};
 command(collapse, St) ->
@@ -294,6 +304,17 @@ cut_pick_marker({finish,[I]}, D0, Edge, We, Start, Dir, Char) ->
     D = cut_pick_marker([I], D0, Edge, We, Start, Dir, Char),
     D#dlo{vs=none,hilite=none}.
 
+%%%
+%%% Clean Dissolve
+%%%
+
+clean_dissolve(St0) ->
+	St = wings_sel:map(fun(Es, We) ->
+	We1 = wings_edge:dissolve_edges(Es, We),
+    IsolatedVs1 = wings_vertex:isolated(We1),
+    wings_edge:dissolve_isolated_vs(IsolatedVs1, We1)
+	end, St0),
+	wings_sel:clear(St).
 
 %%%
 %%% The Dissolve command.
