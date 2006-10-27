@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_pl.lang,v 1.25 2006/08/01 15:19:57 giniu Exp $
+%%     $Id: wings_pl.lang,v 1.26 2006/10/27 16:41:31 giniu Exp $
 %%
 %%  Translation:  Andrzej Giniewicz
 %%  Correction:   Małgorzata Napiontek & Maciej Milewski
@@ -154,7 +154,13 @@
     {22,"Połącz"},
     {23,"Łączy lustra tworząc zwykły obiekt"},
     {24,"Zrzut ekranu"},
-    {25,"Tworzy zrzut ekranu (możesz go wyeksportować używając okna \"schemat\")"}
+    {25,"Tworzy zrzut ekranu (możesz go wyeksportować używając okna \"schemat\")"},
+    {26,"Pole i objętość"},
+    {27,"Oblicza pole powierzchni i objętość wszystkich obiektów w scenie"},
+    {28,"Opuść na podłoże"},
+    {29,"Umieszcza zaznaczone obiekty na płaszczyźnie podłoża"},
+    {30,"Normalizuj"},
+    {31,"Skaluje zaznaczone obiekty tak by mieściły się w sferze o promieniu równym jeden i przesuwa je do środka układu współrzędnych"}
    ]},
   {undo_info,
    [
@@ -351,7 +357,8 @@
     {5,"Przód przybliża"},
     {6,"Przód oddala"},
     {7,"Współczynnik przybliżenia"},
-    {9,"Kółko myszy"}
+    {9,"Kółko myszy"},
+    {10,"Alternatywna prędkość przybliżenia (Alt+Rolka)"}
    ]}
  ]}.
 {wings_collapse,
@@ -547,7 +554,8 @@
     {17,"Przekrój według pętli"},
     {18,"Tnij obiekt na dwie części według zaznaczonej pętli"},
     {19,"Kolor punktów"},
-    {20,"Zastosuj kolor punktów do zaznaczonych krawędzi"}
+    {20,"Zastosuj kolor punktów do zaznaczonych krawędzi"},
+    {50,"Usuwa zaznaczone krawędzie i pozostałe po cięciach izolowane punkty"}
    ]},
   {plain_cut_menu,
    [
@@ -2094,6 +2102,12 @@
     {86,"Zaznacz wszystkie krzywizny"},
     {87,"Kanty"},
     {88,"Zaznacz wszystkie krawędzie tworzące kant"},
+    {89,"Najmniejsza ścieżka"},
+    {90,"Zaznacz ścieżkę o najmniejszej ilości krawędzi pomiędzy dwoma punktami"},
+    {91,"Najkrótsza ścieżka (Dijkstra)"},
+    {92,"Zaznacz ścieżkę o najkrótszej długości pomiędzy dwoma punktamiużywając algorytmu Dijkstry"},
+    {93,"Najkrótsza ścieżka (A-Star)"},
+    {94,"Zaznacz ścieżkę o najkrótszej długości pomiędzy dwoma punktamiużywając algorytmu (A-Star)"},
     {401,"6 lub więcej krawędziami"},
     {nq0,"Płaszczyzny nie kwadratowe"},
     {nq1,"Wszystkie płaszczyzny"},
@@ -2146,6 +2160,11 @@
    [
     {1,"Tolerancja długości:"},
     {2,"Wybierz krótkie krawędzie"}
+   ]},
+  {shortest_path,
+   [
+    {1,"Musisz zaznaczyć dokładnie dwa punkty\nna tym samym obiekcie."},
+    {2,"Musisz zaznaczyć dokładnie dwa punkty."}
    ]},
   {similar_help,
    [
