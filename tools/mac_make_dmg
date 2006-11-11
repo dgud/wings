@@ -4,7 +4,7 @@
 #
 #     Packages the built Wings application into a .dmg file.
 #
-#  Copyright (c) 2002-2005 Bjorn Gustavsson
+#  Copyright (c) 2002-2006 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -21,7 +21,7 @@ echo $temp_dmg
 echo $dmg
 
 rm -f $temp_dmg $dmg
-hdiutil create -megabytes 10 -volname "Wings3D" -fs HFS+ -layout NONE $temp_dmg
+hdiutil create -megabytes 20 -volname "Wings3D" -fs HFS+ -layout NONE $temp_dmg
 hdiutil attach $temp_dmg
 dev=`hdid $temp_dmg | awk '{print $1}'`
 cp -r macosx/build/Default/Wings3d.app "/Volumes/Wings3D/Wings3D $1.app"
