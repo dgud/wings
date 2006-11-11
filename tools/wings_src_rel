@@ -5,8 +5,7 @@
 # $Id: wings_src_rel,v 1.4 2004/04/30 06:28:25 bjorng Exp $
 #
 use strict;
-#my $CVSROOT = ':pserver:anonymous@cvs.sf.net:/cvsroot/wings';
-my $CVSROOT = 'bjorng@cvs.sf.net:/cvsroot/wings';
+my $WINGS = "https://svn.sourceforge.net/svnroot/wings/trunk";
 
 my $cmd;
 my $ver;
@@ -19,7 +18,6 @@ if (@ARGV) {
 #
 # Check current directory.
 #
--d 'CVS' and die "$0: Current directory looks like a CVS directory\n";
 my @garbage;
 while (<wings*>) {
     next unless -d $_;
@@ -32,16 +30,10 @@ if (@garbage) {
 }
 
 #
-# Extract from CVS and pack.
+# Extract from Subversion and pack.
 #
 
-if ($CVSROOT =~ m/^:pserver/) {
-    print "Press ENTER when the password prompt appears.\n";
-    $cmd = "cvs -d$CVSROOT login";
-    system $cmd;
-}
-
-$cmd = "cvs -z8 -d$CVSROOT export -D today wings";
+$cmd = "svn export $WINGS wings";
 system $cmd;
 
 my $vsn_file = "wings/vsn.mk";
