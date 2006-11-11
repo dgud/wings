@@ -22,31 +22,6 @@
 		4C724753085C300D006ED218 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXBuildStyle section */
-		4A9504CCFFE6A4B311CA0CBA /* Development */ = {
-			isa = PBXBuildStyle;
-			buildSettings = {
-				COPY_PHASE_STRIP = NO;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_ENABLE_FIX_AND_CONTINUE = YES;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				OPTIMIZATION_CFLAGS = "-O0";
-				ZERO_LINK = YES;
-			};
-			name = Development;
-		};
-		4A9504CDFFE6A4B311CA0CBA /* Deployment */ = {
-			isa = PBXBuildStyle;
-			buildSettings = {
-				COPY_PHASE_STRIP = YES;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
-				ZERO_LINK = NO;
-			};
-			name = Deployment;
-		};
-/* End PBXBuildStyle section */
-
 /* Begin PBXFileReference section */
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
@@ -191,26 +166,6 @@
 			);
 			buildRules = (
 			);
-			buildSettings = {
-				ERLANG_PATH = /usr/local/lib/erlang;
-				FRAMEWORK_SEARCH_PATHS = "";
-				GGC_VERSION = 3.x;
-				HEADER_SEARCH_PATHS = "";
-				INSTALL_PATH = "$(HOME)/Applications";
-				JAVA_COMPILER_DEBUGGING_SYMBOLS = NO;
-				LIBRARY_SEARCH_PATHS = "";
-				OTHER_CFLAGS = "";
-				OTHER_LDFLAGS = "-s";
-				PRODUCT_NAME = Wings3d;
-				SECTORDER_FLAGS = "";
-				USE_GCC3_PFE_SUPPORT = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-				);
-				WRAPPER_EXTENSION = app;
-			};
 			dependencies = (
 			);
 			name = Wings3d;
@@ -225,12 +180,6 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = 4CA8398B085C2B4300C48A7F /* Build configuration list for PBXProject "Wings3d" */;
-			buildSettings = {
-			};
-			buildStyles = (
-				4A9504CCFFE6A4B311CA0CBA /* Development */,
-				4A9504CDFFE6A4B311CA0CBA /* Deployment */,
-			);
 			hasScannedForEncodings = 1;
 			mainGroup = 29B97314FDCFA39411CA2CEA /* Wings3d */;
 			projectDirPath = "";
@@ -426,18 +375,32 @@
 		4CA8398C085C2B4300C48A7F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Debug;
 		};
 		4CA8398D085C2B4300C48A7F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = (
+					ppc,
+					i386,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Release;
 		};
 		4CA8398E085C2B4300C48A7F /* Default */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = (
+					ppc,
+					i386,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Default;
 		};
