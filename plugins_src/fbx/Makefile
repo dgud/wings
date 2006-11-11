@@ -3,7 +3,7 @@
 #
 #     Makefile for building the FBX plug-in.
 #
-#  Copyright (c) 2003-2005 Bjorn Gustavsson
+#  Copyright (c) 2003-2006 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,6 +13,7 @@
 FBXSDK = FBXSDK60
 LIBDIR=../../plugins/fbx
 WINGS_INTL=../../intl_tools
+WINGS_E3D=../../e3d
 
 OS := $(shell uname -s)
 
@@ -23,7 +24,6 @@ ifneq (,$(findstring CYGWIN,$(OS)))
   ERL_TOP := $(shell cygpath -w $(ERL_TOP))
   DRIVER_NAME := wings_fbx_win32
   DRIVER_FILE := $(DRIVER_NAME).dll
-  WINGS_E3D := $(shell cygpath -m $(HOME)/wings/e3d)
   MLFLAGS = /nologo /subsystem:console /machine:I386
 # /nodefaultlib 
 #  MLIBS = kernel32.lib user32.lib advapi32.lib oldnames.lib libcmt.lib msvcrt.lib $(FBX_SDK)\lib\fbxsdk_mt.lib $(FBX_SDK)\lib\zlib_mt.lib
@@ -50,7 +50,6 @@ else
   OS_CFLAGS = -O2 -fPIC
   ERL_TOP := /usr/local/lib/erlang
   DRIVER_FILE := $(DRIVER_NAME).so
-  WINGS_E3D := $(HOME)/wings/e3d
   OBJ = o
 endif
 
