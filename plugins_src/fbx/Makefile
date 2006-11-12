@@ -91,9 +91,10 @@ $(LIBDIR)/$(DRIVER_NAME).so: $(OBJS)
 		-arch ppc -lfbxsdk_gcc4
 	$(CXX) -o i386_$(DRIVER_NAME).so $(OBJS) $(LD_FLAGS) $(UNIVERSAL_SDK) \
 		-arch i386 -lfbxsdk_x86
+	strip $(STRIP_FLAGS) ppc_$(DRIVER_NAME).so
+	strip $(STRIP_FLAGS) i386_$(DRIVER_NAME).so
 	lipo -create ppc_$(DRIVER_NAME).so i386_$(DRIVER_NAME).so \
                 -output $(LIBDIR)/$(DRIVER_NAME).so
-	strip $(STRIP_FLAGS) $(LIBDIR)/$(DRIVER_NAME).so
 else
 $(LIBDIR)/$(DRIVER_NAME).so: $(OBJS)
 	$(CXX) -o $(LIBDIR)/$(DRIVER_NAME).so $(OBJS) $(LD_FLAGS)
