@@ -1564,7 +1564,7 @@
     {cube,"Cube"},
     {cylinder,"Cylindre"},
     {dodecahedron,"Dodecaedre"},
-    {grid,"Grid"},
+    {grid,"Grille"},
     {icosahedron,"Icosaedre"},
     {image,"Image..."},
     {light,"Lumiere"},
@@ -2083,5 +2083,41 @@
     {46,"Couleur"},
     {45,"Longueurs des normales"},
     {44,"Longueur"}
+   ]}
+ ]}.
+
+{wings_outliner,
+ [
+  {handle_drop,
+   [
+    {5,"Bosselage (NormaleMap)"}
+   ]},
+  {do_menu,
+   [
+    {122,"Déposer un objet précédemment sélectionné sur ce matériel "},
+    {121,"Deposer l'objet"}
+   ]},
+  {common_image_menu,
+   [
+    {10,"Reprendre l'image pour l'attribuer comme texture a un materiau"},
+    {9,"Reprendre l'image"}
+   ]}
+ ]}.
+{wings_sel_cmd,
+ [
+  {sharp_edges,
+   [
+    {1,"Angle maximum"},
+    {2,"Choisir des aretes pointuss"}
+   ]},
+  {menu,
+   [
+    {nq3,"Meme les facettes non quadrangulaires"},
+    {nq2,"Les facettes non quadrangulaires impairs"},
+    {nq1,"Toutes les facettes non quadrangulaires"},
+    {nq0,"Les facettes non quadrangulaires"},
+    {401,"6 ou plus"},
+    {88,"Choisir des aretes pointuss"},
+    {87,"Aretes pointues"}
    ]}
  ]}.

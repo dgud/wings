@@ -1,4 +1,4 @@
---- 0.98.XX -----------------------------------------------------------------
+--- 0.98.36 -----------------------------------------------------------------
 
 - Absolute snap now can pick reference point, old snap that used center of
   selection as reference point was moved to MMB option. [Giniu]
@@ -61,6 +61,9 @@
 
 - Tweak tool extended with new features like tangent, relax, slide and more.
   [contributed by Andrew Shpagin (AndrewShpagin)]
+
+- French translation updated, with many more plug-ins translated.
+  [contributed by Nicolas Bouillard (syndarion)]
 
 --- 0.98.35 -----------------------------------------------------------------
 

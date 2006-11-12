@@ -1,0 +1,126 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_toxic,
+ [
+  {command_file,
+   [
+    {1,"Deja Rendu."},
+    {2,"Options de rendu de TOxic"},
+    {3,"Options d'export de Toxic"}
+   ]},
+  {export_dialog,
+   [
+    {1,"Exporter le Maillage(s)"},
+    {2,"Etapes de Subdivisions"},
+    {3,"Pre-rendu"},
+    {4,"Echelle"},
+    {5,"Echelle Globale"},
+    {6,"PinHole Camera"},
+    {7,"Thin Lens Camera"},
+    {8,"Fstop"},
+    {9,"Focal length"},
+    {10,"AutoFocus"},
+    {11,"Focal Distance"},
+    {12,"Camera"},
+    {13,"Super Sampling"},
+    {14,"Whitted Adaptive"},
+    {15,"Contrast Threshold"},
+    {16,"Max Depth"},
+    {17,"Pixel Sampling"},
+    {18,"Enable Direct Lighting"},
+    {19,"Emit Photons"},
+    {20,"Max Photons"},
+    {21,"Max Distance"},
+    {22,"Radiance Precomputation"},
+    {23,"Spacing"},
+    {24,"Search Dist"},
+    {25,"Primary Final Gathering"},
+    {26,"Secondary Final Gathering"},
+    {27,"Enable Indirect Lighting"},
+    {28,"Reflection Depth"},
+    {29,"Enable Specular Reflections"},
+    {30,"Emit Photons"},
+    {31,"Max Photons"},
+    {32,"Max Distance"},
+    {33,"Autoriser les caustiques"},
+    {34,"Rendu"},
+    {35,"Largeur"},
+    {36,"Hauteur"},
+    {37,"Gamma"},
+    {38,"Arriere plan"},
+    {39,"Sortie"},
+    {40,"Options"},
+    {41,"Rendering Job"}
+   ]},
+  {export_scene,
+   [
+    {1,"Exporting to"}
+   ]},
+  {export_settings,
+   [
+    {1,"Exporting to"}
+   ]},
+  {fun_export_2,
+   [
+    {1,"ERROR: Failed to export"},
+    {2,"Failed to export"}
+   ]},
+  {help,
+   [
+    {1,"Toxic Export Properties"},
+    {2,"Toxic: see http://toxicengine.sourceforge.net"},
+    {3,"Toxic export uses several files: YourScene.xml consists of the shaders (e.g. materials) and objects (with references to the actual meshes). Lights and the camera are also defined as scene objects. Render settings are defined in YourScene.setting.xml (i.e. most of the settings in this dialog). The actual meshes are stored in YourScene.objects.obj file; that means that you don't have to export the the meshes for every rendering, i.e. if you only change something in the materials or in this dialog you don't have to export the meshes again."},
+    {4,"Global Scale lets you specify a scale parameter from wings units to meters. This is necessary get correct lighting in your scene. So if one wings unit represents one centimeter on your model set Global Scale to 0.01, or if one wings unit is two meters, set Global Scale to 2."},
+    {5,"Camera lets you choose between two different type of cameras.The pinhole camera is the simplest one. Since it has infinite depth of field, objects can't be out of focus and thus never appear blurred. The thin lens camera is slightly more complex (and much more plausible) than the pinhole camera. It will produce depth of field according to the fstop, focaldistance and focallength  parameters. Out of focus objects will appear blurred.\nFstop: this is the aperture number or f-stop number.\n     Lens diameter is computed as follow: \n     lensdiameter = focallength / fstop.\n Focal length: focal length of the camera, expressed in meters.\nAdditionally, one of the two following parameters must be defined: focaldistance or autofocus. Focal distance of the camera, expressed in meters. The focal distance is the distance along the view direction at which objects will be in focus.Autofocus is a point, in the image plane, which will be in focus. Bottom left corner of the image plane is at (-0.5, -0.5), and upper right corner is at (0.5, 0.5), regardless of the image resolution. "},
+    {6,"Pixel Sampling specifies how antialising is done"},
+    {7,"Rendering specifies which kind of lighting method should be used There are four types lighting methods: direct lighting, indirect lighting, specular reflections and caustics. These methods form the global illumination (GI) and each method can be individually enabled or disabled. "},
+    {8,"Output specifies the rendered image width, height and gamma."},
+    {9,"Rendering Job lets you specify additional command line arguments for toxic"},
+    {10,"Toxic Material Properties"},
+    {11,"The BRDF characterizes how light is reflected by the surface."},
+    {12," Lambertian is a perfectly diffuse surface and currently the only other option is a perfectly specular surface"},
+    {13," The diffuse color is used in toxic as the reflectance color for all different types of BRDF. If the material has an diffuse texture it will replace the reflectance color"},
+    {14,"Toxic Light Properties"},
+    {15,"Toxic only has one light type, pointlight, it produces true hard shadows. The diffuse color is multiplied with the power value, to get the emission power in Watts."},
+    {16,"Toutes les lumieres de Wings3d (a l'exception de l'aire) utilisent l'ampoule."}
+   ]},
+  {light_dialog,
+   [
+    {1,"Puissance"},
+    {2,"Options de Toxic"},
+    {3,"Puissance"},
+    {4,"Empreintes des ombres"},
+    {5,"Options de Toxic"}
+   ]},
+  {material_dialog,
+   [
+    {1,"BRDF"},
+    {2,"Lambertian"},
+    {3,"Speculaire parfait"},
+    {4,"Options de Toxic"}
+   ]},
+  {pixelsampling,
+   [
+    {1,"Randomiser"},
+    {2,"Regulier"},
+    {3,"Stratifier"},
+    {4,"Passes"},
+    {5,"Largeur"},
+    {6,"Hauteur"}
+   ]},
+  {pref_edit,
+   [
+    {1,"Dialogues fermes"},
+    {2,"Dialogues Automatiques"},
+    {3,"Dialogues Autorises"},
+    {4,"Commande de rendu:"},
+    {5,"Options Tocxic"}
+   ]},
+  {props,
+   [
+    {1,"Rendre"},
+    {2,"Exporter"},
+    {3,"Fichier Toxic"},
+    {4,"Selection exportee"},
+    {5,"Fichier Toxic"}
+   ]}
+ ]}.

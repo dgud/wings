@@ -1,0 +1,35 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_absolute_move,
+ [
+  {draw,
+   [
+    {1,"Commandes absolues"},
+    {2,"Deplacer"},
+    {3,"Deplacer vers une position exacte avec les coordonnees absolues."},
+    {4,"Rupture"},
+    {5,"Deplacer vers une selection secondaire."},
+    {6,"Deplacer vers une selection secondaire et tirer les valeurs."}
+   ]},
+  {draw_window1,
+   [
+    {1,"Options de deplacement absolu"},
+    {2,"Reglage de position"},
+    {3,"Deplacer l'objet"},
+    {4,"Deplacer les objets"},
+    {5,"Dupliquer"},
+    {6,"Aligner"},
+    {7,"Aplatir"}
+   ]},
+  {mirror_error,
+   [
+    {1,"impossible de deplacer un point depuis un plan en miroir"}
+   ]},
+  {simple_check_selection,
+   [
+    {1,"Rien de selectionne"}
+   ]},
+  {simple_select,
+   [
+    {1,"Choisir la cible pour l'opération instantanee "}
+   ]}
+ ]}.

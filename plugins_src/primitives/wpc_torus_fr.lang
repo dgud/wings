@@ -1,0 +1,38 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_torus,
+ [
+  {make_lutorus,
+   [
+    {1,"Creer un Tore irregulier"},
+    {2,"Resolution U"},
+    {3,"Resolution V"},
+    {4,"Rayon Majeur"},
+    {5,"Rayon Mineur"},
+    {6,"Morceau"},
+    {7,"Amplitude des Morceaux"}
+   ]},
+  {make_sptorus,
+   [
+    {1,"Creer un tore spirale"},
+    {2,"Resolution U"},
+    {3,"Resolution V"},
+    {4,"Rayon Majeur"},
+    {5,"Rayon Mineur"},
+    {6,"Boucle       "},
+    {7,"Rayon de la Boucle"}
+   ]},
+  {make_uvtorus,
+   [
+    {1,"Creer un Tore UV"},
+    {2,"Resolution U"},
+    {3,"Resolution V"},
+    {4,"Rayon Majeur"},
+    {5,"Rayon Mineur"}
+   ]},
+  {torus_menu,
+   [
+    {1,"Tore UV"},
+    {2,"Tore Irregulier"},
+    {3,"Tore Spirale"}
+   ]}
+ ]}.

@@ -7,7 +7,7 @@
    ]},
   {intersect_edges,
    [
-    {1,"Ligne et plan sont presque parrallele:\nimpossible de trouver une intersection."}
+    {1,"Ligne et plan sont presque parralleles:\n impossible de trouver une intersection."}
    ]},
   {intl_vec,
    [

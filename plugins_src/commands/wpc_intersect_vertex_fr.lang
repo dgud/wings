@@ -29,8 +29,8 @@
     {3,"Choisir la normale du plan - le plan doit passer a travers la selection du(des) point(s)"},
     {4,"Choisir l'intesection de la ligne"},
     {5,"choisir la direction de la ligne"},
-    {6,"Choisir le point pour la ligne passe a travers"},
+    {6,"Choisir le point pour que la ligne passe a travers"},
     {7,"Choisir la normale du plan"},
-    {8,"Choisir le point pour le plan passe a travers"}
+    {8,"Choisir le point pour que le plan passe a travers"}
    ]}
  ]}.

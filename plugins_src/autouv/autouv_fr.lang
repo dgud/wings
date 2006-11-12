@@ -356,3 +356,72 @@
     {20,"Quitter le mode instantane"}
    ]}
  ]}.
+%% Not used [auv_mapping,project_faces] in "../../plugins/autouv/autouv_fr.lang"
+%% Not used [auv_texture,draw_options,6] in "../../plugins/autouv/autouv_fr.lang"
+%% Not used [auv_texture,draw_options,7] in "../../plugins/autouv/autouv_fr.lang"
+%% Not used [auv_texture,draw_options,8] in "../../plugins/autouv/autouv_fr.lang"
+%% Not used [auv_texture,draw_options,9] in "../../plugins/autouv/autouv_fr.lang"
+%% Not used [auv_texture,draw_options,10] in "../../plugins/autouv/autouv_fr.lang"
+%% Not used [auv_texture,draw_options,11] in "../../plugins/autouv/autouv_fr.lang"
+%% Not used [auv_texture,draw_options,12] in "../../plugins/autouv/autouv_fr.lang"
+%% Not used [wpc_autouv,handle_drop] in "../../plugins/autouv/autouv_fr.lang"
+
+%%
+%% The following strings have no translation.
+%%
+
+{auv_texture,
+ [
+  {renderers,
+   [
+    {1,"Aucun"},
+    {2,"Dessiner les aretes"},
+    {3,"Dessiner Les facettes"}
+   ]},
+  {render_passes,
+   [
+    {1,"Arriere-plan"},
+    {2,"Options"},
+    {3,"Options"}
+   ]},
+  {options,
+   [
+    {1,"Image"},
+    {2,"Couleur"},
+    {3,"Dessiner toutes les aretes"},
+    {4,"Dessiner à la frontiere des aretes"},
+    {5,"Couleur des aretes:"},
+    {6,"Largeur des Aretes:"},
+    {7,"Utiliser la matière de la facette (à la frontiere des aretes)"},
+    {8,"Utiliser les couleurs de la matiere"},
+    {9,"utiliser (precedent) Texture/Coueurs des points"},
+    {10,"Aucune Lumiere:"}
+   ]},
+  {background,
+   [
+    {1,"Arriere -plan"}
+   ]}
+ ]}.
+{wpc_autouv,
+ [
+  {menubar,
+   [
+    {77,"Repeter la derniere commande avec les mêmes arguments à la même distance"},
+    {76,"Repeter le deplacement"},
+    {75,"Repeter la commande avec les mêmes arguments"},
+    {74,"Repeter les arguments"},
+    {72,"Repeter la même commande"},
+    {71,"Repeter"}
+   ]},
+  {command_menu,
+   [
+    {522,"Selectionner les facettes du projet depuis les normales et devoiler le reste du diagramme"},
+    {521,"Project-devoiler-deplier"}
+   ]},
+  {auv_menu,
+   [
+    {25,"Re-segmenter les objets"},
+    {9,"Re-segenter avec l'ancien systeme de coordonnees UV "},
+    {8,"Forcer le segment (garder le precedent)"}
+   ]}
+ ]}.

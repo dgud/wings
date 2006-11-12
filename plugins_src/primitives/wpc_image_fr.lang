@@ -1,0 +1,17 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_image,
+ [
+  {image_menu,
+   [
+    {1,"Image sur une surface..."},
+    {2,"Creer une surface qui contienne une image"}
+   ]},
+  {make_image,
+   [
+    {1,"Echec au chargement \"~s\": ~s\n"}
+   ]},
+  {make_image_1,
+   [
+    {1,"L'image ne peut pas etre chargee comme texture (elle est probablement trop large)."}
+   ]}
+ ]}.

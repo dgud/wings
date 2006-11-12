@@ -1,0 +1,47 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_fbx,
+ [
+  {ask_for_password,
+   [
+    {1,"Entrer le Mot de Passe"}
+   ]},
+  {dialog,
+   [
+    {1,"Importer a l'echelle"},
+    {2,"Exporter a l'echelle"},
+    {3,"Importer a l'echelle"},
+    {4,"Exporter a l'echelle"},
+    {5,"Mot de Passe"},
+    {6,"Format"}
+   ]},
+  {do_export,
+   [
+    {1,"Options d'exportation des FBX"}
+   ]},
+  {do_import,
+   [
+    {1,"Options d'importation des FBX"}
+   ]},
+  {do_import_2,
+   [
+    {1,"version des FBX:"}
+   ]},
+  {import_mat_mapping,
+   [
+    {1,"Ne supporte pas ce mode de mapping materiel:"}
+   ]},
+  {import_uvs_1,
+   [
+    {1,"Ne peut pas manipuler ce type de mapping:"}
+   ]},
+  {import_vc_1,
+   [
+    {1,"NYI: importe la couleur des points:"},
+    {2,"mode de mapping"},
+    {3,"mode de reference"}
+   ]},
+  {props,
+   [
+    {1,"Fichier Autodesk FBX"}
+   ]}
+ ]}.

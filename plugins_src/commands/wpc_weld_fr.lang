@@ -1,0 +1,27 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_weld,
+ [
+  {draw_menu,
+   [
+    {1,"Souder"},
+    {2,"Souderles points selectionnes les un aux autres (partage de l'arete commune)"}
+   ]},
+  {weld,
+   [
+    {1,"Impossible de souder un plan en miroir"},
+    {2,"L'objet doit avoir au moins 4 sommets"},
+    {3,"Vous pouvez souder seulement un sommet "}
+   ]},
+  {weld_check_selection,
+   [
+    {1,"Vous ne pouvez pas souder le sommet à lui-même "},
+    {2,"Les sommets que vous voulez la soudure doivent partager l'arete"},
+    {3,"Vous pouvez souder seulement un point "},
+    {4,"Rien de selectionne"},
+    {5,"Vous pouvez souder seulement dans le meme objet "}
+   ]},
+  {weld_select,
+   [
+    {1,"Choisir pour l'opération de soudure le sommet cible   (les deux points doivent partager une arete commune ) "}
+   ]}
+ ]}.

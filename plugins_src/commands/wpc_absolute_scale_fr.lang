@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_absolute_scale,
+ [
+  {draw,
+   [
+    {1,"Commandes absolues"},
+    {2,"Mise ˆ l'echelle"},
+    {3,"Mettre ˆ l'echelle a une taille exacte dans les coordonnees absloues."}
+   ]},
+  {draw_window1,
+   [
+    {1,"Options de mise ˆ l'echelle absolue"},
+    {2,"Reglage d'une nouvelle taille"},
+    {3,"Reglage et mise a l'echelle du centre"},
+    {4,"Mettre a l'echelle l'objet entier"},
+    {5,"Mettre a l'echelle les objets entiers"}
+   ]}
+ ]}.

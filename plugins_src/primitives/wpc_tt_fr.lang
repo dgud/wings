@@ -1,0 +1,52 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_tt,
+ [
+  {findtab,
+   [
+    {1,"Aucun "},
+    {2," table"}
+   ]},
+  {font_file,
+   [
+    {1,"Polices"}
+   ]},
+  {gen,
+   [
+    {1,"Texte a echoue: "},
+    {2,"erreur decelee : "},
+    {3,"Le texte a echoue : erreur interne "}
+   ]},
+  {getdirs,
+   [
+    {1,"Mauvaise direction du format"}
+   ]},
+  {gettabs,
+   [
+    {1,"Mauvaise table offsets/taille"}
+   ]},
+  {make_text,
+   [
+    {1,"Creer un texte"},
+    {2,"Texte"},
+    {3,"Police TrueType"},
+    {4,"Direction des polices"},
+    {5,"Nombre de bissections d'aretes"}
+   ]},
+  {menu_entry,
+   [
+    {1,"Texte"},
+    {2,"Convertir le texte en un objet 3D"}
+   ]},
+  {parsecmaptab,
+   [
+    {1,"Aucune carte de caractère appropriée"}
+   ]},
+  {parsett,
+   [
+    {1,"Mauvaise table offset"}
+   ]},
+  {trygen,
+   [
+    {1,"Impossible de trouver dedans la section du TrueType "}
+   ]}
+ ]}.

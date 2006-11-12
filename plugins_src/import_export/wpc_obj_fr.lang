@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_obj,
+ [
+  {dialog,
+   [
+    {1,"Un groupe par materiau"},
+    {2,"Environnement Vue d'Esprit"}
+   ]},
+  {do_export,
+   [
+    {1,"Options d'export Autodesk Maya"}
+   ]},
+  {do_import,
+   [
+    {1,"Options d'export Autodesk Maya"}
+   ]},
+  {props,
+   [
+    {1,"Fichier Autodesk Maya"}
+   ]}
+ ]}.

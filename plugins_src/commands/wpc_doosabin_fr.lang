@@ -3,27 +3,27 @@
  [
   {add_menu,
    [
-    {1,"DS subdivision"},
-    {2,"Makes a Doo-Sabin subdivision according to WasaMonkey (warning messes up all uv-coords)"},
-    {3,"DS subdivision"},
-    {4,"Makes a Doo-Sabin subdivision according to WasaMonkey"}
+    {1,"Subdivision Doo-Sabin"},
+    {2,"Utiliser une subdivivion Doo-Sabin selon le principe WasaMonkey (avertir pour nepas detruire les coordonnee UV)"},
+    {3,"Subdivision Doo-Sabin"},
+    {4,"Utiliser une subdivivion Doo-Sabin selon le principe WasaMonkey"}
    ]},
   {doo_sabin,
    [
     {1,"Doo-Sabin"},
-    {2,"Smoothing pass1"},
-    {3,"Smoothing pass 2"},
-    {4,"Dissolving pass 1"},
-    {5,"Dissolving pass 2"},
-    {6,"Updating Selection"}
+    {2,"Lisser la passe 1"},
+    {3,"Lisser la passe 2"},
+    {4,"Dissoudre la passe 1"},
+    {5,"Dissoudre la passe 2"},
+    {6,"Mettre a jour la subdivision"}
    ]},
   {menu,
    [
-    {1,"Doo Sabin subd"}
+    {1,"Doo Sabin subdivision"}
    ]},
   {pref_edit,
    [
-    {1,"Doo Sabin Preferences"},
-    {2,"Enabled"}
+    {1,"Preferences de Doo Sabin"},
+    {2,"Autorise"}
    ]}
  ]}.

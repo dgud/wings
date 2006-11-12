@@ -14,3 +14,16 @@
     {2,"Maniere pour connecter rapidement points et aretes"}
    ]}
  ]}.
+
+%%
+%% The following strings have no translation.
+%%
+
+{wpc_connect_tool,
+ [
+  {lc_help,
+   [
+    {1,"Connection de la boucle fermee"},
+    {2,"Connection de la boucle ouverte"}
+   ]}
+ ]}.

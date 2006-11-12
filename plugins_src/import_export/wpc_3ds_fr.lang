@@ -1,0 +1,16 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_3ds,
+ [
+  {do_export,
+   [
+    {1,"Options d'export au format 3dsmax"}
+   ]},
+  {do_import,
+   [
+    {1,"Options d'importt au format 3dsmax"}
+   ]},
+  {props,
+   [
+    {1,"Fichier 3dsmax"}
+   ]}
+ ]}.
