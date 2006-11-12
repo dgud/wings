@@ -25,7 +25,7 @@ ifneq (,$(findstring CYGWIN,$(OS)))
   DRIVER_NAME := wings_fbx_win32
   DRIVER_FILE := $(DRIVER_NAME).dll
   MLFLAGS = /nologo /subsystem:console /machine:I386
-  MLIBS = advapi32.lib $(FBX_SDK)\lib\fbxsdk_mt.lib $(FBX_SDK)\lib\zlib_mt.lib
+  MLIBS = advapi32.lib $(FBX_SDK)\lib\fbxsdk_mt.lib
   CC = cl -nologo -MT
   CXX = $(CC)
   OBJ = obj
