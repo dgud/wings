@@ -3,7 +3,7 @@
 #
 #     Makefile for building Wings "accelerator" helpers.
 #
-#  Copyright (c) 2004-2005 Bjorn Gustavsson
+#  Copyright (c) 2004-2006 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -33,7 +33,9 @@ else
  SO_EXT = so
  GCC = gcc
  ifeq ($(OS),Darwin)
-   LIBS = -bundle -flat_namespace -undefined suppress
+   UNIVERSAL_FLAGS = -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc
+   CFLAGS = $(UNIVERSAL_FLAGS)
+   LIBS = $(UNIVERSAL_FLAGS) -bundle -flat_namespace -undefined suppress
    GL_LIBS =
  else
    LIBS = -shared -fpic

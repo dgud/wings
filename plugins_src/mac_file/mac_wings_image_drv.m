@@ -4,7 +4,7 @@
  *
  *     Erlang driver for image reading and writing for Mac
  *
- *  Copyright (c) 2002 Bjorn Gustavsson
+ *  Copyright (c) 2002-2006 Bjorn Gustavsson
  *
  *  See the file "license.terms" for information on usage and redistribution
  *  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -99,7 +99,7 @@ static int mac_image_control(ErlDrvData handle, unsigned int command,
     } else {
       ErlDrvBinary* bin;
       size_t size;
-      unsigned char* rbuf;
+      char* rbuf;
 
       size = [bitmap bytesPerPlane];
       bin = driver_alloc_binary(size+16);
@@ -133,7 +133,7 @@ static int mac_image_control(ErlDrvData handle, unsigned int command,
       *res = (void *) 0;
     } else {
       ErlDrvBinary* bin = driver_alloc_binary([nsData length]);
-      unsigned char* rbin = bin->orig_bytes;
+      char* rbin = bin->orig_bytes;
       [nsData getBytes:(void *) rbin];
       *res = (void *) bin;
     }

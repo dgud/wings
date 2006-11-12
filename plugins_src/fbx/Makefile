@@ -10,7 +10,7 @@
 #
 #     $Id: Makefile,v 1.7 2006/01/20 14:47:02 giniu Exp $
 #
-FBXSDK = FBXSDK60
+FBXSDK = FBXSDK2005.12a
 LIBDIR=../../plugins/fbx
 WINGS_INTL=../../intl_tools
 WINGS_E3D=../../e3d
@@ -32,20 +32,26 @@ ifneq (,$(findstring CYGWIN,$(OS)))
   CXX = $(CC)
   OBJ = obj
   OS_CFLAGS = -DNDEBUG -DWIN32 -D_CONSOLE -D_MBCS -DK_PLUGIN -DK_FBXSDK
+  LIBS = -L$(LIB_DIR) -lfbxsdk
 else
   ifeq ($(OS),Linux)
    FBX_SDK := /usr/local/$(FBXSDK)
    DRIVER_NAME := wings_fbx_linux
    OS_LDFLAGS = -shared
    STRIP_FLAGS = --strip-debug 
+   LIBS = -L$(LIB_DIR) -lfbxsdk
   else
   # Must be Darwin
+   UNIVERSAL_SDK = -isysroot /Developer/SDKs/MacOSX10.4u.sdk
+   UNIVERSAL_FLAGS = $(UNIVERSAL_SDK) -arch i386 -arch ppc
+   CFLAGS = $(UNIVERSAL_FLAGS)
    FBX_SDK := /Applications/$(FBXSDK)
    DRIVER_NAME := wings_fbx_mac
    OS_LDFLAGS = -bundle -flat_namespace -undefined suppress
    STRIP_FLAGS = -S
    EXTRA_INCLUDES := -I/usr/include/sys
-   CXX = /usr/bin/g++-3.3
+   CXX = /usr/bin/g++-4.0
+   LIBS = -L$(LIB_DIR)
   endif
   OS_CFLAGS = -O2 -fPIC
   ERL_TOP := /usr/local/lib/erlang
@@ -55,10 +61,9 @@ endif
 
 INCLUDES = -I. -I$(ERL_TOP)/usr/include -I$(FBX_SDK)/include $(EXTRA_INCLUDES)
 LIB_DIR = $(FBX_SDK)/lib
-CFLAGS = $(INCLUDES) -DWINGS_FBX_DRIVER_NAME='"$(DRIVER_NAME)"' $(OS_CFLAGS)
+CFLAGS = $(INCLUDES) -DWINGS_FBX_DRIVER_NAME='"$(DRIVER_NAME)"' $(OS_CFLAGS) $(UNIVERSAL_FLAGS)
 
 LD_FLAGS = $(OS_LDFLAGS) $(LIBS)
-LIBS = -L$(LIB_DIR) -lfbxsdk
 
 ERLC = erlc
 ERLC_FLAGS = -I$(WINGS_E3D) -o $(LIBDIR) +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
@@ -80,9 +85,20 @@ lang: template
 		esac \
 	done
 
+ifeq ($(OS),Darwin)
+$(LIBDIR)/$(DRIVER_NAME).so: $(OBJS)
+	$(CXX) -o ppc_$(DRIVER_NAME).so $(OBJS) $(LD_FLAGS) $(UNIVERSAL_SDK) \
+		-arch ppc -lfbxsdk_gcc4
+	$(CXX) -o i386_$(DRIVER_NAME).so $(OBJS) $(LD_FLAGS) $(UNIVERSAL_SDK) \
+		-arch i386 -lfbxsdk_x86
+	lipo -create ppc_$(DRIVER_NAME).so i386_$(DRIVER_NAME).so \
+                -output $(LIBDIR)/$(DRIVER_NAME).so
+	strip $(STRIP_FLAGS) $(LIBDIR)/$(DRIVER_NAME).so
+else
 $(LIBDIR)/$(DRIVER_NAME).so: $(OBJS)
 	$(CXX) -o $(LIBDIR)/$(DRIVER_NAME).so $(OBJS) $(LD_FLAGS)
 	strip $(STRIP_FLAGS) $(LIBDIR)/$(DRIVER_NAME).so
+endif
 
 $(LIBDIR)/$(DRIVER_NAME).dll: $(OBJS)
 	link $(MLFLAGS) /dll /out:$(LIBDIR)/$(DRIVER_NAME).dll \

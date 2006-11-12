@@ -3,7 +3,7 @@
 #
 #     Makefile for building file dialog plug-in for Mac.
 #
-#  Copyright (c) 2002-2005 Bjorn Gustavsson
+#  Copyright (c) 2002-2006 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,6 +13,8 @@
 LIBDIR = ../../plugins/mac_file
 WINGS_EBIN = ../../ebin
 WINGS_INTL=../../intl_tools
+UNIVERSAL_FLAGS = -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc
+CFLAGS = $(UNIVERSAL_FLAGS)
 
 ERL_DIR := $(shell echo 'io:format("~s~n",[code:root_dir()]),halt().' | erl | sed 's,^[0-9]*> *,,g' | tail +2)
 
@@ -47,9 +49,11 @@ $(LIBDIR)/%.beam: %.erl
 $(LIBDIR)/mac_wings_file_drv.so: mac_wings_file_drv.c
 	install -d $(LIBDIR)
 	cc -ObjC -I $(ERL_DIR)/usr/include -bundle -flat_namespace -undefined suppress \
-          -framework Cocoa -o $(LIBDIR)/mac_wings_file_drv.so mac_wings_file_drv.c
+          -framework Cocoa -o $(LIBDIR)/mac_wings_file_drv.so $(UNIVERSAL_FLAGS) \
+	  mac_wings_file_drv.c
 
 $(LIBDIR)/mac_wings_image_drv.so: mac_wings_image_drv.m
 	install -d $(LIBDIR)
 	cc -I $(ERL_DIR)/usr/include -bundle -flat_namespace -undefined suppress \
-          -framework Cocoa -o $(LIBDIR)/mac_wings_image_drv.so mac_wings_image_drv.m
+          -framework Cocoa -o $(LIBDIR)/mac_wings_image_drv.so $(UNIVERSAL_FLAGS) \
+	  mac_wings_image_drv.m

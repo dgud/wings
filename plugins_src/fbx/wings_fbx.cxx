@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 
-using namespace FBXSDK_NAMESPACE;
+//using namespace FBXSDK_NAMESPACE;
 
 #include "fbx_ops.h"
 
@@ -106,7 +106,10 @@ fbx_control(unsigned int command,
     break;
   case ExpDestroy:
     delete [] objects;
-    delete SdkManager;
+    if (SdkManager) {
+      SdkManager->DestroyKFbxSdkManager();
+      SdkManager = NULL;
+    }
     objects = 0;
     num_objects = 0;
     break;
