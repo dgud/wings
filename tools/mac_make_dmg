@@ -21,7 +21,7 @@ echo $temp_dmg
 echo $dmg
 
 rm -f $temp_dmg $dmg
-hdiutil create -megabytes 20 -volname "Wings3D" -fs HFS+ -layout NONE $temp_dmg
+hdiutil create -megabytes 100 -volname "Wings3D" -fs HFS+ -layout NONE $temp_dmg
 hdiutil attach $temp_dmg
 dev=`hdid $temp_dmg | awk '{print $1}'`
 cp -r macosx/build/Default/Wings3d.app "/Volumes/Wings3D/Wings3D $1.app"
