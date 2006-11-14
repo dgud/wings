@@ -246,10 +246,7 @@ visible_vs(Vs, #we{mirror=Face,es=Etab}=We) ->
 		[_|_] ->
 		    ordsets:intersection(Vis0, Vs);
 		[] ->
-		    [];
-		true ->
-		    Vis = gb_sets:from_ordset(Vis0),
-		    gb_sets:intersection(Vis, Vs)
+		    []
 	    end
     end.
 
