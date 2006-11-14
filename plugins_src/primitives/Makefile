@@ -3,7 +3,7 @@
 #
 #     Makefile for building the plug-ins.
 #
-#  Copyright (c) 2001-2003 Bjorn Gustavsson
+#  Copyright (c) 2001-2006 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -38,7 +38,7 @@ MODULES= \
 	wpc_ncube \
 	wpc_geodome \
 	wpc_tt
-	
+
 TRANSLATABLE= \
 	wpc_image \
 	wpc_knot \
@@ -53,7 +53,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # FLAGS
 # ----------------------------------------------------
 ERL_FLAGS += -I $(WINGS_SRC) -I $(WINGS_E3D) -pa $(ESDL)/ebin
-ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS) +warn_unused_vars +debug_info  -pa $(WINGS_INTL) -I $(WINGS_INTL)
+ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS) +debug_info  -pa $(WINGS_INTL) -I $(WINGS_INTL)
 
 # ----------------------------------------------------
 # Targets

@@ -3,7 +3,7 @@
 #
 #     Makefile for building the plug-ins.
 #
-#  Copyright (c) 2001-2003 Bjorn Gustavsson
+#  Copyright (c) 2001-2006 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

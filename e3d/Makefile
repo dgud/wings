@@ -3,7 +3,7 @@
 #
 #     Makefile for building the E3D modules.
 #
-#  Copyright (c) 2001-2005 Bjorn Gustavsson
+#  Copyright (c) 2001-2006 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -48,7 +48,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # FLAGS
 # ----------------------------------------------------
 ERL_FLAGS += 
-ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS) +warn_unused_vars
+ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS)
 
 # ----------------------------------------------------
 # Targets

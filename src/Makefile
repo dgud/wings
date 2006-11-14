@@ -3,7 +3,7 @@
 #
 #     Makefile for building Wings 3D.
 #
-#  Copyright (c) 2001-2005 Bjorn Gustavsson
+#  Copyright (c) 2001-2006 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -116,7 +116,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_FLAGS += -pa $(ESDL_PATH)/ebin +warn_unused_vars
+ERL_FLAGS += -pa $(ESDL_PATH)/ebin
 ERL_COMPILE_FLAGS += -I$(ESDL_PATH)/include -I ../e3d -W $(TYPE_FLAGS) \
  '-Dwings_version="$(WINGS_VSN)"' -pa $(WINGS_INTL)
 
