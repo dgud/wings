@@ -65,6 +65,12 @@
 - French translation updated, with many more plug-ins translated.
   [contributed by Nicolas Bouillard (syndarion)]
 
+- The Mac version of Wings is now a Universal Binary that runs on both
+  PowerPC and Intel Macs. [bjorng]
+
+- The Windows version now includes the correct (latest) version of the
+  SDL dll, correcting numerous problems. [bjorng]
+
 --- 0.98.35 -----------------------------------------------------------------
 
 - Move absolute now works for lights. [Giniu]
