@@ -1043,19 +1043,19 @@ pass({auv_faces, [Type]},_) ->
 pass({auv_faces, _},Sh) ->
     pass({auv_faces,?OPT_FACES},Sh);
 pass({auv_light, _},_Sh) ->
-    Circle = fun(N, Y, R) ->
-		     Delta = math:pi()*2 / N,
-		     [{R*math:cos(I*Delta), Y, R*math:sin(I*Delta)} 
-		      || I <- lists:seq(0, N-1)]
-	     end,
-    Sphere = fun(Ns,Nl) ->
-		     Delta = math:pi() / Nl,
-		     PosAndRads= [{math:cos(I*Delta), math:sin(I*Delta)} 
-				  || I <- lists:seq(1, Nl-1)],
-		     Circles = [Circle(Ns, Pos, Rad) || {Pos, Rad} <- PosAndRads],
-		     lists:flatten(Circles)
-	     end,
-    %Lights = Sphere(8,4) ++ [{0.0,1.0,0.0}, {0.0,-1.0,0.0}],
+%%     Circle = fun(N, Y, R) ->
+%% 		     Delta = math:pi()*2 / N,
+%% 		     [{R*math:cos(I*Delta), Y, R*math:sin(I*Delta)} 
+%% 		      || I <- lists:seq(0, N-1)]
+%% 	     end,
+%%     Sphere = fun(Ns,Nl) ->
+%% 		     Delta = math:pi() / Nl,
+%% 		     PosAndRads= [{math:cos(I*Delta), math:sin(I*Delta)} 
+%% 				  || I <- lists:seq(1, Nl-1)],
+%% 		     Circles = [Circle(Ns, Pos, Rad) || {Pos, Rad} <- PosAndRads],
+%% 		     lists:flatten(Circles)
+%% 	     end,
+%%  Lights = Sphere(8,4) ++ [{0.0,1.0,0.0}, {0.0,-1.0,0.0}],
     Ligths = [{1.0,0.0,0.0}],
     
     VsS = wings_gl:compile(vertex, read_file("light1.vs")),
@@ -1258,7 +1258,6 @@ render_lights([{Lx,Ly,Lz}| Ligths], PM, Dist, C={Cx,Cy,Cz}, LP1,Ts = #ts{charts=
     gl:matrixMode(?GL_PROJECTION),  gl:pushMatrix(),  gl:loadMatrixd(PM),
     gl:matrixMode(?GL_MODELVIEW),   gl:pushMatrix(),  gl:loadIdentity(),
     glu:lookAt(Lx*Dist,Ly*Dist,Lz*Dist,Cx,Cy,Cz,0.0,1.0,0.0),
-    MV = gl:getDoublev(?GL_MODELVIEW_MATRIX),
     gl:clear(?GL_DEPTH_BUFFER_BIT bor ?GL_COLOR_BUFFER_BIT),
 %%    gl:enable(?GL_CULL_FACE),
     gl:enable(?GL_DEPTH_TEST), 
