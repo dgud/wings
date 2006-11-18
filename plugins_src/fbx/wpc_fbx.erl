@@ -3,7 +3,7 @@
 %%
 %%     FBX file import/export.
 %%
-%%  Copyright (c) 2003-2005 Bjorn Gustavsson
+%%  Copyright (c) 2003-2006 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -504,33 +504,33 @@ import_tree_1(I, N, Importer, Global0, Acc0) ->
 %%     Tz = element(12, Mtx),
 %%     io:format("~p", [{Tx,Ty,Tz}]).
 
-print_tree() ->
-    Print = fun(Indent) ->
-                    Local = local_transformation(),
-                    Tx = element(10, Local),
-                    Ty = element(11, Local),
-                    Tz = element(12, Local),
-                    Trans = {Tx,Ty,Tz},
-                    io:format("~s~p: ~s (~p)\n",
-                              [Indent,node_type(),node_name(),Trans])
-            end,
-    print_tree(Print).
+%% print_tree() ->
+%%     Print = fun(Indent) ->
+%%                     Local = local_transformation(),
+%%                     Tx = element(10, Local),
+%%                     Ty = element(11, Local),
+%%                     Tz = element(12, Local),
+%%                     Trans = {Tx,Ty,Tz},
+%%                     io:format("~s~p: ~s (~p)\n",
+%%                               [Indent,node_type(),node_name(),Trans])
+%%             end,
+%%     print_tree(Print).
 
 
-print_tree(Printer) ->
-    print_tree(Printer, []).
+%% print_tree(Printer) ->
+%%     print_tree(Printer, []).
 
-print_tree(Printer, Indent) ->
-    Printer(Indent),
-    N = call(?ImpNumChildren),
-    print_tree_1(0, N, Printer, [$.|Indent]).
+%% print_tree(Printer, Indent) ->
+%%     Printer(Indent),
+%%     N = call(?ImpNumChildren),
+%%     print_tree_1(0, N, Printer, [$.|Indent]).
 
-print_tree_1(N, N, _, _) -> ok;
-print_tree_1(I, N, Printer, Indent) ->
-    enter_node(I),
-    print_tree(Printer, Indent),
-    pop_node(),
-    print_tree_1(I+1, N, Printer, Indent).
+%% print_tree_1(N, N, _, _) -> ok;
+%% print_tree_1(I, N, Printer, Indent) ->
+%%     enter_node(I),
+%%     print_tree(Printer, Indent),
+%%     pop_node(),
+%%     print_tree_1(I+1, N, Printer, Indent).
 
 %%%
 %%% Import a single mesh/object.
@@ -634,7 +634,7 @@ import_materials(Mesh) ->
 		index ->
 		    %% Index mode does not make sense.
 		    {Mesh,[]};
-		RM ->
+		_RM ->
 		    MM = layer_elem_mapping_mode(),
 		    N = call(?ImpNumMaterials),
 		    Mat = import_materials_1(0, N, []),
@@ -703,7 +703,7 @@ import_uvs(Mesh) ->
 		index ->
 		    %% Index mode does not make sense.
 		    {Mesh,[]};
-		RM ->
+		_RM ->
 		    MM = layer_elem_mapping_mode(),
 		    import_uvs_1(MM, Mesh)
 	    end
@@ -766,7 +766,7 @@ import_tx(Mesh) ->
 		index ->
 		    %% Index mode does not make sense.
 		    {Mesh,[]};
-		RM ->
+		_RM ->
 		    MM = layer_elem_mapping_mode(),
 		    N = call(?ImpNumTextures),
 		    import_tx_1(MM, N, Mesh)
@@ -911,17 +911,17 @@ node_type() ->
 node_name() ->
     call(?ImpNodeName).
 
-tx_mapping_type() ->
-    case call(?ImpTxMappingType) of
-        ?TxMapNull -> null;
-        ?TxMapPlanar -> planar;
-        ?TxMapSpherical -> spherical;
-        ?TxMapCylindrical -> cylindrical;
-        ?TxMapBox -> box;
-        ?TxMapFace -> face;
-        ?TxMapUV -> uv;
-        ?TxMapEnvironment -> environment
-    end.
+%% tx_mapping_type() ->
+%%     case call(?ImpTxMappingType) of
+%%         ?TxMapNull -> null;
+%%         ?TxMapPlanar -> planar;
+%%         ?TxMapSpherical -> spherical;
+%%         ?TxMapCylindrical -> cylindrical;
+%%         ?TxMapBox -> box;
+%%         ?TxMapFace -> face;
+%%         ?TxMapUV -> uv;
+%%         ?TxMapEnvironment -> environment
+%%     end.
 
 light_type() ->
     case call(?ImpLightType) of
