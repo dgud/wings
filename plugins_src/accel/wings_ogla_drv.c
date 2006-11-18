@@ -18,6 +18,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
+#include <string.h>
 
 #if defined(__APPLE__) && defined(__MACH__)
 # include <OpenGL/gl.h>	/* Header File For The OpenGL Library */

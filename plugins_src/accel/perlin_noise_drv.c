@@ -3,7 +3,7 @@
  *
  *     Erlang driver for generating simplex perlin noise
  *
- *  Copyright (c) 2005 Dan Gudmundsson
+ *  Copyright (c) 2005-2006 Dan Gudmundsson
  *
  *  See the file "license.terms" for information on usage and redistribution
  *  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -20,6 +20,7 @@
 #endif
 
 #include <math.h>
+#include <string.h>
 
 #define PNOISE3 3
 #define SNOISE1 4
