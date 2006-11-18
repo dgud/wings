@@ -23,7 +23,7 @@ rm -rf "$td/erl_prim_loader.beam"
 rm -rf "$td/prim_file.beam"
 rm -rf "$td/prim_inet.beam"
 
-# In R9C, erlang.beam is also pre-loaded.
+# In R9C and later, erlang.beam is also pre-loaded.
 rm -rf "$td/erlang.beam"
 
 # No need for IPv6, socks, or erl_boot_server.
@@ -44,7 +44,6 @@ rm -rf "$td/stdlib.appup"
 # The following are not useful without a compiler.
 rm -rf "$td/erl_compile.beam"
 rm -rf "$td/ms_transform.beam"
-rm -rf "$td/epp.beam"
 
 # Old obsolete stuff.
 rm -rf "$td/pg.beam"
