@@ -77,16 +77,10 @@ dest="$DEST_ROOT"
 erts_src=`echo "$src"/erts-*`
 stdlib=`basename "$src"/lib/stdlib-*`
 kernel=`basename "$src"/lib/kernel-*`
-compiler=`basename "$src"/lib/compiler-*`
 
 $INSTALL -d "$dest/bin" "$dest/lib/$stdlib/ebin" "$dest/lib/$kernel/ebin"
 $INSTALL -c -m 644 "$src"/lib/kernel-*/ebin/* "$dest/lib/$kernel/ebin"
 $INSTALL -c -m 644 "$src"/lib/stdlib-*/ebin/* "$dest/lib/$stdlib/ebin"
-
-# Unfortunately, the shell in R10B needs the sys_pre_expand module
-# from the compiler directory. We'll copy just that module.
-$INSTALL -d "$dest/lib/$compiler/ebin"
-$INSTALL -c -m 644 "$src"/lib/compiler-*/ebin/sys_pre_expand.beam "$dest/lib/$compiler/ebin/sys_pre_expand.beam"
 
 $INSTALL -c "$erts_src/bin/werl.exe" "$dest/bin"
 $INSTALL -c "$erts_src/bin/erlexec.dll" "$dest/bin"
