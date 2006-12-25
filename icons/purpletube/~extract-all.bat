@@ -1,0 +1,13 @@
+nconvert -quiet -crop   0 0 32 28 -out bmp -o open.bmp        ~all.png
+nconvert -quiet -crop  32 0 32 28 -out bmp -o save.bmp        ~all.png
+nconvert -quiet -crop  64 0 32 28 -out bmp -o smooth.bmp      ~all.png
+nconvert -quiet -crop  96 0 32 28 -out bmp -o perspective.bmp ~all.png
+nconvert -quiet -crop 128 0 32 28 -out bmp -o vertex.bmp      ~all.png
+nconvert -quiet -crop 160 0 32 28 -out bmp -o edge.bmp        ~all.png
+nconvert -quiet -crop 192 0 32 28 -out bmp -o face.bmp        ~all.png
+nconvert -quiet -crop 224 0 32 28 -out bmp -o body.bmp        ~all.png
+nconvert -quiet -crop 256 0 32 28 -out bmp -o undo.bmp        ~all.png
+nconvert -quiet -crop 288 0 32 28 -out bmp -o redo.bmp        ~all.png
+nconvert -quiet -crop 320 0 32 28 -out bmp -o axes.bmp        ~all.png
+nconvert -quiet -crop 352 0 32 28 -out bmp -o pref.bmp        ~all.png
+nconvert -quiet -crop 384 0 32 28 -out bmp -o groundplane.bmp ~all.png
