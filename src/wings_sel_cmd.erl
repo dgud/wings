@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_sel_cmd.erl,v 1.70 2006/09/20 23:50:42 antoneos Exp $
+%%     $Id: wings_sel_cmd.erl,v 1.71 2006/12/02 21:10:36 antoneos Exp $
 %%
 
 -module(wings_sel_cmd).
@@ -28,7 +28,7 @@ menu(St) ->
      {?__(3,"More"),more,more_help(St)},
      {?__(4,"Less"),less,less_help(St)},
      {?__(5,"Similar"),similar,similar_help(St)}]
-    ++ oriented_faces_menu(St) ++
+    ++ oriented_faces_menu(St) ++ similar_area_faces_menu(St) ++
     [separator,
      {?__(6,"Edge Loop"),
       {edge_loop,
@@ -146,6 +146,12 @@ oriented_faces_menu(#st{selmode=face}) ->
 oriented_faces_menu(_) ->
   [].
 
+similar_area_faces_menu(#st{selmode=face}) ->
+  [{?__(1,"Similar Area"), similar_area,
+    ?__(2,"Select faces with areas similar to that of the already selected face"),[option]}];
+similar_area_faces_menu(_) ->
+  [].
+
 groups_menu(#st{ssels=Ssels}=St) -> 
     case gb_trees:is_empty(Ssels) of
         true -> [];
@@ -252,6 +258,8 @@ command(similar, St) ->
     {save_state,similar(St)};
 command({oriented_faces,Ask}, St) ->
     oriented_faces(Ask, St);
+command({similar_area,Ask}, St) ->
+    similar_area(Ask, St);
 command({select_group,Id}, St) ->
     {save_state,select_group(Id, St)};
 command({union_group, Id}, St) ->
@@ -1153,4 +1161,41 @@ build_digraph(Graph, E, Vtab) ->
     digraph:add_vertex(Graph, PosB),
     digraph:add_edge(Graph, PosA, PosB),
     digraph:add_edge(Graph, PosB, PosA).
+
+%%%
+%%% Select faces with similar area
+%%%
+
+similar_area(Ask, _St) when is_atom(Ask) ->
+    Qs = [{label,?__(1,"Area Tolerance")},
+	  {text,0.001,[{range,{0.0,100.0}}]}],
+    wings_ask:dialog(Ask, 
+	?__(2,"Select Similar Area"), [{hframe,Qs}],
+        fun(Res) ->
+	    {select,{similar_area,Res}}
+        end);
+similar_area([Tolerance], St) ->
+    #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
+    case (Mode==face) and (length(Sel)==1) of
+	true -> ok;
+	false -> wings_u:error(?__(3,"Exactly one face must be\n selected on a single object."))
+    end,
+    [{Id,SelectedFs}] = Sel,
+    case gb_sets:size(SelectedFs)==1 of
+	true -> ok;
+	false -> wings_u:error(?__(4,"Exactly one face must be selected."))
+    end,
+    We = gb_trees:get(Id, Shapes),
+    Face1 = hd(gb_sets:to_list(SelectedFs)),
+    Area1 = wings_face:area(Face1, We),
+    SelFun = fun(Face, We2) ->
+	is_area_similar(Area1, Tolerance, Face, We2)
+    end,
+    St2 = wings_sel:make(SelFun, face, St),
+    {save_state,St2}.
+
+is_area_similar(Area1, Tolerance, Face, We) ->
+    Area2 = wings_face:area(Face, We),
+    AreaDiff = abs(Area1-Area2),
+    AreaDiff =< Tolerance.
 

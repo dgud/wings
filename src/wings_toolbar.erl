@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_toolbar.erl,v 1.2 2004/12/19 12:43:38 bjorng Exp $
+%%     $Id: wings_toolbar.erl,v 1.3 2006/12/24 00:08:25 antoneos Exp $
 %%
 
 -module(wings_toolbar).
@@ -142,11 +142,17 @@ buttons_place(W) ->
     Mid = (W - ?BUTTON_WIDTH) div 2,
     Lmarg = 5,
     Rmarg = 5,
-    [{Lmarg,smooth},{Lmarg+?BUTTON_WIDTH,perspective},
+    [{Lmarg,open},
+     {Lmarg+?BUTTON_WIDTH,save},
+     {Lmarg+2*?BUTTON_WIDTH,undo},
+     {Lmarg+3*?BUTTON_WIDTH,redo},
      {Mid-trunc(1.5*?BUTTON_WIDTH),vertex},
      {Mid-trunc(0.5*?BUTTON_WIDTH),edge},
      {Mid+trunc(0.5*?BUTTON_WIDTH),face},
      {Mid+trunc(1.5*?BUTTON_WIDTH),body},
+     {W-5*?BUTTON_WIDTH-Rmarg,pref},
+     {W-4*?BUTTON_WIDTH-Rmarg,smooth},
+     {W-3*?BUTTON_WIDTH-Rmarg,perspective},
      {W-2*?BUTTON_WIDTH-Rmarg,groundplane},
      {W-?BUTTON_WIDTH-Rmarg,axes}].
 
@@ -178,6 +184,11 @@ button_was_hit_1(X, [{Pos,Name}|_]) when Pos =< X, X < Pos+?BUTTON_WIDTH ->
 		 flatshade -> {view,flatshade};
 		 smooth -> {view,workmode};
 		 perspective -> {view,orthogonal_view};
+		 undo -> {edit,undo};
+		 redo -> {edit,redo};
+		 open -> {file,open};
+		 save -> {file,save};
+		 pref -> {edit,{preferences,prefs}};
 		 Other -> {select,Other}
 	     end,
     {toolbar,Client} = wings_wm:this(),
@@ -222,7 +233,13 @@ button_help_3(smooth) ->
     [?STR(messages,show_objects,"Show objects with")," ",
      choose(workmode, true,
 	    ?STR(messages,smooth,"smooth shading"),
-	    ?STR(messages,flat,"flat shading"))].
+	    ?STR(messages,flat,"flat shading"))];
+
+button_help_3(undo) -> ?__(1,"Undo the last command");
+button_help_3(redo) -> ?__(2,"Redo the last command that was undone");
+button_help_3(open) -> ?__(3,"Open a previously saved scene");
+button_help_3(save) -> ?__(4,"Save the current scene");
+button_help_3(pref) -> ?__(5,"Edit the preferences for Wings").
 
 button_restrict(Buttons, none) -> Buttons;
 button_restrict(Buttons0, Restr) ->

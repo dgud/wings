@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_face.erl,v 1.53 2006/04/08 12:35:34 dgud Exp $
+%%     $Id: wings_face.erl,v 1.55 2006/11/08 22:55:21 antoneos Exp $
 %%
 
 -module(wings_face).
@@ -37,6 +37,7 @@
 	 are_neighbors/3,is_planar/3]).
 
 -include("wings.hrl").
+-include("e3d.hrl").
 -import(lists, [map/2,foldl/3,reverse/1,sort/1,keymember/3,member/2]).
 
 from_edges(Es, #we{es=Etab}) when is_list(Es) ->
@@ -145,32 +146,15 @@ center(Face, We) ->
     wings_vertex:center(vertices_ccw(Face, We), We).
 
 %% area(Face, We)
-%%  Return the area of the face, according to a simple triangulation.
-area(Face, #we{fs=Ftab,es=Etab,vp=Vtab}=We) ->
-    E0 = gb_trees:get(Face, Ftab),
-    Edge = gb_trees:get(E0, Etab),
-    %% Traverse ccw
-    {V0,V1,E1} = 
-	case Edge of
-	    #edge{vs=Vs,ve=Ve,lf=Face,ltsu=E} -> {Vs,Ve,E};
-	    #edge{vs=Vs,ve=Ve,rf=Face,rtsu=E} -> {Ve,Vs,E}
-	end,
-    P0 = gb_trees:get(V0, Vtab),
-    P1 = gb_trees:get(V1, Vtab),
-    area_1(Face, We, E0, P0, P1, E1, 0.0).
-
-area_1(_Face, _We, E0, _P0, _P1, E0, Area) when is_float(Area) -> Area * 0.5;
-area_1(Face, #we{es=Etab,vp=Vtab}=We, E0, P0, P1, E1, Area) 
-  when is_float(Area) ->
-    Edge = gb_trees:get(E1, Etab),
-    {V2,E2} = 
-	case Edge of
-	    #edge{ve=V,lf=Face,ltsu=E} -> {V,E};
-	    #edge{vs=V,rf=Face,rtsu=E} -> {V,E}
-	end,
-    P2 = gb_trees:get(V2, Vtab),
-    A = e3d_vec:len(e3d_vec:cross(e3d_vec:sub(P1, P0), e3d_vec:sub(P2, P0))),
-    if is_float(A) -> area_1(Face, We, E0, P0, P2, E2, Area+A) end.
+%%  Return the area of the face, using robust triangulation.
+area(Face, We) ->
+    #we{vp=Vtab} = We,
+    Vs = wings_face:vertices_ccw(Face, We),
+    Vcoords = [gb_trees:get(V, Vtab) || V <- Vs],
+    FaceVs = lists:seq(0, length(Vs)-1),
+    E3dFaces = [#e3d_face{vs=FaceVs}],
+    [Area] = e3d_mesh:face_areas(E3dFaces, Vcoords),
+    Area.
 
 %% Vertex info for drawing.
 
