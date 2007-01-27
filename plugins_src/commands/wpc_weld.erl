@@ -107,7 +107,7 @@ weld_check_selection(#st{sel=[{_Obj,{1,{Vert2,_,_}}}]},#st{sel=[{_Obj,{1,{Vert1,
          CanDo = gb_sets:is_element(Vert2,Sel2),
          if
             CanDo -> {none,""};
-            true -> {none,?__(2,"Vertices you want weld must share edge")}
+            true -> {none,?__(2,"Vertices you want to weld must share edge")}
          end
    end;
 weld_check_selection(#st{sel=[{_Obj,_}]},#st{sel=[{_Obj,_}]}) ->
