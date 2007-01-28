@@ -368,8 +368,11 @@ smart_set_value_1(Key, Val, St) ->
 		    clear_proxy_edges(St);
 		new_system_font ->
 		    delayed_set_value(Key, OldVal, Val),
-		    wings_u:message(?__(1,"The change to the system font will take effect the next time Wings 3D is started."));
+		    wings_u:message(?__(1,"The change to the system font will take\neffect the next time Wings 3D is started."));
 		interface_icons ->
+		    delayed_set_value(Key, OldVal, Val),
+		    wings_u:message(?__(2,"The change to the interface icons will take\neffect the next time Wings 3D is started."));
+		extended_toolbar ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(2,"The change to the interface icons will take\neffect the next time Wings 3D is started."));
 		new_console_font ->
