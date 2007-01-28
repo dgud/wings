@@ -142,19 +142,31 @@ buttons_place(W) ->
     Mid = (W - ?BUTTON_WIDTH) div 2,
     Lmarg = 5,
     Rmarg = 5,
-    [{Lmarg,open},
-     {Lmarg+?BUTTON_WIDTH,save},
-     {Lmarg+2*?BUTTON_WIDTH,undo},
-     {Lmarg+3*?BUTTON_WIDTH,redo},
-     {Mid-trunc(1.5*?BUTTON_WIDTH),vertex},
-     {Mid-trunc(0.5*?BUTTON_WIDTH),edge},
-     {Mid+trunc(0.5*?BUTTON_WIDTH),face},
-     {Mid+trunc(1.5*?BUTTON_WIDTH),body},
-     {W-5*?BUTTON_WIDTH-Rmarg,pref},
-     {W-4*?BUTTON_WIDTH-Rmarg,smooth},
-     {W-3*?BUTTON_WIDTH-Rmarg,perspective},
-     {W-2*?BUTTON_WIDTH-Rmarg,groundplane},
-     {W-?BUTTON_WIDTH-Rmarg,axes}].
+    case wings_pref:get_value(extended_toolbar) of
+	true ->
+	    [{Lmarg,open},
+	     {Lmarg+?BUTTON_WIDTH,save},
+	     {Lmarg+2*?BUTTON_WIDTH,undo},
+	     {Lmarg+3*?BUTTON_WIDTH,redo},
+	     {Mid-trunc(1.5*?BUTTON_WIDTH),vertex},
+	     {Mid-trunc(0.5*?BUTTON_WIDTH),edge},
+	     {Mid+trunc(0.5*?BUTTON_WIDTH),face},
+	     {Mid+trunc(1.5*?BUTTON_WIDTH),body},
+	     {W-5*?BUTTON_WIDTH-Rmarg,pref},
+	     {W-4*?BUTTON_WIDTH-Rmarg,smooth},
+	     {W-3*?BUTTON_WIDTH-Rmarg,perspective},
+	     {W-2*?BUTTON_WIDTH-Rmarg,groundplane},
+	     {W-?BUTTON_WIDTH-Rmarg,axes}];
+	false ->
+	    [{Lmarg,smooth},
+	     {Lmarg+?BUTTON_WIDTH,perspective},
+	     {Mid-trunc(1.5*?BUTTON_WIDTH),vertex},
+	     {Mid-trunc(0.5*?BUTTON_WIDTH),edge},
+	     {Mid+trunc(0.5*?BUTTON_WIDTH),face},
+	     {Mid+trunc(1.5*?BUTTON_WIDTH),body},
+	     {W-2*?BUTTON_WIDTH-Rmarg,groundplane},
+	     {W-?BUTTON_WIDTH-Rmarg,axes}]
+    end.
 
 button_value(groundplane=Name, _, _) ->
     button_value_1(Name, show_groundplane, true);

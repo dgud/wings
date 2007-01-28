@@ -416,6 +416,8 @@ defaults() ->
      {no_progress_bar,false},
      {interface_icons,classic},
      {objects_in_outliner,true},
+     {extended_toolbar,true},
+
      %% Console
      {console_width,80},
      {console_height,12},

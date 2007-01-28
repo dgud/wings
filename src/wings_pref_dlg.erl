@@ -226,7 +226,8 @@ ui_prefs() ->
 	   [{menu,InterfaceIcons,interface_icons}],
 	   [{title,?__(50,"Interface Icons")}]}]}
        ]},
-      {?__(14,"No Progress Bar"),no_progress_bar},
+      {hframe,[{?__(14,"No Progress Bar"),no_progress_bar},
+	       {?__(27,"Extended Toolbar Icons"),extended_toolbar}]},
       {?__(24,"Objects in Outliner"),objects_in_outliner},
       {hframe,[{?__(25,"View image after rendering"),render_load_image},
 	       {?__(26,"Load image after rendering"),render_iload_image}]},
