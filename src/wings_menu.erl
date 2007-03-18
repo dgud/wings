@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_menu.erl,v 1.132 2005/06/27 20:13:06 bjorng Exp $
+%%     $Id: wings_menu.erl,v 1.133 2007/03/18 20:26:48 antoneos Exp $
 %%
 
 -module(wings_menu).
@@ -775,14 +775,17 @@ menu_draw_1(Y, Ps, Sel, #mi{sel=Sel,sel_side=Side,w=W},
 	    DrawLeft, DrawRight) ->
     %% Draw blue background for highlighted item.
     wings_io:set_color(wings_pref:get_value(menu_hilite)),
+    Color = wings_pref:get_value(menu_hilite),
     Cw = wings_text:width(),
     Right = W - (2*right_width(Ps)) - Cw,
     case Side of
 	right ->
-	    gl:recti(Right, Y-?CHAR_HEIGHT, Right+3*Cw-2, Y+3),
+	    {X1,Y1,X2,Y2} = {Right, Y-?CHAR_HEIGHT, Right+3*Cw-2, Y+3},
+	    wings_io:gradient_rect(X1, Y1, X2-X1, Y2-Y1, Color),
 	    wings_io:set_color(wings_pref:get_value(menu_text));
 	left ->
-	    gl:recti(?CHAR_WIDTH, Y-?CHAR_HEIGHT, Right, Y+3),
+	    {X1,Y1,X2,Y2} = {?CHAR_WIDTH, Y-?CHAR_HEIGHT, Right, Y+3},
+	    wings_io:gradient_rect(X1, Y1, X2-X1, Y2-Y1, Color),
 	    wings_io:set_color(wings_pref:get_value(menu_hilited_text))
     end,
     DrawLeft(),
