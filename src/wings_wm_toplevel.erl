@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_wm_toplevel.erl,v 1.55 2004/12/18 19:36:22 bjorng Exp $
+%%     $Id: wings_wm_toplevel.erl,v 1.56 2007/03/18 20:37:25 antoneos Exp $
 %%
 
 -module(wings_wm_toplevel).
@@ -719,7 +719,7 @@ close_event(redraw) ->
 		     2#11000011
 		     >>,
 	    Half = (W-8) div 2,
-	    gl:rasterPos2i(Half+1, H - Half),
+	    gl:rasterPos2i(Half, H - Half),
 	    gl:bitmap(8, 7, 0, 0, 0, 0, Close),
 	    keep
     end;
