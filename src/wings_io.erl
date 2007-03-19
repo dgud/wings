@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_io.erl,v 1.143 2006/08/23 02:56:49 antoneos Exp $
+%%     $Id: wings_io.erl,v 1.144 2007/03/19 22:56:16 antoneos Exp $
 %%
 
 -module(wings_io).
@@ -178,6 +178,9 @@ border_only(X, Y, Mw, Mh, Double) ->
 add_color({R,G,B}, N) -> {R+N,G+N,B+N};
 add_color({R,G,B,A}, N) -> {R+N,G+N,B+N,A}.
 
+mul_color({R,G,B}, N) -> {R*N,G*N,B*N};
+mul_color({R,G,B,A}, N) -> {R*N,G*N,B*N,A}.
+
 set_color({_,_,_}=RGB) -> gl:color3fv(RGB);
 set_color({_,_,_,_}=RGBA) -> gl:color4fv(RGBA).
 
@@ -235,6 +238,21 @@ sunken_border(X, Y, Mw, Mh, PaneColor, false) ->
     gl:vertex2f(X, Y+Mh),
     gl:'end'().
 
+gradient_rect(X, Y, W, H=18, Color) ->
+    GradColors = [0.882353, 0.882353, 0.850980, 0.807843, 0.776471, 0.729412,
+		  0.701961, 0.666667, 0.619608, 0.741176, 0.733333, 0.760784,
+		  0.784314, 0.811765, 0.854902, 0.890196, 0.890196],
+    Draw_Line = fun(Idx) ->
+	GreyValue = lists:nth(Idx+1, GradColors),
+	LineColor = mul_color(Color, GreyValue),
+	set_color(LineColor),
+	gl:vertex2f(X+W, Y+H-Idx),
+	gl:vertex2f(X,	 Y+H-Idx)
+	end,
+    gl:lineWidth(1),
+    gl:'begin'(?GL_LINES),
+    lists:foreach(Draw_Line, lists:seq(0, 16)),
+    gl:'end'();
 gradient_rect(X, Y, W, H, Color) ->
     gl:shadeModel(?GL_SMOOTH),
     gl:'begin'(?GL_QUADS),
@@ -246,7 +264,6 @@ gradient_rect(X, Y, W, H, Color) ->
     gl:vertex2f(X+W, Y),
     gl:'end'(),
     gl:shadeModel(?GL_FLAT).
-
 
 use_font(Font, Fun) ->
     case wings_wm:this() of
@@ -558,7 +575,7 @@ read_out(Eq0) ->
 	{{value,Event},Eq} ->
 	    {Event,Eq};
 	{empty,Eq} ->
-            wait_for_event(Eq)
+	    wait_for_event(Eq)
     end.
 
 read_out(Motion, Eq0) ->
@@ -578,15 +595,15 @@ wait_for_event(Eq) ->
 		   120
 	   end,
     receive
-        {timeout,Ref,{event,Event}} when is_reference(Ref) ->
-            {Event,Eq};
+	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
+	    {Event,Eq};
 	External = {external, _} ->
 	    read_events(enter_events([External], Eq))
     after Time ->
-            case sdl_events:peepEvents() of
-                [] -> wait_for_event(Eq);
-                [_|_]=Evs -> read_events(enter_events(Evs, Eq))
-            end
+	    case sdl_events:peepEvents() of
+		[] -> wait_for_event(Eq);
+		[_|_]=Evs -> read_events(enter_events(Evs, Eq))
+	    end
     end.
 
 %%%
@@ -623,7 +640,7 @@ grab() ->
 do_grab(0) ->
     %% On MacOS X, we used to not do any grab. With newer versions of SDL,
     %% it seems to works better if we do a grab.
-    %% 
+    %%
     %% Good for Linux to read out any mouse events here.
     sdl_events:peepEvents(1, ?SDL_MOUSEMOTIONMASK),
     sdl_video:wm_grabInput(?SDL_GRAB_ON);
@@ -710,12 +727,12 @@ build_cursor_1([], {HotX,HotY,W,H}, Mask0, Bits0) ->
     sdl_mouse:createCursor(Bits, Mask, W, H, HotX, HotY).
 
 hourglass_data() ->
-        "  ............................	 "
+	"  ............................  "
 	" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX "
-       	"X..............................X"
-       	" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX "
-       	"   ..   X..............X   ..   "
-       	"   ..   X..............X   ..   "
+	"X..............................X"
+	" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX "
+	"   ..   X..............X   ..   "
+	"   ..   X..............X   ..   "
 	"   ..   X..............X   ..   "
 	"   ..   X..............X   ..   "
 	"   ..    X............X    ..   "
@@ -724,11 +741,11 @@ hourglass_data() ->
 	"   ..     X..........X     ..   "
 	"   ..     X.X......X.X     ..   "
 	"   ..     X.X.X..X.X.X     ..   "
-       	"   ..      X.X.X.X..X      ..   "
+	"   ..      X.X.X.X..X      ..   "
 	"   ..       X...X..X       ..   "
 	"   ..       X......X       ..   "
 	"   ..      X........X      ..   "
-       	"   ..     X..........X     ..   "
+	"   ..     X..........X     ..   "
 	"   ..     X..........X     ..   "
 	"   ..     X..........X     ..   "
 	"   ..    X............X    ..   "
@@ -737,32 +754,32 @@ hourglass_data() ->
 	"   ..   X....X.X.X.X...X   ..   "
 	"   ..   X...X.X.X.X.X..X   ..   "
 	"   ..   X..X.X.X.X.X.X.X   ..   "
-       	"   ..   X.X.X.X.X.X.XX.X   ..   "
-       	" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX "
-       	"X..............................X"
-       	" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX "
-       	"  ............................	 ".
+	"   ..   X.X.X.X.X.X.XX.X   ..   "
+	" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX "
+	"X..............................X"
+	" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX "
+	"  ............................  ".
 
 eyedropper_data() ->
-        "             XXX"
+	"             XXX"
 	"            X.XX"
 	"         X X..XX"
 	"        X.X..XX "
 	"       X....XX  "
 	"        XXXXX   "
-	"      	X.XXXXX  "
+	"       X.XXXXX  "
 	"      X...XXX   "
 	"     X...X X    "
 	"    X...X       "
 	"   X...X        "
 	"  X...X         "
 	" X...X          "
-       	" X..X           "
-       	"X.XX            "
-       	" X              ".
+	" X..X           "
+	"X.XX            "
+	" X              ".
 
 arrow_data() ->
-        "X                               "
+	"X                               "
 	"XX                              "
 	"X.X                             "
 	"X..X                            "
@@ -796,56 +813,56 @@ arrow_data() ->
 	"                                ".
 
 stop_data() ->
-        "     xxxxxx     "
-        "   xxxxxxxxxx   "
-        "   xxx    xxx   "
+	"     xxxxxx     "
+	"   xxxxxxxxxx   "
+	"   xxx    xxx   "
 	" xxxxx      xxx "
 	" xxxxx      xxx "
-        "xxxxxxx       xx"
-        "xx   xxx      xx"
+	"xxxxxxx       xx"
+	"xx   xxx      xx"
 	"xx    xxx     xx"
 	"xx     xxx    xx"
 	"xx      xxx   xx"
 	"xx       xxxxxxx"
 	" xxx      xxxxx "
 	" xxx      xxxxx "
-        "   xxx    xxx   "
-        "   xxxxxxxxxx   "
-        "     xxxxxx     ".
+	"   xxx    xxx   "
+	"   xxxxxxxxxx   "
+	"     xxxxxx     ".
 
 pointing_hand_data() ->
-        "       xx       "
-        "      x..x      "
-        "      x..x      "
-       	"      x..x      "
-       	"  xx  x..xx     "
-        " x..x x..x.xx   "
-        " x...xx..x.x.xx "
-       	" x....x..x.x.x.x"
-       	"  x...x......x.x"
+	"       xx       "
+	"      x..x      "
+	"      x..x      "
+	"      x..x      "
+	"  xx  x..xx     "
+	" x..x x..x.xx   "
+	" x...xx..x.x.xx "
+	" x....x..x.x.x.x"
+	"  x...x......x.x"
 	"   x...........x"
 	"   x...........x"
-       	"   x..........x "
-        "    x.........x "
-        "    x........x  "
-        "    x........x  "
-        "    x........x  ".
+	"   x..........x "
+	"    x.........x "
+	"    x........x  "
+	"    x........x  "
+	"    x........x  ".
 
 closed_hand_data() ->
-        "                "
-        "                "
-        "                "
-       	"                "
-        "  x xx xx xx    "
-        " x.x..x..x.x.xx "
-       	"x..x..x..x..x..x"
-       	"x...........x..x"
+	"                "
+	"                "
+	"                "
+	"                "
+	"  x xx xx xx    "
+	" x.x..x..x.x.xx "
+	"x..x..x..x..x..x"
+	"x...........x..x"
 	" x.............x"
 	"x..............x"
-       	"x..............x"
-        "x.............x "
-        "x.............x "
-        " x...........x  "
-        "  x..........x  "
-        "  x..........x  ".
+	"x..............x"
+	"x.............x "
+	"x.............x "
+	" x...........x  "
+	"  x..........x  "
+	"  x..........x  ".
 
