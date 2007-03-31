@@ -20,7 +20,7 @@ uniform vec3 auv_bbpos3d[2];
 varying vec3 w3d_pos;
 uniform sampler3D auv_noise;
 
-float auv_noise(float P, vec3 pos)
+float f_auv_noise(float P, vec3 pos)
 {
     float temp = P, total;
     vec4 per = vec4(1.0,temp,temp*temp,temp*temp*temp*temp);
@@ -37,7 +37,7 @@ void main(void)
   float ch_scale  = scale*1.41421/length(ch_center);
   ch_center = (ch_center/2.0) + auv_bbpos3d[0];
   vec3 pos = (ch_scale*(w3d_pos-ch_center))+0.5;
-  float snoise = 2.0 * auv_noise(0.5,pos) - 1.0;
+  float snoise = 2.0 * f_auv_noise(0.5,pos) - 1.0;
   
   // Stretch along y axis
   vec2 adjustedScaledPos = vec2(w3d_pos.x, w3d_pos.y*.25);

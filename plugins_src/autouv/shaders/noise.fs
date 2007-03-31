@@ -16,7 +16,7 @@ uniform sampler3D auv_noise;
 
 // T = fun(P) -> T=1+1/(P)+1/(P*P)+1/(P*P*P*P),All=[1/T,1/(P*T),1/(P*P*T),1/(P*P*P*P*T)], {T,list_to_tuple(All), lists:sum(All)} end.
 
-float auv_noise(float P, vec3 pos)
+float f_auv_noise(float P, vec3 pos)
 {
     float temp = P, total;
     vec4 per = vec4(1.0,temp,temp*temp,temp*temp*temp*temp);
@@ -40,7 +40,7 @@ void main(void)
     vec3 ch_center = (auv_bbpos3d[1]-auv_bbpos3d[0]);
     float ch_scale  = scale*1.41421/length(ch_center);
     ch_center = (ch_center/2.0) + auv_bbpos3d[0];
-    noise = auv_noise(persistance,(ch_scale*(w3d_pos-ch_center))+0.5); // *0.159155
+    noise = f_auv_noise(persistance,(ch_scale*(w3d_pos-ch_center))+0.5); // *0.159155
     vec4 bg = texture2D(auv_bg, w3d_uv);
     fColor = mix(color2, color1, noise);
     float alpha = fColor.w;
