@@ -43,7 +43,7 @@ init() ->
     ets:new(wings_seen_plugins, [named_table,public,ordered_set]),
     put(wings_plugins, []),
     put(wings_ui, def_ui_plugin()),
-    case try_dir(code:lib_dir(wings), "plugins") of
+    case try_dir(wings_util:lib_dir(wings), "plugins") of
 	none -> ok;
 	PluginDir -> init_dir(PluginDir)
     end.
@@ -308,7 +308,7 @@ is_plugin(Name) ->
     end.
 
 plugin_dir() ->
-    case try_dir(code:lib_dir(wings), "plugins") of
+    case try_dir(wings_util:lib_dir(wings), "plugins") of
 	none -> wings_u:error(?__(1,"No \"plugins\" directory found"));
 	PluginDir -> PluginDir
     end.

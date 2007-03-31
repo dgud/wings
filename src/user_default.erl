@@ -50,7 +50,7 @@ wh() ->
 %%%
 
 wx() ->
-    WingsLib = code:lib_dir(wings),
+    WingsLib = wings_util:lib_dir(wings),
     WingsEbin = filename:join(WingsLib, "ebin"),
     case whereis(s) of
 	undefined -> ok;
@@ -237,7 +237,7 @@ p(String) ->
     io:put_chars(String).
 
 get_plugin_dirs() ->
-    Prefix = filename:join(code:lib_dir(wings), "plugins"),
+    Prefix = filename:join(wings_util:lib_dir(wings), "plugins"),
     Path = code:get_path(),
     get_plugin_dirs(Path, Prefix, []).
 

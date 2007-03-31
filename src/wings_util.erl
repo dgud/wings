@@ -25,6 +25,7 @@
 	 gb_trees_map/2,gb_trees_to_gb_set/1,
 	 nice_float/1,
 	 unique_name/2,
+	 lib_dir/1,
 	 tc/3,
 	 min/2,max/2,limit/2]).
 
@@ -313,3 +314,15 @@ format_p(Str) when is_list(Str)  ->
     [$",Str,$"];
 format_p(Str) ->
     io_lib:format("~p", [Str]).
+
+lib_dir(wings) ->
+    case code:lib_dir(wings) of
+	{error,bad_name} ->
+	    ["wings.beam","ebin"|Rev] = lists:reverse(filename:split(code:which(wings))),
+	    filename:join(lists:reverse(Rev));
+	Dir -> 
+	    Dir
+    end;
+lib_dir(Lib) ->
+    code:lib_dir(Lib).
+    

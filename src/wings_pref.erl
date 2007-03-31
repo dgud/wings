@@ -132,7 +132,7 @@ win32_pref_1(R, [FolderType|T]) ->
             end
     end;
 win32_pref_1(R, []) ->
-    case try_location(code:lib_dir(wings), ?WIN32_PREFS) of
+    case try_location(wings_util:lib_dir(wings), ?WIN32_PREFS) of
         none -> win32_pref_2(R);
         File -> File
     end.
@@ -250,7 +250,7 @@ win32_new_pref_1(R, [FolderType|T]) ->
 win32_new_pref_1(_, []) ->
     %% Desperate fallback for very old Window systems.
     %% (No "My Documents" folder.)
-    filename:join(code:lib_dir(wings), ?WIN32_PREFS).
+    filename:join(wings_util:lib_dir(wings), ?WIN32_PREFS).
 
 %%%
 %%% Utilities.

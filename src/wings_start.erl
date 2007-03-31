@@ -62,4 +62,4 @@ disable_patches() ->
     file:delete(Name).
 
 patch_dir() ->
-    filename:join(code:lib_dir(wings), "patches").
+    filename:join(wings_util:lib_dir(wings), "patches").

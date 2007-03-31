@@ -431,7 +431,7 @@ bad_char(C) ->
 %%%
 
 load_fonts() ->
-    Wc = filename:join([code:lib_dir(wings),"fonts","*.wingsfont"]),
+    Wc = filename:join([wings_util:lib_dir(wings),"fonts","*.wingsfont"]),
     Fonts = filelib:wildcard(Wc),
     foreach(fun(F) -> load_font(F) end, Fonts).
 

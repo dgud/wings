@@ -64,7 +64,7 @@ load_language_only(Lang0) when is_list(Lang0) ->
 	?DEF_LANG_ATOM -> ok;
 	_  ->
 	    ets:new(?MODULE, [named_table]),
-	    Root = code:lib_dir(wings),
+	    Root = wings_util:lib_dir(wings),
 	    LangFile = "_"++Lang0++".lang",
 	    load_language(Root, ?LANG_DIRS, LangFile)
     end.
@@ -170,7 +170,7 @@ load_file_2(Trans) ->
     Trav(Trans,[],Trav).
 
 available_languages() ->
-    Root = code:lib_dir(wings),
+    Root = wings_util:lib_dir(wings),
     Files = 
 	filelib:wildcard(filename:join([Root,"src","*.lang"])) ++ 
 	filelib:wildcard(filename:join([Root,"ebin","*.lang"])),
