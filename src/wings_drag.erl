@@ -85,7 +85,7 @@ setup_mode(Flags, Falloff) ->
     end.
     
 standard_mode_fun(Falloff) ->
-    Help0 = ?__(1,"[Shift] and/or [Ctrl] Constrain"),
+    Help0 = ?__(1,"[Shift] and/or [Ctrl] and/or [Alt] Constrain"),
     Help = case Falloff of
 	       none -> Help0;
 	       _ ->
@@ -664,19 +664,72 @@ clamp({_,{_Min,Max}}, D) when D > Max -> Max;
 clamp(_, D) -> D.
 
 constraint_factor(angle, Mod) ->
+	RCS = wings_pref:get_value(rot_con_shift),
+	RCC = wings_pref:get_value(rot_con_ctrl),
+      RCCS = wings_pref:get_value(rot_con_ctrl_shift),
+	RCA = wings_pref:get_value(rot_con_alt),
+	RCCA= wings_pref:get_value(rot_con_ctrl_alt),
+      RCSA = wings_pref:get_value(rot_con_shift_alt),
+	RCCSA = wings_pref:get_value(rot_con_ctrl_shift_alt),
     if
 	Mod band ?SHIFT_BITS =/= 0,
-	Mod band ?CTRL_BITS =/= 0 -> {15,1/15};%{150,1/15};
-	Mod band ?CTRL_BITS =/= 0 -> {1,1.0};%{15,1.0};
-	Mod band ?SHIFT_BITS =/= 0 ->{1/15,15.0};%{1,15.0};
+	Mod band ?ALT_BITS =/= 0,
+	Mod band ?CTRL_BITS =/= 0 -> {1/RCCSA,RCCSA};
+	Mod band ?SHIFT_BITS =/= 0,
+	Mod band ?ALT_BITS =/= 0 -> {1/RCSA,RCSA};
+	Mod band ?CTRL_BITS =/= 0,
+	Mod band ?ALT_BITS =/= 0 -> {1/RCCA,RCCA};
+	Mod band ?SHIFT_BITS =/= 0,
+	Mod band ?CTRL_BITS =/= 0 -> {1/RCCS,RCCS};
+	Mod band ?CTRL_BITS =/= 0 -> {1/RCC,RCC};
+	Mod band ?SHIFT_BITS =/= 0 -> {1/RCS,RCS};
+	Mod band ?ALT_BITS =/= 0 -> {1/RCA,RCA};
+	true -> none
+    end;
+constraint_factor(percent, Mod) ->
+      SCS = (wings_pref:get_value(scale_con_shift)/100),
+	SCC = (wings_pref:get_value(scale_con_ctrl)/100),
+	SCCS = (wings_pref:get_value(scale_con_ctrl_shift)/100),
+	SCA = (wings_pref:get_value(scale_con_alt)/100),
+	SCCA = (wings_pref:get_value(scale_con_ctrl_alt)/100),
+	SCSA = (wings_pref:get_value(scale_con_shift_alt)/100),
+	SCCSA = (wings_pref:get_value(scale_con_ctrl_shift_alt)/100),
+	if
+	Mod band ?SHIFT_BITS =/= 0,
+	Mod band ?ALT_BITS =/= 0, 
+	Mod band ?CTRL_BITS =/= 0-> {1/SCCSA,SCCSA};
+	Mod band ?SHIFT_BITS =/= 0,
+	Mod band ?ALT_BITS =/= 0 -> {1/SCSA,SCSA};
+	Mod band ?CTRL_BITS =/= 0,
+	Mod band ?ALT_BITS =/= 0 -> {1/SCCA,SCCA};
+	Mod band ?CTRL_BITS =/= 0,
+	Mod band ?SHIFT_BITS =/= 0 -> {1/SCCS,SCCS};
+	Mod band ?CTRL_BITS =/= 0 -> {1/SCC,SCC};
+	Mod band ?SHIFT_BITS =/= 0 -> {1/SCS,SCS};
+	Mod band ?ALT_BITS =/= 0 -> {1/SCA,SCA};
 	true -> none
     end;
 constraint_factor(_, Mod) ->
+      DCS = wings_pref:get_value(dist_con_shift),
+	DCC = wings_pref:get_value(dist_con_ctrl),
+	DCCS = wings_pref:get_value(dist_con_ctrl_shift),
+	DCA = wings_pref:get_value(dist_con_alt),
+	DCCA = wings_pref:get_value(dist_con_ctrl_alt),
+	DCSA = wings_pref:get_value(dist_con_shift_alt),
+	DCCSA = wings_pref:get_value(dist_con_ctrl_shift_alt),
     if
 	Mod band ?SHIFT_BITS =/= 0,
-	Mod band ?CTRL_BITS =/= 0 -> {100,1/100};
-	Mod band ?CTRL_BITS =/= 0 -> {10,1/10};
-	Mod band ?SHIFT_BITS =/= 0 -> {1,1.0};
+	Mod band ?ALT_BITS =/= 0, 
+	Mod band ?CTRL_BITS =/= 0-> {1/DCCSA,DCCSA};
+	Mod band ?SHIFT_BITS =/= 0,
+	Mod band ?ALT_BITS =/= 0 -> {1/DCSA,DCSA};
+	Mod band ?CTRL_BITS =/= 0,
+	Mod band ?ALT_BITS =/= 0 -> {1/DCCA,DCCA};
+	Mod band ?CTRL_BITS =/= 0,
+	Mod band ?SHIFT_BITS =/= 0 -> {1/DCCS,DCCS};
+	Mod band ?CTRL_BITS =/= 0 -> {1/DCC,DCC};
+	Mod band ?SHIFT_BITS =/= 0 -> {1/DCS,DCS};
+	Mod band ?ALT_BITS =/= 0 -> {1/DCA,DCA};
 	true -> none
     end.
 

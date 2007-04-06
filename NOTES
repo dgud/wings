@@ -1,3 +1,7 @@
+--- 0.98.XX -----------------------------------------------------------------
+
+- Ability to set drag constraints. [contributed by Richard Jones (Optigon)]
+
 --- 0.98.36 -----------------------------------------------------------------
 
 - Absolute snap now can pick reference point, old snap that used center of
