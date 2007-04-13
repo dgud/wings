@@ -5,7 +5,7 @@
 %%     we records (winged-edged records, the central data structure
 %%     in Wings 3D).
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2007 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -510,7 +510,6 @@ build_faces_1([{Face,[Edge|_]}|Fs], Acc) ->
     build_faces_1(Fs, [{Face,Edge}|Acc]);
 build_faces_1([], Acc) -> gb_trees:from_orddict(reverse(Acc)).
 
-fill_holes([]) ->  [];
 fill_holes(Es) ->
     G = digraph:new(),
     make_digraph(Es, G),

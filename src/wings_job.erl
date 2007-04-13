@@ -3,7 +3,7 @@
 %%
 %%     OS job handling support for plugin writers.
 %%
-%%  Copyright (c) 2005 Raimo Niskanen
+%%  Copyright (c) 2005-2007 Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -185,7 +185,7 @@ scan_bat(F) ->
 	    scan_bat(F);
 	"set"++[C|_] when C==$ ; C==$\t; C==$\n ->
 	    scan_bat(F);
-	Line when list(Line) ->
+	Line when is_list(Line) ->
 	    %% Check if this is the name of an executable file
 	    File = [C || C <- Line, C =/= $"], % Remove doublequotes
 	    Filename = filename:nativename(File),
@@ -201,9 +201,7 @@ scan_bat(F) ->
 		    end;
 		_ ->
 		    scan_bat(F)
-	    end;
-	_ ->
-	    false
+	    end
     end.
 
 
