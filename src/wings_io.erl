@@ -831,22 +831,22 @@ stop_data() ->
 	"     xxxxxx     ".
 
 pointing_hand_data() ->
-	"       xx       "
-	"  xxx x..xxx    "
-	"  x..xx..x..x   "
-	"  x..xx..x..x x "
-	"   x..x..x..xx.x"
-	"   x..x..x..x..x"
-	" xxxx.......x..x"
-	"x..xx..........x"
-	"x...x.........x "
-	" x............x "
-	"  x...........x "
-	"   x.........x  "
-	"    x........x  "
-	"     x......x   "
-	"     x......x   "
-	"     x......x   ".
+	"      XX        "
+	"     X..X       "
+	"     X..X       "
+	"     X..XXX     "
+	"     X..X.XXX   "
+	"     X..X.X.XXX "
+	"  XX X..X.X.X.X "
+	" X..XX......X.X "
+	" X...X........X "
+	"  X...........X "
+	"   X..........X "
+	"   X.........X  "
+	"    X........X  "
+	"     X......X   "
+	"     X......X   "
+	"     XXXXXXXX   ".
 
 closed_hand_data() ->
 	"                "
