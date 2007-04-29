@@ -2,6 +2,9 @@
 
 - Ability to set drag constraints. [contributed by Richard Jones (Optigon)]
 
+- Small add to right mouse button absolute snap, now you can lock movement
+  in x, y or z. [Giniu]
+
 --- 0.98.36 -----------------------------------------------------------------
 
 - Absolute snap now can pick reference point, old snap that used center of

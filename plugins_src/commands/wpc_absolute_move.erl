@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for absolute commands -> move and snap
 %%
-%%  Copyright (c) 2006 Andrzej Giniewicz
+%%  Copyright (c) 2006-2007 Andrzej Giniewicz
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -102,7 +102,7 @@ move(#st{shapes=Shapes}=St) ->
                   true -> true
               end,
     Align = not OneObject,
-    draw_window({{move_obj,MoveObj},{flatten,Flatten},{align,Align},{from,Center},{to,Center}},Sel,St).
+    draw_window({{move_obj,MoveObj},{flatten,Flatten},{align,Align},{from,Center},{to,Center},{lock,false}},Sel,St).
 
 %%%
 %%% absolute snap
@@ -146,7 +146,7 @@ nsnap({From,To}, #st{shapes=Shs}=St) ->
                   true -> true
               end,
     Align = not OneObject,
-    draw_window({{move_obj,MoveObj},{flatten,Flatten},{align,Align},{from,From},{to,To}},Sel,St).
+    draw_window({{move_obj,MoveObj},{flatten,Flatten},{align,Align},{from,From},{to,To},{lock,true}},Sel,St).
 
 %%%
 %%% some helpful test and investigation functions
@@ -239,7 +239,7 @@ selection_ask([target|Rest],Ask) ->
 %%  and calls do_move(ProcessedOptions,Selection,State)
 %%
 
-draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default}},Sel,St) ->
+draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default},{_,Lock}},Sel,St) ->
     Frame1 = [{vframe,
                  [draw_window1(center,Default)] ++
                  [draw_window1(object,MoveObj)]}],
@@ -255,6 +255,12 @@ draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default}},Sel,St) -
                  true ->
                      []
              end,
+    Frame35 = if
+                 Lock ->
+                     [draw_window1(lock,default)];
+                 true ->
+                     []
+              end,
     Frame4 = if
                  MoveObj =/= duplionly -> 
                      [draw_window1(duplicate,true)];
@@ -262,8 +268,8 @@ draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default}},Sel,St) -
                      []
              end,
     Frame5 = if
-                Frame2 =/= [] orelse Frame3 =/= [] -> 
-                    [{hframe,Frame1++[{vframe,[{hframe,Frame2++Frame3}]++Frame4}]}];
+                Frame2 =/= [] orelse Frame3 =/= [] orelse Frame35 =/= [] -> 
+                    [{hframe,Frame1++[{vframe,[{hframe,Frame2++Frame3++Frame35}]++Frame4}]}];
                 true ->
                     [{vframe,Frame1++Frame4}]
             end,
@@ -279,9 +285,9 @@ draw_window1(name,_) ->
 draw_window1(center,{XC,YC,ZC}) ->
     {vframe,[
         {hframe,[{label,?__(2,"Set position")++":"}]},
-        {hframe,[{label,"X:"},{text,XC}]},
-        {hframe,[{label,"Y:"},{text,YC}]},
-        {hframe,[{label,"Z:"},{text,ZC}]}
+        {hframe,[{label,"X:"},{text,XC,[disable(lx)]}]},
+        {hframe,[{label,"Y:"},{text,YC,[disable(ly)]}]},
+        {hframe,[{label,"Z:"},{text,ZC,[disable(lz)]}]}
     ]};
 draw_window1(object,one) ->
     {?__(3,"Move object"),false,[{key,all}]};
@@ -312,6 +318,13 @@ draw_window1(flatten,_) ->
         {hframe,[{"",false,[{key,fy}]}]},
         {hframe,[{"",false,[{key,fz}]}]}
     ]};
+draw_window1(lock, _) ->
+    {vframe,[
+        {hframe,[{label,?__(9,"Lock")++":"}]},
+        {hframe,[{"",false,[{key,lx}]}]},
+        {hframe,[{"",false,[{key,ly}]}]},
+        {hframe,[{"",false,[{key,lz}]}]}
+    ]};
 draw_window1(reference,{X,Y,Z}) ->
     {label,?__(8,"Reference point is") ++ ": (" ++
     wings_util:nice_float(X)++", "++
@@ -328,39 +341,44 @@ disable(dupli) ->
                   (gb_trees:get(dupli, Store) > 1) and 
                   not ((gb_trees:is_defined(all,Store)) andalso (not gb_trees:get(all, Store)));
               (_, _) -> void
+          end};
+disable(Other) ->
+    {hook,fun (is_disabled, {_Var,_I,Store}) ->
+                  gb_trees:is_defined(Other,Store) andalso gb_trees:get(Other, Store);
+              (_, _) -> void
           end}.
 
-translate([X,Y,Z,{dupli,Dupli}],Center,Sel,St) ->
-    do_move([Center,{X,Y,Z},true,{false,false,false},{false,false,false},Dupli],Sel,St);
-translate([X,Y,Z,{all,Object},{dupli,Dupli}],Center,Sel,St) ->
-    Dupli2 = if
-                 Object -> Dupli;
-                 true -> 0
-             end,
-    do_move([Center,{X,Y,Z},Object,{false,false,false},{false,false,false},Dupli2],Sel,St);
-translate([X,Y,Z,{all,Object},{fx,Fx},{fy,Fy},{fz,Fz},{dupli,Dupli}],Center,Sel,St) ->
-    Dupli2 = if
-                 Object -> Dupli;
-                 true -> 0
-             end,
-    do_move([Center,{X,Y,Z},Object,{false,false,false},{Fx,Fy,Fz},Dupli2],Sel,St);
-translate([X,Y,Z,{dupli,Dupli},{ax,Ax},{ay,Ay},{az,Az}],Center,Sel,St) ->
-    AllowAlign = not (Dupli>1),
-    do_move([Center,{X,Y,Z},true,{Ax and AllowAlign,Ay and AllowAlign,Az and AllowAlign},{false,false,false},Dupli],Sel,St);
-translate([X,Y,Z,{all,Object},{ax,Ax},{ay,Ay},{az,Az},{dupli,Dupli}],Center,Sel,St) ->
-    Dupli2 = if
-                 Object -> Dupli;
-                 true -> 0
-             end,
-    AllowAlign = not (Dupli2>1),
-    do_move([Center,{X,Y,Z},Object,{Ax and AllowAlign,Ay and AllowAlign,Az and AllowAlign},{false,false,false},Dupli2],Sel,St);
-translate([X,Y,Z,{all,Object},{ax,Ax},{ay,Ay},{az,Az},{fx,Fx},{fy,Fy},{fz,Fz},{dupli,Dupli}],Center,Sel,St) ->
-    Dupli2 = if
-                 Object -> Dupli;
-                 true -> 0
-             end,
-    AllowAlign = not (Dupli2>1),
-    do_move([Center,{X,Y,Z},Object,{Ax and AllowAlign,Ay and AllowAlign,Az and AllowAlign},{Fx,Fy,Fz},Dupli2],Sel,St).
+lookup(Key, List, Default) ->
+   case lists:keysearch(Key, 1, List) of
+      {value,{_,Value}} -> Value;
+      _ -> Default
+   end.
+
+translate([X,Y,Z|Options],{CX,CY,CZ}=Center,Sel,St) ->
+   NX = case lookup(lx,Options,false) of
+           true -> CX;
+           _ -> X
+        end,
+   NY = case lookup(ly,Options,false) of
+           true -> CY;
+           _ -> Y
+        end,
+   NZ = case lookup(lz, Options, false) of
+           true -> CZ;
+           _ -> Z
+        end,
+   Obj = lookup(all,Options,true),
+   Dupli = case lookup(dupli,Options,0) of
+              N when Obj -> N;
+              _ -> 0
+           end,
+   Ax = lookup(ax,Options,false) and (Dupli>0),
+   Ay = lookup(ay,Options,false) and (Dupli>0),
+   Az = lookup(az,Options,false) and (Dupli>0),
+   Fx = lookup(fx,Options,false),
+   Fy = lookup(fy,Options,false),
+   Fz = lookup(fz,Options,false),
+   do_move([Center,{NX,NY,NZ},Obj,{Ax,Ay,Az},{Fx,Fy,Fz},Dupli],Sel,St).
 
 %%
 %% do_move(Options,Selection,State)
@@ -449,3 +467,4 @@ execute_move({Dx,Dy,Dz},{Nx,Ny,Nz},{Fx,Fy,Fz},Wo,Vset,Vtab,Now) ->
             NewNow = gb_trees:insert(Vertex,{X1,Y1,Z1},Now),
             execute_move({Dx,Dy,Dz},{Nx,Ny,Nz},{Fx,Fy,Fz},Wo,Vset,Vtab2,NewNow)
     end.
+

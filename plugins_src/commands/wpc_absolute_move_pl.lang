@@ -3,7 +3,7 @@
 %%
 %%     Polish language strings for Absolute Move.
 %%
-%%  Copyright (c) 2006 Andrzej Giniewicz
+%%  Copyright (c) 2006-2007 Andrzej Giniewicz
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -35,7 +35,8 @@
     {5,"Kopie"},
     {6,"Wyrównaj"},
     {7,"Wypłaszcz"},
-    {8,"Punkt odniesienia to"}
+    {8,"Punkt odniesienia to"},
+    {9,"Zablokuj"}
    ]},
   {mirror_error,
    [
