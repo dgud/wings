@@ -285,9 +285,9 @@ draw_window1(name,_) ->
 draw_window1(center,{XC,YC,ZC}) ->
     {vframe,[
         {hframe,[{label,?__(2,"Set position")++":"}]},
-        {hframe,[{label,"X:"},{text,XC,[disable(lx)]}]},
-        {hframe,[{label,"Y:"},{text,YC,[disable(ly)]}]},
-        {hframe,[{label,"Z:"},{text,ZC,[disable(lz)]}]}
+        {hframe,[{label,"X:"},{text,XC,[{key,x},disable(lx)]}]},
+        {hframe,[{label,"Y:"},{text,YC,[{key,y},disable(ly)]}]},
+        {hframe,[{label,"Z:"},{text,ZC,[{key,z},disable(lz)]}]}
     ]};
 draw_window1(object,one) ->
     {?__(3,"Move object"),false,[{key,all}]};
@@ -354,7 +354,10 @@ lookup(Key, List, Default) ->
       _ -> Default
    end.
 
-translate([X,Y,Z|Options],{CX,CY,CZ}=Center,Sel,St) ->
+translate(Options,{CX,CY,CZ}=Center,Sel,St) ->
+   X = lookup(x, Options, 0.0),
+   Y = lookup(y, Options, 0.0),
+   Z = lookup(z, Options, 0.0),
    NX = case lookup(lx,Options,false) of
            true -> CX;
            _ -> X

@@ -5,6 +5,11 @@
 - Small add to right mouse button absolute snap, now you can lock movement
   in x, y or z. [Giniu]
 
+- Changes to absolute scale, ability to link sizes (uniform scale), ability to
+  pick scale centre from scene using RMB absolute scale, ability to pick target
+  size from scene using MMB absolute scale and option to fit selection into
+  picked target by automatically adjusting scale centre. [Giniu]
+
 --- 0.98.36 -----------------------------------------------------------------
 
 - Absolute snap now can pick reference point, old snap that used center of
