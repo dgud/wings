@@ -10,6 +10,9 @@
   size from scene using MMB absolute scale and option to fit selection into
   picked target by automatically adjusting scale centre. [Giniu]
 
+- PovRay exporter and renderer added.
+  [contributed by Chris Hegarty (Avariant)]
+
 --- 0.98.36 -----------------------------------------------------------------
 
 - Absolute snap now can pick reference point, old snap that used center of

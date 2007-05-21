@@ -42,7 +42,8 @@ MODULES= \
 	wpc_stl \
 	wpc_x \
 	wpc_lwo \
-	wpc_yafray
+	wpc_yafray \
+	wpc_pov
 
 TRANSLATABLE= \
 	wpc_ai \
