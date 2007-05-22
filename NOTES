@@ -13,6 +13,9 @@
 - PovRay exporter and renderer added.
   [contributed by Chris Hegarty (Avariant)]
 
+- Added a live miniature-axis icon to the lower-left corner of the screen.
+  [Scorpius]
+
 --- 0.98.36 -----------------------------------------------------------------
 
 - Absolute snap now can pick reference point, old snap that used center of
