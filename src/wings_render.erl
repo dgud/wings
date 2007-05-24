@@ -647,42 +647,83 @@ mini_axis_icon() ->
     gl:popAttrib().
 
 draw_mini_axis() ->
+    {PA,PB} = {0.08,0.01},
+    {Red,Green,Blue} = {{1,0,0},{0,1,0},{0,0,1}},
     gl:'begin'(?GL_LINES),
     %% X Axis
-    gl:color3f(1,0,0),
+    gl:color3fv(Red),
     gl:vertex3f(0,0,0),
     gl:vertex3f(0.1,0.0,0.0),
     %% Y Axis
-    gl:color3f(0,1,0),
+    gl:color3fv(Green),
     gl:vertex3f(0,0,0),
     gl:vertex3f(0.0,0.1,0.0),
     %% Z Axis
-    gl:color3f(0,0,1),
+    gl:color3fv(Blue),
     gl:vertex3f(0,0,0),
     gl:vertex3f(0.0,0.0,0.1),
     View = wings_view:current(),
     case View#view.along_axis of
 	none ->
-	    {PA,PB} = {0.08,0.01},
 	    %% X Arrows
-	    gl:color3f(1,0,0),
+	    gl:color3fv(Red),
 	    gl:vertex3f(PA,0.0,-PB),
 	    gl:vertex3f(0.1,0.0,0.0),
 	    gl:vertex3f(PA,0.0,PB),
 	    gl:vertex3f(0.1,0.0,0.0),
 	    %% Y Arrows
-	    gl:color3f(0,1,0),
+	    gl:color3fv(Green),
 	    gl:vertex3f(-PB,PA,0.0),
 	    gl:vertex3f(0.0,0.1,0.0),
 	    gl:vertex3f(PB,PA,0.0),
 	    gl:vertex3f(0.0,0.1,0.0),
 	    %% Z Arrows
-	    gl:color3f(0,0,1),
+	    gl:color3fv(Blue),
 	    gl:vertex3f(-PB,0.0,PA),
 	    gl:vertex3f(0.0,0.0,0.1),
 	    gl:vertex3f(PB,0.0,PA),
 	    gl:vertex3f(0.0,0.0,0.1);
-	 _ ->
+	x ->
+	    %% Y Arrows
+	    gl:color3fv(Green),
+	    gl:vertex3f(0.0,PA,-PB),
+	    gl:vertex3f(0.0,0.1,0.0),
+	    gl:vertex3f(0.0,PA,PB),
+	    gl:vertex3f(0.0,0.1,0.0),
+	    %% Z Arrows
+	    gl:color3fv(Blue),
+	    gl:vertex3f(0.0,-PB,PA),
+	    gl:vertex3f(0.0,0.0,0.1),
+	    gl:vertex3f(0.0,PB,PA),
+	    gl:vertex3f(0.0,0.0,0.1);
+	y ->
+	    %% X Arrows
+	    gl:color3fv(Red),
+	    gl:vertex3f(PA,0.0,-PB),
+	    gl:vertex3f(0.1,0.0,0.0),
+	    gl:vertex3f(PA,0.0,PB),
+	    gl:vertex3f(0.1,0.0,0.0),
+	    %% Z Arrows
+	    gl:color3fv(Blue),
+	    gl:vertex3f(-PB,0.0,PA),
+	    gl:vertex3f(0.0,0.0,0.1),
+	    gl:vertex3f(PB,0.0,PA),
+	    gl:vertex3f(0.0,0.0,0.1);
+	z ->
+	    %% X Arrows
+	    gl:color3fv(Red),
+	    gl:vertex3f(PA,-PB,0.0),
+	    gl:vertex3f(0.1,0.0,0.0),
+	    gl:vertex3f(PA,PB,0.0),
+	    gl:vertex3f(0.1,0.0,0.0),
+	    %% Y Arrows
+	    gl:color3fv(Green),
+	    gl:vertex3f(-PB,PA,0.0),
+	    gl:vertex3f(0.0,0.1,0.0),
+	    gl:vertex3f(PB,PA,0.0),
+	    gl:vertex3f(0.0,0.1,0.0),
+	    ok;
+	_ ->
 	    ok
     end,
     gl:'end'().
