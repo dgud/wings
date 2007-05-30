@@ -100,6 +100,7 @@ init_pref() ->
 	end,
 	set_var(renderargs, get_pref(renderargs, LocalArgs)),
 	set_var(limit_vertices, get_pref(limit_vertices, true)),
+	set_var(use_model_dim, get_pref(use_model_dim, false)),
     ok.
     
 %insert menu items into export, export selected, render, and plugin preferences
@@ -183,8 +184,10 @@ pref_dialog(St) ->
 			LocalArgs = ?DEF_LINUX_RENDERARGS
 	end,
 	
-	[{dialogs, Dialogs}, {renderer, Renderer}, {use_emit_ambient, UseEmitAmbient}, {renderargs, RenderArgs}, {limit_vertices, LimitVertices}] = 
-		get_user_prefs([{dialogs,?DEF_DIALOGS},{renderer, LocalRenderer}, {use_emit_ambient,true},{renderargs, LocalArgs}, {limit_vertices, true}]),
+	[{dialogs, Dialogs}, {renderer, Renderer}, {use_emit_ambient, UseEmitAmbient}, 
+	{renderargs, RenderArgs}, {limit_vertices, LimitVertices}, {use_model_dim, UseModelDim}] = 
+		get_user_prefs([{dialogs,?DEF_DIALOGS},{renderer, LocalRenderer}, {use_emit_ambient,true},
+		{renderargs, LocalArgs}, {limit_vertices, true}, {use_model_dim, false}]),
 
     Dialog =
 		[{vframe, [
@@ -196,6 +199,7 @@ pref_dialog(St) ->
 			]},
 			{hframe,[ {label,"Executable"}, {button, {text, Renderer, [{key,renderer}, wings_job:browse_props()]}}]},
 			{hframe, [ {label, "Arguments"}, {text, RenderArgs, [{key, renderargs}]}]},
+			{"Fix camera dimensions to model view dimensions", UseModelDim, [{key, use_model_dim}]},
 			{"Use material Emit for POV-Ray Ambient", UseEmitAmbient, [{key, use_emit_ambient}]},
 			{"Limit number of vertices, indices per line", LimitVertices, [{key, limit_vertices}]}
 		]}],
@@ -213,6 +217,7 @@ do_export(Ask, Op, _Exporter, _St) when is_atom(Ask) ->
 	       end);
 do_export(Attr, Op, Exporter, St) when is_list(Attr) ->
     set_prefs(Attr),
+	
 	%Basic additional settings
     SubDivs = proplists:get_value(subdivisions, Attr, 0),
     Tesselation = proplists:get_value(tesselation, Attr, none),
@@ -256,6 +261,22 @@ export(Filename, Contents, Attr) ->
 		true ->ExportFile = filename:rootname(Filename)++"_export.pov"
 	end,
 	
+	case get_var(use_model_dim) of
+		false ->
+			Width = proplists:get_value(width, Attr, 320),
+			Height = proplists:get_value(height, Attr, 240);
+		_ ->
+			%get the focus window.  If it isn't a sub geom window, use the primary geom window
+			case wings_wm:actual_focus_window() of
+				{geom, N}-> {Width, Height} = wings_wm:win_size({geom, N});
+				_ -> {Width, Height} = wings_wm:win_size(geom)
+			end
+	end,
+	
+	#camera_info{fov=Fov} = proplists:lookup(camera_info, Attr),
+	Depth = (float(Height) / 2.0) / math:tan((Fov / 2.0) * math:pi() / 180.0),
+	CorrectedFOV = 2.0 * math:atan((float(Width) / 2.0) / Depth) * 180.0 / math:pi(), 
+	
 	{ok, F} = file:open(ExportFile, [write]),
 	
 	io:format(F, "// ~s: Exported from ~s \n\n", [filename:basename(ExportFile), Creator]),
@@ -268,15 +289,16 @@ export(Filename, Contents, Attr) ->
 	io:format(F, "background { rgb <~f, ~f, ~f> }\n", [Br, Bg, Bb]),
 	
 	export_interior(F, Attr),
-	export_camera(F, Attr),
+	export_camera(F, Attr, CorrectedFOV, Width, Height),
 	
 	Lights = proplists:get_value(lights, Attr, []),
 	export_lights(F, Lights),
 	
 	export_materials(F, Mats, Attr, ExportDir),
-	export_objects(F, Objs, Mats, Attr),
+	export_objects(F, Objs, Mats, Attr, 0),
 			
 	file:close(F),
+	
 	
     case {get_var(renderer), Render} of
 		{_, false} ->
@@ -287,8 +309,8 @@ export(Filename, Contents, Attr) ->
 			wings_job:export_done(ExportTS),
 			io:nl();
 		{Renderer, true} ->
-			ArgStr = wings_job:quote(filename:basename(ExportFile))++" +W"++wings_job:quote(integer_to_list(proplists:get_value(width, Attr, 320)))++
-				" +H"++wings_job:quote(integer_to_list(proplists:get_value(height, Attr, 240)))++
+			ArgStr = wings_job:quote(filename:basename(ExportFile))++" +W"++wings_job:quote(integer_to_list(Width))++
+				" +H"++wings_job:quote(integer_to_list(Height))++
 				" +FN +o"++wings_job:quote(filename:basename(Filename))++
 				case proplists:get_value(antialias, Attr, false) of
 					false->[];
@@ -372,18 +394,24 @@ export_interior(F, Attr)->
 			io:put_chars(F, "}\n")
 	end.
 			
-export_camera(F, Attr)->
+export_camera(F, Attr, CorrectedFOV, Width, Height)->
 	
-	#camera_info{pos=Pos,dir=Dir,up=Up,fov=Fov} = proplists:lookup(camera_info, Attr),
+	#camera_info{pos=Pos,dir=Dir,up=Up} = proplists:lookup(camera_info, Attr),
 	{Dx, Dy, Dz} = Dir,
 	{Px, Py, Pz} = Pos,
+	
+	%%FOV, Width and Height information passed in to allow dimensions to be forced
+	%%to geometry screen size
+	Fov = CorrectedFOV,
+	%Width = proplists:get_value(width, Attr, 320),
+	%Height = proplists:get_value(height, Attr, 240),
+	
 	io:format(F, "#declare camera_location = <~f, ~f, ~f>;\n", [Px, Py, Pz]),
 	io:put_chars(F, "camera{\n"),
 	
 	io:format(F, "\t ~s\n", [atom_to_list(proplists:get_value(camera_type, Attr, perspective))]),
 	io:put_chars(F, "\t location camera_location\n"),
-	Width = proplists:get_value(width, Attr, 320),
-	Height = proplists:get_value(height, Attr, 240),
+	
 	io:format(F, "\t right (~p / ~p) * x\n",[Width, Height]),
 	io:put_chars(F, "\t up y\n"),
 	io:format(F, "\t angle ~f\n", [Fov]),
@@ -530,9 +558,13 @@ export_materials(F, [{Name, Mat} | Mats], Attr, ExportDir)->
 	%export system image maps
 	MapList = export_maps(Maps, ExportDir),
 	
-	%pigment
-	io:put_chars(F, "\t pigment{\n"),
+	%pigment 
 	Pigment = proplists:get_value(pigment_pattern, PovRay, color),
+	case Pigment of
+		image -> io:put_chars(F, "\t uv_mapping\n");
+		_ -> ok
+	end,
+	io:put_chars(F, "\t pigment{\n"),
 	export_pigment(F, Pigment, PovRay, OpenGL, MapList, Attr),
 	case proplists:get_value(pigment_modifiers, PovRay, false) of
 		false ->ok;
@@ -694,7 +726,7 @@ export_pigment(F, Pigment, PovRay, OpenGL, Maps, Attr) ->
 			#camera_info{dir=Dir} = proplists:lookup(camera_info, Attr),
 			{Dx, Dy, Dz} = Dir,
 			io:format(F, "\t\t slope {<~f, ~f, ~f>, 0.5, 1.0}\n", [Dx, Dy, Dz]);
-		image -> io:put_chars(F, "\t\t uv_mapping image_map {\n"),
+		image -> io:put_chars(F, "\t\t image_map {\n"),
 			case PigmentImage of
 				user -> Filepath = proplists:get_value(image_user_file, PovRay, []),
 					io:format(F, "\t\t ~s \"~s\"\n", [atom_to_list(get_map_type(Filepath)), Filepath]);
@@ -875,9 +907,9 @@ export_normal_entry(F, [{Mag, Normal} | Entries], NormalMag)->
 	io:format(F, "\t\t\t [~f ~s ~f]\n", [Mag, atom_to_list(Normal), NormalMag]),
 	export_normal_entry(F, Entries, NormalMag).
 	
-export_objects(_F, [], _M, _A)->
+export_objects(_F, [], _M, _A, _I)->
 	ok;
-export_objects(F, [EObj | Objs], AllMats, Attr)->
+export_objects(F, [EObj | Objs], AllMats, Attr, Index)->
 	#e3d_object{name=Name, obj=Obj} = EObj,
 	
 	ObjMesh = e3d_mesh:triangulate(Obj),
@@ -887,7 +919,7 @@ export_objects(F, [EObj | Objs], AllMats, Attr)->
 	LimitVertex = get_var(limit_vertices),
 	
 	VLen = float(length(VTab)),
-	io:format(F, "#declare ~s = mesh2{\n", [clean_name("wm_"++Name)]),
+	io:format(F, "#declare ~s = mesh2{\n", [clean_name("wo_"++ integer_to_list(Index)++"_"++Name)]),
 	io:format(F, "\t vertex_vectors { ~p", [length(VTab)]),
 	case LimitVertex of
 		true->{Sx, Sy, Sz} = export_vectors(F, VTab, 0);
@@ -956,9 +988,9 @@ export_objects(F, [EObj | Objs], AllMats, Attr)->
 	{Mi, _MC} = greatest_index(MatIndices, {0, 0}),
 	InteriorMatName = name_of_index(Mat, Mi, 0),
 	InteriorMat = material_of_name(InteriorMatName, AllMats),
-	export_object_def(F, clean_name("wm_"++Name), InteriorMat),
+	export_object_def(F, clean_name("wo_"++integer_to_list(Index)++"_"++Name), InteriorMat),
 	
-	export_objects(F, Objs, AllMats, Attr).
+	export_objects(F, Objs, AllMats, Attr, Index + 1).
 	
 	
 greatest_index([], {Mi, MC})->
@@ -1187,6 +1219,10 @@ export_dialog(Op)->
 		render ->Render = true;
 		_ -> Render =false
 	end,
+	case get_var(use_model_dim) of
+		true -> SizeCam = false;
+		_ -> SizeCam = true
+	end,
 	
 	[
 		{vframe, [
@@ -1213,7 +1249,10 @@ export_dialog(Op)->
 				], [hook(enable, [member, antialias, true])]}
 			], [ {hook, fun(is_disabled, _D)->not Render;(_, _)->false end}]},
 			separator,
-			{hframe, [{label, "Width"}, {text, get_pref(width, 320), [exkey(width)]}, {label, "Height"}, {text, get_pref(height, 240), [exkey(height)]}]},
+			{hframe, [{label, "Width"}, {text, get_pref(width, 320), [exkey(width)]}, 
+				{label, "Height"}, {text, get_pref(height, 240), [exkey(height)]}], 
+				[ {hook, fun(is_disabled, _D)->not SizeCam;(_, _)->false end}]},
+				
 			{hframe, [{label, "Camera"}, {menu, [{"Perspective", perspective}, {"Orthographic", orthographic}, {"Fisheye", fisheye}, {"Ultra Wide", ultra_wide_angle},
 				{"Omnimax", omnimax}, {"Panoramic", panoramic}, {"Spherical", spherical}], get_pref(camera_type, perspective), [exkey(camera_type)]}
 			]},
