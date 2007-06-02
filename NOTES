@@ -16,6 +16,9 @@
 - Added a live miniature-axis icon to the lower-left corner of the screen.
   [Scorpius]
 
+- Added a user defined clipping-plane. Use 'Set Default Axis' to interactively
+  change the orientation of the plane, [Scorpius]
+
 --- 0.98.36 -----------------------------------------------------------------
 
 - Absolute snap now can pick reference point, old snap that used center of
