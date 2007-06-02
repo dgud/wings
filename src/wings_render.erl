@@ -22,21 +22,21 @@
 init() ->
     case wings_gl:support_shaders() of
 	true ->
-	    try 
+	    try
 		Sh = wings_gl:compile(vertex, light_shader_src()),
 		Prog = wings_gl:link_prog([Sh]),
- 		gl:useProgram(Prog),
+		gl:useProgram(Prog),
 		wings_pref:set_default(hl_lightpos,  {3.0,10.0,1.0}),
 		wings_pref:set_default(hl_skycol,    {0.95,0.95,0.90}),
 		wings_pref:set_default(hl_groundcol, {0.026,0.024,0.021}),
-		wings_gl:set_uloc(Prog, "LightPosition", 
+		wings_gl:set_uloc(Prog, "LightPosition",
 				  wings_pref:get_value(hl_lightpos)),
 		wings_gl:set_uloc(Prog, "SkyColor",
 				  wings_pref:get_value(hl_skycol)),
 		wings_gl:set_uloc(Prog, "GroundColor",
 				  wings_pref:get_value(hl_groundcol)),
 		?CHECK_ERROR(),
- 		gl:useProgram(0),
+		gl:useProgram(0),
 		put(light_shader, Prog),
 		io:format("Using GPU shaders.\n"),
 		ok
@@ -64,7 +64,9 @@ render(#st{selmode=Mode}=St) ->
     ground_and_axes(),
     mini_axis_icon(),
     show_saved_bb(St),
+    user_clipping_planes(on),
     render_objects(Mode),
+    user_clipping_planes(off),
     axis_letters(),
     gl:lineWidth(1),
     wings_io:ortho_setup(),
@@ -82,7 +84,7 @@ polygonOffset(M) ->
 	    R = wings_pref:get_value(polygon_offset_r,1.0),
 	    put(polygon_offset, {F,R}),
 	    gl:polygonOffset(M*F, M*R);
-	{F,R} -> 
+	{F,R} ->
 	    gl:polygonOffset(M*F, M*R)
     end.
 %%%
@@ -154,7 +156,7 @@ render_plain(#dlo{work=Faces,edges=Edges,open=Open,
 	    polygonOffset(2),
 	    gl:shadeModel(?GL_SMOOTH),
 	    enable_lighting(),
-	    
+
 	    case Open of
 		false ->
 		    wings_dl:call(Faces);
@@ -297,7 +299,7 @@ draw_sel(#dlo{orig_sel=OrigSel,sel=SelDlist}) ->
     gl:polygonOffset(1, 1),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     case OrigSel =/= none orelse wings_pref:get_value(selection_style) =:= solid of
-	true ->					%Solid selection style.
+	true -> 				%Solid selection style.
 	    wings_dl:call(SelDlist);
 	false ->				%Stippled selection style.
 	    gl:enable(?GL_POLYGON_STIPPLE),
@@ -445,7 +447,7 @@ axis_letters() ->
 	    end,
 	    axis_letter_1(1, Yon, axisx, x_color, Info),
 	    axis_letter_1(2, Yon, axisy, y_color, Info),
- 	    axis_letter_1(3, Yon, axisz, z_color, Info)
+	    axis_letter_1(3, Yon, axisz, z_color, Info)
     end.
 
 axis_letter_1(I, Yon, Char, Color0, {Start,{Ox,Oy,_,Ow},MM,PM,Viewport}) ->
@@ -582,10 +584,10 @@ show_saved_bb(_) -> ok.
 enable_lighting() ->
     Prog = get(light_shader),
     UseProg = 
-	(Prog /= undefined) andalso (not wings_pref:get_value(scene_lights)) 
-        andalso 2 == wings_pref:get_value(number_of_lights),
+	(Prog /= undefined) andalso (not wings_pref:get_value(scene_lights))
+	andalso 2 == wings_pref:get_value(number_of_lights),
     case UseProg of
-	false -> 
+	false ->
 	    gl:enable(?GL_LIGHTING);
 	true ->
 	    gl:color4ub(255,255,255,255), %% Reset color needed by crappy drivers.
@@ -598,30 +600,30 @@ enable_lighting() ->
 disable_lighting() ->
     gl:disable(?GL_LIGHTING),
     case get(light_shader) /= undefined of
- 	true -> gl:useProgram(0);
+	true -> gl:useProgram(0);
 	false -> ok
     end.
 
 
 light_shader_src() ->
-    <<"							       
-       uniform vec3 LightPosition;				       
-       uniform vec3 SkyColor;					       
-       uniform vec3 GroundColor;				       
-       							       
-       void main() 						       
-       {							       
-           vec3 ecPosition = vec3(gl_ModelViewMatrix * gl_Vertex);    
-           vec3 tnorm      = normalize(gl_NormalMatrix * gl_Normal);  
-           vec3 lightVec   = normalize(LightPosition - ecPosition);   
-           float costheta  = dot(tnorm, lightVec);
-           float a         = 0.5 + 0.5 * costheta;
-                             // ATI needs this for vcolors to work
-           vec4 color      = gl_FrontMaterial.diffuse * gl_Color; 
-           gl_FrontColor   = color * vec4(mix(GroundColor, SkyColor, a), 1.0);
-           gl_TexCoord[0]  = gl_MultiTexCoord0;
-           gl_Position     = ftransform();
-       }							       
+    <<"
+       uniform vec3 LightPosition;
+       uniform vec3 SkyColor;
+       uniform vec3 GroundColor;
+
+       void main()
+       {
+	   vec3 ecPosition = vec3(gl_ModelViewMatrix * gl_Vertex);
+	   vec3 tnorm	   = normalize(gl_NormalMatrix * gl_Normal);
+	   vec3 lightVec   = normalize(LightPosition - ecPosition);
+	   float costheta  = dot(tnorm, lightVec);
+	   float a	   = 0.5 + 0.5 * costheta;
+			     // ATI needs this for vcolors to work
+	   vec4 color	   = gl_FrontMaterial.diffuse * gl_Color;
+	   gl_FrontColor   = color * vec4(mix(GroundColor, SkyColor, a), 1.0);
+	   gl_TexCoord[0]  = gl_MultiTexCoord0;
+	   gl_Position	   = ftransform();
+       }
        ">>.
 
 mini_axis_icon() ->
@@ -721,10 +723,22 @@ draw_mini_axis() ->
 	    gl:vertex3f(-PB,PA,0.0),
 	    gl:vertex3f(0.0,0.1,0.0),
 	    gl:vertex3f(PB,PA,0.0),
-	    gl:vertex3f(0.0,0.1,0.0),
-	    ok;
-	_ ->
-	    ok
+	    gl:vertex3f(0.0,0.1,0.0)
     end,
     gl:'end'().
+
+user_clipping_planes(on) ->
+    case wings_wm:get_prop(clip_plane) of
+	true ->
+	    {_Point,Vec} = wings_pref:get_value(last_axis),
+	    Plane0 = list_to_tuple(lists:append(tuple_to_list(Vec), [0.0])),
+	    gl:clipPlane(?GL_CLIP_PLANE0, Plane0),
+	    gl:enable(?GL_CLIP_PLANE0),
+	    gl:disable(?GL_CULL_FACE);
+	false ->
+	    ok
+    end;
+user_clipping_planes(off) ->
+    gl:disable(?GL_CLIP_PLANE0),
+    gl:enable(?GL_CULL_FACE).
 

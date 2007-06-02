@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_view.erl,v 1.170 2006/06/27 16:58:56 giniu Exp $
+%%     $Id$
 %%
 
 -module(wings_view).
@@ -35,6 +35,8 @@ menu(#st{views={CurrentView,Views}}=St) ->
      separator,
      {?__(5,"Workmode"),workmode,?__(6,"Toggle flat/smooth shading"),
       crossmark(workmode)},
+     {?__(61,"Clipping Planes"),clip_plane,?__(62,"Toggle extra clipping planes (use default axis)"),
+      crossmark(clip_plane)},
      separator,
      {?__(7,"Wireframe"),wireframe,?__(8,"Display selected objects as a wireframe (same for all objects if nothing is selected)")},
      {?__(9,"Shade"),shade,?__(10,"Display selected objects as shaded (same for all objects if nothing is selected)")},
@@ -148,19 +150,19 @@ views_submenu_help(_CurrentView, {}, _Action) ->
 views_submenu_help(CurrentView, Views, Action) ->
     S = size(Views),
     case Action of
-	next -> 
+	next ->
 	    N = view_index(CurrentView+1, S),
 	    {_,Legend} = element(N, Views),
 	    ?__(2,"Jump to \"")++Legend++"\"["++integer_to_list(N)++"]";
-	current -> 
+	current ->
 	    C = view_index(CurrentView, S),
 	    {_,Legend} = element(C, Views),
 	    ?__(2,"Jump to \"")++Legend++"\"["++integer_to_list(C)++"]";
-	prev -> 
+	prev ->
 	    P = view_index(CurrentView-1, S),
 	    {_,Legend} = element(P, Views),
 	    ?__(2,"Jump to \"")++Legend++"\"["++integer_to_list(P)++"]";
-	rename -> 
+	rename ->
 	    C = view_index(CurrentView, S),
 	    {_,Legend} = element(C, Views),
 	    ?__(5,"Rename \"")++Legend++"\"["++integer_to_list(C)++"]";
@@ -223,7 +225,7 @@ views_movemenu(CurrentView, Views, Lines) ->
 
 %% Build a list of F(I) values for all view_index(I, S) starting from C
 %% half of them after C and half before, no more than Lines If the
-%% list has to be limited by Lines - insert an element 'separator' 
+%% list has to be limited by Lines - insert an element 'separator'
 %% between the after and before elements, otherwise all view
 %% indexes from 1 upto S will be represented in the result with
 %% C last in the list.
@@ -461,7 +463,7 @@ camera() ->
 	    _ -> custom
 	end,
     Props = 
-	camera_propconv(from_fov, 
+	camera_propconv(from_fov,
 			[{negative_height,NegH},{negative_width,NegW},
 			 {fov,Fov0}]),
     LensType = pget(lens_type, Props),
@@ -586,13 +588,13 @@ camera() ->
 
 camera_update_1(Var, Val, Sto) ->
     Props = gbget(lists:delete(Var, [fov,negative_format,
-				     negative_height,negative_width]), 
+				     negative_height,negative_width]),
 		  Sto),
     gbupdate(camera_propconv(from_fov, [{Var,Val}|Props]),
 	     gbupdate(Var, Val, Sto)).
 
 camera_update_2(Var, Val, Sto) ->
-    [_|Props0] = Props1 = 
+    [_|Props0] = Props1 =
 	gbget([lens_length,
 	       negative_format,negative_height,negative_width], Sto),
     Props2 = camera_propconv(fov, [{Var,Val}|Props1])++Props0,
@@ -613,7 +615,7 @@ camera_propconv(from_fov, Props) ->
 	LensLength / math:sqrt(NegH*NegH + NegW*NegW),
     ZoomSlider = 
 	case catch math:log(Zoom) / math:log(2) of
-	    {'EXIT',_} -> 
+	    {'EXIT',_} ->
 		{Z,_} = ?RANGE_ZOOM_SLIDER,
 		Z;
 	    Z when is_float(Z) -> Z
@@ -626,7 +628,7 @@ camera_propconv(fov, Props) ->
     {NegH,NegW} = NegF = camera_propconv_negative_format(Props),
     Zoom = 
 	case pget(zoom_slider, Props) of
-	    undefined -> 
+	    undefined ->
 		pget(zoom, Props);
 	    ZoomSlider ->
 		math:pow(2, ZoomSlider)
@@ -639,13 +641,13 @@ camera_propconv(fov, Props) ->
 			pget(lens_length, Props);
 		    undefined ->
 			pget(lens_length, Props);
-		    LensType -> 
+		    LensType ->
 			camera_lens_length(NegF, LensType)
 		end;
 	    _ ->
 		Zoom * math:sqrt(NegH*NegH + NegW*NegW)
 	end,
-    Fov = 
+    Fov =
 	if is_float(LensLength) ->
 		case catch 360*math:atan(0.5*NegH/LensLength)/math:pi() of
 		    {'EXIT',_} -> 180.0;
@@ -656,9 +658,9 @@ camera_propconv(fov, Props) ->
 
 camera_propconv_negative_format(Props) ->
     case pget(negative_format, Props) of
-	{_,_} = NegativeFormat -> 
+	{_,_} = NegativeFormat ->
 	    NegativeFormat;
-	_ -> 
+	_ ->
 	    {pget(negative_height, Props),
 	     pget(negative_width, Props)}
     end.
@@ -685,19 +687,19 @@ camera_lens_type(_, _) -> custom.
 
 camera_lens_length({24,36}, LensType) ->
     float(case LensType of
-	      wide_angle          -> 24;
+	      wide_angle	  -> 24;
 	      moderate_wide_angle -> 35;
-	      standard            -> 50;
-	      short_tele          -> 85;
-	      tele                -> 135
+	      standard		  -> 50;
+	      short_tele	  -> 85;
+	      tele		  -> 135
 	  end);
 camera_lens_length({60,60}, LensType) ->
     float(case LensType of
-	      wide_angle          -> 40;
+	      wide_angle	  -> 40;
 	      moderate_wide_angle -> 60;
-	      standard            -> 80;
-	      short_tele          -> 150;
-	      tele                -> 250
+	      standard		  -> 80;
+	      short_tele	  -> 150;
+	      tele		  -> 250
 	  end);
 camera_lens_length(_, _) -> undefined.
 
@@ -723,8 +725,8 @@ pget(Key, Props) -> proplists:get_value(Key, Props).
 %%%
 
 -record(tim,
-	{timer,					%Current timer.
-	 delay,					%Current delay.
+	{timer, 				%Current timer.
+	 delay, 				%Current delay.
 	 st					%St record.
 	 }).
 
@@ -833,6 +835,7 @@ init() ->
 initial_properties() ->
     [{workmode,true},
      {orthogonal_view,false},
+     {clip_plane,false},
      {show_axes,true},
      {show_groundplane,true},
      {wireframed_objects,gb_sets:empty()},
@@ -876,7 +879,7 @@ projection() ->
     #view{distance=D,fov=Fov,hither=Hither,yon=Yon,along_axis=AA} = 
 	current(),
     Ortho = wings_wm:get_prop(orthogonal_view) 
-	orelse ((AA =/= none) andalso 
+	orelse ((AA =/= none) andalso
 		wings_pref:get_value(force_ortho_along_axis)),
     case Ortho of
 	false ->
@@ -929,8 +932,8 @@ aim(St) ->
     #view{distance=Dist0} = View = current(),
     Dist = case e3d_vec:dist(eye_point(), Origin0) of
 	       D when D < Dist0 -> D;
- 	       _Other -> Dist0
- 	   end,
+	       _Other -> Dist0
+	   end,
     set_current(View#view{origin=Origin,distance=Dist,pan_x=0.0,pan_y=0.0}).
 
 frame(#st{sel=[],shapes=Shs}) ->
@@ -1189,9 +1192,9 @@ import_view([{yon,Yon}|As], View, Name) ->
     import_view(As, View#view{yon=Yon}, Name);
 import_view([{name,Name}|As], View, _) ->
     import_view(As, View, Name);
-import_view([], #view{azimuth=Az,elevation=El}=View, undefined) -> 
+import_view([], #view{azimuth=Az,elevation=El}=View, undefined) ->
     {View#view{along_axis=along(Az, El)},view_legend(View)};
-import_view([], #view{azimuth=Az,elevation=El}=View, Name) -> 
+import_view([], #view{azimuth=Az,elevation=El}=View, Name) ->
     {View#view{along_axis=along(Az, El)},Name}.
 
 %%%
@@ -1269,8 +1272,8 @@ add_dist_str(S) -> [$\s|S].
 pos_legend({X,Y,Z}) ->
     %% Sort the coordinates as greatest absolute value first.
     %% Remove the ones with absolute value lower then tan(45/2) times
-    %% the maximum. This should use the same style as N, NW, W type 
-    %% compass direction notation where each value has 
+    %% the maximum. This should use the same style as N, NW, W type
+    %% compass direction notation where each value has
     %% a precision of +-45/2 degrees.
     %% Return e.g "+X+Y", "-Z+X" depending on the sign of the remaining
     %% coordinates, largest first, as a deep charlist.
@@ -1278,7 +1281,7 @@ pos_legend({X,Y,Z}) ->
 	    lists:reverse(lists:sort(
 			    [{abs(X),$X,X},{abs(Y),$Y,Y},{abs(Z),$Z,Z}])),
     [[if Val < 0 -> $-;
-	 true    -> $+ end,Char] 
+	 true	 -> $+ end,Char]
      || {Abs,Char,Val} <- L, Abs >= Max*0.4142135624]. % tan(22.5 degrees)
 
 
