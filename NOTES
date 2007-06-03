@@ -17,7 +17,9 @@
   [Scorpius]
 
 - Added a user defined clipping-plane. Use 'Set Default Axis' to interactively
-  change the orientation of the plane, [Scorpius]
+  change the orientation of the plane.
+
+- Edges can now be displayed with Anti-Aliasing, see preferences. [Scorpius]
 
 --- 0.98.36 -----------------------------------------------------------------
 
