@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_proxy.erl,v 1.3 2006/04/09 12:50:01 dgud Exp $
+%%     $Id$
 %%
 
 -module(wings_proxy).
@@ -138,7 +138,7 @@ draw(#dlo{proxy_faces=Dl}=D, Wire) ->
 draw_1(D, Dl, Wire, Key, EdgeStyleKey) ->
     draw_edges(D, Wire, EdgeStyleKey),
     gl:shadeModel(?GL_SMOOTH),
-    wings_render:enable_lighting(), 
+    wings_render:enable_lighting(),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     wings_render:polygonOffset(2),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
@@ -156,14 +156,24 @@ draw_1(D, Dl, Wire, Key, EdgeStyleKey) ->
     wings_dl:call(Dl),
     gl:disable(?GL_BLEND),
     gl:disable(?GL_POLYGON_OFFSET_FILL),
-    wings_render:disable_lighting(), 
+    wings_render:disable_lighting(),
     gl:shadeModel(?GL_FLAT).
 
 draw_smooth_edges(D) ->
     draw_edges(D, true, wings_pref:get_value(proxy_shaded_edge_style)).
 
 draw_edges(_, false, _) -> ok;
-draw_edges(D, true, EdgeStyle) -> draw_edges_1(D, EdgeStyle).
+draw_edges(D, true, EdgeStyle) ->
+    case wings_pref:get_value(aa_edges) of
+	true ->
+	    gl:enable(?GL_LINE_SMOOTH),
+	    gl:enable(?GL_BLEND),
+	    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+	    gl:hint(?GL_LINE_SMOOTH_HINT, ?GL_NICEST);
+	false ->
+	    ok
+    end,
+    draw_edges_1(D, EdgeStyle).
 
 draw_edges_1(#dlo{edges=Edges}, cage) ->
     gl:color3fv(wings_pref:get_value(edge_color)),
@@ -189,7 +199,7 @@ proxy_smooth(#we{es=Etab,he=Hard,mat=M,next_id=Next,mirror=Mirror}=We0,
     Pd#sp{src_we=We0,we=We};
 proxy_smooth(We0, Pd, St) ->
     #we{fs=Ftab} = We = if ?IS_ANY_LIGHT(We0) -> We0;
-			   true -> wings_subdiv:smooth(We0) 
+			   true -> wings_subdiv:smooth(We0)
 			end,
     Plan = wings_draw_util:prepare(gb_trees:to_list(Ftab), We, St),
     Pd#sp{src_we=We0,we=We,plan=Plan}.
@@ -211,7 +221,7 @@ draw_faces({color,Colors,#st{mat=Mtab}}, We) ->
     gl:newList(BasicFaces, ?GL_COMPILE),
     draw_vtx_faces(Colors, We),
     gl:endList(),
-    
+
     gl:newList(Dl, ?GL_COMPILE),
     wings_material:apply_material(default, Mtab),
     gl:enable(?GL_COLOR_MATERIAL),
@@ -219,7 +229,7 @@ draw_faces({color,Colors,#st{mat=Mtab}}, We) ->
     gl:callList(BasicFaces),
     gl:disable(?GL_COLOR_MATERIAL),
     gl:endList(),
-    
+
     Edges = wings_draw_util:force_flat_color(BasicFaces,
 					     wings_pref:get_value(edge_color)),
     {{call,Dl,BasicFaces},Edges}.
@@ -282,7 +292,7 @@ draw_uv_faces([], _) -> ok.
 
 mat_face(Face, #we{fs=Ftab}=We) ->
     mat_face(Face, gb_trees:get(Face, Ftab), We).
-    
+
 mat_face(Face, Edge, #we{vp=Vtab}=We) ->
     Vs = wings_face:vertices_cw(Face, Edge, We),
     mat_face_1(Vs, Vtab, []).
@@ -326,7 +336,7 @@ vcol_face(Face, We, Cols) ->
     vcol_face_1(VsPos, Cols).
 
 vcol_face_1([P|Ps], [{_,_,_}=Col|Cols]) ->
-    gl:color3fv(Col),    
+    gl:color3fv(Col),
     gl:vertex3fv(P),
     vcol_face_1(Ps, Cols);
 vcol_face_1([P|Ps], [_|Cols]) ->

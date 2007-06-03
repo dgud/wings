@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_pref.erl,v 1.138 2006/07/28 18:54:27 antoneos Exp $
+%%     $Id$
 %%
 
 -module(wings_pref).
@@ -20,7 +20,7 @@
 	 set_scene_value/2,set_scene_default/2,
 	 delete_scene_value/0,delete_scene_value/1]).
 
--define(NEED_ESDL, 1).    %% Some keybindings
+-define(NEED_ESDL, 1).	  %% Some keybindings
 -include("wings.hrl").
 -import(lists, [foreach/2,keysearch/3,map/2,reverse/1,sort/1,last/1,
 		foldl/3]).
@@ -39,7 +39,7 @@ load() ->
     case old_pref_file() of
 	none -> ok;
 	PrefFile ->
-            io:format("Reading preferences from: ~s\n", [PrefFile]),
+	    io:format("Reading preferences from: ~s\n", [PrefFile]),
 	    case file:consult(PrefFile) of
 		{ok,List0} ->
 		    List = clean(List0),
@@ -58,9 +58,9 @@ finish() ->
     List = prune_defaults(List0),
     Format = "~p. \n",
     PostProcess = case os:type() of
-                      {win32,_} -> fun insert_crs/1;
-                      _ -> fun(L) -> L end
-                  end,
+		      {win32,_} -> fun insert_crs/1;
+		      _ -> fun(L) -> L end
+		  end,
     Write = fun({{bindkey,_},_,default}) -> [];
 	       ({{bindkey,_},_,plugin}) -> [];
 	       ({{bindkey,_,_},_,default}) -> [];
@@ -124,44 +124,44 @@ win32_pref() ->
 %% and "My Documents".
 win32_pref_1(R, [FolderType|T]) ->
     case win32_special_folder(R, FolderType) of
-        none -> win32_pref_1(R, T);
-        Path ->
-            case try_location(Path, ?WIN32_PREFS) of
-                none -> win32_pref_1(R, T);
-                File -> File
-            end
+	none -> win32_pref_1(R, T);
+	Path ->
+	    case try_location(Path, ?WIN32_PREFS) of
+		none -> win32_pref_1(R, T);
+		File -> File
+	    end
     end;
 win32_pref_1(R, []) ->
     case try_location(wings_util:lib_dir(wings), ?WIN32_PREFS) of
-        none -> win32_pref_2(R);
-        File -> File
+	none -> win32_pref_2(R);
+	File -> File
     end.
-            
+
 %% No preferences found so far. Search in old installations of
 %% Wings for preference files.
 win32_pref_2(R) ->
     case win32_9816(R) of
-        none -> win32_pref_pre9816(R);
-        File -> File
+	none -> win32_pref_pre9816(R);
+	File -> File
     end.
 
 win32_9816(R) ->
     %% Search for a preference file in a Wings installation in 0.98.16.
     %% (Too bad... in a special place in this release only.)
     case win32reg:change_key(R, "\\hklm\\SOFTWARE\\Wings 3D") of
-        ok ->
-            case win32reg:sub_keys(R) of
-                {ok,SubKeys0} ->
-                    SubKeys = reverse(sort(SubKeys0)),
-                    {ok,Curr} = win32reg:current_key(R),
-                    win32_9816_1(R, SubKeys, Curr);
-                {error,_Error} ->
+	ok ->
+	    case win32reg:sub_keys(R) of
+		{ok,SubKeys0} ->
+		    SubKeys = reverse(sort(SubKeys0)),
+		    {ok,Curr} = win32reg:current_key(R),
+		    win32_9816_1(R, SubKeys, Curr);
+		{error,_Error} ->
 		    %% Can't read sub keys - strange.
-                    none
-            end;
-        {error,_Error} ->
+		    none
+	    end;
+	{error,_Error} ->
 	    %% No 'Wings 3D' key (this is STRANGE)
-            none
+	    none
     end.
 
 win32_9816_1(R, [K|Keys], Curr) ->
@@ -170,8 +170,8 @@ win32_9816_1(R, [K|Keys], Curr) ->
     ok = win32reg:change_key(R, Curr),
     WingsDirs = filelib:wildcard(Dir++"/lib/wings-*"),
     case try_locations(WingsDirs, ?WIN32_OLD_PREFS) of
-        none -> win32_9816_1(R, Keys, Curr);
-        File -> File
+	none -> win32_9816_1(R, Keys, Curr);
+	File -> File
     end;
 win32_9816_1(_, [], _) -> none.
 
@@ -179,43 +179,43 @@ win32_pref_pre9816(R) ->
     %% Search for a preference file in a Wings installation older than 0.98.16
     %% using the uninstall string.
     case win32reg:change_key(R, "\\hklm\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Wings 3D") of
-        ok ->
-            case win32reg:value(R, "UninstallString") of
-                {ok,Str0} ->
-                    Str = strip_quotes(Str0),
-                    try_location(filename:dirname(Str), ?WIN32_OLD_PREFS);
-                {error,_} -> none
-            end;
-        {error,_} -> none
+	ok ->
+	    case win32reg:value(R, "UninstallString") of
+		{ok,Str0} ->
+		    Str = strip_quotes(Str0),
+		    try_location(filename:dirname(Str), ?WIN32_OLD_PREFS);
+		{error,_} -> none
+	    end;
+	{error,_} -> none
     end.
 
 win32_special_folder(R, FolderType) ->
     Key = "\\hkcu\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
     case win32reg:change_key(R, Key) of
-        ok ->
-            case win32reg:value(R, FolderType) of
-                {error,_} -> error;
-                {ok,Value} -> Value
-            end;
-        _ -> error
+	ok ->
+	    case win32reg:value(R, FolderType) of
+		{error,_} -> error;
+		{ok,Value} -> Value
+	    end;
+	_ -> error
     end.
 
 reg_get_default(R) ->
     %% There seems to be a bug in win32reg:value/2 preventing
     %% us from retrieving the default value. Workaround follows.
     case win32reg:values(R) of
-        {ok,Values} ->
-            case keysearch(default, 1, Values) of
-                {value,{default,Val}} -> Val;
-                false -> ""
-            end;
-        {error,_} -> ""
+	{ok,Values} ->
+	    case keysearch(default, 1, Values) of
+		{value,{default,Val}} -> Val;
+		false -> ""
+	    end;
+	{error,_} -> ""
     end.
-    
+
 strip_quotes([$"|T0]) ->
     case reverse(T0) of
-        [$"|T] -> reverse(T);
-        _ -> T0
+	[$"|T] -> reverse(T);
+	_ -> T0
     end;
 strip_quotes(S) -> S.
 
@@ -230,7 +230,7 @@ new_pref_file() ->
 	{unix,_} ->
 	    filename:join(os:getenv("HOME"), ".wings");
 	{win32,_} ->
-            win32_new_pref()
+	    win32_new_pref()
     end.
 
 win32_new_pref() ->
@@ -241,11 +241,11 @@ win32_new_pref() ->
 
 win32_new_pref_1(R, [FolderType|T]) ->
     case win32_special_folder(R, FolderType) of
-        none -> win32_pref_1(R, T);
-        Path ->
-            File = filename:join(Path, ?WIN32_PREFS),
-            filelib:ensure_dir(File),
-            File
+	none -> win32_pref_1(R, T);
+	Path ->
+	    File = filename:join(Path, ?WIN32_PREFS),
+	    filelib:ensure_dir(File),
+	    File
     end;
 win32_new_pref_1(_, []) ->
     %% Desperate fallback for very old Window systems.
@@ -258,8 +258,8 @@ win32_new_pref_1(_, []) ->
 
 try_locations([D|Ds], File) ->
     case try_location(D, File) of
-        none -> try_locations(Ds, File);
-        Name -> Name
+	none -> try_locations(Ds, File);
+	Name -> Name
     end;
 try_locations([], _) -> none.
 
@@ -397,31 +397,31 @@ defaults() ->
      {use_super_temp_sel,false},
      {use_mirror_for_sels,true},
 
-	 	 %% Constraints preferences.
-	 {dist_con_shift,1.0},
-	 {dist_con_ctrl,0.10},
-	 {dist_con_ctrl_shift,0.010},
-	 {dist_con_alt,10.0},
-	 {dist_con_ctrl_alt,0.0010},
-	 {dist_con_shift_alt,0.00010},
-	 {dist_con_ctrl_shift_alt,0.0250},
+     %% Constraints preferences.
+     {dist_con_shift,1.0},
+     {dist_con_ctrl,0.10},
+     {dist_con_ctrl_shift,0.010},
+     {dist_con_alt,10.0},
+     {dist_con_ctrl_alt,0.0010},
+     {dist_con_shift_alt,0.00010},
+     {dist_con_ctrl_shift_alt,0.0250},
 
-	 {rot_con_shift,15.0},
-	 {rot_con_ctrl,1.0},
-	 {rot_con_ctrl_shift,0.10},
-	 {rot_con_alt,180.0},
-	 {rot_con_ctrl_alt,22.50},
-	 {rot_con_shift_alt,135.0},
-	 {rot_con_ctrl_shift_alt,144.0},
+     {rot_con_shift,15.0},
+     {rot_con_ctrl,1.0},
+     {rot_con_ctrl_shift,0.10},
+     {rot_con_alt,180.0},
+     {rot_con_ctrl_alt,22.50},
+     {rot_con_shift_alt,135.0},
+     {rot_con_ctrl_shift_alt,144.0},
 
-	 {scale_con_shift,100.0},
-	 {scale_con_ctrl,10.0},
-	 {scale_con_ctrl_shift,1.0},
-	 {scale_con_alt,200.0},
-	 {scale_con_ctrl_alt,50.0},
-	 {scale_con_shift_alt,25.0},
-	 {scale_con_ctrl_shift_alt,20.0},
-	 
+     {scale_con_shift,100.0},
+     {scale_con_ctrl,10.0},
+     {scale_con_ctrl_shift,1.0},
+     {scale_con_alt,200.0},
+     {scale_con_ctrl_alt,50.0},
+     {scale_con_shift_alt,25.0},
+     {scale_con_ctrl_shift_alt,20.0},
+
      %% Proxy preferences.
      {proxy_shaded_edge_style,some},
      {proxy_static_opacity,1.0},
@@ -441,6 +441,7 @@ defaults() ->
      {no_progress_bar,false},
      {interface_icons,classic},
      {objects_in_outliner,true},
+     {aa_edges,false},
      {extended_toolbar,true},
 
      %% Console

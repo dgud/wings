@@ -1,4 +1,4 @@
-%%                     -*- mode:erlang; coding:iso-latin-1-unix -*-
+%%		       -*- mode:erlang; coding:iso-latin-1-unix -*-
 %%
 %%  wings_pref_dlg.erl --
 %%
@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_pref_dlg.erl,v 1.16 2006/08/23 02:56:49 antoneos Exp $
+%%     $Id$
 %%
 
 -module(wings_pref_dlg).
@@ -64,8 +64,11 @@ gen_prefs() ->
 	     [{info,?__(7,"Width in pixels of unselected edges")}]},
 	    {?__(8,"Selected Width"),selected_edge_width,
 	     [{info,?__(9,"Width in pixels of selected edges")}]},
-	    {color,?__(10,"Soft Edges"),edge_color,[{info,?__(11,"Color of soft edges")}]},
-	    {color,?__(12,"Hard Edges"),hard_edge_color,[{info,?__(13,"Color of hard edges")}]}]}],
+	    {color,?__(10,"Soft Edges"),edge_color,
+	     [{info,?__(11,"Color of soft edges")}]},
+	    {color,?__(12,"Hard Edges"),hard_edge_color,
+	     [{info,?__(13,"Color of hard edges")}]}]},
+	    {?__(50,"Draw Anti-Aliased Edges"),aa_edges}],
 	 [{title,?__(14,"Edge Display")}]}]},
       {hframe,
        [{vframe,
@@ -83,7 +86,7 @@ gen_prefs() ->
 	 [{vradio,[{?__(23,"Solid Face Selections"),solid},
 		   {?__(24,"Stippled Face Selections"),stippled}],
 	   selection_style},
-	  {hframe,[{label,?__(25,"Selection Color")},{color,selected_color}]} ],
+	  {hframe,[{label,?__(25,"Selection Color")},{color,selected_color}]}],
 	 [{title,?__(26,"Selection")}]}]},
       {hframe,
        [{vframe,
@@ -126,7 +129,7 @@ gen_prefs() ->
 advanced_prefs() ->
     DisableHook = fun (is_disabled, {_Var,_I,Store}) ->
 			  not gb_trees:get(advanced_menus, Store);
-		      (_, _) ->	void
+		      (_, _) -> void
 		  end,
     SuperDisable = fun (is_disabled, {_Var,_I,Store}) ->
 			   not gb_trees:get(advanced_menus, Store) orelse
@@ -441,17 +444,17 @@ smart_set_value_1(Key, Val, St) ->
 		    wings_wm:translation_change();
 		no_progress_bar ->
 		    wings_pb:init();
- 		language ->
+		language ->
 		    wings_lang:load_language(Val);
-		polygon_offset_f -> 
+		polygon_offset_f ->
 		    erase(polygon_offset);
-		polygon_offset_r -> 
+		polygon_offset_r ->
 		    erase(polygon_offset);
 		normal_vector_size ->
 		    update_normal_dlist(St);
 		normal_vector_color ->
 		    update_normal_dlist(St);
-        	_Other -> ok
+		_Other -> ok
 	    end
     end.
 
@@ -476,7 +479,7 @@ clear_proxy_edges(D, St) ->
 
 make_query({'VALUE',Val}) ->
     Val;
-make_query([_|_]=List)  ->
+make_query([_|_]=List)	->
     [make_query(El) || El <- List];
 make_query({color,Key}) ->
     Def = get_value(Key),

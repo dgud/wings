@@ -75,8 +75,6 @@ render(#st{selmode=Mode}=St) ->
     gl:rectf(W-0.5, 0.5, 0.5, H-0.5),
     gl:popAttrib().
 
-
-%%%
 polygonOffset(M) ->
     case get(polygon_offset) of
 	undefined ->
@@ -87,6 +85,7 @@ polygonOffset(M) ->
 	{F,R} ->
 	    gl:polygonOffset(M*F, M*R)
     end.
+
 %%%
 %%% Internal functions follow.
 %%%
@@ -110,7 +109,7 @@ render_work_objects([D|Dls], Mode) ->
     render_object(D, Mode, true, false),
     render_work_objects(Dls, Mode);
 render_work_objects([], _) -> ok.
-    
+
 render_object(#dlo{drag={matrix,_,_,Matrix}}=D, Mode, Work, RT) ->
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
@@ -179,6 +178,16 @@ render_plain(#dlo{work=Faces,edges=Edges,open=Open,
 		    gl:color3f(0.3, 0.3, 0.3);
 		{_,EdgeColor} ->
 		    gl:color3fv(EdgeColor)
+	    end,
+	    case wings_pref:get_value(aa_edges) of
+		true ->
+		    gl:enable(?GL_LINE_SMOOTH),
+		    gl:enable(?GL_BLEND),
+		    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+		    gl:hint(?GL_LINE_SMOOTH_HINT, ?GL_NICEST),
+		    ok;
+		false ->
+		    ok
 	    end,
 	    gl:lineWidth(edge_width(SelMode)),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
@@ -583,7 +592,7 @@ show_saved_bb(_) -> ok.
 
 enable_lighting() ->
     Prog = get(light_shader),
-    UseProg = 
+    UseProg =
 	(Prog /= undefined) andalso (not wings_pref:get_value(scene_lights))
 	andalso 2 == wings_pref:get_value(number_of_lights),
     case UseProg of
