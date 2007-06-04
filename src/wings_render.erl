@@ -155,7 +155,6 @@ render_plain(#dlo{work=Faces,edges=Edges,open=Open,
 	    polygonOffset(2),
 	    gl:shadeModel(?GL_SMOOTH),
 	    enable_lighting(),
-
 	    case Open of
 		false ->
 		    wings_dl:call(Faces);
@@ -613,7 +612,6 @@ disable_lighting() ->
 	false -> ok
     end.
 
-
 light_shader_src() ->
     <<"
        uniform vec3 LightPosition;
@@ -739,8 +737,10 @@ draw_mini_axis() ->
 user_clipping_planes(on) ->
     case wings_wm:get_prop(clip_plane) of
 	true ->
-	    {_Point,Vec} = wings_pref:get_value(last_axis),
-	    Plane0 = list_to_tuple(lists:append(tuple_to_list(Vec), [0.0])),
+	    {_Position,Direction} = wings_pref:get_value(last_axis),
+	    Expand = fun(V) -> {X,Y,Z}=V, [X,Y,Z,0.0] end,
+	    Plane0 = Expand(Direction),
+	    draw_clip_disk(Direction, Expand),
 	    gl:clipPlane(?GL_CLIP_PLANE0, Plane0),
 	    gl:enable(?GL_CLIP_PLANE0),
 	    gl:disable(?GL_CULL_FACE);
@@ -751,3 +751,20 @@ user_clipping_planes(off) ->
     gl:disable(?GL_CLIP_PLANE0),
     gl:enable(?GL_CULL_FACE).
 
+draw_clip_disk(Direction, Expand) ->
+    NZ = e3d_vec:norm(Direction),
+    NX = e3d_vec:norm(e3d_vec:cross(NZ,{0.0,0.0,1.0})),
+    NY = e3d_vec:cross(NX,NZ),
+    Nx = Expand(NX),
+    Ny = Expand(NY),
+    Nz = Expand(NZ),
+    Nw = [0.0,0.0,0.0,1.0],
+    M = lists:append([Nx,Ny,Nz,Nw]),
+    Obj = glu:newQuadric(),
+    glu:quadricDrawStyle(Obj, ?GLU_SILHOUETTE),
+    gl:pushMatrix(),
+    gl:multMatrixd(M),
+    gl:color3f(0.8,0.8,0.5),
+    glu:disk(Obj, 0.0, 1.5, 35, 1),
+    gl:popMatrix(),
+    glu:deleteQuadric(Obj).
