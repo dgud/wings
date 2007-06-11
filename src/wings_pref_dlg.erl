@@ -163,7 +163,14 @@ advanced_prefs() ->
 	   [{info,?__(17,"Width of vector (in pixels)")},{range,{1.0,10.0}}|Flags]},
 	  {color,?__(18,"Color"),active_vector_color,
 	   [{info,?__(19,"Color of vector")}|Flags]}]}],
-       [{title,?__(20,"Vector Display")}]}
+       [{title,?__(20,"Vector Display")}]},
+      {vframe,
+       [{label_column,
+	 [{?__(23,"Size"),clip_plane_size,
+	   [{info,?__(24,"Size of user-defined clipping indicator")},{range,{0.1,100.0}}|Flags]},
+	  {color,?__(25,"Color"),clip_plane_color,
+	   [{info,?__(26,"Color of user-defined clipping indicator")}|Flags]}]}],
+       [{title,?__(27,"Clipping Plane Indicator")}]}
      ]}.
 
 constraint_prefs() ->
@@ -285,7 +292,7 @@ ui_prefs() ->
 	   [{title,?__(22,"Console")}]},
 	  {vframe,
 	   [{menu,InterfaceIcons,interface_icons}],
-	   [{title,?__(50,"Interface Icons")}]}]}
+	   [{title,?__(28,"Interface Icons")}]}]}
        ]},
       {hframe,[{?__(14,"No Progress Bar"),no_progress_bar},
 	       {?__(27,"Extended Toolbar Icons"),extended_toolbar}]},
@@ -310,7 +317,6 @@ viewer_prefs(Format) ->
 	 [{text,{viewer_preopts,Format},[{width,10}]},
 	  {label,?__(3,"..filename..")},
 	  {text,{viewer_postopts,Format},[{width,10}]}]}]}]}.
-
 
 
 language_name("cs") ->

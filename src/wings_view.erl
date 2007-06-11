@@ -229,7 +229,7 @@ views_movemenu(CurrentView, Views, Lines) ->
 %% between the after and before elements, otherwise all view
 %% indexes from 1 upto S will be represented in the result with
 %% C last in the list.
-%% 
+%%
 %% Like this when Lines == 4, S > 4 ->
 %%   [F(view_index(C+1, S)), F(view_index(C+2, S)), separator,
 %%    F(view_index(C-1, S)), F(view_index(C, S))].
@@ -462,7 +462,7 @@ camera() ->
 	    {60,60} -> {60,60};
 	    _ -> custom
 	end,
-    Props = 
+    Props =
 	camera_propconv(from_fov,
 			[{negative_height,NegH},{negative_width,NegW},
 			 {fov,Fov0}]),
@@ -470,7 +470,7 @@ camera() ->
     LensLength = pget(lens_length, Props),
     Zoom = pget(zoom, Props),
     ZoomSlider = pget(zoom_slider, Props),
-    FovHook = 
+    FovHook =
 	fun (update, {Var,_I,Val,Sto}) ->
 		{store,camera_update_1(Var, Val, Sto)};
 	    (_, _) -> void
@@ -559,7 +559,7 @@ camera() ->
 	       end}]},
 	    {label,?__(13,"x Zoom")}]}],
 	 [{title,?__(14,"Lens")},{minimized,true}]},
-    Qs = 
+    Qs =
 	[LensFrame,
 	 {hframe,
 	  [{vframe,[{label,?__(15,"Field of View")},
@@ -604,7 +604,7 @@ camera_update_2(Var, Val, Sto) ->
 camera_propconv(from_fov, Props) ->
     {NegH,NegW} = NegF = camera_propconv_negative_format(Props),
     Fov = pget(fov, Props),
-    LensLength = 
+    LensLength =
 	case catch 0.5*NegH/math:tan(Fov*math:pi()/360) of
 	    {'EXIT',_} -> 0.0;
 	    L when is_float(L) -> L
@@ -613,7 +613,7 @@ camera_propconv(from_fov, Props) ->
 	camera_lens_type(NegF, LensLength),
     Zoom =
 	LensLength / math:sqrt(NegH*NegH + NegW*NegW),
-    ZoomSlider = 
+    ZoomSlider =
 	case catch math:log(Zoom) / math:log(2) of
 	    {'EXIT',_} ->
 		{Z,_} = ?RANGE_ZOOM_SLIDER,
@@ -626,14 +626,14 @@ camera_propconv(from_fov, Props) ->
      {zoom_slider,wings_util:limit(ZoomSlider, ?RANGE_ZOOM_SLIDER)}];
 camera_propconv(fov, Props) ->
     {NegH,NegW} = NegF = camera_propconv_negative_format(Props),
-    Zoom = 
+    Zoom =
 	case pget(zoom_slider, Props) of
 	    undefined ->
 		pget(zoom, Props);
 	    ZoomSlider ->
 		math:pow(2, ZoomSlider)
 	end,
-    LensLength = 
+    LensLength =
 	case Zoom of
 	    undefined ->
 		case pget(lens_type, Props) of
@@ -737,7 +737,7 @@ auto_rotate(St) ->
     Active = wings_wm:this(),
     wings_wm:callback(fun() -> wings_u:menu_restriction(Active, []) end),
     {seq,push,set_auto_rotate_timer(Tim)}.
-    
+
 auto_rotate_event(Event, #tim{timer=Timer,st=St}=Tim) ->
     case wings_camera:event(Event, St) of
 	next -> auto_rotate_event_1(Event, Tim);
@@ -876,9 +876,9 @@ load_matrices(IncludeLights) ->
 projection() ->
     {W,H} = wings_wm:win_size(),
     Aspect = W/H,
-    #view{distance=D,fov=Fov,hither=Hither,yon=Yon,along_axis=AA} = 
+    #view{distance=D,fov=Fov,hither=Hither,yon=Yon,along_axis=AA} =
 	current(),
-    Ortho = wings_wm:get_prop(orthogonal_view) 
+    Ortho = wings_wm:get_prop(orthogonal_view)
 	orelse ((AA =/= none) andalso
 		wings_pref:get_value(force_ortho_along_axis)),
     case Ortho of
@@ -1021,13 +1021,13 @@ views(delete_all, St) ->
     This = wings_wm:this(),
     wings_u:yes_no(
       ?__(5,"Are you sure you want to delete all saved views?"),
-      fun() -> 
+      fun() ->
 	      wings_wm:send(This, {new_state,delete_all(St)}),
 	      ignore
       end).
 
 views_save_dialog(Ask, Options) ->
-    wings_ask:dialog(Ask, ?__(1,"Save view as"), 
+    wings_ask:dialog(Ask, ?__(1,"Save view as"),
 		     views_rename_qs(Options),
 		     fun(Opts) -> {view,{views,{save,Opts}}} end).
 
