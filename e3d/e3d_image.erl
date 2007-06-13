@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: e3d_image.erl,v 1.18 2005/06/20 20:22:01 dgud Exp $
+%%     $Id$
 %%
 
 -module(e3d_image).
@@ -52,7 +52,7 @@ load(FileName, Opts) when list(FileName), list(Opts) ->
 	      png -> e3d__png:load(FileName, Opts);
 	      _ -> return_error({not_supported,Extension})
 	  end,
-    fix_outtype(Res, Opts).
+    fix_outtype(FileName, Res, Opts).
 
 %% Func: save(#e3d_image, Filename [, Opts])
 %% Rets: ok | {error, Reason}
@@ -337,7 +337,7 @@ lowercase([H|R]) ->
 lowercase([]) ->
     [].
 
-fix_outtype(Res = #e3d_image{}, Opts) ->
+fix_outtype(File, Res = #e3d_image{}, Opts) ->
     Type = 
 	case lists:keysearch(type, 1, Opts) of
 	    {value, {type, T}} -> T;
@@ -353,8 +353,8 @@ fix_outtype(Res = #e3d_image{}, Opts) ->
 	    {value, {order, O}} -> O;
 	    false -> Res#e3d_image.order
 	end,
-    convert(Res, Type, Alignment, Order);
-fix_outtype(Res, _) ->  %% Propagate Error Case
+    convert(Res#e3d_image{filename=File}, Type, Alignment, Order);
+fix_outtype(_, Res, _) ->  %% Propagate Error Case
     Res.
 
 

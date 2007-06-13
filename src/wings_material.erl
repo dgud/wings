@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_material.erl,v 1.131 2006/07/07 11:22:12 dgud Exp $
+%%     $Id$
 %%
 
 -module(wings_material).
@@ -270,7 +270,7 @@ add_defaults_1(P) ->
 
 update_materials([{Name,Mat0}|Ms], St) ->
     Mat1 = add_defaults(Mat0),
-    Dir = wings_pref:get_value(current_directory),
+    Dir  = wings_pref:get_value(current_directory),
     Maps = load_maps(prop_get(maps, Mat1, []), Dir),
     Mat = keyreplace(maps, 1, Mat1, {maps,Maps}),
     update_materials(Ms, update(Name, Mat, St));
@@ -320,7 +320,7 @@ load_map_1(File0, Dir) ->
     case wings_image:image_read(Ps) of
 	#e3d_image{}=Im ->
 	    Name = filename:rootname(filename:basename(File)),
-	    wings_image:new(Name, Im#e3d_image{filename=File});
+	    wings_image:new(Name, Im);
 	{error,Error} ->
 	    io:format(?__(1,"Failed to load") ++ " \"~s\": ~s\n",
 		      [File,file:format_error(Error)]),

@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_ff_wings.erl,v 1.66 2006/01/26 20:37:33 dgud Exp $
+%%     $Id$
 %%
 
 -module(wings_ff_wings).
@@ -38,7 +38,8 @@ import_1(Name, St0) ->
 		    %% Pre-0.92. No longer supported.
                     {error,?__(3,"Pre-0.92 Wings format no longer supported.")};
 		{wings,2,{Shapes,Materials,Props}} ->
-                    import_vsn2(Shapes, Materials, Props, St0);
+		    Dir = filename:dirname(Name),
+                    import_vsn2(Shapes, Materials, Props, Dir, St0);
 		{wings,_,_} ->
 		    {error,?__(4,"unknown wings format")};
 		Other ->
@@ -51,9 +52,9 @@ import_1(Name, St0) ->
 	    {error,file:format_error(Reason)}
     end.
 
-import_vsn2(Shapes, Materials0, Props, St0) ->
+import_vsn2(Shapes, Materials0, Props, Dir, St0) ->
     wings_pb:update(0.10, ?__(1,"images and materials")),
-    Images = import_images(Props),
+    Images = import_images(Dir,Props),
     Materials1 = translate_materials(Materials0),
     Materials  = translate_map_images(Materials1, Images),
     {St1,NameMap0} = wings_material:add_materials(Materials, St0),
@@ -249,27 +250,27 @@ new_sel_group(Name, Mode, Sel, #st{ssels=Ssels0}=St) ->
 	    St#st{ssels=Ssels}
     end.
 
-import_images(Props) ->
+import_images(Dir,Props) ->
     Empty = gb_trees:empty(),
     case proplists:get_value(images, Props) of
 	undefined -> Empty;
-	Images -> import_images_1(Images, Empty)
+	Images -> import_images_1(Images, Dir, Empty)
     end.
 	    
-import_images_1([{Id0,Im}|T], Map) ->
+import_images_1([{Id0,Im}|T], Dir, Map) ->
     try 
-	#e3d_image{name=Name} = E3D = import_image(Im),
+	#e3d_image{name=Name} = E3D = import_image(Im,Dir),
 	Id = wings_image:new(Name, E3D),
-	import_images_1(T, gb_trees:insert(Id0, Id, Map))
+	import_images_1(T, Dir, gb_trees:insert(Id0, Id, Map))
     catch
 	throw:{bad_image,Image} -> 
 	    E3d = #e3d_image{name=Image,width=1,height=1,image= <<0,0,0>>},
 	    ID = wings_image:new(Image, E3d),
-	    import_images_1(T, gb_trees:insert(Id0, ID, Map))
+	    import_images_1(T, Dir, gb_trees:insert(Id0, ID, Map))
     end;
-import_images_1([], Map) -> Map.
+import_images_1([], _, Map) -> Map.
 
-import_image(Im) ->
+import_image(Im,Dir) ->
     Name = proplists:get_value(name, Im, ?__(1,"unnamed image")),
     case proplists:get_value(filename, Im) of
 	undefined ->
@@ -296,10 +297,10 @@ import_image(Im) ->
 	    #e3d_image{name=Name,width=W,height=H,type=Type,order=lower_left,
 		       alignment=1,bytes_pp=PP,image=Pixels};
 	Filename ->
-	    Ps = [{filename,Filename}],
+	    Ps = [{filename,Filename}, {opt_dir,Dir}],
 	    case wings_image:image_read(Ps) of
 		#e3d_image{}=E3D ->
-		    E3D#e3d_image{name=Name,filename=Filename};
+		    E3D#e3d_image{name=Name};
 		{error,_} ->
 		    Str = io_lib:format(?__(2,"Bad image: ~p\n"), [Name]),
 		    wings_u:message(lists:flatten(Str)),

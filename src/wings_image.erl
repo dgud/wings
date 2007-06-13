@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_image.erl,v 1.53 2006/01/25 21:15:12 dgud Exp $
+%%     $Id$
 %%
 
 -module(wings_image).
@@ -43,7 +43,47 @@ image_formats() ->
     wings_plugin:call_ui({image,formats,[]}).
 
 image_read(Ps) ->
-    wings_plugin:call_ui({image,read,Ps}).
+    CurrDir  = wings_pref:get_value(current_directory),
+    OptDir   = proplists:get_value(opt_dir,  Ps, undefined),
+    AbsFile  = proplists:get_value(filename, Ps),
+    FileName = filename:basename(AbsFile),
+    Dirs     = filename:split(filename:dirname(AbsFile)),    
+    case wings_plugin:call_ui({image,read,Ps}) of
+	{error, enoent} -> 	    
+	    try_relative_paths(Dirs,FileName,OptDir,CurrDir,Ps);
+	Ok = #e3d_image{} ->
+	    Ok#e3d_image{filename=AbsFile};
+	Other ->
+	    Other
+    end.
+		
+try_relative_paths(Dirs,FileName,undefined,CurrDir,Ps) ->
+    try_relative_paths(CurrDir,Dirs,FileName,Ps);
+try_relative_paths(Dirs,FileName,OptDir,CurrDir,Ps) ->
+    case try_relative_paths(OptDir,Dirs,FileName,Ps) of
+	{error, enoent} ->
+	    try_relative_paths(Dirs,FileName,undefined,CurrDir,Ps);
+	Other -> 
+	    Other
+    end.
+
+try_relative_paths(Start, Rel, File, Ps0) ->
+    Abs = case Rel of 
+	      [] -> filename:join(Start,File);
+	      _  -> filename:join(filename:join(Start,filename:join(Rel)),File)
+	  end,
+    Ps = lists:keyreplace(filename,1,Ps0,{filename,Abs}),
+    case wings_plugin:call_ui({image,read,Ps}) of
+	Err = {error, enoent} ->
+	    case Rel of
+		[] -> Err;
+		[_|Rest] -> try_relative_paths(Start,Rest,File,Ps0)
+	    end;
+	Ok = #e3d_image{} ->
+	    Ok#e3d_image{filename=Abs};
+	Other ->
+	    Other
+    end.
 
 image_write(Ps) ->
     case catch wings_plugin:call_ui({image,write,Ps}) of
@@ -62,7 +102,7 @@ from_file(Filename) ->
     case image_read(Props) of
 	#e3d_image{}=Image ->
 	    Name = filename:rootname(filename:basename(Filename)),
-	    req({new,Image#e3d_image{filename=Filename,name=Name},false});
+	    req({new,Image#e3d_image{name=Name},false});
 	{error,_}=Error -> Error
     end.
 

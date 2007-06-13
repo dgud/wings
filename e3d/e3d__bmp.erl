@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: e3d__bmp.erl,v 1.10 2003/12/31 10:46:37 bjorng Exp $
+%%     $Id$
 %%
 
 -module(e3d__bmp).
@@ -46,7 +46,7 @@ load(FileName, _Opts) ->
     case file:read_file(FileName) of	
 	{ok, <<?BITMAPFILEHEADER, ?BITMAPINFOHEADER, TmpImage/binary>>} 
 	when _BiPlanes == 1, _BiCompression == 0 -> % Supported formats
-	    ?DBGOUT(),	    
+%%	    ?DBGOUT(),	    
 	    MapSz =  if  % No map for 24 and 32 bit images
 			 _BiBitCount > 16 ->   0;
 			 true ->  (1 bsl _BiBitCount) * 4

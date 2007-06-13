@@ -39,7 +39,7 @@ read_image(Prop) ->
     e3d_image:load(Name, Prop).
 
 write_image(Prop) ->
-    Name = proplists:get_value(filename, Prop),
+    Name  = proplists:get_value(filename, Prop),
     Image = proplists:get_value(image, Prop),
     e3d_image:save(Image, Name, Prop).
 
