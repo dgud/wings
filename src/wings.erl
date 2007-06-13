@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings.erl,v 1.342 2006/11/06 00:51:40 antoneos Exp $
+%%     $Id$
 %%
 
 -module(wings).
@@ -964,7 +964,7 @@ measure(Base, #st{selmode=face,sel=[{Id,Fs}],shapes=Shs}) ->
 	    {X,Y,Z} = wings_face:center(Face, We),
 	    Area = wings_face:area(Face, We),
 	    Mat = wings_facemat:face(Face, We),
-	    [Base|wings_util:format(?__(4,". Midpt ~s ~s ~s.\nMaterial ~s. Area ~s"),
+	    [Base|wings_util:format(?__(4,". Midpt ~s ~s ~s.\nMaterial ~s.")++ ?__(40," Area ~s"),
 				[wings_util:nice_float(X),
 				 wings_util:nice_float(Y),
 				 wings_util:nice_float(Z),
