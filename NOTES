@@ -1,5 +1,7 @@
 --- 0.98.XX -----------------------------------------------------------------
 
+- Added search in relative paths when loading textured models. [dgud]
+
 - Ability to set drag constraints. [contributed by Richard Jones (Optigon)]
 
 - Small add to right mouse button absolute snap, now you can lock movement
