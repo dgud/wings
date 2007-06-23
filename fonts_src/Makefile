@@ -53,9 +53,9 @@ opt debug:
 common: $(TARGET_FILES)
 
 
-$(FONT_DIR)/6x11.wingsfont: 6x11_latin1.bdf 6x11_latin2.bdf 6x11_cyrillic.bdf
+$(FONT_DIR)/6x11.wingsfont: 6x11_latin1.bdf 6x11_latin2.bdf 6x11_cyrillic.bdf 6x11_latin5.bdf
 
-$(FONT_DIR)/7x14.wingsfont: 7x14_latin1.bdf 7x14_latin2.bdf 7x14_cyrillic.bdf
+$(FONT_DIR)/7x14.wingsfont: 7x14_latin1.bdf 7x14_latin2.bdf 7x14_cyrillic.bdf 7x14_latin5.bdf
 
 $(FONT_DIR)/fixed6x12.wingsfont: fixed6x12.bdf
 

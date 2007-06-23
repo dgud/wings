@@ -1,5 +1,7 @@
 --- 0.98.XX -----------------------------------------------------------------
 
+- Added ISO-8859-9 font support. [contributed by Ismail Keskin (Devilgreen)]
+
 - Added search in relative paths when loading textured models. [dgud]
 
 - Ability to set drag constraints. [contributed by Richard Jones (Optigon)]

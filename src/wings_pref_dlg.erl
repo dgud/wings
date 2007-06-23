@@ -330,6 +330,7 @@ language_name("fr") -> "Français";
 language_name("it") -> "Italiano";
 language_name("pl") -> "Polski";
 language_name("pt") -> "Português";
+language_name("tr") -> "Türkçe";
 language_name("ru") ->
     %% "Russian" in Russian as Unicode:
     [1056,1091,1089,1089,1082,1080,1081];
