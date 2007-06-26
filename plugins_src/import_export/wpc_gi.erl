@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_gi.erl,v 1.1 2004/04/01 12:06:03 dgud Exp $
+%%     $Id$
 
 -module(wpc_gi).
 
@@ -39,10 +39,10 @@
 
 -record(f, {vs=[],  % Vertices
 	    ns=[],  % Normals
-	    c,      % Center (shooting) Position 
+	    c,	    % Center (shooting) Position
 	    dir,    % Normal i.e. shooting direction
 	    area,   % Physical area size
-	    txsz,   % texture size 
+	    txsz,   % texture size
 	    txid,   % texture Id
 	    mat=undefined}).
 
@@ -65,7 +65,7 @@
 		sv = []  % List of display lists of shadow volumes
 	       }).
 
-%%% PROGRAM PARAMETERS 
+%%% PROGRAM PARAMETERS
 
 init() ->
     true.
@@ -88,7 +88,7 @@ dialog_qs(render) ->
     BumpMap  = get_pref(render_bumps, false),
     Filename = get_pref(output_file, "output.tga"),
 
-    BumpP = wings_util:is_gl_ext({1,3}, bump_exts()) or programmable(),
+    BumpP = wings_gl:is_ext({1,3}, bump_exts()) or programmable(),
     StencilP = hd(gl:getIntegerv(?GL_STENCIL_BITS)) >= 8,
     Ps = [{dialog_type,save_dialog},{ext,".tga"},{ext_desc,"Targa File"}],
 
@@ -134,14 +134,14 @@ do_render(Ask, _St) when is_atom(Ask) ->
 		       {file,{render,{gi,Res}}}
 	       end);
 do_render(Attr, St) ->
-    io:format("~p Err ~p~n", [?LINE,wings_util:gl_error_string(gl:getError())]),
+    io:format("~p Err ~p~n", [?LINE,wings_gl:error_string(gl:getError())]),
     set_pref(Attr),
     {_,_,W,H} = wings_wm:viewport(),
     if W >= 512, H >= 512 ->
 	    wings_pb:start("Rendering"),
-	    io:format("~p Err ~p~n", [?LINE,wings_util:gl_error_string(gl:getError())]),
+	    io:format("~p Err ~p~n", [?LINE,wings_gl:error_string(gl:getError())]),
 	    Data = create_dls(St, Attr),
-	    io:format("~p Err ~p~n", [?LINE,wings_util:gl_error_string(gl:getError())]),
+	    io:format("~p Err ~p~n", [?LINE,wings_gl:error_string(gl:getError())]),
 	    [FishId] = gl:genTextures(1),
 	    gl:bindTexture(?GL_TEXTURE_2D, FishId),
 	    gl:texEnvi(?GL_TEXTURE_ENV,?GL_TEXTURE_ENV_MODE,?GL_REPLACE),
@@ -169,7 +169,7 @@ del_list({[Smooth,TrL],_Tr}) ->
 del_list(_) -> ok.
 
 render_exit(#r{lights=Lights, data=D}) ->
-    io:format("Err ~p~n", [wings_util:gl_error_string(gl:getError())]),
+    io:format("Err ~p~n", [wings_gl:error_string(gl:getError())]),
     %% BUGBUG delete all textures also
     foreach(fun(#light{sv=L1, dl=L2}) ->
 		    foreach(fun(DL) -> del_list(DL) end,L1++L2)
@@ -187,7 +187,7 @@ render_exit(#r{lights=Lights, data=D}) ->
 create_dls(St0, Attr) ->
     St = invisible_holes(St0),
     SubDiv = proplists:get_value(subdivisions, Attr),
-    %%    RenderAlpha = proplists:get_bool(render_alpha, Attr),
+    %%	  RenderAlpha = proplists:get_bool(render_alpha, Attr),
     load_shaders(),
     Mtab = St#st.mat,
     Objects = foldl(fun(#we{perm=P},Wes) when ?IS_NOT_VISIBLE(P) ->
@@ -236,7 +236,7 @@ build_data(We,Mtab) ->
 	      Face <- gb_trees:keys(We#we.fs)],
     FVN = wings_we:normals(FN0, We),
     %% sorted by mat ??
-    MatFs = wings_material:mat_faces(FVN, We),
+    MatFs = wings_facemat:mat_faces(FVN, We),
     C = fun({MatName,Fs}, Acc) ->
 		Mat = gb_trees:get(MatName, Mtab),
 		create_face(Fs, MatName, Mat, We, Acc)
@@ -244,10 +244,10 @@ build_data(We,Mtab) ->
     foldl(C, [], MatFs).
 
 create_face([{Face, Data}|Rest], MatName, Mat, We, Acc) ->
-    Vs  = wings_face:vertex_positions(Face, We),
-    Ns  = [VN || [_|VN] <- Data],
-    Sz  = {16,16},
-    C   = e3d_vec:average(Vs),
+    Vs	= wings_face:vertex_positions(Face, We),
+    Ns	= [VN || [_|VN] <- Data],
+    Sz	= {16,16},
+    C	= e3d_vec:average(Vs),
     Normal  = e3d_vec:norm(e3d_vec:average(Ns)),
     [TexId] = gl:genTextures(1),
     gl:bindTexture(?GL_TEXTURE_2D, TexId),
@@ -281,8 +281,8 @@ create_face([{Face, Data}|Rest], MatName, Mat, We, Acc) ->
 		   R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B,  R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B,
 		   R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B,  R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B, R,G,B
 		   >>),
-    
-    F   = #f{vs=Vs,ns=Ns,mat=Mat,txsz=Sz,dir=Normal,txid=TexId,c=C},
+
+    F	= #f{vs=Vs,ns=Ns,mat=Mat,txsz=Sz,dir=Normal,txid=TexId,c=C},
     New = {get_id(Face,We#we.id), Emit, F},
     create_face(Rest, MatName, Mat, We, [New|Acc]);
 create_face([], _, _, _, Acc) ->
@@ -296,7 +296,7 @@ get_emission(Mat, Energy) ->
 -define(STOP, 0.5).
 find_emitter(#r{data=Data}) ->
     Worst = {stop, {?STOP, stop}, stop},
-    foldl(fun(#d{fs=Fs},Acc) -> foldl(fun find_emitter/2, Acc, Fs) end, 
+    foldl(fun(#d{fs=Fs},Acc) -> foldl(fun find_emitter/2, Acc, Fs) end,
 	  Worst, Data).
 
 find_emitter(FaceD = {_,Emit,_}, {_,Best,_}) when Emit > Best ->
@@ -304,11 +304,11 @@ find_emitter(FaceD = {_,Emit,_}, {_,Best,_}) when Emit > Best ->
 find_emitter(_, Best) ->
     Best.
 
-calc_energy({OldE,OC={R2,B2,G2}}, NewCol={R1,B1,G1}, {_,{Energy,_},_}) -> 
+calc_energy({OldE,OC={R2,B2,G2}}, NewCol={R1,B1,G1}, {_,{Energy,_},_}) ->
     Diff = (R1-R2+B1-B2+G1-G2)/3,
-    if Diff < 0 -> 
+    if Diff < 0 ->
 	    io:format("?? ~p ~p ~n", [OC, NewCol]),
-       	    {OldE, NewCol};
+	    {OldE, NewCol};
        true ->
 	    {OldE+Energy*Diff, NewCol}
     end.
@@ -316,7 +316,7 @@ calc_energy({OldE,OC={R2,B2,G2}}, NewCol={R1,B1,G1}, {_,{Energy,_},_}) ->
 draw_ids_dl(Fs) ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
-    gl:'begin'(?GL_QUADS), 
+    gl:'begin'(?GL_QUADS),
     draw_ids2(Fs, ?GL_QUADS),
     gl:'end'(),
     gl:endList(),
@@ -404,7 +404,7 @@ radiosity(Rr0) ->
     Rr = calc_radiosity(Rr0, 0),
     render(Rr),
 
-    capture("by GL_RAD", 3, ?GL_RGB, Rr#r.fish),    
+    capture("by GL_RAD", 3, ?GL_RGB, Rr#r.fish),
     gl:popAttrib().
 
 calc_radiosity(Rr0 = #r{max=Max},N) when N < Max ->
@@ -414,29 +414,29 @@ calc_radiosity(Rr0 = #r{max=Max},N) when N < Max ->
 	    Rr0;
 	Emitter ->
 	    io:format("Emitter ~p~n",[{element(1,Emitter),element(2,Emitter)}]),
-	    %% 1st pass 
+	    %% 1st pass
 	    %% Capture FishEye view to get visible pixels
 	    Matrix = draw_fisheye(Emitter,Rr0),
 
 	    %% 2nd pass
-	    %% Draw again 
+	    %% Draw again
 	    gl:enable(?GL_TEXTURE_2D),
 	    gl:bindTexture(?GL_TEXTURE_2D, Rr0#r.fish),
 
 	    TempMem = sdl_util:alloc(3*4, ?GL_UNSIGNED_BYTE),
 	    enable_shaders(radiosity, [Matrix,Emitter]),
-	    %%    foreach(fun(Data) -> draw_fast(Data) end, Rr#r.data),
+	    %%	  foreach(fun(Data) -> draw_fast(Data) end, Rr#r.data),
 	    gl:disable(?GL_VERTEX_PROGRAM_ARB),
 	    gl:disable(?GL_FRAGMENT_PROGRAM_ARB),
 	    New = ?TC(map(fun(Data) -> calc_rad(Data,Emitter,TempMem,Rr0#r.fish) end, Rr0#r.data)),
 	    disable_shaders(),
 	    Rr = Rr0#r{data=New},
-	    if 
+	    if
 		Rr0#r.progress -> render(Rr), gl:swapBuffers();
 		true -> ignore
 	    end,
 	   % capture("RAD " ++ integer_to_list(N), 3, ?GL_RGB, Rr#r.fish),
-	    %% Repeat pass1 and pass2 for every emitting face	    
+	    %% Repeat pass1 and pass2 for every emitting face
 	    calc_radiosity(Rr, N+1)
     end;
 calc_radiosity(RR, _) -> RR.
@@ -463,7 +463,7 @@ draw_fisheye({_,_,#f{c=From,dir=Dir}}, #r{data=Dt, fish=Fish}) ->
     gl:copyTexImage2D(?GL_TEXTURE_2D,0,?GL_RGB,X,Y,W,H,0),
     disable_shaders(),
     Mat.
-    
+
 draw_fast(#d{fdl=DL}) ->
     ?CHECK_ERROR(),
     gl:polygonMode(?GL_FRONT, ?GL_FILL),
@@ -482,9 +482,9 @@ calc_rad(D=#d{fs=Fs0},Emitter,Mem,Fish) ->
     D#d{fs=Fs}.
 calc_rad_face([{Id,{_,Old},F}|Fs],E={Id,_,_},Mem,Fish,Acc) ->
     calc_rad_face(Fs, E, Mem, Fish, [{Id, {0,Old}, F}|Acc]);
-calc_rad_face([{Id,Emit0,F=#f{vs=Vs,ns=Ns,txsz=Tsz,txid=Txid}}|Fs],E,Mem,Fish,Acc) ->    
+calc_rad_face([{Id,Emit0,F=#f{vs=Vs,ns=Ns,txsz=Tsz,txid=Txid}}|Fs],E,Mem,Fish,Acc) ->
     {X,Y,_,_} = wings_wm:viewport(),
-    {W,H} = Tsz, 
+    {W,H} = Tsz,
     gl:viewport(X,Y,W,H),
 %    gl:viewport(X,Y,128,128),
     gl:matrixMode(?GL_PROJECTION),
@@ -495,7 +495,7 @@ calc_rad_face([{Id,Emit0,F=#f{vs=Vs,ns=Ns,txsz=Tsz,txid=Txid}}|Fs],E,Mem,Fish,Ac
 
     gl:disable(?GL_DEPTH_TEST),
     gl:disable(?GL_CULL_FACE),
-    
+
     %% Background
     gl:disable(?GL_BLEND),
     gl:bindTexture(?GL_TEXTURE_2D, Txid),
@@ -507,7 +507,7 @@ calc_rad_face([{Id,Emit0,F=#f{vs=Vs,ns=Ns,txsz=Tsz,txid=Txid}}|Fs],E,Mem,Fish,Ac
     gl:'end'(),
     gl:enable(?GL_BLEND),
     gl:blendFunc(?GL_ONE, ?GL_ONE),
-    
+
     gl:enable(?GL_VERTEX_PROGRAM_ARB),
     gl:enable(?GL_FRAGMENT_PROGRAM_ARB),
     gl:bindTexture(?GL_TEXTURE_2D, Fish),
@@ -524,7 +524,7 @@ calc_rad_face([{Id,Emit0,F=#f{vs=Vs,ns=Ns,txsz=Tsz,txid=Txid}}|Fs],E,Mem,Fish,Ac
     gl:copyTexImage2D(?GL_TEXTURE_2D,0,?GL_RGB,X,Y,W,H,0),
     gl:finish(),
     gl:getTexImage(?GL_TEXTURE_2D,Level,?GL_RGB,?GL_FLOAT,Mem),
-    <<R:32/native-float,G:32/native-float,B:32/native-float>> = sdl_util:getBin(Mem), 
+    <<R:32/native-float,G:32/native-float,B:32/native-float>> = sdl_util:getBin(Mem),
     Emit = calc_energy(Emit0, {R,G,B}, E),
 %%    io:format("RGB ~p ~p ~n",[{R,G,B},Emit]),
 %    timer:sleep(25),gl:swapBuffers(),timer:sleep(25),
@@ -537,9 +537,9 @@ render(Rr) ->
     {X,Y,W,H} = wings_wm:viewport(),
     gl:viewport(X, Y, W, H),
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
-    wings_view:load_matrices(false),   
+    wings_view:load_matrices(false),
     gl:enable(?GL_DEPTH_TEST),
-    gl:enable(?GL_CULL_FACE), 
+    gl:enable(?GL_CULL_FACE),
     gl:disable(?GL_BLEND),
     gl:enable(?GL_TEXTURE_2D),
 
@@ -573,13 +573,13 @@ render(Rr) ->
 %%%
 capture(Name, N, Type, Fish) ->
     gl:pixelStorei(?GL_PACK_ALIGNMENT, 1),
-    %% Grab stereo texture 
+    %% Grab stereo texture
     Wt=Ht=512,
     NumBytes2 = N*Wt*Ht,
     Mem2 = sdl_util:alloc(NumBytes2, ?GL_UNSIGNED_BYTE),
     gl:bindTexture(?GL_TEXTURE_2D, Fish),
     gl:getTexImage(?GL_TEXTURE_2D,0,Type,?GL_UNSIGNED_BYTE,Mem2),
-    Pixels2 = sdl_util:getBin(Mem2),    
+    Pixels2 = sdl_util:getBin(Mem2),
     Temp = #e3d_image{bytes_pp=N,order=lower_left,width=Wt,height=Ht,
 		      image=Pixels2},
     wings_image:new_temp("<<Stereo" ++ Name ++">>", Temp),
@@ -605,18 +605,18 @@ setup_model_view({_Px,_Py,_Pz}=Point, {Dx,Dy,Dz}=Dir) ->
     Rot = { Sx, Ux, -Dx,
 	    Sy, Uy, -Dy,
 	    Sz, Uz, -Dz,
-	    Z,   Z,   Z},
+	    Z,	 Z,   Z},
     Trans = e3d_mat:translate(e3d_vec:neg(Point)),
     Mat   = e3d_mat:expand(e3d_mat:mul(Rot,Trans)),
-    %%  DEBUG
-    %%     gl:loadIdentity(),
-    %%     glu:lookAt(Px,Py,Pz, Px+Dx,Py+Dy,Pz+Dz, Upx,Upy,Upz),
-    %%     io:format("Corr~n~w~n", [gl:getFloatv(?GL_MODELVIEW_MATRIX)]),    
+    %%	DEBUG
+    %%	   gl:loadIdentity(),
+    %%	   glu:lookAt(Px,Py,Pz, Px+Dx,Py+Dy,Pz+Dz, Upx,Upy,Upz),
+    %%	   io:format("Corr~n~w~n", [gl:getFloatv(?GL_MODELVIEW_MATRIX)]),
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadMatrixd(Mat),
     %% io:format("My~n~w~n", [gl:getFloatv(?GL_MODELVIEW_MATRIX)]),
     Mat.
-    
+
 up({X,Y,Z}) when abs(Y) > abs(X), abs(Y) > abs(Z) ->
     {1.0,0.0,0.0};
 up(_) ->
@@ -630,8 +630,8 @@ bump_exts() ->
      'GL_EXT_texture3D'].
 
 programmable() ->
-    wings_util:is_gl_ext(['GL_ARB_vertex_program',
-			  'GL_ARB_fragment_program']).
+    wings_gl:is_ext(['GL_ARB_vertex_program',
+		     'GL_ARB_fragment_program']).
 
 enable_shaders(stereographic_proj, [Near,Far]) ->
     #shaders{stereo_vp = Stereo} =  get(gl_shaders),
@@ -641,7 +641,7 @@ enable_shaders(stereographic_proj, [Near,Far]) ->
 
 enable_shaders(radiosity, [Mat, {_, {Energy, {R,G,B}}, #f{c={Px,Py,Pz},dir={Dx,Dy,Dz}}}]) ->
     Area = 1.0,
-    #shaders{rad_vp = VP, rad_fp=FP} =  get(gl_shaders),
+    #shaders{rad_vp = VP, rad_fp=FP} =	get(gl_shaders),
     gl:enable(?GL_VERTEX_PROGRAM_ARB),
     gl:bindProgramARB(?GL_VERTEX_PROGRAM_ARB,VP),
     gl:enable(?GL_FRAGMENT_PROGRAM_ARB),
@@ -738,7 +738,7 @@ stereographic_proj() ->
 
 radiosity_vp() ->
     <<"!!ARBvp1.0
-PARAM mvp[4]      = { state.matrix.mvp };
+PARAM mvp[4]	  = { state.matrix.mvp };
 PARAM fisheye[4]  = { state.matrix.program[1] };
 PARAM scale = { 2.0, 2.0, -1.0, -1.00 };
 
@@ -771,17 +771,17 @@ MAD pos.xy, pos, 0.5, 0.5;
 MOV result.texcoord[0].xy,  pos;
 MOV result.texcoord[1].xyz, xyz;
 MOV result.texcoord[2].xyz, vertex.normal;
-MOV result.color,           faceId;
+MOV result.color,	    faceId;
 
 END
 ">>.
 
 radiosity_fp() ->
-    <<"!!ARBfp1.0      
+    <<"!!ARBfp1.0
 PARAM color = { 1.0, 1.00, 1.0, 1.00 };
 # 1/256 = 0.0039 within acceptable range
 PARAM error = { 0.0039, 0.0039, 0.0039, 0.0039 };
-PARAM shootPos      = program.env[0];
+PARAM shootPos	    = program.env[0];
 PARAM shootNormal   = program.env[1];
 PARAM shootArea     = program.env[2];
 PARAM shootEnergy   = program.env[3];
@@ -789,7 +789,7 @@ PARAM shootEnergy   = program.env[3];
 ATTRIB fishEyePos  = fragment.texcoord[0];
 ATTRIB texPos3d    = fragment.texcoord[1];
 ATTRIB texNormal   = fragment.texcoord[2];
-ATTRIB faceId      = fragment.color;
+ATTRIB faceId	   = fragment.color;
 
 TEMP visible, fishId, r, dist2, cos, top, bot, fij;
 
@@ -802,7 +802,7 @@ SUB visible.xyz, error, visible;
 KIL visible;
 
 # Calculate Radiosity
-SUB r, shootPos, texPos3d;  
+SUB r, shootPos, texPos3d;
 DP3 dist2.x, r, r;
 RSQ dist2.z, dist2.x;
 MUL r, r, dist2.z;
@@ -814,7 +814,7 @@ MAD bot.x, 3.141592, dist2.x, shootArea.x;
 MAX bot.x,   bot.x, 1.0;
 RCP bot,   bot.x;
 MUL fij.x,   top.x, bot.x;
-MUL fij,   fij.x, color; 
+MUL fij,   fij.x, color;
 MUL fij,   fij, shootEnergy;
 MOV result.color.rgb, fij;
 #MOV result.color.rgb, faceId;
