@@ -351,8 +351,12 @@ read_vx(Data) ->
     {Index, Rest}.
 
 read_rgb(Data) ->
-    <<_:16,"COLR",_:16, R:32/float,G:32/float,B:32/float, _More/binary>> = Data,
-    {R,G,B}.
+    try
+	<<_:16,"COLR",_:16, R:32/float,G:32/float,B:32/float, _More/binary>> = Data,
+	{R,G,B}
+    catch _:_ ->
+	{0.9,0.9,0.9}
+    end.
 
 read_surf(Data) ->
     {MaterialName, Rest} = read_cstring(Data),
