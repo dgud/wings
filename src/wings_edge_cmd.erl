@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_edge_cmd.erl,v 1.9 2006/10/22 16:33:54 giniu Exp $
+%%     $Id$
 %%
 
 -module(wings_edge_cmd).
@@ -19,6 +19,7 @@
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
+-include("sdl_keyboard.hrl").
 
 -import(lists, [foldl/3,mapfoldl/3,reverse/1,sort/1]).
 -import(e3d_vec, [add/1,add/2,sub/2,neg/1,norm/1,len/1,
@@ -45,7 +46,7 @@ menu(X, Y, St) ->
 	    separator,
 	    {?__(10,"Dissolve"), dslv(),
 		 {?__(11,"Eliminate selected edges"), "",
-		  ?__(50,"Eliminate selected edges and remove remaining isolated verts")},[]},
+		  ?__(21,"Eliminate selected edges and remove remaining isolated verts")},[]},
 		{?__(12,"Collapse"),collapse,
 	     ?__(13,"Delete edges, replacing them with vertices")},
 	    separator,
@@ -57,15 +58,18 @@ menu(X, Y, St) ->
 	     ?__(18,"Cut into two objects along edge loop")},
 	    separator,
 	    {?__(19,"Vertex Color"),vertex_color,
-	     ?__(20,"Apply vertex colors to selected edges")}],
+	     ?__(20,"Apply vertex colors to selected edges")},
+	    separator,
+	    {?__(22,"Set Constraint"),edge_constraint,
+	     ?__(23,"Set default distance/rotation constraint for pressed modifier key(s). Defaults to key set in Preferences.")}],
     wings_menu:popup_menu(X, Y, edge, Menu).
 
 dslv() ->
-	fun
-		(1, _Ns) -> {edge,dissolve};
-		(3, _Ns) -> {edge,clean_dissolve};
-		(_, _) -> ignore
-	end.
+    fun
+	(1, _Ns) -> {edge,dissolve};
+	(3, _Ns) -> {edge,clean_dissolve};
+	(_, _) -> ignore
+    end.
 
 cut_line(#st{sel=[{_,Es}]}) ->
     case gb_sets:size(Es) of
@@ -119,8 +123,8 @@ command(cut_pick, St) ->
     cut_pick(St);
 command({cut,ask}, St) ->
     wings_ask:ask(cut_command(),
-                  [{?__(1,"Segments"), 2}],
-                  fun([Ret]) -> cut(Ret, St) end);
+		  [{?__(1,"Segments"), 2}],
+		  fun([Ret]) -> cut(Ret, St) end);
 command({cut,Num}, St) ->
     {save_state,cut(Num, St)};
 command(connect, St) ->
@@ -146,7 +150,9 @@ command({scale,Type}, St) ->
 command(vertex_color, St) ->
     wings_color:choose(fun(Color) ->
 			       set_color(Color, St)
-		       end).
+		       end);
+command(edge_constraint, St) ->
+    set_edge_constraint(St).
 
 %%%
 %%% The Connect command.
@@ -309,12 +315,12 @@ cut_pick_marker({finish,[I]}, D0, Edge, We, Start, Dir, Char) ->
 %%%
 
 clean_dissolve(St0) ->
-	St = wings_sel:map(fun(Es, We) ->
-	We1 = wings_edge:dissolve_edges(Es, We),
-    IsolatedVs1 = wings_vertex:isolated(We1),
-    wings_edge:dissolve_isolated_vs(IsolatedVs1, We1)
-	end, St0),
-	wings_sel:clear(St).
+    St = wings_sel:map(fun(Es, We) ->
+			       We1 = wings_edge:dissolve_edges(Es, We),
+			       IsolatedVs1 = wings_vertex:isolated(We1),
+			       wings_edge:dissolve_isolated_vs(IsolatedVs1, We1)
+		       end, St0),
+    wings_sel:clear(St).
 
 %%%
 %%% The Dissolve command.
@@ -350,12 +356,12 @@ slide(St) ->
     Stop = wings_pref:get_value(slide_stop, false),
     State = {Mode,none,Stop},
     SUp = SDown = SN = SBi = {0.0,0.0,0.0},
-    {Tvs,_,_,_,_,MinUp,MinDw} = 
+    {Tvs,_,_,_,_,MinUp,MinDw} =
 	wings_sel:fold(
 	  fun(EsSet, #we{id=Id} = We, {Acc,Up0,Dw0,N0,Bi0,MinUp,MinDw}) ->
 		  LofEs0 = wings_edge_loop:partition_edges(EsSet, We),
 		  LofEs = reverse(sort([{length(Es),Es} || Es <- LofEs0])),
-		  {{Slides,MUp,MDw},Up,Dw,N,Bi} = 
+		  {{Slides,MUp,MDw},Up,Dw,N,Bi} =
 		      slide_setup_edges(LofEs,Up0,Dw0,N0,Bi0,We,
 					{gb_trees:empty(),MinUp,MinDw}),
 		  {[{Id,make_slide_tv(Slides, State)}|Acc],Up,Dw,N,Bi,MUp,MDw}
@@ -365,25 +371,25 @@ slide(St) ->
     wings_drag:setup(Tvs, Units, Flags, St).
 
 slide_mode(MinUp,MinDw) ->
-    fun(help, State)              ->    slide_help(State);
-       ({key,$1}, {relative,F,S}) ->    {absolute,F,S};
-       ({key,$1}, {absolute,F,S}) ->    {relative,F,S};
+    fun(help, State)		  ->	slide_help(State);
+       ({key,$1}, {relative,F,S}) ->	{absolute,F,S};
+       ({key,$1}, {absolute,F,S}) ->	{relative,F,S};
        ({key,$2}, {Mode,none,S})  ->
 	    case get(wings_slide) of
-		undefined -> 
+		undefined ->
 		    {Mode,none,S};
-		Dx when Dx >= 0 -> 
+		Dx when Dx >= 0 ->
 		    {Mode,positive,S};
-		_ -> 
+		_ ->
 		    {Mode,negative,S}
 	    end;
-       ({key,$2}, {Mode,_,S})     ->    {Mode,none,S};
-       ({key,$3}, {Mode,F,false}) ->    {Mode,F,true};
-       ({key,$3}, {Mode,F,true})  ->    {Mode,F,false};
+       ({key,$2}, {Mode,_,S})	  ->	{Mode,none,S};
+       ({key,$3}, {Mode,F,false}) ->	{Mode,F,true};
+       ({key,$3}, {Mode,F,true})  ->	{Mode,F,false};
 
        (units, NewState) ->
 	    slide_units(NewState,MinUp,MinDw);
-       
+
        (done, {NewMode,_,NewStop})->
 	    wings_pref:set_value(slide_mode, NewMode),
 	    wings_pref:set_value(slide_stop, NewStop),
@@ -407,10 +413,10 @@ slide_help_mode(relative) -> ?__(1,"Absolute");
 slide_help_mode(absolute) -> ?__(2,"Relative").
 
 slide_help_freeze(none)   -> ?STR(slide_help_mode,3,"Freeze direction");
-slide_help_freeze(_)      -> ?STR(slide_help_mode,4,"Thaw direction").
+slide_help_freeze(_)	  -> ?STR(slide_help_mode,4,"Thaw direction").
 
-slide_help_stop(false)    -> ?STR(slide_help_mode,5,"Stop at other edges");
-slide_help_stop(true)     -> ?STR(slide_help_mode,6,"Continue past other edges").
+slide_help_stop(false)	  -> ?STR(slide_help_mode,5,"Stop at other edges");
+slide_help_stop(true)	  -> ?STR(slide_help_mode,6,"Continue past other edges").
 
 make_slide_tv(Slides, State) ->
     Vs = gb_trees:keys(Slides),
@@ -418,14 +424,14 @@ make_slide_tv(Slides, State) ->
 
 %% The calculating fun
 slide_fun(Dx0,{Mode,Freeze,_Stop}, Slides) ->
-    {Dx,I} = 
-	case Freeze of   %% 3 = UP, 2 = Down
+    {Dx,I} =
+	case Freeze of	 %% 3 = UP, 2 = Down
 	    none when Dx0 >= 0 -> {Dx0, 3};
-	    none ->               {-Dx0,2};
+	    none ->		  {-Dx0,2};
 	    positive -> 	  {Dx0, 3};
-	    negative ->           {-Dx0,2}
+	    negative -> 	  {-Dx0,2}
 	end,
-    case Mode of 
+    case Mode of
 	relative ->
 	    fun(V,A) ->
 		    Slide = gb_trees:get(V, Slides),
@@ -461,12 +467,12 @@ slide_setup_edges([], Up,Dw,N,Bi,_,Slides) ->
     {Slides,Up,Dw,N,Bi}.
 
 slide_add_edges([{LUp,LDw,LN,Es}|Parts],GUp,GDw,GN,GBi,Acc0) ->
-    %%    io:format("UDN ~p ~p ~p ~p~n", [len(LUp), len(LDw), len(LN), length(Es)]),
-    Count  = length(Es)/2,    
+    %%	  io:format("UDN ~p ~p ~p ~p~n", [len(LUp), len(LDw), len(LN), length(Es)]),
+    Count  = length(Es)/2,
     Vec1   = norm(LUp), LenUp = len(LUp),
     Vec2   = norm(LDw), LenDw = len(LDw),
-    Vec3   = norm(LN),  LenN  = len(LN),
-    Bi     = norm(cross(Vec1,Vec3)),
+    Vec3   = norm(LN),	LenN  = len(LN),
+    Bi	   = norm(cross(Vec1,Vec3)),
     Rotation = dot(Bi, norm(GBi)),
 %    io:format("BIs ~p ~p ~p ~p ~n", [Bi, norm(GBi), Rotation, Count]),
     case (LenUp/Count > 0.707) and (LenN/Count > 0.707) and
@@ -478,9 +484,9 @@ slide_add_edges([{LUp,LDw,LN,Es}|Parts],GUp,GDw,GN,GBi,Acc0) ->
 	    case (LenUp >= 1) or (LenDw >= 1)
 		or (LenN =< 1) or (Count < 4) of
 		true -> %% Make sure up is up..
-		    DotUp1 = dot(Vec1,norm(GUp)), 
+		    DotUp1 = dot(Vec1,norm(GUp)),
 		    %%DotDw1 = dot(Vec1,norm(GDw)),
-		    %%DotUp2 = dot(Vec2,norm(GUp)), 
+		    %%DotUp2 = dot(Vec2,norm(GUp)),
 		    DotDw2 = dot(Vec2,norm(GDw)),
 		    if (DotUp1 >= 0) and (DotDw2 >= 0) ->
 			    Acc  = slide_dirs(Es,1.0,Acc0),
@@ -496,7 +502,7 @@ slide_add_edges([{LUp,LDw,LN,Es}|Parts],GUp,GDw,GN,GBi,Acc0) ->
 			    slide_add_edges(Parts,add(Vec2,GUp),
 					    add(Vec1,GDw),GN,add(GBi,Bi),Acc)
 		    end;
-		false -> 
+		false ->
 		    %% Probably a loop, make sure it goes in/out and not out/in.
 		    %% BUGBUG this isn't good enough..
 		    Norm0 = Vec3,
@@ -535,7 +541,7 @@ slide_part_loop(Es,We) ->
     [slide_dir(P,Eis,Def,Def,Def,[]) || P <- Parts].
 
 slide_gather_info([Edge|Es],We=#we{es=Etab,vp=Vtab},Acc) ->
-    #edge{vs=V1,ve=V2,ltpr=LP,ltsu=LS,lf=LF,rtpr=RP,rtsu=RS,rf=RF} = 
+    #edge{vs=V1,ve=V2,ltpr=LP,ltsu=LS,lf=LF,rtpr=RP,rtsu=RS,rf=RF} =
 	gb_trees:get(Edge, Etab),
     A1 = other(V1,gb_trees:get(RP, Etab)),
     B1 = other(V1,gb_trees:get(LS, Etab)),
@@ -547,7 +553,7 @@ slide_gather_info([Edge|Es],We=#we{es=Etab,vp=Vtab},Acc) ->
     A1pos = gb_trees:get(A1, Vtab),A2pos = gb_trees:get(A2, Vtab),
     B1pos = gb_trees:get(B1, Vtab),B2pos = gb_trees:get(B2, Vtab),
     E1v1  = sub(A1pos,V1pos), E2v1 = sub(B1pos,V1pos),
-    E1v2  = sub(A2pos,V2pos), E2v2 = sub(B2pos,V2pos), 
+    E1v2  = sub(A2pos,V2pos), E2v2 = sub(B2pos,V2pos),
     NE1v1 = norm(E1v1), NE2v1 = norm(E2v1),
     NE1v2 = norm(E1v2), NE2v2 = norm(E2v2),
 
@@ -578,7 +584,7 @@ find_edge({Edge,V1,V2},Es) ->
 other(Vertex, #edge{vs=Vertex,ve=Other}) -> Other;
 other(Vertex, #edge{vs=Other,ve=Vertex}) -> Other.
 
-swap({Vpos,Ndir,Pdir}) -> 
+swap({Vpos,Ndir,Pdir}) ->
     {Vpos,Pdir,Ndir}.
 
 add_slide_vertex(V,{Vpos,{Ndir,NL},{Pdir,PL}},Acc) ->
@@ -670,3 +676,67 @@ collect_maybe_add(Work, Face, Edges, We, Res) ->
 		      end
 	      end
       end, Work, Face, We).
+
+set_edge_constraint(St) ->
+    #st{shapes=Shapes,sel=Sel} = St,
+    [{Id,SelectedEs}] = Sel,
+    Mod = sdl_keyboard:getModState(),
+    Shift = (Mod band ?KMOD_SHIFT) =/= 0,
+    Ctrl = (Mod band ?KMOD_CTRL) =/= 0,
+    Alt = (Mod band ?KMOD_ALT) =/= 0,
+    case gb_sets:size(SelectedEs) of
+	1 ->
+	    [E] = gb_sets:to_list(SelectedEs),
+	    We = gb_trees:get(Id, Shapes),
+	    #we{es=Etab} = We,
+	    #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
+	    PosA = wings_vertex:pos(Va, We),
+	    PosB = wings_vertex:pos(Vb, We),
+	    Length = e3d_vec:dist(PosA, PosB),
+	    set_edge_constraint({Shift,Ctrl,Alt}, "dist_con_", Length);
+	2 ->
+	    Edges = gb_sets:to_list(SelectedEs),
+	    We = gb_trees:get(Id, Shapes),
+	    [E0,E1] = Edges,
+	    #edge{vs=V0s,ve=V0e} = gb_trees:get(E0, We#we.es),
+	    #edge{vs=V1s,ve=V1e} = gb_trees:get(E1, We#we.es),
+	    {X0s,Y0s,Z0s} = wings_vertex:pos(V0s, We),
+	    {X0e,Y0e,Z0e} = wings_vertex:pos(V0e, We),
+	    {X1s,Y1s,Z1s} = wings_vertex:pos(V1s, We),
+	    {X1e,Y1e,Z1e} = wings_vertex:pos(V1e, We),
+	    V0 = {X0e-X0s, Y0e-Y0s, Z0e-Z0s},
+	    V1 = {X1e-X1s, Y1e-Y1s, Z1e-Z1s},
+	    RawAngle = e3d_vec:degrees(V0, V1),
+	    Angle = case {V0s,V0e} of
+		      {V1s,_} -> RawAngle;
+		      {_,V1e} -> RawAngle;
+		      {V1e,_} -> 180.0 - RawAngle;
+		      {_,V1s} -> 180.0 - RawAngle;
+		      {_,_}   -> RawAngle   %%% unconnected
+		    end,
+	    set_edge_constraint({Shift,Ctrl,Alt}, "rot_con_", Angle);
+	_ ->
+	    wings_u:error(?__(1,"Only one or two edges must be selected."))
+    end,
+    St.
+
+set_edge_constraint({Shift,Ctrl,Alt}, Key, Val) ->
+    case {Shift,Ctrl,Alt} of
+	{true,false,false} ->
+	    wings_pref:set_value(list_to_atom(Key++"shift"), Val);
+	{false,true,false} ->
+	    wings_pref:set_value(list_to_atom(Key++"ctrl"), Val);
+	{true,true,false} ->
+	    wings_pref:set_value(list_to_atom(Key++"ctrl_shift"), Val);
+	{false,false,true} ->
+	    wings_pref:set_value(list_to_atom(Key++"alt"), Val);
+	{true,false,true} ->
+	    wings_pref:set_value(list_to_atom(Key++"shift_alt"), Val);
+	{false,true,true} ->
+	    wings_pref:set_value(list_to_atom(Key++"ctrl_alt"), Val);
+	{true,true,true} ->
+	    wings_pref:set_value(list_to_atom(Key++"ctrl_shift_alt"), Val);
+	{false,false,false} ->
+	    ConDefault = wings_pref:get_value(list_to_atom(Key++"default")),
+	    wings_pref:set_value(ConDefault, Val)
+    end.

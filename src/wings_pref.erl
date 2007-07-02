@@ -424,6 +424,9 @@ defaults() ->
      {scale_con_shift_alt,25.0},
      {scale_con_ctrl_shift_alt,20.0},
 
+     {dist_con_default,dist_con_alt},
+     {rot_con_default,rot_con_alt},
+
      %% Proxy preferences.
      {proxy_shaded_edge_style,some},
      {proxy_static_opacity,1.0},

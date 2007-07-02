@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_drag.erl,v 1.199 2006/05/16 18:18:47 dgud Exp $
+%%     $Id$
 %%
 
 -module(wings_drag).
@@ -25,10 +25,10 @@
 -record(drag,
 	{x,					%Original 2D position
 	 y,
-	 xs=0,                                  %Summary of mouse movements
+	 xs=0,					%Summary of mouse movements
 	 ys=0,
 	 zs=0,
-	 xt=0,                                  %Last warp length
+	 xt=0,					%Last warp length
 	 yt=0,
 	 mmb_count=0,
 	 offset,				%Offset for each dimension.
@@ -38,7 +38,7 @@
 	 falloff,				%Magnet falloff.
 	 mode_fun,				%Special mode.
 	 mode_data,				%State for mode.
-	 info="",				%Information line.
+	 info="",                               %Information line.
 	 st,					%Saved st record.
 	 last_move				%Last move.
 	}).
@@ -76,14 +76,14 @@ setup(Tvs, Units, Flags, St) ->
     end,
     {drag,Drag}.
 
-setup_mode(Flags, Falloff) ->    
+setup_mode(Flags, Falloff) ->
     case proplists:get_value(mode, Flags, none) of
 	none ->
 	    {standard_mode_fun(Falloff),none};
 	{_,_}=Mode ->
 	    Mode
     end.
-    
+
 standard_mode_fun(Falloff) ->
     Help0 = ?__(1,"[Shift] and/or [Ctrl] and/or [Alt] Constrain"),
     Help = case Falloff of
@@ -268,7 +268,7 @@ break_apart_general(Tvs) ->
 break_apart_general(#dlo{src_we=#we{id=Id}}=D, [{Id,Fun}|Tvs]) ->
     {D#dlo{drag={general,Fun}},Tvs};
 break_apart_general(D, Tvs) -> {D,Tvs}.
-    
+
 %%%
 %%% Handling of drag events.
 %%%
@@ -365,7 +365,7 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
 handle_drag_event(Event, Drag = #drag{st=St}) ->
     case wings_camera:event(Event, St, fun() -> redraw(Drag) end) of
 	next -> handle_drag_event_0(Event, Drag);
-	keep -> 
+	keep ->
 	    %% Clear any potential marker for an edge about to be
 	    %% cut (Cut RMB).
 	    wings_dl:map(fun(#dlo{hilite=none}=D, _) -> D;
@@ -374,7 +374,7 @@ handle_drag_event(Event, Drag = #drag{st=St}) ->
 	    %% Recalc unit_scales since zoom can have changed.
 	    #drag{xs=Xs0,ys=Ys0,zs=Zs0,unit=Unit,unit_sc=[US0|_]} = Drag,
 	    US = [US1|_] = unit_scales(Unit),
-	    Adjust = US0/US1,	    
+	    Adjust = US0/US1,
 	    get_drag_event(Drag#drag{xs=Xs0*Adjust,ys=Ys0*Adjust,zs=Zs0*Adjust,
 				     unit_sc=US});
 	Other ->
@@ -436,7 +436,7 @@ handle_drag_event_1(Event, #drag{st=St}=Drag0) ->
     case wings_hotkey:event(Event,St) of
 	next ->
 	    get_drag_event(Drag0);
-	{view,smoothed_preview} -> 
+	{view,smoothed_preview} ->
 	    get_drag_event(Drag0);
 	{view,Cmd} ->
 	    wings_view:command(Cmd, St),
@@ -467,12 +467,12 @@ ungrab(#drag{x=Ox,y=Oy}) ->
 invalidate_fun(#dlo{drag=none}=D, _) -> D;
 invalidate_fun(#dlo{src_we=We}=D, _) ->
     wings_draw:abort_split(D#dlo{src_we=We#we{es=none}}).
-    
+
 numeric_input(Drag0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     Ev = #mousemotion{x=X,y=Y,state=0,mod=0},
     {Move0,Drag} = mouse_translate(Ev, Drag0),
-    wings_ask:dialog(?__(1,"Numeric Input"), 
+    wings_ask:dialog(?__(1,"Numeric Input"),
 		     make_query(Move0, Drag),
 		     fun(Res) ->
 			     {drag_arguments,make_move(Res, Drag)}
@@ -501,7 +501,7 @@ qstr(dx) -> ?__(2,"Dx");
 qstr(dy) -> ?__(3,"Dy");
 qstr(dz) ->  ?__(4,"Dz");
 qstr(falloff) ->  ?__(5,"R");
-qstr(angle) ->  ?__(6,"A");
+qstr(angle) ->	?__(6,"A");
 qstr(Atom) -> atom_to_list(Atom).
 
 qrange({_,{_,_}=Range}) -> [{range,Range}];
@@ -516,7 +516,7 @@ safe_mul_100(A) ->
 	{'EXIT',_} -> A;
 	P -> P
     end.
-    
+
 make_move(Move, #drag{unit=Units}) ->
     make_move_1(Units, Move).
 
@@ -634,7 +634,7 @@ mouse_scale(Ds, _) -> Ds.
 constraints_scale([U0|_],Mod,[UnitScales|_]) ->
     case constraint_factor(clean_unit(U0),Mod) of
 	none -> 1.0;
-	{_,What} -> 
+	{_,What} ->
 	    What*0.01/UnitScales
     end.
 
@@ -646,7 +646,7 @@ constrain_0([U0|Us], [D0|Ds], Mod, Acc) ->
     U = clean_unit(U0),
     D = case constraint_factor(U, Mod) of
 	    none -> D0;
-	    {F1,F2} -> 
+	    {F1,F2} ->
 		round(D0*F1)*F2
 	end,
     constrain_0(Us, Ds, Mod, [D|Acc]);
@@ -664,13 +664,13 @@ clamp({_,{_Min,Max}}, D) when D > Max -> Max;
 clamp(_, D) -> D.
 
 constraint_factor(angle, Mod) ->
-	RCS = wings_pref:get_value(rot_con_shift),
-	RCC = wings_pref:get_value(rot_con_ctrl),
-      RCCS = wings_pref:get_value(rot_con_ctrl_shift),
-	RCA = wings_pref:get_value(rot_con_alt),
-	RCCA= wings_pref:get_value(rot_con_ctrl_alt),
-      RCSA = wings_pref:get_value(rot_con_shift_alt),
-	RCCSA = wings_pref:get_value(rot_con_ctrl_shift_alt),
+    RCS = wings_pref:get_value(rot_con_shift),
+    RCC = wings_pref:get_value(rot_con_ctrl),
+    RCCS = wings_pref:get_value(rot_con_ctrl_shift),
+    RCA = wings_pref:get_value(rot_con_alt),
+    RCCA= wings_pref:get_value(rot_con_ctrl_alt),
+    RCSA = wings_pref:get_value(rot_con_shift_alt),
+    RCCSA = wings_pref:get_value(rot_con_ctrl_shift_alt),
     if
 	Mod band ?SHIFT_BITS =/= 0,
 	Mod band ?ALT_BITS =/= 0,
@@ -687,16 +687,16 @@ constraint_factor(angle, Mod) ->
 	true -> none
     end;
 constraint_factor(percent, Mod) ->
-      SCS = (wings_pref:get_value(scale_con_shift)/100),
-	SCC = (wings_pref:get_value(scale_con_ctrl)/100),
-	SCCS = (wings_pref:get_value(scale_con_ctrl_shift)/100),
-	SCA = (wings_pref:get_value(scale_con_alt)/100),
-	SCCA = (wings_pref:get_value(scale_con_ctrl_alt)/100),
-	SCSA = (wings_pref:get_value(scale_con_shift_alt)/100),
-	SCCSA = (wings_pref:get_value(scale_con_ctrl_shift_alt)/100),
-	if
+    SCS = (wings_pref:get_value(scale_con_shift)/100),
+    SCC = (wings_pref:get_value(scale_con_ctrl)/100),
+    SCCS = (wings_pref:get_value(scale_con_ctrl_shift)/100),
+    SCA = (wings_pref:get_value(scale_con_alt)/100),
+    SCCA = (wings_pref:get_value(scale_con_ctrl_alt)/100),
+    SCSA = (wings_pref:get_value(scale_con_shift_alt)/100),
+    SCCSA = (wings_pref:get_value(scale_con_ctrl_shift_alt)/100),
+    if
 	Mod band ?SHIFT_BITS =/= 0,
-	Mod band ?ALT_BITS =/= 0, 
+	Mod band ?ALT_BITS =/= 0,
 	Mod band ?CTRL_BITS =/= 0-> {1/SCCSA,SCCSA};
 	Mod band ?SHIFT_BITS =/= 0,
 	Mod band ?ALT_BITS =/= 0 -> {1/SCSA,SCSA};
@@ -710,16 +710,16 @@ constraint_factor(percent, Mod) ->
 	true -> none
     end;
 constraint_factor(_, Mod) ->
-      DCS = wings_pref:get_value(dist_con_shift),
-	DCC = wings_pref:get_value(dist_con_ctrl),
-	DCCS = wings_pref:get_value(dist_con_ctrl_shift),
-	DCA = wings_pref:get_value(dist_con_alt),
-	DCCA = wings_pref:get_value(dist_con_ctrl_alt),
-	DCSA = wings_pref:get_value(dist_con_shift_alt),
-	DCCSA = wings_pref:get_value(dist_con_ctrl_shift_alt),
+    DCS = wings_pref:get_value(dist_con_shift),
+    DCC = wings_pref:get_value(dist_con_ctrl),
+    DCCS = wings_pref:get_value(dist_con_ctrl_shift),
+    DCA = wings_pref:get_value(dist_con_alt),
+    DCCA = wings_pref:get_value(dist_con_ctrl_alt),
+    DCSA = wings_pref:get_value(dist_con_shift_alt),
+    DCCSA = wings_pref:get_value(dist_con_ctrl_shift_alt),
     if
 	Mod band ?SHIFT_BITS =/= 0,
-	Mod band ?ALT_BITS =/= 0, 
+	Mod band ?ALT_BITS =/= 0,
 	Mod band ?CTRL_BITS =/= 0-> {1/DCCSA,DCCSA};
 	Mod band ?SHIFT_BITS =/= 0,
 	Mod band ?ALT_BITS =/= 0 -> {1/DCSA,DCSA};
@@ -762,7 +762,7 @@ possible_falloff_update(_, #drag{falloff=none}=Drag) -> Drag;
 possible_falloff_update(Move, Drag) ->
     NewFalloff = lists:last(Move),
     parameter_update(new_falloff, NewFalloff, Drag#drag{falloff=NewFalloff}).
-    
+
 parameter_update(Key, Val, Drag) ->
     wings_dl:map(fun(D, _) ->
 			 parameter_update_fun(D, Key, Val)
@@ -778,7 +778,7 @@ parameter_update_fun(D, _, _) -> D.
 
 translate({Xt0,Yt0,Zt0}, Dx, VsPos, Acc) ->
     Xt = Xt0*Dx, Yt = Yt0*Dx, Zt = Zt0*Dx,
-    foldl(fun({V,{X,Y,Z}}, A) -> 
+    foldl(fun({V,{X,Y,Z}}, A) ->
 		  Pos = wings_util:share(X+Xt, Y+Yt, Z+Zt),
 		  [{V,Pos}|A]
 	  end, Acc, VsPos).
@@ -789,7 +789,7 @@ progress_units([], []) -> [].
 
 clean_unit({Unit,_}) when is_atom(Unit) -> Unit;
 clean_unit(Unit) when is_atom(Unit) -> Unit.
-    
+
 unit(angle, A) ->
     trim(io_lib:format("~10.2f~c  ", [A,?DEGREE]));
 unit(number, N) ->
@@ -817,7 +817,7 @@ trim([[_|_]=H|T]) ->
 	S -> [S|T]
     end;
 trim(S) -> S.
-    
+
 normalize(Move, #drag{mode_fun=ModeFun,mode_data=ModeData,
 		      st=#st{shapes=Shs0}=St}) ->
     ModeFun(done, ModeData),
