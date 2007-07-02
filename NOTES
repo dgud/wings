@@ -1,5 +1,9 @@
 --- 0.98.XX -----------------------------------------------------------------
 
+- Ability to set drag constraints for the currently pressed modifier key(s).
+  When one edge is selected the distance constraint is set; when two are
+  selected the rotation constraint is set. [Scorpius & Optigon]
+
 - Added ISO-8859-9 font support. [contributed by Ismail Keskin (Devilgreen)]
 
 - Added search in relative paths when loading textured models. [dgud]
