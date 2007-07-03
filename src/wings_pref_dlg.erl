@@ -310,7 +310,7 @@ ui_prefs() ->
 	   [{title,?__(22,"Console")}]},
 	  {vframe,
 	   [{menu,InterfaceIcons,interface_icons}],
-	   [{title,?__(28,"Interface Icons")}]}]}
+	   [{title,?__(50,"Interface Icons")}]}]}
        ]},
       {hframe,[{?__(14,"No Progress Bar"),no_progress_bar},
 	       {?__(27,"Extended Toolbar Icons"),extended_toolbar}]},
