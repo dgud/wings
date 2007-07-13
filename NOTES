@@ -1,5 +1,8 @@
 --- 0.98.XX -----------------------------------------------------------------
 
+- Revised grid, icosahedron and tetrahedron primitives, they are now more 
+  accurate and have more options. [contributed by Richard Jones (Optigon)]
+
 - Ability to set drag constraints for the currently pressed modifier key(s).
   When one edge is selected the distance constraint is set; when two are
   selected the rotation constraint is set. [Scorpius & Optigon]

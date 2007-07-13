@@ -10,7 +10,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_shapes.erl,v 1.37 2004/11/09 15:45:14 bjorng Exp $
+%%     $Id$
 %%
 
 -module(wings_shapes).
@@ -22,11 +22,11 @@
 
 menu(X, Y, _) ->
     Opt = [option],
-    Menu0 = [tetrahedron,
+    Menu0 = [{tetrahedron,Opt},
 	     octahedron,
 	     octotoad,
 	     dodecahedron,
-	     icosahedron,
+	     {icosahedron,Opt},
 	     separator,
 	     cube,
 	     separator,
@@ -98,11 +98,11 @@ prim_help(material) ->
 prim_help(image) ->
     ?STR(prim_help,image,"Create an image...").
 
-command(tetrahedron, St) -> tetrahedron(St);
+command({tetrahedron,Ask}, St) -> tetrahedron(Ask, St);
 command(octahedron, St) -> octahedron(St);
 command(octotoad, St) -> octotoad(St);
 command(dodecahedron, St) -> dodecahedron(St);
-command(icosahedron, St) -> icosahedron(St);
+command({icosahedron,Ask}, St) -> icosahedron(Ask, St);
 command(cube, St) -> cube(St);
 command({cylinder,Ask}, St) -> cylinder(Ask, St);
 command({cone,Ask}, St) -> cone(Ask, St);
@@ -117,13 +117,22 @@ build_shape(Prefix, Fs, Vs, #st{onext=Oid}=St) ->
     We = wings_we:build(Fs, Vs),
     Name = Prefix++integer_to_list(Oid),
     wings_shape:new(Name, We, St).
-
-tetrahedron(St) ->
-    Fs = [[2,1,0],[1,2,3],[1,3,0],[3,2,0]],
-    Vs = [{0.0,1.0*2,0.0},
-	  {0.0,-0.33333*2,0.942809*2},
-	  {-0.816497*2,-0.333333*2,-0.471405*2},
-	  {0.816497*2,-0.333333*2,-0.471405*2}],
+tetrahedron(Ask, _St) when is_atom(Ask) ->
+	ask(tetrahedron, Ask, [{ ?STR(sphere,1,"Edge Length"),2.0,[{range,{0.0,100.0}}]}]);
+tetrahedron([L], St) ->
+    Xi = L/2.0,
+	Hp = sqrt(3.0),
+	Li = Xi*Hp,
+	Zi = Xi/Hp,
+	Yi = L * sqrt(2.0/3.0),
+	Yf = Yi / 3.0,
+	
+	Fs = [[2,1,0],[1,2,3],[1,3,0],[3,2,0]],
+    
+	Vs = [{ 0.0,  Yi-Yf,     0.0},
+		  { 0.0, -Yf,   Li-Zi},
+		  { -Xi, -Yf,     -Zi},
+		  {  Xi, -Yf,     -Zi}],
     %% The string below is intentionally not translated.
     build_shape("tetrahedron", Fs, Vs, St).
 
@@ -174,17 +183,41 @@ dodecahedron(St) ->
     %% The string below is intentionally not translated.
     build_shape("dodecahedron", Fs, Vs, St).
 
-icosahedron(St) ->
-    X = 1.05146,
-    Z = 1.70130,
-    Fs = [[1,4,0],[4,9,0],[4,5,9],[8,5,4],[1,8,4],[1,10,8],
-	  [10,3,8],[8,3,5],[3,2,5],[3,7,2],[3,10,7],[10,6,7],
-	  [6,11,7],[6,0,11],[6,1,0],[10,1,6],[11,0,9],
-	  [2,11,9],[5,2,9],[11,2,7]],
-    Vs = [{-X,0.0,Z},{X,0.0,Z},{-X,0.0,-Z},{X,0.0,-Z},{0.0,Z,X},
-	  {0.0,Z,-X},{0.0,-Z,X},{0.0,-Z,-X},{Z,X,0.0},{-Z,X,0.0},
-	  {Z,-X,0.0},{-Z,-X,0.0}],
-    %% The string below is intentionally not translated.
+icosahedron(Ask, _St) when is_atom(Ask) ->
+	ask(icosahedron, Ask, [{  ?STR(icosahedron,1,"Edge Length"),2.0,[{range,{0.0,100.0}}]}]);
+icosahedron([S],St) ->
+	
+	%S = 4.0,             %% edge length
+    T2 = pi()/10.0,
+    T4 = 2.0 * T2,
+    CT4 = cos(T4),
+    R  = (S/2.0) / sin(T4),
+    H  = CT4 * R,
+    Cx = R * cos(T2),
+    Cy = R * sin(T2),
+    H1 = sqrt(S * S - R * R),
+    H2 = abs(R) * sqrt(1.0 + 2.0*CT4),
+    Z2 = (H2 - H1) / 2.0,
+    Z1 = Z2 + H1,
+
+    Fs = [[0,2,1],[0,3,2],[0,4,3],[0,5,4],[0,1,5],
+		  [4,7,6],[2,9,1],[5,8,7],[3,10,2],[9,8,1],
+		  [4,6,3],[10,9,2],[7,4,5],[6,10,3],[1,8,5],
+		  [11,10,6],[11,6,7],[11,7,8],[11,8,9],[11,9,10]],
+
+	Vs =[{0.0,  Z1, 0.0   	},
+    	 {R,    Z2, 0.0   	},
+    	 {Cy,   Z2, Cx  	},
+    	 {-H,   Z2, S/2.0  	},
+    	 {-H,   Z2, -S/2.0  },
+    	 {Cy,   Z2, -Cx 	},
+    	 {-R,  -Z2, 0.0  	},
+    	 {-Cy, -Z2, -Cx    	},
+    	 { H,  -Z2,	-S/2.0  },
+    	 { H,  -Z2, S/2.0   },
+    	 {-Cy, -Z2, Cx   	},
+    	 {0.0, -Z1, 0.0   	}],
+	%% The string below is intentionally not translated.
     build_shape("icosahedron", Fs, Vs, St).
 
 cube(St) ->
@@ -291,28 +324,30 @@ torus_vertices(Ns, Nl, Hs, Minor) ->
     lists:append(Circles).
 
 grid(Ask, _) when is_atom(Ask) ->
-    ask(grid, Ask, [{?STR(grid,1,"Rows/cols"),10,[{range,{1,128}}]}]);
-grid([Size], St) ->
-    Vs = grid_vertices(Size),
-    Fs = grid_faces(Size),
+    ask(grid, Ask, [{?STR(grid,1,"Rows/cols"),10,[{range,{1,128}}]},
+					{?STR(grid,2,"Spacing"),0.5,[{range,{0.0,10.0}}]},
+					{?STR(grid,3,"Height"),0.1,[{range,{0.0,10.0}}]}]);
+grid([Rc,Sp,Ht], St) ->
+    Vs = grid_vertices(Rc,Sp,Ht),
+    Fs = grid_faces(Rc),
     %% The string below is intentionally not translated.
     build_shape("grid", Fs, Vs, St).
 
-grid_vertices(Size) ->
-    {Low,High} = case Size rem 2 of
-		     0 -> {-Size,Size};
-		     1 -> {-Size,Size}
+grid_vertices(Rc,Sp,Ht) ->
+    {Low,High} = case Rc rem 2 of
+		     0 -> {-Rc,Rc};
+		     1 -> {-Rc,Rc}
 		 end,
-    Sz = 0.5,
-    H = 0.1,
+  %  Sz = 0.5,
+  %  H = 0.1,
     TopSeq = seq(Low, High, 2),
     BotSeq = [Low,High],
-    VsBot = [{I*Sz/2,-H,J*Sz/2} || J <- BotSeq, I <- BotSeq],
-    [{I*Sz/2,H,J*Sz/2} || J <- TopSeq, I <- TopSeq] ++ VsBot.
+    VsBot = [{I*Sp/2,-Ht,J*Sp/2} || J <- BotSeq, I <- BotSeq],
+    [{I*Sp/2,Ht,J*Sp/2} || J <- TopSeq, I <- TopSeq] ++ VsBot.
 
-grid_faces(Size) ->
-    TopSeq = seq(0, Size-1),
-    Rsz = Size+1,
+grid_faces(Rc) ->
+    TopSeq = seq(0, Rc-1),
+    Rsz = Rc+1,
     TopFs = [grid_face(I, J, Rsz) || I <- TopSeq, J <- TopSeq],
     ULv = Rsz*Rsz,
     Fs0 = [[ULv,ULv+1,ULv+3,ULv+2]|TopFs],	%Add bottom.
