@@ -32,6 +32,8 @@
 
 - Edges can now be displayed with Anti-Aliasing, see preferences. [Scorpius]
 
+- Added Russian translation by Paul Geraskin. [bjorng]
+
 --- 0.98.36 -----------------------------------------------------------------
 
 - Absolute snap now can pick reference point, old snap that used center of
