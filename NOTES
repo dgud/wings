@@ -1,5 +1,13 @@
 --- 0.98.XX -----------------------------------------------------------------
 
+- Cosmetic improvements: the menu selector has a subtle gradient, and the title
+  bars have the common aqua/vista effect. Also added optional History Buttons
+  (aka Undo/Redo) and Open/Save icons on menubar. [Scorpius]
+
+- Added more shaders (brick, toon, environment-mapping, gooch-tone), which can
+  now be toggled (or cycled) through a choice in the view menu. Requires an
+  OpenGL 2.0 video card. [Scorpius]
+
 - Revised grid, icosahedron and tetrahedron primitives, they are now more 
   accurate and have more options. [contributed by Richard Jones (Optigon)]
 

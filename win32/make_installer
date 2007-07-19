@@ -2,7 +2,7 @@
 #
 # Script for creating a self-contained Wings package for Windows.
 #
-# $Id: make_installer,v 1.13 2005/09/10 08:02:02 bjorng Exp $
+# $Id$
 #
 OS=`uname -o`
 if [ X$OS != XCygwin ]; then
@@ -52,6 +52,11 @@ dest="$DEST_ROOT/lib/$WINGS_APP"
 $INSTALL -d "$dest" "$dest/ebin" "$dest/patches"
 $INSTALL -c -m 644 ebin/* "$dest/ebin"
 $INSTALL -d  "$dest/fonts"
+
+$INSTALL -d "$dest/textures"
+$INSTALL -d "$dest/shaders"
+$INSTALL -c -m 644 textures/* "$dest/textures"
+$INSTALL -c -m 644 shaders/* "$dest/shaders"
 
 $INSTALL -d "$dest/plugins/default" "$dest/plugins/accel" \
  "$dest/plugins/import_export" "$dest/plugins/commands" \

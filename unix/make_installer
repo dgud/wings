@@ -36,6 +36,11 @@ $INSTALL -d "$dest" "$dest/ebin" "$dest/patches"
 $INSTALL -c -m 644 ebin/* "$dest/ebin"
 $INSTALL -d  "$dest/fonts"
 
+$INSTALL -d "$dest/textures"
+$INSTALL -d "$dest/shaders"
+$INSTALL -c -m 644 textures/* "$dest/textures"
+$INSTALL -c -m 644 shaders/* "$dest/shaders"
+
 $INSTALL -d "$dest/plugins/default" \
  "$dest/plugins/accel" \
  "$dest/plugins/import_export" "$dest/plugins/commands" \

@@ -72,6 +72,8 @@ menu(#st{views={CurrentView,Views}}=St) ->
      {one_of(L == 1, ?__(38,"Two Lights"),?__(39,"One Light")),toggle_lights,
       one_of(L == 1, ?__(40,"Use two work lights"),
 	     ?__(41,"Use one work light"))},
+     {?__(63,"Activate Next Shader"),cycle_shaders,
+      ?__(64,"Cycle through all vertex/fragment shaders")},
      separator,
      {?__(42,"Show Colors"),show_colors,
       ?__(43,"Show vertex colors on objects in \"vertex\" mode"),
@@ -353,6 +355,9 @@ command(align_to_selection, St) ->
     align_to_selection(St);
 command(toggle_lights, St) ->
     toggle_lights(),
+    St;
+command(cycle_shaders, St) ->
+    cycle_shaders(),
     St;
 command(camera_settings, St) ->
     camera(),
@@ -821,6 +826,7 @@ set_current(View) ->
 init() ->
     wings_pref:set_default(show_edges, true),
     wings_pref:set_default(number_of_lights, 1),
+    wings_pref:set_default(number_of_shaders, 1),
     wings_pref:set_default(show_normals, false),
     wings_pref:set_default(show_bb, true),
     wings_pref:set_default(show_colors, true),
@@ -1076,6 +1082,21 @@ toggle_lights() ->
 		 2 -> 1
 	     end,
     wings_pref:set_value(number_of_lights, Lights).
+
+cycle_shaders() ->
+    case wings_gl:support_shaders() of
+	true ->
+	    NumShaders = wings_pref:get_value(number_of_shaders),
+	    NumProgs = size(get(light_shaders)),
+	    Shaders = case NumShaders of
+			  NumProgs -> 1;
+			  _ -> NumShaders+1
+		      end,
+	    wings_pref:set_value(number_of_lights, 2),
+	    wings_pref:set_value(number_of_shaders, Shaders);
+	false ->
+	    toggle_lights()
+    end.
 
 along(x) -> along(x, -90.0, 0.0);
 along(y) -> along(y, 0.0, 90.0);

@@ -8,7 +8,7 @@
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-#     $Id: Makefile,v 1.62 2005/09/13 09:15:58 giniu Exp $
+#     $Id$
 #
 
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
@@ -89,6 +89,7 @@ MODULES= \
 	wings_sel_conv \
 	wings_sel_cmd \
 	wings_scale \
+	wings_shaders \
 	wings_shape \
 	wings_shapes \
 	wings_start \
