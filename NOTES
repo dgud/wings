@@ -8,8 +8,8 @@
   now be toggled (or cycled) through a choice in the view menu. Requires an
   OpenGL 2.0 video card. [Scorpius]
 
-- Revised grid, icosahedron and tetrahedron primitives, they are now more 
-  accurate and have more options. [contributed by Richard Jones (Optigon)]
+- Revised most primitives, they are now more accurate and have more options. 
+  [contributed by Richard Jones (Optigon)]
 
 - Ability to set drag constraints for the currently pressed modifier key(s).
   When one edge is selected the distance constraint is set; when two are
