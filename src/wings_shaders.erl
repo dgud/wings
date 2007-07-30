@@ -24,7 +24,7 @@ init() ->
 		make_prog("gooch"),
 		make_prog("toon"),
 		make_prog("brick"),
-		make_prog_envmap(1),
+		make_prog_envmap(),
 		make_prog_vert("vertex_color", "Flag", 0), % Use Vertex Normals
 		make_prog_vert("vertex_color", "Flag", 1), % Use Face Normals
 		make_prog_vert("spherical_ao"),
@@ -63,22 +63,15 @@ branding() ->
     gl:enable(?GL_BLEND),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     gl:drawPixels(ImgW, ImgH, ?GL_RGBA, ?GL_UNSIGNED_BYTE, ImgData),
-    gl:disable(?GL_BLEND), %% Causes think lines on border
+    %%gl:disable(?GL_BLEND), %% Causes think lines on border
     ok.
 
-make_prog_envmap(Map) ->
+make_prog_envmap() ->
     Shv = wings_gl:compile(vertex,   read_shader("envmap.vs")),
     Shf = wings_gl:compile(fragment, read_shader("envmap.fs")),
     Prog = wings_gl:link_prog([Shv,Shf]),
     gl:useProgram(Prog),
-    FileName = case Map of
-	1 -> "grandcanyon.png";
-	2 -> "cabin.png";
-	3 -> "island.png";
-	4 -> "hills.png";
-	5 -> "nvlobby.png";
-	6 -> "opensea.png"
-    end,
+    FileName = "grandcanyon.png",
     EnvImgRec = read_texture(FileName),
     #e3d_image{width=ImgW,height=ImgH,image=ImgData} = EnvImgRec,
     TxId = 0, %[TxId] = gl:genTextures(1), %% ?
