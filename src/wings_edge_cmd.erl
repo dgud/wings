@@ -679,9 +679,7 @@ collect_maybe_add(Work, Face, Edges, We, Res) ->
 	      end
       end, Work, Face, We).
 
-set_edge_constraint(St) ->
-    #st{shapes=Shapes,sel=Sel} = St,
-    [{Id,SelectedEs}] = Sel,
+set_edge_constraint(#st{shapes=Shapes,sel=[{Id,SelectedEs}]} = St) ->
     Mod = sdl_keyboard:getModState(),
     Shift = (Mod band ?KMOD_SHIFT) =/= 0,
     Ctrl = (Mod band ?KMOD_CTRL) =/= 0,
@@ -720,7 +718,10 @@ set_edge_constraint(St) ->
 	_ ->
 	    wings_u:error(?__(1,"Only one or two edges must be selected."))
     end,
-    St.
+    St;
+set_edge_constraint(St) ->
+     wings_u:error(?__(2,"Select edges from one object.")),
+     St.
 
 set_edge_constraint({Shift,Ctrl,Alt}, Key, Val) ->
     case {Shift,Ctrl,Alt} of
