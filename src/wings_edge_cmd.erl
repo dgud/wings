@@ -316,9 +316,11 @@ cut_pick_marker({finish,[I]}, D0, Edge, We, Start, Dir, Char) ->
 
 clean_dissolve(St0) ->
     St = wings_sel:map(fun(Es, We) ->
-			       We1 = wings_edge:dissolve_edges(Es, We),
-			       IsolatedVs1 = wings_vertex:isolated(We1),
-			       wings_edge:dissolve_isolated_vs(IsolatedVs1, We1)
+ 				     IsolatedVs1 = wings_vertex:isolated(We),
+ 				     We1 = wings_edge:dissolve_edges(Es, We),
+ 				     IsolatedVs2 = wings_vertex:isolated(We1),
+ 				     C = IsolatedVs2 -- IsolatedVs1,
+ 				     wings_edge:dissolve_isolated_vs(C, We1)
 		       end, St0),
     wings_sel:clear(St).
 
