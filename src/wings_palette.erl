@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_palette.erl,v 1.17 2005/01/09 09:30:38 bjorng Exp $
+%%     $Id$
 %%
 -module(wings_palette).
 
@@ -40,7 +40,7 @@ window(St) ->
 	false ->
 	    {{_,DeskY},{DeskW,_DeskH}} = wings_wm:win_rect(desktop),
 	    Pos  = {DeskW-5,DeskY+55},
-	    Size = {?COLS_W*?BOX_W+?COLS_W*?BORD+?BORD*2, 
+	    Size = {?COLS_W*?BOX_W+?COLS_W*?BORD+?BORD*2,
 		    ?COLS_H*?BOX_H+?COLS_H*?BORD+?BORD*2},
 	    window(Pos, Size, St),
 	    keep
@@ -50,7 +50,7 @@ window(Pos, {W,_}=Size, St) ->
     Cols = get_all_colors(St),
     {ColsW,ColsH} = calc_size(Cols,W),
     Pst = #pst{st=St, cols=add_empty(Cols,ColsW,ColsH), w=ColsW, h=ColsH},
-    Op  = {seq,push,event({current_state,St}, Pst)},
+    Op	= {seq,push,event({current_state,St}, Pst)},
     Props = [{display_lists,geom_display_lists}],
     wings_wm:toplevel(palette, title(), Pos, Size,
 		      [{sizeable,?PANE_COLOR},
@@ -73,11 +73,20 @@ palette(#st{pal=Pal0}) ->
     case Pal == default_cols() of
 	true -> [];
 	false -> Pal
-    end.     
+    end.
 
 default_cols() ->
-    [{1.0,1.0,1.0},{1.0,0.0,0.0},{1.0,1.0,0.0},{0.0,1.0,0.0},
-     {0.0,1.0,1.0},{0.0,0.0,1.0},{1.0,0.0,1.0},{0.0,0.0,0.0}].
+    [{1.0,1.0,1.0},{0.8,1.0,0.8},{0.8,1.0,1.0},{0.8,0.8,1.0},{0.9,1.0,0.8},
+     {1.0,0.8,0.5},{1.0,0.8,0.8},{0.0,0.0,0.0},{0.63922,0.4,0.0},
+     {0.8,0.6,0.0},{1.0,0.8,0.0},{1.0,1.0,0.00392157},{0.996078,1.0,0.6},
+     {1.0,0.858824,0.615686},{1.0,0.8,0.4},{1.0,0.6,0.23922},
+     {1.0,0.474510,0.290196},{1.0,0.2,0.0},{0.63922,0.0,0.0},
+     {0.2,0.2,0.43922},{0.0,0.2,0.6},{0.0,0.4,0.796078},
+     {0.0,0.59804,0.839216},{0.0,0.6,1.0},{0.243137,0.6,0.874510},
+     {0.6,0.83922,1.0},{0.79804,0.886275,1.0},{0.874510,0.996078,1.0},
+     {0.996078,0.8,1.0},{0.8,0.8,1.0},{0.63922,0.6,1.0},{0.43922,0.4,0.8},
+     {0.6,0.6,0.83922},{0.4,0.4,0.63922},{0.0,0.4,0.0},{0.0,0.6,0.0},
+     {0.43922,0.796078,0.2},{0.63922,0.996078,0.4},{0.83922,1.0,0.8}].
 
 get_all_colors(#st{pal=Pal}) ->
     case Pal of
@@ -105,9 +114,9 @@ event(resized, Pst=#pst{cols=Cols0,w=CW,h=CH}) ->
     Visible = H div (?BOX_H+?BORD),
     NewCols = ColsW*Visible,
     OldCols = CW*CH,
-    ColsH = if OldCols < NewCols ->  
+    ColsH = if OldCols < NewCols ->
 		    Visible;
-	       (OldCols rem ColsW) == 0 -> 
+	       (OldCols rem ColsW) == 0 ->
 		    ColsH1 = OldCols div ColsW,
 		    ColsH1;
 	       true ->
@@ -158,7 +167,7 @@ event(#mousemotion{state=Bst,x=X,y=Y,mod=Mod}=Ev, #pst{sel=Sel,cols=Cols}=Pst)
     Delete = Mod band ?CTRL_BITS =/= 0,
     case select(X,Y,Pst) of
 	none -> keep;
- 	Sel -> keep;
+	Sel -> keep;
 	Id when Delete ->
 	    {Bef,[_Prev|Rest]} = lists:split(Id, Cols),
 	    get_event(update(Bef++[none|Rest],Pst#pst{sel=none}));
@@ -166,16 +175,16 @@ event(#mousemotion{state=Bst,x=X,y=Y,mod=Mod}=Ev, #pst{sel=Sel,cols=Cols}=Pst)
 	    keep;
 	_ ->
 	    case lists:nth(Sel+1, Cols) of
-		none -> 
-		    get_event(Pst#pst{sel=none});		
+		none ->
+		    get_event(Pst#pst{sel=none});
 		_ ->
 		    drag_and_drop(Ev, lists:nth(Sel+1, Cols)),
-		    keep	    
+		    keep
 	    end
     end;
 
 event(#mousebutton{button=Butt,x=X,y=Y,mod=Mod,state=?SDL_PRESSED},
-      #pst{cols=Cols0}=Pst) 
+      #pst{cols=Cols0}=Pst)
   when Butt =:= 1; Butt =:= 2 ->
     case Mod band wings_msg:free_modifier() =/= 0 of
 	false ->
@@ -196,9 +205,9 @@ event(#mousebutton{button=1,state=?SDL_RELEASED}, #pst{sel=none}) ->
 
 event(#mousebutton{button=2,x=X,y=Y,state=?SDL_RELEASED}, Pst = #pst{sel=Sel}) ->
     case select(X,Y,Pst) of
-	Sel -> 
+	Sel ->
 	    command({edit,Sel}, Pst);
-	_ -> 
+	_ ->
 	    get_event(Pst#pst{sel=none})
     end;
 
@@ -206,7 +215,7 @@ event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #pst{sel=Sel,cols=Cols
     Color = lists:nth(Sel+1, Cols),
     case select(X,Y,Pst) of
 	none -> keep;
-	Sel when Color /= none -> 
+	Sel when Color /= none ->
 	    St = case St0#st.selmode of
 		     vertex ->
 			 wings_vertex_cmd:set_color(Color, St0);
@@ -214,7 +223,7 @@ event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #pst{sel=Sel,cols=Cols
 			 wings_edge_cmd:set_color(Color, St0);
 		     face ->
 			 wings_face_cmd:set_color(Color, St0);
-		     body -> 
+		     body ->
 			 St1 = wings_sel_conv:mode(face, St0),
 			 St2 = wings_face_cmd:set_color(Color, St1),
 			 St2#st{sel=St0#st.sel,selmode=St0#st.selmode};
@@ -223,7 +232,7 @@ event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #pst{sel=Sel,cols=Cols
 		 end,
 	    wings_wm:send(geom, {new_state,St#st{pal=Cols}}),
 	    get_event(Pst#pst{sel=none});
-	Sel when Color == none -> 
+	Sel when Color == none ->
 	    command({edit,Sel}, Pst);
 	_DropSpot ->
 	    get_event(Pst#pst{sel=none})
@@ -232,7 +241,7 @@ event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #pst{sel=Sel,cols=Cols
 event(#mousebutton{x=X0,y=Y0}=Ev, Pst) ->
     Id = select(X0,Y0,Pst),
     case wings_menu:is_popup_event(Ev) of
- 	{yes,X,Y,_} when is_integer(Id) ->
+	{yes,X,Y,_} when is_integer(Id) ->
 	    do_menu(Id, X, Y, Pst);
 	_ -> keep
     end;
@@ -247,12 +256,12 @@ event(lost_focus, Pst) ->
 event({new_color,Cols}, Pst = #pst{w=W,h=H0,knob=Knob}) ->
     Sz = length(Cols),
     case Sz == W*H0 of
-	true -> 
+	true ->
 	    get_event(update(Cols,Pst));
 	false ->
 	    H = if Sz > W*H0 ->
 			if (Sz rem W) == 0 -> Sz div W; true -> (Sz div W) + 1 end;
-		   true -> 
+		   true ->
 			H0
 		end,
 	    update_scroller(Knob, H),
@@ -290,11 +299,11 @@ update_scroller(First,Visible,Total) ->
     Name = wings_wm:this(),
     wings_wm:set_knob(Name, First/Total, Visible/Total).
 
-do_menu(Id,X,Y,#pst{cols=Cols}) ->    
+do_menu(Id,X,Y,#pst{cols=Cols}) ->
     Menu = [{?__(1,"Edit"),{'VALUE',{edit,Id}},?__(2,"Edit color")}],
     Smooth = case lists:nth(Id+1, Cols) of
 		 none ->
-		     [{?__(3,"Interpolate"),{'VALUE',{smooth,Id}}, 
+		     [{?__(3,"Interpolate"),{'VALUE',{smooth,Id}},
 		       ?__(4,"Interpolate Empty Colors")}];
 		 _ -> []
 	     end,
@@ -321,10 +330,10 @@ command({smooth,Id}, Pst = #pst{cols=Cols0}) ->
     {BC, Bef1} = del_empty(reverse(Bef0)),
     {AC, Aft1} = del_empty(After0),
     case interpolate(Bef1,Aft1,AC+BC) of
-	no_start -> 
+	no_start ->
 	    wings_u:message(?__(1,"No start color found.")),
 	    keep;
-	no_end -> 
+	no_end ->
 	    wings_u:message(?__(2,"No end color found.")),
 	    keep;
 	IntCols ->
@@ -334,7 +343,7 @@ command({smooth,Id}, Pst = #pst{cols=Cols0}) ->
 command({edit,Id}, #pst{cols=Cols0}) ->
     {Bef,[Prev|Rest]} = lists:split(Id, Cols0),
     Send = fun(Color) ->
-		   Cols = Bef ++ [Color|Rest],				    
+		   Cols = Bef ++ [Color|Rest],
 		   wings_wm:send(palette, {new_color,Cols}),
 		   ignore
 	   end,
@@ -366,11 +375,11 @@ command(import, #pst{cols=Cols0}) ->
 	  {ext,".wpal"},{ext_desc,?__(9,"Wings Palette")}],
     Fun = fun(Name) ->
 		  case file:consult(Name) of
-		      {ok,Content} -> 
+		      {ok,Content} ->
 			  case lists:keysearch(palette,1,Content) of
 			      {value, {palette, Pal}} when list(Pal) ->
 				  Cols = del_trailing(Cols0) ++ Pal,
-				  wings_wm:send(palette, {new_color,Cols}),		  
+				  wings_wm:send(palette, {new_color,Cols}),
 				  keep;
 			      _ ->
 				  Reason = ?__(10,"No palette found"),
@@ -426,13 +435,13 @@ update(Cols,Pst=#pst{st=St0}) ->
     Pst#pst{cols=Cols, st=St}.
 
 interpolate([{R1,G1,B1}|_],[Start={R2,G2,B2}|_], N) ->
-    R = (R2-R1)/(N+1),    B = (B2-B1)/(N+1),    G = (G2-G1)/(N+1),
+    R = (R2-R1)/(N+1),	  B = (B2-B1)/(N+1),	G = (G2-G1)/(N+1),
     interpolate(N,R,G,B,Start,[]);
 interpolate([],_,_) -> no_start;
 interpolate(_,[],_) -> no_end.
 
 interpolate(0,_R,_G,_B,_,Acc) -> Acc;
-interpolate(N,R,G,B,{PR,PG,PB},Acc) -> 
+interpolate(N,R,G,B,{PR,PG,PB},Acc) ->
     Col = {PR-R,PG-G,PB-B},
     interpolate(N-1,R,G,B,Col,[Col|Acc]).
 
@@ -464,7 +473,7 @@ select(X,Y,#pst{w=ColsW,h=ColsH, knob=Knob}) ->
     Col = X div (?BORD+?BOX_W),
     Row = Knob + (Y div (?BORD+?BOX_H)),
     Id =  (Row*ColsW+Col),
-    if 
+    if
 	X > ColsW *(?BORD+?BOX_W) -> none;
 	Y > ColsH *(?BORD+?BOX_H) -> none;
 	Id < 0 -> none;
