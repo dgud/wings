@@ -25,13 +25,13 @@ init() ->
 		make_prog("toon"),
 		make_prog("brick"),
 		make_prog_envmap(),
-		make_prog_vert("vertex_color", "Flag", 0), % Use Vertex Normals
-		make_prog_vert("vertex_color", "Flag", 1), % Use Face Normals
-		make_prog_vert("spherical_ao"),
-		make_prog_vert("depth"),
-		make_prog_vert("harmonics", "Type", 5),
-		make_prog_vert("harmonics", "Type", 8),
-		make_prog_vert("harmonics", "Type", 9)},
+		make_prog("vertex_color", "Flag", 0), % Use Vertex Normals
+		make_prog("vertex_color", "Flag", 1), % Use Face Normals
+		make_prog("spherical_ao"),
+		make_prog("depth"),
+		make_prog("harmonics", "Type", 5),
+		make_prog("harmonics", "Type", 8),
+		make_prog("harmonics", "Type", 9)},
     ?CHECK_ERROR(),
     gl:useProgram(0),
     put(light_shaders, Programs),
@@ -74,7 +74,7 @@ make_prog_envmap() ->
     FileName = "grandcanyon.png",
     EnvImgRec = read_texture(FileName),
     #e3d_image{width=ImgW,height=ImgH,image=ImgData} = EnvImgRec,
-    TxId = 0, %[TxId] = gl:genTextures(1), %% ?
+    TxId = 0, %[TxId] = gl:genTextures(1),
     gl:bindTexture(?GL_TEXTURE_2D, TxId),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
@@ -84,7 +84,7 @@ make_prog_envmap() ->
 		  ?GL_UNSIGNED_BYTE, ImgData),
     gl:activeTexture(?GL_TEXTURE0),
     gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    wings_gl:set_uloc(Prog, "EnvMap", 0),
+    wings_gl:set_uloc(Prog, "EnvMap", TxId),
     Prog.
 
 make_prog(Name) ->
@@ -94,15 +94,10 @@ make_prog(Name) ->
     gl:useProgram(Prog),
     Prog.
 
-make_prog_vert(Name) ->
+make_prog(Name, Var, Val) ->
     Shv = wings_gl:compile(vertex, read_shader(Name ++ ".vs")),
-    Prog = wings_gl:link_prog([Shv]),
-    gl:useProgram(Prog),
-    Prog.
-
-make_prog_vert(Name, Var, Val) ->
-    Shv = wings_gl:compile(vertex, read_shader(Name ++ ".vs")),
-    Prog = wings_gl:link_prog([Shv]),
+    Shf = wings_gl:compile(fragment, read_shader(Name ++ ".fs")),
+    Prog = wings_gl:link_prog([Shv,Shf]),
     gl:useProgram(Prog),
     wings_gl:set_uloc(Prog, Var, Val),
     Prog.
