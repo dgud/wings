@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 //
 // Vertex shader for Gooch shading
 //
@@ -26,5 +26,5 @@ void main()
     ReflectVec      = normalize(reflect(-lightVec, tnorm));
     ViewVec         = normalize(-ecPos);
     NdotL           = (dot(lightVec, tnorm) + 1.0) * 0.5;
-    gl_Position     = ftransform();
+	gl_Position 	= ftransform();
 }

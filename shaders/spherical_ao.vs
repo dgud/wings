@@ -1,10 +1,12 @@
-// $Id:$
-// Spherical Ambient Occlusion
+// $Id$
+// Spherical Ambient Occlusion (spherical depth)
+
+varying vec3 DepthColor;
 
 void main()
 {
-    gl_Position = ftransform();
     float z = length(gl_Vertex.xyz);
-    z = pow(z, 8.0);
-    gl_FrontColor = vec4(z, z, z, 1.0);
+	z = pow(z, 8.0);
+	DepthColor = vec3(z);
+	gl_Position = ftransform();
 }

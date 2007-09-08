@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 //
 // Vertex shader for procedural bricks
 //
@@ -38,5 +38,5 @@ void main(void)
                       SpecularContribution * spec;
 
     MCposition      = gl_Vertex.xy;
-    gl_Position     = ftransform();
+	gl_Position 	= ftransform();
 }

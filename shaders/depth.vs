@@ -1,4 +1,7 @@
 // $Id$
+// Depth
+
+varying vec3 DepthColor;
 
 void main()
 {
@@ -9,6 +12,6 @@ void main()
 	vec3 offset = gl_Vertex.xyz/gl_Vertex.w;
 	float z = dot(offset, EyeDir);
 	z = (z-DepthNear) / (DepthFar-DepthNear);
-	gl_FrontColor = vec4(z, z, z, 1.0);
+	DepthColor = vec3(z);
 	gl_Position = ftransform();
 }

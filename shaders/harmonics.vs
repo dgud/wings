@@ -152,8 +152,5 @@ void main(void) {
                     2.0 * C2 * L1m1 * tnorm.y +
                     2.0 * C2 * L10  * tnorm.z;
     //DiffuseColor *= ScaleFactor;
-    vec4 color     = gl_FrontMaterial.diffuse * gl_Color;
-    gl_FrontColor  = color * vec4(DiffuseColor, 1.0);
-    gl_TexCoord[0] = gl_MultiTexCoord0;
     gl_Position    = ftransform();
 }

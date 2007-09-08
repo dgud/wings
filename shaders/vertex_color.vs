@@ -1,15 +1,14 @@
-// $Id:$
-//
+// $Id$
+// Colors based on vertex-normal or face-normals
 
-varying vec3 vertex_color;
+varying vec3 VertexColor;
 uniform int  Flag;
 
 void main()
 {
-    gl_Position = ftransform();
     if (Flag==0)
-        vertex_color = gl_Vertex.xyz;
+        VertexColor = gl_Vertex.xyz;
     else
-        vertex_color = gl_Normal.xyz;
-    gl_FrontColor = vec4(vertex_color, 1.0);
+        VertexColor = gl_Normal.xyz;
+    gl_Position = ftransform();
 }

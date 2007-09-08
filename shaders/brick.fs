@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 //
 // Fragment shader for procedural bricks
 //

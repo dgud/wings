@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 //
 // Vertex shader for hemispherical lighting
 //
@@ -33,5 +33,6 @@ void main(void)
 	vec4 color		= gl_FrontMaterial.diffuse * gl_Color;
 	DiffuseColor	= color.rgb * mix(GroundColor, SkyColor, a);
 
-    gl_Position     = ftransform();
+	gl_TexCoord[0]	= gl_MultiTexCoord0;
+	gl_Position 	= ftransform();
 }

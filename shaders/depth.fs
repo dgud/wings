@@ -1,8 +1,9 @@
-// $Id:$
+// $Id$
+// Depth
+
+varying vec3 DepthColor;
 
 void main()
 {
-    float w = abs(gl_FragCoord.w);
-    float z = sqrt(sqrt(gl_FragCoord.z * w));
-    gl_FragColor = vec4(z, z, z, 1.0);
+	gl_FragColor = vec4(DepthColor, 1.0);
 }
