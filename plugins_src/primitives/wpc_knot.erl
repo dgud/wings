@@ -1,181 +1,140 @@
 %%
-%% Torus Knot -- Example Plugin for Wings 0.90 or higher.
+%%  wpc_knot.erl --
 %%
-%% By Anthony D'Agostino (scorpius@compuserve.com)
-%% Select the knot object and 'Smooth' it 2 or 3 times.
-%% Press 'r', 'spacebar', 'tab', then 'u' to see it rotate.
+%%     Torus Knot Plugin
 %%
-%% Adapted for Wings 0.90 by Bjorn Gustavsson.
+%%  Copyright (c) 2001-2007 Anthony D'Agostino
 %%
-%% ----------------------------------------------------------------
-%% To compile from the Erlang shell.
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%% c(wpc_knot).
-%%
-%% The compiled code will be put into the file wp0_knot.beam in the
-%% current directory. You can then move it into the plugins
-%% directory of the Wings installation. When you restart Wings,
-%% "Torus Knot" will appear in the object creation menu.
-%% ----------------------------------------------------------------
-
-%%
-%% The module/file name for a command plug-in must start with "wpc_".
+%%     $Id$
 %%
 
--module(wpc_knot).                              %The module name must
-                                                %match the filename.
-                                                %The filename must end
-                                                %".erl".
-
-%% The following two functions must be present in all object
-%% creation plugins. They must be exported (callable from other
-%% modules).
-
+-module(wpc_knot).
 -export([init/0,menu/2,command/2]).
 
-%% this include is added to make this module translatable
+init() -> true.
 
--include("wings_intl.hrl").
+menu({shape, more}, []) ->
+    knot_menu();
+menu({shape, more}, Menu) ->
+    Menu ++ [separator|knot_menu()];
+menu(_, Menu) -> Menu.
 
-%% This function will be called once at the startup of Wings.
-%% It must return true. (Return false to disable the plug-in.)
+knot_menu() ->
+    [{"Torus Knot", knot, [option]}].
 
-init() ->
-    true.
+command({shape,{more,{knot, Arg}}}, _) -> make_knot(Arg);
+command(_, _) -> next.
 
-%% This function will be called every time a menu is opened,
-%% allowing this plug-in to extend any menu.
+%%% The rest are local functions.
 
-menu({shape,more}, []) ->
-    torus_menu();
-menu({shape,more}, Menu) ->
-    %% Will appear in the object creation menu as "Torus Knot"
-    %% (without any option box).
-    Menu ++ [separator|torus_menu()];
-menu(_, Menu) ->
-    %% Any other menu. Must return the Menu parameter unchanged.
-    Menu.
+make_knot(Arg) when is_atom(Arg) ->
+    wpa:dialog(Arg, "Torus Knot Options", dialog(),
+	fun(Res) -> {shape,{more,{knot, Res}}} end);
+make_knot(Arg) ->
+    ArgDict = dict:from_list(Arg),
+    TypeFlag = dict:fetch(typeflag, ArgDict),
+    Resolution = dict:fetch(resolution, ArgDict),
+    case TypeFlag of
+	knot2 -> Knot_Func = fun knot2/1;
+	knot3 -> Knot_Func = fun knot3/1;
+	knot4 -> Knot_Func = fun knot4/1;
+	_ -> Knot_Func = fun knot1/1
+    end,
+    Ures = Resolution,
+    Vres = Ures div 10,
+    Verts = make_verts(Ures, Vres, Knot_Func),
+    Faces = make_faces(Ures, Vres),
+    {new_shape,"knot",Faces,Verts}.
 
-torus_menu() ->
-    [{?__(1,"Torus Knot"),torus_knot}].
-    
-%% This function will be called before executing any command.
+dialog() ->
+    TypeFlag = get_pref(typeflag, knot1),
+    Resolution = get_pref(resolution, 80),
+    [{hframe, [{label, "Resolution"},
+	       {slider, {text, Resolution,
+	       [{key, resolution}, {range, {30, 300}}]}}]},
+     {vradio, [{"Type 1", knot1},
+	       {"Type 2", knot2},
+	       {"Type 3", knot3},
+	       {"Type 4", knot4}],
+	       TypeFlag,
+	       [{key,typeflag}, {title, "Knot Type"}]}].
 
-command({shape,{more,torus_knot}}, _) ->
-    %% Our command.
-    make_knot();
-command(_, _) ->
-    %% In this case we ignore the arguments. Underscore is a "dont't
-    %% care" wildcard. Tell Wings that the next plug-in or
-    %% the built-in command command should handle this command.
-    next.
+make_verts(Ures, Vres, Knot_Func) ->
+    Radius = 0.25,
+    Pi2 = math:pi()*2,
+    Us = lists:seq(0, Ures-1),
+    Vs = lists:seq(0, Vres-1),
+    Process_Us = fun(U) ->
+	T1 = (U+0) * Pi2/Ures,
+	T2 = (U+1) * Pi2/Ures,
+	A = Knot_Func(T1),		% curr point
+	B = Knot_Func(T2),		% next point
+	E = e3d_vec:sub(A,B),
+	F = e3d_vec:add(A,B),
+	G = e3d_vec:norm(e3d_vec:cross(E,F)),
+	H = e3d_vec:norm(e3d_vec:cross(E,G)),
+	Process_Vs = fun(V) ->
+	    K = V * Pi2/Vres,
+	    L = {math:cos(K),0.0,math:sin(K)},
+	    M = e3d_vec:mul(L,Radius),
+	    {X,_,Z} = M,
+	    N = e3d_vec:mul(H,X),
+	    O = e3d_vec:mul(G,Z),
+	    P = e3d_vec:add(N,O),
+	    Q = e3d_vec:add(A,P),
+	    Q
+	end,
+	lists:map(Process_Vs, Vs)
+    end,
+    Verts = lists:map(Process_Us, Us),
+    lists:flatten(Verts).
 
-%% This function is local. It cannot be called from the another
-%% Erlang module.
+make_faces(Ures, Vres) ->
+    Us = lists:seq(0, Ures-1),
+    Vs = lists:seq(0, Vres-1),
+    Make_Face = fun(I,J) ->
+	Idx1 = (J+1) rem Vres + I*Vres,
+	Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
+	Idx3 = J + ((I+1) rem Ures) * Vres,
+	Idx4 = J + I*Vres,
+	[Idx1,Idx2,Idx3,Idx4]
+    end,
+    [Make_Face(I,J) || I <- Us, J <- Vs].
 
-make_knot() ->
-    %% We number the vertices of the object from 0 and upwards.
+knot1(T) ->
+    X = math:cos(T) - 2*math:cos(2*T),
+    Y = math:sin(3*T),
+    Z = math:sin(T) + 2*math:sin(2*T),
+    e3d_vec:mul({X,Y,Z}, 0.5).
 
-    %% Then we list for each face the vertex numbers.
-    %%
-    %% List elements are enclosed by [ and ].
-    %%
-    %% It is very important that the vertices are listed
-    %% counter-clockwise order, or the Wings will have problems
-    %% understanding.
+knot2(T) ->
+    X = 10 * (math:cos(T) + math:cos(3*T)) + math:cos(2*T) + math:cos(4*T),
+    Y = 4 * math:sin(3*T) * math:sin(5*T/2) + 4*math:sin(4*T) - 2*math:sin(6*T),
+    Z = 6 * math:sin(T) + 10 * math:sin(3*T),
+    e3d_vec:mul({X,Y,Z}, 0.1).
 
-    Faces = [
-        [0, 3, 5, 2    ],
-        [3, 0, 1, 4    ],
-        [2, 5, 4, 1    ],
-        [3, 6, 8, 5    ],
-        [4, 7, 6, 3    ],
-        [5, 8, 7, 4    ],
-        [6, 9, 11, 8   ],
-        [7, 10, 9, 6   ],
-        [8, 11, 10, 7  ],
-        [9, 12, 14, 11 ],
-        [10, 13, 12, 9 ],
-        [11, 14, 13, 10],
-        [12, 15, 17, 14],
-        [13, 16, 15, 12],
-        [14, 17, 16, 13],
-        [15, 18, 20, 17],
-        [16, 19, 18, 15],
-        [17, 20, 19, 16],
-        [18, 21, 23, 20],
-        [19, 22, 21, 18],
-        [20, 23, 22, 19],
-        [21, 24, 26, 23],
-        [22, 25, 24, 21],
-        [23, 26, 25, 22],
-        [24, 0, 2, 26  ],
-        [0, 24, 25, 1  ],
-        [26, 2, 1, 25  ]
-    ],
+knot3(T) ->
+    Pi = math:pi(),
+    X = 2.5*math:cos(T+Pi)/3 + 2*math:cos(3*T),
+    Y = 1.5*math:sin(4*T) + math:sin(2*T)/3,
+    Z = 2.5*math:sin(T)/3 + 2*math:sin(3*T),
+    e3d_vec:mul({X,Y,Z}, 0.5).
 
+knot4(T) ->
+    P = 2,
+    Q = 5,
+    OUT = 1.2*2,
+    IN = 0.48*3,
+    H = 0.8*2,
+    R = OUT + IN*math:cos(P*T),
+    Theta = Q*T,
+    X = R*math:cos(Theta),
+    Y = H*math:sin(P*T),
+    Z = R*math:sin(Theta),
+    e3d_vec:mul({X,Y,Z}, 0.5).
 
-    %% Faces is a list, itself containing lists.
-    
-    %% For each vertex, we list its position.
-    %% The first element in the list (i.e. {2.0,0.0,0.0})
-    %% is the position for vertex 0, the second the position
-    %% for vertex 1 and so on.
-    %%
-    %% Each element in the list is an *tuple*. Tuples are enclosed
-    %% in by { and }. Tuples are used fixed size structures.
-    %% A position in 3D space has X, Y, and Z coordinates,
-    %% so we use a tuple with 3 elements.
-    %%
-    %% We use lists when we the number of elements can vary.
-    
-    %% VertexPositions = [{2.0,0.0,0.0},{-2.0,0.0,0.0},{0.0,2.0,0.0},
-    %%                    {0.0,-2.0,0.0},{0.0,0.0,2.0},{0.0,0.0,-2.0}],
-
-    VertexPositions = [
-        {1.445509,0.246043,0.379514   },
-        {1.923419,-0.425628,0.679360  },
-        {1.477744,-0.505349,-0.071949 },
-        {0.998362,0.506429,-1.198357  },
-        {1.525929,0.918203,-1.765424  },
-        {1.334724,0.069929,-1.880836  },
-        {-0.455026,0.183123,-1.266398 },
-        {-0.686298,1.029229,-1.258281 },
-        {-1.253124,0.422306,-1.540772 },
-        {0.499151,0.092699,1.426996   },
-        {-0.016060,0.465731,2.031027  },
-        {-0.332274,-0.171677,1.518026 },
-        {0.303017,-1.417962,0.766045  },
-        {0.618264,-2.137096,1.157085  },
-        {-0.248190,-2.022720,1.082094 },
-        {-0.193436,-1.192151,-0.621053},
-        {0.595080,-1.346321,-0.973081 },
-        {-0.124742,-1.392696,-1.472236},
-        {0.503848,1.275947,0.641996   },
-        {0.953674,1.846630,0.150645   },
-        {0.175995,1.548476,-0.124613  },
-        {-1.136311,1.020388,0.597381  },
-        {-1.693220,1.516292,1.059312  },
-        {-1.702575,1.546538,0.182701  },
-        {-1.323700,-0.291531,-0.084710},
-        {-1.468417,-0.711423,0.671727 },
-        {-1.721339,-1.073407,-0.086196}
-    ],
-
-
-
-    %% Time to return the shape we have built.
-    %% We pack it into a tuple. First we tell Wings that
-    %% we want to create a new shape (new_shape as the first
-    %% element).
-    %%
-    %% The second element is what the object should be named.
-    %% Wings will append a number to this string ("knot");
-    %% it will be "knot0" if this is the first object created
-    %% after having started Wings.
-    %%
-    %% The third and fourth elements are the list of Faces and
-    %% the list of VertexPositions.
-
-    {new_shape,"knot",Faces,VertexPositions}.
-
+get_pref(Key, Def) ->
+    wpa:pref_get(?MODULE, Key, Def).
