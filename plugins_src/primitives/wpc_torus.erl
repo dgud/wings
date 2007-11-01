@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_torus.erl,v 1.6 2006/08/02 22:44:40 antoneos Exp $
+%%     $Id$
 %%
 
 %% The U resolution is the number of faces that will be generated
@@ -65,9 +65,8 @@ make_uv_torus([URES, VRES, MajR, MinR]) ->
 	    Vres = trunc(URES/(MajR/MinR)),
 	    Ures = URES
     end,
-    % io:fwrite("\nU, V: ~p ~p", [Ures, Vres]),
-    Vs = uv_torus_verts(Ures, Vres, MajR, MinR),
-    Fs = uv_torus_faces(Ures, Vres),
+    Vs = make_verts(Ures, Vres, MajR, MinR, none, none, 1),
+    Fs = make_faces(Ures, Vres),
     {new_shape,"UV Torus",Fs,Vs}.
 
 % ======= Lumpy Torus =======
@@ -81,8 +80,8 @@ make_lu_torus(Ask) when is_atom(Ask) ->
 	     {?__(7,"Lump Amplitude"),0.5}],
 	    fun(Res) -> {shape,{more,{lutorus,Res}}} end);
 make_lu_torus([Ures, Vres, MajR, MinR, Loops, LoopRad]) ->
-    Vs = lu_torus_verts(Ures, Vres, MajR, MinR, Loops, LoopRad),
-    Fs = uv_torus_faces(Ures, Vres),
+    Vs = make_verts(Ures, Vres, MajR, MinR, Loops, LoopRad, 2),
+    Fs = make_faces(Ures, Vres),
     {new_shape,"Lumpy Torus",Fs,Vs}.
 
 % ======= Spiral Torus =======
@@ -96,38 +95,54 @@ make_sp_torus(Ask) when is_atom(Ask) ->
 	     {?__(7,"Loop Radius "),0.2}],
 	    fun(Res) -> {shape,{more,{sptorus,Res}}} end);
 make_sp_torus([Ures, Vres, MajR, MinR, Loops, LoopRad]) ->
-    Vs = sp_torus_verts(Ures, Vres, MajR, MinR, Loops, LoopRad),
-    Fs = uv_torus_faces(Ures, Vres),
+    Vs = make_verts(Ures, Vres, MajR, MinR, Loops, LoopRad, 3),
+    Fs = make_faces(Ures, Vres),
     {new_shape,"Spiral Torus",Fs,Vs}.
 
-uv_torus_verts(Ures, Vres, MajR, MinR) ->
-    Du = 2*pi()/Ures, % Delta U
-    Dv = 2*pi()/Vres, % Delta V
-    [{(MajR + MinR*cos(J*Dv)) * cos(I*Du),
-	    -(MinR*sin(J*Dv)),
-      (MajR + MinR*cos(J*Dv)) * sin(I*Du)}
-      || I <- lists:seq(0, Ures-1), J <- lists:seq(0, Vres-1)].
-
-lu_torus_verts(Ures, Vres, MajR, MinR, Loops, LoopRad) ->
+make_verts(Ures, Vres, MajR, MinR, Loops, LoopRad, Type) ->
+    Us = lists:seq(0, Ures-1),
+    Vs = lists:seq(0, Vres-1),
     Du = 2*pi()/Ures,
     Dv = 2*pi()/Vres,
-    [{(MajR + MinR*cos((J*Dv))*(1.0+cos((I*Du)*Loops)*LoopRad)) * cos((I*Du)),
-	    -(MinR*sin((J*Dv))*(1.0+cos((I*Du)*Loops)*LoopRad)),
-      (MajR + MinR*cos((J*Dv))*(1.0+cos((I*Du)*Loops)*LoopRad)) * sin((I*Du))}
-      || I <- lists:seq(0, Ures-1), J <- lists:seq(0, Vres-1)].
+    Make_Vert = case Type of
+	1->
+	    fun(I,J) ->
+		{A,B,C,D} = {cos(J*Dv), sin(J*Dv), cos(I*Du), sin(I*Du)},
+		X = (MajR + MinR*A) * C,
+		Y =	  -(MinR*B),
+		Z = (MajR + MinR*A) * D,
+		{X,Y,Z}
+	    end;
+	2 ->
+	    fun(I,J) ->
+		{A,B,C,D} = {cos(J*Dv), sin(J*Dv), cos(I*Du), sin(I*Du)},
+		N = 1+cos(I*Du*Loops)*LoopRad,
+		X = (MajR + MinR*A*N) * C,
+		Y =	  -(MinR*B*N),
+		Z = (MajR + MinR*A*N) * D,
+		{X,Y,Z}
+	    end;
+	3 ->
+	    fun(I,J) ->
+		{A,B,C,D} = {cos(J*Dv), sin(J*Dv), cos(I*Du), sin(I*Du)},
+		N = sin(I*Du*Loops)*LoopRad,
+		O = cos(I*Du*Loops)*LoopRad,
+		X = (MajR + MinR*A + N) * C,
+		Y =	  -(MinR*B + O),
+		Z = (MajR + MinR*A + N) * D,
+		{X,Y,Z}
+	    end
+	end,
+    [Make_Vert(I,J) || I <- Us, J <- Vs].
 
-sp_torus_verts(Ures, Vres, MajR, MinR, Loops, LoopRad) ->
-    Du = 2*pi()/Ures,
-    Dv = 2*pi()/Vres,
-    [{(MajR + MinR*cos((J*Dv)) + sin((I*Du)*Loops)*LoopRad) * cos((I*Du)),
-	    -(MinR*sin((J*Dv)) + cos((I*Du)*Loops)*LoopRad),
-      (MajR + MinR*cos((J*Dv)) + sin((I*Du)*Loops)*LoopRad) * sin((I*Du))}
-      || I <- lists:seq(0, Ures-1), J <- lists:seq(0, Vres-1)].
-
-uv_torus_faces(Ures, Vres) ->
-    [[J + I*Vres,
-      J + ((I+1) rem Ures) * Vres,
-      (J+1) rem Vres + ((I+1) rem Ures)*Vres,
-      (J+1) rem Vres + I*Vres]
-      || I <- lists:seq(0, Ures-1), J <- lists:seq(0, Vres-1)].
-
+make_faces(Ures, Vres) ->
+    Us = lists:seq(0, Ures-1),
+    Vs = lists:seq(0, Vres-1),
+    Make_Face = fun(I,J) ->
+	Idx1 = (J+1) rem Vres + I*Vres,
+	Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
+	Idx3 = J + ((I+1) rem Ures) * Vres,
+	Idx4 = J + I*Vres,
+	[Idx4,Idx3,Idx2,Idx1]
+    end,
+    [Make_Face(I,J) || I <- Us, J <- Vs].
