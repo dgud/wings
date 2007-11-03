@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_extrude_edge.erl,v 1.65 2005/01/30 06:59:21 bjorng Exp $
+%%     $Id$
 %%
 
 -module(wings_extrude_edge).
@@ -73,7 +73,7 @@ bevel_edges(Edges, #we{id=Id,mirror=MirrorFace}=We0, {Tvs,Sel0,Limit0}) ->
     {We1,OrigVs,_,Forbidden} = extrude_edges(Edges, Dist, We0#we{mirror=none}),
     We2 = wings_edge:dissolve_edges(Edges, We1),
     Tv0 = bevel_tv(OrigVs, We2, Forbidden),
-    Tv = scale_tv(Tv0, ?BEVEL_EXTRUDE_DIST_KLUDGE),
+    Tv = scale_tv(Tv0, Dist),
     We3 = wings_collapse:collapse_vertices(OrigVs, We2),
     Vtab = bevel_reset_pos(OrigVs, We2, Forbidden, We3#we.vp),
     We = We3#we{vp=Vtab,mirror=MirrorFace},
@@ -567,7 +567,7 @@ average(Na, Nb) ->
     end.
 
 scale_tv(Tv, ExtrudeDist) ->
-    S = ?DEFAULT_EXTRUDE_DIST / ExtrudeDist,
+    S = 1.0 / ExtrudeDist,
     scale_tv_1(Tv, S, []).
 
 scale_tv_1([{Vec,Vs}|T], S, Acc) ->
