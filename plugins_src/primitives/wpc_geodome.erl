@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_geodome.erl,v 1.1 2006/08/02 22:54:52 antoneos Exp $
+%%     $Id$
 %%
 
 -module(wpc_geodome).
@@ -94,13 +94,18 @@ geodome_main(Resolution, AlgorithmFlag, BaseFlag, SpherizeFlag, DomeFlag) ->
     {Vs2, Fs}.
 
 icosahedron(false) ->
+    H = math:sqrt(1/5),
+    L = math:sqrt(4/5),
+    S = math:pi()*2/5,
+    A = L*math:cos(S),
+    B = L*math:sin(S),
+    C = L*math:cos(S*2),
+    D = L*math:sin(S*2),
+    E = 0.0,
+    F = 1.0,
     Verts = [
-    {0.000000,0.447214,0.894427},{0.000000,1.000000,0.000000},
-    {0.850651,0.447214,0.276393},{-0.000000,-0.447214,-0.894427},
-    {0.525731,0.447214,-0.723607},{-0.525731,0.447214,-0.723607},
-    {0.850651,-0.447214,-0.276393},{0.525731,-0.447214,0.723607},
-    {-0.525731,-0.447214,0.723607},{-0.850651,0.447214,0.276393},
-    {0.000000,-1.000000,0.000000},{-0.850651,-0.447214,-0.276393}],
+    {E,H,L},{E,F,E},{B,H,A},{-E,-H,-L},{D,H,C},{-D,H,C},{B,-H,-A},
+    {D,-H,-C},{-D,-H,-C},{-B,H,A},{E,-F,E},{-B,-H,-A}],
     Faces = [
     [1,0,2],[9,0,1],[1,5,9],[1,4,5],[1,2,4],[0,8,7],[9,11,8],
     [5,3,11],[4,6,3],[2,7,6],[3,5,4],[6,4,2],[2,0,7],[8,0,9],
