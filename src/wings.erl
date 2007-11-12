@@ -813,7 +813,18 @@ purge_undo(St) ->
 	   end]},
     wings_ask:dialog("", Qs, fun(_) -> ignore end).
 
-info(#st{sel=[]}) -> [];
+info(#st{sel=[]}) ->
+    Progs = get(light_shaders),
+    NumLights = wings_pref:get_value(number_of_lights),
+    NumShaders = wings_pref:get_value(number_of_shaders),
+    UseProg = (Progs /= undefined) and (NumLights == 2),
+    case UseProg of
+	true ->
+	    {_Prog,Name} = element(NumShaders, Progs),
+	    io_lib:format("Shader ~p of ~p: ~s ",[NumShaders,size(Progs),Name]);
+	false ->
+	    []
+    end;
 info(St) ->
     case wings_wm:get_prop(show_info_text) of
 	false -> [];

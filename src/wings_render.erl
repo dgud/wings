@@ -585,7 +585,7 @@ enable_lighting() ->
 	false ->
 	    gl:enable(?GL_LIGHTING);
 	true ->
-	    Prog = element(NumShaders, Progs),
+	    {Prog,_Name} = element(NumShaders, Progs),
 	    gl:color4ub(255,255,255,255), %% Reset color needed by crappy drivers.
 	    %% We put it here and not in apply_material because we can't use some
 	    %% optimizations (i.e. reuse display lists) when drawing selected objects

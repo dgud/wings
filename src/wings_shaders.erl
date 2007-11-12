@@ -12,26 +12,25 @@
 %%
 
 -module(wings_shaders).
--export([init/0, branding/0]).
+-export([init/0, read_texture/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 -include("e3d_image.hrl").
 
 init() ->
-    Programs = {hemi(),
-		%make_prog("hemilight"),
-		make_prog("gooch"),
-		make_prog("toon"),
-		make_prog("brick"),
-		make_prog_envmap(),
-		make_prog("vertex_color", "Flag", 0), % Use Vertex Normals
-		make_prog("vertex_color", "Flag", 1), % Use Face Normals
-		make_prog("spherical_ao"),
-		make_prog("depth"),
-		make_prog("harmonics", "Type", 5),
-		make_prog("harmonics", "Type", 8),
-		make_prog("harmonics", "Type", 9)},
+    Programs = {{make_hemi(), "Hemispherical Lighting"},
+	{make_prog("gooch"), "Gooch Tone"},
+	{make_prog("toon"), "Toon"},
+	{make_prog("brick"), "Brick"},
+	{make_prog_envmap(), "Environment Mapping"},
+	{make_prog("vertex_color", "Flag", 0), "Vertex Normals Color"},
+	{make_prog("vertex_color", "Flag", 1), "Face Normals Color"},
+	{make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
+	{make_prog("depth"), "Depth"},
+	{make_prog("harmonics", "Type", 5), "Spherical Harmonics 5"},
+	{make_prog("harmonics", "Type", 8), "Spherical Harmonics 8"},
+	{make_prog("harmonics", "Type", 9), "Spherical Harmonics 9"}},
     ?CHECK_ERROR(),
     gl:useProgram(0),
     put(light_shaders, Programs),
@@ -52,19 +51,6 @@ read_shader(FileName) ->
     NewFileName = filename:join(Path, FileName),
     {ok,Bin} = file:read_file(NewFileName),
     Bin.
-
-branding() ->
-    wings_io:ortho_setup(),
-    {WinW,WinH} = wings_wm:win_size(),
-    ImgRec = read_texture("brand.png"),
-    #e3d_image{width=ImgW,height=ImgH,image=ImgData} = ImgRec,
-    Pad = 2,
-    gl:rasterPos2i(WinW-ImgW-Pad, WinH-Pad),
-    gl:enable(?GL_BLEND),
-    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-    gl:drawPixels(ImgW, ImgH, ?GL_RGBA, ?GL_UNSIGNED_BYTE, ImgData),
-    %%gl:disable(?GL_BLEND), %% Causes think lines on border
-    ok.
 
 make_prog_envmap() ->
     Shv = wings_gl:compile(vertex,   read_shader("envmap.vs")),
@@ -102,7 +88,7 @@ make_prog(Name, Var, Val) ->
     wings_gl:set_uloc(Prog, Var, Val),
     Prog.
 
-hemi() ->
+make_hemi() ->
     Sh = wings_gl:compile(vertex, light_shader_src()),
     Prog = wings_gl:link_prog([Sh]),
     gl:useProgram(Prog),
