@@ -3,7 +3,7 @@
 %%
 %%     Toxic Plugin User Interface and Exporter.
 %%
-%%  Copyright (c) 2004 Dan Gudmundsson, Raimo Niskanen
+%%  Copyright (c) 2004-2007 Dan Gudmundsson, Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -798,7 +798,7 @@ mkName(Name, [Mat0]) when list(Name) ->
     Mat = to_list(Mat0),
     fixName(Name) ++ "_" ++ fixName(Mat);
 mkName(Name, Mat) ->
-    erlang:fault({strange_names, Name,Mat}).
+    erlang:error({strange_names, Name,Mat}).
 
 to_list(Mat) when atom(Mat) ->
     atom_to_list(Mat);
@@ -1198,7 +1198,7 @@ open(Filename, export) ->
 	{ok, F} ->
 	    F;
 	Error ->
-	    erlang:fault(Error, [Filename, export])
+	    erlang:error(Error, [Filename, export])
     end.
 
 %% println(F) ->
@@ -1209,31 +1209,31 @@ open(Filename, export) ->
 % 	ok ->
 % 	    ok;
 % 	Error ->
-% 	    erlang:fault(Error, [F,DeepString])
+% 	    erlang:error(Error, [F,DeepString])
 %     end.
 
 println(F, DeepString) ->
     case file:write(F, [DeepString,io_lib:nl()]) of
 	ok ->    ok;
-	Error -> erlang:fault(Error, [F,DeepString])
+	Error -> erlang:error(Error, [F,DeepString])
     end.
 
 print(F, Format, Args) ->
     case file:write(F, io_lib:format(Format, Args)) of
  	ok ->    ok;
- 	Error -> erlang:fault(Error, [F,Format,Args])
+ 	Error -> erlang:error(Error, [F,Format,Args])
     end.
 
 println(F, Format, Args) ->
     case file:write(F, [io_lib:format(Format, Args),io_lib:nl()]) of
 	ok ->    ok;
-	Error -> erlang:fault(Error, [F,Format,Args])
+	Error -> erlang:error(Error, [F,Format,Args])
     end.
 
 close(F) ->
     case file:close(F) of
 	ok ->    ok;
-	Error -> erlang:fault(Error, [F])
+	Error -> erlang:error(Error, [F])
     end.
 
 %% Convert certain terms to printable strings in a

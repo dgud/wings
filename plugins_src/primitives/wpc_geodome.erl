@@ -242,7 +242,7 @@ make_verts(V1, V2, V3, NumCuts) ->
     Verts2 = make_span_verts(TU, TV, 2),
     Verts = lists:flatten([Verts1 ++ Verts2]),
     NumVerts = lists:sum(lists:seq(1, NumCuts+1)),
-    length(Verts) == NumVerts, % verify sum
+    true = length(Verts) == NumVerts, % verify sum
     Verts.
 
 make_span_verts([], [], _) -> [];

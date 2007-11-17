@@ -3,7 +3,7 @@
 %%
 %%     The UV parametrisation algorithms.
 %%
-%%  Copyright (c) 2002-2004 Dan Gudmundsson, Raimo Niskanen,
+%%  Copyright (c) 2002-2007 Dan Gudmundsson, Raimo Niskanen,
 %%                     Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
@@ -948,10 +948,10 @@ pick(L, P)
 	{_, _} = Ok ->
 	    Ok;
 	Fault ->
-	    erlang:fault(Fault, [L, P])
+	    erlang:error(Fault, [L, P])
     end;
 pick(L, P) ->
-    erlang:fault(badarg, [L, P]).
+    erlang:error(badarg, [L, P]).
 
 pick(_, L, [], R, Q) ->
     {lists:reverse(R, L), lists:reverse(Q)};
@@ -980,10 +980,10 @@ insert(L, S)
 	R when list(R) ->
 	    R;
 	Fault ->
-	    erlang:fault(Fault, [L, S])
+	    erlang:error(Fault, [L, S])
     end;
 insert(L, S) ->
-    erlang:fault(badarg, [L, S]).
+    erlang:error(badarg, [L, S]).
 
 insert(_, L, [], R) ->
     lists:reverse(R, L);

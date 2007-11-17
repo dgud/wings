@@ -27,14 +27,14 @@ init() ->
 	{error,Reason} ->
 	    io:format("Failed to load ~s in ~s\n~s\n",
 		      [Name,Dir,erl_ddll:format_error(Reason)]),
-	    erlang:fault(startup_fault)
+	    erlang:error(startup_fault)
     end,
     case open_port({spawn,Name},[]) of
 	Port when is_port(Port) ->
 	    register(wings_ogla_port, Port);
 	_ ->
 	    io:format("Failed to open port ~s\n", [Name]),
-	    erlang:fault(startup_fault)
+	    erlang:error(startup_fault)
     end,
 
     false.

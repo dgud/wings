@@ -278,8 +278,7 @@ make_auth(Creator) ->
 read_cstring(Data) ->
     read_cstring(Data, []).
 
-read_cstring(<<0, Rest/binary>>=Data, Name) ->
-    is_binary(Data),
+read_cstring(<<0, Rest/binary>>, Name) ->
     case (length(Name) rem 2) of
 	0 -> <<0, More/binary>> = Rest, {Name, More};
 	1 -> {Name, Rest}
@@ -321,12 +320,10 @@ read_pnts(Data) ->
     <<X:32/float, Y:32/float, Z:32/float, Rest/binary>> = Data,
     [{X,Y,Z} | read_pnts(Rest)].
 
-read_pols(Data) ->
-    <<PolygonType:4/binary, Rest/binary>> = Data,
-    (PolygonType == <<"FACE">>) or (PolygonType == <<"PTCH">>),
-    %io:fwrite("PolygonType: ~s\n", [binary_to_list(PolygonType)]),
-    Faces = read_point_idxs(Rest),
-    Faces.
+read_pols(<<"FACE",Rest/binary>>) ->
+    read_point_idxs(Rest);
+read_pols(<<"PTCH",Rest/binary>>) ->
+    read_point_idxs(Rest).
 
 read_point_idxs(<<>>) -> [];
 read_point_idxs(Data) ->

@@ -3,12 +3,12 @@
 %%
 %%     Functions for reading and writing TIF files.
 %%
-%%  Copyright (c) 2001 Dan Gudmundsson
+%%  Copyright (c) 2001-2007 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: e3d__tif.erl,v 1.14 2004/10/07 08:32:00 dgud Exp $
+%%     $Id$
 %%
 
 -module(e3d__tif).
@@ -314,7 +314,7 @@ get_info([{?BitsPerSample, Type = short, Count, {offset, Off}}|R], Tif, Orig,Enc
 % 	    Bps = [8,8,8|_] -> Bps;
 % 	    Err ->
 % 		io:format("~p: Unsupported BitsPerSample ~p ~n", [?MODULE, Err]),
-% 		erlang:fault({?MODULE, unsupported, bitsPerSample})
+% 		erlang:error({?MODULE, unsupported, bitsPerSample})
 % 	end,
     get_info(R, Tif#tif{bps = Bpp}, Orig,Enc);
 get_info([{?SamplesPerPixel, _, 1, {value, SPP}}|R], Tif, Orig,Enc) ->
@@ -675,7 +675,7 @@ lzw_compress(<<>>, CC, _W, Omega, BitLen, _TabCount, Build, Acc) ->
             list_to_binary(lists:reverse([Bin|N2acc]));
 	_Else ->
 	    io:format("~p:~p Error ~p ~p ~n", [?MODULE, ?LINE, {PaddL, Codes}, CC]),
-	    erlang:fault({?MODULE, decoder, {internal_error, ?LINE}})
+	    erlang:error({?MODULE, decoder, {internal_error, ?LINE}})
     end;
 lzw_compress(Bin, CC, W, Omega, BitLen, TabCount, Build, Acc) when CC == W ->
     Code =?get_lzw(Omega),
@@ -703,7 +703,7 @@ lzw_compress(<<Char:8, Bin/binary>>, CC, W, Omega, BitLen, TabC, Build, Acc) ->
     end.
 
 lzw_write({_,undefined}, _, _) -> 
-    erlang:fault({undef,value});
+    erlang:error({undef,value});
 lzw_write({CLen, Code}, {Totlen, List}, Acc) ->
     NewLen = CLen + Totlen,
     if 
@@ -717,7 +717,7 @@ lzw_write({CLen, Code}, {Totlen, List}, Acc) ->
 		Else ->
 		    io:format("~p:~p Error ~p ~p ~n", [?MODULE, ?LINE, Else, 
 						       [{CLen, Code}, {Totlen, List}]]),
-		    erlang:fault({?MODULE, decoder, {internal_error, ?LINE}})
+		    erlang:error({?MODULE, decoder, {internal_error, ?LINE}})
 	    end;
 	NewLen > 100 -> 
 	    case catch lzw_buildbin(lists:reverse([{CLen,Code}|List])) of
@@ -727,7 +727,7 @@ lzw_write({CLen, Code}, {Totlen, List}, Acc) ->
 		Else ->
 		    io:format("~p:~p Error ~p ~p ~n", [?MODULE, ?LINE, Else, 
 						       [{CLen, Code}, {Totlen, List}]]),
-		    erlang:fault({?MODULE, decoder, {internal_error, ?LINE}})
+		    erlang:error({?MODULE, decoder, {internal_error, ?LINE}})
 	    end;
 	true ->
 	    {{Totlen + CLen,[{CLen,Code}|List]}, Acc}

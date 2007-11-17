@@ -450,7 +450,7 @@ drag_and_drop(Ev, What) ->
     wings_wm:drag(Ev, {?BOX_W,?BOX_H}, DropData).
 
 draw_objs(#pst{cols=Cols0, w=W, h=_H, knob=Knob}) ->
-    length(Cols0) == W*_H, %% Assert
+    true = length(Cols0) == W*_H, %% Assertion
     {_Bef,Cols} = lists:split(Knob*W, Cols0),
     draw_objs(0, ?BORD, ?BORD, W, Cols).
 draw_objs(_,_,_,_,[]) ->    ok;

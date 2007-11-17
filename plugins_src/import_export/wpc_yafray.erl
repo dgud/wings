@@ -3,7 +3,7 @@
 %%
 %%     YafRay Plugin User Interface.
 %%
-%%  Copyright (c) 2003 Raimo Niskanen
+%%  Copyright (c) 2003-2007 Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -3623,7 +3623,7 @@ open(Filename, export) ->
 	{ok, F} ->
 	    F;
 	Error ->
-	    erlang:fault(Error, [Filename, export])
+	    erlang:error(Error, [Filename, export])
     end.
 
 println(F) ->
@@ -3634,7 +3634,7 @@ print(F, DeepString) ->
 	ok ->
 	    ok;
 	Error ->
-	    erlang:fault(Error, [F,DeepString])
+	    erlang:error(Error, [F,DeepString])
     end.
 
 println(F, DeepString) ->
@@ -3642,7 +3642,7 @@ println(F, DeepString) ->
 	ok ->
 	    ok;
 	Error ->
-	    erlang:fault(Error, [F,DeepString])
+	    erlang:error(Error, [F,DeepString])
     end.
 
 print(F, Format, Args) ->
@@ -3650,7 +3650,7 @@ print(F, Format, Args) ->
 	ok ->
 	    ok;
 	Error ->
-	    erlang:fault(Error, [F,Format,Args])
+	    erlang:error(Error, [F,Format,Args])
     end.
 
 println(F, Format, Args) ->
@@ -3658,7 +3658,7 @@ println(F, Format, Args) ->
 	ok ->
 	    ok;
 	Error ->
-	    erlang:fault(Error, [F,Format,Args])
+	    erlang:error(Error, [F,Format,Args])
     end.
 
 close(F) ->
@@ -3666,7 +3666,7 @@ close(F) ->
 	ok ->
 	    ok;
 	Error ->
-	    erlang:fault(Error, [F])
+	    erlang:error(Error, [F])
     end.
 
 
@@ -3802,7 +3802,7 @@ split_list(List, Pos) when list(List), integer(Pos), Pos >= 0 ->
 	{_,_}=Result ->
 	    Result;
 	Error ->
-	    erlang:fault(Error, [List, Pos])
+	    erlang:error(Error, [List, Pos])
     end.
 %%
 split_list1(List, 0, Head) ->
