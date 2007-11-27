@@ -221,7 +221,7 @@ register_postdraw_hook(Window, Id, Fun) ->
 	{value,{Id,_}} ->
 	    wings_wm:set_prop(Window, postdraw_hook, {Id,Fun});
 	{value,{OtherId,_}} ->
-	    erlang:fault({in_use_by,OtherId}, [Window,Id,Fun])
+	    erlang:error({in_use_by,OtherId}, [Window,Id,Fun])
     end.
 
 unregister_postdraw_hook(Window, Id) ->
