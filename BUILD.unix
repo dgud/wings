@@ -14,7 +14,7 @@ The following software is needed:
 
 - The Wings source files. http://www.wings3d.com
 
-- Erlang/OTP R11B-2 or later. http://www.erlang.org
+- Erlang/OTP R12B-0 or later. http://www.erlang.org
 
 - SDL development library. http://www.libsdl.org.
   (There are pre-built libraries for most platforms.)
@@ -50,13 +50,17 @@ Installing Erlang/OTP
 
 Building Erlang/OTP according to the instructions in the README file.
 
-A few hints:
+I recommend running "configure" with the following options:
 
-The Erlang/OTP source tar file must be unpacked using a
-GNU compatible "tar" utility.
+	./configure --enable-threads --disable-hipe
 
-On Linux, make sure to use the "--enable-thread" option to
-the "configure" script.
+Threads most be enabled to make sure that Erlang emulator is linked with
+reentrant libraries. (--enable-threads is default on *most* platforms nowadays,
+but better safe than sorry.)
+
+HiPE is not used by Wings; but the reason I recommend disabling it is
+that disabling HiPE in R12B also disables the use of floating point exceptions.
+Floating point exceptins have caused Wings to crash occasionally.
 
 When you have built Erlang/OTP, modify the PATH environment variable
 so that the "erl" and "erlc" programs can be started from a shell prompt.
@@ -100,7 +104,7 @@ $ cd wings-0.98.36.tar.bz2
 Building Wings
 ==============
 
-Build a Wings from the directory where the sources where unpacked.
+Build Wings from the directory where the sources where unpacked.
 
 Example:
 
@@ -126,7 +130,7 @@ source directory.
 
 Example:
 
-$ werl -pa $ESDL_PATH/ebin -pa /home/bjorng/wings-0.98.36/ebin -run wings_start start_halt
+$ erl -pa $ESDL_PATH/ebin -pa /home/bjorng/wings-0.98.36/ebin -run wings_start start_halt
 $
 
 Instead of writing the command line every time you want to start Wings,
@@ -148,7 +152,7 @@ Building all for Mac OS X
 
 To build everything and pack it into a DMG file, you'll need:
 
-- Xcode 2.4.1
+- Xcode 2.5
 
 Make sure that your current directory is the directory in which the
 sources where unpacked.

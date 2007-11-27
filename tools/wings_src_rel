@@ -5,7 +5,7 @@
 # $Id: wings_src_rel,v 1.4 2004/04/30 06:28:25 bjorng Exp $
 #
 use strict;
-my $WINGS = "https://svn.sourceforge.net/svnroot/wings/trunk";
+my $WINGS = "https://wings.svn.sourceforge.net/svnroot/wings/trunk";
 
 my $cmd;
 my $ver;
