@@ -45,6 +45,9 @@ rm -rf "$td/stdlib.appup"
 rm -rf "$td/erl_compile.beam"
 rm -rf "$td/ms_transform.beam"
 
+# We don't need escript.
+rm -rf "$td/escript.beam"
+
 # Old obsolete stuff.
 rm -rf "$td/pg.beam"
 rm -rf "$td/pool.beam"
