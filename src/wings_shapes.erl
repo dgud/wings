@@ -271,7 +271,7 @@ cylinder_vertices(N,H,Dx,Dz,Bx,Bz) ->
 	 Di = Dx/2.0,
 	 Dj = Dz/2.0,
 	 Bi = Bx/2.0,
-	 Bj = Bz/2,0,
+	 Bj = Bz/2.0,
 	 ellipse(N, Hi, {Di, Dj}) ++ ellipse(N, -Hi, {Bi, Bj}).
 
 cone(Ask, _St) when is_atom(Ask) ->

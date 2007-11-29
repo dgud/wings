@@ -10,7 +10,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_we.erl,v 1.110 2006/01/27 09:20:55 dgud Exp $
+%%     $Id$
 %%
 
 -module(wings_we).
@@ -521,7 +521,7 @@ fill_holes(Es) ->
 make_hole_faces(G, [[V|_]|Cs], Acc) ->
     case digraph:get_cycle(G, V) of
 	[_|Vs] when length(Vs) >= 3 ->
-	    length(Vs) =:= length(ordsets:from_list(Vs)),
+	    true = length(Vs) =:= length(ordsets:from_list(Vs)),
 	    make_hole_faces(G, Cs, [{'_hole_',Vs}|Acc]);
 	_Other ->
 	    make_hole_faces(G, Cs, Acc)
