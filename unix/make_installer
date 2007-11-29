@@ -118,7 +118,7 @@ sed -e "s;%WINGS_VSN%;$WINGS_VSN;" -e "s;%ESDL_NAME%;$ESDL_NAME;" -e "s;%LIB_SDL
 chmod +x $INSTALLER
 
 dest=$DEST_ROOT
-makeself.sh $dest $dest.run Wings3D ./install_wings "$WINGS_VSN"
+makeself.sh --bzip2 $dest $dest.bzip2.run Wings3D ./install_wings "$WINGS_VSN"
 if [ -f $dest.run ]; then
     cp $dest.run ..
 fi
