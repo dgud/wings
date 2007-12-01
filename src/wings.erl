@@ -309,8 +309,7 @@ handle_event_2(#mousebutton{x=X,y=Y}=Ev0, #st{sel=Sel}=St0) ->
 			_ ->
 			    popup_menu(Xglobal, Yglobal, St0)
 		    end
-	    end;
-	Other -> Other
+	    end
     end;
 handle_event_2(Ev, St) -> handle_event_3(Ev, St).
 	    

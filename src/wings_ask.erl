@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_ask.erl,v 1.189 2004/12/18 19:36:02 bjorng Exp $
+%%     $Id$
 %%
 
 -module(wings_ask).
@@ -2379,7 +2379,6 @@ mktree_button(Label, Action, Sto, I, Flags) ->
 
 button_label(ok) -> ?__(1,"OK");
 button_label(cancel) -> wings_s:cancel();
-button_label(S) when is_list(S) -> S;
 button_label(Act) -> wings_util:cap(atom_to_list(Act)).
 %%button_label(Act) -> wings_util:cap(wings_lang:get_act(Act)). %BUGBUG
 
@@ -2756,8 +2755,7 @@ table_is_scroll_ev(_Ev, _Fi, #table{tpos=Tpos})
 table_is_scroll_ev(#mousebutton{x=X,y=Y}, Fi, Tab) ->
     table_is_scroll_ev_1(X, Y, Fi, Tab);
 table_is_scroll_ev(#mousemotion{x=X,y=Y}, Fi, Tab) ->
-    table_is_scroll_ev_1(X, Y, Fi, Tab);
-table_is_scroll_ev(_, _, _) -> false.
+    table_is_scroll_ev_1(X, Y, Fi, Tab).
 
 table_is_scroll_ev_1(_X, Y, _Fi, #table{tmarg=TopMarg})
   when Y < TopMarg -> false;
@@ -3392,11 +3390,8 @@ key(C, _, #text{charset=Charset}=Ts0)
   when $\s =< C, C < 256 ->
     case Charset(C) of
 	true ->
-	    case del_sel(Ts0) of
-		#text{bef=Bef}=Ts ->
-		    Ts#text{bef=[C|Bef]};
-		_Other -> Ts0
-	    end;
+	    #text{bef=Bef} = Ts = del_sel(Ts0),
+	    Ts#text{bef=[C|Bef]};
 	false -> Ts0
     end;
 key(_C, _Mod, Ts) -> Ts.
