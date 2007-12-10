@@ -165,7 +165,12 @@ move(Op, St) ->
     wings_drag:setup(Tvs,Units,Flags,St).
 
 find_a_id(#st{shapes=Shs}) ->
-    {Id, _} = gb_trees:smallest(Shs),
+    Ida = [Id || #we{id=Id,perm=Perm} <- gb_trees:values(Shs),
+        ?IS_SELECTABLE(Perm)],
+    Id = case length(Ida) of
+    0 -> wpa:error(?__(1,"Visible object required."));
+    _ -> lists:min(Ida)
+    end,   
     Id.
 
 draw_image(Image,_St) ->
