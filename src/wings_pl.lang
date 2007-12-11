@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_pl.lang,v 1.26 2006/10/27 16:41:31 giniu Exp $
+%%     $Id$
 %%
 %%  Translation:  Andrzej Giniewicz
 %%  Correction:   Małgorzata Napiontek & Maciej Milewski
@@ -112,7 +112,8 @@
     {3,". Środek ~s ~s ~s. Długość ~s"},
     {4,". Środek ~s ~s ~s.\nMateriał: ~s"},
     {5,". Odległość ~s  <~s, ~s, ~s>"},
-    {6,". Kąt ~s"}
+    {6,". Kąt ~s"},
+    {40, ". Pole ~s"}
    ]},
   {object_mode,
    [
@@ -533,6 +534,11 @@
    [
     {1,"Pętla nie dzieli ~p na dwie lub więcej części."}
    ]},
+  {set_edge_constraint,
+   [
+    {1,"Można zaznaczyć tylko jedną lub dwie krawędzie."},
+    {2,"Można zaznaczyć krawędzie wyłącznie w jednym obiekcie."}
+   ]},
   {menu,
    [
     {1,"Operacje na krawędziach"},
@@ -555,6 +561,8 @@
     {18,"Tnij obiekt na dwie części według zaznaczonej pętli"},
     {19,"Kolor punktów"},
     {20,"Zastosuj kolor punktów do zaznaczonych krawędzi"},
+    {22,"Ustawia ograniczenia"},
+    {23,"Ustawia standardowe ograniczenia dla przesuwania i obrotu przy wciśniętych klawiszach modyfikujących."},
     {50,"Usuwa zaznaczone krawędzie i pozostałe po cięciach izolowane punkty"}
    ]},
   {plain_cut_menu,
@@ -1808,6 +1816,7 @@
     {47,"Kolor wektorów normalnych"},
     {48,"Wyświetlanie wektorów normalnych"},
     {49,"Długość osi zgodna z rozmiarem siatki"},
+    {50,"Używaj wygładzonych krawędzi"},
     {aa_ortho1,"Wymuś widok ortogonalny gdy prostopadły"},
     {aa_ortho2,"Zawsze przełączaj na widok ortograficzny gdy kamera jest ustawiona wzdłuż którejś z osi"}
    ]},
@@ -1875,6 +1884,7 @@
     {24,"Wyświetlaj obiekty w oknie schematu sceny"},
     {25,"Wyświetl gotowy obraz po zakończeniu renderingu"},
     {26,"Załaduj gotowy obraz po zakończeniu renderingu"},
+    {27,"Rozszerzony zestaw ikon"},
     {50,"Zestaw ikon"}
    ]},
   {viewer_prefs,
@@ -2273,7 +2283,8 @@
    [
     {1,"Segmenty:"},
     {2,"Cięcia:"},
-    {3,"Promień zewnętrzny:"},
+    {31,"Promień zewnętrzny X:"},
+    {32,"Promień zewnętrzny Z:"},
     {4,"Promień wewnętrzny:"}
    ]}
  ]}.
@@ -2733,3 +2744,4 @@
     {1,"Skala importu"}
    ]}
  ]}.
+
