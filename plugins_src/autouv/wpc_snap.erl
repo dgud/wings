@@ -166,7 +166,7 @@ move(Op, St) ->
 
 find_a_id(#st{shapes=Shs}) ->
     Ida = [Id || #we{id=Id,perm=Perm} <- gb_trees:values(Shs),
-        ?IS_SELECTABLE(Perm)],
+        ?IS_VISIBLE(Perm)],
     Id = case length(Ida) of
     0 -> wpa:error(?__(1,"Visible object required."));
     _ -> lists:min(Ida)
