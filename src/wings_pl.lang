@@ -3,7 +3,7 @@
 %%
 %%     Polish language strings.
 %%
-%%  Copyright (c) 2005 Andrzej Giniewicz
+%%  Copyright (c) 2005-2007 Andrzej Giniewicz
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -1754,7 +1754,12 @@
     {19,"Kolor wektorów"},
     {20,"Wyświetlanie wektorów"},
     {21,"Użyj lustra dla selekcji"},
-    {22,"Włącza wirtualne lustro dla drugorzędnego trybu selekcji"}
+    {22,"Włącza wirtualne lustro dla drugorzędnego trybu selekcji"},
+    {23,"Rozmiar"},
+    {24,"Rozmiar znacznika obcinania"},
+    {25,"Kolor"},
+    {26,"Kolor znacznika obcinania"},
+    {27,"Znacznik płaszczyzny obcinania"}
    ]},
   {command,
    [
@@ -1763,7 +1768,20 @@
     {3,"Zaawansowane"},
     {4,"Interfejs użytkownika"},
     {5,"Różne"},
-    {6,"Opcje"}
+    {6,"Opcje"},
+    {31,"Ograniczenia"}
+   ]},
+  {constraint_prefs,
+   [
+    {1,"Przesunięcie"},
+    {2,"Obrót"},
+    {4,"Ustaw domyślne ograniczenia"},
+    {12,"Ustaw ograniczenie przesunięcia dla ~s."},
+    {13,"Ustaw ograniczenie obrotu dla ~s."},
+    {14,"Ustaw ograniczenie skalowania dla ~s."},
+    {22,"Ograniczenia przesunięcia"},
+    {23,"Ograniczenia obrotu"},
+    {24,"Ograniczenia skalowania"}
    ]},
   {gen_prefs,
    [
@@ -2175,6 +2193,18 @@
    [
     {1,"Musisz zaznaczyć dokładnie dwa punkty\nna tym samym obiekcie."},
     {2,"Musisz zaznaczyć dokładnie dwa punkty."}
+   ]},
+  {similar_area_faces_menu,
+   [
+    {1,"Podobne powierzchnie"},
+    {2,"Zaznacz płaszczyzny o podobnych polach powierzchni do pola powierzchni zaznaczonej płaszczyzny"}
+   ]},
+  {similar_area,
+   [
+    {1,"Tolerancja pola"},
+    {2,"Wybierz o podobnym polu"},
+    {3,"Może być zaznaczona tylko jedna płaszczyzna w jednym obiekcie."},
+    {4,"Musisz zaznaczyć dokładnie jedną płaszczyznę."}
    ]},
   {similar_help,
    [
