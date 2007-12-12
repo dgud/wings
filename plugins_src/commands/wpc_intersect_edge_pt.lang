@@ -1,0 +1,37 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_intersect_edge,
+ [
+  {intersect,
+   [
+    {1,"As arestas selecionadas não podem compartilhar nenhum vértice"}
+   ]},
+  {intersect_edges,
+   [
+    {1,"Linha e plano estão em estreito paralelismo::\nimpossível achar a interseção."}
+   ]},
+  {intl_vec,
+   [
+    {1,"last axis"},
+    {2,"default axis"}
+   ]},
+  {menu_item,
+   [
+    {1,"Interseção"}
+   ]},
+  {standard_plane_fun,
+   [
+    {1,"Intercepta uma aresta com um plano definido por um"},
+    {2,"Intercepta uma aresta com um"},
+    {3,"plano"},
+    {4,"Escolha um ponto no plano"}
+   ]},
+  {submenu,
+   [
+    {1,"Intercepta planos padrão"},
+    {2,"Escolha um plano e um ponto de referência no plano"},
+    {3,"Escolha um plano"},
+    {4,"Escolha um eixo perpendicular ao plano"},
+    {5,"Escolha um ponto no plano para ser ultrapassado"},
+    {6,"Escolha um eixo perpendicular ao plano (o plano deverá passar através da base do eixo)"}
+   ]}
+ ]}.

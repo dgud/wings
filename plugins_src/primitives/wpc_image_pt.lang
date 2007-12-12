@@ -1,0 +1,17 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_image,
+ [
+  {image_menu,
+   [
+    {1,"Plano com Imagem..."},
+    {2,"Cria um plano contendo uma imagem"}
+   ]},
+  {make_image,
+   [
+    {1,"Falha ao abrir \"~s\": ~s\n"}
+   ]},
+  {make_image_1,
+   [
+    {1,"A imagem não pode ser aberta como textura (provavelmente é muito grande)."}
+   ]}
+ ]}.

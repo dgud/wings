@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_connect_tool,
+ [
+  {help,
+   [
+    {1,"Selecione um vértice ou corte uma aresta [mantenha o botão apertado para deslizar]"},
+    {2,"Sair do modo Conectar"},
+    {3,"Conecta arestas/vértices (selecione novamente o último vértice para finalizar]"},
+    {4,"Sai do modo Conectar"}
+   ]},
+  {lc_help,
+   [
+    {1,"Conectar em Sequência Desligado"},
+    {2,"Conectar em Sequência Ligado"}
+   ]},
+  {menu,
+   [
+    {1,"Conectar"},
+    {2,"Modo para ligar rapidamente vértices e arestas"}
+   ]}
+ ]}.

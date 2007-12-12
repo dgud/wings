@@ -42,6 +42,8 @@
 
 - Added Russian translation by Paul Geraskin. [bjorng]
 
+- Major update to Portuguese translation [contributed by: Luiz Fonte Boa]
+
 --- 0.98.36 -----------------------------------------------------------------
 
 - Absolute snap now can pick reference point, old snap that used center of

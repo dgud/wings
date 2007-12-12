@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_shift,
+ [
+  {adv_submenu,
+   [
+    {1,"Distribuir (plano)"},
+    {2,"Distribuir (esfera)"},
+    {3,"Distribuir (cilindro)"}
+   ]},
+  {menu,
+   [
+    {1,"Distribuir"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Escolha o eixo"},
+    {2,"Escolha o ponto"},
+    {3,"Escolha o centro"},
+    {4,"Escolha o eixo"},
+    {5,"Escolha o ponto"}
+   ]}
+ ]}.

@@ -1,0 +1,27 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_weld,
+ [
+  {draw_menu,
+   [
+    {1,"Soldar"},
+    {2,"Soldar o vértice selecionado a outro (compartilhando a mesma aresta)"}
+   ]},
+  {weld,
+   [
+    {1,"Você não pode soldar no plano de espelhamento"},
+    {2,"O objeto deve ter pelo meno 4 vértices"},
+    {3,"Você pode soldar somente um vértice"}
+   ]},
+  {weld_check_selection,
+   [
+    {1,"Você não pode soldar um vértice a ele mesmo"},
+    {2,"Os vértices que você deseja soldar deve compartilhar uma aresta"},
+    {3,"Você pode soldar somente a um único ponto"},
+    {4,"Nada selecionado"},
+    {5,"Você pode soldar somente dentro do mesmo objeto"}
+   ]},
+  {weld_select,
+   [
+    {1,"Seleciona o vértice alvo para a operação de soldagem (ambos vértices deve compartilhar uma aresta comum) "}
+   ]}
+ ]}.

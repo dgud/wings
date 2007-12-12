@@ -1,0 +1,36 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_tweak,
+ [
+  {help,
+   [
+    {1,"Arrastar"},
+    {2,"Encerrar"},
+    {3,"Ao longo da perpendicular"},
+    {4,"Magneto ligado"},
+    {5,"Ao longo da perpendicular"},
+    {6,"Arrastar"},
+    {7,"Encerrar"},
+    {8,"Magneto Desligado"},
+    {9,"Raio de ação"},
+    {10,"No plano da tangente"},
+    {11,"Relaxar"},
+    {12,"Descizar"},
+    {13,"Deslizar&colapsar"},
+    {14,"Dissolver"},
+    {15,"No plano da tangente"},
+    {16,"Relaxar"},
+    {17,"Deslizar"},
+    {18,"Restrito a XYZ"}
+   ]},
+  {intl_type,
+   [
+    {1,"Redondo"},
+    {2,"Reto"},
+    {3,"Agudo"}
+   ]},
+  {menu,
+   [
+    {1,"Modelagem livre"},
+    {2,"Modo para mover rapidamente elementos individuais"}
+   ]}
+ ]}.

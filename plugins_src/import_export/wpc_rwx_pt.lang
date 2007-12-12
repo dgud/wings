@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_rwx,
+ [
+  {dialog,
+   [
+    {1,"Aspecto facetado à luz"},
+    {2,"Otimizar tamanho do arquivo?"},
+    {3,"Ambiente"},
+    {4,"Difusa"},
+    {5,"Especular"},
+    {6,"Escala de Exportação"},
+    {7,"Etapas de subdivisão"}
+   ]},
+  {do_export,
+   [
+    {1,"Opções de exportação de Renderware"}
+   ]},
+  {props,
+   [
+    {1,"Arquivo Criterion Renderware"}
+   ]}
+ ]}.

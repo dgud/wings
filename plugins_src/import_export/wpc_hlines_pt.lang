@@ -1,0 +1,49 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_hlines,
+ [
+  {dialog,
+   [
+    {1,"pt"},
+    {2,"Largura"},
+    {3,"Altura"},
+    {4,"Caixa-Limite"},
+    {5,"Níveis de subdividão"},
+    {6,"Pré-renderização"},
+    {7,"Tudo"},
+    {8,"Rígido"},
+    {9,"Nenhum"},
+    {10,"Mostrar arestas"},
+    {11,"Ângulo agudo"},
+    {12,"Linha externa"},
+    {13,"Rígido"},
+    {14,"Agudo"},
+    {15,"Material"},
+    {16,"Regular"},
+    {17,"Tudo"},
+    {18,"Largura da aresta"},
+    {19,"Butt"},
+    {20,"Redondo"},
+    {21,"Quadrado"},
+    {22,"Extremidades das linhas"},
+    {23,"Mesclar"},
+    {24,"Ângulo"},
+    {25,"Distância"},
+    {26,"Linhas colineares (experimental)"}
+   ]},
+  {do_export,
+   [
+    {1,"lendo objetos"},
+    {2,"Lendo objeto ~B de"},
+    {3,"feito"},
+    {4,"lendo objetos"},
+    {5,"Exportando"},
+    {6,"feito"},
+    {7,"feito em ~.1f segundos"}
+   ]},
+  {export,
+   [
+    {1,"Opções de renderização de Cartoon Edge"},
+    {2,"Exportar"},
+    {3,"Arquivo Encapsulated Postscript (EPS)"}
+   ]}
+ ]}.

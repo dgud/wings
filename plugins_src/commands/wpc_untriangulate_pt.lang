@@ -1,0 +1,39 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_untriangulate,
+ [
+  {get_ask_list,
+   [
+    {1,"Força do Algoritmo"},
+    {2,"Algoritmos com forças maiores são mais lentos, mas produzem resultados melhores"},
+    {3,"Ângulo Máximo da Aresta"},
+    {4,"Ângulo máximo das arestas que serão dissolvidas"},
+    {5,"Checar Materiais"},
+    {6,"Não dissolve as arestas ao longo do perímetro dos materiais"},
+    {7,"Checar Coordenadas UV"},
+    {8,"Não dissolve as arestas ao longo do perímetro das coordenadas de textura individuais"},
+    {9,"Checar Arestas Rígidas"},
+    {10,"Não dissolve arestas rígidas"},
+    {11,"Checar Concavidade"},
+    {12,"Não produz polígonos côncavos"}
+   ]},
+  {menu,
+   [
+    {1,"Destriangular"},
+    {2,"Converte triângulos em quadriláteros"},
+    {3,"Destriangular"}
+   ]},
+  {pref_edit,
+   [
+    {1,"Preferências de Destriangulação (v0.2)"}
+   ]},
+  {process_edges,
+   [
+    {1,"Destriangular"},
+    {2,"Selecionando as Arestas Alvo"},
+    {3,"Contruindo a Árvore de Seleção"}
+   ]},
+  {untriangulate,
+   [
+    {1,"Destriangular (v0.2)"}
+   ]}
+ ]}.

@@ -1,0 +1,30 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_turnedge,
+ [
+  {menu,
+   [
+    {1,"Inverter Aresta"}
+   ]},
+  {menu_entry,
+   [
+    {1,"Inverter"},
+    {2,"Inverter"},
+    {3,"Inverte aresta"},
+    {4,"Inversão otimizada"},
+    {5,"Inverte a aresta somente se o comprimento da nova aresta for menor"}
+   ]},
+  {pref_edit,
+   [
+    {1,"Preferência do comando Inverter Aresta"},
+    {2,"Habilitado"},
+    {3,"Modo de Inversão"},
+    {4,"Inverte Aresta"},
+    {5,"Gira no sentido horário"},
+    {6,"Gira no sentido anti-horário"}
+   ]},
+  {turn_help,
+   [
+    {1,"Inverte aresta"},
+    {2,"Inverte a aresta somente se o comprimento da nova aresta for menor"}
+   ]}
+ ]}.

@@ -1,0 +1,45 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_plane,
+ [
+  {make_lumpy_plane,
+   [
+    {1,"Create Lumpy Plane"},
+    {2,"Resolution"},
+    {3,"Size"},
+    {4,"Lumps"},
+    {5,"Thickness"}
+   ]},
+  {make_regular_plane,
+   [
+    {1,"Create Regular Plane"},
+    {2,"Resolution"},
+    {3,"Size"},
+    {4,"Thickness"}
+   ]},
+  {make_sombrero_plane,
+   [
+    {1,"Make Sombrero Plane"},
+    {2,"Resolution"},
+    {3,"Size"},
+    {4,"Waves"},
+    {5,"Falloff"},
+    {6,"Height"},
+    {7,"Thickness"}
+   ]},
+  {make_wavy_plane,
+   [
+    {1,"Make Wavy Plane"},
+    {2,"Resolution"},
+    {3,"Size"},
+    {4,"Waves"},
+    {5,"Height"},
+    {6,"Thickness"}
+   ]},
+  {plane_menu,
+   [
+    {1,"Regular Plane"},
+    {2,"Lumpy Plane"},
+    {3,"Wavy Plane"},
+    {4,"Sombrero Plane"}
+   ]}
+ ]}.

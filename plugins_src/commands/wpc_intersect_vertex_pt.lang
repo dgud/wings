@@ -1,0 +1,36 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_intersect_vertex,
+ [
+  {adv_submenu,
+   [
+    {1,"Permanece sobre a linha, move para interceptar um plano"},
+    {2,"Permanece no plano, move para a linha"},
+    {3,"Escolha a linha e o plano"}
+   ]},
+  {intersect,
+   [
+    {1,"Linha e plano estão em estreito paralelismo::\nimpossível achar a interseção."}
+   ]},
+  {menu_item,
+   [
+    {1,"Interseção"},
+    {2,"Permanecer sobre a linha"},
+    {3,"Move vértice ao longo da LINHA de direção escolhida para interseção com o PLANO escolhido"},
+    {4,"Permanece no plano"},
+    {5,"Move vértice ao longo do PLANO com a perpendicular escolhida para a interseção com a LINHA escolhida"},
+    {6,"Pick all"},
+    {7,"Move vertex to intersection of LINE of chosen direction and location with PLANE with chosen normal and location"},
+    {8,"Interseção"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Escolha a direção da linha - a linha passara através do(s) vértice(s) selecionado(s)"},
+    {2,"Escolha o plano para interseção"},
+    {3,"Escolha a perpendicular do plano - o plano passará através do(s) vértice(s) selecionado(s)"},
+    {4,"Escolha a linha para interceptar"},
+    {5,"Escolha a direção da linha"},
+    {6,"Escolha o ponto para a linha passar através"},
+    {7,"Escolha a perpendicular do plano"},
+    {8,"Escolha o ponto para o plano passar através"}
+   ]}
+ ]}.

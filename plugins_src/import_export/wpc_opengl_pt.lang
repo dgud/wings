@@ -1,0 +1,47 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_opengl,
+ [
+  {aa_frame,
+   [
+    {1,"Qualidade de Rascunho (sem AA)"},
+    {2,"Qualidade Regular (AA normal)"},
+    {3,"Qualidade Superior"},
+    {4,"Qualidade Premium"}
+   ]},
+  {create_dls,
+   [
+    {1,"Gerando sombras e dados de relevo por luz"},
+    {2,"Renderizando"}
+   ]},
+  {dialog_qs,
+   [
+    {1,"Arquivo Targa"},
+    {2,"Etapas de Subdivisão"},
+    {3,"Cor de Fundo"},
+    {4,"Renderizar Canal Alfa"},
+    {5,"Renderizar Sombras"},
+    {6,"Renderizar Sombras em si mesmo (mapas de Relevo)"},
+    {7,"Janela de Imagem"},
+    {8,"Arquivo"},
+    {9,"Resultado da Renderização"}
+   ]},
+  {do_render,
+   [
+    {1,"Opções de Renderização"},
+    {2,"Renderizando"}
+   ]},
+  {load_program,
+   [
+    {1,"Erro ao iniciar programa"}
+   ]},
+  {prepare_mesh,
+   [
+    {1,"Triangulando"},
+    {2,"Subdividindo e triangulando"},
+    {3,"Generando dados da malha"}
+   ]},
+  {render_redraw,
+   [
+    {1,"<<Renderizado>>"}
+   ]}
+ ]}.

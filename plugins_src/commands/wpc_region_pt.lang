@@ -1,0 +1,19 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_region,
+ [
+  {menu,
+   [
+    {1,"Região"},
+    {2,"Move uma região ao longo da perpendicular de sua seqüência de arestas."},
+    {3,"Região"},
+    {4,"Altera a Escala de uma região a partir do plano de sua seqüência de arestas."},
+    {5,"Região"},
+    {6,"Gira uma região a partir da perpendicular de sua seqüência de arestas."},
+    {7,"Região"},
+    {8,"Achata uma região de acordo com a perpendicular de sua seqüência de arestas."}
+   ]},
+  {region_error,
+   [
+    {1,"Cada região deve ter exatamente uma seqüência de arestas."}
+   ]}
+ ]}.

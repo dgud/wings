@@ -1,0 +1,16 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_wrl,
+ [
+  {do_export,
+   [
+    {1,"Opções de Exportação de VRML"}
+   ]},
+  {export,
+   [
+    {1,"Erro VRML: ~P em"}
+   ]},
+  {props,
+   [
+    {1,"Arquivo VRML 2.0"}
+   ]}
+ ]}.

@@ -1,0 +1,47 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_bend,
+ [
+  {adv_submenu_clamped,
+   [
+    {1,"Curva Plástica ancorada"},
+    {2,"Curva com Pivô ancorada"},
+    {3,"Curva TopRad ancorada"}
+   ]},
+  {adv_submenu_noclamp,
+   [
+    {1,"Curva Plástica"},
+    {2,"Curva com Pivô"},
+    {3,"Curva TopRad"}
+   ]},
+  {bend_vertex,
+   [
+    {1,"Ângulo"}
+   ]},
+  {bend_verts,
+   [
+    {1,"Esta configuração não resulta em curvatura"}
+   ]},
+  {menu,
+   [
+    {1,"Curvar"},
+    {2,"Curvar (com âncora)"}
+   ]},
+  {submenu_clamp,
+   [
+    {1,"Escolha o ponto superior da âncora"},
+    {2,"Escolha o ponto inferior da âncora"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Escolha o centro da haste"},
+    {2,"Escolha o topo da haste"},
+    {3,"Escolha a perpendicular para curvar"},
+    {4,"Escolha o centro da haste"},
+    {5,"Escolha o topo da haste"},
+    {6,"Escolha o eixo do pivô"},
+    {7,"Escolha a localização do pivô"},
+    {8,"Escolha o centro da haste"},
+    {9,"Escolha o topo da haste"},
+    {10,"Escolha a perpendicular para curvar"}
+   ]}
+ ]}.
