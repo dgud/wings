@@ -37,8 +37,8 @@
     UInt32 version;
 
     Gestalt(gestaltSystemVersion, (SInt32 *) &version);
-    if (version < 0x1030) {
-      NSRunCriticalAlertPanel(@"Wings requires Mac OS 10.3 or later",
+    if (version < 0x1040) {
+      NSRunCriticalAlertPanel(@"Wings requires Mac OS 10.4 or later",
 			      @"Sorry for the inconvenience.", @"OK", nil, nil);
       exit(0);
     }

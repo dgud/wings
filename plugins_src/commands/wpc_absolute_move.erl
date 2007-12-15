@@ -42,7 +42,7 @@ parse([Elem|Rest], Mode, NewMenu, Found) ->
     parse(Rest, Mode, [Elem|NewMenu], Found).
 
 draw(all, Mode) ->
-    {?__(1, "Absolute commands"), {absolute, draw(menu, Mode)}};
+    {?__(1, "Absolute Commands"), {absolute, draw(menu, Mode)}};
 draw(menu, Mode) ->
     [{?__(2,"Move"),move,
       ?__(3,"Move to exact position in absolute coordinates.")},

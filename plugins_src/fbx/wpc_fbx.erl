@@ -3,7 +3,7 @@
 %%
 %%     FBX file import/export.
 %%
-%%  Copyright (c) 2003-2006 Bjorn Gustavsson
+%%  Copyright (c) 2003-2007 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -76,10 +76,10 @@ command(_, _) ->
     next.
 
 menu_entry(Menu) ->
-    Menu ++ [{"Alias FBX (.fbx)...",fbx,[option]}].
+    Menu ++ [{"Autodesk FBX (.fbx)...",fbx,[option]}].
 
 props() ->
-    [{ext,".fbx"},{ext_desc,?__(1,"Alias FBX file")}].
+    [{ext,".fbx"},{ext_desc,?__(1,"Autodesk FBX file")}].
 
 %%%
 %%% Export.

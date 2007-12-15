@@ -54,7 +54,7 @@ WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
     --i;
   }
   install_dir[i] = '\0';
-  sprintf(cmd_line, "\"%s\\bin\\werl.exe\" -run wings_start start_halt",
+  sprintf(cmd_line, "\"%s\\bin\\werl.exe\" -smp disable -run wings_start start_halt",
           install_dir);
   if (argc > 1) {
     sprintf(cmd_line+strlen(cmd_line), " \"%s\"", argv[1]);
