@@ -18,14 +18,14 @@ WINGS_E3D=../../e3d
 OS := $(shell uname -s)
 
 ifneq (,$(findstring CYGWIN,$(OS)))
-  FBX_SDK := c:\Program\Autodesk\$(FBXSDK)
+  FBX_SDK := c:/Program/Autodesk/$(FBXSDK)
   ERL_TOP := $(shell which erl)
   ERL_TOP := $(subst /bin/erl,,$(ERL_TOP))
-  ERL_TOP := $(shell cygpath -w $(ERL_TOP))
+  ERL_TOP := $(shell cygpath -m $(ERL_TOP))
   DRIVER_NAME := wings_fbx_win32
   DRIVER_FILE := $(DRIVER_NAME).dll
-  MLFLAGS = /nologo /subsystem:console /machine:I386
-  MLIBS = advapi32.lib $(FBX_SDK)\lib\fbxsdk_mt.lib
+  MLFLAGS = -nologo -subsystem:console -machine:I386
+  MLIBS = advapi32.lib $(FBX_SDK)/lib/fbxsdk_mt.lib
   CC = cl -nologo -MT
   CXX = $(CC)
   OBJ = obj
