@@ -1,3 +1,8 @@
+--- 0.99.01 -----------------------------------------------------------------
+
+- Clicking the toolbar to deselect would crash or freeze Wings.
+  (Thanks to yst.) [bjorng]
+
 --- 0.99.00 -----------------------------------------------------------------
 
 - Cosmetic improvements: the menu selector has a subtle gradient, and the title

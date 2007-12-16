@@ -3,7 +3,7 @@
 %%
 %%     Toolbar for geometry and AutoUV windows.
 %%
-%%  Copyright (c) 2004 Bjorn Gustavsson
+%%  Copyright (c) 2004-2007 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -209,13 +209,19 @@ button_was_hit_1(X, [_|Is]) ->
     button_was_hit_1(X, Is);
 button_was_hit_1(_X, []) ->
     wings_wm:send(geom, {action,{select,deselect}}),
-    Mods = user_default:lm(),
-    case Mods of
-	[] ->
-	    ok;
-	_ ->
-	    {_,Ms}=lists:unzip(Mods),
-	    io:fwrite("Reloaded: ~p\n", [Ms])
+    try 
+	%% Try to load any new code, but ignore any errors.
+	case user_default:lm() of
+	    [] -> ok;
+	    Mods ->
+		{_,Ms} = lists:unzip(Mods),
+		io:fwrite("Reloaded: ~p\n", [Ms])
+	end
+    catch
+	_:_ ->
+	    %% If the beam files have been stripped (as in the Wings distribution)
+	    %% user_default:lm/0 will crash.
+	    ok
     end.
 
 button_help(X, #but{mode=Mode,buttons=Buttons}) ->
