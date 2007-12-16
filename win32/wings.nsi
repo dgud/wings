@@ -15,6 +15,7 @@
 Name "Wings 3D ${WINGS_VERSION}"
 
 !include "MUI.nsh"
+!include "WordFunc.nsh"
 
 Var STARTMENU_FOLDER
 Var MYTEMP
@@ -73,9 +74,25 @@ InstallDirRegKey HKLM "SOFTWARE\Wings 3D\${WINGS_VERSION}" ""
 		"Create a shortcut to Wings3D on the Desktop."
   	LangString DESC_SecWingsClutterQuicklaunch ${LANG_ENGLISH} \
        		"Create a shortcut to Wings3D in the task bar."
- 
+  	LangString DESC_SecMSRedist ${LANG_ENGLISH} "Microsoft redistributable C runtime libraries (needed by Wings). Always installed if not already present." 
+
+; WordFunc
+	!insertmacro VersionCompare
 ;--------------------------------
 ;Installer Sections
+
+Section "Microsoft redistributable libraries." SecMSRedist
+
+  	SetOutPath "$INSTDIR"
+	File /r vcredist_x86.exe
+  
+; Set back verbosity...
+  	!verbose 1
+; Run the setup program  
+  	ExecWait '"$INSTDIR\vcredist_x86.exe"'
+
+  	!verbose 1
+SectionEnd ; MSRedist
 
 SubSection /e "Wings 3D" SecWings
 Section "Base" SecWingsBase
@@ -192,6 +209,33 @@ continue_create:
 SectionEnd
 SubSectionEnd
 
+Function DllVersionGoodEnough
+    IntCmp 0 $R0 normal0 normal0 negative0
+    normal0: 
+        IntOp $R2 $R0 >> 16
+	Goto continue0
+    negative0:
+	IntOp $R2 $R0 & 0x7FFF0000
+	IntOp $R2 $R2 >> 16
+	IntOp $R2 $R2 | 0x8000
+    continue0:		
+    IntOp $R3 $R0 & 0x0000FFFF
+    IntCmp 0 $R1 normal1 normal1 negative1
+    normal1: 
+        IntOp $R4 $R1 >> 16
+	Goto continue1
+    negative1:
+	IntOp $R4 $R1 & 0x7FFF0000
+	IntOp $R4 $R4 >> 16
+	IntOp $R4 $R4 | 0x8000
+    continue1:		
+    IntOp $R5 $R1 & 0x0000FFFF
+    StrCpy $2 "$R2.$R3.$R4.$R5"
+    ${VersionCompare} $2 ${REDIST_DLL_VERSION} $R0
+    Return
+FunctionEnd
+
+
 ;--------------------------------
 ;Descriptions
 	!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
@@ -202,6 +246,7 @@ SubSectionEnd
 		$(DESC_SecWingsClutterDesktop)
   	!insertmacro MUI_DESCRIPTION_TEXT ${SecWingsClutterQuicklaunch} \
 		$(DESC_SecWingsClutterQuicklaunch)
+  	!insertmacro MUI_DESCRIPTION_TEXT ${SecMSRedist} $(DESC_SecMSRedist)
 	!insertmacro MUI_FUNCTION_DESCRIPTION_END
  
 ;--------------------------------
@@ -275,29 +320,45 @@ done:
 SectionEnd ; end of uninstall section
 
 Function .onInit
-;; Turn off all clutter options by default.
+   ;; Turn off all clutter options by default.
 
-SectionGetFlags ${SecWingsClutterQuickLaunch} $0
-IntOp $0 $0 & ~1
-SectionSetFlags ${SecWingsClutterQuickLaunch} $0
+   SectionGetFlags ${SecWingsClutterQuickLaunch} $0
+   IntOp $0 $0 & ~1
+   SectionSetFlags ${SecWingsClutterQuickLaunch} $0
 
-SectionGetFlags ${SecWingsClutterDesktop} $0
-IntOp $0 $0 & ~1
-SectionSetFlags ${SecWingsClutterDesktop} $0
+   SectionGetFlags ${SecWingsClutterDesktop} $0
+   IntOp $0 $0 & ~1
+   SectionSetFlags ${SecWingsClutterDesktop} $0
 
-;ReadRegStr $MYTEMP HKLM "SOFTWARE\Wings 3D\DefaultVersion" ""
-;StrCmp $MYTEMP "" 0 disable
-
-;SectionGetFlags ${SecWingsMakeDefault} $0
-;IntOp $0 $0 | 16
-;SectionSetFlags ${SecWingsMakeDefault} $0
-;Goto done
-
-;disable:
-;SectionGetFlags ${SecWingsMakeDefault} $0
-;IntOp $0 $0 & ~1
-;SectionSetFlags ${SecWingsMakeDefault} $0
-
-;done:
+   SectionGetFlags 0 $MYTEMP 
+;   MessageBox MB_YESNO "Found $SYSDIR\msvcr80.dll" IDYES FoundLbl
+   IfFileExists $SYSDIR\msvcr80.dll MaybeFoundInSystemLbl
+   SearchSxsLbl:	
+        FindFirst $0 $1 $WINDIR\WinSxS\x86*
+        LoopLbl:
+	    StrCmp $1 "" NotFoundLbl
+	    IfFileExists $WINDIR\WinSxS\$1\msvcr80.dll MaybeFoundInSxsLbl
+	    FindNext $0 $1
+	    Goto LoopLbl
+        MaybeFoundInSxsLbl:
+	    GetDllVersion $WINDIR\WinSxS\$1\msvcr80.dll $R0 $R1
+	    Call DllVersionGoodEnough
+	    FindNext $0 $1
+	    IntCmp 2 $R0 LoopLbl
+	    Goto FoundLbl  
+   MaybeFoundInSystemLbl:
+	GetDllVersion $SYSDIR\msvcr80.dll $R0 $R1
+	Call DllVersionGoodEnough
+	IntCmp 2 $R0 SearchSxSLbl  
+   FoundLbl:
+	IntOp $MYTEMP $MYTEMP & 4294967294
+	SectionSetFlags 0 $MYTEMP
+	SectionSetText 0 "Microsoft DLL's (present)"
+	Return
+   NotFoundLbl:
+        IntOp $MYTEMP $MYTEMP | 16
+	SectionSetFlags 0 $MYTEMP
+	SectionSetText 0 "Microsoft DLL's (needed)"
+	Return
 FunctionEnd 
 ; eof

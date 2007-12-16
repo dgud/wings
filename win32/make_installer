@@ -4,6 +4,13 @@
 #
 # $Id$
 #
+
+#
+# The pre-built Erlang/OTP R12B-0 for Windows requires this version of the VC80.CRT.
+# It must be updated if future release of Erlang requires a later version.
+#
+WINGS_VCREDIST_VERSION=8.0.50727.762
+
 OS=`uname -o`
 if [ X$OS != XCygwin ]; then
     echo "This script is supposed to be run in the" \
@@ -31,6 +38,13 @@ ERLANG_PATH=`which erl`
 ERLANG_PATH=`dirname $ERLANG_PATH`
 ERLANG_PATH=`dirname $ERLANG_PATH`
 
+if [ ! -f "$WINGS_VCREDIST" ]; then
+    echo "The environment variable WINGS_VCREDIST must point out vcredist_x86.exe. " \
+	 "If you have Visual Studio 2005 installed, try 'find "/cygdrive/c/Program Files" -name vcredist_x86.exe'." \
+	 "Otherwise, you can download it from Microsoft (try googling 'vcredist_x86.exe')." >&2
+    exit 1
+fi
+
 # Copy the Wings application.
 
 WINGS_DIR="`pwd`"
@@ -40,6 +54,7 @@ WINGS_VSN=`echo "$WINGS_APP" | sed -e 's/.*wings-//'`
 dest="$DEST_ROOT"
 
 $INSTALL -d "$dest"
+$INSTALL -c -m 644 "$WINGS_VCREDIST" "$dest"
 $INSTALL -c -m 644 README AUTHORS license.terms vsn.mk "$dest"
 $INSTALL -c -m 644 win32/wings.nsi "$dest"
 $INSTALL -c -m 644 win32/Wings3D.exe "$dest"
@@ -114,7 +129,7 @@ cd "$DEST_ROOT"
 erl -noshell -pa `cygpath -m /tmp` -run strip strip
 
 # Run NSIS
-"$NSIS" /DWINGS_VERSION=$WINGS_VSN wings.nsi
+"$NSIS" /DWINGS_VERSION=$WINGS_VSN /DREDIST_DLL_VERSION=$WINGS_VCREDIST_VERSION wings.nsi
 
 cd "$WINGS_DIR"
 cp wings*.exe ..

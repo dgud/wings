@@ -1,7 +1,10 @@
---- 0.99.01 -----------------------------------------------------------------
+--- 0.99.00a ----------------------------------------------------------------
 
 - Clicking the toolbar to deselect would crash or freeze Wings.
   (Thanks to yst.) [bjorng]
+
+- The installer for Windows will now install the run-time library for
+  Microsoft C if it is not already installed. [bjorng]
 
 --- 0.99.00 -----------------------------------------------------------------
 
