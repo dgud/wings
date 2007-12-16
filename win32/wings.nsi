@@ -258,6 +258,7 @@ FunctionEnd
 ;UninstallText "This will uninstall Wings 3D from your system"
 
 Section Uninstall
+  Delete "$INSTDIR\vcredist_x86.exe"
   Delete "$INSTDIR\AUTHORS"
   Delete "$INSTDIR\license.terms"
   Delete "$INSTDIR\Wings3D.exe"
