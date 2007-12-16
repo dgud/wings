@@ -30,6 +30,7 @@ WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
   char** argv = __argv;
   char install_dir[MAX_PATH];
   char cmd_line[2*MAX_PATH];
+  char message[40];
   int i;
   int ok;
   int err;
@@ -75,7 +76,8 @@ WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
                      &siStartInfo,
                      &piProcInfo);
   if (!ok) {
-    MessageBox(NULL, "Failed to start Wings 3D", NULL, MB_OK);
+    sprintf(message, "Failed to start Wings 3D: %u", GetLastError());
+    MessageBox(NULL, message, NULL, MB_OK);
   }
   exit(0);
 }
