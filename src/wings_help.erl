@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_help.erl,v 1.83 2005/06/08 05:36:50 bjorng Exp $
+%%     $Id$
 %%
 
 -module(wings_help).
@@ -158,7 +158,7 @@ advanced_menus(Head) ->
 	    cmd([?__(10,"Face"),
 		 ?__(11,"Lift")
 		]),
-	    ?__(12,"Vector based operations: The means to specify an axis (or vector) and to be able to re-locate it so it passes though a new point."),
+	    ?__(12,"Vector based operations: The means to specify an axis (or vector) and to be able to re-locate it so it passes through a new point."),
 	    ?__(13,"Magnet operations: A facility that provides a way of attaining smooth modifications / transitions to surrounding geometry during the operation of any valid tool. Magnet type and influence radius settings provide further control options."),
 
 	    ?__(14,"Vector and magnet operations can be combined."),
