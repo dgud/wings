@@ -1,3 +1,9 @@
+--- 0.99.00b ----------------------------------------------------------------
+
+- Eliminated the problem that caused some language files to be corrupted
+  on Windows. Also added verification to the the build process so that
+  this problem will be detected if it should occur again. [bjorng]
+
 --- 0.99.00a ----------------------------------------------------------------
 
 - Clicking the toolbar to deselect would crash or freeze Wings.
