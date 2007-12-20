@@ -1,0 +1,42 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+%%
+%%  verify_language_files --
+%%
+%%     Verify that all language files are consultable.
+%%
+%%  Copyright (c) 2007 Bjorn Gustavsson
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+
+main([Root]) ->
+    Files = filelib:fold_files(Root, ".lang$", true,
+			       fun(N, Acc) -> [N|Acc] end, []),
+    case verify_files(Files, 0) of 
+	0 ->
+	    halt(0);
+	N ->
+	    io:format("~p error(s)\n", [N]),
+	    receive after 100 -> ok end,
+	    halt(1)
+    end;
+main(_) ->
+    io:put_chars("usage: verify_language_files RootDirectory\n"),
+    halt(1).
+
+verify_files([F|Fs], Errors) ->
+    case file:consult(F) of
+	{ok,_} ->
+	    verify_files(Fs, Errors);
+	{error,{Line,Mod,Reason}} ->
+	    io:format("~s:~p: ~p\n", [F,Line,Mod:format_error(Reason)]),
+	    verify_files(Fs, Errors+1);
+	{error,Reason} ->
+	    io:format("~s: ~p\n", [F,Reason]),
+	    verify_files(Fs, Errors+1)
+    end;
+verify_files([], Errors) -> Errors.
+
+	

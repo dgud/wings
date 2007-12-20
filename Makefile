@@ -3,12 +3,10 @@
 #
 #     Top-level Makefile for building Wings 3D.
 #
-#  Copyright (c) 2001-2005 Bjorn Gustavsson
+#  Copyright (c) 2001-2007 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
-#
-#     $Id: Makefile,v 1.23 2006/01/20 14:47:02 giniu Exp $
 #
 include vsn.mk
 
@@ -40,6 +38,7 @@ lang:
 	(cd intl_tools; $(MAKE))
 	(cd src; $(MAKE) lang)
 	(cd plugins_src; $(MAKE) lang)
+	escript tools/verify_language_files .
 
 #
 # Build installer for Windows.
