@@ -3,7 +3,7 @@
 #
 #     Makefile for building file dialog plug-in for Windows.
 #
-#  Copyright (c) 2003-2004 Bjorn Gustavsson
+#  Copyright (c) 2003-2007 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -35,7 +35,7 @@ lang: template
 		case $$LANG_FILE  in \
 			$(LIBDIR)/wp8_file_en.lang) ;; \
 			*) echo "Processing: $$LANG_FILE"; \
-	erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$LANG_FILE\")" -run erlang halt >> $$LANG_FILE ;; \
+	erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$LANG_FILE\")" -run init stop >> $$LANG_FILE ;; \
 		esac \
 	done
 

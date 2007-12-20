@@ -3,7 +3,7 @@
 #
 #     Makefile for building the plug-ins.
 #
-#  Copyright (c) 2001-2006 Bjorn Gustavsson
+#  Copyright (c) 2001-2007 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -69,7 +69,7 @@ lang: template
 		case $$i in \
 			*/autouv_en.lang) ;; \
 			*) echo "Processing: $$i"; \
-	 erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$i\")" -run erlang halt >> $$i ;; \
+	 erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$i\")" -run init stop >> $$i ;; \
 		esac \
 	done
 

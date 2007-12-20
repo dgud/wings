@@ -3,7 +3,7 @@
 #
 #     Makefile for building the plug-ins.
 #
-#  Copyright (c) 2001-2006 Bjorn Gustavsson
+#  Copyright (c) 2001-2007 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -68,7 +68,7 @@ lang: subdirs_lang template
 			case $$LANG_FILE  in \
 				$(EBIN)/$$FILE\_en.lang) ;; \
 				*) echo "Processing: $$LANG_FILE"; \
-	erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$LANG_FILE\")" -run erlang halt >> $$LANG_FILE ;; \
+	erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$LANG_FILE\")" -run init stop >> $$LANG_FILE ;; \
 			esac \
 		done;\
 	done

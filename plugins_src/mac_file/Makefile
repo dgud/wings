@@ -3,7 +3,7 @@
 #
 #     Makefile for building file dialog plug-in for Mac.
 #
-#  Copyright (c) 2002-2006 Bjorn Gustavsson
+#  Copyright (c) 2002-2007 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -38,7 +38,7 @@ lang: template
 		case $$i in \
 			*/mac_file_en.lang) ;; \
 			*) echo "Processing: $$i"; \
-	 erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$i\")" -run erlang halt >> $$i ;; \
+	 erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$i\")" -run init stop >> $$i ;; \
 		esac \
 	done
 
