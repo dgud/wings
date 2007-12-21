@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_ogla.erl,v 1.5 2004/12/30 09:35:00 bjorng Exp $
+%%     $Id$
 %%
 
 -module(wpc_ogla).

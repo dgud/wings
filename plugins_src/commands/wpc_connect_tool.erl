@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_connect_tool.erl,v 1.26 2006/03/29 19:25:54 dgud Exp $
+%%     $Id$
 %%
 -module(wpc_connect_tool).
 

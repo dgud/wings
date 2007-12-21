@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_absolute_move.erl,v 1.17 2006/08/27 11:11:41 giniu Exp $
+%%     $Id$
 %%
 -module(wpc_absolute_move).
 

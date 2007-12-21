@@ -9,7 +9,7 @@
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
-%%     $Id: auv.hrl,v 1.39 2006/01/26 23:17:31 dgud Exp $
+%%     $Id$
 
 %% Chart record (one for each chart).
 %% Stored in the 'name' field in the #we{} record.

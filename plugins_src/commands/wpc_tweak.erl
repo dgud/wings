@@ -11,7 +11,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_tweak.erl,v 1.68 2006/10/27 16:00:16 giniu Exp $
+%%     $Id$
 %%
 
 -module(wpc_tweak).

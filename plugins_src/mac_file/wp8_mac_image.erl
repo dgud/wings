@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wp8_mac_image.erl,v 1.9 2006/01/20 14:47:03 giniu Exp $
+%%     $Id$
 %%
 
 -module(wp8_mac_image).

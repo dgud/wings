@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpf_6x11.erl,v 1.18 2004/11/02 06:53:32 bjorng Exp $
+%%     $Id$
 %%
 
 -module(wpf_6x11).

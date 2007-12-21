@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_absolute_scale.erl,v 1.2 2006/07/24 19:39:12 giniu Exp $
+%%     $Id$
 %%
 -module(wpc_absolute_scale).
 

@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpf_terminal8x12.erl,v 1.3 2004/04/09 05:30:15 bjorng Exp $
+%%     $Id$
 %%
 
 -module(wpf_terminal8x12).

@@ -10,7 +10,7 @@
 %%
 %%  Contributed by elrond79.
 %%
-%%     $Id: wpc_intersect_vertex.erl,v 1.4 2005/10/04 20:31:15 giniu Exp $
+%%     $Id$
 %%
 %%  2000-10-01:  Changed help text to incorporate suggestions by Puzzled Paul
 %%  2000-09-21:  Normalized LD and PN (so dot product not <.001 if either is very

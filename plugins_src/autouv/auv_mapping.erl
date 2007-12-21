@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: auv_mapping.erl,v 1.82 2006/04/26 12:25:41 dgud Exp $
+%%     $Id$
 %%
 
 %%%%%% Least Square Conformal Maps %%%%%%%%%%%%

@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wp8_file.erl,v 1.16 2006/01/19 22:30:47 giniu Exp $
+%%     $Id$
 %%
 
 -module(wp8_file).

@@ -10,7 +10,7 @@
 %%
 %%  Contributed by elrond79.
 %%
-%%     $Id: wpc_intersect_edge.erl,v 1.4 2005/10/04 20:31:15 giniu Exp $
+%%     $Id$
 %%
 %%  2000-10-09:  Fixed undo bug (had forgotten to use "{save_state, ...}")
 %%  2000-10-01:  Incorporated help text suggestions from Puzzled Paul

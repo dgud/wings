@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: auv_util.erl,v 1.10 2005/04/13 19:09:51 dgud Exp $
+%%     $Id$
 %%
 
 -module(auv_util).

@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_fbx.erl,v 1.10 2006/01/20 14:47:02 giniu Exp $
+%%     $Id$
 %%
 
 -module(wpc_fbx).

@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_plane.erl,v 1.3 2006/07/29 20:48:58 antoneos Exp $
+%%     $Id$
 %%
 
 -module(wpc_plane).

@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_test_ask.erl,v 1.32 2004/12/18 19:35:58 bjorng Exp $
+%%     $Id$
 %%
 
 -module(wpc_test_ask).

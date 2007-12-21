@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_autouv.erl,v 1.327 2006/03/14 13:52:20 dgud Exp $
+%%     $Id$
 %%
 
 -module(wpc_autouv).

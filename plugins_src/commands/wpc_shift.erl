@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_shift.erl,v 1.2 2005/10/04 20:31:15 giniu Exp $
+%%     $Id$
 %%
 
 
