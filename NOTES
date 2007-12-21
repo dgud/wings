@@ -1,5 +1,8 @@
 --- 0.99.00b ----------------------------------------------------------------
 
+- Creating a normal map for a material was so slow so that it seemed
+  that Wings was frozen. Now back to normal speed. :-) [bjorng]
+
 - Eliminated the problem that caused some language files to be corrupted
   on Windows. Also added verification to the the build process so that
   this problem will be detected if it should occur again. [bjorng]

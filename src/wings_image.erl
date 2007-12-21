@@ -3,7 +3,7 @@
 %%
 %%     This module manages images.
 %%
-%%  Copyright (c) 2003-2004 Bjorn Gustavsson
+%%  Copyright (c) 2003-2007 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -339,7 +339,8 @@ create_bump(Id, BumpId, #ist{images=Images0}) ->
 						  ?GL_UNSIGNED_BYTE,Bits),
 				    New
 			    end,
-		    MipMaps = e3d_image:buildNormalMipmaps(Image),
+		    MipMapFun = fun() -> e3d_image:buildNormalMipmaps(Image) end,
+		    MipMaps = worker_process(MipMapFun),
 		    TxId = BumpId;
 		_ ->
 		    %% Scale ?? 4 is used in the only example I've seen.
@@ -944,3 +945,19 @@ get_cube_vec(Side, Size, X, Y) ->
 	end,
     {RX,RY,RZ} = e3d_vec:norm(Vec),
     [round(128+127*RX),round(128+127*RY),round(128+127*RZ)].
+
+%% Run a computation in a worker process with a generous heap size
+%% and the default generational garbage collector. Before R12B,
+%% heap fragments would allow the heap to be over-committed, but in
+%% R12B there will be garbage collection as soon as the heap space
+%% is exhausted.
+worker_process(WorkFun) ->
+    ResultRef = make_ref(),
+    {Pid,Ref} = spawn_opt(fun() -> exit({ResultRef,WorkFun()}) end,
+			  [monitor,{min_heap_size,20000}]),
+    receive
+	{'DOWN',Ref,process,Pid,{ResultRef,Res}} ->
+	    Res;
+	{'DOWN',Ref,process,Pid,Reason} ->
+	    exit(Reason)
+    end.
