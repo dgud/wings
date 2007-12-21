@@ -1,10 +1,14 @@
 %%
-%%  wpc_pov.erl
+%%  wpc_pov.erl --
 %%
 %%     POV-Ray Plugin User Interface.
 %%
 %%  Copyright (c) 2007 Chris Hegarty
 %%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id$
 %%
 
 -module(wpc_pov).
