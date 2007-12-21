@@ -220,7 +220,11 @@
     {57,"Alinhar à Seleção"},
     {58,"Alinha a vista à perpendicular da seleção"},
     {59,"Auto Rotacionar"},
-    {60,"Gira a vista"}
+    {60,"Gira a vista"},
+    {61,"Planos de Corte"},
+    {62,"Alterna com os planos de corte extras (usa o eixo padrão)"},
+    {63,"AAtiva o Próximo Sombreado"},
+    {64,"Alterna em ciclos todos os estilos de sombreamento"}
    ]},
   {view_legend,
    [
@@ -428,6 +432,14 @@
     {6,"Muda para o modo de seleção de faces"},
     {7,"Muda para o modo de seleção de objetos"}
    ]},
+  {button_help_3,
+   [
+    {1,"Desfaz o último comando"},
+    {2,"Repete o último comando que não foi desfeito"},
+    {3,"Abre uma cena salva previamente"},
+    {4,"Sava a cena atual"},
+    {5,"Edita as preferências para Wings"}
+   ]},
   {messages,
    [
     {axes,"eixos"},
@@ -470,17 +482,42 @@
  ]}.
 {wings_shapes,
  [
+  {icosahedron,
+   [
+    {1,"Comprimento da Aresta"}
+   ]},
+  {dodecahedron,
+   [
+    {1,"Comprimento da Aresta"}
+   ]},
+  {cube,
+   [
+    {1,"Comprimento da Aresta em X"},
+    {2,"Comprimento da Aresta em Y"},
+    {3,"Comprimento da Aresta em Z"}
+   ]},
   {cone,
    [
-    {1,"Seções"}
+    {1,"Seções"},
+    {2,"Altura"},
+    {3,"Diâmetro em X"},
+    {4,"Diâmetro em Y"}
    ]},
   {cylinder,
    [
-    {1,"Seções"}
+    {1,"Seções"},
+    {2,"Altura"},
+    {3,"Diâmetro em X da Face Superior"},
+    {4,"Diâmetro em Z da Face Superior"},
+    {5,"Diâmetro em X da Face Inferior"},
+    {6,"Diâmetro em Z da Face Inferior"}
    ]},
   {grid,
    [
-    {1,"Linhas/colunas"}
+    {1,"Linhas/colunas"},
+    {2,"Espaçamento em X"},
+    {3,"Espaçamento em Z"},
+    {4,"Altura"}
    ]},
   {menu,
    [
@@ -524,14 +561,17 @@
   {sphere,
    [
     {1,"Seções"},
-    {2,"Fatias"}
+    {2,"Fatias"},
+    {3,"X Radial"},
+    {4,"Y Radial"}
    ]},
   {torus,
    [
     {1,"Seções"},
     {2,"Fatias"},
-    {3,"Raio Maior"},
-    {4,"Raio Menor"}
+    {4,"Raio Menor"},
+    {31,"Maior Raio em X"},
+    {32,"Maior Raio em Z"}
    ]}
  ]}.
 {wings_shape,
@@ -569,6 +609,43 @@
   {ask,
    [
     {1,"Selecionar por Id"}
+   ]},
+  {similar_area_faces_menu,
+   [
+    {1,"Área Similar"},
+    {2,"Seleciona faces com áreas similares àquela da face selecionada"}
+   ]},
+  {similar_area,
+   [
+    {1,"Tolerância de Área"},
+    {2,"Seleciona Área Similar"},
+    {3,"Exatamente uma face deve ser\n selecionada em um único objeto."},
+    {4,"Exatamente uma face deve ser selecionada."}
+   ]},
+  {shortest_path,
+   [
+    {1,"Extamente dois vértices devem ser\n selecionados no mesmo objeto."},
+    {2,"Extamente dois vértices deve ser selecionados."}
+   ]},
+  {sharp_edges,
+   [
+    {1,"Ãngulo Máximo"},
+    {2,"Selecionar Arestas Agudas"}
+   ]},
+  {oriented_faces_menu,
+   [
+    {1,"Perpendiculares Similares"},
+    {2,"Seleciona faces com perpendiculares similares àquelas das faces já selecionadas"}
+   ]},
+  {oriented_faces,
+   [
+    {1,"Ângulo de tolerância"},
+    {2,"Selecionar Faces Orientadas Similarmente"}
+   ]},
+  {nonplanar_faces,
+   [
+    {1,"Tolerância de Distância"},
+    {2,"Slecionar Faces Não-Planas"}
    ]},
   {group_title,
    [
@@ -684,7 +761,22 @@
     {81,"Restaurar a Seleção"},
     {82,"Restaura a seleção a partir de um grupo de seleção chamado \"StoredSelection\""},
     {83,"Novo Grupo..."},
-    {84,"Cria um novo grupo de seleção"}
+    {84,"Cria um novo grupo de seleção"},
+    {85,"Faces não-planas"},
+    {86,"Selecionar todas as faces não planas"},
+    {87,"Selecionar arestas agudas"},
+    {88,"Seleciona arestas agudas"},
+    {89,"Caminho com menos arestas"},
+    {90,"Seleciona o caminho entre dois vértices com o menor número de arestas"},
+    {91,"Menor Caminho (Dijkstra)"},
+    {92,"Seleciona o menor caminho entre dois vértices (Dijkstra)"},
+    {93,"Menor Caminho (Não-Estrela)"},
+    {94,"Seleciona o menor caminho entre dois vértices (Não-Estrela)"},
+    {401,"6 ou Mais"},
+    {nq0,"Faces Não Quadrangulares"},
+    {nq1,"Todas as Faces Quadrangulares"},
+    {nq2,"Faces não Quadrangulares Ímpares"},
+    {nq3,"Faces não Quadrangulares Pares"}
    ]},
   {more_help,
    [
@@ -696,6 +788,10 @@
    [
     {1,"Criar um Novo Grupo"},
     {2,"Nome do Grupo"}
+   ]},
+  {new_group_name,
+   [
+    {exists,"já existe."}
    ]},
   {sel_all_str,
    [
@@ -722,6 +818,13 @@
     {2," é inválido."},
     {3,"A "},
     {4," é inválida."}
+   ]},
+  {group_mode_string,
+   [
+    {body,"Grupo de seleção de Objeto"},
+    {edge,"Grupo de seleção de Aresta"},
+    {face,"Grupo de seleção de Face"},
+    {vertex,"Grupo de seleção de Vértice"}
    ]}
  ]}.
 {wings_scale,
@@ -760,7 +863,7 @@
    ]},
   {dir,
    [
-    {all,"All"},
+    {all,"Tudo"},
     {da,"eixo padrão"},
     {f,"Livre"},
     {la,"Último eixo"},
@@ -807,6 +910,12 @@
  ]}.
 {wings_pref_dlg,
  [
+  {viewer_prefs,
+   [
+    {1,"Visualizador"},
+    {2,"Opções"},
+    {3,"..nome do arquivo.."}
+   ]},
   {advanced_prefs,
    [
     {1,"Comandos padrão"},
@@ -828,7 +937,14 @@
     {17,"Largura do vetor (em pixels)"},
     {18,"Cor"},
     {19,"Cor do vetor"},
-    {20,"Aspecto do vetor"}
+    {20,"Aspecto do vetor"},
+    {21,"Usa Espelhamento Virtual para Seleções"},
+    {22,"Padrão para o uso de seleções secundária no espelhamento virtual"},
+    {23,"Tamanho"},
+    {24,"Tamanho do indicador de plano de corte definido pelo usuário"},
+    {25,"Cor"},
+    {26,"Cor do indicador de plano de corte definido pelo usuário"},
+    {27,"Indicador do Plano de Corte"}
    ]},
   {command,
    [
@@ -837,7 +953,8 @@
     {3,"Avançado"},
     {4,"Interface do Usuário"},
     {5,"Miscelânea"},
-    {6,"Preferências"}
+    {6,"Preferências"},
+    {31,"Limitadores"}
    ]},
   {gen_prefs,
    [
@@ -885,7 +1002,14 @@
     {42,"-Z Cor"},
     {43,"Eixos"},
     {aa_ortho1,"Eixo alinhado ortograficamente"},
-    {aa_ortho2,"Sempre vai para o modo ortogonal quando a vista está alinhada ao longo de um dos eixos principais"}
+    {aa_ortho2,"Sempre vai para o modo ortogonal quando a vista está alinhada ao longo de um dos eixos principais"},
+    {44,"Comprimento"},
+    {45,"Comprimento das perpendiculares"},
+    {46,"Cor"},
+    {47,"Cor das perpendiculares"},
+    {48,"Exibe as Perpedinculares"},
+    {49,"Limita os eixos à grade"},
+    {50,"Exibe Arestas sem serrilhamento"}
    ]},
   {menu,
    [
@@ -914,11 +1038,26 @@
     {18,"Problema acontece com algumas placas Matrox"},
     {19,"Camera moves and interactive commands are jumpy"},
     {20,"Problema acontece no Mac OS X 10.3 (Panther)"},
-    {21,"Soluções provisórias"}
+    {21,"Soluções provisórias"},
+    {22,"Problemas na visualização das arestas?"},
+    {23,"Offsets da Aresta:"}
    ]},
   {smart_set_value_1,
    [
-    {1,"A mudança da fonte de sistema só terá efeito na próxima vez que o Wings 3D for iniciado."}
+    {1,"A mudança da fonte de sistema só terá efeito na próxima vez que o Wings 3D for iniciado."},
+    {2,"A mudança nos ícones da interface terá efeito na próxima vez que o Wings 3D for iniciado."}
+   ]},
+  {constraint_prefs,
+   [
+    {1,"Distância"},
+    {2,"Rotação"},
+    {4,"Estabelece Limitador Padrão"},
+    {12,"Limita a ~s para operações de distância."},
+    {13,"Limita a ~s para rotações."},
+    {14,"Limita a ~s para operações de escala."},
+    {22,"Limitadores de Distância"},
+    {23,"Limitadores de Rotação"},
+    {24,"Limitadores de Escala"}
    ]},
   {ui_prefs,
    [
@@ -944,7 +1083,12 @@
     {20,"Texto"},
     {21,"Cursor"},
     {22,"Console"},
-    {23,"Linguagem"}
+    {23,"Linguagem"},
+    {24,"Objetos na Janela Índice Geral"},
+    {25,"Ver imagem após renderizar"},
+    {26,"Abre a imagem após renderizar"},
+    {27,"Ícones Extendidos da Barra de Ferramentas"},
+    {50,"Ícones da Interface"}
    ]},
   {workaround_1,
    [
@@ -1046,7 +1190,11 @@
  ]}.
 {wings_outliner,
  [
-  {command,
+  {handle_drop,
+   [
+    {5,"Relevo (NormalMap)"}
+   ]},
+ {command,
    [
     {1,"NYI: ~p\n"}
    ]},
@@ -1059,7 +1207,9 @@
     {5,"Apagar"},
     {6,"Apaga a imagem selecionada"},
     {7,"Renomear"},
-    {8,"Renomeia a imagem selecionada"}
+    {8,"Renomeia a imagem selecionada"},
+    {9,"Selecionar Imagem"},
+    {10,"Seleciona uma imagem para ser colocada em um material como textura"}
    ]},
   {delete_image,
    [
@@ -1093,7 +1243,9 @@
     {23,"Apagar"},
     {24,"Apaga essa luz"},
     {25,"Renomear"},
-    {26,"Renomeia essa luz"}
+    {26,"Renomeia essa luz"},
+    {121,"Aplica o objeto selecionado"},
+    {122,"Aplica um objeto previamente selecionado nesse material"}
    ]},
   {event,
    [
@@ -1331,6 +1483,13 @@
  ]}.
 {wings_magnet,
  [
+  {magnet_shape_str,
+   [
+    {bell,"Redondo"},
+    {dome,"Reto"},
+    {spike,"Agudo"},
+    {straight,"Direto"}
+   ]},
   {check_radius,
    [
     {1,"Raio de influência muito curto."}
@@ -1871,6 +2030,10 @@
   {use_autosave_1,
    [
     {1,"Existe um arquivo gerado por auto-salvamento um pouco mais recente; deseja carregá-lo ao invés do arquivo salvo?"}
+   ]},
+  {wings_prop,
+   [
+    {1,"Arquivo Wings"}
    ]}
  ]}.
 {wings_ff_wings,
@@ -2136,11 +2299,28 @@
     {17,"Cortar ao longo da seqüência"},
     {18,"Corta um objeto em dois usando uma seqüência de arestas"},
     {19,"Vértice colorido"},
-    {20,"Aplica cores de vértice às arestas selecionadas"}
+    {20,"Aplica cores de vértice às arestas selecionadas"},
+    {50,"Elimina as arestas selecionadas e remove os vértices isolados remanescentes"},
+    {23,"Estabelece um limitador padrão de distância/rotação para as teclas de modificação pressionadas."},
+    {22,"Cria um limitador"}
+   ]},
+  {set_edge_constraint,
+   [
+    {1,"Somente uma ou duas arestas devem ser selecionadas."},
+    {2,"Selecionar arestas de um objeto."}
    ]},
   {plain_cut_menu,
    [
     {2,"Divide em arestas de mesmo comprimento"}
+   ]},
+  {cut_ask_entry,
+   [
+    {1,"Divide em <N> segmentos"},
+    {2,"Digite um número..."}
+   ]},
+  {command,
+   [
+    {1,"Segmentos"}
    ]},
   {slide_help_mode,
    [
@@ -2329,7 +2509,8 @@
     {5,"Rolar para frente aproxima"},
     {6,"Rolar para frente afasta"},
     {7,"Fator de Aproximação"},
-    {9,"Botão de Rolagem"}
+    {9,"Botão de Rolagem"},
+    {10,"Alterna o Fator de Zoom(Alt+Scroll)"}
    ]}
  ]}.
 {wings_body,
@@ -2593,7 +2774,24 @@
     {22,"Congelar"},
     {23,"Cria uma geometria real a partir do Espelhamento"},
     {24,"Imagem da tela"},
-    {25,"Captura uma imagem da janela (exporta para o Índice Geral)"}
+    {25,"Captura uma imagem da janela (exporta para o Índice Geral)"},
+    {26,"Informações da Cena: Área & Volume"},
+    {27,"Calcula a área e volume de cada objeto na cena"},
+    {28,"Colocar no Solo"},
+    {29,"Coloca os objetos selecionados no plano do solo"},
+    {30,"Tornar unitário"},
+    {31,"Altera a escala dos objetos selecionados para que caibam dentro de uma esfera de uma unidade e os movem para a origem"}
+   ]},
+  {object_mode,
+   [
+    {material,"material"},
+    {vertex,"cor do vértice"}
+   ]},
+  {measure,
+   [
+    {40," Área ~s"},
+    {6,". Ângulo ~s"},
+    {5,". Distância ~s  <~s, ~s, ~s>"}
    ]},
   {undo_info,
    [
