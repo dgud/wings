@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_toxic.erl,v 1.21 2006/01/08 18:02:00 giniu Exp $
+%%     $Id$
 %%
 
 -module(wpc_toxic).

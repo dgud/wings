@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_opengl.erl,v 1.74 2006/01/25 20:30:01 dgud Exp $
+%%     $Id$
 
 -module(wpc_opengl).
 

@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_rib.erl,v 1.15 2003/02/22 07:13:28 bjorng Exp $
+%%     $Id$
 
 -module(wpc_rib).
 -include_lib("e3d.hrl").

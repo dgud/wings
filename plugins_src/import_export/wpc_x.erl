@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_x.erl,v 1.2 2006/08/16 23:29:41 giniu Exp $
+%%     $Id$
 %%
 
 -module(wpc_x).

@@ -6,7 +6,7 @@
 % No longer included in Wings. The source code is kept
 % here just in case.
 %
-% $Id: wpc_am.erl,v 1.7 2004/12/14 07:51:26 bjorng Exp $
+% $Id$
 %
 -module(wpc_am).
 -export([init/0,menu/2,command/2]).

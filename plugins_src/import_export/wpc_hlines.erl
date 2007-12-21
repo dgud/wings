@@ -14,7 +14,7 @@
 %%  Near clipping will not work correctly if occurs in the viewport
 %%  Duplicate and zero length line segments are generated in some cases
 %%
-%% $Id: wpc_hlines.erl,v 1.3 2006/01/08 18:02:00 giniu Exp $
+%% $Id$
 %%
 
 -module(wpc_hlines).
