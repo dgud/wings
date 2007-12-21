@@ -10,6 +10,10 @@
   on Windows. Also added verification to the the build process so that
   this problem will be detected if it should occur again. [bjorng]
 
+- In the Misc tab in Edit | Preferences, "Camera moves and interactive commands
+  are jumpy" is now default on all versions of Mac OS X. A buggy version number
+  check turned it off on Leopard. (Thanks to jtico.) [bjorng]
+
 --- 0.99.00a ----------------------------------------------------------------
 
 - Clicking the toolbar to deselect would crash or freeze Wings.

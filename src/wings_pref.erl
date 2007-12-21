@@ -382,9 +382,8 @@ defaults() ->
      %% Compatibility preferences.
      {text_display_lists,true},
      {dummy_axis_letter,false},
-     {jumpy_camera,case {os:type(),os:version()} of
-		       {{unix,darwin},{Maj,Min,_}}
-		       when Maj >= 7, Min >= 3 -> true;
+     {jumpy_camera,case os:type() of
+		       {unix,darwin} -> true;
 		       _ -> false
 		   end},
      {polygon_offset_f,1.0},
