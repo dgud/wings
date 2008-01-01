@@ -4,7 +4,7 @@
 %%     This module contains help routines for faces, such as fold functions
 %%     face iterators.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -481,20 +481,17 @@ is_planar(Tolerance, Face, We) ->
     Norm = normal(Face, We),
     VertPos = vertex_positions(Face, We),
     [Vert0|Verts] = VertPos,
-    Dist = e3d_vec:dot(Norm,Vert0),
-    is_planar_1(ture,Norm,Dist,Tolerance,Verts).
+    Dist = e3d_vec:dot(Norm, Vert0),
+    is_planar_1(true, Norm, Dist, Tolerance, Verts).
     
-is_planar_1(Planar,Norm,Dist,Tolerance,[Vert|T]) ->
+is_planar_1(Planar, Norm, Dist, Tolerance, [Vert|T]) ->
     case Planar of
         false -> false;
-        _ ->
-            Diff = abs(e3d_vec:dot(Norm,Vert) - Dist),
+        true ->
+            Diff = abs(e3d_vec:dot(Norm, Vert) - Dist),
             case Diff > Tolerance of
-                true ->
-                    false;
-                _ ->
-                    is_planar_1(true,Norm,Dist,Tolerance,T)
+                true -> false;
+                false -> is_planar_1(true, Norm, Dist, Tolerance, T)
             end
     end;
-is_planar_1(_,_,_,_,[]) ->
-    true.
+is_planar_1(_, _, _, _, []) -> true.
