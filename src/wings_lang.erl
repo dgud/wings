@@ -4,7 +4,7 @@
 %%     Implementation of languages.
 %%
 %%  Copyright (c) 2004 Riccardo Venier, Dan Gudmundsson
-%%                2004-2005 Dan Gudmundsson, Bjorn Gustavsson
+%%                2004-2008 Dan Gudmundsson, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -115,7 +115,7 @@ load_file([latin1|Trans]) ->
     load_file_1(latin1, Trans);
 load_file(['iso-8859-1'|Trans]) ->
     load_file_1(latin1, Trans);
-load_file([Atom|Trans]) when is_atom(Trans) ->
+load_file([Atom|Trans]) when is_atom(Atom) ->
     io:format("Ignoring: ~p\n", [Atom]),
     load_file_1(default, Trans);
 load_file(Trans) -> load_file_1(default, Trans).
