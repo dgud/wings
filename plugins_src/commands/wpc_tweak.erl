@@ -4,7 +4,7 @@
 %%     Tweak mode plugin.
 %%
 %%  Copyright (c) 2001-2002 Howard Trickey,
-%%                2002-2005 Bjorn Gustavsson.
+%%                2002-2008 Bjorn Gustavsson.
 %%
 %%  Various changes and improvements by Andrew Shpagin
 %%
@@ -676,8 +676,7 @@ help(#tweak{magnet=true,mag_type=Type}) ->
 
 intl_type(dome)     -> ?__(1,"Dome");
 intl_type(straight) -> ?__(2,"Straight");
-intl_type(spike)    -> ?__(3,"Spike");
-intl_type(Type)     -> wings_util:cap(atom_to_list(Type)).
+intl_type(spike)    -> ?__(3,"Spike").
 
 help_1(Type, [{Digit,Type}|T]) ->
     wings_msg:join("[" ++ [$0+Digit] ++ "] " ++ 
