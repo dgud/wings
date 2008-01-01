@@ -3,7 +3,7 @@
 %%
 %%     The main module of Wings 3D.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -820,7 +820,7 @@ info(#st{sel=[]}) ->
     case UseProg of
 	true ->
 	    {_Prog,Name} = element(NumShaders, Progs),
-	    io_lib:format("Shader ~p of ~p: ~s ",[NumShaders,size(Progs),Name]);
+	    io_lib:format("Shader ~p of ~p: ~s ",[NumShaders,tuple_size(Progs),Name]);
 	false ->
 	    []
     end;

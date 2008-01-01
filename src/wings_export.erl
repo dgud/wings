@@ -3,7 +3,7 @@
 %%
 %%     This module handles export to other file formats.
 %%
-%%  Copyright (c) 2004-2005 Bjorn Gustavsson
+%%  Copyright (c) 2004-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -167,7 +167,7 @@ make_table(Sz, Def, #we{es=Etab}) ->
     Cuvs0 = foldl(fun(#edge{a=A,b=B}, Acc) ->
 			  [A,B|Acc]
 		  end, Def, gb_trees:values(Etab)),
-    Cuvs = [E || E <- Cuvs0, size(E) =:= Sz],
+    Cuvs = [E || E <- Cuvs0, tuple_size(E) =:= Sz],
     number(ordsets:from_list(Cuvs)).
 
 number(L) ->

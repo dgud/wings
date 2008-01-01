@@ -1,9 +1,9 @@
 %%
 %%  wings_shaders.erl --
 %%
-%%     Support for vertex & fragment shaders (for cards with OpenGL 2.0)
+%%     Support for vertex & fragment shaders (for cards with OpenGL 2.0).
 %%
-%%  Copyright (c) 2001-2006 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -34,7 +34,7 @@ init() ->
     ?CHECK_ERROR(),
     gl:useProgram(0),
     put(light_shaders, Programs),
-    case wings_pref:get_value(number_of_shaders) > size(Programs) of
+    case wings_pref:get_value(number_of_shaders) > tuple_size(Programs) of
 	true -> wings_pref:set_value(number_of_shaders, 1);
 	false -> ok
     end,

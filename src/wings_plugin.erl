@@ -4,7 +4,7 @@
 %%     Experimental support of plugins.
 %%
 %%  Copyright (c) 2001 Jakob Cederlund, Bjorn Gustavsson
-%%  Copyright (c) 2002-2005 Bjorn Gustavsson
+%%  Copyright (c) 2002-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -96,14 +96,14 @@ dialog_result1(Dialog, Ps, [M|Tail]) ->
 	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
 	    wings_u:error("~w:dialog/2: crashed", [M]);
 	{Content,NewPs} when is_list(NewPs) ->
-	    dialog_result1(setelement(size(Dialog), Dialog, Content), 
+	    dialog_result1(setelement(tuple_size(Dialog), Dialog, Content), 
 			   NewPs, Tail);
 	Other ->
 	    io:format("~w:dialog/2: bad return value: ~P\n", [M,Other,20]),
 	    wings_u:error("~w:dialog/2: bad return value", [M])
     end;
 dialog_result1(Dialog, Ps, []) -> 
-    {element(size(Dialog), Dialog),Ps}.
+    {element(tuple_size(Dialog), Dialog),Ps}.
 
 command(Cmd, St) ->
     command(get(wings_plugins), Cmd, St).

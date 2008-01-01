@@ -3,7 +3,7 @@
 %%
 %%     Implementation of pulldown and popup menus.
 %%
-%%  Copyright (c) 2001-2007 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -31,7 +31,7 @@
 	 w,					%Width of menu (pixels)
 	 h,					%Height of menu (pixels)
 	 hs,					%Tuple: height of each entry.
-	 sel=none,				%Selected item (1..size(Menu))
+	 sel=none,				%Selected item (1..tuple_size(Menu))
 	 sel_side=left,				%Selection on left or right.
 	 ns=[],					%Name stack.
 	 menu,					%Original menu term
@@ -257,7 +257,7 @@ norm_help(Elem, true) ->  norm_help_adv(Elem, {[],[],[]}).
 
 norm_help_basic({_,_,_,Help,_}=Item) when is_list(Help) ->
     Item;
-norm_help_basic({T,N,Hot,Help,Ps}) when is_tuple(Help), size(Help) > 0 ->
+norm_help_basic({T,N,Hot,Help,Ps}) when tuple_size(Help) > 0 ->
     {T,N,Hot,element(1, Help),Ps}.
 
 norm_help_adv({T,N,Hot,[],Ps}, Empty)  ->
@@ -279,7 +279,7 @@ norm_help_adv({T,N,Hot,{Hl,Hm,[]},Ps}=Item, _) ->
     end.
 
 menu_dims(Menu) ->
-    menu_dims(Menu, size(Menu), 0, 0, 0, []).
+    menu_dims(Menu, tuple_size(Menu), 0, 0, 0, []).
 
 menu_dims(_Menu, 0, MaxA, MaxB, MaxC, H) -> {MaxA,MaxB,MaxC,H};
 menu_dims(Menu, I, MaxA0, MaxB0, MaxC0, Hacc) ->
@@ -492,7 +492,7 @@ is_ascii_clean([H|T]) ->
     is_ascii_clean(H) andalso is_ascii_clean(T);
 is_ascii_clean([]) -> true;
 is_ascii_clean(T) when is_tuple(T) ->
-    is_tuple_ascii_clean(1, size(T), T);
+    is_tuple_ascii_clean(1, tuple_size(T), T);
 is_ascii_clean(Num) when is_number(Num) -> true;
 is_ascii_clean(Atom) when is_atom(Atom) -> true;
 is_ascii_clean(_) -> false.
@@ -689,7 +689,7 @@ selected_item(Y, #mi{adv=Adv,ymarg=Margin,h=H,menu=Menu}=Mi) ->
 	    %% Below the lower margin. Pretend that the cursor is over the
 	    %% last row (we assume that it cannot be inactive text
 	    %% or a separator).
-	    size(Menu)
+	    tuple_size(Menu)
     end.
 
 selected_item_1(Y, #mi{hs=Hs}=Mi) ->

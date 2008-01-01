@@ -3,7 +3,7 @@
 %%
 %%     A few OpenGL utilities.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -57,7 +57,7 @@ get_version() ->
 
 %% Either check for a given version (or higher), or
 %% for that all the given extensions are implemented.
-is_ext(Wanted) when is_tuple(Wanted), size(Wanted) >= 2 ->
+is_ext(Wanted) when tuple_size(Wanted) >= 2 ->
     [{_,Actual}] = ets:lookup(wings_gl_ext, version),
     version_match(Wanted, Actual);
 is_ext(Ext) when is_atom(Ext); is_list(Ext) ->

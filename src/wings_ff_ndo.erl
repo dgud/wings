@@ -1,9 +1,9 @@
 %%
 %%  wings_ff_ndo.erl --
 %%
-%%     Import of Nendo .ndo files.
+%%     Import and export of Nendo .ndo files.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -85,7 +85,7 @@ read_object_1(<<L:16,T0/binary>>) ->
 	    {Name,We,T}
     end.
 
-get_name(L, Bin) when size(Bin) < L -> bad;
+get_name(L, Bin) when byte_size(Bin) < L -> bad;
 get_name(L, Bin) ->
     <<Name0:L/binary,T/binary>> = Bin,
     Name = binary_to_list(Name0),

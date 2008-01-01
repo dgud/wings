@@ -3,7 +3,7 @@
 %%
 %%     This module contain the functions for reading and writing .wings files.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -29,7 +29,7 @@ import(Name, St) ->
 
 import_1(Name, St0) ->
     case file:read_file(Name) of
-	{ok,<<?WINGS_HEADER,Sz:32,Data/binary>>} when size(Data) =:= Sz ->
+	{ok,<<?WINGS_HEADER,Sz:32,Data/binary>>} when byte_size(Data) =:= Sz ->
 	    wings_pb:update(0.08, ?__(1,"converting binary")),
 	    case catch binary_to_term(Data) of
 		{wings,0,_Shapes} ->
@@ -279,7 +279,7 @@ import_image(Im,Dir) ->
 	    PP = proplists:get_value(samples_per_pixel, Im, 0),
 	    Pixels = proplists:get_value(pixels, Im),
 	    if
-		W*H*PP =:= size(Pixels) -> 
+		W*H*PP =:= byte_size(Pixels) -> 
 		    ok;
 		true -> 
 		    Str = io_lib:format(?__(2,"Bad image: ~p\n"), [Name]),
@@ -571,7 +571,7 @@ export_pst(Pst0,Props0) ->
     end.
 
 write_file(Name, Bin) ->
-    Data = <<?WINGS_HEADER,(size(Bin)):32,Bin/binary>>,
+    Data = <<?WINGS_HEADER,(byte_size(Bin)):32,Bin/binary>>,
     case file:write_file(Name, Data) of
 	ok -> ok;
 	{error,Reason} -> {error,file:format_error(Reason)}

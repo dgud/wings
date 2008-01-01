@@ -3,7 +3,7 @@
 %%
 %%     This module contains the Align and Center commands.
 %%
-%%  Copyright (c) 2001-2003 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -97,7 +97,7 @@ make_prop_scale(Dir, Src0, Dest0) ->
 make_scales(Ta, Tb) ->
     make_scales(1, Ta, Tb).
 
-make_scales(I, Ta, Tb) when I > size(Ta); I > size(Tb) -> [];
+make_scales(I, Ta, Tb) when I > tuple_size(Ta); I > tuple_size(Tb) -> [];
 make_scales(I, Ta, Tb) ->
     S = case {element(I, Ta),element(I, Tb)} of
 	    {_,0.0} -> none;

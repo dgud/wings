@@ -3,7 +3,7 @@
 %%
 %%     Dialog boxes.
 %%
-%%  Copyright (c) 2002-2006 Bjorn Gustavsson
+%%  Copyright (c) 2002-2008 Bjorn Gustavsson
 %%	          2003-2006 Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution
@@ -663,7 +663,7 @@ next_focus(Dir, S=#s{focus=Index,focusable=Focusable,fi=TopFi}) ->
 	    {_,I} -> I;
 	    I -> I
 	end,
-    N = size(Focusable),
+    N = tuple_size(Focusable),
     case (J+Dir) rem N of
 	K when K =< 0 -> 
 	    Path = get_fi(element(N+K, Focusable), TopFi),
@@ -823,10 +823,10 @@ redraw(S=#s{ox=Ox,oy=Oy,focus=Index,fi=Fi0,store=Sto}) ->
 %% Binary search a tuple. Cmp should return integer() > 0 | 0 | 0 < integer().
 %% Return {I,I+1} | {I-1,I} if not found, or I if found,
 %% where integer(I), 1 =< I, I =< Size,
-%% where Size = size(Tuple).
+%% where Size = tuple_size(Tuple).
 
-binsearch(Cmp, Tuple) when function(Cmp), tuple(Tuple), size(Tuple) > 0 ->
-    binsearch(Cmp, Tuple, 1, size(Tuple)).
+binsearch(Cmp, Tuple) when is_function(Cmp, 1), tuple_size(Tuple) > 0 ->
+    binsearch(Cmp, Tuple, 1, tuple_size(Tuple)).
 
 binsearch(Cmp, Tuple, L, U) when L =< U ->
     I = (L + U) div 2,
@@ -876,7 +876,7 @@ field_type(I, Store) ->
 find_field(Fun, Fi) -> find_field_1(Fun, Fi, []).
 
 find_field_1(Fun, Fi=#fi{extra=#container{fields=Fields}}, Path) ->
-    find_field_2(Fun, Fields, [Fi|Path], size(Fields));
+    find_field_2(Fun, Fields, [Fi|Path], tuple_size(Fields));
 find_field_1(Fun, Fi, Path0) ->
     Path = [Fi|Path0],
     case Fun(Path) of
@@ -910,7 +910,7 @@ collect_result_2(Fi=#fi{extra=#container{fields=Fields}}, Sto, Path, R) ->
     collect_result_3(Fields, Sto, [Fi|Path], R, 1);
 collect_result_2(_Fi, _Sto, _Path, R) -> R.
 
-collect_result_3(Fields, Sto, Path, R, I) when I =< size(Fields) ->
+collect_result_3(Fields, Sto, Path, R, I) when I =< tuple_size(Fields) ->
     collect_result_3(Fields, Sto, Path,
 		     collect_result_1(element(I, Fields), Sto, Path, R),
 		     I+1);
@@ -984,7 +984,7 @@ draw_fields_1(#fi{handler=Handler,key=Key,index=Index,hook=Hook,
     end.
 
 draw_fields_2(Fields, Focus, DisEnabled, Sto, TopFi, I, R, Changed)
-  when I =< size(Fields) ->
+  when I =< tuple_size(Fields) ->
     Fi0 = element(I, Fields),
     case draw_fields_1(Fi0, Focus, DisEnabled, Sto, TopFi) of
 	keep -> draw_fields_2(Fields, Focus, DisEnabled, 
@@ -1273,7 +1273,7 @@ mktree_container_1([Q|Qs], Sto0, I0, R) ->
 mktree_oframe(Qs, Def, Sto0, I0, Flags) when integer(Def), Def >= 1 ->
     {Titles,Fields,Sto1,I} = mktree_oframe_1(Qs, Sto0, I0+1, [], []),
     FieldsTuple = list_to_tuple(Fields),
-    if  Def =< size(FieldsTuple) ->
+    if  Def =< tuple_size(FieldsTuple) ->
 	    Style = proplists:get_value(style, Flags, menu),
 	    Key = proplists:get_value(key, Flags, 0),
 	    Cw = ?CHAR_WIDTH,
@@ -1336,7 +1336,7 @@ dmptree(#fi{key=Key,index=Index,state=State,minimized=Minimized,flags=Flags,
 	      [Fill,Key,Index,Flags,X,Y,W,H,Fill,State,Minimized,Stretch]),
     dmptree_1(Extra, Fill).
 
-dmptree(Fields, Fill, I) when I =< size(Fields) ->
+dmptree(Fields, Fill, I) when I =< tuple_size(Fields) ->
     dmptree(element(I, Fields), Fill),
     dmptree(Fields, Fill, I+1);
 dmptree(_Fields, _Fill, _I) -> ok.
@@ -1424,17 +1424,17 @@ layout_container(hframe, Fields, Sto, X, Y) ->
 layout_container(oframe, Fields, Sto, X, Y) -> 
     layout_oframe(1, Fields, Sto, X, Y, 0, 0, [], 0).
 
-layout_vframe(I, Fields, Sto, X0, Y0, W0, R, S) when I =< size(Fields) ->
+layout_vframe(I, Fields, Sto, X0, Y0, W0, R, S) when I =< tuple_size(Fields) ->
     Fi = #fi{x=X0,y=Y0,w=W,h=H,stretch=Stretch} = 
 	layout(element(I, Fields), Sto, X0, Y0),
     layout_vframe(I+1, Fields, Sto, X0, Y0+H, max(W, W0), [Fi|R], S+Stretch);
 layout_vframe(_I, _Fields, _Sto, X, Y, W, R, S) ->
     {R,X+W,Y,S}.
 
-layout_hframe(I, Fields, Sto, X0, Y0, H0, R, S) when I =< size(Fields) ->
+layout_hframe(I, Fields, Sto, X0, Y0, H0, R, S) when I =< tuple_size(Fields) ->
     Fi = #fi{x=X0,y=Y0,w=W,h=H,stretch=Stretch} = 
 	layout(element(I, Fields), Sto, X0, Y0),
-    Ws = if W =/= 0, I < size(Fields) -> ?HFRAME_SPACING;
+    Ws = if W =/= 0, I < tuple_size(Fields) -> ?HFRAME_SPACING;
 	    true -> 0
 	 end,
     layout_hframe(I+1, Fields, Sto, X0+Ws+W, Y0, max(H, H0), 
@@ -1442,7 +1442,7 @@ layout_hframe(I, Fields, Sto, X0, Y0, H0, R, S) when I =< size(Fields) ->
 layout_hframe(_I, _Fields, _Sto, X, Y, H, R, S) ->
     {R,X,Y+H, S}.
 
-layout_oframe(I, Fields, Sto, X, Y, W0, H0, R, S) when I =< size(Fields) ->
+layout_oframe(I, Fields, Sto, X, Y, W0, H0, R, S) when I =< tuple_size(Fields) ->
     Fi = #fi{x=X,y=Y,w=W,h=H,stretch=Stretch} = 
 	layout(element(I, Fields), Sto, X, Y),
     layout_oframe(I+1, Fields, Sto, X, Y, max(W0, W), max(H0, H), 
@@ -1529,7 +1529,7 @@ focusable_1(#fi{minimized=true,extra=#leaf{}}, R) -> R;
 focusable_1(#fi{index=Index,state=enabled,extra=#leaf{}}, R) -> [Index|R];
 focusable_1(#fi{extra=#leaf{}}, R) -> R.
     
-focusable_2(I, Fields, R) when I =< size(Fields) ->
+focusable_2(I, Fields, R) when I =< tuple_size(Fields) ->
     focusable_2(I+1, Fields, focusable_1(element(I, Fields), R));
 focusable_2(_I, _Fields, R) -> R.
 
@@ -1541,7 +1541,7 @@ minimize_siblings([#fi{index=Index},
     minimize_siblings(1, Fields, Index, Sto);
 minimize_siblings(_Path, Sto) -> Sto.
 
-minimize_siblings(I, Fields, Index, Sto0) when I =< size(Fields) ->
+minimize_siblings(I, Fields, Index, Sto0) when I =< tuple_size(Fields) ->
     case element(I, Fields) of
 	#fi{key=Key,index=Ix,hook=Hook,
 	    state=enabled,minimized=false,flags=Flags,
@@ -1756,7 +1756,7 @@ oframe_event(_Ev, _Path, _Store) -> keep.
 
 oframe_menu(Titles) -> oframe_menu(Titles, 1).
 
-oframe_menu(Titles, N) when N =< size(Titles) -> 
+oframe_menu(Titles, N) when N =< tuple_size(Titles) -> 
     [{element(N, Titles),N,[]}|oframe_menu(Titles, N+1)];
 oframe_menu(_Titles, _N) -> [].
 
@@ -1802,7 +1802,7 @@ oframe_which_tab(X0, Xb, Titles) when Xb >= X0 ->
     oframe_which_tab(X0, Xb, Titles, ?CHAR_WIDTH, 1);
 oframe_which_tab(_X0, _Xb, _Titles) -> undefined.
 
-oframe_which_tab(X0, Xb, Titles, Cw, I) when I =< size(Titles) ->
+oframe_which_tab(X0, Xb, Titles, Cw, I) when I =< tuple_size(Titles) ->
     W = Cw + wings_text:width(element(I, Titles)) + Cw,
     if  Xb < X0+W -> I;
 	true -> oframe_which_tab(X0+W, Xb, Titles, Cw, I+1)
@@ -1819,7 +1819,7 @@ oframe_redraw_titles(Active, X, Y, H, Selected, Titles) ->
 
 oframe_redraw_titles(Active, X, Y, H, Selected, Titles, 
 		     Cw, ColText, ColPane, ColHigh, I)
-  when I =< size(Titles) ->
+  when I =< tuple_size(Titles) ->
     Title = element(I, Titles),
     W = wings_text:width(Title),
     X2 = X+Cw+W+Cw,
@@ -1852,7 +1852,7 @@ oframe_step(Step, [#fi{key=Key,index=I,hook=Hook,flags=Flags,
 	#oframe{style=buttons} ->
 	    Var = var(Key, I),
 	    Val = gb_trees:get(Var, Sto0) + Step,
-	    if 1 =< Val, Val =< size(Fields) -> 
+	    if 1 =< Val, Val =< tuple_size(Fields) -> 
 		    hook(Hook, update, [Var,I,Val,Sto0,Flags]);
 	       true -> keep
 	    end;
@@ -2187,7 +2187,7 @@ menu_popup(X0, Y0, W, Menu0, Val, Disabled) ->
 	0 -> ok;
 	Sel ->
 	    Menu = list_to_tuple(Menu1),
-	    Mh = size(Menu)*?LINE_HEIGHT,
+	    Mh = tuple_size(Menu)*?LINE_HEIGHT,
 	    Ps = #popup{parent=wings_wm:this(),sel=Sel,orig_sel=Sel,menu=Menu},
 	    Op = {seq,push,get_popup_event(Ps)},
 	    X = X1-2*?CHAR_WIDTH,
@@ -2216,7 +2216,7 @@ popup_event(redraw, Ps) ->
     popup_redraw(Ps);
 popup_event(#mousemotion{y=Y}, #popup{menu=Menu,sel=Sel0}=Ps) ->
     case ((Y-2) div ?LINE_HEIGHT)+1 of
-	Sel when 1 =< Sel, Sel =< size(Menu) ->
+	Sel when 1 =< Sel, Sel =< tuple_size(Menu) ->
 	    {_,_,Disabled,Flags} = element(Sel, Menu),
 	    case proplists:get_value(info, Flags) of
 		undefined -> wings_wm:message("");
@@ -2288,7 +2288,7 @@ popup_key($\^A, Ps=#popup{sel=Sel}) ->
 	    get_popup_event(Ps#popup{sel=NewSel})
     end;
 popup_key($\^E, Ps=#popup{sel=Sel,menu=Menu}) ->
-    case popup_sel(-1, size(Menu)+1, Ps) of
+    case popup_sel(-1, tuple_size(Menu)+1, Ps) of
 	Sel -> keep;
 	NewSel ->
 	    wings_wm:dirty(),
@@ -2307,7 +2307,7 @@ popup_key(_Unicode, _Ps) ->
 
 popup_sel(Step, Sel, #popup{sel=PrevSel,menu=Menu}=Ps) ->
     case Sel+Step of
-	NewSel when NewSel >= 1, NewSel =< size(Menu) ->
+	NewSel when NewSel >= 1, NewSel =< tuple_size(Menu) ->
 	    case element(NewSel, Menu) of
 		{_,_,false,_} -> NewSel; % not disabled
 		_ -> popup_sel(Step, NewSel, Ps)
@@ -2338,7 +2338,7 @@ popup_redraw_1(Sel, Menu, Sel, W, X, Y) ->
     gl:color3fv(color3()),
     wings_io:text_at(X, Y, Desc),
     popup_redraw_1(Sel+1, Menu, Sel, W, X, Y+?LINE_HEIGHT);
-popup_redraw_1(I, Menu, Sel, W, X, Y) when I =< size(Menu) ->
+popup_redraw_1(I, Menu, Sel, W, X, Y) when I =< tuple_size(Menu) ->
     {Desc,_,Disabled,_} = element(I, Menu),
     case Disabled of
 	true ->

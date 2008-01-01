@@ -3,7 +3,7 @@
 %%
 %%     This module manages images.
 %%
-%%  Copyright (c) 2003-2007 Bjorn Gustavsson
+%%  Copyright (c) 2003-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -391,7 +391,7 @@ create_pnoise() ->
 	gl:bindTexture(?GL_TEXTURE_3D, NoiseMap),
 	Map = pnoise:s_map3d(128),
 
-	Assert = size(Map),
+	Assert = byte_size(Map),
 	Assert = 128*128*128*4,
 
 	gl:texParameteri(?GL_TEXTURE_3D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
@@ -815,7 +815,7 @@ create_image() ->
 
 create_image_1(Pattern, W, H) ->
     Pixels = pattern(Pattern, W, H),
-    case {size(Pixels),3*W*H} of
+    case {byte_size(Pixels),3*W*H} of
 	{S,S} ->				%Assertion.
 	    Im = #e3d_image{width=W,height=H,image=Pixels,order=upper_left},
 	    new(atom_to_list(Pattern), Im)

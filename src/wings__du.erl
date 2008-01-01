@@ -3,7 +3,7 @@
 %%
 %%     Low-level drawing utilities.
 %%
-%%  Copyright (c) 2003-2004 Bjorn Gustavsson
+%%  Copyright (c) 2003-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -59,7 +59,7 @@ uv_face([A,B,C,D], [UVa,UVb,UVc,UVd]) ->
 %%  UV coordinates, (0, 0) will be used.
 uv_face(Fs, VsPos0, UVs0) ->
     case {list_to_tuple(VsPos0),list_to_tuple(UVs0)} of
-	{VsPos,UVs} when size(VsPos) =:= size(UVs) ->
+	{VsPos,UVs} when tuple_size(VsPos) =:= tuple_size(UVs) ->
 	    uv_face_1(Fs, none, VsPos, UVs);
 	{VsPos,_} ->
 	    plain_face_1(Fs, VsPos)
@@ -104,7 +104,7 @@ vcol_face([A,B,C,D], [Ca,Cb,Cc,Cd]) ->
 %%  vertex colors, (1.0, 1.0, 1.0) will be used.
 vcol_face(Fs, VsPos0, Cols0) ->
     case {list_to_tuple(VsPos0),list_to_tuple(Cols0)} of
-	{VsPos,Cols} when size(VsPos) =:= size(Cols) ->
+	{VsPos,Cols} when tuple_size(VsPos) =:= tuple_size(Cols) ->
 	    vcol_face_1(Fs, none, VsPos, Cols);
 	{VsPos,_} ->
 	    plain_face_1(Fs, VsPos)
@@ -158,7 +158,7 @@ smooth_plain_face([A,B,C,D], [Na,Nb,Nc,Nd]) ->
 %%  Draw a smooth face with neither UV coordinates nor vertex colors.
 smooth_plain_face(Fs, VsPos0, Ns0) ->
     case {list_to_tuple(VsPos0),list_to_tuple(Ns0)} of
-	{VsPos,Ns} when size(VsPos) =:= size(Ns) ->
+	{VsPos,Ns} when tuple_size(VsPos) =:= tuple_size(Ns) ->
 	    smooth_plain_face_1(Fs, none, VsPos, Ns);
 	{VsPos,_} ->
 	    plain_face_1(Fs, VsPos)
@@ -201,7 +201,7 @@ smooth_uv_face([A,B,C,D], [Ai,Bi,Ci,Di]) ->
 %%  UV coordinates, (0, 0) will be used.
 smooth_uv_face(Fs, VsPos0, UVs0) ->
     case {list_to_tuple(VsPos0),list_to_tuple(UVs0)} of
-	{VsPos,UVs} when size(VsPos) =:= size(UVs) ->
+	{VsPos,UVs} when tuple_size(VsPos) =:= tuple_size(UVs) ->
 	    smooth_uv_face_1(Fs, none, VsPos, UVs);
 	{VsPos,_} ->
 	    plain_face_1(Fs, VsPos)
@@ -249,7 +249,7 @@ smooth_vcol_face([A,B,C,D], [Ai,Bi,Ci,Di]) ->
 %%  vertex colors, (1.0, 1.0, 1.0) will be used.
 smooth_vcol_face(Fs, VsPos0, Cols0) ->
     case {list_to_tuple(VsPos0),list_to_tuple(Cols0)} of
-	{VsPos,Cols} when size(VsPos) =:= size(Cols) ->
+	{VsPos,Cols} when tuple_size(VsPos) =:= tuple_size(Cols) ->
 	    smooth_vcol_face_1(Fs, none, VsPos, Cols);
 	{VsPos,_} ->
 	    plain_face_1(Fs, VsPos)

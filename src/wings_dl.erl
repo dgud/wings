@@ -4,7 +4,7 @@
 %%     Manage display lists for objects in Geometry and AutoUV windows
 %%     (providing "garbage collection" of display lists).
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -248,7 +248,7 @@ delete_lists([Dl|Dls]) ->
     delete_lists(Dls).
     
 update_seen(D, Seen) ->
-    update_seen_0(size(D), D, Seen).
+    update_seen_0(tuple_size(D), D, Seen).
 
 update_seen_0(0, _, Seen) -> Seen;
 update_seen_0(I, D, Seen0) ->

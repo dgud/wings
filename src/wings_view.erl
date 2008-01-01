@@ -3,7 +3,7 @@
 %%
 %%     This module implements most of the commands in the View menu.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -61,7 +61,7 @@ menu(#st{views={CurrentView,Views}}=St) ->
      {?__(31,"Orthographic View"),orthogonal_view,
       ?__(32,"Toggle between orthographic and perspective views"),
       crossmark(orthogonal_view)},
-     {?__(33,"Saved Views: ")++integer_to_list(size(Views)),
+     {?__(33,"Saved Views: ")++integer_to_list(tuple_size(Views)),
       {views,views_submenu(CurrentView, Views)}},
      separator,
      {?__(34,"Camera Settings..."),camera_settings,?__(35,"Set field of view, and near and far clipping planes")},
@@ -133,7 +133,7 @@ wireframe_crossmark(#st{sel=Sel0}) ->
 views_submenu(CurrentView, Views) ->
     {_,_,_,H} = wings_wm:viewport(desktop),
     Lines = wings_util:max((H div ?LINE_HEIGHT) - 3, 4),
-    S = size(Views),
+    S = tuple_size(Views),
     C = if S > 0 -> view_index(CurrentView, S); true -> 0 end,
     [{?__(1,"Next"),next,views_submenu_help(CurrentView, Views, next)},
      {?__(2,"Current"),current,views_submenu_help(CurrentView, Views, current)},
@@ -150,7 +150,7 @@ views_submenu(CurrentView, Views) ->
 views_submenu_help(_CurrentView, {}, _Action) ->
     ?__(1,"No saved views!");
 views_submenu_help(CurrentView, Views, Action) ->
-    S = size(Views),
+    S = tuple_size(Views),
     case Action of
 	next ->
 	    N = view_index(CurrentView+1, S),
@@ -185,7 +185,7 @@ view_index(I, N) when integer(I), integer(N), N > 0 ->
 views_jumpmenu(_CurrentView, {}, _Lines) ->
     {?__(1,"Jump"),current,?__(2,"No saved views!")};
 views_jumpmenu(CurrentView, Views, Lines) ->
-    S = size(Views),
+    S = tuple_size(Views),
     P = view_index(CurrentView-1, S),
     C = view_index(CurrentView, S),
     N = view_index(CurrentView+1, S),
@@ -205,7 +205,7 @@ views_jumpmenu(CurrentView, Views, Lines) ->
 views_movemenu(_CurrentView, {}, _Lines) ->
     {?__(1,"Move Current"),current,?__(2,"No saved views!")};
 views_movemenu(CurrentView, Views, Lines) ->
-    S = size(Views),
+    S = tuple_size(Views),
     P = view_index(CurrentView-1, S),
     C = view_index(CurrentView, S),
     N = view_index(CurrentView+1, S),
@@ -966,12 +966,12 @@ frame_1([A,B]=BB) ->
 views({save,[Legend]}, #st{views={_,{}}}=St) ->
     St#st{views={1,{{current(),Legend}}}};
 views({save,[Legend]}, #st{views={CurrentView,Views}}=St) ->
-    J = view_index(CurrentView, size(Views)),
+    J = view_index(CurrentView, tuple_size(Views)),
     {L1,L2} = lists:split(J, tuple_to_list(Views)),
     St#st{views={J+1,list_to_tuple(L1++[{current(),Legend}|L2])}};
 views({save,Ask}, #st{views={CurrentView,Views}}) when is_atom(Ask) ->
     View = current(),
-    S = size(Views),
+    S = tuple_size(Views),
     if S > 0 ->
 	    case element(view_index(CurrentView, S), Views) of
 		{View,_} ->
@@ -985,16 +985,16 @@ views({save,Ask}, #st{views={CurrentView,Views}}) when is_atom(Ask) ->
 views(_, #st{views={_,{}}}) ->
     wings_u:message(?__(2,"No saved views"));
 views(next, #st{views={CurrentView,Views}}=St) ->
-    J = view_index(CurrentView + 1, size(Views)),
+    J = view_index(CurrentView + 1, tuple_size(Views)),
     {View,_} = element(J, Views),
     set_current(View),
     St#st{views={J,Views}};
 views(current, #st{views={CurrentView,Views}}) ->
-    {View,_} = element(view_index(CurrentView, size(Views)), Views),
+    {View,_} = element(view_index(CurrentView, tuple_size(Views)), Views),
     set_current(View),
     wings_wm:dirty();
 views(prev, #st{views={CurrentView,Views}}=St) ->
-    J = view_index(CurrentView - 1, size(Views)),
+    J = view_index(CurrentView - 1, tuple_size(Views)),
     {View,_} = element(J, Views),
     set_current(View),
     St#st{views={J,Views}};
@@ -1003,7 +1003,7 @@ views({jump,J}, #st{views={CurrentView,Views}}=St) ->
 views({move,J}, #st{views={CurrentView,Views}}=St) ->
     views_move(J, St, CurrentView, Views);
 views(rename, #st{views={CurrentView,Views}}=St) ->
-    J = view_index(CurrentView, size(Views)),
+    J = view_index(CurrentView, tuple_size(Views)),
     {View,Legend} = element(J, Views),
     wings_ask:dialog(
       ?__(3,"Rename view"),
@@ -1014,7 +1014,7 @@ views(rename, #st{views={CurrentView,Views}}=St) ->
       end);
 views(delete, #st{views={CurrentView,Views}}=St) ->
     View = current(),
-    J = view_index(CurrentView, size(Views)),
+    J = view_index(CurrentView, tuple_size(Views)),
     case element(J, Views) of
 	{View,_} ->
 	    I = J - 1,
@@ -1041,7 +1041,7 @@ views_rename_qs([Legend]) ->
     [{hframe,[{label,?__(1,"Name")},{text,Legend}]}].
 
 views_jump(J, St, CurrentView, Views) ->
-    S = size(Views),
+    S = tuple_size(Views),
     case {view_index(J, S),view_index(CurrentView, S)} of
 	{J,J} ->
 	    {View,_} = element(J, Views),
@@ -1056,7 +1056,7 @@ views_jump(J, St, CurrentView, Views) ->
     end.
 
 views_move(J, St, CurrentView, Views) ->
-    S = size(Views),
+    S = tuple_size(Views),
     case {view_index(J, S),view_index(CurrentView, S)} of
 	{J,J} ->
 	    {View,_} = element(J, Views),
@@ -1087,7 +1087,7 @@ cycle_shaders() ->
     case wings_gl:support_shaders() of
 	true ->
 	    NumShaders = wings_pref:get_value(number_of_shaders),
-	    NumProgs = size(get(light_shaders)),
+	    NumProgs = tuple_size(get(light_shaders)),
 	    Shaders = case NumShaders of
 			  NumProgs -> 1;
 			  _ -> NumShaders+1
