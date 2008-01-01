@@ -3,7 +3,7 @@
 %%
 %%     Driver for accelerating perlin noise 
 %%
-%%  Copyright (c) 2005 Dan Gudmundsson
+%%  Copyright (c) 2005-2008 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -45,7 +45,7 @@ start() ->
 		      [Name,Dir,erl_ddll:format_error(Reason)]),
 	    erlang:error(startup_fault)
     end,
-    case open_port({spawn,Name},[binary]) of
+    case catch open_port({spawn,Name},[binary]) of
 	Port when is_port(Port) ->
 	    register(?PORT, Port);
 	_ ->
