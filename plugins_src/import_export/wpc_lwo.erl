@@ -239,7 +239,7 @@ make_vmad_vc2(IndexedFaces, Vcolors) ->
     Vmads.
 
 zip_lists_3(A, B, C) ->
-    L = lists:map({erlang,tuple_to_list}, lists:zip3(A,B,C)),
+    L = lists:map(fun erlang:tuple_to_list/1, lists:zip3(A,B,C)),
     lists:flatten(L).
 
 make_vmad_uv(Mesh) ->
@@ -494,11 +494,11 @@ ps(Item) ->
 
 print_boxed(Item) ->
     if
-	integer(Item) -> String = integer_to_list(Item);
-	float(Item) ->	 String = float_to_list(Item);
+%% 	integer(Item) -> String = integer_to_list(Item);
+%%	float(Item) ->	 String = float_to_list(Item);
 	atom(Item) ->	 String = atom_to_list(Item);
-	tuple(Item) ->	 String = lists:concat(tuple_to_list(Item));
-	binary(Item) ->  String = binary_to_list(Item);
+%%	tuple(Item) ->	 String = lists:concat(tuple_to_list(Item));
+%%	binary(Item) ->  String = binary_to_list(Item);
 	list(Item) ->	 String = Item
     end,
     NumChars = length(String),
