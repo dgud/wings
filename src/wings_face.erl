@@ -482,16 +482,12 @@ is_planar(Tolerance, Face, We) ->
     VertPos = vertex_positions(Face, We),
     [Vert0|Verts] = VertPos,
     Dist = e3d_vec:dot(Norm, Vert0),
-    is_planar_1(true, Norm, Dist, Tolerance, Verts).
+    is_planar_1(Norm, Dist, Tolerance, Verts).
     
-is_planar_1(Planar, Norm, Dist, Tolerance, [Vert|T]) ->
-    case Planar of
-        false -> false;
-        true ->
-            Diff = abs(e3d_vec:dot(Norm, Vert) - Dist),
-            case Diff > Tolerance of
-                true -> false;
-                false -> is_planar_1(true, Norm, Dist, Tolerance, T)
-            end
+is_planar_1(Norm, Dist, Tolerance, [Vert|T]) ->
+    Diff = abs(e3d_vec:dot(Norm, Vert) - Dist),
+    case Diff > Tolerance of
+	true -> false;
+	false -> is_planar_1(Norm, Dist, Tolerance, T)
     end;
-is_planar_1(_, _, _, _, []) -> true.
+is_planar_1(_, _, _, []) -> true.
