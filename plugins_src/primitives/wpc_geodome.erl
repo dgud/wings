@@ -3,7 +3,7 @@
 %%
 %%     Geodesic Dome Plugin
 %%
-%%  Copyright (c) 2003-2006 Anthony D'Agostino
+%%  Copyright (c) 2003-2008 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -88,7 +88,7 @@ geodome_main(Resolution, AlgorithmFlag, BaseFlag, SpherizeFlag, DomeFlag) ->
     end,
     {Vs, Fs} = e3d_util:raw_to_indexed(RawTriangles2),
     case SpherizeFlag of
-	true -> Vs2 = lists:map({e3d_vec, norm}, Vs);
+	true -> Vs2 = lists:map(fun e3d_vec:norm/1, Vs);
 	false -> Vs2 = Vs
     end,
     {Vs2, Fs}.
