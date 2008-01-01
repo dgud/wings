@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_vertex_cmd.erl,v 1.65 2006/03/16 12:50:59 giniu Exp $
+%%     $Id$
 %%
 
 -module(wings_vertex_cmd).

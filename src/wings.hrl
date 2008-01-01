@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings.hrl,v 1.111 2006/01/26 20:37:33 dgud Exp $
+%%     $Id$
 %%
 
 -include("../intl_tools/wings_intl.hrl").

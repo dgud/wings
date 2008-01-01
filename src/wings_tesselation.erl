@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_tesselation.erl,v 1.13 2005/03/14 12:34:44 dgud Exp $
+%%     $Id$
 %%
 
 -module(wings_tesselation).

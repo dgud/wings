@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_draw_util.erl,v 1.142 2007/05/18 16:30:15 antoneos Exp $
+%%     $Id$
 %%
 
 -module(wings_draw_util).
@@ -217,7 +217,7 @@ good_triangulation({Nx,Ny,Nz}, {Ax,Ay,Az}, {Bx,By,Bz}, {Cx,Cy,Cz}, {Dx,Dy,Dz})
     D2 = Nx*(DAz*CAy-DAy*CAz) + Ny*(DAx*CAz-DAz*CAx) + Nz*(DAy*CAx-DAx*CAy),
     good_triangulation_1(D1, D2).
 
-good_triangulation_1(D1, D2) when D1 > 0, D2 > 0 -> true;
+good_triangulation_1(D1, D2) when D1 > 0.0, D2 > 0.0 -> true;
 good_triangulation_1(_, _) -> false.
 
 %% force_flat_color(OriginalDlist, Color) -> NewDlist.

@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_move.erl,v 1.58 2006/01/07 18:00:52 giniu Exp $
+%%     $Id$
 %%
 -module(wings_move).
 -export([setup/2,setup_we/4,plus_minus/3,magnet_move_fun/3]).

@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: user_default.erl,v 1.26 2005/09/15 05:28:13 bjorng Exp $
+%%     $Id$
 %% 
 
 -module(user_default).

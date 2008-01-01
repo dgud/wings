@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_scale.erl,v 1.52 2004/12/18 19:36:22 bjorng Exp $
+%%     $Id$
 %%
 
 -module(wings_scale).

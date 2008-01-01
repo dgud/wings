@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_util.erl,v 1.111 2005/11/09 21:00:28 dgud Exp $
+%%     $Id$
 %%
 %% Note: To keep the call graph clean, wings_util MUST NOT call
 %%       other wings_* modules (except wings_pref).

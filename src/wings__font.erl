@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings__font.erl,v 1.2 2005/04/06 18:32:22 bjorng Exp $
+%%     $Id$
 %%
 
 -module(wings__font, [Key,Desc,Width,Height,GlyphTab,Bitmaps]).

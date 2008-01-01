@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_wm_toplevel.erl,v 1.56 2007/03/18 20:37:25 antoneos Exp $
+%%     $Id$
 %%
 
 -module(wings_wm_toplevel).

@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_lang.erl,v 1.21 2006/08/07 01:41:17 antoneos Exp $
+%%     $Id$
 %%
 %%  Totally rewritten but Riccardo is still the one who did the hard work.
 %%
