@@ -519,24 +519,11 @@ texture_format(#e3d_image{type=b8g8r8a8}) -> ?GL_BGRA;
 texture_format(#e3d_image{type=g8}) -> ?GL_LUMINANCE;
 texture_format(#e3d_image{type=a8}) -> ?GL_ALPHA.
 
-internal_format(Type) ->
-    %% Compression lowers the quality, especially when bump/normal maps
-    %% are compressed. Disabled for now.
-%     Compress = wings_util:is_gl_ext({1,3}, 'GL_ARB_texture_compression'),
-    internal_format(Type, false).
-
-internal_format(?GL_BGR, false) -> ?GL_RGB;
-internal_format(?GL_BGRA, false) -> ?GL_RGBA;
-internal_format(Else, false) -> Else;
-internal_format(?GL_BGR, true) -> ?GL_COMPRESSED_RGB;
-internal_format(?GL_BGRA, true) -> ?GL_COMPRESSED_RGBA;
-internal_format(?GL_ALPHA, true) -> ?GL_COMPRESSED_ALPHA;
-internal_format(?GL_LUMINANCE, true) -> ?GL_COMPRESSED_LUMINANCE;
-internal_format(?GL_LUMINANCE_ALPHA, true) -> ?GL_COMPRESSED_LUMINANCE_ALPHA;
-internal_format(?GL_INTENSITY, true) -> ?GL_COMPRESSED_INTENSITY;
-internal_format(?GL_RGB, true) ->  ?GL_COMPRESSED_RGB;
-internal_format(?GL_RGBA, true) -> ?GL_COMPRESSED_RGBA;  
-internal_format(Else, _) -> Else.
+%% Long ago we tried to use compression, but we no longer do since compression
+%% lowers the quality too much, especially for bump/normal maps.
+internal_format(?GL_BGR) -> ?GL_RGB;
+internal_format(?GL_BGRA) -> ?GL_RGBA;
+internal_format(Else) -> Else.
 
 delete(Id, #ist{images=Images0}=S) ->
     delete_bump(Id),
