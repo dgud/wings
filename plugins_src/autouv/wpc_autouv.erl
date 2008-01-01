@@ -3,7 +3,7 @@
 %%
 %%     A semi-simple semi-automatic UV-mapping semi-plugin.
 %%
-%%  Copyright (c) 2002-2005 Dan Gudmundsson, Bjorn Gustavsson
+%%  Copyright (c) 2002-2008 Dan Gudmundsson, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -25,9 +25,6 @@
 -import(lists, [sort/1,keysort/2,map/2,foldl/3,reverse/1,
 		append/1,delete/2,usort/1,max/1,min/1,
 		member/2,foreach/2,keysearch/3]).
-
-%% Exports to auv_texture.
-%%-export([has_texture/2]).
 
 %% Exports to auv_seg_ui.
 -export([init_show_maps/4]).
@@ -1215,8 +1212,6 @@ stitch_edges([Other|Rest], St, Acc) ->
 stitch_edges([],St,Acc) -> {Acc,St}.
 
 stitch_charts([],_,St0) -> St0;
-stitch_charts([[]|Rest],Moved,St0) -> 
-    stitch_charts(Rest,Moved,St0);
 stitch_charts([ChartStitches|Other],Moved,St0=#st{shapes=Sh0}) ->
     {Id1,Id2,{Vs1,Ve1,Vs2,Ve2}} = find_longest_dist(ChartStitches, St0),
     We1_0 = #we{vp=Vpos1}=gb_trees:get(Id1,Sh0),
