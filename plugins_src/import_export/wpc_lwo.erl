@@ -3,7 +3,7 @@
 %%
 %%     LightWave Object File Format (*.lwo) Import/Export
 %%
-%%  Copyright (c) 2003-2006 Anthony D'Agostino
+%%  Copyright (c) 2003-2008 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -155,7 +155,7 @@ make_pnts(Vs) ->
 
 make_bbox(Verts) ->
     A = e3d_vec:bounding_box(Verts),
-    B = lists:map({erlang,tuple_to_list}, A),
+    B = lists:map(fun erlang:tuple_to_list/1, A),
     C = lists:flatten(B),
     D = [<<I:32/float>> || I <- C],
     BboxData = list_to_binary(D),
@@ -307,8 +307,7 @@ read_header(Data) ->
 read_tags(Data) ->
     TagsList = binary_to_list(Data),
     TagsList2 = string:tokens(TagsList, [0]),
-    Tags = lists:map({erlang,list_to_atom}, TagsList2),
-    Tags.
+    lists:map(fun erlang:list_to_atom/1, TagsList2).
 
 read_layr(Data) ->
     <<_:16/binary, BiName/binary>> = Data,

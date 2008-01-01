@@ -3,7 +3,7 @@
 %%
 %%     N-Cube and N-Gon Plugin
 %%
-%%  Copyright (c) 2003-2006 Anthony D'Agostino
+%%  Copyright (c) 2003-2008 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -48,7 +48,7 @@ make_ncube(Arg) ->
     Verts = ncube_verts(Nres+1),
     Faces = ncube_faces(Nres+1, Nres+1),
     case SpherizeFlag of
-	true -> Verts2 = lists:map({e3d_vec, norm}, Verts);
+	true -> Verts2 = lists:map(fun e3d_vec:norm/1, Verts);
 	false ->  Verts2 = Verts
     end,
     {Vs, Fs} = clean_indexed_mesh(Verts2, Faces),

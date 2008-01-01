@@ -3,7 +3,7 @@
 %%
 %%     Binary StereoLithography File Format (*.stl) Import/Export
 %%
-%%  Copyright (c) 2005 Anthony D'Agostino
+%%  Copyright (c) 2005-2008 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -60,7 +60,7 @@ make_stl(Contents) ->
 combine_objs(Objs) ->
     VFs = [get_vf_lists(Obj) || Obj <- Objs],
     {AllVs,AllFs} = lists:unzip(VFs),
-    Nvs = lists:map({erlang,length}, AllVs),
+    Nvs = lists:map(fun erlang:length/1, AllVs),
     Incs = get_incs(Nvs),
     Vs = lists:append(AllVs),
     Fs = lists:append(reindex_faces(Incs, AllFs)),
@@ -92,7 +92,7 @@ make_header(Creator) -> % An 80 Byte Header
     A = "Exported from " ++ Creator,
     B = "\nSTL plugin written by Anthony D'Agostino\n2005",
     C = list_to_binary([A,B]),
-    size(C) =< 80,
+    true = size(C) =< 80,			%Assertion.
     <<C/binary, 0:((80-size(C))*8)>>.
 
 make_body({Vs, Fs}) ->
@@ -136,7 +136,7 @@ read_stl(Data) ->
     print_header(Header),
     Raw_Triangles = read_raw_triangles(Rest),
     {Vs,Fs} = e3d_util:raw_to_indexed(Raw_Triangles),
-    NumFs == Fs,
+    NumFs = length(Fs),					%Assertion.
     {Vs,Fs}.
 
 print_header(Header) ->
