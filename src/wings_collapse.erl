@@ -5,7 +5,7 @@
 %%     (for vertices, edges, and faces).
 %%
 %%  Copyright (c) 2001 Jakob Cederlund
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -38,12 +38,9 @@ collapse(#st{selmode=vertex}=St0) ->
     end.
 
 collapse_edges(Es, We0) ->
-    We1 = collapse_edges_1(Es, We0),
+    We = collapse_edges_1(Es, We0),
     Faces = wings_face:from_edges(Es, We0),
-    case wings_face:delete_bad_faces(Faces, We1) of
-	bad_edge -> We0;
-	We -> We
-    end.
+    wings_face:delete_bad_faces(Faces, We).
 
 collapse_edge(Edge, #we{es=Etab}=We)->
     case gb_trees:lookup(Edge, Etab) of
