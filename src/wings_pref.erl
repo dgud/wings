@@ -3,7 +3,7 @@
 %%
 %%     Preference management.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -194,7 +194,7 @@ win32_special_folder(R, FolderType) ->
     case win32reg:change_key(R, Key) of
 	ok ->
 	    case win32reg:value(R, FolderType) of
-		{error,_} -> error;
+		{error,_} -> none;
 		{ok,Value} -> Value
 	    end;
 	_ -> error
@@ -248,8 +248,7 @@ win32_new_pref_1(R, [FolderType|T]) ->
 	    File
     end;
 win32_new_pref_1(_, []) ->
-    %% Desperate fallback for very old Window systems.
-    %% (No "My Documents" folder.)
+    %% Desperate fallback... (no standard folders found - should not happen).
     filename:join(wings_util:lib_dir(wings), ?WIN32_PREFS).
 
 %%%
