@@ -3,7 +3,7 @@
 %%
 %%     Image reading and writing for Mac OS X.
 %%
-%%  Copyright (c) 2002-2004 Bjorn Gustavsson
+%%  Copyright (c) 2002-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -32,7 +32,7 @@ init(Next) ->
 	    Dir = filename:dirname(code:which(?MODULE)),
 	    case erl_ddll:load_driver(Dir, "mac_wings_image_drv") of
 		ok ->
-		    case open_port({spawn,"mac_wings_image_drv"},[]) of
+		    case catch open_port({spawn,"mac_wings_image_drv"},[]) of
 			Port when is_port(Port) ->
 			    register(?MODULE, Port),
 			    fun(What) ->

@@ -4,7 +4,7 @@
 %%     Native file dialog boxes for Win32.
 %%
 %%  Copyright (c) 2001 Patrik Nyblom
-%%                2002-2004 Bjorn Gustavsson
+%%                2002-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -30,7 +30,7 @@ init(Next) ->
 	    Dir = filename:dirname(code:which(?MODULE)),
 	    case erl_ddll:load_driver(Dir, "wings_file_drv") of
 		ok ->
-		    case open_port({spawn,"wings_file_drv"},[]) of
+		    case catch open_port({spawn,"wings_file_drv"}, []) of
 			Port when is_port(Port) ->
 			    register(wp8_file_port, Port),
 			    fun(What) ->
