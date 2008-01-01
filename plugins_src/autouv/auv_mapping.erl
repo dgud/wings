@@ -128,7 +128,6 @@ clamp(X) when X < -1.0 -> -1.0;
 clamp(X) -> X.
 
 fix_positions(_V,{_,_,Z},Proj,_) when Z > 0.0 -> Proj;
-fix_positions(_V,_,Proj,undefined) -> Proj;
 fix_positions(V,_,Proj = {X,Y,Z},Tags) ->
     case gb_sets:is_member(V,Tags) of
 	true when X > 0.0 -> 
@@ -139,7 +138,6 @@ fix_positions(V,_,Proj = {X,Y,Z},Tags) ->
 	    Proj
     end.
 
-leftOrRight(undefined, _, _We) -> undefined;
 leftOrRight({LL,LR}, Free0, We) ->
     Del = fun(#be{face=F},{Fs,Ch}) -> {[F|Fs],gb_sets:delete_any(F,Ch)} end,
     {F1,Free1} = foldl(Del,{[],gb_sets:from_list(Free0)},LL),
@@ -702,9 +700,9 @@ project_tri(P0,P1,P2) ->
      e3d_vec:len(L),0.0,
      e3d_vec:dot(T,X), e3d_vec:dot(T,Y)}.
     
-lsq(L, Lpuv) when list(Lpuv) ->
+lsq(L, Lpuv) when is_list(Lpuv) ->
     lsq(L, Lpuv, env);
-lsq(Name, Method) when atom(Method) ->
+lsq(Name, Method) when is_atom(Method) ->
     {ok, [{L, Lpuv}]} = file:consult(Name),
     lsq(L, Lpuv, Method).
 
