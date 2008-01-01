@@ -3,7 +3,7 @@
 %%
 %%     This module implements the commands in the selection menu.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -219,8 +219,7 @@ similar_help(#st{selmode=edge}) ->
 similar_help(#st{selmode=face}) ->
     ?__(3,"Select faces similar to the already selected faces");
 similar_help(#st{selmode=body}) ->
-    ?__(4,"Select objects with the same number of edges, faces, and vertices");
-similar_help(_) -> [].
+    ?__(4,"Select objects with the same number of edges, faces, and vertices").
     
 command({edge_loop,edge_loop}, #st{selmode=face}=St) ->
     {save_state,face_region_to_edge_loop(St)};
