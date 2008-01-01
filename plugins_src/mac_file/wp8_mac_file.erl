@@ -3,7 +3,7 @@
 %%
 %%     Native file dialog boxes for Mac OS X.
 %%
-%%  Copyright (c) 2001-2004 Patrik Nyblom, Bjorn Gustavsson.
+%%  Copyright (c) 2001-2008 Patrik Nyblom, Bjorn Gustavsson.
 %%
 %%  Changes for OSX by Sean Hinde : 2002/2/18
 %%
@@ -30,7 +30,7 @@ init(Next) ->
 	    Dir = filename:dirname(code:which(?MODULE)),
 	    case erl_ddll:load_driver(Dir, "mac_wings_file_drv") of
 		ok ->
-		    case open_port({spawn,"mac_wings_file_drv"},[]) of
+		    case catch open_port({spawn,"mac_wings_file_drv"},[]) of
 			Port when is_port(Port) ->
 			    register(wp8_file_port, Port),
 			    fun(What) ->
