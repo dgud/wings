@@ -3,7 +3,7 @@
 #
 #     Makefile for building the FBX plug-in.
 #
-#  Copyright (c) 2003-2007 Bjorn Gustavsson
+#  Copyright (c) 2003-2008 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -64,7 +64,7 @@ CFLAGS = $(INCLUDES) -DWINGS_FBX_DRIVER_NAME='"$(DRIVER_NAME)"' $(OS_CFLAGS) $(U
 LD_FLAGS = $(OS_LDFLAGS) $(LIBS)
 
 ERLC = erlc
-ERLC_FLAGS = -I$(WINGS_E3D) -o $(LIBDIR) +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
+ERLC_FLAGS = -I$(WINGS_E3D) -o $(LIBDIR) +debug_info +warn_obsolete_guard -pa $(WINGS_INTL) -I $(WINGS_INTL)
 
 OBJS = wings_fbx_driver.$(OBJ) wings_fbx.$(OBJ)
 

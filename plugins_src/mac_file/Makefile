@@ -3,7 +3,7 @@
 #
 #     Makefile for building file dialog plug-in for Mac.
 #
-#  Copyright (c) 2002-2007 Bjorn Gustavsson
+#  Copyright (c) 2002-2008 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -23,7 +23,7 @@ BEAM = $(LIBDIR)/wp8_mac_file.beam \
        $(LIBDIR)/wpc_mac_misc.beam
 
 ERLC = erlc
-ERLC_FLAGS = -W +debug_info -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH) -pa $(WINGS_EBIN) -pa $(WINGS_INTL) -I $(WINGS_INTL) 
+ERLC_FLAGS = -W +debug_info +warn_obsolete_guard -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH) -pa $(WINGS_EBIN) -pa $(WINGS_INTL) -I $(WINGS_INTL) 
 
 DRV = $(LIBDIR)/mac_wings_file_drv.so $(LIBDIR)/mac_wings_image_drv.so
 

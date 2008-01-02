@@ -3,7 +3,7 @@
 #
 #     Makefile for fonts.
 #
-#  Copyright (c) 2001-2002 Bjorn Gustavsson
+#  Copyright (c) 2001-2008 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -38,8 +38,8 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_FLAGS += -I $(WINGS_SRC) -I $(WINGS_E3D) -pa $(ESDL)/ebin
-ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS) +warn_unused_vars +debug_info
+ERL_COMPILE_FLAGS += -I $(WINGS_SRC) -I $(WINGS_E3D) -pa $(ESDL)/ebin \
+ -W $(TYPE_FLAGS) +debug_info +warn_obsolete_guard
 
 # ----------------------------------------------------
 # Targets
@@ -55,4 +55,4 @@ clean:
 	rm -f core
 
 $(EBIN)/%.beam: $(ESRC)/%.erl
-	$(ERLC) $(ERL_FLAGS) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
+	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<

@@ -3,7 +3,7 @@
 #
 #     Makefile for building file JPEG image plug-in.
 #
-#  Copyright (c) 2004-2007 Bjorn Gustavsson
+#  Copyright (c) 2004-2008 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -25,7 +25,7 @@ LIBS = -shared -ljpeg
 
 ERLC = erlc
 ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH)
-ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS) +warn_unused_vars +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
+ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS) -pa $(WINGS_INTL) -I $(WINGS_INTL) +debug_info +warn_obsolete_guard
 
 ifdef CYGWIN
 SO_EXT = dll

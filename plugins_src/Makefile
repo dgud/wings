@@ -3,7 +3,7 @@
 #
 #     Makefile for building the plug-ins.
 #
-#  Copyright (c) 2001-2007 Bjorn Gustavsson
+#  Copyright (c) 2001-2008 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -37,8 +37,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_FLAGS += 
-ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS) +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
+ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS) +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL) +warn_obsolete_guard
 
 # ----------------------------------------------------
 # Targets
@@ -91,4 +90,4 @@ subdirs_clean:
 	(cd autouv; $(MAKE) clean)
 
 $(EBIN)/%.beam: $(ESRC)/%.erl
-	$(ERLC) $(ERL_FLAGS) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
+	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<

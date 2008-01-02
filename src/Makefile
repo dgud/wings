@@ -117,9 +117,8 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_FLAGS += -pa $(ESDL_PATH)/ebin
-ERL_COMPILE_FLAGS += -I$(ESDL_PATH)/include -I ../e3d -W $(TYPE_FLAGS) \
- '-Dwings_version="$(WINGS_VSN)"' -pa $(WINGS_INTL)
+ERL_COMPILE_FLAGS += -pa $(ESDL_PATH)/ebin -I$(ESDL_PATH)/include -I ../e3d -W $(TYPE_FLAGS) \
+ '-Dwings_version="$(WINGS_VSN)"' -pa $(WINGS_INTL) +warn_obsolete_guard
 
 # ----------------------------------------------------
 # Targets
@@ -148,7 +147,7 @@ clean:
 	rm -f core
 
 $(EBIN)/%.beam: $(ESRC)/%.erl
-	$(ERLC) $(ERL_FLAGS) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
+	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
 
 $(TARGET_FILES): wings.hrl
 
