@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for vertex weld
 %%
-%%  Copyright (c) 2006 Andrzej Giniewicz
+%%  Copyright (c) 2006-2008 Andrzej Giniewicz
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -31,7 +31,7 @@ menu(_,Menu) -> Menu.
 parse([],MenuNew,true) ->
     MenuNew;
 parse([],MenuNew,false) ->
-    MenuNew ++ [separator,draw_menu()];
+    MenuNew ++ [separator|draw_menu()];
 parse([{_,dissolve,_}=Diss|Rest],MenuNew,_) ->
     MenuNew2 = MenuNew ++ [Diss],
     [Now|Rest2] = Rest,
