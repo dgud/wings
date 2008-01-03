@@ -1,12 +1,10 @@
 %% -*- mode:erlang; erlang-indent-level: 2 -*-
 {wpc_doosabin,
  [
-  {add_menu,
+  {menu_entry,
    [
     {1,"Subdivision Doo-Sabin"},
-    {2,"Utiliser une subdivivion Doo-Sabin selon le principe WasaMonkey (avertir pour nepas detruire les coordonnee UV)"},
-    {3,"Subdivision Doo-Sabin"},
-    {4,"Utiliser une subdivivion Doo-Sabin selon le principe WasaMonkey"}
+    {2,"Utiliser une subdivivion Doo-Sabin selon le principe WasaMonkey (avertir pour nepas detruire les coordonnee UV)"}
    ]},
   {doo_sabin,
    [
@@ -20,10 +18,5 @@
   {menu,
    [
     {1,"Doo Sabin subdivision"}
-   ]},
-  {pref_edit,
-   [
-    {1,"Preferences de Doo Sabin"},
-    {2,"Autorise"}
    ]}
  ]}.

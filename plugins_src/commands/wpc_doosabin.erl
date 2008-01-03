@@ -1,9 +1,9 @@
 %%
-%%  wpc_DooSabin.erl --
+%%  wpc_doosabin.erl --
 %%
 %%     Plug-in for Doo-Sabin subdivision according to Wasamonkey.
 %%
-%%  Copyright (c) 2005 Dan Gudmundsson, Wasamonkey
+%%  Copyright (c) 2005-2008 Dan Gudmundsson, Wasamonkey
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,35 +18,28 @@
 -include_lib("wings.hrl").
 
 init() ->
-    init_pref(),
     true.
 
-menu({body}, Menu) ->
-    case is_enabled() of
-	true -> 
-	    add_menu(Menu);
-	false -> Menu
-    end;
-menu({edit,plugin_preferences}, Menu) ->
-    Menu ++ [{?__(1,"Doo Sabin subd"),doo_sabin}];
+menu({body}, Menu) -> add_menu(Menu);
 menu(_, Menu) -> Menu.
 
 add_menu([Smooth = {_,smooth,_}|Rest]) ->
-    [Smooth, 
-     {?__(1,"DS subdivision"), doo_sabin, 
-      ?__(2,"Makes a Doo-Sabin subdivision according to WasaMonkey (warning messes up all uv-coords)")}|Rest];
+    %% Preferred position.
+    [Smooth,menu_entry(Rest)];
 add_menu([Other|Rest]) ->
-    [Other| add_menu(Rest)];
-add_menu([]) -> %% Just in case we end up here..
-    [{?__(3,"DS subdivision"), doo_sabin, 
-      ?__(4,"Makes a Doo-Sabin subdivision according to WasaMonkey")}].
+    [Other|add_menu(Rest)];
+add_menu([]) ->
+    %% Fallback position.
+    menu_entry([]).
+
+menu_entry(T) ->
+    [{?__(1,"Doo Sabin Subdivision"), doo_sabin, 
+      ?__(2,"Makes a Doo-Sabin subdivision according to WasaMonkey (WARNING: messes up all UV coordinates)")}|T].
 
 command({body,doo_sabin}, St0) ->
     %% Do For each selected object 
     wpa:sel_fold(fun(_,We,St) -> doo_sabin(We,St) end, 
 		 St0#st{sel=[],selmode=edge}, St0);
-command({edit,{plugin_preferences,doo_sabin}}, St) ->
-    pref_edit(St);
 command(_Cmd, _) -> next.
 
 doo_sabin(We0 = #we{es=Etab0, id=Id}, St0 = #st{shapes=Sh0,sel=OrigSel}) ->
@@ -98,31 +91,3 @@ doo_sabin(We0 = #we{es=Etab0, id=Id}, St0 = #st{shapes=Sh0,sel=OrigSel}) ->
     %% Return the result
     St1#st{sel=[{Id,CornerEds}|OrigSel],
 	   shapes=gb_trees:update(Id,We7,Sh0)}.
-
-%%%
-%%% Preference support.
-%%%
-
-pref_edit(St) ->
-    Enabled = get_pref(enabled, false),
-    wpa:dialog(?__(1,"Doo Sabin Preferences"),
-	       [{hframe,[{?__(2,"Enabled"),Enabled,[{key,enabled}]}]}],
-	       fun(Attr) -> pref_result(Attr, St) end).
-
-pref_result(Attr, St) ->
-    set_pref(Attr),
-    init_pref(),
-    St.
-
-set_pref(Attr) ->
-    wpa:pref_set(?MODULE, Attr).
-
-get_pref(Key, Def) ->
-    wpa:pref_get(?MODULE, Key, Def).
-
-init_pref() ->
-    Enabled = get_pref(enabled, false),
-    put({?MODULE,enabled}, Enabled),
-    ok.
-
-is_enabled() -> get({?MODULE,enabled}).

@@ -3,7 +3,7 @@
 %%
 %%     Polish language strings for Doo-Sabin.
 %%
-%%  Copyright (c) 2005 Andrzej Giniewicz
+%%  Copyright (c) 2005-2008 Andrzej Giniewicz
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,12 +16,10 @@
 %%
 {wpc_doosabin,
  [
-  {add_menu,
+  {menu_entry,
    [
-    {1,"Wygładź (DS)"},
-    {2,"Podziel wszystkie płaszczyzny, aby uzyskać łagodniejszy kształt aglorytmem Doo-Sabin według WasaMonkey (UWAGA: koordynaty UV zostaną zniszczone)"},
-    {3,"Wygładź (DS)"},
-    {4,"Podziel wszystkie płaszczyzny, aby uzyskać łagodniejszy kształt aglorytmem Doo-Sabin według WasaMonkey"}
+    {1,"Wygładź (Doo Sabin)"},
+    {2,"Podziel wszystkie płaszczyzny, aby uzyskać łagodniejszy kształt aglorytmem Doo-Sabin według WasaMonkey (UWAGA: koordynaty UV zostaną zniszczone)"}
    ]},
   {doo_sabin,
    [
@@ -35,10 +33,5 @@
   {menu,
    [
     {1,"Wygładzanie Doo Sabin"}
-   ]},
-  {pref_edit,
-   [
-    {1,"Opcje wygładzania Doo Sabin"},
-    {2,"Włączone"}
    ]}
  ]}.
