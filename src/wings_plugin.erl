@@ -1,7 +1,7 @@
 %%
 %%  wings_plugin.erl --
 %%
-%%     Experimental support of plugins.
+%%     Plug-In support, including the Plug-In Manager.
 %%
 %%  Copyright (c) 2001 Jakob Cederlund, Bjorn Gustavsson
 %%  Copyright (c) 2002-2008 Bjorn Gustavsson
@@ -17,7 +17,8 @@
 
 -include("wings.hrl").
 -include("e3d.hrl").
--import(lists, [append/1,flatmap/2,foreach/2,sort/1,reverse/1,foldl/3]).
+-import(lists, [append/1,flatmap/2,foreach/2,sort/1,reverse/1,foldl/3,
+		member/2]).
 
 %%%
 %%% Currently, there can be a single directory for plugins, but
@@ -46,13 +47,19 @@ init() ->
     case try_dir(wings_util:lib_dir(wings), "plugins") of
 	none -> ok;
 	PluginDir -> init_dir(PluginDir)
-    end.
+    end,
+    wings_pref:set_default(disabled_plugins, []),
+    AllPlugins = get(wings_plugins),
+    put(wings_all_plugins, AllPlugins),
+    put(wings_plugins, AllPlugins -- wings_pref:get_value(disabled_plugins)),
+    ok.
 
 call_ui(What) ->
     Ui = get(wings_ui),
     Ui(What).
 
-menu(Name, Menu) ->
+menu(Name, Menu0) ->
+    Menu = manager_menu(Name, Menu0),
     menu_1(get(wings_plugins), Name, Menu).
 
 menu_1([M|Ps], Name, Menu0) ->
@@ -106,7 +113,15 @@ dialog_result1(Dialog, Ps, []) ->
     {element(tuple_size(Dialog), Dialog),Ps}.
 
 command(Cmd, St) ->
-    command(get(wings_plugins), Cmd, St).
+    Ps = get(wings_plugins),
+    case manager_command(Cmd, St) of
+	next -> command(Ps, Cmd, St);
+	Other ->
+	    case check_result(?MODULE, Other, St) of
+		next -> command(Ps, Cmd, St);
+		Res -> Res
+	    end
+    end.
 
 command([M|Ps], Cmd, St) ->
     case catch M:command(Cmd, St) of
@@ -313,3 +328,190 @@ plugin_dir() ->
 	PluginDir -> PluginDir
     end.
     
+%%%
+%%% Plug-in manager.
+%%%
+%%% We call the menu/2 function in each function to classify the plug-in
+%%% (as command, primitive, import/export, and so on), and to find out
+%%% what commands it implements.
+%%%
+
+manager_menu({edit}, Menu) ->
+    manager_menu_1(Menu);
+manager_menu(_, Menu) -> Menu.
+
+manager_menu_1([{_,Fun,_,_}=H|T]) ->
+    case erlang:fun_info(Fun, module) of
+	{module,wings_pref_dlg} ->
+	    %% Preferred position.
+	    [H,manager_entry()|T];
+	_Other ->
+	    [H|manager_menu_1(T)]
+    end;
+manager_menu_1([H|T]) ->
+    [H|manager_menu_1(T)];
+manager_menu_1([]) ->
+    %% Fallback position.
+    [manager_entry()].
+
+manager_entry() ->
+    {"Plug-in Manager...",plugin_manager,[]}.
+
+manager_command({edit,plugin_manager}, _St) ->
+    Ps = get(wings_all_plugins),
+    Categories = [cat_command_fun(),fun cat_tool/1,fun cat_render/1,
+		  fun cat_import_export/1,fun cat_primitive/1],
+    Cps0 = [{category(Categories, P),P} || P <- Ps],
+    Cps = wings_util:rel2fam(Cps0),
+    Fun = fun(Res) -> 
+		  Disabled = [M || {M,false} <- Res],
+		  put(wings_plugins, get(wings_plugins) -- Disabled),
+		  wings_pref:set_value(disabled_plugins, Disabled),
+		  ignore
+	  end,
+    Dialog = mk_dialog(Cps, false),
+    wings_ask:dialog("Plug-In Manager", Dialog, Fun);
+manager_command(_, _) -> next.
+
+mk_dialog(Cs, _Min) ->
+    [{oframe,mk_dialog_1(Cs),1,[{style,buttons}]}].
+
+mk_dialog_1([{C,Ms}|Cs]) ->
+    [{cat_label(C),plugin_modules(C, Ms)}|mk_dialog_1(Cs)];
+mk_dialog_1([]) -> [].
+
+plugin_modules(C, Ms) ->
+    {hframe,[{vframe,[{atom_to_list(M),member(M, get(wings_plugins)),
+		       [{key,M}]} || M <- Ms]},
+	     {vframe,[plugin_info(C, M) || M <- Ms]}]}.
+
+cat_label(command) -> "Commands";
+cat_label(export_import) -> "Import/export";
+cat_label(primitive) -> "Primitives";
+cat_label(render) -> "Render";
+cat_label(tool) -> "Tools";
+cat_label(unknown) -> "Unclassified".
+
+category([F|Fs], M) ->
+    try F(M) of
+	next -> category(Fs, M);
+	Cat -> Cat
+    catch
+	_:_ ->
+	    category(Fs, M)
+    end;
+category([], _) -> unknown.
+
+cat_render(M) ->
+    try_menu([{file,render}], M, render).
+
+cat_import_export(M) ->
+    try_menu([{file,import},{file,export}], M, export_import).
+
+cat_primitive(M) ->
+    try_menu([{shape},{shape,more}], M, primitive).
+
+cat_tool(M) ->
+    try_menu([{tools}], M, tool).
+
+cat_command_fun() ->
+    Modes = [{vertex},{edge},{face},{body}],
+    Cmds = [move,scale,rotate,flatten],
+    Names = Modes ++ [{Mode,Cmd} || {Mode} <- Modes, Cmd <- Cmds] ++ [{face,subdivide}],
+    fun(M) ->
+	    try_menu(Names, M, command)
+    end.
+
+try_menu([N|Ns], M, Category) ->
+    DefaultMenu = [plugin_manager_category],
+    case M:menu(N, DefaultMenu) of
+	DefaultMenu -> try_menu(Ns, M, Category);
+	[_|_] -> Category
+    end;
+try_menu([], _, _) -> next.
+
+
+plugin_info(export_import, M) -> export_import_info(M);
+plugin_info(render, M) -> export_import_info(M);
+plugin_info(command, M) ->
+    Modes = [{vertex},{edge},{face},{body}],
+    Cmds = [move,scale,rotate,flatten],
+    Names = Modes ++ [{Mode,Cmd} || {Mode} <- Modes, Cmd <- Cmds] ++ [{face,subdivide}],
+    Menus = collect_menus(Names, M),
+    plugin_menu_info(Menus);
+plugin_info(primitive, M) ->
+    Menus = collect_menus([{shape},{shape,more}], M),
+    plugin_menu_info(Menus);
+plugin_info(tool, M) ->
+    Menus = collect_menus([{tools}], M),
+    plugin_menu_info(Menus);
+plugin_info(_, _) -> panel.
+
+export_import_info(M) ->
+    read_menu([{file,import},{file,export}], M).
+
+read_menu([N|Ns], M) ->
+    try M:menu(N, []) of
+	[{Str,_}|_] when is_list(Str) ->
+	    read_menu_label(Str);
+	[{Str,_,_}|_] when is_list(Str) ->
+	    read_menu_label(Str);
+	_Other ->
+	    read_menu(Ns, M)
+    catch
+	_:_Error ->
+	    read_menu(Ns, M)
+    end;
+read_menu([], _) -> panel.
+
+read_menu_label(Str) ->
+    {label,string:strip(Str, right, $.)}.
+
+collect_menus([N|Ns], M) ->
+    try M:menu(N, []) of
+	[_|_]=Menu0 ->
+	    Menu = clean_menu(Menu0),
+	    [{N,Mi} || Mi <- Menu] ++ collect_menus(Ns, M);
+	[] ->
+	    collect_menus(Ns, M)
+    catch
+	_:_Error ->
+	    collect_menus(Ns, M)
+    end;
+collect_menus([], _) -> [].
+
+clean_menu([{basic,Menu}|T]) ->
+    case wings_pref:get_value(advanced_menus) of
+	false -> clean_menu([Menu|T]);
+	true -> clean_menu(T)
+    end;
+clean_menu([{advanced,Menu}|T]) ->
+    case wings_pref:get_value(advanced_menus) of
+	false -> clean_menu(T);
+	true -> clean_menu([Menu|T])
+    end;
+clean_menu([separator|T]) ->
+    clean_menu(T);
+clean_menu([H|T]) ->
+    [H|clean_menu(T)];
+clean_menu([]) -> [].
+
+plugin_menu_info([{Name,Menu}|T]) when is_tuple(Name) ->
+    case plugin_key(Menu) of
+	none -> panel;
+	Key ->
+	    Cmd = wings_menu:build_command(Key, reverse(tuple_to_list(Name))),
+	    S0 = wings_util:stringify(Cmd),
+	    S = if
+		    T =/= [] -> S0 ++ "...";
+		    true -> S0
+		end,
+	    {label,S}
+    end;
+plugin_menu_info(_Other) ->
+    panel.
+
+plugin_key({_,{Key,_}}) when is_atom(Key) -> Key;
+plugin_key({_,Key,_}) when is_atom(Key) -> Key;
+plugin_key({_,Key,_,_}) when is_atom(Key) -> Key;
+plugin_key(_Other) -> none.

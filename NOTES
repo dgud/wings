@@ -1,3 +1,9 @@
+--- 0.99.01  ----------------------------------------------------------------
+
+- New feature: Edit|Plug-In Manager. It allows you to selectively enable and
+  disable plug-ins; for instance, you can turn off all export and import plug-ins
+  for formats that you never use. [bjorng]
+
 --- 0.99.00b ----------------------------------------------------------------
 
 - Creating a normal map for a material was so slow so that it seemed
