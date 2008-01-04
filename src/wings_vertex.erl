@@ -3,7 +3,7 @@
 %%
 %%     This module contains utility functions for vertices.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -155,7 +155,7 @@ bounding_box(#we{vp=Vtab}=We, BB) ->
 bounding_box(Vs, We) ->
     bounding_box(Vs, We, none).
     
-bounding_box(Vs, We, BB) when list(Vs) ->
+bounding_box(Vs, We, BB) when is_list(Vs) ->
     bounding_box_1(ordsets:from_list(Vs), We, BB);
 bounding_box(Vs, We, BB) ->
     bounding_box(gb_sets:to_list(Vs), We, BB).
@@ -193,7 +193,7 @@ normal(V, We) ->
 
 %% per_face(Vs, We) -> [{Face,[V]}]
 %%  Group vertices according to face.
-per_face(Vs, We) when list(Vs) ->
+per_face(Vs, We) when is_list(Vs) ->
     per_face(Vs, We, []);
 per_face(Vs, We) ->
     per_face(gb_sets:to_list(Vs), We, []).

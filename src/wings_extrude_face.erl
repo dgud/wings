@@ -3,7 +3,7 @@
 %%
 %%     This module contains the Extrude command for faces and face regions.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -23,7 +23,7 @@
 
 faces([], We) ->
     We;
-faces(Faces, We) when list(Faces) ->
+faces(Faces, We) when is_list(Faces) ->
     inner_extrude(Faces, We, []);
 faces(Faces, We) ->
     faces(gb_sets:to_list(Faces), We).

@@ -3,7 +3,7 @@
 %%
 %%     Maintains the vertex palette window.
 %%
-%%  Copyright (c) 2004-2005 Bjorn Gustavsson, Dan Gudmundsson
+%%  Copyright (c) 2004-2008 Bjorn Gustavsson, Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -377,7 +377,7 @@ command(import, #pst{cols=Cols0}) ->
 		  case file:consult(Name) of
 		      {ok,Content} ->
 			  case lists:keysearch(palette,1,Content) of
-			      {value, {palette, Pal}} when list(Pal) ->
+			      {value, {palette, Pal}} when is_list(Pal) ->
 				  Cols = del_trailing(Cols0) ++ Pal,
 				  wings_wm:send(palette, {new_color,Cols}),
 				  keep;
@@ -414,7 +414,7 @@ del_empty([none|L],N) ->
     del_empty(L,N+1);
 del_empty(L,N) -> {N,L}.
 
-add_empty(L,W,H) when list(L) ->
+add_empty(L,W,H) when is_list(L) ->
     Sz = length(L),
     if Sz >= W*H -> L;
        true -> add_empty(L,W*H-Sz)

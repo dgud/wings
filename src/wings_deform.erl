@@ -3,7 +3,7 @@
 %%
 %%     This module contains the Deform commands for vertices.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -173,7 +173,7 @@ crumple_mask(y) -> {0,1,0};
 crumple_mask(z) -> {0,0,1};
 crumple_mask(random) -> {1,1,1}.
 
-rnd(Sc) when float(Sc) ->
+rnd(Sc) when is_float(Sc) ->
     %% Use Box-Muller's method for generation of normally-distributed
     %% random numbers.
     X1 = random:uniform(),
@@ -340,7 +340,7 @@ twist(Vs0, #we{id=Id}=We, Axis, Acc) ->
 
 twist_fun(x, {_,Cy,Cz}) ->
     fun(U, Min, {X,Y0,Z0})
-       when float(U), float(Min), float(X), float(Y0), float(Z0) ->
+       when is_float(U), is_float(Min), is_float(X), is_float(Y0), is_float(Z0) ->
 	    Angle = U*(X-Min),
 	    Cos = math:cos(Angle),
 	    Sin = math:sin(Angle),
@@ -350,7 +350,7 @@ twist_fun(x, {_,Cy,Cz}) ->
     end;
 twist_fun(y, {Cx,_,Cz}) ->
     fun(U, Min, {X0,Y,Z0})
-       when float(U), float(Min), float(X0), float(Y), float(Z0) ->
+       when is_float(U), is_float(Min), is_float(X0), is_float(Y), is_float(Z0) ->
 	    Angle = U*(Y-Min),
 	    Cos = math:cos(Angle),
 	    Sin = math:sin(Angle),
@@ -360,7 +360,7 @@ twist_fun(y, {Cx,_,Cz}) ->
     end;
 twist_fun(z, {Cx,Cy,_}) ->
     fun(U, Min, {X0,Y0,Z})
-       when float(U), float(Min), float(X0), float(Y0), float(Z) ->
+       when is_float(U), is_float(Min), is_float(X0), is_float(Y0), is_float(Z) ->
 	    Angle = U*(Z-Min),
 	    Cos = math:cos(Angle),
 	    Sin = math:sin(Angle),
@@ -393,7 +393,7 @@ torque(Vs0, #we{id=Id}=We, Axis, Acc) ->
 
 torque_fun(x) ->
     fun(U, Min, {X,Y,Z})
-       when float(U), float(Min), float(X), float(Y), float(Z) ->
+       when is_float(U), is_float(Min), is_float(X), is_float(Y), is_float(Z) ->
 	    Angle = U*(X-Min),
 	    Cos = math:cos(Angle),
 	    Sin = math:sin(Angle),
@@ -401,7 +401,7 @@ torque_fun(x) ->
     end;
 torque_fun(y) ->
     fun(U, Min, {X,Y,Z})
-       when float(U), float(Min), float(X), float(Y), float(Z) ->
+       when is_float(U), is_float(Min), is_float(X), is_float(Y), is_float(Z) ->
 	    Angle = U*(Y-Min),
 	    Cos = math:cos(Angle),
 	    Sin = math:sin(Angle),
@@ -409,7 +409,7 @@ torque_fun(y) ->
     end;
 torque_fun(z) ->
     fun(U, Min, {X,Y,Z})
-       when float(U), float(Min), float(X), float(Y), float(Z) ->
+       when is_float(U), is_float(Min), is_float(X), is_float(Y), is_float(Z) ->
 	    Angle = U*(Z-Min),
 	    Cos = math:cos(Angle),
 	    Sin = math:sin(Angle),

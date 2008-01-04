@@ -3,7 +3,7 @@
 %%
 %%     Various utility functions that not obviously fit somewhere else.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -107,7 +107,7 @@ stringify({Atom,Other}) when is_atom(Atom) ->
 	end;
 stringify(Atom) when is_atom(Atom) ->
     cap(atom_to_list(Atom));
-stringify(Int) when integer(Int) ->
+stringify(Int) when is_integer(Int) ->
     integer_to_list(Int);
 stringify(_Other) -> [].
 

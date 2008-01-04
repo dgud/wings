@@ -3,7 +3,7 @@
 %%
 %%     Utilities for winged-edge records.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -104,7 +104,7 @@ validate_edge_tab(#we{es=Etab}=We) ->
 validate_edge_rec(Rec, We) ->
     #edge{ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} = Rec,
     if
-	integer(LP+LS+RP+RS) -> ok;
+	is_integer(LP+LS+RP+RS) -> ok;
 	true -> crash({non_integer_edges,Rec}, We)
     end.
 

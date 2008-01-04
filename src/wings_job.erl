@@ -3,7 +3,7 @@
 %%
 %%     OS job handling support for plugin writers.
 %%
-%%  Copyright (c) 2005-2007 Raimo Niskanen
+%%  Copyright (c) 2005-2008 Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -438,9 +438,9 @@ timestr({A1,B1,C1}, {A2,B2,C2}) ->
 
 %% Returns the argument time in microseconds in the
 %% same format as timestr/2.
-timestr(T) when integer(T), T < 0 -> 
+timestr(T) when is_integer(T), T < 0 -> 
     [$-|timestr_2(-T)];
-timestr(T) when integer(T) ->
+timestr(T) when is_integer(T) ->
     timestr_2(T).
 
 timestr_2(T0) ->
