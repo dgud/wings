@@ -276,7 +276,7 @@ ask_unzip([], Labels, Vals) ->
 %%                   {stretch,Stretch}|layout
 %% Note: the 'layout' flag forces a layout pass if the field changes value.
 %%       Default Stretch is 0 and defines how much of horizontal padding
-%%       when contained in a hframe that the field will use. The horizintal
+%%       when contained in a hframe that the field will use. The horizontal
 %%       padding is distributed evenly over the stretch factors.
 %%
 %% panel					-- Blank filler, stretch 1
@@ -284,7 +284,7 @@ ask_unzip([], Labels, Vals) ->
 %% Does not return a value.
 %%
 %% {value,Value}				-- Invisible value holder
-%% {value,Value,RegularFalgs}
+%% {value,Value,RegularFlags}
 %%
 %% {label,String}				-- Textual label
 %% Does not return a value.
@@ -753,11 +753,11 @@ field_event(Ev, S=#s{focus=_I,fi=TopFi=#fi{w=W0,h=H0},store=Store0},
 	    ?DEBUG_DISPLAY(other, {W,H}),
 	    get_event(next_focus(0, S#s{w=W,h=H,focusable=Focusable,
 					fi=Fi,store=Store}));
-	{Action,Store} when is_function(Action) ->
+	{Action,Store} when is_function(Action, 1) ->
 	    Res = collect_result(TopFi, Store),
 	    Action(Res),
 	    delete(S);
-	Action when is_function(Action) ->
+	Action when is_function(Action, 1) ->
 	    Res = collect_result(TopFi, Store0),
 	    Action(Res),
 	    delete(S)
@@ -901,7 +901,7 @@ collect_result_1(Fi=#fi{state=inert}, Sto, Path, R) ->
 collect_result_1(Fi=#fi{handler=Handler,key=Key}, Sto, Path, R0) ->
     R = case Handler(value, [Fi|Path], Sto) of
 	    none -> R0;
-	    {value,Res} when integer(Key) -> [Res|R0];
+	    {value,Res} when is_integer(Key) -> [Res|R0];
 	    {value,Res} -> [{Key,Res}|R0]
 	end,
     collect_result_2(Fi, Sto, Path, R).
@@ -1107,9 +1107,9 @@ mktree({hframe,Qs}, Sto, I) ->
     mktree_container(Qs, Sto, I, [layout], hframe);
 mktree({hframe,Qs,Flags}, Sto, I) ->
     mktree_container(Qs, Sto, I, [layout|Flags], hframe);
-mktree({oframe,Qs,Def}, Sto, I) ->
+mktree({oframe,Qs,Def}, Sto, I) when is_integer(Def) ->
     mktree_oframe(Qs, Def, Sto, I, [layout]);
-mktree({oframe,Qs,Def,Flags}, Sto, I) ->
+mktree({oframe,Qs,Def,Flags}, Sto, I) when is_integer(Def), is_list(Flags) ->
     mktree_oframe(Qs, Def, Sto, I, [layout|Flags]);
 %%
 mktree(panel, Sto, I) ->
@@ -1212,7 +1212,7 @@ mktree({Prompt,Def,Flags}, Sto, I) when Def==false; Def == true ->
 radio(FrameType, Qs0, Def, Flags) ->
     Qs = 
 	case proplists:get_value(key, Flags, 0) of
-	    I when integer(I) -> 
+	    I when is_integer(I) -> 
 		radio_alt(I, Qs0, Def, Flags);
 	    _ -> 
 		[{alt,Def,Prompt,Val,Flags} || {Prompt,Val} <- Qs0]
@@ -1230,7 +1230,7 @@ mktree_leaf(Handler, State, Minimized, W, H, I, Flags) ->
 	hook=proplists:get_value(hook, Flags),
 	stretch=case proplists:lookup(stretch, Flags) of
 		    none -> 0;
-		    {stretch,S} when integer(S), S >= 0 -> S
+		    {stretch,S} when is_integer(S), S >= 0 -> S
 		end,
 	flags=Flags,
 	extra=#leaf{w=W,h=H}}.
@@ -1270,7 +1270,7 @@ mktree_container_1([Q|Qs], Sto0, I0, R) ->
 		 w,h,				%header size
 		 titles}).			%tuple() of list()
 
-mktree_oframe(Qs, Def, Sto0, I0, Flags) when integer(Def), Def >= 1 ->
+mktree_oframe(Qs, Def, Sto0, I0, Flags) when is_integer(Def), Def >= 1 ->
     {Titles,Fields,Sto1,I} = mktree_oframe_1(Qs, Sto0, I0+1, [], []),
     FieldsTuple = list_to_tuple(Fields),
     if  Def =< tuple_size(FieldsTuple) ->
@@ -1311,7 +1311,7 @@ mktree_oframe(Qs, Def, Sto0, I0, Flags) when integer(Def), Def >= 1 ->
 
 mktree_oframe_1([], Sto, I, T, R) ->
     {reverse(T),reverse(R),Sto,I};
-mktree_oframe_1([{Title,Q}|Qs], Sto0, I0, T, R) when list(Title) ->
+mktree_oframe_1([{Title,Q}|Qs], Sto0, I0, T, R) when is_list(Title) ->
     {Fi,Sto,I} = mktree(Q, Sto0, I0),
     mktree_oframe_1(Qs, Sto, I, [Title|T], [Fi|R]).
 
@@ -2500,7 +2500,7 @@ browse_hook_fun(Index, Flags) ->
 help_hook(Title, HelpLines0) ->
     {hook,
      fun (update, _) ->
-	     HelpLines = if is_function(HelpLines0) ->
+	     HelpLines = if is_function(HelpLines0, 0) ->
 				 HelpLines0();
 			    is_list(HelpLines0) ->
 				 HelpLines0 end,
@@ -3702,7 +3702,7 @@ hsv_to_rgb(H, S, V) ->
 hook(Hook, is_disabled, [Var,I,Store]) ->
     case Hook of
 	undefined -> keep;
-	_ when is_function(Hook) ->
+	_ when is_function(Hook, 2) ->
 	    case Hook(is_disabled, {Var,I,Store}) of
 		void -> keep;
 		true -> disabled;
@@ -3712,7 +3712,7 @@ hook(Hook, is_disabled, [Var,I,Store]) ->
 hook(Hook, is_minimized, [Var,I,Store]) ->
     case Hook of
 	undefined -> keep;
-	_ when is_function(Hook) ->
+	_ when is_function(Hook, 2) ->
 	    case Hook(is_minimized, {Var,I,Store}) of
 		void -> keep;
 		true -> true;
@@ -3726,7 +3726,7 @@ hook(Hook, update, [Var,I,Val,Sto0,Flags]) ->
 	    Result = 
 		case Hook of
 		    undefined -> {store,gb_trees:update(Var, Val, Sto0)};
-		    _ when is_function(Hook) ->
+		    _ when is_function(Hook, 2) ->
 			case Hook(update, {Var,I,Val,Sto0}) of
 			    void -> {store,gb_trees:update(Var, Val, Sto0)};
 			    %% Result -> Result % but more paranoid
@@ -3747,7 +3747,7 @@ hook(Hook, update, [Var,I,Val,Sto0,Flags]) ->
 hook(Hook, menu_disabled, [Var,I,Store]) ->
     case Hook of
 	undefined -> [];
-	_ when is_function(Hook) ->
+	_ when is_function(Hook, 2) ->
 	    case Hook(menu_disabled, {Var,I,Store}) of
 		void -> [];
 		Disabled when is_list(Disabled) -> Disabled
