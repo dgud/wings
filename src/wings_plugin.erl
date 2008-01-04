@@ -431,7 +431,7 @@ command_menus() ->
     Modes ++ [{Mode,Cmd} || {Mode} <- Modes, Cmd <- Cmds] ++ [{face,tesselate}].
     
 try_menu([N|Ns], M, Category) ->
-    DefaultMenu = [plugin_manager_category],
+    DefaultMenu = plugin_default_menu(),
     case M:menu(N, DefaultMenu) of
 	DefaultMenu -> try_menu(Ns, M, Category);
 	[_|_] -> Category
@@ -456,32 +456,26 @@ plugin_info(tool, M) ->
 plugin_info(_, _) -> panel.
 
 export_import_info(M) ->
-    read_menu([{file,import},{file,export}], M).
-
-read_menu([N|Ns], M) ->
-    try M:menu(N, []) of
-	[{Str,_}|_] when is_list(Str) ->
-	    read_menu_label(Str);
-	[{Str,_,_}|_] when is_list(Str) ->
-	    read_menu_label(Str);
+    case collect_menus([{file,import},{file,export}], M) of
+	[{_,{Str,_}}|_] when is_list(Str) ->
+	    export_menu_label(Str);
+	[{_,{Str,_,_}}|_] when is_list(Str) ->
+	    export_menu_label(Str);
 	_Other ->
-	    read_menu(Ns, M)
-    catch
-	_:_Error ->
-	    read_menu(Ns, M)
-    end;
-read_menu([], _) -> panel.
+	    panel
+    end.
 
-read_menu_label(Str) ->
+export_menu_label(Str) ->
     {label,string:strip(Str, right, $.)}.
 
 collect_menus([N|Ns], M) ->
-    try M:menu(N, []) of
+    DefaultMenu = plugin_default_menu(),
+    try M:menu(N, DefaultMenu) of
+	DefaultMenu ->
+	    collect_menus(Ns, M);
 	[_|_]=Menu0 ->
 	    Menu = clean_menu(Menu0),
-	    [{N,Mi} || Mi <- Menu] ++ collect_menus(Ns, M);
-	[] ->
-	    collect_menus(Ns, M)
+	    [{N,Mi} || Mi <- Menu] ++ collect_menus(Ns, M)
     catch
 	_:_Error ->
 	    collect_menus(Ns, M)
@@ -499,6 +493,8 @@ clean_menu([{advanced,Menu}|T]) ->
 	true -> clean_menu([Menu|T])
     end;
 clean_menu([separator|T]) ->
+    clean_menu(T);
+clean_menu([plugin_manager_category|T]) ->
     clean_menu(T);
 clean_menu([H|T]) ->
     [H|clean_menu(T)];
@@ -523,3 +519,6 @@ plugin_key({_,{Key,_}}) when is_atom(Key) -> Key;
 plugin_key({_,Key,_}) when is_atom(Key) -> Key;
 plugin_key({_,Key,_,_}) when is_atom(Key) -> Key;
 plugin_key(_Other) -> none.
+
+plugin_default_menu() ->
+    [plugin_manager_category].

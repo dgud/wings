@@ -111,22 +111,26 @@ init_pref() ->
 menu({file,export}, Menu) ->
     case get_var(dialogs) of
     	false -> Menu;
-	_ -> Menu++[{"POV-Ray (.pov)",?TAG,[option]}]
+	_ -> povray_menu(Menu)
     end;
 menu({file,export_selected}, Menu) ->
     case get_var(dialogs) of
     	false -> Menu;
-	_ -> Menu++[{"POV-Ray (.pov)",?TAG,[option]}]
+	_ -> povray_menu(Menu)
     end;
 menu({file,render}, Menu) ->
-    case get_var(renderer) of
-    	false -> Menu;
-	_ -> Menu++[{"POV-Ray",?TAG,[option]}]
+    case {get_var(renderer),Menu} of
+	{_,[plugin_manager_category]} -> povray_menu(Menu);
+    	{false,_} -> Menu;
+	{_,_} -> povray_menu(Menu)
     end;
 menu({edit, plugin_preferences}, Menu) ->
 	Menu++[{"POV-Ray",?TAG}];
 menu(_, Menu) ->
     Menu.
+
+povray_menu(Menu) ->
+    Menu ++ [{"POV-Ray (.pov)",?TAG,[option]}].
 
 %dialog and file type properties    
 props(render, Attr) ->

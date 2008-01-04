@@ -3,7 +3,7 @@
 %%
 %%     YafRay Plugin User Interface.
 %%
-%%  Copyright (c) 2003-2007 Raimo Niskanen
+%%  Copyright (c) 2003-2008 Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -357,10 +357,12 @@ init_pref() ->
     ok.
 
 maybe_append(Condition, Menu, PluginMenu) ->
-    case is_plugin_active(Condition) of
-	false ->
+    case {is_plugin_active(Condition),Menu} of
+	{_,[plugin_manager_category]} ->
+	    Menu++PluginMenu;
+	{false,_} ->
 	    Menu;
-	_ ->
+	{_,_} ->
 	    Menu++PluginMenu
     end.
 
@@ -650,7 +652,7 @@ modulator_dialogs([Modulator|Modulators], Maps, M) ->
     modulator_dialog(Modulator, Maps, M)++
 	modulator_dialogs(Modulators, Maps, M+1).
 
-modulator_dialog({modulator,Ps}, Maps, M) when list(Ps) ->
+modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
 %    erlang:display({?MODULE,?LINE,[Ps,M,Maps]}),
     {Enabled,Mode,Type} = mod_enabled_mode_type(Ps, Maps),
     Minimized = proplists:get_value(minimized, Ps, true),
@@ -749,11 +751,11 @@ mod_enabled_mode_type(Ps, Maps) ->
 
 mod_legend(Enabled, Mode, {map,Map}) ->
     mod_legend(Enabled, Mode, atom_to_list(Map));
-mod_legend(Enabled, Mode, Type) when atom(Mode) ->
+mod_legend(Enabled, Mode, Type) when is_atom(Mode) ->
     mod_legend(Enabled, wings_util:cap(Mode), Type);
-mod_legend(Enabled, Mode, Type) when atom(Type) ->
+mod_legend(Enabled, Mode, Type) when is_atom(Type) ->
     mod_legend(Enabled, Mode, wings_util:cap(Type));
-mod_legend(Enabled, Mode, Type) when list(Mode), list(Type) ->
+mod_legend(Enabled, Mode, Type) when is_list(Mode), is_list(Type) ->
     case Enabled of
 	true -> " ("++?__(1,"enabled")++", ";
 	false -> " ("++?__(2,"disabled")++", "
@@ -2682,7 +2684,7 @@ export_generic_shader(F, Name, Mat, ExportDir, YafRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, YafRay, def_modulators(Maps)),
-    foldl(fun ({modulator,Ps}=M, N) when list(Ps) ->
+    foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
 		  case export_texture(F, [Name,$_,format(N)], 
 				      Maps, ExportDir, M) of
 		      off -> N+1;
@@ -2761,7 +2763,7 @@ export_generic_shader(F, Name, Mat, ExportDir, YafRay) ->
 	    "        <min_refle value=\"~.10f\"/>~n"
 	    "    </attributes>", 
 	    [IOR,format(TIR),format(FastFresnel),MinRefle]),
-    foldl(fun ({modulator,Ps}=M, N) when list(Ps) ->
+    foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
 		  case export_modulator(F, [Name,$_,format(N)], 
 					Maps, M, Opacity) of
 		      off -> N+1;
@@ -2774,7 +2776,7 @@ export_generic_shader(F, Name, Mat, ExportDir, YafRay) ->
 	  end, 1, Modulators),
     println(F, "</shader>").
 
-export_texture(F, Name, Maps, ExportDir, {modulator,Ps}) when list(Ps) ->
+export_texture(F, Name, Maps, ExportDir, {modulator,Ps}) when is_list(Ps) ->
     case mod_enabled_mode_type(Ps, Maps) of
 	{false,_,_} ->
 	    off;
@@ -2837,7 +2839,7 @@ export_texture(F, Name, Type, Ps) ->
     end,
     println(F, "</texture>").
 
-export_modulator(F, Texname, Maps, {modulator,Ps}, Opacity) when list(Ps) ->
+export_modulator(F, Texname, Maps, {modulator,Ps}, Opacity) when is_list(Ps) ->
     case mod_enabled_mode_type(Ps, Maps) of
 	{false,_,_} ->
 	    off;
@@ -3696,7 +3698,7 @@ format(A) when is_atom(A) ->
 format(L) when is_list(L) ->
     L.
 
-format_decimals(F) when float(F), F >= 0.0 ->
+format_decimals(F) when is_float(F), F >= 0.0 ->
     format_decimals_1(F).
 
 format_decimals_1(0.0) ->
@@ -3800,7 +3802,7 @@ erase_var(Name) ->
 
 %% Split a list into a list of length Pos, and the tail
 %%
-split_list(List, Pos) when list(List), integer(Pos), Pos >= 0 ->
+split_list(List, Pos) when is_list(List), is_integer(Pos), Pos >= 0 ->
     case split_list1(List, Pos, []) of
 	{_,_}=Result ->
 	    Result;
