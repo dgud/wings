@@ -456,7 +456,7 @@ plugin_info(tool, M) ->
 plugin_info(_, _) -> panel.
 
 export_import_info(M) ->
-    case collect_menus([{file,import},{file,export}], M) of
+    case collect_menus([{file,import},{file,export},{file,render}], M) of
 	[{_,{Str,_}}|_] when is_list(Str) ->
 	    export_menu_label(Str);
 	[{_,{Str,_,_}}|_] when is_list(Str) ->
@@ -468,7 +468,7 @@ export_import_info(M) ->
 export_menu_label(Str) ->
     {label,string:strip(Str, right, $.)}.
 
-collect_menus([N|Ns], M) ->
+collect_menus([N|Ns], M) when is_tuple(N) ->
     DefaultMenu = plugin_default_menu(),
     try M:menu(N, DefaultMenu) of
 	DefaultMenu ->
@@ -500,20 +500,56 @@ clean_menu([H|T]) ->
     [H|clean_menu(T)];
 clean_menu([]) -> [].
 
-plugin_menu_info([{Name,Menu}|T]) when is_tuple(Name) ->
+plugin_menu_info([]) -> panel;
+plugin_menu_info([_|_]=Menus0) ->
+    Menus = normalize_menu(Menus0),
+    plugin_menu_info_1(Menus).
+
+plugin_menu_info_1(Cmds) ->
+    case wings_util:rel2fam(Cmds) of
+	[{Root,SubCmds0}] ->
+	    SubCmds = [wings_util:stringify(C) || C <- SubCmds0],
+	    Str = string:join(SubCmds, ", "),
+	    {label,plugin_root_menu(Root)++Str};
+	_ ->
+	    plugin_menu_info_2(Cmds)
+    end.
+
+plugin_menu_info_2(Cmds) ->
+    R0 = sofs:from_external(Cmds, [{root,command}]),
+    R1 = sofs:converse(R0),
+    R2 = sofs:relation_to_family(R1),
+    R = sofs:to_external(R2),
+    case R of
+	[{Cmd,Modes}] ->
+	    {label,string:join([atom_to_list(M) || M <- Modes], ", ") ++ ": " ++
+	     wings_util:stringify(Cmd)};
+	_ ->
+	    plugin_menu_info_3(Cmds)
+    end.
+
+plugin_menu_info_3(Cmds0) ->
+    Cmds = [plugin_root_menu(Mode) ++ wings_util:stringify(C) ||
+	       {Mode,C} <- Cmds0],
+    Str = string:join(Cmds, "; "),
+    {label,Str}.
+
+plugin_root_menu(body) -> "body: ";
+plugin_root_menu(edge) -> "edge: ";
+plugin_root_menu(face) -> "face: ";
+plugin_root_menu(vertex) -> "vertex: ";
+plugin_root_menu(select) -> "Select|";
+plugin_root_menu(tools) -> "Tools|";
+plugin_root_menu(shape) -> "".
+
+normalize_menu([{Name,Menu}|T]) ->
     case plugin_key(Menu) of
-	none -> panel;
+	none -> normalize_menu(T);
 	Key ->
 	    Cmd = wings_menu:build_command(Key, reverse(tuple_to_list(Name))),
-	    S0 = wings_util:stringify(Cmd),
-	    S = if
-		    T =/= [] -> S0 ++ "...";
-		    true -> S0
-		end,
-	    {label,S}
+	    [Cmd|normalize_menu(T)]
     end;
-plugin_menu_info(_Other) ->
-    panel.
+normalize_menu([]) -> [].
 
 plugin_key({_,{Key,_}}) when is_atom(Key) -> Key;
 plugin_key({_,Key,_}) when is_atom(Key) -> Key;
