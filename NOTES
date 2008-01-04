@@ -4,6 +4,10 @@
   disable plug-ins; for instance, you can turn off all export and import plug-ins
   for formats that you never use. [bjorng]
 
+- View|Saved Views|Save will now count as change, so that the file can be
+  saved immediately without workarounds such as selecting something first.
+  (Thanks to oort.) [bjorng]
+
 --- 0.99.00b ----------------------------------------------------------------
 
 - Creating a normal map for a material was so slow so that it seemed

@@ -176,7 +176,7 @@ views_submenu_help(CurrentView, Views, Action) ->
 	    ?__(11,"Delete all saved views")
     end.
 
-view_index(I, N) when integer(I), integer(N), N > 0 ->
+view_index(I, N) when is_integer(I), is_integer(N), N > 0 ->
     J = (I-1) rem N,
     if J < 0 -> J + 1 + N;
        true -> J + 1
@@ -964,11 +964,11 @@ frame_1([A,B]=BB) ->
 			  distance=Dist,pan_x=0.0,pan_y=0.0}).
 
 views({save,[Legend]}, #st{views={_,{}}}=St) ->
-    St#st{views={1,{{current(),Legend}}}};
+    St#st{views={1,{{current(),Legend}}},saved=false};
 views({save,[Legend]}, #st{views={CurrentView,Views}}=St) ->
     J = view_index(CurrentView, tuple_size(Views)),
     {L1,L2} = lists:split(J, tuple_to_list(Views)),
-    St#st{views={J+1,list_to_tuple(L1++[{current(),Legend}|L2])}};
+    St#st{views={J+1,list_to_tuple(L1++[{current(),Legend}|L2])},saved=false};
 views({save,Ask}, #st{views={CurrentView,Views}}) when is_atom(Ask) ->
     View = current(),
     S = tuple_size(Views),
