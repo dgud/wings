@@ -383,7 +383,10 @@ mk_dialog_1([]) -> [].
 
 plugin_modules(C, Ms) ->
     {hframe,[{vframe,[{atom_to_list(M),member(M, get(wings_plugins)),
-		       [{key,M}]} || M <- Ms]},
+		       [{key,M},
+			{info,"Enable or disable this plug-in "
+			 "(a disbled plug-in does not show up in menus)"}]} ||
+			 M <- Ms]},
 	     {vframe,[plugin_info(C, M) || M <- Ms]}]}.
 
 cat_label(command) -> "Commands";
