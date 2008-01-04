@@ -3,7 +3,7 @@
 %%
 %%     This module contains most of the face commands.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -59,7 +59,7 @@ menu(X, Y, St) ->
 	     ?__(26,"Delete faces, replacing them with vertices")},
 	    {?__(27,"Smooth"),smooth,
 	     ?__(28,"Subdivide selected faces to smooth them (Catmull-Clark)")},
-	    {?__(29,"Tesselate"),{subdivide,wings_tesselation:submenu()}},
+	    {?__(29,"Tesselate"),{tesselate,wings_tesselation:submenu()}},
 	    separator,
 	    {?__(32,"Hide"),hide,?__(33,"Hide the selected faces")},
 	    separator] ++ wings_material:material_menu(St) ++
@@ -139,7 +139,7 @@ command({rotate,Type}, St) ->
     wings_rotate:setup(Type, St);
 command({scale,Type}, St) ->
     wings_scale:setup(Type, St);
-command({subdivide,Subdivide}, St) ->
+command({tesselate,Subdivide}, St) ->
     wings_tesselation:command(Subdivide, St);
 command(vertex_color, St) ->
     wings_color:choose(fun(Color) ->

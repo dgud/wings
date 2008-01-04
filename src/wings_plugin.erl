@@ -359,8 +359,9 @@ manager_entry() ->
 
 manager_command({edit,plugin_manager}, _St) ->
     Ps = get(wings_all_plugins),
-    Categories = [cat_command_fun(),fun cat_tool/1,fun cat_render/1,
-		  fun cat_import_export/1,fun cat_primitive/1],
+    Categories = [cat_command_fun(),fun cat_tool/1,fun cat_select/1,
+		  fun cat_render/1,fun cat_import_export/1,
+		  fun cat_primitive/1],
     Cps0 = [{category(Categories, P),P} || P <- Ps],
     Cps = wings_util:rel2fam(Cps0),
     Fun = fun(Res) -> 
@@ -389,6 +390,7 @@ cat_label(command) -> "Commands";
 cat_label(export_import) -> "Import/export";
 cat_label(primitive) -> "Primitives";
 cat_label(render) -> "Render";
+cat_label(select) -> "Select";
 cat_label(tool) -> "Tools";
 cat_label(unknown) -> "Unclassified".
 
@@ -411,17 +413,23 @@ cat_import_export(M) ->
 cat_primitive(M) ->
     try_menu([{shape},{shape,more}], M, primitive).
 
+cat_select(M) ->
+    try_menu([{select}], M, select).
+
 cat_tool(M) ->
     try_menu([{tools}], M, tool).
 
 cat_command_fun() ->
-    Modes = [{vertex},{edge},{face},{body}],
-    Cmds = [move,scale,rotate,flatten],
-    Names = Modes ++ [{Mode,Cmd} || {Mode} <- Modes, Cmd <- Cmds] ++ [{face,subdivide}],
+    Names = command_menus(),
     fun(M) ->
 	    try_menu(Names, M, command)
     end.
 
+command_menus() ->
+    Modes = [{vertex},{edge},{face},{body}],
+    Cmds = [move,scale,rotate,flatten],
+    Modes ++ [{Mode,Cmd} || {Mode} <- Modes, Cmd <- Cmds] ++ [{face,tesselate}].
+    
 try_menu([N|Ns], M, Category) ->
     DefaultMenu = [plugin_manager_category],
     case M:menu(N, DefaultMenu) of
@@ -430,17 +438,17 @@ try_menu([N|Ns], M, Category) ->
     end;
 try_menu([], _, _) -> next.
 
-
 plugin_info(export_import, M) -> export_import_info(M);
 plugin_info(render, M) -> export_import_info(M);
 plugin_info(command, M) ->
-    Modes = [{vertex},{edge},{face},{body}],
-    Cmds = [move,scale,rotate,flatten],
-    Names = Modes ++ [{Mode,Cmd} || {Mode} <- Modes, Cmd <- Cmds] ++ [{face,subdivide}],
+    Names = command_menus(),
     Menus = collect_menus(Names, M),
     plugin_menu_info(Menus);
 plugin_info(primitive, M) ->
     Menus = collect_menus([{shape},{shape,more}], M),
+    plugin_menu_info(Menus);
+plugin_info(select, M) ->
+    Menus = collect_menus([{select}], M),
     plugin_menu_info(Menus);
 plugin_info(tool, M) ->
     Menus = collect_menus([{tools}], M),

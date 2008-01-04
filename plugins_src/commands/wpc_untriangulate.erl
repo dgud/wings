@@ -3,7 +3,7 @@
 %%
 %%    Plug-in to untriangulate (make quads from a triangle soup).
 %%
-%%  Copyright (c) 2005 Dave Rodgers
+%%  Copyright (c) 2005-2008 Dave Rodgers
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -51,14 +51,14 @@ init() ->
     init_pref(),
     true.
 
-menu({face,subdivide}, Menu) ->
+menu({face,tesselate}, Menu) ->
     Menu ++ [{?__(1,"Untriangulate"), untriangulate,
               ?__(2,"Convert triangle sets into quads"),[option]}];
 menu({edit,plugin_preferences}, Menu) ->
     Menu ++ [{?__(3,"Untriangulate"),untriangulate}];
 menu(_,Menu) -> Menu.
 
-command({face, {subdivide, {untriangulate, Ask}}}, St) ->
+command({face, {tesselate, {untriangulate, Ask}}}, St) ->
     untriangulate(Ask,St);
 command({edit,{plugin_preferences,untriangulate}}, St) ->
     pref_edit(St);
@@ -75,7 +75,7 @@ untriangulate(Ask, _) when is_atom(Ask) ->
     Qs = get_ask_list(),
     wings_ask:dialog(Ask, ?__(1,"Untriangulate (v0.2)"), [{vframe, Qs}],
                      fun(Res) ->
-                         {face, {subdivide, {untriangulate, Res}}}
+                         {face, {tesselate, {untriangulate, Res}}}
                      end);
 
 untriangulate([AlgoLevelAtom, Angle,
