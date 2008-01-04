@@ -3,7 +3,7 @@
 %%
 %%     Handle images (2D) and different file formats.
 %%
-%%  Copyright (c) 2001-2004 Dan Gudmundsson
+%%  Copyright (c) 2001-2008 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -43,7 +43,7 @@
 %%       Options {type, Type} and/or {alignment, N} and/or {order, O} see e3d_image.hrl
 load(FileName) ->
     load(FileName, []).
-load(FileName, Opts) when list(FileName), list(Opts) ->
+load(FileName, Opts) when is_list(FileName), is_list(Opts) ->
     Extension = file_extension(FileName),
     Res = case ext_to_type(Extension) of
 	      tga -> e3d__tga:load(FileName, Opts);
@@ -99,10 +99,10 @@ format_error(Other) ->
 %% Func: convert(#e3d_image, NewType [,NewAlignment [,NewOrder ]])
 %% Rets: #e3d_image | {error, Reason}
 %% Desc: Converts an image to new type optionally NewAlignment and NewOrder
-convert(In, ToType) when atom(ToType) ->
+convert(In, ToType) when is_atom(ToType) ->
     convert(In, ToType, In#e3d_image.alignment, In#e3d_image.order).
 
-convert(In, ToType, NewAlignment) when atom(ToType) ->
+convert(In, ToType, NewAlignment) when is_atom(ToType) ->
     convert(In, ToType, NewAlignment, In#e3d_image.order).
 
 convert(#e3d_image{type=Type, alignment=Al,order=O}=In, Type, Al, O) -> In;

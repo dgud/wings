@@ -702,7 +702,7 @@ make_percent(Percent0) when is_float(Percent0) ->
 make_chunk(Tag, Contents) when is_binary(Contents) ->
     Size = size(Contents) + 6,
     [<<Tag:16/little,Size:32/little>>|Contents];
-make_chunk(Tag, Contents) when list(Contents) ->
+make_chunk(Tag, Contents) when is_list(Contents) ->
     make_chunk(Tag, list_to_binary(Contents)).
 
 %%%

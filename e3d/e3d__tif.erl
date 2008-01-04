@@ -597,7 +597,7 @@ lzw_decomp(S, Read, PrevCode, Count, BitLen, Acc) ->
 		{?LZW_EOI, _} ->
 %%		    io:format("~nEOI-2 ~p ~n", [{S, PrevCode, Count, BitLen}]),
 		    Acc;
-		{NewCode, NS2} when integer(NewCode) -> 
+		{NewCode, NS2} when is_integer(NewCode) -> 
 		    Str = ?get_lzw(NewCode),
 		    lzw_decomp(NS2, Read, NewCode, 258, 9, [Str|Acc]);
 	    	Else ->
@@ -605,7 +605,7 @@ lzw_decomp(S, Read, PrevCode, Count, BitLen, Acc) ->
 			      [?MODULE, Else, {NS, PrevCode, Count, BitLen}]),
 		    exit({badly_compressed_data})
 	    end;
-	{NewCode, NS} when integer(NewCode) ->
+	{NewCode, NS} when is_integer(NewCode) ->
 	    case ?get_lzw(NewCode) of
 		undefined when Count == NewCode ->
 		    OldStr = [H|_] = ?get_lzw(PrevCode),
@@ -671,7 +671,7 @@ lzw_compress(<<>>, CC, _W, Omega, BitLen, _TabCount, Build, Acc) ->
     {{TotBitLen, Codes}, N2acc} = lzw_write({NewBL,?LZW_EOI}, NBuild, Nacc),
     PaddL = 8 - (TotBitLen rem 8),
     case catch lzw_buildbin(lists:reverse([{PaddL, 0}|Codes])) of
-        Bin when binary(Bin) -> 
+        Bin when is_binary(Bin) -> 
             list_to_binary(lists:reverse([Bin|N2acc]));
 	_Else ->
 	    io:format("~p:~p Error ~p ~p ~n", [?MODULE, ?LINE, {PaddL, Codes}, CC]),
@@ -709,9 +709,9 @@ lzw_write({CLen, Code}, {Totlen, List}, Acc) ->
     if 
 	NewLen rem 8 == 0 ->
 	    case catch lzw_buildbin(lists:reverse([{CLen,Code}|List])) of
-		Bin when binary(Bin) ->
+		Bin when is_binary(Bin) ->
 		    {{0, []}, [Bin|Acc]};
-		{Bin, NewList} when binary(Bin) ->
+		{Bin, NewList} when is_binary(Bin) ->
 		    Sum = lists:foldl(fun({X,_}, Sum) -> X + Sum end, 0, NewList),
 		    {{Sum, lists:reverse(NewList)}, [Bin|Acc]};
 		Else ->
@@ -721,7 +721,7 @@ lzw_write({CLen, Code}, {Totlen, List}, Acc) ->
 	    end;
 	NewLen > 100 -> 
 	    case catch lzw_buildbin(lists:reverse([{CLen,Code}|List])) of
-		{Bin, NewList} when binary(Bin) ->		    
+		{Bin, NewList} when is_binary(Bin) ->		    
 		    Sum = lists:foldl(fun({X,_}, Sum) -> X + Sum end, 0, NewList),
 		    {{Sum, lists:reverse(NewList)}, [Bin|Acc]};
 		Else ->

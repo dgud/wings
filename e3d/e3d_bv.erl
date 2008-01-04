@@ -3,12 +3,13 @@
 %%
 %%     Bounding volume operations.
 %%        Currently only quickhull, and eigen-vecs calculation implemented
-%%  Copyright (c) 2001-2005 Dan Gudmundsson
+%%
+%%  Copyright (c) 2001-2008 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: e3d_bv.erl,v 1.1 2005/05/03 16:23:08 dgud Exp $
+%%     $Id$
 %%
 
 -module(e3d_bv).
@@ -30,7 +31,7 @@ eigen_vecs(Vs) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%% QHULL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 -record(hull, {f,p,os}).
 %% Splits a point soup in a convex-triangle-hull.
-quickhull([V1,V2|Vs0]) when list(Vs0) -> 
+quickhull([V1,V2|Vs0]) when is_list(Vs0) -> 
     %% Init find an initial triangle..
     [M1,M2] = if V1 < V2 -> [V1,V2]; true -> [V2,V1] end,
     {T1,T2,[T30|Vs1]} = minmax_x(Vs0,M1,M2,[]),
