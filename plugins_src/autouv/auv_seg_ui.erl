@@ -223,7 +223,7 @@ seg_event_6({action,{material,Cmd}}, #seg{st=St0}=Ss) ->
     end;
 seg_event_6({action,{auv_segmentation,Cmd}}, Ss) ->
     seg_command(Cmd, Ss);
-seg_event_6({callback, Fun}, _) when function(Fun) ->
+seg_event_6({callback, Fun}, _) when is_function(Fun, 0) ->
     Fun();
 seg_event_6({message,Message}, _) ->
     wings_u:message(Message);

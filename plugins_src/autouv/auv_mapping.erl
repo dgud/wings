@@ -940,8 +940,7 @@ lsq_result(X, Lquv, Rdict) ->
 %%
 %% Return: {L_remaining, L_picked}
 %%
-pick(L, P) 
-  when list(L), list(P) ->
+pick(L, P) when is_list(L), is_list(P) ->
     case pick(1, L, P, [], []) of
 	{_, _} = Ok ->
 	    Ok;
@@ -972,10 +971,9 @@ pick(_, _, _, _, _) ->
 %% S: List of {Pos,Term} tuples with Term to be 
 %%    inserted at position Pos in L
 %%
-insert(L, S)
-  when list(L), list(S) ->
+insert(L, S) when is_list(L), is_list(S) ->
     case insert(1, L, S, []) of
-	R when list(R) ->
+	R when is_list(R) ->
 	    R;
 	Fault ->
 	    erlang:error(Fault, [L, S])

@@ -4,7 +4,7 @@
 %%     Provides matrix ops for sparsely populated matrixes.
 %%
 %%  Copyright (c) 2001-2002 Raimo Niskanen,
-%%                2004 Bjorn Gustavsson
+%%                2004-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -40,7 +40,7 @@ dim({?TAG,N,M,_}) ->
     {N,M};
 dim({?TAG,N,_}) ->
     {N,1};
-dim(V) when number(V) ->
+dim(V) when is_number(V) ->
     {1,1};
 dim(A) ->
     erlang:error(badarg, [A]).
@@ -51,13 +51,13 @@ dim(A) ->
 %%
 vector({?TAG,_N,A}) ->
     lists:reverse(vector_to_list_r(A, []));
-vector(V) when number(V) ->
+vector(V) when is_number(V) ->
     [V];
-vector(L) when list(L) ->
+vector(L) when is_list(L) ->
     case vector_from_list(0, L, []) of
 	{[], 0} ->
 	    erlang:error(badarg, [L]);
-	{A, N} when list(A) ->
+	{A, N} when is_list(A) ->
 	    fix({?TAG,N,A});
 	Fault ->
 	    erlang:error(Fault, [L])
@@ -75,7 +75,7 @@ vector_to_list_r([Z | A], C) ->
 
 vector_from_list(N, [], C) ->
     {lists:reverse(C), N};
-vector_from_list(N, [V | L], C) when number(V) ->
+vector_from_list(N, [V | L], C) when is_number(V) ->
     F = float(V),
     vector_from_list(N+1, L, push_v(F, C));
 vector_from_list(_, _, _) ->
@@ -85,9 +85,9 @@ vector_from_list(_, _, _) ->
 
 %% Exported
 %%
-vector(N, D) when integer(N), list(D), 1 =< N ->
+vector(N, D) when is_integer(N), is_list(D), 1 =< N ->
     case vector_from_tuplist(1, N, lists:sort(D), []) of
-	L when list(L) ->
+	L when is_list(L) ->
 	    fix({?TAG,N,L});
 	Fault ->
 	    erlang:error(Fault, [N, D])
@@ -100,7 +100,7 @@ vector_from_tuplist(I, N, [], C) when I =< N ->
 vector_from_tuplist(_, _, [], C) ->
     lists:reverse(C);
 vector_from_tuplist(I1, N, [{I2,V} | D], C)
-  when integer(I2), number(V), 
+  when is_integer(I2), is_number(V), 
        I1 =< I2, I2 =< N ->
     F = float(V),
     vector_from_tuplist(I2+1, N, D, push_v(F, push_v(I2-I1, C)));
@@ -117,7 +117,7 @@ rows({?TAG,_,M,A}) ->
     rows_to_list(M, A, []);
 rows({?TAG,_,_} = A) ->
     vector(A);
-rows(V) when number(V) ->
+rows(V) when is_number(V) ->
     [V];
 rows(A) ->
     erlang:error(badarg, [A]).
@@ -131,9 +131,9 @@ rows_to_list(M, [Row | A], C) ->
 
 %% Exported
 %%
-rows(M, L) when integer(M), list(L), M >= 1 ->
+rows(M, L) when is_integer(M), is_list(L), M >= 1 ->
     case vecs(M, L) of
-	{A, N} when list(A) ->
+	{A, N} when is_list(A) ->
 	    fix({?TAG,N,M,A});
 	Fault ->
 	    erlang:error(Fault, [M, L])
@@ -149,7 +149,7 @@ cols({?TAG,_,_,_} = A) ->
     rows(trans(A));
 cols({?TAG,_,_} = A) ->
     [fix(A)];
-cols(V) when number(V) ->
+cols(V) when is_number(V) ->
     [V];
 cols(A) ->
     erlang:error(badarg, A).
@@ -159,9 +159,9 @@ cols(A) ->
 %% Exported
 %%
 cols(N, L)
-  when integer(N), list(L), N >= 1 ->
+  when is_integer(N), is_list(L), N >= 1 ->
     case vecs(N, L) of
-	{A, M} when list(A) ->
+	{A, M} when is_list(A) ->
 	    trans({?TAG,M,N,A});
 	Fault ->
 	    erlang:error(Fault, [N, L])
@@ -205,18 +205,18 @@ cat_rows(A, B) ->
 %%
 diag({?TAG,_,_,A}) ->
     diag_rows(1, A, []);
-diag({?TAG,_,[Z | _]}) when integer(Z) ->
+diag({?TAG,_,[Z | _]}) when is_integer(Z) ->
     [0.0];
 diag({?TAG,_,[V | _]}) ->
     [V];
-diag(V) when number(V) ->
+diag(V) when is_number(V) ->
     [float(V)];
-diag([V]) when number(V) ->
+diag([V]) when is_number(V) ->
     float(V);
-diag(L) when list(L) ->
+diag(L) when is_list(L) ->
     N = length(L),
     case diag_list(1, N, L, []) of
-	A when list(A) ->
+	A when is_list(A) ->
 	    fix({?TAG,N,N,A});
 	Fault ->
 	    erlang:error(Fault, [L])
@@ -229,11 +229,11 @@ diag_rows(_, [], C) ->
 diag_rows(I, [Row | A], C) ->
     diag_cols(I, 1, A, Row, C).
 
-diag_cols(I, I, A, [V | Row], C) when float(V) ->
+diag_cols(I, I, A, [V | Row], C) when is_float(V) ->
     diag_rows(I+1,
 	      if Row == [] -> []; true -> A  end,
 	      [V | C]);
-diag_cols(I, J, A, [V | Row], C) when float(V) ->
+diag_cols(I, J, A, [V | Row], C) when is_float(V) ->
     diag_cols(I, J+1, A, Row, C);
 diag_cols(I, J, A, [Z | Row], C) when J+Z > I ->
     diag_rows(I+1, 
@@ -242,13 +242,13 @@ diag_cols(I, J, A, [Z | Row], C) when J+Z > I ->
 diag_cols(I, J, A, [Z | Row], C) ->
     diag_cols(I, J+Z, A, Row, C).
 
-diag_list(N, N, [V], C) when number(V) ->
+diag_list(N, N, [V], C) when is_number(V) ->
     lists:reverse(C, [[N-1, float(V)]]);
-diag_list(I, N, [V | L], C) when number(V), V == 0 ->
+diag_list(I, N, [V | L], C) when is_number(V), V == 0 ->
     diag_list(I+1, N, L, [[N] | C]);
-diag_list(1, N, [V | L], C) when number(V) ->
+diag_list(1, N, [V | L], C) when is_number(V) ->
     diag_list(2, N, L, [[float(V), N-1] | C]);
-diag_list(I, N, [V | L], C) when number(V) ->
+diag_list(I, N, [V | L], C) when is_number(V) ->
     diag_list(I+1, N, L, [[I-1, float(V), N-I] | C]);
 diag_list(_, _, _, _) ->
     badarg.
@@ -271,7 +271,7 @@ row_norm_int([Row | A], C) ->
 
 row_norm_col([], C) ->
     lists:reverse(C);
-row_norm_col([V | A], C) when float(V) ->
+row_norm_col([V | A], C) when is_float(V) ->
     row_norm_col(A, [V*V | C]);
 row_norm_col([Z | A], C) ->
     row_norm_col(Z, A, C).
@@ -291,7 +291,7 @@ trans({?TAG,N,M,A}) ->
     fix({?TAG,M,N,trans_cols_forw(1, M, A, [])});
 trans({?TAG,N,A}) ->
     fix({?TAG,1,N,[A]});
-trans(A) when number(A) ->
+trans(A) when is_number(A) ->
     float(A);
 trans(A) ->
     erlang:error(badarg, [A]).
@@ -313,7 +313,7 @@ trans_mk_col_r(A) ->
 
 trans_mk_col_r([], B, C) ->
     {C, B};
-trans_mk_col_r([[V | Row] | A], B, C) when float(V) ->
+trans_mk_col_r([[V | Row] | A], B, C) when is_float(V) ->
     trans_mk_col_r(A, [Row | B], [V | C]);
 trans_mk_col_r([Row | A], B, C) ->
     trans_mk_col_r(A, [pop_z(Row) | B], push_v(1, C)).
@@ -331,24 +331,24 @@ mult({?TAG,1,M,[A]}, {?TAG,M,B}) ->
 mult({?TAG,N,M,A}, {?TAG,M,B}) ->
     %% Waste of time to call fix/1 here.
     {?TAG,N,mult_vec(B, A)};
-mult(A, B) when number(A), A == 1 ->
+mult(A, B) when is_number(A), A == 1 ->
     fix(B);
-mult(A, {?TAG,N,1,[B]}) when number(A) ->
+mult(A, {?TAG,N,1,[B]}) when is_number(A) ->
     {?TAG,N,1,[vec_mult_const(float(A), B, [])]};
-mult(A, {?TAG,N,M,B}) when number(A) ->
+mult(A, {?TAG,N,M,B}) when is_number(A) ->
     {?TAG,N,M,mult_const(float(A), B, [])};
-mult(A, {?TAG,N,B}) when number(A) ->
+mult(A, {?TAG,N,B}) when is_number(A) ->
     %% Waste of time to call fix/1 here.
     {?TAG,N,vec_mult_const(float(A), B, [])};
-mult(A, B) when number(B), B == 1 ->
+mult(A, B) when is_number(B), B == 1 ->
     fix(A);
-mult({?TAG,N,1,[A]}, B) when number(B) ->
+mult({?TAG,N,1,[A]}, B) when is_number(B) ->
     {?TAG,N,1,[vec_mult_const(float(B), A, [])]};
-mult({?TAG,N,M,A}, B) when number(B) ->
+mult({?TAG,N,M,A}, B) when is_number(B) ->
     {?TAG,N,M,mult_const(float(B), A, [])};
-mult({?TAG,N,A}, B) when number(B) ->
+mult({?TAG,N,A}, B) when is_number(B) ->
     {?TAG,N,vec_mult_const(float(B), A, [])};
-mult(A, B) when number(A), number(B) ->
+mult(A, B) when is_number(A), is_number(B) ->
     float(A*B);
 mult(A, B) ->
     erlang:error(badarg, [A, B]).
@@ -374,11 +374,11 @@ mult_trans(A, {?TAG,N,B}) ->
 mult_trans({?TAG,N,A}, B) ->
     mult_trans(trans({?TAG,1,N,[A]}), B);
 %%
-mult_trans(A, B) when number(A), number(B) ->
+mult_trans(A, B) when is_number(A), is_number(B) ->
     float(A * B);
-mult_trans(A, B) when number(B) ->
+mult_trans(A, B) when is_number(B) ->
     mult(A, B);
-mult_trans(A, B) when number(A) ->
+mult_trans(A, B) when is_number(A) ->
     trans(mult(A, B));
 mult_trans(A, B) ->
     erlang:error(badarg, [A, B]).
@@ -407,14 +407,14 @@ add({?TAG,N,1,_} = A, {?TAG,N,B}) ->
 add({?TAG,N,A}, {?TAG,N,1,_} = B) ->
     {?TAG,1,N,[C]} = trans(B),
     fix({?TAG,N,vec_add(A, C)});
-add(Va, Vb) when number(Va), number(Vb) ->
+add(Va, Vb) when is_number(Va), is_number(Vb) ->
     float(Va + Vb);
 %%
-add({?TAG,1,1,_} = A, Vb) when number(Vb) ->
+add({?TAG,1,1,_} = A, Vb) when is_number(Vb) ->
     add(A, {?TAG,1,1,[push_v(Vb, [])]});
-add({?TAG,1,_} = A, Vb) when number(Vb) ->
+add({?TAG,1,_} = A, Vb) when is_number(Vb) ->
     add(A, {?TAG,1,push_v(Vb, [])});
-add(Va, B) when number(Va) ->
+add(Va, B) when is_number(Va) ->
     add(B, Va);
 %%
 add(A, B) ->
@@ -455,7 +455,7 @@ reduce_presort(Z, []) ->
     {Z, infinity, []};
 reduce_presort(Z, [0.0 | Row]) ->
     reduce_presort(Z+1, Row);
-reduce_presort(Z, [V | _] = Row) when float(V) ->
+reduce_presort(Z, [V | _] = Row) when is_float(V) ->
     {Z, 1.0/abs(V), Row};
 reduce_presort(Z, [Zr | Row]) ->
     reduce_presort(Z+Zr, Row).
@@ -471,7 +471,7 @@ reduce_postsort({Z, _, Row}) ->
     [Z | Row].
 
 reduce_zap({Z, _, [V | Row]} = R, [{Z, _, [Va | RowA]} | A], C) 
-  when float(V), float(Va) ->
+  when is_float(V), is_float(Va) ->
     reduce_zap(R, A, [reduce_presort(Z+1, vec_add(RowA, -Va/V, Row)) | C]);
 reduce_zap(_, [], C) ->
     lists:sort(C);
@@ -486,7 +486,7 @@ backsubst({?TAG,N,M,A} = AA) when M == N+1 ->
     case catch backsubst_rev(0, A, []) of
 	A_tri when is_list(A_tri) ->
 	    case catch backsubst_const(A_tri, [], []) of
-		X when list(X) ->
+		X when is_list(X) ->
 		    {?TAG,N,X};
 		{error, Reason} ->
 		    Reason;
@@ -520,7 +520,7 @@ backsubst_rev_z(_, _, [_], _, _) ->
     {error, not_reduced};
 backsubst_rev_z(Z, Za, [0.0 | RowA], A, C) ->
     backsubst_rev_z(Z, Za+1, RowA, A, C);
-backsubst_rev_z(Z, Za, [Va | _] = RowA, A, C) when float(Va) ->
+backsubst_rev_z(Z, Za, [Va | _] = RowA, A, C) when is_float(Va) ->
     if Z == Za ->
 	    backsubst_rev(Z+1, A, [vector_to_list_r(RowA, []) | C]);
        true ->
@@ -533,7 +533,7 @@ backsubst_const([], C, B) ->
     backsubst_vec_r(C, B, []);
 backsubst_const([[_]], _, _) ->
     {error, undetermined};
-backsubst_const([[V | RowA] | A], C, B) when float(V) ->
+backsubst_const([[V | RowA] | A], C, B) when is_float(V) ->
     backsubst_const(A, [RowA | C], [-V | B]).
 
 backsubst_vec_r([], [], X) ->
@@ -542,10 +542,10 @@ backsubst_vec_r([RowA | A], [Vb | B], X) ->
     backsubst_vec_x(RowA, A, B, X, X, Vb).
 
 backsubst_vec_x([Va], A, B, [], X0, S) 
-  when float(Va), float(S) ->
+  when is_float(Va), is_float(S) ->
     backsubst_vec_r(A, B, X0++[S/Va]);
 backsubst_vec_x([Va | RowA], A, B, [Vx | X], X0, S) 
-  when float(Va), float(Vx), float(S) ->
+  when is_float(Va), is_float(Vx), is_float(S) ->
     backsubst_vec_x(RowA, A, B, X, X0, S - Va*Vx).
 
 
@@ -557,7 +557,7 @@ vecs(I, _, [], C) ->
     {lists:reverse(C), I};
 vecs(I, N, [{?TAG,N,D} | L], C) ->
     vecs(I+1, N, L, [D | C]);
-vecs(I, 1, [V | L], C) when number(V) ->
+vecs(I, 1, [V | L], C) when is_number(V) ->
     vecs(I+1, 1, L, [push_v(float(V), []) | C]);
 vecs(_, _, _, _) ->
     badarg.
@@ -567,12 +567,12 @@ vecs(_, _, _, _) ->
 vec_add(A, B) ->
     vec_add(0, A, 0, B, 0, []).
 
-vec_add(A, F, B) when float(F) ->
+vec_add(A, F, B) when is_float(F) ->
     vec_add(0, A, F, 0, B, 0, []).
 
-vec_add(Za, [Va | A], Zb, B, Zc, C) when integer(Va) ->
+vec_add(Za, [Va | A], Zb, B, Zc, C) when is_integer(Va) ->
     vec_add(Za+Va, A, Zb, B, Zc, C);
-vec_add(Za, A, Zb, [Vb | B], Zc, C) when integer(Vb) ->
+vec_add(Za, A, Zb, [Vb | B], Zc, C) when is_integer(Vb) ->
     vec_add(Za, A, Zb+Vb, B, Zc, C);
 vec_add(0, [], 0, [], Zc, C) ->
     if Zc == 0 ->
@@ -581,7 +581,7 @@ vec_add(0, [], 0, [], Zc, C) ->
 	    lists:reverse(C, [Zc])
     end;
 vec_add(0, [Va | A], 0, [Vb | B], Zc, C)
-  when float(Va), float(Vb) ->
+  when is_float(Va), is_float(Vb) ->
     Vc = Va + Vb,
     vec_add(0, A, 0, B, 0, if Zc == 0 -> [Vc | C];
 			      true -> [Vc, Zc | C]
@@ -591,7 +591,7 @@ vec_add(0, [Va | A], Zb, B, Zc, C) ->
 				 true -> [Va, Zc | C]
 			      end);
 vec_add(Za, A, 0, [Vb | B], Zc, C) 
-  when float(Vb) ->
+  when is_float(Vb) ->
     vec_add(Za-1, A, 0, B, 0, if Zc == 0 -> [Vb | C];
 				 true -> [Vb, Zc | C]
 			      end);
@@ -604,9 +604,9 @@ vec_add(Za, A, Zb, B, Zc, C) ->
 	    vec_add(0, A, 0, B, Zc+Za, C)
     end.
 
-vec_add(Za, [Va | A], F, Zb, B, Zc, C) when integer(Va) ->
+vec_add(Za, [Va | A], F, Zb, B, Zc, C) when is_integer(Va) ->
     vec_add(Za+Va, A, F, Zb, B, Zc, C);
-vec_add(Za, A, F, Zb, [Vb | B], Zc, C) when integer(Vb) ->
+vec_add(Za, A, F, Zb, [Vb | B], Zc, C) when is_integer(Vb) ->
     vec_add(Za, A, F, Zb+Vb, B, Zc, C);
 vec_add(0, [], _, 0, [], Zc, C) ->
     if Zc == 0 ->
@@ -615,7 +615,7 @@ vec_add(0, [], _, 0, [], Zc, C) ->
 	    lists:reverse(C, [Zc])
     end;
 vec_add(0, [Va | A], F, 0, [Vb | B], Zc, C)
-  when float(Va), float(F), float(Vb) ->
+  when is_float(Va), is_float(F), is_float(Vb) ->
     Vc = Va + F*Vb,
     vec_add(0, A, F, 0, B, 0, if Zc == 0 -> [Vc | C];
 				 true -> [Vc, Zc | C]
@@ -625,7 +625,7 @@ vec_add(0, [Va | A], F, Zb, B, Zc, C) ->
 				    true -> [Va, Zc | C]
 				 end);
 vec_add(Za, A, F, 0, [Vb | B], Zc, C) 
-  when float(F), float(Vb) ->
+  when is_float(F), is_float(Vb) ->
     Vc = F*Vb,
     vec_add(Za-1, A, F, 0, B, 0, if Zc == 0 -> [Vc | C];
 				    true -> [Vc, Zc | C]
@@ -650,7 +650,7 @@ vec_mult_tuple(T, I, [Zb | B], S) when is_integer(Zb) ->
     vec_mult_tuple(T, I+Zb, B, S);
 vec_mult_tuple(T, I, [Vb | B], S) when is_float(Vb), is_float(S) ->
     case element(I, T) of
-	Va when float(Va) ->
+	Va when is_float(Va) ->
 	    vec_mult_tuple(T, I+1, B, Va*Vb + S)
     end;
 vec_mult_tuple(_, _, [], S) -> S.
@@ -669,9 +669,9 @@ vec_mult(_, _, S) -> S.
 vec_mult_pop(_, [], _, S) -> S;
 vec_mult_pop(0, A, B, S) ->
     vec_mult(A, B, S);
-vec_mult_pop(Za, A, [Vb | B], S) when float(Vb) ->
+vec_mult_pop(Za, A, [Vb | B], S) when is_float(Vb) ->
     vec_mult_pop(Za-1, A, B, S);
-vec_mult_pop(_, _, [_], S) -> % when integer(Zb)
+vec_mult_pop(_, _, [_], S) -> % when is_integer(Zb)
     S;
 vec_mult_pop(Za, A, [Zb | B], S) when Za < Zb ->
     vec_mult_pop(Zb-Za, B, A, S);
@@ -684,7 +684,7 @@ vec_mult_pop(_, _, [], S) ->
 
 vec_sq([], S) ->
     S;
-vec_sq([V | A], S) when float(V), float(S) ->
+vec_sq([V | A], S) when is_float(V), is_float(S) ->
     vec_sq(A, S + V*V);
 vec_sq([_ | A], S) ->
     vec_sq(A, S).
@@ -694,18 +694,18 @@ vec_sq([_ | A], S) ->
 %% Push value; zeros or float
 push_v(0.0, C) ->
     case C of
-	[Z | R] when integer(Z) ->
+	[Z | R] when is_integer(Z) ->
 	    [Z+1 | R];
 	R ->
 	    [1 | R]
     end;
-push_v(V, C) when float(V) ->
+push_v(V, C) when is_float(V) ->
     [V | C];
 push_v(0, C) ->
     C;
-push_v(Z1, C) when integer(Z1) ->
+push_v(Z1, C) when is_integer(Z1) ->
     case C of
-	[Z2 | R] when integer(Z2) ->
+	[Z2 | R] when is_integer(Z2) ->
 	    [Z1+Z2 | R];
 	R ->
 	    [Z1 | R]
@@ -718,7 +718,7 @@ pop_z([1]) ->
     [];
 pop_z([1 | C]) ->
     C;
-pop_z([Z | C]) when integer(Z) ->
+pop_z([Z | C]) when is_integer(Z) ->
     [Z-1 | C].
 
 
@@ -732,7 +732,7 @@ fix({?TAG,1,[1]}) ->
     0.0;
 fix({?TAG,1,[V]}) ->
     V;
-fix(V) when integer(V) ->
+fix(V) when is_integer(V) ->
     float(V);
 fix(M) ->
     M.
@@ -749,6 +749,6 @@ float_perf(A, [B | T], C) ->
 
 float_perf_int([], [], S) ->
     S;
-float_perf_int([Va | A], [Vb | B], S) when float(Va), float(Vb), float(S) ->
+float_perf_int([Va | A], [Vb | B], S) when is_float(Va), float(Vb), float(S) ->
     float_perf_int(A, B, Va*Vb + S).
 -endif.
