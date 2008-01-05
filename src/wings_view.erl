@@ -963,12 +963,15 @@ frame_1([A,B]=BB) ->
     set_current(View#view{origin=e3d_vec:neg(C),
 			  distance=Dist,pan_x=0.0,pan_y=0.0}).
 
-views({save,[Legend]}, #st{views={_,{}}}=St) ->
-    St#st{views={1,{{current(),Legend}}},saved=false};
-views({save,[Legend]}, #st{views={CurrentView,Views}}=St) ->
+views({save,[Legend]}, #st{views={_,{}}}=St0) ->
+    St = St0#st{views={1,{{current(),Legend}}},saved=false},
+    wings_u:caption(St);
+views({save,[Legend]}, #st{views={CurrentView,Views}}=St0) ->
     J = view_index(CurrentView, tuple_size(Views)),
     {L1,L2} = lists:split(J, tuple_to_list(Views)),
-    St#st{views={J+1,list_to_tuple(L1++[{current(),Legend}|L2])},saved=false};
+    St = St0#st{views={J+1,list_to_tuple(L1++[{current(),Legend}|L2])},
+		saved=false},
+    wings_u:caption(St);
 views({save,Ask}, #st{views={CurrentView,Views}}) when is_atom(Ask) ->
     View = current(),
     S = tuple_size(Views),
