@@ -205,11 +205,44 @@ vcol_face(Face, #dlo{ns=Ns}, Cols) ->
 	    wings__du:vcol_face(Fs, VsPos, Cols)
     end.
 
-%% good_triangulation(Normal, Point1, Point2, Point3, Point4) -> true|false
-%%  Return true if triangulation by connecting Point1 to Point3 is OK.
-%%  The normal Normal should be averaged normal for the quad.
+%% good_triangulation(Normal, PointA, PointB, PointC, PointD) -> true|false
+%%  The points PointA through PointD are assumed to be the vertices of
+%%  quadrilateral in counterclockwise order, and Normal should be the
+%%  averaged normal for the quad.
+%%
+%%  This function will determine whether a triangulation created by
+%%  joining PointA to PointC is a good triangulation (thus creating
+%%  the two triangles PointA-PointB-PointC and PointA-PointC-PointD).
+%%  This function returns 'true' if none of the two triangles is degenerated
+%%  and the diagonal PointA-PointC is inside the original quad (if the
+%%  quad is concave, one of the "diagonals" will be inside the quad).
+%%
+%%  This function returns 'false' if the PointA-PointC triangulation is
+%%  bad. Except for pathoglogical quads (e.g. non-planar or warped), the other
+%%  triangulation using the PointB-PointD triangulation should be OK.
+%%
 good_triangulation({Nx,Ny,Nz}, {Ax,Ay,Az}, {Bx,By,Bz}, {Cx,Cy,Cz}, {Dx,Dy,Dz})
   when is_float(Ax), is_float(Ay), is_float(Az) ->
+    %% Construct the normals for the two triangles by calculating the
+    %% cross product of two edges in the correct order:
+    %%
+    %%    NormalTri1 = (PointC-PointA) x (PointA-PointB)
+    %%    NormalTri2 = (PointD-PointA) x (PointA-PointC)
+    %%
+    %% The normals should point in about the same direction as the
+    %% normal for the quad. We certainly expect the angle between a
+    %% triangle normal and the quad normal to be less than 90
+    %% degrees. That can be verified by taking the dot product:
+    %%
+    %%    Dot1 = QuadNormal . NormalTri1
+    %%    Dot2 = QuadNormal . NormalTri2
+    %%
+    %% Both dot products should be greater than zero. A zero dot product either
+    %% means that the triangle normal was not defined (a degenerate triangle) or
+    %% that the angle is exactly 90 degrees. A negative dot product means that
+    %% the angle is greater than 90 degress, which implies that the PointA-PointC
+    %% line is outside the quad.
+    %%
     CAx = Cx-Ax, CAy = Cy-Ay, CAz = Cz-Az,
     ABx = Ax-Bx, ABy = Ay-By, ABz = Az-Bz,
     DAx = Dx-Ax, DAy = Dy-Ay, DAz = Dz-Az,

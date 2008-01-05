@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: e3d_vec.erl,v 1.25 2005/06/07 17:36:56 bjorng Exp $
+%%     $Id$
 %%
 
 -module(e3d_vec).
@@ -171,7 +171,10 @@ normal([{Ax,Ay,Az},{Bx,By,Bz},{Cx,Cy,Cz},{Dx,Dy,Dz}])
        is_float(Bx), is_float(By), is_float(Bz),
        is_float(Cx), is_float(Cy), is_float(Cz) ->
     %% Daniel Sunday: "Fast Polygon Area and Newell Normal Computation"
-    %% journal of graphics tools, 7(2):9-13, 2002
+    %% journal of graphics tools, 7(2):9-13, 2002.
+    %% In addition, we have eliminated a total of 6 subtractions
+    %% (2 per coordinate) by reusing a previous subtraction with
+    %% changed sign (e.e. -Dy*CzMinusAz instead of +Dy*AzMinusCz).
     CzMinusAz = Cz-Az, DzMinusBz = Dz-Bz,
     CxMinusAx = Cx-Ax, DxMinusBx = Dx-Bx,
     CyMinusAy = Cy-Ay, DyMinusBy = Dy-By,
