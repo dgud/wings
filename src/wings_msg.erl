@@ -3,7 +3,7 @@
 %%
 %%     Helpers for formatting and showing messages.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,8 +16,8 @@
 -export([button/1,button/2,button/3,
 	 button_format/1,button_format/2,button_format/3,
 	 rmb_format/1,join/1,join/2,
-	 free_modifier/0,free_lmb_modifier/0,free_rmb_modifier/0,
-	 mod_name/1,mod_format/3]).
+	 free_modifier/0,free_lmb_modifier/0,additional_free_lmb_modifier/0,
+	 free_rmb_modifier/0,mod_name/1,mod_format/3]).
 
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -105,6 +105,12 @@ free_lmb_modifier() ->
 		_ -> ?ALT_BITS
 	    end;
 	_ -> ?ALT_BITS
+    end.
+
+additional_free_lmb_modifier() ->
+    case wings_pref:get_value(camera_mode) of
+	mb -> none;
+	_ -> ?SHIFT_BITS
     end.
 
 free_rmb_modifier() ->
