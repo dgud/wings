@@ -8,6 +8,9 @@
   saved immediately without workarounds such as selecting something first.
   (Thanks to oort.) [bjorng]
 
+- Tweak mode would crash if you attempted to relax a face next to a hidden face.
+  [bjorng]
+
 --- 0.99.00b ----------------------------------------------------------------
 
 - Creating a normal map for a material was so slow so that it seemed

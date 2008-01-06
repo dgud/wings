@@ -258,11 +258,6 @@ handle_tweak_event1(Ev, #tweak{st=St}) ->
     end.
 
 exit_tweak(#tweak{orig_st=#st{}=St0,st=#st{shapes=Shs,views=Views}}=T) ->
-						%St=wings_sel:valid_sel(St0),
-						%SelNew=St#st.sel, 
-						%Sel2=
-						%io:format("~p~n",[{old,Selmode,Sel}]),
-						%io:format("~p~n",[{new,Selmode,SelNew}]),
     remember_mode(T),
     wings_wm:later({new_state,St0#st{shapes=Shs,views=Views,sel=[]}}),
     pop.
@@ -376,7 +371,16 @@ do_tweak(DX, DY, DxOrg,DyOrg,Mode) ->
 %%
 
 collect_neib_faces(V,#we{mirror=MirrorFace}=We) ->
-    wings_vertex:fold(fun(_, Face, _, A) when Face =/= MirrorFace -> [Face|A]; (_,_,_,A) -> A end, [],V,We).
+    %% The We is not a complete one, but from the display lists. Therefore,
+    %% the face table is not complete. In particular, it does not contain
+    %% hidden faces (negative face numbers), so we must ignore any negative
+    %% face number.
+    wings_vertex:fold(fun(_, Face, _, A) when Face =/= MirrorFace,
+					      Face >= 0 ->
+			      [Face|A];
+			 (_,_,_,A) ->
+			      A
+		      end, [],V,We).
 
 collect_neib_verts(V,#we{es=Es}=We) ->
     Facelist=collect_neib_faces(V,We),
@@ -392,14 +396,16 @@ collect_neib_verts(V,#we{es=Es}=We) ->
 				  end,[],Edges),
 		  NearVerts ++ D
 	  end, [],Facelist).
+
 check_if_face_contains_vs(Face,We,Vs)->	
     Verts=wings_face:to_vertices([Face],We),
-    foldl(fun({Vert,_,_,_,_},P)-> 			
-		  case	lists:member(Vert,Verts) of
+    foldl(fun({Vert,_,_,_,_},P)->
+		  case member(Vert,Verts) of
 		      true -> P;
 		      _ -> none
 		  end 
 	  end,all,Vs).
+
 check_if_Vs_have_V(V,Vs)->
     foldl(fun({VinVs,_,_,_,_},Res)-> if VinVs==V -> true; true->Res end end,false,Vs).
 
@@ -411,6 +417,7 @@ check_if_Vs_have_V12(V1,V2,Vs)->
 
 get_nverts(Vs)->
     foldl(fun(_,S)->S+1 end,0,Vs).
+
 collect_neib_verts_vs(V,#we{es=Es}=We,Vs) ->
     Facelist0=collect_neib_faces(V,We),
     Facelist=case get_nverts(Vs) of
@@ -426,8 +433,8 @@ collect_neib_verts_vs(V,#we{es=Es}=We,Vs) ->
     foldl(fun(Face,D) ->		   
 		  Edges = wings_face:to_edges([Face], We),	   
 		  NearVerts=foldl(fun(E,B) ->						
-					  Edg=gb_trees:get(E,Es),					
-					  #edge{vs=VS,ve=VE}=Edg,										
+					  Edg=gb_trees:get(E,Es),
+					  #edge{vs=VS,ve=VE}=Edg,
 					  Have= case get_nverts(Vs) of
 						    2 -> check_if_Vs_have_V12(VE,VS,Vs);
 						    _ ->false
@@ -464,8 +471,15 @@ sub_pos_from_list(List,Pos) ->
     foldl(fun(E,B) -> [e3d_vec:sub(E,Pos)|B] end,[],List).	
 
 relax_vec(V, We) ->
-    Cs=collect_neib_verts_coor(V,We),
-    e3d_vec:average(Cs).
+    case collect_neib_verts_coor(V, We) of
+	[] ->
+	    %% Because of hidden faces there may be no neighbouring vertices,
+	    %% so we default to the position of the vertex itself.
+	    wings_vertex:pos(V, We);
+	Cs ->
+	    e3d_vec:average(Cs)
+    end.
+
 slide_one_vec(Vpos, TweakPos, _, PosList) ->
     Dpos=e3d_vec:sub(TweakPos,Vpos),
     {Dp,_}=
