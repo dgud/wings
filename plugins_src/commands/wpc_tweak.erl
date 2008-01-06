@@ -6,7 +6,7 @@
 %%  Copyright (c) 2001-2002 Howard Trickey,
 %%                2002-2008 Bjorn Gustavsson.
 %%
-%%  Various changes and improvements by Andrew Shpagin
+%%  Various changes and improvements by Andrew Shpagin.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -41,7 +41,7 @@
 	 pos,					%Current position.
 	 mag,
 	 mm					%original|mirror
-	 }).
+	}).
 
 -record(mag,
 	{orig,					%Orig pos of vertex
@@ -114,17 +114,17 @@ handle_tweak_event(Ev, #tweak{st=St}=T) ->
     end.
 
 dissolve(#st{selmode=vertex}=St) ->
-	{_,St2}=wings_vertex_cmd:command(dissolve,St),St2;
+    {_,St2}=wings_vertex_cmd:command(dissolve,St),St2;
 dissolve(#st{selmode=edge}=St) ->
-	{_,St2}=wings_edge_cmd:command(dissolve,St),St2;
+    {_,St2}=wings_edge_cmd:command(dissolve,St),St2;
 dissolve(#st{selmode=face}=St) ->
-	wings_collapse:collapse(St);
+    wings_collapse:collapse(St);
 dissolve(St) -> St.
 
 handle_tweak_event0(#keyboard{sym=?SDLK_BACKSPACE}, #tweak{st=#st{selmode=_SelMod}=St}=_T) ->	
-	St3=dissolve(fake_selection(St)),
-	St4=wings_undo:save(St,St3#st{sel=[],sh=true}),
-	wings_wm:later({new_state,St4});	
+    St3=dissolve(fake_selection(St)),
+    St4=wings_undo:save(St,St3#st{sel=[],sh=true}),
+    wings_wm:later({new_state,St4});	
 handle_tweak_event0(#keyboard{sym=?SDLK_ESCAPE}, T) ->
     exit_tweak(T);
 handle_tweak_event0(#keyboard{unicode=C}=Ev, T0) ->
@@ -165,22 +165,21 @@ handle_tweak_event1(#mousemotion{x=X,y=Y,state=?SDL_PRESSED,mod=Mod},
     Xymove = (Xpress==1) and (Ypress==1),
     Yzmove = (Ypress==1) and (Zpress==1),
     Zxmove = (Zpress==1) and (Xpress==1),
-    %Tpress=element(1+?SDLK_t,Keys),    
-    %Rpress=element(1+?SDLK_r,Keys),    
+
     Mod1=(Mod band wings_msg:free_lmb_modifier()) =/= 0,
     Mod2=(Mod band free_lmb_modifier2()) =/= 0,
     Mode=if
-		Spress==1 	-> slide;
-		Mod1 and Mod2 	-> relax;
-		Mod2         	-> tangent;		
-		Mod1	        	-> normal;
-		Xymove		-> xymove;
-		Yzmove		-> yzmove;
-		Zxmove		-> zxmove;
-		Xpress==1		-> xmove;
-		Ypress==1		-> ymove;
-		Zpress==1		-> zmove;
-		true			-> screen
+	     Spress==1 	-> slide;
+	     Mod1 and Mod2 	-> relax;
+	     Mod2         	-> tangent;		
+	     Mod1	        	-> normal;
+	     Xymove		-> xymove;
+	     Yzmove		-> yzmove;
+	     Zxmove		-> zxmove;
+	     Xpress==1		-> xmove;
+	     Ypress==1		-> ymove;
+	     Zpress==1		-> zmove;
+	     true			-> screen
 	 end,    
     do_tweak(DX, DY,DxOrg,DyOrg,Mode),
     T = T0#tweak{cx=X,cy=Y},
@@ -259,11 +258,11 @@ handle_tweak_event1(Ev, #tweak{st=St}) ->
     end.
 
 exit_tweak(#tweak{orig_st=#st{}=St0,st=#st{shapes=Shs,views=Views}}=T) ->
-    %St=wings_sel:valid_sel(St0),
-    %SelNew=St#st.sel, 
-    %Sel2=
-    %io:format("~p~n",[{old,Selmode,Sel}]),
-    %io:format("~p~n",[{new,Selmode,SelNew}]),
+						%St=wings_sel:valid_sel(St0),
+						%SelNew=St#st.sel, 
+						%Sel2=
+						%io:format("~p~n",[{old,Selmode,Sel}]),
+						%io:format("~p~n",[{new,Selmode,SelNew}]),
     remember_mode(T),
     wings_wm:later({new_state,St0#st{shapes=Shs,views=Views,sel=[]}}),
     pop.
@@ -344,15 +343,13 @@ end_drag(#dlo{src_we=#we{id=Id},drag=#drag{}}=D0, #st{shapes=Shs0}=St0) ->
     Keys=sdl_keyboard:getKeyState(),
     Spress=element(1+collapse_mode_key(),Keys),
     Shs=
-    %if	Spress==1->gb_trees:update(Id, wings_body:cleanup_all(We,0.0001),Shs0);
-    if	Spress==1->gb_trees:update(Id,collapse_short_edges(0.0001,We), Shs0);
-	true->gb_trees:update(Id, We, Shs0)
-    end,
-    %Shs = gb_trees:update(Id, We, Shs0),    
+	if	Spress==1->gb_trees:update(Id,collapse_short_edges(0.0001,We), Shs0);
+		true->gb_trees:update(Id, We, Shs0)
+	end,
     St = 
-    if	Spress==1->St0#st{shapes=Shs,sel=[]};
-	true->St0#st{shapes=Shs}    
-    end,
+	if	Spress==1->St0#st{shapes=Shs,sel=[]};
+		true->St0#st{shapes=Shs}    
+	end,
     {D#dlo{vs=none,sel=none,drag=none},St};
 end_drag(#dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_},
 	      proxy_data=Pd}, #st{shapes=Shs0}=St0) ->
@@ -363,7 +360,7 @@ end_drag(#dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_},
     D = #dlo{src_we=We,proxy_data=Pd},
     {wings_draw:changed_we(D, D),St};
 end_drag(D, St) -> {D,St}.
-    
+
 sel_to_vs(vertex, Vs, _) -> Vs;
 sel_to_vs(edge, Es, We) -> wings_vertex:from_edges(Es, We);
 sel_to_vs(face, [Face], We) -> wings_face:vertices_ccw(Face, We).
@@ -372,164 +369,164 @@ do_tweak(DX, DY, DxOrg,DyOrg,Mode) ->
     wings_dl:map(fun(D, _) ->
 			 do_tweak(D, DX, DY, DxOrg, DyOrg, Mode)
 		 end, []).
-    				
-%test_err([X|X]) ->0.
 
-%
-%  Additional functions for lookup around vertex
-%
+
+%%
+%%  Additional functions for lookup around vertex
+%%
 
 collect_neib_faces(V,#we{mirror=MirrorFace}=We) ->
-	wings_vertex:fold(fun(_, Face, _, A) when Face =/= MirrorFace -> [Face|A]; (_,_,_,A) -> A end, [],V,We).
-	
+    wings_vertex:fold(fun(_, Face, _, A) when Face =/= MirrorFace -> [Face|A]; (_,_,_,A) -> A end, [],V,We).
+
 collect_neib_verts(V,#we{es=Es}=We) ->
-	Facelist=collect_neib_faces(V,We),
-	lists:foldl(fun(Face,D) ->		   
-	   Edges = wings_face:to_edges([Face], We),
-	   NearVerts=lists:foldl(fun(E,B) ->					
-					#edge{vs=Vs,ve=Ve}=gb_trees:get(E,Es),
-					if 
-						V==Vs -> [Ve|B];
-						V==Ve -> [Vs|B];
-						true -> B					
-					end
-				end,[],Edges),
-	   NearVerts ++ D
-    end, [],Facelist).
+    Facelist=collect_neib_faces(V,We),
+    foldl(fun(Face,D) ->		   
+		  Edges = wings_face:to_edges([Face], We),
+		  NearVerts=foldl(fun(E,B) ->					
+					  #edge{vs=Vs,ve=Ve}=gb_trees:get(E,Es),
+					  if 
+					      V==Vs -> [Ve|B];
+					      V==Ve -> [Vs|B];
+					      true -> B					
+					  end
+				  end,[],Edges),
+		  NearVerts ++ D
+	  end, [],Facelist).
 check_if_face_contains_vs(Face,We,Vs)->	
-	Verts=wings_face:to_vertices([Face],We),
-	lists:foldl(fun({Vert,_,_,_,_},P)-> 			
-			case	lists:member(Vert,Verts) of
-				true -> P;
-				_ -> none
-			end 
-		end,all,Vs).
+    Verts=wings_face:to_vertices([Face],We),
+    foldl(fun({Vert,_,_,_,_},P)-> 			
+		  case	lists:member(Vert,Verts) of
+		      true -> P;
+		      _ -> none
+		  end 
+	  end,all,Vs).
 check_if_Vs_have_V(V,Vs)->
-	lists:foldl(fun({VinVs,_,_,_,_},Res)-> if VinVs==V -> true; true->Res end end,false,Vs).
-	
+    foldl(fun({VinVs,_,_,_,_},Res)-> if VinVs==V -> true; true->Res end end,false,Vs).
+
 check_if_Vs_have_V12(V1,V2,Vs)->
-	case check_if_Vs_have_V(V1,Vs) of
-		true -> check_if_Vs_have_V(V2,Vs);			
-		_ -> false
-	end.
-			
+    case check_if_Vs_have_V(V1,Vs) of
+	true -> check_if_Vs_have_V(V2,Vs);			
+	_ -> false
+    end.
+
 get_nverts(Vs)->
-	lists:foldl(fun(_,S)->S+1 end,0,Vs).
+    foldl(fun(_,S)->S+1 end,0,Vs).
 collect_neib_verts_vs(V,#we{es=Es}=We,Vs) ->
-	Facelist0=collect_neib_faces(V,We),
-	Facelist=case get_nverts(Vs) of
-			2-> lists:foldl(fun(Face,FL)->
-					Res=check_if_face_contains_vs(Face,We,Vs),			
-					case	Res of
-						all -> [Face|FL];
-						_ ->FL
-					end
-				end,[],Facelist0);
-			_->Facelist0
-		end,	
-	lists:foldl(fun(Face,D) ->		   
-	   Edges = wings_face:to_edges([Face], We),	   
-	   NearVerts=lists:foldl(fun(E,B) ->						
-					Edg=gb_trees:get(E,Es),					
-					#edge{vs=VS,ve=VE}=Edg,										
-					Have= case get_nverts(Vs) of
-							2 -> check_if_Vs_have_V12(VE,VS,Vs);
-							_ ->false
+    Facelist0=collect_neib_faces(V,We),
+    Facelist=case get_nverts(Vs) of
+		 2-> foldl(fun(Face,FL)->
+				   Res=check_if_face_contains_vs(Face,We,Vs),			
+				   case	Res of
+				       all -> [Face|FL];
+				       _ ->FL
+				   end
+			   end,[],Facelist0);
+		 _->Facelist0
+	     end,	
+    foldl(fun(Face,D) ->		   
+		  Edges = wings_face:to_edges([Face], We),	   
+		  NearVerts=foldl(fun(E,B) ->						
+					  Edg=gb_trees:get(E,Es),					
+					  #edge{vs=VS,ve=VE}=Edg,										
+					  Have= case get_nverts(Vs) of
+						    2 -> check_if_Vs_have_V12(VE,VS,Vs);
+						    _ ->false
 						end,
-					if 
-						Have==true -> B;
-						V==VS -> [VE|B];
-						V==VE -> [VS|B];
-						true -> B					
-					end
-				end,[],Edges),	   
-	   NearVerts ++ D
-	end, [],Facelist).
-    
+					  if 
+					      Have==true -> B;
+					      V==VS -> [VE|B];
+					      V==VE -> [VS|B];
+					      true -> B					
+					  end
+				  end,[],Edges),	   
+		  NearVerts ++ D
+	  end, [],Facelist).
+
 collect_neib_verts_coor(V,We)->
-	VertList=collect_neib_verts(V,We),
-	lists:foldl(fun(E,B) -> [wings_vertex:pos(E,We)|B] end,[],VertList).
-	
+    VertList=collect_neib_verts(V,We),
+    foldl(fun(E,B) -> [wings_vertex:pos(E,We)|B] end,[],VertList).
+
 get_orig_pos(V,We,Vs)->
-	Pos=lists:foldl(
-		fun({Vert,Coor,_,_,_},P) -> 
-			if V==Vert -> Coor; true-> P end
-		end,none,Vs),	
-	case Pos of
-		none -> wings_vertex:pos(V,We);
-		_ -> Pos
-	end.
+    Pos=foldl(
+	  fun({Vert,Coor,_,_,_},P) -> 
+		  if V==Vert -> Coor; true-> P end
+	  end,none,Vs),	
+    case Pos of
+	none -> wings_vertex:pos(V,We);
+	_ -> Pos
+    end.
 
 collect_neib_verts_coor_vs(V,We,Vs)->
-	VertList=collect_neib_verts_vs(V,We,Vs),
-	lists:foldl(fun(E,B) -> [get_orig_pos(E,We,Vs)|B] end,[],VertList).
-	
+    VertList=collect_neib_verts_vs(V,We,Vs),
+    foldl(fun(E,B) -> [get_orig_pos(E,We,Vs)|B] end,[],VertList).
+
 sub_pos_from_list(List,Pos) ->
-	lists:foldl(fun(E,B) -> [e3d_vec:sub(E,Pos)|B] end,[],List).	
-	
+    foldl(fun(E,B) -> [e3d_vec:sub(E,Pos)|B] end,[],List).	
+
 relax_vec(V, We) ->
     Cs=collect_neib_verts_coor(V,We),
     e3d_vec:average(Cs).
 slide_one_vec(Vpos, TweakPos, _, PosList) ->
-	Dpos=e3d_vec:sub(TweakPos,Vpos),
-	{Dp,_}=
-	lists:foldl(
-		fun(Vec,{VP,W}) -> Vn=e3d_vec:norm(Vec),Dotp0=e3d_vec:dot(Vn,Dpos),Len=e3d_vec:len(Vec),
-			{Dotp,Sign}=if Dotp0<0 -> {-Dotp0/1.5,-1.0}; true -> {Dotp0,1.0} end,
-			Dotp2 = if Dotp>Len ->Len; true -> Dotp end,
-			if Dotp>W -> {e3d_vec:mul(Vn,Dotp2*Sign),Dotp}; true -> {VP,W} end
-		end,{{0,0,0},0},PosList),	
-	e3d_vec:add(Vpos,Dp).
-	
-slide_vec_w(V, Vpos0, VposS, TweakPosS, We, W,Vs) ->
-	Dv=e3d_vec:sub(VposS,Vpos0),
-	Vpos=Vpos0,
-	TweakPos=e3d_vec:sub(TweakPosS,Dv),
-	Cs=sub_pos_from_list(collect_neib_verts_coor_vs(V,We,Vs),Vpos),	
-	TweakPos2=e3d_vec:add(Vpos,e3d_vec:mul(e3d_vec:sub(TweakPos,Vpos),W)),
-	slide_one_vec(Vpos, TweakPos2, We, Cs).	
-  
-relax_vec(V, #we{}=We,Pos0,Pos,Weight) ->
-	Vec=relax_vec(V,We),
-	Len=e3d_vec:dist(Pos0,Pos),
-	Len1=if Len>1 -> 1.0; true -> Len end,	
-	D=e3d_vec:sub(Vec,Pos0),
-	e3d_vec:add_prod(Pos0,D,Len1*Weight).
-	
-relax_vec_fn(V, #we{}=We,Pos0,Weight) ->	
-	Vec=relax_vec(V,We),
-	D=e3d_vec:sub(Vec,Pos0),	
-	e3d_vec:add_prod(Pos0,D,Weight).
+    Dpos=e3d_vec:sub(TweakPos,Vpos),
+    {Dp,_}=
+	foldl(
+	  fun(Vec,{VP,W}) ->
+		  Vn=e3d_vec:norm(Vec),Dotp0=e3d_vec:dot(Vn,Dpos),Len=e3d_vec:len(Vec),
+		  {Dotp,Sign}=if Dotp0<0 -> {-Dotp0/1.5,-1.0}; true -> {Dotp0,1.0} end,
+		  Dotp2 = if Dotp>Len ->Len; true -> Dotp end,
+		  if Dotp>W -> {e3d_vec:mul(Vn,Dotp2*Sign),Dotp}; true -> {VP,W} end
+	  end,{{0,0,0},0},PosList),	
+    e3d_vec:add(Vpos,Dp).
 
-%
-% scanning over the mesh to collapse short edges
-%
+slide_vec_w(V, Vpos0, VposS, TweakPosS, We, W,Vs) ->
+    Dv=e3d_vec:sub(VposS,Vpos0),
+    Vpos=Vpos0,
+    TweakPos=e3d_vec:sub(TweakPosS,Dv),
+    Cs=sub_pos_from_list(collect_neib_verts_coor_vs(V,We,Vs),Vpos),	
+    TweakPos2=e3d_vec:add(Vpos,e3d_vec:mul(e3d_vec:sub(TweakPos,Vpos),W)),
+    slide_one_vec(Vpos, TweakPos2, We, Cs).	
+
+relax_vec(V, #we{}=We,Pos0,Pos,Weight) ->
+    Vec=relax_vec(V,We),
+    Len=e3d_vec:dist(Pos0,Pos),
+    Len1=if Len>1 -> 1.0; true -> Len end,	
+    D=e3d_vec:sub(Vec,Pos0),
+    e3d_vec:add_prod(Pos0,D,Len1*Weight).
+
+relax_vec_fn(V, #we{}=We,Pos0,Weight) ->	
+    Vec=relax_vec(V,We),
+    D=e3d_vec:sub(Vec,Pos0),	
+    e3d_vec:add_prod(Pos0,D,Weight).
+
+%%
+%% scanning over the mesh to collapse short edges
+%%
 
 collapse_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->         
     Short = foldl(
-      fun({Edge,#edge{vs=Va,ve=Vb}}, A) ->
-		case gb_trees:is_defined(Va,Vtab) of
-		true->
-			case gb_trees:is_defined(Vb,Vtab) of
-			true->					
-				VaPos = wings_vertex:pos(Va, We),					
-				VbPos = wings_vertex:pos(Vb, We),					
-				case abs(e3d_vec:dist(VaPos, VbPos)) of
-					Dist when Dist < Tolerance -> [Edge|A];
-					_Dist -> A
-				end;
-			false-> A
-			end;					
-		false -> A
-		end
-     end, [], gb_trees:to_list(Etab)),
-     try wings_collapse:collapse_edges(Short,We)
-     catch _:_What->We
-     end.    
+	      fun({Edge,#edge{vs=Va,ve=Vb}}, A) ->
+		      case gb_trees:is_defined(Va,Vtab) of
+			  true->
+			      case gb_trees:is_defined(Vb,Vtab) of
+				  true->					
+				      VaPos = wings_vertex:pos(Va, We),					
+				      VbPos = wings_vertex:pos(Vb, We),					
+				      case abs(e3d_vec:dist(VaPos, VbPos)) of
+					  Dist when Dist < Tolerance -> [Edge|A];
+					  _Dist -> A
+				      end;
+				  false-> A
+			      end;					
+			  false -> A
+		      end
+	      end, [], gb_trees:to_list(Etab)),
+    try wings_collapse:collapse_edges(Short,We)
+    catch _:_What->We
+    end.    
 
-%
-% end of additional geo-functions block
-%
+%%
+%% end of additional geo-functions block
+%%
 
 do_tweak(#dlo{drag={matrix,Pos0,Matrix0,_},src_we=#we{id=Id}}=D0,
 	 DX,DY,_,_,_AlongNormal) ->
@@ -548,36 +545,36 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,pos0=Orig,mag=Mag0,mm=MM}=Drag,
     {Tx,Ty,Tz}=TweakPos,
     {Px,Py,Pz}=Pos0,
     {Vtab,Mag}=
-    case Mode of
-	xmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Tx,Py,Pz}, D0),
-		magnet_tweak(Mag0, Pos);
-	ymove -> Pos=tweak_pos(false,false,Vs, Pos0, {Px,Ty,Pz}, D0),
-		magnet_tweak(Mag0, Pos);		
-	zmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Px,Py,Tz}, D0),
-		magnet_tweak(Mag0, Pos);
-	xymove -> Pos=tweak_pos(false,false,Vs, Pos0, {Tx,Ty,Pz}, D0),
-		magnet_tweak(Mag0, Pos);
-	yzmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Px,Ty,Tz}, D0),
-		magnet_tweak(Mag0, Pos);
-	zxmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Tx,Py,Tz}, D0),
-		magnet_tweak(Mag0, Pos);
-	relax -> Pos=relax_vec(V2,We,Pos0,TweakPos,1.0),
-		Len=(abs(DxOrg)+abs(DyOrg))/200.0,
-		Len1=case Len>1 of
-			true -> 1.0;
-			false -> Len
-		end,		
-		magnet_tweak_fn(Mag0, Pos,We,Len1);
-	slide ->
+	case Mode of
+	    xmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Tx,Py,Pz}, D0),
+		     magnet_tweak(Mag0, Pos);
+	    ymove -> Pos=tweak_pos(false,false,Vs, Pos0, {Px,Ty,Pz}, D0),
+		     magnet_tweak(Mag0, Pos);		
+	    zmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Px,Py,Tz}, D0),
+		     magnet_tweak(Mag0, Pos);
+	    xymove -> Pos=tweak_pos(false,false,Vs, Pos0, {Tx,Ty,Pz}, D0),
+		      magnet_tweak(Mag0, Pos);
+	    yzmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Px,Ty,Tz}, D0),
+		      magnet_tweak(Mag0, Pos);
+	    zxmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Tx,Py,Tz}, D0),
+		      magnet_tweak(Mag0, Pos);
+	    relax -> Pos=relax_vec(V2,We,Pos0,TweakPos,1.0),
+		     Len=(abs(DxOrg)+abs(DyOrg))/200.0,
+		     Len1=case Len>1 of
+			      true -> 1.0;
+			      false -> Len
+			  end,		
+		     magnet_tweak_fn(Mag0, Pos,We,Len1);
+	    slide ->
 		Pos=TweakPos,
 		magnet_tweak_slide_fn(Mag0, We,Orig,TweakPos);
-	normal -> Pos=tweak_pos(true,false,Vs, Pos0, TweakPos, D0),		
-		magnet_tweak(Mag0, Pos);
-	tangent -> Pos=tweak_pos(false,true,Vs, Pos0, TweakPos, D0),		
-		magnet_tweak(Mag0, Pos);
-	_ 	-> Pos=tweak_pos(false,false,Vs, Pos0, TweakPos, D0),
-		magnet_tweak(Mag0, Pos)
-    end,    
+	    normal -> Pos=tweak_pos(true,false,Vs, Pos0, TweakPos, D0),		
+		      magnet_tweak(Mag0, Pos);
+	    tangent -> Pos=tweak_pos(false,true,Vs, Pos0, TweakPos, D0),		
+		       magnet_tweak(Mag0, Pos);
+	    _ 	-> Pos=tweak_pos(false,false,Vs, Pos0, TweakPos, D0),
+		   magnet_tweak(Mag0, Pos)
+	end,    
     D = D0#dlo{sel=none,drag=Drag#drag{pos=Pos,mag=Mag}},
     wings_draw:update_dynamic(D, Vtab);
 do_tweak(D, _, _, _, _, _) -> D.
@@ -645,7 +642,7 @@ vertex_pos(V, Vtab, OrigVtab) ->
 
 help(#tweak{magnet=false}) ->
     Msg1 = wings_msg:button_format(?__(1,"Drag")),
-    %Msg2 = wings_camera:help(),
+						%Msg2 = wings_camera:help(),
     Msg3 = wings_msg:button_format([], [], ?__(2,"Exit")),
     FreeMod = wings_msg:free_lmb_modifier(),
     ModName = wings_msg:mod_name(FreeMod),
@@ -665,7 +662,7 @@ help(#tweak{magnet=true,mag_type=Type}) ->
     Tang = [free_lmb_modifier2_name(),wings_msg:button_format(?__(15,"In tangent plane"))],    
     Relax = [free_lmb_modifier2_name(),ModName,wings_msg:button_format(?__(16,"Relax"))],    
     Slide = [slide_mode_message(),wings_msg:button_format(?__(17,"Slide"))],    
-    %Collapse = [collapse_mode_message(),wings_msg:button_format(?__(18,"Slide&collapse"))],    
+						%Collapse = [collapse_mode_message(),wings_msg:button_format(?__(18,"Slide&collapse"))],    
     Drag = wings_msg:join([?__(6,"Drag"), Norm,Tang,Relax,Slide]),
     Msg = wings_msg:button_format(Drag, [], ?__(7,"Exit")),
     Types = help_1(Type, [{2,dome}, {3,straight}, {4,spike}]),
@@ -680,11 +677,11 @@ intl_type(spike)    -> ?__(3,"Spike").
 
 help_1(Type, [{Digit,Type}|T]) ->
     wings_msg:join("[" ++ [$0+Digit] ++ "] " ++ 
-                    [{bold,intl_type(Type)}],
+		   [{bold,intl_type(Type)}],
 		   help_1(Type, T));
 help_1(Type, [{Digit,ThisType}|T]) ->
     wings_msg:join("[" ++ [$0+Digit] ++ "] " ++ 
-                    intl_type(ThisType),
+		   intl_type(ThisType),
 		   help_1(Type, T));
 help_1(_, []) -> [].
 
@@ -778,7 +775,7 @@ near(Center, Vs, MagVs, Mirror, #tweak{mag_r=R,mag_type=Type}, We) ->
 		  Pos = wpa:vertex_pos(V, We),
 		  [{V,Pos,Matrix,0.0,1.0}|A]
 	  end, M, Vs).
-    
+
 mf(dome, D, R) when is_float(R) ->
     math:sin((R-D)/R*math:pi()/2);
 mf(straight, D, R) when is_float(R) ->
@@ -799,7 +796,7 @@ magnet_tweak(#mag{orig=Orig,vs=Vs}=Mag, Pos) ->
 			 [{V,P}|A]
 		 end, [], Vs),
     {Vtab,Mag#mag{vtab=Vtab}}.
-    
+
 magnet_tweak_fn(#mag{vs=Vs}=Mag, _,We,Weight) ->    
     Vtab = foldl(fun({V,P0,Plane,_,1.0}, A) ->
 			 P1=relax_vec_fn(V,We,P0,Weight),
@@ -811,9 +808,9 @@ magnet_tweak_fn(#mag{vs=Vs}=Mag, _,We,Weight) ->
 			 [{V,P}|A]
 		 end, [], Vs),
     {Vtab,Mag#mag{vtab=Vtab}}.
-    
+
 magnet_tweak_slide_fn(#mag{vs=Vs}=Mag, We,Orig,TweakPos) ->    
-	
+
     Vtab = foldl(fun({V,P0,Plane,_,Inf}, A) ->    
 			 P1=slide_vec_w(V,P0,Orig,TweakPos,We,Inf,Vs),			 
 			 P = mirror_constrain(Plane, P1),
@@ -829,15 +826,15 @@ magnet_radius(Sign, #tweak{mag_r=Falloff0}=T0) ->
     end.
 
 get_inv_magnet_value2(MagType,Value,Pos) -> 
-	Step=0.1,
-	V1=mf(MagType,Pos,1.0),
-	V2=mf(MagType,Pos+Step,1.0),
-	case	Value<V1 andalso Value>=V2 of
-		true -> Pos+(V1-Value)/(V1-V2)*Step;
-		false -> get_inv_magnet_value2(MagType,Value,Pos+Step)
-	end.
+    Step=0.1,
+    V1=mf(MagType,Pos,1.0),
+    V2=mf(MagType,Pos+Step,1.0),
+    case	Value<V1 andalso Value>=V2 of
+	true -> Pos+(V1-Value)/(V1-V2)*Step;
+	false -> get_inv_magnet_value2(MagType,Value,Pos+Step)
+    end.
 get_inv_magnet_value(MagType,Value) ->
-	get_inv_magnet_value2(MagType,Value,0.0).
+    get_inv_magnet_value2(MagType,Value,0.0).
 
 draw_magnet(#tweak{magnet=false}) -> ok;
 draw_magnet(#tweak{st=#st{selmode=body}}) -> ok;
@@ -866,14 +863,14 @@ draw_magnet_1(#dlo{mirror=Mtx,drag=#drag{mm=Side,pos={X,Y,Z}}}, R,R2) ->
     glu:deleteQuadric(Obj),
     gl:color4f(0, 0, 1, 0.03),        
     lists:foreach(
-	fun(R3) -> 
-	    Obj2 = glu:newQuadric(),
-	    glu:quadricDrawStyle(Obj2, ?GLU_FILL),
-	    glu:quadricNormals(Obj2, ?GLU_SMOOTH),
-	    glu:sphere(Obj, R3*R, 20, 20),
-	    glu:deleteQuadric(Obj2)
-	end,R2);
-    
+      fun(R3) -> 
+	      Obj2 = glu:newQuadric(),
+	      glu:quadricDrawStyle(Obj2, ?GLU_FILL),
+	      glu:quadricNormals(Obj2, ?GLU_SMOOTH),
+	      glu:sphere(Obj, R3*R, 20, 20),
+	      glu:deleteQuadric(Obj2)
+      end,R2);
+
 draw_magnet_1(_, _,_) -> [].
 
 mirror_info(#we{mirror=none}) -> {[],none};
