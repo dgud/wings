@@ -3,15 +3,18 @@
  [
   {help,
    [
-    {1,"Tirer librement"},
-    {2,"Quitter le mode Modifier"},
-    {3,"Le long de la normale"},
     {4,"Magnetisme Ouvert"},
-    {5,"Le long de la normale"},
-    {6,"Tirer"},
-    {7,"Quitter"},
-    {8,"Magnetisme Ferme"},
-    {9,"Modifier R"}
+    {5,"Magnetisme Ferme"},
+    {6,"Modifier R"}
+   ]},
+  {common_help,
+   [
+    {2,"Tirer"},
+    {3,"Le long de la normale"}
+   ]},
+  {exit_help,
+   [
+    {1,"Quitter"}
    ]},
   {intl_type,
    [

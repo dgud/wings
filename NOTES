@@ -8,8 +8,11 @@
   saved immediately without workarounds such as selecting something first.
   (Thanks to oort.) [bjorng]
 
-- Tweak mode would crash if you attempted to relax a face next to a hidden face.
-  [bjorng]
+- Tweak mode: There would be a crash if you attempted to relax a face
+  next to a hidden face.  Also updated the look of the information in
+  line to look more as the rest of Wings. Also made sure that
+  modifiers that will not work in the Motionbuilder camera mode are
+  not shown on the information line. [bjorng]
 
 --- 0.99.00b ----------------------------------------------------------------
 

@@ -88,7 +88,7 @@ command(_, _) -> next.
 %% functions that return the key to modify LMB action
 
 free_lmb_modifier2() -> ?KMOD_SHIFT.
-free_lmb_modifier2_name() -> "[SHIFT]".
+
 slide_mode_key() -> ?SDLK_s.
 slide_mode_message()->"[S]".
 collapse_mode_key() -> ?SDLK_c.
@@ -655,35 +655,39 @@ vertex_pos(V, Vtab, OrigVtab) ->
     end.
 
 help(#tweak{magnet=false}) ->
-    Msg1 = wings_msg:button_format(?__(1,"Drag")),
-						%Msg2 = wings_camera:help(),
-    Msg3 = wings_msg:button_format([], [], ?__(2,"Exit")),
-    FreeMod = wings_msg:free_lmb_modifier(),
-    ModName = wings_msg:mod_name(FreeMod),
-    Msg4 = [ModName,wings_msg:button_format(?__(3,"Along normal"))],
-    Msg5 = [free_lmb_modifier2_name(),wings_msg:button_format(?__(10,"In tangent plane"))],
-    Msg6 = [free_lmb_modifier2_name(),ModName,wings_msg:button_format(?__(11,"Relax"))],
-    Msg7 = [slide_mode_message(),wings_msg:button_format(?__(12,"Slide"))],
-    Msg8 = [collapse_mode_message(),wings_msg:button_format(?__(13,"Slide&collapse"))],
-    Msg9 = ["BkSp:",?__(14,"Dissolve")],
-    Msg10 = ["[F1,F2,F3]",?__(18,"XYZ constrains")],
-    Msg = wings_msg:join([Msg1,Msg4,Msg5,Msg6,Msg7,Msg8,Msg9,Msg10,Msg3]),
+    Collapse = [collapse_mode_message(),"+",wings_msg:button_format(?__(1,"Slide&collapse"))],
+    Dissolve = ["Bksp: ",?__(2,"Dissolve")],
+    Constraints = ["[F1,F2,F3] ",?__(3,"XYZ constraints")],
+    Tail = [Collapse,Dissolve,Constraints,exit_help()],
+    All = common_help(Tail),
+    Msg = wings_msg:join(All),
     wings_wm:message(Msg, "[1] "++?__(4,"Magnet On"));
 help(#tweak{magnet=true,mag_type=Type}) ->
-    FreeMod = wings_msg:free_lmb_modifier(),
-    ModName = wings_msg:mod_name(FreeMod),
-    Norm = [ModName,wings_msg:button_format(?__(5,"Along normal"))],    
-    Tang = [free_lmb_modifier2_name(),wings_msg:button_format(?__(15,"In tangent plane"))],    
-    Relax = [free_lmb_modifier2_name(),ModName,wings_msg:button_format(?__(16,"Relax"))],    
-    Slide = [slide_mode_message(),wings_msg:button_format(?__(17,"Slide"))],    
-						%Collapse = [collapse_mode_message(),wings_msg:button_format(?__(18,"Slide&collapse"))],    
-    Drag = wings_msg:join([?__(6,"Drag"), Norm,Tang,Relax,Slide]),
-    Msg = wings_msg:button_format(Drag, [], ?__(7,"Exit")),
-    Types = help_1(Type, [{2,dome}, {3,straight}, {4,spike}]),
-    MagMsg = wings_msg:join(["[1] "++?__(8,"Magnet Off"),
-			     "[+]/[-] "++?__(9,"Tweak R"),
+    All = common_help([exit_help()]),
+    Msg = wings_msg:join(All),
+    Types = help_1(Type, [{2,dome},{3,straight},{4,spike}]),
+    MagMsg = wings_msg:join(["[1] "++?__(5,"Magnet Off"),
+			     "[+]/[-] "++?__(6,"Tweak R"),
 			     Types]),
     wings_wm:message(Msg, MagMsg).
+
+%% Messages common for magnet and no magnet.
+common_help(Tail0) ->
+    FreeMod = wings_msg:free_lmb_modifier(),
+    Tail = [[slide_mode_message(),"+",wings_msg:button_format(?__(1,"Slide"))]|Tail0],
+    [wings_msg:button_format(?__(2,"Drag")),
+     wings_msg:mod_format(FreeMod, 1, ?__(3,"Along normal"))|
+     case wings_msg:additional_free_lmb_modifier() of
+	 none ->
+	     Tail;
+	 FreeMod2 ->
+	     [wings_msg:mod_format(FreeMod2, 1, ?__(4,"In tangent plane")),
+	      wings_msg:mod_format(FreeMod bor FreeMod2, 1, ?__(5,"Relax"))|Tail]
+     end].
+
+exit_help() ->
+    wings_msg:button_format([], [], ?__(1,"Exit")).
+
 
 intl_type(dome)     -> ?__(1,"Dome");
 intl_type(straight) -> ?__(2,"Straight");
