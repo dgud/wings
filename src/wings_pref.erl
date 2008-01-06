@@ -50,6 +50,7 @@ load() ->
     end.
 
 finish() ->
+    win32_save_maximized(),
     foreach(fun({Key,Val}) ->
 		    set_value(Key, Val)
 	    end, ets:tab2list(wings_delayed_update)),
@@ -95,6 +96,14 @@ insert_crs(C) when is_integer(C) -> C.
 
 prune_defaults(List) ->
     List -- defaults().
+
+win32_save_maximized() ->
+    case os:type() of
+	{win32,_} ->
+	    set_value(win32_start_maximized, sdl_video:wm_isMaximized());
+	_ ->
+	    ok
+    end.
 
 %%%
 %%% Search for a pre-existing preference file.

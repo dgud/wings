@@ -534,12 +534,13 @@ dispatch_matching(Filter) ->
 
 dispatch_event(#resize{w=W,h=H}) ->
     ?CHECK_ERROR(),
-    {SaveW,SaveH} =
-	case sdl_video:wm_isMaximized() of
-	    false -> {W,H};
-	    true ->  {W-8,H-10}
-	end,
-    wings_pref:set_value(window_size, {SaveW,SaveH}),
+    %% If the window has become maximized, we don't want
+    %% to save the window size, but will keep the previous
+    %% size.
+    case sdl_video:wm_isMaximized() of
+	false -> wings_pref:set_value(window_size, {W,H});
+	true -> ok
+    end,
     put(wm_top_size, {W,H}),
     init_opengl(),
     resize_windows(W, H),

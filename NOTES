@@ -14,6 +14,9 @@
   modifiers that will not work in the Motionbuilder camera mode are
   not shown on the information line. [bjorng]
 
+- On Windows, Wings will now remember if it was maximized when it was
+  quitted, and automatically start maximized next time. [bjorng]
+
 --- 0.99.00b ----------------------------------------------------------------
 
 - Creating a normal map for a material was so slow so that it seemed

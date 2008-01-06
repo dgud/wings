@@ -5,6 +5,7 @@
  *     Erlang driver for native file dialog boxes for Win32.
  *
  *  Copyright (c) 2001 Patrik Nyblom
+ *                2008 Bjorn Gustavsson
  *
  *  See the file "license.terms" for information on usage and redistribution
  *  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -172,6 +173,14 @@ static int wings_file_control(ErlDrvData handle, unsigned int command,
 	driver_free(rbuff); /* As it isn't passed to emulator, we have to
 			       free it ourselves */
 	return 0;
+    case 3:			/* Maximize window */
+      {
+	HWND hWnd;
+
+	hWnd = *(HWND *) buff;
+	ret = ShowWindow(hWnd, SW_SHOWMAXIMIZED);
+      }
+      return 0;
     default:
         return -1; /* Error return, throws exception in erlang */
     }

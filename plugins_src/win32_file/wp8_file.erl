@@ -21,6 +21,7 @@
 %% Operations supported by driver.
 -define(OP_READ, 1).
 -define(OP_WRITE, 2).
+-define(OP_MAXIMIZE, 3).
 
 menus() -> [].
 
@@ -32,6 +33,7 @@ init(Next) ->
 		ok ->
 		    case catch open_port({spawn,"wings_file_drv"}, []) of
 			Port when is_port(Port) ->
+			    maybe_maximize_window(Port),
 			    register(wp8_file_port, Port),
 			    fun(What) ->
 				    fileop(What,Next)
@@ -54,7 +56,7 @@ fileop(What, Next) ->
 
 file_dialog(Type, Prop, Title, Cont) ->
     %% We create a dummy window here so that no file
-    %% file dialogs on any will execute in the geom windows,
+    %% file dialogs on any platform will execute in the geom windows,
     %% to help the Windows programmers get their plug-ins
     %% working on other platforms.
 
@@ -115,3 +117,18 @@ file_add_all(Exts) ->
 file_add_semicolons([E1|[_|_]=T]) ->
     [E1,";"|file_add_semicolons(T)];
 file_add_semicolons(Other) -> Other.
+
+%% Just because we have driver... we have piggybacked the implementation
+%% of Windows maximzation to it.
+maybe_maximize_window(Port) ->
+    case wings_pref:get_value(win32_start_maximized, false) of
+	false ->
+	    ok;
+	true ->
+	    %% The handle is in big-endian format (not documented).
+	    %% We will convert it to little endian format to do
+	    %% the Maxmize command maximally lazy in the driver.
+	    {_,<<Handle0:32>>} = sdl_video:wm_getInfo(),
+	    Handle = <<Handle0:32/little>>,
+	    erlang:port_control(Port, ?OP_MAXIMIZE, Handle)
+    end.
