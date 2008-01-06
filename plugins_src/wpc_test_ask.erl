@@ -3,7 +3,7 @@
 %%
 %%     Default disabled test plugin for dialogs (wings_ask).
 %%
-%%  Copyright (c) 2003-2004 Raimo Niskanen
+%%  Copyright (c) 2003-2008 Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -364,7 +364,7 @@ color_update(v, V, H, S) ->
     wings_ask:hsv_to_rgb(H, S, V).
 
 disable_hook(V) ->
-    fun (is_disabled, {_Var,I,Store}) when integer(V) ->
+    fun (is_disabled, {_Var,I,Store}) when is_integer(V) ->
 	    not gb_trees:get(I+V, Store);
 	(is_disabled, {_Var,_I,Store}) ->
 	    R = not gb_trees:get(V, Store),
@@ -375,7 +375,7 @@ disable_hook(V) ->
     end.
 
 minimize_hook(V) ->
-    fun (is_minimized, {_Var,I,Store}) when integer(V) ->
+    fun (is_minimized, {_Var,I,Store}) when is_integer(V) ->
 	    not gb_trees:get(I+V, Store);
 	(is_minimized, {_Var,_I,Store}) ->
 	    not gb_trees:get(V, Store);

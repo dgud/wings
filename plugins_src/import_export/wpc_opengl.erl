@@ -3,7 +3,7 @@
 %%
 %%     OpenGL renderer.
 %%
-%%  Copyright (c) 2002-2004 Bjorn Gustavsson
+%%  Copyright (c) 2002-2008 Bjorn Gustavsson
 %%		  2003-2004 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
@@ -181,7 +181,7 @@ translate_aa(regular) -> 4;
 translate_aa(super) -> 8;
 translate_aa(premium) -> 16.
 
-del_list(X) when integer(X) ->
+del_list(X) when is_integer(X) ->
     gl:deleteLists(X,1);
 del_list({[Smooth,TrL],_Tr}) ->
     del_list(Smooth),
@@ -857,7 +857,7 @@ setup_projection_matrix() ->
 
 %% All vertices must be backfacing for the face to be backfaced.
 frontfacing([],_) ->  false;
-frontfacing([[_|{_,_,N1}]|RN],[L1|RL]) when tuple(N1) ->
+frontfacing([[_|{_,_,N1}]|RN],[L1|RL]) when is_tuple(N1) ->
     case e3d_vec:dot(N1, L1) >= 0 of
 	true -> % Backfacing
 	    frontfacing(RN,RL);

@@ -278,7 +278,7 @@ lookup(K, L) ->
 % If the first char is not allowed
 % then prefix whole id with W. For rest of not allowed chars
 % turn them into a safe 2 char representation.
-clean_id(Id) when atom(Id) ->
+clean_id(Id) when is_atom(Id) ->
     clean_id(atom_to_list(Id));
 clean_id([First|T]) ->
     case is_not_allowed_first_char(First) of

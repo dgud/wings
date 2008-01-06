@@ -22,12 +22,6 @@
 
 						% polyarea and cedge records must match definitions in wpc_tt.erl
 
--record(polyarea,
-	{boundary,			%list of cedges (CCW oriented, closed)
-	 islands=[]}).			%list of lists of cedges (CW, closed)
-
-						% a "possibly curved" edge, with explicit coords
-						% and optional cubic bezier control points
 -record(cedge,
 	{vs,cp1=nil,cp2=nil,ve}).	%all are {x,y} pairs
 

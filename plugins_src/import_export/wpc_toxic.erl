@@ -3,7 +3,7 @@
 %%
 %%     Toxic Plugin User Interface and Exporter.
 %%
-%%  Copyright (c) 2004-2007 Dan Gudmundsson, Raimo Niskanen
+%%  Copyright (c) 2004-2008 Dan Gudmundsson, Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -322,7 +322,7 @@ light_dialog(_Name, Ps) ->
 	      [{title,?__(5,"Toxic Options")},{key,{?TAG,minimized}},{minimized,Minimized}]}]
     end.
 
-max_hook(Key, Values) when list(Values) ->
+max_hook(Key, Values) when is_list(Values) ->
     {hook,
      fun (is_minimized, {_Var,I,Sto}) when is_integer(Key) ->
 	     not lists:member(gb_trees:get(I+Key, Sto), Values);
@@ -794,15 +794,15 @@ fixName2([A|R]) ->
     [A|fixName2(R)];
 fixName2([]) -> [].
 
-mkName(Name, [Mat0]) when list(Name) ->
+mkName(Name, [Mat0]) when is_list(Name) ->
     Mat = to_list(Mat0),
     fixName(Name) ++ "_" ++ fixName(Mat);
 mkName(Name, Mat) ->
     erlang:error({strange_names, Name,Mat}).
 
-to_list(Mat) when atom(Mat) ->
+to_list(Mat) when is_atom(Mat) ->
     atom_to_list(Mat);
-to_list(Mat) when list(Mat) ->
+to_list(Mat) when is_list(Mat) ->
     Mat;
 to_list(Mat) ->
     exit({strange_matname, Mat}).
@@ -1251,7 +1251,7 @@ format(false) ->    "false";
 format(A) when is_atom(A) ->    atom_to_list(A);
 format(L) when is_list(L) ->    L.
 
-format_decimals(F) when float(F), F >= 0.0 ->
+format_decimals(F) when is_float(F), F >= 0.0 ->
     format_decimals_1(F).
 
 format_decimals_1(0.0) ->    ".0";

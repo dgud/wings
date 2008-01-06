@@ -496,10 +496,10 @@ print_boxed(Item) ->
     if
 %% 	integer(Item) -> String = integer_to_list(Item);
 %%	float(Item) ->	 String = float_to_list(Item);
-	atom(Item) ->	 String = atom_to_list(Item);
+	is_atom(Item) -> String = atom_to_list(Item);
 %%	tuple(Item) ->	 String = lists:concat(tuple_to_list(Item));
 %%	binary(Item) ->  String = binary_to_list(Item);
-	list(Item) ->	 String = Item
+	is_list(Item) -> String = Item
     end,
     NumChars = length(String),
     io:fwrite("+-~s-+\n", [lists:duplicate(NumChars, "-")]),
