@@ -168,9 +168,13 @@ init_pref() ->
     ok.
 
 maybe_append(Condition, Menu, PluginMenu) ->
-    case is_plugin_active(Condition) of
-	false ->    Menu;
-	_ ->     Menu++PluginMenu
+    case {is_plugin_active(Condition),Menu} of
+	{_,[plugin_manager_category]} ->
+	    Menu++PluginMenu;
+	{false,_} ->
+	    Menu;
+	{_,_} ->
+	    Menu++PluginMenu
     end.
 
 is_plugin_active(Condition) ->
