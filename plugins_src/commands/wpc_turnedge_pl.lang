@@ -14,32 +14,3 @@
 %%  Correction:   Małgorzata Napiontek
 %%  Verification: Krzysztof Giniewicz
 %%
-{wpc_turnedge,
- [
-  {menu,
-   [
-    {1,"Obracanie krawędzi"}
-   ]},
-  {menu_entry,
-   [
-    {1,"Obróć"},
-    {2,"Obróć"},
-    {3,"Obróć krawędź"},
-    {4,"Obróć długą"},
-    {5,"Obróć krawędź tylko jeśli nowa krawędź będzie krótsza niż aktualna"}
-   ]},
-  {pref_edit,
-   [
-    {1,"Opcje obracania krawędzi"},
-    {2,"Włączone"},
-    {3,"Tryb obracania krawędzi:"},
-    {4,"Przełączanie"},
-    {5,"Zgodnie z kierunekiem ruchu wskazówek zegara"},
-    {6,"Przeciwnie do kieruneku ruchu wskazówek zegara"}
-   ]},
-  {turn_help,
-   [
-    {1,"Obróć krawędź"},
-    {2,"Obróć krawędź tylko jeśli nowa krawędź będzie krótsza niż aktualna"}
-   ]}
- ]}.
