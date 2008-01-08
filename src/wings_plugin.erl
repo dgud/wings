@@ -366,7 +366,7 @@ manager_command({edit,plugin_manager}, _St) ->
     Cps = wings_util:rel2fam(Cps0),
     Fun = fun(Res) -> 
 		  Disabled = [M || {M,false} <- Res],
-		  put(wings_plugins, get(wings_plugins) -- Disabled),
+		  put(wings_plugins, Ps -- Disabled),
 		  wings_pref:set_value(disabled_plugins, Disabled),
 		  ignore
 	  end,
