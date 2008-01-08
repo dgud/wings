@@ -122,14 +122,14 @@ Running Wings
 To run the Wings you have just build, you'll need to write a command line
 similar to this:
 
-	werl -pa $ESDL_PATH/ebin -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt
+	werl -smp disable -pa $ESDL_PATH/ebin -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt
 
 where you should substitute <MY_WINGS_PATH> with the path to the Wings
 source directory.
 
 Example:
 
-$ werl -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-0.98.36/ebin -run wings_start start_halt
+$ werl -smp disable -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-0.98.36/ebin -run wings_start start_halt
 $
 
 An Erlang console should appear, followed by the Wings window.
@@ -141,7 +141,7 @@ Instead of writing the command line every time you want to start Wings,
 you can package it in a script like this:
 
 #!/bin/bash
-exec werl -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-0.98.36/ebin -run wings_start start_halt ${1+"$@"}
+exec werl -smp disable -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-0.98.36/ebin -run wings_start start_halt ${1+"$@"}
 
 Notes:
 
@@ -151,8 +151,11 @@ Notes:
 [2] The "${1+"$@"}" thing passes along any arguments (or none) to Wings,
     allowing Wings to open up a wings file when it starts.
 
+[3] The "-smp disable" flag is necessary in R12B if you have a multi-core/
+    multi-CPU computer. Wings will only work with the single-thread Erlang
+    emulator.
+
 You could also package the command line into a standard windows shortcut.
-(That is what I do.)
 
 Building the file dialog plug-in
 ================================
