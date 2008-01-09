@@ -431,20 +431,19 @@ handle_key_1(cancel, _) ->
 handle_key_1(delete, Mi0) ->
     %% Delete hotkey bound to this entry.
     case current_command(Mi0) of
-	none -> keep;
-	Cmd ->
-	    wings_wm:dirty(),
-	    NextKey = wings_hotkey:delete_by_command(Cmd),
-	    Mi = set_hotkey(NextKey, Mi0),
-	    get_menu_event(Mi)
+	[] -> keep;
+	[_|_]=Cmds0 ->
+	    Cmds = [C || {_,C} <- Cmds0],
+	    case wings_hotkey:hotkeys_by_commands(Cmds) of
+		[] -> keep;			%No hotkeys for this entry.
+		Hotkeys -> hotkey_delete_dialog(Hotkeys)
+	    end
     end;
 handle_key_1(insert, Mi) ->
     %% Define new hotkey for this entry.
     case current_command(Mi) of
-	none -> keep;
-	Cmd ->
-	    wings_wm:dirty(),
-	    get_hotkey(Cmd, Mi)
+	[] -> keep;
+	[_|_]=Cmds -> get_hotkey(Cmds, Mi)
     end;
 handle_key_1(_, _) -> keep.
 
@@ -455,37 +454,54 @@ key(#keyboard{sym=?SDLK_DELETE}) -> delete;
 key(#keyboard{unicode=$\\}) -> delete;
 key(_) -> none.
 
-current_command(Mi) ->
-    case current_command_1(Mi) of
-	none -> none;
-	{Cmd0,OptionBox} ->
-	    Cmd = add_option(OptionBox, Cmd0, false),
-	    simplify_command(Cmd)
-    end.
-
-current_command_1(#mi{sel=none}) -> none;
-current_command_1(#mi{sel=Sel,menu=Menu,ns=Names,owner=Owner})
-  when Owner == geom; element(1, Owner) == geom ->
+current_command(#mi{sel=none}) -> [];
+current_command(#mi{sel=Sel,menu=Menu,ns=Names,owner=Owner})
+  when Owner =:= geom; element(1, Owner) =:= geom ->
     case element(Sel, Menu) of
 	{_,Name,_,_,Ps} when is_atom(Name); is_integer(Name) ->
-	    {build_command(Name, Names),have_option_box(Ps)};
-	{_,Fun,_,_,Ps} when is_function(Fun) ->
-	    Cmd = Fun(1, Names),
-	    case is_ascii_clean(Cmd) of
-		true -> {Cmd,have_option_box(Ps)};
-		false -> none
-	    end;
-	{_,{Name,Fun},_,_,Ps} when is_function(Fun) ->
-	    Cmd = Fun(1, [Name|Names]),
-	    case is_tuple(Cmd) andalso is_ascii_clean(Cmd) of
-		true -> {Cmd,have_option_box(Ps)};
-		false -> none
-	    end;
+	    Cmd0 = build_command(Name, Names),
+	    OptionBox = have_option_box(Ps),
+	    Cmd = add_option(OptionBox, Cmd0, false),
+	    [{1,simplify_command(Cmd)}];
+	{_,Fun,_,_,Ps} when is_function(Fun), is_function(Fun, 2) ->
+	    Try = fun(B) ->
+			  Cmd0 = Fun(B, Names),
+			  case Cmd0 =/= ignore andalso is_ascii_clean(Cmd0) of
+			      true ->
+				  OptionBox = have_option_box(Ps),
+				  Cmd = add_option(OptionBox, Cmd0, false),
+				  simplify_command(Cmd);
+			      false -> none
+			  end
+		  end,
+	    all_current_commands(Try);
+	{_,{Name,Fun},_,_,Ps} when is_function(Fun), is_function(Fun, 2) ->
+	    Try = fun(B) ->
+			  Cmd0 = Fun(B, [Name|Names]),
+			  case is_tuple(Cmd0) andalso is_ascii_clean(Cmd0) of
+			      true ->
+				  OptionBox = have_option_box(Ps),
+				  Cmd = add_option(OptionBox, Cmd0, false),
+				  simplify_command(Cmd);
+			      false -> none
+			  end
+		  end,
+	    all_current_commands(Try);
 	_Other ->
 	    io:format("~p\n", [_Other]),
-	    none
+	    []
     end;
-current_command_1(_) -> none.
+current_command(_) -> [].
+
+all_current_commands(Fun) ->
+    all_current_commands_1([1,2,3], Fun).
+
+all_current_commands_1([B|Bs], Fun) ->
+    case Fun(B) of
+	none -> all_current_commands_1(Bs, Fun);
+	Cmd -> [{B,Cmd}|all_current_commands_1(Bs, Fun)]
+    end;
+all_current_commands_1([], _) -> [].
 
 %% Test if a term can be represented in a text file and read back.
 is_ascii_clean([H|T]) ->
@@ -959,12 +975,33 @@ have_magnet(Ps) ->
 %%% Get a key to bind a command to.
 %%%
 
-get_hotkey(Cmd, Mi) ->
+get_hotkey([{1,Cmd}], Mi) ->
     wings_wm:dirty(),
-    wings_wm:message(?__(1,"Press key to bind command to.")),
+    wings_wm:message(hotkey_key_message(Cmd)),
     {push,fun(Ev) ->
 		  handle_key_event(Ev, Cmd, Mi)
+	  end};
+get_hotkey([_|_]=Cmds, Mi) ->
+    wings_wm:dirty(),
+    wings_wm:message(hotkey_mouse_message(Cmds)),
+    {push,fun(Ev) ->
+		  handle_button_event(Ev, Cmds, Mi)
 	  end}.
+
+handle_button_event(redraw, _Cmds, Mi) ->
+    redraw(Mi),
+    keep;
+handle_button_event(#mousebutton{button=B,state=?SDL_RELEASED}, Cmds, Mi) ->
+    case keysearch(B, 1, Cmds) of
+	{value,{B,Cmd}} ->
+	    wings_wm:message(hotkey_key_message(Cmd)),
+	    {replace,fun(Ev) ->
+			     handle_key_event(Ev, Cmd, Mi)
+		     end};
+	false ->
+	    keep
+    end;
+handle_button_event(_, _, _) ->keep.
 
 handle_key_event(redraw, _Cmd, Mi) ->
     redraw(Mi),
@@ -989,3 +1026,41 @@ do_bind(Win, Ev, Cmd, Mi0) ->
     Mi = set_hotkey(Keyname, Mi0),
     wings_wm:send(Win, Mi),
     ignore.
+
+hotkey_mouse_message(Cmds) ->
+    {Lmb,Mmb,Rmb} = hotkey_mouse_message_1(Cmds, [], [], []),
+    [?__(1,"Click a mouse button to choose command to bind"),
+     ":   ",wings_msg:button_format(Lmb, Mmb, Rmb)].
+
+hotkey_mouse_message_1([{1,Cmd}|T], _L, M, R) ->
+    hotkey_mouse_message_1(T, wings_util:stringify(Cmd), M, R);
+hotkey_mouse_message_1([{2,Cmd}|T], L, _M, R) ->
+    hotkey_mouse_message_1(T, L, wings_util:stringify(Cmd), R);
+hotkey_mouse_message_1([{3,Cmd}|T], L, M, _R) ->
+    hotkey_mouse_message_1(T, L, M, wings_util:stringify(Cmd));
+hotkey_mouse_message_1([], L, M, R) -> {L,M,R}.
+
+hotkey_key_message(Cmd) ->
+    [?__(1,"Press the key to bind the \""),
+     wings_util:stringify(Cmd),
+     ?__(2,"\" command to.")].
+
+%%%
+%%% Hotkey deletion dialog.
+%%%
+
+hotkey_delete_dialog(Hotkeys) ->
+    Fun = fun(Res) ->
+		  [wings_hotkey:unbind(K) || {K,true} <- Res],
+		  ignore
+	  end,
+    Dialog = mk_dialog(Hotkeys),
+    wings_ask:dialog(?__(1,"Delete Hotkeys"), Dialog, Fun).
+
+mk_dialog([{Key,Keyname,Cmd,Src}|T]) ->
+    [mk_key_item(Key, Keyname, Cmd, Src)|mk_dialog(T)];
+mk_dialog([]) ->
+    [separator,{label,?__(1,"Check all hotkeys to be deleted.")}].
+
+mk_key_item(Key, Keyname, Cmd, _Src) ->
+    {Keyname ++ ": " ++ Cmd,false,[{key,Key}]}.

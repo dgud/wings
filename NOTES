@@ -16,14 +16,14 @@
 
 - Turn command: In the basic menus, there are now three Turn commands:
   "Turn clockwise", "Turn counter-clockwise", and "Turn Optimized".
-  In advanced menus, those three commands can be chosen using LMB, MMB,
-  and RMB. The preference dialog in Edit|Plug-in Preferences has been
-  eliminated. There is no longer any automatic hotkeys assigned.
-  (You can assign hotkeys yourself. If you need hotkeys for the commands
-  on MMB and RMB, a workaround is to temporarily turn off the advanced
-  menus, define the hotkeys and switch back.) There will now be an
-  error dialog if you have selected more than one edge in the same face
-  (instead of a mess). [bjorng]
+  In advanced menus, those three commands can be chosen using LMB,
+  MMB, and RMB. The preference dialog in Edit|Plug-in Preferences has
+  been eliminated. There is no longer any automatic hotkeys assigned.
+  There will now be an error dialog if you have selected more than one
+  edge in the same face (instead of a mess). [bjorng]
+
+- Hotkeys can now also be assigned to commands that are invoked using
+  MMB or RMB. [bjorng]
 
 - On Windows, Wings will now remember if it was maximized when it was
   quitted, and automatically start maximized next time. [bjorng]

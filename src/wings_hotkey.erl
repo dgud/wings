@@ -3,7 +3,7 @@
 %%
 %%     This modules translates hotkeys.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,8 +13,8 @@
 
 -module(wings_hotkey).
 -export([event/1,event/2,matching/1,bind_unicode/3,bind_virtual/4,
-	 bind_from_event/2,delete_by_command/1,set_default/0,
-	 listing/0]).
+	 bind_from_event/2,unbind/1,hotkeys_by_commands/1,
+	 set_default/0,listing/0]).
 
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -63,16 +63,23 @@ bind_from_event(Ev, Cmd) ->
     ets:insert(?KL, {Bkey,Cmd,user}),
     keyname(Bkey).
 
-delete_by_command(Cmd) ->
-    case sort(ets:match_object(?KL, {'_',Cmd,'_'})) of
-	[{Key,_,_}] ->
-	    ets:delete(?KL, Key),
-	    [];
-	[{Key,_,_},{Next,_,_}|_] ->
-	    ets:delete(?KL, Key),
-	    keyname(Next);
-	[] -> []
-    end.
+
+unbind(Key) ->
+    ets:delete(?KL, Key).
+
+hotkeys_by_commands(Cs) ->
+    hotkeys_by_commands_1(Cs, []).
+
+hotkeys_by_commands_1([C|Cs], Acc) ->
+    Ms = ets:match_object(?KL, {'_',C,'_'}),
+    hotkeys_by_commands_1(Cs, Ms++Acc);
+hotkeys_by_commands_1([], Acc) ->
+    hotkeys_by_commands_2(sort(Acc)).
+
+hotkeys_by_commands_2([{Key,Cmd,Src}|T]) ->
+    Info = {Key,keyname(Key),wings_util:stringify(Cmd),Src},
+    [Info|hotkeys_by_commands_2(T)];
+hotkeys_by_commands_2([]) -> [].
     
 bind_unicode(Key, Cmd, Source) ->
     Bkey = bkey(Key, Cmd),

@@ -3,7 +3,7 @@
 %%
 %%     This module implements the Help menu.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -248,8 +248,22 @@ hotkeys(Head) ->
 
 def_hotkeys(Head) ->
     Help = [?__(1,"Any command that appears in a menu, can be assigned a keyboard short-cut (hotkey)."),
-    	    ?__(2,"To assign a hotkey to a command, open the menu containing the command. With the command high-lighted, press the [Insert] or [/] key, and then press the key you want to assign the command to."),
-	    ?__(3,"To delete a hotkey, similarly high-light the command in a menu, and press the [Del] or [\\] key.")],
+	    ?__(4,"To assign a hotkey to a command:"),
+	    ?__(5,"1. Open the menu containing the command and high-light the command."),
+	    ?__(6,"2. Press the [Insert] or [/] key."),
+	    ?__(7,"3. If the command does different things depending "
+		"on which mouse button is pressed (when Advanced menus are enabled), "
+		"there will be a message in the information line asking you to "
+		"press a mouse button to choose which variant of the command to "
+		"assign to the hotkey. (Note: The mouse cursor must remain inside "
+		"the menu when you click.)"),
+	    ?__(8,"4. The information line ask you to press the key that the command "
+		"should be assigned to."),
+
+ 	    ?__(9,"To delete a hotkey, similarly high-light the command in a menu,"
+		" and press the [Del] or [\\] key. A dialog box listing all keys "
+		"bound to the command will appear. "
+		"Check all hotkeys you want to delete.")],
     help_window(Head, Help).
 
 lights(Head) ->
