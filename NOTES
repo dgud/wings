@@ -1,8 +1,11 @@
 --- 0.99.01  ----------------------------------------------------------------
 
-- New feature: Edit|Plug-In Manager. It allows you to selectively enable and
-  disable plug-ins; for instance, you can turn off all export and import plug-ins
-  for formats that you never use. [bjorng]
+- New feature: Edit|Plug-In Manager. It allows you to selectively
+  enable and disable plug-ins; for instance, you can turn off all
+  export and import plug-ins for formats that you never use. (Note to
+  translators: Since there may be changes to this feature, depending
+  on the feedback, I have deliberately not made the trings
+  translatable yet.) [bjorng]
 
 - View|Saved Views|Save will now count as change, so that the file can be
   saved immediately without workarounds such as selecting something first.
