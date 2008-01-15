@@ -7,6 +7,12 @@
   on the feedback, I have deliberately not made the strings
   translatable yet.) [bjorng]
 
+- Hotkeys can now also be assigned to commands that are invoked using
+  MMB or RMB. [bjorng]
+
+- On Windows, Wings will now remember if it was maximized when it was
+  quitted, and automatically start maximized next time. [bjorng]
+
 - View|Saved Views|Save will now count as change, so that the file can be
   saved immediately without workarounds such as selecting something first.
   (Thanks to oort.) [bjorng]
@@ -24,12 +30,6 @@
   been eliminated. There is no longer any automatic hotkeys assigned.
   There will now be an error dialog if you have selected more than one
   edge in the same face (instead of a mess). [bjorng]
-
-- Hotkeys can now also be assigned to commands that are invoked using
-  MMB or RMB. [bjorng]
-
-- On Windows, Wings will now remember if it was maximized when it was
-  quitted, and automatically start maximized next time. [bjorng]
 
 - Help|OpenGL Info now also reports the SDL version. [bjorng]
 
