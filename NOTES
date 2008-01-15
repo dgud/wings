@@ -33,6 +33,8 @@
 
 - Help|OpenGL Info now also reports the SDL version. [bjorng]
 
+- The Portuguese and French translations have been updated.
+
 --- 0.99.00b ----------------------------------------------------------------
 
 - Creating a normal map for a material was so slow so that it seemed
