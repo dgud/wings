@@ -4,7 +4,7 @@
   enable and disable plug-ins; for instance, you can turn off all
   export and import plug-ins for formats that you never use. (Note to
   translators: Since there may be changes to this feature, depending
-  on the feedback, I have deliberately not made the trings
+  on the feedback, I have deliberately not made the strings
   translatable yet.) [bjorng]
 
 - View|Saved Views|Save will now count as change, so that the file can be
