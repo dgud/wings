@@ -31,6 +31,8 @@
 - On Windows, Wings will now remember if it was maximized when it was
   quitted, and automatically start maximized next time. [bjorng]
 
+- Help|OpenGL Info now also reports the SDL version. [bjorng]
+
 --- 0.99.00b ----------------------------------------------------------------
 
 - Creating a normal map for a material was so slow so that it seemed

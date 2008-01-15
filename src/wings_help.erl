@@ -279,11 +279,16 @@ lights(Head) ->
 opengl_info(Head) ->
     gl:getError(),			%Clear any previous error.
     [{_,VerTuple}] = ets:lookup(wings_gl_ext, version),
+    {SdlVersion0,_} = sdl_video:wm_getInfo(),
+    SdlVersion1 = [integer_to_list(V) || V <- tuple_to_list(SdlVersion0)],
+    SdlVersion = string:join(SdlVersion1, "."),
     Help = [
 	    ?__(1,"Vendor: ") ++ gl:getString(?GL_VENDOR) ++ "\n" ++
 	    ?__(2,"Renderer: ") ++ gl:getString(?GL_RENDERER) ++ "\n" ++
-	    ?__(3,"Version: ") ++ gl:getString(?GL_VERSION),
-	    ?__(4,"Version tuple: ") ++ lists:flatten(io_lib:format("~p\n", [VerTuple])),
+	    ?__(3,"Version: ") ++ gl:getString(?GL_VERSION) ++ "\n" ++
+	    ?__(4,"Version tuple: ") ++ lists:flatten(io_lib:format("~p\n", [VerTuple])) ++
+	    "SDL: " ++ SdlVersion,
+
 	    get_info([{?__(5,"Red bits"),?GL_RED_BITS},
 		      {?__(6,"Green bits"),?GL_GREEN_BITS},
 		      {?__(7,"Blue bits"),?GL_BLUE_BITS},
