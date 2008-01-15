@@ -19,18 +19,22 @@
 -include("e3d_image.hrl").
 
 init() ->
-    Programs = {{make_hemi(), "Hemispherical Lighting"},
-	{make_prog("gooch"), "Gooch Tone"},
-	{make_prog("toon"), "Toon"},
-	{make_prog("brick"), "Brick"},
-	{make_prog_envmap(), "Environment Mapping"},
-	{make_prog("vertex_color", "Flag", 0), "Vertex Normals Color"},
-	{make_prog("vertex_color", "Flag", 1), "Face Normals Color"},
-	{make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
-	{make_prog("depth"), "Depth"},
-	{make_prog("harmonics", "Type", 5), "Spherical Harmonics 5"},
-	{make_prog("harmonics", "Type", 8), "Spherical Harmonics 8"},
-	{make_prog("harmonics", "Type", 9), "Spherical Harmonics 9"}},
+    Programs = {{make_hemi(), "Hemispherical Lighting"}},
+%% 	{make_prog("gooch"), "Gooch Tone"},
+%% 	{make_prog("toon"), "Toon"},
+%% 	{make_prog("brick"), "Brick"},
+%% 	{make_prog_envmap(), "Environment Mapping"},
+%% 	{make_prog("vertex_color", "Flag", 0), "Vertex Normals Color"},
+%% 	{make_prog("vertex_color", "Flag", 1), "Face Normals Color"},
+%%  XXX The following shader is BROKEN. Don't re-eneable it without fixing it.
+%%  Problem: ERROR: 0:11: 'assign' :  cannot convert from '4-component vector of float' to 'varying 3-component vector of float'
+%%
+%%      -- Bjorn G
+%% 	{make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
+%% 	{make_prog("depth"), "Depth"},
+%% 	{make_prog("harmonics", "Type", 5), "Spherical Harmonics 5"},
+%% 	{make_prog("harmonics", "Type", 8), "Spherical Harmonics 8"},
+%% 	{make_prog("harmonics", "Type", 9), "Spherical Harmonics 9"}},
     ?CHECK_ERROR(),
     gl:useProgram(0),
     put(light_shaders, Programs),

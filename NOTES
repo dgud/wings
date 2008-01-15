@@ -33,6 +33,9 @@
 
 - Help|OpenGL Info now also reports the SDL version. [bjorng]
 
+- The experimental support for cycling shaders have been turned off
+  until it can be done properly. [bjorng]
+
 - The Portuguese and French translations have been updated.
 
 --- 0.99.00b ----------------------------------------------------------------
