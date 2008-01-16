@@ -2128,3 +2128,16 @@
     {87,"Aretes pointues"}
    ]}
  ]}.
+
+{wings,
+ [
+  {tools_menu,
+   [
+   {26,"Informations sur la scène : Aire et volume"},
+    {27,"Calcule l'aire et le volume pour chaque objet dans la scène"},
+    {28,"Placer au sol"},
+    {29,"Place les objets sélectionnés au niveau du sol"},
+    {30,"Uniformiser"},
+    {31,"Mets à l'échelle les objets sélectionnés afin qu'ils tiennent à l'intérieur d'une sphère d'une unité et les déplace à l'origine"}
+   ]}
+ ]}.
