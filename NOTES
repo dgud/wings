@@ -1,3 +1,8 @@
+--- 0.99.XX -----------------------------------------------------------------
+
+- Verbose and Mouseover info text options added to Edit|Preferences|General.
+  [optigon]
+
 --- 0.99.01  ----------------------------------------------------------------
 
 - New feature: Edit|Plug-In Manager. It allows you to selectively

@@ -897,7 +897,7 @@ measure(Base, #st{selmode=vertex,sel=[{Id,Vs}],shapes=Shs}) ->
 	    We = gb_trees:get(Id, Shs),
  	    [Va] = gb_sets:to_list(Vs),
 	    {X,Y,Z} = wings_vertex:pos(Va, We),
-	    [Base|io_lib:format(?__(1,". Position ~s ~s ~s"),
+       [Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
 				[wings_util:nice_float(X),
 				 wings_util:nice_float(Y),
 				 wings_util:nice_float(Z)])];
@@ -906,13 +906,12 @@ measure(Base, #st{selmode=vertex,sel=[{Id,Vs}],shapes=Shs}) ->
  	    [Va,Vb] = gb_sets:to_list(Vs),
             {Xa,Ya,Za} = wings_vertex:pos(Va, We),
             {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
- 	    Dist = e3d_vec:dist(wings_vertex:pos(Va, We),
-				wings_vertex:pos(Vb, We)),
-	    [Base|io_lib:format(?__(5,". Distance ~s  <~s, ~s, ~s>"),
+ 	    Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
+       [Base|io_lib:format(?__(5,". Distance ~s  <~s  ~s  ~s>"),
 				[wings_util:nice_float(Dist),
-				 wings_util:nice_float(Xb - Xa),
-				 wings_util:nice_float(Yb - Ya),
-				 wings_util:nice_float(Zb - Za)])];
+                wings_util:nice_float(abs(Xb - Xa)),
+                wings_util:nice_float(abs(Yb - Ya)),
+                wings_util:nice_float(abs(Zb - Za))])];
 	_ -> Base
     end;
 measure(Base, #st{selmode=vertex,sel=[{IdA,VsA},{IdB,VsB}],shapes=Shs}) ->
@@ -922,10 +921,15 @@ measure(Base, #st{selmode=vertex,sel=[{IdA,VsA},{IdB,VsB}],shapes=Shs}) ->
 	    WeB = gb_trees:get(IdB, Shs),
  	    [Va] = gb_sets:to_list(VsA),
  	    [Vb] = gb_sets:to_list(VsB),
+       {Xa,Ya,Za} = wings_vertex:pos(Va, WeA),
+       {Xb,Yb,Zb} = wings_vertex:pos(Vb, WeB),
  	    Dist = e3d_vec:dist(wings_vertex:pos(Va, WeA),
 				wings_vertex:pos(Vb, WeB)),
-	    [Base|io_lib:format(?__(2,". Distance ~s"),
-				[wings_util:nice_float(Dist)])];
+       [Base|io_lib:format(?__(5,". Distance ~s  <~s  ~s  ~s>"),
+               [wings_util:nice_float(Dist),
+                wings_util:nice_float(Xb - Xa),
+                wings_util:nice_float(Yb - Ya),
+                wings_util:nice_float(Zb - Za)])];
 	_ -> Base
     end;
 measure(Base, #st{selmode=edge,sel=[{Id,Es}],shapes=Shs}) ->
@@ -934,28 +938,30 @@ measure(Base, #st{selmode=edge,sel=[{Id,Es}],shapes=Shs}) ->
             We = gb_trees:get(Id, Shs),
             [Edge] = gb_sets:to_list(Es),
             #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, We#we.es),
-            PosA = wings_vertex:pos(Va, We),
-            PosB = wings_vertex:pos(Vb, We),
-            Length = e3d_vec:dist(PosA, PosB),
-            {X,Y,Z} = e3d_vec:average([PosA,PosB]),
-            [Base|io_lib:format(?__(3,". Midpt ~s ~s ~s. Length ~s"),
+            {Xa,Ya,Za} = wings_vertex:pos(Va, We),
+            {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
+            Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
+            {X,Y,Z} = e3d_vec:average({Xa,Ya,Za}, {Xb,Yb,Zb}),
+            [Base|io_lib:format(?__(3,". Midpoint <~s  ~s  ~s>\nLength ~s") ++
+                                "  <~s  ~s  ~s>",
                                 [wings_util:nice_float(X),
                                  wings_util:nice_float(Y),
                                  wings_util:nice_float(Z),
-                                 wings_util:nice_float(Length)])];
+                                 wings_util:nice_float(Length),
+                                 wings_util:nice_float(abs(Xb - Xa)),
+                                 wings_util:nice_float(abs(Yb - Ya)),
+                                 wings_util:nice_float(abs(Zb - Za))])];
         2 ->
             We = gb_trees:get(Id, Shs),
-            Edges = gb_sets:to_list(Es),
-            [E0,E1] = Edges,
+            [E0,E1] = gb_sets:to_list(Es),
             #edge{vs=V0s,ve=V0e} = gb_trees:get(E0, We#we.es),
             #edge{vs=V1s,ve=V1e} = gb_trees:get(E1, We#we.es),
-            {X0s,Y0s,Z0s} = wings_vertex:pos(V0s, We),
-            {X0e,Y0e,Z0e} = wings_vertex:pos(V0e, We),
-            {X1s,Y1s,Z1s} = wings_vertex:pos(V1s, We),
-            {X1e,Y1e,Z1e} = wings_vertex:pos(V1e, We),
+            PosA = {X0s,Y0s,Z0s} = wings_vertex:pos(V0s, We),
+            PosB = {X0e,Y0e,Z0e} = wings_vertex:pos(V0e, We),
+            PosC = {X1s,Y1s,Z1s} = wings_vertex:pos(V1s, We),
+            PosD = {X1e,Y1e,Z1e} = wings_vertex:pos(V1e, We),
             V0 = {X0e-X0s, Y0e-Y0s, Z0e-Z0s},
             V1 = {X1e-X1s, Y1e-Y1s, Z1e-Z1s},
-
             RawAngle = e3d_vec:degrees(V0, V1),
             Angle = case {V0s,V0e} of
                       {V1s,_} -> RawAngle;
@@ -964,11 +970,41 @@ measure(Base, #st{selmode=edge,sel=[{Id,Es}],shapes=Shs}) ->
                       {_,V1s} -> 180.0 - RawAngle;
                       {_,_}   -> RawAngle   %%% unconnected
                     end,
-
-            [Base|io_lib:format(?__(6,". Angle ~s"),
-                                [wings_util:nice_float(Angle)])];
+            enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
+						  [wings_util:nice_float(Angle),?DEGREE])],
+						  {PosA, PosB, PosC, PosD, E0, E1});
         _ -> 
             Base
+    end;
+
+measure(Base, #st{shapes=Shs, selmode=edge, sel=[{Id1,Sel1},{Id2,Sel2}]}) ->
+    case gb_sets:size(Sel1) == 1 andalso gb_sets:size(Sel2) == 1 of
+    true ->
+      WeA = gb_trees:get(Id1, Shs),
+      WeB = gb_trees:get(Id2, Shs),
+      [Es0] = gb_sets:to_list(Sel1),
+      [Es1] = gb_sets:to_list(Sel2),
+      #edge{vs=V0s,ve=V0e} = gb_trees:get(Es0, WeA#we.es),
+      #edge{vs=V1s,ve=V1e} = gb_trees:get(Es1, WeB#we.es),
+      PosA = {X0s,Y0s,Z0s} = wings_vertex:pos(V0s, WeA),
+      PosB = {X0e,Y0e,Z0e} = wings_vertex:pos(V0e, WeA),
+      PosC = {X1s,Y1s,Z1s} = wings_vertex:pos(V1s, WeB),
+      PosD = {X1e,Y1e,Z1e} = wings_vertex:pos(V1e, WeB),
+      V0 = {X0e-X0s, Y0e-Y0s, Z0e-Z0s},
+      V1 = {X1e-X1s, Y1e-Y1s, Z1e-Z1s},
+      RawAngle = e3d_vec:degrees(V0, V1),
+      Angle = case {V0s,V0e} of
+          {V1s,_} -> RawAngle;
+          {_,V1e} -> RawAngle;
+          {V1e,_} -> 180.0 - RawAngle;
+          {_,V1s} -> 180.0 - RawAngle;
+          {_,_}   -> RawAngle   %%% unconnected
+              end,
+      enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
+	                     [wings_util:nice_float(Angle),?DEGREE])],
+						 {PosA, PosB, PosC, PosD, Es0, Es1, Id1, Id2});
+    false->
+        Base
     end;
 measure(Base, #st{selmode=face,sel=[{Id,Fs}],shapes=Shs}) ->
     case gb_sets:size(Fs) of
@@ -978,21 +1014,40 @@ measure(Base, #st{selmode=face,sel=[{Id,Fs}],shapes=Shs}) ->
 	    {X,Y,Z} = wings_face:center(Face, We),
 	    Area = wings_face:area(Face, We),
 	    Mat = wings_facemat:face(Face, We),
-	    [Base|wings_util:format(?__(4,". Midpt ~s ~s ~s.\nMaterial ~s.")++ ?__(40," Area ~s"),
+        [Base|wings_util:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~s.")
+                            ++ ?__(40," Area ~s"),
 				[wings_util:nice_float(X),
 				 wings_util:nice_float(Y),
 				 wings_util:nice_float(Z),
 				 Mat, wings_util:nice_float(Area)])];
+
         2 ->
 	    We = gb_trees:get(Id, Shs),
  	    [F0,F1] = gb_sets:to_list(Fs),
 	    N0 = wings_face:normal(F0, We),
 	    N1 = wings_face:normal(F1, We),
 	    Angle = e3d_vec:degrees(N0,N1),
-	    [Base|wings_util:format(?__(6,". Angle ~s"),
-				    [wings_util:nice_float(Angle)])];
+        enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
+          [wings_util:nice_float(Angle),?DEGREE])],{We,F0,F1});
 	_ -> Base
     end;
+measure(Base, #st{shapes=Shs, selmode=face, sel=[{Id1,Fs1},{Id2,Fs2}]}) ->
+    case gb_sets:size(Fs1) == 1 andalso gb_sets:size(Fs2) == 1 of
+    true ->
+        WeA = gb_trees:get(Id1, Shs),
+        WeB = gb_trees:get(Id2, Shs),
+        [F0] = gb_sets:to_list(Fs1),
+        [F1] = gb_sets:to_list(Fs2),
+          N0 = wings_face:normal(F0, WeA),
+          N1 = wings_face:normal(F1, WeB),
+        Angle = e3d_vec:degrees(N0,N1),
+        enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
+							[wings_util:nice_float(Angle),?DEGREE])],
+							{face,WeA,WeB,F0,F1,Id1,Id2});
+    false ->
+        Base
+    end;
+
 measure(Base, _) -> Base.
 
 item_list(Items, Desc) ->
@@ -1028,9 +1083,106 @@ shape_info([{Id,_}|Objs], Shs, On, Vn, En, Fn) ->
     shape_info(Objs, Shs, On+1, Vn+Vertices, En+Edges, Fn+Faces);
 shape_info([], _Shs, N, Vertices, Edges, Faces) ->
     io_lib:format(?__(2,
-		      "~p objects, ~p faces, ~p edges, ~p vertices"),
+             "~p objects, ~p faces, ~p edges, ~p vertices"),
 		  [N,Faces,Edges,Vertices]).
 
+enhanced_info(Basic, {PosA, PosB, PosC, PosD, E0, E1}) ->
+	case wings_pref:get_value(enhanced_info_text) of
+		true ->
+			Length1 = e3d_vec:dist(PosA,PosB),
+            Length2 = e3d_vec:dist(PosC,PosD),
+            {Xa,Ya,Za} = e3d_vec:average(PosA,PosB),
+            {Xb,Yb,Zb} = e3d_vec:average(PosC,PosD),
+               Dist = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
+               Diff = abs(Length1 - Length2),
+            [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
+                                 ?__(41,"Edge~s ~s")++"  "++?__(41,"Edge~s ~s")
+								 ++"  "++?__(45,"Difference ~s"),
+                                 [wings_util:nice_float(Dist),
+                                  wings_util:nice_float(abs(Xb - Xa)),
+                                  wings_util:nice_float(abs(Yb - Ya)),
+                                  wings_util:nice_float(abs(Zb - Za)),
+                                  wings_util:stringify(E0),
+                                  wings_util:nice_float(Length1),
+                                  wings_util:stringify(E1),
+                                  wings_util:nice_float(Length2),
+                                  wings_util:nice_float(Diff)])];
+		false -> 
+			Basic
+	end;
+enhanced_info(Basic, {PosA, PosB, PosC, PosD, Es0, Es1, Id1, Id2}) ->
+    case wings_pref:get_value(enhanced_info_text) of
+    	true ->
+    	    Length1 = e3d_vec:dist(PosA,PosB),
+    	    Length2 = e3d_vec:dist(PosC,PosD),
+    	    {Xa,Ya,Za} = e3d_vec:average(PosA,PosB),
+    	    {Xb,Yb,Zb} = e3d_vec:average(PosC,PosD),
+    	    Dist = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
+    	    Diff = abs(Length1 - Length2),
+    	    [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
+    	                        ?__(43,"Object~s")++" "++?__(41,"Edge~s ~s")++"  "++
+								?__(43,"Object~s")++" "++?__(41,"Edge~s ~s")++"  "++
+    	                        ?__(45,"Difference ~s"),
+    	                              [wings_util:nice_float(Dist),
+    	                               wings_util:nice_float(abs(Xb - Xa)),
+    	                               wings_util:nice_float(abs(Yb - Ya)),
+    	                               wings_util:nice_float(abs(Zb - Za)),
+    	                               wings_util:stringify(Id1),
+    	                               wings_util:stringify(Es0),
+    	                               wings_util:nice_float(Length1),
+    	                               wings_util:stringify(Id2),
+    	                               wings_util:stringify(Es1),
+    	                               wings_util:nice_float(Length2),
+    	                               wings_util:nice_float(Diff)])];
+        false ->
+			Basic
+	end;
+enhanced_info(Basic,{We,F0,F1}) ->
+	case wings_pref:get_value(enhanced_info_text) of
+		true ->
+        	{Xa,Ya,Za} = wings_face:center(F0, We),
+        	{Xb,Yb,Zb} = wings_face:center(F1, We),
+        	Area0 = wings_face:area(F0, We),
+        	Area1 = wings_face:area(F1, We),
+        	Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
+        	[Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
+        	                     ?__(47,"Face~s Area ~s")++"  "++
+								 ?__(47,"Face~s Area ~s"),
+								[wings_util:nice_float(Dist),
+								 wings_util:nice_float(abs(Xb - Xa)),
+								 wings_util:nice_float(abs(Yb - Ya)),
+								 wings_util:nice_float(abs(Zb - Za)),
+								 wings_util:stringify(F0),
+								 wings_util:nice_float(Area0),
+								 wings_util:stringify(F1),
+								 wings_util:nice_float(Area1)])];
+		false ->
+			Basic
+	end;
+enhanced_info(Basic,{face,WeA, WeB, F0, F1,Id1,Id2}) ->
+	case wings_pref:get_value(enhanced_info_text) of
+		true ->
+       		{Xa,Ya,Za} = wings_face:center(F0, WeA),
+       		{Xb,Yb,Zb} = wings_face:center(F1, WeB),
+       		Area0 = wings_face:area(F0, WeA),
+       		Area1 = wings_face:area(F1, WeB),
+       		Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
+       		[Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
+                      ?__(43,"Object~s")++" "++?__(47,"Face~s Area ~s")++"  "++
+					  ?__(43,"Object~s")++" "++?__(47,"Face~s Area ~s"),
+                      [wings_util:nice_float(Dist),
+                       wings_util:nice_float(abs(Xb - Xa)),
+                       wings_util:nice_float(abs(Yb - Ya)),
+                       wings_util:nice_float(abs(Zb - Za)),
+                       wings_util:stringify(Id1),
+                       wings_util:stringify(F0),
+                       wings_util:nice_float(Area0),
+                       wings_util:stringify(Id2),
+                       wings_util:stringify(F1),
+                       wings_util:nice_float(Area1)])];
+		false ->
+			Basic
+	end.
 command_name(_Repeat, #st{repeatable=ignore}) ->
     "("++cannot_repeat()++")";
 command_name(Repeat, #st{repeatable={_,Cmd}}=St) ->

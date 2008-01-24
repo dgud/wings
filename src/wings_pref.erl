@@ -345,6 +345,8 @@ defaults() ->
     [{background_color,{0.8,0.8,0.8}},
      {info_color,{0.0,0.0,0.0}},
      {info_background_color,{0.8,0.8,0.8,0.5}},
+	 {enhanced_info_text,false},
+	 {info_text_on_hilite,false},
      {grid_color,{0.7,0.7,0.7}},
      {edge_color,{0.0,0.0,0.0}},
      {hard_edge_color,{0.0,0.5,0.0}},
