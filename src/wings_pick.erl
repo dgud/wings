@@ -98,31 +98,31 @@ get_hilite_event(HL) ->
     fun(Ev) -> handle_hilite_event(Ev, HL) end.
 
 handle_hilite_event(redraw,#hl{redraw=#st{sel=[]}=St,prev={SelMode,Where,{Obj,Elem}}}=Hl) ->
-	Mode = case SelMode of
-			vertex -> ?__(4,"Vertex");
-			edge -> ?__(5,"Edge");
-			face -> ?__(6,"Face");
-			body -> none
-		   end,
+    Mode = case SelMode of
+      vertex -> ?__(4,"Vertex");
+      edge -> ?__(5,"Edge");
+      face -> ?__(6,"Face");
+      body -> none
+    end,
     Info = case Where of
-	       original ->
-		   	  case SelMode of
-			    body ->
-				  wings_util:format("~s #~p", [?__(3,"Object"),Obj]);
-				_Other ->
-				  enhanced_hl_info(wings_util:format("~s #~p, ~s #~p",
-				    [?__(3,"Object"),Obj,Mode,Elem]),Hl)
-			  end;
-	       mirror ->
-			  case SelMode of
-			    body ->
-		          wings_util:format("~s #~p ~s", [?__(3,"Object"),
-				    Obj,?__(2,"(in mirror)")]);
-				_Other ->
-				  enhanced_hl_info(wings_util:format("~s #~p, ~s #~p ~s",
-				    [?__(3,"Object"),Obj,Mode,Elem,?__(2,"(in mirror)")]),Hl)
-			  end
-	   end,
+      original ->
+        case SelMode of
+          body ->
+            wings_util:format("~s #~p", [?__(3,"Object"),Obj]);
+          _Other ->
+            enhanced_hl_info(wings_util:format("~s #~p, ~s #~p",
+               [?__(3,"Object"),Obj,Mode,Elem]),Hl)
+        end;
+      mirror ->
+        case SelMode of
+          body ->
+            wings_util:format("~s #~p ~s", [?__(3,"Object"),
+              Obj,?__(2,"(in mirror)")]);
+          _Other ->
+            enhanced_hl_info(wings_util:format("~s #~p, ~s #~p ~s",
+            [?__(3,"Object"),Obj,Mode,Elem,?__(2,"(in mirror)")]),Hl)
+        end
+      end,
     wings:redraw(Info, St),
     keep;
 handle_hilite_event(redraw, #hl{redraw=#st{}=St}) ->
@@ -238,19 +238,18 @@ hilit_draw_sel(body, _, #dlo{src_we=We}=D) ->
     gl:disable(?GL_POLYGON_STIPPLE).
 
 enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev={SelMode,_,{Obj,Elem}}})->
-	case wings_pref:get_value(info_text_on_hilite) of
-	  true ->
-	    We = gb_trees:get(Obj, Shs),
-	    case SelMode of
-	      vertex ->
-	    	{X,Y,Z} = wings_vertex:pos(Elem, We),
-	    	[Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
-	    		[wings_util:nice_float(X),
-	    		wings_util:nice_float(Y),
-	    		wings_util:nice_float(Z)])];
-        
-	      edge -> 
-	        #edge{vs=Va,ve=Vb} = gb_trees:get(Elem, We#we.es),
+    case wings_pref:get_value(info_text_on_hilite) of
+      true ->
+        We = gb_trees:get(Obj, Shs),
+        case SelMode of
+          vertex ->
+            {X,Y,Z} = wings_vertex:pos(Elem, We),
+            [Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
+                               [wings_util:nice_float(X),
+                                wings_util:nice_float(Y),
+                                wings_util:nice_float(Z)])];
+          edge -> 
+            #edge{vs=Va,ve=Vb} = gb_trees:get(Elem, We#we.es),
             {Xa,Ya,Za} = wings_vertex:pos(Va, We),
             {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
             Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
@@ -264,20 +263,20 @@ enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev={SelMode,_,{Obj,Ele
                                  wings_util:nice_float(abs(Xb - Xa)),
                                  wings_util:nice_float(abs(Yb - Ya)),
                                  wings_util:nice_float(abs(Zb - Za))])];
-	      face ->
-	    	{X,Y,Z} = wings_face:center(Elem, We),
-	    	Area = wings_face:area(Elem, We),
-	    	Mat = wings_facemat:face(Elem, We),
-	    	[Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~s.")
-          	                  	++ ?__(40," Area ~s"),
-	    						[wings_util:nice_float(X),
-	    						wings_util:nice_float(Y),
-	    						wings_util:nice_float(Z),
-	    						Mat, wings_util:nice_float(Area)])]
-	     end;
-	  false ->
-	  	Base
-	end.
+          face ->
+            {X,Y,Z} = wings_face:center(Elem, We),
+            Area = wings_face:area(Elem, We),
+            Mat = wings_facemat:face(Elem, We),
+            [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~s.")
+                                ++ ?__(40," Area ~s"),
+                                [wings_util:nice_float(X),
+                                 wings_util:nice_float(Y),
+                                 wings_util:nice_float(Z),
+                                 Mat, wings_util:nice_float(Area)])]
+         end;
+      false ->
+        Base
+    end.
 
 %%
 %% Marquee picking.

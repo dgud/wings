@@ -25,7 +25,7 @@
 -include("wings.hrl").
 
 -import(lists, [foreach/2,map/2,filter/2,foldl/3,sort/1,
-		keymember/3,reverse/1]).
+        keymember/3,reverse/1]).
 
 start() ->
     do_spawn(none).
@@ -38,30 +38,30 @@ start_halt([File|_]) ->
 
 spawn_halt(File) ->
     spawn(fun() ->
-		  process_flag(trap_exit, true),
-		  Wings = do_spawn(File, [link]),
-		  halt_loop(Wings)
-	  end).
+          process_flag(trap_exit, true),
+          Wings = do_spawn(File, [link]),
+          halt_loop(Wings)
+      end).
 
 halt_loop(Wings) ->
     receive
-	{'EXIT',Wings,normal} ->
-	    halt();
-	{'EXIT',Wings,{window_crash,Name,Reason,StkTrace}} ->
-	    Log = wings_u:crash_log(Name, Reason, StkTrace),
-	    io:format("\n\n"),
-	    io:format(?__(1,"Fatal internal error - log written to ~s\n"),
-		      [Log]),
-	    ok;
-	{'EXIT',Wings,Reason} ->
-	    Log = wings_u:crash_log(?__(2,"<Unknown Window Name>"),
-				    Reason),
-	    io:format("\n\n"),
-	    io:format(?__(3,"Fatal internal error - log written to ~s\n"),
-		      [Log]),
-	    ok;
-	_Other ->				%Can't happen.
-	    halt_loop(Wings)
+    {'EXIT',Wings,normal} ->
+        halt();
+    {'EXIT',Wings,{window_crash,Name,Reason,StkTrace}} ->
+        Log = wings_u:crash_log(Name, Reason, StkTrace),
+        io:format("\n\n"),
+        io:format(?__(1,"Fatal internal error - log written to ~s\n"),
+              [Log]),
+        ok;
+    {'EXIT',Wings,Reason} ->
+        Log = wings_u:crash_log(?__(2,"<Unknown Window Name>"),
+                    Reason),
+        io:format("\n\n"),
+        io:format(?__(3,"Fatal internal error - log written to ~s\n"),
+              [Log]),
+        ok;
+    _Other ->				%Can't happen.
+        halt_loop(Wings)
     end.
 
 do_spawn(File) ->
@@ -73,7 +73,7 @@ do_spawn(File, Flags) ->
     %% too long.
     Fun = fun() -> init(File) end,
     spawn_opt(erlang, apply, [Fun,[]],
-	      [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags]).
+          [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags]).
 
 init(File) ->
     register(wings, self()),
@@ -98,17 +98,17 @@ init(File) ->
         
     Empty = gb_trees:empty(),
     St0 = #st{shapes=Empty,
-	      selmode=face,
-	      sel=[],
-	      ssels=Empty,
-	      mat=wings_material:default(),
-	      saved=true,
-	      onext=1,
-	      repeatable=ignore,
-	      ask_args=none,
-	      drag_args=none,
-	      def={ignore,ignore}
-	     },
+          selmode=face,
+          sel=[],
+          ssels=Empty,
+          mat=wings_material:default(),
+          saved=true,
+          onext=1,
+          repeatable=ignore,
+          ask_args=none,
+          drag_args=none,
+          def={ignore,ignore}
+         },
     St1 = wings_sel:reset(St0),
     St = wings_undo:init(St1),
     wings_view:init(),
@@ -123,32 +123,32 @@ init(File) ->
     wings_job:init(),
     
     Op = main_loop_noredraw(St),		%Replace crash handler
-						%with this handler.
+                        %with this handler.
     
     Props = initial_properties(),
     {{X,Y},{W,H}} = wings_wm:win_rect(desktop),
     wings_wm:toplevel(geom, geom_title(geom),
-		      {X,Y,highest}, {W,H-80},
-		      [resizable,{anchor,nw},
-		       {toolbar,
-			fun(A, B, C) -> wings_toolbar:create(A, B, C) end},
-		       menubar,{properties,Props}],
-		      Op),
+              {X,Y,highest}, {W,H-80},
+              [resizable,{anchor,nw},
+               {toolbar,
+            fun(A, B, C) -> wings_toolbar:create(A, B, C) end},
+               menubar,{properties,Props}],
+              Op),
     wings_wm:menubar(geom, get(wings_menu_template)),
     set_drag_filter(geom),
 
     open_file(File),
     restore_windows(St),
     case catch wings_wm:enter_event_loop() of
-	{'EXIT',normal} ->
-	    wings_pref:finish(),
-	    erase(wings_hitbuf),
-	    sdl:quit();
-	{'EXIT',Reason} ->
-	    io:format("~P\n", [Reason,20]),
-	    erase(wings_hitbuf),
-	    sdl:quit(),
-	    exit(Reason)
+    {'EXIT',normal} ->
+        wings_pref:finish(),
+        erase(wings_hitbuf),
+        sdl:quit();
+    {'EXIT',Reason} ->
+        io:format("~P\n", [Reason,20]),
+        erase(wings_hitbuf),
+        sdl:quit(),
+        exit(Reason)
     end.
 
 new_viewer(St) ->
@@ -165,25 +165,25 @@ new_viewer(Name, {X,Y}, Size, Props, ToolbarHidden, St) ->
     Op = main_loop_noredraw(St),
     Title = geom_title(Name),
     wings_wm:toplevel(Name, Title, {X,Y,highest}, Size,
-		      [resizable,closable,{anchor,nw},
-		       {toolbar,
-			fun(A, B, C) -> wings_toolbar:create(A, B, C) end},
-		       menubar,
-		       {properties,Props}],
-		      Op),
+              [resizable,closable,{anchor,nw},
+               {toolbar,
+            fun(A, B, C) -> wings_toolbar:create(A, B, C) end},
+               menubar,
+               {properties,Props}],
+              Op),
     wings_wm:menubar(Name, get(wings_menu_template)),
     wings_wm:send({menubar,Name}, {current_state,St}),
     set_drag_filter(Name),
     if
-	ToolbarHidden -> wings_wm:hide({toolbar,Name});
-	true -> ok
+    ToolbarHidden -> wings_wm:hide({toolbar,Name});
+    true -> ok
     end,
     Name.
 
 free_viewer_num(N) ->
     case wings_wm:is_window({geom,N}) of
-	false -> N;
-	true -> free_viewer_num(N+1)
+    false -> N;
+    true -> free_viewer_num(N+1)
     end.
 
 open_file(none) -> ok;
@@ -204,40 +204,40 @@ redraw(Info, St) ->
     wings_render:render(St),
     call_post_hook(St),
     case Info =/= [] andalso wings_wm:get_prop(show_info_text) of
-	true -> wings_io:info(Info);
-	false -> ok
+    true -> wings_io:info(Info);
+    false -> ok
     end.
 
 call_post_hook(St) ->
     case wings_wm:lookup_prop(postdraw_hook) of
-	none -> ok;
-	{value,{_Id,Fun}} -> Fun(St)
+    none -> ok;
+    {value,{_Id,Fun}} -> Fun(St)
     end.
 
 register_postdraw_hook(Window, Id, Fun) ->
     case wings_wm:lookup_prop(Window, postdraw_hook) of
-	none ->
-	    wings_wm:set_prop(Window, postdraw_hook, {Id,Fun});
-	{value,{Id,_}} ->
-	    wings_wm:set_prop(Window, postdraw_hook, {Id,Fun});
-	{value,{OtherId,_}} ->
-	    erlang:error({in_use_by,OtherId}, [Window,Id,Fun])
+    none ->
+        wings_wm:set_prop(Window, postdraw_hook, {Id,Fun});
+    {value,{Id,_}} ->
+        wings_wm:set_prop(Window, postdraw_hook, {Id,Fun});
+    {value,{OtherId,_}} ->
+        erlang:error({in_use_by,OtherId}, [Window,Id,Fun])
     end.
 
 unregister_postdraw_hook(Window, Id) ->
     case wings_wm:lookup_prop(Window, postdraw_hook) of
-	{value,{Id,_}} ->
-	    wings_wm:erase_prop(Window, postdraw_hook);
-	_ ->
-	    ok
+    {value,{Id,_}} ->
+        wings_wm:erase_prop(Window, postdraw_hook);
+    _ ->
+        ok
     end.
 
 save_state(St0, St1) ->
     St2 = wings_undo:save(St0, St1),
     St = case St2 of
-	     #st{saved=false} -> St2;
-	     _Other -> wings_u:caption(St2#st{saved=false})
-	 end,
+         #st{saved=false} -> St2;
+         _Other -> wings_u:caption(St2#st{saved=false})
+     end,
     main_loop(clear_temp_sel(St)).
 
 ask(Ask, St, Cb) ->
@@ -259,64 +259,64 @@ handle_event({crash_in_other_window,LogName}, St) ->
     get_crash_event(LogName, St);
 handle_event({open_file,Name}, St0) ->
     case catch ?SLOW(wings_ff_wings:import(Name, St0)) of
-	#st{}=St ->
-	    wings_pref:set_value(current_directory, filename:dirname(Name)),
-	    main_loop(wings_u:caption(St#st{saved=true,file=Name}));
-	{error,_} ->
-	    main_loop(St0)
+    #st{}=St ->
+        wings_pref:set_value(current_directory, filename:dirname(Name)),
+        main_loop(wings_u:caption(St#st{saved=true,file=Name}));
+    {error,_} ->
+        main_loop(St0)
     end;
 handle_event(Ev, St) ->
     case wings_camera:event(Ev, St) of
-	next -> handle_event_0(Ev, St);
-	Other -> Other
+    next -> handle_event_0(Ev, St);
+    Other -> Other
     end.
 
 handle_event_0(#mousebutton{button=But,state=ButSt,mod=Mod}=Ev, St)
   when But < 3, Mod band ?CTRL_BITS =/= 0 ->
     case wings_pref:get_value(default_commands) of
-	false ->
-	    handle_event_1(Ev, St);
-	true ->
-	    if
-		Mod band ?SHIFT_BITS =/= 0 ->
-		    define_command(ButSt, But, St);
-		true ->
-		    use_command(Ev, St)
-	    end
+    false ->
+        handle_event_1(Ev, St);
+    true ->
+        if
+        Mod band ?SHIFT_BITS =/= 0 ->
+            define_command(ButSt, But, St);
+        true ->
+            use_command(Ev, St)
+        end
     end;
 handle_event_0(Ev, St) -> handle_event_1(Ev, St).
 
 handle_event_1(Ev, St) ->
     case wings_pick:event(Ev, St) of
-	next -> handle_event_2(Ev, St);
-	Other -> Other
+    next -> handle_event_2(Ev, St);
+    Other -> Other
     end.
 
 handle_event_2(#mousebutton{x=X,y=Y}=Ev0, #st{sel=Sel}=St0) ->
     case wings_menu:is_popup_event(Ev0) of
-	no ->
-	    handle_event_3(Ev0, St0);
-	{yes,Xglobal,Yglobal,_} ->
-	    case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
-		false ->
-		    popup_menu(Xglobal, Yglobal, St0);
-		true ->
-		    case wings_pick:do_pick(X, Y, St0) of
-			{add,_,St} ->
-			    Ev = wings_wm:local2global(Ev0),
-			    wings_io:putback_event(Ev),
-			    wings_wm:later({temporary_selection,St});
-			_ ->
-			    popup_menu(Xglobal, Yglobal, St0)
-		    end
-	    end
+    no ->
+        handle_event_3(Ev0, St0);
+    {yes,Xglobal,Yglobal,_} ->
+        case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
+        false ->
+            popup_menu(Xglobal, Yglobal, St0);
+        true ->
+            case wings_pick:do_pick(X, Y, St0) of
+            {add,_,St} ->
+                Ev = wings_wm:local2global(Ev0),
+                wings_io:putback_event(Ev),
+                wings_wm:later({temporary_selection,St});
+            _ ->
+                popup_menu(Xglobal, Yglobal, St0)
+            end
+        end
     end;
 handle_event_2(Ev, St) -> handle_event_3(Ev, St).
-	    
+        
 handle_event_3(#keyboard{}=Ev, St0) ->
     case do_hotkey(Ev, St0) of
-	next -> keep;
-	{Cmd,St} -> do_command(Cmd, St)
+    next -> keep;
+    {Cmd,St} -> do_command(Cmd, St)
     end;
 handle_event_3({action,Callback}, _) when is_function(Callback) ->
     Callback();
@@ -344,8 +344,8 @@ handle_event_3(redraw, St) ->
     main_loop_noredraw(St);
 handle_event_3(quit, St) ->
     case wings_wm:this() of
-	geom -> do_command({file,quit}, St);
-	_ -> keep
+    geom -> do_command({file,quit}, St);
+    _ -> keep
     end;
 handle_event_3({new_state,St}, St0) ->
     save_state(St0, St);
@@ -387,30 +387,30 @@ handle_event_3(ignore, _St) -> keep.
 
 do_hotkey(Ev, #st{sel=[]}=St0) ->
     case wings_pref:get_value(use_temp_sel) of
-	false ->
-	    do_hotkey_1(Ev, St0);
-	true ->
-	    {_,X,Y} = wings_wm:local_mouse_state(),
-	    case wings_pick:do_pick(X, Y, St0) of
-		{add,_,St} ->
-		    case wings_hotkey:event(Ev, St) of
-			next -> next;
-			Cmd ->
-			    case highlight_sel_style(Cmd) of
-				none -> {Cmd,St0};
-				temporary -> {Cmd,set_temp_sel(St0, St)};
-				permanent -> {Cmd,St}
-			    end
-		    end;
-		_Other -> do_hotkey_1(Ev, St0)
-	    end
+    false ->
+        do_hotkey_1(Ev, St0);
+    true ->
+        {_,X,Y} = wings_wm:local_mouse_state(),
+        case wings_pick:do_pick(X, Y, St0) of
+        {add,_,St} ->
+            case wings_hotkey:event(Ev, St) of
+            next -> next;
+            Cmd ->
+                case highlight_sel_style(Cmd) of
+                none -> {Cmd,St0};
+                temporary -> {Cmd,set_temp_sel(St0, St)};
+                permanent -> {Cmd,St}
+                end
+            end;
+        _Other -> do_hotkey_1(Ev, St0)
+        end
     end;
 do_hotkey(Ev, St) -> do_hotkey_1(Ev, St).
 
 do_hotkey_1(Ev, St) ->
     case wings_hotkey:event(Ev, St) of
- 	next -> next;
-	Cmd -> {Cmd,St}
+    next -> next;
+    Cmd -> {Cmd,St}
     end.
 
 highlight_sel_style({vertex,_}) -> temporary;
@@ -467,14 +467,14 @@ command_response(quit, _, _) ->
 
 do_command_1(Cmd, St0) ->
     case wings_plugin:command(Cmd, St0) of
-	next -> command(Cmd, St0);
-	St0 -> St0;
-	#st{}=St -> {save_state,St};
-	Other -> Other
+    next -> command(Cmd, St0);
+    St0 -> St0;
+    #st{}=St -> {save_state,St};
+    Other -> Other
     end.
 
 remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
-				     C =:= face; C =:= body ->
+                     C =:= face; C =:= body ->
     St#st{repeatable=Cmd,ask_args=none,drag_args=none};
 remember_command(_Cmd, St) -> St.
 
@@ -482,42 +482,42 @@ remember_command(_Cmd, St) -> St.
 %% rewrite it with the current selection mode if needed.
 repeatable(Mode, Cmd) ->
     case Cmd of
-	{Mode,_} -> Cmd;			%Same mode is always OK.
+    {Mode,_} -> Cmd;			%Same mode is always OK.
 
-	%% Commands safe in all modes.
-	{_,{move,normal}} when Mode == body -> no;
-	{_,{move,_}=C} -> {Mode,C};
-	{_,{rotate,normal}} when Mode == body -> no;
-	{_,{rotate,_}=C} -> {Mode,C};
-	{_,{scale,_}=C} -> {Mode,C};
+    %% Commands safe in all modes.
+    {_,{move,normal}} when Mode == body -> no;
+    {_,{move,_}=C} -> {Mode,C};
+    {_,{rotate,normal}} when Mode == body -> no;
+    {_,{rotate,_}=C} -> {Mode,C};
+    {_,{scale,_}=C} -> {Mode,C};
 
-	%% Some special cases.
-	{_,tighten=C} when Mode == vertex; Mode == body -> {Mode,C};
-	{_,smooth=C} when Mode == face; Mode == body -> {Mode,C};
-	
-	%% No more commands are safe in body mode.
-	{_,_} when Mode == body -> no;
-	{_,{flatten,_}=C} when Mode == vertex; Mode == face -> {Mode,C};
-	{_,dissolve} when Mode == vertex -> no;
-	{_,dissolve=C} -> {Mode,C};
-	{_,bevel=C} -> {Mode,C};
-	{_,{extrude,_}=C} -> {Mode,C};
-	{_,collapse=C} -> {Mode,C};
+    %% Some special cases.
+    {_,tighten=C} when Mode == vertex; Mode == body -> {Mode,C};
+    {_,smooth=C} when Mode == face; Mode == body -> {Mode,C};
+    
+    %% No more commands are safe in body mode.
+    {_,_} when Mode == body -> no;
+    {_,{flatten,_}=C} when Mode == vertex; Mode == face -> {Mode,C};
+    {_,dissolve} when Mode == vertex -> no;
+    {_,dissolve=C} -> {Mode,C};
+    {_,bevel=C} -> {Mode,C};
+    {_,{extrude,_}=C} -> {Mode,C};
+    {_,collapse=C} -> {Mode,C};
 
-	%% Other special commands.
-	{_,connect} when Mode == face -> no;
-	{_,connect=C} -> {Mode,C};
+    %% Other special commands.
+    {_,connect} when Mode == face -> no;
+    {_,connect=C} -> {Mode,C};
 
-	%% Other commands only work in the saved mode.
-	_ -> no
+    %% Other commands only work in the saved mode.
+    _ -> no
     end.
 
 %% Vector and secondary-selection commands.
 command({shape,Shape}, St0) ->
     case wings_shapes:command(Shape, St0) of
-    	St0 -> St0;
-	#st{}=St -> {save_state,St};
-	Other -> Other
+        St0 -> St0;
+    #st{}=St -> {save_state,St};
+    Other -> Other
     end;
 command({help,What}, St) ->
     wings_help:command(What, St);
@@ -540,28 +540,28 @@ command({edit,redo}, St) ->
 command({edit,repeat}, #st{sel=[]}=St) -> St;
 command({edit,repeat}, #st{selmode=Mode,repeatable=Cmd0}=St) ->
     case repeatable(Mode, Cmd0) of
-	no -> keep;
-	Cmd when is_tuple(Cmd) -> raw_command(Cmd, none, St)
+    no -> keep;
+    Cmd when is_tuple(Cmd) -> raw_command(Cmd, none, St)
     end;
 command({edit,repeat}, St) -> St;
 command({edit,repeat_args}, #st{sel=[]}=St) -> St;
 command({edit,repeat_args}, #st{selmode=Mode,repeatable=Cmd0,
-				ask_args=AskArgs}=St) ->
+                ask_args=AskArgs}=St) ->
     case repeatable(Mode, Cmd0) of
-	no -> keep;
-	Cmd1 when is_tuple(Cmd1) ->
-	    Cmd = replace_ask(Cmd1, AskArgs),
-	    raw_command(Cmd, none, St)
+    no -> keep;
+    Cmd1 when is_tuple(Cmd1) ->
+        Cmd = replace_ask(Cmd1, AskArgs),
+        raw_command(Cmd, none, St)
     end;
 command({edit,repeat_args}, St) -> St;
 command({edit,repeat_drag}, #st{sel=[]}=St) -> St;
 command({edit,repeat_drag}, #st{selmode=Mode,repeatable=Cmd0,
-				ask_args=AskArgs,drag_args=DragArgs}=St) ->
+                ask_args=AskArgs,drag_args=DragArgs}=St) ->
     case repeatable(Mode, Cmd0) of
-	no -> keep;
-	Cmd1 when is_tuple(Cmd1) ->
-	    Cmd = replace_ask(Cmd1, AskArgs),
-	    raw_command(Cmd, DragArgs, St)
+    no -> keep;
+    Cmd1 when is_tuple(Cmd1) ->
+        Cmd = replace_ask(Cmd1, AskArgs),
+        raw_command(Cmd, DragArgs, St)
     end;
 command({edit,repeat_drag}, St) -> St;
 command({edit,purge_undo}, St) ->
@@ -627,10 +627,10 @@ command({material,Cmd}, St) ->
 
 command({tools,set_default_axis}, St) ->
     wings:ask({[axis,point],[]}, St,
-	      fun({Axis,Point}, _) ->
-		      wings_pref:set_value(default_axis, {Point,Axis}),
-		      keep
-	      end);
+          fun({Axis,Point}, _) ->
+              wings_pref:set_value(default_axis, {Point,Axis}),
+              keep
+          end);
 command({tools,{align,Dir}}, St) ->
     {save_state,wings_align:align(Dir, St)};
 command({tools,{center,Dir}}, St) ->
@@ -665,14 +665,14 @@ popup_menu(X, Y, #st{sel=[]}=St) ->
     wings_shapes:menu(X, Y, St);
 popup_menu(X, Y, #st{selmode=Mode}=St) ->
     case wings_light:is_any_light_selected(St) of
-	true -> wings_light:menu(X, Y, St);
-	false ->
-	    case Mode of
-		vertex -> wings_vertex_cmd:menu(X, Y, St);
-		edge -> wings_edge_cmd:menu(X, Y, St);
-		face -> wings_face_cmd:menu(X, Y, St);
-		body -> wings_body:menu(X, Y, St)
-	    end
+    true -> wings_light:menu(X, Y, St);
+    false ->
+        case Mode of
+        vertex -> wings_vertex_cmd:menu(X, Y, St);
+        edge -> wings_edge_cmd:menu(X, Y, St);
+        face -> wings_face_cmd:menu(X, Y, St);
+        body -> wings_body:menu(X, Y, St)
+        end
     end.
 
 init_menubar() ->
@@ -687,8 +687,8 @@ init_menubar() ->
 
 edit_menu(St) ->
     UndoInfo = lists:flatten([?__(1,
-				   "Delete undo history to reclaim memory"),
-			      " (",undo_info(St),")"]),
+                   "Delete undo history to reclaim memory"),
+                  " (",undo_info(St),")"]),
     [{?__(3,"Undo/Redo"),undo_toggle,
       ?__(4,"Undo or redo the last command")},
      {?__(5,"Redo"),redo,
@@ -708,24 +708,24 @@ edit_menu(St) ->
 undo_info(St) ->
     {Un,Rn} = wings_undo:info(St),
     Undo = case Un of
-	       0 -> ?__(1,"there are no undo states");
-	       1 -> ?__(2,"there is one undo state");
-	       _ -> io_lib:format(?__(3,"there are ~p undo states"), [Un])
-	   end,
+           0 -> ?__(1,"there are no undo states");
+           1 -> ?__(2,"there is one undo state");
+           _ -> io_lib:format(?__(3,"there are ~p undo states"), [Un])
+       end,
     case Rn of
-	0 -> Undo;
-	1 -> [Undo|?__(4,"; one operation can be redone")];
-	_ -> [Undo|io_lib:format(?__(5,"; ~p operations can be redone"), [Rn])]
+    0 -> Undo;
+    1 -> [Undo|?__(4,"; one operation can be redone")];
+    _ -> [Undo|io_lib:format(?__(5,"; ~p operations can be redone"), [Rn])]
     end.
 
 tools_menu(_) ->
     Dirs = [{wings_s:dir(all),all},
-	    {wings_s:dir(x),x},
-	    {wings_s:dir(y),y},
-	    {wings_s:dir(z),z},
-	    {wings_s:dir(radial_x),radial_x},
-	    {wings_s:dir(radial_y),radial_y},
-	    {wings_s:dir(radial_z),radial_z}],
+        {wings_s:dir(x),x},
+        {wings_s:dir(y),y},
+        {wings_s:dir(z),z},
+        {wings_s:dir(radial_x),radial_x},
+        {wings_s:dir(radial_y),radial_y},
+        {wings_s:dir(radial_z),radial_z}],
     [{?__(8,"Align"),{align,Dirs}},
      {?__(9,"Center"),{center,Dirs}},
      separator,
@@ -741,11 +741,11 @@ tools_menu(_) ->
      {?__(17,"Virtual Mirror"),
       {virtual_mirror,
        [{?__(18,"Create"),create,
-	 ?__(19,"Given a face selection, set up a virtual mirror")},
-	{?__(20,"Break"),break,
-	 ?__(21,"Remove virtual mirrors for all objects")},
-	{?__(22,"Freeze"),freeze,
-	 ?__(23,"Create real geometry from the virtual mirrors")}]}},
+     ?__(19,"Given a face selection, set up a virtual mirror")},
+    {?__(20,"Break"),break,
+     ?__(21,"Remove virtual mirrors for all objects")},
+    {?__(22,"Freeze"),freeze,
+     ?__(23,"Create real geometry from the virtual mirrors")}]}},
      separator,
      {?__(24,"Screenshot"), screenshot,
       ?__(25,"Grab an image of the window (export it from the outliner)")},
@@ -759,11 +759,11 @@ tools_menu(_) ->
 
 window_menu(_) ->
     Name = case wings_wm:this() of
-	       {_,geom} ->
-		   ?__(1,"Geometry Graph");
-	       {_,{geom,N}} ->
-		   ?__(2,"Geometry Graph #") ++ integer_to_list(N)
-	   end,
+           {_,geom} ->
+           ?__(1,"Geometry Graph");
+           {_,{geom,N}} ->
+           ?__(2,"Geometry Graph #") ++ integer_to_list(N)
+       end,
     [{?__(3,"Outliner"),outliner,
       ?__(4,"Open the outliner window (showing materials and objects)")},
      {Name,object,
@@ -775,11 +775,11 @@ window_menu(_) ->
 
 patches() ->
     case wings_start:get_patches() of
-	none -> [];
-	{enabled,Desc} ->
-	    [separator,{?__(1,"Use ")++Desc,disable_patches,[crossmark]}];
-	{disabled,Desc} ->
-	    [separator,{?__(1,"Use ")++Desc,enable_patches}]
+    none -> [];
+    {enabled,Desc} ->
+        [separator,{?__(1,"Use ")++Desc,disable_patches,[crossmark]}];
+    {disabled,Desc} ->
+        [separator,{?__(1,"Use ")++Desc,enable_patches}]
     end.
 
 set_temp_sel(#st{sh=Sh,selmode=Mode}, St) ->
@@ -796,20 +796,20 @@ purge_undo(St) ->
     Qs = {vframe,
          [{label,?__(1,"Undo states: ") ++ integer_to_list(Un)},
           {label,?__(2,"Redo states: ")  ++ integer_to_list(Rn)},
-	   separator|
-	   if
-	       Un+Rn =:= 0 ->
-		   [{label,?__(3,"Nothing to remove")},
-		    {hframe,[{button,ok}]}];
-	       true ->
-		   [{label,?__(4,"Remove all states (NOT undoable)?")},
-		    {hframe,[{button,wings_s:yes(),
-			      fun(_) ->
-				      Action = {action,{edit,confirmed_purge_undo}},
-				      wings_wm:send(This, Action)
-			      end},
-			     {button,wings_s:no(),cancel,[cancel]}]}]
-	   end]},
+       separator|
+       if
+           Un+Rn =:= 0 ->
+           [{label,?__(3,"Nothing to remove")},
+            {hframe,[{button,ok}]}];
+           true ->
+           [{label,?__(4,"Remove all states (NOT undoable)?")},
+            {hframe,[{button,wings_s:yes(),
+                  fun(_) ->
+                      Action = {action,{edit,confirmed_purge_undo}},
+                      wings_wm:send(This, Action)
+                  end},
+                 {button,wings_s:no(),cancel,[cancel]}]}]
+       end]},
     wings_ask:dialog("", Qs, fun(_) -> ignore end).
 
 info(#st{sel=[]}) ->
@@ -830,10 +830,10 @@ info(#st{sel=[]}) ->
 %%     end;
 info(St) ->
     case wings_wm:get_prop(show_info_text) of
-	false -> [];
-	true -> info_1(St)
+    false -> [];
+    true -> info_1(St)
     end.
-	    
+        
 info_1(#st{shapes=Shapes,selmode=body,sel=[{Id,_}]}) ->
     Sh = gb_trees:get(Id, Shapes),
     shape_info(Sh);
@@ -841,96 +841,96 @@ info_1(#st{shapes=Shapes,selmode=body,sel=Sel}) ->
     shape_info(Sel, Shapes);
 info_1(#st{selmode=vertex,sel=[{_Id,Sel}]}=St) ->
     case gb_sets:size(Sel) of
-	0 -> "";
-	1 ->
-	    [V] = gb_sets:to_list(Sel),
-	    measure(io_lib:format(?__(1,"Vertex ~p selected"), [V]), St);
-	N when N < 5 ->
-	    Vs = gb_sets:to_list(Sel),
-	    measure(item_list(Vs, ?__(2,"Vertices")), St);
-	N ->
-	    io_lib:format(?__(3,"~p vertices selected"), [N])
+    0 -> "";
+    1 ->
+        [V] = gb_sets:to_list(Sel),
+        measure(io_lib:format(?__(1,"Vertex ~p selected"), [V]), St);
+    N when N < 5 ->
+        Vs = gb_sets:to_list(Sel),
+        measure(item_list(Vs, ?__(2,"Vertices")), St);
+    N ->
+        io_lib:format(?__(3,"~p vertices selected"), [N])
     end;
 info_1(#st{selmode=edge,sel=[{_,Sel}]}=St) ->
     case gb_sets:size(Sel) of
-	0 -> "";
-	1 ->
-	    [Edge] = gb_sets:to_list(Sel),
-	    measure(io_lib:format(?__(4,"Edge ~p selected"), [Edge]), St);
-	N when N < 5 ->
-	    Edges = gb_sets:to_list(Sel),
-	    measure(item_list(Edges, ?__(5,"Edges")), St);
-	N ->
-	    measure(io_lib:format(?__(6,"~p edges selected"), [N]), St)
+    0 -> "";
+    1 ->
+        [Edge] = gb_sets:to_list(Sel),
+        measure(io_lib:format(?__(4,"Edge ~p selected"), [Edge]), St);
+    N when N < 5 ->
+        Edges = gb_sets:to_list(Sel),
+        measure(item_list(Edges, ?__(5,"Edges")), St);
+    N ->
+        measure(io_lib:format(?__(6,"~p edges selected"), [N]), St)
     end;
 info_1(#st{selmode=face,sel=[{_,Sel}]}=St) ->
     case gb_sets:size(Sel) of
-	0 -> "";
-	1 ->
-	    [Face] = gb_sets:to_list(Sel),
-	    measure(io_lib:format(?__(7,"Face ~p selected"), [Face]), St);
-	2 ->
-	    Faces = gb_sets:to_list(Sel),
-	    measure(item_list(Faces,?__(8,"Faces")), St);
-	N when N < 5 ->
-	    Faces = gb_sets:to_list(Sel),
-	    item_list(Faces,?__(8,"Faces"));
-	N ->
-	    io_lib:format(?__(9,"~p faces selected"), [N])
+    0 -> "";
+    1 ->
+        [Face] = gb_sets:to_list(Sel),
+        measure(io_lib:format(?__(7,"Face ~p selected"), [Face]), St);
+    2 ->
+        Faces = gb_sets:to_list(Sel),
+        measure(item_list(Faces,?__(8,"Faces")), St);
+    N when N < 5 ->
+        Faces = gb_sets:to_list(Sel),
+        item_list(Faces,?__(8,"Faces"));
+    N ->
+        io_lib:format(?__(9,"~p faces selected"), [N])
     end;
 info_1(#st{selmode=Mode,sel=Sel}=St) ->
     On = length(Sel),
     N = foldl(fun({_,S}, A) -> A+gb_sets:size(S) end, 0, Sel),
     Str = case Mode of
-	      vertex ->
-		  io_lib:format(?__(10,"~p vertices selected in ~p objects"), [N,On]);
-	      edge ->
-		  io_lib:format(?__(11,"~p edges selected in ~p objects"), [N,On]);
-	      face ->
-		  io_lib:format(?__(12,"~p faces selected in ~p objects"), [N,On])
-	  end,
+          vertex ->
+          io_lib:format(?__(10,"~p vertices selected in ~p objects"), [N,On]);
+          edge ->
+          io_lib:format(?__(11,"~p edges selected in ~p objects"), [N,On]);
+          face ->
+          io_lib:format(?__(12,"~p faces selected in ~p objects"), [N,On])
+      end,
     measure(Str, St).
 
 measure(Base, #st{selmode=vertex,sel=[{Id,Vs}],shapes=Shs}) ->
     case gb_sets:size(Vs) of
-	1 ->
-	    We = gb_trees:get(Id, Shs),
- 	    [Va] = gb_sets:to_list(Vs),
-	    {X,Y,Z} = wings_vertex:pos(Va, We),
+    1 ->
+        We = gb_trees:get(Id, Shs),
+        [Va] = gb_sets:to_list(Vs),
+        {X,Y,Z} = wings_vertex:pos(Va, We),
        [Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
-				[wings_util:nice_float(X),
-				 wings_util:nice_float(Y),
-				 wings_util:nice_float(Z)])];
-	2 ->
-	    We = gb_trees:get(Id, Shs),
- 	    [Va,Vb] = gb_sets:to_list(Vs),
+                          [wings_util:nice_float(X),
+                           wings_util:nice_float(Y),
+                           wings_util:nice_float(Z)])];
+    2 ->
+        We = gb_trees:get(Id, Shs),
+        [Va,Vb] = gb_sets:to_list(Vs),
             {Xa,Ya,Za} = wings_vertex:pos(Va, We),
             {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
- 	    Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
+        Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
        [Base|io_lib:format(?__(5,". Distance ~s  <~s  ~s  ~s>"),
-				[wings_util:nice_float(Dist),
-                wings_util:nice_float(abs(Xb - Xa)),
-                wings_util:nice_float(abs(Yb - Ya)),
-                wings_util:nice_float(abs(Zb - Za))])];
-	_ -> Base
+                          [wings_util:nice_float(Dist),
+                           wings_util:nice_float(abs(Xb - Xa)),
+                           wings_util:nice_float(abs(Yb - Ya)),
+                           wings_util:nice_float(abs(Zb - Za))])];
+    _ -> Base
     end;
 measure(Base, #st{selmode=vertex,sel=[{IdA,VsA},{IdB,VsB}],shapes=Shs}) ->
     case gb_sets:size(VsA) == 1 andalso gb_sets:size(VsB) == 1 of
-	true ->
-	    WeA = gb_trees:get(IdA, Shs),
-	    WeB = gb_trees:get(IdB, Shs),
- 	    [Va] = gb_sets:to_list(VsA),
- 	    [Vb] = gb_sets:to_list(VsB),
+    true ->
+        WeA = gb_trees:get(IdA, Shs),
+        WeB = gb_trees:get(IdB, Shs),
+        [Va] = gb_sets:to_list(VsA),
+        [Vb] = gb_sets:to_list(VsB),
        {Xa,Ya,Za} = wings_vertex:pos(Va, WeA),
        {Xb,Yb,Zb} = wings_vertex:pos(Vb, WeB),
- 	    Dist = e3d_vec:dist(wings_vertex:pos(Va, WeA),
-				wings_vertex:pos(Vb, WeB)),
+        Dist = e3d_vec:dist(wings_vertex:pos(Va, WeA),
+                            wings_vertex:pos(Vb, WeB)),
        [Base|io_lib:format(?__(5,". Distance ~s  <~s  ~s  ~s>"),
                [wings_util:nice_float(Dist),
                 wings_util:nice_float(Xb - Xa),
                 wings_util:nice_float(Yb - Ya),
                 wings_util:nice_float(Zb - Za)])];
-	_ -> Base
+    _ -> Base
     end;
 measure(Base, #st{selmode=edge,sel=[{Id,Es}],shapes=Shs}) ->
     case gb_sets:size(Es) of
@@ -971,8 +971,8 @@ measure(Base, #st{selmode=edge,sel=[{Id,Es}],shapes=Shs}) ->
                       {_,_}   -> RawAngle   %%% unconnected
                     end,
             enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
-						  [wings_util:nice_float(Angle),?DEGREE])],
-						  {PosA, PosB, PosC, PosD, E0, E1});
+                          [wings_util:nice_float(Angle),?DEGREE])],
+                          {PosA, PosB, PosC, PosD, E0, E1});
         _ -> 
             Base
     end;
@@ -1001,35 +1001,34 @@ measure(Base, #st{shapes=Shs, selmode=edge, sel=[{Id1,Sel1},{Id2,Sel2}]}) ->
           {_,_}   -> RawAngle   %%% unconnected
               end,
       enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
-	                     [wings_util:nice_float(Angle),?DEGREE])],
-						 {PosA, PosB, PosC, PosD, Es0, Es1, Id1, Id2});
+                    [wings_util:nice_float(Angle),?DEGREE])],
+                    {PosA, PosB, PosC, PosD, Es0, Es1, Id1, Id2});
     false->
         Base
     end;
 measure(Base, #st{selmode=face,sel=[{Id,Fs}],shapes=Shs}) ->
     case gb_sets:size(Fs) of
-	1 ->
-	    We = gb_trees:get(Id, Shs),
- 	    [Face] = gb_sets:to_list(Fs),
-	    {X,Y,Z} = wings_face:center(Face, We),
-	    Area = wings_face:area(Face, We),
-	    Mat = wings_facemat:face(Face, We),
+    1 ->
+        We = gb_trees:get(Id, Shs),
+        [Face] = gb_sets:to_list(Fs),
+        {X,Y,Z} = wings_face:center(Face, We),
+        Area = wings_face:area(Face, We),
+        Mat = wings_facemat:face(Face, We),
         [Base|wings_util:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~s.")
                             ++ ?__(40," Area ~s"),
-				[wings_util:nice_float(X),
-				 wings_util:nice_float(Y),
-				 wings_util:nice_float(Z),
-				 Mat, wings_util:nice_float(Area)])];
-
-        2 ->
-	    We = gb_trees:get(Id, Shs),
- 	    [F0,F1] = gb_sets:to_list(Fs),
-	    N0 = wings_face:normal(F0, We),
-	    N1 = wings_face:normal(F1, We),
-	    Angle = e3d_vec:degrees(N0,N1),
-        enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
-          [wings_util:nice_float(Angle),?DEGREE])],{We,F0,F1});
-	_ -> Base
+                            [wings_util:nice_float(X),
+                             wings_util:nice_float(Y),
+                             wings_util:nice_float(Z),
+                             Mat, wings_util:nice_float(Area)])];
+    2 ->
+      We = gb_trees:get(Id, Shs),
+      [F0,F1] = gb_sets:to_list(Fs),
+      N0 = wings_face:normal(F0, We),
+      N1 = wings_face:normal(F1, We),
+      Angle = e3d_vec:degrees(N0,N1),
+      enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
+      [wings_util:nice_float(Angle),?DEGREE])],{We,F0,F1});
+    _ -> Base
     end;
 measure(Base, #st{shapes=Shs, selmode=face, sel=[{Id1,Fs1},{Id2,Fs2}]}) ->
     case gb_sets:size(Fs1) == 1 andalso gb_sets:size(Fs2) == 1 of
@@ -1042,8 +1041,8 @@ measure(Base, #st{shapes=Shs, selmode=face, sel=[{Id1,Fs1},{Id2,Fs2}]}) ->
           N1 = wings_face:normal(F1, WeB),
         Angle = e3d_vec:degrees(N0,N1),
         enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
-							[wings_util:nice_float(Angle),?DEGREE])],
-							{face,WeA,WeB,F0,F1,Id1,Id2});
+                      [wings_util:nice_float(Angle),?DEGREE])],
+                      {face,WeA,WeB,F0,F1,Id1,Id2});
     false ->
         Base
     end;
@@ -1064,10 +1063,10 @@ shape_info(#we{id=Id,name=Name,fs=Ftab,es=Etab,vp=Vtab,mode=Mode}) ->
     Edges = gb_trees:size(Etab),
     Vertices = gb_trees:size(Vtab),
     wings_util:format(?__(object_info,
-			  "Object ~p \"~s\" has ~p polygons, "
-			  "~p edges, ~p vertices.\n"
-			  "Mode is ~s"),
-		      [Id,Name,Faces,Edges,Vertices,object_mode(Mode)]).
+              "Object ~p \"~s\" has ~p polygons, "
+              "~p edges, ~p vertices.\n"
+              "Mode is ~s"),
+              [Id,Name,Faces,Edges,Vertices,object_mode(Mode)]).
 
 object_mode(vertex) -> ?__(vertex,"vertex color");
 object_mode(material) -> ?__(material,"material").
@@ -1084,12 +1083,12 @@ shape_info([{Id,_}|Objs], Shs, On, Vn, En, Fn) ->
 shape_info([], _Shs, N, Vertices, Edges, Faces) ->
     io_lib:format(?__(2,
              "~p objects, ~p faces, ~p edges, ~p vertices"),
-		  [N,Faces,Edges,Vertices]).
+          [N,Faces,Edges,Vertices]).
 
 enhanced_info(Basic, {PosA, PosB, PosC, PosD, E0, E1}) ->
-	case wings_pref:get_value(enhanced_info_text) of
-		true ->
-			Length1 = e3d_vec:dist(PosA,PosB),
+    case wings_pref:get_value(enhanced_info_text) of
+        true ->
+            Length1 = e3d_vec:dist(PosA,PosB),
             Length2 = e3d_vec:dist(PosC,PosD),
             {Xa,Ya,Za} = e3d_vec:average(PosA,PosB),
             {Xb,Yb,Zb} = e3d_vec:average(PosC,PosD),
@@ -1097,7 +1096,7 @@ enhanced_info(Basic, {PosA, PosB, PosC, PosD, E0, E1}) ->
                Diff = abs(Length1 - Length2),
             [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
                                  ?__(41,"Edge~s ~s")++"  "++?__(41,"Edge~s ~s")
-								 ++"  "++?__(45,"Difference ~s"),
+                                 ++"  "++?__(45,"Difference ~s"),
                                  [wings_util:nice_float(Dist),
                                   wings_util:nice_float(abs(Xb - Xa)),
                                   wings_util:nice_float(abs(Yb - Ya)),
@@ -1107,69 +1106,69 @@ enhanced_info(Basic, {PosA, PosB, PosC, PosD, E0, E1}) ->
                                   wings_util:stringify(E1),
                                   wings_util:nice_float(Length2),
                                   wings_util:nice_float(Diff)])];
-		false -> 
-			Basic
-	end;
+        false -> 
+            Basic
+    end;
 enhanced_info(Basic, {PosA, PosB, PosC, PosD, Es0, Es1, Id1, Id2}) ->
     case wings_pref:get_value(enhanced_info_text) of
-    	true ->
-    	    Length1 = e3d_vec:dist(PosA,PosB),
-    	    Length2 = e3d_vec:dist(PosC,PosD),
-    	    {Xa,Ya,Za} = e3d_vec:average(PosA,PosB),
-    	    {Xb,Yb,Zb} = e3d_vec:average(PosC,PosD),
-    	    Dist = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
-    	    Diff = abs(Length1 - Length2),
-    	    [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
-    	                        ?__(43,"Object~s")++" "++?__(41,"Edge~s ~s")++"  "++
-								?__(43,"Object~s")++" "++?__(41,"Edge~s ~s")++"  "++
-    	                        ?__(45,"Difference ~s"),
-    	                              [wings_util:nice_float(Dist),
-    	                               wings_util:nice_float(abs(Xb - Xa)),
-    	                               wings_util:nice_float(abs(Yb - Ya)),
-    	                               wings_util:nice_float(abs(Zb - Za)),
-    	                               wings_util:stringify(Id1),
-    	                               wings_util:stringify(Es0),
-    	                               wings_util:nice_float(Length1),
-    	                               wings_util:stringify(Id2),
-    	                               wings_util:stringify(Es1),
-    	                               wings_util:nice_float(Length2),
-    	                               wings_util:nice_float(Diff)])];
+        true ->
+            Length1 = e3d_vec:dist(PosA,PosB),
+            Length2 = e3d_vec:dist(PosC,PosD),
+            {Xa,Ya,Za} = e3d_vec:average(PosA,PosB),
+            {Xb,Yb,Zb} = e3d_vec:average(PosC,PosD),
+            Dist = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
+            Diff = abs(Length1 - Length2),
+            [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
+                          ?__(43,"Object~s")++" "++?__(41,"Edge~s ~s")++"  "++
+                          ?__(43,"Object~s")++" "++?__(41,"Edge~s ~s")++"  "++
+                          ?__(45,"Difference ~s"),
+                              [wings_util:nice_float(Dist),
+                               wings_util:nice_float(abs(Xb - Xa)),
+                               wings_util:nice_float(abs(Yb - Ya)),
+                               wings_util:nice_float(abs(Zb - Za)),
+                               wings_util:stringify(Id1),
+                               wings_util:stringify(Es0),
+                               wings_util:nice_float(Length1),
+                               wings_util:stringify(Id2),
+                               wings_util:stringify(Es1),
+                               wings_util:nice_float(Length2),
+                               wings_util:nice_float(Diff)])];
         false ->
-			Basic
-	end;
+            Basic
+    end;
 enhanced_info(Basic,{We,F0,F1}) ->
-	case wings_pref:get_value(enhanced_info_text) of
-		true ->
-        	{Xa,Ya,Za} = wings_face:center(F0, We),
-        	{Xb,Yb,Zb} = wings_face:center(F1, We),
-        	Area0 = wings_face:area(F0, We),
-        	Area1 = wings_face:area(F1, We),
-        	Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
-        	[Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
-        	                     ?__(47,"Face~s Area ~s")++"  "++
-								 ?__(47,"Face~s Area ~s"),
-								[wings_util:nice_float(Dist),
-								 wings_util:nice_float(abs(Xb - Xa)),
-								 wings_util:nice_float(abs(Yb - Ya)),
-								 wings_util:nice_float(abs(Zb - Za)),
-								 wings_util:stringify(F0),
-								 wings_util:nice_float(Area0),
-								 wings_util:stringify(F1),
-								 wings_util:nice_float(Area1)])];
-		false ->
-			Basic
-	end;
+    case wings_pref:get_value(enhanced_info_text) of
+        true ->
+            {Xa,Ya,Za} = wings_face:center(F0, We),
+            {Xb,Yb,Zb} = wings_face:center(F1, We),
+            Area0 = wings_face:area(F0, We),
+            Area1 = wings_face:area(F1, We),
+            Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
+            [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
+                                 ?__(47,"Face~s Area ~s")++"  "++
+                                 ?__(47,"Face~s Area ~s"),
+                                [wings_util:nice_float(Dist),
+                                 wings_util:nice_float(abs(Xb - Xa)),
+                                 wings_util:nice_float(abs(Yb - Ya)),
+                                 wings_util:nice_float(abs(Zb - Za)),
+                                 wings_util:stringify(F0),
+                                 wings_util:nice_float(Area0),
+                                 wings_util:stringify(F1),
+                                 wings_util:nice_float(Area1)])];
+        false ->
+            Basic
+    end;
 enhanced_info(Basic,{face,WeA, WeB, F0, F1,Id1,Id2}) ->
-	case wings_pref:get_value(enhanced_info_text) of
-		true ->
-       		{Xa,Ya,Za} = wings_face:center(F0, WeA),
-       		{Xb,Yb,Zb} = wings_face:center(F1, WeB),
-       		Area0 = wings_face:area(F0, WeA),
-       		Area1 = wings_face:area(F1, WeB),
-       		Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
-       		[Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
+    case wings_pref:get_value(enhanced_info_text) of
+        true ->
+           {Xa,Ya,Za} = wings_face:center(F0, WeA),
+           {Xb,Yb,Zb} = wings_face:center(F1, WeB),
+           Area0 = wings_face:area(F0, WeA),
+           Area1 = wings_face:area(F1, WeB),
+           Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
+           [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
                       ?__(43,"Object~s")++" "++?__(47,"Face~s Area ~s")++"  "++
-					  ?__(43,"Object~s")++" "++?__(47,"Face~s Area ~s"),
+                      ?__(43,"Object~s")++" "++?__(47,"Face~s Area ~s"),
                       [wings_util:nice_float(Dist),
                        wings_util:nice_float(abs(Xb - Xa)),
                        wings_util:nice_float(abs(Yb - Ya)),
@@ -1180,9 +1179,9 @@ enhanced_info(Basic,{face,WeA, WeB, F0, F1,Id1,Id2}) ->
                        wings_util:stringify(Id2),
                        wings_util:stringify(F1),
                        wings_util:nice_float(Area1)])];
-		false ->
-			Basic
-	end.
+        false ->
+            Basic
+    end.
 command_name(_Repeat, #st{repeatable=ignore}) ->
     "("++cannot_repeat()++")";
 command_name(Repeat, #st{repeatable={_,Cmd}}=St) ->
@@ -1193,8 +1192,8 @@ command_name(_Repeat, CmdStr, #st{sel=[]}) ->
     cannot_repeat(CmdStr);
 command_name(Repeat, CmdStr, #st{selmode=Mode,repeatable=Cmd}) ->
     case repeatable(Mode, Cmd) of
-	no -> cannot_repeat(CmdStr);
-	_ ->  lists:flatten([Repeat," ",wings_util:quote(CmdStr)])
+    no -> cannot_repeat(CmdStr);
+    _ ->  lists:flatten([Repeat," ",wings_util:quote(CmdStr)])
     end.
 
 cannot_repeat(Cmd) ->
@@ -1213,27 +1212,27 @@ define_command(?SDL_RELEASED, N, #st{repeatable=Cmd,def=DefCmd0}) ->
     This = wings_wm:this(),
     CmdStr = wings_util:stringify(Cmd),
     Button = case N of
-		 1 -> wings_s:lmb();
-		 2 -> wings_s:mmb()
-	     end,
+         1 -> wings_s:lmb();
+         2 -> wings_s:mmb()
+         end,
     Q = lists:flatten([?__(1,"Do you want to define"),
-		       " ",wings_util:quote(CmdStr), " ",
-		       ?__(2,"as a default command"),
-		       " (",wings_s:key(ctrl),"+",Button,")?"]),
+               " ",wings_util:quote(CmdStr), " ",
+               ?__(2,"as a default command"),
+               " (",wings_s:key(ctrl),"+",Button,")?"]),
     wings_u:yes_no(Q,
-		   fun() ->
-			   DefCmd = setelement(N, DefCmd0, Cmd),
-			   wings_wm:send(This, {new_default_command,DefCmd}),
-			   ignore
-		   end, ignore);
+           fun() ->
+               DefCmd = setelement(N, DefCmd0, Cmd),
+               wings_wm:send(This, {new_default_command,DefCmd}),
+               ignore
+           end, ignore);
 define_command(_, _, _) -> keep.
 
 use_command(#mousebutton{state=?SDL_RELEASED,button=N}=Ev,
-	    #st{selmode=Mode,def=DefCmd}=St) ->
+        #st{selmode=Mode,def=DefCmd}=St) ->
     case repeatable(Mode, element(N, DefCmd)) of
-	no -> keep;
-	Cmd when is_tuple(Cmd) ->
-	    do_use_command(Ev, Cmd, St)
+    no -> keep;
+    Cmd when is_tuple(Cmd) ->
+        do_use_command(Ev, Cmd, St)
     end;
 use_command(_, _) -> keep.
 
@@ -1244,21 +1243,21 @@ geom_title({geom,N}) ->
 
 do_use_command(#mousebutton{x=X,y=Y}, Cmd0, #st{sel=[]}=St0) ->
     case wings_pref:get_value(use_temp_sel) of
-	false ->
-	    keep;
-	true ->
-	    case wings_pick:do_pick(X, Y, St0) of
-		{add,_,#st{selmode=Mode}=St} ->
-		    %% The selection mode may have changed.
-		    %% Must check (and possibly convert) the command again.
-		    case repeatable(Mode, Cmd0) of
-			no -> keep;
-			Cmd ->
-			    wings_wm:later({action,Cmd}),
-			    main_loop_noredraw(set_temp_sel(St0, St))
-		    end;
-		_Other -> keep
-	    end
+    false ->
+        keep;
+    true ->
+        case wings_pick:do_pick(X, Y, St0) of
+        {add,_,#st{selmode=Mode}=St} ->
+            %% The selection mode may have changed.
+            %% Must check (and possibly convert) the command again.
+            case repeatable(Mode, Cmd0) of
+            no -> keep;
+            Cmd ->
+                wings_wm:later({action,Cmd}),
+                main_loop_noredraw(set_temp_sel(St0, St))
+            end;
+        _Other -> keep
+        end
     end;
 do_use_command(_, Cmd, _) -> wings_wm:later({action,Cmd}).
 
@@ -1274,12 +1273,12 @@ crash_handler(redraw, Log, _St) ->
     wings_wm:clear_background(),
     wings_io:ortho_setup(),
     wings_io:text_at(10, 2*?LINE_HEIGHT,
-		     ?__(1,
-			  "Internal error - log written to") ++
-		     " " ++ Log),
+             ?__(1,
+              "Internal error - log written to") ++
+             " " ++ Log),
     wings_io:text_at(10, 4*?LINE_HEIGHT,
-		     ?__(2,
-			  "Click a mouse button to continue working")),
+             ?__(2,
+              "Click a mouse button to continue working")),
     wings_msg:button(?__(3,"Continue working")),
     keep;
 crash_handler(#mousebutton{}, _, St) ->
@@ -1295,8 +1294,8 @@ crash_handler(_, Log, St) ->
 
 set_drag_filter(Name) ->
     F = fun({material,_}) -> yes;
-	   (_) -> no
-	end,
+       (_) -> no
+    end,
     wings_wm:set_prop(Name, drag_filter, F).
 
 handle_drop(DropData, {X0,Y0}, St) ->
@@ -1305,20 +1304,20 @@ handle_drop(DropData, {X0,Y0}, St) ->
 
 handle_drop_1(_, X, Y, #st{sel=[]}) ->
     wings_menu:popup_menu(X, Y, drop,
-			  [{?__(1,"No Selection"),cancel_drop, ?__(2,"Cancel drop operation")}]);
+              [{?__(1,"No Selection"),cancel_drop, ?__(2,"Cancel drop operation")}]);
 handle_drop_1({material,Name}, X, Y, #st{selmode=face}) ->
     Menu = [{ ?__(3,"Assign material to selected faces"),menu_cmd(assign_to_sel, Name),
-	      ?__(4,"Assign material \"")++Name++ ?__(5,"\" only to selected faces")},
-	    { ?__(6,"Assign material to all faces"),
-	     menu_cmd(assign_to_body, Name),
-	      ?__(7,"Assign material \"")++Name++
+          ?__(4,"Assign material \"")++Name++ ?__(5,"\" only to selected faces")},
+        { ?__(6,"Assign material to all faces"),
+         menu_cmd(assign_to_body, Name),
+          ?__(7,"Assign material \"")++Name++
               ?__(8,"\" to all faces in objects having a selection")}],
     wings_menu:popup_menu(X, Y, drop, Menu);
 handle_drop_1({material,Name}, X, Y, _) ->
     Menu = [{ ?__(9,"Assign material to all faces"),
-	      menu_cmd(assign_to_body, Name),
-	      ?__(10,"Assign material \"")++Name++
-	      ?__(11,"\" to all faces in objects having a selection")}],
+          menu_cmd(assign_to_body, Name),
+          ?__(10,"Assign material \"")++Name++
+          ?__(11,"\" to all faces in objects having a selection")}],
     wings_menu:popup_menu(X, Y, drop, Menu).
     
 menu_cmd(Cmd, Id) ->
@@ -1392,8 +1391,8 @@ restore_windows(St) ->
 restore_windows_1([{geom,{_,_}=Pos0,{_,_}=Size,Ps0}|Ws], St) ->
     Ps = geom_props(Ps0),
     case proplists:get_bool(toolbar_hidden, Ps) of
-	true -> wings_wm:hide({toolbar,geom});
-	false -> ok
+    true -> wings_wm:hide({toolbar,geom});
+    false -> ok
     end,
     Pos = geom_pos(Pos0),
     wings_wm:move(geom, Pos, Size),
@@ -1426,15 +1425,15 @@ restore_windows_1([], _) -> ok.
 geom_pos({X,Y}=Pos) ->
     {_,Upper0} = wings_wm:win_ul(desktop),
     Upper1 = case wings_wm:is_hidden({toolbar,geom}) of
-		 true -> Upper0;
-		 false ->
-		     {_,ToolbarH} = wings_wm:win_size({toolbar,geom}),
-		     Upper0+ToolbarH
-	     end,
+         true -> Upper0;
+         false ->
+             {_,ToolbarH} = wings_wm:win_size({toolbar,geom}),
+             Upper0+ToolbarH
+         end,
     {_,TitleH} = wings_wm:win_size({controller,geom}),
     case Upper1 + TitleH of
-	Upper when Y < Upper -> {X,Upper};
-	_ -> Pos
+    Upper when Y < Upper -> {X,Upper};
+    _ -> Pos
     end.
 
 geom_props(B) when B == false; B == true ->
@@ -1471,10 +1470,10 @@ mode_restriction(Modes) ->
     Win = {toolbar,wings_wm:this()},
     wings_wm:send(Win, {mode_restriction,Modes}),
     case Modes of
-	none ->
-	    wings_wm:erase_prop(Win, mode_restriction);
-	_ ->
-	    wings_wm:set_prop(Win, mode_restriction, Modes)
+    none ->
+        wings_wm:erase_prop(Win, mode_restriction);
+    _ ->
+        wings_wm:set_prop(Win, mode_restriction, Modes)
     end.
 
 clear_mode_restriction() ->
@@ -1484,8 +1483,8 @@ get_mode_restriction() ->
     Name = wings_wm:this(),
     Toolbar = {toolbar,Name},
     case wings_wm:lookup_prop(Toolbar, mode_restriction) of
-	none -> [edge,vertex,face,body];
-	{value,Other} -> Other
+    none -> [edge,vertex,face,body];
+    {value,Other} -> Other
     end.
 
 area_volume_info(St) ->
