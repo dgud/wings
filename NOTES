@@ -3,6 +3,12 @@
 - Verbose and Mouseover info text options added to Edit|Preferences|General.
   [optigon]
 
+- Added interface options to Edit|Preferences|General. Options to
+  edit the width of Hard Edges and Normals, and set the default colour
+  of the Default and Hole Material. Also, the Mini Axis can now be
+  switched on or off and the colour of its axes are now linked to the
+  main axes. [optigon]
+
 --- 0.99.01  ----------------------------------------------------------------
 
 - New feature: Edit|Plug-In Manager. It allows you to selectively

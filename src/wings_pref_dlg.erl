@@ -64,12 +64,15 @@ gen_prefs() ->
 	     [{info,?__(7,"Width in pixels of unselected edges")}]},
 	    {?__(8,"Selected Width"),selected_edge_width,
 	     [{info,?__(9,"Width in pixels of selected edges")}]},
-	    {color,?__(10,"Soft Edges"),edge_color,
-	     [{info,?__(11,"Color of soft edges")}]},
-	    {color,?__(12,"Hard Edges"),hard_edge_color,
-	     [{info,?__(13,"Color of hard edges")}]}]},
-	    {?__(50,"Draw Anti-Aliased Edges"),aa_edges}],
-	 [{title,?__(14,"Edge Display")}]}]},
+		{?__(57,"Hard Edge Width"),hard_edge_width,
+		 [{info,?__(58,"Width in pixels of hard edges")}]}]},
+	    {hframe,[{label_column,[{color,?__(10,"Soft Edges"),edge_color,
+	     [{info,?__(11,"Color of soft edges")}]}]},
+	    {label_column,[{color,?__(12,"Hard Edges"),hard_edge_color,
+	     [{info,?__(13,"Color of hard edges")}]}]}]},
+	    {vframe,[{?__(50,"Draw Anti-Aliased Edges"),aa_edges}]}],
+	 [{title,?__(14,"Edge Display")}]}
+	]},
       {hframe,
        [{vframe,
 	 [{hframe,
@@ -105,21 +108,24 @@ gen_prefs() ->
 	 [{label_column,
 	   [{?__(44,"Length"),normal_vector_size,
 	     [{info,?__(45,"Length of normals")},{range,{0.1,10.0}}]},
+	    {?__(59,"Width"),normal_vector_width,
+	     [{info,?__(60,"Width of normals")}]},
 	    {color,?__(46,"Color"),normal_vector_color,
 	     [{info,?__(47,"Color of normals")}]}]}],
-	 [{title,?__(48,"Normals Display")}]}]},
-      {hframe,
-       [{label,?__(32,"Color")},{color,grid_color},
-	{?__(33,"Force Axis-Aligned Grid"),force_show_along_grid,
-	 [{info,?__(34,"Always show the grid when the view is aligned along one of the major axes")}]},
-	{?__(aa_ortho1,"Force Axis-Aligned Ortho"),
-	 force_ortho_along_axis,
-	 [{info, ?__(aa_ortho2,"Always go into orthogonal mode when the view is aligned along one of the major axes")}]}],
-       [{title,?__(35,"Grid")}]},
-      {hframe,
-       [{vframe,
+	 [{title,?__(48,"Normals Display")}]},
+  {vframe,
+	[{label_column,
+	 [{color,?__(51,"Default"),default_mat,
+	  [{info,?__(52,"Sets the colour of the default material")}]},
+	  {color,?__(53,"Hole"),hole_mat,
+	  [{info,?__(54,"Sets the colour of the hole material")}]}]}],
+	 [{title,?__(55,"Materials")}]}]},
+	
+	  {hframe,
+	   [{vframe,
 	 [{?__(36,"Show Axis Letters"),show_axis_letters},
 	  {?__(49,"Constrain Axes to Grid"),constrain_axes},
+	  {?__(56,"Show Mini Axis"),mini_axis}]},
 	  {hframe,
 	   [{label_column,
 	     [{color,?__(37,"+X Color"),x_color},
@@ -129,8 +135,16 @@ gen_prefs() ->
 	     [{color,?__(40,"-X Color"),neg_x_color},
 	      {color,?__(41,"-Y Color"),neg_y_color},
 	      {color,?__(42,"-Z Color"),neg_z_color}]}]}],
-	 [{title,?__(43,"Axes")}]}
-       ]}]}.
+   [{title,?__(43,"Axes")}]},
+  {hframe,
+   [{hframe,
+	 [{label_column,
+	   [{color,?__(32,"Color"),grid_color}]},
+	    {?__(33,"Force Axis-Aligned Grid"),force_show_along_grid,
+	   [{info,?__(34,"Always show the grid when the view is aligned along one of the major axes")}]},
+	    {?__(aa_ortho1,"Force Axis-Aligned Ortho"),force_ortho_along_axis,
+	   [{info, ?__(aa_ortho2,"Always go into orthogonal mode when the view is aligned along one of the major axes")}]}],
+	 [{title,?__(35,"Grid")}]}]}]}.
 
 advanced_prefs() ->
     DisableHook = fun (is_disabled, {_Var,_I,Store}) ->
@@ -149,7 +163,7 @@ advanced_prefs() ->
        [{info,?__(2,"Allow defining commands that can be invoked by Ctrl+L or Ctrl+M")}]},
       {?__(3,"Use Highlight as Temporary Selection"),use_temp_sel,
        [{info,?__(4,"If there is no selection, ")++
-	 ?__(5,"allow commands to act on the highlighted element")}]},
+      ?__(5,"allow commands to act on the highlighted element")}]},
       {?__(6,"Hide Selection While Dragging"),hide_sel_while_dragging,
        [{info,?__(7,"Don't show the selection in any interactive command")}]},
       {?__(8,"Hide Selection While Moving Camera"),hide_sel_in_camera_moves,
@@ -163,12 +177,12 @@ advanced_prefs() ->
        [{info,?__(13,"In the secondary selection mode, RMB-clicking always add to the selection")},{hook,SuperDisable}]},
       {vframe,
        [{label_column,
-	 [{?__(14,"Length"),active_vector_size,
-	   [{info,?__(15,"Length of vector in secondary selections")},{range,{0.1,10.0}}|Flags]},
-	  {?__(16,"Width"),active_vector_width,
-	   [{info,?__(17,"Width of vector (in pixels)")},{range,{1.0,10.0}}|Flags]},
-	  {color,?__(18,"Color"),active_vector_color,
-	   [{info,?__(19,"Color of vector")}|Flags]}]}],
+     [{?__(14,"Length"),active_vector_size,
+       [{info,?__(15,"Length of vector in secondary selections")},{range,{0.1,10.0}}|Flags]},
+      {?__(16,"Width"),active_vector_width,
+       [{info,?__(17,"Width of vector (in pixels)")},{range,{1.0,10.0}}|Flags]},
+      {color,?__(18,"Color"),active_vector_color,
+       [{info,?__(19,"Color of vector")}|Flags]}]}],
        [{title,?__(20,"Vector Display")}]},
       {vframe,
        [{label_column,
@@ -339,11 +353,12 @@ ui_prefs() ->
 	   [{menu,InterfaceIcons,interface_icons}],
 	   [{title,?__(50,"Interface Icons")}]}]}
        ]},
-      {hframe,[{?__(14,"No Progress Bar"),no_progress_bar},
-	       {?__(27,"Extended Toolbar Icons"),extended_toolbar}]},
-      {?__(24,"Objects in Outliner"),objects_in_outliner},
-      {hframe,[{?__(25,"View image after rendering"),render_load_image},
+      {hframe,
+	    [{vframe,[{?__(14,"No Progress Bar"),no_progress_bar},
+	       {?__(25,"View image after rendering"),render_load_image},
 	       {?__(26,"Load image after rendering"),render_iload_image}]},
+	     {vframe,[{?__(24,"Objects in Outliner"),objects_in_outliner},
+	       {?__(27,"Extended Toolbar Icons"),extended_toolbar}]}]},
       {oframe,
        [{atom_to_list(Format),viewer_prefs(Format)}
 	|| {Format,_,_} <- wings_job:render_formats()],
@@ -506,6 +521,12 @@ smart_set_value_1(Key, Val, St) ->
 		    update_normal_dlist(St);
 		normal_vector_color ->
 		    update_normal_dlist(St);
+		default_mat ->
+		    delayed_set_value(Key, OldVal, Val),
+		    wings_u:message(?__(3,"The change to the default material color will take\neffect the next time Wings 3D is started."));
+		hole_mat ->
+		    delayed_set_value(Key, OldVal, Val),
+		    wings_u:message(?__(5,"The change to the hole material color will take\neffect the next time Wings 3D is started."));
 		_Other -> ok
 	    end
     end.
@@ -588,4 +609,3 @@ make_query({oframe,Frames,Key,Flags}) ->
 make_query(Tuple) when is_tuple(Tuple) ->
     list_to_tuple([make_query(El) || El <- tuple_to_list(Tuple)]);
 make_query(Other) -> Other.
-

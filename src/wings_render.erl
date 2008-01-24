@@ -340,18 +340,20 @@ draw_orig_sel_1(_, DlistSel) ->
 
 draw_hard_edges(#dlo{hard=none}, _) -> ok;
 draw_hard_edges(#dlo{hard=Hard}, SelMode) ->
-    gl:lineWidth(edge_width(SelMode)),
+    gl:lineWidth(hard_edge_width(SelMode)),
     gl:color3fv(wings_pref:get_value(hard_edge_color)),
     wings_dl:call(Hard).
 
 draw_normals(#dlo{normals=none}) -> ok;
 draw_normals(#dlo{normals=Ns}) ->
     gl:color3f(0, 0, 1),
-    gl:lineWidth(2),
+    gl:lineWidth(wings_pref:get_value(normal_vector_width)),
     wings_dl:call(Ns).
 
 edge_width(edge) -> wings_pref:get_value(edge_width);
 edge_width(_) -> 1.
+hard_edge_width(edge) -> wings_pref:get_value(hard_edge_width);
+hard_edge_width(_) -> wings_pref:get_value(hard_edge_width) -1.
 
 ground_and_axes() ->
     Axes = wings_wm:get_prop(show_axes),
@@ -600,99 +602,105 @@ disable_lighting() ->
     end.
 
 mini_axis_icon() ->
-    gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-    {W,H} = wings_wm:win_size(),
-    Matrix1 = list_to_tuple(gl:getDoublev(?GL_MODELVIEW_MATRIX)),
-    Matrix2 = setelement(13, Matrix1, -W/H+0.11),
-    Matrix3 = setelement(14, Matrix2, -1.0+0.11),
-    Matrix4 = setelement(15, Matrix3, 0.0),
-    gl:matrixMode(?GL_PROJECTION),
-    gl:pushMatrix(),
-    gl:loadIdentity(),
-    gl:ortho(-W/H, W/H, -1, 1, 0.00001, 10000000.0),
-    gl:matrixMode(?GL_MODELVIEW),
-    gl:pushMatrix(),
-    gl:loadIdentity(),
-    gl:loadMatrixd(Matrix4),
-    draw_mini_axis(),
-    gl:popMatrix(),
-    gl:matrixMode(?GL_PROJECTION),
-    gl:popMatrix(),
-    gl:matrixMode(?GL_MODELVIEW),
-    gl:popAttrib().
+    case wings_pref:get_value(mini_axis) of 
+    false -> ok;
+    true ->
+      gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
+      {W,H} = wings_wm:win_size(),
+      Matrix1 = list_to_tuple(gl:getDoublev(?GL_MODELVIEW_MATRIX)),
+      Matrix2 = setelement(13, Matrix1, -W/H+0.11),
+      Matrix3 = setelement(14, Matrix2, -1.0+0.11),
+      Matrix4 = setelement(15, Matrix3, 0.0),
+      gl:matrixMode(?GL_PROJECTION),
+      gl:pushMatrix(),
+      gl:loadIdentity(),
+      gl:ortho(-W/H, W/H, -1, 1, 0.00001, 10000000.0),
+      gl:matrixMode(?GL_MODELVIEW),
+      gl:pushMatrix(),
+      gl:loadIdentity(),
+      gl:loadMatrixd(Matrix4),
+      draw_mini_axis(),
+      gl:popMatrix(),
+      gl:matrixMode(?GL_PROJECTION),
+      gl:popMatrix(),
+      gl:matrixMode(?GL_MODELVIEW),
+      gl:popAttrib()
+	end.
 
 draw_mini_axis() ->
     {PA,PB} = {0.08,0.01},
-    {Red,Green,Blue} = {{1,0,0},{0,1,0},{0,0,1}},
+    X = wings_pref:get_value(x_color),
+    Y = wings_pref:get_value(y_color),
+    Z = wings_pref:get_value(z_color),
     gl:'begin'(?GL_LINES),
     %% X Axis
-    gl:color3fv(Red),
+    gl:color3fv(X),
     gl:vertex3f(0,0,0),
     gl:vertex3f(0.1,0.0,0.0),
     %% Y Axis
-    gl:color3fv(Green),
+    gl:color3fv(Y),
     gl:vertex3f(0,0,0),
     gl:vertex3f(0.0,0.1,0.0),
     %% Z Axis
-    gl:color3fv(Blue),
+    gl:color3fv(Z),
     gl:vertex3f(0,0,0),
     gl:vertex3f(0.0,0.0,0.1),
     View = wings_view:current(),
     case View#view.along_axis of
 	none ->
 	    %% X Arrows
-	    gl:color3fv(Red),
+	    gl:color3fv(X),
 	    gl:vertex3f(PA,0.0,-PB),
 	    gl:vertex3f(0.1,0.0,0.0),
 	    gl:vertex3f(PA,0.0,PB),
 	    gl:vertex3f(0.1,0.0,0.0),
 	    %% Y Arrows
-	    gl:color3fv(Green),
+	    gl:color3fv(Y),
 	    gl:vertex3f(-PB,PA,0.0),
 	    gl:vertex3f(0.0,0.1,0.0),
 	    gl:vertex3f(PB,PA,0.0),
 	    gl:vertex3f(0.0,0.1,0.0),
 	    %% Z Arrows
-	    gl:color3fv(Blue),
+	    gl:color3fv(Z),
 	    gl:vertex3f(-PB,0.0,PA),
 	    gl:vertex3f(0.0,0.0,0.1),
 	    gl:vertex3f(PB,0.0,PA),
 	    gl:vertex3f(0.0,0.0,0.1);
 	x ->
 	    %% Y Arrows
-	    gl:color3fv(Green),
+	    gl:color3fv(Y),
 	    gl:vertex3f(0.0,PA,-PB),
 	    gl:vertex3f(0.0,0.1,0.0),
 	    gl:vertex3f(0.0,PA,PB),
 	    gl:vertex3f(0.0,0.1,0.0),
 	    %% Z Arrows
-	    gl:color3fv(Blue),
+	    gl:color3fv(Z),
 	    gl:vertex3f(0.0,-PB,PA),
 	    gl:vertex3f(0.0,0.0,0.1),
 	    gl:vertex3f(0.0,PB,PA),
 	    gl:vertex3f(0.0,0.0,0.1);
 	y ->
 	    %% X Arrows
-	    gl:color3fv(Red),
+	    gl:color3fv(X),
 	    gl:vertex3f(PA,0.0,-PB),
 	    gl:vertex3f(0.1,0.0,0.0),
 	    gl:vertex3f(PA,0.0,PB),
 	    gl:vertex3f(0.1,0.0,0.0),
 	    %% Z Arrows
-	    gl:color3fv(Blue),
+	    gl:color3fv(Z),
 	    gl:vertex3f(-PB,0.0,PA),
 	    gl:vertex3f(0.0,0.0,0.1),
 	    gl:vertex3f(PB,0.0,PA),
 	    gl:vertex3f(0.0,0.0,0.1);
 	z ->
 	    %% X Arrows
-	    gl:color3fv(Red),
+	    gl:color3fv(X),
 	    gl:vertex3f(PA,-PB,0.0),
 	    gl:vertex3f(0.1,0.0,0.0),
 	    gl:vertex3f(PA,PB,0.0),
 	    gl:vertex3f(0.1,0.0,0.0),
 	    %% Y Arrows
-	    gl:color3fv(Green),
+	    gl:color3fv(Y),
 	    gl:vertex3f(-PB,PA,0.0),
 	    gl:vertex3f(0.0,0.1,0.0),
 	    gl:vertex3f(PB,PA,0.0),

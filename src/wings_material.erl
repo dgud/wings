@@ -212,8 +212,10 @@ set_material(Mat, #st{selmode=body}=St) ->
 set_material(_, St) -> St.
 
 default() ->
-    M = [{default,make_default({1.0,1.0,1.0}, 1.0)},
-	 {'_hole_',make_default({0.0,0.0,0.9}, 0.50)}],
+    Dm = wings_pref:get_value(default_mat),
+    Hm = wings_pref:get_value(hole_mat),
+    M = [{default,make_default(Dm, 1.0)},
+        {'_hole_',make_default(Hm, 0.50)}],
     gb_trees:from_orddict(sort(M)).
 
 make_default({R,G,B}, Opacity) ->
