@@ -26,10 +26,6 @@ init() ->
 %% 	{make_prog_envmap(), "Environment Mapping"},
 %% 	{make_prog("vertex_color", "Flag", 0), "Vertex Normals Color"},
 %% 	{make_prog("vertex_color", "Flag", 1), "Face Normals Color"},
-%%  XXX The following shader is BROKEN. Don't re-eneable it without fixing it.
-%%  Problem: ERROR: 0:11: 'assign' :  cannot convert from '4-component vector of float' to 'varying 3-component vector of float'
-%%
-%%      -- Bjorn G
 %% 	{make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
 %% 	{make_prog("depth"), "Depth"},
 %% 	{make_prog("harmonics", "Type", 5), "Spherical Harmonics 5"},
