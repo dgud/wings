@@ -9,6 +9,11 @@
   switched on or off and the colour of its axes are now linked to the
   main axes. [optigon]
 
+- Wings could crash when triangulating (for display purposes)
+  extremely degenerated polygons. For instance, Cylindrical Shift
+  on a cylinder could cause the problem. (Problem reported by pauljs75.)
+  [bjorng]
+
 --- 0.99.01  ----------------------------------------------------------------
 
 - New feature: Edit|Plug-In Manager. It allows you to selectively

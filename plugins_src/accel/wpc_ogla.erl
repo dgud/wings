@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for accelerating certain OpenGL operations.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -14,6 +14,9 @@
 -module(wpc_ogla).
 -export([init/0]).
 -export([two/2,tri/3,quad_tri/4,quad/4,triangulate/2]).
+
+%% For testing.
+-export([test/0]).
 
 -define(FL32, :32/native-float).
 
@@ -109,3 +112,26 @@ triangulate_2(<<>>, Acc) ->
 vs_to_bin([{X,Y,Z}|Vs], Acc) ->
     vs_to_bin(Vs, [<<X:64/native-float,Y:64/native-float,Z:64/native-float>>|Acc]);
 vs_to_bin([], Acc) -> reverse(Acc).
+
+test() ->
+    %% Used to crash.
+    N = {0.00000e+0,-1.00000,0.00000e+0},
+    Ps = [{-3.92889e-2,1.00000,0.00000e+0},
+	  {0.923880,1.00000,-0.382683},
+	  {-2.77814e-2,1.00000,2.77814e-2},
+	  {0.382683,1.00000,-0.923880},
+	  {7.21725e-18,1.00000,3.92889e-2},
+	  {-0.382683,1.00000,-0.923880},
+	  {2.77814e-2,1.00000,2.77814e-2},
+	  {-0.923880,1.00000,-0.382683},
+	  {3.92889e-2,1.00000,-4.81150e-18},
+	  {-0.923880,1.00000,0.382683},
+	  {2.77814e-2,1.00000,-2.77814e-2},
+	  {-0.382683,1.00000,0.923880},
+	  {-2.40575e-18,1.00000,-3.92889e-2},
+	  {0.382683,1.00000,0.923880},
+	  {-2.77814e-2,1.00000,-2.77814e-2},
+	  {0.923880,1.00000,0.382683}],
+    io:format("~p\n", [triangulate(N, Ps)]),
+    ok.
+

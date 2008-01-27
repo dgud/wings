@@ -3,7 +3,7 @@
  *
  *     Erlang driver for OpenGL acceleration.
  *
- *  Copyright (c) 2004 Bjorn Gustavsson
+ *  Copyright (c) 2004-2008 Bjorn Gustavsson
  *
  *  See the file "license.terms" for information on usage and redistribution
  *  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -69,14 +69,21 @@ ErlDrvEntry wings_file_driver_entry = {
 static GLUtesselator* tess;
 static GLdouble* tess_coords;
 static GLdouble* tess_alloc_vertex;
+static GLdouble* tess_alloc_vertex_end;
 static int* tess_vertices;
+static int* tess_vertices_end;
 
 void CALLBACK
 wings_ogla_vertex(GLdouble* coords)
 {
-  /* fprintf(stderr, "%d\r\n", (int) (coords - tess_coords) / 3); */
-
-  *tess_vertices++ = (int) (coords - tess_coords) / 3;
+  /*
+   * We will simply ignore any vertex indices not fitting in the
+   * preallocated buffer. The buffer size should be a multiple of
+   * of 3, so that we return only complete triangles.
+   */
+  if (tess_vertices < tess_vertices_end) {
+    *tess_vertices++ = (int) (coords - tess_coords) / 3;
+  }
 }
 
 void CALLBACK
@@ -101,7 +108,9 @@ wings_ogla_combine(GLdouble coords[3],
   GLdouble* vertex = tess_alloc_vertex;
   int i;
 
-  tess_alloc_vertex += 3;
+  if (tess_alloc_vertex < tess_alloc_vertex_end) {
+    tess_alloc_vertex += 3;
+  }
 
 #if 0
   fprintf(stderr, "combine: ");
@@ -209,25 +218,42 @@ triangulate(char* buff, int count, char** res)
 {
   ErlDrvBinary* bin;
   int i;
-  int new_sz;
   int bin_sz;
+  int new_sz;
+  int allocated_vertex_indices;
   GLdouble n[3];
   GLdouble* new_vertices;
+  int allocated_vertices;
   int num_vertices = count/sizeof(GLdouble)/3 - 1;
 
-  tess_coords = malloc(6*count);
+  /*
+   * Allocate a vertex buffer to fit both all the original
+   * vertices, and hopefully any new vertices created.
+   * We need to have all vertices in contigous memory so that
+   * we easily can calculate a vertex index from a pointer to
+   * vertex data.
+   */
+  allocated_vertices = count + 10*count;
+  tess_coords = malloc(allocated_vertices);
+  tess_alloc_vertex_end = (GLdouble *) (((char *)tess_coords) +
+					allocated_vertices);
   tess_alloc_vertex = new_vertices = tess_coords + count/sizeof(GLdouble);
-
-#if 0
-  fprintf(stderr, "n=%d\r\n", num_vertices);
-#endif
-  bin = driver_alloc_binary(16*num_vertices*sizeof(int));
-  *res = (char *) bin;
-  tess_vertices = (int *) bin->orig_bytes;
-
   memcpy(n, buff, 3*sizeof(GLdouble));
   memcpy(tess_coords, buff, count);
+  
+  /*
+   * Allocate the binary to receive the result. The number of vertex
+   * indices must be a multiple of 3, to ensure that we get an integral
+   * number of triangles.
+   */
+  allocated_vertex_indices = 3*6*num_vertices;
+  bin = driver_alloc_binary(allocated_vertex_indices*sizeof(int)+sizeof(int));
+  tess_vertices = (int *) bin->orig_bytes;
+  tess_vertices_end = tess_vertices + allocated_vertex_indices;
 
+  /*
+   * Do the triangulation.
+   */
   gluTessNormal(tess, n[0], n[1], n[2]);
   gluTessBeginPolygon(tess, 0);
   gluTessBeginContour(tess);
@@ -236,12 +262,34 @@ triangulate(char* buff, int count, char** res)
   }
   gluTessEndContour(tess);
   gluTessEndPolygon(tess);
+
+  /*
+   * Test for vertex buffer overflow. Return a fake triangulation
+   * if there was an overflow.
+   */
+  if (!(tess_alloc_vertex < tess_alloc_vertex_end)) {
+    tess_vertices = (int *) bin->orig_bytes;
+    *tess_vertices++ = 1;
+    *tess_vertices++ = 2;
+    *tess_vertices++ = 3;
+    tess_alloc_vertex = new_vertices;
+  }
+
+  /*
+   * Finish the list of vertex indices with an invalid index (0).
+   */
   *tess_vertices++ = 0;
 
-  new_sz = (tess_alloc_vertex-new_vertices)*sizeof(GLdouble);
-  bin_sz = (((char *)tess_vertices) - bin->orig_bytes) + new_sz;
-  driver_realloc_binary(bin, bin_sz);
-
+  /*
+   * Reallocate the binary to the exact size of the data to return. If
+   * any new vertices have been created, they will be returned after
+   * the the list of vertex indices.
+   */
+  new_sz = (tess_alloc_vertex - new_vertices)*sizeof(GLdouble);
+  bin_sz = ((char *)tess_vertices) - bin->orig_bytes;
+  bin = driver_realloc_binary(bin, bin_sz + new_sz);
+  *res = (char *) bin;
+  tess_vertices = (int *) (bin->orig_bytes + bin_sz);
   if (new_sz != 0) {
     memcpy(tess_vertices, new_vertices, new_sz);
   }
