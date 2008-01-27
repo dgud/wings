@@ -118,5 +118,9 @@ light_shader_src() ->
 	   gl_FrontColor   = color * vec4(mix(GroundColor, SkyColor, a), 1.0);
 	   gl_TexCoord[0]  = gl_MultiTexCoord0;
 	   gl_Position	   = ftransform();
+
+	   #ifdef __GLSL_CG_DATA_TYPES // Fix clipping for Nvidia and ATI
+	   gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;
+	   #endif
        }
        ">>.
