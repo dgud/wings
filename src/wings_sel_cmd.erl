@@ -912,9 +912,11 @@ nonplanar_faces([Tolerance], St) ->
     {save_state,wings_sel:make(Sel, face, St)}.
 
 %%%
-%%% Select similarly oriented faces
+%%% Select similarly oriented faces.
 %%%
 
+oriented_faces(_, #st{selmode=Mode}) when Mode =/= face ->
+    keep;					%Wrong mode (invoked through hotkey).
 oriented_faces(Ask, _St) when is_atom(Ask) ->
     Qs = [{label,?__(1,"Angle tolerance")},
 	  {text,1.0E-3,[{range,{0.0,180.0}}]}],
@@ -1197,4 +1199,3 @@ is_area_similar(Area1, Tolerance, Face, We) ->
     Area2 = wings_face:area(Face, We),
     AreaDiff = abs(Area1-Area2),
     AreaDiff =< Tolerance.
-

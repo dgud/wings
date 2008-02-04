@@ -3,7 +3,7 @@
 %%
 %%     This module implements "vectors" and the secondary selection mode.
 %%
-%%  Copyright (c) 2002-2004 Bjorn Gustavsson.
+%%  Copyright (c) 2002-2008 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -204,9 +204,10 @@ handle_event_4(redraw, Ss, St) ->
     keep;
 handle_event_4({action,{select,Cmd}}, Ss, St0) ->
     case wings_sel_cmd:command(Cmd, St0) of
-	St0 -> keep;
+	#st{}=St0 -> keep;
+	#st{}=St -> filter_sel_command(Ss, St);
 	{save_state,St} -> filter_sel_command(Ss, St);
-	St -> filter_sel_command(Ss, St)
+	keep -> keep
     end;
 handle_event_4({action,{view,auto_rotate}}, _, _) ->
     keep;

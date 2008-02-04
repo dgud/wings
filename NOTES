@@ -11,7 +11,13 @@
 
 - Wings could crash when triangulating (for display purposes)
   extremely degenerated polygons. For instance, Cylindrical Shift
-  on a cylinder could cause the problem. (Problem reported by pauljs75.)
+  on a cylinder could cause the problem. (Thanks to pauljs75.)
+  [bjorng]
+
+- In secondary selection mode, invoking some selection commands (such
+  as Select|Similar Normals) would cause a crash.  Also, invoking
+  Select|Similar Normals through a hotkey in the wrong selection mode
+  (i.e. not face mode) would cause a crash. (Thanks to optigon.)
   [bjorng]
 
 --- 0.99.01  ----------------------------------------------------------------
