@@ -20,6 +20,10 @@
   (i.e. not face mode) would cause a crash. (Thanks to optigon.)
   [bjorng]
 
+- Small fix to Mode changes in Edge|Slide. Changing modes would make
+  edges jump. Mode changes now set the edge back at its initial
+  position. [optigon]
+
 --- 0.99.01  ----------------------------------------------------------------
 
 - New feature: Edit|Plug-In Manager. It allows you to selectively
