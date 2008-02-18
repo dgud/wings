@@ -398,7 +398,9 @@ handle_drag_event_0(#keyboard{unicode=C}=Ev,
 				     Drag0#drag{mode_data=ModeData,xs=0,ys=0}),
 	    Drag = case ModeFun(units, ModeData) of
 		       none -> Drag1;
-		       Units -> Drag1#drag{unit=Units}
+		       Units ->
+		           UnitSc = unit_scales(Units),
+		           Drag1#drag{unit=Units,unit_sc=UnitSc}
 		   end,
 	    get_drag_event(Drag)
     end;
