@@ -27,7 +27,6 @@ init() ->
 menu({edge}, Menu) -> menu_entry(Menu);
 menu(_, Menu) -> Menu.
 
-
 menu_entry(Menu) ->
     case wings_pref:get_value(advanced_menus) of
 	true ->
@@ -35,12 +34,19 @@ menu_entry(Menu) ->
 	    Menu ++ [separator,
 		     {command_name(turn),{turn,TurnMenu}}];
 	false ->
-	    Menu ++ [separator,
-		     ?MENU_ENTRY(turn_cw),
+	    Menu ++ [separator,{?__(turn, "Turn"),{turn_edge,
+		     [?MENU_ENTRY(turn_cw),
 		     ?MENU_ENTRY(turn_ccw),
-		     ?MENU_ENTRY(turn_optimized)]
+		     ?MENU_ENTRY(turn_optimized)]}}]
     end.
-
+%% Basic Menus
+command({edge,{turn_edge,turn_cw}}, St) ->
+    turn_edges(fun cw_mode/2, false, St);
+command({edge,{turn_edge,turn_ccw}}, St) ->
+    turn_edges(fun ccw_mode/2, false, St);
+command({edge,{turn_edge,turn_optimized}}, St) ->
+    turn_edges(fun cw_mode/2, true, St);
+%% Advanced Menus
 command({edge,turn_cw}, St) ->
     turn_edges(fun cw_mode/2, false, St);
 command({edge,turn_ccw}, St) ->
