@@ -112,7 +112,10 @@ adv_submenu_clamped(Button, NS) ->
 bend_cmd({Mode, {'ASK',Ask}}, St) ->
     wings:ask(Ask, St, fun (AskResult, St0) ->
                             bend_ask_callback({Mode, AskResult}, St0)
-                       end).
+                       end);
+%%% For repeat drag cmds
+bend_cmd({Mode, Data}, St) ->
+    bend_ask_callback({Mode, Data}, St).
 %%
 %% Unclamped
 %%
