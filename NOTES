@@ -24,6 +24,11 @@
   edges jump. Mode changes now set the edge back at its initial
   position. [optigon]
 
+- Fixed the repeat drag arguments (Shift D and D) for Vertex Intersect,
+  Bend, and Shift. [optigon]
+
+- Basic mode Turn menu now cascades. [optigon]
+
 --- 0.99.01  ----------------------------------------------------------------
 
 - New feature: Edit|Plug-In Manager. It allows you to selectively
