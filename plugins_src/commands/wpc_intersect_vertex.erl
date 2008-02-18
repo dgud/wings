@@ -47,8 +47,13 @@ isNotFlattenMenuItem({_,{flatten,_}}) ->
 isNotFlattenMenuItem(_) ->
     true.
 
-command({vertex,{intersect,Type}}, St) ->
-    intersect(Type, St);
+
+command({vertex,{intersect,{Type,{'ASK',Ask}}}}, St) ->
+    intersect({Type,{'ASK',Ask}}, St);
+%% command for repeat drag args
+command({vertex,{intersect,{Type,Data}}},St) ->
+    intersect_ask_callback({Type,Data},St);
+
 command(_,_) -> next.
 
 %% creates the menu item for the vertex intersect command.
@@ -92,14 +97,14 @@ intersect({stay_on_line, {'ASK',Ask}}, St0) ->
     wings:ask(Ask, St0, fun (AskResult, St) -> intersect_ask_callback({stay_on_line, AskResult}, St) end);
 intersect({stay_on_plane, {'ASK',Ask}}, St0) ->
     wings:ask(Ask, St0, fun (AskResult, St) -> intersect_ask_callback({stay_on_plane, AskResult}, St) end);
-intersect({pick_all, {'ASK',Ask}}, St) ->
-    wings:ask(Ask, St, fun intersect_ask_callback/2).
+intersect({pick_all, {'ASK',Ask}}, St0) ->
+    wings:ask(Ask, St0, fun (AskResult, St) -> intersect_ask_callback({pick_all, AskResult}, St) end).
 
 intersect_ask_callback({stay_on_line, {LineDir, PlaneNorm, PlanePoint}}, St) ->
     intersect(LineDir, selection, PlaneNorm, PlanePoint, St);
 intersect_ask_callback({stay_on_plane, {PlaneNorm, LineDir, LinePoint}}, St) ->
     intersect(LineDir, LinePoint, PlaneNorm, selection, St);
-intersect_ask_callback({LineDir, LinePoint, PlaneNorm, PlanePoint}, St) ->
+intersect_ask_callback({pick_all, {LineDir, LinePoint, PlaneNorm, PlanePoint}}, St) ->
     intersect(LineDir, LinePoint, PlaneNorm, PlanePoint, St).
 
 
