@@ -71,7 +71,10 @@ adv_submenu(Button, NS) ->
 shift_cmd({Mode, {'ASK',Ask}}, St) ->
     wings:ask(Ask, St, fun (AskResult, St0) ->
                             shift_ask_callback({Mode, AskResult}, St0)
-                       end).
+                       end);
+%%% for repeat cmds
+shift_cmd({Mode, Data}, St) ->
+    shift_ask_callback({Mode, Data}, St).
 
 shift_ask_callback({{planar_shift}, {Axis, Center}}, St) ->
     shift_verts(planar_shift, {Axis, Center}, St);
