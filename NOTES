@@ -29,6 +29,17 @@
 
 - Basic mode Turn menu now cascades. [optigon]
 
+- Extended vector ops to accept vectors defined across multiple objects.
+  Also added Cross Product as a way to define a vector using two edges.
+	[optigon]
+
+- New Feature: Vertex|Deform|Inflate Cylindrical. Works in both basic
+  and advanced menus. In basis menus, select a central axis (XYZ) and
+	inflate. In advanced menus, pick a central axis and optionally, pick
+	a center point and radius. Vertices will move towards the radius along
+	a vector extending form the center point. All vertices are aligned with
+	the radius when the distance reads 100%. [optigon]
+
 --- 0.99.01  ----------------------------------------------------------------
 
 - New feature: Edit|Plug-In Manager. It allows you to selectively

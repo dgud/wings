@@ -33,6 +33,7 @@ MODULES= \
 	wpc_absolute_scale \
 	wpc_bend \
 	wpc_connect_tool \
+	wpc_cylindrilize \
 	wpc_doosabin \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
@@ -48,6 +49,7 @@ TRANSLATABLE= \
 	wpc_absolute_scale \
 	wpc_bend \
 	wpc_connect_tool \
+	wpc_cylindrilize \
 	wpc_doosabin \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
