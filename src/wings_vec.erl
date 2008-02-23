@@ -391,11 +391,142 @@ build_result_1(Res, Cb, St0) ->
 %%%
 
 check_vector(#st{sel=[]}) -> {none,""};
+
+check_vector(#st{selmode=vertex,sel=[{_Ob1,Sel1},{_Ob2,Sel2},{_Ob3,Sel3}]}=St) ->
+    VertNum = gb_sets:size(Sel1) + gb_sets:size(Sel2) + gb_sets:size(Sel3),
+    case VertNum of
+      3 ->
+        PosList = wings_sel:fold(fun(Verts,We,Acc) ->
+                        Vs = gb_sets:to_list(Verts),
+                        get_pos(Vs,We,Acc)
+                        end,[],St),
+        Positions = lists:merge(PosList),
+        get_vec(vertex,plane,Positions);
+      _ ->
+        Str = guard_string(),
+        {none,Str}
+    end;
+
+check_vector(#st{selmode=vertex,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}=St) ->
+    SelSize = gb_sets:size(Sel0) + gb_sets:size(Sel1),
+    case SelSize of
+      2 ->
+        We0 = gb_trees:get(Id0,Shs),
+        We1 = gb_trees:get(Id1,Shs),
+        [EL0] = gb_sets:to_list(Sel0),
+        [EL1] = gb_sets:to_list(Sel1),
+        get_vec(vertex, [EL0, EL1], [We0, We1]);
+      3 ->
+        PosList = wings_sel:fold(fun(Verts,We,Acc) ->
+                        Vs = gb_sets:to_list(Verts),
+                        get_pos(Vs,We,Acc)
+                        end,[],St),
+        Positions = lists:merge(PosList),
+        get_vec(vertex,plane,Positions);
+
+      _ ->
+        Str = guard_string(),
+        {none,Str}
+    end;
+
+check_vector(#st{selmode=Mode,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
+    SelSize = gb_sets:size(Sel0) + gb_sets:size(Sel1),
+    case SelSize of
+      2 ->
+        We0 = gb_trees:get(Id0,Shs),
+        We1 = gb_trees:get(Id1,Shs),
+        [EL0] = gb_sets:to_list(Sel0),
+        [EL1] = gb_sets:to_list(Sel1),
+        get_vec(Mode, [EL0, EL1], [We0, We1]);
+      _ ->
+        Str = guard_string(),
+        {none,Str}
+    end;
+
 check_vector(#st{selmode=Mode,sel=[{Id,Elems0}],shapes=Shs}) ->
     We = gb_trees:get(Id, Shs),
     Elems = gb_sets:to_list(Elems0),
     get_vec(Mode, Elems, We);
-check_vector(_) -> {none,?__(1,"Select parts of one object only")}.
+
+check_vector(_) ->
+    Str = guard_string(),
+    {none,Str}.
+
+guard_string() ->
+    ?__(1,"Select parts of one object only")++
+    ?__(2,", or select one element in each of two objects")++
+    ?__(3,", or any three vertices.").
+
+get_pos(Vs,We,Acc) ->
+    Positions = lists:foldl(fun(Vert,A) ->
+                #we{vp=Vtab} = We,
+                Pos = gb_trees:get(Vert,Vtab),
+                [Pos|A]
+                end,[],Vs),
+    [Positions|Acc].
+
+%%% Three verts two or three objects
+get_vec(vertex,plane,Positions) ->
+    case Positions of
+        [Vp1,Vp2,Vp3] ->
+            Vec0 = e3d_vec:sub(Vp1,Vp2),
+            Vec1 = e3d_vec:sub(Vp1,Vp3),
+            Vec = e3d_vec:cross(Vec0,Vec1),
+            Center = e3d_vec:average(Positions),
+            [{{Center,Vec},?__(13,"3-point perp. normal saved as axis.")}];
+        _ -> {none,?__(27,"Vertices cannot share coordinates when defining a 3 point plane normal")}
+    end;
+
+%%% Two Objects
+get_vec(vertex, [Va, Vb], [We0, We1]) ->
+    VaPos = wings_vertex:pos(Va, We0),
+    VbPos = wings_vertex:pos(Vb, We1),
+    Vec = e3d_vec:norm_sub(VaPos, VbPos),
+    Center = e3d_vec:average([VaPos,VbPos]),
+    Normal = e3d_vec:norm(e3d_vec:add(wings_vertex:normal(Va, We0),
+              wings_vertex:normal(Vb, We1))),
+    [{{Center,Vec},
+      {?__(9,"Direction between vertices saved as axis."),
+       ?__(10,"Use average of vertex normals as axis")}},
+     {{Center,Normal},
+      {?__(11,"Average of vertex normals saved as axis."),
+       ?__(12,"Use direction between vertices as axis")}}];
+
+get_vec(edge, [Edge1,Edge2], [#we{es=Etab0,vp=Vtab0},#we{es=Etab1,vp=Vtab1}]) ->
+    #edge{vs=Va1,ve=Vb1} = gb_trees:get(Edge1, Etab0),
+    #edge{vs=Va2,ve=Vb2} = gb_trees:get(Edge2, Etab1),
+    Va1Pos = gb_trees:get(Va1, Vtab0),
+    Vb1Pos = gb_trees:get(Vb1, Vtab0),
+    Va2Pos = gb_trees:get(Va2, Vtab1),
+    Vb2Pos = gb_trees:get(Vb2, Vtab1),
+    Center1 = e3d_vec:average([Va1Pos,Vb1Pos]),
+    Center2 = e3d_vec:average([Va2Pos,Vb2Pos]),
+    Center = e3d_vec:average([Center1,Center2]),
+    Vec = e3d_vec:norm_sub(Center1, Center2),
+    Vec1 = e3d_vec:norm_sub(Va1Pos,Vb1Pos),
+    Vec2 = e3d_vec:norm_sub(Va2Pos,Vb2Pos),
+    Cross = e3d_vec:cross(Vec1,Vec2),
+    [{{Center,Vec},
+      {?__(5,"Direction between edges saved as axis."),
+       ?__(24,"Save cross vector")}},
+     {{Center,Cross},
+      {?__(25,"Cross product of edges saved as axis"),
+       ?__(26,"Save direction between edges")}}];
+
+get_vec(face, [Face1, Face2], [We0, We1]) ->
+    Center1 = wings_face:center(Face1, We0),
+    Center2 = wings_face:center(Face2, We1),
+    Center = e3d_vec:average([Center1,Center2]),
+    Vec = e3d_vec:norm_sub(Center1, Center2),
+    Face1n = wings_face:normal(Face1, We0),
+    Face2n = wings_face:normal(Face2, We1),
+    Normal = e3d_vec:norm(e3d_vec:add(Face1n, Face2n)),
+    [{{Center,Vec},
+      {?__(17,"Direction between face centers saved as axis."),
+       ?__(18,"Use average of face normals")}},
+     {{Center,Normal},
+      {?__(19,"Average of face normals saved as axis."),
+       ?__(20,"Use direction between face centers")}}];
 
 %% Use single edge as axis
 get_vec(edge, [Edge], #we{es=Etab,vp=Vtab}=We) ->
@@ -423,7 +554,13 @@ get_vec(edge, [Edge1,Edge2], #we{es=Etab,vp=Vtab}) ->
     Center2 = e3d_vec:average([Va2Pos,Vb2Pos]),
     Center = e3d_vec:average([Center1,Center2]),
     Vec = e3d_vec:norm_sub(Center1, Center2),
-    [{{Center,Vec},?__(5,"Direction between edges saved as axis.")}];
+    Vec1 = e3d_vec:norm_sub(Va1Pos,Vb1Pos),
+    Vec2 = e3d_vec:norm_sub(Va2Pos,Vb2Pos),
+    Cross = e3d_vec:cross(Vec1,Vec2),
+    [{{Center,Vec},
+      {?__(5,"Direction between edges saved as axis."),?__(24,"Save cross vector")}},
+     {{Center,Cross},
+      {?__(25,"Cross product of edges saved as axis"),?__(26,"Save direction between edges")}}];
 %% Use edge-loop normal.
 get_vec(edge, Edges, #we{vp=Vtab}=We) ->
     case wings_edge_loop:edge_loop_vertices(Edges, We) of
