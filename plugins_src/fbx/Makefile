@@ -47,7 +47,7 @@ else
    DRIVER_NAME := wings_fbx_mac
    OS_LDFLAGS = -bundle -flat_namespace -undefined suppress
    STRIP_FLAGS = -S
-   EXTRA_INCLUDES := -I/usr/include/sys
+   EXTRA_INCLUDES := -I/usr/include -I/usr/include/sys
    CXX = /usr/bin/g++-4.0
    LIBS = -L$(LIB_DIR)
   endif
