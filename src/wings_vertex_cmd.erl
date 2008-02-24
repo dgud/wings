@@ -33,8 +33,9 @@ menu(X, Y, St) ->
 	    separator,
 	    wings_menu_util:flatten(),
 	    separator,
-	    {?STR(menu,4,"Connect"),connect,
-	     ?STR(menu,5,"Create a new edge by connecting selected vertices")},
+	    {?STR(menu,4,"Connect"),connect_menu(),
+	     {?STR(menu,5,"Create a new edge by connecting selected vertices"),"",
+	      ?STR(menu,17,"Connect vertices and return the new edge selected")},[]},
 	    {?STR(menu,6,"Tighten"),tighten,
 	     ?STR(menu,7,"Move selected vertices towards average midpoint"),[magnet]},
 	    {?STR(menu,8,"Bevel"),bevel,?STR(menu,9,"Create faces of selected vertices")},
@@ -49,11 +50,20 @@ menu(X, Y, St) ->
 	     ?STR(menu,16,"Apply vertex colors to selected vertices")}],
     wings_menu:popup_menu(X, Y, vertex, Menu).
 
+connect_menu() ->
+    fun
+      (1, _Ns) -> {vertex,connect};
+      (3, _Ns) -> {vertex,connecting_edge};
+      (_, _) -> ignore
+    end.
+
 %% Vertex menu.
 command({flatten,Plane}, St) ->
     flatten(Plane, St);
 command(connect, St) ->
     {save_state,connect(St)};
+command(connecting_edge, St) ->
+    {save_state,connecting_edge(St)};
 command(tighten, St) ->
     tighten(St);
 command({tighten,Magnet}, St) ->
@@ -338,6 +348,18 @@ connect(Vs0, #we{mirror=MirrorFace}=We) ->
     foldl(fun({Face,_}, Acc) when Face =:= MirrorFace -> Acc;
 	     ({Face,Vs}, Acc) -> wings_vertex:connect(Face, Vs, Acc)
 	  end, We, FaceVs).
+
+connecting_edge(St0) ->
+    {St,Sel} = wings_sel:mapfold(fun connecting_edge/3, [], St0),
+    wings_sel:set(edge, Sel, St).
+
+connecting_edge(Vs0, #we{mirror=MirrorFace, id=Id}=We0, A) ->
+    FaceVs = wings_vertex:per_face(Vs0, We0),
+    We1 = lists:foldl(fun({Face,_}, Acc) when Face =:= MirrorFace -> Acc;
+       ({Face,Vs}, Acc) -> wings_vertex:connect(Face, Vs, Acc)
+       end, We0, FaceVs),
+    Sel = wings_we:new_items_as_gbset(edge, We0, We1),
+    {We1,[{Id,Sel}|A]}.
 
 %%%
 %%% The Tighten command.

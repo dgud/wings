@@ -40,6 +40,10 @@
 	a vector extending form the center point. All vertices are aligned with
 	the radius when the distance reads 100%. [optigon]
 
+- New Feature: Vertex|Connect(RMB)|Connecting Edge (advanced menus only).
+  Creates a new edge by connecting the selected vertices and returns the
+  new edge already selected. [optigon]
+
 --- 0.99.01  ----------------------------------------------------------------
 
 - New feature: Edit|Plug-In Manager. It allows you to selectively
