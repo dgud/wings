@@ -44,7 +44,7 @@
     {2,"<Nom de fenètre inconnue>"},
     {3,"Erreur interne fatale : écriture dans le journal ~s\n"}]},
   {handle_drop_1,
-   [{1,"Aucune sélection"},
+   [{1,"Aucune Sélection"},
     {2,"Abandonner l'opération"},
     {3,"Assigner un matériau aux facettes sélectionnées"},
     {4,"Assigner un matériau \""},
@@ -62,13 +62,13 @@
    [{1,"Point ~p sélectionné"},
     {2,"Points"},
     {3,"~p points sélectionnés"},
-    {4,"arête ~p sélectionnée"},
-    {5,"arêtes"},
+    {4,"Arête ~p sélectionnée"},
+    {5,"Arêtes"},
     {6,"~p arêtes sélectionnées"},
-    {7,"Facette ~p selectionnée"},
+    {7,"Facette ~p sélectionnée"},
     {8,"Facettes"},
     {9,"~p facettes sélectionnées"},
-    {10,"~p points selectionnés dans ~p objets"},
+    {10,"~p points sélectionnés dans ~p objets"},
     {11,"~p arêtes sélectionnées ~p objets"},
     {12,"~p facettes sélectionnées ~p objets"}]},
   {init_menubar,
@@ -82,17 +82,22 @@
   {item_list,
    [{1," Sélectionne"}]},
   {measure,
-   [{1,". Position ~s ~s ~s"},
-    {2,". Distance ~s"},
-    {3,". Moyenne ~s ~s ~s. Longueur ~s"},
-    {4,". Moyenne ~s ~s ~s.\nMatériau ~s"}]},
+   [{1,". Position <~s  ~s  ~s>"},
+    {3,". Moyenne <~s  ~s  ~s>\nLongueur ~s"},
+    {4,". Moyenne <~s  ~s  ~s>\nMatériau ~s"},
+		{5,". Distance ~s <~s  ~s  ~s>"},
+		{6,". Angle ~s"},
+		{40," Aire ~s"}]},
+	{object_mode,
+	 [{material,"matériel"},
+	  {vertex,"couleur de point"}]},
   {patches,
    [{1,"Utiliser "}]},
   {purge_undo,
    [{1,"États d'annulations: "},
     {2,"États de rétablissements: "},
     {3,"Rien à effacer"},
-    {4,"Effacer tous les états ? (Impossible d'annuler cette action)"}]},
+    {4,"Effacer tous les états? (Impossible d'annuler cette action)"}]},
   {shape_info,
    [{object_info,"Objet ~p \"~s\" contenant ~p polygones, ~p arêtes, ~p points.\nMode est ~s"},
     {2,"~p objets, ~p facettes, ~p arêtes, ~p vertices"}]},
@@ -105,7 +110,7 @@
     {13,"Sauvegarde du déplacement de la Boite englobante"},
     {14,"Fixer les axes par défaut"},
     {15,"Définir et conserver les axes (avec la référence du point) pour un usage ultérieur avec une"},
-    {16,"\"Axes par defaut\" commande (telle Mise a l'échelle|Axes par défaut)"},
+    {16,"\"Axes par défaut\" commande (telle Mise a l'échelle|Axes par défaut)"},
     {17,"Miroir virtuel"},
     {18,"Créer"},
     {19,"Place un miroir virtuel en fonction de la facette sélectionnée"},
@@ -114,8 +119,13 @@
     {22,"Figer"},
     {23,"Réalise une géometrie réelle à partir du Miroir virtuel"},
     {24,"Capture d'écran"},
-    {25,"Effectue une capture d'écran (exportez-la en utilisant le Profil de scène)"}
-    ]},
+    {25,"Effectue une capture d'écran (exportez-la en utilisant le Profil de scène)"},
+    {26,"Informations sur la scène : Aire et volume"},
+    {27,"Calcule l'aire et le volume pour chaque objet dans la scène"},
+    {28,"Placer au sol"},
+    {29,"Place les objets sélectionnés au niveau du sol"},
+    {30,"Uniformiser"},
+    {31,"Mets à l'échelle les objets sélectionnés afin qu'ils tiennent à l'intérieur d'une sphère d'une unité et les déplace à l'origine"}]},
   {undo_info,
    [{1,"Il n'y a pas d'états d'annulations"},
     {2,"il y a un état d'annulation"},
@@ -150,7 +160,7 @@
    [{1,"Aire de lumière vers Objet"},
     {2,"Convertis les Aires de lumière sélectionnés en objets"},
     {3,"Objet vers Aire de lumière"},
-    {4,"Convertis les objets selectionnés en Aires de lumière"}]},
+    {4,"Convertis les objets sélectionnés en Aires de lumière"}]},
   {auto_smooth,
    [{1,"Paramêtres d'auto-lissage"},
     {2,"Angle maximal"}]},
@@ -194,14 +204,16 @@
     {20,"Souder"},
     {21,"Fusionner les paires de facettes qui coincident presque"},
     {22,"Nettoyage"},
-    {23,"Enlever divers defauts"},
+    {23,"Enlever divers défauts"},
     {24,"Auto-Lissage"},
     {25,"Définis les arêtes comme dures ou douces en fonction de l'angle entre les facettes"},
     {26,"Dupliquer"},
     {27,"Détruire"},
     {28,"Détruire les objets sélectionnés"},
     {29,"Renommer..."},
-    {30,"Renomme les objets sélectionnés"}]},
+    {30,"Renomme les objets sélectionnés"},
+    {32,"Choisir toutes les facettes pour cet objet"},
+    {31,"Tout choisir"}]},
   {mode_conv,
    [{1,"Mode Point-couleur"},
     {2,"Modifie le mode de l'objet vers le mode Point-couleur (les matériaux sont conservés, mais non visibles)"},
@@ -254,9 +266,7 @@
     {6,"Zoom arrière"},
     {7,"Facteur du zoom"},
     {9,"Molette de la souris"},
-    {10,"Facteur de zoom alternatif (Alt+Molette)"}
-    ]}
-    ]}.
+    {10,"Facteur de zoom alternatif (Alt+Molette)"}]}]}.
 {wings_collapse,
  [
   {check_consistency,
@@ -321,10 +331,7 @@
 {wings_dissolve,
  [
   {dissolve_1,
-   [
-    {1,"Supprimer risquerait de créer un objet mal structuré."}
-   ]}
-  ]}.
+   [{1,"Supprimer risquerait de créer un objet mal structuré."}]}]}.
 {wings_drag,
  [
   {help_message,
@@ -349,15 +356,15 @@
 {wings_edge,
  [
   {dissolve_edge_2,
-   [{1,"Supprimer risque de créer une facette erronée."}]}
- ]
-}.
+   [{1,"Supprimer risque de créer une facette erronée."}]}]}.
 {wings_edge_cmd,
- [
+ [{command,
+   [{1,"Segments"}]},
+  {cut_ask_entry,
+   [{1,"coupe dans <N> segments"},
+    {2,"entrer un nombre..."}]},
   {cut_command,
-   [
-    {1,"Couper"}
-   ]},
+   [{1,"Couper"}]},
   {cut_entry,
    [{1,"Couper en "},
     {2," arêtes de longueur égale"}]},
@@ -407,7 +414,9 @@
 {wings_extrude_edge,
  [
   {bevel_faces,
-   [{1,"L'objet est trop petit pour être biseauté."}]}]}.
+   [{1,"L'objet est trop petit pour être biseauté."},
+  {extrude_problem,
+   [{1,"Impossible de chanfreiner ou d'extruder; deux ou plusieurs sont probablement trop proche les uns des autres.\nessayez la commande de nettoyage."}]}]}]}.
 {wings_face_cmd,
  [
   {bridge,
@@ -418,18 +427,18 @@
    [{1,"Exactement deux facettes doivent être sélectionnées."}]},
   {clone_on,
    [{1,"Il doit y avoir exclusivement une seule facette de sélectionnée."}]},
-  {clone_on_selection,
+  {clone_on_sélection,
    [{1,"Sélectionnez les éléments cibles qui recevront les clones"}]},
-  {lift_check_selection,
+  {lift_check_sélection,
    [{1,"La facette et l'arête ne correspondent pas."},
     {2,"La facette et le point ne correspondent pas."}]},
   {lift_fun,
-   [{1,"Soulever en tournant la facette autour d'une arete ou d'un point"},
+   [{1,"Soulever en tournant la facette autour d'une arête ou d'un point"},
     {2,"Soulever dans des directions standards"}]},
   {lift_sel_mismatch,
    [{1,"La facette et l'arête ne correspondent pas."}]},
-  {lift_selection,
-   [{1,"Selectionnez un point ou une arête qui sera le pivot"}]},
+  {lift_sélection,
+   [{1,"Sélectionnez un point ou une arête qui sera le pivot"}]},
   {lift_vtx_sel_mismatch,
    [{1,"La facette et le point ne correspondent pas."}]},
   {menu,
@@ -453,8 +462,8 @@
     {18,"Déplacer et tourner l'objet, alignant la face sélectionnée à un autre élément"},
     {19,"Clone l'objet sur un élément ou plus"},
     {20,"Miroir"},
-    {21,"Copie l'objet symétriquement à partir des facettes selectionnées et fusionne les deux parties"},
-    {22,"Copie l'objet symétriquement à partir des facettes selectionnées sans fusionner"},
+    {21,"Copie l'objet symétriquement à partir des facettes sélectionnées et fusionne les deux parties"},
+    {22,"Copie l'objet symétriquement à partir des facettes sélectionnées sans fusionner"},
     {23,"Détruire"},
     {24,"Supprime les arêtes entre deux facettes sélectionnées"},
     {25,"Reduire"},
@@ -463,21 +472,25 @@
     {28,"Subdivise les facettes sélectionnées pour les lisser (Catmull-Clark)"},
     {29,"Polygonaliser"},
     {30,"Point-couleur"},
-    {31,"Aplique Point-couleur aux facettes sélectionnées"}]},
+    {31,"Aplique Point-couleur aux facettes sélectionnées"},
+    {32,"Cacher"},
+    {33,"Cacher les facettes sélectionnées"}]},
   {put_on,
    [{1,"Il doit y avoir seulement une facette de sélectionnée."}]},
-  {put_on_check_selection,
+  {put_on_check_sélection,
    [{1,"La sélection ne doit pas être sur le même objet"},
     {2,"Sélectionnez un seul élément."}]},
-  {put_on_selection,
+  {put_on_sélection,
    [{1,"Sélectionnez l'élément cible sur lequel poser l'objet source"}]},
   {smooth,
    [{1,"lissage"}]},
   {unify_modes,
    [{1,"Un objet en mode Point-couleur ne peut-être ponté avec un objet contenant un matériau."}]}]}.
-{wings_ff_ndo,
- [
-  {check_size,
+ {wings_file,
+  [{wings_prop,
+   [{1,"Fichier Wings"}]}]}.
+ {wings_ff_ndo,
+  [{check_size,
    [{1,"Objet \""},
     {2,"\" ne peut pas être exporté "},
     {3,"vers le format Nendo (trop d'arêtes)."}]},
@@ -581,15 +594,20 @@
     {22,"Importe un fichier d'image"},
     {23,"Rendre"},
     {24,"Installer un module d'extension"},
-    {25,"Quitter"}]},
+    {25,"Quitter"},
+    {26,"Generer un nouveau nom de dossier et sauvegarder"},
+    {27,"Installer un plug-in"},
+    {28,"quitter wings3d"}]},
   {merge,
    [{1,"Fusionner"},
     {2,"Échec de la lecture : "}]},
+  {recent_files,
+   [{1,"Ouvrir ce fichier recent"}]},
   {save_as,
    [{1,"Sauvegarder"}]},
   {save_now,
    [{1,"Échec de la sauvegarde : "}]},
-  {save_selected,
+  {save_sélected,
    [{1,"Cette commande requiert une sélection."},
     {2,"Sauvegarder la sélection"}]},
   {str_save_changes,
@@ -907,7 +925,7 @@
    [{1,"Angle"},
     {2,"Affaiblissement"},
     {3,"Paramètres du spot"}]},
-  {selected_light,
+  {sélected_light,
    [{1,"Sélectionnez seulement une lumière."}]},
   {spot_angle,
    [{1,"N'est pas un spot."}]},
@@ -931,7 +949,12 @@
    [
     {shortest,"Le plus court"},
     {midpoint,"Point moyen"},
-    {surface,"Surface"}
+    {surface,"Surface"}]},
+  {magnet_shape_str,
+   [{bell,"Cloche"},
+    {dome,"Dome"},
+    {spike,"Pointe"},
+    {straight,"Raide"}
    ]}
  ]}.
 {wings_material,
@@ -1080,7 +1103,9 @@
     {5,"Détruire"},
     {6,"Détruire l'image sélectionnée"},
     {7,"Renommer"},
-    {8,"Renommer l'image sélectionnée"}]},
+    {8,"Renommer l'image sélectionnée"},
+    {9,"Reprendre l'image"},
+    {10,"Reprendre l'image pour l'attribuer comme texture a un matériau"}]},
   {delete_image,
    [{1,"L'image est utilisée par un matériau."},
     {2,"Êtes-vous sur de vouloir détruire l'image ? (Impossible d'annuler)"}]},
@@ -1110,7 +1135,9 @@
     {23,"Détruire"},
     {24,"Détruire cette lumière"},
     {25,"Renommer"},
-    {26,"Renommer cette lumière"}]},
+    {26,"Renommer cette lumière"},
+    {121,"Déposer l'objet"},
+    {122,"Déposer un objet précédemment sélectionné sur ce matériel "}]},
   {event,
    [{1,"Sélectionner"},
     {2,"Montrer le menu du profil de scène (s'il y a une sélection) ou le menu de création (s'il n'y a aucune sélection)"}]},
@@ -1118,7 +1145,8 @@
    [{1,"Type de texture"},
     {2,"Diffuse"},
     {3,"Brillance"},
-    {4,"Relief (HeightMap)"}]},
+    {4,"Relief (HeightMap)"},
+   {5,"Bosselage (NormaleMap)"}]},
   {image_menu,
    [{1,"Montrer"},
     {2,"Montrer l'image dans une fenêtre"}]},
@@ -1218,7 +1246,9 @@
     {17,"Largeur des vecteurs (en pixels)"},
     {18,"Couleur"},
     {19,"Couleur des vecteurs"},
-    {20,"Affichage des vecteurs"}]},
+    {20,"Affichage des vecteurs"},
+    {21,"Utiliser Miroir pour les sélections"},
+    {22,"probleme dans l'utilisation du miroir virtuel pour les sélections secondaires"}]},
   {command,
    [{1,"Général"},
     {2,"Caméra"},
@@ -1251,8 +1281,8 @@
     {20,"Sélectionné"},
     {21,"Sélection par surbrillance"},
     {22,"Surbrillance"},
-    {23,"Facettes selectionées saturées"},
-    {24,"Facettes selectionées désaturées"},
+    {23,"Facettes sélectionées saturées"},
+    {24,"Facettes sélectionées désaturées"},
     {25,"Couleur de la sélection"},
     {26,"Sélection"},
     {27,"Texte"},
@@ -1272,6 +1302,11 @@
     {41,"Couleur de -Y"},
     {42,"Couleur de -Z"},
     {43,"Axes"},
+    {44,"Longueur"},
+    {45,"Longueurs des normales"},
+    {46,"Couleur"},
+    {47,"Couleur des normales"},
+    {48,"Affichage des normales"},
     {aa_ortho1,"Axes orthogonal"},
     {aa_ortho2,"Toujours se mettre en vue orthogonale lorsque la vue est alignée sur l'un des axes majeurs"}]},
   {menu,
@@ -1298,7 +1333,9 @@
     {18,"Ce probleme provient de certaines cartes graphiques Matrox"},
     {19,"Le déplacement de la caméra et les commandes interactives sont instables"},
     {20,"Le problème se produit sur Mac OS X 10.3 (Panther)"},
-    {21,"Contournement du problème"}]},
+    {21,"Contournement du problème"},
+    {22,"Problemes d'arretes a l'écran?"},
+    {23,"Excentrage d'arretes:"}]},
   {smart_set_value_1,
    [{1,"Le changement de la police prendra effet\nau prochain démarrage de Wings"}]},
   {ui_prefs,
@@ -1324,7 +1361,14 @@
     {20,"Texte"},
     {21,"Curseur"},
     {22,"Console"},
-    {23,"Langue"}]},
+    {23,"Langue"},
+    {24,"Objets dans le profil de scene"},
+    {25,"Voir l'image apres le rendu"},
+    {26,"Charger les images apres le rendu"}]},
+  {viewer_prefs,
+   [{1,"Visionneuse"},
+    {2,"Options"},
+    {3,"..nom de fichier.."}]},
   {workaround_1,
    [{1,"Problème"},
     {2,"Utiliser méthode de contournement ?"}]}]}.
@@ -1365,9 +1409,9 @@
     {ctrl,"Ctrl"},
     {shift,"Maj"}]},
   {mouse_b,
-   [{l,"clic gauche"},
-    {m,"clic centre"},
-    {r,"clic droit"}]},
+   [{l,"G"},
+    {m,"C"},
+    {r,"D"}]},
   {no,
    [{1,"Non"}]},
   {yes,
@@ -1384,6 +1428,11 @@
  [
   {ask,
    [{1,"Sélection par ID"}]},
+  {group_mode_string,
+   [{body,"Sélection par group d'objets"},
+    {edge,"Sélection par groupe d'arêtes"},
+    {face,"Sélection par groupe de facettes"},
+    {vertex,"Sélection par groupe de points"}]},
   {group_title,
    [{1,"sommet : "},
     {2,"arête : "},
@@ -1411,11 +1460,11 @@
    [{1,"Rien à sélectionner."},
     {2,"ID de l'objet"}]},
   {less_help,
-   [{1,"Déselectionne tous les sommets adjacents d'un sommet non sélectionné"},
-    {2,"Déselectionne toutes les arêtes adjacentes d'une arête non sélectionnée"},
-    {3,"Déselectionne toutes les facettes adjacentes d'une facette non sélectionnée"}]},
+   [{1,"Désélectionne tous les sommets adjacents d'un sommet non sélectionné"},
+    {2,"Désélectionne toutes les arêtes adjacentes d'une arête non sélectionnée"},
+    {3,"Désélectionne toutes les facettes adjacentes d'une facette non sélectionnée"}]},
   {menu,
-   [{1,"Déselectionner"},
+   [{1,"Désélectionner"},
     {2,"Enlever la sélection"},
     {3,"Plus"},
     {4,"Moins"},
@@ -1423,7 +1472,7 @@
     {6,"Boucle d'arête"},
     {7,"Boucle d'arête"},
     {8,"Étendre la sélection d'arête à une boucle; "},
-    {9,"converti la selection de facettes en sélection des arêtes du contour"},
+    {9,"converti la sélection de facettes en sélection des arêtes du contour"},
     {10,"Boucle d'arête en région"},
     {11,"Sélectionne toutes les facettes sur un coté de la boucle d'arêtes "},
     {12,"Anneau d'arêtes"},
@@ -1474,7 +1523,7 @@
     {66,"Sélectionne toutes les éléments"},
     {67,"Inverser"},
     {68,"Inverse la sélection"},
-    {69,"Cacher selectionés"},
+    {69,"Cacher sélectionés"},
     {70,"Cacher tous les objets sélectionnés (partiellement ou entièrement)"},
     {71,"Cacher non sélectionés"},
     {72,"Cacher les objets qui ne sont pas sélectionnés"},
@@ -1489,7 +1538,16 @@
     {81,"Rappelle la sélection"},
     {82,"Rappelle la sélection mémorisée à l'intérieur du groupe de sélection nommé Sélection mémorisée"},
     {83,"Nouveau groupe..."},
-    {84,"Crée un nouveau groupe de sélection"}]},
+    {84,"Crée un nouveau groupe de sélection"},
+    {85,"Facettes non-planaires"},
+    {86,"Sélectionner les facettes non-planaires"},
+    {87,"Arêtes pointues"},
+    {88,"Choisir des arêtes pointuss"},
+    {401,"6 ou plus"},
+    {nq0,"Les facettes non quadrangulaires"},
+    {nq1,"Toutes les facettes non quadrangulaires"},
+    {nq2,"Les facettes non quadrangulaires impairs"},
+    {nq3,"Même les facettes non quadrangulaires"}]},
   {more_help,
    [{1,"Sélectionne tous les sommets adjacents au sommet sélectionné"},
     {2,"Sélectionne toutes les arêtes adjacentes de l'arête sélectionnée"},
@@ -1499,19 +1557,31 @@
     {2,"Nom du groupe"}]},
   {new_group_name,
    [{exists,"existe déjà."}]},
+  {nonplanar_faces,
+   [{1,"Tolerance de distance"},
+    {2,"Choisir les facettes non-planaires"}]},
+  {oriented_faces,
+   [{1,"La tolerance de l'angle"},
+    {2,"Sélectionne les facettes oriente de facon similaires"}]},
+  {oriented_faces_menu,
+   [{1,"Normales identiques"},
+    {2,"Sélectionner les facettes identiques à celles qui sont déjà sélectionnées"}]},
   {sel_all_str,
    [{1,"Tous les sommets"},
     {2,"Toutes les arêtes"},
     {3,"Toutes les facettes"},
     {4,"Tous les objets"}]},
+  {sharp_edges,
+   [{1,"Angle maximum"},
+    {2,"Choisir des arêtes pointuss"}]},
   {short_edges,
    [{1,"Tolérance de longueur"},
     {2,"Sélectionne les arêtes courtes"}]},
   {similar_help,
-   [{1,"Selectionner les points similaires dans les points deja selectionnes"},
-    {2,"Selectionner les aretes similaires dans les aretes deja selectionnees"},
-    {3,"Selectionner les facettes similaires dans les facettes deja selectionnees"},
-    {4,"Selectionner les objets comportant le meme nombre de points, d'aretes et de facettes"}]},
+   [{1,"Sélectionner les points similaires dans les points déjà sélectionnes"},
+    {2,"Sélectionner les arêtes similaires dans les arêtes déjà sélectionnées"},
+    {3,"Sélectionner les facettes similaires dans les facettes déjà sélectionnées"},
+    {4,"Sélectionner les objets comportant le même nombre de points, d'arêtes et de facettes"}]},
   {valid_sel,
    [{1,"L'Id de l'objet "},
     {2," est invalide."},
@@ -1521,20 +1591,20 @@
  [
   {do_menu,
    [{1,"Dupliquer"},
-    {2,"Dupliquer les objets selectionnes"},
+    {2,"Dupliquer les objets sélectionnés"},
     {3,"Detruire"},
-    {4,"Detruire les objets selectionnes"},
+    {4,"Detruire les objets sélectionnés"},
     {5,"Renommer"},
-    {6,"Renommer les objets selectionnes"}]},
+    {6,"Renommer les objets sélectionnés"}]},
   {help,
-   [{1,"Selectionner"},
+   [{1,"Sélectionner"},
     {2,"Choisir le menu"},
     {3,"Basculer la visibilite de l'objet"},
     {4,"Basculer la visibilte de tous les objets"},
     {5,"Verouiller/Deverouiller l'objet actif"},
     {6,"Verouiller/Deverouiller les objets"},
-    {7,"Basculer la selection pour l'objet actif"},
-    {8,"Basculer la selection pour tous les objets"},
+    {7,"Basculer la sélection pour l'objet actif"},
+    {8,"Basculer la sélection pour tous les objets"},
     {9,"Basculer ombrage/fil de fer pour l'objet actif"},
     {10,"Basculer ombrage/fil de fer pour tous les objets"}]},
   {title,
@@ -1552,20 +1622,20 @@
    [{15,"Supplements"},
     {16,"Plus de Primitives"}]},
   {prim_help,
-   [{cone,"Creer un Cone"},
-    {cube,"Creer un Cube"},
-    {cylinder,"Creer un Cylindre"},
-    {dodecahedron,"Creer un Dodecaedre"},
-    {grid,"Creer une Grille"},
-    {icosahedron,"Creer un Icosaedre"},
-    {image,"Creer une Image..."},
-    {light,"Creer une Lumiere"},
-    {material,"Creer un Materiau..."},
-    {octahedron,"Creer un Octaedre"},
-    {octotoad,"Creer un Octotoaedre"},
-    {sphere,"Creer une Sphere"},
-    {tetrahedron,"Creer un Tetraedre"},
-    {torus,"Creer un Tore"}]},
+   [{cone,"Créer un Cone"},
+    {cube,"Créer un Cube"},
+    {cylinder,"Créer un Cylindre"},
+    {dodecahedron,"Créer un Dodecaedre"},
+    {grid,"Créer une Grille"},
+    {icosahedron,"Créer un Icosaedre"},
+    {image,"Créer une Image..."},
+    {light,"Créer une Lumiere"},
+    {material,"Créer un Materiau..."},
+    {octahedron,"Créer un Octaedre"},
+    {octotoad,"Créer un Octotoaedre"},
+    {sphere,"Créer une Sphere"},
+    {tetrahedron,"Créer un Tetraedre"},
+    {torus,"Créer un Tore"}]},
   {prim_name,
    [{cone,"Cone"},
     {cube,"Cube"},
@@ -1598,7 +1668,7 @@
    [{1,"Lisser"},
     {2,"evaluation du centre des facettes"},
     {3,"Decoupage des Aretes"},
-    {4,"Mise a jour des materiaux"},
+    {4,"Mise a jour des matériaux"},
     {5,"Creation de nouvelles Facettes"},
     {6,"Deplacement des Points"},
     {7,"Terminer"}]}]}.
@@ -1610,15 +1680,15 @@
 {wings_toolbar,
  [
   {button_help_1,
-   [{1,"Deselectionner"}]},
+   [{1,"Desélectionner"}]},
   {button_help_2,
-   [{1,"Selectionner les points adjacents"},
-    {2,"Changer pour le mode de selection par point"},
-    {3,"Selectionner les aretes adjacentes"},
-    {4,"Changer pour le mode de selection par arete"},
-    {5,"Selectionner les facettes adjacentes"},
-    {6,"Changer pour le mode de selection par facette"},
-    {7,"Changer pour le mode de selection par corps"}]},
+   [{1,"Sélectionner les points adjacents"},
+    {2,"Changer pour le mode de sélection par point"},
+    {3,"Sélectionner les arêtes adjacentes"},
+    {4,"Changer pour le mode de sélection par arête"},
+    {5,"Sélectionner les facettes adjacentes"},
+    {6,"Changer pour le mode de sélection par facette"},
+    {7,"Changer pour le mode de sélection par corps"}]},
   {messages,
    [{axes,"axes"},
     {change_to,"Changer pour"},
@@ -1647,13 +1717,13 @@
   {add_magnet,
    [{1,"Designer la limite externe de l'influence de l'aimant"}]},
   {check_magnet_point,
-   [{1,"Sauvegarde du milieu de la selection."}]},
+   [{1,"Sauvegarde du milieu de la sélection."}]},
   {check_point,
-   [{1,"Sauvegarde du milieu de la selection."},
+   [{1,"Sauvegarde du milieu de la sélection."},
     {2,"Ne pas tenir compte du miroir virtuel en reference au calcul des points"},
     {3,"Tenir compte du miroir virtuel en reference au calcul des points"}]},
   {check_vector,
-   [{1,"Selectionnez une partie de l'objet seulement"}]},
+   [{1,"Sélectionnez une partie de l'objet seulement"}]},
   {common_magnet_message,
    [{1,"Aimant"}]},
   {common_message,
@@ -1662,13 +1732,13 @@
   {exit_menu,
    [{2,"Arreter la commande courante"}]},
   {get_vec,
-   [{1,"Sauver l'axe de l'arete"},
-    {2,"Sauver la normale de l'arete"},
-    {3,"Sauver l'axe de la normale de l'arete"},
-    {4,"Sauver la diretion de l'arete"},
-    {5,"Sauver la direction des axes entre les aretes."},
-    {6,"Sauver les normales de la boucle d'aretes comme axe."},
-    {7,"La selection de plusieurs aretes doit former une boucle d'aretes fermees."},
+   [{1,"Sauver l'axe de l'arête"},
+    {2,"Sauver la normale de l'arête"},
+    {3,"Sauver l'axe de la normale de l'arête"},
+    {4,"Sauver la diretion de l'arête"},
+    {5,"Sauver la direction des axes entre les arêtes."},
+    {6,"Sauver les normales de la boucle d'arêtes comme axe."},
+    {7,"La sélection de plusieurs arêtes doit former une boucle d'arêtes fermees."},
     {8,"Sauver la normale des points."},
     {9,"Sauver la direction des axes entre les points."},
     {10,"Utiliser la moyenne des normales des points comme axe"},
@@ -1676,15 +1746,15 @@
     {12,"Utiliser la direction entre les points comme axe"},
     {13,"Sauver la normale de 3-points perpendiculaires comme axe."},
     {14,"Sauver la boucle de point (leurs normales) comme axe."},
-    {15,"La selection de plusieurs points doit former une boucle d'aretes fermees."},
+    {15,"La sélection de plusieurs points doit former une boucle d'arêtes fermees."},
     {16,"Sauver la normale des facettes."},
     {17,"Sauver la direction entre le centre des facettes comme axe."},
     {18,"Utiliser la moyenne des normales des facettes"},
     {19,"Sauver la moyenne des normales des facettes comme axe."},
     {20,"Utiliser la direction moyenne entre le centre des facettes"},
-    {21,"Sauver comme axe la region de la boucle d'aretes."},
-    {22,"La selection de plusieurs points doit avoir une simple boucle."},
-    {23,"Selectionner points, aretes, facettes."}]},
+    {21,"Sauver comme axe la region de la boucle d'arêtes."},
+    {22,"La sélection de plusieurs points doit avoir une simple boucle."},
+    {23,"Sélectionner points, arêtes, facettes."}]},
   {magnet_message,
    [{1,"Executer "},
     {2,"Options de l'Aimant"}]}]}.
@@ -1695,18 +1765,18 @@
     {2,"Deplacer"},
     {3,"Extruder"},
     {4,"Connecter"},
-    {5,"Creation d'une nouvelle arete en connectant deux points"},
+    {5,"Creation d'une nouvelle arête en connectant deux points"},
     {6,"Tendre-Resserer"},
     {7,"Deplacer les points vers un juste milieu"},
     {8,"Biseauter-Chanfreiner"},
-    {9,"Creer des facettes a partir des points selectionnes"},
+    {9,"Créer des facettes a partir des points sélectionnés"},
     {10,"Supprimer"},
-    {11,"Supprimer les points selectionnes (eclairicir la selection)"},
+    {11,"Supprimer les points sélectionnés (eclairicir la sélection)"},
     {12,"Retracer-Reduire"},
-    {13,"Supprimer les points selectionnes (creation d'une facette)"},
+    {13,"Supprimer les points sélectionnés (creation d'une facette)"},
     {14,"Deformer"},
     {15,"Point-couleur"},
-    {16,"Appliquer le Point-couleur aux points selectionnes"}]}]}.
+    {16,"Appliquer le Point-couleur aux points sélectionnés"}]}]}.
 {wings_view,
  [
   {auto_rotate_help,
@@ -1734,7 +1804,7 @@
    [{1,"Reglages de la camera: Focale de la vue"},
     {2,"Placer le champ vertical de la vue, i.e. the angle from lower to upper border seen from the camera. "},
     {3,"Les commandes de l'objectif s'accorde avec le champ visuel surement avec une meilleure connaissance des entites, au moins pour un photographe. La taille du negatif est conservee dans les preferences utilisateur."},
-    {4,"Les controles de l'optique assure une coherence pour la hauteur de l'image par rapport ˆ la lentille choisie.En consequence si vous n'avez pas le meme ratio pour la taille negative de l'optique, comme pour la taille de la fenetre de geometrie, la largeur sera une erreur. "},
+    {4,"Les controles de l'optique assure une coherence pour la hauteur de l'image par rapport ˆ la lentille choisie.En consequence si vous n'avez pas le même ratio pour la taille negative de l'optique, comme pour la taille de la fenetre de geometrie, la largeur sera une erreur. "},
     {5,"Note: le facteur du zoom est relatif a la longueur de l'objectif de la diagonale negative, alors que seulement la hauteur negative affecte la longueur de l'objectif."}]},
   {menu,
    [{1,"Plan de sol"},
@@ -1744,29 +1814,29 @@
     {5,"Mode travail"},
     {6,"Bascule vers plat/ombrage lisse"},
     {7,"Fil de fer"},
-    {8,"Affiche les objets sous l'aspect fil de fer (meme affichage pour tous les objets sauf si certains sont selectionnes)"},
+    {8,"Affiche les objets sous l'aspect fil de fer (même affichage pour tous les objets sauf si certains sont sélectionnés)"},
     {9,"Ombre"},
-    {10,"Affiche les objets avec un ombrage (meme affichage pour tous les objets sauf si certains sont selectionnes)"},
+    {10,"Affiche les objets avec un ombrage (même affichage pour tous les objets sauf si certains sont sélectionnés)"},
     {11,"Bascule vers fil de fer"},
-    {12,"Bascule l'affichage de l'objet selectionne (meme affichage pour tous les objets sauf si certains sont selectionnes)"},
+    {12,"Bascule l'affichage de l'objet sélectionne (même affichage pour tous les objets sauf si certains sont sélectionnés)"},
     {13,"Bascule en mode subdivision simulee"},
-    {14,"Bascule les objets selectionnes en mode subdivision simulee"},
+    {14,"Bascule les objets sélectionnés en mode subdivision simulee"},
     {15,"Rapide previsualisation lissee"},
-    {16,"Bascule les objets en mode subdivision simulee"},
+    {16,"Bascule les objets en mode subdivision simulée"},
     {17,"Sauvegarder la Boite Englobante"},
     {18,"Affiche chaque BE sauvegardee"},
-    {19,"Choisir arete"},
-    {20,"Choisir arete en Mode Travail"},
+    {19,"Choisir arête"},
+    {20,"Choisir arête en Mode Travail"},
     {21,"Choisir les facettes arrieres en fil de fer"},
     {22,"Choisir les facettes arrieres en fil de fer"},
     {23,"Choisir les Normales (perpendiculaires)"},
-    {24,"Choisir les Normales pour les elements selectionnes"},
+    {24,"Choisir les Normales pour les elements sélectionnés"},
     {25,"Restaurer la vue"},
-    {26,"Restaurer la vue dans la position par defaut"},
+    {26,"Restaurer la vue dans la position par défaut"},
     {27,"Viser-Focaliser"},
-    {28,"Dirige la camera vers les facettes ou objets selectionnes"},
+    {28,"Dirige la camera vers les facettes ou objets sélectionnés"},
     {29,"Recadrer"},
-    {30,"Focalise vers le selection en l'affichant plein ecran (si aucun objet n'est selectionne focalise sur tous les objets)"},
+    {30,"Focalise vers le sélection en l'affichant plein écran (si aucun objet n'est sélectionne focalise sur tous les objets)"},
     {31,"Vue Orthographique "},
     {32,"Bascule entre vue orthographique et vue en perspective"},
     {33,"Sauvergarder les vues: "},
@@ -1781,9 +1851,9 @@
     {42,"Choisir les Couleurs"},
     {43,"Choisir le point couleur des objet en mode \"point\" "},
     {44,"Choisir Materiaux"},
-    {45,"Choisir les materiaux de l'objet en mode \"materiau\" "},
+    {45,"Choisir les matériaux de l'objet en mode \"matériau\" "},
     {46,"Choisir les Textures"},
-    {47,"Choisir les textures de l'objet en mode \"materiau\" "},
+    {47,"Choisir les textures de l'objet en mode \"matériau\" "},
     {48,"Choisir le texte d'informations"},
     {49,"Choisir un texte informationnel de la fenetre de geometrie"},
     {50,"Vue le long"},
@@ -1793,8 +1863,8 @@
     {54,"-X"},
     {55,"-Y"},
     {56,"-Z"},
-    {57,"Aligner sur la selection"},
-    {58,"Aligne la vue sur l'axe des nomales de la selection"},
+    {57,"Aligner sur la sélection"},
+    {58,"Aligne la vue sur l'axe des nomales de la sélection"},
     {59,"Rotation automatique"},
     {60,"Fait tourner la vue autour d'un axe central"}]},
   {view_legend,
@@ -1809,7 +1879,7 @@
     {8,"Vers l'origine"},
     {9,"Vers "}]},
   {views,
-   [{1,"Cette vue est deja la courante"},
+   [{1,"Cette vue est déjà la courante"},
     {2,"Aucune vue sauvegardee"},
     {3,"Renommer la vue"},
     {4,"Vous semblez etre dans la vue courante"},
@@ -1858,9 +1928,9 @@
     {8,"Supprimer \""},
     {11,"Supprimer toutes les vues sauvegardees"}]},
   {virtual_mirror,
-   [{1,"La Miroir virtuel requiert une facette selectionnee."}]},
+   [{1,"La Miroir virtuel requiert une facette sélectionnée."}]},
   {virtual_mirror_fun,
-   [{1,"Une seule facette doit etre selectionnee par objet."}]}]}.
+   [{1,"Une seule facette doit etre sélectionnée par objet."}]}]}.
 {wings_we,
  [
   {all_soft,
@@ -1913,11 +1983,18 @@
   {dialog_template,
    [{1,"Echanger les axes Y et Z "},
     {6,"Les mesures de subdivision"},
-    {7,"Fichier de texture par defaut"}]},
+    {7,"Fichier de texture par défaut"},
+    {uv,"Exporter les coordonnées uv"},
+    {tess4,"Quadrangulation"},
+    {tess3,"Triangulation"},
+    {tess0,"Sans"},
+    {tess,"Mosaique"},
+    {norms,"Exporter les normales/en lissant les groupes"},
+    {color,"Exporter la couleur des points"}]},
   {export_scale_s,
-   [{1,"Exporter echelle"}]},
-  {export_selected,
-   [{1,"Selectionner objets ou facettes."}]},
+   [{1,"Exporter échelle"}]},
+  {export_sélected,
+   [{1,"Sélectionner objets ou facettes."}]},
   {format_error,
    [{1,"Erreur interne: ~P\n"}]},
   {import,
@@ -1925,219 +2002,4 @@
   {do_import,
    [{1,"lecture fichier"}]},
   {import_scale_s,
-   [{1,"Importer echelle"}]}]}.
-
-%%
-%% Newly translated strings.
-%%
-
-{wings,
- [
-  {object_mode,
-   [
-    {material,"materiel"},
-    {vertex,"couleur de point"}
-   ]},
-  {measure,
-   [
-    {6,". Angle ~s"},
-    {5,". Distance ~s  <~s, ~s, ~s>"}
-   ]}
- ]}.
-{wings_body,
- [
-  {menu,
-   [
-    {32,"Choisir toutes les facettes pour cet objet"},
-    {31,"Tout choisir"}
-   ]}
- ]}.
-{wings_edge_cmd,
- [
-  {cut_ask_entry,
-   [
-    {1,"coupe dans <N> segments"},
-    {2,"entrer un nombre..."}
-   ]},
-  {command,
-   [
-    {1,"Segments"}
-   ]}
- ]}.
-{wings_extrude_edge,
- [
-  {extrude_problem,
-   [
-    {1,"Impossible de chanfreiner ou d'extruder; deux ou plusieurs sont probablement trop proche les uns des autres.\nessayez la commande de nettoyage."}
-   ]}
- ]}.
-{wings_face_cmd,
- [
-  {menu,
-   [
-    {33,"Cacher les facettes selectionnees"},
-    {32,"Cacher"}
-   ]}
- ]}.
-{wings_file,
- [
-  {recent_files,
-   [
-    {1,"Ouvrir ce fichier recent"}
-   ]},
-  {menu,
-   [
-    {28,"quitter wings3d"},
-    {27,"Installer un plug-in"},
-    {26,"Generer un nouveau nom de dossier et sauvegarder"}
-   ]}
- ]}.
-{wings_magnet,
- [
-  {magnet_shape_str,
-   [
-    {bell,"Cloche"},
-    {dome,"Dome"},
-    {spike,"Pointe"},
-    {straight,"Raide"}
-   ]}
- ]}.
-{wings_pref_dlg,
- [
-  {viewer_prefs,
-   [
-    {1,"Visionneuse"},
-    {2,"Options"},
-    {3,"..nom de fichier.."}
-   ]},
-  {ui_prefs,
-   [
-    {25,"Voir l'image apres le rendu"},
-    {24,"Objets dans le profil de scene"}
-   ]},
-  {misc_prefs,
-   [
-    {23,"Excentrage d'arretes:"},
-    {22,"Problemes d'arretes a l'ecran?"}
-   ]},
-  {advanced_prefs,
-   [
-    {22,"probleme dans l'utilisation du miroir virtuel pour les selections secondaires"},
-    {21,"Utiliser Miroir pour les selections"}
-   ]}
- ]}.
-{wings_sel_cmd,
- [
-  {oriented_faces_menu,
-   [
-    {1,"Normales identiques"},
-    {2,"Selectionner les facettes identiques ˆ celles qui sont deja selectionnees"}
-   ]},
-  {oriented_faces,
-   [
-    {1,"La tolerance de l'angle"},
-    {2,"Selectionne les facettes oriente de facon similaires"}
-   ]},
-  {nonplanar_faces,
-   [
-    {1,"Tolerance de distance"},
-    {2,"Choisir les facettes non-planaires"}
-   ]},
-  {menu,
-   [
-    {86,"Selectionner les facettes non-planaires"},
-    {85,"Facettes non-planaires"}
-   ]},
-  {group_mode_string,
-   [
-    {body,"Selection par group d'objets"},
-    {edge,"Selection par groupe d'aretes"},
-    {face,"Selection par groupe de facettes"},
-    {vertex,"Selection par groupe de points"}
-   ]}
- ]}.
-{wpa,
- [
-  {dialog_template,
-   [
-    {uv,"Exporter les coordonnees uv"},
-    {tess4,"Quadrangulation"},
-    {tess3,"Triangulation"},
-    {tess0,"Sans"},
-    {tess,"Mosaique"},
-    {norms,"Exporter les normales/en lissant les groupes"},
-    {color,"Exporter la couleur des points"}
-   ]}
- ]}.
-
-{wings_file,
- [
-  {wings_prop,
-   [
-    {1,"Fichier Wings"}
-   ]}
- ]}.
-{wings_pref_dlg,
- [
-  {ui_prefs,
-   [
-    {26,"Charger les images apres le rendu"}
-   ]},
-  {gen_prefs,
-   [
-    {48,"Affichage des normales"},
-    {47,"Couleur des normales"},
-    {46,"Couleur"},
-    {45,"Longueurs des normales"},
-    {44,"Longueur"}
-   ]}
- ]}.
-
-{wings_outliner,
- [
-  {handle_drop,
-   [
-    {5,"Bosselage (NormaleMap)"}
-   ]},
-  {do_menu,
-   [
-    {122,"DŽposer un objet prŽcŽdemment sŽlectionnŽ sur ce matŽriel "},
-    {121,"Deposer l'objet"}
-   ]},
-  {common_image_menu,
-   [
-    {10,"Reprendre l'image pour l'attribuer comme texture a un materiau"},
-    {9,"Reprendre l'image"}
-   ]}
- ]}.
-{wings_sel_cmd,
- [
-  {sharp_edges,
-   [
-    {1,"Angle maximum"},
-    {2,"Choisir des aretes pointuss"}
-   ]},
-  {menu,
-   [
-    {nq3,"Meme les facettes non quadrangulaires"},
-    {nq2,"Les facettes non quadrangulaires impairs"},
-    {nq1,"Toutes les facettes non quadrangulaires"},
-    {nq0,"Les facettes non quadrangulaires"},
-    {401,"6 ou plus"},
-    {88,"Choisir des aretes pointuss"},
-    {87,"Aretes pointues"}
-   ]}
- ]}.
-
-{wings,
- [
-  {tools_menu,
-   [
-   {26,"Informations sur la scène : Aire et volume"},
-    {27,"Calcule l'aire et le volume pour chaque objet dans la scène"},
-    {28,"Placer au sol"},
-    {29,"Place les objets sélectionnés au niveau du sol"},
-    {30,"Uniformiser"},
-    {31,"Mets à l'échelle les objets sélectionnés afin qu'ils tiennent à l'intérieur d'une sphère d'une unité et les déplace à l'origine"}
-   ]}
- ]}.
+   [{1,"Importer échelle"}]}]}.
