@@ -2967,6 +2967,10 @@ integer_validator(Flags) ->
 	    {8,integer_range(Min, infinity),fun all_chars/1};
 	{'-infinity',Max} when is_integer(Max) ->
 	    {8,integer_range('-infinity', Max),fun all_chars/1};
+	{Min,Max,Default} when is_integer(Min), is_integer(Max), is_integer(Default),
+	    Min =< Default, Default =< Max ->
+	    Digits = trunc(math:log(Max-Min+1)/math:log(10))+2,
+	    {Digits,integer_range(Min, Max, Default),fun all_chars/1};
 	{Min,Max} when is_integer(Min), is_integer(Max), Min =< Max ->
 	    Digits = trunc(math:log(Max-Min+1)/math:log(10))+2,
 	    {Digits,integer_range(Min, Max),fun all_chars/1}
@@ -2980,6 +2984,10 @@ float_validator(Flags) ->
 	    {12,float_range(Min, infinity),fun all_chars/1};
 	{'-infinity',Max} when is_float(Max) ->
 	    {12,float_range('-infinity', Max),fun all_chars/1};
+	{Min,Max,Default} when is_float(Min), is_float(Max), is_float(Default),
+	    Min =< Default, Default =< Max ->
+	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 20),
+	    {Digits,float_range(Min, Max, Default),fun all_chars/1};
 	{Min,Max} when is_float(Min), is_float(Max), Min =< Max ->
 	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 20),
 	    {Digits,float_range(Min, Max),fun all_chars/1}
@@ -3008,6 +3016,21 @@ string_validator() -> {30,fun accept_all/1,fun all_chars/1}.
 
 all_chars(_) -> true.
 
+integer_range(Min, Max, Default) ->
+    fun(Str) ->
+	    case eval_integer(Str) of
+		error when Min =/= '-infinity' -> 
+		    integer_to_list(Default);
+		error when Max =/= infinity -> 
+		    integer_to_list(Max);
+		Int when Min =/= '-infinity', Int < Min -> 
+		    integer_to_list(Default);
+		Int when Max =/= infinity, Int > Max -> 
+		    integer_to_list(Max);
+		Int when is_integer(Int) -> ok
+	    end
+    end.
+
 integer_range(Min, Max) ->
     fun(Str) ->
 	    case eval_integer(Str) of
@@ -3020,6 +3043,21 @@ integer_range(Min, Max) ->
 		Int when Max =/= infinity, Int > Max -> 
 		    integer_to_list(Max);
 		Int when is_integer(Int) -> ok
+	    end
+    end.
+
+float_range(Min, Max, Default) ->
+    fun(Str) ->
+	    case eval_float(Str) of
+		error when Min =/= '-infinity' -> 
+		    wings_util:nice_float(Default);
+		error when Max =/= infinity -> 
+		    wings_util:nice_float(Max);
+		Float when Min =/= '-infinity', Float < Min -> 
+		    wings_util:nice_float(Default);
+		Float when Max =/= infinity, Float > Max -> 
+		    wings_util:nice_float(Max);
+		Float when is_float(Float) -> ok
 	    end
     end.
 
