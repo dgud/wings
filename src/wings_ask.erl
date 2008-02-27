@@ -2333,9 +2333,9 @@ popup_redraw(#popup{sel=Sel,orig_sel=OrigSel,menu=Menu}) ->
 
 popup_redraw_1(Sel, Menu, Sel, W, X, Y) ->
     {Desc,_,_,_} = element(Sel, Menu),
-    gl:color3f(0, 0, 0.5),
+    gl:color3fv(color5()),
     gl:recti(X-2, Y+2, X+W-4*?CHAR_WIDTH, Y-?CHAR_HEIGHT+2),
-    gl:color3fv(color3()),
+    gl:color3fv(color7()),
     wings_io:text_at(X, Y, Desc),
     popup_redraw_1(Sel+1, Menu, Sel, W, X, Y+?LINE_HEIGHT);
 popup_redraw_1(I, Menu, Sel, W, X, Y) when I =< tuple_size(Menu) ->
@@ -3685,6 +3685,20 @@ color3({R,G,B,_}) -> {R,G,B}.
 
 color4() ->
     wings_pref:get_value(dialog_color).
+
+color5() -> color5(color6()).
+
+color5({R,G,B}) -> {R,G,B}.
+
+color6() ->
+    wings_pref:get_value(menu_hilite).
+
+color7() -> color7(color8()).
+
+color7({R,G,B}) -> {R,G,B}.
+
+color8() ->
+    wings_pref:get_value(menu_hilited_text).
 
 rgb_to_hsv({R,G,B}) ->
     rgb_to_hsv(R, G, B).
