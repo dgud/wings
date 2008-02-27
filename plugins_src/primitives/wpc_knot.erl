@@ -3,7 +3,7 @@
 %%
 %%     Torus Knot Plugin
 %%
-%%  Copyright (c) 2001-2007 Anthony D'Agostino
+%%  Copyright (c) 2001-2008 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -14,6 +14,8 @@
 -module(wpc_knot).
 -export([init/0,menu/2,command/2]).
 
+-include("wings_intl.hrl").
+
 init() -> true.
 
 menu({shape, more}, []) ->
@@ -23,7 +25,7 @@ menu({shape, more}, Menu) ->
 menu(_, Menu) -> Menu.
 
 knot_menu() ->
-    [{"Torus Knot", knot, [option]}].
+    [{?__(1,"Torus Knot"), knot, [option]}].
 
 command({shape,{more,{knot, Arg}}}, _) -> make_knot(Arg);
 command(_, _) -> next.

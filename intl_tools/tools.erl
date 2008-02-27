@@ -14,6 +14,7 @@
 
 %% Translation support tools.
 -export([generate_template/1,generate_template_file/1,
+	 generate_template_files/1,
 	 diff/1,diff/2,diff_files/1]).
 
 %% Parse transform ASPI (called by compiler).
@@ -31,12 +32,18 @@ diff_files(Ns) ->
     diff_files_1(R, []).
 
 diff_files_1([{EngTemplateFile,LangFiles}|T], Acc0) ->
-    {ok,Eng} = file:consult(EngTemplateFile),
-    Acc = [fun() ->
-		   diff_file(N, Eng),
-		   io:format("~s ", [filename:basename(N)])
-	   end || N <- LangFiles, N =/= EngTemplateFile] ++ Acc0,
-    diff_files_1(T, Acc);
+    case file:consult(EngTemplateFile) of
+	{ok,Eng} ->
+	    Acc = [fun() ->
+			   diff_file(N, Eng),
+			   io:format("~s ", [filename:basename(N)])
+		   end || N <- LangFiles, N =/= EngTemplateFile] ++ Acc0,
+	    diff_files_1(T, Acc);
+	{error,Reason} ->
+	    io:format("Failed to open ~s: ~s\n",
+		      [EngTemplateFile,file:format_error(Reason)]),
+	    erlang:halt(1)
+    end;
 diff_files_1([], Acc) ->
     io:format("Processing: "),
     prun(Acc),
@@ -140,24 +147,48 @@ generate_template([Dir]) ->
 	    file:close(Out)
 	end.
 
-generate_template_file([Dir, File]) ->
-	OutFile = filename:join(Dir, File ++ "_en.lang"),
-	io:format("Writing: ~p\n", [filename:absname(OutFile)]),
-	{ok,Out} = file:open(OutFile, [write]),
-	io:put_chars(Out, "%% -*- mode:erlang; erlang-indent-level: 2 -*-\n"),
-	scan_file(filename:join(Dir, File ++ ".beam"), Out),
-	file:close(Out).
+generate_template_files([Dir]) ->
+    Fs = filelib:wildcard(filename:join(Dir, "*.beam")),
+    [do_generate_template_file(filename:rootname(F)) ||
+	F <- Fs],
+    erlang:halt().
+
+generate_template_file([Dir,File]) ->
+    do_generate_template_file(filename:join(Dir, File)).
+
+do_generate_template_file(Base) ->
+    OutFile = Base ++ "_en.lang",
+    {ok,Out} = file:open(OutFile, [write]),
+    io:put_chars(Out, "%% -*- mode:erlang; erlang-indent-level: 2 -*-\n"),
+    Res = scan_file(Base ++ ".beam", Out),
+    file:close(Out),
+    if
+	Res =:= no_strings ->
+	    io:format("Nothing translatable in ~p\n",
+		      [filename:absname(Base ++ ".beam")]),
+	    file:delete(OutFile);
+	true ->
+	    io:format("Wrote ~p\n", [filename:absname(OutFile)]),
+	    ok
+    end.
 
 scan_file(Filename, Out) ->
     case beam_lib:chunks(Filename, [abstract_code]) of
 	{ok,{Mod,[{abstract_code,{raw_abstract_v1,Forms}}]}} ->
-	    Strs = get_strings(Forms),
-	    output_strings(Strs, Mod, Out);
+	    case get_strings(Forms) of
+		[] ->
+		    no_strings;
+		Strs ->
+		    output_strings(Strs, Mod, Out),
+		    ok
+	    end;
 	{ok,{Mod,_}} ->
 	    io:format("~p: Missing or wrong version of abstract format.\n",
-		      [Mod]);
+		      [Mod]),
+	    no_strings;
 	{error,{Mod,Error}} ->
-	    io:format("~p: Problems: ~p\n", [Mod,Error])
+	    io:format("~p: Problems: ~p\n", [Mod,Error]),
+	    no_strings
     end.
 
 get_strings(Forms) ->

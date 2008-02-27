@@ -55,12 +55,10 @@ opt debug:
 	$(MAKE) TYPE=$@ common
 
 template: opt
-	@for FILE in $(TRANSLATABLE); do \
-		erl -pa $(WINGS_INTL) -noinput -run tools generate_template_file $(EBIN) $$FILE -run erlang halt ; \
-	done
+	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
 
 lang: template
-	@cp *.lang $(EBIN)
+	cp *.lang $(EBIN)
 	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(EBIN)/*.lang) -run erlang halt
 
 common: $(TARGET_FILES)
