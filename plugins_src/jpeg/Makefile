@@ -41,7 +41,7 @@ template: opt
 	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(LIBDIR)
 
 lang: template
-	@cp *.lang $(LIBDIR)
+	cp *.lang $(LIBDIR)
 	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(LIBDIR)
 
 $(LIBDIR)/%.beam: %.erl
