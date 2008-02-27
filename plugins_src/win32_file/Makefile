@@ -27,7 +27,7 @@ DRV = $(LIBDIR)/wings_file_drv.dll
 opt: $(BEAM) $(DRV)
 
 template: opt
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_file $(LIBDIR) wp8_file -run erlang halt
+	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(LIBDIR)
 
 lang: template
 	cp *.lang $(LIBDIR)
