@@ -134,7 +134,7 @@ template: opt
 
 lang: template
 	@cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(EBIN)/wings_*.lang) -run erlang halt
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 clean:
 	rm -f $(TARGET_FILES)

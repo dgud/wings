@@ -13,9 +13,8 @@
 -module(tools).
 
 %% Translation support tools.
--export([generate_template/1,generate_template_file/1,
-	 generate_template_files/1,
-	 diff/1,diff/2,diff_files/1]).
+-export([generate_template/1,generate_template_files/1,
+	 diff/1,diff/2,diff_lang_files/1]).
 
 %% Parse transform ASPI (called by compiler).
 -export([parse_transform/2,format_error/1]).
@@ -24,12 +23,14 @@
 
 %%%%%%%%%% Tools %%%%%%%%%%%
 
-diff_files(Ns) ->
+diff_lang_files(Dir) ->
+    Ns = filelib:wildcard(filename:join(Dir, "*.lang")),
     R0 = [{get_en_template(N),N} || N <- Ns],
     R1 = sofs:relation(R0),
     R2 = sofs:relation_to_family(R1),
     R = sofs:to_external(R2),
-    diff_files_1(R, []).
+    diff_files_1(R, []),
+    erlang:halt().
 
 diff_files_1([{EngTemplateFile,LangFiles}|T], Acc0) ->
     case file:consult(EngTemplateFile) of
@@ -139,7 +140,7 @@ generate_template([Dir]) ->
 		  DirName -> DirName
 	      end ++ "_en.lang",
     Fs = filelib:wildcard(filename:join(Dir, "*.beam")),
-    io:format("Writing: ~p\n", [filename:absname(OutFile)]),
+    io:format("Writing: ~s\n", [filename:absname(OutFile)]),
     {ok,Out} = file:open(OutFile, [write]),
     io:put_chars(Out, "%% -*- mode:erlang; erlang-indent-level: 2 -*-\n"),
     try foreach(fun(File) -> scan_file(File, Out) end, Fs)
@@ -153,9 +154,6 @@ generate_template_files([Dir]) ->
 	F <- Fs],
     erlang:halt().
 
-generate_template_file([Dir,File]) ->
-    do_generate_template_file(filename:join(Dir, File)).
-
 do_generate_template_file(Base) ->
     OutFile = Base ++ "_en.lang",
     {ok,Out} = file:open(OutFile, [write]),
@@ -164,11 +162,11 @@ do_generate_template_file(Base) ->
     file:close(Out),
     if
 	Res =:= no_strings ->
-	    io:format("Nothing translatable in ~p\n",
+	    io:format("Nothing translatable in ~s\n",
 		      [filename:absname(Base ++ ".beam")]),
 	    file:delete(OutFile);
 	true ->
-	    io:format("Wrote ~p\n", [filename:absname(OutFile)]),
+	    io:format("Wrote ~s\n", [filename:absname(OutFile)]),
 	    ok
     end.
 

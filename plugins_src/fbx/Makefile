@@ -71,11 +71,11 @@ OBJS = wings_fbx_driver.$(OBJ) wings_fbx.$(OBJ)
 opt: $(LIBDIR)/wpc_fbx.beam $(LIBDIR)/$(DRIVER_FILE)
 
 template: opt
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_file $(LIBDIR) wpc_fbx -run erlang halt
+	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(LIBDIR)
 
 lang: template
-	@cp *.lang $(LIBDIR)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(LIBDIR)/wpc_fbx_*.lang) -run erlang halt
+	cp *.lang $(LIBDIR)
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(LIBDIR)
 
 ifeq ($(OS),Darwin)
 $(LIBDIR)/$(DRIVER_NAME).so: $(OBJS)

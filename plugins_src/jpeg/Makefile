@@ -38,11 +38,11 @@ DRV = $(LIBDIR)/wings_jpeg_image_drv.$(SO_EXT)
 opt: $(BEAM) $(DRV)
 
 template: opt
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_file $(LIBDIR) wp8_jpeg_image -run erlang halt
+	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(LIBDIR)
 
 lang: template
 	@cp *.lang $(LIBDIR)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(LIBDIR)/wp8_*.lang) -run erlang halt
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(LIBDIR)
 
 $(LIBDIR)/%.beam: %.erl
 	install -d $(LIBDIR)

@@ -33,8 +33,8 @@ template: opt
 	erl -pa $(WINGS_INTL) -noinput -run tools generate_template $(LIBDIR) -run erlang halt
 
 lang: template
-	@cp *.lang $(LIBDIR)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(LIBDIR)/*.lang) -run erlang halt
+	cp *.lang $(LIBDIR)
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(LIBDIR)
 
 $(LIBDIR)/%.beam: %.erl
 	install -d $(LIBDIR)

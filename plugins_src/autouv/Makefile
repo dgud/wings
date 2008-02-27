@@ -64,8 +64,8 @@ template: opt
 	erl -pa $(WINGS_INTL) -noinput -run tools generate_template $(EBIN) -run erlang halt
 
 lang: template
-	@cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(EBIN)/autouv_*.lang) -run erlang halt
+	cp *.lang $(EBIN)
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 clean:
 	rm -f $(TARGET_FILES)

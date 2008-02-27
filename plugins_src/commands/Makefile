@@ -63,8 +63,8 @@ template: opt
 	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
 
 lang: template
-	@cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(EBIN)/*.lang) -run erlang halt
+	cp *.lang $(EBIN)
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 common: $(TARGET_FILES)
 

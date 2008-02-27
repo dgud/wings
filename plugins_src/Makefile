@@ -57,7 +57,7 @@ template: opt
 
 lang: subdirs_lang template
 	cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(EBIN)/*.lang) -run erlang halt
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 subdirs_lang:
 	(cd import_export; $(MAKE) lang)

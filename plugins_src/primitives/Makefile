@@ -59,7 +59,7 @@ template: opt
 
 lang: template
 	cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(EBIN)/*.lang) -run erlang halt
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 common: $(TARGET_FILES)
 
