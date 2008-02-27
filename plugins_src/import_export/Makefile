@@ -45,17 +45,6 @@ MODULES= \
 	wpc_yafray \
 	wpc_pov
 
-TRANSLATABLE= \
-	wpc_ai \
-	wpc_3ds \
-	wpc_obj \
-	wpc_opengl \
-	wpc_rwx \
-	wpc_wrl \
-	wpc_hlines \
-	wpc_toxic \
-	wpc_yafray
-
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
 # ----------------------------------------------------
@@ -79,15 +68,7 @@ template: opt
 
 lang: template
 	@cp *.lang $(EBIN)
-	@for FILE in $(TRANSLATABLE); do \
-		for LANG_FILE in $(EBIN)/$$FILE\_*.lang; do \
-			case $$LANG_FILE  in \
-				$(EBIN)/$$FILE\_en.lang) ;; \
-				*) echo "Processing: $$LANG_FILE"; \
-	erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$LANG_FILE\")" -run init stop >> $$LANG_FILE ;; \
-			esac \
-		done;\
-	done
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(EBIN)/*.lang) -run erlang halt
 
 common: $(TARGET_FILES)
 

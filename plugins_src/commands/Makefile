@@ -44,22 +44,6 @@ MODULES= \
 	wpc_untriangulate \
 	wpc_weld
 
-TRANSLATABLE= \
-	wpc_absolute_move \
-	wpc_absolute_scale \
-	wpc_bend \
-	wpc_connect_tool \
-	wpc_cylindrilize \
-	wpc_doosabin \
-	wpc_intersect_edge \
-	wpc_intersect_vertex \
-	wpc_region \
-	wpc_shift \
-	wpc_turnedge \
-	wpc_tweak \
-	wpc_untriangulate \
-	wpc_weld
-
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
 # ----------------------------------------------------
@@ -82,15 +66,7 @@ template: opt
 
 lang: template
 	@cp *.lang $(EBIN)
-	@for FILE in $(TRANSLATABLE); do \
-		for LANG_FILE in $(EBIN)/$$FILE\_*.lang; do \
-			case $$LANG_FILE  in \
-				$(EBIN)/$$FILE\_en.lang) ;; \
-				*) echo "Processing: $$LANG_FILE"; \
-	erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$LANG_FILE\")" -run init stop >> $$LANG_FILE ;; \
-			esac \
-		done;\
-	done
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(EBIN)/*.lang) -run erlang halt
 
 common: $(TARGET_FILES)
 

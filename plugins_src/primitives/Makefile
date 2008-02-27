@@ -39,14 +39,6 @@ MODULES= \
 	wpc_geodome \
 	wpc_tt
 
-TRANSLATABLE= \
-	wpc_image \
-	wpc_knot \
-	wpc_spiral \
-	wpc_torus \
-	wpc_plane \
-	wpc_tt
-
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
 # ----------------------------------------------------
@@ -69,15 +61,7 @@ template: opt
 
 lang: template
 	@cp *.lang $(EBIN)
-	@for FILE in $(TRANSLATABLE); do \
-		for LANG_FILE in $(EBIN)/$$FILE\_*.lang; do \
-			case $$LANG_FILE  in \
-				$(EBIN)/$$FILE\_en.lang) ;; \
-				*) echo "Processing: $$LANG_FILE"; \
-	erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$LANG_FILE\")" -run init stop >> $$LANG_FILE ;; \
-			esac \
-		done;\
-	done
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(EBIN)/*.lang) -run erlang halt
 
 common: $(TARGET_FILES)
 

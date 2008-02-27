@@ -3,7 +3,7 @@
 %%
 %%     Tools for translation.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,7 +13,8 @@
 -module(tools).
 
 %% Translation support tools.
--export([generate_template/1,generate_template_file/1,diff/1,diff/2]).
+-export([generate_template/1,generate_template_file/1,
+	 diff/1,diff/2,diff_files/1]).
 
 %% Parse transform ASPI (called by compiler).
 -export([parse_transform/2,format_error/1]).
@@ -22,14 +23,63 @@
 
 %%%%%%%%%% Tools %%%%%%%%%%%
 
+diff_files(Ns) ->
+    R0 = [{get_en_template(N),N} || N <- Ns],
+    R1 = sofs:relation(R0),
+    R2 = sofs:relation_to_family(R1),
+    R = sofs:to_external(R2),
+    diff_files_1(R, []).
+
+diff_files_1([{EngTemplateFile,LangFiles}|T], Acc0) ->
+    {ok,Eng} = file:consult(EngTemplateFile),
+    Acc = [fun() ->
+		   diff_file(N, Eng),
+		   io:format("~s ", [filename:basename(N)])
+	   end || N <- LangFiles, N =/= EngTemplateFile] ++ Acc0,
+    diff_files_1(T, Acc);
+diff_files_1([], Acc) ->
+    io:format("Processing: "),
+    prun(Acc),
+    io:nl().
+
+prun(Fs) ->
+    N = erlang:system_info(schedulers),
+    prun_1(Fs, N, 0).
+
+prun_1([F|Fs], N, W) when W < N ->
+    {_,_} = spawn_monitor(erlang, apply, [F,[]]),
+    prun_1(Fs, N, W+1);
+prun_1([], _, 0) -> ok;
+prun_1([], N, W) when W < N -> prun_1([], W, W);
+prun_1(Fs, N, N) ->
+    receive
+	{'DOWN',_,process,_,normal} ->
+	    prun_1(Fs, N, N-1);
+	{'DOWN',_,process,_,Error} ->
+	    io:format("~p\n", [Error]),
+	    exit(Error)
+    end.
+
+diff_file(LangFile, Eng) ->
+    {ok,Lang} = file:consult(LangFile),
+    {ok,Fd} = file:open(LangFile, [write,append]),
+    OldGroupLeader = group_leader(),
+    group_leader(Fd, self()),
+    diff_2(Eng, Lang, LangFile),
+    group_leader(OldGroupLeader, self()),
+    file:close(Fd).
+
 diff(LangFile) ->
     EngTemplFile = get_en_template(LangFile),
     diff(LangFile, EngTemplFile).
     
 diff(LangFile, EngTmplFile) ->
-    {ok, Lang} = file:consult(LangFile),
-    {ok, Eng} = file:consult(EngTmplFile),
-    case diff(Eng,Lang,LangFile,[],[]) of
+    {ok,Lang} = file:consult(LangFile),
+    {ok,Eng} = file:consult(EngTmplFile),
+    diff_2(Eng, Lang, LangFile).
+
+diff_2(Eng, Lang, LangFile) ->
+    case diff(Eng, Lang, LangFile, [], []) of
 	[] -> ok;
 	Miss ->
 	    io:nl(),
@@ -37,8 +87,8 @@ diff(LangFile, EngTmplFile) ->
 	    io:put_chars("%% The following strings have no translation.\n"),
 	    io:put_chars("%%\n\n"),
 	    Out = group_leader(),
-	    lists:foreach(fun(M) -> output_strings(M,Out) end,
-			  reverse(Miss))
+	    [output_strings(M, Out) || M <- reverse(Miss)],
+	    ok
     end.
     
 diff([{Key,Info}|ER],Lang0,LF,Lev,Miss0) ->
@@ -52,11 +102,9 @@ diff([{Key,Info}|ER],Lang0,LF,Lev,Miss0) ->
 	Lang ->
 	    diff(ER,Lang,LF,Lev,[{Key,Info}|Miss0])
     end;
-diff([],Keys,LF,Lev,Miss) ->
-    Info = fun({Key,_}) -> 
-		   io:format("%% Not used ~p in ~p~n",[Lev++[Key],LF])
-	   end,
-    lists:foreach(Info, Keys),
+diff([],Keys,_LF,Lev,Miss) ->
+    [io:format("%% ~p is not used\n",[Lev++[Key]]) ||
+	{Key,_} <- Keys],
     Miss;
 diff([Char|_], _Lang, _LF, _Level, Miss) when is_integer(Char) ->
     Miss.

@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wings_intl.hrl,v 1.2 2005/09/26 09:34:56 giniu Exp $
+%%     $Id$
 %%
 -compile({parse_transform,tools}).
 

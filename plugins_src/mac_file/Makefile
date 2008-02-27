@@ -34,13 +34,7 @@ template: opt
 
 lang: template
 	@cp *.lang $(LIBDIR)
-	@for i in $(LIBDIR)/mac_file_*.lang; do \
-		case $$i in \
-			*/mac_file_en.lang) ;; \
-			*) echo "Processing: $$i"; \
-	 erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$i\")" -run init stop >> $$i ;; \
-		esac \
-	done
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(LIBDIR)/*.lang) -run erlang halt
 
 $(LIBDIR)/%.beam: %.erl
 	install -d $(LIBDIR)

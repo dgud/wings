@@ -65,13 +65,7 @@ template: opt
 
 lang: template
 	@cp *.lang $(EBIN)
-	@for i in $(EBIN)/autouv_*.lang; do \
-		case $$i in \
-			*/autouv_en.lang) ;; \
-			*) echo "Processing: $$i"; \
-	 erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$i\")" -run init stop >> $$i ;; \
-		esac \
-	done
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(EBIN)/autouv_*.lang) -run erlang halt
 
 clean:
 	rm -f $(TARGET_FILES)

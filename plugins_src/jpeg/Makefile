@@ -42,13 +42,7 @@ template: opt
 
 lang: template
 	@cp *.lang $(LIBDIR)
-	@for LANG_FILE in $(LIBDIR)/wp8_jpeg_image_*.lang; do \
-		case $$LANG_FILE  in \
-			$(LIBDIR)/wp8_jpeg_image_en.lang) ;; \
-			*) echo "Processing: $$LANG_FILE"; \
-	erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$LANG_FILE\")" -run init stop >> $$LANG_FILE ;; \
-		esac \
-	done
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(LIBDIR)/wp8_*.lang) -run erlang halt
 
 $(LIBDIR)/%.beam: %.erl
 	install -d $(LIBDIR)

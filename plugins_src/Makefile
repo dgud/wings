@@ -62,15 +62,7 @@ template: opt
 
 lang: subdirs_lang template
 	@cp *.lang $(EBIN)
-	@for FILE in $(TRANSLATABLE); do \
-		for LANG_FILE in $(EBIN)/$$FILE\_*.lang; do \
-			case $$LANG_FILE  in \
-				$(EBIN)/$$FILE\_en.lang) ;; \
-				*) echo "Processing: $$LANG_FILE"; \
-	erl -pa $(WINGS_INTL) -noinput -eval "tools:diff(\"$$LANG_FILE\")" -run init stop >> $$LANG_FILE ;; \
-			esac \
-		done;\
-	done
+	erl -pa $(WINGS_INTL) -noinput -run tools diff_files $(wildcard $(EBIN)/*.lang) -run erlang halt
 
 subdirs_lang:
 	(cd import_export; $(MAKE) lang)
