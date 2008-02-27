@@ -4,15 +4,18 @@ BUILDING WINGS 3D ON UNIX-LIKE SYSTEMS (including MacOS X)
 This guide describes how you can build Wings on unix-like
 systems, such as GNU Linux, FreeBSD, Solaris, and MacOS X.
 
-After the general build instructions, instructions for
-package Wings 3D for MacOS X follow.
+After the general build instructions, there are separate
+instructions for building a complete, standalone installation
+package for MacOS X and for other Unix systems.
 
 $Id$
 
 Required software
 =================
 
-The following software is needed:
+The following software is needed to get Wings running
+at all. Additional software is required if you want to
+run all plug-ins and to build an installation package.
 
 - The Wings source files. http://www.wings3d.com
 
@@ -30,11 +33,7 @@ The following software is needed:
   Included with most unix-like systems; otherwise get it
   from http://sources.redhat.com/bzip2.
 
-Optional software
-=================
-
-To build the fbx plugin, you'll need the fbx library.
-http://www.autodesk.com/fbx
+- OpenGL header files and libraries.
 
 Summary of build process
 ========================
@@ -43,6 +42,7 @@ The following is a quick summary of the build process.
 
 * Download and install Erlang/OTP.
 * Download and install SDL.
+* Install OpenGL header files (if needed).
 * Download and install ESDL.
 * Download and upnpack the Wings source file.
 * Run "make".
@@ -68,18 +68,50 @@ When you have built Erlang/OTP, modify the PATH environment variable
 so that the "erl" and "erlc" programs can be started from a shell prompt.
 
 Installing SDL
-=============
+==============
 
-Install SDL. Make sure that the library is found in the standard
-library search path.
+Install SDL, if not already installed. On Linux systems, the SDL may be
+already pre-installed. You'll probably need to install header files,
+though, by installing the "SDL-devel" package.
 
-./configure --disable-video-aalib --disable-audio --disable-video-directfb --prefix=$HOME
+Make sure that the "sdl-config" program is found in PATH.
+
+I build SDL from source, using the following configure commands:
+
+./configure --disable-video-aalib --disable-video-directfb --prefix=$HOME
+make
+make install
+
+That will install the library and header files in my home directory,
+not disturbing the pre-installed SDL libraries installed in the system.
+
+The --disable-video-aalib option disables use of aalib, to avoid problems
+running the built Wings on other Linux distributions that don't have
+the aalib. I use --disable-video-directfb because the directfb stuff
+caused build problems and it is not required by Wings anyway.
+
+Installing OpenGL header files
+==============================
+
+Even though OpenGL support comes pre-installed in many Linux distributions,
+you may need to install header files to be able to succefully compile
+ESDL.
+
+For instance, in openSuse you'll need to install the "mesa-devel" package.
 
 Installing ESDL
 ===============
 
-Download ESDL and unpack it. Compile by running "make" from
-the source directory.
+Download ESDL and unpack it.
+
+Make sure that the "sdl-config" program can be found in PATH.
+Verify like this:
+
+which sdl-config
+
+sdl-config --libs
+
+Compile by running "make" from the source directory of ESDL.
 
 Set the environment variable ESDL_PATH to point to top of the
 compiled ESDL installation.
@@ -96,7 +128,7 @@ $ tar jxf wings-0.99.02.tar.bz2
 
 Otherwise, feed the output of "bzcat" to tar:
 
-$ bzcat wings-0.99.02-pre1.tar.bz2 | tar xf -
+$ bzcat wings-0.99.02.tar.bz2 | tar xf -
 
 The build steps that follow assume that you are in the wings source
 directory.
@@ -155,15 +187,19 @@ Notes:
     multi-CPU computer. Wings will only work with the single-thread Erlang
     emulator.
 
-Building all for Mac OS X
-=========================
+
+Building an installation package for MacOS X
+============================================
 
 To build everything and pack it into a DMG file, you'll need:
 
-- Xcode 2.5
+- Xcode 3.0. Older versions may work, but I haven't tested them
+  with modern versions of Wings.
+
+- The FBX library. http://www.autodesk.com/fbx
 
 Make sure that your current directory is the directory in which the
-sources where unpacked.
+sources were unpacked.
 
 Example:
 
@@ -188,3 +224,49 @@ When everything is done, there should be a file named like
 	wings-0.99.02-macosx.dmg
 
 in the current directory.
+
+
+Building an installation package for Linux (and other Unix systems)
+===================================================================
+
+To build everything and put it into an installation package,
+you'll need the following additional software:
+
+- makeself.sh for building the installation package
+  (a self-extractable bzip2 archive). http://megastep.org/makeself
+
+- libjpeg for build the jpeg plug-in. libjpeg is pre-installed in most Linux
+  distributions. You'll probably need to install header files, though, by
+  installing the package libjpg-devel. Otherwise, get the sources from:
+  http://www.ijg.org
+
+Make sure that your current directory is the directory in which the
+sources were unpacked.
+
+Example:
+
+$ pwd
+/Users/bjorng/wings_releases/wings-0.99.02
+$
+
+To build all (including the installation package),
+run the following command:
+
+$ make unix
+.
+.
+.
+<A lot of output follows>
+.
+.
+.
+$
+
+When everything is done, there should be a file named like
+
+	wings-0.99.02-linux.bzip2.run
+
+in the current directory.
+
+
+
