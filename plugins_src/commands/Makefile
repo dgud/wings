@@ -33,11 +33,13 @@ MODULES= \
 	wpc_absolute_scale \
 	wpc_bend \
 	wpc_connect_tool \
+	wpc_constraints \
 	wpc_cylindrilize \
 	wpc_doosabin \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
 	wpc_region \
+	wpc_shear \
 	wpc_shift \
 	wpc_turnedge \
 	wpc_tweak \
@@ -49,8 +51,9 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -pa $(WINGS_EBIN) -I $(WINGS_SRC) -I $(WINGS_E3D) -pa $(ESDL_PATH)/ebin \
-  -W $(TYPE_FLAGS) +warn_unused_vars +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
+ERL_COMPILE_FLAGS += -pa $(WINGS_EBIN) -I $(WINGS_SRC) -I $(WINGS_E3D) \
+  -pa $(ESDL_PATH)/ebin -I $(ESDL_PATH)/include -W $(TYPE_FLAGS) \
+  +warn_unused_vars +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
 
 # ----------------------------------------------------
 # Targets
