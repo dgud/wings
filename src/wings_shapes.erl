@@ -118,7 +118,7 @@ build_shape(Prefix, Fs, Vs, #st{onext=Oid}=St) ->
     Name = Prefix++integer_to_list(Oid),
     wings_shape:new(Name, We, St).
 tetrahedron(Ask, _St) when is_atom(Ask) ->
-	ask(tetrahedron, Ask, [{ ?STR(sphere,1,"Edge Length"),2.0,[{range,{0.0,100.0}}]}]);
+  ask(tetrahedron, Ask, [{ ?STR(sphere,1,"Edge Length"),2.0,[{range,{0.0,infinity}}]}]);
 tetrahedron([L], St) ->
     Xi = L/2.0,
 	Hp = sqrt(3.0),
@@ -167,15 +167,14 @@ octotoad(St) ->
     build_shape("octotoad", Fs, Vs, St).
 
 dodecahedron(Ask, _St) when is_atom(Ask) ->
-	 ask(dodecahedron, Ask, [{ ?STR(dodecahedron,1,"Edge Length"),1.0,[{range,{0.0,1000.0}}]}]);
+   ask(dodecahedron, Ask, [{ ?STR(dodecahedron,1,"Edge Length"),1.0,[{range,{0.0,infinity}}]}]);
 dodecahedron([L],St) ->
 	 Pn = sqrt(5.0),
 	 Phi = (1.0 + Pn)/2.0,
 	 Li = L/2.0 * Phi,
 	 Ap = sqrt(2.0 / (3.0 + Pn)),
 	 Alpha = Li*Ap,
-	 Beta = Li*(1.0 + sqrt(6.0 / (3.0 + Pn) -
-		      2.0 + 2.0 * Ap)),
+    Beta = Li*(1.0 + sqrt(6.0 / (3.0 + Pn) - 2.0 + 2.0 * Ap)),
     Fs = [[0,1,9,16,5],[1,0,3,18,7],[1,7,11,10,9],[11,7,18,19,6],
 	  [8,17,16,9,10],[2,14,15,6,19],[2,13,12,4,14],[2,19,18,3,13],
 	  [3,0,5,12,13],[6,15,8,10,11],[4,17,8,15,14],[4,12,5,16,17]],
@@ -190,7 +189,7 @@ dodecahedron([L],St) ->
     build_shape("dodecahedron", Fs, Vs, St).
 
 icosahedron(Ask, _St) when is_atom(Ask) ->
-	ask(icosahedron, Ask, [{  ?STR(icosahedron,1,"Edge Length"),2.0,[{range,{0.0,100.0}}]}]);
+  ask(icosahedron, Ask, [{  ?STR(icosahedron,1,"Edge Length"),2.0,[{range,{0.0,infinity}}]}]);
 icosahedron([S],St) ->
     T2 = pi()/10.0,
     T4 = 2.0 * T2,
@@ -225,9 +224,9 @@ icosahedron([S],St) ->
     build_shape("icosahedron", Fs, Vs, St).
 
 cube(Ask, _St) when is_atom(Ask) ->
-	 ask(cube, Ask, [{  ?STR(cube,1,"X Edge Lengths"),2.0,[{range,{0.0,1000.0}}]},
-					{  ?STR(cube,2,"Y Edge Lengths"),2.0,[{range,{0.0,1000.0}}]},
-					{  ?STR(cube,3,"Z Edge Lengths"),2.0,[{range,{0.0,1000.0}}]}]);
+   ask(cube, Ask, [{  ?STR(cube,1,"X Edge Lengths"),2.0,[{range,{0.0,infinity}}]},
+          {  ?STR(cube,2,"Y Edge Lengths"),2.0,[{range,{0.0,infinity}}]},
+          {  ?STR(cube,3,"Z Edge Lengths"),2.0,[{range,{0.0,infinity}}]}]);
 cube([X, Y, Z], St) ->
 	 Xi = X/2.0,
 	 Yi = Y/2.0,
@@ -247,12 +246,12 @@ ellipse(N, Y, {R1, R2}) ->
     [{R1*cos(I*Delta), Y, R2*sin(I*Delta)} || I <- lists:seq(0, N-1)].
 
 cylinder(Ask, _St) when is_atom(Ask) ->
-    ask(cylinder, Ask, [{  ?STR(cylinder,1,"Sections"),16,[{range,{3,1024}}]},
-						{  ?STR(cylinder,2,"Height"),2.0,[{range,{0.0,1000.0}}]},
-						{  ?STR(cylinder,3,"Top Face X Diameter"),2.0,[{range,{0.0,1000.0}}]},
-						{  ?STR(cylinder,4,"Top Face Z Diameter"),2.0,[{range,{0.0,1000.0}}]},
-						{  ?STR(cylinder,5,"Bottom Face X Diameter"),2.0,[{range,{0.0,1000.0}}]},
-						{  ?STR(cylinder,6,"Bottom Face Z Diameter"),2.0,[{range,{0.0,1000.0}}]}]);
+    ask(cylinder, Ask, [{  ?STR(cylinder,1,"Sections"),16,[{range,{3,infinity}}]},
+            {  ?STR(cylinder,2,"Height"),2.0,[{range,{0.0,infinity}}]},
+            {  ?STR(cylinder,3,"Top Face X Diameter"),2.0,[{range,{0.0,infinity}}]},
+            {  ?STR(cylinder,4,"Top Face Z Diameter"),2.0,[{range,{0.0,infinity}}]},
+            {  ?STR(cylinder,5,"Bottom Face X Diameter"),2.0,[{range,{0.0,infinity}}]},
+            {  ?STR(cylinder,6,"Bottom Face Z Diameter"),2.0,[{range,{0.0,infinity}}]}]);
 cylinder([Sections,H,Dx,Dz,Bx,Bz], St) ->
     Fs = cylinder_faces(Sections),
     Vs = cylinder_vertices(Sections,H,Dx,Dz,Bx,Bz),
@@ -275,10 +274,10 @@ cylinder_vertices(N,H,Dx,Dz,Bx,Bz) ->
 	 ellipse(N, Hi, {Di, Dj}) ++ ellipse(N, -Hi, {Bi, Bj}).
 
 cone(Ask, _St) when is_atom(Ask) ->
-    ask(cone, Ask, [{ ?STR(cone,1,"Sections"),16,[{range,{3,1024}}]},
-					{ ?STR(cone,2,"Height"),2.0,[{range,{0.0,1000.0}}]},
-					{ ?STR(cone,3,"X Diameter"),2.0,[{range,{0.0,1000.0}}]},
-					{ ?STR(cone,4,"Y Diameter"),2.0,[{range,{0.0,1000.0}}]}]);
+    ask(cone, Ask, [{ ?STR(cone,1,"Sections"),16,[{range,{3,infinity}}]},
+          { ?STR(cone,2,"Height"),2.0,[{range,{0.0,infinity}}]},
+          { ?STR(cone,3,"X Diameter"),2.0,[{range,{0.0,infinity}}]},
+          { ?STR(cone,4,"Y Diameter"),2.0,[{range,{0.0,infinity}}]}]);
 cone([N,H,Dx,Dy], St) ->
     Hi = H/2.0,
 	 Di = Dx/2.0,
@@ -315,10 +314,10 @@ sphere_faces(Ns, Nl) ->
     Topf ++ Botf ++ lists:append(Slices).
 
 sphere(Ask, _St) when is_atom(Ask) ->
-    ask(sphere, Ask, [{ ?STR(sphere,1,"Sections"),16,[{range,{3,128}}]},
-		      { ?STR(sphere,2,"Slices"),8,[{range,{3,128}}]},
-			  { ?STR(sphere,3,"X Radial"),2.0,[{range,{0.0,1000.0}}]},
-			  { ?STR(sphere,4,"Y Radial"),2.0,[{range,{0.0,1000.0}}]}]);
+    ask(sphere, Ask, [{ ?STR(sphere,1,"Sections"),16,[{range,{3,infinity}}]},
+        { ?STR(sphere,2,"Slices"),8,[{range,{3,infinity}}]},
+        { ?STR(sphere,3,"X Radial"),2.0,[{range,{0.0,infinity}}]},
+        { ?STR(sphere,4,"Y Radial"),2.0,[{range,{0.0,infinity}}]}]);
 sphere([Ns,Nl,Xr,Yr], St) ->
     Xi = Xr/2.0,
 	 Yi = Yr/2.0,
@@ -328,8 +327,8 @@ sphere([Ns,Nl,Xr,Yr], St) ->
     build_shape("sphere", Fs, Vs, St).
     
 torus(Ask, _St) when is_atom(Ask) ->
-    ask(torus, Ask, [{ ?STR(torus,1,"Sections"),16,[{range,{3,128}}]},
-		     {?STR(torus,2,"Slices"),8,[{range,{3,128}}]},
+    ask(torus, Ask, [{ ?STR(torus,1,"Sections"),16,[{range,{3,infinity}}]},
+       {?STR(torus,2,"Slices"),8,[{range,{3,infinity}}]},
 		     {?STR(torus,31,"Major X Radius"),math:sqrt(2)},
 			 {?STR(torus,32,"Major Z Radius"),math:sqrt(2)},
 		     {?STR(torus,4,"Minor Radius"),0.25}]);
@@ -358,10 +357,10 @@ torus_vertices(Ns, Nl, Major, Xr, Minor) ->
     lists:append(Circles).
 
 grid(Ask, _) when is_atom(Ask) ->
-    ask(grid, Ask, [{?STR(grid,1,"Rows/Cols"),10,[{range,{1,128}}]},
-					{?STR(grid,2,"X Spacing"),0.5,[{range,{0.0,1000.0}}]},
-					{?STR(grid,3,"Z Spacing"),0.5,[{range,{0.0,1000.0}}]},
-					{?STR(grid,4,"Height"),0.1,[{range,{0.0,1000.0}}]}]);
+    ask(grid, Ask, [{?STR(grid,1,"Rows/Cols"),10,[{range,{1,infinity}}]},
+          {?STR(grid,2,"X Spacing"),0.5,[{range,{0.0,infinity}}]},
+          {?STR(grid,3,"Z Spacing"),0.5,[{range,{0.0,infinity}}]},
+          {?STR(grid,4,"Height"),0.1,[{range,{0.0,infinity}}]}]);
 grid([Rc,Sp,Zp,Ht], St) ->
     Vs = grid_vertices(Rc,Sp,Zp,Ht),
     Fs = grid_faces(Rc),
