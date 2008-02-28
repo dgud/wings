@@ -18,19 +18,18 @@ The following software is needed:
 
 - Cygwin, a unix-like environment for Windows. http://www.cygwin.com
 
-- Erlang/OTP R11B-2 or later. http://www.erlang.org
+- Erlang/OTP R12B-1 or later. http://www.erlang.org
   (Download the pre-built binaries for Windows.)
 
 - ESDL 0.96.0626 or later. http://esdl.sf.net
   I usually recommend downloading the pre-built binaries for Windows,
-  but for the combination R11B-2 and ESDL 0.96.0626 you MUST build
-  ESDL from source (or Wings will crash).
+  but the pre-built ESDL 0.96.0626 does not work on recent versions of
+  Erlang/OTP, so you must build from source.
 
 - MinGW, a C compiler and libraries for building native Windows applications.
   http://www.mingw.org
 
-- NSIS 2.02 or higher, an installer/uinstaller maker.
-  (The beta releases of NSIS 2.0 will no longer work.)
+- NSIS 2.02 or higher, an installer/uninstaller maker.
   http://nsis.sf.net.
 
 Optional software
@@ -85,14 +84,14 @@ the "bunzip2" program.
 
 Example:
 
-$ tar jxf wings-0.98.36.tar.bz2
+$ tar jxf wings-0.99.02.tar.bz2
 
 The build steps that follow assume that you are in the wings source
 directory.
 
 Example:
 
-$ cd wings-0.98.36.tar.bz2
+$ cd wings-0.99.02.tar.bz2
 
 Basic build
 ===========
@@ -104,7 +103,7 @@ sources where unpacked.
 Example:
 
 $ pwd
-/home/bjorng/wings-0.98.36
+/home/bjorng/wings-0.99.02
 $ make
 .
 .
@@ -128,7 +127,7 @@ source directory.
 
 Example:
 
-$ werl -smp disable -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-0.98.36/ebin -run wings_start start_halt
+$ werl -smp disable -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-0.99.02/ebin -run wings_start start_halt
 $
 
 An Erlang console should appear, followed by the Wings window.
@@ -140,7 +139,7 @@ Instead of writing the command line every time you want to start Wings,
 you can package it in a script like this:
 
 #!/bin/bash
-exec werl -smp disable -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-0.98.36/ebin -run wings_start start_halt ${1+"$@"}
+exec werl -smp disable -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-0.99.02/ebin -run wings_start start_halt ${1+"$@"}
 
 Notes:
 
@@ -176,7 +175,7 @@ sources where unpacked.
 Example:
 
 $ pwd
-/home/bjorng/wings_releases/wings-0.98.36
+/home/bjorng/wings_releases/wings-0.99.02
 $
 
 To build all (including the installer), run the following command:
@@ -193,6 +192,6 @@ $
 
 When everything is done, there should be a file named like
 
-	wings-0.98.36.exe
+	wings-0.99.02.exe
 
 in the current directory.
