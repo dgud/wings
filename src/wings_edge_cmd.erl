@@ -19,7 +19,6 @@
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
--include("sdl_keyboard.hrl").
 
 -import(lists, [foldl/3,mapfoldl/3,reverse/1,sort/1]).
 -import(e3d_vec, [add/1,add/2,sub/2,neg/1,norm/1,len/1,
@@ -58,10 +57,7 @@ menu(X, Y, St) ->
 	     ?__(18,"Cut into two objects along edge loop")},
 	    separator,
 	    {?__(19,"Vertex Color"),vertex_color,
-	     ?__(20,"Apply vertex colors to selected edges")},
-	    separator,
-	    {?__(22,"Set Constraint"),edge_constraint,
-	     ?__(23,"Set default distance/rotation constraint for pressed modifier key(s). Defaults to key set in Preferences.")}],
+	     ?__(20,"Apply vertex colors to selected edges")}],
     wings_menu:popup_menu(X, Y, edge, Menu).
 
 dslv() ->
@@ -150,10 +146,7 @@ command({scale,Type}, St) ->
 command(vertex_color, St) ->
     wings_color:choose(fun(Color) ->
 			       set_color(Color, St)
-		       end);
-command(edge_constraint, St) ->
-    set_edge_constraint(St).
-
+		       end).
 %%%
 %%% The Connect command.
 %%%
@@ -678,68 +671,3 @@ collect_maybe_add(Work, Face, Edges, We, Res) ->
 		      end
 	      end
       end, Work, Face, We).
-
-set_edge_constraint(#st{shapes=Shapes,sel=[{Id,SelectedEs}]} = St) ->
-    Mod = sdl_keyboard:getModState(),
-    Shift = (Mod band ?KMOD_SHIFT) =/= 0,
-    Ctrl = (Mod band ?KMOD_CTRL) =/= 0,
-    Alt = (Mod band ?KMOD_ALT) =/= 0,
-    case gb_sets:size(SelectedEs) of
-	1 ->
-	    [E] = gb_sets:to_list(SelectedEs),
-	    We = gb_trees:get(Id, Shapes),
-	    #we{es=Etab} = We,
-	    #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
-	    PosA = wings_vertex:pos(Va, We),
-	    PosB = wings_vertex:pos(Vb, We),
-	    Length = e3d_vec:dist(PosA, PosB),
-	    set_edge_constraint({Shift,Ctrl,Alt}, "dist_con_", Length);
-	2 ->
-	    Edges = gb_sets:to_list(SelectedEs),
-	    We = gb_trees:get(Id, Shapes),
-	    [E0,E1] = Edges,
-	    #edge{vs=V0s,ve=V0e} = gb_trees:get(E0, We#we.es),
-	    #edge{vs=V1s,ve=V1e} = gb_trees:get(E1, We#we.es),
-	    {X0s,Y0s,Z0s} = wings_vertex:pos(V0s, We),
-	    {X0e,Y0e,Z0e} = wings_vertex:pos(V0e, We),
-	    {X1s,Y1s,Z1s} = wings_vertex:pos(V1s, We),
-	    {X1e,Y1e,Z1e} = wings_vertex:pos(V1e, We),
-	    V0 = {X0e-X0s, Y0e-Y0s, Z0e-Z0s},
-	    V1 = {X1e-X1s, Y1e-Y1s, Z1e-Z1s},
-	    RawAngle = e3d_vec:degrees(V0, V1),
-	    Angle = case {V0s,V0e} of
-		      {V1s,_} -> RawAngle;
-		      {_,V1e} -> RawAngle;
-		      {V1e,_} -> 180.0 - RawAngle;
-		      {_,V1s} -> 180.0 - RawAngle;
-		      {_,_}   -> RawAngle   %%% unconnected
-		    end,
-	    set_edge_constraint({Shift,Ctrl,Alt}, "rot_con_", Angle);
-	_ ->
-	    wings_u:error(?__(1,"Only one or two edges must be selected."))
-    end,
-    St;
-set_edge_constraint(St) ->
-     wings_u:error(?__(2,"Select edges from one object.")),
-     St.
-
-set_edge_constraint({Shift,Ctrl,Alt}, Key, Val) ->
-    case {Shift,Ctrl,Alt} of
-	{true,false,false} ->
-	    wings_pref:set_value(list_to_atom(Key++"shift"), Val);
-	{false,true,false} ->
-	    wings_pref:set_value(list_to_atom(Key++"ctrl"), Val);
-	{true,true,false} ->
-	    wings_pref:set_value(list_to_atom(Key++"ctrl_shift"), Val);
-	{false,false,true} ->
-	    wings_pref:set_value(list_to_atom(Key++"alt"), Val);
-	{true,false,true} ->
-	    wings_pref:set_value(list_to_atom(Key++"shift_alt"), Val);
-	{false,true,true} ->
-	    wings_pref:set_value(list_to_atom(Key++"ctrl_alt"), Val);
-	{true,true,true} ->
-	    wings_pref:set_value(list_to_atom(Key++"ctrl_shift_alt"), Val);
-	{false,false,false} ->
-	    ConDefault = wings_pref:get_value(list_to_atom(Key++"default")),
-	    wings_pref:set_value(ConDefault, Val)
-    end.
