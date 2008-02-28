@@ -98,22 +98,64 @@ standard_mode_fun(Falloff) ->
     end.
 
 unit_scales(Units) ->
+    case wings_pref:get_value(drag_custom) of
+      false ->
+        default_drag(Units);
+      true -> 
+        custom_drag(Units)
+    end.
+
+custom_drag(Units) ->
+    BasicSc = 1/500,
+    DistSc = custom_absolute_drag(),
+    PercentSc = custom_relative_drag(),
+    AngleSc = custom_rotations_drag(),
+    unit_scales_1(Units, BasicSc, DistSc, PercentSc, AngleSc).
+
+custom_absolute_drag() ->
+    Speed = wings_pref:get_value(absolute_speed),
+    case wings_pref:get_value(absolute_cam_dist) of
+      true ->
+        #view{distance=D} = wings_view:current(),
+        D/((11-Speed)*((11-Speed)*300));
+      false ->
+        1/((11-Speed)*80)
+    end.
+
+custom_relative_drag() ->
+    Speed = wings_pref:get_value(relative_speed),
+    case wings_pref:get_value(relative_cam_dist) of
+      true ->
+        #view{distance=D} = wings_view:current(),
+        D/((11-Speed)*((11-Speed)*900));
+      false ->
+        1/((11-Speed)*100)
+    end.
+
+custom_rotations_drag() ->
+    Speed = wings_pref:get_value(rotations_speed),
+    1/((10.1-Speed)*8).
+
+default_drag(Units) ->
     #view{distance=D} = wings_view:current(),
     BasicSc = 1/500,
+    PercentSc = 1/500,
     DistSc = D/(9*500),
-    unit_scales_1(Units, BasicSc, DistSc).
+    AngleSc = 1/50,
+    unit_scales_1(Units, BasicSc, DistSc, PercentSc, AngleSc).
 
-unit_scales_1([U|Us], BasicSc, DistSc) ->
+unit_scales_1([U|Us], BasicSc, DistSc, PercentSc, AngleSc) ->
     Sc = case clean_unit(U) of
 	     distance -> DistSc;
 	     dx -> DistSc;
 	     dy -> DistSc;
 	     dz -> DistSc;
-	     angle -> 1/50;
+	     angle -> AngleSc;
+	     percent -> PercentSc;
 	     _ -> BasicSc
 	 end,
-    [Sc|unit_scales_1(Us, BasicSc, DistSc)];
-unit_scales_1([], _, _) -> [].
+    [Sc|unit_scales_1(Us, BasicSc, DistSc, PercentSc, AngleSc)];
+unit_scales_1([], _, _, _, _) -> [].
 
 falloff([falloff|_]) -> 1.0;
 falloff([_|T]) -> falloff(T);
@@ -317,10 +359,19 @@ help_message(#drag{unit=Unit,mode_fun=ModeFun,mode_data=ModeData}) ->
     Cancel = wings_msg:button_format([], [],wings_s:cancel()),
     NumEntry = ?__(1,"Numeric entry"),
     Tab = wings_util:key_format("[Tab]", NumEntry),
-    Msg = wings_msg:join([Accept,ZMsg,Cancel,Tab]),
+    Switch = switch(),
+    Constraint = ?__(2,"Switch constraint sets")++Switch,
+    ShiftTab = wings_util:key_format("[Shift]+[Tab]", Constraint),
+    Msg = wings_msg:join([Accept,ZMsg,Cancel,Tab,ShiftTab]),
     MsgRight = ModeFun(help, ModeData),
     wings_wm:message(Msg, MsgRight).
 
+switch() ->
+    case wings_pref:get_value(alternate_con) of
+      true -> ?__(1," (using alternate constraints)");
+      false -> []
+    end.
+	
 zmove_help([_]) -> [];
 zmove_help([_,_]) -> [];
 zmove_help([_,_,falloff]) -> [];
@@ -349,8 +400,15 @@ get_drag_event(Drag) ->
 get_drag_event_1(Drag) ->
     {replace,fun(Ev) -> handle_drag_event(Ev, Drag) end}.
 
-handle_drag_event(#keyboard{sym=9}, Drag) ->
-    numeric_input(Drag);
+handle_drag_event(#keyboard{sym=9, mod=Mod},Drag)->
+    case Mod band ?SHIFT_BITS =/= 0 of
+      true -> 
+        case wings_pref:get_value(alternate_con) of
+          true ->  wings_pref:set_value(alternate_con,false);
+          false -> wings_pref:set_value(alternate_con,true)
+        end, get_drag_event(Drag);
+      false -> numeric_input(Drag)
+    end;
 handle_drag_event(#mousebutton{button=2,state=?SDL_RELEASED},
 		  #drag{mmb_count=C}=Drag) when C > 2 ->
     get_drag_event_1(Drag#drag{mmb_count=0});
@@ -394,8 +452,12 @@ handle_drag_event_0(#keyboard{unicode=C}=Ev,
 	    wings_wm:dirty(),
 	    wings_wm:message_right(ModeFun(help, ModeData)),
 	    Val = {ModeData,Drag0#drag.falloff},
-	    Drag1 = parameter_update(new_mode_data, Val,
-				     Drag0#drag{mode_data=ModeData,xs=0,ys=0}),
+	    Drag1 = case wings_pref:get_value(drag_resets) of
+	        false -> parameter_update(new_mode_data, Val,
+	                 Drag0#drag{mode_data=ModeData});
+	        true -> parameter_update(new_mode_data, Val,
+	                Drag0#drag{mode_data=ModeData,xs=0,ys=0})
+	    end,
 	    Drag = case ModeFun(units, ModeData) of
 		       none -> Drag1;
 		       Units ->
@@ -634,10 +696,17 @@ mouse_scale([D|Ds], [S|Ss]) ->
 mouse_scale(Ds, _) -> Ds.
 
 constraints_scale([U0|_],Mod,[UnitScales|_]) ->
-    case constraint_factor(clean_unit(U0),Mod) of
+    case wings_pref:get_value(alternate_con) of
+    true -> case constraint_factor_alt(clean_unit(U0),Mod) of
 	none -> 1.0;
 	{_,What} ->
 	    What*0.01/UnitScales
+            end;
+    false -> case constraint_factor(clean_unit(U0),Mod) of
+            none -> 1.0;
+            {_,What} ->
+            What*0.01/UnitScales
+            end
     end.
 
 constrain(Ds0, Mod, #drag{unit=Unit}=Drag) ->
@@ -646,10 +715,17 @@ constrain(Ds0, Mod, #drag{unit=Unit}=Drag) ->
 
 constrain_0([U0|Us], [D0|Ds], Mod, Acc) ->
     U = clean_unit(U0),
-    D = case constraint_factor(U, Mod) of
+    D = case wings_pref:get_value(alternate_con) of
+      true -> case constraint_factor_alt(U, Mod) of
+        none -> D0;
+        {F1,F2} ->
+          round(D0*F1)*F2
+        end;
+      false -> case constraint_factor(U, Mod) of
 	    none -> D0;
 	    {F1,F2} ->
 		round(D0*F1)*F2
+            end
 	end,
     constrain_0(Us, Ds, Mod, [D|Acc]);
 constrain_0([_|_], [], _, Acc) -> reverse(Acc);
@@ -689,13 +765,13 @@ constraint_factor(angle, Mod) ->
 	true -> none
     end;
 constraint_factor(percent, Mod) ->
-    SCS = (wings_pref:get_value(scale_con_shift)/100),
-    SCC = (wings_pref:get_value(scale_con_ctrl)/100),
-    SCCS = (wings_pref:get_value(scale_con_ctrl_shift)/100),
-    SCA = (wings_pref:get_value(scale_con_alt)/100),
-    SCCA = (wings_pref:get_value(scale_con_ctrl_alt)/100),
-    SCSA = (wings_pref:get_value(scale_con_shift_alt)/100),
-    SCCSA = (wings_pref:get_value(scale_con_ctrl_shift_alt)/100),
+    SCS = wings_pref:get_value(scale_con_shift),
+    SCC = wings_pref:get_value(scale_con_ctrl),
+    SCCS = wings_pref:get_value(scale_con_ctrl_shift),
+    SCA = wings_pref:get_value(scale_con_alt),
+    SCCA = wings_pref:get_value(scale_con_ctrl_alt),
+    SCSA = wings_pref:get_value(scale_con_shift_alt),
+    SCCSA = wings_pref:get_value(scale_con_ctrl_shift_alt),
     if
 	Mod band ?SHIFT_BITS =/= 0,
 	Mod band ?ALT_BITS =/= 0,
@@ -733,6 +809,81 @@ constraint_factor(_, Mod) ->
 	Mod band ?SHIFT_BITS =/= 0 -> {1/DCS,DCS};
 	Mod band ?ALT_BITS =/= 0 -> {1/DCA,DCA};
 	true -> none
+    end.
+constraint_factor_alt(angle, Mod) ->
+    RCRS = filter_angle(wings_pref:get_value(rot_con_shift)),
+    RCRC = filter_angle(wings_pref:get_value(rot_con_ctrl)),
+    RCRCS = filter_angle(wings_pref:get_value(rot_con_ctrl_shift)),
+    RCRA = filter_angle(wings_pref:get_value(rot_con_alt)),
+    RCRCA = filter_angle(wings_pref:get_value(rot_con_ctrl_alt)),
+    RCRSA = filter_angle(wings_pref:get_value(rot_con_shift_alt)),
+    RCRCSA = filter_angle(wings_pref:get_value(rot_con_ctrl_shift_alt)),
+    if
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0,
+      Mod band ?CTRL_BITS =/= 0 -> {1/RCRCSA,RCRCSA};
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/RCRSA,RCRSA};
+      Mod band ?CTRL_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/RCRCA,RCRCA};
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?CTRL_BITS =/= 0 -> {1/RCRCS,RCRCS};
+      Mod band ?CTRL_BITS =/= 0 -> {1/RCRC,RCRC};
+      Mod band ?SHIFT_BITS =/= 0 -> {1/RCRS,RCRS};
+      Mod band ?ALT_BITS =/= 0 -> {1/RCRA,RCRA};
+      true -> none
+    end;
+constraint_factor_alt(percent, Mod) ->
+    SCS = 1.0/wings_pref:get_value(scale_con_shift),
+    SCC = 1.0/wings_pref:get_value(scale_con_ctrl),
+    SCCS = 1.0/wings_pref:get_value(scale_con_ctrl_shift),
+    SCA = 1.0/wings_pref:get_value(scale_con_alt),
+    SCCA = 1.0/wings_pref:get_value(scale_con_ctrl_alt),
+    SCSA = 1.0/wings_pref:get_value(scale_con_shift_alt),
+    SCCSA = 1.0/wings_pref:get_value(scale_con_ctrl_shift_alt),
+    if
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0,
+      Mod band ?CTRL_BITS =/= 0-> {1/SCCSA,SCCSA};
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/SCSA,SCSA};
+      Mod band ?CTRL_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/SCCA,SCCA};
+      Mod band ?CTRL_BITS =/= 0,
+      Mod band ?SHIFT_BITS =/= 0 -> {1/SCCS,SCCS};
+      Mod band ?CTRL_BITS =/= 0 -> {1/SCC,SCC};
+      Mod band ?SHIFT_BITS =/= 0 -> {1/SCS,SCS};
+      Mod band ?ALT_BITS =/= 0 -> {1/SCA,SCA};
+      true -> none
+    end;
+constraint_factor_alt(_, Mod) ->
+    DCS = wings_pref:get_value(dist_con_a_shift),
+    DCC = wings_pref:get_value(dist_con_a_ctrl),
+    DCCS = wings_pref:get_value(dist_con_a_ctrl_shift),
+    DCA = wings_pref:get_value(dist_con_a_alt),
+    DCCA = wings_pref:get_value(dist_con_a_ctrl_alt),
+    DCSA = wings_pref:get_value(dist_con_a_shift_alt),
+    DCCSA = wings_pref:get_value(dist_con_a_ctrl_shift_alt),
+    if
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0,
+      Mod band ?CTRL_BITS =/= 0-> {1/DCCSA,DCCSA};
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/DCSA,DCSA};
+      Mod band ?CTRL_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/DCCA,DCCA};
+      Mod band ?CTRL_BITS =/= 0,
+      Mod band ?SHIFT_BITS =/= 0 -> {1/DCCS,DCCS};
+      Mod band ?CTRL_BITS =/= 0 -> {1/DCC,DCC};
+      Mod band ?SHIFT_BITS =/= 0 -> {1/DCS,DCS};
+      Mod band ?ALT_BITS =/= 0 -> {1/DCA,DCA};
+      true -> none
+    end.
+
+filter_angle(Degrees) ->
+    case Degrees =/= 180.0 of
+      true -> 180.0 - Degrees;
+      false -> 180.0
     end.
 
 %%%
