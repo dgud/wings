@@ -29,14 +29,21 @@ The following software is needed:
 - MinGW, a C compiler and libraries for building native Windows applications.
   http://www.mingw.org
 
-- NSIS 2.02 or higher, an installer/uninstaller maker.
-  http://nsis.sf.net.
 
 Optional software
 =================
 
-To build the fbx plugin, you'll need the fbx library.
-http://www.autodesk.com/fbx
+- libjpeg for build the jpeg plug-in.
+  http://www.ijg.org
+
+- To build the fbx plugin, you'll need the fbx library.
+  http://www.autodesk.com/fbx
+
+- res2coff. Can be found in the mingw-utils package
+  http://sourceforge.net/project/showfiles.php?group_id=2435&package_id=61599
+
+- NSIS 2.02 or higher, an installer/uninstaller maker.
+  http://nsis.sf.net.
 
 Installing the software
 =======================
