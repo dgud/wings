@@ -88,7 +88,7 @@
 
 - Increased limits of the main Wings primitives to infinity. [optigon]
 
-- The hotkeys for Toggle Proxy Mode and Quick Smoothed Preview (Ctrl/Cmd+Tab)
+- The hotkeys for Toggle Proxy Mode and Quick Smoothed Preview (Shift+Tab)
   are now properly ignored in interactive commands and when the camera is active.
   (Thanks to optigon.) [bjorng]
 
