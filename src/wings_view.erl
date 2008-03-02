@@ -836,10 +836,7 @@ init() ->
     wings_pref:set_default(show_materials, true),
     wings_pref:set_default(show_textures, true),
 
-    wings_pref:set_default(scene_lights, false),
-
-    wings_pref:set_default(smoothed_preview_cage, false),
-    wings_pref:set_default(smoothed_preview_edges, false).
+    wings_pref:set_default(scene_lights, false).
 
 initial_properties() ->
     [{workmode,true},
