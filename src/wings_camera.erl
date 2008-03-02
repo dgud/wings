@@ -651,8 +651,8 @@ camera_mouse_range(X0, Y0, #camera{x=OX,y=OY, xt=Xt0, yt=Yt0}=Camera) ->
 view_hotkey(Ev, Camera, #state{st=St}) ->
     case wings_hotkey:event(Ev,St) of
 	next -> keep;
-	{view,smooth_preview} -> keep;
-	{view,smoothed_preview} -> keep;
+	{view,smooth_proxy} -> keep;
+	{view,quick_preview} -> keep;
 	{view,Cmd} -> 
 	    wings_view:command(Cmd, St),
 	    keep;	

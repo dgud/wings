@@ -500,7 +500,9 @@ handle_drag_event_1(Event, #drag{st=St}=Drag0) ->
     case wings_hotkey:event(Event,St) of
 	next ->
 	    get_drag_event(Drag0);
-	{view,smoothed_preview} ->
+	{view,quick_preview} ->
+	    get_drag_event(Drag0);
+	{view,smooth_proxy} ->
 	    get_drag_event(Drag0);
 	{view,Cmd} ->
 	    wings_view:command(Cmd, St),
