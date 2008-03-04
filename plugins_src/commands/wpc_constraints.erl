@@ -100,7 +100,7 @@ menu_title(Mode,Type) ->
       {Mode,angle} -> ?__(3,"Angle");
       {Mode,sub_angle} -> ?__(4,"Subtract Angle");
       {edge,to_axis} -> ?__(5,"Edge To Axis");
-			{face,to_axis} -> ?__(6,"Face To Axis");
+      {face,to_axis} -> ?__(6,"Face To Axis");
       {Mode,scale} -> ?__(7,"Percentage");
       {Mode,diff} -> ?__(8,"Difference");
       {Mode,center} -> ?__(9,"Centers")
@@ -118,7 +118,7 @@ menu_heading(Mode,Type,Axis) ->
       {Mode,sub_angle,forty_five} -> [?__(8,"45"),?DEGREE];
       {Mode,sub_angle,sixty} -> [?__(9,"60"),?DEGREE];
       {Mode,sub_angle,ninty} -> [?__(10,"90"),?DEGREE];
-      {Mode,Type,Axis} -> wings_util:upper(Axis)
+      {Mode,Type,Axis} -> wings_s:dir(Axis)
     end.
 mode_strings(Ending,Mode) ->
     case {Ending,Mode} of
@@ -761,7 +761,7 @@ axis_to_string(Axis) ->
         wings_util:format(Str,[X1,Y1,Z1]);
       _xyz ->
         Str = ?__(3,"along ~s axis"),
-        wings_util:format(Str,[wings_util:upper(Axis)])
+        wings_util:format(Str,[wings_s:dir(Axis)])
     end.
 
 %%% Distance functions
@@ -796,7 +796,7 @@ length_check(Axis,Length) ->
           {_,_,_} ->
             wings_u:error(?__(3,"Length along vector is too short"));
           _xyz ->
-            AxStr = wings_util:upper(Axis),
+            AxStr = wings_s:dir(Axis),
             Str = ?__(4,"Length along ~s axis is too short"),
             wings_u:error(wings_util:format(Str,[AxStr]))
         end;
@@ -1085,10 +1085,10 @@ difference({Axis1,Axis2},St) ->
 
 difference(Axis1,Axis2,Keys1,OrigSt,St) ->
     Keys2 = mod_key_combo(),
-		Keys = case Keys2 of
-		         {false,false,false} -> Keys1;
-						 _if_keys_held_again -> Keys2
-					 end,
+    Keys = case Keys2 of
+             {false,false,false} -> Keys1;
+             _if_keys_held_again -> Keys2
+           end,
     Set = atom_to_list(wings_pref:get_value(dist_con_set)),
     Length1 = add_edges(Axis1,OrigSt),
     Length2 = add_edges(Axis2,St),
@@ -1105,10 +1105,10 @@ centers(Axis,St) ->
 
 centers(Axis,Keys1,OrigSt,St) ->
     Keys2 = mod_key_combo(),
-		Keys = case Keys2 of
-		         {false,false,false} -> Keys1;
-						 _if_keys_held_again -> Keys2
-					 end,
+    Keys = case Keys2 of
+             {false,false,false} -> Keys1;
+             _if_keys_held_again -> Keys2
+           end,
     Set = atom_to_list(wings_pref:get_value(dist_con_set)),
     Center1 = wings_sel:center(OrigSt),
     Center2 = wings_sel:center(St),
@@ -1143,26 +1143,26 @@ set_constraint({Shift,Ctrl,Alt}, Key, Val) ->
       {true,false,true} -> "shift_alt";
       {false,true,true} -> "ctrl_alt";
       {true,true,true} -> "ctrl_shift_alt";
-      {false,false,false} -> 
+      {false,false,false} ->
         case Key of
             "dist_con_" -> atom_to_list(wings_pref:get_value(dist_con_default));
           "dist_con_a_" -> atom_to_list(wings_pref:get_value(dist_con_default));
              "rot_con_" -> atom_to_list(wings_pref:get_value(rot_con_default));
            "scale_con_" -> atom_to_list(wings_pref:get_value(scale_con_default))
-          end
+        end
     end,
-		ComboStr = mod(ModKeyCombo),
-		Tag = tag(Key),
+    ComboStr = mod(ModKeyCombo),
+    Tag = tag(Key),
     io:format("The ~s constraint bound to ~s is now set to ~p\n\n",[Tag,ComboStr,Val]),
     wings_pref:set_value(list_to_atom(Key++ModKeyCombo), Val).
 
 tag(Key) ->
     case Key of
-		  "rot_con_" -> ?__(1,"Rotation");
-			"scale_con_" -> ?__(2,"Scale Factor");
-			"dist_con_" -> ?__(3,"Distance");
-			"dist_con_a" -> ?__(4,"Alternate Distance")
-		end.
+      "rot_con_" -> ?__(1,"Rotation");
+      "scale_con_" -> ?__(2,"Scale Factor");
+      "dist_con_" -> ?__(3,"Distance");
+      "dist_con_a_" -> ?__(4,"Alternate Distance")
+    end.
 
 mod(ModKeyCombo) ->
     wings_util:stringify(list_to_atom(ModKeyCombo)).
