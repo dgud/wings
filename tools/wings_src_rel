@@ -1,19 +1,17 @@
 #!/usr/bin/perl -w
 #
-# Script for checking out the Wings source from CVS.
+# Script for checking out the Wings source from subversion.
 #
-# $Id: wings_src_rel,v 1.4 2004/04/30 06:28:25 bjorng Exp $
+# $Id$
 #
 use strict;
+use Digest::MD5 qw(md5_hex);
+
 my $WINGS = "https://wings.svn.sourceforge.net/svnroot/wings/trunk";
+my $VSN_FILE = ".wings_src_rel_latest_version";
 
 my $cmd;
 my $ver;
-
-if (@ARGV) {
-    $ver = shift;
-    $ver =~ m/^\d+/ or die "$0: '$ver' does not look like a version number\n";
-}
 
 #
 # Check current directory.
@@ -30,22 +28,46 @@ if (@garbage) {
 }
 
 #
-# Extract from Subversion and pack.
+# Find out the latest version in the svn repository.
 #
 
-$cmd = "svn export $WINGS wings";
-system $cmd;
+my $revision;
+open(INFO, "svn info $WINGS |") or die "$0: Failed to run 'svn info' command\n";
+while (<INFO>) {
+    if (/^Revision: (\d+)/) {
+	$revision = $1;
+	last;
+    }
+}
+close INFO;
+defined $revision or die "$0: Failed to find out latest svn revision\n";
 
-my $vsn_file = "wings/vsn.mk";
-my $vsn;
+print "Revision in repository: $revision\n";
 
-if (defined $ver) {
-    open(VSN, ">$vsn_file") or die "$0: Could not write $vsn_file\n";
-    print VSN "WINGS_VSN=$ver\n";
-    close VSN;
+#
+# Find out whether there already is a current tar file.
+#
+if (open(INFO, $VSN_FILE)) {
+    $_ = <INFO>;
+    chomp;
+    my($last_rev,$md5,$tar) = split(' ', $_, 3);
+    close INFO;
+    if ($last_rev eq $revision) {
+	my $actual_md5 = eval { md5_file($tar) };
+	if (defined $actual_md5 && $actual_md5 eq $md5) {
+	    print "$tar is up to date.\n";
+	    exit;
+	}
+    }
 }
 
-open(VSN, $vsn_file) or die "$0: Could not find $vsn_file\n";
+#
+# Retrieve the vsn.mk file and find out the version of Wings.
+#
+
+my $vsn;
+open(VSN, "svn cat -r $revision $WINGS/vsn.mk|") or
+    die "$0: Could not cat vsn.mk from repository\n";
 while (<VSN>) {
     next if m/^\s*$/;
     chomp;
@@ -56,12 +78,38 @@ while (<VSN>) {
 }
 close VSN;
 
+defined $vsn or die "$0: Failed to dig out version from vsn.mk\n";
+
+print "Wings version: $vsn\n";
+
+#
+# Export from SVN.
+#
 my $name = "wings-$vsn";
-my $tar = "${name}.tar";
-unlink $tar;
-rename("wings", $name);
+$cmd = "svn export -r $revision $WINGS $name";
+system $cmd;
+
 mkdir "$name/ebin";
 mkdir "$name/patches";
-system "tar cf $tar $name";
-unlink "$tar.bz2";
-system "bzip2 $tar";
+
+my $tar = "${name}.tar.bz2";
+unlink $tar;
+
+system "tar jcf $tar $name";
+
+#
+# Create a version info file.
+#
+my $md5 = md5_file($tar);
+open(INFO, ">$VSN_FILE") or die "$0: Failed to open $VSN_FILE for writing: $!\n";
+print INFO "$revision $md5 $tar\n";
+close INFO;
+
+sub md5_file {
+    my($file) = @_;
+    local $/;
+    open(TAR, $file) or die "$0: Failed to open $file for reading: $!\n";
+    my($contents) = <TAR>;
+    close TAR;
+    md5_hex($contents);
+}

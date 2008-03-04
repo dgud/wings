@@ -9,7 +9,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: strip.erl,v 1.1 2003/09/11 11:17:47 bjorng Exp $
+%%     $Id$
 %%
 
 -module(strip).

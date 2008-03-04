@@ -2,7 +2,7 @@
 #
 # Reduce size of OTP by removing beam files that are not needed.
 #
-# $Id: wings_reduce_otp,v 1.6 2004/10/29 15:50:15 bjorng Exp $
+# $Id$
 #
 
 erl_top="$1"
