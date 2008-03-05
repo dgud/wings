@@ -49,7 +49,7 @@ xyz() ->
      axis_menu(z)].
 
 axis_menu(Axis) ->
-    AxisStr = wings_util:upper(Axis),
+    AxisStr = wings_s:dir(Axis),
     Str = ?__(1,"Inflate vertices cylindrically around central axis ~s"),
     Help = wings_util:format(Str,[AxisStr]),
     case wings_pref:get_value(advanced_menus) of
@@ -142,7 +142,7 @@ cylinder_setup({Axis0,Center,Radius0},St) ->
 cylinder_callback(Data,St) ->
     Tvs = wings_sel:fold(fun(Vs,We,Acc) ->
           cylindrilize_verts(Data,Vs,We,Acc)
-      end,[],St),
+          end,[],St),
     wings_drag:setup(Tvs,[percent],St).
 
 cylindrilize_verts(Data,Vs0,#we{id=Id}=We,Acc) ->

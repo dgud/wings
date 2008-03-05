@@ -40,7 +40,7 @@ shear() ->
     end.
 
 glide_plane_menu(GlidePlane) ->
-    GPStr = wings_util:upper(GlidePlane),
+    GPStr = wings_s:dir(GlidePlane),
     case wings_pref:get_value(advanced_menus) of
     false ->
       {GPStr,{shear_cmd,xyz2(GlidePlane)}};
@@ -62,8 +62,8 @@ glide_plane_menu(GlidePlane) ->
     end.
 
 radial_menu(GlidePlane,Radial) ->
-    GPStr = wings_util:upper(GlidePlane),
-    RadStr = wings_util:upper(Radial),
+    GPStr = wings_s:dir(GlidePlane),
+    RadStr = wings_s:dir(Radial),
     case wings_pref:get_value(advanced_menus) of
       false ->
         F = fun(1, _Ns) ->
@@ -76,7 +76,7 @@ radial_menu(GlidePlane,Radial) ->
         F = fun(help, _Ns) ->
           Str = ?__(3,"Restrict vertex movement to Shearing Vector ~s across their individual Glide Planes facing ~s")++
                 ?__(4,".(Origin and Measuring Point caluculated automatically)"),
-                    Help = wings_util:format(Str, [RadStr,GPStr]),
+          Help = wings_util:format(Str, [RadStr,GPStr]),
           {Help,[],?__(5,"Pick Origin and Measuring Point")};
           (1, _Ns) -> {vertex,{deform,{shear,{GlidePlane,{Radial,lmb}}}}};
           (2, _Ns) -> ignore;
@@ -107,14 +107,14 @@ xyz2(z) ->
 %%%% Commands
 command({vertex,{deform,{shear,{GlidePlane0,{Radial0,{rmb,{'ASK',Ask}}}}}}},St) ->
     GlidePlane = axis_conversion(GlidePlane0),
-		Radial = axis_conversion(Radial0),
+    Radial = axis_conversion(Radial0),
     wings:ask(selection_ask(Ask), St, fun ({Origin,GlidePoint}, St0) ->
         check_selection({GlidePlane,Radial,Origin,GlidePoint},St0)
     end);
 
 command({vertex,{deform,{shear,{GlidePlane0,{Radial0,lmb}}}}},St) ->
     GlidePlane = axis_conversion(GlidePlane0),
-		Radial = axis_conversion(Radial0),
+    Radial = axis_conversion(Radial0),
     [Origin,GlidePoint] = determine_boundaries(GlidePlane,St),
     check_selection({GlidePlane,Radial,Origin,GlidePoint},St);
 
@@ -126,7 +126,7 @@ command({vertex,{deform,{shear,{GlidePlane0,{rmb,{'ASK',Ask}}}}}},St) ->
 
 command({vertex,{deform,{shear,{GlidePlane0,{mmb,{'ASK',Ask}}}}}},St) ->
     wings:ask(selection_ask(Ask), St, fun ({Radial,Origin}, St0) ->
-		    GlidePlane = axis_conversion(GlidePlane0),
+        GlidePlane = axis_conversion(GlidePlane0),
         GlidePoint = get_glide_point(GlidePlane,Origin,St0),
         check_selection({GlidePlane,Radial,Origin,GlidePoint},St0)
     end);
@@ -166,27 +166,28 @@ selection_ask([],Ask) -> lists:reverse(Ask);
 selection_ask([AskType|Rest],Ask) ->
     {Pick,Desc} = case AskType of
       glide_plane ->
-        {axis,[?__(1,"Select Glide Plane"),?__(2," (plane to which all vertices move parallel)")]};
+        {axis,[?__(1,"Select Glide Plane"),
+               ?__(2," (plane to which all vertices move parallel)")]};
       origin ->
         {point,?__(3,"Select Origin (point defining stationary Glide Plane)")};
       radial ->
         {axis,[?__(4,"Select Shearing Vector"),
-                       ?__(5," (direction vertices will move across their individual Glide Planes)")]};
+               ?__(5," (direction vertices will move across their individual Glide Planes)")]};
       glide_point ->
         {point,[?__(6,"Select Measuring Point"),
-                        ?__(7," (point according to which movement across Glide Plane will be measured)")]};
+                ?__(7," (point according to which movement across Glide Plane will be measured)")]};
       re_radial ->
         {axis,[?__(8,"Reselect Shearing Vector"),
-                       ?__(5," (direction vertices will move across their individual Glide Planes)"),
-                             ?__(9,". Can't be perpendicular to specified Glide Plane")]};
+               ?__(5," (direction vertices will move across their individual Glide Planes)"),
+               ?__(9,". Can't be perpendicular to specified Glide Plane")]};
       re_glide_point ->
         {point,[?__(10,"Reselect Measuring Point"),
-                       ?__(7," (point according to which movement across Glide Plane will be measured)"),
-                             ?__(11,". Must be on unique Glide Plane to specified Origin")]};
+                ?__(7," (point according to which movement across Glide Plane will be measured)"),
+                ?__(11,". Must be on unique Glide Plane to specified Origin")]};
       re_glide_plane ->
         {axis,[?__(12,"Reselect Glide Plane"),
-                       ?__(2," (plane to which all vertices move parallel)"),
-                             ?__(13," Can't be parallel to specified Shearing Vector")]}
+               ?__(2," (plane to which all vertices move parallel)"),
+               ?__(13," Can't be parallel to specified Shearing Vector")]}
     end,
     selection_ask(Rest,[{Pick,Desc}|Ask]).
 
@@ -203,10 +204,10 @@ determine_boundaries(GlidePlane,St) ->
     GpNorm = e3d_vec:norm(GlidePlane),
     Center = wings_sel:center(St),
     DistsFromCntr = largest_dist_along_axis(GlidePlane,St),
-        Max = abs(lists:max(DistsFromCntr)),
-        Min = abs(lists:min(DistsFromCntr)),
-        MaxPoint = e3d_vec:add(Center, e3d_vec:mul(GpNorm,Max)),
-        MinPoint = e3d_vec:add(Center, e3d_vec:mul(GpNorm,-Min)),
+    Max = abs(lists:max(DistsFromCntr)),
+    Min = abs(lists:min(DistsFromCntr)),
+    MaxPoint = e3d_vec:add(Center, e3d_vec:mul(GpNorm,Max)),
+    MinPoint = e3d_vec:add(Center, e3d_vec:mul(GpNorm,-Min)),
     [MinPoint,MaxPoint].
 
 %%%%
@@ -215,19 +216,13 @@ check_selection(AskResult,St) ->
 
 check_radial_glide_plane({GlidePlane,Radial,Origin,GlidePoint},St) ->
     Deg = e3d_vec:degrees(GlidePlane,Radial),
-    case Deg of
-    0.0 ->
-      wings:ask(selection_ask([re_radial]),
-        St, fun (Radial2, St0) ->
+    case ((Deg == 0.0) or (Deg == 180.0)) of
+      true ->
+        wings:ask(selection_ask([re_radial]), St, fun (Radial2, St0) ->
           check_selection({GlidePlane,Radial2,Origin,GlidePoint},St0)
       end);
-    180.0 ->
-      wings:ask(selection_ask([re_radial]),
-        St, fun (Radial2, St0) ->
-          check_selection({GlidePlane,Radial2,Origin,GlidePoint},St0)
-      end);
-    _okay ->
-      check_glide_plane_norm({GlidePlane,Radial,Origin,GlidePoint},St)
+      false ->
+        check_glide_plane_norm({GlidePlane,Radial,Origin,GlidePoint},St)
     end.
 
 check_glide_plane_norm({GlidePlane,Radial,Origin,GlidePoint},St) ->
@@ -264,10 +259,10 @@ shear_callback({GlidePlane,Radial,Origin,GlidePoint},St) ->
     Anchor = wings_pref:get_value(shear_anchor,false),
     State = {Mode,Anchor,Dir},
     Norm = shear_norm(GlidePlane,Radial),
-        Sf = shear_factor(GlidePlane,Origin,GlidePoint),
+    Sf = shear_factor(GlidePlane,Origin,GlidePoint),
     DistsFromCntr = largest_dist_along_axis(Norm,St),
     DBbox = abs(lists:max(DistsFromCntr)) + abs(lists:min(DistsFromCntr)),
-        CurveFactor = 1.0,
+    CurveFactor = 1.0,
     ShearData = {CurveFactor,Sf,Norm,DBbox,Dir,Anchor},
     Data = {GlidePlane,Radial,Origin,GlidePoint},
     Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
@@ -408,14 +403,14 @@ angle_shear({Cf,Sf,Norm,_DBbox,Dir,Anchor},Vpos,Dist,{GlidePlane,Radial,Origin,G
 %%%% Helper Functions
 shear_dist_factor(Cf,Sf,Dir,Anchor,Dist,D) ->
     D1 = abs(D),
-        Dist1 = case {D1 < 1.0e-12, D > 0,  Dir, Dist > 0} of  %% <- fudge factor for near zero elements
-                            {true, _,true,true} -> abs(Dist);
-                            {true, _,true,false} -> -abs(Dist);
-                            {false,true,true,true} -> Dist;
-                            {false,true,true,false} -> Dist;
-                            {_,_,true,_} -> -Dist;
-                            {_,_,false,_} -> Dist
-            end,
+    Dist1 = case {D1 < 1.0e-12, D > 0,  Dir, Dist > 0} of %% <- fudge factor for
+              {true, _,true,true} -> abs(Dist);           %%  near zero elements
+              {true, _,true,false} -> -abs(Dist);
+              {false,true,true,true} -> Dist;
+              {false,true,true,false} -> Dist;
+              {_,_,true,_} -> -Dist;
+              {_,_,false,_} -> Dist
+             end,
 
     Anch = case Anchor of
              true ->  abs(Sf - D1);

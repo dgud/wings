@@ -108,6 +108,7 @@ menu_title(Mode,Type) ->
 
 menu_heading(Mode,Type,Axis) ->
     case {Mode,Type,Axis} of
+      {_,_,none} -> [];
       {Mode,angle,normal} -> ?__(4,"Angle");
       {Mode,center,normal} -> ?__(3,"Direct");
       {Mode,Type,normal} -> ?__(1,"Normal");
