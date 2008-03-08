@@ -92,6 +92,10 @@
   are now properly ignored in interactive commands and when the camera is active.
   (Thanks to optigon.) [bjorng]
 
+- When defining hotkeys for menus such as Edit|Preferences or pop-up menus
+  when advanced menus were not turned on, there could be a uselessn question
+  about mouse buttons. This question has been eliminated. [bjorng]
+
 --- 0.99.01  ----------------------------------------------------------------
 
 - New feature: Edit|Plug-In Manager. It allows you to selectively

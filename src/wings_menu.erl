@@ -455,7 +455,7 @@ key(#keyboard{unicode=$\\}) -> delete;
 key(_) -> none.
 
 current_command(#mi{sel=none}) -> [];
-current_command(#mi{sel=Sel,menu=Menu,ns=Names,owner=Owner})
+current_command(#mi{sel=Sel,menu=Menu,ns=Names,owner=Owner}=Mi)
   when Owner =:= geom; element(1, Owner) =:= geom ->
     case element(Sel, Menu) of
 	{_,Name,_,_,Ps} when is_atom(Name); is_integer(Name) ->
@@ -474,7 +474,7 @@ current_command(#mi{sel=Sel,menu=Menu,ns=Names,owner=Owner})
 			      false -> none
 			  end
 		  end,
-	    all_current_commands(Try);
+	    all_current_commands(Try, Mi);
 	{_,{Name,Fun},_,_,Ps} when is_function(Fun), is_function(Fun, 2) ->
 	    Try = fun(B) ->
 			  Cmd0 = Fun(B, [Name|Names]),
@@ -486,14 +486,18 @@ current_command(#mi{sel=Sel,menu=Menu,ns=Names,owner=Owner})
 			      false -> none
 			  end
 		  end,
-	    all_current_commands(Try);
+	    all_current_commands(Try, Mi);
 	_Other ->
 	    io:format("~p\n", [_Other]),
 	    []
     end;
 current_command(_) -> [].
 
-all_current_commands(Fun) ->
+all_current_commands(Fun, #mi{adv=false}) ->
+    %% This menu is in basic mode, so we must only return the
+    %% command for LMB.
+    all_current_commands_1([1], Fun);
+all_current_commands(Fun, #mi{adv=true}) ->
     all_current_commands_1([1,2,3], Fun).
 
 all_current_commands_1([B|Bs], Fun) ->
