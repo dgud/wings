@@ -96,6 +96,11 @@
   when advanced menus were not turned on, there could be a uselessn question
   about mouse buttons. This question has been eliminated. [bjorng]
 
+- The Wavefront importer will now import objects that have defects such
+  as invalid texture coordinate references. Instead of crashing, texture
+  coordinates will be removed from the face in question. (Thanks to terje7601.)
+  [bjorng]
+
 --- 0.99.01  ----------------------------------------------------------------
 
 - New feature: Edit|Plug-In Manager. It allows you to selectively

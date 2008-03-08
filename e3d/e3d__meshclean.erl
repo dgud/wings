@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: e3d__meshclean.erl,v 1.12 2004/07/01 14:02:35 dgud Exp $
+%%     $Id$
 %%
 
 -module(e3d__meshclean).
@@ -159,9 +159,16 @@ number_faces([Rec|Fs], Face, Acc) ->
 number_faces([], _, Acc) -> reverse(Acc).
 
 %% clean_faces(Mesh0) -> Mesh
-%%  Remove duplicate vertices and faces with fewer than three edges.
-clean_faces(#e3d_mesh{fs=Fs0}=Mesh0) ->
-    Fs = clean_faces_1(Fs0, []),
+%%  Remove duplicate vertices, faces with fewer than three edges,
+%%  and faces with vertices that are not defined in the vertex table.
+%%  Also remove vertex colors, texture coordinates, and/or normals
+%%  for the face if they are invalid.
+clean_faces(#e3d_mesh{fs=Fs0,vs=Vs,vc=Vc,tx=Tx,ns=Ns}=Mesh0) ->
+    Sizes = {length(Vs),[{length(Vc),#e3d_face.vc},
+			 {length(Tx),#e3d_face.tx},
+			 {length(Ns),#e3d_face.ns}]},
+    Fs1 = clean_bad_refs(Fs0, Sizes, []),
+    Fs = clean_faces_1(Fs1, []),
     Mesh = Mesh0#e3d_mesh{fs=Fs},
     e3d_mesh:renumber(Mesh).
 
@@ -185,5 +192,29 @@ clean_dup_vs([V|Vs], First) ->
     [V|clean_dup_vs(Vs, First)];
 clean_dup_vs([], _) -> [].
 
-    
-    
+clean_bad_refs([#e3d_face{vs=Vs}=Face0|Fs],
+	       {Vsz,SzList}=Sizes, Acc) ->
+    case [V || V <- Vs, V >= Vsz] of
+	[_|_] ->
+	    %% There is a missing vertex. We will delete the
+	    %% entire face.
+	    clean_bad_refs(Fs, Sizes, Acc);
+	[] ->
+	    %% Vertices are OK. Now check all other attributes.
+	    Face = clean_bad_refs_1(SzList, Face0),
+	    clean_bad_refs(Fs, Sizes, [Face|Acc])
+    end;
+clean_bad_refs([], _, Acc) -> reverse(Acc).
+
+clean_bad_refs_1([{Sz,Pos}|T], Face0) ->
+    case [E || E <- element(Pos, Face0), E >= Sz] of
+	[] ->
+	    clean_bad_refs_1(T, Face0);
+	[_|_] ->
+	    %% A bad vertex color, UV coordinate, or normal.
+	    %% Reset to empty list.
+	    io:format("~p: ~p\n", [Pos,Face0]),
+	    Face = setelement(Pos, Face0, []),
+	    clean_bad_refs_1(T, Face)
+    end;
+clean_bad_refs_1([], Face) -> Face.

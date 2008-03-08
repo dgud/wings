@@ -8,7 +8,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: e3d_obj.erl,v 1.44 2005/03/04 09:03:57 dgud Exp $
+%%     $Id$
 %%
 
 -module(e3d_obj).
@@ -83,7 +83,8 @@ skip_upto_name([_|T]) -> skip_upto_name(T).
 
 make_objects([{Name,N}|T], Fs0, Template) ->
     {Ftab,Fs} = split(Fs0, N, []),
-    Mesh = e3d_mesh:renumber(Template#e3d_mesh{fs=Ftab}),
+    Mesh0 = e3d_mesh:clean_faces(Template#e3d_mesh{fs=Ftab}),
+    Mesh = e3d_mesh:renumber(Mesh0),
     Obj = #e3d_object{name=Name,obj=Mesh},
     [Obj|make_objects(T, Fs, Template)];
 make_objects([], [], _) -> [].
