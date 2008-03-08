@@ -93,7 +93,7 @@
   (Thanks to optigon.) [bjorng]
 
 - When defining hotkeys for menus such as Edit|Preferences or pop-up menus
-  when advanced menus were not turned on, there could be a uselessn question
+  when advanced menus were not turned on, there could be a useless question
   about mouse buttons. This question has been eliminated. [bjorng]
 
 - The Wavefront importer will now import objects that have defects such
