@@ -26,7 +26,7 @@
 -define(CAMMAX, 150).  %% Always larger than 300 on my pc
 
 -define(CSEP, 160).				%Short space.
-
+-define(NEARZERO, 1.0e-6).
 -record(camera,
 	{x,y,					%Current mouse position.
 	 ox,oy,					%Original mouse position.
@@ -39,7 +39,12 @@ init() ->
     wings_pref:set_default(camera_mode, mirai),
     wings_pref:set_default(num_buttons, 3),
     wings_pref:set_default(pan_speed, 25),
+    wings_pref:set_default(arrow_key_pan_speed, 50),
     wings_pref:set_default(inverted_wheel_zoom, false),
+    wings_pref:set_default(wheel_adds, false),
+    wings_pref:set_default(scroll_info,true),
+    wings_pref:set_default(wh_pan_spd, 50),
+    wings_pref:set_default(wh_rot_spd, 7.50),
     case {wings_pref:get_value(num_buttons),wings_pref:get_value(camera_mode)} of
 	{3,_} -> ok;
 	{_,nendo} -> ok;
@@ -52,11 +57,20 @@ prefs() ->
     ZoomFactor0 = wings_pref:get_value(wheel_zoom_factor, ?ZOOM_FACTOR),
     ZoomFactorAlt = wings_pref:get_value(wheel_zoom_factor_alt, ?ZOOM_FACTOR_ALT),
     PanSpeed0 = wings_pref:get_value(pan_speed),
+    ArrowPanSpeed = wings_pref:get_value(arrow_key_pan_speed),
     InvertZW = wings_pref:get_value(inverted_wheel_zoom),
-    Hook = {hook,fun (is_disabled, {_Var,_I,Sto}) ->
-			 not gb_trees:get(wheel_zooms, Sto);
-		     (_, _) -> void
-		 end},
+    WheelAdds = wings_pref:get_value(wheel_adds,false),
+    Scroll_Info = wings_pref:get_value(scroll_info,true),
+    WhPanSpd = wings_pref:get_value(wh_pan_spd),
+    WhRotate = wings_pref:get_value(wh_rot_spd),
+    Hook = fun (is_disabled, {_Var,_I,Sto}) ->
+            not gb_trees:get(wheel_zooms, Sto);
+             (_, _) -> void
+           end,
+    WHook = fun (is_disabled, {_Var,_I,Sto}) ->
+             not ((gb_trees:get(wheel_adds, Sto)) andalso (gb_trees:get(wheel_zooms, Sto)));
+             (_, _) -> void
+            end,
     {vframe,
      [{vframe,[mouse_buttons()],[{title,?__(1,"Mouse Buttons")}]},
       {vframe,[camera_modes()],[{title,?__(2,"Camera Mode")}]},
@@ -64,30 +78,42 @@ prefs() ->
        [{hframe,[{slider,{text,PanSpeed0,[{key,pan_speed},{range,{1,100}}]}}]}],
        [{title,?__(3,"Pan Speed")}]},
       {vframe,
+       [{hframe,[{slider,{text,ArrowPanSpeed,[{key,arrow_key_pan_speed},{range,{1,100}}]}}]}],
+       [{title,?__(16,"Arrow Key Pan Speed")}]},
+      {vframe,
        [{?__(4,"Wheel Zooms"),ZoomFlag0,[{key,wheel_zooms}]},
 	{vradio,[{?__(5,"Forwards Zooms In"),false},
-		 {?__(6,"Forwards Zooms Out"),true}],
+	         {?__(6,"Forwards Zooms Out"),true}],
 	 InvertZW,
-	 [{key,inverted_wheel_zoom},Hook]},
+	 [{key,inverted_wheel_zoom},{hook,Hook}]},
 	{hframe,
-	 [{label,?__(7,"Zoom Factor"),[Hook]},
+	 [{label,?__(7,"Zoom Factor"),[{hook,Hook}]},
 	  {text,ZoomFactor0,
 	   [{key,wheel_zoom_factor},
-	    {range,{1,50}},
-	    Hook]},
-	  {label,"%",[Hook]}]},
+     {range,{1,50}},{hook,Hook}]},
+	  {label,"%",[{hook,Hook}]}]},
 	 {hframe,
-	  [{label,?__(10,"Alternate Zoom Factor(Alt+Scroll)"),[Hook]},
+	  [{label,?__(10,"Alternate Zoom Factor(Alt+Scroll)"),[{hook,Hook}]},
 	   {text,ZoomFactorAlt,
 	    [{key,wheel_zoom_factor_alt},
-	     {range,{1,50}},
-	     Hook]},
-	   {label,"%",[Hook]}]} ],[{title,?__(9,"Scroll Wheel")}] } ]}.
+      {range,{1,50}},{hook,Hook}]},
+     {label,"%",[{hook,Hook}]}]} ],[{title,?__(9,"Scroll Wheel")}]},
+    {vframe,
+	  [{?__(11,"Wheel Pans & Rotates"),WheelAdds,[{key,wheel_adds},{hook,Hook}]},
+	   {?__(17,"Show Info Line Help String"),Scroll_Info,[{key,scroll_info},{hook,WHook}]}, 
+	  {vframe,
+	   [{hframe,
+	    [{slider,{text,WhPanSpd,[{key, wh_pan_spd},{range,{1,100}}]}}],
+	  [{title,?__(12,"Pan Speed")},{hook,WHook}]},
+	  {hframe,
+	   [{slider,{text,WhRotate,[{key, wh_rot_spd},{range,{?NEARZERO,180.0}}]}}],
+	   [{title,?__(13,"Rotation Step in Degrees")},{hook,WHook}]}]}],
+    [{title,?__(15,"Unidirectional Camera")}]}]}.
 
 mouse_buttons() ->
     {menu,[{desc(1),1,[{info,info(1)}]},
-	   {desc(2),2,[{info,info(2)}]},
-	   {desc(3),3,[{info,info(3)}]}],
+           {desc(2),2,[{info,info(2)}]},
+           {desc(3),3,[{info,info(3)}]}],
      wings_pref:get_value(num_buttons),
      [{key,num_buttons},
       {hook,fun (update, {Var,_I,Val,Sto0}) ->
@@ -104,16 +130,16 @@ mouse_buttons() ->
 	    end}]}.
 
 camera_modes() ->
-    Modes = [mirai,nendo,maya,tds,blender,mb],
+    Modes = [wings_cam,mirai,nendo,maya,tds,blender,mb,sketchup],
     {menu,[{desc(Mode),Mode,[{info,info(Mode)}]} || Mode <- Modes],
      wings_pref:get_value(camera_mode),
      [{key,camera_mode},
       {hook,fun (menu_disabled, {_Var,_I,Sto}) ->
- 		    case gb_trees:get(num_buttons, Sto) of
- 			1 -> [mirai,maya,tds,blender,mb];
-			2 -> [mirai,maya,tds,mb];
- 			3 -> []
- 		    end;
+		    case gb_trees:get(num_buttons, Sto) of
+			1 -> [mirai,maya,tds,blender,mb,sketchup,wings_cam];
+			2 -> [mirai,maya,tds,mb,sketchup,wings_cam];
+			3 -> []
+		    end;
 		(_, _) -> void
 	    end}]}.
 
@@ -136,28 +162,65 @@ info(Mode) ->
      ?__(6," camera mode requires 3 mouse buttons")].
 
 help() ->
-    case wings_pref:get_value(camera_mode) of
-	blender -> blender_help();
-	nendo -> wings_msg:button_format([], ?__(1,"Start camera"));
-	mirai -> wings_msg:button_format([], ?__(1,"Start camera"));
-	tds -> tds_help();
-	maya -> maya_help();
-	mb -> mb_help()
-    end.
+	Help = case wings_pref:get_value(camera_mode) of
+	  blender -> blender_help();
+	  nendo -> wings_msg:button_format([], ?__(1,"Start camera"));
+	  mirai -> wings_msg:button_format([], ?__(1,"Start camera"));
+	  wings_cam -> wings_msg:button_format([], ?__(1,"Start camera"));
+	  tds -> tds_help();
+	  maya -> maya_help();
+	  mb -> mb_help();
+	  sketchup -> sketchup_help()
+	end,
+	WheelAdds = wings_pref:get_value(wheel_adds),
+	Scroll_Info = wings_pref:get_value(scroll_info),
+	ScrollHelp = case {WheelAdds,Scroll_Info} of
+	  {true,true} -> [Help|scroll_help()];
+	  _other -> Help
+	end.
+scroll_help() ->
+    ?__(1,"  [Ctrl](+[Alt])+Scroll: Pan  [Shift](+[Alt])+Scroll: Rotate").
 
 %% Event handler.
 event(Ev, St=#st{}) -> 
-    	event(Ev,St,none).
+    event(Ev,St,none).
+%% Rotation event
 event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?ALT_BITS =:= 0 ->
-    	zoom_step(-1);
-event(#mousebutton{button=4,state=?SDL_RELEASED}, _, _Redraw) ->
-  	zoom_step_alt(-1);
+  when Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+    whrotate(0.5,0.0);
 event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?ALT_BITS =:= 0 ->
-	zoom_step(1);
+  when Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+    whrotate(-0.5,0.0);
+event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
+  when Mod band ?SHIFT_BITS =/= 0 ->
+    whrotate(0.0,0.5);
+event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
+  when Mod band ?SHIFT_BITS =/= 0 ->
+    whrotate(0.0,-0.5);
+%% Pan event
+event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
+  when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+    whpan(0.5,0.0);
+event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
+  when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+    whpan(-0.5,0.0);
+event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
+  when Mod band ?CTRL_BITS =/= 0 ->
+    whpan(0.0,0.5);
+event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
+  when Mod band ?CTRL_BITS =/= 0 ->
+    whpan(0.0,-0.5);
+%% Zoom event
+event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
+  when Mod band ?ALT_BITS =/= 0 ->
+    zoom_step_alt(-1);
+event(#mousebutton{button=4,state=?SDL_RELEASED}, _, _Redraw) ->
+    zoom_step(-1);
+event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
+  when Mod band ?ALT_BITS =/= 0 ->
+    zoom_step_alt(1);
 event(#mousebutton{button=5,state=?SDL_RELEASED}, _, _Redraw) ->
-  	zoom_step_alt(1);
+    zoom_step(1);
 event(#mousebutton{button=B}, _, _Redraw) when B==4; B==5 ->
     keep;
 event(Ev, St, Redraw) ->
@@ -167,7 +230,9 @@ event(Ev, St, Redraw) ->
 	mirai -> mirai(Ev, #state{st=St, func=Redraw});
 	tds -> tds(Ev, #state{st=St, func=Redraw});
 	maya -> maya(Ev, #state{st=St, func=Redraw});
-	mb -> mb(Ev, #state{st=St, func=Redraw})
+	mb -> mb(Ev, #state{st=St, func=Redraw});
+	sketchup -> sketchup(Ev, #state{st=St, func=Redraw});
+	wings_cam -> wings_cam(Ev, #state{st=St, func=Redraw})
     end.
 
 %%%
@@ -181,6 +246,8 @@ blender(#mousebutton{button=2,state=?SDL_PRESSED,x=X0,y=Y0,mod=Mod}, Redraw)
     grab(),
     message(blender_help()),
     {seq,push,get_blender_event(Camera, Redraw)};
+blender(#keyboard{sym=Sym}, _Redraw) ->
+    arrow_key_pan(Sym);
 blender(_, _) -> next.
 
 blender_event(#mousebutton{button=2,state=?SDL_RELEASED}, Camera, _Redraw) ->
@@ -188,12 +255,12 @@ blender_event(#mousebutton{button=2,state=?SDL_RELEASED}, Camera, _Redraw) ->
 blender_event(#mousemotion{x=X,y=Y,mod=Mod}, Camera0, Redraw) ->
     {Dx,Dy,Camera} = camera_mouse_range(X, Y, Camera0),
     case Mod of
-	Mod when Mod band ?SHIFT_BITS =/= 0 ->
-	    pan(Dx, Dy);
-	Mod when Mod band ?CTRL_BITS =/= 0 ->
-	    zoom(Dy);
-	_Other ->
-	    rotate(Dx, Dy)
+      Mod when Mod band ?SHIFT_BITS =/= 0 ->
+          pan(Dx, Dy);
+      Mod when Mod band ?CTRL_BITS =/= 0 ->
+          zoom(Dy);
+      _Other ->
+          rotate(Dx, Dy)
     end,
     wings_wm:dirty(),
     get_blender_event(Camera, Redraw);
@@ -202,13 +269,13 @@ blender_event(Other, Camera, Redraw) ->
 
 get_blender_event(Camera, Redraw) ->
     {replace,fun(Ev) -> blender_event(Ev, Camera, Redraw) end}.
-	    
+
 blender_help() ->
     TrackDolly = [{?SHIFT_BITS,2,?STR(mode_help,1,"Track")},
 		  {?CTRL_BITS,2,?STR(mode_help,2,"Dolly")}],
     case allow_rotation() of
-	false -> format(TrackDolly);
-	true -> format([{0,2,?STR(mode_help,3,"Tumble")}|TrackDolly])
+      false -> format(TrackDolly);
+      true -> format([{0,2,?STR(mode_help,3,"Tumble")}|TrackDolly])
     end.
 
 %%%
@@ -224,7 +291,7 @@ nendo(#mousebutton{button=2,x=X0,y=Y0,mod=Mod,state=?SDL_RELEASED}, Redraw)
     nendo_message(MoveTumbles),
     {seq,push,get_nendo_event(Camera, Redraw, MoveTumbles)};
 nendo(#keyboard{sym=Sym}, _Redraw) ->
-    nendo_pan(Sym);
+    arrow_key_pan(Sym);
 nendo(_, _) -> next.
 
 nendo_event(#mousebutton{button=1,state=?SDL_RELEASED}, Camera, _, _) ->
@@ -252,38 +319,23 @@ nendo_event(#keyboard{unicode=$q}, Camera, Redraw, MR0) ->
     nendo_message(MR),
     get_nendo_event(Camera, Redraw, MR);
 nendo_event(#keyboard{sym=Sym}=Event, Camera, Redraw, _) ->
-    case nendo_pan(Sym) of
+    case arrow_key_pan(Sym) of
 	keep -> keep;
 	next -> view_hotkey(Event, Camera, Redraw)
     end;
 nendo_event(Event, Camera, Redraw, _) ->
     generic_event(Event, Camera, Redraw).
     
-nendo_pan(?SDLK_LEFT) ->
-    nendo_pan(0.5, 0.0);
-nendo_pan(?SDLK_RIGHT) ->
-    nendo_pan(-0.5, 0.0);
-nendo_pan(?SDLK_UP) ->
-    nendo_pan(0.0, 0.5);
-nendo_pan(?SDLK_DOWN) ->
-    nendo_pan(0.0, -0.5);
-nendo_pan(_) -> next.
-
-nendo_pan(Dx, Dy) ->
-    pan(Dx, Dy),
-    wings_wm:dirty(),
-    keep.
-    
 get_nendo_event(Camera, Redraw, MouseRotates) ->
     wings_wm:dirty(),
     {replace,fun(Ev) -> nendo_event(Ev, Camera, Redraw, MouseRotates) end}.
 
 nendo_message(true) ->
-    Help = wings_msg:join([wings_msg:button_format(wings_s:accept(),
-						   ?STR(message,2,"Drag to Dolly")),
-			   ?STR(message,3,"Move mouse to tumble"),
-			   [?STR(message,4,"[Q]"),?CSEP,
-			    ?STR(message,5,"Move mouse to track")]]),
+    Help = wings_msg:join([wings_msg:button_format(wings_s:accept(),[],
+           ?STR(message,2,"Drag to Dolly")),
+           ?STR(message,3,"Move mouse to tumble"),
+          [?STR(message,4,"[Q]"),?CSEP,
+           ?STR(message,5,"Move mouse to track")]]),
     message(Help);
 nendo_message(false) ->
     QText = case allow_rotation() of
@@ -291,9 +343,9 @@ nendo_message(false) ->
 		true -> [?STR(message,4,"[Q]"),?CSEP,
 			 ?STR(message,3,"Move mouse to tumble")]
 	    end,
-    Help = wings_msg:join([wings_msg:button_format(wings_s:accept(),
+    Help = wings_msg:join([wings_msg:button_format(wings_s:accept(),[],
 						   ?STR(message,2,"Drag to Dolly")),
-			   ?STR(message,7,"Restore view")|QText]),
+			         QText]),
     message(Help).
 
 %%%
@@ -310,7 +362,7 @@ mirai(#mousebutton{button=2,x=X0,y=Y0,mod=Mod,state=?SDL_RELEASED}, Redraw)
     View = wings_view:current(),
     {seq,push,get_mirai_event(Camera, Redraw, MoveTumbles, View)};
 mirai(#keyboard{sym=Sym}, _Redraw) ->
-    mirai_pan(Sym);
+    arrow_key_pan(Sym);
 mirai(_, _) -> next.
 
 mirai_event(#mousebutton{button=1,state=?SDL_RELEASED}, Camera, _, _, _) ->
@@ -341,28 +393,13 @@ mirai_event(#keyboard{unicode=$q}, Camera, Redraw, MR0, View) ->
     mirai_message(MR),
     get_mirai_event(Camera, Redraw, MR, View);
 mirai_event(#keyboard{sym=Sym}=Event, Camera, Redraw, _, _) ->
-    case mirai_pan(Sym) of
+    case arrow_key_pan(Sym) of
 	keep -> keep;
 	next -> view_hotkey(Event, Camera, Redraw)
     end;
 mirai_event(Event, Camera, Redraw, _, _) ->
     generic_event(Event, Camera, Redraw).
-    
-mirai_pan(?SDLK_LEFT) ->
-    mirai_pan(0.5, 0.0);
-mirai_pan(?SDLK_RIGHT) ->
-    mirai_pan(-0.5, 0.0);
-mirai_pan(?SDLK_UP) ->
-    mirai_pan(0.0, 0.5);
-mirai_pan(?SDLK_DOWN) ->
-    mirai_pan(0.0, -0.5);
-mirai_pan(_) -> next.
 
-mirai_pan(Dx, Dy) ->
-    pan(Dx, Dy),
-    wings_wm:dirty(),
-    keep.
-    
 get_mirai_event(Camera, Redraw, MouseRotates, View) ->
     wings_wm:dirty(),
     {replace,fun(Ev) -> mirai_event(Ev, Camera, Redraw, MouseRotates, View) end}.
@@ -371,9 +408,9 @@ mirai_message(true) ->
     Help = wings_msg:join([wings_msg:button_format(wings_s:accept(),
 				   ?STR(message,2,"Drag to Dolly"),
 				   ?STR(message,6,"Cancel/restore view")),
-		     ?STR(message,3,"Move mouse to tumble"),
-		     [?STR(message,4,"[Q]"),?CSEP,
-		      ?STR(message,5,"Move mouse to track")]]),
+				   ?STR(message,3,"Move mouse to tumble"),
+				  [?STR(message,4,"[Q]"),?CSEP,
+				   ?STR(message,5,"Move mouse to track")]]),
     message(Help);
 mirai_message(false) ->
     QText = case allow_rotation() of
@@ -381,9 +418,9 @@ mirai_message(false) ->
 		true -> [?STR(message,4,"[Q]"),?CSEP,?STR(message,3,"Move mouse to tumble")]
 	    end,
     Help = wings_msg:join([wings_msg:button_format(wings_s:accept(),
-						   ?STR(message,2,"Drag to Dolly"),
-						   ?STR(message,6,"Cancel/restore view")),
-		     ?STR(message,5,"Move mouse to track")|QText]),
+				   ?STR(message,2,"Drag to Dolly"),
+				   ?STR(message,6,"Cancel/restore view")),
+				   ?STR(message,5,"Move mouse to track"),QText]),
     message(Help).
 
 %%%
@@ -396,9 +433,11 @@ tds(#mousebutton{button=2,x=X0,y=Y0,state=?SDL_PRESSED}, Redraw) ->
     grab(),
     message(wings_msg:join(tds_help(), 
 			   wings_msg:button_format([], [],
-						   ?STR(message,7,"Restore view")))),
+			   ?STR(message,7,"Restore view")))),
     View = wings_view:current(),
     {seq,push,get_tds_event(Camera, Redraw, View)};
+tds(#keyboard{sym=Sym}, _Redraw) ->
+    arrow_key_pan(Sym);
 tds(_, _) -> next.
 
 tds_event(#mousebutton{button=1,state=?SDL_RELEASED}=Mb, Camera, Redraw, View) ->
@@ -446,6 +485,8 @@ maya(#mousebutton{x=X0,y=Y0,mod=Mod,state=?SDL_PRESSED}, Redraw)
     grab(),
     message(maya_help()),
     {seq,push,get_maya_event(Camera, Redraw)};
+maya(#keyboard{sym=Sym}, _Redraw) ->
+    arrow_key_pan(Sym);
 maya(_, _) -> next.
 
 maya_event(#keyboard{sym=Alt,state=?SDL_RELEASED},
@@ -505,6 +546,8 @@ mb(#mousebutton{button=1,mod=Mod,x=X0,y=Y0,state=?SDL_PRESSED}, Redraw)
     grab(),
     message(mb_help()),
     {seq,push,get_mb_event(Camera, Redraw)};
+mb(#keyboard{sym=Sym}, _Redraw) ->
+    arrow_key_pan(Sym);
 mb(_, _) -> next.
 
 mb_event(#mousebutton{button=1,state=?SDL_RELEASED}, Camera, _) ->
@@ -540,8 +583,98 @@ mb_help() ->
     end.
     
 %%%
+%%% Sketchup style camera.
+%%%
+
+sketchup(#mousebutton{button=2,state=?SDL_PRESSED,x=X0,y=Y0,mod=Mod}, Redraw)
+  when Mod band ?ALT_BITS =:= 0 ->
+    {X,Y} = wings_wm:local2global(X0, Y0),
+    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    grab(),
+    message(sketchup_help()),
+    {seq,push,get_sketchup_event(Camera, Redraw)};
+sketchup(#keyboard{sym=Sym}, _Redraw) ->
+    arrow_key_pan(Sym);
+sketchup(_, _) -> next.
+
+sketchup_event(#mousebutton{button=2,state=?SDL_RELEASED}, Camera, _Redraw) ->
+    stop_camera(Camera);
+sketchup_event(#mousemotion{x=X,y=Y,mod=Mod}, Camera0, Redraw) ->
+    {Dx,Dy,Camera} = camera_mouse_range(X, Y, Camera0),
+    case Mod of
+      Mod when Mod band ?SHIFT_BITS =/= 0 ->
+          pan(Dx, Dy);
+      _Other ->
+          rotate(Dx, Dy)
+    end,
+    wings_wm:dirty(),
+    get_sketchup_event(Camera, Redraw);
+sketchup_event(Other, Camera, Redraw) ->
+    generic_event(Other, Camera, Redraw).
+
+get_sketchup_event(Camera, Redraw) ->
+    {replace,fun(Ev) -> sketchup_event(Ev, Camera, Redraw) end}.
+
+sketchup_help() ->
+    TrackDolly = [{?SHIFT_BITS,2,?STR(mode_help,1,"Track")},
+        {0,?CSEP,?STR(mode_help,2,"Scroll: Dolly")}],
+    case allow_rotation() of
+      false -> format(TrackDolly);
+      true -> format([{0,2,?STR(mode_help,3,"Tumble")}|TrackDolly])
+    end.
+
+%%%
+%%% Wings 3D camera suggested by oort
+%%%
+
+wings_cam(#mousebutton{button=2,x=X0,y=Y0,mod=Mod,state=?SDL_RELEASED}, Redraw)
+  when Mod band ?CTRL_BITS =:= 0 ->
+    {X,Y} = wings_wm:local2global(X0, Y0),
+    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    grab(),
+    wings_cam_message(),
+    View = wings_view:current(),
+    {seq,push,get_wings_cam_event(Camera, Redraw, View)};
+wings_cam(#keyboard{sym=Sym}, _Redraw) ->
+    arrow_key_pan(Sym);
+wings_cam(_, _) -> next.
+
+wings_cam_event(#mousebutton{button=1,state=?SDL_RELEASED}, Camera, _, _) ->
+    stop_camera(Camera);
+wings_cam_event(#mousebutton{button=3,state=?SDL_RELEASED}, Camera, _, View) ->
+    wings_view:set_current(View),
+    stop_camera(Camera);
+wings_cam_event(#mousemotion{x=X,y=Y,state=Buttons}, Camera0, Redraw, View) ->
+    {Dx,Dy,Camera} = camera_mouse_range(X, Y, Camera0),
+    case Buttons band 2 of
+      0 ->					%MMB not pressed.
+          rotate(-Dx, -Dy);
+      _Other ->				%MMB pressed.
+          pan(-Dx, -Dy)
+    end,
+    get_wings_cam_event(Camera, Redraw, View);
+wings_cam_event(#keyboard{sym=Sym}=Event, Camera, Redraw, _) ->
+    case arrow_key_pan(Sym) of
+      keep -> keep;
+      next -> view_hotkey(Event, Camera, Redraw)
+    end;
+wings_cam_event(Event, Camera, Redraw, _) ->
+    generic_event(Event, Camera, Redraw).
+
+get_wings_cam_event(Camera, Redraw, View) ->
+    wings_wm:dirty(),
+    {replace,fun(Ev) -> wings_cam_event(Ev, Camera, Redraw, View) end}.
+
+wings_cam_message() ->
+    Help = wings_msg:join([wings_msg:button_format(wings_s:accept(),
+                ?STR(message,2,"Drag to Pan"),
+                ?STR(message,6,"Cancel/restore view")),
+                ?STR(message,3,"Move mouse to tumble")]),
+    message(Help).
+
+%%%
 %%% Common utilities.
-%%%		     
+%%%
 
 generic_event(redraw, _Camera, #state{st=St, func=none}) ->
     wings:redraw(St),
@@ -549,16 +682,43 @@ generic_event(redraw, _Camera, #state{st=St, func=none}) ->
 generic_event(redraw, _Camera, #state{func=Redraw}) when is_function(Redraw) ->
     Redraw(),
     keep;
+
 generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?ALT_BITS =:= 0 ->
-  	zoom_step(-1);
-generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, _Camera, _Redraw) ->
-  	zoom_step_alt(-1);
+  when Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+    whrotate(0.5,0.0);
 generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?ALT_BITS =:= 0 ->
-	zoom_step(1);
-generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _Camera, _Redraw) ->
+  when Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+    whrotate(-0.5,0.0);
+generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
+  when Mod band ?SHIFT_BITS =/= 0 ->
+    whrotate(0.0,0.5);
+generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
+  when Mod band ?SHIFT_BITS =/= 0 ->
+    whrotate(0.0,-0.5);
+
+generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
+  when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+    whpan(0.5,0.0);
+generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
+  when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+    whpan(-0.5,0.0);
+generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
+  when Mod band ?CTRL_BITS =/= 0 ->
+    whpan(0.0,0.5);
+generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
+  when Mod band ?CTRL_BITS =/= 0 ->
+    whpan(0.0,-0.5);
+
+generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
+  when Mod band ?ALT_BITS =/= 0 ->
+  	zoom_step_alt(-1);
+generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, _Camera, _Redraw) ->
+    zoom_step(-1);
+generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
+  when Mod band ?ALT_BITS =/= 0 ->
   	zoom_step_alt(1);
+generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _Camera, _Redraw) ->
+    zoom_step(1);
 generic_event(_, _, _) -> keep.
 
 rotate(Dx, Dy) ->
@@ -571,6 +731,25 @@ rotate(Dx, Dy) ->
 	    El = El0 + Dy,
 	    View = View0#view{azimuth=Az,elevation=El,along_axis=none},
 	    wings_view:set_current(View)
+    end.
+
+whrotate(Dx, Dy) ->
+    case wings_pref:get_value(wheel_zooms, true) of
+      false -> keep;
+      true ->
+        case wings_pref:get_value(wheel_adds, true) of
+          false -> keep;
+          true ->
+             wings_wm:dirty(),
+             View0= wings_view:current(),
+             #view{azimuth=Az0,elevation=El0} = View0,
+             S = 2.0*wings_pref:get_value(wh_rot_spd),
+             Az = Az0 + Dx*S,
+             El = El0 + Dy*S,
+             View = View0#view{azimuth=Az,elevation=El,along_axis=none},
+             wings_view:set_current(View),
+             keep
+        end
     end.
 
 zoom_step_alt(Dir) ->
@@ -619,6 +798,48 @@ pan(Dx0, Dy0) ->
     PanY = PanY0 - Dy,
     wings_view:set_current(View#view{pan_x=PanX,pan_y=PanY}).
 
+arrow_key_pan(?SDLK_LEFT) ->
+    arrow_key_pan(0.25, 0.0);
+arrow_key_pan(?SDLK_RIGHT) ->
+    arrow_key_pan(-0.25, 0.0);
+arrow_key_pan(?SDLK_UP) ->
+    arrow_key_pan(0.0, 0.25);
+arrow_key_pan(?SDLK_DOWN) ->
+    arrow_key_pan(0.0, -0.25);
+arrow_key_pan(_) -> next.
+
+arrow_key_pan(Dx, Dy) ->
+    key_pan(Dx, Dy),
+    wings_wm:dirty(),
+    keep.
+
+key_pan(Dx0, Dy0) ->
+    #view{pan_x=PanX0,pan_y=PanY0,distance=D} = View = wings_view:current(),
+    S = D/(101-wings_pref:get_value(arrow_key_pan_speed)),
+    Dx = Dx0*S,
+    Dy = Dy0*S,
+    PanX = PanX0 + Dx,
+    PanY = PanY0 - Dy,
+    wings_view:set_current(View#view{pan_x=PanX,pan_y=PanY}).
+
+whpan(Dx0, Dy0) ->
+    case wings_pref:get_value(wheel_zooms, true) of
+  false -> keep;
+  true ->
+      case wings_pref:get_value(wheel_adds, true) of
+    false -> keep;
+    true ->
+        wings_wm:dirty(),
+        #view{pan_x=PanX0,pan_y=PanY0,distance=D} = View = wings_view:current(),
+        S = D/(101-wings_pref:get_value(wh_pan_spd)),
+        Dx = Dx0*S,
+        Dy = Dy0*S,
+        PanX = PanX0 + Dx,
+        PanY = PanY0 - Dy,
+        wings_view:set_current(View#view{pan_x=PanX,pan_y=PanY}),
+        keep
+       end
+    end.
 dist_factor(Dist) ->
     wings_util:max(abs(Dist), 0.2).
 

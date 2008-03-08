@@ -76,4 +76,6 @@ camera_mode(nendo) -> ?__(nendo,"Nendo");
 camera_mode(mirai) -> ?__(mirai,"Mirai");
 camera_mode(tds) -> ?__(tds,"3ds max");
 camera_mode(maya) -> ?__(maya,"Maya");
-camera_mode(mb) -> ?__(mb,"Motionbuilder").
+camera_mode(mb) -> ?__(mb,"Motionbuilder");
+camera_mode(sketchup) -> ?__(sketchup,"SketchUp");
+camera_mode(wings_cam) -> ?__(wings_cam,"Wings 3D").

@@ -31,14 +31,14 @@
 
 - Extended vector ops to accept vectors defined across multiple objects.
   Also added Cross Product as a way to define a vector using two edges.
-	[optigon]
+  [optigon]
 
 - New Feature: Vertex|Deform|Inflate Cylindrical. Works in both basic
   and advanced menus. In basis menus, select a central axis (XYZ) and
-	inflate. In advanced menus, pick a central axis and optionally, pick
-	a center point and radius. Vertices will move towards the radius along
-	a vector extending from the center point. All vertices are aligned with
-	the radius when the distance reads 100%. [optigon]
+  inflate. In advanced menus, pick a central axis and optionally, pick
+  a center point and radius. Vertices will move towards the radius along
+  a vector extending from the center point. All vertices are aligned with
+  the radius when the distance reads 100%. [optigon]
 
 - New Feature: Vertex|Connect(RMB)|Connecting Edge (advanced menus only).
   Creates a new edge by connecting the selected vertices and returns the
@@ -46,45 +46,46 @@
 
 - New Feature: Edit|Preferences|Constraints > Drag Preferences.
   Allows you to customize dragging speeds for Rotational, Absolute,
-	and Relative drags.
+  and Relative drags. [optigon]
 
 - New Feature: This preliminary release of the new Set Constraints plugin
   gives you the ability to take measurement directly from your model and
   save them as default constraints which can be used while dragging. You
-	can take measurements in various ways including the use of secondary
-	selections and vector ops. Bind the constraint to the modifier key(s)
-	of your choice (Alt,Shift,Ctrl) by holding them down while accepting a
-	method of measurement or set a default key combo in the prefs. If the
-	measurement includes a secondary selection, you may hold down the modifier
-	keys when finalizing your selection. [optigon]
-	
+  can take measurements in various ways including the use of secondary
+  selections and vector ops. Bind the constraint to the modifier key(s)
+  of your choice (Alt,Shift,Ctrl) by holding them down while accepting a
+  method of measurement or set a default key combo in the prefs. If the
+  measurement includes a secondary selection, you may hold down the modifier
+  keys when finalizing your selection. [optigon]
+
   Edge Mode:
-		Total Length - total length of the selected edges
-		Average Length - average length of the selected edges
-		Angle - angle between two edges
-		Subtract Angle - difference of two angles
-		Edge To Axis - angle between a single edge and a chosen axis
-		Percentage - difference two selections as a percentage
-		Difference - difference in length of two selections,
-		Centers - distance between the centers of two selections
-	Face Mode:
+    Total Length - total length of the selected edges
+    Average Length - average length of the selected edges
+    Angle - angle between two edges
+    Subtract Angle - difference of two angles
+    Edge To Axis - angle between a single edge and a chosen axis
+    Percentage - difference two selections as a percentage
+    Difference - difference in length of two selections,
+    Centers - distance between the centers of two selections
+  Face Mode:
     Percentage - difference in area between two face selections as a percentage
-		Centers, Angle, Subtract Angle, Face To Axis
-	Vertex Mode:
+    Centers, Angle, Subtract Angle, Face To Axis
+  Vertex Mode:
     Centers
 
 - New Feature: Switch constraint sets on the fly while dragging. Every drag
   mode now has two related sets of constraints. You can switch to the related
-	constraint set by press Shift+Tab while dragging in any tool. The related
-	sets are as follows.
-	Scale Factor/Reciprocal: Reciprocal is equal to 1/Scale Factor
-	Angle/Supplementary: Supplementary is equal to 180 - Angle
-	Distance/Alternate Distance: Two sets for distance constraints
-	[optigon]
+  constraint set by press Shift+Tab while dragging in any tool. The related
+  sets are as follows.
+  Scale Factor/Reciprocal: Reciprocal is equal to 1/Scale Factor
+  Angle/Supplementary: Supplementary is equal to 180 - Angle
+  Distance/Alternate Distance: Two sets for distance constraints
+  [optigon]
 
 - New Feature: Vertex|Deform|Shear. This plugin lets you shear vertex selections
   and more! Drag in all three modes (Absolute, Angle, Relative). Add curve to
-	the shear. Use vector ops or standard axes(XYZ). [optigon]
+  the shear. Use vector ops or standard axes(XYZ). Many thanks to puzzledpaul
+  for testing and offering useful suggestions. [optigon]
 
 - Increased limits of the main Wings primitives to infinity. [optigon]
 
@@ -100,6 +101,12 @@
   as invalid texture coordinate references. Instead of crashing, texture
   coordinates will be removed from the face in question. (Thanks to terje7601.)
   [bjorng]
+
+- Added new camera modes: Google SketchUp and Wings 3D suggested by oort.
+  Wings 3D mode is the same as Mirai mode, except that the mmb pans instead
+  of dollying. Added optional scroll wheel activated pan and rotate (available
+  in all camera modes). Also extended arrow key panning to work in all modes
+  and improved its useability. [optigon]
 
 --- 0.99.01  ----------------------------------------------------------------
 
@@ -175,7 +182,7 @@
   now be toggled (or cycled) through a choice in the view menu. Requires an
   OpenGL 2.0 video card. [Scorpius]
 
-- Revised most primitives, they are now more accurate and have more options. 
+- Revised most primitives, they are now more accurate and have more options.
   [contributed by Richard Jones (Optigon)]
 
 - Ability to set drag constraints for the currently pressed modifier key(s).
@@ -249,7 +256,7 @@
   area and volume for each object in the scene and displays the info in
   a pop-up window. [Scorpius]
 
-- Bug fix: Language support now works for all operating systems, regardless 
+- Bug fix: Language support now works for all operating systems, regardless
   if the file path has an underscore. [Scorpius]
 
 - Added X export plugin.
@@ -288,7 +295,7 @@
 
 - Move absolute now works for lights. [Giniu]
 
-- Added very basic version of absolute scale, it would be extended 
+- Added very basic version of absolute scale, it would be extended
   after feedback. [Giniu]
 
 - Both absolute scale and move is now placed in one menu group,
@@ -300,7 +307,7 @@
 
 - Fixed bug in View -> Align to Selection. [Giniu]
 
-- Turn Edge plugin now have option dialog to choose between clasic 
+- Turn Edge plugin now have option dialog to choose between clasic
   turn method, clockwise rotate and counterclockwise rotate. [Giniu]
 
 - An improved modelling lighting for people with newer gfx cards,
@@ -332,10 +339,10 @@
 
 - Fixed very small bug in vertex weld (troubles with undo).
 
-- Added second vertex weld mode for those who prefers just moving vertices 
+- Added second vertex weld mode for those who prefers just moving vertices
   to target position and then clean mesh (it's under RMB click on "Weld").
-  
-- Totally rewrote absolute move so now is works for any selection mode, 
+
+- Totally rewrote absolute move so now is works for any selection mode,
   and is able to align, move whole objects and create multiple duplicates of object.
   [Giniu]
 
@@ -349,34 +356,34 @@
 
 - Dan fixed rotate in vertex mode so it centers around all selected vertices.
 
-- Giniu made all active (compilable) plug-ins translatable and translated them to Polish 
+- Giniu made all active (compilable) plug-ins translatable and translated them to Polish
   (the toxic and yafray plugins still needs to be translated, but are translatable).
 
 - Giniu added 4 selection methods: select by vertices with 6 or more edges,
   select by non quadrangle faces (all faces, faces with odd or even number of edges).
-  
-- Giniu added two new tools - "move->absolute" for positioning in absolute 
+
+- Giniu added two new tools - "move->absolute" for positioning in absolute
   coordinates and "weld" for welding single vertex to other one.
 
 - DesiredUserName/MicrobeSoft implemented pick-up and drop images in outliner.
 
 - Syndarion updated the French translation.
 
-- AUTOUV changes (Dan): 
+- AUTOUV changes (Dan):
   - In face mode added a combined project from normal and unfolding command.
   - In segmenting mode, when uv-mapping failes the good charts gets uv-mapped and
     the failed charts stays in the segmenting window.
   - MMB on uv-mapping, finds and marks the old chart cuts.
   - Repeat implemented.
   - Other minor stuff, uv-grid and changed material/image handling.
-  - Re-written the texture image creator, move images with your uv's or 
+  - Re-written the texture image creator, move images with your uv's or
     use it to draw vertex color or materials it can also use opengl shaders.
 
-- Programmers: 
+- Programmers:
   Update to the latest erlang release. (png requires it)
   Both the #we and #st have a new field pst (plugin state)
     That requires a re-compilation of most (all?) of the external plugins.
-    Plugins that use the pst field should export two functions: 
+    Plugins that use the pst field should export two functions:
        PLUGIN:merge_we([We1,We2..]) and PLUGIN:merge_st(NewData,OldSt) both should
        return the new data of the plugin.
 
