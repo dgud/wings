@@ -3,7 +3,7 @@
 %%
 %%     Functions for reading and writing Wavefront ASCII files (.obj).
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -22,14 +22,22 @@
 
 -record(ost,
 	{v=[],					%Vertices.
-	 vt=[],					%Texture vertices.
+	 vt=[],					%Texture coordinates.
 	 vn=[],					%Vertex normals.
 	 f=[],					%Faces.
 	 g=[],					%Groups.
 	 mat=[],				%Current material.
 	 matdef=[],				%Material definitions.
 	 dir,					%Directory of .obj file.
-	 seen=gb_sets:empty()}).		%Unknown type seen.
+	 seen=gb_sets:empty(),			%Unknown type seen.
+
+	 %% To speed up relative references (repeated length/1 calls can
+	 %% be slow if the lists don't fit in the cache), we keep counters
+	 %% for each table.
+	 num_v=0,				%Number of vertices.
+	 num_vt=0,				%Number of texture coordinates.
+	 num_vn=0				%Number of vertex normals.
+	 }).
 
 import(Name) ->
     case read_open(Name) of
@@ -145,20 +153,20 @@ collect([], [], Tokens) ->
 collect([], Curr, Tokens) ->
     collect([], [], [reverse(Curr)|Tokens]).
 
-parse(["v",X0,Y0,Z0|_], #ost{v=Vtab}=Ost) ->
+parse(["v",X0,Y0,Z0|_], #ost{v=Vtab,num_v=NumV}=Ost) ->
     X = str2float(X0),
     Y = str2float(Y0),
     Z = str2float(Z0),
-    Ost#ost{v=[{X,Y,Z}|Vtab]};
-parse(["vt",U0,V0|_], #ost{vt=Vt}=Ost) ->
+    Ost#ost{v=[{X,Y,Z}|Vtab],num_v=NumV+1};
+parse(["vt",U0,V0|_], #ost{vt=Vt,num_vt=NumVt}=Ost) ->
     U = str2float(U0),
     V = str2float(V0),
-    Ost#ost{vt=[{U,V}|Vt]};
-parse(["vn",X0,Y0,Z0|_], #ost{vn=Vn}=Ost) ->
+    Ost#ost{vt=[{U,V}|Vt],num_vt=NumVt+1};
+parse(["vn",X0,Y0,Z0|_], #ost{vn=Vn,num_vn=NumVn}=Ost) ->
     X = str2float(X0),
     Y = str2float(Y0),
     Z = str2float(Z0),
-    Ost#ost{vn=[{X,Y,Z}|Vn]};
+    Ost#ost{vn=[{X,Y,Z}|Vn],num_vn=NumVn+1};
 parse(["f"|Vlist0], #ost{f=Ftab,mat=Mat}=Ost) ->
     Vlist = collect_vs(Vlist0, Ost),
     Ost#ost{f=[{Mat,Vlist}|Ftab]};
@@ -210,16 +218,16 @@ collect_vtxref_1(S0, Acc) ->
     {Ref,S} = collect_one_vtxref(S0),
     collect_vtxref_1(S, [Ref|Acc]).
 
-collect_vtxref_2(V0, Vt0, Vn0, #ost{v=Vtab,vt=VtTab,vn=VnTab}) ->
-    V = resolve_vtxref(V0, Vtab),
-    Vt = resolve_vtxref(Vt0, VtTab),
-    Vn = resolve_vtxref(Vn0, VnTab),
+collect_vtxref_2(V0, Vt0, Vn0, #ost{num_v=NumV,num_vt=NumVt,num_vn=NumVn}) ->
+    V = resolve_vtxref(V0, NumV),
+    Vt = resolve_vtxref(Vt0, NumVt),
+    Vn = resolve_vtxref(Vn0, NumVn),
     {V,Vt,Vn}.
 
 resolve_vtxref(none, _) -> none;
 resolve_vtxref(V, _) when V > 0 -> V-1;
-resolve_vtxref(V0, Tab) when V0 < 0 ->
-    case length(Tab)+V0 of
+resolve_vtxref(V0, N) when V0 < 0 ->
+    case N+V0 of
 	V when V >= 0 -> V
     end.
 

@@ -99,8 +99,9 @@
 
 - The Wavefront importer will now import objects that have defects such
   as invalid texture coordinate references. Instead of crashing, texture
-  coordinates will be removed from the face in question. (Thanks to terje7601.)
-  [bjorng]
+  coordinates will be removed from the face in question. Also, import of
+  Wavefront files with relative vertex references will be faster (much
+  faster for big files). (Thanks to terje7601.) [bjorng]
 
 - Added new camera modes: Google SketchUp and Wings 3D suggested by oort.
   Wings 3D mode is the same as Mirai mode, except that the mmb pans instead
