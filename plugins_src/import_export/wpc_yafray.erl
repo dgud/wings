@@ -17,11 +17,6 @@
 %% Debug exports
 %% -export([now_diff_1/1]).
 
-%% XXX Workaround for compiler bug in R12B-0. Should be removed
-%% when R12B-1 has been released. Symptom of bug: {0.0,infinity}
-%% in range_1/1 is replaced with {0,infinity}, causing a run-time crash.
--compile([no_jopt]).
-
 -include_lib("kernel/include/file.hrl").
 
 -include("e3d.hrl").
