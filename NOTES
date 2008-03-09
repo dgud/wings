@@ -1,4 +1,7 @@
---- 0.99.XX -----------------------------------------------------------------
+--- 0.99.02 -----------------------------------------------------------------
+- Now using Erlang/OTP R12B-1. The build instructions have been updated with
+  more details. The SDL library in the Linux distribution no longer references
+  libaa (thanks to vtechk). [bjorng]
 
 - Verbose and Mouseover info text options added to Edit|Preferences|General.
   [optigon]
