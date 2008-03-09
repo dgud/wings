@@ -113,8 +113,8 @@ custom_drag(Units) ->
     unit_scales_1(Units, BasicSc, DistSc, PercentSc, AngleSc).
 
 custom_absolute_drag() ->
-    Speed = wings_pref:get_value(absolute_speed),
-    case wings_pref:get_value(absolute_cam_dist) of
+    Speed = wings_pref:get_value(drag_speed_abs),
+    case wings_pref:get_value(drag_cam_dist_abs) of
       true ->
         #view{distance=D} = wings_view:current(),
         D/((11-Speed)*((11-Speed)*300));
@@ -123,8 +123,8 @@ custom_absolute_drag() ->
     end.
 
 custom_relative_drag() ->
-    Speed = wings_pref:get_value(relative_speed),
-    case wings_pref:get_value(relative_cam_dist) of
+    Speed = wings_pref:get_value(drag_speed_relative),
+    case wings_pref:get_value(drag_cam_dist_relative) of
       true ->
         #view{distance=D} = wings_view:current(),
         D/((11-Speed)*((11-Speed)*900));
@@ -133,7 +133,7 @@ custom_relative_drag() ->
     end.
 
 custom_rotations_drag() ->
-    Speed = wings_pref:get_value(rotations_speed),
+    Speed = wings_pref:get_value(drag_speed_rotate),
     1/((10.1-Speed)*8).
 
 default_drag(Units) ->
@@ -367,7 +367,7 @@ help_message(#drag{unit=Unit,mode_fun=ModeFun,mode_data=ModeData}) ->
     wings_wm:message(Msg, MsgRight).
 
 switch() ->
-    case wings_pref:get_value(alternate_con) of
+    case wings_pref:get_value(con_alternate) of
       true -> ?__(1," (using alternate constraints)");
       false -> []
     end.
@@ -403,9 +403,9 @@ get_drag_event_1(Drag) ->
 handle_drag_event(#keyboard{sym=9, mod=Mod},Drag)->
     case Mod band ?SHIFT_BITS =/= 0 of
       true -> 
-        case wings_pref:get_value(alternate_con) of
-          true ->  wings_pref:set_value(alternate_con,false);
-          false -> wings_pref:set_value(alternate_con,true)
+        case wings_pref:get_value(con_alternate) of
+          true ->  wings_pref:set_value(con_alternate,false);
+          false -> wings_pref:set_value(con_alternate,true)
         end, get_drag_event(Drag);
       false -> numeric_input(Drag)
     end;
@@ -698,7 +698,7 @@ mouse_scale([D|Ds], [S|Ss]) ->
 mouse_scale(Ds, _) -> Ds.
 
 constraints_scale([U0|_],Mod,[UnitScales|_]) ->
-    case wings_pref:get_value(alternate_con) of
+    case wings_pref:get_value(con_alternate) of
     true -> case constraint_factor_alt(clean_unit(U0),Mod) of
 	none -> 1.0;
 	{_,What} ->
@@ -717,7 +717,7 @@ constrain(Ds0, Mod, #drag{unit=Unit}=Drag) ->
 
 constrain_0([U0|Us], [D0|Ds], Mod, Acc) ->
     U = clean_unit(U0),
-    D = case wings_pref:get_value(alternate_con) of
+    D = case wings_pref:get_value(con_alternate) of
       true -> case constraint_factor_alt(U, Mod) of
         none -> D0;
         {F1,F2} ->
@@ -744,13 +744,13 @@ clamp({_,{_Min,Max}}, D) when D > Max -> Max;
 clamp(_, D) -> D.
 
 constraint_factor(angle, Mod) ->
-    RCS = wings_pref:get_value(rot_con_shift),
-    RCC = wings_pref:get_value(rot_con_ctrl),
-    RCCS = wings_pref:get_value(rot_con_ctrl_shift),
-    RCA = wings_pref:get_value(rot_con_alt),
-    RCCA= wings_pref:get_value(rot_con_ctrl_alt),
-    RCSA = wings_pref:get_value(rot_con_shift_alt),
-    RCCSA = wings_pref:get_value(rot_con_ctrl_shift_alt),
+    RCS = wings_pref:get_value(con_rot_shift),
+    RCC = wings_pref:get_value(con_rot_ctrl),
+    RCCS = wings_pref:get_value(con_rot_ctrl_shift),
+    RCA = wings_pref:get_value(con_rot_alt),
+    RCCA= wings_pref:get_value(con_rot_ctrl_alt),
+    RCSA = wings_pref:get_value(con_rot_shift_alt),
+    RCCSA = wings_pref:get_value(con_rot_ctrl_shift_alt),
     if
 	Mod band ?SHIFT_BITS =/= 0,
 	Mod band ?ALT_BITS =/= 0,
@@ -767,13 +767,13 @@ constraint_factor(angle, Mod) ->
 	true -> none
     end;
 constraint_factor(percent, Mod) ->
-    SCS = wings_pref:get_value(scale_con_shift),
-    SCC = wings_pref:get_value(scale_con_ctrl),
-    SCCS = wings_pref:get_value(scale_con_ctrl_shift),
-    SCA = wings_pref:get_value(scale_con_alt),
-    SCCA = wings_pref:get_value(scale_con_ctrl_alt),
-    SCSA = wings_pref:get_value(scale_con_shift_alt),
-    SCCSA = wings_pref:get_value(scale_con_ctrl_shift_alt),
+    SCS = wings_pref:get_value(con_scale_shift),
+    SCC = wings_pref:get_value(con_scale_ctrl),
+    SCCS = wings_pref:get_value(con_scale_ctrl_shift),
+    SCA = wings_pref:get_value(con_scale_alt),
+    SCCA = wings_pref:get_value(con_scale_ctrl_alt),
+    SCSA = wings_pref:get_value(con_scale_shift_alt),
+    SCCSA = wings_pref:get_value(con_scale_ctrl_shift_alt),
     if
 	Mod band ?SHIFT_BITS =/= 0,
 	Mod band ?ALT_BITS =/= 0,
@@ -790,13 +790,13 @@ constraint_factor(percent, Mod) ->
 	true -> none
     end;
 constraint_factor(_, Mod) ->
-    DCS = wings_pref:get_value(dist_con_shift),
-    DCC = wings_pref:get_value(dist_con_ctrl),
-    DCCS = wings_pref:get_value(dist_con_ctrl_shift),
-    DCA = wings_pref:get_value(dist_con_alt),
-    DCCA = wings_pref:get_value(dist_con_ctrl_alt),
-    DCSA = wings_pref:get_value(dist_con_shift_alt),
-    DCCSA = wings_pref:get_value(dist_con_ctrl_shift_alt),
+    DCS = wings_pref:get_value(con_dist_shift),
+    DCC = wings_pref:get_value(con_dist_ctrl),
+    DCCS = wings_pref:get_value(con_dist_ctrl_shift),
+    DCA = wings_pref:get_value(con_dist_alt),
+    DCCA = wings_pref:get_value(con_dist_ctrl_alt),
+    DCSA = wings_pref:get_value(con_dist_shift_alt),
+    DCCSA = wings_pref:get_value(con_dist_ctrl_shift_alt),
     if
 	Mod band ?SHIFT_BITS =/= 0,
 	Mod band ?ALT_BITS =/= 0,
@@ -813,13 +813,13 @@ constraint_factor(_, Mod) ->
 	true -> none
     end.
 constraint_factor_alt(angle, Mod) ->
-    RCRS = filter_angle(wings_pref:get_value(rot_con_shift)),
-    RCRC = filter_angle(wings_pref:get_value(rot_con_ctrl)),
-    RCRCS = filter_angle(wings_pref:get_value(rot_con_ctrl_shift)),
-    RCRA = filter_angle(wings_pref:get_value(rot_con_alt)),
-    RCRCA = filter_angle(wings_pref:get_value(rot_con_ctrl_alt)),
-    RCRSA = filter_angle(wings_pref:get_value(rot_con_shift_alt)),
-    RCRCSA = filter_angle(wings_pref:get_value(rot_con_ctrl_shift_alt)),
+    RCRS = filter_angle(wings_pref:get_value(con_rot_shift)),
+    RCRC = filter_angle(wings_pref:get_value(con_rot_ctrl)),
+    RCRCS = filter_angle(wings_pref:get_value(con_rot_ctrl_shift)),
+    RCRA = filter_angle(wings_pref:get_value(con_rot_alt)),
+    RCRCA = filter_angle(wings_pref:get_value(con_rot_ctrl_alt)),
+    RCRSA = filter_angle(wings_pref:get_value(con_rot_shift_alt)),
+    RCRCSA = filter_angle(wings_pref:get_value(con_rot_ctrl_shift_alt)),
     if
       Mod band ?SHIFT_BITS =/= 0,
       Mod band ?ALT_BITS =/= 0,
@@ -836,13 +836,13 @@ constraint_factor_alt(angle, Mod) ->
       true -> none
     end;
 constraint_factor_alt(percent, Mod) ->
-    SCS = 1.0/wings_pref:get_value(scale_con_shift),
-    SCC = 1.0/wings_pref:get_value(scale_con_ctrl),
-    SCCS = 1.0/wings_pref:get_value(scale_con_ctrl_shift),
-    SCA = 1.0/wings_pref:get_value(scale_con_alt),
-    SCCA = 1.0/wings_pref:get_value(scale_con_ctrl_alt),
-    SCSA = 1.0/wings_pref:get_value(scale_con_shift_alt),
-    SCCSA = 1.0/wings_pref:get_value(scale_con_ctrl_shift_alt),
+    SCS = 1.0/wings_pref:get_value(con_scale_shift),
+    SCC = 1.0/wings_pref:get_value(con_scale_ctrl),
+    SCCS = 1.0/wings_pref:get_value(con_scale_ctrl_shift),
+    SCA = 1.0/wings_pref:get_value(con_scale_alt),
+    SCCA = 1.0/wings_pref:get_value(con_scale_ctrl_alt),
+    SCSA = 1.0/wings_pref:get_value(con_scale_shift_alt),
+    SCCSA = 1.0/wings_pref:get_value(con_scale_ctrl_shift_alt),
     if
       Mod band ?SHIFT_BITS =/= 0,
       Mod band ?ALT_BITS =/= 0,
@@ -859,13 +859,13 @@ constraint_factor_alt(percent, Mod) ->
       true -> none
     end;
 constraint_factor_alt(_, Mod) ->
-    DCS = wings_pref:get_value(dist_con_a_shift),
-    DCC = wings_pref:get_value(dist_con_a_ctrl),
-    DCCS = wings_pref:get_value(dist_con_a_ctrl_shift),
-    DCA = wings_pref:get_value(dist_con_a_alt),
-    DCCA = wings_pref:get_value(dist_con_a_ctrl_alt),
-    DCSA = wings_pref:get_value(dist_con_a_shift_alt),
-    DCCSA = wings_pref:get_value(dist_con_a_ctrl_shift_alt),
+    DCS = wings_pref:get_value(con_dist_a_shift),
+    DCC = wings_pref:get_value(con_dist_a_ctrl),
+    DCCS = wings_pref:get_value(con_dist_a_ctrl_shift),
+    DCA = wings_pref:get_value(con_dist_a_alt),
+    DCCA = wings_pref:get_value(con_dist_a_ctrl_alt),
+    DCSA = wings_pref:get_value(con_dist_a_shift_alt),
+    DCCSA = wings_pref:get_value(con_dist_a_ctrl_shift_alt),
     if
       Mod band ?SHIFT_BITS =/= 0,
       Mod band ?ALT_BITS =/= 0,

@@ -39,10 +39,10 @@ init() ->
     wings_pref:set_default(camera_mode, mirai),
     wings_pref:set_default(num_buttons, 3),
     wings_pref:set_default(pan_speed, 25),
-    wings_pref:set_default(arrow_key_pan_speed, 50),
+    wings_pref:set_default(pan_speed_arrow_keys, 50),
     wings_pref:set_default(inverted_wheel_zoom, false),
     wings_pref:set_default(wheel_adds, false),
-    wings_pref:set_default(scroll_info,true),
+    wings_pref:set_default(wh_scroll_info,true),
     wings_pref:set_default(wh_pan_spd, 50),
     wings_pref:set_default(wh_rot_spd, 7.50),
     case {wings_pref:get_value(num_buttons),wings_pref:get_value(camera_mode)} of
@@ -57,10 +57,10 @@ prefs() ->
     ZoomFactor0 = wings_pref:get_value(wheel_zoom_factor, ?ZOOM_FACTOR),
     ZoomFactorAlt = wings_pref:get_value(wheel_zoom_factor_alt, ?ZOOM_FACTOR_ALT),
     PanSpeed0 = wings_pref:get_value(pan_speed),
-    ArrowPanSpeed = wings_pref:get_value(arrow_key_pan_speed),
+    ArrowPanSpeed = wings_pref:get_value(pan_speed_arrow_keys),
     InvertZW = wings_pref:get_value(inverted_wheel_zoom),
     WheelAdds = wings_pref:get_value(wheel_adds,false),
-    Scroll_Info = wings_pref:get_value(scroll_info,true),
+    WhScrollInfo = wings_pref:get_value(wh_scroll_info,true),
     WhPanSpd = wings_pref:get_value(wh_pan_spd),
     WhRotate = wings_pref:get_value(wh_rot_spd),
     Hook = fun (is_disabled, {_Var,_I,Sto}) ->
@@ -78,7 +78,7 @@ prefs() ->
        [{hframe,[{slider,{text,PanSpeed0,[{key,pan_speed},{range,{1,100}}]}}]}],
        [{title,?__(3,"Pan Speed")}]},
       {vframe,
-       [{hframe,[{slider,{text,ArrowPanSpeed,[{key,arrow_key_pan_speed},{range,{1,100}}]}}]}],
+       [{hframe,[{slider,{text,ArrowPanSpeed,[{key,pan_speed_arrow_keys},{range,{1,100}}]}}]}],
        [{title,?__(16,"Arrow Key Pan Speed")}]},
       {vframe,
        [{?__(4,"Wheel Zooms"),ZoomFlag0,[{key,wheel_zooms}]},
@@ -100,7 +100,7 @@ prefs() ->
      {label,"%",[{hook,Hook}]}]} ],[{title,?__(9,"Scroll Wheel")}]},
     {vframe,
 	  [{?__(11,"Wheel Pans & Rotates"),WheelAdds,[{key,wheel_adds},{hook,Hook}]},
-	   {?__(17,"Show Info Line Help String"),Scroll_Info,[{key,scroll_info},{hook,WHook}]}, 
+	   {?__(17,"Show Info Line Help String"),WhScrollInfo,[{key,wh_scroll_info},{hook,WHook}]}, 
 	  {vframe,
 	   [{hframe,
 	    [{slider,{text,WhPanSpd,[{key, wh_pan_spd},{range,{1,100}}]}}],
@@ -173,10 +173,10 @@ help() ->
 	  sketchup -> sketchup_help()
 	end,
 	WheelAdds = wings_pref:get_value(wheel_adds),
-	Scroll_Info = wings_pref:get_value(scroll_info),
-	ScrollHelp = case {WheelAdds,Scroll_Info} of
+	WhScrollHelp = wings_pref:get_value(wh_scroll_info),
+	case {WheelAdds,WhScrollHelp} of
 	  {true,true} -> [Help|scroll_help()];
-	  _other -> Help
+	  {_,_} -> Help
 	end.
 scroll_help() ->
     ?__(1,"  [Ctrl](+[Alt])+Scroll: Pan  [Shift](+[Alt])+Scroll: Rotate").
@@ -815,7 +815,7 @@ arrow_key_pan(Dx, Dy) ->
 
 key_pan(Dx0, Dy0) ->
     #view{pan_x=PanX0,pan_y=PanY0,distance=D} = View = wings_view:current(),
-    S = D/(101-wings_pref:get_value(arrow_key_pan_speed)),
+    S = D/(101-wings_pref:get_value(pan_speed_arrow_keys)),
     Dx = Dx0*S,
     Dy = Dy0*S,
     PanX = PanX0 + Dx,

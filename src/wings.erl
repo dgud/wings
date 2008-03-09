@@ -1086,7 +1086,7 @@ shape_info([], _Shs, N, Vertices, Edges, Faces) ->
           [N,Faces,Edges,Vertices]).
 
 enhanced_info(Basic, {PosA, PosB, PosC, PosD, E0, E1}) ->
-    case wings_pref:get_value(enhanced_info_text) of
+    case wings_pref:get_value(info_enhanced_text) of
         true ->
             Length1 = e3d_vec:dist(PosA,PosB),
             Length2 = e3d_vec:dist(PosC,PosD),
@@ -1110,7 +1110,7 @@ enhanced_info(Basic, {PosA, PosB, PosC, PosD, E0, E1}) ->
             Basic
     end;
 enhanced_info(Basic, {PosA, PosB, PosC, PosD, Es0, Es1, Id1, Id2}) ->
-    case wings_pref:get_value(enhanced_info_text) of
+    case wings_pref:get_value(info_enhanced_text) of
         true ->
             Length1 = e3d_vec:dist(PosA,PosB),
             Length2 = e3d_vec:dist(PosC,PosD),
@@ -1137,7 +1137,7 @@ enhanced_info(Basic, {PosA, PosB, PosC, PosD, Es0, Es1, Id1, Id2}) ->
             Basic
     end;
 enhanced_info(Basic,{We,F0,F1}) ->
-    case wings_pref:get_value(enhanced_info_text) of
+    case wings_pref:get_value(info_enhanced_text) of
         true ->
             {Xa,Ya,Za} = wings_face:center(F0, We),
             {Xb,Yb,Zb} = wings_face:center(F1, We),
@@ -1159,7 +1159,7 @@ enhanced_info(Basic,{We,F0,F1}) ->
             Basic
     end;
 enhanced_info(Basic,{face,WeA, WeB, F0, F1,Id1,Id2}) ->
-    case wings_pref:get_value(enhanced_info_text) of
+    case wings_pref:get_value(info_enhanced_text) of
         true ->
            {Xa,Ya,Za} = wings_face:center(F0, WeA),
            {Xb,Yb,Zb} = wings_face:center(F1, WeB),

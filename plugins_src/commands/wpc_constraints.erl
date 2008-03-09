@@ -767,7 +767,7 @@ axis_to_string(Axis) ->
 
 %%% Distance functions
 distance(Axis,St) ->
-    Set = atom_to_list(wings_pref:get_value(dist_con_set)),
+    Set = atom_to_list(wings_pref:get_value(con_dist_set)),
     Keys = mod_key_combo(),
     Length = add_edges(Axis,St),
     length_check(Axis,Length),
@@ -775,7 +775,7 @@ distance(Axis,St) ->
     St.
 
 average(Axis,#st{sel=Sel}=St) ->
-    Set = atom_to_list(wings_pref:get_value(dist_con_set)),
+    Set = atom_to_list(wings_pref:get_value(con_dist_set)),
     Keys = mod_key_combo(),
     EdgeNum = lists:foldl(fun({_Id,Sel0}, A) ->
                           gb_sets:size(Sel0)+A
@@ -1002,7 +1002,7 @@ set_angle(Keys, Angle, St) ->
         true -> Angle;
         false-> 180.0
     end,
-    set_constraint(Keys, "rot_con_", A),
+    set_constraint(Keys, "con_rot_", A),
     St.
 
 %%% Scale functions
@@ -1026,14 +1026,14 @@ scale(Axis1,Axis2,Keys,OrigSt,#st{selmode=edge}=St) ->
     Length1 = add_edges(Axis1,OrigSt),
     Length2 = add_edges(Axis2,St),
     Percent = Length1/Length2,
-    set_constraint(Keys, "scale_con_", Percent),
+    set_constraint(Keys, "con_scale_", Percent),
     OrigSt;
 
 scale(Axis1,Axis2,Keys,OrigSt,#st{selmode=face}=St) ->
     Area1 = add_areas(Axis1,OrigSt),
     Area2 = add_areas(Axis2,St),
     Percent = Area1/Area2,
-    set_constraint(Keys, "scale_con_", Percent),
+    set_constraint(Keys, "con_scale_", Percent),
     OrigSt.
 
 add_areas(Axis,St) ->
@@ -1090,7 +1090,7 @@ difference(Axis1,Axis2,Keys1,OrigSt,St) ->
              {false,false,false} -> Keys1;
              _if_keys_held_again -> Keys2
            end,
-    Set = atom_to_list(wings_pref:get_value(dist_con_set)),
+    Set = atom_to_list(wings_pref:get_value(con_dist_set)),
     Length1 = add_edges(Axis1,OrigSt),
     Length2 = add_edges(Axis2,St),
     Difference = abs(Length1-Length2),
@@ -1110,7 +1110,7 @@ centers(Axis,Keys1,OrigSt,St) ->
              {false,false,false} -> Keys1;
              _if_keys_held_again -> Keys2
            end,
-    Set = atom_to_list(wings_pref:get_value(dist_con_set)),
+    Set = atom_to_list(wings_pref:get_value(con_dist_set)),
     Center1 = wings_sel:center(OrigSt),
     Center2 = wings_sel:center(St),
     Distance = get_distance(Axis,Center1,Center2),
@@ -1146,10 +1146,10 @@ set_constraint({Shift,Ctrl,Alt}, Key, Val) ->
       {true,true,true} -> "ctrl_shift_alt";
       {false,false,false} ->
         case Key of
-            "dist_con_" -> atom_to_list(wings_pref:get_value(dist_con_default));
-          "dist_con_a_" -> atom_to_list(wings_pref:get_value(dist_con_default));
-             "rot_con_" -> atom_to_list(wings_pref:get_value(rot_con_default));
-           "scale_con_" -> atom_to_list(wings_pref:get_value(scale_con_default))
+            "con_dist_" -> atom_to_list(wings_pref:get_value(con_dist_default));
+          "con_dist_a_" -> atom_to_list(wings_pref:get_value(con_dist_default));
+             "con_rot_" -> atom_to_list(wings_pref:get_value(con_rot_default));
+           "con_scale_" -> atom_to_list(wings_pref:get_value(con_scale_default))
         end
     end,
     ComboStr = mod(ModKeyCombo),
@@ -1159,10 +1159,10 @@ set_constraint({Shift,Ctrl,Alt}, Key, Val) ->
 
 tag(Key) ->
     case Key of
-      "rot_con_" -> ?__(1,"Rotation");
-      "scale_con_" -> ?__(2,"Scale Factor");
-      "dist_con_" -> ?__(3,"Distance");
-      "dist_con_a_" -> ?__(4,"Alternate Distance")
+      "con_rot_" -> ?__(1,"Rotation");
+      "con_scale_" -> ?__(2,"Scale Factor");
+      "con_dist_" -> ?__(3,"Distance");
+      "con_dist_a_" -> ?__(4,"Alternate Distance")
     end.
 
 mod(ModKeyCombo) ->
