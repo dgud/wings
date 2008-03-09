@@ -339,8 +339,8 @@ skip_blanks([$\t|T]) -> skip_blanks(T);
 skip_blanks(S) -> S.
 
 read_open(Name) ->
-    case file:open(Name, [read,raw,read_ahead]) of
-	{ok,Fd} -> {ok,{Fd,[]}};
+    case file:open(Name, [binary,read,raw]) of
+	{ok,Fd} -> {ok,{Fd,<<>>}};
 	{error,_}=Error -> Error
     end.
 
@@ -350,21 +350,21 @@ close({Fd,_}) ->
 get_line({Fd,Buf}) ->
     get_line(Buf, Fd, []).
 
-get_line([], Fd, Line) ->
-    case file:read(Fd, 128) of
+get_line(<<$\r,Cs/binary>>, Fd, Line) ->
+    {reverse(Line),{Fd,Cs}};
+get_line(<<$\n,Cs/binary>>, Fd, Line) ->
+    {reverse(Line),{Fd,Cs}};
+get_line(<<C,Cs/binary>>, Fd, Line) ->
+    get_line(Cs, Fd, [C|Line]);
+get_line(<<>>, Fd, Line) ->
+    case file:read(Fd, 128*1024) of
 	eof ->
 	    case Line of
-		[] -> {eof,{Fd,[]}};
-		_ -> {reverse(Line),{Fd,[]}}
+		[] -> {eof,{Fd,<<>>}};
+		_ -> {reverse(Line),{Fd,<<>>}}
 	    end;
 	{ok,Cs} -> get_line(Cs, Fd, Line)
-    end;
-get_line([$\r|Cs], Fd, Line) ->
-    {reverse(Line),{Fd,Cs}};
-get_line([$\n|Cs], Fd, Line) ->
-    {reverse(Line),{Fd,Cs}};
-get_line([C|Cs], Fd, Line) ->
-    get_line(Cs, Fd, [C|Line]).
+    end.
     
 %%%
 %%% Export.
