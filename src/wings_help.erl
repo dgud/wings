@@ -148,7 +148,7 @@ advanced_menus(Head) ->
     Help = [?__(1,"In the ")++
 	    edit_prefs()++
 	    ?__(4,
-		 "dialog, there is a check box for \"Advanced Menus\"."),
+		 " dialog, there is a check box for \"Advanced Menus\"."),
 	    ?__(5,
 		 "Activating advanced menus provide the following additional features:"),
 	    ?__(6,"New commands: ")
