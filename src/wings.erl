@@ -1012,14 +1012,14 @@ measure(Base, #st{selmode=face,sel=[{Id,Fs}],shapes=Shs}) ->
         We = gb_trees:get(Id, Shs),
         [Face] = gb_sets:to_list(Fs),
         {X,Y,Z} = wings_face:center(Face, We),
-        Area = wings_face:area(Face, We),
         Mat = wings_facemat:face(Face, We),
+        Area = area_info(Face, We),
         [Base|wings_util:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~s.")
-                            ++ ?__(40," Area ~s"),
+                            ++ Area,
                             [wings_util:nice_float(X),
                              wings_util:nice_float(Y),
                              wings_util:nice_float(Z),
-                             Mat, wings_util:nice_float(Area)])];
+                             Mat])];
     2 ->
       We = gb_trees:get(Id, Shs),
       [F0,F1] = gb_sets:to_list(Fs),
@@ -1141,20 +1141,18 @@ enhanced_info(Basic,{We,F0,F1}) ->
         true ->
             {Xa,Ya,Za} = wings_face:center(F0, We),
             {Xb,Yb,Zb} = wings_face:center(F1, We),
-            Area0 = wings_face:area(F0, We),
-            Area1 = wings_face:area(F1, We),
             Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
-            [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
-                                 ?__(47,"Face~s Area ~s")++"  "++
-                                 ?__(47,"Face~s Area ~s"),
+            Area0 = area_info(F0, We),
+            Area1 = area_info(F1, We),
+            [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"
+                                 ++ ?__(48,"Face~s") ++ Area0 ++ "  " 
+                                 ++ ?__(48,"Face~s") ++ Area1,
                                 [wings_util:nice_float(Dist),
                                  wings_util:nice_float(abs(Xb - Xa)),
                                  wings_util:nice_float(abs(Yb - Ya)),
                                  wings_util:nice_float(abs(Zb - Za)),
-                                 wings_util:stringify(F0),
-                                 wings_util:nice_float(Area0),
-                                 wings_util:stringify(F1),
-                                 wings_util:nice_float(Area1)])];
+								 wings_util:stringify(F0),
+								 wings_util:stringify(F1)])];
         false ->
             Basic
     end;
@@ -1163,25 +1161,31 @@ enhanced_info(Basic,{face,WeA, WeB, F0, F1,Id1,Id2}) ->
         true ->
            {Xa,Ya,Za} = wings_face:center(F0, WeA),
            {Xb,Yb,Zb} = wings_face:center(F1, WeB),
-           Area0 = wings_face:area(F0, WeA),
-           Area1 = wings_face:area(F1, WeB),
+           Area0 = area_info(F0, WeA),
+           Area1 = area_info(F1, WeB),
            Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
            [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
-                      ?__(43,"Object~s")++" "++?__(47,"Face~s Area ~s")++"  "++
-                      ?__(43,"Object~s")++" "++?__(47,"Face~s Area ~s"),
+                      ?__(43,"Object~s")++" "++?__(48,"Face~s")++Area0++"  "++
+                      ?__(43,"Object~s")++" "++?__(48,"Face~s")++Area1,
                       [wings_util:nice_float(Dist),
                        wings_util:nice_float(abs(Xb - Xa)),
                        wings_util:nice_float(abs(Yb - Ya)),
                        wings_util:nice_float(abs(Zb - Za)),
                        wings_util:stringify(Id1),
                        wings_util:stringify(F0),
-                       wings_util:nice_float(Area0),
                        wings_util:stringify(Id2),
-                       wings_util:stringify(F1),
-                       wings_util:nice_float(Area1)])];
+                       wings_util:stringify(F1)])];
         false ->
             Basic
     end.
+
+area_info(Face, We) ->
+    case wings_face:vertices(Face,We) =< 50 of
+      true -> A = wings_face:area(Face, We),
+              wings_util:format(?__(40," Area ~s"), [wings_util:nice_float(A)]);
+      false -> []
+    end.
+
 command_name(_Repeat, #st{repeatable=ignore}) ->
     "("++cannot_repeat()++")";
 command_name(Repeat, #st{repeatable={_,Cmd}}=St) ->
