@@ -1,3 +1,9 @@
+--- 0.99.xx -----------------------------------------------------------------
+- Move|Region could crash if the selection contained faces that only
+  shared a single vertex (and not any edge). Now a proper error message
+  is given. Same correction for the Scale, Rotate, and Flatten commands
+  operating on regions. (Thanks to optigon.) [bjorng]
+
 --- 0.99.02 -----------------------------------------------------------------
 - Now using Erlang/OTP R12B-1. The build instructions have been updated with
   more details. The SDL library in the Linux distribution no longer references

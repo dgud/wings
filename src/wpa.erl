@@ -3,7 +3,7 @@
 %%
 %%     Wings Plugin API.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -33,7 +33,7 @@
 	 drag/3,drag/4,drop/2,
 	 pick/3,
 	 vertices/1,vertex_pos/2,vertex_flatten/3,vertex_center/2,
-	 faces/1,face_vertices/2,face_outer_vertices/2,face_outer_edges/2,
+	 faces/1,face_vertices/2,face_outer_vertices_ccw/2,face_outer_edges/2,
 	 face_dissolve/2,face_dissolve_complement/2,
 	 edge_loop_vertices/2,
 	 obj_name/1,obj_id/1,
@@ -479,8 +479,8 @@ faces(#we{fs=Ftab}) -> gb_trees:keys(Ftab).
 face_vertices(Face, We) ->
     wings_face:vertices_ccw(Face, We).
 
-face_outer_vertices(Faces, We) ->
-    wings_vertex:outer_partition(Faces, We).
+face_outer_vertices_ccw(Faces, We) ->
+    wings_vertex:outer_vertices_ccw(Faces, We).
 
 face_outer_edges(Faces, We) ->
     wings_dissolve:outer_edge_partition(Faces, We).

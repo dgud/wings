@@ -631,13 +631,13 @@ get_vec(face, [Face1,Face2], We) ->
       {?__(19,"Average of face normals saved as axis."),
        ?__(20,"Use direction between face centers")}}];
 get_vec(face, Faces, #we{vp=Vtab}=We) ->
-    case wings_vertex:outer_partition(Faces, We) of
-	[Vs] ->
+    case wings_vertex:outer_vertices_ccw(Faces, We) of
+	error ->
+	    [{none,?__(22,"Multi-face selection must have a single edge loop.")}];
+	Vs when is_list(Vs) ->
 	    Center = wings_vertex:center(Vs, We),
 	    Vec = wings_face:face_normal_cw(Vs, Vtab),
-	    [{{Center,Vec},?__(21,"Edge loop normal for region saved as axis.")}];
-	_Other ->
-	    [{none,?__(22,"Multi-face selection must have a single edge loop.")}]
+	    [{{Center,Vec},?__(21,"Edge loop normal for region saved as axis.")}]
     end;
 
 get_vec(_, _, _) -> {none,?__(23,"Select vertices, edges, or faces.")}.

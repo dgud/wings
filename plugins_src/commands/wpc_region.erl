@@ -3,7 +3,7 @@
 %%
 %%     Plug-in with region and edge-loop commands.
 %%
-%%  Copyright (c) 2002-2003 Bjorn Gustavsson
+%%  Copyright (c) 2002-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -75,9 +75,11 @@ move_region(Faces, We) ->
     move_region(wpa:sel_strict_face_regions(Faces, We), We, []).
 
 move_region([Fs|Regs], We, Acc0) ->
-    Acc = case wpa:face_outer_vertices(Fs, We) of
-	      [OuterVs] -> move_region(OuterVs, Fs, We, Acc0);
-	      _ -> region_error()
+    Acc = case wpa:face_outer_vertices_ccw(Fs, We) of
+	      error ->
+		  region_error();
+	      OuterVs when is_list(OuterVs) ->
+		  move_region(OuterVs, Fs, We, Acc0)
 	  end,
     move_region(Regs, We, Acc);
 move_region([], _, Acc) -> Acc.
@@ -94,9 +96,11 @@ scale_region(Faces, We, Acc) ->
     scale_region_1(wpa:sel_strict_face_regions(Faces, We), We, Acc).
 
 scale_region_1([Fs|Regs], We, Acc0) ->
-    Acc = case wpa:face_outer_vertices(Fs, We) of
-	      [OuterVs] -> scale_region_1(OuterVs, Fs, We, Acc0);
-	      _ -> region_error()
+    Acc = case wpa:face_outer_vertices_ccw(Fs, We) of
+	      error ->
+		  region_error();
+	      OuterVs when is_list(OuterVs) ->
+		  scale_region_1(OuterVs, Fs, We, Acc0)
 	  end,
     scale_region_1(Regs, We, Acc);
 scale_region_1([], _, Acc) -> Acc.
@@ -128,9 +132,11 @@ rotate_region(Faces, We, Acc) ->
     rotate_region_1(wpa:sel_strict_face_regions(Faces, We), We, Acc).
 
 rotate_region_1([Fs|Regs], We, Acc0) ->
-    Acc = case wpa:face_outer_vertices(Fs, We) of
-	      [OuterVs] -> rotate_region(OuterVs, Fs, We, Acc0);
-	      _ -> region_error()
+    Acc = case wpa:face_outer_vertices_ccw(Fs, We) of
+	      error ->
+		  region_error();
+	      OuterVs when is_list(OuterVs) ->
+		  rotate_region(OuterVs, Fs, We, Acc0)
 	  end,
     rotate_region_1(Regs, We, Acc);
 rotate_region_1([], _, Acc) -> Acc.
@@ -162,12 +168,12 @@ rotate({Cx,Cy,Cz}, Axis, Angle, VsPos, Acc0) ->
 %%%
 
 flatten_region(Faces, We) ->
-    flatten_region_1(wpa:sel_face_regions(Faces, We), We).
+    flatten_region_1(wpa:sel_strict_face_regions(Faces, We), We).
 
 flatten_region_1([Fs|Regs], We0) ->
-    We = case wpa:face_outer_vertices(Fs, We0) of
-	     [OuterVs] -> flatten_region_2(OuterVs, We0);
-	     _ -> region_error()
+    We = case wpa:face_outer_vertices_ccw(Fs, We0) of
+	     error -> region_error();
+	     OuterVs when is_list(OuterVs) -> flatten_region_2(OuterVs, We0)
 	 end,
     flatten_region_1(Regs, We);
 flatten_region_1([], We) -> We.

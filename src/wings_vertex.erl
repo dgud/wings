@@ -21,7 +21,7 @@
 	 flatten/3,flatten/4,
 	 dissolve_isolated/2,
 	 connect/3,force_connect/4,
-	 pos/2,outer_partition/2,reachable/2,
+	 pos/2,outer_vertices_ccw/2,reachable/2,
 	 isolated/1,edge_through/3,edge_through/4]).
 
 -include("wings.hrl").
@@ -512,26 +512,32 @@ connect_4(Iter0, Vend, NewEdge, NeRec0, Etab0) ->
     Etab = gb_trees:update(Final, FinalRec, Etab1),
     gb_trees:insert(NewEdge, NeRec, Etab).
 
-%% outer_partition(Faces, We) -> [[V]]
-%%  Returns a list of the vertices of the outer edges of the faces.
-%%  Vertices are ordered CCW.
-outer_partition(Faces, We) when is_list(Faces) ->
+%% outer_vertices_ccw(Faces, We) -> [V] | error
+%%  Faces (non-empty list or gb_set) must comprise a single face region
+%%  (each face must share at least one edge with another face in the
+%%  region). This functions returns a list of the outer vertices,
+%%  ordered in CCW order. (Useful for calculating the normal for
+%%  an edge loop, for instance.) The return value is 'error' if
+%%  the faces don't comprise a single region.
+
+outer_vertices_ccw(Faces, We) when is_list(Faces) ->
     collect_outer_edges(Faces, gb_sets:from_list(Faces), We, []);
-outer_partition(Faces, We) ->
+outer_vertices_ccw(Faces, We) ->
     collect_outer_edges(gb_sets:to_list(Faces), Faces, We, []).
 
 collect_outer_edges([Face|Fs], Faces, We, Acc0) ->
     Acc = wings_face:fold(
-	    fun(_, E, Erec, A) ->
-		    outer_edge(E, Erec, Face, Faces, A)
+	    fun(_, _, Erec, A) ->
+		    outer_edge(Erec, Face, Faces, A)
 	    end, Acc0, Face, We),
     collect_outer_edges(Fs, Faces, We, Acc);
 collect_outer_edges([], _Faces, _We, Acc) ->
     R = sofs:relation(Acc),
-    F = sofs:relation_to_family(R),
-    partition_edges(gb_trees:from_orddict(sofs:to_external(F)), []).
+    F0 = sofs:relation_to_family(R),
+    [{Va,Info}|F] = sofs:to_external(F0),
+    order_edges(Va, Info, gb_trees:from_orddict(F), []).
 
-outer_edge(Edge, Erec, Face, Faces, Acc) ->
+outer_edge(Erec, Face, Faces, Acc) ->
     {V,OtherV,OtherFace} =
 	case Erec of
 	    #edge{vs=Vs,ve=Ve,lf=Face,rf=Other0} ->
@@ -540,34 +546,28 @@ outer_edge(Edge, Erec, Face, Faces, Acc) ->
 		{Ve,Vs,Other0}
 	end,
     case gb_sets:is_member(OtherFace, Faces) of
-	true -> Acc;
-	false -> [{V,{Edge,V,OtherV,Face}}|Acc]
+	true -> Acc;				%Not an outer edge.
+	false -> [{V,{V,OtherV}}|Acc]
     end.
 
-partition_edges(Es0, Acc) ->
-    case gb_sets:is_empty(Es0) of
-	true -> Acc;
-	false ->
-	    {Key,Val,Es1} = gb_trees:take_smallest(Es0),
-	    {Part,Es} = partition_edges(Key, unknown, Val, Es1, []),
-	    partition_edges(Es, [Part|Acc])
-    end.
-
-partition_edges(Va, _, [{_,Va,Vb,Face}], Es0, Acc0) ->
+order_edges(Va, [{Va,Vb}], Es0, Acc0) ->
     Acc = [Va|Acc0],
     case gb_trees:lookup(Vb, Es0) of
-	none -> {Acc,Es0};
+	none ->
+	    %% We have collected all outer vertices for one
+	    %% face region. We are done unless more edges remain
+	    %% (which is an error).
+	    case gb_sets:is_empty(Es0) of
+		true -> Acc;
+		false -> error
+	    end;
 	{value,Val} ->
 	    Es = gb_trees:delete(Vb, Es0),
-	    partition_edges(Vb, Face, Val, Es, Acc)
+	    order_edges(Vb, Val, Es, Acc)
     end;
-partition_edges(Va, unknown, [{_,Va,_,Face}|_]=Edges, Es, Acc) ->
-    partition_edges(Va, Face, Edges, Es, Acc);
-partition_edges(Va, Face, Edges0, Es0, Acc) ->
-    [Val] = [E || {_,_,_,AFace}=E <- Edges0, AFace =:= Face],
-    Edges = [E || {_,_,_,AFace}=E <- Edges0, AFace =/= Face],
-    Es = gb_trees:insert(Va, Edges, Es0),
-    partition_edges(Va, Face, [Val], Es, Acc).
+order_edges(_, [_,_|_], _, _) ->
+    %% Two face regions are connected by a single vertex.
+    error.
 
 %% reachable([Vertex], We) -> [ReachableVertex]
 %%  Returns a list of the vertices that can be reached by following
