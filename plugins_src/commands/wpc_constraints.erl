@@ -118,7 +118,7 @@ menu_heading(Mode,Type,Axis) ->
       {Mode,sub_angle,thirty} -> [?__(7,"30"),?DEGREE];
       {Mode,sub_angle,forty_five} -> [?__(8,"45"),?DEGREE];
       {Mode,sub_angle,sixty} -> [?__(9,"60"),?DEGREE];
-      {Mode,sub_angle,ninty} -> [?__(10,"90"),?DEGREE];
+      {Mode,sub_angle,ninety} -> [?__(10,"90"),?DEGREE];
       {Mode,Type,Axis} -> wings_s:dir(Axis)
     end.
 mode_strings(Ending,Mode) ->
@@ -391,7 +391,7 @@ last_menu(Mode,Type,Axis) ->
          general_menu3(Mode,sub_angle,none,thirty),
          general_menu3(Mode,sub_angle,none,forty_five),
          general_menu3(Mode,sub_angle,none,sixty),
-         general_menu3(Mode,sub_angle,none,ninty),
+         general_menu3(Mode,sub_angle,none,ninety),
          general_menu3(Mode,sub_angle,none,'ASK')];
       to_axis ->
         [general_menu3(Mode,Type,none,x),
@@ -870,7 +870,7 @@ sub_angle(Axis, St) ->
           thirty -> 30.0;
           forty_five -> 45.0;
           sixty -> 60.0;
-          ninty -> 90.0;
+          ninety -> 90.0;
           _  -> measure_angle(normal,Axis)
         end,
     N = measure_angle(normal,St),
