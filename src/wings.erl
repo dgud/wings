@@ -428,6 +428,8 @@ highlight_sel_style({select,{adjacent,_}}) -> none;
 highlight_sel_style({select,_}) -> permanent;
 highlight_sel_style({view,align_to_selection}) -> temporary;
 highlight_sel_style({view,aim}) -> temporary;
+highlight_sel_style({view,frame}) -> temporary;
+
 highlight_sel_style(_) -> none.
 
 do_command(Cmd, St0) ->

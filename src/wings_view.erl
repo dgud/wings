@@ -952,7 +952,9 @@ frame(#st{sel=[],shapes=Shs}) ->
 	       end,
 	       none, gb_trees:values(Shs)),
     frame_1(BB);
-frame(St) -> frame_1(wings_sel:bounding_box(St)).
+frame(St0) ->
+    St = kill_mirror(St0),
+    frame_1(wings_sel:bounding_box(St)).
 
 frame_1(none) -> ok;
 frame_1([A,B]=BB) ->
@@ -962,6 +964,17 @@ frame_1([A,B]=BB) ->
     Dist = R/math:tan(Fov*math:pi()/2/180),
     set_current(View#view{origin=e3d_vec:neg(C),
 			  distance=Dist,pan_x=0.0,pan_y=0.0}).
+
+kill_mirror(#st{shapes=Shs0}=St) ->
+    Shs = kill_mirror_1(gb_trees:values(Shs0), []),
+    St#st{shapes=Shs}.
+
+kill_mirror_1([#we{id=Id,mirror=none}=We|Wes], Acc) ->
+    kill_mirror_1(Wes, [{Id,We}|Acc]);
+kill_mirror_1([#we{id=Id}=We|Wes], Acc) ->
+    kill_mirror_1(Wes, [{Id,We#we{mirror=none}}|Acc]);
+kill_mirror_1([], Acc) ->
+    gb_trees:from_orddict(lists:reverse(Acc)).
 
 views({save,[Legend]}, #st{views={_,{}}}=St0) ->
     St = St0#st{views={1,{{current(),Legend}}},saved=false},

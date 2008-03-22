@@ -4,6 +4,13 @@
   is given. Same correction for the Scale, Rotate, and Flatten commands
   operating on regions. (Thanks to optigon.) [bjorng]
 
+- Face mode area readout in the status bar would cause Wings to slow down if
+  the the face contained too many vertices. Wings now only calculates the area
+  for a face with less than 50 vertices. (Thanks to jdcooke1.) [optigon]
+
+- View|Frame wouldn't handle virtual mirror selection aiming properly. Now
+  works as it should. (Thanks to extrudeface.) [optigon]
+
 --- 0.99.02 -----------------------------------------------------------------
 - Now using Erlang/OTP R12B-1. The build instructions have been updated with
   more details. The SDL library in the Linux distribution no longer references
