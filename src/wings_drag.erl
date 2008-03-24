@@ -400,6 +400,7 @@ zmove_help_1(Msg) ->
     case wings_pref:get_value(camera_mode) of
 	tds -> wings_msg:mod_format(?CTRL_BITS, 3, Msg);
 	blender -> wings_msg:mod_format(?CTRL_BITS, 3, Msg);
+	sketchup -> wings_msg:mod_format(?CTRL_BITS, 3, Msg);
 	_ -> wings_msg:mod_format(0, 2, Msg)
     end.
 fpmove_help_1(Msg) ->
