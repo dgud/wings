@@ -176,7 +176,7 @@ advanced_prefs() ->
       {?__(21,"Use Mirror for Selections"),use_mirror_for_sels,
        [{info,?__(22,"Default to using the virtual mirror for secondary selections")}]},
       {?__(12,"Power-user temporary selections"),use_super_temp_sel,
-       [{info,?__(13,"In the secondary selection mode, RMB-clicking always add to the selection")},{hook,SuperDisable}]},
+       [{info,?__(13,"In the secondary selection mode, RMB-clicking always adds to the selection")},{hook,SuperDisable}]},
       {vframe,
        [{label_column,
      [{?__(14,"Length"),active_vector_size,
