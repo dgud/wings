@@ -27,10 +27,12 @@
 	 y,
 	 xs=0,					%Summary of mouse movements
 	 ys=0,
-	 zs=0,
+	 zs=0,                  %Z move in screen relative
+	 fp=0,                  %An optional forth drag parameter
 	 xt=0,					%Last warp length
 	 yt=0,
 	 mmb_count=0,
+	 fp_count=0,
 	 offset,				%Offset for each dimension.
 	 unit,					%Unit that drag is done in.
 	 unit_sc,				%Scales for each dimension.
@@ -356,13 +358,14 @@ gl_rescale_normal() ->
 help_message(#drag{unit=Unit,mode_fun=ModeFun,mode_data=ModeData}) ->
     Accept = wings_msg:button_format(wings_s:accept()),
     ZMsg = zmove_help(Unit),
+    FpMsg = fpmove_help(Unit),
     Cancel = wings_msg:button_format([], [],wings_s:cancel()),
     NumEntry = ?__(1,"Numeric entry"),
     Tab = wings_util:key_format("[Tab]", NumEntry),
     Switch = switch(),
     Constraint = ?__(2,"Switch constraint sets")++Switch,
     ShiftTab = wings_util:key_format("[Shift]+[Tab]", Constraint),
-    Msg = wings_msg:join([Accept,ZMsg,Cancel,Tab,ShiftTab]),
+    Msg = wings_msg:join([Accept,ZMsg,FpMsg,Cancel,Tab,ShiftTab]),
     MsgRight = ModeFun(help, ModeData),
     wings_wm:message(Msg, MsgRight).
 
@@ -377,16 +380,30 @@ zmove_help([_,_]) -> [];
 zmove_help([_,_,falloff]) -> [];
 zmove_help([_,_,dz|_]) ->
     zmove_help_1(?__(1,"Drag to move along Z"));
+zmove_help([_,_,percent|_]) ->
+    zmove_help_1(?__(3,"Drag to adjust scale"));
 zmove_help([_,_,_|_]) ->
     zmove_help_1(?__(2,"Drag to adjust third parameter")).
+
+fpmove_help([_]) -> [];
+fpmove_help([_,_]) -> [];
+fpmove_help([_,_,_]) -> [];
+fpmove_help([_,_,_,falloff]) -> [];
+fpmove_help([_,_,_,_,falloff]) ->
+    fpmove_help_1(?__(1,"Drag to adjust forth parameter"));
+fpmove_help([_,_,_,angle|_]) ->
+    fpmove_help_1(?__(2,"Drag to adjust rotation"));
+fpmove_help([_,_,_,_|_]) ->
+    fpmove_help_1(?__(1,"Drag to adjust forth parameter")).
 
 zmove_help_1(Msg) ->
     case wings_pref:get_value(camera_mode) of
 	tds -> wings_msg:mod_format(?CTRL_BITS, 3, Msg);
 	blender -> wings_msg:mod_format(?CTRL_BITS, 3, Msg);
-	sketchup -> wings_msg:mod_format(?CTRL_BITS, 3, Msg);
 	_ -> wings_msg:mod_format(0, 2, Msg)
     end.
+fpmove_help_1(Msg) ->
+	wings_msg:mod_format(0, 3, Msg).
 
 get_drag_event(Drag) ->
     case wings_pref:get_value(hide_sel_while_dragging) of
@@ -421,6 +438,10 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
 	true ->
 	    handle_drag_event_0(Ev, Drag)
     end;
+handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
+		  #drag{fp_count=C}=Drag) when C > 2 ->
+    get_drag_event_1(Drag#drag{fp_count=0});
+
 handle_drag_event(Event, Drag = #drag{st=St}) ->
     case wings_camera:event(Event, St, fun() -> redraw(Drag) end) of
 	next -> handle_drag_event_0(Event, Drag);
@@ -431,11 +452,11 @@ handle_drag_event(Event, Drag = #drag{st=St}) ->
 			    (D, _) -> D#dlo{hilite=none}
 			 end, []),
 	    %% Recalc unit_scales since zoom can have changed.
-	    #drag{xs=Xs0,ys=Ys0,zs=Zs0,unit=Unit,unit_sc=[US0|_]} = Drag,
+	    #drag{xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0,unit=Unit,unit_sc=[US0|_]} = Drag,
 	    US = [US1|_] = unit_scales(Unit),
 	    Adjust = US0/US1,
 	    get_drag_event(Drag#drag{xs=Xs0*Adjust,ys=Ys0*Adjust,zs=Zs0*Adjust,
-				     unit_sc=US});
+		               fp=Fp0*Adjust,unit_sc=US});
 	Other ->
 	    %% Clear any potential marker for an edge about to be
 	    %% cut (Cut RMB).
@@ -611,9 +632,16 @@ view_changed(#drag{flags=Flags}=Drag0) ->
     case member(screen_relative, Flags) of
 	false -> Drag0;
 	true ->
+	    case member(keep_drag,Flags) of
+	      true ->
+	        wings_dl:map(fun view_changed_fun/2, []),
+	        {_,X,Y} = sdl_mouse:getMouseState(),
+	        Drag0#drag{x=X,y=Y};
+	      false ->
 	    wings_dl:map(fun view_changed_fun/2, []),
 	    {_,X,Y} = sdl_mouse:getMouseState(),
-	    Drag0#drag{x=X,y=Y,xs=0,ys=0,zs=0}
+	        Drag0#drag{x=X,y=Y,xs=0,ys=0,zs=0,fp=0}
+	    end
     end.
 
 view_changed_fun(#dlo{drag={matrix,Tr,_,_},transparent=#we{}=We}=D, _) ->
@@ -660,38 +688,49 @@ mouse_pre_translate(_, #mousemotion{state=Mask,mod=Mod}=Ev) ->
     end.
 
 mouse_range(#mousemotion{x=X0,y=Y0,state=Mask},
-	    #drag{x=OX,y=OY,xs=Xs0,ys=Ys0,zs=Zs0,
-		  xt=Xt0,yt=Yt0,mmb_count=Count0,
+	    #drag{x=OX,y=OY,xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0,
+		  xt=Xt0,yt=Yt0,mmb_count=Count0,fp_count=FpCount0,
 		  unit_sc=UnitScales,unit=Unit}=Drag,
 	    Mod) ->
     %%io:format("Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xs0,Ys0}]),
     {X,Y} = wings_wm:local2global(X0, Y0),
     case wings_pref:lowpass(X- OX, Y-OY) of
 	{0,0} ->
-	    {mouse_scale([Xs0,-Ys0,-Zs0], UnitScales),
+	    {mouse_scale([Xs0,-Ys0,-Zs0,-Fp0], UnitScales),
 	     Drag#drag{xt=0,yt=0}};
 	{XD0,YD0} ->
 	    CS = constraints_scale(Unit,Mod,UnitScales),
 	    XD = CS*(XD0 + Xt0),
 	    YD = CS*(YD0 + Yt0),
-	    if
-		Mask band ?SDL_BUTTON_MMASK =/= 0 ->
+		case {Mask band ?SDL_BUTTON_MMASK =/= 0,Mask band ?SDL_BUTTON_RMASK =/= 0} of
+		  {true,false} ->
 		    Xs = Xs0,
 		    Ys = Ys0,
 		    Zs = case wings_pref:get_value(camera_mode) of
-			     maya -> Zs0 - XD;	%Horizontal motion
-			     _ -> Zs0 + YD	%Vertical motion
-			 end,
+		         maya -> Zs0 - XD;	%Horizontal motion
+		         _ -> Zs0 + YD	%Vertical motion
+		     end,
+		    Fp = Fp0,
+		    FpCount = FpCount0,
 		    Count = Count0 + 1;
-		true ->
+		  {false,true} ->
+		    Xs = Xs0,
+		    Ys = Ys0,
+		    Zs = Zs0,
+		    Fp = Fp0 + YD,
+		    FpCount = FpCount0 +1,
+		    Count = Count0;
+		  {_,_} ->
 		    Xs = Xs0 + XD,
 		    Ys = Ys0 + YD,
 		    Zs = Zs0,
+		    Fp = Fp0,
+		    FpCount = FpCount0,
 		    Count = Count0
 	    end,
 	    wings_io:warp(OX, OY),
-	    {mouse_scale([Xs,-Ys,-Zs], UnitScales),
-	     Drag#drag{xs=Xs,ys=Ys,zs=Zs,xt=XD0,yt=YD0,mmb_count=Count}}
+	    {mouse_scale([Xs,-Ys,-Zs,-Fp], UnitScales),
+	     Drag#drag{xs=Xs,ys=Ys,zs=Zs,fp=Fp,xt=XD0,yt=YD0,mmb_count=Count,fp_count=FpCount}}
     end.
 
 mouse_scale([D|Ds], [S|Ss]) ->
@@ -701,9 +740,9 @@ mouse_scale(Ds, _) -> Ds.
 constraints_scale([U0|_],Mod,[UnitScales|_]) ->
     case wings_pref:get_value(con_alternate) of
     true -> case constraint_factor_alt(clean_unit(U0),Mod) of
-	none -> 1.0;
-	{_,What} ->
-	    What*0.01/UnitScales
+    none -> 1.0;
+    {_,What} ->
+        What*0.01/UnitScales
             end;
     false -> case constraint_factor(clean_unit(U0),Mod) of
             none -> 1.0;
@@ -727,9 +766,9 @@ constrain_0([U0|Us], [D0|Ds], Mod, Acc) ->
       false -> case constraint_factor(U, Mod) of
 	    none -> D0;
 	    {F1,F2} ->
-		round(D0*F1)*F2
+	      round(D0*F1)*F2
             end
-	end,
+    end,
     constrain_0(Us, Ds, Mod, [D|Acc]);
 constrain_0([_|_], [], _, Acc) -> reverse(Acc);
 constrain_0([], Ds, _, Acc) -> reverse(Acc, Ds).
@@ -776,19 +815,19 @@ constraint_factor(percent, Mod) ->
     SCSA = wings_pref:get_value(con_scale_shift_alt),
     SCCSA = wings_pref:get_value(con_scale_ctrl_shift_alt),
     if
-	Mod band ?SHIFT_BITS =/= 0,
-	Mod band ?ALT_BITS =/= 0,
-	Mod band ?CTRL_BITS =/= 0-> {1/SCCSA,SCCSA};
-	Mod band ?SHIFT_BITS =/= 0,
-	Mod band ?ALT_BITS =/= 0 -> {1/SCSA,SCSA};
-	Mod band ?CTRL_BITS =/= 0,
-	Mod band ?ALT_BITS =/= 0 -> {1/SCCA,SCCA};
-	Mod band ?CTRL_BITS =/= 0,
-	Mod band ?SHIFT_BITS =/= 0 -> {1/SCCS,SCCS};
-	Mod band ?CTRL_BITS =/= 0 -> {1/SCC,SCC};
-	Mod band ?SHIFT_BITS =/= 0 -> {1/SCS,SCS};
-	Mod band ?ALT_BITS =/= 0 -> {1/SCA,SCA};
-	true -> none
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0,
+      Mod band ?CTRL_BITS =/= 0-> {1/SCCSA,SCCSA};
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/SCSA,SCSA};
+      Mod band ?CTRL_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/SCCA,SCCA};
+      Mod band ?CTRL_BITS =/= 0,
+      Mod band ?SHIFT_BITS =/= 0 -> {1/SCCS,SCCS};
+      Mod band ?CTRL_BITS =/= 0 -> {1/SCC,SCC};
+      Mod band ?SHIFT_BITS =/= 0 -> {1/SCS,SCS};
+      Mod band ?ALT_BITS =/= 0 -> {1/SCA,SCA};
+      true -> none
     end;
 constraint_factor(_, Mod) ->
     DCS = wings_pref:get_value(con_dist_shift),
@@ -799,19 +838,19 @@ constraint_factor(_, Mod) ->
     DCSA = wings_pref:get_value(con_dist_shift_alt),
     DCCSA = wings_pref:get_value(con_dist_ctrl_shift_alt),
     if
-	Mod band ?SHIFT_BITS =/= 0,
-	Mod band ?ALT_BITS =/= 0,
-	Mod band ?CTRL_BITS =/= 0-> {1/DCCSA,DCCSA};
-	Mod band ?SHIFT_BITS =/= 0,
-	Mod band ?ALT_BITS =/= 0 -> {1/DCSA,DCSA};
-	Mod band ?CTRL_BITS =/= 0,
-	Mod band ?ALT_BITS =/= 0 -> {1/DCCA,DCCA};
-	Mod band ?CTRL_BITS =/= 0,
-	Mod band ?SHIFT_BITS =/= 0 -> {1/DCCS,DCCS};
-	Mod band ?CTRL_BITS =/= 0 -> {1/DCC,DCC};
-	Mod band ?SHIFT_BITS =/= 0 -> {1/DCS,DCS};
-	Mod band ?ALT_BITS =/= 0 -> {1/DCA,DCA};
-	true -> none
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0,
+      Mod band ?CTRL_BITS =/= 0-> {1/DCCSA,DCCSA};
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/DCSA,DCSA};
+      Mod band ?CTRL_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/DCCA,DCCA};
+      Mod band ?CTRL_BITS =/= 0,
+      Mod band ?SHIFT_BITS =/= 0 -> {1/DCCS,DCCS};
+      Mod band ?CTRL_BITS =/= 0 -> {1/DCC,DCC};
+      Mod band ?SHIFT_BITS =/= 0 -> {1/DCS,DCS};
+      Mod band ?ALT_BITS =/= 0 -> {1/DCA,DCA};
+      true -> none
     end.
 constraint_factor_alt(angle, Mod) ->
     RCRS = filter_angle(wings_pref:get_value(con_rot_shift)),
