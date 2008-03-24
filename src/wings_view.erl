@@ -58,6 +58,7 @@ menu(#st{views={CurrentView,Views}}=St) ->
      {?__(25,"Reset View"),reset,?__(26,"Reset view to the default position")},
      {?__(27,"Aim"),aim,?__(28,"Aim the camera at the selected element")},
      {?__(29,"Frame"),frame,?__(30,"Dolly to show all selected elements (or all objects if nothing is selected)")},
+	 {?__(65,"Frame Disregards Mirror"),frame_mode,crossmark(frame_disregards_mirror)},
      {?__(31,"Orthographic View"),orthogonal_view,
       ?__(32,"Toggle between orthographic and perspective views"),
       crossmark(orthogonal_view)},
@@ -341,6 +342,10 @@ command(aim, St) ->
 command(frame, St) ->
     frame(St),
     St;
+command(frame_mode, St) ->
+    Bool = wings_pref:get_value(frame_disregards_mirror),
+    wings_pref:set_value(frame_disregards_mirror, not Bool),
+	St;
 command({views,Views}, St) ->
     views(Views, St);
 command({along,Axis}, St) ->
@@ -835,6 +840,7 @@ init() ->
     wings_pref:set_default(show_colors, true),
     wings_pref:set_default(show_materials, true),
     wings_pref:set_default(show_textures, true),
+    wings_pref:set_default(frame_disregards_mirror, false),
 
     wings_pref:set_default(scene_lights, false).
 
@@ -953,7 +959,12 @@ frame(#st{sel=[],shapes=Shs}) ->
 	       none, gb_trees:values(Shs)),
     frame_1(BB);
 frame(St0) ->
-    St = kill_mirror(St0),
+    St = case wings_pref:get_value(frame_disregards_mirror) of
+	true ->
+      kill_mirror(St0);
+	false -> 
+	  St0
+	end,
     frame_1(wings_sel:bounding_box(St)).
 
 frame_1(none) -> ok;

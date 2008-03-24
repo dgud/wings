@@ -8,8 +8,9 @@
   the the face contained too many vertices. Wings now only calculates the area
   for a face with less than 50 vertices. (Thanks to jdcooke1.) [optigon]
 
-- View|Frame wouldn't handle virtual mirror selection aiming properly. Now
-  works as it should. (Thanks to extrudeface.) [optigon]
+- View|Frame would symmetrically frame elements when using the virtual mirror.
+  Now there is an option, View|Frame Disregards Mirror, to alter this behaviour.
+  (Thanks to extrudeface and Entity325.) [optigon]
 
 --- 0.99.02 -----------------------------------------------------------------
 - Now using Erlang/OTP R12B-1. The build instructions have been updated with
