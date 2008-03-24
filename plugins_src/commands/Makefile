@@ -41,6 +41,7 @@ MODULES= \
 	wpc_region \
 	wpc_shear \
 	wpc_shift \
+	wpc_sweep_extrude \
 	wpc_turnedge \
 	wpc_tweak \
 	wpc_untriangulate \

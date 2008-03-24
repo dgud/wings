@@ -12,6 +12,10 @@
   Now there is an option, View|Frame Disregards Mirror, to alter this behaviour.
   (Thanks to extrudeface and Entity325.) [optigon]
 
+- New Feature: Face|Sweep/Sweep Region/Sweep Extract. Sweep is an interactive
+  tool designed to make angled extrusions, while also allowing you to scale
+  and rotate the extruded regions simultaneously. [optigon]
+
 --- 0.99.02 -----------------------------------------------------------------
 - Now using Erlang/OTP R12B-1. The build instructions have been updated with
   more details. The SDL library in the Linux distribution no longer references
