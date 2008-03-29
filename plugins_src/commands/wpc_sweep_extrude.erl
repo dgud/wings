@@ -16,14 +16,25 @@
 
 init() ->
     true.
+menu({face},Menu) ->
+    lists:reverse(parse(Menu, [], false));
 
-menu({face},[A|B]) ->
-    [A,separator,
-     sweep_menu(sweep_regular),
-     sweep_menu(sweep_region),
-     sweep_menu(sweep_extract),B];
 menu(_,Menu) ->
     Menu.
+
+parse([], NewMenu, true) ->
+    NewMenu;
+parse([], NewMenu, false) ->
+    [sweep_menu(), separator|NewMenu];
+parse([separator,A = {_,inset,_}|Rest], NewMenu, false) ->
+    parse(Rest, [A,separator,sweep_menu(),separator|NewMenu], true);
+parse([Elem|Rest], NewMenu, Found) ->
+    parse(Rest, [Elem|NewMenu], Found).
+
+sweep_menu() ->
+    [sweep_menu(sweep_regular),
+     sweep_menu(sweep_region),
+     sweep_menu(sweep_extract)].
 
 %%%% Menus
 sweep_menu(Type) ->

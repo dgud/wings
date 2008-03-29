@@ -22,9 +22,22 @@ init() ->
     true.
 
 menu({Mode},Menu) when Mode == vertex; Mode == edge; Mode == face ->
-    [Menu|[separator,general_menu(Mode)]];
-
+    lists:reverse(parse(Menu,Mode,[],false));
 menu(_,Menu) -> Menu.
+
+
+parse([], _, NewMenu, true) ->
+    NewMenu;
+
+parse([], Mode, NewMenu, false) ->
+    [general_menu(Mode), separator|NewMenu];
+
+parse([A={_,vertex_color,_}|Rest], Mode, NewMenu, false) ->
+    parse(Rest, Mode, [general_menu(Mode),separator,A|NewMenu], true);
+
+parse([Elem|Rest], Mode, NewMenu, Found) ->
+    parse(Rest, Mode, [Elem|NewMenu], Found).
+
 
 general_menu(Mode) ->
     MenuTitle = ?__(1,"Set Constraint"),
