@@ -534,7 +534,10 @@ plugin_menu_info_2(Cmds) ->
 plugin_menu_info_3(Cmds0) ->
     Cmds = [plugin_root_menu(Mode) ++ wings_util:stringify(C) ||
 	       {Mode,C} <- Cmds0],
-    Str = string:join(Cmds, "; "),
+    Str = case Cmds of
+	      [] -> "(The Plug-In Manager was unable to find more information)";
+	      _ -> string:join(Cmds, "; ")
+	  end,
     {label,Str}.
 
 plugin_root_menu(body) -> "body: ";
@@ -545,9 +548,12 @@ plugin_root_menu(select) -> "Select|";
 plugin_root_menu(tools) -> "Tools|";
 plugin_root_menu(shape) -> "".
 
+normalize_menu([{Name,[_|_]=Menu}|T]) ->
+    normalize_menu([{Name,M} || M <- Menu] ++ T);
 normalize_menu([{Name,Menu}|T]) ->
     case plugin_key(Menu) of
-	none -> normalize_menu(T);
+	none ->
+	    normalize_menu(T);
 	Key ->
 	    Cmd = wings_menu:build_command(Key, reverse(tuple_to_list(Name))),
 	    [Cmd|normalize_menu(T)]

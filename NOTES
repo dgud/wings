@@ -16,6 +16,9 @@
   tool designed to make angled extrusions, while also allowing you to scale
   and rotate the extruded regions simultaneously. [optigon]
 
+- The Plug-In manager could crash or fail to provide information for
+  certain (correctly written) plug-ins. (Thanks to optigon.) [bjorng]
+
 --- 0.99.02 -----------------------------------------------------------------
 - Now using Erlang/OTP R12B-1. The build instructions have been updated with
   more details. The SDL library in the Linux distribution no longer references
