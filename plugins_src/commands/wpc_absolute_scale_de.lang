@@ -1,0 +1,28 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_absolute_scale,
+ [
+  {draw,
+   [
+    {1,"Absolute Befehle"},
+    {2,"Skalieren"},
+    {3,"Auf genaue Größe in absoluten Koordinaten skalieren"},
+    {4,"Auf Zielgröße skalieren"},
+    {5,"Skalieren mit Auswahl des Zentrums"}
+   ]},
+  {draw_window1,
+   [
+    {1,"Absolute Skalierung Optionen"},
+    {2,"Neue Größe festlegen"},
+    {3,"Skalierungs-Zentrum setzen"},
+    {4,"Ganzes Objekt skalieren"},
+    {5,"Ganzes Objekt skalieren"},
+    {6,"Verknüpfen"},
+    {7,"Auswahl an Ziel anpassen"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Skalierungs-Ursprung auswählen"},
+    {2,"Basispunkt für Zielgröße auswählen"},
+    {3,"Begrenzungs-Punkt für Zielgröße auswählen"}
+   ]}
+ ]}.

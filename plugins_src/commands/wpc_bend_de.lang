@@ -1,0 +1,47 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_bend,
+ [
+  {adv_submenu_clamped,
+   [
+    {1,"Feststellen, plastisch biegen"},
+    {2,"Feststellen, um Pivotpunkt biegen"},
+    {3,"Feststellen, mit Radius biegen"}
+   ]},
+  {adv_submenu_noclamp,
+   [
+    {1,"Plastisch biegen"},
+    {2,"Um Pivotpunkt biegen"},
+    {3,"Mit Radius biegen"}
+   ]},
+  {bend_vertex,
+   [
+    {1,"Winkel"}
+   ]},
+  {bend_verts,
+   [
+    {1,"Biegen mit dieser Konfiguration nicht möglich"}
+   ]},
+  {menu,
+   [
+    {1,"Biegen"},
+    {2,"Feststellen & biegen"}
+   ]},
+  {submenu_clamp,
+   [
+    {1,"Unteren Fixpunkt wählen"},
+    {2,"Oberen Fixpunkt wählen"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Stabmitte wählen"},
+    {2,"Stabende wählen"},
+    {3,"Biegenormale wählen"},
+    {4,"Stabmitte wählen"},
+    {5,"Stabende wählen"},
+    {6,"Pivot-Achse wählen"},
+    {7,"Pivot-Punkt wählen"},
+    {8,"Stabmitte wählen"},
+    {9,"Stabende wählen"},
+    {10,"Biegenormale wählen"}
+   ]}
+ ]}.

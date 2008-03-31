@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_shift,
+ [
+  {adv_submenu,
+   [
+    {1,"Planar versetzen"},
+    {2,"Sphärisch versetzen"},
+    {3,"Zylindrisch versetzen"}
+   ]},
+  {menu,
+   [
+    {1,"Versetzen"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Achse auswählen"},
+    {2,"Punkt auswählen"},
+    {3,"Zentrum auswählen"},
+    {4,"Achse auswählen"},
+    {5,"Punkt auswählen"}
+   ]}
+ ]}.

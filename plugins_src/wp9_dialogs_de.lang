@@ -1,0 +1,40 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wp9_dialogs,
+ [
+  {check_filename,
+   [
+    {1," existiert nicht"}
+   ]},
+  {dialog_1,
+   [
+    {1,"Suchen in"},
+    {2,"Aufwärts"},
+    {3,"Dateiname"},
+    {4,"Dateiformat"},
+    {5,"Abbrechen"},
+    {6," existiert; überschreiben?"},
+    {7,"Ja"},
+    {8,"Nein"}
+   ]},
+  {file_filters,
+   [
+    {1,"Wings Datei"},
+    {2,"Alle Dateien (*)"}
+   ]},
+  {file_list,
+   [
+    {1,"Dateiname"}
+   ]},
+  {image_formats,
+   [
+    {1,"BMP Bitmap Datei"},
+    {2,"Tiff Bitmap"},
+    {3,"PNG Datei"},
+    {4,"Targa Datei"}
+   ]},
+  {ui,
+   [
+    {1,"Öffnen"},
+    {2,"Speichern"}
+   ]}
+ ]}.

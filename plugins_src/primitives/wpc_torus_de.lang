@@ -1,0 +1,38 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_torus,
+ [
+  {make_lu_torus,
+   [
+    {1,"Buckligen Torus erzeugen"},
+    {2,"U Auflösung"},
+    {3,"V Auflösung"},
+    {4,"Ringradius"},
+    {5,"Kreisradius"},
+    {6,"Buckel"},
+    {7,"Buckelamplitude"}
+   ]},
+  {make_sp_torus,
+   [
+    {1,"Spiralförmigen Torus erzeugen"},
+    {2,"U Auflösung"},
+    {3,"V Auflösung"},
+    {4,"Ringradius"},
+    {5,"Kreisradius"},
+    {6,"Schleifen"},
+    {7,"Schleifenradius "}
+   ]},
+  {make_uv_torus,
+   [
+    {1,"UV Torus erzeugen"},
+    {2,"U Auflösung"},
+    {3,"V Auflösung"},
+    {4,"Ringradius"},
+    {5,"Kreisradius"}
+   ]},
+  {torus_menu,
+   [
+    {1,"UV Torus"},
+    {2,"Buckliger Torus"},
+    {3,"Spiralförmiger Torus"}
+   ]}
+ ]}.

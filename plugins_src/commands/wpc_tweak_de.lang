@@ -1,0 +1,36 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_tweak,
+ [
+  {common_help,
+   [
+    {1,"Schieben"},
+    {2,"Ziehen"},
+    {3,"Entlang Normale"},
+    {4,"In Tangentialebene"},
+    {5,"Entspannen"}
+   ]},
+  {exit_help,
+   [
+    {1,"Beenden"}
+   ]},
+  {help,
+   [
+    {1,"Schieben&zusam.legen"},
+    {2,"Zusam.legen"},
+    {3,"XYZ einschränken"},
+    {4,"Magnet Ein"},
+    {5,"Magnet Aus"},
+    {6,"Radius"}
+   ]},
+  {intl_type,
+   [
+    {1,"Kuppel"},
+    {2,"Gerade"},
+    {3,"Spitze"}
+   ]},
+  {menu,
+   [
+    {1,"Feineinstellungen"},
+    {2,"Modus zum schnellen manipulieren einzelner Elemente"}
+   ]}
+ ]}.

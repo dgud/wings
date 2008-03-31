@@ -1,0 +1,19 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ai,
+ [
+  {command,
+   [
+    {1,"AI Import Optionen"},
+    {2,"Anzahl Kanten-Halbierungen"},
+    {3,"Adobe Illustrator Datei"}
+   ]},
+  {make_ai,
+   [
+    {1,"AI Import fehlgeschlagen"},
+    {2,"AI Import interner Fehler"}
+   ]},
+  {tryimport,
+   [
+    {1,"Dies ist keine Adobe Illustrator Datei (Version 8 oder früher)"}
+   ]}
+ ]}.

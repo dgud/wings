@@ -1,0 +1,49 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_hlines,
+ [
+  {dialog,
+   [
+    {1,"pt"},
+    {2,"Breite"},
+    {3,"Höhe"},
+    {4,"3D-Rahmen"},
+    {5,"Unterteilungsschritte"},
+    {6,"Vor-rendern"},
+    {7,"Alle"},
+    {8,"Hart"},
+    {9,"Keine"},
+    {10,"Kanten anzeigen"},
+    {11,"Knitterwinkel"},
+    {12,"Umriss"},
+    {13,"Hart"},
+    {14,"Knitter"},
+    {15,"Material"},
+    {16,"Regulär"},
+    {17,"Alle"},
+    {18,"Kantenbreite"},
+    {19,"stumpf"},
+    {20,"rund"},
+    {21,"quadratisch"},
+    {22,"Linienenden"},
+    {23,"Zusammenführen"},
+    {24,"Winkel"},
+    {25,"Abstand"},
+    {26,"Kollineare Linien (experimentell)"}
+   ]},
+  {do_export,
+   [
+    {1,"lese Objekte"},
+    {2,"Lese Objekt ~B von"},
+    {3,"fertig"},
+    {4,"lese Objekte"},
+    {5,"Exportiere"},
+    {6,"fertig"},
+    {7,"erledigt in ~.1f sec"}
+   ]},
+  {export,
+   [
+    {1,"Zeichentrick-Kanten Render Optionen"},
+    {2,"Export"},
+    {3,"Encapsulated Postscript (EPS) Datei"}
+   ]}
+ ]}.

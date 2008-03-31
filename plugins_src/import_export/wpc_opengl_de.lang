@@ -1,0 +1,47 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_OpenGL,
+ [
+  {aa_frame,
+   [
+    {1,"Entwurfsqualität (kein AA)"},
+    {2,"Normale Qualität (normales AA)"},
+    {3,"Super Qualität"},
+    {4,"Premium Qualität"}
+   ]},
+  {create_dls,
+   [
+    {1,"Generiere Schatten und Reliefdaten je Lichtquelle "},
+    {2,"Rendere"}
+   ]},
+  {dialog_qs,
+   [
+    {1,"Targa Datei"},
+    {2,"Unterteilungsschritte"},
+    {3,"Hintergrundfarbe"},
+    {4,"Alpha Kanal berechnen"},
+    {5,"Schatten berechnen"},
+    {6,"Eigenen Schatten berechnen(Reliefstruktur)"},
+    {7,"Bildfenster"},
+    {8,"Datei"},
+    {9,"Render Ausgabe"}
+   ]},
+  {do_render,
+   [
+    {1,"Render Optionen"},
+    {2,"Rendere"}
+   ]},
+  {load_program,
+   [
+    {1,"Fehler beim laden des Programms"}
+   ]},
+  {prepare_mesh,
+   [
+    {1,"Trianguliere"},
+    {2,"Unterteile und trinanguliere"},
+    {3,"Erzeuge Polygon-Daten"}
+   ]},
+  {render_redraw,
+   [
+    {1,"<<Rendered>>"}
+   ]}
+ ]}.

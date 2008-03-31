@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wp8_file,
+ [
+  {file_add_all,
+   [
+    {1,"Alle Formate"}
+   ]},
+  {file_filters,
+   [
+    {1,"Wings Datei"},
+    {2,"Alle Dateien"}
+   ]},
+  {fileop,
+   [
+    {1,"Öffnen"},
+    {2,"Speichern"}
+   ]}
+ ]}.

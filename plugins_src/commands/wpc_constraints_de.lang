@@ -1,0 +1,159 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_constraints,
+ [
+  {angle_error,
+   [
+    {1,"Genau zwei Elemente müssen ausgewählt werden"}
+   ]},
+  {axis_to_string,
+   [
+    {2,"entlang Vektor <~s  ~s  ~s>"},
+    {3,"entlang ~s Achse"}
+   ]},
+  {check_selection,
+   [
+    {1,"Keine Auswahl"},
+    {3,"Aktuelle Länge ist zu kurz. Kanten auswählen, die nicht senkrecht zu der gewählten Achse sind."},
+    {4," Ursprünglich ~s ~s\n Aktuell ~s ~s\n Prozent ~s% Kehrwert ~s%"},
+    {5,"Resultierender Prozentsatz ist zu klein"},
+    {6,"Differenz ist zu klein"},
+    {7," Ursprünglich ~s ~s\n Aktuell ~s ~s\n Differenz ~s"},
+    {8,"Abstand zwischen den Zentren ist zu klein"},
+    {9," Ursprüngliches Zentrum ~s\n Aktuelles Zentrum ~s\n Abstand ~s ~s"},
+    {10,"Aktueller Flächeninhalt ist zu klein"},
+    {11," Ursprünglicher Winkel ~s"},
+    {12,"\n aktueller Winkel ~s"},
+    {13,"\n Differenz ~s"},
+    {14,"Genau zwei Kanten oder Flächen auswählen um den Winkel zu definieren"},
+    {15," Ursprünglich"},
+    {16," Winkel ~s"}
+   ]},
+  {element_error,
+   [
+    {1,"Genau ein Element muss ausgewählt sein"}
+   ]},
+  {general_menu,
+   [
+    {1,"Zwangsbedingung setzen"}
+   ]},
+  {general_menu2,
+   [
+    {1,"Andere Achse wählen um die zweite Auswahl zu messen"}
+   ]},
+  {length_check,
+   [
+    {1,"Auswahl muß einen Flächeninhalt größer Null haben"},
+    {2,"Auswahl muß eine Läge größer Null haben"},
+    {3,"Länge entlang des Vektors ist zu kurz"},
+    {4,"Länge entlang ~s Achse ist zu kurz"}
+   ]},
+  {menu_heading,
+   [
+    {1,"Normale"},
+    {2,"Wählen"},
+    {3,"Direkt"},
+    {4,"Winkel"},
+    {5,"15"},
+    {6,"22,5"},
+    {7,"30"},
+    {8,"45"},
+    {9,"60"},
+    {10,"90"}
+   ]},
+  {menu_string1,
+   [
+    {1,"Längen der ausgewählten Kanten addieren und Ergebnis in den Einstellungen als Abstands-Zwangsbedingungen speichern"},
+    {2,"Mittlere Länge der ausgewählten Kanten berechnen und Ergebnis in den Einstellungen als Abstands-Zwangsbedingungen speichern"},
+    {3,"Winkel zwischen zwei beliebigen ~s berechnen und Ergebnis in den Einstellungen als Rotations-Zwangsbedingungen speichern"},
+    {4,"Differenz zwischen zwei Winkeln berechnen und Ergebnis in den Einstellungen als Rotations-Zwangsbedingungen speichern"},
+    {5,"Winkel zwischen eine(r|m) ~s und einer Standardachse oder einem bestimmten Vektor messen. Ergebnis in den Einstellungen als Rotations-Zwangsbedingungen speichern"},
+    {6,"Größendifferenz zwischen den ~s zweier ausgewählter ~s berechnen und Ergebnis in den Einstellungen als Skalierungs-Zwangsbedingungen speichern"},
+    {7,"Differenz der ~s zweier ausgewählter ~s berechnen und Ergebnis in den Einstellungen als Abstands-Zwangsbedingungen speichern"},
+    {8,"Abstand zwischen den Zentren zweier Auswahlen berechnen und Ergebnis in den Einstellungen als Abstands-Zwangsbedingungen speichern"}
+   ]},
+  {menu_string2,
+   [
+    {1,"Die ~s beider Auswahlen bezogen auf ihre ~sn-Normalen berechnen"},
+    {2,"Achse wählen entlang der die ~s beider Auswahlen gemesssen werden"},
+    {3,"Die ~s beider ~s-Auswahlen nur entlang der ~s Achse messen"}
+   ]},
+  {menu_string3,
+   [
+    {1,"Ausgewählte Kanten entlang ihrer Normalen messen"},
+    {2,"Achse wählen entlang der die ausgewählten Kanten gemessen werden"},
+    {3,"Ausgewählte Kanten nur entlang der ~s Achse messen"},
+    {4,"Ausgewählten Winkel messen"},
+    {5,"Achse spezifizieren von der der ausgewählte Winkel gemessen werden soll"},
+    {6,"Ausgewählten Winkel gegen die ~s Achse messen"},
+    {7,"Abstand zwischen den Zentren der beiden Auswahlen messen"},
+    {8,"Achse wählen entlang der der Abstand zwischen den Zentren der beiden Auswahlen gemessen werden soll"},
+    {9,"Abstand zwischen den Zentren der beiden Auswahlen nur entlang der ~s Achse messen"},
+    {11,"Achse wählen entlang der die ~s der ~s ~s-Auswahl gemessen werden"},
+    {12,"Die ~s der ~s ~s-Auswahl entlang der ~s Achse messen"},
+    {13,"Die ~s der ~s ~s-Auswahl entlang ihrer Normalen messen"},
+    {14,"Die ~s beider Auswahlen bezogen auf ihre ~sn-Normalen messen"},
+    {15,"Achse wählen entlang der die ~s beider ~s-Auswahlen gemessen werden"},
+    {17,"Die ~s beider ~s-Auswahlen entlang der ~s Achse messen"},
+    {18,"Aktuell ausgewählten Winkel von ~s abziehen"},
+    {19,"Zweiten Winkel wählen von dem der aktuell ausgewählte Winkel abgezogen wird"},
+    {20,"Vektor wählen und Winkel zur ursprünglichen ~s berechnen"},
+    {21,"Winkel von der ~s Achse zur ursprünglichen ~s berechnen"},
+    {22," und dann ihre mittlere Länge berechnen"}
+   ]},
+  {menu_title,
+   [
+    {1,"Gesamtlänge"},
+    {2,"Mittlere Länge"},
+    {3,"Winkel"},
+    {4,"Winkel abziehen"},
+    {5,"Kante zu Achse"},
+    {6,"Fläche zu Achse"},
+    {7,"Prozentsatz"},
+    {8,"Differenz"},
+    {9,"Zentren"}
+   ]},
+  {mod_string,
+   [
+    {1,". Für Zwangsbedingung Kombi-Taste halten."}
+   ]},
+  {mode_strings,
+   [
+    {1,"Knoten"},
+    {2,"Kanten"},
+    {3,"Flächen"},
+    {4,"Knoten"},
+    {5,"Kante"},
+    {6,"Fläche"},
+    {7,"erste(n)"},
+    {8,"zweite(n)"},
+    {9,"Abstand"},
+    {10,"Längen"},
+    {11,"Flächen"}
+   ]},
+  {secondary_sel_ask,
+   [
+    {1,"Kanten auswählen die die ursprüngliche Auswahl teilen"},
+    {2,"Kanten auswählen die von der ursprünglichen Auswahl abgezogen werden"},
+    {3,"Zentrum der Auswahl bestimmt den Abstand vom Zentrum der ursprünglichen Auswahl"},
+    {4,"Flächen auswählen deren Gesamtfläche in die Gesamtfläche der ersten Auswahl aufgeteilt wird"},
+    {5,"Winkel aus zwei Kanten oder Flächen auswählen von dem der ursprüngliche Winkel abgezogen wird"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Achse wählen entlang der jede Kante gemessen wird"},
+    {2," für die erste Auswahl"},
+    {3," für die zweite Auswahl"},
+    {4,"Achse wählen entlang der der Winkel orthogonal gemessen wird"},
+    {5,"Achse wählen um den Abstand zwischen den Zentren der Auswahlen zu messen"},
+    {6,"Achse wählen entlang denen die Flächeninhalte der ersten Auswahl orthogonal gemessen werden"},
+    {7,"Achse wählen entlang denen die Flächeninhalte der zweiten Auswahl orthogonal gemessen werden"},
+    {8,"Vektor wählen und Winkel zur ursprünglichen Auswahl berechnen"}
+   ]},
+  {tag,
+   [
+    {1,"Rotation"},
+    {2,"Skalierungsfaktor"},
+    {3,"Abstand"},
+    {4,"Alternativer Abstand"}
+   ]}
+ ]}.

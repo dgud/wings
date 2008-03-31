@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_connect_tool,
+ [
+  {help,
+   [
+    {1,"Knoten auswählen oder Kante schneiden (Maustaste drücken zum schieben)"},
+    {2,"Verbinden abbrechen"},
+    {3,"Kanten/Knoten verbinden (zum Beenden letzten Knoten erneut auswählen)"},
+    {4,"Verbinden abbrechen"}
+   ]},
+  {lc_help,
+   [
+    {1,"Schleifen verbinden Aus"},
+    {2,"Schleifen verbinden Ein"}
+   ]},
+  {menu,
+   [
+    {1,"Verbinden"},
+    {2,"Modus zum schnellen verbinden von Knoten und Kanten"}
+   ]}
+ ]}.

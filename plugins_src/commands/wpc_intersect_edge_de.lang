@@ -1,0 +1,37 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_intersect_edge,
+ [
+  {intersect,
+   [
+    {1,"Ausgewählte Kanten dürfen keinen gemeinsamen Knoten haben"}
+   ]},
+  {intersect_edges,
+   [
+    {1,"Linie und Ebene sind annähernd parallel:\nKein Schnittpunkt gefunden."}
+   ]},
+  {intl_vec,
+   [
+    {1,"vorherige Achse"},
+    {2,"Standardachse"}
+   ]},
+  {menu_item,
+   [
+    {1,"Schneiden"}
+   ]},
+  {standard_plane_fun,
+   [
+    {1,"Kante schneidet Ebene durch die"},
+    {2,"Kante schneidet"},
+    {3,"Ebene"},
+    {4,"Punkt in Ebene wählen"}
+   ]},
+  {submenu,
+   [
+    {1,"Standardebenen schneiden"},
+    {2,"Ebene und Referenzpunkt auf Ebene wählen"},
+    {3,"Ebene wählen"},
+    {4,"Achse senkrecht zur Ebene wählen"},
+    {5,"Punkt auf der Ebene wählen"},
+    {6,"Achse senkrecht zur Ebene wählen (Ebene geht durch den Achsenursprung)"}
+   ]}
+ ]}.

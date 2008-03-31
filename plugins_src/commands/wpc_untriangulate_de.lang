@@ -1,0 +1,39 @@
+% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_untriangulate,
+ [
+  {get_ask_list,
+   [
+    {1,"Algorithmus-Stärke"},
+    {2,"Höhere Algorithmus-Stärken sind langsamer, können aber bessere Ergebnisse produzieren"},
+    {3,"Max. Kanten-Winkel"},
+    {4,"Maximaler Winkel zwischen Kanten die aufgelöst werden"},
+    {5,"Materialien prüfen"},
+    {6,"Kanten entlang Material-Grenzen nicht auflösen"},
+    {7,"UV Koordinaten prüfen"},
+    {8,"Kanten entlang Grenzen disjunkter Texturkoordinaten nicht auflösen"},
+    {9,"Harte Kanten beachten"},
+    {10,"Harte Kanten nicht auflösen"},
+    {11,"Wölbung prüfen"},
+    {12,"Gewölbte Polygone vermeiden"}
+   ]},
+  {menu,
+   [
+    {1,"De-triangulieren"},
+    {2,"Gruppen von Dreiecken in Vierecke konvertieren"},
+    {3,"De-triangulieren"}
+   ]},
+  {pref_edit,
+   [
+    {1,"De-triangulieren Einstellungen (v0.2)"}
+   ]},
+  {process_edges,
+   [
+    {1,"De-triangulieren"},
+    {2,"Ziel-Kanten wählen"},
+    {3,"Bilde Auswahlbaum"}
+   ]},
+  {untriangulate,
+   [
+    {1,"De-triangulieren (v0.2)"}
+   ]}
+ ]}.

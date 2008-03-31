@@ -1,0 +1,36 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_intersect_vertex,
+ [
+  {adv_submenu,
+   [
+    {1,"Auf Gerade bleiben, auf Schnittpunkt mit Ebene verschieben"},
+    {2,"In Ebene bleiben, auf Schnittpunkt mit Gerade verschieben"},
+    {3,"Gerade und Ebene wählen"}
+   ]},
+  {intersect,
+   [
+    {1,"Gerade und Ebene sind nahezu parallel:\nKein Schnittpunkt gefunden."}
+   ]},
+  {menu_item,
+   [
+    {1,"Schnittpunkt"},
+    {2,"Auf einer Geraden"},
+    {3,"Knoten entlang einer Geraden gegebener Richtung auf Schnittpunkt mit gewählter Ebene verschieben"},
+    {4,"In einer Ebene"},
+    {5,"Knoten in Ebene mit gegebener Normalen auf Schnittpunkt mit gegebener Linie verschieben"},
+    {6,"Gerade und Ebene wählen"},
+    {7,"Knoten auf Schnittpunkt einer Geraden aus Richtung und Ortspunkt mit Ebene aus Normale und Ortspunkt verschieben"},
+    {8,"Schnittpunkt"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Richtung der Geraden festlegen - Gerade geht durch den/die ausgewählten Knoten"},
+    {2,"Zu schneidende Ebene wählen"},
+    {3,"Normale der Ebene wählen - Ebene geht durch den/die ausgewählten Knoten"},
+    {4,"Zu schneidende Gerade wählen"},
+    {5,"Richtung der Geraden wählen"},
+    {6,"Punkt durch den die Gerade gehen soll wählen"},
+    {7,"Normale der Ebene wählen"},
+    {8,"Punkt durch den die Ebene gehen soll wählen"}
+   ]}
+ ]}.

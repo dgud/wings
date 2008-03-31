@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_rwx,
+ [
+  {dialog,
+   [
+    {1,"facettierte Lichtberechnung"},
+    {2,"Dateigröße optimieren?"},
+    {3,"Umgebung"},
+    {4,"Diffus"},
+    {5,"Spiegelnd"},
+    {6,"Export Skalierung"},
+    {7,"Unterteilungsschritte"}
+   ]},
+  {do_export,
+   [
+    {1,"Renderware Export Optionen"}
+   ]},
+  {props,
+   [
+    {1,"Criterion Renderware Datei"}
+   ]}
+ ]}.

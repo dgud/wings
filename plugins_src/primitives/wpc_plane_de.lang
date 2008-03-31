@@ -1,0 +1,45 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_plane,
+ [
+  {make_lumpy_plane,
+   [
+    {1,"Bucklige Ebene erzeugen"},
+    {2,"Auflösung"},
+    {3,"Größe"},
+    {4,"Buckel"},
+    {5,"Dicke"}
+   ]},
+  {make_regular_plane,
+   [
+    {1,"Reguläre Ebene erzeugen"},
+    {2,"Auflösung"},
+    {3,"Größe"},
+    {4,"Dicke"}
+   ]},
+  {make_sombrero_plane,
+   [
+    {1,"Sombrero Ebene erzeugen"},
+    {2,"Auflösung"},
+    {3,"Größe"},
+    {4,"Wellen"},
+    {5,"Dämpfung"},
+    {6,"Höhe"},
+    {7,"Dicke"}
+   ]},
+  {make_wavy_plane,
+   [
+    {1,"Gewellte Ebene erzeugen"},
+    {2,"Auflösung"},
+    {3,"Größe"},
+    {4,"Wellen"},
+    {5,"Höhe"},
+    {6,"Dicke"}
+   ]},
+  {plane_menu,
+   [
+    {1,"Reguläre Ebene"},
+    {2,"Bucklige Ebene"},
+    {3,"Gewellte Ebene"},
+    {4,"Sombrero Ebene"}
+   ]}
+ ]}.

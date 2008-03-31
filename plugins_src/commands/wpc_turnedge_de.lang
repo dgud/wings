@@ -1,0 +1,25 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_turnedge,
+ [
+  {command_help,
+   [
+    {turn_ccw,"Kante gegen Uhrzeigersinn drehen"},
+    {turn_cw,"Kante im Uhrzeigersinn drehen"},
+    {turn_optimized,"Kante nur drehen (im Uhrzeigersinn) wenn neue Kante kürzer wird"}
+   ]},
+  {command_name,
+   [
+    {turn,"Drehen"},
+    {turn_ccw,"Gegen Uhrzeigersinn drehen"},
+    {turn_cw,"Im Uhrzeigersinn drehen"},
+    {turn_optimized,"Optimiertes drehen"}
+   ]},
+  {menu_entry,
+   [
+    {turn,"Drehen"}
+   ]},
+  {validate_edges,
+   [
+    {1,"Ausgewählte Kanten dürfen nicht in der selben Fläche sein."}
+   ]}
+ ]}.

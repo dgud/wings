@@ -1,0 +1,62 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_shear,
+ [
+  {check_glide_plane_norm,
+   [
+    {3,"Achse durch Gleitebene ist zu kurz"}
+   ]},
+  {glide_plane_menu,
+   [
+    {1,"Gleitebene Flächen gegenüber ~s.(Parallel zu der Knotenbewegung beschränkt ist)"},
+    {2,"Schervektor und Ursprung wählen (Messpunkt wird berechnet)"},
+    {3,"Schervektor, Ursprung und Messpunkt wählen"}
+   ]},
+  {radial_menu,
+   [
+    {3,"Knotenbewegung auf Schervektor-~s über ihre individuelle Gleitebene gegenüber ~s beschränken"},
+    {4," (Ursprung und Messpunkt werden berechnet)"},
+    {5,"Ursprung und Messpunkt wählen"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Gleitebene auswählen"},
+    {2," (Ebene zu der alle Knoten parallel verschoben werden)"},
+    {3,"Ursprung auswählen (Punkt der die stationäre Gleitebene definiert)"},
+    {4,"Schervektor auswählen"},
+    {5," (Richtungsknoten bewegen sich auf ihren individuellen Gleitebenen)"},
+    {6,"Messpunkt auswählen"},
+    {7," (Punkt, relativ zu dem Bewegungen in der Gleitebene gemessen werden)"},
+    {8,"Schervektor erneut auswählen"},
+    {9,". Kann nicht senkrecht zu vorgegebenen Gleitebene sein"},
+    {10,"Messpunkt erneut auswählen"},
+    {11,". Muss auf eindeutiger Gleitebene zum vorgegebenen Ursprungs sein"},
+    {12,"Gleitebene erneut auswählen"},
+    {13," Kann nicht parallel zum vorgegebenen Schervektor sein"}
+   ]},
+  {shear,
+   [
+    {1,"Scheren"},
+    {2,"Scheren XYZ"},
+    {3,"Gleitebene parallel zu der Bewegungen beschränkt werden, Schervektor und Ursprung die die stationäre Gleitebene definieren und Messpunkt für den Abstand wählen"}
+   ]},
+  {shear_anchor_help,
+   [
+    {1,"Anker-Ursprung"},
+    {2,"Freier Ursprung"}
+   ]},
+  {shear_dir_help,
+   [
+    {1,"Asymmetrisch"},
+    {2,"Symmetrisch"}
+   ]},
+  {shear_help,
+   [
+    {5,"[+] oder [-] Kurve"}
+   ]},
+  {shear_mode_help,
+   [
+    {1,"Relativ"},
+    {2,"Winkel"},
+    {3,"Absolut"}
+   ]}
+ ]}.

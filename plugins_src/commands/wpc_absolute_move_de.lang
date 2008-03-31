@@ -1,0 +1,35 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_absolute_move,
+ [
+  {draw,
+   [
+    {1,"Absolute Befehle"},
+    {2,"Verschieben"},
+    {3,"Auf exakte Position in absoluten Koordinaten verschieben."},
+    {4,"Einrasten"},
+    {5,"Auf zweite Auswahl verschieben."},
+    {6,"Mit Zentrum als Referenz verschieben."},
+    {7,"Verschieben und numerische Eingabe anzeigen."}
+   ]},
+  {draw_window1,
+   [
+    {1,"Absolut verschieben Optionen"},
+    {2,"Position setzen"},
+    {3,"Objekt verschieben"},
+    {4,"Objekte verschieben"},
+    {5,"Duplikate"},
+    {6,"Ausrichten"},
+    {7,"Abflachen"},
+    {8,"Referenzpunkt"},
+    {9,"Verknüpfen"}
+   ]},
+  {mirror_error,
+   [
+    {1,"Punkte der Spiegelebene können nicht verschoben werden"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Referenzpunkt für Einrasten-Operation auswählen"},
+    {2,"Zielpunkt für Einrasten-Operation auswählen"}
+   ]}
+ ]}.

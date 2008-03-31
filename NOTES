@@ -19,6 +19,8 @@
 - The Plug-In manager could crash or fail to provide information for
   certain (correctly written) plug-ins. (Thanks to optigon.) [bjorng]
 
+- New! German translation [contributed by Torsten Manz]
+
 --- 0.99.02 -----------------------------------------------------------------
 - Now using Erlang/OTP R12B-1. The build instructions have been updated with
   more details. The SDL library in the Linux distribution no longer references

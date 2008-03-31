@@ -1,0 +1,52 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_tt,
+ [
+  {findtab,
+   [
+    {1,"Nein "},
+    {2," Tabelle"}
+   ]},
+  {font_file,
+   [
+    {1,"Fonts"}
+   ]},
+  {gen,
+   [
+    {1,"Text fehlgeschlagen: "},
+    {2,"Fehler gefangen: "},
+    {3,"Text fehlgeschlagen: interner Fehler"}
+   ]},
+  {getdirs,
+   [
+    {1,"Falsches Verzeichnisformat"}
+   ]},
+  {gettabs,
+   [
+    {1,"Tabellenversatz/-grössen falsch"}
+   ]},
+  {make_text,
+   [
+    {1,"Text erzeugen"},
+    {2,"Text"},
+    {3,"TrueType Schriftart"},
+    {4,"Schriftarten-Verzeichnis"},
+    {5,"Anzahl der Kanten-Halbierungen"}
+   ]},
+  {menu_entry,
+   [
+    {1,"Text"},
+    {2,"Text in 3D Objekt konvertieren"}
+   ]},
+  {parsecmaptab,
+   [
+    {1,"Keine passende Zeichentabelle"}
+   ]},
+  {parsett,
+   [
+    {1,"Fehlerhafte Versatztabelle"}
+   ]},
+  {trygen,
+   [
+    {1,"Keine TrueType Sektion in "}
+   ]}
+ ]}.

@@ -1,0 +1,19 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_region,
+ [
+  {menu,
+   [
+    {1,"Region"},
+    {2,"Region entlang der Normalen ihrer Kantenschleife verschieben."},
+    {3,"Region"},
+    {4,"Region von der Ebene ihrer Kantenschleife aus skalieren."},
+    {5,"Region"},
+    {6,"Region um die Normale ihrer Kantenschleife rotieren."},
+    {7,"Region"},
+    {8,"Region auf die Normale ihrer Kantenschleife einebnen."}
+   ]},
+  {region_error,
+   [
+    {1,"Jede Region muss genau eine Kantenschleife haben."}
+   ]}
+ ]}.
