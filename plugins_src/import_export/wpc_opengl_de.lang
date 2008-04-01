@@ -1,5 +1,5 @@
 %% -*- mode:erlang; erlang-indent-level: 2 -*-
-{wpc_OpenGL,
+{wpc_opengl,
  [
   {aa_frame,
    [
