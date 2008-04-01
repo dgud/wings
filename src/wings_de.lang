@@ -36,8 +36,7 @@
     {41,"Kante~s ~s"},
     {42,"\nAbstand ~s"},
     {43,"Objekt~s"},
-    {45,"Differenz ~s"},
-    {47,"Fläche~s Flächeninhalt ~s"}
+    {45,"Differenz ~s"}
    ]},
   {geom_title,
    [
@@ -104,8 +103,7 @@
     {3,". Mittelpunkt ~s ~s ~s. Länge ~s"},
     {4,". Mittelpunkt ~s ~s ~s.\nMaterial ~s."},
     {5,". Abstand ~s  <~s, ~s, ~s>"},
-    {6,". Winkel ~s"},
-    {40," Fläche ~s"}
+    {6,". Winkel ~s"}
    ]},
   {object_mode,
    [
@@ -1716,8 +1714,7 @@
    [
     {1,". Position <~s  ~s  ~s>"},
     {3,". Mittelpunkt <~s  ~s  ~s>\nLänge ~s"},
-    {4,". Mittelpunkt <~s  ~s  ~s> \nMaterial ~s."},
-    {40," Flächeninhalt ~s"}
+    {4,". Mittelpunkt <~s  ~s  ~s> \nMaterial ~s."}
    ]},
   {handle_hilite_event,
    [
@@ -2403,7 +2400,6 @@
    ]},
   {sphere,
    [
-    {1,"Kantenlänge"},
     {1,"Abschnitte"},
     {2,"Scheiben"},
     {3,"X Radius"},
