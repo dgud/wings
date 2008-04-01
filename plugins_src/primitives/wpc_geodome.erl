@@ -13,6 +13,7 @@
 
 -module(wpc_geodome).
 -export([init/0, menu/2, command/2]).
+-include("wings.hrl").
 -include("e3d.hrl").
 
 init() -> true.
@@ -24,7 +25,7 @@ menu({shape, more}, Menu) ->
 menu(_, Menu) -> Menu.
 
 geodome_menu() ->
-    [{"GeoDome", geodome, [option]}].
+    [{?__(1,"GeoDome"), geodome, [option]}].
 
 command({shape,{more,{geodome, Arg}}},_St) -> make_geodome(Arg);
 command(_, _) -> next.
@@ -32,7 +33,7 @@ command(_, _) -> next.
 %%% The rest are local functions.
 
 make_geodome(Arg) when is_atom(Arg) ->
-    wpa:dialog(Arg, "Geodesic Dome Options", dialog(),
+    wpa:dialog(Arg, ?__(1,"Geodesic Dome Options"), dialog(),
 	fun(Res) -> {shape,{more,{geodome, Res}}} end);
 make_geodome(Arg) ->
     %set_pref(Arg), % save preferences
@@ -44,7 +45,7 @@ make_geodome(Arg) ->
     AlgorithmFlag = dict:fetch(algorithmflag, ArgDict),
     {Verts, Faces} = geodome_main(Resolution, AlgorithmFlag, BaseFlag, SpherizeFlag, DomeFlag),
     [H|_] = atom_to_list(AlgorithmFlag),
-    ObjName = lists:concat([[H-32], Resolution, ":GeoDome"]),
+    ObjName = lists:concat([[H-32], Resolution, ?__(2,":GeoDome")]),
     {new_shape, ObjName, Faces, Verts}.
 
 dialog() ->
@@ -53,23 +54,23 @@ dialog() ->
     Resolution = get_pref(resolution, 3),
     SpherizeFlag = get_pref(spherizeflag, true),
     AlgorithmFlag = get_pref(algorithmflag, frequency),
-    [{hframe, [{label, "Resolution"},
+    [{hframe, [{label, ?__(1,"Resolution")},
 	       {slider, {text, Resolution,
 	       [{key, resolution}, {range, {1, 30}}]}}]},
-     {vradio, [{"Frequency (Edge-Cut Subdivision)", frequency},
-	       {"Depth (Recursive Subdivision)", depth}],
+     {vradio, [{?__(2,"Frequency (Edge-Cut Subdivision)"), frequency},
+	       {?__(3,"Depth (Recursive Subdivision)"), depth}],
 	       AlgorithmFlag,
-	       [{key,algorithmflag}, {title, "Algorithm/Method of Subdivision"}]},
-     {vradio, [{"Icosahedron", icosahedron},
-	       {"Octahedron", octahedron},
-	       {"Tetrahedron", tetrahedron}],
+	       [{key,algorithmflag}, {title, ?__(4,"Algorithm/Method of Subdivision")}]},
+     {vradio, [{?__(5,"Icosahedron"), icosahedron},
+	       {?__(6,"Octahedron"), octahedron},
+	       {?__(7,"Tetrahedron"), tetrahedron}],
 	       BaseFlag,
-	       [{key,baseflag}, {title, "Base Type"}]},
-     {vradio, [{"Yes", true},
-	       {"No", false}],
+	       [{key,baseflag}, {title, ?__(8,"Base Type")}]},
+     {vradio, [{?__(9,"Yes"), true},
+	       {?__(10,"No"), false}],
 	       SpherizeFlag,
-	       [{key,spherizeflag}, {title, "Spherize"}]},
-     {"Generate Half-Dome", DomeFlag, [{key, domeflag}]}].
+	       [{key,spherizeflag}, {title, ?__(11,"Spherize")}]},
+     {?__(12,"Generate Half-Dome"), DomeFlag, [{key, domeflag}]}].
 
 geodome_main(Resolution, AlgorithmFlag, BaseFlag, SpherizeFlag, DomeFlag) ->
     case BaseFlag of
