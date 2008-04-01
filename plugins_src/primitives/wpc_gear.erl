@@ -13,7 +13,7 @@
 
 -module(wpc_gear).
 -export([init/0,menu/2,command/2]).
-
+-include("wings.hrl").
 -import(math, [sqrt/1,cos/1,sin/1,pi/0,pow/2,exp/1]).
 
 init() -> true.
@@ -25,8 +25,8 @@ menu({shape,more}, Menu) ->
 menu(_, Menu) -> Menu.
 
 gear_menu() ->
-    [{"Gear",gear,[option]},
-     {"Tube",tube,[option]}].
+    [{?__(1,"Gear"),gear,[option]},
+     {?__(2,"Tube"),tube,[option]}].
 
 command({shape,{more,{gear, Ask}}},_St) -> make_gear(Ask);
 command({shape,{more,{tube, Ask}}},_St) -> make_tube(Ask);
@@ -38,7 +38,7 @@ command(_, _) -> next.
 % === Gear ===
 % ============
 make_gear(Arg) when is_atom(Arg) ->
-    wpa:dialog(Arg, "Gear Options", gear_dialog(),
+    wpa:dialog(Arg, ?__(1,"Gear Options"), gear_dialog(),
 	fun(Res) -> {shape,{more,{gear,Res}}} end);
 make_gear(Arg) ->
     ArgDict = dict:from_list(Arg),
@@ -55,16 +55,16 @@ gear_dialog() ->
     Radius1 = get_pref(radius1, 1.0),
     ToothHeight = get_pref(toothheight, 0.04),
     Thickness = get_pref(thickness, 0.1),
-    [{hframe, [{label, "NumTeeth"},
+    [{hframe, [{label, ?__(1,"NumTeeth")},
 	       {slider, {text, NumTeeth,
 	       [{key, numteeth}, {range, {5, 200}}]}}]},
-     {hframe, [{label, "Radius"},
+     {hframe, [{label, ?__(2,"Radius")},
 	       {slider, {text, Radius1,
 	       [{key, radius1}, {range, {0.1, 20.0}}]}}]},
-     {hframe, [{label, "ToothHeight"},
+     {hframe, [{label, ?__(3,"ToothHeight")},
 	       {slider, {text, ToothHeight,
 	       [{key, toothheight}, {range, {0.0, 20.0}}]}}]},
-     {hframe, [{label, "Thickness"},
+     {hframe, [{label, ?__(4,"Thickness")},
 	       {slider, {text, Thickness,
 	       [{key, thickness}, {range, {0.0, 20.0}}]}}]}
     ].
@@ -105,16 +105,16 @@ gear_faces(NumTeeth) ->
 % === Tube ===
 % ============
 make_tube(Ask) when is_atom(Ask) ->
-    wpa:ask(Ask, "Tube Options",
-	[{"Resolution",16},
-	 {"Outer Radius",1.0},
-	 {"Inner Radius",0.8},
-	 {"Length",2.0}],
+    wpa:ask(Ask, ?__(1,"Tube Options"),
+	[{?__(2,"Resolution"),16},
+	 {?__(3,"Outer Radius"),1.0},
+	 {?__(4,"Inner Radius"),0.8},
+	 {?__(5,"Length"),2.0}],
 	fun(Res) -> {shape,{more,{tube,Res}}} end);
 make_tube([Nres, Radius1, Radius2, Length]) ->
     Vs = tube_verts(Nres, Radius1, Radius2, Length),
     Fs = tube_faces(Nres),
-    {new_shape,"Tube",Fs,Vs}.
+    {new_shape,?__(6,"Tube"),Fs,Vs}.
 
 tube_verts(Nres, Radius1, Radius2, Length) ->
     Delta = 2*pi()/Nres,
