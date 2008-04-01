@@ -90,27 +90,27 @@ dialog_qs(render) ->
 
     BumpP = wings_gl:is_ext({1,3}, bump_exts()) or programmable(),
     StencilP = hd(gl:getIntegerv(?GL_STENCIL_BITS)) >= 8,
-    Ps = [{dialog_type,save_dialog},{ext,".tga"},{ext_desc,"Targa File"}],
+    Ps = [{dialog_type,save_dialog},{ext,".tga"},{ext_desc,?__(1,"Targa File")}],
 
     [{hframe,
-      [{label,"Sub-division Steps"},{text,SubDiv,[{key,subdivisions},
+      [{label,?__(2,"Sub-division Steps")},{text,SubDiv,[{key,subdivisions},
 						  {range,1,4}]}]},
      {hframe,
-      [{label,"Background Color"},{color,Back,[{key,background_color}]}]},
-     {"Render Alpha Channel",Alpha,[{key,render_alpha}]},
-     {"Render Shadows",Shadow,
+      [{label,?__(3,"Background Color")},{color,Back,[{key,background_color}]}]},
+     {?__(4,"Render Alpha Channel"),Alpha,[{key,render_alpha}]},
+     {?__(5,"Render Shadows"),Shadow,
       [{key,render_shadow}, {hook, fun(is_disabled, _) -> not StencilP;
 				      (_,_) -> void end}]},
-     {"Render Self-Shadows (Bump maps)", BumpMap,
+     {?__(6,"Render Self-Shadows (Bump maps)"), BumpMap,
       [{key,render_bumps}, {hook, fun(is_disabled, _) -> not BumpP; (_,_) ->
 					  void end}]},
      {vframe,
-      [{key_alt,DefKey,"Image Window",preview},
+      [{key_alt,DefKey,?__(7,"Image Window"),preview},
        {hframe,
-	[{key_alt,DefKey,"File: ",file},
+	[{key_alt,DefKey,?__(8,"File: "),file},
 	 {button,{text,Filename,[{key,output_file},{props,Ps},
 				 {hook,fun button_hook/2}]}}]}],
-      [{title,"Render Output"}]}
+      [{title,?__(9,"Render Output")}]}
     ].
 
 button_hook(is_disabled, {_Var,_I,Store}) ->
@@ -128,20 +128,20 @@ set_pref(KeyVals) ->
 %%%
 
 do_render(Ask, _St) when is_atom(Ask) ->
-    wpa:dialog(Ask, "Render Options",
+    wpa:dialog(Ask, ?__(1,"Render Options"),
 	       dialog_qs(render),
 	       fun(Res) ->
 		       {file,{render,{gi,Res}}}
 	       end);
 do_render(Attr, St) ->
-    io:format("~p Err ~p~n", [?LINE,wings_gl:error_string(gl:getError())]),
+    io:format(?__(3,"~p Err ~p~n"), [?LINE,wings_gl:error_string(gl:getError())]),
     set_pref(Attr),
     {_,_,W,H} = wings_wm:viewport(),
     if W >= 512, H >= 512 ->
-	    wings_pb:start("Rendering"),
-	    io:format("~p Err ~p~n", [?LINE,wings_gl:error_string(gl:getError())]),
+	    wings_pb:start(?__(1,"Rendering")),
+	    io:format(?__(3,"~p Err ~p~n"), [?LINE,wings_gl:error_string(gl:getError())]),
 	    Data = create_dls(St, Attr),
-	    io:format("~p Err ~p~n", [?LINE,wings_gl:error_string(gl:getError())]),
+	    io:format(?__(3,"~p Err ~p~n"), [?LINE,wings_gl:error_string(gl:getError())]),
 	    [FishId] = gl:genTextures(1),
 	    gl:bindTexture(?GL_TEXTURE_2D, FishId),
 	    gl:texEnvi(?GL_TEXTURE_ENV,?GL_TEXTURE_ENV_MODE,?GL_REPLACE),
@@ -158,7 +158,7 @@ do_render(Attr, St) ->
 	    wings_pb:done(),
 	    render_exit(Rr);
        true ->
-	    io:format("Enlarge your viewport\n")
+	    io:format(?__(2,"Enlarge your viewport\n"))
     end.
 
 del_list(X) when integer(X) ->
@@ -169,7 +169,7 @@ del_list({[Smooth,TrL],_Tr}) ->
 del_list(_) -> ok.
 
 render_exit(#r{lights=Lights, data=D}) ->
-    io:format("Err ~p~n", [wings_gl:error_string(gl:getError())]),
+    io:format(?__(1,"Err ~p~n"), [wings_gl:error_string(gl:getError())]),
     %% BUGBUG delete all textures also
     foreach(fun(#light{sv=L1, dl=L2}) ->
 		    foreach(fun(DL) -> del_list(DL) end,L1++L2)
@@ -200,7 +200,7 @@ create_dls(St0, Attr) ->
     Ds = foldl(fun(We, Wes) ->
 		       prepare_mesh(We, SubDiv,Wes,length(Objects),St,Mtab)
 	       end, [], Objects),
-    wings_pb:update(0.98, "Rendering"),
+    wings_pb:update(0.98, ?__(1,"Rendering")),
     ?CHECK_ERROR(),
     Ds.
 
@@ -213,22 +213,22 @@ prepare_mesh(We0=#we{light=none},SubDiv,Fs,Shapes,_St,Mtab) ->
 	     0 ->
 		 %% If no sub-divisions requested, it is safe to
 		 %% first triangulate and then freeze any mirror.
-		 wings_pb:update(0.5*Step+Start, "Quadrangulating"),
+		 wings_pb:update(0.5*Step+Start, ?__(1,"Quadrangulating")),
 		 We1 = wpa:quadrangulate(We0),
 		 wpa:vm_freeze(We1);
 	     _ ->
 		 %% Otherwise, we must do it in this order
 		 %% (slower if there is a virtual mirror).
-		 wings_pb:update(0.55*Step+Start, "Subdividing and Quadrangulating"),
+		 wings_pb:update(0.55*Step+Start, ?__(2,"Subdividing and Quadrangulating")),
 		 We1 = wpa:vm_freeze(We0),
 		 We2 = sub_divide(SubDiv, We1),
 		 wpa:quadrangulate(We2)
 	 end,
-    wings_pb:update(Step+Start, "Generating mesh data"),
+    wings_pb:update(Step+Start, ?__(3,"Generating mesh data")),
     Data = build_data(We,Mtab),
     wings_pb:pause(),
     FLst = draw_ids_dl(Data),
-    wings_pb:update(Step+Start, "Generating mesh data"),
+    wings_pb:update(Step+Start, ?__(4,"Generating mesh data")),
     [#d{fdl=FLst,fs=Data}|Fs].
 
 build_data(We,Mtab) ->
@@ -404,16 +404,16 @@ radiosity(Rr0) ->
     Rr = calc_radiosity(Rr0, 0),
     render(Rr),
 
-    capture("by GL_RAD", 3, ?GL_RGB, Rr#r.fish),
+    capture(?__(1,"by GL_RAD"), 3, ?GL_RGB, Rr#r.fish),
     gl:popAttrib().
 
 calc_radiosity(Rr0 = #r{max=Max},N) when N < Max ->
     case find_emitter(Rr0) of
 	{stop, _, _} ->
-	    io:format("stop ~n",[]),
+	    io:format(?__(1,"stop ~n"),[]),
 	    Rr0;
 	Emitter ->
-	    io:format("Emitter ~p~n",[{element(1,Emitter),element(2,Emitter)}]),
+	    io:format(?__(2,"Emitter ~p~n"),[{element(1,Emitter),element(2,Emitter)}]),
 	    %% 1st pass
 	    %% Capture FishEye view to get visible pixels
 	    Matrix = draw_fisheye(Emitter,Rr0),
@@ -582,7 +582,7 @@ capture(Name, N, Type, Fish) ->
     Pixels2 = sdl_util:getBin(Mem2),
     Temp = #e3d_image{bytes_pp=N,order=lower_left,width=Wt,height=Ht,
 		      image=Pixels2},
-    wings_image:new_temp("<<Stereo" ++ Name ++">>", Temp),
+    wings_image:new_temp(?__(1,"<<Stereo") ++ Name ++">>", Temp),
 
     %% Grab Render
     gl:readBuffer(?GL_BACK),
@@ -592,7 +592,7 @@ capture(Name, N, Type, Fish) ->
     gl:readPixels(X, Y, W, H, Type, ?GL_UNSIGNED_BYTE, Mem),
     Pixels = sdl_util:getBin(Mem),
     Image = #e3d_image{bytes_pp=N,order=lower_left,width=W,height=H,image=Pixels},
-    Id = wings_image:new_temp("<<Rendered"++ Name ++">>", Image),
+    Id = wings_image:new_temp(?__(2,"<<Rendered")++ Name ++">>", Image),
     wings_image:window(Id).
 
 %% Utilities
@@ -679,7 +679,7 @@ load_program(Target, Prog) ->
 	[] -> PId;
 	Err ->
 	    print_program(binary_to_list(Prog)),
-	    io:format("Error when loading program: ~s\n", [Err]),
+	    io:format(?__(1,"Error when loading program: ~s\n"), [Err]),
 	    exit(prog_error)
     end.
 
