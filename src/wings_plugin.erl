@@ -384,7 +384,7 @@ mk_dialog_1([]) -> [].
 plugin_modules(C, Ms) ->
     {hframe,[{vframe,[{atom_to_list(M),member(M, get(wings_plugins)),
 		       [{key,M},
-			{info,?__(1,"Enable or disable this plug-in ")
+			{info,?__(1,"Enable or disable this plug-in ")++
 			 ?__(2,"(a disbled plug-in does not show up in menus)")}]} ||
 			 M <- Ms]},
 	     {vframe,[plugin_info(C, M) || M <- Ms]}]}.
