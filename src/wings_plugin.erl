@@ -355,7 +355,7 @@ manager_menu_1([]) ->
     [manager_entry()].
 
 manager_entry() ->
-    {"Plug-in Manager...",plugin_manager,[]}.
+    {?__(1,"Plug-in Manager..."),plugin_manager,[]}.
 
 manager_command({edit,plugin_manager}, _St) ->
     Ps = get(wings_all_plugins),
@@ -371,7 +371,7 @@ manager_command({edit,plugin_manager}, _St) ->
 		  ignore
 	  end,
     Dialog = mk_dialog(Cps, false),
-    wings_ask:dialog("Plug-In Manager", Dialog, Fun);
+    wings_ask:dialog(?__(1,"Plug-In Manager"), Dialog, Fun);
 manager_command(_, _) -> next.
 
 mk_dialog(Cs, _Min) ->
@@ -384,18 +384,18 @@ mk_dialog_1([]) -> [].
 plugin_modules(C, Ms) ->
     {hframe,[{vframe,[{atom_to_list(M),member(M, get(wings_plugins)),
 		       [{key,M},
-			{info,"Enable or disable this plug-in "
-			 "(a disbled plug-in does not show up in menus)"}]} ||
+			{info,?__(1,"Enable or disable this plug-in ")
+			 ?__(2,"(a disbled plug-in does not show up in menus)")}]} ||
 			 M <- Ms]},
 	     {vframe,[plugin_info(C, M) || M <- Ms]}]}.
 
-cat_label(command) -> "Commands";
-cat_label(export_import) -> "Import/export";
-cat_label(primitive) -> "Primitives";
-cat_label(render) -> "Render";
-cat_label(select) -> "Select";
-cat_label(tool) -> "Tools";
-cat_label(unknown) -> "Unclassified".
+cat_label(command) -> ?__(1,"Commands");
+cat_label(export_import) -> ?__(2,"Import/export");
+cat_label(primitive) -> ?__(3,"Primitives");
+cat_label(render) -> ?__(4,"Render");
+cat_label(select) -> ?__(5,"Select");
+cat_label(tool) -> ?__(6,"Tools");
+cat_label(unknown) -> ?__(7,"Unclassified").
 
 category([F|Fs], M) ->
     try F(M) of
@@ -535,17 +535,17 @@ plugin_menu_info_3(Cmds0) ->
     Cmds = [plugin_root_menu(Mode) ++ wings_util:stringify(C) ||
 	       {Mode,C} <- Cmds0],
     Str = case Cmds of
-	      [] -> "(The Plug-In Manager was unable to find more information)";
+	      [] -> ?__(1,"(The Plug-In Manager was unable to find more information)");
 	      _ -> string:join(Cmds, "; ")
 	  end,
     {label,Str}.
 
-plugin_root_menu(body) -> "body: ";
-plugin_root_menu(edge) -> "edge: ";
-plugin_root_menu(face) -> "face: ";
-plugin_root_menu(vertex) -> "vertex: ";
-plugin_root_menu(select) -> "Select|";
-plugin_root_menu(tools) -> "Tools|";
+plugin_root_menu(body) -> ?__(1,"body: ");
+plugin_root_menu(edge) -> ?__(2,"edge: ");
+plugin_root_menu(face) -> ?__(3,"face: ");
+plugin_root_menu(vertex) -> ?__(4,"vertex: ");
+plugin_root_menu(select) -> ?__(5,"Select|");
+plugin_root_menu(tools) -> ?__(6,"Tools|");
 plugin_root_menu(shape) -> "".
 
 normalize_menu([{Name,[_|_]=Menu}|T]) ->
