@@ -617,7 +617,7 @@ get_sketchup_event(Camera, Redraw) ->
 
 sketchup_help() ->
     TrackDolly = [{?SHIFT_BITS,2,?STR(mode_help,1,"Track")},
-        {0,?CSEP,?STR(mode_help,2,"Scroll: Dolly")}],
+        {0,?CSEP,?STR(mode_help,4,"Scroll: Dolly")}],
     case allow_rotation() of
       false -> format(TrackDolly);
       true -> format([{0,2,?STR(mode_help,3,"Tumble")}|TrackDolly])
@@ -667,7 +667,7 @@ get_wings_cam_event(Camera, Redraw, View) ->
 
 wings_cam_message() ->
     Help = wings_msg:join([wings_msg:button_format(wings_s:accept(),
-                ?STR(message,2,"Drag to Pan"),
+                ?STR(message,8,"Drag to Pan"),
                 ?STR(message,6,"Cancel/restore view")),
                 ?STR(message,3,"Move mouse to tumble")]),
     message(Help).
