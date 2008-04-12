@@ -21,6 +21,10 @@
 
 - New! German translation [contributed by Torsten Manz]
 
+- New Feature: Edge|Circularise. A plugin to flatten, equalise, and inflate an
+  edge loop to its maximum or user specified diameter. Basic and Advanced menu
+  options availble. [optigon]
+
 --- 0.99.02 -----------------------------------------------------------------
 - Now using Erlang/OTP R12B-1. The build instructions have been updated with
   more details. The SDL library in the Linux distribution no longer references
