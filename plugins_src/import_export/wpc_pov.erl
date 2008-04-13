@@ -1581,14 +1581,14 @@ enumerate_image_maps([{MapType, _I} | Maps])->
 enumerate_colormap_controls([], _M)->
 	[];
 enumerate_colormap_controls([{ColorLevel, ColorValue} | ColorMaps], M)->
-	Controls = [{hframe, [{slider, {text, ColorLevel, [colorlevel(M), range({0.0, 1.0})]}}, {color, ColorValue, [colorvalue(M)]}, {button, "Delete", done, [colordelete(M)]}]}],
+	Controls = [{hframe, [{slider, {text, ColorLevel, [colorlevel(M), range({0.0, 1.0})]}}, {color, ColorValue, [colorvalue(M)]}, {button, ?__(1,"Delete"), done, [colordelete(M)]}]}],
 	List = Controls++enumerate_colormap_controls(ColorMaps, M + 1),
 	List.
 	
 enumerate_normalmap_controls([], _M)->
 	[];
 enumerate_normalmap_controls([{NormalLevel, NormalValue} | NormalMaps], M)->
-	Controls = [{hframe, [{slider, {text, NormalLevel, [normallevel(M), range({0.0, 1.0})]}}, {menu, normalmap_menu(), NormalValue, [normalvalue(M)]}, {button, "Delete", done, [normaldelete(M)]}]}],
+	Controls = [{hframe, [{slider, {text, NormalLevel, [normallevel(M), range({0.0, 1.0})]}}, {menu, normalmap_menu(), NormalValue, [normalvalue(M)]}, {button, ?__(1,"Delete"), done, [normaldelete(M)]}]}],
 	List = Controls++enumerate_normalmap_controls(NormalMaps, M + 1),
 	List.
 	
