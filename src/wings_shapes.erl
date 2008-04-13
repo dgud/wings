@@ -118,7 +118,7 @@ build_shape(Prefix, Fs, Vs, #st{onext=Oid}=St) ->
     Name = Prefix++integer_to_list(Oid),
     wings_shape:new(Name, We, St).
 tetrahedron(Ask, _St) when is_atom(Ask) ->
-  ask(tetrahedron, Ask, [{ ?STR(sphere,1,"Edge Length"),2.0,[{range,{0.0,infinity}}]}]);
+  ask(tetrahedron, Ask, [{ ?STR(tetrahedron,1,"Edge Length"),2.0,[{range,{0.0,infinity}}]}]);
 tetrahedron([L], St) ->
     Xi = L/2.0,
 	Hp = sqrt(3.0),
