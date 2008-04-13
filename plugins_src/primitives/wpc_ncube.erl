@@ -15,6 +15,7 @@
 -export([init/0,menu/2,command/2]).
 -import(math, [sqrt/1,cos/1,sin/1,pi/0,pow/2,exp/1]).
 -include("e3d.hrl").
+-include("wings.hrl").
 
 init() -> true.
 
@@ -25,8 +26,8 @@ menu({shape,more}, Menu) ->
 menu(_, Menu) -> Menu.
 
 ncube_menu() ->
-    [{"N-Cube",ncube,[option]},
-     {"N-Gon",ngon,[option]}].
+    [{?__(1,"N-Cube"),ncube,[option]},
+     {?__(2,"N-Gon"),ngon,[option]}].
 
 command({shape,{more,{ncube, Arg}}},_St) -> make_ncube(Arg);
 command({shape,{more,{ngon, Arg}}},_St) -> make_ngon(Arg);
@@ -38,7 +39,7 @@ command(_, _) -> next.
 % === Ncube ===
 % =============
 make_ncube(Arg) when is_atom(Arg) ->
-    wpa:dialog(Arg, "N-Cube Options", ncube_dialog(),
+    wpa:dialog(Arg, ?__(1,"N-Cube Options"), ncube_dialog(),
 	fun(Res) -> {shape,{more,{ncube,Res}}} end);
 make_ncube(Arg) ->
     % set_pref(Arg),	% don't save
@@ -52,18 +53,18 @@ make_ncube(Arg) ->
 	false ->  Verts2 = Verts
     end,
     {Vs, Fs} = clean_indexed_mesh(Verts2, Faces),
-    {new_shape,"N-Cube",Fs,Vs}.
+    {new_shape,?__(2,"N-Cube"),Fs,Vs}.
 
 ncube_dialog() ->
     Nres = get_pref(nres, 5),
     SpherizeFlag = get_pref(spherizeflag, false),
-    [{hframe, [{label, "Number of Cuts"},
+    [{hframe, [{label, ?__(1,"Number of Cuts")},
 	       {slider, {text, Nres,
 	       [{key, nres}, {range, {2, 20}}]}}]},
-     {vradio, [{"Yes", true},
-	       {"No", false}],
+     {vradio, [{?__(2,"Yes"), true},
+	       {?__(3,"No"), false}],
 	      SpherizeFlag,
-	      [{key,spherizeflag}, {title, "Spherize"}]}
+	      [{key,spherizeflag}, {title, ?__(4,"Spherize")}]}
     ].
 
 ncube_verts(Nres) ->
@@ -111,7 +112,7 @@ dtc_round(Float, Decimals) -> % Accurately rounds decimals - www.digithings.com
 % === N-Gon ===
 % =============
 make_ngon(Arg) when is_atom(Arg) ->
-    wpa:dialog(Arg, "N-Gon Options", ngon_dialog(),
+    wpa:dialog(Arg, ?__(1,"N-Gon Options"), ngon_dialog(),
 	fun(Res) -> {shape,{more,{ngon,Res}}} end);
 make_ngon(Arg) ->
     ArgDict = dict:from_list(Arg),
@@ -119,15 +120,15 @@ make_ngon(Arg) ->
     Radius = dict:fetch(radius, ArgDict),
     Vs = ngon_verts(NumVerts, Radius),
     Fs = ngon_faces(NumVerts),
-    {new_shape,"N-Gon",Fs,Vs}.
+    {new_shape,?__(2,"N-Gon"),Fs,Vs}.
 
 ngon_dialog() ->
     NumVerts = get_pref(numverts, 5),
     Radius = get_pref(radius, 1.0),
-    [{hframe, [{label, "Number of Verts"},
+    [{hframe, [{label, ?__(3,"Number of Verts")},
 	       {slider, {text, NumVerts,
 	       [{key, numverts}, {range, {2, 20}}]}}]},
-     {hframe, [{label, "Radius"},
+     {hframe, [{label, ?__(4,"Radius")},
 	       {slider, {text, Radius,
 	       [{key, radius}, {range, {0.1, 20.0}}]}}]}].
 
