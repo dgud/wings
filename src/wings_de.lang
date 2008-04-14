@@ -1,6 +1,10 @@
 %% -*- mode:erlang; erlang-indent-level: 2 -*-
 {wings,
  [
+  {area_info,
+   [
+    {40," Flächeninhalt ~s"}
+   ]},
   {cannot_repeat,
    [
     {1,"Wiederholen nicht möglich"}
@@ -36,7 +40,8 @@
     {41,"Kante~s ~s"},
     {42,"\nAbstand ~s"},
     {43,"Objekt~s"},
-    {45,"Differenz ~s"}
+    {45,"Differenz ~s"},
+	{48,"Fläche ~s"}
    ]},
   {geom_title,
    [
@@ -146,8 +151,8 @@
     {23,"Reale Geometrie aus virtuellen Spiegeln erzeugen"},
     {24,"Bildschirmfoto"},
     {25,"Erstellt ein Abbild des Fensters (kann aus der Inhaltsübersicht exportiert werden)"},
-    {26,"Szeneninfo: Fläche & Volumen"},
-    {27,"Berechnet Fläche und Volumen für jedes Objekte in der Szene"},
+    {26,"Szeneninfo: Flächeninhalt & Volumen"},
+    {27,"Berechnet Flächeninhalt und Volumen für jedes Objekte in der Szene"},
     {28,"Auf Bodenplatte"},
     {29,"Ausgewählte Objekte auf die Bodenplatte positionieren"},
     {30,"Vereinheitlichen"},
@@ -251,7 +256,7 @@
     {5,"Spiegelt das Objekt an seiner"},
     {10,"Invertieren"},
     {11,"Alle Normalen umdrehen. Dreht das Objekt von innen nach außen."},
-    {12,"Zusammenziehen"},
+    {12,"Straffen"},
     {13,"Alle Knoten gegen den gemeinsamen Mittelpunkt verschieben"},
     {14,"Glätten"},
     {15,"Alle Flächen unterteilen, um dem Objekt ein weicheres Aussehen zu geben"},
@@ -366,11 +371,11 @@
  [
   {check_consistency,
    [
-    {1,"Zusammenlegen würde eine inkonsistente Objektstrukur ergeben."}
+    {1,"Kollabieren würde eine inkonsistente Objektstrukur ergeben."}
    ]},
   {check_vertices_1,
    [
-    {1,"Nicht zusammenlegbarer Knoten"},
+    {1,"Nicht kollabierbarer Knoten"},
     {2,"würde Mittelstück hinterlassen.\n"}
    ]}
  ]}.
@@ -467,6 +472,11 @@
     {1,"Numerische Eingabe"},
     {2,"Zwangsbedingungs-Satz umschalten"}
    ]},
+  {fpmove_help,
+   [
+    {1,"Einstellen des 4. Parameters durch ziehen"},
+    {2,"Rotation einstellen durch ziehen"}
+   ]},
   {make_query_1,
    [
     {2,"Winkel"}
@@ -496,7 +506,8 @@
   {zmove_help,
    [
     {1,"Verschieben entlang Z durch ziehen"},
-    {2,"Einstellen des 3. Parameter durch ziehen"}
+    {2,"Einstellen des 3. Parameters durch ziehen"},
+	{3,"Skalieren durch ziehen"}
    ]}
  ]}.
 {wings_edge,
@@ -552,7 +563,7 @@
     {9,"Ausgewählte Kanten abkanten"},
     {10,"Auflösen"},
     {11,"Ausgewählte Kanten eliminieren"},
-    {12,"Zusammenlegen"},
+    {12,"Kollabieren"},
     {13,"Kanten eliminieren und durch Knoten ersetzen"},
     {14,"Härte"},
     {15,"Weich"},
@@ -611,7 +622,7 @@
    ]},
   {clone_on,
    [
-    {1,"Es darf nur genau eine Fläche ausgewählt sein"}
+    {1,"Es darf nur eine Fläche ausgewählt sein"}
    ]},
   {clone_on_selection,
    [
@@ -665,11 +676,11 @@
     {22,"Spiegeln und separate Objekte erzeugen"},
     {23,"Auflösen"},
     {24,"Alle Kanten zwischen ausgewählten Flächen eliminieren"},
-    {25,"Zusammenlegen"},
+    {25,"Kollabieren"},
     {26,"Flächen eliminieren und durch Kanten ersetzen"},
     {27,"Glätten"},
     {28,"Ausgewählte Flächen unterteilen um sie zu glätten (Catmull-Clark)"},
-    {29,"Zerlegen"},
+    {29,"Parkettierung"},
     {30,"Knoten-Farbe"},
     {31,"Knoten-Farben auf ausgewählte Flächen anwenden"},
     {32,"Verbergen"},
@@ -677,7 +688,7 @@
    ]},
   {put_on,
    [
-    {1,"Es darf nur genau eine Fläche ausgewählt sein."}
+    {1,"Es darf nur eine Fläche ausgewählt sein."}
    ]},
   {put_on_check_selection,
    [
@@ -1038,7 +1049,7 @@
     {37,"Bereich für aliased Linienbreiten"},
     {38,"Bereich für antialiased Linienbreiten"},
     {39,"Empfohlene maximale Anzahl Indizes für drawRangeElement()"},
-    {40,"Empfohlene maximale Anzahl Knoten für  drawRangeElement()"},
+    {40,"Empfohlene maximale Anzahl Knoten für drawRangeElement()"},
     {41,"Max. Anzahl Textureinheiten"},
     {42,"Anzahl Komprimierungsformate"},
     {43,"Max. Anzahl Knoteneinheiten"},
@@ -1583,7 +1594,7 @@
   {do_menu,
    [
     {1,"Material bearbeiten..."},
-    {2,"Material-Eigenschaften bearbeiten"},
+    {2,"Material Eigenschaften bearbeiten"},
     {3,"Auswahl zuweisen"},
     {4,"Material ausgewählten Flächen oder Körpern zuweisen"},
     {5,"Auswahl"},
@@ -1601,7 +1612,7 @@
     {17,"Umbenennen"},
     {18,"Objekt umbenennen"},
     {19,"Lichtquelle bearbeiten..."},
-    {20,"Lichtquellen-Eigenschaften bearbeiten"},
+    {20,"Lichtquellen Eigenschaften bearbeiten"},
     {21,"Duplizieren"},
     {22,"Lichtquelle duplizieren"},
     {23,"Löschen"},
@@ -1705,6 +1716,10 @@
  ]}.
 {wings_pick,
  [
+  {area_info,
+   [
+    {40," Flächeninhalt ~s"}
+   ]},
   {clear_hilite_marquee_mode,
    [
     {ctrl_action,"Abwählen"},
@@ -1727,6 +1742,16 @@
  ]}.
 {wings_plugin,
  [
+  {cat_label,
+   [
+    {1,"Befehle"},
+    {2,"Import/Export"},
+    {3,"Primitive"},
+    {4,"Render"},
+    {5,"Auswahl"},
+    {6,"Werkzeuge"},
+    {7,"Unklassifiziert"}
+   ]},
   {def_ui_plugin,
    [
     {1,"Wings erneut installieren. Fehlendes Plug-In für ~p."}
@@ -1749,9 +1774,35 @@
     {1,"Datei \"~s\" enthält eine Datei mit einem absoluten Pfad"},
     {2,"Datei \"~s\" enthält keine Wings Plug-In Module"}
    ]},
+  {manager_command,
+   [
+    {1,"Plug-In Manager"}
+   ]},
+  {manager_entry,
+   [
+    {1,"Plug-in Manager..."}
+   ]},
   {plugin_dir,
    [
     {1,"Kein \"plugins\" Verzeichnis gefunden"}
+   ]},
+  {plugin_menu_info_3,
+   [
+    {1,"(Plug-In Manager konnte keine weiteren Informationen finden)"}
+   ]},
+  {plugin_modules,
+   [
+    {1,"Plug-in aktivieren/deaktivieren "},
+    {2,"(deaktivierte Plug-ins erscheinen nicht in den Menüs)"}
+   ]},
+  {plugin_root_menu,
+   [
+    {1,"Körper: "},
+    {2,"Kante: "},
+    {3,"Fläche: "},
+    {4,"Knoten: "},
+    {5,"Auswahl|"},
+    {6,"Werkzeuge|"}
    ]}
  ]}.
 {wings_pref_dlg,
@@ -1827,9 +1878,9 @@
     {37,"Betrifft nur Werkzeuge mit mehr als einem Ziehen-Modus wie z.B. Kante|Gleiten"},
     {38,"Ziehen Reaktion anpassen"},
     {39,"Verhältnis ziehen zu Mausrotation anpassen. Standardeinstellungen wenn nicht markiert."},
-    {40,"Faktor in Entfernung von der Kamera"},
+    {40,"Faktor in Abstand von der Kamera"},
     {42,"Absolute Geschwindigkeit"},
-    {43,"Faktor in Entfernung von der Kamera"},
+    {43,"Faktor in Abstand von der Kamera"},
     {46,"Relative Geschwindigkeit"},
     {48,"Rotations-Geschwindigkeit"},
     {49,"Ziehen Einstellungen"}
@@ -1970,7 +2021,10 @@
     {25,"Bild nach dem rendern anzeigen"},
     {26,"Bild nach dem rendern laden"},
     {27,"Erweiterte Werkzeugleistensymbole"},
-    {50,"Oberflächensymbole"}
+    {50,"Oberflächensymbole"},
+    {51,"Klassisch"},
+    {52,"Blauer Würfel"},
+    {53,"Lila Röhre"}
    ]},
   {viewer_prefs,
    [
@@ -2405,6 +2459,10 @@
     {3,"X Radius"},
     {4,"Y Radius"}
    ]},
+  {tetrahedron,
+   [
+    {1,"Kantenlänge"}
+   ]},
   {torus,
    [
     {1,"Abschnitte"},
@@ -2560,7 +2618,7 @@
   {magnet_message,
    [
     {1,"Ausführen "},
-    {2,"Magnet-Optionen"}
+    {2,"Magnet Optionen"}
    ]}
  ]}.
 {wings_vertex_cmd,
@@ -2572,13 +2630,13 @@
     {3,"Auspressen"},
     {4,"Verbinden"},
     {5,"Neue Kante durch verbinden der ausgewählten Knoten erzeugen"},
-    {6,"Zusammenziehen"},
+    {6,"Straffen"},
     {7,"Ausgewählte Knoten gegen den gemeinsamen Mittelpunkt verschieben"},
     {8,"Abkanten"},
     {9,"Flächen aus ausgewählten Knoten erzeugen"},
     {10,"Auflösen"},
     {11,"Ausgewählte Knoten eliminieren (löscht Auswahl)"},
-    {12,"Zusammenlegen"},
+    {12,"Kollabieren"},
     {13,"Ausgewählte Knoten eliminieren (erzeugt Flächen-Auswahl)"},
     {14,"Deformieren"},
     {15,"Knoten-Farbe"},
@@ -2684,7 +2742,8 @@
     {59,"Ansicht rotieren"},
     {60,"Ansicht rotieren lassen"},
     {61,"Sichtbegrenzungen"},
-    {62,"Zusätzliche Sichtbegrenzungen umschalten (verwendet Standardachsen)"}
+    {62,"Zusätzliche Sichtbegrenzungen umschalten (verwendet Standardachsen)"},
+    {65,"Rahmen ignoriert Spiegel"}
    ]},
   {view_legend,
    [
@@ -2833,7 +2892,7 @@
    ]},
   {ctrl_message,
    [
-    {1,"Ziehen und verschieben"},
+    {1,"Verschieben durch ziehen"},
     {2,"Anpassen"},
     {3,"Menü anzeigen"}
    ]},
@@ -2856,7 +2915,7 @@
     {7,"Standard Dateityp für Texturen"},
     {color,"Knoten-Farben exportieren"},
     {norms,"Normalen-/Glättungs-Gruppen exportieren"},
-    {tess,"Zerlegung"},
+    {tess,"Parkettierung"},
     {tess0,"Keine"},
     {tess3,"Triangulation"},
     {tess4,"Quadrangulation"},

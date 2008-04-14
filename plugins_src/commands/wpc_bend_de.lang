@@ -28,8 +28,8 @@
    ]},
   {submenu_clamp,
    [
-    {1,"Unteren Fixpunkt wählen"},
-    {2,"Oberen Fixpunkt wählen"}
+    {1,"Oberen Fixpunkt wählen"},
+    {2,"Unteren Fixpunkt wählen"}
    ]},
   {submenu_items,
    [

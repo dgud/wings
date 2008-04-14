@@ -13,7 +13,7 @@
   {check_selection,
    [
     {1,"Keine Auswahl"},
-    {3,"Aktuelle Länge ist zu kurz. Kanten auswählen, die nicht senkrecht zu der gewählten Achse sind."},
+    {3,"Aktuelle Länge ist zu kurz. Kanten auswählen, die nicht senkrecht zu der gewählten Achse stehen."},
     {4," Ursprünglich ~s ~s\n Aktuell ~s ~s\n Prozent ~s% Kehrwert ~s%"},
     {5,"Resultierender Prozentsatz ist zu klein"},
     {6,"Differenz ist zu klein"},
@@ -43,7 +43,7 @@
   {length_check,
    [
     {1,"Auswahl muß einen Flächeninhalt größer Null haben"},
-    {2,"Auswahl muß eine Läge größer Null haben"},
+    {2,"Auswahl muß eine Länge größer Null haben"},
     {3,"Länge entlang des Vektors ist zu kurz"},
     {4,"Länge entlang ~s Achse ist zu kurz"}
    ]},

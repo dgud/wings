@@ -3,8 +3,8 @@
  [
   {adv_submenu,
    [
-    {1,"Auf Gerade bleiben, auf Schnittpunkt mit Ebene verschieben"},
-    {2,"In Ebene bleiben, auf Schnittpunkt mit Gerade verschieben"},
+    {1,"Auf Gerade bleiben, zum Schnittpunkt mit Ebene verschieben"},
+    {2,"In Ebene bleiben, zum Schnittpunkt mit Gerade verschieben"},
     {3,"Gerade und Ebene wählen"}
    ]},
   {intersect,

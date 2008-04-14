@@ -1,0 +1,28 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_geodome,
+ [
+  {dialog,
+   [
+    {1,"Auflösung"},
+    {2,"Frequenz (Kanten-Schnitt Unterteilung)"},
+    {3,"Tiefe (Rekursive Unterteilung)"},
+    {4,"Algorithmus/Methode für Unterteilung"},
+    {5,"Ikosaeder"},
+    {6,"Oktaeder"},
+    {7,"Tetraeder"},
+    {8,"Basis-Typ"},
+    {9,"Ja"},
+    {10,"Nein"},
+    {11,"Sphärisch"},
+    {12,"Generiere halbe Kuppel"}
+   ]},
+  {geodome_menu,
+   [
+    {1,"Geodät. Kuppel"}
+   ]},
+  {make_geodome,
+   [
+    {1,"Geodätische Kuppel Optionen"},
+    {2,":Geodät. Kuppel"}
+   ]}
+ ]}.

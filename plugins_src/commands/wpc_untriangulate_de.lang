@@ -4,7 +4,7 @@
   {get_ask_list,
    [
     {1,"Algorithmus-Stärke"},
-    {2,"Höhere Algorithmus-Stärken sind langsamer, können aber bessere Ergebnisse produzieren"},
+    {2,"Größere Algorithmus-Stärken sind langsamer, können aber bessere Ergebnisse produzieren"},
     {3,"Max. Kanten-Winkel"},
     {4,"Maximaler Winkel zwischen Kanten die aufgelöst werden"},
     {5,"Materialien prüfen"},

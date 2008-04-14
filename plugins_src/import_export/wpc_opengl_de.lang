@@ -20,7 +20,7 @@
     {3,"Hintergrundfarbe"},
     {4,"Alpha Kanal berechnen"},
     {5,"Schatten berechnen"},
-    {6,"Eigenen Schatten berechnen(Reliefstruktur)"},
+    {6,"Eigene Schatten berechnen (Beulen-Karte)"},
     {7,"Bildfenster"},
     {8,"Datei"},
     {9,"Render Ausgabe"}
@@ -32,7 +32,7 @@
    ]},
   {load_program,
    [
-    {1,"Fehler beim laden des Programms"}
+    {1,"Fehler beim Laden des Programms"}
    ]},
   {prepare_mesh,
    [

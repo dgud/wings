@@ -5,11 +5,11 @@
    [
     {1,"Absolute Befehle"},
     {2,"Verschieben"},
-    {3,"Auf exakte Position in absoluten Koordinaten verschieben."},
+    {3,"Auf genaue Position in absoluten Koordinaten verschieben."},
     {4,"Einrasten"},
-    {5,"Auf zweite Auswahl verschieben."},
-    {6,"Mit Zentrum als Referenz verschieben."},
-    {7,"Verschieben und numerische Eingabe anzeigen."}
+    {5,"Auf zweite Auswahl verschieben"},
+    {6,"Mit Zentrum als Referenz verschieben"},
+    {7,"Verschieben und numerische Eingabe anzeigen"}
    ]},
   {draw_window1,
    [

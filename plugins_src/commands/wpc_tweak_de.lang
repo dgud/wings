@@ -3,7 +3,7 @@
  [
   {common_help,
    [
-    {1,"Schieben"},
+    {1,"Gleiten"},
     {2,"Ziehen"},
     {3,"Entlang Normale"},
     {4,"In Tangentialebene"},
@@ -15,7 +15,7 @@
    ]},
   {help,
    [
-    {1,"Schieben&zusam.legen"},
+    {1,"Gleiten&zusam.legen"},
     {2,"Zusam.legen"},
     {3,"XYZ einschränken"},
     {4,"Magnet Ein"},

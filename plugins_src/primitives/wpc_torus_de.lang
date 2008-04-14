@@ -3,7 +3,7 @@
  [
   {make_lu_torus,
    [
-    {1,"Buckligen Torus erzeugen"},
+    {1,"Klumpigen Torus erzeugen"},
     {2,"U Auflösung"},
     {3,"V Auflösung"},
     {4,"Ringradius"},
@@ -18,8 +18,8 @@
     {3,"V Auflösung"},
     {4,"Ringradius"},
     {5,"Kreisradius"},
-    {6,"Schleifen"},
-    {7,"Schleifenradius "}
+    {6,"Windungen"},
+    {7,"Windungsradius "}
    ]},
   {make_uv_torus,
    [
@@ -32,7 +32,7 @@
   {torus_menu,
    [
     {1,"UV Torus"},
-    {2,"Buckliger Torus"},
+    {2,"Klumpiger Torus"},
     {3,"Spiralförmiger Torus"}
    ]}
  ]}.

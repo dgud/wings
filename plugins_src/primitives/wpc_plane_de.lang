@@ -3,15 +3,15 @@
  [
   {make_lumpy_plane,
    [
-    {1,"Bucklige Ebene erzeugen"},
+    {1,"Klumpige Ebene erzeugen"},
     {2,"Auflösung"},
     {3,"Größe"},
-    {4,"Buckel"},
+    {4,"Klumpen"},
     {5,"Dicke"}
    ]},
   {make_regular_plane,
    [
-    {1,"Reguläre Ebene erzeugen"},
+    {1,"Regelmäßige Ebene erzeugen"},
     {2,"Auflösung"},
     {3,"Größe"},
     {4,"Dicke"}
@@ -22,7 +22,7 @@
     {2,"Auflösung"},
     {3,"Größe"},
     {4,"Wellen"},
-    {5,"Dämpfung"},
+    {5,"Abnahme"},
     {6,"Höhe"},
     {7,"Dicke"}
    ]},
@@ -37,8 +37,8 @@
    ]},
   {plane_menu,
    [
-    {1,"Reguläre Ebene"},
-    {2,"Bucklige Ebene"},
+    {1,"Regelmäßige Ebene"},
+    {2,"Klumpige Ebene"},
     {3,"Gewellte Ebene"},
     {4,"Sombrero Ebene"}
    ]}

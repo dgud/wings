@@ -3,7 +3,7 @@
  [
   {help,
    [
-    {1,"Knoten auswählen oder Kante schneiden (Maustaste drücken zum schieben)"},
+    {1,"Knoten auswählen oder Kante schneiden (Maustaste drücken zum gleiten)"},
     {2,"Verbinden abbrechen"},
     {3,"Kanten/Knoten verbinden (zum Beenden letzten Knoten erneut auswählen)"},
     {4,"Verbinden abbrechen"}
