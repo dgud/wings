@@ -35,7 +35,7 @@ parse([Elem|Rest], NewMenu, Found) ->
 circularise() ->
     {?__(1,"Circularise"),circularise_options(),
       {?__(2,"Flatten, equalise, and inflate selected edge loop making it circular"),[],
-       ?__(3,"Pick Center, Plane, and Vertex marking Stable Ray from center")},[]}.
+       ?__(3,"Pick Center, Plane, and Vertex or Edge marking Stable Ray from center")},[]}.
 
 circularise_options() ->
     fun
@@ -79,36 +79,61 @@ selection_ask([plane|Rest],Ask) ->
     selection_ask(Rest,[{axis,Desc}|Ask]).
 
 second_ask(Center,Plane,Vs,We,St) ->
-    wings:ask(secondary_sel_ask(Vs), St, fun(RayVs0,St0) ->
-    [{_,{_,{RayVs,_,_}}}] = RayVs0,
-    circle_pick_all_setup(Vs,RayVs,Center,Plane,We,St0)
+    wings:ask(secondary_sel_ask(Vs), St, fun(RayPos,St0) ->
+    circle_pick_all_setup(Vs,RayPos,Center,Plane,We,St0)
     end).
 
 secondary_sel_ask(Vs) ->
-    Desc = ?__(1,"Select single vertex from edge loop to mark the stable ray from center"),
-    Data = fun(check, St) -> check_selection(St,Vs);
-             (exit, {_,_,#st{sel=RayVs}=St}) ->
+    Desc = ?__(1,"Select single Vertex or Edge from the original edge loop to mark the stable ray from center"),
+    Data = fun
+             (check, St) ->
+               check_selection(St,Vs);
+             (exit, {_,_,#st{shapes=Shs,selmode=vertex,sel=[{Id,Sel}]}=St}) ->
                case check_selection(St,Vs) of
-                 {_,[]} -> {[],[RayVs]};
+                 {_,[]} ->
+                   We = gb_trees:get(Id, Shs),
+                   {_,{RayVs,_,_}} = Sel,
+                   RayPos = wings_vertex:pos(RayVs, We),
+                   {[],[RayPos]};
                  {_,_} -> error
-               end
+                end;
+             (exit, {_,_,#st{shapes=Shs,selmode=edge,sel=[{Id,Sel}]}=St}) ->
+               case check_selection(St,Vs) of
+                 {_,[]} ->
+                   We = gb_trees:get(Id, Shs),
+                   {_,{RayEdge,_,_}} = Sel,
+                   #edge{vs=V0s,ve=V0e} = gb_trees:get(RayEdge, We#we.es),
+                   VPos1 = wings_vertex:pos(V0s, We),
+                   VPos2 = wings_vertex:pos(V0e, We),
+                   RayPos = e3d_vec:average(VPos1, VPos2),
+                   {[],[RayPos]};
+                 {_,_} -> error
+               end;
+             (exit,_) -> error
            end,
-    {[{Data,Desc}],[],[],[vertex]}.
+    {[{Data,Desc}],[],[],[vertex,edge]}.
 
 check_selection(#st{sel=[]},_Vs) ->
     {none,?__(1,"Nothing selected")};
-check_selection(#st{sel=[{_Id,{1,{Vert,_,_}}}]}, Vs) ->
+check_selection(#st{selmode=vertex,sel=[{_Id,{1,{Vert,_,_}}}]}, Vs) ->
     case lists:member(Vert,Vs) of
       true -> {none,[]};
       false -> {none,?__(2,"Vertex must be from the original edge loop")}
     end;
+check_selection(#st{shapes=Shs, selmode=edge, sel=[{Id,{1,{Edge,_,_}}}]}, Vs) ->
+    We = gb_trees:get(Id, Shs),
+    #edge{vs=V0s,ve=V0e} = gb_trees:get(Edge, We#we.es),
+    case (lists:member(V0s,Vs) andalso lists:member(V0e,Vs)) of
+      true -> {none,[]};
+      false -> {none,?__(3,"Edge must be from the original edge loop")}
+    end;
 check_selection(_St, _Vs) ->
-    {none,?__(3,"Selection can only be a single vertex from the original edge loop")}.
+    {none,?__(4,"Selection can only be a single Vertex or Edge from the original edge loop")}.
 
 %%%% Setup RMB
-circle_pick_all_setup(Vs,RayVs,Center,Axis,We,St) ->
+circle_pick_all_setup(Vs,RayPos,Center,Axis,#we{vp=Vtab}=We,St) ->
     Deg = (360.0/length(Vs)),
-    {Pos,Num} = get_radius_rv(Vs,RayVs,Center,Axis,We,{0.0,0.0,0.0},0,0),
+    {Pos,Num} = get_radius_rv(Vs,RayPos,Center,Axis,Vtab,{0.0,0.0,0.0},{0.0,0.0,0.0},0,0),
     VertDegList = degrees_from_static_vert(Vs,Deg,Num,1,[]),
     Ray = e3d_vec:norm(e3d_vec:sub(Pos,Center)),
     Tvs = make_circular_1(Vs,We,{Center,Ray,Axis,Pos,VertDegList},[]),
@@ -119,13 +144,16 @@ circle_pick_all_setup(Vs,RayVs,Center,Axis,We,St) ->
 circle_setup(St) ->
     Tvs = wings_sel:fold(fun(Edges,#we{vp=Vtab}=We,Acc) ->
       case wings_edge_loop:edge_loop_vertices(Edges, We) of
-        [Vs] -> Center = wings_vertex:center(Vs,We),
-          Deg = (360.0/length(Vs)),
+        [Vs] ->
+          Center = wings_vertex:center(Vs,We),
+          Total = length(Vs),
+          Deg = 360.0/Total,
           Axis = e3d_vec:norm(wings_face:face_normal_ccw(Vs, Vtab)),
-          {Pos,Index} = get_radius(Vs,Center,Axis,We,0,{0.0,0.0,0.0},0,0),
-          VertDegList = degrees_from_static_vert(Vs,Deg,Index,1,[]),
+          {MinRadius,Pos,Index} = get_radius(Vs, Center, Axis, Vtab, 0.0 ,0.0, {0.0,0.0,0.0}, {0.0,0.0,0.0}, {0.0,0.0,0.0}, 0.0, 0.0),
+          VertDegList = degrees_from_static_vert(Vs,Deg,Index,1.0,[]),
           Ray = e3d_vec:norm(e3d_vec:sub(Pos,Center)),
-          make_circular_1(Vs,We,{Center,Ray,Axis,Pos,VertDegList},Acc);
+          MinRadiusPos = e3d_vec:add(Center,e3d_vec:mul(Ray,MinRadius)),
+          make_circular_1(Vs,We,{Center,Ray,Axis,MinRadiusPos,VertDegList},Acc);
         _ -> sel_error()
       end
     end,[],St),
@@ -134,31 +162,79 @@ circle_setup(St) ->
 
 %%%% Return the Index and position of the Vertex chosen to represent the stable
 %%%% ray from the chosen Center point on the chosen Plane
-get_radius_rv([], _, _, _, _, Pos,_,Index) ->
+get_radius_rv([], _, _, _, _, Pos,_,_,Index) ->
     {Pos,Index};
-get_radius_rv([Vert|Vs], RayVs, Center, Plane, We, Pos0, AtIndex, Index) ->
-    case Vert == RayVs of
+get_radius_rv([Vert|Vs], RayPos, Center, Plane, Vtab, Pos0, LastPos, AtIndex, Index) ->
+    Pos = gb_trees:get(Vert,Vtab),
+    case Pos == RayPos of
       true  ->
-          #we{vp=Vtab} = We,
-          Pos = gb_trees:get(Vert,Vtab),
-          PosAtCntrPln = intersect_vec_plane(Pos,Center,Plane),
-          get_radius_rv(Vs, RayVs, Center, Plane, We, PosAtCntrPln, AtIndex+1, AtIndex+1);
+        PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
+        get_radius_rv(Vs, RayPos, Center, Plane, Vtab, PosOnPlane, Pos, AtIndex+1.0, AtIndex+1.0);
       false ->
-          get_radius_rv(Vs, RayVs, Center, Plane, We, Pos0, AtIndex+1, Index)
+        HalfPos = e3d_vec:average(Pos,LastPos),
+        case HalfPos == RayPos of
+          true ->
+            PosOnPlane = intersect_vec_plane(HalfPos,Center,Plane),
+            get_radius_rv(Vs, RayPos, Center, Plane, Vtab, PosOnPlane, Pos, AtIndex+1.0, AtIndex+0.5);
+        false ->
+            get_radius_rv(Vs, RayPos, Center, Plane, Vtab, Pos0, Pos, AtIndex+1.0, Index)
+      end
     end.
 
 %%%% Return the Index and Postion of the Vertex furthest from the Center
 %%%% relative to the Plane
-get_radius([], _, _, _, _, Pos,_,Index) ->
-    {Pos,Index};
-get_radius([Vert|Vs], Center, Plane, We, MaxDist, Pos0, AtIndex, Index) ->
-    #we{vp=Vtab} = We,
+get_radius([],Center,_,_,MinDistSeen,_,Pos,LastPos,FirstPos,AtIndex,Index) ->
+    HalfPos = e3d_vec:average(LastPos,FirstPos),
+    DistHalf = abs(e3d_vec:dist(HalfPos,Center)),
+    case DistHalf < MinDistSeen of
+      true -> {DistHalf, HalfPos, AtIndex+0.5};
+      false -> {MinDistSeen, Pos, Index}
+    end;
+
+get_radius([Vert|Vs], Center, Plane, Vtab, 0.0, 0.0, _Pos, _LastPos, _FirstPos, AtIndex, _Index) ->
     Pos = gb_trees:get(Vert,Vtab),
-    PosAtCntrPln = intersect_vec_plane(Pos,Center,Plane),
-    Dist = abs(e3d_vec:dist(PosAtCntrPln,Center)),
-    case Dist > MaxDist of
-      true  -> get_radius(Vs, Center, Plane, We, Dist, PosAtCntrPln, AtIndex+1, AtIndex+1);
-      false -> get_radius(Vs, Center, Plane, We, MaxDist, Pos0, AtIndex+1, Index)
+    PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
+    Dist = abs(e3d_vec:dist(PosOnPlane,Center)),
+    get_radius(Vs, Center, Plane, Vtab, Dist, Dist, PosOnPlane, Pos, Pos, AtIndex+1.0, AtIndex+1.0);
+
+get_radius([Vert|Vs], Center, Plane, Vtab, MinDistSeen, 0.0, _Pos, LastPos, FirstPos, AtIndex, _Index) ->
+    Pos = gb_trees:get(Vert,Vtab),
+    PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
+    HalfPos = e3d_vec:average(PosOnPlane,LastPos),
+    DistFull = abs(e3d_vec:dist(PosOnPlane,Center)),
+    DistHalf = abs(e3d_vec:dist(HalfPos,Center)),
+    case DistFull < DistHalf of
+    true ->
+      case {(DistFull > 0.0), (DistFull < MinDistSeen)} of
+        {true,true} ->  get_radius(Vs, Center, Plane, Vtab, DistFull, DistFull, PosOnPlane, PosOnPlane, FirstPos, AtIndex+1.0, AtIndex+1.0);
+        {true,false} -> get_radius(Vs, Center, Plane, Vtab, MinDistSeen, DistFull, PosOnPlane, PosOnPlane, FirstPos, AtIndex+1.0, AtIndex+1.0);
+        {false,_} -> get_radius(Vs, Center, Plane, Vtab, MinDistSeen, DistFull, PosOnPlane, PosOnPlane, FirstPos, AtIndex+1.0, AtIndex+1.0)
+      end;
+    false ->
+      case {(DistHalf > 0.0), (DistHalf < MinDistSeen)} of
+        {true,true} ->  get_radius(Vs, Center, Plane, Vtab, DistHalf, DistHalf, HalfPos, PosOnPlane, FirstPos, AtIndex+1.0, AtIndex+0.5);
+        {true,false} -> get_radius(Vs, Center, Plane, Vtab, MinDistSeen, DistHalf, HalfPos, PosOnPlane, FirstPos, AtIndex+1.0, AtIndex+0.5);
+        {false,_} -> get_radius(Vs, Center, Plane, Vtab, MinDistSeen, DistHalf, HalfPos, PosOnPlane, FirstPos, AtIndex+1.0, AtIndex+0.5)
+      end
+    end;
+
+get_radius([Vert|Vs], Center, Plane, Vtab, _MinDist, MaxDist, Pos0, LastPos, FirstPos, AtIndex, Index) ->
+    Pos = gb_trees:get(Vert,Vtab),
+    PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
+    HalfPos = e3d_vec:average(PosOnPlane,LastPos),
+    DistFull = abs(e3d_vec:dist(PosOnPlane,Center)),
+    DistHalf = abs(e3d_vec:dist(HalfPos,Center)),
+    case DistFull < DistHalf of
+      true ->
+        case ((DistFull < MaxDist) andalso (DistFull > 0.0)) of
+          true  -> get_radius(Vs, Center, Plane, Vtab, DistFull, DistFull, PosOnPlane, PosOnPlane, FirstPos, AtIndex+1.0, AtIndex+1.0);
+          false -> get_radius(Vs, Center, Plane, Vtab, MaxDist, MaxDist, Pos0, PosOnPlane, FirstPos, AtIndex+1.0, Index)
+        end;
+      false ->
+        case ((DistHalf < MaxDist) andalso (DistHalf > 0.0)) of
+          true  -> get_radius(Vs, Center, Plane, Vtab, DistHalf, DistHalf, HalfPos, PosOnPlane, FirstPos, AtIndex+1.0, AtIndex+0.5);
+          false -> get_radius(Vs, Center, Plane, Vtab, MaxDist, MaxDist, Pos0, PosOnPlane, FirstPos, AtIndex+1.0, Index)
+        end
     end.
 
 %%%% Return a tuple list [{Vertex, Degrees_From_Stable_Ray_Vertex}] of all the
@@ -167,7 +243,7 @@ get_radius([Vert|Vs], Center, Plane, We, MaxDist, Pos0, AtIndex, Index) ->
 degrees_from_static_vert([],_,_,_,DegList) ->
     DegList;
 degrees_from_static_vert([Vert|Vs],Deg,Num,At,DegList) ->
-    degrees_from_static_vert(Vs,Deg,Num,At+1,[{Vert,Deg*(At-Num)}|DegList]).
+    degrees_from_static_vert(Vs,Deg,Num,At+1.0,[{Vert,Deg*(At-Num)}|DegList]).
 
 %%%%
 make_circular_1(Vs,#we{id=Id}=We,Data,Acc) ->
