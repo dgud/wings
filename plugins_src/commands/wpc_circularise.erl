@@ -131,7 +131,7 @@ check_selection(_, _) ->
 %%%% Setup RMB
 circle_pick_all_setup(Vs,RayPos,Center,Axis,#we{vp=Vtab}=We,St) ->
     Deg = (360.0/length(Vs)),
-    {Pos,Num} = get_radius_rv(Vs,RayPos,Center,Axis,Vtab,{0.0,0.0,0.0},{0.0,0.0,0.0},0,0),
+    {Pos,Num} = get_radius_rv(Vs,RayPos,Center,Axis,Vtab,{0.0,0.0,0.0},lastpos,firstpos,0.0,0.0),
     VertDegList = degrees_from_static_vert(Vs,Deg,Num,1,[]),
     Ray = e3d_vec:norm(e3d_vec:sub(Pos,Center)),
     Tvs = make_circular_1(Vs,We,{Center,Ray,Axis,Pos,VertDegList},[]),
@@ -147,7 +147,7 @@ circle_setup(St) ->
           Total = length(Vs),
           Deg = 360.0/Total,
           Axis = e3d_vec:norm(wings_face:face_normal_ccw(Vs, Vtab)),
-          {MinRadius,Pos,Index} = get_radius(Vs, Center, Axis, Vtab, 0.0 , min, last, first, 0.0, index),
+          {MinRadius,Pos,Index} = get_radius(Vs, Center, Axis, Vtab, 0.0 , min, lastpos, firstpos, 0.0, index),
           VertDegList = degrees_from_static_vert(Vs,Deg,Index,1.0,[]),
           Ray = e3d_vec:norm(e3d_vec:sub(Pos,Center)),
           MinRadiusPos = e3d_vec:add(Center,e3d_vec:mul(Ray,MinRadius)),
@@ -160,22 +160,40 @@ circle_setup(St) ->
 
 %%%% Return the Index and position of the Vertex chosen to represent the stable
 %%%% ray from the chosen Center point on the chosen Plane
-get_radius_rv([], _, _, _, _, Pos,_,_,Index) ->
-    {Pos,Index};
-get_radius_rv([Vert|Vs], RayPos, Center, Plane, Vtab, Pos0, LastPos, AtIndex, Index) ->
+get_radius_rv([], RayPos, Center, Plane, _, Pos,LastPos,FirstPos,AtIndex,Index) ->
+    HalfPos = e3d_vec:average(LastPos,FirstPos),
+	case HalfPos == RayPos of
+	  true ->
+	    PosOnPlane = intersect_vec_plane(HalfPos,Center,Plane),
+        {PosOnPlane,AtIndex+0.5};
+	  false ->
+	    {Pos,Index}
+	end;
+
+get_radius_rv([Vert|Vs], RayPos, Center, Plane, Vtab, Pos0, lastpos, firstpos, 0.0, Index) ->
     Pos = gb_trees:get(Vert,Vtab),
     case Pos == RayPos of
       true  ->
         PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
-        get_radius_rv(Vs, RayPos, Center, Plane, Vtab, PosOnPlane, Pos, AtIndex+1.0, AtIndex+1.0);
+        get_radius_rv(Vs, RayPos, Center, Plane, Vtab, PosOnPlane, Pos, Pos, 1.0, 1.0);
+      false ->
+        get_radius_rv(Vs, RayPos, Center, Plane, Vtab, Pos0, Pos, Pos, 1.0, Index)
+    end;
+
+get_radius_rv([Vert|Vs], RayPos, Center, Plane, Vtab, Pos0, LastPos, FirstPos, AtIndex, Index) ->
+    Pos = gb_trees:get(Vert,Vtab),
+    case Pos == RayPos of
+      true  ->
+        PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
+        get_radius_rv(Vs, RayPos, Center, Plane, Vtab, PosOnPlane, Pos, FirstPos, AtIndex+1.0, AtIndex+1.0);
       false ->
         HalfPos = e3d_vec:average(Pos,LastPos),
         case HalfPos == RayPos of
           true ->
             PosOnPlane = intersect_vec_plane(HalfPos,Center,Plane),
-            get_radius_rv(Vs, RayPos, Center, Plane, Vtab, PosOnPlane, Pos, AtIndex+1.0, AtIndex+0.5);
+            get_radius_rv(Vs, RayPos, Center, Plane, Vtab, PosOnPlane, Pos, FirstPos, AtIndex+1.0, AtIndex+0.5);
         false ->
-            get_radius_rv(Vs, RayPos, Center, Plane, Vtab, Pos0, Pos, AtIndex+1.0, Index)
+            get_radius_rv(Vs, RayPos, Center, Plane, Vtab, Pos0, Pos, FirstPos, AtIndex+1.0, Index)
       end
     end.
 
