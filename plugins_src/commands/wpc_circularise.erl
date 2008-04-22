@@ -131,35 +131,52 @@ check_selection(_, _) ->
     {none,?__(4,"Only a single vertex or edge may be selected")}.
 
 %%%% Setup RMB
-circle_pick_all_setup(Vs,RayPos,Center,Axis0,#we{vp=Vtab}=We,St) ->
+circle_pick_all_setup(Vs,RayPos,Center,Axis0,#we{vp=Vtab,id=Id}=We,St) ->
     Axis = e3d_vec:norm(Axis0),
     Deg = (360.0/length(Vs)),
     {Pos,Num} = get_radius_rmb(Vs,RayPos,Center,Axis,Vtab,{0.0,0.0,0.0},lastpos,firstpos,0.0,0.0),
     VertDegList = degrees_from_static_ray(Vs,Deg,Num,1,[]),
     Ray = e3d_vec:norm(e3d_vec:sub(Pos,Center)),
-    Tvs = make_circular_1(Vs,We,{Center,Ray,Axis,Pos,VertDegList},[]),
+    VsPos = wings_util:add_vpos(Vs,We),
+    Data = {Center,Ray,Axis,Pos,VertDegList},
+    Tvs = [{Id,{Vs,make_circular_fun(Data,VsPos)}}],
     Flags = [{mode,{mode(),{none,none,normal}}}],
     wings_drag:setup(Tvs,[percent|[falloff]],Flags,St).
 
 %%%% Setup LMB
 circle_setup(St) ->
-    Tvs = wings_sel:fold(fun(Edges,#we{vp=Vtab}=We,Acc) ->
-      case wings_edge_loop:edge_loop_vertices(Edges, We) of
-        [Vs] ->
-          Center = wings_vertex:center(Vs,We),
-          Total = length(Vs),
-          Deg = 360.0/Total,
-          Axis = e3d_vec:norm(wings_face:face_normal_ccw(Vs, Vtab)),
-          {MinRadius,Pos,Index} = get_radius(Vs, Center, Axis, Vtab, 0.0 , minradius, lastpos, firstpos, 0.0, index),
-          VertDegList = degrees_from_static_ray(Vs,Deg,Index,1.0,[]),
-          Ray = e3d_vec:norm(e3d_vec:sub(Pos,Center)),
-          MinRadiusPos = e3d_vec:add(Center,e3d_vec:mul(Ray,MinRadius)),
-          make_circular_1(Vs,We,{Center,Ray,Axis,MinRadiusPos,VertDegList},Acc);
-        _ -> sel_error()
+    Tvs = wings_sel:fold(fun(Edges,We,Acc) ->
+      Groups = wings_edge_loop:edge_loop_vertices(Edges, We),
+      case Groups =/= none of
+        true ->
+          TotalVs = length(wings_edge:to_vertices(Edges,We)),
+          SumCheck = [length(SubGroup) || SubGroup <- Groups],
+          Sum = lists:sum(SumCheck),
+          case TotalVs == Sum of
+            true -> circle_setup_1(Groups,We,Acc);
+            false -> sel_error_1()
+          end;
+        false ->
+          sel_error_2()
       end
     end,[],St),
     Flags = [{mode,{mode(),{none,none,none}}}],
     wings_drag:setup(Tvs,[percent|[falloff]],Flags,St).
+
+circle_setup_1([],_,Acc) ->
+    Acc;
+circle_setup_1([Vs|Groups],#we{vp=Vtab,id=Id}=We,Acc) ->
+    Center = wings_vertex:center(Vs,We),
+    Total = length(Vs),
+    Deg = 360.0/Total,
+    Axis = e3d_vec:norm(wings_face:face_normal_ccw(Vs, Vtab)),
+    {MinRadius,Pos,Index} = get_radius(Vs, Center, Axis, Vtab, 0.0, minradius, lastpos, firstpos, 0.0, index),
+    VertDegList = degrees_from_static_ray(Vs,Deg,Index,1.0,[]),
+    Ray = e3d_vec:norm(e3d_vec:sub(Pos,Center)),
+    MinRadiusPos = e3d_vec:add(Center,e3d_vec:mul(Ray,MinRadius)),
+    VsPos = wings_util:add_vpos(Vs,We),
+    Data = {Center,Ray,Axis,MinRadiusPos,VertDegList},
+    circle_setup_1(Groups,We,[{Id,{Vs,make_circular_fun(Data,VsPos)}}|Acc]).
 
 %%%% Return the Index and position of the Point chosen to represent the stable
 %%%% ray from the chosen Center point on the chosen Plane.
@@ -264,11 +281,6 @@ mode_help_1({none,none,reverse}) ->
 mode_help_1({none,none,none}) ->
     [].
 
-%%%%
-make_circular_1(Vs,#we{id=Id}=We,Data,Acc) ->
-    VsPos = wings_util:add_vpos(Vs,We),
-    [{Id,{Vs,make_circular_fun(Data,VsPos)}}|Acc].
-
 %%%% Mode, Diameter, and Percentage changes
 make_circular_fun(Data,VsPos) ->
     fun
@@ -327,3 +339,7 @@ intersect_vec_plane(PosA,PosB,PlaneNorm) ->
 %%%% Selection error
 sel_error() ->
     wings_u:error(?__(1,"Selection must form a single closed edge loop")).
+sel_error_1() ->
+    wings_u:error(?__(1,"Selected edge loops may not share vertices")).
+sel_error_2() ->
+    wings_u:error(?__(1,"Selection must consist of closed edge loops")).
