@@ -1,6 +1,14 @@
 %% -*- mode:erlang; erlang-indent-level: 2 -*-
 {wpc_pov,
  [
+  {enumerate_colormap_controls,
+   [
+    {1,"Löschen"}
+   ]},
+  {enumerate_normalmap_controls,
+   [
+    {1,"Löschen"}
+   ]},
   {do_export,
    [
     {1,"POV-Ray Export Optionen"}

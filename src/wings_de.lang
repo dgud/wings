@@ -336,13 +336,15 @@
     {4,"[Q]"},
     {5,"Zum schwenken Maus bewegen"},
     {6,"Abbrechen/Ansicht wiederherstellen"},
-    {7,"Ansicht wiederherstellen"}
+    {7,"Ansicht wiederherstellen"},
+    {8,"Zum Schwenken ziehen"}
    ]},
   {mode_help,
    [
     {1,"Schwenken"},
     {2,"Heranfahren"},
-    {3,"Taumeln"}
+    {3,"Taumeln"},
+    {4,"Mausrad: Heranfahren"}
    ]},
   {prefs,
    [

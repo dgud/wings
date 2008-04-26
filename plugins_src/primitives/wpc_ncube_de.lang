@@ -1,0 +1,31 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ncube,
+ [
+  {make_ncube,
+   [
+    {1,"Hyperwürfel Optionen"},
+    {2,"Hyperwürfel"}
+   ]},
+  {make_ngon,
+   [
+    {1,"Polygon Optionen"},
+    {2,"Polygon"}
+   ]},
+  {ncube_dialog,
+   [
+    {1,"Anzahl Schnitte"},
+    {2,"Ja"},
+    {3,"Nein"},
+    {4,"Sphärisch"}
+   ]},
+  {ncube_menu,
+   [
+    {1,"Hyperwürfel"},
+    {2,"Polygon"}
+   ]},
+  {ngon_dialog,
+   [
+    {3,"Anzahl Kanten"},
+    {4,"Radius"}
+   ]}
+ ]}.

@@ -89,7 +89,7 @@
     {4,"HSV"},
     {5,"SSS"},
     {6,"Bild"},
-    {7,"Mix"},
+    {7,"Mischen"},
     {8,"Fresnel"},
     {9,"ConeTr"},
     {10,"Gobo"},
@@ -226,7 +226,8 @@
     {57,"Laden"},
     {58,"Benutzereinstellungen laden"},
     {59,"Zurücksetzen"},
-    {60,"Auf Standardwerte zurücksetzen"}
+    {60,"Auf Standardwerte zurücksetzen"},
+    {61,"Ein"}
    ]},
   {export_faces,
    [
@@ -462,7 +463,7 @@
     {3,"JPEG komprimiertes Bild"},
     {4,"Targa Bitmap"},
     {5,"Aktiviert"},
-    {6,"Mix"},
+    {6,"Mischen"},
     {7,"Multiplizieren"},
     {8,"Addieren"},
     {9,"Löschen"},
