@@ -45,7 +45,8 @@ make_geodome(Arg) ->
     AlgorithmFlag = dict:fetch(algorithmflag, ArgDict),
     {Verts, Faces} = geodome_main(Resolution, AlgorithmFlag, BaseFlag, SpherizeFlag, DomeFlag),
     [H|_] = atom_to_list(AlgorithmFlag),
-    ObjName = lists:concat([[H-32], Resolution, ?__(2,":GeoDome")]),
+    Name = ?__(2,":GeoDome"),
+    ObjName = lists:concat([[H-32], Resolution, Name]),
     {new_shape, ObjName, Faces, Verts}.
 
 dialog() ->
