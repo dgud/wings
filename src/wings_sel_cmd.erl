@@ -96,14 +96,16 @@ menu(St) ->
 		     {"90%",90}]}},
 	   {?__(56,"Short Edges"),
 	    short_edges,?__(57,"Select (too) short edges"),[option]},
-           {?__(87,"Sharp Edges"),
-            sharp_edges,?__(88,"Select sharp edges"),[option]},
-	   {?__(89,"Fewest Edges Path"),
-	    fewest_edges_path,?__(90,"Select the path with the fewest edges between two vertices")},
-	   {?__(91,"Shortest Path (Dijkstra)"),
-	    dijkstra_shortest_path,?__(92,"Select the shortest path between two vertices (Dijkstra)")},
-	   {?__(93,"Shortest Path (A-Star)"),
-	    astar_shortest_path,?__(94,"Select the shortest path between two vertices (A-Star)")},
+	   {?__(87,"Sharp Edges"),
+	    sharp_edges,?__(88,"Select sharp edges"),[option]},
+	   {?__(95,"Vertex Path"),
+	    {vertex_path,
+	     [{?__(89,"Fewest Edges Path"),
+	       fewest_edges_path,?__(90,"Select the path with the fewest edges between two vertices")},
+	      {?__(91,"Shortest Path (Dijkstra)"),
+	       dijkstra_shortest_path,?__(92,"Select the shortest path between two vertices (Dijkstra)")},
+	      {?__(93,"Shortest Path (A-Star)"),
+	       astar_shortest_path,?__(94,"Select the shortest path between two vertices (A-Star)")}]}},
 	   {?__(58,"Material Edges"),material_edges,
 	    ?__(59,"Select all edges between different materials")},
 	   {?__(60,"UV-Mapped Faces"),uv_mapped_faces,
@@ -152,36 +154,36 @@ similar_area_faces_menu(#st{selmode=face}) ->
 similar_area_faces_menu(_) ->
   [].
 
-groups_menu(#st{ssels=Ssels}=St) -> 
+groups_menu(#st{ssels=Ssels}=St) ->
     case gb_trees:is_empty(Ssels) of
-        true -> [];
-        false ->
+	true -> [];
+	false ->
 	    [{?__(1,"Delete Group"),
 	      {delete_group,
 	       groups_and_help(?__(2,"Delete group \""), "\"", St)}},
 	     separator,
 	     {?__(4,"Add to Group"),
-	      {add_to_group, 
+	      {add_to_group,
 	       groups_and_help(?__(5,"Add current selection to group \""),"\"", St)}},
 	     {?__(7,"Subtract from Group"),
 	      {subtract_from_group,
 	       groups_and_help(?__(8,"Subtract current selection from group \""),"\"", St)}},
 	     separator,
 	     {?__(10,"Select Group"),
-	      {select_group, 
+	      {select_group,
 	       groups_and_help(?__(11,"Select group \""), "\"", St)}},
 	     separator,
 	     {?__(13,"Union Group"),
-	      {union_group, 
+	      {union_group,
 	       groups_and_help(?__(14,"Union group \""),?__(15,"\" with current selection"), St)}},
 	     {?__(16,"Subtract Group"),
-	      {subtract_group, 
+	      {subtract_group,
 	       groups_and_help(?__(17,"Subtract group \""),?__(18,"\" from current selection"), St)}},
 	     {?__(19,"Intersect Group"),
-	      {intersect_group, 
+	      {intersect_group,
 	       groups_and_help(?__(20,"Intersect group \""),?__(21,"\" with current selection"), St)}}]
     end.
-      
+
 groups_and_help(Help0, Help1, #st{ssels=Ssels}) ->
     map(fun({Mode,Name}=Key) ->
 		Title = group_title(Name, Mode),
@@ -220,7 +222,7 @@ similar_help(#st{selmode=face}) ->
     ?__(3,"Select faces similar to the already selected faces");
 similar_help(#st{selmode=body}) ->
     ?__(4,"Select objects with the same number of edges, faces, and vertices").
-    
+
 command({edge_loop,edge_loop}, #st{selmode=face}=St) ->
     {save_state,face_region_to_edge_loop(St)};
 command({edge_loop,edge_loop}, St) ->
@@ -322,7 +324,7 @@ by_command({vertices_with,6}, St) ->
 				  Cnt+1
 			  end, 0, V, We),
 		  Cnt >= 6
-	  end, 
+	  end,
     {save_state,wings_sel:make(Sel, vertex, St)};
 by_command({vertices_with,N}, St) ->
     Sel = fun(V, We) ->
@@ -331,7 +333,7 @@ by_command({vertices_with,N}, St) ->
 				  Cnt+1
 			  end, 0, V, We),
 		  Cnt =:= N
-	  end, 
+	  end,
     {save_state,wings_sel:make(Sel, vertex, St)};
 by_command({non_quad,all}, St) ->
     Sel = fun(Face, We) ->
@@ -340,13 +342,13 @@ by_command({non_quad,all}, St) ->
     {save_state,wings_sel:make(Sel, face, St)};
 by_command({non_quad,odd}, St) ->
     Sel = fun(Face, We) ->
-                  Half = wings_face:vertices(Face, We)/2,
+		  Half = wings_face:vertices(Face, We)/2,
 		  trunc(Half) /= Half
 	    end,
     {save_state,wings_sel:make(Sel, face, St)};
 by_command({non_quad,even}, St) ->
     Sel = fun(Face, We) ->
-                  Half = wings_face:vertices(Face, We)/2,
+		  Half = wings_face:vertices(Face, We)/2,
 		  (Half /= 2) and (trunc(Half) == Half)
 	    end,
     {save_state,wings_sel:make(Sel, face, St)};
@@ -368,11 +370,11 @@ by_command({short_edges,Ask}, St) ->
     short_edges(Ask, St);
 by_command({sharp_edges,Ask}, St) ->
     sharp_edges(Ask, St);
-by_command(fewest_edges_path, St) ->
+by_command({vertex_path,fewest_edges_path}, St) ->
     shortest_path(fewest_edges, St);
-by_command(dijkstra_shortest_path, St) ->
+by_command({vertex_path,dijkstra_shortest_path}, St) ->
     shortest_path(dijkstra, St);
-by_command(astar_shortest_path, St) ->
+by_command({vertex_path,astar_shortest_path}, St) ->
     shortest_path(astar, St);
 by_command(uv_mapped_faces, St) ->
     uv_mapped_faces(St);
@@ -394,7 +396,7 @@ face_region_to_edge_loop(St) ->
 subtract_mirror_edges(Es, #we{mirror=none}) -> Es;
 subtract_mirror_edges(Es, #we{mirror=Face}=We) ->
     Es -- wings_face:to_edges([Face], We).
-    
+
 %%%
 %%% Selection commands.
 %%%
@@ -431,7 +433,7 @@ inverse(#st{selmode=Mode}=St) ->
 	    fun(Items, #we{id=Id}=We, A) ->
 		    Diff = wings_sel:inverse_items(Mode, Items, We),
 		    case gb_sets:is_empty(Diff) of
-			true -> [{Id,Items}|A];	%Can't inverse.
+			true -> [{Id,Items}|A]; %Can't inverse.
 			false -> [{Id,Diff}|A]
 		    end
 	    end, [], St),
@@ -469,7 +471,7 @@ update_unsel(Perm, #st{shapes=Shs0,sel=Sel}=St) ->
 	       end, gb_trees:values(Shs0)),
     Shs = gb_trees:from_orddict(Shs1),
     St#st{shapes=Shs}.
-    
+
 %%%
 %%% Selection Groups
 %%%
@@ -482,7 +484,7 @@ union_group(Key, #st{sel=Sel0}=St) ->
 union(Sa, Sb) ->
     combine_sel(fun(Ss) -> gb_sets:union(Ss) end, Sa, Sb).
 
-subtract_group(Key, #st{sel=Sel0}=St) ->		
+subtract_group(Key, #st{sel=Sel0}=St) ->
     Ssel = coerce_ssel(Key, St),
     Sel = subtract(Sel0, Ssel),
     St#st{sel=Sel}.
@@ -510,7 +512,7 @@ intersection(Sa, Sb) ->
     combine_sel(fun([_]) -> Empty;
 		   (Ss) -> gb_sets:intersection(Ss)
 		end, Sa, Sb).
-			
+
 combine_sel(Combine, Sa, Sb) ->
     combine_sel(Combine, lists:merge(Sa, Sb)).
 combine_sel(Combine, [{Id,Sa},{Id,Sb}|T]) ->
@@ -529,7 +531,7 @@ combine_sel(_Combine, []) -> [].
 
 coerce_ssel({Mode,_}=Key, #st{ssels=Ssels}=St) ->
     case gb_trees:is_defined(Key,Ssels) of
-	true -> 
+	true ->
 	    Ssel = gb_trees:get(Key, Ssels),
 	    coerce_ssel(Mode, Ssel, St);
 	false ->
@@ -546,7 +548,7 @@ select_group({Mode,_}=Key, #st{ssels=Ssels}=St) ->
     Ssel = gb_trees:get(Key, Ssels),
     ValidSel = wings_sel:valid_sel(Ssel, Mode, St),
     St#st{selmode=Mode,sel=ValidSel}.
-  
+
 add_to_group({Mode,_}=Key, #st{ssels=Ssels}=St) ->
     Ssel0 = gb_trees:get(Key, Ssels),
     Ssel1 = wings_sel:valid_sel(Ssel0, Mode, St),
@@ -560,14 +562,14 @@ subtract_from_group({Mode,_}=Key, #st{ssels=Ssels}=St) ->
     #st{sel=Sel} = possibly_convert(Mode, St),
     Ssel = subtract(Ssel1, Sel),
     save_group(Key, Ssel, St).
-    
+
 possibly_convert(Mode, #st{selmode=Mode}=St) -> St;
 possibly_convert(Mode, St) -> wings_sel_conv:mode(Mode, St).
-    
+
 save_group(Key, Sel, #st{ssels=Ssels0}=St) ->
     Ssels = gb_trees:update(Key, Sel, Ssels0),
     St#st{ssels=Ssels}.
-    
+
 new_group(_) ->
     wings_ask:ask(?__(1,"Create New Group"),
 		  [{?__(2,"Group Name"), ""}],
@@ -583,7 +585,7 @@ new_group_name(Name, #st{ssels=Ssels0,selmode=Mode,sel=Sel}=St) ->
 	    GroupMode = group_mode_string(Mode),
 	    Exists = ?__(exists,"already exists."),
 	    Msg0 = [GroupMode," \"",Name,"\" ",Exists],
-            Msg = lists:flatten(Msg0),
+	    Msg = lists:flatten(Msg0),
 	    wings_u:error(Msg)
     end,
     Ssels = gb_trees:insert(Key, Sel, Ssels0),
@@ -648,7 +650,7 @@ match_body(Template, #we{vp=Vtab,es=Etab,fs=Ftab}) ->
 match_body_1([Sizes|_], Sizes) -> true;
 match_body_1([_|T], Sizes) -> match_body_1(T, Sizes);
 match_body_1([], _) -> false.
-    
+
 match_templates(F, [Template|Ts]) ->
     case match_template(F, Template) of
 	true -> true;
@@ -845,7 +847,7 @@ valid_sel(Prompt, Sel, #st{shapes=Shs,selmode=Mode}=St) ->
 	    end;
 	Sel -> Sel
     end.
-    
+
 ask(Qs, Fun) ->
     wings_ask:ask(?__(1,"Select By Id"), Qs,
 		  fun(Res) ->
@@ -907,8 +909,8 @@ nonplanar_faces(Ask, _St) when is_atom(Ask) ->
 		     fun(Res) -> {select,{by,{nonplanar_faces,Res}}} end);
 nonplanar_faces([Tolerance], St) ->
     Sel = fun(Face, We) ->
-              not wings_face:is_planar(Tolerance,Face,We)
-          end,
+	      not wings_face:is_planar(Tolerance,Face,We)
+	  end,
     {save_state,wings_sel:make(Sel, face, St)}.
 
 %%%
@@ -926,13 +928,13 @@ oriented_faces(Ask, _St) when is_atom(Ask) ->
 oriented_faces([Tolerance], St) ->
     CosTolerance = math:cos(Tolerance * (math:pi() / 180.0)),
     Normals = wings_sel:fold(fun(Sel0, We, A) ->
-                                 [wings_face:normal(SelI, We) ||
-			             SelI <- gb_sets:to_list(Sel0)] ++ A
-	                     end, [], St),
+				 [wings_face:normal(SelI, We) ||
+				     SelI <- gb_sets:to_list(Sel0)] ++ A
+			     end, [], St),
     Sel = fun(Face, We) ->
-              Normal = wings_face:normal(Face,We),
-              any_matching_normal(CosTolerance, Normal, Normals)
-          end,
+	      Normal = wings_face:normal(Face,We),
+	      any_matching_normal(CosTolerance, Normal, Normals)
+	  end,
     {save_state,wings_sel:make(Sel, face, St)}.
 
 any_matching_normal(_,_,[]) ->
@@ -950,17 +952,17 @@ any_matching_normal(CosTolerance, Normal, [N|T]) ->
 
 sharp_edges(Ask, _St) when is_atom(Ask) ->
     Qs = [{label,?__(1,"Max Angle")},
-          {text,120.0,[{range,{0.0,180.0}}]}],
-    wings_ask:dialog(Ask, 
-        ?__(2,"Select Sharp Edges"), [{hframe,Qs}],
-        fun(Res) ->
-            {select,{by,{sharp_edges,Res}}} 
-        end);
+	  {text,120.0,[{range,{0.0,180.0}}]}],
+    wings_ask:dialog(Ask,
+	?__(2,"Select Sharp Edges"), [{hframe,Qs}],
+	fun(Res) ->
+	    {select,{by,{sharp_edges,Res}}}
+	end);
 sharp_edges([Tolerance], St0) ->
     CosTolerance = -math:cos(Tolerance * math:pi() / 180.0),
     St = wings_sel:make(fun(Edge, We) ->
-             sharp_edge(CosTolerance, Edge, We)
-         end, edge, St0),
+	     sharp_edge(CosTolerance, Edge, We)
+	 end, edge, St0),
     {save_state,St}.
 
 sharp_edge(CosTolerance, Edge, #we{es=Etab}=We) ->
@@ -1170,11 +1172,11 @@ build_digraph(Graph, E, Vtab) ->
 similar_area(Ask, _St) when is_atom(Ask) ->
     Qs = [{label,?__(1,"Area Tolerance")},
 	  {text,0.001,[{range,{0.0,100.0}}]}],
-    wings_ask:dialog(Ask, 
+    wings_ask:dialog(Ask,
 	?__(2,"Select Similar Area"), [{hframe,Qs}],
-        fun(Res) ->
+	fun(Res) ->
 	    {select,{similar_area,Res}}
-        end);
+	end);
 similar_area([Tolerance], St) ->
     #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
     case (Mode==face) and (length(Sel)==1) of
