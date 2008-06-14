@@ -1,4 +1,4 @@
---- 0.99.xx -----------------------------------------------------------------
+--- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
   shared a single vertex (and not any edge). Now a proper error message
   is given. Same correction for the Scale, Rotate, and Flatten commands
@@ -24,6 +24,8 @@
 - New Feature: Edge|Circularise. A plugin to flatten, equalise, and inflate an
   edge loop to its maximum or user specified diameter. Basic and Advanced menu
   options availble. [optigon]
+
+- Now using Erlang/OTP R12B-3. [bjorng]
 
 --- 0.99.02 -----------------------------------------------------------------
 - Now using Erlang/OTP R12B-1. The build instructions have been updated with
