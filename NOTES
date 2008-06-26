@@ -1,3 +1,7 @@
+--- 0.99.XX -----------------------------------------------------------------
+- New Feature: Edge|Arc. A plugin to flatten equalise and inflate a partial
+  edge loop into an arc. [optigon]
+
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
   shared a single vertex (and not any edge). Now a proper error message

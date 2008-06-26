@@ -579,6 +579,8 @@ make_query_1([U0|Units], [V|Vals]) ->
 	    [{hframe,[{label,?__(2,"A")},
 		      {text,V,qrange(U0)},{label,[?DEGREE]}]}|
 	     make_query_1(Units, Vals)];
+	skip ->
+	     make_query_1(Units, Vals);
 	U ->
 	    [{hframe,[{label,qstr(U)},{text,V,qrange(U0)}]}|
 	     make_query_1(Units, Vals)]
@@ -609,6 +611,8 @@ safe_mul_100(A) ->
 make_move(Move, #drag{unit=Units}) ->
     make_move_1(Units, Move).
 
+make_move_1([skip|Units],Vals) ->
+    [0|make_move_1(Units, Vals)];
 make_move_1([{percent,_}=Unit|Units], [V|Vals]) ->
     [clamp(Unit, V/100)|make_move_1(Units, Vals)];
 make_move_1([percent|Units], [V|Vals]) ->
@@ -1002,6 +1006,9 @@ unit(percent, P) ->
     trim(io_lib:format("~.2f%  ", [P*100.0]));
 unit(falloff, R) ->
     ["R: "|trim(io_lib:format("~10.2f", [R]))];
+unit(skip,_) ->
+    %% the atom 'skip' can be used as a place holder. See wpc_arc.erl
+    [];
 unit(Unit, Move) ->
     io:format("~p\n", [{Unit,Move}]),
     [].
