@@ -169,7 +169,7 @@ arc_center_setup(Plane,Center,Vs,#we{id=Id}=We,St) ->
     VsPos = wings_util:add_vpos(Vertices,We),
     Data = {Angle, CenterPoint, Plane, VPos1, DegVertList, NumVs},
 
-    State = {none,normal,accute},
+    State = {none,normal,acute},
     Tvs = [{Id,{Vertices,make_arc_center_fun(Data,State,VsPos)}}],
     Flags = [{mode,{center_modes(),State}},{initial,[1.0]}],
     Units = [percent],
@@ -186,8 +186,8 @@ intersect_vec_plane(PosA,PosB,PlaneNorm) ->
 %%%% Center Modes
 center_modes() ->
     fun(help, State) -> mode_help(State);
-      ({key,$1},{none,_norm,accute}) -> {none,_norm,obtuse};
-      ({key,$1},{none,_norm,obtuse}) -> {none,_norm,accute};
+      ({key,$1},{none,_norm,acute}) -> {none,_norm,obtuse};
+      ({key,$1},{none,_norm,obtuse}) -> {none,_norm,acute};
       ({key,$2},{none,normal,_angle}) -> {none,reverse,_angle};
       ({key,$2},{none,reverse,_angle}) -> {none,normal,_angle};
       (_,_) -> none
@@ -198,8 +198,8 @@ mode_help({_,Norm,Angle}) ->
     [angle_help(Angle),
      norm_help(Norm)].
 
-angle_help(accute) -> ?__(1,"[1] Use Obtuse Angle");
-angle_help(obtuse) -> ?__(2,"[1] Use Accute Angle").
+angle_help(acute) -> ?__(1,"[1] Use Obtuse Angle");
+angle_help(obtuse) -> ?__(2,"[1] Use Acute Angle").
 norm_help(normal) -> ?__(1,"[2] Flip Arc Normal");
 norm_help(reverse) -> ?__(2,"[2] Flip Arc Normal Back").
 
@@ -301,7 +301,7 @@ arc(Vertex, Vpos, {Cross, Opp, Plane, VPos1, Hinge, DegVertList, NumVs}, Percent
 arc_center(_,Vpos,_,_,0.0) ->
     Vpos;
 
-arc_center(Vertex, Vpos, {Angle, CenterPoint, Plane, VPos1, DegVertList, NumVs},{_,normal,accute}, Percent) ->
+arc_center(Vertex, Vpos, {Angle, CenterPoint, Plane, VPos1, DegVertList, NumVs},{_,normal,acute}, Percent) ->
     {_,{_,Index}} = lists:keysearch(Vertex, 1, DegVertList),
     Deg = Angle / NumVs,
     RotationAmount = -Deg * Index,
@@ -319,7 +319,7 @@ arc_center(Vertex, Vpos, {Angle, CenterPoint, Plane, VPos1, DegVertList, NumVs},
     Factor = abs(e3d_vec:dist(NewPos,Vpos)),
     e3d_vec:add(Vpos, e3d_vec:mul(Norm, Percent * Factor));
 
-arc_center(Vertex, Vpos, {Angle, CenterPoint, Plane, VPos1, DegVertList, NumVs},{_,reverse,accute}, Percent) ->
+arc_center(Vertex, Vpos, {Angle, CenterPoint, Plane, VPos1, DegVertList, NumVs},{_,reverse,acute}, Percent) ->
     {_,{_,Index}} = lists:keysearch(Vertex, 1, DegVertList),
     Deg = Angle / NumVs,
     RotationAmount = Deg * Index,
