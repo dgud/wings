@@ -31,7 +31,6 @@ endif
 MODULES= \
 	wpc_absolute_move \
 	wpc_absolute_scale \
-	wpc_arc \
 	wpc_bend \
 	wpc_circularise \
 	wpc_connect_tool \
