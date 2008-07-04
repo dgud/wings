@@ -488,6 +488,7 @@ repeatable(Mode, Cmd) ->
 
     %% Commands safe in all modes.
     {_,{move,normal}} when Mode == body -> no;
+	{_,{move,region}} when Mode =/= face -> no;
     {_,{move,_}=C} -> {Mode,C};
     {_,{rotate,normal}} when Mode == body -> no;
     {_,{rotate,_}=C} -> {Mode,C};
