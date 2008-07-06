@@ -336,6 +336,9 @@ command(show_edges, St) ->
 	    wings_dl:map(fun(D, _) -> D#dlo{hard=none} end, []),
 	    St
     end;
+command(highlight_aim, {St0,St}) ->
+    highlight_aim(St0,St),
+    St0;
 command(aim, St) ->
     aim(St),
     St;
@@ -934,6 +937,46 @@ view_matrix(#view{origin=Origin,distance=Dist,azimuth=Az,elevation=El,
     M1 = e3d_mat:mul(M0, e3d_mat:rotate(-Az, {0.0,1.0,0.0})),
     M2 = e3d_mat:mul(M1, e3d_mat:rotate(-El, {1.0,0.0,0.0})),
     e3d_mat:mul(M2, e3d_mat:translate(-PanX, -PanY, Dist)).
+
+%%%% Highlight Aim is called through the View|Aim command (see wings:do_hotkey/2)
+highlight_aim(#st{selmode=body}=St0, St) ->
+    highlight_aim(wings_sel_conv:mode(vertex,St0),wings_sel_conv:mode(vertex,St));
+
+highlight_aim(#st{selmode = Mode, sel=Sel0}=St0, #st{sel=Sel,shapes=Shs}=St) ->
+    Elems0 = lists:foldl(fun({Id,Elements}, Acc) ->
+                    [{Id, gb_sets:to_list(Elements)}|Acc]
+                    end, [], Sel0),
+	Elems = lists:foldl(fun({Id,Elements}, Acc) ->
+                    [{Id, gb_sets:to_list(Elements)}|Acc]
+                    end, [], Sel),
+    {TargetId,Target} = case length(Elems0) == length(Elems) of
+                          true -> 
+                            highlight_aim_2(Elems0, Elems);
+                          false -> 
+                            [TargetElems] = Elems -- Elems0,
+                            TargetElems
+                        end,
+    We = gb_trees:get(TargetId, Shs),
+    TargetVs = case Mode of
+                 vertex -> Target;
+                 edge -> wings_edge:to_vertices(Target,We);
+                 face -> wings_face:to_vertices(Target,We)
+               end,
+    Origin0 = wings_vertex:center(TargetVs,We),
+    Origin = e3d_vec:neg(Origin0),
+    #view{distance=Dist0} = View = current(),
+    Dist = case e3d_vec:dist(eye_point(), Origin0) of
+           D when D < Dist0 -> D;
+           _Other -> Dist0
+       end,
+    set_current(View#view{origin=Origin,distance=Dist,pan_x=0.0,pan_y=0.0}).
+
+highlight_aim_2([Items0|Elems0],[Items|Elems]) when Items0 == Items ->
+    highlight_aim_2(Elems0,Elems);
+
+highlight_aim_2([{_,Items0}|_Elems0],[{Id,Items}|_Elems]) ->
+    Target = Items -- Items0,
+    {Id,Target}.
 
 aim(#st{sel=[]}) ->
     View = current(),

@@ -405,7 +405,24 @@ do_hotkey(Ev, #st{sel=[]}=St0) ->
         _Other -> do_hotkey_1(Ev, St0)
         end
     end;
-do_hotkey(Ev, St) -> do_hotkey_1(Ev, St).
+
+%%%% Hack to get a basic form of Highlight Aim (see wings_view:highlight_aim/2)
+do_hotkey(Ev, St0) ->
+    case wings_pref:get_value(use_temp_sel) of
+    false ->
+        do_hotkey_1(Ev, St0);
+    true ->
+        {_,X,Y} = wings_wm:local_mouse_state(),
+        case wings_pick:do_pick(X, Y, St0) of
+        {add,_,St} ->
+            case wings_hotkey:event(Ev, St) of
+            next -> next;
+            {view,aim} -> {{view,highlight_aim},{St0,St}};
+            Cmd -> {Cmd, St}
+            end;
+        _Other -> do_hotkey_1(Ev, St0)
+        end
+    end.
 
 do_hotkey_1(Ev, St) ->
     case wings_hotkey:event(Ev, St) of
@@ -488,7 +505,7 @@ repeatable(Mode, Cmd) ->
 
     %% Commands safe in all modes.
     {_,{move,normal}} when Mode == body -> no;
-	{_,{move,region}} when Mode =/= face -> no;
+    {_,{move,region}} when Mode =/= face -> no;
     {_,{move,_}=C} -> {Mode,C};
     {_,{rotate,normal}} when Mode == body -> no;
     {_,{rotate,_}=C} -> {Mode,C};
@@ -1519,4 +1536,3 @@ area_volume(Face, We) ->
     Area = e3d_vec:len(Cp)/2.0,
     Volume = e3d_vec:dot(V1, Bc)/6.0,
     {Area, Volume}.
-
