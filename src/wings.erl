@@ -414,13 +414,14 @@ do_hotkey(Ev, St0) ->
     true ->
         {_,X,Y} = wings_wm:local_mouse_state(),
         case wings_pick:do_pick(X, Y, St0) of
-        {add,_,St} ->
-            case wings_hotkey:event(Ev, St) of
-            next -> next;
-            {view,aim} -> {{view,highlight_aim},{St0,St}};
-            Cmd -> {Cmd, St}
-            end;
-        _Other -> do_hotkey_1(Ev, St0)
+            {add,_,St} ->
+                case wings_hotkey:event(Ev, St) of
+                  next -> next;
+                  {view,aim} -> {{view,highlight_aim},{St0,St}};
+                  Cmd -> {Cmd, St0}
+                end;
+            _Other ->
+                do_hotkey_1(Ev, St0)
         end
     end.
 
