@@ -194,11 +194,47 @@ seg_event_5(Ev, #seg{st=St0}=Ss) ->
 
 seg_event_6({new_state,St}, Ss) ->
     get_seg_event(Ss#seg{st=St});
+
+seg_event_6({action,{view,aim}}, #seg{st=St0}=Ss) ->
+    St1 = fake_selection(St0),
+    wings_view:command(aim, St1),
+    get_seg_event(Ss);
+
 seg_event_6({action,{view,Cmd}}, #seg{st=St0}=Ss) ->
-    case wings_view:command(Cmd, St0) of
-	#st{}=St -> get_seg_event(Ss#seg{st=St});
-	Other -> Other
+    case Cmd of
+    aim -> 
+        St1 = fake_selection(St0),
+        wings_view:command(aim, St1),
+        get_seg_event(Ss);
+    highlight_aim ->
+        #st{sel=Sel} = St0,
+        case  Sel =:= [] of
+          true ->
+            St1 = fake_selection(St0),
+            wings_view:command(aim, St1),
+            get_seg_event(Ss);
+          false ->
+            HL0 = wings_pref:get_value(highlight_aim_at_unselected),
+            HL1 = wings_pref:get_value(highlight_aim_at_selected),
+            {_,X,Y} = wings_wm:local_mouse_state(),
+            {{_,Cmd},St1} = case wings_pick:do_pick(X, Y, St0) of
+                  {add,_,St2} when HL0 =:= true ->
+                      {{view,highlight_aim},{add,St0,St2}};
+                  {delete,_,St2} when HL1 =:= true ->
+                      {{view,highlight_aim},{delete,St0,St2}};
+                  _Other -> 
+                      {{view,aim}, St0}
+            end,
+            wings_view:command(Cmd,St1),
+            get_seg_event(Ss)
+        end;
+    true ->
+        case wings_view:command(Cmd, St0) of
+            #st{}=St -> get_seg_event(Ss#seg{st=St});
+            Other -> Other
+        end
     end;
+
 seg_event_6({action,{select,Cmd}}, #seg{st=St0}=Ss) ->
     case wings_sel_cmd:command(Cmd, St0) of
 	St0 ->     keep;
@@ -407,3 +443,22 @@ camera_dir(_) -> none.
 
 cleanup_before_exit() ->
     wings_dl:delete_dlists().
+
+fake_selection(St) ->
+    wings_dl:fold(fun(#dlo{src_sel=none}, S) ->
+			  %% No selection, try highlighting.
+			  fake_sel_1(S);
+		     (#dlo{src_we=#we{id=Id},src_sel={Mode,Els}}, S) ->
+			  S#st{selmode=Mode,sel=[{Id,Els}]}
+		  end, St).
+
+fake_sel_1(St0) ->
+    case wings_pref:get_value(use_temp_sel) of
+	false -> St0;
+	true ->
+	    {_,X,Y} = wings_wm:local_mouse_state(),
+	    case wings_pick:do_pick(X, Y, St0) of
+		{add,_,St} -> St;
+		_ -> St0
+	    end
+    end.
