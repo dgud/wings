@@ -395,6 +395,7 @@ do_hotkey(Ev, #st{sel=[]}=St0) ->
         {add,_,St} ->
             case wings_hotkey:event(Ev, St) of
             next -> next;
+            {view,highlight_aim} -> {{view,aim},set_temp_sel(St0, St)};
             Cmd ->
                 case highlight_sel_style(Cmd) of
                 none -> {Cmd,St0};
@@ -409,25 +410,20 @@ do_hotkey(Ev, #st{sel=[]}=St0) ->
 %%%% Hack to get a basic form of Highlight Aim (see wings_view:highlight_aim/2)
 do_hotkey(Ev, St0) ->
     case wings_pref:get_value(use_temp_sel) of
-    false ->
+      false ->
         do_hotkey_1(Ev, St0);
-    true ->
-        {_,X,Y} = wings_wm:local_mouse_state(),
-        case wings_pick:do_pick(X, Y, St0) of
-            {add,_,St} ->
-                case wings_hotkey:event(Ev, St) of
-                  next -> next;
-                  {view,aim} -> {{view,highlight_aim},{St0,St}};
-                  Cmd -> {Cmd, St0}
-                end;
-            _Other ->
-                do_hotkey_1(Ev, St0)
+      true ->
+        case wings_hotkey:event(Ev, St0) of
+          next -> next;
+          {view,highlight_aim} -> highlight_aim_setup(St0);
+          Cmd -> {Cmd,St0}
         end
     end.
 
 do_hotkey_1(Ev, St) ->
     case wings_hotkey:event(Ev, St) of
     next -> next;
+    {view,highlight_aim} -> {{view,aim}, St};
     Cmd -> {Cmd,St}
     end.
 
@@ -446,6 +442,7 @@ highlight_sel_style({select,{adjacent,_}}) -> none;
 highlight_sel_style({select,_}) -> permanent;
 highlight_sel_style({view,align_to_selection}) -> temporary;
 highlight_sel_style({view,aim}) -> temporary;
+highlight_sel_style({view,highlight_aim}) -> temporary;
 highlight_sel_style({view,frame}) -> temporary;
 
 highlight_sel_style(_) -> none.
@@ -1537,3 +1534,13 @@ area_volume(Face, We) ->
     Area = e3d_vec:len(Cp)/2.0,
     Volume = e3d_vec:dot(V1, Bc)/6.0,
     {Area, Volume}.
+
+highlight_aim_setup(St0) ->
+    HL0 = wings_pref:get_value(highlight_aim_at_unselected),
+    HL1 = wings_pref:get_value(highlight_aim_at_selected),
+    {_,X,Y} = wings_wm:local_mouse_state(),
+    case wings_pick:do_pick(X, Y, St0) of
+      {add,_,St} when HL0 =:= true -> {{view,highlight_aim},{add,St0,St}};
+      {delete,_,St} when HL1 =:= true -> {{view,highlight_aim},{delete,St0,St}};
+	  _Other           -> {{view,aim}, St0}
+    end.

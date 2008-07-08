@@ -1,6 +1,13 @@
 --- 0.99.XX -----------------------------------------------------------------
-- New Feature: Edge|Arc. A plugin to flatten equalise and inflate a partial
-  edge loop into an arc. [optigon]
+- New Feature: Added the ability to circularise open edge loops, and
+  made the flatten feature optional when using Circularaise. [optigon]
+
+- New Feature: View|Highlight Aim. Aim the camera at temporary highlighted
+  geometry. Options for this feature are in Edit|Preferences|Advanced allow
+  you to choose the kinds of selections Hightlight Aim targets. [optigon]
+
+- Repeating Move|Region in selection modes other than Face caused Wings to
+  crash. Now fixed. [optigon]
 
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only

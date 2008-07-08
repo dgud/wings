@@ -57,8 +57,10 @@ menu(#st{views={CurrentView,Views}}=St) ->
      separator,
      {?__(25,"Reset View"),reset,?__(26,"Reset view to the default position")},
      {?__(27,"Aim"),aim,?__(28,"Aim the camera at the selected element")},
+     {?__(66,"Highlight Aim"),highlight_aim,
+      ?__(67,"Aim camera at mouseover highlight. (Requires 'Use Highlight as Temporary Selection' enabled, and an assigned hotkey)")},
      {?__(29,"Frame"),frame,?__(30,"Dolly to show all selected elements (or all objects if nothing is selected)")},
-	 {?__(65,"Frame Disregards Mirror"),frame_mode,crossmark(frame_disregards_mirror)},
+     {?__(65,"Frame Disregards Mirror"),frame_mode,crossmark(frame_disregards_mirror)},
      {?__(31,"Orthographic View"),orthogonal_view,
       ?__(32,"Toggle between orthographic and perspective views"),
       crossmark(orthogonal_view)},
@@ -336,9 +338,15 @@ command(show_edges, St) ->
 	    wings_dl:map(fun(D, _) -> D#dlo{hard=none} end, []),
 	    St
     end;
-command(highlight_aim, {St0,St}) ->
+command(highlight_aim, {add,St0,St}) ->
     highlight_aim(St0,St),
     St0;
+command(highlight_aim, {delete,St0,St}) ->
+    highlight_aim(St,St0),
+    St0;
+command(highlight_aim, St) ->
+    aim(St),
+    St;
 command(aim, St) ->
     aim(St),
     St;
@@ -939,29 +947,15 @@ view_matrix(#view{origin=Origin,distance=Dist,azimuth=Az,elevation=El,
     e3d_mat:mul(M2, e3d_mat:translate(-PanX, -PanY, Dist)).
 
 %%%% Highlight Aim is called through the View|Aim command (see wings:do_hotkey/2)
-highlight_aim(#st{selmode=body}=St0, St) ->
+highlight_aim(St0, #st{selmode=body}=St) ->
     highlight_aim(wings_sel_conv:mode(vertex,St0),wings_sel_conv:mode(vertex,St));
 
-highlight_aim(#st{selmode = Mode, sel=Sel0}=St0, #st{sel=Sel,shapes=Shs}=St) ->
-    Elems0 = lists:foldl(fun({Id,Elements}, Acc) ->
-                    [{Id, gb_sets:to_list(Elements)}|Acc]
-                    end, [], Sel0),
-	Elems = lists:foldl(fun({Id,Elements}, Acc) ->
-                    [{Id, gb_sets:to_list(Elements)}|Acc]
-                    end, [], Sel),
-    {TargetId,Target} = case length(Elems0) == length(Elems) of
-                          true -> 
-                            highlight_aim_2(Elems0, Elems);
-                          false -> 
-                            [TargetElems] = Elems -- Elems0,
-                            TargetElems
-                        end,
+highlight_aim(#st{sel=Sel0}, #st{selmode=Mode, sel=Sel, shapes=Shs}) ->
+    Elems0 = highlight_aim_1(Sel0),
+	Elems = highlight_aim_1(Sel),
+    {TargetId,Target} = highlight_target(Elems0, Elems),
     We = gb_trees:get(TargetId, Shs),
-    TargetVs = case Mode of
-                 vertex -> Target;
-                 edge -> wings_edge:to_vertices(Target,We);
-                 face -> wings_face:to_vertices(Target,We)
-               end,
+    TargetVs = target_vs(Mode, Target, We),
     Origin0 = wings_vertex:center(TargetVs,We),
     Origin = e3d_vec:neg(Origin0),
     #view{distance=Dist0} = View = current(),
@@ -971,12 +965,33 @@ highlight_aim(#st{selmode = Mode, sel=Sel0}=St0, #st{sel=Sel,shapes=Shs}=St) ->
        end,
     set_current(View#view{origin=Origin,distance=Dist,pan_x=0.0,pan_y=0.0}).
 
+highlight_aim_1(Sel) ->
+    lists:foldl(fun({Id,Elements}, Acc) ->
+        [{Id, gb_sets:to_list(Elements)}|Acc]
+        end, [], Sel).
+
+highlight_target(Elems0, Elems) ->
+    case length(Elems0) == length(Elems) of
+      true -> 
+        highlight_aim_2(Elems0, Elems);
+      false -> 
+        [TargetElems] = Elems -- Elems0,
+        TargetElems
+    end.
+
 highlight_aim_2([Items0|Elems0],[Items|Elems]) when Items0 == Items ->
     highlight_aim_2(Elems0,Elems);
 
 highlight_aim_2([{_,Items0}|_Elems0],[{Id,Items}|_Elems]) ->
     Target = Items -- Items0,
     {Id,Target}.
+
+target_vs(vertex, Target, _) ->
+    Target;
+target_vs(edge, Target, We) ->
+    wings_edge:to_vertices(Target,We);
+target_vs(face, Target, We) ->
+    wings_face:to_vertices(Target,We).
 
 aim(#st{sel=[]}) ->
     View = current(),

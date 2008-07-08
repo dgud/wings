@@ -158,6 +158,10 @@ advanced_prefs() ->
 			       not gb_trees:get(use_temp_sel, Store);
 		       (_, _) ->	void
 		   end,
+    HighlightDisable = fun (is_disabled, {_Var,_I,Store}) ->
+		       not gb_trees:get(use_temp_sel, Store);
+		       (_, _) ->	void
+		   end,
     Flags = [{hook,DisableHook}],
 
     {vframe,
@@ -188,11 +192,15 @@ advanced_prefs() ->
        [{title,?__(20,"Vector Display")}]},
       {vframe,
        [{label_column,
-	 [{?__(23,"Size"),clip_plane_size,
-	   [{info,?__(24,"Size of user-defined clipping indicator")},{range,{0.1,100.0}}|Flags]},
-	  {color,?__(25,"Color"),clip_plane_color,
-	   [{info,?__(26,"Color of user-defined clipping indicator")}]}]}],
-       [{title,?__(27,"Clipping Plane Indicator")}]}]}.
+     [{?__(23,"Size"),clip_plane_size,
+       [{info,?__(24,"Size of user-defined clipping indicator")},{range,{0.1,100.0}}|Flags]},
+      {color,?__(25,"Color"),clip_plane_color,
+       [{info,?__(26,"Color of user-defined clipping indicator")}]}]}],
+       [{title,?__(27,"Clipping Plane Indicator")}]},
+     {vframe,
+       [{?__(28,"Selected Geometry"),highlight_aim_at_selected},
+        {?__(29,"Unselected Geometry"),highlight_aim_at_unselected}],
+       [{title,?__(30,"Highlight Aim Targets")},{hook,HighlightDisable}]}]}.
 
 constraint_prefs() ->
     A = wings_s:modkey(alt),

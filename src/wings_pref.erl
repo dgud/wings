@@ -412,6 +412,8 @@ defaults() ->
      {use_mirror_for_sels,true},
      {clip_plane_color,{0.8,0.3,0.0}},
      {clip_plane_size,1.5},
+     {highlight_aim_at_selected,false},
+     {highlight_aim_at_unselected,true},
 
      %% Constraints preferences.
      {con_dist_alt,10.0},

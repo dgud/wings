@@ -209,8 +209,51 @@ handle_event_4({action,{select,Cmd}}, Ss, St0) ->
 	{save_state,St} -> filter_sel_command(Ss, St);
 	keep -> keep
     end;
+
 handle_event_4({action,{view,auto_rotate}}, _, _) ->
     keep;
+
+%%%% Vector op Highlight Aim
+handle_event_4({action,{view,highlight_aim}}, Ss, St0) ->
+    case wings_pref:get_value(use_temp_sel) of
+      false ->
+	    handle_event_4({action,{view,aim}}, Ss, St0);
+      true ->
+        HL0 = wings_pref:get_value(highlight_aim_at_unselected),
+        HL1 = wings_pref:get_value(highlight_aim_at_selected),
+        {_,X,Y} = wings_wm:local_mouse_state(),
+        {{_,Cmd},St1} = case wings_pick:do_pick(X, Y, St0) of
+          {add,_,St} when HL0 =:= true ->
+              {{view,highlight_aim},{add,St0,St}};
+          {delete,_,St} when HL1 =:= true ->
+              {{view,highlight_aim},{delete,St0,St}};
+          _Other -> 
+              {{view,aim}, St0}
+        end,
+        St2 = wings_view:command(Cmd,St1),
+        get_event(Ss, St2)
+    end;
+
+%%%% Temporary Select Aim for View commands with no selection
+handle_event_4({action,{view,Cmd}}, Ss, #st{sel=[]}=St0)
+  when Cmd == align_to_selection; Cmd == aim; Cmd == frame ->
+    case wings_pref:get_value(use_temp_sel) of
+    false ->
+      St = wings_view:command(Cmd, St0),
+      get_event(Ss, St);
+    true ->
+      {_,X,Y} = wings_wm:local_mouse_state(),
+      case wings_pick:do_pick(X, Y, St0) of
+        {add,_,St} ->
+          St1 = wings_view:command(Cmd,St),
+		  St2 = wings_sel:clear(St1),
+          get_event(Ss, St2);
+        _Other ->
+          St = wings_view:command(Cmd, St0),
+          get_event(Ss, St)
+      end
+    end;
+
 handle_event_4({action,{view,Cmd}}, Ss, St0) ->
     St = wings_view:command(Cmd, St0),
     get_event(Ss, St);
