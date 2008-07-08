@@ -25,14 +25,14 @@ menu(_,Menu) ->
 parse([], NewMenu, true) ->
     NewMenu;
 parse([], NewMenu, false) ->
-    [sweep_menu(), separator|NewMenu];
+    [sweep_menu_headings(), separator|NewMenu];
 parse([separator,A = {_,inset,_}|Rest], NewMenu, false) ->
-    parse(Rest, [A,separator,sweep_menu(),separator|NewMenu], true);
+    parse(Rest, [A,separator,sweep_menu_headings(),separator|NewMenu], true);
 parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 
-sweep_menu() ->
-    [sweep_menu(sweep_regular),
+sweep_menu_headings() ->
+    [sweep_menu(sweep_extrude),
      sweep_menu(sweep_region),
      sweep_menu(sweep_extract)].
 
@@ -45,20 +45,20 @@ sweep_menu(Type) ->
       true ->
         F = fun(help, _Ns) ->
           Str1 = menu_string_1(Type),
-          Str3 = ?__(2,"Pick axis"),
-          {Str1,[],Str3};
+		  Str2 = ?__(2,"Pick axis and measure extrusion relative to selection's length along that axis"),
+          Str3 = ?__(3,"Pick axis"),
+          {Str1,Str2,Str3};
           (1, _Ns) -> xyz(Type);
-          (2, _Ns) -> ignore;
-          (3, _Ns) -> Ask = [plane],
-                      {face,{Type,{'ASK',Ask}}}
+          (2, _Ns) -> {face,{Type,{relative,{'ASK',[plane]}}}};
+          (3, _Ns) -> {face,{Type,{absolute,{'ASK',[plane]}}}}
         end,
         {MenuTitle,{sweep_extrude,F}}
     end.
-menu_title(sweep_regular) -> ?__(1,"Sweep");
+menu_title(sweep_extrude) -> ?__(1,"Sweep");
 menu_title(sweep_region) ->  ?__(2,"Sweep Region");
 menu_title(sweep_extract) -> ?__(3,"Sweep Extract").
 
-menu_string_1(sweep_regular) ->
+menu_string_1(sweep_extrude) ->
     ?__(1,"Extrude along normal, using standard side to side axis");
 menu_string_1(sweep_region) ->
     ?__(2,"Extrude region along its normal, using standard side to side axis");
@@ -85,7 +85,14 @@ axis_menu(Type,Axis) ->
         end,
         {AxisStr,F,Help};
       true ->
-        F = {face,{Type,Axis}},
+	      F = fun
+		  (help, _Ns) ->
+            Str3 = ?__(1,"Extrusion relative to selection's length along axis"),
+            {Help,[],Str3};
+          (1, _Ns) -> {face,{Type,{absolute,Axis}}};
+          (3, _Ns) -> {face,{Type,{relative,Axis}}};
+		  (_,_) -> ignore
+        end,
         {AxisStr,{Axis,F},Help}
     end.
 
@@ -98,26 +105,27 @@ axis_menu_string(Axis) ->
     Str = ?__(3,"If the ~s axis is perpendicular to the extrusion normal, all movement will be constrained to its radial plane. Otherwise, it acts as an off axis component."),
     wings_util:format(Str,[AxisStr]).
 
-command({face,{sweep_regular,{'ASK',Ask}}},St) ->
+%%%% Commands
+command({face,{sweep_extrude,{Type,{'ASK',Ask}}}},St) ->
     wings:ask(selection_ask(Ask), St, fun (Axis,St0) ->
-        sweep_extrude(Axis,St0)
+        sweep_extrude({Type,Axis},St0)
     end);
-command({face,{sweep_regular,Axis}},St) ->
-    sweep_extrude(Axis,St);
+command({face,{sweep_extrude,{Type,Axis}}},St) ->
+    sweep_extrude({Type,Axis},St);
 
-command({face,{sweep_region,{'ASK',Ask}}},St) ->
+command({face,{sweep_region,{Type,{'ASK',Ask}}}},St) ->
     wings:ask(selection_ask(Ask), St, fun (Axis,St0) ->
-        sweep_region(Axis,St0)
+        sweep_region({Type,Axis},St0)
     end);
-command({face,{sweep_region,Axis}},St) ->
-    sweep_region(Axis,St);
+command({face,{sweep_region,{Type,Axis}}},St) ->
+    sweep_region({Type,Axis},St);
 
-command({face,{sweep_extract,{'ASK',Ask}}},St) ->
+command({face,{sweep_extract,{Type,{'ASK',Ask}}}},St) ->
     wings:ask(selection_ask(Ask), St, fun (Axis,St0) ->
-        sweep_extract(Axis,St0)
+        sweep_extract({Type,Axis},St0)
     end);
-command({face,{sweep_extract,Axis}},St) ->
-    sweep_extract(Axis,St);
+command({face,{sweep_extract,{Type,Axis}}},St) ->
+    sweep_extract({Type,Axis},St);
 
 command(_,_) -> next.
 
@@ -201,7 +209,7 @@ sweep_extract(Axis, St0) ->                                                   %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% Setup
-sweep_setup(Axis,ExSt) ->
+sweep_setup({Type,Axis},ExSt) ->
     Warp = wings_pref:get_value(sweep_mode,unwarped),
     Cntr = wings_pref:get_value(sweep_center,region),
     State = {unlocked,Axis,Warp,Cntr},
@@ -213,18 +221,23 @@ sweep_setup(Axis,ExSt) ->
     SelCntr = wings_sel:center(St),
     Tvs = wings_sel:fold(fun(Fs, We, Acc) ->
             AllVs = wings_face:to_vertices(Fs,We),
-            Data = face_region(Fs,We,Axis,SelCntr,AllVs,State),
+            Data = face_region_1(Type,Fs,We,Axis,SelCntr,AllVs,State),
             sweep_data_setup(AllVs,ExVs,We,Data,State,Acc)
             end, [], St),
-    Units = [angle,distance,percent,angle],
+    Units = units(Type),
     Flags = [{mode,{modes(),State}}|flag(Axis)],
     wings_drag:setup(Tvs, Units, Flags, ExSt).
 
-%%%% More Setup: Get face region normals
-face_region(Fs,We,Axis,SelCntr,AllVs,State) ->
-    face_region(wings_sel:face_regions(Fs,We),We,Axis,SelCntr,AllVs,State,[]).
+units(absolute) -> [angle,distance,percent,angle];
+units(relative) -> [angle,percent,percent,angle].
 
-face_region([Fs0|Regions], We, Axis0, SelCntr0, AllVs, State, NormAcc0) ->
+%%%% More Setup: Get face region normals
+face_region_1(Type,Fs,We,Axis,SelCntr,AllVs,State) ->
+    face_region_2(wings_sel:face_regions(Fs,We),We,Axis,SelCntr,AllVs,State,Type,[]).
+
+face_region_2([], _, _, _, _, _, _, Acc) ->
+    Acc;
+face_region_2([Fs0|Regions], We, Axis0, SelCntr0, AllVs, State, Type, NormAcc0) ->
     Fs = gb_sets:to_list(Fs0),
     NormsForRegion = lists:foldl(fun(Face,Acc) ->
             Norm = wings_face:normal(Face,We),
@@ -238,10 +251,12 @@ face_region([Fs0|Regions], We, Axis0, SelCntr0, AllVs, State, NormAcc0) ->
     Axis = e3d_vec:norm(axis_conversion(Axis0,RegNorm)),
     Norm = get_norm_data(Axis,RegNorm),
     SelCntr = lowest_point_relative_to_norm(SelCntr0,RegNorm,AllVs,We),
+	
+	MaxLength = max_dist_along_axis(Type, RegVs, RegCntr0, We, Axis),
+	
     {Warp,Center} = specify_warp_and_center(Axis,Norm,RegCntr,SelCntr,State),
-    NormAcc = [{RegVs,Axis,RegNorm,Norm,RegCntr,SelCntr,{Warp,Center}}|NormAcc0],
-    face_region(Regions, We, Axis0, SelCntr0, AllVs, State, NormAcc);
-face_region([], _, _, _, _, _, Acc) -> Acc.
+    NormAcc = [{RegVs,Axis,RegNorm,Norm,RegCntr,SelCntr,MaxLength,{Warp,Center}}|NormAcc0],
+    face_region_2(Regions, We, Axis0, SelCntr0, AllVs, State, Type, NormAcc).
 
 %%%% Finish Setup
 sweep_data_setup(AllVs,ExVs,#we{id=Id}=We,Data,State,Acc) ->
@@ -249,24 +264,35 @@ sweep_data_setup(AllVs,ExVs,#we{id=Id}=We,Data,State,Acc) ->
     [{Id,{AllVs,sweep_fun(VsPos,ExVs,Data,State)}}|Acc].
 
 %%%% Setup Utilities
-lowest_point_relative_to_norm(C,Norm,Vs,We) ->
+lowest_point_relative_to_norm(Center,Norm,Vs,We) ->
     {Nx,Ny,Nz} = e3d_vec:neg(Norm),
     case {Nx,Ny,Nz} of
       {0.0,0.0,0.0} -> sweep_error();
       _other ->
-        {Cx,Cy,Cz} = C,
+        {Cx,Cy,Cz} = Center,
         DistList = lists:foldl(fun(V,Acc) ->
             {Vx,Vy,Vz} = wings_vertex:pos(V,We),
             [(Nx*(Cx-Vx)+Ny*(Cy-Vy)+Nz*(Cz-Vz))|Acc]
             end,[],Vs),
         Lowest = lists:min(DistList),
-        e3d_vec:add(C, e3d_vec:mul(Norm, Lowest))
+        e3d_vec:add(Center, e3d_vec:mul(Norm, Lowest))
     end.
 
 get_norm_data(Axis0,Norm) ->
     Axis1 = e3d_vec:cross(Norm,Axis0),
     Axis = e3d_vec:cross(Axis1,Norm),
     e3d_vec:norm(Axis).
+
+max_dist_along_axis(absolute, _, _, _, _) ->
+    none;
+max_dist_along_axis(relative, Vs, Center, We, Axis) ->
+    {Ax,Ay,Az} = Axis,
+    {Cx,Cy,Cz} = Center,
+    DistList = lists:foldl(fun(V,Acc) ->
+	    {Vx,Vy,Vz} = wings_vertex:pos(V,We),
+		[(Ax*(Cx-Vx)+Ay*(Cy-Vy)+Az*(Cz-Vz))|Acc]
+        end,[],Vs),
+	abs(lists:min(DistList)) + abs(lists:max(DistList)).
 
 %%%% Change data depending on the current Warp mode
 specify_warp_and_center(Axis,_Norm,_RegCntr,SelCntr,{_lock,_mode,warped,common}) ->
@@ -323,10 +349,10 @@ sweep_fun(VsPos,ExVs,Data,State) ->
         case Lock of
           unlocked ->
             NewAxis = e3d_vec:norm(view_vector()),
-            NewData = lists:foldl(fun({RegVs,_Axis,RegNorm,_Norm,RegCntr,SelCntr,{_Warp,_Center}},Acc) ->
+            NewData = lists:foldl(fun({RegVs,_Axis,RegNorm,_Norm,RegCntr,SelCntr,MaxLength,{_Warp,_Center}},Acc) ->
                 NewNorm = get_norm_data(NewAxis,RegNorm),
                 {Warp,Center} = specify_warp_and_center(NewAxis,NewNorm,RegCntr,SelCntr,State),
-                [{RegVs,NewAxis,RegNorm,NewNorm,RegCntr,SelCntr,{Warp,Center}}|Acc]
+                [{RegVs,NewAxis,RegNorm,NewNorm,RegCntr,SelCntr,MaxLength,{Warp,Center}}|Acc]
                 end,[],Data),
             sweep_fun(VsPos,ExVs,NewData,State);
           locked ->
@@ -340,9 +366,9 @@ sweep_fun(VsPos,ExVs,Data,State) ->
           true ->
             sweep_fun(VsPos,ExVs,Data,NewState);
           false ->
-            NewData = lists:foldl(fun({RegVs,Axis,RegNorm,Norm,RegCntr,SelCntr,_},Acc) ->
+            NewData = lists:foldl(fun({RegVs,Axis,RegNorm,Norm,RegCntr,SelCntr,MaxLength,_},Acc) ->
                 {Warp,Center} = specify_warp_and_center(Axis,Norm,RegCntr,SelCntr,NewState),
-                [{RegVs,Axis,RegNorm,Norm,RegCntr,SelCntr,{Warp,Center}}|Acc]
+                [{RegVs,Axis,RegNorm,Norm,RegCntr,SelCntr,MaxLength,{Warp,Center}}|Acc]
                 end,[],Data),
             sweep_fun(VsPos,ExVs,NewData,NewState)
         end;
@@ -360,35 +386,45 @@ sweep_verts2(VsPos,ExVs,Data,DragData,A) ->
 sweep(_V,Vpos,_ExVs,_Data,{0.0,0.0,0.0,0.0}) ->
     Vpos;
 
-sweep(V,Vpos,ExVs,Data,DistData) ->
-    lists:foldl(fun({RegVs,_,RegNorm,Norm,_,_,{Warp,Center}},Acc) ->
+sweep(V,Vpos,ExVs,Data,DragData) ->
+    lists:foldl(fun({RegVs,_,RegNorm,Norm,_,_,MaxLength,{Warp,Center}},Acc) ->
             case {lists:member(V,RegVs),lists:member(V,ExVs)} of
               {true,true} ->
-                extruded_face(Vpos,RegNorm,Norm,Warp,Center,DistData);
+                extruded_face(MaxLength,Vpos,RegNorm,Norm,Warp,Center,DragData);
               {true,false} ->
-                seed_face(Vpos,RegNorm,Norm,Warp,Center,DistData);
+                seed_face(Vpos,RegNorm,Norm,Warp,Center,DragData);
               {_,_} -> Acc
             end
     end,[],Data).
 
-extruded_face(Vpos,RegNorm,Norm,Warp,Center,{Angle,Dist,0.0,0.0}) ->
-    out_and_side_to_side(Vpos,RegNorm,Norm,Warp,Center,Angle,Dist);
+extruded_face(MaxLength,Vpos,RegNorm,Norm,Warp,Center,{Angle,Dist,0.0,0.0}) ->
+    out_and_side_to_side(MaxLength,Vpos,RegNorm,Norm,Warp,Center,Angle,Dist);
 
-extruded_face(Vpos,RegNorm,Norm,Warp,Center,{Angle,Dist,0.0,Scale}) ->
+extruded_face(MaxLength,Vpos,RegNorm,Norm,Warp,Center,{Angle,Dist,0.0,Scale}) ->
     ScPos = scale_extruded_section(Vpos,Center,Scale),
-    out_and_side_to_side(ScPos,RegNorm,Norm,Warp,Center,Angle,Dist);
+    out_and_side_to_side(MaxLength,ScPos,RegNorm,Norm,Warp,Center,Angle,Dist);
 
-extruded_face(Vpos,RegNorm,Norm,Warp,Center,{Angle,Dist,Rotate,0.0}) ->
+extruded_face(MaxLength,Vpos,RegNorm,Norm,Warp,Center,{Angle,Dist,Rotate,0.0}) ->
     RotatePos = rotate(Vpos,RegNorm,Center,Rotate),
-    out_and_side_to_side(RotatePos,RegNorm,Norm,Warp,Center,Angle,Dist);
+    out_and_side_to_side(MaxLength,RotatePos,RegNorm,Norm,Warp,Center,Angle,Dist);
 
-extruded_face(Vpos,RegNorm,Norm,Warp,Center,{Angle,Dist,Rotate,Scale}) ->
+extruded_face(MaxLength,Vpos,RegNorm,Norm,Warp,Center,{Angle,Dist,Rotate,Scale}) ->
     RotatePos = rotate(Vpos,RegNorm,Center,Rotate),
     ScPos = scale_extruded_section(RotatePos,Center,Scale),
-    out_and_side_to_side(ScPos,RegNorm,Norm,Warp,Center,Angle,Dist).
+    out_and_side_to_side(MaxLength,ScPos,RegNorm,Norm,Warp,Center,Angle,Dist).
 
-out_and_side_to_side(Vpos,RegNorm,Norm,Warp,Center,Angle,Dist) ->
+out_and_side_to_side(none,Vpos,RegNorm,Norm,Warp,Center,Angle,Dist) ->
     ExPos = e3d_vec:add(Vpos,e3d_vec:mul(RegNorm, Dist)),
+    Deg = e3d_vec:degrees(Norm,RegNorm),
+    case ((Deg == 0.0) or (Deg == 180.0)) of
+      true ->
+        ExPos;
+      false ->
+        rotate(ExPos,Warp,Center,Angle*2)
+    end;
+
+out_and_side_to_side(MaxLength,Vpos,RegNorm,Norm,Warp,Center,Angle,Percent) ->
+    ExPos = e3d_vec:add(Vpos,e3d_vec:mul(RegNorm, Percent*MaxLength)),
     Deg = e3d_vec:degrees(Norm,RegNorm),
     case ((Deg == 0.0) or (Deg == 180.0)) of
       true ->

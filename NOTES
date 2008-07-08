@@ -12,6 +12,8 @@
 - Selecting every face of an object during a vector op would crash wings.
   Now fixed. [optigon]
 
+- Added Relative mode to Sweep commands. [optigon]
+
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
   shared a single vertex (and not any edge). Now a proper error message
