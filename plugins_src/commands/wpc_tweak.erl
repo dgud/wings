@@ -227,6 +227,16 @@ handle_tweak_event1({action,Action}, #tweak{st=St0}=T) ->
 	    St = fake_selection(St0),
 	    wings_view:command(aim, St),
 	    update_tweak_handler(T);
+	{view,highlight_aim} ->
+	    St = fake_selection(St0),
+	    case wings_pref:get_value(highlight_aim_at_unselected) of
+	      false ->
+	          wings_view:command(aim, St0),
+	          update_tweak_handler(T);
+	      true ->
+	          wings_view:command(aim, St),
+	          update_tweak_handler(T)
+	    end;
 	{view,Cmd} ->
 	    case wings_view:command(Cmd, St0) of
 		keep ->
