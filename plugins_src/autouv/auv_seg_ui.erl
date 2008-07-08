@@ -195,11 +195,6 @@ seg_event_5(Ev, #seg{st=St0}=Ss) ->
 seg_event_6({new_state,St}, Ss) ->
     get_seg_event(Ss#seg{st=St});
 
-seg_event_6({action,{view,aim}}, #seg{st=St0}=Ss) ->
-    St1 = fake_selection(St0),
-    wings_view:command(aim, St1),
-    get_seg_event(Ss);
-
 seg_event_6({action,{view,Cmd}}, #seg{st=St0}=Ss) ->
     case Cmd of
     aim -> 
