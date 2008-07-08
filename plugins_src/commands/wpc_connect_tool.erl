@@ -188,6 +188,16 @@ handle_connect_event1({action,Action}, #cs{st=St0}=C) ->
 	    St = fake_selection(St0),
 	    wings_view:command(aim, St),
 	    update_connect_handler(C);
+	{view,highlight_aim} ->
+	    St = fake_selection(St0),
+	    case wings_pref:get_value(highlight_aim_at_unselected) of
+	      false ->
+	          wings_view:command(aim, St0),
+	          update_connect_handler(C);
+	      true ->
+	          wings_view:command(aim, St),
+	          update_connect_handler(C)
+	    end;
 	{view,Cmd} ->
 	    case wings_view:command(Cmd, St0) of
 		keep ->
