@@ -531,6 +531,10 @@ collect_outer_edges([Face|Fs], Faces, We, Acc0) ->
 		    outer_edge(Erec, Face, Faces, A)
 	    end, Acc0, Face, We),
     collect_outer_edges(Fs, Faces, We, Acc);
+
+collect_outer_edges([], _Faces, _We, []) ->
+    error;
+
 collect_outer_edges([], _Faces, _We, Acc) ->
     R = sofs:relation(Acc),
     F0 = sofs:relation_to_family(R),
