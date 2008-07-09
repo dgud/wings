@@ -1511,10 +1511,15 @@ get_mode_restriction() ->
 
 area_volume_info(St) ->
     #st{shapes=Shapes} = St,
-    Header = io_lib:fwrite("~s: '~s' [~s] (~s)\n", ["#", "Object Name", "Area", "Volume"]),
+    Header = io_lib:fwrite("~s: '~s' [~s] (~s)\n", ["#", ?__(1,"Object Name"),
+                           ?__(2,"Area"),?__(3, "Volume")]),
     Info = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
     Msg = lists:flatten(Header ++ Info),
-    wings_help:help_window("Scene Info: Area & Volume", [Msg]).
+    Bytes = byte_size(term_to_binary(St)),
+    MB = Bytes/1048576,
+    Usage = io_lib:format(?__(4,"Your scene is using: ~p bytes (~s Mb)"),
+            [Bytes,wings_util:nice_float(MB)]),
+    wings_help:help_window(?__(5,"Scene Info: Area & Volume"), [Msg] ++ [Usage]).
 
 get_object_info(Id, Shapes) ->
     We0 = gb_trees:get(Id, Shapes),
@@ -1542,5 +1547,5 @@ highlight_aim_setup(St0) ->
     case wings_pick:do_pick(X, Y, St0) of
       {add,_,St} when HL0 =:= true -> {{view,highlight_aim},{add,St0,St}};
       {delete,_,St} when HL1 =:= true -> {{view,highlight_aim},{delete,St0,St}};
-	  _Other           -> {{view,aim}, St0}
+      _Other           -> {{view,aim}, St0}
     end.
