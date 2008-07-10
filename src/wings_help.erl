@@ -207,7 +207,11 @@ performance_tips(Head) ->
 	 B++?__(5,"type of graphics card"),
 	 B++?__(6,"amount of video memory"),
 	 B++?__(7,"the phase of the moon"),
+
 	 ?__(8,"Therefore, it is difficult to give any firm advice on how to improve Wings performance. The following tips MAY improve performance:"),
+
+	 B++?__(31,"Use fewer Undo levels. Setting to 4 or less (default 32) will let you work on models with almost 8 times the detail. In this case, using a shorter autosave period (default 10mins) may be advisable."),
+
 	 B++?__(9,"Try different number of colors and different screen resolutions. Especially if the graphics card doesn't have much memory, many colors and/or high resolution may drastically reduce performance. Using a smaller Wings window (not maximized) may also help."),
 
 	 B++?__(10,"Close unnecessary windows inside Wings."),

@@ -243,8 +243,8 @@ command({edge_loop,prev_edge_loop}, St) ->
     {save_state,wings_edge_loop:select_prev(St)};
 command({edge_loop,edge_loop_to_region}, St) ->
     {save_state,wings_edge:select_region(St)};
-command(deselect,St) ->
-   {save_state,wings_sel:reset(St)};
+command(deselect, St) ->
+    {save_state,wings_sel:reset(St)};
 command(more, St) ->
     wings_sel_conv:more(St);
 command(less, St) ->
