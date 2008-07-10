@@ -952,7 +952,7 @@ highlight_aim(St0, #st{selmode=body}=St) ->
 
 highlight_aim(#st{sel=Sel0}, #st{selmode=Mode, sel=Sel, shapes=Shs}) ->
     Elems0 = highlight_aim_1(Sel0),
-	Elems = highlight_aim_1(Sel),
+    Elems = highlight_aim_1(Sel),
     {TargetId,Target} = highlight_target(Elems0, Elems),
     We = gb_trees:get(TargetId, Shs),
     TargetVs = target_vs(Mode, Target, We),

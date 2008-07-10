@@ -517,7 +517,7 @@ misc_prefs() ->
 	       {text,autosave_time,[{hook,AutoFun},{range,{1,1440}}]},
 	       {label,?__(3,"minutes")}]},
       {hframe,[{label,?__(4,"Undo levels")},
-	       {text,num_undo_levels,[{range,{10,128}}]}]},
+	       {text,num_undo_levels,[{range,{1,128}}]}]},
       {vframe,
        [{label_column,
 	 [{?__(5,"Angle"),auto_rotate_angle},

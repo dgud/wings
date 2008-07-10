@@ -232,6 +232,9 @@ unregister_postdraw_hook(Window, Id) ->
         ok
     end.
 
+save_state(St, St) ->
+    main_loop(St);
+
 save_state(St0, St1) ->
     St2 = wings_undo:save(St0, St1),
     St = case St2 of
@@ -434,6 +437,7 @@ highlight_sel_style({body,_}) -> temporary;
 highlight_sel_style({edit,repeat}) -> temporary;
 highlight_sel_style({edit,repeat_args}) -> temporary;
 highlight_sel_style({edit,repeat_drag}) -> temporary;
+highlight_sel_style({select,deselect}) -> none;
 highlight_sel_style({select,vertex}) -> none;
 highlight_sel_style({select,edge}) -> none;
 highlight_sel_style({select,face}) -> none;
@@ -669,6 +673,9 @@ command({tools, screenshot}, St) ->
 command({tools, area_volume_info}, St) ->
     area_volume_info(St),
     St;
+command({tools, scene_size_info}, St) ->
+    scene_size_info(St),
+    St;
 command({tools, put_on_ground}, St) ->
     {save_state,wings_align:put_on_ground(St)};
 command({tools, unitize}, St) ->
@@ -770,6 +777,8 @@ tools_menu(_) ->
      separator,
      {?__(26,"Scene Info: Area & Volume"), area_volume_info,
       ?__(27,"Calculate area and volume for each object in the scene")},
+	 {?__(32,"Memory Usage"), scene_size_info,
+	  ?__(33,"Calculate the memory usage for the current scene from the saved state")},
      {?__(28,"Put on Ground"), put_on_ground,
       ?__(29,"Put selected objects on the ground plane")},
      {?__(30,"Unitize"), unitize,
@@ -1515,11 +1524,7 @@ area_volume_info(St) ->
                            ?__(2,"Area"),?__(3, "Volume")]),
     Info = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
     Msg = lists:flatten(Header ++ Info),
-    Bytes = byte_size(term_to_binary(St)),
-    MB = Bytes/1048576,
-    Usage = io_lib:format(?__(4,"Your scene is using: ~p bytes (~s Mb)"),
-            [Bytes,wings_util:nice_float(MB)]),
-    wings_help:help_window(?__(5,"Scene Info: Area & Volume"), [Msg] ++ [Usage]).
+    wings_help:help_window(?__(5,"Scene Info: Area & Volume"), [Msg]).
 
 get_object_info(Id, Shapes) ->
     We0 = gb_trees:get(Id, Shapes),
@@ -1539,6 +1544,19 @@ area_volume(Face, We) ->
     Area = e3d_vec:len(Cp)/2.0,
     Volume = e3d_vec:dot(V1, Bc)/6.0,
     {Area, Volume}.
+
+scene_size_info(St) ->
+    Bytes = byte_size(term_to_binary(St)),
+    MB = Bytes/1048576,
+	{Unit,Amount} = best_unit(Bytes,MB),
+    Usage = io_lib:format(?__(1,"Your scene is using ~p bytes [~s ~s]"),
+            [Bytes,wings_util:nice_float(Amount), Unit]),
+    wings_help:help_window(?__(2,"Memory Usage"), [Usage]).
+
+best_unit(Bytes,MB) when  MB < 1.0 ->
+    {"KB",Bytes/1024};
+best_unit(_, MB) ->
+    {"MB",MB}.
 
 highlight_aim_setup(St0) ->
     HL0 = wings_pref:get_value(highlight_aim_at_unselected),
