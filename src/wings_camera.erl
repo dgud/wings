@@ -36,7 +36,7 @@
 -record(state, {st, func}).
 
 init() ->
-    wings_pref:set_default(camera_mode, mirai),
+    wings_pref:set_default(camera_mode, wings_cam),
     wings_pref:set_default(num_buttons, 3),
     wings_pref:set_default(pan_speed, 25),
     wings_pref:set_default(pan_speed_arrow_keys, 50),

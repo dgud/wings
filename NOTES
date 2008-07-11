@@ -27,6 +27,10 @@
 - Deselecting with nothing selected would add an unnecessary undo state. Now
   fixed. (Thanks to Giniu.) [optigon]
 
+- Lowered minimum undo level to 1. [optigon]
+
+- Changed default camera mode to Wings 3D mode. [optigon]
+
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
   shared a single vertex (and not any edge). Now a proper error message
