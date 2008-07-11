@@ -81,7 +81,7 @@ axis_menu(Type,Axis) ->
     case wings_pref:get_value(advanced_menus) of
       false ->
         F = fun(1, _Ns) ->
-          {face,{Type,Axis}}
+          {face,{Type,{absolute,Axis}}}
         end,
         {AxisStr,F,Help};
       true ->
@@ -493,4 +493,4 @@ view_vector() ->
     #view{azimuth=Az,elevation=El} = wings_view:current(),
     M0 = e3d_mat:rotate(-Az, {0.0,1.0,0.0}),
     M = e3d_mat:mul(M0, e3d_mat:rotate(-El, {1.0,0.0,0.0})),
-    e3d_mat:mul_point(M, {0.0,0.0,1.0}).
+    e3d_mat:mul_point(M, {0.0,0.0,-1.0}).

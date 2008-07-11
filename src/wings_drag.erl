@@ -722,7 +722,7 @@ mouse_range(#mousemotion{x=X0,y=Y0,state=Mask},
 		    Xs = Xs0,
 		    Ys = Ys0,
 		    Zs = Zs0,
-		    Fp = Fp0 + YD,
+		    Fp = Fp0 + XD,
 		    FpCount = FpCount0 +1,
 		    Count = Count0;
 		  {_,_} ->
