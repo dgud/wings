@@ -807,7 +807,7 @@ menubar_redraw(Mb) ->
     {menubar,Client} = wings_wm:this(),
     wings_io:ortho_setup(none),
     {W,H} = wings_wm:win_size(Client),
-    wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR),
+    wings_io:border(0, 0, W-1, H-1, wings_pref:get_value(menu_bar_bg)),
     Menubar = wings_wm:get_menubar(Client),
     menubar_redraw_1(Menubar, Mb),
     get_menu_event(Mb#mb{bar=Menubar}).

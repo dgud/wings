@@ -480,6 +480,8 @@ defaults() ->
      {title_active_color,{0.41,0.55,0.41,1.0}},
      {title_passive_color,{0.325,0.4,0.325,1.0}},
      {title_text_color,{1.0,1.0,1.0}},
+     {menu_bar_bg,{0.52,0.52,0.52}},
+     {info_line_bg,{0.52,0.52,0.52}},
      {no_progress_bar,false},
      {interface_icons,bluecube},
      {objects_in_outliner,true},

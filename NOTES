@@ -12,7 +12,20 @@
 - Selecting every face of an object during a vector op would crash wings.
   Now fixed. [optigon]
 
+- Sweep Free side to side motion was reversed. Now fixed. (Thanks to GetaVe)
+  [optigon]
+
 - Added Relative mode to Sweep commands. [optigon]
+
+- New utility Tools|Memory Usage.  Measures how much memory your current scene
+  is using. (Thanks to Giniu.) [optigon]
+
+- New colour prefs for the Menu Bar and Info Line backgrounds. [optigon]
+
+- Reorganized View menu. [optigon]
+
+- Deselecting with nothing selected would add an unnecessary undo state. Now
+  fixed. (Thanks to Giniu.) [optigon]
 
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only

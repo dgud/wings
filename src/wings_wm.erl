@@ -1120,7 +1120,7 @@ message_redraw(Msg, Right) ->
 message_setup() ->
     wings_io:ortho_setup(none),
     {W,H} = win_size(),
-    wings_io:gradient_rect(0, 0, W, H, ?PANE_COLOR),
+    wings_io:gradient_rect(0, 0, W, H, wings_pref:get_value(info_line_bg)),
     gl:color3b(0, 0, 0),
     gl:translatef(10, H-5.375, 0),
     {W,H}.
