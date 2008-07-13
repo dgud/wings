@@ -54,9 +54,13 @@ command({edge,{circularise,{'ASK',Ask}}}, #st{shapes=Shs,sel=[{Id,Sel}]}=St) ->
           true ->
             circle_setup(St);
           false ->
-            wings:ask(selection_ask(Ask), St, fun(Plane,St0) ->
-            arc_setup(Plane,Vs,We,St0)
-            end)
+            case wings_pref:get_value(advanced_menus) of
+              false -> circ_sel_error_3();
+              true ->
+                wings:ask(selection_ask(Ask), St, fun(Plane,St0) ->
+                arc_setup(Plane,Vs,We,St0)
+                end)
+            end
         end;
       _ -> circle_setup(St)
     end;
@@ -658,3 +662,5 @@ circ_sel_error_1() ->
     wings_u:error(?__(1,"Selected edge loops may not share vertices")).
 circ_sel_error_2() ->
     wings_u:error(?__(1,"Selection must consist of closed edge loops\nor a single open edge loop")).
+circ_sel_error_3() ->
+    wings_u:error(?__(1,"Circularising open edge loops requires advanced menus")).
