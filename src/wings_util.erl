@@ -100,13 +100,13 @@ quote(Str) when is_list(Str) ->
     [$",Str,$"].
 
 stringify({Atom,Other}) when is_atom(Atom) ->
-    cap(atom_to_list(Atom)) ++
-	case stringify(Other) of
-	    [] -> [];
-	    Str -> "|" ++ Str
-	end;
+    translation_string(Atom) ++
+    case stringify(Other) of
+        [] -> [];
+        Str -> "|" ++ Str
+    end;
 stringify(Atom) when is_atom(Atom) ->
-    cap(atom_to_list(Atom));
+    translation_string(Atom);
 stringify(Int) when is_integer(Int) ->
     integer_to_list(Int);
 stringify(_Other) -> [].
@@ -325,4 +325,353 @@ lib_dir(wings) ->
     end;
 lib_dir(Lib) ->
     code:lib_dir(Lib).
-    
+
+% % % % % % % % % % % % % % % % % % %
+%% Strings for Translating Hotkeys %%
+% % % % % % % % % % % % % % % % % % %
+
+%%%% Selection Modes
+translation_string(vertex) -> ?__(1,"Vertex");
+translation_string(edge)   -> ?__(2,"Edge");
+translation_string(face)   -> ?__(3,"Face");
+translation_string(body)   -> ?__(4,"Body");
+translation_string(light)  -> ?__(5,"Light");
+
+%%%% Menu Headers
+translation_string(file)   -> ?__(6,"File");
+translation_string(edit)   -> ?__(7,"Edit");
+translation_string(view)   -> ?__(8,"View");
+translation_string(select) -> ?__(9,"Select");
+translation_string(tools)  -> ?__(10,"Tools");
+translation_string(window) -> ?__(11,"Window");
+translation_string(help)   -> ?__(12,"Help");
+
+%%%% File Menu
+translation_string(new)             -> ?__(13,"New");
+translation_string(open)            -> ?__(14,"Open");
+translation_string(merge)           -> ?__(15,"Merge");
+translation_string(save)            -> ?__(16,"Save");
+translation_string(save_as)         -> ?__(17,"Save As");
+translation_string(save_selected)   -> ?__(18,"Save Selected");
+translation_string(save_incr)       -> ?__(19,"Save Incrementally");
+translation_string(revert)          -> ?__(20,"Revert");
+translation_string(import)          -> ?__(21,"Import");
+translation_string(export)          -> ?__(22,"Export");
+translation_string(export_selected) -> ?__(23,"Export Selected");
+translation_string(import_image)    -> ?__(24,"Import Image");
+translation_string(render)          -> ?__(25,"Render");
+translation_string(install_plugin)  -> ?__(26,"Install Plugin");
+translation_string(quit)            -> ?__(27,"Exit");
+
+%%%% Import Export Formats
+%% these probably don't need translating
+
+%%%% Edit Menu
+translation_string(undo_toggle)     -> ?__(28,"Undo/Redo");
+translation_string(undo)            -> ?__(29,"Undo");
+translation_string(redo)            -> ?__(30,"Redo");
+translation_string(repeat)          -> ?__(31,"Repeat");
+translation_string(repeat_args)     -> ?__(32,"Repeat Args");
+translation_string(repeat_drag)     -> ?__(33,"Repeat Drag");
+translation_string(purge_undo)      -> ?__(34,"Purge Undo");
+translation_string(preferences)     -> ?__(35,"Preferences");
+translation_string(prefs)           -> ?__(36,"Prefs");
+translation_string(plugin_manager)  -> ?__(37,"Plugin Manager");
+
+%%%% View Menu
+translation_string(show_groundplane)    -> ?__(38,"Show Ground Plane");
+translation_string(show_axes)           -> ?__(39,"Show Axes");
+translation_string(show_info_text)      -> ?__(40,"Show Info Text");
+translation_string(workmode)            -> ?__(41,"Workmode");
+translation_string(wireframe)           -> ?__(42,"Wireframe");
+translation_string(shade)               -> ?__(43,"Shade");
+translation_string(toggle_wirefrfame)   -> ?__(44,"Toggle Wireframe");
+translation_string(show_edges)          -> ?__(45,"Show Edges");
+translation_string(show_wire_backfaces) -> ?__(46,"Show Wireframe Backfaces");
+translation_string(smooth_proxy)        -> ?__(47,"Toggle Smooth Proxy");
+translation_string(quick_preview)       -> ?__(48,"Quick Smoothed Preview");
+translation_string(show_bb)             -> ?__(49,"Show Bounding Box");
+translation_string(clip_plane)          -> ?__(50,"Clipping Plane");
+translation_string(show_normals)        -> ?__(51,"Show Normals");
+translation_string(show_colors)         -> ?__(52,"Show Colors");
+translation_string(show_materials)      -> ?__(53,"Show Materials");
+translation_string(show_textures)       -> ?__(54,"Show Textures");
+translation_string(scene_lights)        -> ?__(55,"Scene Lights");
+translation_string(toggle_lights)       -> ?__(56,"Toggle Lights");
+translation_string(orthogonal_view)     -> ?__(57,"Orthographic View");
+translation_string(reset)               -> ?__(58,"Reset View");
+translation_string(aim)                 -> ?__(59,"Aim");
+translation_string(highlight_aim)       -> ?__(60,"Highlight Aim");
+translation_string(frame)               -> ?__(61,"Frame");
+translation_string(frame_mode)          -> ?__(62,"Frame Mode");
+translation_string(align_to_selection)  -> ?__(63,"Align to Selection");
+translation_string(next)                -> ?__(64,"Next");
+translation_string(pref)                -> ?__(65,"Prev");
+translation_string(current)             -> ?__(66,"Current");
+translation_string(jump)                -> ?__(67,"Jump");
+translation_string(along)               -> ?__(68,"Along");
+translation_string(rename)              -> ?__(69,"Rename");
+translation_string(delete_all)          -> ?__(70,"Delete All");
+translation_string(camera_settings)     -> ?__(71,"Camera Settings");
+translation_string(auto_rotate)         -> ?__(72,"Auto Rotate");
+
+%%%% Select Menu
+translation_string(deselect)            -> ?__(73,"Deselect");
+translation_string(more)                -> ?__(74,"More");
+translation_string(less)                -> ?__(75,"Less");
+translation_string(similar)             -> ?__(76,"Similar");
+translation_string(edge_loop)           -> ?__(77,"Edge Loop");
+translation_string(edge_loop_to_region) -> ?__(78,"Edge Loop to Region");
+translation_string(edge_ring)           -> ?__(79,"Edge Ring");
+translation_string(prev_edge_loop)      -> ?__(80,"Previous Edge Loop");
+translation_string(next_edge_loop)      -> ?__(81,"Next Edge Loop");
+translation_string(edge_link_incr)      -> ?__(82,"Edge Link Increase");
+translation_string(edge_link_decr)      -> ?__(83,"Edge Link Decrease");
+translation_string(edge_ring_incr)      -> ?__(84,"Edge Ring Increase");
+translation_string(edge_ring_decr)      -> ?__(85,"Edge Ring Decrease");
+translation_string(adjacent)            -> ?__(86,"Adjacent");
+translation_string(inverse)             -> ?__(87,"Inverse");
+translation_string(hide_selected)       -> ?__(88,"Hide Selected");
+translation_string(hide_unselected)     -> ?__(89,"Hide Unselected");
+translation_string(lock_unselected)     -> ?__(90,"Lock Unselected");
+translation_string(show_all)            -> ?__(91,"Show All");
+translation_string(store_selection)     -> ?__(92,"Store Selection");
+translation_string(recall_selection)    -> ?__(93,"Recall Selection");
+translation_string(new_group)           -> ?__(94,"New Group");
+translation_string(oriented_faces)      -> ?__(95,"Similar Normals");
+translation_string(similar_area)        -> ?__(96,"Similar Area");
+translation_string(delete_group)        -> ?__(97,"Delete Group");
+translation_string(add_to_group)        -> ?__(98,"Add to Group");
+translation_string(subtract_from_group) -> ?__(99,"Subtract from Group");
+translation_string(select_group)        -> ?__(100,"Select Group");
+translation_string(union_group)         -> ?__(101,"Union Group");
+translation_string(subtract_group)      -> ?__(102,"Subtract Group");
+translation_string(intersect_group)     -> ?__(103,"Intersect Group");
+
+%%%% Select By Submenu
+translation_string(by)                      -> ?__(104,"By");
+translation_string(hard_edges)              -> ?__(105,"Hard Edges");
+translation_string(isolated_vertices)       -> ?__(106,"Isolated Vertices");
+translation_string(nonplanar_faces)         -> ?__(107,"Non-Planar Faces");
+translation_string(vertices_with)           -> ?__(108,"Vertices With");
+translation_string(faces_with)              -> ?__(109,"Faces With");
+translation_string(non_quad)                -> ?__(110,"Non Quadrangle");
+translation_string(odd)                     -> ?__(111,"Odd");
+translation_string(even)                    -> ?__(112,"Even");
+translation_string(random)                  -> ?__(113,"Random");
+translation_string(short_edges)             -> ?__(114,"Short Edges");
+translation_string(sharp_edges)             -> ?__(115,"Sharp Edges");
+translation_string(vertex_path)             -> ?__(116,"Vertex Path");
+translation_string(fewest_edges_path)       -> ?__(117,"Fewest Edges Path");
+translation_string(dijkstra_shortest_path)  -> ?__(118,"Shortest Path (Dijkstra)");
+translation_string(astar_shortest_path)     -> ?__(119,"Shortest Path (A-Star)");
+translation_string(material_edges)          -> ?__(120,"Material Edges");
+
+
+
+%%%% Tools Menu
+translation_string(align)            -> ?__(121,"Align");
+translation_string(save_bb)          -> ?__(122,"Save Bounding Box");
+translation_string(scale_to_bb)      -> ?__(123,"Scale to Bounding Box");
+translation_string(scale_to_bb_prop) -> ?__(124,"Scale to Bounding Box Proportionally");
+translation_string(move_to_bb)       -> ?__(125,"Move to Bounding Box");
+translation_string(virtual_mirror)   -> ?__(126,"Virtual Mirror");
+translation_string(create)           -> ?__(127,"Create");
+translation_string(break)            -> ?__(128,"Break");
+translation_string(freeze)           -> ?__(129,"Freeze");
+translation_string(screenshot)       -> ?__(130,"Screenshot");
+translation_string(area_volume_info) -> ?__(131,"Area Volume Info");
+translation_string(scene_size_info)  -> ?__(132,"Memory Usage");
+translation_string(put_on_ground)    -> ?__(133,"Put on Ground");
+translation_string(unitize)          -> ?__(134,"Unitize");
+translation_string(tweak)            -> ?__(135,"Tweak");
+translation_string(snap_image_mode)  -> ?__(136,"Snap Image");
+
+%%%% Window Menu
+translation_string(outliner)         -> ?__(137,"Outliner");
+translation_string(object)           -> ?__(138,"Geometry Graph");
+translation_string(palette)          -> ?__(139,"Palette");
+translation_string(console)          -> ?__(140,"Console");
+translation_string(geom_viewer)      -> ?__(141,"New Geomerty Window");
+translation_string(uv_editor_window) -> ?__(142,"UV Editor Window");
+
+%%%% Help Menu
+translation_string(getting_started)      -> ?__(143,"Getting Started");
+translation_string(one_or_two)           -> ?__(144,"Mouse Buttons");
+translation_string(international)        -> ?__(145,"International Keyboards");
+translation_string(hotkeys)              -> ?__(146,"Defined Hotkeys");
+translation_string(defining_hotkeys)     -> ?__(147,"Defining Hotkeys");
+translation_string(advanced_menus)       -> ?__(148,"Advanced Menus");
+translation_string(default_commands)     -> ?__(149,"Default Commands");
+translation_string(performance_tips)     -> ?__(150,"Performance Tips");
+translation_string(opengl_info)          -> ?__(151,"OpenGL Info");
+translation_string(about)                -> ?__(152,"About");
+
+%%%% Primitives Menu
+translation_string(shapes)            -> ?__(153,"Shapes");
+translation_string(tetrahedron)       -> ?__(154,"Tetrahedron");
+translation_string(octahedron)        -> ?__(155,"Octahedron");
+translation_string(octotoad)          -> ?__(156,"Octotoad");
+translation_string(dodecahedron)      -> ?__(157,"Dodecahedron");
+translation_string(icosahedron)       -> ?__(158,"Icosahedron");
+translation_string(cube)              -> ?__(159,"Cube");
+translation_string(cylinder)          -> ?__(160,"Cylinder");
+translation_string(cone)              -> ?__(161,"Cone");
+translation_string(sphere)            -> ?__(162,"Sphere");
+translation_string(torus)             -> ?__(163,"Torus");
+translation_string(grid)              -> ?__(164,"Grid");
+translation_string(material)          -> ?__(165,"Material");
+translation_string(image)             -> ?__(166,"Image");
+translation_string(image_plane)       -> ?__(167,"Image Plane");
+translation_string(text)              -> ?__(168,"Text");
+%%%% More
+translation_string(gear)              -> ?__(169,"Gear");
+translation_string(tube)              -> ?__(170,"Tube");
+translation_string(geodome)           -> ?__(171,"Geo Dome");
+translation_string(knot)              -> ?__(172,"Torus Knot");
+translation_string(ncube)             -> ?__(173,"N-Cube");
+translation_string(ngon)              -> ?__(174,"N-Gon");
+translation_string(regularplane)      -> ?__(175,"Regular Plane");
+translation_string(lumpyplane)        -> ?__(176,"Lumpy Plane");
+translation_string(wavyplane)         -> ?__(177,"Wavy Plane");
+translation_string(sombreroplane)     -> ?__(178,"Sombrero Plane");
+translation_string(spiral)            -> ?__(179,"Spiral");
+translation_string(spring)            -> ?__(180,"Spring");
+translation_string(uvtorus)           -> ?__(181,"UV Torus");
+translation_string(lutorus)           -> ?__(182,"Lumpy Torus");
+translation_string(sptorus)           -> ?__(183,"Spiral Torus");
+
+%%%% Common Axis Descriptors
+translation_string(normal)       -> ?__(184,"Normal");
+translation_string(free)         -> ?__(185,"Free");
+translation_string(center)       -> ?__(186,"Center");
+translation_string(central_axis) -> ?__(187,"Central Axis");
+translation_string(x)            -> ?__(188,"X");
+translation_string(y)            -> ?__(189,"Y");
+translation_string(z)            -> ?__(190,"Z");
+translation_string(neg_x)        -> ?__(191,"-X");
+translation_string(neg_y)        -> ?__(192,"-Y");
+translation_string(neg_z)        -> ?__(193,"-Z");
+translation_string(last_axis)    -> ?__(194,"Last Axis");
+translation_string(default_axis) -> ?__(195,"Default Axis");
+translation_string(true)         -> ?__(196,"True");
+translation_string(false)        -> ?__(197,"False");
+translation_string(all)          -> ?__(198,"All");
+translation_string(pick_all)     -> ?__(199,"Pick All");
+translation_string(radial_x)     -> ?__(200,"Radial X");
+translation_string(radial_y)     -> ?__(201,"Radial Y");
+translation_string(radial_z)     -> ?__(202,"Radial Z");
+translation_string('ASK')        -> ?__(203,"ASK");
+translation_string(lmb)          -> ?__(204,"LMB");
+translation_string(mmb)          -> ?__(205,"MMB");
+translation_string(rmb)          -> ?__(206,"RMB");
+translation_string(relative)     -> ?__(207,"Relative");
+translation_string(absolute)     -> ?__(208,"Absolute");
+
+%%%% Common Commands
+translation_string(move)           -> ?__(209,"Move");
+translation_string(rotate)         -> ?__(210,"Rotate");
+translation_string(scale)          -> ?__(211,"Scale");
+translation_string(uniform)        -> ?__(212,"Uniform");
+translation_string(extrude)        -> ?__(213,"Extrude");
+translation_string(extract)        -> ?__(214,"Extract");
+translation_string(dissolve)       -> ?__(215,"Dissolve");
+translation_string(collapse)       -> ?__(216,"Collapse");
+translation_string(delete)         -> ?__(217,"Delete");
+translation_string(flatten)        -> ?__(218,"Flatten");
+translation_string(smooth)         -> ?__(219,"Smooth");
+translation_string(tighten)        -> ?__(220,"Tighten");
+translation_string(bevel)          -> ?__(221,"Bevel");
+translation_string(weld)           -> ?__(222,"Weld");
+translation_string(vertex_color)   -> ?__(223,"Vertex Color");
+
+%%%% Absolute Commands
+translation_string(snap)           -> ?__(224,"Snap");
+translation_string(nsnap)          -> ?__(225,"Snap|Numeric Entry");
+translation_string(ctscale)        -> ?__(226,"Scale to Target Size");
+translation_string(cscale)         -> ?__(227,"Scale|Center");
+
+%%%% Intersect
+translation_string(intersect)      -> ?__(228,"Intersect");
+translation_string(stay_on_line)   -> ?__(229,"Stay on Line");
+translation_string(stay_on_plane)  -> ?__(230,"Stay on Plane");
+
+%%%% Bend
+
+
+%%%% Vertex Menu
+translation_string(connecting_edges) -> ?__(231,"Connecting Edges");
+translation_string(bend)             -> ?__(232,"Bend");
+translation_string(shift)            -> ?__(233,"Shift");
+
+%%%% Vertex|Deform
+translation_string(deform)          -> ?__(234,"Deform");
+translation_string(crumple)         -> ?__(235,"Crumple");
+translation_string(taper)           -> ?__(236,"Taper");
+translation_string(twist)           -> ?__(237,"Twist");
+translation_string(torque)          -> ?__(238,"Torque");
+translation_string(inflate)         -> ?__(239,"Inflate");
+translation_string(cylindrilize)    -> ?__(240,"Inflate Cylindrically");
+translation_string(shear)           -> ?__(241,"Shear");
+
+%%%% Edge Menu
+translation_string(slide)              -> ?__(242,"Slide");
+translation_string(clean_dissolve)     -> ?__(243,"Clean Dissolve");
+translation_string(cut)                -> ?__(244,"Cut");
+translation_string(connect)            -> ?__(245,"Connect");
+translation_string(hardness)           -> ?__(246,"Hardness");
+translation_string(soft)               -> ?__(247,"Soft");
+translation_string(hard)               -> ?__(248,"Hard");
+translation_string(circularise)        -> ?__(249,"Circularise");
+translation_string(circularise_center) -> ?__(250,"Circularise|Center");
+translation_string(loop_cut)           -> ?__(251,"Loop Cut");
+translation_string(turn_ccw)           -> ?__(252,"Turn CCW");
+translation_string(turn_cw)            -> ?__(253,"Turn CW");
+translation_string(turn_optimized)     -> ?__(254,"Turn Optimized");
+
+%%%% Face Menu
+translation_string(bridge)             -> ?__(255,"Bridge");
+translation_string(bump)               -> ?__(256,"Bump");
+translation_string(extrude_region)     -> ?__(257,"Extrude Region");
+translation_string(extract_region)     -> ?__(258,"Extract Region");
+translation_string(sweep_extrude)      -> ?__(259,"Sweep Extrude");
+translation_string(sweep_region)       -> ?__(260,"Sweep Region");
+translation_string(sweep_extract)      -> ?__(261,"Sweep Extract");
+translation_string(inset)              -> ?__(262,"Inset");
+translation_string(intrude)            -> ?__(263,"Intrude");
+translation_string(lift)               -> ?__(264,"Lift");
+translation_string(put_on)             -> ?__(265,"Put On");
+translation_string(clone_on)           -> ?__(266,"Clone On");
+translation_string(mirror)             -> ?__(267,"Mirror");
+translation_string(mirror_separate)    -> ?__(268,"Mirror Separate");
+translation_string(tesselate)          -> ?__(269,"Tesselate");
+translation_string(trianglulate)       -> ?__(270,"Triangulate");
+translation_string(quadrangulate)      -> ?__(271,"Quadrangulate");
+translation_string(untriangulate)      -> ?__(272,"Untriangulate");
+translation_string(hide)               -> ?__(273,"Hide");
+translation_string(wpc_autouv)         -> ?__(274,"AutoUV");
+translation_string(segment)            -> ?__(275,"Segment");
+translation_string(segment_old)        -> ?__(276,"Segment Old");
+translation_string(force_seg)          -> ?__(277,"Force Segment");
+
+%%%% Object Menu
+translation_string(flip)                 -> ?__(278,"Flip");
+translation_string(invert)               -> ?__(279,"Invert");
+translation_string(doo_sabin)            -> ?__(280,"Doo Sabin");
+translation_string(combine)              -> ?__(281,"Combine");
+translation_string(separate)             -> ?__(282,"Separate");
+translation_string(cleanup)              -> ?__(283,"Cleanup");
+translation_string(auto_smooth)          -> ?__(284,"Auto Smooth");
+translation_string(duplicate)            -> ?__(285,"Duplicate");
+translation_string(vertex_color_mode)    -> ?__(286,"Vertex Color Mode");
+translation_string(to_arealight)         -> ?__(287,"To Area Light");
+translation_string(materials_to_colors)  -> ?__(288,"Materials to Colors");
+
+%%%% Others (as yet to be added)
+translation_string(Atom) when is_atom(Atom) ->
+    wings_util:cap(atom_to_list(Atom));
+
+translation_string(Int) when is_integer(Int) ->
+    integer_to_list(Int);
+
+translation_string(_Other) -> [].
