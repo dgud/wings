@@ -33,6 +33,9 @@
 
 - Made hotkeys translatable. [optigon]
 
+- New Feature: Arc Intersect. Allows you to rotate a selection to a geometry
+  specified angle. [optigon]
+
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
   shared a single vertex (and not any edge). Now a proper error message

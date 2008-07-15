@@ -328,7 +328,7 @@ lib_dir(Lib) ->
 
 % % % % % % % % % % % % % % % % % % %
 %% Strings for Translating Hotkeys %%
-% % % % % % % % % % % % % % % % % % %
+% % % % % % (not elegant) % % % % % %
 
 %%%% Selection Modes
 translation_string(vertex) -> ?__(1,"Vertex");
@@ -595,9 +595,7 @@ translation_string(cscale)         -> ?__(227,"Scale|Center");
 translation_string(intersect)      -> ?__(228,"Intersect");
 translation_string(stay_on_line)   -> ?__(229,"Stay on Line");
 translation_string(stay_on_plane)  -> ?__(230,"Stay on Plane");
-
-%%%% Bend
-
+translation_string(arc_intersect)  -> ?__(289,"Intersect");
 
 %%%% Vertex Menu
 translation_string(connecting_edges) -> ?__(231,"Connecting Edges");
@@ -667,7 +665,11 @@ translation_string(vertex_color_mode)    -> ?__(286,"Vertex Color Mode");
 translation_string(to_arealight)         -> ?__(287,"To Area Light");
 translation_string(materials_to_colors)  -> ?__(288,"Materials to Colors");
 
-%%%% Others (as yet to be added)
+%%%%
+%%%%   Translation strings used so far 1 - 289
+%%%%
+
+%%%% Others as yet to be added are proccessed here
 translation_string(Atom) when is_atom(Atom) ->
     wings_util:cap(atom_to_list(Atom));
 

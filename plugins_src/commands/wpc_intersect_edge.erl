@@ -30,10 +30,20 @@
 init() ->
     true.
 
+menu({edge},Menu) ->
+    lists:reverse(parse(Menu, [], false));
+menu(_,Menu) ->
+    Menu.
 
-menu({edge}, Menu) ->
-    Menu ++ [separator,menu_item()];
-menu(_,Menu) -> Menu.
+parse([], NewMenu, true) ->
+    NewMenu;
+parse([], NewMenu, false) ->
+    [menu_item()|NewMenu];
+parse([A = {_,{extrude,_}}|Rest], NewMenu, false) ->
+    parse(Rest, [menu_item(),A|NewMenu], true);
+parse([Elem|Rest], NewMenu, Found) ->
+    parse(Rest, [Elem|NewMenu], Found).
+
 
 command({edge,{intersect,Plane}},St) ->
     intersect(Plane, St);
