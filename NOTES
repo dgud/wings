@@ -36,6 +36,11 @@
 - New Feature: Arc Intersect. Allows you to rotate a selection to a geometry
   specified angle. [optigon]
 
+- Disabled some translation macros for Windows version of Wings that caused
+  crashes in native dialogs for Save and Open due to problems with Latin 5
+  characters used in the Russian and Czech translations. (Thanks to Devilgreen.)
+  [optigon]
+
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
   shared a single vertex (and not any edge). Now a proper error message
