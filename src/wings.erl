@@ -1549,8 +1549,8 @@ scene_size_info(St) ->
     Bytes = byte_size(term_to_binary(St)),
     MB = Bytes/1048576,
 	{Unit,Amount} = best_unit(Bytes,MB),
-    Usage = io_lib:format(?__(1,"Your scene is using ~p bytes [~s ~s]"),
-            [Bytes,wings_util:nice_float(Amount), Unit]),
+    Usage = io_lib:format(?__(1,"Your scene is using approximately ~s ~s [~p bytes]"),
+            [wings_util:nice_float(Amount), Unit, Bytes]),
     wings_help:help_window(?__(2,"Memory Usage"), [Usage]).
 
 best_unit(Bytes,MB) when  MB < 1.0 ->
