@@ -324,7 +324,7 @@ default_keybindings() ->
      {{?SDLK_TAB,[]},       {view,workmode}},
      {{?SDLK_TAB,[shift]},  {view,quick_preview}},
      {$\s,              {select,deselect}},
-     {$a,               {view,aim}},
+     {$a,               {view,highlight_aim}},
      {$A,               {view,frame}},
      {$b,               {select,body}},
      {{$d,[ctrl]},      {edit,repeat}},
