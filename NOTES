@@ -1,10 +1,13 @@
 --- 0.99.XX -----------------------------------------------------------------
-- New Feature: Added the ability to circularise open edge loops, and
-  made the flatten feature optional when using Circularaise. [optigon]
+- New Feature: Circularise now works on open edge loops, and by pressing '1'
+  during the drag phase of the tool, you can choose to flatten or not flatten
+  the result to a single plane. [optigon]
 
-- New Feature: View|Highlight Aim. Aim the camera at temporary highlighted
-  geometry. Options for this feature are in Edit|Preferences|Advanced allow
-  you to choose the kinds of selections Hightlight Aim targets. [optigon]
+- New Feature: View|Highlight Aim, aims the camera at the mouseover highlight
+  which lets you aim the camera while other geometry is selected. Options in
+  Edit|Preferences|Advanced allow you to specify targeting behaviour. Although
+  the original View|Aim command remains, I have changed the Wings default
+  hotkey 'a' to call Highlight Aim instead, on a fresh install. [optigon]
 
 - Repeating Move|Region in selection modes other than Face caused Wings to
   crash. Now fixed. [optigon]
@@ -12,10 +15,13 @@
 - Selecting every face of an object during a vector op would crash wings.
   Now fixed. [optigon]
 
-- Sweep Free side to side motion was reversed. Now fixed. (Thanks to GetaVe)
+- Partial rewrite of Sweep plugin to improve the code including:
+  - Vertices on separate objects sharing the same id number, would cause
+    unexpected results. Vertices are now processed correctly.
+  - Sweep|Free side to side motion was reversed. Now fixed. (Thanks to GetaVe)
+  - Added Relative mode to Sweep commands.
+  - Improvements to processing speed.
   [optigon]
-
-- Added Relative mode to Sweep commands. [optigon]
 
 - New utility Tools|Memory Usage.  Measures how much memory your current scene
   is using. (Thanks to Giniu.) [optigon]
@@ -27,19 +33,20 @@
 - Deselecting with nothing selected would add an unnecessary undo state. Now
   fixed. (Thanks to Giniu.) [optigon]
 
-- Lowered minimum undo level to 1. [optigon]
+- Lowered minimum undo level to 1 (Edit|Preferences|Misc). [optigon]
 
-- Changed default camera mode to Wings 3D mode. [optigon]
+- Changed default camera mode to Wings 3D mode for fresh install. [optigon]
 
-- Made hotkeys translatable. [optigon]
+- Made most of the Defined Hotkeys translatable. This also affect commands
+  displayed in Edit|Repeat and the Plugin Manager. [optigon]
 
-- New Feature: Arc Intersect. Allows you to rotate a selection to a geometry
+- New Feature: Arc Intersect. Allows you to rotate a selection using a geometry
   specified angle. [optigon]
 
-- Disabled some translation macros for Windows version of Wings that caused
-  crashes in native dialogs for Save and Open due to problems with Latin 5
-  characters used in the Russian and Czech translations. (Thanks to Devilgreen.)
-  [optigon]
+- Disabled translation macros for Save and Open in Windows because they could
+  cause Wings to crash when displaying Latin 5 characters in native dialogs.
+  Furthermore, it is highly recommended that you do not save wings files using
+  accented or non-English character. (Thanks to Devilgreen.)[optigon]
 
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
