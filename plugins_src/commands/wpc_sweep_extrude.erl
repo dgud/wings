@@ -45,7 +45,7 @@ sweep_menu(Type) ->
       true ->
         F = fun(help, _Ns) ->
           Str1 = menu_string_1(Type),
-		  Str2 = ?__(2,"Pick axis and measure extrusion relative to selection's length along that axis"),
+          Str2 = ?__(2,"Pick axis and measure extrusion relative to selection's length along that axis"),
           Str3 = ?__(3,"Pick axis"),
           {Str1,Str2,Str3};
           (1, _Ns) -> xyz(Type);
@@ -85,13 +85,13 @@ axis_menu(Type,Axis) ->
         end,
         {AxisStr,F,Help};
       true ->
-	      F = fun
-		  (help, _Ns) ->
+          F = fun
+          (help, _Ns) ->
             Str3 = ?__(1,"Extrusion relative to selection's length along axis"),
             {Help,[],Str3};
           (1, _Ns) -> {face,{Type,{absolute,Axis}}};
           (3, _Ns) -> {face,{Type,{relative,Axis}}};
-		  (_,_) -> ignore
+          (_,_) -> ignore
         end,
         {AxisStr,{Axis,F},Help}
     end.
@@ -213,17 +213,22 @@ sweep_setup({Type,Axis},ExSt) ->
     Warp = wings_pref:get_value(sweep_mode,unwarped),
     Cntr = wings_pref:get_value(sweep_center,region),
     State = {unlocked,Axis,Warp,Cntr},
-    ExVs0 = wings_sel:fold(fun(Fs,We,Acc) ->
-            [wings_face:to_vertices(Fs,We)|Acc]
+
+    ExVs0 = wings_sel:fold(fun(Fs,#we{id=Id}=We,Acc) ->
+            Vs = wings_face:to_vertices(Fs,We),
+            [{Id,Vs}|Acc]
             end,[],ExSt),
-    ExVs = lists:merge(ExVs0),
+
     St = wings_sel_conv:more(ExSt),
     SelCntr = wings_sel:center(St),
-    Tvs = wings_sel:fold(fun(Fs, We, Acc) ->
-            AllVs = wings_face:to_vertices(Fs,We),
-            Data = face_region_1(Type,Fs,We,Axis,SelCntr,AllVs,State),
-            sweep_data_setup(AllVs,ExVs,We,Data,State,Acc)
-            end, [], St),
+
+    Tvs = wings_sel:fold(fun(Fs, #we{id=Id}=We, Acc) ->
+            ObjVs = wings_face:to_vertices(Fs,We),
+            {_, {_,ExVs}} = lists:keysearch(Id, 1, ExVs0),
+            Data = sweep_data(ExVs,Type,Fs,We,Axis,SelCntr,ObjVs,State),
+            [{Id,{ObjVs,sweep_fun(Data,State)}}|Acc]
+         end, [], St),
+
     Units = units(Type),
     Flags = [{mode,{modes(),State}}|flag(Axis)],
     wings_drag:setup(Tvs, Units, Flags, ExSt).
@@ -232,38 +237,52 @@ units(absolute) -> [angle,distance,percent,angle];
 units(relative) -> [angle,percent,percent,angle].
 
 %%%% More Setup: Get face region normals
-face_region_1(Type,Fs,We,Axis,SelCntr,AllVs,State) ->
-    face_region_2(wings_sel:face_regions(Fs,We),We,Axis,SelCntr,AllVs,State,Type,[]).
+sweep_data(ExVs, Type, Fs, We, Axis, SelCntr, ObjVs, State) ->
+    Regions = wings_sel:strict_face_regions(Fs,We),
+    Acc = [],
+    process_face_region(Regions, ExVs, We, Axis, SelCntr, ObjVs, State, Type, Acc).
 
-face_region_2([], _, _, _, _, _, _, Acc) ->
+process_face_region([], _, _, _, _, _, _, _, Acc) ->
     Acc;
-face_region_2([Fs0|Regions], We, Axis0, SelCntr0, AllVs, State, Type, NormAcc0) ->
+process_face_region([Fs0|Regions], ExVs0, #we{vp=Vtab}=We, Axis0, SelCntr0, AllVs, State, Type, Acc0) ->
     Fs = gb_sets:to_list(Fs0),
+    RegNorm = regional_norm(Fs,We),
+
+    RegVs = wings_face:to_vertices(Fs,We),
+    SeedVs =  RegVs -- ExVs0,
+    ExVs = RegVs -- SeedVs,
+    SeedVsPos = add_vpos(seed, SeedVs,Vtab),
+    ExVsPos = add_vpos(extruded,ExVs,Vtab), % [{extruded, V, {X,Y,Z}}, ... ]
+    VsPos = SeedVsPos ++ ExVsPos,
+
+    RegCntr0 = wings_vertex:center(SeedVs,We),
+    RegCntr = lowest_point_relative_to_norm(RegCntr0,RegNorm,SeedVs,We),
+    Axis = e3d_vec:norm(axis_conversion(Axis0,RegNorm)),
+    Norm = get_norm_data(Axis,RegNorm),
+    SelCntr = lowest_point_relative_to_norm(SelCntr0,RegNorm,AllVs,We),
+
+    MaxDist = max_dist_along_axis(Type, SeedVs, RegCntr0, We, Axis),
+
+    {Warp,Center} = specify_warp_and_center(Axis,Norm,RegCntr,SelCntr,State),
+
+    Acc = [{VsPos, Axis, RegNorm, Norm, RegCntr, SelCntr, MaxDist, {Warp, Center}} | Acc0],
+    process_face_region(Regions, ExVs0, We, Axis0, SelCntr0, AllVs, State, Type, Acc).
+
+
+%%%% Setup Utilities
+add_vpos(Type, Vs, Vtab) ->
+    lists:foldl(fun(V, A) ->
+          [{Type, V, gb_trees:get(V, Vtab)}|A]
+      end, [], Vs).
+
+regional_norm(Fs,We) ->
     NormsForRegion = lists:foldl(fun(Face,Acc) ->
             Norm = wings_face:normal(Face,We),
             [Norm|Acc]
             end,[],Fs),
     AverageNorm = e3d_vec:add(NormsForRegion),
-    RegNorm = e3d_vec:norm(AverageNorm),
-    RegVs = wings_face:to_vertices(Fs,We),
-    RegCntr0 = wings_vertex:center(RegVs,We),
-    RegCntr = lowest_point_relative_to_norm(RegCntr0,RegNorm,RegVs,We),
-    Axis = e3d_vec:norm(axis_conversion(Axis0,RegNorm)),
-    Norm = get_norm_data(Axis,RegNorm),
-    SelCntr = lowest_point_relative_to_norm(SelCntr0,RegNorm,AllVs,We),
-	
-	MaxLength = max_dist_along_axis(Type, RegVs, RegCntr0, We, Axis),
-	
-    {Warp,Center} = specify_warp_and_center(Axis,Norm,RegCntr,SelCntr,State),
-    NormAcc = [{RegVs,Axis,RegNorm,Norm,RegCntr,SelCntr,MaxLength,{Warp,Center}}|NormAcc0],
-    face_region_2(Regions, We, Axis0, SelCntr0, AllVs, State, Type, NormAcc).
+    e3d_vec:norm(AverageNorm).
 
-%%%% Finish Setup
-sweep_data_setup(AllVs,ExVs,#we{id=Id}=We,Data,State,Acc) ->
-    VsPos = wings_util:add_vpos(AllVs,We),
-    [{Id,{AllVs,sweep_fun(VsPos,ExVs,Data,State)}}|Acc].
-
-%%%% Setup Utilities
 lowest_point_relative_to_norm(Center,Norm,Vs,We) ->
     {Nx,Ny,Nz} = e3d_vec:neg(Norm),
     case {Nx,Ny,Nz} of
@@ -289,10 +308,10 @@ max_dist_along_axis(relative, Vs, Center, We, Axis) ->
     {Ax,Ay,Az} = Axis,
     {Cx,Cy,Cz} = Center,
     DistList = lists:foldl(fun(V,Acc) ->
-	    {Vx,Vy,Vz} = wings_vertex:pos(V,We),
-		[(Ax*(Cx-Vx)+Ay*(Cy-Vy)+Az*(Cz-Vz))|Acc]
+        {Vx,Vy,Vz} = wings_vertex:pos(V,We),
+        [(Ax*(Cx-Vx)+Ay*(Cy-Vy)+Az*(Cz-Vz))|Acc]
         end,[],Vs),
-	abs(lists:min(DistList)) + abs(lists:max(DistList)).
+    abs(lists:min(DistList)) + abs(lists:max(DistList)).
 
 %%%% Change data depending on the current Warp mode
 specify_warp_and_center(Axis,_Norm,_RegCntr,SelCntr,{_lock,_mode,warped,common}) ->
@@ -305,7 +324,7 @@ specify_warp_and_center(_Axis,Norm,RegCntr,_SelCntr,{_lock,_mode,unwarped,region
     {Norm,RegCntr}.
 
 %%%% Flags
-flag(free) -> [screen_relative,keep_drag];  %% <- keep_drag keeps the drag data
+flag(free) -> [screen_relative, keep_drag]; %% <- keep_drag keeps the drag data
 flag(_xyz) -> [].                           %%    from reseting on view_changed
 
 %%%% Modes changed by number keys
@@ -331,32 +350,32 @@ sweep_help({Lock,Axis,Warp,Cntr}) ->
      warp_help(Axis,Warp),
      lock_help(Lock,Axis)].
 
-cntr_help(region) -> ?__(1,"[1] Selection Center");
-cntr_help(common) -> ?__(2,"[1] Region Center").
+cntr_help(region)         -> ?__(1,"[1] Selection Center");
+cntr_help(common)         -> ?__(2,"[1] Region Center").
 
-warp_help(normal,_) -> [];
-warp_help(_,warped) -> ?__(1,"  [2] Maintain Shape");
-warp_help(_,unwarped) -> ?__(2,"  [2] Allow Warping").
+warp_help(normal,_)       -> [];
+warp_help(_,warped)       -> ?__(1,"  [2] Maintain Shape");
+warp_help(_,unwarped)     -> ?__(2,"  [2] Allow Warping").
 
-lock_help(unlocked,free) -> ?__(1,"  [3] Lock Axis");
-lock_help(locked,free) -> ?__(2,"  [3] Screen Relative");
-lock_help(_,_) -> [].
+lock_help(unlocked,free)  -> ?__(1,"  [3] Lock Axis");
+lock_help(locked,free)    -> ?__(2,"  [3] Screen Relative");
+lock_help(_,_)            -> [].
 
 %%%% Sweep Mode/View Changes
-sweep_fun(VsPos,ExVs,Data,State) ->
+sweep_fun(Data,State) ->
     fun(view_changed,_) ->  %% when view changes
         {Lock,_mode,_warp,_center} = State,
         case Lock of
           unlocked ->
             NewAxis = e3d_vec:norm(view_vector()),
-            NewData = lists:foldl(fun({RegVs,_Axis,RegNorm,_Norm,RegCntr,SelCntr,MaxLength,{_Warp,_Center}},Acc) ->
+            NewData = lists:foldl(fun({VsPos,_Axis,RegNorm,_Norm,RegCntr, SelCntr,MaxLength, _}, Acc) ->
                 NewNorm = get_norm_data(NewAxis,RegNorm),
                 {Warp,Center} = specify_warp_and_center(NewAxis,NewNorm,RegCntr,SelCntr,State),
-                [{RegVs,NewAxis,RegNorm,NewNorm,RegCntr,SelCntr,MaxLength,{Warp,Center}}|Acc]
+                [{VsPos,NewAxis,RegNorm,NewNorm,RegCntr,SelCntr,MaxLength,{Warp,Center}}|Acc]
                 end,[],Data),
-            sweep_fun(VsPos,ExVs,NewData,State);
+            sweep_fun(NewData,State);
           locked ->
-            sweep_fun(VsPos,ExVs,Data,State)
+            sweep_fun(Data,State)
         end;
 
        (new_mode_data,{NewState,_}) ->  %% when mode changes
@@ -364,38 +383,37 @@ sweep_fun(VsPos,ExVs,Data,State) ->
         {_lock1,_mode1,Warp1,Center1} = NewState,
         case {Warp0,Center0} =:= {Warp1,Center1} of
           true ->
-            sweep_fun(VsPos,ExVs,Data,NewState);
+            sweep_fun(Data,NewState);
           false ->
-            NewData = lists:foldl(fun({RegVs,Axis,RegNorm,Norm,RegCntr,SelCntr,MaxLength,_},Acc) ->
+            NewData = lists:foldl(fun({VsPos, Axis, RegNorm, Norm, RegCntr, SelCntr, MaxLength, _},Acc) ->
                 {Warp,Center} = specify_warp_and_center(Axis,Norm,RegCntr,SelCntr,NewState),
-                [{RegVs,Axis,RegNorm,Norm,RegCntr,SelCntr,MaxLength,{Warp,Center}}|Acc]
+                [{VsPos,Axis,RegNorm,Norm,RegCntr,SelCntr,MaxLength,{Warp,Center}}|Acc]
                 end,[],Data),
-            sweep_fun(VsPos,ExVs,NewData,NewState)
+            sweep_fun(NewData,NewState)
         end;
 
        ([Angle,Dist,Scale,Rotate|_], A) ->  %% when drag changes
-         sweep_verts2(VsPos,ExVs,Data,{Angle,Dist,Rotate,Scale},A)
+         sweep(Data,{Angle,Dist,Rotate,Scale},A)
     end.
 
-sweep_verts2(VsPos,ExVs,Data,DragData,A) ->
-    lists:foldl(fun({V,Vpos}, VsAcc) ->
-        [{V,sweep(V,Vpos,ExVs,Data,DragData)}|VsAcc]
-    end, A, VsPos).
+sweep(Data, DragData, A) ->
+    lists:foldl(fun({VsPos,_,RegNorm,Norm,_,_,MaxLength, {Warp,Center}},Acc) ->
+            sweep(VsPos, RegNorm, Norm, MaxLength, Warp, Center, DragData, Acc)
+    end,A,Data).
+
+sweep(VsPos, RegNorm, Norm, MaxLength, Warp, Center, DragData, Acc) ->
+    lists:foldl(fun({Type, V, Vpos}, VsAcc) ->
+        Result = case Type of
+          extruded -> extruded_face(MaxLength, Vpos,RegNorm,Norm,Warp,Center,DragData);
+          seed -> seed_face(Vpos,RegNorm,Norm,Warp,Center,DragData)
+        end,
+        [{V,Result}|VsAcc]
+    end, Acc, VsPos).
+
 
 %%%% Main functions
-sweep(_V,Vpos,_ExVs,_Data,{0.0,0.0,0.0,0.0}) ->
+extruded_face(_,Vpos,_,_,_,_,{0.0,0.0,0.0,0.0}) ->
     Vpos;
-
-sweep(V,Vpos,ExVs,Data,DragData) ->
-    lists:foldl(fun({RegVs,_,RegNorm,Norm,_,_,MaxLength,{Warp,Center}},Acc) ->
-            case {lists:member(V,RegVs),lists:member(V,ExVs)} of
-              {true,true} ->
-                extruded_face(MaxLength,Vpos,RegNorm,Norm,Warp,Center,DragData);
-              {true,false} ->
-                seed_face(Vpos,RegNorm,Norm,Warp,Center,DragData);
-              {_,_} -> Acc
-            end
-    end,[],Data).
 
 extruded_face(MaxLength,Vpos,RegNorm,Norm,Warp,Center,{Angle,Dist,0.0,0.0}) ->
     out_and_side_to_side(MaxLength,Vpos,RegNorm,Norm,Warp,Center,Angle,Dist);
@@ -439,12 +457,8 @@ scale_extruded_section(Vpos,Center,Scale) ->
     DistCntr = e3d_vec:dist(Vpos,Center),
     e3d_vec:add(Vpos, e3d_vec:mul(ScaleVec, Scale*DistCntr)).
 
-rotate(Vpos,Norm,{Cx,Cy,Cz},Angle) ->
-    A0 = e3d_mat:translate(Cx,Cy,Cz),
-    A1 = e3d_mat:mul(A0, e3d_mat:rotate(Angle, Norm)),
-    A2 = e3d_mat:mul(A1, e3d_mat:translate(-Cx,-Cy,-Cz)),
-    e3d_mat:mul_point(A2,Vpos).
-
+seed_face(Vpos,_,_,_,_,{0.0,_Dist,_Rotate,_Scale}) ->
+    Vpos;
 seed_face(Vpos,RegNorm,Norm,Warp,Center,{Angle,_Dist,_Rotate,_Scale}) ->
     Deg = e3d_vec:degrees(Norm,RegNorm),
     case ((Deg == 0.0) or (Deg == 180.0)) of
@@ -485,6 +499,12 @@ intersect_vec_plane(PosA,PosB,PlaneNorm) ->
     DotProduct = e3d_vec:dot(PlaneNorm,PlaneNorm),
     Intersection = e3d_vec:dot(e3d_vec:sub(PosB,PosA),PlaneNorm)/DotProduct,
     e3d_vec:add(PosA, e3d_vec:mul(PlaneNorm, Intersection)).
+
+rotate(Vpos,Norm,{Cx,Cy,Cz},Angle) ->
+    A0 = e3d_mat:translate(Cx,Cy,Cz),
+    A1 = e3d_mat:mul(A0, e3d_mat:rotate(Angle, Norm)),
+    A2 = e3d_mat:mul(A1, e3d_mat:translate(-Cx,-Cy,-Cz)),
+    e3d_mat:mul_point(A2,Vpos).
 
 sweep_error() ->
     wings_u:error(?__(1,"The average normal for a region cannot be null")).
