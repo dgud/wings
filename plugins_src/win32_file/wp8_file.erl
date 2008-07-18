@@ -46,10 +46,10 @@ init(Next) ->
     end.
 
 fileop({file,open_dialog,Prop,Cont}, _Next) ->
-    Title = proplists:get_value(title, Prop, "Open"),   % ?__(1,"Open")),
+    Title = proplists:get_value(title, Prop, ?__(1,"Open")),
     file_dialog(?OP_READ, Prop, Title, Cont);
 fileop({file,save_dialog,Prop,Cont}, _Next) ->
-    Title = proplists:get_value(title, Prop, "Save"),   % ?__(2,"Save")),
+    Title = proplists:get_value(title, Prop, ?__(2,"Save")),
     file_dialog(?OP_WRITE, Prop, Title, Cont);
 fileop(What, Next) ->
     Next(What).
@@ -95,13 +95,12 @@ file_filters(Prop) ->
     Exts = case proplists:get_value(extensions, Prop, none) of
 	       none ->
 		   Ext = proplists:get_value(ext, Prop, ".wings"),
-		   ExtDesc = proplists:get_value(ext_desc, Prop, "Wings File"),
-						% ?__(1,"Wings File")),
+		   ExtDesc = proplists:get_value(ext_desc, Prop,
+						 ?__(1,"Wings File")),
 		   [{Ext,ExtDesc}];
 	       Other -> Other
 	   end,
-    [file_add_all(Exts),file_filters_1(Exts++[{".*", "All Files"}], [])].
-                       % ?__(2,"All Files")
+    [file_add_all(Exts),file_filters_1(Exts++[{".*", ?__(2,"All Files")}], [])].
 
 file_filters_1([{Ext,Desc}|T], Acc0) ->
     Wildcard = "*" ++ Ext,
@@ -113,8 +112,7 @@ file_add_all([_]) -> [];
 file_add_all(Exts) ->
     All0 = ["*"++E || {E,_} <- Exts],
     All = file_add_semicolons(All0),
-    ["All Formats"++" (",All,")",0,All,0].
-    % ?__(1,"All Formats")
+    [?__(1,"All Formats")++" (",All,")",0,All,0].
 
 file_add_semicolons([E1|[_|_]=T]) ->
     [E1,";"|file_add_semicolons(T)];

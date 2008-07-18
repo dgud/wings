@@ -45,7 +45,7 @@ lang:
 #
 win32: all lang
 	(cd plugins_src/win32_file; $(MAKE))
-	(cd plugins_src/win32_file; $(MAKE) lang)
+#	(cd plugins_src/win32_file; $(MAKE) lang)
 	(cd plugins_src/jpeg; $(MAKE))
 	(cd plugins_src/jpeg; $(MAKE) lang)
 	(cd plugins_src/fbx; $(MAKE))
