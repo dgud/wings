@@ -584,6 +584,7 @@ translation_string(tighten)        -> ?__(220,"Tighten");
 translation_string(bevel)          -> ?__(221,"Bevel");
 translation_string(weld)           -> ?__(222,"Weld");
 translation_string(vertex_color)   -> ?__(223,"Vertex Color");
+translation_string(move_planar)    -> ?__(290,"Move Planar");
 
 %%%% Absolute Commands
 translation_string(snap)           -> ?__(224,"Snap");
@@ -595,7 +596,7 @@ translation_string(cscale)         -> ?__(227,"Scale|Center");
 translation_string(intersect)      -> ?__(228,"Intersect");
 translation_string(stay_on_line)   -> ?__(229,"Stay on Line");
 translation_string(stay_on_plane)  -> ?__(230,"Stay on Plane");
-translation_string(arc_intersect)  -> ?__(289,"Intersect");
+translation_string(arc_intersect)  -> ?__(289,"Rotate to Target");
 
 %%%% Vertex Menu
 translation_string(connecting_edges) -> ?__(231,"Connecting Edges");
@@ -666,7 +667,7 @@ translation_string(to_arealight)         -> ?__(287,"To Area Light");
 translation_string(materials_to_colors)  -> ?__(288,"Materials to Colors");
 
 %%%%
-%%%%   Translation strings used so far 1 - 289
+%%%%   Translation strings used so far 1 - 290
 %%%%
 
 %%%% Others as yet to be added are proccessed here

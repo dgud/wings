@@ -10,7 +10,7 @@
   hotkey 'a' to call Highlight Aim instead, on a fresh install. [optigon]
 
 - Repeating Move|Region in selection modes other than Face caused Wings to
-  crash. Now fixed. [optigon]
+  crash. Also Flatten, Rotate, and Scale Region. Now fixed. [optigon]
 
 - Selecting every face of an object during a vector op would crash wings.
   Now fixed. [optigon]
@@ -47,6 +47,10 @@
   cause Wings to crash when displaying Latin 5 characters in native dialogs.
   Furthermore, it is highly recommended that you do not save wings files using
   accented or non-English character. (Thanks to Devilgreen.)[optigon]
+
+- New Feature: Move|Planar allows you to move any selection freely upon a single
+  plane. Choose any standard axis or a vector defined plane. Enable magnets by
+  pressing [Alt] when initiating the tool. [optigon]
 
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
