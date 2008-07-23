@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 
 varying vec3 normal;
 varying vec4 position;

@@ -20,11 +20,14 @@ varying vec3  ViewVec;
 
 void main()
 {
-    vec3 ecPos      = vec3(gl_ModelViewMatrix * gl_Vertex);
-    vec3 tnorm      = normalize(gl_NormalMatrix * gl_Normal);
-    vec3 lightVec   = normalize(LightPosition - ecPos);
-    ReflectVec      = normalize(reflect(-lightVec, tnorm));
-    ViewVec         = normalize(-ecPos);
-    NdotL           = (dot(lightVec, tnorm) + 1.0) * 0.5;
+	vec3 ecPos		= vec3(gl_ModelViewMatrix * gl_Vertex);
+	vec3 tnorm		= normalize(gl_NormalMatrix * gl_Normal);
+	vec3 lightVec	= normalize(LightPosition - ecPos);
+	ReflectVec		= normalize(reflect(-lightVec, tnorm));
+	ViewVec 		= normalize(-ecPos);
+	NdotL			= (dot(lightVec, tnorm) + 1.0) * 0.5;
+	#ifdef __GLSL_CG_DATA_TYPES // Fix clipping for Nvidia and ATI
+	gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;
+	#endif
 	gl_Position 	= ftransform();
 }

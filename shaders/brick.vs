@@ -3,7 +3,7 @@
 // Vertex shader for procedural bricks
 //
 // Authors: Dave Baldwin, Steve Koren, Randi Rost
-//          based on a shader by Darwyn Peachey
+//			based on a shader by Darwyn Peachey
 //
 // Copyright (c) 2002-2006 3Dlabs Inc. Ltd.
 //
@@ -20,23 +20,26 @@ varying vec2  MCposition;
 
 void main(void)
 {
-    vec3 ecPosition = vec3 (gl_ModelViewMatrix * gl_Vertex);
-    vec3 tnorm      = normalize(gl_NormalMatrix * gl_Normal);
-    vec3 lightVec   = normalize(LightPosition - ecPosition);
-    vec3 reflectVec = reflect(-lightVec, tnorm);
-    vec3 viewVec    = normalize(-ecPosition);
-    float diffuse   = max(dot(lightVec, tnorm), 0.0);
-    float spec      = 0.0;
+	vec3 ecPosition = vec3 (gl_ModelViewMatrix * gl_Vertex);
+	vec3 tnorm		= normalize(gl_NormalMatrix * gl_Normal);
+	vec3 lightVec	= normalize(LightPosition - ecPosition);
+	vec3 reflectVec = reflect(-lightVec, tnorm);
+	vec3 viewVec	= normalize(-ecPosition);
+	float diffuse	= max(dot(lightVec, tnorm), 0.0);
+	float spec		= 0.0;
 
-    if (diffuse > 0.0)
-    {
-        spec = max(dot(reflectVec, viewVec), 0.0);
-        spec = pow(spec, 16.0);
-    }
+	if (diffuse > 0.0)
+	{
+		spec = max(dot(reflectVec, viewVec), 0.0);
+		spec = pow(spec, 16.0);
+	}
 
-    LightIntensity  = DiffuseContribution * diffuse +
-                      SpecularContribution * spec;
+	LightIntensity	= DiffuseContribution * diffuse +
+					  SpecularContribution * spec;
 
-    MCposition      = gl_Vertex.xy;
+	MCposition		= gl_Vertex.xy;
+	#ifdef __GLSL_CG_DATA_TYPES // Fix clipping for Nvidia and ATI
+	gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;
+	#endif
 	gl_Position 	= ftransform();
 }

@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 //
 // Vertex shader for producing a granite effect
 //
@@ -17,10 +17,13 @@ uniform float Scale;
 
 void main(void)
 {
-    vec3 ECposition = vec3 (gl_ModelViewMatrix * gl_Vertex);
-    MCposition      = vec3 (gl_Vertex) * Scale;
-    vec3 tnorm      = normalize(vec3 (gl_NormalMatrix * gl_Normal));
-    LightIntensity  = dot(normalize(LightPos - ECposition), tnorm);
-    LightIntensity *= 1.5;
-    gl_Position     = ftransform();
+	vec3 ECposition = vec3 (gl_ModelViewMatrix * gl_Vertex);
+	MCposition		= vec3 (gl_Vertex) * Scale;
+	vec3 tnorm		= normalize(vec3 (gl_NormalMatrix * gl_Normal));
+	LightIntensity	= dot(normalize(LightPos - ECposition), tnorm);
+	LightIntensity *= 1.5;
+	#ifdef __GLSL_CG_DATA_TYPES // Fix clipping for Nvidia and ATI
+	gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;
+	#endif
+	gl_Position 	= ftransform();
 }

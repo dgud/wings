@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 //
 // vertex to fragment shader io
 

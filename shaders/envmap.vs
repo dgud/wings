@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 //
 // Vertex shader for environment mapping with an
 // equirectangular 2D texture
@@ -18,9 +18,12 @@ vec3 LightPos = vec3(0.0, 10.0, 0.0);
 
 void main()
 {
-    gl_Position    = ftransform();
-    Normal         = normalize(gl_NormalMatrix * gl_Normal);
-    vec4 pos       = gl_ModelViewMatrix * gl_Vertex;
-    EyeDir         = pos.xyz;
-    LightIntensity = max(dot(normalize(LightPos - EyeDir), Normal), 0.0);
+	gl_Position    = ftransform();
+	#ifdef __GLSL_CG_DATA_TYPES // Fix clipping for Nvidia and ATI
+	gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;
+	#endif
+	Normal		   = normalize(gl_NormalMatrix * gl_Normal);
+	vec4 pos	   = gl_ModelViewMatrix * gl_Vertex;
+	EyeDir		   = pos.xyz;
+	LightIntensity = max(dot(normalize(LightPos - EyeDir), Normal), 0.0);
 }

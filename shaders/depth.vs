@@ -13,5 +13,8 @@ void main()
 	float z = dot(offset, EyeDir);
 	z = (z-DepthNear) / (DepthFar-DepthNear);
 	DepthColor = vec3(z);
+	#ifdef __GLSL_CG_DATA_TYPES // Fix clipping for Nvidia and ATI
+	gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;
+	#endif
 	gl_Position = ftransform();
 }
