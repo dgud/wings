@@ -44,7 +44,7 @@ props() ->
     [{ext, ".lwo"},{ext_desc, "LightWave or Modo File"}].
 
 props2() ->
-    [{ext, ".l?o"},{ext_desc, "LightWave or Modo File"}].
+    [{ext, ".lwo"},{ext_desc, "LightWave or Modo File"}].
 
 %%% ===============================
 %%% === LightWave Export (LWO2) ===
