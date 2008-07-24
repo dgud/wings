@@ -13,7 +13,7 @@
 
 -module(wings_magnet).
 -export([setup/3,transform/2,recalc/3,flags/2,dialog/1,dialog/2,
-	 info_string/0]).
+	 info_string/0,drag_help/1,hotkey/1]).
 
 -include("wings.hrl").
 -import(lists, [map/2,foldr/3,foldl/3,sort/1,concat/1,reverse/1]).

@@ -512,9 +512,9 @@ repeatable(Mode, Cmd) ->
     {_,{rotate,normal}} when Mode == body -> no;
     {_,{rotate,_}=C} -> {Mode,C};
     {_,{scale,_}=C} -> {Mode,C};
-	{_,{move_planar,_}=C} -> {Mode,C};
-	{_,{absolute,_}=C} -> {Mode,C};
-	{_,{arc_intersect,_}=C} -> {Mode,C};
+    {_,{move_planar,_}=C} -> {Mode,C};
+    {_,{absolute,_}=C} -> {Mode,C};
+    {_,{arc_intersect,_}=C} -> {Mode,C};
 
     %% Some special cases.
     {_,tighten=C} when Mode == vertex; Mode == body -> {Mode,C};

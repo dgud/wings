@@ -40,8 +40,9 @@
 - Made most of the Defined Hotkeys translatable. This also affect commands
   displayed in Edit|Repeat and the Plugin Manager. [optigon]
 
-- New Feature: Arc Intersect. Allows you to rotate a selection using a geometry
-  specified angle. [optigon]
+- New Feature: Rotate to Target allows you to rotate a selection using a
+  geometry specified angle.  Enable magnets by pressing [Alt] when initiating
+  the tool. [optigon]
 
 - Disabled translation macros for Save and Open in Windows because they could
   cause Wings to crash when displaying Latin 5 characters in native dialogs.

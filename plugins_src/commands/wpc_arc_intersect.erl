@@ -1,5 +1,5 @@
 %%
-%%  wpc_arc_intersect.erl --
+%%  wpc_arc_intersect.erl -- Rotate to Target
 %%
 %%    Plugin to rotate selected element to intersect with a secondary selection
 %%
@@ -17,59 +17,59 @@ init() ->
     true.
 
 %%%% Menu
-menu({Mode},Menu) when Mode =:= vertex; Mode =:= edge; Mode =:= face; Mode =:= body ->
+menu({Mode,rotate},Menu) when Mode =:= vertex; Mode =:= edge; Mode =:= face; Mode =:= body ->
     case wings_pref:get_value(advanced_menus) of
       false -> Menu;
-      true  -> lists:reverse(parse(Mode, Menu, [], false))
+      true  -> [Menu|[separator,arc_intersect_menu(Mode)]]
     end;
 menu(_,Menu) ->
     Menu.
 
-parse(_, [], NewMenu, true) ->
-    NewMenu;
-parse(Mode, [], NewMenu, false) ->
-    [arc_intersect_menu(Mode)|NewMenu];
-parse(Mode, [A = {_,{flatten,_}}|Rest], NewMenu, false) when Mode =:= vertex; Mode =:= face ->
-    parse(Mode, Rest, [arc_intersect_menu(Mode),A|NewMenu], true);
-parse(body, [A = {_,{flip,_}}|Rest], NewMenu, false) ->
-    parse(body, Rest, [arc_intersect_menu(body),A|NewMenu], true);
-parse(edge, [A = {_,{extrude,_}}|Rest], NewMenu, false) ->
-    parse(edge, Rest, [arc_intersect_menu(edge),A|NewMenu], true);
-parse(Mode, [Elem|Rest], NewMenu, Found) ->
-    parse(Mode, Rest, [Elem|NewMenu], Found).
-
 arc_intersect_menu(Mode) ->
-    {?__(1,"Arc Intersect"), arc_intersect_options(Mode),
-      {?__(2,"Rotate around specified center from Point A to Point B"),[],
-       ?__(3,"Rotate around specified center by an angle defined by Vector A and Vector B")},[]}.
+    {?__(1,"Rotate to Target"), arc_intersect_options(Mode),
+      {?__(2,"Rotate around specified center from Point A to Point B"),
+       ?__(3,"Rotate Point to Plane"),
+       ?__(4,"Rotate around specified center by an angle defined by Vector A and Vector B")},magnet_possible(Mode)}.
 
+magnet_possible(body) -> [];
+magnet_possible(_) -> [magnet].
+
+arc_intersect_options(body) ->
+    fun
+      (1,_Ns) -> {body,{arc_intersect,{lmb,{'ASK',[rotation_axis,center,point_A,point_B]}}}};
+      (2,_Ns) -> {body,{arc_intersect,{mmb,{'ASK',[rotation_axis,center,point,plane]}}}};
+      (3,_Ns) -> {body,{arc_intersect,{rmb,{'ASK',[rotation_axis,center,plane_A,plane_B]}}}};
+      (_,_)   -> ignore
+    end;
 arc_intersect_options(Mode) ->
     fun
-      (1,_Ns) -> {Mode,{arc_intersect,{lmb,{'ASK',[rotation_axis,center,point_A,point_B]}}}};
-      (3,_Ns) -> {Mode,{arc_intersect,{rmb,{'ASK',[rotation_axis,center,plane_A,plane_B]}}}};
-      (_,_) -> ignore
+      (1,_Ns) -> {Mode,{arc_intersect,{lmb,{'ASK',{[rotation_axis,center,point_A,point_B],[],[magnet]}}}}};
+      (2,_Ns) -> {Mode,{arc_intersect,{mmb,{'ASK',{[rotation_axis,center,point,plane],[],[magnet]}}}}};
+      (3,_Ns) -> {Mode,{arc_intersect,{rmb,{'ASK',{[rotation_axis,center,plane_A,plane_B],[],[magnet]}}}}};
+      (_,_)   -> ignore
     end.
 
 %%%% Commands
 command({_,{arc_intersect,{lmb,{'ASK',Ask}}}},St) ->
-    wings:ask(selection_ask(Ask), St, fun({Axis,Center,A,B},St0) ->
-    arc_intersect_setup(Axis,Center,A,B,St0)
-    end);
-command({_,{arc_intersect,{lmb,{Axis,Center,A,B}}}},St) ->
-    arc_intersect_setup(Axis,Center,A,B,St);
+    wings:ask(selection_ask(Ask), St, fun arc_intersect_setup/2);
+command({_,{arc_intersect,{lmb,Data}}},St) ->
+    arc_intersect_setup(Data,St);
+
+command({_,{arc_intersect,{mmb,{'ASK',Ask}}}},St) ->
+    wings:ask(selection_ask(Ask), St, fun arc_intersect_point_to_plane_setup/2);
+command({_,{arc_intersect,{mmb,Data}}},St) ->
+    arc_intersect_point_to_plane_setup(Data,St);
 
 command({_,{arc_intersect,{rmb,{'ASK',Ask}}}},St) ->
-    wings:ask(selection_ask(Ask), St, fun({Axis,Center,A,B},St0) ->
-    arc_intersect_plane_setup(Axis,Center,A,B,St0)
-    end);
-command({_,{arc_intersect,{rmb,{Axis,Center,A,B}}}},St) ->
-    arc_intersect_plane_setup(Axis,Center,A,B,St);
+    wings:ask(selection_ask(Ask), St, fun arc_intersect_plane_setup/2);
+command({_,{arc_intersect,{rmb,Data}}},St) ->
+    arc_intersect_plane_setup(Data,St);
 
 command(_,_) ->
     next.
 
 %%%% Asks
-selection_ask(Asks) ->
+selection_ask({Asks,_,_}) ->
     Ask = selection_ask(Asks,[]),
     {Ask,[],[],[vertex, edge, face]}.
 selection_ask([],Ask) -> lists:reverse(Ask);
@@ -93,59 +93,143 @@ selection_ask([plane_A|Rest],Ask) ->
     selection_ask(Rest,[{axis,Desc}|Ask]);
 selection_ask([plane_B|Rest],Ask) ->
     Desc = ?__(6,"Pick Vector B"),
-    selection_ask(Rest,[{axis,Desc}|Ask]).
+    selection_ask(Rest,[{axis,Desc}|Ask]);
+
+selection_ask([point|Rest],Ask) ->
+    Desc = ?__(7,"Pick Point"),
+    selection_ask(Rest,[{point,Desc}|Ask]);
+selection_ask([plane|Rest],Ask) ->
+    Desc = ?__(8,"Pick Plane"),
+    selection_ask(Rest,[{axis,Desc}|Ask]);
+
+selection_ask([magnet|Rest],Ask) ->
+    selection_ask(Rest,[magnet|Ask]).
 
 %%%% Setup
-arc_intersect_setup(Axis,Center,A,B,St0) ->
-    St = wings_sel_conv:mode(vertex,St0),
-    State = {none,none,{reciprocal,false}},
+%%%% LMB
+arc_intersect_setup({Axis,Center,A,B},St) ->
+    arc_intersect_setup({Axis,Center,A,B,none},St);
+
+arc_intersect_setup({Axis,Center,A,B,Mag},#st{selmode=body}=St) when Mag =/= none ->
+    arc_intersect_setup({Axis,Center,A,B,none},St);
+
+arc_intersect_setup({Axis,Center,A,B,Mag},St) ->
     VecA = double_cross(Center,A,Axis),
     VecB = double_cross(Center,B,Axis),
     Deg = e3d_vec:degrees(VecA,VecB),
-    Tvs = wings_sel:fold(fun(Vs0,#we{id=Id}=We,Acc) ->
-            Vs = gb_sets:to_list(Vs0),
-            VsPos = wings_util:add_vpos(Vs,We),
-            [{Id,{Vs, arc_intersect_fun(Axis,Center,Deg,VsPos,State)}}|Acc]
-            end,[],St),
-    Units = [percent],
-    Flags = [{mode,{arc_intersect_modes(),State}}],
-    wings_drag:setup(Tvs, Units, Flags, St0).
+    finish_setup(Axis, Center, Deg, Mag, St).
 
-arc_intersect_plane_setup(Axis,Center,A,B,St0) ->
-    St = wings_sel_conv:mode(vertex,St0),
-    State = {none,none,{reciprocal,false}},
+%%%% MMB
+arc_intersect_point_to_plane_setup({Axis,Center,A,B},St) ->
+    arc_intersect_point_to_plane_setup({Axis,Center,A,B,none},St);
+
+arc_intersect_point_to_plane_setup({Axis,Center,A,B,Mag},#st{selmode=body}=St) when Mag =/= none ->
+    arc_intersect_point_to_plane_setup({Axis,Center,A,B,none},St);
+
+arc_intersect_point_to_plane_setup({Axis,Center,A,B,Mag},St) ->
+    VecA = double_cross(Center,A,Axis),
+    VecB = e3d_vec:cross(Axis,B),
+    Deg = e3d_vec:degrees(VecA,VecB),
+    finish_setup(Axis, Center, Deg, Mag, St).
+%%%% RMB
+arc_intersect_plane_setup({Axis,Center,A,B},St) ->
+    arc_intersect_plane_setup({Axis,Center,A,B,none},St);
+
+arc_intersect_plane_setup({Axis,Center,A,B,Mag},#st{selmode=body}=St) when Mag =/= none ->
+    arc_intersect_plane_setup({Axis,Center,A,B,none},St);
+
+arc_intersect_plane_setup({Axis,Center,A,B,Mag},St) ->
     Deg = e3d_vec:degrees(A, B),
-    Tvs = wings_sel:fold(fun(Vs0,#we{id=Id}=We,Acc) ->
+    finish_setup(Axis, Center, Deg, Mag, St).
+
+finish_setup(Axis, Center, Deg, Mag, #st{selmode=Selmode}=St0) ->
+    St = case Selmode of
+        vertex -> St0;
+        _Other -> wings_sel_conv:mode(vertex,St0)
+    end,
+    MagType = magnet_type(Mag),
+    State = {none,MagType,{reciprocal,false}},
+    Tvs = wings_sel:fold(fun(Vs0,We,Acc) ->
             Vs = gb_sets:to_list(Vs0),
-            VsPos = wings_util:add_vpos(Vs,We),
-            [{Id,{Vs, arc_intersect_fun(Axis,Center,Deg,VsPos,State)}}|Acc]
+            finish_setup_1(Vs,We,Axis,Center,Deg,Mag,State,Acc)
             end,[],St),
-    Units = [percent],
-    Flags = [{mode,{arc_intersect_modes(),State}}],
+    Units = [percent|magnet_unit(Mag)],
+    Flags = [{mode,{arc_intersect_modes(Mag),State}}],
     wings_drag:setup(Tvs, Units, Flags, St0).
 
-arc_intersect_modes() ->
+finish_setup_1(Vs,#we{id=Id}=We,Axis,Center,Deg,none,State,Acc) ->
+    VsPos = wings_util:add_vpos(Vs,We),
+    [{Id,{Vs, arc_intersect_fun(Axis,Center,Deg,VsPos,none,State)}}|Acc];
+
+finish_setup_1(Vs,#we{id=Id}=We,Axis,Center,Deg,Mag,State,Acc) ->
+    {VsInf,Magnet,Affected} = wings_magnet:setup(Mag, Vs, We),
+    [{Id,{Affected,arc_intersect_fun(Axis,Center,Deg,VsInf,Magnet,State)}}|Acc].
+
+magnet_unit(none) -> [];
+magnet_unit(_) -> [falloff].
+
+magnet_type(none) -> none;
+magnet_type({_,Type,_,_}) -> Type.
+
+arc_intersect_modes(none) ->
     fun
       (help, State) -> arc_intersect_mode_help(State);
       ({key,$1},{none,none,{reciprocal,false}}) -> {none,none,{reciprocal,true}};
       ({key,$1},{none,none,{reciprocal,true}})  -> {none,none,{reciprocal,false}};
       (_,_) -> none
+    end;
+
+arc_intersect_modes(_) ->
+    fun
+      (help, State) -> arc_intersect_mode_help(State);
+      ({key,$5},{none,_Type,{reciprocal,false}}) -> {none,_Type,{reciprocal,true}};
+      ({key,$5},{none,_Type,{reciprocal,true}})  -> {none,_Type,{reciprocal,false}};
+      ({key, K},{none,_Type,_Recip}) when K =:= $1; K =:= $2; K =:= $3; K =:= $4 ->
+          {none,wings_magnet:hotkey(K),_Recip};
+      (done,{none,Type,_Recip}) -> wings_pref:set_value(magnet_type, Type);
+      (_,_) -> none
     end.
 
-arc_intersect_mode_help({_,_,{_,false}}) ->
-    ?__(1,"[1] Flip Angle");
-arc_intersect_mode_help({_,_,{_,true}}) ->
-    ?__(2,"[1] Flip Back").
+arc_intersect_mode_help({_,none,{_,Flip}}) ->
+    ?__(1,"[1] ") ++ flip_help_1(Flip);
+arc_intersect_mode_help({_,Type,{_,Flip}}) ->
+    wings_magnet:drag_help(Type)++flip_help(Flip).
+flip_help(Flip) ->
+    ?__(1,"  [5] ") ++ flip_help_1(Flip).
+flip_help_1(true) ->
+    ?__(1,"Flip Angle");
+flip_help_1(false) ->
+    ?__(2,"Flip Back").
 
-arc_intersect_fun(Axis,Center,Deg,VsPos,State) ->
+arc_intersect_fun(Axis,Center,Deg,VsPos,none,State) ->
     fun
       (new_mode_data,{NewState,_}) ->
-          arc_intersect_fun(Axis,Center,Deg,VsPos,NewState);
+          arc_intersect_fun(Axis,Center,Deg,VsPos,none,NewState);
       ([Percent|_], A) ->
           lists:foldl(fun({V,Vpos}, VsAcc) ->
           [{V,arc_intersect(Axis,Center,Deg,Vpos,State,Percent)}|VsAcc]
           end, A, VsPos)
+    end;
+
+arc_intersect_fun(Axis,Center,Deg,VsInf0,{_,R}=Magnet0,State0) ->
+    fun
+        (new_falloff, Falloff) ->
+         VsInf = wings_magnet:recalc(Falloff, VsInf0, Magnet0),
+         arc_intersect_fun(Axis,Center,Deg,VsInf,Magnet0,State0);
+
+         %% Magnet Type Switch
+         (new_mode_data, {State, Falloff}) ->
+         {_,MagType,_} = State,
+         Magnet = {MagType,R},
+         VsInf = wings_magnet:recalc(Falloff, VsInf0, Magnet),
+         arc_intersect_fun(Axis,Center,Deg,VsInf,Magnet,State);
+
+        ([Percent|_], A) ->
+            lists:foldl(fun({V,Vpos,_,Inf}, Acc) ->
+            [{V,arc_intersect(Axis,Center,Deg,Vpos,State0,Percent*Inf)}|Acc]
+            end, A, VsInf0)
     end.
+
 
 arc_intersect(_Axis,_Center,_Deg,Vpos,_State,0.0) ->
     Vpos;
