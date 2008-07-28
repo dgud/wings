@@ -432,11 +432,23 @@ props(render, Attr) ->
 	proplists:get_value(render_format, Attr, ?DEF_RENDER_FORMAT),
     {value,{RenderFormat,Ext,Desc}} =
 	lists:keysearch(RenderFormat, 1, wings_job:render_formats()),
-    [{title,?__(1,"Render")},{ext,Ext},{ext_desc,Desc}];
+    Title = case os:type() of
+        {win32,_} -> "Render";
+        _Other    -> ?__(1,"Render")
+	end,
+    [{title,Title},{ext,Ext},{ext_desc,Desc}];
 props(export, _Attr) ->
-    [{title,?__(2,"Export")},{ext,".xml"},{ext_desc,?__(3,"YafRay File")}];
+    {Title,File} = case os:type() of
+        {win32,_} -> {"Export","YafRay File"};
+        _Other    -> {?__(2,"Export"),?__(5,"YafRay File")}
+	end,
+    [{title,Title},{ext,".xml"},{ext_desc,File}];
 props(export_selected, _Attr) ->
-    [{title,?__(4,"Export Selected")},{ext,".xml"},{ext_desc,?__(5,"YafRay File")}].
+    {Title,File} = case os:type() of
+        {win32,_} -> {"Export Selected","YafRay File"};
+        _Other    -> {?__(4,"Export Selected"),?__(5,"YafRay File")}
+	end,
+    [{title,Title},{ext,".xml"},{ext_desc,File}].
 
 
 

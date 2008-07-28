@@ -44,7 +44,11 @@ export_filename(Prop0, #st{file=File}, Cont) ->
 import_filename(Ps0, Cont) ->
     This = wings_wm:this(),
     Dir = wings_pref:get_value(current_directory),
-    Ps = Ps0 ++ [{title,?__(1,"Import")},{directory,Dir}],
+    String = case os:type() of
+        {win32,_} -> "Import";
+        _Other    -> ?__(1,"Import")
+    end,
+    Ps = Ps0 ++ [{title,String},{directory,Dir}],
     Fun = fun(Name) ->
 		  case catch Cont(Name) of
 		      {command_error,Error} ->
@@ -78,7 +82,11 @@ export_filename(Prop0, Cont) ->
 		      ok -> keep
 		  end
 	  end,
-	wings_plugin:call_ui({file,save_dialog,Prop++[{title,?__(1,"Export")}],Fun}).
+    String = case os:type() of
+        {win32,_} -> "Export";
+        _Other    -> ?__(1,"Export")
+	end,
+	wings_plugin:call_ui({file,save_dialog,Prop++[{title,String}],Fun}).
 
 init() ->
     case wings_pref:get_value(current_directory) of
@@ -177,9 +185,17 @@ command(import_image, _St) ->
 command({import_image,Name}, _) ->
     import_image(Name);
 command({export,ndo}, St) ->
-    export_ndo(export, ?__(2,"Export"), St);
+    String = case os:type() of
+        {win32,_} -> "Export";
+        _Other    -> ?__(2,"Export")
+    end,
+    export_ndo(export, String, St);
 command({export_selected,ndo}, St) ->
-    export_ndo(export_selected, ?__(3,"Export Selected"), St);
+    String = case os:type() of
+        {win32,_} -> "Export Selected";
+        _Other    -> ?__(3,"Export Selected")
+    end,
+    export_ndo(export_selected, String, St);
 command({export,{ndo,Filename}}, St) ->
     do_export_ndo(Filename, St);
 command({export_selected,{ndo,Filename}}, St) ->
@@ -248,8 +264,12 @@ confirmed_open_dialog() ->
 
     Cont = fun(Filename) -> {file,{confirmed_open,Filename}} end,
     Dir = wings_pref:get_value(current_directory),
+    String = case os:type() of
+        {win32,_} -> "Open";
+        _Other    -> ?__(1,"Open")
+    end,
     Ps = [{directory,Dir},
-	  {title,?__(1,"Open")}|wings_prop()],
+	  {title,String}|wings_prop()],
     import_filename(Ps, Cont).
 
 confirmed_open(Name, St0) ->
@@ -287,7 +307,11 @@ str_save_changes() ->
 merge() ->
     Cont = fun(Filename) -> {file,{merge,Filename}} end,
     Dir = wings_pref:get_value(current_directory),
-    Ps = [{title,?__(1,"Merge")},{directory,Dir}|wings_prop()],
+    String = case os:type() of
+        {win32,_} -> "Merge";
+        _Other    -> ?__(1,"Merge")
+    end,
+    Ps = [{title,String},{directory,Dir}|wings_prop()],
     import_filename(Ps, Cont).
 
 merge(Name, St0) ->
@@ -316,10 +340,14 @@ save(Next, St) ->
 
 save_as(Next, St) ->
     Cont = fun(Name) ->
-		   set_cwd(dirname(Name)),
-		   {file,{save_as,{Name,Next}}}
-	   end,
-    Ps = [{title,?__(1,"Save")}|wings_prop()],
+       set_cwd(dirname(Name)),
+       {file,{save_as,{Name,Next}}}
+    end,
+    Title = case os:type() of
+        {win32,_} -> "Save";
+        _Other    -> ?__(1,"Save")
+    end,
+    Ps = [{title,Title}|wings_prop()],
     export_filename(Ps, St, Cont).
 
 save_now(Next, #st{file=Name}=St) ->
@@ -342,7 +370,11 @@ maybe_send_action(Action) -> wings_wm:later({action,Action}).
 save_selected(#st{sel=[]}) ->
     wings_u:error(?__(1,"This command requires a selection."));
 save_selected(St) ->
-    Ps = [{title,?__(2,"Save Selected")}|wings_prop()],
+    String = case os:type() of
+        {win32,_} -> "Save Selected";
+        _Other    -> ?__(2,"Save Selected")
+    end,
+    Ps = [{title,String}|wings_prop()],
     Cont = fun(Name) -> {file,{save_selected,Name}} end,
     export_filename(Ps, St, Cont).
 
@@ -396,7 +428,13 @@ find_digits1([], Digits) ->
 wings_prop() ->
     %% Should we add autosaved wings files ??
     %% It's pretty nice to NOT see them in the file chooser /Dan
-    [{ext,?WINGS},{ext_desc,?__(1,"Wings File")}].    
+
+    %% Disabled translations for win32
+    String = case os:type() of
+        {win32,_} -> "Wings File";
+        _Other    -> ?__(1,"Wings File")
+    end,
+    [{ext,?WINGS},{ext_desc, String}].
 
 use_autosave(File, Body) ->
     case file:read_file_info(File) of
@@ -594,12 +632,22 @@ do_export_ndo(Name, St) ->
 %%%
 
 install_plugin() ->
-    Props = [{title,?__(1,"Install Plug-In")},
-	     {extensions,
-	      [{".gz",?__(2,"GZip Compressed File")},
-	       {".tar",?__(3,"Tar File")},
-	       {".tgz",?__(4,"Compressed Tar File")},
-	       {".beam",?__(5,"Beam File")}]}],
+    Props = case os:type() of
+        {win32,_} ->
+		    [{title,"Install Plug-In"},
+             {extensions,
+             [{".gz", "GZip Compressed File"},
+              {".tar", "Tar File"},
+              {".tgz", "Compressed Tar File"},
+              {".beam", "Beam File"}]}];
+        _Other    ->
+            [{title,?__(1,"Install Plug-In")},
+             {extensions,
+             [{".gz",?__(2,"GZip Compressed File")},
+              {".tar",?__(3,"Tar File")},
+              {".tgz",?__(4,"Compressed Tar File")},
+              {".beam",?__(5,"Beam File")}]}]
+    end,
     Cont = fun(Name) -> {file,{install_plugin,Name}} end,
     import_filename(Props, Cont).
 

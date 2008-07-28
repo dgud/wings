@@ -70,6 +70,8 @@ command(_,_) ->
 
 %%%% Asks
 selection_ask({Asks,_,_}) ->
+    selection_ask(Asks);
+selection_ask(Asks) ->
     Ask = selection_ask(Asks,[]),
     {Ask,[],[],[vertex, edge, face]}.
 selection_ask([],Ask) -> lists:reverse(Ask);

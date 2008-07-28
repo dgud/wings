@@ -212,11 +212,23 @@ command_file(Op, Ask, _St) when is_atom(Ask) ->
 props(render) ->
     {value,{png,Ext,Desc}} =
 	lists:keysearch(png, 1, wings_job:render_formats()),
-    [{title,?__(1,"Render")},{ext,Ext},{ext_desc,Desc}];
+    Title = case os:type() of
+        {win32,_} -> "Render";
+        _Other    -> ?__(1,"Render")
+	end,
+    [{title,Title},{ext,Ext},{ext_desc,Desc}];
 props(export) ->
-    [{title,?__(2,"Export")},{ext,".xml"},{ext_desc,?__(3,"Toxic File")}];
+    {Title,File} = case os:type() of
+        {win32,_} -> {"Export","Toxic File"};
+        _Other    -> {?__(2,"Export"),?__(3,"Toxic File")}
+	end,
+    [{title,Title},{ext,".xml"},{ext_desc,File}];
 props(export_selected) ->
-    [{title,?__(4,"Export Selected")},{ext,".xml"},{ext_desc,?__(5,"Toxic File")}].
+    {Title,File} = case os:type() of
+        {win32,_} -> {"Export Selected","Toxic File"};
+        _Other    -> {?__(4,"Export Selected"),?__(3,"Toxic File")}
+	end,
+    [{title,Title},{ext,".xml"},{ext_desc,File}].
 
 -record(camera_info, {pos,dir,up,fov,origin,distance,azimuth,
 		      elevation,pan_x,pan_y}).
