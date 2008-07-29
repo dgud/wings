@@ -1,0 +1,17 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_image,
+ [
+  {image_menu,
+   [
+    {1,"Görüntü Düzlemi..."},
+    {2,"Bir görüntüyü içeren bir düzlem yarat"}
+   ]},
+  {make_image,
+   [
+    {1,"Yükleme başarısız \"~s\": ~s\n"}
+   ]},
+  {make_image_1,
+   [
+    {1,"Görüntü, doku olarak yüklenemedi (muhtemelen çok büyük)."}
+   ]}
+ ]}.

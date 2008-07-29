@@ -1,0 +1,62 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_shear,
+ [
+  {check_glide_plane_norm,
+   [
+    {3,"Kayma düzleminden geçen eksen çok kısa"}
+   ]},
+  {glide_plane_menu,
+   [
+    {1,"Kayma Düzlemi yüzeyleri ~s'ye bakıyor (Köşe hareketininin sınırlı olduğuna paralel)"},
+    {2,"Kaykılma vektörünü ve orijinini seç. (Ölçme Noktası otomatik hesaplanır)"},
+    {3,"Kaykılma Vektörünü, Orijini, ve Ölçme Noktasını Seç"}
+   ]},
+  {radial_menu,
+   [
+    {3,"Köşe hareketini kaykılma vektörü ~s ile onlara özgün ~s tarafına bakan kayma düzlemleri ile sınırla"},
+    {4,".(Orijin ve Ölçme Noktası otomatik hesaplanır)"},
+    {5,"Orijin ve Ölçme Noktasını Seç"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Kayma Düzlemini Seç"},
+    {2," (bütün köşelerin paralel hareket edeceği düzlem)"},
+    {3,"Orijini Seç (durağan kayma düzlemini tanımlayan nokta)"},
+    {4,"Kaykılma Vektörünü Seç"},
+    {5," (köşelerin özgün kayma düzlemleri boyunca hareket edecekleri yön)"},
+    {6,"Ölçme Noktasını Seç"},
+    {7," (kayma düzlemi boyunca hareketin ölçüleceği nokta)"},
+    {8,"Kaykılma Vektörünü Yeniden Seç"},
+    {9,". Belirtilen kayma düzlemine dik olamaz"},
+    {10,"Ölçme Noktasını Yeniden Seç"},
+    {11,". Belirtilen orijine göre eşsiz kayma düzleminin üstünde olmalı"},
+    {12,"Kayma Düzlemini Yeniden Seç"},
+    {13," Belirtilen kaykılma vektörüne paralel olamaz"}
+   ]},
+  {shear,
+   [
+    {1,"Kaykıl"},
+    {2,"XYZ Kaykıl"},
+    {3,"Hareketin kendine paralel olarak kısıtlanacağı kayma düzlemini, kaykılma vektörünü, durağan kayma düzlemini tanımlayan orijini, ve uzaklık için ölçme noktasını seç"}
+   ]},
+  {shear_anchor_help,
+   [
+    {1,"Çapa Orijin"},
+    {2,"Serbest Orijin"}
+   ]},
+  {shear_dir_help,
+   [
+    {1,"Asimetrik"},
+    {2,"Simetrik"}
+   ]},
+  {shear_help,
+   [
+    {5,"[+] veya [-] Eğri"}
+   ]},
+  {shear_mode_help,
+   [
+    {1,"Görece"},
+    {2,"Açı"},
+    {3,"Mutlak"}
+   ]}
+ ]}.

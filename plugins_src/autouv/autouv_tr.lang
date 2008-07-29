@@ -1,0 +1,387 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{auv_mapping,
+ [
+  {chart_normal,
+   [
+    {1,"Çizelge için normal hesaplanamıyor."}
+   ]},
+  {find_axes,
+   [
+    {1,"Bu şekil bir çizelgeyi/kesikleri küre/silindir haritalandıramıyorum,\nhangi eksenleri X, Y, ve Z olarak istediğinizi çözemiyorum,\nlütfen sermeyi veya izdüşüm haritalandırmalarından birini kullanın."}
+   ]},
+  {get_face_vspos,
+   [
+    {1,"Hata: Yüzey üçgenleştirilmemiş ~p, ~p köşe ile"}
+   ]},
+  {map_chart,
+   [
+    {1,"Kapalı bir yüzey haritalandırılamaz. (Ya onu iki veya daha fazla çizelgeye bölün, ya da bazı kenarları boyunca kesin.)"},
+    {2,"Kapalı bir yüzeydeki kesik en azından iki kenardan oluşmalıdır."},
+    {3,"Çizelge başına en azından iki köşe seçilmiş olmalı"},
+    {4,"Hata:"},
+    {5,"Dahili Hata"}
+   ]},
+  {map_chart_1,
+   [
+    {1,"Sayısal sorun, muhtemelen boş alanlı hatalı bir yüzey."},
+    {2,"Dahili hata:"},
+    {3,"Hata"}
+   ]},
+  {stretch_iter,
+   [
+    {1,"tekrarlama"}
+   ]},
+  {stretch_opt,
+   [
+    {1,"en uygun hale getiriliyor"},
+    {2,"ilk kullanıma hazırlanıyor"},
+    {3,"Germeden sonraki toplam (ortalama) ~p"}
+   ]},
+  {stretch_setup,
+   [
+    {1,"Germe toplamı (en kötü) ~p"},
+    {2,"Germe toplamı (ortalama) ~p"}
+   ]}
+ ]}.
+{auv_seg_ui,
+ [
+  {mappers,
+   [
+    {1,"Ser"},
+    {2,"Normal İzdüşüm"},
+    {3,"Kamera İzdüşümü"},
+    {4,"Küresel Harita"},
+    {5,"Silindirik Harita"}
+   ]},
+  {seg_event,
+   [
+    {1,"Parçalanıyor"}
+   ]},
+  {seg_event_3,
+   [
+    {1,"Devam et"},
+    {2,"Parçalara ayır"},
+    {3,"İzdüşüm"},
+    {4,"Özellik Algılama"}
+   ]},
+  {seg_init_message,
+   [
+    {1,"Seç"},
+    {2,"Menüyü göster"}
+   ]},
+  {seg_map_charts,
+   [
+    {1,"haritalamaya hazırlanıyor"},
+    {2,"parçalanıyor"},
+    {3,"normalleştiriliyor"},
+    {4,"kesiliyor"},
+    {5,"Haritalandırılabilir yüzey yok."},
+    {6,"haritalandırılıyor"}
+   ]},
+  {seg_map_charts_1,
+   [
+    {1,"çizelge"}
+   ]},
+  {seg_mode_menu,
+   [
+    {1,"Kesmek İçin Kenarları İşaretle"},
+    {2,"Kenarların İşaretini Kaldır"},
+    {3,"İşaretli Kenarları Seç"},
+    {4,"Yüzeyleri Görmezden Gel"},
+    {5,"Seç"}
+   ]}
+ ]}.
+{auv_texture,
+ [
+  {background,
+   [
+    {1,"Arka Plan"}
+   ]},
+  {draw_options,
+   [
+    {1,"Boyut"},
+    {2,"İmgele"},
+    {3,"Çizme Seçenekleri"},
+    {4,"Yeni Aşama"},
+    {5,"Kullanılmayan Aşamayı Sil"}
+   ]},
+  {options,
+   [
+    {1,"Görüntü"},
+    {2,"Renk"},
+    {3,"Bütün Kenarları Çiz"},
+    {4,"Sınır Kenarları Çiz"},
+    {5,"Kenar Rengi:"},
+    {6,"Kenar Kalınlığı:"},
+    {7,"Sınır kenarlarda yüzey malzemesini kullan"},
+    {8,"Malzeme Renklerini Kullan"},
+    {9,"Önceki Doku/Köşe renklerini kullan"},
+    {10,"Işık Yok:"}
+   ]},
+  {render_passes,
+   [
+    {1,"Arka Plan"},
+    {2,"Seçenekler"},
+    {3,"Seçenekler"}
+   ]},
+  {renderers,
+   [
+    {1,"Hiçbiri"},
+    {2,"Kenarları Çiz"},
+    {3,"Yüzeyleri Çiz"}
+   ]}
+ ]}.
+{wpc_autouv,
+ [
+  {align_error,
+   [
+    {1,"Bir kenar veya iki köşe seç"}
+   ]},
+  {auv_menu,
+   [
+    {1,"UV Haritalama"},
+    {2,"UV haritası veya doku yarat"},
+    {3,"Parçalama moduna zorla (eski parçaları sil)"},
+    {4,"Doğrudan"},
+    {5,"Eğer seçim zaten UV koordinatları içeriyorsa doğrudan UV penceresini aç"},
+    {6,"Parçalamaya Zorla (öncekini sil)"},
+    {7,"Eski UV koordinatlarını sil ve parçalamaya baştan başla"},
+    {8,"Parçalamaya Zorla (öncekini sakla)"},
+    {9,"Eski UV koordinatları ile yeniden parçala"},
+    {25,"Nesneleri yeniden parçala"}
+   ]},
+  {command_menu,
+   [
+    {1,"Çizelge işlemleri"},
+    {2,"Taşı"},
+    {3,"Seçili çizelgeleri taşı"},
+    {4,"Ölçekle"},
+    {5,"Seçili çizelgeleri ölçekle"},
+    {6,"Döndür"},
+    {7,"Seçili çizelgeleri döndür"},
+    {8,"Taşı:"},
+    {9,"Merkez"},
+    {10,"Merkeze Taşı"},
+    {11,"Merkez X"},
+    {12,"Yatay merkeze taşı"},
+    {13,"Merkez Y"},
+    {14,"Dikey merkeze taşı"},
+    {15,"Alt"},
+    {16,"Alt sınıra taşı"},
+    {17,"Üst"},
+    {18,"Üst sınıra taşı"},
+    {19,"Sol"},
+    {20,"Sol sınıra taşı"},
+    {21,"Sağ"},
+    {22,"Sağ sınıra taşı"},
+    {23,"Çizelgeleri konuma taşı"},
+    {24,"Çevir"},
+    {25,"Yatay"},
+    {26,"Seçimi yatay çevir"},
+    {27,"Dikey"},
+    {28,"Seçimi dikey çevir"},
+    {29,"Seçili çizelgeleri çevir"},
+    {30,"Sıkıla"},
+    {31,"UV koordinatlarını orta noktaya doğru taşı"},
+    {32,"Gizle"},
+    {33,"Seçili çizelgeleri gizle fakat UV koordinatlarını tut"},
+    {34,"Sil"},
+    {35,"Seçili çizelgelerin UV koordinatlarını sil"},
+    {36,"UVyi Yeniden Eşle"},
+    {37,"Gerdirme en iyilemesi"},
+    {38,"Çizelge gerinmesini en iyile"},
+    {39,"Ser"},
+    {40,"Çizelgeyi ser"},
+    {41,"Normal İzdüşüm"},
+    {42,"Çizelge normalinden UVleri izdüşür"},
+    {43,"Küresel"},
+    {44,"Küresel haritalandırma"},
+    {45,"Yeni UVleri seçilen algoritma ile hesapla"},
+    {46,"Yüzey işlemleri"},
+    {47,"Taşı"},
+    {48,"Seçili yüzeyleri taşı"},
+    {49,"Ölçekle"},
+    {50,"Seçili yüzeyleri ölçekle"},
+    {51,"Döndür"},
+    {52,"Seçili yüzeyleri döndür"},
+    {53,"Serbest"},
+    {54,"Seçimi serbestçe döndür"},
+    {55,"X'e Çizelgele"},
+    {56,"Seçili kenarı X eksenine hizalamak için çizelgeyi döndür"},
+    {57,"Y'ye Çizelgele"},
+    {58,"Seçili kenarı Y eksenine hizalamak için çizelgeyi döndür"},
+    {59,"Kenar işlemleri"},
+    {60,"Taşı"},
+    {61,"Seçili kenarları taşı"},
+    {62,"Ölçekle"},
+    {63,"Seçili kenarları ölçekle"},
+    {64,"Döndür"},
+    {65,"Döndürme komutları"},
+    {66,"Dik"},
+    {67,"Kenarları/çizelgeleri dik"},
+    {68,"Kes"},
+    {69,"Seçili kenarları kes"},
+    {70,"Serbest"},
+    {71,"Seçimi serbestçe döndür"},
+    {72,"X'e Çizelgele"},
+    {73,"Seçili köşeleri birleştiren -hayali- kenarı X eksenine hizalamak için döndür"},
+    {74,"Y'ye Çizelgele"},
+    {75,"Seçili köşeleri birleştiren -hayali- kenarı Y eksenine hizalamak için döndür"},
+    {76,"Köşe işlemleri"},
+    {77,"Taşı"},
+    {78,"Seçili köşeleri taşı"},
+    {79,"Ölçekle"},
+    {80,"Seçili köşeleri ölçekle"},
+    {81,"Döndür"},
+    {82,"Döndürme komutları"},
+    {83,"Yassılaştır"},
+    {84,"Yatay Olarak Yassılaştır"},
+    {85,"Dikey Olarak Yassılaştır"},
+    {86,"Seçili köşeleri yassılaştır"},
+    {87,"Sıkıla"},
+    {88,"UV koordinatlarını orta noktaya doğru taşı"},
+    {89,"Ser"},
+    {90,"Çizelgeyi ser (seçili köşeleri hareket ettirmeden)"},
+    {91,"Küresel Harita"},
+    {92,"Seçili köşeleri Kuzey/Güney kutup noktaları alarak bir küresel harita yarat"},
+    {411,"Boyutları Normalleştir"},
+    {412,"Çizelge boyutlarını her çizelgenin denk düşan 2B alanı alabileceği şekilde normalleştir"},
+    {521,"İzdüşüm-Ser"},
+    {522,"Seçili yüzeyleri normallerinden izdüşür ve çizelgenin gerisini ser"},
+    {641,"Kaydır"},
+    {642,"Komşu kenarlar boyunca kaydır"},
+    {643,"Dağıt"},
+    {644,"Yatayda dağıt"},
+    {645,"Dikeyde Dağıt"},
+    {646,"Köşeleri düzenli dağıt"}
+   ]},
+  {create_window,
+   [
+    {1,"Parçalanıyor"}
+   ]},
+  {drag_filter,
+   [
+    {1,"Düşür: Doku görüntüsünü değiştir"}
+   ]},
+  {handle_event_3,
+   [
+    {1,"Seç"},
+    {2,"Menüyü göster"}
+   ]},
+  {menu,
+   [
+    {1,"UV Düzenleyici Penceresi"},
+    {2,"Her seçili nesne için bir UV düzenleyici penceresi aç"}
+   ]},
+  {menubar,
+   [
+    {1,"Düzen"},
+    {2,"Geri Al/Yeniden Yap"},
+    {3,"Son komutu geri al ya da yeniden yap"},
+    {4,"Yeniden Yap"},
+    {5,"Geri alınan son komutu yeniden yap"},
+    {6,"Geri Al"},
+    {7,"Son komutu geri al"},
+    {8,"Görünüm"},
+    {9,"Arka Plan Görüntüsünü Göster/Gizle"},
+    {10,"Arka plan doku görüntüsünün görüntüsünü aç-kapat"},
+    {11,"Seç"},
+    {71,"Yinele"},
+    {72,"Son komutu yinele"},
+    {74,"Değişkenlerle Yinele"},
+    {75,"Son komutu; aynı değişkenlerle yinele"},
+    {76,"Sürüklemeyle Yinele"},
+    {77,"Son komutu; aynı değişkenlerle, aynı uzaklıkta tekrarla"}
+   ]},
+  {option_menu,
+   [
+    {1,"Dokuyu Yarat"},
+    {2,"Dokuyu yarat ve modele iliştir"}
+   ]},
+  {remap,
+   [
+    {1,"yeniden haritalandırılıyor"},
+    {2,"çizelge"}
+   ]},
+  {reunfold,
+   [
+    {1,"İki köşe seç; Kuzey ve Güne kutbu"},
+    {2,"Her çizelgeye başına en az iki köşe tutturulmuş olmalı"},
+    {3,"yeniden haritalandırılıyor"},
+    {4,"çizelge"}
+   ]},
+  {scale_directions,
+   [
+    {1,"Tekdüze"},
+    {2,"Her iki yönde de ölçekle"},
+    {3,"Yatay"},
+    {4,"Yatay (X yönünde) ölçekle"},
+    {5,"Dikey"},
+    {6,"Dikey (Y yönünde) ölçekle"}
+   ]},
+  {start_uvmap,
+   [
+    {1,"Hiçbir şey seçilmemiş"}
+   ]},
+  {stitch_charts,
+   [
+    {1,"Bu kadar fazla çizelgeyi aynı anda dikemiyorum"}
+   ]},
+  {stretch_directions,
+   [
+    {1,"Her Yönde Enbüyüt"},
+    {2,"Ya yatayda ya da dikeyde enbüyüt"},
+    {3,"Yatayda Enbüyüt"},
+    {4,"Yatayda (X yönü) enbüyüt"},
+    {5,"Dikeyde Enbüyüt"},
+    {6,"Dikeyde (Y yönü) enbüyüt"}
+   ]}
+ ]}.
+{wpc_snap,
+ [
+  {find_a_id,
+   [
+    {1,"Görünür nesne gerekli."}
+   ]},
+  {menu,
+   [
+    {1,"Enstantane Görüntü"},
+    {2,"UV koordinatlarını görüntüye iliştirmek için enstantane kipini başlat"},
+    {3,"Enstantane Kipinden Çık"},
+    {4,"Enstantane kipinden çık"},
+    {5,"Enstantane Görüntüsü"},
+    {6,"Arka plan resmini seçili yüzeylerin üstüne onlara UV koordinatları atayarak koy"}
+   ]},
+  {select_image,
+   [
+    {1,"Hiç görüntü mevcut değil, önce bir görüntü al."},
+    {2,"İliştirilecek görüntüyü seç"}
+   ]},
+  {set_materials,
+   [
+    {1,"Nesnenin köşe renkleri varken görüntüye konulamıyor"}
+   ]},
+  {snap_menu,
+   [
+    {1,"Yatay"},
+    {2,"Arka plan görüntüsünü yatay ölçekle"},
+    {3,"Dikey"},
+    {4,"Arka plan görüntüsünü dikey ölçekle"},
+    {5,"Serbest"},
+    {6,"Arka plan görüntüsünü serbest ölçekle"},
+    {7,"Tekdüze"},
+    {8,"Arka plan görüntüsünü tekdüze ölçekle"},
+    {9,"Yatay"},
+    {10,"Arka plan görüntüsünü yatay olarak taşı"},
+    {11,"Dikey"},
+    {12,"Arka plan görüntüsünü dikey olarak taşı"},
+    {13,"Serbest"},
+    {14,"Arka plan görüntüsünü serbest taşı"},
+    {15,"Enstantane Görüntüyü Ölçekle"},
+    {16,"Arka plan görüntüsünü ölçekle"},
+    {17,"Enstantane Görüntüyü Taşı"},
+    {18,"Arka plan görüntüsünü taşı"},
+    {19,"Enstantane Kipinden Çık"},
+    {20,"Enstantane kipinden çık"}
+   ]}
+ ]}.

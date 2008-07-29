@@ -1,0 +1,19 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ai,
+ [
+  {command,
+   [
+    {1,"AI Alma Seçenekleri"},
+    {2,"Kenar ikiyebölme sayısı"},
+    {3,"Adobe Illustrator Dosyasi"}
+   ]},
+  {make_ai,
+   [
+    {1,"AI alma başarısız"},
+    {2,"AI alma dahili hata"}
+   ]},
+  {tryimport,
+   [
+    {1,"Adobe Illustrator Dosyası Değil (Sürüm 8 veya daha eski)"}
+   ]}
+ ]}.

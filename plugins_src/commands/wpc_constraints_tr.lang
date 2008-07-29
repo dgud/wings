@@ -1,0 +1,159 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_constraints,
+ [
+  {angle_error,
+   [
+    {1,"Tam olarak iki öğe seçilmiş olmalı"}
+   ]},
+  {axis_to_string,
+   [
+    {2,"<~s  ~s  ~s> vektörü boyunca"},
+    {3,"~s ekseni boyunca"}
+   ]},
+  {check_selection,
+   [
+    {1,"Hiçbir şey seçilmemiş"},
+    {3,"Şimdiki uzunluk çok kısa. Seçilen eksene dik olmayan kenarları seç."},
+    {4," Esas ~s ~s\n Şimdiki ~s ~s\n Yüzde ~s%  Tersi ~s%"},
+    {5,"Sonuç olarak dönen yüzde çok küçük"},
+    {6,"Fark çok küçük"},
+    {7," Esas ~s ~s\n Şimdiki ~s ~s\n Fark ~s"},
+    {8,"Merkezler arasındaki uzaklık çok kısa"},
+    {9," Esas merkez ~s\n Şimdiki merkez ~s\n Uzaklık ~s ~s"},
+    {10,"Şimdiki alan çok küçük"},
+    {11," Esas Açı ~s"},
+    {12,"\n Şimdiki Açı ~s"},
+    {13,"\n Fark ~s"},
+    {14,"Açı tanımlamak için tam olarak iki kenar ya da iki yüzey seçin"},
+    {15," Esas"},
+    {16," Açı ~s"}
+   ]},
+  {element_error,
+   [
+    {1,"Tam olarak bir öğe seçilmiş olmalı"}
+   ]},
+  {general_menu,
+   [
+    {1,"Kısıt Ayarla"}
+   ]},
+  {general_menu2,
+   [
+    {1,"İkinci seçimi ölçebilmek için başka bir eksen seç"}
+   ]},
+  {length_check,
+   [
+    {1,"Seçimin sıfırdan büyük bir alanı olmalı"},
+    {2,"Seçimin uzunluğu sıfırdan büyük olmalı"},
+    {3,"Vektör boyuncaki uzunluk çok kısa"},
+    {4,"~s ekseni boyuncaki uzunluk çok kısa"}
+   ]},
+  {menu_heading,
+   [
+    {1,"Normal"},
+    {2,"Seç"},
+    {3,"Doğru"},
+    {4,"Açı"},
+    {5,"15"},
+    {6,"22.5"},
+    {7,"30"},
+    {8,"45"},
+    {9,"60"},
+    {10,"90"}
+   ]},
+  {menu_string1,
+   [
+    {1,"Seçili kenarların uzunluklarını topla ve sonucu Tercihler içinde bir uzaklık kısıtı olarak kaydet"},
+    {2,"Seçili kenarların uzunluklarının ortalamasını hesapla ve sonucu Tercihler içinde bir uzaklık kısıtı olarak kaydet"},
+    {3,"Herhangi iki ~s arasındaki açıyı hesapla ve sonucu Tercihler içinde bir dönme kısıtı olarak kaydet"},
+    {4,"Herhangi iki açı arasındaki farkı hesapla ve sonucu Tercihler içinde bir dönme kısıtı olarak kaydet"},
+    {5,"Tek bir ~s ve standart bir eksen veya tanımlı vektör arasındaki açıyı ölç ve sonucu Tercihler içinde bir dönme kısıtı olarak kaydet"},
+    {6,"~s lar (iki ~s seçimindeki) arasındaki ölçek farkını hesapla ve sonucu Tercihler içinde bir ölçek kısıtı olarak kaydet"},
+    {7,"~s lar (iki ~s seçimindeki) arasındaki farkı ve sonucu Tercihler içinde bir uzaklık kısıtı olarak kaydet"},
+    {8,"İki seçimin merkez noktaları arasındaki uzaklığı hesapla ve sonucu Tercihler içinde bir uzaklık kısıtı olarak kaydet"}
+   ]},
+  {menu_string2,
+   [
+    {1,"Measure the ~s of both selections according to their ~s normals"},
+    {2,"Her iki seçimin de ~s boyunca ölçmek için bir eksen seç"},
+    {3,"Measure the ~s of both selections' ~s only along the ~s axis"}
+   ]},
+  {menu_string3,
+   [
+    {1,"Seçili kenarları normalleri boyunca ölç"},
+    {2,"Seçili kenarların boyunca ölçüleceği bir eksen seç"},
+    {3,"Seçili kenarları yalnız ~s ekseni boyunca ölç"},
+    {4,"Seçili açıyı ölç"},
+    {5,"Seçili açının ölçüleceği ekseni belirt"},
+    {6,"~s ekseninden görülen haliyle seçili açıyı ölç"},
+    {7,"İki seçimin merkezleri arasındaki uzaklığı ölç"},
+    {8,"İki seçimin merkezleri arasındaki uzaklığının boyunca ölçüleceği bir eksen seç"},
+    {9,"İki seçimin merkezleri arasındaki yalnızca ~s ekseni boyuncaki uzaklığı ölç"},
+    {11,"~s ölçülecek bir eksen seç: ~s seçimin ~s için"},
+    {12,"Measure the ~s of the ~s selection's ~s only along the ~s axis"},
+    {13,"Measure the ~s of the ~s selection's ~s along their normals"},
+    {14,"Measure the ~s of both selections according to their ~s normals"},
+    {15,"Pick an axis along which to measure the ~s of both selections' ~s"},
+    {17,"Measure the ~s of both selections' ~s only along the ~s axis"},
+    {18,"Şimdiki seçili açıyı ~s 'den çıkart"},
+    {19,"Şimdiki seçili açının çıkartılacağı ikinci bir açı seç"},
+    {20,"Bir vektör seç ve asıl ~s 'ye olan açıyı hesapla"},
+    {21,"~s ekseninden, asıl ~s 'ye olan olan açıyı hesapla"},
+    {22," ve sonra ortalama uzunluklarını hesapla"}
+   ]},
+  {menu_title,
+   [
+    {1,"Toplam Uzunluk"},
+    {2,"Ortalama Uzunluk"},
+    {3,"Açı"},
+    {4,"Açı Çıkart"},
+    {5,"Kenarı Eksene"},
+    {6,"Yüzeyi Eksene"},
+    {7,"Yüzde"},
+    {8,"Fark"},
+    {9,"Merkezler"}
+   ]},
+  {mod_string,
+   [
+    {1,". Kısıt basılan değiştirici tuş(lar)a atanacak."}
+   ]},
+  {mode_strings,
+   [
+    {1,"köşeleri"},
+    {2,"kenarları"},
+    {3,"yüzeyleri"},
+    {4,"köşesi"},
+    {5,"kenarı"},
+    {6,"yüzeyi"},
+    {7,"birinci"},
+    {8,"ikinci"},
+    {9,"uzaklık"},
+    {10,"uzunlukları"},
+    {11,"alanları"}
+   ]},
+  {secondary_sel_ask,
+   [
+    {1,"Asıl seçime bölünecek kenarları seç"},
+    {2,"Asıl seçimnden çıkartılacak kenarları seç"},
+    {3,"Seçimin merkezi, asıl seçimin merkezine olan uzaklığı belirleyecek"},
+    {4,"Toplam alanları ilk seçimin alanına bölünecek yüzeyleri seç"},
+    {5,"Asıl açının çıkartılacağı iki kenardan veya iki yüzeyden meydana gelen bir açı seç"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Her bir kenarın boyunca ölçüleceği ekseni seç"},
+    {2,", birinci seçim için"},
+    {3,", ikinci seçim için"},
+    {4,"Açının boyunca dikçizgisel ölçüleceği ekseni seç"},
+    {5,"Seçimlerin merkezleri arasındaki uzaklığı ölçmek için bir eksen seç"},
+    {6,"Birinci seçimin alanlarının boyunca dikçizgizel ölçüleceği bir eksen seç"},
+    {7,"İkinci seçimin alanlarının boyunca dikçizgizel ölçüleceği bir eksen seç"},
+    {8,"Asıl seçime olan açıyı ölçmek için bir eksen seç"}
+   ]},
+  {tag,
+   [
+    {1,"Döndürme"},
+    {2,"Ölçekleme Etkeni"},
+    {3,"Uzaklık"},
+    {4,"Alternatif Uzaklık"}
+   ]}
+ ]}.

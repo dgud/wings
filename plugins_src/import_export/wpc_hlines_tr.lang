@@ -1,0 +1,49 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_hlines,
+ [
+  {dialog,
+   [
+    {1,"nokta"},
+    {2,"Genişlik"},
+    {3,"Yükseklik"},
+    {4,"Çevreleyen kutu"},
+    {5,"Alt-bölümleme Adımları"},
+    {6,"Önceden-imgeleme"},
+    {7,"Hepsi"},
+    {8,"Sert"},
+    {9,"Hiçbiri"},
+    {10,"Kenarları göster"},
+    {11,"Katlama açısı"},
+    {12,"Anahat"},
+    {13,"Sert"},
+    {14,"Katlama"},
+    {15,"Malzeme"},
+    {16,"Düzenli"},
+    {17,"Hepsi"},
+    {18,"Kenarlar"},
+    {19,"Dipçik"},
+    {20,"Daire"},
+    {21,"Kare"},
+    {22,"Çizgi başlıkları"},
+    {23,"Birleştir"},
+    {24,"Açı"},
+    {25,"Uzaklık"},
+    {26,"Doğrudaş çizgiler (deneysel)"}
+   ]},
+  {do_export,
+   [
+    {1,"nesneler okunuyor"},
+    {2,"~B nesnesi gruptan okunuyor:"},
+    {3,"tamamlandı"},
+    {4,"nesneler okunuyor"},
+    {5,"Veriliyor"},
+    {6,"tamamlandı"},
+    {7,"~.1f saniyede tamamlandı"}
+   ]},
+  {export,
+   [
+    {1,"Karikatür Kenarları İmgeleme Seçenekleri"},
+    {2,"Ver"},
+    {3,"Encapsulated Postscript (EPS) Dosyasi"}
+   ]}
+ ]}.

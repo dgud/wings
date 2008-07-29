@@ -1,0 +1,2951 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wings,
+ [
+  {area_info,
+   [
+    {40," Alan ~s"}
+   ]},
+  {cannot_repeat,
+   [
+    {1,"Yinelenemiyor "}
+   ]},
+  {crash_handler,
+   [
+    {1,"Dahili hata - log kayıt dosyası:"},
+    {2,"Çalışmaya devam etmek için bir fare tuşuna tıklayın"},
+    {3,"Çalışmaya devam et"}
+   ]},
+  {define_command,
+   [
+    {1,""},
+    {2,"komutunu varsayılan komut olarak tanımlamak istiyor musunuz"}
+   ]},
+  {edit_menu,
+   [
+    {1,"Bellek geri kazanmak için geri alma geçmişini sil"},
+    {3,"Geri Al/Yeniden Yap"},
+    {4,"Son komutu geri al ya da yeniden yap"},
+    {5,"Yeniden Yap"},
+    {6,"Geri alınmış son komutu yeniden yap"},
+    {7,"Geri Al"},
+    {8,"Son komutu geri al"},
+    {9,"Tekrarla:"},
+    {10,"Tekrarla Argümanlar:"},
+    {11,"Tekrarla Sürükleme:"},
+    {12,"Eklenti Tercihleri"},
+    {13,"Geri Al Geçmişini Temizle"}
+   ]},
+  {enhanced_info,
+   [
+    {41,"Kenar ~s ~s"},
+    {42,"\nUzaklık ~s"},
+    {43,"Nesne ~s"},
+    {45,"Fark ~s"},
+    {48,"Yüzey ~s"}
+   ]},
+  {geom_title,
+   [
+    {1,"Geometri"},
+    {2,"Geometri #"}
+   ]},
+  {halt_loop,
+   [
+    {1,"Ölümcül dahili hata - log kayıt dosyası: ~s\n"},
+    {2,"<Bilinmeyen Pencere Adı>"},
+    {3,"Ölümcül dahili hata - log kayıt dosyası: ~s\n"}
+   ]},
+  {handle_drop_1,
+   [
+    {1,"Seçim Yok"},
+    {2,"Bırakma işlemini iptal et"},
+    {3,"Malzemeyi seçili yüzeylere ata"},
+    {4,"\""},
+    {5,"\" malzemesini sadece seçili yüzeylere ata"},
+    {6,"Malzemeyi bütün yüzeylere ata"},
+    {7,"\""},
+    {8,"\" malzemesini seçimi olan nesnelerdeki bütün yüzeylere ata"},
+    {9,"Malzemeyi bütün yüzeylere ata"},
+    {10,"\""},
+    {11,"\" malzemesini seçimi olan nesnelerdeki bütün yüzeylere ata"}
+   ]},
+  {handle_event_3,
+   [
+    {1,"Seç"},
+    {2,"Menüyü göster"}
+   ]},
+  {info_1,
+   [
+    {1,"Köşe ~p seçildi"},
+    {2,"Köşeler"},
+    {3,"~p köşe seçildi"},
+    {4,"Kenar ~p seçildi"},
+    {5,"Kenarlar"},
+    {6,"~p kenar seçildi"},
+    {7,"Yüzey ~p seçildi"},
+    {8,"Yüzeyler"},
+    {9,"~p yüzey seçildi"},
+    {10,"~p köşe ~p nesne içinden seçildi"},
+    {11,"~p kenar ~p nesne içinden seçildi"},
+    {12,"~p yüzey ~p nesne içinden seçildi"}
+   ]},
+  {init_menubar,
+   [
+    {1,"Dosya"},
+    {2,"Düzen"},
+    {3,"Görünüm"},
+    {4,"Seç"},
+    {5,"Araçlar"},
+    {6,"Pencere"},
+    {7,"Yardım"}
+   ]},
+  {item_list,
+   [
+    {1," seçildi"}
+   ]},
+  {measure,
+   [
+    {1,". Konum <~s  ~s  ~s>"},
+    {3,". Orta Nokta <~s  ~s  ~s>\nUzunluk ~s"},
+    {4,". Orta Nokta <~s  ~s  ~s> \nMalzeme ~s."},
+    {5,". Uzaklık ~s  <~s  ~s  ~s>"},
+    {6,". Açı ~s"}
+   ]},
+  {object_mode,
+   [
+    {material,"malzeme"},
+    {vertex,"köşe rengi"}
+   ]},
+  {patches,
+   [
+    {1,"Kullan "}
+   ]},
+  {purge_undo,
+   [
+    {1,"Geri alma evreleri: "},
+    {2,"Yeniden yapma evreleri: "},
+    {3,"Kaldırılacak hiçbir şey yok"},
+    {4,"Bütün evreleri kaldırayım mı (geri ALINAMAZ)?"}
+   ]},
+  {shape_info,
+   [
+    {2,"~p nesne, ~p yüzey, ~p kenar, ~p köşe seçildi"},
+    {object_info,"~p numaralı \"~s\" nesnesinin ~p çokgeni, ~p kenarı ve ~p köşesi var.\nKipi ~s"}
+   ]},
+  {tools_menu,
+   [
+    {8,"Hizala"},
+    {9,"Merkeze Getir"},
+    {10,"Çevreleyen Kutuyu Kaydet"},
+    {11,"Kayıtlı ÇKye Göre Ölçekle"},
+    {12,"Kayıtlı ÇKye Göre Orantılı Olarak Ölçekle"},
+    {13,"Kayıtlı ÇKye Taşı"},
+    {14,"Varsayılan Ekseni Ayarla"},
+    {15,"Ekseni daha sonra herhangi bir \"Varsayılan Eksen\" komutu ile (örn: Ölçekle|Varsayılan Eksen)"},
+    {16," kullanabilmek için (referans noktası ile) tanımla ve depola"},
+    {17,"Sanal Ayna"},
+    {18,"Yarat"},
+    {19,"Bir yüzey seçimi verildiğinde oraya sanal ayna yerleştir"},
+    {20,"Kır"},
+    {21,"Bütün nesneler için sanal aynaları çıkar"},
+    {22,"Dondur"},
+    {23,"Sanal aynalardan gerçek geometri yarat"},
+    {24,"Ekran Resmi"},
+    {25,"Pencerenin bir görüntüsünü yakala (anahatçıdan dışarı aktarılabilir)"},
+    {26,"Sahne Bilgisi: Alan & Hacim"},
+    {27,"Sahnedeki her nesnenin alanını ve hacmini hesapla"},
+    {28,"Zemine Koy"},
+    {29,"Seçili nesneleri zemin düzleminin üstüne koy"},
+    {30,"Birimleştir"},
+    {31,"Seçili nesneleri birim küre için sığacak şekilde ölçekle ve onları merkeze taşı"}
+   ]},
+  {undo_info,
+   [
+    {1,"hiç geri alma evresi yok"},
+    {2,"bir geri alma evresi var"},
+    {3,"~p tane geri alma evresi "},
+    {4,"; bir işlem yeniden yapılabilirone "},
+    {5,"; ~p tane işlem yeniden yapılabilir"}
+   ]},
+  {window_menu,
+   [
+    {1,"Geometri Grafiği"},
+    {2,"Geometri Grafiği #"},
+    {3,"Anahatçı"},
+    {4,"Anahatçı penceresini aç (malzemeleri ve nesneleri gösterir)"},
+    {5,"Bir Geometri Grafiği penceresi aç (nesneleri gösterir)"},
+    {6,"Palet"},
+    {7,"Renk paleti penceresini aç"},
+    {8,"Yeni Geometri Penceresi"},
+    {9,"Yeni bir Geometri penceresi aç"},
+    {10,"Konsol"},
+    {11,"Bilgi mesajlarını görmek için konsol penceresini aç"}
+   ]}
+ ]}.
+{wings_ask,
+ [
+  {button_label,
+   [
+    {1,"Tamam"}
+   ]},
+  {frame_event,
+   [
+    {1,"Bu çerçeveyi genişlet; diğer çerçeveleri yık"},
+    {2,"Bu çerçeveyi genişlet"},
+    {3,"Bu çerçeveyi yık"}
+   ]},
+  {mktree,
+   [
+    {1,"Göz At"}
+   ]}
+ ]}.
+{wings_body,
+ [
+  {arealight_conv,
+   [
+    {1,"Alan Işığından Nesneye"},
+    {2,"Seçili alan ışıklarını nesnelere dönüştür"},
+    {3,"Nesneden Alan Işığına"},
+    {4,"Seçili nesneleri alan ışıklarına dönüştür"}
+   ]},
+  {auto_smooth,
+   [
+    {1,"Otomatik-Yumuşat Parametreleri"},
+    {2,"Katlama Açısı"}
+   ]},
+  {clean_isolated_vertices,
+   [
+    {1,"1 ıssız köşe kaldırıldı\n"},
+    {2,"~p ssız köşe kaldırıldı\n"}
+   ]},
+  {cleanup,
+   [
+    {1,"Kısa Kenarlar"},
+    {2,"Uzunluk Hata Payı"},
+    {3,"Issız Köşeler"},
+    {4,"Temizlik"}
+   ]},
+  {cleanup_rep_1,
+   [
+    {1,"~p köşesi ~p yüzeyi içinde tekrarlanmış\n"}
+   ]},
+  {cleanup_waists_1,
+   [
+    {1,"Bel köşe kaldırıldı: ~p\n"}
+   ]},
+  {color_material,
+   [
+    {1,"renk_"}
+   ]},
+  {delete_2edged_faces_1,
+   [
+    {1,""},
+    {2,"yüzeyinin sadece bir kenarı var"}
+   ]},
+  {mat_col_conv,
+   [
+    {1,"Renklerden Malzemelere"},
+    {2,"Köşe renklerini malzemelere dönüştür"},
+    {3,"Malzemelerden Renklere"},
+    {4,"Malzemeleri köşe renklerine dönüştür"}
+   ]},
+  {menu,
+   [
+    {1,"Nesne işlemleri"},
+    {2,"Taşı"},
+    {3,"Çevir"},
+    {5,"Nesneyi etrafında çevir"},
+    {10,"Tersine Çevir"},
+    {11,"Nesneyi tersyüz ederek, bütün normalleri çevir"},
+    {12,"Sıkıla"},
+    {13,"Köşeleri orta noktaya doğru taşı"},
+    {14,"Yumuşat"},
+    {15,"Nesneye daha yumuşak bir görünüm vermek için bütün yüzeyleri alt bölümlere ayır"},
+    {16,"Birleştir"},
+    {17,"Birçok nesneyi bir nesneye birleştir"},
+    {18,"Ayır"},
+    {19,"Birleşik nesneleri parçalarına ayır"},
+    {20,"Kaynat"},
+    {21,"Hemen hemen kesişen yüzey çiftlerini birleştir"},
+    {22,"Temizlik"},
+    {23,"Çeşitli kusurları kaldır"},
+    {24,"Otomatik-Yumuşat"},
+    {25,"Yüzeyler arasındaki açıya bağlı olarak sert ve yumuşak kenarları ayarla"},
+    {26,"Çoğalt"},
+    {27,"Sil"},
+    {28,"Seçili nesneleri sil"},
+    {29,"Yeniden Adlandır..."},
+    {30,"Seçili nesneleri yeniden adlandır"},
+    {31,"Hepsini Göster"},
+    {32,"Bu nesnenin bütün yüzeylerini göster"}
+   ]},
+  {mode_conv,
+   [
+    {1,"Köşe Rengi Kipi"},
+    {2,"Nesne kipini köşe rengi kipine çevir (malzemeler korunacak, fakat gösterilmeyecek)"},
+    {3,"Malzeme Kipi"},
+    {4,"Nesne kipini malzeme kipine çevir (köşe renkleri korunacak, fakat gösterilmeyecek)"}
+   ]},
+  {rename_1,
+   [
+    {1,"Yeniden Adlandır"}
+   ]},
+  {unify_modes,
+   [
+    {1,"Köşe renkleri olan nesneler, malzemeleri olan nesnelerle birleştirilemezler."}
+   ]},
+  {vertex_color_item,
+   [
+    {1,"Köşe Rengi"},
+    {2,"Köşe renklerini seçili nesnelere uygula (eğer gerekiyorsa önce kipi köşe rengine çevir)"}
+   ]},
+  {weld,
+   [
+    {1,"Uzaklık Hata Payı"},
+    {2,"Kaynat"}
+   ]},
+  {weld_1,
+   [
+    {1,"Kaynaştırılabilecek yüzey bulunamadı."}
+   ]}
+ ]}.
+{wings_camera,
+ [
+  {desc,
+   [
+    {1,"Bir"},
+    {2,"İki"},
+    {3,"Üç"}
+   ]},
+  {help,
+   [
+    {1,"Kamerayı başlat"}
+   ]},
+  {info,
+   [
+    {1,"Not: Bir-tuşlu bir fare ile sadece Nendo kamera kipi kullanılabilir"},
+    {2,"Not: İki-tuşlu bir fare ile sadece Nendo ve Blender kamera kipleri kullanılabilir"},
+    {3,"Not: "},
+    {4," kamera kipi en az 2 tuşlu bir fare gerektirir"},
+    {5,"Not: "},
+    {6," kamera kipi 3 tuşlu bir fare gerektirir"}
+   ]},
+  {message,
+   [
+    {2,"Yaklaşıp/uzaklaşmak için sürükle"},
+    {3,"Etrafında dönmek için fareyi hareket ettir"},
+    {4,"[Q]"},
+    {5,"Taramak için fareyi hareket ettir"},
+    {6,"İptal et/görüşü eski haline getir"},
+    {7,"Görüşü eski haline getir"},
+    {8,"Taramak için Sürükle"}
+   ]},
+  {mode_help,
+   [
+    {1,"Tara"},
+    {2,"Yaklaş/Uzaklaş"},
+    {3,"Etrafında Dön"},
+    {4,"Kaydır: Yaklaş/Uzaklaş"}
+   ]},
+  {prefs,
+   [
+    {1,"Fare Tuşu Sayısı"},
+    {2,"Kamera Kipi"},
+    {3,"Tarama Hızı"},
+    {4,"Teker Yaklaştırır/Uzaklaştırır"},
+    {5,"İleriye Doğru Yaklaştırır"},
+    {6,"İleriye Doğru Uzaklaştırır"},
+    {7,"Yaklaşma/Uzaklaşma Etmeni"},
+    {9,"Teker Kaydırma"},
+    {10,"Diğer Yaklaşma/Uzaklaşma Etmeni (ALT+Kaydır)"},
+    {11,"Teker Tarar & Döndürür"},
+    {12,"Tarama Hızı"},
+    {13,"Açı Cinsinden Döndürme Adımı"},
+    {15,"Tek Yönlü Kamera"},
+    {16,"Yön Tuşu Tarama Hızı"},
+    {17,"Bilgi Satırı Yardım Metnini Göster"}
+   ]},
+  {scroll_help,
+   [
+    {1,"  [Ctrl](+[Alt])+Kayır: Tara  [Shift](+[Alt])+Kaydır: Döndür"}
+   ]}
+ ]}.
+{wings_collapse,
+ [
+  {check_consistency,
+   [
+    {1,"Yıkmak tutarsız bir nesne yapısına sebep olacaktı."}
+   ]},
+  {check_vertices_1,
+   [
+    {1,"Yıkılamaz köşe noktası"},
+    {2,"belden ayrılmalı.\n"}
+   ]}
+ ]}.
+{wings_color,
+ [
+  {choose_1,
+   [
+    {1,"Renk Seç"}
+   ]}
+ ]}.
+{wings_console,
+ [
+  {do_window,
+   [
+    {1,"Konsol "},
+    {2,"x"}
+   ]},
+  {handle_action,
+   [
+    {1,"Yaz"},
+    {3,"Metin Dosyasi"},
+    {4,"Yazma hatası: ~w"}
+   ]},
+  {popup_menu,
+   [
+    {1,"Dosyaya Yaz"},
+    {2,"Konsol içeriği bir dosyaya yaz"}
+   ]},
+  {server_loop,
+   [
+    {1,":~w Bilinmeyen alındı: ~p~n"}
+   ]}
+ ]}.
+{wings_deform,
+ [
+  {check_range,
+   [
+    {1,""},
+    {2," ekseni boyuncaki uzunluk çok kısa."}
+   ]},
+  {crumple_dirs,
+   [
+    {1,"Rastgele"},
+    {2,"rastgele bir yön"},
+    {4,"normali"},
+    {8,"Her köşeyi rastgele miktarda eksen boyunca hareket ettir:"}
+   ]},
+  {dir,
+   [
+    {1,"Seçili köşeleri eksen etrafında döndür; "},
+    {2,", seçimin merkezinden geçecek şekilde"},
+    {3,", merkezden geçecek şekilde"}
+   ]},
+  {inflate_fun,
+   [
+    {1,"Merkezi ve yarıçapı seç"},
+    {2,"Öğeleri şişir"},
+    {3,"Merkez noktasını seç"},
+    {4,"Yarıçapı belirlemek için nokta seç"}
+   ]},
+  {sub_menu,
+   [
+    {1,"Öğeleri şişir"},
+    {2,"Merkezi ve yarıçapı seç"},
+    {3,"Buruştur"},
+    {4,"Köşeleri rastgele taşı"},
+    {5,"Şişir"},
+    {6,"Sivrilt"},
+    {7,"Bük"},
+    {8,"Dönme Momenti Uygula"}
+   ]},
+  {taper_item,
+   [
+    {1,"Eksen boyunca sivrilt: "},
+    {2," (etki bunda olmak üzere: "},
+    {3,")"},
+    {4,"Etki eksenini seç"},
+    {5,"Eksen merkez konumunu seç"},
+    {6,"Sivriltme merkezini seç"},
+    {7,"Etki üstünde: "}
+   ]}
+ ]}.
+{wings_dissolve,
+ [
+  {dissolve_1,
+   [
+    {1,"Yıkmak tutarsız bir nesne yapısına sebep olacaktı."}
+   ]}
+ ]}.
+{wings_drag,
+ [
+  {fpmove_help,
+   [
+    {1,"Dördüncü parametreyi ayarlamak için sürükle"},
+    {2,"Döndürmeyi ayarlamak için sürükle"}
+   ]},
+  {help_message,
+   [
+    {1,"Sayısal giriş"},
+    {2,"Kısıt kümelerini değiştir"}
+   ]},
+  {make_query_1,
+   [
+    {2,"A"}
+   ]},
+  {numeric_input,
+   [
+    {1,"Sayısal Giriş"}
+   ]},
+  {qstr,
+   [
+    {1,"Dx"},
+    {2,"Dx"},
+    {3,"Dy"},
+    {4,"Dz"},
+    {5,"R"},
+    {6,"A"}
+   ]},
+  {standard_mode_fun,
+   [
+    {1,"[Shift] ve/veya [Ctrl] ve/veya [Alt] Sınırla"},
+    {2,"[+] veya [-] Yarıçapı Ayarla"}
+   ]},
+  {switch,
+   [
+    {1," (diğer kısıtları kullanarak)"}
+   ]},
+  {zmove_help,
+   [
+    {1,"Z boyunca taşımak için sürükle"},
+    {2,"Üçüncü parametreyi ayarlamak için sürükle"},
+    {3,"Ölçeği ayarlamak için sürükle"}
+   ]}
+ ]}.
+{wings_edge,
+ [
+  {dissolve_edge_2,
+   [
+    {1,"Eritmek kötü biçimlenmiş bir yüzeye sebep olacaktı."}
+   ]}
+ ]}.
+{wings_edge_cmd,
+ [
+  {command,
+   [
+    {1,"Parça Sayısı"}
+   ]},
+  {cut_ask_entry,
+   [
+    {1,"<N> parçaya böl"},
+    {2,"Sayı Gir..."}
+   ]},
+  {cut_command,
+   [
+    {1,"Böl"}
+   ]},
+  {cut_entry,
+   [
+    {1,"Eşit uzunluktaki "},
+    {2," kenara böl"}
+   ]},
+  {cut_fun,
+   [
+    {1,"Eşit uzunluktaki kenarlara böl"},
+    {2,"Keyfi bir konumdan böl"}
+   ]},
+  {cut_pick_error,
+   [
+    {1,"Keyfi bir noktadan sadece bir kenar bölünebilir."}
+   ]},
+  {loop_cut,
+   [
+    {1,"Kenar döngüsü ~p nesnesini iki (veya daha fazla) parçaya bölmüyor."}
+   ]},
+  {menu,
+   [
+    {1,"Kenar işlemleri"},
+    {2,"Taşı"},
+    {3,"Kaydır"},
+    {4,"Kenarları, komşu kenarlar boyunca kaydır"},
+    {5,"Çıkart"},
+    {6,"Bağla"},
+    {7,"Seçili kenarların orta noktalarını bağlayarak yeni bir kenar yarat"},
+    {8,"Pahla"},
+    {9,"Seçili kenarları yuvarla"},
+    {10,"Erit"},
+    {11,"Seçili kenarları ele"},
+    {12,"Yık"},
+    {13,"Kenarları yerlerine köşeler koyarak sil"},
+    {14,"Sertlik"},
+    {15,"Yumuşak"},
+    {16,"Sert"},
+    {17,"Döngü Kes"},
+    {18,"Kenar döngüsü boyunca iki nesneye ayır"},
+    {19,"Köşe Rengi"},
+    {20,"Seçili kenarlara köşe renklerini uygula"},
+    {50,"Seçili kenarları ele ve arda kalan ıssız köşeleri çıkar"}
+   ]},
+  {plain_cut_menu,
+   [
+    {2,"Eşit uzunluktaki kenarlara böl"}
+   ]},
+  {slide_help_mode,
+   [
+    {1,"Mutlak"},
+    {2,"Görece"},
+    {3,"Yönü dondur"},
+    {4,"Yönü çöz"},
+    {5,"Diğer kenarlarda dur"},
+    {6,"Diğer kenarlara aldırma"}
+   ]}
+ ]}.
+{wings_export,
+ [
+  {export,
+   [
+    {1,"veriliyor"},
+    {2,"hazırlanıyor"},
+    {4,"Verici göçtü"}
+   ]}
+ ]}.
+{wings_extrude_edge,
+ [
+  {bevel_faces,
+   [
+    {1,"Nesne pahlamak için çok küçük."}
+   ]},
+  {extrude_problem,
+   [
+    {1,"Çıkartılamıyor/pahlanamıyor; iki veya daha fazla sayıda köşe birbirine muhtemelen çok yakın.\nTemizlik komutunu dene."}
+   ]}
+ ]}.
+{wings_face_cmd,
+ [
+  {bridge,
+   [
+    {1,"Yüzeyler aynı sayıda köşeye sahip olmalı."},
+    {2,"Yüzeyler aynı yöne işaret etmemeli."},
+    {3,"Yüzeyler bitişik olmamalı."}
+   ]},
+  {bridge_error,
+   [
+    {1,"Tam olarak iki yüzey seçili olmalı."}
+   ]},
+  {clone_on,
+   [
+    {1,"Sadece bir yüzey seçili olmalı."}
+   ]},
+  {clone_on_selection,
+   [
+    {1,"Klonların üstüne konacağı hedef öğeleri seç"}
+   ]},
+  {lift_check_selection,
+   [
+    {1,"Yüzey ve kenar seçimleri eşleşmiyor."},
+    {2,"Yüzey ve köşe seçimleri eşleşmiyor."}
+   ]},
+  {lift_fun,
+   [
+    {1,"Yüzeyi kenar veya köşe etrafında döndürerek kaldır"},
+    {2,"Standart yönlerde kaldır"}
+   ]},
+  {lift_sel_mismatch,
+   [
+    {1,"Yüzey ve kenar seçimleri eşleşmiyor."}
+   ]},
+  {lift_selection,
+   [
+    {1,"Menteşe gibi davranacak kenarı veya köşeyi seç"}
+   ]},
+  {lift_vtx_sel_mismatch,
+   [
+    {1,"Yüzey ve köşe seçimleri eşleşmiyor."}
+   ]},
+  {menu,
+   [
+    {1,"Yüzey işlemleri"},
+    {2,"Taşı"},
+    {3,"Çıkart"},
+    {4,"Bölgeyi Çıkart"},
+    {5,"Bölgeyi Sök"},
+    {6,"İçine Koy"},
+    {7,"Seçili yüzeyin içine bir yüzey koy"},
+    {8,"Oy"},
+    {9,"Seçili yüzeyleri delik haline getirerek nesnenin içini oy"},
+    {10,"Pahla"},
+    {11,"Seçili yüzeylerin kenarlarını yuvarla"},
+    {12,"Köprüle"},
+    {13,"İki yüzey arasında bir köprü veya bir tünel yarat"},
+    {14,"Tümsek"},
+    {15,"Seçili yüzeylerden tümsek yarat"},
+    {16,"Kaldır"},
+    {17,"Üzerine Koy"},
+    {18,"Seçili yüzeyi başka bir öğeye hizalayarak nesneyi taşı ve döndür"},
+    {19,"Bir ya da daha fazla elemanın üstüne nesneyi çoğalt"},
+    {20,"Yansıt"},
+    {21,"Seçili yüzeyler etrafında nesneyi yansıt ve nesneye kaynat"},
+    {22,"Yansıt ve farklı nesneler yarat"},
+    {23,"Pahla"},
+    {24,"Seçili yüzeyler arasındaki bütün kenarları ele"},
+    {25,"Yık"},
+    {26,"Yüzeyleri yerlerine köşeler koyarak sil"},
+    {27,"Yumuşat"},
+    {28,"Seçili yüzeyleri yumuşatmak için onları alt bölümle (Catmull-Clark)"},
+    {29,"Çokgenlere Parçala"},
+    {30,"Köşe Rengi"},
+    {31,"Seçili yüzeylere köşe rengini uygula"},
+    {32,"Gizle"},
+    {33,"Seçili yüzeyleri gizle"}
+   ]},
+  {put_on,
+   [
+    {1,"Yalnızca tek bir yüzey seçilmiş olmalı."}
+   ]},
+  {put_on_check_selection,
+   [
+    {1,"Seçim aynı nesnede olmamalı."},
+    {2,"Yalnızca bir öğe seç."}
+   ]},
+  {put_on_selection,
+   [
+    {1,"Kaynak nesnenin üstüne konulacağı hedef öğeyi seç"}
+   ]},
+  {smooth,
+   [
+    {1,"yumuşatılıyor"}
+   ]},
+  {unify_modes,
+   [
+    {1,"Köşe renkleri olan bir nesne, malzemeleri olan bir nesne ile köprülenemez."}
+   ]}
+ ]}.
+{wings_ff_ndo,
+ [
+  {check_size,
+   [
+    {1,"\""},
+    {2,"\" nesnesi Nendo biçimine "},
+    {3," verilemiyor (çok fazla kenarı var)."}
+   ]},
+  {clean_bad_edges,
+   [
+    {1,"Hatalı kenar: ~w\n"}
+   ]},
+  {import,
+   [
+    {1,"Nendo 1.0 dosyaları desteklenmiyor"},
+    {2,"bir Nendo dosyası değil"}
+   ]},
+  {import_1,
+   [
+    {1,"~w nesne(ler)\n"}
+   ]},
+  {read_edges,
+   [
+    {1," kenarlar ~w\n"}
+   ]},
+  {read_object_1,
+   [
+    {1,"~w: ~s: vis=~p hassaslık=~p\n"}
+   ]},
+  {read_objects,
+   [
+    {1,"  ~w boş nesne(ler)\n"},
+    {2,"  garbage: ~w\n"}
+   ]},
+  {read_vertices,
+   [
+    {1," köşeler ~w\n"}
+   ]},
+  {skip_faces,
+   [
+    {1," yüzeyler ~w\n"}
+   ]}
+ ]}.
+{wings_ff_wings,
+ [
+  {export,
+   [
+    {1,"kaydediliyor"},
+    {2,"ışıklar"},
+    {3,"yeniden numaranılıyor"},
+    {4,"nesneler"},
+    {5,"sıkıştırılıyor"},
+    {6,"dosyaya yazılıyor"}
+   ]},
+  {import,
+   [
+    {1,"wings dosyası açılıyor"},
+    {2,"dosya okunuyor"}
+   ]},
+  {import_1,
+   [
+    {1,"ikiliğe dönüştürülüyor"},
+    {2,"0.80-öncesi Wings biçimi artık desteklenmiyor."},
+    {3,"0.92-öncesi Wings biçimi artık desteklenmiyor."},
+    {4,"bilinmeyen wings biçimi"},
+    {5,"bozuk Wings dosyası"},
+    {6,"bir Wings dosyası değil (veya eski Wings biçimi)"}
+   ]},
+  {import_image,
+   [
+    {1,"isimsiz görüntü"},
+    {2,"Hatalı görüntü: ~p\n"}
+   ]},
+  {import_object_mode,
+   [
+    {1,"Tanımlanmamış kip malzemeye çevirildi\n"}
+   ]},
+  {import_props,
+   [
+    {1,"Kayitli Secim"}
+   ]},
+  {import_vsn2,
+   [
+    {1,"görüntüler ve malzemeler"},
+    {2,"nesneler"}
+   ]},
+  {translate_map_images_2,
+   [
+    {1,"Malzeme ~p, ~p doku: var olmayan görüntüye başvuru ~p\n"}
+   ]}
+ ]}.
+{wings_file,
+ [
+  {autosave,
+   [
+    {1,"\"~s\" otomatik kaydetme başarısız: ~s"}
+   ]},
+  {command,
+   [
+    {1,"Eski hale dönme başarısız: "},
+    {2,"Ver"},
+    {3,"Seciliyi Ver"},
+    {4,"Ayrılmadan önce değişikliklerinizi kaydetmek istiyor musunuz?"},
+    {5,"Bu dosya yer değiştirmiş veya silinmiş."}
+   ]},
+  {confirmed_open,
+   [
+    {1,"Okuma başarısız: "}
+   ]},
+  {confirmed_open_dialog,
+   [
+    {1,"Aç"}
+   ]},
+  {export_filename,
+   [
+    {1,"Ver"}
+   ]},
+  {import_filename,
+   [
+    {1,"Al"}
+   ]},
+  {import_image,
+   [
+    {1,"\"~s\"'yi yükleme başarısız: ~s\n"}
+   ]},
+  {import_ndo,
+   [
+    {1,"Alma başarısız: "}
+   ]},
+  {install_plugin,
+   [
+    {1,"Eklenti Yükle"},
+    {2,"GZip Sikistirilmis Dosya"},
+    {3,"Tar Dosyasi"},
+    {4,"Sikistirilmis Tar Dosyasi"},
+    {5,"Beam Dosyasi"}
+   ]},
+  {menu,
+   [
+    {3,"Yeni"},
+    {4,"Yeni, boş bir sahne yarat"},
+    {5,"Aç..."},
+    {6,"Önceden kaydedilmiş bir sahneyi aç"},
+    {7,"Birleştir..."},
+    {8,"Önceden kaydedilmiş bir sahneyi şimdiki sahneyle birleştir"},
+    {9,"Kaydet"},
+    {10,"Şimdiki sahneyi kaydet"},
+    {11,"Farklı Kaydet..."},
+    {12,"Şimdiki sahneyi yeni bir isim altında kaydet"},
+    {13,"Seçimi Kaydet..."},
+    {14,"Sadece seçili yüzeyleri veya nesneleri kaydet"},
+    {15,"Arttırımsal Kaydet"},
+    {16,"Eski Haline Dön"},
+    {17,"Şimdiki sahneyi kayıtlı içeriğe döndür"},
+    {18,"Al"},
+    {19,"Ver"},
+    {20,"Seçimi Ver"},
+    {21,"Görüntü Al..."},
+    {22,"Bir görüntü dosyasını al"},
+    {23,"İmgele"},
+    {24,"Eklenti Kur"},
+    {25,"Çık"},
+    {26,"Yeni dosya adı üret ve kaydet"},
+    {27,"Bir eklenti kur"},
+    {28,"Wings 3D'den çık"}
+   ]},
+  {merge,
+   [
+    {1,"Birlestir"},
+    {2,"Okuma başarısız: "}
+   ]},
+  {recent_files,
+   [
+    {1,"Yakın geçmişte kullanılmış bu dosyayı aç"}
+   ]},
+  {save_as,
+   [
+    {1,"Kaydet"}
+   ]},
+  {save_now,
+   [
+    {1,"Kayıt başarısız: "}
+   ]},
+  {save_selected,
+   [
+    {1,"Bu komut bir seçim gerektirir."},
+    {2,"Seciliyi Kaydet"}
+   ]},
+  {str_save_changes,
+   [
+    {1,"Değişikliklerinizi kaydetmek istiyor musunuz?"}
+   ]},
+  {use_autosave_1,
+   [
+    {1,"Daha geç bir zamanda düzenlemiş otomatik kayıt dosyası var; yerine otomatik kayıtlı dosyayı yüklemek ister misin?"}
+   ]},
+  {wings_prop,
+   [
+    {1,"Wings Dosyasi"}
+   ]}
+ ]}.
+{wings_help,
+ [
+  {advanced_menus,
+   [
+    {1," "},
+    {4," penceresinde, \"Gelişmiş Menüler\" için bir onay kutusu var."},
+    {5,"Gelişmiş menüleri etkin hale getirmek aşağıdaki ilave özellikleri sağlar:"},
+    {6,"Yeni komutlar: "},
+    {7,"Yüzey"},
+    {8,"Üzerine Koy"},
+    {9," ve "},
+    {10,"Yüzey"},
+    {11,"Kaldır"},
+    {12,"Vektör tabanlı işlemler: Bir eksen (veya vektör) belirtme ve onu yeni bir noktadan geçecek şekilde konumlandırabilme yöntemleri."},
+    {13,"Mıknatıs işlemleri: Herhangi bir geçerli aracın çalışması esnasında yumuşak değişikliklere/geçişlere erişme yolları sağlayan bir olanak. Mıknatıs türü ve etki yarıçapı ek kontrol seçenekleri sağlar."},
+    {14,"Vektör ve mıknatıs işlemleri birleştirilebilir."},
+    {15,"Gelişmiş menüler açıkken, birçok menü komutları onları hangi fare tuşuyla çağırdığınıza bağlı olarak değişik şeyler yaparlar."},
+    {16,"Örneğin, Döndür komutuna sağ tuşa tıklamak seçim etrafında döndürüleceği bir eksen (veya vektör) tanımlamanıza imkan sağlarken, orta tuşa tıklamak bir eksen ve o eksenin geçeceği yeni bir nokta tanımlamaya imkan sağlar. (Bir vektör x, y, veya z eksenlerine paralel olmak zorunda değildir.)"},
+    {17,"Gelişmiş menüleri kullanırken Wings'in dip kısmındaki bilgi satırının içeriğini okumanız şiddetle tavsiye edilir."}
+   ]},
+  {def_commands,
+   [
+    {1," "},
+    {4," penceresinde, \"Varsayılan Komutlar\"ı açabilirsiniz."},
+    {5,"İki varsayılan komut tanımlanabilir. Yürütülen bir önceki komutu saklamak için aşağıdakilerden birini kullan:"},
+    {8,"Bu yöntemle tanımlanan bir komutu kullanmak için aşağıdakilerden birini kullan:"},
+    {11,"Not: "},
+    {13," veya "},
+    {15," kemara kiplerini kullanırken ikinci varsayılan komut kullanılamaz."}
+   ]},
+  {def_hotkeys,
+   [
+    {1,"Bir menüde görünen herhangi komut, bir klavye kısayoluna atanabilir."},
+    {4,"Bir komuta kısayol atamak için:"},
+    {5,"1. Komutu içeren menüyü açın ve komutu vurgulayın."},
+    {6,"2. [Insert] veya [/] tuşuna basın."},
+    {7,"3. Eğer komut (gelişmiş menüler aktifken) hangi fare tuşuna basıldığına göre farklı şeyler yapıyorsa, bilgi satırında kısayolu komutun hangi şekline atanacağını belirlemek için bir fare tuşuna basmanızı isteyen bir mesaj olacaktır. (Not: Fare imleci tıkladığınızda menünün içinde kalmalıdır.)"},
+    {8,"4. Bilgi satırı komutun atanacağı tuşa basmanızı ister."},
+    {9,"Bir kısayolu silmek için, benzer şekilde menüde komutu vurgulayın, ve [Del] veya [\\] tuşuna basın. Komuta atanmış bütün tuşları listeleyen bir pencere ortaya çıkacaktır. Silmek istediğiniz bütün kısayolları tikleyin."}
+   ]},
+  {edit_prefs,
+   [
+    {1,"Düzen"},
+    {2,"Tercihler"}
+   ]},
+  {getting_started,
+   [
+    {1,"Wings'i öğrenirken ekranın dip kısmındaki bilgi satırına dikkat edin. Genellikle bilgi satırı belli bir anda fare tuşlarının ne yapacağını gösterir."},
+    {2,"Fare tuşlarının eylemlerinde, ilkin basılan tuş "},
+    {7,"Genellikle, Sol (sol fare tuşu) seçmek ve kabul etmek, Orta (orta fare tuşu) kamerayı işletmek, ve Sağ (sağ fare tuşu) bağlama bağlı açılır menülere erişmek için kullanılır."},
+    {left_def,"sol fare tuşu"},
+    {middle_def,"orta fare tuşu veya kaydırma tekerleği"},
+    {right_def,"sağ fare tuşu"},
+    {two_a,"ardından tuşun işlevi gelir."}
+   ]},
+  {header,
+   [
+    {1,"Başlarken"},
+    {2,"Bir veya İki Tuşu Fare Kullanmak"},
+    {3,"Fransızca ve Almanca Klavyeler"},
+    {4,"Tanımlı Kısayol Tuşları"},
+    {5,"Kısayol Tuşları Nasıl Tanımlanır"},
+    {6,"Işık Temelleri"},
+    {7,"Gelişmiş Menüler"},
+    {8,"Varsayılan Komutlar"},
+    {9,"Başarım Püf Noktaları"},
+    {10,"OpenGL Bilgisi"},
+    {11,"Wings 3D Hakkında"}
+   ]},
+  {help_window,
+   [
+    {1,"Yardım metni yok"}
+   ]},
+  {international,
+   [
+    {1,"Ne yazık ki, Fransızca ve Almanca klavyelerde (ve muhtemelen diğerlerinde), Geri Al/Yeniden Yap komutları [Z] tuşuna atanmayacak. (Bu Wings'in gelecek bir sürümünde değişebilir.)"},
+    {2,"Fransızca klavyelerde, Geri Al/Yeniden Yap komutları [W] tuşunda bulunuyor ([Ctrl]+[W], [Ctrl]+[Alt]+[W] ve buna benzer)."},
+    {3,"Almanca klavyelerde, Geri Al/Yeniden Yap komutları [Y] tuşunda bulunuyor ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] ve buna benzer)."}
+   ]},
+  {lights,
+   [
+    {1,"1. Işıkları temel şekiller menüsündeki Işık komutunu kullanarak yarat (seçim yokken sağ tıkla)."}, 
+    {2,"2. Bir ışığı üstüne sol tıklayarak seç. Herhangi bir ışık seçiliyken sağ tıkladığında özel bir Işık menüsü açılacak."},
+    {3,"3. Wings'e gerçekten senin yarattığın ışıkları kullanmasını bildirmek için "},
+    {4,"Görünüm"},
+    {5,"Sahne Işıkları"},
+    {6," komutunu kullan."}
+   ]},
+  {message,
+   [
+    {1,"Yardım penceresini kapat"}
+   ]},
+  {one_or_two,
+   [
+    {1,"İki-tuşlu bir fare ile yalnızca "},
+    {2," ve "},
+    {3," kipleri kullanılabilir. Bir-tuşlu fare ile yalnızca "},
+    {4," kipi kullanılabilir."}
+   ]},
+  {opengl_info,
+   [
+    {1,"Sağlayıcı: "},
+    {2,"İmgeleyici: "},
+    {3,"Sürüm: "},
+    {4,"Sürüm üçlemesi: "},
+    {5,"Kırmızı bit sayısı"},
+    {6,"Yeşil bit sayısı"},
+    {7,"Mavi bit sayısı"},
+    {8,"Alfa bit sayısı"},
+    {9,"Derinlik bit sayısı"},
+    {10,"Şablon bit sayısı"},
+    {11,"Birikmiş kırmızı bit sayısı"},
+    {12,"Birikmiş yeşil bit sayısı"},
+    {13,"Birikmiş mavi bit sayısı"},
+    {14,"Birikmiş alfa bit sayısı"},
+    {15,"Azami ışık sayısı"},
+    {16,"Azami kırpma düzlemi sayısı"},
+    {17,"Max modelview stack depth"},
+    {18,"Max projection stack depth"},
+    {19,"Max texture stack depth"},
+    {20,"Subpixel bits"},
+    {21,"Azami 3B doku boyutu"},
+    {22,"Azami doku boyutu"},
+    {23,"Max pixel map table"},
+    {24,"Max name stack depth"},
+    {25,"Max display-list call nesting"},
+    {26,"Max evaluator polynomial order"},
+    {27,"Max viewport dimensions"},
+    {28,"Max depth of attribute stack"},
+    {29,"Max depth of client attribute stack"},
+    {30,"Number of auxiliary buffers"},
+    {31,"Color buffers store RGBA"},
+    {32,"Color buffers store indices"},
+    {33,"Double buffering"},
+    {34,"Stereo buffers"},
+    {35,"Range of aliased point sizes"},
+    {36,"Range of antialised point sizes"},
+    {37,"Range of aliased line widths"},
+    {38,"Range of antialised line widths"},
+    {39,"Recommended max number of indices for drawRangeElement()"},
+    {40,"Recommended max number of vertices for drawRangeElement()"},
+    {41,"Dokulama birimlerinin sayısı"},
+    {42,"Sıkıştırma biçimlerinin sayısı"},
+    {43,"Azami köşe birimi sayısı"},
+    {44,"OpenGL Eklentileri"}
+   ]},
+  {performance_tips,
+   [
+    {1,"Wings'in başarımı çok sayıda değişik etkene bağlıdır:"},
+    {2,"işlemcinin hızı"},
+    {3,"işlemci önbelleğinin türü ve boyu"},
+    {4,"ana belleğin miktarı ve hızı"},
+    {5,"ekran kartının türü"},
+    {6,"ekran kartı belleğinin miktarı"},
+    {7,"ayın evresi"},
+    {8,"Bu yüzden, Wings başarımını arttırmak için kesin bir tavsiye vermek zor. İzleyen öneriler başarımı arttırabilir:"},
+    {9,"Değişik sayıda renk ve değişik ekran çözünürlüklerini dene. Özellikle ekran kartının fazla hafızası yoksa, çok renk ve/veya yüksek çözünürlük başarımı aşırı bir biçimde düşürebilir. Daha küçük bir Wings penceresi (tam ekran yapılmamış) kullanmanın yardımı da dokunabilir."},
+    {10,"Wings içerisindeki gereksiz pencereleri kapat."},
+    {11,"Geometri pencerelerinin üst üste gelmediğine emin ol."},
+    {12,"Mümkün olan en az sayıda (etkin) ışık kullan. Daha fazla ışık birçok ekran kartında daha az hız demektir."},
+    {13,"Eğer mümkünse; "},
+    {14,"Araçlar"},
+    {15,"Sanal Ayna"},
+    {16," komutunu kullan."},
+    {17,"Üstünde çalışmadığın modelleri gizle."},
+    {18,"Eğer modelin köşe renkleri varsa, köşe rengi gösterimini kapatmak için "},
+    {19,"Görünüm"},
+    {20,"Renkleri Göster"},
+    {21," komutunu kullan."},
+    {22,"Modellerken dokuları kapatmak için "},
+    {23,"Görünüm"},
+    {24,"Dokuları Göster"},
+    {25," komutunu kullan."},
+    {26,"Telkafes kipinde çalış."},
+    {27,"Bazı ekran kartları kenarları ağır görüntüler. Kenar gösterimini "},
+    {28,"Görünüm"},
+    {29,"Kenarları Göster"},
+    {30," komutu ile kapat."}
+   ]},
+  {splash_contents,
+   [
+    {1,"Wings, IZware tarafından yapılan Nendo ve Mirai"},
+    {2,"programlarından ilham almış bir 3B altbölümleme modelcisidir."},
+    {3,"Wings 3D hiçbir garanti sunmaz, fakat"},
+    {4,"herhangi bir kullanım için tamamen ücretsizdir"},
+    {5,"(ticari dahil)."},
+    {6,"Telif Hakkı"},
+    {7,"& Diğerleri"},
+    {8,"JPEG kütüphanesi: Telif Hakkı"}
+   ]},
+  {use_one_or_two,
+   [
+    {1,"Sadece bir veya iki tuşu olan bir fare kullanmak için, "},
+    {2," penceresinden farenizin kaç tuşu olduğunu Wings'e anlatmalısınız."}
+   ]}
+ ]}.
+{wings_hotkey,
+ [
+  {keyname,
+   [
+    {1,"Backspace"},
+    {2,"Tab"},
+    {3,"Space"},
+    {4,"Shift+"}
+   ]},
+  {list_header,
+   [
+    {1,"Bütün kiplerdeki kısayollar"},
+    {2,"Nesne kipindeki kısayollar"},
+    {3,"Kenar kipideki kısayollar"},
+    {4,"Yüzey kipindeki kısayollar"},
+    {5,"Işıklar için kısayollar"},
+    {6,"Kenarlar için kısayollar"}
+   ]},
+  {list_keys,
+   [
+    {1," (kullanıcı-tanımlı)"},
+    {2," (eklenti-tanımlı)"}
+   ]},
+  {vkeyname,
+   [
+    {1,"Bksp"},
+    {2,"Tab"},
+    {3,"Enter"},
+    {4,"Pause"},
+    {5,"Esc"},
+    {6,"Space"},
+    {7,"Sil"},
+    {8,"Del"},
+    {9,"Div"},
+    {10,"Mul"},
+    {11,"-"},
+    {12,"+"},
+    {13,"Enter"},
+    {14,"="},
+    {15,"Up"},
+    {16,"Down"},
+    {17,"Right"},
+    {18,"Left"},
+    {19,"Insert"},
+    {20,"Home"},
+    {21,"End"},
+    {22,"Page Up"},
+    {23,"Page Down"},
+    {24,"UKEY"}
+   ]}
+ ]}.
+{wings_image,
+ [
+  {create_default,
+   [
+    {1,"~p şu tür hakkında bilgi sahibi değil ~p; görmezden geliniyor\n"}
+   ]},
+  {create_image,
+   [
+    {1,"Genişlik"},
+    {2,"Yükseklik"},
+    {3,"Desen"},
+    {4,"Izgara"},
+    {5,"Dama Tahtası"},
+    {6,"Dikey Çubuklar"},
+    {7,"Yatay Çubuklar"},
+    {8,"Beyaz"},
+    {9,"Siyah"},
+    {10,"Görüntüyü Yarat"}
+   ]},
+  {event,
+   [
+    {1,"Menüyü göster"}
+   ]},
+  {event_1,
+   [
+    {1,"Doğal boyunda göster"}
+   ]},
+  {screenshot,
+   [
+    {1,"EkranGörüntüsü"}
+   ]},
+  {window_params,
+   [
+    {1,"Görüntü: ~s [~wx~wx~w]"}
+   ]}
+ ]}.
+{wings_init,
+ [
+  {display_actual_mode,
+   [
+    {1,"Güncel: RGBA: ~p ~p ~p ~p Derinlik: ~p Şablon: ~p Birikmiş: ~p ~p ~p ~p\n"}
+   ]},
+  {try_video_modes,
+   [
+    {1,"OpenGL kipleri deneniyor\n"}
+   ]},
+  {video_mode_failure,
+   [
+    {2,"Uygun bir OpenGL kipi bulmak başarısız.\n\n"},
+    {3,"OpenGL sürücülerinin yüklü olduğuna emin ol.\n\n"},
+    {5,"Uygun OpenGL kipi bulunamadı (OpenGL sürücüleri yüklü mü?)"}
+   ]}
+ ]}.
+{wings_light,
+ [
+  {attenuation,
+   [
+    {1,"Bir nokta ışık veya far ışığı değil."}
+   ]},
+  {color,
+   [
+    {1,"Yalnızca bir ışık seç."}
+   ]},
+  {edit,
+   [
+    {1,"Yalnızca bir ışık seç."},
+    {2,"Ortam Işığı Özellikleri"},
+    {3,"Işık Özellikleri"}
+   ]},
+  {edit_ambient_dialog,
+   [
+    {1,"Ortam"},
+    {2,"Renk"},
+    {3,"Tamam"}
+   ]},
+  {edit_dialog,
+   [
+    {1,"Dağınık"},
+    {2,"Ortam"},
+    {3,"Yansıtıcı"},
+    {4,"Renkler"},
+    {5,"Tamam"}
+   ]},
+  {export_camera_lights,
+   [
+    {1,"Ortam"},
+    {2,"Sonsuz"},
+    {3,"Sonsuz1"},
+    {4,"Sonsuz2"}
+   ]},
+  {info,
+   [
+    {1,"Işık ~s"},
+    {2,": Konum ~s ~s ~s"}
+   ]},
+  {info_1,
+   [
+    {1,". Hedef ~s ~s ~s. Yön ~s ~s ~s"},
+    {2,". Açı ~s~c"}
+   ]},
+  {light_types,
+   [
+    {1,"Sonsuz"},
+    {2,"Çok uzakta, yönlü bir ışık (güneş gibi) yarat"},
+    {3,"Nokta"},
+    {4,"Her yöne ışın yayan bir ışık yarat"},
+    {5,"Far"},
+    {6,"Far ışığı yarat"},
+    {7,"Ortam"},
+    {8,"Bir Ortam ışık kaynağı yarat"},
+    {9,"Alan"},
+    {10,"Işık yayan bir alan yarat"}
+   ]},
+  {menu,
+   [
+    {1,"Işık işlemleri"},
+    {2,"Taşı"},
+    {3,"Vurguyu Konumlandır"},
+    {4,"Işığın yerini veya hedef noktasını konumlandır"},
+    {5,"Renk"},
+    {6,"Renk, doyma, ton değerlerini etkileşimli ayarla"},
+    {7,"Güçyitirim"},
+    {8,"Doğrusal"},
+    {9,"Işığın kaynağından uzağa gittikçe ne kadar zayıfladığını etkileşimli ayarla (doğrusal etken)"},
+    {10,"İkinci Dereceden"},
+    {11,"Işığın kaynağından uzağa gittikçe ne kadar zayıfladığını etkileşimli ayarla (ikinci dereceden etken)"},
+    {12,"Far Açısı"},
+    {13,"Far ışığı konisinin açısını etkileşimli ayarla"},
+    {14,"Far Azalımı"},
+    {15,"Işığın far ışığının merkezinden uzağa gittikçe ne kadar zayıfladığını etkileşimli ayarla"},
+    {16,"Özellikleri Düzenle..."},
+    {17,"Işık özelliklerini düzenle"},
+    {18,"Çoğalt"},
+    {19,"Seçili ışıkları çoğalt ve taşı"},
+    {20,"Sil"},
+    {21,"Seçili ışıkları sil"}
+   ]},
+  {plugin_results,
+   [
+    {1,"Işık editör eklenti(ler)si geriye değersiz veri bıraktı:~n    ~P~n"},
+    {2,"Eklenti(ler) geriye değersiz veri bıraktı"}
+   ]},
+  {qs_att,
+   [
+    {1,"Doğrusal"},
+    {2,"İkinci Dereceden"},
+    {3,"Güçyitirim"}
+   ]},
+  {qs_specific,
+   [
+    {1,"Açı"},
+    {2,"Azalım"},
+    {3,"Far Parametreleri"}
+   ]},
+  {selected_light,
+   [
+    {1,"Yalnızca bir ışık seç."}
+   ]},
+  {spot_angle,
+   [
+    {1,"Far ışığı değil."}
+   ]},
+  {spot_falloff,
+   [
+    {1,"Far ışığı değil."}
+   ]}
+ ]}.
+{wings_magnet,
+ [
+  {check_radius,
+   [
+    {1,"Çok kısa etki yarıçapı."}
+   ]},
+  {common_dialog,
+   [
+    {4,"Uzaklık Rotası"}
+   ]},
+  {dialog,
+   [
+    {1,"Mıknatıs Seçenekleri"},
+    {2,"Etki Yarıçapı"},
+    {3,"Mıknatıs Seçenekleri"}
+   ]},
+  {drag_help,
+   [
+    {1,"[+] veya [-] Yarıçapı Ayarla  "}
+   ]},
+  {info_string,
+   [
+    {1,"Mıknatıs yolu:"}
+   ]},
+  {magnet_route,
+   [
+    {midpoint,"Orta nokta"},
+    {shortest,"En kısa"},
+    {surface,"Yüzey"}
+   ]},
+  {magnet_shape_str,
+   [
+    {bell,"Zil"},
+    {dome,"Kubbe"},
+    {spike,"Sivri"},
+    {straight,"Düz"}
+   ]}
+ ]}.
+{wings_material,
+ [
+  {edit,
+   [
+    {1,"Malzeme Özellikleri: "}
+   ]},
+  {edit_dialog,
+   [
+    {1,"Dağınık"},
+    {2,"Ortam"},
+    {3,"Yansıtıcı"},
+    {4,"Salım"},
+    {5,"Parlaklık"},
+    {6,"Donukluk"},
+    {7,"Tamam"}
+   ]},
+  {load_map_1,
+   [
+    {1,"Yükleme başarısız"}
+   ]},
+  {material_fun,
+   [
+    {1,"Varolan malzemeyi seçime ata"},
+    {2,"Yeni malzeme yarat ve ata"}
+   ]},
+  {material_menu,
+   [
+    {1,"Malzeme"},
+    {2,"Yeni..."},
+    {3,"Yeni bir malzeme yarat ve seçili yüzeylere ata"},
+    {4,"Malzeme"}
+   ]},
+  {new_1,
+   [
+    {1,"Yeni Malzeme"},
+    {2,"Malzeme Adı"},
+    {3,"Yeni Malzeme"}
+   ]},
+  {plugin_results,
+   [
+    {1,"Malzeme düzen eklenti(ler)i artık veri bıraktı:~n    ~P~n"},
+    {2,"Eklenti(ler) artık veri bıraktı"}
+   ]},
+  {rename,
+   [
+    {1,"Yeniden Adlandır"}
+   ]},
+  {show_map,
+   [
+    {1,"~p: <görüntü silindi>"},
+    {2,"~p: ~p [~px~px~p]"},
+    {3,"Sil"}
+   ]},
+  {show_maps,
+   [
+    {1,"Dokular"}
+   ]}
+ ]}.
+{wings_menu,
+ [
+  {handle_key_event,
+   [
+    {1,"Bu tuş zaten "},
+    {2," komutuna atanmış. Yeniden atama yapmak istiyor musun?"}
+   ]},
+  {help_text_1,
+   [
+    {1," alt menüsü"}
+   ]},
+  {hotkey_delete_dialog,
+   [
+    {1,"Kısayol Tuşlarını Sil"}
+   ]},
+  {hotkey_key_message,
+   [
+    {1,"\""},
+    {2,"\" komutunun atanacağı tuşa bas."}
+   ]},
+  {hotkey_mouse_message,
+   [
+    {1,"Atanacak komutu seçmek için bir fare tuşuna tıklayın"}
+   ]},
+  {magnet_help,
+   [
+    {2,"Mıknatıs için Tıklayın"}
+   ]},
+  {mk_dialog,
+   [
+    {1,"Silinecek bütün kısayol tuşlarını tikle."}
+   ]},
+  {norm_help_adv,
+   [
+    {1,"Seçenek penceresini aç"}
+   ]}
+ ]}.
+{wings_menu_util,
+ [
+  {adv_scale_1,
+   [
+    {1,"Tekdüze Ölçeklendir"},
+    {2,"Eksenel Ölçeklendir"},
+    {3,"Yarıçapsal Ölçeklendir"}
+   ]},
+  {basic_scale,
+   [
+    {1,"Ölçekle"}
+   ]},
+  {dir_help,
+   [
+    {3,"son eksen"},
+    {4,"varsayılan eksen"},
+    {7,"çevresinde"},
+    {10,"normali boyunca"},
+    {11,"bütün yönlerde serbestçe"},
+    {12,"Bütün yönlerde eşit ölçekle"}
+   ]},
+  {dir_help_1,
+   [
+    {1,"Her öğeyi taşı: "},
+    {2,"Serbest döndür"},
+    {3,"Her öğenin normali etrafında dön"},
+    {4,"Her öğeyi çıkart, ve ardından taşı: "},
+    {5,"Yüzeyleri bölge olarak çıkart, ardından yüzeyleri bölgenin normali boyunca taşı"},
+    {6,"Yüzeyleri bölge olarak çıkart, ardından yüzeyleri eksen boyunca taşı: "},
+    {7,"Yüzeyleri çıkart, ardından yüzeyleri bölgenin normali boyunca taşı"},
+    {8,"Yüzeyleri çıkart, ardından yüzeyleri eksen boyunca taşı: "},
+    {9,"Öğeleri normal düzlemine yassılaşır"},
+    {10,"Yüzeyi normali boyunca yükselt"},
+    {11,"Yüzeyi yükselt ve eksen boyunca taşı: "},
+    {12,"Çoğalt ve serbestçe taşı"},
+    {13,"Her öğeyi eksen boyunca taşı: "},
+    {14,"Öğeleri çıkart, ardından eksen boyunca taşı: "},
+    {15,"Yüzeyleri bölge olarak çıkart, ardından eksen boyunca taşı: "},
+    {16,"Yüzeyleri sök, ardından eksen boyunca taşı: "},
+    {17,"Eksen boyunca döndür: "},
+    {18,"Ekseni ölçekle: "},
+    {19,"Eksen boyunca ölçekle: "},
+    {20,"Eksene yassılaştır: "},
+    {21,"Düzeleştir ve şurata taşı: "},
+    {22,"Yüzeyi eksen boyunca yükselt: "},
+    {23,"Çoğalt, ardından eksen boyunca taşı: "}
+   ]},
+  {dirs,
+   [
+    {1,"Standart eksen boyunca taşı"},
+    {2,"Boyunca taşınılacak ekseni seç"},
+    {3,"Standart eksen boyunca taşı"},
+    {4,"Seçimin normali boyunca taşı"},
+    {5,"Boyunca taşınılacak ekseni seç"},
+    {6,"Standart eksen boyunca çıkart"},
+    {7,"Seçimin normali boyunca çıkart"},
+    {8,"Boyunca çıkartılacak ekseni seç"},
+    {9,"Standart eksen boyunca çıkart"},
+    {10,"Seçimin normali boyunca çıkart"},
+    {11,"Boyunca çıkartılacak ekseni seç"},
+    {12,"Standart eksen boyunca sök"},
+    {13,"Seçimin normali boyunca sök"},
+    {14,"Boyunca sökülecek ekseni seç"},
+    {15,"Çoğalt; standart eksen boyunca taşı"},
+    {16,"Çoğalt; taşıma"},
+    {17,"Çoğalt; boyunca taşınacak ekseni seç"}
+   ]},
+  {flatten,
+   [
+    {1,"Yassılaştır"},
+    {2,"Standart eksenlere yassılaştır"},
+    {3,"Düzlem ve düzlem üzerinde referans noktası seç"},
+    {4,"Düzlem seç"}
+   ]},
+  {flatten_fun_1,
+   [
+    {1,"Düzlemde nokta seç"}
+   ]},
+  {rotate,
+   [
+    {1,"Standart eksen etrafında döndür"},
+    {2,"Eksen ve referans noktası seç"},
+    {3,"Etrafında dönülecek ekseni seç"}
+   ]},
+  {rotate_1,
+   [
+    {1,"Döndür"}
+   ]},
+  {rotate_fun,
+   [
+    {1,"Eksenin içinden geçeceği noktayı seç"}
+   ]},
+  {scale,
+   [
+    {1,"Standart eksenden dışa doğru ölçekle"},
+    {2,"Ölçeklenecek ekseni ve noktayı seç"},
+    {3,"Dışına doğru ölçeklenecek ekseni seç"},
+    {4,"Standart eksen boyunca ölçekle"},
+    {5,"Ölçeklenecek ekseni ve noktayı seç"},
+    {6,"Boyunca ölçeklenecek ekseni seç"}
+   ]},
+  {scale_fun,
+   [
+    {1,"Ölçeklenecek noktayı seç"}
+   ]},
+  {uniform_scale,
+   [
+    {1,"Ölçeklenecek noktayı seç"},
+    {2,"Seçimin orta noktasından itibaren tekdüze ölçekle"}
+   ]}
+ ]}.
+{wings_outliner,
+ [
+  {command,
+   [
+    {1,"NYI: ~p\n"}
+   ]},
+  {common_image_menu,
+   [
+    {1,"Ver..."},
+    {2,"Görüntüyü ver"},
+    {3,"Çoğalt"},
+    {4,"Seçili görüntüyü çoğalt"},
+    {5,"Sil"},
+    {6,"Seçili görüntüyü sil"},
+    {7,"Yeniden Adlandır"},
+    {8,"Seçili görüntüyü yeniden adlandır"},
+    {9,"Görüntüyü Kaldır"},
+    {10,"Görüntüyü bir malzemeye doku olarak koymak için kaldır"}
+   ]},
+  {delete_image,
+   [
+    {1,"Görüntü bir malzeme tarafından kullanılıyor."},
+    {2,"Görüntüyü silmek istediğinize emin misiniz (geri ALINAMAZ)?"}
+   ]},
+  {do_menu,
+   [
+    {1,"Malzemeyi Düzenle..."},
+    {2,"Malzeme özelliklerini düzenle"},
+    {3,"Seçime Ata"},
+    {4,"Malzemeyi seçili yüzeylere veya cisimlere ata"},
+    {5,"Seç"},
+    {6,"Bu malzemeye sahip olan bütün yüzeyleri seç"},
+    {7,"Çoğalt"},
+    {8,"Bu malzemeyi çoğalt"},
+    {9,"Sil"},
+    {10,"Bu malzemeyi sil"},
+    {11,"Yeniden Adlandır"},
+    {12,"Bu malzemeyi yeniden adlandır"},
+    {13,"Çoğalt"},
+    {14,"Bu nesneyi çoğalt"},
+    {15,"Sil"},
+    {16,"Bu nesneyi sil"},
+    {17,"Yeniden Adlandır"},
+    {18,"Bu nesneyi yeniden adlandır"},
+    {19,"Işığı Düzenle..."},
+    {20,"Işık özelliklerini düzenle"},
+    {21,"Çoğalt"},
+    {22,"Bu ışığı çoğalt"},
+    {23,"Sil"},
+    {24,"Bu ışığı sil"},
+    {25,"Yeniden Adlandır"},
+    {26,"Bu ışığı yeniden adlandır"},
+    {121,"Seçilmiş nesneyi bırak"},
+    {122,"Daha önceden seçilmiş bir nesneyi bu malzemenin üzerine bırak"}
+   ]},
+  {event,
+   [
+    {1,"Seç"},
+    {2,"Seçim varsa; anahatçıyı göster, seçim yoksa; yaratım menüsünü göster"}
+   ]},
+  {handle_drop,
+   [
+    {1,"Doku Tipi"},
+    {2,"Dağınık"},
+    {3,"Parlatma"},
+    {4,"Pütür (Yükseklik Haritası)"},
+    {5,"Pütür (Normal Haritası)"}
+   ]},
+  {image_menu,
+   [
+    {1,"Göster"},
+    {2,"Görüntüyü bir pencerede göster"}
+   ]},
+  {image_menu_1,
+   [
+    {1,"Harici Yap..."},
+    {2,"Tazele"},
+    {3,"Dahili Yap"}
+   ]},
+  {make_external,
+   [
+    {1,"Harici Yap"}
+   ]},
+  {refresh_image,
+   [
+    {1,"Tazeleme başarısız: \""}
+   ]},
+  {rename_image,
+   [
+    {1,"Görüntüyü Yeniden Adlandır"}
+   ]},
+  {title,
+   [
+    {1,"Anahatçı"}
+   ]}
+ ]}.
+{wings_palette,
+ [
+  {command,
+   [
+    {1,"Başlangıç rengi bulunamadı."},
+    {2,"Bitiş rengi bulunamadı."},
+    {3,"Ver"},
+    {5,"Wings Paleti"},
+    {6,"Verme hatası: ~w"},
+    {7,"Al"},
+    {9,"Wings Paleti"},
+    {10,"Palet bulunamadı"},
+    {11,"Alma hatası: ~w"},
+    {12,"Alma hatası: ~w"}
+   ]},
+  {do_menu,
+   [
+    {1,"Düzenle"},
+    {2,"Rengi düzenle"},
+    {3,"Aradeğerle"},
+    {4,"Boş Renkleri Aradeğerle"},
+    {5,"Hepsini Temizle"},
+    {6,"Paleti temizle"},
+    {7,"Sıkılaştır"},
+    {8,"Paleti Sıkılaştır"},
+    {9,"Renkleri Tara"},
+    {10,"Seçili nesnelerden renkleri tara"},
+    {11,"Ver"},
+    {12,"Paleti dosyaya ver"},
+    {13,"Al"},
+    {14,"Dosyadan palet al"}
+   ]},
+  {event,
+   [
+    {1,"Rengi seçime ata"},
+    {2,"Rengi düzenle"},
+    {3,"Menüyü göster"},
+    {4,"Rengi temizle"}
+   ]},
+  {title,
+   [
+    {1,"Palet"}
+   ]}
+ ]}.
+{wings_pb,
+ [
+  {loop,
+   [
+    {1,"tamam"}
+   ]}
+ ]}.
+{wings_pick,
+ [
+  {area_info,
+   [
+    {40," Alan ~s"}
+   ]},
+  {clear_hilite_marquee_mode,
+   [
+    {ctrl_action,"Seçimi Kaldır"},
+    {shift_action,"Tamamiyle noktalı çerçevenin içinde kalan öğeleri seç/seçimi kaldır"}
+   ]},
+  {enhanced_hl_info,
+   [
+    {1,". Konum <~s  ~s  ~s>"},
+    {3,". Orta Nokta <~s  ~s  ~s>\nUzunluk ~s"},
+    {4,". Orta Nokta <~s  ~s  ~s> \nMalzeme ~s."}
+   ]},
+  {handle_hilite_event,
+   [
+    {2,"(aynada)"},
+    {3,"Nesne"},
+    {4,"Köşe"},
+    {5,"Kenar"},
+    {6,"Yüzey"}
+   ]}
+ ]}.
+{wings_plugin,
+ [
+  {cat_label,
+   [
+    {1,"Komutlar"},
+    {2,"Al/Ver"},
+    {3,"Temel Şekiller"},
+    {4,"İmgele"},
+    {5,"Seç"},
+    {6,"Araçlar"},
+    {7,"Sınıflandırılmamış"}
+   ]},
+  {def_ui_plugin,
+   [
+    {1,"Wings'i yeniden yükle. Eksik eklenti: ~p."}
+   ]},
+  {install,
+   [
+    {1,"Eklenti başarıyla yüklendi."}
+   ]},
+  {install_beam,
+   [
+    {1,"\"~s\" yüklemesi başarısız: ~p"},
+    {2,"\"~s\" dosyası bir Wings eklenti modülü değil"}
+   ]},
+  {install_file_type,
+   [
+    {1,"\"~s\" dosyası: Bilinmeyen dosya türü"}
+   ]},
+  {install_verify_files,
+   [
+    {1,"\"~s\" dosyası mutlak yollu bir dosya içeriyor"},
+    {2,"\"~s\" dosyası hiçbir Wings eklenti modülü içermiyor"}
+   ]},
+  {manager_command,
+   [
+    {1,"Eklenti Yöneticisi"}
+   ]},
+  {manager_entry,
+   [
+    {1,"Eklenti Yöneticisi..."}
+   ]},
+  {plugin_dir,
+   [
+    {1,"Hiçbir \"eklenti\" klasörü bulunmadı"}
+   ]},
+  {plugin_menu_info_3,
+   [
+    {1,"(Eklenti Yöneticisi daha fazla bilgi bulmada başarısız)"}
+   ]},
+  {plugin_modules,
+   [
+    {1,"Bu eklentiyi etkin hale getir veya etkisizleştir "},
+    {2,"(etkisizleştirilmiş bir eklenti menülerde görüntülenmez)"}
+   ]},
+  {plugin_root_menu,
+   [
+    {1,"nesne: "},
+    {2,"kenar: "},
+    {3,"yüzey: "},
+    {4,"köşe: "},
+    {5,"Seç|"},
+    {6,"Araçlar|"}
+   ]}
+ ]}.
+{wings_pref_dlg,
+ [
+  {advanced_prefs,
+   [
+    {1,"Varsayılan Komutlar"},
+    {2,"CTRL+L veya CTRL+M ile çağrılabilecek komutlar tanımlamaya izin ver"},
+    {3,"Vurguyu Geçici Seçim Gibi Kullan"},
+    {4,"Eğer ortada seçim yoksa, "},
+    {5,"komutların vurgulanmış öğeye göre davranmasına izin ver"},
+    {6,"Sürüklerken Seçimi Gizle"},
+    {7,"Hiçbir etkileşimli komutta seçimi gösterme"},
+    {8,"Kamerayı Taşırken Seçimi Gizle"},
+    {9,"Kamera hareket ettirilirken seçimi gösterme"},
+    {10,"Gelişmiş Menüler"},
+    {11,"Daha fazla komut ve daha fazla seçenek (örneğin; mıknatıs)"},
+    {12,"Tecrübeli-Kullanıcı Geçici Seçimleri"},
+    {13,"İkincil seçim kipindeyken, sağ tıklamak her zaman seçime ekler"},
+    {14,"Uzunluk"},
+    {15,"İkincil seçimlerdeki vektör uzunluğu"},
+    {16,"Genişlik"},
+    {17,"Vektörün genişliği (pixel bazında)"},
+    {18,"Renk"},
+    {19,"Vektörün rengi"},
+    {20,"Vektör Görünümü"},
+    {21,"Seçimler için Ayna Kullan"},
+    {22,"İkincil seçimler için sanal aynayı kullanmayı varsayılan yap"},
+    {23,"Boyut"},
+    {24,"Kullanıcı tanımlı kırpa göstergesinin boyutu"},
+    {25,"Renk"},
+    {26,"Kullanıcı tanımlı kırpma göstergesinin rengi"},
+    {27,"Kırpma Düzlemi Göstergesi"}
+   ]},
+  {command,
+   [
+    {1,"Genel"},
+    {2,"Kamera"},
+    {3,"Gelişmiş"},
+    {4,"Kullanıcı Arayüzü"},
+    {5,"Çeşitli"},
+    {6,"Tercihler"},
+    {31,"Kısıtlar"}
+   ]},
+  {constraint_prefs,
+   [
+    {1,"Uzaklık"},
+    {2,"Dönme"},
+    {3,"Ölçek"},
+    {4,"Varsayılan Değiştirici Tuşlar"},
+    {9,"Uzaklık Kısıtları"},
+    {10,"Alternatif Uzaklıklar"},
+    {11,"Kısıtları Kaydet..."},
+    {12,"~s tuşuna uzaklık işlemleri için atanan kısıt."},
+    {13,"~s tuşuna dönme işlemleri için atanan kısıt."},
+    {14,"~s tuşuna ölçekleme işlemleri için atanan kısıt."},
+    {15," Tersi (1.0/Değer) için kısıtları değiştir."},
+    {16," Bütünleri (180.0-Açı) için kısıtları değiştir."},
+    {17,"(varsayılan 1/~s)"},
+    {18,"(varsayılan 5/8)"},
+    {19,"(varsayılan 3/64)"},
+    {22,"Uzaklık Kısıtları"},
+    {23,"Dönme Kısıtları"},
+    {25,"Ölçek Etmenleri"},
+    {29,"Alternatif Uzaklıklar"},
+    {30,"Değeri silmek veya '0' girmek kısıtı Wings varsayılan değerine sıfırlar"},
+    {31,"Kısıt Tercihlerini Ayarla"},
+    {32,"Varsayılan Kısıt Değerleri"},
+    {33,"Alternatif Kısıtları Kullan"},
+    {34,"Tikliyken alternatif uzaklıklar, ters ölçek etmenleri, ve bütünler açılar kullanılır."},
+    {35," Bir sürükleme işlemi esnasında [SHIFT]+[TAB] ile anında geçiş yap."},
+    {36,"Kipleri Değiştirmek Modelin Konumunu Sıfırlar"},
+    {37,"Sadece birden çok sürükleme kipi olan araçları (örneğin; Kenar|Kaydır) etkiler"},
+    {38,"Sürükleme Tepkisini Uyarla"},
+    {39,"Sürüklemeyi, fare hareket oranına göre uyarla. Tiksizken varsayılan ayarlar kullanılır."},
+    {40,"Kameraya Olan Uzaklık Cinsinden Etmen"},
+    {42,"Mutlak Hız"},
+    {43,"Kameraya Olan Uzaklık Cinsinden Etmen"},
+    {46,"Görece Hız"},
+    {48,"Dönme Hızı"},
+    {49,"Sürükleme Tercihleri"}
+   ]},
+  {gen_prefs,
+   [
+    {1,"Seçilmemiş Boyut"},
+    {2,"Seçilmemiş köşeleri piksel olarak boyutu (0.0 gösterilmez anlamına gelir)"},
+    {3,"Seçili Boyut"},
+    {4,"Seçili köşeleri piksel olarak boyu"},
+    {5,"Köşe Görünümü"},
+    {6,"Seçilmemiş Genişlik"},
+    {7,"Seçilmemiş kenarların piksek olarak genişliği"},
+    {8,"Seçili Genişlik"},
+    {9,"Seçili kenarların piksel olarak genişliği"},
+    {10,"Yumuşak Kenarlar"},
+    {11,"Yumuşak Kenarların Rengi"},
+    {12,"Sert Kenarlar"},
+    {13,"Sert Kenarların Rengi"},
+    {14,"Kenar Görünümü"},
+    {15,"Köşeler"},
+    {16,"Kenarlar"},
+    {17,"Yüzeyler"},
+    {18,"Nesneler"},
+    {19,"Seçilmemiş"},
+    {20,"Seçili"},
+    {21,"Akıllı Vurgulama"},
+    {22,"Vurgulama"},
+    {23,"Katı Yüzey Seçimleri"},
+    {24,"Noktalarla Yüzey Seçimleri"},
+    {25,"Seçim Rengi"},
+    {26,"Seçim"},
+    {27,"Metin"},
+    {28,"Bilgi metninin rengi"},
+    {29,"Arka Plan"},
+    {30,"Bilgi metninin arka planının rengi (saydamlık dahil)"},
+    {31,"Bilgi Metni"},
+    {32,"Renk"},
+    {33,"Eksen-Hizalı Izgarayı Zorla"},
+    {34,"Görüş temel eksenler birine hizalandığında ızgarayı daima göster"},
+    {35,"Izgara"},
+    {36,"Eksen Harflerini Göster"},
+    {37,"+X Rengi"},
+    {38,"+Y Rengi"},
+    {39,"+Z Rengi"},
+    {40,"-X Rengi"},
+    {41,"-Y Rengi"},
+    {42,"-Z Rengi"},
+    {43,"Eksenler"},
+    {44,"Uzunluk"},
+    {45,"Normallerin uzunluğu"},
+    {46,"Renk"},
+    {47,"Normallerin rengi"},
+    {48,"Normallerin Görünümü"},
+    {49,"Eksenleri Zemin Izgarasıyla Kısıtla"},
+    {50,"Kenarları Yumuşak Çiz"},
+    {51,"Varsayılan"},
+    {52,"Varsayılan malzemenin rengini ayarlar"},
+    {53,"Boşluk"},
+    {54,"Boşluk malzemesinin rengini ayarlar"},
+    {55,"Malzemeler"},
+    {56,"Mini-Ekseni Göster"},
+    {57,"Sert Kenar Genişliği"},
+    {58,"Sert kenarların piksel olarak genişliği"},
+    {59,"Genişlik"},
+    {60,"Normallerin genişliği"},
+    {61,"Laf Ebesi"},
+    {62,"Seçili öğeler hakkında ilave bilgi görüntüle"},
+    {63,"Mouse Üstündeyken"},
+    {64,"Vurgulanan öğe için fare üstündeyken ilave bilgi görüntüle"},
+    {aa_ortho1,"Eksen-Hizalı Dikçizgisel Zorla"},
+    {aa_ortho2,"Görüş temel eksenlerin biri boyunca hızalıyken daima dikçizgisel kipe geç"}
+   ]},
+  {menu,
+   [
+    {1,"Tercihler..."},
+    {2,"Wings 3D tercihlerini yönet"}
+   ]},
+  {misc_prefs,
+   [
+    {1,"Işık geçirmezlik ayarları OpenGL'nin bu sürümünde desteklenmiyor"},
+    {2,"Her"},
+    {3,"dakikada bir otomatik kaydet"},
+    {4,"Geri alma seviyeleri"},
+    {5,"Açı"},
+    {6,"Gecikme (ms)"},
+    {7,"Otomatik Döndür"},
+    {8,"Kafes"},
+    {9,"Bazı Kenarlar"},
+    {10,"Bütün Kenarlar"},
+    {11,"Tonlama Kipi Kenar Stili"},
+    {12,"Durağan Donukluk"},
+    {13,"Hareketli Donukluk"},
+    {14,"Vekillik Kipi"},
+    {15,"Menülerdeki ve diyalog pencerelerindeki metinler kayboluyor"},
+    {16,"Sorun bazı Matrox kartlarında ortaya çıkıyor"},
+    {17,"Eğer eksenler kapatılmışsa Wings göçüyor"},
+    {18,"Sorun bazı Matrox kartlarında ortaya çıkıyor"},
+    {19,"Kamera hareketleri ve etkileşimli komutlar gergin"},
+    {20,"Sorun Mac OS X 10.3'de (Panther) ortaya çıkıyor"},
+    {21,"Yangeçit Çözümler"},
+    {22,"Kenar görüntüleme sorunları mı?"},
+    {23,"Kenar saplamaları:"}
+   ]},
+  {smart_set_value_1,
+   [
+    {1,"Sistem yazıtipindeki değişiklik\nWings 3D bir dahaki sefere başladığında etkisini gösterecek."},
+    {2,"Arayüz simgelelerindeki değişiklik\nWings 3D bir dahaki sefere başladığında etkisini gösterecek."},
+    {3,"Varsayılan malzemenin rengindeki değişiklik\nWings 3D bir dahaki sefere başladığında etkisini gösterecek."},
+    {5,"Boşluk malzemesinin rengindeki değişiklik\nWings 3D bir dahaki sefere başladığında etkisini gösterecek."}
+   ]},
+  {ui_prefs,
+   [
+    {1,"Sistem Yazıtipi"},
+    {2,"Masaüstü/Geometri Arka Planı"},
+    {3,"Menü Metni"},
+    {4,"Menü Vurgusu"},
+    {5,"Menü Vurgulanmış Metin"},
+    {6,"Menü Arka Planı"},
+    {7,"Diyalog Metni"},
+    {8,"Diyalog (Etkisiz) Metni"},
+    {9,"Diyalog Arka Planı"},
+    {10,"Başlık Metni"},
+    {11,"Başlık (Edilgen) Arka Planı"},
+    {12,"Başlık (Etkin) Arka Planı"},
+    {13,"Renkler"},
+    {14,"İlerleme Çubuğu Yok"},
+    {15,"Konsol Yazıtipi"},
+    {16,"Genişlik"},
+    {17,"Yükseklik"},
+    {18,"Kayıtlı Satır Sayısı"},
+    {19,"Arka Plan"},
+    {20,"Metin"},
+    {21,"İmleç"},
+    {22,"Konsol"},
+    {23,"Dil"},
+    {24,"Anahatçıda Nesneler"},
+    {25,"İmgeledikten sonra görüntüye bak"},
+    {26,"İmgeledikten sonra görüntüyü yükle"},
+    {27,"Uzatılmış Araç Çubuğu Simgeleri"},
+    {50,"Arayüz Simgeleri"},
+    {51,"Klasik"},
+    {52,"Mavi Küp"},
+    {53,"Mor Tüp"}
+   ]},
+  {viewer_prefs,
+   [
+    {1,"İzleyici"},
+    {2,"Seçenekler"},
+    {3,"..dosyaadı.."}
+   ]},
+  {workaround_1,
+   [
+    {1,"Sorun"},
+    {2,"Yangeçit Çözüm Kullan?"}
+   ]}
+ ]}.
+{wings_rotate,
+ [
+  {edges_to_vertices,
+   [
+    {1,"Çoklu kenar bölgelerindeki mıknatıs döndürme belirgin bir döndürme merkezi gerektirir."}
+   ]},
+  {faces_to_vertices,
+   [
+    {1,"Çoklu yüzey bölgelerindeki mıknatıs döndürme belirgin bir döndürme merkezi gerektirir."}
+   ]}
+ ]}.
+{wings_s,
+ [
+  {accept,
+   [
+    {1,"Kabul Et"}
+   ]},
+  {camera_mode,
+   [
+    {blender,"Blender"},
+    {maya,"Maya"},
+    {mb,"Motionbuilder"},
+    {mirai,"Mirai"},
+    {nendo,"Nendo"},
+    {sketchup,"SketchUp"},
+    {tds,"3ds max"},
+    {wings_cam,"Wings 3D"}
+   ]},
+  {cancel,
+   [
+    {1,"İptal"}
+   ]},
+  {dir,
+   [
+    {all,"Hepsi"},
+    {da,"Varsayılan eksen"},
+    {f,"Serbest"},
+    {la,"son eksen"},
+    {n,"Normal"},
+    {r,"Yarıçapsal"},
+    {the_axis,"~s ekseni"},
+    {u,"Tekdüze"},
+    {x,"X"},
+    {y,"Y"},
+    {z,"Z"}
+   ]},
+  {mod,
+   [
+    {alt,"Alt"},
+    {command,"Command"},
+    {ctrl,"Ctrl"},
+    {shift,"Shift"}
+   ]},
+  {mouse_b,
+   [
+    {l,"Sol"},
+    {m,"Orta"},
+    {r,"Sağ"}
+   ]},
+  {no,
+   [
+    {1,"Hayır"}
+   ]},
+  {yes,
+   [
+    {1,"Evet"}
+   ]}
+ ]}.
+{wings_scale,
+ [
+  {edges_to_vertices,
+   [
+    {1,"Çoklu kenar bölgelerindeki mıknatıs ölçekleme belirgin bir ölçekleme merkezi gerektirir."}
+   ]},
+  {faces_to_vertices,
+   [
+    {1,"Çoklu yüzey bölgelerindeki mıknatıs döndürme belirgin bir ölçekleme merkezi gerektirir."}
+   ]},
+  {inset_face,
+   [
+    {1,"Seçili yüzeylerin bir veya daha çoğunda çok kısa kenarlar var. (Temizle komutunu kullan)"}
+   ]}
+ ]}.
+{wings_sel_cmd,
+ [
+  {ask,
+   [
+    {1,"Kimliğine Göre Seç"}
+   ]},
+  {group_mode_string,
+   [
+    {body,"Nesne seçim grubu"},
+    {edge,"Kenar seçim grubu"},
+    {face,"Yüzey seçim grubu"},
+    {vertex,"Köşe seçim grubu"}
+   ]},
+  {group_title,
+   [
+    {1,"köşe: "},
+    {2,"kenar: "},
+    {3,"yüzey: "},
+    {4,"cisim: "}
+   ]},
+  {groups_menu,
+   [
+    {1,"Grubu Sil"},
+    {2,"Grubu sil \""},
+    {4,"Gruba Ekle"},
+    {5,"Şimdiki seçimi gruba ekle \""},
+    {7,"Gruptan Çıkart"},
+    {8,"Şimdiki seçimi gruptan çıkart \""},
+    {10,"Grubu Seç"},
+    {11,"Grubu seç \""},
+    {13,"Grup Birleştir"},
+    {14,"Şimdiki seçimle \""},
+    {15,"\" grubunu birleştir"},
+    {16,"Grup Çıkart"},
+    {17,"Şimdiki seçimden \""},
+    {18,"\" grubunu çıkart"},
+    {19,"Grup Kesiştir"},
+    {20,"Şimdiki seçimle \""},
+    {21,"\" grubunu kesiştir"}
+   ]},
+  {item_by_id,
+   [
+    {1,"Seçecek hiçbir şey yok."},
+    {2,"Nesne Kimliği"}
+   ]},
+  {less_help,
+   [
+    {1,"Seçilmemiş bir köşeye bitişik olan bütün köşelerin seçimini kaldır"},
+    {2,"Seçilmemiş bir kenara bitişik olan bütün kenarların seçimini kaldır"},
+    {3,"Seçilmemiş bir yüzeyle köşe paylaşan bütün yüzeylerin seçimini kaldır"}
+   ]},
+  {menu,
+   [
+    {1,"Seçimi Kaldır"},
+    {2,"Seçimi temizle"},
+    {3,"Daha Fazla"},
+    {4,"Daha Az"},
+    {5,"Benzer"},
+    {6,"Kenar Döngüsü"},
+    {7,"Kenar Döngüsü"},
+    {8,"Kenar seçimini döngüye genişlet; "},
+    {9,"yüzey seçimini seçili sınır kenarlara dönüştür"},
+    {10,"Kenar Döngüsünden Bölgeye"},
+    {11,"Kenar döngüsünün bir tarafındaki bütün yüzeyleri seç"},
+    {12,"Kenar Halkası"},
+    {13,"Kenar seçimini halkaya genişlet"},
+    {14,"Önceki Kenar Döngüsü"},
+    {15,"Önceki kenar döngüsünü seç"},
+    {16,"Sonraki Kenar Döngüsü"},
+    {17,"Sonraki kenar döngüsünü seç"},
+    {18,"Kenar Döngüsünü Uzat"},
+    {19,"Kenar seçimini döngü yönlerinde bir kenar uzat"},
+    {20,"Kenar Döngüsünü Kısalt"},
+    {21,"Kenar seçimini döngü yönlerinde bir kenar kısalt"},
+    {22,"Kenar Halkasını Uzat"},
+    {23,"Kenar seçimini halka yönlerinde bir kenar uzat"},
+    {24,"Kenar Halkasını Kısalt"},
+    {25,"Kenar seçimini halka yönlerinde bir kenar kısalt"},
+    {26,"Bitişik"},
+    {27,"Köşeler"},
+    {28,"Kenarlar"},
+    {29,"Yüzeyler"},
+    {30,"Nesneler"},
+    {31,"Niteliğe Göre"},
+    {32,"Sert Kenarlar"},
+    {33,"Bütün sert kenarları seç"},
+    {34,"Issız Köşeler"},
+    {35,"Bütün ıssız köşeleri seç"},
+    {36,"Köşeler"},
+    {37,"2 Kenara Bağlı"},
+    {38,"3 Kenara Bağlı"},
+    {39,"4 Kenara Bağlı"},
+    {40,"5 Kenara Bağlı"},
+    {41,"Yüzeyler"},
+    {42,"2 Kenarlı"},
+    {43,"3 Kenarlı"},
+    {44,"4 Kenarlı"},
+    {45,"5 veya Daha Fazla"},
+    {46,"Rastgele"},
+    {56,"Kısa Kenarlar"},
+    {57,"Çok kısa kenarları seç"},
+    {58,"Malzeme Kenarları"},
+    {59,"Farklı malzemeler arasındaki bütün kenarları seç"},
+    {60,"UV-Haritalanmış Yüzeyler"},
+    {61,"UV koordinatları olan bütün kenarları seç"},
+    {62,"Kimlik..."},
+    {63,"Sayısal kimliğe göre seç"},
+    {64,"Işıklar"},
+    {65,"Bütün ışıkları seç"},
+    {66,"Bütün öğeleri seç"},
+    {67,"Ters"},
+    {68,"Seçimi tersine çevir"},
+    {69,"Seçiliyi Gizle"},
+    {70,"Seçili nesnelerin hepsini (kısmen veya tamamen) gizle"},
+    {71,"Seçili Olmayanları Gizle"},
+    {72,"Seçimi olmayan nesneleri gizle"},
+    {73,"Seçili Olmayanları Kilitle"},
+    {74,"Seçimi olmayan nesneleri kilitle"},
+    {75,"Hepsini Göster"},
+    {76,"Gizlenmiş nesnelerin hepsini göster"},
+    {77,"Hepsinin Kilidini Aç"},
+    {78,"Kilitli nesnelerin hepsinin kilidini aç"},
+    {79,"Seçimi Depola"},
+    {80,"Seçimi \"StoredSelection\" seçim grubuna depola"},
+    {81,"Seçimi Geri Çağır"},
+    {82,"Seçimi \"StoredSelection\" seçim grubundan geri çağır"},
+    {83,"Yeni Grup..."},
+    {84,"Yeni bir seçim grubu yarat"},
+    {85,"Düzlemsel Olmayan Yüzeyler"},
+    {86,"Düzlemsel olmayan bütün yüzeyleri seç"},
+    {87,"Keskin Kenarlar"},
+    {88,"Keskin kenarları seç"},
+    {89,"En Az Kenar Yolu"},
+    {90,"İki köşe arasındaki en az kenarlı yolu seç"},
+    {91,"En Kısa Yol (Dijkstra)"},
+    {92,"İki köşenin arasındaki en kısa yolu seç (Dijkstra)"},
+    {93,"En Kısa Yol (A*)"},
+    {94,"İki köşenin arasındaki en kısa yolu seç (A*)"},
+    {95,"Köşe Yolu"},
+    {401,"6 veya Daha Fazla"},
+    {nq0,"Dörtgen Olmayan Yüzeyler"},
+    {nq1,"Bütün Dörtgen Olmayan Yüzeyler"},
+    {nq2,"Tek Sayıda Kenarı Olan Dörtgen Olmayan Yüzeyler"},
+    {nq3,"Çift Sayıda Kenarı Olan Dörtgen Olmayan Yüzeyler"}
+   ]},
+  {more_help,
+   [
+    {1,"Seçili bir köşeye bitişik bütün köşeleri seç"},
+    {2,"Seçili bir kenara bitişik bütün kenarları seç"},
+    {3,"Seçili yüzeyle köşe paylaşan bütün yüzeyleri seç"}
+   ]},
+  {new_group,
+   [
+    {1,"Yeni Grup Yarat"},
+    {2,"Grup Adı"}
+   ]},
+  {new_group_name,
+   [
+    {exists,"zaten var."}
+   ]},
+  {nonplanar_faces,
+   [
+    {1,"Uzaklık hata payı"},
+    {2,"Düzlemsel Olmayan Yüzeyleri Seç"}
+   ]},
+  {oriented_faces,
+   [
+    {1,"Açı hata payı"},
+    {2,"Benzer Yönlü Yüzeyleri Seç"}
+   ]},
+  {oriented_faces_menu,
+   [
+    {1,"Benzer Normaller"},
+    {2,"Zaten seçili yüzeylere benzer normalleri olan yüzeyleri seç"}
+   ]},
+  {sel_all_str,
+   [
+    {1,"Bütün Köşeler"},
+    {2,"Bütün Kenarlar"},
+    {3,"Bütün Yüzeyler"},
+    {4,"Bütün Nesneler"}
+   ]},
+  {sharp_edges,
+   [
+    {1,"Azami Açı"},
+    {2,"Sert Kenarları Seç"}
+   ]},
+  {short_edges,
+   [
+    {1,"Uzunluk hata payı"},
+    {2,"Kısa Kenarları Seç"}
+   ]},
+  {shortest_path,
+   [
+    {1,"Aynı nesne üzerinde tam olarak iki köşe seçilmiş olmalı."},
+    {2,"Tam olarak iki köşe seçilmiş olmalı."}
+   ]},
+  {similar_area,
+   [
+    {1,"Alan Hata Payı"},
+    {2,"Benzer Alanu Seç"},
+    {3,"Tek bir nesne üzerinde tam olarak tek yüzey seçilmiş olmalı."},
+    {4,"Tam olarak tek yüzey seçilmiş olmalı."}
+   ]},
+  {similar_area_faces_menu,
+   [
+    {1,"Benzer Alan"},
+    {2,"Zaten seçili yüzeylerle benzer alanları olan yüzeyleri seç"}
+   ]},
+  {similar_help,
+   [
+    {1,"Zaten seçili köşelere benzer köşeleri seç"},
+    {2,"Zaten seçili kenarlara benzer kenarları seç"},
+    {3,"Zaten seçili yüzeylere benzer yüzeyleri seç"},
+    {4,"Aynı sayıda kenarı, yüzeyi ve köşesi olan nesneleri seç"}
+   ]},
+  {valid_sel,
+   [
+    {1," "},
+    {2," nesne kimlği geçersiz."},
+    {3," "},
+    {4," geçersiz."}
+   ]}
+ ]}.
+{wings_shape,
+ [
+  {do_menu,
+   [
+    {1,"Çoğalt"},
+    {2,"Seçili nesneleri çoğalt"},
+    {3,"Sil"},
+    {4,"Seçili nesneleri sil"},
+    {5,"Yeniden Adlandır"},
+    {6,"Seçili nesneleri yeniden adlandır"}
+   ]},
+  {help,
+   [
+    {1,"Seç"},
+    {2,"Menüyü göster"},
+    {3,"Etkin nesnelerin görünürlüğünü aç-kapat"},
+    {4,"Bütün diğer nesnelerin görünürlüğünü aç-kapat"},
+    {5,"Etkin nesneleri kilitle/kilitlerini kaldır"},
+    {6,"Bütün nesneleri kilitle/kilitlerini kaldır"},
+    {7,"Etkin nesneler için seçimi aç-kapat"},
+    {8,"Bütün diğer nesneler için seçimi aç-kapat"},
+    {9,"Etkin nesneler için tonlandırılmış/telkafes kiplerini aç-kapat"},
+    {10,"Bütün diğer nesneler için tonlandırılmış/telkafes kiplerini aç-kapat"}
+   ]},
+  {title,
+   [
+    {1,"Geometri Grafiği"},
+    {2,"Geometri Grafiği #"}
+   ]}
+ ]}.
+{wings_shapes,
+ [
+  {cone,
+   [
+    {1,"Bölüm Sayısı"},
+    {2,"Yükseklik"},
+    {3,"X Çapı"},
+    {4,"Y Çapı"}
+   ]},
+  {cube,
+   [
+    {1,"X Uzunluğu"},
+    {2,"Y Uzunluğu"},
+    {3,"Z Uzunluğu"}
+   ]},
+  {cylinder,
+   [
+    {1,"Bölüm Sayısı"},
+    {2,"Yükseklik"},
+    {3,"Tepe Yüzey X Çapı"},
+    {4,"Tepe Tüzey Z Çapı"},
+    {5,"Dip Yüzey X Çapı"},
+    {6,"Dip Yüzey Z Çapı"}
+   ]},
+  {dodecahedron,
+   [
+    {1,"Kenar Uzunluğu"}
+   ]},
+  {grid,
+   [
+    {1,"Satır/Sütün Sayısı"},
+    {2,"X Aralığı"},
+    {3,"Z Aralığı"},
+    {4,"Yükseklik"}
+   ]},
+  {icosahedron,
+   [
+    {1,"Kenar Uzunluğu"}
+   ]},
+  {menu,
+   [
+    {15,"Daha Fazla"},
+    {16,"Daha fazla temel şekil"}
+   ]},
+  {prim_help,
+   [
+    {cone,"Bir koni yarat"},
+    {cube,"Bir küp yarat"},
+    {cylinder,"Bir silindir yarat"},
+    {dodecahedron,"Bir oniki yüzlü yarat"},
+    {grid,"Bir ızgara yarat"},
+    {icosahedron,"Bir yirmi yüzlü yarat"},
+    {image,"Bir görüntü yarat..."},
+    {light,"Bir ışık yarat"},
+    {material,"Bir malzeme yarat..."},
+    {octahedron,"Bir sekiz yüzlü yarat"},
+    {octotoad,"Bir yirmialtı yüzlü yarat"},
+    {sphere,"Bir küre yarat"},
+    {tetrahedron,"Bir dört yüzlü yarat"},
+    {torus,"Bir halka yarat"}
+   ]},
+  {prim_name,
+   [
+    {cone,"Koni"},
+    {cube,"Küp"},
+    {cylinder,"Silindir"},
+    {dodecahedron,"Oniki Yüzlü"},
+    {grid,"Izgara"},
+    {icosahedron,"Yirmi Yüzlü"},
+    {image,"Görüntü..."},
+    {light,"Işık"},
+    {material,"Malzeme..."},
+    {octahedron,"Sekiz Yüzlü"},
+    {octotoad,"Yirmialtı Yüzlü"},
+    {sphere,"Küre"},
+    {tetrahedron,"Dört Yüzlü"},
+    {torus,"Halka"}
+   ]},
+  {sphere,
+   [
+    {1,"Bölüm Sayısı"},
+    {2,"Dilim Sayısı"},
+    {3,"X Yarıçapı"},
+    {4,"Y Yarıçapı"}
+   ]},
+  {tetrahedron,
+   [
+    {1,"Kenar Uzunluğu"}
+   ]},
+  {torus,
+   [
+    {1,"Bölüm Sayısı"},
+    {2,"Dilim Sayısı"},
+    {4,"Küçük Yarıçap"},
+    {31,"Büyük X Yarıçapı"},
+    {32,"Büyük Z Yarıçapı"}
+   ]}
+ ]}.
+{wings_subdiv,
+ [
+  {face_centers,
+   [
+    {1," "},
+    {2," yüzeyinin yalnızca iki kenarı var."}
+   ]},
+  {smooth,
+   [
+    {1,"yumuşatılıyor"},
+    {2,"yüzey merkezleri hesaplanıyor"},
+    {3,"kenarlar kesiliyor"},
+    {4,"malzemeler güncelleniyor"},
+    {5,"yeni yüzeyler yaratılıyor"},
+    {6,"köşeler taşınıyor"},
+    {7,"bitiriliyor"}
+   ]}
+ ]}.
+{wings_tesselation,
+ [
+  {submenu,
+   [
+    {1,"Üçgenleştir"},
+    {2,"Dörtgenleştir"}
+   ]}
+ ]}.
+{wings_toolbar,
+ [
+  {button_help_1,
+   [
+    {1,"Seçimi Kaldır"}
+   ]},
+  {button_help_2,
+   [
+    {1,"Bitişik köşeleri seç"},
+    {2,"Köşe seçim kipine geç"},
+    {3,"Bitişik kenarları seç"},
+    {4,"Kenar seçim kipine geç"},
+    {5,"Bitişik yüzeyleri seç"},
+    {6,"Yüzey seçim kipine geç"},
+    {7,"Nesne seçim kipine geç"}
+   ]},
+  {button_help_3,
+   [
+    {1,"Son komutu geri al"},
+    {2,"Geri alınan son komutu yeniden yap"},
+    {3,"Daha önceden kaydedilmiş bir sahneyi aç"},
+    {4,"Şimdiki sahneyi kaydet"},
+    {5,"Wings tercihlerini düzenle"}
+   ]},
+  {messages,
+   [
+    {axes,"eksenler"},
+    {change_to,"Geçiş yap:"},
+    {flat,"sert tonlandırma"},
+    {groundplane,"zemin düzlemi"},
+    {hide,"Gizle:"},
+    {orthogonal,"dikçizgisel görünüm"},
+    {perspective,"perspektif görünüm"},
+    {show,"Göster:"},
+    {show_objects,"Nesneleri göster:"},
+    {smooth,"yumuşak tonlandırma"}
+   ]}
+ ]}.
+{wings_u,
+ [
+  {caption,
+   [
+    {1,"otomatik-kaydedildi"}
+   ]}
+ ]}.
+{wings_vec,
+ [
+  {add_help_text,
+   [
+    {1,"Eksen (ve nokta) seç"},
+    {2,"Eksen seç"},
+    {3,"Nokta seç"},
+    {4,"Mıknatıs tesiri için dış hudut noktayı seç"}
+   ]},
+  {add_magnet,
+   [
+    {1,"Mıknatıs tesiri için dış hudut noktayı seç"}
+   ]},
+  {check_magnet_point,
+   [
+    {1,"Seçimin orta noktası kaydedildi."}
+   ]},
+  {check_point,
+   [
+    {1,"Seçimin orta noktası kaydedildi."},
+    {2,"Referans noktası hesabında sanal aynayı önemseme"},
+    {3,"Referans noktası hesabına sanal aynayı dahil et"}
+   ]},
+  {common_magnet_message,
+   [
+    {1,"Mıknatıs"}
+   ]},
+  {common_message,
+   [
+    {1,"Yürüt"},
+    {2,"Devam Et"}
+   ]},
+  {exit_menu,
+   [
+    {2,"Şimdiki komutu iptal et"}
+   ]},
+  {get_vec,
+   [
+    {1,"Kenar eksen olarak kaydedildi"},
+    {2,"Kenar normalini kaydet"},
+    {3,"Kenar normali eksen olarak kaydedildi"},
+    {4,"Kenar yönünü kaydet"},
+    {5,"Kenarlar arasındaki yön eksen olarak kaydedildi."},
+    {6,"Kenar döngüsü normali eksen olarak kaydedildi."},
+    {7,"Çoklu-kenar seçimi tek bir kapalı kenar döngüsü oluşturmalı."},
+    {8,"Köşe normali kaydedildi."},
+    {9,"Köşeler arasındaki yön eksen olarak kaydedildi."},
+    {10,"Köşe normallerinin ortalamasını eksen olarak kullan"},
+    {11,"Köşe normallerinin ortalaması eksen olarak kaydedildi."},
+    {12,"Köşeler arasındaki yönü eksen olarak kullan"},
+    {13,"3-nokta dikey normal eksen olarak kaydedildi."},
+    {14,"Köşe döngüsü normali eksen olarak kaydedildi."},
+    {15,"Çoklu köşe seçimi tek bir kapalı kenar döngüsü oluşturmalı."},
+    {16,"Yüzey normali eksen olarak kaydedildi."},
+    {17,"Yüzey merkezleri arasındaki yön eksen olarak kaydedildi."},
+    {18,"Yüzey normallerinin merkezini kullan"},
+    {19,"Yüzey normallerinin merkezi eksen olarak kaydedildi."},
+    {20,"Yüzey merkezlerinin arasındaki yönü kullan"},
+    {21,"Bölge için kenar döngüsü normali kaydedildi."},
+    {22,"Çoklu yüzey seçiminin tek bir kenar döngüsü olmalı."},
+    {23,"Köşeleri, kenarları, veya yüzeyleri seç."},
+    {24,"Çapraz vektörü sakla"},
+    {25,"Kenarların çapraz çarpımı eksen olarak saklandı"},
+    {26,"Kenarlar arasındaki yönü kaydet"},
+    {27,"Köşeler, 3-nokta yüzey normali tanımlanırken, koordinatları paylaşamazlar"}
+   ]},
+  {guard_string,
+   [
+    {1,"Sadece bir nesnenin parçalarını"},
+    {2,", veya iki nesnenin her ikisinden de bir öğe"},
+    {3,", veya herhangi üç köşe seç."}
+   ]},
+  {magnet_message,
+   [
+    {1,"Yürüt: "},
+    {2,"Mıknatıs seçenekleri"}
+   ]}
+ ]}.
+{wings_vertex_cmd,
+ [
+  {menu,
+   [
+    {1,"Köşe işlemleri"},
+    {2,"Taşı"},
+    {3,"Çıkart"},
+    {4,"Bağla"},
+    {5,"Seçili köşeleri bağlayarak yeni bir kenar yarat"},
+    {6,"Sıkıla"},
+    {7,"Seçili köşeleri cismin merkezine doğru taşı"},
+    {8,"Pahla"},
+    {9,"Seçili köşelerden yüzeyler yarat"},
+    {10,"Erit"},
+    {11,"Seçili köşeleri sil (seçimi temizleyerek)"},
+    {12,"Yık"},
+    {13,"Seçili köşeleri sil (yüzey seçimi yaratarak)"},
+    {14,"Biçimini Boz"},
+    {15,"Köşe Rengi"},
+    {16,"Seçili köşelere, köşe renklerini uygula"},
+    {17,"Köşeleri bağla ve yeni kenarı seçili geri döndür"}
+   ]}
+ ]}.
+{wings_view,
+ [
+  {auto_rotate_help,
+   [
+    {1,"Dönmeyi durdur"},
+    {2,"Hızı arttır"},
+    {3,"Hızı azalt"}
+   ]},
+  {camera,
+   [
+    {1,"Negatif Biçimi"},
+    {4,"Özel"},
+    {5,"x"},
+    {6,"Geniş-Açılı Mercek"},
+    {7,"Orta Geniş-Açılı Mercek"},
+    {8,"Standart Mercek"},
+    {9,"Düşey Telefotografik Mercek"},
+    {10,"Telefotografik Mercek"},
+    {11,"Özel Mercek"},
+    {12,"Uzunluk"},
+    {13,"x Yaklaş/Uzaklaş"},
+    {14,"Mercek"},
+    {15,"Görüş Sahası"},
+    {16,"Yakın Kırpma Düzlemi"},
+    {17,"Uzak Kırpma Düzlemi"},
+    {18,"Kamera Ayarları"}
+   ]},
+  {help,
+   [
+    {1,"Kamera Ayarları: Görüş Sahası"},
+    {2,"Dikey görüş sahasını, yani kameradan görünen alt kenar ile üst kenar arasındaki açıyı, ayarlar"},
+    {3,"Mercek kontrolleri, en azından bir fotoğrafçıya göre, görüş sahasını daha iyi bilinen varlıklara göre ayarlar. Negatif boyutu kullanıcı tercihleri içinde saklanır."},
+    {4,"Mercek kontrolleri resmin yüksekliğini seçili lens için doğru hale getirir, eğer mercek çerçevesindeki negatif, aynı zamanda Geometri penceresinin, boyu için doğru en-boy oranına sahip değilseniz; geniş değeri hatalı olacaktır."},
+    {5,"Not: yakınlaşma etkeni negatif diyagonaldaki standart bir merceğe göreyken, yalnızca negatif yüksekliği etkin mercek uzunluğunu etkiler."}
+   ]},
+  {menu,
+   [
+    {1,"Zemin Düzlemi"},
+    {2,"Zemin düzlemini göster"},
+    {3,"Eksenler"},
+    {4,"Koordinat eksenlerini göster"},
+    {5,"Çalışma Kipi"},
+    {6,"Sert/Yumuşak tonlandırma arasında geçiş yap"},
+    {7,"Telkafes"},
+    {8,"Seçilmiş nesneleri telkafes olarak görüntüle (eğer hiçbir şey seçilmediyse bütün nesneler için geçerli olur)"},
+    {9,"Tonla"},
+    {10,"Seçilmiş nesneleri tonlamış olarak görüntüle (eğer hiçbir şey seçilmediyse bütün nesneler için geçerli olur)"},
+    {11,"Telkafes Aç/Kapat"},
+    {12,"Seçilmiş nesneler için görüntü kipini değiştir (eğer hiçbir şey seçilmediyse bütün nesneler için geçerli olur)"},
+    {13,"Vekillik Kipini Aç/Kapat"},
+    {14,"Seçilmiş nesneler için yumuşak vekillik kipini aç/kapat"},
+    {15,"Hızlı Yumuşatılmış Önizleme"},
+    {16,"Yumuşak vekillik kipini bütün nesneler için aç/kapat"},
+    {17,"Kayıtlı ÇK Göster"},
+    {18,"Herhangi kayıtlı çevreleyen kutuyu görüntüle"},
+    {19,"Kenarları Göster"},
+    {20,"Çalışma kipinde kenarları görüntüle"},
+    {21,"Telkafes Kipinde Arka Yüzeyleri Göster"},
+    {22,"Telkafes kipindeyken arka yüzeyleri görüntüle"},
+    {23,"Normalleri Göster"},
+    {24,"Seçili öğeler için normalleri görüntüle"},
+    {25,"Görüşü Sıfırla"},
+    {26,"Görüşü varsayılan konuma sıfırla"},
+    {27,"Yönelt"},
+    {28,"Kamerayı seçili öğeye yönelt"},
+    {29,"Çerçevele"},
+    {30,"Seçili bütün öğeleri (veya hiçbir şey seçilmemişse bütün nesneleri) göstermek için kamerayı yeniden konumlandır"},
+    {31,"Dikçizgisel Görünüm"},
+    {32,"Dikçizgisel ve perspektif görünümleri arasında geçiş yap"},
+    {33,"Kayıtlı Görünümler: "},
+    {34,"Kamera Ayarları..."},
+    {35,"Görüş sahasını, yakın ve uzak kırpma düzlemlerini ayarla"},
+    {36,"Sahne Işıkları"},
+    {37,"Sahnede tanımlanmış olan ışıkları kullan"},
+    {38,"İki Işık"},
+    {39,"Bir Işık"},
+    {40,"İki adet çalışma ışığı kullan"},
+    {41,"Bir adet çalışma ışığı kullan"},
+    {42,"Renkleri Göster"},
+    {43,"\"köşe\" kipindeki nesneler üzerinde köşe renklerini görüntüle"},
+    {44,"Malzemeleri Göster"},
+    {45,"\"malzeme\" kipindeki nesneler üzerinde malzemeleri görüntüle"},
+    {46,"Dokuları Göster"},
+    {47,"\"malzeme\" kipindeki nesneler üzerinde dokuyu görüntüle"},
+    {48,"Bilgi Metinini Göster"},
+    {49,"Bu Geometri penceresinin tepesinde bir bilgi metni görüntüle"},
+    {50,"Eksenden Bak"},
+    {51,"+X"},
+    {52,"+Y"},
+    {53,"+Z"},
+    {54,"-X"},
+    {55,"-Y"},
+    {56,"-Z"},
+    {57,"Seçime Hizala"},
+    {58,"Görüşü seçimin normaline hizala"},
+    {59,"Otomatik Döndür"},
+    {60,"Görüşü döndür"},
+    {61,"Kırpma Düzlemleri"},
+    {62,"İlave kırpma düzlemleri aç/kapat (varsayılan ekseni kullan)"},
+    {65,"Çerçevele Aynaya Aldırmaz"}
+   ]},
+  {view_legend,
+   [
+    {2,"+X boyunca"},
+    {3,"+Y boyunca"},
+    {4,"+Z boyunca"},
+    {5,"-X boyunca"},
+    {6,"-Y boyunca"},
+    {7,"-Z boyunca"},
+    {8,"Merkeze doğru"},
+    {9,"şuraya doğru "},
+    {distance,"uzaklık"},
+    {from,"Şuradan"}
+   ]},
+  {views,
+   [
+    {1,"Bu görünüm zaten şu anki"},
+    {2,"Kayıtlı görünüm yok"},
+    {3,"Görünümü yeniden adlandır"},
+    {4,"Şimdiki görünümde olmalısın"},
+    {5,"Kayıtlı görünümlerin hepsini silmek istediğine emin misin?"}
+   ]},
+  {views_jump,
+   [
+    {1,"Böyle bir görünüm yuvası yok"}
+   ]},
+  {views_jumpmenu,
+   [
+    {1,"Atla"},
+    {2,"Kayıtlı görünüm yok!"},
+    {3,"Atla: önceki["},
+    {5,"Atla: şimdiki["},
+    {7,"Atla: sonraki["},
+    {9,"Atla: ["},
+    {11,"Atla"}
+   ]},
+  {views_move,
+   [
+    {1,"Böyle bir görünüm yok ["}
+   ]},
+  {views_movemenu,
+   [
+    {1,"Şimdikini Taşı"},
+    {2,"Kayıtlı görünüm yok!"},
+    {3,"Taşı \""},
+    {5,"] öncekine["},
+    {7,"Taşı \""},
+    {9,"] hiçbir yere"},
+    {10,"Taşı \""},
+    {12,"] sonrakine["},
+    {14,"Taşı \""},
+    {16,"] -e ["},
+    {18,"Şimdikini Taşı"}
+   ]},
+  {views_rename_qs,
+   [
+    {1,"İsim"}
+   ]},
+  {views_save_dialog,
+   [
+    {1,"Görünümü kaydet"}
+   ]},
+  {views_submenu,
+   [
+    {1,"Sonraki"},
+    {2,"Şimdiki"},
+    {3,"Önceki"},
+    {4,"Kaydet"},
+    {5,"Bu görünümü şuna kaydet "},
+    {7,"Yeniden Adlandır..."},
+    {8,"Sil"},
+    {9,"Hepsini Sil..."}
+   ]},
+  {views_submenu_help,
+   [
+    {1,"Kayıtlı görünüm yok!"},
+    {2,"Atla \""},
+    {5,"Yeniden adlandır \""},
+    {8,"Sil \""},
+    {11,"Kayıtlı görünümlerin hepsini sil"}
+   ]},
+  {virtual_mirror,
+   [
+    {1,"Sanal ayna bir yüzey seçimi gerektirir."}
+   ]},
+  {virtual_mirror_fun,
+   [
+    {1,"Her nesnede yalnızca bir yüzey seçili olmalıdır."}
+   ]}
+ ]}.
+{wings_we,
+ [
+  {all_soft,
+   [
+    {1,"hazırlanıyor"},
+    {2,"toparlanıyor"}
+   ]},
+  {mixed_edges,
+   [
+    {1,"hazırlanıyor"},
+    {2,"köşe normalleri"},
+    {3,"yüze başına köşe normalleri"}
+   ]},
+  {normals_2,
+   [
+    {1,"yumuşak normaller hesaplanıyor"}
+   ]}
+ ]}.
+{wings_wm,
+ [
+  {message_event,
+   [
+    {1,"Bu bilgi satırıdır"}
+   ]}
+ ]}.
+{wings_wm_toplevel,
+ [
+  {close_event,
+   [
+    {1,"Bu pencereyi kapat"}
+   ]},
+  {ctrl_command,
+   [
+    {1,"Genişlik"},
+    {2,"Yükseklik"},
+    {3,"Pencere Boyunu Ayarla"}
+   ]},
+  {ctrl_menu,
+   [
+    {1,"Sığdır"},
+    {2,"Her İkisi De"},
+    {3,"Pencerenin bütün yönlerde genişleyerek elverişli alanın hepsini kullanmasına izin ver"},
+    {4,"Yatay"},
+    {5,"Pencerenin yatay genişleyerek elverişli alanın hepsini kullanmasına izin ver"},
+    {6,"Dikey"},
+    {7,"Pencerenin dikey genişleyerek elverişli alanın hepsini kullanmasına izin ver"},
+    {8,"Boyut"},
+    {9,"Pencere boyunu sayı olarak ayarlaSet window size numerically"}
+   ]},
+  {ctrl_menu_toolbar,
+   [
+    {1,"Araç Çubuğunu Sakla"},
+    {2,"Araç çubuğunu saklar"},
+    {3,"Araç Çubuğunu Göster"},
+    {4,"Araç çubuğunu gösterir"}
+   ]},
+  {ctrl_message,
+   [
+    {1,"Taşımak için Sürükle"},
+    {2,"Sığdır"},
+    {3,"Menüyü göster"}
+   ]},
+  {ctrl_resize,
+   [
+    {1,"Çok büyük boy belirtilmiş"}
+   ]},
+  {resize_event,
+   [
+    {1,"Yeniden Boyutlandır"},
+    {2,"Şimdiki en-boy oranını koruyarak yeniden boyutlandır"}
+   ]}
+ ]}.
+{wpa,
+ [
+  {dialog_template,
+   [
+    {1,"Y ve Z Eksenlerini Değiş Tokuş Et"},
+    {6,"Alt-bölümleme Adımları"},
+    {7,"Varsayılan doku dosyası türü"},
+    {color,"Köşe renklerini ver"},
+    {norms,"Normalleri/yumuşatma gruplarını ver"},
+    {tess,"Çokgenlere Parçalama"},
+    {tess0,"Hiçbiri"},
+    {tess3,"Üçgenleştir"},
+    {tess4,"Dörtgenleştir"},
+    {uv,"UV koordinatlarını ver"}
+   ]},
+  {do_import,
+   [
+    {1,"dosya okunuyor"}
+   ]},
+  {export_scale_s,
+   [
+    {1,"Verme ölçeği"}
+   ]},
+  {export_selected,
+   [
+    {1,"Nesneleri veya yüzeyleri seç."}
+   ]},
+  {format_error,
+   [
+    {1,"Dahili hata: ~P\n"}
+   ]},
+  {import,
+   [
+    {1,"Alma başarısız: "}
+   ]},
+  {import_scale_s,
+   [
+    {1,"Alma ölçeği"}
+   ]}
+ ]}.

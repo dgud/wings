@@ -1,0 +1,39 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_untriangulate,
+ [
+  {get_ask_list,
+   [
+    {1,"Algoritma Gücü"},
+    {2,"Daha güçlü algoritmalar daha yavaştır, fakat daha iyi sonuçlar üretebilir"},
+    {3,"Azami Kenar Açısı"},
+    {4,"Eritilecek kenarların azami açısı"},
+    {5,"Malzemeleri Kontrol Et"},
+    {6,"Malzeme sınırlarındaki kenarları eritme"},
+    {7,"UV Koordinatlarını Kontrol Et"},
+    {8,"Ayrık doku koordinatları sınırları boyuncaki kenarları eritme"},
+    {9,"Sert Kenarları Kontrol Et"},
+    {10,"Sert kenarları eritme"},
+    {11,"İçbükeyliği Kontrol Et"},
+    {12,"İçbükey çokgenler üretme"}
+   ]},
+  {menu,
+   [
+    {1,"Üçgenlerden Arındır"},
+    {2,"Üçgen kümelerini dörtgenlere dönüştür"},
+    {3,"Üçgenlerden Arındır"}
+   ]},
+  {pref_edit,
+   [
+    {1,"Üçgenlerden Arındırma Tercihleri"}
+   ]},
+  {process_edges,
+   [
+    {1,"Üçgenlerden Arındırılıyor"},
+    {2,"Hedef Kenarları Seçerek"},
+    {3,"Seçim Ağacı Yaparak"}
+   ]},
+  {untriangulate,
+   [
+    {1,"Üçgenlerden Arındır"}
+   ]}
+ ]}.

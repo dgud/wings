@@ -1,0 +1,23 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_spiral,
+ [
+  {make_spiral,
+   [
+    {1,"Sarmal Yarat"},
+    {2,"Döngü Sayısı"},
+    {3,"Bölüt Sayısı"},
+    {4,"Bölüm Sayısı"}
+   ]},
+  {make_spring,
+   [
+    {1,"Yay Yarat"},
+    {2,"Döngü Sayısı"},
+    {3,"Bölüt Sayısı"},
+    {4,"Bölüm Sayısı"}
+   ]},
+  {spiral_menu,
+   [
+    {1,"Sarmal"},
+    {2,"Yay"}
+   ]}
+ ]}.

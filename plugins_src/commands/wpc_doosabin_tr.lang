@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_doosabin,
+ [
+  {doo_sabin,
+   [
+    {1,"Doo-Sabin"},
+    {2,"Yumuşatma geçişi 1"},
+    {3,"Yumuşatma geçişi 1"},
+    {4,"Eritme geçişi 1"},
+    {5,"Eritme geçişi 1"},
+    {6,"Seçim Güncelleniyor"}
+   ]},
+  {menu_entry,
+   [
+    {1,"Doo-Sabin Altbölümleme"},
+    {2,"Doo-Sabin altbölümlemesi yapar (UYARI: Bütün UV koordinatlarını berbat eder)"}
+   ]}
+ ]}.

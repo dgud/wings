@@ -1,0 +1,25 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_turnedge,
+ [
+  {command_help,
+   [
+    {turn_ccw,"Kenarı saat yönünün tersine döndür"},
+    {turn_cw,"Kenarı saat yönünde döndür"},
+    {turn_optimized,"Kenarı eğer yeni kenar daha kısa olacaksa saat yönünde döndür"}
+   ]},
+  {command_name,
+   [
+    {turn,"Döndür"},
+    {turn_ccw,"Saat Yönünün Tersine Döndür"},
+    {turn_cw,"Saat Yönünde Döndür"},
+    {turn_optimized,"En Uygun Şekilde Döndür"}
+   ]},
+  {menu_entry,
+   [
+    {turn,"Döndür"}
+   ]},
+  {validate_edges,
+   [
+    {1,"Seçili kenarlar aynı yüzeyde olmamalı."}
+   ]}
+ ]}.

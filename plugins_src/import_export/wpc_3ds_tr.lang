@@ -1,0 +1,16 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_3ds,
+ [
+  {do_export,
+   [
+    {1,"3D Studio Verme Seçenekleri"}
+   ]},
+  {do_import,
+   [
+    {1,"3D Studio Alma Seçenekleri"}
+   ]},
+  {props,
+   [
+    {1,"3D Studio Dosyasi"}
+   ]}
+ ]}.

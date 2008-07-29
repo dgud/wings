@@ -1,0 +1,47 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_circularise,
+ [
+  {check_selection,
+   [
+    {1,"Hiçbir şey seçili değil"},
+    {2,"Köşe asıl kenar döngüsünden olmalı"},
+    {3,"Kenar asıl kenar döngüsünden olmalı"},
+    {4,"Yalnız tek bir köşe veya kenar seçili olabilir"}
+   ]},
+  {circularise,
+   [
+    {1,"Çemberleştir"},
+    {2,"Seçili kenar döngüsünü çembersel yapmak için yassılaştır, dengele, ve şişir"},
+    {3,"Merkezden geçen kararlı ışını işaretlemek için Merkez, Düzlem, ve Köşe veya Kenar seç"}
+   ]},
+  {mode_help,
+   [
+    {1,"[+] veya [-] Çapı Ayarlar"}
+   ]},
+  {mode_help_1,
+   [
+    {1,"  [1] Ters Düzlem Normali"},
+    {2,"  [1] Asıl Düzlem Normali"}
+   ]},
+  {secondary_sel_ask,
+   [
+    {1,"Merkez noktadan geçen kararlı bir ışığı belirtmek için asıl kenar döngüsünden tek bir köşe veya kenar seç"}
+   ]},
+  {sel_error,
+   [
+    {1,"Seçim tek bir kapalı kenar döngüsü oluşturmalı"}
+   ]},
+  {sel_error_1,
+   [
+    {1,"Seçili kenar döngüleri köşeleri paylaşamazlar"}
+   ]},
+  {sel_error_2,
+   [
+    {1,"Seçim kapalı kenar döngülerinden meydana gelmeli"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Merkez Seç"},
+    {2,"Düzlem Seç"}
+   ]}
+ ]}.

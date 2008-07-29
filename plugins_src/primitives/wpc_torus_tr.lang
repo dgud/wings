@@ -1,0 +1,38 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_torus,
+ [
+  {make_lu_torus,
+   [
+    {1,"Yumrulu Halka Seçenekleri"},
+    {2,"U Çözünürlüğü"},
+    {3,"V Çözünürlüğü"},
+    {4,"Büyük Yarıçap"},
+    {5,"Küçük Yarıçap"},
+    {6,"Yumru Sayısı"},
+    {7,"Yumru Genliği"}
+   ]},
+  {make_sp_torus,
+   [
+    {1,"Sarmal Halka Seçenekleri"},
+    {2,"U Çözünürlüğü"},
+    {3,"V Çözünürlüğü"},
+    {4,"Büyük Yarıçap"},
+    {5,"Küçük Yarıçap"},
+    {6,"Döngü Sayısı"},
+    {7,"Döngü Yarıçapı"}
+   ]},
+  {make_uv_torus,
+   [
+    {1,"UV Halkası Seçenekleri"},
+    {2,"U Çözünürlüğü"},
+    {3,"V Çözünürlüğü"},
+    {4,"Büyük Yarıçap"},
+    {5,"Küçük Yarıçap"}
+   ]},
+  {torus_menu,
+   [
+    {1,"UV Halkası"},
+    {2,"Yumrulu Halka"},
+    {3,"Sarmal Halka"}
+   ]}
+ ]}.

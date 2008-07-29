@@ -53,6 +53,8 @@
   plane. Choose any standard axis or a vector defined plane. Enable magnets by
   pressing [Alt] when initiating the tool. [optigon]
 
+- New! Turkish translation [contributed by Devilgreen]
+
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
   shared a single vertex (and not any edge). Now a proper error message

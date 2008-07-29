@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_obj,
+ [
+  {dialog,
+   [
+    {1,"Her malzemeye bir grup"},
+    {2,"Vue d'Esprit yangeçit çözümü"}
+   ]},
+  {do_export,
+   [
+    {1,"Wavefront Verme Seçenekleri"}
+   ]},
+  {do_import,
+   [
+    {1,"Wavefront Alma Seçenekleri"}
+   ]},
+  {props,
+   [
+    {1,"Wavefront Dosyasi"}
+   ]}
+ ]}.

@@ -1,0 +1,35 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_absolute_move,
+ [
+  {draw,
+   [
+    {1,"Mutlak Komutlar"},
+    {2,"Taşı"},
+    {3,"Mutlak koordinatlarda tam konuma taşı."},
+    {4,"Isır"},
+    {5,"İkincil seçime taşı."},
+    {6,"Merkezi referans alarak taşı."},
+    {7,"Taşı ve sayısal kaydı göster."}
+   ]},
+  {draw_window1,
+   [
+    {1,"Mutlak taşı seçenekleri"},
+    {2,"Konumu ayarla"},
+    {3,"Nesneyi taşı"},
+    {4,"Nesneleri taşı"},
+    {5,"adet kopya oluştur"},
+    {6,"Hizala"},
+    {7,"Yassılaştır"},
+    {8,"Referans noktası"},
+    {9,"Kilitle"}
+   ]},
+  {mirror_error,
+   [
+    {1,"Köşeleri ayna düzleminden taşıyamazsınız"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Isırma işlemi için referans noktası seç"},
+    {2,"Isırma işlemi için hedef nokta seç"}
+   ]}
+ ]}.

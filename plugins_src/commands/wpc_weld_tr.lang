@@ -1,0 +1,27 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_weld,
+ [
+  {draw_menu,
+   [
+    {1,"Kaynaştır"},
+    {2,"Seçili köşeyi -ortak kenar paylaştığı- bir diğerine kaynaştır"}
+   ]},
+  {weld,
+   [
+    {1,"Ayna düzleminde kaynaştıramazsın"},
+    {2,"Nesnenin en az dört köşesi olmalıdır"},
+    {3,"Sadece bir köşeyi kaynaştırabilirsin"}
+   ]},
+  {weld_check_selection,
+   [
+    {1,"Köşeyi kendine kaynaştıramazsın"},
+    {2,"Kaynaştırmak istediğin köşeler bir kenarı paylaşmalıdır"},
+    {3,"Sadece bir noktaya kaynaştırabilirsin"},
+    {4,"Hiçbir şey seçilmemiş"},
+    {5,"Yalnızca aynı nesne içinde kaynaştırabilirsin"}
+   ]},
+  {weld_select,
+   [
+    {1,"Kaynaştırma işlemi için hedef köşeyi seç (köşelerin her ikisi de ortak bir kenarı paylaşmalı"}
+   ]}
+ ]}.

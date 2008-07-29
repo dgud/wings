@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_rwx,
+ [
+  {dialog,
+   [
+    {1,"Faceted lightsampling"},
+    {2,"Dosya boyunu en iyileyeyim mi?"},
+    {3,"Ortam"},
+    {4,"Dağınık"},
+    {5,"Yansıtıcı"},
+    {6,"Verme ölçeği"},
+    {7,"Altbölümleme Adımları"}
+   ]},
+  {do_export,
+   [
+    {1,"Renderware Verme Seçenekleri"}
+   ]},
+  {props,
+   [
+    {1,"Criterion Renderware Dosyasi"}
+   ]}
+ ]}.

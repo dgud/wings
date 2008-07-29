@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_shift,
+ [
+  {adv_submenu,
+   [
+    {1,"Düzlemsel Ötele"},
+    {2,"Küresel Ötele"},
+    {3,"Silindirik Ötele"}
+   ]},
+  {menu,
+   [
+    {1,"Ötele"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Ekseni seç"},
+    {2,"Noktayı seç"},
+    {3,"Merkezi seç"},
+    {4,"Ekseni seç"},
+    {5,"Noktayı seç"}
+   ]}
+ ]}.

@@ -1,0 +1,31 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ncube,
+ [
+  {make_ncube,
+   [
+    {1,"N-Küp Seçenekleri"},
+    {2,"N-Küp"}
+   ]},
+  {make_ngon,
+   [
+    {1,"N-Gen Seçenekleri"},
+    {2,"N-Gen"}
+   ]},
+  {ncube_dialog,
+   [
+    {1,"Kesim Sayısı"},
+    {2,"Evet"},
+    {3,"Hayır"},
+    {4,"Küreselleştir"}
+   ]},
+  {ncube_menu,
+   [
+    {1,"N-Küp"},
+    {2,"N-Gen"}
+   ]},
+  {ngon_dialog,
+   [
+    {3,"Köşe Sayısı"},
+    {4,"Yarıçap"}
+   ]}
+ ]}.

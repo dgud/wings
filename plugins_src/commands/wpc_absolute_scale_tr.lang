@@ -1,0 +1,28 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_absolute_scale,
+ [
+  {draw,
+   [
+    {1,"Mutlak Komutlar"},
+    {2,"Ölçekle"},
+    {3,"Mutlak koordinatlarda gerçek boyuta ölçekle."},
+    {4,"Hedef boyuta ölçekle."},
+    {5,"Merkez seçimiyle ölçekle."}
+   ]},
+  {draw_window1,
+   [
+    {1,"Mutlak ölçekleme seçenekleri"},
+    {2,"Yeni boyutu ayarla"},
+    {3,"Ölçek merkezini ayarla"},
+    {4,"Bütün nesneyi ölçekle"},
+    {5,"Bütün nesneleri ölçekle"},
+    {6,"Bağla"},
+    {7,"Seçimi hedefe sığdır"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Ölçek merkezini seç"},
+    {2,"Hedef boyutu seç - temel nokta"},
+    {3,"Hedef boyutu seç - menzil noktası"}
+   ]}
+ ]}.

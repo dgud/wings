@@ -1,0 +1,28 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_geodome,
+ [
+  {dialog,
+   [
+    {1,"Çözünürlük"},
+    {2,"Sıklık (Kenar-Kesim Altbölümleme)"},
+    {3,"Derinlik (Özyineli Altbölümleme)"},
+    {4,"Altbölümleme Yöntemi"},
+    {5,"Yirmiyüzlü"},
+    {6,"Sekizyüzlü"},
+    {7,"Dörtyüzlü"},
+    {8,"Temel Tür"},
+    {9,"Evet"},
+    {10,"Hayır"},
+    {11,"Küreleştir"},
+    {12,"Yarım-Kubbe Yarat"}
+   ]},
+  {geodome_menu,
+   [
+    {1,"Kesel Kubbe"}
+   ]},
+  {make_geodome,
+   [
+    {1,"Kesel Kubbe Seçenekleri"},
+    {2,":Kesel Kubbe"}
+   ]}
+ ]}.

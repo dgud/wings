@@ -1,0 +1,19 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_region,
+ [
+  {menu,
+   [
+    {1,"Bölge"},
+    {2,"Bölgeyi kenar döngüsünün normali boyunca taşı."},
+    {3,"Bölge"},
+    {4,"Bölgeyi kenar döngüsünün normalinden ölçekle."},
+    {5,"Bölge"},
+    {6,"Bölgeyi kenar döngüsünün normali etrafında döndür."},
+    {7,"Bölge"},
+    {8,"Bölgeyi kenar döngüsünün normaline yassılaştır."}
+   ]},
+  {region_error,
+   [
+    {1,"Her bölgenin yalnızca bir kenar döngüsü olmalı."}
+   ]}
+ ]}.

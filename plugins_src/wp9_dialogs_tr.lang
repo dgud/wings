@@ -1,0 +1,40 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wp9_dialogs,
+ [
+  {check_filename,
+   [
+    {1," mevcut değil"}
+   ]},
+  {dialog_1,
+   [
+    {1,"Uğra"},
+    {2,"Yukarı"},
+    {3,"Dosya adı"},
+    {4,"Dosya biçimi"},
+    {5,"İptal"},
+    {6," zaten mevcut; üstüne yazayım mı?"},
+    {7,"Evet"},
+    {8,"Hayır"}
+   ]},
+  {file_filters,
+   [
+    {1,"Wings Dosyasi"},
+    {2,"Butun Dosyalar (*)"}
+   ]},
+  {file_list,
+   [
+    {1,"Dosya Adı"}
+   ]},
+  {image_formats,
+   [
+    {1,"BMP Bit Eslem Dosyasi"},
+    {2,"Tiff Bit Eslem Dosyasi"},
+    {3,"PNG Dosyasi"},
+    {4,"Targa Dosyasi"}
+   ]},
+  {ui,
+   [
+    {1,"Aç"},
+    {2,"Kaydet"}
+   ]}
+ ]}.

@@ -1,0 +1,47 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_bend,
+ [
+  {adv_submenu_clamped,
+   [
+    {1,"Kenetli Plastik Eğ"},
+    {2,"Kenetli Dayanaklı Eğ"},
+    {3,"Kenetli Tepe Çubuklu Eğ"}
+   ]},
+  {adv_submenu_noclamp,
+   [
+    {1,"Plastik Eğ"},
+    {2,"Dayanaklı Eğ"},
+    {3,"Tepe Çubuklu Eğ"}
+   ]},
+  {bend_vertex,
+   [
+    {1,"Açı"}
+   ]},
+  {bend_verts,
+   [
+    {1,"Yapılanış eğme ile sonuçlanmıyor"}
+   ]},
+  {menu,
+   [
+    {1,"Eğ"},
+    {2,"Kenetli Eğ"}
+   ]},
+  {submenu_clamp,
+   [
+    {1,"Tepe Kenet Noktasını Seç"},
+    {2,"Dip Kenet Noktasını Seç"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Çubuk merkezini seç"},
+    {2,"Çubuk tepesini seç"},
+    {3,"Eğme normalini seç"},
+    {4,"Çubuk merkezini seç"},
+    {5,"Çubuk tepesini seç"},
+    {6,"Dayanak eksenini seç"},
+    {7,"Dayanak konumunu seç"},
+    {8,"Çubuk merkezini seç"},
+    {9,"Çubuk tepesini seç"},
+    {10,"Eğme normalini seç"}
+   ]}
+ ]}.

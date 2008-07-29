@@ -1,0 +1,36 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_intersect_vertex,
+ [
+  {adv_submenu,
+   [
+    {1,"Çizgide kal, düzlemle kesişime taşı"},
+    {2,"Düzlemde kal, çizgiye taşı"},
+    {3,"Çizgi ve düzlem seç"}
+   ]},
+  {intersect,
+   [
+    {1,"Çizgi ve düzlem neredeyse paralel:\nkesişme bulunamıyor."}
+   ]},
+  {menu_item,
+   [
+    {1,"Kesiş"},
+    {2,"Çizgide kal"},
+    {3,"Köşeyi seçilen yöndeki çizgi boyunca seçilen düzlemle olan kesişime taşı"},
+    {4,"Düzlemde kal"},
+    {5,"Köşeyi seçilen normalli düzlem boyunca seçilen çizgiyle olan kesişime taşı"},
+    {6,"Tümünü seç"},
+    {7,"Köşeyi seçilen yöndeki çizgi ile seçilen normal ve konumdaki düzlemin konumunun kesişimine taşı"},
+    {8,"Kesiş"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Çizginin yönünü seç - çizgi seçili köşe(ler)den geçecektir"},
+    {2,"Kesişilecek düzlemi seç"},
+    {3,"Düzlem normalini seç - düzlem seçili köşe(ler)den geçecektir"},
+    {4,"Kesişilecek çizgiyi seç"},
+    {5,"Çizginin doğrultusunu seç"},
+    {6,"Çizginin içinden geçeceği noktası seç"},
+    {7,"Düzlem normalini seç"},
+    {8,"Düzlemin içinden geçeceği noktayı seç"}
+   ]}
+ ]}.

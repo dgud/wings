@@ -1,0 +1,45 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_plane,
+ [
+  {make_lumpy_plane,
+   [
+    {1,"Topaklı Düzlem Yarat"},
+    {2,"Çözünürlük"},
+    {3,"Boyut"},
+    {4,"Topak Sayısı"},
+    {5,"Kalınlık"}
+   ]},
+  {make_regular_plane,
+   [
+    {1,"Düzenli Düzlem Yarat"},
+    {2,"Çözünürlük"},
+    {3,"Boyut"},
+    {4,"Kalınlık"}
+   ]},
+  {make_sombrero_plane,
+   [
+    {1,"Şapka Düzlem Yarat"},
+    {2,"Çözünürlük"},
+    {3,"Boyut"},
+    {4,"Dalga Sayısı"},
+    {5,"Düşüş"},
+    {6,"Yükseklik"},
+    {7,"Kalınlık"}
+   ]},
+  {make_wavy_plane,
+   [
+    {1,"Dalgalı Düzlem Yarat"},
+    {2,"Çözünürlük"},
+    {3,"Boyut"},
+    {4,"Dalgalar"},
+    {5,"Yükseklik"},
+    {6,"Kalınlık"}
+   ]},
+  {plane_menu,
+   [
+    {1,"Düzenli Düzlem"},
+    {2,"Topaklı Düzlem"},
+    {3,"Dalgalı Düzlem"},
+    {4,"Şapka Düzlem"}
+   ]}
+ ]}.

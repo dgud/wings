@@ -1,0 +1,47 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_opengl,
+ [
+  {aa_frame,
+   [
+    {1,"Taslak Kalite (AA yok)"},
+    {2,"Normal Kalite (normal AA)"},
+    {3,"Süper Kalite"},
+    {4,"Olağanüstü Kalite"}
+   ]},
+  {create_dls,
+   [
+    {1,"Her ışık için gölge ve pütür verisi yaratılıyor"},
+    {2,"İmgeleniyor"}
+   ]},
+  {dialog_qs,
+   [
+    {1,"Targa Dosyasi"},
+    {2,"Altbölümleme Adımları"},
+    {3,"Arka Plan Rengi"},
+    {4,"Alfa Kanalını İmgele"},
+    {5,"Gölgeleri İmgele"},
+    {6,"Pütürleri İmgele"},
+    {7,"Görüntü Penceresi"},
+    {8,"Dosya"},
+    {9,"İmge Çıktısı"}
+   ]},
+  {do_render,
+   [
+    {1,"İmgeleme Seçenekleri"},
+    {2,"İmgeleniyor"}
+   ]},
+  {load_program,
+   [
+    {1,"Programı yüklerken hata"}
+   ]},
+  {prepare_mesh,
+   [
+    {1,"Üçgenleştiriliyor"},
+    {2,"Altbölümleniyor ve üçgenleştiriliyor"},
+    {3,"Üçgen çorbası verisi yaratılıyor"}
+   ]},
+  {render_redraw,
+   [
+    {1,"Imgelenmis"}
+   ]}
+ ]}.

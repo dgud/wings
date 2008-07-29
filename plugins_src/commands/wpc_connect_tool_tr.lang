@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_connect_tool,
+ [
+  {help,
+   [
+    {1,"Köşe seç veya kenarı kes (kaydırmak için tuşa bas)"},
+    {2,"Bağladan Çık"},
+    {3,"Kenarları/köşeleri bağlar (bitirmek için son köşeyi yeniden seç)"},
+    {4,"Bağladan Çık"}
+   ]},
+  {lc_help,
+   [
+    {1,"Döngü Bağla Kapalı"},
+    {2,"Döngü Bağla Açık"}
+   ]},
+  {menu,
+   [
+    {1,"Bağla"},
+    {2,"Köşeleri ve kenarları çabucak bağlamak için kip"}
+   ]}
+ ]}.

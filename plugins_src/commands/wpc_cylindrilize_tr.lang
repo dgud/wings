@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_cylindrilize,
+ [
+  {axis_menu,
+   [
+    {1,"Köşeleri ~s merkezi ekseni etrafında silindirik şişir"},
+    {2,"Merkez noktasını ve yarıçapı seç"}
+   ]},
+  {cylindrilize_menu,
+   [
+    {1,"Silindirik Şişir"},
+    {2,"Köşeleri XYZ etrafında silindirik şişir"},
+    {3,"Merkezi ekseni seç"},
+    {4,"Merkezi ekseni, merkez noktayı, ve yarıçapı seç"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Merkezi ekseni seç"},
+    {2,"Merkez noktasını seç"},
+    {3,"Yarıçapı seç"}
+   ]}
+ ]}.

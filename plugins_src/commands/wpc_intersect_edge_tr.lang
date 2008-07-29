@@ -1,0 +1,37 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_intersect_edge,
+ [
+  {intersect,
+   [
+    {1,"Seçili kenarlar köşe paylaşamazlar"}
+   ]},
+  {intersect_edges,
+   [
+    {1,"Çizgi ve düzlem neredeyse paralel:\nkesişim bulunamıyor."}
+   ]},
+  {intl_vec,
+   [
+    {1,"son eksen ile kesiştir"},
+    {2,"varsayılan eksen ile kesiştir"}
+   ]},
+  {menu_item,
+   [
+    {1,"Kesiş"}
+   ]},
+  {standard_plane_fun,
+   [
+    {1,"Kenarı"},
+    {2,"Kenarı"},
+    {3,"düzlemi ile kesiştir"},
+    {4,"Düzlemde nokta seç"}
+   ]},
+  {submenu,
+   [
+    {1,"Standart düzlemlerle kesiş"},
+    {2,"Düzlem ve düzlemde referans noktası seç"},
+    {3,"Düzlem seç"},
+    {4,"Düzleme dik eksen seç"},
+    {5,"Düzlemin içinden geçecek nokta seç"},
+    {6,"Düzleme dik eksen seç (düzlem eksenin tabanından geçecek)"}
+   ]}
+ ]}.

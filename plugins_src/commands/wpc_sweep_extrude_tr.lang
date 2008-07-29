@@ -1,0 +1,49 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_sweep_extrude,
+ [
+  {axis_menu_string,
+   [
+    {1,"Ekrana görece serbest süpür"},
+    {2,"Normal boyunca yan yana hareket etmeden çıkart."},
+    {3,"Eğer ~s ekseni çıkartma normaline dikse, bütün hareket onun yarıçapsal düzlemiyle kısıtlanacaktır. Bunun dışında, eksen harici bileşen olarak davranır."}
+   ]},
+  {cntr_help,
+   [
+    {1,"[1] Seçim Merkezi"},
+    {2,"[1] Bölge Merkezi"}
+   ]},
+  {lock_help,
+   [
+    {1,"  [3] Ekseni Kilitle"},
+    {2,"  [3] Ekrana Görece"}
+   ]},
+  {menu_string_1,
+   [
+    {1,"Normali boyunca, standart yandan yana ekseni kullanarak, çıkart"},
+    {2,"Bölgeyi normali boyunca, standart yandan yana ekseni kullanarak, çıkart"},
+    {3,"Bölgeyi normali boyunca, standart yandan yana ekseni kullanarak, çıkart ve sök"}
+   ]},
+  {menu_title,
+   [
+    {1,"Süpür"},
+    {2,"Bölgeyi Süpür"},
+    {3,"Sökerek Süpür"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Çıkartma normaline dik bir eksen seçme, bütün hareketi onun yarıçapsal düzlemiyle kısıtlayacaktır. Bunun dışında, eksen harici bileşen olarak davranır."}
+   ]},
+  {sweep_error,
+   [
+    {1,"Bir bölgenin ortalama normali sıfır olmamalı"}
+   ]},
+  {sweep_menu,
+   [
+    {2,"Ekseni seç"}
+   ]},
+  {warp_help,
+   [
+    {1,"  [2] Formu Koru"},
+    {2,"  [2] Çarpıtmaya İzin Ver"}
+   ]}
+ ]}.
