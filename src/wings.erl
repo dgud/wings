@@ -843,21 +843,18 @@ purge_undo(St) ->
     wings_ask:dialog("", Qs, fun(_) -> ignore end).
 
 info(#st{sel=[]}) ->
-    [];
-%% XXX I have turned off shaders for now.
-%%  -- Bjorn G
-%% 
-%%     Progs = get(light_shaders),
-%%     NumLights = wings_pref:get_value(number_of_lights),
-%%     NumShaders = wings_pref:get_value(number_of_shaders),
-%%     UseProg = (Progs /= undefined) and (NumLights == 2),
-%%     case UseProg of
-%% 	true ->
-%% 	    {_Prog,Name} = element(NumShaders, Progs),
-%% 	    io_lib:format("Shader ~p of ~p: ~s ",[NumShaders,tuple_size(Progs),Name]);
-%% 	false ->
-%% 	    []
-%%     end;
+    [],
+    Progs = get(light_shaders),
+    NumLights = wings_pref:get_value(number_of_lights),
+    NumShaders = wings_pref:get_value(number_of_shaders),
+    UseProg = (Progs /= undefined) and (NumLights == 2),
+    case UseProg of
+     true ->
+	 {_Prog,Name} = element(NumShaders, Progs),
+	 io_lib:format("Shader ~p of ~p: ~s ",[NumShaders,tuple_size(Progs),Name]);
+     false ->
+	 []
+    end;
 info(St) ->
     case wings_wm:get_prop(show_info_text) of
     false -> [];

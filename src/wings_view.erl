@@ -68,11 +68,7 @@ menu(#st{views={CurrentView,Views}}=St) ->
       ?__(47,"Show the texture on objects in \"material\" mode"),
       crossmark(show_textures)},
      separator,
-%% If there should be shaders, there should be a better mechanism for choosing shaders,
-%% and preferably a way to turn them of since they have limited use in a modeller.
-%%    -- Bjorn G
-%%     {?__(63,"Activate Next Shader"),cycle_shaders,
-%%      ?__(64,"Cycle through all vertex/fragment shaders")},
+     {"Shaders: "++shader_index(),{shader_set,shader_submenu()}},
      {?__(36,"Scene Lights"),scene_lights,
       ?__(37,"Use the lights defined in the scene"),
       crossmark(scene_lights)},
@@ -83,7 +79,6 @@ menu(#st{views={CurrentView,Views}}=St) ->
      {?__(31,"Orthographic View"),orthogonal_view,
       ?__(32,"Toggle between orthographic and perspective views"),
       crossmark(orthogonal_view)},
-	 separator,
      {?__(25,"Reset View"),reset,?__(26,"Reset view to the default position")},
      {?__(27,"Aim"),aim,?__(28,"Aim the camera at the selected element")},
      {?__(66,"Highlight Aim"),highlight_aim,
@@ -376,9 +371,9 @@ command(align_to_selection, St) ->
 command(toggle_lights, St) ->
     toggle_lights(),
     St;
-%% command(cycle_shaders, St) ->
-%%     cycle_shaders(),
-%%     St;
+command({shader_set,N}, St) ->
+    shader_set(N),
+    St;
 command(camera_settings, St) ->
     camera(),
     St;
@@ -1169,20 +1164,52 @@ toggle_lights() ->
 	     end,
     wings_pref:set_value(number_of_lights, Lights).
 
-%% cycle_shaders() ->
-%%     case wings_gl:support_shaders() of
-%% 	true ->
-%% 	    NumShaders = wings_pref:get_value(number_of_shaders),
-%% 	    NumProgs = tuple_size(get(light_shaders)),
-%% 	    Shaders = case NumShaders of
-%% 			  NumProgs -> 1;
-%% 			  _ -> NumShaders+1
-%% 		      end,
-%% 	    wings_pref:set_value(number_of_lights, 2),
-%% 	    wings_pref:set_value(number_of_shaders, Shaders);
-%% 	false ->
-%% 	    toggle_lights()
-%%     end.
+shader_set(N) ->
+    case wings_gl:support_shaders() of
+	true ->
+	    NumShaders = wings_pref:get_value(number_of_shaders),
+	    NumProgs = tuple_size(get(light_shaders)),
+	    case N of
+		next -> Shaders = case NumShaders of
+				       NumProgs -> 1;
+				       _ -> NumShaders+1
+				  end;
+		prev -> Shaders = case NumShaders of
+				       1 -> NumProgs;
+				       _ -> NumShaders-1
+				  end;
+		_ -> Shaders = N
+	    end,
+	    wings_pref:set_value(number_of_lights, 2),
+	    wings_pref:set_value(number_of_shaders, Shaders);
+	false ->
+	    toggle_lights()
+    end.
+
+shader_submenu() ->
+    case wings_gl:support_shaders() of
+	true ->
+	    Progs = tuple_to_list(get(light_shaders)),
+	    Names = [Name || {_,Name} <- Progs],
+	    Nums = lists:seq(1, length(Progs)),
+	    Menu = lists:zip(Names,Nums);
+	false ->
+	    Menu = [{"Not Supported", next}]
+    end,
+    lists:append(Menu, [{"< Next >", next},{"< Previous >", prev}]).
+
+shader_index() ->
+    Progs = get(light_shaders),
+    NumLights = wings_pref:get_value(number_of_lights),
+    NumShaders = wings_pref:get_value(number_of_shaders),
+    UseProg = (Progs /= undefined) and (NumLights == 2),
+    case UseProg of
+	true ->
+	    {_Prog,Name} = element(NumShaders, Progs),
+	    Name;
+	false ->
+	    ""
+    end.
 
 along(x) -> along(x, -90.0, 0.0);
 along(y) -> along(y, 0.0, 90.0);
@@ -1390,8 +1417,6 @@ pos_legend({X,Y,Z}) ->
     [[if Val < 0 -> $-;
 	 true	 -> $+ end,Char]
      || {Abs,Char,Val} <- L, Abs >= Max*0.4142135624]. % tan(22.5 degrees)
-
-
 
 help_button(Subject) ->
     Title = help(title, Subject),

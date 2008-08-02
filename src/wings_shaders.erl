@@ -19,18 +19,18 @@
 -include("e3d_image.hrl").
 
 init() ->
-    Programs = {{make_hemi(), "Hemispherical Lighting"}},
-%% 	{make_prog("gooch"), "Gooch Tone"},
-%% 	{make_prog("toon"), "Toon"},
-%% 	{make_prog("brick"), "Brick"},
-%% 	{make_prog_envmap(), "Environment Mapping"},
-%% 	{make_prog("vertex_color", "Flag", 0), "Vertex Normals Color"},
-%% 	{make_prog("vertex_color", "Flag", 1), "Face Normals Color"},
-%% 	{make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
-%% 	{make_prog("depth"), "Depth"},
-%% 	{make_prog("harmonics", "Type", 5), "Spherical Harmonics 5"},
-%% 	{make_prog("harmonics", "Type", 8), "Spherical Harmonics 8"},
-%% 	{make_prog("harmonics", "Type", 9), "Spherical Harmonics 9"}},
+    Programs = {{make_hemi(), "Hemispherical Lighting"},
+		{make_prog("gooch"), "Gooch Tone"},
+		{make_prog("toon"), "Toon"},
+		{make_prog("brick"), "Brick"},
+		{make_prog("envmap"), "Environment Mapping"},
+		{make_prog("vertex_color", "Flag", 0), "Vertex Normals Color"},
+		{make_prog("vertex_color", "Flag", 1), "Face Normals Color"},
+		{make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
+		{make_prog("depth"), "Depth"},
+		{make_prog("harmonics", "Type", 5), "Spherical Harmonics 5"},
+		{make_prog("harmonics", "Type", 8), "Spherical Harmonics 8"},
+		{make_prog("harmonics", "Type", 9), "Spherical Harmonics 9"}},
     ?CHECK_ERROR(),
     gl:useProgram(0),
     put(light_shaders, Programs),
@@ -52,32 +52,30 @@ read_shader(FileName) ->
     {ok,Bin} = file:read_file(NewFileName),
     Bin.
 
-make_prog_envmap() ->
-    Shv = wings_gl:compile(vertex,   read_shader("envmap.vs")),
-    Shf = wings_gl:compile(fragment, read_shader("envmap.fs")),
-    Prog = wings_gl:link_prog([Shv,Shf]),
-    gl:useProgram(Prog),
-    FileName = "grandcanyon.png",
-    EnvImgRec = read_texture(FileName),
-    #e3d_image{width=ImgW,height=ImgH,image=ImgData} = EnvImgRec,
-    TxId = 0, %[TxId] = gl:genTextures(1),
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
-    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_RGB, ImgW, ImgH, 0, ?GL_RGB,
-		  ?GL_UNSIGNED_BYTE, ImgData),
-    gl:activeTexture(?GL_TEXTURE0),
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    wings_gl:set_uloc(Prog, "EnvMap", TxId),
-    Prog.
-
 make_prog(Name) ->
     Shv = wings_gl:compile(vertex, read_shader(Name ++ ".vs")),
     Shf = wings_gl:compile(fragment, read_shader(Name ++ ".fs")),
     Prog = wings_gl:link_prog([Shv,Shf]),
     gl:useProgram(Prog),
+    case Name == "envmap" of
+	true ->
+	    FileName = "grandcanyon.png",
+	    EnvImgRec = read_texture(FileName),
+	    #e3d_image{width=ImgW,height=ImgH,image=ImgData} = EnvImgRec,
+	    [TxId] = gl:genTextures(1),
+	    gl:activeTexture(?GL_TEXTURE0 + TxId),
+	    gl:bindTexture(?GL_TEXTURE_2D, TxId),
+	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
+	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
+	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
+	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
+	    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_RGB, ImgW, ImgH, 0, ?GL_RGB,
+			  ?GL_UNSIGNED_BYTE, ImgData),
+	    wings_gl:set_uloc(Prog, "EnvMap", TxId),
+	    gl:activeTexture(?GL_TEXTURE0);
+	false ->
+	    ok
+	end,
     Prog.
 
 make_prog(Name, Var, Val) ->
