@@ -55,6 +55,11 @@
 
 - New! Turkish translation [contributed by Devilgreen]
 
+- The shaders have been enabled again. Now there is a much better mechanism
+  for choosing shaders: a proper submenu, which also shows the currently
+  selected shader. As before, they can be turned off by choosing the default
+  light. [Scorpius]
+
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
   shared a single vertex (and not any edge). Now a proper error message
