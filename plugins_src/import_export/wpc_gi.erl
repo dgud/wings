@@ -138,7 +138,7 @@ do_render(Attr, St) ->
     set_pref(Attr),
     {_,_,W,H} = wings_wm:viewport(),
     if W >= 512, H >= 512 ->
-	    wings_pb:start(?__(1,"Rendering")),
+	    wings_pb:start(?__(4,"Rendering")),
 	    io:format(?__(3,"~p Err ~p~n"), [?LINE,wings_gl:error_string(gl:getError())]),
 	    Data = create_dls(St, Attr),
 	    io:format(?__(3,"~p Err ~p~n"), [?LINE,wings_gl:error_string(gl:getError())]),
