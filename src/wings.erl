@@ -502,6 +502,7 @@ remember_command(_Cmd, St) -> St.
 %% Test if the saved command can be safely repeated, and
 %% rewrite it with the current selection mode if needed.
 repeatable(Mode, Cmd) ->
+%   io:format("Cmd ~p\n",[Cmd]),
     case Cmd of
     {Mode,_} -> Cmd;			%Same mode is always OK.
 
@@ -509,7 +510,8 @@ repeatable(Mode, Cmd) ->
     {_,{move,normal}} when Mode == body -> no;
     {_,{_,region}} when Mode =/= face -> no;
     {_,{move,_}=C} -> {Mode,C};
-    {_,{rotate,normal}} when Mode == body -> no;
+    {_,{rotate,{_,{_,[normal],_}}}}when Mode == vertex; Mode == body -> no;
+    {_,{rotate,{_,{_,[_,normal],_}}}}when Mode == vertex; Mode == body -> no;
     {_,{rotate,_}=C} -> {Mode,C};
     {_,{scale,_}=C} -> {Mode,C};
     {_,{move_planar,_}=C} -> {Mode,C};
