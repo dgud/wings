@@ -3,14 +3,15 @@
   during the drag phase of the tool, you can choose to flatten or not flatten
   the result to a single plane. [optigon]
 
-- New Feature: View|Highlight Aim, aims the camera at the mouseover highlight
-  which lets you aim the camera while other geometry is selected. Options in
-  Edit|Preferences|Advanced allow you to specify targeting behaviour. Although
-  the original View|Aim command remains, I have changed the Wings default
-  hotkey 'a' to call Highlight Aim instead, on a fresh install. [optigon]
+- New Feature: View|Highlight Aim aims the camera at the mouseover highlight
+  even while other geometry is selected. Options in Edit|Preferences|Advanced
+  allow you to specify Highlight Aim's targeting behaviour. Although the
+  original View|Aim command remains, the Wings default hotkey 'A' now calls
+  View|Highlight Aim instead. [optigon]
 
 - Repeating Move|Region in selection modes other than Face caused Wings to
-  crash. Also Flatten, Rotate, and Scale Region. Now fixed. [optigon]
+  crash. Also Flatten, Rotate, and Scale Region, and Rotate|Normal in Vertex
+  and Body mode. Now fixed. [optigon]
 
 - Selecting every face of an object during a vector op would crash wings.
   Now fixed. [optigon]
@@ -21,6 +22,7 @@
   - Sweep|Free side to side motion was reversed. Now fixed. (Thanks to GetaVe)
   - Added Relative mode to Sweep commands.
   - Improvements to processing speed.
+  - Placed commands in single menu to save vertical space.
   [optigon]
 
 - New utility Tools|Memory Usage.  Measures how much memory your current scene
@@ -28,16 +30,19 @@
 
 - New colour prefs for the Menu Bar and Info Line backgrounds. [optigon]
 
-- Reorganized View menu. [optigon]
+- Reorganized Edit|Preferences to save vertical space. [optigon]
+
+- Reorganized View menu. Placed similar menu items in View|Show to save vertical
+  space. [optigon]
 
 - Deselecting with nothing selected would add an unnecessary undo state. Now
   fixed. (Thanks to Giniu.) [optigon]
 
 - Lowered minimum undo level to 1 (Edit|Preferences|Misc). [optigon]
 
-- Changed default camera mode to Wings 3D mode for fresh install. [optigon]
+- Changed default camera mode to Wings 3D for fresh install. [optigon]
 
-- Made most of the Defined Hotkeys translatable. This also affect commands
+- Made most of the Defined Hotkeys translatable. This also affects commands
   displayed in Edit|Repeat and the Plugin Manager. [optigon]
 
 - New Feature: Rotate to Target allows you to rotate a selection using a
@@ -47,13 +52,15 @@
 - Disabled translation macros for Save and Open in Windows because they could
   cause Wings to crash when displaying Latin 5 characters in native dialogs.
   Furthermore, it is highly recommended that you do not save wings files using
-  accented or non-English character. (Thanks to Devilgreen.)[optigon]
+  accented or non-English characters. (Thanks to Devilgreen.)[optigon]
 
 - New Feature: Move|Planar allows you to move any selection freely upon a single
   plane. Choose any standard axis or a vector defined plane. Enable magnets by
   pressing [Alt] when initiating the tool. [optigon]
 
 - New! Turkish translation [contributed by Devilgreen]
+
+- Further updates to the German translation [contributed by Torsten Manz]
 
 - The shaders have been enabled again. Now there is a much better mechanism
   for choosing shaders: a proper submenu, which also shows the currently
