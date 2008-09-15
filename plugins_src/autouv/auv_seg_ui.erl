@@ -223,7 +223,7 @@ seg_event_6({action,{view,Cmd}}, #seg{st=St0}=Ss) ->
             wings_view:command(Cmd,St1),
             get_seg_event(Ss)
         end;
-    true ->
+    _Cmd ->
         case wings_view:command(Cmd, St0) of
             #st{}=St -> get_seg_event(Ss#seg{st=St});
             Other -> Other
