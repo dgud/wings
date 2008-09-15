@@ -151,7 +151,7 @@ translate_fun({X,Y,Z}) when abs(X)<1.0e-9 andalso abs(Z)<1.0e-9 ->  %% Y
         {Xt,Yt,Zt} = e3d_mat:mul_point(Matrix, {Dx,0.0,-Y*Dy}),
         e3d_mat:translate(Xt, Yt, Zt)
     end;
-translate_fun({X,Y,Z}) when abs(X)<1.0e-9 andalso abs(Y)<1.0e-9 -> %% Z
+translate_fun({X,Y,Z}) when abs(X)<1.0e-9 andalso abs(Y)<1.0e-9 ->  %% Z
     fun(Matrix, [Dx,Dy]) ->
         {Xt,Yt,Zt} = e3d_mat:mul_point(Matrix, {Z*Dx,Dy,0.0}),
         e3d_mat:translate(Xt, Yt, Zt)
@@ -227,12 +227,10 @@ planar(Vpos,{X,Y,Z},Dx,Dy) when abs(X)<1.0e-9 andalso abs(Y)<1.0e-9 ->  %% Z
     {Px+(Dx*Z), Py+Dy, Pz};
 
 planar(Vpos,{X,Y,Z},Dx,Dy) ->
-    {Xa,Ya,Za} = e3d_vec:norm(e3d_vec:cross({X,Y,Z},{0.0,1.0,0.0})),
-    {Xb,Yb,Zb} = e3d_vec:norm(e3d_vec:cross({X,Y,Z},{Xa,Ya,Za})),
-    {Px,Py,Pz} = Vpos,
-    D = Dx*Dy,
-    {Px-((Xa+Xb)*D), Py-((Ya+Yb)*D), Pz-((Za+Zb)*D)}.
-
+    A = e3d_vec:norm(e3d_vec:cross({X,Y,Z},{0.0,1.0,0.0})),
+    B = e3d_vec:norm(e3d_vec:cross({X,Y,Z},A)),
+	C = e3d_vec:add(Vpos, e3d_vec:mul(A, -Dx)),
+	e3d_vec:add(C, e3d_vec:mul(B, -Dy)).
 
 %%%% Utilities
 axis_conversion(Axis) ->
