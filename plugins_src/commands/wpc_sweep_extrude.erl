@@ -32,9 +32,10 @@ parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 
 sweep_menu_headings() ->
+    [{menu_title(sweep_extrude),{sweep,
     [sweep_menu(sweep_extrude),
      sweep_menu(sweep_region),
-     sweep_menu(sweep_extract)].
+     sweep_menu(sweep_extract)]}}].
 
 %%%% Menus
 sweep_menu(Type) ->
@@ -482,9 +483,9 @@ seed_face(Vpos,RegNorm,Norm,Warp,Center,{Angle,_Dist,_Rotate,_Scale}) ->
 %%%%  Helper functions
 axis_conversion(Axis,Norm) ->
     case Axis of
-      x -> {1.0,0.0,0.0};
-      y -> {0.0,1.0,0.0};
-      z -> {0.0,0.0,1.0};
+      x -> {-1.0,0.0,0.0};
+      y -> {0.0,-1.0,0.0};
+      z -> {0.0,0.0,-1.0};
       free -> view_vector();
       normal -> Norm;
       last_axis -> {_, Dir} = wings_pref:get_value(last_axis),
