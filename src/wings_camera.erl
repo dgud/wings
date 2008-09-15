@@ -38,7 +38,9 @@
 init() ->
     wings_pref:set_default(camera_mode, wings_cam),
     wings_pref:set_default(num_buttons, 3),
+    wings_pref:set_default(cam_rotation_speed, 25),
     wings_pref:set_default(pan_speed, 25),
+    wings_pref:set_default(pan_using_arrow_keys, true),
     wings_pref:set_default(pan_speed_arrow_keys, 50),
     wings_pref:set_default(inverted_wheel_zoom, false),
     wings_pref:set_default(wheel_adds, false),
@@ -56,13 +58,16 @@ prefs() ->
     ZoomFlag0 = wings_pref:get_value(wheel_zooms, true),
     ZoomFactor0 = wings_pref:get_value(wheel_zoom_factor, ?ZOOM_FACTOR),
     ZoomFactorAlt = wings_pref:get_value(wheel_zoom_factor_alt, ?ZOOM_FACTOR_ALT),
-    PanSpeed0 = wings_pref:get_value(pan_speed),
-    ArrowPanSpeed = wings_pref:get_value(pan_speed_arrow_keys),
-    InvertZW = wings_pref:get_value(inverted_wheel_zoom),
+    CamRotSpeed = wings_pref:get_value(cam_rotation_speed, 25),
+    PanSpeed0 = wings_pref:get_value(pan_speed, 25),
+    ArrowPanSpeed = wings_pref:get_value(pan_speed_arrow_keys, 50),
+    InvertZW = wings_pref:get_value(inverted_wheel_zoom, false),
     WheelAdds = wings_pref:get_value(wheel_adds,false),
     WhScrollInfo = wings_pref:get_value(wh_scroll_info,true),
-    WhPanSpd = wings_pref:get_value(wh_pan_spd),
-    WhRotate = wings_pref:get_value(wh_rot_spd),
+    ArrowKeysPan = wings_pref:get_value(pan_using_arrow_keys,true),
+    WhPanSpd = wings_pref:get_value(wh_pan_spd, 50),
+    WhRotate = wings_pref:get_value(wh_rot_spd, 7.5),
+
     Hook = fun (is_disabled, {_Var,_I,Sto}) ->
             not gb_trees:get(wheel_zooms, Sto);
              (_, _) -> void
@@ -71,44 +76,55 @@ prefs() ->
              not ((gb_trees:get(wheel_adds, Sto)) andalso (gb_trees:get(wheel_zooms, Sto)));
              (_, _) -> void
             end,
-    {vframe,
+    ArrowKeyHook = fun (is_disabled, {_Var,_I,Sto}) ->
+            not gb_trees:get(pan_using_arrow_keys, Sto);
+             (_, _) -> void
+           end,
+    {hframe,
+    [{vframe,
      [{vframe,[mouse_buttons()],[{title,?__(1,"Mouse Buttons")}]},
       {vframe,[camera_modes()],[{title,?__(2,"Camera Mode")}]},
+      {vframe,
+       [{hframe,[{slider,{text,CamRotSpeed,[{key,cam_rotation_speed},{range,{1,100}}]}}]}],
+       [{title,?__(19,"Rotation Speed")}]},
       {vframe,
        [{hframe,[{slider,{text,PanSpeed0,[{key,pan_speed},{range,{1,100}}]}}]}],
        [{title,?__(3,"Pan Speed")}]},
       {vframe,
-       [{hframe,[{slider,{text,ArrowPanSpeed,[{key,pan_speed_arrow_keys},{range,{1,100}}]}}]}],
-       [{title,?__(16,"Arrow Key Pan Speed")}]},
-      {vframe,
+       [{?__(18,"Arrow Keys Pan"),ArrowKeysPan,[{key,pan_using_arrow_keys}]},
+       {hframe,[{slider,{text,ArrowPanSpeed,[{key,pan_speed_arrow_keys},{range,{1,100}},
+        {hook,ArrowKeyHook}]}}]}],
+       [{title,?__(16,"Arrow Key Pan Speed")}]}]},
+    {vframe,
+      [{vframe,
        [{?__(4,"Wheel Zooms"),ZoomFlag0,[{key,wheel_zooms}]},
-	{vradio,[{?__(5,"Forwards Zooms In"),false},
-	         {?__(6,"Forwards Zooms Out"),true}],
-	 InvertZW,
-	 [{key,inverted_wheel_zoom},{hook,Hook}]},
-	{hframe,
-	 [{label,?__(7,"Zoom Factor"),[{hook,Hook}]},
-	  {text,ZoomFactor0,
-	   [{key,wheel_zoom_factor},
+    {vradio,[{?__(5,"Forwards Zooms In"),false},
+             {?__(6,"Forwards Zooms Out"),true}],
+     InvertZW,
+     [{key,inverted_wheel_zoom},{hook,Hook}]},
+    {hframe,
+     [{label,?__(7,"Zoom Factor"),[{hook,Hook}]},
+      {text,ZoomFactor0,
+       [{key,wheel_zoom_factor},
      {range,{1,50}},{hook,Hook}]},
-	  {label,"%",[{hook,Hook}]}]},
-	 {hframe,
-	  [{label,?__(10,"Alternate Zoom Factor(Alt+Scroll)"),[{hook,Hook}]},
-	   {text,ZoomFactorAlt,
-	    [{key,wheel_zoom_factor_alt},
+      {label,"%",[{hook,Hook}]}]},
+     {hframe,
+      [{label,?__(10,"Alternate Zoom Factor(Alt+Scroll)"),[{hook,Hook}]},
+       {text,ZoomFactorAlt,
+        [{key,wheel_zoom_factor_alt},
       {range,{1,50}},{hook,Hook}]},
      {label,"%",[{hook,Hook}]}]} ],[{title,?__(9,"Scroll Wheel")}]},
     {vframe,
-	  [{?__(11,"Wheel Pans & Rotates"),WheelAdds,[{key,wheel_adds},{hook,Hook}]},
-	   {?__(17,"Show Info Line Help String"),WhScrollInfo,[{key,wh_scroll_info},{hook,WHook}]}, 
-	  {vframe,
-	   [{hframe,
-	    [{slider,{text,WhPanSpd,[{key, wh_pan_spd},{range,{1,100}}]}}],
-	  [{title,?__(12,"Pan Speed")},{hook,WHook}]},
-	  {hframe,
-	   [{slider,{text,WhRotate,[{key, wh_rot_spd},{range,{?NEARZERO,180.0}}]}}],
-	   [{title,?__(13,"Rotation Step in Degrees")},{hook,WHook}]}]}],
-    [{title,?__(15,"Unidirectional Camera")}]}]}.
+      [{?__(11,"Wheel Pans & Rotates"),WheelAdds,[{key,wheel_adds},{hook,Hook}]},
+       {?__(17,"Show Info Line Help String"),WhScrollInfo,[{key,wh_scroll_info},{hook,WHook}]}, 
+      {vframe,
+       [{hframe,
+        [{slider,{text,WhPanSpd,[{key, wh_pan_spd},{range,{1,100}}]}}],
+      [{title,?__(12,"Pan Speed")},{hook,WHook}]},
+      {hframe,
+       [{slider,{text,WhRotate,[{key, wh_rot_spd},{range,{?NEARZERO,180.0}}]}}],
+       [{title,?__(13,"Rotation Step in Degrees")},{hook,WHook}]}]}],
+    [{title,?__(15,"Unidirectional Camera")}]}]}]}.
 
 mouse_buttons() ->
     {menu,[{desc(1),1,[{info,info(1)}]},
@@ -722,13 +738,14 @@ generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _Camera, _Redraw) ->
 generic_event(_, _, _) -> keep.
 
 rotate(Dx, Dy) ->
+    Speed = wings_pref:get_value(cam_rotation_speed,25)/25,
     case allow_rotation() of
 	false -> ok;
 	true ->
 	    View0= wings_view:current(),
 	    #view{azimuth=Az0,elevation=El0} = View0,
-	    Az = Az0 + Dx,
-	    El = El0 + Dy,
+	    Az = Az0 + Dx * Speed,
+	    El = El0 + Dy * Speed,
 	    View = View0#view{azimuth=Az,elevation=El,along_axis=none},
 	    wings_view:set_current(View)
     end.
@@ -743,7 +760,7 @@ whrotate(Dx, Dy) ->
              wings_wm:dirty(),
              View0= wings_view:current(),
              #view{azimuth=Az0,elevation=El0} = View0,
-             S = 2.0*wings_pref:get_value(wh_rot_spd),
+             S = 2 * wings_pref:get_value(wh_rot_spd),
              Az = Az0 + Dx*S,
              El = El0 + Dy*S,
              View = View0#view{azimuth=Az,elevation=El,along_axis=none},
@@ -798,15 +815,21 @@ pan(Dx0, Dy0) ->
     PanY = PanY0 - Dy,
     wings_view:set_current(View#view{pan_x=PanX,pan_y=PanY}).
 
-arrow_key_pan(?SDLK_LEFT) ->
-    arrow_key_pan(0.25, 0.0);
-arrow_key_pan(?SDLK_RIGHT) ->
-    arrow_key_pan(-0.25, 0.0);
-arrow_key_pan(?SDLK_UP) ->
-    arrow_key_pan(0.0, 0.25);
-arrow_key_pan(?SDLK_DOWN) ->
-    arrow_key_pan(0.0, -0.25);
+arrow_key_pan(Key) when Key=:=?SDLK_LEFT; Key=:=?SDLK_RIGHT; Key=:=?SDLK_UP; Key=:=?SDLK_DOWN ->
+    case wings_pref:get_value(pan_using_arrow_keys) of
+	  true -> arrow_key_pan_1(Key);
+	  _other -> next
+	end;
 arrow_key_pan(_) -> next.
+
+arrow_key_pan_1(?SDLK_LEFT) ->
+    arrow_key_pan(0.25, 0.0);
+arrow_key_pan_1(?SDLK_RIGHT) ->
+    arrow_key_pan(-0.25, 0.0);
+arrow_key_pan_1(?SDLK_UP) ->
+    arrow_key_pan(0.0, 0.25);
+arrow_key_pan_1(?SDLK_DOWN) ->
+    arrow_key_pan(0.0, -0.25).
 
 arrow_key_pan(Dx, Dy) ->
     key_pan(Dx, Dy),
