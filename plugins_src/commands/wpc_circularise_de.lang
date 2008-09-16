@@ -1,0 +1,67 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_circularise,
+ [
+  {angle_help,
+   [
+    {1,"  [3] Stumpfen Winkel verwenden"},
+    {2,"  [3] Spitzen Winkel verwenden"}
+   ]},
+  {check_selection,
+   [
+    {1,"Keine Auswahl"},
+    {2,"Knoten muß aus der ursprünglichen Kantenschleife sein"},
+    {3,"Kante muß aus der ursprünglichen Kantenschleife sein"},
+    {4,"Nur eine Kante oder einen Knoten darf ausgewählt sein"}
+   ]},
+  {circ_mode_help,
+   [
+    {1,"[+] oder [-] Durchmesser anpassen "}
+   ]},
+  {circ_norm_help,
+   [
+    {1,"  [2] Flächen-Normale umkehren"},
+    {2,"  [2] ursprüngliche Flächen-Normale"}
+   ]},
+  {circ_sel_error,
+   [
+    {1,"Auswahl muss entweder eine offene oder geschlossene Kantenschleife sein"}
+   ]},
+  {circ_sel_error_1,
+   [
+    {1,"Ausgewählte Kantenschleifen dürfen keine gemeinsamen Knoten haben"}
+   ]},
+  {circ_sel_error_2,
+   [
+    {1,"Auswahl muß aus geschlossenen Kantenschleifen\noder einer geschlossenen Knotenschleife bestehen"}
+   ]},
+  {circ_sel_error_3,
+   [
+    {1,"Kreisförmig machen offener Kantenschleifen erfordert Erweiterte Menüs"}
+   ]},
+  {circular_arc_menu,
+   [
+    {1,"Kreisförmig"},
+    {2,"Ausgewählte Kantenschleife durch ebenen, ausgleichen und aufblasen kreisförmig machen"},
+    {4,"Eine einzelne offene oder geschlossene Schleife anhand zweiter Auswahl kreisförmig machen"}
+   ]},
+  {flatten_help,
+   [
+    {1,"[1] Nicht ebnen"},
+    {2,"[1] Ebnen"}
+   ]},
+  {norm_help,
+   [
+    {1,"  [2] Winkel-Normale umkehren"},
+    {2,"  [2] ursprüngliche Winkel-Normale"}
+   ]},
+  {secondary_sel_ask,
+   [
+    {1,"Einen Knoten oder eine Kante der ursprünglichen Kantenschleife auswählen, der den stabilen Strahl zum Zentrum markiert"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Ebene wählen"},
+    {2,"Zentrums-Punkt wählen"},
+    {3,"Punkt auswählen, von dem aus das Zentrum relativ zur gewählten Ebene und den Enden der Kantenauswahl berechnet wird"}
+   ]}
+ ]}.
