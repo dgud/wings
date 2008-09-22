@@ -133,6 +133,7 @@ arc_intersect_point_to_plane_setup({Axis,Center,A,B,Mag},St) ->
     VecB = e3d_vec:cross(Axis,B),
     Deg = e3d_vec:degrees(VecA,VecB),
     finish_setup(Axis, Center, Deg, Mag, St).
+
 %%%% RMB
 arc_intersect_plane_setup({Axis,Center,A,B},St) ->
     arc_intersect_plane_setup({Axis,Center,A,B,none},St);

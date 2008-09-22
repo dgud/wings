@@ -70,6 +70,11 @@
 - Added camera prefs for Rotation Speed and panning via the
   arrow keys optional. See Edit|Preferences|Camera. [optigon]
 
+- Added new features to Body|Flip including user defined point, axis, and global
+  axis options. Holding down Alt while initiating the command duplicates the
+  object before flipping it. (Inspired by ggaliens' Flip Global plugin.)
+  [optigon]
+
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
   shared a single vertex (and not any edge). Now a proper error message

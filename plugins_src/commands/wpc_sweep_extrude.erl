@@ -25,9 +25,9 @@ menu(_,Menu) ->
 parse([], NewMenu, true) ->
     NewMenu;
 parse([], NewMenu, false) ->
-    [sweep_menu_headings(), separator|NewMenu];
-parse([separator,A = {_,inset,_}|Rest], NewMenu, false) ->
-    parse(Rest, [A,separator,sweep_menu_headings(),separator|NewMenu], true);
+    [sweep_menu_headings()|NewMenu];
+parse([A = {_,{extract_region,_}}|Rest], NewMenu, false) ->
+    parse(Rest, [sweep_menu_headings(),A|NewMenu], true);
 parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 

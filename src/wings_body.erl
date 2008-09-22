@@ -16,11 +16,15 @@
 -export([auto_smooth/1]).
 
 -include("wings.hrl").
+-include("sdl_keyboard.hrl").
 -import(lists, [map/2,foldl/3,reverse/1,reverse/2,sort/1,seq/2]).
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
-    FlipStr = ?__(5,"Flip the object around") ++ " ",
+    Dup = "  " ++ ?__(33,"[Alt]+Click to Duplicate object"),
+    FlipStrL = ?__(34,"Flip the object along ~s axis"),
+    FlipStrM = ?__(35,"Pick point to flip object along the ~s axis"),
+    FlipStrR = ?__(36,"Flip object along the global ~s axis") ++ Dup,
 
     Menu = [{basic,{?__(1,"Object operations"),ignore}},
 	    {basic,separator},
@@ -28,10 +32,23 @@ menu(X, Y, St) ->
 	    wings_menu_util:rotate(St),
 	    wings_menu_util:scale(St),
 	    separator,
-	    {?__(3,"Flip"),
-	     {flip,[{wings_s:dir(x),x,FlipStr ++ wings_s:dir_axis(x)},
-		    {wings_s:dir(y),y,FlipStr ++ wings_s:dir_axis(y)},
-		    {wings_s:dir(z),z,FlipStr ++ wings_s:dir_axis(z)}]}},
+	    {?__(3,"Flip"),{flip,
+	       [{wings_s:dir(x),flip_fun(x),
+	         {io_lib:format(FlipStrL,[wings_s:dir(x)]),
+	          io_lib:format(FlipStrM,[wings_s:dir(x)]),
+	          io_lib:format(FlipStrR,[wings_s:dir(x)])},[]},
+	        {wings_s:dir(y),flip_fun(y),
+	         {io_lib:format(FlipStrL,[wings_s:dir(y)]),
+	          io_lib:format(FlipStrM,[wings_s:dir(y)]),
+	          io_lib:format(FlipStrR,[wings_s:dir(y)])},[]},
+	        {wings_s:dir(z),flip_fun(z),
+	         {io_lib:format(FlipStrL,[wings_s:dir(z)]),
+	          io_lib:format(FlipStrM,[wings_s:dir(z)]),
+	          io_lib:format(FlipStrR,[wings_s:dir(z)])},[]},
+	        {?__(37,"Pick"),flip_fun(pick),
+	         {?__(38,"Pick axis to flip object along"),
+	          ?__(39,"Pick axis and point to flip object along"),
+	          ?__(40,"Pick global axis to flip object along") ++ Dup},[]}]}},
 	    separator,
 	    {?__(10,"Invert"),invert,
 	     ?__(11,"Flip all normals, turning the object inside out")},
@@ -64,6 +81,26 @@ menu(X, Y, St) ->
 	    {?__(31,"Show All"),show_all,
 	     ?__(32,"Show all faces for this object")}|mode_dependent(St)],
     wings_menu:popup_menu(X, Y, body, Menu).
+
+flip_fun(pick) ->
+    fun
+	  (1, _Ns) -> {body,{flip,{dup(local),{'ASK',[flip_axis]}}}};
+	  (2, _Ns) -> {body,{flip,{dup(point),{'ASK',[flip_axis,flip_point]}}}};
+	  (3, _Ns) -> {body,{flip,{dup(global),{'ASK',[flip_axis]}}}}
+	end;
+flip_fun(Axis) ->
+    fun
+	  (1, _Ns) -> {body,{flip,{dup(local),Axis}}};
+	  (2, _Ns) -> {body,{flip,{dup(point),{Axis,{'ASK',[flip_point]}}}}};
+	  (3, _Ns) -> {body,{flip,{dup(global),Axis}}}
+	end.
+dup(Type) ->
+%% Return true if Alt is pressed when initiating Flip command, otherwise false.
+    Mod = sdl_keyboard:getModState(),
+    case (Mod band ?KMOD_ALT) =/= 0 of
+        true -> {dup,Type};
+        false -> Type
+    end.
 
 mode_dependent(St) ->
     SelObj = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St),
@@ -152,8 +189,16 @@ command(auto_smooth, St) ->
     auto_smooth(St);
 command({auto_smooth,Ask}, St) ->
     auto_smooth(Ask, St);
-command({flip,Plane}, St) ->
-    {save_state,flip(Plane, St)};
+command({flip,{Type,{Axis,{'ASK',Ask}}}},St) ->
+    wings:ask(flip_ask(Ask), St, fun(Result,St0) ->
+    {save_state,flip(Type,{Axis,Result}, St0)}
+    end);
+command({flip,{Type,{'ASK',Ask}}}, St) ->
+    wings:ask(flip_ask(Ask), St, fun(Result,St0) ->
+    {save_state,flip(Type, Result, St0)}
+    end);
+command({flip,{Type, Plane}}, St) ->
+    {save_state,flip(Type, Plane, St)};
 command(cleanup, St) ->
     cleanup(false, St);
 command({cleanup,Ask}, St) ->
@@ -463,21 +508,91 @@ delete_object(Objects, #st{shapes=Shs0}=St) ->
 %%% The Flip command
 %%%
 
-flip(Plane0, St) ->
-    Plane = flip_scale(Plane0),
-    wings_sel:map(fun(_, We) -> flip_body(Plane, We) end, St).
+flip_ask(Asks) ->
+    Ask = flip_ask(Asks,[]),
+    {Ask,[],[],[vertex,edge,face]}.
 
-flip_body(Plane, We0) ->
-    {Cx,Cy,Cz} = e3d_vec:average(wings_vertex:bounding_box(We0)),
+flip_ask([],Ask) -> lists:reverse(Ask);
+flip_ask([flip_axis|Asks],Result) ->
+    Pick = {axis,?__(1,"Select axis to flip object along")},
+    flip_ask(Asks,[Pick|Result]);
+flip_ask([flip_point|Asks],Result) ->
+    Pick = {point,?__(2,"Select point along the chosen axis to flip object")},
+    flip_ask(Asks,[Pick|Result]).
+
+flip({dup,Type}, Plane, St0) ->
+    St = duplicate(none,St0),
+    flip_cmd(Type,Plane,St);
+flip(Type, Plane, St) ->
+    flip_cmd(Type,Plane,St).
+
+flip_cmd(Type, Plane, St) ->
+    wings_sel:map(fun(_, We) -> 
+        case Plane of
+          {{_,_,_},{_,_,_}} -> flip_body_2(Plane, We);
+          {_,_,_} -> flip_body_3(Type, Plane, We);
+          _Otherwise -> flip_body_1(Type, Plane, We)
+        end
+    end, St).
+
+flip_body_1(Type, Plane0, We0) ->
+    Plane = flip_scale(Plane0),
+    Center = e3d_vec:average(wings_vertex:bounding_box(We0)),
+    {Cx,Cy,Cz} = flip_center(Type,Plane0,Center),
     M0 = e3d_mat:translate(Cx, Cy, Cz),
     M1 = e3d_mat:mul(M0, Plane),
     M = e3d_mat:mul(M1, e3d_mat:translate(-Cx, -Cy, -Cz)),
     We = wings_we:transform_vs(M, We0),
     wings_we:invert_normals(We).
 
+flip_body_2({Plane,Center}, #we{vp=Vtab0}=We) ->
+    Vtab1 = lists:foldl(fun(Vtx, A) ->
+            flip_vs(Vtx, Plane, Center, A)
+            end, [], gb_trees:to_list(Vtab0)),
+    Vtab = gb_trees:from_orddict(reverse(Vtab1)),
+    wings_we:invert_normals(We#we{vp=Vtab}).
+
+flip_body_3(Type, Plane, #we{vp=Vtab0}=We) ->
+    Center0 = wings_vertex:center(We),
+    Center = flip_center(Type,Plane,Center0),
+    Vtab1 = lists:foldl(fun(Vtx, A) ->
+            flip_vs(Vtx, Plane, Center, A)
+            end, [], gb_trees:to_list(Vtab0)),
+    Vtab = gb_trees:from_orddict(reverse(Vtab1)),
+    wings_we:invert_normals(We#we{vp=Vtab}).
+
+flip_vs({V,Pos0}, Plane, Center, A) ->
+    ToCenter = e3d_vec:sub(Center, Pos0),
+    Dot = e3d_vec:dot(ToCenter, Plane),
+    Pos = wings_util:share(e3d_vec:add_prod(Pos0, Plane, 2.0*Dot)),
+    [{V,Pos}|A].
+
 flip_scale(x) -> e3d_mat:scale(-1.0, 1.0, 1.0);
 flip_scale(y) -> e3d_mat:scale(1.0, -1.0, 1.0);
-flip_scale(z) -> e3d_mat:scale(1.0, 1.0, -1.0).
+flip_scale(z) -> e3d_mat:scale(1.0, 1.0, -1.0);
+flip_scale({Axis,_}) -> flip_scale(Axis).
+
+flip_center(local,_,Center) -> Center;
+flip_center(global,x,{_,Cy,Cz}) -> {0.0,Cy,Cz};
+flip_center(global,y,{Cx,_,Cz}) -> {Cx,0.0,Cz};
+flip_center(global,z,{Cx,Cy,_}) -> {Cx,Cy,0.0};
+flip_center(global,{Xa,Ya,Za},{Cx,Cy,Cz}) ->
+    Plane = e3d_vec:norm({Xa,Ya,Za}),
+    intersect_vec_plane({Cx,Cy,Cz},{0.0,0.0,0.0},Plane,Plane);
+flip_center(point,{x,{X,_,_}},{_,Cy,Cz}) -> {X,Cy,Cz};
+flip_center(point,{y,{_,Y,_}},{Cx,_,Cz}) -> {Cx,Y,Cz};
+flip_center(point,{z,{_,_,Z}},{Cx,Cy,_}) -> {Cx,Cy,Z}.
+
+intersect_vec_plane(PosA,PosB,Vector,Plane) ->
+    %% Return point where Vector through PosA intersects with Plane at PosB
+    DotProduct = e3d_vec:dot(Vector,Plane),
+    case DotProduct of
+      0.0 ->
+        PosA;
+      _Otherwise ->
+        Intersection = e3d_vec:dot(e3d_vec:sub(PosB,PosA),Vector)/DotProduct,
+        e3d_vec:add(PosA, e3d_vec:mul(Plane, Intersection))
+    end.
 
 %%%
 %%% The Tighten command.
