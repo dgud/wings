@@ -21,7 +21,7 @@
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
-    Dup = "  " ++ ?__(33,"[Alt]+Click to Duplicate object"),
+    Dup = flip_str(),
     FlipStrL = ?__(34,"Flip the object along ~s axis"),
     FlipStrM = ?__(35,"Pick point to flip object along the ~s axis"),
     FlipStrR = ?__(36,"Flip object along the global ~s axis") ++ Dup,
@@ -95,7 +95,7 @@ flip_fun(Axis) ->
 	  (3, _Ns) -> {body,{flip,{dup(global),Axis}}}
 	end.
 dup(Type) ->
-%% Return true if Alt is pressed when initiating Flip command, otherwise false.
+%% Return {dup,Type} if Alt is pressed during Flip command, otherwise Type.
     Mod = sdl_keyboard:getModState(),
     case (Mod band ?KMOD_ALT) =/= 0 of
         true -> {dup,Type};
@@ -514,16 +514,22 @@ flip_ask(Asks) ->
 
 flip_ask([],Ask) -> lists:reverse(Ask);
 flip_ask([flip_axis|Asks],Result) ->
-    Pick = {axis,?__(1,"Select axis to flip object along")},
+    Pick = {axis,?__(1,"Select axis to flip object along") ++ flip_str()},
     flip_ask(Asks,[Pick|Result]);
 flip_ask([flip_point|Asks],Result) ->
-    Pick = {point,?__(2,"Select point along the chosen axis to flip object")},
+    Pick = {point,?__(2,"Select point along the chosen axis to flip object") ++ flip_str()},
     flip_ask(Asks,[Pick|Result]).
+
+flip_str() -> "  " ++ ?__(1,"[Alt]+Click to Duplicate object").
 
 flip({dup,Type}, Plane, St0) ->
     St = duplicate(none,St0),
     flip_cmd(Type,Plane,St);
-flip(Type, Plane, St) ->
+flip(Type, Plane, St0) ->
+    St = case dup(Type) of
+        {dup,_} -> duplicate(none,St0);
+        _Otherwise -> St0
+    end,
     flip_cmd(Type,Plane,St).
 
 flip_cmd(Type, Plane, St) ->

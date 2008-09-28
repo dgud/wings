@@ -471,6 +471,17 @@ check_vector(#st{selmode=vertex,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}=St) ->
         Str = guard_string(),
         {none,Str}
     end;
+check_vector(#st{selmode=edge,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
+        We0 = gb_trees:get(Id0,Shs),
+        We1 = gb_trees:get(Id1,Shs),
+        EL0 = gb_sets:to_list(Sel0),
+		io:format("EL0 ~p\n",[EL0]),
+        EL1 = gb_sets:to_list(Sel1),
+		io:format("EL1 ~p\n",[EL1]),
+        case length(EL0) + length(EL1) of
+          2 -> get_vec(edge, EL0 ++ EL1, [We0, We1]);
+          _ -> get_vec(edge, [{EL0}, {EL1}], [We0, We1])
+        end;
 
 check_vector(#st{selmode=Mode,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
     SelSize = gb_sets:size(Sel0) + gb_sets:size(Sel1),
@@ -496,8 +507,9 @@ check_vector(_) ->
     {none,Str}.
 
 guard_string() ->
-    ?__(1,"Select parts of one object only")++
-    ?__(2,", or select one element in each of two objects")++
+    ?__(1,"Select parts of one object only") ++
+    ?__(2,", or select one element in each of two objects") ++
+	?__(4,",\nor a single edge loop on each object ") ++
     ?__(3,", or any three vertices.").
 
 get_pos(Vs,We,Acc) ->
@@ -535,6 +547,21 @@ get_vec(vertex, [Va, Vb], [We0, We1]) ->
       {?__(11,"Average of vertex normals saved as axis."),
        ?__(12,"Use direction between vertices as axis")}}];
 
+%% Use two edge loops on separate objects.
+get_vec(edge, [{Edges1},{Edges2}], [We1,We2]) ->
+    Loop1 = wings_edge_loop:edge_loop_vertices(Edges1, We1),
+    Loop2 = wings_edge_loop:edge_loop_vertices(Edges2, We2),
+    case {Loop1, Loop2} of
+    {[Vs1],[Vs2]} ->
+        LoopCenter1 = wings_vertex:center(Vs1, We1),
+        LoopCenter2 = wings_vertex:center(Vs2, We2),
+        Center = e3d_vec:average([LoopCenter1, LoopCenter2]),
+        Vec = e3d_vec:norm_sub(LoopCenter1, LoopCenter2),
+        [{{Center,Vec},?__(28,"Axis between edge loop centers saved as axis.")}];		
+    _Other ->
+        [{none,guard_string()}]
+    end;
+
 get_vec(edge, [Edge1,Edge2], [#we{es=Etab0,vp=Vtab0},#we{es=Etab1,vp=Vtab1}]) ->
     #edge{vs=Va1,ve=Vb1} = gb_trees:get(Edge1, Etab0),
     #edge{vs=Va2,ve=Vb2} = gb_trees:get(Edge2, Etab1),
@@ -555,6 +582,7 @@ get_vec(edge, [Edge1,Edge2], [#we{es=Etab0,vp=Vtab0},#we{es=Etab1,vp=Vtab1}]) ->
      {{Center,Cross},
       {?__(25,"Cross product of edges saved as axis"),
        ?__(26,"Save direction between edges")}}];
+
 
 get_vec(face, [Face1, Face2], [We0, We1]) ->
     Center1 = wings_face:center(Face1, We0),
@@ -611,8 +639,14 @@ get_vec(edge, Edges, #we{vp=Vtab}=We) ->
 	    Center = wings_vertex:center(Vs, We),
 	    Vec = wings_face:face_normal_ccw(Vs, Vtab),
 	    [{{Center,Vec},?__(6,"Edge loop normal saved as axis.")}];
+	[Vs1,Vs2] ->
+	    LoopCenter1 = wings_vertex:center(Vs1, We),
+	    LoopCenter2 = wings_vertex:center(Vs2, We),
+		Center = e3d_vec:average([LoopCenter1, LoopCenter2]),
+	    Vec = e3d_vec:norm_sub(LoopCenter1, LoopCenter2),
+	    [{{Center,Vec},?__(28,"Axis between edge loop centers saved as axis.")}];		
 	_Other ->
-	    [{none,?__(7,"Multi-edge selection must form a single closed edge loop.")}]
+	    [{none,?__(29,"Multi-edge selection must form either a single or two closed edge loops.")}]
     end;
 
 %% Vertex normal

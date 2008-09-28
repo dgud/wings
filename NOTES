@@ -16,6 +16,9 @@
 - Selecting every face of an object during a vector op would crash wings.
   Now fixed. [optigon]
 
+- New vector op added. Define a vector between the centers of two edge loops
+  on either a single object or one loop on each of two objects. [optigon]
+
 - Partial rewrite of Sweep plugin to improve the code including:
   - Vertices on separate objects sharing the same id number, would cause
     unexpected results. Vertices are now processed correctly.
