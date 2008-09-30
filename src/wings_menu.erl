@@ -431,13 +431,17 @@ handle_key_1(cancel, _) ->
 handle_key_1(delete, Mi0) ->
     %% Delete hotkey bound to this entry.
     case current_command(Mi0) of
-	[] -> keep;
-	[_|_]=Cmds0 ->
-	    Cmds = [C || {_,C} <- Cmds0],
-	    case wings_hotkey:hotkeys_by_commands(Cmds) of
-		[] -> keep;			%No hotkeys for this entry.
-		Hotkeys -> hotkey_delete_dialog(Hotkeys)
-	    end
+      [] -> keep;
+      [_|_]=Cmds0 ->
+        Cmds = case Cmds0 of
+          [{1,{A,{B,false}}}] -> [{A,{B,false}},{A,{B,true}}];
+          [{1,{A,{B,{C,false}}}}] -> [{A,{B,{C,false}}},{A,{B,{C,true}}}];
+          Cmd -> [C || {_,C} <- Cmds0]
+        end,
+        case wings_hotkey:hotkeys_by_commands(Cmds) of
+          [] -> keep;			%No hotkeys for this entry.
+          Hotkeys -> hotkey_delete_dialog(Hotkeys)
+        end
     end;
 handle_key_1(insert, Mi) ->
     %% Define new hotkey for this entry.
@@ -981,10 +985,15 @@ have_magnet(Ps) ->
 
 get_hotkey([{1,Cmd}], Mi) ->
     wings_wm:dirty(),
-    wings_wm:message(hotkey_key_message(Cmd)),
-    {push,fun(Ev) ->
-		  handle_key_event(Ev, Cmd, Mi)
-	  end};
+    case Cmd of
+      {A,{B,false}} -> get_hotkey([{1,Cmd},{3,{A,{B,true}}}],Mi);
+      {A,{B,{C,false}}} -> get_hotkey([{1,Cmd},{3,{A,{B,{C,true}}}}],Mi);
+      Cmd ->
+        wings_wm:message(hotkey_key_message(Cmd)),
+        {push,fun(Ev) ->
+          handle_key_event(Ev, Cmd, Mi)
+          end}
+    end;
 get_hotkey([_|_]=Cmds, Mi) ->
     wings_wm:dirty(),
     wings_wm:message(hotkey_mouse_message(Cmds)),

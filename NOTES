@@ -81,6 +81,10 @@
 - Rmb option added to Face|Dissolve which cleans up any isolated vertices
   created by the Dissolve command. This feature already existed for edges, so it
   made sense to add it for faces. [optigon]
+
+- Added ability to hotkey menu commands that bring up an options box such as
+  those in the Primitives Menu and Select Menu items. [optigon]
+
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
   shared a single vertex (and not any edge). Now a proper error message
