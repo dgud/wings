@@ -44,7 +44,7 @@ menu(X, Y, St) ->
 	     ?__(9,"Round off selected edges")},
 	    separator,
 	    {?__(10,"Dissolve"), dslv(),
-		 {?__(11,"Eliminate selected edges"), "",
+		 {?__(11,"Eliminate selected edges"), [],
 		  ?__(50,"Eliminate selected edges and remove remaining isolated verts")},[]},
 		{?__(12,"Collapse"),collapse,
 	     ?__(13,"Delete edges, replacing them with vertices")},

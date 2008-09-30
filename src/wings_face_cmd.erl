@@ -53,8 +53,9 @@ menu(X, Y, St) ->
 	    {?__(20,"Mirror"),mirror_fun(),
 	     {?__(21,"Mirror object around selected faces and merge to object"),[],
 	      ?__(22,"Mirror and create separate objects")},[]},
-    	    {?__(23,"Dissolve"),dissolve,
-	     ?__(24,"Eliminate all edges between selected faces")},
+	    {?__(23,"Dissolve"),dissolve_fun(),
+	     {?__(24,"Eliminate all edges between selected faces"),[],
+		  ?__(34,"Eliminate selected faces and remove remaining isolated verts")},[]},
 	    {?__(25,"Collapse"),collapse,
 	     ?__(26,"Delete faces, replacing them with vertices")},
 	    {?__(27,"Smooth"),smooth,
@@ -66,6 +67,13 @@ menu(X, Y, St) ->
 	[{?__(30,"Vertex Color"),vertex_color,
 	  ?__(31,"Apply vertex colors to selected faces")}],
     wings_menu:popup_menu(X, Y, face, Menu).
+
+dissolve_fun() ->
+    fun
+	(1, _Ns) -> {face,dissolve};
+	(3, _Ns) -> {face,clean_dissolve};
+	(_, _) -> ignore
+    end.
 
 lift_fun(St) ->
     fun(help, _Ns) ->
@@ -117,6 +125,8 @@ command(intrude, St) ->
     ?SLOW(intrude(St));
 command(dissolve, St) ->
     {save_state,dissolve(St)};
+command(clean_dissolve, St) ->
+    {save_state,clean_dissolve(St)};
 command(bridge, St) ->
     {save_state,bridge(St)};
 command(smooth, St) ->
@@ -222,7 +232,7 @@ extract_region(Type, St0) ->
     Sel = St1#st.sel,
     St = wings_sel:set(Sel, St1),
     wings_move:setup(Type, St).
-    
+
 %%%
 %%% The Dissolve command.
 %%%
@@ -237,8 +247,25 @@ dissolve_sel(Faces, #we{id=Id}=We0, Acc) ->
     {We,[{Id,Sel}|Acc]}.
 
 %%%
+%%% Clean Dissolve
+%%%
+
+clean_dissolve(St0) ->
+    {St,Sel} = wings_sel:mapfold(fun clean_dissolve_sel/3, [], St0),
+    wings_sel:set(Sel, St).
+
+clean_dissolve_sel(Faces, #we{id=Id}=We0, Acc) ->
+    IsolatedVs1 = wings_vertex:isolated(We0),
+    We1 = wings_dissolve:faces(Faces, We0),
+    IsolatedVs2 = wings_vertex:isolated(We1),
+    C = IsolatedVs2 -- IsolatedVs1,
+    We = wings_edge:dissolve_isolated_vs(C, We1),
+    Sel = wings_we:new_items_as_gbset(face, We0, We),
+    {We,[{Id,Sel}|Acc]}.
+
+%%%
 %%% The Intrude command.
-%%% 
+%%%
 
 intrude(St0) ->
     St1 = dissolve(St0),

@@ -475,9 +475,7 @@ check_vector(#st{selmode=edge,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
         We0 = gb_trees:get(Id0,Shs),
         We1 = gb_trees:get(Id1,Shs),
         EL0 = gb_sets:to_list(Sel0),
-		io:format("EL0 ~p\n",[EL0]),
         EL1 = gb_sets:to_list(Sel1),
-		io:format("EL1 ~p\n",[EL1]),
         case length(EL0) + length(EL1) of
           2 -> get_vec(edge, EL0 ++ EL1, [We0, We1]);
           _ -> get_vec(edge, [{EL0}, {EL1}], [We0, We1])
