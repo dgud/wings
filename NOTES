@@ -78,12 +78,19 @@
   object before flipping it. (Inspired by ggaliens' Flip Global plugin.)
   [optigon]
 
-- Rmb option added to Face|Dissolve which cleans up any isolated vertices
-  created by the Dissolve command. This feature already existed for edges, so it
-  made sense to add it for faces. [optigon]
+- Rmb option added to Face|Dissolve to clean up any isolated vertices created by
+  the Dissolve command. This feature already existed for edges, so it made sense
+  to add it for faces. [optigon]
 
-- Added ability to hotkey menu commands that bring up an options box such as
-  those in the Primitives Menu and Select Menu items. [optigon]
+- Added ability to hotkey menu commands that bring up an Options Box such as
+  those in the Primitives and Select Menu. [optigon]
+
+- New Feature: Face|Contour creates edges around or inside a selected face
+  region and allows you to move them parallel to the original edges. Works best
+  for square geometry. Interface includes switching between Average, Normalise,
+  and Stay on Line which provide 3 possible solutions to keeping the edges
+  parallel. Hold down the rmb while dragging to bump the selection up or down
+  acccording to either the face normals, or the region's normal. [optigon]
 
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only

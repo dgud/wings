@@ -38,6 +38,7 @@ MODULES= \
 	wpc_constraints \
 	wpc_cylindrilize \
 	wpc_doosabin \
+	wpc_contour \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
 	wpc_move_planar \

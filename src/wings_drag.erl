@@ -363,7 +363,7 @@ help_message(#drag{unit=Unit,mode_fun=ModeFun,mode_data=ModeData}) ->
     NumEntry = ?__(1,"Numeric entry"),
     Tab = wings_util:key_format("[Tab]", NumEntry),
     Switch = switch(),
-    Constraint = ?__(2,"Switch constraint sets")++Switch,
+    Constraint = ?__(2,"Switch Constraint Set")++Switch,
     ShiftTab = wings_util:key_format("[Shift]+[Tab]", Constraint),
     Msg = wings_msg:join([Accept,ZMsg,FpMsg,Cancel,Tab,ShiftTab]),
     MsgRight = ModeFun(help, ModeData),
@@ -382,6 +382,7 @@ zmove_help([_,_,dz|_]) ->
     zmove_help_1(?__(1,"Drag to move along Z"));
 zmove_help([_,_,percent|_]) ->
     zmove_help_1(?__(3,"Drag to adjust scale"));
+zmove_help([_,_,skip|_]) -> [];
 zmove_help([_,_,_|_]) ->
     zmove_help_1(?__(2,"Drag to adjust third parameter")).
 
@@ -393,6 +394,10 @@ fpmove_help([_,_,_,_,falloff]) ->
     fpmove_help_1(?__(1,"Drag to adjust forth parameter"));
 fpmove_help([_,_,_,angle|_]) ->
     fpmove_help_1(?__(2,"Drag to adjust rotation"));
+fpmove_help([_,_,skip,Type|_]) ->
+    Str = wings_util:stringify(Type),
+    Help = ?__(4,"Drag to adjust") ++ " " ++ Str,
+    fpmove_help_1(Help);
 fpmove_help([_,_,_,_|_]) ->
     fpmove_help_1(?__(1,"Drag to adjust forth parameter")).
 
@@ -593,7 +598,7 @@ qstr(dy) -> ?__(3,"Dy");
 qstr(dz) ->  ?__(4,"Dz");
 qstr(falloff) ->  ?__(5,"R");
 qstr(angle) ->	?__(6,"A");
-qstr(Atom) -> atom_to_list(Atom).
+qstr(Atom) -> wings_util:stringify(Atom).
 
 qrange({_,{_,_}=Range}) -> [{range,Range}];
 qrange(_) -> [].
@@ -683,14 +688,7 @@ add_offset_1([D|Ds], [O|Ofs]) ->
     [D+O|add_offset_1(Ds, Ofs)];
 add_offset_1([], _) -> [].
 
-mouse_pre_translate(_, #mousemotion{state=Mask,mod=Mod}=Ev) ->
-    if
-	Mask band ?SDL_BUTTON_RMASK =/= 0,
-	Mod band ?CTRL_BITS =/= 0 ->
-	    {Ev#mousemotion{state=?SDL_BUTTON_MMASK},
-	     Mod band (bnot ?CTRL_BITS)};
-	true -> {Ev,Mod}
-    end.
+mouse_pre_translate(_, #mousemotion{mod=Mod}=Ev) -> {Ev,Mod}.
 
 mouse_range(#mousemotion{x=X0,y=Y0,state=Mask},
 	    #drag{x=OX,y=OY,xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0,
@@ -1009,9 +1007,8 @@ unit(falloff, R) ->
 unit(skip,_) ->
     %% the atom 'skip' can be used as a place holder. See wpc_arc.erl
     [];
-unit(Unit, Move) ->
-    io:format("~p\n", [{Unit,Move}]),
-    [].
+unit(Unit, D) ->
+    [wings_util:stringify(Unit) ++ ": "|trim(io_lib:format("~10.4f  ", [D]))].
 
 trim([$\s|T]) -> trim(T);
 trim([[_|_]=H|T]) ->
