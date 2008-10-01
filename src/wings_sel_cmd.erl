@@ -967,7 +967,7 @@ individuate_data([],_,St0,SelAcc) ->
     {save_state,St}.
 
 connected_faces(CosTolerance,Norm,Id0,Sel0,St0) ->
-    St1 = wings_sel_conv:more(St0),
+    St1 = wings_sel_conv:mode(face,St0),
     Sel1 = wings_sel:fold(fun(Faces,#we{id=Id}=We,Acc) ->
           case Id0 =:= Id of
             true ->
