@@ -919,23 +919,62 @@ nonplanar_faces([Tolerance], St) ->
 
 oriented_faces(_, #st{selmode=Mode}) when Mode =/= face ->
     keep;					%Wrong mode (invoked through hotkey).
+oriented_faces(_, #st{selmode=face, sel=[]}) ->
+    wings_u:error(?__(4,"At least one face must be selected"));
+
 oriented_faces(Ask, _St) when is_atom(Ask) ->
-    Qs = [{label,?__(1,"Angle tolerance")},
-	  {text,1.0E-3,[{range,{0.0,180.0}}]}],
+    Connected = wings_pref:get_value(similar_normals_connected,false),
+    Qs = [{hframe,[{label,?__(1,"Angle tolerance")},
+      {text,1.0E-3,[{range,{0.0,180.0}}]}]},
+      {?__(3,"Connected Faces Only"),Connected}],
     wings_ask:dialog(Ask, ?__(2,"Select Similarly Oriented Faces"),
-		     [{hframe,Qs}],
-		     fun(Res) -> {select,{oriented_faces,Res}} end);
-oriented_faces([Tolerance], St) ->
+    [{vframe,Qs}],
+    fun(Res) -> {select,{oriented_faces,Res}} end);
+oriented_faces([Tolerance,false], St) ->
     CosTolerance = math:cos(Tolerance * (math:pi() / 180.0)),
     Normals = wings_sel:fold(fun(Sel0, We, A) ->
-				 [wings_face:normal(SelI, We) ||
-				     SelI <- gb_sets:to_list(Sel0)] ++ A
-			     end, [], St),
+                [wings_face:normal(SelI, We) ||
+                    SelI <- gb_sets:to_list(Sel0)] ++ A
+              end, [], St),
     Sel = fun(Face, We) ->
-	      Normal = wings_face:normal(Face,We),
-	      any_matching_normal(CosTolerance, Normal, Normals)
-	  end,
-    {save_state,wings_sel:make(Sel, face, St)}.
+          Normal = wings_face:normal(Face,We),
+          any_matching_normal(CosTolerance, Normal, Normals)
+      end,
+    wings_pref:set_value(similar_normals_connected,false),
+    {save_state,wings_sel:make(Sel, face, St)};
+
+oriented_faces([Tolerance,true], St0) ->
+    CosTolerance = math:cos(Tolerance * (math:pi() / 180.0)),
+    Normals = wings_sel:fold(fun(Sel0, We, A) ->
+                [wings_face:normal(SelI, We) ||
+                    SelI <- gb_sets:to_list(Sel0)] ++ A
+              end, [], St0),
+    oriented_faces_connected(CosTolerance,Normals,St0,[]).
+
+oriented_faces_connected(CosTolerance,Normals,St0,S) ->
+    St1 = wings_sel_conv:more(St0),
+    Sel0 = wings_sel:fold(fun(Faces,We,Acc) ->
+        check_faces(gb_sets:to_list(Faces)--S,CosTolerance,Normals,We,Acc)
+        end, [], St1),
+    case sel_check(Sel0,S) of
+        {done,Selection} ->	
+            St = wings_sel:make(Selection,face,St0),
+            wings_pref:set_value(similar_normals_connected,true),
+            {save_state,St};
+        Selection ->
+            St = wings_sel:make(Selection,face,St0),
+            oriented_faces_connected(CosTolerance,Normals,St,Sel0++S)
+    end.
+sel_check([],Sel) -> {done,sel_check(Sel,none)};
+sel_check(Sel,_) -> fun(Face,We) -> lists:member(Face,Sel) end.
+
+check_faces([Face|Fs],CosTolerance,Normals,We,Acc) ->
+    Normal = wings_face:normal(Face,We),
+    case any_matching_normal(CosTolerance,Normal,Normals) of
+      true -> check_faces(Fs,CosTolerance,Normals,We,[Face|Acc]);
+      false -> check_faces(Fs,CosTolerance,Normals,We,Acc)
+    end;
+check_faces([],_,_,_,Acc) -> Acc.
 
 any_matching_normal(_,_,[]) ->
     false;

@@ -92,6 +92,11 @@
   parallel. Hold down the rmb while dragging to bump the selection up or down
   acccording to either the face normals, or the region's normal. [optigon]
 
+- Added a new option to the existing tool Select|Similar Normals, which allows
+  you to select just those faces with similar normals that are connected to the
+  original face. This allows you to select an island of faces with similar
+  normals to the first, as opposed to all of them. [optigon]
+
 --- 0.99.03 -----------------------------------------------------------------
 - Move|Region could crash if the selection contained faces that only
   shared a single vertex (and not any edge). Now a proper error message
