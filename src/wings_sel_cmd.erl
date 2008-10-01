@@ -949,29 +949,33 @@ oriented_faces([Tolerance,true], St0) ->
                 [{Id, SelI, wings_face:normal(SelI, We)} ||
                     SelI <- gb_sets:to_list(Sel0)] ++ A
               end, [], St0),
-	individuate_data(Normals0,CosTolerance,St0,[]).
+    individuate_data(Normals0,CosTolerance,St0,[]).
 
 individuate_data([{Id,Sel0,Norm}|Normals],CosTolerance,St0,SelAcc) ->
-    Sel1 = sel_check([{Id,Sel0}],none),
-	St = wings_sel:make(Sel1,face,St0),
-	Sel2 = connected_faces(CosTolerance,Norm,Id,[{Id,Sel0}],St),
+    Sel2 = case lists:member({Id,Sel0},SelAcc) of
+      false ->
+        Sel1 = sel_check([{Id,Sel0}],none),
+        St = wings_sel:make(Sel1,face,St0),
+        connected_faces(CosTolerance,Norm,Id,[{Id,Sel0}],St);
+      true -> []
+    end,
     individuate_data(Normals,CosTolerance,St0,Sel2++SelAcc);
 individuate_data([],_,St0,SelAcc) ->
     Sel = sel_check(SelAcc,none),
-	St = wings_sel:make(Sel,face,St0),
-	wings_pref:set_value(similar_normals_connected,true),
+    St = wings_sel:make(Sel,face,St0),
+    wings_pref:set_value(similar_normals_connected,true),
     {save_state,St}.
 
 connected_faces(CosTolerance,Norm,Id0,Sel0,St0) ->
     St1 = wings_sel_conv:more(St0),
     Sel1 = wings_sel:fold(fun(Faces,#we{id=Id}=We,Acc) ->
-	      case Id0 =:= Id of
-		    true ->
-		      FaceList = process_faces(gb_sets:to_list(Faces),Id, []),
-			  Sel2 = FaceList -- Sel0,
+          case Id0 =:= Id of
+            true ->
+              FaceList = process_faces(gb_sets:to_list(Faces),Id, []),
+              Sel2 = FaceList -- Sel0,
               check_faces(Sel2,CosTolerance,Norm,We,Acc);
-		    false -> Acc
-		  end
+            false -> Acc
+          end
         end, [], St1),
     case sel_check(Sel1,Sel0) of
         {done,_} ->	
