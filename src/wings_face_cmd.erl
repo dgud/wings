@@ -34,8 +34,6 @@ menu(X, Y, St) ->
 	    separator,
 	    wings_menu_util:flatten(),
 	    separator,
-	    {?__(6,"Inset"),inset,
-	     ?__(7,"Inset a face inside the selected face")},
 	    {?__(8,"Intrude"),intrude,
 	     ?__(9,"Carve out interior of object, making selected faces holes")},
 	    {?__(10,"Bevel"),bevel,
@@ -115,8 +113,6 @@ command({flatten,Plane}, St) ->
     flatten(Plane, St);
 command(bevel, St) ->
     ?SLOW(wings_extrude_edge:bevel_faces(St));
-command(inset, St) ->
-    ?SLOW(inset(St));
 command(mirror, St) ->
     ?SLOW({save_state,mirror(St)});
 command(mirror_separate, St) ->
@@ -165,9 +161,6 @@ command(hide, St) ->
 
 extrude(Type, St) ->
     wings_move:setup(Type, extrude_faces(St)).
-
-inset(St) ->
-    wings_scale:inset(extrude_faces(St)).
 
 extrude_faces(St) ->
     wings_sel:map(fun(Faces, We) ->

@@ -90,7 +90,8 @@
   for square geometry. Interface includes switching between Average, Normalise,
   and Stay on Line which provide 3 possible solutions to keeping the edges
   parallel. Hold down the rmb while dragging to bump the selection up or down
-  acccording to either the face normals, or the region's normal. [optigon]
+  acccording to either the face normals, or the region's normal. This feature
+  now replaces the original Inset command. [optigon]
 
 - Added a new option to the existing tool Select|Similar Normals, which allows
   you to select just those faces with similar normals that are connected to the

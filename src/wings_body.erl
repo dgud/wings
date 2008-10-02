@@ -22,7 +22,11 @@
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
     Dup = flip_str(),
-    FlipStrL = ?__(34,"Flip the object along ~s axis"),
+    BasicDup = case wings_pref:get_value(advanced_menus) of
+        false -> flip_str();
+        true -> []
+	end,
+    FlipStrL = ?__(34,"Flip the object along ~s axis") ++ BasicDup,
     FlipStrM = ?__(35,"Pick point to flip object along the ~s axis"),
     FlipStrR = ?__(36,"Flip object along the global ~s axis") ++ Dup,
 
@@ -46,7 +50,7 @@ menu(X, Y, St) ->
 	          io_lib:format(FlipStrM,[wings_s:dir(z)]),
 	          io_lib:format(FlipStrR,[wings_s:dir(z)])},[]},
 	        {?__(37,"Pick"),flip_fun(pick),
-	         {?__(38,"Pick axis to flip object along"),
+	         {?__(38,"Pick axis to flip object along") ++ BasicDup,
 	          ?__(39,"Pick axis and point to flip object along"),
 	          ?__(40,"Pick global axis to flip object along") ++ Dup},[]}]}},
 	    separator,

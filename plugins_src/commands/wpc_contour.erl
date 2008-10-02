@@ -30,7 +30,7 @@ parse([], NewMenu, true) ->
     NewMenu;
 parse([], NewMenu, false) ->
     [contour_menu()|NewMenu];
-parse([A = {_,inset,_}|Rest], NewMenu, false) ->
+parse([A = {_,intrude,_}|Rest], NewMenu, false) ->
     parse(Rest, [A,contour_menu()|NewMenu], true);
 parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
@@ -41,7 +41,13 @@ contour_menu() ->
     HelpL = contour_lmb_help(),
     HelpM = contour_mmb_help(),
     HelpR = contour_rmb_help(),
-    {Title, contour_fun(), {HelpL,HelpM,HelpR},[]}.
+    case wings_pref:get_value(advanced_menus) of
+        true -> {Title, contour_fun(), {HelpL,HelpM,HelpR},[]};
+        false -> {Title,{contour,
+                  [{?__(1,"Inset Region"),inset_region,HelpL},
+                   {?__(2,"Inset Faces"),inset_faces,HelpM},
+                   {?__(3,"Offset Region"),offset_region,HelpR}]}}
+    end.
 
 contour_title() ->
     ?__(1,"Contour").
@@ -54,18 +60,18 @@ contour_rmb_help() ->
 
 contour_fun() ->
     fun
-      (1,_Ns) -> {face,inset_region};
-      (2,_Ns) -> {face,inset_faces};
-      (3,_Ns) -> {face,offset_region};
+      (1,_Ns) -> {face,{contour,inset_region}};
+      (2,_Ns) -> {face,{contour,inset_faces}};
+      (3,_Ns) -> {face,{contour,offset_region}};
       (_, _)  -> ignore
     end.
 
 %%%% Commands
-command({face, inset_region}, St) ->
+command({face,{contour,inset_region}}, St) ->
     contour_setup(inset_region, St);
-command({face, inset_faces}, St) ->
+command({face,{contour,inset_faces}}, St) ->
     contour_setup(inset_faces, St);
-command({face, offset_region}, St) ->
+command({face, {contour,offset_region}}, St) ->
     contour_setup(offset_region, St);
 command(_,_) ->
     next.
@@ -268,7 +274,7 @@ average_vec([], _, _, []) -> [];
 average_vec([], _, _, Vec) -> e3d_vec:norm(Vec).
 
 vector(Da, Db, _VaPos, _VbPos) when Da =:= Db ->
-    wings_u:error(?__(1,"Edges are too close togther.\nUse Clean Up command before trying again."));
+    wings_u:error(?__(1,"Edges are too close togther.\nUse Cleanup command before trying again."));
 vector(Da, Db, VaPos, VbPos) when Da < Db->
     e3d_vec:norm(e3d_vec:sub(VaPos, VbPos));
 vector(_, _, VaPos, VbPos) ->
@@ -350,7 +356,7 @@ contour_fun(VsPos, Dict, State) ->
         lists:foldl(fun({V,Vpos0}, VsAcc) ->
         {EDict,FDict,LDict,SDict} = Dict,
         Vpos1 =  contour_absolute(V, Vpos0, EDict, FDict, LDict, Type,Mode,Norm, Dist, Bump),
-        Vpos2 =  contour_relative(V, Vpos1, Vpos0, SDict, Type, AbRel, Dist),
+        Vpos2 =  contour_relative(V, Vpos1, Vpos0, EDict, SDict, Type, AbRel, Dist),
         Vpos3 = bump(V, Vpos2, Type, Norm, FDict, LDict, Bump),
         [{V, Vpos3}|VsAcc]
         end, A, VsPos)
@@ -370,14 +376,25 @@ bump(V, Vpos, _, faces, FDict, _, Bump) ->
     [Normal] = orddict:fetch(V,FDict),
     e3d_vec:add(Vpos, e3d_vec:mul(Normal, Bump)).
 
-contour_relative(V, Vpos1, Vpos0, SDict, inset_faces,relative, Percent) ->
-    [Center] = orddict:fetch(V,SDict),
-    Normal0 = e3d_vec:norm_sub(Vpos1,Vpos0),
-    Point = intersect_vec_plane(Vpos0, Center, Normal0, Normal0),
-    Normal = e3d_vec:norm_sub(Point,Vpos0),
-    Dist = e3d_vec:dist(Vpos0, Point),
-    e3d_vec:add(Vpos0, e3d_vec:mul(Normal, Dist * Percent));
-contour_relative(_, Vpos1, _, _, _, _, _) -> Vpos1.
+contour_relative(V, Vpos1, Vpos0, EDict, SDict, inset_faces, relative, Percent) ->
+    case orddict:find(V, EDict) of
+        {ok, [{_,V1,_},{_,V2,_}]} ->
+            [Center] = orddict:fetch(V,SDict),
+            Normal0 = e3d_vec:norm_sub(Vpos1,Vpos0),
+            Point1 = intersect_vec_plane(Vpos0, Center, V1, Normal0),
+            Point2 = intersect_vec_plane(Vpos0, Center, V2, Normal0),
+            Normal1 = e3d_vec:norm_sub(Point1,Vpos0),
+            Normal2 = e3d_vec:norm_sub(Point2,Vpos0),
+            Dist1 = e3d_vec:dist(Vpos0, Point1),
+            Dist2 = e3d_vec:dist(Vpos0, Point2),
+            {Normal,Dist} = case Dist1 > Dist2 of
+                true ->  {Normal2,Dist2};
+                false -> {Normal1, Dist1}
+            end,
+            e3d_vec:add(Vpos0, e3d_vec:mul(Normal, Dist * Percent));
+        _Otherwise -> Vpos0
+    end;
+contour_relative(_, Vpos1, _, _, _, _, _, _) -> Vpos1.
 
 contour_absolute(_, Vpos,_,_,_,_,_,_, 0.0, 0.0) -> Vpos;
 contour_absolute(V, Vpos, EDict,FDict,LDict, Type,Mode,Norm, Dist, Bump) ->
@@ -392,7 +409,6 @@ contour_absolute(V, Vpos, EDict,FDict,LDict, Type,Mode,Norm, Dist, Bump) ->
                   N = e3d_vec:norm(e3d_vec:cross(N1,N2)),
                   Na = e3d_vec:norm(e3d_vec:cross(N,N2)),
                   Nb = e3d_vec:norm(e3d_vec:cross(N,N1)),
-
                   P0 = intersect_vec_plane(Vpos,PosB,V2,V3),
                   P1 = intersect_vec_plane(P0,Vpos,N2,N2),
                   P2 = intersect_vec_plane(P1,Vpos,N1,N1),

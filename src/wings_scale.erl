@@ -2,7 +2,9 @@
 %%  wings_scale.erl --
 %%
 %%     This module implements the Scale command plus
-%%     the interactive part of the Bevel (face) and Inset commands.
+%%     the interactive part of the Bevel (face).
+%%
+%%     -- Inset removed at revision 388 and replaced by wpc_contour.erl --
 %%
 %%  Copyright (c) 2001-2004 Bjorn Gustavsson.
 %%
@@ -13,7 +15,7 @@
 %%
 
 -module(wings_scale).
--export([setup/2,inset/1]).
+-export([setup/2]).
 
 -include("wings.hrl").
 -import(lists, [map/2,foldr/3,foldl/3]).
@@ -95,60 +97,6 @@ scale_constraint() ->
 
 magnet_unit(none) -> [];
 magnet_unit(_) -> [falloff].
-
-inset(St) ->
-    Tvs = wings_sel:fold(
-	    fun(Faces, #we{id=Id}=We, Acc) ->
-		    [{Id,inset(Faces, We)}|Acc]
-	    end, [], St),
-    wings_drag:setup(Tvs, [{percent,{-?HUGE,1.0}}], [], St).
-
-inset(Faces, We) ->
-    inset(gb_sets:to_list(Faces), We, {[],?HUGE}).
-    
-inset([Face|Faces], We, Acc) ->
-    inset(Faces, We, inset_face(Face, We, Acc));
-inset([], _We, {Vs0,Min}) ->
-    Vs = map(fun({V,Vec,Dist}) when Dist > Min ->
-		     {V,e3d_vec:mul(Vec, Min/Dist)};
-		({V,Vec,_Dist}) ->
-		     {V,Vec}
-	     end, Vs0),
-    R = sofs:relation(Vs),
-    F = sofs:relation_to_family(R),
-    foldl(fun average_vectors/2, [], sofs:to_external(F)).
-
-inset_face(Face, #we{vp=Vtab}=We, Acc) ->
-    Center = wings_face:center(Face, We),
-    wings_face:fold(
-      fun(_, _, #edge{vs=Va,ve=Vb}, {A0,Min}) ->
-	      Pos = wings_vertex:pos(Va, Vtab),
-	      Dir = e3d_vec:sub(wings_vertex:pos(Vb, Vtab), Pos),
-	      DirSqr = e3d_vec:dot(Dir, Dir),
-	      ToCenter = e3d_vec:sub(Center, Pos),
-	      case catch e3d_vec:dot(Dir, ToCenter) / DirSqr of
-		  {'EXIT',_} ->
-		      wings_u:error(?__(1,"There are too short edges in one or more selected faces. (Use Cleanup.)"));
-		  T0 ->
-		      PerpPos = e3d_vec:add_prod(Pos, Dir, T0),
-		      Vec = e3d_vec:sub(Center, PerpPos),
-		      Dist = e3d_vec:len(Vec),
-		      A = [{Va,Vec,Dist},{Vb,Vec,Dist}|A0],
-		      if 
-			  Dist < Min -> {A,Dist};
-			  true -> {A,Min}
-		      end
-	      end
-      end, Acc, Face, We).
-
-average_vectors({V,[Vec]}, Acc) ->
-    %% Yes, it can happen.
-    [{Vec,[V]}|Acc];
-average_vectors({V,[VecA,VecB]}, Acc) ->
-    Dot = e3d_vec:dot(VecA, VecB) /
-  	e3d_vec:len(VecA) / e3d_vec:len(VecB),
-    Vec = e3d_vec:divide(e3d_vec:add(VecA, VecB), (1+Dot)),
-    [{Vec,[V]}|Acc].
 
 %%
 %% Scaling of vertices.

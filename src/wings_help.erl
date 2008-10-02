@@ -261,7 +261,7 @@ def_hotkeys(Head) ->
 		"press a mouse button to choose which variant of the command to "
 		"assign to the hotkey. (Note: The mouse cursor must remain inside "
 		"the menu when you click.)"),
-	    ?__(8,"4. The information line ask you to press the key that the command "
+	    ?__(8,"4. The information line asks you to press the key that the command "
 		"should be assigned to."),
 
  	    ?__(9,"To delete a hotkey, similarly high-light the command in a menu,"
