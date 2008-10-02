@@ -436,7 +436,7 @@ handle_key_1(delete, Mi0) ->
         Cmds = case Cmds0 of
           [{1,{A,{B,false}}}] -> [{A,{B,false}},{A,{B,true}}];
           [{1,{A,{B,{C,false}}}}] -> [{A,{B,{C,false}}},{A,{B,{C,true}}}];
-          Cmd -> [C || {_,C} <- Cmds0]
+          _Cmd -> [C || {_,C} <- Cmds0]
         end,
         case wings_hotkey:hotkeys_by_commands(Cmds) of
           [] -> keep;			%No hotkeys for this entry.

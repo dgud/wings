@@ -985,7 +985,7 @@ connected_faces(CosTolerance,Norm,Id0,Sel0,St0) ->
             connected_faces(CosTolerance,Norm,Id0,Sel1++Sel0,St)
     end.
 sel_check([],Sel) -> {done,sel_check(Sel,none)};
-sel_check(Sel,_) -> fun(Face,#we{id=Id}=We) -> lists:member({Id,Face},Sel) end.
+sel_check(Sel,_) -> fun(Face,#we{id=Id}) -> lists:member({Id,Face},Sel) end.
 
 process_faces([F|Fs], Id, Acc) ->
     process_faces(Fs, Id, [{Id,F}|Acc]);
