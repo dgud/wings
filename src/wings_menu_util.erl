@@ -202,6 +202,9 @@ flatten(help, _) ->
 flatten(1, [flatten,vertex]) ->
     %% Vertex mode flatten.
     flatten_common();
+flatten(1, [flatten,edge]) ->
+    %% Vertex mode flatten.
+    flatten_common();
 flatten(1, _) ->
     %% Face mode flatten.
     [flatten_fun(normal)|flatten_common()];

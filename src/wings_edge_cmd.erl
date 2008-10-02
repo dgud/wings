@@ -37,6 +37,8 @@ menu(X, Y, St) ->
 	    separator,
 	    {?__(5,"Extrude"),{extrude,Dir}},
 	    separator,
+	    wings_menu_util:flatten(),
+	    separator,
 	    cut_line(St),
 	    {?__(6,"Connect"),connect,
 	     ?__(7,"Create a new edge by connecting midpoints of selected edges")},
@@ -113,6 +115,8 @@ command(bevel, St) ->
     ?SLOW(wings_extrude_edge:bevel(St));
 command({extrude,Type}, St) ->
     ?SLOW(wings_extrude_edge:extrude(Type, St));
+command({flatten,Plane}, St) ->
+    flatten(Plane, St);
 command(slide, St) ->
     slide(St);
 command(cut_pick, St) ->
@@ -671,3 +675,31 @@ collect_maybe_add(Work, Face, Edges, We, Res) ->
 		      end
 	      end
       end, Work, Face, We).
+
+%%%
+%%% The Flatten command.
+%%%
+
+flatten({'ASK',Ask}, St) ->
+    wings:ask(Ask, St, fun flatten/2);
+flatten({Plane,Center}, St) ->
+    flatten(Plane, Center, St);
+flatten(Plane, St) ->
+    flatten(Plane, average, St).
+
+flatten(Plane0, average, St) ->
+    Plane = wings_util:make_vector(Plane0),
+    {save_state,
+     wings_sel:map(
+       fun(Es, We) ->
+	       Vs = wings_edge:to_vertices(Es, We),
+	       wings_vertex:flatten(Vs, Plane, We)
+       end, St)};
+flatten(Plane0, Center, St) ->
+    Plane = wings_util:make_vector(Plane0),
+    {save_state,
+     wings_sel:map(
+       fun(Es, We) ->
+	       Vs = wings_edge:to_vertices(Es, We),
+	       wings_vertex:flatten(Vs, Plane, Center, We)
+       end, St)}.
