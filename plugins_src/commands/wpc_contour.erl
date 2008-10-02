@@ -145,7 +145,7 @@ contour_setup_1(Type, St0) ->
 drag_units(inset_faces,absolute,continue) -> [distance,skip,skip,bump];
 drag_units(inset_faces,relative,continue) -> [percent,skip,skip,bump];
 drag_units(inset_faces,absolute,stop) -> [{distance,{0.0,infinity}},skip,skip,bump];
-drag_units(inset_faces,relative,stop) -> [{percent,{0.0,100.0}},skip,skip,bump];
+drag_units(inset_faces,relative,stop) -> [{percent,{0.0,1.0}},skip,skip,bump];
 drag_units(_,_,continue) -> [distance,skip,skip,bump];
 drag_units(_,_,stop) -> [{distance,{0.0,infinity}},skip,skip,bump].
 
@@ -372,8 +372,9 @@ bump(V, Vpos, _, faces, FDict, _, Bump) ->
 
 contour_relative(V, Vpos1, Vpos0, SDict, inset_faces,relative, Percent) ->
     [Center] = orddict:fetch(V,SDict),
-    Normal = e3d_vec:norm_sub(Vpos1,Vpos0),
-    Point = intersect_vec_plane(Vpos0, Center, Normal, Normal),
+    Normal0 = e3d_vec:norm_sub(Vpos1,Vpos0),
+    Point = intersect_vec_plane(Vpos0, Center, Normal0, Normal0),
+    Normal = e3d_vec:norm_sub(Point,Vpos0),
     Dist = e3d_vec:dist(Vpos0, Point),
     e3d_vec:add(Vpos0, e3d_vec:mul(Normal, Dist * Percent));
 contour_relative(_, Vpos1, _, _, _, _, _) -> Vpos1.
