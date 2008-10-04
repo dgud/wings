@@ -491,7 +491,7 @@ language_name("de") -> "Deutsch";
 language_name("es") -> "Español";
 language_name("fi") -> "Suomi";
 language_name("fr") -> "Français";
-language_name("hu") -> "Hungarian"
+language_name("hu") -> "Hungarian";
 language_name("it") -> "Italiano";
 language_name("pl") -> "Polski";
 language_name("pt") -> "Português";
