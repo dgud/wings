@@ -1,4 +1,4 @@
---- 0.99.XX -----------------------------------------------------------------
+--- 0.99.04 -----------------------------------------------------------------
 - New Feature: Circularise now works on open edge loops, and by pressing '1'
   during the drag phase of the tool, you can choose to flatten or not flatten
   the result to a single plane. [optigon]
