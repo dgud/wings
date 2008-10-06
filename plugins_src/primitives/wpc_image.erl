@@ -3,7 +3,7 @@
 %%
 %%     Image plane plug-in
 %%
-%%  Copyright (c) 2002-2004 Bjorn Gustavsson.
+%%  Copyright (c) 2002-2008 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -63,7 +63,16 @@ make_image_1(Name0, #e3d_image{type=Type}=Image0) ->
     Image1 = e3d_image:convert(Image0, img_type(Type), 1, lower_left),
     Name = filename:rootname(filename:basename(Name0)),
     #e3d_image{width=W0,height=H0} = Image1,
-    Image = pad_image(Image1),
+    Image = case pad_image(Image1) of
+		Image1 ->
+		    %% The image was not padded, therefore it is safe
+		    %% to keep the image as external.
+		    Image0;
+		Image2 ->
+		    %% The image has been padded. We must make sure that
+		    %% the new image is saved - so force it to be internal.
+		    Image2#e3d_image{filename=none}
+	    end,
     #e3d_image{width=W,height=H} = Image,
     ImageId = wings_image:new(Name, Image),
     case can_texture_be_loaded(Image) of
@@ -138,7 +147,7 @@ pad_rows(Bin, W, Pad, Acc) ->
 
 zeroes(0) -> [];
 zeroes(1) -> [0];
-zeroes(N) when N rem 2 == 0 ->
+zeroes(N) when N rem 2 =:= 0 ->
     Z = zeroes(N div 2),
     [Z|Z];
 zeroes(N) ->
