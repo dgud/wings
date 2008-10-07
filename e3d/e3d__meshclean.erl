@@ -3,7 +3,7 @@
 %%
 %%     Internal module for cleaning E3D meshes.
 %%
-%%  Copyright (c) 2001-2002 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -36,7 +36,7 @@ orient_normals(#e3d_mesh{fs=Fs0}=Mesh) ->
     case catch orient_0(Ws,[], 100) of
 	{'EXIT', Reason} -> 
 	    ets:delete(e2f),
-	    io:format("Reorient-normals failed with: ~p~n", [Reason]),
+	    %%io:format("Reorient-normals failed with: ~p~n", [Reason]),
 	    exit(Reason);
 	Res0 -> 
 	    ets:delete(e2f),    
@@ -62,7 +62,8 @@ orient_0(_Ws0,BF,Max) when length(BF) > Max  ->
 orient_0(Ws0,BF,Max) ->
     case catch orient_1(Ws0,gb_trees:empty()) of
 	{bad, Bad} ->
-	    io:format("Found bad face ~p when reorienting deleting it and retrying ~n", [Bad]),
+%% 	    io:format("Found bad face ~p when reorienting deleting it and retrying ~n",
+%% 		      [Bad]),
 	    Es0 = gb_trees:get(Bad, Ws0),
 	    Ws = gb_trees:delete(Bad, Ws0),
 	    [ets:delete_object(e2f, {E, {Bad,S}}) || {E,S} <- Es0], 
@@ -172,25 +173,57 @@ clean_faces(#e3d_mesh{fs=Fs0,vs=Vs,vc=Vc,tx=Tx,ns=Ns}=Mesh0) ->
     Mesh = Mesh0#e3d_mesh{fs=Fs},
     e3d_mesh:renumber(Mesh).
 
-clean_faces_1([#e3d_face{vs=Vs0}=Face|Fs], Acc) ->
-    case clean_dup_vs(Vs0, Vs0) of
-	[_,_,_|_]=Vs ->
+clean_faces_1([#e3d_face{}=Face0|Fs], Acc) ->
+    #e3d_face{vs=Vs} = Face = clean_face_dups(Face0),
+    case Vs of
+	[_,_,_|_] ->
 	    case length(ordsets:from_list(Vs)) =:= length(Vs) of
 		true ->
-		    clean_faces_1(Fs, [Face#e3d_face{vs=Vs}|Acc]);
+		    clean_faces_1(Fs, [Face|Acc]);
 		false ->
 		    clean_faces_1(Fs, Acc)
 	    end;
 	_ -> clean_faces_1(Fs, Acc)
     end;
 clean_faces_1([], Acc) -> reverse(Acc).
+
+clean_face_dups(#e3d_face{vs=Vs0,vc=Vc0,tx=Tx0,ns=Ns0}=Face) ->
+    L0 = zip_face(Vs0, Vc0, Tx0, Ns0),
+    L = clean_dup_vs(L0, L0),
+    {Vs,Vc,Tx,Ns} = unzip_face(L),
+    Face#e3d_face{vs=Vs,vc=Vc,tx=Tx,ns=Ns}.
 	    
-clean_dup_vs([V|[V|_]=Vs], First) ->
+clean_dup_vs([{V,_}|[{V,_}|_]=Vs], First) ->
     clean_dup_vs(Vs, First);
-clean_dup_vs([V], [V|_]) -> [];
+clean_dup_vs([{V,_}], [{V,_}|_]) -> [];
 clean_dup_vs([V|Vs], First) ->
     [V|clean_dup_vs(Vs, First)];
 clean_dup_vs([], _) -> [].
+
+zip_face([V|Vs], A0, B0, C0) ->
+    [A1|A] = head_tail(A0),
+    [B1|B] = head_tail(B0),
+    [C1|C] = head_tail(C0),
+    [{V,{A1,B1,C1}}|zip_face(Vs, A, B, C)];
+zip_face([], [], [], []) -> [].
+
+head_tail([]) -> [none|[]];
+head_tail([_|_]=L) -> L.
+
+unzip_face(L) ->
+    unzip_face_1(L, [], [], [], []).
+
+unzip_face_1([{V,{A,B,C}}|T], Vacc0, Aacc0, Bacc0, Cacc0) ->
+    Vacc = [V|Vacc0],
+    Aacc = cons(A, Aacc0),
+    Bacc = cons(B, Bacc0),
+    Cacc = cons(C, Cacc0),
+    unzip_face_1(T, Vacc, Aacc, Bacc, Cacc);
+unzip_face_1([], Vacc, Aacc, Bacc, Cacc) ->
+    {reverse(Vacc),reverse(Aacc),reverse(Bacc),reverse(Cacc)}.
+
+cons(none, Tail) -> Tail;
+cons(Head, Tail) -> [Head|Tail].
 
 clean_bad_refs([#e3d_face{vs=Vs}=Face0|Fs],
 	       {Vsz,SzList}=Sizes, Acc) ->
@@ -213,7 +246,7 @@ clean_bad_refs_1([{Sz,Pos}|T], Face0) ->
 	[_|_] ->
 	    %% A bad vertex color, UV coordinate, or normal.
 	    %% Reset to empty list.
-	    io:format("~p: ~p\n", [Pos,Face0]),
+	    %%io:format("~p: ~p\n", [Pos,Face0]),
 	    Face = setelement(Pos, Face0, []),
 	    clean_bad_refs_1(T, Face)
     end;
