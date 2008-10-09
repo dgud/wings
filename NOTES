@@ -7,6 +7,9 @@
   would not correctly clean up the face if the face had U/V coordinates
   or vertex colors, causing a crash. (Thanks to Krurukyk.) [bjorng]
 
+- Wings would crash when importing "unconventional" OBJ files (a "g"
+  command followed by an "o" command). [bjorng]
+
 --- 0.99.04 -----------------------------------------------------------------
 - New Feature: Circularise now works on open edge loops, and by pressing '1'
   during the drag phase of the tool, you can choose to flatten or not flatten

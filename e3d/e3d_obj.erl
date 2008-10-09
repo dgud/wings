@@ -83,12 +83,16 @@ separate_1([{Name,S,E}|T], E, Acc) ->
 separate_1([], _, Acc) -> Acc.
     
 get_face_num([{eof,N}|_]) -> N;
-get_face_num([{group,_,N}|_]) -> N.
+get_face_num([{group,_,N}|_]) -> N;
+get_face_num([{name,_,N}|_]) -> N.
 
 skip_upto_name([{eof,N}]=T) -> {T,N};
 skip_upto_name([{name,_,N}|_]=T) -> {T,N};
 skip_upto_name([_|T]) -> skip_upto_name(T).
 
+make_objects([{_Name,0}|T], Fs, Template) ->
+    %% Ignore object with 0 faces.
+    make_objects(T, Fs, Template);
 make_objects([{Name,N}|T], Fs0, Template) ->
     {Ftab,Fs} = split(Fs0, N, []),
     Mesh0 = e3d_mesh:clean_faces(Template#e3d_mesh{fs=Ftab}),
