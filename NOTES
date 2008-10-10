@@ -10,6 +10,10 @@
 - Wings would crash when importing "unconventional" OBJ files (a "g"
   command followed by an "o" command). [bjorng]
 
+- Connect will now work in smaller faces than before. (Wings try to avoid
+  the creation of degenerate faces with near zero area, which also prevented
+  connect to work in small faces.) [bjorng]
+
 --- 0.99.04 -----------------------------------------------------------------
 - New Feature: Circularise now works on open edge loops, and by pressing '1'
   during the drag phase of the tool, you can choose to flatten or not flatten

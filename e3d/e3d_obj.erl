@@ -26,6 +26,7 @@
 	 vn=[],					%Vertex normals.
 	 f=[],					%Faces.
 	 g=[],					%Groups.
+	 s=[],					%Smooth groups.
 	 mat=[],				%Current material.
 	 matdef=[],				%Material definitions.
 	 dir,					%Directory of .obj file.
@@ -58,6 +59,7 @@ import(Name) ->
 import_1(Fd, Dir) ->
     Ost0 = read(fun parse/2, Fd, #ost{dir=Dir}),
     Ost = remember_eof(Ost0),
+    io:format("~p\n", [Ost#ost.s]),
     #ost{v=Vtab0,vt=TxTab0,f=Ftab0,g=Gs0,vn=VnTab0,matdef=Mat} = Ost,
     Vtab = reverse(Vtab0),
     TxTab = reverse(TxTab0),
@@ -180,6 +182,18 @@ parse(["g"|Names], Ost) ->
 parse(["o"], Ost) -> Ost;
 parse(["o",Name|_], Ost) ->
     remember_name(Name, Ost);
+parse(["s","off"], Ost) ->
+    remember_sgroup(0, Ost);
+parse(["s",Sg0|T], Ost) ->
+    try
+	Sg = list_to_integer(Sg0),
+	T = [],
+	remember_sgroup(Sg, Ost)
+    catch
+	error:_ ->
+	    %% Ignore bad "s" statement.
+	    Ost
+    end;
 parse(["usemtl"|[Mat|_]], Ost) ->
     Ost#ost{mat=[list_to_atom(Mat)]};
 parse(["mtllib",FileName], #ost{dir=Dir}=Ost) ->
@@ -205,6 +219,9 @@ remember_group(Names, #ost{f=Ftab,g=Gs}=Ost) ->
 
 remember_name(Name, #ost{f=Ftab,g=Gs}=Ost) ->
     Ost#ost{g=[{name,Name,length(Ftab)}|Gs]}.
+
+remember_sgroup(Sg, #ost{s=Sgs,f=Ftab}=Ost) ->
+    Ost#ost{s=[{Sg,length(Ftab)}|Sgs]}.
     
 collect_vs([V|Vs], Ost) ->
     [collect_vtxref(V, Ost)|collect_vs(Vs, Ost)];

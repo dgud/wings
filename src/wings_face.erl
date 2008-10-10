@@ -132,7 +132,7 @@ good_normal(D1, [_Va|[Vb,Vc|_]=Vs], More) ->
     D2 = e3d_vec:sub(Vb, Vc),
     Cross = e3d_vec:cross(D1, D2),
     case e3d_vec:len(Cross) of
-	Zero when abs(Zero) < 1.0e-5 ->
+	Zero when abs(Zero) < 1.0e-16 ->
 	    good_normal(D2, Vs, More);
 	_Len -> true
     end;
