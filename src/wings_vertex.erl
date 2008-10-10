@@ -417,6 +417,22 @@ try_connect({Va,Vb}, Face, We) ->
 
 try_connect_1(Va, Vb, Face, We0) ->
     {We,NewFace} = Res = force_connect(Va, Vb, Face, We0),
+
+    %% We want to make sure that none of the new faces are degenerated,
+    %% for instance faces looking like this
+    %%
+    %%   A
+    %%   |
+    %%   |
+    %%   C
+    %%   |
+    %%   |
+    %%   B
+    %%
+    %% where the edges are A-C, C-B, and B-A (the new edge).
+    %%
+    %% We only accept a face that has at least one defined normal.
+    %% (The "face" constructed above does not have any normal.)
     case wings_face:good_normal(Face, We) andalso
 	wings_face:good_normal(NewFace, We) of
 	true -> Res;
