@@ -425,8 +425,7 @@ try_connect({Va,Vb}, Face, We) ->
 try_connect_1(Va, Vb, Face, We0) ->
     {We,NewFace} = Res = force_connect(Va, Vb, Face, We0),
 
-    %% We want to make sure that none of the new faces are degenerated,
-    %% for instance faces looking like this
+    %% It is crucial that we reject long thin faces, such as
     %%
     %%   A
     %%   |
@@ -436,20 +435,14 @@ try_connect_1(Va, Vb, Face, We0) ->
     %%   |
     %%   B
     %%
-    %% where the edges are A-C, C-B, and B-A (the new edge).
-    %%
-    %% We only accept a face that has at least one defined normal.
-    %% (The "face" constructed above does not have any normal.)
-    %% 
-    %% It is crucial that we reject degenerated faces, since
-    %% the Connect command for vertices will try many combinations
+    %% (where the edges are A-C, C-B, and B-A), since the
+    %% Connect command for vertices will try many combinations
     %% of pair of vertices if the user has selected more than two
     %% vertices.
-
-    case wings_face:good_normal(Face, We) andalso
-	wings_face:good_normal(NewFace, We) of
-	true -> Res;
-	false -> no
+    case wings_face:is_thin(Face, We) orelse
+	wings_face:is_thin(NewFace, We) of
+	true -> no;
+	false -> Res
     end.
 
 force_connect(Vstart, Vend, Face, #we{es=Etab0,fs=Ftab0}=We0) ->

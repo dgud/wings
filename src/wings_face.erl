@@ -18,7 +18,7 @@
 	 to_edges/2,to_vertices/2,
 	 normal/2,normal/3,
 	 face_normal_cw/2,face_normal_ccw/2,
-	 good_normal/2,
+	 good_normal/2,is_thin/2,
 	 center/2,area/2,
 	 vinfo_cw/2,vinfo_cw/3,
 	 vinfo_ccw/2,vinfo_ccw/3,
@@ -139,6 +139,51 @@ good_normal(D1, [_Va|[Vb,Vc|_]=Vs], More) ->
 good_normal(D1, Vs, [Va,Vb|_]) ->
     good_normal(D1, Vs++[Va,Vb], []);
 good_normal(_, _, _) -> false.
+
+%% is_thin(Face, We) -> true|false
+%%  Return true if the face is very thin, for instance like
+%%  the face A-B-C:
+%%
+%%   A
+%%   |
+%%   |
+%%   C
+%%   |
+%%   |
+%%   B
+%%
+%%  The test is relative.
+
+is_thin(Face, We) ->
+    Ps = vertex_positions(Face, We),
+    Ls0 = pair_fold(fun(P1, P2, A) ->
+			    [e3d_vec:dist(P1, P2)|A]
+		    end, [], Ps),
+    Ls = sort(Ls0),
+    is_thin_1(Ls, 0.0).
+
+is_thin_1([Longest], Sum) ->
+    %% Calculate
+    %%
+    %%     The sum of the length of all edges expect the longest
+    %%    -------------------------------------------------------
+    %%               The length of the longest edge
+    %%
+    %% This quotient will be around one for long thin faces, and
+    %% greater than one for healthy faces.
+
+    Sum/Longest =< 1.001;
+is_thin_1([H|T], Sum) when is_float(H), is_float(Sum) ->
+    is_thin_1(T, Sum+H).
+
+pair_fold(Fun, Acc, [Last|_]=L) when is_function(Fun, 3) ->
+    pair_fold_1(L, Fun, Last, Acc).
+
+pair_fold_1([H1|[H2|_]=T], Fun, Last, Acc0) ->
+    Acc = Fun(H1, H2, Acc0),
+    pair_fold_1(T, Fun, Last, Acc);
+pair_fold_1([H], Fun, Last, Acc) ->
+    Fun(H, Last, Acc).
 
 %% center(Face, We)
 %%  Return the center of the face.
