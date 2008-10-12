@@ -348,7 +348,7 @@ check_vertices(Vs0) ->
 
 check_vertices_1([V,V|_]) ->
     wings_u:error(?STR(check_vertices_1,1,"Non-collapsible vertex") ++ " ("
-		     ++ integer_to_list(V) ++ ") -"
+		     ++ integer_to_list(V) ++ ") - "
 		     ++?STR(check_vertices_1,2,"would leave waist.\n"));
 check_vertices_1([_|Vs]) ->
     check_vertices(Vs);
