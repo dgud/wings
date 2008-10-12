@@ -345,16 +345,23 @@ min_distance_pairs_1(Faces0, Vs0, We0) ->
 	    end
     end.
 
-%% Don't go for position distance use the topological distance instead.
-%% Hopefully fixes this problem
-%  +__*_ *__*_+
-%   \       |  \
-%    \      |   \ 
-%     \      |   \
-%      \     |    \ 
-%       \    |     \
-%        \   |      \
-%         +--*--*--*-+
+%% Don't go for position distance - use the topological distance instead.
+%% Hopefully fixes this problem:
+%%     A  B  C
+%%  +__*_ *__*_+
+%%   \       |  \
+%%    \      |   \ 
+%%     \      |   \
+%%      \     |    \ 
+%%       \    |     \
+%%        \   |      \
+%%         +--*--*--*-+
+%%            D  E  F
+%%  What we do is to try connecting each selected vertex to the
+%%  next selected vertex near it. For instance, we might try the following
+%%  connections: A-B, B-C, C-D... The first two connections will be
+%%  discarded because the resulting new faces do not have defined
+%%  normals. The connection C-D will succeed.
 
 nearest_pair_smart(Face, AllVs, We) ->
     FaceVs = wings_face:vertices_ccw(Face, We),
@@ -362,7 +369,7 @@ nearest_pair_smart(Face, AllVs, We) ->
     Vs     = ordsets:intersection(Vs0, AllVs),
     nearest_pair_smart_1(FaceVs, Vs, Face, We, []).
 
-%% If we new that the intersection was stable this step wouldn't be needed.
+%% If we knew that the intersection was stable this step wouldn't be needed.
 nearest_pair_smart_1([V|Vs], Sel, Face, We, Acc) ->
     case ordsets:is_element(V, Sel) of
 	true ->
@@ -433,6 +440,12 @@ try_connect_1(Va, Vb, Face, We0) ->
     %%
     %% We only accept a face that has at least one defined normal.
     %% (The "face" constructed above does not have any normal.)
+    %% 
+    %% It is crucial that we reject degenerated faces, since
+    %% the Connect command for vertices will try many combinations
+    %% of pair of vertices if the user has selected more than two
+    %% vertices.
+
     case wings_face:good_normal(Face, We) andalso
 	wings_face:good_normal(NewFace, We) of
 	true -> Res;
