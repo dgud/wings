@@ -1,3 +1,9 @@
+--- 0.99.XX -----------------------------------------------------------------
+- New Feature: Select|Similar Material selects all faces of the same material to
+  the original face. You can select only those faces which are connected to the
+  original face and share at least one edge by check marking "Connected Faces
+  Only" in the options panel. [optigon]
+
 --- 0.99.04a ----------------------------------------------------------------
 - The Image Plane command will now create an internal image if it needs to
   pad a non-power-of-two image, fixing a long-standing bug that images in

@@ -28,7 +28,8 @@ menu(St) ->
      {?__(3,"More"),more,more_help(St)},
      {?__(4,"Less"),less,less_help(St)},
      {?__(5,"Similar"),similar,similar_help(St)}]
-    ++ oriented_faces_menu(St) ++ similar_area_faces_menu(St) ++
+    ++ oriented_faces_menu(St) ++ similar_area_faces_menu(St)
+    ++ similar_material_faces(St) ++
     [separator,
      {?__(6,"Edge Loop"),
       {edge_loop,
@@ -154,6 +155,12 @@ similar_area_faces_menu(#st{selmode=face}) ->
 similar_area_faces_menu(_) ->
   [].
 
+similar_material_faces(#st{selmode=face}) ->
+    [{?__(1,"Similar Material"),similar_material,
+      ?__(2,"Select faces with a similar material to those already selected"),[option]}];
+similar_material_faces(_) ->
+    [].
+
 groups_menu(#st{ssels=Ssels}=St) ->
     case gb_trees:is_empty(Ssels) of
 	true -> [];
@@ -261,6 +268,10 @@ command({oriented_faces,Ask}, St) ->
     oriented_faces(Ask, St);
 command({similar_area,Ask}, St) ->
     similar_area(Ask, St);
+	
+command({similar_material,Ask}, St) ->
+    similar_material(Ask, St);
+	
 command({select_group,Id}, St) ->
     {save_state,select_group(Id, St)};
 command({union_group, Id}, St) ->
@@ -1006,6 +1017,97 @@ any_matching_normal(CosTolerance, Normal, [N|T]) ->
     if
       Dot >= CosTolerance -> true;
       true -> any_matching_normal(CosTolerance, Normal, T)
+    end.
+
+%%%
+%%% Select similarly oriented faces.
+%%%
+
+similar_material(_, #st{selmode=Mode}) when Mode =/= face ->
+    keep;					%Wrong mode (invoked through hotkey).
+similar_material(_, #st{selmode=face, sel=[]}) ->
+    wings_u:error(?__(3,"At least one face must be selected"));
+
+similar_material(Ask, _St) when is_atom(Ask) ->
+    Connected = wings_pref:get_value(similar_materials_connected,false),
+    Qs = [{?__(2,"Connected Faces Only"),Connected}],
+    wings_ask:dialog(Ask, ?__(1,"Select Similarly Materialed Faces"),
+    [{vframe,Qs}],
+    fun(Res) -> {select,{similar_material,Res}} end);
+similar_material([false], St) ->
+    Normals = wings_sel:fold(fun(Sel0, We, A) ->
+                [wings_facemat:face(SelI, We) ||
+                    SelI <- gb_sets:to_list(Sel0)] ++ A
+              end, [], St),
+    Sel = fun(Face, We) ->
+          Normal = wings_facemat:face(Face,We),
+          any_matching_material(Normal, Normals)
+      end,
+    wings_pref:set_value(similar_materials_connected,false),
+    {save_state,wings_sel:make(Sel, face, St)};
+
+similar_material([true], St0) ->
+    Materials = wings_sel:fold(fun(Faces, #we{id=Id}=We, A) ->
+                [{Id, Face, wings_facemat:face(Face, We)} ||
+                    Face <- gb_sets:to_list(Faces)] ++ A
+              end, [], St0),
+    individuate_data(Materials,St0,[]).
+
+individuate_data([{Id,Face0,Mat}|Materials],St0,SelAcc) ->
+    Face2 = case lists:member({Id,Face0},SelAcc) of
+      false ->
+        Face1 = sel_check_mat([{Id,Face0}],none),
+        St = wings_sel:make(Face1,face,St0),
+        connected_faces(Mat,Id,[{Id,Face0}],St);
+      true -> []
+    end,
+    individuate_data(Materials,St0,Face2++SelAcc);
+
+individuate_data([],St0,SelAcc) ->
+    Sel = sel_check(SelAcc,none),
+    St = wings_sel:make(Sel,face,St0),
+    wings_pref:set_value(similar_materials_connected,true),
+    {save_state,St}.
+
+connected_faces(Mat,Id0,Sel0,St0) ->
+    St1 = wings_sel_conv:mode(face,St0),
+    Sel1 = wings_sel:fold(fun(Faces,#we{id=Id}=We,Acc) ->
+          case Id0 =:= Id of
+            true ->
+              FaceList = process_faces_mat(gb_sets:to_list(Faces),Id, []),
+              Sel2 = FaceList -- Sel0,
+              check_material_faces(Sel2,Mat,We,Acc);
+            false -> Acc
+          end
+        end, [], St1),
+    case sel_check_mat(Sel1,Sel0) of
+        {done,_} ->	
+            Sel0;
+        Selection ->
+            St = wings_sel:make(Selection,face,St0),
+            connected_faces(Mat,Id0,Sel1++Sel0,St)
+    end.
+sel_check_mat([],Sel) -> {done,sel_check_mat(Sel,none)};
+sel_check_mat(Sel,_) -> fun(Face,#we{id=Id}) -> lists:member({Id,Face},Sel) end.
+
+process_faces_mat([F|Fs], Id, Acc) ->
+    process_faces_mat(Fs, Id, [{Id,F}|Acc]);
+process_faces_mat([], _, Acc) -> Acc.
+
+check_material_faces([{Id,Face}|Fs],Mat,We,Acc) ->
+    Material = wings_facemat:face(Face, We),
+    case any_matching_material(Material,[Mat]) of
+      true -> check_material_faces(Fs,Mat,We,[{Id,Face}|Acc]);
+      false -> check_material_faces(Fs,Mat,We,Acc)
+    end;
+check_material_faces([],_,_,Acc) -> Acc.
+
+any_matching_material(_,[]) ->
+    false;
+any_matching_material(Material, [Mat|T]) ->
+    if
+      Material == Mat -> true;
+      true -> any_matching_material(Material, T)
     end.
 
 %%%
