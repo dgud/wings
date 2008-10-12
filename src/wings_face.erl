@@ -172,7 +172,15 @@ is_thin_1([Longest], Sum) ->
     %% This quotient will be around one for long thin faces, and
     %% greater than one for healthy faces.
 
-    Sum/Longest =< 1.001;
+    try
+	Sum/Longest =< 1.001
+    catch
+	error:badarith ->
+	    %% Technically, this face is not thin, but we
+	    %% certainly don't want to have anything to do with
+	    %% this face.
+	    true
+    end;
 is_thin_1([H|T], Sum) when is_float(H), is_float(Sum) ->
     is_thin_1(T, Sum+H).
 
