@@ -431,8 +431,9 @@ cat_command_fun() ->
 command_menus() ->
     Modes = [{vertex},{edge},{face},{body}],
     Cmds = [move,scale,rotate,flatten],
-    Modes ++ [{Mode,Cmd} || {Mode} <- Modes, Cmd <- Cmds] ++ [{face,tesselate}].
-    
+    Modes ++ [{Mode,Cmd} || {Mode} <- Modes, Cmd <- Cmds]
+    ++ [{vertex,deform},{face,tesselate}].
+
 try_menu([N|Ns], M, Category) ->
     DefaultMenu = plugin_default_menu(),
     case M:menu(N, DefaultMenu) of

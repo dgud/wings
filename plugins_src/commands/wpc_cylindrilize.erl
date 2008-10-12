@@ -15,12 +15,18 @@
 
 init() ->
     true.
-
-menu({vertex,deform}, Menu) ->
-    [A,B|T] = Menu,
-    [A,B,cylindrilize_menu(),T];
-
+menu({vertex,deform},Menu) ->
+    lists:reverse(parse(Menu, [], false));
 menu(_,Menu) -> Menu.
+
+parse([], NewMenu, true) ->
+    NewMenu;
+parse([], NewMenu, false) ->
+    [cylindrilize_menu()|NewMenu];
+parse([A = {_,{taper,_}}|Rest], NewMenu, false) ->
+    parse(Rest, [A,cylindrilize_menu()|NewMenu], true);
+parse([Elem|Rest], NewMenu, Found) ->
+    parse(Rest, [Elem|NewMenu], Found).
 
 %%%% Menus
 cylindrilize_menu() ->
