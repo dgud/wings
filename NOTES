@@ -4,6 +4,9 @@
   original face and share at least one edge by check marking "Connected Faces
   Only" in the options panel. [optigon]
 
+- In the AutoUV window, scaling non-continous faces with magnet would
+  crash Wings. (Thanks to zukas.) [bjorng]
+
 --- 0.99.04a ----------------------------------------------------------------
 - The Image Plane command will now create an internal image if it needs to
   pad a non-power-of-two image, fixing a long-standing bug that images in

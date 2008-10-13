@@ -703,9 +703,9 @@ handle_event_3({action,{auv,{draw_options,Opt}}}, #st{bb=Uvs}=St) ->
 	    get_event(St#st{bb=Uvs#uvstate{st=GeomSt,matname=MatName}})
     end;
 %% Others
-handle_event_3({vec_command,Command,_St}, _) when is_function(Command) ->
+handle_event_3({vec_command,Command,_St}, _) when is_function(Command, 0) ->
     %% Use to execute command with vector arguments (see wings_vec.erl).
-    catch Command();
+    Command();
 handle_event_3(close, _St) ->
     cleanup_before_exit(),
     delete;
