@@ -172,6 +172,8 @@ contour_data([Faces|FaceRegions], We, EDict, FDict, LDict, SDict) ->
     EdgeDict = vs_directions(Edges, We, Edges, EDict),
     contour_data(FaceRegions, We, EdgeDict, FaceDict, LoopDict, ScaleDict).
 
+loop_norm([], _) ->
+    wings_u:error(?__(1,"Wholly selected objects cannot be contoured"));
 loop_norm(Edges,We) ->
 %%%% Return average normal of multiple loops in a single face region
     Loops = wings_edge_loop:edge_loop_vertices(Edges, We),
