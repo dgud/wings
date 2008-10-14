@@ -9,6 +9,10 @@
 
 - Selecting every face on an object and calling Contour would crash wings. Now
   fixed. [optigon]
+
+- Changed [+/-] drag modifiers to use RMB+Drag. Affects Vertex and Edge Extrude,
+  Face|Bump, and Vertex|Deform|Shear. [optigon]
+
 --- 0.99.04a ----------------------------------------------------------------
 - The Image Plane command will now create an internal image if it needs to
   pad a non-power-of-two image, fixing a long-standing bug that images in

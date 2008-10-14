@@ -262,14 +262,13 @@ shear_callback({GlidePlane,Radial,Origin,GlidePoint},St) ->
     Sf = shear_factor(GlidePlane,Origin,GlidePoint),
     DistsFromCntr = largest_dist_along_axis(Norm,St),
     DBbox = abs(lists:max(DistsFromCntr)) + abs(lists:min(DistsFromCntr)),
-    CurveFactor = 1.0,
-    ShearData = {CurveFactor,Sf,Norm,DBbox,Dir,Anchor},
+    ShearData = {Sf,Norm,DBbox,Dir,Anchor},
     Data = {GlidePlane,Radial,Origin,GlidePoint},
     Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
             shear_verts(ShearData,State,Data,Vs,We,Acc)
             end, [], St),
-    Units = shear_units(Mode,[falloff]),
-    Flags = [{mode,{shear_modes([falloff]),State}},{initial,[0]}],
+    Units = shear_units(Mode),
+    Flags = [{mode,{shear_modes(),State}},{initial,[0.0,0.0,0.0,1.0]}],
     wings_drag:setup(Tvs, Units, Flags, St);
 
 %%%% To catch 'repeat drag' arguments where the user was re-asked selections
@@ -280,15 +279,15 @@ shear_callback(_,St) ->
         check_selection(Data,St0)
     end).
 
-shear_units(absolute,T) ->
-    [distance|T];
-shear_units(relative,T) ->
-    [percent|T];
-shear_units(angle,T) ->
+shear_units(absolute) ->
+    [distance,skip,skip,{curve,{1.0,infinity}}];
+shear_units(relative) ->
+    [percent,skip,skip,{curve,{1.0,infinity}}];
+shear_units(angle) ->
     Limit = 90.0 - 1.0E-9,
-    [{angle,{-Limit,Limit}}|T].
+    [{angle,{-Limit,Limit}},skip,skip,{curve,{1.0,infinity}}].
 
-shear_modes(Falloff) ->
+shear_modes() ->
     fun(help, State) -> shear_help(State);
       ({key,$1},{absolute,Anchor,Dir}) -> {relative,Anchor,Dir};
       ({key,$1},{relative,Anchor,Dir}) -> {angle,Anchor,Dir};
@@ -297,7 +296,7 @@ shear_modes(Falloff) ->
       ({key,$2},{Mode,Anchor,false}) -> {Mode,Anchor,true};
       ({key,$3},{Mode,true,Dir}) -> {Mode,false,Dir};
       ({key,$3},{Mode,false,Dir}) -> {Mode,true,Dir};
-      (units, {NewType,_Anchor,_Dir}) -> shear_units(NewType,Falloff);
+      (units, {NewType,_Anchor,_Dir}) -> shear_units(NewType);
       (done, {NewMode,NewAnchor,NewDir}) ->
            wings_pref:set_value(shear_mode, NewMode),
            wings_pref:set_value(shear_drag, NewDir),
@@ -305,10 +304,9 @@ shear_modes(Falloff) ->
       (_,_) -> none
     end.
 shear_help({Mode,Anchor,Dir}) ->
-    [?__(5,"[+] or [-] Curve"),
-    "  [1] ",shear_mode_help(Mode),
-    "  [2] ",shear_dir_help(Dir),
-    "  [3] ",shear_anchor_help(Anchor)].
+    ["[1] ",shear_mode_help(Mode),
+     "  [2] ",shear_dir_help(Dir),
+     "  [3] ",shear_anchor_help(Anchor)].
 
 shear_mode_help(absolute) -> ?__(1,"Relative");
 shear_mode_help(relative) -> ?__(2,"Angle");
@@ -325,53 +323,47 @@ shear_verts(ShearData,State,Data,Vs0,#we{id=Id}=We,Acc) ->
     VsPos = wings_util:add_vpos(Vs, We),
     [{Id,{Vs,shear_fun(ShearData,Data,VsPos,State)}}|Acc].
 
-shear_fun({Cf0,Sf,Norm,DBbox,Dir,Anchor},Data,VsPos,State) ->
+shear_fun({Sf,Norm,DBbox,Dir,Anchor},Data,VsPos,State) ->
     fun(new_mode_data, {NewState,_}) ->
-          shear_fun({Cf0,Sf,Norm,DBbox,Dir,Anchor},Data,VsPos,NewState);
-       (new_falloff, CurveFactor) ->
-          Cf = case CurveFactor < 1.0 of
-              true -> 1.0;
-              false -> CurveFactor
-          end,
-          shear_fun({Cf,Sf,Norm,DBbox,Dir,Anchor},Data,VsPos,State);
-       ([Dist|_], A) ->
-          shear_verts_by_mode({Cf0,Sf,Norm,DBbox,Dir,Anchor},State,Data,VsPos,-Dist,A)
+          shear_fun({Sf,Norm,DBbox,Dir,Anchor},Data,VsPos,NewState);
+       ([Dist,_,_,CurveFactor|_], A) ->
+          shear_verts_by_mode({Sf,Norm,DBbox,Dir,Anchor},State,Data,VsPos,-Dist,CurveFactor,A)
     end.
 
-shear_verts_by_mode(ShearData,State,Data,VsPositions,Dist,A) ->
-    {Curve,ShearFac,Norm,DBbox,_Dir,_Anchor} = ShearData,
+shear_verts_by_mode(ShearData,State,Data,VsPositions,Dist,Cf,A) ->
+    {ShearFac,Norm,DBbox,_Dir,_Anchor} = ShearData,
     lists:foldl(fun({V,Vpos}, VsAcc) ->
       case State of
         {relative,Anchor,Dir} ->
-          [{V,relative_shear({Curve,ShearFac,Norm,DBbox,Dir,Anchor},Vpos,Dist,Data)}|VsAcc];
+          [{V,relative_shear({ShearFac,Norm,DBbox,Dir,Anchor},Vpos,Dist,Cf,Data)}|VsAcc];
         {absolute,Anchor,Dir} ->
-          [{V,distance_shear({Curve,ShearFac,Norm,DBbox,Dir,Anchor},Vpos,Dist,Data)}|VsAcc];
+          [{V,distance_shear({ShearFac,Norm,DBbox,Dir,Anchor},Vpos,Dist,Cf,Data)}|VsAcc];
         {angle,Anchor,Dir} ->
-          [{V,angle_shear({Curve,ShearFac,Norm,DBbox,Dir,Anchor},Vpos,Dist,Data)}|VsAcc]
+          [{V,angle_shear({ShearFac,Norm,DBbox,Dir,Anchor},Vpos,Dist,Cf,Data)}|VsAcc]
       end
     end, A, VsPositions).
 
 %%%% Main Functions
-relative_shear(_ShearData,Vpos, 0.0, _Data) ->
+relative_shear(_ShearData,Vpos, 0.0, _Cf, _Data) ->
     Vpos;
 
-relative_shear({Cf,Sf,Norm,DBbox,Dir,Anchor},Vpos,Dist,{GlidePlane,_Radial,Origin,_GlidePoint}) ->
+relative_shear({Cf,Sf,Norm,DBbox,Dir,Anchor},Vpos,Dist,Cf,{GlidePlane,_Radial,Origin,_GlidePoint}) ->
     D = dist_along_vector(Vpos,Origin,GlidePlane),
     {Dist1,Factor} = shear_dist_factor(Cf,Sf,Dir,Anchor,Dist,D),
     e3d_vec:add(Vpos, e3d_vec:mul(Norm, -Dist1 * DBbox * Factor)).
 
-distance_shear(_ShearData,Vpos, 0.0, _Data) ->
+distance_shear(_ShearData,Vpos, 0.0, _Cf, _Data) ->
     Vpos;
 
-distance_shear({Cf,Sf,Norm,_DBbox,Dir,Anchor},Vpos,Dist,{GlidePlane,_Radial,Origin,_GlidePoint}) ->
+distance_shear({Sf,Norm,_DBbox,Dir,Anchor},Vpos,Dist,Cf,{GlidePlane,_Radial,Origin,_GlidePoint}) ->
     D = dist_along_vector(Vpos,Origin,GlidePlane),
     {Dist1,Factor} = shear_dist_factor(Cf,Sf,Dir,Anchor,Dist,D),
     e3d_vec:add(Vpos, e3d_vec:mul(Norm, -Dist1 * Factor)).
 
-angle_shear(_ShearData,Vpos, 0.0, _Data) ->
+angle_shear(_ShearData,Vpos, 0.0, _Cf, _Data) ->
     Vpos;
 
-angle_shear({Cf,Sf,Norm,_DBbox,Dir,Anchor},Vpos,Dist,{GlidePlane,Radial,Origin,GlidePoint}) ->
+angle_shear({Sf,Norm,_DBbox,Dir,Anchor},Vpos,Dist,Cf,{GlidePlane,Radial,Origin,GlidePoint}) ->
     V = intersect_vec_plane(GlidePoint,Origin,GlidePlane),
     {Xv,Yv,Zv} = V,
 

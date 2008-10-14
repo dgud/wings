@@ -360,7 +360,7 @@ help_message(#drag{unit=Unit,mode_fun=ModeFun,mode_data=ModeData}) ->
     ZMsg = zmove_help(Unit),
     FpMsg = fpmove_help(Unit),
     Cancel = wings_msg:button_format([], [],wings_s:cancel()),
-    NumEntry = ?__(1,"Numeric entry"),
+    NumEntry = ?__(1,"Numeric Entry"),
     Tab = wings_util:key_format("[Tab]", NumEntry),
     Switch = switch(),
     Constraint = ?__(2,"Switch Constraint Set")++Switch,
@@ -371,7 +371,7 @@ help_message(#drag{unit=Unit,mode_fun=ModeFun,mode_data=ModeData}) ->
 
 switch() ->
     case wings_pref:get_value(con_alternate) of
-      true -> ?__(1," (using alternate constraints)");
+      true -> ?__(1," (using Alternate Constraints)");
       false -> []
     end.
 	
@@ -381,7 +381,7 @@ zmove_help([_,_,falloff]) -> [];
 zmove_help([_,_,dz|_]) ->
     zmove_help_1(?__(1,"Drag to move along Z"));
 zmove_help([_,_,percent|_]) ->
-    zmove_help_1(?__(3,"Drag to adjust scale"));
+    zmove_help_1(?__(3,"Drag to adjust Scale"));
 zmove_help([_,_,skip|_]) -> [];
 zmove_help([_,_,_|_]) ->
     zmove_help_1(?__(2,"Drag to adjust third parameter")).
@@ -393,7 +393,9 @@ fpmove_help([_,_,_,falloff]) -> [];
 fpmove_help([_,_,_,_,falloff]) ->
     fpmove_help_1(?__(1,"Drag to adjust forth parameter"));
 fpmove_help([_,_,_,angle|_]) ->
-    fpmove_help_1(?__(2,"Drag to adjust rotation"));
+    fpmove_help_1(?__(2,"Drag to adjust Rotation"));
+fpmove_help([_,_,_,percent|_]) ->
+    fpmove_help_1(?__(3,"Drag to adjust Scale"));
 fpmove_help([_,_,skip,Type|_]) ->
     Str = wings_util:stringify(Type),
     Help = ?__(4,"Drag to adjust") ++ " " ++ Str,
