@@ -19,6 +19,12 @@
 
 - View|Show items were broken. (Thanks to pauljs75.) [optigon]
 
+- If a graphics card indicated that it had shader support, but actually using
+  shaders didn't work for any reason, Wings would crash when attempting to
+  use the View menu. Now Wings correctly handles this situation and removes
+  the Shaders from the View menu if shaders doesn't work.
+  (Thanks to FranOnTheEdge.) [bjorng]
+
 --- 0.99.04a ----------------------------------------------------------------
 - The Image Plane command will now create an internal image if it needs to
   pad a non-power-of-two image, fixing a long-standing bug that images in

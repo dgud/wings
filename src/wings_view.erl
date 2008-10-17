@@ -67,39 +67,39 @@ menu(#st{views={CurrentView,Views}}=St) ->
       ?__(14,"Toggle the smooth proxy mode for selected objects")},
      {?__(15,"Quick Smoothed Preview"),quick_preview,
       ?__(16,"Toggle the smooth proxy mode for all objects")},
-     separator,
-     {"Shaders: "++shader_index(),{shader_set,shader_submenu()}},
-     {?__(36,"Scene Lights"),scene_lights,
-      ?__(37,"Use the lights defined in the scene"),
-      crossmark(scene_lights)},
-     {one_of(L == 1, ?__(38,"Two Lights"),?__(39,"One Light")),toggle_lights,
-      one_of(L == 1, ?__(40,"Use two work lights"),
-	     ?__(41,"Use one work light"))},
-     separator,
-     {?__(31,"Orthographic View"),orthogonal_view,
-      ?__(32,"Toggle between orthographic and perspective views"),
-      crossmark(orthogonal_view)},
-     {?__(25,"Reset View"),reset,?__(26,"Reset view to the default position")},
-     {?__(27,"Aim"),aim,?__(28,"Aim the camera at the selected element")},
-     {?__(66,"Highlight Aim"),highlight_aim,
-      ?__(67,"Aim camera at mouseover highlight. (Requires 'Use Highlight as Temporary Selection' enabled, and an assigned hotkey)")},
-     {?__(29,"Frame"),frame,?__(30,"Dolly to show all selected elements (or all objects if nothing is selected)")},
-     {?__(65,"Frame Disregards Mirror"),frame_mode,crossmark(frame_disregards_mirror)},
-     {?__(57,"Align to Selection"),align_to_selection,
-      ?__(58,"Align the view to the normal of the selection")},
-	 separator,
-     {?__(33,"Saved Views: ")++integer_to_list(tuple_size(Views)),
-      {views,views_submenu(CurrentView, Views)}},
-     {?__(50,"View Along"),{along,[{?__(51,"+X"),x},
-			   {?__(52,"+Y"),y},
-			   {?__(53,"+Z"),z},
-			   {?__(54,"-X"),neg_x},
-			   {?__(55,"-Y"),neg_y},
-			   {?__(56,"-Z"),neg_z}]}},
-     separator,
-     {?__(34,"Camera Settings..."),camera_settings,?__(35,"Set field of view, and near and far clipping planes")},
-     separator,
-     {?__(59,"Auto Rotate"),auto_rotate,?__(60,"Spin the view")}].
+     separator |
+     shader_submenu() ++
+     [{?__(36,"Scene Lights"),scene_lights,
+       ?__(37,"Use the lights defined in the scene"),
+       crossmark(scene_lights)},
+      {one_of(L == 1, ?__(38,"Two Lights"),?__(39,"One Light")),toggle_lights,
+       one_of(L == 1, ?__(40,"Use two work lights"),
+	      ?__(41,"Use one work light"))},
+      separator,
+      {?__(31,"Orthographic View"),orthogonal_view,
+       ?__(32,"Toggle between orthographic and perspective views"),
+       crossmark(orthogonal_view)},
+      {?__(25,"Reset View"),reset,?__(26,"Reset view to the default position")},
+      {?__(27,"Aim"),aim,?__(28,"Aim the camera at the selected element")},
+      {?__(66,"Highlight Aim"),highlight_aim,
+       ?__(67,"Aim camera at mouseover highlight. (Requires 'Use Highlight as Temporary Selection' enabled, and an assigned hotkey)")},
+      {?__(29,"Frame"),frame,?__(30,"Dolly to show all selected elements (or all objects if nothing is selected)")},
+      {?__(65,"Frame Disregards Mirror"),frame_mode,crossmark(frame_disregards_mirror)},
+      {?__(57,"Align to Selection"),align_to_selection,
+       ?__(58,"Align the view to the normal of the selection")},
+      separator,
+      {?__(33,"Saved Views: ")++integer_to_list(tuple_size(Views)),
+       {views,views_submenu(CurrentView, Views)}},
+      {?__(50,"View Along"),{along,[{?__(51,"+X"),x},
+				    {?__(52,"+Y"),y},
+				    {?__(53,"+Z"),z},
+				    {?__(54,"-X"),neg_x},
+				    {?__(55,"-Y"),neg_y},
+				    {?__(56,"-Z"),neg_z}]}},
+      separator,
+      {?__(34,"Camera Settings..."),camera_settings,?__(35,"Set field of view, and near and far clipping planes")},
+      separator,
+      {?__(59,"Auto Rotate"),auto_rotate,?__(60,"Spin the view")}]].
 
 crossmark(Key) ->
     Val = case wings_pref:get_value(Key) of
@@ -1190,27 +1190,29 @@ shader_set(N) ->
     end.
 
 shader_submenu() ->
-    case wings_gl:support_shaders() of
-	true ->
-	    Progs = tuple_to_list(get(light_shaders)),
+    case get(light_shaders) of
+	undefined ->
+	    [];
+	Progs0 when is_tuple(Progs0) ->
+	    Progs = tuple_to_list(Progs0),
 	    Names = [Name || {_,Name} <- Progs],
-	    Nums = lists:seq(1, length(Progs)),
-	    Menu = lists:zip(Names,Nums);
-	false ->
-	    Menu = [{"Not Supported", next}]
-    end,
-    lists:append(Menu, [{"< Next >", next},{"< Previous >", prev}]).
+	    Nums = lists:seq(1, tuple_size(Progs0)),
+	    SubMenu = lists:zip(Names, Nums) ++
+		[{"< "++?__(1,"Next")++" >",next},
+		 {"< "++?__(2,"Previous")++">",prev}],
+	    [{?__(3,"Shaders: ")++shader_index(),
+	      {shader_set,SubMenu}}]
+    end.
 
+%% Only call this function if shaders are known to be supported.
 shader_index() ->
-    Progs = get(light_shaders),
-    NumLights = wings_pref:get_value(number_of_lights),
-    NumShaders = wings_pref:get_value(number_of_shaders),
-    UseProg = (Progs /= undefined) and (NumLights == 2),
-    case UseProg of
-	true ->
+    case wings_pref:get_value(number_of_lights) of
+	2 ->
+	    Progs = get(light_shaders),
+	    NumShaders = wings_pref:get_value(number_of_shaders),
 	    {_Prog,Name} = element(NumShaders, Progs),
 	    Name;
-	false ->
+	_ ->
 	    ""
     end.
 
