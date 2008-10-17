@@ -295,28 +295,28 @@ command(quick_preview, St) ->
 command(orthogonal_view, St) ->
     toggle_option(orthogonal_view),
     St;
-command(show_textures, St) ->
+command({show,show_textures}, St) ->
     toggle_option(show_textures),
     wings_dl:map(fun(#dlo{src_we=#we{mode=material}}=D, _) ->
 			 D#dlo{work=none,smooth=none,proxy_faces=none};
 		    (D, _) -> D
 		 end, []),
     St;
-command(show_materials, St) ->
+command({show,show_materials}, St) ->
     toggle_option(show_materials),
     wings_dl:map(fun(#dlo{src_we=#we{mode=material}}=D, _) ->
 			 D#dlo{work=none,smooth=none,proxy_faces=none};
 		    (D, _) -> D
 		 end, []),
     St;
-command(show_colors, St) ->
+command({show,show_colors}, St) ->
     toggle_option(show_colors),
     wings_dl:map(fun(#dlo{src_we=#we{mode=vertex}}=D, _) ->
 			 D#dlo{work=none,smooth=none,proxy_faces=none};
 		    (D, _) -> D
 		 end, []),
     St;
-command(show_normals, St) ->
+command({show,show_normals}, St) ->
     Bool = wings_pref:get_value(show_normals),
     wings_pref:set_value(show_normals, not Bool),
     case Bool of

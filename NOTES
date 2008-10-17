@@ -17,6 +17,8 @@
   temporary highlight as a selection when they were called via hotkeys. Now
   fixed. (Thanks to SoulVector.) [optigon]
 
+- View|Show items were broken. (Thanks to pauljs75.) [optigon]
+
 --- 0.99.04a ----------------------------------------------------------------
 - The Image Plane command will now create an internal image if it needs to
   pad a non-power-of-two image, fixing a long-standing bug that images in
