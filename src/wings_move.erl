@@ -312,13 +312,13 @@ smallest_angle([], _Na, Dot, N) -> {N,Dot}.
 %%
 
 translate_fun(Free) when Free == free; Free == free_2d ->
-    fun(Matrix0, [Dx,Dy,Dz]) ->
+    fun(Matrix0, [Dx,Dy,Dz|_]) ->
 	    #view{azimuth=Az,elevation=El} = wings_view:current(),
 	    M0 = e3d_mat:mul(Matrix0, e3d_mat:rotate(-Az, {0.0,1.0,0.0})),
 	    M1 = e3d_mat:mul(M0, e3d_mat:rotate(-El, {1.0,0.0,0.0})),
 	    {Xt,Yt,Zt} = e3d_mat:mul_point(M1, {Dx,Dy,-Dz}),
 	    e3d_mat:translate(Xt, Yt, Zt);
-       (Matrix0, [Dx,Dy]) ->
+       (Matrix0, [Dx,Dy|_]) ->
 	    #view{azimuth=Az,elevation=El} = wings_view:current(),
 	    M0 = e3d_mat:mul(Matrix0, e3d_mat:rotate(-Az, {0.0,1.0,0.0})),
 	    M1 = e3d_mat:mul(M0, e3d_mat:rotate(-El, {1.0,0.0,0.0})),
@@ -326,7 +326,7 @@ translate_fun(Free) when Free == free; Free == free_2d ->
 	    e3d_mat:translate(Xt, Yt, Zt)
     end;
 translate_fun({Xt0,Yt0,Zt0}) ->
-    fun(_Matrix0, [Dx]) when is_float(Dx) ->
+    fun(_Matrix0, [Dx|_]) when is_float(Dx) ->
 	    Xt = Xt0*Dx,
 	    Yt = Yt0*Dx,
 	    Zt = Zt0*Dx,
@@ -439,9 +439,7 @@ make_tvs(Vs, free, We) ->
 make_tvs(Vs, Vec, _We) -> [{Vec,Vs}].
 
 move_fun(VsPos, ViewMatrix) ->
-    fun(new_falloff, _) ->
-	    move_fun(VsPos, ViewMatrix);
-       (view_changed, NewWe) ->
+    fun(view_changed, NewWe) ->
 	    move_fun(wings_util:update_vpos(VsPos, NewWe), view_matrix());
        ([Dx,Dy,Dz|_], Acc) ->
 	    {Xt,Yt,Zt} = e3d_mat:mul_point(ViewMatrix, {Dx,Dy,-Dz}),
@@ -464,4 +462,3 @@ view_matrix() ->
 
 make_vector(free_2d) -> free_2d;
 make_vector(Vec) -> wings_util:make_vector(Vec).
-    
