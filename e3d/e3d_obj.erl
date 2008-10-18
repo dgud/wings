@@ -59,15 +59,15 @@ import(Name) ->
 import_1(Fd, Dir) ->
     Ost0 = read(fun parse/2, Fd, #ost{dir=Dir}),
     Ost = remember_eof(Ost0),
-    io:format("~p\n", [Ost#ost.s]),
-    #ost{v=Vtab0,vt=TxTab0,f=Ftab0,g=Gs0,vn=VnTab0,matdef=Mat} = Ost,
+    #ost{v=Vtab0,vt=TxTab0,f=Ftab0,g=Gs0,vn=VnTab0,matdef=Mat,s=S0} = Ost,
     Vtab = reverse(Vtab0),
     TxTab = reverse(TxTab0),
     VnTab = reverse(VnTab0),
     Ftab = make_ftab(Ftab0, []),
     Gs1 = reverse(Gs0),
     Gs = separate(Gs1, []),
-    Template = #e3d_mesh{type=polygon,vs=Vtab,tx=TxTab,ns=VnTab},
+    He = hard_edges(S0, Ftab),
+    Template = #e3d_mesh{type=polygon,vs=Vtab,tx=TxTab,ns=VnTab,he=He},
     Objs = make_objects(Gs, Ftab, Template),
     #e3d_file{objs=Objs,mat=Mat}.
 
@@ -83,6 +83,58 @@ separate([{name,Name,Start}|T0], Acc) ->
 separate_1([{Name,S,E}|T], E, Acc) ->
     separate_1(T, S, [{Name,E-S}|Acc]);
 separate_1([], _, Acc) -> Acc.
+
+hard_edges(S0, Ftab) ->
+    S = smooth_groups(S0, length(Ftab)),
+    hard_edges_1(Ftab, S, []).
+
+hard_edges_1([#e3d_face{vs=[]}|Fs], [_|Sgs], Acc) ->
+    %% Ignore face with no vertices.
+    hard_edges_1(Fs, Sgs, Acc);
+hard_edges_1([#e3d_face{vs=Vs}|Fs], [Sg|Sgs], Acc0) ->
+    Acc = add_edges(Vs, hd(Vs), Sg, Acc0),
+    hard_edges_1(Fs, Sgs, Acc);
+hard_edges_1([], [], Acc) ->
+    R = sofs:relation(Acc),
+    F0 = sofs:relation_to_family(R),
+    F = sofs:to_external(F0),
+    foldl(fun({Edge,Sgs0}, He) ->
+		  %% Group 0 is special. Edges surrounded by faces with
+		  %% group zero will always be hard. Otherwise the rule
+		  %% is that the edge will be soft if all smooth groups
+		  %% are the same, and hard if they are different.
+		  case lists:usort(Sgs0) of
+		      [0] -> [Edge|He];
+		      [_] -> He;
+		      [_,_|_] -> [Edge|He]
+		  end
+	  end, [], F).
+
+add_edges([Va|[Vb|_]=T], Last, Sg, Acc) ->
+    add_edges(T, Last, Sg, [edge(Va, Vb, Sg)|Acc]);
+add_edges([Va], Vb, Sg, Acc) ->
+    [edge(Va, Vb, Sg)|Acc].
+    
+edge(A, B, Sg) when A < B -> {{A,B},Sg};
+edge(A, B, Sg) -> {{B,A},Sg}.
+
+%% smooth_groups([{Group,FaceNum}], NumFaces) -> [Group].
+%%  Collect smooth groups for the file. The result is a
+%%  list with the smooth group for each face. Faces not
+%%  explicitly given a smooth group in the file will be
+%%  be assigned group -1 (i.e. if no smooth groups are given,
+%%  all edges will be soft).
+
+smooth_groups(S0, NumFaces) ->
+    S = reverse(S0, [{eof,NumFaces}]),
+    smooth_groups_1(S, 0, -1, []).
+
+smooth_groups_1([{eof,F}], F, _, Acc) ->
+    reverse(Acc);
+smooth_groups_1([{G,F}|T], F, _, Acc) ->
+    smooth_groups_1(T, F+1, G, [G|Acc]);
+smooth_groups_1([_|_]=T, F, G, Acc) ->
+    smooth_groups_1(T, F+1, G, [G|Acc]).
     
 get_face_num([{eof,N}|_]) -> N;
 get_face_num([{group,_,N}|_]) -> N;

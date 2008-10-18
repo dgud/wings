@@ -25,6 +25,9 @@
   the Shaders from the View menu if shaders doesn't work.
   (Thanks to FranOnTheEdge.) [bjorng]
 
+- Smoothing groups in Wavefront import are now handled (i.e. hard edges
+  will be created between faces in different smoothing groups). [bjorng]
+
 --- 0.99.04a ----------------------------------------------------------------
 - The Image Plane command will now create an internal image if it needs to
   pad a non-power-of-two image, fixing a long-standing bug that images in
