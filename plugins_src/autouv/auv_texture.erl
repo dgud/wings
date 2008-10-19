@@ -3,7 +3,7 @@
 %%
 %%     Render and capture a texture.
 %%
-%%  Copyright (c) 2002-2006 Dan Gudmundsson, Bjorn Gustavsson
+%%  Copyright (c) 2002-2008 Dan Gudmundsson, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -915,14 +915,16 @@ vs_lines([A|R=[B|_]],Last) ->
 vs_lines([B],Last) ->
     [B,Last].
 
-merge_mats([This={MatName,_Def}|R], Mats) ->
-    case gb_trees:is_defined(MatName,Mats) of
+merge_mats([{MatName,Mat}|R], Mats) ->
+    case gb_trees:is_defined(MatName, Mats) of
 	true ->
-	    merge_mats(R,Mats);
+	    merge_mats(R, Mats);
 	false ->
-	    merge_mats(R,gb_trees:add(This, Mats))
+	    %% This can happen if the material has been deleted
+	    %% from the Outliner after entering the AutoUV window.
+	    merge_mats(R, gb_trees:insert(MatName, Mat, Mats))
     end;
-merge_mats([],Mats) -> Mats.
+merge_mats([], Mats) -> Mats.
 	     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Builtin Shader Passes
