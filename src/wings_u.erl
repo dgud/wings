@@ -22,9 +22,13 @@
 -include("wings.hrl").
 -import(lists, [member/2,foreach/2]).
 
+-spec error([any()]) -> no_return().
+
 error(Message) when is_list(Message) ->
     wings_pb:cancel(),
     throw({command_error,Message}).
+
+-spec error([any()], [any()]) -> no_return().
 
 error(Format, Arg) ->
     error(lists:flatten(io_lib:format(Format, Arg))).
