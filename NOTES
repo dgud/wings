@@ -1,4 +1,4 @@
---- 0.99.XX -----------------------------------------------------------------
+--- 0.99.05 -----------------------------------------------------------------
 - New Feature: Select|Similar Material selects all faces of the same material to
   the original face. You can select only those faces which are connected to the
   original face and share at least one edge by check marking "Connected Faces
