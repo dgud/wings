@@ -118,7 +118,7 @@ save_1(Image0) ->
     _BiClrUsed = 0, _BiClrImportant = 0,
 %    ?DBGOUT(),
 %    io:format("Size ~p ~n", [size(Image#e3d_image.image)]),
-    [<<?BITMAPFILEHEADER,?BITMAPINFOHEADER>>|Image#e3d_image.image].
+    [<<?BITMAPFILEHEADER,?BITMAPINFOHEADER>>,Image#e3d_image.image].
      
 % debug(I1, I2) ->
 %     debug(I1#e3d_image.image, I2#e3d_image.image, 0).
