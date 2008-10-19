@@ -12,7 +12,7 @@
 %%
 
 -module(auv_texture).
--export([get_texture/1, get_texture/2, draw_options/0]).
+-export([get_texture/2, draw_options/0]).
 
 -compile(export_all).
 
@@ -316,10 +316,6 @@ drop_flags(Id) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Texture creation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-get_texture(St) ->    
-    Ops = list_to_prefs(get_pref(tx_prefs, list_to_prefs(#opt{}))),
-    get_pref(St, Ops).
 
 get_texture(St = #st{bb=#uvstate{}}, {Options,Shaders}) ->
     Compiled = compile_shaders(Options#opt.renderers,Shaders),
@@ -1278,6 +1274,8 @@ render_lights([{Lx,Ly,Lz}| Ligths], PM, Dist, C={Cx,Cy,Cz}, LP1,Ts = #ts{charts=
     
     R = fun(#fs{vs=Vs,id=Id}) ->
 		%% gl:color4ubv(id(Id)),
+		%% XXX The following line is broken. id/1 returns a tuple,
+		%% but a list of tuples is needed for argument 3.
 		gl:uniform4fv(IdPos, 1, id(Id)),
 		gl:drawElements(?GL_TRIANGLES,length(Vs),
 				?GL_UNSIGNED_INT,Vs)
