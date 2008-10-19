@@ -4,7 +4,7 @@
 %%     Functions for reading and writing 3D Studio Max files (.tds),
 %%     version 3.
 %%
-%%  Copyright (c) 2001-2007 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -508,7 +508,7 @@ map_faces([], _Map, Acc) -> reverse(Acc).
 export(Name, Objs) ->
     Version = make_chunk(16#0002, <<3:32/little>>),
     Editor = make_editor(Name, Objs),
-    Main = make_chunk(16#4D4D, [Version|Editor]),
+    Main = make_chunk(16#4D4D, [Version,Editor]),
     case file:write_file(Name, Main) of
 	ok -> ok;
 	{error,_}=Error -> Error
@@ -701,7 +701,7 @@ make_percent(Percent0) when is_float(Percent0) ->
     
 make_chunk(Tag, Contents) when is_binary(Contents) ->
     Size = size(Contents) + 6,
-    [<<Tag:16/little,Size:32/little>>|Contents];
+    [<<Tag:16/little,Size:32/little>>,Contents];
 make_chunk(Tag, Contents) when is_list(Contents) ->
     make_chunk(Tag, list_to_binary(Contents)).
 
