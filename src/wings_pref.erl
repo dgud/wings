@@ -250,7 +250,7 @@ win32_new_pref() ->
 
 win32_new_pref_1(R, [FolderType|T]) ->
     case win32_special_folder(R, FolderType) of
-	none -> win32_pref_1(R, T);
+	none -> win32_new_pref_1(R, T);
 	Path ->
 	    File = filename:join(Path, ?WIN32_PREFS),
 	    filelib:ensure_dir(File),
