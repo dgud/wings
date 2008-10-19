@@ -3,7 +3,7 @@
 %%
 %%     Implementation of lights.
 %%
-%%  Copyright (c) 2002-2005 Bjorn Gustavsson
+%%  Copyright (c) 2002-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -725,9 +725,7 @@ camera_infinite_2_1() ->
 	  }.
 
 
-infinite({X,Y,Z}) ->
-    {X,Y,Z,0.0};
-infinite(V) -> V.
+infinite({X,Y,Z}) -> {X,Y,Z,0.0}.
 
 modeling_lights(global, _Type) -> ok;
 modeling_lights(camera, Type) ->
