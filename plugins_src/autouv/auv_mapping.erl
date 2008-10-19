@@ -426,20 +426,15 @@ lsqcm(Fs, none, Loop, We) ->
 lsqcm(Fs, Pinned, _Loop, We) ->
     ?DBG("Project and tri ~n", []),
     LSQState = lsq_setup(Fs,We,Pinned),
-    case lsq(LSQState, Pinned) of
-	{error, What} ->
-	    ?DBG("TXMAP error ~p~n", [What]),
-	    exit({txmap_error, What});
-	{ok,Vs2} ->
-	    %%?DBG("LSQ res ~p~n", [Vs2]),
-	    Patch = fun({Idt, {Ut,Vt}}) -> {Idt,{Ut,Vt,0.0}} end,
-	    Vs3 = lists:sort(lists:map(Patch, Vs2)),
-	    TempVs = gb_trees:from_orddict(Vs3),
-	    Area = fs_area(Fs, We, 0.0),
-	    MappedArea = fs_area(Fs, We#we{vp=TempVs}, 0.0),
-	    Scale = Area/MappedArea,
-	    scaleVs(Vs3,math:sqrt(Scale),[])
-    end.
+    {ok,Vs2} = lsq(LSQState, Pinned),
+    %%?DBG("LSQ res ~p~n", [Vs2]),
+    Patch = fun({Idt, {Ut,Vt}}) -> {Idt,{Ut,Vt,0.0}} end,
+    Vs3 = lists:sort(lists:map(Patch, Vs2)),
+    TempVs = gb_trees:from_orddict(Vs3),
+    Area = fs_area(Fs, We, 0.0),
+    MappedArea = fs_area(Fs, We#we{vp=TempVs}, 0.0),
+    Scale = Area/MappedArea,
+    scaleVs(Vs3,math:sqrt(Scale),[]).
 
 scaleVs([{Id, {X,Y,_}}|Rest],Scale,Acc) 
   when is_float(X), is_float(Y), is_float(Scale) ->
