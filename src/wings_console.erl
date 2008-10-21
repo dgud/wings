@@ -3,7 +3,7 @@
 %%
 %%     Console for Wings.
 %%
-%%  Copyright (c) 2004-2005 Raimo Niskanen
+%%  Copyright (c) 2004-2008 Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -28,9 +28,7 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--import(lists, [reverse/1,reverse/2,foreach/2,foldl/3,
-		nthtail/2,sublist/2,sublist/3,
-		flatten/1,flatten/2]).
+-import(lists, [reverse/1,reverse/2,foldl/3]).
 -import(wings_util, [min/2,max/2]).
 
 %% Debug exports

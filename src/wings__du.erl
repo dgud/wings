@@ -20,8 +20,6 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [reverse/1,seq/2]).
-
 %% plain_face([Position]) -> ok
 %%  Draw a tri or quad face with neither UV coordinates nor vertex colors.
 plain_face([A,B,C]) ->

@@ -3,7 +3,7 @@
 %%
 %%     Gear and Tube Plugin
 %%
-%%  Copyright (c) 2003-2006 Anthony D'Agostino
+%%  Copyright (c) 2003-2008 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -14,7 +14,7 @@
 -module(wpc_gear).
 -export([init/0,menu/2,command/2]).
 -include("wings.hrl").
--import(math, [sqrt/1,cos/1,sin/1,pi/0,pow/2,exp/1]).
+-import(math, [cos/1,sin/1,pi/0]).
 
 init() -> true.
 

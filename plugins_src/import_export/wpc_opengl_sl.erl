@@ -3,7 +3,7 @@
 %%
 %%     Renderer implemented using the Shading Language in OpenGL.
 %%
-%%  Copyright (c) 2004 Bjorn Gustavsson
+%%  Copyright (c) 2004-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -14,8 +14,6 @@
 
 -export([init/0,menu/2,command/2]).
 -export([enable/0,disable/0]).
-
--import(lists, [reverse/1,reverse/2]).
 
 enable() -> wpa:pref_set(?MODULE, enabled, true).
 
@@ -41,7 +39,7 @@ command({file,{render,{opengl_sl,Ask}}}, St) ->
     render(Ask, St);
 command(_, _) -> next.
 
-render(Ask, St) ->
+render(Ask, _St) ->
     io:format("~p\n", [Ask]),
     keep.
 

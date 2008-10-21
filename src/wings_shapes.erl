@@ -5,7 +5,7 @@
 %%     shapes that can be created, such as Cube, Sphere,
 %%     and Grid.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -17,7 +17,7 @@
 -export([menu/3,command/2]).
 -include("wings.hrl").
 
--import(lists, [map/2,foreach/2,foldl/3,sort/1,last/1,seq/2,seq/3]).
+-import(lists, [map/2,seq/2,seq/3]).
 -import(math, [sqrt/1,cos/1,sin/1,pi/0]).
 
 menu(X, Y, _) ->

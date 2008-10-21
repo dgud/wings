@@ -19,8 +19,7 @@
 -export([select_all/1]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldl/3,reverse/1,reverse/2,sort/1,
-		keydelete/3,keymember/3,keysearch/3]).
+-import(lists, [map/2,foldl/3,reverse/1,keymember/3,keysearch/3]).
 
 menu(St) ->
     [{?__(1,"Deselect"),deselect,?__(2,"Clear the selection")},

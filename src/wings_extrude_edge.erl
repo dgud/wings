@@ -4,7 +4,7 @@
 %%     This module contains the Extrude (edge), Bevel (face/edge) and
 %%     Bump commands. (All based on edge extrusion.)
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,8 +16,7 @@
 -export([bump/1,bevel/1,bevel_faces/1,extrude/2]).
 
 -include("wings.hrl").
--import(lists, [foldl/3,keydelete/3,member/2,sort/1,
-		reverse/1,reverse/2,last/1,foreach/2]).
+-import(lists, [foldl/3,reverse/1]).
 
 -define(DEFAULT_EXTRUDE_DIST, 0.2).
 -define(BEVEL_EXTRUDE_DIST_KLUDGE, 0.0001).

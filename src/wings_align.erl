@@ -17,7 +17,7 @@
 	 unitize/1]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldr/3,foldl/3,reverse/1]).
+-import(lists, [map/2,foldl/3,reverse/1]).
 
 align(_Axis, #st{sel=[]}=St) -> St;
 align(Axis, St) ->

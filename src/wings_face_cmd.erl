@@ -16,9 +16,7 @@
 -export([mirror_faces/2,set_color/2,force_bridge/5]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldl/3,reverse/1,reverse/2,sort/1,keysort/2,
-		keymember/3,keysearch/3,keydelete/3,
-		member/2,seq/2,last/1]).
+-import(lists, [foldl/3,reverse/1,sort/1,member/2]).
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),

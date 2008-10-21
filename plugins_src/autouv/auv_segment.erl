@@ -5,7 +5,7 @@
 %%%               Segments Model into set of charts containg faces.
 %%% Created :  3 Oct 2002 by Dan Gudmundsson <dgud@erix.ericsson.se>
 %%%-------------------------------------------------------------------
-%%  Copyright (c) 2001-2005 Dan Gudmundsson, Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Dan Gudmundsson, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -24,7 +24,7 @@
 -include("wings.hrl").
 -include("auv.hrl").
 
--import(lists, [reverse/1,map/2,mapfoldl/3,sort/1,foldl/3,member/2,append/1]).
+-import(lists, [reverse/1,mapfoldl/3,sort/1,foldl/3]).
 
 %% Returns segments=[Charts={Id,[Faces]}] and Bounds=gb_sets([Edges])
 create(Mode, We0) ->

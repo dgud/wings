@@ -3,7 +3,7 @@
 %%
 %%     This module contains most of the low-level GUI for Wings.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -35,8 +35,7 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--import(lists, [flatmap/2,foldl/3,keysearch/3,member/2,
-		reverse/1,reverse/2,foreach/2,last/1]).
+-import(lists, [flatmap/2,keysearch/3,member/2,reverse/1,reverse/2]).
 
 -define(ICON_WIDTH, 32).
 -define(ICON_HEIGHT, 28).

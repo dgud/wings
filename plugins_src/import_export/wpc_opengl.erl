@@ -21,13 +21,12 @@
 
 -export([init/0,menu/2,command/2]).
 
--import(lists, [foldl/3,map/2,foreach/2,reverse/1,seq/2,
-		flat_length/1,append/1,append/2]).
+-import(lists, [foldl/3,map/2,foreach/2,reverse/1]).
 
 -export([calcTS/4]). %% debug
 -export([expand_arealights/1]). % debug
 
-%% UNTIL ESDL catches up..
+%% UNTIL ESDL catches up...
 -ifndef(GL_DEPTH_CLAMP_NV).
 -define(GL_DEPTH_CLAMP_NV,	16#864F).
 -endif.
@@ -228,7 +227,7 @@ prepare_mesh(We0=#we{light=none},SubDiv,RenderAlpha,RenderBumps,Wes,Shapes,St) -
     wings_pb:update(Step+Start, ?__(3,"Generating mesh data")),
     FN0	     = [{Face,wings_face:normal(Face, We)} || Face <- gb_trees:keys(We#we.fs)],
     FVN	     = wings_we:normals(FN0, We),  %% gb_tree of {Face, [VInfo|Normal]}
-    MatFs0   = wings_facemat:mat_faces(FVN, We), %% sorted by mat..
+    MatFs0   = wings_facemat:mat_faces(FVN, We), %% sorted by mat...
     MatFs    = patch_tangent_space(MatFs0, We, []),
     PAble = programmable(),
     wings_pb:pause(),
@@ -258,7 +257,7 @@ create_dls(St0, Attr, Shadows, Bumps) ->
 				    Wes, length(Objects), St)
 	       end, [], Objects),
     Ls = if
-	     Shadows or Bumps -> %% Needs per-light data..
+	     Shadows or Bumps -> %% Needs per-light data...
 		 Ls0  = expand_arealights(wpa:lights(St)),
 		 Mats = St#st.mat,
 		 wings_pb:update(0.95, ?__(1,"Generating shadows and bump data per light ")),
@@ -1175,7 +1174,7 @@ draw_vtx_color([{Face,[[Col1|N1],[Col2|N2],[Col3|N3]|_BUG]}|Faces], We) ->
     draw_vtx_color(Faces,We).
 
 do_draw_faces([],_,_) -> ok;
-%%% Unprogrammable cards..
+%%% Unprogrammable cards...
 do_draw_faces([{Face, [[UV1|TBN1],[UV2|TBN2],[UV3|TBN3]|_BUG]}|Fs],Tex, We) ->
     [V1,V2,V3|_] = wings_face:vertex_positions(Face, We),
     gl:normal3fv(element(3, TBN1)),

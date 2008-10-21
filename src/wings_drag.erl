@@ -3,7 +3,7 @@
 %%
 %%     This module handles interactive commands.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,8 +18,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [foreach/2,map/2,foldl/3,sort/1,keysort/2,
-		reverse/1,reverse/2,member/2]).
+-import(lists, [foldl/3,sort/1,reverse/1,reverse/2,member/2]).
 
 %% Main drag record. Kept in state.
 -record(drag,

@@ -3,7 +3,7 @@
 %%
 %%     This module contains most edge command and edge utility functions.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson.
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -25,8 +25,7 @@
 -export([dissolve_isolated_vs/2]).
 
 -include("wings.hrl").
--import(lists, [foldl/3,last/1,member/2,reverse/1,reverse/2,
-		seq/2,sort/1]).
+-import(lists, [foldl/3,sort/1]).
 
 from_vs(Vs, We) when is_list(Vs) ->
     from_vs(Vs, We, []);

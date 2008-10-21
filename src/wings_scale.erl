@@ -6,7 +6,7 @@
 %%
 %%     -- Inset removed at revision 388 and replaced by wpc_contour.erl --
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson.
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,7 +18,7 @@
 -export([setup/2]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldr/3,foldl/3]).
+-import(lists, [foldl/3]).
 -define(HUGE, 1.0E307).
 
 setup({'ASK',Ask}, St) ->

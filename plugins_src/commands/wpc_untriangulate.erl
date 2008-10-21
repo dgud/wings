@@ -14,7 +14,7 @@
 -module(wpc_untriangulate).
 
 -export([init/0,menu/2,command/2]).
--import(lists, [sort/2,foldl/3,seq/2,duplicate/2]).
+-import(lists, [foldl/3,seq/2]).
 -include("wings.hrl").
 -include("e3d.hrl").
 

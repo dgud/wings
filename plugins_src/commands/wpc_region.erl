@@ -17,7 +17,7 @@
 
 -include_lib("wings.hrl").
 
--import(lists, [map/2,foldr/3,foldl/3,reverse/1,append/1]).
+-import(lists, [foldl/3]).
 -define(HUGE, 1.0E307).
 
 init() ->

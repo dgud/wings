@@ -17,8 +17,7 @@
 -include("e3d.hrl").
 -include("e3d_image.hrl").
 
--import(lists, [reverse/1,reverse/2,sort/1,keysearch/3,foreach/2,
-		map/2,foldl/3]).
+-import(lists, [reverse/1,reverse/2,foreach/2,foldl/3]).
 
 -record(ost,
 	{v=[],					%Vertices.

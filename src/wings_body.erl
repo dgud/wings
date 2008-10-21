@@ -3,7 +3,7 @@
 %%
 %%     This module contains most of the command for entire Wings objects.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -17,7 +17,7 @@
 
 -include("wings.hrl").
 -include("sdl_keyboard.hrl").
--import(lists, [map/2,foldl/3,reverse/1,reverse/2,sort/1,seq/2]).
+-import(lists, [foldl/3,reverse/1,sort/1,seq/2]).
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),

@@ -3,7 +3,7 @@
 %%
 %%     This module handles edge-loop commands.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -19,7 +19,7 @@
 -export([edge_loop_vertices/2,edge_links/2,partition_edges/2]).
 
 -include("wings.hrl").
--import(lists, [sort/1,append/1,reverse/1,foldl/3]).
+-import(lists, [append/1,reverse/1,foldl/3]).
 
 %%%
 %%% Select next/previous edge loop.

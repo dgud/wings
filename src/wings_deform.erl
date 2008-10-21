@@ -15,7 +15,7 @@
 -export([sub_menu/1,command/2]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldl/3,reverse/1]).
+-import(lists, [foldl/3,reverse/1]).
 -define(PI, math:pi()).
 
 sub_menu(_St) ->

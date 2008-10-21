@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for bending vertices
 %%
-%%  Copyright (c) 2005 Dave Rodgers
+%%  Copyright (c) 2005-2008 Dave Rodgers
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -15,7 +15,7 @@
 -module(wpc_bend).
 
 -export([init/0,menu/2,command/2]).
--import(lists, [foldl/3,splitwith/2]).
+-import(lists, [foldl/3]).
 -include("wings.hrl").
 -include("e3d.hrl").
 

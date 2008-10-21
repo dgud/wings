@@ -23,7 +23,7 @@
 -include("e3d_image.hrl").
 -include("wings.hrl").
 
--import(lists, [reverse/1,reverse/2,sort/1,keysearch/3,keydelete/3,
+-import(lists, [reverse/1,reverse/2,sort/1,keydelete/3,
 		foreach/2,foldl/3,foldr/3]).
 
 -define(TAG, yafray).

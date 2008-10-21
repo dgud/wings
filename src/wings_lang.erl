@@ -20,7 +20,7 @@
 -export([init/0,str/2,
 	 available_languages/0,load_language/1]).
 
--import(lists, [reverse/1,reverse/2,foreach/2,foldl/3]).
+-import(lists, [reverse/1,foreach/2]).
 
 -define(DEF_LANG_STR, "en").			% English
 -define(DEF_LANG_ATOM, en).			% English

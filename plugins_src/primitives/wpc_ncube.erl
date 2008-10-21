@@ -13,7 +13,7 @@
 
 -module(wpc_ncube).
 -export([init/0,menu/2,command/2]).
--import(math, [sqrt/1,cos/1,sin/1,pi/0,pow/2,exp/1]).
+-import(math, [cos/1,sin/1,pi/0]).
 -include("e3d.hrl").
 -include("wings.hrl").
 

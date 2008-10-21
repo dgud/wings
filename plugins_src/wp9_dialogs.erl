@@ -13,7 +13,7 @@
 
 -module(wp9_dialogs).
 -export([init/1]).
--import(lists, [reverse/1,reverse/2,sort/1]).
+-import(lists, [sort/1]).
 
 -include("wings_intl.hrl").
 

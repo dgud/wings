@@ -30,7 +30,7 @@
 	(?SDL_BUTTON_LMASK bor ?SDL_BUTTON_MMASK bor ?SDL_BUTTON_RMASK)).
 
 -import(wings_util, [min/2,max/2]).
--import(lists, [reverse/1,reverse/2,duplicate/2,keysearch/3,member/2,map/2]).
+-import(lists, [reverse/1,reverse/2,duplicate/2,member/2]).
 
 
 

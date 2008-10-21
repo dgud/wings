@@ -19,8 +19,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [map/2,foldl/3,reverse/1,reverse/2,
-		keymember/3,keysearch/3,keydelete/3,sort/1]).
+-import(lists, [foldl/3,reverse/1]).
 
 -define(BOX_W, 16).
 -define(BOX_H, 16).

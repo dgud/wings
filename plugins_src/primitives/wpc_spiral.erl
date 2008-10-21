@@ -1,13 +1,20 @@
-%% Spiral Plugin for Wings 0.90 or higher.
 %%
-%% By Jakob Cederlund (jakobc@users.sourceforge.net).
-%% Modifications by Bjorn Gustavsson (bjorng@users.sourceforge.net).
+%%  wpc_spiral.erl --
+%%
+%%     A semi-simple semi-automatic UV-mapping semi-plugin.
+%%
+%%  Copyright (c) 2001-2008 Jakob Cederlund, Bjorn Gustavsson
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id$
 %%
 
 -module(wpc_spiral).
 -export([init/0,menu/2,command/2]).
 
--import(math, [sqrt/1,cos/1,sin/1,pi/0]).
+-import(math, [cos/1,sin/1,pi/0]).
 -include("wings_intl.hrl").
 
 init() ->

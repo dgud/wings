@@ -14,7 +14,7 @@
 -module(wings_ff_ndo).
 -export([import/2,export/2]).
 -include("wings.hrl").
--import(lists, [sort/1,reverse/1,foldl/3,last/1,foreach/2]).
+-import(lists, [reverse/1,foldl/3,foreach/2]).
 
 -define(NDO_HEADER10, "nendo 1.0").
 -define(NDO_HEADER11, "nendo 1.1").

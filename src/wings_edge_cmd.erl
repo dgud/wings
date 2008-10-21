@@ -3,7 +3,7 @@
 %%
 %%     This module contains most edge command and edge utility functions.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson.
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -21,9 +21,8 @@
 -include("wings.hrl").
 
 -import(lists, [foldl/3,mapfoldl/3,reverse/1,sort/1]).
--import(e3d_vec, [add/1,add/2,sub/2,neg/1,norm/1,len/1,
-		  average/1,average/2,
-		  dot/2,cross/2]).
+-import(e3d_vec, [add/2,sub/2,neg/1,norm/1,len/1,
+		  average/2, dot/2,cross/2]).
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),

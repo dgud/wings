@@ -19,7 +19,7 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--import(lists, [foldl/3,keydelete/3,reverse/1,member/2,last/1]).
+-import(lists, [reverse/1,member/2,last/1]).
 
 -record(ss, {f,					%Fun.
 	     selmodes,				%Legal selection modes.

@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for extending an edge to the intersection with a plane.
 %%
-%%  Copyright (c) 2004 Bjorn Gustavsson.
+%%  Copyright (c) 2004-2008 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -25,7 +25,7 @@
 -export([init/0,menu/2,command/2]).
 
 -include_lib("wpc_intersect.hrl").
--import(lists, [splitwith/2,member/2]).
+-import(lists, [member/2]).
 
 init() ->
     true.

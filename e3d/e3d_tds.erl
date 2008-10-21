@@ -18,21 +18,17 @@
 -include("e3d.hrl").
 -include("e3d_image.hrl").
 
--import(lists, [map/2,foldl/3,mapfoldl/3,reverse/1,reverse/2,
+-import(lists, [map/2,foldl/3,reverse/1,reverse/2,
 		sort/1,keysort/2,usort/1,keydelete/3,keyreplace/4]).
 
-%%-define(DEBUG, 1).
-
-%% Inline dbg/2 so that the call will disappear completely if
-%% DEBUG is turned off.
--compile({inline,[{dbg,2}]}).
+-define(DEBUG, 1).
 
 -define(FLOAT, float-little).
 
 -ifdef(DEBUG).
-dbg(Format, List) -> io:format(Format, List).
+-define(dbg(Format, List), begin io:format(Format, List) end).
 -else.
-dbg(_, _) -> ok.
+-define(dbg(Format, List), ok).
 -endif.
 
 
@@ -73,18 +69,18 @@ import_2(<<16#4D4D:16/little,_Size:32/little,T/binary>>) ->
     File#e3d_file{objs=Objs,mat=Mat};
 import_2(_) -> error("Not a .3ds file").
 
-main(16#0002, <<Ver:32/little>>, Acc) ->
-    dbg("3DS Version ~p\n", [Ver]),
+main(16#0002, <<_Ver:32/little>>, Acc) ->
+    ?dbg("3DS Version ~p\n", [_Ver]),
     Acc;
 main(16#3D3D, Editor, Acc) ->
-    dbg("Editor: ~p bytes\n", [size(Editor)]),
+    ?dbg("Editor: ~p bytes\n", [byte_size(Editor)]),
     editor(Editor, Acc);
 main(16#B000, Keyframer, Acc) ->
-    dbg("\nKeyframer:\n", []),
+    ?dbg("\nKeyframer:\n", []),
     keyframer(Keyframer),
     Acc;
-main(Tag, Chunk, Acc) ->
-    dbg("~.16#: ~P\n", [Tag,Chunk,15]),
+main(_Tag, _Chunk, Acc) ->
+    ?dbg("~.16#: ~P\n", [_Tag,_Chunk,15]),
     Acc.
 
 %% editor(Bin, E3DFile) -> E3DFile
@@ -93,16 +89,16 @@ main(Tag, Chunk, Acc) ->
 editor(Bin, Acc) ->
     fold_chunks(fun editor/3, Acc, Bin).
 
-editor(16#0100, <<Scale:32/?FLOAT>>, Acc) ->
-    dbg("Object Scale ~p ~n", [Scale]),
+editor(16#0100, <<_Scale:32/?FLOAT>>, Acc) ->
+    ?dbg("Object Scale ~p ~n", [_Scale]),
     Acc;
-editor(16#3d3e, <<Ver:32/little>>, Acc) ->
-    dbg("Mesh Version ~p ~n", [Ver]),
+editor(16#3d3e, <<_Ver:32/little>>, Acc) ->
+    ?dbg("Mesh Version ~p ~n", [_Ver]),
     Acc;
 editor(16#4000, Obj0, #e3d_file{objs=Objs0}=Acc) ->
     {Name,Obj1} = get_cstring(Obj0),
     ets:insert(?MODULE, {current_name,Name}),
-    dbg("\nObject block: ~s\n", [Name]),
+    ?dbg("\nObject block: ~s\n", [Name]),
     case block(Obj1) of
 	no_mesh -> Acc;
 	Obj ->
@@ -112,8 +108,8 @@ editor(16#4000, Obj0, #e3d_file{objs=Objs0}=Acc) ->
 editor(16#AFFF, Mat0, #e3d_file{mat=M}=Acc) ->
     Mat = material(Mat0, M),
     Acc#e3d_file{mat=Mat};
-editor(Tag, Chunk, Acc) ->
-    dbg("~.16#: ~P\n", [Tag,Chunk,15]),
+editor(_Tag, _Chunk, Acc) ->
+    ?dbg("~.16#: ~P\n", [_Tag,_Chunk,15]),
     Acc.
 
 %% keyframer(Bin)
@@ -137,58 +133,58 @@ keyframer(16#B030, <<NodeId:16/little-signed>>) ->
     put(e3d_tds_node_id, NodeId);
 keyframer(16#B010, Bin) ->
     %% Name+parent node.
-    NameSz = size(Bin) - 7,
+    NameSz = byte_size(Bin) - 7,
     <<Name0:NameSz/binary,_:5/unit:8,Parent:16/little-signed>> = Bin,
     Name = binary_to_list(Name0),
     NodeId = get(e3d_tds_node_id),
-    dbg("node ~p: ~p, parent ~p\n", [NodeId,Name,Parent]), 
+    ?dbg("node ~p: ~p, parent ~p\n", [NodeId,Name,Parent]), 
     ets:insert(?MODULE, {NodeId,Name}),
     ets:insert(?MODULE, {Name,Parent});
-keyframer(16#B00A, <<Rev:16/little,T0/binary>>) ->
+keyframer(16#B00A, <<_Rev:16/little,T0/binary>>) ->
     %% Just print information (if debugging).
-    {Str,T} = get_cstring(T0),
-    dbg("Keyframe header: ~p ~p ~p\n", [Rev,Str,T]);
-keyframer(16#B013, <<X:32/?FLOAT,Y:32/?FLOAT,Z:32/?FLOAT>>) ->
+    {_Str,_T} = get_cstring(T0),
+    ?dbg("Keyframe header: ~p ~p ~p\n", [_Rev,_Str,_T]);
+keyframer(16#B013, <<_X:32/?FLOAT,_Y:32/?FLOAT,_Z:32/?FLOAT>>) ->
     %% Just print information (if debugging).
-    dbg(" pivot: ~p ~p ~p\n", [X,Y,Z]);
-keyframer(16#B021, <<A:32/?FLOAT,X:32/?FLOAT,Y:32/?FLOAT,Z:32/?FLOAT,_/binary>>) ->
+    ?dbg(" pivot: ~p ~p ~p\n", [_X,_Y,_Z]);
+keyframer(16#B021, <<_A:32/?FLOAT,_X:32/?FLOAT,_Y:32/?FLOAT,_Z:32/?FLOAT,_/binary>>) ->
     %% Just print information (if debugging).
-    dbg(" rot_track_tag: ~p ~p ~p ~p\n", [A,X,Y,Z]);
-keyframer(Tag, Contents) ->
+    ?dbg(" rot_track_tag: ~p ~p ~p ~p\n", [_A,_X,_Y,_Z]);
+keyframer(_Tag, _Contents) ->
     %% Ignore all other keyframer chunks.
-    dbg("~.16#: ~P\n", [Tag,Contents,15]).
+    ?dbg("~.16#: ~P\n", [_Tag,_Contents,15]).
 
 block(Block) ->
     fold_chunks(fun block/3, no_mesh, Block).
 
-block(16#3d3e, <<Ver:32/little>>, Acc) ->
-    dbg("Mesh Version ~p ~n", [Ver]),
+block(16#3d3e, <<_Ver:32/little>>, Acc) ->
+    ?dbg("Mesh Version ~p ~n", [_Ver]),
     Acc;
 block(16#4100, TriMesh0, no_mesh) ->
-    dbg("Triangular mesh: ~p\n", [size(TriMesh0)]),
+    ?dbg("Triangular mesh: ~p\n", [byte_size(TriMesh0)]),
     TriMesh1 = fold_chunks(fun trimesh/3, #e3d_mesh{type=triangle}, TriMesh0),
     TriMesh = add_uv_to_faces(TriMesh1),
     clean_mesh(TriMesh);
-block(16#4700, Camera, Mesh) ->
-    dbg("Camera: ~p\n", [size(Camera)]),
+block(16#4700, _Camera, Mesh) ->
+    ?dbg("Camera: ~p\n", [byte_size(_Camera)]),
     Mesh;
-block(Tag, Chunk, Mesh) ->
-    dbg("~.16#: ~P\n", [Tag,Chunk,15]),
+block(_Tag, _Chunk, Mesh) ->
+    ?dbg("~.16#: ~P\n", [_Tag,_Chunk,15]),
     Mesh.
 
-trimesh(16#4110, <<NumVs:16/little,Vs0/binary>>, Acc) ->
-    dbg("~p vertices\n", [NumVs]),
+trimesh(16#4110, <<_NumVs:16/little,Vs0/binary>>, Acc) ->
+    ?dbg("~p vertices\n", [_NumVs]),
     Vs = get_bin_vectors(Vs0),
     Acc#e3d_mesh{vs=Vs};
 trimesh(16#4120, <<NFaces:16/little,Contents/binary>>, Acc) ->
-    dbg("~p faces\n", [NFaces]),
+    ?dbg("~p faces\n", [NFaces]),
     Fsz = NFaces * 2 * 4,
     <<Faces0:Fsz/binary,Desc/binary>> = Contents,
     Faces1 = get_faces(Faces0),
     {Faces,Smooth} = face_desc(Desc, Faces1),
     Acc#e3d_mesh{fs=Faces,he=Smooth};
-trimesh(16#4140, <<NumTx:16/little,Tx0/binary>>, Acc) ->
-    dbg("~p texture coordinates\n", [NumTx]),
+trimesh(16#4140, <<_NumTx:16/little,Tx0/binary>>, Acc) ->
+    ?dbg("~p texture coordinates\n", [_NumTx]),
     Tx = get_uv(Tx0),
     Acc#e3d_mesh{tx=Tx};
 trimesh(16#4160, <<V1X:32/?FLOAT,V1Y:32/?FLOAT,V1Z:32/?FLOAT,
@@ -201,10 +197,10 @@ trimesh(16#4160, <<V1X:32/?FLOAT,V1Y:32/?FLOAT,V1Z:32/?FLOAT,
 	      OX,OY,OZ},
     [{current_name,Name}] = ets:lookup(?MODULE, current_name),
     ets:insert(?MODULE, {{local_matrix,Name},Matrix}),
-    dbg("~p: ~p\n", [Name,Matrix]),
+    ?dbg("~p: ~p\n", [Name,Matrix]),
     Acc;
-trimesh(Tag, Chunk, Acc) ->
-    dbg("~.16#: ~P\n", [Tag,Chunk,15]),
+trimesh(_Tag, _Chunk, Acc) ->
+    ?dbg("~.16#: ~P\n", [_Tag,_Chunk,15]),
     Acc.
 
 face_desc(Bin, Faces) ->
@@ -215,11 +211,11 @@ face_desc(16#4130, MatList0, {Faces0,SG}) ->
     Name = list_to_atom(Name0),
     MatFaces0 = get_mat_faces(MatList),
     MatFaces = sort(MatFaces0),
-    dbg("Material ~p used by ~p face(s)\n", [Name0,length(MatFaces)]),
+    ?dbg("Material ~p used by ~p face(s)\n", [Name0,length(MatFaces)]),
     Faces = insert_mat(Faces0, MatFaces, 0, Name, []),
     {Faces,SG};
 face_desc(16#4150, Smooth, {Faces,_}) ->
-    dbg("Smoothing groups for ~p faces\n", [size(Smooth) div 4]),
+    ?dbg("Smoothing groups for ~p faces\n", [byte_size(Smooth) div 4]),
     {Faces,get_smooth_groups(Smooth)}.
 
 %% material(Bin, [Material]) -> [Material]
@@ -231,7 +227,7 @@ material(Bin, Acc) ->
 material(16#A000, Name0, Acc) ->
     {Name1,<<>>} = get_cstring(Name0),
     Name = list_to_atom(Name1),
-    dbg("\nMaterial: ~p\n", [Name]),
+    ?dbg("\nMaterial: ~p\n", [Name]),
     [{Name,[]}|Acc];
 material(16#A010, Chunk, Acc) ->
     mat_chunk(ambient, Chunk, Acc);
@@ -251,15 +247,15 @@ material(16#A052, Chunk, Acc) ->
 material(16#A053, Chunk, Acc) ->
     mat_chunk(reflection_blur, Chunk, Acc);
 material(16#A081, _, [{Name,Props}|Acc]) ->
-    dbg("Twosided material\n", []),
+    ?dbg("Twosided material\n", []),
     [{Name,[{twosided,true}|Props]}|Acc];
 material(16#A084, Chunk, Acc) ->
     mat_chunk(emissive, Chunk, Acc);
-material(16#A087, <<Wiresize:32/?FLOAT>>, Acc) ->
-    dbg("Wire size: ~p\n", [Wiresize]),
+material(16#A087, <<_Wiresize:32/?FLOAT>>, Acc) ->
+    ?dbg("Wire size: ~p\n", [_Wiresize]),
     Acc;
 material(16#A100, <<Shading:16/little>>, Acc) ->
-    Str = case Shading of
+    _Str = case Shading of
 	      0 -> "Wire";
 	      1 -> "Flat";
 	      2 -> "Gouraud";
@@ -267,7 +263,7 @@ material(16#A100, <<Shading:16/little>>, Acc) ->
 	      4 -> "Metal";
 	      _ -> "Unknown"
 	  end,
-    dbg("Shading: ~s\n", [Str]),
+    ?dbg("Shading: ~s\n", [_Str]),
     Acc;
 material(16#A200, Chunk, Acc) ->
     read_map(diffuse, Chunk, Acc);
@@ -276,24 +272,24 @@ material(16#A210, Chunk, Acc) ->
 material(16#A230, Chunk, Acc) ->
     read_map(bump, Chunk, Acc);
 material(Tag, Chunk, [{Name,Props}|Acc]) ->
-    dbg("~.16#: ~P\n", [Tag,Chunk,20]),
+    ?dbg("~.16#: ~P\n", [Tag,Chunk,20]),
     [{Name,[{Tag,Chunk}|Props]}|Acc].
 
 read_map(Type, Chunk, [{Name,Props}|Acc]) ->
-    dbg("Map: ~p\n", [Type]),
+    ?dbg("Map: ~p\n", [Type]),
     MapPs = fold_chunks(fun texture/3, [], Chunk),
     Map = proplists:get_value(filename, MapPs),
     [{Name,[{map,Type,Map}|Props]}|Acc].
 
 texture(16#A300, Chunk, Acc) ->
     {Filename,_} = get_cstring(Chunk),
-    dbg("Filename: ~s\n", [Filename]),
+    ?dbg("Filename: ~s\n", [Filename]),
     [{filename,Filename}|Acc];
-texture(16#A351, Params, Acc) ->
-    dbg("Params: ~p\n", [Params]),
+texture(16#A351, _Params, Acc) ->
+    ?dbg("Params: ~p\n", [_Params]),
     Acc;
-texture(Tag, Chunk, Acc) ->
-    dbg("~.16#: ~P\n", [Tag,Chunk,20]),
+texture(_Tag, _Chunk, Acc) ->
+    ?dbg("~.16#: ~P\n", [_Tag,_Chunk,20]),
     Acc.
 
 reformat_material([{Name,Mat}|T]) ->
@@ -329,7 +325,7 @@ reformat_color({Key,{R,G,B}}, Opac) ->
     
 mat_chunk(Type, Chunk, [{Name,Props}|Acc]) ->
     Value = general(Chunk),
-    dbg("property ~p = ~p\n", [Type,Value]),
+    ?dbg("property ~p = ~p\n", [Type,Value]),
     [{Name,[{Type,Value}|Props]}|Acc].
 
 general(<<16#0010:16/little,_Sz:32/little, 
@@ -344,10 +340,10 @@ general(<<16#0030:16/little,_Sz:32/little,Percent:16/little>>) ->
     Percent/100.
 
 general_rest(<<>>) -> ok;
-general_rest(<<Tag:16/little,Sz0:32/little,T0/binary>>) ->
+general_rest(<<_Tag:16/little,Sz0:32/little,T0/binary>>) ->
     Sz = Sz0 - 6,
-    <<Chunk:Sz/binary,T/binary>> = T0,
-    dbg("~.16#: ~P\n", [Tag,Chunk,15]),
+    <<_Chunk:Sz/binary,T/binary>> = T0,
+    ?dbg("~.16#: ~P\n", [_Tag,_Chunk,15]),
     general_rest(T).
 
 fix_transform(Objs) ->
@@ -361,7 +357,7 @@ fix_transform_0(Objs) ->
 
 fix_transform_1(#e3d_object{name=Name,obj=Mesh}=Obj) ->
     Matrix = get_transform(Name),
-    dbg("~p: ~p\n", [Name,Matrix]),
+    ?dbg("~p: ~p\n", [Name,Matrix]),
     Obj#e3d_object{obj=Mesh#e3d_mesh{matrix=Matrix}}.
 
 get_transform(Name) ->
@@ -405,8 +401,8 @@ insert_mat([#e3d_face{mat=Mat0}=F|Fs], [Face|Mfs], Face, Mat, Acc) ->
 insert_mat([], _, _Face, _Mat, Acc) -> reverse(Acc);
 insert_mat(Rest, [], _Face, _Mat, Acc) -> reverse(Acc, Rest).
 
-get_mat_faces(<<N:16/little,T/binary>>) ->
-    dbg("Mat num entries: ~p\n", [N]),
+get_mat_faces(<<_N:16/little,T/binary>>) ->
+    ?dbg("Mat num entries: ~p\n", [_N]),
     get_mat_faces(T, []).
 
 get_mat_faces(<<Face:16/little,T/binary>>, Acc) ->
@@ -700,7 +696,7 @@ make_percent(Percent0) when is_float(Percent0) ->
     make_chunk(16#0030, <<Percent:16/little>>).
     
 make_chunk(Tag, Contents) when is_binary(Contents) ->
-    Size = size(Contents) + 6,
+    Size = byte_size(Contents) + 6,
     [<<Tag:16/little,Size:32/little>>,Contents];
 make_chunk(Tag, Contents) when is_list(Contents) ->
     make_chunk(Tag, list_to_binary(Contents)).

@@ -3,7 +3,7 @@
 %%
 %%     This module handles picking using OpenGL.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -20,9 +20,8 @@
 -include("wings.hrl").
 -include("e3d.hrl").
 
--import(lists, [foreach/2,last/1,reverse/1,reverse/2,
-		sort/1,foldl/3,map/2,min/1,
-		keysearch/3,member/2,delete/2,seq/2]).
+-import(lists, [foreach/2,reverse/2,sort/1,map/2,min/1,
+		keysearch/3,member/2]).
 
 %% For ordinary picking.
 -record(pick,

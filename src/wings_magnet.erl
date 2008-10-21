@@ -3,7 +3,7 @@
 %%
 %%     This module implements the Magnet command.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,7 +16,7 @@
 	 info_string/0,drag_help/1,hotkey/1]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldr/3,foldl/3,sort/1,concat/1,reverse/1]).
+-import(lists, [foldl/3]).
 -define(HUGE, 9.9E307).
 
 setup({magnet,Type,Route,Point}, VsSel, We) ->

@@ -5,7 +5,7 @@
 %%     we records (winged-edged records, the central data structure
 %%     in Wings 3D).
 %%
-%%  Copyright (c) 2001-2007 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -35,8 +35,7 @@
 
 -include("wings.hrl").
 -include("e3d.hrl").
--import(lists, [map/2,foreach/2,foldl/3,sort/1,keysort/2,
-		last/1,reverse/1,duplicate/2,seq/2,filter/2,zip/2]).
+-import(lists, [foreach/2,foldl/3,sort/1,keysort/2,reverse/1,zip/2]).
 
 %%%
 %%% API.

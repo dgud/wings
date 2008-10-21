@@ -3,7 +3,7 @@
 %%
 %%     VRML export plugin.
 %%
-%%  Copyright (c) 2004-2005 Sean Hinde, Danni Coy and Dan Gudmundsson
+%%  Copyright (c) 2004-2008 Sean Hinde, Danni Coy and Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -20,7 +20,7 @@
 %% /Dan
 
 -export([init/0, menu/2, command/2]).
--import(lists, [foreach/2, foldl/3, map/2]).
+-import(lists, [foreach/2, foldl/3]).
 
 -include("e3d.hrl").
 -include("e3d_image.hrl").

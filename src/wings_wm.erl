@@ -3,7 +3,7 @@
 %%
 %%     Window manager for Wings.
 %%
-%%  Copyright (c) 2002-2005 Bjorn Gustavsson
+%%  Copyright (c) 2002-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -56,8 +56,7 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--import(lists, [map/2,foldl/3,last/1,sort/1,keysort/2,keysearch/3,
-		reverse/1,foreach/2,member/2]).
+-import(lists, [foldl/3,sort/1,keysort/2,reverse/1,foreach/2,member/2]).
 
 -define(Z_LOWEST_DYNAMIC, 10).
 

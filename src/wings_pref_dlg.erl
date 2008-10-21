@@ -4,7 +4,7 @@
 %%
 %%     Preference management.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,7 +18,7 @@
 -include("wings.hrl").
 -import(wings_pref, [get_value/1,set_value/2]).
 
--import(lists, [foreach/2,keysearch/3,map/2,reverse/1,sort/1,last/1]).
+-import(lists, [reverse/1]).
 -define(NONZERO,1.0e-6).
 
 menu(_St) ->

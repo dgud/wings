@@ -3,7 +3,7 @@
 %%
 %%     Maintains the outliner window.
 %%
-%%  Copyright (c) 2003-2004 Bjorn Gustavsson
+%%  Copyright (c) 2003-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,8 +18,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 -include("e3d_image.hrl").
--import(lists, [map/2,foldl/3,reverse/1,reverse/2,
-		keymember/3,keysearch/3,keydelete/3,sort/1]).
+-import(lists, [foldl/3,reverse/1,keydelete/3]).
 
 %%%
 %%% Outliner window.

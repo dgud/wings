@@ -19,7 +19,7 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--import(lists, [foldl/3,sort/1,foreach/2,map/2,last/1,reverse/1]).
+-import(lists, [foldl/3,sort/1,foreach/2,map/2,reverse/1]).
 
 -compile({parse_transform,ms_transform}).
 

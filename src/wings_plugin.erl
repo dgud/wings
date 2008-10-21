@@ -17,8 +17,7 @@
 
 -include("wings.hrl").
 -include("e3d.hrl").
--import(lists, [append/1,flatmap/2,foreach/2,sort/1,reverse/1,foldl/3,
-		member/2]).
+-import(lists, [sort/1,reverse/1,member/2]).
 
 %%%
 %%% Currently, there can be a single directory for plugins, but

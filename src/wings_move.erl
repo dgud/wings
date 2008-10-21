@@ -3,7 +3,7 @@
 %%
 %%     This module implements the Move command.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -14,7 +14,7 @@
 -export([setup/2,setup_we/4,plus_minus/3,magnet_move_fun/3]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldr/3,foldl/3,sort/1]).
+-import(lists, [foldl/3,sort/1]).
 
 setup({'ASK',Ask}, St) ->
     wings:ask(Ask, St, fun setup/2);

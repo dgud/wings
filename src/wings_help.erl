@@ -18,7 +18,7 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--import(lists, [reverse/1,foldl/3]).
+-import(lists, [foldl/3]).
 
 menu(_) ->
     L = [getting_started,

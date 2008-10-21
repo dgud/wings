@@ -16,7 +16,7 @@
 
 -include("e3d.hrl").
 
--import(lists, [reverse/1,reverse/2,foldl/3]).
+-import(lists, [reverse/1,foldl/3]).
 
 %% orient_normals(Mesh0) -> Mesh
 %%  Orient the face normals consistently.

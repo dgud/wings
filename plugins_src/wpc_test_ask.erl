@@ -19,7 +19,7 @@
 -export([load/1]).
 -export([init/0,menu/2,dialog/2,command/2]).
 
--import(lists, [reverse/1,reverse/2]).
+-import(lists, [reverse/2]).
 
 enable() -> wpa:pref_set(?MODULE, enabled, true).
 

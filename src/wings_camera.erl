@@ -3,7 +3,7 @@
 %%
 %%     This module handles camera moves (rotation, zooming, and panning).
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,8 +16,6 @@
 
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
-
--import(lists, [foreach/2,map/2,foldl/3,sort/1,reverse/1,append/1]).
 
 -define(ZOOM_FACTOR, 20).
 -define(ZOOM_FACTOR_ALT, 1).

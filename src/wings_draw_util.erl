@@ -3,7 +3,7 @@
 %%
 %%     Utilities for drawing objects.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -20,7 +20,6 @@
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
--import(lists, [reverse/1,foreach/2,foldl/3,keydelete/3]).
 
 init() ->
     P= <<16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,

@@ -15,7 +15,7 @@
 -module(e3d_bv).
 -export([eigen_vecs/1,quickhull/1,covariance_matrix/1]).
 
--import(e3d_vec, [dot/2,add/2,sub/2,average/1,norm/1,normal/1]).
+-import(e3d_vec, [dot/2,add/2,average/1,normal/1]).
 -import(lists, [foldl/3]).
 
 -compile(inline).

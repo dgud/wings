@@ -25,7 +25,7 @@
 	 isolated/1,edge_through/3,edge_through/4]).
 
 -include("wings.hrl").
--import(lists, [member/2,keymember/3,foldl/3,reverse/1,last/1,sort/1]).
+-import(lists, [member/2,foldl/3,reverse/1,sort/1]).
 
 %% from_faces(FaceGbSet, We) -> VertexList
 %%  Convert a set of faces to a list of vertices.
@@ -378,7 +378,7 @@ nearest_pair_smart_1([V|Vs], Sel, Face, We, Acc) ->
 	    nearest_pair_smart_1(Vs, Sel, Face, We, Acc)
     end;
 nearest_pair_smart_1([], _, Face, We, Acc=[Last|_]) when length(Acc) > 1 ->
-    connect_pairs([Last|lists:reverse(Acc)],Face,We);
+    connect_pairs([Last|reverse(Acc)],Face,We);
 nearest_pair_smart_1([], _, _, _, _) ->
     no.
     

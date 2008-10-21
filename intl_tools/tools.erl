@@ -280,12 +280,9 @@ transform({call,L,{remote,_,{atom,_,wings_lang},{atom,_,str}}=Rem,
     {call,L,Rem,[{tuple,L,[Mod,{atom,L,FunName},Key]},Str]};
 transform({string,_,_}=Str) ->
     Str;
-transform({Tag,Line}=Tuple) when is_constant(Tag), is_integer(Line) ->
+transform({Tag,Line}=Tuple) when is_atom(Tag), is_integer(Line) ->
     Tuple;
-transform({Tag,Line,Term}=Tuple)
-  when is_constant(Tag), is_integer(Line), is_constant(Term) ->
-    Tuple;
-transform({Tag,Line,Term}) when is_constant(Tag), is_integer(Line) ->
+transform({Tag,Line,Term}) when is_atom(Tag), is_integer(Line) ->
     {Tag,Line,transform(Term)};
 transform([H|T]) ->
     [transform(H)|transform(T)];

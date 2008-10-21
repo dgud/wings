@@ -25,7 +25,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [foreach/2,foldl/3,zip/2]).
+-import(lists, [foldl/3,zip/2]).
 
 menu(#st{views={CurrentView,Views}}=St) ->
     L = wings_pref:get_value(number_of_lights),

@@ -22,9 +22,7 @@
  
 -export([init/0,menu/2,command/2,redraw/1]).
 -export([handle_event/2,bg_image/0]). %% Debug
--import(lists, [sort/1,keysort/2,map/2,foldl/3,reverse/1,
-		append/1,delete/2,usort/1,max/1,min/1,
-		member/2,foreach/2,keysearch/3]).
+-import(lists, [sort/1,keysort/2,map/2,foldl/3,reverse/1,keysearch/3]).
 
 %% Exports to auv_seg_ui.
 -export([init_show_maps/4]).

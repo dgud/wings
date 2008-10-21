@@ -24,8 +24,7 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--import(lists, [foreach/2,map/2,filter/2,foldl/3,sort/1,
-        keymember/3,reverse/1]).
+-import(lists, [foldl/3,sort/1]).
 
 start() ->
     do_spawn(none).

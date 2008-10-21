@@ -3,7 +3,7 @@
 %%
 %%     Tesselation/subdivision commands.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -17,7 +17,7 @@
 
 -include_lib("wings.hrl").
 -include_lib("e3d.hrl").
--import(lists, [map/2,reverse/1]).
+-import(lists, [reverse/1]).
 
 submenu() ->
     [{?STR(submenu,1,"Triangulate"),triangulate},

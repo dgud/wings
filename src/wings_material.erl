@@ -3,7 +3,7 @@
 %%
 %%     This module manages the face materials (i.e. colors and textures).
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -24,7 +24,7 @@
 -include("wings.hrl").
 -include("e3d_image.hrl").
 
--import(lists, [map/2,foreach/2,sort/1,foldl/3,reverse/1,reverse/2,
+-import(lists, [sort/1,foldl/3,reverse/1,
 		keyreplace/4,keydelete/3,keysearch/3,flatten/1]).
 
 material_menu(St) ->

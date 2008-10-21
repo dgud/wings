@@ -3,7 +3,7 @@
 %%
 %%     This module implements the smooth proxy.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,7 +18,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [map/2,foldl/3,reverse/1,reverse/2,sort/1,merge/1,foreach/2]).
+-import(lists, [foreach/2]).
 
 -record(sp,
 	{src_we=#we{},				%Previous source we.

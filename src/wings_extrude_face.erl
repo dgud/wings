@@ -15,7 +15,7 @@
 -export([faces/2,regions/2]).
 
 -include("wings.hrl").
--import(lists, [foldl/3,foreach/2,last/1,reverse/1,reverse/2,sort/1,merge/1]).
+-import(lists, [foldl/3,foreach/2,last/1,reverse/2,sort/1,merge/1]).
 
 %%%
 %%% Extrusion of faces individually (used by Extrude, Inset, Bevel).

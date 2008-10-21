@@ -18,7 +18,7 @@
 	 collapse_edges/2,fast_collapse_edge/2,collapse_vertices/2]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldl/3,reverse/1,sort/1,keymember/3,member/2]).
+-import(lists, [foldl/3,reverse/1,sort/1]).
 
 %%%
 %%% API.

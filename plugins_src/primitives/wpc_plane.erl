@@ -3,7 +3,7 @@
 %%
 %%     Plane Plugin (generates four classic types of planes)
 %%
-%%  Copyright (c) 2002-2006 Anthony D'Agostino
+%%  Copyright (c) 2002-2008 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,7 +13,7 @@
 
 -module(wpc_plane).
 -export([init/0,menu/2,command/2]).
--import(math, [sqrt/1,cos/1,sin/1,pi/0,pow/2,exp/1]).
+-import(math, [sqrt/1,cos/1,pi/0,pow/2,exp/1]).
 -include("wings_intl.hrl").
 
 init() -> true.

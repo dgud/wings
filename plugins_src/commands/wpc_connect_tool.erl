@@ -3,7 +3,7 @@
 %%
 %%     Connect/Cut mode plugin.
 %%
-%%  Copyright (c) 2004 Dan Gudmundsson
+%%  Copyright (c) 2004-2008 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -20,8 +20,6 @@
 
 -include_lib("wings.hrl").
 
--import(lists, [foldl/3,last/1,member/2,reverse/1,reverse/2,
-		seq/2,sort/1]).
 %% State info
 -record(cs, {v=[],  %% Connected vertices
 	     last,  %% Last vertex selected (for ending loop)

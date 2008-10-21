@@ -3,7 +3,7 @@
 %%
 %%     This module contains the commands in the File menu.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -20,7 +20,7 @@
 -include("e3d_image.hrl").
 -include_lib("kernel/include/file.hrl").
 
--import(lists, [sort/1,reverse/1,flatten/1,foldl/3,keymember/3,keydelete/3,foreach/2]).
+-import(lists, [reverse/1,keymember/3,foreach/2]).
 -import(filename, [dirname/1]).
 
 -define(WINGS, ".wings").

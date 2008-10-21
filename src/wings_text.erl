@@ -3,7 +3,7 @@
 %%
 %%     Text and font support.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -21,7 +21,7 @@
 -include("wings.hrl").
 -compile({parse_transform,ms_transform}).
 
--import(lists, [reverse/1,foldl/3,foreach/2]).
+-import(lists, [reverse/1,foreach/2]).
 
 init() ->
     ets:new(wings_fonts, [named_table,ordered_set]),

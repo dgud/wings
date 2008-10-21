@@ -32,7 +32,7 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--import(lists, [foreach/2,map/2,foldl/3,reverse/1,member/2,last/1]).
+-import(lists, [foldl/3,reverse/1,member/2,last/1]).
 
 -ifdef(DEBUG).
 wings() -> "Wings 3D [debug]".

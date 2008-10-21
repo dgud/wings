@@ -38,7 +38,7 @@
 
 -include("wings.hrl").
 -include("e3d.hrl").
--import(lists, [map/2,foldl/3,reverse/1,sort/1,keymember/3,member/2]).
+-import(lists, [foldl/3,reverse/1,sort/1]).
 
 from_edges(Es, #we{es=Etab}) when is_list(Es) ->
     from_edges_1(Es, Etab, []);

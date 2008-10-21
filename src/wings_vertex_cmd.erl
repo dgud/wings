@@ -3,7 +3,7 @@
 %%
 %%     This module contains most of the commands for vertices.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,8 +18,7 @@
 -export([set_color/2]).
 
 -include("wings.hrl").
--import(lists, [member/2,keymember/3,foldl/3,mapfoldl/3,
-		reverse/1,last/1,sort/1]).
+-import(lists, [member/2,foldl/3,mapfoldl/3,sort/1]).
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
