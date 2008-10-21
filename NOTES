@@ -1,6 +1,6 @@
 --- 0.99.xx -----------------------------------------------------------------
 - Internal changes: Warnings were eliminated and all unnecessary imports
-  were removed. (Thanks to Richard Carlsson.)
+  were removed. (Thanks to Richard Carlsson.) [bjorng]
 
 - The Toxic exporter has been removed. [bjorng]
 
