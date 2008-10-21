@@ -34,11 +34,9 @@ MODULES= \
 	wpc_3ds \
 	wpc_obj \
 	wpc_opengl \
-	wpc_opengl_sl \
 	wpc_rwx \
 	wpc_wrl \
 	wpc_hlines \
-	wpc_toxic \
 	wpc_stl \
 	wpc_x \
 	wpc_lwo \

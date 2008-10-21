@@ -1,6 +1,8 @@
 --- 0.99.xx -----------------------------------------------------------------
 - Internal changes: Warnings were eliminated and all unnecessary imports
-  were removed. (Changed to Richard Carlsson.)
+  were removed. (Thanks to Richard Carlsson.)
+
+- The Toxic exporter has been removed. [bjorng]
 
 --- 0.99.05 -----------------------------------------------------------------
 - New Feature: Select|Similar Material selects all faces of the same material to
