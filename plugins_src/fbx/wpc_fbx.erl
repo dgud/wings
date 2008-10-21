@@ -3,7 +3,7 @@
 %%
 %%     FBX file import/export.
 %%
-%%  Copyright (c) 2003-2007 Bjorn Gustavsson
+%%  Copyright (c) 2003-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -48,11 +48,12 @@ init_1(Dir, Name, Ext) ->
     end.
 
 init_2(Name) ->
-    case open_port({spawn,Name},[]) of
-	Port when is_port(Port) ->
-	    register(wings_fbx_port, Port),
-	    true;
-	_ ->
+    try
+	Port = open_port({spawn,Name}, []),
+	register(wings_fbx_port, Port),
+	true
+    catch
+	error:badarg ->    
 	    false
     end.
 
