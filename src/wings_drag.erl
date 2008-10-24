@@ -31,7 +31,7 @@
 	 xt=0,					%Last warp length
 	 yt=0,
 	 mmb_count=0,
-	 fp_count=0,
+	 fp_count=0,            % Rmb depression timer (forth parameter)
 	 offset,				%Offset for each dimension.
 	 unit,					%Unit that drag is done in.
 	 unit_sc,				%Scales for each dimension.
@@ -425,6 +425,15 @@ get_drag_event(Drag) ->
 get_drag_event_1(Drag) ->
     {replace,fun(Ev) -> handle_drag_event(Ev, Drag) end}.
 
+%%%% When the Rmb is pressed we store the time in order to determine if the
+%%%% intention is to drag or cancel the command. Later, when the Rmb is released
+%%%% we take the time again. If the time interval is short then the event is
+%%%% handled as an intention to cancel the command.
+handle_drag_event(#mousebutton{button=3,state=?SDL_PRESSED}=Ev,
+		  #drag{fp_count=C}=Drag) when C == 0 ->
+	StartTimer = now(),
+    handle_drag_event(Ev, Drag#drag{fp_count=StartTimer});
+
 handle_drag_event(#keyboard{sym=9, mod=Mod},Drag)->
     case Mod band ?SHIFT_BITS =/= 0 of
       true -> 
@@ -445,9 +454,24 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
 	true ->
 	    handle_drag_event_0(Ev, Drag)
     end;
+
+%%%% When Rmb is released we subtract the StartTime (when the Rmb was pressed)
+%%%% from the Stop time (relased) and if the result is less than 16000 ms, then
+%%%% we cancel the drag.
 handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
-		  #drag{fp_count=C}=Drag) when C > 2 ->
-    get_drag_event_1(Drag#drag{fp_count=0});
+          #drag{fp_count=StartTime}=Drag) ->
+    Stop = now(),
+    Time = timer:now_diff(Stop, StartTime),
+     io:format("Time ~p\n",[Time]),
+    case Time < 160000 of
+        false ->
+            get_drag_event_1(Drag#drag{fp_count=0});
+        true ->
+            wings_dl:map(fun invalidate_fun/2, []),
+            ungrab(Drag),
+            wings_wm:later(revert_state),
+            pop
+	end;
 
 handle_drag_event(Event, Drag = #drag{st=St}) ->
     case wings_camera:event(Event, St, fun() -> redraw(Drag) end) of
@@ -516,11 +540,7 @@ handle_drag_event_1({drag_arguments,Move}, Drag0) ->
     DragEnded = {new_state,St#st{drag_args=Move}},
     wings_wm:later(DragEnded),
     pop;
-handle_drag_event_1(#mousebutton{button=3,state=?SDL_RELEASED}, Drag) ->
-    wings_dl:map(fun invalidate_fun/2, []),
-    ungrab(Drag),
-    wings_wm:later(revert_state),
-    pop;
+
 handle_drag_event_1(view_changed, Drag) ->
     get_drag_event(view_changed(Drag));
 handle_drag_event_1({action,{drag_arguments,_}=DragArgs}, _) ->
@@ -676,8 +696,8 @@ motion(Event, Drag0) ->
 
 mouse_translate(Event0, Drag0) ->
     Mode = wings_pref:get_value(camera_mode),
-    {Event,Mod} = mouse_pre_translate(Mode, Event0),
-    {Ds0,Drag} = mouse_range(Event, Drag0, Mod),
+    {Event,Mod,Drag1} = mouse_pre_translate(Mode, Event0,Drag0),
+    {Ds0,Drag} = mouse_range(Event, Drag1, Mod),
     Ds = add_offset(Ds0, Drag),
     Move = constrain(Ds, Mod, Drag),
     {Move,Drag}.
@@ -689,11 +709,18 @@ add_offset_1([D|Ds], [O|Ofs]) ->
     [D+O|add_offset_1(Ds, Ofs)];
 add_offset_1([], _) -> [].
 
-mouse_pre_translate(_, #mousemotion{mod=Mod}=Ev) -> {Ev,Mod}.
+mouse_pre_translate(_, #mousemotion{state=Mask,mod=Mod}=Ev,Drag) ->
+    if
+    Mask band ?SDL_BUTTON_RMASK =/= 0,
+    Mod band ?CTRL_BITS =/= 0 ->
+        {Ev#mousemotion{state=?SDL_BUTTON_MMASK},
+         Mod band (bnot ?CTRL_BITS),Drag#drag{fp_count=0}};
+    true -> {Ev,Mod,Drag}
+    end.
 
 mouse_range(#mousemotion{x=X0,y=Y0,state=Mask},
 	    #drag{x=OX,y=OY,xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0,
-		  xt=Xt0,yt=Yt0,mmb_count=Count0,fp_count=FpCount0,
+		  xt=Xt0,yt=Yt0,mmb_count=Count0,
 		  unit_sc=UnitScales,unit=Unit}=Drag,
 	    Mod) ->
     %%io:format("Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xs0,Ys0}]),
@@ -715,26 +742,23 @@ mouse_range(#mousemotion{x=X0,y=Y0,state=Mask},
 		         _ -> Zs0 + YD	%Vertical motion
 		     end,
 		    Fp = Fp0,
-		    FpCount = FpCount0,
 		    Count = Count0 + 1;
 		  {false,true} ->
 		    Xs = Xs0,
 		    Ys = Ys0,
 		    Zs = Zs0,
 		    Fp = Fp0 + XD,
-		    FpCount = FpCount0 +1,
 		    Count = Count0;
 		  {_,_} ->
 		    Xs = Xs0 + XD,
 		    Ys = Ys0 + YD,
 		    Zs = Zs0,
 		    Fp = Fp0,
-		    FpCount = FpCount0,
 		    Count = Count0
 	    end,
 	    wings_io:warp(OX, OY),
 	    {mouse_scale([Xs,-Ys,-Zs,-Fp], UnitScales),
-	     Drag#drag{xs=Xs,ys=Ys,zs=Zs,fp=Fp,xt=XD0,yt=YD0,mmb_count=Count,fp_count=FpCount}}
+	     Drag#drag{xs=Xs,ys=Ys,zs=Zs,fp=Fp,xt=XD0,yt=YD0,mmb_count=Count}}
     end.
 
 mouse_scale([D|Ds], [S|Ss]) ->

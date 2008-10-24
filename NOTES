@@ -4,6 +4,9 @@
 
 - The Toxic exporter has been removed. [bjorng]
 
+- Cancelling commands while dragging (rmb), would only work while the mouse was
+  relatively motionless. Now fixed. (Thanks to zukas.) [optigon]
+
 --- 0.99.05 -----------------------------------------------------------------
 - New Feature: Select|Similar Material selects all faces of the same material to
   the original face. You can select only those faces which are connected to the
