@@ -492,7 +492,7 @@ tds_help() ->
 %%%
 
 maya(#mousebutton{x=X0,y=Y0,mod=Mod,state=?SDL_PRESSED}, Redraw)
-  when Mod band ?ALT_BITS =/= 0 ->
+  when Mod band ?ALT_BITS =/= 0, Mod band ?CTRL_BITS =:= 0, Mod band ?SHIFT_BITS =:= 0 ->
     {X,Y} = wings_wm:local2global(X0, Y0),
     sdl_events:eventState(?SDL_KEYUP, ?SDL_ENABLE),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},

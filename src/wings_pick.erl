@@ -14,7 +14,7 @@
 -module(wings_pick).
 -export([event/2,event/3,hilite_event/3, hilite_event/4]).
 -export([do_pick/3]).
-
+-export([marquee_pick/3,paint_pick/3]).
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -53,8 +53,11 @@ event(#mousemotion{}=Mm, #st{selmode=Mode}=St, Redraw) ->
 	false -> next;
 	true -> {seq,push,handle_hilite_event(Mm, #hl{st=St,redraw=Redraw})}
     end;
-event(#mousebutton{button=1,x=X,y=Y,mod=Mod,state=?SDL_PRESSED}, St, _) ->
-    pick(X, Y, Mod, St);
+event(#mousebutton{button=1,x=X,y=Y,mod=Mod,state=?SDL_PRESSED}, St, _)
+        when Mod band (?SHIFT_BITS bor ?CTRL_BITS) =/= 0 ->
+    marquee_pick(X, Y, St);
+event(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED}, St, _) ->
+    paint_pick(X, Y, St);
 event(_, _, _) -> next.
 
 hilite_event(Mm, St, Redraw) ->
@@ -75,10 +78,10 @@ hilite_enabled(edge) -> wings_pref:get_value(edge_hilite);
 hilite_enabled(face) -> wings_pref:get_value(face_hilite);
 hilite_enabled(body) -> wings_pref:get_value(body_hilite).
 
-pick(X, Y, Mod, St) when Mod band (?SHIFT_BITS bor ?CTRL_BITS) =/= 0 ->
+marquee_pick(X, Y, St)  ->
     Pick = #marquee{ox=X,oy=Y,st=St},
-    clear_hilite_marquee_mode(Pick);
-pick(X, Y, _, St0) ->
+    clear_hilite_marquee_mode(Pick).
+paint_pick(X, Y, St0) ->
     case do_pick(X, Y, St0) of
 	none ->
 	    Pick = #marquee{ox=X,oy=Y,st=St0},
