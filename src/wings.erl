@@ -17,6 +17,7 @@
 -export([mode_restriction/1,clear_mode_restriction/0,get_mode_restriction/0]).
 -export([ask/3]).
 -export([save_windows/0]).
+-export([handle_drop/3]).
 -export([init_menubar/0]).
 
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).

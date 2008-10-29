@@ -62,7 +62,6 @@ menu(_, Menu) -> Menu.
 
 command({tools,tweak}, St0) ->
     Active = wings_wm:this(),
-    wings_wm:callback(fun() -> wings_u:menu_restriction(Active, [file,edit,view,select,tools]) end),
     case wpa:pref_get(?MODULE, sel_mode) of
     {_Mode,_Sh0,Mag,MagType} ->
         MagR = 1.0;
@@ -86,9 +85,8 @@ command(_, _) -> next.
 shift() -> ?KMOD_SHIFT.
 ctrl() -> ?KMOD_CTRL.
 alt() -> ?KMOD_ALT.
-%% Event handler for tweak mode
-%% St won't equal St because of temp_sel
 
+%% Event handler for tweak mode
 update_tweak_handler(#tweak{st=#st{}=St}=T) ->
     wings:mode_restriction(none),
     wings_wm:current_state(St),
@@ -128,7 +126,16 @@ handle_tweak_event({note,menu_aborted}, #tweak{orig_st=St0}=T) ->
     St = clear_temp_sel(St0),
     wings_draw:refresh_dlists(St),
     update_tweak_handler(T#tweak{st=St});
-
+    %%%%%%%%%%%%%%%%%%%%%%%55
+handle_tweak_event({drop,Pos,DropData}, #tweak{st=St}=T) ->
+    wings:handle_drop(DropData, Pos, St);
+handle_tweak_event(language_changed, _) ->
+    This = wings_wm:this(),
+    wings_wm:toplevel_title(This, geom_title(This)),
+    wings_wm:menubar(This, get(wings_menu_template)),
+    keep;
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 handle_tweak_event(Ev, #tweak{st=St}=T) ->
     case wings_camera:event(Ev, St) of
       next -> handle_tweak_event0(Ev, T);
@@ -350,9 +357,13 @@ handle_tweak_event1({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=S
         wings_view:command(Cmd0,St1),
         update_tweak_handler(T#tweak{st=OrigSt});
     {view,Cmd} ->
-        St = clear_temp_sel(wings_view:command(Cmd,St0)),
-        refresh_dlists(Cmd, St),
-        update_tweak_handler(T#tweak{st=OrigSt});
+        case wings_view:command(Cmd,St0) of
+            keep -> keep;
+            #st{}=St ->
+                St1 = clear_temp_sel(St),
+                refresh_dlists(Cmd, St1),
+                update_tweak_handler(T#tweak{st=St1})
+        end;
     {edit,undo_toggle} ->
         St = wings_u:caption(wings_undo:undo_toggle(clear_temp_sel(St0))),
         wings_draw:refresh_dlists(St),
@@ -500,15 +511,7 @@ do_wings_cmd(Type,Cmd, #tweak{st=#st{}=St0}=T) ->
     end.
 
 cmd_type(select, Cmd, St) -> wings_sel_cmd:command(Cmd, St#st{temp_sel=none});
-cmd_type(tools, Cmd, St) -> wings:command({tools,Cmd}, St);
-cmd_type(file, Cmd, St) -> wings_file:command(Cmd, St);
-cmd_type(edit, Cmd, St) -> wings:command({edit,Cmd}, St);
-
-cmd_type(vertex, Cmd, St) -> wings_vertex_cmd:command(Cmd, St);
-cmd_type(edge, Cmd, St) -> wings_edge_cmd:command(Cmd, St);
-cmd_type(face, Cmd, St) -> wings_face_cmd:command(Cmd, St);
-cmd_type(body, Cmd, St) -> wings_body:command(Cmd, St);
-cmd_type(shape, Cmd, St) -> wings_shapes:command(Cmd, St).
+cmd_type(Menu, Cmd, St) -> wings:command({Menu, Cmd}, St).
 
 remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
                      C =:= face; C =:= body ->
@@ -525,7 +528,6 @@ begin_drag(MM, St, T) ->
              begin_drag_fun(D, MM, St, T)
          end, []).
 
-begin_drag_fun(#dlo{src_we=We}=D, _, _, _) when ?IS_LIGHT(We) -> D;
 begin_drag_fun(#dlo{src_sel={body,_},src_we=#we{vp=Vtab}=We}=D0, MM, St, T) ->
     Vs0 = gb_trees:keys(Vtab),
     Center = wings_vertex:center(Vs0, We),
@@ -573,7 +575,8 @@ mod_key_combo() ->
     Alt = (Mod band alt()) =/= 0,
     {Shift,Ctrl,Alt}.
 
-
+sel_to_vs(Mode, _, We) when ?IS_LIGHT(We) ->
+    gb_sets:to_list(wings_sel:get_all_items(Mode, We));
 sel_to_vs(vertex, Vs, _) -> Vs;
 sel_to_vs(edge, Es, We) -> wings_vertex:from_edges(Es, We);
 sel_to_vs(face, [Face], We) -> wings_face:vertices_ccw(Face, We);
@@ -1187,3 +1190,8 @@ mirror_matrix(V, {MirrorVs,Flatten}) ->
 
 mirror_constrain(none, Pos) -> Pos;
 mirror_constrain(Matrix, Pos) -> e3d_mat:mul_point(Matrix, Pos).
+
+geom_title(geom) ->
+    ?__(1,"Geometry");
+geom_title({geom,N}) ->
+    ?__(2,"Geometry #") ++ integer_to_list(N).
