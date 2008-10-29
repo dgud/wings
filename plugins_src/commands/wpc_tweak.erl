@@ -61,7 +61,6 @@ menu({tools}, Menu0) ->
 menu(_, Menu) -> Menu.
 
 command({tools,tweak}, St0) ->
-    Active = wings_wm:this(),
     case wpa:pref_get(?MODULE, sel_mode) of
     {_Mode,_Sh0,Mag,MagType} ->
         MagR = 1.0;
@@ -127,7 +126,7 @@ handle_tweak_event({note,menu_aborted}, #tweak{orig_st=St0}=T) ->
     wings_draw:refresh_dlists(St),
     update_tweak_handler(T#tweak{st=St});
     %%%%%%%%%%%%%%%%%%%%%%%55
-handle_tweak_event({drop,Pos,DropData}, #tweak{st=St}=T) ->
+handle_tweak_event({drop,Pos,DropData}, #tweak{st=St}) ->
     wings:handle_drop(DropData, Pos, St);
 handle_tweak_event(language_changed, _) ->
     This = wings_wm:this(),
@@ -583,7 +582,10 @@ sel_to_vs(face, [Face], We) -> wings_face:vertices_ccw(Face, We);
 sel_to_vs(face, Fs, We) -> wings_face:to_vertices(Fs, We).
 
 do_tweak(DX, DY, DxOrg,DyOrg,Mode) ->
-    wings_dl:map(fun(D, _) ->
+    wings_dl:map(fun
+        (#dlo{src_we=We}=D, _) when ?IS_LIGHT(We) ->
+             do_tweak(D, DX, DY, DxOrg, DyOrg, screen);
+        (D, _) ->
              do_tweak(D, DX, DY, DxOrg, DyOrg, Mode)
          end, []).
 
