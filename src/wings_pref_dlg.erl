@@ -216,16 +216,16 @@ advanced_prefs() ->
           [{?__(40,"Factor in Distance from Camera"),drag_cam_dist_abs},
            {hframe,
               [{slider,{text,drag_speed_abs,[{range,{1.0,10.0}}]}}]}],
-          [{title,?__(42,"Absolute Speed")},{hook,Disable}]},
+          [{title,?__(50,"Mouse Speed for Dragging")},{hook,Disable}]},
          {vframe,
           [{?__(43,"Factor in Distance from Camera"),drag_cam_dist_relative},
             {hframe,
               [{slider,{text,drag_speed_relative,[{range,{1.0,10.0}}]}}]}],
-           [{title,?__(46,"Relative Speed")},{hook,Disable}]},
+           [{title,?__(51,"Mouse Speed for Scaling")},{hook,Disable}]},
          {vframe,
           [{hframe,
            [{slider,{text,drag_speed_rotate,[{range,{1.0,10.0}}]}}]}],
-       [{title,?__(48,"Rotation Speed")},{hook,Disable}]}],
+       [{title,?__(52,"Mouse Speed for Rotating")},{hook,Disable}]}],
     [{title,?__(49,"Drag Preferences")}]}]}.
 
 constraint_prefs() ->
