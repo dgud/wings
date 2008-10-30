@@ -18,6 +18,8 @@
 - Some wording changes to the mouse response preferences. (Thanks to plec.)
   [optigon]
 
+- Drag response factors in FOV. (Thanks to plec.) [optigon]
+
 --- 0.99.05 -----------------------------------------------------------------
 - New Feature: Select|Similar Material selects all faces of the same material to
   the original face. You can select only those faces which are connected to the
