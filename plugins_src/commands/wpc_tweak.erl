@@ -79,8 +79,6 @@ command({tools,tweak}, St0) ->
     {seq,push,update_tweak_handler(T)};
 command(_, _) -> next.
 
-%% functions that return the key to modify LMB action
-
 shift() -> ?KMOD_SHIFT.
 ctrl() -> ?KMOD_CTRL.
 alt() -> ?KMOD_ALT.
@@ -125,7 +123,6 @@ handle_tweak_event({note,menu_aborted}, #tweak{orig_st=St0}=T) ->
     St = clear_temp_sel(St0),
     wings_draw:refresh_dlists(St),
     update_tweak_handler(T#tweak{st=St});
-    %%%%%%%%%%%%%%%%%%%%%%%55
 handle_tweak_event({drop,Pos,DropData}, #tweak{st=St}) ->
     wings:handle_drop(DropData, Pos, St);
 handle_tweak_event(language_changed, _) ->
@@ -133,8 +130,6 @@ handle_tweak_event(language_changed, _) ->
     wings_wm:toplevel_title(This, geom_title(This)),
     wings_wm:menubar(This, get(wings_menu_template)),
     keep;
-   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 handle_tweak_event(Ev, #tweak{st=St}=T) ->
     case wings_camera:event(Ev, St) of
       next -> handle_tweak_event0(Ev, T);
@@ -164,8 +159,7 @@ handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{st=#st{sel=Sel0}=St0}=T) ->
     end;
 
 handle_tweak_event0(#mousemotion{}=Ev, #tweak{tmode=wait,st=St}=T) ->
-    Redraw = fun() -> redraw(St) end,
-    case wings_pick:hilite_event(Ev, St, Redraw) of
+    case wings_pick:event(Ev, St) of
       next -> handle_tweak_event1(Ev, T);
       Other -> Other
     end;
@@ -518,7 +512,7 @@ remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
 remember_command(_Cmd, St) -> St.
 
 redraw(St) ->
-    wings:redraw("", St),
+    wings:redraw(St),
     keep.
 
 begin_drag(MM, St, T) ->
