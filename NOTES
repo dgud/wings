@@ -4,13 +4,16 @@
 
 - The Toxic exporter has been removed. [bjorng]
 
-- Cancelling commands while dragging (rmb), would only work while the mouse was
+- Canceling commands while dragging (rmb), would only work while the mouse was
   relatively motionless. Now fixed. (Thanks to zukas.) [optigon]
 
 - Major Tweak rewirte to allow multiple selections and access to all regular
   Wings commands without leaving Tweak. Be sure to check the info line as some
   of the hotkey combos have changed.(Special thanks to Fonte Boa and marcin wuu
   and others for helping debug the code.) [optigon]
+
+- Shear's relative mode was broken in the last release. Now Fixed (Thanks to
+  pauljs75.) [optigon]
 
 --- 0.99.05 -----------------------------------------------------------------
 - New Feature: Select|Similar Material selects all faces of the same material to

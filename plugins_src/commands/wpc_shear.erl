@@ -347,7 +347,7 @@ shear_verts_by_mode(ShearData,State,Data,VsPositions,Dist,Cf,A) ->
 relative_shear(_ShearData,Vpos, 0.0, _Cf, _Data) ->
     Vpos;
 
-relative_shear({Cf,Sf,Norm,DBbox,Dir,Anchor},Vpos,Dist,Cf,{GlidePlane,_Radial,Origin,_GlidePoint}) ->
+relative_shear({Sf,Norm,DBbox,Dir,Anchor},Vpos,Dist,Cf,{GlidePlane,_Radial,Origin,_GlidePoint}) ->
     D = dist_along_vector(Vpos,Origin,GlidePlane),
     {Dist1,Factor} = shear_dist_factor(Cf,Sf,Dir,Anchor,Dist,D),
     e3d_vec:add(Vpos, e3d_vec:mul(Norm, -Dist1 * DBbox * Factor)).
