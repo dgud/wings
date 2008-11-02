@@ -1,13 +1,13 @@
---- 0.99.xx -----------------------------------------------------------------
+--- 0.99.06 -----------------------------------------------------------------
 - Internal changes: Warnings were eliminated and all unnecessary imports
   were removed. (Thanks to Richard Carlsson.) [bjorng]
 
-- The Toxic exporter has been removed. [bjorng]
+- The experimental Toxic exporter has been removed. [bjorng]
 
 - Canceling commands while dragging (rmb), would only work while the mouse was
   relatively motionless. Now fixed. (Thanks to zukas.) [optigon]
 
-- Major rewirte of the Tweak plugin to allow multiple selections and access to
+- Major rewrite of the Tweak plugin to allow multiple selections and access to
   all the regular Wings commands from within Tweak. Be sure to check the info
   line as some of the hotkey combos have changed. (Thanks to Fonte Boa, marcin
   wuu, and all those who helped during testing.) [optigon]
