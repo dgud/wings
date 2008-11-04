@@ -190,11 +190,11 @@ cat_cols(A, B) ->
 %%
 cat_rows({?TAG,Na,M,A}, {?TAG,Nb,M,B}) ->
     {?TAG,Na+Nb,M,A++B};
-cat_rows({?TAG,_} = A, {?TAG,_,1} = B) ->
+cat_rows({?TAG,_,_} = A, {?TAG,_,1,_} = B) ->
     rows(1, rows(A)++rows(B));
-cat_rows({?TAG,_,1} = A, {?TAG,_} = B) ->
+cat_rows({?TAG,_,1,_} = A, {?TAG,_,_} = B) ->
     rows(1, rows(A)++rows(B));
-cat_rows({?TAG,_} = A, {?TAG,_} = B) ->
+cat_rows({?TAG,_,_} = A, {?TAG,_,_} = B) ->
     rows(1, rows(A)++rows(B));
 cat_rows(A, B) ->
     erlang:error(badarg, [A, B]).
