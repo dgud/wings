@@ -341,7 +341,13 @@ delete_scene_value(Key) ->
 
 
 defaults() ->
-    [{background_color,{0.8,0.8,0.8}},
+    [
+     %% Put any non-constant preferences here.
+     {jumpy_camera,os:type() =:= {unix,darwin}},
+
+     %% The remaining items are constants. The generated code
+     %% will be much more compact.
+     {background_color,{0.8,0.8,0.8}},
      {info_color,{0.0,0.0,0.0}},
      {info_background_color,{0.8,0.8,0.8,0.5}},
      {info_enhanced_text,false},
@@ -396,10 +402,6 @@ defaults() ->
      %% Compatibility preferences.
      {text_display_lists,true},
      {dummy_axis_letter,false},
-     {jumpy_camera,case os:type() of
-		       {unix,darwin} -> true;
-		       _ -> false
-		   end},
      {polygon_offset_f,1.0},
      {polygon_offset_r,1.0},
 
