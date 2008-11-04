@@ -8,7 +8,7 @@
 %% ftp://ftp.expa.fnt.hvu.nl/pub/ammeraal/English/older/ppcgraph.zip
 %% ftp://ftp.expa.fnt.hvu.nl/pub/ammeraal/English/grjava.zip
 %%
-%% Copyright (c) 2003 Dmitry Efremov <defremov@aha.ru>
+%% Copyright (c) 2003-2008 Dmitry Efremov <defremov@aha.ru>
 %%
 %% BUGS:
 %%  Near clipping will not work correctly if occurs in the viewport
@@ -427,8 +427,6 @@ incr([], _Incr)  -> [];
 incr([A | T], Incr) -> [incr(A, Incr) | incr(T, Incr)];
 incr(A, Incr) -> A + Incr.
 
-normalize([])                -> [];
-normalize([{P, Q} | T])      -> [normalize({P, Q}) | normalize(T)];
 normalize({P, Q}) when P > Q -> {Q, P};
 normalize({P, Q})            -> {P, Q}.
 
@@ -436,7 +434,7 @@ normalize({P, Q})            -> {P, Q}.
 %  [9, 2, 5, 3] -> [{2, 9}, {2, 5}, {3, 5}, {3, 9}]
 %
 npair(L) when is_list(L) -> npair(hd(L), L).
-npair(_, []) -> [];
+
 npair(H, [E]) -> [normalize({E, H})];
 npair(H, [E | T]) -> [normalize({E, hd(T)}) | npair(H, T)].
 
@@ -742,7 +740,6 @@ neg({X, Y}) -> {-X, -Y}.
 mul({X, Y, Z}, S) -> {X * S, Y * S, Z * S};
 mul({X, Y}, S) -> {X * S, Y * S}.
 
-divide({X, Y, Z}, S) -> {X / S, Y / S, Z / S};
 divide({X, Y}, S) -> {X / S, Y / S}.
 
 zero_div(A, B) when is_float(A), is_float(B) ->
@@ -808,40 +805,8 @@ outcode({X, Y, Z}, {HSx, HSy, Zmin, Zmax, Zf}) ->
     end,
     C4 = if Z < Zmin -> 16; true -> 0 end,
     C5 = if Z > Zmax -> 32; true -> 0 end,
-    C0 bor C1 bor C2 bor C3 bor C4 bor C5;
-outcode({X, Y, Z}, {{{Xmin, Ymin}, {Xmax, Ymax}}, Zf}) ->
-    R =  Z / Zf,
-    Rx_min = Xmin * R,
-    Ry_min = Ymin * R,
-    Rx_max = Xmax * R,
-    Ry_max = Ymax * R,
-    {C0, C1, C2, C3} = if
-        Z > 0.0 ->
-            {if X < Rx_min -> 0; true -> 1 end,
-            if X > Rx_max -> 0; true -> 2 end,
-            if Y < Ry_min -> 0; true -> 4 end,
-            if Y > Ry_max -> 0; true -> 8 end}
-            ;
-        true ->
-            {if X < Rx_min -> 1; true -> 0 end,
-            if X > Rx_max -> 2; true -> 0 end,
-            if Y < Ry_min -> 4; true -> 0 end,
-            if Y > Ry_max -> 8; true -> 0 end}
-    end,
-    C0 bor C1 bor C2 bor C3.
+    C0 bor C1 bor C2 bor C3 bor C4 bor C5.
 
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {{Xmin, _, _}, _}) when X < Xmin ->
-    {Xmin, Y + DY * (Xmin - X) / DX, Z + DZ * (Xmin - X) / DX};
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {_, {Xmax, _, _}}) when X > Xmax ->
-    {Xmax, Y + DY * (Xmax - X) / DX, Z + DZ * (Xmax - X) / DX};
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {{_, Ymin, _}, _}) when Y < Ymin ->
-    {X + DX * (Ymin - Y) / DY, Ymin, Z + DZ * (Ymin - Y) / DY};
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {_, {_, Ymax, _}}) when Y > Ymax ->
-    {X + DX * (Ymax - Y) / DY, Ymax, Z + DZ * (Ymax - Y) / DY};
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {{_, _, Zmin}, _}) when Z < Zmin ->
-    {X + DX * (Zmin - Z) / DZ, Y + DY * (Zmin - Z) / DZ, Zmin};
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {_, {_, _, Zmax}}) when Z > Zmax ->
-    {X + DX * (Zmax - Z) / DZ, Y + DY * (Zmax - Z) / DZ, Zmax};
 to_boundary({X, Y, Z}, {DX, DY, DZ}, Zlim) when is_float(Zlim) ->
     {X + DX * (Zlim - Z) / DZ, Y + DY * (Zlim - Z) / DZ, Zlim};
 to_boundary({X, Y}, {DX, DY}, {{Xmin, _}, _}) when X < Xmin ->
