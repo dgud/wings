@@ -3,7 +3,7 @@
 %%
 %%     Extends the Erlang shell with Wings utilities.
 %%
-%%  Copyright (c) 2001-2007 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -183,11 +183,11 @@ diana() ->
     {ok,B} = file:read_file(dump_file()),
     case binary_to_term(B) of
 	Ws when is_list(Ws) ->
-	    diana_1(lists:sort(Ws))
+	    diana_1(lists:keysort(1, Ws))
     end.
 
-diana_1([{{File,Line},W}|Ws]) ->
-    io:format("~s:~p: ~s", [File,Line,W]),
+diana_1([W|Ws]) ->
+    io:format("~s", [dialyzer:format_warning(W)]),
     diana_1(Ws);
 diana_1([]) -> ok.
 
