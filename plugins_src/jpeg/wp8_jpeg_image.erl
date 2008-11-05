@@ -4,7 +4,7 @@
 %%     Plug-in for reading and writing JPEG files
 %%     using libjpeg from IJG (Independent JPEG Group).
 %%
-%%  Copyright (c) 2004 Bjorn Gustavsson
+%%  Copyright (c) 2004-2008 Bjorn Gustavsson
 %%
 %%  libjpeg is copyright (C) 1991-1998, Thomas G. Lane.
 %%
@@ -29,13 +29,13 @@ init(Next) ->
     Dir = filename:dirname(code:which(?MODULE)),
     case erl_ddll:load_driver(Dir, "wings_jpeg_image_drv") of
 	ok ->
-	    case open_port({spawn,wings_jpeg_image_drv},[]) of
-		Port when is_port(Port) ->
-		    register(?MODULE, Port),
-		    fun(What) ->
-			    fileop(What,Next)
-		    end;
-		_Other ->
+	    try
+		Port = open_port({spawn,wings_jpeg_image_drv}, []),
+		register(?MODULE, Port),
+		fun(What) ->
+			fileop(What, Next)
+		end
+	    catch error:_ ->
 		    Next
 	    end;
 	_ -> Next
