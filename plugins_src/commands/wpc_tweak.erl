@@ -248,53 +248,45 @@ handle_tweak_event1(#mousemotion{state=?SDL_RELEASED},
 %%%% Right Click Menus
 handle_tweak_event1(#mousebutton{button=3,state=?SDL_PRESSED,x=X,y=Y}=Ev0,
         #tweak{st=#st{sel=Sel}=St0}=T) ->
+    {GlobalX, GlobalY} = wings_wm:local2global(X,Y),
     case wings_pref:get_value(advanced_menus) of
       false ->
-        case wings_menu:is_popup_event(Ev0) of
-            no ->
-                handle_tweak_event0(Ev0, St0);
-            {yes,Xglobal,Yglobal,_} ->
-                case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
-                    false ->
-                        popup_menu(Xglobal, Yglobal, St0);
-                    true ->
-                        case wings_pick:do_pick(X, Y, St0) of
-                            {add,_,St1} ->
-                                 St = set_temp_sel(St0,St1),
-                                 wings_wm:current_state(St),
-                                 wings_draw:refresh_dlists(St),
-                                 handle_tweak_event1(Ev0,T#tweak{orig_st=St0,st=St});
-                             _ ->
-                                 popup_menu(Xglobal, Yglobal, St0)
-                        end
-                end
-            end;
+          case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
+              false ->
+                  popup_menu(GlobalX, GlobalY, St0);
+              true ->
+                  case wings_pick:do_pick(X, Y, St0) of
+                      {add,_,St1} ->
+                           St = set_temp_sel(St0,St1),
+                           wings_wm:current_state(St),
+                           wings_draw:refresh_dlists(St),
+                           handle_tweak_event1(Ev0,T#tweak{orig_st=St0,st=St});
+                       _ ->
+                           popup_menu(GlobalX, GlobalY, St0)
+                  end
+          end;
       true -> keep
     end;
 
 handle_tweak_event1(#mousebutton{button=3,state=?SDL_RELEASED,x=X,y=Y}=Ev0,
         #tweak{st=#st{sel=Sel}=St0}=T) ->
+    {GlobalX, GlobalY} = wings_wm:local2global(X,Y),
     case wings_pref:get_value(advanced_menus) of
       true ->
-        case wings_menu:is_popup_event(Ev0) of
-            no ->
-                handle_tweak_event0(Ev0, St0);
-            {yes,Xglobal,Yglobal,_} ->
-                case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
-                    false ->
-                        popup_menu(Xglobal, Yglobal, St0);
-                    true ->
-                        case wings_pick:do_pick(X, Y, St0) of
-                            {add,_,St1} ->
-                                 St = set_temp_sel(St0,St1),
-                                 wings_wm:current_state(St),
-                                 wings_draw:refresh_dlists(St),
-                                 handle_tweak_event1(Ev0,T#tweak{orig_st=St0,st=St});
-                             _ ->
-                                 popup_menu(Xglobal, Yglobal, St0)
-                        end
-                end
-            end;
+          case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
+              false ->
+                  popup_menu(GlobalX, GlobalY, St0);
+              true ->
+                  case wings_pick:do_pick(X, Y, St0) of
+                      {add,_,St1} ->
+                           St = set_temp_sel(St0,St1),
+                           wings_wm:current_state(St),
+                           wings_draw:refresh_dlists(St),
+                           handle_tweak_event1(Ev0,T#tweak{orig_st=St0,st=St});
+                       _ ->
+                           popup_menu(GlobalX, GlobalY, St0)
+                  end
+          end;
       false -> keep
     end;
 
@@ -941,17 +933,13 @@ help(#tweak{magnet=true,mag_type=Type}) ->
 common_help(Tail0) ->
     AltMod = alt(),
     CtrlMod = ctrl(),
+	ShiftMod = shift(),
     Tail = [slide_help(AltMod, CtrlMod)|Tail0],
     [wings_msg:button_format(?__(2,"Drag")),
      wings_msg:mod_format(CtrlMod,1,?__(6,"Select")),
-     wings_msg:mod_format(AltMod, 1, ?__(3,"Along normal"))|
-     case shift() of
-     none ->
-         Tail;
-     ShiftMod ->
-         [wings_msg:mod_format(CtrlMod bor ShiftMod, 1, ?__(4,"In tangent plane")),
-          wings_msg:mod_format(AltMod bor ShiftMod, 1, ?__(5,"Relax"))|Tail]
-     end].
+     wings_msg:mod_format(AltMod, 1, ?__(3,"Along normal")),
+     wings_msg:mod_format(CtrlMod bor ShiftMod, 1, ?__(4,"In tangent plane")),
+     wings_msg:mod_format(AltMod bor ShiftMod, 1, ?__(5,"Relax"))|Tail].
 
 exit_help() ->
     ?__(2,"[Esc]:") ++ " " ++ ?__(1,"Exit").
