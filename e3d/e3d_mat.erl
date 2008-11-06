@@ -3,12 +3,12 @@
 %%
 %%     Operations on matrices.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson and Dan Gudmundsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson and Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: e3d_mat.erl,v 1.30 2005/05/03 16:23:08 dgud Exp $
+%%     $Id$
 %%
 
 -module(e3d_mat).
@@ -17,9 +17,12 @@
 	 translate/1,translate/3,scale/1,scale/3,
 	 rotate/2,rotate_to_z/1,rotate_s_to_t/2,
 	 project_to_plane/1,
-	 transpose/1,mul/2,mul_point/2,mul_vector/2, eigenv3/1]).
+	 transpose/1,mul/2,mul_point/2,mul_vector/2,eigenv3/1]).
 -compile(inline).
+-include("e3d.hrl").
 
+-spec identity() -> e3d_compact_matrix().
+    
 identity() ->
     Zero = 0.0,
     One = 1.0,
@@ -28,6 +31,8 @@ identity() ->
      Zero,Zero,One,
      Zero,Zero,Zero}.
 
+-spec is_identity(e3d_matrix()) -> bool().
+
 is_identity(identity) -> true;
 is_identity({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0}) -> true;
 is_identity({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,
@@ -35,17 +40,25 @@ is_identity({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,
 is_identity({_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_}) -> false;
 is_identity({_,_,_,_,_,_,_,_,_,_,_,_}) -> false.
 
+-spec compress(e3d_matrix()) -> e3d_compact_matrix().
+
 compress(identity=I) -> I;
 compress({A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0}) ->
     {A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}.
 
+-spec expand(e3d_matrix()) -> e3d_matrix().
+    
 expand(identity) ->
     {1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0};
 expand({_A,_B,_C,_,_D,_E,_F,_,_G,_H,_I,_,_Tx,_Ty,_Tz,_}=Mat) -> Mat;
 expand({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}) ->
     {A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0}.
 
+-spec translate(e3d_vector()) -> e3d_compact_matrix().
+
 translate({X,Y,Z}) -> translate(X, Y, Z).
+
+-spec translate(X::float(), Y::float(), Z::float()) -> e3d_compact_matrix().
 
 translate(Tx, Ty, Tz) ->
     Zero = 0.0,
@@ -54,6 +67,8 @@ translate(Tx, Ty, Tz) ->
      Zero,One,Zero,
      Zero,Zero,One,
      Tx,Ty,Tz}.
+
+-spec scale({float(),float(),float()} | float()) -> e3d_compact_matrix().
 
 scale({X,Y,Z}) -> scale(X, Y, Z);
 scale(Sc) when is_float(Sc) -> scale(Sc, Sc, Sc).
@@ -64,6 +79,8 @@ scale(Sx, Sy, Sz) ->
      Zero,Sy,Zero,
      Zero,Zero,Sz,
      Zero,Zero,Zero}.
+
+-spec rotate(Angle::number(), Vector::e3d_vector()) -> e3d_compact_matrix().
 
 rotate(A0, {X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
     A = A0*(math:pi()/180),
@@ -91,6 +108,9 @@ rotate(A0, {X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
      0.0,0.0,0.0}.
 
 %% Project to plane perpendicular to vector Vec.
+
+-spec project_to_plane(Vector::e3d_vector()) -> e3d_compact_matrix().
+
 project_to_plane(Vec) ->
     %%       T
     %% P = QQ
@@ -108,6 +128,8 @@ project_to_plane(Vec) ->
 	     0.0,0.0,0.0}
     end.
 
+-spec rotate_to_z(Vector::e3d_vector()) -> e3d_compact_matrix().
+
 rotate_to_z(Vec) ->
     {Vx,Vy,Vz} = V =
 	case e3d_vec:norm(Vec) of
@@ -124,6 +146,8 @@ rotate_to_z(Vec) ->
      Uz,Vz,Wz,
      0.0,0.0,0.0}.
 
+-spec rotate_s_to_t(S::e3d_vector(), T::e3d_vector()) -> e3d_compact_matrix().
+
 rotate_s_to_t(S, T) ->
     %% Tomas Moller/Eric Haines: Real-Time Rendering (ISBN 1-56881-101-2).
     %%  3.3. Quaternions; Rotating one vector to another
@@ -135,56 +159,7 @@ rotate_s_to_t(S, T) ->
 	    rotate_s_to_t_1(V, E)
     end.
 
-almost_parallel(S, T) ->
-    %% Parallel case as in Moller/Hughes:
-    %%  http://www.acm.org/jgt/papers/MollerHughes99
-    Axis = closest_axis(S),
-    U = e3d_vec:sub(Axis, S),
-    V = e3d_vec:sub(Axis, T),
-
-    C1 = 2.0 / e3d_vec:dot(U, U),
-    C2 = 2.0 / e3d_vec:dot(V, V),
-    C3 = C1 * C2 * e3d_vec:dot(U, V),
-    C = {C1,C2,C3,U,V},
-
-    {1.0+ael(C, 1, 1),ael(C, 2, 1),ael(C, 3, 1),
-     ael(C, 1, 2),1.0+ael(C, 2, 2),ael(C, 3, 2),
-     ael(C, 1, 3),ael(C, 2, 3),1.0+ael(C, 3, 3),
-     0.0,0.0,0.0}.
-
-ael({C1,C2,C3,U,V}, I, J) ->
-    -C1 * element(I, U) * element(J, U) -
-	C2 * element(I, V) * element(J, V) +
-	C3 * element(I, V) * element(J, U).
-
-closest_axis({X0,Y0,Z0}) ->
-    X = abs(X0),
-    Y = abs(Y0),
-    Z = abs(Z0),
-    if
-	X < Y ->
-	    if
-		X < Z -> {1.0,0.0,0.0};
-		true -> {0.0,0.0,1.0}
-	    end;
-	true ->
-	    if
-		Y < Z -> {0.0,1.0,0.0};
-		true -> {0.0,0.0,1.0}
-	    end
-    end.
-    
-rotate_s_to_t_1({Vx,Vy,Vz}, E) when is_float(Vx), is_float(Vy), is_float(Vz) ->
-    H = (1.0 - E)/(Vx*Vx+Vy*Vy+Vz*Vz),
-    HVx = H*Vx,
-    HVz = H*Vz,
-    HVxy = HVx*Vy,
-    HVxz = HVx*Vz,
-    HVyz = HVz*Vy,
-    {E+HVx*Vx,HVxy+Vz,HVxz-Vy,
-     HVxy-Vz,E+H*Vy*Vy,HVyz+Vx,
-     HVxz+Vy,HVyz-Vx,E+HVz*Vz,
-     0.0,0.0,0.0}.
+-spec transpose(e3d_compact_matrix() | 'identity') -> e3d_compact_matrix().
 
 transpose(identity=I) -> I;
 transpose({M1,M2,M3,M4,M5,M6,M7,M8,M9,0.0=Z,0.0,0.0}) ->
@@ -193,6 +168,10 @@ transpose({M1,M2,M3,M4,M5,M6,M7,M8,M9,0.0=Z,0.0,0.0}) ->
      M3,M6,M9,
      Z,Z,Z}.
 
+-spec mul(M::e3d_matrix(), N::e3d_matrix() | e3d_vector() |
+	  {float(),float(),float(),float()}) ->
+    e3d_matrix() | {float(),float(),float(),float()}.
+    
 mul(M, identity) -> M;
 mul(identity, M) -> M;
 mul({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,B_tx,B_ty,B_tz},
@@ -261,6 +240,8 @@ mul({A,B,C,Q0,D,E,F,Q1,G,H,I,Q2,Tx,Ty,Tz,Q3}, {X,Y,Z,W})
      X*C + Y*F + Z*I + W*Tz,
      X*Q0 + Y*Q1 + Z*Q2 + W*Q3}.
 
+-spec mul_point(Matrix::e3d_matrix(), Point::e3d_vector()) -> e3d_vector().
+    
 mul_point(identity, P) -> P;
 mul_point({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}, {X,Y,Z})
   when is_float(A), is_float(B), is_float(C), is_float(D), is_float(E),
@@ -277,6 +258,8 @@ mul_point({A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0}, {X,Y,Z})
 	  X*B + Y*E + Z*H + Ty,
 	  X*C + Y*F + Z*I + Tz).
 
+-spec mul_vector(Matrix::e3d_matrix(), Vector::e3d_vector()) -> e3d_vector().
+
 mul_vector(identity, Vec) -> Vec;
 mul_vector({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}, {X,Y,Z})
   when is_float(A), is_float(B), is_float(C), is_float(D), is_float(E),
@@ -292,14 +275,6 @@ mul_vector({A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0}, {X,Y,Z})
     share(X*A + Y*D + Z*G,
 	  X*B + Y*E + Z*H,
 	  X*C + Y*F + Z*I).
-
-share(X, X, X) -> {X,X,X};
-share(X, X, Z) -> {X,X,Z};
-share(X, Y, Y) -> {X,Y,Y};
-share(X, Y, X) -> {X,Y,X};
-share(X, Y, Z) -> {X,Y,Z}.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Calculates Eigenvalues and vectors
@@ -329,6 +304,68 @@ eigenv3(Mat0={A,B,C,D,E,F,G,H,I})
        (Va3 =< Va2), (Va2 =< Va1) ->
 	    {{Va3,Va2,Va1},{X3,Y3,Z3,X2,Y2,Z2,X1,Y1,Z1}}
     end.
+
+%%%
+%%% Local functions.
+%%%
+
+share(X, X, X) -> {X,X,X};
+share(X, X, Z) -> {X,X,Z};
+share(X, Y, Y) -> {X,Y,Y};
+share(X, Y, X) -> {X,Y,X};
+share(X, Y, Z) -> {X,Y,Z}.
+
+
+almost_parallel(S, T) ->
+    %% Parallel case as in Moller/Hughes:
+    %%  http://www.acm.org/jgt/papers/MollerHughes99
+    Axis = closest_axis(S),
+    U = e3d_vec:sub(Axis, S),
+    V = e3d_vec:sub(Axis, T),
+
+    C1 = 2.0 / e3d_vec:dot(U, U),
+    C2 = 2.0 / e3d_vec:dot(V, V),
+    C3 = C1 * C2 * e3d_vec:dot(U, V),
+    C = {C1,C2,C3,U,V},
+
+    {1.0+ael(C, 1, 1),ael(C, 2, 1),ael(C, 3, 1),
+     ael(C, 1, 2),1.0+ael(C, 2, 2),ael(C, 3, 2),
+     ael(C, 1, 3),ael(C, 2, 3),1.0+ael(C, 3, 3),
+     0.0,0.0,0.0}.
+
+ael({C1,C2,C3,U,V}, I, J) ->
+    -C1 * element(I, U) * element(J, U) -
+	C2 * element(I, V) * element(J, V) +
+	C3 * element(I, V) * element(J, U).
+
+closest_axis({X0,Y0,Z0}) ->
+    X = abs(X0),
+    Y = abs(Y0),
+    Z = abs(Z0),
+    if
+	X < Y ->
+	    if
+		X < Z -> {1.0,0.0,0.0};
+		true -> {0.0,0.0,1.0}
+	    end;
+	true ->
+	    if
+		Y < Z -> {0.0,1.0,0.0};
+		true -> {0.0,0.0,1.0}
+	    end
+    end.
+    
+rotate_s_to_t_1({Vx,Vy,Vz}, E) when is_float(Vx), is_float(Vy), is_float(Vz) ->
+    H = (1.0 - E)/(Vx*Vx+Vy*Vy+Vz*Vz),
+    HVx = H*Vx,
+    HVz = H*Vz,
+    HVxy = HVx*Vy,
+    HVxz = HVx*Vz,
+    HVyz = HVz*Vy,
+    {E+HVx*Vx,HVxy+Vz,HVxz-Vy,
+     HVxy-Vz,E+H*Vy*Vy,HVyz+Vx,
+     HVxz+Vy,HVyz-Vx,E+HVz*Vz,
+     0.0,0.0,0.0}.
 
 eig_triDiag3({A0,B0,C0,_,D0,E0,_,_,F0}) 
   when is_float(A0), is_float(B0), is_float(C0), 
