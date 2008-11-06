@@ -26,7 +26,9 @@ start() ->
     start(["icons","wings_icon.bundle"]).
 
 start([InDir,OutFile]) ->
+    io:put_chars("Loading"),
     Icons = load_icons(filelib:wildcard(filename:join(InDir, "*.{bmp,tga}"))),
+    io:nl(),
     Bin = term_to_binary(Icons, [compressed]),
     io:format("Writing ~s\n", [OutFile]),
     ok = file:write_file(OutFile, Bin),
@@ -39,7 +41,7 @@ load_icons([Name|Ns]) ->
 load_icons([]) -> [].
     
 load_file(File) ->
-    io:format("Loading ~s\n", [File]),
+    io:format(" ~s", [File]),
     {ok,Bin} = file:read_file(File),
     case Bin of
 	<<$B:8,$M:8,_/binary>> -> load_bmp(Bin);
@@ -60,7 +62,7 @@ load_bmp(<<$B:8,$M:8,_:8/binary,Offset:32/little,Bin/binary>>=Bin0) ->
     PixelsLen = H * RowLength,
     <<_:Offset/binary,Pixels0:PixelsLen/binary,_/binary>> = Bin0,
     Pixels1 = skip_padding(Pixels0, 3*W, pad_len(W * 3, 4), []),
-    Pixels = shuffle_colors(Pixels1, []),
+    Pixels = << <<R:8,G:8,B:8>> || <<B:8,G:8,R:8>> <= Pixels1>>,
     {3,W,H,Pixels}.
 
 skip_padding(<<>>, _, _, Acc) ->
@@ -68,10 +70,6 @@ skip_padding(<<>>, _, _, Acc) ->
 skip_padding(B, Bytes, Skip, Acc) ->
     <<Row:Bytes/binary,_:Skip/binary,Rest/binary>> = B,
     skip_padding(Rest, Bytes, Skip, [Row|Acc]).
-
-shuffle_colors(<<B:8,G:8,R:8,T/binary>>, Acc) ->
-    shuffle_colors(T, [[R,G,B]|Acc]);
-shuffle_colors(<<>>, Acc) -> list_to_binary(reverse(Acc)).
 
 pad_len(RL, Align) ->
     case RL rem Align of
@@ -90,9 +88,9 @@ load_tga(<<0,0,3,0,0,0,0,0,0,0,0,0, Image/binary>>) ->
 
 load_uncomp(<<W:16/little,H:16/little,BitsPP:8,0:1,0:1,Order:2, Alpha:4,Image/binary>>) ->
     BytesPerPixel = BitsPP div 8,
-    SpecOK = (W > 0) and (H > 0) and ((BitsPP == 32) 
-				      or (BitsPP == 24) 
-				      or (BitsPP == 8)),
+    SpecOK = (W > 0) and (H > 0) and ((BitsPP =:= 32) 
+				      or (BitsPP =:= 24) 
+				      or (BitsPP =:= 8)),
     if 
 	SpecOK == false ->
 	    io:format("Unsupported image spec W ~p H ~p BitsPP ~p Order ~p Alpha ~p ~n",
@@ -107,17 +105,9 @@ load_uncomp(<<W:16/little,H:16/little,BitsPP:8,0:1,0:1,Order:2, Alpha:4,Image/bi
     end.
 
 tga_shuffle_colors(3, Bin) ->
-    tga_shuffle_colors_3(Bin, []);
+    << <<R:8,G:8,B:8>> || <<B:8,G:8,R:8>> <= Bin >>;
 tga_shuffle_colors(4, Bin) ->
-    tga_shuffle_colors_4(Bin, []).
-
-tga_shuffle_colors_3(<<B:8,G:8,R:8,T/binary>>, Acc) ->
-    tga_shuffle_colors_3(T, [Acc|<<R:8,G:8,B:8>>]);
-tga_shuffle_colors_3(<<>>, Acc) -> list_to_binary(Acc).
-
-tga_shuffle_colors_4(<<B:8,G:8,R:8,A:8,T/binary>>, Acc) ->
-    tga_shuffle_colors_4(T, [Acc|<<R:8,G:8,B:8,A:8>>]);
-tga_shuffle_colors_4(<<>>, Acc) -> list_to_binary(Acc).
+    << <<R:8,G:8,B:8,A:8>> || <<B:8,G:8,R:8,A:8>> <= Bin >>.
 
 tga_turn(2, RowLen, Pixels) -> tga_turn_1(RowLen, Pixels, []);
 tga_turn(0, _, Pixels) -> Pixels.
