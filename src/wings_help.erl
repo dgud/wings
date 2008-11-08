@@ -30,7 +30,6 @@ menu(_) ->
 	 separator,
 	 lights,
 	 separator,
-	 advanced_menus,
 	 default_commands,
 	 separator,
 	 performance_tips,
@@ -136,7 +135,8 @@ getting_started(Head) ->
 
 	 use_one_or_two(),
 	 ?__(7,
-	      "Generally, L (left mouse button) is used for selecting and accepting, M (middle mouse button) for operating the camera, and R (right mouse button) to access the context-sensitive pop-up menus.")
+	      "Generally, L (left mouse button) is used for selecting and accepting, M (middle mouse button) for operating the camera, and R (right mouse button) to access the context-sensitive pop-up menus."),
+	 ?__(8, "Note that different mouse buttons can be used in pop-up menus to choose different variations of a command. Generally, the most common way to execute the command is found on the left mouse buttons, while the more advanced commands are found on the middle and right mouse buttons.")
 	],
     help_window(Head, H).
 
