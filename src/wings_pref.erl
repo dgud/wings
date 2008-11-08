@@ -47,10 +47,20 @@ load() ->
 		{ok,List0} ->
 		    List = clean(List0),
 		    catch ets:insert(wings_state, List),
-		    no_more_basic_menus();
+		    no_more_basic_menus(),
+		    start_in_tweak();
 		{error,_Reason} ->
 		    ok
 	    end
+    end.
+
+start_in_tweak() ->
+    case get_value(start_in_tweak) of
+      true ->
+        self() ! {external, launch_tweak},
+        ok;
+      false ->
+        ok
     end.
 
 no_more_basic_menus() ->
@@ -449,6 +459,7 @@ defaults() ->
      {clip_plane_size,1.5},
      {highlight_aim_at_selected,false},
      {highlight_aim_at_unselected,true},
+     {start_in_tweak, false},
 
      %% Constraints preferences.
      {con_dist_alt,10.0},

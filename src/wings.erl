@@ -386,6 +386,8 @@ handle_event_3(language_changed, _) ->
     keep;
 handle_event_3({external,no_more_basic_menus}, _St) ->
     wings_help:no_more_basic_menus();
+handle_event_3({external,launch_tweak}, St) ->
+    wpc_tweak:command({tools,tweak},St);
 handle_event_3({external,Op}, St) ->
     wpa:handle_external(Op,St),
     keep;
