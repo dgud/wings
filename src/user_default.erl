@@ -16,12 +16,12 @@
 -export([help/0,wh/0,
 	 wx/0,wxe/0,wxu/1,wxu/3,wxunref/0,wxundef/0,wxcs/0,
 	 wxc/1,wxq/1,
-	 dialyze/0,
+	 dialyze/0,dialyze/1,
 	 wldiff/1,
 	 lm/0,mm/0]).
 -export([diana/0]).
 
--import(lists, [foldl/3,foreach/2]).
+-import(lists, [foldl/3,foreach/2,flatmap/2]).
 
 help() ->
     shell_default:help(),
@@ -164,11 +164,22 @@ make_query(Format, Args) ->
 %%% Dialyzer support.
 %%%
 dialyze() ->
-    WingsLib = code:lib_dir(wings),
-    WingsEbin = filename:join(WingsLib, "ebin"),
-    Esdl = filename:dirname(code:which(gl)),
-    Dirs = [WingsEbin,Esdl|get_plugin_dirs()],
-    case dialyzer:run([{files,Dirs},{warnings,[no_improper_lists,no_return]}]) of
+    dialyze([core,plugins]).
+
+dialyze(all) ->
+    dialyze([core,esdl,plugins]);
+dialyze(Atom) when is_atom(Atom) ->
+    dialyze([Atom]);
+dialyze(Dirs0) when is_list(Dirs0) ->
+    Dirs = flatmap(fun(core) ->
+			   WingsLib = code:lib_dir(wings),
+			   [filename:join(WingsLib, "ebin")];
+		      (esdl) ->
+			   [filename:dirname(code:which(gl))];
+		      (plugins) ->
+			   get_plugin_dirs()
+		   end, Dirs0),
+    case dialyzer:run([{files,Dirs}]) of
 	{ok,Ws} -> dialyze_1(Ws);
 	{ok,Ws,_} -> dialyze_1(Ws);
 	Other -> dialyze_1(Other)
