@@ -1,5 +1,9 @@
---- 0.99.XX -----------------------------------------------------------------
+--- 0.99.50 -----------------------------------------------------------------
 - Tweak mode compatibility fixes for Maya and Motionbuilder cameras. [optigon]
+
+- Advanced menus are now always turned on. There will be a information
+  dialog when you start Wings if you have been using Wings with the
+  advanced menus turned off. [bjorng]
 
 --- 0.99.06 -----------------------------------------------------------------
 - Internal changes: Warnings were eliminated and all unnecessary imports

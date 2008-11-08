@@ -42,11 +42,35 @@ load() ->
 	    case file:consult(PrefFile) of
 		{ok,List0} ->
 		    List = clean(List0),
-		    catch ets:insert(wings_state, List);
+		    catch ets:insert(wings_state, List),
+		    no_more_basic_menus();
 		{error,_Reason} ->
 		    ok
 	    end
     end.
+
+no_more_basic_menus() ->
+    %% If Wings is launched the first time, the setting of
+    %% advanced_menus will determine whether an information
+    %% dialog should be shown. At subsequent launch, the
+    %% value of no_basic_menu_info decides.
+    case get_value(advanced_menus) andalso get_value(no_basic_menu_info) of
+	true ->
+	    %% The user either already used advanced menus or
+	    %% he has chosen to turn of the informtional dialog.
+	    ok;
+	false ->
+	    %% Either this is the first launch and the user used
+	    %% the basic menus, or (s)he has still not turned off
+	    %% the informational dialog.
+	    set_value(no_basic_menu_info, false),
+	    self() ! {external,no_more_basic_menus},
+	    ok
+    end,
+
+    %% Advanced menus are now always on. We must force this value
+    %% to true until we have cleaned away all code that test it.
+    set_value(advanced_menus, true).
 
 finish() ->
     win32_save_maximized(),
@@ -345,6 +369,10 @@ defaults() ->
      %% Put any non-constant preferences here.
      {jumpy_camera,os:type() =:= {unix,darwin}},
 
+     %% Advanced menus are always turned on now.
+     {advanced_menus,true},
+     {no_basic_menu_info,true},
+
      %% The remaining items are constants. The generated code
      %% will be much more compact.
      {background_color,{0.8,0.8,0.8}},
@@ -406,7 +434,6 @@ defaults() ->
      {polygon_offset_r,1.0},
 
      %% Advanced features.
-     {advanced_menus,false},
      {default_commands,false},
      {use_temp_sel,false},
      {use_super_temp_sel,false},

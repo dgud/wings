@@ -149,12 +149,12 @@ gen_prefs() ->
      [{title,?__(35,"Grid")}]}]}.
 
 advanced_prefs() ->
-    DisableHook = fun (is_disabled, {_Var,_I,Store}) ->
-			  not gb_trees:get(advanced_menus, Store);
-		      (_, _) -> void
-		  end,
+%%     DisableHook = fun (is_disabled, {_Var,_I,Store}) ->
+%% 			  not gb_trees:get(advanced_menus, Store);
+%% 		      (_, _) -> void
+%% 		  end,
     SuperDisable = fun (is_disabled, {_Var,_I,Store}) ->
-			   not gb_trees:get(advanced_menus, Store) orelse
+%%			   not gb_trees:get(advanced_menus, Store) orelse
 			       not gb_trees:get(use_temp_sel, Store);
 		       (_, _) ->	void
 		   end,
@@ -162,7 +162,8 @@ advanced_prefs() ->
 		       not gb_trees:get(use_temp_sel, Store);
 		       (_, _) ->	void
 		   end,
-    Flags = [{hook,DisableHook}],
+%%    Flags = [{hook,DisableHook}],
+    Flags = [],
     Disable = fun (is_disabled, {_Var,_I, Store}) ->
 		       not gb_trees:get(drag_custom,Store);
 		       (_, _) -> void
@@ -180,8 +181,8 @@ advanced_prefs() ->
       {?__(8,"Hide Selection While Moving Camera"),hide_sel_in_camera_moves,
        [{info,?__(9,"Don't show the selection when the camera is being moved")}]},
       panel,
-      {?__(10,"Advanced Menus"),advanced_menus,
-       [{info,?__(11,"More commands and more options, such as magnets")}]},
+%%      {?__(10,"Advanced Menus"),advanced_menus,
+%%       [{info,?__(11,"More commands and more options, such as magnets")}]},
       {?__(21,"Use Mirror for Selections"),use_mirror_for_sels,
        [{info,?__(22,"Default to using the virtual mirror for secondary selections")}]},
       {?__(12,"Power-user temporary selections"),use_super_temp_sel,

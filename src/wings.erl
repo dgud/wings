@@ -384,6 +384,8 @@ handle_event_3(language_changed, _) ->
     wings_wm:toplevel_title(This, geom_title(This)),
     wings_wm:menubar(This, get(wings_menu_template)),
     keep;
+handle_event_3({external,no_more_basic_menus}, _St) ->
+    wings_help:no_more_basic_menus();
 handle_event_3({external,Op}, St) ->
     wpa:handle_external(Op,St),
     keep;

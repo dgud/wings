@@ -13,7 +13,7 @@
 
 -module(wings_help).
 -export([menu/1,command/2]).
--export([cmd/1,help_window/2]).
+-export([cmd/1,help_window/2,no_more_basic_menus/0]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -91,6 +91,26 @@ command_1(opengl_info, Header) ->
     opengl_info(Header);
 command_1(about, Header) ->
     about(Header).
+
+no_more_basic_menus() ->
+    Qs = {vframe,
+	  [{label,"You are seeing this message because the Advanced pop-up menus was turned off in your preferences."},
+	   panel,
+	   {label,"From now on, Wings only supports the Advanced pop-up menus."},
+	   panel,
+	   {label,"The major difference compared to the Basic pop-up menus which you have been using is that"},
+	   {label,"all three mouse buttons can be used to execute a command."},
+	   panel,
+	   {label, "In most cases, the most common variation for a command is accessed by clicking the left mouse button,"},
+	   {label,"while the middle and right mouse buttons provide more advanced options for the command."},
+	   panel,
+	   {hframe,[{"Never show this message again",false,
+		     [{key,no_basic_menu_info}]},
+		    {button,ok,[ok]}]}]},
+    wings_ask:dialog("", Qs, fun([{K,V}]) ->
+				     wings_pref:set_value(K, V),
+				     ignore
+			     end).
 
 getting_started(Head) ->
     B = "(",
