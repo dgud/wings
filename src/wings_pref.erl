@@ -36,7 +36,11 @@ init() ->
 
 load() ->
     case old_pref_file() of
-	none -> ok;
+	none ->
+	    %% No preference file found. We must turn
+	    %% on the advanced menus.
+	    set_value(advanced_menus, true),
+	    ok;
 	PrefFile ->
 	    io:format("Reading preferences from: ~s\n", [PrefFile]),
 	    case file:consult(PrefFile) of
