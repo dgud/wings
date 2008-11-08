@@ -1,3 +1,6 @@
+--- 0.99.XX -----------------------------------------------------------------
+- Tweak mode compatibility fixes for Maya and Motionbuilder cameras. [optigon]
+
 --- 0.99.06 -----------------------------------------------------------------
 - Internal changes: Warnings were eliminated and all unnecessary imports
   were removed. (Thanks to Richard Carlsson.) [bjorng]

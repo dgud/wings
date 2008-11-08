@@ -7,6 +7,7 @@
 %%                2002-2008 Bjorn Gustavsson.
 %%
 %%  Various changes and improvements by Andrew Shpagin.
+%%  Multiple selections and access to regular Wings commands by Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -167,8 +168,9 @@ handle_tweak_event0(#mousemotion{}=Ev, #tweak{tmode=wait,st=St}=T) ->
 handle_tweak_event0(Ev, T) ->
     handle_tweak_event1(Ev, T).
 
-handle_tweak_event1(#mousemotion{x=X,y=Y,state=?SDL_PRESSED,mod=Mod},
-            #tweak{tmode=drag,cx=CX,cy=CY,ox=OX,oy=OY}=T0) ->
+handle_tweak_event1(#mousemotion{x=X,y=Y,state=State,mod=Mod},
+            #tweak{tmode=drag,cx=CX,cy=CY,ox=OX,oy=OY}=T0)
+            when State =/= ?SDL_BUTTON_RMASK ->
     DX = float(X-CX),
     DY = float(Y-CY),
     DxOrg = float(X-OX),
@@ -184,35 +186,44 @@ handle_tweak_event1(#mousemotion{x=X,y=Y,state=?SDL_PRESSED,mod=Mod},
     Mod1 = (Mod band alt()) =/= 0,
     Mod2 = (Mod band shift()) =/= 0,
     Mod3 = (Mod band ctrl()) =/= 0,
+
+    Cam = wings_pref:get_value(camera_mode),
+
     Mode=if
-         Mod1 and Mod3 	-> slide;
-         Mod1 and Mod2 	-> relax;
-         Mod2 and Mod3 	-> tangent;
-         Mod1	        -> normal;
-         Xymove		-> xymove;
-         Yzmove		-> yzmove;
-         Zxmove		-> zxmove;
-         Xpress==1		-> xmove;
-         Ypress==1		-> ymove;
-         Zpress==1		-> zmove;
+         Mod1 and Mod3 -> slide;
+         Mod1 and Mod2 -> relax;
+         Mod2 and Mod3 -> tangent;
+         Mod1	       -> normal;
+         Xymove	   -> xymove;
+         Yzmove	   -> yzmove;
+         Zxmove	   -> zxmove;
+         Xpress == 1   -> xmove;
+         Ypress == 1   -> ymove;
+         Zpress == 1   -> zmove;
+         State == ?SDL_BUTTON_MMASK andalso Cam == maya -> normal;
          true			-> screen
      end,
     do_tweak(DX, DY,DxOrg,DyOrg,Mode),
     T = T0#tweak{cx=X,cy=Y},
     update_tweak_handler(T);
 
-handle_tweak_event1(#mousebutton{button=1,x=X,y=Y,mod=Mod,state=?SDL_PRESSED},
-            #tweak{tmode=wait,st=St0}=T0) ->
-    Mod1 = (Mod band alt()) =/= 0,
-    Mod2 = (Mod band shift()) =/= 0,
-    Mod3 = (Mod band ctrl()) =/= 0,
-
-    case {Mod1,Mod2,Mod3} of
-      {false,false,true} ->
+handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
+            #tweak{tmode=wait,st=St0}=T0) when B == 1; B == 2 ->
+    ModKeys = mod_key_combo(),
+    Cam = wings_pref:get_value(camera_mode),
+    case ModKeys of
+      {false,true,false} when B == 1 ->
         wings_pick:paint_pick(X, Y, St0);
-      {false,true,false} ->
+      {false,false,true} when B == 1 andalso Cam == mb ->
+        wings_pick:paint_pick(X, Y, St0);
+      {true,false,false} when B == 1  ->
         wings_pick:marquee_pick(X, Y, St0);
-      _Other ->
+      _Other when
+        B == 1 andalso Cam =/= mb;
+        B == 1 andalso Cam == mb andalso ModKeys == {false,false,false};
+        B == 2 andalso Cam == maya andalso ModKeys == {false,false,false};
+        B == 2 andalso Cam == mb  andalso ModKeys =/= {false,true,false}
+        andalso ModKeys =/= {false,false,false}->
         case wings_pick:do_pick(X, Y, St0) of
           {add,MM,#st{sel=[{_,Sel}]}=St1} ->
             St = case gb_sets:size(Sel) of
@@ -233,14 +244,23 @@ handle_tweak_event1(#mousebutton{button=1,x=X,y=Y,mod=Mod,state=?SDL_PRESSED},
             do_tweak(0.0, 0.0, 0.0, 0.0, screen),
             T = T0#tweak{tmode=drag,ox=X,oy=Y,cx=X,cy=Y},
             update_tweak_handler(T);
-          none ->
-            wings_pick:marquee_pick(X, Y, St0)
-        end
+          none when B == 1 ->
+            wings_pick:marquee_pick(X, Y, St0);
+          none when Cam == maya; Cam == mb ->
+            update_tweak_handler(T0)
+        end;
+      _Other ->
+        update_tweak_handler(T0)
     end;
 
-handle_tweak_event1(#mousebutton{button=1,state=?SDL_RELEASED},
-            #tweak{tmode=drag}=T) ->
-    end_drag(T);
+handle_tweak_event1(#mousebutton{button=B,state=?SDL_RELEASED},
+            #tweak{tmode=drag}=T) when B == 1; B == 2 ->
+    case wings_pref:get_value(camera_mode) of
+      maya when B == 2 -> end_drag(T);
+      mb when B == 2 -> end_drag(T);
+      _Cam when B == 1 -> end_drag(T)
+    end;
+
 handle_tweak_event1(#mousemotion{state=?SDL_RELEASED},
             #tweak{tmode=drag}=T) ->
     end_drag(T);
@@ -915,7 +935,7 @@ vertex_pos(V, Vtab, OrigVtab) ->
     end.
 
 help(#tweak{magnet=false}) ->
-    Constraints = ["[F1,F2,F3] ",?__(3,"XYZ constraints")],
+    Constraints = ["[F1,F2,F3] ",?__(3,"XYZ Constraints")],
     Tail = [Constraints,exit_help()],
     All = common_help(Tail),
     Msg = wings_msg:join(All),
@@ -933,19 +953,30 @@ help(#tweak{magnet=true,mag_type=Type}) ->
 common_help(Tail0) ->
     AltMod = alt(),
     CtrlMod = ctrl(),
-	ShiftMod = shift(),
-    Tail = [slide_help(AltMod, CtrlMod)|Tail0],
+    ShiftMod = shift(),
+    Cam = wings_pref:get_value(camera_mode),
+    Button = case Cam of
+        mb -> 2;
+        _  -> 1
+    end,
+    Tail = [slide_help(Button, AltMod, CtrlMod)|Tail0],
     [wings_msg:button_format(?__(2,"Drag")),
-     wings_msg:mod_format(CtrlMod,1,?__(6,"Select")),
-     wings_msg:mod_format(AltMod, 1, ?__(3,"Along normal")),
-     wings_msg:mod_format(CtrlMod bor ShiftMod, 1, ?__(4,"In tangent plane")),
-     wings_msg:mod_format(AltMod bor ShiftMod, 1, ?__(5,"Relax"))|Tail].
+     case Cam of
+       mb -> wings_msg:mod_format(AltMod,1,?__(6,"Select"));
+       _  -> wings_msg:mod_format(CtrlMod,1,?__(6,"Select"))
+     end,
+     case Cam of
+       maya   -> wings_msg:mod_format(0, 2, ?__(3,"Along Normal"));
+       _other -> wings_msg:mod_format(AltMod, Button, ?__(3,"Along Normal"))
+     end,
+     wings_msg:mod_format(CtrlMod bor ShiftMod, Button, ?__(4,"In Tangent Plane")),
+     wings_msg:mod_format(AltMod bor ShiftMod, Button, ?__(5,"Relax"))|Tail].
 
 exit_help() ->
     ?__(2,"[Esc]:") ++ " " ++ ?__(1,"Exit").
 
-slide_help(AltMod, CtrlMod) ->
-    wings_msg:mod_format(AltMod bor CtrlMod, 1,{bold,?__(1,"Slide")}) ++
+slide_help(Button, AltMod, CtrlMod) ->
+    wings_msg:mod_format(AltMod bor CtrlMod, Button,{bold,?__(1,"Slide")}) ++
     ?__(2,"(+[Shift] to Clean)").
 
 intl_type(dome)     -> ?__(1,"Dome");
