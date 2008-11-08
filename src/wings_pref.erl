@@ -370,7 +370,10 @@ defaults() ->
      {jumpy_camera,os:type() =:= {unix,darwin}},
 
      %% Advanced menus are always turned on now.
-     {advanced_menus,true},
+     %% The default must still be false for compatibility
+     %% with older Wings versions. (We force it to true
+     %% later after laoding the user's preference file.)
+     {advanced_menus,false},
      {no_basic_menu_info,true},
 
      %% The remaining items are constants. The generated code
