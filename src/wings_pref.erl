@@ -61,7 +61,7 @@ no_more_basic_menus() ->
     case get_value(advanced_menus) andalso get_value(no_basic_menu_info) of
 	true ->
 	    %% The user either already used advanced menus or
-	    %% he has chosen to turn of the informtional dialog.
+	    %% (s)he has chosen to turn off the informtional dialog.
 	    ok;
 	false ->
 	    %% Either this is the first launch and the user used
