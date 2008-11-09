@@ -343,7 +343,6 @@ handle_tweak_event1({new_state,St0}, #tweak{orig_st=#st{selmode=Mode,sh=Sh}=Orig
 handle_tweak_event1({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=St0}=T) ->
     NoTempSel = OrigSt == St0,
     case Action of
-    {view,auto_rotate} -> keep;
     {view,aim} ->
         wings_view:command(aim, St0),
         update_tweak_handler(T#tweak{st=OrigSt});
@@ -367,7 +366,10 @@ handle_tweak_event1({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=S
             #st{}=St ->
                 St1 = clear_temp_sel(St),
                 refresh_dlists(Cmd, St1),
-                update_tweak_handler(T#tweak{st=St1})
+                update_tweak_handler(T#tweak{st=St1});
+			Other ->
+			%io:format("Other ~p\n",[Other]),
+			  Other
         end;
     {edit,undo_toggle} ->
         St = wings_u:caption(wings_undo:undo_toggle(clear_temp_sel(St0))),
@@ -466,7 +468,6 @@ refresh_dlists({toggle_lights,_}, _) -> ok;
 refresh_dlists(_, St) -> wings_draw:refresh_dlists(St).
 
 do_cmd(tools, tweak, #tweak{st=St}=T) ->
-
     exit_tweak(T#tweak{st=clear_temp_sel(St)});
 
 do_cmd(select, less, #tweak{tmode=drag}=T) ->
@@ -488,7 +489,7 @@ do_cmd(Type, Cmd, #tweak{st=#st{}=St0}=T) ->
       keep -> keep;
       Other ->
 %	  io:format("Other ~p\n",[Other]),
-      Other
+        Other
     end.
 
 do_wings_cmd(Type,Cmd, #tweak{st=#st{}=St0}=T) ->
@@ -512,7 +513,7 @@ do_wings_cmd(Type,Cmd, #tweak{st=#st{}=St0}=T) ->
           exit(normal);
       Other ->
 %	  io:format("Other ~p\n",[Other]),
-      Other
+        Other
     end.
 
 cmd_type(select, Cmd, St) -> wings_sel_cmd:command(Cmd, St#st{temp_sel=none});

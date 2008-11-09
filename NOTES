@@ -3,6 +3,8 @@
 
 - New option to launch Wings in Tweak Mode (Preferences|Advanced). [optigon]
 
+- Auto Rotate now works in Tweak. [optigon]
+
 - Advanced menus are now always turned on. There will be a information
   dialog when you start Wings if you have been using Wings with the
   advanced menus turned off. [bjorng]
