@@ -56,7 +56,7 @@ init() -> true.
 menu({tools}, Menu0) ->
     Menu0 ++ [separator,
           {?__(1,"Tweak"), tweak,
-           ?__(4,"Mode for adjusting geometry quickly.") ++
+           ?__(4,"Mode for adjusting geometry quickly.") ++ " " ++
            [{bold,?__(3,"Evoking command toggles Tweak mode On/Off.")}]}
          ];
 menu(_, Menu) -> Menu.
