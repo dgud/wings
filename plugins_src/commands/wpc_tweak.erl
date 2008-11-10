@@ -194,13 +194,13 @@ handle_tweak_event1(#mousemotion{x=X,y=Y,state=State,mod=Mod},
          Mod1 and Mod2 -> relax;
          Mod2 and Mod3 -> tangent;
          Mod1	       -> normal;
+         State == ?SDL_BUTTON_MMASK andalso Cam == maya -> normal;
          Xymove	   -> xymove;
          Yzmove	   -> yzmove;
          Zxmove	   -> zxmove;
          Xpress == 1   -> xmove;
          Ypress == 1   -> ymove;
          Zpress == 1   -> zmove;
-         State == ?SDL_BUTTON_MMASK andalso Cam == maya -> normal;
          true			-> screen
      end,
     do_tweak(DX, DY,DxOrg,DyOrg,Mode),
