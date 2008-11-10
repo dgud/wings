@@ -3,12 +3,12 @@
 %%
 %%     Utility functions for E3D meshes, such as cleanup and triangulation.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: e3d_mesh.erl,v 1.52 2005/10/02 08:44:03 bjorng Exp $
+%%     $Id$
 %%
 
 -module(e3d_mesh).
@@ -254,12 +254,10 @@ slit_hard_edges(Mesh0=#e3d_mesh{vs=Vs0,vc=Vc0,tx=Tx0,ns=Ns0,fs=Fs0,he=He0},
     HeGt = foldl(fun({V1,V2}=E, Gt) when V1 < V2 -> 
 			 gb_trees:insert(E, 0, Gt)
 		 end, gb_trees:empty(), He0),
-    Mesh = case slit_hard_f(Old, VsGt, HeGt, Fs0, New, []) of
-	       #e3d_mesh{vs={_,[]}} -> Mesh0#e3d_mesh{he=[]};
-	       #e3d_mesh{type=Type,vs=Vs1,vc=Vc1,tx=Tx1,ns=Ns1,fs=Fs1} ->
-		   Mesh0#e3d_mesh{type=Type,vs=Vs0++Vs1,vc=Vc0++Vc1,
-				  tx=Tx0++Tx1,ns=Ns0++Ns1,fs=Fs1,he=[]}
-	   end,
+    #e3d_mesh{type=Type,vs=Vs1,vc=Vc1,tx=Tx1,ns=Ns1,fs=Fs1} =
+	slit_hard_f(Old, VsGt, HeGt, Fs0, New, []),
+    Mesh = Mesh0#e3d_mesh{type=Type,vs=Vs0++Vs1,vc=Vc0++Vc1,
+			  tx=Tx0++Tx1,ns=Ns0++Ns1,fs=Fs1,he=[]},
     %%io:format("After: "),
     %%print_mesh(Mesh),
     Mesh.
