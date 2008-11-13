@@ -10,6 +10,12 @@
   was made to accommodate recent changes to Tweak mode, and solves a conflict
   with the xyz contraint keys (F1/2/3). [optigon]
 
+- Tweak's xyz constraints can now be toggled on/off by clicking the Alt key in
+  conjuction with the axis (F1,F2,F3) you wish to lock. For example, clicking
+  F1 and Alt will toggle the X axis constraint on/off. More than one axis can
+  be locked at a time. Held keys for axes already toggled on, nullify the
+  constraint, and held keys for axes toggled off are additive. [optigon]
+
 --- 0.99.50 -----------------------------------------------------------------
 - Tweak mode compatibility fixes for Maya and Motionbuilder cameras. [optigon]
 

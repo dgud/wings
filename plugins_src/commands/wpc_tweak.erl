@@ -51,7 +51,9 @@
      vtab=[]		    %[{V,Pos}] (latest)
     }).
 
-init() -> true.
+init() ->
+    wings_pref:set_default(tweak_xyz,[false,false,false]),
+    true.
 
 menu({tools}, Menu0) ->
     Menu0 ++ [separator,
@@ -83,6 +85,22 @@ command(_, _) -> next.
 shift() -> ?KMOD_SHIFT.
 ctrl() -> ?KMOD_CTRL.
 alt() -> ?KMOD_ALT.
+f1() -> ?SDLK_F1.
+f2() -> ?SDLK_F2.
+f3() -> ?SDLK_F3.
+
+mod_key_combo() ->
+    Mod = sdl_keyboard:getModState(),
+    Shift = (Mod band shift()) =/= 0,
+    Ctrl = (Mod band ctrl()) =/= 0,
+    Alt = (Mod band alt()) =/= 0,
+    {Shift,Ctrl,Alt}.
+fkey_combo() ->
+    Keys = sdl_keyboard:getKeyState(),
+    F1 = element(f1()+1,Keys) =/= 0,
+    F2 = element(f2()+1,Keys) =/= 0,
+    F3 = element(f3()+1,Keys) =/= 0,
+    [F1,F2,F3].
 
 %% Event handler for tweak mode
 update_tweak_handler(#tweak{st=#st{}=St}=T) ->
@@ -142,7 +160,7 @@ handle_tweak_event0(#keyboard{sym=?SDLK_ESCAPE}, T) ->
     exit_tweak(T);
 
 handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{st=#st{sel=Sel0}=St0}=T) ->
-    case magnet_hotkey(C, T) of
+    case tweak_hotkey(C, T) of
       none ->
             St = case Sel0 == [] of
               true ->
@@ -175,13 +193,9 @@ handle_tweak_event1(#mousemotion{x=X,y=Y,state=State,mod=Mod},
     DY = float(Y-CY),
     DxOrg = float(X-OX),
     DyOrg = float(Y-OY),
-    Keys = sdl_keyboard:getKeyState(),
-    Xpress = element(1+?SDLK_F1,Keys),
-    Ypress = element(1+?SDLK_F2,Keys),
-    Zpress = element(1+?SDLK_F3,Keys),
-    Xymove = (Xpress==1) and (Ypress==1),
-    Yzmove = (Ypress==1) and (Zpress==1),
-    Zxmove = (Zpress==1) and (Xpress==1),
+    FKeys = fkey_combo(),
+    TKeys = wings_pref:get_value(tweak_xyz),
+    C = tweak_constraints(FKeys,TKeys,[]),
 
     Mod1 = (Mod band alt()) =/= 0,
     Mod2 = (Mod band shift()) =/= 0,
@@ -195,12 +209,12 @@ handle_tweak_event1(#mousemotion{x=X,y=Y,state=State,mod=Mod},
          Mod2 and Mod3 -> tangent;
          Mod1	       -> normal;
          State == ?SDL_BUTTON_MMASK andalso Cam == maya -> normal;
-         Xymove	   -> xymove;
-         Yzmove	   -> yzmove;
-         Zxmove	   -> zxmove;
-         Xpress == 1   -> xmove;
-         Ypress == 1   -> ymove;
-         Zpress == 1   -> zmove;
+         C == [true,true,false] -> xymove;
+         C == [false,true,true] -> yzmove;
+         C == [true,false,true] -> zxmove;
+         C == [true,false,false]  -> xmove;
+         C == [false,true,false]  -> ymove;
+         C == [false,false,true]  -> zmove;
          true			-> screen
      end,
     do_tweak(DX, DY,DxOrg,DyOrg,Mode),
@@ -574,13 +588,6 @@ end_drag(#dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_},
     {wings_draw:changed_we(D, D),St};
 end_drag(D, St) -> {D,St}.
 
-mod_key_combo() ->
-    Mod = sdl_keyboard:getModState(),
-    Shift = (Mod band shift()) =/= 0,
-    Ctrl = (Mod band ctrl()) =/= 0,
-    Alt = (Mod band alt()) =/= 0,
-    {Shift,Ctrl,Alt}.
-
 sel_to_vs(Mode, _, We) when ?IS_LIGHT(We) ->
     gb_sets:to_list(wings_sel:get_all_items(Mode, We));
 sel_to_vs(vertex, Vs, _) -> Vs;
@@ -936,13 +943,13 @@ vertex_pos(V, Vtab, OrigVtab) ->
     end.
 
 help(#tweak{magnet=false}) ->
-    Constraints = ["[F1,F2,F3] ",?__(3,"XYZ Constraints")],
+    Constraints = [fkey_help(),?__(3,"XYZ Constraints")++?__(7,"(+[Alt] to Toggle)")],
     Tail = [Constraints,exit_help()],
     All = common_help(Tail),
     Msg = wings_msg:join(All),
     wings_wm:message(Msg, "[1] "++?__(4,"Magnet On"));
 help(#tweak{magnet=true,mag_type=Type}) ->
-    All = common_help([exit_help()]),
+    All = common_help([]),
     Msg = wings_msg:join(All),
     Types = help_1(Type, [{2,dome},{3,straight},{4,spike}]),
     MagMsg = wings_msg:join(["[1] "++?__(5,"Magnet Off"),
@@ -994,6 +1001,22 @@ help_1(Type, [{Digit,ThisType}|T]) ->
            help_1(Type, T));
 help_1(_, []) -> [].
 
+fkey_help() ->
+    [Fx,Fy,Fz] = wings_pref:get_value(tweak_xyz),
+	F1 = case Fx of
+	    true -> [{bold,"F1"}];
+		false -> "F1"
+	end,
+	F2 = case Fy of
+	    true -> [{bold,"F2"}];
+		false -> "F2"
+	end,
+	F3 = case Fz of
+	    true -> [{bold,"F3"}];
+		false -> "F3"
+	end,
+	"["++F1++","++F2++","++F3++"]: ".
+
 fake_selection(St) ->
     wings_dl:fold(fun(#dlo{src_sel=none}, S) ->
               %% No selection, try highlighting.
@@ -1025,9 +1048,9 @@ clear_temp_sel(#st{temp_sel={Mode,Sh}}=St) ->
 %%% (vertices to be moved have the influence set to 1.0).
 %%%
 
-magnet_hotkey(C, #tweak{magnet=Mag,mag_type=Type0}=T) ->
-    case hotkey(C) of
-    none -> none;
+tweak_hotkey(C, #tweak{magnet=Mag,mag_type=Type0}=T) ->
+    case magnet_hotkey(C) of
+    none -> constraint_hotkey();
     toggle when Mag == true ->
         setup_magnet(T#tweak{magnet=false});
     toggle when Mag == false ->
@@ -1036,11 +1059,44 @@ magnet_hotkey(C, #tweak{magnet=Mag,mag_type=Type0}=T) ->
     Type -> setup_magnet(T#tweak{magnet=true,mag_type=Type})
     end.
 
-hotkey($1) -> toggle;
-hotkey($2) -> dome;
-hotkey($3) -> straight;
-hotkey($4) -> spike;
-hotkey(_) -> none.
+constraint_hotkey() ->
+%% Alt + F1/2/3 toggles xyx constraints on/off
+    Alt = mod_key_combo() == {false,false,true},
+	Fkeys = fkey_combo(),
+	Constraints = wings_pref:get_value(tweak_xyz),
+    case Alt of
+	  false -> none;
+	  true when Fkeys =/= [false,false,false] ->
+	    C = set_constraint_toggles(Fkeys,Constraints,[]),
+		wings_pref:set_value(tweak_xyz,C),
+		none;
+	  _other -> none
+	end.
+set_constraint_toggles([true|Fkeys],[Pref|Constraints],C) ->
+    NewC = case Pref of
+	  true -> false;
+	  false -> true
+	end,
+	set_constraint_toggles(Fkeys,Constraints,[NewC|C]);
+set_constraint_toggles([false|Fkeys],[Pref|Constraints],C) ->
+    set_constraint_toggles(Fkeys,Constraints,[Pref|C]);
+set_constraint_toggles([],[],C) ->
+    lists:reverse(C).
+
+tweak_constraints([true|Fkeys],[false|Tkeys],Constraints) ->
+    tweak_constraints(Fkeys,Tkeys,[true|Constraints]);
+tweak_constraints([true|Fkeys],[true|Tkeys],Constraints) ->
+    tweak_constraints(Fkeys,Tkeys,[false|Constraints]);
+tweak_constraints([_|Fkeys],[Key|Tkeys],Constraints) ->
+    tweak_constraints(Fkeys,Tkeys,[Key|Constraints]);
+tweak_constraints([],[],Constraints) ->
+    lists:reverse(Constraints).
+
+magnet_hotkey($1) -> toggle;
+magnet_hotkey($2) -> dome;
+magnet_hotkey($3) -> straight;
+magnet_hotkey($4) -> spike;
+magnet_hotkey(_) -> none.
 
 setup_magnet(#tweak{tmode=drag}=T) ->
     wings_dl:map(fun(D, _) ->
