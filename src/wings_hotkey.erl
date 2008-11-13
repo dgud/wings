@@ -43,7 +43,7 @@ event(Ev, Cmd) -> event_1(Ev, Cmd).
 
 event_1(#keyboard{}=Ev, SelMode) ->
     case lookup(Ev, SelMode) of
-	next -> lookup(Ev, none);
+	next -> lookup_1(Ev,SelMode);
 	Action -> Action
     end;
 event_1(_, _) -> next.
@@ -52,6 +52,24 @@ lookup(Ev, Cmd) ->
     case ets:lookup(?KL, bindkey(Ev, Cmd)) of
 	[{_,Action,_}] -> Action;
 	[] -> next
+    end.
+
+lookup_1(Ev,SelMode) ->
+%% Checks for menubar items that are selection mode specific.
+    case lookup(Ev, none) of
+      {select,{edge_loop,edge_loop}}=EL when SelMode == face ->
+          EL;
+      {select,{edge_loop,_}} when SelMode =/= edge ->
+          next;
+      {select,{oriented_faces,_}} when SelMode =/= face ->
+          next;
+      {select,{similar_material,_}} when SelMode =/= face ->
+          next;
+      {select,{similar_area,_}} when SelMode =/= face ->
+          next;
+      {tools,{virtual_mirror,create}} when SelMode =/= face ->
+          next;
+      Other -> Other
     end.
 
 %%%

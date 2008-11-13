@@ -1,3 +1,9 @@
+--- 0.99.XX -----------------------------------------------------------------
+- Some Menubar commands are now selection mode specific and as such their
+  hotkeys are now context sensitive. This change affects the Select|Edge Loop
+  items, some of the Select Similar commands, and Tools|Virtual Mirror|Create.
+  [optigon]
+
 --- 0.99.50 -----------------------------------------------------------------
 - Tweak mode compatibility fixes for Maya and Motionbuilder cameras. [optigon]
 
