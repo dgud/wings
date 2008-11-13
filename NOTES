@@ -4,6 +4,12 @@
   items, some of the Select Similar commands, and Tools|Virtual Mirror|Create.
   [optigon]
 
+- The default hotkeys for Select Prev/Next Edge Loop have been changed to F6
+  and F7. If you had those F keys previously assigned to another command, then
+  Select Prev/Next will be have no hotkey where conflicts exist. This change
+  was made to accommodate recent changes to Tweak mode, and solves a conflict
+  with the xyz contraint keys (F1/2/3). [optigon]
+
 --- 0.99.50 -----------------------------------------------------------------
 - Tweak mode compatibility fixes for Maya and Motionbuilder cameras. [optigon]
 
