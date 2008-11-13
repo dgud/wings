@@ -381,9 +381,9 @@ handle_tweak_event1({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=S
                 St1 = clear_temp_sel(St),
                 refresh_dlists(Cmd, St1),
                 update_tweak_handler(T#tweak{st=St1});
-			Other ->
-			%io:format("Other ~p\n",[Other]),
-			  Other
+            Other ->
+            %io:format("Other ~p\n",[Other]),
+              Other
         end;
     {edit,undo_toggle} ->
         St = wings_u:caption(wings_undo:undo_toggle(clear_temp_sel(St0))),
@@ -943,7 +943,8 @@ vertex_pos(V, Vtab, OrigVtab) ->
     end.
 
 help(#tweak{magnet=false}) ->
-    Constraints = [fkey_help(),?__(3,"XYZ Constraints")++?__(7,"(+[Alt] to Toggle)")],
+    Constraints = [fkey_help(),[{bold,?__(3,"XYZ Constraints")}]++
+        ?__(7,"(+[Alt] to Toggle)")],
     Tail = [Constraints,exit_help()],
     All = common_help(Tail),
     Msg = wings_msg:join(All),
@@ -1003,19 +1004,19 @@ help_1(_, []) -> [].
 
 fkey_help() ->
     [Fx,Fy,Fz] = wings_pref:get_value(tweak_xyz),
-	F1 = case Fx of
-	    true -> [{bold,"F1"}];
-		false -> "F1"
-	end,
-	F2 = case Fy of
-	    true -> [{bold,"F2"}];
-		false -> "F2"
-	end,
-	F3 = case Fz of
-	    true -> [{bold,"F3"}];
-		false -> "F3"
-	end,
-	"["++F1++","++F2++","++F3++"]: ".
+    F1 = case Fx of
+        true -> [{bold,"F1"}];
+        false -> "F1"
+    end,
+    F2 = case Fy of
+        true -> [{bold,"F2"}];
+        false -> "F2"
+    end,
+    F3 = case Fz of
+        true -> [{bold,"F3"}];
+        false -> "F3"
+    end,
+    "["++F1++","++F2++","++F3++"]: ".
 
 fake_selection(St) ->
     wings_dl:fold(fun(#dlo{src_sel=none}, S) ->
@@ -1062,22 +1063,22 @@ tweak_hotkey(C, #tweak{magnet=Mag,mag_type=Type0}=T) ->
 constraint_hotkey() ->
 %% Alt + F1/2/3 toggles xyx constraints on/off
     Alt = mod_key_combo() == {false,false,true},
-	Fkeys = fkey_combo(),
-	Constraints = wings_pref:get_value(tweak_xyz),
+    Fkeys = fkey_combo(),
+    Constraints = wings_pref:get_value(tweak_xyz),
     case Alt of
-	  false -> none;
-	  true when Fkeys =/= [false,false,false] ->
-	    C = set_constraint_toggles(Fkeys,Constraints,[]),
-		wings_pref:set_value(tweak_xyz,C),
-		none;
-	  _other -> none
-	end.
+      false -> none;
+      true when Fkeys =/= [false,false,false] ->
+        C = set_constraint_toggles(Fkeys,Constraints,[]),
+        wings_pref:set_value(tweak_xyz,C),
+        none;
+      _other -> none
+    end.
 set_constraint_toggles([true|Fkeys],[Pref|Constraints],C) ->
     NewC = case Pref of
-	  true -> false;
-	  false -> true
-	end,
-	set_constraint_toggles(Fkeys,Constraints,[NewC|C]);
+      true -> false;
+      false -> true
+    end,
+    set_constraint_toggles(Fkeys,Constraints,[NewC|C]);
 set_constraint_toggles([false|Fkeys],[Pref|Constraints],C) ->
     set_constraint_toggles(Fkeys,Constraints,[Pref|C]);
 set_constraint_toggles([],[],C) ->
