@@ -462,8 +462,8 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
           #drag{fp_count=StartTime}=Drag) ->
     Stop = now(),
     Time = timer:now_diff(Stop, StartTime),
-    %io:format("Time ~p\n",[Time]),
-    case Time < 160000 of
+    % io:format("Time ~p\n",[Time]),
+    case Time < 250000 of
         false ->
             get_drag_event_1(Drag#drag{fp_count=0});
         true ->
