@@ -19,6 +19,9 @@
 - Tab Input for Move in the UVmapper would crash Wings. (Thanks to betelguese).
   [optigon]
 
+- Tweak Move Normal did not handle some situations correctly. (Thanks to yst).
+  [optigon]
+
 --- 0.99.50 -----------------------------------------------------------------
 - Tweak mode compatibility fixes for Maya and Motionbuilder cameras. [optigon]
 

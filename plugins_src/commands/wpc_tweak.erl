@@ -849,7 +849,7 @@ tweak_pos(false, true, _, Pos0, TweakPos, #dlo{src_we=#we{}=We,src_sel={face,Sel
     %% constraining by the plane
     Dot = e3d_vec:dot(N, N),
       if
-      Dot == 0.0 -> N;
+      Dot == 0.0 -> Pos0;
       true ->
         T = -e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
         e3d_vec:add_prod(TweakPos, N, T)
@@ -862,7 +862,7 @@ tweak_pos(false, true,Vs, Pos0, TweakPos, D) ->
     %% constraining by the plane
     Dot = e3d_vec:dot(N, N),
       if
-      Dot == 0.0 -> N;
+      Dot == 0.0 -> Pos0;
       true ->
         T = -e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
         e3d_vec:add_prod(TweakPos, N, T)
@@ -880,7 +880,7 @@ tweak_pos(true, false, _, Pos0, TweakPos, #dlo{src_we=#we{}=We,src_sel={face,Sel
         %% Return the point along the normal closest to TweakPos.
         Dot = e3d_vec:dot(N, N),
         if
-        Dot == 0.0 -> N;
+        Dot == 0.0 -> Pos0;
         true ->
           T = e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
           e3d_vec:add_prod(Pos0, N, T)
@@ -893,7 +893,7 @@ tweak_pos(true, false, Vs, Pos0, TweakPos, D) ->
     %% Return the point along the normal closest to TweakPos.
     Dot = e3d_vec:dot(N, N),
       if
-      Dot == 0.0 -> N;
+      Dot == 0.0 -> Pos0;
       true ->
         T = e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
         e3d_vec:add_prod(Pos0, N, T)
