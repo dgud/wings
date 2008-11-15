@@ -16,6 +16,9 @@
   be locked at a time. Held keys for axes already toggled on, nullify the
   constraint, and held keys for axes toggled off are additive. [optigon]
 
+- Tab Input for Move in the UVmapper would crash Wings. (Thanks to betelguese).
+  [optigon]
+
 --- 0.99.50 -----------------------------------------------------------------
 - Tweak mode compatibility fixes for Maya and Motionbuilder cameras. [optigon]
 

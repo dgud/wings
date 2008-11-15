@@ -81,7 +81,7 @@ unit(Type) ->
     unit(Type, []).
 
 unit(free, T) -> [dx,dy,dz|T];
-unit(free_2d, T) -> [dx,dy,skip|T];
+unit(free_2d, T) -> [dx,dy|T];
 unit(intrude, T) -> [{distance,{0.0,9.9E307}}|T];
 unit(_, T) -> [distance,skip,skip|T].
 
