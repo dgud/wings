@@ -18,8 +18,8 @@
 -include("wings.hrl").
 -include("e3d.hrl").
 
-
--define(DEBUG_UNTRI, false).
+%% Uncomment the following line turn on debug printouts.
+%%-define(DEBUG_UNTRI, 1).
 
 -define(MAXIMUM_ALGO_LEVEL, 3).
 -define(DEFAULT_ALGO_LEVEL, 1).
@@ -282,10 +282,7 @@ make_erec_tree(AlgoLevel, Elist, We) ->
     Dict = [{E, make_new_erec(AlgoLevel,E,We)} || E <- Elist ],
     ET0 = gb_trees:from_orddict(lists:sort(Dict)),
     ET1 = prune_first_etree(ET0),
-    case ?DEBUG_UNTRI of
-      true -> print_etree(ET1);
-      _ -> ok
-    end,
+    maybe_print_etree(ET1),
     ET1.
 
 make_new_erec(_AlgoLevel, Edge, We) ->
@@ -497,7 +494,10 @@ save_pref(Key, Val) ->
 %%  Utilities
 %%
 
-print_etree(ETree) ->
+-ifndef(DEBUG_UNTRI).
+maybe_print_etree(_) -> ok.
+-else.
+maybe_print_etree(ETree) ->
     io:format("ETree: size: ~p\n", [gb_trees:size(ETree)]),
     case ETree of
       nil -> ok;
@@ -516,3 +516,4 @@ print_erec(Erec) ->
             io:format(" ~p", [E])
           end, [], gb_sets:to_list(Erec#erec.nbs)),
     io:format("\n", []).
+-endif.

@@ -3,7 +3,7 @@
 %%
 %%     POV-Ray Plugin User Interface.
 %%
-%%  Copyright (c) 2007 Chris Hegarty
+%%  Copyright (c) 2007-2008 Chris Hegarty
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -1836,8 +1836,7 @@ hook(Props) when is_list(Props) ->
 		 none -> void
 	     end;
 	 (_, _) -> void
-     end};
-hook(Prop) -> hook([Prop]).
+     end}.
 
 hook(Op, Expr) -> hook([{Op,Expr}]).
     
