@@ -3,12 +3,12 @@
 %%
 %%     Functions for reading and writing PNG files.
 %%
-%%  Copyright (c) 2005 Dan Gudmundsson
+%%  Copyright (c) 2005-2008 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: e3d__png.erl,v 1.3 2005/12/18 13:44:34 dgud Exp $
+%%     $Id$
 %%
 -module(e3d__png).
 
@@ -287,7 +287,6 @@ split_cols(Col,4,Bsz) when Bsz rem 8 == 0 ->
     By = Bsz div 8,
     <<C1:By/binary,C2:By/binary,C3:By/binary,C4:By/binary>> = Col,
     [C1,C2,C3,C4];
-split_cols(Col,8,Bsz) when Bsz rem 8 == 0 -> Col;
 split_cols(Byte,2,Bsz) when is_binary(Byte) ->
     <<C1:Bsz,C2:Bsz>> = Byte,
     [C1,C2];
