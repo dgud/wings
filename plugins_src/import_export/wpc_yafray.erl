@@ -368,9 +368,7 @@ is_plugin_active(Condition) ->
 	edit ->
 	    get_var(dialogs);
 	render ->
-	    get_var(renderer);
-	_ ->
-	    false
+	    get_var(renderer)
     end.
 
 menu_entry(render) ->
@@ -2495,8 +2493,7 @@ hook(Props) when is_list(Props) ->
 		 none -> void
 	     end;
 	 (_, _) -> void
-     end};
-hook(Prop) -> hook([Prop]).
+     end}.
 
 hook(Op, Expr) -> hook([{Op,Expr}]).
     
@@ -2902,12 +2899,9 @@ export_rgb(F, Type, {R,G,B}) ->
 export_object(F, NameStr, Mesh=#e3d_mesh{fs=Fs}, MatsGb) ->
     %% Find the default material
     MM = sort(foldl(fun (#e3d_face{mat=[M|_]}, Ms) -> [M|Ms] end, [], Fs)),
-    case reverse(sort(count_equal(MM))) of
-	[] -> ok;
-	[{_Count,DefaultMaterial}|_] ->
-	    MatPs = gb_trees:get(DefaultMaterial, MatsGb),
-	    export_object_1(F, NameStr, Mesh, DefaultMaterial, MatPs)
-    end.
+    [{_Count,DefaultMaterial}|_] = reverse(sort(count_equal(MM))),
+    MatPs = gb_trees:get(DefaultMaterial, MatsGb),
+    export_object_1(F, NameStr, Mesh, DefaultMaterial, MatPs).
 
 %% Count the number of subsequent equal elements in the list.
 %% Returns list of {Count,Element}.
@@ -3859,14 +3853,6 @@ help_button(Subject) ->
     TextFun = fun () -> help(text, Subject) end,
     {help,Title,TextFun}.
 
-help(title, material_dialog) ->
-    ?__(1,"YafRay Material Properties");
-help(text, material_dialog) ->
-    [?__(2,"Each Material creates a YafRay shader. "
-      "The OpenGL properties that map to YafRay shader parameters are:"),
-     ?__(3,"Diffuse * Opacity -> 'color'."),
-     ?__(4,"Specular -> 'specular'."),
-     ?__(5,"Shininess * 128 -> 'hard'.")];
 help(title, {material_dialog,object}) ->
     ?__(6,"YafRay Material Properties: Object Parameters");
 help(text, {material_dialog,object}) ->
