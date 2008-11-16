@@ -3,7 +3,7 @@
 %%
 %%     Arithmetic on vectors and points (represented as three-tuples).
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2008 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,14 +18,22 @@
 	 norm/1,norm/3,normal/3,normal/1,average/1,average/2,average/4,
 	 bounding_box/1,area/3,degrees/2]).
 
+-include("e3d.hrl").
+
 -compile(inline).
 -compile({inline_size,24}).
 
+-spec zero() -> e3d_vector().
+    
 zero() ->
     {0.0,0.0,0.0}.
 
+-spec is_zero(e3d_vector()) -> bool().
+     
 is_zero({0.0,0.0,0.0}) -> true;
 is_zero(_) -> false.
+
+-spec add(e3d_vector(), e3d_vector()) -> e3d_vector().
 
 add({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V12) ->
     {V10+V20,V11+V21,V12+V22}.
@@ -33,28 +41,17 @@ add({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V1
 add_prod({V10,V11,V12}, {V20,V21,V22}, S) when is_float(S) ->
     {S*V20+V10,S*V21+V11,S*V22+V12}.
 
+-spec add([e3d_vector()]) -> e3d_vector().
+
 add([{V10,V11,V12}|T]) ->
     add(T, V10, V11, V12).
 
-add([{V10,V11,V12},{V20,V21,V22},{V30,V31,V32}|T], A0, A1, A2)
-  when is_float(V10), is_float(V11), is_float(V12),
-       is_float(V20), is_float(V21), is_float(V22),
-       is_float(V30), is_float(V31), is_float(V32),
-       is_float(A0), is_float(A1), is_float(A2) ->
-    add(T, A0+V10+V20+V30, A1+V11+V21+V31, A2+V12+V22+V32);
-add([{V10,V11,V12},{V20,V21,V22}|T], A0, A1, A2)
-  when is_float(V10), is_float(V11), is_float(V12),
-       is_float(V20), is_float(V21), is_float(V22),
-       is_float(A0), is_float(A1), is_float(A2) ->
-    add(T, A0+V10+V20, A1+V11+V21, A2+V12+V22);
-add([{V10,V11,V12}|T], A0, A1, A2)
-  when is_float(V10), is_float(V11), is_float(V12),
-       is_float(A0), is_float(A1), is_float(A2) ->
-    add(T, A0+V10, A1+V11, A2+V12);
-add([], A0, A1, A2) -> {A0,A1,A2}.
+-spec sub(e3d_vector(), e3d_vector()) -> e3d_vector().
 
 sub({V10,V11,V12}, {V20,V21,V22}) ->
     {V10-V20,V11-V21,V12-V22}.
+
+-spec norm_sub(e3d_vector(), e3d_vector()) -> e3d_vector().
 
 norm_sub({V10,V11,V12}, {V20,V21,V22})
   when is_float(V10), is_float(V11), is_float(V12) ->
@@ -64,32 +61,44 @@ norm_sub({V10,V11,V12}, {V20,V21,V22})
     SqrLen = Nx*Nx + Ny*Ny + Nz*Nz,
     norm(SqrLen, Nx, Ny, Nz).
 
+-spec sub([e3d_vector()]) -> e3d_vector().
+
 sub([{V10,V11,V12}|T]) ->
     sub(V10, V11, V12, T).
 
-sub(A0, A1, A2, [{V10,V11,V12}|T]) ->
-    sub(A0-V10, A1-V11, A2-V12, T);
-sub(A0, A1, A2, []) -> {A0,A1,A2}.
+-spec mul(e3d_vector(), S::float()) -> e3d_vector().
 
 mul({V10,V11,V12}, S) when is_float(S) ->
     {V10*S,V11*S,V12*S}.
+
+-spec divide(e3d_vector(), S::float()) -> e3d_vector().
 
 divide({V10,V11,V12}, S) ->
     InvS = 1/S,
     {V10*InvS,V11*InvS,V12*InvS}.
 
+-spec neg(e3d_vector()) -> e3d_vector().
+
 neg({X,Y,Z}) -> {-X,-Y,-Z}.
+
+-spec dot(e3d_vector(), e3d_vector()) -> float().
 
 dot({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V12) ->
     V10*V20 + V11*V21 + V12*V22.
+
+-spec cross(e3d_vector(), e3d_vector()) -> e3d_vector().
 
 cross({V10,V11,V12}, {V20,V21,V22})
   when is_float(V10), is_float(V11), is_float(V12),
        is_float(V20), is_float(V21), is_float(V22) ->
     {V11*V22-V12*V21,V12*V20-V10*V22,V10*V21-V11*V20}.
 
+-spec len(e3d_vector()) -> float().
+
 len({X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
     math:sqrt(X*X+Y*Y+Z*Z).
+
+-spec dist(e3d_vector(), e3d_vector()) -> float().
 
 dist({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V12),
 					is_float(V20), is_float(V21), is_float(V22) ->
@@ -98,6 +107,8 @@ dist({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V
     Z = V12-V22,
     math:sqrt(X*X+Y*Y+Z*Z).
 
+-spec dist_sqr(e3d_vector(), e3d_vector()) -> float().
+
 dist_sqr({V10,V11,V12}, {V20,V21,V22})
   when is_float(V10), is_float(V11), is_float(V12) ->
     X = V10-V20,
@@ -105,21 +116,17 @@ dist_sqr({V10,V11,V12}, {V20,V21,V22})
     Z = V12-V22,
     X*X+Y*Y+Z*Z.
 
+-spec norm(e3d_vector()) -> e3d_vector().
+
 norm({V1,V2,V3}) ->
     norm(V1, V2, V3).
+
+-spec norm(X::float(), Y::float(), Z::float()) -> e3d_vector().
 
 norm(V1, V2, V3) when is_float(V1), is_float(V2), is_float(V3) ->
     norm(V1*V1+V2*V2+V3*V3, V1, V2, V3).
 
-
-norm(SqrLen, _, _, _) when SqrLen < 1.0E-16 ->
-    {0.0,0.0,0.0};
-norm(SqrLen, V1, V2, V3) ->
-    D = math:sqrt(SqrLen),
-    try {V1/D,V2/D,V3/D}
-    catch
-	error:badarith -> {0.0,0.0,0.0}
-    end.
+-spec normal(e3d_vector(), e3d_vector(), e3d_vector()) -> e3d_vector().
 
 normal({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
   when is_float(V10), is_float(V11), is_float(V12),
@@ -140,6 +147,8 @@ normal({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
 	error:badarith -> {0.0,0.0,0.0}
     end.
 
+-spec area(e3d_vector(), e3d_vector(), e3d_vector()) -> float().
+
 area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
   when is_float(V10), is_float(V11), is_float(V12),
        is_float(V20), is_float(V21), is_float(V22),
@@ -157,6 +166,8 @@ area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
 
 %% normal([{X,Y,Z}]) ->
 %%  Calculate the averaged normal for the polygon using Newell's method.
+
+-spec normal([e3d_vector()]) -> e3d_vector().
 
 normal([{Ax,Ay,Az},{Bx,By,Bz},{Cx,Cy,Cz}])
   when is_float(Ax), is_float(Ay), is_float(Az),
@@ -209,6 +220,9 @@ normal_1([{Ax,Ay,Az}|[{Bx,By,Bz}|_]=T], First, Sx0, Sy0, Sz0)
 
 %% average([{X,Y,Z}]) -> {Ax,Ay,Az}
 %%  Average the given list of points.
+
+-spec average([e3d_vector()]) -> e3d_vector().
+
 average([{V10,V11,V12},B]) ->
     {V20,V21,V22} = B,
     V0 = if
@@ -226,24 +240,7 @@ average([{V10,V11,V12},B]) ->
 average([{V10,V11,V12}|T]=All) ->
     average(T, V10, V11, V12, length(All)).
 
-average([{V10,V11,V12},{V20,V21,V22},{V30,V31,V32}|T], A0, A1, A2, L)
-  when is_float(V10), is_float(V11), is_float(V12),
-       is_float(V20), is_float(V21), is_float(V22),
-       is_float(V30), is_float(V31), is_float(V32),
-       is_float(A0), is_float(A1), is_float(A2) ->
-    average(T, A0+V10+V20+V30, A1+V11+V21+V31, A2+V12+V22+V32, L);
-average([{V10,V11,V12},{V20,V21,V22}|T], A0, A1, A2, L)
-  when is_float(V10), is_float(V11), is_float(V12),
-       is_float(V20), is_float(V21), is_float(V22),
-       is_float(A0), is_float(A1), is_float(A2) ->
-    average(T, A0+V10+V20, A1+V11+V21, A2+V12+V22, L);
-average([{V10,V11,V12}|T], A0, A1, A2, L)
-  when is_float(V10), is_float(V11), is_float(V12),
-       is_float(A0), is_float(A1), is_float(A2) ->
-    average(T, A0+V10, A1+V11, A2+V12, L);
-average([], A0, A1, A2, L0) ->
-    L = 1.0/float(L0),
-    {A0*L,A1*L,A2*L}.
+-spec average(e3d_vector(), e3d_vector()) -> e3d_vector().
 
 average({V10,V11,V12}, {V20,V21,V22}) ->
     V0 = if
@@ -259,11 +256,15 @@ average({V10,V11,V12}, {V20,V21,V22}) ->
 	is_float(V12) -> {V0,V1,0.5*(V12+V22)}
     end.
 
+-spec average(e3d_vector(), e3d_vector(), e3d_vector(), e3d_vector()) -> e3d_vector().
+
 average({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32}, {V40,V41,V42})
     when is_float(V10), is_float(V11), is_float(V12) ->
     L = 0.25,
     {L*(V10+V20+V30+V40),L*(V11+V21+V31+V41),L*(V12+V22+V32+V42)}.
 
+-spec bounding_box([e3d_vector()]) -> [e3d_vector()].
+    
 bounding_box([{X,Y,Z}|Vs]) ->
     bounding_box_1(Vs, X, X, Y, Y, Z, Z).
 
@@ -284,7 +285,9 @@ bounding_box_1([_|Vs], X0, X1, Y0, Y1, Z0, Z1) ->
 bounding_box_1([], X0, X1, Y0, Y1, Z0, Z1) ->
     [{X0,Y0,Z0},{X1,Y1,Z1}].
 
-degrees(V0,V1) ->
+-spec degrees(e3d_vector(), e3d_vector()) -> float().
+    
+degrees(V0, V1) ->
     Dot = e3d_vec:dot(V0,V1),
     LenMul = e3d_vec:len(V0) * e3d_vec:len(V1),
     %%% protect against divide-by-zero
@@ -298,3 +301,56 @@ degrees(V0,V1) ->
             true -> RawCos
           end,
     math:acos(Cos) * (180.0 / math:pi()).
+
+%%%
+%%% Internal functions.
+%%% 
+
+add([{V10,V11,V12},{V20,V21,V22},{V30,V31,V32}|T], A0, A1, A2)
+  when is_float(V10), is_float(V11), is_float(V12),
+       is_float(V20), is_float(V21), is_float(V22),
+       is_float(V30), is_float(V31), is_float(V32),
+       is_float(A0), is_float(A1), is_float(A2) ->
+    add(T, A0+V10+V20+V30, A1+V11+V21+V31, A2+V12+V22+V32);
+add([{V10,V11,V12},{V20,V21,V22}|T], A0, A1, A2)
+  when is_float(V10), is_float(V11), is_float(V12),
+       is_float(V20), is_float(V21), is_float(V22),
+       is_float(A0), is_float(A1), is_float(A2) ->
+    add(T, A0+V10+V20, A1+V11+V21, A2+V12+V22);
+add([{V10,V11,V12}|T], A0, A1, A2)
+  when is_float(V10), is_float(V11), is_float(V12),
+       is_float(A0), is_float(A1), is_float(A2) ->
+    add(T, A0+V10, A1+V11, A2+V12);
+add([], A0, A1, A2) -> {A0,A1,A2}.
+
+sub(A0, A1, A2, [{V10,V11,V12}|T]) ->
+    sub(A0-V10, A1-V11, A2-V12, T);
+sub(A0, A1, A2, []) -> {A0,A1,A2}.
+
+norm(SqrLen, _, _, _) when SqrLen < 1.0E-16 ->
+    {0.0,0.0,0.0};
+norm(SqrLen, V1, V2, V3) ->
+    D = math:sqrt(SqrLen),
+    try {V1/D,V2/D,V3/D}
+    catch
+	error:badarith -> {0.0,0.0,0.0}
+    end.
+
+average([{V10,V11,V12},{V20,V21,V22},{V30,V31,V32}|T], A0, A1, A2, L)
+  when is_float(V10), is_float(V11), is_float(V12),
+       is_float(V20), is_float(V21), is_float(V22),
+       is_float(V30), is_float(V31), is_float(V32),
+       is_float(A0), is_float(A1), is_float(A2) ->
+    average(T, A0+V10+V20+V30, A1+V11+V21+V31, A2+V12+V22+V32, L);
+average([{V10,V11,V12},{V20,V21,V22}|T], A0, A1, A2, L)
+  when is_float(V10), is_float(V11), is_float(V12),
+       is_float(V20), is_float(V21), is_float(V22),
+       is_float(A0), is_float(A1), is_float(A2) ->
+    average(T, A0+V10+V20, A1+V11+V21, A2+V12+V22, L);
+average([{V10,V11,V12}|T], A0, A1, A2, L)
+  when is_float(V10), is_float(V11), is_float(V12),
+       is_float(A0), is_float(A1), is_float(A2) ->
+    average(T, A0+V10, A1+V11, A2+V12, L);
+average([], A0, A1, A2, L0) ->
+    L = 1.0/float(L0),
+    {A0*L,A1*L,A2*L}.
