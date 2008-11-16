@@ -140,8 +140,6 @@ validateSel(Edges, We, valid) ->
 validateSel(_Edges, _We, invalid) ->
     invalid.
     
-validateSelAcc(_SelectedEdges,_EdgeTab,invalid) ->
-    invalid;
 validateSelAcc([],_,_VertexAcc)->
     valid;
 validateSelAcc([SelEdge|OtherSelEdges], EdgeTab, VertexAcc) ->
