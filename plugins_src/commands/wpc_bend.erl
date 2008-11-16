@@ -20,7 +20,9 @@
 -include("e3d.hrl").
 
 -define(HUGE, 1.0E307).
--define(DEBUG_BEND, false).
+
+%% Uncomment the following line to turn on debugging.
+%% -define(DEBUG_BEND, 1).
 
 -record(bend_data, {dragMode,          % fixed_length or fixed_radius
                     rodCenter,
@@ -298,10 +300,8 @@ bend_vertex(Pos, Angle, #bend_data{dragMode = DragMode,
                                    pivotNormal = PN,
                                    posHeightClamp = PC,
                                    negHeightClamp = NC}=BD) ->
-  case ?DEBUG_BEND of
-    true  -> io:format(?__(1,"Angle")++" = ~p: ", [Angle]), print_bend_data(BD);
-    false -> []
-  end,
+
+  maybe_print_bend_data(Angle, BD),
 
   Radians = Angle * (math:pi()/180.0),
 
@@ -356,13 +356,12 @@ bend_vertex(Pos, Angle, #bend_data{dragMode = DragMode,
 %%  Utilities
 %%
 
-vectorsToArray(Vectors) ->
-  vectorsToArray(Vectors, []).
-vectorsToArray([{X,Y,Z}|T], Acc) ->
-  vectorsToArray(T, Acc ++ [X,Y,Z]);
-vectorsToArray([], Acc) ->
-  Acc.
-
+-ifndef(DEBUG_BEND).
+maybe_print_bend_data(_, _) -> ok.
+-else.
+maybe_print_bend_data(Angle, BD) ->
+    io:format("Angle = ~p: ", [Angle]),
+    print_bend_data(BD).
 
 print_bend_data(#bend_data{dragMode = DragMode,
                            rodCenter = RC,
@@ -385,3 +384,11 @@ print_bend_data(#bend_data{dragMode = DragMode,
   io:format("  rodLength = ~p\n", [RL]),
   io:format("  posHeightClamp = ~p\n", [PC]),
   io:format("  negHeightClamp = ~p\n", [NC]).
+
+vectorsToArray(Vectors) ->
+  vectorsToArray(Vectors, []).
+vectorsToArray([{X,Y,Z}|T], Acc) ->
+  vectorsToArray(T, Acc ++ [X,Y,Z]);
+vectorsToArray([], Acc) ->
+  Acc.
+-endif.
