@@ -1,3 +1,7 @@
+--- 0.99.XX -----------------------------------------------------------------
+- Moving an object in tweak mode would not disregard an existing virtual mirror.
+  Now fixed. (Thanks to yst). [optigon]
+
 --- 0.99.51 -----------------------------------------------------------------
 - Some Menubar commands are now selection mode specific and as such their
   hotkeys are now context sensitive. This change affects the Select|Edge Loop

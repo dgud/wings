@@ -548,12 +548,12 @@ begin_drag(MM, St, T) ->
              begin_drag_fun(D, MM, St, T)
          end, []).
 
-begin_drag_fun(#dlo{src_sel={body,_},src_we=#we{vp=Vtab}=We}=D0, MM, St, T) ->
-    Vs0 = gb_trees:keys(Vtab),
-    Center = wings_vertex:center(Vs0, We),
-    {Vs,Magnet} = begin_magnet(T, Vs0, Center, We),
-    D = wings_draw:split(D0, Vs, St),
-    D#dlo{drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}};
+begin_drag_fun(#dlo{src_sel={body,_},src_we=#we{vp=Vtab}=We}=D, _MM, _St, _T) ->
+    Vs = gb_trees:keys(Vtab),
+    Center = wings_vertex:center(Vs, We),
+    Id = e3d_mat:identity(),
+    D#dlo{drag={matrix,Center,Id,e3d_mat:expand(Id)}};
+
 begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, MM, St, T) ->
     Vs0 = sel_to_vs(Mode, gb_sets:to_list(Els), We),
     Center = wings_vertex:center(Vs0, We),
@@ -780,10 +780,21 @@ collapse_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
 %%
 
 do_tweak(#dlo{drag={matrix,Pos0,Matrix0,_},src_we=#we{id=Id}}=D0,
-     DX,DY,_,_,_AlongNormal) ->
+     DX,DY,_,_,Mode) ->
     Matrices = wings_u:get_matrices(Id, original),
     {Xs,Ys,Zs} = obj_to_screen(Matrices, Pos0),
-    Pos = screen_to_obj(Matrices, {Xs+DX,Ys-DY,Zs}),
+    TweakPos = screen_to_obj(Matrices, {Xs+DX,Ys-DY,Zs}),
+    {Tx,Ty,Tz} = TweakPos,
+    {Px,Py,Pz} = Pos0,
+    Pos = case Mode of
+        xmove -> {Tx,Py,Pz};
+        ymove -> {Px,Ty,Pz};
+        zmove -> {Px,Py,Tz};
+        xymove -> {Tx,Ty,Pz};
+        yzmove -> {Px,Ty,Tz};
+        zxmove -> {Tx,Py,Tz};
+        _Other -> TweakPos
+    end,
     Move = e3d_vec:sub(Pos, Pos0),
     Matrix = e3d_mat:mul(e3d_mat:translate(Move), Matrix0),
     D0#dlo{drag={matrix,Pos,Matrix,e3d_mat:expand(Matrix)}};
@@ -794,21 +805,21 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,pos0=Orig,mag=Mag0,mm=MM}=Drag,
     {Xs,Ys,Zs} = obj_to_screen(Matrices, Pos0),
     TweakPos = screen_to_obj(Matrices, {Xs+DX,Ys-DY,Zs}),
     [V2|_]=Vs,
-    {Tx,Ty,Tz}=TweakPos,
-    {Px,Py,Pz}=Pos0,
-    {Vtab,Mag}=
+    {Tx,Ty,Tz} = TweakPos,
+    {Px,Py,Pz} = Pos0,
+    {Vtab,Mag} =
     case Mode of
-        xmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Tx,Py,Pz}, D0),
+        xmove -> Pos = {Tx,Py,Pz},
              magnet_tweak(Mag0, Pos);
-        ymove -> Pos=tweak_pos(false,false,Vs, Pos0, {Px,Ty,Pz}, D0),
+        ymove -> Pos = {Px,Ty,Pz},
              magnet_tweak(Mag0, Pos);
-        zmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Px,Py,Tz}, D0),
+        zmove -> Pos = {Px,Py,Tz},
              magnet_tweak(Mag0, Pos);
-        xymove -> Pos=tweak_pos(false,false,Vs, Pos0, {Tx,Ty,Pz}, D0),
+        xymove -> Pos = {Tx,Ty,Pz},
               magnet_tweak(Mag0, Pos);
-        yzmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Px,Ty,Tz}, D0),
+        yzmove -> Pos = {Px,Ty,Tz},
               magnet_tweak(Mag0, Pos);
-        zxmove -> Pos=tweak_pos(false,false,Vs, Pos0, {Tx,Py,Tz}, D0),
+        zxmove -> Pos = {Tx,Py,Tz},
               magnet_tweak(Mag0, Pos);
         relax -> Pos=relax_vec(V2,We,Pos0,TweakPos,1.0),
               Len=(abs(DxOrg)+abs(DyOrg))/200.0,
@@ -823,7 +834,7 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,pos0=Orig,mag=Mag0,mm=MM}=Drag,
               magnet_tweak(Mag0, Pos);
         tangent -> Pos=tweak_pos(false,true,Vs, Pos0, TweakPos, D0),
               magnet_tweak(Mag0, Pos);
-        _ 	-> Pos=tweak_pos(false,false,Vs, Pos0, TweakPos, D0),
+        _ 	-> Pos =  TweakPos,
               magnet_tweak(Mag0, Pos)
     end,
     D = D0#dlo{sel=none,drag=Drag#drag{pos=Pos,mag=Mag}},
@@ -835,8 +846,6 @@ obj_to_screen({MVM,PM,VP}, {X,Y,Z}) ->
 
 screen_to_obj({MVM,PM,VP}, {Xs,Ys,Zs}) ->
     glu:unProject(Xs, Ys, Zs, MVM, PM, VP).
-
-tweak_pos(false, false, _, _, Pos, _) -> Pos;
 
 tweak_pos(false, true, _, Pos0, TweakPos, #dlo{src_we=#we{}=We,src_sel={face,Sel0}}) ->
     Faces = gb_sets:to_list(Sel0),
@@ -899,6 +908,11 @@ tweak_pos(true, false, Vs, Pos0, TweakPos, D) ->
         e3d_vec:add_prod(Pos0, N, T)
       end.
 
+%tweak_pos(Pos0, TweakPos, Vector) ->
+%    Dot = e3d_vec:dot(Vector,Vector),
+%	T = e3d_vec:dot(Vector, e3d_vec:sub(TweakPos, Pos0)) / Dot,
+%    e3d_vec:add_prod(Pos0, Vector, T).
+%
 face_region_normals([Faces|Regions],We,Normals) ->
     Edges = wings_face:outer_edges(Faces, We),
     LoopNorm = loop_norm(Edges, We),
