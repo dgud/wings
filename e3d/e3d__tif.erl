@@ -187,10 +187,8 @@ load_image(Enc, IFDs, Orig) ->
 	BinImage = <<Image0:Size/binary, _/binary>> ->
 	    {ResType,Image2} = 
 		if
-		    Bpp == 1 -> 			
-			Map = if Type == bw -> {0,255};
-				 Type == wb -> {255,0}
-			      end,
+		    Type =:= bw, Bpp =:= 1 -> 			
+			Map = {0,255},
 			Image1 = convert1(size(BinImage), BinImage, Map, []),
 			PaddL = Tif#tif.w + e3d_image:pad_len(Tif#tif.w, 8),
 			Image = strip(Tif#tif.h, Image1, Tif#tif.w, PaddL, []),
@@ -203,8 +201,10 @@ load_image(Enc, IFDs, Orig) ->
 		    Type == rgb, Bpp > 32, Tif#tif.spp > 3 -> 
 			Image = remove_extra_samples(3,(Tif#tif.bpp-24),Image0,[]),
 			{r8g8b8, 3, Image};
-		    Type == rgb, Bpp > 16 ->
-			{e3d_type(Bpp,nil), Image0};
+		    Type =:= rgb, Bpp =:= 24 ->
+			{r8g8b8, Image0};
+		    Type =:= rgb, Bpp =:= 32 ->
+			{r8g8b8a8, Image0};
 		    true ->
 			exit(unsupported_format)
 		end,
@@ -222,17 +222,6 @@ remove_extra_samples(_RGBits, _DiscardBits, <<>>, Acc) ->
 remove_extra_samples(RGBits, DiscardBits, Image, Acc) ->
     <<Keep:3/binary, _Del:DiscardBits, Rest/binary>> = Image,
     remove_extra_samples(RGBits, DiscardBits, Rest, [Keep|Acc]).
-
-e3d_type(Bpp,Alpha) ->
-    case Bpp of
-	8 when Alpha == 8 -> a8;
-	8 -> g8;
-	16 when Alpha == 0 ->  r8g8b8;
-	16 when Alpha > 0 ->   r8g8b8a8;
-	24 -> r8g8b8;
-	32 -> r8g8b8a8;
-	Exit -> exit({unsupported_format, Exit})
-    end.
 
 save_image(Image, Compress, Offset1) ->
     W = <<?ImageWidth:16, (type2type(long)):16, 1:32, (Image#e3d_image.width):32>> , 
