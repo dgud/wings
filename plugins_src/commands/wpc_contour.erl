@@ -160,7 +160,7 @@ type(_inset, St) -> St.
 
 contour_data([], _, EDict, FDict, LDict, SDict) ->
     {EDict, FDict, LDict, SDict};
-contour_data([Faces|FaceRegions], We, EDict, FDict, LDict, SDict) ->
+contour_data([Faces|FaceRegions], #we{mirror=none}=We, EDict, FDict, LDict, SDict) ->
     Fs = gb_sets:to_list(Faces),
     Vs = wings_face:to_vertices(Fs,We),
     Edges = wings_face:outer_edges(Faces, We),
@@ -170,7 +170,23 @@ contour_data([Faces|FaceRegions], We, EDict, FDict, LDict, SDict) ->
     LoopDict = to_dict(Vs, LoopNorm, LDict),
     FaceDict = face_norms(Fs, We, FDict),
     EdgeDict = vs_directions(Edges, We, Edges, EDict),
+    contour_data(FaceRegions, We, EdgeDict, FaceDict, LoopDict, ScaleDict);
+contour_data([Faces|FaceRegions], #we{mirror=MFace}=We, EDict, FDict, LDict, SDict) ->
+    Fs = gb_sets:to_list(Faces),
+    Vs = wings_face:to_vertices(Fs,We),
+    MirVs = wings_face:to_vertices([MFace],We),
+    MirEs = wings_face:to_edges([MFace],We),
+    Edges = wings_face:outer_edges(Faces, We),
+    OuterEs = Edges -- MirEs,
+    OuterVs = wings_edge:to_vertices(Edges -- MirEs, We),
+    Center = wings_vertex:center(Vs, We),
+    ScaleDict = to_dict(Vs,Center,SDict),
+    LoopNorm = loop_norm(Edges, We),
+    LoopDict = to_dict(Vs, LoopNorm, LDict),
+    FaceDict = face_norms(Fs, We, FDict),
+    EdgeDict = vs_directions(Edges, We, {OuterEs,MirVs,OuterVs}, EDict),
     contour_data(FaceRegions, We, EdgeDict, FaceDict, LoopDict, ScaleDict).
+
 
 loop_norm([], _) ->
     wings_u:error(?__(1,"Wholly selected objects cannot be contoured"));
@@ -210,8 +226,7 @@ vs_directions([Edge|Edges], #we{es=Etab,vp=Vtab}=We, OrigEs, Dict0) ->
     #edge{lf=Lf,rf=Rf,vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
     VaPos = gb_trees:get(Va, Vtab),
     VbPos = gb_trees:get(Vb, Vtab),
-    Ln = e3d_vec:norm(wings_face:normal(Lf, We)),
-    Rn = e3d_vec:norm(wings_face:normal(Rf, We)),
+    {Ln, Rn} = left_and_right_face_norm(Lf, Rf, We),
     Normal = e3d_vec:norm(e3d_vec:add(Ln, Rn)),
     Fa = wings_face:center(Lf, We),
     Fb = wings_face:center(Rf, We),
@@ -225,6 +240,17 @@ vs_directions([Edge|Edges], #we{es=Etab,vp=Vtab}=We, OrigEs, Dict0) ->
     Dict = add_to_dict([{Va,PreDirA},{Vb,PreDirB}], VsDir, Normal, Dict0),
     vs_directions(Edges, We, OrigEs, Dict).
 
+left_and_right_face_norm(Lf, Rf, #we{mirror=Lf}=We) ->
+    Rn = e3d_vec:norm(wings_face:normal(Rf, We)),
+    {Rn,Rn};
+left_and_right_face_norm(Lf, Rf, #we{mirror=Rf}=We) ->
+    Ln = e3d_vec:norm(wings_face:normal(Lf, We)),
+    {Ln,Ln};
+left_and_right_face_norm(Lf, Rf, We) ->
+    Ln = e3d_vec:norm(wings_face:normal(Lf, We)),
+    Rn = e3d_vec:norm(wings_face:normal(Rf, We)),
+    {Ln,Rn}.
+
 add_to_dict([{Vs,PreDir}|VsList], VsDir, Normal, Dict0) ->
     Dict1 = case orddict:find(Vs,Dict0) of
       {ok, [_VsDirA]} ->
@@ -237,9 +263,16 @@ add_to_dict([{Vs,PreDir}|VsList], VsDir, Normal, Dict0) ->
     add_to_dict(VsList, VsDir, Normal, Dict1);
 add_to_dict([], _, _, Dict) -> Dict.
 
-pre_existing_edges(V, Pos, OrigEs, We) ->
+pre_existing_edges(V, Pos, {OuterEs, MirVs, OuterVs}, We) ->
 %% Pre existing edges define the vector for the new vs. If none returns [].
 %% If multiple edges, returns the average vector.
+    LinkedVs0 = adjacent(V, OuterEs, We),
+    Q = lists:member(V,OuterVs),
+    case length(LinkedVs0 -- (LinkedVs0 -- MirVs)) of
+        2 when Q == false -> [];
+        _ -> average_vec(LinkedVs0, Pos, We, [])
+    end;
+pre_existing_edges(V, Pos, OrigEs, We) ->
     LinkedVs0 = adjacent(V, OrigEs, We),
     average_vec(LinkedVs0, Pos, We, []).
 
@@ -401,6 +434,17 @@ contour_relative(_, Vpos1, _, _, _, _, _, _) -> Vpos1.
 contour_absolute(_, Vpos,_,_,_,_,_,_, 0.0, 0.0) -> Vpos;
 contour_absolute(V, Vpos, EDict,FDict,LDict, Type,Mode,Norm, Dist, Bump) ->
     case orddict:find(V, EDict) of
+        {ok, [{[],V1,N1},{[],V2,N2}]} when Mode =:= equal ->
+            V3 = e3d_vec:norm(e3d_vec:add(V1,V2)),
+            Pos = e3d_vec:add(Vpos, e3d_vec:mul(V3, Dist)),
+            PosA = intersect_vec_plane(Pos,Vpos,N1,N1),
+            intersect_vec_plane(PosA,Vpos,N2,N2);
+        {ok, [{E1,_,_},{_,_,_}]}  when Mode =:= equal ->
+            e3d_vec:add(Vpos, e3d_vec:mul(E1, Dist));
+        {ok, [{_,{0.0,0.0,0.0},{0.0,0.0,0.0}},{_,V2,_}]} ->
+            e3d_vec:add(Vpos, e3d_vec:mul(V2, Dist));
+        {ok, [{_,V1,_},{_,{0.0,0.0,0.0},{0.0,0.0,0.0}}]} ->
+            e3d_vec:add(Vpos, e3d_vec:mul(V1, Dist));
         {ok, [{_,V1,N1},{_,V2,N2}]} when Mode =:= planar ->
             PosA = e3d_vec:add(Vpos, e3d_vec:mul(V1, Dist)),
             PosB = e3d_vec:add(Vpos, e3d_vec:mul(V2, Dist)),
@@ -430,13 +474,6 @@ contour_absolute(V, Vpos, EDict,FDict,LDict, Type,Mode,Norm, Dist, Bump) ->
                   P0 = intersect_vec_plane(Vpos,PosB,V2,V3),
                   intersect_vec_plane(P0,Vpos,NN,NN)
             end;
-        {ok, [{[],V1,N1},{[],V2,N2}]} when Mode =:= equal ->
-            V3 = e3d_vec:norm(e3d_vec:add(V1,V2)),
-            Pos = e3d_vec:add(Vpos, e3d_vec:mul(V3, Dist)),
-            PosA = intersect_vec_plane(Pos,Vpos,N1,N1),
-            intersect_vec_plane(PosA,Vpos,N2,N2);
-        {ok, [{E1,_,_},{_,_,_}]}  when Mode =:= equal ->
-            e3d_vec:add(Vpos, e3d_vec:mul(E1, Dist));
         _Otherwise ->
             case {Type, Norm} of
                 {offset_region, loop} ->
