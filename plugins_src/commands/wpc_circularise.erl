@@ -57,9 +57,14 @@ command({edge,{circularise,{'ASK',Ask}}}, #st{shapes=Shs,sel=[{Id,Sel}]}=St) ->
             case wings_pref:get_value(advanced_menus) of
               false -> circ_sel_error_3();
               true ->
-                wings:ask(selection_ask(Ask), St, fun(Plane,St0) ->
-                arc_setup(Plane,Vs,We,St0)
-                end)
+                case gb_sets:size(Sel) < 2 of
+                  false ->
+                    wings:ask(selection_ask(Ask), St, fun(Plane,St0) ->
+                    arc_setup(Plane,Vs,We,St0)
+                    end);
+                  true ->
+                    circ_sel_error_4()
+                end
             end
         end;
       _ -> circle_setup(St)
@@ -73,7 +78,12 @@ command({edge,{circularise,Plane}}, #st{shapes=Shs,sel=[{Id,Sel}]}=St) ->
           true ->
             circle_setup(St);
           false ->
-            arc_setup(Plane,Vs,We,St)
+            case gb_sets:size(Sel) < 2 of
+              false ->
+                arc_setup(Plane,Vs,We,St);
+              true ->
+                    circ_sel_error_4()
+            end
         end;
       _ -> circle_setup(St)
     end;
@@ -93,9 +103,14 @@ command({edge, circularise_center}, #st{shapes=Shs,sel=[{Id,Sel}]}=St) ->
             second_ask(Center,Plane,Edges,Vs0,We,St0)
             end);
           _other ->
-            wings:ask(selection_ask([plane,arc_center]), St, fun({Plane,Center},St0) ->
-            arc_center_setup(Plane,Center,Vs,We,St0)
-            end)
+            case gb_sets:size(Sel) < 2 of
+              false ->
+                wings:ask(selection_ask([plane,arc_center]), St, fun({Plane,Center},St0) ->
+                arc_center_setup(Plane,Center,Vs,We,St0)
+                end);
+              true ->
+                 circ_sel_error_4()
+            end
         end;
       _ ->
         circ_sel_error()
@@ -112,7 +127,12 @@ command({edge,{circularise_center,{Plane0,Center0}}}, #st{shapes=Shs,sel=[{Id,Se
             second_ask(Center,Plane,Edges,Vs0,We,St0)
             end);
           _other ->
-            arc_center_setup(Plane0,Center0,Vs,We,St)
+            case gb_sets:size(Sel) < 2 of
+              false ->
+                 arc_center_setup(Plane0,Center0,Vs,We,St);
+              true ->
+                 circ_sel_error_4()
+            end
         end;
       _ ->
         circ_sel_error()
@@ -129,9 +149,14 @@ command({edge,{circularise_center,_}}, #st{shapes=Shs,sel=[{Id,Sel}]}=St) ->
             second_ask(Center,Plane,Edges,Vs0,We,St0)
             end);
           _other ->
-            wings:ask(selection_ask([plane,arc_center]), St, fun({Plane,Center},St0) ->
-            arc_center_setup(Plane,Center,Vs,We,St0)
-            end)
+            case gb_sets:size(Sel) < 2 of
+              false ->
+                wings:ask(selection_ask([plane,arc_center]), St, fun({Plane,Center},St0) ->
+                arc_center_setup(Plane,Center,Vs,We,St0)
+                end);
+              true ->
+                circ_sel_error_4()
+             end
         end;
       _ ->
         circ_sel_error()
@@ -664,3 +689,5 @@ circ_sel_error_2() ->
     wings_u:error(?__(1,"Selection must consist of closed edge loops\nor a single open edge loop")).
 circ_sel_error_3() ->
     wings_u:error(?__(1,"Circularising open edge loops requires advanced menus")).
+circ_sel_error_4() ->
+    wings_u:error(?__(1,"At least two edges must be selected")).
