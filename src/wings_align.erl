@@ -163,6 +163,7 @@ put_obj_on_ground(We) ->
 unitize(St) ->
     wings_sel:map(fun(_, We) -> unitize_obj(We) end, St).
 
+unitize_obj(We) when ?IS_LIGHT(We) -> We;
 unitize_obj(We) ->
     [Min,Max] = wings_vertex:bounding_box(We),
     Size = e3d_vec:sub(Max, Min),

@@ -7,6 +7,10 @@
 
 - Circularise would crash when called with but a single edge selected. Now an
   error message is returned. (Thanks to yst). [optigon]
+
+- Tools|Unitize would crash when called using a selection that contained a
+  light. (Thanks to yst). [optigon]
+
 --- 0.99.51 -----------------------------------------------------------------
 - Some Menubar commands are now selection mode specific and as such their
   hotkeys are now context sensitive. This change affects the Select|Edge Loop
