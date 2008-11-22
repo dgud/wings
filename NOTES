@@ -11,6 +11,9 @@
 - Tools|Unitize would crash when called using a selection that contained a
   light. (Thanks to yst). [optigon]
 
+- Edge|Cut 2/3/4 while in Tweak mode can now be called if the Magnet is turned
+  off. Otherwise, the 2/3/4 keys change the Magnet type. [optigon]
+
 --- 0.99.51 -----------------------------------------------------------------
 - Some Menubar commands are now selection mode specific and as such their
   hotkeys are now context sensitive. This change affects the Select|Edge Loop

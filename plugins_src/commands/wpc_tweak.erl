@@ -1063,15 +1063,15 @@ clear_temp_sel(#st{temp_sel={Mode,Sh}}=St) ->
 %%% (vertices to be moved have the influence set to 1.0).
 %%%
 
-tweak_hotkey(C, #tweak{magnet=Mag,mag_type=Type0}=T) ->
+tweak_hotkey(C, #tweak{magnet=Mag}=T) ->
     case magnet_hotkey(C) of
     none -> constraint_hotkey();
     toggle when Mag == true ->
         setup_magnet(T#tweak{magnet=false});
     toggle when Mag == false ->
         setup_magnet(T#tweak{magnet=true});
-    Type0 -> T;
-    Type -> setup_magnet(T#tweak{magnet=true,mag_type=Type})
+    _ when Mag == false -> constraint_hotkey();
+    Type -> setup_magnet(T#tweak{mag_type=Type})
     end.
 
 constraint_hotkey() ->
