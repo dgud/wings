@@ -1,4 +1,4 @@
---- 0.99.XX -----------------------------------------------------------------
+--- 0.99.52 -----------------------------------------------------------------
 - Moving an object in tweak mode would not disregard an existing virtual mirror.
   Now fixed. (Thanks to yst). [optigon]
 
