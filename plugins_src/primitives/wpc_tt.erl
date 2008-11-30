@@ -56,18 +56,42 @@ command({shape,{text,Ask}}, _St) -> make_text(Ask);
 command(_, _) -> next.
 
 make_text(Ask) when is_atom(Ask) ->
-    DefFontDir = wpa:pref_get(wpc_tt, fontdir, sysfontdir()),
-    DefFontName = wpa:pref_get(wpc_tt, fontname, default_font(DefFontDir)),
-    DefText = wpa:pref_get(wpc_tt, text, "A"),
-    DefBisect = wpa:pref_get(wpc_tt, bisections, 0),
-    wpa:ask(Ask, ?__(1,"Create Text"),
-		[{?__(2,"Text"), DefText},
-		 {?__(3,"TrueType font"),DefFontName},
-		 {?__(4,"Font dir"),DefFontDir},
-		 {?__(5,"Number of edge bisections"), DefBisect}],
-	    fun(Res) -> {shape,{text,Res}} end);
-make_text([T,F,D,N]) ->
+    FontDir = wpa:pref_get(wpc_tt, fontdir, sysfontdir()),
+    FontName = wpa:pref_get(wpc_tt, fontname, default_font(FontDir)),
+    Text = wpa:pref_get(wpc_tt, text, "Wings 3D"),
+    Bisect = wpa:pref_get(wpc_tt, bisections, 0),
+    FontDirectory = filename:join([FontDir,FontName]),
+    wpa:dialog(Ask, ?__(1,"Create Text"),
+        [{vframe,
+          [{hframe,
+            [{vframe,
+              [{label,?__(2,"Text")},
+               {label,?__(5,"Number of edge bisections")},
+               {label,?__(3,"TrueType font")}]},
+            {vframe,
+              [{text,Text,[{key,{wpc_tt,text}}]},
+               {text,Bisect,[{key,{wpc_tt,bisections}}]},
+               {button,{text,FontDirectory,[{key,{wpc_tt,fontdir}},
+                   {props,[{dialog_type,open_dialog},{directory,FontDirectory},
+                   {extensions,[{".ttf",?__(3,"TrueType font")}]}]}]}}]},
+            {vframe,[help_button()]}]}]}],
+    fun(Res) -> {shape,{text,Res}} end);
+
+make_text([{_,T},{_,N},{_,DirFont}]) ->
+    F = filename:basename(DirFont),
+    D = filename:dirname(DirFont),
     gen(F, D, T, N).
+
+help_button() ->
+    Title = ?__(1,"Browsing for Fonts on Windows"),
+    TextFun = fun () -> help() end,
+    {help,Title,TextFun}.
+
+help() ->
+    [?__(1,"For some reason on Windows, fonts in the WINDOWS/Fonts directory are unselectable via the Browse button due to the fact that they are in the WINDOWS system folder."),
+     ?__(3,"So to make use of these TrueType fonts, you may have to copy the WINDOWS/Fonts folder and paste it outside of the system folder."),
+     ?__(4,"You can then navigate to the copy of the Fonts folder using the Browse button and choose a font."),
+     ?__(5,"After creating a 3D text object from the new directory, Wings will save its location for the next time.")].
 
 gen(Font, Dir, Text, Nsubsteps) ->
     File = font_file(Font, Dir),
