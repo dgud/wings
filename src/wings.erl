@@ -387,7 +387,7 @@ handle_event_3(language_changed, _) ->
 handle_event_3({external,no_more_basic_menus}, _St) ->
     wings_help:no_more_basic_menus();
 handle_event_3({external,launch_tweak}, St) ->
-    wpc_tweak:command({tools,tweak},St);
+    wpc_tweak:command({tools,{tweak,false}},St);
 handle_event_3({external,Op}, St) ->
     wpa:handle_external(Op,St),
     keep;
@@ -424,6 +424,8 @@ do_hotkey(Ev, St0) ->
         case wings_hotkey:event(Ev, St0) of
           next -> next;
           {view,highlight_aim} -> highlight_aim_setup(St0);
+          {select,{edge_loop,edge_loop}} -> eloop_setup(edge_loop,St0);
+          {select,{edge_loop,edge_ring}} -> eloop_setup(edge_ring,St0);
           Cmd -> {Cmd,St0}
         end
     end.
@@ -1581,4 +1583,10 @@ highlight_aim_setup(St0) ->
       {add,_,St} when HL0 =:= true -> {{view,highlight_aim},{add,St0,St}};
       {delete,_,St} when HL1 =:= true -> {{view,highlight_aim},{delete,St0,St}};
       _Other           -> {{view,aim}, St0}
+    end.
+eloop_setup(Cmd,St0) ->
+    {_,X,Y} = wings_wm:local_mouse_state(),
+    case wings_pick:do_pick(X, Y, St0) of
+      {add,_,St} -> {{select,{edge_loop,Cmd}},St};
+      _Other     -> {{select,{edge_loop,Cmd}}, St0}
     end.

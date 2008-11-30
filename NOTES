@@ -1,3 +1,15 @@
+--- 0.99.XX -----------------------------------------------------------------
+- Added a file browser to the Text plugin. [optigon]
+
+- Tweak now uses single and double clicking to select geometry. There is an
+  options panel beside the Tools|Tweak menu heading where you can set the
+  click speed and also turn this feature off. (Thanks to puzzledpaul, Fonte Boa,
+  and marcin wuu for their input). [optigon]
+
+- Added temporary highlight selection for Edge Loop and Edge Ring. Even when
+  there is a selection, you can use your hotkeys to selection the loop or ring
+  that over which your mouse is hovering. [optigon]
+
 --- 0.99.52 -----------------------------------------------------------------
 - Moving an object in tweak mode would not disregard an existing virtual mirror.
   Now fixed. (Thanks to yst). [optigon]

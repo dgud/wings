@@ -566,6 +566,8 @@ clean([{{bindkey,Key},{vector,{pick,[],Res0,Ns}},Type}|T], Acc) ->
     clean(T, [Bk|Acc]);
 clean([{{bindkey,_}=Bk,{view,{virtual_mirror,Cmd}},user}|T], Acc) ->
     clean(T, [{Bk,{tools,{virtual_mirror,Cmd}},user}|Acc]);
+clean([{{bindkey,_}=Bk,{tools,tweak},user}|T], Acc) ->
+    clean(T, [{Bk,{tools,{tweak,false}},user}|Acc]);
 clean([{{bindkey,_},Cmd,user}=Bk|T], Acc) ->
     case bad_command(Cmd) of
 	false -> clean(T, [Bk|Acc]);
