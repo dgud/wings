@@ -57,6 +57,7 @@ init() ->
     wings_pref:set_default(tweak_single_click,true),
     wings_pref:set_default(tweak_double_click,true),
     wings_pref:set_default(tweak_double_click_speed,2.0),
+    wings_pref:set_default(tweak_ctrl,slide),
     true.
 
 menu({tools}, Menu0) ->
@@ -72,7 +73,8 @@ command({tools,{tweak,Ask}}, St) ->
 command(_, _) -> next.
 
 tweak(Ask, _St) when is_atom(Ask) ->
-    DblClickHook = fun (is_disabled, {_Var,_I,Store}) ->
+    {Radio1,Radio2} = tweak_pref(),
+    ClickHook = fun (is_disabled, {_Var,_I,Store}) ->
               not ((gb_trees:get(tweak_double_click, Store)) or
                   (gb_trees:get(tweak_single_click, Store)));
               (_, _) -> void
@@ -82,8 +84,12 @@ tweak(Ask, _St) when is_atom(Ask) ->
         [{?__(1,"Lmb single click Selects/Deselects"),tweak_single_click},
          {?__(2,"Lmb double click initiates Paint Select/Deselect"),tweak_double_click},
        {hframe,[{slider,{text,DblClkSpd,[{key,tweak_double_click_speed},{range,{1.0,3.0}},
-        {hook,DblClickHook}]}}],
-       [{title,?__(3,"Click Speed")}]}]}],
+        {hook,ClickHook}]}}],
+       [{title,?__(3,"Click Speed")}]},
+       {vframe,[{vradio,[{Radio1,select},
+                         {Radio2,slide}],tweak_ctrl}],
+       [{title,?__(7,"Button Options")},{hook,ClickHook}]}
+                         ]}],
     PrefQs = [{Lbl,make_query(Ps)} || {Lbl,Ps} <- TweakPrefs],
     wings_ask:dialog(Ask, ?__(4,"Tweak Mode Preferences"),PrefQs,
     fun(Result) -> set_values(Result), {tools,{tweak,Result}} end);
@@ -118,6 +124,9 @@ make_query({[_|_]=Str,Key}) ->
 make_query({menu,List,Key}) ->
     Def = wings_pref:get_value(Key),
     {menu,List,Def,[{key,Key}]};
+make_query({vradio,List,Key}) ->
+    Def = wings_pref:get_value(Key),
+    {vradio,List,Def,[{key,Key}]};
 make_query(Tuple) when is_tuple(Tuple) ->
     list_to_tuple([make_query(El) || El <- tuple_to_list(Tuple)]);
 make_query(Other) -> Other.
@@ -126,6 +135,12 @@ set_values([{Key,Value}|Result]) ->
     wings_pref:set_value(Key, Value),
     set_values(Result);
 set_values([]) -> ok.
+
+tweak_pref() ->
+    case wings_pref:get_value(camera_mode) of
+      mb -> {?__(1,"[Alt]+L Selects"),?__(2,"[Alt]+L Slides(+[Ctrl] to Clean)")};
+      _  -> {?__(3,"[Ctrl]+L Selects"), ?__(4,"[Ctrl]+L Slides(+[Alt] to Clean)")}
+    end.
 
 shift() -> ?KMOD_SHIFT.
 ctrl() -> ?KMOD_CTRL.
@@ -247,12 +262,18 @@ handle_tweak_event1(#mousemotion{x=X,y=Y,state=State,mod=Mod},
     Mod3 = (Mod band ctrl()) =/= 0,
 
     Cam = wings_pref:get_value(camera_mode),
-
+    TwkCtrl = wings_pref:get_value(tweak_ctrl) == select,
+    L = wings_pref:get_value(tweak_single_click),
+    LL = wings_pref:get_value(tweak_double_click),
+    Lm = L == false andalso LL == false,
     Mode=if
-         Mod1 and Mod3 -> slide;
+         Mod1 and Mod3 and Lm -> slide;
+         Mod1 and Mod3 and TwkCtrl -> slide;
          Mod1 and Mod2 -> relax;
          Mod2 and Mod3 -> tangent;
-         Mod1	       -> normal;
+         Mod3 andalso TwkCtrl==false andalso Cam =/= mb andalso Lm==false -> slide;
+         Mod1 andalso TwkCtrl==false andalso Cam == mb andalso Lm==false -> slide;
+         Mod1 -> normal;
          State == ?SDL_BUTTON_MMASK andalso Cam == maya -> normal;
          C == [true,true,false] -> xymove;
          C == [false,true,true] -> yzmove;
@@ -271,16 +292,25 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
     Time = now(),
     ModKeys = mod_key_combo(),
     Cam = wings_pref:get_value(camera_mode),
+    TwkCtrl = wings_pref:get_value(tweak_ctrl),
+    L = wings_pref:get_value(tweak_single_click),
+    LL = wings_pref:get_value(tweak_double_click),
+    Lm = L == false andalso LL == false,
     case ModKeys of
-      {false,true,false} when B == 1 ->
+      {false,true,false} when B == 1 andalso Lm==true ->
         wings_pick:paint_pick(X, Y, St0);
-      {false,false,true} when B == 1 andalso Cam == mb ->
+      {false,true,false} when B == 1 andalso TwkCtrl == select ->
+        wings_pick:paint_pick(X, Y, St0);
+      {false,false,true} when B == 1 andalso Cam == mb andalso Lm==true ->
+        wings_pick:paint_pick(X, Y, St0);
+      {false,false,true} when B == 1 andalso Cam == mb andalso TwkCtrl == select ->
         wings_pick:paint_pick(X, Y, St0);
       {true,false,false} when B == 1  ->
         wings_pick:marquee_pick(X, Y, St0);
       _Other when
         B == 1 andalso Cam =/= mb;
         B == 1 andalso Cam == mb andalso ModKeys == {false,false,false};
+        B == 1 andalso Cam == mb andalso ModKeys == {false,false,true} andalso Lm==false andalso TwkCtrl == slide;
         B == 2 andalso Cam == maya andalso ModKeys == {false,false,false};
         B == 2 andalso Cam == mb  andalso ModKeys =/= {false,true,false}
         andalso ModKeys =/= {false,false,false}->
@@ -320,10 +350,18 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
     Cam = wings_pref:get_value(camera_mode),
     ClickSpeed = wings_pref:get_value(tweak_double_click_speed)*100000,
     DC = wings_pref:get_value(tweak_double_click),
+    TwkCtrl = wings_pref:get_value(tweak_ctrl),
+    L = wings_pref:get_value(tweak_single_click),
+    LL = wings_pref:get_value(tweak_double_click),
+    Lm = L == false andalso LL == false,
     case ModKeys of
-      {false,true,false} when B == 1 ->
+      {false,true,false} when B == 1 andalso Lm==true ->
         wings_pick:paint_pick(X, Y, St0);
-      {false,false,true} when B == 1 andalso Cam == mb ->
+      {false,true,false} when B == 1 andalso TwkCtrl == select ->
+        wings_pick:paint_pick(X, Y, St0);
+      {false,false,true} when B == 1 andalso Cam == mb andalso Lm==true ->
+        wings_pick:paint_pick(X, Y, St0);
+      {false,false,true} when B == 1 andalso Cam == mb andalso TwkCtrl == select ->
         wings_pick:paint_pick(X, Y, St0);
       {true,false,false} when B == 1  ->
         wings_pick:marquee_pick(X, Y, St0);
@@ -332,6 +370,7 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
       _Other when
         B == 1 andalso Cam =/= mb;
         B == 1 andalso Cam == mb andalso ModKeys == {false,false,false};
+        B == 1 andalso Cam == mb andalso ModKeys == {false,true,false} andalso Lm==false andalso TwkCtrl == slide;
         B == 2 andalso Cam == maya andalso ModKeys == {false,false,false};
         B == 2 andalso Cam == mb  andalso ModKeys =/= {false,true,false}
         andalso ModKeys =/= {false,false,false}->
@@ -544,18 +583,20 @@ handle_tweak_event1({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=S
         St = OrigSt#st{sh=false, selmode=body},
         wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
-    {select,{edge_loop,edge_loop}} -> eloop_setup(edge_loop,T);
-    {select,{edge_loop,edge_ring}} -> eloop_setup(edge_ring,T);
-
-    {Menu,Cmd} ->
-        do_cmd(Menu, Cmd, T);
-    _ -> keep
+    {select,{edge_loop,edge_loop}}=Cmd -> hotkey_select_setup(Cmd,T);
+    {select,{edge_loop,edge_ring}}=Cmd -> hotkey_select_setup(Cmd,T);
+    {select,{oriented_faces,_}}=Cmd -> hotkey_select_setup(Cmd,T);
+    {select,{similar_material,_}}=Cmd -> hotkey_select_setup(Cmd,T);
+    {select,{similar_area,_}}=Cmd -> hotkey_select_setup(Cmd,T);
+    {select,similar}=Cmd -> hotkey_select_setup(Cmd,T);
+    Cmd ->
+        do_cmd(Cmd, T)
    end;
 
 handle_tweak_event1({action,Action}, #tweak{tmode=drag}=T) ->
     case Action of
-      {select, more} -> do_cmd(select, more, T);
-      {select, less} -> do_cmd(select, less, T);
+      {select, more} -> do_cmd(Action, T);
+      {select, less} -> do_cmd(Action, T);
       Action -> keep
     end;
 
@@ -597,23 +638,23 @@ refresh_dlists({along,_}, _) -> ok;
 refresh_dlists({toggle_lights,_}, _) -> ok;
 refresh_dlists(_, St) -> wings_draw:refresh_dlists(St).
 
-do_cmd(tools, {tweak,false}, #tweak{st=St}=T) ->
+do_cmd({tools, {tweak,false}}, #tweak{st=St}=T) ->
     exit_tweak(T#tweak{st=clear_temp_sel(St)});
 
-do_cmd(tools, {tweak,true}, #tweak{st=St}=T) ->
+do_cmd({tools, {tweak,true}}, #tweak{st=St}=T) ->
     wings_plugin:command({tools, {tweak,true}}, St),
     exit_tweak(T#tweak{st=clear_temp_sel(St)});
 
-do_cmd(select, less, #tweak{tmode=drag}=T) ->
+do_cmd({select, less}, #tweak{tmode=drag}=T) ->
     update_tweak_handler(magnet_radius(-1,T));
 
-do_cmd(select, more, #tweak{tmode=drag}=T) ->
+do_cmd({select, more}, #tweak{tmode=drag}=T) ->
     update_tweak_handler(magnet_radius(1, T));
 
-do_cmd(Type, Cmd, #tweak{st=#st{}=St0}=T) ->
-    St1 = remember_command({Type,Cmd}, St0),
-    case wings_plugin:command({Type,Cmd},St1) of
-      next -> do_wings_cmd(Type,Cmd,T);
+do_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
+    St1 = remember_command(Cmd, St0),
+    case wings_plugin:command(Cmd,St1) of
+      next -> do_wings_cmd(Cmd,T);
       {save_state,St} ->
           handle_tweak_event1({new_state,St}, T);
       #st{}=St ->
@@ -626,9 +667,9 @@ do_cmd(Type, Cmd, #tweak{st=#st{}=St0}=T) ->
         Other
     end.
 
-do_wings_cmd(Type,Cmd, #tweak{st=#st{}=St0}=T) ->
-    St1 = remember_command({Type,Cmd}, St0),
-    Result = cmd_type(Type, Cmd, St1),
+do_wings_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
+    St1 = remember_command(Cmd, St0),
+    Result = cmd_type(Cmd, St1),
     case Result of
       {save_state,St} ->
           handle_tweak_event1({new_state,St}, T);
@@ -636,7 +677,12 @@ do_wings_cmd(Type,Cmd, #tweak{st=#st{}=St0}=T) ->
           handle_tweak_event1({new_state,St}, T);
       {drag,Drag} ->
           wings_drag:do_drag(Drag, none);
-      keep -> keep;
+      keep -> case check_cmd(Cmd) of
+            C when C==oriented_faces; C==similar_area; C==similar_material ->
+              St = St0#st{temp_sel=none},
+              handle_tweak_event1({new_state,St},T#tweak{st=St});
+            _Otherwise -> keep
+          end;
       {saved,St} ->
           update_tweak_handler(T#tweak{st=St});
       {new,St} ->
@@ -650,20 +696,23 @@ do_wings_cmd(Type,Cmd, #tweak{st=#st{}=St0}=T) ->
         Other
     end.
 
-cmd_type(select, Cmd, St) -> wings_sel_cmd:command(Cmd, St#st{temp_sel=none});
-cmd_type(Menu, Cmd, St) -> wings:command({Menu, Cmd}, St).
+cmd_type({select, Cmd}, St) -> wings_sel_cmd:command(Cmd, St#st{temp_sel=none});
+cmd_type(Cmd, St) -> wings:command(Cmd, St).
 
-eloop_setup(Cmd,#tweak{st=St0}=T) ->
+hotkey_select_setup(Cmd,#tweak{st=St0}=T) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_pick:do_pick(X, Y, St0) of
-      {add,_,St} -> do_cmd(select,{edge_loop,Cmd},T#tweak{st=St});
-      _Other     -> do_cmd(select,{edge_loop,Cmd}, T)
+      {add,_,St} -> do_cmd(Cmd,T#tweak{st=St});
+      _Other     -> do_cmd(Cmd, T)
     end.
 
 remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
                      C =:= face; C =:= body ->
     St#st{repeatable=Cmd,ask_args=none,drag_args=none};
 remember_command(_Cmd, St) -> St.
+
+check_cmd({C,_})-> C;
+check_cmd(C) -> C.
 
 redraw(St) ->
     wings:redraw(St),
@@ -696,8 +745,15 @@ end_drag(#tweak{st=St0}=T) ->
 
 end_drag(#dlo{src_we=#we{id=Id},drag=#drag{}}=D0, #st{shapes=Shs0}=St0) ->
     #dlo{src_we=We} = D = wings_draw:join(D0),
-    St = case mod_key_combo() of
-        {true,true,true} ->
+    TwkCtrl = wings_pref:get_value(tweak_ctrl),
+    L = wings_pref:get_value(tweak_single_click),
+    LL = wings_pref:get_value(tweak_double_click),
+    Lm = L == false andalso LL == false,
+    St = case {mod_key_combo(),TwkCtrl} of
+        {{true,true,true},select} ->
+            Shs = gb_trees:update(Id,collapse_short_edges(0.0001,We), Shs0),
+            St0#st{shapes=Shs};
+        {{false,true,true},slide} when not Lm ->
             Shs = gb_trees:update(Id,collapse_short_edges(0.0001,We), Shs0),
             St0#st{shapes=Shs};
         _Otherwise ->
@@ -1121,27 +1177,32 @@ common_help(Tail0) ->
     CtrlMod = ctrl(),
     ShiftMod = shift(),
     Cam = wings_pref:get_value(camera_mode),
+    Button = case Cam of
+      mb -> 2;
+      _  -> 1
+    end,
     SC = wings_pref:get_value(tweak_single_click),
     DC = wings_pref:get_value(tweak_double_click),
-    Button = case Cam of
-        mb -> 2;
-        _  -> 1
-    end,
-    Tail = [slide_help(Button, AltMod, CtrlMod)|Tail0],
+    NoMod = wings_pref:get_value(tweak_ctrl) == slide,
+    Tail = [slide_help(Cam, Button, {SC,DC,NoMod}, AltMod, CtrlMod) | Tail0],
     [wings_msg:button_format(?__(2,"Drag")),
-    case {SC,DC} of
-      {true,true} -> ?__(7,"L/LL:") ++" "++ ?__(6,"Select");
-      {true,false} ->
+    case {SC,DC,NoMod} of
+      {true,true,_} -> ?__(7,"L/LL:") ++" "++ ?__(6,"Select");
+      {true,false,false} ->
         case Cam of
           mb -> ?__(8,"L/")++wings_msg:mod_format(AltMod,1,?__(6,"Select"));
           _  -> ?__(8,"L/")++wings_msg:mod_format(CtrlMod,1,?__(6,"Select"))
         end;
-      {false,true} ->
+      {true,false,true} ->
+        wings_msg:button_format(?__(6,"Select"));
+      {false,true,false} ->
         case Cam of
           mb -> ?__(9,"LL/")++wings_msg:mod_format(AltMod,1,?__(6,"Select"));
           _  -> ?__(9,"LL/")++wings_msg:mod_format(CtrlMod,1,?__(6,"Select"))
         end;
-      {false,false} ->
+      {false,true,true} ->
+        ?__(10,"L")++wings_msg:button_format(?__(6,"Select"));
+      {false,false,_} ->
         case Cam of
           mb -> wings_msg:mod_format(AltMod,1,?__(6,"Select"));
           _  -> wings_msg:mod_format(CtrlMod,1,?__(6,"Select"))
@@ -1157,9 +1218,20 @@ common_help(Tail0) ->
 exit_help() ->
     ?__(2,"[Esc]:") ++ " " ++ ?__(1,"Exit").
 
-slide_help(Button, AltMod, CtrlMod) ->
-    wings_msg:mod_format(AltMod bor CtrlMod, Button,{bold,?__(1,"Slide")}) ++
-    ?__(2,"(+[Shift] to Clean)").
+slide_help(Cam, Button, Prefs, AltMod, CtrlMod) ->
+    {Mod,Clean} = case Cam of
+        mb -> {AltMod, ?__(3,"(+[Ctrl] to Clean)")};
+        _  -> {CtrlMod, ?__(4,"(+[Alt] to Clean)")}
+    end,
+    case Prefs of
+      {true,_,true} ->
+        wings_msg:mod_format(Mod, 1,{bold,?__(1,"Slide")})++Clean;
+      {_,true,true} ->
+        wings_msg:mod_format(Mod, 1,{bold,?__(1,"Slide")})++Clean;
+      _Otherwise ->
+        wings_msg:mod_format(AltMod bor CtrlMod, Button,{bold,?__(1,"Slide")})++
+        ?__(2,"(+[Shift] to Clean)")
+    end.
 
 intl_type(dome)     -> ?__(1,"Dome");
 intl_type(straight) -> ?__(2,"Straight");
