@@ -41,10 +41,25 @@ event(Ev, #st{selmode=Mode}=St) ->
     end;
 event(Ev, Cmd) -> event_1(Ev, Cmd).
 
-event_1(#keyboard{}=Ev, SelMode) ->
-    case lookup(Ev, SelMode) of
-	next -> lookup_1(Ev,SelMode);
+event_1(#keyboard{}=Ev, {Selmode,_}=Cmd)
+  when Selmode==vertex; Selmode==edge; Selmode==face; Selmode==body; Selmode==light ->
+    case lookup(Ev, Cmd) of
+	next -> event_1(Ev,Selmode);
 	Action -> Action
+    end;
+event_1(#keyboard{}=Ev, Selmode)
+  when is_atom(Selmode) ->
+    case lookup(Ev, Selmode) of
+	next -> lookup_1(Ev,Selmode);
+	Action -> Action
+    end;
+
+event_1(#keyboard{}=Ev, Cmd) when Cmd =/= none ->
+    Mode = check_for_mode_specific_menubar_items(Cmd),
+    case lookup(Ev, Cmd) of
+      next when is_atom(Mode) -> event_1(Ev,Mode);
+      next -> lookup(Ev,none);
+      Action -> Action
     end;
 event_1(_, _) -> next.
 
@@ -71,6 +86,13 @@ lookup_1(Ev,SelMode) ->
           next;
       Other -> Other
     end.
+
+check_for_mode_specific_menubar_items({select,{edge_loop,_}}) -> edge;
+check_for_mode_specific_menubar_items({select,{oriented_faces,_}}) -> face;
+check_for_mode_specific_menubar_items({select,{similar_material,_}}) -> face;
+check_for_mode_specific_menubar_items({select,{similar_area,_}}) -> face;
+check_for_mode_specific_menubar_items({tools,{virtual_mirror,create}}) -> face;
+check_for_mode_specific_menubar_items(Cmd) -> Cmd.
 
 %%%
 %%% Binding and unbinding of keys.
