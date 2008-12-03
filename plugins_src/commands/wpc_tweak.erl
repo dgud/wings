@@ -281,7 +281,7 @@ handle_tweak_event1(#mousemotion{x=X,y=Y,state=State,mod=Mod},
          C == [true,false,false]  -> xmove;
          C == [false,true,false]  -> ymove;
          C == [false,false,true]  -> zmove;
-         true			-> screen
+         true -> screen
      end,
     do_tweak(DX, DY,DxOrg,DyOrg,Mode),
     T = T0#tweak{cx=X,cy=Y},
@@ -315,17 +315,8 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
         B == 2 andalso Cam == mb  andalso ModKeys =/= {false,true,false}
         andalso ModKeys =/= {false,false,false}->
         case wings_pick:do_pick(X, Y, St0) of
-          {add,MM,#st{sel=[{_,Sel}]}=St1} ->
-            St = case gb_sets:size(Sel) of
-              1 -> St1;
-              _ -> St0
-            end,
-            begin_drag(MM, St, T0),
-            do_tweak(0.0, 0.0, 0.0, 0.0, screen),
-            T = T0#tweak{tmode=drag,ox=X,oy=Y,cx=X,cy=Y,dc={Time,0}},
-            update_tweak_handler(T);
-          {add,MM,_} ->
-            begin_drag(MM, St0, T0),
+          {add,MM,St1} ->
+            begin_drag(MM, St1, T0),
             do_tweak(0.0, 0.0, 0.0, 0.0, screen),
             T = T0#tweak{tmode=drag,ox=X,oy=Y,cx=X,cy=Y,dc={Time,0}},
             update_tweak_handler(T);
@@ -343,7 +334,7 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
         update_tweak_handler(T0)
     end;
 handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
-            #tweak{tmode=wait,dc={true,Time1},st=St0}=T0) when B == 1; B == 2 ->
+            #tweak{tmode=wait,dc={true,Time1},st=#st{selmode=Selmode}=St0}=T0) when B == 1; B == 2 ->
     Time2 = now(),
     SecondPress = timer:now_diff(Time2,Time1),
     ModKeys = mod_key_combo(),
@@ -366,7 +357,8 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
       {true,false,false} when B == 1  ->
         wings_pick:marquee_pick(X, Y, St0);
       {false,false,false} when B == 1 andalso SecondPress < ClickSpeed andalso DC == true ->
-        wings_pick:paint_pick(X,Y,wings_undo:undo(St0));
+        St = wings_undo:undo(St0),
+        wings_pick:paint_pick(X,Y,St#st{selmode=Selmode});
       _Other when
         B == 1 andalso Cam =/= mb;
         B == 1 andalso Cam == mb andalso ModKeys == {false,false,false};
@@ -375,17 +367,8 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
         B == 2 andalso Cam == mb  andalso ModKeys =/= {false,true,false}
         andalso ModKeys =/= {false,false,false}->
         case wings_pick:do_pick(X, Y, St0) of
-          {add,MM,#st{sel=[{_,Sel}]}=St1} ->
-            St = case gb_sets:size(Sel) of
-              1 -> St1;
-              _ -> St0
-            end,
-            begin_drag(MM, St, T0),
-            do_tweak(0.0, 0.0, 0.0, 0.0, screen),
-            T = T0#tweak{tmode=drag,ox=X,oy=Y,cx=X,cy=Y,dc={Time2,0}},
-            update_tweak_handler(T);
-          {add,MM,_} ->
-            begin_drag(MM, St0, T0),
+          {add,MM,St1} ->
+            begin_drag(MM, St1, T0),
             do_tweak(0.0, 0.0, 0.0, 0.0, screen),
             T = T0#tweak{tmode=drag,ox=X,oy=Y,cx=X,cy=Y,dc={Time2,0}},
             update_tweak_handler(T);
@@ -401,13 +384,6 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
         end;
       _Other ->
         update_tweak_handler(T0)
-    end;
-handle_tweak_event1(#mousebutton{button=B,state=?SDL_RELEASED},
-            #tweak{tmode=drag,dc={true,_}}=T) when B == 1; B == 2 ->
-    case wings_pref:get_value(camera_mode) of
-      maya when B == 2 -> end_drag(T#tweak{dc={0,0}});
-      mb when B == 2 -> end_drag(T#tweak{dc={0,0}});
-      _Cam when B == 1 -> end_drag(T#tweak{dc={0,0}})
     end;
 
 handle_tweak_event1(#mousebutton{button=B,state=?SDL_RELEASED},
@@ -589,6 +565,8 @@ handle_tweak_event1({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=S
     {select,{similar_material,_}}=Cmd -> hotkey_select_setup(Cmd,T);
     {select,{similar_area,_}}=Cmd -> hotkey_select_setup(Cmd,T);
     {select,similar}=Cmd -> hotkey_select_setup(Cmd,T);
+    {select,all}=Cmd -> hotkey_select_setup(Cmd,T);
+    keep -> keep;
     Cmd ->
         do_cmd(Cmd, T)
    end;
@@ -751,11 +729,19 @@ end_drag(#dlo{src_we=#we{id=Id},drag=#drag{}}=D0, #st{shapes=Shs0}=St0) ->
     Lm = L == false andalso LL == false,
     St = case {mod_key_combo(),TwkCtrl} of
         {{true,true,true},select} ->
-            Shs = gb_trees:update(Id,collapse_short_edges(0.0001,We), Shs0),
-            St0#st{shapes=Shs};
+            {Nc,We1} = collapse_short_edges(0.0001,We),
+            Shs = gb_trees:update(Id,We1, Shs0),
+            if
+              Nc -> St0#st{shapes=Shs};
+              true -> St0#st{shapes=Shs,sel=[]}
+            end;
         {{false,true,true},slide} when not Lm ->
-            Shs = gb_trees:update(Id,collapse_short_edges(0.0001,We), Shs0),
-            St0#st{shapes=Shs};
+            {Nc,We1} = collapse_short_edges(0.0001,We),
+            Shs = gb_trees:update(Id,We1, Shs0),
+            if
+              Nc -> St0#st{shapes=Shs};
+              true -> St0#st{shapes=Shs,sel=[]}
+            end;
         _Otherwise ->
             Shs = gb_trees:update(Id, We, Shs0),
             St0#st{shapes=Shs}
@@ -768,24 +754,30 @@ end_drag(#dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
     Shs = gb_trees:update(Id, We, Shs0),
     St = St0#st{shapes=Shs},
     D1 = D#dlo{src_we=We},
-    {wings_draw:changed_we(D1, D),St};
-end_drag(D, St) -> {D,St}.
+    D2 =wings_draw:changed_we(D1, D),
+    {D2#dlo{vs=none,sel=none,drag=none},St};
+end_drag(D, St) -> {D, St}.
 
-end_pick(true, #tweak{orig_st=OrigSt,st=St0}=T0) ->
-    St1 = wings_dl:map(fun end_drag/2, St0),
+end_pick(true, #tweak{st=#st{selmode=Selmode}=St0}=T0) ->
+    St1 = wings_dl:map(fun end_pick_1/2, St0),
     {_,X,Y} = wings_wm:local_mouse_state(),
-    St = case wings_pick:do_pick(X, Y, St1) of
-        {_,_,#st{sel=Sel,selmode=Selmode}} ->
-                OrigSt#st{sel=Sel,selmode=Selmode};
+    St = case wings_pick:do_pick(X, Y, St1#st{selmode=Selmode}) of
+      % {_,_,#st{sel=Sel,selmode=Selmode}} ->
+      %         OrigSt#st{sel=Sel,selmode=Selmode};
+        {_,_,St2} -> St2;
         none -> St1
     end,
     T = T0#tweak{st=St,tmode=wait},
     help(T),
     handle_tweak_event1({new_state,St},T);
+
 end_pick(false, #tweak{st=St0}=T) ->
-    St = wings_dl:map(fun end_drag/2, St0),
+    St = wings_dl:map(fun end_pick_1/2, St0),
     help(T),
     handle_tweak_event1({new_state,St},T#tweak{tmode=wait}).
+
+end_pick_1(D,St0) ->
+    {D#dlo{vs=none,sel=none,drag=none},St0}.
 
 sel_to_vs(Mode, _, We) when ?IS_LIGHT(We) ->
     gb_sets:to_list(wings_sel:get_all_items(Mode, We));
@@ -970,9 +962,9 @@ collapse_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
               false -> A
               end
           end, [], gb_trees:to_list(Etab)),
-    try wings_collapse:collapse_edges(Short,We)
-    catch _:_What->We
-    end.
+    NothingCollapsed = Short == [],
+    We1 = wings_collapse:collapse_edges(Short,We),
+    {NothingCollapsed, We1}.
 
 %%
 %% end of additional geo-functions block

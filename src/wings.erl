@@ -430,6 +430,7 @@ do_hotkey(Ev, St0) ->
           {select,{similar_material,_}}=Cmd -> hotkey_select_setup(Cmd,St0);
           {select,{similar_area,_}}=Cmd -> hotkey_select_setup(Cmd,St0);
           {select,similar}=Cmd -> hotkey_select_setup(Cmd,St0);
+          {select,all}=Cmd -> hotkey_select_setup(Cmd,St0);
           Cmd -> {Cmd,St0}
         end
     end.

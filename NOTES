@@ -7,17 +7,26 @@
   the number of button used to activate Tweak Slide. (Thanks to puzzledpaul,
   Fonte Boa, and marcin wuu for their input). [optigon]
 
-- Added temporary highlight selection for Edge Loop, Edge Ring and Select
-  Similar commands. Now, even when there is a selection you can use your hotkeys
-  to select the loop, ring, or elements similar to the mouse over highlight.
-  [optigon]
+- Added temporary highlight selection for Edge Loop, Edge Ring, Select All, and
+  Select Similar commands. Now, you can add to a selection by pressing the
+  associated hotkey over a highlighted element. [optigon]
 
 - Bug fixes for the mode specific hotkey implementation. [optigon]
 
-- Code imporvements and extension of the Select|Similar Normals command.
+- Code imporvements and an extension of the Select|Similar Normals command.
   The command now has a new preference to save the Angle Tolerance, which in 
   combination with the Connected Faces Only option, makes this tool great for
   selecting face regions bounded by sharp edges. [optigon]
+
+- Some object mode selections would cause crashes when used in conjunction with
+  the Duplicate command. (Reported by Fonte Boa). [optigon]
+
+- Mouse over highlighted items are now added temporarily to a drag operation
+  in Tweak. [optigon]
+
+- Following a Slide+Clean operation in Tweak, if there were any short edges
+  collapsed, then an empty selection is returned. Returning the previous
+  selection was offen times unsafe. [optigon]
 
 --- 0.99.52 -----------------------------------------------------------------
 - Moving an object in tweak mode would not disregard an existing virtual mirror.
