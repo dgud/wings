@@ -14,6 +14,11 @@
 
 - Bug fixes for the mode specific hotkey implementation. [optigon]
 
+- Code imporvements and extension of the Select|Similar Normals command.
+  The command now has a new preference to save the Angle Tolerance, which in 
+  combination with the Connected Faces Only option, makes this tool great for
+  selecting face regions bounded by sharp edges. [optigon]
+
 --- 0.99.52 -----------------------------------------------------------------
 - Moving an object in tweak mode would not disregard an existing virtual mirror.
   Now fixed. (Thanks to yst). [optigon]
