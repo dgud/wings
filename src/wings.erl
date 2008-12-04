@@ -421,16 +421,17 @@ do_hotkey(Ev, St0) ->
       false ->
         do_hotkey_1(Ev, St0);
       true ->
+	    Hs = wings_pref:get_value(hilite_select),
         case wings_hotkey:event(Ev, St0) of
           next -> next;
           {view,highlight_aim} -> highlight_aim_setup(St0);
-          {select,{edge_loop,edge_loop}}=Cmd -> hotkey_select_setup(Cmd,St0);
-          {select,{edge_loop,edge_ring}}=Cmd -> hotkey_select_setup(Cmd,St0);
-          {select,{oriented_faces,_}}=Cmd -> hotkey_select_setup(Cmd,St0);
-          {select,{similar_material,_}}=Cmd -> hotkey_select_setup(Cmd,St0);
-          {select,{similar_area,_}}=Cmd -> hotkey_select_setup(Cmd,St0);
-          {select,similar}=Cmd -> hotkey_select_setup(Cmd,St0);
-          {select,all}=Cmd -> hotkey_select_setup(Cmd,St0);
+          {select,{edge_loop,edge_loop}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+          {select,{edge_loop,edge_ring}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+          {select,{oriented_faces,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+          {select,{similar_material,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+          {select,{similar_area,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+          {select,similar}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+          {select,all}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
           Cmd -> {Cmd,St0}
         end
     end.

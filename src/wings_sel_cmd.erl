@@ -929,8 +929,6 @@ nonplanar_faces([Tolerance], St) ->
 
 oriented_faces(_, #st{selmode=Mode}) when Mode =/= face ->
     keep;					%Wrong mode (invoked through hotkey).
-oriented_faces(_, #st{selmode=face, sel=[]}) ->
-    wings_u:error(?__(4,"At least one face must be selected"));
 
 oriented_faces(Ask, _St) when is_atom(Ask) ->
     Connected = wings_pref:get_value(similar_normals_connected,false),
@@ -946,6 +944,12 @@ oriented_faces(Ask, _St) when is_atom(Ask) ->
     wings_ask:dialog(Ask, ?__(2,"Select Similarly Oriented Faces"),
     [{vframe,Qs}],
     fun(Res) -> {select,{oriented_faces,Res}} end);
+
+oriented_faces([Tolerance,Connected,Save], #st{selmode=face, sel=[]}) ->
+    wings_pref:set_value(similar_normals_connected,Connected),
+    wings_pref:set_value(similar_normals_angle,{Save,Tolerance}),
+    wings_u:error(?__(4,"At least one face must be selected"));
+
 oriented_faces([Tolerance,false,Save], St) ->
     wings_pref:set_value(similar_normals_connected,false),
     wings_pref:set_value(similar_normals_angle,{Save,Tolerance}),
@@ -1033,8 +1037,6 @@ any_matching_normal(CosTolerance, Norm, [N|T]) ->
 
 similar_material(_, #st{selmode=Mode}) when Mode =/= face ->
     keep;					%Wrong mode (invoked through hotkey).
-similar_material(_, #st{selmode=face, sel=[]}) ->
-    wings_u:error(?__(3,"At least one face must be selected"));
 
 similar_material(Ask, _St) when is_atom(Ask) ->
     Connected = wings_pref:get_value(similar_materials_connected,false),
@@ -1042,6 +1044,11 @@ similar_material(Ask, _St) when is_atom(Ask) ->
     wings_ask:dialog(Ask, ?__(4,"Select Faces with the same Material"),
     [{vframe,Qs}],
     fun(Res) -> {select,{similar_material,Res}} end);
+
+similar_material([Connected], #st{selmode=face, sel=[]}) ->
+    wings_pref:set_value(similar_materials_connected,Connected),
+    wings_u:error(?__(3,"At least one face must be selected"));
+
 similar_material([false], St) ->
     Normals = wings_sel:fold(fun(Sel0, We, A) ->
                 [wings_facemat:face(SelI, We) ||

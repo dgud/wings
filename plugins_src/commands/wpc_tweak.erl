@@ -484,7 +484,8 @@ handle_tweak_event1({new_state,St0}, #tweak{orig_st=#st{selmode=Mode,sh=Sh}=Orig
       end;
 
 handle_tweak_event1({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=St0}=T) ->
-    NoTempSel = OrigSt == St0,
+    NoTempSel = OrigSt =/= St0,
+    Hs = wings_pref:get_value(hilite_select),
     case Action of
     {view,aim} ->
         wings_view:command(aim, St0),
@@ -527,45 +528,45 @@ handle_tweak_event1({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=S
         wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{orig_st=St,st=St});
 
-    {select,vertex} when NoTempSel == false ->
+    {select,vertex} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=vertex},
         wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
-    {select,edge} when NoTempSel == false ->
+    {select,edge} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=edge},
         wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
-    {select,face} when NoTempSel == false ->
+    {select,face} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=face},
         wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
-    {select,body} when NoTempSel == false ->
+    {select,body} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=body},
         wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
-    {select,{adjacent,vertex}} when NoTempSel == false ->
+    {select,{adjacent,vertex}} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=vertex},
         wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
-    {select,{adjacent,edge}} when NoTempSel == false ->
+    {select,{adjacent,edge}} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=edge},
         wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
-    {select,{adjacent,face}} when NoTempSel == false ->
+    {select,{adjacent,face}} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=face},
         wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
-    {select,{adjacent,body}} when NoTempSel == false ->
+    {select,{adjacent,body}} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=body},
         wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
-    {select,{edge_loop,edge_loop}}=Cmd -> hotkey_select_setup(Cmd,T);
-    {select,{edge_loop,edge_ring}}=Cmd -> hotkey_select_setup(Cmd,T);
-    {select,{oriented_faces,_}}=Cmd -> hotkey_select_setup(Cmd,T);
-    {select,{similar_material,_}}=Cmd -> hotkey_select_setup(Cmd,T);
-    {select,{similar_area,_}}=Cmd -> hotkey_select_setup(Cmd,T);
-    {select,similar}=Cmd -> hotkey_select_setup(Cmd,T);
-    {select,all}=Cmd -> hotkey_select_setup(Cmd,T);
+    {select,{edge_loop,edge_loop}}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
+    {select,{edge_loop,edge_ring}}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
+    {select,{oriented_faces,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
+    {select,{similar_material,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
+    {select,{similar_area,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
+    {select,similar}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
+    {select,all}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
     keep -> keep;
     Cmd ->
         do_cmd(Cmd, T)
@@ -779,6 +780,9 @@ end_pick(false, #tweak{st=St0}=T) ->
 end_pick_1(D,St0) ->
     {D#dlo{vs=none,sel=none,drag=none},St0}.
 
+sel_to_vs(edge, _, We) when ?IS_LIGHT(We) ->
+    Items = gb_sets:to_list(wings_sel:get_all_items(edge, We)),
+    wings_edge:to_vertices(Items,We);
 sel_to_vs(Mode, _, We) when ?IS_LIGHT(We) ->
     gb_sets:to_list(wings_sel:get_all_items(Mode, We));
 sel_to_vs(vertex, Vs, _) -> Vs;

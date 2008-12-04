@@ -459,6 +459,7 @@ defaults() ->
      {clip_plane_size,1.5},
      {highlight_aim_at_selected,false},
      {highlight_aim_at_unselected,true},
+	 {hilite_select,false},
      {start_in_tweak, false},
 
      %% Constraints preferences.

@@ -8,8 +8,9 @@
   Fonte Boa, and marcin wuu for their input). [optigon]
 
 - Added temporary highlight selection for Edge Loop, Edge Ring, Select All, and
-  Select Similar commands. Now, you can add to a selection by pressing the
-  associated hotkey over a highlighted element. [optigon]
+  Select Similar commands. Now, you can extend a selection by pressing the
+  associated hotkey over a highlighted element. An option to activate this
+  feature can be found in Edit|Preferences|Advanced. [optigon]
 
 - Bug fixes for the mode specific hotkey implementation. [optigon]
 
@@ -20,6 +21,9 @@
 
 - Some object mode selections would cause crashes when used in conjunction with
   the Duplicate command. (Reported by Fonte Boa). [optigon]
+
+- Dragging Lights as an edge selection in Tweak mode would crash. Now fixed.
+  [optigon]
 
 - Mouse over highlighted items are now added temporarily to a drag operation
   in Tweak. [optigon]
