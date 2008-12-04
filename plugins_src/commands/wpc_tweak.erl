@@ -671,7 +671,7 @@ do_wings_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
           wings:save_windows(),
           exit(normal);
       Other ->
-%	  io:format("Other ~p\n",[Other]),
+	 % io:format("Other ~p\n",[Other]),
         Other
     end.
 
@@ -690,8 +690,8 @@ remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
     St#st{repeatable=Cmd,ask_args=none,drag_args=none};
 remember_command(_Cmd, St) -> St.
 
-check_cmd({C,_})-> C;
-check_cmd(C) -> C.
+check_cmd({_,{C,_}})-> C;
+check_cmd({_,C}) -> C.
 
 redraw(St) ->
     wings:redraw(St),
