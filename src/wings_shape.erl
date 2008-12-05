@@ -486,22 +486,30 @@ toggle_wire(#we{id=Id}, #ost{st=St}) ->
     wings_draw:refresh_dlists(St),
     wings_wm:dirty().
 
-toggle_wire_all(#we{id=Id}, #ost{st=St}) ->
+toggle_wire_all(#we{id=Id0}, #ost{st=St}) ->
     All = all_selectable(St),
     {_,Client} = wings_wm:this(),
     W0 = wings_wm:get_prop(Client, wireframed_objects),
-    W1 = case gb_sets:is_empty(gb_sets:delete_any(Id, W0)) of
-	     true -> All;
-	     false -> gb_sets:difference(W0, All)
-	 end,
-    W = case gb_sets:is_member(Id, W0) of
-	    false -> gb_sets:delete_any(Id, W1);
-	    true -> gb_sets:add(Id, W1)
-	end,
-    wings_wm:set_prop(Client, wireframed_objects, W),
+    W1 = gb_sets:difference(W0,All), %% Locked WireFrame
+    Id = case gb_sets:is_member(Id0,W0) of
+      true -> gb_sets:add(Id0,gb_sets:empty());
+      false -> gb_sets:empty()
+    end,
+    W2 = case gb_sets:is_empty(gb_sets:difference(All,W0)) of
+      true -> gb_sets:union(W1,Id);
+      false -> 
+        case gb_sets:is_member(Id0,W0) of
+          true -> gb_sets:union(gb_sets:add(Id0,W1),All);
+          false -> 
+            case gb_sets:is_empty(gb_sets:difference(gb_sets:delete_any(Id0,All),W0)) of
+              true -> gb_sets:union(W1,Id);
+              false -> gb_sets:delete_any(Id0,gb_sets:union(W1,All))
+            end
+        end
+    end,
+    wings_wm:set_prop(Client, wireframed_objects, W2),
     wings_draw:refresh_dlists(St),
     wings_wm:dirty().
-
 %%%
 %%% Popup menus.
 %%%

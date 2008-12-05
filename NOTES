@@ -10,7 +10,7 @@
 - Added temporary highlight selection for Edge Loop, Edge Ring, Select All, and
   Select Similar commands. Now, you can extend a selection by pressing the
   associated hotkey over a highlighted element. An option to activate this
-  feature can be found in Edit|Preferences|Advanced. [optigon]
+  feature can be found in the Edit|Preferences|Advanced dialog. [optigon]
 
 - Bug fixes for the mode specific hotkey implementation. [optigon]
 
@@ -28,9 +28,14 @@
 - Mouse over highlighted items are now added temporarily to a drag operation
   in Tweak. [optigon]
 
-- Following a Slide+Clean operation in Tweak, if there were any short edges
-  collapsed, then an empty selection is returned. Returning the previous
-  selection was offen times unsafe. [optigon]
+- Following a Slide+Clean operation in Tweak, if any short edges were collapsed,
+  then an empty selection will now be returned. Returning the original selection
+  was offen times unsafe, because the selected element might have been removed,
+  causing Wings to crash. [optigon]
+
+- Toggling wireframe display for objects in the Geometry Graph using the right
+  mouse button option would not yeild the correct results in some situations.
+  Now fixed. (Reported by pauljs75). [optigon]
 
 --- 0.99.52 -----------------------------------------------------------------
 - Moving an object in tweak mode would not disregard an existing virtual mirror.
