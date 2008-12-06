@@ -40,6 +40,8 @@
 - Select by material called from the Outliner would select hidden faces. This
   has been corrected. (Thanks to odf). [optigon]
 
+- Blocked some face selection tools from selecting hidden faces. [optigon]
+
 --- 0.99.52 -----------------------------------------------------------------
 - Moving an object in tweak mode would not disregard an existing virtual mirror.
   Now fixed. (Thanks to yst). [optigon]
