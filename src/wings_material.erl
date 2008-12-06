@@ -192,12 +192,13 @@ select_material(Mat, St) ->
     %% XXX Works but is slow.
     wings_sel:make(fun(_, #we{mat=AtomMat}) when is_atom(AtomMat) ->
 			   Mat =:= AtomMat;
-		      (Face, #we{mat=MatTab}) ->
+		      (Face, #we{mat=MatTab}) when Face >= 0 ->
 			   case keysearch(Face, 1, MatTab) of
 			       false -> false;
 			       {value,{_,Mat}} -> true;
 			       {value,_} -> false
-			   end
+			   end;
+			   (_, _) -> false
 		   end, face, St).
 
 set_material(Mat, #st{selmode=face}=St) ->
