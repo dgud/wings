@@ -1,4 +1,6 @@
 --- 0.99.XX -----------------------------------------------------------------
+- Kerkythea exporter added to Wings. [contributed by Chris Hegarty (Avariant)]
+
 - Added a file browser to the Text plugin. [optigon]
 
 - Tweak can now use single and double clicking to select geometry. There is an

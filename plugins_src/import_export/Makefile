@@ -37,6 +37,7 @@ MODULES= \
 	wpc_rwx \
 	wpc_wrl \
 	wpc_hlines \
+	wpc_kerky \
 	wpc_stl \
 	wpc_x \
 	wpc_lwo \
