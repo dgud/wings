@@ -2,6 +2,8 @@
 - Extended Edge|Circularise to handle multiple open edge loops via the left
   mouse button. [optigon]
 
+- Added mmb select option to Tweak, for Maya camera mode users. [optigon]
+
 --- 0.99.53 -----------------------------------------------------------------
 - Kerkythea exporter added to Wings. [contributed by Chris Hegarty (Avariant)]
 

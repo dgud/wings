@@ -58,6 +58,7 @@ init() ->
     wings_pref:set_default(tweak_double_click,true),
     wings_pref:set_default(tweak_double_click_speed,2.0),
     wings_pref:set_default(tweak_ctrl,slide),
+    wings_pref:set_default(tweak_mmb_select,false),
     true.
 
 menu({tools}, Menu0) ->
@@ -69,10 +70,39 @@ menu({tools}, Menu0) ->
 menu(_, Menu) -> Menu.
 
 command({tools,{tweak,Ask}}, St) ->
-    tweak(Ask,St);
+    Cam = wings_pref:get_value(camera_mode),
+    tweak(Ask,Cam,St);
 command(_, _) -> next.
 
-tweak(Ask, _St) when is_atom(Ask) ->
+tweak(Ask,maya,_St) when is_atom(Ask) ->
+    {Radio1,Radio2} = tweak_pref(),
+    MmbHook = fun (is_disabled, {_Var,_I,Store}) ->
+              gb_trees:get(tweak_mmb_select, Store);
+              (_,_) -> void
+            end,
+    ClickHook = fun (is_disabled, {_Var,_I,Store}) ->
+              not ((gb_trees:get(tweak_double_click, Store)) or
+                  (gb_trees:get(tweak_single_click, Store)));
+              (_, _) -> void
+          end,
+    DblClkSpd = wings_pref:get_value(tweak_double_click_speed),
+    TweakPrefs = [{vframe,
+        [{?__(8,"Mmb Selects/Deselects (Maya camera mode only)"),tweak_mmb_select},
+         {vframe,[{?__(1,"Lmb single click Selects/Deselects"),tweak_single_click},
+         {?__(2,"Lmb double click initiates Paint Select/Deselect"),tweak_double_click},
+       {hframe,[{slider,{text,DblClkSpd,[{key,tweak_double_click_speed},{range,{1.0,3.0}},
+        {hook,ClickHook}]}}],
+       [{title,?__(3,"Click Speed")}]},
+       {vframe,[{vradio,[{Radio1,select},
+                         {Radio2,slide}],tweak_ctrl}],
+       [{title,?__(7,"Button Options")},{hook,ClickHook}]}],
+       [{title,?__(9,"Options Panel")},{hook,MmbHook}]}]}],
+
+    PrefQs = [{Lbl,make_query(Ps)} || {Lbl,Ps} <- TweakPrefs],
+    wings_ask:dialog(Ask, ?__(4,"Tweak Mode Preferences"),PrefQs,
+    fun(Result) -> set_values(Result), {tools,{tweak,Result}} end);
+
+tweak(Ask,_Cam,_St) when is_atom(Ask) ->
     {Radio1,Radio2} = tweak_pref(),
     ClickHook = fun (is_disabled, {_Var,_I,Store}) ->
               not ((gb_trees:get(tweak_double_click, Store)) or
@@ -88,13 +118,13 @@ tweak(Ask, _St) when is_atom(Ask) ->
        [{title,?__(3,"Click Speed")}]},
        {vframe,[{vradio,[{Radio1,select},
                          {Radio2,slide}],tweak_ctrl}],
-       [{title,?__(7,"Button Options")},{hook,ClickHook}]}
-                         ]}],
+       [{title,?__(7,"Button Options")},{hook,ClickHook}]} ]}],
+
     PrefQs = [{Lbl,make_query(Ps)} || {Lbl,Ps} <- TweakPrefs],
     wings_ask:dialog(Ask, ?__(4,"Tweak Mode Preferences"),PrefQs,
     fun(Result) -> set_values(Result), {tools,{tweak,Result}} end);
 
-tweak(_, St0) ->
+tweak(_,_,St0) ->
     case wpa:pref_get(?MODULE, sel_mode) of
     {_Mode,_Sh0,Mag,MagType} ->
         MagR = 1.0;
@@ -262,6 +292,7 @@ handle_tweak_event1(#mousemotion{x=X,y=Y,state=State,mod=Mod},
     Mod3 = (Mod band ctrl()) =/= 0,
 
     Cam = wings_pref:get_value(camera_mode),
+    MayaMod = Cam == maya andalso wings_pref:get_value(tweak_mmb_select)==true,
     TwkCtrl = wings_pref:get_value(tweak_ctrl) == select,
     L = wings_pref:get_value(tweak_single_click),
     LL = wings_pref:get_value(tweak_double_click),
@@ -269,11 +300,13 @@ handle_tweak_event1(#mousemotion{x=X,y=Y,state=State,mod=Mod},
     Mode=if
          Mod1 and Mod3 and Lm -> slide;
          Mod1 and Mod3 and TwkCtrl -> slide;
+         Mod1 and Mod3 and MayaMod -> slide;
          Mod1 and Mod2 -> relax;
          Mod2 and Mod3 -> tangent;
-         Mod3 andalso TwkCtrl==false andalso Cam =/= mb andalso Lm==false -> slide;
+         Mod3 andalso TwkCtrl==false andalso Cam =/= mb and not Lm and not MayaMod -> slide;
          Mod1 andalso TwkCtrl==false andalso Cam == mb andalso Lm==false -> slide;
          Mod1 -> normal;
+         Mod3 and MayaMod -> normal;
          State == ?SDL_BUTTON_MMASK andalso Cam == maya -> normal;
          C == [true,true,false] -> xymove;
          C == [false,true,true] -> yzmove;
@@ -292,28 +325,31 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
     Time = now(),
     ModKeys = mod_key_combo(),
     Cam = wings_pref:get_value(camera_mode),
+    MayaMod = Cam == maya andalso wings_pref:get_value(tweak_mmb_select),
     TwkCtrl = wings_pref:get_value(tweak_ctrl),
     L = wings_pref:get_value(tweak_single_click),
     LL = wings_pref:get_value(tweak_double_click),
     Lm = L == false andalso LL == false,
     case ModKeys of
-      {false,true,false} when B == 1 andalso Lm==true ->
+      {false,false,false} when B == 2 andalso MayaMod ->
         wings_pick:paint_pick(X, Y, St0);
-      {false,true,false} when B == 1 andalso TwkCtrl == select ->
+      {false,true,false} when B == 1 andalso Lm andalso not MayaMod->
         wings_pick:paint_pick(X, Y, St0);
-      {false,false,true} when B == 1 andalso Cam == mb andalso Lm==true ->
+      {false,true,false} when B == 1 andalso TwkCtrl == select andalso not MayaMod ->
+        wings_pick:paint_pick(X, Y, St0);
+      {false,false,true} when B == 1 andalso Cam == mb andalso Lm ->
         wings_pick:paint_pick(X, Y, St0);
       {false,false,true} when B == 1 andalso Cam == mb andalso TwkCtrl == select ->
         wings_pick:paint_pick(X, Y, St0);
       {true,false,false} when B == 1  ->
         wings_pick:marquee_pick(X, Y, St0);
       _Other when
+        B == 1 andalso MayaMod andalso ModKeys == {false,true,false};
         B == 1 andalso Cam =/= mb;
         B == 1 andalso Cam == mb andalso ModKeys == {false,false,false};
         B == 1 andalso Cam == mb andalso ModKeys == {false,false,true} andalso Lm==false andalso TwkCtrl == slide;
-        B == 2 andalso Cam == maya andalso ModKeys == {false,false,false};
-        B == 2 andalso Cam == mb  andalso ModKeys =/= {false,true,false}
-        andalso ModKeys =/= {false,false,false}->
+        B == 2 andalso Cam == maya andalso ModKeys == {false,false,false} andalso not MayaMod;
+        B == 2 andalso Cam == mb  andalso ModKeys =/= {false,true,false} andalso ModKeys =/= {false,false,false}->
         case wings_pick:do_pick(X, Y, St0) of
           {add,MM,St1} ->
             begin_drag(MM, St1, T0),
@@ -339,6 +375,7 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
     SecondPress = timer:now_diff(Time2,Time1),
     ModKeys = mod_key_combo(),
     Cam = wings_pref:get_value(camera_mode),
+    MayaMod = Cam == maya andalso wings_pref:get_value(tweak_mmb_select),
     ClickSpeed = wings_pref:get_value(tweak_double_click_speed)*100000,
     DC = wings_pref:get_value(tweak_double_click),
     TwkCtrl = wings_pref:get_value(tweak_ctrl),
@@ -346,11 +383,13 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
     LL = wings_pref:get_value(tweak_double_click),
     Lm = L == false andalso LL == false,
     case ModKeys of
-      {false,true,false} when B == 1 andalso Lm==true ->
+      {false,false,false} when B == 2 andalso MayaMod ->
         wings_pick:paint_pick(X, Y, St0);
-      {false,true,false} when B == 1 andalso TwkCtrl == select ->
+      {false,true,false} when B == 1 andalso Lm andalso not MayaMod->
         wings_pick:paint_pick(X, Y, St0);
-      {false,false,true} when B == 1 andalso Cam == mb andalso Lm==true ->
+      {false,true,false} when B == 1 andalso TwkCtrl == select andalso not MayaMod ->
+        wings_pick:paint_pick(X, Y, St0);
+      {false,false,true} when B == 1 andalso Cam == mb andalso Lm ->
         wings_pick:paint_pick(X, Y, St0);
       {false,false,true} when B == 1 andalso Cam == mb andalso TwkCtrl == select ->
         wings_pick:paint_pick(X, Y, St0);
@@ -360,6 +399,7 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
         St = wings_undo:undo(St0),
         wings_pick:paint_pick(X,Y,St#st{selmode=Selmode});
       _Other when
+        B == 1 andalso MayaMod andalso ModKeys == {false,true,false};
         B == 1 andalso Cam =/= mb;
         B == 1 andalso Cam == mb andalso ModKeys == {false,false,false};
         B == 1 andalso Cam == mb andalso ModKeys == {false,true,false} andalso Lm==false andalso TwkCtrl == slide;
@@ -392,12 +432,12 @@ handle_tweak_event1(#mousebutton{button=B,state=?SDL_RELEASED},
     Click = timer:now_diff(Time2,Time1),
     ClickSelect = wings_pref:get_value(tweak_single_click),
     ClickSpeed = wings_pref:get_value(tweak_double_click_speed)*100000,
-    case wings_pref:get_value(camera_mode) of
-      maya when B == 2 andalso Click < ClickSpeed ->
-          end_pick(ClickSelect, T#tweak{dc={true,Time2}});
+    Cam = wings_pref:get_value(camera_mode),
+    MayaMod = Cam == maya andalso wings_pref:get_value(tweak_mmb_select),
+    case Cam of
       maya when B == 2 -> end_drag(T#tweak{dc={0,0}});
-      mb when B == 2 andalso Click < ClickSpeed ->
-          end_pick(ClickSelect, T#tweak{dc={true,Time2}});
+      maya when B == 1 andalso MayaMod ->
+          end_drag(T#tweak{dc={0,0}});
       mb when B == 2 -> end_drag(T#tweak{dc={0,0}});
       _Cam when B == 1 andalso Click < ClickSpeed ->
           end_pick(ClickSelect, T#tweak{dc={true,Time2}});
@@ -671,7 +711,7 @@ do_wings_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
           wings:save_windows(),
           exit(normal);
       Other ->
-	 % io:format("Other ~p\n",[Other]),
+     % io:format("Other ~p\n",[Other]),
         Other
     end.
 
@@ -728,7 +768,16 @@ end_drag(#dlo{src_we=#we{id=Id},drag=#drag{}}=D0, #st{shapes=Shs0}=St0) ->
     L = wings_pref:get_value(tweak_single_click),
     LL = wings_pref:get_value(tweak_double_click),
     Lm = L == false andalso LL == false,
+    Cam = wings_pref:get_value(camera_mode),
+    MayaMod = Cam == maya andalso wings_pref:get_value(tweak_mmb_select),
     St = case {mod_key_combo(),TwkCtrl} of
+        {{true,true,true},_} when MayaMod ->
+            {Nc,We1} = collapse_short_edges(0.0001,We),
+            Shs = gb_trees:update(Id,We1, Shs0),
+            if
+              Nc -> St0#st{shapes=Shs};
+              true -> St0#st{shapes=Shs,sel=[]}
+            end;
         {{true,true,true},select} ->
             {Nc,We1} = collapse_short_edges(0.0001,We),
             Shs = gb_trees:update(Id,We1, Shs0),
@@ -736,7 +785,7 @@ end_drag(#dlo{src_we=#we{id=Id},drag=#drag{}}=D0, #st{shapes=Shs0}=St0) ->
               Nc -> St0#st{shapes=Shs};
               true -> St0#st{shapes=Shs,sel=[]}
             end;
-        {{false,true,true},slide} when not Lm ->
+        {{false,true,true},slide} when not Lm andalso not MayaMod ->
             {Nc,We1} = collapse_short_edges(0.0001,We),
             Shs = gb_trees:update(Id,We1, Shs0),
             if
@@ -763,8 +812,6 @@ end_pick(true, #tweak{st=#st{selmode=Selmode}=St0}=T0) ->
     St1 = wings_dl:map(fun end_pick_1/2, St0),
     {_,X,Y} = wings_wm:local_mouse_state(),
     St = case wings_pick:do_pick(X, Y, St1#st{selmode=Selmode}) of
-      % {_,_,#st{sel=Sel,selmode=Selmode}} ->
-      %         OrigSt#st{sel=Sel,selmode=Selmode};
         {_,_,St2} -> St2;
         none -> St1
     end,
@@ -1180,9 +1227,11 @@ common_help(Tail0) ->
     SC = wings_pref:get_value(tweak_single_click),
     DC = wings_pref:get_value(tweak_double_click),
     NoMod = wings_pref:get_value(tweak_ctrl) == slide,
-    Tail = [slide_help(Cam, Button, {SC,DC,NoMod}, AltMod, CtrlMod) | Tail0],
+    MayaMod = Cam == maya andalso wings_pref:get_value(tweak_mmb_select),
+    Tail = [slide_help(Cam, MayaMod, Button, {SC,DC,NoMod}, AltMod, CtrlMod) | Tail0],
     [wings_msg:button_format(?__(2,"Drag")),
     case {SC,DC,NoMod} of
+      _Maya when MayaMod -> wings_msg:mod_format(0, 2, ?__(6,"Select"));
       {true,true,_} -> ?__(7,"L/LL:") ++" "++ ?__(6,"Select");
       {true,false,false} ->
         case Cam of
@@ -1205,6 +1254,7 @@ common_help(Tail0) ->
         end
     end,
     case Cam of
+      maya when MayaMod -> wings_msg:mod_format(CtrlMod,1,?__(3,"Along Normal"));
       maya   -> wings_msg:mod_format(0, 2, ?__(3,"Along Normal"));
       _other -> wings_msg:mod_format(AltMod, Button, ?__(3,"Along Normal"))
     end,
@@ -1214,12 +1264,15 @@ common_help(Tail0) ->
 exit_help() ->
     ?__(2,"[Esc]:") ++ " " ++ ?__(1,"Exit").
 
-slide_help(Cam, Button, Prefs, AltMod, CtrlMod) ->
+slide_help(Cam, MayaMod, Button, Prefs, AltMod, CtrlMod) ->
     {Mod,Clean} = case Cam of
         mb -> {AltMod, ?__(3,"(+[Ctrl] to Clean)")};
         _  -> {CtrlMod, ?__(4,"(+[Alt] to Clean)")}
     end,
     case Prefs of
+      _Maya when MayaMod ->
+        wings_msg:mod_format(AltMod bor CtrlMod, Button,{bold,?__(1,"Slide")})++
+        ?__(2,"(+[Shift] to Clean)");
       {true,_,true} ->
         wings_msg:mod_format(Mod, 1,{bold,?__(1,"Slide")})++Clean;
       {_,true,true} ->

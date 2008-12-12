@@ -333,7 +333,11 @@ marquee_event(#mousemotion{x=X,y=Y}, #marquee{cx=Cx,cy=Cy}=M) ->
     draw_marquee(Cx, Cy, M),
     draw_marquee(X, Y, M),
     get_marquee_event(M#marquee{cx=X,cy=Y});
-marquee_event(#mousebutton{x=X0,y=Y0,mod=Mod,button=1,state=?SDL_RELEASED}, M) ->
+marquee_event(#mousebutton{x=X0,y=Y0,mod=Mod,button=B,state=?SDL_RELEASED}, M)
+        when B==1;B==2 ->
+    %% Button 2 is only used in Tweak Mode for Maya cam. If there are any
+    %% issues I will revert the code to only accept release states from B 1.
+    %% - Richard
     {Inside,Op} =
 	if
 	    Mod band ?SHIFT_BITS =/= 0, Mod band ?CTRL_BITS =/= 0 ->
@@ -501,7 +505,11 @@ pick_event(#mousemotion{x=X,y=Y}, #pick{op=Op,st=St0}=Pick) ->
 	    get_pick_event(Pick#pick{st=St});
 	{_,_,_} -> keep
     end;
-pick_event(#mousebutton{button=1,state=?SDL_RELEASED}, #pick{st=St}) ->
+pick_event(#mousebutton{button=B,state=?SDL_RELEASED}, #pick{st=St})
+        when B==1;B==2 ->
+    %% Button 2 is only used in Tweak Mode for Maya cam. If there are any
+    %% issues I will revert the code to only accept release states from B 1.
+    %% - Richard
     wings_wm:later({new_state,St}),
     pop;
 pick_event(_, _) -> keep.
