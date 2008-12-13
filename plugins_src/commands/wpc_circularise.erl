@@ -118,18 +118,18 @@ command({edge, circularise_center}, #st{shapes=Shs,sel=[{Id,Sel}]}=St) ->
                 arc_center_setup(Plane,Center,Vs,We,St0)
                 end);
               not_mixed ->
-                circ_sel_error_2();
+                circ_sel_error();
               single_edge ->
                 circ_sel_error_3();
               mixed ->
-                circ_sel_error_2()
+                circ_sel_error()
             end
         end;
       _ ->
-        circ_sel_error_2()
+        circ_sel_error()
     end;
 command({edge, circularise_center}, _) ->
-    circ_sel_error_2();
+    circ_sel_error();
 command({edge,{circularise_center,{Plane0,Center0}}}, #st{shapes=Shs,sel=[{Id,Sel}]}=St) ->
     We = gb_trees:get(Id,Shs),
     Edges = gb_sets:to_list(Sel),
@@ -147,15 +147,15 @@ command({edge,{circularise_center,{Plane0,Center0}}}, #st{shapes=Shs,sel=[{Id,Se
               not_mixed when length(EdgeGroups)==length(VsList) ->
                  arc_center_setup(Plane0,Center0,Vs,We,St);
               not_mixed ->
-                circ_sel_error_2();
+                circ_sel_error();
               single_edge ->
                 circ_sel_error_3();
               mixed ->
-                circ_sel_error_2()
+                circ_sel_error()
             end
         end;
       _ ->
-        circ_sel_error_2()
+        circ_sel_error()
     end;
 
 command({edge,{circularise_center,_}}, #st{shapes=Shs,sel=[{Id,Sel}]}=St) ->
@@ -177,19 +177,19 @@ command({edge,{circularise_center,_}}, #st{shapes=Shs,sel=[{Id,Sel}]}=St) ->
                 arc_center_setup(Plane,Center,Vs,We,St0)
                 end);
               not_mixed ->
-                circ_sel_error_2();
+                circ_sel_error();
               single_edge ->
                 circ_sel_error_3();
               mixed ->
-                circ_sel_error_2()
+                circ_sel_error()
             end
         end;
       _ ->
-        circ_sel_error_2()
+        circ_sel_error()
     end;
 
 command({edge,{circularise_center,_}}, _) ->
-    circ_sel_error_2();
+    circ_sel_error();
 
 command(_, _) ->
     next.
@@ -764,10 +764,10 @@ reverse_norm({0.0,0.0,0.0},Norm,reverse) -> e3d_vec:neg(Norm);
 reverse_norm(_,Norm,_) -> Norm.
 
 %%%% Selection errors
+circ_sel_error() ->
+    wings_u:error(?__(2,"Selection must consist of either a single closed or open edge loop")).
 circ_sel_error_1() ->
     wings_u:error(?__(1,"Selected edge loops may not share vertices")).
-circ_sel_error_2() ->
-    wings_u:error(?__(2,"Selection must consist of either a single closed or open edge loop")).
 circ_sel_error_3() ->
     wings_u:error(?__(2,"Selections including single edges cannot be processed")).
 circ_sel_error_4() ->
