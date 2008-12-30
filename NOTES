@@ -4,6 +4,17 @@
 
 - Added mmb select option to Tweak, for Maya camera mode users. [optigon]
 
+- Improvements and bug fixes to dragging.
+  - Now drag position won't jump when constraints are released.
+  - The numeric tab entry now shows units achieved via constraints.
+  - Constraint effects now are limited to only the active drag parameter.
+  - Tools limiting drag distances to a range, would continue to tabulate past 
+    their allowed limits, which could result in the user dragging blindly with no
+    effect until the drag distance fell between the limits again.
+  - Zooming would cause the current drag distance to jump when using tools with
+    mixed drag modes like Sweep, Contour, and Circularise.
+  [optigon]
+
 --- 0.99.53 -----------------------------------------------------------------
 - Kerkythea exporter added to Wings. [contributed by Chris Hegarty (Avariant)]
 

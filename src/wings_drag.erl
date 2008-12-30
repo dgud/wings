@@ -28,6 +28,8 @@
 	 ys=0,
 	 zs=0,                  %Z move in screen relative
 	 fp=0,                  %An optional forth drag parameter
+	 psum=[0,0,0,0],        % Whereas xs,ys,zs and fp are the displayed distances
+	                        % psum is the mouse summary pre parameter
 	 xt=0,					%Last warp length
 	 yt=0,
 	 mmb_count=0,
@@ -167,6 +169,12 @@ pad_offsets(Ds) ->
 	L when L >= 4 -> Ds;
 	L -> Ds ++ lists:duplicate(4-L, 0.0)
     end.
+
+%% When the zoom changes during a camera event the units have to be rescaled.
+adjust_unit_scaling([D|Ds],[U|Us],[U0|Us0]) ->
+    [D*U0/U|adjust_unit_scaling(Ds,Us,Us0)];
+adjust_unit_scaling(Ds,[],[]) -> Ds;
+adjust_unit_scaling([],[],[]) -> [].
 
 %%
 %% Here we break apart the objects into two parts - static part
@@ -482,12 +490,13 @@ handle_drag_event(Event, Drag = #drag{st=St}) ->
 	    wings_dl:map(fun(#dlo{hilite=none}=D, _) -> D;
 			    (D, _) -> D#dlo{hilite=none}
 			 end, []),
-	    %% Recalc unit_scales since zoom can have changed.
-	    #drag{xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0,unit=Unit,unit_sc=[US0|_]} = Drag,
-	    US = [US1|_] = unit_scales(Unit),
-	    Adjust = US0/US1,
-	    get_drag_event(Drag#drag{xs=Xs0*Adjust,ys=Ys0*Adjust,zs=Zs0*Adjust,
-		               fp=Fp0*Adjust,unit_sc=US});
+	    %% Recalc unit_scales since zoom can have changed.   UNITS ARE MIXED IN SOME CASES
+	    #drag{xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0,psum=Psum0,unit=Unit,
+	          unit_sc=Us0} = Drag,
+	    Us = unit_scales(Unit),
+		Psum = adjust_unit_scaling(Psum0,Us,Us0),
+		[Xs,Ys,Zs,Fp] = adjust_unit_scaling([Xs0,Ys0,Zs0,Fp0],Us,Us0),
+	    get_drag_event(Drag#drag{xs=Xs,ys=Ys,zs=Zs,fp=Fp,psum=Psum,unit_sc=Us});
 	Other ->
 	    %% Clear any potential marker for an edge about to be
 	    %% cut (Cut RMB).
@@ -509,13 +518,19 @@ handle_drag_event_0(#keyboard{unicode=C}=Ev,
 	        false -> parameter_update(new_mode_data, Val,
 	                 Drag0#drag{mode_data=ModeData});
 	        true -> parameter_update(new_mode_data, Val,
-	                Drag0#drag{mode_data=ModeData,xs=0,ys=0})
+	                Drag0#drag{mode_data=ModeData,xs=0,ys=0,zs=0,fp=0,
+	                           psum=[0,0,0,0]})
 	    end,
 	    Drag = case ModeFun(units, ModeData) of
 		       none -> Drag1;
 		       Units ->
-		           UnitSc = unit_scales(Units),
-		           Drag1#drag{unit=Units,unit_sc=UnitSc}
+		           Us = unit_scales(Units),
+		           #drag{xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0,psum=Psum0,
+		                 unit_sc=Us0} = Drag1,
+		           Psum = adjust_unit_scaling(Psum0,Us,Us0),
+		           [Xs,Ys,Zs,Fp] = adjust_unit_scaling([Xs0,Ys0,Zs0,Fp0],Us,Us0),
+		           Drag1#drag{xs=Xs,ys=Ys,zs=Zs,fp=Fp,psum=Psum,unit=Units,
+		                      unit_sc=Us}
 		   end,
 	    get_drag_event(Drag)
     end;
@@ -671,7 +686,7 @@ view_changed(#drag{flags=Flags}=Drag0) ->
 	      false ->
 	    wings_dl:map(fun view_changed_fun/2, []),
 	    {_,X,Y} = sdl_mouse:getMouseState(),
-	        Drag0#drag{x=X,y=Y,xs=0,ys=0,zs=0,fp=0}
+	        Drag0#drag{x=X,y=Y,xs=0,ys=0,zs=0,fp=0,psum=[0,0,0,0]}
 	    end
     end.
 
@@ -697,73 +712,95 @@ motion(Event, Drag0) ->
 mouse_translate(Event0, Drag0) ->
     Mode = wings_pref:get_value(camera_mode),
     {Event,Mod,Drag1} = mouse_pre_translate(Mode, Event0,Drag0),
-    {Ds0,Drag} = mouse_range(Event, Drag1, Mod),
-    Ds = add_offset(Ds0, Drag),
-    Move = constrain(Ds, Mod, Drag),
-    {Move,Drag}.
+	mouse_range(Event, Drag1, Mod).
 
-add_offset(Ds, #drag{offset=Offset}) ->
-    add_offset_1(Ds, Offset).
+add_offset([D|Ds], [U|Us], [O|Ofs]) ->
+    [clamp(U, D+O)|add_offset(Ds, Us, Ofs)];
+add_offset([D|Ds], _, _) ->
+    [D|add_offset(Ds, [], [])];
+add_offset([],_,_) -> [].
 
-add_offset_1([D|Ds], [O|Ofs]) ->
-    [D+O|add_offset_1(Ds, Ofs)];
-add_offset_1([], _) -> [].
-
-mouse_pre_translate(_, #mousemotion{state=Mask,mod=Mod}=Ev,Drag) ->
+mouse_pre_translate(Mode, #mousemotion{state=Mask,mod=Mod}=Ev,Drag)
+        when Mode==blender; Mode==sketchup ->
     if
     Mask band ?SDL_BUTTON_RMASK =/= 0,
     Mod band ?CTRL_BITS =/= 0 ->
         {Ev#mousemotion{state=?SDL_BUTTON_MMASK},
          Mod band (bnot ?CTRL_BITS),Drag#drag{fp_count=0}};
     true -> {Ev,Mod,Drag}
-    end.
+    end;
+
+mouse_pre_translate(_, #mousemotion{mod=Mod}=Ev,Drag) ->
+    {Ev,Mod,Drag}.
 
 mouse_range(#mousemotion{x=X0,y=Y0,state=Mask},
-	    #drag{x=OX,y=OY,xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0,
-		  xt=Xt0,yt=Yt0,mmb_count=Count0,
-		  unit_sc=UnitScales,unit=Unit}=Drag,
-	    Mod) ->
+        #drag{x=OX,y=OY,xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0, psum=Psum0,
+              xt=Xt0,yt=Yt0,mmb_count=Count0,
+              unit_sc=UnitScales,unit=Unit,offset=Offset}=Drag0, Mod) ->
     %%io:format("Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xs0,Ys0}]),
+    [Xp,Yp,Zp,Fpp] = case Mod =/= 0 of
+        true -> Psum0;
+        false -> [Xs0,Ys0,Zs0,Fp0]
+    end,
     {X,Y} = wings_wm:local2global(X0, Y0),
-    case wings_pref:lowpass(X- OX, Y-OY) of
-	{0,0} ->
-	    {mouse_scale([Xs0,-Ys0,-Zs0,-Fp0], UnitScales),
-	     Drag#drag{xt=0,yt=0}};
-	{XD0,YD0} ->
-	    CS = constraints_scale(Unit,Mod,UnitScales),
-	    XD = CS*(XD0 + Xt0),
-	    YD = CS*(YD0 + Yt0),
-		case {Mask band ?SDL_BUTTON_MMASK =/= 0,Mask band ?SDL_BUTTON_RMASK =/= 0} of
-		  {true,false} ->
-		    Xs = Xs0,
-		    Ys = Ys0,
-		    Zs = case wings_pref:get_value(camera_mode) of
-		         maya -> Zs0 - XD;	%Horizontal motion
-		         _ -> Zs0 + YD	%Vertical motion
-		     end,
-		    Fp = Fp0,
-		    Count = Count0 + 1;
-		  {false,true} ->
-		    Xs = Xs0,
-		    Ys = Ys0,
-		    Zs = Zs0,
-		    Fp = Fp0 + XD,
-		    Count = Count0;
-		  {_,_} ->
-		    Xs = Xs0 + XD,
-		    Ys = Ys0 + YD,
-		    Zs = Zs0,
-		    Fp = Fp0,
-		    Count = Count0
-	    end,
-	    wings_io:warp(OX, OY),
-	    {mouse_scale([Xs,-Ys,-Zs,-Fp], UnitScales),
-	     Drag#drag{xs=Xs,ys=Ys,zs=Zs,fp=Fp,xt=XD0,yt=YD0,mmb_count=Count}}
+    case wings_pref:lowpass(X-OX, Y-OY) of
+    {0,0} ->
+         Ds0 = mouse_scale([{no_con, Xs0},
+                            {no_con, -Ys0},
+                            {no_con, -Zs0},
+                            {no_con, -Fp0}], UnitScales),
+        Ds1 = [S || {_,S} <- Ds0],
+        Ds = add_offset(Ds1, Unit, Offset),
+        Move = constrain_1(Unit, Ds, Drag0),
+        Drag = Drag0#drag{xt=0,yt=0},
+        {Move,Drag};
+    {XD0,YD0} ->
+        CS = constraints_scale(Unit,Mod,UnitScales),
+        XD = CS*(XD0 + Xt0),
+        YD = CS*(YD0 + Yt0),
+        case {Mask band ?SDL_BUTTON_MMASK =/= 0,Mask band ?SDL_BUTTON_RMASK =/= 0} of
+          {true,false} ->
+            Xs = {no_con, Xs0},
+            Ys = {no_con, -Ys0},
+            Zs = case wings_pref:get_value(camera_mode) of
+                 maya -> {con, - (Zp - XD)};	%Horizontal motion
+                 _cam -> {con, - (Zp + YD)}	    %Vertical motion
+             end,
+            Fp = {no_con, -Fp0},
+            Count = Count0 + 1;
+          {false,true} ->
+            Xs = {no_con, Xs0},
+            Ys = {no_con, -Ys0},
+            Zs = {no_con, -Zs0},
+            Fp = {con, - (Fpp + XD)},
+            Count = Count0;
+          {_,_} ->
+            Xs = {con, Xp + XD},
+            Ys = {con, - (Yp + YD)},
+            Zs = {no_con, -Zs0},
+            Fp = {no_con, -Fp0},
+            Count = Count0
+        end,
+        wings_io:warp(OX, OY),
+        Ds0 = mouse_scale([Xs,Ys,Zs,Fp], UnitScales),
+        Ds1 = constrain_0(Unit, Ds0, Mod, []),
+        Psum = [S || {_,S} <- [Xs,Ys,Zs,Fp]],
+        [Xs2,Ys2,Zs2,Fp2] = constrain_2(Unit, Psum, UnitScales, Offset),
+        Ds = add_offset(Ds1, Unit, Offset),
+        [Xs1,Ys1,Zs1,Fp1] = scale_mouse_back(Ds, UnitScales, Offset),
+        Move = constrain_1(Unit, Ds, Drag0),
+        Drag = Drag0#drag{xs=Xs1,ys=-Ys1,zs=-Zs1,fp=-Fp1,
+                          psum=[Xs2,-Ys2,-Zs2,-Fp2],
+                          xt=XD0,yt=YD0,mmb_count=Count},
+        {Move,Drag}
     end.
-
-mouse_scale([D|Ds], [S|Ss]) ->
-    [D*S|mouse_scale(Ds, Ss)];
+mouse_scale([{Tag,D}|Ds], [S|Ss]) ->
+    [{Tag,D*S}|mouse_scale(Ds, Ss)];
 mouse_scale(Ds, _) -> Ds.
+
+scale_mouse_back([D|Ds], [S|Ss], [O|Ofs]) ->
+    [(D-O)/S|scale_mouse_back(Ds,Ss,Ofs)];
+scale_mouse_back(Ds, _, _) -> Ds.
 
 constraints_scale([U0|_],Mod,[UnitScales|_]) ->
     case wings_pref:get_value(con_alternate) of
@@ -779,11 +816,7 @@ constraints_scale([U0|_],Mod,[UnitScales|_]) ->
             end
     end.
 
-constrain(Ds0, Mod, #drag{unit=Unit}=Drag) ->
-    Ds = constrain_0(Unit, Ds0, Mod, []),
-    constrain_1(Unit, Ds, Drag).
-
-constrain_0([U0|Us], [D0|Ds], Mod, Acc) ->
+constrain_0([U0|Us], [{con,D0}|Ds], Mod, Acc) ->
     U = clean_unit(U0),
     D = case wings_pref:get_value(con_alternate) of
       true -> case constraint_factor_alt(U, Mod) of
@@ -792,24 +825,40 @@ constrain_0([U0|Us], [D0|Ds], Mod, Acc) ->
           round(D0*F1)*F2
         end;
       false -> case constraint_factor(U, Mod) of
-	    none -> D0;
-	    {F1,F2} ->
-	      round(D0*F1)*F2
+        none -> D0;
+        {F1,F2} ->
+          round(D0*F1)*F2
             end
     end,
     constrain_0(Us, Ds, Mod, [D|Acc]);
+
+constrain_0([_|Us], [{no_con, D}|Ds], Mod, Acc) ->
+    constrain_0(Us, Ds, Mod, [D|Acc]);
+constrain_0([], [{_,D}|Ds], Mod, Acc) ->
+    constrain_0([], Ds, Mod, [D|Acc]);
+
 constrain_0([_|_], [], _, Acc) -> reverse(Acc);
-constrain_0([], Ds, _, Acc) -> reverse(Acc, Ds).
+constrain_0([], [], _, Acc) -> reverse(Acc).
 
 constrain_1([falloff], _, #drag{falloff=Falloff}) ->
     [Falloff];
-constrain_1([U|Us], [D|Ds], Drag) ->
-    [clamp(U, D)|constrain_1(Us, Ds, Drag)];
+constrain_1([_|Us], [D|Ds], Drag) ->
+    [D|constrain_1(Us, Ds, Drag)];
 constrain_1([], _, _) -> [].
+
+constrain_2([U|Us], [D|Ds], [S|Ss], [O|Of]) ->
+    [clamp_2(U, D*S+O, S, O, D)|constrain_2(Us, Ds, Ss, Of)];
+constrain_2([], [D|Ds], [], Of) ->
+    [D|constrain_2([], Ds, [], Of)];
+constrain_2([],[],[],_) -> [].
 
 clamp({_,{Min,_Max}}, D) when D < Min -> Min;
 clamp({_,{_Min,Max}}, D) when D > Max -> Max;
 clamp(_, D) -> D.
+
+clamp_2({_,{Min,_Max}}, DSc, S, O, _) when DSc < Min -> (Min-O)/S;
+clamp_2({_,{_Min,Max}}, DSc, S, O, _) when DSc > Max -> (Max-O)/S;
+clamp_2(_, _, _, _, D) -> D.
 
 constraint_factor(angle, Mod) ->
     RCS = wings_pref:get_value(con_rot_shift),
