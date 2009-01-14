@@ -3,7 +3,7 @@
 %%
 %%     This module contains utility functions for vertices.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -583,7 +583,7 @@ order_edges(Va, [{Va,Vb}], Es0, Acc0) ->
 	    %% We have collected all outer vertices for one
 	    %% face region. We are done unless more edges remain
 	    %% (which is an error).
-	    case gb_sets:is_empty(Es0) of
+	    case gb_trees:is_empty(Es0) of
 		true -> Acc;
 		false -> error
 	    end;

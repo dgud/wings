@@ -3,7 +3,7 @@
 %%
 %%     This module contains most edge command and edge utility functions.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson.
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -639,7 +639,7 @@ loop_cut_make_copies([P|Parts], We0, Sel0, #st{onext=Id}=St0) ->
 loop_cut_make_copies([], _, Sel, St) -> {Sel,St}.
 
 loop_cut_partition(Faces0, Edges, We, Acc) ->
-    case gb_trees:is_empty(Faces0) of
+    case gb_sets:is_empty(Faces0) of
 	true -> Acc;
 	false ->
 	    {AFace,Faces1} = gb_sets:take_smallest(Faces0),
