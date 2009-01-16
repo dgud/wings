@@ -613,7 +613,7 @@ loop_cut(Edges, #we{name=Name,id=Id,fs=Ftab}=We0, {Sel,St0}) ->
 	    %% We arbitrarily decide that the largest part of the object
 	    %% will be left unselected and will keep the name of the object.
 
-	    Parts1 = [{gb_trees:size(P),P} || P <- Parts0],
+	    Parts1 = [{gb_sets:size(P),P} || P <- Parts0],
 	    Parts2 = reverse(sort(Parts1)),
 	    [_|Parts] = [gb_sets:to_list(P) || {_,P} <- Parts2],
 
