@@ -3,7 +3,7 @@
 %%
 %%     Various utility functions that not obviously fit somewhere else.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -22,7 +22,7 @@
 	 expand_utf8/1,
 	 add_vpos/2,update_vpos/2,
 	 gb_trees_smallest_key/1,gb_trees_largest_key/1,
-	 gb_trees_map/2,gb_trees_to_gb_set/1,
+	 gb_trees_map/2,
 	 nice_float/1,
 	 unique_name/2,
 	 lib_dir/1,
@@ -195,21 +195,13 @@ update_vpos(Vs, Vtab) ->
 		  [{V,gb_trees:get(V, Vtab),Dist,Inf}|A]
 	  end, [], reverse(Vs)).
 
-gb_trees_smallest_key({_, Tree}) ->
-    smallest_key1(Tree).
+gb_trees_smallest_key(Tree) ->
+    {Key,_Val} = gb_trees:smallest(Tree),
+    Key.
 
-smallest_key1({Key, _Value, nil, _Larger}) ->
-    Key;
-smallest_key1({_Key, _Value, Smaller, _Larger}) ->
-    smallest_key1(Smaller).
-
-gb_trees_largest_key({_, Tree}) ->
-    largest_key1(Tree).
-
-largest_key1({Key, _Value, _Smaller, nil}) ->
-    Key;
-largest_key1({_Key, _Value, _Smaller, Larger}) ->
-    largest_key1(Larger).
+gb_trees_largest_key(Tree) ->
+    {Key,_Val} = gb_trees:largest(Tree),
+    Key.
 
 gb_trees_map(F, {Size,Tree}) ->
     {Size,gb_trees_map_1(F, Tree)}.
@@ -219,14 +211,6 @@ gb_trees_map_1(F, {K,V,Smaller,Larger}) ->
     {K,F(K, V),
      gb_trees_map_1(F, Smaller),
      gb_trees_map_1(F, Larger)}.
-
-gb_trees_to_gb_set({Size,Tree}) ->
-    {Size,gb_trees_to_gb_set_1(Tree)}.
-
-gb_trees_to_gb_set_1(nil) ->
-    nil;
-gb_trees_to_gb_set_1({K,_,Smaller,Larger}) ->
-    {K,gb_trees_to_gb_set_1(Smaller),gb_trees_to_gb_set_1(Larger)}.
 
 nice_float(F) when is_float(F) ->
     simplify_float(lists:flatten(io_lib:format("~f", [F]))).
