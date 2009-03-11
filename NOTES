@@ -16,6 +16,8 @@
 
 - Menus fixed so that they won't cover up the Info Line. [optigon]
 
+- Rewrite of Contour to improve performance. Now renamed to Inset. [optigon]
+
 --- 0.99.53 -----------------------------------------------------------------
 - Kerkythea exporter added to Wings. [contributed by Chris Hegarty (Avariant)]
 
