@@ -382,8 +382,8 @@ edge_loop_vertices1(Edges0, V, Vend, We, Acc) ->
     Res = wings_vertex:until(
 	    fun(Edge, _, Rec, A) ->
 		    case gb_sets:is_member(Edge, Edges0) of
-			true -> {Edge,wings_vertex:other(V, Rec)};
-			false -> A
+			false -> A;
+			true -> {Edge,wings_vertex:other(V, Rec)}
 		    end
 	    end, none, V, We),
     case Res of
