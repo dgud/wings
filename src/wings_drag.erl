@@ -452,15 +452,15 @@ handle_drag_event(#keyboard{sym=9, mod=Mod},Drag)->
       false -> numeric_input(Drag)
     end;
 handle_drag_event(#mousebutton{button=2,state=?SDL_RELEASED},
-		  #drag{mmb_count=C}=Drag) when C > 2 ->
-    get_drag_event_1(Drag#drag{mmb_count=0});
+		  #drag{mmb_count=C,fp_count=0}=Drag) when C > 2 ->
+    get_drag_event_1(Drag#drag{mmb_count=0,fp_count=0});
 handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
 		  #drag{mmb_count=C}=Drag) when C > 2 ->
     if
 	Mod band ?CTRL_BITS =/= 0 ->
-	    get_drag_event_1(Drag#drag{mmb_count=0});
+	    get_drag_event_1(Drag#drag{mmb_count=0,fp_count=0});
 	true ->
-	    handle_drag_event_0(Ev, Drag)
+	    handle_drag_event_0(Ev,Drag#drag{fp_count=0})
     end;
 
 %%%% When Rmb is released we subtract the StartTime (when the Rmb was pressed)
@@ -726,7 +726,7 @@ mouse_pre_translate(Mode, #mousemotion{state=Mask,mod=Mod}=Ev,Drag)
     Mask band ?SDL_BUTTON_RMASK =/= 0,
     Mod band ?CTRL_BITS =/= 0 ->
         {Ev#mousemotion{state=?SDL_BUTTON_MMASK},
-         Mod band (bnot ?CTRL_BITS),Drag#drag{fp_count=0}};
+         Mod band (bnot ?CTRL_BITS),Drag};
     true -> {Ev,Mod,Drag}
     end;
 
