@@ -611,6 +611,7 @@ not_bad(wire_edge_color, _) -> false;
 not_bad(show_wire_backfaces, _) -> false;	%Now a window property.
 not_bad(smoothed_preview_cage, _) -> false;
 not_bad(smoothed_preview_edges, _) -> false;
+not_bad(contour,_) -> false;
 
 %% Crashes have occurred.
 not_bad(last_axis, Val) -> is_wings_vector(Val);
