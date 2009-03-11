@@ -88,6 +88,7 @@ menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0,adv=Adv}=Mi0) ->
     TotalW = MwL + MwM + MwR + 8* Cw,
     Mh = lists:sum(Hs),
     Margin = 3,
+    InfoLine = ?CHAR_HEIGHT + 14,
     {X1,Y1} = case Type of
 		  plain ->
 		      {X0,Y0};
@@ -96,7 +97,7 @@ menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0,adv=Adv}=Mi0) ->
 		  popup ->
 		      {X0-TotalW div 2,Y0 - Margin - ?CHAR_HEIGHT}
 	      end,
-    {X,Y} = move_if_outside(X1, Y1, TotalW, Mh+2*Margin, Mi0),
+    {X,Y} = move_if_outside(X1, Y1, TotalW, Mh+2*Margin+InfoLine, Mi0),
     W = TotalW-10,
     Mi = Mi0#mi{ymarg=Margin,shortcut=MwL+Cw,w=TotalW-10,h=Mh,hs=Hs,
 		sel=none,ns=Names,menu=Menu,adv=Adv,type=Type},

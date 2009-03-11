@@ -1,6 +1,5 @@
 --- 0.99.XX -----------------------------------------------------------------
-- Extended Edge|Circularise to handle multiple open edge loops via the left
-  mouse button. [optigon]
+- Extended Edge|Circularise Lmb to handle multiple open edge loops. [optigon]
 
 - Added mmb select option to Tweak, for Maya camera mode users. [optigon]
 
@@ -14,6 +13,8 @@
   - Zooming would cause the current drag distance to jump when using tools with
     mixed drag modes like Sweep, Contour, and Circularise.
   [optigon]
+
+- Menus fixed so that they won't cover up the Info Line. [optigon]
 
 --- 0.99.53 -----------------------------------------------------------------
 - Kerkythea exporter added to Wings. [contributed by Chris Hegarty (Avariant)]
