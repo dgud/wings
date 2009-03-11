@@ -36,9 +36,9 @@ MODULES= \
 	wpc_circularise \
 	wpc_connect_tool \
 	wpc_constraints \
+	wpc_contour \
 	wpc_cylindrilize \
 	wpc_doosabin \
-	wpc_contour \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
 	wpc_move_planar \
