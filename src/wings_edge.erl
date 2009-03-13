@@ -102,21 +102,17 @@ fast_cut(Edge, Pos0, We0) ->
     BColOther = get_vtx_color(NextBCol, Rf, Etab0),
     Weight = if
 		 Pos0 == default -> 0.5;
+		 VstartPos == VendPos -> 0.5;
+		 Pos0 == VstartPos -> 0.0;
+		 Pos0 == VendPos -> 1.0;
 		 true ->
 		     ADist = e3d_vec:dist(Pos0, VstartPos),
 		     BDist = e3d_vec:dist(Pos0, VendPos),
-%% 		     try ADist/(ADist+BDist)
-%% 		     catch
-%% 			 error:badarith -> 0.5
-%% 		     end
-		     case catch ADist/(ADist+BDist) of
-			 {'EXIT',_} -> 0.5;
-			 Else -> Else
-		     end
+		     ADist/(ADist+BDist)
 	     end,
     NewColA = wings_color:mix(Weight, AColOther, ACol),
     NewColB = wings_color:mix(Weight, BCol, BColOther),
-    
+
     NewEdgeRec = Template#edge{vs=NewV,a=NewColA,ltsu=Edge,rtpr=Edge},
     Etab1 = gb_trees:insert(NewEdge, NewEdgeRec, Etab0),
     Etab2 = patch_edge(EdgeA, NewEdge, Edge, Etab1),
