@@ -14,9 +14,14 @@
     mixed drag modes like Sweep, Contour, and Circularise.
   [optigon]
 
-- Menus fixed so that they won't cover up the Info Line. [optigon]
+- Fixed menus so that they won't cover up the Info Line. [optigon]
 
-- Rewrite of Contour to improve performance. Now renamed to Inset. [optigon]
+- Rewrite of the Contour plugin to improve both performance and functionality.
+  It now appears as Inset in the face menu. [optigon]
+
+- Extrude Region would occasionally omit an edge when processing poles with
+  five or more edges (for instance when extruding three or more faces on the top
+  end of the sphere primitive). Now fixed. [optigon]
 
 --- 0.99.53 -----------------------------------------------------------------
 - Kerkythea exporter added to Wings. [contributed by Chris Hegarty (Avariant)]

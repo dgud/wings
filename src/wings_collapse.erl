@@ -37,10 +37,12 @@ collapse(#st{selmode=vertex}=St0) ->
 	St -> St
     end.
 
-collapse_edges(Es, We0) ->
-    We = collapse_edges_1(Es, We0),
-    Faces = wings_face:from_edges(Es, We0),
-    wings_face:delete_bad_faces(Faces, We).
+collapse_edges([E|Es], #we{es=Etab}=We0) ->
+    We1 = fast_collapse_edge(E, We0),
+    #edge{lf=Lf,rf=Rf} = gb_trees:get(E,Etab),
+    We = wings_face:delete_bad_faces([Lf,Rf], We1),
+    collapse_edges(Es,We);
+collapse_edges([],We) -> We.
 
 collapse_edge(Edge, #we{es=Etab}=We)->
     case gb_trees:lookup(Edge, Etab) of
@@ -172,11 +174,6 @@ delete_edges(V, Edge, Face, {Etab0,Vct0,Vtab0,Ftab0,Htab0}) ->
 %%% Internal functions (edge collapsing).
 %%%
 
-collapse_edges_1([E|Es], We0) ->
-    We = fast_collapse_edge(E, We0),
-    collapse_edges_1(Es, We);
-collapse_edges_1([], We) -> We.
-	    
 collapse_edges(Edges0, #we{id=Id,es=Etab}=We0, SelAcc)->
     Edges = gb_sets:to_list(Edges0),
     We = foldl(fun collapse_edge/2, We0, Edges),
