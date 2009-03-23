@@ -96,6 +96,8 @@ menu(#st{views={CurrentView,Views}}=St) ->
 				    {?__(54,"-X"),neg_x},
 				    {?__(55,"-Y"),neg_y},
 				    {?__(56,"-Z"),neg_z}]}},
+      {?__(69,"Position Camera"),camera_position,
+	   ?__(70,"Set the position, focal point, and pan modifier for the camera numerically.")},
       separator,
       {?__(34,"Camera Settings..."),camera_settings,?__(35,"Set field of view, and near and far clipping planes")},
       separator,
@@ -374,6 +376,9 @@ command(toggle_lights, St) ->
 command({shader_set,N}, St) ->
     shader_set(N),
     St;
+command(camera_position, St) ->
+    set_camera_position(),
+	St;
 command(camera_settings, St) ->
     camera(),
     St;
@@ -992,6 +997,44 @@ target_vs(edge, Target, We) ->
 target_vs(face, Target, We) ->
     wings_face:to_vertices(Target,We).
 
+%%%% Set Position of Camera Numerically
+set_camera_position() ->
+    Active = wings_wm:this(),
+    #view{origin=Origin,pan_x=PanX,pan_y=PanY} = View = current(),
+    {OriX,OriY,OriZ} = e3d_vec:neg(Origin),	
+    {CamX,CamY,CamZ} = eye_point(),
+    X = wings_s:dir(x),
+    Y = wings_s:dir(y),
+    Z = wings_s:dir(z),
+    Qs =
+      [{label,?__(2,"Position:")},
+       {hframe,[{label,X},{text,CamX},
+                {label,Y},{text,CamY},
+                {label,Z},{text,CamZ}]},
+      separator,
+       {label,?__(3,"Focal Point:")},
+       {hframe,[{label,X},{text,OriX},
+                {label,Y},{text,OriY},
+                {label,Z},{text,OriZ}]},
+      separator,
+       {label,?__(4,"Screen Relative Pan Modifiers:")},
+       {hframe,[{label,X},{text,PanX},
+                {label,Y},{text,PanY}]},
+      separator
+      ],
+    wings_ask:dialog(?__(1,"Position Camera Numerically"),Qs,
+    fun(Res) ->
+        set_camera_position(Active,View,Res),ignore
+    end).
+set_camera_position(Active,View,[CamX,CamY,CamZ,OriX,OriY,OriZ,PanX,PanY]) ->
+    Origin = e3d_vec:neg({OriX,OriY,OriZ}),
+    Normal = e3d_vec:norm(e3d_vec:sub({CamX,CamY,CamZ},Origin)),
+    {Az,El} = align_view_to_normal(Normal),
+    Dist = e3d_vec:dist({CamX,CamY,CamZ}, Origin),
+    NewView = View#view{origin=Origin,distance=Dist,pan_x=PanX,pan_y=PanY,
+                        azimuth=Az,elevation=El},
+    wings_wm:set_prop(Active,current_view,NewView).
+
 aim(#st{sel=[]}) ->
     View = current(),
     set_current(View#view{origin=e3d_vec:zero()});
@@ -1243,7 +1286,8 @@ align_to_selection(#st{selmode=vertex}=St) ->
 				[wings_vertex:normal(V, We)|A]
 			end, Acc, Vs)
 	  end, St),
-    align_to_selection(N, St);
+	align_view_to_selection(N),
+	St;
 align_to_selection(#st{selmode=edge}=St) ->
     N = average_normals(
 	  fun(Edges, #we{es=Etab}=We, Acc) ->
@@ -1253,7 +1297,8 @@ align_to_selection(#st{selmode=edge}=St) ->
 				 wings_face:normal(Rf, We)|A]
 			end, Acc, Edges)
 	  end, St),
-    align_to_selection(N, St);
+	align_view_to_selection(N),
+	St;
 align_to_selection(#st{selmode=face}=St) ->
     N = average_normals(
 	  fun(Faces, We, Acc) ->
@@ -1261,8 +1306,14 @@ align_to_selection(#st{selmode=face}=St) ->
 				[wings_face:normal(Face, We)|A]
 			end, Acc, Faces)
 	  end, St),
-    align_to_selection(N, St);
+	align_view_to_selection(N),
+	St;
 align_to_selection(St) -> St.
+
+align_view_to_selection(N) ->
+    {Az,El} = align_view_to_normal(N),
+    View = current(),
+    set_current(View#view{azimuth=Az,elevation=El}).
 
 average_normals(CalcNormals, St) ->
     Ns = wings_sel:fold(
@@ -1271,7 +1322,7 @@ average_normals(CalcNormals, St) ->
 	   end, [], St),
     e3d_vec:norm(e3d_vec:add(Ns)).
 
-align_to_selection({Nx,Ny,Nz}, St) ->
+align_view_to_normal({Nx,Ny,Nz}) ->
     Z = {0.0,0.0,1.0},
     Az0 = e3d_vec:dot(e3d_vec:norm({Nx,0.0,Nz}), Z),
     Az1 = to_degrees(math:acos(Az0)),
@@ -1280,9 +1331,7 @@ align_to_selection({Nx,Ny,Nz}, St) ->
 	     true -> -Az1
 	 end,
     El = to_degrees(math:asin(Ny)),
-    View = current(),
-    set_current(View#view{azimuth=Az,elevation=El}),
-    St.
+	{Az,El}.
 
 to_degrees(A) when is_float(A) ->
     A*180.0/math:pi().

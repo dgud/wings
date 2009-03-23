@@ -23,6 +23,9 @@
   five or more edges (for instance when extruding three or more faces on the top
   end of the sphere primitive). Now fixed. [optigon]
 
+- New Feature: View|Position Camera allows you to set the Position, Focal Point,
+  and Screen Relative Pan Modifiers for the camera numerically. [optigon]
+
 --- 0.99.53 -----------------------------------------------------------------
 - Kerkythea exporter added to Wings. [contributed by Chris Hegarty (Avariant)]
 
