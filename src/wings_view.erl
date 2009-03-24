@@ -856,7 +856,6 @@ init() ->
     wings_pref:set_default(show_materials, true),
     wings_pref:set_default(show_textures, true),
     wings_pref:set_default(frame_disregards_mirror, false),
-
     wings_pref:set_default(scene_lights, false).
 
 initial_properties() ->
@@ -1000,24 +999,56 @@ target_vs(face, Target, We) ->
 %%%% Set Position of Camera Numerically
 set_camera_position() ->
     Active = wings_wm:this(),
-    #view{origin=Origin,pan_x=PanX,pan_y=PanY} = View = current(),
+    #view{origin=Origin,distance=Dist,pan_x=PanX,pan_y=PanY} = View = current(),
     {OriX,OriY,OriZ} = e3d_vec:neg(Origin),	
     {CamX,CamY,CamZ} = eye_point(),
     X = wings_s:dir(x),
     Y = wings_s:dir(y),
     Z = wings_s:dir(z),
+    CamDist = wings_pref:get_value(cam_pos_specify_dist),
+    DistHook = 
+    fun (is_disabled, {_Var,_I,Sto}) ->
+           not gb_trees:get(cam_pos_specify_dist, Sto);
+        (_, _) -> void
+    end,
     Qs =
-      [{label,?__(2,"Position:")},
+      [{hframe,[{label,[{bold,?__(2,"Camera Position:")}]},
+                {label,io_lib:format("{~s ~s ~s}",
+                 [wings_util:nice_float(CamX),
+                  wings_util:nice_float(CamY),
+                  wings_util:nice_float(CamZ)])}]},
        {hframe,[{label,X},{text,CamX},
                 {label,Y},{text,CamY},
                 {label,Z},{text,CamZ}]},
       separator,
-       {label,?__(3,"Focal Point:")},
+       {hframe,[{label,[{bold,?__(3,"Focal Point:")}]},
+                {label,io_lib:format("{~s ~s ~s}",
+                 [wings_util:nice_float(OriX),
+                  wings_util:nice_float(OriY),
+                  wings_util:nice_float(OriZ)])}]},
        {hframe,[{label,X},{text,OriX},
                 {label,Y},{text,OriY},
                 {label,Z},{text,OriZ}]},
       separator,
-       {label,?__(4,"Screen Relative Pan Modifiers:")},
+       {hframe,[{label,[{bold,?__(4,"Zoom:")}]},
+                {label,io_lib:format("~s",[wings_util:nice_float(Dist)])}]},
+       {?__(5,"Specify the Distance between the Camera and Focal Point"),CamDist,
+        [{info,?__(6,"Adjust the Distance between the camera and the Focal Point")++
+          ?__(7," along the vector defined by the Position and the Focal Point.")},
+         {key,cam_pos_specify_dist}]},
+       {hframe,[{label,?__(8,"Distance")},{text,Dist,[{hook,DistHook}]}]},
+      separator,
+       {label,[{bold,?__(9,"Rotate Camera around Global Y through Focal Point:")}]},
+       {hframe,[{hradio,[{?__(10,"Right"),right},
+                         {?__(11,"Left"),left}],right,[{key,cam_x}]}]},
+       {hframe,[{label,?__(12,"Degrees")},{text,0.0,[{range,{0.0,180.0}}]}]},
+      separator,
+       {label,[{bold,?__(13,"Rotate Camera around Screen Relative X through Focal Point:")}]},
+       {hframe,[{hradio,[{?__(14,"Up"),up},
+                         {?__(15,"Down"),down}],up,[{key,cam_y}]}]},
+       {hframe,[{label,?__(12,"Degrees")},{text,0.0,[{range,{0.0,180.0}}]}]},
+      separator,
+       {label,[{bold,?__(16,"Screen Relative Pan Modifiers:")}]},
        {hframe,[{label,X},{text,PanX},
                 {label,Y},{text,PanY}]},
       separator
@@ -1026,15 +1057,29 @@ set_camera_position() ->
     fun(Res) ->
         set_camera_position(Active,View,Res),ignore
     end).
-set_camera_position(Active,View,[CamX,CamY,CamZ,OriX,OriY,OriZ,PanX,PanY]) ->
+
+set_camera_position(Active,View,[CamX,CamY,CamZ, OriX,OriY,OriZ,
+        {_,UseDist},ZDist, {_,RCamX},DegX, {_,RCamY},DegY, PanX,PanY]) ->
     Origin = e3d_vec:neg({OriX,OriY,OriZ}),
     Normal = e3d_vec:norm(e3d_vec:sub({CamX,CamY,CamZ},Origin)),
-    {Az,El} = align_view_to_normal(Normal),
-    Dist = e3d_vec:dist({CamX,CamY,CamZ}, Origin),
-    NewView = View#view{origin=Origin,distance=Dist,pan_x=PanX,pan_y=PanY,
-                        azimuth=Az,elevation=El},
+    {Az0,El0} = align_view_to_normal(Normal),
+    Az = rotate_camera(Az0,RCamX,DegX),
+    El = rotate_camera(El0,RCamY,DegY),
+     Dist = case UseDist of
+        false -> e3d_vec:dist({CamX,CamY,CamZ}, Origin);
+        true -> ZDist
+    end,
+     NewView = View#view{origin=Origin,distance=Dist,pan_x=PanX,pan_y=PanY,
+                         azimuth=Az,elevation=El},
+    wings_pref:set_value(cam_pos_specify_dist,UseDist),
     wings_wm:set_prop(Active,current_view,NewView).
 
+rotate_camera(Az,right,Deg) -> Az - Deg;
+rotate_camera(Az,left,Deg) -> Az + Deg;
+rotate_camera(El,up,Deg) -> El + Deg;
+rotate_camera(El,down,Deg) -> El - Deg.
+
+%%%% Aim Camera
 aim(#st{sel=[]}) ->
     View = current(),
     set_current(View#view{origin=e3d_vec:zero()});
