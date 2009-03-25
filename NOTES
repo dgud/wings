@@ -23,8 +23,11 @@
   five or more edges (for instance when extruding three or more faces on the top
   end of the sphere primitive). Now fixed. [optigon]
 
-- New Feature: View|Position Camera allows you to set the Position, Focal Point,
-  and Screen Relative Pan Modifiers for the camera numerically. [optigon]
+- New Feature: View|Position Camera allows you to position the camera
+  numerically. Includes a preview mode for flipping betweeen the old view
+  and new view by pressing '1'. From the preview, pressing lmb re-opens the
+  camera position dialog, and rmb accepts the current view and exits the
+  preview. [optigon]
 
 --- 0.99.53 -----------------------------------------------------------------
 - Kerkythea exporter added to Wings. [contributed by Chris Hegarty (Avariant)]

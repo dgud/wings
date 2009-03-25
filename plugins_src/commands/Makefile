@@ -42,6 +42,7 @@ MODULES= \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
 	wpc_move_planar \
+	wpc_numeric_camera \
 	wpc_region \
 	wpc_shear \
 	wpc_shift \

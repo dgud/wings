@@ -443,7 +443,6 @@ defaults() ->
      {hide_sel_in_camera_moves,false},
      {negative_height,24},
      {negative_width,36},
-     {cam_pos_specify_dist,false},
 
      %% Compatibility preferences.
      {text_display_lists,true},
