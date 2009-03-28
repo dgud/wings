@@ -89,6 +89,7 @@ export_filename(Prop0, Cont) ->
 	wings_plugin:call_ui({file,save_dialog,Prop++[{title,String}],Fun}).
 
 init() ->
+    wings_pref:set_default(save_unused_materials,false),
     case wings_pref:get_value(current_directory) of
 	undefined ->
 	    case file:get_cwd() of
@@ -123,6 +124,10 @@ menu(_) ->
       ?__(14,"Save only the selected objects or faces")},
      {?__(15,"Save Incrementally"),save_incr,
       ?__(26,"Generate new filename and save")},
+	  %% if there are more options we'll make a panel
+	 {?__(29,"Save Unused Materials"),save_unused_materials,
+	  ?__(30,"Include unused materials when saving a .wings file"),
+	  save_unused_mats()},
      separator,
      {?__(16,"Revert"),revert,
       ?__(17,"Revert current scene to the saved contents")},
@@ -138,7 +143,13 @@ menu(_) ->
      {?__(24,"Install Plug-In"),install_plugin,
       ?__(27,"Install a plug-in")},
      separator|recent_files(Tail)].
-    
+
+save_unused_mats() ->
+    case wings_pref:get_value(save_unused_materials) of
+	  true -> [crossmark];
+	  false -> []
+	end.
+
 command(new, St) ->
     new(St);
 command(confirmed_new, St) ->
@@ -176,6 +187,10 @@ command(revert, St0) ->
 	    St0;
 	#st{}=St -> {save_state,St}
     end;
+command(save_unused_materials, St) ->
+    Bool = wings_pref:get_value(save_unused_materials),
+    wings_pref:set_value(save_unused_materials, not Bool),
+	St;
 command({import,ndo}, _St) ->
     import_ndo();
 command({import,{ndo,Filename}}, St) ->

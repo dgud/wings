@@ -476,9 +476,15 @@ export(Name, St0) ->
     wings_pb:start( ?__(1,"saving")),
     wings_pb:update(0.01, ?__(2,"lights")),
     Lights = wings_light:export(St0),
-    Materials = wings_material:used_materials(St0),
+    Materials = case wings_pref:get_value(save_unused_materials) of
+        true -> 
+            #st{mat=Mat} = St0,
+            gb_trees:to_list(Mat);
+        false -> 
+            wings_material:used_materials(St0)
+    end,
     #st{shapes=Shs0,views={CurrentView,_}} = St = 
-	remove_lights(St0),
+    remove_lights(St0),
     Sel0 = collect_sel(St),
     wings_pb:update(0.65, ?__(3,"renumbering")),
     {Shs1,Sel} = renumber(gb_trees:to_list(Shs0), Sel0, 0, [], []),

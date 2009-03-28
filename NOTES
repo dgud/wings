@@ -29,6 +29,10 @@
   camera position dialog, and rmb accepts the current view and exits the
   preview. [optigon]
 
+- New option, File|Save Unused Materials, can be checkmarked if you want to save
+  all the materials from a scene, including the ones not applied to your model,
+  to a .wings file. [optigon]
+
 --- 0.99.53 -----------------------------------------------------------------
 - Kerkythea exporter added to Wings. [contributed by Chris Hegarty (Avariant)]
 
