@@ -17,11 +17,10 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--define(ZOOM_FACTOR, 20).
--define(ZOOM_FACTOR_ALT, 1).
+-define(ZOOM_FACTOR, 20.0).
+-define(ZOOM_FACTOR_ALT, 1.0).
 
 -define(CAMDIV, 4).
--define(CAMMAX, 150).  %% Always larger than 300 on my pc
 
 -define(CSEP, 160).				%Short space.
 -define(NEARZERO, 1.0e-6).
@@ -54,8 +53,8 @@ init() ->
     
 prefs() ->
     ZoomFlag0 = wings_pref:get_value(wheel_zooms, true),
-    ZoomFactor0 = wings_pref:get_value(wheel_zoom_factor, ?ZOOM_FACTOR),
-    ZoomFactorAlt = wings_pref:get_value(wheel_zoom_factor_alt, ?ZOOM_FACTOR_ALT),
+    ZoomFactor0 = float(wings_pref:get_value(wheel_zoom_factor, ?ZOOM_FACTOR)),
+    ZoomFactorAlt = float(wings_pref:get_value(wheel_zoom_factor_alt, ?ZOOM_FACTOR_ALT)),
     CamRotSpeed = wings_pref:get_value(cam_rotation_speed, 25),
     PanSpeed0 = wings_pref:get_value(pan_speed, 25),
     ArrowPanSpeed = wings_pref:get_value(pan_speed_arrow_keys, 50),
@@ -104,13 +103,13 @@ prefs() ->
      [{label,?__(7,"Zoom Factor"),[{hook,Hook}]},
       {text,ZoomFactor0,
        [{key,wheel_zoom_factor},
-     {range,{1,50}},{hook,Hook}]},
+     {range,{?NEARZERO,50.0}},{hook,Hook}]},
       {label,"%",[{hook,Hook}]}]},
      {hframe,
       [{label,?__(10,"Alternate Zoom Factor(Alt+Scroll)"),[{hook,Hook}]},
        {text,ZoomFactorAlt,
         [{key,wheel_zoom_factor_alt},
-      {range,{1,50}},{hook,Hook}]},
+      {range,{?NEARZERO,50.0}},{hook,Hook}]},
      {label,"%",[{hook,Hook}]}]} ],[{title,?__(9,"Scroll Wheel")}]},
     {vframe,
       [{?__(11,"Wheel Pans & Rotates"),WheelAdds,[{key,wheel_adds},{hook,Hook}]},
@@ -198,55 +197,20 @@ scroll_help() ->
 %% Event handler.
 event(Ev, St=#st{}) -> 
     event(Ev,St,none).
-%% Rotation event
-event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whrotate(0.5,0.0);
-event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whrotate(-0.5,0.0);
-event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 ->
-    whrotate(0.0,0.5);
-event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 ->
-    whrotate(0.0,-0.5);
-%% Pan event
-event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whpan(0.5,0.0);
-event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whpan(-0.5,0.0);
-event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 ->
-    whpan(0.0,0.5);
-event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 ->
-    whpan(0.0,-0.5);
-%% Zoom event
-event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?ALT_BITS =/= 0 ->
-    zoom_step_alt(-1);
-event(#mousebutton{button=4,state=?SDL_RELEASED}, _, _Redraw) ->
-    zoom_step(-1);
-event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _, _Redraw)
-  when Mod band ?ALT_BITS =/= 0 ->
-    zoom_step_alt(1);
-event(#mousebutton{button=5,state=?SDL_RELEASED}, _, _Redraw) ->
-    zoom_step(1);
-event(#mousebutton{button=B}, _, _Redraw) when B==4; B==5 ->
-    keep;
+%% Scroll wheel camera events
+event(#mousebutton{button=B}=Ev, _St, _Redraw) when B==4; B==5 ->
+    generic_event(Ev,_St,_Redraw);
+% Camera mode specific events
 event(Ev, St, Redraw) ->
     case wings_pref:get_value(camera_mode) of
+	wings_cam -> wings_cam(Ev, #state{st=St, func=Redraw});
 	blender -> blender(Ev, #state{st=St, func=Redraw});
 	nendo -> nendo(Ev, #state{st=St, func=Redraw});
 	mirai -> mirai(Ev, #state{st=St, func=Redraw});
 	tds -> tds(Ev, #state{st=St, func=Redraw});
 	maya -> maya(Ev, #state{st=St, func=Redraw});
 	mb -> mb(Ev, #state{st=St, func=Redraw});
-	sketchup -> sketchup(Ev, #state{st=St, func=Redraw});
-	wings_cam -> wings_cam(Ev, #state{st=St, func=Redraw})
+	sketchup -> sketchup(Ev, #state{st=St, func=Redraw})
     end.
 
 %%%
@@ -712,16 +676,16 @@ generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redr
 
 generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
   when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whpan(0.5,0.0);
+    whpan(0.05,0.0);
 generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
   when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whpan(-0.5,0.0);
+    whpan(-0.05,0.0);
 generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
   when Mod band ?CTRL_BITS =/= 0 ->
-    whpan(0.0,0.5);
+    whpan(0.0,0.05);
 generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
   when Mod band ?CTRL_BITS =/= 0 ->
-    whpan(0.0,-0.5);
+    whpan(0.0,-0.05);
 
 generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
   when Mod band ?ALT_BITS =/= 0 ->
@@ -771,33 +735,29 @@ zoom_step_alt(Dir) ->
     case wings_pref:get_value(wheel_zooms, true) of
 	false -> keep;
 	true ->
-	    wings_wm:dirty(),
-	    #view{distance=Dist} = View = wings_view:current(),
-	    ZoomPercent0 = wings_pref:get_value(wheel_zoom_factor_alt, ?ZOOM_FACTOR_ALT)/100,
-	    ZoomPercent = case wings_pref:get_value(inverted_wheel_zoom) of
-			      false -> ZoomPercent0;
-			      true -> -ZoomPercent0
-			  end,
-	    Delta = dist_factor(Dist)*Dir*ZoomPercent,
-	    wings_view:set_current(View#view{distance=Dist+Delta}),
-	    keep
+	    ZoomFactor = wings_pref:get_value(wheel_zoom_factor_alt, ?ZOOM_FACTOR_ALT),
+		wheel_zoom(ZoomFactor,Dir)
     end.
 
 zoom_step(Dir) ->
     case wings_pref:get_value(wheel_zooms, true) of
 	false -> keep;
 	true ->
-	    wings_wm:dirty(),
-	    #view{distance=Dist} = View = wings_view:current(),
-	    ZoomPercent0 = wings_pref:get_value(wheel_zoom_factor, ?ZOOM_FACTOR)/100,
-	    ZoomPercent = case wings_pref:get_value(inverted_wheel_zoom) of
-			      false -> ZoomPercent0;
-			      true -> -ZoomPercent0
-			  end,
-	    Delta = dist_factor(Dist)*Dir*ZoomPercent,
-	    wings_view:set_current(View#view{distance=Dist+Delta}),
-	    keep
+	    ZoomFactor = wings_pref:get_value(wheel_zoom_factor, ?ZOOM_FACTOR),
+		wheel_zoom(ZoomFactor,Dir)
     end.
+
+wheel_zoom(Factor,Dir) ->
+    wings_wm:dirty(),
+    #view{distance=Dist} = View = wings_view:current(),
+    ZoomPercent0 = Factor/100,
+    ZoomPercent = case wings_pref:get_value(inverted_wheel_zoom) of
+		      false -> ZoomPercent0;
+		      true -> -ZoomPercent0
+		  end,
+    Delta = dist_factor(Dist)*Dir*ZoomPercent,
+    wings_view:set_current(View#view{distance=Dist+Delta}),
+    keep.
 
 zoom(Delta0) ->
     #view{distance=Dist} = View = wings_view:current(),
@@ -821,13 +781,13 @@ arrow_key_pan(Key) when Key=:=?SDLK_LEFT; Key=:=?SDLK_RIGHT; Key=:=?SDLK_UP; Key
 arrow_key_pan(_) -> next.
 
 arrow_key_pan_1(?SDLK_LEFT) ->
-    arrow_key_pan(0.25, 0.0);
+    arrow_key_pan(0.05, 0.0);
 arrow_key_pan_1(?SDLK_RIGHT) ->
-    arrow_key_pan(-0.25, 0.0);
+    arrow_key_pan(-0.05, 0.0);
 arrow_key_pan_1(?SDLK_UP) ->
-    arrow_key_pan(0.0, 0.25);
+    arrow_key_pan(0.0, 0.05);
 arrow_key_pan_1(?SDLK_DOWN) ->
-    arrow_key_pan(0.0, -0.25).
+    arrow_key_pan(0.0, -0.05).
 
 arrow_key_pan(Dx, Dy) ->
     key_pan(Dx, Dy),
