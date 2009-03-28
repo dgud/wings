@@ -45,6 +45,14 @@ render(#st{selmode=Mode}=St) ->
 		  ?GL_LIGHTING_BIT),
     gl:enable(?GL_DEPTH_TEST),
     gl:enable(?GL_CULL_FACE),
+    case wings_pref:get_value(multisample) of
+	true ->
+	    gl:enable(?GL_MULTISAMPLE);
+	false ->
+	    gl:disable(?GL_MULTISAMPLE);
+	undefined ->
+	    wings_pref:set_default(multisample, true)
+    end,
     wings_view:load_matrices(true),
     ground_and_axes(),
     mini_axis_icon(),

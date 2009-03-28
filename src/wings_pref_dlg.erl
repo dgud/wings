@@ -146,7 +146,12 @@ gen_prefs() ->
 	   [{info,?__(34,"Always show the grid when the view is aligned along one of the major axes")}]},
 	    {?__(aa_ortho1,"Force Axis-Aligned Ortho"),force_ortho_along_axis,
 	   [{info, ?__(aa_ortho2,"Always go into orthogonal mode when the view is aligned along one of the major axes")}]}],
-     [{title,?__(35,"Grid")}]}]}.
+     [{title,?__(35,"Grid")}]},
+     
+  {hframe,
+	 [{"Enable Multi-Sampling",multisample, 
+	  [{info, "Anti-Alias the whole interface, including polygons."}]}],
+     [{title,"Anti-Aliasing"}]}]}.
 
 advanced_prefs() ->
 %%     DisableHook = fun (is_disabled, {_Var,_I,Store}) ->

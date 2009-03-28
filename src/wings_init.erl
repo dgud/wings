@@ -18,6 +18,12 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
+-define(SDL_GL_STEREO,             12).
+-define(SDL_GL_MULTISAMPLEBUFFERS, 13).
+-define(SDL_GL_MULTISAMPLESAMPLES, 14).
+-define(SDL_GL_ACCELERATED_VISUAL, 15).
+-define(SDL_GL_SWAP_CONTROL,       16).
+
 init() ->
     macosx_workaround(),
     os:putenv("SDL_HAS3BUTTONMOUSE", "true"),
@@ -32,7 +38,17 @@ init() ->
 
     %% Make sure that some video mode works. Otherwise crash early.
     %% From best to worst.
-    try_video_modes(opengl_modes(), TopSize),
+    try
+	sdl_video:gl_setAttribute(?SDL_GL_MULTISAMPLEBUFFERS, 1),
+	sdl_video:gl_setAttribute(?SDL_GL_MULTISAMPLESAMPLES, 4),
+	try_video_modes(opengl_modes(), TopSize)
+    catch
+	error:_ ->
+	io:fwrite("\nRetrying with multisampling disabled.\n"),
+	sdl_video:gl_setAttribute(?SDL_GL_MULTISAMPLEBUFFERS, 0),
+	sdl_video:gl_setAttribute(?SDL_GL_MULTISAMPLESAMPLES, 0),
+	try_video_modes(opengl_modes(), TopSize)
+    end,
     wings_gl:init_extensions(),
     wings_gl:init_restrictions(),
 
