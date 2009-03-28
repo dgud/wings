@@ -516,8 +516,26 @@ pick_event(_, _) -> keep.
 
 do_pick(X, Y, St) ->
     case raw_pick(X, Y, St) of
-	none -> none;
-	Hit -> update_selection(Hit, St)
+	none ->
+	    none;
+	Hit ->	    % Hit is {edge,original,{1,1}}
+	    Mod = sdl_keyboard:getModState(),
+	    LKey = Mod band ?KMOD_LALT =/= 0,
+	    RKey = Mod band ?KMOD_RALT =/= 0,
+	    % LKey = Mod band ?KMOD_LMETA =/= 0,
+	    % RKey = Mod band ?KMOD_RMETA =/= 0,
+	    if
+		LKey ->
+		    {_,_,St2} = update_selection(Hit, St),
+		    St3 = wings_edge_loop:select_loop(St2),
+		    {add,original,St3};
+		RKey ->
+		    {_,_,St2} = update_selection(Hit, St),
+		    St3 = wings_edge:select_edge_ring(St2),
+		    {add,original,St3};
+		true ->
+		    update_selection(Hit, St)
+	    end
     end.
 
 raw_pick(X0, Y0, #st{selmode=Mode}=St) ->

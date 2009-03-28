@@ -245,8 +245,8 @@ gradient_rect(X, Y, W, H=18, Color) ->
 	GreyValue = lists:nth(Idx+1, GradColors),
 	LineColor = mul_color(Color, GreyValue),
 	set_color(LineColor),
-	gl:vertex2f(X+W, Y+H-Idx),
-	gl:vertex2f(X,	 Y+H-Idx)
+	gl:vertex2f(X-0.5+W, Y-0.5+H-Idx),
+	gl:vertex2f(X-0.5,   Y-0.5+H-Idx)
 	end,
     gl:lineWidth(1),
     gl:'begin'(?GL_LINES),
