@@ -3,8 +3,8 @@
  [
   {angle_help,
    [
-    {1,"  [3] Stumpfen Winkel verwenden"},
-    {2,"  [3] Spitzen Winkel verwenden"}
+    {1," [3] Stumpfen Winkel verwenden"},
+    {2," [3] Spitzen Winkel verwenden"}
    ]},
   {check_selection,
    [
@@ -19,8 +19,8 @@
    ]},
   {circ_norm_help,
    [
-    {1,"  [2] Flächen-Normale umkehren"},
-    {2,"  [2] ursprüngliche Flächen-Normale"}
+    {1," [2] Flächen-Normale umkehren"},
+    {2," [2] ursprüngliche Flächen-Normale"}
    ]},
   {circ_sel_error,
    [
@@ -37,6 +37,10 @@
   {circ_sel_error_3,
    [
     {1,"Kreisförmig machen offener Kantenschleifen erfordert Erweiterte Menüs"}
+   ]},
+  {circ_sel_error_4,
+   [
+    {1,"Mindestens zwei Kanten müssen ausgewählt sein"}
    ]},
   {circular_arc_menu,
    [

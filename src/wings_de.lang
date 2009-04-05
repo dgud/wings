@@ -87,10 +87,10 @@
     {3,"~p Knoten ausgewählt"},
     {4,"Kante ~p ausgewählt"},
     {5,"Kanten"},
-    {6,"~p Kanten ausgewählte"},
+    {6,"~p Kanten ausgewählt"},
     {7,"Fläche ~p ausgewählt"},
     {8,"Flächen"},
-    {9,"~p Flächen ausgewählte"},
+    {9,"~p Flächen ausgewählt"},
     {10,"~p Knoten in ~p Objekte ausgewählt"},
     {11,"~p Kanten in ~p Objekten ausgewählt"},
     {12,"~p Flächen in ~p Objekte ausgewählt"}
@@ -107,7 +107,7 @@
    ]},
   {item_list,
    [
-    {1," ausgewählte"}
+    {1," ausgewählt"}
    ]},
   {measure,
    [
@@ -156,7 +156,7 @@
     {16,"(z.B. Skalieren|Standardachse) definieren und speichern (über Referenzpunkt)"},
     {17,"Virtueller Spiegel"},
     {18,"Erzeugen"},
-    {19,"Erzeugt aus einer ausgewählten Fläche einen virtuellen Spiegel"},
+    {19,"Virtuellen Spiegel aus ausgewählter Fläche erzeugen"},
     {20,"Brechen"},
     {21,"Virtuelle Spiegel von allen Objekten entfernen"},
     {22,"Einfrieren"},
@@ -255,6 +255,15 @@
     {1,"Fläche"},
     {2,"hat nur eine Kante"}
    ]},
+  {flip_str,
+   [
+    {1,"[Alt]+Klick um Objekt zu duplizieren"}
+   ]},
+  {flip_ask,
+   [
+    {1,"Achse auswählen entlang der Objekt gespiegelt wird"},
+    {2,"Punkt entlang der gewählten Achse auswählen um Objekt zu spiegeln"}
+   ]},
   {mat_col_conv,
    [
     {1,"Farben zu Materialien"},
@@ -267,7 +276,6 @@
     {1,"Körper Operationen"},
     {2,"Verschieben"},
     {3,"Spiegeln"},
-    {5,"Spiegelt das Objekt an seiner"},
     {10,"Invertieren"},
     {11,"Alle Normalen umdrehen. Dreht das Objekt von innen nach außen."},
     {12,"Straffen"},
@@ -290,7 +298,14 @@
     {29,"Umbenennen..."},
     {30,"Ausgewählte Objekte umbenennen"},
     {31,"Alle zeigen"},
-    {32,"Alle Flächen des Objekts zeigen"}
+    {32,"Alle Flächen des Objekts zeigen"},
+    {34,"Objekt entlang ~s Achse spiegeln"},
+    {35,"Punkt wählen an dem Objekt entlang ~s Achse gespiegelt wird"},
+    {36,"Objekt entlang globaler ~s Achse spiegeln"},
+    {37,"Wählen"},
+    {38,"Achse wählen entlang der Objekt gespiegelt wird"},
+    {39,"Achse und Punkt wählen entlang denen Objekt gespiegelt wird"},
+    {40,"Globale Achse wählen entlang der Objekt gespiegelt wird"}
    ]},
   {mode_conv,
    [
@@ -376,7 +391,9 @@
     {13,"Rotationsschritt in Grad"},
     {15,"Unidirektionale Kamera"},
     {16,"Schwenkgeschwindigkeit Pfeil-Tasten"},
-    {17,"Hilfetexte in Informationszeile anzeigen"}
+    {17,"Hilfetexte in Informationszeile anzeigen"},
+    {18,"Schwenken mit Pfeiltasten"},
+    {19,"Rotationsgeschwindigkeit"}
    ]},
   {scroll_help,
    [
@@ -491,7 +508,9 @@
   {fpmove_help,
    [
     {1,"Einstellen des 4. Parameters durch ziehen"},
-    {2,"Rotation einstellen durch ziehen"}
+    {2,"Rotation einstellen durch ziehen"},
+    {3,"Skalierung einstellen durch ziehen"},
+    {4,"Zum Einstellen ziehen"}
    ]},
   {make_query_1,
    [
@@ -673,8 +692,6 @@
     {3,"Ausstoßen"},
     {4,"Region ausstoßen"},
     {5,"Region extrahieren"},
-    {6,"Einsetzen"},
-    {7,"Eine Fläche in die ausgewählte Fläche einsetzen"},
     {8,"Eindringen"},
     {9,"Objekt aushöhlen und ausgewählte Flächen zu Löchern machen"},
     {10,"Abkanten"},
@@ -700,7 +717,8 @@
     {30,"Knoten-Farbe"},
     {31,"Knoten-Farben auf ausgewählte Flächen anwenden"},
     {32,"Verbergen"},
-    {33,"Ausgewählte Flächen verbergen"}
+    {33,"Ausgewählte Flächen verbergen"},
+    {34,"Ausgewählte Flächen eleminieren und verbleibende isolierte Ecken löschen"}
    ]},
   {put_on,
    [
@@ -947,12 +965,12 @@
    ]},
   {def_commands,
    [
-    {1,"Im "},
-    {4," Dialog können \"Standard Befehle\" eingeschaltet werden."},
-    {5,"Zwei Standard-Befehle können definiert werden. Um den zuvor ausgeführten Befehl zu speichern, verwenden Sie:"},
-    {8,"Um einen so definierten Befehle zu verwenden, drücken Sie:"},
+    {1,"Standard Befehle können unter "},
+    {4," im Reiter \"Erweitert\" eingeschaltet werden."},
+    {5,"Es können zwei Standard Befehle definiert werden. Um einen zuvor ausgeführten Befehl als Standard Befehl zu definieren, drücken Sie:"},
+    {8,"Um einen definierten Standard Befehle zu verwenden, drücken Sie:"},
     {11,"Hinweis: Im "},
-    {13," und im"},
+    {13," und im "},
     {15," Kamera-Modus kann der zweite Standard Befehl nicht verwendet werden."}
    ]},
   {def_hotkeys,
@@ -975,6 +993,7 @@
     {1,"Wenn Sie anfangen mit Wings zu arbeiten, achten Sie auf die Informationszeile am unteren Bildschirmrand. Generell zeigt sie an, welche Funktionen die Maustasten aktuell auslösen."},
     {2,"Zuerst werden die Aktionen für die Maus-Tasten angezeigt, bezeichnet mit "},
     {7,"Allgemein wird L (Linke Maustaste) zum auswählen und bestätigen verwendet, M (Mittlere Maustaste) für die Steuerung der Kamera und R (Rechte Maustaste) für den Zugriff auf das Kontextmenü."},
+    {8,"Beachten Sie, das die einzelnen Maustasten in den Kontextmenüs Befehle unterschiedlich aufrufen. Ganz allgmein liegt der typischste Aufruf auf der linken Maustaste, während die vorgeschrittenen Aufrufe auf der mittleren und der rechten Maustaste liegen."},
     {left_def,"Linke Maustaste"},
     {middle_def,"Mittlere Maustaste oder Mausrad"},
     {right_def,"Rechte Maustaste"},
@@ -1836,8 +1855,6 @@
     {7,"Auswahl bei allen interaktiven Befehlen nicht anzeigen"},
     {8,"Auswahl bei Kamerabewegung verbergen"},
     {9,"Auswahl nicht anzeigen, während die Kamera bewegt wird."},
-    {10,"Erweiterte Menüs"},
-    {11,"Mehr Befehle und Optionen, z.B. Magnete"},
     {12,"Temporäre Auswahl für erfahrene Anwender"},
     {13,"Im Modus für die zweite Auswahl, erweitert ein Rechts-Klick die Auswahl"},
     {14,"Länge"},
@@ -1862,11 +1879,14 @@
     {38,"Ziehen Reaktion anpassen"},
     {39,"Verhältnis ziehen zu Mausrotation anpassen. Standardeinstellungen wenn nicht markiert."},
     {40,"Faktor in Abstand von der Kamera"},
-    {42,"Absolute Geschwindigkeit"},
     {43,"Faktor in Abstand von der Kamera"},
-    {46,"Relative Geschwindigkeit"},
-    {48,"Rotations-Geschwindigkeit"},
-    {49,"Ziehen Einstellungen"}
+    {49,"Ziehen Einstellungen"},
+    {50,"Mausgeschwindikeit für Ziehen"},
+    {51,"Mausgeschwindikeit für Skalierung"},
+    {52,"Mausgeschwindikeit für Drehung"},
+    {53,"Wings im Modus Feineinstellungen starten"},
+    {54,"Bei temporärer Markierung Auswahl über Kurztaste erweitern"},
+    {55,"Beeinflusst: Auswahl|Alle, Kantenschleife, Kantenring, Auswahle|Ähnliche, Ähnliche Normalen, Ähliche Flächen und Gleiches Material"}
    ]},
   {command,
    [
@@ -2138,10 +2158,6 @@
   {faces_to_vertices,
    [
     {1,"Magnetisch-skalieren mehrerer Flächen-Regionen\nerfordert gemeinsame Knoten oder Kanten."}
-   ]},
-  {inset_face,
-   [
-    {1,"In einer oder mehreren ausgewählten Flächen gibt es zu kurze Kanten (\"Aufräumen\" verwenden)"}
    ]}
  ]}.
 {wings_sel_cmd,
@@ -2312,7 +2328,10 @@
   {oriented_faces,
    [
     {1,"Winkel-Toleranz"},
-    {2,"Ähnlich ausgerichtete Flächen auswählen"}
+    {2,"Ähnlich ausgerichtete Flächen auswählen"},
+    {3,"Nur verbundene Fläche"},
+    {4,"Mindestens eine Fläche muß ausgewählt sein"},
+    {5,"Winkel speichern"}
    ]},
   {oriented_faces_menu,
    [
@@ -2359,6 +2378,17 @@
     {2,"Kanten die der ausgewählten Kante ähnlich sind auswählen"},
     {3,"Flächen die der ausgewählten Fläche ähnlich sind auswählen"},
     {4,"Objekte mit der selben Anzahl Kanten, Flächen und Knoten auswählen"}
+   ]},
+  {similar_material,
+   [
+    {2,"Nur verbundene Flächen"},
+    {3,"Mindestens eine Fläche muß ausgewählt sein"},
+    {4,"Flächen mit dem selben Material auswählen"}
+   ]},
+  {similar_material_faces,
+   [
+    {1,"Gleiches Material"},
+    {2,"Flächen mit dem selben Material wie den bereits ausgewählten auswählen"}
    ]},
   {valid_sel,
    [
@@ -2859,7 +2889,8 @@
     {286,"Knoten-Farbe-Modus"},
     {287,"Objekt zu Flächenlicht"},
     {288,"Materialien zu Farben"},
-    {289,"Schneiden"}
+    {289,"Schneiden"},
+    {290,"Eben bewegen"}
    ]}
  ]}.
 {wings_vec,
@@ -2906,7 +2937,6 @@
     {4,"Kanten-Richtung speichern"},
     {5,"Richtung zwischen Kanten als Achse gespeichert."},
     {6,"Kantenschleifen-Normale als Achse gespeichert."},
-    {7,"Mehr-Kanten-Auswahl muss geschlossene Kantenschleife ergeben."},
     {8,"Knoten-Normale gespeichert."},
     {9,"Richtung zwischen Knoten als Achse gespeichert."},
     {10,"Mittelwert der Knoten-Normalen als Achse verwenden"},
@@ -2926,13 +2956,16 @@
     {24,"Kreuzvektor speichern"},
     {25,"Kreuzprodukt der Kanten als Achse speichern"},
     {26,"Richtung zwischen Kanten speichern"},
-    {27,"Knoten dürfen keine gemeinsamen Koordinaten haben, wenn eine 3-Punkt Normalenebenen definiert wird."}
+    {27,"Knoten dürfen keine gemeinsamen Koordinaten haben, wenn eine 3-Punkt Normalenebenen definiert wird."},
+    {28,"Achse zwischen den Zentren der Kantenschleifen als Achse gespeichert."},
+    {29,"Mehrfachauswahlen von Kanten müssen eine oder zwei geschlossene Kantenschleifen bilden."}
    ]},
   {guard_string,
    [
     {1,"Elemente nur eines Objekts auswählen"},
     {2," oder ein Element in jedem der zwei Objekte auswählen"},
-    {3," oder drei beliebige Knoten."}
+    {3," oder drei beliebige Knoten."},
+    {4,",\noder eine einzelne Kantenschleife auf jedem Objekt "}
    ]},
   {magnet_message,
    [
@@ -3064,7 +3097,14 @@
     {62,"Zusätzliche Sichtbegrenzungen umschalten (verwendet Standardachsen)"},
     {65,"Rahmen ignoriert Spiegel"},
     {66,"Ausrichtung hervorheben"},
-    {67,"Kamera auf Maus-Markierung ausrichten (Setzt 'Hervorhebung als temporäre Auswahl verwenden' und eine zugewiesene Kurztaste voraus)."}
+    {67,"Kamera auf Maus-Markierung ausrichten (Setzt 'Hervorhebung als temporäre Auswahl verwenden' und eine zugewiesene Kurztaste voraus)."},
+    {68,"Zeige"}
+   ]},
+  {shader_submenu,
+   [
+    {1,"Nächster"},
+    {2,"Vorheriger"},
+    {3,"Schattiere: "}
    ]},
   {view_legend,
    [

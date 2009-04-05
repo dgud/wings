@@ -1,0 +1,59 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_contour,
+ [
+  {abs_rel_help,
+   [
+    {1,"Abstand"},
+    {2,"Prozent"}
+   ]},
+  {add_to_dict,
+   [
+    {1,"Die Erzeugung einer Kante um eine Region herum erfordert,\ndas angrenzende Flächen mindestens eine Kante mir ihr haben"}
+   ]},
+  {contour_lmb_help,
+   [
+    {1,"Kanten innerhalb des Umriss der Auswahl erzeugen"}
+   ]},
+  {contour_menu,
+   [
+    {1,"Region einsetzen"},
+    {2,"Flächen einsetzen"},
+    {3,"Region versetzen"}
+   ]},
+  {contour_mmb_help,
+   [
+    {1,"Kanten innerhalb einzelner Flächen erzeugen"}
+   ]},
+  {contour_rmb_help,
+   [
+    {1,"Kanten außerhalb des Umriss der Auswahl erzeugen"}
+   ]},
+  {contour_title,
+   [
+    {1,"Umriss"}
+   ]},
+  {extrude_norm_help1,
+   [
+    {1,"Ausbeulen: Flächennormale"},
+    {2,"Ausbeulen: Normale der Region"}
+   ]},
+  {loop_norm,
+   [
+    {1,"Vollständig ausgewählte Objekte können nicht umrissen werden"}
+   ]},
+  {stop_edge_help,
+   [
+    {1,"Stop am Kantenende"},
+    {2,"Fortsetzen über Kantenende"}
+   ]},
+  {string,
+   [
+    {1,"Normalisieren"},
+    {2,"Entlang der Kanten"},
+    {3,"Durchschnitt"}
+   ]},
+  {vector,
+   [
+    {1,"Kanten sind zu nah beieinander.\nVor erneutem Versuch Befehl 'Aufräumen' anwenden."}
+   ]}
+ ]}.

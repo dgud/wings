@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_move_planar,
+ [
+  {axis_menu_string,
+   [
+    {1,"Alle Bewegungen auf die durch ~s definierte Ebene beschränken"}
+   ]},
+  {move_planar_menu,
+   [
+    {1,"Planar"},
+    {2,"Bewegungen auf Standardebene beschränken"},
+    {3,"Ebene auswählen"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Ebene auswählen, auf die alle Bewegungen beschränkt werden"}
+   ]}
+ ]}.
