@@ -42,7 +42,8 @@ MODULES= \
 	wpc_x \
 	wpc_lwo \
 	wpc_yafray \
-	wpc_pov
+	wpc_pov \
+	wpc_bzw
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 

@@ -33,6 +33,9 @@
   all the materials from a scene, including the ones not applied to your model,
   to a .wings file. [optigon]
 
+- BzFlag exporter added to Wings. [contributed by trepan and optic delusion with
+  minor changes by optigon]
+
 - New Feature: Tools|Magnet Mask|Lock/Unlock. Locks the positions of vertices
   against the effects of magnets in both Tweak and Magnet mode with the
   exception that masked vertices within a selection will not be locked.
