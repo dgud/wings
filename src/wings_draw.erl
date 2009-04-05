@@ -19,6 +19,9 @@
 	 split/3,original_we/1,update_dynamic/2,join/1,abort_split/1,
 	 face_ns_data/1]).
 
+% export for plugins that need to draw stuff
+-export([pump_vertices/1]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -77,12 +80,15 @@ prepare_fun(#dlo{}=D, [#we{perm=Perm}|Wes]) when ?IS_NOT_VISIBLE(Perm) ->
     prepare_fun(D, Wes);
 prepare_fun(#dlo{src_we=We,split=#split{}=Split}=D, [We|Wes]) ->
     {D#dlo{src_we=We,split=Split#split{orig_we=We}},Wes};
+
 prepare_fun(#dlo{src_we=We}=D, [We|Wes]) ->
     %% No real change - take the latest We for possible speed-up
     %% of further comparisons.
     {D#dlo{src_we=We},Wes};
+
 prepare_fun(#dlo{src_we=#we{id=Id}}=D, [#we{id=Id}=We1|Wes]) ->
     prepare_fun_1(D, We1, Wes);
+
 prepare_fun(#dlo{}, Wes) ->
     {deleted,Wes}.
 
@@ -243,16 +249,17 @@ update_needed_2(CommonNeed, St) ->
 update_needed_fun(#dlo{src_we=#we{perm=Perm}=We}=D, _, _, _)
   when ?IS_LIGHT(We), ?IS_VISIBLE(Perm) ->
     D#dlo{needed=[light]};
-update_needed_fun(#dlo{src_we=#we{id=Id,he=Htab},proxy_data=Pd}=D,
+update_needed_fun(#dlo{src_we=#we{id=Id,he=Htab,pst=Pst},proxy_data=Pd}=D,
 		   Need0, Wins, _) ->
     Need1 = case gb_sets:is_empty(Htab) orelse
 		not wings_pref:get_value(show_edges) of
 		false -> [hard_edges|Need0];
 		true -> Need0
 	    end,
+	Need2 = wings_plugin:check_plugins(update_dlist,Pst) ++ Need1,
     Need = if
-	       Pd =:= none -> Need1;
-	       true -> [proxy|Need1]
+	       Pd =:= none -> Need2;
+	       true -> [proxy|Need2]
 	   end,
     D#dlo{needed=more_need(Wins, Id, Need)}.
 
@@ -281,6 +288,7 @@ wins_of_same_class() ->
 	geom_display_lists -> wings_u:geom_windows();
 	_ -> [wings_wm:this()]
     end.
+
 
 %%
 %% Rebuild all missing display lists, based on what is
@@ -322,7 +330,8 @@ update_fun_2({vertex,PtSize}, #dlo{vs=none,src_we=We}=D, _) ->
     UnselDlist = gl:genLists(1),
     gl:newList(UnselDlist, ?GL_COMPILE),
     gl:pointSize(PtSize),
-    gl:color3b(0, 0, 0),
+	{R,G,B} = wings_pref:get_value(unlocked_vertex_color),
+    gl:color3f(R,G,B),
     gl:'begin'(?GL_POINTS),
     pump_vertices(visible_vertices(We)),
     gl:'end'(),
@@ -348,6 +357,17 @@ update_fun_2(normals, D, _) ->
     make_normals_dlist(D);
 update_fun_2(proxy, D, St) ->
     wings_proxy:update(D, St);
+
+%%%% Check if plugins using the Pst need a draw list updated.
+update_fun_2({plugin,{Plugin,{_,_}=Data}},#dlo{plugins=Pdl}=D,St) ->
+    case lists:keytake(Plugin,1,Pdl) of
+	    false ->
+		  Plugin:update_dlist(Data,D,St);
+	    {_,{Plugin,{_,none}},Pdl0} ->
+	      Plugin:update_dlist(Data,D#dlo{plugins=Pdl0},St);
+		_ -> D
+	end;
+
 update_fun_2(_, D, _) -> D.
 
 make_edge_dl(Ns) ->
@@ -413,7 +433,8 @@ visible_vertices(#we{vp=Vtab0}=We) ->
 				      [{vertex,position}]),
 	    sofs:to_external(sofs:image(Vtab, Vis))
     end.
-    
+
+
 %%%
 %%% Update the selection display list.
 %%%

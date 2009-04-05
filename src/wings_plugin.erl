@@ -14,7 +14,7 @@
 -module(wings_plugin).
 -export([init/0,menu/2,dialog/2,dialog_result/2,command/2,call_ui/1]).
 -export([install/1]).
-
+-export([draw/3,check_plugins/2]).
 -include("wings.hrl").
 -include("e3d.hrl").
 -import(lists, [sort/1,reverse/1,member/2]).
@@ -567,3 +567,53 @@ plugin_key(_Other) -> none.
 
 plugin_default_menu() ->
     [plugin_manager_category].
+
+%%%
+%%% Plugin Draw Utilities
+%%%
+
+% There are 2 draw flags originating from wings_render.erl: 'plain' and 'smooth'
+% which relate to the view style of the model and determine if the Plugin should
+% be drawn in that view mode. Other restrictions can be stated from within the
+% Plugin itself. See wpc_magnet_mask.erl as an example.
+draw(Flag, #dlo{plugins=Pdl}=D, Selmode) ->
+    draw_1(Flag, Pdl, D, Selmode).
+
+draw_1(Flag, [{Plugin,List}|Pdl], D, Selmode) ->
+    Plugin:draw(Flag, List, D, Selmode),
+    draw_1(Flag, Pdl, D, Selmode);
+
+draw_1(_, [], _, _) -> ok.
+
+% PstTree -> { PluginName , PluginValue }
+% PluginValue is a gb_tree.
+check_plugins(Flag,Pst) ->
+    case gb_trees:is_empty(Pst) of
+      true -> [];
+      false ->
+        Plugins = gb_trees:keys(Pst),
+        check_each_plugin(Flag, Plugins, Pst, [])
+    end.
+
+check_each_plugin(Flag, [P|Plugins],Pst,Acc) ->
+    PData = gb_trees:get(P, Pst),
+    Result = check_plugin_against_flag(Flag, PData, P, Acc),
+    check_each_plugin(Flag, Plugins, Pst, Result);
+check_each_plugin(_, [], _, Acc) -> Acc.
+
+% There are 2 flags which can be passed into this function:
+% 'update_dlist' and 'save'.
+
+% 'save' originates from wings_we.erl and is passed to the Plugin to check
+% if the elements stored in the pst should be renumbered when saving.
+
+% 'update_dlist' originates from wings_draw.erl and is passed to the
+% Plugin to check if the it should have its draw list updated.
+
+% Further restrictions to bar the output may be stated from within the plugin.
+% See wpc_magnet_mask.erl
+check_plugin_against_flag(Flag, PData, Plugin, Acc) ->
+    case catch Plugin:get_data(Flag,PData,Acc) of
+      {ok, Result} -> Result;
+      _otherwise -> Acc
+    end.

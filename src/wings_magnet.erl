@@ -20,11 +20,12 @@
 -define(HUGE, 9.9E307).
 
 setup({magnet,Type,Route,Point}, VsSel, We) ->
-    {VsDist,R} = case Route of
+    {VsDist0,R} = case Route of
 		     shortest -> inf_shortest(Point, VsSel, We);
 		     midpoint -> inf_midpoint(Point, VsSel, We);
 		     surface -> inf_surface(Point, VsSel, We)
 		 end,
+    VsDist = minus_locked_vs(VsSel,VsDist0,We),
     Magnet = {Type,R},
     VsInf = recalc(1.0, VsDist, Magnet),
     Affected = foldl(fun({V,_,_,_}, A) -> [V|A] end, [], VsInf),
@@ -132,6 +133,17 @@ mf(spike, D0, R) when is_float(D0), is_float(R) ->
 check_radius(R) when R < 1.0E-6 ->
     wings_u:error(?__(1,"Too short influence radius."));
 check_radius(_) -> ok.
+
+%%%% Requires the wpc_vertex_locking plugin.
+minus_locked_vs(VsSel,VsDist,#we{pst=Pst}) ->
+    case gb_trees:is_defined(wpc_magnet_mask,Pst) of
+      true ->
+        LockedVs = gb_sets:to_list(wpc_magnet_mask:get_locked_vs(Pst)),
+        UnAffected = LockedVs -- VsSel,
+        [{V,Pos,R,N} || {V,Pos,R,N} <- VsDist, not lists:member(V,UnAffected)];
+      false ->
+        VsDist
+    end.
 
 %%%
 %%% Calculation of influence radius: Shortest distance route.

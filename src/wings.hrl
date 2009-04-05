@@ -86,6 +86,7 @@
 	 hilite=none,				%Hilite display list.
 	 mirror=none,				%Virtual mirror data.
 	 ns=none,				%Normals/positions per face.
+	 plugins=[],                %Draw lists for plugins.
 
 	 %% Source for display lists.
 	 src_we=none,				%Source object.

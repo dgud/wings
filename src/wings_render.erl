@@ -200,7 +200,7 @@ render_plain(#dlo{src_we=We}=D, SelMode) ->
     wings_proxy:draw(D, Wire),
     render_plain_rest(D, Wire, SelMode).
 
-render_plain_rest(D, Wire, SelMode) ->
+render_plain_rest(#dlo{}=D, Wire, SelMode) ->
     gl:disable(?GL_POLYGON_OFFSET_LINE),
     gl:disable(?GL_POLYGON_OFFSET_FILL),
 
@@ -217,7 +217,8 @@ render_plain_rest(D, Wire, SelMode) ->
     end,
     draw_vertices(D, SelMode),
     draw_hard_edges(D, SelMode),
-    draw_normals(D).
+    draw_normals(D),
+	draw_plugins(plain,D,SelMode). %% arbitrary placement in the grand scheme of things
 
 render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth,transparent=Trans,
 		   src_we=We,proxy_data=Pd,open=Open}=D,
@@ -280,7 +281,8 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth,transparent=Trans,
     end,
     draw_hilite(D),
     draw_orig_sel(D),
-    draw_sel(D).
+    draw_sel(D),
+	draw_plugins(smooth,D,none).
 
 wire(#we{id=Id}) ->
     W = wings_wm:get_prop(wireframed_objects),
@@ -315,7 +317,8 @@ draw_vertices(#dlo{src_we=#we{perm=P},vs=VsDlist}, vertex) when ?IS_SELECTABLE(P
     wings_dl:call(VsDlist);
 draw_vertices(_, _) -> ok.
 
-draw_hilite(#dlo{hilite=DL}) -> wings_dl:call(DL).
+draw_hilite(#dlo{hilite=DL}) -> 
+    wings_dl:call(DL).
 
 draw_orig_sel(#dlo{orig_sel=none}) -> ok;
 draw_orig_sel(#dlo{orig_sel=Dlist,orig_mode=Mode}) ->
@@ -351,7 +354,7 @@ draw_hard_edges(#dlo{hard=Hard}, SelMode) ->
     gl:lineWidth(hard_edge_width(SelMode)),
     gl:color3fv(wings_pref:get_value(hard_edge_color)),
     wings_dl:call(Hard).
-
+	
 draw_normals(#dlo{normals=none}) -> ok;
 draw_normals(#dlo{normals=Ns}) ->
     gl:color3f(0, 0, 1),
@@ -360,8 +363,12 @@ draw_normals(#dlo{normals=Ns}) ->
 
 edge_width(edge) -> wings_pref:get_value(edge_width);
 edge_width(_) -> 1.
+
 hard_edge_width(edge) -> wings_pref:get_value(hard_edge_width);
 hard_edge_width(_) -> wings_pref:get_value(hard_edge_width) -1.
+
+draw_plugins(Flag,D,Selmode) ->
+    wings_plugin:draw(Flag, D, Selmode).
 
 ground_and_axes() ->
     Axes = wings_wm:get_prop(show_axes),

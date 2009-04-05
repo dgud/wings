@@ -412,6 +412,9 @@ defaults() ->
 
      {vertex_size,4.0},
      {selected_vertex_size,5.0},
+     {vertex_color,{0.0,0.0,0.0}},
+     {masked_vertex_size,10.0},
+     {masked_vertex_color,{0.5,1.0,0.0,0.8}},
      {edge_width,2.0},
      {selected_edge_width,2.0},
      {hard_edge_width,2.0},

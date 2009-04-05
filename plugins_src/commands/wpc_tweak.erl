@@ -824,8 +824,8 @@ end_pick(false, #tweak{st=St0}=T) ->
     help(T),
     handle_tweak_event1({new_state,St},T#tweak{tmode=wait}).
 
-end_pick_1(D,St0) ->
-    {D#dlo{vs=none,sel=none,drag=none},St0}.
+end_pick_1(#dlo{ns=Ns,proxy_data=Pd,src_we=We},St0) ->
+    {#dlo{ns=Ns,proxy_data=Pd,src_we=We},St0}.
 
 sel_to_vs(edge, _, We) when ?IS_LIGHT(We) ->
     Items = gb_sets:to_list(wings_sel:get_all_items(edge, We)),
@@ -1426,7 +1426,7 @@ begin_magnet(#tweak{magnet=true}=T, Vs, Center, #we{vp=Vtab0}=We) ->
 
 near(Center, Vs, MagVs, Mirror, #tweak{mag_r=R,mag_type=Type}, We) ->
     RSqr = R*R,
-    M = foldl(fun({V,Pos}, A) ->
+    M0 = foldl(fun({V,Pos}, A) ->
               case e3d_vec:dist_sqr(Pos, Center) of
               DSqr when DSqr =< RSqr ->
                   D = math:sqrt(DSqr),
@@ -1437,11 +1437,22 @@ near(Center, Vs, MagVs, Mirror, #tweak{mag_r=R,mag_type=Type}, We) ->
               end;
          (_, A) -> A
           end, [], MagVs),
+    M = minus_locked_vs(M0,We),
     foldl(fun(V, A) ->
           Matrix = mirror_matrix(V, Mirror),
           Pos = wpa:vertex_pos(V, We),
           [{V,Pos,Matrix,0.0,1.0}|A]
       end, M, Vs).
+
+minus_locked_vs(MagVs, #we{pst=Pst}) ->
+    case gb_trees:is_defined(wpc_magnet_mask,Pst) of
+      true ->
+        LockedVs = gb_sets:to_list(wpc_magnet_mask:get_locked_vs(Pst)),
+        [ M || {V,_,_,_,_} = M <- MagVs, not lists:member(V,LockedVs)];
+      false ->
+        MagVs
+    end.
+
 
 mf(dome, D, R) when is_float(R) ->
     math:sin((R-D)/R*math:pi()/2);

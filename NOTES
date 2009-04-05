@@ -33,6 +33,20 @@
   all the materials from a scene, including the ones not applied to your model,
   to a .wings file. [optigon]
 
+- New Feature: Tools|Magnet Mask|Lock/Unlock. Locks the positions of vertices
+  against the effects of magnets in both Tweak and Magnet mode with the
+  exception that masked vertices within a selection will not be locked.
+  Display options are included in Edit|Preferences|General > Magnet Mask vertex
+  colour and size including alpha.
+  There are also the option View|Show|Show Magnet Mask which toggles the display
+  and Select|By|Magnet Mask. [optigon]
+
+- For Developers: There are new options for adding draw lists for plugins via
+  #dlo{plugins=[]} added to the wings.hrl. You can follow the example plugin
+  wpc_magnet_mask.erl and check the functions added to wings_plugin.erl to get
+  an idea of what this is all about or ask questions/add suggestions on the
+  Wings 3D Official Development Forum. [optigon]
+
 --- 0.99.53 -----------------------------------------------------------------
 - Kerkythea exporter added to Wings. [contributed by Chris Hegarty (Avariant)]
 

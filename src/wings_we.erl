@@ -670,7 +670,7 @@ do_renumber(We0, Id) ->
     We.
 
 do_renumber(#we{mode=Mode,vp=Vtab0,es=Etab0,fs=Ftab0,
-		mat=MatTab0,he=Htab0,perm=Perm0,mirror=Mirror0}=We0,
+		mat=MatTab0,he=Htab0,perm=Perm0,mirror=Mirror0,pst=Pst0}=We0,
 	    Id, RootSet0) ->
     Vtab1 = gb_trees:to_list(Vtab0),
     Vmap = make_map(Vtab1, Id),
@@ -706,10 +706,25 @@ do_renumber(#we{mode=Mode,vp=Vtab0,es=Etab0,fs=Ftab0,
 		 true -> gb_trees:get(Mirror0, Fmap)
 	     end,
 
+    Pst_Elements = wings_plugin:check_plugins(save,Pst0),
+    Pst = foldl(fun
+        ({_,{Plugin,{vs,VsSet}}}, Pst1) ->
+            Vs = gb_sets:to_list(VsSet),
+            renum_elements_in_pst(vs,Plugin,Vs,Vmap,Pst1);
+        ({_,{Plugin,{es,EsSet}}}, Pst1) ->
+            Es = gb_sets:to_list(EsSet),
+            renum_elements_in_pst(es,Plugin,Es,Emap,Pst1);
+        ({_,{Plugin,{fs,FsSet}}}, Pst1) ->
+            Fs = gb_sets:to_list(FsSet),
+            renum_elements_in_pst(fs,Plugin,Fs,Fmap,Pst1);
+        ({remove,Plugin}, Pst1) ->
+            gb_trees:delete(Plugin,Pst1)
+        end, Pst0, Pst_Elements),
+
     RootSet = map_rootset(RootSet0, Emap, Vmap, Fmap),
     We = We0#we{mode=Mode,vc=undefined,fs=undefined,
 		vp=Vtab,es=Etab,mat=MatTab,he=Htab,
-		perm=Perm,mirror=Mirror},
+		perm=Perm,mirror=Mirror,pst=Pst},
 
     %% In case this function will be used for merging #we records,
     %% it is essential to update the next_id field. Its value can
@@ -771,6 +786,22 @@ renumber_vertices_1([], _, Vtab) ->
 renum_hard_edge(Edge0, Emap, New) ->
     Edge = gb_trees:get(Edge0, Emap),
     [Edge|New].
+
+
+% Checks plugins which store elements in the Pst that need to be renumbered
+% before saving and returns the new Pst.
+renum_elements_in_pst(Key,Plugin,Elements,Map,Pst0) ->
+    Renumbered = foldl(fun(Elem, New) ->
+      case gb_trees:lookup(Elem,Map) of
+          none -> New;
+          {_,NewNum} -> [NewNum|New]
+      end
+    end, [], Elements),
+    Data = gb_trees:get(Plugin,Pst0),
+    NewElems = gb_sets:from_list(Renumbered),
+    NewData = gb_trees:update(Key,NewElems,Data),
+    Pst = gb_trees:update(Plugin,NewData,Pst0),
+    Pst.
 
 update_id_bounds(#we{vp=Vtab,es=Etab,fs=Ftab}=We) ->
     case gb_trees:is_empty(Etab) of
