@@ -29,7 +29,7 @@
 	 zs=0,                  %Z move in screen relative
 	 fp=0,                  %An optional forth drag parameter
 	 psum=[0,0,0,0],        % Whereas xs,ys,zs and fp are the displayed distances
-	                        % psum is the mouse summary pre parameter
+	                        % psum is the unconstrained mouse summary pre parameter 
 	 xt=0,					%Last warp length
 	 yt=0,
 	 mmb_count=0,
@@ -514,9 +514,9 @@ handle_drag_event_0(#keyboard{unicode=C}=Ev,
 	    wings_wm:dirty(),
 	    wings_wm:message_right(ModeFun(help, ModeData)),
 	    Val = {ModeData,Drag0#drag.falloff},
-	    Drag1 = case wings_pref:get_value(drag_resets) of
+	    Drag1 = case wings_pref:get_value(drag_resets) of %% Probably Remove This %%         
 	        false -> parameter_update(new_mode_data, Val,
-	                 Drag0#drag{mode_data=ModeData});
+	                 Drag0#drag{mode_data={changed,ModeData}});
 	        true -> parameter_update(new_mode_data, Val,
 	                Drag0#drag{mode_data=ModeData,xs=0,ys=0,zs=0,fp=0,
 	                           psum=[0,0,0,0]})
@@ -601,7 +601,10 @@ invalidate_fun(#dlo{src_we=We}=D, _) ->
 numeric_input(Drag0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     Ev = #mousemotion{x=X,y=Y,state=0,mod=0},
-    {Move0,Drag} = mouse_translate(Ev, Drag0),
+    {Move0,Drag} = case mouse_translate(Ev, Drag0) of
+	    {{_,M},D} -> {M,D};
+		Other -> Other
+	end,
     wings_ask:dialog(?__(1,"Numeric Input"),
 		     make_query(Move0, Drag),
 		     fun(Res) ->
@@ -714,12 +717,6 @@ mouse_translate(Event0, Drag0) ->
     {Event,Mod,Drag1} = mouse_pre_translate(Mode, Event0,Drag0),
 	mouse_range(Event, Drag1, Mod).
 
-add_offset([D|Ds], [U|Us], [O|Ofs]) ->
-    [clamp(U, D+O)|add_offset(Ds, Us, Ofs)];
-add_offset([D|Ds], _, _) ->
-    [D|add_offset(Ds, [], [])];
-add_offset([],_,_) -> [].
-
 mouse_pre_translate(Mode, #mousemotion{state=Mask,mod=Mod}=Ev,Drag)
         when Mode==blender; Mode==sketchup ->
     if
@@ -733,39 +730,47 @@ mouse_pre_translate(Mode, #mousemotion{state=Mask,mod=Mod}=Ev,Drag)
 mouse_pre_translate(_, #mousemotion{mod=Mod}=Ev,Drag) ->
     {Ev,Mod,Drag}.
 
-mouse_range(#mousemotion{x=X0,y=Y0,state=Mask},
-        #drag{x=OX,y=OY,xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0, psum=Psum0,
-              xt=Xt0,yt=Yt0,mmb_count=Count0,
-              unit_sc=UnitScales,unit=Unit,offset=Offset}=Drag0, Mod) ->
+mouse_range(#mousemotion{x=X0, y=Y0, state=Mask},
+            #drag{x=OX, y=OY,
+                   xs=Xs0, ys=Ys0, zs=Zs0, fp=Fp0,
+                   psum=Psum0,
+                   mode_data=MD,
+                   xt=Xt0, yt=Yt0, mmb_count=Count0,
+                   unit_sc=UnitScales, unit=Unit, offset=Offset,
+                   last_move=LastMove}=Drag0,
+			Mod) ->
+
     %%io:format("Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xs0,Ys0}]),
     [Xp,Yp,Zp,Fpp] = case Mod =/= 0 of
         true -> Psum0;
         false -> [Xs0,Ys0,Zs0,Fp0]
     end,
     {X,Y} = wings_wm:local2global(X0, Y0),
+
     case wings_pref:lowpass(X-OX, Y-OY) of
     {0,0} ->
-         Ds0 = mouse_scale([{no_con, Xs0},
-                            {no_con, -Ys0},
-                            {no_con, -Zs0},
-                            {no_con, -Fp0}], UnitScales),
-        Ds1 = [S || {_,S} <- Ds0],
-        Ds = add_offset(Ds1, Unit, Offset),
-        Move = constrain_1(Unit, Ds, Drag0),
         Drag = Drag0#drag{xt=0,yt=0},
-        {Move,Drag};
+        {{no_change,LastMove},Drag};
+
     {XD0,YD0} ->
+
         CS = constraints_scale(Unit,Mod,UnitScales),
         XD = CS*(XD0 + Xt0),
         YD = CS*(YD0 + Yt0),
+
+        ModeData = case MD of
+          {_,MD0} -> MD0;
+          MD0 -> MD0
+        end,
+
         case {Mask band ?SDL_BUTTON_MMASK =/= 0,Mask band ?SDL_BUTTON_RMASK =/= 0} of
           {true,false} ->
             Xs = {no_con, Xs0},
             Ys = {no_con, -Ys0},
             Zs = case wings_pref:get_value(camera_mode) of
-                 maya -> {con, - (Zp - XD)};	%Horizontal motion
-                 _cam -> {con, - (Zp + YD)}	    %Vertical motion
-             end,
+                   maya -> {con, - (Zp - XD)};	%Horizontal motion
+                   _cam -> {con, - (Zp + YD)}	%Vertical motion
+                 end,
             Fp = {no_con, -Fp0},
             Count = Count0 + 1;
           {false,true} ->
@@ -782,18 +787,23 @@ mouse_range(#mousemotion{x=X0,y=Y0,state=Mask},
             Count = Count0
         end,
         wings_io:warp(OX, OY),
+
+        % Ds means DragSummary
         Ds0 = mouse_scale([Xs,Ys,Zs,Fp], UnitScales),
-        Ds1 = constrain_0(Unit, Ds0, Mod, []),
+        Ds1 = add_offset_to_drag_sum(Ds0, Unit, Offset),
+        Ds = round_to_constraint(Unit, Ds1, Mod, []),
+
         Psum = [S || {_,S} <- [Xs,Ys,Zs,Fp]],
         [Xs2,Ys2,Zs2,Fp2] = constrain_2(Unit, Psum, UnitScales, Offset),
-        Ds = add_offset(Ds1, Unit, Offset),
+
         [Xs1,Ys1,Zs1,Fp1] = scale_mouse_back(Ds, UnitScales, Offset),
         Move = constrain_1(Unit, Ds, Drag0),
         Drag = Drag0#drag{xs=Xs1,ys=-Ys1,zs=-Zs1,fp=-Fp1,
                           psum=[Xs2,-Ys2,-Zs2,-Fp2],
-                          xt=XD0,yt=YD0,mmb_count=Count},
+                          xt=XD0,yt=YD0,mmb_count=Count,mode_data=ModeData},
         {Move,Drag}
     end.
+
 mouse_scale([{Tag,D}|Ds], [S|Ss]) ->
     [{Tag,D*S}|mouse_scale(Ds, Ss)];
 mouse_scale(Ds, _) -> Ds.
@@ -805,18 +815,18 @@ scale_mouse_back(Ds, _, _) -> Ds.
 constraints_scale([U0|_],Mod,[UnitScales|_]) ->
     case wings_pref:get_value(con_alternate) of
     true -> case constraint_factor_alt(clean_unit(U0),Mod) of
-    none -> 1.0;
-    {_,What} ->
-        What*0.01/UnitScales
-            end;
+        none -> 1.0;
+        {_,What} ->
+          What*0.01/UnitScales
+      end;
     false -> case constraint_factor(clean_unit(U0),Mod) of
-            none -> 1.0;
-            {_,What} ->
-            What*0.01/UnitScales
-            end
+        none -> 1.0;
+        {_,What} ->
+          What*0.01/UnitScales
+      end
     end.
 
-constrain_0([U0|Us], [{con,D0}|Ds], Mod, Acc) ->
+round_to_constraint([U0|Us], [{con,D0}|Ds], Mod, Acc) ->
     U = clean_unit(U0),
     D = case wings_pref:get_value(con_alternate) of
       true -> case constraint_factor_alt(U, Mod) of
@@ -830,15 +840,15 @@ constrain_0([U0|Us], [{con,D0}|Ds], Mod, Acc) ->
           round(D0*F1)*F2
             end
     end,
-    constrain_0(Us, Ds, Mod, [D|Acc]);
+    round_to_constraint(Us, Ds, Mod, [D|Acc]);
 
-constrain_0([_|Us], [{no_con, D}|Ds], Mod, Acc) ->
-    constrain_0(Us, Ds, Mod, [D|Acc]);
-constrain_0([], [{_,D}|Ds], Mod, Acc) ->
-    constrain_0([], Ds, Mod, [D|Acc]);
+round_to_constraint([_|Us], [{no_con, D}|Ds], Mod, Acc) ->
+    round_to_constraint(Us, Ds, Mod, [D|Acc]);
+round_to_constraint([], [{_,D}|Ds], Mod, Acc) ->
+    round_to_constraint([], Ds, Mod, [D|Acc]);
 
-constrain_0([_|_], [], _, Acc) -> reverse(Acc);
-constrain_0([], [], _, Acc) -> reverse(Acc).
+round_to_constraint([_|_], [], _, Acc) -> reverse(Acc);
+round_to_constraint([], [], _, Acc) -> reverse(Acc).
 
 constrain_1([falloff], _, #drag{falloff=Falloff}) ->
     [Falloff];
@@ -851,6 +861,18 @@ constrain_2([U|Us], [D|Ds], [S|Ss], [O|Of]) ->
 constrain_2([], [D|Ds], [], Of) ->
     [D|constrain_2([], Ds, [], Of)];
 constrain_2([],[],[],_) -> [].
+
+add_offset_to_drag_sum([{Tag,D}|Ds], [U|Us], [O|Ofs]) ->
+    [{Tag,clamp(U, D+O)}|add_offset_to_drag_sum(Ds, Us, Ofs)];
+add_offset_to_drag_sum([{Tag,D}|Ds], _, _) ->
+    [{Tag,D}|add_offset_to_drag_sum(Ds, [], [])];
+add_offset_to_drag_sum([],_,_) -> [].
+
+add_offset([D|Ds], [U|Us], [O|Ofs]) ->
+    [clamp(U, D+O)|add_offset(Ds, Us, Ofs)];
+add_offset([D|Ds], _, _) ->
+    [D|add_offset(Ds, [], [])];
+add_offset([],_,_) -> [].
 
 clamp({_,{Min,_Max}}, D) when D < Min -> Min;
 clamp({_,{_Min,Max}}, D) when D > Max -> Max;
@@ -1008,6 +1030,15 @@ filter_angle(Degrees) ->
 %%%
 %%% Update selection for new mouse position.
 %%%
+motion_update({_,undefined}, #drag{unit=Units,offset=Offset}=Drag) ->
+    Move0 = lists:duplicate(length(Units),0.0),
+    Move = add_offset(Move0, Units, Offset),
+    motion_update(Move,Drag);
+
+motion_update({no_change,LastMove}, #drag{mode_data={_,MD}}=Drag) ->
+    motion_update(LastMove,Drag#drag{mode_data=MD});
+motion_update({no_change,_}, Drag) ->
+    Drag;
 
 motion_update(Move, #drag{unit=Units}=Drag) ->
     wings_dl:map(fun(D, _) ->
