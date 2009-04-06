@@ -314,6 +314,10 @@ sel_color() ->
     gl:color3fv(wings_pref:get_value(selected_color)).
 
 draw_vertices(#dlo{src_we=#we{perm=P},vs=VsDlist}, vertex) when ?IS_SELECTABLE(P) ->
+    {R,G,B} = wings_pref:get_value(vertex_color),
+	Size = wings_pref:get_value(vertex_size),
+    gl:pointSize(Size),
+    gl:color3f(R,G,B),
     wings_dl:call(VsDlist);
 draw_vertices(_, _) -> ok.
 
