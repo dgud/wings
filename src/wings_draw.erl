@@ -330,7 +330,7 @@ update_fun_2({vertex,PtSize}, #dlo{vs=none,src_we=We}=D, _) ->
     UnselDlist = gl:genLists(1),
     gl:newList(UnselDlist, ?GL_COMPILE),
     gl:pointSize(PtSize),
-	{R,G,B} = wings_pref:get_value(unlocked_vertex_color),
+	{R,G,B} = wings_pref:get_value(vertex_color),
     gl:color3f(R,G,B),
     gl:'begin'(?GL_POINTS),
     pump_vertices(visible_vertices(We)),
@@ -643,6 +643,7 @@ split_vs_dlist(Vs, StaticVs, {vertex,SelVs0}, #we{vp=Vtab}=We) ->
     case wings_pref:get_value(vertex_size) of
 	0.0 -> {none,none};
 	PtSize -> 
+	    {R,G,B} = wings_pref:get_value(vertex_color),
 	    DynVs = sofs:from_external(lists:merge(Vs, StaticVs), [vertex]),
 	    SelVs = sofs:from_external(gb_sets:to_list(SelVs0), [vertex]),
 	    UnselDyn0 = case wings_pref:get_value(hide_sel_while_dragging) of
@@ -653,7 +654,7 @@ split_vs_dlist(Vs, StaticVs, {vertex,SelVs0}, #we{vp=Vtab}=We) ->
 	    UnselDlist = gl:genLists(1),
 	    gl:newList(UnselDlist, ?GL_COMPILE),
 	    gl:pointSize(PtSize),
-	    gl:color3b(0, 0, 0),
+	    gl:color3f(R,G,B),
 	    gl:'begin'(?GL_POINTS),
 	    List0 = sofs:from_external(gb_trees:to_list(Vtab), [{vertex,info}]),
 	    List1 = sofs:drestriction(List0, DynVs),
@@ -700,10 +701,11 @@ dynamic_edges(#dlo{edges=[StaticEdge|_],ns=Ns}=D) ->
 dynamic_vs(#dlo{split=#split{dyn_vs=none}}=D) -> D;
 dynamic_vs(#dlo{src_we=#we{vp=Vtab},vs=[Static|_],
 		split=#split{dyn_vs=DynVs}}=D) ->
+    {R,G,B} = wings_pref:get_value(vertex_color),
     UnselDlist = gl:genLists(1),
     gl:newList(UnselDlist, ?GL_COMPILE),
     gl:pointSize(wings_pref:get_value(vertex_size)),
-    gl:color3b(0, 0, 0),
+    gl:color3f(R,G,B),
     gl:'begin'(?GL_POINTS),
     foreach(fun(V) ->
 		    gl:vertex3fv(gb_trees:get(V, Vtab))
