@@ -155,7 +155,8 @@ draw(plain, {vs,List}, _D, _Selmode) ->
         gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
         {R0,G0,B0,A} = wings_pref:get_value(masked_vertex_color),
         gl:color4f(R0, G0, B0, A),
-        wings_dl:call(List);
+        wings_dl:call(List),
+		gl:disable(?GL_BLEND);
       false-> ok
     end;
 draw(_,_,_,_) -> ok.

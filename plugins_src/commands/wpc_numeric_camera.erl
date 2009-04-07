@@ -39,8 +39,8 @@ parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 
 menu_entry() ->
-    {?__(1,"Position Camera"),camera_position,
-     ?__(2,"Set the position, focal point, and pan modifier for the camera numerically.")}.
+    {?__(1,"Numeric Camera Position"),camera_position,
+     ?__(2,"Set the position of the camera numerically.")}.
 
 command({view,camera_position},_) ->
     set_camera_position();
@@ -140,7 +140,7 @@ event_handler(#nc{st=St}=Nc) ->
 
 handle_event(redraw, #nc{st=St}) ->
     help(),
-    wings:redraw(St),
+    wings:redraw(?__(1,"Numeric Camera Preview"),St),
     keep;
 
 handle_event(#mousebutton{button=1,state=?SDL_PRESSED}, _) ->
@@ -169,10 +169,10 @@ exit_nc_mode(St) ->
     pop.
 
 help() ->
-    L = ?__(1,"Open numeric camera position dialog with current view"),
-    R = ?__(2,"Accept current camera position"),
+    L = ?__(1,"Re-open numeric camera dialog"),
+    R = ?__(2,"Accept current camera position and exit"),
     M =wings_msg:button_format(L,[],R),
-    V = "[1] " ++ ?__(3,"Flip between the new and old camera positions"),
+    V = "[1] " ++ ?__(3,"Flip between the old and new camera positions"),
     wings_wm:message(M,V).
 
 set_camera_position([CamX,CamY,CamZ, OriX,OriY,OriZ,
