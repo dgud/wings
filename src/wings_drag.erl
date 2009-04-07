@@ -737,9 +737,8 @@ mouse_range(#mousemotion{x=X0, y=Y0, state=Mask},
                    mode_data=MD,
                    xt=Xt0, yt=Yt0, mmb_count=Count0,
                    unit_sc=UnitScales, unit=Unit, offset=Offset,
-                   last_move=LastMove}=Drag0,
+                   last_move=LastMove,falloff=Falloff}=Drag0,
 			Mod) ->
-
     %%io:format("Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xs0,Ys0}]),
     [Xp,Yp,Zp,Fpp] = case Mod =/= 0 of
         true -> Psum0;
@@ -1032,13 +1031,18 @@ filter_angle(Degrees) ->
 %%%
 motion_update({_,undefined}, #drag{unit=Units,offset=Offset}=Drag) ->
     Move0 = lists:duplicate(length(Units),0.0),
-    Move = add_offset(Move0, Units, Offset),
+    Move1 = constrain_1(Units, Move0, Drag),
+    Move = add_offset(Move1, Units, Offset),
     motion_update(Move,Drag);
 
-motion_update({no_change,LastMove}, #drag{mode_data={_,MD}}=Drag) ->
-    motion_update(LastMove,Drag#drag{mode_data=MD});
-motion_update({no_change,_}, Drag) ->
+motion_update({no_change,LastMove}, #drag{unit=Units,mode_data={_,MD}}=Drag) ->
+    Move = constrain_1(Units, LastMove, Drag),
+    motion_update(Move,Drag#drag{mode_data=MD});
+motion_update({no_change,_}, #drag{falloff=none}=Drag) ->
     Drag;
+motion_update({no_change,LastMove}, #drag{unit=Units}=Drag) ->
+    Move = constrain_1(Units, LastMove, Drag),
+    motion_update(Move,Drag);
 
 motion_update(Move, #drag{unit=Units}=Drag) ->
     wings_dl:map(fun(D, _) ->
