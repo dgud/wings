@@ -129,7 +129,9 @@ check_preview_1(false,#nc{st=St}) ->
     St.
 
 event_handler(#nc{st=St}=Nc) ->
-    wings:mode_restriction([none]),
+    wings:mode_restriction([]),
+    Active = wings_wm:this(),
+    wings_wm:callback(fun() -> wings_u:menu_restriction(Active, []) end),
     wings_wm:current_state(St),
     wings_draw:update_sel_dlist(),
     wings_wm:dirty(),
