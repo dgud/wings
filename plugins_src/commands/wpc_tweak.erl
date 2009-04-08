@@ -544,17 +544,7 @@ handle_tweak_event1({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=S
         end,
         wings_view:command(Cmd0,St1),
         update_tweak_handler(T#tweak{st=OrigSt});
-    {view,Cmd} ->
-        case wings_view:command(Cmd,St0) of
-            keep -> keep;
-            #st{}=St ->
-                St1 = clear_temp_sel(St),
-                refresh_dlists(Cmd, St1),
-                update_tweak_handler(T#tweak{st=St1});
-            Other ->
-            %io:format("Other ~p\n",[Other]),
-              Other
-        end;
+        
     {edit,undo_toggle} ->
         St = wings_u:caption(wings_undo:undo_toggle(clear_temp_sel(St0))),
         wings_draw:refresh_dlists(St),
@@ -685,6 +675,15 @@ do_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
 %	  io:format("Other ~p\n",[Other]),
         Other
     end.
+do_wings_cmd({view,Cmd}, #tweak{st=#st{}=St0}=T) ->
+    case wings_view:command(Cmd,St0) of
+        #st{}=St ->
+            St1 = clear_temp_sel(St),
+            refresh_dlists(Cmd, St1),
+            update_tweak_handler(T#tweak{st=St1});
+        Other ->
+          Other
+    end;
 
 do_wings_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
     St1 = remember_command(Cmd, St0),
