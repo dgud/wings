@@ -16,7 +16,7 @@
 
 init() ->
     wings_pref:delete_value(sweep_mode),
-	wings_pref:delete_value(sweep_center),
+    wings_pref:delete_value(sweep_center),
     true.
 menu({face},Menu) ->
     lists:reverse(parse(Menu, [], false));
@@ -50,7 +50,7 @@ sweep_menu(Type) ->
       true ->
         F = fun(help, _Ns) ->
           Str1 = menu_string_1(Type),
-          Str2 = ?__(2,"Pick axis and measure extrusion relative to selection's length along that axis"),
+          Str2 = ?__(4,"Pick axis and extrude relative to percentage of selection's radius"),
           Str3 = ?__(3,"Pick axis"),
           {Str1,Str2,Str3};
           (1, _Ns) -> xyz(Type);
@@ -92,7 +92,7 @@ axis_menu(Type,Axis) ->
       true ->
           F = fun
           (help, _Ns) ->
-            Str3 = ?__(1,"Extrusion relative to selection's length along axis"),
+            Str3 = ?__(2,"Extrude relative to percentage of selection's radius"),
             {Help,[],Str3};
           (1, _Ns) -> {face,{Type,{absolute,Axis}}};
           (3, _Ns) -> {face,{Type,{relative,Axis}}};
@@ -216,16 +216,15 @@ sweep_extract(Type,Axis, St0) ->                                              %%
 %%%% Setup
 sweep_setup(Type,Axis,St) ->
     Prefs = wings_pref:get_value(sweep,{unlocked,unwarped,region,free_base}),
-	{Lock,Warp,Center,Base} = Prefs,
+    {Lock,Warp,Center,Base} = Prefs,
     State = {Lock,Axis,Warp,Center,Base},
 
     SelC = wings_sel:center(St),
 
     Tvs = wings_sel:fold(fun(Fs, #we{id=Id}=We, Acc) ->
-	        
+
             Regions = wings_sel:face_regions(Fs,We),
-            {AllVs0,VsData} = collect_data(Regions, We, Axis, SelC, [], State, [], []),
-            AllVs = ordsets:from_list(AllVs0),
+            {AllVs,VsData} = collect_data(Regions, We, Axis, SelC, [], State, [], []),
             [{Id, {AllVs, sweep_fun(Type, VsData, State)}} | Acc]
          end, [], St),
     Units = units(Type),
@@ -246,7 +245,7 @@ collect_data([Fs0|Rs], We, Axis0, SelC0, AllVs0, State, LVAcc0, ExData) ->
     ExVs = ordsets:subtract(RegVs, LoopVs),
     AllVs = ordsets:union(RegVs ,AllVs0),
 
-	LoopVs1 = [ V || V <- LoopVs , not ordsets:is_element(V,LVAcc0) ],
+    LoopVs1 = [ V || V <- LoopVs , not ordsets:is_element(V,LVAcc0) ],
 
     SeedVpos = add_vpos_data(seed,LoopVs1,We,[]),
     AllVpos = add_vpos_data(extrude,ExVs,We,SeedVpos),
@@ -327,11 +326,11 @@ loop_data_2(Edge, Edge, Es, Fs, Etab, Vtab, M, Vs) ->
 loop_data_3(LastE,#edge{ve=Vb,lf=PrevF},
         LastE, Es, _Fs, PrevF, Vb, VpB, _Etab, _Vtab, M, VPs, Vs0, Links) ->
     case M == PrevF of
-	  false ->
+      false ->
         LoopNorm = e3d_vec:normal([VpB|VPs]),
         Vs = [Vb|Vs0],
         {Es, LoopNorm, Links+1, Vs};
-	  true ->
+      true ->
         LoopNorm = e3d_vec:normal(VPs),
         {Es, LoopNorm, Links, Vs0}
     end;
@@ -339,11 +338,11 @@ loop_data_3(LastE,#edge{ve=Vb,lf=PrevF},
 loop_data_3(LastE,#edge{vs=Va,rf=PrevF},
         LastE, Es, _Fs, PrevF, Va, VpA, _Etab, _Vtab, M, VPs, Vs0, Links) ->
     case M == PrevF of
-	  false ->
+      false ->
         LoopNorm = e3d_vec:normal([VpA|VPs]),
         Vs = [Va|Vs0],
         {Es, LoopNorm, Links+1, Vs};
-	  true ->
+      true ->
         LoopNorm = e3d_vec:normal(VPs),
         {Es, LoopNorm, Links, Vs0}
     end;
@@ -351,7 +350,7 @@ loop_data_3(LastE,#edge{vs=Va,rf=PrevF},
 loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=PrevF,rf=Face,rtsu=NextEdge,ltsu=IfCurIsMember},
         LastE, Es0, Fs, PrevF, Vb, VpB, Etab, Vtab, M, VPs0, Vs0, Links) ->
     case gb_sets:is_member(CurE,Es0) of
-	  true ->
+      true ->
         EData = gb_trees:get(IfCurIsMember,Etab),
         Es = gb_sets:delete(CurE,Es0),
         VpA = gb_trees:get(Va,Vtab),
@@ -363,7 +362,7 @@ loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=PrevF,rf=Face,rtsu=NextEdge,ltsu=IfCurIsMe
           true ->
             loop_data_3(IfCurIsMember,EData,LastE,Es,Fs,Face,Va,VpA,Etab,Vtab,M,VPs0,Vs0,Links)
         end;
-	  false ->
+      false ->
         EData = gb_trees:get(NextEdge,Etab),
         loop_data_3(NextEdge, EData, LastE, Es0, Fs, Face, Vb, VpB, Etab, Vtab, M, VPs0, Vs0, Links)
     end;
@@ -371,7 +370,7 @@ loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=PrevF,rf=Face,rtsu=NextEdge,ltsu=IfCurIsMe
 loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevF,ltsu=NextEdge,rtsu=IfCurIsMember},
         LastE, Es0, Fs, PrevF, Va, VpA, Etab, Vtab, M, VPs0, Vs0, Links) ->
     case gb_sets:is_member(CurE,Es0) of
-	  true ->
+      true ->
         EData = gb_trees:get(IfCurIsMember,Etab),
         Es = gb_sets:delete(CurE,Es0),
         VpB = gb_trees:get(Vb,Vtab),
@@ -383,7 +382,7 @@ loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevF,ltsu=NextEdge,rtsu=IfCurIsMe
           true ->
             loop_data_3(IfCurIsMember,EData,LastE,Es,Fs,Face,Vb,VpB,Etab,Vtab,M,VPs0,Vs0,Links)
         end;
-	  false ->
+      false ->
         EData = gb_trees:get(NextEdge,Etab),
         loop_data_3(NextEdge, EData, LastE, Es0, Fs, Face, Va, VpA, Etab, Vtab, M, VPs0, Vs0, Links)
     end.
@@ -483,8 +482,8 @@ modes() ->
       ({key,$3},{unlocked,_axis,_warp,_cntr,_base}) -> {locked,_axis,_warp,_cntr,_base};
       ({key,$3},{locked,_axis,_warp,_cntr,_base})   -> {unlocked,_axis,_warp,_cntr,_base};
 
-      ({key,$4},{_lock,_axis,_warp,_cntr,free_base}) ->   {_lock,_axis,_warp,_cntr,freeze_base};
-      ({key,$4},{_lock,_axis,_warp,_cntr,freeze_base})   -> {_lock,_axis,_warp,_cntr,free_base};
+      ({key,$4},{_lock,_axis,_warp,_cntr,free_base})   -> {_lock,_axis,_warp,_cntr,freeze_base};
+      ({key,$4},{_lock,_axis,_warp,_cntr,freeze_base}) -> {_lock,_axis,_warp,_cntr,free_base};
 
       (done,{Lock,_axis,Warp,Cntr,Base}) -> wings_pref:set_value(sweep,{Lock,Warp,Cntr,Base});
       (_,_) -> none
@@ -495,7 +494,7 @@ sweep_help({Lock,Axis,Warp,Cntr,Base}) ->
     [cntr_help(Cntr),
      warp_help(Axis,Warp),
      lock_help(Lock,Axis),
-	 base_help(Base)].
+     base_help(Base)].
 
 cntr_help(region)         -> ?__(1,"[1] Selection Center");
 cntr_help(common)         -> ?__(2,"[1] Region Center").
@@ -508,8 +507,8 @@ lock_help(unlocked,free)  -> ?__(1,"  [3] Lock Axis");
 lock_help(locked,free)    -> ?__(2,"  [3] Screen Relative");
 lock_help(_,_)            -> [].
 
-base_help(free_base) -> ?__(1,"  [4] Freeze Base");
-base_help(freeze_base) -> ?__(2,"  [4] Thaw Base").
+base_help(free_base)      -> ?__(1,"  [4] Freeze Base");
+base_help(freeze_base)    -> ?__(2,"  [4] Thaw Base").
 
 %%%% Sweep Mode/View Changes
 sweep_fun(Type, VsData, State) ->
@@ -631,10 +630,12 @@ axis_conversion(Axis,Norm) ->
       z -> {0.0,0.0,-1.0};
       free -> view_vector();
       normal -> Norm;
-      last_axis -> {_, Dir} = wings_pref:get_value(last_axis),
-                   Dir;
-      default_axis -> {_, Dir} = wings_pref:get_value(default_axis),
-                      Dir;
+      last_axis ->
+          {_, Dir} = wings_pref:get_value(last_axis),
+          Dir;
+      default_axis ->
+          {_, Dir} = wings_pref:get_value(default_axis),
+          Dir;
       {_,_,_} -> Axis
     end.
 
@@ -651,7 +652,7 @@ rotate(Vpos,Norm,{Cx,Cy,Cz},Angle) ->
     e3d_mat:mul_point(A2,Vpos).
 
 sweep_error() ->
-    wings_u:error(?__(1,"The average normal for a region cannot be null")).
+    wings_u:error(?__(2,"Sweep Region won't work for wholly selected objects")).
 
 view_vector() ->
     #view{azimuth=Az,elevation=El} = wings_view:current(),
