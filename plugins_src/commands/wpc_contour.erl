@@ -269,8 +269,7 @@ string(per_obj) -> ?__(4,"Object");
 string(per_face) -> ?__(5,"Face").
 
 abs_rel_help(inset_faces, relative) -> "  [5] " ++ ?__(1,"Distance");
-abs_rel_help(inset_faces, absolute) -> "  [5] " ++ ?__(2,"Percent");
-abs_rel_help(_, _) -> [].
+abs_rel_help(inset_faces, absolute) -> "  [5] " ++ ?__(2,"Percent").
 
 stop_edge_help(continue) -> ?__(1,"Stop at edges");
 stop_edge_help(stop) -> ?__(2,"Continue past edges").

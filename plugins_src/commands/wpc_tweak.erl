@@ -298,15 +298,15 @@ handle_tweak_event1(#mousemotion{x=X,y=Y,state=State,mod=Mod},
     LL = wings_pref:get_value(tweak_double_click),
     Lm = L == false andalso LL == false,
     Mode=if
-         Mod1 and Mod3 and Lm -> slide;
-         Mod1 and Mod3 and TwkCtrl -> slide;
-         Mod1 and Mod3 and MayaMod -> slide;
-         Mod1 and Mod2 -> relax;
-         Mod2 and Mod3 -> tangent;
-         Mod3 andalso TwkCtrl==false andalso Cam =/= mb and not Lm and not MayaMod -> slide;
+         Mod1, Mod3, Lm -> slide;
+         Mod1, Mod3, TwkCtrl -> slide;
+         Mod1, Mod3, MayaMod -> slide;
+         Mod1, Mod2 -> relax;
+         Mod2, Mod3 -> tangent;
+         Mod3 andalso TwkCtrl==false andalso Cam =/= mb, not Lm, not MayaMod -> slide;
          Mod1 andalso TwkCtrl==false andalso Cam == mb andalso Lm==false -> slide;
          Mod1 -> normal;
-         Mod3 and MayaMod -> normal;
+         Mod3, MayaMod -> normal;
          State == ?SDL_BUTTON_MMASK andalso Cam == maya -> normal;
          C == [true,true,false] -> xymove;
          C == [false,true,true] -> yzmove;
