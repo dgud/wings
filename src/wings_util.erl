@@ -203,7 +203,16 @@ gb_trees_largest_key(Tree) ->
     {Key,_Val} = gb_trees:largest(Tree),
     Key.
 
-gb_trees_map(F, {Size,Tree}) ->
+gb_trees_map(F, Tree) ->
+    try
+	gb_trees:map(F, Tree)
+    catch
+	error:undef ->
+	    %% Fallback for R12B.
+	    gb_trees_map_0(F, Tree)
+    end.
+
+gb_trees_map_0(F, {Size,Tree}) when is_function(F, 2) ->
     {Size,gb_trees_map_1(F, Tree)}.
 
 gb_trees_map_1(_, nil) -> nil;
