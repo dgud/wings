@@ -510,15 +510,25 @@ inactive(_X, _Y, R, G, B) -> [R,G,B].
 %%% Input.
 %%%
 
-putback_event(Event) ->
-    {In,Out} = get(?EVENT_QUEUE),
-    put(?EVENT_QUEUE, {In,[Event|Out]}).
+putback_event(Ev) ->
+    Q = get(?EVENT_QUEUE),
+    put(?EVENT_QUEUE, queue:in_r(Ev, Q)).
 
 putback_event_once(Ev) ->
-    {In,Out} = get(?EVENT_QUEUE),
-    case member(Ev, In) orelse member(Ev, Out) of
+    Q = get(?EVENT_QUEUE),
+    case queue_member(Ev, Q) of
 	true -> ok;
-	false -> put(?EVENT_QUEUE, {In,[Ev|Out]})
+	false -> put(?EVENT_QUEUE, queue:in_r(Ev, Q))
+    end.
+
+queue_member(X, Q) ->
+    try
+	queue:member(X, Q)
+    catch
+	error:undef ->
+	    %% XXX Fallback for R12B.
+	    {In,Out} = Q,
+	    member(X, In) orelse member(X, Out)
     end.
 
 get_event() ->
