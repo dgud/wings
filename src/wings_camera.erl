@@ -17,8 +17,8 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--define(ZOOM_FACTOR, 20.0).
--define(ZOOM_FACTOR_ALT, 1.0).
+-define(ZOOM_FACTOR, 20).
+-define(ZOOM_FACTOR_ALT, 1).
 
 -define(CAMDIV, 4).
 
