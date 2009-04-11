@@ -529,24 +529,12 @@ get_event() ->
 
 get_matching_events(Filter) ->
     Eq = get(?EVENT_QUEUE),
-    get_matching_events_1(Filter, Eq, [], []).
-
-get_matching_events_1(Filter, Eq0, Match, NoMatch) ->
-    case queue:out(Eq0) of
-	{{value,Ev},Eq} ->
-	    case Filter(Ev) of
-		false ->
-		    get_matching_events_1(Filter, Eq, Match, [Ev|NoMatch]);
-		true ->
-		    get_matching_events_1(Filter, Eq, [Ev|Match], NoMatch)
-	    end;
-	{empty,{In,Out}} ->
-	    case Match of
-		[] -> [];
-		_ ->
-		    put(?EVENT_QUEUE, {In,reverse(NoMatch, Out)}),
-		    Match
-	    end
+    {Match,NoMatch} = lists:partition(Filter, queue:to_list(Eq)),
+    case Match of
+	[] -> [];
+	_ ->
+	    put(?EVENT_QUEUE, queue:from_list(NoMatch)),
+	    Match
     end.
 
 get_sdl_event() ->
