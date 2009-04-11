@@ -737,7 +737,7 @@ mouse_range(#mousemotion{x=X0, y=Y0, state=Mask},
                    mode_data=MD,
                    xt=Xt0, yt=Yt0, mmb_count=Count0,
                    unit_sc=UnitScales, unit=Unit, offset=Offset,
-                   last_move=LastMove,falloff=Falloff}=Drag0,
+                   last_move=LastMove}=Drag0,
 			Mod) ->
     %%io:format("Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xs0,Ys0}]),
     [Xp,Yp,Zp,Fpp] = case Mod =/= 0 of
