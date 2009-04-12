@@ -257,15 +257,15 @@ enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev={SelMode,_,{Obj,Ele
             Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
             {X,Y,Z} = e3d_vec:average({Xa,Ya,Za}, {Xb,Yb,Zb}),
             [Base|io_lib:format(?__(3,". Midpoint <~s  ~s  ~s>\nLength ~s") ++
-                                "  <~s  ~s  ~s>" ++ "\nVa = ~p\nVb = ~p",
+                                "  <~s  ~s  ~s>", %++ "\nVa = ~p\nVb = ~p",
                                 [wings_util:nice_float(X),
                                  wings_util:nice_float(Y),
                                  wings_util:nice_float(Z),
                                  wings_util:nice_float(Length),
                                  wings_util:nice_float(abs(Xb - Xa)),
                                  wings_util:nice_float(abs(Yb - Ya)),
-                                 wings_util:nice_float(abs(Zb - Za)),
-								 Va,Vb])];
+                                 wings_util:nice_float(abs(Zb - Za))])];
+								% Va,Vb])];
           face ->
             {X,Y,Z} = wings_face:center(Elem, We),
             Area = area_info(Elem, We),

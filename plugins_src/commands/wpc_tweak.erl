@@ -823,8 +823,8 @@ end_pick(false, #tweak{st=St0}=T) ->
     help(T),
     handle_tweak_event1({new_state,St},T#tweak{tmode=wait}).
 
-end_pick_1(#dlo{ns=Ns,proxy_data=Pd,src_we=We},St0) ->
-    {#dlo{ns=Ns,proxy_data=Pd,src_we=We},St0}.
+end_pick_1(#dlo{mirror=M,ns=Ns,proxy_data=Pd,src_we=We},St0) ->
+    {#dlo{ns=Ns,mirror=M,proxy_data=Pd,src_we=We},St0}.
 
 sel_to_vs(edge, _, We) when ?IS_LIGHT(We) ->
     Items = gb_sets:to_list(wings_sel:get_all_items(edge, We)),
