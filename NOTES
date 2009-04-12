@@ -1,4 +1,4 @@
---- 0.99.XX -----------------------------------------------------------------
+--- 0.99.54 -----------------------------------------------------------------
 - Extended Edge|Circularise Lmb to handle multiple open edge loops. [optigon]
 
 - Added mmb select option to Tweak, for Maya camera mode users. [optigon]
