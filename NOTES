@@ -1,9 +1,18 @@
---- 0.99.XX -----------------------------------------------------------------
+--- 0.99.54a -----------------------------------------------------------------
 - Fixed mirror side Tweak mode selection bug reported by Fonte Boa. [optigon]
 
 - New Feature: File|Import|PostScript(.ps) allows Wings to import .ps files from
   such applications as Inkscape. This feature reuses code from the .ai import
   plugin originally written by Howard Trickey. [optigon]
+
+- Fixed a bug which I introduced when I cleaned up some code and corrected
+  a mis-feature.
+
+  (Details: wings_io:get_matchings_events/1 used to return message in the
+  reversed order compared to in the order they were put into the queue;
+  I changed that so messages are returned in the same order as they were
+  queued. Code in at least one other place (wings_toolbar) depended on
+  the exact order of the messages.) [bjorng]
 
 --- 0.99.54 -----------------------------------------------------------------
 - Extended Edge|Circularise Lmb to handle multiple open edge loops. [optigon]
