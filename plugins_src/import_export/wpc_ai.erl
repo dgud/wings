@@ -1,8 +1,8 @@
 %%
 %%  wpc_ai.erl --
 %%
-%%     Adobe Illustrator (.ai) import
-%%     Adobe PostScript (.ps) import -- added 2009 by Richard Jones
+%%     Adobe Illustrator (.ai) import by Howard Trickey
+%%     Adobe PostScript (.ps / .eps) import -- added 2009 by Richard Jones
 %%
 %%  For now:
 %%     - Only Illustrator version 8 or less files parsed (v9 -> pdf)
@@ -21,9 +21,7 @@
 
 -define(SCALEFAC, 0.01).		% amount to scale AI coords by
 
-						% polyarea and cedge records must match definitions in wpc_tt.erl
-
--record(cedge,
+-record(cedge,% polyarea and cedge records must match definitions in wpc_tt.erl
 	{vs,cp1=nil,cp2=nil,ve}).	%all are {x,y} pairs
 
 -record(path,
@@ -48,7 +46,7 @@ init() -> true.
 
 menu({file,import}, Menu) ->
     Menu ++ [{"Adobe Illustrator (.ai)...",ai,[option]},
-	         {"Post Script (.ps)...", ps, [option]}];
+	         {"Adobe PostScript (.ps/.eps)...", ps, [option]}];
 menu(_, Menu) -> Menu.
 
 command({file,{import,{ai,Ask}}}, _St) when is_atom(Ask) ->
@@ -62,11 +60,12 @@ command({file,{import,ai,[Nsub]}}, St) ->
 
 command({file,{import,{ps,Ask}}}, _St) when is_atom(Ask) ->
     DefBisect = wpa:pref_get(wpc_ai, ps_bisections, 0),
-    wpa:ask(Ask, ?__(4,"Ps Import Options"),
+    wpa:ask(Ask, ?__(4,"PS/EPS Import Options"),
 	    [{?__(2,"Number of edge bisections"), DefBisect}],
 	    fun(Res) -> {file,{import, ps, Res}} end);
 command({file,{import, ps, [Nsub]}}, St) ->
-    Props = [{ext,".ps"},{ext_desc,?__(5,"Post Script File")}],
+    Props = [{extensions,[{".ps",?__(5,"PostScript File")},
+	                      {".eps",?__(6,"Encapsulated PostScript File")}]}],
     wpa:import(Props, fun(F) -> make_ps(F, Nsub) end, St);
 
 command(_, _) ->
@@ -90,7 +89,7 @@ make_ps(Name, Nsubsteps) ->
 	{error,Reason} ->
 	    {error, ?__(1,"PS import failed")++": " ++ Reason};
 	E -> 
-	io:format("E ~p\n",[E]),
+	io:format("File Import Error Report:\n ~p\n",[E]),
 	    {error, ?__(2,"PS import internal error")}
     end.
 
@@ -127,7 +126,7 @@ try_import_ps(Name, Nsubsteps) ->
 		Obj = #e3d_object{name=Name,obj=Mesh},
 		{ok, #e3d_file{objs=[Obj]}};
     {ok,_} ->
-		{error,?__(1,"Not an Adobe Post Script file")};
+		{error,?__(1,"Not an Adobe PostScript file")};
 	    {error,Reason} ->
 		{error,file:format_error(Reason)}
 	end.
@@ -318,7 +317,7 @@ ps_dopathop2("moveto",{X1a,Y1a}, #pstate{translate={TX,TY}}=Pst) ->
 	finishpop(#pathop{opkind=pmoveto,x1=X1,y1=Y1},Pst);
 
 ps_dopathop2("translate",{X,Y},Pst) ->
-	Pst#pstate{translate={X/2,(Y/4)*5}};
+	Pst#pstate{translate={X/2, (Y/4)*5 }};
 	
 ps_dopathop2("lineto",{X1a,Y1a},#pstate{translate={TX,TY}}=Pst) ->
     X1 = X1a-TX,
