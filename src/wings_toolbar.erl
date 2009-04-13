@@ -78,6 +78,8 @@ button_event({current_state,#st{selmode=Mode,sh=Sh}}, But) ->
     get_button_event(But#but{mode=Mode,sh=Sh});
 button_event({mode_restriction,Restr}, #but{restr=Restr}) ->
     keep;
+button_event({mode_restriction,Restr}, #but{all_buttons=undefined}=But) ->
+    get_button_event(But#but{restr=Restr});
 button_event({mode_restriction,Restr}, #but{all_buttons=AllButtons}=But) ->
     Buttons = button_restrict(AllButtons, Restr),
     wings_wm:dirty(),
