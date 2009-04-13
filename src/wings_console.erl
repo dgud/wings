@@ -3,7 +3,7 @@
 %%
 %%     Console for Wings.
 %%
-%%  Copyright (c) 2004-2008 Raimo Niskanen
+%%  Copyright (c) 2004-2009 Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -431,6 +431,15 @@ forward({io_request,From,ReplyAs,Req0}) ->
     Req = forward_1(Req0),
     group_leader() ! {io_request,From,ReplyAs,Req}.
     
+forward_1({put_chars,unicode,Chars}) when is_binary(Chars) ->
+    {put_chars,Chars};
+forward_1({put_chars,unicode,Chars}) when is_list(Chars) ->
+    try
+	{put_chars,list_to_binary(Chars)}
+    catch
+	error:badarg ->
+	    {put_chars,filter_chars(Chars)}
+    end;
 forward_1({put_chars,Chars}) when is_list(Chars) ->
     try
 	{put_chars,list_to_binary(Chars)}
@@ -440,6 +449,8 @@ forward_1({put_chars,Chars}) when is_list(Chars) ->
     end;
 forward_1({put_chars,Chars}=Req) when is_binary(Chars) ->
     Req;
+forward_1({put_chars,unicode,Mod,Func,Args}) ->
+    forward_1({put_chars,unicode,apply(Mod, Func, Args)});
 forward_1({put_chars,Mod,Func,Args}) ->
     forward_1({put_chars,apply(Mod, Func, Args)}).
 
@@ -457,6 +468,16 @@ filter_chars([]) -> [].
 
 io_request(State, {put_chars,Chars}) ->
     {put_chars(State, Chars),ok,forward};
+io_request(State, {put_chars,unicode,Chars}) ->
+    io:format("~p\n", [unicode:characters_to_list(Chars)]),
+    {put_chars(State, unicode:characters_to_list(Chars)),ok,forward};
+io_request(State, {put_chars,unicode,Mod,Func,Args}) ->
+    case catch apply(Mod, Func, Args) of
+	Chars when is_list(Chars); is_binary(Chars) ->
+	    io_request(State, {put_chars,unicode,Chars});
+	_ ->
+	    {State,{error,Func},error}
+    end;
 io_request(State, {put_chars,Mod,Func,Args}) ->
     case catch apply(Mod, Func, Args) of
 	Chars when is_list(Chars); is_binary(Chars) ->
