@@ -1,3 +1,10 @@
+--- 0.99.XX -----------------------------------------------------------------
+- Fixed mirror side Tweak mode selection bug reported by Fonte Boa. [optigon]
+
+- New Feature: File|Import|PostScript(.ps) allows Wings to import .ps files from
+  such applications as Inkscape. This feature reuses code from the .ai import
+  plugin originally written by Howard Trickey. [optigon]
+
 --- 0.99.54 -----------------------------------------------------------------
 - Extended Edge|Circularise Lmb to handle multiple open edge loops. [optigon]
 

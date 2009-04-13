@@ -2,6 +2,7 @@
 %%  wpc_ai.erl --
 %%
 %%     Adobe Illustrator (.ai) import
+%%     Adobe PostScript (.ps) import -- added 2009 by Richard Jones
 %%
 %%  For now:
 %%     - Only Illustrator version 8 or less files parsed (v9 -> pdf)
@@ -27,7 +28,7 @@
 
 -record(path,
 	{ops=[],			%list of pathops
-	 close=false}).			%true or false
+	 close=false}).		%true or false
 
 -record(pathop,
 	{opkind,			%pmoveto, plineto, or pcurveto
@@ -40,12 +41,14 @@
 
 -record(pstate,
 	{curpath=#path{},		%current path
-	 objects=[]}).			%object list (paths)
+	 objects=[],            %object list (paths)
+	 translate=none}).    %for postscript orientation and placement fix (kinda)			
 
 init() -> true.
 
 menu({file,import}, Menu) ->
-    Menu ++ [{"Adobe Illustrator (.ai)...",ai,[option]}];
+    Menu ++ [{"Adobe Illustrator (.ai)...",ai,[option]},
+	         {"Post Script (.ps)...", ps, [option]}];
 menu(_, Menu) -> Menu.
 
 command({file,{import,{ai,Ask}}}, _St) when is_atom(Ask) ->
@@ -56,18 +59,39 @@ command({file,{import,{ai,Ask}}}, _St) when is_atom(Ask) ->
 command({file,{import,ai,[Nsub]}}, St) ->
     Props = [{ext,".ai"},{ext_desc,?__(3,"Adobe Illustrator File")}],
     wpa:import(Props, fun(F) -> make_ai(F, Nsub) end, St);
+
+command({file,{import,{ps,Ask}}}, _St) when is_atom(Ask) ->
+    DefBisect = wpa:pref_get(wpc_ai, ps_bisections, 0),
+    wpa:ask(Ask, ?__(4,"Ps Import Options"),
+	    [{?__(2,"Number of edge bisections"), DefBisect}],
+	    fun(Res) -> {file,{import, ps, Res}} end);
+command({file,{import, ps, [Nsub]}}, St) ->
+    Props = [{ext,".ps"},{ext_desc,?__(5,"Post Script File")}],
+    wpa:import(Props, fun(F) -> make_ps(F, Nsub) end, St);
+
 command(_, _) ->
     next.
 
 make_ai(Name, Nsubsteps) ->
     case catch tryimport(Name, Nsubsteps) of
 	{ok, E3dFile} ->
-	    wpa:pref_set(wp0_ai, bisections, Nsubsteps),
+	    wpa:pref_set(wpc_ai, bisections, Nsubsteps),
 	    {ok, E3dFile};
 	{error,Reason} ->
 	    {error, ?__(1,"AI import failed")++": " ++ Reason};
 	_ ->
 	    {error, ?__(2,"AI import internal error")}
+    end.
+make_ps(Name, Nsubsteps) ->
+    case catch try_import_ps(Name, Nsubsteps) of
+	{ok, E3dFile} ->
+	    wpa:pref_set(wpc_ai, ps_bisections, Nsubsteps),
+	    {ok, E3dFile};
+	{error,Reason} ->
+	    {error, ?__(1,"PS import failed")++": " ++ Reason};
+	E -> 
+	io:format("E ~p\n",[E]),
+	    {error, ?__(2,"PS import internal error")}
     end.
 
 tryimport(Name, Nsubsteps) ->
@@ -83,8 +107,27 @@ tryimport(Name, Nsubsteps) ->
 		Mesh = #e3d_mesh{type=polygon,vs=Vs,fs=Efs},
 		Obj = #e3d_object{name=Name,obj=Mesh},
 		{ok, #e3d_file{objs=[Obj]}};
-	    {ok,_} ->
+    {ok,_} ->
 		{error,?__(1,"Not an Adobe Illustrator File (Version 8 or earlier)")};
+	    {error,Reason} ->
+		{error,file:format_error(Reason)}
+	end.
+
+try_import_ps(Name, Nsubsteps) ->
+    case file:read_file(Name) of
+	{ok,<<"%!PS-Adobe",Rest/binary>>} ->
+		Objs = tokenize_bin_ps(Rest),
+		Closedpaths = [ P || P <- Objs, P#path.close == true ],
+		Cntrs = getcontours(Closedpaths),
+		Pas = wpc_tt:findpolyareas(Cntrs),
+		Pas1 = wpc_tt:subdivide_pas(Pas,Nsubsteps),
+		{Vs,Fs} = wpc_tt:polyareas_to_faces(Pas1),
+		Efs = [ #e3d_face{vs=X} || X <- Fs],
+		Mesh = #e3d_mesh{type=polygon,vs=Vs,fs=Efs},
+		Obj = #e3d_object{name=Name,obj=Mesh},
+		{ok, #e3d_file{objs=[Obj]}};
+    {ok,_} ->
+		{error,?__(1,"Not an Adobe Post Script file")};
 	    {error,Reason} ->
 		{error,file:format_error(Reason)}
 	end.
@@ -95,6 +138,12 @@ tokenize_bin(Bin) ->
 	Objs = parsetokens(Toks),
 	Objs.
 
+tokenize_bin_ps(Bin) ->
+	Chars = after_end_setup_ps(Bin),
+	Toks = tokenize(Chars, []), % seems to be the same as what is needed for .ps
+	Objs = parse_tokens_ps(Toks),
+	Objs.
+
 % skip until after %%EndSetup line, as we currently use nothing before that,
 % then convert rest of binary to list of characters
 afterendsetup(<<"%%EndSetup",Rest/binary>>) ->
@@ -102,6 +151,12 @@ afterendsetup(<<"%%EndSetup",Rest/binary>>) ->
 afterendsetup(<<_,Rest/binary>>) ->
 	afterendsetup(Rest);
 afterendsetup(_) -> [].
+
+after_end_setup_ps(<<"%%Page: 1 1",Rest/binary>>) ->
+	binary_to_list(Rest);
+after_end_setup_ps(<<_,Rest/binary>>) ->
+	after_end_setup_ps(Rest);
+after_end_setup_ps(_) -> [].
 
 % tokenize first list (characters from file) into list of tokens
 % (accumulated reversed in second list, reversed at end).
@@ -123,7 +178,7 @@ tokenize("<" ++ T, Toks) ->
 	tokenize(skiphexstring(T), [{tstring}|Toks]);
 tokenize([C|T], Toks) when C == $[; C == $]; C == ${; C == $} ->
 	tokenize(T, [{tname,[C]}|Toks]);
-tokenize([C|_] = Arg, Toks) when C >= $0, C =< $9 ->
+tokenize([C|_] = Arg, Toks) when C >= $0, C =< $9; C==$- ->
 	{Tok,TT} = parsenum(Arg),
 	tokenize(TT, [Tok|Toks]);
 tokenize(Arg, Toks) ->
@@ -137,20 +192,20 @@ isnttokbreak(C) -> not(member(C, " \t\r\n()<>[]{}/%")).
 % AI numbers are either ints or floats
 % no radix notation for ints, no scientific notation for floats
 parsenum([C|Rest]=L) ->
-	case regexp:match(L, "^((\\+|-)?([0-9]+\\.[0-9]*)|(\\.[0-9]+))") of
-	    {match, 1, Length} ->
-		Fstr = sublist(L, Length),
-		F = list_to_float(Fstr),
+	case re:run(L, "^((\\+|\\-?)([0-9]+\\.[0-9]*)|(\\.[0-9]+))",[{capture,first}]) of
+	    {match,[{0,Length}]} ->
+		    Fstr = sublist(L, Length),
+		    F = list_to_float(Fstr),
 		{{tnum,F}, nthtail(Length, L)};
 	    nomatch ->
-		case regexp:match(L, "^(\\+|-)?[0-9]+") of
-		    {match, 1, Length} ->
-			Istr = sublist(L, Length),
-			I = list_to_integer(Istr),
-			{{tnum,float(I)}, nthtail(Length, L)};
-		    nomatch ->
-			{{tname,[C]}, Rest}
-		end
+		  case re:run(L, "^(\\+|-)?[0-9]+", [{capture,first}]) of
+		      {match, [{0, Length}]} ->
+		          Istr = sublist(L, Length),
+		          I = list_to_integer(Istr),
+		          {{tnum,float(I)}, nthtail(Length, L)};
+		      nomatch ->
+		          {{tname,[C]}, Rest}
+		  end
 	end.
 
 % skip past next end of line, return rest
@@ -179,6 +234,10 @@ parsetokens(Toks) ->
 	#pstate{objects=Objs}=parse(Toks, #pstate{}),
 	Objs.
 
+parse_tokens_ps(Toks) ->
+	#pstate{objects=Objs}=parse_ps(Toks, #pstate{}),
+	Objs.
+
 parse([],#pstate{objects=Objs}=Pst) ->
 	Pst#pstate{objects=reverse(Objs)};
 parse([{tname,[_|_]=N}|T], Pst) ->
@@ -192,6 +251,25 @@ parse([{tnum,X1},{tnum,Y1},{tnum,X2},{tnum,Y2},{tnum,X3},{tnum,Y3},
 	parse(T,dopathop6(N,{X1,Y1,X2,Y2,X3,Y3},Pst));
 parse([_|T], Pst) ->
 	parse(T, Pst).
+
+	
+%% PS Parse
+parse_ps([],#pstate{objects=Objs}=Pst) -> % done
+	Pst#pstate{objects=reverse(Objs)};
+
+parse_ps([ {tname,[_|_]=N} | T ], Pst) ->
+	parse_ps(T,ps_dorenderop(N,ps_dopathop0(N,Pst)));
+
+parse_ps([{tnum,X1},{tnum,Y1},{tname,[_|_]=N}|T], Pst) ->
+	parse_ps(T,ps_dopathop2(N,{X1,Y1},Pst));
+parse_ps([{tnum,X1},{tnum,Y1},{tnum,X2},{tnum,Y2},{tname,[_|_]=N}|T], Pst) ->
+	parse_ps(T,ps_dopathop4(N,{X1,Y1,X2,Y2},Pst));
+parse_ps([{tnum,X1},{tnum,Y1},{tnum,X2},{tnum,Y2},{tnum,X3},{tnum,Y3},
+		{tname,[_|_]=N}|T], Pst) ->
+	parse_ps(T,ps_dopathop6(N,{X1,Y1,X2,Y2,X3,Y3},Pst));
+parse_ps([_|T], Pst) ->
+	parse_ps(T, Pst).
+
 
 % check if C is a no-arg path operation, and if so, return a modified Pst,
 % otherwise return original Pst
@@ -228,6 +306,40 @@ dopathop6([C],{X1,Y1,X2,Y2,X3,Y3},Pst) when C==$c; C==$C ->
 	finishpop(#pathop{opkind=pcurveto,x1=X1,y1=Y1,x2=X2,y2=Y2,x3=X3,y3=Y3},Pst);
 dopathop6(_,_,Pst) -> Pst.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ps_dopathop0("closepath",Pst) ->
+	P = Pst#pstate.curpath,
+	Pst#pstate{curpath=P#path{close=true}};
+ps_dopathop0(_,Pst) -> Pst.
+
+ps_dopathop2("moveto",{X1a,Y1a}, #pstate{translate={TX,TY}}=Pst) ->
+    X1 = X1a-TX,
+    Y1 = TY-Y1a,
+	finishpop(#pathop{opkind=pmoveto,x1=X1,y1=Y1},Pst);
+
+ps_dopathop2("translate",{X,Y},Pst) ->
+	Pst#pstate{translate={X/2,(Y/4)*5}};
+	
+ps_dopathop2("lineto",{X1a,Y1a},#pstate{translate={TX,TY}}=Pst) ->
+    X1 = X1a-TX,
+    Y1 = TY-Y1a,
+	finishpop(#pathop{opkind=plineto,x1=X1,y1=Y1},Pst);
+
+ps_dopathop2(_,_,Pst) -> Pst.
+
+ps_dopathop4(_,_,Pst) -> Pst.
+
+ps_dopathop6("curveto",{X1a,Y1a,X2a,Y2a,X3a,Y3a},#pstate{translate={TX,TY}}=Pst) ->
+    Y1 = TY-Y1a,
+	Y2 = TY-Y2a,
+	Y3 = TY-Y3a,
+    X1 = X1a-TX,
+	X2 = X2a-TX,
+	X3 = X3a-TX,
+	finishpop(#pathop{opkind=pcurveto,x1=X1,y1=Y1,x2=X2,y2=Y2,x3=X3,y3=Y3},Pst);
+ps_dopathop6(_,_,Pst) -> Pst.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % finish job of dopathop[2,4,6] by putting arg pathop onto curpath's ops list
 % and returning Pst with modified curpath
 finishpop(#pathop{opkind=pmoveto}=Pop, #pstate{curpath=#path{ops=[]}}=Pst) ->
@@ -245,6 +357,17 @@ dorenderop([C],Pst) when C==$N; C==$F; C==$S ->
 dorenderop([$B,C],Pst) when C==$b; C==$g; C==$m; C==$c; C==$B ->
 	finishrop(false,Pst);
 dorenderop(_,Pst) -> Pst.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ps_dorenderop("closepath",Pst) ->
+    finishrop(true,Pst);
+ps_dorenderop("newpath",Pst) ->
+    finishrop(false,Pst);
+
+ps_dorenderop(_,Pst) -> Pst.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 finishrop(Close,#pstate{curpath=P,objects=Objs}=Pst) ->
 	#path{close=Pclose,ops=Ops} = P,
