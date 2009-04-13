@@ -469,7 +469,6 @@ filter_chars([]) -> [].
 io_request(State, {put_chars,Chars}) ->
     {put_chars(State, Chars),ok,forward};
 io_request(State, {put_chars,unicode,Chars}) ->
-    io:format("~p\n", [unicode:characters_to_list(Chars)]),
     {put_chars(State, unicode:characters_to_list(Chars)),ok,forward};
 io_request(State, {put_chars,unicode,Mod,Func,Args}) ->
     case catch apply(Mod, Func, Args) of
