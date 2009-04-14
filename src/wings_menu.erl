@@ -38,7 +38,7 @@
 	 timer=make_ref(),			%Active submenu timer.
 	 level=?INITIAL_LEVEL,			%Menu level.
 	 adv,					%Advanced menus (true|false).
-	 type=plain,				%Type of menu: plain|popup
+	 type,				        %Type of menu: plain|popup
 	 owner,					%Owning window.
 	 flags=[]				%Flags (magnet/dialog).
 	}).
@@ -72,11 +72,11 @@ popup_menu(X, Y, Name, Menu) ->
     menu_setup(popup, X, Y, Name, Menu,
 	       #mi{adv=true,owner=wings_wm:this()}).
 
-menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0,adv=Adv}=Mi0) ->
+menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0}=Mi0) ->
     Names = [Name|Names0],
     Menu1 = wings_plugin:menu(list_to_tuple(reverse(Names)), Menu0),
     Hotkeys = wings_hotkey:matching(Names),
-    Menu = normalize_menu(Menu1, Hotkeys, Adv),
+    Menu = normalize_menu(Menu1, Hotkeys, Type =:= popup),
     {MwL,MwM,MwR,Hs} = menu_dims(Menu),
     Cw = wings_text:width(),
     TotalW = MwL + MwM + MwR + 8* Cw,
@@ -86,15 +86,13 @@ menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0,adv=Adv}=Mi0) ->
     {X1,Y1} = case Type of
 		  plain ->
 		      {X0,Y0};
-		  popup when Adv == false ->
-		      {X0-TotalW div 2,Y0 - Margin div 2};
 		  popup ->
 		      {X0-TotalW div 2,Y0 - Margin - ?CHAR_HEIGHT}
 	      end,
     {X,Y} = move_if_outside(X1, Y1, TotalW, Mh+2*Margin+InfoLine, Mi0),
     W = TotalW-10,
     Mi = Mi0#mi{ymarg=Margin,shortcut=MwL+Cw,w=TotalW-10,h=Mh,hs=Hs,
-		sel=none,ns=Names,menu=Menu,adv=Adv,type=Type},
+		sel=none,ns=Names,menu=Menu,type=Type},
     #mi{level=Level} = Mi,
     setup_menu_killer(Mi),
     Op = {seq,push,get_menu_event(Mi)},
@@ -171,24 +169,16 @@ menu_show(#mi{ymarg=Margin,shortcut=Shortcut,w=Mw,h=Mh}=Mi) ->
 normalize_menu(Menu, Hotkeys, Adv) ->
     normalize_menu(Menu, Hotkeys, Adv, []).
 
-normalize_menu([{basic,_}|Els], Hotkeys, true, Acc) ->
-    normalize_menu(Els, Hotkeys, true, Acc);
-normalize_menu([{basic,El}|Els], Hotkeys, false, Acc) ->
-    normalize_menu([El|Els], Hotkeys, false, Acc);
-normalize_menu([{advanced,_}|Els], Hotkeys, false, Acc) ->
-    normalize_menu(Els, Hotkeys, false, Acc);
-normalize_menu([{advanced,El}|Els], Hotkeys, true, Acc) ->
-    normalize_menu([El|Els], Hotkeys, true, Acc);
 normalize_menu([[_|_]=List|Els], Hotkeys, Adv, Acc) ->
     normalize_menu(List++Els, Hotkeys, Adv, Acc);
 normalize_menu([Elem0|Els], Hotkeys, Adv, Acc) ->
     Elem1 = case Elem0 of
 		{S,Name,Help,Ps} ->
-		    {S,Name,[],Help,Props=adv_filter(Adv, Ps)};
+		    {S,Name,[],Help,Props=Ps};
 		{S,Name,[C|_]=Help} when is_integer(C) ->
 		    {S,Name,[],Help,Props=[]};
 		{S,Name,Ps} ->
-		    {S,Name,[],[],Props=adv_filter(Adv, Ps)};
+		    {S,Name,[],[],Props=Ps};
 		{S,Name} ->
 		    {S,Name,[],[],Props=[]};
 		separator ->
@@ -200,10 +190,6 @@ normalize_menu([Elem0|Els], Hotkeys, Adv, Acc) ->
     Elem = norm_help(Elem2, Adv),
     normalize_menu(Els, Hotkeys, Adv, [Elem|Acc]);
 normalize_menu([], _Hotkeys, _Adv, Acc) -> list_to_tuple(reverse(Acc)).
-
-adv_filter(false, [magnet|T]) -> adv_filter(false, T);
-adv_filter(Flag, [H|T]) -> [H|adv_filter(Flag, T)];
-adv_filter(_, []) -> [].
 
 norm_add_hotkey(_, separator, _, _) -> separator;
 norm_add_hotkey(_, Elem, [], _) -> Elem;
@@ -357,16 +343,16 @@ mousemotion(X, Y, Mi0) ->
     get_menu_event(Mi).
 
 button_pressed(#mousebutton{button=B,x=X,y=Y,state=?SDL_RELEASED},
-	       #mi{adv=false}=Mi) when (B =< 3) ->
+	       #mi{type=plain,adv=false}=Mi) when B =< 3 ->
     wings_wm:dirty(),
     button_pressed(1, 0, X, Y, Mi);
-button_pressed(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Mi)
-  when (B =< 3) ->
+button_pressed(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_RELEASED},
+	       #mi{type=popup,adv=true}=Mi) when B =< 3 ->
     wings_wm:dirty(),
     button_pressed(B, Mod, X, Y, Mi);
 button_pressed(_, _) -> keep.
 
-button_pressed(Button, Mod, X, Y, #mi{ns=Names,menu=Menu,adv=Adv}=Mi0) ->
+button_pressed(Button, Mod, X, Y, #mi{ns=Names,menu=Menu,type=Type,adv=Adv}=Mi0) ->
     clear_timer(Mi0),
     Mi1 = update_highlight(X, Y, Mi0),
     Mi = update_flags(Mod, Mi1),
@@ -378,9 +364,9 @@ button_pressed(Button, Mod, X, Y, #mi{ns=Names,menu=Menu,adv=Adv}=Mi0) ->
 		{_,{'VALUE',Act0},_,_,Ps} ->
 		    Act = was_option_hit(Button, Act0, X, Ps, Mi),
 		    do_action(Act, Names, Ps, Mi);
-		{_,{Name,Submenu},_,_,_} when Adv == true ->
+		{_,{Name,Submenu},_,_,_} when Type =:= popup, Adv == true ->
 		    popup_submenu(Button, X, Y, Name, Submenu, Mi);
-		{_,{Name,Submenu},_,_,_} when Adv == false ->
+		{_,{Name,Submenu},_,_,_} when Type =:= plain, Adv == false ->
 		    submenu(Item, Name, Submenu, Mi);
 		{_,Act0,_,_,Ps} when is_function(Act0) ->
 		    call_action(Act0, Button, Names, Ps, Mi);
@@ -490,11 +476,11 @@ current_command(#mi{sel=Sel,menu=Menu,ns=Names,owner=Owner}=Mi)
     end;
 current_command(_) -> [].
 
-all_current_commands(Fun, #mi{adv=false}) ->
+all_current_commands(Fun, #mi{type=plain,adv=false}) ->
     %% This menu is in basic mode, so we must only return the
     %% command for LMB.
     all_current_commands_1([1], Fun);
-all_current_commands(Fun, #mi{adv=true}) ->
+all_current_commands(Fun, #mi{type=popup,adv=true}) ->
     all_current_commands_1([1,2,3], Fun).
 
 all_current_commands_1([B|Bs], Fun) ->
@@ -683,10 +669,10 @@ was_option_hit(Button, Act, X, Ps, Mi) ->
 	true -> {Act,hit_right(Button, X, Mi)}
     end.
 
-hit_right(B, _, #mi{adv=true}) when B > 1 -> true;
+hit_right(B, _, #mi{type=popup,adv=true}) when B > 1 -> true;
 hit_right(_, X, #mi{w=W}) -> X >= W-3*?CHAR_WIDTH.
 
-selected_item(Y, #mi{adv=Adv,ymarg=Margin,h=H,menu=Menu}=Mi) ->
+selected_item(Y, #mi{type=Type,adv=Adv,ymarg=Margin,h=H,menu=Menu}=Mi) ->
     %% The tests are simplified because we know that the mouse cursor
     %% must be over the menu window.
     if
@@ -699,7 +685,7 @@ selected_item(Y, #mi{adv=Adv,ymarg=Margin,h=H,menu=Menu}=Mi) ->
 	    %% (The menu doesn't popup until the RMB has been released,
 	    %% unlike the basic menus.)
 	    if
-		Adv -> selected_item_1(0, Mi);
+		Type =:= popup, Adv -> selected_item_1(0, Mi);
 		true -> none
 	    end;
 	true ->
@@ -731,8 +717,8 @@ selected_item_1(Y0, I, [H|Hs], #mi{sel=OldSel,menu=Menu}=Mi) ->
 	Y -> selected_item_1(Y, I+1, Hs, Mi)
     end.
 
-is_submenu(_I, #mi{adv=true}) -> false;
-is_submenu(I, #mi{menu=Menu}) when is_integer(I) ->
+is_submenu(_I, #mi{type=popup,adv=true}) -> false;
+is_submenu(I, #mi{type=plain,adv=false,menu=Menu}) when is_integer(I) ->
     case element(I, Menu) of
 	separator -> false;
 	{_Text,{'VALUE',_},_Hotkey,_Help,_Ps} -> false;
@@ -745,10 +731,11 @@ build_command(Name, Names) ->
     foldl(fun(N, A) -> {N,A} end, Name, Names).
 
 menu_draw(_X, _Y, _Shortcut, _Mw, _I, [], _Mi) -> ok;
-menu_draw(X, Y, Shortcut, Mw, I, [H|Hs], #mi{menu=Menu,adv=Adv}=Mi) ->
+menu_draw(X, Y, Shortcut, Mw, I, [H|Hs], #mi{menu=Menu,type=Type,adv=Adv}=Mi) ->
     ?CHECK_ERROR(),
+    Adv = Type =:= popup,
     Elem = element(I, Menu),
-    Text = menu_text(Elem, Adv),
+    Text = menu_text(Elem, Type),
     case Elem of
 	separator -> draw_separator(X, Y, Mw);
 	{_,ignore,_,_,Ps} ->
@@ -771,7 +758,9 @@ menu_draw(X, Y, Shortcut, Mw, I, [H|Hs], #mi{menu=Menu,adv=Adv}=Mi) ->
 				wings_io:unclipped_text(X, Y, Text),
 				draw_hotkey(X, Y, Shortcut, Hotkey)
 			end),
-	    draw_submenu(Adv, Sub, X+Mw-5*?CHAR_WIDTH, Y-?CHAR_HEIGHT div 3);
+	    
+	    draw_submenu_marker(Type, Sub,
+				X+Mw-5*?CHAR_WIDTH, Y-?CHAR_HEIGHT div 3);
 	{_,_,Hotkey,_Help,Ps} ->
 	    menu_draw_1(Y, Ps, I, Mi,
 			fun() ->
@@ -823,8 +812,8 @@ menu_draw_1(_, _, _, _, DrawLeft, DrawRight) ->
 	_ -> DrawRight()
     end.
 
-menu_text({Text,{_,Fun},_,_,_}, true) when is_function(Fun) -> [$.,Text,$.];
-menu_text({Text,Fun,_,_,_}, true) when is_function(Fun) -> [$.,Text,$.];
+menu_text({Text,{_,Fun},_,_,_}, popup) when is_function(Fun, 2) -> [$.,Text,$.];
+menu_text({Text,Fun,_,_,_}, popup) when is_function(Fun, 2) -> [$.,Text,$.];
 menu_text({Text,_,_,_,_}, _) -> Text;
 menu_text(separator, _) -> [].
 
@@ -853,12 +842,11 @@ help_text(#mi{menu=Menu,sel=Sel}=Mi) ->
     Elem = element(Sel, Menu),
     help_text_1(Elem, Mi).
 
-help_text_1({Text,{Sub,_},_,_,_}, #mi{adv=false}) when Sub =/= 'VALUE' ->
+help_text_1({Text,{Sub,_},_,_,_}, #mi{type=plain,adv=false}) when Sub =/= 'VALUE' ->
     %% No specific help text for submenus in basic mode.
     Help = [Text|?__(1," submenu")],
     wings_wm:message(Help, "");
-help_text_1({_,{Name,Fun},_,_,Ps}, #mi{ns=Ns}=Mi)
-  when is_function(Fun) ->
+help_text_1({_,{Name,Fun},_,_,Ps}, #mi{ns=Ns}=Mi) when is_function(Fun, 2) ->
     %% "Submenu" in advanced mode.
     Help0 = Fun(help, [Name|Ns]),
     Help = help_text_2(Help0),
@@ -912,8 +900,8 @@ draw_right_1(X0, Y0, Mw, Ps) ->
 	    wings_io:border(X, Y, Cw, Ch-1, Color)
     end.
 
-draw_submenu(true, _Item, _X, _Y) -> ok;
-draw_submenu(false, _Item, X, Y) ->
+draw_submenu_marker(popup, _Item, _X, _Y) -> ok;
+draw_submenu_marker(plain, _Item, X, Y) ->
     Cw = wings_text:width(),
     H = (wings_text:height()+2) div 3,
     ?CHECK_ERROR(),
