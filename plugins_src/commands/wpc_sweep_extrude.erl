@@ -481,7 +481,7 @@ sweep_help({Lock,Axis,Warp,Cntr,Base}) ->
     [cntr_help(Cntr),
      warp_help(Axis,Warp),
      lock_help(Lock,Axis),
-     base_help(Base)].
+     base_help(Axis,Base)].
 
 cntr_help(region)         -> ?__(1,"[1] Selection Center");
 cntr_help(common)         -> ?__(2,"[1] Region Center").
@@ -494,8 +494,9 @@ lock_help(unlocked,free)  -> ?__(1,"  [3] Lock Axis");
 lock_help(locked,free)    -> ?__(2,"  [3] Screen Relative");
 lock_help(_,_)            -> [].
 
-base_help(free_base)      -> ?__(1,"  [4] Freeze Base");
-base_help(freeze_base)    -> ?__(2,"  [4] Thaw Base").
+base_help(normal,_) -> [];
+base_help(_,free_base)      -> ?__(1,"  [4] Freeze Base");
+base_help(_,freeze_base)    -> ?__(2,"  [4] Thaw Base").
 
 %%%% Sweep Mode/View Changes
 sweep_fun(Type, VsData, State) ->
@@ -518,7 +519,6 @@ sweep_fun(Type, VsData, State) ->
            NewData = case element(3,State)==W andalso element(4,State)==C of
              false ->
                lists:foldl(fun({{{SelC, LoopC, LoopNorm, MaxR, NW, Axis}, _},VPs}, Acc) ->
-                  %NewNW = non_warping_norm(NewAxis,LoopNorm),
                   CN = specify_warp_and_center(Axis,NW,LoopC,SelC, NewState),
                   [{{{SelC, LoopC, LoopNorm, MaxR, NW, Axis}, CN},VPs}|Acc]
                 end,[],VsData);
@@ -528,7 +528,7 @@ sweep_fun(Type, VsData, State) ->
            sweep_fun(Type,NewData,NewState);
 
        ([Angle,Dist,Scale,Rotate|_], A) ->  %% when drag changes
-         sweep(Type, Base, VsData, {Angle,Dist,Rotate,Scale}, A)
+         sweep(Type, Base, VsData, {-Angle,Dist,Rotate,Scale}, A)
     end.
 
 sweep(Type, Base, VsData, DragData, A) ->
@@ -612,9 +612,9 @@ seed_face(_,Vpos,{{_,_,LoopNorm,_,_,Axis},{Norm,Center}},{Angle,_Dist,_Rotate,_S
 %%%%  Helper functions
 axis_conversion(Axis,Norm) ->
     case Axis of
-      x -> {-1.0,0.0,0.0};
-      y -> {0.0,-1.0,0.0};
-      z -> {0.0,0.0,-1.0};
+      x -> {1.0,0.0,0.0};
+      y -> {0.0,1.0,0.0};
+      z -> {0.0,0.0,1.0};
       free -> view_vector();
       normal -> Norm;
       last_axis ->
@@ -628,8 +628,7 @@ axis_conversion(Axis,Norm) ->
 
 intersect_vec_plane(PosA,PosB,PlaneNorm) ->
     %% Return point where Vector through PosA intersects with plane at PosB
-    DotProduct = e3d_vec:dot(PlaneNorm,PlaneNorm),
-    Intersection = e3d_vec:dot(e3d_vec:sub(PosB,PosA),PlaneNorm)/DotProduct,
+    Intersection = e3d_vec:dot(e3d_vec:sub(PosB,PosA),PlaneNorm),
     e3d_vec:add(PosA, e3d_vec:mul(PlaneNorm, Intersection)).
 
 rotate(Vpos,Norm,{Cx,Cy,Cz},Angle) ->
