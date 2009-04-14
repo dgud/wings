@@ -494,7 +494,7 @@ translation_string(one_or_two)           -> ?__(144,"Mouse Buttons");
 translation_string(international)        -> ?__(145,"International Keyboards");
 translation_string(hotkeys)              -> ?__(146,"Defined Hotkeys");
 translation_string(defining_hotkeys)     -> ?__(147,"Defining Hotkeys");
-translation_string(advanced_menus)       -> ?__(148,"Advanced Menus");
+%%translation_string(advanced_menus)       -> ?__(148,"Advanced Menus");
 translation_string(default_commands)     -> ?__(149,"Default Commands");
 translation_string(performance_tips)     -> ?__(150,"Performance Tips");
 translation_string(opengl_info)          -> ?__(151,"OpenGL Info");

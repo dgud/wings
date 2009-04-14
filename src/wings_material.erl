@@ -3,7 +3,7 @@
 %%
 %%     This module manages the face materials (i.e. colors and textures).
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -28,12 +28,7 @@
 		keyreplace/4,keydelete/3,keysearch/3,flatten/1]).
 
 material_menu(St) ->
-    [{basic,{?__(1,"Material"),
-	     {material,
-	      [{?__(2,"New..."),new,
-		?__(3,"Create a new material and assign to selected faces")},
-	       separator|mat_list(St)]}}},
-     {advanced,{?__(4,"Material"),{material,material_fun(St)}}}].
+    [{?__(4,"Material"),{material,material_fun(St)}}].
 
 material_fun(St) ->
     fun(help, _Ns) ->

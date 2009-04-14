@@ -3,7 +3,7 @@
 %%
 %%     This module contains most of the commands for vertices.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -22,9 +22,7 @@
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
-    Menu = [{basic,{?STR(menu,1,"Vertex operations"),ignore}},
-	    {basic,separator},
-	    {?STR(menu,2,"Move"),{move,Dir},[],[magnet]},
+    Menu = [{?STR(menu,2,"Move"),{move,Dir},[],[magnet]},
 	    wings_menu_util:rotate(St),
 	    wings_menu_util:scale(St),
 	    separator,

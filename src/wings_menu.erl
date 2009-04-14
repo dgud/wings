@@ -3,7 +3,7 @@
 %%
 %%     Implementation of pulldown and popup menus.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -38,8 +38,6 @@
 	 timer=make_ref(),			%Active submenu timer.
 	 level=?INITIAL_LEVEL,			%Menu level.
 	 adv,					%Advanced menus (true|false).
-	 ignore_rel=true,			%Ignore button release if
-						% just openened.
 	 type=plain,				%Type of menu: plain|popup
 	 owner,					%Owning window.
 	 flags=[]				%Flags (magnet/dialog).
@@ -59,10 +57,8 @@
 
 is_popup_event(#mousebutton{button=3,x=X0,y=Y0,state=State,mod=Mod}) ->
     {X,Y} = wings_wm:local2global(X0, Y0),
-    case wings_pref:get_value(advanced_menus) of
-	true when State =:= ?SDL_RELEASED ->
-	    {yes,X,Y,Mod};
-	false when State =:= ?SDL_PRESSED  ->
+    case State of
+	?SDL_RELEASED ->
 	    {yes,X,Y,Mod};
 	_Other -> no
     end;
@@ -70,13 +66,11 @@ is_popup_event(_Event) -> no.
 
 menu(X, Y, Owner, Name, Menu) ->
     menu_setup(plain, X, Y, Name, Menu,
-	       #mi{adv=false,owner=Owner,ignore_rel=false}).
+	       #mi{adv=false,owner=Owner}).
 
 popup_menu(X, Y, Name, Menu) ->
-    Adv = wings_pref:get_value(advanced_menus),
-    IgnoreRel = (Adv == false),
     menu_setup(popup, X, Y, Name, Menu,
-	       #mi{adv=Adv,ignore_rel=IgnoreRel,owner=wings_wm:this()}).
+	       #mi{adv=true,owner=wings_wm:this()}).
 
 menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0,adv=Adv}=Mi0) ->
     Names = [Name|Names0],
@@ -362,8 +356,6 @@ mousemotion(X, Y, Mi0) ->
     Mi = set_submenu_timer(Mi1, Mi0, X, Y),
     get_menu_event(Mi).
 
-button_pressed(#mousebutton{state=?SDL_RELEASED}, #mi{ignore_rel=true}=Mi) ->
-    get_menu_event(Mi#mi{ignore_rel=false});
 button_pressed(#mousebutton{button=B,x=X,y=Y,state=?SDL_RELEASED},
 	       #mi{adv=false}=Mi) when (B =< 3) ->
     wings_wm:dirty(),
@@ -680,7 +672,7 @@ update_highlight(X, Y, #mi{menu=Menu,sel=OldSel,sel_side=OldSide,w=W}=Mi0) ->
 	    Mi;
 	Item when is_integer(Item) ->
 	    wings_wm:dirty(),
-	    Mi = Mi0#mi{sel=Item,ignore_rel=false},
+	    Mi = Mi0#mi{sel=Item},
 	    help_text(Mi),
 	    Mi
     end.

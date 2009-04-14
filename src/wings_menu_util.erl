@@ -3,7 +3,7 @@
 %%
 %%     Menu utilities and helpers.
 %%
-%%  Copyright (c) 2002-2005 Bjorn Gustavsson
+%%  Copyright (c) 2002-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -63,30 +63,9 @@ all_xyz() ->
 %%%
 %%% Scale sub-menu.
 %%%
-scale(St) ->
-    case wings_pref:get_value(advanced_menus) of
-	false -> basic_scale();
-	true -> adv_scale(St)
-    end.
 
-%% Basic menu Scale command.
-
-basic_scale() ->
-    Names = [scale],
-    Dirs = [uniform,x,y,z,{radial,x},{radial,y},{radial,z}],
-    {?STR(basic_scale,1,"Scale"),{scale,basic_scale_1(Dirs, Names)}}.
-
-basic_scale_1([Dir|Dirs], Names) ->
-    DirString = wings_s:dir(Dir),
-    Help = dir_help(Dir, Names),
-    F = fun(_, Ns) -> wings_menu:build_command({Dir,center}, Ns) end,
-    [{DirString,F,Help}|basic_scale_1(Dirs, Names)];
-basic_scale_1([], _) -> [].
-
-%% Advanced menu Scale commands.
-
-adv_scale(#st{selmode=body}) -> adv_scale_1([]);
-adv_scale(_) -> adv_scale_1([magnet]).
+scale(#st{selmode=body}) -> adv_scale_1([]);
+scale(_) -> adv_scale_1([magnet]).
 
 adv_scale_1(MagFlags) ->
     [{?STR(adv_scale_1,1,"Scale Uniform"),{scale,fun(B, Ns) -> uniform_scale(B, Ns, MagFlags) end},
@@ -116,7 +95,7 @@ scale(1, Ns, Flags, _MagFlags) ->
     [scale_fun(x, Ns, Flags),
      scale_fun(y, Ns, Flags),
      scale_fun(z, Ns, Flags),
-     {advanced,separator},
+     separator,
      scale_fun(last_axis, Ns, Flags),
      scale_fun(default_axis, Ns, Flags)];
 scale(2, Ns, Flags, MagFlags) ->
@@ -165,7 +144,7 @@ rotate_common(Ns) ->
      rotate_fun(x, Ns),
      rotate_fun(y, Ns),
      rotate_fun(z, Ns),
-     {advanced,separator},
+     separator,
      rotate_fun(last_axis, Ns),
      rotate_fun(default_axis, Ns)].
 
@@ -217,9 +196,9 @@ flatten_common() ->
     [flatten_fun(x),
      flatten_fun(y),
      flatten_fun(z),
-     {advanced,separator},
-     {advanced,flatten_fun(last_axis)},
-     {advanced,flatten_fun(default_axis)}].
+     separator,
+     flatten_fun(last_axis),
+     flatten_fun(default_axis)].
 
 flatten_fun(Vec) ->
     flatten_fun_1(Vec, Vec, wings_util:cap(wings_s:dir(Vec))).
@@ -243,9 +222,9 @@ flatten_fun_1(Vec, Axis, String) ->
 directions([D|Dirs], Ns) ->
     [direction(D, Ns)|directions(Dirs, Ns)];
 directions([], Ns) ->
-    [{advanced,separator},
-     {advanced,direction(last_axis, Ns)},
-     {advanced,direction(default_axis, Ns)}].
+    [separator,
+     direction(last_axis, Ns),
+     direction(default_axis, Ns)].
 
 direction(Dir, Ns) ->
     Str  = wings_util:cap(wings_s:dir(Dir)),

@@ -3,7 +3,7 @@
 %%
 %%     This module implements the Help menu.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -54,8 +54,6 @@ header(defining_hotkeys) ->
     ?__(5,"How To Define Hotkeys");
 header(lights) ->
     ?__(6,"Light Basics");
-header(advanced_menus) ->
-    ?__(7,"Advanced Menus");
 header(default_commands) ->
     ?__(8,"Default Commands");
 header(performance_tips) ->
@@ -82,8 +80,6 @@ command_1(default_commands, Header) ->
     def_commands(Header);
 command_1(lights, Header) ->
     lights(Header);
-command_1(advanced_menus, Header) ->
-    advanced_menus(Header);
 command_1(performance_tips, Header) ->
     performance_tips(Header);
 command_1(opengl_info, Header) ->
@@ -166,32 +162,6 @@ use_one_or_two() ->
 	 "your mouse has in the ")++
 	edit_prefs()++
 	?__(2," dialog.").
-
-advanced_menus(Head) ->
-    Help = [?__(1,"In the ")++
-	    edit_prefs()++
-	    ?__(4,
-		 " dialog, there is a check box for \"Advanced Menus\"."),
-	    ?__(5,
-		 "Activating advanced menus provide the following additional features:"),
-	    ?__(6,"New commands: ")
-	    ++cmd([?__(7,"Face"),
-		   ?__(8,"Put On")
-		  ])++?__(9," and ")++
-	    cmd([?__(10,"Face"),
-		 ?__(11,"Lift")
-		]),
-	    ?__(12,"Vector based operations: The means to specify an axis (or vector) and to be able to re-locate it so it passes through a new point."),
-	    ?__(13,"Magnet operations: A facility that provides a way of attaining smooth modifications / transitions to surrounding geometry during the operation of any valid tool. Magnet type and influence radius settings provide further control options."),
-
-	    ?__(14,"Vector and magnet operations can be combined."),
-
-	    ?__(15,"With advanced menus turned on, many menu commands do different things depending on which mouse button you invoke them with."),
-
-	    ?__(16,"For instance, R clicking on the Rotate command allows you to specify an axis (or vector) to rotate your selection around, while M clicking lets you define an axis - and a new point through which that axis will pass. (A vector does not have to be parallel to an x, y or z axis.)"),
-
-	    ?__(17,"Reading the contents of the info line at the bottom of the Wings window is highly recommended when using advanced menus.")],
-    help_window(Head, Help).
 
 international(Head) ->
     Help = [?__(1,"Unfortunately, on French and German keyboards (and possibly others), the Undo/Redo commands will not be bound to the [Z] key. (That might be changed in a future release of Wings.)"),

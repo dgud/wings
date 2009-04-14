@@ -3,7 +3,7 @@
 %%
 %%     Implementation of lights.
 %%
-%%  Copyright (c) 2002-2008 Bjorn Gustavsson
+%%  Copyright (c) 2002-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -59,9 +59,7 @@ menu(X, Y, St) ->
     NotAmb = {iff,[spot,infinite,point,area]},
     One = one_light,
     Dir = wings_menu_util:directions(St#st{selmode=body}),
-    Menu0 = [{basic,{?__(1,"Light operations"),ignore}},
-	     {basic,separator},
-	     {?__(2,"Move"),{move_light,Dir}},
+    Menu0 = [{?__(2,"Move"),{move_light,Dir}},
 	     {NotAmb,separator},
 	     {NotAmb,{?__(3,"Position Highlight"),
 		      {'VALUE',{position_highlight,{'ASK',{[point],[]}}}},

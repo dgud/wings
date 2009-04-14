@@ -3,7 +3,7 @@
 %%
 %%     This module contains the Deform commands for vertices.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -58,36 +58,26 @@ dir(Axis, Cmd) ->
 taper_item(Axis) ->
     Effects = effect_menu(Axis),
     AxisStr = wings_util:upper(Axis),
-    case wings_pref:get_value(advanced_menus) of
-	false ->
-	    F = fun(1, Ns) ->
-			[Effect|_] = Effects,
-			wings_menu:build_command({Axis,Effect}, Ns)
-		end,
-	    Help = ?__(1,"Taper along ")++ AxisStr,
-	    {AxisStr,F,Help};
-	true ->
-	    F = fun(help, _Ns) ->
-			[Effect|_] = Effects,
-			TaperAlong = ?__(1,"Taper along ") ++ AxisStr,
-			{TaperAlong ++?__(2," (with effect on ") 
-				    ++wings_util:upper(Effect) 
-				    ++ ?__(3,")"),
-			 		?__(4,"Choose effect axis"),
-					?__(5,"Pick axis center location")
-			};
-		   (1, Ns) ->
-			[Effect|_] = Effects,
-			wings_menu:build_command(Effect, Ns);
-		   (2, _Ns) ->
-			expand_effects(Effects, []);
-		   (3, Ns) ->
-			[Effect|_] = Effects,
-			Ask = {'ASK',{[{point,?__(6,"Pick taper origin")}],[Effect]}},
-			wings_menu:build_command(Ask, Ns)
-		end,
-	    {AxisStr,{Axis,F},[]}
-    end.
+    F = fun(help, _Ns) ->
+		[Effect|_] = Effects,
+		TaperAlong = ?__(1,"Taper along ") ++ AxisStr,
+		{TaperAlong ++?__(2," (with effect on ") 
+		 ++wings_util:upper(Effect) 
+		 ++ ?__(3,")"),
+		 ?__(4,"Choose effect axis"),
+		 ?__(5,"Pick axis center location")
+		};
+	   (1, Ns) ->
+		[Effect|_] = Effects,
+		wings_menu:build_command(Effect, Ns);
+	   (2, _Ns) ->
+		expand_effects(Effects, []);
+	   (3, Ns) ->
+		[Effect|_] = Effects,
+		Ask = {'ASK',{[{point,?__(6,"Pick taper origin")}],[Effect]}},
+		wings_menu:build_command(Ask, Ns)
+	end,
+    {AxisStr,{Axis,F},[]}.
 
 effect_menu(x) -> [yz,y,z];
 effect_menu(y) -> [xz,x,z];

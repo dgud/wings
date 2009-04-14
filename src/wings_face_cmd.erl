@@ -3,7 +3,7 @@
 %%
 %%     This module contains most of the face commands.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -20,9 +20,7 @@
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
-    Menu = [{basic,{?__(1,"Face operations"),ignore}},
-	    {basic,separator},
-	    {?__(2,"Move"),{move,Dir},[],[magnet]},
+    Menu = [{?__(2,"Move"),{move,Dir},[],[magnet]},
 	    wings_menu_util:rotate(St),
 	    wings_menu_util:scale(St),
 	    separator,
@@ -38,13 +36,13 @@ menu(X, Y, St) ->
 	     ?__(11,"Round off edges of selected faces")},
 	    {?__(12,"Bridge"),bridge,
 	     ?__(13,"Create a bridge or tunnel between two faces")},
-	    {advanced,separator},
+	    separator,
 	    {?__(14,"Bump"),bump,
 	     ?__(15,"Create bump of selected faces")},
-	    {advanced,{?__(16,"Lift"),{lift,lift_fun(St)}}},
-	    {advanced,{?__(17,"Put On"),put_on_fun(),
-		       {?__(18,"Move and rotate object, aligning the selected face to another element"),[],
-		        ?__(19,"Clone object on to one or more elements")},[]}},
+	    {?__(16,"Lift"),{lift,lift_fun(St)}},
+	    {?__(17,"Put On"),put_on_fun(),
+	     {?__(18,"Move and rotate object, aligning the selected face to another element"),[],
+	      ?__(19,"Clone object on to one or more elements")},[]},
 	    separator,
 	    {?__(20,"Mirror"),mirror_fun(),
 	     {?__(21,"Mirror object around selected faces and merge to object"),[],

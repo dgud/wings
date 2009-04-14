@@ -26,9 +26,7 @@
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
-    Menu = [{basic,{?__(1,"Edge operations"),ignore}},
-	    {basic,separator},
-	    {?__(2,"Move"),{move,Dir},[],[magnet]},
+    Menu = [{?__(2,"Move"),{move,Dir},[],[magnet]},
 	    wings_menu_util:rotate(St),
 	    wings_menu_util:scale(St),
 	    {?__(3,"Slide"), slide,

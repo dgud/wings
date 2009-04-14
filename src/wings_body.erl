@@ -3,7 +3,7 @@
 %%
 %%     This module contains most of the command for entire Wings objects.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -22,17 +22,11 @@
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
     Dup = flip_str(),
-    BasicDup = case wings_pref:get_value(advanced_menus) of
-        false -> flip_str();
-        true -> []
-	end,
-    FlipStrL = ?__(34,"Flip the object along ~s axis") ++ BasicDup,
+    FlipStrL = ?__(34,"Flip the object along ~s axis"),
     FlipStrM = ?__(35,"Pick point to flip object along the ~s axis"),
     FlipStrR = ?__(36,"Flip object along the global ~s axis") ++ Dup,
 
-    Menu = [{basic,{?__(1,"Object operations"),ignore}},
-	    {basic,separator},
-	    {?__(2,"Move"),{move,Dir}},
+    Menu = [{?__(2,"Move"),{move,Dir}},
 	    wings_menu_util:rotate(St),
 	    wings_menu_util:scale(St),
 	    separator,
@@ -50,7 +44,7 @@ menu(X, Y, St) ->
 	          io_lib:format(FlipStrM,[wings_s:dir(z)]),
 	          io_lib:format(FlipStrR,[wings_s:dir(z)])},[]},
 	        {?__(37,"Pick"),flip_fun(pick),
-	         {?__(38,"Pick axis to flip object along") ++ BasicDup,
+	         {?__(38,"Pick axis to flip object along"),
 	          ?__(39,"Pick axis and point to flip object along"),
 	          ?__(40,"Pick global axis to flip object along") ++ Dup},[]}]}},
 	    separator,

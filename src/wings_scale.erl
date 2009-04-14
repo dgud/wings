@@ -6,7 +6,7 @@
 %%
 %%     -- Inset removed at revision 388 and replaced by wpc_contour.erl --
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson.
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -86,14 +86,8 @@ init_drag(Tvs, Magnet, St) ->
     init_drag(Tvs, Magnet, [], St).
 
 init_drag(Tvs, Magnet, Flags, St) ->
-    wings_drag:setup(Tvs, [scale_constraint()|magnet_unit(Magnet)],
+    wings_drag:setup(Tvs, [percent|magnet_unit(Magnet)],
 		     wings_magnet:flags(Magnet, [{initial,[1.0]}|Flags]), St).
-
-scale_constraint() ->
-    case wings_pref:get_value(advanced_menus) of
-	false -> {percent,{0.0,?HUGE}};
-	true -> percent
-    end.
 
 magnet_unit(none) -> [];
 magnet_unit(_) -> [falloff].
