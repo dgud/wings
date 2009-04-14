@@ -3,7 +3,7 @@
 %%
 %%    Plugin for shearing vertex selections
 %%
-%%  Copyright (c) 2008 Richard Jones.
+%%  Copyright (c) 2008-2009 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -23,69 +23,50 @@ menu(_,Menu) -> Menu.
 
 shear() ->
     MenuTitle = ?__(1,"Shear"),
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        {MenuTitle,{shear_cmd,xyz()}};
-      true ->
-        F = fun(help, _Ns) ->
-            {?__(2,"Shear XYZ"),[],
-             ?__(3,"Pick Glide Plane parallel to which movement will be restricted, Shearing Vector, Origin defining stationary Glide Plane, and Measuring Point for distance")};
-            (1, _Ns) -> xyz();
-            (2, _Ns) -> ignore;
-            (3, _Ns) ->
+    F = fun(help, _Ns) ->
+		{?__(2,"Shear XYZ"),[],
+		 ?__(3,"Pick Glide Plane parallel to which movement will be restricted, Shearing Vector, Origin defining stationary Glide Plane, and Measuring Point for distance")};
+	   (1, _Ns) -> xyz();
+	   (2, _Ns) -> ignore;
+	   (3, _Ns) ->
                 Ask = [glide_plane,radial,origin,glide_point],
                 {vertex,{deform,{shear,{'ASK',Ask}}}}
-            end,
-        {MenuTitle,{shear_cmd,F}}
-    end.
+	end,
+    {MenuTitle,{shear_cmd,F}}.
 
 glide_plane_menu(GlidePlane) ->
     GPStr = wings_s:dir(GlidePlane),
-    case wings_pref:get_value(advanced_menus) of
-    false ->
-      {GPStr,{shear_cmd,xyz2(GlidePlane)}};
-    true ->
-      F = fun(help, _Ns) ->
-        Str = ?__(1,"Glide Plane surfaces facing ~s.(Parallel to which vertex movement is restricted)"),
-        {wings_util:format(Str, [GPStr]),
-         ?__(2,"Pick Shearing Vector and Origin.(Measuring Point calculated automatically)"),
-         ?__(3,"Pick Shearing Vector, Origin, and Measuring Point")};
-        (1, _Ns) -> xyz2(GlidePlane);
-        (2, _Ns) ->
-            AskM = [radial,origin],
-            {vertex,{deform,{shear,{GlidePlane,{mmb,{'ASK',AskM}}}}}};
-        (3, _Ns) ->
-            AskR = [radial,origin,glide_point],
-            {vertex,{deform,{shear,{GlidePlane,{rmb,{'ASK',AskR}}}}}}
-      end,
-      {GPStr,{GlidePlane,F},[]}
-    end.
+    F = fun(help, _Ns) ->
+		Str = ?__(1,"Glide Plane surfaces facing ~s.(Parallel to which vertex movement is restricted)"),
+		{wings_util:format(Str, [GPStr]),
+		 ?__(2,"Pick Shearing Vector and Origin.(Measuring Point calculated automatically)"),
+		 ?__(3,"Pick Shearing Vector, Origin, and Measuring Point")};
+	   (1, _Ns) -> xyz2(GlidePlane);
+	   (2, _Ns) ->
+		AskM = [radial,origin],
+		{vertex,{deform,{shear,{GlidePlane,{mmb,{'ASK',AskM}}}}}};
+	   (3, _Ns) ->
+		AskR = [radial,origin,glide_point],
+		{vertex,{deform,{shear,{GlidePlane,{rmb,{'ASK',AskR}}}}}}
+	end,
+    {GPStr,{GlidePlane,F},[]}.
 
 radial_menu(GlidePlane,Radial) ->
     GPStr = wings_s:dir(GlidePlane),
     RadStr = wings_s:dir(Radial),
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        F = fun(1, _Ns) ->
-          {vertex,{deform,{shear,{GlidePlane,{Radial,lmb}}}}}
+    F = fun(help, _Ns) ->
+		Str = ?__(3,"Restrict vertex movement to Shearing Vector ~s across their individual Glide Planes facing ~s")++
+		    ?__(4,".(Origin and Measuring Point caluculated automatically)"),
+		Help = wings_util:format(Str, [RadStr,GPStr]),
+		{Help,[],?__(5,"Pick Origin and Measuring Point")};
+	   (1, _Ns) -> {vertex,{deform,{shear,{GlidePlane,{Radial,lmb}}}}};
+	   (2, _Ns) -> ignore;
+	   (3, _Ns) ->
+		Ask = [origin,glide_point],
+		{vertex,{deform,{shear,{GlidePlane,{Radial,{rmb,{'ASK',Ask}}}}}}}
         end,
-        Str = ?__(3,"Restrict vertex movement to Shearing Vector ~s across their individual Glide Planes facing ~s"),
-        Help = wings_util:format(Str, [RadStr,GPStr]),
-        {RadStr,F,Help};
-      true ->
-        F = fun(help, _Ns) ->
-          Str = ?__(3,"Restrict vertex movement to Shearing Vector ~s across their individual Glide Planes facing ~s")++
-                ?__(4,".(Origin and Measuring Point caluculated automatically)"),
-          Help = wings_util:format(Str, [RadStr,GPStr]),
-          {Help,[],?__(5,"Pick Origin and Measuring Point")};
-          (1, _Ns) -> {vertex,{deform,{shear,{GlidePlane,{Radial,lmb}}}}};
-          (2, _Ns) -> ignore;
-          (3, _Ns) ->
-              Ask = [origin,glide_point],
-              {vertex,{deform,{shear,{GlidePlane,{Radial,{rmb,{'ASK',Ask}}}}}}}
-        end,
-        {RadStr,{Radial,F},[]}
-    end.
+    {RadStr,{Radial,F},[]}.
+
 %%%% Axis menus
 xyz() ->
     [glide_plane_menu(x),
@@ -230,17 +211,12 @@ check_glide_plane_norm({GlidePlane,Radial,Origin,GlidePoint},St) ->
     Dist = abs(dist_along_vector(GlidePoint,Point,GlidePlane)),
     case Dist < 1.0E-9 of
       true ->
-        case wings_pref:get_value(advanced_menus) of
-          false ->
-            wings_u:error(?__(3,"Axis through glide plane is too short"));
-          true ->
             wings:ask(selection_ask([re_glide_point]),
-              St, fun (GlidePoint2, St0) ->
-                check_selection({GlidePlane,Radial,Origin,GlidePoint2},St0)
-            end)
-        end;
-      false ->
-        shear_callback({GlidePlane,Radial,Origin,GlidePoint},St)
+		      St, fun (GlidePoint2, St0) ->
+				  check_selection({GlidePlane,Radial,Origin,GlidePoint2},St0)
+			  end);
+	false ->
+	    shear_callback({GlidePlane,Radial,Origin,GlidePoint},St)
     end.
 
 %%%%

@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for shifting vertices
 %%
-%%  Copyright (c) 2005 Dave Rodgers
+%%  Copyright (c) 2005-2009 Dave Rodgers
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -32,8 +32,8 @@ init() ->
     true.
 
 menu({vertex}, Menu) ->
-    Menu ++ [{advanced,separator},
-	     {advanced, {?__(1,"Shift"), {shift,fun adv_submenu/2}}}];
+    Menu ++ [separator,
+	     {?__(1,"Shift"), {shift,fun adv_submenu/2}}];
 menu(_,Menu) -> Menu.
 
 command({vertex,{shift,Type}}, St) ->

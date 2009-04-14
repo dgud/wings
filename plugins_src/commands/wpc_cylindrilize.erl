@@ -3,7 +3,7 @@
 %%
 %%    Plugin for inflating vertex selections cylindrically
 %%
-%%  Copyright (c) 2008 Richard Jones.
+%%  Copyright (c) 2008-2009 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -31,23 +31,18 @@ parse([Elem|Rest], NewMenu, Found) ->
 %%%% Menus
 cylindrilize_menu() ->
     MenuTitle = ?__(1,"Inflate Cylindrical"),
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        {MenuTitle,{cylindrical,xyz()}};
-      true ->
-        F = fun(help, _Ns) ->
-          Str1 = ?__(2,"Inflate vertices cylindrically around XYZ"),
-          Str2 = ?__(3,"Pick central axis"),
-          Str3 = ?__(4,"Pick central axis, center point and radius"),
-          {Str1,Str2,Str3};
-          (1, _Ns) -> xyz();
-          (2, _Ns) -> Ask = [central_axis],
-                      {vertex,{deform,{cylindrilize,{central_axis,{'ASK',Ask}}}}};
-          (3, _Ns) -> Ask = [central_axis,center,radius],
-                      {vertex,{deform,{cylindrilize,{pick_all,{'ASK',Ask}}}}}
+    F = fun(help, _Ns) ->
+		Str1 = ?__(2,"Inflate vertices cylindrically around XYZ"),
+		Str2 = ?__(3,"Pick central axis"),
+		Str3 = ?__(4,"Pick central axis, center point and radius"),
+		{Str1,Str2,Str3};
+	   (1, _Ns) -> xyz();
+	   (2, _Ns) -> Ask = [central_axis],
+		       {vertex,{deform,{cylindrilize,{central_axis,{'ASK',Ask}}}}};
+	   (3, _Ns) -> Ask = [central_axis,center,radius],
+		       {vertex,{deform,{cylindrilize,{pick_all,{'ASK',Ask}}}}}
         end,
-        {MenuTitle,{cylindrilize,F}}
-    end.
+    {MenuTitle,{cylindrilize,F}}.
 
 xyz() ->
     [axis_menu(x),
@@ -58,23 +53,15 @@ axis_menu(Axis) ->
     AxisStr = wings_s:dir(Axis),
     Str = ?__(1,"Inflate vertices cylindrically around central axis ~s"),
     Help = wings_util:format(Str,[AxisStr]),
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        F = fun(1, _Ns) ->
-          {vertex,{deform,{cylindrilize,Axis}}}
+    F = fun(help, _Ns) ->
+		HelpRmb = ?__(2,"Pick center point and radius"),
+		{Help,[],HelpRmb};
+	   (1, _Ns) -> {vertex,{deform,{cylindrilize,Axis}}};
+	   (2, _Ns) -> ignore;
+	   (3, _Ns) -> Ask = [center,radius],
+		       {vertex,{deform,{cylindrilize,{Axis,{'ASK',Ask}}}}}
         end,
-        {AxisStr,F,Help};
-      true ->
-        F = fun(help, _Ns) ->
-          HelpRmb = ?__(2,"Pick center point and radius"),
-          {Help,[],HelpRmb};
-          (1, _Ns) -> {vertex,{deform,{cylindrilize,Axis}}};
-          (2, _Ns) -> ignore;
-          (3, _Ns) -> Ask = [center,radius],
-                      {vertex,{deform,{cylindrilize,{Axis,{'ASK',Ask}}}}}
-        end,
-       {AxisStr,{Axis,F},[]}
-    end.
+    {AxisStr,{Axis,F},[]}.
 
 %%%% Commands
 command({vertex,{deform,{cylindrilize,{central_axis,{'ASK',Ask}}}}},St) ->

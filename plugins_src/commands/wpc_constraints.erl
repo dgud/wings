@@ -3,7 +3,7 @@
 %%
 %%    Plugin for setting default constraints directly from a model
 %%
-%%  Copyright (c) 2008 Richard Jones.
+%%  Copyright (c) 2008-2009 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -68,42 +68,22 @@ first_menu(face) ->
      general_menu1(face,to_axis)].
 
 general_menu1(Mode,Type) ->
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        {menu_title(Mode,Type),{Type,menu_items1(Mode,Type)}};
-      true ->
-        {menu_title(Mode,Type),{Type,menu_items1(Mode,Type)},menu_string1(Mode,Type)}
-      end.
+    {menu_title(Mode,Type),{Type,menu_items1(Mode,Type)},menu_string1(Mode,Type)}.
 
 general_menu2(Mode,Type,Axis) ->
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        {menu_heading(Mode,Type,Axis),{Type,menu_items2(Mode,Type,Axis)}};
-      true ->
-        RmbStr = ?__(1,"Choose a different axis to measure the second selection"),
-        F = fun(help, _Ns) ->
-        {menu_string2(Mode,Type,Axis)++mod_string(),[],RmbStr};
-        (1,_Ns) -> {Mode,{set_constraint,{Type,{Axis,none}}}};
-        (2,_Ns) -> ignore;
-        (3,_Ns) -> menu_items2(Mode,Type,Axis)
+    RmbStr = ?__(1,"Choose a different axis to measure the second selection"),
+    F = fun(help, _Ns) ->
+		{menu_string2(Mode,Type,Axis)++mod_string(),[],RmbStr};
+	   (1,_Ns) -> {Mode,{set_constraint,{Type,{Axis,none}}}};
+	   (2,_Ns) -> ignore;
+	   (3,_Ns) -> menu_items2(Mode,Type,Axis)
         end,
-        {menu_heading(Mode,Type,Axis),{Axis,F},[]}
-    end.
-
+    {menu_heading(Mode,Type,Axis),{Axis,F},[]}.
 
 general_menu3(Mode,Type,Axis1,Axis2) ->
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        Str = menu_string3(basic,Mode,Type,Axis1,Axis2),
-        F = fun(1,_Ns) ->
-          {Mode,{set_constraint,{Type,{Axis1,Axis2}}}}
-        end,
-        {menu_heading(Mode,Type,Axis2),F,Str++mod_string()};
-      true ->
-        Str = menu_string3(advanced,Mode,Type,Axis1,Axis2),
-        F = {Mode,{set_constraint,{Type,{Axis1,Axis2}}}},
-        {menu_heading(Mode,Type,Axis2),{Axis2,F},Str++mod_string()}
-    end.
+    Str = menu_string3(advanced,Mode,Type,Axis1,Axis2),
+    F = {Mode,{set_constraint,{Type,{Axis1,Axis2}}}},
+    {menu_heading(Mode,Type,Axis2),{Axis2,F},Str++mod_string()}.
 
 %%% Menu Strings
 menu_title(Mode,Type) ->

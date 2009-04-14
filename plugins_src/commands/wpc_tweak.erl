@@ -449,48 +449,26 @@ handle_tweak_event1(#mousemotion{state=?SDL_RELEASED},
     end_drag(T);
 
 %%%% Right Click Menus
-handle_tweak_event1(#mousebutton{button=3,state=?SDL_PRESSED,x=X,y=Y}=Ev0,
-        #tweak{st=#st{sel=Sel}=St0}=T) ->
-    {GlobalX, GlobalY} = wings_wm:local2global(X,Y),
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-          case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
-              false ->
-                  popup_menu(GlobalX, GlobalY, St0);
-              true ->
-                  case wings_pick:do_pick(X, Y, St0) of
-                      {add,_,St1} ->
-                           St = set_temp_sel(St0,St1),
-                           wings_wm:current_state(St),
-                           wings_draw:refresh_dlists(St),
-                           handle_tweak_event1(Ev0,T#tweak{orig_st=St0,st=St});
-                       _ ->
-                           popup_menu(GlobalX, GlobalY, St0)
-                  end
-          end;
-      true -> keep
-    end;
+handle_tweak_event1(#mousebutton{button=3,state=?SDL_PRESSED},
+		    #tweak{}) ->
+    keep;
 
 handle_tweak_event1(#mousebutton{button=3,state=?SDL_RELEASED,x=X,y=Y}=Ev0,
         #tweak{st=#st{sel=Sel}=St0}=T) ->
     {GlobalX, GlobalY} = wings_wm:local2global(X,Y),
-    case wings_pref:get_value(advanced_menus) of
-      true ->
-          case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
-              false ->
-                  popup_menu(GlobalX, GlobalY, St0);
-              true ->
-                  case wings_pick:do_pick(X, Y, St0) of
-                      {add,_,St1} ->
-                           St = set_temp_sel(St0,St1),
-                           wings_wm:current_state(St),
-                           wings_draw:refresh_dlists(St),
-                           handle_tweak_event1(Ev0,T#tweak{orig_st=St0,st=St});
-                       _ ->
-                           popup_menu(GlobalX, GlobalY, St0)
-                  end
-          end;
-      false -> keep
+    case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
+	false ->
+	    popup_menu(GlobalX, GlobalY, St0);
+	true ->
+	    case wings_pick:do_pick(X, Y, St0) of
+		{add,_,St1} ->
+		    St = set_temp_sel(St0,St1),
+		    wings_wm:current_state(St),
+		    wings_draw:refresh_dlists(St),
+		    handle_tweak_event1(Ev0,T#tweak{orig_st=St0,st=St});
+		_ ->
+		    popup_menu(GlobalX, GlobalY, St0)
+	    end
     end;
 
 handle_tweak_event1(init_opengl, #tweak{st=St}) ->

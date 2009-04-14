@@ -3,7 +3,7 @@
 %%
 %%     A semi-simple semi-automatic UV-mapping semi-plugin.
 %%
-%%  Copyright (c) 2002-2008 Dan Gudmundsson, Bjorn Gustavsson
+%%  Copyright (c) 2002-2009 Dan Gudmundsson, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -56,18 +56,7 @@ auv_menu(help,_) ->
     {?__(2,"Generate UV mapping or texture"),
      ?__(25,"Re-segment object(s)"),
      ?__(3,"Force to segmenting mode (delete old segments)")};
-auv_menu(1,_What) -> 
-    case wings_pref:get_value(advanced_menus) of
-	false -> 
-	    [{?__(4,"Direct"), segment,
-	      ?__(5,"Open UV-window directly if selection already contains uv-coords")},
-	     {?__(8,"Force Segment (keep previous)"), segment_old,
-	      ?__(9,"Re-segment with old UV-coords ")},
-	     {?__(6,"Force Segment (delete previous)"), force_seg,
-	      ?__(7,"Delete old UV-coords and start over with segmenting")}];
-	true -> 
-	    {?MODULE, segment}
-    end;
+auv_menu(1,_What) -> {?MODULE, segment};
 auv_menu(2,_) -> {?MODULE, segment_old};
 auv_menu(3,_) -> {?MODULE, force_seg}.
 
@@ -430,9 +419,7 @@ change_texture_id(NewId, MatName, GeomSt0=#st{mat=Materials}) ->
 %%%% Menus.
 
 command_menu(body, X, Y) ->
-    Menu = [{basic,{?__(1,"Chart operations"),ignore}},
-	    {basic,separator},
-	    {?__(2,"Move"), move, ?__(3,"Move selected charts")},
+    Menu = [{?__(2,"Move"), move, ?__(3,"Move selected charts")},
 	    {?__(4,"Scale"), {scale, scale_directions(false) ++ 
 			      [separator] ++ stretch_directions() ++
 			      [separator, 
@@ -477,9 +464,7 @@ command_menu(body, X, Y) ->
     wings_menu:popup_menu(X,Y, auv, Menu);
 command_menu(face, X, Y) ->
     Scale = scale_directions(true),
-    Menu = [{basic,{?__(46,"Face operations"),ignore}},
-	    {basic,separator},
-	    {?__(47,"Move"),move,?__(48,"Move selected faces"),[magnet]},
+    Menu = [{?__(47,"Move"),move,?__(48,"Move selected faces"),[magnet]},
 	    {?__(49,"Scale"),{scale,Scale},?__(50,"Scale selected faces"), [magnet]},
 	    {?__(51,"Rotate"),rotate,?__(52,"Rotate selected faces"), [magnet]},
 	    separator,
@@ -493,9 +478,7 @@ command_menu(edge, X, Y) ->
 	[{?__(53,"Free"),free,?__(54,"Rotate selection freely"), [magnet]},
 	 {?__(55,"Chart to X"), align_x, ?__(56,"Rotate chart to align selected edge to X-axis")},
 	 {?__(57,"Chart to Y"), align_y, ?__(58,"Rotate chart to align selected edge to Y-axis")}],
-    Menu = [{basic,{?__(59,"Edge operations"),ignore}},
-	    {basic,separator},
-	    {?__(60,"Move"),move,?__(61,"Move selected edges"),[magnet]},
+    Menu = [{?__(60,"Move"),move,?__(61,"Move selected edges"),[magnet]},
 	    {?__(62,"Scale"),{scale,Scale},?__(63,"Scale selected edges"), [magnet]},
 	    {?__(64,"Rotate"),{rotate,Align},?__(65,"Rotate commands")},
 	    {?__(641,"Slide"),slide,?__(642,"Slide along neighbor edges")},
@@ -518,9 +501,7 @@ command_menu(vertex, X, Y) ->
 	 {?__(74,"Chart to Y"), align_y, 
 	  ?__(75,"Rotate chart to align (imaginary) edge joining selected verts to Y-axis")}],
 
-    Menu = [{basic,{?__(76,"Vertex operations"),ignore}},
-	    {basic,separator},
-	    {?__(77,"Move"),move,?__(78,"Move selected vertices"),[magnet]},
+    Menu = [{?__(77,"Move"),move,?__(78,"Move selected vertices"),[magnet]},
 	    {?__(79,"Scale"),{scale,Scale},?__(80,"Scale selected vertices"), [magnet]},
 	    {?__(81,"Rotate"),{rotate,Align},?__(82,"Rotation commands")},
 	    separator,

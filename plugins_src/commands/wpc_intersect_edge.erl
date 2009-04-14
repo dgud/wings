@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for extending an edge to the intersection with a plane.
 %%
-%%  Copyright (c) 2004-2008 Bjorn Gustavsson.
+%%  Copyright (c) 2004-2009 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -71,9 +71,9 @@ standard_planes_menu() ->
     [standard_plane_fun(x),
      standard_plane_fun(y),
      standard_plane_fun(z),
-     {advanced,separator},
-     {advanced,standard_plane_fun(last_axis)},
-     {advanced,standard_plane_fun(default_axis)}].
+     separator,
+     standard_plane_fun(last_axis),
+     standard_plane_fun(default_axis)].
 
 standard_plane_fun(Vec) ->
     F = fun(1, Ns) ->

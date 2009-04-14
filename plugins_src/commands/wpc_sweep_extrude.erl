@@ -4,7 +4,7 @@
 %%    Plugin for making angled extrusions/regions/extractions that can be
 %%    scaled and twisted interactively.
 %%
-%%  Copyright (c) 2008 Richard Jones.
+%%  Copyright (c) 2008-2009 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -44,21 +44,17 @@ sweep_menu_headings() ->
 %%%% Menus
 sweep_menu(Type) ->
     MenuTitle = menu_title(Type),
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        {MenuTitle,{sweep_extrude,xyz(Type)}};
-      true ->
-        F = fun(help, _Ns) ->
-          Str1 = menu_string_1(Type),
-          Str2 = ?__(4,"Pick axis and extrude relative to percentage of selection's radius"),
-          Str3 = ?__(3,"Pick axis"),
-          {Str1,Str2,Str3};
-          (1, _Ns) -> xyz(Type);
-          (2, _Ns) -> {face,{Type,{relative,{'ASK',[plane]}}}};
-          (3, _Ns) -> {face,{Type,{absolute,{'ASK',[plane]}}}}
+    F = fun(help, _Ns) ->
+		Str1 = menu_string_1(Type),
+		Str2 = ?__(4,"Pick axis and extrude relative to percentage of selection's radius"),
+		Str3 = ?__(3,"Pick axis"),
+		{Str1,Str2,Str3};
+	   (1, _Ns) -> xyz(Type);
+	   (2, _Ns) -> {face,{Type,{relative,{'ASK',[plane]}}}};
+	   (3, _Ns) -> {face,{Type,{absolute,{'ASK',[plane]}}}}
         end,
-        {MenuTitle,{sweep_extrude,F}}
-    end.
+    {MenuTitle,{sweep_extrude,F}}.
+
 menu_title(sweep_extrude) -> ?__(1,"Sweep");
 menu_title(sweep_region) ->  ?__(2,"Sweep Region");
 menu_title(sweep_extract) -> ?__(3,"Sweep Extract").
@@ -83,23 +79,14 @@ xyz(Type) ->
 axis_menu(Type,Axis) ->
     AxisStr = wings_util:cap(wings_s:dir(Axis)),
     Help = axis_menu_string(Axis),
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        F = fun(1, _Ns) ->
-          {face,{Type,{absolute,Axis}}}
+    F = fun (help, _Ns) ->
+		Str3 = ?__(2,"Extrude relative to percentage of selection's radius"),
+		{Help,[],Str3};
+	    (1, _Ns) -> {face,{Type,{absolute,Axis}}};
+	    (3, _Ns) -> {face,{Type,{relative,Axis}}};
+	    (_,_) -> ignore
         end,
-        {AxisStr,F,Help};
-      true ->
-          F = fun
-          (help, _Ns) ->
-            Str3 = ?__(2,"Extrude relative to percentage of selection's radius"),
-            {Help,[],Str3};
-          (1, _Ns) -> {face,{Type,{absolute,Axis}}};
-          (3, _Ns) -> {face,{Type,{relative,Axis}}};
-          (_,_) -> ignore
-        end,
-        {AxisStr,{Axis,F},Help}
-    end.
+    {AxisStr,{Axis,F},Help}.
 
 axis_menu_string(free) ->
     ?__(1,"Sweep freely relative to the screen");

@@ -4,7 +4,7 @@
 %%     Plug-in for turning edges
 %%
 %%  Copyright (c) 2002 Chris Osgood,
-%%		  2003-2008 Bjorn Gustavsson.
+%%		  2003-2009 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -28,24 +28,9 @@ menu({edge}, Menu) -> menu_entry(Menu);
 menu(_, Menu) -> Menu.
 
 menu_entry(Menu) ->
-    case wings_pref:get_value(advanced_menus) of
-	true ->
-	    TurnMenu = turns(),
-	    Menu ++ [separator,
-		     {command_name(turn),{turn,TurnMenu}}];
-	false ->
-	    Menu ++ [separator,{?__(turn, "Turn"),{turn_edge,
-		     [?MENU_ENTRY(turn_cw),
-		     ?MENU_ENTRY(turn_ccw),
-		     ?MENU_ENTRY(turn_optimized)]}}]
-    end.
-%% Basic Menus
-command({edge,{turn_edge,turn_cw}}, St) ->
-    turn_edges(fun cw_mode/2, false, St);
-command({edge,{turn_edge,turn_ccw}}, St) ->
-    turn_edges(fun ccw_mode/2, false, St);
-command({edge,{turn_edge,turn_optimized}}, St) ->
-    turn_edges(fun cw_mode/2, true, St);
+    TurnMenu = turns(),
+    Menu ++ [separator,{command_name(turn),{turn,TurnMenu}}].
+
 %% Advanced Menus
 command({edge,turn_cw}, St) ->
     turn_edges(fun cw_mode/2, false, St);

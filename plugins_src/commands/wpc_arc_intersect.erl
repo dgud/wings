@@ -3,7 +3,7 @@
 %%
 %%    Plugin to rotate selected element to intersect with a secondary selection
 %%
-%%  Copyright (c) 2008 Richard Jones.
+%%  Copyright (c) 2008-2009 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,10 +18,7 @@ init() ->
 
 %%%% Menu
 menu({Mode,rotate},Menu) when Mode =:= vertex; Mode =:= edge; Mode =:= face; Mode =:= body ->
-    case wings_pref:get_value(advanced_menus) of
-      false -> Menu;
-      true  -> [Menu|[separator,arc_intersect_menu(Mode)]]
-    end;
+    [Menu|[separator,arc_intersect_menu(Mode)]];
 menu(_,Menu) ->
     Menu.
 

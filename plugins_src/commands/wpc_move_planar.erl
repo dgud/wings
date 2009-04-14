@@ -3,7 +3,7 @@
 %%
 %%    Plugin for moving elements restricted to a single plane.
 %%
-%%  Copyright (c) 2008 Richard Jones.
+%%  Copyright (c) 2008-2009 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -25,37 +25,27 @@ menu(_,Menu) ->
 %%%% Menus
 move_planar_menu(body) ->
     MenuTitle = ?__(1,"Planar"),
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        {MenuTitle,{move_planar,xyz(body)}};
-      true ->
-        F = fun(help, _Ns) ->
-          Str1 = ?__(2,"Restrict movement to standard plane"),
-          Str3 = ?__(3,"Pick plane"),
-          {Str1,[],Str3};
-          (1, _Ns) -> xyz(body);
-          (2, _Ns) -> ignore;
-          (3, _Ns) -> {body,{move_planar,{'ASK',[plane]}}}
+    F = fun(help, _Ns) ->
+		Str1 = ?__(2,"Restrict movement to standard plane"),
+		Str3 = ?__(3,"Pick plane"),
+		{Str1,[],Str3};
+	   (1, _Ns) -> xyz(body);
+	   (2, _Ns) -> ignore;
+	   (3, _Ns) -> {body,{move_planar,{'ASK',[plane]}}}
         end,
-        {MenuTitle,{move_planar,F},[]}
-    end;
+    {MenuTitle,{move_planar,F},[]};
 
 move_planar_menu(Mode) ->
     MenuTitle = ?__(1,"Planar"),
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        {MenuTitle,{move_planar,xyz(Mode)}};
-      true ->
-        F = fun(help, _Ns) ->
-          Str1 = ?__(2,"Restrict movement to standard plane"),
-          Str3 = ?__(3,"Pick plane"),
-          {Str1,[],Str3};
-          (1, _Ns) -> xyz(Mode);
-          (2, _Ns) -> ignore;
-          (3, _Ns) -> {Mode,{move_planar,{'ASK',{[plane],[],[magnet]}}}}
+    F = fun(help, _Ns) ->
+		Str1 = ?__(2,"Restrict movement to standard plane"),
+		Str3 = ?__(3,"Pick plane"),
+		{Str1,[],Str3};
+	   (1, _Ns) -> xyz(Mode);
+	   (2, _Ns) -> ignore;
+	   (3, _Ns) -> {Mode,{move_planar,{'ASK',{[plane],[],[magnet]}}}}
         end,
-        {MenuTitle,{move_planar,F},[magnet]}
-    end.
+    {MenuTitle,{move_planar,F},[magnet]}.
 
 xyz(Mode) ->
     [axis_menu(Mode,x),
@@ -68,29 +58,13 @@ xyz(Mode) ->
 axis_menu(body,Axis) ->
     AxisStr = wings_util:cap(wings_s:dir(Axis)),
     Help = axis_menu_string(Axis),
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        F = fun(1, _Ns) ->
-          {body,{move_planar,Axis}}
-        end,
-        {AxisStr,F,Help};
-      true ->
-        F = {body,{move_planar,Axis}},
-        {AxisStr,{Axis,F},Help}
-    end;
+    F = {body,{move_planar,Axis}},
+    {AxisStr,{Axis,F},Help};
 axis_menu(Mode,Axis) ->
     AxisStr = wings_util:cap(wings_s:dir(Axis)),
     Help = axis_menu_string(Axis),
-    case wings_pref:get_value(advanced_menus) of
-      false ->
-        F = fun(1, _Ns) ->
-          {Mode,{move_planar,Axis}}
-        end,
-        {AxisStr,F,Help};
-      true ->
-        F = {Mode,{move_planar,{Axis,{'ASK',{[],[],[magnet]}}}}},
-        {AxisStr,{Axis,F},Help,[magnet]}
-    end.
+    F = {Mode,{move_planar,{Axis,{'ASK',{[],[],[magnet]}}}}},
+    {AxisStr,{Axis,F},Help,[magnet]}.
 
 axis_menu_string(Axis) ->
     AxisStr = wings_s:dir(Axis),

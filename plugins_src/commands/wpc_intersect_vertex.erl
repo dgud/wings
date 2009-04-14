@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for moving vertice(s) to the intersection of a line and plane
 %%
-%%  Copyright (c) 2004 Bjorn Gustavsson.
+%%  Copyright (c) 2004-2009 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -59,17 +59,7 @@ command(_,_) -> next.
 %% creates the menu item for the vertex intersect command.
 
 menu_item() ->
-    [{basic, {?__(1,"Intersect"),{intersect,[{?__(2,"Stay on line"), {'VALUE', submenu_items(1)},
-				       ?__(3,"Move vertex along LINE of chosen direction to intersection "
-				       "with chosen PLANE")},
-				      {?__(4,"Stay on plane"), {'VALUE', submenu_items(2)},
-				       ?__(5,"Move vertex along PLANE with chosen normal to intersection "
-				       "with chosen LINE")},
-				      {?__(6,"Pick all"), {'VALUE', submenu_items(3)},
-				       ?__(7,"Move vertex to intersection of LINE of chosen direction and location "
-				       "with PLANE with chosen normal and location")}]}}},
-     {advanced, {?__(8,"Intersect"),{intersect,fun adv_submenu/2}}}].
-
+    [{?__(8,"Intersect"),{intersect,fun adv_submenu/2}}].
 
 submenu_items(1) ->
     {stay_on_line,

@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for bending vertices
 %%
-%%  Copyright (c) 2005-2008 Dave Rodgers
+%%  Copyright (c) 2005-2009 Dave Rodgers
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -44,11 +44,9 @@ init() ->
     true.
 
 menu({vertex}, Menu) ->
-    Menu ++ [{advanced,separator},
-	     {advanced, {?__(1,"Bend"),
-			 {bend,fun adv_submenu_noclamp/2}}},
-	     {advanced, {?__(2,"Bend Clamped"),
-			 {bend,fun adv_submenu_clamped/2}}}];
+    Menu ++ [separator,
+	     {?__(1,"Bend"),{bend,fun adv_submenu_noclamp/2}},
+	     {?__(2,"Bend Clamped"),{bend,fun adv_submenu_clamped/2}}];
 menu(_,Menu) -> Menu.
 
 command({vertex,{bend,Type}}, St) ->
