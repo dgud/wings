@@ -30,20 +30,21 @@ TYPE_FLAGS=
 endif
 
 MODULES= \
-	wpc_ai \
 	wpc_3ds \
-	wpc_obj \
-	wpc_opengl \
-	wpc_rwx \
-	wpc_wrl \
+	wpc_ai \
+	wpc_bzw \
 	wpc_hlines \
 	wpc_kerky \
-	wpc_stl \
-	wpc_x \
 	wpc_lwo \
-	wpc_yafray \
+	wpc_obj \
+	wpc_opengl \
 	wpc_pov \
-	wpc_bzw
+	wpc_ps \
+	wpc_rwx \
+	wpc_stl \
+	wpc_wrl \
+	wpc_x \
+	wpc_yafray
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 

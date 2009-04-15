@@ -1,4 +1,8 @@
---- 0.99.54a -----------------------------------------------------------------
+--- 0.99.XX -----------------------------------------------------------------
+- Separated the .ai and .ps|.eps import plugins, and changed them so that
+  objects are centered when they open in Wings. [optigon]
+
+--- 0.99.54a ----------------------------------------------------------------
 - Fixed mirror side Tweak mode selection bug reported by Fonte Boa. [optigon]
 
 - New Feature: File|Import|PostScript(.ps) allows Wings to import .ps files from
