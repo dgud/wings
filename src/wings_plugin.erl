@@ -4,7 +4,7 @@
 %%     Plug-In support, including the Plug-In Manager.
 %%
 %%  Copyright (c) 2001 Jakob Cederlund, Bjorn Gustavsson
-%%  Copyright (c) 2002-2008 Bjorn Gustavsson
+%%  Copyright (c) 2002-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -485,16 +485,6 @@ collect_menus([N|Ns], M) when is_tuple(N) ->
     end;
 collect_menus([], _) -> [].
 
-clean_menu([{basic,Menu}|T]) ->
-    case wings_pref:get_value(advanced_menus) of
-	false -> clean_menu([Menu|T]);
-	true -> clean_menu(T)
-    end;
-clean_menu([{advanced,Menu}|T]) ->
-    case wings_pref:get_value(advanced_menus) of
-	false -> clean_menu(T);
-	true -> clean_menu([Menu|T])
-    end;
 clean_menu([separator|T]) ->
     clean_menu(T);
 clean_menu([plugin_manager_category|T]) ->
