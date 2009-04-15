@@ -48,7 +48,7 @@ menu({file,import}, Menu) ->
 menu(_, Menu) -> Menu.
 
 command({file,{import,{ps,Ask}}}, _St) when is_atom(Ask) ->
-    DefBisect = wpa:pref_get(wpc_ai, ps_bisections, 0),
+    DefBisect = wpa:pref_get(wpc_ps, ps_bisections, 0),
     wpa:ask(Ask, ?__(4,"PS/EPS Import Options"),
         [{?__(2,"Number of edge bisections"), DefBisect}],
         fun(Res) -> {file,{import, ps, Res}} end);
@@ -63,7 +63,7 @@ command(_, _) ->
 make_ps(Name, Nsubsteps) ->
     case catch try_import_ps(Name, Nsubsteps) of
     {ok, E3dFile} ->
-        wpa:pref_set(wpc_ai, ps_bisections, Nsubsteps),
+        wpa:pref_set(wpc_ps, ps_bisections, Nsubsteps),
         {ok, E3dFile};
     {error,Reason} ->
         {error, ?__(1,"PS import failed")++": " ++ Reason};
