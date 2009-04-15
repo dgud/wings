@@ -2,6 +2,10 @@
 - Separated the .ai and .ps|.eps import plugins, and changed them so that
   objects are centered when they open in Wings. [optigon]
 
+- Removed all code that supported basic menus. Plug-ins that use the
+  {basic,...}  and {advanced,...} constructs in menus must
+  be updated. [bjorng]
+
 --- 0.99.54a ----------------------------------------------------------------
 - Fixed mirror side Tweak mode selection bug reported by Fonte Boa. [optigon]
 
