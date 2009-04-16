@@ -6,6 +6,13 @@
   {basic,...}  and {advanced,...} constructs in menus must
   be updated. [bjorng]
 
+- Merging objects with masked vertices would not transfer those elements
+  correctly. Now fixed. [optigon]
+
+- Added Tools|Magnet Mask|Invert, which allows you to invert the masked/unmasked
+  vertices. Only highlighted objects are inverted, unless there is no highlight,
+  in which case all object's masks are inverted. [optigon]
+
 --- 0.99.54a ----------------------------------------------------------------
 - Fixed mirror side Tweak mode selection bug reported by Fonte Boa. [optigon]
 

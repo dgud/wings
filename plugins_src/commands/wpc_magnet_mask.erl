@@ -1,4 +1,17 @@
-%%%% Plugin for locking vertices against the influence of magnets.
+%%
+%%  wpc_magnet_mask.erl --
+%%
+%%     Plugin for locking vertices against the influence of magnets.
+%%     This plugin uses #dlo.plugin to store its drawlist and the #we.pst to
+%%     store vextex data.  The vertex data is renumerbered when the objects are
+%%     merged or saved.
+%%
+%%
+%%  Copyright (c) 2009 Richard Jones.
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
 
 -module(wpc_magnet_mask).
 
@@ -46,7 +59,6 @@ crossmark(Key) ->
       true -> [crossmark]
     end.
 
-
 command({tools,{magnet_mask,Type}},St) ->
     locking(Type,St);
 command({select,{by,magnet_mask}}, St) ->
@@ -58,8 +70,20 @@ command({view,{show,show_magnet_mask}}, St) ->
 command(_,_) ->
     next.
 
+%%%% Some temp selection
+locking(Type, #st{sel=[]}=St0) ->
+    {_,X,Y} = wings_wm:local_mouse_state(),
+    case wings_pick:do_pick(X, Y, St0) of
+      {add,_,TempSt} ->
+          #st{shapes=Shs} = locking_1(Type, TempSt),
+          St0#st{shapes=Shs,sel=[]};
+      none -> locking_1(Type, St0)
+    end;
+locking(Type, St) ->
+    locking_1(Type, St).
+
 %%%% Lock or unlock selected vertices storing those locked in the pst
-locking(mask, #st{selmode=Selmode}=St) ->
+locking_1(mask, #st{selmode=Selmode}=St) ->
     wings_sel:map(fun
            (Sel, #we{pst=Pst}=We) ->
               Lvs = get_locked_vs(Pst),
@@ -68,7 +92,7 @@ locking(mask, #st{selmode=Selmode}=St) ->
               NewPst = set_locked_vs(Locked,Pst),
               We#we{pst=NewPst}
           end, St);
-locking(unmask, #st{selmode=Selmode}=St) ->
+locking_1(unmask, #st{selmode=Selmode}=St) ->
     wings_sel:map(fun
            (Sel, #we{pst=Pst}=We) ->
               Lvs = get_locked_vs(Pst),
@@ -77,32 +101,25 @@ locking(unmask, #st{selmode=Selmode}=St) ->
               NewPst = set_locked_vs(Locked,Pst),
               We#we{pst=NewPst}
           end, St);
-locking(invert_masked, #st{shapes=Shs0, sel=[]}=St) ->
+
+locking_1(invert_masked, #st{shapes=Shs0, sel=[]}=St) ->
     Shs1 = lists:map(fun
             (#we{id=Id,pst=Pst,perm=0}=We) ->
               Lvs = get_locked_vs(Pst),
-              case gb_sets:is_empty(Lvs) of
-                true -> {Id,We};
-                false ->
-                  Diff = wings_sel:inverse_items(vertex, Lvs, We),
-                  NewPst = set_locked_vs(Diff,Pst),
-                  {Id,We#we{pst=NewPst}}
-              end;
+              Diff = wings_sel:inverse_items(vertex, Lvs, We),
+              NewPst = set_locked_vs(Diff,Pst),
+              {Id,We#we{pst=NewPst}};
             (#we{id=Id}=We) -> {Id,We}
           end,gb_trees:values(Shs0)),
     Shs = gb_trees:from_orddict(Shs1),
     St#st{shapes=Shs};
-locking(invert_masked, #st{shapes=Shs0}=St) ->
+locking_1(invert_masked, #st{shapes=Shs0}=St) ->
     wings_sel:map(fun
             (_,#we{pst=Pst}=We) ->
               Lvs = get_locked_vs(Pst),
-              case gb_sets:is_empty(Lvs) of
-                true -> We;
-                false ->
-                  Diff = wings_sel:inverse_items(vertex, Lvs, We),
-                  NewPst = set_locked_vs(Diff,Pst),
-                  We#we{pst=NewPst}
-              end
+              Diff = wings_sel:inverse_items(vertex, Lvs, We),
+              NewPst = set_locked_vs(Diff,Pst),
+              We#we{pst=NewPst}
             end,St).
 
 select_locked(St) ->
@@ -138,7 +155,6 @@ update_dlist({vs,LockedVs},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}=We}=D,_) ->
         D#dlo{plugins=[{Key,{vs,List}}|Pdl]}
     end.
 
-
 positions([V|Locked],Vtab,Acc) ->
     Pos = gb_trees:get(V,Vtab),
     positions(Locked,Vtab,[Pos|Acc]);
@@ -163,12 +179,12 @@ set_locked_vs(LockedVs,Pst) ->
           gb_trees:update(?MODULE,NewData,Pst)
     end.
 
-get_data(update_dlist, Data, Acc) ->
+get_data(update_dlist, Data, Acc) ->  % for draw lists
     case wings_pref:get_value(show_magnet_mask) of
       true -> get_data_2(Data,Acc);
       false -> Acc
     end;
-get_data(save, Data, Acc) ->
+get_data(save, Data, Acc) ->  % the 'save' causes vertices to be renumbered
     get_data_2(Data,Acc).
 
 get_data_2(Data, Acc) ->
@@ -189,8 +205,9 @@ draw(plain, {vs,List}, _D, _Selmode) ->
     end;
 draw(_,_,_,_) -> ok.
 
-% From wings_we. When two or more shapes merge plugins that use the Pst have
-% the option to merge the pst data from those shapes likr I'm doing here :)
+% Called from wings_we:merge/1.
+% When two or more shapes merge, plugins that use the Pst have
+% the option to merge the pst data from those shapes like I'm doing here :)
 merge_we([We]) -> We;
 merge_we(Wes) -> merge_we_1(Wes,[]).
 
