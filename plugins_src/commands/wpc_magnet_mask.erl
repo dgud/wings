@@ -3,7 +3,7 @@
 -module(wpc_magnet_mask).
 
 -export([init/0,menu/2,command/2]).
--export([update_dlist/3,draw/4,get_locked_vs/1,get_data/3]).
+-export([update_dlist/3,draw/4,get_locked_vs/1,get_data/3,merge_we/1]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -25,7 +25,8 @@ menu(_,Menu) -> Menu.
 tools_menu_entry() ->
     [{?__(1,"Magnet Mask"),{magnet_mask,
       [{?__(2,"Lock"),mask},
-       {?__(3,"Unlock"),unmask}]}}].
+       {?__(3,"Unlock"),unmask},
+       {?__(4,"Invert"),invert_masked}]}}].
 
 select_menu_entry() ->
     [{?__(1,"Magnet Mask"),magnet_mask}].
@@ -75,7 +76,34 @@ locking(unmask, #st{selmode=Selmode}=St) ->
               Locked = gb_sets:difference(Lvs, Vertices),
               NewPst = set_locked_vs(Locked,Pst),
               We#we{pst=NewPst}
-          end, St).
+          end, St);
+locking(invert_masked, #st{shapes=Shs0, sel=[]}=St) ->
+    Shs1 = lists:map(fun
+            (#we{id=Id,pst=Pst,perm=0}=We) ->
+              Lvs = get_locked_vs(Pst),
+              case gb_sets:is_empty(Lvs) of
+                true -> {Id,We};
+                false ->
+                  Diff = wings_sel:inverse_items(vertex, Lvs, We),
+                  NewPst = set_locked_vs(Diff,Pst),
+                  {Id,We#we{pst=NewPst}}
+              end;
+            (#we{id=Id}=We) -> {Id,We}
+          end,gb_trees:values(Shs0)),
+    Shs = gb_trees:from_orddict(Shs1),
+    St#st{shapes=Shs};
+locking(invert_masked, #st{shapes=Shs0}=St) ->
+    wings_sel:map(fun
+            (_,#we{pst=Pst}=We) ->
+              Lvs = get_locked_vs(Pst),
+              case gb_sets:is_empty(Lvs) of
+                true -> We;
+                false ->
+                  Diff = wings_sel:inverse_items(vertex, Lvs, We),
+                  NewPst = set_locked_vs(Diff,Pst),
+                  We#we{pst=NewPst}
+              end
+            end,St).
 
 select_locked(St) ->
     Sel = fun(V,#we{pst=Pst}) ->
@@ -156,7 +184,22 @@ draw(plain, {vs,List}, _D, _Selmode) ->
         {R0,G0,B0,A} = wings_pref:get_value(masked_vertex_color),
         gl:color4f(R0, G0, B0, A),
         wings_dl:call(List),
-		gl:disable(?GL_BLEND);
+        gl:disable(?GL_BLEND);
       false-> ok
     end;
 draw(_,_,_,_) -> ok.
+
+% From wings_we. When two or more shapes merge plugins that use the Pst have
+% the option to merge the pst data from those shapes likr I'm doing here :)
+merge_we([We]) -> We;
+merge_we(Wes) -> merge_we_1(Wes,[]).
+
+merge_we_1([#we{pst=Pst}|Wes], LockedVs) ->
+    Locked = get_locked_vs(Pst),
+    PluginData = gb_sets:to_list(Locked),
+    merge_we_1(Wes, [PluginData|LockedVs]);
+merge_we_1([],LockedVs) ->
+    LVs = lists:merge(LockedVs),
+    NewLvs = gb_sets:from_list(LVs),
+    NewTree = gb_trees:empty(),
+    gb_trees:insert(vs, NewLvs, NewTree).

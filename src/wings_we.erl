@@ -589,8 +589,8 @@ merge(We0, We1) ->
 merge([]) -> [];
 merge([We]) -> We;
 merge([#we{id=Id,name=Name}|_]=Wes0) ->
-    Pst  = merge_plugins(Wes0),
     Wes1 = merge_renumber(Wes0),
+    Pst  = merge_plugins(Wes1),
     MatTab = wings_facemat:merge(Wes1),
     {Vpt0,Et0,Ht0} = merge_1(Wes1),
     Vpt = gb_trees:from_orddict(Vpt0),
