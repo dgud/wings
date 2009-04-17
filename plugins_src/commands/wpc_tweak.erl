@@ -142,8 +142,6 @@ tweak(_,_,St0) ->
         MagType = dome,
         MagR = 1.0
     end,
-    St = wings_undo:init(St0),
-    wings_draw:refresh_dlists(St),
     T = #tweak{magnet=Mag,mag_type=MagType,mag_r=MagR,
            tmode=wait,orig_st=St0,st=St0},
     help(T),
@@ -203,10 +201,15 @@ fkey_combo() ->
     [F1,F2,F3].
 
 %% Event handler for tweak mode
+update_tweak_handler(#tweak{tmode=drag,st=#st{}=St}=T) ->
+    wings_draw:update_sel_dlist(),
+    wings_wm:dirty(),
+    {replace,fun(Ev) ->
+        handle_tweak_event(Ev, T#tweak{orig_st=St,st=St}) end};
+
 update_tweak_handler(#tweak{st=#st{}=St}=T) ->
     wings:mode_restriction(none),
-    wings_wm:current_state(St),
-    wings_draw:update_sel_dlist(),
+    wings_draw:refresh_dlists(St),
     wings_wm:dirty(),
     {replace,fun(Ev) ->
         handle_tweak_event(Ev, T#tweak{orig_st=St,st=St}) end}.
@@ -235,12 +238,10 @@ handle_tweak_event({vec_command,Command,_}, T) when is_function(Command) ->
     end;
 handle_tweak_event(revert_state, #tweak{orig_st=St0}=T) ->
     St = clear_temp_sel(St0),
-    wings_draw:refresh_dlists(St),
     update_tweak_handler(T#tweak{st=St});
 
 handle_tweak_event({note,menu_aborted}, #tweak{orig_st=St0}=T) ->
     St = clear_temp_sel(St0),
-    wings_draw:refresh_dlists(St),
     update_tweak_handler(T#tweak{st=St});
 handle_tweak_event({drop,Pos,DropData}, #tweak{st=St}) ->
     wings:handle_drop(DropData, Pos, St);
@@ -283,10 +284,7 @@ handle_tweak_event0(#mousemotion{}=Ev, #tweak{tmode=wait,st=St}=T) ->
       Other -> Other
     end;
 
-handle_tweak_event0(Ev, T) ->
-    handle_tweak_event1(Ev, T).
-
-handle_tweak_event1(#mousemotion{x=X,y=Y,state=State,mod=Mod},
+handle_tweak_event0(#mousemotion{x=X,y=Y,state=State,mod=Mod},
             #tweak{tmode=drag,cx=CX,cy=CY,ox=OX,oy=OY}=T0)
             when State =/= ?SDL_BUTTON_RMASK ->
     DX = float(X-CX),
@@ -330,8 +328,11 @@ handle_tweak_event1(#mousemotion{x=X,y=Y,state=State,mod=Mod},
     T = T0#tweak{cx=X,cy=Y},
     update_tweak_handler(T);
 
-handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
-            #tweak{tmode=wait,dc={0,0},st=St0}=T0) when B == 1; B == 2 ->
+handle_tweak_event0(Ev, T) ->
+    handle_tweak_event1(Ev, T).
+
+handle_tweak_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
+            #tweak{tmode=wait,dc={0,0},st=St0}=T0) ->
     ModKeys = mod_key_combo(),
     Cam = wings_pref:get_value(camera_mode),
     MayaMod = Cam == maya andalso wings_pref:get_value(tweak_mmb_select),
@@ -340,32 +341,48 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
     LL = wings_pref:get_value(tweak_double_click),
     Lm = L == false andalso LL == false,
     case ModKeys of
-      {false,false,false} when B == 2 andalso MayaMod ->
+      {false,true,false} when Lm andalso not MayaMod->
         wings_pick:paint_pick(X, Y, St0);
-      {false,true,false} when B == 1 andalso Lm andalso not MayaMod->
+      {false,true,false} when TwkCtrl == select andalso not MayaMod ->
         wings_pick:paint_pick(X, Y, St0);
-      {false,true,false} when B == 1 andalso TwkCtrl == select andalso not MayaMod ->
+      {false,false,true} when Cam == mb andalso Lm ->
         wings_pick:paint_pick(X, Y, St0);
-      {false,false,true} when B == 1 andalso Cam == mb andalso Lm ->
+      {false,false,true} when Cam == mb andalso TwkCtrl == select ->
         wings_pick:paint_pick(X, Y, St0);
-      {false,false,true} when B == 1 andalso Cam == mb andalso TwkCtrl == select ->
-        wings_pick:paint_pick(X, Y, St0);
-      {true,false,false} when B == 1  ->
+      {true,false,false} ->
         wings_pick:marquee_pick(X, Y, St0);
       _Other when
-        B == 1 andalso MayaMod andalso ModKeys == {false,true,false};
-        B == 1 andalso Cam =/= mb;
-        B == 1 andalso Cam == mb andalso ModKeys == {false,false,false};
-        B == 1 andalso Cam == mb andalso ModKeys == {false,false,true} andalso Lm==false andalso TwkCtrl == slide;
-        B == 2 andalso Cam == maya andalso ModKeys == {false,false,false} andalso not MayaMod;
-        B == 2 andalso Cam == mb  andalso ModKeys =/= {false,true,false} andalso ModKeys =/= {false,false,false}->
-          pick_event(X,Y,Cam,B,T0);
+        MayaMod andalso ModKeys == {false,true,false};
+        Cam =/= mb;
+        Cam == mb andalso ModKeys == {false,false,false};
+        Cam == mb andalso ModKeys == {false,false,true} andalso Lm==false andalso TwkCtrl == slide ->
+          pick_event(X,Y,Cam,1,T0);
       _Other ->
         update_tweak_handler(T0)
     end;
 
-handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
-            #tweak{tmode=wait,dc={true,Time1},st=#st{selmode=Selmode}=St0}=T0) when B == 1; B == 2 ->
+handle_tweak_event1(#mousebutton{button=2,x=X,y=Y,state=?SDL_PRESSED},
+            #tweak{tmode=wait,st=St0}=T0) ->
+    ModKeys = mod_key_combo(),
+    Cam = wings_pref:get_value(camera_mode),
+    MayaMod = Cam == maya andalso wings_pref:get_value(tweak_mmb_select),
+    case ModKeys of
+      {false,false,false} when MayaMod ->
+        wings_pick:paint_pick(X, Y, St0);
+      {false,false,false} when Cam==maya ->
+        pick_event(X,Y,maya,2,T0);
+      {false,false,false} when Cam==mb ->
+        update_tweak_handler(T0);
+      {false,true,false} when Cam==mb ->
+        update_tweak_handler(T0);
+      _Other when Cam==mb ->
+        pick_event(X,Y,mb,2,T0);
+      _Other ->
+        update_tweak_handler(T0)
+    end;
+
+handle_tweak_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
+            #tweak{tmode=wait,dc={true,Time1},st=#st{selmode=Selmode}=St0}=T0) ->
     Time2 = now(),
     SecondPress = timer:now_diff(Time2,Time1),
     ModKeys = mod_key_combo(),
@@ -378,35 +395,31 @@ handle_tweak_event1(#mousebutton{button=B,x=X,y=Y,state=?SDL_PRESSED},
     LL = wings_pref:get_value(tweak_double_click),
     Lm = L == false andalso LL == false,
     case ModKeys of
-      {false,false,false} when B == 2 andalso MayaMod ->
+      {false,true,false} when Lm andalso not MayaMod->
         wings_pick:paint_pick(X, Y, St0);
-      {false,true,false} when B == 1 andalso Lm andalso not MayaMod->
+      {false,true,false} when TwkCtrl == select andalso not MayaMod ->
         wings_pick:paint_pick(X, Y, St0);
-      {false,true,false} when B == 1 andalso TwkCtrl == select andalso not MayaMod ->
+      {false,false,true} when  Cam == mb andalso Lm ->
         wings_pick:paint_pick(X, Y, St0);
-      {false,false,true} when B == 1 andalso Cam == mb andalso Lm ->
+      {false,false,true} when Cam == mb andalso TwkCtrl == select ->
         wings_pick:paint_pick(X, Y, St0);
-      {false,false,true} when B == 1 andalso Cam == mb andalso TwkCtrl == select ->
-        wings_pick:paint_pick(X, Y, St0);
-      {true,false,false} when B == 1  ->
+      {true,false,false} ->
         wings_pick:marquee_pick(X, Y, St0);
-      {false,false,false} when B == 1 andalso SecondPress < ClickSpeed andalso DC == true ->
+      {false,false,false} when SecondPress < ClickSpeed andalso DC == true ->
         St = wings_undo:undo(St0),
         wings_pick:paint_pick(X,Y,St#st{selmode=Selmode});
       _Other when
-        B == 1 andalso MayaMod andalso ModKeys == {false,true,false};
-        B == 1 andalso Cam =/= mb;
-        B == 1 andalso Cam == mb andalso ModKeys == {false,false,false};
-        B == 1 andalso Cam == mb andalso ModKeys == {false,true,false} andalso Lm==false andalso TwkCtrl == slide;
-        B == 2 andalso Cam == maya andalso ModKeys == {false,false,false};
-        B == 2 andalso Cam == mb  andalso ModKeys =/= {false,true,false} andalso ModKeys =/= {false,false,false} ->
-          pick_event(X,Y,Cam,B,T0);
+        MayaMod andalso ModKeys == {false,true,false};
+        Cam =/= mb;
+        Cam == mb andalso ModKeys == {false,false,false};
+        Cam == mb andalso ModKeys == {false,true,false} andalso Lm==false andalso TwkCtrl == slide ->
+          pick_event(X,Y,Cam,1,T0);
       _Other ->
         update_tweak_handler(T0)
     end;
 
-handle_tweak_event1(#mousebutton{button=B,state=?SDL_RELEASED},
-            #tweak{tmode=drag,dc={Time1,0}}=T) when B == 1; B == 2 ->
+handle_tweak_event1(#mousebutton{button=1,state=?SDL_RELEASED},
+            #tweak{tmode=drag,dc={Time1,0}}=T) ->
     Time2 = now(),
     Click = timer:now_diff(Time2,Time1),
     ClickSelect = wings_pref:get_value(tweak_single_click),
@@ -414,31 +427,19 @@ handle_tweak_event1(#mousebutton{button=B,state=?SDL_RELEASED},
     Cam = wings_pref:get_value(camera_mode),
     MayaMod = Cam == maya andalso wings_pref:get_value(tweak_mmb_select),
     case Cam of
-      maya when B == 2 -> end_drag(T#tweak{dc={0,0}});
-      maya when B == 1 andalso MayaMod ->
+      maya when MayaMod ->
           end_drag(T#tweak{dc={0,0}});
-      mb when B == 2 -> end_drag(T#tweak{dc={0,0}});
-      _Cam when B == 1 andalso Click < ClickSpeed ->
+      _Cam when Click < ClickSpeed ->
           end_pick(ClickSelect, T#tweak{dc={true,Time2}});
-      _Cam when B == 1 -> end_drag(T#tweak{dc={0,0}})
+      _Cam -> end_drag(T#tweak{dc={0,0}})
     end;
 
-handle_tweak_event1(#mousebutton{button=B,state=?SDL_RELEASED},
-            #tweak{tmode=drag,dc={Time1,0}}=T) when B == 1; B == 2 ->
-    Time2 = now(),
-    Click = timer:now_diff(Time2,Time1),
-    ClickSelect = wings_pref:get_value(tweak_single_click),
-    ClickSpeed = wings_pref:get_value(tweak_double_click_speed54),
+handle_tweak_event1(#mousebutton{button=2,state=?SDL_RELEASED},
+            #tweak{tmode=drag}=T) ->
     Cam = wings_pref:get_value(camera_mode),
-    MayaMod = Cam == maya andalso wings_pref:get_value(tweak_mmb_select),
     case Cam of
-      maya when B == 2 -> end_drag(T#tweak{dc={0,0}});
-      maya when B == 1 andalso MayaMod ->
-          end_drag(T#tweak{dc={0,0}});
-      mb when B == 2 -> end_drag(T#tweak{dc={0,0}});
-      _Cam when B == 1 andalso Click < ClickSpeed ->
-          end_pick(ClickSelect, T#tweak{dc={true,Time2}});
-      _Cam when B == 1 -> end_drag(T#tweak{dc={0,0}})
+      maya -> end_drag(T#tweak{dc={0,0}});
+      mb -> end_drag(T#tweak{dc={0,0}})
     end;
 
 handle_tweak_event1(#mousemotion{state=?SDL_RELEASED},
@@ -446,26 +447,25 @@ handle_tweak_event1(#mousemotion{state=?SDL_RELEASED},
     end_drag(T);
 
 %%%% Right Click Menus
-handle_tweak_event1(#mousebutton{button=3,state=?SDL_PRESSED},
-		    #tweak{}) ->
+handle_tweak_event1(#mousebutton{button=3,state=?SDL_PRESSED}, #tweak{}) ->
     keep;
 
-handle_tweak_event1(#mousebutton{button=3,state=?SDL_RELEASED,x=X,y=Y}=Ev0,
-        #tweak{st=#st{sel=Sel}=St0}=T) ->
+handle_tweak_event1(#mousebutton{button=3,state=?SDL_RELEASED,x=X,y=Y},
+        #tweak{st=#st{sel=Sel}=St0}) ->
     {GlobalX, GlobalY} = wings_wm:local2global(X,Y),
     case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
-	false ->
-	    popup_menu(GlobalX, GlobalY, St0);
-	true ->
-	    case wings_pick:do_pick(X, Y, St0) of
-		{add,_,St1} ->
-		    St = set_temp_sel(St0,St1),
-		    wings_wm:current_state(St),
-		    wings_draw:refresh_dlists(St),
-		    handle_tweak_event1(Ev0,T#tweak{orig_st=St0,st=St});
-		_ ->
-		    popup_menu(GlobalX, GlobalY, St0)
-	    end
+    false ->
+        popup_menu(GlobalX, GlobalY, St0);
+    true ->
+        case wings_pick:do_pick(X, Y, St0) of
+        {add,_,St1} ->
+            St = set_temp_sel(St0,St1),
+            wings_wm:current_state(St),
+            wings_draw:refresh_dlists(St),
+            popup_menu(GlobalX, GlobalY, St);
+        _ ->
+            popup_menu(GlobalX, GlobalY, St0)
+        end
     end;
 
 handle_tweak_event1(Ev,T) ->
@@ -473,7 +473,6 @@ handle_tweak_event1(Ev,T) ->
 
 handle_tweak_event2(init_opengl, #tweak{st=St}) ->
     wings:init_opengl(St),
-    wings_draw:refresh_dlists(St),
     keep;
 handle_tweak_event2(quit=Ev, T) ->
     wings_wm:later(Ev),
@@ -487,7 +486,6 @@ handle_tweak_event2({new_state,St0}, #tweak{orig_st=#st{selmode=Mode,sh=Sh}=Orig
     case St2#st{selmode=Mode,sh=Sh} =:= OrigSt of
       false ->
         St = wings_undo:save(OrigSt,St2),
-        wings_draw:refresh_dlists(St),
         St1 = case St of
            #st{saved=false} -> St;
            _Other -> wings_u:caption(St#st{saved=false})
@@ -525,48 +523,37 @@ handle_tweak_event2({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=S
 
     {edit,undo_toggle} ->
         St = wings_u:caption(wings_undo:undo_toggle(clear_temp_sel(St0))),
-        wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{orig_st=St,st=St});
     {edit,undo} ->
         St = wings_u:caption(wings_undo:undo(clear_temp_sel(St0))),
-        wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{orig_st=St,st=St});
     {edit,redo} ->
         St = wings_u:caption(wings_undo:redo(clear_temp_sel(St0))),
-        wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{orig_st=St,st=St});
 
     {select,vertex} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=vertex},
-        wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
     {select,edge} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=edge},
-        wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
     {select,face} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=face},
-        wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
     {select,body} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=body},
-        wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
     {select,{adjacent,vertex}} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=vertex},
-        wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
     {select,{adjacent,edge}} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=edge},
-        wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
     {select,{adjacent,face}} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=face},
-        wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
     {select,{adjacent,body}} when NoTempSel ->
         St = OrigSt#st{sh=false, selmode=body},
-        wings_draw:refresh_dlists(St),
         update_tweak_handler(T#tweak{st=St});
     {select,{edge_loop,edge_loop}}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
     {select,{edge_loop,edge_ring}}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
@@ -634,17 +621,6 @@ remember_mode(#tweak{magnet=Mag,mag_type=MagType,mag_r=MagR,
              st=#st{selmode=Mode,sh=Sh}}) ->
     wpa:pref_set(?MODULE, sel_mode, {Mode,Sh,Mag,MagType,MagR}).
 
-refresh_dlists(wireframe_selected, _) -> ok;
-refresh_dlists(shade_selected, _) -> ok;
-refresh_dlists(toggle_wireframe, _) -> ok;
-refresh_dlists(orthogonal_view, _) -> ok;
-refresh_dlists(aim, _) -> ok;
-refresh_dlists(frame, _) -> ok;
-refresh_dlists(toggle_lights, _) -> ok;
-refresh_dlists({along,_}, _) -> ok;
-refresh_dlists({toggle_lights,_}, _) -> ok;
-refresh_dlists(_, St) -> wings_draw:refresh_dlists(St).
-
 do_cmd({tools, {tweak,false}}, #tweak{st=St}=T) ->
     exit_tweak(T#tweak{st=clear_temp_sel(St)});
 
@@ -677,7 +653,6 @@ do_wings_cmd({view,Cmd}, #tweak{st=#st{}=St0}=T) ->
     case wings_view:command(Cmd,St0) of
         #st{}=St ->
             St1 = clear_temp_sel(St),
-            refresh_dlists(Cmd, St1),
             update_tweak_handler(T#tweak{st=St1});
         Other ->
           Other
@@ -1458,7 +1433,7 @@ minus_locked_vs(MagVs, #we{pst=Pst}) ->
     case gb_trees:is_defined(wpc_magnet_mask,Pst) of
       true when Mask ->
         LockedVs = gb_sets:to_list(wpc_magnet_mask:get_locked_vs(Pst)),
-		remove_masked(LockedVs, MagVs);
+        remove_masked(LockedVs, MagVs);
       _otherwise ->
         MagVs
     end.
