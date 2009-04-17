@@ -15,6 +15,10 @@
 
 - Added toggle to switch the Magnet Mask On/Off. [optigon]
 
+- Fixed another crash in AutoUV caused by my change in 0.99.54.
+  Basically, I reverted my change I made 0.99.54, so this should be
+  the last crash caused by that clean-up. [bjorng]
+
 --- 0.99.54a ----------------------------------------------------------------
 - Fixed mirror side Tweak mode selection bug reported by Fonte Boa. [optigon]
 
