@@ -31,6 +31,22 @@ setup({magnet,Type,Route,Point}, VsSel, We) ->
     Affected = foldl(fun({V,_,_,_}, A) -> [V|A] end, [], VsInf),
     {VsInf,Magnet,Affected}.
 
+%%%% Requires the wpc_magnet_mask plugin.
+minus_locked_vs(VsSel,VsDistList,#we{pst=Pst}) ->
+    Mask = wings_pref:get_value(magnet_mask_on),
+    case gb_trees:is_defined(wpc_magnet_mask,Pst) of
+      true when Mask ->
+        LockedVs = gb_sets:to_list(wpc_magnet_mask:get_locked_vs(Pst)),
+        Unaffected = LockedVs -- VsSel,
+		remove_masked(Unaffected, VsDistList);
+      _otherwise ->
+        VsDistList
+    end.
+
+remove_masked([V|Unaffected],VsDistList) ->
+    remove_masked(Unaffected,lists:keydelete(V,1,VsDistList));
+remove_masked([],VsDistList) -> VsDistList.
+
 info_string() ->
     ["(",?__(1,"Magnet route:"),
      magnet_route(wings_pref:get_value(magnet_distance_route)),
@@ -133,17 +149,6 @@ mf(spike, D0, R) when is_float(D0), is_float(R) ->
 check_radius(R) when R < 1.0E-6 ->
     wings_u:error(?__(1,"Too short influence radius."));
 check_radius(_) -> ok.
-
-%%%% Requires the wpc_vertex_locking plugin.
-minus_locked_vs(VsSel,VsDist,#we{pst=Pst}) ->
-    case gb_trees:is_defined(wpc_magnet_mask,Pst) of
-      true ->
-        LockedVs = gb_sets:to_list(wpc_magnet_mask:get_locked_vs(Pst)),
-        UnAffected = LockedVs -- VsSel,
-        [{V,Pos,R,N} || {V,Pos,R,N} <- VsDist, not lists:member(V,UnAffected)];
-      false ->
-        VsDist
-    end.
 
 %%%
 %%% Calculation of influence radius: Shortest distance route.

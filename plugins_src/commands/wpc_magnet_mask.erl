@@ -25,6 +25,7 @@
 
 init() ->
     wings_pref:set_default(show_magnet_mask,true),
+    wings_pref:set_default(magnet_mask_on,true),
     true.
 
 menu({tools},Menu) ->
@@ -36,10 +37,17 @@ menu({view,show},Menu) ->
 menu(_,Menu) -> Menu.
 
 tools_menu_entry() ->
+    Mask = wings_pref:get_value(magnet_mask_on),
     [{?__(1,"Magnet Mask"),{magnet_mask,
-      [{?__(2,"Lock"),mask},
-       {?__(3,"Unlock"),unmask},
-       {?__(4,"Invert"),invert_masked}]}}].
+      [{?__(2,"Lock"),mask,?__(6,"Lock selection against the influence of magnets")},
+       {?__(3,"Unlock"),unmask,?__(7,"Unlock any locked elements in the selection")},
+       {?__(4,"Invert"),invert_masked,?__(8,"Invert the locked and unlocked elements")},
+       mask_on_off(Mask)]}}].
+
+mask_on_off(true) ->
+    {?__(1,"Switch Masking Off"),magnet_mask_on,?__(2,"Toggle masking On/Off")};
+mask_on_off(false) ->
+    {?__(3,"Switch Masking On"),magnet_mask_on,?__(2,"Toggle masking On/Off")}.
 
 select_menu_entry() ->
     [{?__(1,"Magnet Mask"),magnet_mask}].
@@ -59,6 +67,10 @@ crossmark(Key) ->
       true -> [crossmark]
     end.
 
+command({tools,{magnet_mask,magnet_mask_on}},St) ->
+    Bool = wings_pref:get_value(magnet_mask_on),
+    wings_pref:set_value(magnet_mask_on,not Bool),
+    St;
 command({tools,{magnet_mask,Type}},St) ->
     locking(Type,St);
 command({select,{by,magnet_mask}}, St) ->
@@ -136,7 +148,7 @@ convert_sel(face,We,Sel) ->
 convert_sel(body,We,_) ->
     gb_sets:from_list(wings_we:visible_vs(We)).
 
-update_dlist({vs,LockedVs},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}=We}=D,_) ->
+update_dlist({vs,LockedVs},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}=We}=D, _) ->
     Key = ?MODULE,
     Locked0 = gb_sets:to_list(LockedVs),
     Visible = wings_we:visible_vs(We),
@@ -194,11 +206,20 @@ get_data_2(Data, Acc) ->
 draw(plain, {vs,List}, _D, _Selmode) ->
     case wings_pref:get_value(show_magnet_mask) of
       true ->
-        gl:pointSize(wings_pref:get_value(masked_vertex_size)),
+        {R0,G0,B0,A} = wings_pref:get_value(masked_vertex_color),
+        PtSize = wings_pref:get_value(masked_vertex_size),
+        case wings_pref:get_value(magnet_mask_on) of
+          true ->
+            Colour = gl:color4f(R0, G0, B0, A),
+            Size = gl:pointSize(PtSize);
+          false ->
+            Colour = gl:color4f(1-R0, 1-G0, 1-B0, A),
+            Size = gl:pointSize(PtSize*0.8)
+        end,
+        Size,
         gl:enable(?GL_BLEND),
         gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-        {R0,G0,B0,A} = wings_pref:get_value(masked_vertex_color),
-        gl:color4f(R0, G0, B0, A),
+        Colour,
         wings_dl:call(List),
         gl:disable(?GL_BLEND);
       false-> ok
