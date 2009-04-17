@@ -26,7 +26,7 @@
 	 draw_icons/1,draw_icon/3,draw_char/1,
 	 set_color/1]).
 -export([putback_event/1,putback_event_once/1,get_event/0,get_matching_events/1,
-	 set_timer/2,cancel_timer/1]).
+	 set_timer/2,cancel_timer/1,enter_event/1]).
 
 -export([reset_grab/0,grab/0,ungrab/2,is_grabbed/0,warp/2]).
 -export([ortho_setup/0,ortho_setup/1]).
@@ -537,7 +537,14 @@ get_event() ->
 	Other -> Other
      end.
 
-get_matching_events(Filter) ->
+%% get_matching_events(FilterFun) -> [Event].
+%%       FilterFun(Element) -> true|false.
+%%  Remove from the queue and return in a list
+%%  all elements for which FilterFun(Element)
+%%  returns true. The elements in the returned
+%%  list will be in the same order as in the queue.
+%%
+get_matching_events(Filter) when is_function(Filter, 1) ->
     Eq = get(?EVENT_QUEUE),
     {Match,NoMatch} = lists:partition(Filter, queue:to_list(Eq)),
     case Match of
@@ -553,6 +560,12 @@ get_sdl_event() ->
     put(?EVENT_QUEUE, Eq),
     Event.
 
+enter_event(Ev) ->
+    Eq0 = get(?EVENT_QUEUE),
+    Eq = queue:in(Ev, Eq0),
+    put(?EVENT_QUEUE, Eq),
+    ok.
+    
 read_events(Eq0) ->
     case sdl_events:peepEvents() of
 	[] -> read_out(Eq0);

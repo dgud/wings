@@ -3,7 +3,7 @@
 %%
 %%     Window manager for Wings.
 %%
-%%  Copyright (c) 2002-2008 Bjorn Gustavsson
+%%  Copyright (c) 2002-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -528,7 +528,15 @@ get_and_dispatch() ->
     event_loop().
 
 dispatch_matching(Filter) ->
-    Evs = wings_io:get_matching_events(Filter),
+    Evs0 = wings_io:get_matching_events(Filter),
+
+    %% For historical reasons, because this module
+    %% enters all events using wings_io:putback_event_*/1,
+    %% we expect the matching events to be in reverse
+    %% order. Since wings_io:get_matching_events/1
+    %% now returns the events in same order as in the queue,
+    %% we must do a reverse here.
+    Evs = reverse(Evs0),
     foreach(fun dispatch_event/1, Evs).
 
 dispatch_event(#resize{w=W,h=H}) ->
