@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for scale -> absolute
 %%
-%%  Copyright (c) 2006 Andrzej Giniewicz
+%%  Copyright (c) 2006-2009 Andrzej Giniewicz
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -94,11 +94,12 @@ extract(Options, #st{shapes=Shapes}=St) ->
     Sel = get_selection(St),
     {Center,Size0,BB0} = get_center_and_size(Sel,Shapes),
     WholeObject = case Sel of
-                      [{_,{1,_}}] -> always;
-                      _ -> case check_whole_obj(St#st{sel=Sel,selmode=vertex}) of
-                               true -> never;
-                               _ -> ask
-                      end
+                      [{_,GbSet}] ->
+			  case gb_sets:size(GbSet) of
+			      1 -> always;
+			      _ -> check_whole_obj(St#st{sel=Sel,selmode=vertex})
+			  end;
+                      _ -> check_whole_obj(St#st{sel=Sel,selmode=vertex})
                   end,
     {BB,Size} = if
                WholeObject == always -> 
@@ -173,7 +174,10 @@ bb2size([{X1,Y1,Z1},{X2,Y2,Z2}]) ->
 check_whole_obj(St0) ->
     St1 = wings_sel_conv:mode(body,St0),
     St2 = wings_sel_conv:mode(vertex,St1),
-    St2 == St0.
+    case St2 == St0 of
+	true -> never;
+	false -> ask
+    end.
 
 check_single_obj([{_,_}]) -> true;
 check_single_obj(_) -> false.

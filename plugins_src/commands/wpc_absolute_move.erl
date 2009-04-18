@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for absolute commands -> move and snap
 %%
-%%  Copyright (c) 2006-2007 Andrzej Giniewicz
+%%  Copyright (c) 2006-2009 Andrzej Giniewicz
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -167,9 +167,9 @@ check_mirror([{Obj,VSet}|Rest],Shs) ->
         _ ->
             MirrorVerts = wings_face:vertices_cw(Mirror,We),
             MVSet = gb_sets:from_list(MirrorVerts),
-            case gb_sets:intersection(MVSet,VSet) of
-                {0,nil} -> check_mirror(Rest,Shs);
-                _ -> true
+            case gb_sets:empty(gb_sets:intersection(MVSet,VSet)) of
+                true -> check_mirror(Rest,Shs);
+                false -> true
             end
     end.
 
@@ -206,10 +206,8 @@ get_center_and_lights([{Obj,Vset}|Rest],Shapes,Now,Lights) ->
 check_single_obj([{_,_}]) -> true;
 check_single_obj(_) -> false.
 
-check_single_vert([]) -> true;
-check_single_vert([{_,{1,_}}|Rest]) ->
-    check_single_vert(Rest);
-check_single_vert(_) -> false.
+check_single_vert(L) ->
+    lists:all(fun({_,GbSet}) -> gb_sets:size(GbSet) =:= 1 end, L).
 
 check_whole_obj(#st{selmode=SelMode}=St0) ->
     St1 = wings_sel_conv:mode(body,St0),
