@@ -125,7 +125,7 @@ locking_1(invert_masked, #st{shapes=Shs0, sel=[]}=St) ->
           end,gb_trees:values(Shs0)),
     Shs = gb_trees:from_orddict(Shs1),
     St#st{shapes=Shs};
-locking_1(invert_masked, #st{shapes=Shs0}=St) ->
+locking_1(invert_masked, #st{}=St) ->
     wings_sel:map(fun
             (_,#we{pst=Pst}=We) ->
               Lvs = get_locked_vs(Pst),

@@ -3,7 +3,7 @@
 %%
 %%     This module draws objects using OpenGL.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -326,7 +326,7 @@ update_fun_2(smooth, #dlo{smooth=none}=D, St) ->
     We = wings_proxy:smooth_we(D),
     {List,Tr} = smooth_dlist(We, St),
     D#dlo{smooth=List,transparent=Tr};
-update_fun_2({vertex,PtSize}, #dlo{vs=none,src_we=We}=D, _) ->
+update_fun_2({vertex,_PtSize}, #dlo{vs=none,src_we=We}=D, _) ->
     UnselDlist = gl:genLists(1),
     gl:newList(UnselDlist, ?GL_COMPILE),
     gl:'begin'(?GL_POINTS),
