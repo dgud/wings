@@ -298,9 +298,17 @@ pick_next_1([], Res, #ss{cb=Cb,new_st=NewSt}, _) ->
     wings:clear_mode_restriction(),
     wings_wm:later(build_result(Res, Cb, NewSt)),
     pop;
-pick_next_1([{Fun0,Desc}|More], _Done, Ss, St) when is_function(Fun0) ->
+pick_next_1([{Fun0,Desc}|More], Done, Ss, St) when is_function(Fun0) ->
     Fun = fun(message, Right) -> common_message(Desc, More, no, Right);
-	     (A, B) -> Fun0(A, B)
+	     (A, B) ->
+		     case Fun0(A, B) of
+		       {result,Res} ->
+		           %% the 'result' tag allows plugins to add custom secondary
+		           %% selections to the Done accumulator.
+		           %% See example in wpc_circularise.
+		           {More,[Res|Done]};
+		       Other -> Other
+		     end
 	  end,
     get_event(Ss#ss{f=Fun,is_axis=false,vec=none,info=""}, wings_sel:reset(St));
 pick_next_1([{Type,Desc}|More], Done, Ss, St0) ->

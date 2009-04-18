@@ -4,7 +4,7 @@
 %%    Plugin to flatten, equalise, and inflate open or closed edge loops
 %%    making them circular
 %%
-%%  Copyright (c) 2008 Richard Jones.
+%%  Copyright (c) 2008-2009 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -108,9 +108,7 @@ command({edge, circularise_center}, #st{shapes=Shs,sel=[{Id,Sel}]}=St) ->
       [Vs] ->
         case wings_edge_loop:edge_loop_vertices(Edges,We) of
           [Vs0] ->
-            wings:ask(selection_ask([center,plane]), St, fun({Center,Plane},St0) ->
-            second_ask(Center,Plane,Edges,Vs0,We,St0)
-            end);
+            second_ask(Edges,Vs0,We,St);
           _other ->
             case check_if_partial_and_full_loops_are_mixed(VsList,We) of
               not_mixed when length(EdgeGroups)==length(VsList) ->
@@ -139,9 +137,7 @@ command({edge,{circularise_center,{Plane0,Center0}}}, #st{shapes=Shs,sel=[{Id,Se
       [Vs] ->
         case wings_edge_loop:edge_loop_vertices(Edges,We) of
           [Vs0] ->
-            wings:ask(selection_ask([center,plane]), St, fun({Center,Plane},St0) ->
-            second_ask(Center,Plane,Edges,Vs0,We,St0)
-            end);
+            second_ask(Edges,Vs0,We,St);
           _other ->
             case check_if_partial_and_full_loops_are_mixed(VsList,We) of
               not_mixed when length(EdgeGroups)==length(VsList) ->
@@ -167,9 +163,7 @@ command({edge,{circularise_center,_}}, #st{shapes=Shs,sel=[{Id,Sel}]}=St) ->
       [Vs] ->
         case wings_edge_loop:edge_loop_vertices(Edges,We) of
           [Vs0] ->
-            wings:ask(selection_ask([center,plane]), St, fun({Center,Plane},St0) ->
-            second_ask(Center,Plane,Edges,Vs0,We,St0)
-            end);
+            second_ask(Edges,Vs0,We,St);
           _other ->
             case check_if_partial_and_full_loops_are_mixed(VsList,We) of
               not_mixed when length(EdgeGroups)==length(VsList) ->
@@ -214,25 +208,30 @@ selection_ask([arc_center|Rest],Ask) ->
     selection_ask(Rest,[{point,Desc}|Ask]).
 
 %%%% Secondary Selection for Circularise Rmb
-second_ask(Center,Plane,Edges,Vs,We,St) ->
-    wings:ask(secondary_sel_ask(Edges,Vs), St, fun(RayPos,St0) ->
+second_ask(Edges,Vs,We,St) ->
+    wings:ask(secondary_sel_ask(Edges,Vs), St, fun({Center,Plane,RayPos}=M,St0) ->
     circle_pick_all_setup(Vs,RayPos,Center,Plane,We,St0)
     end).
 
 secondary_sel_ask(Edges,Vs) ->
-    Desc = ?__(1,"Select a single edge or vertex from the original edge loop marking the stable ray from the center point"),
-    Data = fun
+    Desc1 = ?__(1,"Select a single edge or vertex from the original edge loop marking the stable ray from the center point"),
+    Desc2 = ?__(2,"Pick center point"),
+    Desc3 = ?__(3,"Pick plane"),
+    Fun = fun
              (check, #st{selmode=vertex}=St) ->
                check_selection(St,Vs);
              (check, #st{selmode=edge}=St) ->
                check_selection(St,Edges);
+             (check, St) ->
+               check_selection(St,Edges);
+
              (exit, {_,_,#st{shapes=Shs,selmode=vertex,sel=[{Id,Sel}]}=St}) ->
                case check_selection(St,Vs) of
                  {_,[]} ->
                    We = gb_trees:get(Id, Shs),
                    {_,{RayVs,_,_}} = Sel,
                    RayPos = wings_vertex:pos(RayVs, We),
-                   {[],[RayPos]};
+                   {result,RayPos};
                  {_,_} -> error
                 end;
              (exit, {_,_,#st{shapes=Shs,selmode=edge,sel=[{Id,Sel}]}=St}) ->
@@ -244,12 +243,12 @@ secondary_sel_ask(Edges,Vs) ->
                    VPos1 = wings_vertex:pos(V0s, We),
                    VPos2 = wings_vertex:pos(V0e, We),
                    RayPos = e3d_vec:average(VPos1, VPos2),
-                   {[],[RayPos]};
+                   {result,RayPos};
                  {_,_} -> error
                end;
              (exit,_) -> error
            end,
-    {[{Data,Desc}],[],[],[vertex,edge]}.
+    {[{point,Desc2},{axis,Desc3},{Fun,Desc1}],[],[],[vertex,edge,face]}.
 
 check_selection(#st{sel=[]},_Vs) ->
     {none,?__(1,"Nothing selected")};
