@@ -1,4 +1,4 @@
---- 0.99.XX -----------------------------------------------------------------
+--- 0.99.55 -----------------------------------------------------------------
 - Separated the .ai and .ps|.eps import plugins, and changed them so that
   objects are centered when they open in Wings. [optigon]
 
