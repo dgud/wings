@@ -34,17 +34,45 @@ parse([Elem|Rest], NewMenu, Found) ->
 
 circular_arc_menu() ->
     {?__(1,"Circularise"), circular_arc_options(),
-      {?__(2,"Flatten, equalise, and inflate selected edge loops making them circular"),[],
-       ?__(4,"Circularise a single open or closed loop using secondary selections")},[]}.
+      {?__(2,"Flatten, equalise, and inflate selected edge loops making them circular"),
+       ?__(4,"Circularise a single open or closed loop using secondary selections"),
+       ?__(5,"Choose common plane to which loops will be flattened")},[]}.
 
 circular_arc_options() ->
     fun
-      (1,_Ns) -> {edge,{circularise,{'ASK',[plane]}}};
-      (3,_Ns) -> {edge,circularise_center};
-      (_,_) -> ignore
+      (1,_Ns) -> {edge,circularise};
+      (2,_Ns) -> {edge,circularise_center};
+      (3,_Ns) -> {edge,{circularise,{'ASK',[plane]}}}
     end.
 
 %%%% Commands
+command({edge,circularise},St) ->
+    VsData = wings_sel:fold(fun(Edges, We, Acc) ->
+        EdgeGroups = wings_edge_loop:partition_edges(Edges, We),
+        VsList = wings_edge_loop:edge_links(Edges,We),
+        case is_list(wings_edge_loop:edge_loop_vertices(Edges,We)) of
+          true ->
+            [circle|Acc];
+          false ->
+            case check_if_partial_and_full_loops_are_mixed(VsList,We) of
+              not_mixed when length(EdgeGroups)==length(VsList) ->
+                [{VsList,We}|Acc];
+              not_mixed ->
+                circ_sel_error_4();
+              single_edge ->
+                circ_sel_error_3();
+              mixed ->
+                circ_sel_error_4()
+            end
+        end
+    end, [], St),
+    case lists:member(circle,VsData) of
+      true ->
+        circle_setup(find_plane,St);
+      false ->
+        arc_setup(find_plane,VsData,St)
+    end;
+
 command({edge,{circularise,{'ASK',Ask}}},St) ->
     VsData = wings_sel:fold(fun(Edges, We, Acc) ->
         EdgeGroups = wings_edge_loop:partition_edges(Edges, We),
@@ -66,7 +94,10 @@ command({edge,{circularise,{'ASK',Ask}}},St) ->
         end
     end, [], St),
     case lists:member(circle,VsData) of
-      true -> circle_setup(St);
+      true ->
+        wings:ask(selection_ask(Ask), St, fun(Plane,St0) ->
+        circle_setup(Plane,St0)
+        end);
       false ->
         wings:ask(selection_ask(Ask), St, fun(Plane,St0) ->
         arc_setup(Plane,VsData,St0)
@@ -94,7 +125,7 @@ command({edge,{circularise,Plane}}, St) ->
         end
     end, [], St),
     case lists:member(circle,VsData) of
-      true -> circle_setup(St);
+      true -> circle_setup(Plane,St);
       false -> arc_setup(Plane,VsData,St)
     end;
 
@@ -207,9 +238,9 @@ selection_ask([arc_center|Rest],Ask) ->
     Desc = ?__(3,"Pick point from which the center will be calculated relative to chosen plane and ends of edge selection"),
     selection_ask(Rest,[{point,Desc}|Ask]).
 
-%%%% Secondary Selection for Circularise Rmb
+%%%% Secondary Selection for Circularise Mmb
 second_ask(Edges,Vs,We,St) ->
-    wings:ask(secondary_sel_ask(Edges,Vs), St, fun({Center,Plane,RayPos}=M,St0) ->
+    wings:ask(secondary_sel_ask(Edges,Vs), St, fun({Center,Plane,RayPos},St0) ->
     circle_pick_all_setup(Vs,RayPos,Center,Plane,We,St0)
     end).
 
@@ -223,27 +254,21 @@ secondary_sel_ask(Edges,Vs) ->
              (check, #st{selmode=edge}=St) ->
                check_selection(St,Edges);
              (check, St) ->
-               check_selection(St,Edges);
-
-             (exit, {_,_,#st{shapes=Shs,selmode=vertex,sel=[{Id,Sel}]}=St}) ->
+               check_selection(St,[]);
+             (exit, {_,_,#st{selmode=vertex,sel=[{_,Sel}]}=St}) ->
                case check_selection(St,Vs) of
                  {_,[]} ->
-                   We = gb_trees:get(Id, Shs),
-                   {_,{RayVs,_,_}} = Sel,
-                   RayPos = wings_vertex:pos(RayVs, We),
-                   {result,RayPos};
+                   RayV = gb_sets:smallest(Sel),
+                   {result,RayV};
                  {_,_} -> error
-                end;
+               end;
              (exit, {_,_,#st{shapes=Shs,selmode=edge,sel=[{Id,Sel}]}=St}) ->
                case check_selection(St,Edges) of
                  {_,[]} ->
-                   We = gb_trees:get(Id, Shs),
-                   {_,{RayEdge,_,_}} = Sel,
-                   #edge{vs=V0s,ve=V0e} = gb_trees:get(RayEdge, We#we.es),
-                   VPos1 = wings_vertex:pos(V0s, We),
-                   VPos2 = wings_vertex:pos(V0e, We),
-                   RayPos = e3d_vec:average(VPos1, VPos2),
-                   {result,RayPos};
+                   #we{es=Etab} = gb_trees:get(Id, Shs),
+                   E = gb_sets:smallest(Sel),
+                   #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
+                   {result,{Va,Vb}};
                  {_,_} -> error
                end;
              (exit,_) -> error
@@ -253,18 +278,17 @@ secondary_sel_ask(Edges,Vs) ->
 check_selection(#st{sel=[]},_Vs) ->
     {none,?__(1,"Nothing selected")};
 
-check_selection(#st{selmode=vertex,sel=[{_Id,{1,{Vert,_,_}}}]}, Vs) ->
-    case lists:member(Vert,Vs) of
-      true -> {none,[]};
-      false -> {none,?__(2,"Vertex must be from the original edge loop")}
+check_selection(#st{selmode=Mode,sel=[{_,Sel}]}, OrigSel) when Mode==edge; Mode==vertex ->
+    case gb_sets:size(Sel) of
+      1 ->
+        Elem = gb_sets:smallest(Sel),
+        case lists:member(Elem,OrigSel) of
+          true -> {none,[]};
+          false -> {none,?__(2,"Vertex must be from the original edge loop")}
+        end;
+      _ ->
+        {none,?__(2,"Vertex must be from the original edge loop")}
     end;
-
-check_selection(#st{selmode=edge, sel=[{_Id,{1,{Edge,_,_}}}]}, Edges) ->
-    case lists:member(Edge,Edges) of
-      true -> {none,[]};
-      false -> {none,?__(3,"Edge must be from the original edge loop")}
-    end;
-
 check_selection(_, _) ->
     {none,?__(4,"Only a single edge or vertex may be selected")}.
 
@@ -273,91 +297,81 @@ check_selection(_, _) ->
 %    Data Setup     %
 % % % % % % % % % % %
 
-%%%% Arc Setup LMB
-arc_setup(Plane0,VsData,St) ->
+
+%%%% Arc Setup LMB - find plane for each arc
+%%%% Arc Setup RMB - arc to common plane
+arc_setup(Plane,VsData,St) ->
     Flatten = wings_pref:get_value(circularise_flatten, true),
     State = {Flatten,normal,none},
     Tvs = lists:foldl(fun({VertList,We},Acc) ->
-            arc_setup(State,Plane0,VertList,We,Acc)
+            arc_setup(State,Plane,VertList,We,Acc)
             end, [], VsData),
     Flags = [{mode, {arc_modes(),State}},{initial,[0.0,0.0,0.0,1.0]}],
     Units = [angle, skip, skip, percent],
     wings_drag:setup(Tvs, Units, Flags, St).
 
-arc_setup(State,Plane0,[VertList|Loops],#we{id=Id}=We,Acc) ->
-    {VPos1,_,Cross0,Hinge,DegVertList,NumVs,{S,E,Vertices},VsPos} = arc_data(Plane0,VertList,We),
-    CwNorm0 = wings_face:face_normal_ccw([S,E|Vertices],We),
-    CwNorm =  case e3d_vec:is_zero(CwNorm0) of
-        true ->
-            {A,B,C} = Cross0,
-            Cr2 = {abs(A),abs(B),abs(C)},
-            TempPos = e3d_vec:add(VPos1,e3d_vec:mul(Cr2,1.0)),
-            temp_normal_cw([TempPos,E|Vertices],We);
-        false -> CwNorm0
-    end,
-    {Cross,Plane} = case e3d_vec:degrees(CwNorm, Plane0) > 90.0 of
-        true -> {Cross0,Plane0};
-        false -> {e3d_vec:neg(Cross0),e3d_vec:neg(Plane0)}
-    end,
-    Opp = e3d_vec:dist(Hinge, VPos1),
-    Data = {CwNorm0,e3d_vec:norm(Cross), Opp, Plane, VPos1, Hinge, DegVertList, NumVs},
-    arc_setup(State,Plane0,Loops,We,[{Id,{Vertices, make_arc_fun(Data,State,VsPos)}}|Acc]);
+arc_setup(State,Plane0,[VsList|Loops],#we{id=Id,vp=Vtab}=We,Acc) ->
+    Vs0 = arc_vs(VsList,[]),
+    CwNorm = wings_face:face_normal_cw(Vs0,Vtab),
+    Plane = check_for_user_plane(Plane0,CwNorm,Vs0,We),
+    Vs = check_vertex_order(Vs0,Plane,CwNorm),
+    {Vlist,DegVertList} = make_degree_vert_list(Vs,Vtab,0,[],[]),
+    NumVs = length(DegVertList) + 1,
+    [StartVs|_] = Vs,
+    EndVs = lists:last(Vs),
+    SPos = gb_trees:get(StartVs, Vtab),
+    EPos = gb_trees:get(EndVs, Vtab),
+    Hinge = e3d_vec:average(SPos, EPos),
+    Chord = e3d_vec:sub(Hinge, SPos),
+    Cross = e3d_vec:norm(e3d_vec:cross(Plane,Chord)),
+    Opp = e3d_vec:len(Chord),
+    Data = {{CwNorm, Cross, Opp, Plane, SPos, Hinge, NumVs}, DegVertList},
+    arc_setup(State,Plane0,Loops,We,[{Id,{Vlist, make_arc_fun(Data,State)}}|Acc]);
 arc_setup(_,_,[],_,Acc) -> Acc.
 
-%%%% Arc Setup RMB
-arc_center_setup(Plane,Center,Vs,#we{id=Id}=We,St) ->
+%%%% Arc Setup MMB
+arc_center_setup(Plane,Center,VsList,#we{id=Id,vp=Vtab},St) ->
     Flatten = wings_pref:get_value(circularise_flatten, true),
-    State = {Flatten,normal,acute},
-    {VPos1,VPos2,Cross,Hinge,DegVertList,NumVs,{_,_,Vertices},VsPos} = arc_data(Plane,Vs,We),
+    Vs0 = arc_vs(VsList,[]),
+    Vs = check_vertex_order(Vs0,Plane,wings_face:face_normal_cw(Vs0,Vtab)),
+    {Vlist,DegVertList} = make_degree_vert_list(Vs,Vtab,0,[],[]),
+    NumVs = length(DegVertList) + 1,
+    [StartVs|_] = Vs,
+    EndVs = lists:last(Vs),
+    SPos = gb_trees:get(StartVs, Vtab),
+    EPos = gb_trees:get(EndVs, Vtab),
+    Hinge = e3d_vec:average(SPos, EPos),
+    Chord = e3d_vec:sub(Hinge, SPos),
+    Cross = e3d_vec:cross(Chord,Plane),
     CenterPoint = intersect_vec_plane(Hinge,Center,Cross),
-
     %% get angle
-    Vec1 = e3d_vec:sub(CenterPoint,VPos1),
-    Vec2 = e3d_vec:sub(CenterPoint,VPos2),
+    Vec1 = e3d_vec:sub(CenterPoint,SPos),
+    Vec2 = e3d_vec:sub(CenterPoint,EPos),
     Angle = e3d_vec:degrees(Vec1,Vec2),
 
-    Data = {Angle, CenterPoint, Plane, VPos1, DegVertList, NumVs},
-    Tvs = [{Id,{Vertices,make_arc_center_fun(Data,State,VsPos)}}],
-    Flags = [{mode,{arc_modes(),State}},{initial,[1.0]}],
-    Units = [percent],
-    wings_drag:setup(Tvs, Units, Flags, St).
+    {ObtuseAcute,Axis} = axis_orientation(Plane,Cross,Vec1),
+    State = {Flatten,normal,ObtuseAcute},
 
-arc_data(Plane,VsList,We) ->
-    %% StartVs and EndVs are in 3rd of First and 2nd of Last
-    [{_,_,StartVs}|_] = VsList,
-    {_,EndVs,_} = lists:last(VsList),
-    VPos1 = wings_vertex:pos(StartVs, We),
-    VPos2 = wings_vertex:pos(EndVs, We),
-    Hinge = e3d_vec:average(VPos1, VPos2),
-    Chord = e3d_vec:sub(VPos1, VPos2),
-    Cross = e3d_vec:cross(Chord,Plane),
-    {Vertices,DegVertList} = make_degree_vert_list(VsList,[],0,[]),
-    NumVs = length(DegVertList) + 1,
-    VsPos = wings_util:add_vpos(Vertices,We),
-    {VPos1, VPos2, Cross,  Hinge, DegVertList, NumVs, {StartVs,EndVs,Vertices}, VsPos}.
+    Data = {Angle, CenterPoint, Axis, SPos, DegVertList, NumVs},
+    Tvs = [{Id,{Vlist,make_arc_center_fun(Data,State)}}],
+    Flags = [{mode,{arc_modes(),State}},{initial,[1.0]}],
+    wings_drag:setup(Tvs, [percent], Flags, St).
+
+%% StartVs and EndVs are in 3rd of First and 2nd of Last
+arc_vs([{_,LastV,V}|[]],Acc) ->
+    [LastV,V|Acc];
+arc_vs([{_,_,V}|VsList],Acc) ->
+    arc_vs(VsList, [V|Acc]).
 
 %%%% Index vertices for open edge loop (Arc)
-make_degree_vert_list([],Vertices,_,DegVertList) ->
-    {Vertices,DegVertList};
-
-make_degree_vert_list([_|Vs], Vertices, 0, DegVertList) ->
-    %% This is the first time through the list.  Since the first Vertex (VPos1)
-    %% doesn't move, remove it from the list so it isn't processed later in
-    %% arc/5. (The last vertex (VPos2) is already not in the list).
-    make_degree_vert_list(Vs, Vertices, 1, DegVertList);
-
-make_degree_vert_list([{_,_,Vert}|Vs], Vertices, Index, DegVertList) ->
-    make_degree_vert_list(Vs, [Vert|Vertices], Index+1, [{Vert, Index}|DegVertList]).
-
-temp_normal_cw(Vs, #we{vp=Vtab}) ->
-    temp_normal_cw(Vs, Vtab, []).
-
-temp_normal_cw([{X,Y,Z}|Vs], Vtab, Acc) ->
-    temp_normal_cw(Vs, Vtab, [{X,Y,Z}|Acc]);
-temp_normal_cw([V|Vs], Vtab, Acc) ->
-    temp_normal_cw(Vs, Vtab, [gb_trees:get(V, Vtab)|Acc]);
-temp_normal_cw([], _Vtab, Acc) ->
-    e3d_vec:normal(Acc).
+%% The first and last vertices in the list don't move, so we skip them.
+make_degree_vert_list([_|[]],_,_,Vlist,DegVertList) ->
+    {Vlist, DegVertList};
+make_degree_vert_list([_|Vs], Vtab, 0, Vlist, DegVertList) ->
+    make_degree_vert_list(Vs, Vtab, 1, Vlist, DegVertList);
+make_degree_vert_list([V|Vs], Vtab, Index, Vlist, DegVertList) ->
+    Vpos = gb_trees:get(V,Vtab),
+    make_degree_vert_list(Vs, Vtab, Index+1, [V|Vlist], [{V,{Vpos, Index}}|DegVertList]).
 
 check_if_partial_and_full_loops_are_mixed([Group|Vs],We) when length(Group) > 1 ->
     {Edges,Bool} = edges_in_group(Group,[],[],[],false,false),
@@ -379,25 +393,11 @@ edges_in_group(_,_,_,_,_,true) ->
     {[],true};
 edges_in_group([],Edges,_,_,_,_) -> {Edges,false}.
 
-%%%% Circularise Setup RMB
-circle_pick_all_setup(Vs,RayPos,Center,Axis0,#we{vp=Vtab,id=Id}=We,St) ->
+%%%% Circularise Setup LMB RMB
+circle_setup(Plane,St) ->
     Flatten = wings_pref:get_value(circularise_flatten, true),
-    State = {Flatten,normal,none},
-    Axis = e3d_vec:norm(Axis0),
-    Deg = (360.0/length(Vs)),
-    {Pos,Num} = get_radius_rmb(Vs,RayPos,Center,Axis,Vtab,{0.0,0.0,0.0},lastpos,firstpos,0.0,0.0),
-    VertDegList = degrees_from_static_ray(Vs,Deg,Num,1,[]),
-    Ray = e3d_vec:norm(e3d_vec:sub(Pos,Center)),
-    VsPos = wings_util:add_vpos(Vs,We),
-    Data = {Center,Ray,Axis,Pos,VertDegList},
-    Tvs = [{Id,{Vs,make_circular_fun(Data,State,VsPos)}}],
-    Flags = [{mode,{circ_mode(),State}}],
-    wings_drag:setup(Tvs,[percent|[falloff]],Flags,St).
-
-%%%% Circularise Setup LMB
-circle_setup(St) ->
-    Flatten = wings_pref:get_value(circularise_flatten, true),
-    State = {Flatten,none,none},
+    DragMode = wings_pref:get_value(circularise_drag, relative),
+    State = {Flatten,none,DragMode},
     Tvs = wings_sel:fold(fun(Edges,We,Acc) ->
       Groups = wings_edge_loop:edge_loop_vertices(Edges, We),
       case Groups =/= none of
@@ -406,93 +406,123 @@ circle_setup(St) ->
           SumCheck = [length(SubGroup) || SubGroup <- Groups],
           Sum = lists:sum(SumCheck),
           case TotalVs == Sum of
-            true -> circle_setup_1(Groups,We,State,Acc);
+            true -> circle_setup_1(Groups,We,Plane,State,Acc);
             false -> circ_sel_error_1()
           end;
         false ->
           circ_sel_error_4()
       end
     end,[],St),
-    Flags = [{mode,{circ_mode(),State}}],
-    wings_drag:setup(Tvs,[percent|[falloff]],Flags,St).
+    Flags = [{mode,{circ_mode(),State}},{initial,[1.0,0.0,0.0,1.0]}],
+    wings_drag:setup(Tvs,circularise_units(State),Flags,St).
 
-circle_setup_1([],_,_,Acc) ->
-    Acc;
-circle_setup_1([Vs|Groups],#we{vp=Vtab,id=Id}=We,State,Acc) ->
+%%%% Circularise Setup MMB
+circle_pick_all_setup(Vs0,RayV,Center,Axis0,#we{vp=Vtab,id=Id},St) ->
+    Flatten = wings_pref:get_value(circularise_flatten, true),
+    DragMode = wings_pref:get_value(circularise_drag, relative),
+    State = {Flatten,normal,DragMode},
+    Axis = e3d_vec:norm(Axis0),
+    Vs = check_vertex_order(Vs0,Axis,wings_face:face_normal_cw(Vs0,Vtab)),
+    Deg = (360.0/length(Vs)),
+    {Pos,Index} = find_stable_point(Vs,RayV,Vtab,0.0),
+    Ray = e3d_vec:sub(intersect_vec_plane(Pos,Center,Axis),Center),
+    VertDegList = degrees_from_static_ray(Vs,Vtab,Deg,Index,1,[]),
+    Data = {Center,Ray,Axis,VertDegList},
+    Tvs = [{Id,{Vs,make_circular_fun(Data,State)}}],
+    Flags = [{mode,{circ_mode(),State}},{initial,[1.0,0.0,0.0,1.0]}],
+    wings_drag:setup(Tvs,circularise_units(State),Flags,St).
+
+circle_setup_1([],_,_,_,Acc) -> Acc;
+circle_setup_1([Vs0|Groups],#we{vp=Vtab,id=Id}=We,Plane,State,Acc) ->
+    CwNorm = wings_face:face_normal_cw(Vs0,Vtab),
+    Axis = circle_plane(Plane,CwNorm),
+    Vs = check_vertex_order(Vs0,Axis,CwNorm),
     Center = wings_vertex:center(Vs,We),
-    Total = length(Vs),
-    Deg = 360.0/Total,
-    Axis = e3d_vec:norm(wings_face:face_normal_ccw(Vs, Vtab)),
-    {MinRadius,Pos,Index} = get_radius(Vs, Center, Axis, Vtab, 0.0, minradius, lastpos, firstpos, 0.0, index),
-    VertDegList = degrees_from_static_ray(Vs,Deg,Index,1.0,[]),
-    Ray = e3d_vec:norm(e3d_vec:sub(Pos,Center)),
-    MinRadiusPos = e3d_vec:add(Center,e3d_vec:mul(Ray,MinRadius)),
-    VsPos = wings_util:add_vpos(Vs,We),
-    Data = {Center,Ray,Axis,MinRadiusPos,VertDegList},
-    circle_setup_1(Groups,We,State,[{Id,{Vs,make_circular_fun(Data,State,VsPos)}}|Acc]).
+    Deg = 360.0/length(Vs),
+    {Pos,Index} = get_radius(Vs, Center, Axis, Vtab, 0.0, minradius, lastpos, firstpos, 0.0, index),
+    VertDegList = degrees_from_static_ray(Vs,Vtab,Deg,Index,1.0,[]),
+    Ray = e3d_vec:sub(Pos,Center),
+    Data = {Center,Ray,Axis,VertDegList},
+    circle_setup_1(Groups,We,Plane,State,[{Id,{Vs,make_circular_fun(Data,State)}}|Acc]).
 
-%%%% Return the Index and position of the Point chosen to represent the stable
-%%%% ray from the chosen Center point on the chosen Plane.
-get_radius_rmb([], RayPos, Center, Plane, _, Pos,LastPos,FirstPos,AtIndex,Index) ->
-    HalfPos = e3d_vec:average(LastPos,FirstPos),
-    case HalfPos == RayPos of
-      true ->
-        PosOnPlane = intersect_vec_plane(HalfPos,Center,Plane),
-        {PosOnPlane,AtIndex+0.5};
-      false ->
-        {Pos,Index}
-    end;
-
-get_radius_rmb([Vert|Vs], RayPos, Center, Plane, Vtab, Pos0, lastpos, firstpos, 0.0, Index) ->
-    Pos = gb_trees:get(Vert,Vtab),
-    case Pos == RayPos of
-      true  ->
-        PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
-        get_radius_rmb(Vs, RayPos, Center, Plane, Vtab, PosOnPlane, Pos, Pos, 1.0, 1.0);
-      false ->
-        get_radius_rmb(Vs, RayPos, Center, Plane, Vtab, Pos0, Pos, Pos, 1.0, Index)
-    end;
-
-get_radius_rmb([Vert|Vs], RayPos, Center, Plane, Vtab, Pos0, LastPos, FirstPos, AtIndex, Index) ->
-    Pos = gb_trees:get(Vert,Vtab),
-    case Pos == RayPos of
-      true  ->
-        PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
-        get_radius_rmb(Vs, RayPos, Center, Plane, Vtab, PosOnPlane, Pos, FirstPos, AtIndex+1.0, AtIndex+1.0);
-      false ->
-        HalfPos = e3d_vec:average(Pos,LastPos),
-        case HalfPos == RayPos of
-          true ->
-            PosOnPlane = intersect_vec_plane(HalfPos,Center,Plane),
-            get_radius_rmb(Vs, RayPos, Center, Plane, Vtab, PosOnPlane, Pos, FirstPos, AtIndex+1.0, AtIndex+0.5);
-        false ->
-            get_radius_rmb(Vs, RayPos, Center, Plane, Vtab, Pos0, Pos, FirstPos, AtIndex+1.0, Index)
-      end
+%% Check whether the UserAxis is opposite to the cw normal of the vert list and
+%% if so, reverse the vertex list. This check reduces the probablility of the
+%% user having to use the Reverse Normal option.
+check_vertex_order(Vs,UserAxis,CwVertAxis) ->
+    Dot = e3d_vec:dot(UserAxis,CwVertAxis),
+    if Dot < 0.0 -> Vs;
+       true -> lists:reverse(Vs)
     end.
+
+axis_orientation(Plane,Vec,Chord) ->
+    Dot = e3d_vec:dot(Vec,Chord),
+    if Dot < 0.0 -> {acute,Plane};
+       true -> {obtuse,e3d_vec:neg(Plane)}
+    end.
+
+%% Differenciate between Lmb and Rmb Arc commands
+check_for_user_plane(find_plane,CwNorm,Vs,We) ->
+    case e3d_vec:is_zero(CwNorm) of
+      true ->
+        Normals = normals_for_surrounding_faces(Vs,We,[]),
+        e3d_vec:average(Normals);
+      false -> CwNorm
+    end;
+check_for_user_plane(Plane,_,_,_) -> Plane.
+
+normals_for_surrounding_faces([V|Vs],We,Acc) ->
+    Normal = wings_vertex:normal(V,We),
+    normals_for_surrounding_faces(Vs,We,[Normal|Acc]);
+normals_for_surrounding_faces([],_,Acc) -> Acc.
+
+circle_plane(find_plane,CwNorm) ->
+    e3d_vec:neg(CwNorm);
+circle_plane(Plane,_) -> Plane.
+
+%%%% Return the Pos and Index of the stable point chosen by the user
+find_stable_point([Va|_], {Va,Vb}, Vtab, Index) ->
+    VposA = gb_trees:get(Va,Vtab),
+    VposB = gb_trees:get(Vb,Vtab),
+    Pos = e3d_vec:average(VposA,VposB),
+    {Pos,Index+1.5};
+find_stable_point([Vb|_], {Va,Vb}, Vtab, Index) ->
+    VposA = gb_trees:get(Va,Vtab),
+    VposB = gb_trees:get(Vb,Vtab),
+    Pos = e3d_vec:average(VposA,VposB),
+    {Pos,Index+1.5};
+find_stable_point([_|Vs], {Va,Vb}, Vtab, Index) ->
+    find_stable_point(Vs, {Va,Vb}, Vtab, Index+1);
+
+find_stable_point([RayV|_], RayV, Vtab, Index) ->
+    Pos = gb_trees:get(RayV,Vtab),
+    {Pos,Index+1};
+find_stable_point([_|Vs], RayV, Vtab, Index) ->
+    find_stable_point(Vs, RayV, Vtab, Index+1).
+
 
 %%%% Return the Index and Postion of the Vertex or midpoint between adjacent
 %%%% vertices closeest to the Center. Distance calculation is made after the
 %%%% point in question is flattened to the relevant Plane.
 get_radius([],Center,_,_,MinDist,Pos,LastPos,FirstPos,AtIndex,Index) ->
     HalfPos = e3d_vec:average(LastPos,FirstPos),
-    DistHalf = abs(e3d_vec:dist(HalfPos,Center)),
+    DistHalf = len_sqrt(e3d_vec:sub(HalfPos,Center)),
     case DistHalf < MinDist of
-      true -> {DistHalf, HalfPos, AtIndex+0.5};
-      false -> {MinDist, Pos, Index}
+      true -> {HalfPos, AtIndex+0.5};
+      false -> {Pos, Index}
     end;
 
 get_radius([Vert|Vs], Center, Plane, Vtab, 0.0, _Pos, _LastPos, _FirstPos, AtIndex, _Index) ->
     Pos = gb_trees:get(Vert,Vtab),
     PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
-    Dist = abs(e3d_vec:dist(PosOnPlane,Center)),
+    Dist = len_sqrt(e3d_vec:sub(PosOnPlane,Center)),
     get_radius(Vs, Center, Plane, Vtab, Dist, PosOnPlane, Pos, Pos, AtIndex+1.0, AtIndex+1.0);
 
 get_radius([Vert|Vs], Center, Plane, Vtab, MinDist, Pos0, LastPos, FirstPos, AtIndex, Index) ->
     Pos = gb_trees:get(Vert,Vtab),
     PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
     HalfPos = e3d_vec:average(PosOnPlane,LastPos),
-    DistFull = abs(e3d_vec:dist(PosOnPlane,Center)),
-    DistHalf = abs(e3d_vec:dist(HalfPos,Center)),
+    DistFull = len_sqrt(e3d_vec:sub(PosOnPlane,Center)),
+    DistHalf = len_sqrt(e3d_vec:sub(HalfPos,Center)),
     case DistFull < DistHalf of
       true ->
         case ((DistFull < MinDist) andalso (DistFull > 0.0)) of
@@ -506,14 +536,23 @@ get_radius([Vert|Vs], Center, Plane, Vtab, MinDist, Pos0, LastPos, FirstPos, AtI
         end
     end.
 
+len_sqrt({X,Y,Z}) ->
+    X*X+Y*Y+Z*Z.
+
 %%%% Return a tuple list [{Vert, Degrees}] of all the vertices
 %%%% in the edge loop in ccw order and the number of degrees it
 %%%% will be rotated around the center point from the stable ray.
-degrees_from_static_ray([],_,_,_,DegList) ->
+degrees_from_static_ray([],_,_,_,_,DegList) ->
     DegList;
-degrees_from_static_ray([Vert|Vs],Deg,Num,At,DegList) ->
-    Degrees = Deg * (At-Num),
-    degrees_from_static_ray(Vs, Deg, Num, At+1.0, [{Vert, Degrees}|DegList]).
+degrees_from_static_ray([Vert|Vs],Vtab,Deg,Index,At,DegList) ->
+    Degrees = Deg * (At-Index),
+    Vpos = gb_trees:get(Vert,Vtab),
+    degrees_from_static_ray(Vs, Vtab, Deg, Index, At+1.0, [{Vert,{Vpos, Degrees}}|DegList]).
+
+circularise_units({_,_,relative}) ->
+    [diametric_factor,skip,skip,percent];
+circularise_units({_,_,absolute}) ->
+    [absolute_diameter,skip,skip,percent].
 
 %%%% Arc Modes
 arc_modes() ->
@@ -549,128 +588,107 @@ angle_help(none)    -> [].
 circ_mode() ->
     fun
       (help, State) -> circ_mode_help(State);
-      ({key,$1},{true,_normal,none})     -> {false,_normal,none};
-      ({key,$1},{false,_normal,none})    -> {true,_normal,none};
-      ({key,$2},{_flatten,normal,none})  -> {_flatten,reverse,none};
-      ({key,$2},{_flatten,reverse,none}) -> {_flatten,normal,none};
-      (done,{Flatten,_,_}) -> wings_pref:set_value(circularise_flatten, Flatten);
+      ({key,$1},{true,_normal,_dragmode})         -> {false,_normal,_dragmode};
+      ({key,$1},{false,_normal,_dragmode})        -> {true,_normal,_dragmode};
+      ({key,$2},{_flatten,normal,_dragmode})      -> {_flatten,reverse,_dragmode};
+      ({key,$2},{_flatten,reverse,_dragmode})     -> {_flatten,normal,_dragmode};
+      ({key,$3},{_flatten,_normal,relative}) -> {_flatten,_normal,absolute};
+      ({key,$3},{_flatten,_normal,absolute}) -> {_flatten,_normal,relative};
+      (units,State) -> circularise_units(State);
+      (done,{Flatten,_,DragMode}) ->
+          wings_pref:set_value(circularise_flatten, Flatten),
+          wings_pref:set_value(circularise_drag, DragMode);
       (_,_) -> none
     end.
 
-circ_mode_help({Flatten,Normal,_}) ->
-    [?__(1,"[+] or [-] Adjust Diameter  "),
-     flatten_help(Flatten),
-     circ_norm_help(Normal)].
+circ_mode_help({Flatten,Normal,DragMode}) ->
+    [flatten_help(Flatten),
+     circ_norm_help(Normal),
+     radius_help(DragMode)].
 
 circ_norm_help(normal)  -> ?__(1,"  [2] Reverse Plane Normal");
 circ_norm_help(reverse) -> ?__(2,"  [2] Original Plane Normal");
 circ_norm_help(none)  -> [].
 
-%%%% Arc drag data
-make_arc_fun(Data,State,VsPos) ->
+radius_help(relative) -> ?__(1,"  [3] Use Absolute Diameter");
+radius_help(absolute) -> ?__(2,"  [3] Use Relative Diameter").
+
+%%%% Arc drag data LMB/RMB
+make_arc_fun(Data0,State) ->
     fun
       (new_mode_data,{NewState,_}) ->
-        make_arc_fun(Data,NewState,VsPos);
+        make_arc_fun(Data0, NewState);
       ([Angle, _, _, Percent|_], A) ->
-        make_arc_2(Data, State, VsPos, Percent, Angle, A)
+        {Data,VertDistList} = Data0,
+        lists:foldl(fun({V,{Vpos,Index}}, VsAcc) ->
+          [{V, arc(Vpos,Index,Data,State,Percent,Angle)}|VsAcc]
+        end, A, VertDistList)
     end.
 
-make_arc_2(Data,State,VsPos,Percent,Angle,A) ->
-    lists:foldl(fun({Vertex,Vpos}, VsAcc) ->
-      [{Vertex,arc(Vertex,Vpos,Data,State,Percent,Angle)}|VsAcc]
-    end,A,VsPos).
-
-%%%% Arc Center drag data
-make_arc_center_fun(Data,State,VsPos) ->
+%%%% Arc Center drag data MMB
+make_arc_center_fun(Data,State) ->
     fun
       (new_mode_data,{NewState,_}) ->
-        make_arc_center_fun(Data,NewState,VsPos);
+        make_arc_center_fun(Data,NewState);
       ([Percent|_], A) ->
-        make_arc_center_2(Data,State,VsPos,Percent,A)
+        {Angle, Center, Plane, Pos, DegVertList, NumVs} = Data,
+        lists:foldl(fun({V, {Vpos, Index}}, VsAcc) ->
+          [{V,arc_center(Vpos,Angle,Index,NumVs,Pos,Center,Plane,State,Percent)}|VsAcc]
+        end, A, DegVertList)
     end.
 
-make_arc_center_2(Data,State,VsPos,Percent,A) ->
-    lists:foldl(fun({Vertex,Vpos}, VsAcc) ->
-      [{Vertex,arc_center(Vertex,Vpos,Data,State,Percent)}|VsAcc]
-    end,A,VsPos).
-
-%%%% Circularise Mode, Diameter, and Percentage changes
-make_circular_fun(Data,State,VsPos) ->
+%%%% Circularise Mode, Diameter, and Percentage changes LMB/RMB
+make_circular_fun(Data,State) ->
     fun
-      (new_falloff,Diameter) ->
-          {Center,Ray,Axis,_Pos,VertDegList} = Data,
-          NewPos = e3d_vec:add(Center,e3d_vec:mul(Ray,Diameter/2.0)),
-          make_circular_fun({Center,Ray,Axis,NewPos,VertDegList},State,VsPos);
       (new_mode_data,{NewState,_}) ->
           {_,NewNormal,_} = NewState,
           {_,Normal,_} = State,
           case Normal == NewNormal of
             true ->
-              make_circular_fun(Data,NewState,VsPos);
+              make_circular_fun(Data,NewState);
             false ->
-              {Center,Ray,Axis0,Pos,VertDegList} = Data,
+              {Center,Ray,Axis0,VertDegList} = Data,
               Axis = e3d_vec:neg(Axis0),
-              make_circular_fun({Center,Ray,Axis,Pos,VertDegList},NewState,VsPos)
+              make_circular_fun({Center,Ray,Axis,VertDegList},NewState)
           end;
-      ([Percent|_], A) ->
-          {Center,_Ray,Axis,Pos,VertDegList} = Data,
-          make_circular_2(Center,Axis,Pos,VertDegList,VsPos,State,Percent,A)
+      ([Dia,_,_,Percent|_], A) ->
+          {Center,Ray,Axis,VertDegList} = Data,
+          lists:foldl(fun({V,{Vpos,Degrees}}, VsAcc) ->
+            [{V,make_circular(Center,Ray,Axis,Degrees,Vpos,State,Percent,Dia)}|VsAcc]
+          end, A, VertDegList)
     end.
 
-%%%% Find the number of Degrees the Vertex is to be rotated in the VertDegList
-make_circular_2(Center,Axis,Pos,VertDegList,VsPos,{Flatten,_,_},Percent,A) ->
-    lists:foldl(fun({Vertex,Vpos}, VsAcc) ->
-      {_,{_,Degrees}} = lists:keysearch(Vertex, 1, VertDegList),
-      [{Vertex,make_circular(Center,Axis,Pos,Degrees,Vpos,Flatten,Percent)}|VsAcc]
-    end, A, VsPos).
-
 %%%% Arc Main Functions
-arc(_Vertex,Vpos,_Data,_State,0.0,0.0) ->
-    Vpos;
-
-arc(Vertex, Vpos, {_, _, Opp, _, VPos1, Hinge, DegVertList, NumVs},
-        {true,_,_}, Percent, 0.0) ->
-    {_,{_,Index}} = lists:keysearch(Vertex, 1, DegVertList),
+arc(Vpos, _Index, _Data, _State, 0.0, 0.0) -> Vpos;
+arc(Vpos, Index, {CwNorm, _, Opp, Plane0, Pos, Hinge, NumVs},
+        {Flatten,Orientation,_}, Percent, 0.0) ->
     Segment = (Opp * 2) / NumVs,
-    Norm = e3d_vec:norm(e3d_vec:sub(Hinge, VPos1)),
-    NewPos = e3d_vec:add(VPos1, e3d_vec:mul(Norm, Segment * Index)),
-    NewNorm = e3d_vec:norm(e3d_vec:sub(NewPos, Vpos)),
-    Factor = abs(e3d_vec:dist(NewPos, Vpos)),
-    e3d_vec:add(Vpos, e3d_vec:mul(NewNorm, Percent * Factor));
-
-arc(Vertex, Vpos, {CwNorm, _, Opp, Plane0, VPos1, Hinge, DegVertList, NumVs},
-        {false,Orientation,_}, Percent, 0.0) ->
-    {_,{_,Index}} = lists:keysearch(Vertex, 1, DegVertList),
-    Segment = (Opp * 2) / NumVs,
-    Norm = e3d_vec:norm(e3d_vec:sub(Hinge, VPos1)),
+    ChordNorm = e3d_vec:norm(e3d_vec:sub(Hinge, Pos)),
     Plane = reverse_norm(CwNorm,Plane0,Orientation),
-    NewPos0 = e3d_vec:add(VPos1, e3d_vec:mul(Norm, Segment * Index)),
-    NewPos = intersect_vec_plane(NewPos0, Vpos, Plane),
-    NewNorm = e3d_vec:norm(e3d_vec:sub(NewPos, Vpos)),
-    Factor = abs(e3d_vec:dist(NewPos, Vpos)),
-    e3d_vec:add(Vpos, e3d_vec:mul(NewNorm, Percent * Factor));
+    Pos1 = e3d_vec:add(Pos, e3d_vec:mul(ChordNorm, Segment * Index)),
+    Pos2 = flatten(Flatten,Pos1,Vpos,Plane),
+    Vec = e3d_vec:sub(Pos2, Vpos),
+    e3d_vec:add(Vpos, e3d_vec:mul(Vec, Percent));
 
-arc(Vertex, Vpos, {CwNorm, _, _, Plane0, VPos1, Hinge, DegVertList, NumVs},
+arc(Vpos, Index, {CwNorm, _, _, Plane0, Pos, Hinge, NumVs},
         {Flatten,Orientation,_}, Percent, 180.0) ->
-    {_,{_,Index}} = lists:keysearch(Vertex, 1, DegVertList),
     Plane = reverse_norm(CwNorm,Plane0,Orientation),
     Deg = 180.0 / NumVs,
     RotationAmount = Deg * Index,
-    make_circular(Hinge, Plane, VPos1, RotationAmount, Vpos, Flatten, Percent);
+    Pos1 = rotate(Pos,Plane,Hinge,RotationAmount),
+    Pos2 = flatten(Flatten,Pos1,Vpos,Plane),
+    Norm = e3d_vec:sub(Pos2,Vpos),
+    e3d_vec:add(Vpos, e3d_vec:mul(Norm, Percent));
 
-arc(Vertex, Vpos, {CwNorm, Cross0, Opp, Plane0, VPos1, Hinge, DegVertList, NumVs},
-        {Flatten,Orientation,_}, Percent, Angle0) ->
-    {_,{_,Index}} = lists:keysearch(Vertex, 1, DegVertList),
+arc(Vpos, Index, {CwNorm, Cross0, Opp, Plane0, Pos, Hinge, NumVs},
+        {Flatten,Orientation,_}, Percent, Angle) ->
     Plane = reverse_norm(CwNorm,Plane0,Orientation),
     Cross = reverse_norm(CwNorm,Cross0,Orientation),
-    Angle =  90.0 - (Angle0/2.0),
-    Deg = (180.0 - (Angle * 2)) / NumVs,
-    Radians = (math:pi()/(180.0/Angle)),
-    %% Erlang trigonomic inputs have to be converted from Degrees to Radians
-    Adj = math:tan(Radians) * Opp,
-    RotationAmount = Deg * Index,
-    RotPoint = e3d_vec:add(Hinge, e3d_vec:mul(Cross, Adj)),
-    make_circular(RotPoint, Plane, VPos1, RotationAmount, Vpos, Flatten, Percent).
+    {Deg, RotPoint} = angle_and_point(Angle, Opp, Index, NumVs, Hinge, Cross),
+    Pos1 = rotate(Pos,Plane,RotPoint,Deg),
+    Pos2 = flatten(Flatten,Pos1,Vpos,Plane),
+    Norm = e3d_vec:sub(Pos2,Vpos),
+    e3d_vec:add(Vpos, e3d_vec:mul(Norm, Percent)).
 
     % % % % % % % % % % % % % % % % % %
     %                                 %
@@ -692,53 +710,51 @@ arc(Vertex, Vpos, {CwNorm, Cross0, Opp, Plane0, VPos1, Hinge, DegVertList, NumVs
     %                                 %
     % % % % % % % % % % % % % % % % % %
 
-arc_center(_,Vpos,_,_,0.0) ->
-    Vpos;
+arc_center(Vpos,_,_,_,_,_,_,_,0.0) -> Vpos;
+arc_center(Vpos,Angle,Index,NumVs,Pos,Center,Plane,{Flatten,AxisMode,AngleMode},Percent) ->
+    DegIncrement = acute_obtuse(AngleMode, Angle, NumVs),
+    RotationAmount = rotation_amount(AxisMode,DegIncrement,Index),
+    Pos1 = rotate(Pos,Plane,Center,RotationAmount),
+    Pos2 = flatten(Flatten,Pos1,Vpos,Plane),
+    Norm = e3d_vec:sub(Pos2,Vpos),
+    e3d_vec:add(Vpos, e3d_vec:mul(Norm, Percent)).
 
-arc_center(Vertex, Vpos, {Angle, CenterPoint, Plane, VPos1, DegVertList, NumVs},{Flatten,normal,acute}, Percent) ->
-    {_,{_,Index}} = lists:keysearch(Vertex, 1, DegVertList),
-    Deg = Angle / NumVs,
-    RotationAmount = -Deg * Index,
-    make_circular(CenterPoint, Plane, VPos1, RotationAmount, Vpos, Flatten, Percent);
+acute_obtuse(acute, Angle, NumVs) -> Angle / NumVs;
+acute_obtuse(obtuse, Angle, NumVs) -> - (360 - Angle) / NumVs.
 
-arc_center(Vertex, Vpos, {Angle, CenterPoint, Plane, VPos1, DegVertList, NumVs},{Flatten,normal,obtuse}, Percent) ->
-    {_,{_,Index}} = lists:keysearch(Vertex, 1, DegVertList),
-    Deg = (360 - Angle) / NumVs,
-    RotationAmount = Deg * Index,
-    make_circular(CenterPoint, Plane, VPos1, RotationAmount, Vpos, Flatten, Percent);
+rotation_amount(normal,Deg,Index) -> Deg * Index;
+rotation_amount(reverse,Deg,Index) -> -Deg * Index.
 
-arc_center(Vertex, Vpos, {Angle, CenterPoint, Plane, VPos1, DegVertList, NumVs},{Flatten,reverse,acute}, Percent) ->
-    {_,{_,Index}} = lists:keysearch(Vertex, 1, DegVertList),
-    Deg = Angle / NumVs,
-    RotationAmount = Deg * Index,
-    make_circular(CenterPoint, Plane, VPos1, RotationAmount, Vpos, Flatten, Percent);
-
-arc_center(Vertex, Vpos, {Angle, CenterPoint, Plane, VPos1, DegVertList, NumVs},{Flatten,reverse,obtuse}, Percent) ->
-    {_,{_,Index}} = lists:keysearch(Vertex, 1, DegVertList),
-    Deg = (360.0 - Angle) / NumVs,
-    RotationAmount = -Deg * Index,
-    make_circular(CenterPoint, Plane, VPos1, RotationAmount, Vpos, Flatten, Percent).
-
-%%%% Main Function. Calculate the final position of each vertex (NewPos).
+%%%% Closed Loop. Calculate the final position of each vertex (NewPos).
 %%%% Measure the distance between NewPos and the Center (Factor). Move the
 %%%% vertex towards the NewPos by a distance of the drag Dist * Factor.
-make_circular(_Center,_Axis,_Pos,_Deg,Vpos,_Flatten, 0.0) ->
-    Vpos;
-
-make_circular(Center, Plane, Pos, Deg, Vpos, true, Percent) ->
-    NewPos = rotate(Pos,Plane,Center,Deg),
-    Norm = e3d_vec:norm(e3d_vec:sub(NewPos,Vpos)),
-    Factor = abs(e3d_vec:dist(NewPos,Vpos)),
-    e3d_vec:add(Vpos, e3d_vec:mul(Norm, Percent * Factor));
-
-make_circular(Center, Plane, Pos, Deg, Vpos, false, Percent) ->
-    NewPos0 = rotate(Pos,Plane,Center,Deg),
-    NewPos = intersect_vec_plane(NewPos0, Vpos, Plane),
-    Norm = e3d_vec:norm(e3d_vec:sub(NewPos,Vpos)),
-    Factor = abs(e3d_vec:dist(NewPos,Vpos)),
-    e3d_vec:add(Vpos, e3d_vec:mul(Norm, Percent * Factor)).
+make_circular(_Center,_Ray,_Axis,_Deg,Vpos,_State, 0.0, 0.0) -> Vpos;
+make_circular(Center, Ray, Plane, Deg, Vpos, {Flatten,_,Mode}, Percent, Dia) ->
+    Pos0 = static_pos(Mode,Center,Ray,Dia),
+    Pos1 = rotate(Pos0,Plane,Center,Deg),
+    Pos2 = flatten(Flatten,Pos1,Vpos,Plane),
+    Norm = e3d_vec:sub(Pos2,Vpos),
+    e3d_vec:add(Vpos, e3d_vec:mul(Norm, Percent)).
 
 %%%% Utilities
+angle_and_point(Angle0, Opp, Index, NumVs, Hinge, Cross) ->
+    Angle = 90.0 - (Angle0/2.0),
+    %% Erlang trigonomic inputs have to be converted from Degrees to Radians
+    Radians = (math:pi()/(180.0/Angle)),
+    Adj = math:tan(Radians) * Opp,
+    Deg = (180.0 - (Angle * 2)) / NumVs,
+    RotationAmount = Deg * Index,
+    RotPoint = e3d_vec:add(Hinge, e3d_vec:mul(Cross, Adj)),
+    {RotationAmount, RotPoint}.
+
+static_pos(relative,Center,Ray,Dia) ->
+    e3d_vec:add(Center, e3d_vec:mul(Ray,Dia));
+static_pos(absolute,Center,Ray,Dia) ->
+    e3d_vec:add(Center, e3d_vec:mul(e3d_vec:norm(Ray),Dia/2)).
+
+flatten(true,Pos,_Vpos,_Plane) -> Pos;
+flatten(false,Pos,Vpos,Plane) -> intersect_vec_plane(Pos, Vpos, Plane).
+
 rotate(Vpos,Axis,{Cx,Cy,Cz},Angle) ->
     %% return new position as {x,y,z}
     A0 = e3d_mat:translate(Cx,Cy,Cz),
@@ -746,18 +762,11 @@ rotate(Vpos,Axis,{Cx,Cy,Cz},Angle) ->
     A2 = e3d_mat:mul(A1, e3d_mat:translate(-Cx,-Cy,-Cz)),
     e3d_mat:mul_point(A2,Vpos).
 
-intersect_vec_plane(PosA,PosB,_) when PosA == PosB ->
-    PosA;
+intersect_vec_plane(PosA,PosA,_) -> PosA;
 intersect_vec_plane(PosA,PosB,PlaneNorm) ->
     %% Return point where Vector through PosA intersects with plane at PosB
-    DotProduct = e3d_vec:dot(PlaneNorm,PlaneNorm),
-    case DotProduct of
-      0.0 ->
-        PosA;
-      _ ->
-        Intersection = e3d_vec:dot(e3d_vec:sub(PosB,PosA),PlaneNorm)/DotProduct,
-        e3d_vec:add(PosA, e3d_vec:mul(PlaneNorm, Intersection))
-    end.
+    Intersection = e3d_vec:dot(e3d_vec:sub(PosB,PosA),PlaneNorm),
+    e3d_vec:add(PosA, e3d_vec:mul(PlaneNorm, Intersection)).
 
 reverse_norm({0.0,0.0,0.0},Norm,reverse) -> e3d_vec:neg(Norm);
 reverse_norm(_,Norm,_) -> Norm.

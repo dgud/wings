@@ -1,3 +1,22 @@
+--- 0.99.XX -----------------------------------------------------------------
+- Rewrite of Edge|Circularise to cleanup code, and add/improve features.
+   - Improved automatic normal picking with internal checks so that users
+     will be less likely to have to reverse normals or specify the angle type
+     (obtuse or acute).
+   - Closed loops start off circularised to 100%, instead of having to drag
+     from 0%. This percentage can be adjusted during the drag sequence by
+     pressing and holding the Rmb while moving the mouse.
+   - Closed loop selections are now resized according to either a Diametric
+     Factor or Absolute Diameter (switch between the two by pressing [3]).
+   - The problem of using repeat arguments and having the diameter default to
+     1.0, has been fixed.
+   - The Lmb command now arcs open loops without having to input a secondary
+     plane selection.
+   - The Rmb command allows the input of a common plane for flattening all the
+     loops.
+   - The Mmb command replaces the old Rmb command, and allows you to specify
+     the result through secondary selections.
+
 --- 0.99.55 -----------------------------------------------------------------
 - Separated the .ai and .ps|.eps import plugins, and changed them so that
   objects are centered when they open in Wings. [optigon]
@@ -44,7 +63,7 @@
   - Now drag position won't jump when constraints are released.
   - The numeric tab entry now shows units achieved via constraints.
   - Constraint effects now are limited to only the active drag parameter.
-  - Tools limiting drag distances to a range, would continue to tabulate past 
+  - Tools limiting drag distances to a range, would continue to tabulate past
     their allowed limits, which could result in the user dragging blindly with no
     effect until the drag distance fell between the limits again.
   - Zooming would cause the current drag distance to jump when using tools with
@@ -112,7 +131,7 @@
 - Bug fixes for the mode specific hotkey implementation. [optigon]
 
 - Code imporvements and an extension of the Select|Similar Normals command.
-  The command now has a new preference to save the Angle Tolerance, which in 
+  The command now has a new preference to save the Angle Tolerance, which in
   combination with the Connected Faces Only option, makes this tool great for
   selecting face regions bounded by sharp edges. [optigon]
 
