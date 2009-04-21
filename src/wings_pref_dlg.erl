@@ -58,7 +58,7 @@ gen_prefs() ->
 	     [{info,?__(2,"Size in pixels of unselected vertices (0.0 means not shown)")}]},
 	    {?__(3,"Selected Size"),selected_vertex_size,
 	     [{info,?__(4,"Size in pixels of selected vertices")}]},
-	    {?__(65,"Magnet Mask Vetex Size"),masked_vertex_size,
+	    {?__(65,"Magnet Mask Vertex Size"),masked_vertex_size,
 	     [{info,?__(66,"Size in pixels of magnet mask vertices")}]}]},
 	    {hframe,[{label_column,[{color,?__(67,"Unselected Vertices"),vertex_color,
 	     [{info,?__(68,"Color of unselected vertices")}]}]},
