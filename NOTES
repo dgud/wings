@@ -1,21 +1,26 @@
 --- 0.99.XX -----------------------------------------------------------------
 - Rewrite of Edge|Circularise to cleanup code, and add/improve features.
-   - Improved automatic normal picking with internal checks so that users
-     will be less likely to have to reverse normals or specify the angle type
-     (obtuse or acute).
-   - Closed loops start off circularised to 100%, instead of having to drag
-     from 0%. This percentage can be adjusted during the drag sequence by
-     pressing and holding the Rmb while moving the mouse.
-   - Closed loop selections are now resized according to either a Diametric
-     Factor or Absolute Diameter (switch between the two by pressing [3]).
-   - The problem of using repeat arguments and having the diameter default to
-     1.0, has been fixed.
-   - The Lmb command now arcs open loops without having to input a secondary
-     plane selection.
-   - The Rmb command allows the input of a common plane for flattening all the
-     loops.
-   - The Mmb command replaces the old Rmb command, and allows you to specify
-     the result through secondary selections.
+  - Improved automatic normal picking with internal checks so that users
+    will be less likely to have to reverse normals or specify the angle type
+    (obtuse or acute).
+  - Closed loops now start off circularised to 100%, instead of having to drag
+    from 0%. This percentage can be adjusted during the drag sequence by
+    pressing and holding the Rmb while moving the mouse.
+  - Closed loop selections are now resized according to either Diametric
+    Factor or Absolute Diameter (switch between the two by pressing [3]).
+  - The problem of using repeat arguments and having the diameter default to
+    1.0, has been fixed.
+  - The Lmb command now works on both open and closed loops without having to
+    input a secondary plane selection.
+  - The Rmb command allows the input of a common plane for flattening all the
+    loops, open or closed.
+  - The Mmb command replaces the old Rmb command, and allows you to specify
+    the end result through secondary selections.
+  [optigon]
+
+- Improved seaching for Similar Normals and Materials for connected faces and
+  added the ability to select similar vertex colours via Similar Materials.
+  [optigon]
 
 --- 0.99.55 -----------------------------------------------------------------
 - Separated the .ai and .ps|.eps import plugins, and changed them so that
