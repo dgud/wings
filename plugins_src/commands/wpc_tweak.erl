@@ -209,6 +209,7 @@ update_tweak_handler(#tweak{tmode=drag,st=#st{}=St}=T) ->
 
 update_tweak_handler(#tweak{st=#st{}=St}=T) ->
     wings:mode_restriction(none),
+    wings_wm:current_state(St),
     wings_draw:refresh_dlists(St),
     wings_wm:dirty(),
     {replace,fun(Ev) ->
