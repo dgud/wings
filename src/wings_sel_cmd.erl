@@ -3,7 +3,7 @@
 %%
 %%     This module implements the commands in the selection menu.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -955,10 +955,11 @@ oriented_faces([Tolerance,false,Save], St) ->
     wings_pref:set_value(similar_normals_connected,false),
     wings_pref:set_value(similar_normals_angle,{Save,Tolerance}),
     CosTolerance = math:cos(Tolerance * (math:pi() / 180.0)),
-    Normals = wings_sel:fold(fun(Sel0, We, A) ->
-                [wings_face:normal(SelI, We) ||
-                    SelI <- gb_sets:to_list(Sel0)] ++ A
+    Normals0 = wings_sel:fold(fun(Faces, We, A) ->
+                [wings_face:normal(F, We) ||
+                    F <- gb_sets:to_list(Faces)] ++ A
               end, [], St),
+	Normals = lists:usort(Normals0),
     Sel = fun(Face, We) ->
           Normal = wings_face:normal(Face,We),
           any_matching_normal(CosTolerance, Normal, Normals)
@@ -969,59 +970,38 @@ oriented_faces([Tolerance,true,Save], St0) ->
     wings_pref:set_value(similar_normals_angle,{Save,Tolerance}),
     wings_pref:set_value(similar_normals_connected,true),
     CosTolerance = math:cos(Tolerance * (math:pi() / 180.0)),
-    SelData = wings_sel:fold(fun(Sel0, #we{id=Id}=We, A) ->
-                [{Id, SelI, wings_face:normal(SelI, We)} ||
-                    SelI <- gb_sets:to_list(Sel0)] ++ A
-              end, [], St0),
-    Normals0 = [Norm||{_,_,Norm} <- SelData],
-    individuate_data(SelData,Normals0,CosTolerance,St0,[]).
+    Sel = wings_sel:fold(fun(Faces, #we{id=Id}=We, A) ->
+	        Normals0 = foldl(fun(F,Acc) ->
+			        [wings_face:normal(F, We)|Acc]
+		    end,A,gb_sets:to_list(Faces)),
+            Normals = lists:usort(Normals0),
+            [{Id,norm_search(Faces,Normals,CosTolerance,We,Faces)}|A]
+    end, [], St0),
+    wings_sel:set(face,Sel,St0).
 
-individuate_data([{Id,Sel0,_}|SelData],Normals,CosTolerance,St0,SelAcc) ->
-    Sel2 = case lists:member({Id,Sel0},SelAcc) of
-      false ->
-        Sel1 = sel_check([{Id,Sel0}],none),
-        St = wings_sel:make(Sel1,face,St0),
-        connected_faces(CosTolerance,Normals,Id,[{Id,Sel0}],St);
-      true -> []
-    end,
-    individuate_data(SelData,Normals,CosTolerance,St0,Sel2++SelAcc);
-individuate_data([],_,_,St0,SelAcc) ->
-    Sel = sel_check(SelAcc,none),
-    St = wings_sel:make(Sel,face,St0),
-    {save_state,St}.
-
-connected_faces(CosTolerance,Normals,Id0,Sel0,St0) ->
-    St1 = wings_sel_conv:mode(face,St0),
-    Sel1 = wings_sel:fold(fun(Faces,#we{id=Id}=We,Acc) ->
-          case Id0 =:= Id of
-            true ->
-              FaceList = process_faces(gb_sets:to_list(Faces),Id, []),
-              Sel2 = FaceList -- Sel0,
-              check_faces(Sel2,CosTolerance,Normals,We,Acc);
-            false -> Acc
-          end
-        end, [], St1),
-    case sel_check(Sel1,Sel0) of
-        {done,_} ->	
-            Sel0;
-        Selection ->
-            St = wings_sel:make(Selection,face,St0),
-            connected_faces(CosTolerance,Normals,Id0,Sel1++Sel0,St)
+norm_search(Faces,Normals,CosTolerance,We,LastSel) ->
+    Fs0 = wings_face:extend_border(LastSel, We),
+    Fs1 = gb_sets:subtract(Fs0,Faces),
+    AddSel = check_face_normals(Fs1,Normals,CosTolerance,We,gb_sets:empty()),
+    case gb_sets:is_empty(AddSel) of
+        true -> Faces;
+        false ->
+            Faces1 = gb_sets:union(AddSel,Faces),
+            norm_search(Faces1,Normals,CosTolerance,We,AddSel)
     end.
-sel_check([],Sel) -> {done,sel_check(Sel,none)};
-sel_check(Sel,_) -> fun(Face,#we{id=Id}) -> lists:member({Id,Face},Sel) end.
 
-process_faces([F|Fs], Id, Acc) ->
-    process_faces(Fs, Id, [{Id,F}|Acc]);
-process_faces([], _, Acc) -> Acc.
-
-check_faces([{Id,Face}|Fs],CosTolerance,Normals,We,Acc) ->
-    Norm = wings_face:normal(Face,We),
-    case any_matching_normal(CosTolerance,Norm,Normals) of
-      true -> check_faces(Fs,CosTolerance,Normals,We,[{Id,Face}|Acc]);
-      false -> check_faces(Fs,CosTolerance,Normals,We,Acc)
-    end;
-check_faces([],_,_,_,Acc) -> Acc.
+check_face_normals(Fs0,Normals,CosTolerance,We,Selection)->
+    case gb_sets:is_empty(Fs0) of
+      true -> Selection;
+      false ->
+        {F,Fs1} = gb_sets:take_smallest(Fs0),
+        Normal = wings_face:normal(F, We),
+        Sel = case any_matching_normal(CosTolerance, Normal, Normals) of
+          true -> gb_sets:add(F,Selection);
+          false -> Selection
+        end,
+        check_face_normals(Fs1,Normals,CosTolerance,We,Sel)
+    end.
 
 any_matching_normal(_,_,[]) ->
     false;
@@ -1029,13 +1009,12 @@ any_matching_normal(CosTolerance, Norm, [N|T]) ->
     Dot = e3d_vec:dot(N, Norm),
     if
       Dot >= CosTolerance -> true;
-      true -> any_matching_normal(CosTolerance, Norm, T)
+      true ->  any_matching_normal(CosTolerance, Norm, T)
     end.
 
 %%%
 %%% Select faces of the same material.
 %%%
-
 similar_material(_, #st{selmode=Mode}) when Mode =/= face ->
     keep;					%Wrong mode (invoked through hotkey).
 
@@ -1051,72 +1030,72 @@ similar_material([Connected], #st{selmode=face, sel=[]}) ->
     wings_u:error(?__(3,"At least one face must be selected"));
 
 similar_material([false], St) ->
-    Normals = wings_sel:fold(fun(Sel0, We, A) ->
-                [wings_facemat:face(SelI, We) ||
-                    SelI <- gb_sets:to_list(Sel0)] ++ A
-              end, [], St),
-    Sel = fun(Face, We) ->
-          Normal = wings_facemat:face(Face,We),
-          any_matching_material(Normal, Normals)
+    Materials = wings_sel:fold(fun
+       (Faces, #we{mode=vertex}=We, A) ->
+        foldl(fun(F,Acc) ->
+               [wings_color:average([C || [_|C]
+                 <- wings_face:vinfo_ccw(F, We)])|Acc]
+        end,A,gb_sets:to_list(Faces));
+       (Faces, We, A) ->
+               [wings_facemat:face(SelI, We) ||
+                   SelI <- gb_sets:to_list(Faces)] ++ A
+             end, [], St),
+    Sel = fun	
+        (F, #we{mode=vertex}=We) ->
+          Col = wings_color:average([C||[_|C] <- wings_face:vinfo_ccw(F, We)]),
+          any_matching_material(Col,Materials);
+        (Face, We) ->
+          Mat = wings_facemat:face(Face,We),
+          any_matching_material(Mat, Materials)
       end,
     wings_pref:set_value(similar_materials_connected,false),
     {save_state,wings_sel:make(Sel, face, St)};
 
 similar_material([true], St0) ->
-    Materials = wings_sel:fold(fun(Faces, #we{id=Id}=We, A) ->
-                [{Id, Face, wings_facemat:face(Face, We)} ||
-                    Face <- gb_sets:to_list(Faces)] ++ A
-              end, [], St0),
-    individuate_data(Materials,St0,[]).
+    Selection = wings_sel:fold(fun
+        (Faces, #we{id=Id,mode=vertex}=We, A) ->
+            AllCols = foldl(fun(F,Acc) ->
+                Cols = [C || [_|C] <- wings_face:vinfo_ccw(F, We)],
+                [wings_color:average(Cols)|Acc]
+            end,A,gb_sets:to_list(Faces)),
+            Colours = lists:usort(AllCols),
+            [{Id,mat_search(Faces,Colours,We,Faces)}|A];
+        (Faces, #we{id=Id}=We, A) ->
+            AllMats = [wings_facemat:face(Face, We) || Face <- gb_sets:to_list(Faces)],
+            Materials = lists:usort(AllMats),
+            [{Id,mat_search(Faces,Materials,We,Faces)}|A]
+    end, [], St0),
+    wings_sel:set(face,Selection,St0).
 
-individuate_data([{Id,Face0,Mat}|Materials],St0,SelAcc) ->
-    Face2 = case lists:member({Id,Face0},SelAcc) of
-      false ->
-        Face1 = sel_check_mat([{Id,Face0}],none),
-        St = wings_sel:make(Face1,face,St0),
-        connected_faces(Mat,Id,[{Id,Face0}],St);
-      true -> []
-    end,
-    individuate_data(Materials,St0,Face2++SelAcc);
-
-individuate_data([],St0,SelAcc) ->
-    Sel = sel_check(SelAcc,none),
-    St = wings_sel:make(Sel,face,St0),
-    wings_pref:set_value(similar_materials_connected,true),
-    {save_state,St}.
-
-connected_faces(Mat,Id0,Sel0,St0) ->
-    St1 = wings_sel_conv:mode(face,St0),
-    Sel1 = wings_sel:fold(fun(Faces,#we{id=Id}=We,Acc) ->
-          case Id0 =:= Id of
-            true ->
-              FaceList = process_faces_mat(gb_sets:to_list(Faces),Id, []),
-              Sel2 = FaceList -- Sel0,
-              check_material_faces(Sel2,Mat,We,Acc);
-            false -> Acc
-          end
-        end, [], St1),
-    case sel_check_mat(Sel1,Sel0) of
-        {done,_} ->	
-            Sel0;
-        Selection ->
-            St = wings_sel:make(Selection,face,St0),
-            connected_faces(Mat,Id0,Sel1++Sel0,St)
+mat_search(Faces,Colours,We,LastSel) ->
+    Fs0 = wings_face:extend_border(LastSel, We),
+    Fs1 = gb_sets:subtract(Fs0,Faces),
+    AddSel = check_face_colours(Fs1,Colours,We,gb_sets:empty()),
+    case gb_sets:is_empty(AddSel) of
+        true -> Faces;
+        false ->
+            Faces1 = gb_sets:union(AddSel,Faces),
+            mat_search(Faces1,Colours,We,AddSel)
     end.
-sel_check_mat([],Sel) -> {done,sel_check_mat(Sel,none)};
-sel_check_mat(Sel,_) -> fun(Face,#we{id=Id}) -> lists:member({Id,Face},Sel) end.
 
-process_faces_mat([F|Fs], Id, Acc) ->
-    process_faces_mat(Fs, Id, [{Id,F}|Acc]);
-process_faces_mat([], _, Acc) -> Acc.
+check_face_colours(Fs0,Colours,We,Selection)->
+    case gb_sets:is_empty(Fs0) of
+      true -> Selection;
+      false ->
+        {F,Fs1} = gb_sets:take_smallest(Fs0),
+        Colour = face_info(F,We),
+        Sel = case any_matching_material(Colour,Colours) of
+          true -> gb_sets:add(F,Selection);
+          false -> Selection
+        end,
+        check_face_colours(Fs1,Colours,We,Sel)
+    end.
 
-check_material_faces([{Id,Face}|Fs],Mat,We,Acc) ->
-    Material = wings_facemat:face(Face, We),
-    case any_matching_material(Material,[Mat]) of
-      true -> check_material_faces(Fs,Mat,We,[{Id,Face}|Acc]);
-      false -> check_material_faces(Fs,Mat,We,Acc)
-    end;
-check_material_faces([],_,_,Acc) -> Acc.
+face_info(F,#we{mode=vertex}=We) ->
+    Cols = [C || [_|C] <- wings_face:vinfo_ccw(F, We)],
+    wings_color:average(Cols);
+face_info(F,We) ->
+    wings_facemat:face(F, We).
 
 any_matching_material(_,[]) ->
     false;
