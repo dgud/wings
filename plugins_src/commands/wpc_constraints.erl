@@ -101,7 +101,6 @@ menu_title(Mode,Type) ->
 
 menu_heading(Mode,Type,Axis) ->
     case {Mode,Type,Axis} of
-      {_,_,none} -> [];
       {Mode,angle,normal} -> ?__(4,"Angle");
       {Mode,center,normal} -> ?__(3,"Direct");
       {Mode,Type,normal} -> ?__(1,"Normal");
@@ -122,7 +121,6 @@ mode_strings(Ending,Mode) ->
       {singular,vertex} -> ?__(4,"vertex");
       {singular,edge} -> ?__(5,"edge");
       {singular,face} -> ?__(6,"face");
-      {first,Mode} -> ?__(7,"first");
       {second,Mode} -> ?__(8,"second");
       {units,vertex} -> ?__(9,"distance");
       {units,edge} -> ?__(10,"lengths");
@@ -185,102 +183,6 @@ menu_string2(Mode,Type,Axis) ->
           Str = ?__(3,"Measure the ~s of both selections' ~s only along the ~s axis"),
           wings_util:format(Str,[UnitStr,PMdeStr,AxisStr])
     end.
-
-menu_string3(basic,Mode,Type,Axis1,Axis2) ->
-    UnitStr = mode_strings(units,Mode),
-    FSelStr = mode_strings(first,Mode),
-    PMdeStr = mode_strings(plural,Mode),
-    SMdeStr = mode_strings(singular,Mode),
-    SSelStr = mode_strings(second,Mode),
-    Axs1Str = menu_heading(Mode,Type,Axis1),
-    Axs2Str = menu_heading(Mode,Type,Axis2),
-    DegStr = menu_heading(Mode,sub_angle,Axis2),
-    case {Mode,Type,Axis1,Axis2} of
-      {Mode,total,none,normal} ->
-          ?__(1,"Measure the selected edges along their normals");
-      {Mode,total,none,'ASK'} ->
-          ?__(2,"Pick an axis along which to measure the selected edges");
-      {Mode,total,none,Axis2} ->
-          Str = ?__(3,"Measure the selected edges only along the ~s axis"),
-          wings_util:format(Str,[Axs2Str]);
-
-      {Mode,average,none,normal} ->
-          ?__(1,"Measure the selected edges along their normals")++
-          ?__(22," and then caluculate their average length");
-      {Mode,average,none,'ASK'} ->
-          ?__(2,"Pick an axis along which to measure the selected edges")++
-          ?__(22," and then caluculate their average length");
-      {Mode,average,none,Axis2} ->
-          Str = ?__(3,"Measure the selected edges only along the ~s axis"),
-          wings_util:format(Str,[Axs2Str])++?__(22," and then caluculate their average length");
-
-      {Mode,angle,none,normal} ->
-          ?__(4,"Measure the selected angle");
-      {Mode,angle,none,'ASK'} ->
-          ?__(5,"Specify the axis from which to measure the selected angle");
-      {Mode,angle,none,Axis2} ->
-          Str = ?__(6,"Measure the selected angle as viewed from the ~s axis"),
-          wings_util:format(Str,[Axs2Str]);
-
-      {Mode,center,none,normal} ->
-          ?__(7,"Measure the distance between the centers of the two selections");
-      {Mode,center,none,'ASK'} ->
-          ?__(8,"Pick an axis along which to measure the distance between the centers of the two selections");
-      {Mode,center,none,Axis2} ->
-          Str = ?__(9,"Measure only the distance along the ~s axis between the centers of the two selections"),
-          wings_util:format(Str,[Axs2Str]);
-
-      {Mode,sub_angle,none,'ASK'} ->
-          ?__(19,"Pick a second angle from which to subtract the currently selected angle");
-      {Mode,sub_angle,none,Axis2} ->
-          Str = ?__(18,"Subtract the currently selected angle from ~s"),
-          wings_util:format(Str,[DegStr]);
-
-      {Mode,to_axis,none,'ASK'} ->
-          Str = ?__(20,"Pick a vector and calculate the angle to the original ~s"),
-          wings_util:format(Str,[SMdeStr]);
-      {Mode,to_axis,none,Axis2} ->
-          Str = ?__(21,"Calculate the angle from the ~s axis to the original ~s"),
-          wings_util:format(Str,[Axs2Str,SMdeStr]);
-
-      {Mode,Type,normal,normal} ->
-          Str = ?__(14,"Measure the ~s of both selections according to their ~s normals"),
-          wings_util:format(Str,[UnitStr,SMdeStr]);
-      {Mode,Type,'ASK','ASK'} ->
-          Str = ?__(15,"Pick an axis along which to measure the ~s of both selections' ~s"),
-          wings_util:format(Str,[UnitStr,PMdeStr]);
-      {Mode,Type,Axis1,Axis1} ->
-          Str = ?__(17,"Measure the ~s of both selections' ~s only along the ~s axis"),
-          wings_util:format(Str,[UnitStr,PMdeStr,Axs1Str]);
-      {Mode,Type,normal,'ASK'} ->
-          Str = ?__(13,"Measure the ~s of the ~s selection's ~s along their normals")++[". "]++
-          ?__(11,"Pick an axis along which to measure the ~s of the ~s selection's ~s"),
-          wings_util:format(Str,[UnitStr,FSelStr,PMdeStr,UnitStr,SSelStr,PMdeStr]);
-      {Mode,Type,normal,Axis2} ->
-          Str = ?__(13,"Measure the ~s of the ~s selection's ~s along their normals")++[". "]++
-          ?__(12,"Measure the ~s of the ~s selection's ~s only along the ~s axis"),
-          wings_util:format(Str,[UnitStr,FSelStr,PMdeStr,UnitStr,SSelStr,PMdeStr,Axs2Str]);
-      {Mode,Type,'ASK',normal} ->
-          Str = ?__(11,"Pick an axis along which to measure the ~s of the ~s selection's ~s")++[". "]++
-          ?__(13,"Measure the ~s of the ~s selection's ~s along their normals"),
-          wings_util:format(Str,[UnitStr,FSelStr,PMdeStr,UnitStr,SSelStr,PMdeStr]);
-      {Mode,Type,'ASK',Axis2} ->
-          Str = ?__(11,"Pick an axis along which to measure the ~s of the ~s selection's ~s")++[". "]++
-          ?__(12,"Measure the ~s of the ~s selection's ~s only along the ~s axis"),
-          wings_util:format(Str,[UnitStr,FSelStr,PMdeStr,UnitStr,SSelStr,PMdeStr,Axs2Str]);
-      {Mode,Type,Axis1,normal} ->
-          Str = ?__(12,"Measure the ~s of the ~s selection's ~s only along the ~s axis")++[". "]++
-          ?__(13,"Measure the ~s of the ~s selection's ~s along their normals"),
-          wings_util:format(Str,[UnitStr,FSelStr,PMdeStr,Axs1Str,UnitStr,SSelStr,PMdeStr]);
-      {Mode,Type,Axis1,'ASK'} ->
-          Str = ?__(12,"Measure the ~s of the ~s selection's ~s only along the ~s axis")++[". "]++
-          ?__(11,"Pick an axis along which to measure the ~s of the ~s selection's ~s"),
-          wings_util:format(Str,[UnitStr,FSelStr,PMdeStr,Axs1Str,UnitStr,SSelStr,PMdeStr]);
-      {Mode,Type,Axis1,Axis2} ->
-          Str = ?__(12,"Measure the ~s of the ~s selection's ~s only along the ~s axis")++[". "]++
-          ?__(12,"Measure the ~s of the ~s selection's ~s only along the ~s axis"),
-          wings_util:format(Str,[UnitStr,FSelStr,PMdeStr,Axs1Str,UnitStr,FSelStr,PMdeStr,Axs2Str])
-          end;
 
 menu_string3(advanced,Mode,Type,Axis1,Axis2) ->
     UnitStr = mode_strings(units,Mode),
