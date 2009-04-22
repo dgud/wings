@@ -4,7 +4,7 @@
 %%     Tweak mode plugin.
 %%
 %%  Copyright (c) 2001-2002 Howard Trickey,
-%%                2002-2008 Bjorn Gustavsson.
+%%                2002-2009 Bjorn Gustavsson.
 %%
 %%  Various changes and improvements by Andrew Shpagin.
 %%  Multiple selections and access to regular Wings commands by Richard Jones.
@@ -223,20 +223,8 @@ handle_tweak_event(redraw, #tweak{st=St}=T) ->
 
 handle_tweak_event({vec_command,Command,_}, T) when is_function(Command) ->
     %% Use to execute command with vector arguments (see wings_vec.erl).
-    case Command() of
-      {save_state,St} ->
-          handle_tweak_event2({new_state,St}, T);
-      #st{}=St ->
-          handle_tweak_event2({new_state,St}, T);
-      {drag,Drag} ->
-%	  io:format("Drag0 ~p\n",[Drag]),
-          wings_drag:do_drag(Drag, none);
-      keep -> keep;
-      {saved,St} ->
-          update_tweak_handler(T#tweak{st=St});
-      Other ->
-          Other
-    end;
+    process_cmd_response(Command(),T);
+
 handle_tweak_event(revert_state, #tweak{orig_st=St0}=T) ->
     St = clear_temp_sel(St0),
     update_tweak_handler(T#tweak{st=St});
@@ -639,17 +627,9 @@ do_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
     St1 = remember_command(Cmd, St0),
     case wings_plugin:command(Cmd,St1) of
       next -> do_wings_cmd(Cmd,T);
-      {save_state,St} ->
-          handle_tweak_event2({new_state,St}, T);
-      #st{}=St ->
-          handle_tweak_event2({new_state,St}, T);
-      {drag,Drag} ->
-          wings_drag:do_drag(Drag, none);
-      keep -> keep;
-      Other ->
-%	  io:format("Other ~p\n",[Other]),
-        Other
+      Result -> process_cmd_response(Result,T)
     end.
+
 do_wings_cmd({view,Cmd}, #tweak{st=#st{}=St0}=T) ->
     case wings_view:command(Cmd,St0) of
         #st{}=St ->
@@ -662,6 +642,9 @@ do_wings_cmd({view,Cmd}, #tweak{st=#st{}=St0}=T) ->
 do_wings_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
     St1 = remember_command(Cmd, St0),
     Result = cmd_type(Cmd, St1),
+    process_cmd_response(Result,T).
+
+process_cmd_response(Result,T) ->
     case Result of
       {save_state,St} ->
           handle_tweak_event2({new_state,St}, T);
@@ -669,12 +652,8 @@ do_wings_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
           handle_tweak_event2({new_state,St}, T);
       {drag,Drag} ->
           wings_drag:do_drag(Drag, none);
-      keep -> case check_cmd(Cmd) of
-            C when C==oriented_faces; C==similar_area; C==similar_material ->
-              St = St0#st{temp_sel=none},
-              handle_tweak_event2({new_state,St},T#tweak{st=St});
-            _Otherwise -> keep
-          end;
+      keep ->
+          keep;
       {saved,St} ->
           update_tweak_handler(T#tweak{st=St});
       {new,St} ->
@@ -683,8 +662,9 @@ do_wings_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
           exit_tweak(T),
           wings:save_windows(),
           exit(normal);
+      {replace,Ev} ->
+          handle_tweak_event2(Ev, T);
       Other ->
-     % io:format("Other ~p\n",[Other]),
         Other
     end.
 
@@ -702,9 +682,6 @@ remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
                      C =:= face; C =:= body ->
     St#st{repeatable=Cmd,ask_args=none,drag_args=none};
 remember_command(_Cmd, St) -> St.
-
-check_cmd({_,{C,_}})-> C;
-check_cmd({_,C}) -> C.
 
 redraw(St) ->
     wings:redraw(St),
@@ -1134,11 +1111,6 @@ tweak_pos(true, false, Vs, Pos0, TweakPos, D) ->
         T = e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
         e3d_vec:add_prod(Pos0, N, T)
       end.
-
-%tweak_pos(Pos0, TweakPos, Vector) ->
-%    Dot = e3d_vec:dot(Vector,Vector),
-%	 T = e3d_vec:dot(Vector, e3d_vec:sub(TweakPos, Pos0)) / Dot,
-%    e3d_vec:add_prod(Pos0, Vector, T).
 
 face_region_normals([Faces|Regions],We,Normals) ->
     Edges = wings_face:outer_edges(Faces, We),

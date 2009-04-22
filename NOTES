@@ -22,6 +22,8 @@
   added the ability to select similar vertex colours via Similar Materials.
   [optigon]
 
+- Tweak Mode bugfixes. (Thanks to gordo and Fonte Boa). [optigon]
+
 --- 0.99.55 -----------------------------------------------------------------
 - Separated the .ai and .ps|.eps import plugins, and changed them so that
   objects are centered when they open in Wings. [optigon]
