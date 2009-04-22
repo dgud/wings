@@ -24,6 +24,12 @@
 
 - Tweak Mode bugfixes. (Thanks to gordo and Fonte Boa). [optigon]
 
+- Changed default Hard Edge colour to orange {1.0,0.5,0.0}. [optigon]
+
+- Masked vertices will now display slightly larger than the Selected Vertex Size
+  when in vertex mode even if they are set smaller in the preferences.
+  (Thanks to Fonte Boa). [optigon]
+
 --- 0.99.55 -----------------------------------------------------------------
 - Separated the .ai and .ps|.eps import plugins, and changed them so that
   objects are centered when they open in Wings. [optigon]

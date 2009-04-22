@@ -203,7 +203,7 @@ get_data_2(Data, Acc) ->
     LockedVs = gb_trees:get(vs,Data),
     {ok, [{plugin, {?MODULE, {vs, LockedVs}}}|Acc]}.
 
-draw(plain, {vs,List}, _D, _Selmode) ->
+draw(plain, {vs,List}, _D, Selmode) ->
     case wings_pref:get_value(show_magnet_mask) of
       true ->
         {R0,G0,B0,A} = wings_pref:get_value(masked_vertex_color),
@@ -211,12 +211,12 @@ draw(plain, {vs,List}, _D, _Selmode) ->
         case wings_pref:get_value(magnet_mask_on) of
           true ->
             Colour = gl:color4f(R0, G0, B0, A),
-            Size = gl:pointSize(PtSize);
+            Size = PtSize;
           false ->
             Colour = gl:color4f(1-R0, 1-G0, 1-B0, A),
-            Size = gl:pointSize(PtSize*0.8)
+            Size = PtSize*0.8
         end,
-        Size,
+        gl:pointSize(vert_display(Size,Selmode)),
         gl:enable(?GL_BLEND),
         gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
         Colour,
@@ -225,6 +225,14 @@ draw(plain, {vs,List}, _D, _Selmode) ->
       false-> ok
     end;
 draw(_,_,_,_) -> ok.
+
+vert_display(Size,vertex) ->
+    VSize = wings_pref:get_value(selected_vertex_size),
+	case VSize >= Size of
+	  true -> VSize + 2;
+	  false -> Size
+	end;
+vert_display(Size,_Selmode) -> Size.
 
 % Called from wings_we:merge/1.
 % When two or more shapes merge, plugins that use the Pst have
