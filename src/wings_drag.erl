@@ -718,7 +718,7 @@ mouse_translate(Event0, Drag0) ->
 	mouse_range(Event, Drag1, Mod).
 
 mouse_pre_translate(Mode, #mousemotion{state=Mask,mod=Mod}=Ev,Drag)
-        when Mode==blender; Mode==sketchup ->
+        when Mode==blender; Mode==sketchup; Mode==tds ->
     if
     Mask band ?SDL_BUTTON_RMASK =/= 0,
     Mod band ?CTRL_BITS =/= 0 ->
