@@ -9,6 +9,8 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
+%%     $Id$
+%%
 
 -module(wpc_numeric_camera).
 -export([init/0,menu/2,command/2]).
