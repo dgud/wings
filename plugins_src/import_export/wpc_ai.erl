@@ -8,6 +8,9 @@
 %%     - Ignore line width, fill, clip mask, text
 %%
 %%  To work, the wpc_tt plugin must also be loaded.
+%%
+%%     $Id$
+%%
 
 -module(wpc_ai).
 -export([init/0,menu/2,command/2,tryimport/2]).	% tryimport is for debugging

@@ -5,6 +5,7 @@
 %%
 %%  Copyright (c) 2007 Chris Hegarty
 %%
+%%     $Id$
 %%
 
 -module(wpc_kerky).

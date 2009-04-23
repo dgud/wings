@@ -3,6 +3,7 @@
 %%
 %%     MD3 import/export
 %%
+%%     $Id$
 %%
 
 -module(wpc_md3).
