@@ -10,6 +10,7 @@
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
 %%     $Id$
+%%
 
 -module(wpc_gi).
 
