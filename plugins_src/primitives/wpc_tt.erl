@@ -7,6 +7,9 @@
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id$
+%%
 
 -module(wpc_tt).
 -export([init/0,menu/2,command/2,trygen/3,	% trygen is for debugging
