@@ -22,7 +22,6 @@
 	 expand_utf8/1,
 	 add_vpos/2,update_vpos/2,
 	 gb_trees_smallest_key/1,gb_trees_largest_key/1,
-	 gb_trees_map/2,
 	 nice_float/1,
 	 unique_name/2,
 	 lib_dir/1,
@@ -202,24 +201,6 @@ gb_trees_smallest_key(Tree) ->
 gb_trees_largest_key(Tree) ->
     {Key,_Val} = gb_trees:largest(Tree),
     Key.
-
-gb_trees_map(F, Tree) ->
-    try
-	gb_trees:map(F, Tree)
-    catch
-	error:undef ->
-	    %% Fallback for R12B.
-	    gb_trees_map_0(F, Tree)
-    end.
-
-gb_trees_map_0(F, {Size,Tree}) when is_function(F, 2) ->
-    {Size,gb_trees_map_1(F, Tree)}.
-
-gb_trees_map_1(_, nil) -> nil;
-gb_trees_map_1(F, {K,V,Smaller,Larger}) ->
-    {K,F(K, V),
-     gb_trees_map_1(F, Smaller),
-     gb_trees_map_1(F, Larger)}.
 
 nice_float(F) when is_float(F) ->
     simplify_float(lists:flatten(io_lib:format("~f", [F]))).

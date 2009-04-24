@@ -5,7 +5,7 @@
 %%     we records (winged-edged records, the central data structure
 %%     in Wings 3D).
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -182,7 +182,7 @@ hide_faces_1(Fs, #we{es=Etab0}=We0) ->
 		      R -> R
 		  end
 	  end,
-    Etab = wings_util:gb_trees_map(Map, Etab0),
+    Etab = gb_trees:map(Map, Etab0),
     We = We0#we{es=Etab,fs=undefined},
     wings_facemat:hide_faces(rebuild(We)).
 
@@ -303,7 +303,7 @@ show_faces_1(#we{es=Etab0}=We0) ->
 		  R#edge{lf=Lf,rf=Rf};
 	     (_, R) -> R
 	  end,
-    Etab = wings_util:gb_trees_map(Map, Etab0),
+    Etab = gb_trees:map(Map, Etab0),
     We = We0#we{es=Etab,fs=undefined},
     wings_facemat:show_faces(rebuild(We)).
 

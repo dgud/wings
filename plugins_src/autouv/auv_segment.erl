@@ -5,7 +5,7 @@
 %%%               Segments Model into set of charts containg faces.
 %%% Created :  3 Oct 2002 by Dan Gudmundsson <dgud@erix.ericsson.se>
 %%%-------------------------------------------------------------------
-%%  Copyright (c) 2001-2008 Dan Gudmundsson, Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Dan Gudmundsson, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -695,9 +695,9 @@ map_edge(E0, Emap) ->
 %%%
 
 cut_model(Charts, Cuts0, #we{es=Etab0}=We0) ->
-    Etab = wings_util:gb_trees_map(fun(_, Rec) ->
-					   Rec#edge{a=none,b=none}
-				   end, Etab0),
+    Etab = gb_trees:map(fun(_, Rec) ->
+				Rec#edge{a=none,b=none}
+			end, Etab0),
     We = We0#we{mode=material,es=Etab},
     Cuts = gb_sets:to_list(Cuts0),
     cut_model_1(Charts, Cuts, We#we{mirror=none}, length(Charts), []).

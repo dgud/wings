@@ -516,19 +516,9 @@ putback_event(Ev) ->
 
 putback_event_once(Ev) ->
     Q = get(?EVENT_QUEUE),
-    case queue_member(Ev, Q) of
+    case queue:member(Ev, Q) of
 	true -> ok;
 	false -> put(?EVENT_QUEUE, queue:in_r(Ev, Q))
-    end.
-
-queue_member(X, Q) ->
-    try
-	queue:member(X, Q)
-    catch
-	error:undef ->
-	    %% XXX Fallback for R12B.
-	    {In,Out} = Q,
-	    member(X, In) orelse member(X, Out)
     end.
 
 get_event() ->
