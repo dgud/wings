@@ -4,7 +4,7 @@
 %%     Implementation of languages.
 %%
 %%  Copyright (c) 2004 Riccardo Venier, Dan Gudmundsson
-%%                2004-2008 Dan Gudmundsson, Bjorn Gustavsson
+%%                2004-2009 Dan Gudmundsson, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -204,11 +204,10 @@ expand_utf8_1([{Name,Ss}|T], Mod) ->
 expand_utf8_1([], _) -> [].
 
 expand_utf8_2([{Key,Str0}|T], Mod, Name) ->
-    case wings_util:expand_utf8(Str0) of
-	{Str,0} ->
-	    [{Key,Str}|expand_utf8_2(T, Mod, Name)];
-	{_,_} ->
-	    %% Errors in the string.
-	    throw({error,{Mod,Name,Key}})
+    case unicode:characters_to_list(list_to_binary(Str0)) of
+	{error,_,_} ->
+	    throw({error,{Mod,Name,Key}});
+	Str when is_list(Str) ->
+	    [{Key,Str}|expand_utf8_2(T, Mod, Name)]
     end;
 expand_utf8_2([], _, _) -> [].
