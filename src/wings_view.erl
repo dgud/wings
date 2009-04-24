@@ -3,7 +3,7 @@
 %%
 %%     This module implements most of the commands in the View menu.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -25,6 +25,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
+-import(erlang, [max/2]).
 -import(lists, [foldl/3,zip/2]).
 
 menu(#st{views={CurrentView,Views}}=St) ->
@@ -134,7 +135,7 @@ wireframe_crossmark(#st{sel=Sel0}) ->
 
 views_submenu(CurrentView, Views) ->
     {_,_,_,H} = wings_wm:viewport(desktop),
-    Lines = wings_util:max((H div ?LINE_HEIGHT) - 3, 4),
+    Lines = max((H div ?LINE_HEIGHT) - 3, 4),
     S = tuple_size(Views),
     C = if S > 0 -> view_index(CurrentView, S); true -> 0 end,
     [{?__(1,"Next"),next,views_submenu_help(CurrentView, Views, next)},

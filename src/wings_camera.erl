@@ -3,7 +3,7 @@
 %%
 %%     This module handles camera moves (rotation, zooming, and panning).
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,6 +16,7 @@
 
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
+-import(erlang, [max/2]).
 
 -define(ZOOM_FACTOR, 20).
 -define(ZOOM_FACTOR_ALT, 1).
@@ -822,7 +823,7 @@ whpan(Dx0, Dy0) ->
        end
     end.
 dist_factor(Dist) ->
-    wings_util:max(abs(Dist), 0.2).
+    max(abs(Dist), 0.2).
 
 stop_camera(#camera{ox=Ox,oy=Oy}) ->
     case wings_io:ungrab(Ox, Oy) of

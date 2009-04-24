@@ -3,7 +3,7 @@
 %%
 %%     Dialog boxes.
 %%
-%%  Copyright (c) 2002-2008 Bjorn Gustavsson
+%%  Copyright (c) 2002-2009 Bjorn Gustavsson
 %%	          2003-2006 Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution
@@ -29,7 +29,7 @@
 -define(BUTTON_MASK,
 	(?SDL_BUTTON_LMASK bor ?SDL_BUTTON_MMASK bor ?SDL_BUTTON_RMASK)).
 
--import(wings_util, [min/2,max/2]).
+-import(erlang, [min/2,max/2]).
 -import(lists, [reverse/1,reverse/2,duplicate/2,member/2]).
 
 

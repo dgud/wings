@@ -18,6 +18,8 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
+
+-import(erlang, [max/2]).
 -import(lists, [foldl/3]).
 
 menu(_) ->
@@ -510,12 +512,12 @@ splash_size(L) ->
     splash_size_1(L, 0, 0).
 
 splash_size_1([{icon,_,W,H}|T], W0, H0) ->
-    splash_size_1(T, wings_util:max(W, W0), H0+H);
+    splash_size_1(T, max(W, W0), H0+H);
 splash_size_1([{text,Text}|T], W0, H0) ->
     Tw = wings_text:width(Text),
-    splash_size_1(T, wings_util:max(W0, Tw), H0+wings_text:height()+4);
+    splash_size_1(T, max(W0, Tw), H0+wings_text:height()+4);
 splash_size_1([{spacer,W,H}|T], W0, H0) ->
-    splash_size_1(T, wings_util:max(W0, W), H0+H);
+    splash_size_1(T, max(W0, W), H0+H);
 splash_size_1([], W, H) -> {W,H}.
 
 draw_splash(L) ->

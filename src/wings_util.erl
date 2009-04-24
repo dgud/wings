@@ -25,7 +25,7 @@
 	 unique_name/2,
 	 lib_dir/1,
 	 tc/3,
-	 min/2,max/2,limit/2]).
+	 limit/2]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -194,12 +194,6 @@ tc(Fun,Mod,Line) ->
 	    io:format("~p:~p: Time: ~p\n", [Mod, Line, T]),
 	    R
     end.
-
-max(A, B) when A > B -> A;
-max(_A, B) -> B.
-
-min(A, B) when A < B -> A;
-min(_A, B) -> B.
 
 limit(Val, {'-infinity',infinity}) -> Val;
 limit(Val, {Min,infinity}) when Val < Min -> Min;

@@ -29,7 +29,7 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 -import(lists, [reverse/1,reverse/2,foldl/3]).
--import(wings_util, [min/2,max/2]).
+-import(erlang, [min/2,max/2]).
 
 %% Debug exports
 -export([code_change/0,get_state/0]).
