@@ -167,7 +167,7 @@ check_mirror([{Obj,VSet}|Rest],Shs) ->
         _ ->
             MirrorVerts = wings_face:vertices_cw(Mirror,We),
             MVSet = gb_sets:from_list(MirrorVerts),
-            case gb_sets:empty(gb_sets:intersection(MVSet,VSet)) of
+            case gb_sets:is_disjoint(MVSet,VSet) of
                 true -> check_mirror(Rest,Shs);
                 false -> true
             end

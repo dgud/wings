@@ -186,7 +186,7 @@ next_edge(From, V, Face, Edge, Etab) ->
 
 add_mirror_edges(Edges, We) ->
     MirrorEdges = gb_sets:from_list(mirror_edges(We)),
-    case gb_sets:is_empty(gb_sets:intersection(Edges, MirrorEdges)) of
+    case gb_sets:is_disjoint(Edges, MirrorEdges) of
 	true -> Edges;
 	false -> gb_sets:union(Edges, MirrorEdges)
     end.

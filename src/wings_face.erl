@@ -4,7 +4,7 @@
 %%     This module contains help routines for faces, such as fold functions
 %%     face iterators.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -526,8 +526,8 @@ patch_face(Face, Edge, NewEdge, Ftab) ->
 are_neighbors(FaceA, FaceB, We) ->
     VsA = wings_face:vertices_ccw(FaceA, We),
     VsB = wings_face:vertices_ccw(FaceB, We),
-    ordsets:intersection(ordsets:from_list(VsA),
-			 ordsets:from_list(VsB)) =/= [].
+    not ordsets:is_disjoint(ordsets:from_list(VsA),
+			    ordsets:from_list(VsB)).
 
 %% Test whether a face is planar
 is_planar(Tolerance, Face, We) ->

@@ -122,10 +122,9 @@ invalidate_by_mat(#dlo{work=none,vs=none,smooth=none,proxy_faces=none}=D, _) ->
     D;
 invalidate_by_mat(#dlo{src_we=We}=D, Changed) ->
     Used = wings_facemat:used_materials(We),
-    case ordsets:intersection(Used, Changed) of
-	[] -> D;
-	[_|_] ->
-	    D#dlo{work=none,edges=none,vs=none,smooth=none,proxy_faces=none}
+    case ordsets:is_disjoint(Used, Changed) of
+	true -> D;
+	false -> D#dlo{work=none,edges=none,vs=none,smooth=none,proxy_faces=none}
     end.
 
 invalidate_sel(#dlo{src_we=#we{id=Id},src_sel=SrcSel}=D,

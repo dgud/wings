@@ -177,7 +177,7 @@ cut_edges(Es, We) ->
 remove_nonconnectable([E|Es], Sel, We, Acc) ->
     Fs = wings_face:from_edges([E], We),
     NearEs = gb_sets:delete(E, gb_sets:from_ordset(wings_face:to_edges(Fs, We))),
-    case gb_sets:is_empty(gb_sets:intersection(Sel, NearEs)) of
+    case gb_sets:is_disjoint(Sel, NearEs) of
 	false ->
 	    remove_nonconnectable(Es, Sel, We, [E|Acc]);
 	true ->
