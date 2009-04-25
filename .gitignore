@@ -10,6 +10,7 @@
 
 # /ebin/
 /ebin/*.bundle
+/ebin/*.lang
 
 # /fonts/
 /fonts/*.wingsfont
@@ -20,6 +21,9 @@
 # /plugins/autouv/
 /plugins/autouv/*
 
+# /plugins_src/autouv/
+/plugins_src/autouv/autouv_en.lang
+
 # /plugins_src/fbx/
 /plugins_src/fbx/*.so
 /plugins_src/fbx/fbx_ops.h
@@ -27,3 +31,8 @@
 
 # /src/
 /src/wings_en.lang
+
+# release files
+/wings-*
+/build/*
+
