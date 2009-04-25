@@ -1,0 +1,5 @@
+#
+# No CRLF conversion for DOS/Windows batch files.
+# They should be stored with the CRLF line terminators.
+#
+*.bat -crlf
