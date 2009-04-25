@@ -1,4 +1,11 @@
---- 0.99.XX -----------------------------------------------------------------
+--- 0.99.60 -----------------------------------------------------------------
+- If you are building this release from source, you must use Erlang/OTP R13B
+  (which was recently released).
+
+  Note for users of Power PC based Macs: I no longer own a Power PC Mac,
+  so although the Mac version of Wings is still distributed as a Universal
+  application, it has not been tested on a Power PC Mac. [bjorng]
+
 - Rewrite of Edge|Circularise to cleanup code, and add/improve features.
   - Improved automatic normal picking with internal checks so that users
     will be less likely to have to reverse normals or specify the angle type
