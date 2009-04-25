@@ -4,7 +4,7 @@
 #     Makefile for building the Wings3D.exe wrapper
 #     for starting Wings.
 #
-#  Copyright (c) 2003 Bjorn Gustavsson
+#  Copyright (c) 2003-2009 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
