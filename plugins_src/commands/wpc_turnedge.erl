@@ -50,10 +50,7 @@ turn_menu(help) ->
     {command_help(turn_cw),command_help(turn_ccw),command_help(turn_optimized)};
 turn_menu(_) -> ignore.
 
-command_name(turn) -> ?__(turn, "Turn");
-command_name(turn_cw) -> ?__(turn_cw, "Turn CW");
-command_name(turn_ccw) -> ?__(turn_ccw, "Turn CCW");
-command_name(turn_optimized) -> ?__(turn_optimized, "Turn Optimized").
+command_name(turn) -> ?__(turn, "Turn").
     
 command_help(turn_cw) ->
     ?__(turn_cw, "Turn edge clockwise");
