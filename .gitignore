@@ -24,7 +24,11 @@
 # /plugins_src/autouv/
 /plugins_src/autouv/autouv_en.lang
 
+# /plugins_src/mac_file/
+/plugins_src/mac_file/mac_file_en.lang
+
 # /plugins_src/fbx/
+/plugins_src/fbx/*.o
 /plugins_src/fbx/*.so
 /plugins_src/fbx/fbx_ops.h
 /plugins_src/fbx/fbx_ops.hrl
@@ -35,4 +39,6 @@
 # release files
 /wings-*
 /build/*
+/macosx/build/*
+
 
