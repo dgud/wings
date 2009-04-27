@@ -1,1 +1,1 @@
-WINGS_VSN=0.99.60
+WINGS_VSN=1.0.rc1.internal
