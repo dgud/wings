@@ -12,69 +12,11 @@
 				<string>wings</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>wings.icns</string>
+			<string>wings_doc.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Wings 3D File</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>ndo</string>
-			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>ndo.icns</string>
-			<key>CFBundleTypeName</key>
-			<string>Nendo File</string>
-			<key>CFBundleTypeRole</key>
-			<string>None</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>3ds</string>
-			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>3ds.icns</string>
-			<key>CFBundleTypeName</key>
-			<string>3D Studio File</string>
-			<key>CFBundleTypeRole</key>
-			<string>None</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>obj</string>
-			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>obj.icns</string>
-			<key>CFBundleTypeName</key>
-			<string>Wavefront File</string>
-			<key>CFBundleTypeRole</key>
-			<string>None</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>mtl</string>
-			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>mtl.icns</string>
-			<key>CFBundleTypeName</key>
-			<string>Wavefront Material File</string>
-			<key>CFBundleTypeRole</key>
-			<string>None</string>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>wrl</string>
-			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>wrl.icns</string>
-			<key>CFBundleTypeName</key>
-			<string>VMRL 2.0 File</string>
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>

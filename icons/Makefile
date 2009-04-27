@@ -3,7 +3,7 @@
 #
 #     Makefile for building icons for Wings 3D.
 #
-#  Copyright (c) 2001-2007 Bjorn Gustavsson
+#  Copyright (c) 2001-2009 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -33,10 +33,10 @@ ERL_COMPILE_FLAGS += -W +debug_info
 # Targets
 # ----------------------------------------------------
 
-debug opt: collect_bmp.erl */*.bmp */*.tga
+debug opt: collect_bmp.erl *.bmp */*.bmp */*.tga
 	$(ERLC) $(ERL_COMPILE_FLAGS) collect_bmp.erl
 	@for ICONSET in $(ICONSETS); do \
-		erl $(ERL_FLAGS) -noinput -run collect_bmp start $(ESRC)/$$ICONSET $(EBIN)/wings_icon_$$ICONSET.bundle -s erlang halt; \
+		erl $(ERL_FLAGS) -noinput -run collect_bmp start . $(ESRC)/$$ICONSET $(EBIN)/wings_icon_$$ICONSET.bundle -s erlang halt; \
 	done
 
 clean:

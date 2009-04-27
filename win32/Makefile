@@ -9,7 +9,7 @@
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-#     $Id: Makefile,v 1.1 2003/09/22 05:12:05 bjorng Exp $
+#     $Id$
 #
 
 LIBS = -lkernel32 -luser32 -ladvapi32
@@ -32,5 +32,5 @@ wings3d_res.o: wings3d.res
 
 # RC = lrc
 
-# wings3d.res: wings3d.rc wings.ico doc.ico
+# wings3d.res: wings3d.rc wings.ico wings_doc.ico
 # 	$(RC) wings3d.rc

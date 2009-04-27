@@ -1,21 +1,14 @@
-%% ``The contents of this file are subject to the Erlang Public License,
-%% Version 1.1, (the "License"); you may not use this file except in
-%% compliance with the License. You should have received a copy of the
-%% Erlang Public License along with this software. If not, it can be
-%% retrieved via the world wide web at http://www.erlang.org/.
-%% 
-%% Software distributed under the License is distributed on an "AS IS"
-%% basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
-%% the License for the specific language governing rights and limitations
-%% under the License.
-%% 
-%% The Initial Developer of the Original Code is Ericsson Utvecklings AB.
-%% Portions created by Ericsson are Copyright 2001, Ericsson Utvecklings
-%% AB. All Rights Reserved.''
 %%
-%% Original Author: Bjorn Gustavsson
-%% 
-%%     $Id: collect_bmp.erl,v 1.5 2004/10/08 13:32:24 bjorng Exp $
+%%  collect_bmp --
+%%
+%%     Collect BMP and TGA icons for Wings.
+%%
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id$
 %%
 
 -module(collect_bmp).
@@ -25,14 +18,21 @@
 start() ->
     start(["icons","wings_icon.bundle"]).
 
-start([InDir,OutFile]) ->
+start(Args) ->
     io:put_chars("Loading"),
-    Icons = load_icons(filelib:wildcard(filename:join(InDir, "*.{bmp,tga}"))),
+    do_start(Args, []).
+
+do_start([InDir|[_|_]=T], Files) ->
+    do_start(T, add_files(InDir, Files));
+do_start([OutFile], Files) ->
+    Icons = load_icons(Files),
     io:nl(),
     Bin = term_to_binary(Icons, [compressed]),
     io:format("Writing ~s\n", [OutFile]),
-    ok = file:write_file(OutFile, Bin),
-    ok.
+    ok = file:write_file(OutFile, Bin).
+
+add_files(Dir, Acc) ->
+    filelib:wildcard(filename:join(Dir, "*.{bmp,tga}")) ++ Acc.
 
 load_icons([Name|Ns]) ->
     Id = list_to_atom(filename:rootname(filename:basename(Name))),

@@ -545,7 +545,7 @@ draw_splash_1([], _) -> ok.
     
 splash_contents() ->
     [{spacer,0,14},
-     {icon,wings,256,128},
+     {icon,about_wings,331,139},
      {text,[{bold,?WINGS_VERSION}]},
      {spacer,0,10},
      {text,?__(1,"Wings 3D is a subdivision modeler inspired")},

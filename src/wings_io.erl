@@ -35,6 +35,7 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
+-import(erlang, [max/2]).
 -import(lists, [flatmap/2,keysearch/3,member/2,reverse/1,reverse/2]).
 
 -define(ICON_WIDTH, 32).
@@ -461,7 +462,10 @@ create_textures_1([{Name,{3,W,H,Icon}}|T], Id, U, V, RowH0)
 create_textures_1(Icons, _, _, _, _) ->
     create_textures_2(Icons).
 
-create_textures_2([{Name,{Bpp,W,H,Icon}}|T]) ->
+create_textures_2([{Name,{Bpp,W,H,Icon0}}|T]) ->
+    TxW = max(nearest_power_of_two(W), W),
+    TxH = max(nearest_power_of_two(H), H),
+    Icon = pad_image(Icon0, W, TxW, H, TxH),
     [TxId] = gl:genTextures(1),
     gl:bindTexture(?GL_TEXTURE_2D, TxId),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
@@ -473,13 +477,34 @@ create_textures_2([{Name,{Bpp,W,H,Icon}}|T]) ->
 		 4 -> ?GL_RGBA
 	     end,
     gl:texImage2D(?GL_TEXTURE_2D, 0, Format,
-		  W, H, 0, Format, ?GL_UNSIGNED_BYTE, Icon),
-    [{Name,{TxId,W,H,0,0,1,1}}|create_textures_2(T)];
+		  TxW, TxH, 0, Format, ?GL_UNSIGNED_BYTE, Icon),
+    [{Name,{TxId,W,H,0,0,W/TxW,H/TxH}}|create_textures_2(T)];
 create_textures_2([]) -> [].
 
 div_uv(0, _) -> 0;
 div_uv(X, X) -> 1;
 div_uv(X, Y) -> X/Y.
+
+nearest_power_of_two(N) ->
+    nearest_power_of_two(N, 1).
+
+nearest_power_of_two(N, B) when N =< B -> B;
+nearest_power_of_two(N, B) -> nearest_power_of_two(N, B bsl 1).
+
+pad_image(Image, W, W, H, TxH) ->
+    pad_image_1(Image, H, TxH);
+pad_image(Image0, W, TxW, H, TxH) ->
+    Image = pad_image_hor(Image0, W, TxW, H),
+    pad_image_1(Image, H, TxH).
+
+pad_image_1(Image, H, TxH) ->
+    <<Image/binary,0:((byte_size(Image)*TxH) div H)/unit:8>>.
+
+pad_image_hor(Image, W, TxW, H) ->
+    OldRowSize = byte_size(Image) div H,
+    NewRowSize = (OldRowSize * TxW) div W,
+    Diff = NewRowSize - OldRowSize,
+    << <<Row/binary,0:Diff/unit:8>> || <<Row:OldRowSize/binary>> <= Image >>.
 
 create_buttons(Icons0) ->
     flatmap(fun({Name,{3,32,28,Icon}}) ->

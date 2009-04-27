@@ -11,15 +11,10 @@
 		4C724746085C300D006ED218 /* Erlang.nib in Resources */ = {isa = PBXBuildFile; fileRef = 29B97318FDCFA39411CA2CEA /* Erlang.nib */; };
 		4C724747085C300D006ED218 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		4C724748085C300D006ED218 /* wings3d.icns in Resources */ = {isa = PBXBuildFile; fileRef = F5EEDC2902282D6701000102 /* wings3d.icns */; };
-		4C724749085C300D006ED218 /* 3ds.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15CFF0489F65500A8000A /* 3ds.icns */; };
-		4C72474A085C300D006ED218 /* wings.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15D000489F65500A8000A /* wings.icns */; };
-		4C72474B085C300D006ED218 /* mtl.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15D010489F65500A8000A /* mtl.icns */; };
-		4C72474C085C300D006ED218 /* obj.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15D020489F65500A8000A /* obj.icns */; };
-		4C72474D085C300D006ED218 /* wrl.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15D030489F65500A8000A /* wrl.icns */; };
-		4C72474E085C300D006ED218 /* ndo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CB15D040489F65500A8000A /* ndo.icns */; };
 		4C724750085C300D006ED218 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		4C724751085C300D006ED218 /* MyController.m in Sources */ = {isa = PBXBuildFile; fileRef = F5B807F20227DA2101000102 /* MyController.m */; };
 		4C724753085C300D006ED218 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
+		4CC244D50FA80CE7004BC627 /* wings_doc.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4CC244D40FA80CE7004BC627 /* wings_doc.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,15 +24,9 @@
 		29B97319FDCFA39411CA2CEA /* Erlang.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = Erlang.nib; path = English.lproj/Erlang.nib; sourceTree = "<group>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
-		4C724758085C300D006ED218 /* Wings3d.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Wings3d.plist; sourceTree = "<group>"; };
+		4C724758085C300D006ED218 /* Wings3d.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Wings3d.plist; sourceTree = "<group>"; };
 		4C724759085C300E006ED218 /* Wings3d.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wings3d.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		4CB15CFF0489F65500A8000A /* 3ds.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = 3ds.icns; sourceTree = "<group>"; };
-		4CB15D000489F65500A8000A /* wings.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = wings.icns; sourceTree = "<group>"; };
-		4CB15D010489F65500A8000A /* mtl.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = mtl.icns; sourceTree = "<group>"; };
-		4CB15D020489F65500A8000A /* obj.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = obj.icns; sourceTree = "<group>"; };
-		4CB15D030489F65500A8000A /* wrl.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = wrl.icns; sourceTree = "<group>"; };
-		4CB15D040489F65500A8000A /* ndo.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = ndo.icns; sourceTree = "<group>"; };
-		4CB15D050489F65500A8000A /* mdl.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = mdl.icns; sourceTree = "<group>"; };
+		4CC244D40FA80CE7004BC627 /* wings_doc.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = wings_doc.icns; sourceTree = "<group>"; };
 		F5B807F10227DA2101000102 /* MyController.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MyController.h; sourceTree = "<group>"; };
 		F5B807F20227DA2101000102 /* MyController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MyController.m; sourceTree = "<group>"; };
 		F5EEDC2902282D6701000102 /* wings3d.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = wings3d.icns; sourceTree = "<group>"; };
@@ -113,14 +102,8 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				4CB15CFF0489F65500A8000A /* 3ds.icns */,
-				4CB15D000489F65500A8000A /* wings.icns */,
-				4CB15D010489F65500A8000A /* mtl.icns */,
-				4CB15D020489F65500A8000A /* obj.icns */,
-				4CB15D030489F65500A8000A /* wrl.icns */,
-				4CB15D040489F65500A8000A /* ndo.icns */,
-				4CB15D050489F65500A8000A /* mdl.icns */,
 				F5EEDC2902282D6701000102 /* wings3d.icns */,
+				4CC244D40FA80CE7004BC627 /* wings_doc.icns */,
 				29B97318FDCFA39411CA2CEA /* Erlang.nib */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 			);
@@ -180,9 +163,11 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = 4CA8398B085C2B4300C48A7F /* Build configuration list for PBXProject "Wings3d" */;
+			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 1;
 			mainGroup = 29B97314FDCFA39411CA2CEA /* Wings3d */;
 			projectDirPath = "";
+			projectRoot = "";
 			targets = (
 				4C72473D085C300D006ED218 /* Wings3d */,
 			);
@@ -197,12 +182,7 @@
 				4C724746085C300D006ED218 /* Erlang.nib in Resources */,
 				4C724747085C300D006ED218 /* InfoPlist.strings in Resources */,
 				4C724748085C300D006ED218 /* wings3d.icns in Resources */,
-				4C724749085C300D006ED218 /* 3ds.icns in Resources */,
-				4C72474A085C300D006ED218 /* wings.icns in Resources */,
-				4C72474B085C300D006ED218 /* mtl.icns in Resources */,
-				4C72474C085C300D006ED218 /* obj.icns in Resources */,
-				4C72474D085C300D006ED218 /* wrl.icns in Resources */,
-				4C72474E085C300D006ED218 /* ndo.icns in Resources */,
+				4CC244D50FA80CE7004BC627 /* wings_doc.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
