@@ -41,4 +41,5 @@
 /build/*
 /macosx/build/*
 
-
+# crash dump files
+*.dump
