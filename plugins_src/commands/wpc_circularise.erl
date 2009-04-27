@@ -427,9 +427,11 @@ circle_pick_all_setup(Vs0,RayV,Center,Axis0,#we{vp=Vtab,id=Id},St) ->
     Vs = check_vertex_order(Vs0,Axis,wings_face:face_normal_cw(Vs0,Vtab)),
     Deg = (360.0/length(Vs)),
     {Pos,Index} = find_stable_point(Vs,RayV,Vtab,0.0),
-    Ray = e3d_vec:sub(intersect_vec_plane(Pos,Center,Axis),Center),
+    Ray0 = e3d_vec:sub(intersect_vec_plane(Pos,Center,Axis),Center),
+    Len = e3d_vec:len(Ray0),
+    Ray = e3d_vec:norm(Ray0),
     VertDegList = degrees_from_static_ray(Vs,Vtab,Deg,Index,1,[]),
-    Data = {Center,Ray,Axis,VertDegList},
+    Data = {Center,Ray,Len,Axis,VertDegList},
     Tvs = [{Id,{Vs,make_circular_fun(Data,State)}}],
     Flags = [{mode,{circ_mode(),State}},{initial,[1.0,0.0,0.0,1.0]}],
     wings_drag:setup(Tvs,circularise_units(State),Flags,St).
@@ -441,10 +443,10 @@ circle_setup_1([Vs0|Groups],#we{vp=Vtab,id=Id}=We,Plane,State,Acc) ->
     Vs = check_vertex_order(Vs0,Axis,CwNorm),
     Center = wings_vertex:center(Vs,We),
     Deg = 360.0/length(Vs),
-    {Pos,Index} = get_radius(Vs, Center, Axis, Vtab, 0.0, minradius, lastpos, firstpos, 0.0, index),
+    {Pos, NearestVpos, Index} = get_radius(Vs, Center, Axis, Vtab, 0.0, 0.0, raypos, lastpos, firstpos, 0.0, index),
     VertDegList = degrees_from_static_ray(Vs,Vtab,Deg,Index,1.0,[]),
-    Ray = e3d_vec:sub(Pos,Center),
-    Data = {Center,Ray,Axis,VertDegList},
+    Ray = e3d_vec:norm_sub(Pos, Center),
+    Data = {Center, Ray, NearestVpos, Axis, VertDegList},
     circle_setup_1(Groups,We,Plane,State,[{Id,{Vs,make_circular_fun(Data,State)}}|Acc]).
 
 %% Check whether the UserAxis is opposite to the cw normal of the vert list and
@@ -505,38 +507,62 @@ find_stable_point([_|Vs], RayV, Vtab, Index) ->
 %%%% Return the Index and Postion of the Vertex or midpoint between adjacent
 %%%% vertices closeest to the Center. Distance calculation is made after the
 %%%% point in question is flattened to the relevant Plane.
-get_radius([],Center,_,_,MinDist,Pos,LastPos,FirstPos,AtIndex,Index) ->
+get_radius([],Center,_,_,RayLen0,NearestVert,Pos,LastPos,FirstPos,AtIndex,Index) ->
     HalfPos = e3d_vec:average(LastPos,FirstPos),
-    DistHalf = len_sqrt(e3d_vec:sub(HalfPos,Center)),
-    case DistHalf < MinDist of
-      true -> {HalfPos, AtIndex+0.5};
-      false -> {Pos, Index}
+    HalfDist = len_sqrt(e3d_vec:sub(HalfPos,Center)),
+    case HalfDist < RayLen0 of
+      true -> {HalfPos, math:sqrt(NearestVert), AtIndex+0.5};
+      false -> {Pos, math:sqrt(NearestVert), Index}
     end;
 
-get_radius([Vert|Vs], Center, Plane, Vtab, 0.0, _Pos, _LastPos, _FirstPos, AtIndex, _Index) ->
+get_radius([Vert|Vs], Center, Plane, Vtab, 0.0, 0.0, _Pos, _LastPos, _FirstPos, AtIndex, _Index) ->
     Pos = gb_trees:get(Vert,Vtab),
-    PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
-    Dist = len_sqrt(e3d_vec:sub(PosOnPlane,Center)),
-    get_radius(Vs, Center, Plane, Vtab, Dist, PosOnPlane, Pos, Pos, AtIndex+1.0, AtIndex+1.0);
+    RayPos = intersect_vec_plane(Pos,Center,Plane),
+    Dist = len_sqrt(e3d_vec:sub(RayPos,Center)),
+    get_radius(Vs, Center, Plane, Vtab, Dist, Dist, RayPos, Pos, Pos, AtIndex+1.0, AtIndex+1.0);
 
-get_radius([Vert|Vs], Center, Plane, Vtab, MinDist, Pos0, LastPos, FirstPos, AtIndex, Index) ->
+get_radius([Vert|Vs], Center, Plane, Vtab, RayLen0, NearestVert0, RayPos0, LastPos0, FirstPos, AtIndex0, Index0) ->
     Pos = gb_trees:get(Vert,Vtab),
-    PosOnPlane = intersect_vec_plane(Pos,Center,Plane),
-    HalfPos = e3d_vec:average(PosOnPlane,LastPos),
-    DistFull = len_sqrt(e3d_vec:sub(PosOnPlane,Center)),
-    DistHalf = len_sqrt(e3d_vec:sub(HalfPos,Center)),
-    case DistFull < DistHalf of
+    LastPos = intersect_vec_plane(Pos,Center,Plane),
+    HalfPos = e3d_vec:average(LastPos,LastPos0),
+    FullDist = len_sqrt(e3d_vec:sub(LastPos,Center)),
+    HalfDist = len_sqrt(e3d_vec:sub(HalfPos,Center)),
+    AtIndex = AtIndex0+1.0,
+    case FullDist < HalfDist of
       true ->
-        case ((DistFull < MinDist) andalso (DistFull > 0.0)) of
-          true  -> get_radius(Vs, Center, Plane, Vtab, DistFull, PosOnPlane, PosOnPlane, FirstPos, AtIndex+1.0, AtIndex+1.0);
-          false -> get_radius(Vs, Center, Plane, Vtab, MinDist, Pos0, PosOnPlane, FirstPos, AtIndex+1.0, Index)
+        case ((FullDist < RayLen0) andalso (FullDist > 0.0)) of
+          true ->
+            RayLen = FullDist,
+            NearestVert = FullDist,
+            RayPos = LastPos,
+            Index = AtIndex;
+          false ->
+            RayLen = RayLen0,
+            NearestVert = NearestVert0,
+            RayPos = RayPos0,
+            Index = Index0
         end;
       false ->
-        case ((DistHalf < MinDist) andalso (DistHalf > 0.0)) of
-          true  -> get_radius(Vs, Center, Plane, Vtab, DistHalf, HalfPos, PosOnPlane, FirstPos, AtIndex+1.0, AtIndex+0.5);
-          false -> get_radius(Vs, Center, Plane, Vtab, MinDist, Pos0, PosOnPlane, FirstPos, AtIndex+1.0, Index)
+        case ((HalfDist < RayLen0) andalso (HalfDist > 0.0)) of
+          true ->
+            RayLen = HalfDist,
+            NearestVert = case FullDist < NearestVert0 of
+              true -> FullDist;
+              false -> NearestVert0
+            end,
+            RayPos = HalfPos,
+            Index = AtIndex0+0.5;
+          false ->
+            RayLen = RayLen0,
+            NearestVert = case FullDist < NearestVert0 of
+              true -> FullDist;
+              false -> NearestVert0
+            end,
+            RayPos = RayPos0,
+            Index = Index0
         end
-    end.
+    end,
+    get_radius(Vs, Center, Plane, Vtab, RayLen, NearestVert, RayPos, LastPos, FirstPos, AtIndex, Index).
 
 len_sqrt({X,Y,Z}) ->
     X*X+Y*Y+Z*Z.
@@ -649,14 +675,14 @@ make_circular_fun(Data,State) ->
             true ->
               make_circular_fun(Data,NewState);
             false ->
-              {Center,Ray,Axis0,VertDegList} = Data,
+              {Center,Ray,Nearest,Axis0,VertDegList} = Data,
               Axis = e3d_vec:neg(Axis0),
-              make_circular_fun({Center,Ray,Axis,VertDegList},NewState)
+              make_circular_fun({Center,Ray,Nearest,Axis,VertDegList},NewState)
           end;
       ([Dia,_,_,Percent|_], A) ->
-          {Center,Ray,Axis,VertDegList} = Data,
+          {Center,Ray,Nearest,Axis,VertDegList} = Data,
           lists:foldl(fun({V,{Vpos,Degrees}}, VsAcc) ->
-            [{V,make_circular(Center,Ray,Axis,Degrees,Vpos,State,Percent,Dia)}|VsAcc]
+            [{V,make_circular(Center,Ray,Nearest,Axis,Degrees,Vpos,State,Percent,Dia)}|VsAcc]
           end, A, VertDegList)
     end.
 
@@ -730,9 +756,9 @@ rotation_amount(reverse,Deg,Index) -> -Deg * Index.
 %%%% Closed Loop. Calculate the final position of each vertex (NewPos).
 %%%% Measure the distance between NewPos and the Center (Factor). Move the
 %%%% vertex towards the NewPos by a distance of the drag Dist * Factor.
-make_circular(_Center,_Ray,_Axis,_Deg,Vpos,_State, 0.0, 0.0) -> Vpos;
-make_circular(Center, Ray, Plane, Deg, Vpos, {Flatten,_,Mode}, Percent, Dia) ->
-    Pos0 = static_pos(Mode,Center,Ray,Dia),
+make_circular(_Center,_Ray,_Nearest,_Axis,_Deg,Vpos,_State, 0.0, 0.0) -> Vpos;
+make_circular(Center, Ray, Nearest, Plane, Deg, Vpos, {Flatten,_,Mode}, Percent, Dia) ->
+    Pos0 = static_pos(Mode,Center,Ray,Nearest,Dia),
     Pos1 = rotate(Pos0,Plane,Center,Deg),
     Pos2 = flatten(Flatten,Pos1,Vpos,Plane),
     Norm = e3d_vec:sub(Pos2,Vpos),
@@ -749,10 +775,10 @@ angle_and_point(Angle0, Opp, Index, NumVs, Hinge, Cross) ->
     RotPoint = e3d_vec:add(Hinge, e3d_vec:mul(Cross, Adj)),
     {RotationAmount, RotPoint}.
 
-static_pos(relative,Center,Ray,Dia) ->
-    e3d_vec:add(Center, e3d_vec:mul(Ray,Dia));
-static_pos(absolute,Center,Ray,Dia) ->
-    e3d_vec:add(Center, e3d_vec:mul(e3d_vec:norm(Ray),Dia/2)).
+static_pos(relative,Center,Ray,Nearest,Dia) ->
+    e3d_vec:add(Center, e3d_vec:mul(Ray,Nearest*Dia));
+static_pos(absolute,Center,Ray,_Nearest,Dia) ->
+    e3d_vec:add(Center, e3d_vec:mul(Ray,Dia/2)).
 
 flatten(true,Pos,_Vpos,_Plane) -> Pos;
 flatten(false,Pos,Vpos,Plane) -> intersect_vec_plane(Pos, Vpos, Plane).
