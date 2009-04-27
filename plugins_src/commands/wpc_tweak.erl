@@ -12,7 +12,7 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id$
+%%     $Id: wpc_tweak.erl 590 2009-04-22 03:07:31Z optigon $
 %%
 
 -module(wpc_tweak).
@@ -481,11 +481,7 @@ handle_tweak_event2({new_state,St0}, #tweak{orig_st=#st{selmode=Mode,sh=Sh}=Orig
         end,
         update_tweak_handler(T#tweak{st=St1});
       true ->
-        St1 = case St2 of
-           #st{saved=false} -> St2;
-           _Other -> wings_u:caption(St2#st{saved=false})
-        end,
-        update_tweak_handler(T#tweak{st=St1})
+        update_tweak_handler(T#tweak{st=St2})
       end;
 
 handle_tweak_event2({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=St0}=T) ->
@@ -551,6 +547,9 @@ handle_tweak_event2({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=S
     {select,{similar_area,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
     {select,similar}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
     {select,all}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
+    {file,_}=Cmd ->
+        St = clear_temp_sel(St0),
+        do_cmd(Cmd,T#tweak{st=St});
     keep -> keep;
     Cmd ->
         do_cmd(Cmd, T)
@@ -649,7 +648,7 @@ process_cmd_response(Result,T) ->
       {save_state,St} ->
           handle_tweak_event2({new_state,St}, T);
       #st{}=St ->
-          handle_tweak_event2({new_state,St}, T);
+          update_tweak_handler(T#tweak{st=St});
       {drag,Drag} ->
           wings_drag:do_drag(Drag, none);
       keep ->
