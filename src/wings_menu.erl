@@ -33,7 +33,7 @@
 -type menu_item() :: {unicode_string(),any(),menu_help(),unicode_string(),list()} |
   'separator'.
 
-%% Menu information kept for a popup menu.
+%% Menu information kept for menus.
 -record(mi,
 	{ymarg :: non_neg_integer(),		%Margin at top and bottom
 	 shortcut :: non_neg_integer(),		%Position for shortcut (pixels)
@@ -59,8 +59,8 @@
 %%%   {Text,Name,Hotkey,Help,Properties}
 %%%
 %%%   The Help field is normalized to
-%%%      String       for basic menu mode
-%%%      {L,M,R}      for advanced menu
+%%%      String       for plain (pull-down) menus
+%%%      {L,M,R}      for pop-up menus
 %%%
 
 is_popup_event(#mousebutton{button=3,x=X0,y=Y0,state=State,mod=Mod}) ->
@@ -483,8 +483,8 @@ current_command(#mi{sel=Sel,menu=Menu,ns=Names,owner=Owner}=Mi)
 current_command(_) -> [].
 
 all_current_commands(Fun, #mi{type=plain}) ->
-    %% This menu is in basic mode, so we must only return the
-    %% command for LMB.
+    %% This is a pull-down menu in plain mode, so we must
+    %% only return the command for LMB.
     all_current_commands_1([1], Fun);
 all_current_commands(Fun, #mi{type=popup}) ->
     all_current_commands_1([1,2,3], Fun).
@@ -586,8 +586,8 @@ insert_magnet_flags_0(Tuple0) when is_tuple(Tuple0) ->
     list_to_tuple(Tuple);
 insert_magnet_flags_0(Term) -> Term.
 
+%% Handle sub-menus of plain (pull-down) menus
 submenu(I, Name, Menu0, #mi{w=W,hs=Hs,level=Level}=Mi0) ->
-    %% Only in basic menu mode.
     Menu = expand_submenu(1, Name, Menu0, Mi0),
     X0 = W-?CHAR_WIDTH,
     Y0 = get_item_pos(I, Hs, -?LINE_HEIGHT),
@@ -689,7 +689,7 @@ selected_item(Y, #mi{type=Type,ymarg=Margin,h=H,menu=Menu}=Mi) ->
 	    %% Above upper margin. If advanced menus, it is safe
 	    %% to count that as if the mouse is over the first row.
 	    %% (The menu doesn't popup until the RMB has been released,
-	    %% unlike the basic menus.)
+	    %% unlike the plain (pull-down) menus.)
 	    case Type of
 		popup -> selected_item_1(0, Mi);
 		plain -> none
@@ -848,7 +848,7 @@ help_text(#mi{menu=Menu,sel=Sel}=Mi) ->
     help_text_1(Elem, Mi).
 
 help_text_1({Text,{Sub,_},_,_,_}, #mi{type=plain}) when Sub =/= 'VALUE' ->
-    %% No specific help text for submenus in basic mode.
+    %% No specific help text for submenus in plain mode.
     Help = [Text|?__(1," submenu")],
     wings_wm:message(Help, "");
 help_text_1({_,{Name,Fun},_,_,Ps}, #mi{ns=Ns}=Mi) when is_function(Fun) ->
