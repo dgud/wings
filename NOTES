@@ -1,3 +1,15 @@
+--- 0.99.XX -----------------------------------------------------------------
+- Save handling in Tweak Mode has been fixed. [optigon]
+
+- Text plugin when used with the native Wings browser would crash. Now fixed.
+  [optigon]
+
+- Selected vertices and edges would not show up on top of elements marked as
+  the original selection. Now fixed. [optigon]
+
+- Bug fix to Circularise to maintain the diameter of already circular loops.
+  [optigon]
+
 --- 0.99.60 -----------------------------------------------------------------
 - If you are building this release from source, you must use Erlang/OTP R13B
   (which was recently released).
