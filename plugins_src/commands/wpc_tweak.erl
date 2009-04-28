@@ -648,7 +648,7 @@ process_cmd_response(Result,T) ->
       {save_state,St} ->
           handle_tweak_event2({new_state,St}, T);
       #st{}=St ->
-          update_tweak_handler(T#tweak{st=St});
+          handle_tweak_event2({new_state,St}, T);
       {drag,Drag} ->
           wings_drag:do_drag(Drag, none);
       keep ->
