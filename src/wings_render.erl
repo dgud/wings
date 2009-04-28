@@ -208,12 +208,12 @@ render_plain_rest(#dlo{}=D, Wire, SelMode) ->
     case Wire of
 	true ->
 	    gl:disable(?GL_CULL_FACE),
-	    draw_orig_sel(D),
 	    draw_sel(D),
+	    draw_orig_sel(D),
 	    gl:enable(?GL_CULL_FACE);
 	false ->
-	    draw_orig_sel(D),
-	    draw_sel(D)
+	    draw_sel(D),
+	    draw_orig_sel(D)
     end,
     draw_vertices(D, SelMode),
     draw_hard_edges(D, SelMode),
@@ -280,8 +280,8 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth,transparent=Trans,
 	false -> ok
     end,
     draw_hilite(D),
-    draw_orig_sel(D),
     draw_sel(D),
+    draw_orig_sel(D),
 	draw_plugins(smooth,D,none).
 
 wire(#we{id=Id}) ->
