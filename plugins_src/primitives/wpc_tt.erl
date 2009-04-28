@@ -75,7 +75,7 @@ make_text(Ask) when is_atom(Ask) ->
               [{text,Text,[{key,{wpc_tt,text}}]},
                {text,Bisect,[{key,{wpc_tt,bisections}}]},
                {button,{text,FontDirectory,[{key,{wpc_tt,fontdir}},
-                   {props,[{dialog_type,open_dialog},{directory,FontDirectory},
+                   {props,[{dialog_type,open_dialog},
                    {extensions,[{".ttf",?__(3,"TrueType font")}]}]}]}}]},
             {vframe,[help_button()]}]}]}],
     fun(Res) -> {shape,{text,Res}} end);
