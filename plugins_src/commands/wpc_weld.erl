@@ -61,27 +61,34 @@ command(_,_) -> next.
 %% Weld one vertex to other
 %%
 
-weld(#st{sel=[{Obj,{1,{Vert,_,_}}}],shapes=Shs}=St) ->
-   We = gb_trees:get(Obj, Shs),
-   Vertices = gb_trees:size(We#we.vp),
-   Mirror = We#we.mirror,
-   if
-      Mirror /= none -> 
-         Verts = wings_face:vertices_cw(Mirror,We),
-         case member(Vert,Verts) of
-            true ->
-               wings_u:error(?__(1,"You cannot weld at mirror plane")),
-               St;
-            _ -> ok
-         end;
-      true -> ok
-   end,
-   if
-      Vertices < 4 -> 
-         wings_u:error(?__(2,"Object must have at least 4 vertices")),
-         St;
-      true ->
-         wings:ask(weld_select(St), St, fun weld/2)
+weld(#st{sel=[{Obj,VertSel}],shapes=Shs}=St) ->
+   case gb_sets:size(VertSel)==1 of
+    true ->
+      We = gb_trees:get(Obj, Shs),
+      Vertices = gb_trees:size(We#we.vp),
+      Mirror = We#we.mirror,
+      if
+         Mirror /= none -> 
+            Verts = wings_face:vertices_cw(Mirror,We),
+            Vert = gb_sets:smallest(VertSel),
+            case member(Vert,Verts) of
+               true ->
+                  wings_u:error(?__(1,"You cannot weld at mirror plane")),
+                  St;
+               _ -> ok
+            end;
+         true -> ok
+      end,
+      if
+         Vertices < 4 -> 
+            wings_u:error(?__(2,"Object must have at least 4 vertices")),
+            St;
+         true ->
+            wings:ask(weld_select(St), St, fun weld/2)
+      end;
+    false ->
+      wings_u:error(?__(3,"You can weld only one vertex")),
+      St
    end;
 weld(St) ->
    wings_u:error(?__(3,"You can weld only one vertex")),
@@ -98,17 +105,29 @@ weld_select(OrigSt) ->
 	  end,
     {[{Fun,Desc}],[],[],[vertex]}.
 
-weld_check_selection(#st{sel=[{_Obj,{1,{Vert2,_,_}}}]},#st{sel=[{_Obj,{1,{Vert1,_,_}}}]}=St) ->
-   if
-      Vert1==Vert2 -> {none,?__(1,"You cannot weld vertex to itself")};
-      true -> 
-         St2=wings_sel_conv:mode(vertex,St),
-         [{_,Sel2}]=St2#st.sel,
-         CanDo = gb_sets:is_element(Vert2,Sel2),
-         if
-            CanDo -> {none,""};
-            true -> {none,?__(2,"Vertices you want to weld must share edge")}
-         end
+weld_check_selection(#st{shapes=Shs,sel=[{Obj,VertSel2}]},#st{sel=[{Obj,VertSel1}]}=St) ->
+   case gb_sets:size(VertSel2)==1 andalso gb_sets:size(VertSel1)==1 of
+     true ->
+      if
+         VertSel2==VertSel1 -> {none,?__(1,"You cannot weld vertex to itself")};
+         true -> 
+            St2=wings_sel_conv:mode(vertex,St),
+            [{_,Sel2}]=St2#st.sel,
+            Vert2 = gb_sets:smallest(VertSel2),
+            CanDo = gb_sets:is_element(Vert2,Sel2),
+            if
+               CanDo ->
+                 Vert1 = gb_sets:smallest(VertSel1),
+                 We = gb_trees:get(Obj,Shs),
+                 case wings_vertex:edge_through(Vert1, Vert2, We) of
+                   [{_,_,_}] -> {none,""};
+                   _Otherwise -> {none,?__(6,"Weld would leave a waist")}
+                 end;
+               true -> {none,?__(2,"Vertices you want to weld must share edge")}
+            end
+      end;
+     false ->
+      {none,?__(3,"You can weld to only one point")}
    end;
 weld_check_selection(#st{sel=[{_Obj,_}]},#st{sel=[{_Obj,_}]}) ->
    {none,?__(3,"You can weld to only one point")};
@@ -117,7 +136,9 @@ weld_check_selection(#st{sel=[]},_) ->
 weld_check_selection(_,_) ->
    {none,?__(5,"You can weld only in same object")}.
 
-weld([{_,{1,{Vert2,_,_}}}]=NewSel,#st{sel=[{Obj,{1,{Vert1,_,_}}}],shapes=Shs}=St) ->
+weld([{_,VertSel2}]=NewSel,#st{sel=[{Obj,VertSel1}],shapes=Shs}=St) ->
+   Vert1 = gb_sets:smallest(VertSel1),
+   Vert2 = gb_sets:smallest(VertSel2),
    We = gb_trees:get(Obj, Shs),
    {RemoveEdge,LF,RF,FixMe} = get_edge_info(Vert1,Vert2,We),
    NewVp = gb_trees:delete(Vert1,We#we.vp),

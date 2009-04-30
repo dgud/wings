@@ -10,6 +10,9 @@
 - Bug fix to Circularise to maintain the diameter of already circular loops.
   [optigon]
 
+- Vertex|Weld could crash if the resulting geometry formed a waist. A check is
+  now performed to prevent this action. [optigon]
+
 --- 0.99.60 -----------------------------------------------------------------
 - If you are building this release from source, you must use Erlang/OTP R13B
   (which was recently released).
