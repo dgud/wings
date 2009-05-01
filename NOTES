@@ -1,4 +1,9 @@
---- 0.99.XX -----------------------------------------------------------------
+--- 1.0-rc1 -----------------------------------------------------------------
+- This is the first release candiate for the long-awaited Wings 1.0 release.
+  Until 1.0 is released, we will only fix bugs. [bjorng]
+
+- Wings now uses Gordos's new design for icons and about screen. [bjorng]
+
 - Save handling in Tweak Mode has been fixed. [optigon]
 
 - Text plugin when used with the native Wings browser would crash. Now fixed.
