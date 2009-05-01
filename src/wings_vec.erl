@@ -3,7 +3,7 @@
 %%
 %%     This module implements "vectors" and the secondary selection mode.
 %%
-%%  Copyright (c) 2002-2008 Bjorn Gustavsson.
+%%  Copyright (c) 2002-2009 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -569,8 +569,8 @@ get_vec(edge, [{Edges1},{Edges2}], [We1,We2]) ->
     end;
 
 get_vec(edge, [Edge1,Edge2], [#we{es=Etab0,vp=Vtab0},#we{es=Etab1,vp=Vtab1}]) ->
-    #edge{vs=Va1,ve=Vb1} = gb_trees:get(Edge1, Etab0),
-    #edge{vs=Va2,ve=Vb2} = gb_trees:get(Edge2, Etab1),
+    #edge{vs=Va1,ve=Vb1} = array:get(Edge1, Etab0),
+    #edge{vs=Va2,ve=Vb2} = array:get(Edge2, Etab1),
     Va1Pos = gb_trees:get(Va1, Vtab0),
     Vb1Pos = gb_trees:get(Vb1, Vtab0),
     Va2Pos = gb_trees:get(Va2, Vtab1),
@@ -607,7 +607,7 @@ get_vec(face, [Face1, Face2], [We0, We1]) ->
 
 %% Use single edge as axis
 get_vec(edge, [Edge], #we{es=Etab,vp=Vtab}=We) ->
-    #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf} = gb_trees:get(Edge, Etab),
+    #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf} = array:get(Edge, Etab),
     VaPos = gb_trees:get(Va, Vtab),
     VbPos = gb_trees:get(Vb, Vtab),
     Vec = e3d_vec:norm_sub(VbPos, VaPos),
@@ -621,8 +621,8 @@ get_vec(edge, [Edge], #we{es=Etab,vp=Vtab}=We) ->
       {?__(3,"Edge normal saved as axis"),?__(4,"Save edge direction")}}];
 %% Use direction between two edges
 get_vec(edge, [Edge1,Edge2], #we{es=Etab,vp=Vtab}) ->
-    #edge{vs=Va1,ve=Vb1} = gb_trees:get(Edge1, Etab),
-    #edge{vs=Va2,ve=Vb2} = gb_trees:get(Edge2, Etab),
+    #edge{vs=Va1,ve=Vb1} = array:get(Edge1, Etab),
+    #edge{vs=Va2,ve=Vb2} = array:get(Edge2, Etab),
     Va1Pos = gb_trees:get(Va1, Vtab),
     Vb1Pos = gb_trees:get(Vb1, Vtab),
     Va2Pos = gb_trees:get(Va2, Vtab),

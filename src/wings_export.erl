@@ -3,7 +3,7 @@
 %%
 %%     This module handles export to other file formats.
 %%
-%%  Copyright (c) 2004-2008 Bjorn Gustavsson
+%%  Copyright (c) 2004-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -164,9 +164,9 @@ make_tables(Ps, #we{mode=material}=We) ->
      end}.
 
 make_table(Sz, Def, #we{es=Etab}) ->
-    Cuvs0 = foldl(fun(#edge{a=A,b=B}, Acc) ->
-			  [A,B|Acc]
-		  end, Def, gb_trees:values(Etab)),
+    Cuvs0 = array:sparse_foldl(fun(_, #edge{a=A,b=B}, Acc) ->
+				       [A,B|Acc]
+			       end, Def, Etab),
     Cuvs = [E || E <- Cuvs0, tuple_size(E) =:= Sz],
     number(ordsets:from_list(Cuvs)).
 
@@ -186,7 +186,7 @@ make_face_mat([_|_]=Mat) -> Mat;
 make_face_mat(Mat) -> [Mat].
 
 hard_edges([E|Es], Etab, Acc) ->
-    #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(E, Etab),
     hard_edges(Es, Etab, [hard(Va, Vb)|Acc]);
 hard_edges([], _Etab, Acc) -> Acc.
 

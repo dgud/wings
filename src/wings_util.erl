@@ -21,6 +21,8 @@
 	 cap/1,upper/1,stringify/1,quote/1,
 	 add_vpos/2,update_vpos/2,
 	 gb_trees_smallest_key/1,gb_trees_largest_key/1,
+	 array_keys/1,array_smallest_key/1,array_greatest_key/1,
+	 array_is_empty/1,
 	 nice_float/1,
 	 unique_name/2,
 	 lib_dir/1,
@@ -142,6 +144,36 @@ gb_trees_smallest_key(Tree) ->
 gb_trees_largest_key(Tree) ->
     {Key,_Val} = gb_trees:largest(Tree),
     Key.
+
+array_keys(Array) ->
+    array:sparse_foldr(fun(I, _, A) -> [I|A] end, [], Array).
+
+array_smallest_key(Array) ->
+    try
+	array:sparse_foldl(fun(I, _, _) -> throw(I) end, [], Array),
+	erlang:error(empty_array)
+    catch
+	throw:I when is_integer(I) ->
+	    I
+    end.
+
+array_greatest_key(Array) ->
+    try
+	array:sparse_foldr(fun(I, _, _) -> throw(I) end, [], Array),
+	erlang:error(empty_array)
+    catch
+	throw:I when is_integer(I) ->
+	    I
+    end.
+
+array_is_empty(Array) ->
+    try
+	array:sparse_foldr(fun(_, _, _) -> throw(false) end, [], Array),
+	throw(true)
+    catch
+	throw:Empty ->
+	    Empty
+    end.
 
 nice_float(F) when is_float(F) ->
     simplify_float(lists:flatten(io_lib:format("~f", [F]))).

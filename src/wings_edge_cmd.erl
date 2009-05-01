@@ -200,20 +200,20 @@ set_color(Color, St) ->
 		  end, St).
 
 set_color_1([E|Es], Color, #we{es=Etab0}=We) ->
-    Rec0 = #edge{vs=Va,ve=Vb,rtpr=Rp,ltpr=Lp} = gb_trees:get(E, Etab0),
+    Rec0 = #edge{vs=Va,ve=Vb,rtpr=Rp,ltpr=Lp} = array:get(E, Etab0),
     Rec = Rec0#edge{a=Color,b=Color},
-    Etab1 = gb_trees:update(E, Rec, Etab0),
+    Etab1 = array:set(E, Rec, Etab0),
     Etab2 = set_color_2(Rp, Va, Color, Etab1),
     Etab = set_color_2(Lp, Vb, Color, Etab2),
     set_color_1(Es, Color, We#we{es=Etab});
 set_color_1([], _, We) -> We.
 
 set_color_2(E, V, Color, Etab) ->
-    Rec = case gb_trees:get(E, Etab) of
+    Rec = case array:get(E, Etab) of
 	      #edge{vs=V}=Rec0 -> Rec0#edge{a=Color};
 	      #edge{ve=V}=Rec0 -> Rec0#edge{b=Color}
 	  end,
-    gb_trees:update(E, Rec, Etab).
+    array:set(E, Rec, Etab).
 
 %%%
 %%% The Cut command.
@@ -257,7 +257,7 @@ cut_pick_error() ->
     wings_u:error(?__(1,"Only one edge can be cut at an arbitrary position.")).
 
 cut_pick_make_tvs(Edge, #we{id=Id,es=Etab,vp=Vtab,next_id=NewV}=We) ->
-    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     Start = gb_trees:get(Va, Vtab),
     End = gb_trees:get(Vb, Vtab),
     Dir = e3d_vec:sub(End, Start),
@@ -538,16 +538,16 @@ slide_part_loop(Es,We) ->
 
 slide_gather_info([Edge|Es],We=#we{es=Etab,vp=Vtab},Acc) ->
     #edge{vs=V1,ve=V2,ltpr=LP,ltsu=LS,lf=LF,rtpr=RP,rtsu=RS,rf=RF} =
-	gb_trees:get(Edge, Etab),
-    A1 = other(V1,gb_trees:get(RP, Etab)),
-    B1 = other(V1,gb_trees:get(LS, Etab)),
-    A2 = other(V2,gb_trees:get(RS, Etab)),
-    B2 = other(V2,gb_trees:get(LP, Etab)),
+	array:get(Edge, Etab),
+    A1 = other(V1, array:get(RP, Etab)),
+    B1 = other(V1, array:get(LS, Etab)),
+    A2 = other(V2, array:get(RS, Etab)),
+    B2 = other(V2, array:get(LP, Etab)),
     N1 = wings_face:normal(LF,We), N2 = wings_face:normal(RF,We),
     N = norm(average(N2,N1)),
-    V1pos = gb_trees:get(V1, Vtab),V2pos = gb_trees:get(V2, Vtab),
-    A1pos = gb_trees:get(A1, Vtab),A2pos = gb_trees:get(A2, Vtab),
-    B1pos = gb_trees:get(B1, Vtab),B2pos = gb_trees:get(B2, Vtab),
+    V1pos = gb_trees:get(V1, Vtab), V2pos = gb_trees:get(V2, Vtab),
+    A1pos = gb_trees:get(A1, Vtab), A2pos = gb_trees:get(A2, Vtab),
+    B1pos = gb_trees:get(B1, Vtab), B2pos = gb_trees:get(B2, Vtab),
     E1v1  = sub(A1pos,V1pos), E2v1 = sub(B1pos,V1pos),
     E1v2  = sub(A2pos,V2pos), E2v2 = sub(B2pos,V2pos),
     NE1v1 = norm(E1v1), NE2v1 = norm(E2v1),
@@ -558,7 +558,7 @@ slide_gather_info([Edge|Es],We=#we{es=Etab,vp=Vtab},Acc) ->
 	   V2, {V2pos,{NE1v2,len(E1v2)},{NE2v2,len(E2v2)}},
 	   E1, E2, N},
     slide_gather_info(Es, We, [{Edge,New}|Acc]);
-slide_gather_info([],_,Acc) ->
+slide_gather_info([], _, Acc) ->
     gb_trees:from_orddict(sort(Acc)).
 
 slide_dir([Edge|R],Es,Up0,Dw0,N0,Acc) ->

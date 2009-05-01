@@ -269,7 +269,7 @@ secondary_sel_ask(Edges,Vs) ->
                  {_,[]} ->
                    #we{es=Etab} = gb_trees:get(Id, Shs),
                    E = gb_sets:smallest(Sel),
-                   #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
+                   #edge{vs=Va,ve=Vb} = array:get(E, Etab),
                    {result,{Va,Vb}};
                  {_,_} -> error
                end;

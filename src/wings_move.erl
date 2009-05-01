@@ -3,7 +3,7 @@
 %%
 %%     This module implements the Move command.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -145,7 +145,7 @@ edges_to_vertices(Es, We, normal) ->
     #we{es=Etab,vp=Vtab} = We,
     Vs = foldl(fun(Edge, D0) ->
 		       #edge{vs=Va,ve=Vb,lf=FaceL,rf=FaceR} =
-			   gb_trees:get(Edge, Etab),
+			   array:get(Edge, Etab),
 		       VaPos = gb_trees:get(Va, Vtab),
 		       VbPos = gb_trees:get(Vb, Vtab),
 		       EdgeDir = e3d_vec:norm_sub(VbPos, VaPos),

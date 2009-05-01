@@ -3,7 +3,7 @@
 %%
 %%     Import and export of Nendo .ndo files.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -123,7 +123,7 @@ read_edges(<<NumEdges:16,T/binary>>) ->
     read_edges(0, NumEdges, T, [], []).
     
 read_edges(N, N, T, Eacc, Hacc) ->
-    Etab = gb_trees:from_orddict(reverse(Eacc)),
+    Etab = array:from_orddict(reverse(Eacc)),
     Htab = gb_sets:from_ordset(reverse(Hacc)),
     {Etab,Htab,T};
 read_edges(Edge, N, <<EdgeRec0:25/binary,T/binary>>, Eacc, Hacc0) ->
@@ -157,19 +157,19 @@ read_vertices(V, N,
     read_vertices(V+1, N, T, [{V,Pos}|Acc]).
 
 clean_bad_edges(#we{es=Etab}=We) ->
-    clean_bad_edges(gb_trees:keys(Etab), We).
+    clean_bad_edges(wings_util:array_keys(Etab), We).
 
 clean_bad_edges([Edge|T], #we{es=Etab}=We0) ->
-    We = case gb_trees:lookup(Edge, Etab) of
-	     none -> We0;
-	     {value,#edge{ltpr=Same,ltsu=Same,rtpr=Same,rtsu=Same}} ->
-	     io:format(?__(1,"Bad edge: ~w\n"), [Edge]),
+    We = case array:get(Edge, Etab) of
+	     undefined-> We0;
+	     #edge{ltpr=Same,ltsu=Same,rtpr=Same,rtsu=Same} ->
+		 io:format(?__(1,"Bad edge: ~w\n"), [Edge]),
 		 We0;
-	     {value,#edge{ltpr=Same,ltsu=Same}} ->
+	     #edge{ltpr=Same,ltsu=Same} ->
 		 wings_edge:dissolve_edge(Edge, We0);
-	     {value,#edge{rtpr=Same,rtsu=Same}} ->
+	     #edge{rtpr=Same,rtsu=Same} ->
 		 wings_edge:dissolve_edge(Edge, We0);
-	     {value,_Other} -> We0
+	     _ -> We0
 	 end,
     clean_bad_edges(T, We);
 clean_bad_edges([], We) -> We.
@@ -188,7 +188,7 @@ export(Name, #st{shapes=Shapes0}=St) ->
     write_file(Name, Shapes).
 
 check_size(#we{name=Name,es=Etab}) ->
-    case gb_trees:size(Etab) of
+    case array:sparse_size(Etab) of
 	Sz when Sz > 65535 ->
 	    wings_u:error(?__(1,"Object \"")
 			  ++Name
@@ -214,7 +214,7 @@ shape(#we{name=Name,perm=Perm}=We0, St, Acc) ->
     We1 = wings_we:uv_to_color(We0, St),
     We = wings_we:renumber(We1, 0),
     #we{vc=Vct,vp=Vtab,es=Etab,fs=Ftab,he=Htab} = We,
-    EdgeChunk = write_edges(gb_trees:to_list(Etab), Htab, []),
+    EdgeChunk = write_edges(array:sparse_to_orddict(Etab), Htab, []),
     FaceChunk = write_faces(gb_trees:values(Ftab), []),
     VertexChunk = write_vertices(gb_trees:values(Vct), gb_trees:values(Vtab), []),
     FillChunk = [0,0,0,0,0,1],

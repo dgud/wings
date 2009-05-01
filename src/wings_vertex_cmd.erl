@@ -272,10 +272,10 @@ bevel(V, {Edge,Face,Rec0}, InnerFace, Ids, Adj, Vtab, OrigEtab, Etab0) ->
 		 Rec0#edge{vs=Va,ve=Vprev,b=Col,rf=InnerFace,
 			   ltsu=Edge,rtpr=Enext,rtsu=Eprev}}
 	end,
-    Etab = gb_trees:update(Edge, Rec, Etab0),
+    Etab = array:set(Edge, Rec, Etab0),
     Vpos = gb_trees:get(V, Vtab),
     Vec = bevel_vec(Adj, Vother, Vpos, Vtab),
-    {gb_trees:insert(Ecurr, Curr, Etab),{Vec,Va}}.
+    {array:set(Ecurr, Curr, Etab),{Vec,Va}}.
 
 bevel_vec(Adj, Vother, Vpos, Vtab) ->
     Opos = gb_trees:get(Vother, Vtab),
@@ -318,7 +318,7 @@ bevel_normalize_1(VecVs, Min0) ->
 	     end, Min0, VecVs).
 
 bevel_color(ColEdge, Face, Etab0) ->
-    case gb_trees:get(ColEdge, Etab0) of
+    case array:get(ColEdge, Etab0) of
 	#edge{lf=Face,a=Col} -> Col;
 	#edge{rf=Face,b=Col} -> Col
     end.
@@ -446,7 +446,7 @@ set_color_1([V|Vs], Color, #we{es=Etab0}=We) ->
 			       #edge{vs=V} -> Rec0#edge{a=Color};
 			       #edge{ve=V} -> Rec0#edge{b=Color}
 			   end,
-		     gb_trees:update(Edge, Rec, Es)
+		     array:set(Edge, Rec, Es)
 	     end, Etab0, V, We),
     set_color_1(Vs, Color, We#we{es=Etab});
 set_color_1([], _, We) -> We.

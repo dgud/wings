@@ -1250,7 +1250,7 @@ align_to_selection(#st{selmode=edge}=St) ->
     N = average_normals(
 	  fun(Edges, #we{es=Etab}=We, Acc) ->
 		  foldl(fun(Edge, A) ->
-				#edge{lf=Lf,rf=Rf} = gb_trees:get(Edge, Etab),
+				#edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
 				[wings_face:normal(Lf, We),
 				 wings_face:normal(Rf, We)|A]
 			end, Acc, Edges)

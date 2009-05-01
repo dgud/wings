@@ -199,7 +199,7 @@ create_uv_state(Charts, MatName, Fs, We, GeomSt = #st{shapes=Shs0},OrigSt) ->
     wings:mode_restriction([vertex,edge,face,body]),
     wings_wm:current_state(#st{selmode=body,sel=[]}),
 
-    Shs = gb_trees:update(We#we.id, We#we{fs=undefined,es=gb_trees:empty()}, Shs0),
+    Shs = gb_trees:update(We#we.id, We#we{fs=undefined,es=array:new()}, Shs0),
     FakeGeomSt = GeomSt#st{sel=[],shapes=Shs},
 
     Image = case get_texture(MatName,GeomSt) of
@@ -368,11 +368,11 @@ update_uvs_3(V, Face, UV, Etab, We) ->
       fun(Edge, _, Rec0, Et) ->
 	      case Rec0 of
 		  #edge{vs=V,lf=Face,a=A} when A =/= UV ->
-		      Rec = gb_trees:get(Edge, Et),
-		      gb_trees:update(Edge, Rec#edge{a=UV}, Et);
+		      Rec = array:get(Edge, Et),
+		      array:set(Edge, Rec#edge{a=UV}, Et);
 		  #edge{ve=V,rf=Face,b=B} when B =/= UV ->
-		      Rec = gb_trees:get(Edge, Et),
-		      gb_trees:update(Edge, Rec#edge{b=UV}, Et);
+		      Rec = array:get(Edge, Et),
+		      array:set(Edge, Rec#edge{b=UV}, Et);
 		  _ -> Et
 	      end
       end, Etab, V, We).
@@ -948,7 +948,7 @@ handle_command_1(stitch, St0 = #st{selmode=edge}) ->
 			      [auv_segment:map_edge(E,Emap)
 			       || E<-gb_sets:to_list(Es),
 				  begin 
-				      #edge{lf=LF,rf=RF}=gb_trees:get(E,Etab),
+				      #edge{lf=LF,rf=RF}=array:get(E, Etab),
 				      border(gb_sets:is_member(LF,Vis),
 					       gb_sets:is_member(RF,Vis))
 				  end] ++ A
@@ -964,7 +964,7 @@ handle_command_1(cut_edges, St0 = #st{selmode=edge,bb=#uvstate{id=Id,st=Geom}}) 
 			      A ++ [auv_segment:map_edge(E,Emap)
 				    || E <-gb_sets:to_list(Es),
 				       begin 
-					   #edge{lf=LF,rf=RF} = gb_trees:get(E,Etab),
+					   #edge{lf=LF,rf=RF} = array:get(E,Etab),
 					   gb_sets:is_member(LF,Vis) and 
 					       gb_sets:is_member(RF,Vis)
 				       end]
@@ -1068,7 +1068,7 @@ add_faces(NewFs,St0=#st{bb=ASt=#uvstate{id=Id,mode=Mode,st=GeomSt=#st{shapes=Shs
 	{_,object} -> St0;
 	{object,_} -> %% Force a chart rebuild, we are switching object mode
 	    We = gb_trees:get(Id,Shs0),
-	    Shs = gb_trees:update(Id, We#we{fs=undefined,es=gb_trees:empty()}, Shs0),
+	    Shs = gb_trees:update(Id, We#we{fs=undefined,es=array:new()}, Shs0),
 	    Fake = GeomSt#st{sel=[],shapes=Shs},
 	    St0#st{bb=ASt#uvstate{mode=object,st=Fake}};
 	{NewFs,Fs0} ->
@@ -1078,7 +1078,7 @@ add_faces(NewFs,St0=#st{bb=ASt=#uvstate{id=Id,mode=Mode,st=GeomSt=#st{shapes=Shs
 		    St0#st{bb=ASt#uvstate{mode=Fs}};
 		_ ->  %% Some new faces should be shown, force a chart rebuild
 		    We = gb_trees:get(Id,Shs0),
-		    Shs = gb_trees:update(Id, We#we{fs=undefined,es=gb_trees:empty()}, Shs0),
+		    Shs = gb_trees:update(Id, We#we{fs=undefined,es=array:new()}, Shs0),
 		    Fake = GeomSt#st{sel=[],shapes=Shs},
 		    St0#st{bb=ASt#uvstate{st=Fake,mode=Fs}}
 	    end
@@ -1395,7 +1395,7 @@ displace_charts([{_,{Id1,_,_},{Id2,_,_}}|Eds], Moved, Sh) ->
     end.
 
 displace_dirs(Dist,Edge1,We = #we{es=Etab,vp=Vpos}) ->
-    #edge{vs=Vs1,ve=Ve1,lf=LF,rf=RF} = gb_trees:get(Edge1,Etab),
+    #edge{vs=Vs1,ve=Ve1,lf=LF,rf=RF} = array:get(Edge1,Etab),
     Vp1 = gb_trees:get(Vs1,Vpos),
     Vp2 = gb_trees:get(Ve1,Vpos),
     {Dx,Dy,_} = e3d_vec:norm(e3d_vec:sub(Vp1,Vp2)),
@@ -1425,8 +1425,8 @@ map_edges(WingsEs,#st{shapes=Sh}) ->
       fun(_L={E,[{Id1,E1},{Id2,E2}]},Acc) ->
 	      #we{name=#ch{vmap=Vmap1},es=Etab1}=gb_trees:get(Id1,Sh),
 	      #we{name=#ch{vmap=Vmap2},es=Etab2}=gb_trees:get(Id2,Sh),
-	      #edge{vs=Vs1,ve=Ve1} = gb_trees:get(E1,Etab1),
-	      #edge{vs=Vs2,ve=Ve2} = gb_trees:get(E2,Etab2),
+	      #edge{vs=Vs1,ve=Ve1} = array:get(E1,Etab1),
+	      #edge{vs=Vs2,ve=Ve2} = array:get(E2,Etab2),
 	      Vs1map = auv_segment:map_vertex(Vs1, Vmap1),
 	      R= case auv_segment:map_vertex(Vs2, Vmap2) of
 		     Vs1map -> {E,{Id1,E1,{Vs1,Ve1}},{Id2,E2,{Vs2,Ve2}}};
@@ -1614,7 +1614,7 @@ vertex_sel_to_vertex([], _, Sel) -> Sel.
 
 edge_sel_to_edge([{K,#we{es=Etab}=We}|Cs], Es, Sel) ->
     Vis = gb_sets:from_ordset(wings_we:visible(We)),
-    ChartEs0 = [E || {E,#edge{lf=Lf,rf=Rf}} <- gb_trees:to_list(Etab),
+    ChartEs0 = [E || {E,#edge{lf=Lf,rf=Rf}} <- array:sparse_to_orddict(Etab),
 		     gb_sets:is_member(Lf, Vis) orelse
 			 gb_sets:is_member(Rf, Vis)],
     ChartEs = auv2geom_edges(ChartEs0, We),
@@ -1715,7 +1715,7 @@ align_chart(Dir, St = #st{selmode=Mode}) ->
 				  gb_trees:get(V2,Vtab),
 				  We);
 		  [E] when Mode == edge -> 
-		      #edge{vs=V1,ve=V2} = gb_trees:get(E, Etab),
+		      #edge{vs=V1,ve=V2} = array:get(E, Etab),
 		      align_chart(Dir,gb_trees:get(V1,Vtab),
 				  gb_trees:get(V2,Vtab),
 				  We);

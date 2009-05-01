@@ -3,7 +3,7 @@
 %%
 %%     Render and capture a texture.
 %%
-%%  Copyright (c) 2002-2008 Dan Gudmundsson, Bjorn Gustavsson
+%%  Copyright (c) 2002-2009 Dan Gudmundsson, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -882,7 +882,7 @@ outer_verts(We = #we{es=Etab}) ->
     Fs = wings_we:visible(We),
     Outer = auv_util:outer_edges(Fs,We,false),    
     Verts = fun({Edge,Face}) -> 
-		    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+		    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
 		    [Va,Vb,Face]
 	    end,
     lists:map(Verts, Outer).

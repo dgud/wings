@@ -3,7 +3,7 @@
 %%
 %%     This module implements selection utilities.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -53,7 +53,7 @@ map(F, #st{shapes=Shs0,sel=Sel}=St) ->
 map_1(F, [{Id,Items}|Sel], [{Id,We0}|Shs], St, Acc) ->
     ?ASSERT(We0#we.id =:= Id),
     #we{es=Etab} = We = F(Items, We0),
-    case gb_sets:is_empty(Etab) of
+    case wings_util:array_is_empty(Etab) of
 	true -> map_1(F, Sel, Shs, St, Acc);
 	false -> map_1(F, Sel, Shs, St, [{Id,We}|Acc])
     end;
@@ -87,7 +87,7 @@ mapfold(F, Acc0, #st{shapes=Shs0,sel=Sel}=St) ->
 mapfold_1(F, Acc0, [{Id,Items}|Sel], [{Id,We0}|Shs], St, ShsAcc) ->
     ?ASSERT(We0#we.id =:= Id),
     {#we{es=Etab}=We,Acc} = F(Items, We0, Acc0),
-    case gb_trees:is_empty(Etab) of
+    case wings_util:array_is_empty(Etab) of
 	true -> mapfold_1(F, Acc0, Sel, Shs, St, ShsAcc);
 	false -> mapfold_1(F, Acc, Sel, Shs, St, [{Id,We}|ShsAcc])
     end;
@@ -115,12 +115,11 @@ make_1([#we{id=Id}=We|Shs], Filter, body) ->
 	true -> [{Id,gb_sets:singleton(0)}|make_1(Shs, Filter, body)]
     end;
 make_1([#we{id=Id,vp=Vtab,es=Etab,fs=Ftab}=We|Shs], Filter, Mode) ->
-    Tab = case Mode of
-	      vertex -> Vtab;
-	      edge -> Etab;
-	      face -> Ftab
-	  end,
-    Keys = gb_trees:keys(Tab),
+    Keys = case Mode of
+	       vertex -> gb_trees:keys(Vtab);
+	       edge -> wings_util:array_keys(Etab);
+	       face -> gb_trees:keys(Ftab)
+	   end,
     case [Item || Item <- Keys, Filter(Item, We)] of
 	[] -> make_1(Shs, Filter, Mode);
 	Sel -> [{Id,gb_sets:from_ordset(Sel)}|make_1(Shs, Filter, Mode)]
@@ -270,7 +269,7 @@ find_all_adj_edges(Ws0, #we{es=Etab}=We, Reg0, Edges0) ->
 	false ->
 	    {Edge,Ws1} = gb_sets:take_smallest(Ws0),
 	    Reg = [Edge|Reg0],
-	    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+	    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
 	    Adj0 = add_adjacent_edges(Va, We, []),
 	    Adj1 = add_adjacent_edges(Vb, We, Adj0),
 	    Adj = gb_sets:from_list(Adj1),
@@ -295,7 +294,7 @@ valid_sel(Sel0, Mode, #st{shapes=Shapes}) ->
 			    A;
 			{value,We} ->
 			    Items = validate_items(Items0, Mode, We),
-			    case gb_trees:is_empty(Items) of
+			    case gb_sets:is_empty(Items) of
 				false -> [{Id,Items}|A];
 				true -> A
 			    end

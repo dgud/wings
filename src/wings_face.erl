@@ -46,7 +46,7 @@ from_edges(Es, We) ->
     from_edges(gb_sets:to_list(Es), We).
     
 from_edges_1([E|Es], Etab, Acc) ->
-    #edge{lf=Lf,rf=Rf} = gb_trees:get(E, Etab),
+    #edge{lf=Lf,rf=Rf} = array:get(E, Etab),
     from_edges_1(Es, Etab, [Lf,Rf|Acc]);
 from_edges_1([], _, Acc) -> gb_sets:from_list(Acc).
 
@@ -220,7 +220,7 @@ vinfo_cw(Face, Edge, #we{es=Etab}) ->
 
 vinfo_cw_1(LastEdge, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
 vinfo_cw_1(Edge, Etab, Face, LastEdge, Acc) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{vs=V,a=Col,lf=Face,ltpr=NextEdge} ->
 	    vinfo_cw_1(NextEdge, Etab, Face, LastEdge, [[V|Col]|Acc]);
 	#edge{ve=V,b=Col,rtpr=NextEdge} ->
@@ -236,7 +236,7 @@ vinfo_ccw(Face, Edge, #we{es=Etab}) ->
 
 vinfo_ccw_1(LastEdge, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
 vinfo_ccw_1(Edge, Etab, Face, LastEdge, Acc) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{vs=V,a=Col,lf=Face,ltsu=NextEdge} ->
 	    vinfo_ccw_1(NextEdge, Etab, Face, LastEdge, [[V|Col]|Acc]);
 	#edge{ve=V,b=Col,rtsu=NextEdge} ->
@@ -252,7 +252,7 @@ vertices_cw(Face, Edge, #we{es=Etab}) ->
 
 vertices_cw_1(LastEdge, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
 vertices_cw_1(Edge, Etab, Face, LastEdge, Acc) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{vs=V,lf=Face,ltpr=NextEdge} ->
 	    vertices_cw_1(NextEdge, Etab, Face, LastEdge, [V|Acc]);
 	#edge{ve=V,rf=Face,rtpr=NextEdge} ->
@@ -268,7 +268,7 @@ vertices_ccw(Face, Edge, #we{es=Etab}) ->
 
 vertices_ccw_1(LastEdge, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
 vertices_ccw_1(Edge, Etab, Face, LastEdge, Acc) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{vs=V,lf=Face,ltsu=NextEdge} ->
 	    vertices_ccw_1(NextEdge, Etab, Face, LastEdge, [V|Acc]);
 	#edge{ve=V,rf=Face,rtsu=NextEdge} ->
@@ -284,7 +284,7 @@ vertex_positions(Face, Edge, #we{es=Etab,vp=Vtab}) ->
 
 vertex_positions_1(LastEdge, _, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
 vertex_positions_1(Edge, Etab, Vtab, Face, LastEdge, Acc) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{vs=V,lf=Face,ltsu=NextEdge} ->
 	    Pos = gb_trees:get(V, Vtab),
 	    vertex_positions_1(NextEdge, Etab, Vtab, Face, LastEdge, [Pos|Acc]);
@@ -302,7 +302,7 @@ vertex_info(Face, Edge, #we{es=Etab}) ->
 
 vertex_info_1(LastEdge, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
 vertex_info_1(Edge, Etab, Face, LastEdge, Acc) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{a=Info,lf=Face,ltsu=NextEdge} ->
 	    vertex_info_1(NextEdge, Etab, Face, LastEdge, [Info|Acc]);
 	#edge{b=Info,rf=Face,rtsu=NextEdge} ->
@@ -371,7 +371,7 @@ fold(F, Acc, Face, Edge, #we{es=Etab}) ->
 
 fold(LastEdge, _, _, Acc, _, LastEdge, done) -> Acc;
 fold(Edge, Etab, F, Acc0, Face, LastEdge, _) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{ve=V,lf=Face,ltsu=NextEdge}=E ->
 	    Acc = F(V, Edge, E, Acc0),
 	    fold(NextEdge, Etab, F, Acc, Face, LastEdge, done);
@@ -388,7 +388,7 @@ fold_vinfo(F, Acc, Face, #we{es=Etab,fs=Ftab}) ->
 
 fold_vinfo(_F, Acc, _Face, LastEdge, LastEdge, _Etab, done) -> Acc;
 fold_vinfo(F, Acc0, Face, Edge, LastEdge, Etab, _) ->
-    Acc = case gb_trees:get(Edge, Etab) of
+    Acc = case array:get(Edge, Etab) of
 	      #edge{vs=V,a=VInfo,lf=Face,ltsu=NextEdge} ->
 		  F(V, VInfo, Acc0);
 	      #edge{ve=V,b=VInfo,rf=Face,rtsu=NextEdge} ->
@@ -408,7 +408,7 @@ fold_faces(F, Acc, Faces, We) ->
 
 fold_faces_1(LastEdge, _, _, Acc, _, LastEdge, done) -> Acc;
 fold_faces_1(Edge, Etab, F, Acc0, Face, LastEdge, _) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{ve=V,lf=Face,ltsu=NextEdge}=E ->
 	    Acc = F(Face, V, Edge, E, Acc0),
 	    fold_faces_1(NextEdge, Etab, F, Acc, Face, LastEdge, done);
@@ -432,7 +432,7 @@ to_edges_raw([], _, _, Acc) -> Acc.
 
 to_edges_raw_1(LastEdge, _, Acc, _, LastEdge, done) -> Acc;
 to_edges_raw_1(Edge, Etab, Acc, Face, LastEdge, _) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{lf=Face,ltsu=NextEdge} ->
 	    to_edges_raw_1(NextEdge, Etab, [Edge|Acc], Face, LastEdge, done);
 	#edge{rf=Face,rtsu=NextEdge} ->
@@ -470,7 +470,7 @@ iter2etab({face_iterator,_,_,Etab}) -> Etab.
 %% Return next edge clockwise.
 
 next_cw({face_iterator,Edge,Face,Etab}) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{ve=V,lf=Face,ltsu=NextEdge}=Rec ->
 	    {V,Edge,Rec,{face_iterator,NextEdge,Face,Etab}};
 	#edge{vs=V,rf=Face,rtsu=NextEdge}=Rec ->
@@ -480,7 +480,7 @@ next_cw({face_iterator,Edge,Face,Etab}) ->
 %% Return next edge counter-clockwise.
 
 next_ccw({face_iterator,Edge,Face,Etab}) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{ve=V,lf=Face,ltpr=NextEdge}=Rec ->
 	    {V,Edge,Rec,{face_iterator,NextEdge,Face,Etab}};
 	#edge{vs=V,rf=Face,rtpr=NextEdge}=Rec ->
@@ -496,7 +496,7 @@ delete_bad_faces(Fs, We) ->
 bad_edges([F|Fs], Ftab, Etab, Acc) ->
     case gb_trees:lookup(F, Ftab) of
 	{value,Edge} ->
-	    case gb_trees:get(Edge, Etab) of
+	    case array:get(Edge, Etab) of
 		#edge{ltpr=Same,ltsu=Same,rtpr=Same,rtsu=Same} ->
 		    erlang:error({internal_error,one_edged_face,F});
 		#edge{ltpr=Same,ltsu=Same} ->

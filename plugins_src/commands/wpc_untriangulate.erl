@@ -287,7 +287,7 @@ make_erec_tree(AlgoLevel, Elist, We) ->
 
 make_new_erec(_AlgoLevel, Edge, We) ->
     #edge{ltpr=Ltpr,ltsu=Ltsu,
-          rtpr=Rtpr,rtsu=Rtsu} = gb_trees:get(Edge, We#we.es),
+          rtpr=Rtpr,rtsu=Rtsu} = array:get(Edge, We#we.es),
     {Geo,_Convex} = geometry_weight(Edge, We),
     Nbs = gb_sets:from_list([Ltpr,Ltsu,Rtpr,Rtsu]),
     #erec{geoval=Geo,nbs=Nbs}.
@@ -322,7 +322,7 @@ prune_first_etree([{Edge,Erec}|T], ETree) ->
 
 geometry_weight(E, We) ->
     #edge{ltpr=Ltpr,ltsu=Ltsu,
-          rtpr=Rtpr,rtsu=Rtsu,lf=Lf,rf=Rf} = gb_trees:get(E, We#we.es),
+          rtpr=Rtpr,rtsu=Rtsu,lf=Lf,rf=Rf} = array:get(E, We#we.es),
     N0 = edge_unit_vector(Ltpr, Lf, We),
     N1 = edge_unit_vector(Ltsu, Lf, We),
     N2 = edge_unit_vector(Rtpr, Rf, We),
@@ -347,7 +347,7 @@ geometry_weight(E, We) ->
     {Val, Convex}.
 
 edge_unit_vector(Edge, Face, We) ->
-    {Vs1,Ve1} = case gb_trees:get(Edge, We#we.es) of
+    {Vs1,Ve1} = case array:get(Edge, We#we.es) of
                   #edge{lf=Face,vs=Vs0,ve=Ve0} -> {Vs0,Ve0};
                   #edge{rf=Face,vs=Vs0,ve=Ve0} -> {Ve0,Vs0};
                   _  -> error
@@ -385,9 +385,9 @@ check_edge(Opts, Edge, We, SelSet) ->
 
 check_triangles(Edge, We, SelSet) ->
     #edge{ltpr=Ltpr,ltsu=Ltsu,
-          rtpr=Rtpr,rtsu=Rtsu} = gb_trees:get(Edge, We#we.es),
-    #edge{ltsu=LLtsu,rtsu=LRtsu} = gb_trees:get(Ltsu, We#we.es),
-    #edge{ltsu=RLtsu,rtsu=RRtsu} = gb_trees:get(Rtsu, We#we.es),
+          rtpr=Rtpr,rtsu=Rtsu} = array:get(Edge, We#we.es),
+    #edge{ltsu=LLtsu,rtsu=LRtsu} = array:get(Ltsu, We#we.es),
+    #edge{ltsu=RLtsu,rtsu=RRtsu} = array:get(Rtsu, We#we.es),
     (((Ltpr == LLtsu) orelse (Ltpr == LRtsu)) andalso
      ((Rtpr == RRtsu) orelse (Rtpr == RLtsu)))         %% triangles?
       andalso gb_sets:is_member(Rtpr,SelSet)
@@ -396,14 +396,14 @@ check_triangles(Edge, We, SelSet) ->
       andalso gb_sets:is_member(Ltsu,SelSet).          %% all selected?
 
 check_angle(Edge, We, CosAngle) ->
-    #edge{lf=Lf,rf=Rf} = gb_trees:get(Edge, We#we.es),
+    #edge{lf=Lf,rf=Rf} = array:get(Edge, We#we.es),
     NL = e3d_vec:norm(wings_face:normal(Lf,We)),
     NR = e3d_vec:norm(wings_face:normal(Rf,We)),
     Dot = e3d_vec:dot(NL,NR),
     (Dot >= CosAngle).
 
 check_materials(Edge, We) ->
-    #edge{lf=Lf,rf=Rf} = gb_trees:get(Edge, We#we.es),    
+    #edge{lf=Lf,rf=Rf} = array:get(Edge, We#we.es),
     wings_facemat:face(Lf, We) =:= wings_facemat:face(Rf, We).
 
 check_hard_edge(Edge, We) ->
@@ -414,13 +414,13 @@ check_uv_coords(Edge, We) ->
       vertex -> true;
       material ->
         #edge{ltpr=Ltpr, rtpr=Rtpr, lf=Lf, rf=Rf,
-              a=Luv, b=Ruv} = gb_trees:get(Edge, We#we.es),
+              a=Luv, b=Ruv} = array:get(Edge, We#we.es),
         Luv2 = matching_uv(Lf, Ltpr, We),
         Ruv2 = matching_uv(Rf, Rtpr, We),
         (compare_uvs(Luv,Ruv2) and compare_uvs(Ruv,Luv2))
     end.
 matching_uv(Face, Edge, We) ->
-    case gb_trees:get(Edge, We#we.es) of
+    case array:get(Edge, We#we.es) of
       #edge{lf=Face,a=A} -> A;
       #edge{rf=Face,b=B} -> B
     end.

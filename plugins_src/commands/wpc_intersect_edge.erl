@@ -143,7 +143,7 @@ validateSel(_Edges, _We, invalid) ->
 validateSelAcc([],_,_VertexAcc)->
     valid;
 validateSelAcc([SelEdge|OtherSelEdges], EdgeTab, VertexAcc) ->
-    #edge{vs=V1,ve=V2} = gb_trees:get(SelEdge,EdgeTab),
+    #edge{vs=V1,ve=V2} = array:get(SelEdge,EdgeTab),
     InTable = member(V1,VertexAcc) orelse member(V2,VertexAcc),
     case InTable of
 	true ->
@@ -163,7 +163,7 @@ intersect_body(Edges, Plane, Center, We) ->
 intersect_edges(_Plane,_Center,_EdgeTab,VertPosTab,[]) ->
     VertPosTab;
 intersect_edges(Plane,Center,EdgeTab,VertPosTab0,[EdgeNum|OtherEdgeNums]) ->
-    #edge{vs=V1Num,ve=V2Num}=gb_trees:get(EdgeNum,EdgeTab),
+    #edge{vs=V1Num,ve=V2Num}=array:get(EdgeNum,EdgeTab),
     V1 = gb_trees:get(V1Num,VertPosTab0),
     V2 = gb_trees:get(V2Num,VertPosTab0),
     V1V2 = e3d_vec:norm_sub(V2,V1),

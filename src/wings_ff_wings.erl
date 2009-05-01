@@ -3,7 +3,7 @@
 %%
 %%     This module contain the functions for reading and writing .wings files.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -91,10 +91,10 @@ import_objects([Sh0|Shs], Mode, NameMap, Oid, ShAcc) ->
     Pst = try gb_trees:from_orddict(Pst0)
 	  catch error:_ -> gb_trees:empty()
 	  end,
-    We = #we{es=Etab,vp=Vtab,he=Htab,perm=Perm,pst=Pst,
+    We = #we{he=Htab,perm=Perm,pst=Pst,
 	     id=Oid,name=Name,mode=ObjMode,mirror=Mirror,mat=FaceMat},
     HiddenFaces = proplists:get_value(num_hidden_faces, Props, 0),
-    import_objects(Shs, Mode, NameMap, Oid+1, [{HiddenFaces,We}|ShAcc]);
+    import_objects(Shs, Mode, NameMap, Oid+1, [{HiddenFaces,We,{Vtab,Etab}}|ShAcc]);
 import_objects([], _Mode, _NameMap, Oid, Objs0) ->
     %%io:format("flat_size: ~p\n", [erts_debug:flat_size(Objs0)]),
     Objs = share_list(Objs0),
@@ -341,7 +341,7 @@ translate_map_images_2([], _, _) -> [].
 %%%
 
 share_list(Wes) ->
-    Tabs0 = [{Vtab,Etab} || {_,#we{vp=Vtab,es=Etab}} <- Wes],
+    Tabs0 = [Tabs || {_,_,{_,_}=Tabs} <- Wes],
     Floats = share_floats(Tabs0, tuple_to_list(wings_color:white())),
     Tabs = share_list_1(Tabs0, Floats, gb_trees:empty(), []),
     share_list_2(Tabs, Wes, []).
@@ -353,9 +353,9 @@ share_list_1([{Vtab0,Etab0}|Ts], Floats, Tuples0, Acc) ->
 share_list_1([], _, _, Ts) -> reverse(Ts).
 
 share_list_2([{Vtab0,Etab0}|Ts],
-	     [{NumHidden,#we{id=Id,mat=FaceMat}=We0}|Wes], Acc) ->
+	     [{NumHidden,#we{id=Id,mat=FaceMat}=We0,_}|Wes], Acc) ->
     Vtab = gb_trees:from_orddict(Vtab0),
-    Etab = gb_trees:from_orddict(Etab0),
+    Etab = array:from_orddict(Etab0),
     We1 = wings_we:rebuild(We0#we{vp=Vtab,es=Etab,mat=default}),
     We2 = wings_facemat:assign(FaceMat, We1),
     We = if
@@ -589,7 +589,7 @@ shape({Hidden,#we{mode=ObjMode,name=Name,vp=Vs0,es=Es0,he=Htab,pst=Pst}=We}, Acc
     UvFaces = gb_sets:from_ordset(wings_we:uv_mapped_faces(We)),
     Es1 = foldl(fun(E, A) ->
 			export_edge(E, UvFaces, A)
-		end, [], gb_trees:values(Es0)),
+		end, [], array:sparse_to_list(Es0)),
     Es = reverse(Es1),
     Fs1 = foldl(fun export_face/2, [], wings_facemat:all(We)),
     Fs = reverse(Fs1),

@@ -3,7 +3,7 @@
 %%
 %%     This module implements the Smooth command for objects and faces.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -27,7 +27,7 @@ smooth(We) ->
     
 smooth(Fs, Htab, #we{vp=Vtab,es=Etab}=We) ->
     Vs = gb_trees:keys(Vtab),
-    Es = gb_trees:keys(Etab),
+    Es = wings_util:array_keys(Etab),
     smooth(Fs, Vs, Es, Htab, We).
 
 smooth(Fs, Vs, Es, Htab, #we{vp=Vp,next_id=Id}=We0) ->
@@ -111,21 +111,12 @@ face_centers([], _We, Acc) -> reverse(Acc).
 %%% Updating of the topology (edge and hard edge tables).
 %%%
 
-cut_edges(Es, Hard, #we{he=Htab0,next_id=Id0}=We) ->
-    Etab0 = prepare_etab(Es, We),
+cut_edges(Es, Hard, #we{es=Etab0,he=Htab0,next_id=Id0}=We) ->
     {Id,Etab,Htab} = cut_edges_1(Es, Hard, Id0, Etab0, Htab0),
     We#we{es=Etab,he=Htab,next_id=Id}.
 
-prepare_etab(Es, #we{es=Etab0,next_id=Id}) ->
-    Etab = prepare_etab_1(Id+length(Es)-1, Id, []),
-    gb_trees:from_orddict(gb_trees:to_list(Etab0) ++ Etab).
-
-prepare_etab_1(Id, Lim, Acc) when Id >= Lim ->
-    prepare_etab_1(Id-1, Lim, [{Id,dummy}|Acc]);
-prepare_etab_1(_, _, Acc) -> Acc.
-
 cut_edges_1([Edge|Es], Hard, NewEdge, Etab0, Htab0) ->
-    Rec = gb_trees:get(Edge, Etab0),
+    Rec = array:get(Edge, Etab0),
     Etab = fast_cut(Edge, Rec, NewEdge, Etab0),
     case gb_sets:is_member(Edge, Hard) of
 	true ->
@@ -146,16 +137,16 @@ fast_cut(Edge, Template, NewV=NewEdge, Etab0) ->
     NewColA = mix_color(EdgeA, Etab0, Lf, ACol),
     NewColB = mix_color(NextBCol, Etab0, Rf, BCol),
     NewEdgeRec = Template#edge{vs=NewV,a=NewColA,ltsu=Edge,rtpr=Edge},
-    Etab1 = gb_trees:update(NewEdge, NewEdgeRec, Etab0),
+    Etab1 = array:set(NewEdge, NewEdgeRec, Etab0),
     EdgeRec = Template#edge{ve=NewV,b=NewColB,rtsu=NewEdge,ltpr=NewEdge},
-    Etab2 = gb_trees:update(Edge, EdgeRec, Etab1),
+    Etab2 = array:set(Edge, EdgeRec, Etab1),
     Etab = wings_edge:patch_edge(EdgeA, NewEdge, Edge, Etab2),
     wings_edge:patch_edge(EdgeB, NewEdge, Edge, Etab).
 
 mix_color(_, _, _, none) -> none;
 mix_color(E, Etab, Face, OtherColor) ->
     wings_color:average(OtherColor,
-			case gb_trees:get(E, Etab) of
+			case array:get(E, Etab) of
 			    #edge{lf=Face,a=Col} -> Col;
 			    #edge{rf=Face,b=Col} -> Col
 			end).
@@ -174,8 +165,8 @@ smooth_faces_1([{Face,{_,Color,NumIds}}|Fs], Id, EsAcc0, #we{es=Etab0}=We0) ->
     {Etab,EsAcc,_} = face_fold(Fun, {Etab0,EsAcc0,Ids}, Face, We),
     smooth_faces_1(Fs, Id, EsAcc, We#we{es=Etab});
 smooth_faces_1([], _, Es, #we{es=Etab0}=We) ->
-    Etab1 = gb_trees:to_list(Etab0) ++ reverse(Es),
-    Etab = gb_trees:from_orddict(Etab1),
+    Etab1 = array:sparse_to_orddict(Etab0) ++ reverse(Es),
+    Etab = array:from_orddict(Etab1),
     We#we{es=Etab,fs=undefined}.
 
 smooth_edge_fun(Face, NewV, Color, Id) ->
@@ -209,7 +200,7 @@ smooth_edge_fun(Face, NewV, Color, Id) ->
 		    Es = Es0,
 		    Ids = wings_we:bump_id(Ids0)
 	    end,
-	    Etab = gb_trees:update(Edge, Rec, Etab0),
+	    Etab = array:set(Edge, Rec, Etab0),
 	    {Etab,Es,Ids}
     end.
 
@@ -241,7 +232,7 @@ face_fold(F, Acc, Face, #we{es=Etab,fs=Ftab}) ->
 
 face_fold(LastEdge, _, _, Acc, _, LastEdge, done) -> Acc;
 face_fold(Edge, Etab, F, Acc0, Face, LastEdge, _) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{lf=Face,ltsu=NextEdge}=E ->
 	    Acc = F(Edge, E, NextEdge, Acc0),
 	    face_fold(NextEdge, Etab, F, Acc, Face, LastEdge, done);
@@ -359,12 +350,13 @@ smooth_move_orig_fun(Vtab, FacePos, Htab) ->
 %% Update the position for the vertex that was created in the middle
 %% of each original edge.
 update_edge_vs(#we{es=Etab}, FacePos, Hard, Vtab, V) ->
-    update_edge_vs_all(gb_trees:to_list(Etab), FacePos, Hard, Vtab, V, []).
+    update_edge_vs_all(array:sparse_to_orddict(Etab), FacePos, Hard, Vtab, V, []).
 
 update_edge_vs(Es, #we{es=Etab}, FacePos, Hard, Vtab, V) ->
-    case gb_trees:size(Etab) of
+    case array:sparse_size(Etab) of
 	N when N =:= length(Es) ->
-	    update_edge_vs_all(gb_trees:to_list(Etab), FacePos, Hard, Vtab, V, []);
+	    update_edge_vs_all(array:sparse_to_orddict(Etab),
+			       FacePos, Hard, Vtab, V, []);
 	_ ->
 	    update_edge_vs_some(Es, Etab, FacePos, Hard, Vtab, V, [])
     end.
@@ -376,7 +368,7 @@ update_edge_vs_all([], _, _, _, V, Acc) ->
     {reverse(Acc),V}.
 
 update_edge_vs_some([E|Es], Etab, FacePos, Hard, Vtab, V, Acc) ->
-    Rec = gb_trees:get(E, Etab),
+    Rec = array:get(E, Etab),
     Pos = update_edge_vs_1(E, Hard, Rec, FacePos, Vtab),
     update_edge_vs_some(Es, Etab, FacePos, Hard, Vtab, V+1, [{V,Pos}|Acc]);
 update_edge_vs_some([], _, _, _, _, V, Acc) ->

@@ -3,7 +3,7 @@
 %%
 %%     This module contains the Extrude command for faces and face regions.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -41,8 +41,8 @@ inner_extrude([Face|Faces], #we{next_id=AnEdge,fs=Ftab0,es=OrigEtab}=We0,
 				   Ids, OrigEtab, We2, EdgeAcc0),
     inner_extrude(Faces, We, EdgeAcc);
 inner_extrude([], #we{es=Etab0}=We, EdgeAcc) ->
-    Etab1 = merge([sort(EdgeAcc),gb_trees:to_list(Etab0)]),
-    Etab = gb_trees:from_orddict(Etab1),
+    Etab1 = merge([sort(EdgeAcc),array:sparse_to_orddict(Etab0)]),
+    Etab = array:from_orddict(Etab1),
     We#we{es=Etab}.
 
 inner_extrude_edges(Face, We) ->
@@ -64,7 +64,7 @@ inner_extrude_1([{Edge,_}=CurEdge|Es], {PrevEdge,PrevRec}, Face,
     Ids = wings_we:bump_id(Ids0),
     #we{fs=Ftab0,es=Etab0,vc=Vct0,vp=Vtab0} = We0,
     
-    Erec0 = gb_trees:get(Edge, Etab0),
+    Erec0 = array:get(Edge, Etab0),
 
     Erec = case Erec0 of
 	       #edge{a=InCol,lf=Face,vs=Va,ve=Vb,rtpr=Next,ltpr=Prev}=Erec0 ->
@@ -76,7 +76,7 @@ inner_extrude_1([{Edge,_}=CurEdge|Es], {PrevEdge,PrevRec}, Face,
 		   Erec0#edge{rf=NewFace,b=OutCol,
 				  rtsu=VertEdge,rtpr=NextVert}
 	   end,
-    Etab1 = gb_trees:update(Edge, Erec, Etab0),
+    Etab1 = array:set(Edge, Erec, Etab0),
 
     case PrevRec of
 	#edge{lf=Face,b=ACol} -> ok;
@@ -87,7 +87,7 @@ inner_extrude_1([{Edge,_}=CurEdge|Es], {PrevEdge,PrevRec}, Face,
 			lf=PrevFace,rf=NewFace,
 			ltsu=PrevEdge,ltpr=PrevHor,
 			rtsu=HorEdge,rtpr=Edge},
-    Etab = gb_trees:insert(VertEdge, VertEdgeRec, Etab1),
+    Etab = array:set(VertEdge, VertEdgeRec, Etab1),
 
     EdgeAcc = [{HorEdge,#edge{vs=NextV,ve=V,
 			      a=get_vtx_color(Prev, Vb, OrigEtab),
@@ -109,7 +109,7 @@ inner_extrude_1([], _PrevEdge, _Face, _Mat, _Ids, _, We, EdgeAcc) ->
     {We,EdgeAcc}.
 
 get_vtx_color(Edge, V, Etab) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{vs=V,a=Col} -> Col;
 	#edge{ve=V,b=Col} -> Col
     end.
@@ -132,7 +132,7 @@ region(Faces, CollapseEs, #we{es=Etab}=We0) ->
     Edges0 = wings_face:outer_edges(Faces, We0),
     G = digraph:new(),
     foreach(fun(Edge) ->
-		    digraph_edge(G, Faces, gb_trees:get(Edge, Etab))
+		    digraph_edge(G, Faces, array:get(Edge, Etab))
 	    end, Edges0),
     Vs0 = digraph:vertices(G),
     Vs1 = sofs:relation(Vs0),
@@ -152,7 +152,7 @@ new_vertices(V, G, Edges, Faces, We0) ->
 	      case gb_sets:is_member(Edge, Edges) of
 		  true -> W0;
 		  false ->
-		      #edge{lf=Lf} = gb_trees:get(Edge, Etab),
+		      #edge{lf=Lf} = array:get(Edge, Etab),
 		      case gb_sets:is_member(Lf, Faces) of
 			  true ->
 			      {We,NewV} = wings_edge:fast_cut(Edge, Pos, W0),
@@ -166,10 +166,10 @@ new_vertices(V, G, Edges, Faces, We0) ->
       end, We0, V, We0).
 
 get_edge_rec(Va, Vb, EdgeA, EdgeB, #we{es=Etab}) ->
-    case gb_trees:get(EdgeA, Etab) of
+    case array:get(EdgeA, Etab) of
 	#edge{vs=Va,ve=Vb}=Rec -> Rec;
 	#edge{vs=Vb,ve=Va}=Rec -> Rec;
-	_Other -> gb_trees:get(EdgeB, Etab)
+	_Other -> array:get(EdgeB, Etab)
     end.
 
 digraph_edge(G, Faces, #edge{lf=Lf,rf=Rf,vs=Va,ve=Vb}) ->

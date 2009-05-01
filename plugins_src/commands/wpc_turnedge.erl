@@ -84,10 +84,10 @@ try_turn(Edge, ModeFun, Opt, #we{vp=Vtab}=We0) ->
     case optimize(Opt, Vstart, Vend, V1, V2, Vtab) of
 	{Vert1,Vert2} ->
 	    We1 = wings_edge:dissolve_edge(Edge, We0),
-	    case gb_trees:is_defined(Edge, We1#we.es) of
-                true ->
+	    case array:get(Edge, We1#we.es) of
+                #edge{} ->
 		    {Edge, We0};
-                false ->
+                undefined ->
                     Vs0 = gb_sets:from_list([Vert1,Vert2]),
                     We = wings_vertex_cmd:connect(Vs0, We1),
                     if 
@@ -102,15 +102,15 @@ try_turn(Edge, ModeFun, Opt, #we{vp=Vtab}=We0) ->
     end.
 
 cw_mode(Edge, #we{es=Etab}) ->
-    #edge{vs=Vstart,ve=Vend,rtsu=RNext,ltsu=LNext} = gb_trees:get(Edge, Etab),
-    RV = wings_vertex:other(Vend, gb_trees:get(RNext, Etab)),
-    LV = wings_vertex:other(Vstart, gb_trees:get(LNext, Etab)),
+    #edge{vs=Vstart,ve=Vend,rtsu=RNext,ltsu=LNext} = array:get(Edge, Etab),
+    RV = wings_vertex:other(Vend, array:get(RNext, Etab)),
+    LV = wings_vertex:other(Vstart, array:get(LNext, Etab)),
     {Vstart,Vend,RV,LV}.
 
 ccw_mode(Edge, #we{es=Etab}) ->
-    #edge{vs=Vstart,ve=Vend,rtpr=RNext,ltpr=LNext} = gb_trees:get(Edge, Etab),
-    RV = wings_vertex:other(Vstart, gb_trees:get(RNext, Etab)),
-    LV = wings_vertex:other(Vend, gb_trees:get(LNext, Etab)),
+    #edge{vs=Vstart,ve=Vend,rtpr=RNext,ltpr=LNext} = array:get(Edge, Etab),
+    RV = wings_vertex:other(Vstart, array:get(RNext, Etab)),
+    LV = wings_vertex:other(Vend, array:get(LNext, Etab)),
     {Vstart,Vend,RV,LV}.
 
 optimize(false, _, _, Va, Vb, _) -> {Va,Vb};
@@ -132,6 +132,6 @@ validate_edges(Edges, Etab) ->
     end.
     
 ve_collect_edge_faces([E|Es], Etab, Acc) ->
-    #edge{lf=Lf,rf=Rf} = gb_trees:get(E, Etab),
+    #edge{lf=Lf,rf=Rf} = array:get(E, Etab),
     ve_collect_edge_faces(Es, Etab, [Lf,Rf|Acc]);
 ve_collect_edge_faces([], _, Acc) -> Acc.

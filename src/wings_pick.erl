@@ -3,7 +3,7 @@
 %%
 %%     This module handles picking using OpenGL.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -210,7 +210,7 @@ hilit_draw_sel(vertex, V, #dlo{src_we=#we{vp=Vtab}}) ->
     gl:vertex3fv(gb_trees:get(V, Vtab)),
     gl:'end'();
 hilit_draw_sel(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
-    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     gl:lineWidth(wings_pref:get_value(selected_edge_width)),
     gl:'begin'(?GL_LINES),
     wpc_ogla:two(gb_trees:get(Va, Vtab),
@@ -251,7 +251,7 @@ enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev={SelMode,_,{Obj,Ele
                                 wings_util:nice_float(Y),
                                 wings_util:nice_float(Z)])];
           edge -> 
-            #edge{vs=Va,ve=Vb} = gb_trees:get(Elem, We#we.es),
+            #edge{vs=Va,ve=Vb} = array:get(Elem, We#we.es),
             {Xa,Ya,Za} = wings_vertex:pos(Va, We),
             {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
             Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
@@ -838,7 +838,7 @@ pick_all(DrawFaces, X, Y0, W, H, St) ->
 marquee_draw(#st{selmode=edge}) ->
     Draw = fun(#we{es=Etab,vp=Vtab}=We) ->
 		   Vis = gb_sets:from_ordset(wings_we:visible(We)),
-		   marquee_draw_edges(gb_trees:to_list(Etab), Vtab, Vis)
+		   marquee_draw_edges(array:sparse_to_orddict(Etab), Vtab, Vis)
 	   end,
     marquee_draw_1(Draw);
 marquee_draw(#st{selmode=vertex}) ->

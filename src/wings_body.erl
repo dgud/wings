@@ -283,19 +283,19 @@ clean_isolated_vertices(We) ->
     end.
 		  
 clean_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
-    Short = foldl(
-	      fun({Edge,#edge{vs=Va,ve=Vb}}, A) ->
+    Short = array:sparse_foldl(
+	      fun(Edge, #edge{vs=Va,ve=Vb}, A) ->
 		      VaPos = gb_trees:get(Va, Vtab),
 		      VbPos = gb_trees:get(Vb, Vtab),
 		      case abs(e3d_vec:dist(VaPos, VbPos)) of
 			  Dist when Dist < Tolerance -> [Edge|A];
 			  _Dist -> A
 		      end
-	      end, [], gb_trees:to_list(Etab)),
+	      end, [], Etab),
     foldl(fun(Edge, #we{es=Et}=W) ->
-		  case gb_trees:is_defined(Edge, Et) of
-		      true -> wings_collapse:collapse_edge(Edge, W);
-		      false -> W
+		  case array:get(Edge, Et) of
+		      undefined -> W;
+		      _ -> wings_collapse:collapse_edge(Edge, W)
 		  end
 	  end, We, Short).
 
@@ -348,11 +348,11 @@ cleanup_rep_3(Ves0, V, Face, Mat, Ftab0, Etab0, We0) ->
     cleanup_rep_3(NextVes, V, Face, Mat, Ftab, Etab, We).
 
 cleanup_rep_4([{Vtx,Edge}|T]=Ves, V0, Face, NewFace, Etab0) ->
-    Rec = case gb_trees:get(Edge, Etab0) of
+    Rec = case array:get(Edge, Etab0) of
 	      #edge{lf=Face}=Rec0 -> Rec0#edge{lf=NewFace};
 	      #edge{rf=Face}=Rec0 -> Rec0#edge{rf=NewFace}
 	  end,
-    Etab = gb_trees:update(Edge, Rec, Etab0),
+    Etab = array:set(Edge, Rec, Etab0),
     if
 	Vtx =:= V0 -> {Ves,Etab};
 	true -> cleanup_rep_4(T, V0, Face, NewFace, Etab)
@@ -367,22 +367,22 @@ repeated_vertex_1([_|T]) -> repeated_vertex_1(T);
 repeated_vertex_1([]) -> none.
 
 cleanup_patch_edge(V, Face, From, To, Etab) ->
-    R = case gb_trees:get(From, Etab) of
+    R = case array:get(From, Etab) of
 	    #edge{lf=Face,ve=V}=R0 -> R0#edge{ltpr=To};
 	    #edge{lf=Face,vs=V}=R0 -> R0#edge{ltsu=To};
 	    #edge{rf=Face,vs=V}=R0 -> R0#edge{rtpr=To};
 	    #edge{rf=Face,ve=V}=R0 -> R0#edge{rtsu=To}
 	end,
-    gb_trees:update(From, R, Etab).
+    array:set(From, R, Etab).
 
 %%
 %% A waist is a vertex shared by edges all of which cannot be
 %% reached from the incident edge of the vertex.
 %%
 cleanup_waists(#we{es=Etab,vp=Vtab}=We) ->
-    VsEs0 = foldl(fun({E,#edge{vs=Va,ve=Vb}}, A) ->
-			  [{Va,E},{Vb,E}|A]
-		  end, [], gb_trees:to_list(Etab)),
+    VsEs0 = array:sparse_foldl(fun(E, #edge{vs=Va,ve=Vb}, A) ->
+				       [{Va,E},{Vb,E}|A]
+			       end, [], Etab),
     VsEs = wings_util:rel2fam(VsEs0),
     cleanup_waists_1(gb_trees:keys(Vtab), VsEs, We).
 
@@ -409,11 +409,11 @@ cleanup_waists_1([V|Vs], [{V,AllEs}|VsEs], #we{es=Etab0,vp=Vtab0,vc=Vct0}=We0) -
 cleanup_waists_1([], [], We) -> We.
 
 patch_vtx_refs([E|Es], OldV, NewV, Etab0) ->
-    Etab = case gb_trees:get(E, Etab0) of
+    Etab = case array:get(E, Etab0) of
 	       #edge{vs=OldV}=Rec ->
-		   gb_trees:update(E, Rec#edge{vs=NewV}, Etab0);
+		   array:set(E, Rec#edge{vs=NewV}, Etab0);
 	       #edge{ve=OldV}=Rec ->
-		   gb_trees:update(E, Rec#edge{ve=NewV}, Etab0)
+		   array:set(E, Rec#edge{ve=NewV}, Etab0)
 	   end,
     patch_vtx_refs(Es, OldV, NewV, Etab);
 patch_vtx_refs([], _, _, Etab) -> Etab.
@@ -436,7 +436,7 @@ delete_2edged_faces_1([], We) -> We.
 delete_if_bad(Face, #we{fs=Ftab,es=Etab}=We) ->
     case gb_trees:lookup(Face, Ftab) of
 	{value,Edge} ->
-	    case gb_trees:get(Edge, Etab) of
+	    case array:get(Edge, Etab) of
 		#edge{ltpr=Same,ltsu=Same,rtpr=Same,rtsu=Same} ->
 		    bad_edge;
 		#edge{ltpr=Same,ltsu=Same} ->
@@ -683,9 +683,9 @@ do_auto_smooth(Angle, St) ->
     wings_sel:map(fun(_, We) -> auto_smooth_1(Cos, We) end, St).
 
 auto_smooth_1(Cos, #we{es=Etab,he=Htab0}=We) ->
-    Htab = foldl(fun({E,R}, A) ->
-			 auto_smooth(E, R, Cos, A, We)
-		 end, Htab0, gb_trees:to_list(Etab)),
+    Htab = array:sparse_foldl(fun(E, R, A) ->
+				      auto_smooth(E, R, Cos, A, We)
+			      end, Htab0, Etab),
     We#we{he=Htab}.
 
 auto_smooth(Edge, #edge{lf=Lf,rf=Rf}, Cos, H0, We) ->
@@ -993,8 +993,7 @@ set_color(Color, St) ->
 		  end, St).
 
 set_color_1(Color, #we{es=Etab0}=We) ->
-    Etab1 = foldl(fun({E,Rec}, A) ->
-			  [{E,Rec#edge{a=Color,b=Color}}|A]
-		  end, [], gb_trees:to_list(Etab0)),
-    Etab = gb_trees:from_orddict(reverse(Etab1)),
+    Etab = array:sparse_map(fun(_, Rec) ->
+				    Rec#edge{a=Color,b=Color}
+			    end, Etab0),
     We#we{es=Etab,mode=vertex}.

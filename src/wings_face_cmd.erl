@@ -266,7 +266,7 @@ intrude(Faces0, #we{id=Id,es=Etab,fs=Ftab,next_id=Wid}=We0, SelAcc) ->
     RootSet0 = foldl(
 		 fun(F, A) ->
 			 Edge = gb_trees:get(F, Ftab),
-			 #edge{vs=V} = gb_trees:get(Edge, Etab),
+			 #edge{vs=V} = array:get(Edge, Etab),
 			 [{face,F},{vertex,V}|A]
 		 end, [], Faces),
     {We1,RootSet} = wings_we:renumber(We0, Wid, RootSet0),
@@ -387,7 +387,7 @@ mirror_weld(N, IterA0, FaceA, IterB0, FaceB, WeOrig, We0) ->
 		   #edge{rf=FaceB,rtpr=D0,rtsu=D1} -> [D0,D1]
 	      end,
     {Etab1,Htab} = delete_edges(DelEdges, Etab0, Htab0),
-    Etab2 = gb_trees:update(EdgeA, RecA, Etab1),
+    Etab2 = array:set(EdgeA, RecA, Etab1),
     Etab3 = cond_patch_edge(Pred, EdgeA, EdgeB, Etab2),
     Etab4 = cond_patch_edge(Succ, EdgeA, EdgeB, Etab3),
 
@@ -419,16 +419,16 @@ update_edge(New0, Old, FaceP, PrP, SuP, OPrP, OSuP) ->
     {New,Pred,Succ}.
 
 cond_patch_edge(Edge, New, Orig, Etab) ->
-    case gb_trees:is_defined(Edge, Etab) of
+    case array:get(Edge, Etab) =/= undefined of
 	true -> wings_edge:patch_edge(Edge, New, Orig, Etab);
 	false -> Etab
     end.
 
 delete_edges(Edges, Etab0, Htab0) ->
     foldl(fun(Edge, {Et0,Ht0}=Acc) ->
-		  case gb_trees:is_defined(Edge, Et0) of
+		  case array:get(Edge, Et0) =/= undefined of
 		      true ->
-			  Et = gb_trees:delete(Edge, Et0),
+			  Et = array:reset(Edge, Et0),
 			  Ht = wings_edge:hardness(Edge, soft, Ht0),
 			  {Et,Ht};
 		      false -> Acc
@@ -442,11 +442,11 @@ turn_edge(Rec) ->
 replace_vertex(Old, New, We, Etab0) ->
     wings_vertex:fold(
       fun(Edge, _, _, Et0) ->
-	      case gb_trees:lookup(Edge, Et0) of
-		  {value,#edge{vs=Old}=Rec} ->
-		      gb_trees:update(Edge, Rec#edge{vs=New}, Et0);
-		  {value,#edge{ve=Old}=Rec} ->
-		      gb_trees:update(Edge, Rec#edge{ve=New}, Et0);
+	      case array:get(Edge, Et0) of
+		  #edge{vs=Old}=Rec ->
+		      array:set(Edge, Rec#edge{vs=New}, Et0);
+		  #edge{ve=Old}=Rec ->
+		      array:set(Edge, Rec#edge{ve=New}, Et0);
 		  _Other -> Et0			%Deleted or already modified.
 	      end
       end, Etab0, Old, We).
@@ -634,13 +634,12 @@ unify_modes(_, _) ->
 
 bridge_null_uvs(Mode, #we{mode=Mode}=We) -> We;
 bridge_null_uvs(uv, #we{es=Etab0}=We) ->
-    Etab = bridge_null_uvs_1(gb_trees:to_list(Etab0), {0.0,0.0}, []),
+    Etab = array:sparse_map(fun bridge_null_uvs_1/2, Etab0),
     We#we{es=Etab}.
 
-bridge_null_uvs_1([{E,Rec}|Es], UV, Acc) ->
-    bridge_null_uvs_1(Es, UV, [{E,Rec#edge{a=UV,b=UV}}|Acc]);
-bridge_null_uvs_1([], _, Acc) ->
-    gb_trees:from_orddict(reverse(Acc)).
+bridge_null_uvs_1(_, Rec) ->
+    UV = {0.0,0.0},
+    Rec#edge{a=UV,b=UV}.
 
 bridge(FaceA, FaceB, #we{vp=Vtab}=We) ->
     VsA = wings_face:vertices_ccw(FaceA, We),
@@ -691,7 +690,7 @@ try_bridge(N, Len, Va0, FaceA, IterA0, Vb, FaceB, IterB, Ids, We0,
 sum_edge_lens(0, _Ids, _We, Sum) -> Sum;
 sum_edge_lens(N, Ids0, #we{es=Etab,vp=Vtab}=We, Sum) ->
     Edge = wings_we:id(0, Ids0),
-    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     VaPos = gb_trees:get(Va, Vtab),
     VbPos = gb_trees:get(Vb, Vtab),
     Dist = e3d_vec:dist(VaPos, VbPos),
@@ -726,7 +725,7 @@ do_bridge(N, Va0, FaceA, IterA0, Vb0, FaceB, IterB0, Ids0, We0) ->
 		   RecA0#edge{b=ColA0,rf=RightFace,
 			      rtpr=NewEdge,rtsu=RightEdge}
 	   end,
-    Etab1 = gb_trees:update(EdgeA, RecA, Etab0),
+    Etab1 = array:set(EdgeA, RecA, Etab0),
 
     {_,EdgeB,RecB0,IterB} = wings_face:next_ccw(IterB0),
     RecB = case RecB0 of
@@ -739,16 +738,16 @@ do_bridge(N, Va0, FaceA, IterA0, Vb0, FaceB, IterB0, Ids0, We0) ->
 		   RecB0#edge{b=ColB0,rf=RightFace,
 			      rtpr=RightEdge,rtsu=NewEdge}
 	   end,
-    Etab2 = gb_trees:update(EdgeB, RecB, Etab1),
+    Etab2 = array:set(EdgeB, RecB, Etab1),
 
     RightRec0 = get_edge(RightEdge, Etab0),
     RightRec = RightRec0#edge{a=ColB,lf=RightFace,ltpr=EdgeA,ltsu=EdgeB},
-    Etab3 = gb_trees:enter(RightEdge, RightRec, Etab2),
+    Etab3 = array:set(RightEdge, RightRec, Etab2),
     
     NewRec0 = get_edge(NewEdge, Etab0),
     NewRec = NewRec0#edge{ve=Va0,vs=Vb0,b=ColA,
 			  rf=RightFace,rtpr=EdgeB,rtsu=EdgeA},
-    Etab = gb_trees:enter(NewEdge, NewRec, Etab3),
+    Etab = array:set(NewEdge, NewRec, Etab3),
 
     Mat = wings_facemat:face(FaceA, We0),
     We1 = wings_facemat:assign(Mat, [RightFace], We0),
@@ -761,9 +760,9 @@ do_bridge(N, Va0, FaceA, IterA0, Vb0, FaceB, IterB0, Ids0, We0) ->
     do_bridge(N-1, Va, FaceA, IterA, Vb, FaceB, IterB, Ids, We).
 
 get_edge(Edge, Etab) ->
-    case gb_trees:lookup(Edge, Etab) of
-	{value,Erec} -> Erec;
-	none -> #edge{}
+    case array:get(Edge, Etab) of
+	undefined-> #edge{};
+	Erec -> Erec
     end.
 
 bridge_error() ->
@@ -774,7 +773,7 @@ bridge_error(Error) ->
 
 bridge_color(Edge, Face, Iter) ->
     Etab = wings_face:iter2etab(Iter),
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{lf=Face,a=Col} -> Col;
 	#edge{rf=Face,b=Col} -> Col
     end.
@@ -868,7 +867,7 @@ lift_from_edge(Dir, Faces, Edges, We0, Tv) ->
     end.
 
 lift_from_edge_1(Dir, [{Face,Edge}|T], #we{es=Etab}=OrigWe, We0, Tv0) ->
-    Side = case gb_trees:get(Edge, Etab) of
+    Side = case array:get(Edge, Etab) of
 	       #edge{lf=Face} -> left;
 	       #edge{rf=Face} -> right
 	   end,
@@ -878,7 +877,7 @@ lift_from_edge_1(_Dir, [], _OrigWe, We, Tv) -> {We,Tv}.
 
 lift_from_edge_2(Dir, Face, Edge, Side, #we{id=Id,es=Etab}=We0, Tv) ->
     FaceVs0 = ordsets:from_list(wings_face:vertices_ccw(Face, We0)),
-    #edge{vs=Va0,ve=Vb0} = gb_trees:get(Edge, Etab),
+    #edge{vs=Va0,ve=Vb0} = array:get(Edge, Etab),
     {Va,Ea} = lift_edge_vs(Va0, FaceVs0, We0),
     {Vb,Eb} = lift_edge_vs(Vb0, FaceVs0, We0),
     We1 = wings_collapse:collapse_edge(Ea, We0),
@@ -1144,7 +1143,7 @@ on_target(face, Face, We) ->
     Center = wings_vertex:center(Vs, We),
     {N,Center};
 on_target(edge, Edge, #we{es=Etab}=We) ->
-    #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf} = gb_trees:get(Edge, Etab),
+    #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf} = array:get(Edge, Etab),
     N = e3d_vec:norm(e3d_vec:add([wings_face:normal(Lf, We),
 				  wings_face:normal(Rf, We)])),
     Center = wings_vertex:center([Va,Vb], We),
@@ -1171,7 +1170,7 @@ set_color_1([F|Fs], Color, #we{es=Etab0}=We) ->
 			       #edge{lf=F} -> Rec0#edge{a=Color};
 			       #edge{rf=F} -> Rec0#edge{b=Color}
 			   end,
-		     gb_trees:update(Edge, Rec, Es)
+		     array:set(Edge, Rec, Es)
 	     end, Etab0, F, We),
     set_color_1(Fs, Color, We#we{es=Etab});
 set_color_1([], _, We) -> We.

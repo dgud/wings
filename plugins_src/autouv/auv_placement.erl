@@ -5,7 +5,7 @@
 %%%
 %%% Created :  7 Oct 2002 by Dan Gudmundsson <dgud@erix.ericsson.se>
 %%%-------------------------------------------------------------------
-%%  Copyright (c) 2001-2004 Dan Gudmundsson 
+%%  Copyright (c) 2001-2009 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -210,12 +210,12 @@ group_edge_loops(Fs, We = #we{name=#ch{emap=Emap}}) ->
 	Eds1 ->
 	    Info = fun({Edge,Face},Tree) ->
 			   Cut = gb_trees:is_defined(Edge,Emap),
-			   case gb_trees:get(Edge, We#we.es) of
+			   case array:get(Edge, We#we.es) of
 			       #edge{vs=V1,ve=V2,lf=Face} ->
 				  Dist = dist(V1,V2,We#we.vp),
 				  Be = #be{vs=V1,ve=V2,edge=Edge,face=Face,
 					   cut=Cut,dist=Dist},
-				  gb_trees:insert(V1,Be,Tree);
+				   gb_trees:insert(V1,Be,Tree);
 			      #edge{vs=V2,ve=V1,rf=Face} ->
 				  Dist = dist(V1,V2,We#we.vp),
 				  Be = #be{vs=V1,ve=V2,edge=Edge,face=Face,

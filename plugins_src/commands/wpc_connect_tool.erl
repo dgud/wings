@@ -3,7 +3,7 @@
 %%
 %%     Connect/Cut mode plugin.
 %%
-%%  Copyright (c) 2004-2008 Dan Gudmundsson
+%%  Copyright (c) 2004-2009 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -101,7 +101,7 @@ handle_connect_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
 	{add,MM,St = #st{selmode=edge,sel=[{Shape,Edge0}],shapes=Sh}} ->
 	    #we{es=Es} = gb_trees:get(Shape, Sh),
 	    [Edge] = gb_sets:to_list(Edge0),
-	    #edge{vs=V1,ve=V2} = gb_trees:get(Edge, Es),
+	    #edge{vs=V1,ve=V2} = array:get(Edge, Es),
 	    case cut_edge(X,Y,MM,St,C0) of
 		C0 -> 
 		    keep;
@@ -490,7 +490,7 @@ get_line(V1,V2,MM,#we{id=Id,vp=Vs}) ->
 calc_edgepos(X,Y0,Edge,MM,#we{id=Id,es=Es,vp=Vs},VL) ->
     {_,H} = wings_wm:win_size(),
     Y = H-Y0,
-    #edge{vs=V1,ve=V2,lf=F1,rf=F2} = gb_trees:get(Edge, Es),
+    #edge{vs=V1,ve=V2,lf=F1,rf=F2} = array:get(Edge, Es),
     Pos1 = gb_trees:get(V1, Vs),
     Pos2 = gb_trees:get(V2, Vs),
     Matrices = wings_u:get_matrices(Id, MM),

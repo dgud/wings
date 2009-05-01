@@ -3,7 +3,7 @@
 %%
 %%     The main module of Wings 3D.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -1000,7 +1000,7 @@ measure(Base, #st{selmode=edge,sel=[{Id,Es}],shapes=Shs}) ->
         1 ->
             We = gb_trees:get(Id, Shs),
             [Edge] = gb_sets:to_list(Es),
-            #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, We#we.es),
+            #edge{vs=Va,ve=Vb} = array:get(Edge, We#we.es),
             {Xa,Ya,Za} = wings_vertex:pos(Va, We),
             {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
             Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
@@ -1017,8 +1017,8 @@ measure(Base, #st{selmode=edge,sel=[{Id,Es}],shapes=Shs}) ->
         2 ->
             We = gb_trees:get(Id, Shs),
             [E0,E1] = gb_sets:to_list(Es),
-            #edge{vs=V0s,ve=V0e} = gb_trees:get(E0, We#we.es),
-            #edge{vs=V1s,ve=V1e} = gb_trees:get(E1, We#we.es),
+            #edge{vs=V0s,ve=V0e} = array:get(E0, We#we.es),
+            #edge{vs=V1s,ve=V1e} = array:get(E1, We#we.es),
             PosA = {X0s,Y0s,Z0s} = wings_vertex:pos(V0s, We),
             PosB = {X0e,Y0e,Z0e} = wings_vertex:pos(V0e, We),
             PosC = {X1s,Y1s,Z1s} = wings_vertex:pos(V1s, We),
@@ -1047,8 +1047,8 @@ measure(Base, #st{shapes=Shs, selmode=edge, sel=[{Id1,Sel1},{Id2,Sel2}]}) ->
       WeB = gb_trees:get(Id2, Shs),
       [Es0] = gb_sets:to_list(Sel1),
       [Es1] = gb_sets:to_list(Sel2),
-      #edge{vs=V0s,ve=V0e} = gb_trees:get(Es0, WeA#we.es),
-      #edge{vs=V1s,ve=V1e} = gb_trees:get(Es1, WeB#we.es),
+      #edge{vs=V0s,ve=V0e} = array:get(Es0, WeA#we.es),
+      #edge{vs=V1s,ve=V1e} = array:get(Es1, WeB#we.es),
       PosA = {X0s,Y0s,Z0s} = wings_vertex:pos(V0s, WeA),
       PosB = {X0e,Y0e,Z0e} = wings_vertex:pos(V0e, WeA),
       PosC = {X1s,Y1s,Z1s} = wings_vertex:pos(V1s, WeB),
@@ -1123,7 +1123,7 @@ shape_info(We) when ?IS_LIGHT(We) ->
     wings_light:info(We);
 shape_info(#we{id=Id,name=Name,fs=Ftab,es=Etab,vp=Vtab,mode=Mode}) ->
     Faces = gb_trees:size(Ftab),
-    Edges = gb_trees:size(Etab),
+    Edges = array:sparse_size(Etab),
     Vertices = gb_trees:size(Vtab),
     wings_util:format(?__(object_info,
               "Object ~p \"~s\" has ~p polygons, "
@@ -1140,7 +1140,7 @@ shape_info(Objs, Shs) ->
 shape_info([{Id,_}|Objs], Shs, On, Vn, En, Fn) ->
     #we{fs=Ftab,es=Etab,vp=Vtab} = gb_trees:get(Id, Shs),
     Faces = gb_trees:size(Ftab),
-    Edges = gb_trees:size(Etab),
+    Edges = array:sparse_size(Etab),
     Vertices = gb_trees:size(Vtab),
     shape_info(Objs, Shs, On+1, Vn+Vertices, En+Edges, Fn+Faces);
 shape_info([], _Shs, N, Vertices, Edges, Faces) ->

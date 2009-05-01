@@ -792,7 +792,7 @@ collect_neib_verts(V,#we{es=Es}=We) ->
     foldl(fun(Face,D) ->
           Edges = wings_face:to_edges([Face], We),
           NearVerts=foldl(fun(E,B) ->
-                      #edge{vs=Vs,ve=Ve}=gb_trees:get(E,Es),
+                      #edge{vs=Vs,ve=Ve}=array:get(E,Es),
                       if
                           V==Vs -> [Ve|B];
                           V==Ve -> [Vs|B];
@@ -838,7 +838,7 @@ collect_neib_verts_vs(V,#we{es=Es}=We,Vs) ->
     foldl(fun(Face,D) ->
           Edges = wings_face:to_edges([Face], We),
           NearVerts=foldl(fun(E,B) ->
-                      Edg=gb_trees:get(E,Es),
+                      Edg=array:get(E,Es),
                       #edge{vs=VS,ve=VE}=Edg,
                       Have= case get_nverts(Vs) of
                             2 -> check_if_Vs_have_V12(VE,VS,Vs);
@@ -934,8 +934,8 @@ relax_vec_fn(V, #we{}=We,Pos0,Weight) ->
 %%
 
 collapse_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
-    Short = foldl(
-          fun({Edge,#edge{vs=Va,ve=Vb}}, A) ->
+    Short = array:sparse_foldl(
+          fun(Edge, #edge{vs=Va,ve=Vb}, A) ->
               case gb_trees:is_defined(Va,Vtab) of
               true->
                   case gb_trees:is_defined(Vb,Vtab) of
@@ -950,7 +950,7 @@ collapse_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
                   end;
               false -> A
               end
-          end, [], gb_trees:to_list(Etab)),
+          end, [], Etab),
     NothingCollapsed = Short == [],
     We1 = wings_collapse:collapse_edges(Short,We),
     {NothingCollapsed, We1}.

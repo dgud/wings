@@ -3,7 +3,7 @@
 %%
 %%     Conversion of selections.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -146,7 +146,7 @@ edge_less(St) ->
 
 edge_less_1(Edges, Etab) ->
     foldl(fun(Edge, A0) ->
-		  Rec = gb_trees:get(Edge, Etab),
+		  Rec = array:get(Edge, Etab),
 		  #edge{vs=Va,ve=Vb,
 			ltpr=LP,ltsu=LS,
 			rtpr=RP,rtsu=RS} = Rec,
@@ -176,7 +176,7 @@ adjacent_edges(Vs, We, Acc) ->
 edge_extend_sel(Es0, #we{es=Etab}=We) ->
     Es = foldl(fun(Edge, S) ->
 		       #edge{ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} =
-			   gb_trees:get(Edge, Etab),
+			   array:get(Edge, Etab),
 		       gb_sets:union(S, gb_sets:from_list([LP,LS,RP,RS]))
 	       end, Es0, gb_sets:to_list(Es0)),
     wings_we:visible_edges(Es, We).

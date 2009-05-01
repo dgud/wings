@@ -889,7 +889,7 @@ outer_edges_1([], Out) -> reverse(Out).
 fix_cw_order(Vs = [V1,V2|_], FF, We = #we{es=Etab}) ->
     Eds = wings_edge:from_vs([V1,V2],We),
     E = get_edge(lists:sort(Eds)),
-    case gb_trees:get(E,Etab) of
+    case array:get(E, Etab) of
 	#edge{vs=V1,ve=V2,lf=Face} -> 
 	    case lists:member(Face, FF) of
 		false ->

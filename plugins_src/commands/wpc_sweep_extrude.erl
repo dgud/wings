@@ -263,7 +263,7 @@ reg_data_0(Faces0, #we{es=Etab,fs=Ftab}=We, EAcc0, Vs0) ->
         {OuterEdges, ordsets:from_list(Vs0)}
     end.
 reg_data_1(Edge,Face,Etab,EAcc,Vs) ->
-    case gb_trees:get(Edge,Etab) of
+    case array:get(Edge,Etab) of
       #edge{ve=Vb,lf=Face,ltpr=NextEdge} ->
         reg_data_2(NextEdge,Face,Edge,Etab,[Edge|EAcc],[Vb|Vs]);
       #edge{vs=Va,rf=Face,rtpr=NextEdge} ->
@@ -273,7 +273,7 @@ reg_data_1(Edge,Face,Etab,EAcc,Vs) ->
 reg_data_2(LastEdge,_,LastEdge,_,EAcc,Vs) ->
     {EAcc,Vs};
 reg_data_2(Edge,Face,LastEdge,Etab,EAcc,Vs) ->
-    case gb_trees:get(Edge,Etab) of
+    case array:get(Edge,Etab) of
       #edge{ve=V,lf=Face,ltpr=NextEdge} ->
         reg_data_2(NextEdge,Face,LastEdge,Etab,[Edge|EAcc],[V|Vs]);
       #edge{vs=V,rf=Face,rtpr=NextEdge} ->

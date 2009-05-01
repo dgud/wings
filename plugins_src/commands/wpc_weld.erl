@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for vertex weld
 %%
-%%  Copyright (c) 2006-2008 Andrzej Giniewicz
+%%  Copyright (c) 2006-2009 Andrzej Giniewicz
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -170,7 +170,7 @@ fix_edge(Vert1,Vert2,RemoveEdge,FixMe,LF,RF,We) ->
    foldl(fun(Face,ParseEtab) -> remove_face(Face,ParseEtab) end,Etab,FixMe).
 
 fix_edge_1(Vert1,Vert2,RemoveEdge,ABTransform,Es,Orig,Result) ->
-   case gb_trees:size(Es) of
+   case array:sparse_size(Es) of
       0 -> Result;
       _ ->
          {Key,#edge{vs=V1,ve=V2,a=C1,b=C2,lf=LF,rf=RF,ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS},Es2} = gb_trees:take_smallest(Es),
@@ -340,7 +340,7 @@ calculate_ab_1(Vertex,Face,We) ->
 calculate_ab_2(_,_,Edge,Edge,_,Value) when (Value =/= nil) -> Value;
 calculate_ab_2(_,_,_,_,_,Value) when ((Value =/= nil) and (Value =/= none)) -> Value;
 calculate_ab_2(Vertex,Face,Edge,LastEdge,Etab,_) ->
-   case catch gb_trees:get(Edge,Etab) of
+   case catch array:get(Edge,Etab) of
       #edge{vs=Vertex,a=Value,lf=Face,ltsu=Next} ->
          calculate_ab_2(Vertex,Face,Next,LastEdge,Etab,Value);
       #edge{ve=Vertex,b=Value,rf=Face,rtsu=Next} ->

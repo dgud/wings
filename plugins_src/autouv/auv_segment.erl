@@ -30,7 +30,7 @@
 create(Mode, We0) ->
     case Mode of 
 	feature ->
-	    Tot = gb_trees:size(We0#we.es),
+	    Tot = array:sparse_size(We0#we.es),
 	    {_Distances,Charts0,Cuts0,_Feats} = 
 		segment_by_feature(We0, 60, Tot div 50),
 	    {Charts0, Cuts0};
@@ -120,7 +120,7 @@ color_map([], Map, _, _) ->
 
 neighbour_charts([{Id, Edges}|Rest], Face2Chart, Etab, Acc) ->
     Neighb0 = foldl(fun(Edge, Acc0) ->
-			   #edge{lf=LF, rf=RF} =  gb_trees:get(Edge, Etab),
+			    #edge{lf=LF, rf=RF} = array:get(Edge, Etab),
 			   case gb_trees:get(RF, Face2Chart) of
 			       Id ->
 				   [gb_trees:get(LF, Face2Chart)|Acc0];
@@ -162,7 +162,7 @@ sort_edges_by_weight(We0 = #we{fs = Ftab, es = Etab}) ->
 				     {Face,wings_face:normal(Face, We0)}
 			     end, Faces),
     FaceNormals = gb_trees:from_orddict(FaceNormals0),
-    Edges  = gb_trees:keys(Etab),
+    Edges  = wings_util:array_keys(Etab),
     WEdges = lists:map(fun(Edge) ->
 			       Val = calc_normal_value(Edge, FaceNormals, We0),
 			       {Edge, Val}
@@ -170,7 +170,7 @@ sort_edges_by_weight(We0 = #we{fs = Ftab, es = Etab}) ->
     {lists:keysort(2,WEdges), length(WEdges), FaceNormals}.
 
 calc_normal_value(Edge, FaceData, We) ->
-    #edge{lf = LF, rf = RF} = gb_trees:get(Edge, We#we.es),
+    #edge{lf = LF, rf = RF} = array:get(Edge, We#we.es),
     calc_dir_vector(gb_trees:get(LF,FaceData), gb_trees:get(RF,FaceData)).
 
 pick_features([Edge = {_,Value}|Rest], N, Constraint, Max, Acc) 
@@ -189,7 +189,7 @@ pick_features(Rest, _,_,_, Acc) ->
 -define(fdmarkused(Edge, Fd), Fd#fd{neigh=gb_sets:add(Edge, Fd#fd.neigh)}).
 fdaddneighandfeat(Feat, We, FdXX) ->
     FindXX = fun(EdgeXX, AccXX) ->			 
-		     #edge{vs=Vs,ve=Ve} = gb_trees:get(EdgeXX, We#we.es),
+		     #edge{vs=Vs,ve=Ve} = array:get(EdgeXX, We#we.es),
 		     Neigh1 = ?fdgetsurrneigh({EdgeXX,Vs}, FdXX),
 		     Neigh2 = ?fdgetsurrneigh({EdgeXX,Ve}, FdXX),
 		     (Neigh1 ++ Neigh2) ++ AccXX
@@ -222,7 +222,7 @@ expand_features([], Fd, _We, _Restrs) ->
     ?fdgetfeat(Fd).
 
 expand_feature_curve({Edge, _Sharpness}, Fd0, We, Rs) ->
-    #edge{vs = Vs, ve = Ve} = gb_trees:get(Edge, We#we.es),    
+    #edge{vs = Vs, ve = Ve} = array:get(Edge, We#we.es),
     Dir1 = get_vector(Vs,Ve,We),
     {Edges1,_}   = get_edges(Vs, Edge, Dir1, We, Fd0),
     {Feat0, Fd2}=depth_traverse_tree([Edges1],0,0,Dir1,Fd0,We,Rs,[Edge]), 
@@ -309,11 +309,11 @@ get_edges(V, Current, CurrVect, We, Fd) ->
     Add = fun(Edge, Acc = {Acc1,Acc2}) ->
 		  case ?fdisneigh(Edge, Fd) of
 		      true ->
-			  ER = gb_trees:get(Edge, We#we.es),
+			  ER = array:get(Edge, We#we.es),
 			  Val = ?fdgetvalue(Edge,Fd),
 			  {Acc1,[{1-Val,{Edge,ER},V}|Acc2]};
 		      false ->			  
-			  ER = #edge{vs = Va,ve = Vb} = gb_trees:get(Edge, We#we.es),
+			  ER = #edge{vs = Va,ve = Vb} = array:get(Edge, We#we.es),
 			  ThisVect = get_vector(Va,Vb,V,We),
 			  Dir = calc_dir_vector(CurrVect, ThisVect),
 			  if Dir < 0.707106  -> %% 90deg
@@ -355,10 +355,10 @@ find_extremities(#we{vc=Vct,vp=Vs0,es=Es}) ->
     [{_,V2,_}|_] = lists:reverse(lists:sort(AllV1)),
     E1 = gb_trees:get(V1, Vct),
     E2 = gb_trees:get(V2, Vct),
-    F1 = (gb_trees:get(E1,Es))#edge.lf,
-    case (gb_trees:get(E2,Es))#edge.lf of
+    F1 = (array:get(E1,Es))#edge.lf,
+    case (array:get(E2,Es))#edge.lf of
 	F1 ->
-	    [F1, (gb_trees:get(E2,Es))#edge.rf];
+	    [F1, (array:get(E2,Es))#edge.rf];
 	F2 ->
 	    [F1, F2]
     end.
@@ -441,7 +441,7 @@ delete_inner_edges(Face, VEG, We, Boundaries) ->
 expand_charts(LocalMaxs, Max, Dt, VEG,EWs, We0) ->
     ChartsE = gb_trees:empty(),
     HeapE = gb_trees:empty(),
-    ChartBds = gb_sets:from_ordset(gb_trees:keys(We0#we.es)),
+    ChartBds = gb_sets:from_ordset(wings_util:array_keys(We0#we.es)),
     Init = fun({LMax, Face}, {Chart0, Heap0}) ->
 		   Chart1 = gb_trees:insert(Face, Face, Chart0),
 		   Heap1  = add_face_edges_to_heap(Face,Max-LMax,ChartBds,Heap0,EWs,We0),
@@ -492,7 +492,7 @@ expand_charts(Heap0, Charts0, ChartBds0, Max, Dt, VEG,EWs, We) ->
     end.
 
 is_extremity(Edge, ChartBds, VEG, #we{es=Etab}) ->
-    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     not (is_connected(gb_trees:get({Edge,Va}, VEG), ChartBds) andalso
 	 is_connected(gb_trees:get({Edge,Vb}, VEG), ChartBds)).
 
@@ -538,7 +538,7 @@ find_local_max(Distances, DTree, Features, FaceGraph, #we{es = Es}) ->
     %% Remove the features from FaceGraph, edges which are a feature
     %%  shouldn't connect to opposite faces
     FG1 = lists:foldl(fun(Edge, Tree0) ->
-			      #edge{lf=LF,rf=RF} = gb_trees:get(Edge, Es),
+			      #edge{lf=LF,rf=RF} = array:get(Edge, Es),
 			      LFL = gb_trees:get(LF, Tree0),
 			      LFL1 = lists:delete(RF, LFL),
 			      Tree1 = gb_trees:update(LF, LFL1, Tree0),
@@ -586,7 +586,7 @@ build_face_graph([],_, Tree) ->
     Tree.
 
 build_vertex_graph([{Edge, _Value}|R], We, Tree0) ->
-    #edge{vs = Vs, ve = Ve} = gb_trees:get(Edge,We#we.es),
+    #edge{vs = Vs, ve = Ve} = array:get(Edge,We#we.es),
     Find = fun(Id, _Face, _, Acc) when Id == Edge ->
 		   Acc;
 	      (Id, _Face, _, Acc) ->
@@ -601,7 +601,7 @@ build_vertex_graph([],_, Tree) ->
 
 calc_distance(Features, FG, We = #we{fs = FsOrig}) ->
     Faces = fun(Edge, {Dist0,Next0,Fs0}) ->
-		    #edge{lf = LF, rf = RF} = gb_trees:get(Edge, We#we.es),
+		    #edge{lf = LF, rf = RF} = array:get(Edge, We#we.es),
 		    {Dist1,Next1,Fs1} = find_delete(LF,0,Dist0,Next0,Fs0,FG),
 		    find_delete(RF,0,Dist1,Next1,Fs1,FG)
 	    end,   
@@ -695,9 +695,9 @@ map_edge(E0, Emap) ->
 %%%
 
 cut_model(Charts, Cuts0, #we{es=Etab0}=We0) ->
-    Etab = gb_trees:map(fun(_, Rec) ->
-				Rec#edge{a=none,b=none}
-			end, Etab0),
+    Etab = array:sparse_map(fun(_, Rec) ->
+				    Rec#edge{a=none,b=none}
+			    end, Etab0),
     We = We0#we{mode=material,es=Etab},
     Cuts = gb_sets:to_list(Cuts0),
     cut_model_1(Charts, Cuts, We#we{mirror=none}, length(Charts), []).
@@ -723,10 +723,10 @@ cut_one_chart(Keep0, Cuts, We0) ->
     We4#we{name=#ch{vmap=Vmap,me=Me,emap=Emap}}.
 
 make_emap([ME|T], Vmap, We0, #we{es=Etab}=We, Acc) ->
-    case gb_trees:lookup(ME, Etab) of
-	none ->
+    case array:get(ME, Etab) of
+	undefined ->
 	    make_emap(T, Vmap, We0, We, Acc);
-	{value,#edge{vs=Va0,ve=Vb0}} ->
+	#edge{vs=Va0,ve=Vb0} ->
 	    Va = map_vertex(Va0, Vmap),
 	    case map_vertex(Vb0, Vmap) of
 		Va ->
@@ -750,7 +750,7 @@ make_emap([], _, _, _, Acc) -> gb_trees:from_orddict(sort(Acc)).
 
 cut_shared_vertices(Faces, Es, #we{es=Etab}=We0, InvVmap0) ->
     VsEs0 = foldl(fun(E, A) ->
-			  #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
+			  #edge{vs=Va,ve=Vb} = array:get(E, Etab),
 			  [{Va,E},{Vb,E}|A]
 		  end, [], Es),
     VsEs = sofs:relation(VsEs0),
@@ -811,7 +811,7 @@ edges_to_cut(Es, #we{es=Etab}) ->
     edges_to_cut_1(Es, Etab, []).
 
 edges_to_cut_1([E|Es], Etab, Acc) ->
-    #edge{ltpr=Lp,ltsu=Lu,rtpr=Rp,rtsu=Ru} = gb_trees:get(E, Etab),
+    #edge{ltpr=Lp,ltsu=Lu,rtpr=Rp,rtsu=Ru} = array:get(E, Etab),
     edges_to_cut_1(Es, Etab, [Lp,Lu,Rp,Ru|Acc]);
 edges_to_cut_1([], _, Es) ->
     edges_to_cut_2(sort(Es), []).
@@ -824,7 +824,7 @@ edges_to_cut_2([], Acc) ->
     ordsets:from_list(Acc).
 
 cut_new_edges([Edge|Es], #we{es=Etab}=We0, Map0) ->
-    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     Pos = wpa:vertex_pos(Va, We0),
     {We,NewV} = wings_edge:screaming_cut(Edge, Pos, We0),
     Map = add_new_vs(Vb, [NewV], add_new_vs(Va, [NewV], Map0)),
@@ -833,7 +833,7 @@ cut_new_edges([], We, Map) -> {We,Map}.
 
 connect_edges([E|Es], #we{es=Etab}=We0) ->
     #edge{vs=Va,ve=Vb,lf=Lf,ltpr=Lp,ltsu=Lu,
-	  rf=Rf,rtpr=Rp,rtsu=Ru} = gb_trees:get(E, Etab),
+	  rf=Rf,rtpr=Rp,rtsu=Ru} = array:get(E, Etab),
     LpV = other_vertex(Vb, Lp, Etab),
     LuV = other_vertex(Va, Lu, Etab),
     RpV = other_vertex(Va, Rp, Etab),
@@ -844,7 +844,7 @@ connect_edges([E|Es], #we{es=Etab}=We0) ->
 connect_edges([], We) -> We.
 
 other_vertex(V, Edge, Etab) ->
-    wings_vertex:other(V, gb_trees:get(Edge, Etab)).
+    wings_vertex:other(V, array:get(Edge, Etab)).
 
 cut_cleanup(Faces, MaybeRemove, We) ->
     Es = ordsets:intersection(MaybeRemove,
@@ -992,7 +992,7 @@ chart_cuts([C|Cs], #we{es=Etab}=We, D, Acc0) ->
 chart_cuts([], _, _, Acc) -> gb_sets:from_list(Acc).
 
 chart_cuts_1([E|Es], Etab, D, Acc) ->
-    case is_cutting_edge(gb_trees:get(E, Etab), D) of
+    case is_cutting_edge(array:get(E, Etab), D) of
 	false -> chart_cuts_1(Es, Etab, D, Acc);
 	true -> chart_cuts_1(Es, Etab, D, [E|Acc])
     end;

@@ -46,7 +46,7 @@ fold(F, Acc, V, #we{vc=Vct}=We) ->
     fold(F, Acc, V, Edge, We).
 
 fold(F, Acc0, V, Edge, #we{es=Etab}) ->
-    Acc = case gb_trees:get(Edge, Etab) of
+    Acc = case array:get(Edge, Etab) of
 	      #edge{vs=V,lf=Face,rf=Other,rtpr=NextEdge}=E ->
 		  F(Edge, Face, E, Acc0);
 	      #edge{ve=V,lf=Face,rf=Other,rtsu=NextEdge}=E ->
@@ -56,7 +56,7 @@ fold(F, Acc0, V, Edge, #we{es=Etab}) ->
 
 fold(_F, Acc, _V, _Face, Last, Last, _Etab) -> Acc;
 fold(F, Acc0, V, Face, Edge, LastEdge, Etab) ->
-    Acc = case gb_trees:get(Edge, Etab) of
+    Acc = case array:get(Edge, Etab) of
 	      #edge{vs=V,lf=Face,rf=Other,rtpr=NextEdge}=E ->
 		  F(Edge, Face, E, Acc0);
 	      #edge{ve=V,lf=Face,rf=Other,rtsu=NextEdge}=E ->
@@ -78,12 +78,12 @@ until(F, Acc, V, #we{vc=Vct}=We) ->
     until(F, Acc, V, Edge, We).
 
 until(F, Acc, V, Edge, #we{es=Etab}) ->
-    #edge{lf=Face} = gb_trees:get(Edge, Etab),
+    #edge{lf=Face} = array:get(Edge, Etab),
     until(F, Acc, V, Face, Edge, Edge, Etab, not_done).
 
 until(_F, Acc, _V, _Face, Last, Last, _Etab, done) -> Acc;
 until(F, Acc0, V, Face, Edge, LastEdge, Etab, _) ->
-    Acc = case gb_trees:get(Edge, Etab) of
+    Acc = case array:get(Edge, Etab) of
 	      #edge{vs=V,lf=Face,rf=Other,rtpr=NextEdge}=E ->
 		  F(Edge, Face, E, Acc0);
 	      #edge{ve=V,lf=Face,rf=Other,rtsu=NextEdge}=E ->
@@ -474,7 +474,7 @@ connect_1(Iter0, Vstart, NewEdge, NeRec0, Etab) ->
 	    NeRec = NeRec0#edge{a=ColA,rtpr=Edge},
 	    Rec = Rec0#edge{ltsu=NewEdge}
     end,
-    {gb_trees:update(Edge, Rec, Etab),NeRec,Iter}.
+    {array:set(Edge, Rec, Etab),NeRec,Iter}.
 
 %% connect_2(Iter0, Vstart, NewEdge, NeRec0, Etab) -> {Etab,NeRec}
 %%  Connect the edge immediately after Vstart.
@@ -487,7 +487,7 @@ connect_2(Iter, Vstart, NewEdge, NeRec0, Etab) ->
 	    NeRec = NeRec0#edge{ltsu=Edge},
 	    Rec = Rec0#edge{ltpr=NewEdge}
     end,
-    {gb_trees:update(Edge, Rec, Etab),NeRec}.
+    {array:set(Edge, Rec, Etab),NeRec}.
 
 %% connect_3(Iter, Face, Vend, NewFace, Etab0) -> {Etab,Iter}
 %%  Replace the face for all edges between Vstart and Vend.
@@ -497,11 +497,11 @@ connect_3(Iter0, Face, Vend, NewFace, Etab0) ->
 
     %% Ignore the record returned by the iterator, because it
     %% is stale for the edge that was updated by connect_2/5.
-    Rec = case gb_trees:get(Edge, Etab0) of
+    Rec = case array:get(Edge, Etab0) of
 	      #edge{lf=Face}=Rec0 -> Rec0#edge{lf=NewFace};
 	      #edge{rf=Face}=Rec0 -> Rec0#edge{rf=NewFace}
 	  end,
-    Etab = gb_trees:update(Edge, Rec, Etab0),
+    Etab = array:set(Edge, Rec, Etab0),
     case Rec of
 	#edge{vs=Vend} -> {Etab,Iter0};
 	#edge{ve=Vend} -> {Etab,Iter0};
@@ -512,7 +512,7 @@ connect_3(Iter0, Face, Vend, NewFace, Etab0) ->
 %%  Patches the final two edges.
 connect_4(Iter0, Vend, NewEdge, NeRec0, Etab0) ->
     {_,Edge,_,Iter} = wings_face:next_cw(Iter0),
-    Rec = case gb_trees:get(Edge, Etab0) of
+    Rec = case array:get(Edge, Etab0) of
 	      #edge{b=ColB,ve=Vend}=Rec0 ->
 		  NeRec1 = NeRec0#edge{b=ColB,ltpr=Edge},
 		  Rec0#edge{rtsu=NewEdge};
@@ -520,7 +520,7 @@ connect_4(Iter0, Vend, NewEdge, NeRec0, Etab0) ->
 		  NeRec1 = NeRec0#edge{b=ColA,ltpr=Edge},
 		  Rec0#edge{ltsu=NewEdge}
 	  end,
-    Etab1 = gb_trees:update(Edge, Rec, Etab0),
+    Etab1 = array:set(Edge, Rec, Etab0),
 
     %% Now for the final edge.
     FinalRec = case wings_face:next_cw(Iter) of
@@ -531,8 +531,8 @@ connect_4(Iter0, Vend, NewEdge, NeRec0, Etab0) ->
 		       NeRec = NeRec1#edge{rtsu=Final},
 		       FinalRec0#edge{ltpr=NewEdge}
 	       end,
-    Etab = gb_trees:update(Final, FinalRec, Etab1),
-    gb_trees:insert(NewEdge, NeRec, Etab).
+    Etab = array:set(Final, FinalRec, Etab1),
+    array:set(NewEdge, NeRec, Etab).
 
 %% outer_vertices_ccw(Faces, We) -> [V] | error
 %%  Faces (non-empty list or gb_set) must comprise a single face region
@@ -614,7 +614,7 @@ reachable_edges(Ws0, Etab, Reachable0) ->
 	true -> Reachable0;
 	false ->
 	    {Edge,Ws1} = gb_sets:take_smallest(Ws0),
-	    Rec = gb_trees:get(Edge, Etab),
+	    Rec = array:get(Edge, Etab),
 	    Reachable = gb_trees:insert(Edge, Rec, Reachable0),
 	    #edge{ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} = Rec,
 	    reachable_edges_1([LP,LS,RP,RS], Etab, Ws1, Reachable)

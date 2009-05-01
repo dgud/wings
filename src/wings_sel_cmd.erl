@@ -647,14 +647,14 @@ similar(#st{selmode=face}=St) ->
 similar(#st{selmode=body}=St) ->
     Template0 = wings_sel:fold(fun(_, #we{vp=Vtab,es=Etab,fs=Ftab}, Acc) ->
 				       [{gb_trees:size(Vtab),
-					 gb_trees:size(Etab),
+					 array:sparse_size(Etab),
 					 gb_trees:size(Ftab)}|Acc]
 			       end, [], St),
     Template = ordsets:from_list(Template0),
     wings_sel:make(fun(_, We) -> match_body(Template, We) end, body, St).
 
 match_body(Template, #we{vp=Vtab,es=Etab,fs=Ftab}) ->
-    Sizes = {gb_trees:size(Vtab),gb_trees:size(Etab),gb_trees:size(Ftab)},
+    Sizes = {gb_trees:size(Vtab),array:sparse_size(Etab),gb_trees:size(Ftab)},
     match_body_1(Template, Sizes).
 
 match_body_1([Sizes|_], Sizes) -> true;
@@ -702,7 +702,7 @@ face_dots_and_sqlens_2(_D1, _Other, _More, Dot, Sq) -> {Dot,Sq}.
 
 make_edge_template(Edge, #we{vp=Vtab,es=Etab}=We) ->
     #edge{vs=Va,ve=Vb,ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} =
-	gb_trees:get(Edge, Etab),
+	array:get(Edge, Etab),
     VaPos = gb_trees:get(Va, Vtab),
     VbPos = gb_trees:get(Vb, Vtab),
     Vec = e3d_vec:sub(VaPos, VbPos),
@@ -713,7 +713,7 @@ make_edge_template(Edge, #we{vp=Vtab,es=Etab}=We) ->
     {0,DotSum,e3d_vec:dot(Vec, Vec)}.
 
 edge_dot(Edge, V, Pos, Vec, #we{es=Etab}=We) ->
-    Rec = gb_trees:get(Edge, Etab),
+    Rec = array:get(Edge, Etab),
     OtherPos = wings_vertex:other_pos(V, Rec, We),
     ThisVec = e3d_vec:sub(Pos, OtherPos),
     abs(e3d_vec:dot(ThisVec, Vec)).
@@ -769,7 +769,7 @@ short_edges([Tolerance], St0) ->
     {save_state,St#st{selmode=edge}}.
 
 short_edge(Tolerance, Edge, #we{es=Etab,vp=Vtab}) ->
-    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     VaPos = gb_trees:get(Va, Vtab),
     VbPos = gb_trees:get(Vb, Vtab),
     abs(e3d_vec:dist(VaPos, VbPos)) < Tolerance.
@@ -782,7 +782,7 @@ material_edges(St) ->
     wings_sel:make(fun material_edges_fun/2, edge, St).
 
 material_edges_fun(E, #we{es=Etab}=We) ->
-    #edge{lf=Lf,rf=Rf} = gb_trees:get(E, Etab),
+    #edge{lf=Lf,rf=Rf} = array:get(E, Etab),
     wings_facemat:face(Lf, We) =/= wings_facemat:face(Rf, We).
 
 %%
@@ -881,12 +881,11 @@ select_lights_1([We|Shs], Mode) when not ?IS_LIGHT(We) ->
 select_lights_1([#we{id=Id}|Shs], body) ->
     [{Id,gb_sets:singleton(0)}|select_lights_1(Shs, body)];
 select_lights_1([#we{id=Id,vp=Vtab,es=Etab,fs=Ftab}|Shs], Mode) ->
-    Tab = case Mode of
-	      vertex -> Vtab;
-	      edge -> Etab;
-	      face -> Ftab
+    Sel = case Mode of
+	      vertex -> gb_trees:keys(Vtab);
+	      edge -> wings_util:array_keys(Etab);
+	      face -> gb_trees:keys(Ftab)
 	  end,
-    Sel = gb_trees:keys(Tab),
     [{Id,gb_sets:from_ordset(Sel)}|select_lights_1(Shs, Mode)];
 select_lights_1([], _) -> [].
 
@@ -1125,7 +1124,7 @@ sharp_edges([Tolerance], St0) ->
     {save_state,St}.
 
 sharp_edge(CosTolerance, Edge, #we{es=Etab}=We) ->
-    #edge{lf=Lf,rf=Rf} = gb_trees:get(Edge, Etab),
+    #edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
     Lfn = wings_face:normal(Lf, Edge, We),
     Rfn = wings_face:normal(Rf, Edge, We),
     e3d_vec:dot(Lfn,Rfn) < CosTolerance.
@@ -1136,7 +1135,7 @@ sharp_edge(CosTolerance, Edge, #we{es=Etab}=We) ->
 
 shortest_path(Method, St) ->
     #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
-    case (Mode==vertex) and (length(Sel)==1) of
+    case (Mode==vertex) andalso (length(Sel)==1) of
 	true -> ok;
 	false -> wings_u:error(?__(1,"Exactly two vertices must be\n selected on the same object."))
     end,
@@ -1149,10 +1148,10 @@ shortest_path(Method, St) ->
     [Pa,Pb] = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(SelectedVs)],
     #we{es=Etab,vp=Vtab} = We,
     Graph = digraph:new(),
-    Add_Edge = fun(EdgeIdx) ->
-		    build_digraph(Graph, gb_trees:get(EdgeIdx,Etab), Vtab)
+    Add_Edge = fun(_, EdgeRec, _) ->
+		       build_digraph(Graph, EdgeRec, Vtab)
 	       end,
-    lists:foreach(Add_Edge, gb_trees:keys(Etab)),
+    array:sparse_foldl(Add_Edge, [], Etab),
     PathVs = find_path_verts(Method, Graph, Pa, Pb),
     digraph:delete(Graph),
     SelFun = fun(Vert, We2) -> is_vert_in_path(PathVs, Vert, We2) end,

@@ -3,7 +3,7 @@
 %%
 %%     This module implements the Rotate command.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -100,7 +100,7 @@ edges_to_vertices(Vec, Center, Magnet, Edges, We, Acc) ->
 
 edges_to_vertices_1(normal, Center, Magnet, Es, #we{es=Etab}=We, Acc) ->
     Ns = foldl(fun(Edge, A) ->
-		       #edge{lf=Lf,rf=Rf} = gb_trees:get(Edge, Etab),
+		       #edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
 		       [wings_face:normal(Lf, We),
 			wings_face:normal(Rf, We)|A]
 	       end, [], gb_sets:to_list(Es)),

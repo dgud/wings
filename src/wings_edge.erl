@@ -3,7 +3,7 @@
 %%
 %%     This module contains most edge command and edge utility functions.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson.
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -46,7 +46,7 @@ to_vertices(Edges, #we{es=Etab}) ->
     to_vertices(gb_sets:to_list(Edges), Etab, []).
 
 to_vertices([E|Es], Etab, Acc) ->
-    #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(E, Etab),
     to_vertices(Es, Etab, [Va,Vb|Acc]);
 to_vertices([], _Etab, Acc) -> ordsets:from_list(Acc).
 
@@ -60,7 +60,7 @@ from_faces(Faces, We) ->
 cut(Edge, 2, We) ->
     fast_cut(Edge, default, We);
 cut(Edge, N, #we{es=Etab}=We) ->
-    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     PosA = wings_vertex:pos(Va, We),
     PosB = wings_vertex:pos(Vb, We),
     Vec = e3d_vec:mul(e3d_vec:sub(PosB, PosA), 1/N),
@@ -81,7 +81,7 @@ cut_1(N, Edge, Pos0, Vec, We0) ->
 fast_cut(Edge, Pos0, We0) ->
     {NewEdge=NewV,We} = wings_we:new_ids(1, We0),
     #we{es=Etab0,vc=Vct0,vp=Vtab0,he=Htab0} = We,
-    Template = gb_trees:get(Edge, Etab0),
+    Template = array:get(Edge, Etab0),
     #edge{vs=Vstart,ve=Vend,a=ACol,b=BCol,lf=Lf,rf=Rf,
 	  ltpr=EdgeA,rtsu=EdgeB,rtpr=NextBCol} = Template,
     VendPos = gb_trees:get(Vend, Vtab0),
@@ -114,11 +114,11 @@ fast_cut(Edge, Pos0, We0) ->
     NewColB = wings_color:mix(Weight, BCol, BColOther),
 
     NewEdgeRec = Template#edge{vs=NewV,a=NewColA,ltsu=Edge,rtpr=Edge},
-    Etab1 = gb_trees:insert(NewEdge, NewEdgeRec, Etab0),
+    Etab1 = array:set(NewEdge, NewEdgeRec, Etab0),
     Etab2 = patch_edge(EdgeA, NewEdge, Edge, Etab1),
     Etab3 = patch_edge(EdgeB, NewEdge, Edge, Etab2),
     EdgeRec = Template#edge{ve=NewV,b=NewColB,rtsu=NewEdge,ltpr=NewEdge},
-    Etab = gb_trees:update(Edge, EdgeRec, Etab3),
+    Etab = array:set(Edge, EdgeRec, Etab3),
 
     Htab = case gb_sets:is_member(Edge, Htab0) of
 	       false -> Htab0;
@@ -127,30 +127,30 @@ fast_cut(Edge, Pos0, We0) ->
     {We#we{es=Etab,vc=Vct,vp=Vtab,he=Htab},NewV}.
 
 get_vtx_color(Edge, Face, Etab) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{lf=Face,a=Col} -> Col;
 	#edge{rf=Face,b=Col} -> Col
     end.
 
 %% screaming_cut(Edge, Position, We0) -> {We,NewVertex,NewEdge}
 %%  Cut an edge in two parts screamlingly fast. Does not handle
-%%  vertex colors or UV coordinates are distorted.
+%%  vertex colors or UV coordinates.
 
 screaming_cut(Edge, NewVPos, We0) ->
     {NewEdge=NewV,We} = wings_we:new_ids(1, We0),
     #we{es=Etab0,vc=Vct0,vp=Vtab0,he=Htab0} = We,
-    Template = gb_trees:get(Edge, Etab0),
+    Template = array:get(Edge, Etab0),
     #edge{ve=Vend,ltpr=EdgeA,rtsu=EdgeB} = Template,
     Vct1 = gb_trees:update(Vend, NewEdge, Vct0),
     Vct = gb_trees:insert(NewV, NewEdge, Vct1),
     Vtab = gb_trees:insert(NewV, NewVPos, Vtab0),
 
     NewEdgeRec = Template#edge{vs=NewV,ltsu=Edge,rtpr=Edge},
-    Etab1 = gb_trees:insert(NewEdge, NewEdgeRec, Etab0),
+    Etab1 = array:set(NewEdge, NewEdgeRec, Etab0),
     Etab2 = patch_edge(EdgeA, NewEdge, Edge, Etab1),
     Etab3 = patch_edge(EdgeB, NewEdge, Edge, Etab2),
     EdgeRec = Template#edge{ve=NewV,rtsu=NewEdge,ltpr=NewEdge},
-    Etab = gb_trees:update(Edge, EdgeRec, Etab3),
+    Etab = array:set(Edge, EdgeRec, Etab3),
 
     Htab = case gb_sets:is_member(Edge, Htab0) of
 	       false -> Htab0;
@@ -167,7 +167,7 @@ dissolve_edge(Edge, We) ->
 
 dissolve_edges(Edges0, We0) when is_list(Edges0) ->
     #we{es=Etab} = We1 = foldl(fun internal_dissolve_edge/2, We0, Edges0),
-    case [E || E <- Edges0, gb_trees:is_defined(E, Etab)] of
+    case [E || E <- Edges0, array:get(E, Etab) =/= undefined] of
 	Edges0 ->
 	    %% No edge was deleted in the last pass. We are done.
 	    We = wings_we:rebuild(We0#we{vc=undefined}),
@@ -179,16 +179,17 @@ dissolve_edges(Edges, We) ->
     dissolve_edges(gb_sets:to_list(Edges), We).
 
 internal_dissolve_edge(Edge, #we{es=Etab}=We0) ->
-    case gb_trees:lookup(Edge, Etab) of
-	none -> We0;
-	{value,#edge{ltpr=Same,ltsu=Same,rtpr=Same,rtsu=Same}} ->
+    case array:get(Edge, Etab) of
+	undefined -> We0;
+	#edge{ltpr=Same,ltsu=Same,rtpr=Same,rtsu=Same} ->
 	    Empty = gb_trees:empty(),
-	    We0#we{vc=Empty,vp=Empty,es=Empty,fs=Empty,he=gb_sets:empty()};
-	{value,#edge{rtpr=Back,ltsu=Back}=Rec} ->
+	    EmptyEtab = array:new(),
+	    We0#we{vc=Empty,vp=Empty,es=EmptyEtab,fs=Empty,he=gb_sets:empty()};
+	#edge{rtpr=Back,ltsu=Back}=Rec ->
 	    merge_edges(backward, Edge, Rec, We0);
-	{value,#edge{rtsu=Forward,ltpr=Forward}=Rec} ->
+	#edge{rtsu=Forward,ltpr=Forward}=Rec ->
 	    merge_edges(forward, Edge, Rec, We0);
-	{value,Rec} ->
+	Rec ->
 	    try dissolve_edge_1(Edge, Rec, We0) of
 		We -> We
 	    catch
@@ -218,9 +219,9 @@ dissolve_edge_2(Edge, FaceRemove, FaceKeep,
 			  #edge{rf=FaceRemove,lf=FaceKeep} ->
 			      throw(hole);
 			  #edge{lf=FaceRemove} ->
-			      gb_trees:update(E, R#edge{lf=FaceKeep}, IntEtab);
+			      array:set(E, R#edge{lf=FaceKeep}, IntEtab);
 			  #edge{rf=FaceRemove} ->
-			      gb_trees:update(E, R#edge{rf=FaceKeep}, IntEtab)
+			      array:set(E, R#edge{rf=FaceKeep}, IntEtab)
 		      end
 	      end, Etab0, FaceRemove, We0),
 
@@ -231,7 +232,7 @@ dissolve_edge_2(Edge, FaceRemove, FaceKeep,
     Etab5 = patch_edge(RS, LP, Edge, Etab4),
 
     %% Remove the edge.
-    Etab = gb_trees:delete(Edge, Etab5),
+    Etab = array:reset(Edge, Etab5),
     Htab = hardness(Edge, soft, Htab0),
 
     %% Remove the face. Patch the face entry for the remaining face.
@@ -242,7 +243,7 @@ dissolve_edge_2(Edge, FaceRemove, FaceKeep,
     %% Return result.
     We = We1#we{es=Etab,fs=Ftab,vc=undefined,he=Htab},
     AnEdge = gb_trees:get(FaceKeep, Ftab),
-    case gb_trees:get(AnEdge, Etab) of
+    case array:get(AnEdge, Etab) of
 	#edge{lf=FaceKeep,ltpr=Same,ltsu=Same} ->
 	    internal_dissolve_edge(AnEdge, We);
 	#edge{rf=FaceKeep,rtpr=Same,rtsu=Same} ->
@@ -308,23 +309,23 @@ dissolve_isolated_vs_2([], We0, Vs) ->
 %%  (after rebuilding the incident table) since there might be more
 %%  work to do. 
 dissolve_vertex(V, Edge, #we{es=Etab}=We0) ->
-    case gb_trees:lookup(Edge, Etab) of
-	{value,#edge{vs=V,ltsu=AnEdge,rtpr=AnEdge}=Rec} ->
+    case array:get(Edge, Etab) of
+	#edge{vs=V,ltsu=AnEdge,rtpr=AnEdge}=Rec ->
 	    merge_edges(backward, Edge, Rec, We0);
-	{value,#edge{ve=V,rtsu=AnEdge,ltpr=AnEdge}=Rec} ->
+	#edge{ve=V,rtsu=AnEdge,ltpr=AnEdge}=Rec ->
 	    merge_edges(forward, Edge, Rec, We0);
 
 	%% Handle the case that the incident edge is correct for
 	%% the given vertex, but the vertex is NOT isolated.
-	{value,#edge{vs=V}} -> done;
-	{value,#edge{ve=V}} -> done;
+	#edge{vs=V} -> done;
+	#edge{ve=V} -> done;
 
 	%% The incident edge is either non-existing or no longer
 	%% references the given edge. In this case, we'll need
 	%% to try dissolving the vertex again in the next
 	%% pass after the incident table has been rebuilt.
-	none -> We0;
-	{value,_} -> We0
+	undefined -> We0;
+	_ -> We0
     end.
 
 %%
@@ -335,7 +336,7 @@ dissolve_vertex(V, Edge, #we{es=Etab}=We0) ->
 
 merge_edges(Dir, Edge, Rec, #we{es=Etab}=We) ->
     {Va,Vb,_,_,_,_,To,To} = half_edge(Dir, Rec),
-    case gb_trees:get(To, Etab) of
+    case array:get(To, Etab) of
 	#edge{vs=Va,ve=Vb} ->
 	    del_2edge_face(Dir, Edge, Rec, To, We);
 	#edge{vs=Vb,ve=Va} ->
@@ -351,7 +352,7 @@ merge_1(Dir, Edge, Rec, To, #we{es=Etab0,fs=Ftab0,he=Htab0}=We) ->
     Etab2 = patch_edge(R, To, Edge, Etab1),
     Etab3 = patch_half_edge(To, Vkeep, Lf, A, L, Rf, B, R, Vdelete, Etab2),
     Htab = hardness(Edge, soft, Htab0),
-    Etab = gb_trees:delete(Edge, Etab3),
+    Etab = array:reset(Edge, Etab3),
     #edge{lf=Lf,rf=Rf} = Rec,
     Ftab1 = update_face(Lf, To, Edge, Ftab0),
     Ftab = update_face(Rf, To, Edge, Ftab1),
@@ -360,7 +361,7 @@ merge_1(Dir, Edge, Rec, To, #we{es=Etab0,fs=Ftab0,he=Htab0}=We) ->
 merge_2(Edge, #we{es=Etab}=We) ->
     %% If the merged edge is part of a two-edge face, we must
     %% remove that edge too.
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{ltpr=Same,ltsu=Same} ->
 	    internal_dissolve_edge(Edge, We);
 	#edge{rtpr=Same,rtsu=Same} ->
@@ -377,21 +378,21 @@ update_face(Face, Edge, OldEdge, Ftab) ->
 del_2edge_face(Dir, EdgeA, RecA, EdgeB,
 	       #we{es=Etab0,fs=Ftab0,he=Htab0}=We) ->
     {_,_,Lf,Rf,_,_,_,_} = half_edge(reverse_dir(Dir), RecA),
-    RecB = gb_trees:get(EdgeB, Etab0),
+    RecB = array:get(EdgeB, Etab0),
     Del = gb_sets:from_list([EdgeA,EdgeB]),
     EdgeANear = stabile_neighbor(RecA, Del),
     EdgeBNear = stabile_neighbor(RecB, Del),
     Etab1 = patch_edge(EdgeANear, EdgeBNear, EdgeA, Etab0),
     Etab2 = patch_edge(EdgeBNear, EdgeANear, EdgeB, Etab1),
-    Etab3 = gb_trees:delete(EdgeA, Etab2),
-    Etab = gb_trees:delete(EdgeB, Etab3),
+    Etab3 = array:reset(EdgeA, Etab2),
+    Etab = array:reset(EdgeB, Etab3),
 
     %% Patch hardness table.
     Htab1 = hardness(EdgeA, soft, Htab0),
     Htab = hardness(EdgeB, soft, Htab1),
 
     %% Patch the face table.
-    #edge{lf=Klf,rf=Krf} = gb_trees:get(EdgeANear, Etab),
+    #edge{lf=Klf,rf=Krf} = array:get(EdgeANear, Etab),
     KeepFaces = ordsets:from_list([Klf,Krf]),
     EdgeAFaces = ordsets:from_list([Lf,Rf]),
     [DelFace] = ordsets:subtract(EdgeAFaces, KeepFaces),
@@ -445,7 +446,7 @@ select_region(Edges, #we{id=Id}=We, Acc) ->
     [{Id,FaceSel}|Acc].
 
 select_region_1([[AnEdge|_]|Ps], Edges, #we{es=Etab}=We, Acc) ->
-    #edge{lf=Lf,rf=Rf} = gb_trees:get(AnEdge, Etab),
+    #edge{lf=Lf,rf=Rf} = array:get(AnEdge, Etab),
     Left = collect_faces(Lf, Edges, We),
     Right = collect_faces(Rf, Edges, We),
 
@@ -665,7 +666,7 @@ replace_edge(Edge,#r{l=L,r=R,ls=O} = EI,We) ->
     end.
 
 opposing_edge(Edge, #we{es=Es}=We, Side) ->
-    #edge{lf=Left,rf=Right} = gb_trees:get(Edge, Es),
+    #edge{lf=Left,rf=Right} = array:get(Edge, Es),
     Face = case Side of
                left -> Left;
                right -> Right
@@ -677,7 +678,7 @@ opposing_edge(Edge, #we{es=Es}=We, Side) ->
     end.
 
 next_edge(Edge, Face, #we{es=Etab})->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
         #edge{lf=Face,ltsu=NextEdge} -> NextEdge;
         #edge{rf=Face,rtsu=NextEdge} -> NextEdge
     end.
@@ -734,7 +735,7 @@ half_edge(forward, #edge{ve=Va,vs=Vb,lf=Lf,rf=Rf,a=A,b=B,ltpr=L,rtsu=R}) ->
     {Va,Vb,Lf,Rf,A,B,L,R}.
 
 patch_half_edge(Edge, V, FaceA, A, Ea, FaceB, B, Eb, OrigV, Etab) ->
-    New = case gb_trees:get(Edge, Etab) of
+    New = case array:get(Edge, Etab) of
 	      #edge{vs=OrigV,lf=FaceA,rf=FaceB}=Rec ->
 		  Rec#edge{a=A,vs=V,ltsu=Ea,rtpr=Eb};
 	      #edge{vs=OrigV,lf=FaceB,rf=FaceA}=Rec ->
@@ -744,10 +745,10 @@ patch_half_edge(Edge, V, FaceA, A, Ea, FaceB, B, Eb, OrigV, Etab) ->
 	      #edge{ve=OrigV,lf=FaceB,rf=FaceA}=Rec ->
 		  Rec#edge{b=A,ve=V,ltpr=Eb,rtsu=Ea}
 	  end,
-    gb_trees:update(Edge, New, Etab).
+    array:set(Edge, New, Etab).
 
 patch_edge(Edge, ToEdge, OrigEdge, Etab) ->
-    New = case gb_trees:get(Edge, Etab) of
+    New = case array:get(Edge, Etab) of
 	      #edge{ltsu=OrigEdge}=R ->
 		  R#edge{ltsu=ToEdge};
 	      #edge{ltpr=OrigEdge}=R ->
@@ -757,10 +758,10 @@ patch_edge(Edge, ToEdge, OrigEdge, Etab) ->
 	      #edge{rtpr=OrigEdge}=R ->
 		  R#edge{rtpr=ToEdge}
 	  end,
-    gb_trees:update(Edge, New, Etab).
+    array:set(Edge, New, Etab).
 
 patch_edge(Edge, ToEdge, Face, OrigEdge, Etab) ->
-    New = case gb_trees:get(Edge, Etab) of
+    New = case array:get(Edge, Etab) of
 	      #edge{lf=Face,ltsu=OrigEdge}=R ->
 		  R#edge{ltsu=ToEdge};
 	      #edge{lf=Face,ltpr=OrigEdge}=R ->
@@ -770,4 +771,4 @@ patch_edge(Edge, ToEdge, Face, OrigEdge, Etab) ->
 	      #edge{rf=Face,rtpr=OrigEdge}=R ->
 		  R#edge{rtpr=ToEdge}
 	  end,
-    gb_trees:update(Edge, New, Etab).
+    array:set(Edge, New, Etab).

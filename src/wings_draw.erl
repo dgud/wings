@@ -339,7 +339,7 @@ update_fun_2(hard_edges, #dlo{hard=none,src_we=#we{he=Htab}=We}=D, _) ->
     gl:'begin'(?GL_LINES),
     #we{es=Etab,vp=Vtab} = We,
     foreach(fun(Edge) ->
-		    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+		    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
 		    wpc_ogla:two(gb_trees:get(Va, Vtab), 
 				 gb_trees:get(Vb, Vtab))
 	    end, gb_sets:to_list(Htab)),
@@ -459,15 +459,15 @@ update_sel(#dlo{sel=none,src_sel={edge,Edges}}=D) ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
     gl:'begin'(?GL_LINES),
-    case gb_trees:size(Etab) =:= gb_sets:size(Edges) of
+    case array:sparse_size(Etab) =:= gb_sets:size(Edges) of
 	true ->
 	    foreach(fun(#edge{vs=Va,ve=Vb}) ->
 			    wpc_ogla:two(gb_trees:get(Va, Vtab),
 					 gb_trees:get(Vb, Vtab))
-		    end, gb_trees:values(Etab));
+		    end, array:sparse_to_list(Etab));
 	false ->
 	    foreach(fun(Edge) ->
-			    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+			    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
 			    wpc_ogla:two(gb_trees:get(Va, Vtab),
 					 gb_trees:get(Vb, Vtab))
 		    end, gb_sets:to_list(Edges))
@@ -1019,7 +1019,7 @@ make_normals_dlist_1(vertex, Vs, #we{vp=Vtab}=We) ->
 		    gl:vertex3fv(e3d_vec:add_prod(Pos, N, wings_pref:get_value(normal_vector_size)))
 	    end, gb_sets:to_list(Vs));
 make_normals_dlist_1(edge, Edges, #we{es=Etab,vp=Vtab}=We) ->
-    Et0 = sofs:relation(gb_trees:to_list(Etab), [{edge,data}]),
+    Et0 = sofs:relation(array:sparse_to_orddict(Etab), [{edge,data}]),
     Es = sofs:from_external(gb_sets:to_list(Edges), [edge]),
     Et1 = sofs:restriction(Et0, Es),
     Et = sofs:to_external(Et1),

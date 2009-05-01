@@ -151,7 +151,7 @@
 						%  The GbSet contains the
 						%  object's selection.
 	 name,					%Name.
-	 es,					%gb_tree containing edges
+	 es :: array(),				%array containing edges
 	 fs,					%gb_tree containing faces
 	 he,					%gb_sets containing hard edges
 	 vc,					%Connection info (=incident edge)

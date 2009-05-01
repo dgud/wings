@@ -53,16 +53,16 @@ build(Fs, Vs) ->
 %%  remove redundant entries in the 'vp' table. Updated id
 %%  bounds.
 rebuild(#we{vc=undefined,fs=undefined,es=Etab0}=We0) ->
-    Etab = gb_trees:to_list(Etab0),
+    Etab = array:sparse_to_orddict(Etab0),
     Ftab = rebuild_ftab(Etab),
     VctList = rebuild_vct(Etab),
     We = We0#we{vc=gb_trees:from_orddict(VctList),fs=Ftab},
     rebuild_1(VctList, We);
 rebuild(#we{vc=undefined,es=Etab}=We) ->
-    VctList = rebuild_vct(gb_trees:to_list(Etab), []),
+    VctList = rebuild_vct(array:sparse_to_orddict(Etab), []),
     rebuild_1(VctList, We#we{vc=gb_trees:from_orddict(VctList)});
 rebuild(#we{fs=undefined,es=Etab}=We) ->
-    Ftab = rebuild_ftab(gb_trees:to_list(Etab)),
+    Ftab = rebuild_ftab(array:sparse_to_orddict(Etab)),
     rebuild(We#we{fs=Ftab});
 rebuild(We) -> update_id_bounds(We).
 
@@ -96,7 +96,7 @@ new_items_as_gbset(Type, OldWe, NewWe) ->
 new_items_as_ordset(vertex, #we{next_id=Wid}, #we{next_id=NewWid,vp=Tab}) ->
     new_items_as_ordset_1(Tab, Wid, NewWid);
 new_items_as_ordset(edge, #we{next_id=Wid}, #we{next_id=NewWid,es=Tab}) ->
-    new_items_as_ordset_1(Tab, Wid, NewWid);
+    new_array_items_as_ordset_1(Tab, Wid, NewWid);
 new_items_as_ordset(face, #we{next_id=Wid}, #we{next_id=NewWid,fs=Tab}) ->
     new_items_as_ordset_1(Tab, Wid, NewWid).
 
@@ -182,7 +182,7 @@ hide_faces_1(Fs, #we{es=Etab0}=We0) ->
 		      R -> R
 		  end
 	  end,
-    Etab = gb_trees:map(Map, Etab0),
+    Etab = array:sparse_map(Map, Etab0),
     We = We0#we{es=Etab,fs=undefined},
     wings_facemat:hide_faces(rebuild(We)).
 
@@ -219,7 +219,7 @@ visible_2(Fs) -> Fs.
 visible_vs(#we{mirror=Face,vc=Vct,es=Etab}=We) ->
     case any_hidden(We) of
 	false -> gb_trees:keys(Vct);
-	true -> visible_vs_1(gb_trees:values(Etab), Face, [])
+	true -> visible_vs_1(array:sparse_to_list(Etab), Face, [])
     end.
 
 visible_vs_1([#edge{lf=Mirror,rf=Rf}|Es], Mirror, Acc) when Rf < 0 ->
@@ -236,7 +236,7 @@ visible_vs(Vs, #we{mirror=Face,es=Etab}=We) ->
     case any_hidden(We) of
 	false -> Vs;
 	true ->
-	    Vis0 = visible_vs_1(gb_trees:values(Etab), Face, []),
+	    Vis0 = visible_vs_1(array:sparse_to_list(Etab), Face, []),
 	    case Vs of
 		[{_,_}|_] ->
 		    VsSet = sofs:relation(Vs),
@@ -251,8 +251,8 @@ visible_vs(Vs, #we{mirror=Face,es=Etab}=We) ->
 
 visible_edges(#we{es=Etab,mirror=Face}=We) ->
     case any_hidden(We) of
-	false -> gb_trees:keys(Etab);
-	true -> visible_es_1(gb_trees:to_list(Etab), Face, [])
+	false -> wings_util:array_keys(Etab);
+	true -> visible_es_1(array:sparse_to_orddict(Etab), Face, [])
     end.
 
 visible_es_1([{E,#edge{lf=Lf,rf=Rf}}|Es], Face, Acc) ->
@@ -303,7 +303,7 @@ show_faces_1(#we{es=Etab0}=We0) ->
 		  R#edge{lf=Lf,rf=Rf};
 	     (_, R) -> R
 	  end,
-    Etab = gb_trees:map(Map, Etab0),
+    Etab = array:sparse_map(Map, Etab0),
     We = We0#we{es=Etab,fs=undefined},
     wings_facemat:show_faces(rebuild(We)).
 
@@ -488,7 +488,7 @@ build_tables([H|T], Emap, Vtab0, Etab0, Ftab0) ->
     Vtab = [{Vs,Edge},{Ve,Edge}|Vtab0],
     build_tables(T, Emap, Vtab, Etab, Ftab);
 build_tables([], _Emap, Vtab, Etab0, Ftab) ->
-    Etab = gb_trees:from_orddict(reverse(Etab0)),
+    Etab = array:from_orddict(reverse(Etab0)),
     {Vtab,Etab,Ftab}.
 
 make_edge_map(Es) ->
@@ -542,8 +542,8 @@ make_digraph([], _G) -> ok.
 %%% Invert all normals.
 
 invert_normals(#we{es=Etab0}=We0) ->
-    Etab1 = invert_edges(gb_trees:to_list(Etab0), []),
-    Etab = gb_trees:from_orddict(Etab1),
+    Etab1 = invert_edges(array:sparse_to_orddict(Etab0), []),
+    Etab = array:from_orddict(Etab1),
     We = We0#we{es=Etab},
     slide_colors(We).
 
@@ -559,11 +559,11 @@ slide_colors(#we{fs=Ftab}=We) ->
 	  end, We, gb_trees:to_list(Ftab)).
 
 slide_colors(Face, Edge, #we{es=Etab0}=We) ->
-    PrevEdge = case gb_trees:get(Edge, Etab0) of
+    PrevEdge = case array:get(Edge, Etab0) of
 		   #edge{lf=Face,ltsu=Pe0} -> Pe0;
 		   #edge{rf=Face,rtsu=Pe0} -> Pe0
 	       end,
-    PrevCol = case gb_trees:get(PrevEdge, Etab0) of
+    PrevCol = case array:get(PrevEdge, Etab0) of
 		  #edge{lf=Face,a=A} -> A;
 		  #edge{rf=Face,b=B} -> B
 	      end,
@@ -572,12 +572,12 @@ slide_colors(Face, Edge, #we{es=Etab0}=We) ->
 
 slide_colors(_Face, LastEdge, LastEdge, Etab, _, done) -> Etab;
 slide_colors(Face, Edge, LastEdge, Etab0, PrevCol, _) ->
-    case gb_trees:get(Edge, Etab0) of
+    case array:get(Edge, Etab0) of
 	#edge{a=Col,lf=Face,ltpr=NextEdge}=Rec ->
-	    Etab = gb_trees:update(Edge, Rec#edge{a=PrevCol}, Etab0),
+	    Etab = array:set(Edge, Rec#edge{a=PrevCol}, Etab0),
 	    slide_colors(Face, NextEdge, LastEdge, Etab, Col, done);
 	#edge{b=Col,rf=Face,rtpr=NextEdge}=Rec ->
-	    Etab = gb_trees:update(Edge, Rec#edge{b=PrevCol}, Etab0),
+	    Etab = array:set(Edge, Rec#edge{b=PrevCol}, Etab0),
 	    slide_colors(Face, NextEdge, LastEdge, Etab, Col, done)
     end.
 
@@ -594,7 +594,7 @@ merge([#we{id=Id,name=Name}|_]=Wes0) ->
     MatTab = wings_facemat:merge(Wes1),
     {Vpt0,Et0,Ht0} = merge_1(Wes1),
     Vpt = gb_trees:from_orddict(Vpt0),
-    Et = gb_trees:from_orddict(Et0),
+    Et = array:from_orddict(Et0),
     Ht = gb_sets:from_ordset(Ht0),
     rebuild(#we{id=Id,name=Name,vc=undefined,fs=undefined,
 		pst=Pst,vp=Vpt,es=Et,he=Ht,mat=MatTab}).
@@ -604,7 +604,7 @@ merge_1(Wes) -> merge_1(Wes, [], [], []).
 
 merge_1([#we{vp=Vp0,es=Es,he=He}|Wes], Vpt0, Et0, Ht0) ->
     Vpt = [gb_trees:to_list(Vp0)|Vpt0],
-    Et = [gb_trees:to_list(Es)|Et0],
+    Et = [array:sparse_to_orddict(Es)|Et0],
     Ht = [gb_sets:to_list(He)|Ht0],
     merge_1(Wes, Vpt, Et, Ht);
 merge_1([], Vpt0, Et0, Ht0) ->
@@ -644,11 +644,11 @@ merge_renumber_rest([We0|Wes], Next0, Acc) ->
 merge_renumber_rest([], _, Acc) -> Acc.
 
 merge_bounds([#we{vp=Vtab,fs=Ftab,es=Etab}=We0|Wes], Acc) ->
-    First = case gb_trees:is_empty(Etab) of
+    First = case wings_util:array_is_empty(Etab) of
 		true -> 0;
 		false ->
 		    lists:min([wings_util:gb_trees_smallest_key(Vtab),
-			       wings_util:gb_trees_smallest_key(Etab),
+			       wings_util:array_smallest_key(Etab),
 			       wings_util:gb_trees_smallest_key(Ftab)])
 	    end,
     We = update_id_bounds(We0),
@@ -679,13 +679,13 @@ do_renumber(#we{mode=Mode,vp=Vtab0,es=Etab0,fs=Ftab0,
     Fmap = make_map(gb_trees:to_list(Ftab0), Id),
     MatTab = wings_facemat:renumber(MatTab0, Fmap),
 
-    Etab1 = gb_trees:to_list(Etab0),
+    Etab1 = array:sparse_to_orddict(Etab0),
     Emap = make_map(Etab1, Id),
 
     Etab2 = foldl(fun(E, A) ->
 			  renum_edge(E, Emap, Vmap, Fmap, A)
 		  end, [], Etab1),
-    Etab = gb_trees:from_orddict(reverse(Etab2)),
+    Etab = array:from_orddict(reverse(Etab2)),
 
 
     Htab1 = foldl(fun(E, A) ->
@@ -728,10 +728,10 @@ do_renumber(#we{mode=Mode,vp=Vtab0,es=Etab0,fs=Ftab0,
 
     %% In case this function will be used for merging #we records,
     %% it is essential to update the next_id field. Its value can
-    %% safely be based the largest key in the edge table only.
-    LastId = case gb_trees:size(Etab) of
-		 0 -> 0;
-		 _ -> wings_util:gb_trees_largest_key(Etab)
+    %% safely be based on the largest key in the edge table alone.
+    LastId = case wings_util:array_is_empty(Etab) of
+		 true -> 0;
+		 false -> wings_util:array_greatest_key(Etab)
 	     end,
     {We#we{next_id=LastId+1},RootSet}.
 
@@ -804,11 +804,11 @@ renum_elements_in_pst(Key,Plugin,Elements,Map,Pst0) ->
     Pst.
 
 update_id_bounds(#we{vp=Vtab,es=Etab,fs=Ftab}=We) ->
-    case gb_trees:is_empty(Etab) of
+    case wings_util:array_is_empty(Etab) of
 	true -> We#we{next_id=0};
 	false ->
 	    LastId = lists:max([wings_util:gb_trees_largest_key(Vtab),
-				wings_util:gb_trees_largest_key(Etab),
+				wings_util:array_greatest_key(Etab),
 				wings_util:gb_trees_largest_key(Ftab)]),
 	    We#we{next_id=LastId+1}
     end.
@@ -821,12 +821,12 @@ separate(We) ->
     separate(We#we{mirror=none,vc=undefined,fs=undefined}, []).
 
 separate(#we{es=Etab0}=We, Acc) ->
-    case gb_trees:is_empty(Etab0) of
+    case wings_util:array_is_empty(Etab0) of
 	true -> Acc;
 	false ->
-	    {Edge,_,_} = gb_trees:take_smallest(Etab0),
+	    Edge = wings_util:array_smallest_key(Etab0),
 	    Ws = gb_sets:singleton(Edge),
-	    {EtabLeft,NewEtab} = separate(Ws, Etab0, gb_trees:empty()),
+	    {EtabLeft,NewEtab} = separate(Ws, Etab0, array:new()),
 	    NewWe = copy_dependents(We#we{es=NewEtab}),
 	    separate(We#we{es=EtabLeft}, [NewWe|Acc])
     end.
@@ -836,13 +836,12 @@ separate(Ws0, Etab0, Acc0) ->
 	true -> {Etab0,Acc0};
 	false ->
 	    {Edge,Ws1} = gb_sets:take_smallest(Ws0),
-	    case gb_trees:is_defined(Edge, Acc0) of
-		true ->
+	    case array:get(Edge, Etab0) of
+		undefined ->
 		    separate(Ws1, Etab0, Acc0);
-		false ->
-		    Rec = gb_trees:get(Edge, Etab0),
-		    Etab = gb_trees:delete(Edge, Etab0),
-		    Acc = gb_trees:insert(Edge, Rec, Acc0),
+		Rec ->
+		    Etab = array:reset(Edge, Etab0),
+		    Acc = array:set(Edge, Rec, Acc0),
 		    #edge{ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} = Rec,
 		    Set = gb_sets:from_list([LP,LS,RP,RS]),
 		    Ws = gb_sets:union(Ws1, Set),
@@ -852,11 +851,11 @@ separate(Ws0, Etab0, Acc0) ->
 
 copy_dependents(We0) ->
     #we{es=Etab,he=Htab0,vc=Vct,vp=Vtab0} = We = rebuild(We0),
-    Es = gb_trees:keys(Etab),
     Htab = case gb_sets:is_empty(Htab0) of
 	       true ->
 		   Htab0;
 	       false ->
+		   Es = wings_util:array_keys(Etab),
 		   gb_sets:intersection(Htab0, gb_sets:from_ordset(Es))
 	   end,
     Vs = sofs:from_external(gb_trees:keys(Vct), [vertex]),
@@ -894,13 +893,12 @@ build_incident_tab(ElemToEdgeRel) ->
 %%%
 
 uv_to_color(#we{mode=material,es=Etab0}=We, St) ->
-    Etab1 = foldl(
-	      fun({Edge,#edge{lf=Lf,rf=Rf,a=UVa,b=UVb}=Rec}, A) ->
-		      ColA = wings_material:color(Lf, UVa, We, St),
-		      ColB = wings_material:color(Rf, UVb, We, St),
-		      [{Edge,Rec#edge{a=ColA,b=ColB}}|A]
-	      end, [], gb_trees:to_list(Etab0)),
-    Etab = gb_trees:from_orddict(reverse(Etab1)),
+    Etab = array:sparse_map(
+	     fun(_, #edge{lf=Lf,rf=Rf,a=UVa,b=UVb}=Rec) ->
+		     ColA = wings_material:color(Lf, UVa, We, St),
+		     ColB = wings_material:color(Rf, UVb, We, St),
+		     Rec#edge{a=ColA,b=ColB}
+	     end, Etab0),
     We#we{mode=vertex,es=Etab};
 uv_to_color(We, _St) -> We.
 
@@ -1038,7 +1036,7 @@ vertex_normals(#we{vp=Vtab}=We, G, FaceNormals) ->
 vertex_normals_1(Vs, #we{es=Etab,he=Htab}=We, G, FaceNormals) ->
     He0 = gb_sets:to_list(Htab),
     He = sofs:from_external(He0, [edge]),
-    Es0 = gb_trees:to_list(Etab),
+    Es0 = array:sparse_to_orddict(Etab),
     Es1 = sofs:from_external(Es0, [{edge,data}]),
     Es = sofs:image(Es1, He),
     Hvs0 = foldl(fun(#edge{vs=Va,ve=Vb}, A) ->
@@ -1093,6 +1091,18 @@ new_items_as_ordset_2(Wid, NewWid, Tab, Acc) when Wid < NewWid ->
     end;
 new_items_as_ordset_2(_Wid, _NewWid, _Tab, Acc) -> reverse(Acc).
 
+new_array_items_as_ordset_1(Tab, Wid, NewWid) when NewWid-Wid < 32 ->
+    new_array_items_as_ordset_2(Wid, NewWid, Tab, []);
+new_array_items_as_ordset_1(Tab, Wid, _NewWid) ->
+    [Item || Item <- wings_util:array_keys(Tab), Item >= Wid].
+
+new_array_items_as_ordset_2(Wid, NewWid, Tab, Acc) when Wid < NewWid ->
+    case array:get(Wid, Tab) of
+	undefined -> new_array_items_as_ordset_2(Wid+1, NewWid, Tab, Acc);
+	_ -> new_array_items_as_ordset_2(Wid+1, NewWid, Tab, [Wid|Acc])
+    end;
+new_array_items_as_ordset_2(_Wid, _NewWid, _Tab, Acc) -> reverse(Acc).
+
 %%%
 %%% Test the consistency of a #we{}.
 %%%
@@ -1133,7 +1143,7 @@ validate_face_vertices([V|Vs], _) ->
 
 walk_face_ccw(LastEdge, _, _, LastEdge, [_|_]=Acc) -> Acc;
 walk_face_ccw(Edge, Etab, Face, LastEdge, Acc) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{ve=V,lf=Face,ltpr=Next} ->
 	    walk_face_ccw(Next, Etab, Face, LastEdge, [V|Acc]);
 	#edge{vs=V,rf=Face,rtpr=Next} ->
@@ -1142,7 +1152,7 @@ walk_face_ccw(Edge, Etab, Face, LastEdge, Acc) ->
 
 walk_face_cw(Edge, _, _, []) -> Edge;
 walk_face_cw(Edge, Etab, Face, [V|Vs]) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{vs=V,lf=Face,ltsu=Next} ->
 	    walk_face_cw(Next, Etab, Face, Vs);
 	#edge{ve=V,rf=Face,rtsu=Next} ->
@@ -1151,7 +1161,7 @@ walk_face_cw(Edge, Etab, Face, [V|Vs]) ->
 
 validate_vertex_tab(#we{es=Etab,vc=Vct}) ->
     foreach(fun({V,Edge}) ->
-		    case gb_trees:get(Edge, Etab) of
+		    case array:get(Edge, Etab) of
 			#edge{vs=V} -> ok;
 			#edge{ve=V} -> ok
 		    end

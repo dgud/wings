@@ -3,7 +3,7 @@
 %%
 %%     This module implements the smooth proxy.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -98,7 +98,7 @@ update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #we{vp=Vtab,es=Etab}=We, some) ->
     gl:'begin'(?GL_LINES),
     Edges = wings_edge:from_vs(gb_trees:keys(OldVtab), We),
     foreach(fun(E) ->
-		    #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
+		    #edge{vs=Va,ve=Vb} = array:get(E, Etab),
 		    wpc_ogla:two(gb_trees:get(Va, Vtab),
 				 gb_trees:get(Vb, Vtab))
 	    end, Edges),
@@ -109,10 +109,10 @@ update_edges_1(_, #we{es=Etab,vp=Vtab}, all) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
     gl:'begin'(?GL_LINES),
-    foreach(fun(#edge{vs=Va,ve=Vb}) ->
-		    wpc_ogla:two(gb_trees:get(Va, Vtab),
-				 gb_trees:get(Vb, Vtab))
-	    end, gb_trees:values(Etab)),
+    array:sparse_foldl(fun(_, #edge{vs=Va,ve=Vb}, _) ->
+			       wpc_ogla:two(gb_trees:get(Va, Vtab),
+					    gb_trees:get(Vb, Vtab))
+		       end, [], Etab),
     gl:'end'(),
     gl:endList(),
     Dl.

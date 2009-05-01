@@ -350,7 +350,7 @@ chart_normal(Fs,We = #we{es=Etab}) ->
 	    [{_,BE}|_] = auv_placement:group_edge_loops(Fs,We),
 	    EdgeNormals = 
 		fun(#be{edge=Edge}, Sum0) ->
-			#edge{lf=LF,rf=RF} = gb_trees:get(Edge, Etab),
+			#edge{lf=LF,rf=RF} = array:get(Edge, Etab),
 			Sum1 = CalcNormal(LF,Sum0),
 			CalcNormal(RF,Sum1)
 		end,
@@ -1045,7 +1045,7 @@ stretch_opt(We0, OVs) ->
 stretch_setup(Fs, We0, OVs) ->
     Be = wings_face:outer_edges(Fs, We0),
     Bv0 = foldl(fun(Edge, Acc) ->
-			#edge{vs=Vs,ve=Ve} = gb_trees:get(Edge, We0#we.es),
+			#edge{vs=Vs,ve=Ve} = array:get(Edge, We0#we.es),
 			[Vs,Ve|Acc]
 		end, [], Be),
     Bv = gb_sets:from_list(Bv0),

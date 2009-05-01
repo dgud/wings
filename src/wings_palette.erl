@@ -3,7 +3,7 @@
 %%
 %%     Maintains the vertex palette window.
 %%
-%%  Copyright (c) 2004-2008 Bjorn Gustavsson, Dan Gudmundsson
+%%  Copyright (c) 2004-2009 Bjorn Gustavsson, Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -487,9 +487,9 @@ scan_colors(St = #st{mat=Mtab}, Old) ->
 
 scan_color(#we{mode = material}, Acc) ->    Acc;
 scan_color(#we{mode = vertex, es=Etab}, Acc) ->
-    foldl(fun(#edge{a=Ca,b=Cb}, Cols) ->
-		  [color(Ca),color(Cb)|Cols]
-	  end, Acc, gb_trees:values(Etab)).
+    array:sparse_foldl(fun(_, #edge{a=Ca,b=Cb}, Cols) ->
+			       [color(Ca),color(Cb)|Cols]
+		       end, Acc, Etab).
 
 scan_materials([Mat|Ms], Cols) ->
     Opengl = proplists:get_value(opengl, Mat),

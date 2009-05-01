@@ -3,7 +3,7 @@
 %%
 %%     Utilities for winged-edge records.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -47,7 +47,7 @@ validate_faces(#we{fs=Ftab}=We) ->
 walk_face_cw(_Face, LastEdge, LastEdge, _We, [_|_]=Acc) -> Acc;
 walk_face_cw(Face, Edge, LastEdge, We, Acc) ->
     #we{es=Etab} = We,
-    case catch gb_trees:get(Edge, Etab) of
+    case catch array:get(Edge, Etab) of
 	#edge{vs=V,lf=Face,ltsu=Next} ->
 	    walk_face_cw(Face, Next, LastEdge, We, [V|Acc]);
 	#edge{ve=V,rf=Face,rtsu=Next} ->
@@ -63,7 +63,7 @@ walk_face_cw(Face, Edge, LastEdge, We, Acc) ->
 walk_face_ccw(_Face, LastEdge, LastEdge, _We, [_|_]=Acc) -> Acc;
 walk_face_ccw(Face, Edge, LastEdge, We, Acc) ->
     #we{es=Etab} = We,
-    case catch gb_trees:get(Edge, Etab) of
+    case catch array:get(Edge, Etab) of
 	#edge{ve=V,lf=Face,ltpr=Next} ->
 	    walk_face_ccw(Face, Next, LastEdge, We, [V|Acc]);
 	#edge{vs=V,rf=Face,rtpr=Next} ->
@@ -83,7 +83,7 @@ validate_vertex_tab(#we{es=Etab,vc=Vct,vp=Vtab}=We) ->
 	    crash(vc_and_vp_have_different_keys, We)
     end,
     foreach(fun({V,Edge}) ->
-		    case gb_trees:get(Edge, Etab) of
+		    case array:get(Edge, Etab) of
 			#edge{vs=V}=Rec ->
 			    validate_edge_rec(Rec, We);
 			#edge{ve=V}=Rec ->
@@ -95,11 +95,10 @@ validate_vertex_tab(#we{es=Etab,vc=Vct,vp=Vtab}=We) ->
 	    gb_trees:to_list(Vct)).
 
 validate_edge_tab(#we{es=Etab}=We) ->
-    foreach(fun({E,#edge{vs=Va,ve=Vb}}) ->
-		    verify_vertex(Va, E, We),
-		    verify_vertex(Vb, E, We)
-	    end,
-	    gb_trees:to_list(Etab)).
+    array:sparse_foldl(fun(E, #edge{vs=Va,ve=Vb}, _) ->
+			       verify_vertex(Va, E, We),
+			       verify_vertex(Vb, E, We)
+		       end, [], Etab).
 
 validate_edge_rec(Rec, We) ->
     #edge{ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} = Rec,

@@ -3,7 +3,7 @@
 %%
 %%     This module handles edge-loop commands.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -83,7 +83,7 @@ pick_loop([C|Cs], Dir, PrevLoop, #st{sel=[{Id,_}]}=St) ->
 pick_loop([], _, _, #st{sel=[_]}) -> none.
 
 build_digraph(G, [E|Es], Edges, Etab) ->
-    #edge{ltpr=Lp,ltsu=Ls,rtpr=Rp,rtsu=Rs} = gb_trees:get(E, Etab),
+    #edge{ltpr=Lp,ltsu=Ls,rtpr=Rp,rtsu=Rs} = array:get(E, Etab),
     follow_edge(G, Ls, Edges, Etab),
     follow_edge(G, Rp, Edges, Etab),
     follow_edge(G, Lp, Edges, Etab),
@@ -96,7 +96,7 @@ follow_edge(G, E, Edges, Etab) ->
 	true -> ok;
 	false ->
 	    #edge{ltpr=Lp,ltsu=Ls,rtpr=Rp,rtsu=Rs} =
-		gb_trees:get(E, Etab),
+		array:get(E, Etab),
 	    follow_edge_1(G, Lp, Edges, Etab),
 	    follow_edge_1(G, Ls, Edges, Etab),
 	    follow_edge_1(G, Rp, Edges, Etab),
@@ -107,7 +107,7 @@ follow_edge_1(G, E, Edges, Etab) ->
     case gb_sets:is_member(E, Edges) of
 	true -> ok;
 	false ->
-	    #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
+	    #edge{vs=Va,ve=Vb} = array:get(E, Etab),
 	    add_edge(G, E, Va, Vb)
     end.
 
@@ -147,7 +147,7 @@ select_loop_1(Edges0, Etab, Sel0) ->
     end.
 
 select_loop_edges(Edge, Etab, Sel, Edges0) ->
-    #edge{vs=Va,ve=Vb} = Erec = gb_trees:get(Edge, Etab),
+    #edge{vs=Va,ve=Vb} = Erec = array:get(Edge, Etab),
     Edges = try_edge_from(Va, Edge, Erec, Etab, Sel, Edges0),
     try_edge_from(Vb, Edge, Erec, Etab, Sel, Edges).
 
@@ -177,7 +177,7 @@ try_edge_from_1(V, From, Erec, Etab) ->
     end.
 
 next_edge(From, V, Face, Edge, Etab) ->
-    case gb_trees:get(Edge, Etab) of
+    case array:get(Edge, Etab) of
 	#edge{vs=V,rf=Face,rtpr=From,ltsu=To} -> To;
 	#edge{vs=V,lf=Face,ltsu=From,rtpr=To} -> To;
 	#edge{ve=V,rf=Face,rtsu=From,ltpr=To} -> To;
@@ -274,7 +274,7 @@ expand_loop2({V,OrigEdge,Sel},Stop,#we{es=Etab}=We,MirrorEdges) ->
 		    {stop, gb_sets:from_list([OrigEdge|Sel]), Link};
 		none ->	
 %		    io:format("Adding Edge ~p to ~p ~n",[Edge,OrigEdge]),
-		    Rec = gb_trees:get(Edge,Etab),
+		    Rec = array:get(Edge, Etab),
 		    {cont,{wings_vertex:other(V,Rec),Edge,[OrigEdge|Sel]}}
 	    end;
 	1 -> 
@@ -340,7 +340,7 @@ init_expand(Edges, Etab) ->
     Expand.
 
 init_expand([Edge|R], Etab, G) ->
-    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     add_edge(G, Edge, Va, Vb),
     init_expand(R, Etab, G);
 init_expand([], _Etab, G) -> G.
@@ -370,7 +370,7 @@ edge_loop_vertices(Edges0, #we{es=Etab}=We, Acc) ->
 	true -> Acc;
 	false ->
 	    {Edge,Edges1} = gb_sets:take_smallest(Edges0),
-	    #edge{vs=V,ve=Vend} = gb_trees:get(Edge, Etab),
+	    #edge{vs=V,ve=Vend} = array:get(Edge, Etab),
 	    case edge_loop_vertices1(Edges1, V, Vend, We, [Vend]) of
 		none -> none;
 		{Vs,Edges} -> edge_loop_vertices(Edges, We, [Vs|Acc])
@@ -405,7 +405,7 @@ edge_links(Edges0, #we{es=Etab}=We, Acc) ->
 	true -> Acc;
 	false ->
 	    {Edge,Edges1} = gb_sets:take_smallest(Edges0),
-	    #edge{vs=V,ve=Vend} = gb_trees:get(Edge, Etab),
+	    #edge{vs=V,ve=Vend} = array:get(Edge, Etab),
 	    case edge_link(Edges1, V, Vend, back, We, [{Edge,V,Vend}]) of
 		{Vs,Edges} -> edge_links(Edges, We, [Vs|Acc]);
 		{incomplete,Vs1,Edges2} ->
@@ -450,7 +450,7 @@ partition_edges(Edges0, #we{es=Etab}=We, Acc) ->
 	true -> Acc;
 	false ->
 	    {Edge,_} = gb_sets:take_smallest(Edges0),
-	    #edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+	    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
 	    Ws = gb_sets:from_list([{Va,Edge},{Vb,Edge}]),
 	    {Part,Edges} = partition_edges_1(Ws, We, Edges0, gb_sets:empty()),
 	    partition_edges(Edges, We, [Part|Acc])

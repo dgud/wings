@@ -4,7 +4,7 @@
 %%     This module contains the Extrude (edge), Bevel (face/edge) and
 %%     Bump commands. (All based on edge extrusion.)
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -44,7 +44,7 @@ calc_bump_dist_1(Faces, We, D) ->
     calc_bump_dist_2(Edges, We, D).
 
 calc_bump_dist_2([E|Es], #we{es=Etab,vp=Vtab}=We, D0) ->
-    #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(E, Etab),
     case e3d_vec:dist(gb_trees:get(Va, Vtab), gb_trees:get(Vb, Vtab)) / 2 of
 	D when D < D0 -> calc_bump_dist_2(Es, We, D);
 	_ -> calc_bump_dist_2(Es, We, D0)
@@ -95,7 +95,7 @@ bevel_faces(Faces, #we{id=Id,mirror=MirrorFace}=We0, {Tvs,Limit0}) ->
     Dist = ?BEVEL_EXTRUDE_DIST_KLUDGE,
     Edges = wings_edge:from_faces(Faces, We0),
     {We1,OrigVs,_,Forbidden} = extrude_edges(Edges, Dist, We0#we{mirror=none}),
-    case {gb_trees:size(We0#we.es),gb_trees:size(We1#we.es)} of
+    case {array:sparse_size(We0#we.es),array:sparse_size(We1#we.es)} of
 	{Same,Same} ->
 	    wings_u:error(?__(1,"Object is too small to bevel."));
 	{_,_} ->
@@ -252,7 +252,7 @@ calc_extrude_dist_1(Edges0, We, D) ->
     calc_extrude_dist_2(Edges, We, D).
 
 calc_extrude_dist_2([E|Es], #we{es=Etab,vp=Vtab}=We, D0) ->
-    #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
+    #edge{vs=Va,ve=Vb} = array:get(E, Etab),
     case e3d_vec:dist(gb_trees:get(Va, Vtab), gb_trees:get(Vb, Vtab)) / 3 of
 	D when D < D0 -> calc_extrude_dist_2(Es, We, D);
 	_ -> calc_extrude_dist_2(Es, We, D0)
@@ -268,7 +268,7 @@ extrude_1(Edges, ExtrudeDist, We0, Acc) ->
 
 orig_normals(Es0, #we{es=Etab,vp=Vtab}) ->
     VsVec0 = foldl(fun(E, A) ->
-			   #edge{vs=Va,ve=Vb} = gb_trees:get(E, Etab),
+			   #edge{vs=Va,ve=Vb} = array:get(E, Etab),
 			   Vec = e3d_vec:norm_sub(gb_trees:get(Va, Vtab),
 						  gb_trees:get(Vb, Vtab)),
 			   [{Va,{Vec,Vb}},{Vb,{Vec,Va}}|A]
@@ -344,7 +344,7 @@ extrude_edges(Edges, ForbiddenFaces, ExtrudeDist,
     %% face (i.e. a vertex is shared by two faces that have no
     %% common edge).
     Vct = foldl(fun(Edge, A) ->
-			#edge{vs=Va,ve=Vb} = Rec = gb_trees:get(Edge, Etab),
+			#edge{vs=Va,ve=Vb} = Rec = array:get(Edge, Etab),
 			digraph_edge(G, ForbiddenFaces, Rec),
 			gb_trees:update(Vb, Edge, gb_trees:update(Va, Edge, A))
 		end, Vct0, gb_sets:to_list(Edges)),
@@ -393,10 +393,10 @@ new_vertex_1(V, G, Edge, Center, ExtrudeDist, We0) ->
     We#we{vp=Vtab}.
 
 get_edge_rec(Va, Vb, EdgeA, EdgeB, #we{es=Etab}) ->
-    case gb_trees:get(EdgeA, Etab) of
+    case array:get(EdgeA, Etab) of
 	#edge{vs=Va,ve=Vb}=Rec -> Rec;
 	#edge{vs=Vb,ve=Va}=Rec -> Rec;
-	_Other -> gb_trees:get(EdgeB, Etab)
+	_Other -> array:get(EdgeB, Etab)
     end.
 
 filter_edges(Es, EdgeSet, FaceSet) ->

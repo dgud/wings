@@ -3,7 +3,7 @@
 %%
 %%     This module implements dissolve of faces.
 %%
-%%  Copyright (c) 2004-2005 Bjorn Gustavsson
+%%  Copyright (c) 2004-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -131,10 +131,10 @@ simple_del(Faces, Ftab0, Etab0, Htab0, We) ->
 
 	    Keep0 = wings_face:to_edges(UnselFaces, We),
 	    Keep = sofs:set(Keep0, [edge]),
-	    Etab1 = sofs:from_external(gb_trees:to_list(Etab0),
+	    Etab1 = sofs:from_external(array:sparse_to_orddict(Etab0),
 				       [{edge,info}]),
 	    Etab2 = sofs:restriction(Etab1, Keep),
-	    Etab = gb_trees:from_orddict(sofs:to_external(Etab2)),
+	    Etab = array:from_orddict(sofs:to_external(Etab2)),
 	    
 	    Htab = simple_del_hard(Htab0, sofs:to_external(Keep), undefined),
 	    {Ftab,Etab,Htab};
@@ -144,7 +144,7 @@ simple_del(Faces, Ftab0, Etab0, Htab0, We) ->
 			 end, Ftab0, gb_sets:to_list(Faces)),
 	    Inner = wings_face:inner_edges(Faces, We),
 	    Etab = foldl(fun(Edge, Et) ->
-				 gb_trees:delete(Edge, Et)
+				 array:reset(Edge, Et)
 			 end, Etab0, Inner),
 	    Htab = simple_del_hard(Htab0, undefined, Inner),
 	    {Ftab,Etab,Htab}
@@ -199,12 +199,12 @@ do_dissolve_faces(Faces, #we{fs=Ftab0}=We) ->
 
 delete_inner(Inner, #we{es=Etab0}=We) ->
     Etab = foldl(fun(Edge, Et) ->
-			 gb_trees:delete(Edge, Et)
+			 array:reset(Edge, Et)
 		 end, Etab0, Inner),
     We#we{es=Etab}.
 
 update_outer([Pred|[Edge|Succ]=T], More, Face, Ftab, Etab0) ->
-    #edge{rf=Rf} = R0 = gb_trees:get(Edge, Etab0),
+    #edge{rf=Rf} = R0 = array:get(Edge, Etab0),
     Rec = case gb_trees:is_defined(Rf, Ftab) of
 	      true ->
 		  ?ASSERT(false == gb_trees:is_defined(R0#edge.lf, Ftab)),
@@ -215,7 +215,7 @@ update_outer([Pred|[Edge|Succ]=T], More, Face, Ftab, Etab0) ->
 		  RS = succ(Succ, More),
 		  R0#edge{rf=Face,rtpr=Pred,rtsu=RS}
 	  end,
-    Etab = gb_trees:update(Edge, Rec, Etab0),
+    Etab = array:set(Edge, Rec, Etab0),
     update_outer(T, More, Face, Ftab, Etab);
 update_outer([_], _More, _Face, _Ftab, Etab) -> Etab.
 

@@ -5,7 +5,7 @@
 %%     (for vertices, edges, and faces).
 %%
 %%  Copyright (c) 2001 Jakob Cederlund
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -39,27 +39,26 @@ collapse(#st{selmode=vertex}=St0) ->
 
 collapse_edges([E|Es], #we{es=Etab}=We0) ->
     We1 = fast_collapse_edge(E, We0),
-    #edge{lf=Lf,rf=Rf} = gb_trees:get(E,Etab),
+    #edge{lf=Lf,rf=Rf} = array:get(E, Etab),
     We = wings_face:delete_bad_faces([Lf,Rf], We1),
     collapse_edges(Es,We);
 collapse_edges([],We) -> We.
 
 collapse_edge(Edge, #we{es=Etab}=We)->
-    case gb_trees:lookup(Edge, Etab) of
-	{value,#edge{vs=Vkeep}=Rec} -> 
+    case array:get(Edge, Etab) of
+	#edge{vs=Vkeep}=Rec ->
 	    collapse_edge_1(Edge, Vkeep, Rec, We);
-	none -> We
+	undefined -> We
     end.
 
 collapse_edge(Edge, Vkeep, #we{es=Etab}=We)->
-    case gb_trees:lookup(Edge, Etab) of
-	{value,Rec} -> 
-	    collapse_edge_1(Edge, Vkeep, Rec, We);
-	none -> We
+    case array:get(Edge, Etab) of
+	undfined -> We;
+	Rec -> collapse_edge_1(Edge, Vkeep, Rec, We)
     end.
 
 fast_collapse_edge(Edge, #we{es=Etab}=We)->
-    #edge{vs=Vkeep,ve=Vremove} = Rec = gb_trees:get(Edge, Etab),
+    #edge{vs=Vkeep,ve=Vremove} = Rec = array:get(Edge, Etab),
     internal_collapse_edge(Edge, Vkeep, Vremove, Rec, We).
 
 %% collapse_vertices(Vs, We) -> We'
@@ -125,7 +124,7 @@ collapse_face_1(Face, We0) ->
 		   end, We2, NewV, We2),
 
 	    %% If no edges left, return the original object.
-	    case We == bad_edge orelse gb_trees:is_empty(We#we.es) of
+	    case We == bad_edge orelse wings_util:array_is_empty(We#we.es) of
 		true -> We0;
 		false -> We
 	    end
@@ -142,7 +141,7 @@ check_face_vertices([V|Vs], We) ->
 check_face_vertices([], _) -> ok.
 
 delete_edges(V, Edge, Face, {Etab0,Vct0,Vtab0,Ftab0,Htab0}) ->
-    Rec = gb_trees:get(Edge, Etab0),
+    Rec = array:get(Edge, Etab0),
 
     %% Patch all predecessors and successor of
     %% the edge we will remove.
@@ -156,7 +155,7 @@ delete_edges(V, Edge, Face, {Etab0,Vct0,Vtab0,Ftab0,Htab0}) ->
 	    end,
 
     %% Delete edge and vertex.
-    Etab = gb_trees:delete(Edge, Etab2),
+    Etab = array:reset(Edge, Etab2),
     Vct = gb_trees:delete(V, Vct0),
     Vtab = gb_trees:delete(V, Vtab0),
 
@@ -179,7 +178,7 @@ collapse_edges(Edges0, #we{id=Id,es=Etab}=We0, SelAcc)->
     We = foldl(fun collapse_edge/2, We0, Edges),
     check_consistency(We),
     Sel = foldl(fun(Edge, A) ->
-			#edge{vs=Va,ve=Vb} = gb_trees:get(Edge, Etab),
+			#edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
 			gb_sets:add(Va, gb_sets:add(Vb, A))
 		end, gb_sets:empty(), Edges),
     {We,[{Id,Sel}|SelAcc]}.
@@ -207,7 +206,7 @@ internal_collapse_edge(Edge, Vkeep, Vremove, Rec,
 		       #we{es=Etab0,he=Htab0,fs=Ftab0,
 			   vc=Vct0,vp=Vtab0}=We)->
     Etab1 = slim_patch_vtx_refs(Vremove, Vkeep, We, Etab0),
-    Etab2 = gb_trees:delete(Edge, Etab1),
+    Etab2 = array:reset(Edge, Etab1),
     Htab = gb_sets:delete_any(Edge, Htab0),
     Vct1 = gb_trees:delete(Vremove, Vct0),
 	    
@@ -366,21 +365,21 @@ slim_patch_vtx_refs(OldV, NewV, We, Acc) ->
       fun(Edge, _, Rec, Tab) ->
 	      case Rec of
 		  #edge{vs=OldV} ->
-		      gb_trees:update(Edge, Rec#edge{vs=NewV}, Tab);
+		      array:set(Edge, Rec#edge{vs=NewV}, Tab);
 		  #edge{ve=OldV} ->
-		      gb_trees:update(Edge, Rec#edge{ve=NewV}, Tab)
+		      array:set(Edge, Rec#edge{ve=NewV}, Tab)
 	      end
       end, Acc, OldV, We).
 
 patch_vtx_refs(OldV, NewV, We, {_,_}=Acc) ->
     wings_vertex:fold(
       fun(Edge, _, _, {_,Tab}=A) ->
-	      case gb_trees:lookup(Edge, Tab) of
-		  {value,#edge{vs=OldV}=Rec} ->
-		      {Edge,gb_trees:update(Edge, Rec#edge{vs=NewV}, Tab)};
-		  {value,#edge{ve=OldV}=Rec} ->
-		      {Edge,gb_trees:update(Edge, Rec#edge{ve=NewV}, Tab)};
-		  none -> A		%An deleted edge.
+	      case array:get(Edge, Tab) of
+		  #edge{vs=OldV}=Rec ->
+		      {Edge,array:set(Edge, Rec#edge{vs=NewV}, Tab)};
+		  #edge{ve=OldV}=Rec ->
+		      {Edge,array:set(Edge, Rec#edge{ve=NewV}, Tab)};
+		  undefined -> A		%An deleted edge.
 	      end
       end, Acc, OldV, We).
 
@@ -404,7 +403,7 @@ delete_bad_faces([], We) -> We.
 delete_if_bad(Face, #we{fs=Ftab,es=Etab}=We) ->
     case gb_trees:lookup(Face, Ftab) of
 	{value,Edge} ->
-	    case gb_trees:get(Edge, Etab) of
+	    case array:get(Edge, Etab) of
 		#edge{ltpr=Same,ltsu=Same,rtpr=Same,rtsu=Same} ->
 		    bad_edge;
 		#edge{ltpr=Same,ltsu=Same} ->

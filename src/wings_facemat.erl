@@ -4,7 +4,7 @@
 %%     This module keeps tracks of the mapping from a face number
 %%     to its material name.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -152,7 +152,7 @@ merge([#we{mat=M}|Wes]=L) when is_atom(M) ->
 merge(L) -> merge_1(L, []).
 
 merge_1([#we{mat=M,es=Etab}|T], Acc) when is_atom(M) ->
-    FsM = merge_2(gb_trees:values(Etab), M, []),
+    FsM = merge_2(array:sparse_to_list(Etab), M, []),
     merge_1(T, [FsM|Acc]);
 merge_1([#we{mat=FsMs}|T], Acc) ->
     merge_1(T, [FsMs|Acc]);

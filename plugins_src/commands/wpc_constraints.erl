@@ -707,7 +707,7 @@ add_edges(Axis,St) ->
 add_edges(Axis,Es,We) ->
     lists:foldl(fun(Edge,A)->
             #we{es=Etab} = We,
-            #edge{vs=Va,ve=Vb} = gb_trees:get(Edge,Etab),
+            #edge{vs=Va,ve=Vb} = array:get(Edge,Etab),
             Pos1 = wings_vertex:pos(Va,We),
             Pos2 = wings_vertex:pos(Vb,We),
             get_distance(Axis,Pos1,Pos2) + A
@@ -782,7 +782,7 @@ to_axis(Axis,#st{selmode=edge,shapes=Shs,sel=[{Id,Sel}]}=St) ->
     Vec1 = axis_conversion(Axis),
     We = gb_trees:get(Id, Shs),
     [Edge] = gb_sets:to_list(Sel),
-    #edge{vs=V0s,ve=V0e} = gb_trees:get(Edge, We#we.es),
+    #edge{vs=V0s,ve=V0e} = array:get(Edge, We#we.es),
     Pos1 = wings_vertex:pos(V0s, We),
     Pos2 = wings_vertex:pos(V0e, We),
     Vec2 = e3d_vec:sub(Pos1,Pos2),
@@ -806,8 +806,8 @@ measure_angle(Axis,#st{selmode=edge,shapes=Shs,sel=[{Id0,Sel0},{Id1,Sel1}]}) ->
     We1 = gb_trees:get(Id1, Shs),
     [E0] = gb_sets:to_list(Sel0),
     [E1] = gb_sets:to_list(Sel1),
-    #edge{vs=V0s,ve=V0e} = gb_trees:get(E0, We0#we.es),
-    #edge{vs=V1s,ve=V1e} = gb_trees:get(E1, We1#we.es),
+    #edge{vs=V0s,ve=V0e} = array:get(E0, We0#we.es),
+    #edge{vs=V1s,ve=V1e} = array:get(E1, We1#we.es),
     Pos1 = wings_vertex:pos(V0s, We0),
     Pos2 = wings_vertex:pos(V0e, We0),
     Pos3 = wings_vertex:pos(V1s, We1),
@@ -818,8 +818,8 @@ measure_angle(Axis,#st{selmode=edge,shapes=Shs,sel=[{Id0,Sel0},{Id1,Sel1}]}) ->
 measure_angle(Axis,#st{selmode=edge,shapes=Shs,sel=[{Id,Sel}]}) ->
     We = gb_trees:get(Id, Shs),
     [E0,E1] = gb_sets:to_list(Sel),
-    #edge{vs=V0s,ve=V0e} = gb_trees:get(E0, We#we.es),
-    #edge{vs=V1s,ve=V1e} = gb_trees:get(E1, We#we.es),
+    #edge{vs=V0s,ve=V0e} = array:get(E0, We#we.es),
+    #edge{vs=V1s,ve=V1e} = array:get(E1, We#we.es),
     Pos1 = wings_vertex:pos(V0s, We),
     Pos2 = wings_vertex:pos(V0e, We),
     Pos3 = wings_vertex:pos(V1s, We),

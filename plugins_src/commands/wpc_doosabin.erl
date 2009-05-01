@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for Doo-Sabin subdivision according to Wasamonkey.
 %%
-%%  Copyright (c) 2005-2008 Dan Gudmundsson, Wasamonkey
+%%  Copyright (c) 2005-2009 Dan Gudmundsson, Wasamonkey
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -44,12 +44,12 @@ command(_Cmd, _) -> next.
 
 doo_sabin(We0 = #we{es=Etab0, id=Id}, St0 = #st{shapes=Sh0,sel=OrigSel}) ->
     wings_pb:start(?__(1,"Doo-Sabin")),
-    OrigEdges = gb_trees:keys(Etab0),
+    OrigEdges = wings_util:array_keys(Etab0),
     %% Set all edges hard. 
     We1 = We0#we{he=gb_sets:from_ordset(OrigEdges)},
     wings_pb:update(0.25, ?__(2,"Smoothing pass1")),
     We2 = #we{es=Etab1} = wings_subdiv:smooth(We1),
-    SubdEdges = gb_trees:keys(Etab1),
+    SubdEdges = wings_util:array_keys(Etab1),
     wings_pb:update(0.70, ?__(3,"Smoothing pass 2")),
     We3 = wings_subdiv:smooth(We2),
     wings_pb:update(0.85, ?__(4,"Dissolving pass 1")),
@@ -70,7 +70,7 @@ doo_sabin(We0 = #we{es=Etab0, id=Id}, St0 = #st{shapes=Sh0,sel=OrigSel}) ->
     %% Step 2
     %% Find the SubdEdges loops
     wings_pb:update(0.98, ?__(5,"Dissolving pass 2")),
-    CurrEds = gb_sets:from_ordset(gb_trees:keys(We5#we.es)),
+    CurrEds = gb_sets:from_ordset(wings_util:array_keys(We5#we.es)),
     SubdEdges2 = gb_sets:intersection(gb_sets:from_ordset(SubdEdges),CurrEds),
      St2 = St0#st{sel=[{Id,SubdEdges2}],
 		 shapes=gb_trees:update(Id,We5,Sh0)},
