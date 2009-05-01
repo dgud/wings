@@ -1840,7 +1840,9 @@ remap(proj_lsqcm, _, Sel, We0, St = #st{selmode=face}) ->
 		      {V,{S,T}}
 		  end || V <- SelVs],
 	remap(lsqcm, Pinned, Sel, We0, St)
-    catch throw:What ->
+    catch throw:{_,What} ->
+	    wpa:error(What);
+	      throw:What ->
 	    wpa:error(What)
     end;
 remap(Type, Pinned, _, We0, St) ->
