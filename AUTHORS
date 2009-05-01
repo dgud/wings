@@ -1,10 +1,32 @@
-$Id: AUTHORS,v 1.32 2005/06/01 14:27:11 dgud Exp $
+Currently active developers
+===========================
+
+Richard Jones (Optigon):
+	Major updates to the Tweak plug-in.
+	The original author of many plug-ins, for instance
+	Circularise, Constraints, Contour, and Sweep Extrude.	
+	Added many features and corrected many bugs.
 
 Björn Gustavsson:
-	Has written the bulk of code.
+        Releases the Wings releases.
+	Occasionally corrects bugs and does minor improvements.
+
+Andrzej Giniewicz
+
+Dan Gudmundsson
+
+
+History of Wings Developement
+=============================
+
+In roughly chronological order, here are most of the developers
+that have taken part in the development of Wings.
+
+Björn Gustavsson:
 	Started writing Wings beginning of April 2001.
 	Most of the Nendo functionality (except Rotate Free/Plane Cut)
 	was in place in the middle of July 2001.
+	Was the principal developer of Wings to the beginning of 2005.
 
 Jakob Cederlund:
 	Implemented the Tube, Cone, Sphere, and Torus objects.
@@ -26,7 +48,9 @@ Vlad Dumitrescu: Bugfix for middle-mouse button emulation.
 Patrik Nyblom: User interface plugins for file dialogs. Makefiles for Windows.
 
 Anthony D'Agostino: Provided me with info on the NDO format.
-	Wrote the Torus Knot, Torus, and Plane plug-ins
+	Wrote the Torus Knot, Torus, and Plane plug-ins.
+	Implemented the themes.
+	Added the OpenGL shaders (View | Shaders).
 
 Gregg Griffin: Designed icons and the new look of Wings.
 
@@ -91,20 +115,9 @@ Paul M (elrond79):
 	Improved 3DS import so that all triangles are converted to polygons
 	(unless doing so would create holes or create isolated vertices).
 
-Nicolas Bouillard (syndarion):
-	French translation.
-
-Libor Divis:
-	Czech translation.
-
-Luiz Fonte Boa:
-	Portuguese translation.
-
-A. Giniewicz, M. Napiontek, and K. Giniewicz:
-	Polish translation.
-
-Tapio Ryynänen / Mostlymop:
-	Finnish translation.	
+Andrzej Giniewicz (Giniu):
+	Implemented the Absolute Scale and Move commands.
+	Miscellanous improvements and bug fixes.
 
 Benjamin Burnett (Gordo):
 	 Designed the new icon and splash screen for Wings 1.0.
@@ -116,3 +129,27 @@ Auto-UV credits
 Dan Gudmundsson (idea; principal author)
 Bjorn Gustavsson
 Raimo Niskanen (implemented the Least Square Conformal Map algorithm)
+
+
+Translators
+===========
+
+Czech: Libor Divis
+
+Finnish: Tapio Ryynänen (Mostlymop)
+
+French: Nicolas Bouillard (syndarion)
+
+German: Torsten Manz
+
+Italian: Riccardo Venier
+
+Polish: A. Giniewicz, M. Napiontek, K. Giniewicz, Maciej Milewski
+
+Portuguese: Luiz Fonte Boa.
+
+Russian: Paul Geraskin
+
+Swedish: Dan Gudmundsson, Björn Gustavsson
+
+Turkish: Devilgreen
