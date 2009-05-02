@@ -1,6 +1,7 @@
 --- 1.0-rc2 -----------------------------------------------------------------
 - Updated the build instructions in the BUILD.unix and BUILD.win32 files
-  (mostly to note that R13B is now required). [bjorng]
+  (mostly to note that R13B is now required). Also updated the
+  AUTHORS file. [bjorng]
 
 - The icon in top left corner of the Wings windows (in Windows) was still
   the old one, and so was the icon on the application switching screen (Alt+Tab

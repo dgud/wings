@@ -7,7 +7,7 @@ Richard Jones (Optigon):
 	Circularise, Constraints, Contour, and Sweep Extrude.	
 	Added many features and corrected many bugs.
 
-Björn Gustavsson:
+Björn Gustavsson (bjorng):
         Releases the Wings releases.
 	Occasionally corrects bugs and does minor improvements.
 
@@ -15,6 +15,19 @@ Andrzej Giniewicz
 
 Dan Gudmundsson
 
+Special contributors
+====================
+
+Mike Owen (roadtoad):
+        Started the "Wings3D - Official Development Forum".
+	Created the Octotoad primitive.
+
+Paul Budd (puzzledpaul):
+        Tested an almost endless number of Wings releases, and
+	suggested new features for improving the workflow.
+	Created "aardvarks" - a resource pages with tutorials,
+	notes and information about Wings. Now at:
+	http://www.wings3d.com.br/paulthepuzzles/aardvarks.html
 
 History of Wings Developement
 =============================
@@ -120,8 +133,10 @@ Andrzej Giniewicz (Giniu):
 	Miscellanous improvements and bug fixes.
 
 Benjamin Burnett (Gordo):
-	 Designed the new icon and splash screen for Wings 1.0.
+	Designed the new icon and splash screen for Wings 1.0.
 
+Chris Hegarty (Avariant):
+        Implemented the (new) Povray exporter and the Kerkythea exporter.
 
 Auto-UV credits
 ===============
