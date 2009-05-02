@@ -2,6 +2,15 @@
 - Updated the build instructions in the BUILD.unix and BUILD.win32 files
   (mostly to note that R13B is now required). [bjorng]
 
+- The icon in top left corner of the Wings windows (in Windows) was still
+  the old one, and so was the icon on the application switching screen (Alt+Tab
+  in Windows). I have now replaced the icon with the new one, but unfortunately
+  I could not use any transparancy so I had to pick a light gray color
+  that at least in Windows XP is not that noticeable. (This particular icon
+  is set through SDL and SDL only allows a hard-edged mask which would have
+  made the edges look jagged; furthermore, bugs in ESDL and SDL prevented me
+  to set even a hard-edged mask.) [bjorng]
+
 --- 1.0-rc1 -----------------------------------------------------------------
 - This is the first release candiate for the long-awaited Wings 1.0 release.
   Until 1.0 is released, we will only fix bugs. [bjorng]

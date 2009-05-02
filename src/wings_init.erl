@@ -3,7 +3,7 @@
 %%
 %%     Initialization of Wings video and event handling.
 %%
-%%  Copyright (c) 2003-2005 Bjorn Gustavsson
+%%  Copyright (c) 2003-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -31,9 +31,7 @@ init() ->
     wings_pref:set_default(window_size, {780,570}),
     TopSize = wings_pref:get_value(window_size),
     sdl:init(?SDL_INIT_VIDEO bor ?SDL_INIT_NOPARACHUTE),
-    Ebin = filename:dirname(code:which(?MODULE)),
-    IconFile = filename:join(Ebin, "wings.icon"),
-    catch sdl_video:wm_setIcon(sdl_video:loadBMP(IconFile), null),
+    set_icon(),
     sdl_video:gl_setAttribute(?SDL_GL_DOUBLEBUFFER, 1),
 
     %% Make sure that some video mode works. Otherwise crash early.
@@ -65,6 +63,15 @@ init() ->
     sdl_keyboard:enableKeyRepeat(?SDL_DEFAULT_REPEAT_DELAY,
 				 ?SDL_DEFAULT_REPEAT_INTERVAL),
     ok.
+
+set_icon() ->
+    Ebin = filename:dirname(code:which(?MODULE)),
+    IconFile = filename:join(Ebin,
+			     case os:type() of
+				 {unix,darwin} -> "wings_icon_big.bmp";
+				 _ -> "wings_icon_small.bmp"
+			     end),
+    catch sdl_video:wm_setIcon(sdl_video:loadBMP(IconFile), null).
 
 macosx_workaround() ->
     try 1.0/zero()
