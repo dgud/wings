@@ -4,7 +4,7 @@
 %%     Render all objects and helpers (such as axes) in the scene.
 %%     Used for the Geometry and AutoUV windows.
 %%
-%%  Copyright (c) 2001-2006 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -15,6 +15,8 @@
 -module(wings_render).
 -export([init/0, render/1,polygonOffset/1,
 	 enable_lighting/0, disable_lighting/0]).
+
+-import(erlang, [max/2]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -369,7 +371,7 @@ edge_width(edge) -> wings_pref:get_value(edge_width);
 edge_width(_) -> 1.
 
 hard_edge_width(edge) -> wings_pref:get_value(hard_edge_width);
-hard_edge_width(_) -> wings_pref:get_value(hard_edge_width) -1.
+hard_edge_width(_) -> max(wings_pref:get_value(hard_edge_width) - 1, 1).
 
 draw_plugins(Flag,D,Selmode) ->
     wings_plugin:draw(Flag, D, Selmode).
