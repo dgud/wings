@@ -164,68 +164,66 @@ get_edge_info(Vert1,Vert2,We) ->
    {RemoveEdge,LF,RF,FixMe}.
 
 fix_edge(Vert1,Vert2,RemoveEdge,FixMe,LF,RF,We) ->
-   New = gb_trees:empty(),
    ABTransform = calculate_ab(Vert1,Vert2,LF,RF,We),
-   Etab = fix_edge_1(Vert1,Vert2,RemoveEdge,ABTransform,We#we.es,We,New),
-   foldl(fun(Face,ParseEtab) -> remove_face(Face,ParseEtab) end,Etab,FixMe).
+   SurEs = gb_sets:delete(RemoveEdge,gb_sets:from_list(wings_face:to_edges(wings_face:from_vs([Vert1,Vert2], We),We))),
+   Etab0 = array:reset(RemoveEdge, We#we.es),
+   Etab = fix_edge_1(Vert1,Vert2,RemoveEdge,ABTransform,SurEs,We,Etab0),
+   foldl(fun(Face,ParseEtab) -> remove_face(Face,ParseEtab,SurEs) end,Etab,FixMe).
 
-fix_edge_1(Vert1,Vert2,RemoveEdge,ABTransform,Es,Orig,Result) ->
-   case array:sparse_size(Es) of
-      0 -> Result;
-      _ ->
-         {Key,#edge{vs=V1,ve=V2,a=C1,b=C2,lf=LF,rf=RF,ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS},Es2} = gb_trees:take_smallest(Es),
-         if
-            Key == RemoveEdge -> fix_edge_1(Vert1,Vert2,RemoveEdge,ABTransform,Es2,Orig,Result);
-            true ->
-               #edge{lf=OLF,rf=ORF,ltpr=OLP,ltsu=OLS,rtpr=ORP,rtsu=ORS} = gb_trees:get(RemoveEdge,Orig#we.es),
-               case V1 of
-                  Vert1 -> NV1=Vert2,
-                           NC1=transformAB(C1,ABTransform);
-                  _ -> NV1=V1,
-                       NC1=C1
-               end,
-               case V2 of
-                  Vert1 -> NV2=Vert2,
-                           NC2=transformAB(C2,ABTransform);
-                  _ -> NV2=V2,
-                       NC2=C2
-               end,
-               case LP of
-                  RemoveEdge ->
-                     if
-                        LF == OLF -> NLP = OLP;
-                        true -> NLP = ORP
-                     end;
-                  _ -> NLP = LP
-               end,
-               case LS of
-                  RemoveEdge ->
-                     if
-                        LF == OLF -> NLS = OLS;
-                        true -> NLS = ORS
-                     end;
-                  _ -> NLS = LS
-               end,
-               case RP of
-                  RemoveEdge ->
-                     if
-                        RF == ORF -> NRP = ORP;
-                        true -> NRP = OLP
-                     end;
-                  _ -> NRP = RP
-               end,
-               case RS of
-                  RemoveEdge ->
-                     if
-                        RF == ORF -> NRS = ORS;
-                        true -> NRS = OLS
-                     end;
-                  _ -> NRS = RS
-               end,
-               NewEdge = #edge{vs=NV1,ve=NV2,a=NC1,b=NC2,lf=LF,rf=RF,ltpr=NLP,ltsu=NLS,rtpr=NRP,rtsu=NRS},
-               Result2 = gb_trees:insert(Key,NewEdge,Result),
-               fix_edge_1(Vert1,Vert2,RemoveEdge,ABTransform,Es2,Orig,Result2)
-         end
+fix_edge_1(Vert1,Vert2,RemoveEdge,ABTransform,SurEs,Orig,Result) ->
+   case gb_sets:is_empty(SurEs) of
+      true -> Result;
+      false ->
+         {Edge,SurEs2} = gb_sets:take_smallest(SurEs),
+         #edge{vs=V1,ve=V2,a=C1,b=C2,lf=LF,rf=RF,ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} = array:get(Edge,Orig#we.es),
+         #edge{lf=OLF,rf=ORF,ltpr=OLP,ltsu=OLS,rtpr=ORP,rtsu=ORS} = array:get(RemoveEdge,Orig#we.es),
+         case V1 of
+            Vert1 -> NV1=Vert2,
+                     NC1=transformAB(C1,ABTransform);
+            _ -> NV1=V1,
+                 NC1=C1
+         end,
+         case V2 of
+            Vert1 -> NV2=Vert2,
+                     NC2=transformAB(C2,ABTransform);
+            _ -> NV2=V2,
+                 NC2=C2
+         end,
+         case LP of
+            RemoveEdge ->
+               if
+                  LF == OLF -> NLP = OLP;
+                  true -> NLP = ORP
+               end;
+            _ -> NLP = LP
+         end,
+         case LS of
+            RemoveEdge ->
+               if
+                  LF == OLF -> NLS = OLS;
+                  true -> NLS = ORS
+               end;
+            _ -> NLS = LS
+         end,
+         case RP of
+            RemoveEdge ->
+               if
+                  RF == ORF -> NRP = ORP;
+                  true -> NRP = OLP
+               end;
+            _ -> NRP = RP
+         end,
+         case RS of
+            RemoveEdge ->
+               if
+                  RF == ORF -> NRS = ORS;
+                  true -> NRS = OLS
+               end;
+            _ -> NRS = RS
+         end,
+         NewEdgeData = #edge{vs=NV1,ve=NV2,a=NC1,b=NC2,lf=LF,rf=RF,ltpr=NLP,ltsu=NLS,rtpr=NRP,rtsu=NRS},
+         Result2 = array:set(Edge,NewEdgeData,Result),
+         fix_edge_1(Vert1,Vert2,RemoveEdge,ABTransform,SurEs2,Orig,Result2)
    end.
 
 fix_mat(FixMe,We) ->
@@ -237,21 +235,21 @@ fix_hardedge(Etab,He) ->
    fix_hardedge(Etab,He,New).
 
 fix_hardedge(Etab,He,Result) ->
-   case gb_sets:size(He) of
-      0 -> Result;
-      _ -> 
+   case gb_sets:is_empty(He) of
+      true -> Result;
+      false -> 
          {Edge,He2} = gb_sets:take_smallest(He),
-         case gb_trees:is_defined(Edge, Etab) of
-            true -> Result2 = gb_sets:add(Edge,Result);
+	   case array:get(Edge, Etab) of
+            #edge{} -> Result2 = gb_sets:add(Edge,Result);
             _ -> Result2 = Result
          end,
          fix_hardedge(Etab,He2,Result2)
    end.
 
-remove_face(Face,Etab) ->
-   [Key1,Key2]=find_edge(Face,Etab),
-   OldEdge = gb_trees:get(Key1,Etab),
-   NewEdge = gb_trees:get(Key2,Etab),
+remove_face(Face,Etab,SurEs) ->
+   [Key1,Key2]=find_edge(Face,Etab,SurEs),
+   OldEdge = array:get(Key1,Etab),
+   NewEdge = array:get(Key2,Etab),
    K1 = find_edge_to_face(OldEdge,Face),
    K2 = find_edge_to_face(NewEdge,Face),
    if
@@ -270,22 +268,23 @@ remove_face(Face,Etab) ->
                NewEdge2=NewEdge#edge{a=OldEdge#edge.a, lf=OldEdge#edge.lf, ltpr=OldEdge#edge.ltpr, ltsu=OldEdge#edge.ltsu}
          end
    end,
-   Etab2 = gb_trees:update(Key2,NewEdge2,Etab),
-   Etab3 = gb_trees:delete(Key1,Etab2),
-   substitute(Key1,Key2,Etab3).
+   Etab2 = array:set(Key2,NewEdge2,Etab),
+   Etab3 = array:reset(Key1,Etab2),
+   substitute(Key1,Key2,Etab3,SurEs).
 
-substitute(This,WithThis,Etab) ->
-   New = gb_trees:empty(), 
-   substitute(This,WithThis,Etab,New).
-
-substitute(This,WithThis,Etab,New) ->
-   case gb_trees:size(Etab) of 
-      0 -> New;
-      _ ->
-         {Key,Edge,Etab2} = gb_trees:take_smallest(Etab),
-         NewEdge = substitute_1(This,WithThis,Edge),
-         New2 = gb_trees:insert(Key,NewEdge,New),
-         substitute(This,WithThis,Etab2,New2)
+substitute(This,WithThis,Etab,SurEs) ->
+   case gb_sets:is_empty(SurEs) of 
+      true -> Etab;
+      false ->
+         {Edge,SurEs2} = gb_sets:take_smallest(SurEs),
+         Etab2 = case catch array:get(Edge,Etab) of
+             #edge{}=EdgeRec ->
+                 NewEdge = substitute_1(This,WithThis,EdgeRec),
+                 array:set(Edge,NewEdge,Etab);
+             _otherwise ->
+                 Etab
+         end,
+         substitute(This,WithThis,Etab2,SurEs2)
    end.
 
 substitute_1(This,WithThis,Edge) ->
@@ -307,19 +306,20 @@ substitute_1(This,WithThis,Edge) ->
    end,
    Edge#edge{ltsu=Ltsu, ltpr=Ltpr, rtsu=Rtsu, rtpr=Rtpr}.
 
-find_edge(Face,Etab) ->
-   find_edge(Face,Etab,[]).
+find_edge(Face,Etab,SurEs) ->
+   find_edge(Face,Etab,SurEs,[]).
 
-find_edge(Face,Es,Result) ->
-   case gb_trees:size(Es) of
-      0 -> Result;
-      _ ->
-         {Key,#edge{lf=LF,rf=RF},Es2} = gb_trees:take_smallest(Es),
-         if
-            (LF == Face) or (RF == Face) -> Result2=[Key|Result];
-            true -> Result2=Result
-         end,
-         find_edge(Face,Es2,Result2)
+find_edge(Face,Etab,SurEs,Result) ->
+   case gb_sets:is_empty(SurEs) of
+      true -> Result;
+      false ->
+         {Edge,SurEs2} = gb_sets:take_smallest(SurEs),
+          Result2 = case catch array:get(Edge,Etab) of
+             #edge{lf=Face} -> [Edge|Result];
+             #edge{rf=Face} -> [Edge|Result];
+             _otherwise -> Result
+          end,
+         find_edge(Face,Etab,SurEs2,Result2)
    end.
 
 find_edge_to_face(#edge{lf=Face},Face) -> left;

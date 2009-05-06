@@ -53,7 +53,7 @@ collapse_edge(Edge, #we{es=Etab}=We)->
 
 collapse_edge(Edge, Vkeep, #we{es=Etab}=We)->
     case array:get(Edge, Etab) of
-	undfined -> We;
+	undefined -> We;
 	Rec -> collapse_edge_1(Edge, Vkeep, Rec, We)
     end.
 
