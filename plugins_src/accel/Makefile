@@ -13,7 +13,11 @@
 OS := $(shell uname -s)
 
 ifeq ($(findstring CYGWIN,$(OS)),CYGWIN)
-  CYGWIN := true
+  USEMINGWGCC := true
+endif
+
+ifeq ($(MSYSTEM),MINGW32)
+  USEMINGWGCC := true
 endif
 
 LIBDIR = ../../plugins/accel
@@ -24,7 +28,7 @@ BEAM = $(LIBDIR)/wpc_ogla.beam \
 	$(LIBDIR)/wpc_pnoise.beam \
 	$(LIBDIR)/pnoise.beam
 
-ifdef CYGWIN
+ifdef USEMINGWGCC
  SO_EXT = dll
  LIBS = -shared
  GL_LIBS = -lopengl32 -lglu32
