@@ -323,12 +323,12 @@ seg_command(Cmd, #seg{st=#st{mat=Mat}=St0}=Ss) ->
 seg_command_debug(_, _) -> keep.
 -else.
 seg_command_debug({debug,select_features}, #seg{we=#we{id=Id}=We,st=St}=Ss) ->
-    Tot = gb_trees:size(We#we.es),
+    Tot = array:sparse_size(We#we.es),
     {Es,_,_} = auv_segment:find_features(We, 60, Tot div 50),
     Sel = [{Id,gb_sets:from_list(Es)}],
     get_seg_event(Ss#seg{st=St#st{selmode=edge,sel=Sel}});
 seg_command_debug({debug,select_seeds}, #seg{we=#we{id=Id}=We,st=St}=Ss) ->
-    Tot = gb_trees:size(We#we.es),
+    Tot = array:sparse_size(We#we.es),
     {Features,_,_} = auv_segment:find_features(We, 60, Tot div 50),
     {Seeds0,_} = auv_segment:build_seeds(Features, We),
     Seeds = [S || {_,S} <- Seeds0],

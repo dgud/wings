@@ -279,7 +279,7 @@ filter_hl(_, _) -> true.  %% Debug connection
 %% filter_hl({edge,_,{Shape,Edge}}, #cs{last=Id,st=#st{shapes=Sh}}) ->
 %%     We = #we{es=Es} = gb_trees:get(Shape,Sh),
 %%     Ok = vertex_fs(Id, We),
-%%     #edge{lf=F1,rf=F2} = gb_trees:get(Edge, Es),
+%%     #edge{lf=F1,rf=F2} = array:get(Edge, Es),
 %%     Fs = ordsets:from_list([F1,F2]),
 %%     length(ordsets:intersection(Fs,Ok)) == 1;
 %% filter_hl({vertex,_,{_,Id1}}, #cs{last=Id1}) -> true; %% Allow quitting

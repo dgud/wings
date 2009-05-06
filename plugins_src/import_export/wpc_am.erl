@@ -344,7 +344,7 @@ pel_for(E, Edge, Vs) ->
 	end.
 
 pel_for(E, #we{es=Es}) ->
-	#edge{vs=Vs,ve=Ve} = gb_trees:get(E, Es),
+	#edge{vs=Vs,ve=Ve} = array:get(E, Es),
 	#pel{vs=Vs,ve=Ve,e=E,dir=forward}.
 
 canon(Pels) ->
@@ -419,7 +419,7 @@ assign(#sst{nextid=I0,eunmapped=Eu,we=We,emap=Emap,smap=Smap}=Sst) ->
 % Return {goodness,best_succ_pel,E} : the goodness ( smaller == better) and best successor
 % pel to edge E.  "best" means closer to straight.
 bestsucc(E, #we{es=Emap,vp=Vpmap}=We) ->
-	#edge{vs=Vs,ve=Ve} = gb_trees:get(E, Emap),
+	#edge{vs=Vs,ve=Ve} = array:get(E, Emap),
 	Vspos = gb_trees:get(Vs, Vpmap),
 	Vepos = gb_trees:get(Ve, Vpmap),
 	Pels = out_pels(Ve, Vs, We),

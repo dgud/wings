@@ -247,7 +247,7 @@ dump_we(F, #we{name=Name,id=Id,mode=Mode,es=Etab,fs=Ftab,
     io:format(F, "=======================\n", []),
     io:format(F, "   mode=~p next_id=~p\n", [Mode,Next]),
     dump_faces(F, gb_trees:to_list(Ftab)),
-    dump_edges(F, gb_trees:to_list(Etab)).
+    dump_edges(F, array:sparse_to_list(Etab)).
     
 dump_edges(F, Es) ->
     io:put_chars(F, "\n"),

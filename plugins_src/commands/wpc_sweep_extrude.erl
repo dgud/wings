@@ -298,16 +298,16 @@ loop_data_1(Es0, Fs, Etab, Vtab, M, LNorms, Vs0) ->
     end.
 
 loop_data_2(Edge, Edge, Es, Fs, Etab, Vtab, M, Vs) ->
-    E = gb_trees:get(Edge, Etab),
+    E = array:get(Edge, Etab),
     #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,ltsu=NextLeft,rtsu=NextRight} = E,
     case gb_sets:is_member(Rf,Fs) of
       true ->
         VpA = gb_trees:get(Va,Vtab),
-        EData = gb_trees:get(NextLeft,Etab),
+        EData = array:get(NextLeft,Etab),
         loop_data_3(NextLeft, EData, Edge, Es, Fs, Lf, Va, VpA, Etab, Vtab, M, [], Vs, 0);
       false ->
         VpB = gb_trees:get(Vb,Vtab),
-        EData = gb_trees:get(NextRight,Etab),
+        EData = array:get(NextRight,Etab),
         loop_data_3(NextRight, EData, Edge, Es, Fs, Rf, Vb, VpB, Etab, Vtab, M, [], Vs, 0)
     end.
 
@@ -340,7 +340,7 @@ loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=PrevF,rf=Face,rtsu=NextEdge,ltsu=IfCurIsMe
         LastE, Es0, Fs, PrevF, Vb, VpB, Etab, Vtab, M, VPs0, Vs0, Links) ->
     case gb_sets:is_member(CurE,Es0) of
       true ->
-        EData = gb_trees:get(IfCurIsMember,Etab),
+        EData = array:get(IfCurIsMember,Etab),
         Es = gb_sets:delete(CurE,Es0),
         VpA = gb_trees:get(Va,Vtab),
         case M == PrevF of
@@ -352,7 +352,7 @@ loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=PrevF,rf=Face,rtsu=NextEdge,ltsu=IfCurIsMe
             loop_data_3(IfCurIsMember,EData,LastE,Es,Fs,Face,Va,VpA,Etab,Vtab,M,VPs0,Vs0,Links)
         end;
       false ->
-        EData = gb_trees:get(NextEdge,Etab),
+        EData = array:get(NextEdge,Etab),
         loop_data_3(NextEdge, EData, LastE, Es0, Fs, Face, Vb, VpB, Etab, Vtab, M, VPs0, Vs0, Links)
     end;
 
@@ -360,7 +360,7 @@ loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevF,ltsu=NextEdge,rtsu=IfCurIsMe
         LastE, Es0, Fs, PrevF, Va, VpA, Etab, Vtab, M, VPs0, Vs0, Links) ->
     case gb_sets:is_member(CurE,Es0) of
       true ->
-        EData = gb_trees:get(IfCurIsMember,Etab),
+        EData = array:get(IfCurIsMember,Etab),
         Es = gb_sets:delete(CurE,Es0),
         VpB = gb_trees:get(Vb,Vtab),
         case M == PrevF of
@@ -372,7 +372,7 @@ loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevF,ltsu=NextEdge,rtsu=IfCurIsMe
             loop_data_3(IfCurIsMember,EData,LastE,Es,Fs,Face,Vb,VpB,Etab,Vtab,M,VPs0,Vs0,Links)
         end;
       false ->
-        EData = gb_trees:get(NextEdge,Etab),
+        EData = array:get(NextEdge,Etab),
         loop_data_3(NextEdge, EData, LastE, Es0, Fs, Face, Va, VpA, Etab, Vtab, M, VPs0, Vs0, Links)
     end.
 
