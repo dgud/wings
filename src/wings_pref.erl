@@ -128,7 +128,7 @@ prune_defaults(List) ->
 win32_save_maximized() ->
     case os:type() of
 	{win32,_} ->
-	    set_value(win32_start_maximized, sdl_video:wm_isMaximized());
+	    set_value(win32_start_maximized, wings_io:is_maximized());
 	_ ->
 	    ok
     end.

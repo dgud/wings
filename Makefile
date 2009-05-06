@@ -18,6 +18,14 @@ all:
 	(cd plugins_src; $(MAKE))
 	(cd icons; $(MAKE))
 
+wx:
+	(cd intl_tools; $(MAKE))
+	(cd src; $(MAKE) wx)
+	(cd fonts_src; $(MAKE))
+	(cd e3d; $(MAKE))
+	(cd plugins_src; $(MAKE))
+	(cd icons; $(MAKE))
+
 debug:
 	(cd intl_tools; $(MAKE) debug)
 	(cd src; $(MAKE) debug)

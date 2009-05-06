@@ -401,7 +401,7 @@ do_dialog(Title, Qs, Level, Fun) ->
     Name = {dialog,hd(Level)},
     setup_blanket(Name, Fi, Store),
     Op = get_event(S),				%No push - replace crash handler.
-    {_,Xm,Ym} = sdl_mouse:getMouseState(),
+    {_,Xm,Ym} = wings_io:get_mouse_state(),
     wings_wm:toplevel(Name, Title, {Xm,Ym-?LINE_HEIGHT}, {W,H}, 
 		      [{anchor,n}], Op),
     wings_wm:set_prop(Name, drag_filter, fun(_) -> yes end),
@@ -443,11 +443,11 @@ blanket(#mousebutton{button=1,state=?SDL_RELEASED,x=X0,y=Y0}, Dialog, true) ->
     {X,Y0} = wings_wm:local2global(X0, Y0),
     {_,H} = wings_wm:top_size(),
     Y = H - Y0,
-    Mem = sdl_util:alloc(3, ?GL_UNSIGNED_BYTE),
+    Mem = wings_io:get_buffer(3, ?GL_UNSIGNED_BYTE),
     gl:readBuffer(?GL_FRONT),
     gl:readPixels(X, Y, 1, 1, ?GL_RGB, ?GL_UNSIGNED_BYTE, Mem),
     gl:readBuffer(?GL_BACK),
-    [R,G,B] = sdl_util:read(Mem, 3),
+    [R,G,B] = wings_io:read_buffer(Mem, ?GL_UNSIGNED_BYTE, 3),
     Col = {R/255,G/255,B/255},
     wings_wm:send(Dialog, {picked_color,Col}),
     keep;

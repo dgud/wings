@@ -694,11 +694,11 @@ view_changed(#drag{flags=Flags}=Drag0) ->
 	    case member(keep_drag,Flags) of
 	      true ->
 	        wings_dl:map(fun view_changed_fun/2, []),
-	        {_,X,Y} = sdl_mouse:getMouseState(),
+	        {_,X,Y} = wings_io:get_mouse_state(),
 	        Drag0#drag{x=X,y=Y};
 	      false ->
 	    wings_dl:map(fun view_changed_fun/2, []),
-	    {_,X,Y} = sdl_mouse:getMouseState(),
+	    {_,X,Y} = wings_io:get_mouse_state(),
 	        Drag0#drag{x=X,y=Y,xs=0,ys=0,zs=0,fp=0,psum=[0,0,0,0]}
 	    end
     end.

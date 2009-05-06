@@ -447,7 +447,7 @@ is_all_inside_rect([P|Ps], Rect) ->
 is_all_inside_rect([], _Rect) -> true.
 
 is_inside_rect({Px,Py,Pz}, {MM,PM,ViewPort,X1,Y1,X2,Y2}) ->
-    {Sx,Sy,_} = glu:project(Px, Py, Pz, MM, PM, ViewPort),
+    {Sx,Sy,_} = wings_gl:project(Px, Py, Pz, MM, PM, ViewPort),
     X1 < Sx andalso Sx < X2 andalso
 	Y1 < Sy andalso Sy < Y2.
 
@@ -697,8 +697,8 @@ find_edge(Face, We, Cx, Cy, Trans) ->
 
 project_vertex(V, We, {ModelMatrix,ProjMatrix,ViewPort}) ->
     {Px,Py,Pz} = wings_vertex:pos(V, We),
-    {Xs,Ys,_} = glu:project(Px, Py, Pz, ModelMatrix,
-			    ProjMatrix, ViewPort),
+    {Xs,Ys,_}  = wings_gl:project(Px, Py, Pz, ModelMatrix,
+				  ProjMatrix, ViewPort),
     {Xs,Ys}.
 
 check_restriction({Mode,MM,_}=Hilite, Id, V, Edge, Face) ->

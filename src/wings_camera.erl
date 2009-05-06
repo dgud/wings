@@ -459,7 +459,7 @@ tds_help() ->
 maya(#mousebutton{x=X0,y=Y0,mod=Mod,state=?SDL_PRESSED}, Redraw)
   when Mod band ?ALT_BITS =/= 0, Mod band ?CTRL_BITS =:= 0, Mod band ?SHIFT_BITS =:= 0 ->
     {X,Y} = wings_wm:local2global(X0, Y0),
-    sdl_events:eventState(?SDL_KEYUP, ?SDL_ENABLE),
+    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_ENABLE),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),
     message(maya_help()),
@@ -473,7 +473,7 @@ maya_event(#keyboard{sym=Alt,state=?SDL_RELEASED},
     maya_stop_camera(Camera);
 maya_event(#mousebutton{button=B,state=?SDL_RELEASED}, Camera, _)
   when B < 4 ->
-    case sdl_mouse:getMouseState() of
+    case wings_io:get_mouse_state() of
 	{0,_,_} ->
 	    %% Exit camera mode if all mouse buttons released.
 	    maya_stop_camera(Camera);
@@ -503,7 +503,7 @@ get_maya_event(Camera, Redraw) ->
     {replace,fun(Ev) -> maya_event(Ev, Camera, Redraw) end}.
 
 maya_stop_camera(Camera) ->
-    sdl_events:eventState(?SDL_KEYUP, ?SDL_IGNORE),
+    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_IGNORE),
     stop_camera(Camera).
 
 maya_help() ->

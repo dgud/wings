@@ -1,7 +1,7 @@
 %%
 %%  wings_io.erl --
 %%
-%%     This module contains most of the low-level GUI for Wings.
+%%     This module is a wrapper for the different backends
 %%
 %%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
@@ -12,9 +12,20 @@
 %%
 
 -module(wings_io).
--export([init/0,resize/0,
+
+-export([init/0,quit/0,
+	 resize/0,
 	 set_cursor/1,hourglass/0,eyedropper/0,
-	 info/1,
+	 info/1, version_info/0,
+
+	 is_maximized/0, set_title/1, reset_video_mode_for_gl/2,
+	 change_event_handler/2,
+	 set_icon/1, get_mask/1,
+
+	 get_buffer/2, read_buffer/3, get_bin/1,
+	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
+	 get_process_option/0,set_process_option/1,
+
 	 blend/2,
 	 border/5,border/6,border_only/4,border_only/5,
 	 gradient_border/5,gradient_border/7,
@@ -30,6 +41,9 @@
 
 -export([reset_grab/0,grab/0,ungrab/2,is_grabbed/0,warp/2]).
 -export([ortho_setup/0,ortho_setup/1]).
+-export([swapBuffers/0]).
+
+-export([put_state/1, get_state/0]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -38,44 +52,172 @@
 -import(erlang, [max/2]).
 -import(lists, [flatmap/2,keysearch/3,member/2,reverse/1,reverse/2]).
 
--define(ICON_WIDTH, 32).
--define(ICON_HEIGHT, 28).
+-ifdef(USE_WX).
+-define(BACKEND_MOD, wings_io_wx).
+-else.
+-define(BACKEND_MOD, wings_io_sdl).
+-endif.
 
--define(TX_WIDTH, 256).
--define(TX_HEIGHT, 128).
-
--define(EVENT_QUEUE, wings_io_event_queue).
--define(ACTIVE_TX, wings_io_active_tx).
-
--record(io,
-	{tex=[],				%Textures.
-	 grab_count=0,				%Number of grabs.
-	 cursors,				%Mouse cursors.
-	 raw_icons				%Raw icon bundle.
-	}).
+%% Init and Quit
 
 init() ->
-    Cursors = build_cursors(),
     Icons = read_icons(),
     put(?EVENT_QUEUE, queue:new()),
-    put_state(#io{raw_icons=Icons,cursors=Cursors}).
+    ?BACKEND_MOD:init(Icons).
 
-hourglass() ->
-    set_cursor(hourglass).
+quit() ->
+    ?BACKEND_MOD:quit().
+
+swapBuffers() ->
+    ?BACKEND_MOD:swapBuffers().
+
+get_process_option() ->
+    ?BACKEND_MOD:get_process_option().
+
+set_process_option(Opts) ->
+    ?BACKEND_MOD:set_process_option(Opts).
+
+
+%% Cursor support and Mouse handling
 
 eyedropper() ->
-    set_cursor(eyedropper).
+    ?BACKEND_MOD:eyedropper().
+
+hourglass() ->
+    ?BACKEND_MOD:hourglass().
 
 set_cursor(Cursor) ->
-    #io{cursors=Cursors} = get_state(),
-    set_cursor_1(Cursors, Cursor).
+    ?BACKEND_MOD:set_cursor(Cursor).
 
-set_cursor_1([{Name,none}|_], Name) ->
-    ok;
-set_cursor_1([{Name,Cursor}|_], Name) ->
-    sdl_mouse:setCursor(Cursor);
-set_cursor_1([_|Cs], Name) ->
-    set_cursor_1(Cs, Name).
+
+grab() ->
+    ?BACKEND_MOD:grab().
+ungrab(X,Y) ->
+    ?BACKEND_MOD:ungrab(X,Y).
+
+reset_grab() ->
+    ?BACKEND_MOD:reset_grab().
+
+is_grabbed() ->
+    ?BACKEND_MOD:is_grabbed().
+
+warp(X,Y) ->
+    ?BACKEND_MOD:warp(X,Y).
+
+get_mouse_state() ->
+    ?BACKEND_MOD:get_mouse_state().
+
+is_modkey_pressed(Key) ->
+    ?BACKEND_MOD:is_modkey_pressed(Key).
+
+is_key_pressed(Key) ->
+    ?BACKEND_MOD:is_key_pressed(Key).
+
+%% Window handling
+is_maximized() ->
+    ?BACKEND_MOD:is_maximized().
+
+set_title(Title) ->
+    ?BACKEND_MOD:set_title(Title).
+
+reset_video_mode_for_gl(W,H) ->
+    ?BACKEND_MOD:reset_video_mode_for_gl(W,H).
+
+version_info() ->
+    ?BACKEND_MOD:version_info().
+
+set_icon(IconBase) ->
+    ?BACKEND_MOD:set_icon(IconBase).
+
+%% get_mask(WBMFileName) -> Binary | null
+%%  Read a mask from a WBM file.
+%%  Wbmp format reference: http://en.wikipedia.org/wiki/Wbmp
+%%
+get_mask(IconBase) ->
+    case file:read_file(IconBase) of
+	{ok,Bin} -> get_mask_1(Bin);
+	{error,_} -> null
+    end.
+
+get_mask_1(<<0,0,T0/binary>>) ->
+    try
+	{_W,T} = get_uintvar(T0, 0),
+	{_H,Bits} = get_uintvar(T, 0),
+	Bits
+    catch _:_ ->
+	    null
+    end.
+
+get_uintvar(<<1:1,N:7,T/binary>>, Acc) ->
+    get_uintvar(T, (Acc bsl 7) bor N);
+get_uintvar(<<0:1,N:7,T/binary>>, Acc) ->
+    {(Acc bsl 7) bor N,T}.
+
+%% Memory handling
+
+get_buffer(Size, Type) ->
+    ?BACKEND_MOD:get_buffer(Size, Type).
+
+read_buffer(Buff, Size, Type) ->
+    ?BACKEND_MOD:read_buffer(Buff, Size, Type).
+
+get_bin(Buff) ->
+    ?BACKEND_MOD:get_bin(Buff).
+
+%% Events
+%%  This is probably slow in wx (should be avoided)
+change_event_handler(EvType,What) ->
+    ?BACKEND_MOD:change_event_handler(EvType,What).
+
+enter_event(Ev) ->
+    Eq0 = get(?EVENT_QUEUE),
+    Eq = queue:in(Ev, Eq0),
+    put(?EVENT_QUEUE, Eq),
+    ok.
+
+get_event() ->
+    case get_event2() of
+	{quit} -> quit;
+	Other -> Other
+    end.
+
+get_event2() ->
+    Eq0 = get(?EVENT_QUEUE),
+    {Event,Eq} = ?BACKEND_MOD:read_events(Eq0),
+    put(?EVENT_QUEUE, Eq),
+    Event.
+
+
+%% get_matching_events(FilterFun) -> [Event].
+%%       FilterFun(Element) -> true|false.
+%%  Remove from the queue and return in a list
+%%  all elements for which FilterFun(Element)
+%%  returns true. The elements in the returned
+%%  list will be in the same order as in the queue.
+%%
+get_matching_events(Filter) when is_function(Filter, 1) ->
+    Eq = get(?EVENT_QUEUE),
+    {Match,NoMatch} = lists:partition(Filter, queue:to_list(Eq)),
+    case Match of
+	[] -> [];
+	_ ->
+	    put(?EVENT_QUEUE, queue:from_list(NoMatch)),
+	    Match
+    end.
+
+putback_event(Ev) ->
+    Q = get(?EVENT_QUEUE),
+    put(?EVENT_QUEUE, queue:in_r(Ev, Q)).
+
+putback_event_once(Ev) ->
+    Q = get(?EVENT_QUEUE),
+    case queue:member(Ev, Q) of
+	true -> ok;
+	false -> put(?EVENT_QUEUE, queue:in_r(Ev, Q))
+    end.
+
+%%%%%%%%%%%
+
 
 read_icons() ->
     Ebin = filename:dirname(code:which(?MODULE)),
@@ -210,7 +352,7 @@ sunken_rect(X0, Y0, Mw0, Mh0, FillColor, PaneColor, Active) ->
     set_color(FillColor),
     gl:rectf(X0, Y0, X0+Mw0, Y0+Mh0),
     sunken_border(X, Y, Mw, Mh, PaneColor, Active),
-     gl:color3b(0, 0, 0).
+    gl:color3b(0, 0, 0).
 
 sunken_gradient(X0, Y0, Mw0, Mh0, FillColor, PaneColor, Active) ->
     X = X0 + 0.5,
@@ -243,12 +385,12 @@ gradient_rect(X, Y, W, H=18, Color) ->
 		  0.701961, 0.666667, 0.619608, 0.741176, 0.733333, 0.760784,
 		  0.784314, 0.811765, 0.854902, 0.890196, 0.890196],
     Draw_Line = fun(Idx) ->
-	GreyValue = lists:nth(Idx+1, GradColors),
-	LineColor = mul_color(Color, GreyValue),
-	set_color(LineColor),
-	gl:vertex2f(X-0.5+W, Y-0.5+H-Idx),
-	gl:vertex2f(X-0.5,   Y-0.5+H-Idx)
-	end,
+			GreyValue = lists:nth(Idx+1, GradColors),
+			LineColor = mul_color(Color, GreyValue),
+			set_color(LineColor),
+			gl:vertex2f(X-0.5+W, Y-0.5+H-Idx),
+			gl:vertex2f(X-0.5,   Y-0.5+H-Idx)
+		end,
     gl:lineWidth(1),
     gl:'begin'(?GL_LINES),
     lists:foreach(Draw_Line, lists:seq(0, 16)),
@@ -287,7 +429,7 @@ text_at(X, S) ->
 text_at(X, Y, S) ->
     case wings_gl:is_restriction(broken_scissor) of
 	true ->
-	    %% Scissor cannot clip text, but slows down text drawing.
+%% Scissor cannot clip text, but slows down text drawing.
 	    unclipped_text(X, Y, S);
 	false ->
 	    {Vx,Vy,W,H} = wings_wm:viewport(),
@@ -339,7 +481,7 @@ text([C|Cs], X0, Y, Acc) when is_integer(C) ->
 	C < 256 ->
 	    text(Cs, X0, Y, [C|Acc]);
 	true ->
-	    %% Unicode character.
+%% Unicode character.
 	    X = X0 + wings_text:width([C|Acc]),
 	    draw_reverse(Acc),
 	    wings_text:char(C),
@@ -441,7 +583,8 @@ create_textures(Icons) ->
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_CLAMP),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_CLAMP),
-    Mem = sdl_util:alloc(3*?TX_WIDTH*?TX_HEIGHT, ?GL_BYTE),
+    Mem0 = wings_io:get_buffer(3*?TX_WIDTH*?TX_HEIGHT, ?GL_BYTE),
+    Mem = wings_io:get_bin(Mem0),
     gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_RGB,
 		  ?TX_WIDTH, ?TX_HEIGHT, 0, ?GL_RGB, ?GL_UNSIGNED_BYTE, Mem),
     create_textures_1(Icons, TxId, 0, 0, 0).
@@ -532,106 +675,6 @@ active(X, Y, R, G, B) ->
 inactive(_X, _Y, R, G, B) -> [R,G,B].
 
 %%%
-%%% Input.
-%%%
-
-putback_event(Ev) ->
-    Q = get(?EVENT_QUEUE),
-    put(?EVENT_QUEUE, queue:in_r(Ev, Q)).
-
-putback_event_once(Ev) ->
-    Q = get(?EVENT_QUEUE),
-    case queue:member(Ev, Q) of
-	true -> ok;
-	false -> put(?EVENT_QUEUE, queue:in_r(Ev, Q))
-    end.
-
-get_event() ->
-    case get_sdl_event() of
-	{quit} -> quit;
-	Other -> Other
-     end.
-
-%% get_matching_events(FilterFun) -> [Event].
-%%       FilterFun(Element) -> true|false.
-%%  Remove from the queue and return in a list
-%%  all elements for which FilterFun(Element)
-%%  returns true. The elements in the returned
-%%  list will be in the same order as in the queue.
-%%
-get_matching_events(Filter) when is_function(Filter, 1) ->
-    Eq = get(?EVENT_QUEUE),
-    {Match,NoMatch} = lists:partition(Filter, queue:to_list(Eq)),
-    case Match of
-	[] -> [];
-	_ ->
-	    put(?EVENT_QUEUE, queue:from_list(NoMatch)),
-	    Match
-    end.
-
-get_sdl_event() ->
-    Eq0 = get(?EVENT_QUEUE),
-    {Event,Eq} = read_events(Eq0),
-    put(?EVENT_QUEUE, Eq),
-    Event.
-
-enter_event(Ev) ->
-    Eq0 = get(?EVENT_QUEUE),
-    Eq = queue:in(Ev, Eq0),
-    put(?EVENT_QUEUE, Eq),
-    ok.
-    
-read_events(Eq0) ->
-    case sdl_events:peepEvents() of
-	[] -> read_out(Eq0);
-	[_|_]=Evs -> read_events(enter_events(Evs, Eq0))
-    end.
-
-enter_events([no_event|Evs], Eq) ->
-    enter_events(Evs, queue:in(redraw, Eq));
-enter_events([E|Evs], Eq) ->
-    enter_events(Evs, queue:in(E, Eq));
-enter_events([], Eq) -> Eq.
-
-read_out(Eq0) ->
-    case queue:out(Eq0) of
-	{{value,#mousemotion{}=Event},Eq} ->
-	    read_out(Event, Eq);
-	{{value,Event},Eq} ->
-	    {Event,Eq};
-	{empty,Eq} ->
-	    wait_for_event(Eq)
-    end.
-
-read_out(Motion, Eq0) ->
-    case queue:out(Eq0) of
-	{{value,#mousemotion{}=Event},Eq} ->
-	    read_out(Event, Eq);
-	_Other -> {Motion,Eq0}
-    end.
-
-wait_for_event(Eq) ->
-    Time = case sdl_active:getAppState() of
-	       0 ->				%Iconified.
-		   650;
-	       7 ->				%Fully active.
-		   10;
-	       _ ->				%Cursor outside of window.
-		   120
-	   end,
-    receive
-	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
-	    {Event,Eq};
-	External = {external, _} ->
-	    read_events(enter_events([External], Eq))
-    after Time ->
-	    case sdl_events:peepEvents() of
-		[] -> wait_for_event(Eq);
-		[_|_]=Evs -> read_events(enter_events(Evs, Eq))
-	    end
-    end.
-
-%%%
 %%% Timer support.
 %%%
 
@@ -645,249 +688,4 @@ cancel_timer(Ref) ->
     after 0 -> ok
     end,
     Left.
-
-%%%
-%%% Mouse grabbing.
-%%%
-reset_grab() ->
-    Io = get_state(),
-    put_state(Io#io{grab_count=0}),
-    sdl_mouse:showCursor(true),
-    sdl_video:wm_grabInput(?SDL_GRAB_OFF).
-
-grab() ->
-    %%io:format("Grab mouse~n", []),
-    #io{grab_count=Cnt} = Io = get_state(),
-    sdl_mouse:showCursor(false),
-    do_grab(Cnt),
-    put_state(Io#io{grab_count=Cnt+1}).
-
-do_grab(0) ->
-    %% On MacOS X, we used to not do any grab. With newer versions of SDL,
-    %% it seems to works better if we do a grab.
-    %%
-    %% Good for Linux to read out any mouse events here.
-    sdl_events:peepEvents(1, ?SDL_MOUSEMOTIONMASK),
-    sdl_video:wm_grabInput(?SDL_GRAB_ON);
-do_grab(_N) -> ok.
-
-ungrab(X, Y) ->
-    %%io:format("UNGRAB mouse~n", []),
-    case get_state() of
-	#io{grab_count=0} -> no_grab;
-	#io{grab_count=Cnt}=Io ->
-	    put_state(Io#io{grab_count=Cnt-1}),
-	    case Cnt-1 of
-		0 ->
-		    sdl_video:wm_grabInput(?SDL_GRAB_OFF),
-		    sdl_mouse:warpMouse(X, Y),
-		    sdl_mouse:showCursor(true),
-		    no_grab;
-		_ ->
-		    still_grabbed
-	    end
-    end.
-
-is_grabbed() ->
-    case get_state() of
-	#io{grab_count=0} -> false;
-	_ -> true
-    end.
-
-warp(X, Y) ->
-    %% Strangely enough, on Solaris the warp doesn't seem to
-    %% work unless the mouse cursor is visible.
-    %% On Windows, the mouse cursor must not be visible.
-    case os:type() of
-	{unix,sunos} ->
-	    sdl_mouse:showCursor(true),
-	    sdl_mouse:warpMouse(X, Y),
-	    sdl_mouse:showCursor(false);
-	_ ->
-	    sdl_mouse:warpMouse(X, Y)
-    end.
-
-%%%
-%%% Cursors.
-%%%
-
-build_cursors() ->
-    [{stop,build_cursor(stop_data(), 8, 8)},
-     {pointing_hand,build_cursor(pointing_hand_data(), 0, 0)},
-     {closed_hand,build_cursor(closed_hand_data(), 8, 8)}|
-     case os:type() of
-	 {unix,darwin} ->
-	     [{arrow,sdl_mouse:getCursor()},
-	      {hourglass,none},
-	      {eyedropper,build_cursor(eyedropper_data(), 0, 15)}];
-	 _ ->
-	     [{arrow,build_cursor(arrow_data())},
-	      {hourglass,build_cursor(hourglass_data())},
-	      {eyedropper,build_cursor(eyedropper_data(), 0, 15)}]
-     end].
-
-build_cursor(Data) ->
-    build_cursor(Data, 0, 0).
-
-build_cursor(Data, HotX, HotY) ->
-    case length(Data) of
-	Bytes when Bytes =:= 256 ->
-	    build_cursor_1(Data, {HotX,HotY,16,16}, 0, 0);
-	Bytes when Bytes =:= 1024 ->
-	    build_cursor_1(Data, {HotX,HotY,32,32}, 0, 0)
-    end.
-
-build_cursor_1([$.|T], Hot, Mask, Bits) ->
-    build_cursor_1(T, Hot, (Mask bsl 1) bor 1, Bits bsl 1);
-build_cursor_1([$X|T], Hot, Mask, Bits) ->
-    build_cursor_1(T, Hot, (Mask bsl 1) bor 1, (Bits bsl 1) bor 1);
-build_cursor_1([$x|T], Hot, Mask, Bits) ->
-    build_cursor_1(T, Hot, (Mask bsl 1) bor 1, (Bits bsl 1) bor 1);
-build_cursor_1([_|T], Hot, Mask, Bits) ->
-    build_cursor_1(T, Hot, Mask bsl 1, Bits bsl 1);
-build_cursor_1([], {HotX,HotY,W,H}, Mask0, Bits0) ->
-    Size = W*H,
-    Bits = <<Bits0:Size>>,
-    Mask = <<Mask0:Size>>,
-    sdl_mouse:createCursor(Bits, Mask, W, H, HotX, HotY).
-
-hourglass_data() ->
-	"  ............................  "
-	" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX "
-	"X..............................X"
-	" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX "
-	"   ..   X..............X   ..   "
-	"   ..   X..............X   ..   "
-	"   ..   X..............X   ..   "
-	"   ..   X..............X   ..   "
-	"   ..    X............X    ..   "
-	"   ..    X............X    ..   "
-	"   ..    X............X    ..   "
-	"   ..     X..........X     ..   "
-	"   ..     X.X......X.X     ..   "
-	"   ..     X.X.X..X.X.X     ..   "
-	"   ..      X.X.X.X..X      ..   "
-	"   ..       X...X..X       ..   "
-	"   ..       X......X       ..   "
-	"   ..      X........X      ..   "
-	"   ..     X..........X     ..   "
-	"   ..     X..........X     ..   "
-	"   ..     X..........X     ..   "
-	"   ..    X............X    ..   "
-	"   ..    X............X    ..   "
-	"   ..    X......X.....X    ..   "
-	"   ..   X....X.X.X.X...X   ..   "
-	"   ..   X...X.X.X.X.X..X   ..   "
-	"   ..   X..X.X.X.X.X.X.X   ..   "
-	"   ..   X.X.X.X.X.X.XX.X   ..   "
-	" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX "
-	"X..............................X"
-	" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX "
-	"  ............................  ".
-
-eyedropper_data() ->
-	"             XXX"
-	"            X.XX"
-	"         X X..XX"
-	"        X.X..XX "
-	"       X....XX  "
-	"        XXXXX   "
-	"       X.XXXXX  "
-	"      X...XXX   "
-	"     X...X X    "
-	"    X...X       "
-	"   X...X        "
-	"  X...X         "
-	" X...X          "
-	" X..X           "
-	"X.XX            "
-	" X              ".
-
-arrow_data() ->
-	"X                               "
-	"XX                              "
-	"X.X                             "
-	"X..X                            "
-	"X...X                           "
-	"X....X                          "
-	"X.....X                         "
-	"X......X                        "
-	"X.......X                       "
-	"X........X                      "
-	"X.....XXXXX                     "
-	"X..X..X                         "
-	"X.X X..X                        "
-	"XX  X..X                        "
-	"X    X..X                       "
-	"     X..X                       "
-	"      X..X                      "
-	"      X..X                      "
-	"       XX                       "
-	"                                "
-	"                                "
-	"                                "
-	"                                "
-	"                                "
-	"                                "
-	"                                "
-	"                                "
-	"                                "
-	"                                "
-	"                                "
-	"                                "
-	"                                ".
-
-stop_data() ->
-	"     xxxxxx     "
-	"   xxxxxxxxxx   "
-	"   xxx    xxx   "
-	" xxxxx      xxx "
-	" xxxxx      xxx "
-	"xxxxxxx       xx"
-	"xx   xxx      xx"
-	"xx    xxx     xx"
-	"xx     xxx    xx"
-	"xx      xxx   xx"
-	"xx       xxxxxxx"
-	" xxx      xxxxx "
-	" xxx      xxxxx "
-	"   xxx    xxx   "
-	"   xxxxxxxxxx   "
-	"     xxxxxx     ".
-
-pointing_hand_data() ->
-	"      XX        "
-	"     X..X       "
-	"     X..X       "
-	"     X..XXX     "
-	"     X..X.XXX   "
-	"     X..X.X.XXX "
-	"  XX X..X.X.X.X "
-	" X..XX......X.X "
-	" X...X........X "
-	"  X...........X "
-	"   X..........X "
-	"   X.........X  "
-	"    X........X  "
-	"     X......X   "
-	"     X......X   "
-	"     XXXXXXXX   ".
-
-closed_hand_data() ->
-	"                "
-	"   xx xx xx     "
-	"  x..x..x.. xx  "
-	"  x..x..x..x..x "
-	"   x.......x..x "
-	" xxx..........x "
-	" x.x.........x  "
-	" x...........x  "
-	" x...........x  "
-	"  x.........x   "
-	"   x........x   "
-	"    x......x    "
-	"    x......x    "
-	"    x......x    "
-	"                "
-	"                ".
 

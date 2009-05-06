@@ -172,7 +172,7 @@ options(auv_background, [{type_sel,Type},{Image,_},Color],_) ->
       Type,[{key,type_sel},layout]},
      {hframe,[{label,?__(1,"Image")},image_selector(Image)],
       [is_enabled(image)]},
-     {hframe,[{label,?__(2,"Color")},{color,fix(Color,have_fbo())}],
+     {hframe,[{label,?__(2,"Color")},{color,fix(Color,wings_gl:have_fbo())}],
       [is_enabled(color)]}];
 options(auv_background, _Bad,Sh) ->  
     options(auv_background, ?OPT_BG,Sh);
@@ -406,66 +406,14 @@ render_image(Geom = #ts{uv=UVpos,pos=Pos,n=Ns,bi=BiNs,uvc=Uvc,uvc_mode=Mode},
     end.
 
 %%%%%%%%% FBO stuff
-have_fbo() -> wings_gl:is_ext('GL_EXT_framebuffer_object').
 
 setup_fbo(W,H) ->
-    case have_fbo() of
-	false -> false;
-	true -> setup_fbo2(W,H) 
-    end.
-
-setup_fbo2(W,H) ->
-    [FB] = gl:genFramebuffersEXT(1),
-    [Col1,Col2] = gl:genTextures(2),
-    [Depth] = gl:genRenderbuffersEXT(1),
-    gl:bindFramebufferEXT(?GL_FRAMEBUFFER_EXT, FB),
-    %% Init color texture
-    gl:bindTexture(?GL_TEXTURE_2D, Col1),
-    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_MIN_FILTER,?GL_LINEAR),
-    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_RGBA8, W, H, 0,
-		  ?GL_RGBA, ?GL_UNSIGNED_BYTE, 0),
-    gl:framebufferTexture2DEXT(?GL_FRAMEBUFFER_EXT,
-			       ?GL_COLOR_ATTACHMENT0_EXT,
-			       ?GL_TEXTURE_2D, Col1, 0),
-    
-    gl:bindTexture(?GL_TEXTURE_2D, Col2),
-    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_MIN_FILTER,?GL_LINEAR),
-    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_RGBA8, W, H, 0,
-		  ?GL_RGBA, ?GL_UNSIGNED_BYTE, 0),
-    gl:framebufferTexture2DEXT(?GL_FRAMEBUFFER_EXT,
-			       ?GL_COLOR_ATTACHMENT1_EXT,
-			       ?GL_TEXTURE_2D, Col2, 0),
-    
-    %% Init depth texture
-    gl:bindRenderbufferEXT(?GL_RENDERBUFFER_EXT, Depth),
-    gl:renderbufferStorageEXT(?GL_RENDERBUFFER_EXT,
-			      ?GL_DEPTH_COMPONENT24, W, H),
-    gl:framebufferRenderbufferEXT(?GL_FRAMEBUFFER_EXT,
-				  ?GL_DEPTH_ATTACHMENT_EXT,
-				  ?GL_RENDERBUFFER_EXT, Depth),
-    Delete = 
-	fun() ->
-		gl:framebufferTexture2DEXT(?GL_FRAMEBUFFER_EXT,
-					   ?GL_COLOR_ATTACHMENT0_EXT,
-					   ?GL_TEXTURE_2D,0,0),
-		gl:deleteTextures(2,[Col1,Col2]),
-		gl:framebufferRenderbufferEXT(?GL_FRAMEBUFFER_EXT,
-					      ?GL_DEPTH_ATTACHMENT_EXT,
-					      ?GL_RENDERBUFFER_EXT, 0),
-		gl:deleteRenderbuffersEXT(1,[Depth]),
-		gl:bindFramebufferEXT(?GL_FRAMEBUFFER_EXT, 0),
-		gl:deleteFramebuffersEXT(1,[FB])
-	end,
-    case check_fbo_status(FB) of
-	false -> 		    
-	    gl:bindFramebufferEXT(?GL_FRAMEBUFFER_EXT, 0), 
-	    gl:deleteFramebuffersEXT(1,[FB]),
-	    false;
-	_ ->	    
-	    gl:bindFramebufferEXT(?GL_FRAMEBUFFER_EXT, FB),
-	    gl:drawBuffer(?GL_COLOR_ATTACHMENT0_EXT),
+    case wings_gl:setup_fbo({W,H}, [{color,[]}, {color,[]}, {depth,[]}]) of
+	no_supported -> false;
+	List ->
+	    [Col1,Col2] = [Col || {color, Col} <- List],
 	    #sh_conf{texsz={W,H},fbo_r=Col2,fbo_w=Col1,
-		     fbo_d=Delete}
+		     fbo_d=fun() -> wings_gl:delete_fbo(List) end}
     end.
 	
 error(Line) ->
@@ -512,9 +460,9 @@ get_texture(Wc, Wd, Hc, Hd, {W,H}=Info, DL, UsingFbo, ImageAcc)
 		gl:readBuffer(?GL_COLOR_ATTACHMENT0_EXT),
 		{4,?GL_RGBA}
 	end,
-    Mem = sdl_util:alloc(W*H*Sz, ?GL_UNSIGNED_BYTE),
+    Mem = wings_io:get_buffer(W*H*Sz, ?GL_UNSIGNED_BYTE),
     gl:readPixels(0,0,W,H,Type,?GL_UNSIGNED_BYTE,Mem),
-    ImageBin = sdl_util:getBin(Mem),
+    ImageBin = wings_io:get_bin(Mem),
     get_texture(Wc+1, Wd, Hc, Hd, Info, DL, UsingFbo, [ImageBin|ImageAcc]);
 get_texture(_Wc,Wd,Hc,Hd, Info, Dl, UsingFbo, ImageAcc) when Hc < Hd ->
     get_texture(0, Wd, Hc+1, Hd, Info, Dl, UsingFbo, ImageAcc);
@@ -556,33 +504,6 @@ calc_texsize(Vp, Tex, Orig) when Tex =< Vp ->
     {Tex,Orig div Tex};
 calc_texsize(Vp, Tex, Orig) ->
     calc_texsize(Vp, Tex div 2, Orig).
-
-check_fbo_status(FB) ->
-    case gl:checkFramebufferStatusEXT(?GL_FRAMEBUFFER_EXT) of
-	?GL_FRAMEBUFFER_COMPLETE_EXT ->
-	    FB;
-	?GL_FRAMEBUFFER_UNSUPPORTED_EXT ->
-	    io:format("GL_FRAMEBUFFER_UNSUPPORTED_EXT~n",[]),
-	    false;
-	?GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT ->
-	    io:format("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT~n",[]),
-	    false;
-        ?GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT ->
-	    io:format("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT~n",[]),
-	    false;
-        ?GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT ->
-	    io:format("GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT~n",[]),
-	    false;
-        ?GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT    ->
-	    io:format("GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT~n",[]),
-	    false;
-        ?GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT ->
-	    io:format("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT~n",[]),
-	    false;
-        ?GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT ->
-	    io:format("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT~n",[]),
-	    false
-    end.
 
 get_pref(Key, Def) ->
     wpa:pref_get(autouv, Key, Def).
@@ -1147,19 +1068,16 @@ shader_pass({value,#sh{args=Args,tex_units=TexUnits,reqs=Reqs}},
     end.
 
 shader_uniforms([{uniform,color,Name,_,_}|As],[Val|Opts],Conf) ->
-    Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
-    gl:uniform4fv(Loc,1,[Val]),
+    wings_gl:set_uloc(Conf#sh_conf.prog,Name,Val),
     shader_uniforms(As,Opts,Conf);
 shader_uniforms([{uniform,float,Name,_,_}|As],[Val|Opts],Conf) ->
-    Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
-    gl:uniform1f(Loc,Val),
+    wings_gl:set_uloc(Conf#sh_conf.prog,Name, Val),
     shader_uniforms(As,Opts,Conf);
 shader_uniforms([{uniform,menu,Name,_,_}|As],[Vals|Opts],Conf) 
   when is_list(Vals) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
     foldl(fun(Val,Cnt) -> gl:uniform1f(Loc+Cnt,Val),Cnt+1 end,0,Vals),
     shader_uniforms(As,Opts,Conf);
-
 shader_uniforms([{uniform,bool,Name,_,_}|As],[Val|Opts],Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
     BoolF = if Val -> 1.0; true -> 0.0 end,
@@ -1273,13 +1191,12 @@ render_lights([{Lx,Ly,Lz}| Ligths], PM, Dist, C={Cx,Cy,Cz}, LP1,Ts = #ts{charts=
     gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),
 
     gl:useProgram(LP1),    
-    IdPos = wings_gl:uloc(LP1,"id"),
     
     R = fun(#fs{vs=Vs,id=Id}) ->
 		%% gl:color4ubv(id(Id)),
 		%% XXX The following line is broken. id/1 returns a tuple,
 		%% but a list of tuples is needed for argument 3.
-		gl:uniform4fv(IdPos, 1, id(Id)),
+		wings_gl:set_uloc(LP1, "id", id(Id)),
 		gl:drawElements(?GL_TRIANGLES,length(Vs),
 				?GL_UNSIGNED_INT,Vs)
 	end,

@@ -218,7 +218,7 @@ draw_image(Image,_St) ->
     
 calc_uv(_V = {X,Y,Z}) ->
     {MM,PM,Viewport = {_,_,W,H}} = wings_u:get_matrices(0, original),
-    {S,T, _} = glu:project(X,Y,Z,MM,PM,Viewport),
+    {S,T, _} = wings_gl:project(X,Y,Z,MM,PM,Viewport),
     #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty} = get(?MODULE),
     {Xs,Ys} = scale(W,H,IW,IH),
     Center = 0.5,

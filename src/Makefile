@@ -27,6 +27,12 @@ else
 TYPE_FLAGS=+debug_info
 endif
 
+ifeq ($(TYPE),wx)
+USE_WX=-DUSE_WX=1
+else
+USE_WX=
+endif
+
 # All modules except wings_langs are mentioned here. It contains a parse
 # transform needed for compiling the other modules, so we must use a special
 # rule to ensure that it gets compiled before all other modules.
@@ -68,6 +74,8 @@ MODULES= \
 	wings_import \
 	wings_init \
 	wings_io \
+	wings_io_sdl \
+	wings_io_wx \
 	wings_job \
 	wings_light \
 	wings_magnet \
@@ -119,13 +127,13 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # FLAGS
 # ----------------------------------------------------
 ERL_COMPILE_FLAGS += -pa $(ESDL_PATH)/ebin  -I $(ESDL_PATH)/include \
- -I ../e3d -W $(TYPE_FLAGS) '-Dwings_version="$(WINGS_VSN)"' -pa $(WINGS_INTL) 
+ -I ../e3d -W $(TYPE_FLAGS) '-Dwings_version="$(WINGS_VSN)"' -pa $(WINGS_INTL) $(USE_WX)
 
 # ----------------------------------------------------
 # Targets
 # ----------------------------------------------------
 
-opt debug:
+opt debug wx:
 	$(MAKE) TYPE=$@ common
 
 common: $(EBIN)/wings_lang.beam $(TARGET_FILES)

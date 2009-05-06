@@ -18,6 +18,7 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
+-ifndef(USE_WX).
 init() ->
     macosx_workaround(),
     os:putenv("SDL_HAS3BUTTONMOUSE", "true"),
@@ -57,53 +58,6 @@ init() ->
     sdl_keyboard:enableKeyRepeat(?SDL_DEFAULT_REPEAT_DELAY,
 				 ?SDL_DEFAULT_REPEAT_INTERVAL),
     ok.
-
-set_icon() ->
-    Ebin = filename:dirname(code:which(?MODULE)),
-    IconFile = filename:join(Ebin,
-			     case os:type() of
-				 {unix,darwin} -> "wings_icon_big";
-				 _ -> "wings_icon_small"
-			     end),
-    set_icon_1(IconFile).
-
-set_icon_1(IconBase) ->
-    Bmp = sdl_video:loadBMP(IconBase ++ ".bmp"),
-    Mask = get_mask(IconBase ++ ".wbm"),
-    sdl_video:wm_setIcon(Bmp, Mask).
-
-%% get_mask(WBMFileName) -> Binary | null
-%%  Read a mask from a WBM file.
-%%  Wbmp format reference: http://en.wikipedia.org/wiki/Wbmp
-%%
-get_mask(IconBase) ->
-    case file:read_file(IconBase) of
-	{ok,Bin} -> get_mask_1(Bin);
-	{error,_} -> null
-    end.
-
-get_mask_1(<<0,0,T0/binary>>) ->
-    try
-	{_W,T} = get_uintvar(T0, 0),
-	{_H,Bits} = get_uintvar(T, 0),
-	Bits
-    catch _:_ ->
-	    null
-    end.
-
-get_uintvar(<<1:1,N:7,T/binary>>, Acc) ->
-    get_uintvar(T, (Acc bsl 7) bor N);
-get_uintvar(<<0:1,N:7,T/binary>>, Acc) ->
-    {(Acc bsl 7) bor N,T}.
-
-macosx_workaround() ->
-    try 1.0/zero()
-    catch
-	error:_ -> ok
-    end.
-
-zero() ->
-    0.0.
 
 opengl_modes() ->
     [[{buffer_size,32},{depth_size,32},{stencil_size,8},{accum_size,16}],
@@ -180,9 +134,82 @@ display_actual_mode() ->
 	     ?GL_ACCUM_GREEN_BITS,
 	     ?GL_ACCUM_BLUE_BITS,
 	     ?GL_ACCUM_ALPHA_BITS],
-   	      io:format(?__(1,"Actual: RGBA: ~p ~p ~p ~p Depth: ~p Stencil: ~p Accum: ~p ~p ~p ~p\n"),
-			[hd(gl:getIntegerv(A)) || A <- Attrs]).
+    io:format(?__(1,"Actual: RGBA: ~p ~p ~p ~p Depth: ~p Stencil: ~p Accum: ~p ~p ~p ~p\n"),
+	      [hd(gl:getIntegerv(A)) || A <- Attrs]).
 
 set_video_mode(W, H) ->
     {surfacep,_} = sdl_video:setVideoMode(W, H, 0, ?SDL_OPENGL bor ?SDL_RESIZABLE),
     ok.
+
+-else.
+
+init() ->
+    wx:new(),
+    macosx_workaround(),
+    os:putenv("SDL_HAS3BUTTONMOUSE", "true"),
+
+    wings_pref:set_default(window_size, {780,570}),
+    TopSize = wings_pref:get_value(window_size),
+    Frame = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
+    %% wx:debug(2),
+
+    GLAttrs = [?WX_GL_RGBA,?WX_GL_DOUBLEBUFFER,0],
+    Canvas = wxGLCanvas:new(Frame, [{attribList, GLAttrs}]),
+
+    put(top_frame, Frame),
+    put(gl_canvas, Canvas),
+
+%%     Redraw = fun(Ev,_) ->    %% Might be needed on windows
+%% 		     DC = wxPaintDC:new(Canvas),
+%% 		     wings ! Ev,
+%% 		     wxPaintDC:destroy(DC)
+%% 	     end,
+
+    wxWindow:connect(Frame, close_window),
+    %%wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
+    %%wxWindow:connect(Canvas, paint, [{skip, false}]),
+    wxWindow:connect(Canvas, size),
+    wxWindow:connect(Canvas, enter_window,
+		     [{callback, fun(_, _) ->
+					 wxWindow:setFocus(Canvas)
+				 end}]),
+
+    wxWindow:connect(Canvas, motion),
+    wxWindow:connect(Canvas, left_up),
+    wxWindow:connect(Canvas, left_down),
+    wxWindow:connect(Canvas, middle_up),
+    wxWindow:connect(Canvas, middle_down),
+    wxWindow:connect(Canvas, right_up),
+    wxWindow:connect(Canvas, right_down),
+    wxWindow:connect(Canvas, mousewheel),
+    %%wxWindow:connect(Frame, paint,  [callback]),
+    wxWindow:connect(Canvas, key_down),
+    set_icon(),
+    wxWindow:setFocus(Canvas), %% Get keyboard focus
+    wxWindow:show(Frame),   %% Must show to initilize context.
+    wxGLCanvas:setCurrent(Canvas),
+
+    wings_gl:init_extensions(),
+    wings_gl:init_restrictions(),
+
+    ok.
+-endif.
+
+set_icon() ->
+    Ebin = filename:dirname(code:which(?MODULE)),
+    IconFile = filename:join(Ebin,
+			     case os:type() of
+				 {unix,darwin} -> "wings_icon_big";
+				 _ -> "wings_icon_small"
+			     end),
+    wings_io:set_icon(IconFile).
+
+macosx_workaround() ->
+    try 1.0/zero()
+    catch
+	error:_ -> ok
+    end.
+
+zero() ->
+    0.0.
+

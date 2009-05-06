@@ -26,9 +26,17 @@
 -define(META_BITS, ?KMOD_META).
 -endif.
 
+-ifndef(USE_WX).
 -ifdef(NEED_OPENGL).
 -include_lib("esdl/include/gl.hrl").
 -include_lib("esdl/include/glu.hrl").
+-endif.
+-endif.
+
+-ifdef(USE_WX).
+-include_lib("wx/include/wx.hrl").
+-include_lib("wx/include/gl.hrl").
+-include_lib("wx/include/glu.hrl").
 -endif.
 
 -define(WINGS_VERSION, ?wings_version).
@@ -49,6 +57,25 @@
 -define(BEVEL_LOWLIGHT, {0.3,0.3,0.3}).
 -define(BEVEL_HIGHLIGHT_MIX, 0.5).
 -define(BEVEL_LOWLIGHT_MIX, 0.5).
+
+%% wings io defs
+-define(ICON_WIDTH, 32).
+-define(ICON_HEIGHT, 28).
+
+-define(TX_WIDTH, 256).
+-define(TX_HEIGHT, 128).
+
+-define(ACTIVE_TX, wings_io_active_tx).
+
+-record(io,
+	{tex=[],				%Textures.
+	 grab_count=0,				%Number of grabs.
+	 cursors,				%Mouse cursors.
+	 raw_icons				%Raw icon bundle.
+	}).
+
+-define(EVENT_QUEUE, wings_io_event_queue).
+%%
 
 -define(SLOW(Cmd), begin wings_io:hourglass(), Cmd end).
 -define(TC(Cmd), wings_util:tc(fun() -> Cmd end, ?MODULE, ?LINE)).

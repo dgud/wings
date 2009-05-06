@@ -191,7 +191,7 @@ face_ns_data([A,B,C,D]=Ps) ->
     end;
 face_ns_data(Ps0) ->
     N = e3d_vec:normal(Ps0),
-    {Fs0,Ps} = glu:triangulate(N, Ps0),
+    {Fs0,Ps} = wings_gl:triangulate(N, Ps0),
     Fs = face_ns_data_1(Fs0, []),
     {N,Fs,Ps}.
 

@@ -1014,10 +1014,9 @@ centers(Axis,Keys1,OrigSt,St) ->
 
 %%% Modifier keys
 mod_key_combo() ->
-    Mod = sdl_keyboard:getModState(),
-    Shift = (Mod band ?KMOD_SHIFT) =/= 0,
-    Ctrl = (Mod band ?KMOD_CTRL) =/= 0,
-    Alt = (Mod band ?KMOD_ALT) =/= 0,
+    Shift = wings_io:is_modkey_pressed(?KMOD_SHIFT),
+    Ctrl  = wings_io:is_modkey_pressed(?KMOD_CTRL),
+    Alt   = wings_io:is_modkey_pressed(?KMOD_ALT),
     {Shift,Ctrl,Alt}.
 
 %%% Utilities

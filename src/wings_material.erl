@@ -601,7 +601,7 @@ mat_preview(X, Y, _W, _H, Common, Maps) ->
     MM = gl:getDoublev(?GL_MODELVIEW_MATRIX),
     PM = gl:getDoublev(?GL_PROJECTION_MATRIX),
     ViewPort = wings_wm:viewport(),
-    {Ox,Oy,_} = glu:project(X, Y+?PREVIEW_SIZE, 0, MM, PM, ViewPort),
+    {Ox,Oy,_} = wings_gl:project(X, Y+?PREVIEW_SIZE, 0, MM, PM, ViewPort),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     gl:viewport(trunc(Ox), trunc(Oy), ?PREVIEW_SIZE, ?PREVIEW_SIZE),
     gl:matrixMode(?GL_PROJECTION),

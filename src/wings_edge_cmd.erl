@@ -267,7 +267,7 @@ cut_pick_make_tvs(Edge, #we{id=Id,es=Etab,vp=Vtab,next_id=NewV}=We) ->
 cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
     {X,Y,Z} = Pos = e3d_vec:add_prod(Start, Dir, I),
     {MM,PM,ViewPort} = wings_u:get_matrices(0, original),
-    {Sx,Sy,_} = glu:project(X, Y, Z, MM, PM, ViewPort),
+    {Sx,Sy,_} = wings_gl:project(X, Y, Z, MM, PM, ViewPort),
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),

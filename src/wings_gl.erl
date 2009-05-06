@@ -21,11 +21,37 @@
 	 uloc/2, set_uloc/3,
 	 compile/2,link_prog/1]).
 
+%% FBO exports
+-export([have_fbo/0, setup_fbo/2, delete_fbo/1]).
+
+%% GL wrappers
+-export([callLists/1, project/6, unProject/6, triangulate/2, deleteTextures/1]).
+
 %% Debugging.
 -export([check_error/2]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
+
+-ifdef(USE_WX).
+-define(genFramebuffers,genFramebuffers).
+-define(bindFramebuffer, bindFramebuffer).
+-define(framebufferTexture2D,framebufferTexture2D).
+-define(genRenderbuffers, genRenderbuffers).
+-define(bindRenderbuffer,bindRenderbuffer).
+-define(renderbufferStorage,renderbufferStorage).
+-define(framebufferRenderbuffer,framebufferRenderbuffer).
+-define(checkFramebufferStatus, checkFramebufferStatus).
+-else.
+-define(genFramebuffers,genFramebuffersEXT).
+-define(bindFramebuffer, bindFramebufferEXT).
+-define(framebufferTexture2D,framebufferTexture2DEXT).
+-define(genRenderbuffers, genRenderbuffersEXT).
+-define(bindRenderbuffer,bindRenderbufferEXT).
+-define(renderbufferStorage,renderbufferStorageEXT).
+-define(framebufferRenderbuffer,framebufferRenderbufferEXT).
+-define(checkFramebufferStatus, checkFramebufferStatusEXT).
+-endif.
 
 %%%
 %%% OpenGL extensions.
@@ -164,7 +190,9 @@ set_uloc(Pos, A) when is_float(A) ->
 set_uloc(Pos, {A,B}) when is_float(A),is_float(B) ->
     gl:uniform2f(Pos,A,B);
 set_uloc(Pos, {A,B,C}) when is_float(A),is_float(B),is_float(C) ->
-    gl:uniform3f(Pos,A,B,C).
+    gl:uniform3f(Pos,A,B,C);
+set_uloc(Pos, {A,B,C,D}) when is_float(A),is_float(B),is_float(C) ->
+    gl:uniform4f(Pos,A,B,C,D).
 
 compile(vertex, Bin) when is_binary(Bin) ->
     compile2(?GL_VERTEX_SHADER, "Vertex", Bin);
@@ -173,9 +201,9 @@ compile(fragment, Bin) when is_binary(Bin) ->
 
 compile2(Type,Str,Src) ->
     Handle = gl:createShaderObjectARB(Type),    
-    ok = gl:shaderSource(Handle, 1, [Src], [-1]),
+    ok = shaderSource(Handle, [Src]),
     ok = gl:compileShader(Handle),
-    check_status(Handle,Str, ?GL_OBJECT_COMPILE_STATUS),
+    check_status(Handle,Str, ?GL_OBJECT_COMPILE_STATUS_ARB),
     Handle.
 
 link_prog(Objs) when is_list(Objs) ->    
@@ -183,7 +211,7 @@ link_prog(Objs) when is_list(Objs) ->
     [gl:attachObjectARB(Prog,ObjCode) || ObjCode <- Objs],
     [gl:deleteShader(ObjCode) || ObjCode <- Objs],
     gl:linkProgram(Prog),
-    check_status(Prog,"Link result", ?GL_OBJECT_LINK_STATUS),
+    check_status(Prog,"Link result", ?GL_OBJECT_LINK_STATUS_ARB),
     Prog.
 
 check_status(Handle,Str, What) ->
@@ -197,7 +225,7 @@ check_status(Handle,Str, What) ->
     end.
 
 printInfo(ShaderObj,Str) ->
-    Len = gl:getObjectParameterivARB(ShaderObj, ?GL_OBJECT_INFO_LOG_LENGTH),
+    Len = gl:getObjectParameterivARB(ShaderObj, ?GL_OBJECT_INFO_LOG_LENGTH_ARB),
     case Len > 0 of
 	true ->
 	    case catch gl:getInfoLogARB(ShaderObj, Len) of
@@ -217,3 +245,157 @@ printInfo(ShaderObj,Str) ->
 	false ->
 	    ok
     end.
+
+%%%%%%%%%%%%%  Framebuffer object %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+have_fbo() ->
+    is_ext('GL_EXT_framebuffer_object').
+
+%% Size = {W,H}
+%% What = {BufferType, Options}
+%%   => [{BufferType, Identifer}] | not_supported
+setup_fbo(Size, What) ->
+    case have_fbo() of
+	false -> not_supported;
+	true -> setup_fbo_1(Size, What)
+    end.
+
+setup_fbo_1(Size, Types) ->
+    [FB] = gl:?genFramebuffers(1),
+    gl:?bindFramebuffer(?GL_FRAMEBUFFER_EXT, FB),
+    Buffers = [{fbo, FB}|[setup_fbo_2(Type, Size) || Type <- Types]],
+    case check_fbo_status(FB) of
+	false ->
+	    delete_fbo(Buffers),
+	    not_supported;
+	_ ->
+	    Buffers
+    end.
+
+setup_fbo_2({color, Options}, {W,H}) ->
+    %% Init color texture
+    [Col] = gl:genTextures(1),
+    gl:bindTexture(?GL_TEXTURE_2D, Col),
+    Internal = proplists:get_value(internal, Options, ?GL_RGBA8),
+    Format = proplists:get_value(format, Options, ?GL_RGBA),
+    Type = proplists:get_value(type, Options, ?GL_UNSIGNED_BYTE),
+    gl:texImage2D(?GL_TEXTURE_2D, 0, Internal, W, H, 0, Format, Type, 0),
+    MinF = proplists:get_value(min, Options, ?GL_LINEAR),
+    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_MIN_FILTER,MinF),
+    gl:?framebufferTexture2D(?GL_FRAMEBUFFER_EXT,
+			     ?GL_COLOR_ATTACHMENT0_EXT,
+			     ?GL_TEXTURE_2D, Col, 0),
+    {color, Col};
+setup_fbo_2({depth, Options}, {W,H}) ->
+    [Depth] = gl:?genRenderbuffers(1),
+    %% Init depth texture
+    gl:?bindRenderbuffer(?GL_RENDERBUFFER_EXT, Depth),
+    Internal = proplists:get_value(internal, Options, ?GL_DEPTH_COMPONENT24),
+    gl:?renderbufferStorage(?GL_RENDERBUFFER_EXT,Internal, W, H),
+    gl:?framebufferRenderbuffer(?GL_FRAMEBUFFER_EXT,
+				?GL_DEPTH_ATTACHMENT_EXT,
+				?GL_RENDERBUFFER_EXT, Depth).
+
+delete_fbo(List) ->
+    gl:?framebufferTexture2D(?GL_FRAMEBUFFER_EXT,
+			     ?GL_COLOR_ATTACHMENT0_EXT,
+			     ?GL_TEXTURE_2D,0,0),
+    Textures = [Col || {color, Col} <- List],
+    deleteTextures(Textures),
+    gl:?framebufferRenderbuffer(?GL_FRAMEBUFFER_EXT,
+				?GL_DEPTH_ATTACHMENT_EXT,
+				?GL_RENDERBUFFER_EXT, 0),
+    Depth = [D || {depth, D} <- List],
+    deleteRenderbuffers(Depth),
+    gl:?bindFramebuffer(?GL_FRAMEBUFFER_EXT, 0),
+    FB = [F || {framebuffer, F} <- List],
+    deleteFramebuffers(FB).
+
+check_fbo_status(FB) ->
+    case gl:?checkFramebufferStatus(?GL_FRAMEBUFFER_EXT) of
+	?GL_FRAMEBUFFER_COMPLETE_EXT ->
+	    FB;
+	?GL_FRAMEBUFFER_UNSUPPORTED_EXT ->
+	    io:format("GL_FRAMEBUFFER_UNSUPPORTED_EXT~n",[]),
+	    false;
+	?GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT ->
+	    io:format("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT~n",[]),
+	    false;
+        ?GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT ->
+	    io:format("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT~n",[]),
+	    false;
+        ?GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT ->
+	    io:format("GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT~n",[]),
+	    false;
+        ?GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT    ->
+	    io:format("GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT~n",[]),
+	    false;
+        ?GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT ->
+	    io:format("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT~n",[]),
+	    false;
+        ?GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT ->
+	    io:format("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT~n",[]),
+	    false
+    end.
+
+%%%%%%%%%%%%% Wrappers for functions that differs between wx and esdl
+
+-ifdef(USE_WX).
+callLists(List) ->  gl:callLists(List).
+
+project(X,Y,Z, Mod, Proj, View) ->
+    {_, RX,RY,RZ} = glu:project(X,Y,Z, list_to_tuple(Mod), list_to_tuple(Proj), View),
+    {RX,RY,RZ}.
+
+unProject(X,Y,Z, Mod, Proj, View) ->
+    {_, RX,RY,RZ} = glu:unProject(X,Y,Z, list_to_tuple(Mod), list_to_tuple(Proj), View),
+    {RX,RY,RZ}.
+
+triangulate(Normal, Pos0) ->
+    {Tris0, BinPos} = glu:tesselate(Normal, Pos0),
+    Tris = tris(Tris0),
+    Res = {Tris, [{X,Y,Z}|| <<X:64/float-native,Y:64/float-native, Z:64/float-native>> <= BinPos]},
+    %%io:format("~p~n~p~n~p~n",[Pos0, Tris, element(2, Res)]),
+    Res.
+
+tris([A,B,C|Rs]) ->
+    [{A+1,B+1,C+1}|tris(Rs)];
+tris([]) -> [].
+
+deleteTextures(List) ->
+    gl:deleteTextures(List).
+
+deleteRenderbuffers(List) ->
+    gl:deleteRenderbuffers(List).
+
+deleteFramebuffers(List) ->
+    gl:deleteFramebuffers(List).
+
+shaderSource(Handle, Src) ->
+    gl:shaderSource(Handle, Src).
+
+-else.
+callLists(List) ->  gl:callLists(length(List), ?GL_UNSIGNED_INT, List).
+
+project(X,Y,Z, Mod, Proj, View) ->
+    glu:project(X,Y,Z, Mod, Proj, View).
+
+unProject(X,Y,Z, Mod, Proj, View) ->
+    glu:unProject(X,Y,Z, Mod, Proj, View).
+
+triangulate(Normal, Pos) ->
+    glu:triangulate(Normal,Pos).
+
+deleteTextures(List) ->
+    gl:deleteTextures(length(List), List).
+
+deleteRenderbuffers(List) ->
+    gl:deleteRenderbuffersEXT(length(List),List).
+
+deleteFramebuffers(List) ->
+    gl:deleteFramebuffersEXT(length(List),List).
+
+shaderSource(Handle, Src) ->
+    ok = gl:shaderSource(Handle, 1, Src, [-1]).
+
+-endif.

@@ -353,7 +353,7 @@ projectFromCamera(Chart,{matrices,{MM,PM,VP}},We) ->
     Vs = wings_face:to_vertices(Chart, We),
     Proj = fun(V) ->
 		   {X,Y,Z} = wings_vertex:pos(V, We),
-		   {S,T, _} = glu:project(X,Y,Z,MM,PM,VP),
+		   {S,T, _} = wings_gl:project(X,Y,Z,MM,PM,VP),
 		   {V,{S,T,0.0}}
 	   end,
     lists:map(Proj, Vs).

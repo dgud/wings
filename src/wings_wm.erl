@@ -467,7 +467,7 @@ global2local(X, Y) ->
     {X-Xorig,Y-(TopH-Yorig-H)}.
 
 local_mouse_state() ->
-    {B,X0,Y0} = sdl_mouse:getMouseState(),
+    {B,X0,Y0} = wings_io:get_mouse_state(),
     {X,Y} = global2local(X0, Y0),
     {B,X,Y}.
 
@@ -541,7 +541,7 @@ dispatch_event(#resize{w=W,h=H}) ->
     %% If the window has become maximized, we don't want
     %% to save the window size, but will keep the previous
     %% size.
-    case sdl_video:wm_isMaximized() of
+    case wings_io:is_maximized() of
 	false -> wings_pref:set_value(window_size, {W,H});
 	true -> ok
     end,
@@ -628,7 +628,7 @@ redraw_all() ->
 				      end),
 		    do_dispatch(Name, redraw)
 	    end, Windows),
-    gl:swapBuffers(),
+    wings_io:swapBuffers(),
     clean(),
     wings_io:set_cursor(get(wm_cursor)),
     event_loop().
@@ -678,7 +678,7 @@ reinit_opengl() ->
 
 init_opengl() ->
     {W,H} = get(wm_top_size),
-    set_video_mode(W, H),
+    wings_io:reset_video_mode_for_gl(W, H),
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
     gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
     wings_io:resize(),
@@ -872,7 +872,7 @@ find_active_0(Ev) ->
     case Ev of
 	#mousebutton{x=X,y=Y} -> ok;
 	#mousemotion{x=X,y=Y} -> ok;
-	_ -> {_,X,Y} = sdl_mouse:getMouseState()
+	_ -> {_,X,Y} = wings_io:get_mouse_state()
     end,
     window_below(X, Y).
 
@@ -1017,10 +1017,6 @@ get_window_data(Name) ->
 
 put_window_data(Name, Data) ->
     put(wm_windows, gb_trees:update(Name, Data, get(wm_windows))).
-
-set_video_mode(W, H) ->
-    {surfacep,_} = sdl_video:setVideoMode(W, H, 0, ?SDL_OPENGL bor ?SDL_RESIZABLE),
-    ok.
 
 %%%
 %%% Button translation.

@@ -100,7 +100,7 @@ init(File) ->
     group_leader(wings_console:start(), self()),
     wings_init:init(),
     wings_text:init(),
-    wings_image:init(),
+    wings_image:init(wings_io:get_process_option()),
     wings_plugin:init(),
     wings_color:init(),
     wings_io:init(),
@@ -153,12 +153,12 @@ init(File) ->
     restore_windows(St),
     case catch wings_wm:enter_event_loop() of
     {'EXIT',normal} ->
-        wings_pref:finish(),
-        sdl:quit();
+	    wings_pref:finish(),
+	    wings_io:quit();
     {'EXIT',Reason} ->
-        io:format("~P\n", [Reason,20]),
-        sdl:quit(),
-        exit(Reason)
+	    io:format("~P\n", [Reason,20]),
+	    wings_io:quit(),
+	    exit(Reason)
     end.
 
 new_viewer(St) ->
@@ -276,8 +276,8 @@ handle_event({open_file,Name}, St0) ->
     end;
 handle_event(Ev, St) ->
     case wings_camera:event(Ev, St) of
-    next -> handle_event_0(Ev, St);
-    Other -> Other
+	next -> handle_event_0(Ev, St);
+	Other -> Other
     end.
 
 handle_event_0(#mousebutton{button=But,state=ButSt,mod=Mod}=Ev, St)

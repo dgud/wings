@@ -205,16 +205,14 @@ f2() -> ?SDLK_F2.
 f3() -> ?SDLK_F3.
 
 mod_key_combo() ->
-    Mod = sdl_keyboard:getModState(),
-    Shift = (Mod band shift()) =/= 0,
-    Ctrl = (Mod band ctrl()) =/= 0,
-    Alt = (Mod band alt()) =/= 0,
+    Shift = wings_io:is_modkey_pressed(?KMOD_SHIFT),
+    Ctrl  = wings_io:is_modkey_pressed(?KMOD_CTRL),
+    Alt   = wings_io:is_modkey_pressed(?KMOD_ALT),
     {Shift,Ctrl,Alt}.
 fkey_combo() ->
-    Keys = sdl_keyboard:getKeyState(),
-    F1 = element(f1()+1,Keys) =/= 0,
-    F2 = element(f2()+1,Keys) =/= 0,
-    F3 = element(f3()+1,Keys) =/= 0,
+    F1 = wings_io:is_key_pressed(f1()),
+    F2 = wings_io:is_key_pressed(f2()),
+    F3 = wings_io:is_key_pressed(f3()),
     [F1,F2,F3].
 
 %% Event handler for tweak mode
@@ -977,26 +975,26 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,pos0=Orig,mag=Mag0,mm=MM}=Drag,
 do_tweak(D, _, _, _, _, _) -> D.
 
 obj_to_screen({MVM,PM,VP}, {X,Y,Z}) ->
-    glu:project(X, Y, Z, MVM, PM, VP).
+    wings_gl:project(X, Y, Z, MVM, PM, VP).
 
 screen_to_obj({MVM,PM,VP}, {Xs,Ys,Zs}) ->
-    glu:unProject(Xs, Ys, Zs, MVM, PM, VP).
+    wings_gl:unProject(Xs, Ys, Zs, MVM, PM, VP).
 
 tweak_pos(false, true, _, Pos0, TweakPos, #dlo{src_we=#we{}=We,src_sel={face,Sel0}}) ->
     Faces = gb_sets:to_list(Sel0),
     Normals = face_normals(Faces,We,[]),
     case Normals of
-    [[]] -> TweakPos;
-    _Otherwise ->
-        N = e3d_vec:average(Normals),
-    %% constraining by the plane
-    Dot = e3d_vec:dot(N, N),
-      if
-      Dot == 0.0 -> Pos0;
-      true ->
-        T = -e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
-        e3d_vec:add_prod(TweakPos, N, T)
-      end
+	[[]] -> TweakPos;
+	_Otherwise ->
+	    N = e3d_vec:average(Normals),
+	    %% constraining by the plane
+	    Dot = e3d_vec:dot(N, N),
+	    if
+		Dot == 0.0 -> Pos0;
+		true ->
+		    T = -e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
+		    e3d_vec:add_prod(TweakPos, N, T)
+	    end
     end;
 
 tweak_pos(false, true,Vs, Pos0, TweakPos, D) ->
@@ -1004,29 +1002,29 @@ tweak_pos(false, true,Vs, Pos0, TweakPos, D) ->
     N = e3d_vec:average(Normals),
     %% constraining by the plane
     Dot = e3d_vec:dot(N, N),
-      if
-      Dot == 0.0 -> Pos0;
-      true ->
-        T = -e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
-        e3d_vec:add_prod(TweakPos, N, T)
-      end;
+    if
+	Dot == 0.0 -> Pos0;
+	true ->
+	    T = -e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
+	    e3d_vec:add_prod(TweakPos, N, T)
+    end;
 
 %%%% Along Average Normal
 tweak_pos(true, false, _, Pos0, TweakPos, #dlo{src_we=#we{}=We,src_sel={face,Sel0}}) ->
     Faces = gb_sets:to_list(Sel0),
     Normals = face_normals(Faces,We,[]),
     case Normals of
-    [[]] -> TweakPos;
-    _Otherwise ->
-        N = e3d_vec:norm(e3d_vec:add(Normals)),
-        %% Return the point along the normal closest to TweakPos.
-        Dot = e3d_vec:dot(N, N),
-        if
-        Dot == 0.0 -> Pos0;
-        true ->
-          T = e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
-          e3d_vec:add_prod(Pos0, N, T)
-        end
+	[[]] -> TweakPos;
+	_Otherwise ->
+	    N = e3d_vec:norm(e3d_vec:add(Normals)),
+	    %% Return the point along the normal closest to TweakPos.
+	    Dot = e3d_vec:dot(N, N),
+	    if
+		Dot == 0.0 -> Pos0;
+		true ->
+		    T = e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
+		    e3d_vec:add_prod(Pos0, N, T)
+	    end
     end;
 
 tweak_pos(true, false, Vs, Pos0, TweakPos, D) ->
@@ -1034,12 +1032,12 @@ tweak_pos(true, false, Vs, Pos0, TweakPos, D) ->
     N = e3d_vec:norm(e3d_vec:add(Normals)),
     %% Return the point along the normal closest to TweakPos.
     Dot = e3d_vec:dot(N, N),
-      if
-      Dot == 0.0 -> Pos0;
-      true ->
-        T = e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
-        e3d_vec:add_prod(Pos0, N, T)
-      end.
+    if
+	Dot == 0.0 -> Pos0;
+	true ->
+	    T = e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
+	    e3d_vec:add_prod(Pos0, N, T)
+    end.
 
 %% vertex_normal(Vertex, DLO) -> UnormalizedNormal
 %%  Calculate the vertex normal. Will also work for vertices surrounded

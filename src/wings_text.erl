@@ -71,7 +71,7 @@ draw(S) ->
 			    Base -> Base
 			end,
 	    gl:listBase(ListBase),
-	    gl:callLists(length(S), ?GL_UNSIGNED_BYTE, S);
+	    wings_gl:callLists(S);
 	false ->
 	    Font:draw(S)
     end.

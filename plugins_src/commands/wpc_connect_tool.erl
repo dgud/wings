@@ -540,7 +540,7 @@ line_intersect2d({X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4}) ->
     end.
 
 obj_to_screen({MVM,PM,VP}, {X,Y,Z}) ->
-    glu:project(X, Y, Z, MVM, PM, VP).
+    wings_gl:project(X, Y, Z, MVM, PM, VP).
 
 help(Cs = #cs{v=[]}) ->
     Msg1 = wings_msg:button_format(?__(1,"Select vertex or cut edge [press button to slide]")),

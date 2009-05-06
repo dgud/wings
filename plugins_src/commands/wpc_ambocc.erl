@@ -120,9 +120,9 @@ get_ao_factor(Buffer) ->
 read_frame() ->
     Hemirez = 64, % Must be even and/or power-of-two
     W = H = Hemirez,
-    Buffer = sdl_util:alloc(W*H, ?GL_UNSIGNED_BYTE),
+    Buffer = wings_io:get_buffer(W*H, ?GL_UNSIGNED_BYTE),
     gl:readPixels(0,0, W,H, ?GL_LUMINANCE, ?GL_UNSIGNED_BYTE, Buffer),
-    ImageBin = sdl_util:getBin(Buffer),
+    ImageBin = wings_io:get_bin(Buffer),
     get_ao_factor(ImageBin).
 
 setup_gl() ->

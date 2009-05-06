@@ -131,23 +131,23 @@ report_stacktrace(_, []) ->
     %% (There will be no stacktrace if we were called from the
     %% process that runs wings:halt_loop/1.)
     ok.
-    
+
 caption(#st{file=undefined}=St) ->
     Caption = wings(),
-    sdl_video:wm_setCaption(Caption, Caption),
+    wings_io:set_title(Caption),
     St;
 caption(#st{saved=true,file=Name}=St) ->
     Caption = wings() ++ " - " ++ filename:basename(Name),
-    sdl_video:wm_setCaption(Caption, Caption),
+    wings_io:set_title(Caption),
     St;
 caption(#st{saved=auto,file=Name}=St) ->
     Caption = wings() ++ " - " ++ filename:basename(Name) ++
 	"* [" ++ ?__(1,"auto-saved") ++ "]",
-    sdl_video:wm_setCaption(Caption, Caption),
+    wings_io:set_title(Caption),
     St;
 caption(#st{file=Name}=St) ->
     Caption = wings() ++ " - " ++ filename:basename(Name) ++ "*",
-    sdl_video:wm_setCaption(Caption, Caption),
+    wings_io:set_title(Caption),
     St.
 
 wings() ->

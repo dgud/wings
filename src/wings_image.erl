@@ -12,7 +12,7 @@
 %%
 
 -module(wings_image).
--export([init/0,init_opengl/0,
+-export([init/1,init_opengl/0,
 	 from_file/1,new/2,new_temp/2,create/1,
 	 rename/2,txid/1,info/1,images/0,screenshot/0,
 	 bumpid/1, default/1,
@@ -30,8 +30,8 @@
 
 -define(DEFAULT, '$Default Img').
 
-init() ->
-    spawn_opt(fun server/0, [link,{fullsweep_after,0}]).
+init(Opt) ->
+    spawn_opt(fun() -> server(Opt) end, [link,{fullsweep_after,0}]).
 
 init_opengl() ->
     req(init_opengl).
@@ -126,9 +126,9 @@ screenshot() ->
     {W,H} = wings_wm:top_size(),
     gl:pixelStorei(?GL_PACK_ALIGNMENT, 1),
     gl:readBuffer(?GL_FRONT),
-    Mem = sdl_util:alloc(W*H*3, ?GL_UNSIGNED_BYTE),
+    Mem = wings_io:get_buffer(W*H*3, ?GL_UNSIGNED_BYTE),
     gl:readPixels(0, 0, W, H, ?GL_RGB, ?GL_UNSIGNED_BYTE, Mem),
-    ImageBin = sdl_util:getBin(Mem),
+    ImageBin = wings_io:get_bin(Mem),
     Image = #e3d_image{image=ImageBin,width=W,height=H},
     Id = new_temp(?__(1,"<<Screenshot>>"), Image),
     wings_image:window(Id).
@@ -203,8 +203,9 @@ req(Req, Notify) ->
 	 images					%All images (gb_trees).
 	}).
 
-server() ->
+server(Opt) ->
     register(wings_image, self()),
+    wings_io:set_process_option(Opt),
     loop(#ist{images=gb_trees:empty()}).
 
 loop(S0) ->
@@ -224,7 +225,8 @@ loop(S0) ->
     end.
 
 handle(init_opengl, #ist{images=Images}=S) ->
-    erase(), %% Forget all textures!
+    %%erase(), %% Forget all textures!
+    [erase(Tex) || Tex <- get(), is_integer(Tex)],
     foreach(fun({Id,Image}) ->
 		    make_texture(Id, Image)
 	    end, gb_trees:to_list(Images)),
@@ -497,11 +499,11 @@ maybe_scale(#e3d_image{width=W0,height=H0,bytes_pp=BytesPerPixel,
 	    case {nearest_power_two(W0),nearest_power_two(H0)} of
 		{W0,H0} -> Image;
 		{W,H} ->
-		    Out = sdl_util:alloc(BytesPerPixel*W*H, ?GL_UNSIGNED_BYTE),
+		    Out = wings_io:get_buffer(BytesPerPixel*W*H, ?GL_UNSIGNED_BYTE),
 		    Format = texture_format(Image),
 		    glu:scaleImage(Format, W0, H0, ?GL_UNSIGNED_BYTE,
 				   Bits0, W, H, ?GL_UNSIGNED_BYTE, Out),
-		    Bits = sdl_util:getBin(Out),
+		    Bits = wings_io:get_bin(Out),
 		    Image#e3d_image{width=W,height=H,image=Bits}
 	    end
     end.
@@ -527,7 +529,7 @@ internal_format(Else) -> Else.
 
 delete(Id, #ist{images=Images0}=S) ->
     delete_bump(Id),
-    gl:deleteTextures(1, [erase(Id)]),
+    wings_gl:deleteTextures([erase(Id)]),
     Images = gb_trees:delete(Id, Images0),
     S#ist{images=Images}.
 
@@ -538,7 +540,7 @@ delete_older(Id, #ist{images=Images0}=S) ->
 
 delete_older_1([{Id,_}|T], Limit) when Id < Limit ->
     delete_bump(Id),
-    gl:deleteTextures(1, [erase(Id)]),
+    wings_gl:deleteTextures([erase(Id)]),
     delete_older_1(T, Limit);
 delete_older_1(Images, _) -> Images.
 
@@ -551,7 +553,7 @@ delete_from_1([{Id,_}=Im|T], Limit, Acc) when Id < Limit ->
     delete_from_1(T, Limit, [Im|Acc]);
 delete_from_1([{Id,_}|T], Limit, Acc) ->
     delete_bump(Id),
-    gl:deleteTextures(1, [erase(Id)]),
+    wings_gl:deleteTextures([erase(Id)]),
     delete_from_1(T, Limit, Acc);
 delete_from_1([], _, Acc) -> reverse(Acc).
 
@@ -560,7 +562,7 @@ delete_bump(Id) ->
     case erase({Id,bump}) of
 	undefined -> ok;
 	TxId -> ok;
-	Bid ->  gl:deleteTextures(1, [Bid])
+	Bid ->  wings_gl:deleteTextures([Bid])
     end.
 
 do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName}, 
