@@ -3,7 +3,7 @@
 %%
 %%     Extends the Erlang shell with Wings utilities.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -34,6 +34,7 @@ help() ->
 
 wh() ->
     p("dialyze() -- dialyze Wings\n"),
+    p("diana()   -- show the result of the latest analysis again\n"),
     p("** Xref for Wings modules **\n"),
     p("wx()       -- collect xref information\n"),
     p("wxe()      -- add xref information for ESDL\n"),
@@ -194,7 +195,7 @@ diana() ->
     {ok,B} = file:read_file(dump_file()),
     case binary_to_term(B) of
 	Ws when is_list(Ws) ->
-	    diana_1(lists:keysort(1, Ws))
+	    diana_1(lists:keysort(2, Ws))
     end.
 
 diana_1([W|Ws]) ->
