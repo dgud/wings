@@ -3,7 +3,7 @@
 %%
 %%     Various utility functions that not obviously fit somewhere else.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -224,15 +224,15 @@ try_arg(F, #st{shapes=Shapes}, N) ->
 try_arg(F, #we{}=We, N) ->
     arg(F, N),
     dump_we(F, We);
-try_arg(F, {I,_}=GbTree, N) when is_integer(I) ->
-    case catch gb_trees:to_list(GbTree) of
-	{'EXIT',_} -> ok;
-	[{_,#edge{}}|_]=Es ->
+try_arg(F, Tab, N) ->
+    try sparse_tree:to_list(Tab) of
+	[#edge{}|_]=Es ->
 	    arg(F, N),
 	    dump_edges(F, Es);
 	_ -> ok
-    end;
-try_arg(_, _, _) -> ok.
+    catch _:_ ->
+	    ok
+    end.
 
 arg(F, N) ->
     io:format(F, "Argument #~p:\n", [N]).

@@ -3,7 +3,7 @@
 %%
 %%     This module handles interactive commands.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -604,7 +604,7 @@ ungrab(#drag{x=Ox,y=Oy}) ->
 
 invalidate_fun(#dlo{drag=none}=D, _) -> D;
 invalidate_fun(#dlo{src_we=We}=D, _) ->
-    wings_draw:abort_split(D#dlo{src_we=We#we{es=none}}).
+    wings_draw:abort_split(D#dlo{src_we=We#we{es=array:new()}}).
 
 numeric_input(Drag0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
