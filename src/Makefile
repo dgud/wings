@@ -3,7 +3,7 @@
 #
 #     Makefile for building Wings 3D.
 #
-#  Copyright (c) 2001-2007 Bjorn Gustavsson
+#  Copyright (c) 2001-2009 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -27,10 +27,11 @@ else
 TYPE_FLAGS=+debug_info
 endif
 
-# Note: wings_lang must be compiled before other modules -
-# it contains a parse transform.
+# All modules except wings_langs are mentioned here. It contains a parse
+# transform needed for compiling the other modules, so we must use a special
+# rule to ensure that it gets compiled before all other modules.
+
 MODULES= \
-	wings_lang \
 	user_default \
 	wings \
 	wings_align \
@@ -111,15 +112,14 @@ MODULES= \
 	wings__du \
 	wpa
 
-
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -pa $(ESDL_PATH)/ebin -I ../e3d -W $(TYPE_FLAGS) \
- '-Dwings_version="$(WINGS_VSN)"' -pa $(WINGS_INTL) +warn_obsolete_guard \
- -I $(ESDL_PATH)/include
+ERL_COMPILE_FLAGS += -pa $(ESDL_PATH)/ebin  -I $(ESDL_PATH)/include \
+ -I ../e3d -W $(TYPE_FLAGS) '-Dwings_version="$(WINGS_VSN)"' -pa $(WINGS_INTL) 
+
 
 # ----------------------------------------------------
 # Targets
@@ -128,9 +128,9 @@ ERL_COMPILE_FLAGS += -pa $(ESDL_PATH)/ebin -I ../e3d -W $(TYPE_FLAGS) \
 opt debug:
 	$(MAKE) TYPE=$@ common
 
-common: $(TARGET_FILES)
+common: $(EBIN)/wings_lang.beam $(TARGET_FILES)
 
-template: opt
+template: $(TARGET_FILES)
 	erl -pa $(WINGS_INTL) -noinput -run tools generate_template ../ebin -run erlang halt
 
 lang: template
@@ -138,12 +138,12 @@ lang: template
 	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 clean:
-	rm -f $(TARGET_FILES)
+	rm -f $(TARGET_FILES) $(EBIN)/wings_lang.beam
 	rm -f core
 
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
 
-$(TARGET_FILES): wings.hrl
+$(TARGET_FILES): $(EBIN)/wings_lang.beam wings.hrl
 
 $(EBIN)/wings_file.beam $(EBIN)/wings_help.beam $(EBIN)/wings_text.beam: ../vsn.mk

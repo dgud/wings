@@ -3,7 +3,7 @@
 #
 #     Makefile for fonts.
 #
-#  Copyright (c) 2001-2005 Bjorn Gustavsson
+#  Copyright (c) 2001-2009 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -36,7 +36,8 @@ FONTS=       \
 MODULES= \
 	bdf2wingsfont
 
-TARGET_FILES=  $(MODULES:%=$(EBIN)/%.beam) $(FONTS:%=$(FONT_DIR)/%.wingsfont)
+FONT_FILES= $(FONTS:%=$(FONT_DIR)/%.wingsfont)
+TARGET_FILES=  $(MODULES:%=$(EBIN)/%.beam) $(FONT_FILES)
 
 # ----------------------------------------------------
 # FLAGS
@@ -61,9 +62,7 @@ $(FONT_DIR)/fixed6x12.wingsfont: fixed6x12.bdf
 
 $(FONT_DIR)/fixed7x14.wingsfont: fixed7x14.bdf
 
-
-$(FONT_DIR)/*.wingsfont: bdf2wingsfont.beam
-
+$(FONT_FILES): bdf2wingsfont.beam
 
 bdf2wingsfont.beam: ../vsn.mk
 

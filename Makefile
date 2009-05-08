@@ -3,12 +3,14 @@
 #
 #     Top-level Makefile for building Wings 3D.
 #
-#  Copyright (c) 2001-2007 Bjorn Gustavsson
+#  Coepyright (c) 2001-2009 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
 include vsn.mk
+
+.PHONY: all debug clean lang
 
 all:
 	(cd intl_tools; $(MAKE))
@@ -34,7 +36,7 @@ clean:
 	(cd plugins_src; $(MAKE) clean)
 	(cd icons; $(MAKE) clean)
 
-lang:
+lang: all
 	(cd intl_tools; $(MAKE))
 	(cd src; $(MAKE) lang)
 	(cd plugins_src; $(MAKE) lang)
@@ -43,9 +45,9 @@ lang:
 #
 # Build installer for Windows.
 #
+.PHONY: win32
 win32: all lang
 	(cd plugins_src/win32_file; $(MAKE))
-#	(cd plugins_src/win32_file; $(MAKE) lang)
 	(cd plugins_src/jpeg; $(MAKE))
 	(cd plugins_src/jpeg; $(MAKE) lang)
 	(cd plugins_src/fbx; $(MAKE))
@@ -56,6 +58,7 @@ win32: all lang
 #
 # Build a package for MacOS X.
 #
+.PHONY: macosx
 macosx: all lang
 	(cd plugins_src/mac_file; $(MAKE))
 	(cd plugins_src/mac_file; $(MAKE) lang)
@@ -67,6 +70,7 @@ macosx: all lang
 #
 # Build package for Unix.
 #
+.PHONY: unix
 unix: all lang
 	(cd plugins_src/jpeg; $(MAKE))
 	(cd plugins_src/jpeg; $(MAKE) lang)
