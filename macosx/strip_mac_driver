@@ -4,7 +4,7 @@
 #
 #     Strip an Erlang driver for the Mac platform.
 #
-#  Copyright (c) 2005 Bjorn Gustavsson
+#  Copyright (c) 2005-2009 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,5 +16,5 @@ symbols=`dirname $0`/driver_symbols
 
 for i do
     echo "Stripping driver $i"
-    strip -u -r -s $symbols $i
+    strip -S $i
 done
