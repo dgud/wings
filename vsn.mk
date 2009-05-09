@@ -1,1 +1,1 @@
-WINGS_VSN=1.0-rc2.pre
+WINGS_VSN=1.0-rc2
