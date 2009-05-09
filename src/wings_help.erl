@@ -556,7 +556,7 @@ splash_contents() ->
      {text,?__(5,"(including commercial).")},
      {spacer,0,10},
      {text,?__(6,"Copyright") 
-      ++ [$\s,169] ++ " 2001-2008 "++"Bj" ++ [246] ++ "rn Gustavsson " ++
+      ++ [$\s,169] ++ " 2001-2009 "++"Bj" ++ [246] ++ "rn Gustavsson " ++
       ?__(7,"& Others")},
      {text,?__(8,"JPEG library: Copyright") ++ [$\s,169] ++
       " 1991-1998 Thomas G. Lane"}
