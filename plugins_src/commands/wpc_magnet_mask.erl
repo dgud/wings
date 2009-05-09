@@ -73,9 +73,9 @@ command({tools,{magnet_mask,magnet_mask_on}},St) ->
     wings_pref:set_value(magnet_mask_on,not Bool),
     St;
 command({tools,{magnet_mask,Type}},St) ->
-    locking(Type,St);
+    {save_state,locking(Type,St)};
 command({select,{by,magnet_mask}}, St) ->
-    select_locked(St);
+    {save_state,select_locked(St)};
 command({view,{show,show_magnet_mask}}, St) ->
     Bool = wings_pref:get_value(show_magnet_mask),
     wings_pref:set_value(show_magnet_mask, not Bool),
