@@ -34,7 +34,6 @@
      ox,oy,					% original X,Y
      cx,cy,					% current X,Y
      dc={0,0},              % double click selection
-     orig_st,				% keeps undo, selection
      st}).					% wings st record (working)
 
 -record(drag,
@@ -66,6 +65,13 @@ init() ->
     wings_pref:set_default(tweak_double_click_speed54,Val),
     wings_pref:set_default(tweak_ctrl,slide),
     wings_pref:set_default(tweak_mmb_select,false),
+    case wings_pref:get_value(start_in_tweak) of
+      true ->
+        self() ! {external, launch_tweak},
+        ok;
+      false ->
+        ok
+    end,
     true.
 
 menu({tools}, Menu0) ->
@@ -131,7 +137,7 @@ tweak(Ask,_Cam,_St) when is_atom(Ask) ->
     wings_ask:dialog(Ask, ?__(4,"Tweak Mode Preferences"),PrefQs,
     fun(Result) -> set_values(Result), {tools,{tweak,Result}} end);
 
-tweak(_,_,St0) ->
+tweak(_,_,St) ->
     case wpa:pref_get(?MODULE, sel_mode) of
     {_Mode,_Sh0,Mag,MagType} ->
         MagR = 1.0;
@@ -143,7 +149,7 @@ tweak(_,_,St0) ->
         MagR = 1.0
     end,
     T = #tweak{magnet=Mag,mag_type=MagType,mag_r=MagR,
-           tmode=wait,orig_st=St0,st=St0},
+           tmode=wait,st=St},
     help(T),
     {seq,push,update_tweak_handler(T)}.
 
@@ -205,7 +211,7 @@ update_tweak_handler(#tweak{tmode=drag,st=#st{}=St}=T) ->
     wings_draw:update_sel_dlist(),
     wings_wm:dirty(),
     {replace,fun(Ev) ->
-        handle_tweak_event(Ev, T#tweak{orig_st=St,st=St}) end};
+        handle_tweak_event(Ev, T#tweak{st=St}) end};
 
 update_tweak_handler(#tweak{st=#st{}=St}=T) ->
     wings:mode_restriction(none),
@@ -213,7 +219,7 @@ update_tweak_handler(#tweak{st=#st{}=St}=T) ->
     wings_draw:refresh_dlists(St),
     wings_wm:dirty(),
     {replace,fun(Ev) ->
-        handle_tweak_event(Ev, T#tweak{orig_st=St,st=St}) end}.
+        handle_tweak_event(Ev, T#tweak{st=St}) end}.
 
 handle_tweak_event(redraw, #tweak{st=St}=T) ->
     help(T),
@@ -225,11 +231,11 @@ handle_tweak_event({vec_command,Command,_}, T) when is_function(Command) ->
     %% Use to execute command with vector arguments (see wings_vec.erl).
     process_cmd_response(Command(),T);
 
-handle_tweak_event(revert_state, #tweak{orig_st=St0}=T) ->
+handle_tweak_event(revert_state, #tweak{st=St0}=T) ->
     St = clear_temp_sel(St0),
     update_tweak_handler(T#tweak{st=St});
 
-handle_tweak_event({note,menu_aborted}, #tweak{orig_st=St0}=T) ->
+handle_tweak_event({note,menu_aborted}, #tweak{st=St0}=T) ->
     St = clear_temp_sel(St0),
     update_tweak_handler(T#tweak{st=St});
 handle_tweak_event({drop,Pos,DropData}, #tweak{st=St}) ->
@@ -249,20 +255,15 @@ handle_tweak_event(Ev, #tweak{st=St}=T) ->
 handle_tweak_event0(#keyboard{sym=?SDLK_ESCAPE}, T) ->
     exit_tweak(T);
 
-handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{st=#st{sel=Sel0}=St0}=T) ->
+handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{st=St0}=T) ->
     case tweak_hotkey(C, T) of
       none ->
-            St = case Sel0 == [] of
-              true ->
-                fake_selection(St0);
-              false ->
-                St0
-            end,
+            St = fake_selection(St0),
             case wings_hotkey:event(Ev,St) of
               next ->
-                update_tweak_handler(T#tweak{orig_st=St0,st=St0});
+                update_tweak_handler(T);
               Action ->
-                handle_tweak_event2({action,Action},T#tweak{orig_st=St0,st=St})
+                handle_tweak_event2({action,Action},T#tweak{st=St})
             end;
       T1 -> update_tweak_handler(T1)
     end;
@@ -470,27 +471,22 @@ handle_tweak_event2(quit=Ev, T) ->
 handle_tweak_event2({current_state,St}, T) ->
     update_tweak_handler(T#tweak{st=St});
 
-handle_tweak_event2({new_state,St0}, #tweak{orig_st=#st{selmode=Mode,sh=Sh}=OrigSt}=T) ->
-    St2 = clear_temp_sel(St0),
-    case St2#st{selmode=Mode,sh=Sh} =:= OrigSt of
-      false ->
-        St = wings_undo:save(OrigSt,St2),
-        St1 = case St of
-           #st{saved=false} -> St;
-           _Other -> wings_u:caption(St#st{saved=false})
-        end,
-        update_tweak_handler(T#tweak{st=St1});
-      true ->
-        update_tweak_handler(T#tweak{st=St2})
-      end;
+handle_tweak_event2({new_state,St}, #tweak{st=St}=T) ->
+    update_tweak_handler(T);
+handle_tweak_event2({new_state,St1}, #tweak{st=St0}=T) ->
+    St2 = wings_undo:save(St0, St1),
+    St = case St2 of
+         #st{saved=false} -> St2;
+         _Other -> wings_u:caption(St2#st{saved=false})
+     end,
+    update_tweak_handler(T#tweak{st=St});
 
-handle_tweak_event2({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=St0}=T) ->
-    NoTempSel = OrigSt =/= St0,
+handle_tweak_event2({action,Action}, #tweak{tmode=wait,st=#st{}=St0}=T) ->
     Hs = wings_pref:get_value(hilite_select),
     case Action of
     {view,aim} ->
-        wings_view:command(aim, St0),
-        update_tweak_handler(T#tweak{st=OrigSt});
+        St = wings_view:command(aim, St0),
+        update_tweak_handler(T#tweak{st=St});
     {view,highlight_aim} ->
         HL0 = wings_pref:get_value(highlight_aim_at_unselected),
         HL1 = wings_pref:get_value(highlight_aim_at_selected),
@@ -503,42 +499,17 @@ handle_tweak_event2({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=S
               _Other ->
                   {{view,aim}, St0}
         end,
-        wings_view:command(Cmd0,St1),
-        update_tweak_handler(T#tweak{st=OrigSt});
+        St = wings_view:command(Cmd0,St1),
+        update_tweak_handler(T#tweak{st=St});
 
     {edit,undo_toggle} ->
         St = wings_u:caption(wings_undo:undo_toggle(clear_temp_sel(St0))),
-        update_tweak_handler(T#tweak{orig_st=St,st=St});
+        update_tweak_handler(T#tweak{st=St});
     {edit,undo} ->
         St = wings_u:caption(wings_undo:undo(clear_temp_sel(St0))),
-        update_tweak_handler(T#tweak{orig_st=St,st=St});
+        update_tweak_handler(T#tweak{st=St});
     {edit,redo} ->
         St = wings_u:caption(wings_undo:redo(clear_temp_sel(St0))),
-        update_tweak_handler(T#tweak{orig_st=St,st=St});
-
-    {select,vertex} when NoTempSel ->
-        St = OrigSt#st{sh=false, selmode=vertex},
-        update_tweak_handler(T#tweak{st=St});
-    {select,edge} when NoTempSel ->
-        St = OrigSt#st{sh=false, selmode=edge},
-        update_tweak_handler(T#tweak{st=St});
-    {select,face} when NoTempSel ->
-        St = OrigSt#st{sh=false, selmode=face},
-        update_tweak_handler(T#tweak{st=St});
-    {select,body} when NoTempSel ->
-        St = OrigSt#st{sh=false, selmode=body},
-        update_tweak_handler(T#tweak{st=St});
-    {select,{adjacent,vertex}} when NoTempSel ->
-        St = OrigSt#st{sh=false, selmode=vertex},
-        update_tweak_handler(T#tweak{st=St});
-    {select,{adjacent,edge}} when NoTempSel ->
-        St = OrigSt#st{sh=false, selmode=edge},
-        update_tweak_handler(T#tweak{st=St});
-    {select,{adjacent,face}} when NoTempSel ->
-        St = OrigSt#st{sh=false, selmode=face},
-        update_tweak_handler(T#tweak{st=St});
-    {select,{adjacent,body}} when NoTempSel ->
-        St = OrigSt#st{sh=false, selmode=body},
         update_tweak_handler(T#tweak{st=St});
     {select,{edge_loop,edge_loop}}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
     {select,{edge_loop,edge_ring}}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
@@ -547,6 +518,12 @@ handle_tweak_event2({action,Action}, #tweak{tmode=wait,orig_st=OrigSt,st=#st{}=S
     {select,{similar_area,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
     {select,similar}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
     {select,all}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
+    {select, C}=Cmd when C==vertex;C==edge;C==face;C==body ->
+        St = clear_temp_sel(St0),
+        do_cmd(Cmd,T#tweak{st=St});
+    {select, {adjacent,_}}=Cmd ->
+        St = clear_temp_sel(St0),
+        do_cmd(Cmd,T#tweak{st=St});
     {file,_}=Cmd ->
         St = clear_temp_sel(St0),
         do_cmd(Cmd,T#tweak{st=St});
@@ -648,7 +625,7 @@ process_cmd_response(Result,T) ->
       {save_state,St} ->
           handle_tweak_event2({new_state,St}, T);
       #st{}=St ->
-          handle_tweak_event2({new_state,St}, T);
+          update_tweak_handler(T#tweak{st=St});
       {drag,Drag} ->
           wings_drag:do_drag(Drag, none);
       keep ->
@@ -656,7 +633,7 @@ process_cmd_response(Result,T) ->
       {saved,St} ->
           update_tweak_handler(T#tweak{st=St});
       {new,St} ->
-          handle_tweak_event2({new_state,St}, T);
+          update_tweak_handler(T#tweak{st=wings_u:caption(wings_undo:init(St))});
       quit ->
           exit_tweak(T),
           wings:save_windows(),
@@ -764,7 +741,7 @@ end_pick(true, #tweak{st=#st{selmode=Selmode}=St0}=T0) ->
         {_,_,St2} -> St2;
         none -> St1
     end,
-    T = T0#tweak{st=St,tmode=wait},
+    T = T0#tweak{st=St0,tmode=wait},
     help(T),
     handle_tweak_event2({new_state,St},T);
 
@@ -1455,7 +1432,7 @@ magnet_tweak_slide_fn(#mag{vs=Vs}=Mag, We,Orig,TweakPos) ->
          end, [], Vs),
     {Vtab,Mag#mag{vtab=Vtab}}.
 
-magnet_radius(Sign, #tweak{mag_r=Falloff0,orig_st=St}=T0) ->
+magnet_radius(Sign, #tweak{mag_r=Falloff0,st=St}=T0) ->
     case Falloff0+Sign*?GROUND_GRID_SIZE/10 of
     Falloff when Falloff > 0 ->
         setup_magnet(T0#tweak{mag_r=Falloff,st=St});

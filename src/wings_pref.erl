@@ -42,25 +42,16 @@ load() ->
 	    set_value(advanced_menus, true),
 	    ok;
 	PrefFile ->
-	    io:format("Reading preferences from: ~s\n", [PrefFile]),
+	    io:format("wings-~s\nReading preferences from: ~s\n",
+		    [?WINGS_VERSION, PrefFile]),
 	    case file:consult(PrefFile) of
 		{ok,List0} ->
 		    List = clean(List0),
 		    catch ets:insert(wings_state, List),
-		    no_more_basic_menus(),
-		    start_in_tweak();
+		    no_more_basic_menus();
 		{error,_Reason} ->
 		    ok
 	    end
-    end.
-
-start_in_tweak() ->
-    case get_value(start_in_tweak) of
-      true ->
-        self() ! {external, launch_tweak},
-        ok;
-      false ->
-        ok
     end.
 
 no_more_basic_menus() ->
