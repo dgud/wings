@@ -16,14 +16,15 @@ The following software is needed:
 - The Wings source. http://www.wings3d.com
 
 - Cygwin, a unix-like environment for Windows. http://www.cygwin.com
+  (Alternatively, it should now be possible to use MSYS,
+  http://www.mingw.org/wiki/msys, for development work, but we have
+  not tested to package an release using MSYS.)
 
 - Erlang/OTP R13B or later. http://www.erlang.org
   (It is easiest to download the pre-built binaries for Windows.)
 
-- ESDL 0.96.0626 or later. http://esdl.sf.net
-  I usually recommend downloading the pre-built binaries for Windows,
-  but the pre-built ESDL 0.96.0626 does not work on recent versions of
-  Erlang/OTP, so you must build from source.
+- ESDL 1.0 or later. http://esdl.sf.net
+  It is easiest to download the pre-built binary.
 
 - MinGW, a C compiler and libraries for building native Windows applications.
   http://www.mingw.org
