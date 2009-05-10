@@ -1,4 +1,8 @@
 --- 1.0-rc3 -----------------------------------------------------------------
+- The icon in the top left corner of the Wings windows (in Windows) and in
+  the Dock (on Mac OS X), now has transparency. I have also added a README
+  file to the "psd" directory in the source distribution to explain the
+  purpose of each Photoshop file. [bjorng]
 
 --- 1.0-rc2 -----------------------------------------------------------------
 - This is the second release candiate for the long-awaited Wings 1.0 release.

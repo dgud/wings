@@ -1,0 +1,69 @@
+wings_icon_layered.psd
+======================
+
+Master source with layers.
+
+wings_doc_macosx.psd
+====================
+
+128 x 128 document icon for Mac OS X.
+(Icon for wings files.) Used to create:
+
+macosx/wings_doc.icns
+
+wings_doc_128.psd, wings_doc_256.psd
+====================================
+
+128 x 128 and 256 x 256 document (file) icons
+for Windows. (Icon for wings files.) Used to create:
+
+win32/wings_doc.ico
+
+wings_icon_256.psd
+==================
+
+256 x 256 source for icon for the Desktop/Finder/Windows Explorer.
+Includes a shadow. Used to create:
+
+macosx/wings3d.icns
+win32/wings.ico
+
+wings_icon_small.psd
+====================
+
+Source for the 32 x 32 icon for Windows, used in the task switcher
+and in the upper lefter of the Wings window. This source file
+is used to generate two files:
+
+  ebin/wings_icon_small.bmp
+  ebin/wings_icon_small.wbm
+
+where the BMP file is the icon itself and the WBM file is a
+hard-edged mask.
+
+To recreate the ebin/wings_icon_small.bmp file:
+
+1) Hide the top layer so that only the layer named "BMP" is visible.
+2) Invoke the "File > Save As" command.
+3) Choose file type "BMP".
+4) Finish the export.
+
+To recreate the ebin/wings_icon_small.wbm file:
+
+1) Make sure that the "WBM" layer is visible.
+2) Duplicate the file (Image > Duplicate).
+3) Flatten the image in the duplicated file (Layer -> Flatten Image).
+4) Convert to grayscale mode (Image > Mode > Grayscale).
+5) Convert to Bitmap (Image -> Mode -> Bitmap).
+6) Export as WBM (File -> Save As, choose format WBM).
+
+wings_icon_big.psd
+====================
+
+Source for the 128 x 128 icon for Mac OS X, which is used in the Dock.
+This source file is used to generate the following two files:
+
+  ebin/wings_icon_big.bmp
+  ebin/wings_icon_big.wbm
+
+Follow the procedure given for the wings_icon_small.psd above.

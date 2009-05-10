@@ -71,10 +71,39 @@ set_icon() ->
     Ebin = filename:dirname(code:which(?MODULE)),
     IconFile = filename:join(Ebin,
 			     case os:type() of
-				 {unix,darwin} -> "wings_icon_big.bmp";
-				 _ -> "wings_icon_small.bmp"
+				 {unix,darwin} -> "wings_icon_big";
+				 _ -> "wings_icon_small"
 			     end),
-    catch sdl_video:wm_setIcon(sdl_video:loadBMP(IconFile), null).
+    set_icon_1(IconFile).
+
+set_icon_1(IconBase) ->
+    Bmp = sdl_video:loadBMP(IconBase ++ ".bmp"),
+    Mask = get_mask(IconBase ++ ".wbm"),
+    sdl_video:wm_setIcon(Bmp, Mask).
+
+%% get_mask(WBMFileName) -> Binary | null
+%%  Read a mask from a WBM file.
+%%  Wbmp format reference: http://en.wikipedia.org/wiki/Wbmp
+%%
+get_mask(IconBase) ->
+    case file:read_file(IconBase) of
+	{ok,Bin} -> get_mask_1(Bin);
+	{error,_} -> null
+    end.
+
+get_mask_1(<<0,0,T0/binary>>) ->
+    try
+	{_W,T} = get_uintvar(T0, 0),
+	{_H,Bits} = get_uintvar(T, 0),
+	Bits
+    catch _:_ ->
+	    null
+    end.
+
+get_uintvar(<<1:1,N:7,T/binary>>, Acc) ->
+    get_uintvar(T, (Acc bsl 7) bor N);
+get_uintvar(<<0:1,N:7,T/binary>>, Acc) ->
+    {(Acc bsl 7) bor N,T}.
 
 macosx_workaround() ->
     try 1.0/zero()
