@@ -336,14 +336,17 @@ update_fun_2({vertex,_PtSize}, #dlo{vs=none,src_we=We}=D, _) ->
 update_fun_2(hard_edges, #dlo{hard=none,src_we=#we{he=Htab}=We}=D, _) ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
-    gl:'begin'(?GL_LINES),
     #we{es=Etab,vp=Vtab} = We,
-    foreach(fun(Edge) ->
-		    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-		    wpc_ogla:two(gb_trees:get(Va, Vtab), 
-				 gb_trees:get(Vb, Vtab))
-	    end, gb_sets:to_list(Htab)),
-    gl:'end'(),
+    Create = fun(Edge) ->
+		     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
+		     edge_f32(gb_trees:get(Va,Vtab),gb_trees:get(Vb,Vtab))
+	     end,
+    Hard = << <<(Create(Edge)):24/binary>> || Edge <- gb_sets:to_list(Htab)>>,
+    
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    gl:vertexPointer(3, ?GL_FLOAT, 0, Hard), 
+    gl:drawArrays(?GL_LINES, 0, 2*gb_sets:size(Htab)),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     D#dlo{hard=List};
 update_fun_2(edges, #dlo{edges=none,ns=Ns}=D, _) ->
@@ -369,37 +372,14 @@ update_fun_2(_, D, _) -> D.
 make_edge_dl(Ns) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
-    make_edge_dl_1(Ns, none),
+    {Tris,Quads,Polys,PsLens} = make_edge_dl_bin(Ns, <<>>, <<>>, <<>>, []),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    drawVertices(?GL_TRIANGLES, Tris),    
+    drawVertices(?GL_QUADS, Quads),
+    drawPolygons(Polys, PsLens),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     Dl.
-
-make_edge_dl_1([[_|[A,B,C]]|Ns], ?GL_TRIANGLES) ->
-    wpc_ogla:tri(A, B, C),
-    make_edge_dl_1(Ns, ?GL_TRIANGLES);
-make_edge_dl_1([[_|[A,B,C]]|Ns], Mode) ->
-    maybe_end(Mode),
-    gl:'begin'(?GL_TRIANGLES),
-    wpc_ogla:tri(A, B, C),
-    make_edge_dl_1(Ns, ?GL_TRIANGLES);
-make_edge_dl_1([[_|[A,B,C,D]]|Ns], ?GL_QUADS) ->
-    wpc_ogla:quad(A, B, C, D),
-    make_edge_dl_1(Ns, ?GL_QUADS);
-make_edge_dl_1([[_|[A,B,C,D]]|Ns], Mode) ->
-    maybe_end(Mode),
-    gl:'begin'(?GL_QUADS),
-    wpc_ogla:quad(A, B, C, D),
-    make_edge_dl_1(Ns, ?GL_QUADS);
-make_edge_dl_1([{_,_,VsPos}|Ns], Mode) ->
-    maybe_end(Mode),
-    gl:'begin'(?GL_POLYGON),
-    pump_vertices(VsPos),
-    gl:'end'(),
-    make_edge_dl_1(Ns, none);
-make_edge_dl_1([], Mode) ->
-    maybe_end(Mode).
-
-maybe_end(none) -> ok;
-maybe_end(_) -> gl:'end'().
 
 pump_vertices([A,B,C,D|Vs]) ->
     wpc_ogla:quad(A, B, C, D),
@@ -411,6 +391,48 @@ pump_vertices([A,B]) ->
 pump_vertices([A]) ->
     gl:vertex3fv(A);
 pump_vertices([]) -> ok.
+
+make_edge_dl_bin([[_|[A,B,C]]|Ns], Tris, Quads, Polys, PsLens) ->
+    Tri = tri_f32(A,B,C),
+    make_edge_dl_bin(Ns, <<Tris/binary, Tri/binary>>, Quads, Polys, PsLens);
+make_edge_dl_bin([[_|[A,B,C,D]]|Ns], Tris, Quads, Polys, PsLens) ->
+    Quad = quad_f32(A,B,C,D),
+    make_edge_dl_bin(Ns, Tris, <<Quads/binary,Quad/binary>>, Polys, PsLens);
+make_edge_dl_bin([{_,_,VsPos}|Ns], Tris, Quads, Polys, PsLens) ->
+    Poly = poly_f32(VsPos),
+    NoVs = byte_size(Poly) div 12,
+    make_edge_dl_bin(Ns,Tris,Quads,<<Polys/binary,Poly/binary>>,[NoVs|PsLens]);
+make_edge_dl_bin([], Tris, Quads, Polys, PsLens) ->
+    {Tris, Quads, Polys, reverse(PsLens)}.
+
+edge_f32({X1,Y1,Z1},{X2,Y2,Z2}) -> 
+    <<X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>.
+
+tri_f32({X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}) -> 
+    <<X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32>>.
+
+quad_f32({X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}) -> 
+    <<X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,X4:?F32,Y4:?F32,Z4:?F32>>.
+
+poly_f32(List) when is_list(List) ->
+    << <<X:?F32,Y:?F32,Z:?F32>> || {X,Y,Z} <- List >>.
+
+drawVertices(_Type, <<>>) -> 
+    ok;
+drawVertices(Type, Bin) -> 
+    gl:vertexPointer(3, ?GL_FLOAT, 0, Bin), 
+    gl:drawArrays(Type, 0, byte_size(Bin) div 12).
+
+drawPolygons(<<>>, _PsLens) -> 
+    ok;
+drawPolygons(Polys, PsLens) ->
+    gl:vertexPointer(3, ?GL_FLOAT, 0, Polys), 
+    foldl(fun(Length,Start) ->
+		  gl:drawArrays(?GL_POLYGON, Start, Length),
+		  Length+Start
+	  end, 0, PsLens).
 
 force_flat([], _) -> [];
 force_flat([H|T], Color) ->

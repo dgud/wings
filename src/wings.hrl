@@ -44,6 +44,8 @@
 
 -define(HIT_BUF_SIZE, (1024*1024)).
 
+-define(F32, 32/float-native).
+
 -define(PANE_COLOR, {0.52,0.52,0.52}).
 -define(BEVEL_HIGHLIGHT, {0.9,0.9,0.9}).
 -define(BEVEL_LOWLIGHT, {0.3,0.3,0.3}).
