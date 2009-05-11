@@ -225,11 +225,12 @@ try_arg(F, #we{}=We, N) ->
     arg(F, N),
     dump_we(F, We);
 try_arg(F, Tab, N) ->
-    try sparse_tree:to_list(Tab) of
-	[#edge{}|_]=Es ->
+    try array:sparse_to_orddict(Tab) of
+	[{_,#edge{}}|_]=Es ->
 	    arg(F, N),
 	    dump_edges(F, Es);
-	_ -> ok
+	_ ->
+	    ok
     catch _:_ ->
 	    ok
     end.
@@ -247,7 +248,7 @@ dump_we(F, #we{name=Name,id=Id,mode=Mode,es=Etab,fs=Ftab,
     io:format(F, "=======================\n", []),
     io:format(F, "   mode=~p next_id=~p\n", [Mode,Next]),
     dump_faces(F, gb_trees:to_list(Ftab)),
-    dump_edges(F, array:sparse_to_list(Etab)).
+    dump_edges(F, array:sparse_to_orddict(Etab)).
     
 dump_edges(F, Es) ->
     io:put_chars(F, "\n"),
