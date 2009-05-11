@@ -467,7 +467,7 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
 %%%% from the Stop time (relased) and if the result is less than 16000 ms, then
 %%%% we cancel the drag.
 handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
-          #drag{fp_count=StartTime}=Drag) ->
+          #drag{fp_count=StartTime}=Drag) when StartTime=/=0->
     Stop = now(),
     Time = timer:now_diff(Stop, StartTime),
     % io:format("Time ~p\n",[Time]),
@@ -480,6 +480,14 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
             wings_wm:later(revert_state),
             pop
 	end;
+handle_drag_event(#mousebutton{button=3,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Drag0) ->
+%%%% This function guards against reported crashes of the rmb being held, and
+%%%% clicking the lmb. I can't reproduce this crash, but I don;t doubt that it
+%%%% happens. The probable cause is likely to do with misinterpreted or conflated
+%%%% mouse button hits. ~Richard Jones
+    Ev = #mousemotion{x=X,y=Y,state=0,mod=Mod},
+    Drag = ?SLOW(motion(Ev, Drag0)),
+    quit_drag(Drag);
 
 handle_drag_event(Event, Drag = #drag{st=St}) ->
     case wings_camera:event(Event, St, fun() -> redraw(Drag) end) of
