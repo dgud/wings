@@ -22,7 +22,7 @@
 	 add_vpos/2,update_vpos/2,
 	 gb_trees_smallest_key/1,gb_trees_largest_key/1,
 	 array_keys/1,array_smallest_key/1,array_greatest_key/1,
-	 array_is_empty/1,
+	 array_is_empty/1,array_entries/1,
 	 nice_float/1,
 	 unique_name/2,
 	 lib_dir/1,
@@ -175,6 +175,12 @@ array_is_empty(Array) ->
 	    Empty
     end.
 
+%% array_entries(Array) -> NumberOfEntries
+%%  Return the number of non-default entries in the array.
+%%
+array_entries(Array) ->
+    array:sparse_foldl(fun(_, _, N) -> N + 1 end, 0, Array).
+			        
 nice_float(F) when is_float(F) ->
     simplify_float(lists:flatten(io_lib:format("~f", [F]))).
 

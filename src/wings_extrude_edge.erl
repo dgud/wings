@@ -95,7 +95,7 @@ bevel_faces(Faces, #we{id=Id,mirror=MirrorFace}=We0, {Tvs,Limit0}) ->
     Dist = ?BEVEL_EXTRUDE_DIST_KLUDGE,
     Edges = wings_edge:from_faces(Faces, We0),
     {We1,OrigVs,_,Forbidden} = extrude_edges(Edges, Dist, We0#we{mirror=none}),
-    case {array:sparse_size(We0#we.es),array:sparse_size(We1#we.es)} of
+    case {wings_util:array_entries(We0#we.es),wings_util:array_entries(We1#we.es)} of
 	{Same,Same} ->
 	    wings_u:error(?__(1,"Object is too small to bevel."));
 	{_,_} ->

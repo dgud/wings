@@ -188,7 +188,7 @@ export(Name, #st{shapes=Shapes0}=St) ->
     write_file(Name, Shapes).
 
 check_size(#we{name=Name,es=Etab}) ->
-    case array:sparse_size(Etab) of
+    case wings_util:array_entries(Etab) of
 	Sz when Sz > 65535 ->
 	    wings_u:error(?__(1,"Object \"")
 			  ++Name

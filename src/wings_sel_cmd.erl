@@ -647,14 +647,14 @@ similar(#st{selmode=face}=St) ->
 similar(#st{selmode=body}=St) ->
     Template0 = wings_sel:fold(fun(_, #we{vp=Vtab,es=Etab,fs=Ftab}, Acc) ->
 				       [{gb_trees:size(Vtab),
-					 array:sparse_size(Etab),
+					 wings_util:array_entries(Etab),
 					 gb_trees:size(Ftab)}|Acc]
 			       end, [], St),
     Template = ordsets:from_list(Template0),
     wings_sel:make(fun(_, We) -> match_body(Template, We) end, body, St).
 
 match_body(Template, #we{vp=Vtab,es=Etab,fs=Ftab}) ->
-    Sizes = {gb_trees:size(Vtab),array:sparse_size(Etab),gb_trees:size(Ftab)},
+    Sizes = {gb_trees:size(Vtab),wings_util:array_entries(Etab),gb_trees:size(Ftab)},
     match_body_1(Template, Sizes).
 
 match_body_1([Sizes|_], Sizes) -> true;

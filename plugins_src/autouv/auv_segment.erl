@@ -30,7 +30,7 @@
 create(Mode, We0) ->
     case Mode of 
 	feature ->
-	    Tot = array:sparse_size(We0#we.es),
+	    Tot = wings_util:array_entries(We0#we.es),
 	    {_Distances,Charts0,Cuts0,_Feats} = 
 		segment_by_feature(We0, 60, Tot div 50),
 	    {Charts0, Cuts0};

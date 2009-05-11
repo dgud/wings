@@ -21,16 +21,27 @@
 %%% The Catmull-Clark subdivision algorithm is used, with
 %%% Tony DeRose's extensions for creases.
 
+%% smooth(We) -> We'
+%%  Sub-divide an entire object.
+%%
 smooth(We) ->
-    {Faces,Htab} = smooth_faces_htab(We),
-    smooth(Faces, Htab, We).
-    
-smooth(Fs, Htab, #we{vp=Vtab,es=Etab}=We) ->
+    {Fs,Htab} = smooth_faces_htab(We),
+    #we{vp=Vtab,es=Etab} = We,
     Vs = gb_trees:keys(Vtab),
     Es = wings_util:array_keys(Etab),
-    smooth(Fs, Vs, Es, Htab, We).
+    smooth(true, Fs, Vs, Es, Htab, We).
 
-smooth(Fs, Vs, Es, Htab, #we{vp=Vp,next_id=Id}=We0) ->
+%% smooth([Face], [Vertex], [Edge], [HardEdge], We) -> We'
+%%  Sub-divide only one or more regions of faces.
+%%
+smooth(Fs, Vs, Es, Htab, We) ->
+    smooth(false, Fs, Vs, Es, Htab, We).
+
+%% smooth(EntireObject, [Face], [Vertex], [Edge], [HardEdge], We) -> We'
+%%  Sub-divide only one or more regions of faces. EntireObject
+%%  is a boolean.
+%%
+smooth(EntireObject, Fs, Vs, Es, Htab, #we{vp=Vp,next_id=Id}=We0) ->
     wings_pb:start(?__(1,"smoothing")),
     wings_pb:update(0.05, ?__(2,"calculating face centers")),
     FacePos0 = face_centers(Fs, We0),
@@ -46,7 +57,13 @@ smooth(Fs, Vs, Es, Htab, #we{vp=Vp,next_id=Id}=We0) ->
 
     %% Now calculate all vertex positions.
     FacePos = gb_trees:from_orddict(FacePos0),
-    {UpdatedVs,Mid} = update_edge_vs(Es, We0, FacePos, Htab, Vp, Id),
+    {UpdatedVs,Mid} =
+	case EntireObject of
+	    true ->
+		update_edge_vs_all(We0, FacePos, Htab, Vp, Id);
+	    false ->
+		update_edge_vs_some(Es, We0, FacePos, Htab, Vp, Id)
+	end,
     NewVs = smooth_new_vs(FacePos0, Mid),
     Vtab = smooth_move_orig(Vs, FacePos, Htab, We0, UpdatedVs ++ NewVs),
 
@@ -66,7 +83,7 @@ inc_smooth(#we{vp=Vp,next_id=Next}=We0, OldWe) ->
     {Faces,Htab} = smooth_faces_htab(We0),
     FacePos0 = face_centers(Faces, We0),
     FacePos = gb_trees:from_orddict(FacePos0),
-    {UpdatedVs,Mid} = update_edge_vs(We0, FacePos, Htab, Vp, Next),
+    {UpdatedVs,Mid} = update_edge_vs_all(We0, FacePos, Htab, Vp, Next),
     NewVs = smooth_new_vs(FacePos0, Mid),
     Vtab = smooth_move_orig(gb_trees:keys(Vp), FacePos, Htab, We0,
 			    UpdatedVs ++ NewVs),
@@ -349,23 +366,19 @@ smooth_move_orig_fun(Vtab, FacePos, Htab) ->
 
 %% Update the position for the vertex that was created in the middle
 %% of each original edge.
-update_edge_vs(#we{es=Etab}, FacePos, Hard, Vtab, V) ->
-    update_edge_vs_all(array:sparse_to_orddict(Etab), FacePos, Hard, Vtab, V, []).
 
-update_edge_vs(Es, #we{es=Etab}, FacePos, Hard, Vtab, V) ->
-    case array:sparse_size(Etab) of
-	N when N =:= length(Es) ->
-	    update_edge_vs_all(array:sparse_to_orddict(Etab),
-			       FacePos, Hard, Vtab, V, []);
-	_ ->
-	    update_edge_vs_some(Es, Etab, FacePos, Hard, Vtab, V, [])
-    end.
+update_edge_vs_all(#we{es=Etab}, FacePos, Hard, Vtab, V) ->
+    update_edge_vs_all(array:sparse_to_orddict(Etab),
+		       FacePos, Hard, Vtab, V, []).
 
 update_edge_vs_all([{Edge,Rec}|Es], FacePos, Hard, Vtab, V, Acc) ->
     Pos = update_edge_vs_1(Edge, Hard, Rec, FacePos, Vtab),
     update_edge_vs_all(Es, FacePos, Hard, Vtab, V+1, [{V,Pos}|Acc]);
 update_edge_vs_all([], _, _, _, V, Acc) ->
     {reverse(Acc),V}.
+
+update_edge_vs_some(Es, #we{es=Etab}, FacePos, Hard, Vtab, V) ->
+    update_edge_vs_some(Es, Etab, FacePos, Hard, Vtab, V, []).
 
 update_edge_vs_some([E|Es], Etab, FacePos, Hard, Vtab, V, Acc) ->
     Rec = array:get(E, Etab),

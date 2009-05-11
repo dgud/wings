@@ -1123,7 +1123,7 @@ shape_info(We) when ?IS_LIGHT(We) ->
     wings_light:info(We);
 shape_info(#we{id=Id,name=Name,fs=Ftab,es=Etab,vp=Vtab,mode=Mode}) ->
     Faces = gb_trees:size(Ftab),
-    Edges = array:sparse_size(Etab),
+    Edges = wings_util:array_entries(Etab),
     Vertices = gb_trees:size(Vtab),
     wings_util:format(?__(object_info,
               "Object ~p \"~s\" has ~p polygons, "
@@ -1140,7 +1140,7 @@ shape_info(Objs, Shs) ->
 shape_info([{Id,_}|Objs], Shs, On, Vn, En, Fn) ->
     #we{fs=Ftab,es=Etab,vp=Vtab} = gb_trees:get(Id, Shs),
     Faces = gb_trees:size(Ftab),
-    Edges = array:sparse_size(Etab),
+    Edges = wings_util:array_entries(Etab),
     Vertices = gb_trees:size(Vtab),
     shape_info(Objs, Shs, On+1, Vn+Vertices, En+Edges, Fn+Faces);
 shape_info([], _Shs, N, Vertices, Edges, Faces) ->

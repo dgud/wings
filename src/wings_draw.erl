@@ -459,19 +459,11 @@ update_sel(#dlo{sel=none,src_sel={edge,Edges}}=D) ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
     gl:'begin'(?GL_LINES),
-    case array:sparse_size(Etab) =:= gb_sets:size(Edges) of
-	true ->
-	    foreach(fun(#edge{vs=Va,ve=Vb}) ->
-			    wpc_ogla:two(gb_trees:get(Va, Vtab),
-					 gb_trees:get(Vb, Vtab))
-		    end, array:sparse_to_list(Etab));
-	false ->
-	    foreach(fun(Edge) ->
-			    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-			    wpc_ogla:two(gb_trees:get(Va, Vtab),
-					 gb_trees:get(Vb, Vtab))
-		    end, gb_sets:to_list(Edges))
-    end,
+    foreach(fun(Edge) ->
+		    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
+		    wpc_ogla:two(gb_trees:get(Va, Vtab),
+				 gb_trees:get(Vb, Vtab))
+	    end, gb_sets:to_list(Edges)),
     gl:'end'(),
     gl:endList(),
     D#dlo{sel=List};
