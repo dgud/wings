@@ -190,6 +190,8 @@ event(resized, Ost) ->
     keep;
 event(close, _) ->
     delete;
+event(got_focus, _) ->
+    wings_wm:dirty();
 event(redraw, Ost) ->
     wings_io:ortho_setup(),
     {W,H} = wings_wm:win_size(),

@@ -219,9 +219,14 @@ ctrl_redraw(#ctrl{title=Title}) ->
     wings_io:ortho_setup(none),
     {W,_} = wings_wm:win_size(),
     TitleBarH = title_height(),
-    Pref = case {wings_wm:this(),wings_wm:actual_focus_window()} of
+    This = wings_wm:this(),
+    FocusWindow = wings_wm:actual_focus_window(),
+    Pref = case {This,FocusWindow} of
 	       {{_,Client},Client} -> title_active_color;
-	       {{_,Client},{_,Client}} -> title_active_color;
+	       % The Geometry Graph {object,geom} naming convention allows it to
+	       % match with the Geometry window, so we stop that particular match.
+	       {{_,Client},{WinElem,Client}} when WinElem =/= object ->
+	           title_active_color;
 	       {_,_} -> title_passive_color
 	   end,
     wings_io:blend(wings_pref:get_value(Pref),
