@@ -120,7 +120,6 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 ERL_COMPILE_FLAGS += -pa $(ESDL_PATH)/ebin  -I $(ESDL_PATH)/include \
  -I ../e3d -W $(TYPE_FLAGS) '-Dwings_version="$(WINGS_VSN)"' -pa $(WINGS_INTL) 
 
-
 # ----------------------------------------------------
 # Targets
 # ----------------------------------------------------
@@ -141,9 +140,15 @@ clean:
 	rm -f $(TARGET_FILES) $(EBIN)/wings_lang.beam
 	rm -f core
 
+$(EBIN)/wings_u.beam: $(ESRC)/wings_u.erl
+	$(ERLC) '-Dwings_branch="$(WINGS_BRANCH)"' $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
+
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
 
 $(TARGET_FILES): $(EBIN)/wings_lang.beam wings.hrl
 
-$(EBIN)/wings_file.beam $(EBIN)/wings_help.beam $(EBIN)/wings_text.beam: ../vsn.mk
+# ----------------------------------------------------
+# Dependencies
+# ----------------------------------------------------
+$(EBIN)/wings_export.beam $(EBIN)/wings_file.beam $(EBIN)/wings_help.beam $(EBIN)/wings_text.beam $(EBIN)/wings_pref.beam $(EBIN)/wings_u.beam: ../vsn.mk

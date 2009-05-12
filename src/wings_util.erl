@@ -14,7 +14,7 @@
 %%       other wings_* modules (except wings_pref).
 
 -module(wings_util).
--export([wings/0,share/1,share/3,make_vector/1,
+-export([share/1,share/3,make_vector/1,
 	 rel2fam/1,
 	 format/2,
 	 key_format/2,
@@ -32,12 +32,6 @@
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1,member/2,last/1]).
 
--ifdef(DEBUG).
-wings() -> "Wings 3D [debug]".
--else.
-wings() -> "Wings 3D".
--endif.
-    
 share(X, X, X) -> {X,X,X};
 share(X, X, Z) -> {X,X,Z};
 share(X, Y, Y) -> {X,Y,Y};

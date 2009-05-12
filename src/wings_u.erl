@@ -125,22 +125,34 @@ crash_log(WinName, Reason, StackTrace) ->
     LogName.
 
 caption(#st{file=undefined}=St) ->
-    Caption = wings_util:wings(),
+    Caption = wings(),
     sdl_video:wm_setCaption(Caption, Caption),
     St;
 caption(#st{saved=true,file=Name}=St) ->
-    Caption = wings_util:wings() ++ " - " ++ filename:basename(Name),
+    Caption = wings() ++ " - " ++ filename:basename(Name),
     sdl_video:wm_setCaption(Caption, Caption),
     St;
 caption(#st{saved=auto,file=Name}=St) ->
-    Caption = wings_util:wings() ++ " - " ++ filename:basename(Name) ++
+    Caption = wings() ++ " - " ++ filename:basename(Name) ++
 	"* [" ++ ?__(1,"auto-saved") ++ "]",
     sdl_video:wm_setCaption(Caption, Caption),
     St;
 caption(#st{file=Name}=St) ->
-    Caption = wings_util:wings() ++ " - " ++ filename:basename(Name) ++ "*",
+    Caption = wings() ++ " - " ++ filename:basename(Name) ++ "*",
     sdl_video:wm_setCaption(Caption, Caption),
     St.
+
+wings() ->
+    case ?wings_branch of
+	"" -> debug("Wings3D");
+	_ -> "Wings3D " ++ ?wings_version ++ " (" ++ ?wings_branch ++ ")"
+    end.
+
+-ifdef(DEBUG).
+debug(Caption) -> Caption ++ " [debug]".
+-else.
+debug(Caption) -> Caption.
+-endif.
 
 %%%
 %%% Local functions.

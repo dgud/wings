@@ -8,8 +8,6 @@
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-include vsn.mk
-
 .PHONY: all debug clean lang
 
 all:
@@ -75,3 +73,23 @@ unix: all lang
 	(cd plugins_src/jpeg; $(MAKE))
 	(cd plugins_src/jpeg; $(MAKE) lang)
 	unix/make_installer
+
+#
+# Build the source distribution.
+#
+
+.PHONY: .FORCE-WINGS-VERSION-FILE
+vsn.mk: .FORCE-WINGS-VERSION-FILE
+	@/bin/sh ./WINGS-VERSION-GEN
+-include vsn.mk
+
+WINGS_TARNAME=wings-$(WINGS_VSN)
+.PHONY: dist
+dist:
+	git archive --format=tar \
+		--prefix=$(WINGS_TARNAME)/ HEAD^{tree} > $(WINGS_TARNAME).tar
+	@mkdir -p $(WINGS_TARNAME)
+	@echo $(WINGS_VSN) > $(WINGS_TARNAME)/version
+	tar rf $(WINGS_TARNAME).tar $(WINGS_TARNAME)/version
+	@rm -r $(WINGS_TARNAME)
+	bzip2 -f -9 $(WINGS_TARNAME).tar
