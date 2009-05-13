@@ -12,6 +12,9 @@
 
 - Various fixes and clean up to Tweak. [optigon]
 
+- Wings will show an error message when it fails to do sphere mapping
+  instead of crashing. (Thanks to deerwood.) [dgud]
+
 --- 1.0-rc2 -----------------------------------------------------------------
 - This is the second release candiate for the long-awaited Wings 1.0 release.
   Until 1.0 is released, we will only fix bugs. [bjorng]

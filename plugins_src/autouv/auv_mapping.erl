@@ -3,8 +3,7 @@
 %%
 %%     The UV parametrisation algorithms.
 %%
-%%  Copyright (c) 2002-2007 Dan Gudmundsson, Raimo Niskanen,
-%%                     Bjorn Gustavsson
+%%  Copyright (c) 2002-2009 Dan Gudmundsson, Raimo Niskanen, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -93,7 +92,7 @@ map_chart_2(Op,C, Loop, Pinned, We) ->  volproject(Op,C, Pinned, Loop,We).
 
 volproject(Type,Chart,_Pinned,{_,BEdges},We) ->
     {Center,Axes,LoopInfo} = find_axes(Chart,BEdges,We),
-%%    io:format("Res: ~p ~n",[{Center,Axes}]),
+    %%io:format("Res: ~p ~n",[{Center,Axes}]),
     Rot = rot_mat(Axes),
     CalcUV = case Type of 
 		 cyl -> fun cyl/1; 
@@ -107,13 +106,13 @@ volproject(Type,Chart,_Pinned,{_,BEdges},We) ->
 		end,
     Vs1 = lists:sort([{V,Transform(V)} || V <- Vs0]),
     Tagged = leftOrRight(LoopInfo, Chart, We#we{vp=gb_trees:from_orddict(Vs1)}),
+    %%io:format("Tagged ~w~n",[gb_sets:to_list(Tagged)]),
     [{V,fix_positions(V,Pos,CalcUV(Pos),Tagged)} || {V,Pos} <- Vs1].
 
 sphere({X,Y,Z}) ->    
-     S = catchy(catch math:atan2(X,Z)/math:pi()),	
-     T = math:acos(clamp(-Y))/math:pi()-0.5,
-     {S,T,0.0}.
-%%     {X,Y,0.0}.
+    S = catchy(catch math:atan2(X,Z)/math:pi()),	
+    T = math:acos(clamp(-Y))/math:pi()-0.5,
+    {S,T,0.0}.
 
 cyl({X,Y,Z}) ->
     S = catchy(catch math:atan2(X,Z)/math:pi()),
@@ -200,11 +199,11 @@ forms_closed_object(BEdges0,ChartNormal,We=#we{name=#ch{emap=Emap}}) ->
 	Edge -> 
 	    {L1,L2,Link,LinkR} = split_edges(Edge,BEdges),
 	    North = case L1 of 
-			[] -> wings_vertex:pos((hd(Link))#be.vs,We);
+			[] -> wings_vertex:pos((hd(Link))#be.ve,We);
 			_ -> center(L1,We)
 		    end,
 	    South = case L2 of 
-			[] -> wings_vertex:pos((lists:last(Link))#be.ve,We);
+			[] -> wings_vertex:pos((lists:last(Link))#be.vs,We);
 			_ -> center(L2,We)
 		    end,
 	    NorthSouth = e3d_vec:sub(North,South),
@@ -231,10 +230,17 @@ calc_axis(Y0,Z0) ->
     {X,Y,Z}.
 
 is_an_8([]) -> false;
+is_an_8([{E,_},{E,_}|R]) -> %% Skip these 
+    is_an_8(R);
 is_an_8([{E,_}|R]) -> %% Hmm we must take them in order
     case lists:keysearch(E,1,R) of %% O(N2) I know..
 	false -> is_an_8(R);
-	_ -> E
+	_ ->
+	    case reverse(R) of
+		[{E,_}|_] ->
+		    is_an_8(R);
+		_ -> E
+	    end
     end.
 
 %%  Split edges splits into three parts two loops 
@@ -245,58 +251,45 @@ is_an_8([{E,_}|R]) -> %% Hmm we must take them in order
 %%   \_/--\_|     => 2 loops: mnoabc fghijk
 %%   onmdekji     =>    link: def
 %% 
-%d(L) -> %% DBG BUGBUG remove
-%    lists:map(fun({E,_BE}) -> E end,L).
+%% d(L) -> %% DBG BUGBUG remove
+%%     lists:map(fun({E,_BE}) -> E end,L).
     
 split_edges(Edge,Bes) ->
     {Loop1,Loop2,Link} = split_edges_1(Edge,Bes),
     Get = fun(L) -> lists:map(fun({_,BE}) -> BE end,L) end,
     LinkR = (((Bes -- Loop1) -- Loop2) -- Link),
+    %%io:format("Split: ~w ~w ~w ~w~n",[d(Loop1),d(Loop2),d(Link),d(LinkR)]),
     {Get(Loop1),Get(Loop2),Get(Link),Get(LinkR)}.
 
 split_edges_1(Edge,Bes) ->
-%    io:format("Split: ~w ~w~n",[Edge,d(Bes)]),
-    {P1r,Pr1} = find_split(Edge,Bes,[]),
-    {P2r,Pr2} = find_split(Edge,Pr1,[]),
-    {Loop1,Link1} = find_link(Pr1,tl(P2r),[hd(P2r)]),
-    {Loop2,Link2} = find_link(tl(P1r),Pr2++reverse(tl(P1r)),reverse(Link1)),
-%    io:format("L1:~w~nLink1:~w~n",[d(Loop1),d(Link1)]),
-%    io:format("L2:~w~nLink2:~w~n",[d(Loop2),d(Link2)]),
-    {Loop1,Loop2,Link2}.
+    %%io:format("Split: ~w ~w~n",[Edge,d(Bes)]),
+    {Before,BE1,After} = find_split(Edge,Bes,[]),
+    {LeftLoop0,BE2,RightLoop0} = find_split(Edge,After,[BE1]),
+    LeftLoop  = [BE2|LeftLoop0],
+    RightLoop = RightLoop0 ++ Before,
+    {Loop1,Link1} = find_link(LeftLoop,  reverse(LeftLoop), []),
+    {Loop2,Link2} = find_link(RightLoop, reverse(RightLoop), []),
+    %%io:format("L1:~w~nL2:~w~nLink1:~w~nLink2:~w~n",[d(Loop1),d(Loop2),d(Link1),d(Link2)]),
+    {Loop1,Loop2,Link1++Link2}.
 
-find_split(Edge,[G={Edge,_Be}|Bes],Rest) -> {[G|Rest],Bes};
-find_split(Edge,[This|Bes],Rest) ->
-    find_split(Edge,Bes,[This|Rest]).
-    
-find_link([{E,_}|C1],[G={E,_}|C2],Acc) ->
-    find_link(C1,remove_last(C2,E),[G|Acc]);
-find_link(_C1,C2,Acc) -> 
-    case is_an_8(C2) of 
-	false -> {C2,Acc};
-	Edge ->
-	    [{SE,_Be}|_] = C2,
-	    {L1,L2,Li} = split_edges_1(Edge,reverse(C2)),
-	    RealLoop = 
-		case lists:keysearch(SE,1,L1) of
-		    false -> L1;
-		    _ -> L2
-		end,
-	    Res = get_until(C2,Li,[]),
-	    {RealLoop,Res ++ Acc}
-    end.
+find_split(Edge,[G={Edge,_}|Bes],Acc) -> {Acc,G,Bes};
+find_split(Edge,[This|Bes],Acc) ->
+    find_split(Edge,Bes,[This|Acc]).
 
-get_until(_, [], Acc) -> Acc;     
-get_until([L={E,_}|R1],[{E,_}|R2],Acc) ->
-    get_until(R1,R2,[L|Acc]);
-get_until([L|R1],R2,Acc) ->
-    get_until(R1,R2,[L|Acc]).
+find_link([{E,_}|_],[{E,_}|_],Link = [{E,_}|_]) ->
+    {[],Link};
+find_link([G={E,_}|C1],[{E,_}|C2],Link) ->
+    find_link(C1,C2,[G|Link]);
+find_link(C1,_,Link) ->
+    find_loop(C1,Link,[]).
 
-remove_last([],_) -> [];
-remove_last(C,Edge) ->
-    case reverse(C) of
-	[{Edge,_}|R] -> reverse(R);
-	_ -> C
-    end.
+find_loop([{E,_}|_],[{E,_}|_]=Link, Loop) ->
+    {Loop,Link};
+find_loop([G|C1],Link,Loop) ->
+    find_loop(C1,Link,[G|Loop]);
+find_loop([],[],Loop) -> {Loop,[]};
+find_loop([],Link,[]) -> {[],Link}.
+
 
 %%%% Uncomplete fixme.. BUGBUG
 %%% I can't get this to work satisfactory..aarg.
