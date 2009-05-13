@@ -392,12 +392,16 @@ pump_vertices([A]) ->
     gl:vertex3fv(A);
 pump_vertices([]) -> ok.
 
-make_edge_dl_bin([[_|[A,B,C]]|Ns], Tris, Quads, Polys, PsLens) ->
-    Tri = tri_f32(A,B,C),
-    make_edge_dl_bin(Ns, <<Tris/binary, Tri/binary>>, Quads, Polys, PsLens);
-make_edge_dl_bin([[_|[A,B,C,D]]|Ns], Tris, Quads, Polys, PsLens) ->
-    Quad = quad_f32(A,B,C,D),
-    make_edge_dl_bin(Ns, Tris, <<Quads/binary,Quad/binary>>, Polys, PsLens);
+make_edge_dl_bin([[_|[{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}]]|Ns],
+		 Tris0, Quads, Polys, PsLens) ->
+    Tris = <<Tris0/binary,X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32,
+	    X3:?F32,Y3:?F32,Z3:?F32>>,
+    make_edge_dl_bin(Ns, Tris, Quads, Polys, PsLens);
+make_edge_dl_bin([[_|[{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}]]|Ns],
+		 Tris, Quads0, Polys, PsLens) ->
+    Quads = <<Quads0/binary,X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32,
+	     X3:?F32,Y3:?F32,Z3:?F32,X4:?F32,Y4:?F32,Z4:?F32>>,
+    make_edge_dl_bin(Ns, Tris, Quads, Polys, PsLens);
 make_edge_dl_bin([{_,_,VsPos}|Ns], Tris, Quads, Polys, PsLens) ->
     Poly = poly_f32(VsPos),
     NoVs = byte_size(Poly) div 12,
@@ -407,14 +411,6 @@ make_edge_dl_bin([], Tris, Quads, Polys, PsLens) ->
 
 edge_f32({X1,Y1,Z1},{X2,Y2,Z2}) -> 
     <<X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>.
-
-tri_f32({X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}) -> 
-    <<X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32,
-     X3:?F32,Y3:?F32,Z3:?F32>>.
-
-quad_f32({X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}) -> 
-    <<X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32,
-     X3:?F32,Y3:?F32,Z3:?F32,X4:?F32,Y4:?F32,Z4:?F32>>.
 
 poly_f32(List) when is_list(List) ->
     << <<X:?F32,Y:?F32,Z:?F32>> || {X,Y,Z} <- List >>.
