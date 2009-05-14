@@ -513,24 +513,25 @@ update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
 update_face_sel(Fs0, #dlo{src_we=We}=D) ->
     Fs = wings_we:visible(Fs0, We),
     List = gl:genLists(1),
-    gl:newList(List, ?GL_COMPILE),
-    gl:'begin'(?GL_TRIANGLES),
-    update_face_sel_1(Fs, D),
-    gl:'end'(),
+    gl:newList(List, ?GL_COMPILE),     
+    BinFs = update_face_sel_1(Fs, D, <<>>),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    drawVertices(?GL_TRIANGLES, BinFs),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     D#dlo{sel=List}.
 
-update_face_sel_1(Fs, #dlo{ns=none,src_we=We}) ->
-    update_face_sel_2(Fs, We);
-update_face_sel_1(Fs, #dlo{ns={_},src_we=We}) ->
-    update_face_sel_2(Fs, We);
-update_face_sel_1(Fs, D) ->
-    update_face_sel_2(Fs, D).
+update_face_sel_1(Fs, #dlo{ns=none,src_we=We}, Bin) ->
+    update_face_sel_2(Fs, We, Bin);
+update_face_sel_1(Fs, #dlo{ns={_},src_we=We}, Bin) ->
+    update_face_sel_2(Fs, We, Bin);
+update_face_sel_1(Fs, D, Bin) ->
+    update_face_sel_2(Fs, D, Bin).
 
-update_face_sel_2([F|Fs], D) ->
-    wings_draw_util:unlit_face(F, D),
-    update_face_sel_2(Fs, D);
-update_face_sel_2([], _) -> ok.
+update_face_sel_2([F|Fs], D, Bin0) ->
+    Bin = wings_draw_util:unlit_face_bin(F, D, Bin0),
+    update_face_sel_2(Fs, D, Bin);
+update_face_sel_2([], _, Bin) -> Bin.
 
 %%%
 %%% Splitting of objects into two display lists.

@@ -232,11 +232,12 @@ hilit_draw_sel(body, _, #dlo{src_we=We}=D) ->
 	solid -> ok
     end,
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    gl:'begin'(?GL_TRIANGLES),
-    foreach(fun(Face) ->
-		    wings_draw_util:unlit_face(Face, D)
-	    end, wings_we:visible(We)),
-    gl:'end'(),
+    BinFs = lists:foldl(fun(Face, Bin) ->
+				wings_draw_util:unlit_face_bin(Face, D, Bin)
+			end, <<>>, wings_we:visible(We)),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    wings_draw:drawVertices(?GL_TRIANGLES, BinFs),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:disable(?GL_POLYGON_STIPPLE).
 
 enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev={SelMode,_,{Obj,Elem}}})->

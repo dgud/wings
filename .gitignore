@@ -54,3 +54,7 @@
 
 # crash dump files
 *.dump
+
+# Emacs Tag files
+TAGS
+

@@ -15,7 +15,7 @@
 -export([init/0,prepare/3,
 	 plain_face/2,uv_face/3,vcol_face/2,vcol_face/3,
 	 smooth_plain_faces/2,smooth_uv_faces/2,smooth_vcol_faces/2,
-	 unlit_face/2,unlit_face/3,
+	 unlit_face/2,unlit_face/3,unlit_face_bin/3,unlit_face_bin/4,
 	 force_flat_color/2,force_flat_color/3,good_triangulation/5]).
 
 -define(NEED_OPENGL, 1).
@@ -330,3 +330,47 @@ unlit_face(Face, Edge, We) ->
 	[_|VsPos] -> wings__du:plain_face(VsPos);
 	{_,Fs,VsPos} -> wings__du:plain_face(Fs, VsPos)
     end.
+
+unlit_face_bin(Face,#dlo{ns=Ns}, Bin) ->
+    case gb_trees:get(Face, Ns) of
+	[_|VsPos] ->    unlit_plain_face(VsPos, Bin);
+	{_,Fs,VsPos} -> unlit_plain_face(Fs, VsPos, Bin)
+    end;
+unlit_face_bin(Face, #we{fs=Ftab}=We, Bin) ->
+    Edge = gb_trees:get(Face, Ftab),
+    unlit_face_bin(Face, Edge, We, Bin).
+
+unlit_face_bin(Face, Edge, We, Bin) ->
+    Ps = wings_face:vertex_positions(Face, Edge, We),
+    case wings_draw:face_ns_data(Ps) of
+	[_|VsPos] -> unlit_plain_face(VsPos, Bin);
+	{_,Fs,VsPos} -> unlit_plain_face(Fs, VsPos, Bin)
+    end.
+
+unlit_plain_face([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}], Bin) ->
+    <<Bin/binary, 
+     X1:?F32,Y1:?F32,Z1:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32>>;
+unlit_plain_face([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}], Bin) ->
+    <<Bin/binary, 
+     X1:?F32,Y1:?F32,Z1:?F32, 
+     X2:?F32,Y2:?F32,Z2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     X4:?F32,Y4:?F32,Z4:?F32,
+     X1:?F32,Y1:?F32,Z1:?F32>>. 
+
+unlit_plain_face(Fs, VsPos, Bin) ->
+    unlit_plain_face_1(Fs, list_to_tuple(VsPos), Bin).
+
+unlit_plain_face_1([{A,B,C}|Fs], Vtab, Bin0) ->
+    {X1,Y1,Z1} = element(A, Vtab), 
+    {X2,Y2,Z2} = element(B, Vtab), 
+    {X3,Y3,Z3} = element(C, Vtab),
+    Bin = <<Bin0/binary, 
+	   X1:?F32,Y1:?F32,Z1:?F32,
+	   X2:?F32,Y2:?F32,Z2:?F32,
+	   X3:?F32,Y3:?F32,Z3:?F32>>,
+    unlit_plain_face_1(Fs, Vtab, Bin);
+unlit_plain_face_1([], _, Bin) -> Bin.
