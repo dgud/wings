@@ -213,8 +213,8 @@ hilit_draw_sel(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     gl:lineWidth(wings_pref:get_value(selected_edge_width)),
     gl:'begin'(?GL_LINES),
-    wpc_ogla:two(gb_trees:get(Va, Vtab),
-		 gb_trees:get(Vb, Vtab)),
+    gl:vertex3fv(gb_trees:get(Va, Vtab)),
+    gl:vertex3fv(gb_trees:get(Vb, Vtab)),
     gl:'end'();
 hilit_draw_sel(face, Face, D) ->
     case wings_pref:get_value(selection_style) of
@@ -876,8 +876,8 @@ marquee_draw_edges([{Edge,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}|Es], Vtab, Vis) ->
 	true ->
 	    gl:loadName(Edge),
 	    gl:'begin'(?GL_LINES),
-	    wpc_ogla:two(gb_trees:get(Va, Vtab),
-			 gb_trees:get(Vb, Vtab)),
+	    gl:vertex3fv(gb_trees:get(Va, Vtab)),
+	    gl:vertex3fv(gb_trees:get(Vb, Vtab)),
 	    gl:'end'()
     end,
     marquee_draw_edges(Es, Vtab, Vis);

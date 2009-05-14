@@ -162,11 +162,22 @@ update_dlist({vs,LockedVs},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}=We}=D, _) ->
         List = gl:genLists(1),
         gl:newList(List,?GL_COMPILE),
         gl:'begin'(?GL_POINTS),
-        wings_draw:pump_vertices(Pos),
+        pump_vertices(Pos),
         gl:'end'(),
         gl:endList(),
         D#dlo{plugins=[{Key,{vs,List}}|Pdl]}
     end.
+
+pump_vertices([A,B,C,D|Vs]) ->
+    wpc_ogla:quad(A, B, C, D),
+    pump_vertices(Vs);
+pump_vertices([A,B,C]) ->
+    wpc_ogla:tri(A, B, C);
+pump_vertices([A,B]) ->
+    wpc_ogla:two(A, B);
+pump_vertices([A]) ->
+    gl:vertex3fv(A);
+pump_vertices([]) -> ok.
 
 positions([V|Locked],Vtab,Acc) ->
     Pos = gb_trees:get(V,Vtab),

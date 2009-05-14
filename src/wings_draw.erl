@@ -20,7 +20,7 @@
 	 face_ns_data/1]).
 
 % export for plugins that need to draw stuff
--export([pump_vertices/1]).
+-export([drawVertices/2]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -328,24 +328,16 @@ update_fun_2(smooth, #dlo{smooth=none}=D, St) ->
 update_fun_2({vertex,_PtSize}, #dlo{vs=none,src_we=We}=D, _) ->
     UnselDlist = gl:genLists(1),
     gl:newList(UnselDlist, ?GL_COMPILE),
-    gl:'begin'(?GL_POINTS),
-    pump_vertices(visible_vertices(We)),
-    gl:'end'(),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    drawVertices(?GL_POINTS, vertices_f32(visible_vertices(We))),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     D#dlo{vs=UnselDlist};
 update_fun_2(hard_edges, #dlo{hard=none,src_we=#we{he=Htab}=We}=D, _) ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
-    #we{es=Etab,vp=Vtab} = We,
-    Create = fun(Edge) ->
-		     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-		     edge_f32(gb_trees:get(Va,Vtab),gb_trees:get(Vb,Vtab))
-	     end,
-    Hard = << <<(Create(Edge)):24/binary>> || Edge <- gb_sets:to_list(Htab)>>,
-    
     gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:vertexPointer(3, ?GL_FLOAT, 0, Hard), 
-    gl:drawArrays(?GL_LINES, 0, 2*gb_sets:size(Htab)),
+    drawVertices(?GL_LINES, edges_f32(gb_sets:to_list(Htab), We)),
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     D#dlo{hard=List};
@@ -381,17 +373,6 @@ make_edge_dl(Ns) ->
     gl:endList(),
     Dl.
 
-pump_vertices([A,B,C,D|Vs]) ->
-    wpc_ogla:quad(A, B, C, D),
-    pump_vertices(Vs);
-pump_vertices([A,B,C]) ->
-    wpc_ogla:tri(A, B, C);
-pump_vertices([A,B]) ->
-    wpc_ogla:two(A, B);
-pump_vertices([A]) ->
-    gl:vertex3fv(A);
-pump_vertices([]) -> ok.
-
 make_edge_dl_bin([[_|[{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}]]|Ns],
 		 Tris0, Quads, Polys, PsLens) ->
     Tris = <<Tris0/binary,X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32,
@@ -403,17 +384,26 @@ make_edge_dl_bin([[_|[{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}]]|Ns],
 	     X3:?F32,Y3:?F32,Z3:?F32,X4:?F32,Y4:?F32,Z4:?F32>>,
     make_edge_dl_bin(Ns, Tris, Quads, Polys, PsLens);
 make_edge_dl_bin([{_,_,VsPos}|Ns], Tris, Quads, Polys, PsLens) ->
-    Poly = poly_f32(VsPos),
+    Poly = vertices_f32(VsPos),
     NoVs = byte_size(Poly) div 12,
     make_edge_dl_bin(Ns,Tris,Quads,<<Polys/binary,Poly/binary>>,[NoVs|PsLens]);
 make_edge_dl_bin([], Tris, Quads, Polys, PsLens) ->
     {Tris, Quads, Polys, reverse(PsLens)}.
 
-edge_f32({X1,Y1,Z1},{X2,Y2,Z2}) -> 
-    <<X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>.
+edges_f32(Edges, #we{es=Etab,vp=Vtab}) ->
+    edges_f32(Edges,Etab,Vtab,<<>>).
+edges_f32([Edge|Edges],Etab,Vtab,Bin0) ->
+    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
+    {X1,Y1,Z1} = gb_trees:get(Va,Vtab),
+    {X2,Y2,Z2} = gb_trees:get(Vb,Vtab),
+    Bin = <<Bin0/binary,X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>,
+    edges_f32(Edges, Etab, Vtab, Bin);
+edges_f32([],_,_,Bin) ->
+    Bin.
 
-poly_f32(List) when is_list(List) ->
+vertices_f32(List) when is_list(List) ->
     << <<X:?F32,Y:?F32,Z:?F32>> || {X,Y,Z} <- List >>.
+
 
 drawVertices(_Type, <<>>) -> 
     ok;
@@ -473,16 +463,12 @@ update_sel(#dlo{sel=none,src_sel={face,Faces}}=D) ->
     %% We are dragging. Don't try to be tricky here.
     update_face_sel(gb_sets:to_list(Faces), D);
 update_sel(#dlo{sel=none,src_sel={edge,Edges}}=D) ->
-    #dlo{src_we=#we{es=Etab,vp=Vtab}} = D,
+    #dlo{src_we=We} = D,
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
-    gl:'begin'(?GL_LINES),
-    foreach(fun(Edge) ->
-		    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-		    wpc_ogla:two(gb_trees:get(Va, Vtab),
-				 gb_trees:get(Vb, Vtab))
-	    end, gb_sets:to_list(Edges)),
-    gl:'end'(),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    drawVertices(?GL_LINES, edges_f32(gb_sets:to_list(Edges), We)),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     D#dlo{sel=List};
 update_sel(#dlo{sel=none,src_sel={vertex,Vs}}=D) ->
@@ -491,9 +477,9 @@ update_sel(#dlo{sel=none,src_sel={vertex,Vs}}=D) ->
     case gb_trees:size(Vtab0) =:= gb_sets:size(Vs) of
 	true ->
 	    gl:newList(SelDlist, ?GL_COMPILE),
-	    gl:'begin'(?GL_POINTS),
-	    pump_vertices(gb_trees:values(Vtab0)),
-	    gl:'end'(),
+	    gl:enableClientState(?GL_VERTEX_ARRAY),
+	    drawVertices(?GL_POINTS, vertices_f32(gb_trees:values(Vtab0))),
+	    gl:disableClientState(?GL_VERTEX_ARRAY),
 	    gl:endList(),
 	    D#dlo{sel=SelDlist};
 	false ->
@@ -503,9 +489,9 @@ update_sel(#dlo{sel=none,src_sel={vertex,Vs}}=D) ->
 	    Sel = sofs:to_external(sofs:image(Vtab, R)),
 
 	    gl:newList(SelDlist, ?GL_COMPILE),
-	    gl:'begin'(?GL_POINTS),
-	    pump_vertices(Sel),
-	    gl:'end'(),
+	    gl:enableClientState(?GL_VERTEX_ARRAY),
+	    drawVertices(?GL_POINTS, vertices_f32(Sel)),
+	    gl:disableClientState(?GL_VERTEX_ARRAY),
 	    gl:endList(),
 
 	    D#dlo{sel=SelDlist}
@@ -658,15 +644,14 @@ split_vs_dlist(Vs, StaticVs, {vertex,SelVs0}, #we{vp=Vtab}=We) ->
 	    UnselDyn = sofs:to_external(UnselDyn0),
 	    UnselDlist = gl:genLists(1),
 	    gl:newList(UnselDlist, ?GL_COMPILE),
-	    gl:'begin'(?GL_POINTS),
 	    List0 = sofs:from_external(gb_trees:to_list(Vtab), [{vertex,info}]),
 	    List1 = sofs:drestriction(List0, DynVs),
 	    List2 = sofs:to_external(List1),
 	    List = wings_we:visible_vs(List2, We),
-	    foreach(fun({_,Pos}) ->
-			    gl:vertex3fv(Pos)
-		    end, List),
-	    gl:'end'(),
+	    VisibleVs = << <<X:?F32,Y:?F32,Z:?F32>> || {_,{X,Y,Z}} <- List >>,
+	    gl:enableClientState(?GL_VERTEX_ARRAY),
+	    drawVertices(?GL_POINTS, VisibleVs),
+	    gl:disableClientState(?GL_VERTEX_ARRAY),
 	    gl:endList(),
 	    {UnselDyn,[UnselDlist]}
     end;
@@ -706,11 +691,13 @@ dynamic_vs(#dlo{src_we=#we{vp=Vtab},vs=[Static|_],
 		split=#split{dyn_vs=DynVs}}=D) ->
     UnselDlist = gl:genLists(1),
     gl:newList(UnselDlist, ?GL_COMPILE),
-    gl:'begin'(?GL_POINTS),
-    foreach(fun(V) ->
-		    gl:vertex3fv(gb_trees:get(V, Vtab))
-	    end, DynVs),
-    gl:'end'(),
+    DynVsBin = foldl(fun(V, Bin) ->
+			     {X1,Y1,Z1} = gb_trees:get(V, Vtab),
+			     <<Bin/binary, X1:?F32,Y1:?F32,Z1:?F32>>
+		      end, <<>>, DynVs),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    drawVertices(?GL_POINTS, DynVsBin),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     D#dlo{vs=[Static,UnselDlist]}.
 
@@ -1012,45 +999,47 @@ do_draw_smooth(DrawFaces, Mat, Faces, Mtab) ->
 make_normals_dlist(#dlo{normals=none,src_we=We,src_sel={Mode,Elems}}=D) ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
-    gl:'begin'(?GL_LINES),
-    make_normals_dlist_1(Mode, Elems, We),
-    gl:'end'(),
+    gl:color3fv(wings_pref:get_value(normal_vector_color)),
+    Normals = make_normals_dlist_1(Mode, Elems, We),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    drawVertices(?GL_LINES, Normals),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     D#dlo{normals=List};
 make_normals_dlist(#dlo{src_sel=none}=D) -> D#dlo{normals=none};
 make_normals_dlist(D) -> D.
 
 make_normals_dlist_1(vertex, Vs, #we{vp=Vtab}=We) ->
-    foreach(fun(V) ->
-		    Pos = gb_trees:get(V, Vtab),
-		    gl:vertex3fv(Pos),
-    		    gl:color3fv(wings_pref:get_value(normal_vector_color)),
-		    N = wings_vertex:normal(V, We),
-		    gl:vertex3fv(e3d_vec:add_prod(Pos, N, wings_pref:get_value(normal_vector_size)))
-	    end, gb_sets:to_list(Vs));
+    Length = wings_pref:get_value(normal_vector_size),
+    foldl(fun(V, Bin) ->
+		  {X1,Y1,Z1} = Pos = gb_trees:get(V, Vtab),
+		  N = wings_vertex:normal(V, We),
+		  {X2,Y2,Z2} = e3d_vec:add_prod(Pos, N, Length),
+		  <<Bin/binary, X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>
+	  end, <<>>, gb_sets:to_list(Vs));
 make_normals_dlist_1(edge, Edges, #we{es=Etab,vp=Vtab}=We) ->
     Et0 = sofs:relation(array:sparse_to_orddict(Etab), [{edge,data}]),
     Es = sofs:from_external(gb_sets:to_list(Edges), [edge]),
     Et1 = sofs:restriction(Et0, Es),
     Et = sofs:to_external(Et1),
-    foreach(fun({_,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}) ->
-		    PosA = gb_trees:get(Va, Vtab),
-		    PosB = gb_trees:get(Vb, Vtab),
-    		    gl:color3fv(wings_pref:get_value(normal_vector_color)),
-		    Mid = e3d_vec:average([PosA,PosB]),
-		    gl:vertex3fv(Mid),
-		    N = e3d_vec:average([wings_face:normal(Lf, We),
-					 wings_face:normal(Rf, We)]),
-		    gl:vertex3fv(e3d_vec:add_prod(Mid, N, wings_pref:get_value(normal_vector_size)))
-	    end, Et);
+    Length = wings_pref:get_value(normal_vector_size),
+    foldl(fun({_,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}, Bin) ->
+		  PosA = gb_trees:get(Va, Vtab),
+		  PosB = gb_trees:get(Vb, Vtab),
+		  {X1,Y1,Z1} = Mid = e3d_vec:average([PosA,PosB]),
+		  N = e3d_vec:average([wings_face:normal(Lf, We),
+				       wings_face:normal(Rf, We)]),
+		  {X2,Y2,Z2} = e3d_vec:add_prod(Mid, N, Length),
+		  <<Bin/binary, X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>> 
+	  end, <<>>, Et);
 make_normals_dlist_1(face, Faces, We) ->
-    foreach(fun(Face) ->
-		    Vs = wings_face:vertices_cw(Face, We),
-		    C = wings_vertex:center(Vs, We),
-		    gl:vertex3fv(C),
-    		    gl:color3fv(wings_pref:get_value(normal_vector_color)),
-		    N = wings_face:face_normal_cw(Vs, We),
-		    gl:vertex3fv(e3d_vec:add_prod(C, N, wings_pref:get_value(normal_vector_size)))
-	    end, wings_we:visible(gb_sets:to_list(Faces), We));
+    Length = wings_pref:get_value(normal_vector_size),
+    foldl(fun(Face, Bin) ->
+		  Vs = wings_face:vertices_cw(Face, We),
+		  {X1,Y1,Z1} = C = wings_vertex:center(Vs, We),
+		  N = wings_face:face_normal_cw(Vs, We),
+		  {X2,Y2,Z2} = e3d_vec:add_prod(C, N, Length),
+		  <<Bin/binary, X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>> 
+	    end, <<>>, wings_we:visible(gb_sets:to_list(Faces), We));
 make_normals_dlist_1(body, _, #we{fs=Ftab}=We) ->
     make_normals_dlist_1(face, gb_sets:from_list(gb_trees:keys(Ftab)), We).
