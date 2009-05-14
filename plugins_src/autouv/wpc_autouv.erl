@@ -250,7 +250,6 @@ create_uv_state(Charts, MatName, Fs, We, GeomSt = #st{shapes=Shs0},OrigSt) ->
 				 fun draw_background/1),
     wings_wm:menubar(Win, menubar()),
     wings_wm:send({menubar,Win}, {current_state,St}),
-    
     St.
 
 menubar() ->
@@ -267,9 +266,13 @@ menubar() ->
 	      ]
       end},
      {?__(8,"View"),view,
-      fun(_) ->
-	      [{?__(9,"Show/Hide Background Image"),toggle_background,
-		?__(10,"Toggle display of the background texture image")}]
+      fun(St) ->
+	      Menu0 = wings_view:menu(St),
+	      ShwBgImg = {?__(9,"Show/Hide Background Image"),toggle_background,
+	                  ?__(10,"Toggle display of the background texture image")},
+	      Menu = [I || I <- Menu0,
+			   keep_view_item(I)],
+	      [ShwBgImg|redundant_separators(Menu)]
       end},
      {?__(11,"Select"),select,
       fun(St) ->
@@ -278,6 +281,13 @@ menubar() ->
 			   keep_sel_item(I)],
 	      redundant_separators(Menu)
       end}].
+
+
+keep_view_item(separator) -> true;
+keep_view_item({_,aim,_}) -> true;
+keep_view_item({_,highlight_aim,_}) -> true;
+keep_view_item({_,frame,_}) -> true;
+keep_view_item(_) -> false.
 
 keep_sel_item(separator) -> true;
 keep_sel_item({_,more,_}) -> true;
