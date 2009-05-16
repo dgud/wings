@@ -169,25 +169,23 @@ mix_color(E, Etab, Face, OtherColor) ->
 			end).
 
 smooth_faces(FacePos, Id, We0) ->
-    We = smooth_faces_1(FacePos, Id, [], We0),
+    We = smooth_faces_1(FacePos, Id, We0),
     case wings_we:any_hidden(We0) of
 	false -> {We,[]};
 	true -> {We,smooth_faces_hide(FacePos, We0)}
     end.
 
-smooth_faces_1([{Face,{_,Color,NumIds}}|Fs], Id, EsAcc0, #we{es=Etab0}=We0) ->
+smooth_faces_1([{Face,{_,Color,NumIds}}|Fs], Id, #we{es=Etab0}=We0) ->
     {Ids,We} = wings_we:new_wrap_range(NumIds, 1, We0),
     NewV = wings_we:id(0, Ids),
     Fun = smooth_edge_fun(Face, NewV, Color, Id),
-    {Etab,EsAcc,_} = face_fold(Fun, {Etab0,EsAcc0,Ids}, Face, We),
-    smooth_faces_1(Fs, Id, EsAcc, We#we{es=Etab});
-smooth_faces_1([], _, Es, #we{es=Etab0}=We) ->
-    Etab1 = array:sparse_to_orddict(Etab0) ++ reverse(Es),
-    Etab = array:from_orddict(Etab1),
-    We#we{es=Etab,fs=undefined}.
+    {Etab,_} = face_fold(Fun, {Etab0,Ids}, Face, We),
+    smooth_faces_1(Fs, Id, We#we{es=Etab});
+smooth_faces_1([], _, We) ->
+    We#we{fs=undefined}.
 
 smooth_edge_fun(Face, NewV, Color, Id) ->
-    fun(Edge, Rec0, Next, {Etab0,Es0,Ids0}) ->
+    fun(Edge, Rec0, Next, {Etab0,Ids0}) ->
 	    LeftEdge = RFace = wings_we:id(0, Ids0),
 	    NewEdge = LFace = wings_we:id(1, Ids0),
 	    RightEdge = wings_we:id(2, Ids0),
@@ -199,7 +197,7 @@ smooth_edge_fun(Face, NewV, Color, Id) ->
 				    rf=RFace,lf=LFace,
 				    rtpr=Edge,rtsu=LeftEdge,
 				    ltpr=RightEdge,ltsu=Next},
-		    Es = store(NewEdge, NewErec, Es0);
+		    Etab1 = array:set(NewEdge, NewErec, Etab0);
 		#edge{vs=Vtx,a=OldCol,lf=Face} when Vtx >= Id ->
 		    Ids = Ids0,
 		    Rec = Rec0#edge{lf=RFace,ltsu=NewEdge},
@@ -207,18 +205,18 @@ smooth_edge_fun(Face, NewV, Color, Id) ->
 				    rf=RFace,lf=LFace,
 				    rtpr=Edge,rtsu=LeftEdge,
 				    ltpr=RightEdge,ltsu=Next},
-		    Es = store(NewEdge, NewErec, Es0);
+		    Etab1 = array:set(NewEdge, NewErec, Etab0);
 		#edge{vs=Vtx,rf=Face} when Vtx >= Id ->
 		    Rec = Rec0#edge{rf=LFace,rtpr=NewEdge},
-		    Es = Es0,
+		    Etab1 = Etab0,
 		    Ids = wings_we:bump_id(Ids0);
 		#edge{ve=Vtx,lf=Face} when Vtx >= Id ->
 		    Rec = Rec0#edge{lf=LFace,ltpr=NewEdge},
-		    Es = Es0,
+		    Etab1 = Etab0,
 		    Ids = wings_we:bump_id(Ids0)
 	    end,
-	    Etab = array:set(Edge, Rec, Etab0),
-	    {Etab,Es,Ids}
+	    Etab = array:set(Edge, Rec, Etab1),
+	    {Etab,Ids}
     end.
 
 smooth_faces_hide(Fs, #we{next_id=Id}) ->
@@ -233,15 +231,6 @@ smooth_faces_hide_1([], _, Acc) -> Acc.
 
 smooth_faces_hide_2(0, _, Acc) -> Acc;
 smooth_faces_hide_2(N, Id, Acc) -> smooth_faces_hide_2(N-1, Id+1, [Id|Acc]).
-
-%% Store in reverse order.
-store(Key, New, [{K,_Old}|_]=Dict) when Key > K ->
-    [{Key,New}|Dict];
-store(Key, New, [{K,_Old}=E|Dict]) when Key < K ->
-    [E|store(Key, New, Dict)];
-store(Key, New, [{_K,_Old}|Dict]) ->		%Key == K
-    [{Key,New}|Dict];
-store(Key, New, []) -> [{Key,New}].
 
 face_fold(F, Acc, Face, #we{es=Etab,fs=Ftab}) ->
     Edge = gb_trees:get(Face, Ftab),
