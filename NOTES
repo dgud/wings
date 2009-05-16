@@ -1,3 +1,7 @@
+--- 1.0 ---------------------------------------------------------------------
+- Gordo eliminated some color banding in the task switching icon on Windows
+  and also cleaned up the edges on that icon. [bjorng]
+
 --- 1.0.rc3 -----------------------------------------------------------------
 - The icon in the top left corner of the Wings windows (in Windows) and in
   the Dock (on Mac OS X), now has transparency. I have also added a README
