@@ -233,9 +233,6 @@ unregister_postdraw_hook(Window, Id) ->
         ok
     end.
 
-save_state(St, St) ->
-    main_loop(St);
-
 save_state(St0, St1) ->
     St2 = wings_undo:save(St0, St1),
     St = case St2 of
@@ -478,7 +475,8 @@ do_command(Cmd, St0) ->
      fun(Ev) -> handle_event(Ev, St) end,
      fun() -> raw_command(Cmd, none, St) end}.
 
-raw_command(Cmd, Args, St) ->
+raw_command(Cmd, Args, St0) ->
+    St = St0#st{last_cmd=Cmd},
     command_response(do_command_1(Cmd, St), Args, St).
 
 command_response(#st{}=St, _, _) ->

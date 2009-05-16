@@ -133,6 +133,7 @@
 	 def,					%Default operations.
 
 	 %% Undo information.
+	 last_cmd=empty_scene,		        %Last command.
 	 undo=queue:new() :: queue(),		%Undo (de)queue.
 	 next_is_undo=true :: bool(),		%State of undo/redo toggle.
 	 undone=[] :: list()		        %States that were undone.

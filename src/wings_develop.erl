@@ -20,10 +20,21 @@
 menu(_) ->
     [{"Time Commands",time_commands,
       "Print each command's execution time to the console",
-      crossmark(develop_time_commands)}].
+      crossmark(develop_time_commands)},
+     {"Undo Stat",undo_stat,
+      "Show statistics for how much memory each Undo state consumes",
+      crossmark(develop_undo_stat)}].
 
 command(time_commands, _) ->
     wings_pref:toggle_value(develop_time_commands),
+    keep;
+command(undo_stat, St) ->
+    case wings_pref:toggle_value(develop_undo_stat) of
+	true ->
+	    wings_undo:mem_stat_help(),
+	    wings_undo:save(St, St);		%Nothing will be saved.
+	false -> ok
+    end,
     keep.
 
 time_command(CmdFun, Cmd, St) ->

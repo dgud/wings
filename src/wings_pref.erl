@@ -550,7 +550,8 @@ defaults() ->
 
      %% Develop menu.
      {show_develop_menu,false},
-     {develop_time_commands,false}
+     {develop_time_commands,false},
+     {develop_undo_stat,false}
     ].
 
 clean(List) ->

@@ -14,17 +14,31 @@
 -module(wings_undo).
 -export([init/1,save/2,undo_toggle/1,undo/1,redo/1,info/1]).
 
+%% For the Develop menu.
+-export([mem_stat_help/0]).
+
 -include("wings.hrl").
 
 -import(lists, [reverse/1,reverse/2]).
 
+%% Develop info.
+-record(info,
+	{change,
+	 sz_diff,
+	 own_size
+	}).
+	 
 %% The essential part of the state record.
 -record(est,
-	{shapes,
-	 selmode,
-	 sel,
-	 onext,
-	 mat
+	{shapes=[] :: list(#we{}) | gb_tree(),
+	 selmode=face :: 'vertex' | 'edge' | 'face' | 'body',
+	 sel=[] :: list(),
+	 onext=1 :: integer(),
+	 mat=wings_material:default(),
+
+	 %% For the Develop menu.
+	 cmd,
+	 info :: #info{}
 	}).
 
 init(St) ->
@@ -33,7 +47,7 @@ init(St) ->
 save(OldState, St0) ->
     St1 = discard_old_states(St0),
     St = push(St1, OldState),
-    St#st{undone=[],next_is_undo=true}.
+    mem_stat(St#st{undone=[],next_is_undo=true}).
 
 undo_toggle(#st{next_is_undo=true}=St) -> undo(St);
 undo_toggle(St) -> redo(St).
@@ -41,14 +55,16 @@ undo_toggle(St) -> redo(St).
 undo(#st{undone=Undone}=St0) ->
     case pop(St0) of
 	empty -> St0;
-	St -> St#st{undone=[St0|Undone],next_is_undo=false}
+	St -> mem_stat(St#st{undone=[St0|Undone],next_is_undo=false})
     end.
 
 redo(#st{undone=[StOld|Undone]}=St0) ->
     St1 = push(St0, St0),
-    #st{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,mat=Mat} = StOld,
-    St = St1#st{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,mat=Mat},
-    St#st{undone=Undone,next_is_undo=true};
+    #st{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,
+	mat=Mat,last_cmd=Cmd} = StOld,
+    St = St1#st{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,
+		mat=Mat,last_cmd=Cmd},
+    mem_stat(St#st{undone=Undone,next_is_undo=true});
 redo(St) -> St.
 
 info(#st{undo=Undo,undone=Undone}) ->
@@ -82,14 +98,15 @@ push_1(#st{undo=Undo0}=St, #est{sel=Sel}=Est0) ->
 	    end
     end.
 
-save_essential(#st{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,mat=Mat}) ->
-    #est{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,mat=Mat}.
+save_essential(#st{last_cmd=Cmd,shapes=Sh,selmode=Mode,sel=Sel,
+		   onext=Onext,mat=Mat}) ->
+    #est{cmd=Cmd,shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,mat=Mat}.
     
 compare_states(Old, New) ->
     #est{shapes=Osh,selmode=Omode,sel=Osel,onext=Oonext,mat=Omat} = Old,
     #est{shapes=Nsh,selmode=Nmode,sel=Nsel,onext=Nonext,mat=Nmat} = New,
     if
-	Omode =/= Nmode -> new;
+	Omode =/= Nmode, (Osel =/= [] orelse Nsel =/= []) -> new;
 	Oonext =/= Nonext -> new;
 	Omat =/= Nmat -> new;
 	Osel =/= Nsel ->
@@ -97,16 +114,19 @@ compare_states(Old, New) ->
 		Osh =:= Nsh -> new_sel;
 		true -> new
 	    end;
-	true -> new
+	Osh =/= Nsh -> new;
+	true -> unchanged
     end.
 
 compress(#est{shapes=OldShapes}, #est{shapes=NewShapes}=Est) ->
     Shapes = compress_1(OldShapes, gb_trees:values(NewShapes), []),
     Est#est{shapes=Shapes}.
 
-compress_1([#we{id=OldId}|OldWes], [#we{id=NewId}|_]=NewWes, Acc) when OldId < NewId ->
+compress_1([#we{id=OldId}|OldWes], [#we{id=NewId}|_]=NewWes, Acc)
+  when OldId < NewId ->
     compress_1(OldWes, NewWes, Acc);
-compress_1([#we{id=OldId}|OldWes], [#we{id=NewId}=NewWe|NewWes], Acc) when OldId > NewId ->
+compress_1([#we{id=OldId}|OldWes], [#we{id=NewId}=NewWe|NewWes], Acc)
+  when OldId > NewId ->
     We = NewWe#we{fs=undefined,vc=undefined},
     compress_1(OldWes, NewWes, [We|Acc]);
 compress_1([#we{}=OldWe|OldWes], [#we{}=NewWe|NewWes], Acc) ->
@@ -114,17 +134,20 @@ compress_1([#we{}=OldWe|OldWes], [#we{}=NewWe|NewWes], Acc) ->
 	OldWe -> compress_1(OldWes, NewWes, [OldWe|Acc]);
 	We -> compress_1(OldWes, NewWes, [We|Acc])
     end;
-compress_1(_, NewWes, Acc) ->
-    reverse(Acc, NewWes).
+compress_1(_, [We0|NewWes], Acc) ->
+    We = We0#we{fs=undefined,vc=undefined},
+    compress_1([], NewWes, [We|Acc]);
+compress_1(_, [], Acc) -> reverse(Acc).
 
 pop(#st{undo=Undo0}=St) ->
     case queue:out_r(Undo0) of
 	{empty,_} -> empty;
 	{{value,Est},Undo} ->
-	    #est{shapes=Sh0,selmode=Mode,sel=Sel,onext=Onext,mat=Mat} = Est,
+	    #est{shapes=Sh0,selmode=Mode,sel=Sel,
+		 onext=Onext,mat=Mat,cmd=Cmd} = Est,
 	    Sh = uncompress(Sh0, []),
 	    St#st{undo=Undo,shapes=Sh,selmode=Mode,sel=Sel,
-		  onext=Onext,mat=Mat}
+		  onext=Onext,mat=Mat,last_cmd=Cmd}
     end.
 
 discard_old_states(#st{undo=Undo0}=St) ->
@@ -143,3 +166,168 @@ uncompress([#we{id=Id,next_id=Next}=We0|Wes], Acc) ->
     We = wings_we:rebuild(We0),
     uncompress(Wes, [{Id,We#we{next_id=Next}}|Acc]);
 uncompress([], Acc) -> gb_trees:from_orddict(reverse(Acc)).
+
+%%%
+%%% Statistics on how much memory the Undo states occupy.
+%%%
+
+mem_stat(St) ->
+    case wings_pref:get_value(develop_undo_stat) of
+	false -> St;
+	true -> mem_stat_1(St)
+    end.
+
+mem_stat_1(#st{undo=Undo0}=St) ->
+    Undo = queue:in_r(#est{}, Undo0),
+    Est0 = save_essential(St),
+    Est = compress(queue:get_r(Undo), Est0),
+    Stat = mem_stat_2([Est|reverse(queue:to_list(Undo))]),
+    print_stat(Stat),
+    St#st{undo=queue:from_list(reverse(tl(Stat)))}.
+
+mem_stat_2([#est{info=undefined}=S1|[S2|_]=Ss]) ->
+    Total = erts_debug:size({S1#est{info=[]},S2#est{info=[]}}),
+    OwnSz = erts_debug:size(S1#est{info=[]}),
+    OtherSz = erts_debug:size(S2#est{info=[]}),
+    Change = change_type(S2, S1),
+    Diff = Total - OtherSz - erts_debug:size({a,b}),
+    Info = #info{change=Change,sz_diff=Diff,own_size=OwnSz},
+    [S1#est{info=Info}|mem_stat_2(Ss)];
+mem_stat_2([#est{}=S1|[_|_]=Ss]) ->
+    [S1|mem_stat_2(Ss)];
+mem_stat_2([_]) -> [].
+
+change_type(#est{shapes=Obj1,selmode=Mode1,sel=Sel1,onext=N1,mat=Mat1},
+	    #est{shapes=Obj2,selmode=Mode2,sel=Sel2,onext=N2,mat=Mat2}) ->
+    change_type_1(cmp(Mode1, Mode2), cmp(Sel1, Sel2),
+		  cmp(Obj1, Obj2), cmp(Mat1, Mat2), cmp(N1, N2)).
+
+cmp(T, T) -> [T];
+cmp(T1, T2) -> {T1,T2}.
+
+change_type_1([_], [_], [_], [_], {_,_}) ->
+    "next changed";
+change_type_1(Mode, Sel, Objs, Mat, _Next) ->
+    string:join([S || S <- [mode_sel_change(Mode, Sel),
+			    obj_change(Objs),
+			    mat_change(Mat)],
+		      S =/= []], "; ").
+
+mode_sel_change({Old,New}, Sel) ->
+    C = atom_to_list(Old) ++ " => " ++ atom_to_list(New),
+    case Sel of
+	[_] -> C;
+	{_,_} -> C ++ " (selection converted)"
+    end;
+mode_sel_change([_], {_,_}) ->
+    "selection changed";
+mode_sel_change([_], [_]) -> "".
+
+obj_change([_]) -> "";
+obj_change({O1,O2}) ->
+    {New,Del,Ch0} = obj_change_1(O1, O2, 0, 0, []),
+    N = fmt_cnt(New, "added"),
+    D = fmt_cnt(Del, "deleted"),
+    Ch = we_changes(Ch0),
+    string:join([S || S <- [N,D,Ch], S =/= []], "; ").
+
+obj_change_1([Obj|T1], [Obj|T2], New, Del, Ch) ->
+    obj_change_1(T1, T2, New, Del, Ch);
+obj_change_1([#we{id=Id1}|T1], [#we{id=Id2}|_]=T2, New, Del, Ch) when Id1 < Id2 ->
+    obj_change_1(T1, T2, New+1, Del, Ch);
+obj_change_1([#we{id=Id1}|_]=T1, [#we{id=Id2}|T2], New, Del, Ch) when Id1 > Id2 ->
+    obj_change_1(T1, T2, New, Del+1, Ch);
+obj_change_1([#we{id=Id}=We1|T1], [#we{id=Id}=We2|T2], New, Del, Ch) ->
+    obj_change_1(T1, T2, New, Del, [{We1,We2}|Ch]);
+obj_change_1([_|T], [], New, Del, Ch) ->
+    {New,Del+1+length(T),Ch};
+obj_change_1([], [_|T], New, Del, Ch) ->
+    {New+1+length(T),Del,Ch};
+obj_change_1([], [], New, Del, Ch) ->
+    {New,Del,Ch}.
+
+fmt_cnt(0, _) -> "";
+fmt_cnt(1, Action) -> "1 object " ++ Action;
+fmt_cnt(N, Action) ->  integer_to_list(N) ++ " objects " ++ Action.
+
+we_changes([]) -> "";
+we_changes([{#we{}=We1,#we{}=We2}]) ->
+    case We1#we{vp=[]} =:= We2#we{vp=[]} of
+	true ->
+	    "vertices moved";
+	false ->
+	    Cs = we_change(2, We1, We2, make_we_map()),
+	    "changes in: " ++ non_empty_join(Cs, ", ")
+    end;
+we_changes(Changes) ->
+    integer_to_list(length(Changes)) ++ " objects updated".
+
+we_change(I, We1, We2, WeMap) when I =< tuple_size(We1) ->
+    case element(I, We1) =:= element(I, We2) of
+	false ->
+	    Desc = case element(I, WeMap) of
+		       undefined -> "#we(" ++ integer_to_list(I) ++ ")";
+		       Desc0 -> Desc0
+		   end,
+	    [Desc|we_change(I+1, We1, We2, WeMap)];
+	true ->
+	    we_change(I+1, We1, We2, WeMap)
+    end;
+we_change(_, _, _, _) -> [].
+
+-define(RMAP(F), {#we.F,??F}).
+
+make_we_map() ->
+    erlang:make_tuple(tuple_size(#we{}),
+		      undefined,
+		      [?RMAP(id),
+		       ?RMAP(perm),
+		       ?RMAP(name),
+		       ?RMAP(es),
+		       ?RMAP(fs),
+		       ?RMAP(he),
+		       ?RMAP(vc),
+		       ?RMAP(vp),
+		       ?RMAP(pst),
+		       ?RMAP(mat),
+		       ?RMAP(next_id),
+		       ?RMAP(mode),
+		       ?RMAP(mirror),
+		       ?RMAP(light),
+		       ?RMAP(has_shape)
+		      ]).
+
+mat_change([_]) -> "";
+mat_change({_,_}) -> "materials changed".
+
+non_empty_join(List, Sep) ->
+    string:join([S || S <- List, S =/= []], Sep).
+
+-define(FORMAT, "~9s ~7s  ~20s  ~s\n").
+
+print_stat(L) ->
+    io:format(?FORMAT, ["Size","Cost","Command","Change"]),
+    io:format(?FORMAT, ["----","----","-------","------"]),
+    [do_print_stat(E) || E <- L],
+    io:nl().
+
+do_print_stat(#est{info=#info{change=Change,sz_diff=Diff,own_size=OwnSz},
+		   cmd=Cmd}) ->
+    io:format(?FORMAT, [integer_to_list(OwnSz),
+			integer_to_list(Diff),
+			format_cmd(Cmd),Change]).
+
+format_cmd(Cmd) -> wings_util:stringify(Cmd).
+    
+mem_stat_help() ->
+    S = ["Explanation of the columns for Undo stat:\n",
+	 "\n",
+	 "Size     Size in words for this undo state.\n",
+	 "Cost     Relative difference in size (in words) compared to \n",
+	 "         the next undo state.\n",
+	 "Command  The name of the command that generated this undo state.\n",
+	 "Change   Summary of the changes compared to the next undo state.\n",
+	 "\n"],
+    io:put_chars(S).
+    
+
