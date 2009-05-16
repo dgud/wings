@@ -707,6 +707,10 @@ command({tools, put_on_ground}, St) ->
 command({tools, unitize}, St) ->
     {save_state,wings_align:unitize(St)};
 
+%% Develop menu.
+command({develop,Cmd}, St) ->
+    wings_develop:command(Cmd, St);
+
 %% wings_job action events.
 command({wings_job,Command}, St) ->
     wings_job:command(Command, St).
@@ -727,13 +731,19 @@ popup_menu(X, Y, #st{selmode=Mode}=St) ->
     end.
 
 init_menubar() ->
-    Menus = [{?__(1,"File"),file,fun(St) -> wings_file:menu(St) end},
-          {?__(2,"Edit"),edit,fun edit_menu/1},
-          {?__(3,"View"),view,fun(St) -> wings_view:menu(St) end},
-          {?__(4,"Select"),select,fun(St) -> wings_sel_cmd:menu(St) end},
-          {?__(5,"Tools"),tools,fun tools_menu/1},
-          {?__(6,"Window"),window,fun window_menu/1},
-          {?__(7,"Help"),help,fun(St) -> wings_help:menu(St) end}],
+    Tail0 = [{?__(7,"Help"),help,fun wings_help:menu/1}],
+    Tail = case wings_pref:get_value(show_develop_menu) of
+	       true ->
+		   [{"Develop",develop,fun wings_develop:menu/1}|Tail0];
+	       false ->
+		   Tail0
+	   end,
+    Menus = [{?__(1,"File"),file,fun wings_file:menu/1},
+	     {?__(2,"Edit"),edit,fun edit_menu/1},
+	     {?__(3,"View"),view,fun wings_view:menu/1},
+	     {?__(4,"Select"),select,fun wings_sel_cmd:menu/1},
+	     {?__(5,"Tools"),tools,fun tools_menu/1},
+	     {?__(6,"Window"),window,fun window_menu/1}|Tail],
     put(wings_menu_template, Menus).
 
 edit_menu(St) ->

@@ -4,7 +4,7 @@
 %%
 %%     Preference management.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,7 +18,7 @@
 -include("wings.hrl").
 -import(wings_pref, [get_value/1,set_value/2]).
 
--import(lists, [reverse/1]).
+-import(lists, [reverse/1,foreach/2]).
 -define(NONZERO,1.0e-6).
 
 menu(_St) ->
@@ -577,7 +577,10 @@ misc_prefs() ->
 		 {text,polygon_offset_f,[{range,{1.0,100.0}}]},
 		 {text,polygon_offset_r,[{range,{1.0,100.0}}]}],
 	 [{title,?__(22,"Edge display problems?")}]}],
-       [{title,?__(21,"Workarounds")}]}
+       [{title,?__(21,"Workarounds")}]},
+      {vframe,
+       [{hframe,[{?__(24,"Show Develop menu"),show_develop_menu,
+		  [{info,?__(25,"Show a menu with tools for the Wings developers")}]}]}]}
      ]}.
 
 workaround(L) ->
@@ -648,6 +651,11 @@ smart_set_value_1(Key, Val, St) ->
 		material_hole ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(5,"The change to the hole material color will take\neffect the next time Wings 3D is started."));
+		show_develop_menu ->
+		    wings:init_menubar(),
+		    foreach(fun(W) ->
+				    wings_wm:send(W, language_changed) end,
+			    wings_wm:windows());
 		_Other -> ok
 	    end
     end.

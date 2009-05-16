@@ -1,3 +1,7 @@
+--- 1.1.x.y -----------------------------------------------------------------
+- Added a new preferences in the Misc tab to turn on a Develop menu
+  containing various tools for the Wings developers. [bjorng]
+
 --- 1.0 ---------------------------------------------------------------------
 - Gordo eliminated some color banding in the task switching icon on Windows
   and also cleaned up the edges on that icon. [bjorng]
