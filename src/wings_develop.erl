@@ -13,12 +13,54 @@
 %%
 
 -module(wings_develop).
--export([menu/1,command/2]).
+-export([menu/1,command/2,time_command/3]).
 
 -include("wings.hrl").
 
 menu(_) ->
-    [{"(Nothing here yet)",ignore}].
+    [{"Time Commands",time_commands,
+      "Print each command's execution time to the console",
+      crossmark(develop_time_commands)}].
 
-command(ignore, St) ->
-    St.
+command(time_commands, _) ->
+    wings_pref:toggle_value(develop_time_commands),
+    keep.
+
+time_command(CmdFun, Cmd, St) ->
+    case wings_pref:get_value(develop_time_commands) of
+	false ->
+	    CmdFun(Cmd, St);
+	true ->
+	    Before = erlang:now(),
+	    Res = CmdFun(Cmd, St),
+	    After = erlang:now(),
+	    Time = timer:now_diff(After, Before),
+	    Str = format_time(Time),
+	    case Res of
+		next ->
+		    ok;
+		_ ->
+		    io:format("~14s  ~s\n",
+			      [Str,wings_util:stringify(Cmd)])
+	    end,
+	    Res
+    end.
+
+%%%
+%%% Internal functions.
+%%%
+
+crossmark(Key) ->
+    case wings_pref:get_value(Key) of
+	false -> [];
+	true -> [crossmark]
+    end.
+
+format_time(Ms) ->
+    MsStr = integer_to_list(Ms rem 1000000) ++ "us",
+    case Ms div 1000000 of
+	0 ->
+	    MsStr;
+	Sec ->
+	    integer_to_list(Sec) ++ "s " ++ MsStr
+    end.

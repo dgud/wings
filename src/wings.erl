@@ -509,10 +509,12 @@ command_response(quit, _, _) ->
 
 do_command_1(Cmd, St0) ->
     case wings_plugin:command(Cmd, St0) of
-    next -> command(Cmd, St0);
-    St0 -> St0;
-    #st{}=St -> {save_state,St};
-    Other -> Other
+	next ->
+	    %% Time the command if command timing is enabled.
+	    wings_develop:time_command(fun command/2, Cmd, St0);
+	St0 -> St0;
+	#st{}=St -> {save_state,St};
+	Other -> Other
     end.
 
 remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
