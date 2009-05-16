@@ -475,8 +475,7 @@ do_command(Cmd, St0) ->
      fun(Ev) -> handle_event(Ev, St) end,
      fun() -> raw_command(Cmd, none, St) end}.
 
-raw_command(Cmd, Args, St0) ->
-    St = St0#st{last_cmd=Cmd},
+raw_command(Cmd, Args, St) ->
     command_response(do_command_1(Cmd, St), Args, St).
 
 command_response(#st{}=St, _, _) ->
@@ -560,40 +559,44 @@ repeatable(Mode, Cmd) ->
     _ -> no
     end.
 
-%% Vector and secondary-selection commands.
-command({shape,Shape}, St0) ->
-    case wings_shapes:command(Shape, St0) of
-        St0 -> St0;
-    #st{}=St -> {save_state,St};
-    Other -> Other
-    end;
-command({help,What}, St) ->
-    wings_help:command(What, St);
-
-%% Drag & drop.
-command({drop,What}, St) ->
-    drop_command(What, St);
-
-%% File menu.
-command({file,Command}, St) ->
-    wings_file:command(Command, St);
-
-%% Edit menu.
+%% Handle Undo/Redo first.
 command({edit,undo_toggle}, St) ->
     wings_u:caption(wings_undo:undo_toggle(St));
 command({edit,undo}, St) ->
     wings_u:caption(wings_undo:undo(St));
 command({edit,redo}, St) ->
     wings_u:caption(wings_undo:redo(St));
-command({edit,repeat}, #st{sel=[]}=St) -> St;
-command({edit,repeat}, #st{selmode=Mode,repeatable=Cmd0}=St) ->
+command(Cmd, St) ->
+    command_1(Cmd, St#st{last_cmd=Cmd}).
+
+%% Vector and secondary-selection commands.
+command_1({shape,Shape}, St0) ->
+    case wings_shapes:command(Shape, St0) of
+        St0 -> St0;
+    #st{}=St -> {save_state,St};
+    Other -> Other
+    end;
+command_1({help,What}, St) ->
+    wings_help:command(What, St);
+
+%% Drag & drop.
+command_1({drop,What}, St) ->
+    drop_command(What, St);
+
+%% File menu.
+command_1({file,Command}, St) ->
+    wings_file:command(Command, St);
+
+%% Edit menu.
+command_1({edit,repeat}, #st{sel=[]}=St) -> St;
+command_1({edit,repeat}, #st{selmode=Mode,repeatable=Cmd0}=St) ->
     case repeatable(Mode, Cmd0) of
     no -> keep;
     Cmd when is_tuple(Cmd) -> raw_command(Cmd, none, St)
     end;
-command({edit,repeat}, St) -> St;
-command({edit,repeat_args}, #st{sel=[]}=St) -> St;
-command({edit,repeat_args}, #st{selmode=Mode,repeatable=Cmd0,
+command_1({edit,repeat}, St) -> St;
+command_1({edit,repeat_args}, #st{sel=[]}=St) -> St;
+command_1({edit,repeat_args}, #st{selmode=Mode,repeatable=Cmd0,
                 ask_args=AskArgs}=St) ->
     case repeatable(Mode, Cmd0) of
     no -> keep;
@@ -601,9 +604,9 @@ command({edit,repeat_args}, #st{selmode=Mode,repeatable=Cmd0,
         Cmd = replace_ask(Cmd1, AskArgs),
         raw_command(Cmd, none, St)
     end;
-command({edit,repeat_args}, St) -> St;
-command({edit,repeat_drag}, #st{sel=[]}=St) -> St;
-command({edit,repeat_drag}, #st{selmode=Mode,repeatable=Cmd0,
+command_1({edit,repeat_args}, St) -> St;
+command_1({edit,repeat_drag}, #st{sel=[]}=St) -> St;
+command_1({edit,repeat_drag}, #st{selmode=Mode,repeatable=Cmd0,
                 ask_args=AskArgs,drag_args=DragArgs}=St) ->
     case repeatable(Mode, Cmd0) of
     no -> keep;
@@ -611,108 +614,108 @@ command({edit,repeat_drag}, #st{selmode=Mode,repeatable=Cmd0,
         Cmd = replace_ask(Cmd1, AskArgs),
         raw_command(Cmd, DragArgs, St)
     end;
-command({edit,repeat_drag}, St) -> St;
-command({edit,purge_undo}, St) ->
+command_1({edit,repeat_drag}, St) -> St;
+command_1({edit,purge_undo}, St) ->
     purge_undo(St);
-command({edit,confirmed_purge_undo}, St) ->
+command_1({edit,confirmed_purge_undo}, St) ->
     wings_undo:init(St);
-command({edit,enable_patches}, St) ->
+command_1({edit,enable_patches}, St) ->
     wings_start:enable_patches(),
     St;
-command({edit,disable_patches}, St) ->
+command_1({edit,disable_patches}, St) ->
     wings_start:disable_patches(),
     St;
-command({edit,{preferences,Pref}}, St) ->
+command_1({edit,{preferences,Pref}}, St) ->
     wings_pref_dlg:command(Pref, St);
 
 %% Select menu.
-command({select,Command}, St) ->
+command_1({select,Command}, St) ->
     wings_sel_cmd:command(Command, St);
 
 %% View menu.
-command({view,Command}, St) ->
+command_1({view,Command}, St) ->
     wings_view:command(Command, St);
 
 %% Window menu.
-command({window,geom_viewer}, St) ->
+command_1({window,geom_viewer}, St) ->
     new_viewer(St),
     keep;
-command({window,outliner}, St) ->
+command_1({window,outliner}, St) ->
     wings_outliner:window(St);
-command({window,object}, St) ->
+command_1({window,object}, St) ->
     wings_shape:window(St);
-command({window,palette}, St) ->
+command_1({window,palette}, St) ->
     wings_palette:window(St);
-command({window,console}, _St) ->
+command_1({window,console}, _St) ->
     wings_console:window(),
     keep;
 
 %% Body menu.
-command({body,Cmd}, St) ->
+command_1({body,Cmd}, St) ->
     wings_body:command(Cmd, St);
 
 %% Face menu.
-command({face,Cmd}, St) ->
+command_1({face,Cmd}, St) ->
     wings_face_cmd:command(Cmd, St);
 
 %% Edge commands.
-command({edge,Cmd}, St) ->
+command_1({edge,Cmd}, St) ->
     wings_edge_cmd:command(Cmd, St);
 
 %% Vertex menu.
-command({vertex,Cmd}, St) ->
+command_1({vertex,Cmd}, St) ->
     wings_vertex_cmd:command(Cmd, St);
 
 %% Light menu.
-command({light,Cmd}, St) ->
+command_1({light,Cmd}, St) ->
     wings_light:command(Cmd, St);
 
 %% Material commands.
-command({material,Cmd}, St) ->
+command_1({material,Cmd}, St) ->
     wings_material:command(Cmd, St);
 
 %% Tools menu.
 
-command({tools,set_default_axis}, St) ->
+command_1({tools,set_default_axis}, St) ->
     wings:ask({[axis,point],[]}, St,
           fun({Axis,Point}, _) ->
               wings_pref:set_value(default_axis, {Point,Axis}),
               keep
           end);
-command({tools,{align,Dir}}, St) ->
+command_1({tools,{align,Dir}}, St) ->
     {save_state,wings_align:align(Dir, St)};
-command({tools,{center,Dir}}, St) ->
+command_1({tools,{center,Dir}}, St) ->
     {save_state,wings_align:center(Dir, St)};
-command({tools,save_bb}, St) ->
+command_1({tools,save_bb}, St) ->
     wings_align:copy_bb(St);
-command({tools,{scale_to_bb,Dir}}, St) ->
+command_1({tools,{scale_to_bb,Dir}}, St) ->
     {save_state,wings_align:scale_to_bb(Dir, St)};
-command({tools,{scale_to_bb_prop,Dir}}, St) ->
+command_1({tools,{scale_to_bb_prop,Dir}}, St) ->
     {save_state,wings_align:scale_to_bb_prop(Dir, St)};
-command({tools,{move_to_bb,Dir}}, St) ->
+command_1({tools,{move_to_bb,Dir}}, St) ->
     {save_state,wings_align:move_to_bb(Dir, St)};
-command({tools,{virtual_mirror,Cmd}}, St) ->
+command_1({tools,{virtual_mirror,Cmd}}, St) ->
     wings_view:virtual_mirror(Cmd, St);
-command({tools, screenshot}, St) ->
+command_1({tools, screenshot}, St) ->
     wings_image:screenshot(),
     St;
-command({tools, area_volume_info}, St) ->
+command_1({tools, area_volume_info}, St) ->
     area_volume_info(St),
     St;
-command({tools, scene_size_info}, St) ->
+command_1({tools, scene_size_info}, St) ->
     scene_size_info(St),
     St;
-command({tools, put_on_ground}, St) ->
+command_1({tools, put_on_ground}, St) ->
     {save_state,wings_align:put_on_ground(St)};
-command({tools, unitize}, St) ->
+command_1({tools, unitize}, St) ->
     {save_state,wings_align:unitize(St)};
 
 %% Develop menu.
-command({develop,Cmd}, St) ->
+command_1({develop,Cmd}, St) ->
     wings_develop:command(Cmd, St);
 
 %% wings_job action events.
-command({wings_job,Command}, St) ->
+command_1({wings_job,Command}, St) ->
     wings_job:command(Command, St).
 
 
