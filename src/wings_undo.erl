@@ -3,7 +3,7 @@
 %%
 %%     This module handles the undo stack.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -28,7 +28,7 @@
 	}).
 
 init(St) ->
-    St#st{top=[],bottom=[],undone=[],next_is_undo=true}.
+    St#st{undo=queue:new(),undone=[],next_is_undo=true}.
     
 save(OldState, St0) ->
     St1 = discard_old_states(St0),
@@ -51,8 +51,8 @@ redo(#st{undone=[StOld|Undone]}=St0) ->
     St#st{undone=Undone,next_is_undo=true};
 redo(St) -> St.
 
-info(#st{top=Top,bottom=Bot,undone=Undone}) ->
-    {length(Top)+length(Bot),length(Undone)}.
+info(#st{undo=Undo,undone=Undone}) ->
+    {queue:len(Undo),length(Undone)}.
 
 %%
 %% Low-level queue operations.
@@ -62,18 +62,24 @@ push(St, OldState) ->
     Est = save_essential(OldState),
     push_1(St, Est).
 
-push_1(#st{top=[],bottom=[_|_]=Bottom}=St, #est{}=Est) ->
-    push_1(St#st{top=reverse(Bottom),bottom=[]}, Est);
-push_1(#st{top=[],bottom=[]}=St, #est{}=Est0) ->
-    Est = compress(#est{shapes=[]}, Est0),
-    St#st{top=[Est]};
-push_1(#st{top=[PrevEst|PrevTop]=Top}=St, #est{sel=Sel}=Est0) ->
-    Est = compress(PrevEst, Est0),
-    case compare_states(PrevEst, Est) of
-	new ->
-	    St#st{top=[Est|Top]};
-	new_sel ->
-	    St#st{top=[PrevEst#est{sel=Sel}|PrevTop]}
+push_1(#st{undo=Undo0}=St, #est{sel=Sel}=Est0) ->
+    case queue:is_empty(Undo0) of
+	true ->
+	    Est = compress(#est{shapes=[]}, Est0),
+	    St#st{undo=queue:in(Est, Undo0)};
+	false ->
+	    PrevEst = queue:get_r(Undo0),
+	    Est = compress(PrevEst, Est0),
+	    case compare_states(PrevEst, Est) of
+		new ->
+		    St#st{undo=queue:in(Est, Undo0)};
+		new_sel ->
+		    Undo1 = queue:drop_r(Undo0),
+		    Undo = queue:in(PrevEst#est{sel=Sel}, Undo1),
+		    St#st{undo=Undo};
+		unchanged ->
+		    St
+	    end
     end.
 
 save_essential(#st{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,mat=Mat}) ->
@@ -111,27 +117,27 @@ compress_1([#we{}=OldWe|OldWes], [#we{}=NewWe|NewWes], Acc) ->
 compress_1(_, NewWes, Acc) ->
     reverse(Acc, NewWes).
 
-pop(#st{top=[Est|Top]}=St0) ->
-    #est{shapes=Sh0,selmode=Mode,sel=Sel,onext=Onext,mat=Mat} = Est,
-    Sh = uncompress(Sh0, []),
-    St = St0#st{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,mat=Mat},
-    St#st{top=Top};
-pop(#st{top=[],bottom=[_|_]=Bottom}=St) ->
-    pop(St#st{top=reverse(Bottom),bottom=[]});
-pop(_) -> empty.
+pop(#st{undo=Undo0}=St) ->
+    case queue:out_r(Undo0) of
+	{empty,_} -> empty;
+	{{value,Est},Undo} ->
+	    #est{shapes=Sh0,selmode=Mode,sel=Sel,onext=Onext,mat=Mat} = Est,
+	    Sh = uncompress(Sh0, []),
+	    St#st{undo=Undo,shapes=Sh,selmode=Mode,sel=Sel,
+		  onext=Onext,mat=Mat}
+    end.
 
-discard_old_states(#st{top=Top,bottom=Bot}=St) ->
-    case 1 + length(Top) + length(Bot) -
-	wings_pref:get_value(num_undo_levels) of
-	N when N > 0 -> discard_old_states_1(N, St);
+discard_old_states(#st{undo=Undo0}=St) ->
+    case 1 + queue:len(Undo0) - wings_pref:get_value(num_undo_levels) of
+	N when N > 0 ->
+	    Undo = discard_old_states_1(N, Undo0),
+	    St#st{undo=Undo};
 	_ -> St
     end.
 
 discard_old_states_1(0, St) -> St;
-discard_old_states_1(N, #st{bottom=[_|Bottom]}=St) ->
-    discard_old_states_1(N-1, St#st{bottom=Bottom});
-discard_old_states_1(N, #st{bottom=[],top=[_|_]=Top}=St) ->
-    discard_old_states_1(N, St#st{bottom=reverse(Top),top=[]}).
+discard_old_states_1(N, Undo) ->
+    discard_old_states_1(N-1, queue:drop(Undo)).
 
 uncompress([#we{id=Id,next_id=Next}=We0|Wes], Acc) ->
     We = wings_we:rebuild(We0),

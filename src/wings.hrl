@@ -133,10 +133,9 @@
 	 def,					%Default operations.
 
 	 %% Undo information.
-	 top,					%Top of stack.
-	 bottom,				%Bottom of stack.
-	 next_is_undo,				%State of undo/redo toggle.
-	 undone				        %States that were undone.
+	 undo=queue:new() :: queue(),		%Undo (de)queue.
+	 next_is_undo=true :: bool(),		%State of undo/redo toggle.
+	 undone=[] :: list()		        %States that were undone.
 	}).
 
 %% The Winged-Edge data structure.
