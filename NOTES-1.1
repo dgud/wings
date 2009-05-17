@@ -1,0 +1,20 @@
+--- 1.1---- -----------------------------------------------------------------
+- Added a new preference in the Misc tab to turn on a Develop menu
+  containing various tools for the Wings developers. [bjorng]
+
+- Added a command to the new Develop menu to automatically time
+  all executed commands. The command name and time will be printed
+  to the console. [bjorng]
+
+- Added a command to the new Develop menu to automatically print
+  out information about the undo queue. [bjorng]
+
+- The data structure for the edge table has been changed. The new
+  data structure is faster and uses less memory. Approximately 4
+  words (1 word = 4 bytes) per edge is saved.
+
+  Plug-ins that depend on the edge table being a gb_tree will not
+  work. More details can be found in the Change log (which follows
+  these notes at Sourceforge). [bjorng, optigon]
+
+-----------------------------------------------------------------------------
