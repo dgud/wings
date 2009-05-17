@@ -31,9 +31,9 @@
 %% The essential part of the state record.
 -record(est,
 	{shapes=[] :: list(#we{}) | gb_tree(),
-	 selmode=face :: 'vertex' | 'edge' | 'face' | 'body',
+	 selmode=face :: sel_mode(),
 	 sel=[] :: list(),
-	 onext=1 :: integer(),
+	 onext=1 :: elem_num(),
 	 mat=wings_material:default(),
 
 	 %% For the Develop menu.
@@ -186,9 +186,9 @@ mem_stat_1(#st{undo=Undo0}=St) ->
     St#st{undo=queue:from_list(reverse(tl(Stat)))}.
 
 mem_stat_2([#est{info=undefined}=S1|[S2|_]=Ss]) ->
-    Total = erts_debug:size({S1#est{info=[]},S2#est{info=[]}}),
-    OwnSz = erts_debug:size(S1#est{info=[]}),
-    OtherSz = erts_debug:size(S2#est{info=[]}),
+    Total = erts_debug:size({S1#est{info=undefined},S2#est{info=undefined}}),
+    OwnSz = erts_debug:size(S1#est{info=undefined}),
+    OtherSz = erts_debug:size(S2#est{info=undefined}),
     Change = change_type(S2, S1),
     Diff = Total - OtherSz - erts_debug:size({a,b}),
     Info = #info{change=Change,sz_diff=Diff,own_size=OwnSz},
@@ -252,50 +252,27 @@ fmt_cnt(N, Action) ->  integer_to_list(N) ++ " objects " ++ Action.
 
 we_changes([]) -> "";
 we_changes([{#we{}=We1,#we{}=We2}]) ->
-    case We1#we{vp=[]} =:= We2#we{vp=[]} of
+    Empty = gb_trees:empty(),
+    case We1#we{vp=Empty} =:= We2#we{vp=Empty} of
 	true ->
 	    "vertices moved";
 	false ->
-	    Cs = we_change(2, We1, We2, make_we_map()),
+	    Cs = we_change(2, We1, We2),
 	    "changes in: " ++ non_empty_join(Cs, ", ")
     end;
 we_changes(Changes) ->
     integer_to_list(length(Changes)) ++ " objects updated".
 
-we_change(I, We1, We2, WeMap) when I =< tuple_size(We1) ->
+we_change(I, We1, We2) when I =< tuple_size(We1) ->
     case element(I, We1) =:= element(I, We2) of
 	false ->
-	    Desc = case element(I, WeMap) of
-		       undefined -> "#we(" ++ integer_to_list(I) ++ ")";
-		       Desc0 -> Desc0
-		   end,
-	    [Desc|we_change(I+1, We1, We2, WeMap)];
+	    WeMap = list_to_tuple(record_info(fields, we)),
+	    Desc = atom_to_list(element(I-1, WeMap)),
+	    [Desc|we_change(I+1, We1, We2)];
 	true ->
-	    we_change(I+1, We1, We2, WeMap)
+	    we_change(I+1, We1, We2)
     end;
-we_change(_, _, _, _) -> [].
-
--define(RMAP(F), {#we.F,??F}).
-
-make_we_map() ->
-    erlang:make_tuple(tuple_size(#we{}),
-		      undefined,
-		      [?RMAP(id),
-		       ?RMAP(perm),
-		       ?RMAP(name),
-		       ?RMAP(es),
-		       ?RMAP(fs),
-		       ?RMAP(he),
-		       ?RMAP(vc),
-		       ?RMAP(vp),
-		       ?RMAP(pst),
-		       ?RMAP(mat),
-		       ?RMAP(next_id),
-		       ?RMAP(mode),
-		       ?RMAP(mirror),
-		       ?RMAP(light),
-		       ?RMAP(has_shape)
-		      ]).
+we_change(_, _, _) -> [].
 
 mat_change([_]) -> "";
 mat_change({_,_}) -> "materials changed".

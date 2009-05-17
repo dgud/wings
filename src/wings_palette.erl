@@ -225,9 +225,7 @@ event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #pst{sel=Sel,cols=Cols
 		     body ->
 			 St1 = wings_sel_conv:mode(face, St0),
 			 St2 = wings_face_cmd:set_color(Color, St1),
-			 St2#st{sel=St0#st.sel,selmode=St0#st.selmode};
-		     _ ->
-			 St0
+			 St2#st{sel=St0#st.sel,selmode=St0#st.selmode}
 		 end,
 	    wings_wm:send(geom, {new_state,St#st{pal=Cols}}),
 	    get_event(Pst#pst{sel=none});

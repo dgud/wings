@@ -257,7 +257,7 @@ new(#st{saved=true}=St0) ->
     St = clean_images(wings_undo:init(St1)),
     wings_u:caption(St),
     {new,St#st{saved=true}};
-new(St0) ->			     %File is not saved or autosaved.
+new(#st{}=St0) ->		      %File is not saved or autosaved.
     wings_u:caption(St0#st{saved=false}), 
     wings_u:yes_no_cancel(str_save_changes(),
 			  fun() -> {file,{save,{file,new}}} end,

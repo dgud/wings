@@ -65,6 +65,21 @@
 -define(CHECK_ERROR(), ok).
 -endif.
 
+%%
+%% Types.
+%%
+-type vertex_num() :: non_neg_integer().
+-type edge_num() :: non_neg_integer().
+-type face_num() :: integer().
+-type visible_face_num() :: non_neg_integer().
+-type elem_num() :: vertex_num() | edge_num() | face_num().
+
+-type sel_mode() :: 'vertex' | 'edge' | 'face' | 'body'.
+-type bounding_box() :: [{float(),float(),float()}].
+
+-type wings_cmd() :: tuple() | atom().
+-type maybe_wings_cmd() :: 'ignore' | wings_cmd().
+
 %% Display lists per object.
 %%  Important: Plain integers and integers in lists will be assumed to
 %%  be display lists. Arbitrary integers must be stored inside a tuple
@@ -106,31 +121,38 @@
 
 %% Main state record containing all objects and other important state.
 -record(st,
-	{shapes,				%All visible shapes
-	 selmode,				%Selection mode:
-						% vertex, edge, face, body
-	 sh=false,				%Smart highlight active: true|false
+	{shapes=gb_trees:empty() :: gb_tree(),	%All visible objects
+	 selmode=face :: sel_mode(),		%Selection mode.
+	 sh=false :: bool(),			%Smart highlighting active.
 	 sel=[],				%Current sel: [{Id,GbSet}]
-	 ssels=[],				%Saved selections:
-	 					%  [{Name,Mode,GbSet}]
-	 temp_sel=none,			        %Selection only temporary?
+	 ssels=gb_trees:empty() :: gb_tree(),   %Saved selections:
 
-	 mat,					%Defined materials (GbTree).
+	 %% Selection only temporary?
+	 temp_sel=none :: 'none' | {sel_mode(),bool()},
+
+	 mat=gb_trees:empty() :: gb_tree(),	%Defined materials (GbTree).
 	 pal=[],                                %Palette
 	 file,					%Current filename.
-	 saved,					%True if model has been saved.
-	 onext,					%Next object id to use.
-	 bb=none,				%Saved bounding box.
+	 saved=false :: 'false'  | 'true' | 'auto' | integer(),
+	 onext=1 :: pos_integer(),		%Next object id to use.
+
+	 %% Saved bounding box. (AutoUV uses it for its own purposes,
+	 %% therefore the type must also a allow a tuple.)
+	 bb=none :: 'none' | bounding_box() | tuple(),
+
 	 edge_loop=none,			%Previous edge loop.
 	 views={0,{}},				%{Current,TupleOfViews}
-	 pst=gb_trees:empty(),                  %Plugin State Info
+	 pst=gb_trees:empty() :: gb_tree(),     %Plugin State Info
 						%   gb_tree where key is plugin	module 
 
 	 %% Previous commands.
-	 repeatable,			        %Last repeatable command.
+	 repeatable=ignore :: maybe_wings_cmd(), %Last repeatable command.
 	 ask_args,				%Ask arguments.
 	 drag_args,			        %Drag arguments for command.
-	 def,					%Default operations.
+
+	 %% Default commands (LMB, RMB).
+	 def={ignore,ignore} :: {maybe_wings_cmd(),maybe_wings_cmd()},
+
 
 	 %% Undo information.
 	 last_cmd=empty_scene,		        %Last command.
@@ -142,7 +164,7 @@
 %% The Winged-Edge data structure.
 %% See http://www.cs.mtu.edu/~shene/COURSES/cs3621/NOTES/model/winged-e.html
 -record(we,
-	{id,					%Shape id.
+	{id :: non_neg_integer(),		%Shape id.
 	 perm=0,				%Permissions:
 						% 0 - Everything allowed.
 						% 1 - Visible, can't select.
@@ -150,24 +172,24 @@
 						%  Invisible, can't select.
 						%  The GbSet contains the
 						%  object's selection.
-	 name,					%Name.
+	 name="" :: string() | tuple(),		%Name. (AutoUV stores other things here.)
 	 es=array:new() :: array(),		%array containing edges
-	 fs,					%gb_tree containing faces
-	 he,					%gb_sets containing hard edges
-	 vc,					%Connection info (=incident edge)
+	 fs :: gb_tree(),		        %Faces
+	 he=gb_sets:empty() :: gb_set(),	%Hard edges
+	 vc :: gb_tree(),	                %Connection info (=incident edge)
 						% for vertices.
-	 vp,					%Vertex positions.
+	 vp=gb_trees:empty() :: gb_tree(),	%Vertex positions.
 	 pst=gb_trees:empty(),                  %Plugin State Info, 
 						%   gb_tree where key is plugin module
 	 mat=default,				%Materials.
-	 next_id,				%Next free ID for vertices,
+	 next_id=0 :: non_neg_integer(),	%Next free ID for vertices,
 						% edges, and faces.
 						% (Needed because we never re-use
 						%  IDs.)
-	 mode,					%'vertex'/'material'/'uv'
-	 mirror=none,				%Mirror: none|Face
+	 mode=material :: 'vertex'|'material'|'uv',
+	 mirror=none :: 'none' | non_neg_integer(),	%Mirror: none|Face
 	 light=none,				%Light data: none|Light
-	 has_shape=true				%true|false
+	 has_shape=true :: bool()		%true|false
 	}).
 
 -define(IS_VISIBLE(Perm), (Perm =< 1)).
@@ -178,21 +200,19 @@
 -define(IS_LIGHT(We), ((We#we.light =/= none) and (not We#we.has_shape))).
 -define(IS_ANY_LIGHT(We), (We#we.light =/= none)).
 -define(HAS_SHAPE(We), (We#we.has_shape)).
-%-define(IS_LIGHT(We), (We#we.light =/= none)).
-%-define(IS_NOT_LIGHT(We), (We#we.light =:= none)).
 
 %% Edge in a winged-edge shape.
 -record(edge,
-	{vs,					%Start vertex for edge
-	 ve,					%End vertex for edge
+	{vs=0 :: vertex_num(),			%Start vertex for edge
+	 ve=0 :: vertex_num(),			%End vertex for edge
 	 a=none,			        %Color or UV coordinate.
 	 b=none,			        %Color or UV coordinate.
-	 lf,					%Left face
-	 rf,					%Right face
-	 ltpr,					%Left traversal predecessor
-	 ltsu,					%Left traversal successor
-	 rtpr,					%Right traversal predecessor
-	 rtsu					%Right traversal successor
+	 lf=0 :: face_num(),			%Left face
+	 rf=0 :: face_num(),			%Right face
+	 ltpr=0 :: edge_num(),			%Left traversal predecessor
+	 ltsu=0 :: edge_num(),			%Left traversal successor
+	 rtpr=0 :: edge_num(),			%Right traversal predecessor
+	 rtsu=0	:: edge_num()			%Right traversal successor
 	}).
 
 %% The current view/camera.
