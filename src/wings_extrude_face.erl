@@ -24,12 +24,11 @@
 faces([], We) ->
     We;
 faces(Faces, We) when is_list(Faces) ->
-    inner_extrude(Faces, We, []);
+    inner_extrude(Faces, We);
 faces(Faces, We) ->
     faces(gb_sets:to_list(Faces), We).
     
-inner_extrude([Face|Faces], #we{next_id=AnEdge,fs=Ftab0,es=OrigEtab}=We0,
-	      EdgeAcc0) ->
+inner_extrude([Face|Faces], #we{next_id=AnEdge,fs=Ftab0,es=OrigEtab}=We0) ->
     Mat = wings_facemat:face(Face, We0),
     Ftab = gb_trees:update(Face, AnEdge, Ftab0),
     We1 = We0#we{fs=Ftab},
@@ -37,19 +36,15 @@ inner_extrude([Face|Faces], #we{next_id=AnEdge,fs=Ftab0,es=OrigEtab}=We0,
     NumVs = length(Edges),
     {Ids,We2} = wings_we:new_wrap_range(NumVs, 2, We1),
     PrevEdge = last(Edges),
-    {We,EdgeAcc} = inner_extrude_1(Edges, PrevEdge, Face, Mat,
-				   Ids, OrigEtab, We2, EdgeAcc0),
-    inner_extrude(Faces, We, EdgeAcc);
-inner_extrude([], #we{es=Etab0}=We, EdgeAcc) ->
-    Etab1 = merge([sort(EdgeAcc),array:sparse_to_orddict(Etab0)]),
-    Etab = array:from_orddict(Etab1),
-    We#we{es=Etab}.
+    We = inner_extrude_1(Edges, PrevEdge, Face, Mat, Ids, OrigEtab, We2),
+    inner_extrude(Faces, We);
+inner_extrude([], We) -> We.
 
 inner_extrude_edges(Face, We) ->
     wings_face:fold(fun(_, E, Rec, A) -> [{E,Rec}|A] end, [], Face, We).
 
 inner_extrude_1([{Edge,_}=CurEdge|Es], {PrevEdge,PrevRec}, Face,
-		Mat, Ids0, OrigEtab, We0, EdgeAcc0) ->
+		Mat, Ids0, OrigEtab, We0) ->
     PrevHor = wings_we:id(2-2, Ids0),
     PrevFace = PrevHor,
 
@@ -65,7 +60,6 @@ inner_extrude_1([{Edge,_}=CurEdge|Es], {PrevEdge,PrevRec}, Face,
     #we{fs=Ftab0,es=Etab0,vc=Vct0,vp=Vtab0} = We0,
     
     Erec0 = array:get(Edge, Etab0),
-
     Erec = case Erec0 of
 	       #edge{a=InCol,lf=Face,vs=Va,ve=Vb,rtpr=Next,ltpr=Prev}=Erec0 ->
 		   OutCol = get_vtx_color(Next, Va, OrigEtab),
@@ -87,14 +81,14 @@ inner_extrude_1([{Edge,_}=CurEdge|Es], {PrevEdge,PrevRec}, Face,
 			lf=PrevFace,rf=NewFace,
 			ltsu=PrevEdge,ltpr=PrevHor,
 			rtsu=HorEdge,rtpr=Edge},
-    Etab = array:set(VertEdge, VertEdgeRec, Etab1),
+    Etab2 = array:set(VertEdge, VertEdgeRec, Etab1),
 
-    EdgeAcc = [{HorEdge,#edge{vs=NextV,ve=V,
-			      a=get_vtx_color(Prev, Vb, OrigEtab),
-			      b=InCol,
-			      lf=NewFace,rf=Face,
-			      ltsu=NextVert,ltpr=VertEdge,
-			      rtsu=PrevHor,rtpr=NextHor}}|EdgeAcc0],
+    Etab = array:set(HorEdge,
+		     #edge{vs=NextV,ve=V,
+			   a=get_vtx_color(Prev, Vb, OrigEtab),b=InCol,
+			   lf=NewFace,rf=Face,
+			   ltsu=NextVert,ltpr=VertEdge,
+			   rtsu=PrevHor,rtpr=NextHor}, Etab2),
 
     Vct = gb_trees:insert(V, HorEdge, Vct0),
     Pos = gb_trees:get(Va, Vtab0),
@@ -104,9 +98,9 @@ inner_extrude_1([{Edge,_}=CurEdge|Es], {PrevEdge,PrevRec}, Face,
     We1 = wings_facemat:assign(Mat, [NewFace], We0),
     
     We = We1#we{fs=Ftab,es=Etab,vc=Vct,vp=Vtab},
-    inner_extrude_1(Es, CurEdge, Face, Mat, Ids, OrigEtab, We, EdgeAcc);
-inner_extrude_1([], _PrevEdge, _Face, _Mat, _Ids, _, We, EdgeAcc) ->
-    {We,EdgeAcc}.
+    inner_extrude_1(Es, CurEdge, Face, Mat, Ids, OrigEtab, We);
+inner_extrude_1([], _PrevEdge, _Face, _Mat, _Ids, _, We) -> We.
+    
 
 get_vtx_color(Edge, V, Etab) ->
     case array:get(Edge, Etab) of
