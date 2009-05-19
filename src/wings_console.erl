@@ -489,7 +489,16 @@ io_request(State, {requests,Requests}) when is_list(Requests) ->
 io_request(State, {setopts,Opts}) when is_list(Opts) ->
     {State,{error,badarg},error};
 io_request(State, Request) ->
-    {State,{error,{request,Request}}}.
+    %% Probably a new version of Erlang/OTP with extensions to the
+    %% I/O protocol. We could generate an error here, but the
+    %% stack dump in wings_crash.dump would generate the caller of
+    %% io:format/2 in the main Wings process with no indication that
+    %% this module is the culprit. Therefore, we choose to ignore
+    %% the request, but write a message to the console to point out
+    %% the problem.
+    S = io_lib:format("Internal error in Console - unknown I/O request:\n~P\n",
+		      [Request,10]),
+    {put_chars(State, iolist_to_binary(S)),ok,forward}.
 
 io_request_loop([], Result) ->
     Result;
