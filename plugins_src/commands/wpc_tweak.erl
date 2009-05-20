@@ -471,13 +471,12 @@ handle_tweak_event2(quit=Ev, T) ->
 handle_tweak_event2({current_state,St}, T) ->
     update_tweak_handler(T#tweak{st=St});
 
-handle_tweak_event2({new_state,St}, #tweak{st=St}=T) ->
-    update_tweak_handler(T);
 handle_tweak_event2({new_state,St1}, #tweak{st=St0}=T) ->
-    St2 = wings_undo:save(St0, St1),
-    St = case St2 of
-         #st{saved=false} -> St2;
-         _Other -> wings_u:caption(St2#st{saved=false})
+    St2 = clear_temp_sel(St1),
+    St3 = wings_undo:save(St0, St2),
+    St = case St3 of
+         #st{saved=false} -> St3;
+         _Other -> wings_u:caption(St3#st{saved=false})
      end,
     update_tweak_handler(T#tweak{st=St});
 
