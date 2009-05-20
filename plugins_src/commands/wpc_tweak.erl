@@ -483,24 +483,10 @@ handle_tweak_event2({new_state,St1}, #tweak{st=St0}=T) ->
 handle_tweak_event2({action,Action}, #tweak{tmode=wait,st=#st{}=St0}=T) ->
     Hs = wings_pref:get_value(hilite_select),
     case Action of
-    {view,aim} ->
-        St = wings_view:command(aim, St0),
-        update_tweak_handler(T#tweak{st=St});
     {view,highlight_aim} ->
-        HL0 = wings_pref:get_value(highlight_aim_at_unselected),
-        HL1 = wings_pref:get_value(highlight_aim_at_selected),
-        {_,X,Y} = wings_wm:local_mouse_state(),
-        {{_,Cmd0},St1} = case wings_pick:do_pick(X, Y, St0) of
-              {add,_,St2} when HL0 =:= true ->
-                  {{view,highlight_aim},{add,St0,St2}};
-              {delete,_,St2} when HL1 =:= true ->
-                  {{view,highlight_aim},{delete,St0,St2}};
-              _Other ->
-                  {{view,aim}, St0}
-        end,
-        St = wings_view:command(Cmd0,St1),
-        update_tweak_handler(T#tweak{st=St});
-
+        {Cmd,_} = wings:highlight_aim_setup(St0),
+        St = wings_view:command(Cmd,St0),
+        do_cmd(Cmd, T#tweak{st=St});
     {edit,undo_toggle} ->
         St = wings_u:caption(wings_undo:undo_toggle(clear_temp_sel(St0))),
         update_tweak_handler(T#tweak{st=St});

@@ -19,7 +19,7 @@
 -export([save_windows/0]).
 -export([handle_drop/3]).
 -export([init_menubar/0]).
-
+-export([highlight_aim_setup/1]).
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).
 
 -define(NEED_OPENGL, 1).
@@ -1599,9 +1599,12 @@ highlight_aim_setup(St0) ->
     HL1 = wings_pref:get_value(highlight_aim_at_selected),
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_pick:do_pick(X, Y, St0) of
-      {add,_,St} when HL0 =:= true -> {{view,highlight_aim},{add,St0,St}};
-      {delete,_,St} when HL1 =:= true -> {{view,highlight_aim},{delete,St0,St}};
-      _Other           -> {{view,aim}, St0}
+	{add,_,#st{selmode=Selmode,sel=Sel}} when HL0 =:= true ->
+	    {{view,{highlight_aim,{add,{Selmode,Sel}}}},St0};
+	{delete,_,#st{selmode=Selmode,sel=Sel}} when HL1 =:= true ->
+	    {{view,{highlight_aim,{delete,{Selmode,Sel}}}},St0};
+	_Other ->
+	    {{view,aim},St0}
     end.
 
 hotkey_select_setup(Cmd,St0) ->

@@ -209,17 +209,7 @@ seg_event_6({action,{view,Cmd}}, #seg{st=St0}=Ss) ->
             wings_view:command(aim, St1),
             get_seg_event(Ss);
           false ->
-            HL0 = wings_pref:get_value(highlight_aim_at_unselected),
-            HL1 = wings_pref:get_value(highlight_aim_at_selected),
-            {_,X,Y} = wings_wm:local_mouse_state(),
-            {{_,Cmd0},St1} = case wings_pick:do_pick(X, Y, St0) of
-                  {add,_,St2} when HL0 =:= true ->
-                      {{view,highlight_aim},{add,St0,St2}};
-                  {delete,_,St2} when HL1 =:= true ->
-                      {{view,highlight_aim},{delete,St0,St2}};
-                  _Other -> 
-                      {{view,aim}, St0}
-            end,
+            {{_,Cmd0},St1} = wings:highlight_aim_setup(St0),
             wings_view:command(Cmd0,St1),
             get_seg_event(Ss)
         end;

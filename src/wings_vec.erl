@@ -219,17 +219,7 @@ handle_event_4({action,{view,highlight_aim}}, Ss, St0) ->
       false ->
 	    handle_event_4({action,{view,aim}}, Ss, St0);
       true ->
-        HL0 = wings_pref:get_value(highlight_aim_at_unselected),
-        HL1 = wings_pref:get_value(highlight_aim_at_selected),
-        {_,X,Y} = wings_wm:local_mouse_state(),
-        {{_,Cmd},St1} = case wings_pick:do_pick(X, Y, St0) of
-          {add,_,St} when HL0 =:= true ->
-              {{view,highlight_aim},{add,St0,St}};
-          {delete,_,St} when HL1 =:= true ->
-              {{view,highlight_aim},{delete,St0,St}};
-          _Other -> 
-              {{view,aim}, St0}
-        end,
+        {{_,Cmd},St1} = wings:highlight_aim_setup(St0),
         St2 = wings_view:command(Cmd,St1),
         get_event(Ss, St2)
     end;
