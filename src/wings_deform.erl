@@ -212,7 +212,7 @@ inflate({Center,Outer}, St) ->
 
 inflate(Center, Radius, Vs, #we{id=Id,vp=Vtab}, Acc) ->
     [{Id,foldl(fun(V, A) ->
-		       VPos = gb_trees:get(V, Vtab),
+		       VPos = array:get(V, Vtab),
 		       D = e3d_vec:dist(Center, VPos),
 		       Dir = e3d_vec:norm_sub(VPos, Center),
 		       Vec = e3d_vec:mul(Dir, Radius-D),

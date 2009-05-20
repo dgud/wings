@@ -164,8 +164,8 @@ intersect_edges(_Plane,_Center,_EdgeTab,VertPosTab,[]) ->
     VertPosTab;
 intersect_edges(Plane,Center,EdgeTab,VertPosTab0,[EdgeNum|OtherEdgeNums]) ->
     #edge{vs=V1Num,ve=V2Num}=array:get(EdgeNum,EdgeTab),
-    V1 = gb_trees:get(V1Num,VertPosTab0),
-    V2 = gb_trees:get(V2Num,VertPosTab0),
+    V1 = array:get(V1Num,VertPosTab0),
+    V2 = array:get(V2Num,VertPosTab0),
     V1V2 = e3d_vec:norm_sub(V2,V1),
     LineDotPlane = e3d_vec:dot(V1V2,Plane),
     if

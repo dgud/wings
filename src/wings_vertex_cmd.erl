@@ -141,7 +141,7 @@ ex_new_vertices(V, OrigWe, #we{vp=Vtab}=We0) ->
 	  fun(Edge, Face, Rec, {W0,Vs}) ->
 		  OtherV = wings_vertex:other(V, Rec),
 		  R = edge_ratio(OtherV, OrigWe),
-		  Pos0 = gb_trees:get(OtherV, Vtab),
+		  Pos0 = array:get(OtherV, Vtab),
 		  Dir = e3d_vec:sub(Pos0, Center),
 		  Pos = e3d_vec:add(Center, e3d_vec:mul(Dir, R)),
 		  {W,NewV} = wings_edge:fast_cut(Edge, Pos, W0),
@@ -150,9 +150,9 @@ ex_new_vertices(V, OrigWe, #we{vp=Vtab}=We0) ->
     ex_connect(VsFaces, VsFaces, We).
 
 edge_ratio(V, #we{vp=Vtab}) ->
-    case gb_trees:is_defined(V, Vtab) of
-	false -> 1/3;
-	true -> 0.25
+    case array:get(V, Vtab) of
+	undefined -> 1/3;
+	_ -> 0.25
     end.
 
 ex_connect([Va,Face|[Vb|_]=T], More, We0) ->
@@ -273,12 +273,12 @@ bevel(V, {Edge,Face,Rec0}, InnerFace, Ids, Adj, Vtab, OrigEtab, Etab0) ->
 			   ltsu=Edge,rtpr=Enext,rtsu=Eprev}}
 	end,
     Etab = array:set(Edge, Rec, Etab0),
-    Vpos = gb_trees:get(V, Vtab),
+    Vpos = array:get(V, Vtab),
     Vec = bevel_vec(Adj, Vother, Vpos, Vtab),
     {array:set(Ecurr, Curr, Etab),{Vec,Va}}.
 
 bevel_vec(Adj, Vother, Vpos, Vtab) ->
-    Opos = gb_trees:get(Vother, Vtab),
+    Opos = array:get(Vother, Vtab),
     case member(Vother, Adj) of
 	true ->
 	    e3d_vec:sub(e3d_vec:average([Opos,Vpos]), Vpos);
@@ -287,16 +287,16 @@ bevel_vec(Adj, Vother, Vpos, Vtab) ->
     end.
 
 bevel_vertices_1(V, Ids, N, Vct0, Vtab0) ->
-    Pos = gb_trees:get(V, Vtab0),
-    Vct = gb_trees:delete(V, Vct0),
-    Vtab = gb_trees:delete(V, Vtab0),
+    Pos = array:get(V, Vtab0),
+    Vct = array:reset(V, Vct0),
+    Vtab = array:reset(V, Vtab0),
     bevel_new_vertices(Ids, N, Pos, Vct, Vtab).
 
 bevel_new_vertices(Ids, N, Pos, Vct0, Vtab0) when N > 0 ->
     V = Id = wings_we:id(0, Ids),
     Edge = Id + 1,
-    Vct = gb_trees:insert(V, Edge, Vct0),
-    Vtab = gb_trees:insert(V, Pos, Vtab0),
+    Vct = array:set(V, Edge, Vct0),
+    Vtab = array:set(V, Pos, Vtab0),
     bevel_new_vertices(wings_we:bump_id(Ids), N-1, Pos, Vct, Vtab);
 bevel_new_vertices(_, _, _, Vct, Vtab) -> {Vct,Vtab}.
 
@@ -385,7 +385,7 @@ tighten_vec(V, #we{vp=Vtab,mirror=MirrorFace}=We) ->
 	      (_, _, _, A) -> A
 	   end, [], V, We),
     Center = e3d_vec:average(Cs),
-    e3d_vec:sub(Center, gb_trees:get(V, Vtab)).
+    e3d_vec:sub(Center, array:get(V, Vtab)).
 
 %%%
 %%% The magnetic version of Tighten.

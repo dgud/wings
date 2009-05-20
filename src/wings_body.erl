@@ -285,8 +285,8 @@ clean_isolated_vertices(We) ->
 clean_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
     Short = array:sparse_foldl(
 	      fun(Edge, #edge{vs=Va,ve=Vb}, A) ->
-		      VaPos = gb_trees:get(Va, Vtab),
-		      VbPos = gb_trees:get(Vb, Vtab),
+		      VaPos = array:get(Va, Vtab),
+		      VbPos = array:get(Vb, Vtab),
 		      case abs(e3d_vec:dist(VaPos, VbPos)) of
 			  Dist when Dist < Tolerance -> [Edge|A];
 			  _Dist -> A
@@ -384,7 +384,7 @@ cleanup_waists(#we{es=Etab,vp=Vtab}=We) ->
 				       [{Va,E},{Vb,E}|A]
 			       end, [], Etab),
     VsEs = wings_util:rel2fam(VsEs0),
-    cleanup_waists_1(gb_trees:keys(Vtab), VsEs, We).
+    cleanup_waists_1(wings_util:array_keys(Vtab), VsEs, We).
 
 cleanup_waists_1([V|Vs], [{V,AllEs}|VsEs], #we{es=Etab0,vp=Vtab0,vc=Vct0}=We0) ->
     Es0 = wings_vertex:fold(fun(E, _, _, A) -> [E|A] end, [], V, We0),
@@ -396,8 +396,8 @@ cleanup_waists_1([V|Vs], [{V,AllEs}|VsEs], #we{es=Etab0,vp=Vtab0,vc=Vct0}=We0) -
 	    %% Repair by duplicating the original vertex.
 	    {NewV,We1} = wings_we:new_id(We0),
 	    Etab = patch_vtx_refs(Es, V, NewV, Etab0),
-	    Vtab = gb_trees:insert(NewV, gb_trees:get(V, Vtab0), Vtab0),
-	    Vct = gb_trees:insert(NewV, AnEdge, Vct0),
+	    Vtab = array:set(NewV, array:get(V, Vtab0), Vtab0),
+	    Vct = array:set(NewV, AnEdge, Vct0),
 	    We = We1#we{es=Etab,vp=Vtab,vc=Vct},
 	    io:format(?__(1,"Removed waist vertex: ~p\n"), [V]),
 
@@ -550,22 +550,22 @@ flip_body_1(Type, Plane0, We0) ->
     wings_we:invert_normals(We).
 
 flip_body_2({Plane,Center}, #we{vp=Vtab0}=We) ->
-    Vtab1 = lists:foldl(fun(Vtx, A) ->
-            flip_vs(Vtx, Plane, Center, A)
-            end, [], gb_trees:to_list(Vtab0)),
-    Vtab = gb_trees:from_orddict(reverse(Vtab1)),
+    Vtab1 = array:sparse_foldl(fun(V, Pos, A) ->
+				       flip_vs(V, Pos, Plane, Center, A)
+			       end, [], Vtab0),
+    Vtab = array:from_orddict(reverse(Vtab1)),
     wings_we:invert_normals(We#we{vp=Vtab}).
 
 flip_body_3(Type, Plane, #we{vp=Vtab0}=We) ->
     Center0 = wings_vertex:center(We),
-    Center = flip_center(Type,Plane,Center0),
-    Vtab1 = lists:foldl(fun(Vtx, A) ->
-            flip_vs(Vtx, Plane, Center, A)
-            end, [], gb_trees:to_list(Vtab0)),
-    Vtab = gb_trees:from_orddict(reverse(Vtab1)),
+    Center = flip_center(Type, Plane, Center0),
+    Vtab1 = array:sparse_foldl(fun(V, Pos, A) ->
+				       flip_vs(V, Pos, Plane, Center, A)
+			       end, [], Vtab0),
+    Vtab = array:from_orddict(reverse(Vtab1)),
     wings_we:invert_normals(We#we{vp=Vtab}).
 
-flip_vs({V,Pos0}, Plane, Center, A) ->
+flip_vs(V, Pos0, Plane, Center, A) ->
     ToCenter = e3d_vec:sub(Center, Pos0),
     Dot = e3d_vec:dot(ToCenter, Plane),
     Pos = wings_util:share(e3d_vec:add_prod(Pos0, Plane, 2.0*Dot)),
@@ -607,7 +607,7 @@ tighten(St) ->
     wings_drag:setup(Tvs, [percent], St).
 
 tighten(_, #we{vp=Vtab}=We, A) ->
-    Vs = gb_trees:keys(Vtab),
+    Vs = wings_util:array_keys(Vtab),
     wings_vertex_cmd:tighten(Vs, We, A).
     
 %%%

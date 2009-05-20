@@ -477,7 +477,7 @@ handle_tweak_event2({new_state,St1}, #tweak{st=St0}=T) ->
     St = case St3 of
          #st{saved=false} -> St3;
          _Other -> wings_u:caption(St3#st{saved=false})
-     end,
+    end,
     update_tweak_handler(T#tweak{st=St});
 
 handle_tweak_event2({action,Action}, #tweak{tmode=wait,st=#st{}=St0}=T) ->
@@ -669,7 +669,7 @@ begin_drag(MM, St, T) ->
          end, []).
 
 begin_drag_fun(#dlo{src_sel={body,_},src_we=#we{vp=Vtab}=We}=D, _MM, _St, _T) ->
-    Vs = gb_trees:keys(Vtab),
+    Vs = wings_util:array_keys(Vtab),
     Center = wings_vertex:center(Vs, We),
     Id = e3d_mat:identity(),
     D#dlo{drag={matrix,Center,Id,e3d_mat:expand(Id)}};
@@ -935,19 +935,19 @@ relax_vec_fn(V, #we{}=We,Pos0,Weight) ->
 collapse_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
     Short = array:sparse_foldl(
           fun(Edge, #edge{vs=Va,ve=Vb}, A) ->
-              case gb_trees:is_defined(Va,Vtab) of
-              true->
-                  case gb_trees:is_defined(Vb,Vtab) of
+              case array:get(Va,Vtab) of
+	      undefined -> A;
+              _ ->
+                  case array:get(Vb,Vtab) of
+                  undefined -> A;
                   true->
                       VaPos = wings_vertex:pos(Va, We),
                       VbPos = wings_vertex:pos(Vb, We),
                       case abs(e3d_vec:dist(VaPos, VbPos)) of
                       Dist when Dist < Tolerance -> [Edge|A];
                       _Dist -> A
-                      end;
-                  false-> A
-                  end;
-              false -> A
+                      end
+                  end
               end
           end, [], Etab),
     NothingCollapsed = Short == [],
@@ -1125,9 +1125,9 @@ face_normal(Face, #dlo{src_we=#we{vp=Vtab}}=D) ->
     e3d_vec:normal(VsPos).
 
 vertex_pos(V, Vtab, OrigVtab) ->
-    case gb_trees:lookup(V, Vtab) of
-    none -> gb_trees:get(V, OrigVtab);
-    {value,Pos} -> Pos
+    case array:get(V, Vtab) of
+	undefined -> array:get(V, OrigVtab);
+	Pos -> Pos
     end.
 
 help(#tweak{magnet=false}) ->
@@ -1349,7 +1349,7 @@ begin_magnet(#tweak{magnet=false}=T, Vs, Center, We) ->
     {[Va || {Va,_,_,_,_} <- Near],Mag};
 begin_magnet(#tweak{magnet=true}=T, Vs, Center, #we{vp=Vtab0}=We) ->
     Mirror = mirror_info(We),
-    Vtab1 = sofs:from_external(gb_trees:to_list(Vtab0), [{vertex,info}]),
+    Vtab1 = sofs:from_external(array:sparse_to_orddict(Vtab0), [{vertex,info}]),
     Vtab2 = sofs:drestriction(Vtab1, sofs:set(Vs, [vertex])),
     Vtab = sofs:to_external(Vtab2),
     Near = near(Center, Vs, Vtab, Mirror, T, We),

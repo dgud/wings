@@ -129,10 +129,10 @@ intersect_body(Vs, We, #intersect_data{} = IntersectData) ->
 
 
 intersect_vertex(V, Tab, #intersect_data{linePoint = selection} = IntersectData0) ->
-    IntersectData = IntersectData0#intersect_data{linePoint = gb_trees:get(V, Tab)},
+    IntersectData = IntersectData0#intersect_data{linePoint = array:get(V, Tab)},
     intersect_vertex(V, Tab, IntersectData);
 intersect_vertex(V, Tab, #intersect_data{planePoint = selection} = IntersectData0) ->
-    IntersectData = IntersectData0#intersect_data{planePoint = gb_trees:get(V, Tab)},
+    IntersectData = IntersectData0#intersect_data{planePoint = array:get(V, Tab)},
     intersect_vertex(V, Tab, IntersectData);
 intersect_vertex(V, Tab, #intersect_data{lineDir = LD, linePoint = LP,
 					  planeNorm = PN, planePoint = PP, lineDotPlane = LDdotPN}) ->
@@ -149,5 +149,5 @@ intersect_vertex(V, Tab, #intersect_data{lineDir = LD, linePoint = LP,
     
     X = e3d_vec:dot(e3d_vec:sub(PP, LP),PN)/LDdotPN,
     Intersection = e3d_vec:add(LP, e3d_vec:mul(LD, X)),
-    gb_trees:update(V, Intersection, Tab).
+    array:set(V, Intersection, Tab).
 

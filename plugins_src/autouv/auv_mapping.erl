@@ -105,7 +105,7 @@ volproject(Type,Chart,_Pinned,{_,BEdges},We) ->
 			e3d_mat:mul_vector(Rot,Vec)
 		end,
     Vs1 = lists:sort([{V,Transform(V)} || V <- Vs0]),
-    Tagged = leftOrRight(LoopInfo, Chart, We#we{vp=gb_trees:from_orddict(Vs1)}),
+    Tagged = leftOrRight(LoopInfo, Chart, We#we{vp=array:from_orddict(Vs1)}),
     %%io:format("Tagged ~w~n",[gb_sets:to_list(Tagged)]),
     [{V,fix_positions(V,Pos,CalcUV(Pos),Tagged)} || {V,Pos} <- Vs1].
 
@@ -423,7 +423,7 @@ lsqcm(Fs, Pinned, _Loop, We) ->
     %%?DBG("LSQ res ~p~n", [Vs2]),
     Patch = fun({Idt, {Ut,Vt}}) -> {Idt,{Ut,Vt,0.0}} end,
     Vs3 = lists:sort(lists:map(Patch, Vs2)),
-    TempVs = gb_trees:from_orddict(Vs3),
+    TempVs = array:from_orddict(Vs3),
     Area = fs_area(Fs, We, 0.0),
     MappedArea = fs_area(Fs, We#we{vp=TempVs}, 0.0),
     Scale = Area/MappedArea,
@@ -443,7 +443,7 @@ find_pinned_from_edges({Circumference, BorderEdges}, #we{vp=Vtab}) ->
 	    [#be{ve=TO},#be{vs=TO}|_] -> BorderEdges;
 	    _ -> reverse(BorderEdges)
 	end,
-    POS = fun(V) -> gb_trees:get(V,Vtab) end,
+    POS = fun(V) -> array:get(V,Vtab) end,
     Left = #link{no=1,pos=POS(Second#be.vs)},
     Right = foldl(fun(#be{vs=V}, #link{no=No,pos=Apos}) ->
 			  #link{no=No+1,pos=e3d_vec:add(Apos,POS(V))}
@@ -506,10 +506,10 @@ divide(What,0) -> What;
 divide(Vec,S) -> e3d_vec:divide(Vec,S).
      
 find_pinned({Circumference, BorderEdges}, We) ->
-    Vs = [gb_trees:get(V1, We#we.vp) || #be{vs=V1} <- BorderEdges],
+    Vs = [array:get(V1, We#we.vp) || #be{vs=V1} <- BorderEdges],
     Center = e3d_vec:average(Vs),
     AllC = lists:map(fun(#be{vs=Id}) ->
-			     Pos = gb_trees:get(Id, We#we.vp),
+			     Pos = array:get(Id, We#we.vp),
 			     Dist = e3d_vec:dist(Pos, Center),
 			     {Dist, Id, Pos}
 		     end, BorderEdges),
@@ -590,8 +590,8 @@ lsq_init_fs([F|Fs],P,We = #we{vp=Vtab},Ds0,N,Re0,Im0,X0) ->
     {[A,B,C],Ds} = update_dicts(Vs,Ds0),
 %%    {X1=Z0x,Y1=Z0y,X2=Z1x,Y2=Z1y,X3=Z2x,Y3=Z2y} = 
     {X1,Y1,X2,Y2,X3,Y3} = 
-	project_tri(gb_trees:get(A0,Vtab),gb_trees:get(B0,Vtab),
-		    gb_trees:get(C0,Vtab)), 
+	project_tri(array:get(A0,Vtab),array:get(B0,Vtab),
+		    array:get(C0,Vtab)), 
     %% Raimos old solution. 
     SqrtDT = try math:sqrt(abs((X2-X1)*(Y3-Y1)-(Y2-Y1)*(X3-X1))) 
 	     catch _:_ -> 0.000001
@@ -1040,7 +1040,7 @@ stretch_opt(We0, OVs) ->
     SUvs1 = gb_trees:to_list(SUvs0),
     
     Suvs = [{Id,{S0/Scale,T0/Scale,0.0}} || {Id,{S0,T0}} <- SUvs1],
-    We0#we{vp=gb_trees:from_orddict(Suvs)}.
+    We0#we{vp=array:from_orddict(Suvs)}.
 
 stretch_setup(Fs, We0, OVs) ->
     Be = wings_face:outer_edges(Fs, We0),

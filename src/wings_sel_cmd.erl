@@ -646,7 +646,7 @@ similar(#st{selmode=face}=St) ->
       end, face, St);
 similar(#st{selmode=body}=St) ->
     Template0 = wings_sel:fold(fun(_, #we{vp=Vtab,es=Etab,fs=Ftab}, Acc) ->
-				       [{gb_trees:size(Vtab),
+				       [{wings_util:array_entries(Vtab),
 					 wings_util:array_entries(Etab),
 					 gb_trees:size(Ftab)}|Acc]
 			       end, [], St),
@@ -654,7 +654,9 @@ similar(#st{selmode=body}=St) ->
     wings_sel:make(fun(_, We) -> match_body(Template, We) end, body, St).
 
 match_body(Template, #we{vp=Vtab,es=Etab,fs=Ftab}) ->
-    Sizes = {gb_trees:size(Vtab),wings_util:array_entries(Etab),gb_trees:size(Ftab)},
+    Sizes = {wings_util:array_entries(Vtab),
+	     wings_util:array_entries(Etab),
+	     gb_trees:size(Ftab)},
     match_body_1(Template, Sizes).
 
 match_body_1([Sizes|_], Sizes) -> true;
@@ -684,7 +686,7 @@ make_face_template(Face, #we{vp=Vtab}=We) ->
     {length(Vs),DotSum,SqSum}.
 
 face_dots_and_sqlens(Vs, Vtab) ->
-    Vpos = [gb_trees:get(P, Vtab) || P <- Vs],
+    Vpos = [array:get(P, Vtab) || P <- Vs],
     face_dots_and_sqlens_1(Vpos).
 
 face_dots_and_sqlens_1([Va,Vb|_]=Vpos) ->
@@ -703,8 +705,8 @@ face_dots_and_sqlens_2(_D1, _Other, _More, Dot, Sq) -> {Dot,Sq}.
 make_edge_template(Edge, #we{vp=Vtab,es=Etab}=We) ->
     #edge{vs=Va,ve=Vb,ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} =
 	array:get(Edge, Etab),
-    VaPos = gb_trees:get(Va, Vtab),
-    VbPos = gb_trees:get(Vb, Vtab),
+    VaPos = array:get(Va, Vtab),
+    VbPos = array:get(Vb, Vtab),
     Vec = e3d_vec:sub(VaPos, VbPos),
     DotSum = edge_dot(LP, Vb, VbPos, Vec, We) +
 	edge_dot(RS, Vb, VbPos, Vec, We) +
@@ -719,7 +721,7 @@ edge_dot(Edge, V, Pos, Vec, #we{es=Etab}=We) ->
     abs(e3d_vec:dot(ThisVec, Vec)).
 
 make_vertex_template(V, #we{vp=Vtab}=We) ->
-    Center = gb_trees:get(V, Vtab),
+    Center = array:get(V, Vtab),
     Vecs = wings_vertex:fold(
 	     fun(_, _, Rec, Acc0) ->
 		     Pos = wings_vertex:other_pos(V, Rec, Vtab),
@@ -770,8 +772,8 @@ short_edges([Tolerance], St0) ->
 
 short_edge(Tolerance, Edge, #we{es=Etab,vp=Vtab}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-    VaPos = gb_trees:get(Va, Vtab),
-    VbPos = gb_trees:get(Vb, Vtab),
+    VaPos = array:get(Va, Vtab),
+    VbPos = array:get(Vb, Vtab),
     abs(e3d_vec:dist(VaPos, VbPos)) < Tolerance.
 
 %%
@@ -882,7 +884,7 @@ select_lights_1([#we{id=Id}|Shs], body) ->
     [{Id,gb_sets:singleton(0)}|select_lights_1(Shs, body)];
 select_lights_1([#we{id=Id,vp=Vtab,es=Etab,fs=Ftab}|Shs], Mode) ->
     Sel = case Mode of
-	      vertex -> gb_trees:keys(Vtab);
+	      vertex -> wings_util:array_keys(Vtab);
 	      edge -> wings_util:array_keys(Etab);
 	      face -> gb_trees:keys(Ftab)
 	  end,
@@ -1293,7 +1295,7 @@ astar_relax_all(U, ONs, Gcosts, Open, PrevNodes, Pb) ->
 
 is_vert_in_path(PathVs, Vert, We) ->
     #we{vp=Vtab} = We,
-    Vpos = gb_trees:get(Vert, Vtab),
+    Vpos = array:get(Vert, Vtab),
     lists:member(Vpos, PathVs).
 
 get_path(none, _) -> [];

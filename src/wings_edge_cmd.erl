@@ -258,8 +258,8 @@ cut_pick_error() ->
 
 cut_pick_make_tvs(Edge, #we{id=Id,es=Etab,vp=Vtab,next_id=NewV}=We) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-    Start = gb_trees:get(Va, Vtab),
-    End = gb_trees:get(Vb, Vtab),
+    Start = array:get(Va, Vtab),
+    End = array:get(Vb, Vtab),
     Dir = e3d_vec:sub(End, Start),
     Char = {7,7,3,3,7,0,
 	    <<2#01111100,
@@ -545,9 +545,9 @@ slide_gather_info([Edge|Es],We=#we{es=Etab,vp=Vtab},Acc) ->
     B2 = other(V2, array:get(LP, Etab)),
     N1 = wings_face:normal(LF,We), N2 = wings_face:normal(RF,We),
     N = norm(average(N2,N1)),
-    V1pos = gb_trees:get(V1, Vtab), V2pos = gb_trees:get(V2, Vtab),
-    A1pos = gb_trees:get(A1, Vtab), A2pos = gb_trees:get(A2, Vtab),
-    B1pos = gb_trees:get(B1, Vtab), B2pos = gb_trees:get(B2, Vtab),
+    V1pos = array:get(V1, Vtab), V2pos = array:get(V2, Vtab),
+    A1pos = array:get(A1, Vtab), A2pos = array:get(A2, Vtab),
+    B1pos = array:get(B1, Vtab), B2pos = array:get(B2, Vtab),
     E1v1  = sub(A1pos,V1pos), E2v1 = sub(B1pos,V1pos),
     E1v2  = sub(A2pos,V2pos), E2v2 = sub(B2pos,V2pos),
     NE1v1 = norm(E1v1), NE2v1 = norm(E2v1),

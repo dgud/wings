@@ -39,4 +39,11 @@
 -endif.
 
 %% auv_placement:group_edge_loops(Faces, We) delivers a list of these
--record(be,{vs,ve,edge,face,cut,dist}).
+-record(be,
+	{vs,
+	 ve,
+	 edge,
+	 face,
+	 cut,
+	 dist
+	}).

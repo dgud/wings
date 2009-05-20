@@ -394,16 +394,18 @@ edges_f32(Edges, #we{es=Etab,vp=Vtab}) ->
     edges_f32(Edges,Etab,Vtab,<<>>).
 edges_f32([Edge|Edges],Etab,Vtab,Bin0) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-    {X1,Y1,Z1} = gb_trees:get(Va,Vtab),
-    {X2,Y2,Z2} = gb_trees:get(Vb,Vtab),
+    {X1,Y1,Z1} = array:get(Va, Vtab),
+    {X2,Y2,Z2} = array:get(Vb, Vtab),
     Bin = <<Bin0/binary,X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>,
     edges_f32(Edges, Etab, Vtab, Bin);
 edges_f32([],_,_,Bin) ->
     Bin.
 
-vertices_f32(List) when is_list(List) ->
-    << <<X:?F32,Y:?F32,Z:?F32>> || {X,Y,Z} <- List >>.
-
+vertices_f32([{_,{_,_,_}}|_]=List) ->
+    << <<X:?F32,Y:?F32,Z:?F32>> || {_,{X,Y,Z}} <- List >>;
+vertices_f32([{_,_,_}|_]=List) ->
+    << <<X:?F32,Y:?F32,Z:?F32>> || {X,Y,Z} <- List >>;
+vertices_f32([]) -> <<>>.
 
 drawVertices(_Type, <<>>) -> 
     ok;
@@ -429,11 +431,12 @@ force_flat(_, _) -> none.
 
 visible_vertices(#we{vp=Vtab0}=We) ->
     case wings_we:any_hidden(We) of
-	false -> gb_trees:values(Vtab0);
+	false ->
+	    array:sparse_to_list(Vtab0);
 	true ->
 	    Vis0 = wings_we:visible_vs(We),
 	    Vis = sofs:from_external(Vis0, [vertex]),
-	    Vtab = sofs:from_external(gb_trees:to_list(Vtab0),
+	    Vtab = sofs:from_external(array:sparse_to_list(Vtab0),
 				      [{vertex,position}]),
 	    sofs:to_external(sofs:image(Vtab, Vis))
     end.
@@ -474,16 +477,16 @@ update_sel(#dlo{sel=none,src_sel={edge,Edges}}=D) ->
 update_sel(#dlo{sel=none,src_sel={vertex,Vs}}=D) ->
     #dlo{src_we=#we{vp=Vtab0}} = D,
     SelDlist = gl:genLists(1),
-    case gb_trees:size(Vtab0) =:= gb_sets:size(Vs) of
+    Vtab1 = array:sparse_to_orddict(Vtab0),
+    case length(Vtab1) =:= gb_sets:size(Vs) of
 	true ->
 	    gl:newList(SelDlist, ?GL_COMPILE),
 	    gl:enableClientState(?GL_VERTEX_ARRAY),
-	    drawVertices(?GL_POINTS, vertices_f32(gb_trees:values(Vtab0))),
+	    drawVertices(?GL_POINTS, vertices_f32(Vtab1)),
 	    gl:disableClientState(?GL_VERTEX_ARRAY),
 	    gl:endList(),
 	    D#dlo{sel=SelDlist};
 	false ->
-	    Vtab1 = gb_trees:to_list(Vtab0),
 	    Vtab = sofs:from_external(Vtab1, [{vertex,data}]),
 	    R = sofs:from_external(gb_sets:to_list(Vs), [vertex]),
 	    Sel = sofs:to_external(sofs:image(Vtab, R)),
@@ -629,7 +632,7 @@ make_static_edges_2([], Acc) ->
     make_edge_dl(Acc).
 
 insert_vtx_data([V|Vs], Vtab, Acc) ->
-    insert_vtx_data(Vs, Vtab, [{V,gb_trees:get(V, Vtab)}|Acc]);
+    insert_vtx_data(Vs, Vtab, [{V,array:get(V, Vtab)}|Acc]);
 insert_vtx_data([], _, Acc) -> reverse(Acc).
 
 split_vs_dlist(Vs, StaticVs, {vertex,SelVs0}, #we{vp=Vtab}=We) ->
@@ -645,7 +648,8 @@ split_vs_dlist(Vs, StaticVs, {vertex,SelVs0}, #we{vp=Vtab}=We) ->
 	    UnselDyn = sofs:to_external(UnselDyn0),
 	    UnselDlist = gl:genLists(1),
 	    gl:newList(UnselDlist, ?GL_COMPILE),
-	    List0 = sofs:from_external(gb_trees:to_list(Vtab), [{vertex,info}]),
+	    List0 = sofs:from_external(array:sparse_to_orddict(Vtab),
+				       [{vertex,info}]),
 	    List1 = sofs:drestriction(List0, DynVs),
 	    List2 = sofs:to_external(List1),
 	    List = wings_we:visible_vs(List2, We),
@@ -669,7 +673,7 @@ update_dynamic(#dlo{src_we=We}=D, Vtab) when ?IS_LIGHT(We) ->
     wings_light:update_dynamic(D, Vtab);
 update_dynamic(#dlo{src_we=We0,split=#split{static_vs=StaticVs}}=D0, Vtab0) ->
     Vtab1 = keysort(1, StaticVs++Vtab0),
-    Vtab = gb_trees:from_orddict(Vtab1),
+    Vtab = array:from_orddict(Vtab1),
     We = We0#we{vp=Vtab},
     D1 = D0#dlo{src_we=We},
     D2 = changed_we(D0, D1),
@@ -693,7 +697,7 @@ dynamic_vs(#dlo{src_we=#we{vp=Vtab},vs=[Static|_],
     UnselDlist = gl:genLists(1),
     gl:newList(UnselDlist, ?GL_COMPILE),
     DynVsBin = foldl(fun(V, Bin) ->
-			     {X1,Y1,Z1} = gb_trees:get(V, Vtab),
+			     {X1,Y1,Z1} = array:get(V, Vtab),
 			     <<Bin/binary, X1:?F32,Y1:?F32,Z1:?F32>>
 		      end, <<>>, DynVs),
     gl:enableClientState(?GL_VERTEX_ARRAY),
@@ -718,23 +722,7 @@ abort_split(D) -> D.
 join(#dlo{src_we=#we{vp=Vtab0},ns=Ns1,split=#split{orig_we=We0,orig_ns=Ns0}}=D) ->
     #we{vp=OldVtab} = We0,
 
-    %% Heuristic for break-even. (Note that we don't know the exact number
-    %% of vertices that will be updated.)
-    Break = round(16*math:log(gb_trees:size(OldVtab)+1)/math:log(2)+0.5),
-    Vtab = case gb_trees:size(Vtab0) of
-	       Sz when Sz =< Break ->
-		   %% Update the gb_tree to allow sharing with the undo list.
-		   Vt = join_update(Vtab0, OldVtab),
-%  		   io:format("cmp: ~p% \n", [round(100*cmp(Vt, OldVtab)/
-%  						   gb_trees:size(OldVtab))]),
-		   Vt;
-	       _Sz ->
-		   %% Too much updated - faster to rebuild the gb_tree.
-		   %% (There would not have been much sharing anyway.)
-		   join_rebuild(Vtab0, OldVtab)
-	   end,
-%     io:format("~p ~p\n", [erts_debug:size([OldVtab,Vtab]),
-% 			   erts_debug:flat_size([OldVtab,Vtab])]),
+    Vtab = join_update(Vtab0, OldVtab),
     We = We0#we{vp=Vtab},
     Ns = join_ns(We, Ns1, Ns0),
     D#dlo{vs=none,drag=none,sel=none,split=none,src_we=We,ns=Ns}.
@@ -762,31 +750,18 @@ join_ns_1([], Fs, _, Acc) ->
     gb_trees:from_orddict(reverse(Acc, Fs)).
 
 join_update(New, Old) ->
-    join_update(gb_trees:to_list(New), gb_trees:to_list(Old), Old).
+    join_update(array:sparse_to_orddict(New), array:sparse_to_orddict(Old), Old).
 
 join_update([Same|New], [Same|Old], Acc) ->
     join_update(New, Old, Acc);
 join_update([{V,P0}|New], [{V,OldP}|Old], Acc) ->
     P = tricky_share(P0, OldP),
-    join_update(New, Old, gb_trees:update(V, P, Acc));
+    join_update(New, Old, array:set(V, P, Acc));
 join_update(New, [_|Old], Acc) ->
     join_update(New, Old, Acc);
 join_update([], _, Acc) -> Acc.
 
-join_rebuild(New, Old) ->
-    join_rebuild(gb_trees:to_list(New), gb_trees:to_list(Old), []).
-
-join_rebuild([N|New], [O|Old], Acc) when N =:= O ->
-    join_rebuild(New, Old, [O|Acc]);
-join_rebuild([{V,P0}|New], [{V,OldP}|Old], Acc) ->
-    P = tricky_share(P0, OldP),
-    join_rebuild(New, Old, [{V,P}|Acc]);
-join_rebuild(New, [O|Old], Acc) ->
-    join_rebuild(New, Old, [O|Acc]);
-join_rebuild([], Old, Acc) ->
-    gb_trees:from_orddict(reverse(Acc, Old)).
-
-%% Too obvious to comment.
+%% Too obvious to comment. :-)
 tricky_share({X,Y,Z}=New, {OldX,OldY,OldZ})
   when X =/= OldX, Y =/= OldY, Z =/= OldZ -> New;
 tricky_share({X,Y,Z}, {X,Y,_}=Old) ->
@@ -801,18 +776,6 @@ tricky_share({X,Y,Z}, {_,Y,_}=Old) ->
     {X,element(2, Old),Z};
 tricky_share({X,Y,Z}, {_,_,Z}=Old) ->
     {X,Y,element(3, Old)}.
-
-% cmp({S,New}, {S,Old}) ->
-%     cmp(New, Old, 0).
-
-% cmp({_,_,NewSmaller,NewBigger}=New, {_,_,OldSmaller,OldBigger}=Old, N0) ->
-%     N1 = case erts_debug:same(New, Old) of
-% 	     false -> N0;
-% 	     true -> N0+1
-% 	 end,
-%     N = cmp(NewSmaller, OldSmaller, N1),
-%     cmp(NewBigger, OldBigger, N);
-% cmp(nil, nil, N) -> N.
 
 %%%
 %%% Drawing routines for workmode.
@@ -1013,7 +976,7 @@ make_normals_dlist(D) -> D.
 make_normals_dlist_1(vertex, Vs, #we{vp=Vtab}=We) ->
     Length = wings_pref:get_value(normal_vector_size),
     foldl(fun(V, Bin) ->
-		  {X1,Y1,Z1} = Pos = gb_trees:get(V, Vtab),
+		  {X1,Y1,Z1} = Pos = array:get(V, Vtab),
 		  N = wings_vertex:normal(V, We),
 		  {X2,Y2,Z2} = e3d_vec:add_prod(Pos, N, Length),
 		  <<Bin/binary, X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>
@@ -1025,8 +988,8 @@ make_normals_dlist_1(edge, Edges, #we{es=Etab,vp=Vtab}=We) ->
     Et = sofs:to_external(Et1),
     Length = wings_pref:get_value(normal_vector_size),
     foldl(fun({_,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}, Bin) ->
-		  PosA = gb_trees:get(Va, Vtab),
-		  PosB = gb_trees:get(Vb, Vtab),
+		  PosA = array:get(Va, Vtab),
+		  PosB = array:get(Vb, Vtab),
 		  {X1,Y1,Z1} = Mid = e3d_vec:average([PosA,PosB]),
 		  N = e3d_vec:average([wings_face:normal(Lf, We),
 				       wings_face:normal(Rf, We)]),

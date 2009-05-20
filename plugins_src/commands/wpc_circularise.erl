@@ -321,8 +321,8 @@ arc_setup(State,Plane0,[VsList|Loops],#we{id=Id,vp=Vtab}=We,Acc) ->
     NumVs = length(DegVertList) + 1,
     [StartVs|_] = Vs,
     EndVs = lists:last(Vs),
-    SPos = gb_trees:get(StartVs, Vtab),
-    EPos = gb_trees:get(EndVs, Vtab),
+    SPos = array:get(StartVs, Vtab),
+    EPos = array:get(EndVs, Vtab),
     Hinge = e3d_vec:average(SPos, EPos),
     Chord = e3d_vec:sub(Hinge, SPos),
     Cross = e3d_vec:norm(e3d_vec:cross(Plane,Chord)),
@@ -340,8 +340,8 @@ arc_center_setup(Plane,Center,VsList,#we{id=Id,vp=Vtab},St) ->
     NumVs = length(DegVertList) + 1,
     [StartVs|_] = Vs,
     EndVs = lists:last(Vs),
-    SPos = gb_trees:get(StartVs, Vtab),
-    EPos = gb_trees:get(EndVs, Vtab),
+    SPos = array:get(StartVs, Vtab),
+    EPos = array:get(EndVs, Vtab),
     Hinge = e3d_vec:average(SPos, EPos),
     Chord = e3d_vec:sub(Hinge, SPos),
     Cross = e3d_vec:cross(Chord,Plane),
@@ -372,7 +372,7 @@ make_degree_vert_list([_|[]],_,_,Vlist,DegVertList) ->
 make_degree_vert_list([_|Vs], Vtab, 0, Vlist, DegVertList) ->
     make_degree_vert_list(Vs, Vtab, 1, Vlist, DegVertList);
 make_degree_vert_list([V|Vs], Vtab, Index, Vlist, DegVertList) ->
-    Vpos = gb_trees:get(V,Vtab),
+    Vpos = array:get(V,Vtab),
     make_degree_vert_list(Vs, Vtab, Index+1, [V|Vlist], [{V,{Vpos, Index}}|DegVertList]).
 
 check_if_partial_and_full_loops_are_mixed([Group|Vs],We) when length(Group) > 1 ->
@@ -485,20 +485,20 @@ circle_plane(Plane,_) -> Plane.
 
 %%%% Return the Pos and Index of the stable point chosen by the user
 find_stable_point([Va|_], {Va,Vb}, Vtab, Index) ->
-    VposA = gb_trees:get(Va,Vtab),
-    VposB = gb_trees:get(Vb,Vtab),
+    VposA = array:get(Va,Vtab),
+    VposB = array:get(Vb,Vtab),
     Pos = e3d_vec:average(VposA,VposB),
     {Pos,Index+1.5};
 find_stable_point([Vb|_], {Va,Vb}, Vtab, Index) ->
-    VposA = gb_trees:get(Va,Vtab),
-    VposB = gb_trees:get(Vb,Vtab),
+    VposA = array:get(Va,Vtab),
+    VposB = array:get(Vb,Vtab),
     Pos = e3d_vec:average(VposA,VposB),
     {Pos,Index+1.5};
 find_stable_point([_|Vs], {Va,Vb}, Vtab, Index) ->
     find_stable_point(Vs, {Va,Vb}, Vtab, Index+1);
 
 find_stable_point([RayV|_], RayV, Vtab, Index) ->
-    Pos = gb_trees:get(RayV,Vtab),
+    Pos = array:get(RayV,Vtab),
     {Pos,Index+1};
 find_stable_point([_|Vs], RayV, Vtab, Index) ->
     find_stable_point(Vs, RayV, Vtab, Index+1).
@@ -516,13 +516,13 @@ get_radius([],Center,_,_,RayLen0,NearestVert,Pos,LastPos,FirstPos,AtIndex,Index)
     end;
 
 get_radius([Vert|Vs], Center, Plane, Vtab, 0.0, 0.0, _Pos, _LastPos, _FirstPos, AtIndex, _Index) ->
-    Pos = gb_trees:get(Vert,Vtab),
+    Pos = array:get(Vert,Vtab),
     RayPos = intersect_vec_plane(Pos,Center,Plane),
     Dist = len_sqrt(e3d_vec:sub(RayPos,Center)),
     get_radius(Vs, Center, Plane, Vtab, Dist, Dist, RayPos, Pos, Pos, AtIndex+1.0, AtIndex+1.0);
 
 get_radius([Vert|Vs], Center, Plane, Vtab, RayLen0, NearestVert0, RayPos0, LastPos0, FirstPos, AtIndex0, Index0) ->
-    Pos = gb_trees:get(Vert,Vtab),
+    Pos = array:get(Vert,Vtab),
     LastPos = intersect_vec_plane(Pos,Center,Plane),
     HalfPos = e3d_vec:average(LastPos,LastPos0),
     FullDist = len_sqrt(e3d_vec:sub(LastPos,Center)),
@@ -574,7 +574,7 @@ degrees_from_static_ray([],_,_,_,_,DegList) ->
     DegList;
 degrees_from_static_ray([Vert|Vs],Vtab,Deg,Index,At,DegList) ->
     Degrees = Deg * (At-Index),
-    Vpos = gb_trees:get(Vert,Vtab),
+    Vpos = array:get(Vert,Vtab),
     degrees_from_static_ray(Vs, Vtab, Deg, Index, At+1.0, [{Vert,{Vpos, Degrees}}|DegList]).
 
 circularise_units({_,_,relative}) ->

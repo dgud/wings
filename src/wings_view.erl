@@ -1008,7 +1008,7 @@ aim(St) ->
 
 frame(#st{sel=[],shapes=Shs}) ->
     BB = foldl(fun(#we{perm=P,vp=Vtab}=We, BB) when ?IS_VISIBLE(P) ->
-		       case gb_trees:is_empty(Vtab) of
+		       case wings_util:array_is_empty(Vtab) of
 			   false -> wings_vertex:bounding_box(We, BB);
 			   true -> BB
 		       end;

@@ -101,7 +101,7 @@ scale_vertices(Vec, center, Magnet, St) ->
 				 [{gb_sets:to_list(Vs),We}|Acc]
 			 end, [], St),
     VsPs = foldl(fun({Vs,#we{vp=Vtab0}}, Acc) ->
-			 Vtab1 = sofs:from_external(gb_trees:to_list(Vtab0),
+			 Vtab1 = sofs:from_external(array:sparse_to_orddict(Vtab0),
 						    [{vertex,pos}]),
 			 Restr = sofs:set(Vs, [vertex]),
 			 Vtab2 = sofs:restriction(Vtab1, Restr),
@@ -268,7 +268,7 @@ make_matrices(Vec, Center) ->
 
 mul(Vs, Matrix, #we{vp=Vtab}) ->
     foldl(fun(V, A) ->
-		  Pos0 = gb_trees:get(V, Vtab),
+		  Pos0 = array:get(V, Vtab),
 		  Pos = e3d_mat:mul_point(Matrix, Pos0),
 		  [{V,Pos}|A]
 	  end, [], Vs).

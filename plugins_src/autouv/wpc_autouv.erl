@@ -343,7 +343,7 @@ update_uvs_1([#we{vp=Vpos0,name=#ch{vmap=Vmap}}=ChartWe|Cs],
     VFace1 = sofs:relation(VFace0),
     VFace2 = sofs:relation_to_family(VFace1),
     VFace = sofs:to_external(VFace2),
-    Vpos = gb_trees:to_list(Vpos0),
+    Vpos = array:sparse_to_orddict(Vpos0),
     Etab = update_uvs_2(Vpos, VFace, Vmap, We, Etab0),
     update_uvs_1(Cs, We, Etab);
 update_uvs_1([], We, Etab) -> We#we{es=Etab}.
@@ -1107,7 +1107,7 @@ vertex_tighten(Vs0, We, A) ->
 
 body_tighten(#we{vp=Vtab}=We, A) ->
     Vis = gb_sets:from_ordset(wings_we:visible(We)),
-    Vs = [V || V <- gb_trees:keys(Vtab), not_bordering(V, Vis, We)],
+    Vs = [V || V <- wings_util:array_keys(Vtab), not_bordering(V, Vis, We)],
     wings_vertex_cmd:tighten(Vs, We, A).
 
 tighten(Magnet, St) ->
@@ -1138,17 +1138,17 @@ make_equal(Op,[Link0|R],We = #we{vp=Vtab}) ->
 		       [{_,_,A},{_,A,_}|_] -> reverse(Link0)
 		   end,
 	    D = foldl(fun({_E,Ve,Vs}, {X,Y,_}) ->
-			      {Xd,Yd,_} = e3d_vec:sub(gb_trees:get(Ve,Vtab),
-						      gb_trees:get(Vs,Vtab)),
+			      {Xd,Yd,_} = e3d_vec:sub(array:get(Ve,Vtab),
+						      array:get(Vs,Vtab)),
 			      {X+(Xd),Y+(Yd),0.0}
 		      end,
 		      {0.0,0.0,0.0},Link),
 	    Dist = element(E,D)/No,
 	    Vt = foldl(fun({_E,Ve,Vs}, Vt) ->
-			       Pos1 = gb_trees:get(Vs,Vt),
-			       Pos2 = gb_trees:get(Ve,Vt),
+			       Pos1 = array:get(Vs,Vt),
+			       Pos2 = array:get(Ve,Vt),
 			       Pos = setelement(E,Pos2,element(E,Pos1) + Dist),
-			       gb_trees:update(Ve,Pos,Vt)
+			       array:set(Ve,Pos,Vt)
 		       end,
 		       Vtab,Link),	    
 	    make_equal(Op,R,We#we{vp=Vt})
@@ -1187,9 +1187,9 @@ hide_charts(#st{shapes=Shs0,bb=UVs}=St) ->
 
 delete_charts(#st{shapes=Shs0}=St0) ->
     St1 = wpa:sel_map(fun(_, #we{vp=Vp0}=We) ->
-			      Vp1 = gb_trees:to_list(Vp0),
+			      Vp1 = array:sparse_to_orddict(Vp0),
 			      Vp = [{V,none} || {V,_} <- Vp1],
-			      We#we{vp=gb_trees:from_orddict(Vp)}
+			      We#we{vp=array:from_orddict(Vp)}
 		      end, St0),
     St = update_selected_uvcoords(St1),
     Shs = wpa:sel_fold(fun(_, #we{id=Id}, Shs) ->
@@ -1227,8 +1227,8 @@ stitch_charts([ChartStitches|Other],Moved,St0=#st{shapes=Sh0}) ->
     {Id1,Id2,{Vs1,Ve1,Vs2,Ve2}} = find_longest_dist(ChartStitches, St0),
     We1_0 = #we{vp=Vpos1}=gb_trees:get(Id1,Sh0),
     We2_0 = #we{vp=Vpos2}=gb_trees:get(Id2,Sh0),
-    Vs1P = gb_trees:get(Vs1,Vpos1),Ve1P = gb_trees:get(Ve1,Vpos1),
-    Vs2P = gb_trees:get(Vs2,Vpos2),Ve2P = gb_trees:get(Ve2,Vpos2),
+    Vs1P = array:get(Vs1,Vpos1),Ve1P = array:get(Ve1,Vpos1),
+    Vs2P = array:get(Vs2,Vpos2),Ve2P = array:get(Ve2,Vpos2),
     C1 = e3d_vec:average(Vs1P,Ve1P),
     C2 = e3d_vec:average(Vs2P,Ve2P),
     Sh = case {gb_sets:is_member(Id2,Moved),gb_sets:is_member(Id2,Moved)} of
@@ -1281,16 +1281,16 @@ find_longest_dist([{_,{Id1,_,{Vs1,Ve1}},{Id2,_,{Vs2,Ve2}}}|Rest],#st{shapes=Sh})
     %% Need to find a vector to use as basis to rotate the other chart to
     %% we grab the longest distance between to verts of chart1
     #we{vp=Vpos} = gb_trees:get(Id1,Sh),
-    Dist = e3d_vec:dist(gb_trees:get(Vs1,Vpos),gb_trees:get(Ve1,Vpos)),
+    Dist = e3d_vec:dist(array:get(Vs1,Vpos),array:get(Ve1,Vpos)),
     {Id1,Id2,find_longest_dist(Rest,Dist,Vs1,Ve1,Vs2,Ve2,Vpos)}.
 
 find_longest_dist([],_Dist,Bs1,Be1,Bs2,Be2,_Vpos) -> {Bs1,Be1,Bs2,Be2};
 find_longest_dist([This|Rest],Dist,Bs1,Be1,Bs2,Be2,Vpos) ->
     {_,{_,_,{Vs1,Ve1}},{_,_,{Vs2,Ve2}}} = This,
-    Dist1 = e3d_vec:dist(gb_trees:get(Vs1,Vpos),gb_trees:get(Be1,Vpos)),
-    Dist2 = e3d_vec:dist(gb_trees:get(Vs1,Vpos),gb_trees:get(Bs1,Vpos)),
-    Dist3 = e3d_vec:dist(gb_trees:get(Ve1,Vpos),gb_trees:get(Be1,Vpos)),
-    Dist4 = e3d_vec:dist(gb_trees:get(Ve1,Vpos),gb_trees:get(Bs1,Vpos)),
+    Dist1 = e3d_vec:dist(array:get(Vs1,Vpos),array:get(Be1,Vpos)),
+    Dist2 = e3d_vec:dist(array:get(Vs1,Vpos),array:get(Bs1,Vpos)),
+    Dist3 = e3d_vec:dist(array:get(Ve1,Vpos),array:get(Be1,Vpos)),
+    Dist4 = e3d_vec:dist(array:get(Ve1,Vpos),array:get(Bs1,Vpos)),
     if (Dist1>Dist),(Dist1>Dist2),(Dist1>Dist3),(Dist1>Dist4) ->
 	    find_longest_dist(Rest,Dist1,Vs1,Be1,Vs2,Be2,Vpos);
        (Dist2>Dist),(Dist2>Dist3),(Dist2>Dist4) ->
@@ -1316,16 +1316,16 @@ cluster_chart_moves2(_Id1,_Id2,R,Same,Other) ->
     {Same,Other++R}.
 
 average_pos([{V1,V2}|R], Vpos0) ->
-    Pos = e3d_vec:average(gb_trees:get(V1,Vpos0),gb_trees:get(V2,Vpos0)),
-    Vpos1 = gb_trees:update(V1,Pos,Vpos0),
-    Vpos  = gb_trees:update(V2,Pos,Vpos1),
+    Pos = e3d_vec:average(array:get(V1,Vpos0),array:get(V2,Vpos0)),
+    Vpos1 = array:set(V1,Pos,Vpos0),
+    Vpos  = array:set(V2,Pos,Vpos1),
     average_pos(R, Vpos);
 average_pos([],Vpos) -> Vpos.
 
 average_pos([{V1,V2}|R], Vpos1,Vpos2) ->
-    Pos = e3d_vec:average(gb_trees:get(V1,Vpos1),gb_trees:get(V2,Vpos2)),
-    Vp1 = gb_trees:update(V1,Pos,Vpos1),
-    Vp2 = gb_trees:update(V2,Pos,Vpos2),
+    Pos = e3d_vec:average(array:get(V1,Vpos1),array:get(V2,Vpos2)),
+    Vp1 = array:set(V1,Pos,Vpos1),
+    Vp2 = array:set(V2,Pos,Vpos2),
     average_pos(R, Vp1,Vp2);
 average_pos([],Vpos1,Vpos2) -> {Vpos1,Vpos2}.
 
@@ -1353,7 +1353,7 @@ displace_edges([{_,{Id,Edge1,{Vs1,Ve1}},{Id,_,{Vs2,Ve2}}}|Eds], Sh) ->
     Same = [{Vs1,Vs2},{Ve1,Ve2}],
     Vs = [{V1,V2} || {V1,V2} <- Same,
 		     V1 /= V2,
-		     gb_trees:get(V1,Vpos0) == gb_trees:get(V2,Vpos0)],
+		     array:get(V1,Vpos0) == array:get(V2,Vpos0)],
     case Vs of
 	[] ->  %% Already displaced
 	    displace_edges(Eds,Sh);
@@ -1362,10 +1362,10 @@ displace_edges([{_,{Id,Edge1,{Vs1,Ve1}},{Id,_,{Vs2,Ve2}}}|Eds], Sh) ->
 	    [Move1,Move2] = displace_dirs(0.005,Edge1,We),
 	    %% Make the move
 	    Vpos = foldl(fun({V1,V2},VpIn) ->
-				 Pos1 = e3d_vec:add(Move1,gb_trees:get(V1,Vpos0)),
-				 Vpos1 = gb_trees:update(V1,Pos1,VpIn),
-				 Pos2 = e3d_vec:add(Move2,gb_trees:get(V2,Vpos0)),
-				 gb_trees:update(V2,Pos2,Vpos1)
+				 Pos1 = e3d_vec:add(Move1,array:get(V1,Vpos0)),
+				 Vpos1 = array:set(V1,Pos1,VpIn),
+				 Pos2 = e3d_vec:add(Move2,array:get(V2,Vpos0)),
+				 array:set(V2,Pos2,Vpos1)
 			 end, Vpos0, Vs),	    
 	    displace_edges(Eds,gb_trees:update(Id, We#we{vp=Vpos},Sh))
     end;
@@ -1388,16 +1388,16 @@ displace_charts([{_,{Id1,_,_},{Id2,_,_}}|Eds], Moved, Sh) ->
 		       Disp -> Disp
 		   end,
 	    Vpos= [{V,e3d_vec:add(Pos,Move)} || 
-		      {V,Pos} <- gb_trees:to_list(Vpos0)],
-	    We = We0#we{vp=gb_trees:from_orddict(Vpos)},
+		      {V,Pos} <- array:sparse_to_orddict(Vpos0)],
+	    We = We0#we{vp=array:from_orddict(Vpos)},
 	    displace_charts(Eds,gb_sets:add(Id1,Moved),
 			    gb_trees:update(Id1,We,Sh))
     end.
 
 displace_dirs(Dist,Edge1,We = #we{es=Etab,vp=Vpos}) ->
     #edge{vs=Vs1,ve=Ve1,lf=LF,rf=RF} = array:get(Edge1,Etab),
-    Vp1 = gb_trees:get(Vs1,Vpos),
-    Vp2 = gb_trees:get(Ve1,Vpos),
+    Vp1 = array:get(Vs1,Vpos),
+    Vp2 = array:get(Ve1,Vpos),
     {Dx,Dy,_} = e3d_vec:norm(e3d_vec:sub(Vp1,Vp2)),
     Dir = {Dy,-Dx,0.0},
     EdgeFace1 = if LF < 0 -> RF; true -> LF end,
@@ -1527,7 +1527,7 @@ update_uv_tab_1([#we{id=Id,name=#ch{vmap=Vmap}}=We0|Cs], FvUvMap, Acc) ->
 	    %% all) in the chart. Throw away this chart.
 	    update_uv_tab_1(Cs, FvUvMap, Acc);
 	UVs1 ->
-	    UVs = gb_trees:from_orddict(UVs1),
+	    UVs = array:from_orddict(UVs1),
 	    We = We0#we{vp=UVs},
 	    update_uv_tab_1(Cs, FvUvMap, [{Id,We}|Acc])
     end;
@@ -1601,7 +1601,7 @@ face_sel_to_face([{K,We}|Cs], Faces, Sel) ->
 face_sel_to_face([], _, Sel) -> Sel.
 
 vertex_sel_to_vertex([{K,#we{vp=Vtab}=We}|Cs], Vs, Sel) ->
-    ChartVs = auv2geom_vs(gb_trees:keys(Vtab), We),
+    ChartVs = auv2geom_vs(wings_util:array_keys(Vtab), We),
     case ordsets:intersection(ChartVs, Vs) of
  	[] ->
 	    vertex_sel_to_vertex(Cs, Vs, Sel);
@@ -1711,13 +1711,13 @@ align_chart(Dir, St = #st{selmode=Mode}) ->
       fun(Sel, We = #we{vp=Vtab,es=Etab}) ->
 	      case gb_sets:to_list(Sel) of
 		  [V1,V2] when Mode == vertex -> 
-		      align_chart(Dir,gb_trees:get(V1,Vtab),
-				  gb_trees:get(V2,Vtab),
+		      align_chart(Dir,array:get(V1,Vtab),
+				  array:get(V2,Vtab),
 				  We);
 		  [E] when Mode == edge -> 
 		      #edge{vs=V1,ve=V2} = array:get(E, Etab),
-		      align_chart(Dir,gb_trees:get(V1,Vtab),
-				  gb_trees:get(V2,Vtab),
+		      align_chart(Dir,array:get(V1,Vtab),
+				  array:get(V2,Vtab),
 				  We);
 		  _ -> align_error()
 	      end
@@ -1816,7 +1816,7 @@ reunfold(Method,#st{sel=Sel,selmode=vertex}=St0) ->
 		Msg = ?__(4,"chart")++" " ++ integer_to_list(I+1),
 		wings_pb:update(I/N, Msg),
 		Pinned = [begin
-			      {S,T,_} = gb_trees:get(V, Vtab),
+			      {S,T,_} = array:get(V, Vtab),
 			      {V,{S,T}}
 			  end || V <- gb_sets:to_list(Vs)],
 		{remap(Method, Pinned, Vs, We, St0),I+1}
@@ -1842,11 +1842,10 @@ remap(stretch_opt, _, _, We, St) ->
 remap(proj_lsqcm, _, Sel, We0, St = #st{selmode=face}) ->
     Vs3d = orig_pos(We0, St),
     try Vs0 = auv_mapping:projectFromChartNormal(gb_sets:to_list(Sel),We0#we{vp=Vs3d}),
-	Vtab = gb_trees:from_orddict(Vs0),
-	%%    We1 = #we{vs=Vtab} = update_and_scale_chart(Vs0,We0),
+	Vtab = array:from_orddict(Vs0),
 	SelVs = wings_vertex:from_faces(Sel,We0),
 	Pinned = [begin
-		      {S,T,_} = gb_trees:get(V, Vtab),
+		      {S,T,_} = array:get(V, Vtab),
 		      {V,{S,T}}
 		  end || V <- SelVs],
 	remap(lsqcm, Pinned, Sel, We0, St)
@@ -1872,15 +1871,15 @@ orig_pos(We = #we{name=#ch{vmap=Vmap}},St) ->
     Vs3d = map(fun({V0,_Pos}) ->
 		       case gb_trees:lookup(V0, Vmap) of
 			   none -> 
-			       {V0, gb_trees:get(V0, Vs3d0)};
+			       {V0, array:get(V0, Vs3d0)};
 			   {value,V} ->
-			       {V0, gb_trees:get(V, Vs3d0)}
+			       {V0, array:get(V, Vs3d0)}
 		       end 
-	       end, gb_trees:to_list(We#we.vp)),
-    gb_trees:from_orddict(Vs3d).
+	       end, array:sparse_to_orddict(We#we.vp)),
+    array:from_orddict(Vs3d).
 
 update_and_scale_chart(Vs0,We0) ->
-    We1 = We0#we{vp=gb_trees:from_orddict(sort(Vs0))},
+    We1 = We0#we{vp=array:from_orddict(sort(Vs0))},
     Fs = wings_we:visible(We1),
     OldA = auv_mapping:fs_area(Fs,We0),
     NewA = auv_mapping:fs_area(Fs,We1),
@@ -2014,7 +2013,7 @@ auv2geom_vs(Vs, #we{name=#ch{vmap=Vmap}}) ->
     sort([auv_segment:map_vertex(V, Vmap) || V <- Vs]).
 
 geom2auv_vs(Vs, #we{name=#ch{vmap=Vmap},vp=Vtab}) ->
-    geom2auv_vs_1(gb_trees:keys(Vtab), gb_sets:from_list(Vs), Vmap, []).
+    geom2auv_vs_1(wings_util:array_keys(Vtab), gb_sets:from_list(Vs), Vmap, []).
 
 geom2auv_vs_1([V|Vs], VsSet, Vmap, Acc) ->
     case gb_sets:is_member(auv_segment:map_vertex(V, Vmap), VsSet) of

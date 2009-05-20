@@ -337,13 +337,13 @@ mirror_face(Face, #we{fs=Ftab}=OrigWe, #we{next_id=Id}=We0) ->
 mirror_vs(Face, #we{vp=Vtab0}=We) ->
     Normal = wings_face:normal(Face, We),
     Center = wings_face:center(Face, We),
-    Vtab1 = foldl(fun(Vtx, A) ->
-			  mirror_move_vs(Vtx, Normal, Center, A)
-		  end, [], gb_trees:to_list(Vtab0)),
-    Vtab = gb_trees:from_orddict(reverse(Vtab1)),
+    Vtab1 = array:sparse_foldl(fun(V, Pos, A) ->
+				       mirror_move_vs(V, Pos, Normal, Center, A)
+			       end, [], Vtab0),
+    Vtab = array:from_orddict(reverse(Vtab1)),
     We#we{vp=Vtab}.
 
-mirror_move_vs({V,Pos0}, PlaneNormal, Center, A) ->
+mirror_move_vs(V, Pos0, PlaneNormal, Center, A) ->
     ToCenter = e3d_vec:sub(Center, Pos0),
     Dot = e3d_vec:dot(ToCenter, PlaneNormal),
     Pos = wings_util:share(e3d_vec:add_prod(Pos0, PlaneNormal, 2.0*Dot)),
@@ -691,8 +691,8 @@ sum_edge_lens(0, _Ids, _We, Sum) -> Sum;
 sum_edge_lens(N, Ids0, #we{es=Etab,vp=Vtab}=We, Sum) ->
     Edge = wings_we:id(0, Ids0),
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-    VaPos = gb_trees:get(Va, Vtab),
-    VbPos = gb_trees:get(Vb, Vtab),
+    VaPos = array:get(Va, Vtab),
+    VbPos = array:get(Vb, Vtab),
     Dist = e3d_vec:dist(VaPos, VbPos),
     Ids = wings_we:bump_id(Ids0),
     sum_edge_lens(N-1, Ids, We, Sum + Dist).

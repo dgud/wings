@@ -3,7 +3,7 @@
 %%
 %%     This module contains the Align and Center commands.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -142,10 +142,10 @@ filter_coord(radial_z, {X,Y,_}) -> {X,Y,0.0};
 filter_coord(all, All) -> All.
 
 offset(Offset, Vtab0) ->
-    Vtab = foldl(fun({V,Pos}, A) ->
-			 [{V,e3d_vec:add(Pos, Offset)}|A]
-		 end, [], gb_trees:to_list(Vtab0)),
-    gb_trees:from_orddict(reverse(Vtab)).
+    Vtab = array:sparse_foldl(fun(V, Pos, A) ->
+				      [{V,e3d_vec:add(Pos, Offset)}|A]
+			      end, [], Vtab0),
+    array:from_orddict(reverse(Vtab)).
 
 %% @doc Move selected object(s) vertically until it rests on the ground plane
 %% @spec put_on_ground(St::st#) -> St# ?

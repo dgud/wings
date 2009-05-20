@@ -150,7 +150,7 @@ read_vertices(<<NumVertices:16,T/binary>>) ->
     read_vertices(0, NumVertices, T, []).
     
 read_vertices(N, N, T, Acc) ->
-    {gb_trees:from_orddict(reverse(Acc)),T};
+    {array:from_orddict(reverse(Acc)),T};
 read_vertices(V, N,
 	      <<_:16,X:32/float,Y:32/float,Z:32/float,T/binary>>, Acc) ->
     Pos = wings_util:share(X/10.0, Y/10.0, Z/10.0),
@@ -216,7 +216,8 @@ shape(#we{name=Name,perm=Perm}=We0, St, Acc) ->
     #we{vc=Vct,vp=Vtab,es=Etab,fs=Ftab,he=Htab} = We,
     EdgeChunk = write_edges(array:sparse_to_orddict(Etab), Htab, []),
     FaceChunk = write_faces(gb_trees:values(Ftab), []),
-    VertexChunk = write_vertices(gb_trees:values(Vct), gb_trees:values(Vtab), []),
+    VertexChunk = write_vertices(array:sparse_to_list(Vct),
+				 array:sparse_to_list(Vtab), []),
     FillChunk = [0,0,0,0,0,1],
     [[NameChunk,Header,EdgeChunk,FaceChunk,VertexChunk,FillChunk]|Acc].
 

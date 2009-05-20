@@ -121,7 +121,7 @@ get_center_and_radius(Axis0,St) ->
 get_radius(Axis,Center,VList,We,Acc) ->
     Dist = lists:foldl(fun(Vert,A) ->
             #we{vp=Vtab} = We,
-            Pos = gb_trees:get(Vert,Vtab),
+            Pos = array:get(Vert,Vtab),
             CntrOnPlane = intersect_vec_plane(Center,Pos,Axis),
             [abs(e3d_vec:dist(CntrOnPlane,Pos))|A]
             end,[],VList),

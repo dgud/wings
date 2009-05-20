@@ -914,8 +914,8 @@ get_edge([_|R]) -> get_edge(R).
 build_shadow_edge_ext_infinite([V0|_] = Vs, {X,Y,Z}, #we{vp=Vtab}) ->
     gl:'begin'(?GL_TRIANGLE_FAN),
     gl:vertex4f(X,Y,Z,0.0),
-    foreach(fun(V) -> gl:vertex3fv(gb_trees:get(V, Vtab)) end, Vs),
-    gl:vertex3fv(gb_trees:get(V0, Vtab)),
+    foreach(fun(V) -> gl:vertex3fv(array:get(V, Vtab)) end, Vs),
+    gl:vertex3fv(array:get(V0, Vtab)),
     gl:'end'().
 
 build_shadow_edge_ext(Vs0, L, #we{vp=VP}) ->
@@ -923,22 +923,22 @@ build_shadow_edge_ext(Vs0, L, #we{vp=VP}) ->
     gl:'begin'(?GL_QUAD_STRIP),
     build_shadow_edge_ext(Vs, V0, L, VP).
 build_shadow_edge_ext([V|Vs], V0, L, Vtab) ->
-    Vp = gb_trees:get(V, Vtab),
+    Vp = array:get(V, Vtab),
     gl:vertex3fv(Vp),
     {X,Y,Z} = e3d_vec:sub(Vp,L),
     gl:vertex4f(X,Y,Z,0.0),
     build_shadow_edge_ext(Vs,V0,L,Vtab);
 build_shadow_edge_ext([], V, L, Vtab) ->
-    Vp = gb_trees:get(V, Vtab),
+    Vp = array:get(V, Vtab),
     gl:vertex3fv(Vp),
     {X,Y,Z} = e3d_vec:sub(Vp,L),
     gl:vertex4f(X,Y,Z,0.0),
     gl:'end'().
 
 draw_bottom_face([V1,V2,V3|_BUG],LPos,Vtab) ->
-    draw_bottom_face(gb_trees:get(V1,Vtab),LPos),
-    draw_bottom_face(gb_trees:get(V2,Vtab),LPos),
-    draw_bottom_face(gb_trees:get(V3,Vtab),LPos).
+    draw_bottom_face(array:get(V1,Vtab),LPos),
+    draw_bottom_face(array:get(V2,Vtab),LPos),
+    draw_bottom_face(array:get(V3,Vtab),LPos).
 
 draw_bottom_face(V,L) ->
     {X,Y,Z} = e3d_vec:sub(V,L),

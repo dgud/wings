@@ -235,7 +235,7 @@ insert_vtx_data([{Vec,Vs0}|VecVs], Vtab, Acc) ->
 insert_vtx_data([], _Vtab, Acc) -> Acc.
 
 insert_vtx_data_1([V|Vs], Vtab, Acc) ->
-    insert_vtx_data_1(Vs, Vtab, [{V,gb_trees:get(V, Vtab)}|Acc]);
+    insert_vtx_data_1(Vs, Vtab, [{V,array:get(V, Vtab)}|Acc]);
 insert_vtx_data_1([], _Vtab, Acc) -> Acc.
 
 mirror_constrain(Tvs, #we{mirror=none}) -> Tvs;

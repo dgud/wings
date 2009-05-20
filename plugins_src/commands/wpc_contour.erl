@@ -320,12 +320,12 @@ faces_data_0(Faces0,#we{es=Etab,vp=Vtab,fs=Ftab}=We,FaceNorms0,EAcc0,Vs0) ->
 faces_data_1(Edge,Face,Etab,Vtab,EAcc,Vs) ->
     case array:get(Edge,Etab) of
       #edge{vs=Va,ve=Vb,lf=Face,ltpr=NextEdge} ->
-        VposA = gb_trees:get(Va,Vtab),
-        VposB = gb_trees:get(Vb,Vtab),
+        VposA = array:get(Va,Vtab),
+        VposB = array:get(Vb,Vtab),
         faces_data_2(NextEdge,Face,Edge,Etab,Vtab,[VposB,VposA],[Edge|EAcc],[Vb|Vs]);
       #edge{vs=Va,ve=Vb,rf=Face,rtpr=NextEdge} ->
-        VposA = gb_trees:get(Va,Vtab),
-        VposB = gb_trees:get(Vb,Vtab),
+        VposA = array:get(Va,Vtab),
+        VposB = array:get(Vb,Vtab),
         faces_data_2(NextEdge,Face,Edge,Etab,Vtab,[VposA,VposB],[Edge|EAcc],[Va|Vs])
     end.
 
@@ -335,10 +335,10 @@ faces_data_2(LastEdge,Face,LastEdge,_,_,Vp,EAcc,Vs) ->
 faces_data_2(Edge,Face,LastEdge,Etab,Vtab,Vp,EAcc,Vs) ->
     case array:get(Edge,Etab) of
       #edge{ve=V,lf=Face,ltpr=NextEdge} ->
-        Vpos = gb_trees:get(V,Vtab),
+        Vpos = array:get(V,Vtab),
         faces_data_2(NextEdge,Face,LastEdge,Etab,Vtab,[Vpos|Vp],[Edge|EAcc],[V|Vs]);
       #edge{vs=V,rf=Face,rtpr=NextEdge} ->
-        Vpos = gb_trees:get(V,Vtab),
+        Vpos = array:get(V,Vtab),
         faces_data_2(NextEdge,Face,LastEdge,Etab,Vtab,[Vpos|Vp],[Edge|EAcc],[V|Vs])
     end.
 
@@ -370,8 +370,8 @@ loop_vertices_data_0(EdgeSet0,FNtab,#we{es=Etab,vp=Vtab,mirror=M}=We,LNorms,VDat
 
 loop_vertices_data_1(Edge,EdgeSet,FNtab,Etab,Vtab,M,VData,Vs) ->
     #edge{vs=Va,ve=Vb,rf=Rf,rtpr=NextEdge} = array:get(Edge, Etab),
-    VposA = gb_trees:get(Va,Vtab),
-    VposB = gb_trees:get(Vb,Vtab),
+    VposA = array:get(Va,Vtab),
+    VposB = array:get(Vb,Vtab),
     FNorm = gb_trees:get(Rf,FNtab),
     VDir = e3d_vec:sub(VposB,VposA),
     EdgeData = array:get(NextEdge,Etab),
@@ -380,7 +380,7 @@ loop_vertices_data_1(Edge,EdgeSet,FNtab,Etab,Vtab,M,VData,Vs) ->
 
 loop_vertices_data_2(LastE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevFace},
       Vb,VposB,PrevFace,LastE,_,_,Vtab,M,EdgeSet,VDir,EDir0,VNorms,VData0,VPs,Vs0,Links) ->
-    VposA = gb_trees:get(Va,Vtab),
+    VposA = array:get(Va,Vtab),
     Dir = e3d_vec:sub(VposA,VposB),
     VNormal = e3d_vec:norm(e3d_vec:add(VNorms)),
     VData = case M of
@@ -406,7 +406,7 @@ loop_vertices_data_2(LastE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevFace},
 
 loop_vertices_data_2(CurE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevFace,ltpr=NextEdge,rtpr=IfNoFaceEdge},
       Vb,VposB,PrevFace,LastE,FNtab,Etab,Vtab,M,EdgeSet0,VDir,EDir0,VNorms0,VData0,VPs0,Vs0,Links) ->
-    VposA = gb_trees:get(Va,Vtab),
+    VposA = array:get(Va,Vtab),
     Dir = e3d_vec:sub(VposA,VposB),
     case  gb_trees:lookup(Face,FNtab) of
       none ->
@@ -461,7 +461,7 @@ loop_vertices_data_2(CurE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevFace,ltpr=NextEdge,rt
 
 loop_vertices_data_2(_CurE,#edge{vs=Va,ve=Vb,lf=PrevFace,rf=Face,rtpr=NextEdge},
       Va,VposA,PrevFace,LastE,FNtab,Etab,Vtab,M,EdgeSet0,VDir,EDir0,VNorms0,VData0,VPs0,Vs0,Links) ->
-    VposB = gb_trees:get(Vb,Vtab),
+    VposB = array:get(Vb,Vtab),
     Dir = e3d_vec:sub(VposB,VposA),
     FNorm = gb_trees:get(Face,FNtab),
     EdgeData = array:get(NextEdge,Etab),
@@ -492,8 +492,8 @@ offset_loop_data_0(EdgeSet0,Faces,We,FNtab,LNorms,VData0,Vs0) ->
 
 offset_loop_data_1(Edge,EdgeSet,Faces,#we{es=Etab,vp=Vtab}=We,FNtab,VData,Vs) ->
     #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,ltsu=NextLeft,rtsu=NextRight} = array:get(Edge,Etab),
-    VposA = gb_trees:get(Va,Vtab),
-    VposB = gb_trees:get(Vb,Vtab),
+    VposA = array:get(Va,Vtab),
+    VposB = array:get(Vb,Vtab),
     case gb_sets:is_member(Rf,Faces) of
       true ->
         VDir = e3d_vec:sub(VposB,VposA),
@@ -513,7 +513,7 @@ offset_loop_data_2(LastE,#edge{vs=Va,ve=Vb,lf=PrevFace,rtsu=NextEdge},
         Vb,VposB,PrevFace,LastE,We,FNtab,EdgeSet,VDir,EDir0,VNorms,VData0,VPs,Vs0,Links) ->
     #we{vp=Vtab,mirror=M} = We,
     Mirror = M == PrevFace,
-    VposA = gb_trees:get(Va,Vtab),
+    VposA = array:get(Va,Vtab),
     Dir = e3d_vec:sub(VposA,VposB),
     VData = offset_loop_data_3(Mirror,Vb,VposB,VNorms,NextEdge,VDir,Dir,EDir0,FNtab,We,VData0),
     LoopNorm = e3d_vec:normal([VposB|VPs]),
@@ -524,7 +524,7 @@ offset_loop_data_2(LastE,#edge{vs=Va,ve=Vb,rf=PrevFace,ltsu=NextEdge},
         Va,VposA,PrevFace,LastE,We,FNtab,EdgeSet,VDir,EDir0,VNorms,VData0,VPs,Vs0,Links) ->
     #we{vp=Vtab,mirror=M} = We,
     Mirror = M == PrevFace,
-    VposB = gb_trees:get(Vb,Vtab),
+    VposB = array:get(Vb,Vtab),
     Dir = e3d_vec:sub(VposB,VposA),
     VData = offset_loop_data_3(Mirror,Va,VposA,VNorms,NextEdge,VDir,Dir,EDir0,FNtab,We,VData0),
     LoopNorm = e3d_vec:normal([VposA|VPs]),
@@ -541,7 +541,7 @@ offset_loop_data_2(CurE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevFace,ltsu=NextEdge,rtsu
       false ->
         #we{es=Etab,vp=Vtab} = We,
         EdgeData0 = array:get(NextEdge,Etab),
-        VposB = gb_trees:get(Vb,Vtab),
+        VposB = array:get(Vb,Vtab),
         Dir = e3d_vec:sub(VposB,VposA),
         FNorm = wings_face:normal(Face,We),
         EDirs = [Dir|EDir0],
@@ -560,7 +560,7 @@ offset_loop_data_2(CurE,#edge{vs=Va,ve=Vb,lf=PrevFace,rf=Face,rtsu=NextEdge,ltsu
       false ->
         #we{es=Etab,vp=Vtab} = We,
         EdgeData0 = array:get(NextEdge,Etab),
-        VposA = gb_trees:get(Va,Vtab),
+        VposA = array:get(Va,Vtab),
         Dir = e3d_vec:sub(VposA,VposB),
         FNorm = wings_face:normal(Face,We),
         EDirs = [Dir|EDir0],
@@ -600,7 +600,7 @@ offset_loop_data_3(true,V,Vpos,VNorms0,NE,VDir,Dir,EDir0,FNtab,#we{es=Etab},VDat
 offset_loop_is_member(Mirror,V1,V2,Vpos1,CurE,NextE,VNorms0,NEdge,EdgeSet0,VDir,
         EDir0,FNtab,PFace,LastE,We,VData0,VPs0,Vs0,Links) ->
     #we{es=Etab,vp=Vtab} = We,
-    Vpos2 = gb_trees:get(V2,Vtab),
+    Vpos2 = array:get(V2,Vtab),
     Dir = e3d_vec:sub(Vpos2,Vpos1),
     NextVDir = e3d_vec:neg(Dir),
     EdgeSet = gb_sets:delete(CurE,EdgeSet0),
@@ -682,7 +682,7 @@ vertex_normals([V|Vs],FaceNormTab,#we{vp=Vtab,mirror=M}=We,Acc) ->
         (_,Face,_,A) -> [gb_trees:get(Face,FaceNormTab)|A]
     end,[],V,We),
     VNorm = e3d_vec:norm(e3d_vec:add(FaceNorms)),
-    Vpos = gb_trees:get(V,Vtab),
+    Vpos = array:get(V,Vtab),
     vertex_normals(Vs,FaceNormTab,We,[{V,{Vpos,VNorm}}|Acc]);
 vertex_normals([],_,_,Acc) -> Acc.
 
@@ -737,13 +737,13 @@ collect_inset_face_data(Faces0,#we{es=Etab,vp=Vtab,fs=Ftab}=We,AllVs0,VData0,Sma
 traverse_1(Edge,Face,Etab,Vtab,AllVs) ->
     case array:get(Edge,Etab) of
       #edge{vs=Va,ve=Vb,lf=Face,ltpr=NextEdge} ->
-        VposA = gb_trees:get(Va,Vtab),
-        VposB = gb_trees:get(Vb,Vtab),
+        VposA = array:get(Va,Vtab),
+        VposB = array:get(Vb,Vtab),
         VDir = e3d_vec:norm_sub(VposB,VposA),
         traverse_2(NextEdge,Face,VDir,VposB,Edge,Etab,Vtab,{Va,{VposA,VDir}},[],AllVs,[]);
       #edge{vs=Va,ve=Vb,rf=Face,rtpr=NextEdge} ->
-        VposB = gb_trees:get(Vb,Vtab),
-        VposA = gb_trees:get(Va,Vtab),
+        VposB = array:get(Vb,Vtab),
+        VposA = array:get(Va,Vtab),
         VDir = e3d_vec:norm_sub(VposA,VposB),
         traverse_2(NextEdge,Face,VDir,VposA,Edge,Etab,Vtab,{Vb,{VposB,VDir}},[],AllVs,[])
     end.
@@ -760,7 +760,7 @@ traverse_2(LastEdge,_,PrevVDir,Vpos,LastEdge,_,_,{Vb,{Vpos,VDirA}},VPositions0,A
 traverse_2(Edge,Face,PrevVDir,Vpos,LastEdge,Etab,Vtab,LastVert,VPositions0,AllVs0,Acc) ->
     case array:get(Edge,Etab) of
       #edge{vs=Va,ve=Vb,lf=Face,ltpr=NextEdge} ->
-        VposB = gb_trees:get(Vb, Vtab),
+        VposB = array:get(Vb, Vtab),
         VDirB = e3d_vec:norm_sub(Vpos,VposB),
         VDirA = e3d_vec:neg(PrevVDir),
         VData = [{Va,{Vpos,VDirB,VDirA}}|Acc],
@@ -768,7 +768,7 @@ traverse_2(Edge,Face,PrevVDir,Vpos,LastEdge,Etab,Vtab,LastVert,VPositions0,AllVs
         AllVs = [Va|AllVs0],
         traverse_2(NextEdge,Face,VDirB,VposB,LastEdge,Etab,Vtab,LastVert,VPositions,AllVs,VData);
       #edge{vs=Va,ve=Vb,rf=Face,rtpr=NextEdge} ->
-        VposA = gb_trees:get(Va, Vtab),
+        VposA = array:get(Va, Vtab),
         VDirA = e3d_vec:norm_sub(VposA,Vpos),
         VDirB = e3d_vec:neg(PrevVDir),
         VData = [{Vb,{Vpos,VDirA,VDirB}}|Acc],

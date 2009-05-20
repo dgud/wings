@@ -3,7 +3,7 @@
 %%
 %%     Tesselation/subdivision commands.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -103,7 +103,7 @@ triface(Face, Fs, TriV,We) ->
 %%  normals are inconsistent (= concave or otherwise strange quad).
 
 triangulate_quad(F, Vs, TriV0, FsSet0, #we{vp=Vtab}=We0) ->
-    VsPos = [gb_trees:get(V, Vtab) || V <- Vs],
+    VsPos = [array:get(V, Vtab) || V <- Vs],
     try 
 	{V1,V2,TriV,We} = triangulate_quad_1(VsPos, Vs, F, TriV0, We0),
 	{Fs1, FsSet1} = get_pref_faces(V1,FsSet0,We),
@@ -179,7 +179,7 @@ assert_quad2tris(N,A,B,C,D,F) ->
 
 doface_1(Face,Len,Vs,#we{vp=Vtab}=We, Q) ->
     FaceVs = lists:seq(0, Len-1),
-    Vcoords = [gb_trees:get(V, Vtab) || V <- Vs],
+    Vcoords = [array:get(V, Vtab) || V <- Vs],
     E3dface = #e3d_face{vs=FaceVs},
     T3dfaces = case Q of
 		   true -> e3d_mesh:quadrangulate_face(E3dface, Vcoords);

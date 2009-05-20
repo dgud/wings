@@ -34,13 +34,7 @@ faces(Faces, #we{fs=Ftab0}=We) ->
     end.
 
 faces([], _, We) -> We;
-faces(Faces,Complement,We) ->
-    case gb_sets:is_empty(Faces) of
-	true -> We;
-	false -> dissolve_1(Faces, Complement,We)
-    end.
-
-    
+faces(Faces, Complement, We) -> dissolve_1(Faces, Complement, We).
 
 %% complement([Face], We) -> We'
 %%  Dissolve all faces BUT the given faces. Also invalidate the

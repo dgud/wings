@@ -339,22 +339,28 @@ do_scale1(_,_,[],St) -> St;
 do_scale1(Scale, Transform, [{WeId,Vset}|Rest], #st{shapes=Shapes}=St) ->
     We = gb_trees:get(WeId, Shapes),
     Vtab = We#we.vp,
-    Empty = gb_trees:empty(),
-    NewVtab = execute_scale(Scale, Transform, Vset, Vtab, Empty),
+    NewVtab = execute_scale(Scale, Transform, Vset, Vtab),
     NewWe = We#we{vp=NewVtab},
     NewShapes = gb_trees:update(WeId,NewWe,Shapes),
     NewSt = St#st{shapes=NewShapes},
     do_scale1(Scale, Transform, Rest, NewSt).
 
-execute_scale({SX,SY,SZ},{TX,TY,TZ}, Vset, Vtab, Now) ->
-    case gb_trees:size(Vtab) of
-        0 -> Now;
-        _ ->
-            {Vertex,{X,Y,Z},Vtab2} = gb_trees:take_smallest(Vtab),
-            NewXYZ = case gb_sets:is_element(Vertex,Vset) of
-                true -> {TX + SX*X, TY + SY*Y, TZ + SZ*Z};
-                _ -> {X,Y,Z}
-            end,
-            NewNow = gb_trees:insert(Vertex,NewXYZ,Now),
-            execute_scale({SX,SY,SZ},{TX,TY,TZ}, Vset, Vtab2, NewNow)
+execute_scale(S, T, Vset, Vtab) ->
+    execute_scale(array:sparse_size(Vtab)-1, S, T, Vset, Vtab).
+
+execute_scale(-1, _, _, _, Vtab) ->
+    Vtab;
+execute_scale(Vertex, {SX,SY,SZ}=S, {TX,TY,TZ}=T, Vset, Vtab0) ->
+    case array:get(Vertex, Vtab0) of
+	undefined ->
+	    execute_scale(Vertex-1, S, T, Vset, Vtab0);
+	{X,Y,Z} ->
+            Vtab = case gb_sets:is_element(Vertex, Vset) of
+		       true ->
+			   NewXYZ = {TX + SX*X, TY + SY*Y, TZ + SZ*Z},
+			   array:set(Vertex, NewXYZ, Vtab0);
+		       false ->
+			   Vtab0
+		   end,
+            execute_scale(Vertex-1, S, T, Vset, Vtab)
     end.

@@ -75,7 +75,7 @@ make_mesh_1(We0, Ps) ->
     We1 = sub_divide(SubDivs, We0),
     We2 = tesselate(Tess, We1),
     #we{vp=Vs0,es=Etab,he=He0} = We = wings_we:renumber(We2, 0),
-    Vs = gb_trees:values(Vs0),
+    Vs = array:sparse_to_list(Vs0),
     {ColTab0,UvTab0} = make_tables(Ps, We),
     ColTab1 = gb_trees:from_orddict(ColTab0),
     UvTab1 = gb_trees:from_orddict(UvTab0),

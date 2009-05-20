@@ -302,11 +302,11 @@ loop_data_2(Edge, Edge, Es, Fs, Etab, Vtab, M, Vs) ->
     #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,ltsu=NextLeft,rtsu=NextRight} = E,
     case gb_sets:is_member(Rf,Fs) of
       true ->
-        VpA = gb_trees:get(Va,Vtab),
+        VpA = array:get(Va,Vtab),
         EData = array:get(NextLeft,Etab),
         loop_data_3(NextLeft, EData, Edge, Es, Fs, Lf, Va, VpA, Etab, Vtab, M, [], Vs, 0);
       false ->
-        VpB = gb_trees:get(Vb,Vtab),
+        VpB = array:get(Vb,Vtab),
         EData = array:get(NextRight,Etab),
         loop_data_3(NextRight, EData, Edge, Es, Fs, Rf, Vb, VpB, Etab, Vtab, M, [], Vs, 0)
     end.
@@ -342,7 +342,7 @@ loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=PrevF,rf=Face,rtsu=NextEdge,ltsu=IfCurIsMe
       true ->
         EData = array:get(IfCurIsMember,Etab),
         Es = gb_sets:delete(CurE,Es0),
-        VpA = gb_trees:get(Va,Vtab),
+        VpA = array:get(Va,Vtab),
         case M == PrevF of
           false ->
             VPs = [VpB|VPs0],
@@ -362,7 +362,7 @@ loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevF,ltsu=NextEdge,rtsu=IfCurIsMe
       true ->
         EData = array:get(IfCurIsMember,Etab),
         Es = gb_sets:delete(CurE,Es0),
-        VpB = gb_trees:get(Vb,Vtab),
+        VpB = array:get(Vb,Vtab),
         case M == PrevF of
           false ->
             VPs = [VpA|VPs0],
@@ -380,7 +380,7 @@ loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevF,ltsu=NextEdge,rtsu=IfCurIsMe
 %%%% Setup Utilities
 add_vpos_data(Type, Vs, #we{vp=Vtab}, Acc) ->
     lists:foldl(fun(V, A) ->
-          [{V, Type, gb_trees:get(V, Vtab)} | A]
+          [{V, Type, array:get(V, Vtab)} | A]
       end, Acc, Vs).
 
 non_warping_norm(Axis0,Norm) ->
@@ -411,7 +411,7 @@ sqr_length({X,Y,Z}) ->
 lowest_point_rel_to_norm(LoopVs, LoopNorm, LoopC, SelC, #we{vp=Vtab}) ->
     {L,LD,SD} = lists:foldl(fun
       (V, none) ->
-          VPos = gb_trees:get(V,Vtab),
+          VPos = array:get(V,Vtab),
           LVec = e3d_vec:sub(VPos, LoopC),
           SVec = e3d_vec:sub(VPos, SelC),
           Len = sqr_length(LVec),
@@ -419,7 +419,7 @@ lowest_point_rel_to_norm(LoopVs, LoopNorm, LoopC, SelC, #we{vp=Vtab}) ->
           SDot = e3d_vec:dot(LoopNorm, SVec),
           {Len,LDot,SDot};
       (V, {Len0,LDot0,SDot0}) ->
-          VPos = gb_trees:get(V,Vtab),
+          VPos = array:get(V,Vtab),
           LVec = e3d_vec:sub(VPos, LoopC),
           SVec = e3d_vec:sub(VPos, SelC),
           Len1 = sqr_length(LVec),

@@ -65,7 +65,7 @@ weld(#st{sel=[{Obj,VertSel}],shapes=Shs}=St) ->
    case gb_sets:size(VertSel)==1 of
     true ->
       We = gb_trees:get(Obj, Shs),
-      Vertices = gb_trees:size(We#we.vp),
+      Vertices = wings_util:array_entries(We#we.vp),
       Mirror = We#we.mirror,
       if
          Mirror /= none -> 
@@ -141,7 +141,7 @@ weld([{_,VertSel2}]=NewSel,#st{sel=[{Obj,VertSel1}],shapes=Shs}=St) ->
    Vert2 = gb_sets:smallest(VertSel2),
    We = gb_trees:get(Obj, Shs),
    {RemoveEdge,LF,RF,FixMe} = get_edge_info(Vert1,Vert2,We),
-   NewVp = gb_trees:delete(Vert1,We#we.vp),
+   NewVp = array:reset(Vert1,We#we.vp),
    NewEs = fix_edge(Vert1,Vert2,RemoveEdge,FixMe,LF,RF,We),
    NewMat = fix_mat(FixMe,We),
    NewHe = fix_hardedge(NewEs, We#we.he),

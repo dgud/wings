@@ -116,7 +116,7 @@ make_1([#we{id=Id}=We|Shs], Filter, body) ->
     end;
 make_1([#we{id=Id,vp=Vtab,es=Etab,fs=Ftab}=We|Shs], Filter, Mode) ->
     Keys = case Mode of
-	       vertex -> gb_trees:keys(Vtab);
+	       vertex -> wings_util:array_keys(Vtab);
 	       edge -> wings_util:array_keys(Etab);
 	       face -> gb_trees:keys(Ftab)
 	   end,
@@ -340,4 +340,4 @@ to_vertices(face, Faces, We) ->
 to_vertices(edge, Edges, We) ->
     wings_edge:to_vertices(Edges, We);
 to_vertices(body, _, #we{vp=Vtab}) ->
-    gb_trees:keys(Vtab).
+    wings_util:array_keys(Vtab).

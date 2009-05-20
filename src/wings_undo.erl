@@ -252,7 +252,7 @@ fmt_cnt(N, Action) ->  integer_to_list(N) ++ " objects " ++ Action.
 
 we_changes([]) -> "";
 we_changes([{#we{}=We1,#we{}=We2}]) ->
-    Empty = gb_trees:empty(),
+    Empty = array:new(),
     case We1#we{vp=Empty} =:= We2#we{vp=Empty} of
 	true ->
 	    "vertices moved";

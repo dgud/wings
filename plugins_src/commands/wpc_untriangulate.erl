@@ -352,8 +352,8 @@ edge_unit_vector(Edge, Face, We) ->
                   #edge{rf=Face,vs=Vs0,ve=Ve0} -> {Ve0,Vs0};
                   _  -> error
                 end,
-    Vs = gb_trees:get(Vs1, We#we.vp),
-    Ve = gb_trees:get(Ve1, We#we.vp),
+    Vs = array:get(Vs1, We#we.vp),
+    Ve = array:get(Ve1, We#we.vp),
     V = e3d_vec:sub(Ve, Vs),
     N = e3d_vec:norm(V),
     N.

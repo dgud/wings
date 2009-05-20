@@ -521,7 +521,7 @@ guard_string() ->
 get_pos(Vs,We,Acc) ->
     Positions = lists:foldl(fun(Vert,A) ->
                 #we{vp=Vtab} = We,
-                Pos = gb_trees:get(Vert,Vtab),
+                Pos = array:get(Vert, Vtab),
                 [Pos|A]
                 end,[],Vs),
     [Positions|Acc].
@@ -571,10 +571,10 @@ get_vec(edge, [{Edges1},{Edges2}], [We1,We2]) ->
 get_vec(edge, [Edge1,Edge2], [#we{es=Etab0,vp=Vtab0},#we{es=Etab1,vp=Vtab1}]) ->
     #edge{vs=Va1,ve=Vb1} = array:get(Edge1, Etab0),
     #edge{vs=Va2,ve=Vb2} = array:get(Edge2, Etab1),
-    Va1Pos = gb_trees:get(Va1, Vtab0),
-    Vb1Pos = gb_trees:get(Vb1, Vtab0),
-    Va2Pos = gb_trees:get(Va2, Vtab1),
-    Vb2Pos = gb_trees:get(Vb2, Vtab1),
+    Va1Pos = array:get(Va1, Vtab0),
+    Vb1Pos = array:get(Vb1, Vtab0),
+    Va2Pos = array:get(Va2, Vtab1),
+    Vb2Pos = array:get(Vb2, Vtab1),
     Center1 = e3d_vec:average([Va1Pos,Vb1Pos]),
     Center2 = e3d_vec:average([Va2Pos,Vb2Pos]),
     Center = e3d_vec:average([Center1,Center2]),
@@ -608,8 +608,8 @@ get_vec(face, [Face1, Face2], [We0, We1]) ->
 %% Use single edge as axis
 get_vec(edge, [Edge], #we{es=Etab,vp=Vtab}=We) ->
     #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf} = array:get(Edge, Etab),
-    VaPos = gb_trees:get(Va, Vtab),
-    VbPos = gb_trees:get(Vb, Vtab),
+    VaPos = array:get(Va, Vtab),
+    VbPos = array:get(Vb, Vtab),
     Vec = e3d_vec:norm_sub(VbPos, VaPos),
     Center = wings_vertex:center([Va,Vb], We),
     Ln = wings_face:normal(Lf, We),
@@ -623,10 +623,10 @@ get_vec(edge, [Edge], #we{es=Etab,vp=Vtab}=We) ->
 get_vec(edge, [Edge1,Edge2], #we{es=Etab,vp=Vtab}) ->
     #edge{vs=Va1,ve=Vb1} = array:get(Edge1, Etab),
     #edge{vs=Va2,ve=Vb2} = array:get(Edge2, Etab),
-    Va1Pos = gb_trees:get(Va1, Vtab),
-    Vb1Pos = gb_trees:get(Vb1, Vtab),
-    Va2Pos = gb_trees:get(Va2, Vtab),
-    Vb2Pos = gb_trees:get(Vb2, Vtab),
+    Va1Pos = array:get(Va1, Vtab),
+    Vb1Pos = array:get(Vb1, Vtab),
+    Va2Pos = array:get(Va2, Vtab),
+    Vb2Pos = array:get(Vb2, Vtab),
     Center1 = e3d_vec:average([Va1Pos,Vb1Pos]),
     Center2 = e3d_vec:average([Va2Pos,Vb2Pos]),
     Center = e3d_vec:average([Center1,Center2]),

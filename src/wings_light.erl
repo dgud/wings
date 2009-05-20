@@ -441,7 +441,7 @@ create(Type, #st{onext=Oid}=St) ->
 %%% Updating, drawing and rendering lights.
 %%%
 update_dynamic(#dlo{src_we=We0}=D, Vtab0) ->
-    Vtab = gb_trees:from_orddict(sort(Vtab0)),
+    Vtab = array:from_orddict(sort(Vtab0)),
     We = We0#we{vp=Vtab},
     List = update_1(We, D),
     D#dlo{work=List,src_we=We}.
@@ -575,7 +575,7 @@ export_camera_lights() ->
     GL = fun({Name,Li = #light{aim=Diff}}) ->
 		 LPos = e3d_vec:add(CameraPos,Diff),
 		 We = #we{name = Name,
-			  vp = gb_trees:from_orddict([{1, LPos}]),
+			  vp = array:from_orddict([{1, LPos}]),
 			  light = Li#light{aim=Aim}},
 		 get_light(We)
 	 end,
@@ -878,7 +878,7 @@ light_pos(#we{light=#light{type=area}}=We) ->
     {Pos,_,_} = arealight_posdirexp(We),
     Pos;
 light_pos(#we{vp=Vtab}) ->
-    gb_trees:get(1, Vtab).
+    array:get(1, Vtab).
 
 arealight_posdirexp(#we{light=#light{type=area}}=We) ->
     FaceMats = wings_facemat:all(We),
@@ -915,8 +915,7 @@ arealight_posdirexp(#we{light=#light{type=area}}=We) ->
     end.
 
 move_light(Pos, #we{vp=Vtab0}=We) ->
-    Vtab1 = [{V,Pos} || V <- gb_trees:keys(Vtab0)],
-    Vtab = gb_trees:from_orddict(Vtab1),
+    Vtab = array:sparse_map(fun(V, _) -> {V,Pos} end, Vtab0),
     We#we{vp=Vtab}.
 
 shape_materials(#light{diffuse={_,_,_,Af}=Front,ambient={_,_,_,Ab}=Back}, St) ->

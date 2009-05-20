@@ -949,7 +949,7 @@ add_areas(Axis,Fs,We) ->
 get_area(Axis,Face,We) ->
     #we{vp=Vtab} = We,
     Vs = wings_face:vertices_ccw(Face, We),
-    Vlist0 = [gb_trees:get(V, Vtab) || V <- Vs],
+    Vlist0 = [array:get(V, Vtab) || V <- Vs],
     Vlist1 = flatten_vpos_to_axis(Axis,Vlist0),
     FaceVs = lists:seq(0, length(Vs)-1),
     E3dFaces = [#e3d_face{vs=FaceVs}],

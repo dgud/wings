@@ -161,10 +161,10 @@ inf_shortest({_,_,_}=Point, VsSel, #we{vp=Vtab}=We) ->
 inf_shortest(R, VsSel0, #we{vp=Vtab}) when is_number(R) ->
     check_radius(R),
     VsSel = foldl(fun(V, A) ->
-			  Pos = gb_trees:get(V, Vtab),
+			  Pos = array:get(V, Vtab),
 			  [{V,Pos}|A]
 		  end, [], VsSel0),
-    inf_1(gb_trees:to_list(Vtab), VsSel, R, []).
+    inf_1(array:sparse_to_orddict(Vtab), VsSel, R, []).
 
 inf_1([{V,Pos}|T], VsSel, R, Acc) ->
     case inf_2(VsSel, V, Pos, none, R) of
@@ -184,12 +184,12 @@ inf_2([], _, _, _, Dist) -> Dist.
 
 radius(Outer, [V0|Vs], Vtab) ->
     foldl(fun(V, R0) ->
-		  Pos = gb_trees:get(V, Vtab),
+		  Pos = array:get(V, Vtab),
 		  case e3d_vec:dist(Pos, Outer) of
 		      R when R < R0 -> R;
 		      _ -> R0
 		  end
-	  end, e3d_vec:dist(Outer, gb_trees:get(V0, Vtab)), Vs).
+	  end, e3d_vec:dist(Outer, array:get(V0, Vtab)), Vs).
 
 %%%
 %%% Calculation of influence radius: Midpoint distance route.
@@ -206,17 +206,17 @@ inf_midpoint(R, VsSel, We) when is_number(R) ->
 
 inf_midpoint_1(R, Midpoint, Vs0, #we{vp=Vtab}) ->
     Vs = gb_sets:from_list(Vs0),
-    {foldl(fun({V,Pos}, A) ->
-		   case e3d_vec:dist(Pos, Midpoint) of
-		       Dist when Dist =< R ->
-			   [{V,Pos,Dist,0}|A];
-		       _Dist ->
-			   case gb_sets:is_member(V, Vs) of
-			       false -> A;
-			       true -> [{V,Pos,R,0}|A]
-			   end
-		   end
-	   end, [], gb_trees:to_list(Vtab)),R}.
+    {array:sparse_foldl(fun(V, Pos, A) ->
+				case e3d_vec:dist(Pos, Midpoint) of
+				    Dist when Dist =< R ->
+					[{V,Pos,Dist,0}|A];
+				    _Dist ->
+					case gb_sets:is_member(V, Vs) of
+					    false -> A;
+					    true -> [{V,Pos,R,0}|A]
+					end
+				end
+			end, [], Vtab),R}.
 
 %%%
 %%% Calculation of influence radius: Surface distance route.
@@ -283,11 +283,11 @@ inf_surface_uws(Ws, Dist, V, #we{vp=Vtab}=We, VsDist) ->
     %% to this vertex. Calculate the surface distance to all
     %% bordering vertices and update the work set.
     BorderVs = all_bordering(V, We),
-    Pos = gb_trees:get(V, Vtab),
+    Pos = array:get(V, Vtab),
     inf_surface_uws_1(BorderVs, Pos, Dist, Vtab, VsDist, Ws).
 
 inf_surface_uws_1([V|Vs], Vpos, Dist0, Vtab, VsDist, Ws0) ->
-    Dist = Dist0 + e3d_vec:dist(Vpos, gb_trees:get(V, Vtab)),
+    Dist = Dist0 + e3d_vec:dist(Vpos, array:get(V, Vtab)),
     case gb_trees:lookup(V, VsDist) of
 	none ->
 	    Ws = gb_sets:add({Dist,V}, Ws0),
@@ -303,16 +303,16 @@ inf_surface_uws_1([], _Vpos, _Dist, _Vtab, _VsDist, Ws) -> Ws.
 inf_surface_3(VsDist, Limit, #we{vp=Vtab}) ->
     check_radius(Limit),
     {foldl(fun({V,Dist}, A) when Dist =< Limit ->
-		   [{V,gb_trees:get(V, Vtab),Dist,0}|A];
+		   [{V,array:get(V, Vtab),Dist,0}|A];
 	      (_, A) -> A
 	   end, [], gb_trees:to_list(VsDist)),Limit}.
 
 inf_surface_nearest([V|Vs], Point, #we{vp=Vtab}) ->
-    Dist = e3d_vec:dist(gb_trees:get(V, Vtab), Point),
+    Dist = e3d_vec:dist(array:get(V, Vtab), Point),
     inf_surface_nearest_1(Vs, Point, Vtab, Dist, V).
 
 inf_surface_nearest_1([V|Vs], Point, Vtab, OldDist, OldV) ->
-    case e3d_vec:dist(gb_trees:get(V, Vtab), Point) of
+    case e3d_vec:dist(array:get(V, Vtab), Point) of
 	Dist when Dist < OldDist ->
 	    inf_surface_nearest_1(Vs, Point, Vtab, Dist, V);
 	_Dist ->

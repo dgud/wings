@@ -178,9 +178,9 @@
 	 es=array:new() :: array(),		%array containing edges
 	 fs :: gb_tree(),		        %Faces
 	 he=gb_sets:empty() :: gb_set(),	%Hard edges
-	 vc :: gb_tree(),	                %Connection info (=incident edge)
+	 vc :: array(),		                %Connection info (=incident edge)
 						% for vertices.
-	 vp=gb_trees:empty() :: gb_tree(),	%Vertex positions.
+	 vp=array:new() :: array(),		%Vertex positions.
 	 pst=gb_trees:empty(),                  %Plugin State Info, 
 						%   gb_tree where key is plugin module
 	 mat=default,				%Materials.

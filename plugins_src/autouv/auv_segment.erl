@@ -338,11 +338,11 @@ get_vector(A,B,B,We) ->
     get_vector(A,B,We).
 
 get_vector(A, B, #we{vp=Vs}) ->
-    e3d_vec:norm(e3d_vec:sub(gb_trees:get(A, Vs), gb_trees:get(B, Vs))).
+    e3d_vec:norm(e3d_vec:sub(array:get(A, Vs), array:get(B, Vs))).
 
 find_extremities(#we{vc=Vct,vp=Vs0,es=Es}) ->
-    Center = e3d_vec:average(gb_trees:values(Vs0)),
-    Vs = gb_trees:to_list(Vs0),
+    Center = e3d_vec:average(array:sparse_to_list(Vs0)),
+    Vs = array:sparse_to_orddict(Vs0),
     AllC = lists:map(fun({Id,Pos}) ->
 			     Dist = e3d_vec:dist(Pos, Center),
 			     {Dist,Id,Pos}
@@ -353,8 +353,8 @@ find_extremities(#we{vc=Vct,vp=Vs0,es=Es}) ->
 			      {Dist,Id,Pos}
 		      end, Vs),
     [{_,V2,_}|_] = lists:reverse(lists:sort(AllV1)),
-    E1 = gb_trees:get(V1, Vct),
-    E2 = gb_trees:get(V2, Vct),
+    E1 = array:get(V1, Vct),
+    E2 = array:get(V2, Vct),
     F1 = (array:get(E1,Es))#edge.lf,
     case (array:get(E2,Es))#edge.lf of
 	F1 ->

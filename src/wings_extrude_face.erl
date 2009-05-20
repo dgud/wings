@@ -90,9 +90,9 @@ inner_extrude_1([{Edge,_}=CurEdge|Es], {PrevEdge,PrevRec}, Face,
 			   ltsu=NextVert,ltpr=VertEdge,
 			   rtsu=PrevHor,rtpr=NextHor}, Etab2),
 
-    Vct = gb_trees:insert(V, HorEdge, Vct0),
-    Pos = gb_trees:get(Va, Vtab0),
-    Vtab = gb_trees:insert(V, Pos, Vtab0),
+    Vct = array:set(V, HorEdge, Vct0),
+    Pos = array:get(Va, Vtab0),
+    Vtab = array:set(V, Pos, Vtab0),
 
     Ftab = gb_trees:insert(NewFace, NewFace, Ftab0),
     We1 = wings_facemat:assign(Mat, [NewFace], We0),

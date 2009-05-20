@@ -393,7 +393,6 @@ do_move([_,XYZ,_,_,_,Dupli]=Move,Sel,St) ->
 do_move1(_,_,_,[],St) ->
     St;
 do_move1({XO,YO,ZO},DuOrg,[{Cx,Cy,Cz},{X,Y,Z},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du],[{Obj0,Vset}|Rest]=Sel,#st{shapes=Shapes0}=St0) ->
-    Empty = gb_trees:empty(),
     We0 = gb_trees:get(Obj0, Shapes0),
     #st{shapes=Shapes1,onext=Oid} = St1 = if
                                               Du > 0 ->
@@ -423,7 +422,7 @@ do_move1({XO,YO,ZO},DuOrg,[{Cx,Cy,Cz},{X,Y,Z},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du],[{Obj
              Az -> Z - Oz;
              true -> Z - Cz
          end,
-    NewVtab = execute_move({Dx,Dy,Dz},{X,Y,Z},{Fx,Fy,Fz},Wo or ?IS_LIGHT(We1),Vset,Vtab,Empty),
+    NewVtab = execute_move({Dx,Dy,Dz},{X,Y,Z},{Fx,Fy,Fz},Wo or ?IS_LIGHT(We1),Vset,Vtab),
     NewWe = We1#we{vp=NewVtab},
     NewShapes = gb_trees:update(Obj1,NewWe,Shapes1),
     NewSt = St1#st{shapes=NewShapes},
@@ -434,11 +433,16 @@ do_move1({XO,YO,ZO},DuOrg,[{Cx,Cy,Cz},{X,Y,Z},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du],[{Obj
             do_move1({XO,YO,ZO},DuOrg,[{Cx,Cy,Cz},{XO,YO,ZO},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},DuOrg],Rest,NewSt)
     end.
 
-execute_move({Dx,Dy,Dz},{Nx,Ny,Nz},{Fx,Fy,Fz},Wo,Vset,Vtab,Now) ->
-    case gb_trees:size(Vtab) of
-        0 -> Now;
-        _ ->
-            {Vertex,{X,Y,Z},Vtab2} = gb_trees:take_smallest(Vtab),
+execute_move(D,N,F,Wo,Vset,Vtab) ->
+    execute_move(array:sparse_size(Vtab)-1,D,N,F,Wo,Vset,Vtab).
+
+execute_move(-1,_D,_N,_F,_Wo,_Vset,Vtab) ->
+    Vtab;
+execute_move(Vertex,{Dx,Dy,Dz}=D,{Nx,Ny,Nz}=N,{Fx,Fy,Fz}=F,Wo,Vset,Vtab) ->
+    case array:get(Vertex, Vtab) of
+	undefined ->
+	    execute_move(Vertex-1,D,N,F,Wo,Vset,Vtab);
+	{X,Y,Z} ->
             case gb_sets:is_element(Vertex,Vset) of
                 true ->
                     X1 = case Fx of
@@ -465,7 +469,10 @@ execute_move({Dx,Dy,Dz},{Nx,Ny,Nz},{Fx,Fy,Fz},Wo,Vset,Vtab,Now) ->
                             Z1 = Z
                     end
             end,
-            NewNow = gb_trees:insert(Vertex,{X1,Y1,Z1},Now),
-            execute_move({Dx,Dy,Dz},{Nx,Ny,Nz},{Fx,Fy,Fz},Wo,Vset,Vtab2,NewNow)
+	    Vtab2 = case {X1,Y1,Z1} of
+			{X,Y,Z} -> Vtab;
+			NewPos -> array:set(Vertex,NewPos,Vtab)
+		    end,
+            execute_move(Vertex-1,D,N,F,Wo,Vset,Vtab2)
     end.
 

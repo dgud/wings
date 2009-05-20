@@ -354,7 +354,7 @@ share_list_1([], _, _, Ts) -> reverse(Ts).
 
 share_list_2([{Vtab0,Etab0}|Ts],
 	     [{NumHidden,#we{id=Id,mat=FaceMat}=We0,_}|Wes], Acc) ->
-    Vtab = gb_trees:from_orddict(Vtab0),
+    Vtab = array:from_orddict(Vtab0),
     Etab = array:from_orddict(Etab0),
     We1 = wings_we:rebuild(We0#we{vp=Vtab,es=Etab,mat=default}),
     We2 = wings_facemat:assign(FaceMat, We1),
@@ -584,7 +584,7 @@ write_file(Name, Bin) ->
     end.
 
 shape({Hidden,#we{mode=ObjMode,name=Name,vp=Vs0,es=Es0,he=Htab,pst=Pst}=We}, Acc) ->
-    Vs1 = foldl(fun export_vertex/2, [], gb_trees:values(Vs0)),
+    Vs1 = foldl(fun export_vertex/2, [], array:sparse_to_list(Vs0)),
     Vs = reverse(Vs1),
     UvFaces = gb_sets:from_ordset(wings_we:uv_mapped_faces(We)),
     Es1 = foldl(fun(E, A) ->

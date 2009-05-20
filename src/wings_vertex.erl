@@ -42,7 +42,7 @@ from_edges(Es, We) ->
 %%
 
 fold(F, Acc, V, #we{vc=Vct}=We) ->
-    Edge = gb_trees:get(V, Vct),
+    Edge = array:get(V, Vct),
     fold(F, Acc, V, Edge, We).
 
 fold(F, Acc0, V, Edge, #we{es=Etab}) ->
@@ -74,7 +74,7 @@ fold(F, Acc0, V, Face, Edge, LastEdge, Etab) ->
 %%
 
 until(F, Acc, V, #we{vc=Vct}=We) ->
-    Edge = gb_trees:get(V, Vct),
+    Edge = array:get(V, Vct),
     until(F, Acc, V, Edge, We).
 
 until(F, Acc, V, Edge, #we{es=Etab}) ->
@@ -107,9 +107,9 @@ other(V, #edge{ve=V,vs=Other}) -> Other.
 %% pos(Vertex, VtabOrWe) -> {X,Y,Z}
 %%  Return the three co-ordinates for a vertex.
 pos(V, #we{vp=Vtab}) ->
-    gb_trees:get(V, Vtab);
+    array:get(V, Vtab);
 pos(V, Vtab) ->
-    gb_trees:get(V, Vtab).
+    array:get(V, Vtab).
 
 %% other_pos(Vertex, EdgeRecord, VtabOrWe) -> {X,Y,Z}
 %%  Pick up the position for the "other vertex" from an edge record.
@@ -119,7 +119,7 @@ other_pos(V, #edge{ve=V,vs=Other}, Tab) -> pos(Other, Tab).
 %% center(We) -> {CenterX,CenterY,CenterZ}
 %%  Find the geometric center of a body.
 center(#we{vp=Vtab}=We) ->
-    Center = e3d_vec:average(gb_trees:values(Vtab)),
+    Center = e3d_vec:average(array:sparse_to_list(Vtab)),
     center_1(Center, We).
 
 center_1(Center, #we{mirror=none}) -> Center;
@@ -151,7 +151,7 @@ bounding_box(We) ->
     bounding_box(We, none).
 
 bounding_box(#we{vp=Vtab}=We, BB) ->
-    do_bounding_box(gb_trees:values(Vtab), We, BB);
+    do_bounding_box(array:sparse_to_list(Vtab), We, BB);
 bounding_box(Vs, We) ->
     bounding_box(Vs, We, none).
     
@@ -162,7 +162,7 @@ bounding_box(Vs, We, BB) ->
 
 bounding_box_1(Vs0, #we{vp=Vtab}=We, BB) ->
     Vs1 = sofs:from_external(Vs0, [vertex]),
-    R = sofs:from_external(gb_trees:to_list(Vtab), [{vertex,data}]),
+    R = sofs:from_external(array:sparse_to_orddict(Vtab), [{vertex,data}]),
     I = sofs:image(R, Vs1),
     Vs = sofs:to_external(I),
     do_bounding_box(Vs, We, BB).
@@ -231,10 +231,10 @@ flatten_matrix(Origin, PlaneNormal) ->
     M = e3d_mat:mul(M0, e3d_mat:project_to_plane(PlaneNormal)),
     e3d_mat:mul(M, e3d_mat:translate(e3d_vec:neg(Origin))).
 
-flatten_move(V, Matrix, Tab0) ->
-    Pos0 = gb_trees:get(V, Tab0),
+flatten_move(V, Matrix, Vtab0) ->
+    Pos0 = array:get(V, Vtab0),
     Pos = e3d_mat:mul_point(Matrix, Pos0),
-    gb_trees:update(V, Pos, Tab0).
+    array:set(V, Pos, Vtab0).
 
 %% dissolve_isolated_vs([Vertex], We) -> We'
 %%  Remove all isolated vertices ("winged vertices", or vertices
@@ -385,7 +385,7 @@ nearest_pair_smart_1([], _, _, _, _) ->
 nearest_pair(Face, AllVs, #we{vp=Vtab}=We) ->
     Vs0 = ordsets:from_list(wings_face:vertices_ccw(Face, We)),
     Vs = ordsets:intersection(Vs0, AllVs),
-    VsPos = [{V,gb_trees:get(V, Vtab)} || V <- Vs],
+    VsPos = [{V,array:get(V, Vtab)} || V <- Vs],
     nearest_pair(VsPos, Face, We, []).
 
 nearest_pair([{V,Pos}|VsPos], Face, We, Acc0) ->
@@ -600,7 +600,7 @@ order_edges(_, [_,_|_], _, _) ->
 %%  edges from the given list of vertices.
 reachable(Vs0, #we{es=Etab,vc=Vct}) when is_list(Vs0) ->
     Es0 = foldl(fun(V, A) ->
-			[gb_trees:get(V, Vct)|A]
+			[array:get(V, Vct)|A]
 		end, [], Vs0),
     Es1 = gb_sets:from_list(Es0),
     Es = reachable_edges(Es1, Etab, gb_trees:empty()),
@@ -636,7 +636,7 @@ reachable_edges_1([], Etab, Ws, Reachable) ->
 isolated(#we{vp=Vtab}=We) ->
     Vs0 = foldl(fun(V, A) -> 
 			isolated_1(V, We, A)
-		end, [], gb_trees:keys(Vtab)),
+		end, [], wings_util:array_keys(Vtab)),
     Vs1 = sofs:relation(Vs0),
     Fs0 = sofs:domain(Vs1),
     Fs = sofs:to_external(Fs0),

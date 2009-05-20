@@ -38,7 +38,7 @@ setup_1(Vec, Center, Magnet, St) ->
 setup_2(Vec, center, Magnet, #st{selmode=vertex}=St) ->
     VsPs = wings_sel:fold(
 	     fun(Vs, #we{vp=Vtab}, Acc) ->
-		     Pos = [gb_trees:get(V,Vtab)||V <- gb_sets:to_list(Vs)],
+		     Pos = [array:get(V, Vtab) || V <- gb_sets:to_list(Vs)],
 		     [Pos|Acc]
 	     end, [], St),
     Center = e3d_vec:average(lists:append(VsPs)),

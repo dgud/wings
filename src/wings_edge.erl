@@ -84,8 +84,8 @@ fast_cut(Edge, Pos0, We0) ->
     Template = array:get(Edge, Etab0),
     #edge{vs=Vstart,ve=Vend,a=ACol,b=BCol,lf=Lf,rf=Rf,
 	  ltpr=EdgeA,rtsu=EdgeB,rtpr=NextBCol} = Template,
-    VendPos = gb_trees:get(Vend, Vtab0),
-    Vct1 = gb_trees:update(Vend, NewEdge, Vct0),
+    VendPos = array:get(Vend, Vtab0),
+    Vct1 = array:set(Vend, NewEdge, Vct0),
     VstartPos = wings_vertex:pos(Vstart, Vtab0),
     if
 	Pos0 =:= default ->
@@ -94,8 +94,8 @@ fast_cut(Edge, Pos0, We0) ->
 	    NewVPos0 = Pos0
     end,
     NewVPos = wings_util:share(NewVPos0),
-    Vct = gb_trees:insert(NewV, NewEdge, Vct1),
-    Vtab = gb_trees:insert(NewV, NewVPos, Vtab0),
+    Vct = array:set(NewV, NewEdge, Vct1),
+    Vtab = array:set(NewV, NewVPos, Vtab0),
 
     %% Here we handle vertex colors/UV coordinates.
     AColOther = get_vtx_color(EdgeA, Lf, Etab0),
@@ -141,9 +141,9 @@ screaming_cut(Edge, NewVPos, We0) ->
     #we{es=Etab0,vc=Vct0,vp=Vtab0,he=Htab0} = We,
     Template = array:get(Edge, Etab0),
     #edge{ve=Vend,ltpr=EdgeA,rtsu=EdgeB} = Template,
-    Vct1 = gb_trees:update(Vend, NewEdge, Vct0),
-    Vct = gb_trees:insert(NewV, NewEdge, Vct1),
-    Vtab = gb_trees:insert(NewV, NewVPos, Vtab0),
+    Vct1 = array:set(Vend, NewEdge, Vct0),
+    Vct = array:set(NewV, NewEdge, Vct1),
+    Vtab = array:set(NewV, NewVPos, Vtab0),
 
     NewEdgeRec = Template#edge{vs=NewV,ltsu=Edge,rtpr=Edge},
     Etab1 = array:set(NewEdge, NewEdgeRec, Etab0),
@@ -182,9 +182,9 @@ internal_dissolve_edge(Edge, #we{es=Etab}=We0) ->
     case array:get(Edge, Etab) of
 	undefined -> We0;
 	#edge{ltpr=Same,ltsu=Same,rtpr=Same,rtsu=Same} ->
-	    Empty = gb_trees:empty(),
-	    EmptyEtab = array:new(),
-	    We0#we{vc=Empty,vp=Empty,es=EmptyEtab,fs=Empty,he=gb_sets:empty()};
+	    EmptyGbTree = gb_trees:empty(),
+	    Empty = array:new(),
+	    We0#we{vc=Empty,vp=Empty,es=Empty,fs=EmptyGbTree,he=gb_sets:empty()};
 	#edge{rtpr=Back,ltsu=Back}=Rec ->
 	    merge_edges(backward, Edge, Rec, We0);
 	#edge{rtsu=Forward,ltpr=Forward}=Rec ->
@@ -268,11 +268,11 @@ dissolve_isolated_vs([], We) -> We.
 %% edge table for vertices updated, we'll need to lookup
 %% all incident edges now before we have started to dissolve.
 dissolve_isolated_vs_1([V|Vs], #we{vc=Vct}=We, Acc) ->
-    case gb_trees:lookup(V, Vct) of
-	none ->
+    case array:get(V, Vct) of
+	undefined ->
 	    %% A previous pass has already removed this vertex.
 	    dissolve_isolated_vs_1(Vs, We, Acc);
-	{value,Edge} ->
+	Edge ->
 	    dissolve_isolated_vs_1(Vs, We, [{V,Edge}|Acc])
     end;
 dissolve_isolated_vs_1([], We, Vc) ->

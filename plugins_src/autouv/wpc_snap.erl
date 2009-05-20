@@ -260,12 +260,12 @@ update_uv_fun(Vs) ->
 	    case Rec0 of
 		#edge{vs=V,lf=Face} ->
 		    Rec  = array:get(Edge, E0),
-		    Vpos = gb_trees:get(V, Vs),
+		    Vpos = array:get(V, Vs),
 		    UV = calc_uv(Vpos),
 		    array:set(Edge, Rec#edge{a=UV},E0);
 		#edge{ve=V,rf=Face} ->
 		    Rec  = array:get(Edge, E0),
-		    Vpos = gb_trees:get(V, Vs),
+		    Vpos = array:get(V, Vs),
 		    UV = calc_uv(Vpos),
 		    array:set(Edge, Rec#edge{b=UV},E0)
 	    end

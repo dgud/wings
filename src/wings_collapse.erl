@@ -115,8 +115,8 @@ collapse_face_1(Face, We0) ->
 	AnEdge =:= none -> We0;
 	true ->
 	    Pos = wings_vertex:center(Vertices, We1),
-	    Vct = gb_trees:insert(NewV, AnEdge, Vct1),
-	    Vs = gb_trees:insert(NewV, Pos, Vs1),
+	    Vct = array:set(NewV, AnEdge, Vct1),
+	    Vs = array:set(NewV, Pos, Vs1),
 	    We2 = We1#we{vc=Vct,vp=Vs,es=Es2,fs=Fs2,he=He1},
 	    We = wings_vertex:fold(
 		   fun(_, _, _, bad_edge) -> bad_edge;
@@ -156,8 +156,8 @@ delete_edges(V, Edge, Face, {Etab0,Vct0,Vtab0,Ftab0,Htab0}) ->
 
     %% Delete edge and vertex.
     Etab = array:reset(Edge, Etab2),
-    Vct = gb_trees:delete(V, Vct0),
-    Vtab = gb_trees:delete(V, Vtab0),
+    Vct = array:reset(V, Vct0),
+    Vtab = array:reset(V, Vtab0),
 
     %% Patch the face entry for the remaining face.
     Ftab = case Rec of
@@ -208,20 +208,20 @@ internal_collapse_edge(Edge, Vkeep, Vremove, Rec,
     Etab1 = slim_patch_vtx_refs(Vremove, Vkeep, We, Etab0),
     Etab2 = array:reset(Edge, Etab1),
     Htab = gb_sets:delete_any(Edge, Htab0),
-    Vct1 = gb_trees:delete(Vremove, Vct0),
+    Vct1 = array:reset(Vremove, Vct0),
 	    
     #edge{lf=LF,rf=RF,ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} = Rec,
-    Vct = gb_trees:update(Vkeep, RP, Vct1),
+    Vct = array:set(Vkeep, RP, Vct1),
 
     %% Move kept vertex. Delete the other one.
-    PosKeep = gb_trees:get(Vkeep, Vtab0),
-    Vtab1 = case gb_trees:get(Vremove, Vtab0) of
+    PosKeep = array:get(Vkeep, Vtab0),
+    Vtab1 = case array:get(Vremove, Vtab0) of
 		PosKeep -> Vtab0;
 		PosRemove ->
 		    Pos = e3d_vec:average(PosKeep, PosRemove),
-		    gb_trees:update(Vkeep, Pos, Vtab0)
+		    array:set(Vkeep, Pos, Vtab0)
 	    end,
-    Vtab = gb_trees:delete(Vremove, Vtab1),
+    Vtab = array:reset(Vremove, Vtab1),
 
     %% Patch all predecessors and successors of
     %% the edge we will remove.
@@ -248,10 +248,10 @@ do_collapse_vertices(Vs, We) ->
     do_collapse_vertices(Vs, We, gb_sets:empty(), [], []).
 
 do_collapse_vertices([V|Vs], #we{vp=Vtab}=We0, Sel0, IsoAcc, Acc) ->
-    case gb_trees:is_defined(V, Vtab) of
-	false ->
+    case array:get(V, Vtab) of
+	undefined ->
 	    do_collapse_vertices(Vs, We0, Sel0, IsoAcc, Acc);
-	true ->
+	_ ->
 	    case collapse_vertex_1(V, We0, Sel0) of
 		isolated ->
 		    do_collapse_vertices(Vs, We0, Sel0, [V|IsoAcc], Acc);

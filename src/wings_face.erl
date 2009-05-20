@@ -101,7 +101,7 @@ face_normal_cw(Vs, Vtab) ->
     face_normal_cw(Vs, Vtab, []).
 
 face_normal_cw([V|Vs], Vtab, Acc) ->
-    face_normal_cw(Vs, Vtab, [gb_trees:get(V, Vtab)|Acc]);
+    face_normal_cw(Vs, Vtab, [array:get(V, Vtab)|Acc]);
 face_normal_cw([], _Vtab, Acc) ->
     e3d_vec:normal(Acc).
 
@@ -114,7 +114,7 @@ face_normal_ccw(Vs, Vtab) ->
     face_normal_ccw(Vs, Vtab, []).
 
 face_normal_ccw([V|Vs], Vtab, Acc) ->
-    face_normal_ccw(Vs, Vtab, [gb_trees:get(V, Vtab)|Acc]);
+    face_normal_ccw(Vs, Vtab, [array:get(V, Vtab)|Acc]);
 face_normal_ccw([], _Vtab, Acc) ->
     e3d_vec:normal(reverse(Acc)).
 
@@ -122,7 +122,7 @@ face_normal_ccw([], _Vtab, Acc) ->
 good_normal(Face, #we{vp=Vtab}=We) ->
     [Va,Vb|_] = Vpos =
 	fold(fun(V, _, _, A) ->
-		     [gb_trees:get(V, Vtab)|A]
+		     [array:get(V, Vtab)|A]
 	     end, [], Face, We),
     D = e3d_vec:sub(Va, Vb),
     good_normal(D, Vpos, Vpos).
@@ -203,7 +203,7 @@ center(Face, We) ->
 area(Face, We) ->
     #we{vp=Vtab} = We,
     Vs = wings_face:vertices_ccw(Face, We),
-    Vcoords = [gb_trees:get(V, Vtab) || V <- Vs],
+    Vcoords = [array:get(V, Vtab) || V <- Vs],
     FaceVs = lists:seq(0, length(Vs)-1),
     E3dFaces = [#e3d_face{vs=FaceVs}],
     [Area] = e3d_mesh:face_areas(E3dFaces, Vcoords),
@@ -286,10 +286,10 @@ vertex_positions_1(LastEdge, _, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
 vertex_positions_1(Edge, Etab, Vtab, Face, LastEdge, Acc) ->
     case array:get(Edge, Etab) of
 	#edge{vs=V,lf=Face,ltsu=NextEdge} ->
-	    Pos = gb_trees:get(V, Vtab),
+	    Pos = array:get(V, Vtab),
 	    vertex_positions_1(NextEdge, Etab, Vtab, Face, LastEdge, [Pos|Acc]);
 	#edge{ve=V,rf=Face,rtsu=NextEdge} ->
-	    Pos = gb_trees:get(V, Vtab),
+	    Pos = array:get(V, Vtab),
 	    vertex_positions_1(NextEdge, Etab, Vtab, Face, LastEdge, [Pos|Acc])
     end.
 

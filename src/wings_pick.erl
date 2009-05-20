@@ -207,14 +207,14 @@ hilite_color({Id,Item}, #st{sel=Sel}) ->
 hilit_draw_sel(vertex, V, #dlo{src_we=#we{vp=Vtab}}) ->
     gl:pointSize(wings_pref:get_value(selected_vertex_size)),
     gl:'begin'(?GL_POINTS),
-    gl:vertex3fv(gb_trees:get(V, Vtab)),
+    gl:vertex3fv(array:get(V, Vtab)),
     gl:'end'();
 hilit_draw_sel(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     gl:lineWidth(wings_pref:get_value(selected_edge_width)),
     gl:'begin'(?GL_LINES),
-    gl:vertex3fv(gb_trees:get(Va, Vtab)),
-    gl:vertex3fv(gb_trees:get(Vb, Vtab)),
+    gl:vertex3fv(array:get(Va, Vtab)),
+    gl:vertex3fv(array:get(Vb, Vtab)),
     gl:'end'();
 hilit_draw_sel(face, Face, D) ->
     case wings_pref:get_value(selection_style) of
@@ -417,7 +417,7 @@ marquee_convert_1(Faces0, face, Rect, #we{vp=Vtab}=We) ->
 	     end, [], Faces0, We),
     Vfs = wings_util:rel2fam(Vfs0),
     Kill0 = [Fs || {V,Fs} <- Vfs,
-		   not is_inside_rect(gb_trees:get(V, Vtab), Rect)],
+		   not is_inside_rect(array:get(V, Vtab), Rect)],
     Kill1 = sofs:set(Kill0, [[face]]),
     Kill = sofs:union(Kill1),
     Faces1 = sofs:from_external(Faces0, [face]),
@@ -425,16 +425,16 @@ marquee_convert_1(Faces0, face, Rect, #we{vp=Vtab}=We) ->
     sofs:to_external(Faces);
 marquee_convert_1(Faces, vertex, Rect, #we{vp=Vtab}=We) ->
     Vs = wings_face:to_vertices(Faces, We),
-    [V || V <- Vs, is_inside_rect(gb_trees:get(V, Vtab), Rect)];
+    [V || V <- Vs, is_inside_rect(array:get(V, Vtab), Rect)];
 marquee_convert_1(Faces, edge, Rect, #we{vp=Vtab}=We) ->
     Es0 = wings_face:fold_faces(fun(_, _, E, Rec, A) ->
 					[{E,Rec}|A]
 				end, [], Faces, We),
     Es = ordsets:from_list(Es0),
     [E || {E,#edge{vs=Va,ve=Vb}} <- Es,
-	  is_all_inside_rect([gb_trees:get(Va, Vtab),gb_trees:get(Vb, Vtab)], Rect)];
+	  is_all_inside_rect([array:get(Va, Vtab),array:get(Vb, Vtab)], Rect)];
 marquee_convert_1(_Faces, body, Rect, #we{vp=Vtab}) ->
-    case is_all_inside_rect(gb_trees:values(Vtab), Rect) of
+    case is_all_inside_rect(array:sparse_to_list(Vtab), Rect) of
 	true -> [0];
 	false -> []
     end.
@@ -650,7 +650,7 @@ best_face_hit_1(_, _, A) -> A.
 best_face_hit_2(#we{id=Id,vp=Vtab}=We, Ns, Ray, {[{Id,Id,Face}|Hits],Hit0,T0})
   when ?IS_LIGHT(We) ->
     {Orig,Dir} = Ray,
-    P = gb_trees:get(1, Vtab),
+    P = array:get(1, Vtab),
     T = e3d_vec:dot(Dir, P) - e3d_vec:dot(Dir, Orig),
     A = if
 	    T < T0 ->
@@ -846,7 +846,7 @@ marquee_draw(#st{selmode=vertex}) ->
     Draw = fun(#we{vp=Vtab}=We) ->
 		   case wings_we:any_hidden(We) of
 		       false ->
-			   marquee_draw_all_vs(gb_trees:to_list(Vtab));
+			   marquee_draw_all_vs(array:sparse_to_orddict(Vtab));
 		       true ->
 			   marquee_draw_some_vs(wings_we:visible_vs(We),
 						Vtab)
@@ -866,7 +866,7 @@ marquee_draw_all_vs([]) -> ok.
 marquee_draw_some_vs([V|Vs], Vtab) ->
     gl:loadName(V),
     gl:'begin'(?GL_POINTS),
-    gl:vertex3fv(gb_trees:get(V, Vtab)),
+    gl:vertex3fv(array:get(V, Vtab)),
     gl:'end'(),
     marquee_draw_some_vs(Vs, Vtab);
 marquee_draw_some_vs([], _) -> ok.
@@ -877,8 +877,8 @@ marquee_draw_edges([{Edge,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}|Es], Vtab, Vis) ->
 	true ->
 	    gl:loadName(Edge),
 	    gl:'begin'(?GL_LINES),
-	    gl:vertex3fv(gb_trees:get(Va, Vtab)),
-	    gl:vertex3fv(gb_trees:get(Vb, Vtab)),
+	    gl:vertex3fv(array:get(Va, Vtab)),
+	    gl:vertex3fv(array:get(Vb, Vtab)),
 	    gl:'end'()
     end,
     marquee_draw_edges(Es, Vtab, Vis);

@@ -56,11 +56,11 @@ rebuild(#we{vc=undefined,fs=undefined,es=Etab0}=We0) ->
     Etab = array:sparse_to_orddict(Etab0),
     Ftab = rebuild_ftab(Etab),
     VctList = rebuild_vct(Etab),
-    We = We0#we{vc=gb_trees:from_orddict(VctList),fs=Ftab},
+    We = We0#we{vc=array:from_orddict(VctList),fs=Ftab},
     rebuild_1(VctList, We);
 rebuild(#we{vc=undefined,es=Etab}=We) ->
     VctList = rebuild_vct(array:sparse_to_orddict(Etab), []),
-    rebuild_1(VctList, We#we{vc=gb_trees:from_orddict(VctList)});
+    rebuild_1(VctList, We#we{vc=array:from_orddict(VctList)});
 rebuild(#we{fs=undefined,es=Etab}=We) ->
     Ftab = rebuild_ftab(array:sparse_to_orddict(Etab)),
     rebuild(We#we{fs=Ftab});
@@ -94,7 +94,7 @@ new_items_as_gbset(Type, OldWe, NewWe) ->
     gb_sets:from_ordset(new_items_as_ordset(Type, OldWe, NewWe)).
 
 new_items_as_ordset(vertex, #we{next_id=Wid}, #we{next_id=NewWid,vp=Tab}) ->
-    new_items_as_ordset_1(Tab, Wid, NewWid);
+    new_array_items_as_ordset_1(Tab, Wid, NewWid);
 new_items_as_ordset(edge, #we{next_id=Wid}, #we{next_id=NewWid,es=Tab}) ->
     new_array_items_as_ordset_1(Tab, Wid, NewWid);
 new_items_as_ordset(face, #we{next_id=Wid}, #we{next_id=NewWid,fs=Tab}) ->
@@ -125,13 +125,9 @@ all_hidden(#we{fs=Ftab}) ->
 %%% Local functions.
 %%%
 
-rebuild_1(VctList, #we{vc=Vct,vp=Vtab0}=We) ->
-    case {gb_trees:size(Vct),gb_trees:size(Vtab0)} of
-	{Same,Same} -> rebuild(We);
-	{Sz1,Sz2} when Sz1 < Sz2 ->
-	    Vtab = vertex_gc_1(VctList, gb_trees:to_list(Vtab0), []),
-	    rebuild(We#we{vp=Vtab})
-    end.
+rebuild_1(VctList, #we{vp=Vtab0}=We) ->
+    Vtab = vertex_gc_1(VctList, array:sparse_to_orddict(Vtab0), []),
+    rebuild(We#we{vp=Vtab}).
 
 rebuild_vct(Es) ->
     rebuild_vct(Es, []).
@@ -167,7 +163,7 @@ vertex_gc_1([{V,_}|Vct], [{V,_}=Vtx|Vpos], Acc) ->
 vertex_gc_1([_|_]=Vct, [_|Vpos], Acc) ->
     vertex_gc_1(Vct, Vpos, Acc);
 vertex_gc_1([], _, Acc) ->
-    gb_trees:from_orddict(reverse(Acc)).
+    array:from_orddict(reverse(Acc)).
 
 %%%
 %%% Handling of hidden faces.
@@ -218,7 +214,7 @@ visible_2(Fs) -> Fs.
 
 visible_vs(#we{mirror=Face,vc=Vct,es=Etab}=We) ->
     case any_hidden(We) of
-	false -> gb_trees:keys(Vct);
+	false -> wings_util:array_keys(Vct);
 	true -> visible_vs_1(array:sparse_to_list(Etab), Face, [])
     end.
 
@@ -326,9 +322,9 @@ mirror_flatten(#we{mirror=OldFace}=OldWe, #we{mirror=Face,vp=Vtab0}=We) ->
     M = e3d_mat:mul(M0, e3d_mat:project_to_plane(PlaneNormal)),
     Flatten = e3d_mat:mul(M, e3d_mat:translate(e3d_vec:neg(Origin))),
     Vtab = foldl(fun(V, Vt) ->
-			 Pos0 = gb_trees:get(V, Vt),
+			 Pos0 = array:get(V, Vt),
 			 Pos = e3d_mat:mul_point(Flatten, Pos0),
-			 gb_trees:update(V, Pos, Vt)
+			 array:set(V, Pos, Vt)
 		 end, Vtab0, wings_face:vertices_ccw(Face, We)),
     We#we{vp=Vtab}.
     
@@ -371,7 +367,7 @@ build_rest(Type, Es, Fs, Vs, HardEdges) ->
     Htab = vpairs_to_edges(HardEdges, Es),
     {Vct0,Etab,Ftab0} = build_tables(Es),
     Ftab = build_faces(Ftab0),
-    Vct = gb_trees:from_orddict(build_incident_tab(Vct0)),
+    Vct = array:from_orddict(build_incident_tab(Vct0)),
     Vpos = number_vertices(Vs, 0, []),
     We = update_id_bounds(#we{mode=Type,es=Etab,fs=Ftab,vc=Vct,vp=Vpos,he=Htab}),
     assign_materials(Fs, We).
@@ -391,7 +387,7 @@ mat_face([], _, Acc) -> Acc.
 number_vertices([P|Ps], V, Acc) ->
     number_vertices(Ps, V+1, [{V,P}|Acc]);
 number_vertices([], _, Acc) ->
-    gb_trees:from_orddict(reverse(Acc)).
+    array:from_orddict(reverse(Acc)).
     
 build_edges(Fs) ->
     build_edges(Fs, 0, []).
@@ -593,7 +589,7 @@ merge([#we{id=Id,name=Name}|_]=Wes0) ->
     Pst  = merge_plugins(Wes1),
     MatTab = wings_facemat:merge(Wes1),
     {Vpt0,Et0,Ht0} = merge_1(Wes1),
-    Vpt = gb_trees:from_orddict(Vpt0),
+    Vpt = array:from_orddict(Vpt0),
     Et = array:from_orddict(Et0),
     Ht = gb_sets:from_ordset(Ht0),
     rebuild(#we{id=Id,name=Name,vc=undefined,fs=undefined,
@@ -603,7 +599,7 @@ merge_1([We]) -> We;
 merge_1(Wes) -> merge_1(Wes, [], [], []).
 
 merge_1([#we{vp=Vp0,es=Es,he=He}|Wes], Vpt0, Et0, Ht0) ->
-    Vpt = [gb_trees:to_list(Vp0)|Vpt0],
+    Vpt = [array:sparse_to_orddict(Vp0)|Vpt0],
     Et = [array:sparse_to_orddict(Es)|Et0],
     Ht = [gb_sets:to_list(He)|Ht0],
     merge_1(Wes, Vpt, Et, Ht);
@@ -647,7 +643,7 @@ merge_bounds([#we{vp=Vtab,fs=Ftab,es=Etab}=We0|Wes], Acc) ->
     First = case wings_util:array_is_empty(Etab) of
 		true -> 0;
 		false ->
-		    lists:min([wings_util:gb_trees_smallest_key(Vtab),
+		    lists:min([wings_util:array_smallest_key(Vtab),
 			       wings_util:array_smallest_key(Etab),
 			       wings_util:gb_trees_smallest_key(Ftab)])
 	    end,
@@ -672,7 +668,7 @@ do_renumber(We0, Id) ->
 do_renumber(#we{mode=Mode,vp=Vtab0,es=Etab0,fs=Ftab0,
 		mat=MatTab0,he=Htab0,perm=Perm0,mirror=Mirror0,pst=Pst0}=We0,
 	    Id, RootSet0) ->
-    Vtab1 = gb_trees:to_list(Vtab0),
+    Vtab1 = array:sparse_to_orddict(Vtab0),
     Vmap = make_map(Vtab1, Id),
     Vtab = renumber_vertices(Vtab1, Vmap),
 
@@ -781,7 +777,7 @@ renumber_vertices_1([{V0,P}|Vtab], Vmap, VtabAcc) ->
     V = gb_trees:get(V0, Vmap),
     renumber_vertices_1(Vtab, Vmap, [{V,P}|VtabAcc]);
 renumber_vertices_1([], _, Vtab) ->
-    gb_trees:from_orddict(keysort(1, Vtab)).
+    array:from_orddict(keysort(1, Vtab)).
     
 renum_hard_edge(Edge0, Emap, New) ->
     Edge = gb_trees:get(Edge0, Emap),
@@ -807,7 +803,7 @@ update_id_bounds(#we{vp=Vtab,es=Etab,fs=Ftab}=We) ->
     case wings_util:array_is_empty(Etab) of
 	true -> We#we{next_id=0};
 	false ->
-	    LastId = lists:max([wings_util:gb_trees_largest_key(Vtab),
+	    LastId = lists:max([wings_util:array_greatest_key(Vtab),
 				wings_util:array_greatest_key(Etab),
 				wings_util:gb_trees_largest_key(Ftab)]),
 	    We#we{next_id=LastId+1}
@@ -858,10 +854,10 @@ copy_dependents(We0) ->
 		   Es = wings_util:array_keys(Etab),
 		   gb_sets:intersection(Htab0, gb_sets:from_ordset(Es))
 	   end,
-    Vs = sofs:from_external(gb_trees:keys(Vct), [vertex]),
-    Vtab1 = sofs:relation(gb_trees:to_list(Vtab0), [{vertex,edge}]),
+    Vs = sofs:from_external(wings_util:array_keys(Vct), [vertex]),
+    Vtab1 = sofs:relation(array:sparse_to_orddict(Vtab0), [{vertex,edge}]),
     Vtab2 = sofs:restriction(Vtab1, Vs),
-    Vtab = gb_trees:from_orddict(sofs:to_external(Vtab2)),
+    Vtab = array:from_orddict(sofs:to_external(Vtab2)),
     wings_facemat:gc(We#we{he=Htab,vp=Vtab}).
 
 %% build_incident_tab([{Elem,Edge}]) -> [{Elem,Edge}]
@@ -922,17 +918,17 @@ uv_mapped_faces_1([], _, Acc) -> reverse(Acc).
 %%%
 
 transform_vs({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,Tx,Ty,Tz}, We) ->
-    Translate = fun({V,{X,Y,Z}}, A) -> [{V,{X+Tx,Y+Ty,Z+Tz}}|A] end,
+    Translate = fun(V, {X,Y,Z}, A) -> [{V,{X+Tx,Y+Ty,Z+Tz}}|A] end,
     transform_vs_1(Translate, We);
 transform_vs(Matrix, We) ->
-    Transform = fun({V,Pos}, A) ->
+    Transform = fun(V, Pos, A) ->
 			[{V,e3d_mat:mul_point(Matrix, Pos)}|A]
 		end,
     transform_vs_1(Transform, We).
 
 transform_vs_1(Transform, #we{vp=Vtab0}=We) ->
-    Vtab1 = foldl(Transform, [], gb_trees:to_list(Vtab0)),
-    Vtab = gb_trees:from_orddict(reverse(Vtab1)),
+    Vtab1 = array:sparse_foldl(Transform, [], Vtab0),
+    Vtab = array:from_orddict(reverse(Vtab1)),
     We#we{vp=Vtab}.
 
 %%%
@@ -972,7 +968,7 @@ normals_2(FaceNormals, #we{he=He}=We) ->
 
 all_soft(FaceNormals, #we{vp=Vtab}=We) ->
     wings_pb:update(0.10, ?__(1,"preparing")),
-    VisVs = visible_vs(gb_trees:to_list(Vtab), We),
+    VisVs = visible_vs(array:sparse_to_orddict(Vtab), We),
     VtxNormals = soft_vertex_normals(VisVs, FaceNormals, We),
     FoldFun = fun(V, VInfo, A) ->
 		      Normal = gb_trees:get(V, VtxNormals),
@@ -1029,7 +1025,7 @@ two_faced_1(Face, Normal, We) ->
 			  end, [], Face, We).
 
 vertex_normals(#we{vp=Vtab}=We, G, FaceNormals) ->
-    Vs0 = visible_vs(gb_trees:to_list(Vtab), We),
+    Vs0 = visible_vs(array:sparse_to_orddict(Vtab), We),
     Vs = sofs:from_external(Vs0, [{vertex,data}]),
     vertex_normals_1(Vs, We, G, FaceNormals).
 
@@ -1165,4 +1161,4 @@ validate_vertex_tab(#we{es=Etab,vc=Vct}) ->
 			#edge{vs=V} -> ok;
 			#edge{ve=V} -> ok
 		    end
-	    end, gb_trees:to_list(Vct)).
+	    end, array:sparse_to_orddict(Vct)).

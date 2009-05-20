@@ -126,15 +126,15 @@ upper([]) -> [].
 add_vpos(Vs, #we{vp=Vtab}) -> add_vpos(Vs, Vtab);
 add_vpos(Vs, Vtab) ->
     foldl(fun(V, A) ->
-		  [{V,gb_trees:get(V, Vtab)}|A]
+		  [{V,array:get(V, Vtab)}|A]
 	  end, [], Vs).
 
 update_vpos(Vs, #we{vp=Vtab}) -> update_vpos(Vs, Vtab);
 update_vpos(Vs, Vtab) ->
     foldl(fun({V,_}, A) ->
-		  [{V,gb_trees:get(V, Vtab)}|A];
+		  [{V,array:get(V, Vtab)}|A];
 	     ({V,_,Dist,Inf}, A) ->
-		  [{V,gb_trees:get(V, Vtab),Dist,Inf}|A]
+		  [{V,array:get(V, Vtab),Dist,Inf}|A]
 	  end, [], reverse(Vs)).
 
 gb_trees_smallest_key(Tree) ->

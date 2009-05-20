@@ -692,8 +692,8 @@ create_faces(We = #we{vp=Vtab,name=#ch{vmap=Vmap}},
     Fs = wings_we:visible(We),
     C=fun(Face,{OEs,UvBB,{Cnt,UVpos,Vpos,Ns,Ts,PosBB,Uvc}}) ->
 	      Vs0 = wings_face:vertices_ccw(Face,We),
-	      UVcoords = [gb_trees:get(V, Vtab) || V <- Vs0],
-	      Coords   = [gb_trees:get(map_vertex(V,Vmap),Vt3d) 
+	      UVcoords = [array:get(V, Vtab) || V <- Vs0],
+	      Coords   = [array:get(map_vertex(V,Vmap),Vt3d) 
 			  || V <- Vs0],
 	      Normals = if
 			    NTab=:= [] -> [];

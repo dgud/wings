@@ -95,11 +95,11 @@ update_edges_1(_, _, cage) -> none;
 update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #we{vp=Vtab,es=Etab}=We, some) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
-    Edges = wings_edge:from_vs(gb_trees:keys(OldVtab), We),
+    Edges = wings_edge:from_vs(wings_util:array_keys(OldVtab), We),
     Bin = lists:foldl(fun(E, Bin) ->
 			      #edge{vs=Va,ve=Vb} = array:get(E, Etab),
-			      {X1,Y1,Z1} = gb_trees:get(Va,Vtab),
-			      {X2,Y2,Z2} = gb_trees:get(Vb,Vtab),
+			      {X1,Y1,Z1} = array:get(Va,Vtab),
+			      {X2,Y2,Z2} = array:get(Vb,Vtab),
 			      <<Bin/binary,X1:?F32,Y1:?F32,Z1:?F32,
 			       X2:?F32,Y2:?F32,Z2:?F32>>
 		      end, <<>>, Edges),
@@ -112,8 +112,8 @@ update_edges_1(_, #we{es=Etab,vp=Vtab}, all) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
     Bin = array:sparse_foldl(fun(_, #edge{vs=Va,ve=Vb}, Bin) ->
-				     {X1,Y1,Z1} = gb_trees:get(Va,Vtab),
-				     {X2,Y2,Z2} = gb_trees:get(Vb,Vtab),
+				     {X1,Y1,Z1} = array:get(Va,Vtab),
+				     {X2,Y2,Z2} = array:get(Vb,Vtab),
 				     <<Bin/binary,X1:?F32,Y1:?F32,Z1:?F32,
 				      X2:?F32,Y2:?F32,Z2:?F32>>
 			     end, <<>>, Etab),
@@ -304,7 +304,7 @@ mat_face(Face, Edge, #we{vp=Vtab}=We) ->
     mat_face_1(Vs, Vtab, []).
 
 mat_face_1([V|Vs], Vtab, Acc) ->
-    mat_face_1(Vs, Vtab, [gb_trees:get(V, Vtab)|Acc]);
+    mat_face_1(Vs, Vtab, [array:get(V, Vtab)|Acc]);
 mat_face_1([], _, VsPos) ->
     N = e3d_vec:normal(VsPos),
     gl:normal3fv(N),
@@ -320,7 +320,7 @@ uv_face(Face, Edge, #we{vp=Vtab}=We) ->
     uv_face_1(Vs0, Vtab, [], []).
 
 uv_face_1([[V|Col]|Vs], Vtab, Nacc, VsAcc) ->
-    Pos = gb_trees:get(V, Vtab),
+    Pos = array:get(V, Vtab),
     uv_face_1(Vs, Vtab, [Pos|Nacc], [[Pos|Col]|VsAcc]);
 uv_face_1([], _, Nacc, Vs) ->
     N = e3d_vec:normal(Nacc),

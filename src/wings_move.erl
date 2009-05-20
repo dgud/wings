@@ -113,8 +113,8 @@ move_vectors([V|Vs], Forbidden, VsSet, #we{vp=Vtab}=We, Acc0) ->
 			not gb_sets:is_member(Edge, Forbidden) of
 			false -> A;
 			true ->
-			    Pa = gb_trees:get(OtherV, Vtab),
-			    Pb = gb_trees:get(V, Vtab),
+			    Pa = array:get(OtherV, Vtab),
+			    Pb = array:get(V, Vtab),
 			    Vec = e3d_vec:sub(Pb, Pa),
 			    [{V,Vec,Pb}|A]
 		    end
@@ -146,8 +146,8 @@ edges_to_vertices(Es, We, normal) ->
     Vs = foldl(fun(Edge, D0) ->
 		       #edge{vs=Va,ve=Vb,lf=FaceL,rf=FaceR} =
 			   array:get(Edge, Etab),
-		       VaPos = gb_trees:get(Va, Vtab),
-		       VbPos = gb_trees:get(Vb, Vtab),
+		       VaPos = array:get(Va, Vtab),
+		       VbPos = array:get(Vb, Vtab),
 		       EdgeDir = e3d_vec:norm_sub(VbPos, VaPos),
  		       NL = wings_face:normal(FaceL, We),
  		       NR = wings_face:normal(FaceR, We),

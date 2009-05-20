@@ -77,22 +77,21 @@ walk_face_ccw(Face, Edge, LastEdge, We, Acc) ->
     end.
 
 validate_vertex_tab(#we{es=Etab,vc=Vct,vp=Vtab}=We) ->
-    case {gb_trees:keys(Vct),gb_trees:keys(Vtab)} of
+    case {wings_util:array_keys(Vct),wings_util:array_keys(Vtab)} of
 	{Same,Same} -> ok;
 	{_,_} ->
 	    crash(vc_and_vp_have_different_keys, We)
     end,
-    foreach(fun({V,Edge}) ->
-		    case array:get(Edge, Etab) of
-			#edge{vs=V}=Rec ->
-			    validate_edge_rec(Rec, We);
-			#edge{ve=V}=Rec ->
-			    validate_edge_rec(Rec, We);
-			_Other ->
-			    crash({vertex,V}, We)
-		    end
-	    end,
-	    gb_trees:to_list(Vct)).
+    array:sparse_foldl(fun(V, Edge, _) ->
+			       case array:get(Edge, Etab) of
+				   #edge{vs=V}=Rec ->
+				       validate_edge_rec(Rec, We);
+				   #edge{ve=V}=Rec ->
+				       validate_edge_rec(Rec, We);
+				   _Other ->
+				       crash({vertex,V}, We)
+			       end
+		       end, [], Vct).
 
 validate_edge_tab(#we{es=Etab}=We) ->
     array:sparse_foldl(fun(E, #edge{vs=Va,ve=Vb}, _) ->
@@ -108,10 +107,10 @@ validate_edge_rec(Rec, We) ->
     end.
 
 verify_vertex(V, Edge, #we{vc=Vct}=We) ->
-    case gb_trees:is_defined(V, Vct) of
-	false ->
+    case array:get(V, Vct) of
+	undefined ->
 	    crash({edge,Edge,referenced,undefined,vertex,V}, We);
-	true -> ok
+	Edge when is_integer(Edge) -> ok
     end.
 
 crash(Reason, We) ->

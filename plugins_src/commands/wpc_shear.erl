@@ -421,7 +421,7 @@ largest_dist_along_axis(Norm,St) ->
 get_dist_list(Center,Norm,V,We,Acc) ->
     G = lists:foldl(fun(Vert,A) ->
             #we{vp=Vtab}=We,
-            Pos = gb_trees:get(Vert,Vtab),
+            Pos = array:get(Vert,Vtab),
             [dist_along_vector(Pos,Center,Norm)|A]
         end, [], V),
     G1 = lists:max(G),

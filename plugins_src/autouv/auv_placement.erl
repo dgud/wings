@@ -25,7 +25,7 @@ place_areas(Areas0) ->
     Rotate = fun(#we{id=Id,name=Ch0}=We0, BBs) ->
 		     {{Dx,Dy}=Size,Vs} = center(We0),
 		     Ch = Ch0#ch{size=Size},
-		     We = We0#we{vp=gb_trees:from_orddict(Vs),name=Ch},
+		     We = We0#we{vp=array:from_orddict(Vs),name=Ch},
 		     {We,[{Dx,Dy,Id}|BBs]}
 	     end,
     {Areas1,Sizes0} = lists:mapfoldl(Rotate, [], Areas0),
@@ -36,7 +36,7 @@ place_areas(Areas0) ->
     move_and_scale_charts(Areas1, lists:sort(Positions0), Scale, []).
 
 center(#we{vp=VTab}) ->
-    VL = gb_trees:to_list(VTab),
+    VL = array:sparse_to_orddict(VTab),
     {{_,Xmin},{_,Xmax},{_,Ymin},{_,Ymax}} = auv_util:maxmin(VL),
     Dx = Xmax - Xmin,
     Dy = Ymax - Ymin,
@@ -124,18 +124,15 @@ move_and_scale_charts([We0|RA], [{C,{Cx,Cy}}|RP], S, Acc) ->
 move_and_scale_charts([], [], _, Acc) -> Acc.
 
 rotate_area(Vs, #we{vp=Orig}=We) ->
-    VTab = gb_trees:from_orddict(lists:sort(Vs)),
+    VTab = array:from_orddict(lists:sort(Vs)),
     Fs = wings_we:visible(We),
     [{_,Eds3}|_] = group_edge_loops(Fs,We),
-%%     Half = (length(Eds3) div 2) + 1,
-%%     [#be{vs=LV1}|_] = Eds3,
-%%     #be{vs=LV2} = lists:nth(Half,Eds3),
     Eds4 = make_convex(reverse(Eds3), [], VTab),
     [#be{vs=LV1,ve=LV2,dist=_Dist}|_] = lists:reverse(lists:keysort(5, Eds4)),
-    LV1P = gb_trees:get(LV1, VTab),
-    LV2P = gb_trees:get(LV2, VTab),
-    O1 = gb_trees:get(LV1, Orig),
-    O2 = gb_trees:get(LV2, Orig),
+    LV1P = array:get(LV1, VTab),
+    LV2P = array:get(LV2, VTab),
+    O1 = array:get(LV1, Orig),
+    O2 = array:get(LV2, Orig),
     Normal = {NX,NY,NZ} = 
 	try auv_mapping:chart_normal(Fs,We) catch throw:_ -> {0.0,0.0,1.0} end,
     ANX = abs(NX), ANY = abs(NY), ANZ = abs(NZ),
@@ -233,9 +230,9 @@ group_edge_loops(Fs, We = #we{name=#ch{emap=Emap}}) ->
     end.
 
 calc_dir(#be{vs=V11,ve=V12},#be{vs=V12,ve=V22}, Vs) ->    
-    C  = gb_trees:get(V12, Vs),
-    V1 = gb_trees:get(V11, Vs),
-    V2 = gb_trees:get(V22, Vs),
+    C  = array:get(V12, Vs),
+    V1 = array:get(V11, Vs),
+    V2 = array:get(V22, Vs),
     {X1,Y1,_} = e3d_vec:sub(V1, C),
     {X2,Y2,_} = e3d_vec:sub(V2, C),
     Angle = case (math:atan2(Y1,X1) - math:atan2(Y2,X2)) of 
@@ -249,7 +246,7 @@ calc_dir(#be{vs=V11,ve=V12},#be{vs=V12,ve=V22}, Vs) ->
     Angle.
  
 dist(V1, V2, Vs) ->
-    e3d_vec:dist(gb_trees:get(V1, Vs), gb_trees:get(V2, Vs)).
+    e3d_vec:dist(array:get(V1, Vs), array:get(V2, Vs)).
 
 %% Returns a list of loops 
 sort_edges(Eds) ->

@@ -180,7 +180,7 @@ pump_vertices([A]) ->
 pump_vertices([]) -> ok.
 
 positions([V|Locked],Vtab,Acc) ->
-    Pos = gb_trees:get(V,Vtab),
+    Pos = array:get(V,Vtab),
     positions(Locked,Vtab,[Pos|Acc]);
 positions([],_,Acc) -> Acc.
 
