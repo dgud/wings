@@ -965,11 +965,5 @@ weld_selection([], _, _, Acc) ->
 
 set_color(Color, St) ->
     wings_sel:map(fun(_, We) ->
-			  set_color_1(Color, We)
+			  wings_va:set_body_color(Color, We)
 		  end, St).
-
-set_color_1(Color, #we{es=Etab0}=We) ->
-    Etab = array:sparse_map(fun(_, Rec) ->
-				    Rec#edge{a=Color,b=Color}
-			    end, Etab0),
-    We#we{es=Etab,mode=vertex}.

@@ -203,25 +203,8 @@ remove_nonconnectable([], _, _, Acc) -> Acc.
 
 set_color(Color, St) ->
     wings_sel:map(fun(Es, We) ->
-			  set_color_1(gb_sets:to_list(Es), Color,
-				      We#we{mode=vertex})
+			  wings_va:set_edge_color(Es, Color, We)
 		  end, St).
-
-set_color_1([E|Es], Color, #we{es=Etab0}=We) ->
-    Rec0 = #edge{vs=Va,ve=Vb,rtpr=Rp,ltpr=Lp} = array:get(E, Etab0),
-    Rec = Rec0#edge{a=Color,b=Color},
-    Etab1 = array:set(E, Rec, Etab0),
-    Etab2 = set_color_2(Rp, Va, Color, Etab1),
-    Etab = set_color_2(Lp, Vb, Color, Etab2),
-    set_color_1(Es, Color, We#we{es=Etab});
-set_color_1([], _, We) -> We.
-
-set_color_2(E, V, Color, Etab) ->
-    Rec = case array:get(E, Etab) of
-	      #edge{vs=V}=Rec0 -> Rec0#edge{a=Color};
-	      #edge{ve=V}=Rec0 -> Rec0#edge{b=Color}
-	  end,
-    array:set(E, Rec, Etab).
 
 %%%
 %%% The Cut command.

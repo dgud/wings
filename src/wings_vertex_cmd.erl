@@ -435,18 +435,5 @@ dissolve(St0) ->
 
 set_color(Color, St) ->
     wings_sel:map(fun(Vs, We) ->
-			  set_color_1(gb_sets:to_list(Vs), Color,
-				      We#we{mode=vertex})
+			  wings_va:set_vertex_color(Vs, Color, We)
 		  end, St).
-
-set_color_1([V|Vs], Color, #we{es=Etab0}=We) ->
-    Etab = wings_vertex:fold(
-	     fun(Edge, _Face, Rec0, Es) ->
-		     Rec = case Rec0 of
-			       #edge{vs=V} -> Rec0#edge{a=Color};
-			       #edge{ve=V} -> Rec0#edge{b=Color}
-			   end,
-		     array:set(Edge, Rec, Es)
-	     end, Etab0, V, We),
-    set_color_1(Vs, Color, We#we{es=Etab});
-set_color_1([], _, We) -> We.

@@ -1168,18 +1168,5 @@ on_target(vertex, V, We) ->
 
 set_color(Color, St) ->
     wings_sel:map(fun(Fs, We) ->
-			  set_color_1(gb_sets:to_list(Fs), Color,
-				      We#we{mode=vertex})
+			  wings_va:set_face_color(Fs, Color, We)
 		  end, St).
-
-set_color_1([F|Fs], Color, #we{es=Etab0}=We) ->
-    Etab = wings_face:fold(
-	     fun(_V, Edge, Rec0, Es) ->
-		     Rec = case Rec0 of
-			       #edge{lf=F} -> Rec0#edge{a=Color};
-			       #edge{rf=F} -> Rec0#edge{b=Color}
-			   end,
-		     array:set(Edge, Rec, Es)
-	     end, Etab0, F, We),
-    set_color_1(Fs, Color, We#we{es=Etab});
-set_color_1([], _, We) -> We.
