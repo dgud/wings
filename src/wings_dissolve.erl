@@ -20,15 +20,15 @@
 %% faces([Face], We) -> We'
 %%  Dissolve the given faces.
 faces([], We) -> We;
+faces([_|_]=Faces, #we{fs=Ftab0}=We) ->
+    Complement = ordsets:subtract(gb_trees:keys(Ftab0), 
+				  ordsets:from_list(Faces)),
+    dissolve_1(Faces, Complement, We);
 faces(Faces, #we{fs=Ftab0}=We) ->
     case gb_sets:is_empty(Faces) of
 	true -> We;
-	false when is_list(Faces) -> 
-	    Complement = ordsets:subtract(gb_trees:keys(Ftab0), 
-					  ordsets:from_list(Faces)),
-	    dissolve_1(Faces, Complement, We);
 	false ->
-	    Complement = ordsets:subtract(gb_trees:keys(Ftab0), 
+	    Complement = ordsets:subtract(gb_trees:keys(Ftab0),
 					  gb_sets:to_list(Faces)),
 	    dissolve_1(Faces, Complement, We)
     end.
