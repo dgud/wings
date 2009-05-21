@@ -89,7 +89,7 @@ fast_cut(Edge, Pos0, We0) ->
     VstartPos = wings_vertex:pos(Vstart, Vtab0),
     if
 	Pos0 =:= default ->
-	    NewVPos0 = e3d_vec:average([VstartPos,VendPos]);
+	    NewVPos0 = e3d_vec:average(VstartPos, VendPos);
 	true ->
 	    NewVPos0 = Pos0
     end,

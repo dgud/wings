@@ -543,7 +543,7 @@ get_vec(vertex, [Va, Vb], [We0, We1]) ->
     VaPos = wings_vertex:pos(Va, We0),
     VbPos = wings_vertex:pos(Vb, We1),
     Vec = e3d_vec:norm_sub(VaPos, VbPos),
-    Center = e3d_vec:average([VaPos,VbPos]),
+    Center = e3d_vec:average(VaPos, VbPos),
     Normal = e3d_vec:norm(e3d_vec:add(wings_vertex:normal(Va, We0),
               wings_vertex:normal(Vb, We1))),
     [{{Center,Vec},
@@ -561,7 +561,7 @@ get_vec(edge, [{Edges1},{Edges2}], [We1,We2]) ->
     {[Vs1],[Vs2]} ->
         LoopCenter1 = wings_vertex:center(Vs1, We1),
         LoopCenter2 = wings_vertex:center(Vs2, We2),
-        Center = e3d_vec:average([LoopCenter1, LoopCenter2]),
+        Center = e3d_vec:average(LoopCenter1, LoopCenter2),
         Vec = e3d_vec:norm_sub(LoopCenter1, LoopCenter2),
         [{{Center,Vec},?__(28,"Axis between edge loop centers saved as axis.")}];		
     _Other ->
@@ -575,9 +575,9 @@ get_vec(edge, [Edge1,Edge2], [#we{es=Etab0,vp=Vtab0},#we{es=Etab1,vp=Vtab1}]) ->
     Vb1Pos = array:get(Vb1, Vtab0),
     Va2Pos = array:get(Va2, Vtab1),
     Vb2Pos = array:get(Vb2, Vtab1),
-    Center1 = e3d_vec:average([Va1Pos,Vb1Pos]),
-    Center2 = e3d_vec:average([Va2Pos,Vb2Pos]),
-    Center = e3d_vec:average([Center1,Center2]),
+    Center1 = e3d_vec:average(Va1Pos, Vb1Pos),
+    Center2 = e3d_vec:average(Va2Pos, Vb2Pos),
+    Center = e3d_vec:average(Center1, Center2),
     Vec = e3d_vec:norm_sub(Center1, Center2),
     Vec1 = e3d_vec:norm_sub(Va1Pos,Vb1Pos),
     Vec2 = e3d_vec:norm_sub(Va2Pos,Vb2Pos),
@@ -593,7 +593,7 @@ get_vec(edge, [Edge1,Edge2], [#we{es=Etab0,vp=Vtab0},#we{es=Etab1,vp=Vtab1}]) ->
 get_vec(face, [Face1, Face2], [We0, We1]) ->
     Center1 = wings_face:center(Face1, We0),
     Center2 = wings_face:center(Face2, We1),
-    Center = e3d_vec:average([Center1,Center2]),
+    Center = e3d_vec:average(Center1, Center2),
     Vec = e3d_vec:norm_sub(Center1, Center2),
     Face1n = wings_face:normal(Face1, We0),
     Face2n = wings_face:normal(Face2, We1),
@@ -627,13 +627,13 @@ get_vec(edge, [Edge1,Edge2], #we{es=Etab,vp=Vtab}) ->
     Vb1Pos = array:get(Vb1, Vtab),
     Va2Pos = array:get(Va2, Vtab),
     Vb2Pos = array:get(Vb2, Vtab),
-    Center1 = e3d_vec:average([Va1Pos,Vb1Pos]),
-    Center2 = e3d_vec:average([Va2Pos,Vb2Pos]),
-    Center = e3d_vec:average([Center1,Center2]),
+    Center1 = e3d_vec:average(Va1Pos, Vb1Pos),
+    Center2 = e3d_vec:average(Va2Pos, Vb2Pos),
+    Center = e3d_vec:average(Center1, Center2),
     Vec = e3d_vec:norm_sub(Center1, Center2),
-    Vec1 = e3d_vec:norm_sub(Va1Pos,Vb1Pos),
-    Vec2 = e3d_vec:norm_sub(Va2Pos,Vb2Pos),
-    Cross = e3d_vec:cross(Vec1,Vec2),
+    Vec1 = e3d_vec:norm_sub(Va1Pos, Vb1Pos),
+    Vec2 = e3d_vec:norm_sub(Va2Pos, Vb2Pos),
+    Cross = e3d_vec:cross(Vec1, Vec2),
     [{{Center,Vec},
       {?__(5,"Direction between edges saved as axis."),?__(24,"Save cross vector")}},
      {{Center,Cross},
@@ -648,7 +648,7 @@ get_vec(edge, Edges, #we{vp=Vtab}=We) ->
 	[Vs1,Vs2] ->
 	    LoopCenter1 = wings_vertex:center(Vs1, We),
 	    LoopCenter2 = wings_vertex:center(Vs2, We),
-		Center = e3d_vec:average([LoopCenter1, LoopCenter2]),
+		Center = e3d_vec:average(LoopCenter1, LoopCenter2),
 	    Vec = e3d_vec:norm_sub(LoopCenter1, LoopCenter2),
 	    [{{Center,Vec},?__(28,"Axis between edge loop centers saved as axis.")}];		
 	_Other ->
@@ -702,7 +702,7 @@ get_vec(face, [Face], We) ->
 get_vec(face, [Face1,Face2], We) ->
     Center1 = wings_face:center(Face1, We),
     Center2 = wings_face:center(Face2, We),
-    Center = e3d_vec:average([Center1,Center2]),
+    Center = e3d_vec:average(Center1, Center2),
     Vec = e3d_vec:norm_sub(Center1, Center2),
     Face1n = wings_face:normal(Face1, We),
     Face2n = wings_face:normal(Face2, We),

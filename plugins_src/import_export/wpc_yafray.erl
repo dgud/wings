@@ -3429,10 +3429,10 @@ quadrangle_vertices([V1,V2,V3], VsT) ->
 	    L <- [e3d_vec:sub(P1, P2),e3d_vec:sub(P2, P3),
 		  e3d_vec:sub(P3, P1)]],
     if L23 > L31 ->
-	    if L12 > L23 -> [P1,e3d_vec:average([P1,P2]),P2,P3];
-	       true -> [P1,P2,e3d_vec:average([P2,P3]),P3]
+	    if L12 > L23 -> [P1,e3d_vec:average(P1, P2),P2,P3];
+	       true -> [P1,P2,e3d_vec:average(P2, P3),P3]
 	    end;
-       true -> [P1,P2,P3,e3d_vec:average([P3,P1])]
+       true -> [P1,P2,P3,e3d_vec:average(P3, P1)]
     end;
 quadrangle_vertices([V1,V2,V3,V4], VsT) -> 
     [element(V1+1, VsT),element(V2+1, VsT),

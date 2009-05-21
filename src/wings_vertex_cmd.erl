@@ -281,7 +281,7 @@ bevel_vec(Adj, Vother, Vpos, Vtab) ->
     Opos = array:get(Vother, Vtab),
     case member(Vother, Adj) of
 	true ->
-	    e3d_vec:sub(e3d_vec:average([Opos,Vpos]), Vpos);
+	    e3d_vec:sub(e3d_vec:average(Opos, Vpos), Vpos);
 	false ->
 	    e3d_vec:sub(Opos, Vpos)
     end.

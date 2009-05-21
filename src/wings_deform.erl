@@ -271,7 +271,7 @@ taper_3(Id, Vs0, We, Key, Effect, MinR, MaxR, Center, Acc) ->
     [{Id,{Vs,Fun}}|Acc].
 
 taper_fun(Key, Effect, center, MinR, MaxR) ->
-    Center = e3d_vec:average([MinR,MaxR]),
+    Center = e3d_vec:average(MinR, MaxR),
     taper_fun(Key, Effect, Center, MinR, MaxR);
 taper_fun(Key, Effect, Center, {_,_,_}=MinR, {_,_,_}=MaxR) ->
     Origin = element(Key, Center),
@@ -323,7 +323,7 @@ twist(Vs0, #we{id=Id}=We, Axis, Acc) ->
     Max = element(Key, MaxR),
     Range = Max - Min,
     check_range(Range, Axis),
-    Tf = twist_fun(Axis, e3d_vec:average([MinR,MaxR])),
+    Tf = twist_fun(Axis, e3d_vec:average(MinR, MaxR)),
     Vs = gb_sets:to_list(Vs0),
     Fun = twister_fun(Vs, Tf, Min, Range, We),
     [{Id,{Vs,Fun}}|Acc].

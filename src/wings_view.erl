@@ -1026,8 +1026,8 @@ frame(St0) ->
     frame_1(wings_sel:bounding_box(St)).
 
 frame_1(none) -> ok;
-frame_1([A,B]=BB) ->
-    C = e3d_vec:average(BB),
+frame_1([A,B]) ->
+    C = e3d_vec:average(A, B),
     R = e3d_vec:len(e3d_vec:sub(A, B)) / 2,
     #view{fov=Fov} = View = current(),
     Dist = R/math:tan(Fov*math:pi()/2/180),

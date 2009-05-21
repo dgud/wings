@@ -990,9 +990,9 @@ make_normals_dlist_1(edge, Edges, #we{es=Etab,vp=Vtab}=We) ->
     foldl(fun({_,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}, Bin) ->
 		  PosA = array:get(Va, Vtab),
 		  PosB = array:get(Vb, Vtab),
-		  {X1,Y1,Z1} = Mid = e3d_vec:average([PosA,PosB]),
-		  N = e3d_vec:average([wings_face:normal(Lf, We),
-				       wings_face:normal(Rf, We)]),
+		  {X1,Y1,Z1} = Mid = e3d_vec:average(PosA, PosB),
+		  N = e3d_vec:average(wings_face:normal(Lf, We),
+				      wings_face:normal(Rf, We)),
 		  {X2,Y2,Z2} = e3d_vec:add_prod(Mid, N, Length),
 		  <<Bin/binary, X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>> 
 	  end, <<>>, Et);
