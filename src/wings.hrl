@@ -203,7 +203,24 @@
 -define(IS_ANY_LIGHT(We), (We#we.light =/= none)).
 -define(HAS_SHAPE(We), (We#we.has_shape)).
 
-%% Edge in a winged-edge shape.
+%% Edge in a winged-edge object.
+%%
+%%                \       /           
+%%                 \     /            
+%%            ltpr  \   / rtsu        
+%%                   \ /              
+%%                   ve  b            
+%%                    |               
+%%                    |               
+%%       lf           |          rf   
+%%                    |               
+%%                    |               
+%%                 a  vs              
+%%                   / \              
+%%            ltsu  /   \ rtpr        
+%%                 /     \            
+%%                /       \           
+%%                               	   
 -record(edge,
 	{vs=0 :: vertex_num(),			%Start vertex for edge
 	 ve=0 :: vertex_num(),			%End vertex for edge
