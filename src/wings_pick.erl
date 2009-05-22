@@ -952,26 +952,18 @@ draw_dlist(#dlo{mirror=Matrix,pick=Pick,src_we=#we{id=Id}}=D) ->
     gl:frontFace(?GL_CCW),
     D.
 
-draw_1(#dlo{ns=Ns0,src_we=#we{perm=Perm}=We})
+draw_1(#dlo{ns=Ns0,face_vs=Vs,face_map=Map,src_we=#we{perm=Perm}=We})
   when ?IS_SELECTABLE(Perm) ->
+    Vs =/= none orelse exit(nyi),
     Ns = wings_we:visible(gb_trees:to_list(Ns0), We),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    gl:vertexPointer(3, ?GL_FLOAT, 0, Vs),
     gl:pushName(0),
-    foreach(fun({Face,Info}) ->
+    foreach(fun({Face,_Info}) ->
 		    gl:loadName(Face),
-		    face(Info)
+		    {Start, NoElements} = array:get(Face,Map),
+		    gl:drawArrays(?GL_TRIANGLES, Start, NoElements)
 	    end, Ns),
-    gl:popName();
+    gl:popName(),
+    gl:disableClientState(?GL_VERTEX_ARRAY);
 draw_1(_) -> ok.
-
-face([_|[A,B,C]]) ->
-    gl:'begin'(?GL_TRIANGLES),
-    wpc_ogla:tri(A, B, C),
-    gl:'end'();
-face([_|[A,B,C,D]]) ->
-    gl:'begin'(?GL_QUADS),
-    wpc_ogla:quad(A, B, C, D),
-    gl:'end'();
-face({_,Fs,VsPos}) ->
-    gl:'begin'(?GL_TRIANGLES),
-    wings__du:plain_face(Fs, VsPos),
-    gl:'end'().

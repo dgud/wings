@@ -16,7 +16,7 @@
 	 add_materials/2,add_materials/3,
 	 update_materials/2,
 	 update_image/4,used_images/1,
-	 used_materials/1,
+	 used_materials/1, has_texture/2,
 	 apply_material/2,is_transparent/2]).
 
 -define(NEED_OPENGL, 1).
@@ -349,6 +349,11 @@ new_name(Name0, Tab) ->
     Names = [atom_to_list(N) || N <- gb_trees:keys(Tab)],
     Name = wings_util:unique_name(Name0, Names),
     list_to_atom(Name).
+
+has_texture(Name, Mtab) ->
+    Mat = gb_trees:get(Name, Mtab),
+    Maps = prop_get(maps, Mat, []),
+    none =/= prop_get(diffuse, Maps, none).
 
 apply_material(Name, Mtab) when is_atom(Name) ->
     Mat = gb_trees:get(Name, Mtab),

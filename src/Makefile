@@ -47,6 +47,7 @@ MODULES= \
 	wings_dl \
 	wings_drag \
 	wings_draw \
+	wings_draw_setup \
 	wings_draw_util \
 	wings_edge \
 	wings_edge_cmd \

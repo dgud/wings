@@ -99,6 +99,15 @@
 	 proxy_faces=none,			%Smooth proxy faces.
 	 proxy_edges=none,			%Smooth proxy edges.
 
+	 %% Vertex buffers (binaries of (later) vbo id's)
+	 raw_vs   = none,              % Binary of raw vertex positions
+	 face_vs  = none,              % Vertex binary for drawing faces
+	 face_fn  = none,              % Face Normals (flat but per per vertex)
+	 face_sn  = none,              % Face Normals (smooth)
+	 face_uv  = none,              % UV coords
+	 face_vc  = none,              % Vertex Colors coords
+	 face_map = none,              % FaceId -> {BinPos, TriCount}
+	 mat_map  = none,              % Face per Material draw info
 	 %% Miscellanous.
 	 hilite=none,				%Hilite display list.
 	 mirror=none,				%Virtual mirror data.
