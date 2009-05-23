@@ -973,7 +973,7 @@ oriented_faces([Tolerance,true,Save], St0) ->
     Sel = wings_sel:fold(fun(Faces, #we{id=Id}=We, A) ->
 	        Normals0 = foldl(fun(F,Acc) ->
 			        [wings_face:normal(F, We)|Acc]
-		    end,A,gb_sets:to_list(Faces)),
+		    end,[],gb_sets:to_list(Faces)),
             Normals = lists:usort(Normals0),
             [{Id,norm_search(Faces,Normals,CosTolerance,We,Faces)}|A]
     end, [], St0),

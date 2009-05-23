@@ -9,4 +9,7 @@
 
 - Tweak mode temporary selection fix. [optigon]
 
+- Select Similar Normals with the option Connected Faces Only and
+  a selection comprising multiple objects would cause a crash.
+  (Thanks to pauljs75.) [bjorng]
 -----------------------------------------------------------------------------
