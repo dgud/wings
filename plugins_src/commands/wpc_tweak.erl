@@ -258,7 +258,7 @@ handle_tweak_event0(#keyboard{sym=?SDLK_ESCAPE}, T) ->
 handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{st=St0}=T) ->
     case tweak_hotkey(C, T) of
       none ->
-            St = fake_selection(St0),
+            St = fake_sel(St0),
             case wings_hotkey:event(Ev,St) of
               next ->
                 update_tweak_handler(T);
@@ -471,14 +471,13 @@ handle_tweak_event2(quit=Ev, T) ->
 handle_tweak_event2({current_state,St}, T) ->
     update_tweak_handler(T#tweak{st=St});
 
-handle_tweak_event2({new_state,St}, #tweak{st=St}=T) ->
-    update_tweak_handler(T);
 handle_tweak_event2({new_state,St1}, #tweak{st=St0}=T) ->
-    St2 = wings_undo:save(St0, St1),
-    St = case St2 of
-         #st{saved=false} -> St2;
-         _Other -> wings_u:caption(St2#st{saved=false})
-     end,
+    St2 = clear_temp_sel(St1),
+    St3 = wings_undo:save(St0, St2),
+    St = case St3 of
+         #st{saved=false} -> St3;
+         _Other -> wings_u:caption(St3#st{saved=false})
+    end,
     update_tweak_handler(T#tweak{st=St});
 
 handle_tweak_event2({action,Action}, #tweak{tmode=wait,st=#st{}=St0}=T) ->
@@ -1245,15 +1244,7 @@ fkey_help() ->
     end,
     "["++F1++","++F2++","++F3++"]: ".
 
-fake_selection(St) ->
-    wings_dl:fold(fun(#dlo{src_sel=none}, S) ->
-              %% No selection, try highlighting.
-              fake_sel_1(S);
-             (#dlo{src_we=#we{id=Id},src_sel={Mode,Els}}, S) ->
-              S#st{selmode=Mode,sel=[{Id,Els}]}
-          end, St).
-
-fake_sel_1(St0) ->
+fake_sel(#st{sel=[]}=St0) ->
     case wings_pref:get_value(use_temp_sel) of
     false -> St0;
     true ->
@@ -1262,7 +1253,8 @@ fake_sel_1(St0) ->
         {add,_,St} -> set_temp_sel(St0,St);
         _ -> St0
         end
-    end.
+    end;
+fake_sel(St) -> St.
 
 set_temp_sel(#st{sh=Sh,selmode=Mode}, St) ->
     St#st{temp_sel={Mode,Sh}}.
