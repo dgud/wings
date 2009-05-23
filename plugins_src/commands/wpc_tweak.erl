@@ -429,7 +429,8 @@ handle_tweak_event1(#mousebutton{button=2,state=?SDL_RELEASED},
     Cam = wings_pref:get_value(camera_mode),
     case Cam of
       maya -> end_drag(T#tweak{dc={0,0}});
-      mb -> end_drag(T#tweak{dc={0,0}})
+      mb -> end_drag(T#tweak{dc={0,0}});
+      _ -> keep
     end;
 
 handle_tweak_event1(#mousemotion{state=?SDL_RELEASED},

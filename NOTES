@@ -1,3 +1,14 @@
+--- 1.0.X.Y -----------------------------------------------------------------
+- Magnets are now drawn correctly in Tweak when selections across multiple
+  objects are dragged. [optigon]
+
+- Selectings multiple objects in Tweak and calling a command via a hotkey would
+  only affect one of the objects. Now corrected. [optigon]
+
+- Crash reported by Fonte Boa corrected. [optigon]
+
+- Tweak mode temporary selection fix. [optigon]
+
 --- 1.0 ---------------------------------------------------------------------
 - Gordo eliminated some color banding in the task switching icon on Windows
   and also cleaned up the edges on that icon. [bjorng]
