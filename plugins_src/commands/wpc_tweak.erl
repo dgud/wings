@@ -258,7 +258,7 @@ handle_tweak_event0(#keyboard{sym=?SDLK_ESCAPE}, T) ->
 handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{st=St0}=T) ->
     case tweak_hotkey(C, T) of
       none ->
-            St = fake_selection(St0),
+            St = fake_sel(St0),
             case wings_hotkey:event(Ev,St) of
               next ->
                 update_tweak_handler(T);
@@ -429,7 +429,8 @@ handle_tweak_event1(#mousebutton{button=2,state=?SDL_RELEASED},
     Cam = wings_pref:get_value(camera_mode),
     case Cam of
       maya -> end_drag(T#tweak{dc={0,0}});
-      mb -> end_drag(T#tweak{dc={0,0}})
+      mb -> end_drag(T#tweak{dc={0,0}});
+      _ -> keep
     end;
 
 handle_tweak_event1(#mousemotion{state=?SDL_RELEASED},
@@ -1230,15 +1231,7 @@ fkey_help() ->
     end,
     "["++F1++","++F2++","++F3++"]: ".
 
-fake_selection(St) ->
-    wings_dl:fold(fun(#dlo{src_sel=none}, S) ->
-              %% No selection, try highlighting.
-              fake_sel_1(S);
-             (#dlo{src_we=#we{id=Id},src_sel={Mode,Els}}, S) ->
-              S#st{selmode=Mode,sel=[{Id,Els}]}
-          end, St).
-
-fake_sel_1(St0) ->
+fake_sel(#st{sel=[]}=St0) ->
     case wings_pref:get_value(use_temp_sel) of
     false -> St0;
     true ->
@@ -1247,7 +1240,8 @@ fake_sel_1(St0) ->
         {add,_,St} -> set_temp_sel(St0,St);
         _ -> St0
         end
-    end.
+    end;
+fake_sel(St) -> St.
 
 set_temp_sel(#st{sh=Sh,selmode=Mode}, St) ->
     St#st{temp_sel={Mode,Sh}}.
@@ -1428,9 +1422,9 @@ get_inv_magnet_value2(MagType,Value,Pos) ->
     Step=0.1,
     V1=mf(MagType,Pos,1.0),
     V2=mf(MagType,Pos+Step,1.0),
-    case	Value<V1 andalso Value>=V2 of
-    true -> Pos+(V1-Value)/(V1-V2)*Step;
-    false -> get_inv_magnet_value2(MagType,Value,Pos+Step)
+    case Value<V1 andalso Value>=V2 of
+      true -> Pos+(V1-Value)/(V1-V2)*Step;
+      false -> get_inv_magnet_value2(MagType,Value,Pos+Step)
     end.
 get_inv_magnet_value(MagType,Value) ->
     get_inv_magnet_value2(MagType,Value,0.0).
@@ -1438,17 +1432,19 @@ get_inv_magnet_value(MagType,Value) ->
 draw_magnet(#tweak{magnet=false}) -> ok;
 draw_magnet(#tweak{st=#st{selmode=body}}) -> ok;
 draw_magnet(#tweak{mag_r=R,mag_type=Mt}) ->
-    gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-    gl:disable(?GL_DEPTH_TEST),
-    gl:enable(?GL_BLEND),
-    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-    wings_view:load_matrices(false),
-    gl:color4f(0, 0, 1, 0.06),
     R2=[get_inv_magnet_value(Mt,X/10.0)||X<-lists:seq(1,9)],
-    wings_dl:fold(fun(D, _) -> draw_magnet_1(D, R,R2) end, []),
-    gl:popAttrib().
+    wings_dl:fold(fun(D, _) ->
+        gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
+        gl:disable(?GL_DEPTH_TEST),
+        gl:enable(?GL_BLEND),
+        gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+        wings_view:load_matrices(false),
+        gl:color4f(0, 0, 1, 0.06),
+        draw_magnet_1(D, R,R2),
+        gl:popAttrib()
+    end, []).
 
-draw_magnet_1(#dlo{mirror=Mtx,drag=#drag{mm=Side,pos={X,Y,Z}}}, R,R2) ->
+draw_magnet_1(#dlo{mirror=Mtx,drag=#drag{mm=Side,pos=P={X,Y,Z}}}, R,R2) ->
     case Side of
     mirror -> gl:multMatrixf(Mtx);
     original -> ok
