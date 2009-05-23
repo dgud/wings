@@ -497,7 +497,7 @@ get_texture(Wc, Wd, Hc, Hd, {W,H}=Info, DL, UsingFbo, ImageAcc)
   when Wc < Wd, Hc < Hd ->
     gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
     gl:clearColor(1, 1, 1, 1),
-%%    gl:shadeModel(?GL_SMOOTH),
+    gl:shadeModel(?GL_SMOOTH),
     gl:disable(?GL_CULL_FACE),
     gl:disable(?GL_LIGHTING),
     texture_view(Wc, Wd, Hc, Hd),
