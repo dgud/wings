@@ -1444,7 +1444,7 @@ draw_magnet(#tweak{mag_r=R,mag_type=Mt}) ->
         gl:popAttrib()
     end, []).
 
-draw_magnet_1(#dlo{mirror=Mtx,drag=#drag{mm=Side,pos=P={X,Y,Z}}}, R,R2) ->
+draw_magnet_1(#dlo{mirror=Mtx,drag=#drag{mm=Side,pos={X,Y,Z}}}, R,R2) ->
     case Side of
     mirror -> gl:multMatrixf(Mtx);
     original -> ok

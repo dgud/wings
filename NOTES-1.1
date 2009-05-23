@@ -1,4 +1,29 @@
---- 1.1---- -----------------------------------------------------------------
+--- 1.1.1 -------------------------------------------------------------------
+- The data structure for the vertex tables has been changed.
+  (There is one vertex table to keep track of the vertex positions,
+  and another vertex table used for finding edges and face around
+  the vertex.) The new data structure is faster and uses less memory.
+  [bjorng]
+
+- When displaying vertices and edges, a feature in OpenGL called vertex
+  arrays is used to faster transfer the data from Wings into OpenGL.
+  This way of displaying geometry is slightly faster than the previous
+  method. [dgud, bjorng]
+
+- ESDL updated to 1.0.1. (The next release in the 1.1 series will probably
+  not work without that version of ESDL.) [bjorng]
+
+- Magnets are now drawn correctly in Tweak when selections across multiple
+  objects are dragged. [optigon]
+
+- Selectings multiple objects in Tweak and calling a command via a hotkey would
+  only affect one of the objects. Now corrected. [optigon]
+
+- Crash reported by Fonte Boa corrected. [optigon]
+
+- Tweak mode temporary selection fix. [optigon]
+
+--- 1.1 ---------------------------------------------------------------------
 - Added a new preference in the Misc tab to turn on a Develop menu
   containing various tools for the Wings developers. [bjorng]
 

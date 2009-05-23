@@ -81,12 +81,11 @@ do_export(Ask, Op, _Exporter, _St) when is_atom(Ask) ->
 	       fun(Res) ->
 		       {file,{Op,{bzw,Res}}}
 	       end);
-do_export(Attr, _Op, Exporter, St) when is_list(Attr) ->
+do_export(Attr, _Op, Exporter, _St) when is_list(Attr) ->
     set_pref(Attr),
     SubDivs = proplists:get_value(subdivisions, Attr, 0),
     Tesselation = proplists:get_value(tesselation, Attr, none),
     Uvs = proplists:get_bool(include_uvs, Attr),
-	Volume = volume(St),
     Ps = [{tesselation,Tesselation},{subdivisions,SubDivs},
 	  {include_uvs,Uvs},{include_colors,false}|props()],
     Exporter(Ps, export_fun(Attr)).
@@ -133,6 +132,3 @@ export_transform(Contents, Attr) ->
 import_transform(Contents, Attr) ->
     Mat = wpa:import_matrix(Attr),
     e3d_file:transform_matrix(Contents, Mat).
-
-volume(St) ->
-    St.
