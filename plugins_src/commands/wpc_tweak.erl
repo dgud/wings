@@ -1435,9 +1435,9 @@ get_inv_magnet_value2(MagType,Value,Pos) ->
     Step=0.1,
     V1=mf(MagType,Pos,1.0),
     V2=mf(MagType,Pos+Step,1.0),
-    case	Value<V1 andalso Value>=V2 of
-    true -> Pos+(V1-Value)/(V1-V2)*Step;
-    false -> get_inv_magnet_value2(MagType,Value,Pos+Step)
+    case Value<V1 andalso Value>=V2 of
+      true -> Pos+(V1-Value)/(V1-V2)*Step;
+      false -> get_inv_magnet_value2(MagType,Value,Pos+Step)
     end.
 get_inv_magnet_value(MagType,Value) ->
     get_inv_magnet_value2(MagType,Value,0.0).
@@ -1445,17 +1445,19 @@ get_inv_magnet_value(MagType,Value) ->
 draw_magnet(#tweak{magnet=false}) -> ok;
 draw_magnet(#tweak{st=#st{selmode=body}}) -> ok;
 draw_magnet(#tweak{mag_r=R,mag_type=Mt}) ->
-    gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-    gl:disable(?GL_DEPTH_TEST),
-    gl:enable(?GL_BLEND),
-    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-    wings_view:load_matrices(false),
-    gl:color4f(0, 0, 1, 0.06),
     R2=[get_inv_magnet_value(Mt,X/10.0)||X<-lists:seq(1,9)],
-    wings_dl:fold(fun(D, _) -> draw_magnet_1(D, R,R2) end, []),
-    gl:popAttrib().
+    wings_dl:fold(fun(D, _) ->
+        gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
+        gl:disable(?GL_DEPTH_TEST),
+        gl:enable(?GL_BLEND),
+        gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+        wings_view:load_matrices(false),
+        gl:color4f(0, 0, 1, 0.06),
+        draw_magnet_1(D, R,R2),
+        gl:popAttrib()
+    end, []).
 
-draw_magnet_1(#dlo{mirror=Mtx,drag=#drag{mm=Side,pos={X,Y,Z}}}, R,R2) ->
+draw_magnet_1(#dlo{mirror=Mtx,drag=#drag{mm=Side,pos=P={X,Y,Z}}}, R,R2) ->
     case Side of
     mirror -> gl:multMatrixf(Mtx);
     original -> ok
