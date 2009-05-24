@@ -446,7 +446,7 @@ visible_vertices(#we{vp=Vtab0}=We) ->
 	    array:sparse_to_list(Vtab0);
 	true ->
 	    Vis0 = wings_we:visible_vs(We),
-	    Vis = sofs:from_external(Vis0, [vertex]),
+	    Vis  = sofs:from_external(Vis0, [vertex]),
 	    Vtab = sofs:from_external(array:sparse_to_list(Vtab0),
 				      [{vertex,position}]),
 	    sofs:to_external(sofs:image(Vtab, Vis))
@@ -520,6 +520,16 @@ update_sel_all(#dlo{work=Faces}=D) when Faces =/= none ->
     D#dlo{sel=Faces};
 update_sel_all(#dlo{smooth=Faces}=D) when Faces =/= none ->
     D#dlo{sel=Faces};
+update_sel_all(#dlo{face_vs=Vs}=D) when Vs =/= none ->
+    List = gl:genLists(1),
+    gl:newList(List, ?GL_COMPILE),
+    wings_draw_setup:vertexPointer(Vs),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    Count = wings_draw_setup:face_vertex_count(D),
+    gl:drawArrays(?GL_TRIANGLES, 0, Count),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
+    gl:endList(),
+    D#dlo{sel=List};
 update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
     %% No suitable display list to re-use. Build selection from scratch.
     update_face_sel(gb_trees:keys(Ftab), D).

@@ -217,27 +217,28 @@ hilit_draw_sel(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
     gl:vertex3fv(array:get(Va, Vtab)),
     gl:vertex3fv(array:get(Vb, Vtab)),
     gl:'end'();
-hilit_draw_sel(face, Face, D) ->
+hilit_draw_sel(face, Face, #dlo{face_map=Map, face_vs=Vs}) ->
     case wings_pref:get_value(selection_style) of
 	stippled -> gl:enable(?GL_POLYGON_STIPPLE);
 	solid -> ok
     end,
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    gl:'begin'(?GL_TRIANGLES),
-    wings_draw_util:unlit_face(Face, D),
-    gl:'end'(),
-    gl:disable(?GL_POLYGON_STIPPLE);
-hilit_draw_sel(body, _, #dlo{src_we=We}=D) ->
-    case wings_pref:get_value(selection_style) of
-	stippled -> gl:enable(?GL_POLYGON_STIPPLE);
-	solid -> ok
-    end,
-    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    BinFs = lists:foldl(fun(Face, Bin) ->
-				wings_draw_util:unlit_face_bin(Face, D, Bin)
-			end, <<>>, wings_we:visible(We)),
+    wings_draw_setup:vertexPointer(Vs),
     gl:enableClientState(?GL_VERTEX_ARRAY),
-    wings_draw:drawVertices(?GL_TRIANGLES, BinFs),
+    {Start,NoElements} = array:get(Face,Map),
+    gl:drawArrays(?GL_TRIANGLES, Start, NoElements),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
+    gl:disable(?GL_POLYGON_STIPPLE);
+hilit_draw_sel(body, _, #dlo{face_vs=Vs}=D) ->
+    case wings_pref:get_value(selection_style) of
+	stippled -> gl:enable(?GL_POLYGON_STIPPLE);
+	solid -> ok
+    end,
+    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    wings_draw_setup:vertexPointer(Vs),
+    Count = wings_draw_setup:face_vertex_count(D),
+    gl:drawArrays(?GL_TRIANGLES, 0, Count),
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:disable(?GL_POLYGON_STIPPLE).
 
@@ -558,10 +559,10 @@ raw_pick(X0, Y0, #st{selmode=Mode}=St) ->
     wings_view:modelview(),
     case wings_wm:lookup_prop(select_backface) of
 	{value,true} ->
-	    draw();
+	    draw(St);
 	_ ->
 	    gl:enable(?GL_CULL_FACE),
-	    draw(),
+	    draw(St),
 	    gl:disable(?GL_CULL_FACE)
     end,
     Hits = get_hits(HitBuf),
@@ -832,7 +833,7 @@ pick_all(DrawFaces, X, Y0, W, H, St) ->
     case DrawFaces of
 	true ->
 	    gl:enable(?GL_CULL_FACE),
-	    draw(),
+	    draw(St),
 	    gl:disable(?GL_CULL_FACE);
 	false -> marquee_draw(St)
     end,
@@ -855,8 +856,10 @@ marquee_draw(#st{selmode=vertex}) ->
 		   end
 	   end,
     marquee_draw_1(Draw);
-marquee_draw(_) -> draw().
+marquee_draw(St) -> draw(St).
 
+%% TODO: Should we build a vertex array here?
+%%       That would mean traverse them twice but fewer gl calls.
 marquee_draw_all_vs([{V,Pos}|VsPos]) ->
     gl:loadName(V),
     gl:'begin'(?GL_POINTS),
@@ -915,8 +918,8 @@ marquee_draw_fun(#dlo{mirror=Mirror,src_we=#we{id=Id}=We}, Draw) ->
 %% Draw for the purpose of picking the items that the user clicked on.
 %%
 
-draw() ->
-    wings_dl:map(fun draw_fun/2, []).
+draw(St) ->
+    wings_dl:map(fun draw_fun/2, St).
 
 draw_fun(#dlo{work=Work,src_we=#we{id=Id,perm=Perm}=We}=D, _)
   when ?IS_LIGHT(We), ?IS_SELECTABLE(Perm) ->
@@ -926,10 +929,10 @@ draw_fun(#dlo{work=Work,src_we=#we{id=Id,perm=Perm}=We}=D, _)
     gl:popName(),
     gl:popName(),
     D;
-draw_fun(#dlo{pick=none}=D, _) ->
+draw_fun(#dlo{pick=none}=D0, St) ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
-    draw_1(D),
+    D = draw_1(D0,St),
     gl:endList(),
     draw_dlist(D#dlo{pick=List});
 draw_fun(D, _) -> draw_dlist(D).
@@ -952,16 +955,10 @@ draw_dlist(#dlo{mirror=Matrix,pick=Pick,src_we=#we{id=Id}}=D) ->
     gl:frontFace(?GL_CCW),
     D.
 
-draw_1(#dlo{ns=Ns0,face_vs=none,src_we=#we{perm=Perm}=We})
+draw_1(D=#dlo{face_vs=none,src_we=#we{perm=Perm}},St)
   when ?IS_SELECTABLE(Perm) ->
-    Ns = wings_we:visible(gb_trees:to_list(Ns0), We),
-    gl:pushName(0),
-    foreach(fun({Face,Info}) ->
-		    gl:loadName(Face),
-		    face(Info)
-	    end, Ns),
-    gl:popName();
-draw_1(#dlo{ns=Ns0,face_vs=Vs,face_map=Map,src_we=#we{perm=Perm}=We})
+    draw_1(wings_draw_setup:work(D,St),St);
+draw_1(D=#dlo{ns=Ns0,face_vs=Vs,face_map=Map,src_we=#we{perm=Perm}=We},_)
   when ?IS_SELECTABLE(Perm) ->
     Ns = wings_we:visible(gb_trees:to_list(Ns0), We),
     gl:enableClientState(?GL_VERTEX_ARRAY),
@@ -973,18 +970,7 @@ draw_1(#dlo{ns=Ns0,face_vs=Vs,face_map=Map,src_we=#we{perm=Perm}=We})
 		    gl:drawArrays(?GL_TRIANGLES, Start, NoElements)
 	    end, Ns),
     gl:popName(),
-    gl:disableClientState(?GL_VERTEX_ARRAY);
-draw_1(_) -> ok.
+    gl:disableClientState(?GL_VERTEX_ARRAY),
+    D;
+draw_1(D,_) -> D.
 
-face([_|[A,B,C]]) ->
-    gl:'begin'(?GL_TRIANGLES),
-    wpc_ogla:tri(A, B, C),
-    gl:'end'();
-face([_|[A,B,C,D]]) ->
-    gl:'begin'(?GL_QUADS),
-    wpc_ogla:quad(A, B, C, D),
-    gl:'end'();
-face({_,Fs,VsPos}) ->
-    gl:'begin'(?GL_TRIANGLES),
-    wings__du:plain_face(Fs, VsPos),
-    gl:'end'().

@@ -14,6 +14,7 @@
 -module(wings_draw_setup).
 -export([work/2,smooth/2]).
 -export([vertexPointer/1,normalPointer/1,texCoordPointer/1]).
+-export([face_vertex_count/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -33,6 +34,9 @@ normalPointer({Stride,Ns}) ->
 texCoordPointer({Stride,UV}) ->
     gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV);
 texCoordPointer(none) -> ok.
+
+face_vertex_count(#dlo{mat_map=[{_Mat,_Start,Last}|_]}) ->
+    Last. % This is reverse sorted
 
 %% Setup face_vs and face_fn and additional uv coords or vertex colors
 work(#dlo{face_vs=none,src_we=#we{fs=Ftab}}=D, St) ->
@@ -211,7 +215,10 @@ add_tri(Bin, {NX,NY,NZ},
      U2:?F32,V2:?F32,
      X3:?F32,Y3:?F32,Z3:?F32,
      NX:?F32,NY:?F32,NZ:?F32,
-     U3:?F32,V3:?F32>>.
+     U3:?F32,V3:?F32>>;
+add_tri(Bin,N, Pos, _UV) ->
+    Z = {0.0,0.0},
+    add_tri(Bin, N, Pos, [Z,Z,Z]).
 
 add_quad(Bin, {NX,NY,NZ},
 	 [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}]) ->
@@ -267,12 +274,18 @@ add_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab, UVtab) ->
     PA = element(A, Vtab),
     PB = element(B, Vtab),
     PC = element(C, Vtab),
-    UVa = element(A, UVtab),
-    UVb = element(B, UVtab),
-    UVc = element(C, UVtab),
+    %% Tessalated face may have more Vs than UVs
+    UVa = uv_element(A, UVtab),
+    UVb = uv_element(B, UVtab),
+    UVc = uv_element(C, UVtab),
     Vs = add_tri(Vs0, Normal, [PA,PB,PC], [UVa,UVb,UVc]),
     add_poly(Vs, Normal, Fs, Vtab, UVtab);
 add_poly(Vs, _, _, _, _) -> Vs.
+
+uv_element(A, Tab) when A =< size(Tab) ->
+    element(A,Tab);
+uv_element(_, _) ->
+    {0.0,0.0}.
 
 add3(Bin, [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}]) ->
     <<Bin/binary,
