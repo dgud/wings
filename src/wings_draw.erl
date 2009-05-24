@@ -38,6 +38,7 @@
 	 orig_we
 	}).
 
+
 %%%
 %%% Refresh the display lists from the contents of St.
 %%%
@@ -523,7 +524,7 @@ update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
     %% No suitable display list to re-use. Build selection from scratch.
     update_face_sel(gb_trees:keys(Ftab), D).
 
-update_face_sel(Fs0, #dlo{src_we=We, face_vs=none}=D) ->
+update_face_sel(Fs0, #dlo{src_we=We,face_vs=none}=D) ->
     Fs = wings_we:visible(Fs0, We),
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),     
@@ -533,14 +534,14 @@ update_face_sel(Fs0, #dlo{src_we=We, face_vs=none}=D) ->
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     D#dlo{sel=List};
-update_face_sel(Fs0, #dlo{src_we=We, face_vs=Vs, face_map=Map}=D) ->
+update_face_sel(Fs0, #dlo{src_we=We,face_vs=Vs,face_map=Map}=D) ->
     Fs = wings_we:visible(Fs0, We),
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
     gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:vertexPointer(3, ?GL_FLOAT, 0, Vs),
+    wings_draw_setup:vertexPointer(Vs),
     Draw = fun(Face) ->
-		   {Start, NoElements} = array:get(Face,Map),
+		   {Start,NoElements} = array:get(Face, Map),
 		   gl:drawArrays(?GL_TRIANGLES, Start, NoElements)
 	   end,
     [Draw(Face) || Face <- Fs],
@@ -805,19 +806,17 @@ tricky_share({X,Y,Z}, {_,_,Z}=Old) ->
 %%% Drawing routines for workmode.
 %%%
 
-draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,
-		    face_uv=UV, mat_map=MatMap}, #st{mat=Mtab}) ->
+draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,face_uv=UV,mat_map=MatMap},
+	       #st{mat=Mtab}) ->
     Dl = gl:genLists(1),
-    gl:vertexPointer(3, ?GL_FLOAT, 0, BinVs),
-    gl:normalPointer(?GL_FLOAT, 0, Ns),
-    case UV of
-	none -> ignore;
-	_ -> gl:texCoordPointer(2, ?GL_FLOAT, 0, UV)
-    end,
+    wings_draw_setup:vertexPointer(BinVs),
+    wings_draw_setup:normalPointer(Ns),
+    wings_draw_setup:texCoordPointer(UV),
+
     gl:newList(Dl, ?GL_COMPILE),
     gl:enableClientState(?GL_VERTEX_ARRAY),
     gl:enableClientState(?GL_NORMAL_ARRAY),
-    lists:foreach(fun(MatFs) -> draw_mat_fs(MatFs,Mtab) end, MatMap),
+    lists:foreach(fun(MatFs) -> draw_mat_fs(MatFs, Mtab) end, MatMap),
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:disableClientState(?GL_NORMAL_ARRAY),
     gl:endList(),
@@ -914,52 +913,6 @@ draw_uv_faces([], _) -> ok.
 %%% Smooth drawing.
 %%%
 
-smooth_dlist(#dlo{src_we=#we{}=We,ns=Ns0}=D, St) ->
-    Ns1 = foldl(fun({F,[N|_]}, A) -> [{F,N}|A];
-		   ({F,{N,_,_}}, A) -> [{F,N}|A]
-		end, [], gb_trees:to_list(Ns0)),
-    Ns = reverse(Ns1),
-    Flist = wings_we:normals(Ns, We),
-    smooth_faces(Flist, D, St);
-smooth_dlist(We, St) ->
-    D = update_normals(changed_we(#dlo{}, #dlo{src_we=We})),
-    smooth_dlist(D, St).
-
-smooth_faces(Ftab, D, St) ->
-    smooth_faces(wings_draw_util:prepare(Ftab, D, St), D).
-
-smooth_faces({material,MatFaces,St}, #dlo{ns=Ns}) ->
-    Draw = fun(false, Fs) ->
-		   wings_draw_util:smooth_plain_faces(Fs, Ns);
-	      (true, Fs) ->
-		   wings_draw_util:smooth_uv_faces(Fs, Ns)
-	   end,
-    draw_smooth_faces(Draw, MatFaces, St);
-smooth_faces({color,{Same,Diff},#st{mat=Mtab}}, #dlo{ns=Ns}) ->
-    ListOp = gl:genLists(1),
-    gl:newList(ListOp, ?GL_COMPILE),
-    wings_material:apply_material(default, Mtab),
-    gl:enable(?GL_COLOR_MATERIAL),
-    gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
-    gl:'begin'(?GL_TRIANGLES),
-    draw_smooth_vtx_faces_1(Same, Ns),
-    wings_draw_util:smooth_vcol_faces(Diff, Ns),
-    gl:'end'(),
-    gl:disable(?GL_COLOR_MATERIAL),
-    gl:endList(),
-    {[ListOp,none],false}.
-
-draw_smooth_vtx_faces_1([{none,Faces}|MatFaces], Ns) ->
-    gl:color3f(1.0, 1.0, 1.0),
-    wings_draw_util:smooth_plain_faces(Faces, Ns),
-    draw_smooth_vtx_faces_1(MatFaces, Ns);
-draw_smooth_vtx_faces_1([{Col,Faces}|MatFaces], Ns) ->
-    gl:color3fv(Col),
-    wings_draw_util:smooth_plain_faces(Faces, Ns),
-    draw_smooth_vtx_faces_1(MatFaces, Ns);
-draw_smooth_vtx_faces_1([], _) -> ok.
-
-
 draw_mat_fs({Mat,Start,NoElements}, Mtab) ->
     gl:pushAttrib(?GL_TEXTURE_BIT),
     case wings_material:apply_material(Mat, Mtab) of
@@ -975,13 +928,9 @@ draw_mat_fs({Mat,Start,NoElements}, Mtab) ->
 smooth_faces_all(#dlo{face_vs=BinVs,face_sn=Ns,
 		      face_uv=UV,mat_map=MatMap}, #st{mat=Mtab}) ->
     ListOp = gl:genLists(1),
-    gl:vertexPointer(3, ?GL_FLOAT, 0, BinVs),
-    gl:normalPointer(?GL_FLOAT, 0, Ns),
-
-    case UV of
-	none -> ignore;
-	_ -> gl:texCoordPointer(2, ?GL_FLOAT, 0, UV)
-    end,
+    wings_draw_setup:vertexPointer(BinVs),
+    wings_draw_setup:normalPointer(Ns),
+    wings_draw_setup:texCoordPointer(UV),
 
     DrawSolid = fun(Data={Mat,_,_}, Tr) ->
 			case wings_material:is_transparent(Mat, Mtab) of
@@ -1015,46 +964,6 @@ smooth_faces_all(#dlo{face_vs=BinVs,face_sn=Ns,
 	    gl:endList(),
 	    {[ListOp,ListTr],true}
     end.
-
-
-draw_smooth_faces(DrawFace, Flist, #st{mat=Mtab}) ->
-    ListOp = gl:genLists(1),
-    gl:newList(ListOp, ?GL_COMPILE),
-    Trans = draw_smooth_opaque(Flist, DrawFace, Mtab, []),
-    gl:endList(),
-    if
-	Trans =:= [] ->
-	    {[ListOp,none],false};
-	true ->
-	    ListTr = gl:genLists(1),
-	    gl:newList(ListTr, ?GL_COMPILE),
-	    draw_smooth_tr(Flist, DrawFace, Mtab),
-	    gl:endList(),
-	    {[ListOp,ListTr],true}
-    end.
-
-draw_smooth_opaque([{M,Faces}=MatFaces|T], DrawFace, Mtab, Acc) ->
-    case wings_material:is_transparent(M, Mtab) of
-	true ->
-	    draw_smooth_opaque(T, DrawFace, Mtab, [MatFaces|Acc]);
-	false ->
-	    do_draw_smooth(DrawFace, M, Faces, Mtab),
-	    draw_smooth_opaque(T, DrawFace, Mtab, Acc)
-    end;
-draw_smooth_opaque([], _, _, Acc) -> Acc.
-
-draw_smooth_tr([{M,Faces}|T], DrawFace, Mtab) ->
-    do_draw_smooth(DrawFace, M, Faces, Mtab),
-    draw_smooth_tr(T, DrawFace, Mtab);
-draw_smooth_tr([], _, _) -> ok.
-
-do_draw_smooth(DrawFaces, Mat, Faces, Mtab) ->
-    gl:pushAttrib(?GL_TEXTURE_BIT),
-    IsTxMaterial = wings_material:apply_material(Mat, Mtab),
-    gl:'begin'(?GL_TRIANGLES),
-    DrawFaces(IsTxMaterial, Faces),
-    gl:'end'(),
-    gl:popAttrib().
 
 %%
 %% Draw normals for the selected elements.

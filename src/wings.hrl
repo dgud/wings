@@ -82,6 +82,8 @@
 -type wings_cmd() :: tuple() | atom().
 -type maybe_wings_cmd() :: 'ignore' | wings_cmd().
 
+-type wings_vtx_buffer() :: 'none' | {integer(),binary()}.
+
 %% Display lists per object.
 %%  Important: Plain integers and integers in lists will be assumed to
 %%  be display lists. Arbitrary integers must be stored inside a tuple
@@ -99,20 +101,23 @@
 	 proxy_faces=none,			%Smooth proxy faces.
 	 proxy_edges=none,			%Smooth proxy edges.
 
-	 %% Vertex buffers (binaries of (later) vbo id's)
-	 raw_vs   = none,              % Binary of raw vertex positions
-	 face_vs  = none,              % Vertex binary for drawing faces
-	 face_fn  = none,              % Face Normals (flat but per per vertex)
-	 face_sn  = none,              % Face Normals (smooth)
-	 face_uv  = none,              % UV coords
-	 face_vc  = none,              % Vertex Colors coords
-	 face_map = none,              % FaceId -> {BinPos, TriCount}
-	 mat_map  = none,              % Face per Material draw info
+	 %% Vertex buffers. Each vertex buffer looks like
+	 %% {Stride,Binary}, where Stride is the stride to be
+	 %% used when setting up the vertex buffer.
+	 raw_vs   = none :: wings_vtx_buffer(), %Binary of raw vertex positions
+	 face_vs  = none :: wings_vtx_buffer(), %Vertex binary for drawing faces
+	 face_fn  = none :: wings_vtx_buffer(), %Face Normals (flat but per vertex)
+	 face_sn  = none :: wings_vtx_buffer(), %Face Normals (smooth)
+	 face_uv  = none :: wings_vtx_buffer(), %UV coords
+	 face_vc  = none :: wings_vtx_buffer(), %Vertex Colors coords
+	 face_map = none,                       %FaceId -> {BinPos,TriCount}
+	 mat_map  = none,                       %Face per Material draw info
+
 	 %% Miscellanous.
 	 hilite=none,				%Hilite display list.
 	 mirror=none,				%Virtual mirror data.
 	 ns=none,				%Normals/positions per face.
-	 plugins=[],                %Draw lists for plugins.
+	 plugins=[],                            %Draw lists for plugins.
 
 	 %% Source for display lists.
 	 src_we=none,				%Source object.

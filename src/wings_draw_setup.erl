@@ -12,33 +12,40 @@
 %%
 
 -module(wings_draw_setup).
+-export([work/2,smooth/2]).
+-export([vertexPointer/1,normalPointer/1,texCoordPointer/1]).
 
--export([work/2, smooth/2]).
+-define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
-%%
--record(dd, {i = 0,       % vertex index
-	     vs= <<>>,    % vertex pos
-	     n = <<>>,    % normals
-	     x = none,    % uv or vertex color binary
-	     fm= [],      % Face map: id -> {StartIndex,VertexCount},
-	     type=2}).    % type default uv i.e 2
+-import(lists, [reverse/1,any/2,sort/1]).
 
-%% API
+%%%
+%%% Help functions to set up buffer pointers.
+%%%
+
+vertexPointer({Stride,BinVs}) ->
+    gl:vertexPointer(3, ?GL_FLOAT, Stride, BinVs).
+
+normalPointer({Stride,Ns}) ->
+    gl:normalPointer(?GL_FLOAT, Stride, Ns).
+
+texCoordPointer({Stride,UV}) ->
+    gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV);
+texCoordPointer(none) -> ok.
 
 %% Setup face_vs and face_fn and additional uv coords or vertex colors
-work(D=#dlo{face_vs=none, src_we=#we{fs=Ftab}}, St) ->
+work(#dlo{face_vs=none,src_we=#we{fs=Ftab}}=D, St) ->
     Prepared = wings_draw_util:prepare(gb_trees:to_list(Ftab), D, St),
     setup_flat_faces(Prepared, D);
-work(D=#dlo{face_fn=none}, _St) ->
+work(#dlo{face_fn=none}=D, _St) ->
+    %% Can this really happen?
     setup_flat_normals(D);
 work(D, _) -> D.
 
 %% Setup face_vs and face_sn and additional uv coords or vertex colors
-smooth(D=#dlo{face_vs=none, src_we=#we{fs=Ftab}}, St) ->
-    exit(nyi); % Should we do it like this.
-%%     Prepared = wings_draw_util:prepare(gb_trees:to_list(Ftab), D, St),
-%%     setup_smooth_faces(Prepared, D);
+smooth(#dlo{face_vs=none}=D, St) ->
+    setup_smooth_normals(work(D, St));
 smooth(D=#dlo{face_sn=none}, _St) ->
     setup_smooth_normals(D);
 smooth(D, _) -> D.
@@ -46,104 +53,86 @@ smooth(D, _) -> D.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 setup_flat_faces({material,MatFaces,#st{mat=Mtab}}, D) ->
-    {MatInfo,DD} = mat_flat_faces(MatFaces,D,Mtab,[],#dd{}),
-    D#dlo{face_vs = DD#dd.vs,     % Vertex positions
-	  face_fn = DD#dd.n,      % Flat Normals
-	  face_uv = DD#dd.x,     % UV coords or vertex colors
-	  face_map= array:from_orddict(lists:sort(DD#dd.fm)),   % Face Map
-	  mat_map = MatInfo % Mat Map
-	 }.
+    mat_flat_faces(MatFaces, D, Mtab).
 
-mat_flat_faces([{Mat,Fs}|T],D,Mtab,MatMap,Acc0=#dd{x=UV,i=Start}) ->
+mat_flat_faces(MatFs, D, Mtab) ->
     IncludeUVs = wings_pref:get_value(show_textures) andalso
-	wings_material:has_texture(Mat,Mtab),
-    if
-	IncludeUVs, UV =/= none ->
-	    Acc = flat_faces_uv(Fs,D,Acc0);
-	IncludeUVs ->
-	    %% Material requires UV's but we don't have any for the
-	    %% previous faces.
-	    UVSize = Start * 4*2,
-	    PrevUV = <<0:UVSize>>,
-	    Acc = flat_faces_uv(Fs,D,Acc0#dd{x=PrevUV});
-	UV =:= none ->
-	    Acc = flat_faces(Fs,D,Acc0);
-	true -> %% We have uv for other materials
-	    Acc1 = #dd{i=Stop,x=UV0} = flat_faces(Fs,D,Acc0),
-	    UVSize = (Stop - Start)*4*2,
-	    UVBin = <<UV/binary, 0:UVSize>>,
-	    Acc  = Acc1#dd{x=UVBin}
-    end,
-    Size  = Acc#dd.i - Start,
-    mat_flat_faces(T,D,Mtab,[{Mat,Start,Size}|MatMap],Acc);
+	any(fun({Mat,_}) ->
+		    wings_material:has_texture(Mat, Mtab)
+	    end, MatFs),
+    case IncludeUVs of
+	false ->
+	    plain_flat_faces(MatFs, D, 0, <<>>, [], []);
+	true ->
+	    uv_flat_faces(MatFs, D, 0, <<>>, [], [])
+    end.
 
-mat_flat_faces([], _D,_Mtab,MatMap,Acc) ->
-    {MatMap,Acc}.
+plain_flat_faces([{Mat,Fs}|T], #dlo{ns=Ns}=D, Start0, Vs0, Fmap0, MatInfo0) ->
+    {Start,Vs,FaceMap} = flat_faces_1(Fs, Ns, Start0, Vs0, Fmap0),
+    MatInfo = [{Mat,Start0,Start-Start0}|MatInfo0],
+    plain_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
+plain_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
+    FaceMap = array:from_orddict(sort(FaceMap0)),
+    <<_:3/unit:32,Ns/bytes>> = Vs,
+    D#dlo{face_vs={24,Vs},face_fn={24,Ns},face_uv=none,
+	  face_map=FaceMap,mat_map=MatInfo}.
 
-flat_faces([{Face,_Edge}|Fs], D, Acc0) ->
-    Acc = flat_face(Face, D, Acc0),
-    flat_faces(Fs, D, Acc);
-flat_faces([], _, Acc) -> Acc.
-
-flat_face(Face, #dlo{ns=Ns}, DD=#dd{i=Start,vs=Vs,n=FN,fm=FaceMap}) ->
+flat_faces_1([{Face,_}|Fs], Ns, Start, Vs, FaceMap) ->
     case gb_trees:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
-	    DD#dd{i = Start+3,
-		  vs= add3(Vs, Pos),
-		  n = dup3(3,FN, Normal),
-		  fm=[{Face, {Start,3}}|FaceMap]};
+	    flat_faces_1(Fs, Ns, Start+3,
+			 add_tri(Vs, Normal, Pos),
+			 [{Face,{Start,3}}|FaceMap]);
 	[Normal|Pos] ->
-	    DD#dd{i =Start+6,
-		  vs=add4(Vs, Pos),
-		  n =dup3(6,FN,Normal),
-		  fm=[{Face, {Start,6}}|FaceMap]};
-	{N,Fs,VsPos} ->
-	    NoVs  = length(Fs) * 3,
-	    VsBin = add_list(Fs, list_to_tuple(VsPos), Vs),
-	    FNBin = dup3(NoVs, FN, N),
-	    DD#dd{i=NoVs+Start,vs=VsBin,
-		  n=FNBin,fm=[{Face, {Start,NoVs}}|FaceMap]}
-    end.
+	    flat_faces_1(Fs, Ns, Start+6,
+			 add_quad(Vs, Normal, Pos),
+			 [{Face,{Start,6}}|FaceMap]);
+	{Normal,Faces,VsPos} ->
+	    NoVs  = length(Faces) * 3,
+	    VsBin = add_poly(Vs, Normal, Faces, list_to_tuple(VsPos)),
+	    flat_faces_1(Fs, Ns, NoVs+Start,
+			 VsBin, [{Face,{Start,NoVs}}|FaceMap])
+    end;
+flat_faces_1([], _, Start, Vs, FaceMap) ->
+    {Start,Vs,FaceMap}.
 
-flat_faces_uv([{Face,Edge}|Fs], D, Acc0) ->
-    Acc = flat_face_uv(Face, Edge, D, Acc0),
-    flat_faces_uv(Fs, D, Acc);
-flat_faces_uv([], _, Acc) -> Acc.
+uv_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
+    {Start,Vs,FaceMap} = uv_flat_faces_1(Fs, D, Start0, Vs0, Fmap0),
+    MatInfo = [{Mat,Start0,Start-Start0}|MatInfo0],
+    uv_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
+uv_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
+    FaceMap = array:from_orddict(sort(FaceMap0)),
+    <<_:3/unit:32,Ns/bytes>> = Vs,
+    <<_:3/unit:32,UV/bytes>> = Ns,
+    D#dlo{face_vs={32,Vs},face_fn={32,Ns},face_uv={32,UV},
+	  face_map=FaceMap,mat_map=MatInfo}.
 
-flat_face_uv(Face, Edge, #dlo{src_we=We,ns=Ns},
-	     DD=#dd{i=Start,vs=Vs,n=FN,x=UV,fm=FaceMap,type=Type}
-	    ) ->
+uv_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
     UVs = wings_face:vertex_info(Face, Edge, We),
     case gb_trees:get(Face, Ns) of
-	[Normal|Pos = [_,_,_]] ->
-	    DD#dd{i = Start+3,
-		  vs= add3(Vs, Pos),
-		  n = dup3(3, FN, Normal),
-		  x = add3_x(UV, UVs, Type),
-		  fm=[{Face, {Start,3}}|FaceMap]};
+	[Normal|Pos =[_,_,_]] ->
+	    uv_flat_faces_1(Fs, D, Start+3,
+			    add_tri(Vs, Normal, Pos, UVs),
+			    [{Face,{Start,3}}|FaceMap]);
 	[Normal|Pos] ->
-	    DD#dd{i = Start+6,
-		  vs= add4(Vs, Pos),
-		  n = dup3(6, FN, Normal),
-		  x = add4_x(UV, UVs, Type),
-		  fm=[{Face, {Start,6}}|FaceMap]};
-	{N,Fs,VsPos0} ->
-	    NoVs  = length(Fs) * 3,
-	    VsPos = list_to_tuple(VsPos0),
-	    VsBin = add_list(Fs, VsPos, Vs),
-	    FNBin = dup3(NoVs, FN, N),
-	    DD#dd{i = NoVs+Start,
-		  vs= VsBin,
-		  n = FNBin,
-		  x = add_list_x(Fs, list_to_tuple(UVs), UV, VsPos, Type),
-		  fm= [{Face, {Start,NoVs}}|FaceMap]}
-    end.
+	    uv_flat_faces_1(Fs, D, Start+6,
+			    add_quad(Vs, Normal, Pos, UVs),
+			    [{Face,{Start,6}}|FaceMap]);
+	{Normal,Faces,VsPos} ->
+	    NoVs  = length(Faces) * 3,
+	    VsBin = add_poly(Vs, Normal, Faces,
+			     list_to_tuple(VsPos), list_to_tuple(UVs)),
+	    uv_flat_faces_1(Fs, D, NoVs+Start,
+			    VsBin, [{Face,{Start,NoVs}}|FaceMap])
+    end;
+uv_flat_faces_1([], _, Start, Vs, FaceMap) ->
+    {Start,Vs,FaceMap}.
 
 %% setup only normals
-setup_flat_normals(D=#dlo{face_map=Fmap0, ns=Ns}) ->
+setup_flat_normals(D=#dlo{face_map=Fmap0,ns=Ns}) ->
     Fs = lists:keysort(2, array:sparse_to_orddict(Fmap0)),
     FN = setup_flat_normals_1(Fs, Ns, <<>>),
-    D#dlo{face_fn = FN}.
+    D#dlo{face_fn={0,FN}}.
 
 setup_flat_normals_1([{Face, {_, Count}}|Fs], Ns, FN) ->
     [Normal|_] = gb_trees:get(Face,Ns),
@@ -155,13 +144,13 @@ setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,face_map=Fmap0}) ->
     Ns1 = lists:foldl(fun({F,[N|_]}, A) -> [{F,N}|A];
 			 ({F,{N,_,_}}, A) -> [{F,N}|A]
 		      end, [], gb_trees:to_list(Ns0)),
-    Ns = lists:reverse(Ns1),
+    Ns = reverse(Ns1),
     %%NOTE: This must be stable i.e. same order as in the flat case. (is it?)
     Flist = wings_we:normals(Ns, We),
     Ftab  = array:from_orddict(Flist),
     Fs    = lists:keysort(2, array:sparse_to_orddict(Fmap0)),
     SN = setup_smooth_normals(Fs, Ftab, Ns0, <<>>),
-    D#dlo{face_sn=SN}.
+    D#dlo{face_sn={0,SN}}.
 
 setup_smooth_normals([{Face, {_,3}}|Fs], Ftab, Flat, SN0) ->
     [[_|N1],[_|N2],[_|N3]] = array:get(Face,Ftab),
@@ -200,6 +189,91 @@ setup_smooth_normals_1([], _, SN) ->
 %% Create binaries
 %%
 
+add_tri(Bin, {NX,NY,NZ},
+	[{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}]) ->
+    <<Bin/binary,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32>>.
+
+add_tri(Bin, {NX,NY,NZ},
+	[{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}],
+	[{U1,V1},{U2,V2},{U3,V3}]) ->
+    <<Bin/binary,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     U1:?F32,V1:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     U2:?F32,V2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     U3:?F32,V3:?F32>>.
+
+add_quad(Bin, {NX,NY,NZ},
+	 [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}]) ->
+    <<Bin/binary,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     X4:?F32,Y4:?F32,Z4:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32>>.
+
+add_quad(Bin, {NX,NY,NZ},
+	 [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}],
+	 [{U1,V1},{U2,V2},{U3,V3},{U4,V4}]) ->
+    <<Bin/binary,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     U1:?F32,V1:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     U2:?F32,V2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     U3:?F32,V3:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     U3:?F32,V3:?F32,
+     X4:?F32,Y4:?F32,Z4:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     U4:?F32,V4:?F32,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     U1:?F32,V1:?F32>>;
+add_quad(Bin, N, Pos, _) ->
+    Z = {0.0,0.0},
+    add_quad(Bin, N, Pos, [Z,Z,Z,Z]).
+
+add_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab) ->
+    PA = element(A, Vtab),
+    PB = element(B, Vtab),
+    PC = element(C, Vtab),
+    Vs = add_tri(Vs0, Normal, [PA,PB,PC]),
+    add_poly(Vs, Normal, Fs, Vtab);
+add_poly(Vs, _, _, _) -> Vs.
+
+add_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab, UVtab) ->
+    PA = element(A, Vtab),
+    PB = element(B, Vtab),
+    PC = element(C, Vtab),
+    UVa = element(A, UVtab),
+    UVb = element(B, UVtab),
+    UVc = element(C, UVtab),
+    Vs = add_tri(Vs0, Normal, [PA,PB,PC], [UVa,UVb,UVc]),
+    add_poly(Vs, Normal, Fs, Vtab, UVtab);
+add_poly(Vs, _, _, _, _) -> Vs.
+
 add3(Bin, [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}]) ->
     <<Bin/binary,
      X1:?F32,Y1:?F32,Z1:?F32,
@@ -214,14 +288,6 @@ add4(Bin, [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}]) ->
      X3:?F32,Y3:?F32,Z3:?F32,
      X4:?F32,Y4:?F32,Z4:?F32,
      X1:?F32,Y1:?F32,Z1:?F32>>.
-
-add_list([{A,B,C}|Fs], Vtab, Vs0) ->
-    PA = element(A, Vtab),
-    PB = element(B, Vtab),
-    PC = element(C, Vtab),
-    Vs = add3(Vs0, [PA,PB,PC]),
-    add_list(Fs, Vtab, Vs);
-add_list([], _, Vs) -> Vs.
 
 dup3(3, Bin, {NX,NY,NZ}) ->
     <<Bin/binary,
@@ -242,70 +308,3 @@ dup3(I, Bin0, N={NX,NY,NZ}) ->
 	   NX:?F32,NY:?F32,NZ:?F32,
 	   NX:?F32,NY:?F32,NZ:?F32 >>,
     dup3(I-3, Bin, N).
-
-dup2(I, Bin0, N={NX,NY}) when I > 0 ->
-    Bin = <<Bin0/binary,
-	   NX:?F32,NY:?F32,
-	   NX:?F32,NY:?F32,
-	   NX:?F32,NY:?F32 >>,
-    dup3(I-3, Bin, N).
-
-add3_x(Bin, [{U1,V1},{U2,V2},{U3,V3}], 2) ->
-    <<Bin/binary,U1:?F32,V1:?F32,U2:?F32,V2:?F32,U3:?F32,V3:?F32>>;
-add3_x(Bin, [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}], 3) ->
-    <<Bin/binary,
-     X1:?F32,Y1:?F32,Z1:?F32,
-     X2:?F32,Y2:?F32,Z2:?F32,
-     X3:?F32,Y3:?F32,Z3:?F32>>;
-add3_x(Bin, Other, 3) ->
-    add_x3(Bin, Other);
-add3_x(Bin, Other, 2) ->
-    add_x2(Bin, Other).
-
-add4_x(Bin, [{U1,V1},{U2,V2},{U3,V3},{U4,V4}], 2) ->
-    <<Bin/binary,
-     U1:?F32,V1:?F32,U2:?F32,V2:?F32,
-     U3:?F32,V3:?F32,U3:?F32,V3:?F32,
-     U4:?F32,V4:?F32,U1:?F32,V1:?F32>>;
-add4_x(Bin, [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}], 3) ->
-    <<Bin/binary,
-     X1:?F32,Y1:?F32,Z1:?F32,
-     X2:?F32,Y2:?F32,Z2:?F32,
-     X3:?F32,Y3:?F32,Z3:?F32,
-     X3:?F32,Y3:?F32,Z3:?F32,
-     X4:?F32,Y4:?F32,Z4:?F32,
-     X1:?F32,Y1:?F32,Z1:?F32>>;
-add4_x(Bin, [A,B,C,D], 3) ->
-    add_x3(Bin, [A,B,C,C,D,A]);
-add4_x(Bin, [A,B,C,D], 2) ->
-    add_x2(Bin, [A,B,C,C,D,A]).
-
-add_x2(Bin, [{U1,V1}|T]) ->
-    add_x2(<<Bin/binary,U1:?F32,V1:?F32>>,T);
-add_x2(Bin, [_|T]) ->
-    add_x2(<<Bin/binary,0:?F32,0:?F32>>,T);
-add_x2(Bin, []) -> Bin.
-
-add_x3(Bin, [{R,G,B}|T]) ->
-    add_x2(<<Bin/binary,R:?F32,G:?F32,B:?F32>>,T);
-add_x3(Bin, [_|T]) ->
-    add_x2(<<Bin/binary,1.0:?F32,1.0:?F32,1.0:?F32>>,T);
-add_x3(Bin, []) -> Bin.
-
-add_list_x(Fs, UVs, Bin, VsPos, Type) ->
-    case size(UVs) =:= size(VsPos) of
-	true ->
-	    add_list_x_1(Fs, UVs, Bin, Type);
-	false when Type =:= 2 ->
-	    dup2(length(Fs)*3,{0.0,0.0},Bin);
-	false when Type =:= 2 ->
-	    dup3(length(Fs)*3,{1.0,1.0,1.0},Bin)
-    end.
-
-add_list_x_1([{A,B,C}|Fs], Xtab, Bin0, Type) ->
-    PA = element(A, Xtab),
-    PB = element(B, Xtab),
-    PC = element(C, Xtab),
-    Bin = add3_x(Bin0, [PA,PB,PC], Type),
-    add_list_x_1(Fs, Xtab, Bin, Type);
-add_list_x_1([],_,Bin,_) -> Bin.
