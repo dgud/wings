@@ -51,6 +51,7 @@ MODULES= \
 	wpc_turnedge \
 	wpc_tweak \
 	wpc_untriangulate \
+	wpc_ambocc \
 	wpc_weld
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
