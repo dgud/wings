@@ -433,13 +433,6 @@ drawPolygons(Polys, PsLens) ->
 		  Length+Start
 	  end, 0, PsLens).
 
-force_flat([], _) -> [];
-force_flat([H|T], Color) ->
-    [force_flat(H, Color)|force_flat(T, Color)];
-force_flat({call,_,Faces}, Color) ->
-    wings_draw_util:force_flat_color(Faces, Color);
-force_flat(_, _) -> none.
-
 visible_vertices(#we{vp=Vtab0}=We) ->
     case wings_we:any_hidden(We) of
 	false ->
@@ -513,12 +506,11 @@ update_sel(#dlo{sel=none,src_sel={vertex,Vs}}=D) ->
 update_sel(#dlo{}=D) -> D.
 
 %% Select all faces.
-update_sel_all(#dlo{src_we=#we{mode=vertex},work=Work}=D) ->
-    Dl = force_flat(Work, wings_pref:get_value(selected_color)),
-    D#dlo{sel=Dl};
-update_sel_all(#dlo{work=Faces}=D) when Faces =/= none ->
+update_sel_all(#dlo{work=Faces,src_we=#we{mode=Mode}}=D)
+  when Faces =/= none, Mode =/= vertex ->
     D#dlo{sel=Faces};
-update_sel_all(#dlo{smooth=Faces}=D) when Faces =/= none ->
+update_sel_all(#dlo{smooth=Faces,src_we=#we{mode=Mode}}=D)
+  when Faces =/= none, Mode =/= vertex ->
     D#dlo{sel=Faces};
 update_sel_all(#dlo{face_vs=Vs}=D) when Vs =/= none ->
     List = gl:genLists(1),
@@ -816,13 +808,35 @@ tricky_share({X,Y,Z}, {_,_,Z}=Old) ->
 %%% Drawing routines for workmode.
 %%%
 
+draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,
+		    face_vc=Col,mat_map={color,NumElements}},
+	       #st{mat=Mtab}) ->
+    wings_draw_setup:vertexPointer(BinVs),
+    wings_draw_setup:normalPointer(Ns),
+    wings_draw_setup:colorPointer(Col),
+
+    Dl = gl:genLists(1),
+    gl:newList(Dl, ?GL_COMPILE),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    gl:enableClientState(?GL_NORMAL_ARRAY),
+    gl:enableClientState(?GL_COLOR_ARRAY),
+    wings_material:apply_material(default, Mtab),
+    gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
+    gl:enable(?GL_COLOR_MATERIAL),
+    gl:drawArrays(?GL_TRIANGLES, 0, NumElements),
+    gl:disable(?GL_COLOR_MATERIAL),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
+    gl:disableClientState(?GL_NORMAL_ARRAY),
+    gl:disableClientState(?GL_COLOR_ARRAY),
+    gl:endList(),
+    Dl;
 draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,face_uv=UV,mat_map=MatMap},
 	       #st{mat=Mtab}) ->
-    Dl = gl:genLists(1),
     wings_draw_setup:vertexPointer(BinVs),
     wings_draw_setup:normalPointer(Ns),
     wings_draw_setup:texCoordPointer(UV),
 
+    Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
     gl:enableClientState(?GL_VERTEX_ARRAY),
     gl:enableClientState(?GL_NORMAL_ARRAY),
@@ -923,18 +937,40 @@ draw_uv_faces([], _) -> ok.
 %%% Smooth drawing.
 %%%
 
-draw_mat_fs({Mat,Start,NoElements}, Mtab) ->
+draw_mat_fs({Mat,Start,NumElements}, Mtab) ->
     gl:pushAttrib(?GL_TEXTURE_BIT),
     case wings_material:apply_material(Mat, Mtab) of
 	false ->
-	    gl:drawArrays(?GL_TRIANGLES, Start, NoElements);
+	    gl:drawArrays(?GL_TRIANGLES, Start, NumElements);
 	true ->
 	    gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),
-	    gl:drawArrays(?GL_TRIANGLES, Start, NoElements),
+	    gl:drawArrays(?GL_TRIANGLES, Start, NumElements),
 	    gl:disableClientState(?GL_TEXTURE_COORD_ARRAY)
     end,
     gl:popAttrib().
 
+smooth_faces_all(#dlo{face_vs=BinVs,face_sn=Ns,
+		      face_vc=Col,mat_map={color,NumElements}},
+		 #st{mat=Mtab}) ->
+    wings_draw_setup:vertexPointer(BinVs),
+    wings_draw_setup:normalPointer(Ns),
+    wings_draw_setup:colorPointer(Col),
+
+    Dl = gl:genLists(1),
+    gl:newList(Dl, ?GL_COMPILE),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    gl:enableClientState(?GL_NORMAL_ARRAY),
+    gl:enableClientState(?GL_COLOR_ARRAY),
+    wings_material:apply_material(default, Mtab),
+    gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
+    gl:enable(?GL_COLOR_MATERIAL),
+    gl:drawArrays(?GL_TRIANGLES, 0, NumElements),
+    gl:disable(?GL_COLOR_MATERIAL),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
+    gl:disableClientState(?GL_NORMAL_ARRAY),
+    gl:disableClientState(?GL_COLOR_ARRAY),
+    gl:endList(),
+    {[Dl,none],false};
 smooth_faces_all(#dlo{face_vs=BinVs,face_sn=Ns,
 		      face_uv=UV,mat_map=MatMap}, #st{mat=Mtab}) ->
     ListOp = gl:genLists(1),

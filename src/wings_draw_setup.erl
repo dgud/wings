@@ -13,7 +13,7 @@
 
 -module(wings_draw_setup).
 -export([work/2,smooth/2]).
--export([vertexPointer/1,normalPointer/1,texCoordPointer/1]).
+-export([vertexPointer/1,normalPointer/1,colorPointer/1,texCoordPointer/1]).
 -export([face_vertex_count/1]).
 
 -define(NEED_OPENGL, 1).
@@ -31,16 +31,21 @@ vertexPointer({Stride,BinVs}) ->
 normalPointer({Stride,Ns}) ->
     gl:normalPointer(?GL_FLOAT, Stride, Ns).
 
+colorPointer({Stride,Color}) ->
+    gl:colorPointer(3, ?GL_FLOAT, Stride, Color).
+
 texCoordPointer({Stride,UV}) ->
     gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV);
 texCoordPointer(none) -> ok.
 
-face_vertex_count(#dlo{mat_map=[{_Mat,_Start,Last}|_]}) ->
-    Last. % This is reverse sorted
+face_vertex_count(#dlo{mat_map=[{_Mat,Start,Count}|_]}) ->
+    Start+Count;
+face_vertex_count(#dlo{mat_map={color,N}}) ->
+    N.
 
 %% Setup face_vs and face_fn and additional uv coords or vertex colors
 work(#dlo{face_vs=none,src_we=#we{fs=Ftab}}=D, St) ->
-    Prepared = wings_draw_util:prepare(gb_trees:to_list(Ftab), D, St),
+    Prepared = prepare(gb_trees:to_list(Ftab), D, St),
     setup_flat_faces(Prepared, D);
 work(#dlo{face_fn=none}=D, _St) ->
     %% Can this really happen?
@@ -57,7 +62,9 @@ smooth(D, _) -> D.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 setup_flat_faces({material,MatFaces,#st{mat=Mtab}}, D) ->
-    mat_flat_faces(MatFaces, D, Mtab).
+    mat_flat_faces(MatFaces, D, Mtab);
+setup_flat_faces({color,Ftab,We}, D) ->
+    col_flat_faces(Ftab, We, D).
 
 mat_flat_faces(MatFs, D, Mtab) ->
     IncludeUVs = wings_pref:get_value(show_textures) andalso
@@ -131,6 +138,36 @@ uv_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) -
     end;
 uv_flat_faces_1([], _, Start, Vs, FaceMap) ->
     {Start,Vs,FaceMap}.
+
+col_flat_faces(Fs, We, #dlo{ns=Ns}=D) ->
+    {Start,Vs,FaceMap0} = col_flat_faces_1(Fs, We, Ns, 0, <<>>, []),
+    FaceMap = array:from_orddict(sort(FaceMap0)),
+    <<_:3/unit:32,Normals/bytes>> = Vs,
+    <<_:3/unit:32,Col/bytes>> = Normals,
+    MatInfo = {color,Start},
+    D#dlo{face_vs={36,Vs},face_fn={36,Normals},face_vc={36,Col},face_uv=none,
+	  face_map=FaceMap,mat_map=MatInfo}.
+
+col_flat_faces_1([{Face,Edge}|T], We, Ns, Start, Vs0, Fmap0) ->
+    Cols = wings_face:vertex_info(Face, Edge, We),
+    case gb_trees:get(Face, Ns) of
+	[Normal|Pos =[_,_,_]] ->
+	    Vs = add_col_tri(Vs0, Normal, Pos, Cols),
+	    Fmap = [{Face,{Start,3}}|Fmap0],
+	    col_flat_faces_1(T, We, Ns, Start+3, Vs, Fmap);
+	[Normal|Pos] ->
+	    Vs = add_col_quad(Vs0, Normal, Pos, Cols),
+	    Fmap = [{Face,{Start,6}}|Fmap0],
+	    col_flat_faces_1(T, We, Ns, Start+6, Vs, Fmap);
+	{Normal,Faces,VsPos} ->
+	    NumVs  = length(Faces) * 3,
+	    Vs = add_col_poly(Vs0, Normal, Faces,
+			      list_to_tuple(VsPos), list_to_tuple(Cols)),
+	    Fmap = [{Face,{Start,NumVs}}|Fmap0],
+	    col_flat_faces_1(T, We, Ns, Start+NumVs, Vs, Fmap)
+    end;
+col_flat_faces_1([], _, _, Start, Vs, Fmap) ->
+    {Start,Vs,Fmap}.
 
 %% setup only normals
 setup_flat_normals(D=#dlo{face_map=Fmap0,ns=Ns}) ->
@@ -220,6 +257,23 @@ add_tri(Bin,N, Pos, _UV) ->
     Z = {0.0,0.0},
     add_tri(Bin, N, Pos, [Z,Z,Z]).
 
+add_col_tri(Bin, {NX,NY,NZ},
+	    [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}],
+	    [{R1,G1,B1},{R2,G2,B2},{R3,G3,B3}]) ->
+    <<Bin/binary,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R1:?F32,G1:?F32,B1:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R2:?F32,G2:?F32,B2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R3:?F32,G3:?F32,B3:?F32>>;
+add_col_tri(Bin,N, Pos, _UV) ->
+    Z = {1.0,1.0,1.0},
+    add_col_tri(Bin, N, Pos, [Z,Z,Z]).
+
 add_quad(Bin, {NX,NY,NZ},
 	 [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}]) ->
     <<Bin/binary,
@@ -262,6 +316,32 @@ add_quad(Bin, N, Pos, _) ->
     Z = {0.0,0.0},
     add_quad(Bin, N, Pos, [Z,Z,Z,Z]).
 
+add_col_quad(Bin, {NX,NY,NZ},
+	     [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}],
+	     [{R1,G1,B1},{R2,G2,B2},{R3,G3,B3},{R4,G4,B4}]) ->
+    <<Bin/binary,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R1:?F32,G1:?F32,B1:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R2:?F32,G2:?F32,B2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R3:?F32,G3:?F32,B3:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R3:?F32,G3:?F32,B3:?F32,
+     X4:?F32,Y4:?F32,Z4:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R4:?F32,G4:?F32,B4:?F32,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R1:?F32,G1:?F32,B1:?F32>>;
+add_col_quad(Bin, N, Pos, _) ->
+    Z = {1.0,1.0,1.0},
+    add_col_quad(Bin, N, Pos, [Z,Z,Z,Z]).
+
 add_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab) ->
     PA = element(A, Vtab),
     PB = element(B, Vtab),
@@ -274,7 +354,7 @@ add_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab, UVtab) ->
     PA = element(A, Vtab),
     PB = element(B, Vtab),
     PC = element(C, Vtab),
-    %% Tessalated face may have more Vs than UVs
+    %% A tesselated face may have more Vs than UVs
     UVa = uv_element(A, UVtab),
     UVb = uv_element(B, UVtab),
     UVc = uv_element(C, UVtab),
@@ -282,10 +362,27 @@ add_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab, UVtab) ->
     add_poly(Vs, Normal, Fs, Vtab, UVtab);
 add_poly(Vs, _, _, _, _) -> Vs.
 
-uv_element(A, Tab) when A =< size(Tab) ->
-    element(A,Tab);
+add_col_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab, ColTab) ->
+    PA = element(A, Vtab),
+    PB = element(B, Vtab),
+    PC = element(C, Vtab),
+    %% A tesselated face may have more vertices than colors
+    ColA = col_element(A, ColTab),
+    ColB = col_element(B, ColTab),
+    ColC = col_element(C, ColTab),
+    Vs = add_col_tri(Vs0, Normal, [PA,PB,PC], [ColA,ColB,ColC]),
+    add_col_poly(Vs, Normal, Fs, Vtab, ColTab);
+add_col_poly(Vs, _, _, _, _) -> Vs.
+
+uv_element(A, Tab) when A =< tuple_size(Tab) ->
+    element(A, Tab);
 uv_element(_, _) ->
     {0.0,0.0}.
+
+col_element(A, Tab) when A =< tuple_size(Tab) ->
+    element(A, Tab);
+col_element(_, _) ->
+    {1.0,1.0,1.0}.
 
 add3(Bin, [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}]) ->
     <<Bin/binary,
@@ -321,3 +418,32 @@ dup3(I, Bin0, N={NX,NY,NZ}) ->
 	   NX:?F32,NY:?F32,NZ:?F32,
 	   NX:?F32,NY:?F32,NZ:?F32 >>,
     dup3(I-3, Bin, N).
+
+%%%
+%%% Collect information about faces.
+%%%
+
+prepare(Ftab, #dlo{src_we=We}, St) ->
+    prepare(Ftab, We, St);
+prepare(Ftab0, We, St) ->
+    Ftab = wings_we:visible(Ftab0, We),
+    prepare_1(Ftab, We, St).
+
+prepare_1(Ftab, #we{mode=vertex}=We, St) ->
+    case {wings_pref:get_value(show_colors),Ftab} of
+	{false,[{_,Edge}|_]} when is_integer(Edge) ->
+	    Fs0 = sofs:from_external(Ftab, [{face,edge}]),
+	    Fs1 = sofs:domain(Fs0),
+	    Fs = sofs:to_external(Fs1),
+	    {material,[{{color,wings_color:white()},Fs}],St};
+	{true,_} ->
+	    {color,Ftab,We}
+    end;
+prepare_1(Ftab, #we{mode=material}=We, St) ->
+    {material,prepare_mat(Ftab, We),St}.
+
+prepare_mat(Ftab, We) ->
+    case wings_pref:get_value(show_materials) of
+	false -> [{default,Ftab}];
+	true -> wings_facemat:mat_faces(Ftab, We)
+    end.
