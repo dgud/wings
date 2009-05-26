@@ -924,12 +924,10 @@ collapse_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
           fun(Edge, #edge{vs=Va,ve=Vb}, A) ->
               case array:get(Va,Vtab) of
 	      undefined -> A;
-              _ ->
+              VaPos ->
                   case array:get(Vb,Vtab) of
                   undefined -> A;
-                  true->
-                      VaPos = wings_vertex:pos(Va, We),
-                      VbPos = wings_vertex:pos(Vb, We),
+                  VbPos ->
                       case abs(e3d_vec:dist(VaPos, VbPos)) of
                       Dist when Dist < Tolerance -> [Edge|A];
                       _Dist -> A
