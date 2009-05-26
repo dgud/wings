@@ -12,4 +12,7 @@
 - Select Similar Normals with the option Connected Faces Only and
   a selection comprising multiple objects would cause a crash.
   (Thanks to pauljs75.) [bjorng]
+
+- When creating a texture from vertex colors in the AutoUV window, the
+  colors will be properly interpolated (smoothed). [scorpius]
 -----------------------------------------------------------------------------
