@@ -30,8 +30,8 @@ parse([], NewMenu, true) ->
     NewMenu;
 parse([], NewMenu, false) ->
     [sweep_menu_headings()|NewMenu];
-parse([A = {_,{extract_region,_}}|Rest], NewMenu, false) ->
-    parse(Rest, [sweep_menu_headings(),A|NewMenu], true);
+parse([S,A={_,{flatten,_}},S|Rest], NewMenu, false) when S==separator ->
+    parse(Rest, [S,A,S,sweep_menu_headings()|NewMenu], true);
 parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 
