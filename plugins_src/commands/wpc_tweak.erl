@@ -207,11 +207,11 @@ fkey_combo() ->
     [F1,F2,F3].
 
 %% Event handler for tweak mode
-update_tweak_handler(#tweak{tmode=drag,st=#st{}=St}=T) ->
+update_tweak_handler(#tweak{tmode=drag}=T) ->
     wings_draw:update_sel_dlist(),
     wings_wm:dirty(),
     {replace,fun(Ev) ->
-        handle_tweak_event(Ev, T#tweak{st=St}) end};
+        handle_tweak_event(Ev, T)end};
 
 update_tweak_handler(#tweak{st=#st{}=St}=T) ->
     wings:mode_restriction(none),
@@ -219,13 +219,19 @@ update_tweak_handler(#tweak{st=#st{}=St}=T) ->
     wings_draw:refresh_dlists(St),
     wings_wm:dirty(),
     {replace,fun(Ev) ->
-        handle_tweak_event(Ev, T#tweak{st=St}) end}.
+        handle_tweak_event(Ev, T) end}.
 
-handle_tweak_event(redraw, #tweak{st=St}=T) ->
+handle_tweak_event(redraw, #tweak{tmode=drag,magnet=true,st=St}=T) ->
     help(T),
     redraw(St),
     draw_magnet(T),
     keep;
+
+handle_tweak_event(redraw, #tweak{st=St}=T) ->
+    help(T),
+    redraw(St),
+    keep;
+
 
 handle_tweak_event({vec_command,Command,_}, T) when is_function(Command) ->
     %% Use to execute command with vector arguments (see wings_vec.erl).
@@ -255,7 +261,19 @@ handle_tweak_event(Ev, #tweak{st=St}=T) ->
 handle_tweak_event0(#keyboard{sym=?SDLK_ESCAPE}, T) ->
     exit_tweak(T);
 
-handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{st=St0}=T) ->
+handle_tweak_event0(#keyboard{sym=$=}, #tweak{tmode=drag}=T) ->
+    update_tweak_handler(magnet_radius(1,T));
+
+handle_tweak_event0(#keyboard{sym=$-}, #tweak{tmode=drag}=T) ->
+    update_tweak_handler(magnet_radius(-1,T));
+
+handle_tweak_event0(#keyboard{sym=C}, #tweak{tmode=drag}=T) ->
+    case tweak_hotkey(C, T) of
+      none -> keep;
+      T1 -> update_tweak_handler(T1)
+    end;
+
+handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{tmode=wait,st=St0}=T) ->
     case tweak_hotkey(C, T) of
       none ->
             St = fake_sel(St0),
@@ -267,6 +285,8 @@ handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{st=St0}=T) ->
             end;
       T1 -> update_tweak_handler(T1)
     end;
+handle_tweak_event0(#keyboard{}, _) ->
+    keep;
 
 handle_tweak_event0(#mousemotion{}=Ev, #tweak{tmode=wait,st=St}=T) ->
     case wings_pick:event(Ev, St) of
@@ -530,17 +550,9 @@ handle_tweak_event2({action,Action}, #tweak{tmode=wait,st=#st{}=St0}=T) ->
     keep -> keep;
     Cmd ->
         do_cmd(Cmd, T)
-   end;
-
-handle_tweak_event2({action,Action}, #tweak{tmode=drag}=T) ->
-    case Action of
-      {select, more} -> do_cmd(Action, T);
-      {select, less} -> do_cmd(Action, T);
-      Action -> keep
     end;
 
-handle_tweak_event2(_, T) ->
-    update_tweak_handler(T).
+handle_tweak_event2(_, _) -> keep.
 
 pick_event(X, Y, Cam, B, #tweak{st=#st{}=St0}=T0) ->
     case wings_pick:do_pick(X, Y, St0) of
@@ -592,12 +604,6 @@ do_cmd({tools, {tweak,false}}, #tweak{st=St}=T) ->
 do_cmd({tools, {tweak,true}}, #tweak{st=St}=T) ->
     wings_plugin:command({tools, {tweak,true}}, St),
     exit_tweak(T#tweak{st=clear_temp_sel(St)});
-
-do_cmd({select, less}, #tweak{tmode=drag}=T) ->
-    update_tweak_handler(magnet_radius(-1,T));
-
-do_cmd({select, more}, #tweak{tmode=drag}=T) ->
-    update_tweak_handler(magnet_radius(1, T));
 
 do_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
     St1 = remember_command(Cmd, St0),
@@ -1269,8 +1275,8 @@ clear_temp_sel(#st{temp_sel={Mode,Sh}}=St) ->
 %%% (vertices to be moved have the influence set to 1.0).
 %%%
 
-tweak_hotkey(C, #tweak{magnet=Mag}=T) ->
-    case magnet_hotkey(C) of
+tweak_hotkey(C, #tweak{magnet=Mag,mag_type=MagType}=T) ->
+    case magnet_hotkey(C, MagType) of
     none -> constraint_hotkey();
     toggle when Mag == true ->
         setup_magnet(T#tweak{magnet=false});
@@ -1313,11 +1319,11 @@ tweak_constraints([_|Fkeys],[Key|Tkeys],Constraints) ->
 tweak_constraints([],[],Constraints) ->
     lists:reverse(Constraints).
 
-magnet_hotkey($1) -> toggle;
-magnet_hotkey($2) -> dome;
-magnet_hotkey($3) -> straight;
-magnet_hotkey($4) -> spike;
-magnet_hotkey(_) -> none.
+magnet_hotkey($1,_) -> toggle;
+magnet_hotkey($2,M) when M /= dome -> dome;
+magnet_hotkey($3,M) when M /= straight -> straight;
+magnet_hotkey($4,M) when M /= spike -> spike;
+magnet_hotkey(_,_) -> none.
 
 setup_magnet(#tweak{tmode=drag}=T) ->
     wings_dl:map(fun(D, _) ->
@@ -1443,7 +1449,6 @@ get_inv_magnet_value2(MagType,Value,Pos) ->
 get_inv_magnet_value(MagType,Value) ->
     get_inv_magnet_value2(MagType,Value,0.0).
 
-draw_magnet(#tweak{magnet=false}) -> ok;
 draw_magnet(#tweak{st=#st{selmode=body}}) -> ok;
 draw_magnet(#tweak{mag_r=R,mag_type=Mt}) ->
     R2=[get_inv_magnet_value(Mt,X/10.0)||X<-lists:seq(1,9)],
