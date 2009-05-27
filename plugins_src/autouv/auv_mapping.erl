@@ -1193,9 +1193,9 @@ init_stretch([],_,F2S2,F2S8,F2Vs,V2Fs0,Uvs) ->
 
 calc_scale([{Face,[{Id1,P1},{Id2,P2},{Id3,P3}]}|R], Ovs, A2D, A3D,F2A,F2OVs) ->
     A2 = abs(area2d2(P1,P2,P3)/2),
-    Q1 = gb_trees:get(Id1,Ovs),
-    Q2 = gb_trees:get(Id2,Ovs),
-    Q3 = gb_trees:get(Id3,Ovs),    
+    Q1 = array:get(Id1,Ovs),
+    Q2 = array:get(Id2,Ovs),
+    Q3 = array:get(Id3,Ovs),    
     A3 = area3d(Q1,Q2,Q3),
     calc_scale(R,Ovs,A2+A2D,A3+A3D,[{Face,A3}|F2A],[{Face,{Q1,Q2,Q3}}|F2OVs]);
 calc_scale([],_Ovs,A2D,A3D,F2A,F2OVs) ->
