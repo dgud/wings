@@ -43,10 +43,10 @@
 
 %% Internal exports. 
 -export([model_l2/5]).
-
 -export([lsq/2, lsq/3,  % Debug entry points
 	 find_pinned/2,
-	 find_pinned_from_edges/2]). 
+	 find_pinned_from_edges/2,
+	 split_edges_1/2]).
 
 -include("wings.hrl").
 -include("auv.hrl").
@@ -194,21 +194,13 @@ find_axes(Fs,BEdges,We) ->
 
 forms_closed_object(BEdges0,ChartNormal,We=#we{name=#ch{emap=Emap}}) ->
     BEdges = [{auv_segment:map_edge(Edge,Emap),BE} || BE = #be{edge=Edge} <- BEdges0],
-    case is_an_8(BEdges) of
+    case is_an_8(BEdges, false) of
 	false -> undefined;
 	Edge -> 
-	    {L1,L2,Link,LinkR} = split_edges(Edge,BEdges),
-	    North = case L1 of 
-			[] -> wings_vertex:pos((hd(Link))#be.ve,We);
-			_ -> center(L1,We)
-		    end,
-	    South = case L2 of 
-			[] -> wings_vertex:pos((lists:last(Link))#be.vs,We);
-			_ -> center(L2,We)
-		    end,
+	    {North,South,Link,LinkR} = split_edges(Edge,BEdges,We),
 	    NorthSouth = e3d_vec:sub(North,South),
 	    Center = e3d_vec:average(North,South),
-%%	    io:format("Temp: ~p ~n",[{North,South,Center}]),
+	    %%io:format("Temp: ~p ~n",[{North,South,Center}]),
 	    LC = center(Link,We),
 	    LCdir0 = e3d_vec:sub(LC,Center),
 	    LCdir = case e3d_vec:len(LCdir0) > 0.0005 of
@@ -229,16 +221,19 @@ calc_axis(Y0,Z0) ->
     Z = e3d_vec:norm(e3d_vec:cross(X,Y)),
     {X,Y,Z}.
 
-is_an_8([]) -> false;
-is_an_8([{E,_},{E,_}|R]) -> %% Skip these 
-    is_an_8(R);
-is_an_8([{E,_}|R]) -> %% Hmm we must take them in order
+is_an_8([],E) ->
+    E;
+is_an_8([{E,_},{E,_}|R],_) -> %% Skip these
+    is_an_8(R, E);
+is_an_8([{E,_}|R],HaveRemoved) -> %% Hmm we must take them in order
     case lists:keysearch(E,1,R) of %% O(N2) I know..
-	false -> is_an_8(R);
+	false -> is_an_8(R,HaveRemoved);
+	true when HaveRemoved =/= false ->
+	    E;
 	_ ->
 	    case reverse(R) of
-		[{E,_}|_] ->
-		    is_an_8(R);
+		[{E,_}|R2] ->
+		    is_an_8(reverse(R2), E);
 		_ -> E
 	    end
     end.
@@ -251,28 +246,42 @@ is_an_8([{E,_}|R]) -> %% Hmm we must take them in order
 %%   \_/--\_|     => 2 loops: mnoabc fghijk
 %%   onmdekji     =>    link: def
 %% 
-%% d(L) -> %% DBG BUGBUG remove
+%% d(L) -> %% DBG
 %%     lists:map(fun({E,_BE}) -> E end,L).
-    
-split_edges(Edge,Bes) ->
-    {Loop1,Loop2,Link} = split_edges_1(Edge,Bes),
-    Get = fun(L) -> lists:map(fun({_,BE}) -> BE end,L) end,
-    LinkR = (((Bes -- Loop1) -- Loop2) -- Link),
-    %%io:format("Split: ~w ~w ~w ~w~n",[d(Loop1),d(Loop2),d(Link),d(LinkR)]),
-    {Get(Loop1),Get(Loop2),Get(Link),Get(LinkR)}.
+
+getEs(L) ->
+    lists:map(fun({_E,BE}) -> BE end,L).
+
+split_edges(Edge,Bes,We) ->
+    {L1,L2,Link} = split_edges_1(Edge,Bes),
+    %% Reorder so that the pinned vertices are longest from each other
+    North = case L1 of
+		[] -> wings_vertex:pos((hd(Link))#be.vs,We);
+		_  -> center(L1,We)
+	    end,
+    South = case L2 of
+		[] -> wings_vertex:pos((lists:last(Link))#be.ve,We);
+		_  -> center(L2,We)
+	    end,
+    LinkR = (((getEs(Bes) -- L1) -- L2) -- Link),
+    {North,South,Link,LinkR}.
 
 split_edges_1(Edge,Bes) ->
-    %%io:format("Split: ~w ~w~n",[Edge,d(Bes)]),
+%%     io:format("Split: ~w ~w~n",[Edge,d(Bes)]),
     {Before,BE1,After} = find_split(Edge,Bes,[]),
     {LeftLoop0,BE2,RightLoop0} = find_split(Edge,After,[BE1]),
-    LeftLoop  = [BE2|LeftLoop0],
-    RightLoop = RightLoop0 ++ Before,
+    LeftLoop  = LeftLoop0 ++ [BE2],
+    %% NOTE: Order is important below
+    RightLoop = reverse(RightLoop0 ++ Before),
     {Loop1,Link1} = find_link(LeftLoop,  reverse(LeftLoop), []),
     {Loop2,Link2} = find_link(RightLoop, reverse(RightLoop), []),
-    %%io:format("L1:~w~nL2:~w~nLink1:~w~nLink2:~w~n",[d(Loop1),d(Loop2),d(Link1),d(Link2)]),
-    {Loop1,Loop2,Link1++Link2}.
+%%     io:format("L1:~w~nL2:~w~nLink1:~w~nLink2:~w~n~n",
+%% 	      [Loop1,(Loop2),(Link1),(Link2)]),
+    Link = reorder_link(Link2++reverse(Link1)),
+%%     io:format("Link:~w~n",[d(Link)]),
+    {getEs(Loop1),getEs(Loop2),getEs(Link)}.
 
-find_split(Edge,[G={Edge,_}|Bes],Acc) -> {Acc,G,Bes};
+find_split(Edge,[G={Edge,_}|Bes],Acc) -> {reverse(Acc),G,Bes};
 find_split(Edge,[This|Bes],Acc) ->
     find_split(Edge,Bes,[This|Acc]).
 
@@ -290,6 +299,15 @@ find_loop([G|C1],Link,Loop) ->
 find_loop([],[],Loop) -> {Loop,[]};
 find_loop([],Link,[]) -> {[],Link}.
 
+reorder_link([]) -> [];
+reorder_link(A=[_]) -> A;
+reorder_link(Ok  = [{_,#be{ve=V}},{_,#be{vs=V}}|_]) -> Ok;
+reorder_link(Rev = [{_,#be{vs=V}},{_,#be{ve=V}}|_]) ->
+    %% reverse(Rev);  %% Correctness asserted below
+    reorder_link(reverse(Rev));
+reorder_link(Other) ->
+    io:format("Other: ~w~n",[Other]),
+    exit(internal_error).
 
 %%%% Uncomplete fixme.. BUGBUG
 %%% I can't get this to work satisfactory..aarg.
