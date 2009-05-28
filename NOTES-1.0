@@ -19,4 +19,15 @@
 
 - Keyboard events in Tweak while dragging could cause slow downs. Now Fixed.
   (Thanks to Fonte Boa.) [optigon]
+
+- Additional Geometry Windows can now be closed from within Tweak mode.
+  (Thanks to Fonte Boa.) [optigon]
+
+- Dragging in Tweak is no longer limited to the size of the current window.
+  [optigon]
+
+- Conflicts due to mouse events in adjacent Geometry Windows have been solved by
+  locking the focus to the original window during paint selection and dragging
+  in Tweak Mode. (Thanks to Fonte Boa.) [optigon]
+
 -----------------------------------------------------------------------------

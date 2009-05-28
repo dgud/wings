@@ -279,7 +279,7 @@ handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{tmode=wait,st=St0}=T) ->
             St = fake_sel(St0),
             case wings_hotkey:event(Ev,St) of
               next ->
-                update_tweak_handler(T);
+                keep;
               Action ->
                 handle_tweak_event2({action,Action},T#tweak{st=St})
             end;
@@ -297,10 +297,11 @@ handle_tweak_event0(#mousemotion{}=Ev, #tweak{tmode=wait,st=St}=T) ->
 handle_tweak_event0(#mousemotion{x=X,y=Y,state=State,mod=Mod},
             #tweak{tmode=drag,cx=CX,cy=CY,ox=OX,oy=OY}=T0)
             when State =/= ?SDL_BUTTON_RMASK ->
-    DX = float(X-CX),
-    DY = float(Y-CY),
-    DxOrg = float(X-OX),
-    DyOrg = float(Y-OY),
+    {GX,GY} = wings_wm:local2global(X, Y),
+    DX = float(GX-OX), %since last move X and Y
+    DY = float(GY-OY),
+    DxOrg = float(DX+CX), %total X
+    DyOrg = float(DY+CY), %total Y
     FKeys = fkey_combo(),
     TKeys = wings_pref:get_value(tweak_xyz),
     C = tweak_constraints(FKeys,TKeys,[]),
@@ -334,8 +335,9 @@ handle_tweak_event0(#mousemotion{x=X,y=Y,state=State,mod=Mod},
          C == [false,false,true]  -> zmove;
          true -> screen
      end,
-    do_tweak(DX, DY,DxOrg,DyOrg,Mode),
-    T = T0#tweak{cx=X,cy=Y},
+    wings_io:warp(OX,OY),
+    do_tweak(DX,DY,DxOrg,DyOrg,Mode),
+    T = T0#tweak{cx=DxOrg,cy=DyOrg},
     update_tweak_handler(T);
 
 handle_tweak_event0(Ev, T) ->
@@ -368,7 +370,7 @@ handle_tweak_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
         Cam == mb andalso ModKeys == {false,false,true} andalso Lm==false andalso TwkCtrl == slide ->
           pick_event(X,Y,Cam,1,T0);
       _Other ->
-        update_tweak_handler(T0)
+        keep
     end;
 
 handle_tweak_event1(#mousebutton{button=2,x=X,y=Y,state=?SDL_PRESSED},
@@ -382,13 +384,13 @@ handle_tweak_event1(#mousebutton{button=2,x=X,y=Y,state=?SDL_PRESSED},
       {false,false,false} when Cam==maya ->
         pick_event(X,Y,maya,2,T0);
       {false,false,false} when Cam==mb ->
-        update_tweak_handler(T0);
+        keep;
       {false,true,false} when Cam==mb ->
-        update_tweak_handler(T0);
+        keep;
       _Other when Cam==mb ->
         pick_event(X,Y,mb,2,T0);
       _Other ->
-        update_tweak_handler(T0)
+        keep
     end;
 
 handle_tweak_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
@@ -425,7 +427,7 @@ handle_tweak_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
         Cam == mb andalso ModKeys == {false,true,false} andalso Lm==false andalso TwkCtrl == slide ->
           pick_event(X,Y,Cam,1,T0);
       _Other ->
-        update_tweak_handler(T0)
+        keep
     end;
 
 handle_tweak_event1(#mousebutton{button=1,state=?SDL_RELEASED},
@@ -462,7 +464,7 @@ handle_tweak_event1(#mousebutton{button=3,state=?SDL_PRESSED}, #tweak{}) ->
     keep;
 
 handle_tweak_event1(#mousebutton{button=3,state=?SDL_RELEASED,x=X,y=Y},
-        #tweak{st=#st{sel=Sel}=St0}) ->
+        #tweak{tmode=wait,st=#st{sel=Sel}=St0}) ->
     {GlobalX, GlobalY} = wings_wm:local2global(X,Y),
     case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
     false ->
@@ -551,27 +553,42 @@ handle_tweak_event2({action,Action}, #tweak{tmode=wait,st=#st{}=St0}=T) ->
     Cmd ->
         do_cmd(Cmd, T)
     end;
+handle_tweak_event2(close, _) ->
+% Close a second geometry window
+    Active = wings_wm:this(),
+    wings_wm:delete({object,Active}),
+    delete;
 
-handle_tweak_event2(_, _) -> keep.
+handle_tweak_event2(_, _) ->
+    keep.
+
+%%%%
+%%%% End of event handlers
+%%%%
 
 pick_event(X, Y, Cam, B, #tweak{st=#st{}=St0}=T0) ->
+    {GX,GY} = wings_wm:local2global(X, Y),
     case wings_pick:do_pick(X, Y, St0) of
       {add,MM,St1} ->
+        wings_wm:grab_focus(),
+        wings_io:grab(),
         begin_drag(MM, St1, T0),
         do_tweak(0.0, 0.0, 0.0, 0.0, screen),
         Time = now(),
-        T = T0#tweak{tmode=drag,ox=X,oy=Y,cx=X,cy=Y,dc={Time,0}},
+        T = T0#tweak{tmode=drag,ox=GX,oy=GY,cx=0,cy=0,dc={Time,0}},
         update_tweak_handler(T);
       {delete,MM,_} ->
+        wings_wm:grab_focus(),
+        wings_io:grab(),
         begin_drag(MM, St0, T0),
         do_tweak(0.0, 0.0, 0.0, 0.0, screen),
         Time = now(),
-        T = T0#tweak{tmode=drag,ox=X,oy=Y,cx=X,cy=Y,dc={Time,0}},
+        T = T0#tweak{tmode=drag,ox=GX,oy=GY,cx=0,cy=0,dc={Time,0}},
         update_tweak_handler(T);
       none when B == 1 ->
         wings_pick:marquee_pick(X, Y, St0);
       none when Cam == maya; Cam == mb ->
-        update_tweak_handler(T0)
+        keep
     end.
 
 popup_menu(X, Y, #st{sel=[]}=St) ->
@@ -689,7 +706,9 @@ begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, MM, St, T) ->
     D#dlo{drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}};
 begin_drag_fun(D, _, _, _) -> D.
 
-end_drag(#tweak{st=St0}=T) ->
+end_drag(#tweak{st=St0,ox=X,oy=Y}=T) ->
+    wings_wm:release_focus(),
+    wings_io:ungrab(X,Y),
     St = wings_dl:map(fun end_drag/2, St0),
     help(T),
     handle_tweak_event2({new_state,St},T#tweak{tmode=wait}).
@@ -740,10 +759,12 @@ end_drag(#dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
     {D2#dlo{vs=none,sel=none,drag=none},St};
 end_drag(D, St) -> {D, St}.
 
-end_pick(true, #tweak{st=#st{selmode=Selmode}=St0}=T0) ->
+end_pick(true, #tweak{st=#st{selmode=Selmode}=St0,ox=X,oy=Y}=T0) ->
+    wings_wm:release_focus(),
+    wings_io:ungrab(X,Y),
     St1 = wings_dl:map(fun end_pick_1/2, St0),
-    {_,X,Y} = wings_wm:local_mouse_state(),
-    St = case wings_pick:do_pick(X, Y, St1#st{selmode=Selmode}) of
+    {_,X1,Y1} = wings_wm:local_mouse_state(),
+    St = case wings_pick:do_pick(X1, Y1, St1#st{selmode=Selmode}) of
         {_,_,St2} -> St2;
         none -> St1
     end,
@@ -751,7 +772,9 @@ end_pick(true, #tweak{st=#st{selmode=Selmode}=St0}=T0) ->
     help(T),
     handle_tweak_event2({new_state,St},T);
 
-end_pick(false, #tweak{st=St0}=T) ->
+end_pick(false, #tweak{st=St0,ox=X,oy=Y}=T) ->
+    wings_wm:release_focus(),
+    wings_io:ungrab(X,Y),
     St = wings_dl:map(fun end_pick_1/2, St0),
     help(T),
     handle_tweak_event2({new_state,St},T#tweak{tmode=wait}).
@@ -769,7 +792,7 @@ sel_to_vs(edge, Es, We) -> wings_vertex:from_edges(Es, We);
 sel_to_vs(face, [Face], We) -> wings_face:vertices_ccw(Face, We);
 sel_to_vs(face, Fs, We) -> wings_face:to_vertices(Fs, We).
 
-do_tweak(DX, DY, DxOrg,DyOrg,Mode) ->
+do_tweak(DX, DY, DxOrg, DyOrg, Mode) ->
     wings_dl:map(fun
         (#dlo{src_we=We}=D, _) when ?IS_LIGHT(We) ->
              do_tweak(D, DX, DY, DxOrg, DyOrg, screen);
@@ -1463,7 +1486,7 @@ draw_magnet(#tweak{mag_r=R,mag_type=Mt}) ->
         gl:popAttrib()
     end, []).
 
-draw_magnet_1(#dlo{mirror=Mtx,drag=#drag{mm=Side,pos=P={X,Y,Z}}}, R,R2) ->
+draw_magnet_1(#dlo{mirror=Mtx,drag=#drag{mm=Side,pos={X,Y,Z}}}, R,R2) ->
     case Side of
     mirror -> gl:multMatrixf(Mtx);
     original -> ok

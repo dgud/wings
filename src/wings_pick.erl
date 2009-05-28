@@ -3,7 +3,7 @@
 %%
 %%     This module handles picking using OpenGL.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -87,6 +87,7 @@ paint_pick(X, Y, St0) ->
 	    Pick = #marquee{ox=X,oy=Y,st=St0},
 	    clear_hilite_marquee_mode(Pick);
 	{PickOp,_,St} ->
+	    wings_wm:grab_focus(),
 	    wings_wm:dirty(),
 	    wings_draw:refresh_dlists(St),
 	    Pick = #pick{st=St,op=PickOp},
@@ -511,6 +512,7 @@ pick_event(#mousebutton{button=B,state=?SDL_RELEASED}, #pick{st=St})
     %% Button 2 is only used in Tweak Mode for Maya cam. If there are any
     %% issues I will revert the code to only accept release states from B 1.
     %% - Richard
+    wings_wm:release_focus(),
     wings_wm:later({new_state,St}),
     pop;
 pick_event(_, _) -> keep.
