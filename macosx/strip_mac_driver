@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#  strip_mac_driver.m --
+#  strip_mac_driver --
 #
 #     Strip an Erlang driver for the Mac platform.
 #

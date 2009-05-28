@@ -62,8 +62,7 @@ macosx: all lang
 	(cd plugins_src/mac_file; $(MAKE) lang)
 	(cd plugins_src/fbx; $(MAKE))
 	(cd plugins_src/fbx; $(MAKE) lang)
-	(cd macosx; xcodebuild)
-	sh tools/mac_make_dmg $(WINGS_VSN)
+	(cd macosx; xcodebuild; ./make_dmg $(WINGS_VSN))
 
 #
 # Build package for Unix.
