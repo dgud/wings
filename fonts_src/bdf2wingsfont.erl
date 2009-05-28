@@ -3,12 +3,12 @@
 %%
 %%     Conversion of BDF fonts to Wings' own font format.
 %%
-%%  Copyright (c) 2005 Bjorn Gustavsson
+%%  Copyright (c) 2005-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: bdf2wingsfont.erl,v 1.5 2005/04/10 16:41:54 bjorng Exp $
+%%     $Id$
 %%
 
 -module(bdf2wingsfont).
@@ -30,7 +30,7 @@ convert([Out|SrcFonts]) ->
 
 read_fonts([N|Ns], Acc) ->
     io:format("Reading ~s\n", [N]),
-    {ok,F} = file:open(N, [read,read_ahead]),
+    {ok,F} = file:open(N, [binary,read,read_ahead]),
     G = read_font(F),
     file:close(F),
     read_fonts(Ns, G++Acc);
@@ -65,15 +65,15 @@ read_props_1(F, N, Acc) ->
 read_one_prop(F) ->
     read_one_prop_1(io:get_line(F, ''), []).
 
-read_one_prop_1([C|Cs], Key) when C =< $\s ->
+read_one_prop_1(<<C,Cs/bytes>>, Key) when C =< $\s ->
     read_one_prop_2(Cs, reverse(Key));
-read_one_prop_1([C|Cs], Key) ->
+read_one_prop_1(<<C,Cs/bytes>>, Key) ->
     read_one_prop_1(Cs, [C|Key]).
 
-read_one_prop_2([C|Cs], Key) when C =< $\s ->
+read_one_prop_2(<<C,Cs/bytes>>, Key) when C =< $\s ->
     read_one_prop_2(Cs, Key);
 read_one_prop_2(Cs, Key) ->
-    Val0 = reverse(skip_whitespace(reverse(Cs))),
+    Val0 = reverse(skip_whitespace(reverse(binary_to_list(Cs)))),
     Val = convert_val(Val0),
     {Key,Val}.
 
@@ -143,11 +143,11 @@ read_one_glyph_1(F, G) ->
     end.
     
 read_bitmap(F, Acc) ->
-    case read_line(F) of
-	["ENDCHAR"] ->
+    case io:get_line(F, '') of
+	<<"ENDCHAR",_/bytes>> ->
 	    list_to_binary(Acc);
-	[Hex0] ->
-	    {ok,[Hex],[]} = io_lib:fread("~16u", Hex0),
+	<<H1,H2,_/bytes>> ->
+	    Hex = erlang:list_to_integer([H1,H2], 16),
 	    read_bitmap(F, [Hex|Acc])
     end.
 
@@ -188,7 +188,7 @@ filter_unicode(Gs) ->
     
 
 read_map(MapName) ->
-    {ok,F} = file:open(MapName, [read,read_ahead]),
+    {ok,F} = file:open(MapName, [binary,read,read_ahead]),
     Map = read_map_1(F, []),
     file:close(F),
     Map.
@@ -209,7 +209,7 @@ error(Term) ->
 read_map_line(F) ->
     case skip_whitespace(io:get_line(F, '')) of
 	eof -> eof;
-	"#"++_ -> read_map_line(F);
+	<<$#,_/bytes>> -> read_map_line(F);
 	Cs -> collect_tokens(Cs)
     end.
 
@@ -221,10 +221,10 @@ read_line(F) ->
 
 read_line_1(eof, _) ->
     error(eof);
-read_line_1([], Fd) ->
+read_line_1(<<>>, Fd) ->
     %% Blank line - ignore and read the next line.
     read_line(Fd);
-read_line_1([Ctrl|Line], Fd) when Ctrl =< $\s ->
+read_line_1(<<Ctrl,Line/bytes>>, Fd) when Ctrl =< $\s ->
     %% Ignore any leading whitespace (especially TAB and spaces).
     read_line_1(Line, Fd);
 read_line_1(Line, _) ->
@@ -233,18 +233,20 @@ read_line_1(Line, _) ->
 collect_tokens(Line) ->
     collect_tokens_1(Line, [], []).
 
-collect_tokens_1([C|T], [], Tokens) when C =< $\s ->
+collect_tokens_1(<<C,T/bytes>>, [], Tokens) when C =< $\s ->
     collect_tokens_1(T, [], Tokens);
-collect_tokens_1([C|T], Curr, Tokens) when C =< $\s ->
+collect_tokens_1(<<C,T/bytes>>, Curr, Tokens) when C =< $\s ->
     collect_tokens_1(T, [], [reverse(Curr)|Tokens]);
-collect_tokens_1([H|T], Curr, Tokens) ->
-    collect_tokens_1(T, [H|Curr], Tokens);
-collect_tokens_1([], [], Tokens) ->
+collect_tokens_1(<<C,T/bytes>>, Curr, Tokens) ->
+    collect_tokens_1(T, [C|Curr], Tokens);
+collect_tokens_1(<<>>, [], Tokens) ->
     reverse(Tokens);
-collect_tokens_1([], Curr, Tokens) ->
-    collect_tokens_1([], [], [reverse(Curr)|Tokens]).
+collect_tokens_1(<<>>, Curr, Tokens) ->
+    collect_tokens_1(<<>>, [], [reverse(Curr)|Tokens]).
 
-skip_whitespace([C|Cs]) when C =< $\s ->    
+skip_whitespace(<<C,Cs/bytes>>) when C =< $\s ->
+    skip_whitespace(Cs);
+skip_whitespace([C|Cs]) when C =< $\s ->
     skip_whitespace(Cs);
 skip_whitespace(Cs) -> Cs.
 
