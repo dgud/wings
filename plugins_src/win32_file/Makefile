@@ -3,12 +3,12 @@
 #
 #     Makefile for building file dialog plug-in for Windows.
 #
-#  Copyright (c) 2003-2008 Bjorn Gustavsson
+#  Copyright (c) 2003-2009 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-#     $Id: Makefile,v 1.15 2006/01/19 22:30:47 giniu Exp $
+#     $Id$
 #
 
 WINGS_INTL=../../intl_tools
@@ -20,7 +20,7 @@ BEAM = $(LIBDIR)/wp8_file.beam
 LIBS = -shared -lcomdlg32
 
 ERLC = erlc
-ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH) -W +warn_obsolete_guard +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
+ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH) -W +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
 
 DRV = $(LIBDIR)/wings_file_drv.dll
 
