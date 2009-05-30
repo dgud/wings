@@ -128,10 +128,8 @@ setup_gl() ->
     gl:disable(?GL_LIGHTING).
 
 get_ao_color(Eye, Lookat, DispList) ->
-    gl:drawBuffer(?GL_AUX0),
     gl:clear(?GL_COLOR_BUFFER_BIT),
     render_hemicube(Eye, Lookat, DispList),
-    gl:readBuffer(?GL_AUX0),
     Factor = read_frame(),
     {Factor,Factor,Factor}.
 
