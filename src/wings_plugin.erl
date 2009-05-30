@@ -123,7 +123,8 @@ command(Cmd, St) ->
     end.
 
 command([M|Ps], Cmd, St) ->
-    case catch M:command(Cmd, St) of
+    CmdFun = erlang:make_fun(M, command, 2),
+    case catch wings_develop:time_command(CmdFun, Cmd, St) of
 	next -> command(Ps, Cmd, St);
 	Other ->
 	    case check_result(M, Other, St) of

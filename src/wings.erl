@@ -506,7 +506,7 @@ command_response(quit, _, _) ->
     exit(normal).
 
 do_command_1(Cmd, St0) ->
-    case wings_plugin:command(Cmd, St0) of
+    case wings_plugin:command(Cmd, St0#st{last_cmd=Cmd}) of
 	next ->
 	    %% Time the command if command timing is enabled.
 	    wings_develop:time_command(fun command/2, Cmd, St0);
