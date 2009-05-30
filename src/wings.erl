@@ -703,9 +703,6 @@ command_1({tools, screenshot}, St) ->
 command_1({tools, area_volume_info}, St) ->
     area_volume_info(St),
     St;
-command_1({tools, scene_size_info}, St) ->
-    scene_size_info(St),
-    St;
 command_1({tools, put_on_ground}, St) ->
     {save_state,wings_align:put_on_ground(St)};
 command_1({tools, unitize}, St) ->
@@ -817,8 +814,6 @@ tools_menu(_) ->
      separator,
      {?__(26,"Scene Info: Area & Volume"), area_volume_info,
       ?__(27,"Calculate area and volume for each object in the scene")},
-     {?__(32,"Memory Usage"), scene_size_info,
-      ?__(33,"Calculate the memory usage for the current scene from the saved state")},
      {?__(28,"Put on Ground"), put_on_ground,
       ?__(29,"Put selected objects on the ground plane")},
      {?__(30,"Unitize"), unitize,
@@ -1581,19 +1576,6 @@ area_volume(Face, We) ->
     Area = e3d_vec:len(Cp)/2.0,
     Volume = e3d_vec:dot(V1, Bc)/6.0,
     {Area, Volume}.
-
-scene_size_info(St) ->
-    Bytes = byte_size(term_to_binary(St)),
-    MB = Bytes/1048576,
-	{Unit,Amount} = best_unit(Bytes,MB),
-    Usage = io_lib:format(?__(1,"Your scene is using approximately ~s ~s [~p bytes]"),
-            [wings_util:nice_float(Amount), Unit, Bytes]),
-    wings_help:help_window(?__(2,"Memory Usage"), [Usage]).
-
-best_unit(Bytes,MB) when  MB < 1.0 ->
-    {"KB",Bytes/1024};
-best_unit(_, MB) ->
-    {"MB",MB}.
 
 highlight_aim_setup(St0) ->
     HL0 = wings_pref:get_value(highlight_aim_at_unselected),

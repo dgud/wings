@@ -34,7 +34,10 @@ menu(_) ->
       crossmark(develop_undo_stat)},
      {"OpenGL Errors",opengl_errors,
       "Print information about OpenGL errors to the console",
-      crossmark(develop_gl_errors)}].
+      crossmark(develop_gl_errors)},
+     separator,
+     {"Print Scene Size",print_scene_size,
+      "Print the scene size to the console"}].
 
 command(time_commands, _) ->
     toggle(develop_time_commands),
@@ -49,6 +52,10 @@ command(undo_stat, St) ->
     keep;
 command(opengl_errors, _) ->
     toggle(develop_gl_errors),
+    keep;
+command(print_scene_size, St) ->
+    Words = erts_debug:size(St),
+    io:format("The current scene is using ~p words\n", [Words]),
     keep.
 
 time_command(CmdFun, Cmd, St) ->
@@ -73,6 +80,7 @@ time_command(CmdFun, Cmd, St) ->
 	    gl_error_check(Cmd),
 	    Res
     end.
+
 gl_error_check(Cmd) ->
     case wings_pref:get_value(develop_gl_errors) of
 	false -> ok;
