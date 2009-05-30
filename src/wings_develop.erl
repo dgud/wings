@@ -13,9 +13,17 @@
 %%
 
 -module(wings_develop).
--export([menu/1,command/2,time_command/3]).
+-export([init/0,menu/1,command/2,
+	 time_command/3,gl_error_check/1]).
 
 -include("wings.hrl").
+
+init() ->
+    [wings_pref:set_default(Key, false) ||
+	Key <- [develop_time_commands,
+		develop_undo_stat,
+		develop_gl_errors]],
+    ok.
 
 menu(_) ->
     [{"Time Commands",time_commands,
@@ -23,24 +31,32 @@ menu(_) ->
       crossmark(develop_time_commands)},
      {"Undo Stat",undo_stat,
       "Show statistics for how much memory each Undo state consumes",
-      crossmark(develop_undo_stat)}].
+      crossmark(develop_undo_stat)},
+     {"OpenGL Errors",opengl_errors,
+      "Print information about OpenGL errors to the console",
+      crossmark(develop_gl_errors)}].
 
 command(time_commands, _) ->
-    wings_pref:toggle_value(develop_time_commands),
+    toggle(develop_time_commands),
     keep;
 command(undo_stat, St) ->
-    case wings_pref:toggle_value(develop_undo_stat) of
+    case toggle(develop_undo_stat) of
 	true ->
 	    wings_undo:mem_stat_help(),
 	    wings_undo:save(St, St);		%Nothing will be saved.
 	false -> ok
     end,
+    keep;
+command(opengl_errors, _) ->
+    toggle(develop_gl_errors),
     keep.
 
 time_command(CmdFun, Cmd, St) ->
-    case wings_pref:get_value(develop_time_commands) of
+    case wings_pref:get_value(develop_time_commands, false) of
 	false ->
-	    CmdFun(Cmd, St);
+	    Res = CmdFun(Cmd, St),
+	    gl_error_check(Cmd),
+	    Res;
 	true ->
 	    Before = erlang:now(),
 	    Res = CmdFun(Cmd, St),
@@ -54,18 +70,41 @@ time_command(CmdFun, Cmd, St) ->
 		    io:format("~14s  ~s\n",
 			      [Str,wings_util:stringify(Cmd)])
 	    end,
+	    gl_error_check(Cmd),
 	    Res
+    end.
+gl_error_check(Cmd) ->
+    case wings_pref:get_value(develop_gl_errors) of
+	false -> ok;
+	true -> gl_error_check_1(Cmd)
     end.
 
 %%%
 %%% Internal functions.
 %%%
 
+gl_error_check_1(Cmd0) ->
+    case gl:getError() of
+	0 -> ok;
+	ErrorCode ->
+	    Error = wings_gl:error_string(ErrorCode),
+	    Cmd = if is_list(Cmd0) -> Cmd0;
+		     true -> wings_util:stringify(Cmd0)
+		  end,
+	    io:format("~s caused OpenGL error ~s\n", [Cmd,Error])
+    end.
+
 crossmark(Key) ->
     case wings_pref:get_value(Key) of
 	false -> [];
 	true -> [crossmark]
     end.
+
+toggle(Key) ->
+    OldVal = wings_pref:get_value(Key),
+    NewVal = not OldVal,
+    wings_pref:set_value(Key, NewVal),
+    NewVal.
 
 format_time(Ms) ->
     MsStr = integer_to_list(Ms rem 1000000) ++ "us",

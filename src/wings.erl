@@ -122,7 +122,8 @@ init(File) ->
     wings_pb:init(),
     wings_ask:init(),
     wings_job:init(),
-    
+    wings_develop:init(),
+
     Op = main_loop_noredraw(St),		%Replace crash handler
                         %with this handler.
     

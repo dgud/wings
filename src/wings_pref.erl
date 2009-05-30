@@ -15,7 +15,7 @@
 -export([init/0,finish/0,load/0,
 	 lowpass/2,
 	 get_value/1,get_value/2,set_value/2,set_default/2,
-	 toggle_value/1,delete_value/1,
+	 delete_value/1,
 	 get_scene_value/0,get_scene_value/1,get_scene_value/2,
 	 set_scene_value/2,set_scene_default/2,
 	 delete_scene_value/0,delete_scene_value/1]).
@@ -306,11 +306,6 @@ try_location(Dir, File) ->
 	false -> none
     end.
 
-toggle_value(Key) ->
-    NewVal = not get_value(Key),
-    set_value(Key, NewVal),
-    NewVal.
-
 get_value(Key) ->
     get_value(Key, undefined).
 
@@ -549,9 +544,7 @@ defaults() ->
      {lang,en},
 
      %% Develop menu.
-     {show_develop_menu,false},
-     {develop_time_commands,false},
-     {develop_undo_stat,false}
+     {show_develop_menu,false}
     ].
 
 clean(List) ->

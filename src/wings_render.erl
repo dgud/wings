@@ -68,7 +68,8 @@ render(#st{selmode=Mode}=St) ->
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
     {W,H} = wings_wm:win_size(),
     gl:rectf(W-0.5, 0.5, 0.5, H-0.5),
-    gl:popAttrib().
+    gl:popAttrib(),
+    wings_develop:gl_error_check("Rendering scene").
 
 polygonOffset(M) ->
     case get(polygon_offset) of
