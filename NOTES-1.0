@@ -30,4 +30,6 @@
   locking the focus to the original window during paint selection and dragging
   in Tweak Mode. (Thanks to Fonte Boa.) [optigon]
 
+- New Tweak option to set Tweak Magnet Increment. [optigon]
+
 -----------------------------------------------------------------------------

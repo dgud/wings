@@ -65,6 +65,7 @@ init() ->
     wings_pref:set_default(tweak_double_click_speed54,Val),
     wings_pref:set_default(tweak_ctrl,slide),
     wings_pref:set_default(tweak_mmb_select,false),
+	wings_pref:set_default(tweak_mag_step,0.05),
     case wings_pref:get_value(start_in_tweak) of
       true ->
         self() ! {external, launch_tweak},
@@ -99,6 +100,7 @@ tweak(Ask,maya,_St) when is_atom(Ask) ->
               (_, _) -> void
           end,
     DblClkSpd = wings_pref:get_value(tweak_double_click_speed54)/100000,
+    MagStep = wings_pref:get_value(tweak_mag_step),
     TweakPrefs = [{vframe,
         [{?__(8,"Mmb Selects/Deselects (Maya camera mode only)"),tweak_mmb_select},
          {vframe,[{?__(1,"Lmb single click Selects/Deselects"),tweak_single_click},
@@ -109,7 +111,11 @@ tweak(Ask,maya,_St) when is_atom(Ask) ->
        {vframe,[{vradio,[{Radio1,select},
                          {Radio2,slide}],tweak_ctrl}],
        [{title,?__(7,"Button Options")},{hook,ClickHook}]}],
-       [{title,?__(9,"Options Panel")},{hook,MmbHook}]}]}],
+       [{title,?__(9,"Options Panel")},{hook,MmbHook}]},
+	   
+	   {hframe,[{slider,{text,MagStep,[{key,tweak_mag_step},{range,{0.001,0.1}}]}}],
+	   [{title,?__(10,"Magnet Radius Increment")}]}
+	   ]}],
 
     PrefQs = [{Lbl,make_query(Ps)} || {Lbl,Ps} <- TweakPrefs],
     wings_ask:dialog(Ask, ?__(4,"Tweak Mode Preferences"),PrefQs,
@@ -123,6 +129,7 @@ tweak(Ask,_Cam,_St) when is_atom(Ask) ->
               (_, _) -> void
           end,
     DblClkSpd = wings_pref:get_value(tweak_double_click_speed54)/100000,
+	MagStep = wings_pref:get_value(tweak_mag_step),
     TweakPrefs = [{vframe,
         [{?__(1,"Lmb single click Selects/Deselects"),tweak_single_click},
          {?__(2,"Lmb double click initiates Paint Select/Deselect"),tweak_double_click},
@@ -131,7 +138,11 @@ tweak(Ask,_Cam,_St) when is_atom(Ask) ->
        [{title,?__(3,"Click Speed")}]},
        {vframe,[{vradio,[{Radio1,select},
                          {Radio2,slide}],tweak_ctrl}],
-       [{title,?__(7,"Button Options")},{hook,ClickHook}]} ]}],
+       [{title,?__(7,"Button Options")},{hook,ClickHook}]},
+	   
+	   {hframe,[{slider,{text,MagStep,[{key,tweak_mag_step},{range,{0.001,0.1}}]}}],
+	   [{title,?__(10,"Magnet Radius Increment")}]}
+	   ]}],
 
     PrefQs = [{Lbl,make_query(Ps)} || {Lbl,Ps} <- TweakPrefs],
     wings_ask:dialog(Ask, ?__(4,"Tweak Mode Preferences"),PrefQs,
@@ -1455,7 +1466,7 @@ magnet_tweak_slide_fn(#mag{vs=Vs}=Mag, We,Orig,TweakPos) ->
     {Vtab,Mag#mag{vtab=Vtab}}.
 
 magnet_radius(Sign, #tweak{mag_r=Falloff0,st=St}=T0) ->
-    case Falloff0+Sign*?GROUND_GRID_SIZE/10 of
+    case Falloff0+Sign*wings_pref:get_value(tweak_mag_step) of
     Falloff when Falloff > 0 ->
         setup_magnet(T0#tweak{mag_r=Falloff,st=St});
     _Falloff -> T0#tweak{st=St}
