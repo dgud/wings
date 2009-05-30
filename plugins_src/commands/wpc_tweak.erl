@@ -65,6 +65,7 @@ init() ->
     wings_pref:set_default(tweak_double_click_speed54,Val),
     wings_pref:set_default(tweak_ctrl,slide),
     wings_pref:set_default(tweak_mmb_select,false),
+	wings_pref:set_default(tweak_mag_step,0.05),
     case wings_pref:get_value(start_in_tweak) of
       true ->
         self() ! {external, launch_tweak},
@@ -99,6 +100,7 @@ tweak(Ask,maya,_St) when is_atom(Ask) ->
               (_, _) -> void
           end,
     DblClkSpd = wings_pref:get_value(tweak_double_click_speed54)/100000,
+    MagStep = wings_pref:get_value(tweak_mag_step),
     TweakPrefs = [{vframe,
         [{?__(8,"Mmb Selects/Deselects (Maya camera mode only)"),tweak_mmb_select},
          {vframe,[{?__(1,"Lmb single click Selects/Deselects"),tweak_single_click},
@@ -109,7 +111,11 @@ tweak(Ask,maya,_St) when is_atom(Ask) ->
        {vframe,[{vradio,[{Radio1,select},
                          {Radio2,slide}],tweak_ctrl}],
        [{title,?__(7,"Button Options")},{hook,ClickHook}]}],
-       [{title,?__(9,"Options Panel")},{hook,MmbHook}]}]}],
+       [{title,?__(9,"Options Panel")},{hook,MmbHook}]},
+	   
+	   {hframe,[{slider,{text,MagStep,[{key,tweak_mag_step},{range,{0.001,0.1}}]}}],
+	   [{title,?__(10,"Magnet Radius Increment")}]}
+	   ]}],
 
     PrefQs = [{Lbl,make_query(Ps)} || {Lbl,Ps} <- TweakPrefs],
     wings_ask:dialog(Ask, ?__(4,"Tweak Mode Preferences"),PrefQs,
@@ -123,6 +129,7 @@ tweak(Ask,_Cam,_St) when is_atom(Ask) ->
               (_, _) -> void
           end,
     DblClkSpd = wings_pref:get_value(tweak_double_click_speed54)/100000,
+	MagStep = wings_pref:get_value(tweak_mag_step),
     TweakPrefs = [{vframe,
         [{?__(1,"Lmb single click Selects/Deselects"),tweak_single_click},
          {?__(2,"Lmb double click initiates Paint Select/Deselect"),tweak_double_click},
@@ -131,7 +138,11 @@ tweak(Ask,_Cam,_St) when is_atom(Ask) ->
        [{title,?__(3,"Click Speed")}]},
        {vframe,[{vradio,[{Radio1,select},
                          {Radio2,slide}],tweak_ctrl}],
-       [{title,?__(7,"Button Options")},{hook,ClickHook}]} ]}],
+       [{title,?__(7,"Button Options")},{hook,ClickHook}]},
+	   
+	   {hframe,[{slider,{text,MagStep,[{key,tweak_mag_step},{range,{0.001,0.1}}]}}],
+	   [{title,?__(10,"Magnet Radius Increment")}]}
+	   ]}],
 
     PrefQs = [{Lbl,make_query(Ps)} || {Lbl,Ps} <- TweakPrefs],
     wings_ask:dialog(Ask, ?__(4,"Tweak Mode Preferences"),PrefQs,
@@ -207,11 +218,11 @@ fkey_combo() ->
     [F1,F2,F3].
 
 %% Event handler for tweak mode
-update_tweak_handler(#tweak{tmode=drag,st=#st{}=St}=T) ->
+update_tweak_handler(#tweak{tmode=drag}=T) ->
     wings_draw:update_sel_dlist(),
     wings_wm:dirty(),
     {replace,fun(Ev) ->
-        handle_tweak_event(Ev, T#tweak{st=St}) end};
+        handle_tweak_event(Ev, T)end};
 
 update_tweak_handler(#tweak{st=#st{}=St}=T) ->
     wings:mode_restriction(none),
@@ -219,13 +230,19 @@ update_tweak_handler(#tweak{st=#st{}=St}=T) ->
     wings_draw:refresh_dlists(St),
     wings_wm:dirty(),
     {replace,fun(Ev) ->
-        handle_tweak_event(Ev, T#tweak{st=St}) end}.
+        handle_tweak_event(Ev, T) end}.
 
-handle_tweak_event(redraw, #tweak{st=St}=T) ->
+handle_tweak_event(redraw, #tweak{tmode=drag,magnet=true,st=St}=T) ->
     help(T),
     redraw(St),
     draw_magnet(T),
     keep;
+
+handle_tweak_event(redraw, #tweak{st=St}=T) ->
+    help(T),
+    redraw(St),
+    keep;
+
 
 handle_tweak_event({vec_command,Command,_}, T) when is_function(Command) ->
     %% Use to execute command with vector arguments (see wings_vec.erl).
@@ -255,18 +272,32 @@ handle_tweak_event(Ev, #tweak{st=St}=T) ->
 handle_tweak_event0(#keyboard{sym=?SDLK_ESCAPE}, T) ->
     exit_tweak(T);
 
-handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{st=St0}=T) ->
+handle_tweak_event0(#keyboard{sym=$=}, #tweak{tmode=drag}=T) ->
+    update_tweak_handler(magnet_radius(1,T));
+
+handle_tweak_event0(#keyboard{sym=$-}, #tweak{tmode=drag}=T) ->
+    update_tweak_handler(magnet_radius(-1,T));
+
+handle_tweak_event0(#keyboard{sym=C}, #tweak{tmode=drag}=T) ->
+    case tweak_hotkey(C, T) of
+      none -> keep;
+      T1 -> update_tweak_handler(T1)
+    end;
+
+handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{tmode=wait,st=St0}=T) ->
     case tweak_hotkey(C, T) of
       none ->
             St = fake_sel(St0),
             case wings_hotkey:event(Ev,St) of
               next ->
-                update_tweak_handler(T);
+                keep;
               Action ->
                 handle_tweak_event2({action,Action},T#tweak{st=St})
             end;
       T1 -> update_tweak_handler(T1)
     end;
+handle_tweak_event0(#keyboard{}, _) ->
+    keep;
 
 handle_tweak_event0(#mousemotion{}=Ev, #tweak{tmode=wait,st=St}=T) ->
     case wings_pick:event(Ev, St) of
@@ -277,10 +308,11 @@ handle_tweak_event0(#mousemotion{}=Ev, #tweak{tmode=wait,st=St}=T) ->
 handle_tweak_event0(#mousemotion{x=X,y=Y,state=State,mod=Mod},
             #tweak{tmode=drag,cx=CX,cy=CY,ox=OX,oy=OY}=T0)
             when State =/= ?SDL_BUTTON_RMASK ->
-    DX = float(X-CX),
-    DY = float(Y-CY),
-    DxOrg = float(X-OX),
-    DyOrg = float(Y-OY),
+    {GX,GY} = wings_wm:local2global(X, Y),
+    DX = float(GX-OX), %since last move X and Y
+    DY = float(GY-OY),
+    DxOrg = float(DX+CX), %total X
+    DyOrg = float(DY+CY), %total Y
     FKeys = fkey_combo(),
     TKeys = wings_pref:get_value(tweak_xyz),
     C = tweak_constraints(FKeys,TKeys,[]),
@@ -314,8 +346,9 @@ handle_tweak_event0(#mousemotion{x=X,y=Y,state=State,mod=Mod},
          C == [false,false,true]  -> zmove;
          true -> screen
      end,
-    do_tweak(DX, DY,DxOrg,DyOrg,Mode),
-    T = T0#tweak{cx=X,cy=Y},
+    wings_io:warp(OX,OY),
+    do_tweak(DX,DY,DxOrg,DyOrg,Mode),
+    T = T0#tweak{cx=DxOrg,cy=DyOrg},
     update_tweak_handler(T);
 
 handle_tweak_event0(Ev, T) ->
@@ -348,7 +381,7 @@ handle_tweak_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
         Cam == mb andalso ModKeys == {false,false,true} andalso Lm==false andalso TwkCtrl == slide ->
           pick_event(X,Y,Cam,1,T0);
       _Other ->
-        update_tweak_handler(T0)
+        keep
     end;
 
 handle_tweak_event1(#mousebutton{button=2,x=X,y=Y,state=?SDL_PRESSED},
@@ -362,13 +395,13 @@ handle_tweak_event1(#mousebutton{button=2,x=X,y=Y,state=?SDL_PRESSED},
       {false,false,false} when Cam==maya ->
         pick_event(X,Y,maya,2,T0);
       {false,false,false} when Cam==mb ->
-        update_tweak_handler(T0);
+        keep;
       {false,true,false} when Cam==mb ->
-        update_tweak_handler(T0);
+        keep;
       _Other when Cam==mb ->
         pick_event(X,Y,mb,2,T0);
       _Other ->
-        update_tweak_handler(T0)
+        keep
     end;
 
 handle_tweak_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
@@ -405,7 +438,7 @@ handle_tweak_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
         Cam == mb andalso ModKeys == {false,true,false} andalso Lm==false andalso TwkCtrl == slide ->
           pick_event(X,Y,Cam,1,T0);
       _Other ->
-        update_tweak_handler(T0)
+        keep
     end;
 
 handle_tweak_event1(#mousebutton{button=1,state=?SDL_RELEASED},
@@ -442,7 +475,7 @@ handle_tweak_event1(#mousebutton{button=3,state=?SDL_PRESSED}, #tweak{}) ->
     keep;
 
 handle_tweak_event1(#mousebutton{button=3,state=?SDL_RELEASED,x=X,y=Y},
-        #tweak{st=#st{sel=Sel}=St0}) ->
+        #tweak{tmode=wait,st=#st{sel=Sel}=St0}) ->
     {GlobalX, GlobalY} = wings_wm:local2global(X,Y),
     case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
     false ->
@@ -516,36 +549,43 @@ handle_tweak_event2({action,Action}, #tweak{tmode=wait,st=#st{}=St0}=T) ->
     keep -> keep;
     Cmd ->
         do_cmd(Cmd, T)
-   end;
-
-handle_tweak_event2({action,Action}, #tweak{tmode=drag}=T) ->
-    case Action of
-      {select, more} -> do_cmd(Action, T);
-      {select, less} -> do_cmd(Action, T);
-      Action -> keep
     end;
+handle_tweak_event2(close, _) ->
+% Close a second geometry window
+    Active = wings_wm:this(),
+    wings_wm:delete({object,Active}),
+    delete;
 
-handle_tweak_event2(_, T) ->
-    update_tweak_handler(T).
+handle_tweak_event2(_, _) ->
+    keep.
+
+%%%%
+%%%% End of event handlers
+%%%%
 
 pick_event(X, Y, Cam, B, #tweak{st=#st{}=St0}=T0) ->
+    {GX,GY} = wings_wm:local2global(X, Y),
     case wings_pick:do_pick(X, Y, St0) of
       {add,MM,St1} ->
+        wings_wm:grab_focus(),
+        wings_io:grab(),
         begin_drag(MM, St1, T0),
         do_tweak(0.0, 0.0, 0.0, 0.0, screen),
         Time = now(),
-        T = T0#tweak{tmode=drag,ox=X,oy=Y,cx=X,cy=Y,dc={Time,0}},
+        T = T0#tweak{tmode=drag,ox=GX,oy=GY,cx=0,cy=0,dc={Time,0}},
         update_tweak_handler(T);
       {delete,MM,_} ->
+        wings_wm:grab_focus(),
+        wings_io:grab(),
         begin_drag(MM, St0, T0),
         do_tweak(0.0, 0.0, 0.0, 0.0, screen),
         Time = now(),
-        T = T0#tweak{tmode=drag,ox=X,oy=Y,cx=X,cy=Y,dc={Time,0}},
+        T = T0#tweak{tmode=drag,ox=GX,oy=GY,cx=0,cy=0,dc={Time,0}},
         update_tweak_handler(T);
       none when B == 1 ->
         wings_pick:marquee_pick(X, Y, St0);
       none when Cam == maya; Cam == mb ->
-        update_tweak_handler(T0)
+        keep
     end.
 
 popup_menu(X, Y, #st{sel=[]}=St) ->
@@ -578,12 +618,6 @@ do_cmd({tools, {tweak,false}}, #tweak{st=St}=T) ->
 do_cmd({tools, {tweak,true}}, #tweak{st=St}=T) ->
     wings_plugin:command({tools, {tweak,true}}, St),
     exit_tweak(T#tweak{st=clear_temp_sel(St)});
-
-do_cmd({select, less}, #tweak{tmode=drag}=T) ->
-    update_tweak_handler(magnet_radius(-1,T));
-
-do_cmd({select, more}, #tweak{tmode=drag}=T) ->
-    update_tweak_handler(magnet_radius(1, T));
 
 do_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
     St1 = remember_command(Cmd, St0),
@@ -669,7 +703,9 @@ begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, MM, St, T) ->
     D#dlo{drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}};
 begin_drag_fun(D, _, _, _) -> D.
 
-end_drag(#tweak{st=St0}=T) ->
+end_drag(#tweak{st=St0,ox=X,oy=Y}=T) ->
+    wings_wm:release_focus(),
+    wings_io:ungrab(X,Y),
     St = wings_dl:map(fun end_drag/2, St0),
     help(T),
     handle_tweak_event2({new_state,St},T#tweak{tmode=wait}).
@@ -720,10 +756,12 @@ end_drag(#dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
     {D2#dlo{vs=none,sel=none,drag=none},St};
 end_drag(D, St) -> {D, St}.
 
-end_pick(true, #tweak{st=#st{selmode=Selmode}=St0}=T0) ->
+end_pick(true, #tweak{st=#st{selmode=Selmode}=St0,ox=X,oy=Y}=T0) ->
+    wings_wm:release_focus(),
+    wings_io:ungrab(X,Y),
     St1 = wings_dl:map(fun end_pick_1/2, St0),
-    {_,X,Y} = wings_wm:local_mouse_state(),
-    St = case wings_pick:do_pick(X, Y, St1#st{selmode=Selmode}) of
+    {_,X1,Y1} = wings_wm:local_mouse_state(),
+    St = case wings_pick:do_pick(X1, Y1, St1#st{selmode=Selmode}) of
         {_,_,St2} -> St2;
         none -> St1
     end,
@@ -731,7 +769,9 @@ end_pick(true, #tweak{st=#st{selmode=Selmode}=St0}=T0) ->
     help(T),
     handle_tweak_event2({new_state,St},T);
 
-end_pick(false, #tweak{st=St0}=T) ->
+end_pick(false, #tweak{st=St0,ox=X,oy=Y}=T) ->
+    wings_wm:release_focus(),
+    wings_io:ungrab(X,Y),
     St = wings_dl:map(fun end_pick_1/2, St0),
     help(T),
     handle_tweak_event2({new_state,St},T#tweak{tmode=wait}).
@@ -749,7 +789,7 @@ sel_to_vs(edge, Es, We) -> wings_vertex:from_edges(Es, We);
 sel_to_vs(face, [Face], We) -> wings_face:vertices_ccw(Face, We);
 sel_to_vs(face, Fs, We) -> wings_face:to_vertices(Fs, We).
 
-do_tweak(DX, DY, DxOrg,DyOrg,Mode) ->
+do_tweak(DX, DY, DxOrg, DyOrg, Mode) ->
     wings_dl:map(fun
         (#dlo{src_we=We}=D, _) when ?IS_LIGHT(We) ->
              do_tweak(D, DX, DY, DxOrg, DyOrg, screen);
@@ -1253,8 +1293,8 @@ clear_temp_sel(#st{temp_sel={Mode,Sh}}=St) ->
 %%% (vertices to be moved have the influence set to 1.0).
 %%%
 
-tweak_hotkey(C, #tweak{magnet=Mag}=T) ->
-    case magnet_hotkey(C) of
+tweak_hotkey(C, #tweak{magnet=Mag,mag_type=MagType}=T) ->
+    case magnet_hotkey(C, MagType) of
     none -> constraint_hotkey();
     toggle when Mag == true ->
         setup_magnet(T#tweak{magnet=false});
@@ -1297,11 +1337,11 @@ tweak_constraints([_|Fkeys],[Key|Tkeys],Constraints) ->
 tweak_constraints([],[],Constraints) ->
     lists:reverse(Constraints).
 
-magnet_hotkey($1) -> toggle;
-magnet_hotkey($2) -> dome;
-magnet_hotkey($3) -> straight;
-magnet_hotkey($4) -> spike;
-magnet_hotkey(_) -> none.
+magnet_hotkey($1,_) -> toggle;
+magnet_hotkey($2,M) when M /= dome -> dome;
+magnet_hotkey($3,M) when M /= straight -> straight;
+magnet_hotkey($4,M) when M /= spike -> spike;
+magnet_hotkey(_,_) -> none.
 
 setup_magnet(#tweak{tmode=drag}=T) ->
     wings_dl:map(fun(D, _) ->
@@ -1410,7 +1450,7 @@ magnet_tweak_slide_fn(#mag{vs=Vs}=Mag, We,Orig,TweakPos) ->
     {Vtab,Mag#mag{vtab=Vtab}}.
 
 magnet_radius(Sign, #tweak{mag_r=Falloff0,st=St}=T0) ->
-    case Falloff0+Sign*?GROUND_GRID_SIZE/10 of
+    case Falloff0+Sign*wings_pref:get_value(tweak_mag_step) of
     Falloff when Falloff > 0 ->
         setup_magnet(T0#tweak{mag_r=Falloff,st=St});
     _Falloff -> T0#tweak{st=St}
@@ -1427,7 +1467,6 @@ get_inv_magnet_value2(MagType,Value,Pos) ->
 get_inv_magnet_value(MagType,Value) ->
     get_inv_magnet_value2(MagType,Value,0.0).
 
-draw_magnet(#tweak{magnet=false}) -> ok;
 draw_magnet(#tweak{st=#st{selmode=body}}) -> ok;
 draw_magnet(#tweak{mag_r=R,mag_type=Mt}) ->
     R2=[get_inv_magnet_value(Mt,X/10.0)||X<-lists:seq(1,9)],

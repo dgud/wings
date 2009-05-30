@@ -5,11 +5,32 @@
 - Selectings multiple objects in Tweak and calling a command via a hotkey would
   only affect one of the objects. Now corrected. [optigon]
 
-- Crash reported by Fonte Boa corrected. [optigon]
+- Tweak Crash to do with unchecked camera mode reported by Fonte Boa corrected.
+  [optigon]
 
 - Tweak mode temporary selection fix. [optigon]
 
 - Select Similar Normals with the option Connected Faces Only and
   a selection comprising multiple objects would cause a crash.
   (Thanks to pauljs75.) [bjorng]
+
+- When creating a texture from vertex colors in the AutoUV window, the
+  colors will be properly interpolated (smoothed). [scorpius]
+
+- Keyboard events in Tweak while dragging could cause slow downs. Now Fixed.
+  (Thanks to Fonte Boa.) [optigon]
+
+- Additional Geometry Windows can now be closed from within Tweak mode.
+  (Thanks to Fonte Boa.) [optigon]
+
+- Dragging in Tweak is no longer limited to the size of the current window.
+  [optigon]
+
+- Conflicts due to mouse events in adjacent Geometry Windows have been solved by
+  locking the focus to the original window during paint selection and dragging
+  in Tweak Mode. (Thanks to Fonte Boa.) [optigon]
+
+- New Tweak option to set Tweak Magnet Increment. [optigon]
+
+- Spherical UV mapping corrected. [dgud]
 -----------------------------------------------------------------------------
