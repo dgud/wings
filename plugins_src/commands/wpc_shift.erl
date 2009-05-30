@@ -193,11 +193,11 @@ shift_cylindrical(Pos, Dist, {object, Axis, V}) ->
     N = e3d_vec:norm(OffVec),
     e3d_vec:add([Pos, e3d_vec:mul(N, Dist)]).
 
-shift_spherical(Pos, 0.0, {_Center}) -> Pos;
-shift_spherical(Pos, Dist, {Center}) ->
-    V = e3d_vec:sub(Pos,Center),
+shift_spherical(Pos, 0.0, _Center) -> Pos;
+shift_spherical(Pos, Dist, {object, V}) ->
     N = e3d_vec:norm(V),
     e3d_vec:add([Pos, e3d_vec:mul(N, Dist)]);
-shift_spherical(Pos, Dist, {object, V}) ->
+shift_spherical(Pos, Dist, Center) ->
+    V = e3d_vec:sub(Pos,Center),
     N = e3d_vec:norm(V),
     e3d_vec:add([Pos, e3d_vec:mul(N, Dist)]).
