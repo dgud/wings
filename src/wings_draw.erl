@@ -33,9 +33,10 @@
 -record(split,
 	{static_vs,
 	 dyn_vs,
-	 dyn_plan,				%Plan for drawing dynamic faces.
+	 dyn_plan,		      %Plan for drawing dynamic faces.
 	 orig_ns,
-	 orig_we
+	 orig_we,
+	 orig_st		      %For materials
 	}).
 
 
@@ -319,17 +320,17 @@ update_fun_2(light, D, _) ->
     wings_light:update(D);
 update_fun_2(work, #dlo{work=none}=D0, St) ->
     ?TC(begin
-	    D  = wings_draw_setup:work(D0,St),
+	    D  = wings_draw_setup:work(D0, St),
 	    Dl = draw_faces_all(D, St),
 	    D#dlo{work=Dl}
-	end );
+	end);
 
 update_fun_2(smooth, #dlo{smooth=none,proxy_data=none}=D0, St) ->
     ?TC(begin
-	    D  = wings_draw_setup:smooth(D0,St),
+	    D  = wings_draw_setup:smooth(D0, St),
 	    {List,Tr} = smooth_faces_all(D, St),
 	    D#dlo{smooth=List,transparent=Tr}
-	end );
+	end);
 update_fun_2(smooth, #dlo{smooth=none}=D, St) ->
     We = wings_proxy:smooth_we(D),
     Temp0 = update_normals(changed_we(#dlo{}, #dlo{src_we=We})),
@@ -589,11 +590,12 @@ split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
     {DynVs,VsDlist} = split_vs_dlist(Vs, StaticVs, Sel, We),
 
     WeDyn = wings_facemat:gc(We#we{fs=gb_trees:from_orddict(FtabDyn)}),
-    DynPlan = wings_draw_util:prepare(FtabDyn, We, St),
+    DynPlan = wings_draw_setup:prepare(FtabDyn, We, St),
     StaticVtab = insert_vtx_data(StaticVs, We#we.vp, []),
 
     Split = #split{static_vs=StaticVtab,dyn_vs=DynVs,
-		   dyn_plan=DynPlan,orig_ns=Ns0,orig_we=We},
+		   dyn_plan=DynPlan,orig_ns=Ns0,
+		   orig_we=We,orig_st=St},
     #dlo{work=Work,edges=[StaticEdgeDl],mirror=M,vs=VsDlist,
 	 src_sel=Sel,src_we=WeDyn,split=Split,proxy_data=Pd,
 	 needed=Needed,open=Open}.
@@ -624,7 +626,7 @@ static_vs_1([F|Fs], Fun, We, Acc) ->
     static_vs_1(Fs, Fun, We, wings_face:fold(Fun, Acc, F, We));
 static_vs_1([], _, _, Acc) -> ordsets:from_list(Acc).
 
-split_faces(#dlo{needed=Need}=D, Ftab0, Fs0, St) ->
+split_faces(#dlo{needed=Need}=D0, Ftab0, Fs0, St) ->
     Ftab = sofs:from_external(Ftab0, [{face,data}]),
     Fs = sofs:from_external(Fs0, [face]),
     case member(work, Need) orelse member(smooth, Need) of
@@ -638,7 +640,10 @@ split_faces(#dlo{needed=Need}=D, Ftab0, Fs0, St) ->
 	    {FtabDyn0,StaticFtab0} = sofs:partition(1, Ftab, Fs),
 	    FtabDyn = sofs:to_external(FtabDyn0),
 	    StaticFtab = sofs:to_external(StaticFtab0),
-	    {[draw_faces(StaticFtab, D, St)],FtabDyn}
+	    StaticPlan = wings_draw_setup:prepare(StaticFtab, D0, St),
+	    D = wings_draw_setup:flat_faces(StaticPlan, D0),
+	    Dl = draw_faces_all(D, St),
+	    {[Dl],FtabDyn}
     end.
 
 make_static_edges(DynFaces, #dlo{ns=none}) ->
@@ -709,9 +714,12 @@ update_dynamic(#dlo{src_we=We0,split=#split{static_vs=StaticVs}}=D0, Vtab0) ->
     D = dynamic_edges(D4),
     dynamic_vs(D).
 
-dynamic_faces(#dlo{work=[Work|_],split=#split{dyn_plan=DynPlan}}=D) ->
-    Dl = draw_faces(DynPlan, D),
-    D#dlo{work=[Work,Dl]};
+dynamic_faces(#dlo{work=[Work|_],
+		   split=#split{dyn_plan=DynPlan,orig_st=St}}=D0) ->
+    D = wings_draw_setup:flat_faces(DynPlan, D0),
+    Dl = draw_faces_all(D, St),
+    D#dlo{work=[Work,Dl],face_vs=none,face_fn=none,
+	  face_uv=none,face_vc=none,face_map=none,mat_map=none};
 dynamic_faces(#dlo{work=none}=D) -> D.
 
 dynamic_edges(#dlo{edges=[StaticEdge|_],ns=Ns}=D) ->
@@ -809,14 +817,14 @@ tricky_share({X,Y,Z}, {_,_,Z}=Old) ->
 %%%
 
 draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,
-		    face_vc=Col,mat_map={color,NumElements}},
+		    face_vc=Col,
+		    mat_map={color,NumElements}},
 	       #st{mat=Mtab}) ->
+    Dl = gl:genLists(1),
+    gl:newList(Dl, ?GL_COMPILE),
     wings_draw_setup:vertexPointer(BinVs),
     wings_draw_setup:normalPointer(Ns),
     wings_draw_setup:colorPointer(Col),
-
-    Dl = gl:genLists(1),
-    gl:newList(Dl, ?GL_COMPILE),
     gl:enableClientState(?GL_VERTEX_ARRAY),
     gl:enableClientState(?GL_NORMAL_ARRAY),
     gl:enableClientState(?GL_COLOR_ARRAY),
@@ -832,110 +840,18 @@ draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,
     Dl;
 draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,face_uv=UV,mat_map=MatMap},
 	       #st{mat=Mtab}) ->
+    Dl = gl:genLists(1),
+    gl:newList(Dl, ?GL_COMPILE),
     wings_draw_setup:vertexPointer(BinVs),
     wings_draw_setup:normalPointer(Ns),
     wings_draw_setup:texCoordPointer(UV),
-
-    Dl = gl:genLists(1),
-    gl:newList(Dl, ?GL_COMPILE),
     gl:enableClientState(?GL_VERTEX_ARRAY),
     gl:enableClientState(?GL_NORMAL_ARRAY),
-    lists:foreach(fun(MatFs) -> draw_mat_fs(MatFs, Mtab) end, MatMap),
+    foreach(fun(MatFs) -> draw_mat_fs(MatFs, Mtab) end, MatMap),
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:disableClientState(?GL_NORMAL_ARRAY),
     gl:endList(),
     Dl.
-
-draw_faces(Ftab, D, St) ->
-    draw_faces(wings_draw_util:prepare(Ftab, D, St), D).
-
-draw_faces({material,MatFaces,St}, D) ->
-    Dl = gl:genLists(1),
-    gl:newList(Dl, ?GL_COMPILE),
-    mat_faces(MatFaces, D, St),
-    gl:endList(),
-    Dl;
-draw_faces({color,Colors,#st{mat=Mtab}}, D) ->
-    BasicFaces = gl:genLists(2),
-    Dl = BasicFaces+1,
-    gl:newList(BasicFaces, ?GL_COMPILE),
-    draw_vtx_faces(Colors, D),
-    gl:endList(),
-    
-    gl:newList(Dl, ?GL_COMPILE),
-    wings_material:apply_material(default, Mtab),
-    gl:enable(?GL_COLOR_MATERIAL),
-    gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
-    gl:callList(BasicFaces),
-    gl:disable(?GL_COLOR_MATERIAL),
-    gl:endList(),
-
-    {call,Dl,BasicFaces}.
-
-draw_vtx_faces({Same,Diff}, D) ->
-    gl:'begin'(?GL_TRIANGLES),
-    draw_vtx_faces_1(Same, D),
-    draw_vtx_faces_3(Diff, D),
-    gl:'end'().
-
-draw_vtx_faces_1([{none,Faces}|Fs], D) ->
-    gl:color3f(1, 1, 1),
-    draw_vtx_faces_2(Faces, D),
-    draw_vtx_faces_1(Fs, D);
-draw_vtx_faces_1([{Col,Faces}|Fs], D) ->
-    gl:color3fv(Col),
-    draw_vtx_faces_2(Faces, D),
-    draw_vtx_faces_1(Fs, D);
-draw_vtx_faces_1([], _) -> ok.
-
-draw_vtx_faces_2([F|Fs], D) ->
-    wings_draw_util:plain_face(F, D),
-    draw_vtx_faces_2(Fs, D);
-draw_vtx_faces_2([], _) -> ok.
-
-draw_vtx_faces_3([[F|Cols]|Fs], D) ->
-    wings_draw_util:vcol_face(F, D, Cols),
-    draw_vtx_faces_3(Fs, D);
-draw_vtx_faces_3([], _) -> ok.
-
-%%%
-%%% Set material and draw faces.
-%%%
-
-mat_faces(List, #dlo{}=D, #st{mat=Mtab}) ->
-    mat_faces_1(List, D, Mtab);
-mat_faces(List, D, Mtab) ->
-    mat_faces_1(List, D, Mtab).
-    
-mat_faces_1([{Mat,Faces}|T], D, Mtab) ->
-    gl:pushAttrib(?GL_TEXTURE_BIT),
-    case wings_material:apply_material(Mat, Mtab) of
-	false ->
-	    gl:'begin'(?GL_TRIANGLES),
-	    draw_mat_faces(Faces, D),
-	    gl:'end'();
-	true ->
-	    gl:'begin'(?GL_TRIANGLES),
-	    draw_uv_faces(Faces, D),
-	    gl:'end'()
-    end,
-    gl:popAttrib(),
-    mat_faces_1(T, D, Mtab);
-mat_faces_1([], _, _) -> ok.
-
-draw_mat_faces([{Face,_Edge}|Fs], D) ->
-    wings_draw_util:plain_face(Face, D),
-    draw_mat_faces(Fs, D);
-draw_mat_faces([], _) -> ok.
-
-draw_uv_faces([{Face,Edge}|Fs], D) ->
-    wings_draw_util:uv_face(Face, Edge, D),
-    draw_uv_faces(Fs, D);
-draw_uv_faces([], _) -> ok.
-
-%%%
-%%% Smooth drawing.
-%%%
 
 draw_mat_fs({Mat,Start,NumElements}, Mtab) ->
     gl:pushAttrib(?GL_TEXTURE_BIT),
@@ -948,6 +864,11 @@ draw_mat_fs({Mat,Start,NumElements}, Mtab) ->
 	    gl:disableClientState(?GL_TEXTURE_COORD_ARRAY)
     end,
     gl:popAttrib().
+
+
+%%%
+%%% Smooth drawing.
+%%%
 
 smooth_faces_all(#dlo{face_vs=BinVs,face_sn=Ns,
 		      face_vc=Col,mat_map={color,NumElements}},

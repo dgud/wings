@@ -12,7 +12,7 @@
 %%
 
 -module(wings_draw_setup).
--export([work/2,smooth/2]).
+-export([work/2,smooth/2,prepare/3,flat_faces/2]).
 -export([vertexPointer/1,normalPointer/1,colorPointer/1,texCoordPointer/1]).
 -export([face_vertex_count/1]).
 
@@ -46,7 +46,7 @@ face_vertex_count(#dlo{mat_map={color,N}}) ->
 %% Setup face_vs and face_fn and additional uv coords or vertex colors
 work(#dlo{face_vs=none,src_we=#we{fs=Ftab}}=D, St) ->
     Prepared = prepare(gb_trees:to_list(Ftab), D, St),
-    setup_flat_faces(Prepared, D);
+    flat_faces(Prepared, D);
 work(#dlo{face_fn=none}=D, _St) ->
     %% Can this really happen?
     setup_flat_normals(D);
@@ -61,9 +61,9 @@ smooth(D, _) -> D.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-setup_flat_faces({material,MatFaces,#st{mat=Mtab}}, D) ->
+flat_faces({material,MatFaces,#st{mat=Mtab}}, D) ->
     mat_flat_faces(MatFaces, D, Mtab);
-setup_flat_faces({color,Ftab,We}, D) ->
+flat_faces({color,Ftab,We}, D) ->
     col_flat_faces(Ftab, We, D).
 
 mat_flat_faces(MatFs, D, Mtab) ->
@@ -84,8 +84,14 @@ plain_flat_faces([{Mat,Fs}|T], #dlo{ns=Ns}=D, Start0, Vs0, Fmap0, MatInfo0) ->
     plain_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 plain_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    <<_:3/unit:32,Ns/bytes>> = Vs,
-    D#dlo{face_vs={24,Vs},face_fn={24,Ns},face_uv=none,
+    case Vs of
+	<<>> ->
+	    Ns = Vs;
+	_ ->
+	    <<_:3/unit:32,Ns/bytes>> = Vs
+    end,
+    S = 24,
+    D#dlo{face_vs={S,Vs},face_fn={S,Ns},face_uv=none,
 	  face_map=FaceMap,mat_map=MatInfo}.
 
 flat_faces_1([{Face,_}|Fs], Ns, Start, Vs, FaceMap) ->
@@ -113,9 +119,15 @@ uv_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     uv_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 uv_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    <<_:3/unit:32,Ns/bytes>> = Vs,
-    <<_:3/unit:32,UV/bytes>> = Ns,
-    D#dlo{face_vs={32,Vs},face_fn={32,Ns},face_uv={32,UV},
+    case Vs of
+	<<>> ->
+	    Ns = UV = Vs;
+	_ ->
+	    <<_:3/unit:32,Ns/bytes>> = Vs,
+	    <<_:3/unit:32,UV/bytes>> = Ns
+    end,
+    S = 32,
+    D#dlo{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},
 	  face_map=FaceMap,mat_map=MatInfo}.
 
 uv_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
@@ -142,10 +154,16 @@ uv_flat_faces_1([], _, Start, Vs, FaceMap) ->
 col_flat_faces(Fs, We, #dlo{ns=Ns}=D) ->
     {Start,Vs,FaceMap0} = col_flat_faces_1(Fs, We, Ns, 0, <<>>, []),
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    <<_:3/unit:32,Normals/bytes>> = Vs,
-    <<_:3/unit:32,Col/bytes>> = Normals,
+    case Vs of
+	<<>> ->
+	    Normals = Col = Vs;
+	_ ->
+	    <<_:3/unit:32,Normals/bytes>> = Vs,
+	    <<_:3/unit:32,Col/bytes>> = Normals
+    end,
     MatInfo = {color,Start},
-    D#dlo{face_vs={36,Vs},face_fn={36,Normals},face_vc={36,Col},face_uv=none,
+    S = 36,
+    D#dlo{face_vs={S,Vs},face_fn={S,Normals},face_vc={S,Col},face_uv=none,
 	  face_map=FaceMap,mat_map=MatInfo}.
 
 col_flat_faces_1([{Face,Edge}|T], We, Ns, Start, Vs0, Fmap0) ->
@@ -270,9 +288,9 @@ add_col_tri(Bin, {NX,NY,NZ},
      X3:?F32,Y3:?F32,Z3:?F32,
      NX:?F32,NY:?F32,NZ:?F32,
      R3:?F32,G3:?F32,B3:?F32>>;
-add_col_tri(Bin,N, Pos, _UV) ->
-    Z = {1.0,1.0,1.0},
-    add_col_tri(Bin, N, Pos, [Z,Z,Z]).
+add_col_tri(Bin,N, Pos, Cols0) ->
+    Cols = [def_color(C) || C <- Cols0],
+    add_col_tri(Bin, N, Pos, Cols).
 
 add_quad(Bin, {NX,NY,NZ},
 	 [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}]) ->
@@ -338,9 +356,9 @@ add_col_quad(Bin, {NX,NY,NZ},
      X1:?F32,Y1:?F32,Z1:?F32,
      NX:?F32,NY:?F32,NZ:?F32,
      R1:?F32,G1:?F32,B1:?F32>>;
-add_col_quad(Bin, N, Pos, _) ->
-    Z = {1.0,1.0,1.0},
-    add_col_quad(Bin, N, Pos, [Z,Z,Z,Z]).
+add_col_quad(Bin, N, Pos, Cols0) ->
+    Cols = [def_color(C) || C <- Cols0],
+    add_col_quad(Bin, N, Pos, Cols).
 
 add_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab) ->
     PA = element(A, Vtab),
@@ -384,6 +402,9 @@ col_element(A, Tab) when A =< tuple_size(Tab) ->
 col_element(_, _) ->
     {1.0,1.0,1.0}.
 
+def_color({_,_,_}=C) -> C;
+def_color(_) -> {1.0,1.0,1.0}.
+
 add3(Bin, [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}]) ->
     <<Bin/binary,
      X1:?F32,Y1:?F32,Z1:?F32,
@@ -425,7 +446,7 @@ dup3(I, Bin0, N={NX,NY,NZ}) ->
 
 prepare(Ftab, #dlo{src_we=We}, St) ->
     prepare(Ftab, We, St);
-prepare(Ftab0, We, St) ->
+prepare(Ftab0, #we{}=We, St) ->
     Ftab = wings_we:visible(Ftab0, We),
     prepare_1(Ftab, We, St).
 
