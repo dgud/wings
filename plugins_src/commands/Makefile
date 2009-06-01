@@ -39,7 +39,6 @@ MODULES= \
 	wpc_contour \
 	wpc_cylindrilize \
 	wpc_doosabin \
-	wpc_extract_faces \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
 	wpc_magnet_mask \

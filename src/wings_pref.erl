@@ -566,6 +566,21 @@ clean([{{bindkey,_}=Bk,{view,{virtual_mirror,Cmd}},user}|T], Acc) ->
     clean(T, [{Bk,{tools,{virtual_mirror,Cmd}},user}|Acc]);
 clean([{{bindkey,_}=Bk,{tools,tweak},user}|T], Acc) ->
     clean(T, [{Bk,{tools,{tweak,false}},user}|Acc]);
+
+clean([{{bindkey,_,_}=Bk,{face,{Cmd,Dir}},user}|T], Acc)
+        when Cmd==extrude; Cmd==extrude_region; Cmd==extract_region; Cmd==extract_faces ->
+    {Type,Mode} = case Cmd of
+        extrude_region -> {extrude,region};
+        extrude -> {extrude,faces};
+        extract_region -> {extract,region};
+        extract_faces -> {extract,faces}
+    end,
+    C = case Dir of
+      {E,_} when E==region; E==faces -> Dir;
+      Dir -> {Mode,Dir}
+    end,
+    clean(T, [{Bk,{face,{Type,C}},user}|Acc]);
+
 clean([{{bindkey,_},Cmd,user}=Bk|T], Acc) ->
     case bad_command(Cmd) of
 	false -> clean(T, [Bk|Acc]);

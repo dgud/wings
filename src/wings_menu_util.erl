@@ -25,6 +25,8 @@ dirs(1, Mode, Ns) -> dirs_1(Mode, Ns);
 dirs(2, body, [duplicate|_]) -> {body,duplicate};
 dirs(2, body, [move|_]) -> ignore;
 dirs(2, body, [move_light|_]) -> ignore;
+dirs(2, face, [extrude|_]) -> {face,{extrude,{faces,{'ASK',{[axis],[]}}}}};
+dirs(2, face, [extract|_]) -> {face,{extract,{faces,{'ASK',{[axis],[]}}}}};
 dirs(2, _Mode, Ns) ->
     case magnet_props(normal, Ns) of
 	[] -> 
@@ -32,6 +34,8 @@ dirs(2, _Mode, Ns) ->
 	Flags ->
 	    wings_menu:build_command({'ASK',{[],[normal],Flags}}, Ns)
     end;
+dirs(3, face, [extrude|_]) -> {face,{extrude,{region,{'ASK',{[axis],[]}}}}};
+dirs(3, face, [extract|_]) -> {face,{extract,{region,{'ASK',{[axis],[]}}}}};
 dirs(3, _Mode, Ns) ->
     Flags = magnet_props(some_axis, Ns),
     wings_menu:build_command({'ASK',{[axis],[],Flags}}, Ns);
@@ -40,19 +44,30 @@ dirs(help, body, [move|_]) ->
 dirs(help, _Mode, Ns) -> dirs_help(Ns).
 
 dirs_help([move|_]) ->
-    {?STR(dirs,3,"Move along std. axis"),?STR(dirs,4,"Move along selection's normal"),?STR(dirs,5,"Pick axis to move along")};
+    {?STR(dirs,3,"Move along std. axis"),
+     ?STR(dirs,4,"Move along selection's normal"),
+     ?STR(dirs,5,"Pick axis to move along")};
+dirs_help([extrude,face]) ->
+    {?STR(dirs,6,"Extrude along std. axis"),
+     ?__(18,"Pick axis to extrude each face along"),
+     ?__(19,"Pick axis to extrude each region of faces along")};
 dirs_help([extrude|_]) ->
-    {?STR(dirs,6,"Extrude along std. axis"),?STR(dirs,7,"Extrude along selection's normal"),?STR(dirs,8,"Pick axis to extrude along")};
-dirs_help([extrude_region|_]) ->
-    {?STR(dirs,9,"Extrude along std. axis"),?STR(dirs,10,"Extrude along selection's normal"),?STR(dirs,11,"Pick axis to extrude along")};
-dirs_help([extract_region|_]) ->
-    {?STR(dirs,12,"Extract along std. axis"),?STR(dirs,13,"Extract along selection's normal"),?STR(dirs,14,"Pick axis to extract along")};
+    {?STR(dirs,6,"Extrude along std. axis"),
+     ?STR(dirs,7,"Extrude along selection's normal"),
+     ?STR(dirs,8,"Pick axis to extrude along")};
+dirs_help([extract|_]) ->
+    {?STR(dirs,12,"Extract along std. axis"),
+     ?__(20,"Pick axis to extract each face along"),
+     ?__(21,"Pick axis to extract each region of faces along")};
 dirs_help([duplicate|_]) ->
-    {?STR(dirs,15,"Duplicate; move along std. axis"),?STR(dirs,16,"Duplicate; don't move"),?STR(dirs,17,"Duplicate; pick axis to move along")};
+    {?STR(dirs,15,"Duplicate; move along std. axis"),
+     ?STR(dirs,16,"Duplicate; don't move"),
+     ?STR(dirs,17,"Duplicate; pick axis to move along")};
 dirs_help(_) -> "".
 
 dirs_1(body, Ns) -> directions([free,x,y,z], Ns);
-dirs_1(_, Ns) -> directions([normal,free,x,y,z], Ns).
+dirs_1(_, Ns) ->
+    directions([normal,free,x,y,z], Ns).
 
 all_xyz() ->
     [{wings_s:dir(all),all},
@@ -226,6 +241,24 @@ directions([], Ns) ->
      direction(last_axis, Ns),
      direction(default_axis, Ns)].
 
+direction(Dir, [extrude,face]) ->
+    Str  = wings_util:cap(wings_s:dir(Dir)),
+    Help = {dir_help(Dir, [extrude_region]),[],dir_help(Dir, [extrude])},
+    F = fun
+      (1,_Ns) -> {face,{extrude,{region,Dir}}};
+      (3,_Ns) -> {face,{extrude,{faces,Dir}}};
+      (_, _) -> ignore
+    end,
+    {Str,F,Help,[]};
+direction(Dir, [extract,face]) ->
+    Str  = wings_util:cap(wings_s:dir(Dir)),
+    Help = {dir_help(Dir, [extract_region]),[],dir_help(Dir, [extract])},
+    F = fun
+      (1,_Ns) -> {face,{extract,{region,Dir}}};
+      (3,_Ns) -> {face,{extract,{faces,Dir}}};
+      (_, _) -> ignore
+    end,
+    {Str,F,Help,[]};
 direction(Dir, Ns) ->
     Str  = wings_util:cap(wings_s:dir(Dir)),
     Help = dir_help(Dir, Ns),
@@ -269,6 +302,8 @@ dir_help_1([rotate|_], [normal|_Text]) ->
     ?STR(dir_help_1,3,"Rotate around each element's normal");
 dir_help_1([extrude|_], [NF|Text]) when NF == normal; NF == free ->
     ?STR(dir_help_1,4,"Extrude each element, then move it ")++ Text;
+dir_help_1([extract|_], [NF|Text]) when NF == normal; NF == free ->
+    ?__(24,"Extract each element, then move it ")++ Text;
 dir_help_1([extrude_region|_], [normal|_]) ->
     ?STR(dir_help_1,5,"Extrude faces as region, then move faces along the region's normal");
 dir_help_1([extrude_region|_], [free|Text]) ->
@@ -291,6 +326,8 @@ dir_help_1([move|_], Text) ->
     ?STR(dir_help_1,13,"Move each element along ") ++ Text;
 dir_help_1([extrude|_], Text) ->
     ?STR(dir_help_1,14,"Extrude elements, then move along ") ++ Text;
+dir_help_1([extract|_], Text) ->
+    ?__(25,"Extract elements, then move along ") ++ Text;
 dir_help_1([extrude_region|_], Text) ->
     ?STR(dir_help_1,15,"Extrude faces as region, then move along ") ++ Text;
 dir_help_1([extract_region|_], Text) ->

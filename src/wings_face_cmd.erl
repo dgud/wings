@@ -25,8 +25,7 @@ menu(X, Y, St) ->
 	    wings_menu_util:scale(St),
 	    separator,
 	    {?__(3,"Extrude"),{extrude,Dir}},
-	    {?__(4,"Extrude Region"),{extrude_region,Dir}},
-	    {?__(5,"Extract Region"),{extract_region,Dir}},
+	    {?__(35,"Extract"),{extract,Dir}},
 	    separator,
 	    wings_menu_util:flatten(),
 	    separator,
@@ -97,12 +96,10 @@ mirror_fun() ->
        (_, _) -> ignore
     end.
 
-command({extrude,Type}, St) ->
-    ?SLOW(extrude(Type, St));
-command({extrude_region,Type}, St) ->
-    ?SLOW(extrude_region(Type, St));
-command({extract_region,Type}, St) ->
-    extract_region(Type, St);
+command({extrude, Dir}, St) ->
+    ?SLOW(extrude(Dir, St));
+command({extract, Dir}, St) ->
+    ?SLOW(extract(Dir, St));
 command(bump, St) ->
     ?SLOW(wings_extrude_edge:bump(St));
 command({flatten,Plane}, St) ->
@@ -149,26 +146,24 @@ command(vertex_color, St) ->
 		       end);
 command(hide, St) ->
     {save_state,hide_faces(St)}.
-    
 
 %%%
-%%% Extrude, Extrude Region, and Inset commands.
+%%% Extrude individual faces or regions.
 %%%
 
-extrude(Type, St) ->
-    wings_move:setup(Type, extrude_faces(St)).
+extrude({faces, Axis}, St) ->
+    wings_move:setup(Axis, extrude_faces(St));
+extrude({region, Axis}, St0) ->
+    St = wings_sel:map(fun extrude_region_0/2, St0),
+    wings_move:setup(Axis, St).
 
+%%% Extrude Faces
 extrude_faces(St) ->
     wings_sel:map(fun(Faces, We) ->
 			  wings_extrude_face:faces(Faces, We)
 		  end, St).
 
 %%% Extrude the selected regions.
-
-extrude_region(Type, St0) ->
-    St = wings_sel:map(fun extrude_region_0/2, St0),
-    wings_move:setup(Type, St).
-
 extrude_region_0(Faces0, We0) ->
     %% We KNOW that a gb_set with fewer elements sorts before
     %% a gb_set with more elements.
@@ -207,10 +202,10 @@ extrude_region_vmirror(OldWe, #we{mirror=Face0}=We0) ->
     end.
 
 %%%
-%%% The Extract Region command.
+%%% The Extract command.
 %%%
 
-extract_region(Type, St0) ->
+extract({region, Axis}, St0) ->
     St1 = wings_sel:fold(
 	    fun(Faces, We0, #st{sel=Sel0,onext=Oid}=S0) ->
 		    We = wings_dissolve:complement(Faces, We0),
@@ -220,7 +215,21 @@ extract_region(Type, St0) ->
 	    end, St0#st{sel=[]}, St0),
     Sel = St1#st.sel,
     St = wings_sel:set(Sel, St1),
-    wings_move:setup(Type, St).
+    wings_move:setup(Axis, St);
+extract({faces, Axis}, St0) ->
+    St1 = wings_sel:map(fun(Faces, We) ->
+        wings_extrude_face:faces(Faces, We)
+    end, St0),
+    St2 = wings_sel:fold(
+    fun(Faces, We0, #st{sel=Sel0,onext=Oid}=S0) ->
+        We = wings_dissolve:complement(Faces, We0),
+        S = wings_shape:insert(We, extract, S0),
+        Sel = [{Oid,Faces}|Sel0],
+        S#st{sel=Sel}
+    end, St0#st{sel=[]}, St1),
+    Sel = St2#st.sel,
+    St = wings_sel:set(Sel, St2),
+    wings_move:setup(Axis, St).
 
 %%%
 %%% The Dissolve command.

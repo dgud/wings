@@ -39,7 +39,7 @@ parse([], NewMenu, true) ->
     NewMenu;
 parse([], NewMenu, false) ->
     [menu_item()|NewMenu];
-parse([A = {_,{extrude,_}}|Rest], NewMenu, false) ->
+parse([A = {_,{flatten,_}}|Rest], NewMenu, false) ->
     parse(Rest, [menu_item(),A|NewMenu], true);
 parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
