@@ -37,7 +37,6 @@ MODULES= \
 	wpc_kerky \
 	wpc_lwo \
 	wpc_obj \
-	wpc_opengl \
 	wpc_pov \
 	wpc_ps \
 	wpc_rwx \

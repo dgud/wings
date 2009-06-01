@@ -13,9 +13,7 @@
 
 -module(wings_draw_util).
 -export([init/0,prepare/3,
-	 plain_face/2,uv_face/3,vcol_face/2,vcol_face/3,
-	 smooth_plain_faces/2,smooth_uv_faces/2,smooth_vcol_faces/2,
-	 unlit_face/2,unlit_face/3,unlit_face_bin/3,unlit_face_bin/4,
+	 unlit_face_bin/3,unlit_face_bin/4,
 	 force_flat_color/2,force_flat_color/3,good_triangulation/5]).
 
 -define(NEED_OPENGL, 1).
@@ -139,70 +137,6 @@ smooth_no_colors([[{_,_,_}|_]|_]) -> false;
 smooth_no_colors([_|Cols]) -> smooth_no_colors(Cols);
 smooth_no_colors([]) -> true.
 
-%%
-%% Triangulate and draw a face.
-%%
-
-plain_face(Face, #dlo{ns=Ns}) ->
-    case gb_trees:get(Face, Ns) of
-	[N|VsPos] ->
-	    gl:normal3fv(N),
-	    wings__du:plain_face(VsPos);
-	{N,Fs,VsPos} ->
-	    gl:normal3fv(N),
-	    wings__du:plain_face(Fs, VsPos)
-    end;
-plain_face(Face, #we{fs=Ftab}=We) ->
-    Edge = gb_trees:get(Face, Ftab),
-    Ps = wings_face:vertex_positions(Face, Edge, We),
-    case wings_draw:face_ns_data(Ps) of
-	[N|VsPos] ->
-	    gl:normal3fv(N),
-	    wings__du:plain_face(VsPos);
-	{N,Fs,VsPos} ->
-	    gl:normal3fv(N),
-	    wings__du:plain_face(Fs, VsPos)
-    end.
-
-%%
-%% Tesselate and draw face. Include UV coordinates.
-%%
-
-uv_face(Face, Edge, #dlo{src_we=We,ns=Ns}) ->
-    UVs = wings_face:vertex_info(Face, Edge, We),
-    case gb_trees:get(Face, Ns) of
-	[N|VsPos] ->
-	    gl:normal3fv(N),
-	    wings__du:uv_face(VsPos, UVs);
-	{N,Fs,VsPos} ->
-	    gl:normal3fv(N),
-	    wings__du:uv_face(Fs, VsPos, UVs)
-    end.
-
-%%
-%% Tesselate and draw face. Include vertex colors.
-%%
-
-vcol_face(Face, #dlo{src_we=We,ns=Ns}) ->
-    Cols = wings_face:vertex_info(Face, We),
-    case gb_trees:get(Face, Ns) of
-	[N|VsPos] ->
-	    gl:normal3fv(N),
-	    wings__du:vcol_face(VsPos, Cols);
-	{N,Fs,VsPos} ->
-	    gl:normal3fv(N),
-	    wings__du:vcol_face(Fs, VsPos, Cols)
-    end.
-
-vcol_face(Face, #dlo{ns=Ns}, Cols) ->
-    case gb_trees:get(Face, Ns) of
-	[N|VsPos] ->
-	    gl:normal3fv(N),
-	    wings__du:vcol_face(VsPos, Cols);
-	{N,Fs,VsPos} ->
-	    gl:normal3fv(N),
-	    wings__du:vcol_face(Fs, VsPos, Cols)
-    end.
 
 %% good_triangulation(Normal, PointA, PointB, PointC, PointD) -> true|false
 %%  The points PointA through PointD are assumed to be the vertices of
@@ -284,53 +218,7 @@ force_flat_color(OriginalDlist, {R,G,B}, DrawExtra) ->
     gl:endList(),
     {call,Dl,OriginalDlist}.
 
-smooth_plain_faces([{Face,VsInfo}|Fs], Ns) ->
-    case gb_trees:get(Face, Ns) of
-	[_|Pos] ->
-	    wings__du:smooth_plain_face(Pos, VsInfo);
-	{_,TriFs,Pos} ->
-	    wings__du:smooth_plain_face(TriFs, Pos, VsInfo)
-    end,
-    smooth_plain_faces(Fs, Ns);
-smooth_plain_faces([], _) -> ok.
-
-smooth_uv_faces([{Face,VsInfo}|Fs], Ns) ->
-    case gb_trees:get(Face, Ns) of
-	[_|Pos] ->
-	    wings__du:smooth_uv_face(Pos, VsInfo);
-	{_,TriFs,Pos} ->
-	    wings__du:smooth_uv_face(TriFs, Pos, VsInfo)
-    end,
-    smooth_uv_faces(Fs, Ns);
-smooth_uv_faces([], _) -> ok.
-
-smooth_vcol_faces([{Face,VsInfo}|Fs], Ns) ->
-    case gb_trees:get(Face, Ns) of
-	[_|Pos] ->
-	    wings__du:smooth_vcol_face(Pos, VsInfo);
-	{_,TriFs,Pos} ->
-	    wings__du:smooth_vcol_face(TriFs, Pos, VsInfo)
-    end,
-    smooth_vcol_faces(Fs, Ns);
-smooth_vcol_faces([], _) -> ok.
-
 %% Draw a face without any lighting.
-unlit_face(Face, #dlo{ns=Ns}) ->
-    case gb_trees:get(Face, Ns) of
-	[_|VsPos] -> wings__du:plain_face(VsPos);
-	{_,Fs,VsPos} -> wings__du:plain_face(Fs, VsPos)
-    end;
-unlit_face(Face, #we{fs=Ftab}=We) ->
-    Edge = gb_trees:get(Face, Ftab),
-    unlit_face(Face, Edge, We).
-
-unlit_face(Face, Edge, We) ->
-    Ps = wings_face:vertex_positions(Face, Edge, We),
-    case wings_draw:face_ns_data(Ps) of
-	[_|VsPos] -> wings__du:plain_face(VsPos);
-	{_,Fs,VsPos} -> wings__du:plain_face(Fs, VsPos)
-    end.
-
 unlit_face_bin(Face,#dlo{ns=Ns}, Bin) ->
     case gb_trees:get(Face, Ns) of
 	[_|VsPos] ->    unlit_plain_face(VsPos, Bin);

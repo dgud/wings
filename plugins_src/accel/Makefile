@@ -24,8 +24,7 @@ LIBDIR = ../../plugins/accel
 
 ERL_DIR := $(shell echo 'io:format("~s~n",[code:root_dir()]),init:stop().' | erl | sed -n '/^1>/s/^1> //p')
 ERL_INC = $(ERL_DIR)/usr/include
-BEAM = $(LIBDIR)/wpc_ogla.beam \
-	$(LIBDIR)/wpc_pnoise.beam \
+BEAM = 	$(LIBDIR)/wpc_pnoise.beam \
 	$(LIBDIR)/pnoise.beam
 
 ifdef USEMINGWGCC
@@ -50,8 +49,7 @@ endif
 ERLC = erlc
 ERLC_FLAGS = -o $(LIBDIR) +debug_info
 
-DRV = $(LIBDIR)/wings_ogla_drv.$(SO_EXT) \
-	$(LIBDIR)/perlin_noise_drv.$(SO_EXT)
+DRV = $(LIBDIR)/perlin_noise_drv.$(SO_EXT)
 
 TARGET_FILES=$(BEAM) $(DRV)
 

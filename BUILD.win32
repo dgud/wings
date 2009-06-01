@@ -4,8 +4,6 @@ BUILDING WINGS 3D ON WINDOWS
 This guide describes how you can build Wings 3D from the
 sources on a Windows system.
 
-$Id$
-
 Required software
 =================
 
@@ -23,7 +21,7 @@ The following software is needed:
 - Erlang/OTP R13B or later. http://www.erlang.org
   (It is easiest to download the pre-built binaries for Windows.)
 
-- ESDL 1.0 or later. http://esdl.sf.net
+- ESDL 1.0.1 or later. http://esdl.sf.net
   It is easiest to download the pre-built binary.
 
 - MinGW, a C compiler and libraries for building native Windows applications.

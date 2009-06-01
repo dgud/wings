@@ -8,8 +8,6 @@ After the general build instructions, there are separate
 instructions for building a complete, standalone installation
 package for MacOS X and for other Unix systems.
 
-$Id$
-
 Required software
 =================
 
@@ -24,7 +22,7 @@ run all plug-ins and to build an installation package.
 - SDL development library. http://www.libsdl.org.
   (There are pre-built libraries for most platforms.)
 
-- ESDL 1.0 or later. http://esdl.sf.net
+- ESDL 1.0.1 or later. http://esdl.sf.net
 
 - A GNU compatible "make" program. Included with most unix-like
   systems; otherwise get it from http://www.gnu.org.

@@ -310,7 +310,10 @@ mat_face_1([], _, VsPos) ->
     gl:normal3fv(N),
     case VsPos of
 	[A,B,C,D] ->
-	    wpc_ogla:quad(A, B, C, D);
+	    gl:vertex3fv(A),
+	    gl:vertex3fv(B),
+	    gl:vertex3fv(C),
+	    gl:vertex3fv(D);
 	_ ->		       %Could only be the virtual mirror face.
 	    ok
     end.

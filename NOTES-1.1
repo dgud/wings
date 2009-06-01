@@ -24,6 +24,17 @@
 - If a command executed through a hotkey causes an error,
   a dialog box with some help will be shown. [bjorng]
 
+- Major rewrite of how geometry data is sent to OpenGL. We used
+  to have a specially written driver, but for future compatibility
+  we cannot use a driver. Instead we use vertex arrays.
+
+  This is the first step in this direction and we expect to do
+  further optimizations. For the moment, some display updates
+  can be slower and some can be faster than before.
+
+  As part of this change, the OpenGL renderer has been removed.
+  Sorry for any inconvenience, but it had to go. [dgud & bjorng]
+
 --- 1.1.2 --------------------------------------------------------------------
 - Select Similar Normals with the option Connected Faces Only and
   a selection comprising multiple objects would cause a crash.
