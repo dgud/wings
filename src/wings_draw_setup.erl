@@ -216,7 +216,7 @@ setup_smooth_normals([{Face,{_,3}}|Fs], Ftab, Flat, SN0) ->
     case array:get(Face, Ftab) of
 	[[_|N1],[_|N2],[_|N3]] ->
 	    %% Common case: the face is a triangle.
-	    SN = add3(SN0, [N1,N2,N3]),
+	    SN = add3(SN0, N1, N2, N3),
 	    setup_smooth_normals(Fs, Ftab, Flat, SN);
 	_ ->
 	    %% Degenerate case: The original face had more than
@@ -225,7 +225,7 @@ setup_smooth_normals([{Face,{_,3}}|Fs], Ftab, Flat, SN0) ->
 	    %% and therefore discarded. Use the face normal
 	    %% for all vertices.
 	    {Fn,_,_} = gb_trees:get(Face, Flat),
-	    SN = add4(SN0, [Fn,Fn,Fn]),
+	    SN = dup3(3, SN0, Fn),
 	    setup_smooth_normals(Fs, Ftab, Flat, SN)
     end;
 setup_smooth_normals([{Face,{_,6}}|Fs], Ftab, Flat, SN0) ->
@@ -233,7 +233,7 @@ setup_smooth_normals([{Face,{_,6}}|Fs], Ftab, Flat, SN0) ->
     case array:get(Face, Ftab) of
 	[[_|N1],[_|N2],[_|N3],[_|N4]] ->
 	    %% Common case: triangulated quad.
-	    SN = add4(SN0, [N1,N2,N3,N4]),
+	    SN = add4(SN0, N1, N2, N3, N4),
 	    setup_smooth_normals(Fs, Ftab, Flat, SN);
 	_ ->
 	    %% Degenerate case: The original face had more than
@@ -242,7 +242,7 @@ setup_smooth_normals([{Face,{_,6}}|Fs], Ftab, Flat, SN0) ->
 	    %% and therefore discarded. Use the face normal
 	    %% for all vertices.
 	    {Fn,_,_} = gb_trees:get(Face, Flat),
-	    SN = add4(SN0, [Fn,Fn,Fn,Fn]),
+	    SN = dup3(6, SN0, Fn),
 	    setup_smooth_normals(Fs, Ftab, Flat, SN)
     end;
 setup_smooth_normals([{Face, {_,Count}}|Fs], Ftab, Flat, SN0) ->
@@ -264,7 +264,7 @@ setup_smooth_normals_1([{A,B,C}|Fs], VsInfo, SN0) ->
     [_|N1] = element(A,VsInfo),
     [_|N2] = element(B,VsInfo),
     [_|N3] = element(C,VsInfo),
-    SN = add3(SN0, [N1,N2,N3]),
+    SN = add3(SN0, N1, N2, N3),
     setup_smooth_normals_1(Fs,VsInfo,SN);
 setup_smooth_normals_1([], _, SN) ->
     SN.
@@ -431,13 +431,13 @@ col_element(_, _) ->
 def_color({_,_,_}=C) -> C;
 def_color(_) -> {1.0,1.0,1.0}.
 
-add3(Bin, [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}]) ->
+add3(Bin, {X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}) ->
     <<Bin/binary,
      X1:?F32,Y1:?F32,Z1:?F32,
      X2:?F32,Y2:?F32,Z2:?F32,
-     X3:?F32,Y3:?F32,Z3:?F32 >>.
+     X3:?F32,Y3:?F32,Z3:?F32>>.
 
-add4(Bin, [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}]) ->
+add4(Bin, {X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}, {X4,Y4,Z4}) ->
     <<Bin/binary,
      X1:?F32,Y1:?F32,Z1:?F32,
      X2:?F32,Y2:?F32,Z2:?F32,
