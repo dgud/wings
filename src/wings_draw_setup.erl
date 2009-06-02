@@ -211,14 +211,40 @@ setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,face_map=Fmap0}) ->
     SN = setup_smooth_normals(Fs, Ftab, Ns0, <<>>),
     D#dlo{face_sn={0,SN}}.
 
-setup_smooth_normals([{Face, {_,3}}|Fs], Ftab, Flat, SN0) ->
-    [[_|N1],[_|N2],[_|N3]] = array:get(Face,Ftab),
-    SN = add3(SN0, [N1,N2,N3]),
-    setup_smooth_normals(Fs,Ftab,Flat,SN);
-setup_smooth_normals([{Face, {_,6}}|Fs], Ftab, Flat, SN0) ->
-    [[_|N1],[_|N2],[_|N3],[_|N4]] = array:get(Face,Ftab),
-    SN = add4(SN0, [N1,N2,N3,N4]),
-    setup_smooth_normals(Fs,Ftab,Flat,SN);
+setup_smooth_normals([{Face,{_,3}}|Fs], Ftab, Flat, SN0) ->
+    %% One triangle.
+    case array:get(Face, Ftab) of
+	[[_|N1],[_|N2],[_|N3]] ->
+	    %% Common case: the face is a triangle.
+	    SN = add3(SN0, [N1,N2,N3]),
+	    setup_smooth_normals(Fs, Ftab, Flat, SN);
+	_ ->
+	    %% Degenerate case: The original face had more than
+	    %% 3 vertices, so there should have been at least
+	    %% 2 triangles, but some triangles were degenerated
+	    %% and therefore discarded. Use the face normal
+	    %% for all vertices.
+	    {Fn,_,_} = gb_trees:get(Face, Flat),
+	    SN = add4(SN0, [Fn,Fn,Fn]),
+	    setup_smooth_normals(Fs, Ftab, Flat, SN)
+    end;
+setup_smooth_normals([{Face,{_,6}}|Fs], Ftab, Flat, SN0) ->
+    %% Two triangles.
+    case array:get(Face, Ftab) of
+	[[_|N1],[_|N2],[_|N3],[_|N4]] ->
+	    %% Common case: triangulated quad.
+	    SN = add4(SN0, [N1,N2,N3,N4]),
+	    setup_smooth_normals(Fs, Ftab, Flat, SN);
+	_ ->
+	    %% Degenerate case: The original face had more than
+	    %% 4 vertices, so there should have been at least
+	    %% 3 triangles, but some triangles were degenerated
+	    %% and therefore discarded. Use the face normal
+	    %% for all vertices.
+	    {Fn,_,_} = gb_trees:get(Face, Flat),
+	    SN = add4(SN0, [Fn,Fn,Fn,Fn]),
+	    setup_smooth_normals(Fs, Ftab, Flat, SN)
+    end;
 setup_smooth_normals([{Face, {_,Count}}|Fs], Ftab, Flat, SN0) ->
     VsInfo = list_to_tuple(array:get(Face,Ftab)),
     {FNormal,TriFs,Pos} = gb_trees:get(Face,Flat),
