@@ -318,18 +318,13 @@ update_materials(D, St) ->
 update_fun_2(light, D, _) ->
     wings_light:update(D);
 update_fun_2(work, #dlo{work=none}=D0, St) ->
-    ?TC(begin
-	    D  = wings_draw_setup:work(D0, St),
-	    Dl = draw_faces_all(D, St),
-	    D#dlo{work=Dl}
-	end);
-
+    D  = wings_draw_setup:work(D0, St),
+    Dl = draw_faces_all(D, St),
+    D#dlo{work=Dl};
 update_fun_2(smooth, #dlo{smooth=none,proxy_data=none}=D0, St) ->
-    ?TC(begin
-	    D  = wings_draw_setup:smooth(D0, St),
-	    {List,Tr} = smooth_faces_all(D, St),
-	    D#dlo{smooth=List,transparent=Tr,face_sn=none}
-	end);
+    D  = wings_draw_setup:smooth(D0, St),
+    {List,Tr} = smooth_faces_all(D, St),
+    D#dlo{smooth=List,transparent=Tr,face_sn=none};
 update_fun_2(smooth, #dlo{smooth=none}=D, St) ->
     We = wings_proxy:smooth_we(D),
     Temp0 = update_normals(changed_we(#dlo{}, #dlo{src_we=We})),

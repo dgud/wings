@@ -104,7 +104,6 @@
 	 %% Vertex buffers. Each vertex buffer looks like
 	 %% {Stride,Binary}, where Stride is the stride to be
 	 %% used when setting up the vertex buffer.
-	 raw_vs   = none :: wings_vtx_buffer(), %Binary of raw vertex positions
 	 face_vs  = none :: wings_vtx_buffer(), %Vertex binary for drawing faces
 	 face_fn  = none :: wings_vtx_buffer(), %Face Normals (flat but per vertex)
 	 face_sn  = none :: wings_vtx_buffer(), %Face Normals (smooth)
