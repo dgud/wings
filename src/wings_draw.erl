@@ -329,7 +329,7 @@ update_fun_2(smooth, #dlo{smooth=none,proxy_data=none}=D0, St) ->
     ?TC(begin
 	    D  = wings_draw_setup:smooth(D0, St),
 	    {List,Tr} = smooth_faces_all(D, St),
-	    D#dlo{smooth=List,transparent=Tr}
+	    D#dlo{smooth=List,transparent=Tr,face_sn=none}
 	end);
 update_fun_2(smooth, #dlo{smooth=none}=D, St) ->
     We = wings_proxy:smooth_we(D),
