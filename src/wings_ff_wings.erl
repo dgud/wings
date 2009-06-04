@@ -358,12 +358,13 @@ share_list_2([{Vtab0,Etab0}|Ts],
     Etab = gb_trees:from_orddict(Etab0),
     We1 = wings_we:rebuild(We0#we{vp=Vtab,es=Etab,mat=default}),
     We2 = wings_facemat:assign(FaceMat, We1),
-    We = if
+    We3 = if
 	     NumHidden =:= 0 -> We2;
 	     true ->
 		 Hidden = lists:seq(0, NumHidden-1),
 		 wings_we:hide_faces(Hidden, We2)
 	 end,
+    We = ensure_valid_mirror_face(We3),
     share_list_2(Ts, Wes, [{Id,We}|Acc]);
 share_list_2([], [], Wes) -> sort(Wes).
 
@@ -432,6 +433,14 @@ share_tuple({A0,B0,C0}=Tuple0, Floats, Shared) ->
 	{value,Tuple} -> {Tuple,Shared}
     end;
 share_tuple(none, _, Shared) -> {none,Shared}.
+
+%% Very old Wings files can have invalid mirror faces for some reason.
+ensure_valid_mirror_face(#we{mirror=none}=We) -> We;
+ensure_valid_mirror_face(#we{mirror=Face,fs=Ftab}=We) ->
+    case gb_trees:is_defined(Face, Ftab) of
+	false -> We#we{mirror=none};
+	true -> We
+    end.
 
 %%%
 %%% Import of old materials format (up to and including wings-0.94.02).
