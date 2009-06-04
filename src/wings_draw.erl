@@ -422,8 +422,9 @@ vertices_f32([]) -> <<>>.
 drawVertices(_Type, <<>>) -> 
     ok;
 drawVertices(Type, Bin) -> 
-    gl:vertexPointer(3, ?GL_FLOAT, 0, Bin), 
-    gl:drawArrays(Type, 0, byte_size(Bin) div 12).
+    gl:vertexPointer(3, ?GL_FLOAT, 0, Bin),
+    gl:drawArrays(Type, 0, byte_size(Bin) div 12),
+    free(Bin).
 
 drawPolygons(<<>>, _PsLens) -> 
     ok;
@@ -432,7 +433,8 @@ drawPolygons(Polys, PsLens) ->
     foldl(fun(Length,Start) ->
 		  gl:drawArrays(?GL_POLYGON, Start, Length),
 		  Length+Start
-	  end, 0, PsLens).
+	  end, 0, PsLens),
+    free(Polys).
 
 visible_vertices(#we{vp=Vtab0}=We) ->
     case wings_we:any_hidden(We) of
@@ -445,7 +447,6 @@ visible_vertices(#we{vp=Vtab0}=We) ->
 				      [{vertex,position}]),
 	    sofs:to_external(sofs:image(Vtab, Vis))
     end.
-
 
 %%%
 %%% Update the selection display list.
@@ -818,7 +819,7 @@ tricky_share({X,Y,Z}, {_,_,Z}=Old) ->
 
 draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,
 		    face_vc=Col,
-		    mat_map={color,NumElements}},
+		    mat_map={color,NumElements}}=D,
 	       #st{mat=Mtab}) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
@@ -837,8 +838,9 @@ draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,
     gl:disableClientState(?GL_NORMAL_ARRAY),
     gl:disableClientState(?GL_COLOR_ARRAY),
     gl:endList(),
+    free(D),
     Dl;
-draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,face_uv=UV,mat_map=MatMap},
+draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,face_uv=UV,mat_map=MatMap}=D,
 	       #st{mat=Mtab}) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
@@ -851,6 +853,7 @@ draw_faces_all(#dlo{face_vs=BinVs,face_fn=Ns,face_uv=UV,mat_map=MatMap},
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:disableClientState(?GL_NORMAL_ARRAY),
     gl:endList(),
+    free(D),
     Dl.
 
 draw_mat_fs({Mat,Start,NumElements}, Mtab) ->
@@ -871,7 +874,7 @@ draw_mat_fs({Mat,Start,NumElements}, Mtab) ->
 %%%
 
 smooth_faces_all(#dlo{face_vs=BinVs,face_sn=Ns,
-		      face_vc=Col,mat_map={color,NumElements}},
+		      face_vc=Col,mat_map={color,NumElements}}=D,
 		 #st{mat=Mtab}) ->
     wings_draw_setup:vertexPointer(BinVs),
     wings_draw_setup:normalPointer(Ns),
@@ -891,9 +894,10 @@ smooth_faces_all(#dlo{face_vs=BinVs,face_sn=Ns,
     gl:disableClientState(?GL_NORMAL_ARRAY),
     gl:disableClientState(?GL_COLOR_ARRAY),
     gl:endList(),
+    free(D),
     {[Dl,none],false};
-smooth_faces_all(#dlo{face_vs=BinVs,face_sn=Ns,
-		      face_uv=UV,mat_map=MatMap}, #st{mat=Mtab}) ->
+smooth_faces_all(#dlo{face_vs=BinVs,face_sn=Ns,face_uv=UV,mat_map=MatMap}=D,
+		 #st{mat=Mtab}) ->
     ListOp = gl:genLists(1),
     wings_draw_setup:vertexPointer(BinVs),
     wings_draw_setup:normalPointer(Ns),
@@ -929,6 +933,7 @@ smooth_faces_all(#dlo{face_vs=BinVs,face_sn=Ns,
 	    gl:disableClientState(?GL_VERTEX_ARRAY),
 	    gl:disableClientState(?GL_NORMAL_ARRAY),
 	    gl:endList(),
+	    free(D),
 	    {[ListOp,ListTr],true}
     end.
 
@@ -983,3 +988,22 @@ make_normals_dlist_1(face, Faces, We) ->
 	    end, <<>>, wings_we:visible(gb_sets:to_list(Faces), We));
 make_normals_dlist_1(body, _, #we{fs=Ftab}=We) ->
     make_normals_dlist_1(face, gb_sets:from_list(gb_trees:keys(Ftab)), We).
+
+%% This function does not actually free the binary.
+%% It is merely a dummy function that you can call to force
+%% a binary to be kept as long as it is needed.
+%%
+%% Example usage:
+%%
+%%    gl:vertexPointer(..., Buffer)
+%%       ...
+%%       gl:drawArrays(...)
+%%       ...
+%%    free(Buffer).
+%%
+%% Without the call to free/1 at the end of the function,
+%% Buffer could be deallocated directly after the call
+%% to gl:vertexPointer/4 if there happened to be
+%% a garbage collection.
+%%
+free(_) -> ok.
