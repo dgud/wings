@@ -33,4 +33,7 @@
 - New Tweak option to set Tweak Magnet Increment. [optigon]
 
 - Spherical UV mapping corrected. [dgud]
+
+- Doing a Doo-Sabin sub-division on multiple objects would leave an
+  invalid selection that could cause crashes. (Thanks to Fonte Boa.) [bjorng]
 -----------------------------------------------------------------------------
