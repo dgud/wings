@@ -659,7 +659,7 @@ event(got_focus, _) ->
     Msg3 = wings_msg:button_format([], [],?__(1,"Show menu")),
     Message = wings_msg:join([Msg2,Msg3]),
     wings_wm:message(Message),
-    wings_wm:dirty();
+    keep;
 event({action,{viewer,Cmd}}, Id) ->
     command(Cmd, Id);
 event(Ev, Id) ->

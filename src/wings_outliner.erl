@@ -80,7 +80,7 @@ event(got_focus, _) ->
     Msg = wings_msg:button_format(?__(1,"Select"), [],
 				  ?__(2,"Show outliner menu (if selection) or creation menu (if no selection)")),
     wings_wm:message(Msg),
-    wings_wm:dirty();
+    keep;
 event({current_state,St}, Ost0) ->
     Ost = update_state(St, Ost0),
     update_scroller(Ost),
