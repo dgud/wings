@@ -14,6 +14,7 @@
 -module(wings_tesselation).
 -export([submenu/0,command/2]).
 -export([triangulate/1,triangulate/2,quadrangulate/1,quadrangulate/2]).
+-export([is_good_triangulation/5]).
 
 -include_lib("wings.hrl").
 -include_lib("e3d.hrl").
@@ -52,9 +53,57 @@ quadrangulate(Faces, We) when is_list(Faces) ->
 quadrangulate(Faces, We) ->
     quadrangulate(gb_sets:to_list(Faces), We).
 
+%% is_good_triangulation(Normal, PointA, PointB, PointC, PointD) -> true|false
+%%  The points PointA through PointD are assumed to be the vertices of
+%%  quadrilateral in counterclockwise order, and Normal should be the
+%%  averaged normal for the quad.
+%%
+%%  This function will determine whether a triangulation created by
+%%  joining PointA to PointC is a good triangulation (thus creating
+%%  the two triangles PointA-PointB-PointC and PointA-PointC-PointD).
+%%  This function returns 'true' if none of the two triangles is degenerated
+%%  and the diagonal PointA-PointC is inside the original quad (if the
+%%  quad is concave, one of the "diagonals" will be inside the quad).
+%%
+%%  This function returns 'false' if the PointA-PointC triangulation is
+%%  bad. Except for pathoglogical quads (e.g. non-planar or warped), the other
+%%  triangulation using the PointB-PointD triangulation should be OK.
+%%
+is_good_triangulation({Nx,Ny,Nz}, {Ax,Ay,Az}, {Bx,By,Bz}, {Cx,Cy,Cz}, {Dx,Dy,Dz})
+  when is_float(Ax), is_float(Ay), is_float(Az) ->
+    %% Construct the normals for the two triangles by calculating the
+    %% cross product of two edges in the correct order:
+    %%
+    %%    NormalTri1 = (PointC-PointA) x (PointA-PointB)
+    %%    NormalTri2 = (PointD-PointA) x (PointA-PointC)
+    %%
+    %% The normals should point in about the same direction as the
+    %% normal for the quad. We certainly expect the angle between a
+    %% triangle normal and the quad normal to be less than 90
+    %% degrees. That can be verified by taking the dot product:
+    %%
+    %%    Dot1 = QuadNormal . NormalTri1
+    %%    Dot2 = QuadNormal . NormalTri2
+    %%
+    %% Both dot products should be greater than zero. A zero dot product either
+    %% means that the triangle normal was not defined (a degenerate triangle) or
+    %% that the angle is exactly 90 degrees. A negative dot product means that
+    %% the angle is greater than 90 degress, which implies that the PointA-PointC
+    %% line is outside the quad.
+    %%
+    CAx = Cx-Ax, CAy = Cy-Ay, CAz = Cz-Az,
+    ABx = Ax-Bx, ABy = Ay-By, ABz = Az-Bz,
+    DAx = Dx-Ax, DAy = Dy-Ay, DAz = Dz-Az,
+    D1 = Nx*(CAy*ABz-CAz*ABy) + Ny*(CAz*ABx-CAx*ABz) + Nz*(CAx*ABy-CAy*ABx),
+    D2 = Nx*(DAz*CAy-DAy*CAz) + Ny*(DAx*CAz-DAz*CAx) + Nz*(DAy*CAx-DAx*CAy),
+    is_good_triangulation_1(D1, D2).
+
 %%%
 %%% Internal functions.
 %%%
+
+is_good_triangulation_1(D1, D2) when D1 > 0.0, D2 > 0.0 -> true;
+is_good_triangulation_1(_, _) -> false.
 
 do_faces(Action, Faces, #we{id=Id}=We0, Acc) ->
     We = Action(Faces, We0),
@@ -161,7 +210,7 @@ select_newedge(_L = [A,B,C,D],[Ai,Bi,Ci,Di],N,F) ->
 %% This allows pretty big area diff, but avoid areas close to 0.
 assert_quad2tris(N,A,B,C,D,F) ->
     try 
-	case wings_draw_util:good_triangulation(N,A,B,C,D) of
+	case is_good_triangulation(N, A, B, C, D) of
 	    true ->
 		T1 = e3d_vec:area(A,B,C),
 		T2 = e3d_vec:area(C,D,A),

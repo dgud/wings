@@ -207,7 +207,7 @@ proxy_smooth(We0, Pd, St) ->
     #we{fs=Ftab} = We = if ?IS_ANY_LIGHT(We0) -> We0;
 			   true -> wings_subdiv:smooth(We0)
 			end,
-    Plan = wings_draw_util:prepare(gb_trees:to_list(Ftab), We, St),
+    Plan = prepare(gb_trees:to_list(Ftab), We, St),
     Pd#sp{src_we=We0,we=We,plan=Plan}.
 
 %%%
@@ -236,10 +236,8 @@ draw_faces({color,Colors,#st{mat=Mtab}}, We) ->
     gl:disable(?GL_COLOR_MATERIAL),
     gl:endList(),
 
-    Edges = wings_draw_util:force_flat_color(BasicFaces,
-					     wings_pref:get_value(edge_color)),
+    Edges = force_flat_color(BasicFaces, wings_pref:get_value(edge_color)),
     {{call,Dl,BasicFaces},Edges}.
-
 
 draw_vtx_faces({Same,Diff}, We) ->
     gl:'begin'(?GL_QUADS),
@@ -353,3 +351,132 @@ vcol_face_1([P|Ps], [_|Cols]) ->
     gl:vertex3fv(P),
     vcol_face_1(Ps, Cols);
 vcol_face_1([], []) -> ok.
+
+%% force_flat_color(OriginalDlist, Color) -> NewDlist.
+%%  Wrap a previous display list (that includes gl:color*() calls)
+%%  into a new display lists that forces the flat color Color
+%%  on all elements.
+force_flat_color(Dl, RGB) ->
+    force_flat_color(Dl, RGB, fun() -> ok end).
+
+force_flat_color(OriginalDlist, {R,G,B}, DrawExtra) ->
+    Dl = gl:genLists(1),
+    gl:newList(Dl, ?GL_COMPILE),
+    gl:pushAttrib(?GL_CURRENT_BIT bor ?GL_ENABLE_BIT bor
+		  ?GL_POLYGON_BIT bor ?GL_LINE_BIT bor
+		  ?GL_COLOR_BUFFER_BIT bor
+		  ?GL_LIGHTING_BIT),
+    DrawExtra(),
+    gl:enable(?GL_LIGHTING),
+    gl:shadeModel(?GL_FLAT),
+    gl:disable(?GL_LIGHT0),
+    gl:disable(?GL_LIGHT1),
+    gl:disable(?GL_LIGHT2),
+    gl:disable(?GL_LIGHT3),
+    gl:disable(?GL_LIGHT4),
+    gl:disable(?GL_LIGHT5),
+    gl:disable(?GL_LIGHT6),
+    gl:disable(?GL_LIGHT7),
+    gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, {0,0,0,0}),
+    gl:materialfv(?GL_FRONT_AND_BACK, ?GL_EMISSION, {R,G,B,1}),
+    wings_dl:call(OriginalDlist),
+    gl:popAttrib(),
+    gl:endList(),
+    {call,Dl,OriginalDlist}.
+
+%%%
+%%% Prepare for drawing.
+%%%
+
+prepare(Ftab0, We, St) ->
+    Ftab = wings_we:visible(Ftab0, We),
+    prepare_1(Ftab, We, St).
+
+prepare_1(Ftab, #we{mode=vertex}=We, St) ->
+    case {wings_pref:get_value(show_colors),Ftab} of
+	{false,[{_,Edge}|_]} when is_integer(Edge) ->
+	    Fs0 = sofs:from_external(Ftab, [{face,edge}]),
+	    Fs1 = sofs:domain(Fs0),
+	    Fs = sofs:to_external(Fs1),
+	    {color,{[{wings_color:white(),Fs}],[]},St};
+	{false,_} ->
+	    {color,{[{wings_color:white(),Ftab}],[]},St};
+	{true,_} ->
+	    {color,vtx_color_split(Ftab, We),St}
+    end;
+prepare_1(Ftab, #we{mode=material}=We, St) ->
+    {material,prepare_mat(Ftab, We),St}.
+
+prepare_mat(Ftab, We) ->
+    case wings_pref:get_value(show_materials) of
+	false -> [{default,Ftab}];
+	true -> wings_facemat:mat_faces(Ftab, We)
+    end.
+
+vtx_color_split([{_,Edge}|_]=Ftab0, We) when is_integer(Edge) ->
+    vtx_color_split_1(Ftab0, We, [], []);
+vtx_color_split(Ftab, _) ->
+    vtx_smooth_color_split(Ftab).
+
+vtx_color_split_1([{Face,Edge}|Fs], We, SameAcc, DiffAcc) ->
+    Cols = wings_face:vertex_info(Face, Edge, We),
+    case vtx_color_split_2(Cols) of
+	different -> vtx_color_split_1(Fs, We, SameAcc, [[Face|Cols]|DiffAcc]);
+	Col -> vtx_color_split_1(Fs, We, [{Col,Face}|SameAcc], DiffAcc)
+    end;
+vtx_color_split_1([], _, SameAcc, DiffAcc) ->
+    {wings_util:rel2fam(SameAcc),DiffAcc}.
+
+vtx_color_split_2(Cols0) ->
+    case no_colors(Cols0) of
+	true ->
+	    wings_color:white();
+	false ->
+	    case Cols0 of
+		[C,C|Cols] -> vtx_color_split_3(Cols, C);
+		_ -> different
+	    end
+    end.
+
+vtx_color_split_3([C|Cols], C) -> vtx_color_split_3(Cols, C);
+vtx_color_split_3([_|_], _) -> different;
+vtx_color_split_3([], C) -> C.
+
+no_colors([{_,_,_}|_]) -> false;
+no_colors([_|Cols]) -> no_colors(Cols);
+no_colors([]) -> true.
+
+vtx_smooth_color_split(Ftab) ->
+    vtx_smooth_color_split_1(Ftab, [], []).
+
+vtx_smooth_color_split_1([{_,Vs}=Face|Fs], SameAcc, DiffAcc) ->
+    case vtx_smooth_face_color(Vs) of
+	different ->
+	    vtx_smooth_color_split_1(Fs, SameAcc, [Face|DiffAcc]);
+	Col ->
+	    vtx_smooth_color_split_1(Fs, [{Col,Face}|SameAcc], DiffAcc)
+    end;
+vtx_smooth_color_split_1([], SameAcc, DiffAcc) ->
+    {wings_util:rel2fam(SameAcc),DiffAcc}.
+
+vtx_smooth_face_color(Vs) ->
+    case smooth_no_colors(Vs) of
+	true ->
+	    wings_color:white();
+	false ->
+	    case Vs of
+		[[Col|_],[Col|_]|T] ->
+		    vtx_smooth_face_color_1(T, Col);
+		_ ->
+		    different
+	    end
+    end.
+
+vtx_smooth_face_color_1([[Col|_]|T], Col) ->
+    vtx_smooth_face_color_1(T, Col);
+vtx_smooth_face_color_1([_|_], _) -> different;
+vtx_smooth_face_color_1([], Col) -> Col.
+
+smooth_no_colors([[{_,_,_}|_]|_]) -> false;
+smooth_no_colors([_|Cols]) -> smooth_no_colors(Cols);
+smooth_no_colors([]) -> true.

@@ -23,7 +23,9 @@
 
 init() ->
     init_shaders(),
-    init_multisample().
+    init_multisample(),
+    init_polygon_stipple().
+
 %% render(St)
 %%  Render the entire contents of a Geometry or AutoUV window,
 %%  including groundplane and axes. Use the contents of the display
@@ -99,6 +101,25 @@ init_multisample() ->
 	true ->
 	    wings_pref:set_default(multisample, true)
     end.
+
+init_polygon_stipple() ->
+    P = <<16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
+	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77>>,
+    gl:polygonStipple(P).
 
 render_objects(Mode) ->
     Dls = wings_dl:display_lists(),

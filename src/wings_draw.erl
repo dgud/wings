@@ -16,8 +16,7 @@
 	 invalidate_dlists/1,
 	 update_sel_dlist/0,
 	 changed_we/2,
-	 split/3,original_we/1,update_dynamic/2,join/1,abort_split/1,
-	 face_ns_data/1]).
+	 split/3,original_we/1,update_dynamic/2,join/1,abort_split/1]).
 
 % export for plugins that need to draw stuff
 -export([drawVertices/2]).
@@ -184,7 +183,7 @@ face_ns_data([_,_,_]=Ps) ->
     [e3d_vec:normal(Ps)|Ps];
 face_ns_data([A,B,C,D]=Ps) ->
     N = e3d_vec:normal(Ps),
-    case wings_draw_util:good_triangulation(N, A, B, C, D) of
+    case wings_tesselation:is_good_triangulation(N, A, B, C, D) of
 	false -> {N,[{1,2,4},{4,2,3}],Ps};
 	true -> [N|Ps]
     end;
@@ -561,9 +560,54 @@ update_face_sel_1(Fs, D, Bin) ->
     update_face_sel_2(Fs, D, Bin).
 
 update_face_sel_2([F|Fs], D, Bin0) ->
-    Bin = wings_draw_util:unlit_face_bin(F, D, Bin0),
+    Bin = unlit_face_bin(F, D, Bin0),
     update_face_sel_2(Fs, D, Bin);
 update_face_sel_2([], _, Bin) -> Bin.
+
+%% Draw a face without any lighting.
+unlit_face_bin(Face, #dlo{ns=Ns}, Bin) ->
+    case gb_trees:get(Face, Ns) of
+	[_|VsPos] ->    unlit_plain_face(VsPos, Bin);
+	{_,Fs,VsPos} -> unlit_plain_face(Fs, VsPos, Bin)
+    end;
+unlit_face_bin(Face, #we{fs=Ftab}=We, Bin) ->
+    Edge = gb_trees:get(Face, Ftab),
+    unlit_face_bin(Face, Edge, We, Bin).
+
+unlit_face_bin(Face, Edge, We, Bin) ->
+    Ps = wings_face:vertex_positions(Face, Edge, We),
+    case face_ns_data(Ps) of
+	[_|VsPos] -> unlit_plain_face(VsPos, Bin);
+	{_,Fs,VsPos} -> unlit_plain_face(Fs, VsPos, Bin)
+    end.
+
+unlit_plain_face([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}], Bin) ->
+    <<Bin/binary,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32>>;
+unlit_plain_face([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}], Bin) ->
+    <<Bin/binary,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     X4:?F32,Y4:?F32,Z4:?F32,
+     X1:?F32,Y1:?F32,Z1:?F32>>.
+
+unlit_plain_face(Fs, VsPos, Bin) ->
+    unlit_plain_face_1(Fs, list_to_tuple(VsPos), Bin).
+
+unlit_plain_face_1([{A,B,C}|Fs], Vtab, Bin0) ->
+    {X1,Y1,Z1} = element(A, Vtab),
+    {X2,Y2,Z2} = element(B, Vtab),
+    {X3,Y3,Z3} = element(C, Vtab),
+    Bin = <<Bin0/binary,
+	   X1:?F32,Y1:?F32,Z1:?F32,
+	   X2:?F32,Y2:?F32,Z2:?F32,
+	   X3:?F32,Y3:?F32,Z3:?F32>>,
+    unlit_plain_face_1(Fs, Vtab, Bin);
+unlit_plain_face_1([], _, Bin) -> Bin.
 
 %%%
 %%% Splitting of objects into two display lists.

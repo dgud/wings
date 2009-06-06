@@ -192,7 +192,6 @@ open_file(none) -> ok;
 open_file(Name) -> wings_wm:send(geom, {open_file,Name}).
 
 init_opengl(St) ->
-    wings_draw_util:init(),
     wings_render:init(),
     wings_dl:init(),
     wings_draw:refresh_dlists(St),
