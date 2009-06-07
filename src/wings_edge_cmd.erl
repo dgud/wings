@@ -45,8 +45,9 @@ menu(X, Y, St) ->
 	    {?__(10,"Dissolve"), dslv(),
 		 {?__(11,"Eliminate selected edges"), [],
 		  ?__(50,"Eliminate selected edges and remove remaining isolated verts")},[]},
-		{?__(12,"Collapse"),collapse,
-	     ?__(13,"Delete edges, replacing them with vertices")},
+		{?__(12,"Collapse"),collapse_fun(),
+	     {?__(13,"Delete edges, replacing them with vertices"), [],
+		  ?__(21,"Delete edges, replacing them with vertices and remove any newly created isolated vertices")},[]},
 	    separator,
 	    {?__(14,"Hardness"),
 	     {hardness,[{?__(15,"Soft"),soft},
@@ -65,7 +66,12 @@ dslv() ->
 	(3, _Ns) -> {edge,clean_dissolve};
 	(_, _) -> ignore
     end.
-
+collapse_fun() ->
+    fun
+	(1, _Ns) -> {edge,collapse};
+	(3, _Ns) -> {edge,clean_collapse};
+	(_, _) -> ignore
+    end.
 cut_line(#st{sel=[{_,Es}]}) ->
     case gb_sets:size(Es) of
 	1 -> cut_fun();
@@ -131,7 +137,9 @@ command(clean_dissolve, St) ->
 command(dissolve, St) ->
     {save_state,dissolve(St)};
 command(collapse, St) ->
-    {save_state,wings_collapse:collapse(St)};
+    {save_state, wings_collapse:uniform_collapse(St)};
+command(clean_collapse, St) ->
+    {save_state, wings_collapse:clean_uniform_collapse(St)};
 command({hardness,Type}, St) ->
     {save_state,hardness(Type, St)};
 command(loop_cut, St) ->

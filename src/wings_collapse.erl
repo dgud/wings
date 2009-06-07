@@ -16,7 +16,7 @@
 -module(wings_collapse).
 -export([collapse/1,collapse_edge/2,collapse_edge/3,
 	 collapse_edges/2,fast_collapse_edge/2,collapse_vertices/2]).
-
+-export([uniform_collapse/1,clean_uniform_collapse/1]).
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1,sort/1]).
 
@@ -47,19 +47,39 @@ collapse_edges([],We) -> We.
 collapse_edge(Edge, #we{es=Etab}=We)->
     case array:get(Edge, Etab) of
 	#edge{vs=Vkeep}=Rec ->
-	    collapse_edge_1(Edge, Vkeep, Rec, We);
+	    collapse_edge_1(Edge, none, Vkeep, Rec, We);
 	undefined -> We
     end.
 
 collapse_edge(Edge, Vkeep, #we{es=Etab}=We)->
     case array:get(Edge, Etab) of
 	undefined -> We;
-	Rec -> collapse_edge_1(Edge, Vkeep, Rec, We)
+	Rec -> collapse_edge_1(Edge, none, Vkeep, Rec, We)
     end.
 
 fast_collapse_edge(Edge, #we{es=Etab}=We)->
     #edge{vs=Vkeep,ve=Vremove} = Rec = array:get(Edge, Etab),
-    internal_collapse_edge(Edge, Vkeep, Vremove, Rec, We).
+    internal_collapse_edge(Edge, none, Vkeep, Vremove, Rec, We).
+
+%%% Collapse contiguous edge groups to central point
+uniform_collapse(#st{selmode=edge}=St0) ->
+    {St,Sel} = wings_sel:mapfold(fun uniform_collapse_edges/3, [], St0),
+    wings_sel:valid_sel(wings_sel:set(vertex, Sel, St)).
+
+%%% Collapse contiguous edge groups to central point and cleanup any newly
+%%% created isolated vertices.
+clean_uniform_collapse(#st{selmode=edge}=St0) ->
+    {St,Sel} = wings_sel:mapfold(fun clean_uniform_edge_collapse/3, [], St0),
+    wings_sel:valid_sel(wings_sel:set(vertex, Sel, St)).
+
+uniform_collapse([Edge|Es],Center,#we{es=Etab}=We0) ->
+    We = case array:get(Edge, Etab) of
+      #edge{vs=Vkeep}=Rec ->
+        collapse_edge_1(Edge, Center, Vkeep, Rec, We0);
+      undefined -> We0
+    end,
+    uniform_collapse(Es,Center,We);
+uniform_collapse([],_,We) -> We.
 
 %% collapse_vertices(Vs, We) -> We'
 %%  Remove vertices, replacing them with faces.
@@ -173,6 +193,47 @@ delete_edges(V, Edge, Face, {Etab0,Vct0,Vtab0,Ftab0,Htab0}) ->
 %%% Internal functions (edge collapsing).
 %%%
 
+uniform_collapse_edges(Edges0, #we{id=Id,es=Etab}=We0, SelAcc)->
+    EdgeSets = wings_edge_loop:partition_edges(Edges0, We0),
+    Edges1 = gb_sets:to_list(Edges0),
+    We = foldl(fun(Es, WeAcc) ->
+        Center = wings_vertex:center(wings_edge:to_vertices(Es, We0),We0),
+        uniform_collapse(Es,Center,WeAcc)
+        end,We0,EdgeSets),
+    check_consistency(We),
+    Sel = foldl(fun(Edge, A) ->
+            #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
+            gb_sets:add(Va, gb_sets:add(Vb, A))
+        end, gb_sets:empty(), Edges1),
+    {We,[{Id,Sel}|SelAcc]}.
+
+clean_uniform_edge_collapse(Edges0, #we{id=Id,es=Etab0}=We0, SelAcc)->
+    EdgeSets = wings_edge_loop:partition_edges(Edges0, We0),
+    IsolatedVs1 = lists:umerge(wings_vertex:isolated(We0),vertices_w_two_edges(Etab0)),
+    Edges1 = gb_sets:to_list(Edges0),
+    #we{es=Etab}=We1 = foldl(fun(Es, WeAcc) ->
+        Center = wings_vertex:center(wings_edge:to_vertices(Es, We0),We0),
+        uniform_collapse(Es,Center,WeAcc)
+        end,We0,EdgeSets),
+    check_consistency(We1),
+    IsolatedVs2 = vertices_w_two_edges(Etab),
+    IssVs = IsolatedVs2 -- IsolatedVs1,
+    We2 = collapse_vertices(IssVs, We1),
+    We = wings_edge:dissolve_isolated_vs(wings_vertex:isolated(We2), We2),
+    Sel = foldl(fun(Edge, A) ->
+             #edge{vs=Va,ve=Vb} = array:get(Edge, Etab0),
+             gb_sets:add(Va, gb_sets:add(Vb, A))
+        end, gb_sets:empty(), Edges1),
+    {We,[{Id,Sel}|SelAcc]}.
+
+vertices_w_two_edges(Etab) ->
+    array:foldl(fun
+      (undefined,_,Acc) -> Acc;
+      (_,#edge{vs=V,ltsu=E1,rtpr=E1},Acc) -> [V|Acc];
+      (_,#edge{ve=V,ltpr=E2,rtsu=E2},Acc) -> [V|Acc];
+      (_,_,Acc) -> Acc
+    end,[],Etab).
+
 collapse_edges(Edges0, #we{id=Id,es=Etab}=We0, SelAcc)->
     Edges = gb_sets:to_list(Edges0),
     We = foldl(fun collapse_edge/2, We0, Edges),
@@ -183,7 +244,7 @@ collapse_edges(Edges0, #we{id=Id,es=Etab}=We0, SelAcc)->
 		end, gb_sets:empty(), Edges),
     {We,[{Id,Sel}|SelAcc]}.
 
-collapse_edge_1(Edge, Vkeep, Rec, We0) ->
+collapse_edge_1(Edge, Center, Vkeep, Rec, We0) ->
     Faces = case Rec of
 		#edge{vs=Vkeep,ve=Vremove,lf=Lf,rf=Rf} -> [Lf,Rf];
 		#edge{ve=Vkeep,vs=Vremove,lf=Lf,rf=Rf} -> [Lf,Rf]
@@ -191,7 +252,7 @@ collapse_edge_1(Edge, Vkeep, Rec, We0) ->
     case is_waist(Vkeep, Vremove, We0) of
 	true -> We0;
 	false ->
-	    We1 = internal_collapse_edge(Edge, Vkeep, Vremove, Rec, We0),
+	    We1 = internal_collapse_edge(Edge, Center, Vkeep, Vremove, Rec, We0),
 	    We2 = delete_bad_faces(Faces, We1),
 	    case We2 of
 		bad_edge -> We0;
@@ -205,26 +266,29 @@ collapse_edge_1(Edge, Vkeep, Rec, We0) ->
 	    end
     end.
 
-
-internal_collapse_edge(Edge, Vkeep, Vremove, Rec,
+internal_collapse_edge(Edge, Center, Vkeep, Vremove, Rec,
 		       #we{es=Etab0,he=Htab0,fs=Ftab0,
 			   vc=Vct0,vp=Vtab0}=We)->
     Etab1 = slim_patch_vtx_refs(Vremove, Vkeep, We, Etab0),
     Etab2 = array:reset(Edge, Etab1),
     Htab = gb_sets:delete_any(Edge, Htab0),
     Vct1 = array:reset(Vremove, Vct0),
-	    
+
     #edge{lf=LF,rf=RF,ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} = Rec,
     Vct = array:set(Vkeep, RP, Vct1),
 
-    %% Move kept vertex. Delete the other one.
-    PosKeep = array:get(Vkeep, Vtab0),
-    Vtab1 = case array:get(Vremove, Vtab0) of
-		PosKeep -> Vtab0;
-		PosRemove ->
-		    Pos = e3d_vec:average(PosKeep, PosRemove),
-		    array:set(Vkeep, Pos, Vtab0)
-	    end,
+    Vtab1 = if
+      Center==none ->
+        %% Move kept vertex. Delete the other one.
+        PosKeep = array:get(Vkeep, Vtab0),
+        case array:get(Vremove, Vtab0) of
+          PosKeep -> Vtab0;
+          PosRemove ->
+            Pos = e3d_vec:average(PosKeep, PosRemove),
+            array:set(Vkeep, Pos, Vtab0)
+        end;
+      true -> array:set(Vkeep, Center, Vtab0)
+    end,
     Vtab = array:reset(Vremove, Vtab1),
 
     %% Patch all predecessors and successors of
