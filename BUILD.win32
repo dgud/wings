@@ -18,7 +18,7 @@ The following software is needed:
   http://www.mingw.org/wiki/msys, for development work, but we have
   not tested to package an release using MSYS.)
 
-- Erlang/OTP R13B or later. http://www.erlang.org
+- Erlang/OTP R13B01 or later. http://www.erlang.org
   (It is easiest to download the pre-built binaries for Windows.)
 
 - ESDL 1.0.1 or later. http://esdl.sf.net
