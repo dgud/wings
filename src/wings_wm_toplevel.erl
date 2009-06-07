@@ -509,7 +509,7 @@ resize_event(redraw, #rsz{color=Color}) ->
 resize_event(got_focus, _) ->
     wings_msg:button(?__(1,"Resize"), 
 		     ?__(2,"Resize, keeping current aspect ratio")),
-    wings_wm:dirty();
+    keep;
 resize_event(#mousebutton{button=1,state=?SDL_PRESSED},
 	     #rsz{state=moving,prev_focus=Focus}=Rst) ->
     wings_wm:grab_focus(Focus),
@@ -607,7 +607,7 @@ event(redraw, Ss) ->
     redraw(Ss);
 event(got_focus, _) ->
     wings_wm:message(""),
-    wings_wm:dirty();
+    keep;
 event({set_knob,Pos0,Prop0}, #ss{knob_pos=OldPos,knob_prop=OldProp}=Ss) ->
     case {max(0.0, min(1.0, Pos0)),max(0.0, min(1.0, Prop0))} of
 	{OldPos,OldProp} -> keep;
@@ -730,7 +730,7 @@ close_event(redraw) ->
     end;
 close_event(got_focus) ->
     wings_wm:message(?__(1,"Close this window")),
-    wings_wm:dirty();
+    keep;
 close_event(#mousebutton{button=1,state=?SDL_RELEASED}) ->
     {_,Client} = wings_wm:this(),
     wings_wm:send(Client, close),
@@ -768,8 +768,6 @@ get_menu_event(Mb) ->
 
 menubar_event(redraw, Mb) ->
     menubar_redraw(Mb);
-menubar_event(got_focus, _) ->
-    wings_wm:dirty();
 menubar_event({action,_}=Action, _) ->
     wings_wm:send(geom, Action);
 menubar_event(clear_menu_selection, Mb) ->

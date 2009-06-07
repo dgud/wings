@@ -47,9 +47,6 @@ init_button() ->
 get_button_event(But) ->
     {replace,fun(Ev) -> button_event(Ev, But) end}.
 
-button_event(got_focus, _) ->
-    wings_wm:dirty(),
-    keep;
 button_event({window_updated,_}, But) ->
     get_button_event(button_resized(But));
 button_event(redraw, #but{buttons=undefined}=But0) ->

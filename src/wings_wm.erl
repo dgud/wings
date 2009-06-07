@@ -106,9 +106,6 @@ init() ->
     dirty_mode(back),
     resize_windows(W, H).
 
-desktop_event(got_focus) ->
-    dirty(),
-    keep;
 desktop_event(_) -> keep.
 
 message(Message) ->
@@ -573,13 +570,18 @@ dispatch_event(Event) ->
 update_focus(none) ->
     case erase(wm_focus) of
 	undefined -> ok;
-	OldActive -> do_dispatch(OldActive, lost_focus)
+	OldActive ->
+	    dirty(),
+	    do_dispatch(OldActive, lost_focus)
     end;
 update_focus(Active) ->
     case put(wm_focus, Active) of
-	undefined -> do_dispatch(Active, got_focus);
+	undefined ->
+	    dirty(),
+	    do_dispatch(Active, got_focus);
 	Active -> ok;
 	OldActive ->
+	    dirty(),
 	    do_dispatch(OldActive, lost_focus),
 	    do_dispatch(Active, got_focus)
     end.

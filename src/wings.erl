@@ -369,7 +369,7 @@ handle_event_3(got_focus, _) ->
     Msg3 = wings_msg:button_format([], [], ?__(2,"Show menu")),
     Message = wings_msg:join([Msg1,Msg2,Msg3]),
     wings_wm:message(Message),
-    wings_wm:dirty();
+    keep;
 handle_event_3(lost_focus, _) -> keep;
 handle_event_3({note,menu_aborted}, St) ->
     main_loop(clear_temp_sel(St));

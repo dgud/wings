@@ -37,9 +37,10 @@ menu_entry(T) ->
       ?__(2,"Makes a Doo-Sabin subdivision according to WasaMonkey (WARNING: messes up all UV coordinates)")}|T].
 
 command({body,doo_sabin}, St0) ->
-    %% Do For each selected object 
-    wpa:sel_fold(fun(_,We,St) -> doo_sabin(We,St) end, 
-		 St0#st{sel=[],selmode=edge}, St0);
+    %% Do for each selected object
+    St = wpa:sel_fold(fun(_,We,St) -> doo_sabin(We,St) end,
+		      St0#st{sel=[],selmode=edge}, St0),
+    wpa:sel_set(St#st.sel, St);
 command(_Cmd, _) -> next.
 
 doo_sabin(We0 = #we{es=Etab0, id=Id}, St0 = #st{shapes=Sh0,sel=OrigSel}) ->

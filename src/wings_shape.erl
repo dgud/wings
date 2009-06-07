@@ -3,7 +3,7 @@
 %%
 %%     Utilities for shape records.
 %%
-%%  Copyright (c) 2001-2005 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -190,8 +190,6 @@ event(resized, Ost) ->
     keep;
 event(close, _) ->
     delete;
-event(got_focus, _) ->
-    wings_wm:dirty();
 event(redraw, Ost) ->
     wings_io:ortho_setup(),
     {W,H} = wings_wm:win_size(),

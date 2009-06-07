@@ -151,7 +151,7 @@ event(got_focus, _) ->
     CL = [ModName,$+,wings_msg:button_format(?__(4,"Clear color"))],
     Msg = wings_msg:join([L,CL,MR]),
     wings_wm:message(Msg),
-    wings_wm:dirty();
+    keep;
 
 event({current_state,St = #st{pal=StPal}}, Pst=#pst{w=W,h=H}) ->
     case StPal of

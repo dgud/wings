@@ -33,4 +33,11 @@
 - New Tweak option to set Tweak Magnet Increment. [optigon]
 
 - Spherical UV mapping corrected. [dgud]
+
+- Doing a Doo-Sabin sub-division on multiple objects would leave an
+  invalid selection that could cause crashes. (Thanks to Fonte Boa.) [bjorng]
+
+- Very old Wings files could have invalid mirror faces, which would cause
+  crashes. Now clearing the mirror face if it is invalid when loading
+  a Wings file. [bjorng]
 -----------------------------------------------------------------------------
