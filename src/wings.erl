@@ -317,13 +317,13 @@ handle_event_2(Ev, St) -> handle_event_3(Ev, St).
         
 handle_event_3(#keyboard{}=Ev, St0) ->
     case do_hotkey(Ev, St0) of
-    next -> keep;
-    {Cmd,St} -> do_command(Cmd, St)
+	next -> keep;
+	{Cmd,St} -> do_command(Cmd, Ev, St)
     end;
 handle_event_3({action,Callback}, _) when is_function(Callback) ->
     Callback();
 handle_event_3({action,Cmd}, St) ->
-    do_command(Cmd, St);
+    do_command(Cmd, none, St);
 handle_event_3({vec_command,Command,St}, _) when is_function(Command) ->
     %% Use to execute command with vector arguments (see wings_vec.erl).
     command_response(Command(), none, St);
@@ -346,8 +346,8 @@ handle_event_3(redraw, St) ->
     main_loop_noredraw(St);
 handle_event_3(quit, St) ->
     case wings_wm:this() of
-    geom -> do_command({file,quit}, St);
-    _ -> keep
+	geom -> do_command({file,quit}, none, St);
+	_ -> keep
     end;
 handle_event_3({new_state,St}, St0) ->
     save_state(St0, St);
@@ -470,14 +470,47 @@ highlight_sel_style({view,frame}) -> temporary;
 
 highlight_sel_style(_) -> none.
 
-do_command(Cmd, St0) ->
+do_command(Cmd, Event, St0) ->
     St = remember_command(Cmd, St0),
     {replace,
      fun(Ev) -> handle_event(Ev, St) end,
-     fun() -> raw_command(Cmd, none, St) end}.
+     fun() -> raw_command(Cmd, none, Event, St) end}.
 
 raw_command(Cmd, Args, St) ->
-    command_response(do_command_1(Cmd, St), Args, St).
+    raw_command(Cmd, Args, none, St).
+
+raw_command(Cmd, Args, Event, St) ->
+    command_response(raw_command_1(Cmd, Event, St), Args, St).
+
+raw_command_1(Cmd, Event, St0) ->
+    case wings_plugin:command(Cmd, St0#st{last_cmd=Cmd}) of
+	next ->
+	    %% Time the command if command timing is enabled,
+	    %% or just execute the command.
+	    Execute = fun() ->
+			      execute_command(Cmd, Event, St0)
+		      end,
+	    wings_develop:time_command(Execute, Cmd);
+	St0 -> St0;
+	#st{}=St -> {save_state,St};
+	Other -> Other
+    end.
+
+execute_command(Cmd, none, St) ->
+    %% The command was obtained directly from a menu.
+    %% It it not allowed to fail.
+    command(Cmd, St);
+execute_command(Cmd, Ev, St) ->
+    %% The command was obtained through a hotkey, which for all
+    %% we know may be from an ancient version Wings or for a
+    %% plug-in that has been disabled.
+    try
+	command(Cmd, St)
+    catch
+	error:_ ->
+	    wings_hotkey:handle_error(Ev, Cmd),
+	    St#st{repeatable=ignore}
+    end.
 
 command_response(#st{}=St, _, _) ->
     main_loop(clear_temp_sel(St));
@@ -504,16 +537,6 @@ command_response(keep, _, _) ->
 command_response(quit, _, _) ->
     save_windows(),
     exit(normal).
-
-do_command_1(Cmd, St0) ->
-    case wings_plugin:command(Cmd, St0#st{last_cmd=Cmd}) of
-	next ->
-	    %% Time the command if command timing is enabled.
-	    wings_develop:time_command(fun command/2, Cmd, St0);
-	St0 -> St0;
-	#st{}=St -> {save_state,St};
-	Other -> Other
-    end.
 
 remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
                      C =:= face; C =:= body ->
@@ -592,28 +615,28 @@ command_1({file,Command}, St) ->
 command_1({edit,repeat}, #st{sel=[]}=St) -> St;
 command_1({edit,repeat}, #st{selmode=Mode,repeatable=Cmd0}=St) ->
     case repeatable(Mode, Cmd0) of
-    no -> keep;
-    Cmd when is_tuple(Cmd) -> raw_command(Cmd, none, St)
+	no -> keep;
+	Cmd when is_tuple(Cmd) -> raw_command(Cmd, true, St)
     end;
 command_1({edit,repeat}, St) -> St;
 command_1({edit,repeat_args}, #st{sel=[]}=St) -> St;
 command_1({edit,repeat_args}, #st{selmode=Mode,repeatable=Cmd0,
-                ask_args=AskArgs}=St) ->
+				  ask_args=AskArgs}=St) ->
     case repeatable(Mode, Cmd0) of
-    no -> keep;
-    Cmd1 when is_tuple(Cmd1) ->
-        Cmd = replace_ask(Cmd1, AskArgs),
-        raw_command(Cmd, none, St)
+	no -> keep;
+	Cmd1 when is_tuple(Cmd1) ->
+	    Cmd = replace_ask(Cmd1, AskArgs),
+	    raw_command(Cmd, none, St)
     end;
 command_1({edit,repeat_args}, St) -> St;
 command_1({edit,repeat_drag}, #st{sel=[]}=St) -> St;
 command_1({edit,repeat_drag}, #st{selmode=Mode,repeatable=Cmd0,
-                ask_args=AskArgs,drag_args=DragArgs}=St) ->
+				  ask_args=AskArgs,drag_args=DragArgs}=St) ->
     case repeatable(Mode, Cmd0) of
-    no -> keep;
-    Cmd1 when is_tuple(Cmd1) ->
-        Cmd = replace_ask(Cmd1, AskArgs),
-        raw_command(Cmd, DragArgs, St)
+	no -> keep;
+	Cmd1 when is_tuple(Cmd1) ->
+	    Cmd = replace_ask(Cmd1, AskArgs),
+	    raw_command(Cmd, DragArgs, St)
     end;
 command_1({edit,repeat_drag}, St) -> St;
 command_1({edit,purge_undo}, St) ->

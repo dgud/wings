@@ -3,7 +3,7 @@
 %%
 %%     This modules translates hotkeys.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -14,7 +14,7 @@
 -module(wings_hotkey).
 -export([event/1,event/2,matching/1,bind_unicode/3,bind_virtual/4,
 	 bind_from_event/2,unbind/1,hotkeys_by_commands/1,
-	 set_default/0,listing/0]).
+	 set_default/0,listing/0,handle_error/2]).
 
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -222,6 +222,38 @@ list_keys([{Key,Cmd,Src}|T]) ->
     KeyStr ++ ": " ++ wings_util:stringify(Cmd) ++ SrcStr ++ 
 	"\n" ++ list_keys(T);
 list_keys([]) -> [].
+
+
+%%%
+%%% Error handling.
+%%%
+handle_error(Ev, Cmd) ->
+    Key = bindkey(Ev, Cmd),
+    KeyName = keyname(Key),
+    CmdStr = wings_util:stringify(Cmd),
+    Msg1 = "Executing the command \"" ++ CmdStr ++ "\"\nbound to the hotkey " ++
+	KeyName ++ " caused an error.",
+    Msg2 = "Possible causes:",
+    Msg3 = [bullet,$\s|"The hotkey was defined in a previous version of Wings,\n"
+	"and the command that it refers to has been changed,\n"
+	"removed, or renamed in this version of Wings."],
+    Msg4 = [bullet,$\s|"The hotkey refers to a command in a "
+	    " plug-in that is currently disabled,\n"
+	    "or to a previous version of a plug-in."],
+    Msg5 = [bullet,$\s|"A bug in the command itself. Try executing the command\n"
+	    "from the menu directly (i.e. not through a hotkey) -\n"
+	    "if it crashes it IS a bug. (Please report it.)"],
+    Qs = {vframe,
+	  [{label,Msg1},{panel,[]},
+	   {label,Msg2},
+	   {label,Msg3},
+	   {label,Msg4},
+	   {label,Msg5},{panel,[]},
+	   {hframe,[{button,"Ignore",fun(_) -> ignore end,
+		     [{info,"Do nothing"}]},
+		    {button,"Delete Hotkey",fun(_) -> unbind(Key) end,
+		     [{info,"Delete the hotkey "++KeyName}]}]}]},
+    wings_ask:dialog("", Qs, fun(_) -> ignore end).
 
 %%%
 %%% Local functions.

@@ -14,7 +14,7 @@
 
 -module(wings_develop).
 -export([init/0,menu/1,command/2,
-	 time_command/3,gl_error_check/1]).
+	 time_command/2,gl_error_check/1]).
 
 -include("wings.hrl").
 
@@ -58,15 +58,15 @@ command(print_scene_size, St) ->
     io:format("The current scene is using ~p words\n", [Words]),
     keep.
 
-time_command(CmdFun, Cmd, St) ->
+time_command(CmdFun, Cmd) ->
     case wings_pref:get_value(develop_time_commands, false) of
 	false ->
-	    Res = CmdFun(Cmd, St),
+	    Res = CmdFun(),
 	    gl_error_check(Cmd),
 	    Res;
 	true ->
 	    Before = erlang:now(),
-	    Res = CmdFun(Cmd, St),
+	    Res = CmdFun(),
 	    After = erlang:now(),
 	    Time = timer:now_diff(After, Before),
 	    Str = format_time(Time),

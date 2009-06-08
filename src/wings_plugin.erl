@@ -123,8 +123,8 @@ command(Cmd, St) ->
     end.
 
 command([M|Ps], Cmd, St) ->
-    CmdFun = erlang:make_fun(M, command, 2),
-    case catch wings_develop:time_command(CmdFun, Cmd, St) of
+    CmdFun = fun() -> M:command(Cmd, St) end,
+    case catch wings_develop:time_command(CmdFun, Cmd) of
 	next -> command(Ps, Cmd, St);
 	Other ->
 	    case check_result(M, Other, St) of
@@ -357,7 +357,7 @@ manager_menu_1([]) ->
 manager_entry() ->
     {?__(1,"Plug-in Manager..."),plugin_manager,[]}.
 
-manager_command({edit,plugin_manager}, _St) ->
+manager_command({edit,plugin_manager}, St) ->
     Ps = get(wings_all_plugins),
     Categories = [cat_command_fun(),fun cat_tool/1,fun cat_select/1,
 		  fun cat_render/1,fun cat_import_export/1,
@@ -367,12 +367,22 @@ manager_command({edit,plugin_manager}, _St) ->
     Fun = fun(Res) -> 
 		  Disabled = [M || {M,false} <- Res],
 		  put(wings_plugins, Ps -- Disabled),
-		  wings_pref:set_value(disabled_plugins, Disabled),
-		  ignore
+		  update_disabled(Disabled, St)
 	  end,
     Dialog = mk_dialog(Cps, false),
     wings_ask:dialog(?__(1,"Plug-In Manager"), Dialog, Fun);
 manager_command(_, _) -> next.
+
+update_disabled(Disabled, St) ->
+    case wings_pref:get_value(disabled_plugins) of
+	Disabled -> ignore;
+	_ ->
+	    %% If any plug-in was enabled or disabled, we'll clear
+	    %% the last repeatable command, as it might not be safe
+	    %% to repeat it.
+	    wings_pref:set_value(disabled_plugins, Disabled),
+	    St#st{repeatable=ignore}
+    end.
 
 mk_dialog(Cs, _Min) ->
     [{oframe,mk_dialog_1(Cs),1,[{style,buttons}]}].

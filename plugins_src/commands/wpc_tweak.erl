@@ -292,7 +292,7 @@ handle_tweak_event0(#keyboard{unicode=C}=Ev, #tweak{tmode=wait,st=St0}=T) ->
               next ->
                 keep;
               Action ->
-                handle_tweak_event2({action,Action},T#tweak{st=St})
+                handle_tweak_event2({action,Action}, Ev, T#tweak{st=St})
             end;
       T1 -> update_tweak_handler(T1)
     end;
@@ -493,19 +493,19 @@ handle_tweak_event1(#mousebutton{button=3,state=?SDL_RELEASED,x=X,y=Y},
     end;
 
 handle_tweak_event1(Ev,T) ->
-    handle_tweak_event2(Ev,T).
+    handle_tweak_event2(Ev, none, T).
 
-handle_tweak_event2(init_opengl, #tweak{st=St}) ->
+handle_tweak_event2(init_opengl, _, #tweak{st=St}) ->
     wings:init_opengl(St),
     keep;
-handle_tweak_event2(quit=Ev, T) ->
+handle_tweak_event2(quit=Ev, _, T) ->
     wings_wm:later(Ev),
     exit_tweak(T);
 
-handle_tweak_event2({current_state,St}, T) ->
+handle_tweak_event2({current_state,St}, _, T) ->
     update_tweak_handler(T#tweak{st=St});
 
-handle_tweak_event2({new_state,St1}, #tweak{st=St0}=T) ->
+handle_tweak_event2({new_state,St1}, _, #tweak{st=St0}=T) ->
     St2 = clear_temp_sel(St1),
     St3 = wings_undo:save(St0, St2),
     St = case St3 of
@@ -514,13 +514,13 @@ handle_tweak_event2({new_state,St1}, #tweak{st=St0}=T) ->
     end,
     update_tweak_handler(T#tweak{st=St});
 
-handle_tweak_event2({action,Action}, #tweak{tmode=wait,st=#st{}=St0}=T) ->
+handle_tweak_event2({action,Action}, Ev, #tweak{tmode=wait,st=#st{}=St0}=T) ->
     Hs = wings_pref:get_value(hilite_select),
     case Action of
     {view,highlight_aim} ->
         {Cmd,_} = wings:highlight_aim_setup(St0),
         St = wings_view:command(Cmd,St0),
-        do_cmd(Cmd, T#tweak{st=St});
+        do_cmd(Cmd, Ev, T#tweak{st=St});
     {edit,undo_toggle} ->
         St = wings_u:caption(wings_undo:undo_toggle(clear_temp_sel(St0))),
         update_tweak_handler(T#tweak{st=St});
@@ -539,24 +539,23 @@ handle_tweak_event2({action,Action}, #tweak{tmode=wait,st=#st{}=St0}=T) ->
     {select,all}=Cmd when Hs -> hotkey_select_setup(Cmd,T);
     {select, C}=Cmd when C==vertex;C==edge;C==face;C==body ->
         St = clear_temp_sel(St0),
-        do_cmd(Cmd,T#tweak{st=St});
+        do_cmd(Cmd, Ev, T#tweak{st=St});
     {select, {adjacent,_}}=Cmd ->
         St = clear_temp_sel(St0),
-        do_cmd(Cmd,T#tweak{st=St});
+        do_cmd(Cmd, Ev, T#tweak{st=St});
     {file,_}=Cmd ->
         St = clear_temp_sel(St0),
-        do_cmd(Cmd,T#tweak{st=St});
+        do_cmd(Cmd, Ev, T#tweak{st=St});
     keep -> keep;
-    Cmd ->
-        do_cmd(Cmd, T)
+    Cmd -> do_cmd(Cmd, Ev, T)
     end;
-handle_tweak_event2(close, _) ->
+handle_tweak_event2(close, _, _) ->
 % Close a second geometry window
     Active = wings_wm:this(),
     wings_wm:delete({object,Active}),
     delete;
 
-handle_tweak_event2(_, _) ->
+handle_tweak_event2(_, _, _) ->
     keep.
 
 %%%%
@@ -612,21 +611,21 @@ remember_mode(#tweak{magnet=Mag,mag_type=MagType,mag_r=MagR,
              st=#st{selmode=Mode,sh=Sh}}) ->
     wpa:pref_set(?MODULE, sel_mode, {Mode,Sh,Mag,MagType,MagR}).
 
-do_cmd({tools, {tweak,false}}, #tweak{st=St}=T) ->
+do_cmd({tools, {tweak,false}}, _, #tweak{st=St}=T) ->
     exit_tweak(T#tweak{st=clear_temp_sel(St)});
 
-do_cmd({tools, {tweak,true}}, #tweak{st=St}=T) ->
+do_cmd({tools, {tweak,true}}, _, #tweak{st=St}=T) ->
     wings_plugin:command({tools, {tweak,true}}, St),
     exit_tweak(T#tweak{st=clear_temp_sel(St)});
 
-do_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
+do_cmd(Cmd, Ev, #tweak{st=#st{}=St0}=T) ->
     St1 = remember_command(Cmd, St0),
     case wings_plugin:command(Cmd,St1) of
-      next -> do_wings_cmd(Cmd,T);
+      next -> do_wings_cmd(Cmd, Ev, T);
       Result -> process_cmd_response(Result,T)
     end.
 
-do_wings_cmd({view,Cmd}, #tweak{st=#st{}=St0}=T) ->
+do_wings_cmd({view,Cmd}, _, #tweak{st=#st{}=St0}=T) ->
     case wings_view:command(Cmd,St0) of
         #st{}=St ->
             St1 = clear_temp_sel(St),
@@ -635,15 +634,15 @@ do_wings_cmd({view,Cmd}, #tweak{st=#st{}=St0}=T) ->
           Other
     end;
 
-do_wings_cmd(Cmd, #tweak{st=#st{}=St0}=T) ->
+do_wings_cmd(Cmd, Ev, #tweak{st=#st{}=St0}=T) ->
     St1 = remember_command(Cmd, St0),
-    Result = cmd_type(Cmd, St1),
+    Result = cmd_type(Cmd, Ev, St1),
     process_cmd_response(Result,T).
 
 process_cmd_response(Result,T) ->
     case Result of
       {save_state,St} ->
-          handle_tweak_event2({new_state,St}, T);
+          handle_tweak_event2({new_state,St}, none, T);
       #st{}=St ->
           update_tweak_handler(T#tweak{st=St});
       {drag,Drag} ->
@@ -659,19 +658,35 @@ process_cmd_response(Result,T) ->
           wings:save_windows(),
           exit(normal);
       {replace,Ev} ->
-          handle_tweak_event2(Ev, T);
+          handle_tweak_event2(Ev, none, T);
       Other ->
         Other
     end.
 
-cmd_type({select, Cmd}, St) -> wings_sel_cmd:command(Cmd, St#st{temp_sel=none});
-cmd_type(Cmd, St) -> wings:command(Cmd, St).
+cmd_type({select,Cmd}, _, St) ->
+    wings_sel_cmd:command(Cmd, St#st{temp_sel=none});
+cmd_type(Cmd, Ev, St) ->
+    case Ev of
+	none ->
+	    wings:command(Cmd, St);
+	_ ->
+	    %% The command was obtained through a hotkey, which for all
+	    %% we know may be from an ancient version Wings or for a
+	    %% plug-in that has been disabled.
+	    try
+		wings:command(Cmd, St)
+	    catch
+		error:_ ->
+		    wings_hotkey:handle_error(Ev, Cmd),
+		    St#st{repeatable=ignore}
+	    end
+    end.
 
 hotkey_select_setup(Cmd,#tweak{st=St0}=T) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_pick:do_pick(X, Y, St0) of
-      {add,_,St} -> do_cmd(Cmd,T#tweak{st=St});
-      _Other     -> do_cmd(Cmd, T)
+      {add,_,St} -> do_cmd(Cmd, none, T#tweak{st=St});
+      _Other     -> do_cmd(Cmd, none, T)
     end.
 
 remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
@@ -708,7 +723,7 @@ end_drag(#tweak{st=St0,ox=X,oy=Y}=T) ->
     wings_io:ungrab(X,Y),
     St = wings_dl:map(fun end_drag/2, St0),
     help(T),
-    handle_tweak_event2({new_state,St},T#tweak{tmode=wait}).
+    handle_tweak_event2({new_state,St}, none, T#tweak{tmode=wait}).
 
 end_drag(#dlo{src_we=#we{id=Id},drag=#drag{}}=D0, #st{shapes=Shs0}=St0) ->
     #dlo{src_we=We} = D = wings_draw:join(D0),
@@ -767,14 +782,14 @@ end_pick(true, #tweak{st=#st{selmode=Selmode}=St0,ox=X,oy=Y}=T0) ->
     end,
     T = T0#tweak{st=St0,tmode=wait},
     help(T),
-    handle_tweak_event2({new_state,St},T);
+    handle_tweak_event2({new_state,St}, none, T);
 
 end_pick(false, #tweak{st=St0,ox=X,oy=Y}=T) ->
     wings_wm:release_focus(),
     wings_io:ungrab(X,Y),
     St = wings_dl:map(fun end_pick_1/2, St0),
     help(T),
-    handle_tweak_event2({new_state,St},T#tweak{tmode=wait}).
+    handle_tweak_event2({new_state,St}, none, T#tweak{tmode=wait}).
 
 end_pick_1(#dlo{mirror=M,ns=Ns,proxy_data=Pd,src_we=We},St0) ->
     {#dlo{ns=Ns,mirror=M,proxy_data=Pd,src_we=We},St0}.
