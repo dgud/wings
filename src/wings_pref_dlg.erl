@@ -683,8 +683,9 @@ clear_vertex_dlist(D, _) -> D#dlo{vs=none}.
 clear_proxy_edges(St) ->
     wings_dl:map(fun(D, _) -> clear_proxy_edges(D, St) end, []).
 
-clear_proxy_edges(D, St) ->
-    wings_proxy:update(D#dlo{proxy_edges=none}, St).
+clear_proxy_edges(D = #dlo{proxy_data=Data}, St) ->
+    PD = wings_proxy:invalidate_dl(Data, edges),
+    wings_proxy:update(D#dlo{proxy_data=PD}, St).
 
 make_query({'VALUE',Val}) ->
     Val;

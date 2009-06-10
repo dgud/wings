@@ -107,10 +107,12 @@ prepare_fun_1(#dlo{src_we=#we{perm=Perm0}=We0}=D, #we{perm=Perm1}=We, Wes) ->
 	false -> prepare_fun_2(D, We, Wes)
     end.
 
-prepare_fun_2(#dlo{proxy_data=Proxy,ns=Ns}=D, We, Wes) ->
+prepare_fun_2(#dlo{proxy=IsUsed, proxy_data=Proxy,ns=Ns}=D, We, Wes) ->
     Open = wings_we:any_hidden(We),
-    {changed_we(D, #dlo{src_we=We,open=Open,
-			mirror=none,proxy_data=Proxy,ns=Ns}),Wes}.
+    {changed_we(D, #dlo{src_we=We,open=Open,mirror=none,
+			proxy=IsUsed,
+			proxy_data=wings_proxy:invalidate_dl(Proxy,maybe),
+			ns=Ns}),Wes}.
 
 only_permissions_changed(#we{perm=P}, #we{perm=P}) -> false;
 only_permissions_changed(We0, We1) -> We0#we{perm=0} =:= We1#we{perm=0}.
@@ -119,14 +121,15 @@ invalidate_by_mat(Changed0) ->
     Changed = ordsets:from_list(Changed0),
     wings_dl:map(fun(D, _) -> invalidate_by_mat(D, Changed) end, []).
 
-invalidate_by_mat(#dlo{work=none,vs=none,smooth=none,proxy_faces=none}=D, _) ->
+invalidate_by_mat(#dlo{work=none,vs=none,smooth=none,proxy=false}=D, _) ->
     %% Nothing to do.
     D;
-invalidate_by_mat(#dlo{src_we=We}=D, Changed) ->
+invalidate_by_mat(#dlo{src_we=We, proxy_data=Pd}=D, Changed) ->
     Used = wings_facemat:used_materials(We),
     case ordsets:is_disjoint(Used, Changed) of
 	true -> D;
-	false -> D#dlo{work=none,edges=none,vs=none,smooth=none,proxy_faces=none}
+	false -> D#dlo{work=none,edges=none,vs=none,smooth=none,
+		       proxy_data = wings_proxy:invalidate_dl(Pd, material)}
     end.
 
 invalidate_sel(#dlo{src_we=#we{id=Id},src_sel=SrcSel}=D,
@@ -250,17 +253,17 @@ update_needed_2(CommonNeed, St) ->
 update_needed_fun(#dlo{src_we=#we{perm=Perm}=We}=D, _, _, _)
   when ?IS_LIGHT(We), ?IS_VISIBLE(Perm) ->
     D#dlo{needed=[light]};
-update_needed_fun(#dlo{src_we=#we{id=Id,he=Htab,pst=Pst},proxy_data=Pd}=D,
-		   Need0, Wins, _) ->
+update_needed_fun(#dlo{src_we=#we{id=Id,he=Htab,pst=Pst},proxy=Proxy}=D,
+		  Need0, Wins, _) ->
     Need1 = case gb_sets:is_empty(Htab) orelse
 		not wings_pref:get_value(show_edges) of
 		false -> [hard_edges|Need0];
 		true -> Need0
 	    end,
-	Need2 = wings_plugin:check_plugins(update_dlist,Pst) ++ Need1,
+    Need2 = wings_plugin:check_plugins(update_dlist,Pst) ++ Need1,
     Need = if
-	       Pd =:= none -> Need2;
-	       true -> [proxy|Need2]
+	       Proxy -> [proxy|Need2];
+	       true  -> Need2
 	   end,
     D#dlo{needed=more_need(Wins, Id, Need)}.
 
@@ -321,16 +324,12 @@ update_fun_2(work, #dlo{work=none}=D0, St) ->
     D  = wings_draw_setup:work(D0, St),
     Dl = draw_faces_all(D, St),
     D#dlo{work=Dl};
-update_fun_2(smooth, #dlo{smooth=none,proxy_data=none}=D0, St) ->
+update_fun_2(smooth, #dlo{smooth=none,proxy=false}=D0, St) ->
     D  = wings_draw_setup:smooth(D0, St),
     {List,Tr} = smooth_faces_all(D, St),
     D#dlo{smooth=List,transparent=Tr,face_sn=none};
-update_fun_2(smooth, #dlo{smooth=none}=D, St) ->
-    We = wings_proxy:smooth_we(D),
-    Temp0 = update_normals(changed_we(#dlo{}, #dlo{src_we=We})),
-    Temp  = wings_draw_setup:smooth(Temp0,St),
-    {List,Tr} = smooth_faces_all(Temp, St),
-    D#dlo{smooth=List,transparent=Tr};
+update_fun_2(smooth, #dlo{proxy=true}=D0, St) ->
+    wings_proxy:smooth(D0,St);
 update_fun_2({vertex,_PtSize}, #dlo{vs=none,src_we=We}=D, _) ->
     UnselDlist = gl:genLists(1),
     gl:newList(UnselDlist, ?GL_COMPILE),
@@ -619,7 +618,8 @@ split_1(D, Vs, St) ->
     split_2(D, Vs, update_materials(D, St)).
 
 split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
-	     proxy_data=Pd,ns=Ns0,needed=Needed,open=Open}=D, Vs0, St) ->
+	     proxy=UsesProxy, proxy_data=Pd,
+	     ns=Ns0,needed=Needed,open=Open}=D, Vs0, St) ->
     Vs = sort(Vs0),
     Faces = wings_we:visible(wings_face:from_vs(Vs, We), We),
     StaticVs = static_vs(Faces, Vs, We),
@@ -637,7 +637,8 @@ split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
 		   dyn_plan=DynPlan,orig_ns=Ns0,
 		   orig_we=We,orig_st=St},
     #dlo{work=Work,edges=[StaticEdgeDl],mirror=M,vs=VsDlist,
-	 src_sel=Sel,src_we=WeDyn,split=Split,proxy_data=Pd,
+	 src_sel=Sel,src_we=WeDyn,split=Split,
+	 proxy=UsesProxy, proxy_data=Pd,
 	 needed=Needed,open=Open}.
 
 remove_stale_ns(none, _) -> none;
@@ -759,7 +760,7 @@ update_dynamic(#dlo{src_we=We0,split=#split{static_vs=StaticVs}}=D0, Vtab0) ->
     D2 = changed_we(D0, D1),
     D3 = update_normals(D2),
     D4 = dynamic_faces(D3),
-    D = dynamic_edges(D4),
+    D  = dynamic_edges(D4),
     dynamic_vs(D).
 
 dynamic_faces(#dlo{work=[Work|_],
@@ -802,13 +803,15 @@ abort_split(D) -> D.
 %%% Re-joining of display lists that have been split.
 %%%
 
-join(#dlo{src_we=#we{vp=Vtab0},ns=Ns1,split=#split{orig_we=We0,orig_ns=Ns0}}=D) ->
+join(#dlo{src_we=#we{vp=Vtab0},ns=Ns1,split=#split{orig_we=We0,orig_ns=Ns0},
+	  proxy_data=PD}=D) ->
     #we{vp=OldVtab} = We0,
 
     Vtab = join_update(Vtab0, OldVtab),
     We = We0#we{vp=Vtab},
     Ns = join_ns(We, Ns1, Ns0),
-    D#dlo{vs=none,drag=none,sel=none,split=none,src_we=We,ns=Ns}.
+    D#dlo{vs=none,drag=none,sel=none,split=none,src_we=We,ns=Ns,
+	  proxy_data=wings_proxy:invalidate_dl(PD,all)}.
 
 join_ns(_, NsNew, none) ->
     NsNew;

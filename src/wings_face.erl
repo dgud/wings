@@ -22,6 +22,7 @@
 	 center/2,area/2,
 	 vinfo_cw/2,vinfo_cw/3,
 	 vinfo_ccw/2,vinfo_ccw/3,
+	 vpos_info_ccw/2, vpos_info_ccw/3,
 	 vertices_cw/2,vertices_cw/3,
 	 vertices_ccw/2,vertices_ccw/3,
 	 vertex_positions/2,vertex_positions/3,
@@ -242,6 +243,29 @@ vinfo_ccw_1(Edge, Etab, Face, LastEdge, Acc) ->
 	#edge{ve=V,b=Col,rtsu=NextEdge} ->
 	    vinfo_ccw_1(NextEdge, Etab, Face, LastEdge, [[V|Col]|Acc])
     end.
+
+%% Returns {[VsPos],[Info]}
+vpos_info_ccw(Face, #we{fs=Ftab}=We) ->
+    Edge = gb_trees:get(Face, Ftab),
+    vpos_info_ccw(Face, Edge, We).
+
+vpos_info_ccw(Face, Edge, #we{es=Etab,vp=Vtab}) ->
+    vpos_info_ccw_1(Edge, Etab, Vtab, Face, Edge, [], []).
+
+vpos_info_ccw_1(LastEdge, _, _, _, LastEdge, Vs, Info)
+  when Vs =/= [] -> {Vs,Info};
+vpos_info_ccw_1(Edge, Etab, Vtab, Face, LastEdge, Vs, Info) ->
+    case array:get(Edge, Etab) of
+	#edge{vs=V,a=Col,lf=Face,ltsu=NextEdge} ->
+	    Pos = array:get(V, Vtab),
+	    vpos_info_ccw_1(NextEdge, Etab, Vtab, Face, LastEdge,
+			    [Pos|Vs], [Col|Info]);
+	#edge{ve=V,b=Col,rtsu=NextEdge} ->
+	    Pos = array:get(V, Vtab),
+	    vpos_info_ccw_1(NextEdge, Etab, Vtab, Face, LastEdge,
+			    [Pos|Vs], [Col|Info])
+    end.
+
 
 vertices_cw(Face, #we{es=Etab,fs=Ftab}) ->
     Edge = gb_trees:get(Face, Ftab),

@@ -95,8 +95,6 @@
 	 sel=none,				%Selected items.
 	 orig_sel=none,				%Original selection.
 	 normals=none,				%Normals.
-	 proxy_faces=none,			%Smooth proxy faces.
-	 proxy_edges=none,			%Smooth proxy edges.
 
 	 %% Vertex buffers. Each vertex buffer looks like
 	 %% {Stride,Binary}, where Stride is the stride to be
@@ -115,6 +113,7 @@
 	 mirror=none,				%Virtual mirror data.
 	 ns=none,				%Normals/positions per face.
 	 plugins=[],                            %Draw lists for plugins.
+	 proxy=false,                           %Proxy Data is used.
 
 	 %% Source for display lists.
 	 src_we=none,				%Source object.

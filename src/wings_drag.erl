@@ -73,7 +73,7 @@ setup(Tvs, Units, Flags, St) ->
 	{general,General} ->
 	    wings_draw:invalidate_dlists(St),
 	    break_apart_general(General);
-	_ ->
+	_ = _BR ->
 	    wings_draw:invalidate_dlists(St),
 	    break_apart(Tvs, St)
     end,
@@ -306,11 +306,13 @@ insert_matrix(Tvs) ->
 			 insert_matrix_fun(D, Data, Id)
 		 end, sort(Tvs)).
 
-insert_matrix_fun(#dlo{work=Work,edges=Edges,sel=Sel,src_sel=SrcSel,
-		       src_we=#we{id=Id}=We,mirror=M,proxy_data=Pd},
+insert_matrix_fun(#dlo{work=Work,edges=Edges,sel=Sel,src_sel=SrcSel,smooth=Smooth,
+		       src_we=#we{id=Id}=We,mirror=M,
+		       proxy=Proxy,proxy_data=Pd},
 		  [{Id,Tr}|Tvs], Matrix) ->
     {#dlo{work=Work,edges=Edges,sel=Sel,drag={matrix,Tr,Matrix,Matrix},
-	  src_we=We,src_sel=SrcSel,mirror=M,proxy_data=Pd},Tvs};
+	  src_we=We,src_sel=SrcSel,mirror=M,smooth=Smooth,
+	  proxy=Proxy, proxy_data=Pd},Tvs};
 insert_matrix_fun(D, Tvs, _) -> {D,Tvs}.
 
 break_apart_general(Tvs) ->
@@ -1145,15 +1147,19 @@ normalize(Move, #drag{mode_fun=ModeFun,mode_data=ModeData,
     St#st{shapes=Shs}.
 
 normalize_fun(#dlo{drag=none}=D, _Move, Shs) -> {D,Shs};
-normalize_fun(#dlo{drag={matrix,_,_,_},transparent=#we{id=Id}=We}=D,
+normalize_fun(#dlo{drag={matrix,_,_,_},transparent=#we{id=Id}=We,
+		   proxy_data=PD}=D,
 	      _Move, Shs0) when ?IS_LIGHT(We) ->
     Shs = gb_trees:update(Id, We, Shs0),
-    {D#dlo{work=none,drag=none,src_we=We,transparent=false},Shs};
-normalize_fun(#dlo{drag={matrix,_,_,Matrix},src_we=#we{id=Id}=We0}=D0,
+    {D#dlo{work=none,smooth=none,drag=none,src_we=We,transparent=false,
+	   proxy_data=wings_proxy:invalidate_dl(PD,all)},Shs};
+normalize_fun(#dlo{drag={matrix,_,_,Matrix},src_we=#we{id=Id}=We0,
+		   proxy_data=PD}=D0,
 	      _Move, Shs0) ->
     We = wings_we:transform_vs(Matrix, We0),
     Shs = gb_trees:update(Id, We, Shs0),
-    D = D0#dlo{work=none,edges=none,sel=none,drag=none,src_we=We,mirror=none},
+    D = D0#dlo{work=none,smooth=none,edges=none,sel=none,drag=none,src_we=We,
+	       mirror=none, proxy_data=wings_proxy:invalidate_dl(PD,all)},
     {wings_draw:changed_we(D, D),Shs};
 normalize_fun(#dlo{drag={general,Fun},src_we=#we{id=Id}=We}=D0, Move, Shs) ->
     D1 = Fun({finish,Move}, D0),

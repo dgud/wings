@@ -176,7 +176,7 @@ render_object_2(#dlo{transparent=false}=D, _, false, RenderTrans) ->
     render_smooth(D, RenderTrans).
 
 render_plain(#dlo{work=Faces,edges=Edges,open=Open,
-		  src_we=We,proxy_data=none}=D, SelMode) ->
+		  src_we=We,proxy=false}=D, SelMode) ->
     %% Draw faces for winged-edge-objects.
     Wire = wire(We),
     case Wire of
@@ -256,16 +256,24 @@ render_plain_rest(#dlo{}=D, Wire, SelMode) ->
     draw_vertices(D, SelMode),
     draw_hard_edges(D, SelMode),
     draw_normals(D),
-	draw_plugins(plain,D,SelMode). %% arbitrary placement in the grand scheme of things
+    draw_plugins(plain,D,SelMode). %% arbitrary placement in the grand scheme of things
 
-render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth,transparent=Trans,
-		   src_we=We,proxy_data=Pd,open=Open}=D,
+render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth0,transparent=Trans0,
+		   src_we=We,proxy=Proxy,proxy_data=PD,open=Open}=D,
 	      RenderTrans) ->
     gl:shadeModel(?GL_SMOOTH),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     enable_lighting(),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     gl:polygonOffset(2, 2),
+
+    case Proxy of
+	true ->
+	    {Smooth, Trans} = wings_proxy:smooth_dl(PD);
+	false ->
+	    Smooth = Smooth0,
+	    Trans  = Trans0
+    end,
 
     case Trans of
 	false -> gl:lightModeli(?GL_LIGHT_MODEL_TWO_SIDE, ?GL_FALSE);
@@ -286,19 +294,13 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth,transparent=Trans,
 	false -> ok;
 	true -> gl:disable(?GL_CULL_FACE)
     end,
-
     case {Smooth,RenderTrans} of
-	{none,false} ->
-	    if
-		Pd =:= none ->
-		    wings_dl:call(Work);
-		true ->
-		    wings_proxy:draw(D, wire(We))
-	    end;
+	{none,false} ->   wings_dl:call(Work);
 	{[Op,_],false} -> wings_dl:call(Op);
-	{[_,Tr],true} -> wings_dl:call(Tr);
+	{[_,Tr],true} ->  wings_dl:call(Tr);
 	{_,_} -> ok
     end,
+
     gl:enable(?GL_CULL_FACE),
 
     gl:disable(?GL_POLYGON_OFFSET_FILL),
@@ -306,7 +308,7 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth,transparent=Trans,
     disable_lighting(),
     gl:shadeModel(?GL_FLAT),
     case wire(We) of
-	true when Pd =:= none ->
+	true when Proxy =:= none ->
 	    gl:color3fv(wings_pref:get_value(edge_color)),
 	    gl:lineWidth(1),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
@@ -320,7 +322,7 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth,transparent=Trans,
     draw_hilite(D),
     draw_sel(D),
     draw_orig_sel(D),
-	draw_plugins(smooth,D,none).
+    draw_plugins(smooth,D,none).
 
 wire(#we{id=Id}) ->
     W = wings_wm:get_prop(wireframed_objects),

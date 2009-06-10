@@ -174,7 +174,7 @@ delete_dlists() ->
     end.
 
 clear_old_dl([#dlo{src_we=We,proxy_data=Pd0,ns=Ns}|T]) ->
-    Pd = wings_proxy:clean(Pd0),
+    Pd = wings_proxy:invalidate_dl(Pd0, all),
     [#dlo{src_we=We,mirror=none,proxy_data=Pd,ns=Ns}|clear_old_dl(T)];
 clear_old_dl([]) -> [].
 
@@ -265,4 +265,7 @@ update_seen_1({matrix,_,Dl}, Seen) ->
     update_seen_1(Dl, Seen);
 update_seen_1(Dl, Seen) when is_integer(Dl) ->
     [Dl|Seen];
+update_seen_1(Dl, Seen) when is_tuple(Dl), element(1, Dl) =:= sp ->
+    %% Proxy DL's
+    update_seen(Dl, Seen);
 update_seen_1(_, Seen) -> Seen.
