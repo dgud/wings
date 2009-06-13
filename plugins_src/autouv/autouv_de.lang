@@ -7,7 +7,7 @@
    ]},
   {find_axes,
    [
-    {1,"Karte bzw. Schnitte können nicht sphärisch/zylindrisch projiziert werden. \nEs kann nicht festgestellt werden, welche Achse X, Y und Z sein soll.\nAuffalten verwenden oder eine der Projektionsabbildungen."}
+    {1,"Karte bzw. Schnitte können nicht sphärisch/zylindrisch projiziert werden.\nEs kann nicht festgestellt werden, welche Achse X, Y und Z sein soll.\nAuffalten verwenden oder eine der Projektionsabbildungen."}
    ]},
   {get_face_vspos,
    [
@@ -239,7 +239,7 @@
     {85,"Vertikal ebnen"},
     {86,"Ausgewählte Knoten ebnen"},
     {87,"Straffen"},
-    {88,"UV Koordinaten auf einen gemeinsamen Mittelpunkt verschieben"},
+    {88,"UV Koordinaten auf gemeinsamen Mittelpunkt verschieben"},
     {89,"Auffalten"},
     {90,"Karte auffalten (ohne ausgewählte Knoten zu verschieben)"},
     {91,"Sphärische Abbildung"},
@@ -385,3 +385,13 @@
     {20,"Fangen-Modus beenden"}
    ]}
  ]}.
+%% [wpc_autouv,auv_menu,4] is not used
+%% [wpc_autouv,auv_menu,5] is not used
+%% [wpc_autouv,auv_menu,6] is not used
+%% [wpc_autouv,auv_menu,7] is not used
+%% [wpc_autouv,auv_menu,8] is not used
+%% [wpc_autouv,auv_menu,9] is not used
+%% [wpc_autouv,command_menu,1] is not used
+%% [wpc_autouv,command_menu,46] is not used
+%% [wpc_autouv,command_menu,59] is not used
+%% [wpc_autouv,command_menu,76] is not used

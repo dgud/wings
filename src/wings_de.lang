@@ -39,7 +39,7 @@
     {9,"Wiederholen"},
     {10,"Parameter wiederholen"},
     {11,"Verschieben wiederholen"},
-    {12,"Plug-in Einstellungen"},
+    {12,"Einstellungen für Erweiterungen"},
     {13,"Rückgängig Historie leeren"}
    ]},
   {enhanced_info,
@@ -454,7 +454,7 @@
     {1,"Zufällig"},
     {2,"einer zufälligen Richtung verschieben"},
     {4,"seiner Normalen verschieben"},
-    {8,"Jeden Knoten einen zufälligen Betrag entlang"}
+    {8,"Jeden Knoten einen zufälligen Betrag verschieben"}
    ]},
   {dir,
    [
@@ -495,7 +495,7 @@
  [
   {dissolve_1,
    [
-    {1,"Auflösen würde zu einer inkonsistenten Objektstruktur führen."}
+    {1,"Auflösen würde zu inkonsistenter Objektstruktur führen."}
    ]}
  ]}.
 {wings_drag,
@@ -549,7 +549,7 @@
  [
   {dissolve_edge_2,
    [
-    {1,"Auflösen würde zu einer unmöglich geformten Fläche führen."}
+    {1,"Auflösen würde zu unmöglich geformter Fläche führen."}
    ]}
  ]}.
 {wings_edge_cmd,
@@ -579,7 +579,7 @@
    ]},
   {cut_pick_error,
    [
-    {1,"Nur eine Kante kann an einer beliebigen Stelle aufgeteilt werden."}
+    {1,"Nur eine Kante kann an beliebiger Stelle geteilt werden."}
    ]},
   {loop_cut,
    [
@@ -670,7 +670,7 @@
    ]},
   {lift_fun,
    [
-    {1,"Fläche anheben und um eine Kante oder einen Knoten drehen"},
+    {1,"Anheben, Fläche um Kante oder Knoten drehen"},
     {2,"In Standardrichtungen anheben"}
    ]},
   {lift_sel_mismatch,
@@ -679,7 +679,7 @@
    ]},
   {lift_selection,
    [
-    {1,"Eine Kante oder einen Knoten als Drehachse auswählen."}
+    {1,"Kante oder Knoten als Drehachse auswählen."}
    ]},
   {lift_vtx_sel_mismatch,
    [
@@ -697,7 +697,7 @@
     {10,"Abkanten"},
     {11,"Kanten ausgewählter Flächen abkanten"},
     {12,"Überbrücken"},
-    {13,"Erzeugt eine Brücke oder einen Tunnel zwischen zwei Flächen"},
+    {13,"Erzeugt Brücke oder Tunnel zwischen zwei Flächen"},
     {14,"Ausbeulen"},
     {15,"Ausgewählte Flächen ausbeulen"},
     {16,"Anheben"},
@@ -873,7 +873,7 @@
    ]},
   {install_plugin,
    [
-    {1,"Installiere Plug-In"},
+    {1,"Installiere Erweiterung"},
     {2,"GZip komprimierte Datei"},
     {3,"Tar Datei"},
     {4,"Komprimierte Tar Datei"},
@@ -902,10 +902,10 @@
     {21,"Bild importieren..."},
     {22,"Bilddatei importieren"},
     {23,"Rendern"},
-    {24,"Plug-In installieren"},
+    {24,"Erweiterung installieren"},
     {25,"Beenden"},
     {26,"Dateinamen inkrementieren und Szene speichern"},
-    {27,"Plug-In installieren"},
+    {27,"Erweiterung installieren"},
     {28,"Wings 3D beenden"}
    ]},
   {merge,
@@ -936,7 +936,7 @@
    ]},
   {use_autosave_1,
    [
-    {1,"Es existiert eine automatisch gespeicherte Datei mit neuerem Datum; wollen Sie stattdessen diese Datei laden?"}
+    {1,"Es existiert eine automatisch gespeicherte Datei mit neuerem Datum.\nWollen Sie stattdessen diese Datei laden?"}
    ]},
   {wings_prop,
    [
@@ -976,7 +976,7 @@
   {def_hotkeys,
    [
     {1,"Jeder Menübefehl kann einer Kurztaste zugewiesen werden."},
-    {4,"Um einen Befehl einer Kurztaste:"},
+    {4,"Um einen Befehl einer Kurztaste zuzuweisen:"},
     {5,"1. Öffnen Sie das Menü, dass den Befehl enthält und markieren Sie den Befehl."},
     {6,"2. Drücken Sie die [Einfg] oder die [/] Taste."},
     {7,"3. Wenn der Befehl unterschiedliche Dinge bewirkt, je nachdem, welche Maus-Taste gedrückt wird (wenn Erweiterte Menüs aktiviert sind), erscheint in der Informationszeile eine Aufforderung, eine Maus-Taste zu drücken um zu festzulegen, welche Variante des Befehl der Kurztaste zugewiesen werden soll (Hinweis: Der Mauszeiger muss in dem Menü bleiben, während Sie klicken)."},
@@ -1069,7 +1069,7 @@
     {22,"Max. Texturgröße"},
     {23,"Max. Pixel Abbildungstabelle"},
     {24,"Max. Tiefe Namen-Stapelspeicher"},
-    {25,"Max. Schachtelungstiefe der Anzeigen-Liste"},
+    {25,"Max. Schachtelungstiefe der Anzeigenliste"},
     {26,"Max. Polynom-Ordnung Auswerteeinrichtung"},
     {27,"Max. Sichtbereichs Dimensionen"},
     {28,"Max. Tiefe Attribut-Stapelspeicher"},
@@ -1163,7 +1163,7 @@
   {list_keys,
    [
     {1," (benutzerdefiniert)"},
-    {2," (Plug-in-definiert)"}
+    {2," (Durch Erweiterung definiert)"}
    ]},
   {vkeyname,
    [
@@ -1332,8 +1332,8 @@
    ]},
   {plugin_results,
    [
-    {1,"Lichtquelle Bearbeiten Plug-In(s) hinterließ Müll:~n    ~P~n"},
-    {2,"Plug-In(s) hinterließen Müll"}
+    {1,"Erweiterung \"Lichtquelle Bearbeiten\" hinterließ Müll:~n ~P~n"},
+    {2,"Erweiterung(en) hinterließ(en) Müll"}
    ]},
   {qs_att,
    [
@@ -1438,8 +1438,8 @@
    ]},
   {plugin_results,
    [
-    {1,"Material Bearbeiten Plug-In(s) hinterließ Müll:~n ~P~n"},
-    {2,"Plug-In(s) hinterließ Müll"}
+    {1,"Erweiterung \"Material Bearbeiten\" hinterließ Müll:~n ~P~n"},
+    {2,"Erweiterung(en) hinterließ(en) Müll"}
    ]},
   {rename,
    [
@@ -1791,16 +1791,16 @@
    ]},
   {def_ui_plugin,
    [
-    {1,"Wings erneut installieren. Fehlendes Plug-In für ~p."}
+    {1,"Wings erneut installieren. Fehlende Erweiterung für ~p."}
    ]},
   {install,
    [
-    {1,"Plug-In erfolgreich installiert."}
+    {1,"Erweiterung erfolgreich installiert."}
    ]},
   {install_beam,
    [
     {1,"Installation von \"~s\" fehlgeschlagen: ~p"},
-    {2,"Datei \"~s\" ist kein Wings Plug-In Modul"}
+    {2,"Datei \"~s\" ist keine Wings Erweiterung"}
    ]},
   {install_file_type,
    [
@@ -1809,15 +1809,15 @@
   {install_verify_files,
    [
     {1,"Datei \"~s\" enthält eine Datei mit einem absoluten Pfad"},
-    {2,"Datei \"~s\" enthält keine Wings Plug-In Module"}
+    {2,"Datei \"~s\" enthält keine Wings Erweiterungen"}
    ]},
   {manager_command,
    [
-    {1,"Plug-In Manager"}
+    {1,"Erweiterungen verwalten"}
    ]},
   {manager_entry,
    [
-    {1,"Plug-in Manager..."}
+    {1,"Erweiterungen verwalten..."}
    ]},
   {plugin_dir,
    [
@@ -1825,12 +1825,12 @@
    ]},
   {plugin_menu_info_3,
    [
-    {1,"(Plug-In Manager konnte keine weiteren Informationen finden)"}
+    {1,"(Erweiterung Verwaltung konnte keine weiteren Informationen finden)"}
    ]},
   {plugin_modules,
    [
-    {1,"Plug-in aktivieren/deaktivieren "},
-    {2,"(deaktivierte Plug-ins erscheinen nicht in den Menüs)"}
+    {1,"Erweiterung aktivieren/deaktivieren "},
+    {2,"(deaktivierte Erweiterungen erscheinen nicht in den Menüs)"}
    ]},
   {plugin_root_menu,
    [
@@ -2626,7 +2626,7 @@
     {23,"Auswahl exportieren"},
     {24,"Bild importieren"},
     {25,"Rendern"},
-    {26,"Plug-in installieren"},
+    {26,"Erweiterung installieren"},
     {27,"Beenden"},
     {28,"Rückgängig/Wiederherstellen"},
     {29,"Rückgängig"},
@@ -2637,7 +2637,7 @@
     {34,"Rückgängig Historie leeren"},
     {35,"Einstellungen"},
     {36,"Einstell."},
-    {37,"Plug-in Manager"},
+    {37,"Erweiterung verwalten"},
     {38,"Bodenplatte anzeigen"},
     {39,"Achsen anzeigen"},
     {40,"Info-Text anzeigen"},
@@ -3305,5 +3305,50 @@
   {import_scale_s,
    [
     {1,"Import Skalierung"}
+   ]}
+ ]}.
+%% [wings,tools_menu,32] is not used
+%% [wings,tools_menu,33] is not used
+%% [wings,scene_size_info] is not used
+%% [wings_body,menu,1] is not used
+%% [wings_edge_cmd,menu,1] is not used
+%% [wings_face_cmd,menu,1] is not used
+%% [wings_help,header,7] is not used
+%% [wings_help,advanced_menus] is not used
+%% [wings_light,menu,1] is not used
+%% [wings_material,material_menu,1] is not used
+%% [wings_material,material_menu,2] is not used
+%% [wings_material,material_menu,3] is not used
+%% [wings_menu_util,basic_scale] is not used
+%% [wings_util,translation_string,148] is not used
+%% [wings_vertex_cmd,menu,1] is not used
+
+%%
+%% The following strings have no translation.
+%%
+
+{wings_file,
+ [
+  {menu,
+   [
+    {30,"Nicht verwendete Materialien beim Speichern einer .wings Datei einschließen"},
+    {29,"Nicht verwendete Materialien speichern"}
+   ]}
+ ]}.
+{wings_pref_dlg,
+ [
+  {misc_prefs,
+   [
+    {25,"Menü mit Werkzeugen für Wings-Entwickler anzeigen"},
+    {24,"Entwicklermenü anzeigen"}
+   ]},
+  {gen_prefs,
+   [
+    {70,"Kantenfarbe der Magnetmaske"},
+    {69,"Magnetmaske"},
+    {68,"Farbe nicht ausgewählter Knoten"},
+    {67,"Nicht ausgewählte Knoten"},
+    {66,"Pixelgröße der Kanten der Magenetmaske"},
+    {65,"Größe der Knoten der Magnetmaske"}
    ]}
  ]}.

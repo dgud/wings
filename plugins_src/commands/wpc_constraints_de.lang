@@ -42,8 +42,8 @@
    ]},
   {length_check,
    [
-    {1,"Auswahl muß einen Flächeninhalt größer Null haben"},
-    {2,"Auswahl muß eine Länge größer Null haben"},
+    {1,"Auswahl muß Flächeninhalt größer Null haben"},
+    {2,"Auswahl muß Länge größer Null haben"},
     {3,"Länge entlang des Vektors ist zu kurz"},
     {4,"Länge entlang ~s Achse ist zu kurz"}
    ]},
@@ -157,3 +157,7 @@
     {4,"Alternativer Abstand"}
    ]}
  ]}.
+%% [wpc_constraints,menu_string3,14] is not used
+%% [wpc_constraints,menu_string3,15] is not used
+%% [wpc_constraints,menu_string3,17] is not used
+%% [wpc_constraints,mode_strings,7] is not used

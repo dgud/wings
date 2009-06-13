@@ -4,7 +4,7 @@
   {image_menu,
    [
     {1,"Bildebene..."},
-    {2,"Ebene mit einem Bild erzeugen"}
+    {2,"Ebene mit Bild darin erzeugen"}
    ]},
   {make_image,
    [

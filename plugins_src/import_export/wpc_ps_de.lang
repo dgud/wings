@@ -1,0 +1,20 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ps,
+ [
+  {command,
+   [
+    {2,"Anzahl der Kanten-Halbierungen"},
+    {4,"PS/EPS Import Optionen"},
+    {5,"PostScript Datei"},
+    {6,"Encapsulated PostScript Datei"}
+   ]},
+  {make_ps,
+   [
+    {1,"PS Import fehlgeschlagen"},
+    {2,"PS Import interner Fehler"}
+   ]},
+  {try_import_ps,
+   [
+    {1,"Dies ist keine Adobe PostScript Datei"}
+   ]}
+ ]}.

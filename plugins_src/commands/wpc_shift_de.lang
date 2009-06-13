@@ -20,3 +20,16 @@
     {5,"Punkt auswählen"}
    ]}
  ]}.
+%% [wpc_shift,menu] is not used
+
+%%
+%% The following strings have no translation.
+%%
+
+{wpc_shift,
+ [
+  {menu_heading,
+   [
+    {1,"Versetzen"}
+   ]}
+ ]}.

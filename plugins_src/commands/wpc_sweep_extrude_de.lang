@@ -52,3 +52,31 @@
     {2,"  [2] Verwindung erlauben"}
    ]}
  ]}.
+%% [wpc_sweep_extrude,axis_menu,1] is not used
+%% [wpc_sweep_extrude,sweep_error,1] is not used
+%% [wpc_sweep_extrude,sweep_menu,2] is not used
+
+%%
+%% The following strings have no translation.
+%%
+
+{wpc_sweep_extrude,
+ [
+  {sweep_menu,
+   [
+    {4,"Achse wählen und relativ zum Anteil am Auswahlradius ausziehen"}
+   ]},
+  {sweep_error,
+   [
+    {2,"Region ausziehen für vollständig ausgewählte Objekte nicht möglich"}
+   ]},
+  {base_help,
+   [
+    {1,"  [4] Basis einfrieren"},
+    {2,"  [4] Basis auftauen"}
+   ]},
+  {axis_menu,
+   [
+    {2,"Ausziehen relativ zum Anteil am Auswahlradius"}
+   ]}
+ ]}.

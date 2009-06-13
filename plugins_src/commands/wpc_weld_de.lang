@@ -25,3 +25,15 @@
     {1,"Ziel-Knoten für Verschmelzung auswählen (Knoten müssen eine gemeinsame Kante haben) "}
    ]}
  ]}.
+
+%%
+%% The following strings have no translation.
+%%
+
+{wpc_weld,
+ [
+  {weld_check_selection,
+   [
+    {6,"Verschmelzen würde Zwischenstück übrig lassen"}
+   ]}
+ ]}.

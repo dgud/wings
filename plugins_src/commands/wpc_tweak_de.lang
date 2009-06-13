@@ -66,3 +66,17 @@
     {4,"[Strg]+L Gleiten (+[Alt] zum Bereinigen)"}
    ]}
  ]}.
+
+%%
+%% The following strings have no translation.
+%%
+
+{wpc_tweak,
+ [
+  {tweak,
+   [
+    {10,"Magnetradius Inkrement"},
+    {9,"Optionenpanel"},
+    {8,"MMT Wählt an/ab (Nur im Maya Kamera Modus)"}
+   ]}
+ ]}.

@@ -284,7 +284,7 @@
     {31,"Das 'Erleuchten' Kontrollkästchen eines Hemi-Lichts mit einem Hintergrundbild aktiviert das Hintergrundbild als Umgebungs-Lichtquelle statt der definierten Umgebungsfarbe durch ausschließen der 'Farbe'-Marke des Hemi-Lichts."},
     {32,"Hinweis: Für eine Globale Photonen Lichtquelle (eine der Umgebungs-Lichtquellen) in YafRay wird der 'Stärke' Parameter ignoriert"},
     {33,"YafRay Optionen"},
-    {34,"Benutzereinstellungen für das YafRay Export Plug-In"},
+    {34,"Benutzereinstellungen für die YafRay Export Erweiterung"},
     {35,"Automatische Dialoge: "},
     {36,"Datei"},
     {37,"Export"},
@@ -517,3 +517,9 @@
     {1,"WARNUNG: Multiple Hintergründe"}
    ]}
  ]}.
+%% [wpc_yafray,help,1] is not used
+%% [wpc_yafray,help,2] is not used
+%% [wpc_yafray,help,3] is not used
+%% [wpc_yafray,help,4] is not used
+%% [wpc_yafray,help,5] is not used
+%% [wpc_yafray,props,3] is not used
