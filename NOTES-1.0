@@ -1,3 +1,6 @@
+--- 1.0.X -------------------------------------------------------------------
+- Edge|Collapse could crash in some cases. Now fixed. [optigon]
+
 --- 1.0.1 -------------------------------------------------------------------
 - Magnets are now drawn correctly in Tweak when selections across multiple
   objects are dragged. [optigon]

@@ -193,11 +193,15 @@ collapse_edge_1(Edge, Vkeep, Rec, We0) ->
 	false ->
 	    We1 = internal_collapse_edge(Edge, Vkeep, Vremove, Rec, We0),
 	    We2 = delete_bad_faces(Faces, We1),
-	    SurrFaces = wings_face:from_vs([Vkeep], We2),
-	    We = delete_bad_faces(SurrFaces, We2),
-	    case We of
+	    case We2 of
 		bad_edge -> We0;
-		_ -> We
+		_ ->
+		  SurrFaces = wings_face:from_vs([Vkeep], We2),
+		  We = delete_bad_faces(SurrFaces, We2),
+		  case We of
+			bad_edge -> We0;
+			_ -> We
+		  end
 	    end
     end.
 
