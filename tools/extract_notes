@@ -1,0 +1,103 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+%%
+%%  extract_notes --
+%%
+%%     Extract release notes from commit comments.
+%%
+%%  Copyright (c) 2009 Bjorn Gustavsson
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+-mode(compile).
+
+main(_) ->
+    PrevRel = binary_to_list(chomp(git(["describe","--abbrev=0"]))),
+    Log = git(["log",PrevRel++".."]),
+    extract_notes(Log),
+    halt(0).
+
+extract_notes(Log) ->
+    Res = re:run([Log,"\ncommit"],
+		 "\n\\s*NOTE:(.*?)\ncommit",
+		 [{capture,all_but_first,binary},dotall,global]),
+    case Res of
+	{match,Notes} ->
+	    [format_note(N) || [N] <- Notes],
+	    ok;
+	nomatch ->
+	    ok
+    end.
+
+format_note(Note0) ->
+    {Note,T} = split_after_nl(skip_ws(Note0)),
+    io:put_chars(["- ",Note]),
+    format_note_1(skip_ws(T)),
+    io:nl().
+
+format_note_1(<<>>) -> ok;
+format_note_1(Note0) ->
+    {Note,T} = split_after_nl(Note0),
+    io:put_chars(["  ",Note]),
+    format_note_1(skip_blanks(T)).
+
+split_after_nl(Bin) ->
+    Pos = split_after_nl_1(Bin, 0),
+    split_binary(Bin, Pos).
+
+split_after_nl_1(<<$\n,_/binary>>, N) ->
+    N+1;
+split_after_nl_1(<<_,T/binary>>, N) ->
+    split_after_nl_1(T, N+1);
+split_after_nl_1(<<>>, N) ->
+    N.
+
+skip_ws(<<S,T/binary>>) when S =< $\s -> skip_ws(T);
+skip_ws(T) -> T.
+
+skip_blanks(<<$\s,T/binary>>) -> skip_blanks(T);
+skip_blanks(T) -> T.
+
+chomp(Bin) ->
+    N = byte_size(Bin) - 1,
+    case Bin of
+	<<Prefix:N/binary,$\n>> ->
+	    Prefix;
+	_ ->
+	    Bin
+    end.
+
+git(Args) ->
+    Git = case get(git) of
+	      undefined ->
+		  case os:find_executable(git) of
+		      false ->
+			  fatal("git not found");
+		      Path ->
+			  put(git, Path),
+			  Path
+		  end;
+	      Path -> Path
+	  end,
+    P = open_port({spawn_executable,Git},
+		  [{args,Args},binary,in,eof]),
+    get_data(P).
+
+get_data(Port) ->
+    get_data(Port, <<>>).
+
+get_data(Port, Sofar) ->
+    receive
+	{Port,eof} ->
+	    erlang:port_close(Port),
+	    Sofar;
+	{Port,{data,Bytes}} ->
+	    get_data(Port, <<Sofar/binary,Bytes/binary>>);
+	{'EXIT',Port, _} ->
+	    Sofar
+    end.
+
+fatal(Str) ->
+    io:format(err, "extract_notes: ~s\n", [Str]),
+    halt(1).
