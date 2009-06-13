@@ -100,8 +100,8 @@ prepare_fun_1(#dlo{src_we=#we{perm=Perm0}=We0}=D, #we{perm=Perm1}=We, Wes) ->
 	    %% More efficient, and prevents an object from disappearing
 	    %% if lockness was toggled while inside a secondary selection.
 	    case {Perm0,Perm1} of
-		{0,1} -> {D#dlo{src_we=We,pick=none},Wes};
-		{1,0} -> {D#dlo{src_we=We,pick=none},Wes};
+		{0,1} -> {D#dlo{src_we=We},Wes};
+		{1,0} -> {D#dlo{src_we=We},Wes};
 		_ -> prepare_fun_2(D, We, Wes)
 	    end;
 	false -> prepare_fun_2(D, We, Wes)
@@ -741,8 +741,16 @@ original_we(#dlo{src_we=We}) -> We.
 %%% Updating of the dynamic part of a split dlist.
 %%%
 
-update_dynamic(#dlo{src_we=We}=D, Vtab) when ?IS_LIGHT(We) ->
-    wings_light:update_dynamic(D, Vtab);
+update_dynamic(#dlo{src_we=We}=D0, Vtab) when ?IS_LIGHT(We) ->
+    D1 = wings_light:update_dynamic(D0, Vtab),
+
+    %% We actually don't need the normal table (yet) for a light when
+    %% dragging it, but we'll need the table when picking a light.
+    %% It is easiest to always keep the normals up-to-date than attempting
+    %% to build when have finished dragging (since there is also the
+    %% Tweak mode, which does dragging in a slightly different way).
+    D = changed_we(D0, D1),
+    update_normals(D);
 update_dynamic(#dlo{src_we=We0,split=#split{static_vs=StaticVs}}=D0, Vtab0) ->
     Vtab1 = keysort(1, StaticVs++Vtab0),
     Vtab = array:from_orddict(Vtab1),
@@ -802,8 +810,6 @@ join(#dlo{src_we=#we{vp=Vtab0},ns=Ns1,split=#split{orig_we=We0,orig_ns=Ns0}}=D) 
     Ns = join_ns(We, Ns1, Ns0),
     D#dlo{vs=none,drag=none,sel=none,split=none,src_we=We,ns=Ns}.
 
-join_ns(We, _, _) when ?IS_LIGHT(We) ->
-    none;
 join_ns(_, NsNew, none) ->
     NsNew;
 join_ns(#we{fs=Ftab}, NsNew, NsOld) ->

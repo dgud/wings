@@ -42,8 +42,6 @@
 -define(NORMAL_LINEWIDTH, 1.0).
 -define(DEGREE, 176).				%Degree character.
 
--define(HIT_BUF_SIZE, (1024*1024)).
-
 -define(F32, 32/float-native).
 
 -define(PANE_COLOR, {0.52,0.52,0.52}).
@@ -97,7 +95,6 @@
 	 sel=none,				%Selected items.
 	 orig_sel=none,				%Original selection.
 	 normals=none,				%Normals.
-	 pick=none,				%For picking.
 	 proxy_faces=none,			%Smooth proxy faces.
 	 proxy_edges=none,			%Smooth proxy edges.
 
@@ -111,6 +108,7 @@
 	 face_vc  = none :: wings_vtx_buffer(), %Vertex Colors coords
 	 face_map = none,                       %FaceId -> {BinPos,TriCount}
 	 mat_map  = none,                       %Face per Material draw info
+	 tri_map = none,			%Tri -> Face map (for picking)
 
 	 %% Miscellanous.
 	 hilite=none,				%Hilite display list.
@@ -209,10 +207,10 @@
 
 -define(IS_VISIBLE(Perm), (Perm =< 1)).
 -define(IS_NOT_VISIBLE(Perm), (Perm > 1)).
--define(IS_SELECTABLE(Perm), (Perm == 0)).
+-define(IS_SELECTABLE(Perm), (Perm =:= 0)).
 -define(IS_NOT_SELECTABLE(Perm), (Perm =/= 0)).
 
--define(IS_LIGHT(We), ((We#we.light =/= none) and (not We#we.has_shape))).
+-define(IS_LIGHT(We), ((We#we.light =/= none) andalso (not We#we.has_shape))).
 -define(IS_ANY_LIGHT(We), (We#we.light =/= none)).
 -define(HAS_SHAPE(We), (We#we.has_shape)).
 

@@ -15,13 +15,14 @@
 -export([event/2,event/3,hilite_event/3, hilite_event/4]).
 -export([do_pick/3]).
 -export([marquee_pick/3,paint_pick/3]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 -include("e3d.hrl").
 
--import(lists, [foreach/2,reverse/2,sort/1,map/2,min/1,
-		keysearch/3,member/2]).
+-import(lists, [foreach/2,reverse/2,sort/1,usort/1,map/2,min/1,
+		keysearch/3,member/2,keysort/2]).
 
 %% For ordinary picking.
 -record(pick,
@@ -523,53 +524,41 @@ do_pick(X, Y, St) ->
     case raw_pick(X, Y, St) of
 	none ->
 	    none;
-	Hit ->	    % Hit is {edge,original,{1,1}}
-	    %Mod = sdl_keyboard:getModState(),
-	    %LKey = Mod band ?KMOD_LALT =/= 0,
-	    %RKey = Mod band ?KMOD_RALT =/= 0,
-	    %% LKey = Mod band ?KMOD_LMETA =/= 0,
-	    %% RKey = Mod band ?KMOD_RMETA =/= 0,
-	    %if
-		%LKey ->
-		%    {_,_,St2} = update_selection(Hit, St),
-		%    St3 = wings_edge_loop:select_loop(St2),
-		%    {add,original,St3};
-		%RKey ->
-		%    {_,_,St2} = update_selection(Hit, St),
-		%    St3 = wings_edge:select_edge_ring(St2),
-		%    {add,original,St3};
-		%true ->
-		    update_selection(Hit, St)
-	    %end
+	Hit ->
+	    update_selection(Hit, St)
     end.
 
 raw_pick(X0, Y0, #st{selmode=Mode}=St) ->
-    HitBuf = get(wings_hitbuf),
-    gl:selectBuffer(?HIT_BUF_SIZE, HitBuf),
-    gl:renderMode(?GL_SELECT),
-    gl:initNames(),
-    gl:matrixMode(?GL_PROJECTION),
-    gl:loadIdentity(),
     {W,H} = wings_wm:win_size(),
     X = float(X0),
     Y = H-float(Y0),
     S = 5,
-    glu:pickMatrix(X, Y, S, S, {0,0,W,H}),
-    wings_view:projection(),
-    wings_view:modelview(),
+    set_pick_matrix(X, Y, S, S, W, H),
     case wings_wm:lookup_prop(select_backface) of
 	{value,true} ->
-	    draw(St);
+	    %% Only in AutoUV windows.
+	    wpc_pick:cull(false);
 	_ ->
-	    gl:enable(?GL_CULL_FACE),
-	    draw(St),
-	    gl:disable(?GL_CULL_FACE)
+	    wpc_pick:cull(true)
     end,
-    Hits = get_hits(HitBuf),
+    Hits = dlo_pick(St),
     case best_face_hit(Hits, Mode) of
 	none -> none;
 	{Id,Face} -> convert_hit(Id, Face, X, Y, St)
     end.
+
+set_pick_matrix(X, Y, Xs, Ys, W, H) ->
+    gl:matrixMode(?GL_PROJECTION),
+    gl:loadIdentity(),
+    wpc_pick:pick_matrix(X, Y, Xs, Ys, {0,0,W,H}),
+    wings_view:projection(),
+    wings_view:modelview(),
+    set_pick_matrix().
+
+set_pick_matrix() ->
+    ModelMatrix = gl:getDoublev(?GL_MODELVIEW_MATRIX),
+    ProjMatrix = gl:getDoublev(?GL_PROJECTION_MATRIX),
+    wpc_pick:matrix(ModelMatrix, ProjMatrix).
 
 update_selection({Mode,MM,{Id,Item}}, #st{sel=Sel0}=St) ->
     {Type,Sel} = update_selection(Id, Item, Sel0, []),
@@ -594,23 +583,6 @@ update_selection(Id, Item, [{_,Items0}|T0], Acc) -> %Id == I
     end;
 update_selection(Id, Item, [], Acc) ->
     {add,reverse(Acc, [{Id,gb_sets:singleton(Item)}])}.
-
-%%%
-%%% Pick up raw hits.
-%%%
-
-get_hits(HitBuf) ->
-    gl:flush(),
-    case gl:renderMode(?GL_RENDER) of
-	0 -> [];
-	NumHits ->
- 	    HitData = sdl_util:read(HitBuf, 5*NumHits),
- 	    get_hits_1(NumHits, HitData, [])
-    end.
-
-get_hits_1(0, _, Acc) -> Acc;
-get_hits_1(N, [2,_,_,A,B|T], Acc) ->
-    get_hits_1(N-1, T, [{A,B}|Acc]).
 
 %%%
 %%% Filter face hits to obtain just one hit.
@@ -819,158 +791,136 @@ restrict_hilite(face, Modes, Id, V, Edge, _Face, MM) ->
 pick_all(_DrawFaces, _X, _Y, W, H, St) when W < 1.0; H < 1.0 ->
     {none,St};
 pick_all(DrawFaces, X, Y0, W, H, St) ->
-    HitBuf = get(wings_hitbuf),
-    gl:selectBuffer(?HIT_BUF_SIZE, HitBuf),
-    gl:renderMode(?GL_SELECT),
-    gl:initNames(),
-    gl:matrixMode(?GL_PROJECTION),
-    gl:loadIdentity(),
     {Ww,Wh} = wings_wm:win_size(),
     Y = Wh-Y0,
-    glu:pickMatrix(X, Y, W, H, [0,0,Ww,Wh]),
-    wings_view:projection(),
-    wings_view:modelview(),
+    set_pick_matrix(X, Y, W, H, Ww, Wh),
     case DrawFaces of
 	true ->
-	    gl:enable(?GL_CULL_FACE),
-	    draw(St),
-	    gl:disable(?GL_CULL_FACE);
-	false -> marquee_draw(St)
-    end,
-    {get_hits(HitBuf),St}.
+	    wpc_pick:cull(true),
+	    {dlo_pick(St),St};
+	false ->
+	    wpc_pick:cull(false),
+	    {marquee_pick(St),St}
+    end.
 
-marquee_draw(#st{selmode=edge}) ->
-    Draw = fun(#we{es=Etab,vp=Vtab}=We) ->
-		   Vis = gb_sets:from_ordset(wings_we:visible(We)),
-		   marquee_draw_edges(array:sparse_to_orddict(Etab), Vtab, Vis)
-	   end,
-    marquee_draw_1(Draw);
-marquee_draw(#st{selmode=vertex}) ->
-    Draw = fun(#we{vp=Vtab}=We) ->
-		   case wings_we:any_hidden(We) of
-		       false ->
-			   marquee_draw_all_vs(array:sparse_to_orddict(Vtab));
-		       true ->
-			   marquee_draw_some_vs(wings_we:visible_vs(We),
-						Vtab)
-		   end
-	   end,
-    marquee_draw_1(Draw);
-marquee_draw(St) -> draw(St).
+marquee_pick(#st{selmode=edge}) ->
+    PickFun = fun(#we{es=Etab,vp=Vtab,id=Id}=We, Acc) ->
+		      Vis = gb_sets:from_ordset(wings_we:visible(We)),
+		      EsPos = visible_edges(array:sparse_to_orddict(Etab),
+					    Vtab, Vis, []),
+		      case wpc_pick:edges(EsPos) of
+			  [] ->
+			      Acc;
+			  Picked -> [{Id,E} || E <- Picked] ++ Acc
+		      end
+	      end,
+    setup_pick_context(PickFun);
+marquee_pick(#st{selmode=vertex}) ->
+    PickFun = fun(#we{vp=Vtab,id=Id}=We, Acc) ->
+		      VsPos = case wings_we:any_hidden(We) of
+				  false ->
+				      array:sparse_to_orddict(Vtab);
+				  true ->
+				      Vs = wings_we:visible_vs(We),
+				      [{V,array:get(V, Vtab)} || V <- Vs]
+			      end,
+		      case wpc_pick:vertices(VsPos) of
+			  [] ->
+			      Acc;
+			  Picked ->
+			      [{Id,V} || V <- Picked] ++ Acc
+		      end
+	      end,
+    setup_pick_context(PickFun);
+marquee_pick(St) -> dlo_pick(St).
 
-%% TODO: Should we build a vertex array here?
-%%       That would mean traverse them twice but fewer gl calls.
-marquee_draw_all_vs([{V,Pos}|VsPos]) ->
-    gl:loadName(V),
-    gl:'begin'(?GL_POINTS),
-    gl:vertex3fv(Pos),
-    gl:'end'(),
-    marquee_draw_all_vs(VsPos);
-marquee_draw_all_vs([]) -> ok.
-
-marquee_draw_some_vs([V|Vs], Vtab) ->
-    gl:loadName(V),
-    gl:'begin'(?GL_POINTS),
-    gl:vertex3fv(array:get(V, Vtab)),
-    gl:'end'(),
-    marquee_draw_some_vs(Vs, Vtab);
-marquee_draw_some_vs([], _) -> ok.
-
-marquee_draw_edges([{Edge,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}|Es], Vtab, Vis) ->
+visible_edges([{Edge,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}|Es], Vtab, Vis, Acc) ->
     case gb_sets:is_member(Lf, Vis) orelse gb_sets:is_member(Rf, Vis) of
-	false -> ok;
+	false ->
+	    visible_edges(Es, Vtab, Vis, Acc);
 	true ->
-	    gl:loadName(Edge),
-	    gl:'begin'(?GL_LINES),
-	    gl:vertex3fv(array:get(Va, Vtab)),
-	    gl:vertex3fv(array:get(Vb, Vtab)),
-	    gl:'end'()
-    end,
-    marquee_draw_edges(Es, Vtab, Vis);
-marquee_draw_edges([], _, _) -> ok.
+	    E = {Edge,{array:get(Va, Vtab),array:get(Vb, Vtab)}},
+	    visible_edges(Es, Vtab, Vis,  [E|Acc])
+    end;
+visible_edges([], _, _, Acc) -> Acc.
 
-marquee_draw_1(Draw) ->
-    wings_dl:fold(fun(D, _) -> marquee_draw_fun(D, Draw) end, []).
+setup_pick_context(PickFun) ->
+    Res = wings_dl:fold(fun(D, Acc) ->
+				setup_pick_context_fun(D, PickFun, Acc)
+			end, []),
+    sort(Res).
 
-marquee_draw_fun(#dlo{src_we=#we{perm=Perm}}, _) when not ?IS_SELECTABLE(Perm) -> ok;
-marquee_draw_fun(#dlo{mirror=Mirror,src_we=#we{id=Id}=We}, Draw) ->
-    List = gl:genLists(1),
-    gl:newList(List, ?GL_COMPILE),
-    gl:pushName(0),
-    Draw(We),
-    gl:popName(),
-    gl:endList(),
-    gl:pushName(Id),
-    case Mirror of
-	none ->
-	    wings_dl:call(List);
-	Matrix ->
-	    wings_dl:call(List),
-	    gl:pushMatrix(),
-	    gl:multMatrixf(Matrix),
-	    wings_dl:call(List),
-	    gl:popMatrix()
-    end,
-    gl:popName(),
-    gl:deleteLists(List, 1).
+setup_pick_context_fun(#dlo{src_we={perm=Perm}}, _PickFun, Acc)
+  when ?IS_NOT_SELECTABLE(Perm) ->
+    Acc;
+setup_pick_context_fun(#dlo{mirror=none,src_we=We}, PickFun, Acc) ->
+    PickFun(We, Acc);
+setup_pick_context_fun(#dlo{mirror=Matrix,src_we=We}, PickFun, Acc0) ->
+    Acc1 = PickFun(We, Acc0),
+    gl:pushMatrix(),
+    gl:multMatrixf(Matrix),
+    set_pick_matrix(),
+    wpc_pick:front_face(cw),
+    Acc = PickFun(We, Acc1),
+    wpc_pick:front_face(ccw),
+    gl:popMatrix(),
+    set_pick_matrix(),
+    Acc.
 
 %%
 %% Draw for the purpose of picking the items that the user clicked on.
 %%
 
-draw(St) ->
-    wings_dl:map(fun draw_fun/2, St).
+dlo_pick(St) ->
+    wings_dl:map(fun(D, Acc) ->
+			 do_dlo_pick(D, St, Acc)
+		 end, []).
 
-draw_fun(#dlo{work=Work,src_we=#we{id=Id,perm=Perm}=We}=D, _)
-  when ?IS_LIGHT(We), ?IS_SELECTABLE(Perm) ->
-    gl:pushName(Id),
-    gl:pushName(1),
-    wings_dl:call(Work),
-    gl:popName(),
-    gl:popName(),
-    D;
-draw_fun(#dlo{pick=none}=D0, St) ->
-    List = gl:genLists(1),
-    gl:newList(List, ?GL_COMPILE),
-    D = draw_1(D0,St),
-    gl:endList(),
-    draw_dlist(D#dlo{pick=List});
-draw_fun(D, _) -> draw_dlist(D).
-
-draw_dlist(#dlo{mirror=none,pick=Pick,src_we=#we{id=Id}}=D) ->
-    gl:pushName(Id),
-    wings_dl:call(Pick),
-    gl:popName(),
-    D;
-draw_dlist(#dlo{mirror=Matrix,pick=Pick,src_we=#we{id=Id}}=D) ->
-    gl:pushName(Id),
-    wings_dl:call(Pick),
-    gl:loadName(-Id),
-    gl:frontFace(?GL_CW),
+do_dlo_pick(D=#dlo{src_we=#we{perm=Perm}}=D, _St, Acc)
+  when ?IS_NOT_SELECTABLE(Perm) ->
+    {D,Acc};
+do_dlo_pick(D=#dlo{face_vs=none}, St, Acc) ->
+    do_dlo_pick(wings_draw_setup:work(D, St), St, Acc);
+do_dlo_pick(#dlo{face_vs=Vs,src_we=#we{id=Id}=We}=D, _, Acc)
+  when ?IS_LIGHT(We) ->
+    case wpc_pick:faces(Vs) of
+	[] -> {D,Acc};
+	_ -> {D,[{Id,0}|Acc]}
+    end;
+do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}}=D, _, Acc) ->
+    do_dlo_pick_0(Id, D, Acc);
+do_dlo_pick(#dlo{mirror=Matrix,src_we=#we{id=Id}}=D0, _, Acc0) ->
+    {D1,Acc1} = do_dlo_pick_0(Id, D0, Acc0),
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
-    wings_dl:call(Pick),
+    set_pick_matrix(),
+    wpc_pick:front_face(cw),
+    {D,Acc} = do_dlo_pick_0(-Id, D1, Acc1),
+    wpc_pick:front_face(ccw),
     gl:popMatrix(),
-    gl:popName(),
-    gl:frontFace(?GL_CCW),
-    D.
+    set_pick_matrix(),
+    {D,Acc}.
 
-draw_1(D=#dlo{face_vs=none,src_we=#we{perm=Perm}},St)
-  when ?IS_SELECTABLE(Perm) ->
-    draw_1(wings_draw_setup:work(D,St),St);
-draw_1(D=#dlo{ns=Ns0,face_vs=Vs,face_map=Map,src_we=#we{perm=Perm}=We},_)
-  when ?IS_SELECTABLE(Perm) ->
-    Ns = wings_we:visible(gb_trees:to_list(Ns0), We),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    wings_draw_setup:vertexPointer(Vs),
-    gl:pushName(0),
-    foreach(fun({Face,_Info}) ->
-		    gl:loadName(Face),
-		    {Start,NoElements} = array:get(Face,Map),
-		    gl:drawArrays(?GL_TRIANGLES, Start, NoElements)
-	    end, Ns),
-    gl:popName(),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    D;
-draw_1(D,_) -> D.
+do_dlo_pick_0(Id, #dlo{face_vs=Vs,face_map=Map0}=D0, Acc) ->
+    case wpc_pick:faces(Vs) of
+	[] ->
+	    {D0,Acc};
+	RawHits ->
+	    {D,Map} =
+		case D0 of
+		    #dlo{tri_map=none} ->
+			Map1 = keysort(2, array:sparse_to_orddict(Map0)),
+			{D0#dlo{tri_map=Map1},Map1};
+		    #dlo{tri_map=TriMap} ->
+			{D0,TriMap}
+		end,
+	    {D,usort(do_dlo_pick_1(RawHits, Map, Id, Acc))}
+    end.
 
+do_dlo_pick_1([H|Hits], [{Face,{Start,Num}}|_]=T, Id, Acc)
+  when Start =< H, H < Start+Num ->
+    do_dlo_pick_1(Hits, T, Id, [{Id,Face}|Acc]);
+do_dlo_pick_1([_|_]=Hits, [_|T], Id, Acc) ->
+    do_dlo_pick_1(Hits, T, Id, Acc);
+do_dlo_pick_1([], [_|_], _, Acc) -> Acc;
+do_dlo_pick_1([], [], _, Acc) -> Acc.

@@ -670,13 +670,18 @@ import_we(#light{type=area}=Light, OpenGL, {X,Y,Z}) ->
 	end,
     We = wings_import:import_mesh(material, Mesh),
     We#we{light=Light,has_shape=true};
-import_we(#light{}=Light, _OpenGL, Pos) ->
+import_we(#light{}=Light, _OpenGL, {X,Y,Z}) ->
+    %% We used to put all vertices at the same position, but with
+    %% then rewritten pick handling we need a vertex array for picking.
+    %% The cube will be slightly larger than the sphere that is shown
+    %% for the light. The position of the light will be the centroid
+    %% of the cube.
     Fs = [[0,3,2,1],[2,3,7,6],[0,4,7,3],[1,2,6,5],[4,5,6,7],[0,1,5,4]],
-    Vs = lists:duplicate(8, Pos),
+    S = 0.07,
+    Vs = [{X-S,Y-S,Z+S},{X-S,Y+S,Z+S},{X+S,Y+S,Z+S},{X+S,Y-S,Z+S},
+	  {X-S,Y-S,Z-S},{X-S,Y+S,Z-S},{X+S,Y+S,Z-S},{X+S,Y-S,Z-S}],
     We = wings_we:build(Fs, Vs),
     We#we{light=Light,has_shape=false}.
-
-
 
 %%%
 %%% Setting up lights.
@@ -877,8 +882,8 @@ setup_attenuation(Lnum, #light{lin_att=Lin,quad_att=Quad}) ->
 light_pos(#we{light=#light{type=area}}=We) ->
     {Pos,_,_} = arealight_posdirexp(We),
     Pos;
-light_pos(#we{vp=Vtab}) ->
-    array:get(1, Vtab).
+light_pos(We) ->
+    wings_vertex:center(We).
 
 arealight_posdirexp(#we{light=#light{type=area}}=We) ->
     FaceMats = wings_facemat:all(We),

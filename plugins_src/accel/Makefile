@@ -25,31 +25,37 @@ LIBDIR = ../../plugins/accel
 ERL_DIR := $(shell echo 'io:format("~s~n",[code:root_dir()]),init:stop().' | erl | sed -n '/^1>/s/^1> //p')
 ERL_INC = $(ERL_DIR)/usr/include
 BEAM = 	$(LIBDIR)/wpc_pnoise.beam \
-	$(LIBDIR)/pnoise.beam
+	$(LIBDIR)/pnoise.beam \
+	$(LIBDIR)/wpc_pick.beam
+
+COMMON_CFLAGS = -Wall -O3
 
 ifdef USEMINGWGCC
  SO_EXT = dll
  LIBS = -shared
  GL_LIBS = -lopengl32 -lglu32
  GCC = mingw32-gcc
+ CFLAGS = $(COMMON_CFLAGS)
 else
  SO_EXT = so
  GCC = gcc
  ifeq ($(OS),Darwin)
    UNIVERSAL_FLAGS = -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc
-   CFLAGS = $(UNIVERSAL_FLAGS)
+   CFLAGS = $(UNIVERSAL_FLAGS) $(COMMON_CFLAGS)
    LIBS = $(UNIVERSAL_FLAGS) -bundle -flat_namespace -undefined suppress
    GL_LIBS =
  else
    LIBS = -shared -fpic
    GL_LIBS = -lGLU -lGL
+   CFLAGS = $(COMMON_CFLAGS)
  endif
 endif
 
 ERLC = erlc
 ERLC_FLAGS = -o $(LIBDIR) +debug_info
 
-DRV = $(LIBDIR)/perlin_noise_drv.$(SO_EXT)
+DRV = $(LIBDIR)/perlin_noise_drv.$(SO_EXT) \
+      $(LIBDIR)/wings_pick_drv.$(SO_EXT)
 
 TARGET_FILES=$(BEAM) $(DRV)
 
@@ -61,7 +67,7 @@ $(LIBDIR)/%.beam: %.erl
 
 $(LIBDIR)/%.$(SO_EXT): %.c
 	install -d $(LIBDIR)
-	$(GCC) -I$(ERL_INC) -o $@ $< $(LIBS) $(GL_LIBS)
+	$(GCC) $(COMMON_CFLAGS) -I$(ERL_INC) -o $@ $< $(LIBS) $(GL_LIBS)
 
 clean:
 	rm -f $(TARGET_FILES)

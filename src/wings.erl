@@ -115,7 +115,6 @@ init(File) ->
     wings_view:init(),
     wings_file:init(),
     wings_u:caption(St),
-    put(wings_hitbuf, sdl_util:alloc(?HIT_BUF_SIZE, ?GL_INT)),
     wings_wm:init(),
     wings_file:init_autosave(),
     init_menubar(),
@@ -144,11 +143,9 @@ init(File) ->
     case catch wings_wm:enter_event_loop() of
     {'EXIT',normal} ->
         wings_pref:finish(),
-        erase(wings_hitbuf),
         sdl:quit();
     {'EXIT',Reason} ->
         io:format("~P\n", [Reason,20]),
-        erase(wings_hitbuf),
         sdl:quit(),
         exit(Reason)
     end.
