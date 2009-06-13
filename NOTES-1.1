@@ -13,6 +13,14 @@
   any newly created isolated vertices resulting from the collapse edges.
   (Thanks to deerwood and Fonte Boa). [optigon]
 
+- On OpenGL implementations without support for multisampling,
+  there would be (harmless) error messages written to the console
+  Develop|OpenGL Errors had been turned on. Changed to only
+  attempt to use multisampling if the OpenGL implementation supports
+  it, and no longer showing the checkbox in the preferences for
+  turning on/off multisampling if the OpenGL implementation does
+  not support it. [bjorng]
+
 --- 1.1.2 --------------------------------------------------------------------
 - Select Similar Normals with the option Connected Faces Only and
   a selection comprising multiple objects would cause a crash.

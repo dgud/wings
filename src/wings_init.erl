@@ -18,15 +18,6 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--ifndef(SDL_GL_STEREO).
-%% Older ESDL.
--define(SDL_GL_STEREO,             12).
--define(SDL_GL_MULTISAMPLEBUFFERS, 13).
--define(SDL_GL_MULTISAMPLESAMPLES, 14).
--define(SDL_GL_ACCELERATED_VISUAL, 15).
--define(SDL_GL_SWAP_CONTROL,       16).
--endif.
-
 init() ->
     macosx_workaround(),
     os:putenv("SDL_HAS3BUTTONMOUSE", "true"),

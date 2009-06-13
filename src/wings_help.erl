@@ -319,6 +319,7 @@ opengl_info(Head) ->
 		      {?__(32,"Color buffers store indices"),?GL_INDEX_MODE},
 		      {?__(33,"Double buffering"),?GL_DOUBLEBUFFER},
 		      {?__(34,"Stereo buffers"),?GL_STEREO},
+		      {?__(45,"Sample buffers"),?GL_SAMPLE_BUFFERS},
 		      {?__(35,"Range of aliased point sizes"),?GL_ALIASED_POINT_SIZE_RANGE},
 		      {?__(36,"Range of antialised point sizes"),?GL_SMOOTH_POINT_SIZE_RANGE},
 		      {?__(37,"Range of aliased line widths"),?GL_ALIASED_LINE_WIDTH_RANGE},
@@ -356,6 +357,7 @@ has_one_elem(?GL_MAX_ELEMENTS_INDICES) -> true;
 has_one_elem(?GL_NUM_COMPRESSED_TEXTURE_FORMATS) -> true;
 has_one_elem(?GL_MAX_VERTEX_UNITS_ARB) -> true;
 has_one_elem(?GL_MAX_3D_TEXTURE_SIZE) -> true;
+has_one_elem(?GL_SAMPLE_BUFFERS) -> true;
 has_one_elem(_) -> false.
 
 extensions() ->

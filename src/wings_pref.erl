@@ -443,6 +443,7 @@ defaults() ->
      {dummy_axis_letter,false},
      {polygon_offset_f,1.0},
      {polygon_offset_r,1.0},
+     {multisample,undefined},
 
      %% Advanced features.
      {default_commands,false},
@@ -453,7 +454,7 @@ defaults() ->
      {clip_plane_size,1.5},
      {highlight_aim_at_selected,false},
      {highlight_aim_at_unselected,true},
-	 {hilite_select,false},
+     {hilite_select,false},
      {start_in_tweak, false},
 
      %% Constraints preferences.

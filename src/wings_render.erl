@@ -22,17 +22,8 @@
 -include("wings.hrl").
 
 init() ->
-    case wings_gl:support_shaders() of
-	true ->
-	    try
-		wings_shaders:init()
-	    catch _:_Err ->
-		ok
-	    end;
-	false ->
-	    ok
-    end.
-
+    init_shaders(),
+    init_multisample().
 %% render(St)
 %%  Render the entire contents of a Geometry or AutoUV window,
 %%  including groundplane and axes. Use the contents of the display
@@ -48,12 +39,9 @@ render(#st{selmode=Mode}=St) ->
     gl:enable(?GL_DEPTH_TEST),
     gl:enable(?GL_CULL_FACE),
     case wings_pref:get_value(multisample) of
-	true ->
-	    gl:enable(?GL_MULTISAMPLE);
-	false ->
-	    gl:disable(?GL_MULTISAMPLE);
-	undefined ->
-	    wings_pref:set_default(multisample, true)
+	true -> gl:enable(?GL_MULTISAMPLE);
+	false -> gl:disable(?GL_MULTISAMPLE);
+	undefined -> ok
     end,
     wings_view:load_matrices(true),
     ground_and_axes(),
@@ -85,6 +73,32 @@ polygonOffset(M) ->
 %%%
 %%% Internal functions follow.
 %%%
+
+init_shaders() ->
+    case wings_gl:support_shaders() of
+	true ->
+	    try
+		wings_shaders:init()
+	    catch _:_Err ->
+		ok
+	    end;
+	false ->
+	    ok
+    end.
+
+init_multisample() ->
+    case wings_gl:is_ext('GL_ARB_multisample') of
+	false ->
+	    %% Not supported.
+	    %%
+	    %% It would have been better to use something
+	    %% clearer like 'not_supported' here, but that
+	    %% would cause older versions of Wings from
+	    %% 0.99.54 through 1.1.2 to crash.
+	    wings_pref:set_value(multisample, undefined);
+	true ->
+	    wings_pref:set_default(multisample, true)
+    end.
 
 render_objects(Mode) ->
     Dls = wings_dl:display_lists(),
