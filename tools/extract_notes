@@ -14,7 +14,7 @@
 
 main(_) ->
     PrevRel = binary_to_list(chomp(git(["describe","--abbrev=0"]))),
-    Log = git(["log",PrevRel++".."]),
+    Log = git(["log","--reverse",PrevRel++".."]),
     extract_notes(Log),
     halt(0).
 
