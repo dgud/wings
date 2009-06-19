@@ -794,11 +794,6 @@ end_pick(false, #tweak{st=St0,ox=X,oy=Y}=T) ->
 end_pick_1(#dlo{mirror=M,ns=Ns,proxy_data=Pd,src_we=We},St0) ->
     {#dlo{ns=Ns,mirror=M,proxy_data=Pd,src_we=We},St0}.
 
-sel_to_vs(edge, _, We) when ?IS_LIGHT(We) ->
-    Items = gb_sets:to_list(wings_sel:get_all_items(edge, We)),
-    wings_edge:to_vertices(Items,We);
-sel_to_vs(Mode, _, We) when ?IS_LIGHT(We) ->
-    gb_sets:to_list(wings_sel:get_all_items(Mode, We));
 sel_to_vs(vertex, Vs, _) -> Vs;
 sel_to_vs(edge, Es, We) -> wings_vertex:from_edges(Es, We);
 sel_to_vs(face, [Face], We) -> wings_face:vertices_ccw(Face, We);

@@ -471,9 +471,14 @@ marquee_update_sel(Op, Hits0, #st{selmode=body}=St) ->
     Zero = sofs:from_term([0], [data]),
     Hits = sofs:constant_function(Hits2, Zero),
     marquee_update_sel_1(Op, Hits, St);
-marquee_update_sel(Op, Hits0, St) ->
-    Hits1 = sofs:relation(Hits0, [{id,data}]),
-    Hits = sofs:relation_to_family(Hits1),
+marquee_update_sel(Op, Hits0, #st{selmode=Mode}=St) ->
+    Hits1 = wings_util:rel2fam(Hits0),
+    Hits2 = [{Id,begin
+		     Items1 = gb_sets:from_ordset(Items0),
+		     Items = expand_light_items(Mode, Id, Items1, St),
+		     gb_sets:to_list(Items)
+		 end} || {Id,Items0} <- Hits1],
+    Hits = sofs:from_external(Hits2, [{id,[data]}]),
     marquee_update_sel_1(Op, Hits, St).
 
 marquee_update_sel_1(add, Hits, #st{sel=Sel0}=St) ->
@@ -560,29 +565,51 @@ set_pick_matrix() ->
     ProjMatrix = gl:getDoublev(?GL_PROJECTION_MATRIX),
     wpc_pick:matrix(ModelMatrix, ProjMatrix).
 
+%% update_selection({Mode,MM,{Id,Item}}, St0) -> {add|delete,St0}.
+%%    Mode = body|face|edge|vertex
+%%    MM = original|mirror
+%%  If the item (body/face/edge/vertex) was not selected, add it
+%%  to the selection, otherwise delete it from the selection.
+%%  The first element in the returned tuple will indicate whether
+%%  something was added or deleted from the selection.
+%%
+%%  NOTE: Lights must only be selected in their entirety.
+%%  So in face mode, for instance, a light will have either all of
+%%  its faces selected or none.
+%%
 update_selection({Mode,MM,{Id,Item}}, #st{sel=Sel0}=St) ->
-    {Type,Sel} = update_selection(Id, Item, Sel0, []),
+    Items = expand_light_items(Mode, Id, gb_sets:singleton(Item), St),
+    {Type,Sel} = update_selection(Id, Items, Sel0, []),
     {Type,MM,St#st{selmode=Mode,sel=Sel,sh=false}}.
 
-update_selection(Id, Item, [{I,_}=H|T], Acc) when Id > I ->
-    update_selection(Id, Item, T, [H|Acc]);
-update_selection(Id, Item, [{I,_}|_]=T, Acc) when Id < I ->
-    {add,reverse(Acc, [{Id,gb_sets:singleton(Item)}|T])};
-update_selection(Id, Item, [{_,Items0}|T0], Acc) -> %Id == I
-    case gb_sets:is_member(Item, Items0) of
+update_selection(Id, Items, [{I,_}=H|T], Acc) when Id > I ->
+    update_selection(Id, Items, T, [H|Acc]);
+update_selection(Id, Items, [{I,_}|_]=T, Acc) when Id < I ->
+    {add,reverse(Acc, [{Id,Items}|T])};
+update_selection(Id, Items1, [{_,Items0}|T0], Acc) -> %Id == I
+    case gb_sets:is_disjoint(Items1, Items0) of
 	true ->
-	    Items = gb_sets:delete(Item, Items0),
+	    %% Add to selection.
+	    Items = gb_sets:union(Items0, Items1),
+	    {add,reverse(Acc, [{Id,Items}|T0])};
+	false ->
+	    %% Delete from selection.
+	    Items = gb_sets:difference(Items0, Items1),
 	    T = case gb_sets:is_empty(Items) of
 		    true -> T0;
 		    false -> [{Id,Items}|T0]
 		end,
-	    {delete,reverse(Acc, T)};
-	false ->
-	    Items = gb_sets:insert(Item, Items0),
-	    {add,reverse(Acc, [{Id,Items}|T0])}
+	    {delete,reverse(Acc, T)}
     end;
-update_selection(Id, Item, [], Acc) ->
-    {add,reverse(Acc, [{Id,gb_sets:singleton(Item)}])}.
+update_selection(Id, Items, [], Acc) ->
+    {add,reverse(Acc, [{Id,Items}])}.
+
+expand_light_items(Mode, Id, Items, #st{shapes=Shs}) ->
+    We = gb_trees:get(Id, Shs),
+    case ?IS_LIGHT(We) of
+	false -> Items;
+	true -> wings_sel:get_all_items(Mode, We)
+    end.
 
 %%%
 %%% Filter face hits to obtain just one hit.
@@ -622,10 +649,10 @@ best_face_hit_1(#dlo{src_we=#we{id=Id}=We,ns=Ns}, EyePoint,
     best_face_hit_2(We, Ns, EyePoint, A);
 best_face_hit_1(_, _, A) -> A.
 
-best_face_hit_2(#we{id=Id,vp=Vtab}=We, Ns, Ray, {[{Id,Id,Face}|Hits],Hit0,T0})
+best_face_hit_2(#we{id=Id}=We, Ns, Ray, {[{Id,Id,Face}|Hits],Hit0,T0})
   when ?IS_LIGHT(We) ->
     {Orig,Dir} = Ray,
-    P = array:get(1, Vtab),
+    P = wings_light:light_pos(We),
     T = e3d_vec:dot(Dir, P) - e3d_vec:dot(Dir, Orig),
     A = if
 	    T < T0 ->

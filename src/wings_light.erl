@@ -15,7 +15,8 @@
 -export([light_types/0,menu/3,command/2,is_any_light_selected/1,info/1,
 	 create/2,update_dynamic/2,update_matrix/2,update/1,render/1,
 	 modeling_lights/2,global_lights/0,camera_lights/0,
-	 export/1,export_camera_lights/0,import/2,import/1,shape_materials/2]).
+	 export/1,export_camera_lights/0,import/2,import/1,shape_materials/2,
+	 light_pos/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
