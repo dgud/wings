@@ -570,7 +570,8 @@ build_selection(Edges, #we{id=Id}=We, ObjAcc) ->
 				       S0, gb_sets:to_list(O))
 			 end,[],Init),
     Stop = gb_trees:from_orddict(lists:sort(Stops0)),
-    Sel = grow_rings(Init,[],Stop,We,gb_sets:empty()),
+    Sel0 = grow_rings(Init,[],Stop,We,gb_sets:empty()),
+    Sel = wings_we:visible_edges(Sel0, We),
     [{Id,gb_sets:union(Sel,Edges)}|ObjAcc].
 
 grow_rings([First = #r{id=This}|R0],Rest0,Stop,We,Acc) ->
