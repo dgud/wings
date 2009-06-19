@@ -1,3 +1,27 @@
+--- 1.1.4 ----------------------------------------------------------------------
+- For developers: Release notes to be included in a release
+  should no longer be directly added to NOTES-1.1 files, but
+  instead be written into the check-in comment. Everything in
+  a comment from "NOTE:" (without the quotations marks) at
+  the beginning of a line to the end of the check-in comment,
+  will be included in the release notes.
+  
+  To extract the release notes, run the script tools/extract_notes.
+  It will extract and print all notes for all commits after
+  the tag for the latest release. [bjorng]
+
+- The Edge Ring command (Select|Edge Loop|Edge Ring) would
+  select edges between hidden faces. [bjorng]
+
+- Selection (finding out which face is under the mouse
+  cursor) used to be done using a special selection render
+  mode in OpenGL. However, this mode does not work well
+  in all OpenGL drivers. Therefore I have implemented my
+  own code for selection handling in C as a driver for the
+  Erlang emulator. (Thanks to FonteBoa for testing.) [bjorng]
+
+- The proxy mode has been optimized by using vertex arrays. [dgud]
+
 --- 1.1.3 --------------------------------------------------------------------
 - Torsten Manz updated the German translation. [bjorng]
 
