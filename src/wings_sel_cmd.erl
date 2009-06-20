@@ -347,29 +347,28 @@ by_command({vertices_with,N}, St) ->
     {save_state,wings_sel:make(Sel, vertex, St)};
 by_command({non_quad,all}, St) ->
     Sel = fun(Face, We) ->
-		  wings_face:vertices(Face, We) =/= 4 andalso Face >= 0
+		  wings_face:vertices(Face, We) =/= 4
 	    end,
     {save_state,wings_sel:make(Sel, face, St)};
 by_command({non_quad,odd}, St) ->
     Sel = fun(Face, We) ->
-		  Half = wings_face:vertices(Face, We)/2,
-		  trunc(Half) /= Half andalso Face >= 0
-	    end,
+		  wings_face:vertices(Face, We) rem 2 =/= 0
+	  end,
     {save_state,wings_sel:make(Sel, face, St)};
 by_command({non_quad,even}, St) ->
     Sel = fun(Face, We) ->
-		  Half = wings_face:vertices(Face, We)/2,
-		  (Half /= 2) and (trunc(Half) == Half) andalso Face >= 0
-	    end,
+		  N = wings_face:vertices(Face, We),
+		  N =/= 4 andalso N rem 2 =:= 0
+	  end,
     {save_state,wings_sel:make(Sel, face, St)};
 by_command({faces_with,5}, St) ->
     Sel = fun(Face, We) ->
-		  wings_face:vertices(Face, We) >= 5 andalso Face >= 0
+		  wings_face:vertices(Face, We) >= 5
 	    end,
     {save_state,wings_sel:make(Sel, face, St)};
 by_command({faces_with,N}, St) ->
     Sel = fun(Face, We) ->
-		  N =:= wings_face:vertices(Face, We) andalso Face >= 0
+		  N =:= wings_face:vertices(Face, We)
 	  end,
     {save_state,wings_sel:make(Sel, face, St)};
 by_command(material_edges, St) ->
@@ -642,7 +641,7 @@ similar(#st{selmode=face}=St) ->
     Templates = ordsets:from_list(Seed),
     wings_sel:make(
       fun(Face, WeI) ->
-	      Face >= 0 andalso match_templates(make_face_template(Face, WeI), Templates)
+	      match_templates(make_face_template(Face, WeI), Templates)
       end, face, St);
 similar(#st{selmode=body}=St) ->
     Template0 = wings_sel:fold(fun(_, #we{vp=Vtab,es=Etab,fs=Ftab}, Acc) ->
@@ -794,9 +793,8 @@ material_edges_fun(E, #we{es=Etab}=We) ->
 uv_mapped_faces(St) ->
     wings_sel:make(fun is_uv_mapped_face/2, face, St).
 
-is_uv_mapped_face(Face, We) when Face >= 0->
-    is_uv_mapped_face_1(wings_face:vertex_info(Face, We));
-is_uv_mapped_face(_,_) -> false.
+is_uv_mapped_face(Face, We) ->
+    is_uv_mapped_face_1(wings_face:vertex_info(Face, We)).
 
 is_uv_mapped_face_1([{_,_}|T]) ->
     is_uv_mapped_face_1(T);
@@ -921,7 +919,7 @@ nonplanar_faces(Ask, _St) when is_atom(Ask) ->
 		     fun(Res) -> {select,{by,{nonplanar_faces,Res}}} end);
 nonplanar_faces([Tolerance], St) ->
     Sel = fun(Face, We) ->
-	      not wings_face:is_planar(Tolerance,Face,We) andalso Face >= 0
+		  not wings_face:is_planar(Tolerance,Face,We)
 	  end,
     {save_state,wings_sel:make(Sel, face, St)}.
 
@@ -1357,9 +1355,7 @@ similar_area([Tolerance], St) ->
     St2 = wings_sel:make(SelFun, face, St),
     {save_state,St2}.
 
-is_area_similar(Area1, Tolerance, Face, We) when Face >= 0 ->
+is_area_similar(Area1, Tolerance, Face, We) ->
     Area2 = wings_face:area(Face, We),
     AreaDiff = abs(Area1-Area2),
-    AreaDiff =< Tolerance;
-is_area_similar(_,_,_,_) ->
-    false.
+    AreaDiff =< Tolerance.

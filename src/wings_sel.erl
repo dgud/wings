@@ -96,11 +96,26 @@ mapfold_1(F, Acc, [_|_]=Sel, [Pair|Shs], St, ShsAcc) ->
 mapfold_1(_F, Acc, [], Shs, _St, ShsAcc) ->
     {gb_trees:from_orddict(reverse(ShsAcc, Shs)),Acc}.
 
-%%%
-%%% Make a selection.
-%%%
+%% make(Filter, Mode, St) -> [{Id,ItemGbSet}].
+%%      Mode = body|face|edge|vertex
+%%      Filter(Item, We) -> true|false
+%%      Item = face() | edge() | vertex() | 0
+%%  Construct a selection by calling Filter(Item, We) for each
+%%  item in each object (where Item is either a face number,
+%%  edge number, vertex number, or 0 depending on Mode).
+%%
+%%  Invisible geometry will not be included in the selection.
+%%  Filter/2 will never be called for invisible faces, while
+%%  invisible edges and vertices will be filtered away after
+%%  the call to Filter/2.
+%%
 
-make(Filter, Mode, #st{shapes=Shapes}=St) ->
+-type filter_fun() :: fun((visible_face_num() | edge_num() | vertex_num() | 0,
+			   #we{}) -> boolean()).
+-spec make(filter_fun(), sel_mode(), #st{}) ->
+    #st{sel::[{non_neg_integer(),gb_set()}]}.
+
+make(Filter, Mode, #st{shapes=Shapes}=St) when is_function(Filter, 2) ->
     Sel0 = gb_trees:values(Shapes),
     Sel = make_1(Sel0, Filter, Mode),
     St#st{selmode=Mode,sel=Sel}.
@@ -114,15 +129,27 @@ make_1([#we{id=Id}=We|Shs], Filter, body) ->
 	false -> make_1(Shs, Filter, body);
 	true -> [{Id,gb_sets:singleton(0)}|make_1(Shs, Filter, body)]
     end;
-make_1([#we{id=Id,vp=Vtab,es=Etab,fs=Ftab}=We|Shs], Filter, Mode) ->
-    Keys = case Mode of
-	       vertex -> wings_util:array_keys(Vtab);
-	       edge -> wings_util:array_keys(Etab);
-	       face -> gb_trees:keys(Ftab)
-	   end,
-    case [Item || Item <- Keys, Filter(Item, We)] of
+make_1([#we{id=Id,fs=Ftab}=We|Shs], Filter, face=Mode) ->
+    Faces = gb_trees:keys(Ftab),
+    case [Face || Face <- Faces, Face >= 0, Filter(Face, We)] of
 	[] -> make_1(Shs, Filter, Mode);
 	Sel -> [{Id,gb_sets:from_ordset(Sel)}|make_1(Shs, Filter, Mode)]
+    end;
+make_1([#we{id=Id,es=Etab}=We|Shs], Filter, edge=Mode) ->
+    Es = wings_util:array_keys(Etab),
+    case [E || E <- Es, Filter(E, We)] of
+	[] -> make_1(Shs, Filter, Mode);
+	Sel0 ->
+	    Sel = wings_we:visible_edges(gb_sets:from_ordset(Sel0), We),
+	    [{Id,Sel}|make_1(Shs, Filter, Mode)]
+    end;
+make_1([#we{id=Id,vp=Vtab}=We|Shs], Filter, vertex=Mode) ->
+    Vs = wings_util:array_keys(Vtab),
+    case [V || V <- Vs, Filter(V, We)] of
+	[] -> make_1(Shs, Filter, Mode);
+	Sel0 ->
+	    Sel = gb_sets:from_ordset(wings_we:visible_vs(Sel0, We)),
+	    [{Id,Sel}|make_1(Shs, Filter, Mode)]
     end;
 make_1([], _Filter, _Mode) -> [].
 
