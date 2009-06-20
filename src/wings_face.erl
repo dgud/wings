@@ -20,13 +20,11 @@
 	 face_normal_cw/2,face_normal_ccw/2,
 	 good_normal/2,is_thin/2,
 	 center/2,area/2,
-	 vinfo_cw/2,vinfo_cw/3,
 	 vinfo_ccw/2,vinfo_ccw/3,
 	 vpos_info_ccw/2, vpos_info_ccw/3,
 	 vertices_cw/2,vertices_cw/3,
 	 vertices_ccw/2,vertices_ccw/3,
 	 vertex_positions/2,vertex_positions/3,
-	 vertex_info/2,vertex_info/3,
 	 extend_border/2,
 	 inner_edges/2,outer_edges/2,inner_outer_edges/2,
 	 fold/4,fold/5,fold_vinfo/4,fold_faces/4,
@@ -210,24 +208,6 @@ area(Face, We) ->
     [Area] = e3d_mesh:face_areas(E3dFaces, Vcoords),
     Area.
 
-%% Vertex info for drawing.
-
-vinfo_cw(Face, #we{fs=Ftab}=We) ->
-    Edge = gb_trees:get(Face, Ftab),
-    vinfo_cw(Face, Edge, We).
-
-vinfo_cw(Face, Edge, #we{es=Etab}) ->
-    vinfo_cw_1(Edge, Etab, Face, Edge, []).
-
-vinfo_cw_1(LastEdge, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
-vinfo_cw_1(Edge, Etab, Face, LastEdge, Acc) ->
-    case array:get(Edge, Etab) of
-	#edge{vs=V,a=Col,lf=Face,ltpr=NextEdge} ->
-	    vinfo_cw_1(NextEdge, Etab, Face, LastEdge, [[V|Col]|Acc]);
-	#edge{ve=V,b=Col,rtpr=NextEdge} ->
-	    vinfo_cw_1(NextEdge, Etab, Face, LastEdge, [[V|Col]|Acc])
-    end.
-
 vinfo_ccw(Face, #we{fs=Ftab}=We) ->
     Edge = gb_trees:get(Face, Ftab),
     vinfo_ccw(Face, Edge, We).
@@ -315,22 +295,6 @@ vertex_positions_1(Edge, Etab, Vtab, Face, LastEdge, Acc) ->
 	#edge{ve=V,rf=Face,rtsu=NextEdge} ->
 	    Pos = array:get(V, Vtab),
 	    vertex_positions_1(NextEdge, Etab, Vtab, Face, LastEdge, [Pos|Acc])
-    end.
-
-vertex_info(Face, #we{fs=Ftab}=We) ->
-    Edge = gb_trees:get(Face, Ftab),
-    vertex_info(Face, Edge, We).
-
-vertex_info(Face, Edge, #we{es=Etab}) ->
-    vertex_info_1(Edge, Etab, Face, Edge, []).
-
-vertex_info_1(LastEdge, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
-vertex_info_1(Edge, Etab, Face, LastEdge, Acc) ->
-    case array:get(Edge, Etab) of
-	#edge{a=Info,lf=Face,ltsu=NextEdge} ->
-	    vertex_info_1(NextEdge, Etab, Face, LastEdge, [Info|Acc]);
-	#edge{b=Info,rf=Face,rtsu=NextEdge} ->
-	    vertex_info_1(NextEdge, Etab, Face, LastEdge, [Info|Acc])
     end.
 
 %% extend_border(FacesGbSet, We) -> FacesGbSet'

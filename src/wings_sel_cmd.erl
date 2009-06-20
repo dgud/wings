@@ -787,19 +787,17 @@ material_edges_fun(E, #we{es=Etab}=We) ->
     wings_facemat:face(Lf, We) =/= wings_facemat:face(Rf, We).
 
 %%
-%% Select all faces that have UV coordinates.
+%% Select all faces that have (proper) UV coordinates.
 %%
 
-uv_mapped_faces(St) ->
-    wings_sel:make(fun is_uv_mapped_face/2, face, St).
-
-is_uv_mapped_face(Face, We) ->
-    is_uv_mapped_face_1(wings_face:vertex_info(Face, We)).
-
-is_uv_mapped_face_1([{_,_}|T]) ->
-    is_uv_mapped_face_1(T);
-is_uv_mapped_face_1([_|_]) -> false;
-is_uv_mapped_face_1([]) -> true.
+uv_mapped_faces(#st{shapes=Shs}=St) ->
+    Sel = foldl(fun(#we{id=Id}=We, A) ->
+			case wings_we:uv_mapped_faces(We) of
+			    [] -> A;
+			    Fs -> [{Id,gb_sets:from_ordset(Fs)}|A]
+			end
+		end, [], gb_trees:values(Shs)),
+    wings_sel:set(face, Sel, St).
 
 %%
 %% Select by numerical item id.
@@ -1031,9 +1029,8 @@ similar_material([Connected], #st{selmode=face, sel=[]}) ->
 similar_material([false], St) ->
     Materials = wings_sel:fold(fun
        (Faces, #we{mode=vertex}=We, A) ->
-        foldl(fun(F,Acc) ->
-               [wings_color:average([C || [_|C]
-                 <- wings_face:vinfo_ccw(F, We)])|Acc]
+        foldl(fun(F, Acc) ->
+                   [average_colors(F, We)|Acc]
         end,A,gb_sets:to_list(Faces));
        (Faces, We, A) ->
                [wings_facemat:face(SelI, We) ||
@@ -1041,7 +1038,7 @@ similar_material([false], St) ->
              end, [], St),
     Sel = fun	
         (F, #we{mode=vertex}=We) ->
-          Col = wings_color:average([C||[_|C] <- wings_face:vinfo_ccw(F, We)]),
+          Col = average_colors(F, We),
           any_matching_material(Col,Materials);
         (Face, We) ->
           Mat = wings_facemat:face(Face,We),
@@ -1054,8 +1051,7 @@ similar_material([true], St0) ->
     Selection = wings_sel:fold(fun
         (Faces, #we{id=Id,mode=vertex}=We, A) ->
             AllCols = foldl(fun(F,Acc) ->
-                Cols = [C || [_|C] <- wings_face:vinfo_ccw(F, We)],
-                [wings_color:average(Cols)|Acc]
+                [average_colors(F, We)|Acc]
             end,A,gb_sets:to_list(Faces)),
             Colours = lists:usort(AllCols),
             [{Id,mat_search(Faces,Colours,We,Faces)}|A];
@@ -1065,6 +1061,9 @@ similar_material([true], St0) ->
             [{Id,mat_search(Faces,Materials,We,Faces)}|A]
     end, [], St0),
     wings_sel:set(face,Selection,St0).
+
+average_colors(Face, We) ->
+    wings_color:average([C || C <- wings_va:face_attr(color, Face, We)]).
 
 mat_search(Faces,Colours,We,LastSel) ->
     Fs0 = wings_face:extend_border(LastSel, We),
@@ -1091,8 +1090,7 @@ check_face_colours(Fs0,Colours,We,Selection)->
     end.
 
 face_info(F,#we{mode=vertex}=We) ->
-    Cols = [C || [_|C] <- wings_face:vinfo_ccw(F, We)],
-    wings_color:average(Cols);
+    average_colors(F, We);
 face_info(F,We) ->
     wings_facemat:face(F, We).
 

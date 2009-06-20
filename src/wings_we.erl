@@ -904,9 +904,9 @@ uv_mapped_faces(#we{fs=Ftab}=We) ->
     uv_mapped_faces_1(gb_trees:to_list(Ftab), We, []).
 
 uv_mapped_faces_1([{F,E}|Fs], We, Acc) ->
-    Good = foldl(fun([_|{_,_}], Flag) -> Flag;
+    Good = foldl(fun({_,_}, Flag) -> Flag;
 		    (_, _) -> false
-		 end, true, wings_face:vinfo_ccw(F, E, We)),
+		 end, true, wings_va:face_attr(uv, F, E, We)),
     case Good of
 	false -> uv_mapped_faces_1(Fs, We, Acc);
 	true -> uv_mapped_faces_1(Fs, We, [F|Acc])

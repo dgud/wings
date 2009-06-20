@@ -799,7 +799,7 @@ colors_to_materials_1(#we{mode=vertex,fs=Ftab}=We0, St) ->
 colors_to_materials_1(We, St) -> {We,St}.
 
 colors_to_materials_2([F|Fs], We, Acc, St0) ->
-    Colors = [C || [_|C] <- wings_face:vinfo_ccw(F, We)],
+    Colors = [C || C <- wings_va:face_attr(color, F, We)],
     case wings_color:average(Colors) of
 	none ->
 	    colors_to_materials_2(Fs, We, Acc, St0);
