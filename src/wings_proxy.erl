@@ -394,22 +394,12 @@ smooth_faces_all(#dlo{proxy_data=#sp{face_vs=BinVs,face_sn=Ns,face_uv=UV,mat_map
 free(_) -> ok.
 
 %%% Setup binaries and meta info
-flat_faces({material,MatFaces,#st{mat=Mtab}}, Pd) ->
-    mat_flat_faces(MatFaces, Pd, Mtab);
+flat_faces({material,MatFaces}, Pd) ->
+    plain_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
+flat_faces({uv,MatFaces}, Pd) ->
+    uv_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
 flat_faces({color,Ftab,We}, Pd) ->
     col_flat_faces(Ftab, We, Pd).
-
-mat_flat_faces(MatFs, Pd, Mtab) ->
-    IncludeUVs = wings_pref:get_value(show_textures) andalso
-	any(fun({Mat,_}) ->
-		    wings_material:has_texture(Mat, Mtab)
-	    end, MatFs),
-    case IncludeUVs of
-	false ->
-	    plain_flat_faces(MatFs, Pd, 0, <<>>, [], []);
-	true ->
-	    uv_flat_faces(MatFs, Pd, 0, <<>>, [], [])
-    end.
 
 plain_flat_faces([{Mat,Fs}|T], Pd=#sp{we=We}, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, We, Start0, Vs0, Fmap0),

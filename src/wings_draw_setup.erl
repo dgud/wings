@@ -61,22 +61,12 @@ smooth(D, _) -> D.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-flat_faces({material,MatFaces,#st{mat=Mtab}}, D) ->
-    mat_flat_faces(MatFaces, D, Mtab);
+flat_faces({material,MatFaces}, D) ->
+    plain_flat_faces(MatFaces, D, 0, <<>>, [], []);
+flat_faces({uv,MatFaces}, D) ->
+    uv_flat_faces(MatFaces, D, 0, <<>>, [], []);
 flat_faces({color,Ftab,We}, D) ->
     col_flat_faces(Ftab, We, D).
-
-mat_flat_faces(MatFs, D, Mtab) ->
-    IncludeUVs = wings_pref:get_value(show_textures) andalso
-	any(fun({Mat,_}) ->
-		    wings_material:has_texture(Mat, Mtab)
-	    end, MatFs),
-    case IncludeUVs of
-	false ->
-	    plain_flat_faces(MatFs, D, 0, <<>>, [], []);
-	true ->
-	    uv_flat_faces(MatFs, D, 0, <<>>, [], [])
-    end.
 
 plain_flat_faces([{Mat,Fs}|T], #dlo{ns=Ns}=D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, Ns, Start0, Vs0, Fmap0),
@@ -476,18 +466,32 @@ prepare(Ftab0, #we{}=We, St) ->
     Ftab = wings_we:visible(Ftab0, We),
     prepare_1(Ftab, We, St).
 
-prepare_1(Ftab, #we{mode=vertex}=We, St) ->
-    case {wings_pref:get_value(show_colors),Ftab} of
-	{false,[{_,Edge}|_]} when is_integer(Edge) ->
-	    Fs0 = sofs:from_external(Ftab, [{face,edge}]),
-	    Fs1 = sofs:domain(Fs0),
-	    Fs = sofs:to_external(Fs1),
-	    {material,[{{color,wings_color:white()},Fs}],St};
-	{true,_} ->
-	    {color,Ftab,We}
-    end;
-prepare_1(Ftab, #we{mode=material}=We, St) ->
-    {material,prepare_mat(Ftab, We),St}.
+prepare_1(Ftab, We, St) ->
+    %% We only handle the kind of vertex attributes that
+    %% are possible today. In a future release, an object
+    %% will be able to have both vertex colors and UV coordinates.
+    case wings_va:info(We, St) of
+	[] ->
+	    %% Only materials.
+	    {material,prepare_mat(Ftab, We)};
+	[uv] ->
+	    case wings_pref:get_value(show_textures) of
+		true ->
+		    {uv,prepare_mat(Ftab, We)};
+		false ->
+		    {material,prepare_mat(Ftab, We)}
+	    end;
+	[color] ->
+	    case {wings_pref:get_value(show_colors),Ftab} of
+		{false,[{_,Edge}|_]} when is_integer(Edge) ->
+		    Fs0 = sofs:from_external(Ftab, [{face,edge}]),
+		    Fs1 = sofs:domain(Fs0),
+		    Fs = sofs:to_external(Fs1),
+		    {material,[{{color,wings_color:white()},Fs}]};
+		{true,_} ->
+		    {color,Ftab,We}
+	    end
+    end.
 
 prepare_mat(Ftab, We) ->
     case wings_pref:get_value(show_materials) of

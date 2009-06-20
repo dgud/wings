@@ -11,9 +11,12 @@
 %%     $Id$
 %%
 -module(wings_va).
--export([set_vertex_color/3,set_edge_color/3,set_face_color/3,set_body_color/2]).
+-export([set_vertex_color/3,set_edge_color/3,set_face_color/3,set_body_color/2,
+	 info/2]).
 
 -include("wings.hrl").
+
+-import(lists, [any/2]).
 
 set_vertex_color(Vs, Color, We) ->
     gb_sets:fold(fun(V, W) ->
@@ -35,6 +38,21 @@ set_body_color(Color, #we{es=Etab0}=We) ->
 				    Rec#edge{a=Color,b=Color}
 			    end, Etab0),
     We#we{es=Etab,mode=vertex}.
+
+%% info(We, St) -> [color|uv]
+%%  Return a list of the available vertex attributes for the We.
+%%
+info(#we{mode=vertex}, _St) ->
+    [color];
+info(#we{mode=material}=We, #st{mat=Mtab}) ->
+    Used = wings_facemat:used_materials(We),
+    AnyTexture = any(fun(Mat) ->
+			     wings_material:has_texture(Mat, Mtab)
+		     end, Used),
+    case AnyTexture of
+	false -> [];
+	true -> [uv]
+    end.
 
 %%%
 %%% Local functions.
