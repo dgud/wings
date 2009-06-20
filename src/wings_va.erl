@@ -12,7 +12,7 @@
 %%
 -module(wings_va).
 -export([set_vertex_color/3,set_edge_color/3,set_face_color/3,set_body_color/2,
-	 info/2]).
+	 info/2,face_attr/3,face_attr/4]).
 
 -include("wings.hrl").
 
@@ -53,6 +53,20 @@ info(#we{mode=material}=We, #st{mat=Mtab}) ->
 	false -> [];
 	true -> [uv]
     end.
+
+face_attr(What, Face, #we{fs=Ftab}=We) ->
+    Edge = gb_trees:get(Face, Ftab),
+    face_attr(What, Face, Edge, We).
+
+%% face_attr(What, Face, Edge, We) -> [Attribute]
+%%     What = uv | color.
+%%     Attribute = {_,_,_} | {_,_} | none
+%%  Return vertex attributes for the all vertices in the face.
+%%
+face_attr(uv, Face, Edge, #we{es=Etab}) ->
+    face_attr(Edge, Etab, Face, Edge, []);
+face_attr(color, Face, Edge, #we{es=Etab}) ->
+    face_attr(Edge, Etab, Face, Edge, []).
 
 %%%
 %%% Local functions.
@@ -95,3 +109,11 @@ set_face_color_1(F, Color, #we{es=Etab0}=We) ->
 	     end, Etab0, F, We),
     We#we{es=Etab}.
 
+face_attr(LastEdge, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
+face_attr(Edge, Etab, Face, LastEdge, Acc) ->
+    case array:get(Edge, Etab) of
+	#edge{a=Info,lf=Face,ltsu=NextEdge} ->
+	    face_attr(NextEdge, Etab, Face, LastEdge, [Info|Acc]);
+	#edge{b=Info,rf=Face,rtsu=NextEdge} ->
+	    face_attr(NextEdge, Etab, Face, LastEdge, [Info|Acc])
+    end.
