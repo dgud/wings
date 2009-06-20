@@ -121,7 +121,7 @@ uv_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
 	  face_map=FaceMap,mat_map=MatInfo}.
 
 uv_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
-    UVs = wings_face:vertex_info(Face, Edge, We),
+    UVs = wings_va:face_attr(uv, Face, Edge, We),
     case gb_trees:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
 	    uv_flat_faces_1(Fs, D, Start+3,
@@ -157,7 +157,7 @@ col_flat_faces(Fs, We, #dlo{ns=Ns}=D) ->
 	  face_map=FaceMap,mat_map=MatInfo}.
 
 col_flat_faces_1([{Face,Edge}|T], We, Ns, Start, Vs0, Fmap0) ->
-    Cols = wings_face:vertex_info(Face, Edge, We),
+    Cols = wings_va:face_attr(color, Face, Edge, We),
     case gb_trees:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
 	    Vs = add_col_tri(Vs0, Normal, Pos, Cols),
@@ -258,7 +258,6 @@ setup_smooth_normals_1([{A,B,C}|Fs], VsInfo, SN0) ->
     setup_smooth_normals_1(Fs,VsInfo,SN);
 setup_smooth_normals_1([], _, SN) ->
     SN.
-
 
 %%
 %% Create binaries
