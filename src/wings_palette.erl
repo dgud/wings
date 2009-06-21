@@ -478,16 +478,17 @@ select(X,Y,#pst{w=ColsW,h=ColsH, knob=Knob}) ->
 	true -> Id
     end.
 
-scan_colors(St = #st{mat=Mtab}, Old) ->
-    Cols = wings_sel:fold(fun(_, We, Cols) ->  scan_color(We,Cols) end, Old, St),
-    Mats = scan_materials(gb_trees:values(Mtab), Cols),
-    lists:usort(Mats).
+scan_colors(#st{mat=Mtab}=St, Cols0) ->
+    Cols1 = wings_sel:fold(fun(_, We, Cols) ->
+				   scan_color(We, Cols)
+			   end, ordsets:from_list(Cols0), St),
+    Cols = scan_materials(gb_trees:values(Mtab), Cols1),
+    lists:usort(Cols).
 
-scan_color(#we{mode = material}, Acc) ->    Acc;
-scan_color(#we{mode = vertex, es=Etab}, Acc) ->
-    array:sparse_foldl(fun(_, #edge{a=Ca,b=Cb}, Cols) ->
-			       [color(Ca),color(Cb)|Cols]
-		       end, Acc, Etab).
+scan_color(#we{mode=material}, Acc) -> Acc;
+scan_color(#we{mode=vertex}=We, Acc) ->
+    Cols = wings_va:all(color, We),
+    ordsets:union(Cols, Acc).
 
 scan_materials([Mat|Ms], Cols) ->
     Opengl = proplists:get_value(opengl, Mat),
@@ -496,5 +497,5 @@ scan_materials([Mat|Ms], Cols) ->
     Spec   = proplists:get_value(specular, Opengl),
     Emis   = proplists:get_value(emission, Opengl),
     scan_materials(Ms, [color(Diff),color(Amb),color(Spec),
-			color(Emis) |Cols]);
+			color(Emis)|Cols]);
 scan_materials([], Cols) -> Cols.

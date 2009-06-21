@@ -12,7 +12,7 @@
 %%
 -module(wings_va).
 -export([set_vertex_color/3,set_edge_color/3,set_face_color/3,set_body_color/2,
-	 info/2,face_attr/3,face_attr/4]).
+	 info/2,face_attr/3,face_attr/4,all/2]).
 
 -include("wings.hrl").
 
@@ -68,6 +68,13 @@ face_attr(uv, Face, Edge, #we{es=Etab}) ->
 face_attr(color, Face, Edge, #we{es=Etab}) ->
     face_attr(Edge, Etab, Face, Edge, []).
 
+%% all(uv|color, We) -> OrderedSet.
+%%  Return an ordered set containing all UV coordinates or
+%%  vertex colors.
+%%
+all(uv, #we{}=We) -> all_1(2, We);
+all(color, #we{}=We) -> all_1(3, We).
+
 %%%
 %%% Local functions.
 %%%
@@ -117,3 +124,10 @@ face_attr(Edge, Etab, Face, LastEdge, Acc) ->
 	#edge{b=Info,rf=Face,rtsu=NextEdge} ->
 	    face_attr(NextEdge, Etab, Face, LastEdge, [Info|Acc])
     end.
+
+all_1(Sz, #we{es=Etab}) ->
+    Cuvs0 = array:sparse_foldl(fun(_, #edge{a=A,b=B}, Acc) ->
+				       [A,B|Acc]
+			       end, [], Etab),
+    Cuvs = [E || E <- Cuvs0, tuple_size(E) =:= Sz],
+    ordsets:from_list(Cuvs).

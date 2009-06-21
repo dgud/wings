@@ -152,23 +152,20 @@ make_col_face(Face, Mat, ColTab, We) ->
 
 make_tables(Ps, #we{mode=vertex}=We) ->
     {case proplists:get_value(include_colors, Ps, true) of
-	 false -> [];
-	 true -> make_table(3, [wings_color:white()], We)
+	 false ->
+	     [];
+	 true ->
+	     ColorTable = ordsets:add_element(wings_color:white(),
+					      wings_va:all(color, We)),
+	     number(ColorTable)
      end,
      []};
 make_tables(Ps, #we{mode=material}=We) ->
     {[],
      case proplists:get_value(include_uvs, Ps, true) of
 	 false -> [];
-	 true -> make_table(2, [], We)
+	 true -> number(wings_va:all(uv, We))
      end}.
-
-make_table(Sz, Def, #we{es=Etab}) ->
-    Cuvs0 = array:sparse_foldl(fun(_, #edge{a=A,b=B}, Acc) ->
-				       [A,B|Acc]
-			       end, Def, Etab),
-    Cuvs = [E || E <- Cuvs0, tuple_size(E) =:= Sz],
-    number(ordsets:from_list(Cuvs)).
 
 number(L) ->
     number(L, 0, []).
