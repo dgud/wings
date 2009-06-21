@@ -17,7 +17,8 @@
 -include("e3d.hrl").
 -include("e3d_image.hrl").
 
--import(lists, [reverse/1,reverse/2,foreach/2,foldl/3]).
+-import(erlang, [min/2,max/2]).
+-import(lists, [reverse/1,reverse/2,foreach/2,foldl/3,last/1]).
 
 -record(ost,
 	{v=[],					%Vertices.
@@ -94,9 +95,7 @@ hard_edges_1([#e3d_face{vs=Vs}|Fs], [Sg|Sgs], Acc0) ->
     Acc = add_edges(Vs, hd(Vs), Sg, Acc0),
     hard_edges_1(Fs, Sgs, Acc);
 hard_edges_1([], [], Acc) ->
-    R = sofs:relation(Acc),
-    F0 = sofs:relation_to_family(R),
-    F = sofs:to_external(F0),
+    F = rel2fam(Acc),
     foldl(fun({Edge,Sgs0}, He) ->
 		  %% Group 0 is special. Edges surrounded by faces with
 		  %% group zero will always be hard. Otherwise the rule
@@ -469,7 +468,7 @@ export_object(F, #e3d_object{name=Name,obj=Mesh0}, Flags,
 	       false -> Mesh0;
 	       true -> e3d_mesh:vertex_normals(Mesh0)
 	   end,
-    #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,ns=Ns} = Mesh,
+    #e3d_mesh{vs=Vs,tx=Tx,ns=Ns} = Mesh,
     mesh_info(F, Mesh),
     foreach(fun({X,Y,Z}) ->
 		    io:format(F, "v ~s ~s ~s\r\n",
@@ -484,10 +483,11 @@ export_object(F, #e3d_object{name=Name,obj=Mesh0}, Flags,
 			      [fmtf(X),fmtf(Y),fmtf(Z)])
 	    end, Ns),
     object_group(F, Name, Flags),
-    Fs1 = [{Mat,FaceRec} || #e3d_face{mat=Mat}=FaceRec <- Fs0],
-    Fs = sofs:to_external(sofs:relation_to_family(sofs:relation(Fs1))),
-    foreach(fun(Face) ->
-		    face_mat(F, Name, Face, Flags, Vbase, UVbase, Nbase)
+    GroupedFaces = export_smooth_groups(Mesh),
+    Fs1 = [{Mat,Pair} || {_SG,#e3d_face{mat=Mat}}=Pair <- GroupedFaces],
+    Fs = rel2fam(Fs1),
+    foreach(fun(MatFs) ->
+		    face_mat(F, Name, MatFs, Flags, Vbase, UVbase, Nbase)
 	    end, Fs),
     {Vbase+length(Vs),UVbase+length(Tx),Nbase+length(Ns)}.
 
@@ -502,14 +502,21 @@ object_group(F, Name, Flags) ->
 	false -> io:format(F, "g ~s\r\n", [Name])
     end.
 
-face_mat(F, Name, {Ms,Fs}, Flags, Vbase, UVbase, Nbase) ->
+face_mat(F, Name, {Ms,SgFs0}, Flags, Vbase, UVbase, Nbase) ->
     mat_group(F, Name, Ms, Flags),
     io:put_chars(F, "usemtl"),
     foldl(fun(M, Prefix) ->
 		  io:format(F, "~c~s", [Prefix,atom_to_list(M)])
 	  end, $\s, Ms),
     eol(F),
-    foreach(fun(Vs) -> face(F, Vs, Vbase, UVbase, Nbase) end, Fs).
+    SgFs = rel2fam(SgFs0),
+    foreach(fun({SG,Faces}) ->
+		    io:format(F, "s ~w", [SG]),
+		    eol(F),
+		    foreach(fun(Face) ->
+				    face(F, Face, Vbase, UVbase, Nbase)
+			    end, Faces)
+	    end, SgFs).
 
 mat_group(F, Name, Ms, Flags) ->
     case proplists:get_bool(group_per_material, Flags) of
@@ -604,3 +611,79 @@ mesh_info(F, #e3d_mesh{vs=Vs,fs=Fs}) ->
 
 eol(F) ->
     io:put_chars(F, "\r\n").
+
+%% Calculate smooth groups for export.
+
+export_smooth_groups(#e3d_mesh{fs=Fs,he=[]}) ->
+    %% Optimization: put all faces in the same smoothing group
+    %% directly without constructing a digraph if there are
+    %% no hard edges.
+    [{1,F} || F <- Fs];
+export_smooth_groups(#e3d_mesh{fs=Fs0,he=He0}) ->
+    Fs1 = number(Fs0),
+    Es = build_edges(Fs1),
+    R = sofs:relation(Es, [{edge,face}]),
+    Fam0 = sofs:relation_to_family(R),
+    Fam = sofs:to_external(Fam0),
+
+    %% Create a digraph. Create a vertex in the digraph for each
+    %% face in the object. Connect two vertices (i.e. faces in the
+    %% object) with an edge only if the edge between the faces in
+    %% the object is soft. The resulting components of the digraph
+    %% will be the smoothing groups.
+    G = digraph:new(),
+    He = gb_sets:from_list(He0),
+    build_graph(G, Fam, He),
+    Cs = digraph_utils:components(G),
+    digraph:delete(G),
+
+    %% Number the smoothing groups starting from 1.
+    %% Return [{SG,#e3d_face{}}].
+    Fs = sofs:relation(Fs1, [{face,data}]),
+    Sg0 = number(Cs, 1, []),
+    Sg1 = sofs:relation(Sg0, [{group,[face]}]),
+    Sg2 = sofs:family_to_relation(Sg1),
+    Sg3 = sofs:converse(Sg2),
+    Sg4 = sofs:relative_product({Sg3,Fs}),
+    Sg = sofs:range(Sg4),
+    sofs:to_external(Sg).
+
+build_edges(Fs) ->
+    build_edges(Fs, []).
+
+build_edges([{Face,#e3d_face{vs=Vs}}|Fs], Acc0) ->
+    Acc = build_edges_1(last(Vs), Vs, Face, Acc0),
+    build_edges(Fs, Acc);
+build_edges([], Acc) -> Acc.
+
+build_edges_1(Prev, [V|Vs], Face, Acc) ->
+    Pair = {min(Prev, V),max(Prev, V)},
+    build_edges_1(V, Vs, Face, [{Pair,Face}|Acc]);
+build_edges_1(_, [], _, Acc) -> Acc.
+
+build_graph(G, [{Edge,[Fa,Fb]}|T], He) ->
+    digraph:add_vertex(G, Fa),
+    digraph:add_vertex(G, Fb),
+    case gb_sets:is_member(Edge, He) of
+	true -> ok;
+	false -> digraph:add_edge(G, Fa, Fb)
+    end,
+    build_graph(G, T, He);
+build_graph(G, [{_,[_]}|T], He) ->
+    %% Can only happen if one or more faces have the "_hole_" material.
+    build_graph(G, T, He);
+build_graph(_, [], _) -> ok.
+
+number(Fs) ->
+    number(Fs, 0, []).
+
+number([F|Fs], Face, Acc) ->
+    number(Fs, Face+1, [{Face,F}|Acc]);
+number([], _Face, Acc) -> reverse(Acc).
+
+%%%
+%%% Common utilities.
+%%%
+
+rel2fam(R) ->
+    sofs:to_external(sofs:relation_to_family(sofs:relation(R))).
