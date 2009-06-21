@@ -396,10 +396,10 @@ fold(F, Acc, Face, Edge, #we{es=Etab}) ->
 fold(LastEdge, _, _, Acc, _, LastEdge, done) -> Acc;
 fold(Edge, Etab, F, Acc0, Face, LastEdge, _) ->
     case array:get(Edge, Etab) of
-	#edge{ve=V,lf=Face,ltsu=NextEdge}=E ->
+	#edge{vs=V,lf=Face,ltsu=NextEdge}=E ->
 	    Acc = F(V, Edge, E, Acc0),
 	    fold(NextEdge, Etab, F, Acc, Face, LastEdge, done);
-	#edge{vs=V,rf=Face,rtsu=NextEdge}=E ->
+	#edge{ve=V,rf=Face,rtsu=NextEdge}=E ->
 	    Acc = F(V, Edge, E, Acc0),
 	    fold(NextEdge, Etab, F, Acc, Face, LastEdge, done)
     end.
