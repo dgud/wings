@@ -175,8 +175,7 @@ smooth(D,_) ->
     D.
 
 setup_smooth_normals([{Face,_Normal}|Fs], Ftab, SN0) ->
-    [[_|{X1,Y1,Z1}],[_|{X2,Y2,Z2}],
-     [_|{X3,Y3,Z3}],[_|{X4,Y4,Z4}]] = array:get(Face, Ftab),
+    [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}] = array:get(Face, Ftab),
     SN = <<SN0/binary,
 	  X1:?F32,Y1:?F32,Z1:?F32,
 	  X2:?F32,Y2:?F32,Z2:?F32,

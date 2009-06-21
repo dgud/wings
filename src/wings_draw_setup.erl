@@ -204,7 +204,7 @@ setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,face_map=Fmap0}) ->
 setup_smooth_normals([{Face,{_,3}}|Fs], Ftab, Flat, SN0) ->
     %% One triangle.
     case array:get(Face, Ftab) of
-	[[_|N1],[_|N2],[_|N3]] ->
+	[N1,N2,N3] ->
 	    %% Common case: the face is a triangle.
 	    SN = add3(SN0, N1, N2, N3),
 	    setup_smooth_normals(Fs, Ftab, Flat, SN);
@@ -221,7 +221,7 @@ setup_smooth_normals([{Face,{_,3}}|Fs], Ftab, Flat, SN0) ->
 setup_smooth_normals([{Face,{_,6}}|Fs], Ftab, Flat, SN0) ->
     %% Two triangles.
     case array:get(Face, Ftab) of
-	[[_|N1],[_|N2],[_|N3],[_|N4]] ->
+	[N1,N2,N3,N4] ->
 	    %% Common case: triangulated quad.
 	    SN = add4(SN0, N1, N2, N3, N4),
 	    setup_smooth_normals(Fs, Ftab, Flat, SN);
@@ -235,9 +235,9 @@ setup_smooth_normals([{Face,{_,6}}|Fs], Ftab, Flat, SN0) ->
 	    SN = dup3(6, SN0, Fn),
 	    setup_smooth_normals(Fs, Ftab, Flat, SN)
     end;
-setup_smooth_normals([{Face, {_,Count}}|Fs], Ftab, Flat, SN0) ->
-    VsInfo = list_to_tuple(array:get(Face,Ftab)),
-    {FNormal,TriFs,Pos} = gb_trees:get(Face,Flat),
+setup_smooth_normals([{Face,{_,Count}}|Fs], Ftab, Flat, SN0) ->
+    VsInfo = list_to_tuple(array:get(Face, Ftab)),
+    {FNormal,TriFs,Pos} = gb_trees:get(Face, Flat),
     SN = case size(VsInfo) =:= length(Pos) of
 	     true  ->
 		 setup_smooth_normals_1(TriFs,VsInfo,SN0);
@@ -247,17 +247,15 @@ setup_smooth_normals([{Face, {_,Count}}|Fs], Ftab, Flat, SN0) ->
 		 dup3(Count,SN0,FNormal)
 	 end,
     setup_smooth_normals(Fs,Ftab,Flat,SN);
-setup_smooth_normals([],_,_,SN) ->
-    SN.
+setup_smooth_normals([],_,_,SN) -> SN.
 
 setup_smooth_normals_1([{A,B,C}|Fs], VsInfo, SN0) ->
-    [_|N1] = element(A,VsInfo),
-    [_|N2] = element(B,VsInfo),
-    [_|N3] = element(C,VsInfo),
+    N1 = element(A, VsInfo),
+    N2 = element(B, VsInfo),
+    N3 = element(C, VsInfo),
     SN = add3(SN0, N1, N2, N3),
     setup_smooth_normals_1(Fs,VsInfo,SN);
-setup_smooth_normals_1([], _, SN) ->
-    SN.
+setup_smooth_normals_1([], _, SN) -> SN.
 
 %%
 %% Create binaries

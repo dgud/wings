@@ -12,7 +12,7 @@
 %%
 -module(wings_va).
 -export([set_vertex_color/3,set_edge_color/3,set_face_color/3,set_body_color/2,
-	 info/2,face_attr/3,face_attr/4,face_pos_attr/4,all/2]).
+	 info/2,face_attr/3,face_attr/4,face_pos_attr/4,fold/5,all/2]).
 
 -include("wings.hrl").
 
@@ -77,6 +77,10 @@ face_pos_attr(uv, Face, Edge, #we{es=Etab,vp=Vtab}) ->
     face_pos_attr_1(Edge, Etab, Vtab, Face, Edge, [], []);
 face_pos_attr(color, Face, Edge, #we{es=Etab,vp=Vtab}) ->
     face_pos_attr_1(Edge, Etab, Vtab, Face, Edge, [], []).
+
+fold(W, F, Acc, Face, #we{es=Etab,fs=Ftab}) when W =:= uv; W =:= color ->
+    Edge = gb_trees:get(Face, Ftab),
+    fold_1(F, Acc, Face, Edge, Edge, Etab, not_done).
 
 %% all(uv|color, We) -> OrderedSet.
 %%  Return an ordered set containing all UV coordinates or
@@ -157,6 +161,16 @@ face_pos_attr_1(Edge, Etab, Vtab, Face, LastEdge, Vs, Info) ->
 	    face_pos_attr_1(NextEdge, Etab, Vtab, Face, LastEdge,
 			    [Pos|Vs], [Col|Info])
     end.
+
+fold_1(_F, Acc, _Face, LastEdge, LastEdge, _Etab, done) -> Acc;
+fold_1(F, Acc0, Face, Edge, LastEdge, Etab, _) ->
+    Acc = case array:get(Edge, Etab) of
+	      #edge{vs=V,a=VInfo,lf=Face,ltsu=NextEdge} ->
+		  F(V, VInfo, Acc0);
+	      #edge{ve=V,b=VInfo,rf=Face,rtsu=NextEdge} ->
+		  F(V, VInfo, Acc0)
+	  end,
+    fold_1(F, Acc, Face, NextEdge, LastEdge, Etab, done).
 
 all_1(Sz, #we{es=Etab}) ->
     Cuvs0 = array:sparse_foldl(fun(_, #edge{a=A,b=B}, Acc) ->

@@ -935,6 +935,10 @@ transform_vs_1(Transform, #we{vp=Vtab0}=We) ->
 %%% Calculate normals.
 %%%
 
+%% normals(FaceNormals, We) -> [{Face,[VertexNormal]}]
+%%  Given the face normals for an object, calculate the
+%%  vertex normals.
+%%
 normals(Ns, #we{mirror=none}=We) ->
     case any_hidden(We) of
 	false -> normals_2(Ns, We);
@@ -970,15 +974,15 @@ all_soft(FaceNormals, #we{vp=Vtab}=We) ->
     wings_pb:update(0.10, ?__(1,"preparing")),
     VisVs = visible_vs(array:sparse_to_orddict(Vtab), We),
     VtxNormals = soft_vertex_normals(VisVs, FaceNormals, We),
-    FoldFun = fun(V, VInfo, A) ->
+    FoldFun = fun(V, _, _, A) ->
 		      Normal = gb_trees:get(V, VtxNormals),
-		      [[VInfo|Normal]|A]
+		      [Normal|A]
 	      end,
     wings_pb:update(0.6, ?__(2,"collecting")),
     all_soft_1(FoldFun, FaceNormals, We, []).
 
 all_soft_1(FoldFun, [{Face,_}|FNs], We, Acc) ->
-    Vs = wings_face:fold_vinfo(FoldFun, [], Face, We),
+    Vs = wings_face:fold(FoldFun, [], Face, We),
     all_soft_1(FoldFun, FNs, We, [{Face,Vs}|Acc]);
 all_soft_1(_, [], _, Acc) -> reverse(Acc).
 
@@ -997,16 +1001,16 @@ mixed_edges(FaceNormals0, We) ->
     reverse(Ns).
 
 n_face(Face, G, FaceNormals, VtxNormals, We) ->
-    wings_face:fold_vinfo(
-	   fun(V, VInfo, Acc) ->
-		   case gb_trees:lookup(V, VtxNormals) of
-		       {value,Normal} ->
-			   [[VInfo|Normal]|Acc];
-		       none ->
-			   Normal = hard_vtx_normal(G, V, Face, FaceNormals),
- 			   [[VInfo|Normal]|Acc]
-		   end
-	   end, [], Face, We).
+    wings_face:fold(
+      fun(V, _, _, Acc) ->
+	      case gb_trees:lookup(V, VtxNormals) of
+		  {value,Normal} ->
+		      [Normal|Acc];
+		  none ->
+		      Normal = hard_vtx_normal(G, V, Face, FaceNormals),
+		      [Normal|Acc]
+	      end
+      end, [], Face, We).
 
 hard_vtx_normal(G, V, Face, FaceNormals) ->
     Reachable = digraph_utils:reachable([{V,Face}], G),
@@ -1020,9 +1024,9 @@ two_faced([{FaceA,Na},{FaceB,Nb}], We) ->
      {FaceB,two_faced_1(FaceB, Nb, We)}].
 
 two_faced_1(Face, Normal, We) ->
-    wings_face:fold_vinfo(fun (_, VInfo, Acc) ->
-				  [[VInfo|Normal]|Acc]
-			  end, [], Face, We).
+    wings_face:fold(fun (_, _, _, Acc) ->
+			    [Normal|Acc]
+		    end, [], Face, We).
 
 vertex_normals(#we{vp=Vtab}=We, G, FaceNormals) ->
     Vs0 = visible_vs(array:sparse_to_orddict(Vtab), We),

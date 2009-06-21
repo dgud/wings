@@ -121,14 +121,15 @@ make_face(Face, Mat, ColTab, _UvTab, #we{mode=vertex}=We) ->
     end.
 
 make_plain_face(Face, Mat, We) ->
-    Vs = wings_face:fold_vinfo(
-	   fun(V, _, Acc) ->
+    Vs = wings_face:fold(
+	   fun(V, _, _, Acc) ->
 		   [V|Acc]
 	   end, [], Face, We),
     #e3d_face{vs=Vs,mat=make_face_mat(Mat)}.
 
 make_uv_face(Face, Mat, UvTab, We) ->
-    {Vs,UVs0} = wings_face:fold_vinfo(
+    {Vs,UVs0} = wings_va:fold(
+		  uv,
 		  fun(V, {_,_}=UV, {VAcc,UVAcc}) ->
 			  {[V|VAcc],[gb_trees:get(UV, UvTab)|UVAcc]};
 		     (V, _, {VAcc,UVAcc}) ->
@@ -141,7 +142,8 @@ make_uv_face(Face, Mat, UvTab, We) ->
     #e3d_face{vs=Vs,tx=UVs,mat=make_face_mat(Mat)}.
 
 make_col_face(Face, Mat, ColTab, We) ->
-    {Vs,Cols} = wings_face:fold_vinfo(
+    {Vs,Cols} = wings_va:fold(
+		  color,
 		  fun(V, {_,_,_}=Col, {VAcc,ColAcc}) ->
 			  {[V|VAcc],[gb_trees:get(Col, ColTab)|ColAcc]};
 		     (V, _Info, {VAcc,ColAcc}) ->

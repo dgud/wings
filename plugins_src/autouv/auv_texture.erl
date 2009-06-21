@@ -850,7 +850,7 @@ find(V, [[V|Info]|_R]) -> Info;
 find(V, [_|R]) -> find(V,R);
 find(_, []) -> none.
 
-n_zip([[V|_]|R1],[[_|N]|R2]) -> 
+n_zip([[V|_]|R1],[N|R2]) ->
     [[V|N]|n_zip(R1,R2)];
 n_zip([],[]) -> [].
     
@@ -862,7 +862,7 @@ fix({R,G,B}, true) -> {R,G,B,1.0}.
     
 setup_normals(We = #we{fs=Ftab}) ->
     FN0	= [{Face,wings_face:normal(Face, We)} || Face <- gb_trees:keys(Ftab)],
-    Ns = wings_we:normals(FN0, We),  %% gb_tree of {Face, [VInfo|Normal]}    
+    Ns = wings_we:normals(FN0, We),
     gb_trees:from_orddict(sort(Ns)).
 
 get_material(Face, We, OrigWe, Materials) ->

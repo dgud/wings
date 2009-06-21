@@ -25,7 +25,7 @@
 	 vertex_positions/2,vertex_positions/3,
 	 extend_border/2,
 	 inner_edges/2,outer_edges/2,inner_outer_edges/2,
-	 fold/4,fold/5,fold_vinfo/4,fold_faces/4,
+	 fold/4,fold/5,fold_faces/4,
 	 iterator/2,skip_to_edge/2,skip_to_cw/2,skip_to_ccw/2,
 	 next_cw/1,next_ccw/1,
 	 iter2etab/1,
@@ -306,7 +306,6 @@ inner_outer_edges_1([E|T], In, Out) ->
 inner_outer_edges_1([], In, Out) ->
     {reverse(In),reverse(Out)}.
 
-
 %% Fold over all edges surrounding a face.
 
 fold(F, Acc, Face, #we{es=Etab,fs=Ftab}) ->
@@ -326,22 +325,6 @@ fold(Edge, Etab, F, Acc0, Face, LastEdge, _) ->
 	    Acc = F(V, Edge, E, Acc0),
 	    fold(NextEdge, Etab, F, Acc, Face, LastEdge, done)
     end.
-
-%% Fold over all edges surrounding a face.
-
-fold_vinfo(F, Acc, Face, #we{es=Etab,fs=Ftab}) ->
-    Edge = gb_trees:get(Face, Ftab),
-    fold_vinfo(F, Acc, Face, Edge, Edge, Etab, not_done).
-
-fold_vinfo(_F, Acc, _Face, LastEdge, LastEdge, _Etab, done) -> Acc;
-fold_vinfo(F, Acc0, Face, Edge, LastEdge, Etab, _) ->
-    Acc = case array:get(Edge, Etab) of
-	      #edge{vs=V,a=VInfo,lf=Face,ltsu=NextEdge} ->
-		  F(V, VInfo, Acc0);
-	      #edge{ve=V,b=VInfo,rf=Face,rtsu=NextEdge} ->
-		  F(V, VInfo, Acc0)
-	  end,
-    fold_vinfo(F, Acc, Face, NextEdge, LastEdge, Etab, done).
 
 %% Fold over a set of faces.
 
