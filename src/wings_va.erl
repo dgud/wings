@@ -12,7 +12,7 @@
 %%
 -module(wings_va).
 -export([set_vertex_color/3,set_edge_color/3,set_face_color/3,set_body_color/2,
-	 info/2,face_attr/3,face_attr/4,all/2]).
+	 info/2,face_attr/3,face_attr/4,face_pos_attr/4,all/2]).
 
 -include("wings.hrl").
 
@@ -59,14 +59,24 @@ face_attr(What, Face, #we{fs=Ftab}=We) ->
     face_attr(What, Face, Edge, We).
 
 %% face_attr(What, Face, Edge, We) -> [Attribute]
-%%     What = uv | color.
+%%     What = uv | color | [vertex|uv] | [vertex|color]
 %%     Attribute = {_,_,_} | {_,_} | none
 %%  Return vertex attributes for the all vertices in the face.
 %%
 face_attr(uv, Face, Edge, #we{es=Etab}) ->
     face_attr(Edge, Etab, Face, Edge, []);
 face_attr(color, Face, Edge, #we{es=Etab}) ->
-    face_attr(Edge, Etab, Face, Edge, []).
+    face_attr(Edge, Etab, Face, Edge, []);
+face_attr([vertex|uv], Face, Edge, #we{es=Etab}) ->
+    face_vtx_attr(Edge, Etab, Face, Edge, []);
+face_attr([vertex|color], Face, Edge, #we{es=Etab}) ->
+    face_vtx_attr(Edge, Etab, Face, Edge, []).
+
+%% Returns {[VsPos],[Info]}
+face_pos_attr(uv, Face, Edge, #we{es=Etab,vp=Vtab}) ->
+    face_pos_attr_1(Edge, Etab, Vtab, Face, Edge, [], []);
+face_pos_attr(color, Face, Edge, #we{es=Etab,vp=Vtab}) ->
+    face_pos_attr_1(Edge, Etab, Vtab, Face, Edge, [], []).
 
 %% all(uv|color, We) -> OrderedSet.
 %%  Return an ordered set containing all UV coordinates or
@@ -123,6 +133,29 @@ face_attr(Edge, Etab, Face, LastEdge, Acc) ->
 	    face_attr(NextEdge, Etab, Face, LastEdge, [Info|Acc]);
 	#edge{b=Info,rf=Face,rtsu=NextEdge} ->
 	    face_attr(NextEdge, Etab, Face, LastEdge, [Info|Acc])
+    end.
+
+face_vtx_attr(LastEdge, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
+face_vtx_attr(Edge, Etab, Face, LastEdge, Acc) ->
+    case array:get(Edge, Etab) of
+	#edge{vs=V,a=Info,lf=Face,ltsu=NextEdge} ->
+	    face_vtx_attr(NextEdge, Etab, Face, LastEdge, [[V|Info]|Acc]);
+	#edge{ve=V,b=Info,rf=Face,rtsu=NextEdge} ->
+	    face_vtx_attr(NextEdge, Etab, Face, LastEdge, [[V|Info]|Acc])
+    end.
+
+face_pos_attr_1(LastEdge, _, _, _, LastEdge, Vs, Info)
+  when Vs =/= [] -> {Vs,Info};
+face_pos_attr_1(Edge, Etab, Vtab, Face, LastEdge, Vs, Info) ->
+    case array:get(Edge, Etab) of
+	#edge{vs=V,a=Col,lf=Face,ltsu=NextEdge} ->
+	    Pos = array:get(V, Vtab),
+	    face_pos_attr_1(NextEdge, Etab, Vtab, Face, LastEdge,
+			    [Pos|Vs], [Col|Info]);
+	#edge{ve=V,b=Col,rtsu=NextEdge} ->
+	    Pos = array:get(V, Vtab),
+	    face_pos_attr_1(NextEdge, Etab, Vtab, Face, LastEdge,
+			    [Pos|Vs], [Col|Info])
     end.
 
 all_1(Sz, #we{es=Etab}) ->

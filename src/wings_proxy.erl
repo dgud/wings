@@ -440,7 +440,7 @@ uv_flat_faces([], D, _Start, Vs, FaceMap, MatInfo) ->
 	 face_ns=reverse(FaceMap),mat_map=MatInfo}.
 
 uv_flat_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap) ->
-    {VsPos,UV} = wings_face:vpos_info_ccw(Face, Edge, We),
+    {VsPos,UV} = wings_va:face_pos_attr(uv, Face, Edge, We),
     Normal = e3d_vec:normal(VsPos),
     uv_flat_faces_1(Fs,We,Start+4, add_quad_uv(Vs,Normal,VsPos,UV),
 		    [{Face,Normal}|FaceMap]);
@@ -462,7 +462,7 @@ col_flat_faces(Fs, We, Pd) ->
 	  face_ns=reverse(FaceMap),mat_map=MatInfo}.
 
 col_flat_faces_1([{Face,Edge}|T], We, Start, Vs, Fmap) ->
-    {VsPos,Col} = wings_face:vpos_info_ccw(Face, Edge, We),
+    {VsPos,Col} = wings_va:face_pos_attr(color, Face, Edge, We),
     Normal = e3d_vec:normal(VsPos),
     col_flat_faces_1(T,We,Start+4, add_quad_col(Vs,Normal,VsPos,Col),
 		     [{Face,Normal}|Fmap]);

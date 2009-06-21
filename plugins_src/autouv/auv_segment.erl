@@ -934,7 +934,7 @@ fvuvmap_1([], _, FaceAcc, Acc) ->
     {FaceAcc,gb_trees:from_orddict(sort(Acc))}.
 	
 uv_info(F, E, We) ->
-    uv_info_1(wings_face:vinfo_ccw(F, E, We), F, []).
+    uv_info_1(wings_va:face_attr([vertex|uv], F, E, We), F, []).
 
 uv_info_1([[V|{_,_}=UV]|T], F, Acc) ->
     uv_info_1(T, F, [{[F|V],UV}|Acc]);

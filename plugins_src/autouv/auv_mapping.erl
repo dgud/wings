@@ -604,7 +604,7 @@ lsq_init(Fs0,We0,Pinned0) ->
     lsq_init_fs(Fs,Pinned,We,{0,dict:new(),dict:new()},0,[],[],[]).
 
 lsq_init_fs([F|Fs],P,We = #we{vp=Vtab},Ds0,N,Re0,Im0,X0) ->
-    Vs = [[A0|_],[B0|_],[C0|_]] = wings_face:vinfo_ccw(F,We),
+    Vs = [[A0|_],[B0|_],[C0|_]] = wings_va:face_attr([vertex|uv], F, We),
     {[A,B,C],Ds} = update_dicts(Vs,Ds0),
 %%    {X1=Z0x,Y1=Z0y,X2=Z1x,Y2=Z1y,X3=Z2x,Y3=Z2y} = 
     {X1,Y1,X2,Y2,X3,Y3} = 

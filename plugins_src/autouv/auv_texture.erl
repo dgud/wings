@@ -696,10 +696,13 @@ create_faces(We = #we{vp=Vtab,name=#ch{vmap=Vmap}},
 	      Coords   = [array:get(map_vertex(V,Vmap),Vt3d) 
 			  || V <- Vs0],
 	      Normals = if
-			    NTab=:= [] -> [];
-			    true -> fix_normals(Vs0,Vmap,
-						wings_face:vinfo_ccw(Face,RWe),
-						gb_trees:get(Face,NTab))
+			    NTab=:= [] ->
+				[];
+			    true ->
+				fix_normals(Vs0, Vmap,
+					    wings_va:face_attr([vertex|uv],
+							       Face,RWe),
+					    gb_trees:get(Face,NTab))
 			end,
 	      OldUvc  = fix_uvc(Vs0,Face,OWe,Vmap,OldMode),
 	      Len = length(Vs0),
@@ -828,7 +831,7 @@ check_coordsys(Stan,Ttan,N) ->
 
 fix_uvc(Vs,Face,OWe,Vmap,Mode) ->
     try 
-	Uvc = wings_face:vinfo_ccw(Face,OWe),
+	Uvc = wings_va:face_attr([vertex|uv], Face, OWe),
 	fix_uvc1(Vs,Uvc,Vmap,Mode,[])
     catch error:_ ->
 	    fix_uvc1(Vs,[],Vmap,Mode,[])
