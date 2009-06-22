@@ -1,3 +1,26 @@
+--- 1.1.4.1 --------------------------------------------------------------------
+- Having wireframe on and workmode off would cause a
+  crash. (Thanks to Siber.) [bjorng]
+
+- Select By|Vertices With could select hidden vertices
+  (i.e. vertices surrounded only by hidden faces). Similarly,
+  Select By|Random could select hidden edges or vertices,
+  and Select By|Short Edges and Select By|Sharp Edges could
+  select hidden edges. [bjorng]
+
+- The Wavefront (OBJ) exporter will now export smoothing
+  groups based on the hard edges in the model. [bjorng]
+
+- For developers: There is a new module wings_va
+  which is ultimately meant to encapsulate the details
+  of how vertex attributes (i.e. vertex colors and UV
+  coordinates) are stored. In this release, wings_va has
+  an API mostly for retrieving vertex attributes (i.e.
+  it does not yet handle updating of vertex attributes).
+  In particular, all functions in wings_face that could
+  retrieve vertex attributes (such as vinfo_ccw/2 and
+  fold_vinfo/4) have been removed. [bjorng]
+
 --- 1.1.4 ----------------------------------------------------------------------
 - For developers: Release notes to be included in a release
   should no longer be directly added to NOTES-1.1 files, but
