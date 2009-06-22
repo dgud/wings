@@ -308,7 +308,7 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth0,transparent=Trans0,
     disable_lighting(),
     gl:shadeModel(?GL_FLAT),
     case wire(We) of
-	true when Proxy =:= none ->
+	true when Proxy =:= false ->
 	    gl:color3fv(wings_pref:get_value(edge_color)),
 	    gl:lineWidth(1),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
