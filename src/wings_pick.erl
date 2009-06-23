@@ -877,7 +877,7 @@ setup_pick_context(PickFun) ->
 			end, []),
     sort(Res).
 
-setup_pick_context_fun(#dlo{src_we={perm=Perm}}, _PickFun, Acc)
+setup_pick_context_fun(#dlo{src_we=#we{perm=Perm}}, _PickFun, Acc)
   when ?IS_NOT_SELECTABLE(Perm) ->
     Acc;
 setup_pick_context_fun(#dlo{mirror=none,src_we=We}, PickFun, Acc) ->
@@ -903,10 +903,10 @@ dlo_pick(St) ->
 			 do_dlo_pick(D, St, Acc)
 		 end, []).
 
-do_dlo_pick(D=#dlo{src_we=#we{perm=Perm}}=D, _St, Acc)
+do_dlo_pick(#dlo{src_we=#we{perm=Perm}}=D, _St, Acc)
   when ?IS_NOT_SELECTABLE(Perm) ->
     {D,Acc};
-do_dlo_pick(D=#dlo{face_vs=none}, St, Acc) ->
+do_dlo_pick(#dlo{face_vs=none}=D, St, Acc) ->
     do_dlo_pick(wings_draw_setup:work(D, St), St, Acc);
 do_dlo_pick(#dlo{face_vs=Vs,src_we=#we{id=Id}=We}=D, _, Acc)
   when ?IS_LIGHT(We) ->
