@@ -154,7 +154,7 @@ update_normals(D) -> D.
 update_normals_1(none, Ftab, We) ->
     update_normals_2(Ftab, [], We);
 update_normals_1(Ns, Ftab, We) ->
-    update_normals_2(Ftab, gb_trees:to_list(Ns), We).
+    update_normals_2(Ftab, array:sparse_to_orddict(Ns), We).
 
 update_normals_2(Ftab0, Ns, We) ->
     Ftab = wings_we:visible(Ftab0, We),
@@ -175,7 +175,7 @@ update_normals_3([{Fa,_}|_]=Fs, [{Fb,_}|Ns], We, Acc) when Fa > Fb ->
 update_normals_3([{Face,Edge}|Fs], Ns, We, Acc) ->
     Ps = wings_face:vertex_positions(Face, Edge, We),
     update_normals_3(Fs, Ns, We, [{Face,face_ns_data(Ps)}|Acc]);
-update_normals_3([], _, _, Acc) -> gb_trees:from_orddict(reverse(Acc)).
+update_normals_3([], _, _, Acc) -> array:from_orddict(reverse(Acc)).
 
 %% face_ns_data([Position]) ->
 %%    [Normal|[Position]] |                        Tri or quad
@@ -347,7 +347,7 @@ update_fun_2(hard_edges, #dlo{hard=none,src_we=#we{he=Htab}=We}=D, _) ->
     gl:endList(),
     D#dlo{hard=List};
 update_fun_2(edges, #dlo{edges=none,ns=Ns}=D, _) ->
-    EdgeDl = make_edge_dl(gb_trees:values(Ns)),
+    EdgeDl = make_edge_dl(Ns),
     D#dlo{edges=EdgeDl};
 update_fun_2(normals, D, _) ->
     make_normals_dlist(D);
@@ -366,9 +366,10 @@ update_fun_2({plugin,{Plugin,{_,_}=Data}},#dlo{plugins=Pdl}=D,St) ->
 
 update_fun_2(_, D, _) -> D.
 
-make_edge_dl(Ns) ->
+make_edge_dl(Ns0) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
+    Ns = array:sparse_to_list(Ns0),
     {Tris,Quads,Polys,PsLens} = make_edge_dl_bin(Ns, <<>>, <<>>, <<>>, []),
     gl:enableClientState(?GL_VERTEX_ARRAY),
     drawVertices(?GL_TRIANGLES, Tris),    
@@ -560,7 +561,7 @@ update_face_sel_2([], _, Bin) -> Bin.
 
 %% Draw a face without any lighting.
 unlit_face_bin(Face, #dlo{ns=Ns}, Bin) ->
-    case gb_trees:get(Face, Ns) of
+    case array:get(Face, Ns) of
 	[_|VsPos] ->    unlit_plain_face(VsPos, Bin);
 	{_,Fs,VsPos} -> unlit_plain_face(Fs, VsPos, Bin)
     end;
@@ -619,7 +620,7 @@ split_1(D, Vs, St) ->
 
 split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
 	     proxy=UsesProxy, proxy_data=Pd,
-	     ns=Ns0,needed=Needed,open=Open}=D, Vs0, St) ->
+	     ns=Ns,needed=Needed,open=Open}=D, Vs0, St) ->
     Vs = sort(Vs0),
     Faces = wings_we:visible(wings_face:from_vs(Vs, We), We),
     StaticVs = static_vs(Faces, Vs, We),
@@ -634,7 +635,7 @@ split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
     StaticVtab = insert_vtx_data(StaticVs, We#we.vp, []),
 
     Split = #split{static_vs=StaticVtab,dyn_vs=DynVs,
-		   dyn_plan=DynPlan,orig_ns=Ns0,
+		   dyn_plan=DynPlan,orig_ns=Ns,
 		   orig_we=We,orig_st=St},
     #dlo{work=Work,edges=[StaticEdgeDl],mirror=M,vs=VsDlist,
 	 src_sel=Sel,src_we=WeDyn,split=Split,
@@ -643,15 +644,13 @@ split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
 
 remove_stale_ns(none, _) -> none;
 remove_stale_ns(Ns, Ftab) ->
-    remove_stale_ns_1(gb_trees:to_list(Ns), Ftab, []).
-
-remove_stale_ns_1([{F,_}=Pair|Fs], Ftab, Acc) ->
-    case gb_trees:is_defined(F, Ftab) of
-	false -> remove_stale_ns_1(Fs, Ftab, Acc);
-	true -> remove_stale_ns_1(Fs, Ftab, [Pair|Acc])
-    end;
-remove_stale_ns_1([], _, Acc) ->
-    gb_trees:from_orddict(reverse(Acc)).
+    Deleted = array:default(Ns),
+    array:sparse_map(fun(Face, Term) ->
+			     case gb_trees:is_defined(Face, Ftab) of
+				 true  -> Term;
+				 false -> Deleted
+			     end
+		     end, Ns).
 
 static_vs(Fs, Vs, We) ->
     VsSet = gb_sets:from_ordset(Vs),
@@ -690,7 +689,7 @@ split_faces(#dlo{needed=Need}=D0, Ftab0, Fs0, St) ->
 make_static_edges(DynFaces, #dlo{ns=none}) ->
     make_static_edges_1(DynFaces, [], []);
 make_static_edges(DynFaces, #dlo{ns=Ns}) ->
-    make_static_edges_1(DynFaces, gb_trees:to_list(Ns), []).
+    make_static_edges_1(DynFaces, array:sparse_to_orddict(Ns), []).
 
 make_static_edges_1([F|Fs], [{F,_}|Ns], Acc) ->
     make_static_edges_1(Fs, Ns, Acc);
@@ -702,7 +701,7 @@ make_static_edges_1(_, Ns, Acc) ->
 make_static_edges_2([{_,N}|Ns], Acc) ->
     make_static_edges_2(Ns, [N|Acc]);
 make_static_edges_2([], Acc) ->
-    make_edge_dl(Acc).
+    make_edge_dl(array:from_list(Acc)). %% Fix me
 
 insert_vtx_data([V|Vs], Vtab, Acc) ->
     insert_vtx_data(Vs, Vtab, [{V,array:get(V, Vtab)}|Acc]);
@@ -772,7 +771,7 @@ dynamic_faces(#dlo{work=[Work|_],
 dynamic_faces(#dlo{work=none}=D) -> D.
 
 dynamic_edges(#dlo{edges=[StaticEdge|_],ns=Ns}=D) ->
-    EdgeDl = make_edge_dl(gb_trees:values(Ns)),
+    EdgeDl = make_edge_dl(Ns),
     D#dlo{edges=[StaticEdge,EdgeDl]}.
 
 dynamic_vs(#dlo{split=#split{dyn_vs=none}}=D) -> D;
@@ -816,7 +815,8 @@ join(#dlo{src_we=#we{vp=Vtab0},ns=Ns1,split=#split{orig_we=We0,orig_ns=Ns0},
 join_ns(_, NsNew, none) ->
     NsNew;
 join_ns(#we{fs=Ftab}, NsNew, NsOld) ->
-    join_ns_1(gb_trees:to_list(NsNew), gb_trees:to_list(NsOld), Ftab, []).
+    join_ns_1(array:sparse_to_orddict(NsNew),
+	      array:sparse_to_orddict(NsOld), Ftab, []).
 
 join_ns_1([{Face,_}=El|FsNew], [{Face,_}|FsOld], Ftab, Acc) ->
     %% Same face: Use new contents.
@@ -831,7 +831,7 @@ join_ns_1([El|FsNew], FsOld, Ftab, Acc) ->
     %% Fa < Fb: New face.
     join_ns_1(FsNew, FsOld, Ftab, [El|Acc]);
 join_ns_1([], Fs, _, Acc) ->
-    gb_trees:from_orddict(reverse(Acc, Fs)).
+    array:from_orddict(reverse(Acc, Fs)).
 
 join_update(New, Old) ->
     join_update(array:sparse_to_orddict(New), array:sparse_to_orddict(Old), Old).

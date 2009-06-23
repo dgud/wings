@@ -85,7 +85,7 @@ plain_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
 	  face_map=FaceMap,mat_map=MatInfo}.
 
 flat_faces_1([{Face,_}|Fs], Ns, Start, Vs, FaceMap) ->
-    case gb_trees:get(Face, Ns) of
+    case array:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
 	    flat_faces_1(Fs, Ns, Start+3,
 			 add_tri(Vs, Normal, Pos),
@@ -122,7 +122,7 @@ uv_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
 
 uv_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
     UVs = wings_va:face_attr(uv, Face, Edge, We),
-    case gb_trees:get(Face, Ns) of
+    case array:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
 	    uv_flat_faces_1(Fs, D, Start+3,
 			    add_tri(Vs, Normal, Pos, UVs),
@@ -158,7 +158,7 @@ col_flat_faces(Fs, We, #dlo{ns=Ns}=D) ->
 
 col_flat_faces_1([{Face,Edge}|T], We, Ns, Start, Vs0, Fmap0) ->
     Cols = wings_va:face_attr(color, Face, Edge, We),
-    case gb_trees:get(Face, Ns) of
+    case array:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
 	    Vs = add_col_tri(Vs0, Normal, Pos, Cols),
 	    Fmap = [{Face,{Start,3}}|Fmap0],
@@ -184,17 +184,16 @@ setup_flat_normals(D=#dlo{face_map=Fmap0,ns=Ns}) ->
     D#dlo{face_fn={0,FN}}.
 
 setup_flat_normals_1([{Face, {_, Count}}|Fs], Ns, FN) ->
-    [Normal|_] = gb_trees:get(Face,Ns),
+    [Normal|_] = array:get(Face,Ns),
     setup_flat_normals_1(Fs, Ns, dup3(Count,FN,Normal));
 setup_flat_normals_1([],_,FN) ->
     FN.
 
 setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,face_map=Fmap0}) ->
-    Ns1 = lists:foldl(fun({F,[N|_]}, A) -> [{F,N}|A];
-			 ({F,{N,_,_}}, A) -> [{F,N}|A]
-		      end, [], gb_trees:to_list(Ns0)),
+    Ns1 = array:sparse_foldl(fun(F,[N|_], A) -> [{F,N}|A];
+				(F,{N,_,_}, A) -> [{F,N}|A]
+			     end, [], Ns0),
     Ns = reverse(Ns1),
-    %%NOTE: This must be stable i.e. same order as in the flat case. (is it?)
     Flist = wings_we:normals(Ns, We),
     Ftab  = array:from_orddict(Flist),
     Fs    = lists:keysort(2, array:sparse_to_orddict(Fmap0)),
@@ -214,7 +213,7 @@ setup_smooth_normals([{Face,{_,3}}|Fs], Ftab, Flat, SN0) ->
 	    %% 2 triangles, but some triangles were degenerated
 	    %% and therefore discarded. Use the face normal
 	    %% for all vertices.
-	    {Fn,_,_} = gb_trees:get(Face, Flat),
+	    {Fn,_,_} = array:get(Face, Flat),
 	    SN = dup3(3, SN0, Fn),
 	    setup_smooth_normals(Fs, Ftab, Flat, SN)
     end;
@@ -231,13 +230,13 @@ setup_smooth_normals([{Face,{_,6}}|Fs], Ftab, Flat, SN0) ->
 	    %% 3 triangles, but some triangles were degenerated
 	    %% and therefore discarded. Use the face normal
 	    %% for all vertices.
-	    {Fn,_,_} = gb_trees:get(Face, Flat),
+	    {Fn,_,_} = array:get(Face, Flat),
 	    SN = dup3(6, SN0, Fn),
 	    setup_smooth_normals(Fs, Ftab, Flat, SN)
     end;
 setup_smooth_normals([{Face,{_,Count}}|Fs], Ftab, Flat, SN0) ->
     VsInfo = list_to_tuple(array:get(Face, Ftab)),
-    {FNormal,TriFs,Pos} = gb_trees:get(Face, Flat),
+    {FNormal,TriFs,Pos} = array:get(Face, Flat),
     SN = case size(VsInfo) =:= length(Pos) of
 	     true  ->
 		 setup_smooth_normals_1(TriFs,VsInfo,SN0);

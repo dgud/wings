@@ -662,7 +662,7 @@ best_face_hit_2(#we{id=Id}=We, Ns, Ray, {[{Id,Id,Face}|Hits],Hit0,T0})
 	end,
     best_face_hit_2(We, Ns, Ray, A);
 best_face_hit_2(#we{id=AbsId}=We, Ns, Ray, {[{AbsId,Id,Face}|Hits],Hit0,T0}) ->
-    case gb_trees:get(Face, Ns) of
+    case array:get(Face, Ns) of
 	[N|[P0|_]] -> ok;
 	{N,_,[P0|_]} -> ok
     end,
