@@ -3,7 +3,7 @@
 %%
 %%     Functions for reading and writing Wavefront ASCII files (.obj).
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -637,16 +637,56 @@ export_smooth_groups(#e3d_mesh{fs=Fs0,he=He0}) ->
     Cs = digraph_utils:components(G),
     digraph:delete(G),
 
+    %% Generate a mapping from Face to a list of all neighboring faces.
+    Neib0 = sofs:range(Fam0),
+    Neib1 = sofs:canonical_relation(Neib0),
+    Neib2 = sofs:relation_to_family(Neib1),
+    Neib3 = sofs:family_union(Neib2),
+    Neib4 = sofs:to_external(Neib3),
+    Neib = array:from_orddict(Neib4),
+
     %% Number the smoothing groups starting from 1.
+    %%
+    %% Try to generate as few smoothing groups as possible,
+    %% since some applications may have trouble handling
+    %% hundreds or thousands of smoothing groups.
+    %%
     %% Return [{SG,#e3d_face{}}].
     Fs = sofs:relation(Fs1, [{face,data}]),
-    Sg0 = number(Cs, 1, []),
-    Sg1 = sofs:relation(Sg0, [{group,[face]}]),
-    Sg2 = sofs:family_to_relation(Sg1),
-    Sg3 = sofs:converse(Sg2),
-    Sg4 = sofs:relative_product({Sg3,Fs}),
-    Sg = sofs:range(Sg4),
+    Sg0 = exp_sgs_1(Cs, Neib, array:new()),
+    Sg1 = sofs:relation(Sg0, [{face,group}]),
+    Sg2 = sofs:relative_product({Sg1,Fs}),
+    Sg = sofs:range(Sg2),
     sofs:to_external(Sg).
+
+%% Return [{Face,SG}].
+exp_sgs_1([Fs|Cs], Neib, SgMap0) ->
+    SG = find_sg(Fs, Neib, SgMap0),
+    SgMap = foldl(fun(F, M) ->
+			  array:set(F, SG, M)
+		  end, SgMap0, Fs),
+    exp_sgs_1(Cs, Neib, SgMap);
+exp_sgs_1([], _, SgMap) -> array:to_orddict(SgMap).
+
+%% find_sg(Faces, NeighborMap, SgMap) -> SG
+%%  Find the lowest smoothing group number (>= 1) that is not
+%%  used by any face that is a neighbor to any face in Faces.
+%%
+find_sg(Fs, Neib, SgMap) ->
+    find_sg_2(find_sg_1(Fs, Neib, SgMap, gb_sets:new()), 1).
+
+find_sg_1([F|Fs], Neib, SgMap, Acc0) ->
+    Acc = foldl(fun(N, A) ->
+			case array:get(N, SgMap) of
+			    undefined -> A;
+			    SG when is_integer(SG) -> gb_sets:add(SG, A)
+			end
+		end, Acc0, array:get(F, Neib)),
+    find_sg_1(Fs, Neib, SgMap, Acc);
+find_sg_1([], _, _, Acc) -> gb_sets:to_list(Acc).
+
+find_sg_2([SG|T], SG) -> find_sg_2(T, SG+1);
+find_sg_2(_, SG) -> SG.
 
 build_edges(Fs) ->
     build_edges(Fs, []).
