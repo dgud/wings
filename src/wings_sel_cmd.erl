@@ -19,7 +19,8 @@
 -export([select_all/1]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldl/3,reverse/1,keymember/3,keysearch/3]).
+-import(lists, [map/2,foldl/3,reverse/1,keymember/3,keysearch/3,usort/1]).
+-import(erlang, [max/2]).
 
 menu(St) ->
     [{?__(1,"Deselect"),deselect,?__(2,"Clear the selection")},
@@ -618,7 +619,7 @@ similar(#st{selmode=vertex}=St) ->
 				  [make_vertex_template(SelI, We) ||
 				      SelI <- gb_sets:to_list(Sel0)] ++ A
 			  end, [], St),
-    Templates = ordsets:from_list(Seed),
+    Templates = consolidate_templates(Seed),
     wings_sel:make(
       fun(V, W) ->
 	      match_templates(make_vertex_template(V, W), Templates)
@@ -628,7 +629,7 @@ similar(#st{selmode=edge}=St) ->
 				  [make_edge_template(SelI, We) ||
 				      SelI <- gb_sets:to_list(Sel0)] ++ A
 			  end, [], St),
-    Templates = ordsets:from_list(Seed),
+    Templates = consolidate_templates(Seed),
     wings_sel:make(
       fun(Edge, W) ->
 	      match_templates(make_edge_template(Edge, W), Templates)
@@ -638,7 +639,7 @@ similar(#st{selmode=face}=St) ->
 				  [make_face_template(SelI, We) ||
 				      SelI <- gb_sets:to_list(Sel0)] ++ A
 			  end, [], St),
-    Templates = ordsets:from_list(Seed),
+    Templates = consolidate_templates(Seed),
     wings_sel:make(
       fun(Face, WeI) ->
 	      match_templates(make_face_template(Face, WeI), Templates)
@@ -651,6 +652,21 @@ similar(#st{selmode=body}=St) ->
 			       end, [], St),
     Template = ordsets:from_list(Template0),
     wings_sel:make(fun(_, We) -> match_body(Template, We) end, body, St).
+
+consolidate_templates(L) ->
+    case usort(L) of
+	[] -> [];
+	[H|T] -> consolidate_templates_1(H, T)
+    end.
+
+consolidate_templates_1(Templ0, [Templ|T]) ->
+    case match_template(Templ0, Templ) of
+	true ->
+	    consolidate_templates_1(Templ0, T);
+	false->
+	    [Templ0|consolidate_templates_1(Templ, T)]
+    end;
+consolidate_templates_1(Templ, []) -> [Templ].
 
 match_body(Template, #we{vp=Vtab,es=Etab,fs=Ftab}) ->
     Sizes = {wings_util:array_entries(Vtab),
@@ -670,25 +686,15 @@ match_templates(F, [Template|Ts]) ->
 match_templates(_, []) -> false.
 
 match_template({Len,Ad,As}, {Len,Bd,Bs}) ->
-    case rel_compare(Ad, Bd, 1.0E-5) of
-	true -> rel_compare(As, Bs, 1.0E-5);
-	false -> false
-    end;
+    compare(Ad, Bd) andalso compare(As, Bs);
 match_template(_, _) -> false.
 
-make_face_template(Face, #we{vp=Vtab}=We) ->
-    Vs = wings_face:fold(
-	   fun(V, _, _, Acc0) ->
-		   [V|Acc0]
-	   end, [], Face, We),
-    {DotSum,SqSum} = face_dots_and_sqlens(Vs, Vtab),
-    {length(Vs),DotSum,SqSum}.
+make_face_template(Face, We) ->
+    VsPos = wings_face:vertex_positions(Face, We),
+    {DotSum,SqSum} = face_dots_and_sqlens(VsPos),
+    {length(VsPos),DotSum,SqSum}.
 
-face_dots_and_sqlens(Vs, Vtab) ->
-    Vpos = [array:get(P, Vtab) || P <- Vs],
-    face_dots_and_sqlens_1(Vpos).
-
-face_dots_and_sqlens_1([Va,Vb|_]=Vpos) ->
+face_dots_and_sqlens([Va,Vb|_]=Vpos) ->
     D = e3d_vec:sub(Va, Vb),
     face_dots_and_sqlens_2(D, Vpos, Vpos, 0, 0).
 
@@ -738,12 +744,15 @@ vertex_dots_and_sqlens(Vecs, [VecB|_], Dot, Sq) ->
     vertex_dots_and_sqlens(Vecs++[VecB], [], Dot, Sq);
 vertex_dots_and_sqlens(_Other, _More, Dot, Sq) -> {Dot,Sq}.
 
-rel_compare(A, B, Tresh) when abs(A) < Tresh ->
-    abs(B) < Tresh;
-rel_compare(A, B, Tresh) when abs(A) > abs(B) ->
-    abs(A-B)/abs(A) < Tresh;
-rel_compare(A, B, Tresh) ->
-    abs(A-B)/abs(B) < Tresh.
+-define(EPSILON, 1.0E-5).
+compare(A, B) ->
+    %% Comparison with a relative tolerance for large
+    %% values and an absolute tolerance for small values
+    %% as described by Christer Ericson in
+    %% http://realtimecollisiondetection.net/blog/?p=89
+    %% and in his book "Real-Time Collision Detection".
+    %%
+    abs(A-B) =< ?EPSILON*max(1.0, max(abs(A), abs(B))).
 
 %%
 %% Select Random.
