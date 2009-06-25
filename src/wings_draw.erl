@@ -346,7 +346,7 @@ update_fun_2(hard_edges, #dlo{hard=none,src_we=#we{he=Htab}=We}=D, _) ->
     gl:endList(),
     D#dlo{hard=List};
 update_fun_2(edges, #dlo{edges=none,ns=Ns}=D, _) ->
-    EdgeDl = make_edge_dl(Ns),
+    EdgeDl = make_edge_dl(array:sparse_to_list(Ns)),
     D#dlo{edges=EdgeDl};
 update_fun_2(normals, D, _) ->
     make_normals_dlist(D);
@@ -365,10 +365,9 @@ update_fun_2({plugin,{Plugin,{_,_}=Data}},#dlo{plugins=Pdl}=D,St) ->
 
 update_fun_2(_, D, _) -> D.
 
-make_edge_dl(Ns0) ->
+make_edge_dl(Ns) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
-    Ns = array:sparse_to_list(Ns0),
     {Tris,Quads,Polys,PsLens} = make_edge_dl_bin(Ns, <<>>, <<>>, <<>>, []),
     gl:enableClientState(?GL_VERTEX_ARRAY),
     drawVertices(?GL_TRIANGLES, Tris),    
@@ -701,7 +700,7 @@ make_static_edges_1(_, Ns, Acc) ->
 make_static_edges_2([{_,N}|Ns], Acc) ->
     make_static_edges_2(Ns, [N|Acc]);
 make_static_edges_2([], Acc) ->
-    make_edge_dl(array:from_list(Acc)). %% Fix me
+    make_edge_dl(Acc).
 
 insert_vtx_data([V|Vs], Vtab, Acc) ->
     insert_vtx_data(Vs, Vtab, [{V,array:get(V, Vtab)}|Acc]);
@@ -770,7 +769,7 @@ dynamic_faces(#dlo{work=[Work|_],
 dynamic_faces(#dlo{work=none}=D) -> D.
 
 dynamic_edges(#dlo{edges=[StaticEdge|_],ns=Ns}=D) ->
-    EdgeDl = make_edge_dl(Ns),
+    EdgeDl = make_edge_dl(array:sparse_to_list(Ns)),
     D#dlo{edges=[StaticEdge,EdgeDl]}.
 
 dynamic_vs(#dlo{split=#split{dyn_vs=none}}=D) -> D;

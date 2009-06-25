@@ -118,6 +118,11 @@ update(#dlo{src_we=We0,proxy_data=#sp{faces=none}=Pd0}=D, St) ->
 update(#dlo{proxy_data=#sp{proxy_edges=none}=Pd}=D, _) ->
     ProxyEdges = update_edges(D, Pd),
     D#dlo{proxy_data=Pd#sp{proxy_edges=ProxyEdges}};
+update(#dlo{src_we=We0,proxy_data=none}=D, St) ->
+    Pd = proxy_smooth(We0, #sp{}, St),
+    Faces = wings_draw:draw_flat_faces(Pd#sp.vab, St),
+    ProxyEdges = update_edges(D, Pd),
+    D#dlo{proxy_data=Pd#sp{faces=Faces,proxy_edges=ProxyEdges}};
 update(D, _) -> D.
 
 update_edges(D, Pd) ->
