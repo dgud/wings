@@ -368,23 +368,15 @@ mirror_weld(N, IterA0, FaceA, IterB0, FaceB, WeOrig, We0) ->
     %% surrounding FaceB.
     {_,EdgeA,RecA0,IterA} = wings_face:next_cw(IterA0),
     {_,EdgeB,RecB0,IterB} = wings_face:next_ccw(IterB0),
-    Col = case RecB0 of
-	      #edge{lf=FaceB,b=Col0} -> Col0;
-	      #edge{rf=FaceB,a=Col0} -> Col0
-	  end,
-    RecA1 = case RecA0 of
-		#edge{lf=FaceA}=R -> R#edge{a=Col};
-		#edge{rf=FaceA}=R -> R#edge{b=Col}
-	    end,
     RecB = turn_edge(RecB0),
-    {RecA,Pred,Succ} =
-	case RecA1 of
+    {RecA,NewFace,Pred,Succ} =
+	case RecA0 of
 	    #edge{lf=FaceA} ->
-		update_edge(RecA1, RecB,
+		update_edge(RecA0, RecB,
 			    #edge.lf, #edge.ltpr, #edge.ltsu,
 			    #edge.rtpr, #edge.rtsu);
 	    #edge{rf=FaceA} ->
-		update_edge(RecA1, RecB,
+		update_edge(RecA0, RecB,
 			    #edge.rf, #edge.rtpr, #edge.rtsu,
 			    #edge.ltpr, #edge.ltsu)
 	    end,
@@ -407,12 +399,17 @@ mirror_weld(N, IterA0, FaceA, IterB0, FaceB, WeOrig, We0) ->
     Etab = replace_vertex(VendB, VendA, WeOrig, Etab5),
 
     %% Update face table
-    Ftab1 = wings_face:patch_face(wings_face:other(FaceA, RecA1),
+    Ftab1 = wings_face:patch_face(wings_face:other(FaceA, RecA0),
 				  EdgeA, Ftab0),
     Ftab = wings_face:patch_face(wings_face:other(FaceB, RecB), EdgeA, Ftab1),
 
     %% Next edge.
-    We = We0#we{es=Etab,fs=Ftab,vc=undefined,he=Htab},
+    We1 = We0#we{es=Etab,fs=Ftab,vc=undefined,he=Htab},
+
+    %% Update vertex attributes.
+    Attrs = wings_va:edge_attrs(EdgeB, {other,FaceB}, WeOrig),
+    We = wings_va:set_edge_attrs(EdgeA, NewFace, Attrs, We1),
+
     mirror_weld(N-1, IterA, FaceA, IterB, FaceB, WeOrig, We).
 
 update_edge(New0, Old, FaceP, PrP, SuP, OPrP, OSuP) ->
@@ -424,8 +421,9 @@ update_edge(New0, Old, FaceP, PrP, SuP, OPrP, OSuP) ->
 	       {Succ,Succ} -> New1;
 	       {Succ,_} -> setelement(SuP, New1, Succ)
 	   end,
-    New = setelement(FaceP, New2, element(FaceP, Old)),
-    {New,Pred,Succ}.
+    NewFace = element(FaceP, Old),
+    New = setelement(FaceP, New2, NewFace),
+    {New,NewFace,Pred,Succ}.
 
 cond_patch_edge(Edge, New, Orig, Etab) ->
     case array:get(Edge, Etab) =/= undefined of
@@ -642,13 +640,10 @@ unify_modes(_, _) ->
 			 "An object with vertex colors cannot be bridged with an object with materials.")).
 
 bridge_null_uvs(Mode, #we{mode=Mode}=We) -> We;
-bridge_null_uvs(uv, #we{es=Etab0}=We) ->
-    Etab = array:sparse_map(fun bridge_null_uvs_1/2, Etab0),
-    We#we{es=Etab}.
-
-bridge_null_uvs_1(_, Rec) ->
-    UV = {0.0,0.0},
-    Rec#edge{a=UV,b=UV}.
+bridge_null_uvs(uv, #we{es=Etab}=We) ->
+    NullUV = {0.0,0.0},
+    EsUVs = [{E,NullUV,NullUV} || E <- wings_util:array_keys(Etab)],
+    wings_va:set_edge_uvs(EsUVs, We).
 
 bridge(FaceA, FaceB, #we{vp=Vtab}=We) ->
     VsA = wings_face:vertices_ccw(FaceA, We),
@@ -686,7 +681,7 @@ try_bridge(0, _Len, _Va, _FaceA, _IterA, _Vb, _FaceB, _IterB, _, _, {_,We}) ->
     We;
 try_bridge(N, Len, Va0, FaceA, IterA0, Vb, FaceB, IterB, Ids, We0,
 	   {EdgeSum0,_}=Best0) ->
-    We = do_bridge(Len, Va0, FaceA, IterA0, Vb, FaceB, IterB, Ids, We0),
+    We = do_bridge(Len, Va0, FaceA, IterA0, Vb, FaceB, IterB, Ids, We0, We0),
     Best = case sum_edge_lens(Len, Ids, We, 0) of
 		  Min when Min < EdgeSum0 -> {Min,We};
 	       _ -> Best0
@@ -711,62 +706,66 @@ force_bridge(FaceA, Va, FaceB, Vb, We0) ->
     {Ids,We} = wings_we:new_wrap_range(Len, 2, We0),
     IterA = wings_face:skip_to_cw(Va, wings_face:iterator(FaceA, We)),
     IterB = wings_face:skip_to_ccw(Vb, wings_face:iterator(FaceB, We)),
-    do_bridge(Len, Va, FaceA, IterA, Vb, FaceB, IterB, Ids, We).
+    do_bridge(Len, Va, FaceA, IterA, Vb, FaceB, IterB, Ids, We, We).
 
-do_bridge(0, _Va, FaceA, _IterA, _Vb, FaceB, _IterB, _, #we{fs=Ftab0}=We) ->
+do_bridge(0, _Va, FaceA, _IterA, _Vb, FaceB, _IterB, _, _, #we{fs=Ftab0}=We) ->
     Ftab1 = gb_trees:delete(FaceA, Ftab0),
     Ftab = gb_trees:delete(FaceB, Ftab1),
     wings_facemat:delete_faces([FaceA,FaceB], We#we{fs=Ftab});
-do_bridge(N, Va0, FaceA, IterA0, Vb0, FaceB, IterB0, Ids0, We0) ->
+do_bridge(N, Va0, FaceA, IterA0, Vb0, FaceB, IterB0, Ids0, OrigWe, We0) ->
     #we{es=Etab0,fs=Ftab0} = We0,
     NewEdge = wings_we:id(2, Ids0),
     RightFace = wings_we:id(3, Ids0),
     RightEdge = wings_we:id(4, Ids0),
     
     {_,EdgeA,RecA0,IterA} = wings_face:next_cw(IterA0),
+    ColA = wings_va:edge_attrs(EdgeA, {other,FaceA}, We0),
     RecA = case RecA0 of
-	       #edge{b=ColA,lf=FaceA,rf=OfA,rtpr=ColEdgeA} ->
-		   ColA0 = bridge_color(ColEdgeA, OfA, IterA),
-		   RecA0#edge{a=ColA0,lf=RightFace,
-			      ltpr=NewEdge,ltsu=RightEdge};
-	       #edge{a=ColA,rf=FaceA,lf=OfA,ltpr=ColEdgeA} ->
-		   ColA0 = bridge_color(ColEdgeA, OfA, IterA),
-		   RecA0#edge{b=ColA0,rf=RightFace,
-			      rtpr=NewEdge,rtsu=RightEdge}
+	       #edge{lf=FaceA,rf=OfA,rtpr=ColEdgeA} ->
+		   ColA0 = wings_va:edge_attrs(ColEdgeA, OfA, OrigWe),
+		   RecA0#edge{lf=RightFace,ltpr=NewEdge,ltsu=RightEdge};
+	       #edge{rf=FaceA,lf=OfA,ltpr=ColEdgeA} ->
+		   ColA0 = wings_va:edge_attrs(ColEdgeA, OfA, OrigWe),
+		   RecA0#edge{rf=RightFace,rtpr=NewEdge,rtsu=RightEdge}
 	   end,
     Etab1 = array:set(EdgeA, RecA, Etab0),
 
     {_,EdgeB,RecB0,IterB} = wings_face:next_ccw(IterB0),
+    ColB = wings_va:edge_attrs(EdgeB, {other,FaceB}, We0),
     RecB = case RecB0 of
-	       #edge{b=ColB,lf=FaceB,rf=OfB,rtpr=ColEdgeB} ->
-		   ColB0 = bridge_color(ColEdgeB, OfB, IterA),
-		   RecB0#edge{a=ColB0,lf=RightFace,
-			      ltpr=RightEdge,ltsu=NewEdge};
-	       #edge{a=ColB,rf=FaceB,lf=OfB,ltpr=ColEdgeB} ->
-		   ColB0 = bridge_color(ColEdgeB, OfB, IterA),
-		   RecB0#edge{b=ColB0,rf=RightFace,
-			      rtpr=RightEdge,rtsu=NewEdge}
+	       #edge{lf=FaceB,rf=OfB,rtpr=ColEdgeB} ->
+		   ColB0 = wings_va:edge_attrs(ColEdgeB, OfB, OrigWe),
+		   RecB0#edge{lf=RightFace,ltpr=RightEdge,ltsu=NewEdge};
+	       #edge{rf=FaceB,lf=OfB,ltpr=ColEdgeB} ->
+		   ColB0 = wings_va:edge_attrs(ColEdgeB, OfB, OrigWe),
+		   RecB0#edge{rf=RightFace,rtpr=RightEdge,rtsu=NewEdge}
 	   end,
     Etab2 = array:set(EdgeB, RecB, Etab1),
 
     RightRec0 = get_edge(RightEdge, Etab0),
-    RightRec = RightRec0#edge{a=ColB,lf=RightFace,ltpr=EdgeA,ltsu=EdgeB},
+    RightRec = RightRec0#edge{lf=RightFace,ltpr=EdgeA,ltsu=EdgeB},
     Etab3 = array:set(RightEdge, RightRec, Etab2),
     
     NewRec0 = get_edge(NewEdge, Etab0),
-    NewRec = NewRec0#edge{ve=Va0,vs=Vb0,b=ColA,
-			  rf=RightFace,rtpr=EdgeB,rtsu=EdgeA},
+    NewRec = NewRec0#edge{ve=Va0,vs=Vb0,rf=RightFace,rtpr=EdgeB,rtsu=EdgeA},
     Etab = array:set(NewEdge, NewRec, Etab3),
 
     Mat = wings_facemat:face(FaceA, We0),
     We1 = wings_facemat:assign(Mat, [RightFace], We0),
     Ftab = gb_trees:insert(RightFace, NewEdge, Ftab0),
     
-    We = We1#we{es=Etab,fs=Ftab},
+    We2 = We1#we{es=Etab,fs=Ftab},
     Ids = wings_we:bump_id(Ids0),
     Va = wings_vertex:other(Va0, RecA0),
     Vb = wings_vertex:other(Vb0, RecB0),
-    do_bridge(N-1, Va, FaceA, IterA, Vb, FaceB, IterB, Ids, We).
+
+    %% Update vertex attributes.
+    We3 = wings_va:set_edge_attrs(EdgeA, RightFace, ColA0, We2),
+    We4 = wings_va:set_edge_attrs(EdgeB, RightFace, ColB0, We3),
+    We5 = wings_va:set_edge_attrs(RightEdge, left, ColB, We4),
+    We = wings_va:set_edge_attrs(NewEdge, right, ColA, We5),
+
+    do_bridge(N-1, Va, FaceA, IterA, Vb, FaceB, IterB, Ids, OrigWe, We).
 
 get_edge(Edge, Etab) ->
     case array:get(Edge, Etab) of
@@ -779,13 +778,6 @@ bridge_error() ->
 
 bridge_error(Error) ->
     wings_u:error(Error).
-
-bridge_color(Edge, Face, Iter) ->
-    Etab = wings_face:iter2etab(Iter),
-    case array:get(Edge, Etab) of
-	#edge{lf=Face,a=Col} -> Col;
-	#edge{rf=Face,b=Col} -> Col
-    end.
 
 %%%
 %%% The Lift command.

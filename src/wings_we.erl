@@ -365,11 +365,12 @@ build_and_fix_holes(Fs, N)
 
 build_rest(Type, Es, Fs, Vs, HardEdges) ->
     Htab = vpairs_to_edges(HardEdges, Es),
-    {Vct0,Etab,Ftab0} = build_tables(Es),
+    {Vct0,Etab,Ftab0,UvTab} = build_tables(Es),
     Ftab = build_faces(Ftab0),
     Vct = array:from_orddict(build_incident_tab(Vct0)),
     Vpos = number_vertices(Vs, 0, []),
-    We = update_id_bounds(#we{mode=Type,es=Etab,fs=Ftab,vc=Vct,vp=Vpos,he=Htab}),
+    We0 = update_id_bounds(#we{mode=Type,es=Etab,fs=Ftab,vc=Vct,vp=Vpos,he=Htab}),
+    We = wings_va:set_edge_uvs(UvTab, We0),
     assign_materials(Fs, We).
 
 assign_materials([L|_], We) when is_list(L) -> We;
@@ -468,13 +469,13 @@ vpairs_to_edges(HardNames0, Es) ->
 
 build_tables(Edges) ->
     Emap = make_edge_map(Edges),
-    build_tables(Edges, Emap, [], [], []).
+    build_tables(Edges, Emap, [], [], [], []).
 
-build_tables([H|T], Emap, Vtab0, Etab0, Ftab0) ->
+build_tables([H|T], Emap, Vtab0, Etab0, Ftab0, UvTab0) ->
     {{Vs,Ve},{Edge,{Ldata,Rdata}}} = H,
     {Lf,LUV,Lpred,Lsucc} = Ldata,
     {Rf,RUV,Rpred,Rsucc} = Rdata,
-    Erec = #edge{vs=Vs,ve=Ve,lf=Lf,rf=Rf,a=LUV,b=RUV,
+    Erec = #edge{vs=Vs,ve=Ve,lf=Lf,rf=Rf,
 		 ltpr=edge_num(Lf, Lpred, Emap),
 		 ltsu=edge_num(Lf, Lsucc, Emap),
 		 rtpr=edge_num(Rf, Rpred, Emap),
@@ -482,10 +483,14 @@ build_tables([H|T], Emap, Vtab0, Etab0, Ftab0) ->
     Etab = [{Edge,Erec}|Etab0],
     Ftab = [{Lf,Edge},{Rf,Edge}|Ftab0],
     Vtab = [{Vs,Edge},{Ve,Edge}|Vtab0],
-    build_tables(T, Emap, Vtab, Etab, Ftab);
-build_tables([], _Emap, Vtab, Etab0, Ftab) ->
+    UvTab = case {LUV,RUV} of
+		{{_,_},{_,_}} -> [{Edge,LUV,RUV}|UvTab0];
+		_ -> UvTab0
+	    end,
+    build_tables(T, Emap, Vtab, Etab, Ftab, UvTab);
+build_tables([], _Emap, Vtab, Etab0, Ftab, UvTab) ->
     Etab = array:from_orddict(reverse(Etab0)),
-    {Vtab,Etab,Ftab}.
+    {Vtab,Etab,Ftab,UvTab}.
 
 make_edge_map(Es) ->
     make_edge_map(Es, []).
@@ -551,30 +556,28 @@ invert_edges([], Acc) -> reverse(Acc).
 
 slide_colors(#we{fs=Ftab}=We) ->
     foldl(fun({Face,Edge}, W) ->
-		  slide_colors(Face, Edge, W)
+		  slide_colors(Face, Edge, We, W)
 	  end, We, gb_trees:to_list(Ftab)).
 
-slide_colors(Face, Edge, #we{es=Etab0}=We) ->
-    PrevEdge = case array:get(Edge, Etab0) of
+slide_colors(Face, Edge, OrigWe, #we{es=Etab}=We) ->
+    PrevEdge = case array:get(Edge, Etab) of
 		   #edge{lf=Face,ltsu=Pe0} -> Pe0;
 		   #edge{rf=Face,rtsu=Pe0} -> Pe0
 	       end,
-    PrevCol = case array:get(PrevEdge, Etab0) of
-		  #edge{lf=Face,a=A} -> A;
-		  #edge{rf=Face,b=B} -> B
-	      end,
-    Etab = slide_colors(Face, Edge, Edge, Etab0, PrevCol, not_done),
-    We#we{es=Etab}.
+    PrevCol = wings_va:edge_attrs(PrevEdge, Face, OrigWe),
+    slide_colors(Face, Edge, Edge, PrevCol, OrigWe, We, not_done).
 
-slide_colors(_Face, LastEdge, LastEdge, Etab, _, done) -> Etab;
-slide_colors(Face, Edge, LastEdge, Etab0, PrevCol, _) ->
-    case array:get(Edge, Etab0) of
-	#edge{a=Col,lf=Face,ltpr=NextEdge}=Rec ->
-	    Etab = array:set(Edge, Rec#edge{a=PrevCol}, Etab0),
-	    slide_colors(Face, NextEdge, LastEdge, Etab, Col, done);
-	#edge{b=Col,rf=Face,rtpr=NextEdge}=Rec ->
-	    Etab = array:set(Edge, Rec#edge{b=PrevCol}, Etab0),
-	    slide_colors(Face, NextEdge, LastEdge, Etab, Col, done)
+slide_colors(_Face, LastEdge, LastEdge, _, _, We, done) -> We;
+slide_colors(Face, Edge, LastEdge, PrevAttrs, #we{es=Etab}=OrigWe, We0, _) ->
+    case array:get(Edge, Etab) of
+	#edge{lf=Face,ltpr=NextEdge} ->
+	    Attrs = wings_va:edge_attrs(Edge, Face, OrigWe),
+	    We = wings_va:set_edge_attrs(Edge, Face, PrevAttrs, We0),
+	    slide_colors(Face, NextEdge, LastEdge, Attrs, OrigWe, We, done);
+	#edge{rf=Face,rtpr=NextEdge} ->
+	    Attrs = wings_va:edge_attrs(Edge, Face, OrigWe),
+	    We = wings_va:set_edge_attrs(Edge, Face, PrevAttrs, We0),
+	    slide_colors(Face, NextEdge, LastEdge, Attrs, OrigWe, We, done)
     end.
 
 %% Merge two winged-edge structures.
@@ -888,14 +891,16 @@ build_incident_tab(ElemToEdgeRel) ->
 %%% Convert textures to vertex colors.
 %%%
 
-uv_to_color(#we{mode=material,es=Etab0}=We, St) ->
-    Etab = array:sparse_map(
-	     fun(_, #edge{lf=Lf,rf=Rf,a=UVa,b=UVb}=Rec) ->
-		     ColA = wings_material:color(Lf, UVa, We, St),
-		     ColB = wings_material:color(Rf, UVb, We, St),
-		     Rec#edge{a=ColA,b=ColB}
-	     end, Etab0),
-    We#we{mode=vertex,es=Etab};
+uv_to_color(#we{mode=material,es=Etab}=We0, St) ->
+    We = array:sparse_foldl(
+	   fun(Edge, #edge{lf=Lf,rf=Rf}, W) ->
+		   UVa = wings_va:attr(uv, wings_va:edge_attrs(Edge, left, W)),
+		   UVb = wings_va:attr(uv, wings_va:edge_attrs(Edge, right, W)),
+		   ColA = wings_material:color(Lf, UVa, We0, St),
+		   ColB = wings_material:color(Rf, UVb, We0, St),
+		   wings_va:set_edge_color(Edge, ColA, ColB, W)
+	   end, We0, Etab),
+    We#we{mode=vertex};
 uv_to_color(We, _St) -> We.
 
 %% uv_mapped_faces(We) -> [Face]

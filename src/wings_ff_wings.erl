@@ -31,7 +31,7 @@ import_1(Name, St0) ->
     case file:read_file(Name) of
 	{ok,<<?WINGS_HEADER,Sz:32,Data/binary>>} when byte_size(Data) =:= Sz ->
 	    wings_pb:update(0.08, ?__(1,"converting binary")),
-	    case catch binary_to_term(Data) of
+	    try binary_to_term(Data) of
 		{wings,0,_Shapes} ->
                     {error, ?__(2,"Pre-0.80 Wings format no longer supported.")};
 		{wings,1,_,_,_} ->
@@ -45,12 +45,20 @@ import_1(Name, St0) ->
 		Other ->
 		    io:format("~P\n", [Other,20]),
                     {error,?__(5,"corrupt Wings file")}
+	    catch
+		error:badarg ->
+                    {error,?__(5,"corrupt Wings file")}
 	    end;
 	{ok,_Bin} ->
 	    {error,?__(6,"not a Wings file (or old Wings format)")};
 	{error,Reason} ->
 	    {error,file:format_error(Reason)}
     end.
+
+-record(va, {color_lt=none,
+	     color_rt=none,
+	     uv_lt=none,
+	     uv_rt=none}).
 
 import_vsn2(Shapes, Materials0, Props, Dir, St0) ->
     wings_pb:update(0.10, ?__(1,"images and materials")),
@@ -81,7 +89,7 @@ import_objects(Shapes, NameMap, #st{selmode=Mode,shapes=Shs0,onext=Oid0}=St) ->
 import_objects([Sh0|Shs], Mode, NameMap, Oid, ShAcc) ->
     {object,Name,{winged,Es,Fs,Vs,He},Props} = Sh0,
     ObjMode = import_object_mode(Props),
-    Etab = import_edges(Es, #edge{}, 0, []),
+    Etab = import_edges(Es, 0, []),
     FaceMat = import_face_mat(Fs, NameMap, 0, []),
     Vtab = import_vs(Vs, 0, []),
     Htab = gb_sets:from_list(He),
@@ -101,34 +109,34 @@ import_objects([], _Mode, _NameMap, Oid, Objs0) ->
     %%io:format("size: ~p\n", [erts_debug:size(Objs)]),
     {Objs,Oid}.
     
-import_edges([E|Es], Template, Edge, Acc) ->
-    Rec = import_edge(E, Template),
-    import_edges(Es, Template, Edge+1, [{Edge,Rec}|Acc]);
-import_edges([], _Template, _Edge, Acc) -> reverse(Acc).
+import_edges([E|Es], Edge, Acc) ->
+    EdgeData = import_edge(E, none, #va{}),
+    import_edges(Es, Edge+1, [{Edge,EdgeData}|Acc]);
+import_edges([], _Edge, Acc) -> reverse(Acc).
 
-import_edge([{edge,Va,Vb,Lf,Rf,Ltpr,Ltsu,Rtpr,Rtsu}|T], Rec0) ->
-    Rec = Rec0#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,
-		    ltpr=Ltpr,ltsu=Ltsu,rtpr=Rtpr,rtsu=Rtsu},
-    import_edge(T, Rec);
-import_edge([{uv_lt,<<U/float,V/float>>}|T], Rec) ->
-    import_edge(T, Rec#edge{a={U,V}});
-import_edge([{uv_rt,<<U/float,V/float>>}|T], Rec) ->
-    import_edge(T, Rec#edge{b={U,V}});
-import_edge([{color_lt,<<R:32/float,G:32/float,B:32/float>>}|T], Rec) ->
-    import_edge(T, Rec#edge{a={R,G,B}});
-import_edge([{color_rt,<<R:32/float,G:32/float,B:32/float>>}|T], Rec) ->
-    import_edge(T, Rec#edge{b={R,G,B}});
-import_edge([{color,Bin}|T], Rec) ->
+import_edge([{edge,Va,Vb,Lf,Rf,Ltpr,Ltsu,Rtpr,Rtsu}|T], _, Attrs) ->
+    Rec = #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,
+		ltpr=Ltpr,ltsu=Ltsu,rtpr=Rtpr,rtsu=Rtsu},
+    import_edge(T, Rec, Attrs);
+import_edge([{uv_lt,<<U/float,V/float>>}|T], Rec, Attrs) ->
+    import_edge(T, Rec, Attrs#va{uv_lt={U,V}});
+import_edge([{uv_rt,<<U/float,V/float>>}|T], Rec, Attrs) ->
+    import_edge(T, Rec, Attrs#va{uv_rt={U,V}});
+import_edge([{color_lt,<<R:32/float,G:32/float,B:32/float>>}|T], Rec, Attrs) ->
+    import_edge(T, Rec, Attrs#va{color_lt={R,G,B}});
+import_edge([{color_rt,<<R:32/float,G:32/float,B:32/float>>}|T], Rec, Attrs) ->
+    import_edge(T, Rec, Attrs#va{color_rt={R,G,B}});
+import_edge([{color,Bin}|T], Rec, Attrs) ->
     %% Old-style vertex colors (pre 0.98.15).
     <<R1/float,G1/float,B1/float,R2/float,G2/float,B2/float>> = Bin,
-    import_edge(T, Rec#edge{a={R1,G1,B1},b={R2,G2,B2}});
-import_edge([{uv,Bin}|T], Rec) ->
+    import_edge(T, Rec, Attrs#va{color_lt={R1,G1,B1},color_rt={R2,G2,B2}});
+import_edge([{uv,Bin}|T], Rec, Attrs) ->
     %% Old-style UV coordinates (pre 0.98.15).
     <<U1/float,V1/float,U2/float,V2/float>> = Bin,
-    import_edge(T, Rec#edge{a={U1,V1},b={U2,V2}});
-import_edge([_|T], Rec) ->
-    import_edge(T, Rec);
-import_edge([], Rec) -> Rec.
+    import_edge(T, Rec, Attrs#va{uv_lt={U1,V1},uv_rt={U2,V2}});
+import_edge([_|T], Rec, Attrs) ->
+    import_edge(T, Rec, Attrs);
+import_edge([], Rec, Attrs) -> {Rec,Attrs}.
 
 import_face_mat([F|Fs], NameMap, Face, Acc) ->
     Mat = import_face_mat_1(F, NameMap, default),
@@ -348,11 +356,11 @@ share_list(Wes) ->
 
 share_list_1([{Vtab0,Etab0}|Ts], Floats, Tuples0, Acc) ->
     Vtab = share_vs(Vtab0, Floats, []),
-    {Etab,Tuples} = share_es(Etab0, Floats, [], Tuples0),
-    share_list_1(Ts, Floats, Tuples, [{Vtab,Etab}|Acc]);
+    {Etab,Attr,Tuples} = share_es(Etab0, Floats, [], [], Tuples0),
+    share_list_1(Ts, Floats, Tuples, [{Vtab,Etab,Attr}|Acc]);
 share_list_1([], _, _, Ts) -> reverse(Ts).
 
-share_list_2([{Vtab0,Etab0}|Ts],
+share_list_2([{Vtab0,Etab0,Attr}|Ts],
 	     [{NumHidden,#we{id=Id,mat=FaceMat}=We0,_}|Wes], Acc) ->
     Vtab = array:from_orddict(Vtab0),
     Etab = array:from_orddict(Etab0),
@@ -364,7 +372,10 @@ share_list_2([{Vtab0,Etab0}|Ts],
 		 Hidden = lists:seq(0, NumHidden-1),
 		 wings_we:hide_faces(Hidden, We2)
 	 end,
-    We = ensure_valid_mirror_face(We3),
+    We4 = ensure_valid_mirror_face(We3),
+    We = foldl(fun({E,Lt,Rt}, W) ->
+		       wings_va:set_both_edge_attrs(E, Lt, Rt, W)
+	       end, We4, Attr),
     share_list_2(Ts, Wes, [{Id,We}|Acc]);
 share_list_2([], [], Wes) -> sort(Wes).
 
@@ -381,9 +392,11 @@ share_floats_1([{_,{A,B,C}}|T], Shared) ->
     share_floats_1(T, [A,B,C|Shared]);
 share_floats_1([], Shared) -> Shared.
 
-share_floats_2([{_,#edge{a=A,b=B}}|T], Shared0) ->
-    Shared1 = share_floats_3(A, Shared0),
-    Shared = share_floats_3(B, Shared1),
+share_floats_2([{_,{_,#va{}=Va}}|T], Shared0) ->
+    Shared1 = share_floats_3(Va#va.color_lt, Shared0),
+    Shared2 = share_floats_3(Va#va.color_rt, Shared1),
+    Shared3 = share_floats_3(Va#va.uv_lt, Shared2),
+    Shared = share_floats_3(Va#va.uv_rt, Shared3),
     share_floats_2(T, Shared);
 share_floats_2([], Shared) -> Shared.
 
@@ -404,14 +417,19 @@ share_vs([{V,{X0,Y0,Z0}}|Vs], Floats, Acc) ->
     share_vs(Vs, Floats, [{V,{X,Y,Z}}|Acc]);
 share_vs([], _, Acc) -> reverse(Acc).
 
-share_es([{E,#edge{a=Same0,b=Same0}=Rec}|Vs], Floats, Acc, Shared0) ->
-    {Same,Shared} = share_tuple(Same0, Floats, Shared0),
-    share_es(Vs, Floats, [{E,Rec#edge{a=Same,b=Same}}|Acc], Shared);
-share_es([{E,#edge{a=A0,b=B0}=Rec}|Vs], Floats, Acc, Shared0) ->
-    {A,Shared1} = share_tuple(A0, Floats, Shared0),
-    {B,Shared} = share_tuple(B0, Floats, Shared1),
-    share_es(Vs, Floats, [{E,Rec#edge{a=A,b=B}}|Acc], Shared);
-share_es([], _, Acc, Shared) -> {reverse(Acc),Shared}.
+share_es([{E,{Rec,Va0}}|Vs], Floats, Acc, AttrAcc0, Shared0) ->
+    #va{color_lt=ColLt0,color_rt=ColRt0,
+	uv_lt=UvLt0,uv_rt=UvRt0} = Va0,
+    {ColLt,Shared1} = share_tuple(ColLt0, Floats, Shared0),
+    {ColRt,Shared2} = share_tuple(ColRt0, Floats, Shared1),
+    {UvLt,Shared3} = share_tuple(UvLt0, Floats, Shared2),
+    {UvRt,Shared} = share_tuple(UvRt0, Floats, Shared3),
+    LtAttr = wings_va:new_attr(ColLt, UvLt),
+    RtAttr = wings_va:new_attr(ColRt, UvRt),
+    AttrAcc = [{E,LtAttr,RtAttr}|AttrAcc0],
+    share_es(Vs, Floats, [{E,Rec}|Acc], AttrAcc, Shared);
+share_es([], _, Acc, AttrAcc, Shared) ->
+    {reverse(Acc),AttrAcc,Shared}.
 
 share_tuple({A0,B0}=Tuple0, Floats, Shared) ->
     case gb_trees:lookup(Tuple0, Shared) of
@@ -596,9 +614,9 @@ shape({Hidden,#we{mode=ObjMode,name=Name,vp=Vs0,es=Es0,he=Htab,pst=Pst}=We}, Acc
     Vs1 = foldl(fun export_vertex/2, [], array:sparse_to_list(Vs0)),
     Vs = reverse(Vs1),
     UvFaces = gb_sets:from_ordset(wings_we:uv_mapped_faces(We)),
-    Es1 = foldl(fun(E, A) ->
-			export_edge(E, UvFaces, A)
-		end, [], array:sparse_to_list(Es0)),
+    Es1 = array:sparse_foldl(fun(E, Rec, A) ->
+				     export_edge(E, Rec, UvFaces, We, A)
+			     end, [], Es0),
     Es = reverse(Es1),
     Fs1 = foldl(fun export_face/2, [], wings_facemat:all(We)),
     Fs = reverse(Fs1),
@@ -624,29 +642,41 @@ export_perm(#we{perm=3}) -> [{state,hidden_locked}];
 export_perm(#we{perm={Mode,Elems}}) ->
     [{state,{hidden,Mode,gb_sets:to_list(Elems)}}].
 
-export_edge(Rec, UvFaces, Acc) ->
+export_edge(E, Rec, UvFaces, We, Acc) ->
     #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,
 	  ltpr=Ltpr,ltsu=Ltsu,rtpr=Rtpr,rtsu=Rtsu} = Rec,
     Data0 = [{edge,Va,Vb,Lf,Rf,Ltpr,Ltsu,Rtpr,Rtsu}],
-    Data = edge_data(Rec, UvFaces, Data0),
+    Data = edge_data(E, Rec, We, UvFaces, Data0),
     [Data|Acc].
     
-edge_data(#edge{lf=Lf,rf=Rf,a=A,b=B}, UvFaces, Acc0) ->
-    Acc = edge_data_1(left, Lf, A, UvFaces, Acc0),
-    edge_data_1(right, Rf, B, UvFaces, Acc).
+edge_data(E, #edge{lf=Lf,rf=Rf}, We, UvFaces, Acc0) ->
+    A = wings_va:edge_attrs(E, left, We),
+    B = wings_va:edge_attrs(E, right, We),
 
-edge_data_1(Side, Face, {U,V}, UvFaces, Acc) ->
+    %% If there are both vertex colors and UV coordinates,
+    %% we want them in the following order:
+    %%   [{color_*,_},{uv_*,_}]
+    %% On import in an old version of Wings, the UV coordinates
+    %% will be used.
+    Acc1 = edge_data_uv(left, Lf, wings_va:attr(uv, A), UvFaces, Acc0),
+    Acc2 = edge_data_uv(right, Rf, wings_va:attr(uv, B), UvFaces, Acc1),
+    Acc = edge_data_color(left, wings_va:attr(color, A), Acc2),
+    edge_data_color(right, wings_va:attr(color, B), Acc).
+
+edge_data_uv(Side, Face, {U,V}, UvFaces, Acc) ->
     case gb_sets:is_member(Face, UvFaces) of
 	false -> Acc;
-	true when Side == left  -> [{uv_lt,<<U/float,V/float>>}|Acc];
-	true when Side == right -> [{uv_rt,<<U/float,V/float>>}|Acc]
+	true when Side =:= left  -> [{uv_lt,<<U/float,V/float>>}|Acc];
+	true when Side =:= right -> [{uv_rt,<<U/float,V/float>>}|Acc]
     end;
-edge_data_1(_Side, _Face, {1.0,1.0,1.0}, _UvFaces, Acc) -> Acc;
-edge_data_1(left, _Face, {R,G,B}, _UvFaces, Acc) ->
+edge_data_uv(_, _, _, _, Acc) -> Acc.
+
+edge_data_color(_Side, {1.0,1.0,1.0}, Acc) -> Acc;
+edge_data_color(left, {R,G,B}, Acc) ->
     [{color_lt,<<R:32/float,G:32/float,B:32/float>>}|Acc];
-edge_data_1(right, _Face, {R,G,B}, _UvFaces, Acc) ->
+edge_data_color(right, {R,G,B}, Acc) ->
     [{color_rt,<<R:32/float,G:32/float,B:32/float>>}|Acc];
-edge_data_1(_, _, _, _, Acc) -> Acc.
+edge_data_color(_, _, Acc) -> Acc.
 
 export_face({_,default}, Acc) -> [[]|Acc];
 export_face({_,Mat}, Acc) -> [[{material,Mat}]|Acc].

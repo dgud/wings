@@ -267,10 +267,9 @@ dump_faces(F, Fs) ->
 %% Dumping of data structures.
 %% 
 
-show_edge(F, Edge, #edge{vs=Vs,ve=Ve,a=A,b=B,lf=Lf,rf=Rf,ltpr=Lpred,ltsu=Lsucc,
+show_edge(F, Edge, #edge{vs=Vs,ve=Ve,lf=Lf,rf=Rf,ltpr=Lpred,ltsu=Lsucc,
 			 rtpr=Rpred,rtsu=Rsucc}) ->
     io:format(F, "~p: vs=~p ve=~p\n", [Edge,Vs,Ve]),
-    io:format(F, "  a=~p b=~p\n", [A,B]),
     io:format(F, "  left: face=~p pred=~p succ=~p\n", [Lf,Lpred,Lsucc]),
     io:format(F, "  right: face=~p pred=~p succ=~p\n", [Rf,Rpred,Rsucc]).
 

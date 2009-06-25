@@ -445,12 +445,16 @@ try_connect_1(Va, Vb, Face, We0) ->
 	false -> Res
     end.
 
+%% force_connect(Vstart, Vend, Face, We0) -> We
+%%  Create a new edge between the vertices Vstart and Vend
+%%  in face Face. (A new face will also be created.)
+%%
 force_connect(Vstart, Vend, Face, #we{es=Etab0,fs=Ftab0}=We0) ->
-    {NewFace,We} = wings_we:new_ids(1, We0),
+    {NewFace,We1} = wings_we:new_ids(1, We0),
     NewEdge = NewFace,
     NeRec0 = #edge{vs=Vstart,ve=Vend,lf=NewFace,rf=Face},
 
-    Iter0 = wings_face:iterator(Face, We),
+    Iter0 = wings_face:iterator(Face, We1),
     Iter1 = wings_face:skip_to_cw(Vstart, Iter0),
     {_,_,_,Iter2} = wings_face:next_ccw(Iter1),
     {Etab1,NeRec1,Iter3} = connect_1(Iter2, Vstart, NewEdge, NeRec0, Etab0),
@@ -460,18 +464,24 @@ force_connect(Vstart, Vend, Face, #we{es=Etab0,fs=Ftab0}=We0) ->
 
     Ftab1 = gb_trees:insert(NewFace, NewEdge, Ftab0),
     Ftab = gb_trees:update(Face, NewEdge, Ftab1),
-    Mat = wings_facemat:face(Face, We),
-    {wings_facemat:assign(Mat, [NewFace], We#we{es=Etab,fs=Ftab}),NewFace}.
+    Mat = wings_facemat:face(Face, We1),
+    We2 = We1#we{es=Etab,fs=Ftab},
+
+    LeftAttr = wings_va:vtx_attrs(Vstart, Face, We0),
+    RightAttr = wings_va:vtx_attrs(Vend, Face, We0),
+    We = wings_va:set_both_edge_attrs(NewEdge, LeftAttr, RightAttr, We2),
+
+    {wings_facemat:assign(Mat, [NewFace], We),NewFace}.
 
 %% connect_1(Iter0, Vstart, NewEdge, NeRec0, Etab0) -> {Etab,NeRec,Iter}
 %%  Connect the edge immediately before Vstart.
 connect_1(Iter0, Vstart, NewEdge, NeRec0, Etab) ->
     case wings_face:next_cw(Iter0) of
-	{_,Edge,#edge{b=ColB,ve=Vstart}=Rec0,Iter} ->
-	    NeRec = NeRec0#edge{a=ColB,rtpr=Edge},
+	{_,Edge,#edge{ve=Vstart}=Rec0,Iter} ->
+	    NeRec = NeRec0#edge{rtpr=Edge},
 	    Rec = Rec0#edge{rtsu=NewEdge};
-	{_,Edge,#edge{a=ColA,vs=Vstart}=Rec0,Iter} ->
-	    NeRec = NeRec0#edge{a=ColA,rtpr=Edge},
+	{_,Edge,#edge{vs=Vstart}=Rec0,Iter} ->
+	    NeRec = NeRec0#edge{rtpr=Edge},
 	    Rec = Rec0#edge{ltsu=NewEdge}
     end,
     {array:set(Edge, Rec, Etab),NeRec,Iter}.
@@ -513,11 +523,11 @@ connect_3(Iter0, Face, Vend, NewFace, Etab0) ->
 connect_4(Iter0, Vend, NewEdge, NeRec0, Etab0) ->
     {_,Edge,_,Iter} = wings_face:next_cw(Iter0),
     Rec = case array:get(Edge, Etab0) of
-	      #edge{b=ColB,ve=Vend}=Rec0 ->
-		  NeRec1 = NeRec0#edge{b=ColB,ltpr=Edge},
+	      #edge{ve=Vend}=Rec0 ->
+		  NeRec1 = NeRec0#edge{ltpr=Edge},
 		  Rec0#edge{rtsu=NewEdge};
-	      #edge{a=ColA,vs=Vend}=Rec0 ->
-		  NeRec1 = NeRec0#edge{b=ColA,ltpr=Edge},
+	      #edge{vs=Vend}=Rec0 ->
+		  NeRec1 = NeRec0#edge{ltpr=Edge},
 		  Rec0#edge{ltsu=NewEdge}
 	  end,
     Etab1 = array:set(Edge, Rec, Etab0),

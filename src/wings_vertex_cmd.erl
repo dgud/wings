@@ -220,14 +220,32 @@ bevel_vertex_1(V, Es, NumEdges, Adj, We0, Vec0) ->
     {_,Etab,Vec} = foldl(
 		     fun(E, {Ids0,Etab1,Vs0}) ->
 			     {Etab,Vec} = bevel(V, E, InnerFace, Ids0,
-						Adj, Vtab0, Etab0, Etab1),
+						Adj, Vtab0, Etab1),
 			     {wings_we:bump_id(Ids0),Etab,[Vec|Vs0]}
 		     end, {Ids,Etab0,Vec0}, Es),
     Mat = bevel_material(Es, We2),
     NewEdge = wings_we:id(1, Ids),
     Ftab = gb_trees:insert(InnerFace, NewEdge, Ftab0),
-    We = wings_facemat:assign(Mat, [InnerFace], We2),
-    {We#we{es=Etab,fs=Ftab,vc=Vct,vp=Vtab},Vec,InnerFace}.
+    We3 = wings_facemat:assign(Mat, [InnerFace], We2),
+    We4 = We3#we{es=Etab,fs=Ftab,vc=Vct,vp=Vtab},
+
+    %% Handle vertex attributes. First average the vertex attributes
+    %% around the original vertex and put the average attribute on all
+    %% vertices in the newly created inner face. (Averaging is the
+    %% best we can do as long as we can't adjust vertex attributes
+    %% while dragging, or afterwards when the drag has finished.)
+    AttrInside = wings_va:vtx_attrs(V, We0),
+    We5 = wings_va:set_face_attrs(InnerFace, AttrInside, We4),
+
+    %% Now copy the original attributes from the vertex in each
+    %% face to the newly created edge.
+    {_,We} = foldl(
+	       fun(E, {Ids0,W0}) ->
+		       W = bevel_vtx_attrs(V, E, Ids0, We0, W0),
+		       {wings_we:bump_id(Ids0),W}
+	       end, {Ids,We5}, Es),
+
+    {We,Vec,InnerFace}.
 
 bevel_material(Es, We) ->
     bevel_material(Es, We, []).
@@ -242,7 +260,7 @@ bevel_material([], _, A0) ->
     [{_,Mat}|_] = sort([{-length(Fs),M} || {M,Fs} <- A]),
     Mat.
 
-bevel(V, {Edge,Face,Rec0}, InnerFace, Ids, Adj, Vtab, OrigEtab, Etab0) ->
+bevel(V, {Edge,Face,Rec0}, InnerFace, Ids, Adj, Vtab, Etab0) ->
     Vprev = wings_we:id(0, Ids),
     Eprev = wings_we:id(1, Ids),
     Va = wings_we:id(2, Ids),
@@ -251,25 +269,21 @@ bevel(V, {Edge,Face,Rec0}, InnerFace, Ids, Adj, Vtab, OrigEtab, Etab0) ->
     Enext = wings_we:id(5, Ids),
     {Rec,Curr} =
 	case Rec0 of
-	    #edge{vs=V,ve=Vother,rf=Face,rtpr=ColEdge} ->
-		Col = bevel_color(ColEdge, Face, OrigEtab),
+	    #edge{vs=V,ve=Vother,rf=Face} ->
 		{Rec0#edge{vs=Va,rtpr=Ecurr,ltsu=Eprev},
-		 Rec0#edge{vs=Vb,ve=Va,a=Col,lf=InnerFace,
+		 Rec0#edge{vs=Vb,ve=Va,lf=InnerFace,
 			   rtsu=Edge,ltpr=Eprev,ltsu=Enext}};
-	    #edge{vs=V,ve=Vother,rf=Of,rtpr=ColEdge} ->
-		Col = bevel_color(ColEdge, Of, OrigEtab),
+	    #edge{vs=V,ve=Vother} ->
 		{Rec0#edge{vs=Va,rtpr=Ecurr,ltsu=Enext},
-		 Rec0#edge{vs=Vprev,ve=Va,a=Col,lf=InnerFace,
+		 Rec0#edge{vs=Vprev,ve=Va,lf=InnerFace,
 			   rtsu=Edge,ltpr=Enext,ltsu=Eprev}};
-	    #edge{ve=V,vs=Vother,lf=Face,ltpr=ColEdge} ->
-		Col = bevel_color(ColEdge, Face, OrigEtab),
+	    #edge{ve=V,vs=Vother,lf=Face} ->
 		{Rec0#edge{ve=Va,ltpr=Ecurr,rtsu=Eprev},
-		 Rec0#edge{vs=Va,ve=Vb,b=Col,rf=InnerFace,
+		 Rec0#edge{vs=Va,ve=Vb,rf=InnerFace,
 			   ltsu=Edge,rtpr=Eprev,rtsu=Enext}};
-	    #edge{ve=V,vs=Vother,lf=Of,ltpr=ColEdge} ->
-		Col = bevel_color(ColEdge, Of, OrigEtab),
+	    #edge{ve=V,vs=Vother} ->
 		{Rec0#edge{ve=Va,ltpr=Ecurr,rtsu=Enext},
-		 Rec0#edge{vs=Va,ve=Vprev,b=Col,rf=InnerFace,
+		 Rec0#edge{vs=Va,ve=Vprev,rf=InnerFace,
 			   ltsu=Edge,rtpr=Enext,rtsu=Eprev}}
 	end,
     Etab = array:set(Edge, Rec, Etab0),
@@ -284,6 +298,24 @@ bevel_vec(Adj, Vother, Vpos, Vtab) ->
 	    e3d_vec:sub(e3d_vec:average(Opos, Vpos), Vpos);
 	false ->
 	    e3d_vec:sub(Opos, Vpos)
+    end.
+
+bevel_vtx_attrs(V, {Edge,Face,Rec0}, Ids, OrigWe, We) ->
+    NewEdge = wings_we:id(3, Ids),
+    NextNewEdge = wings_we:id(5, Ids),
+    case Rec0 of
+	#edge{vs=V,rf=Face} ->
+	    Attr = wings_va:edge_attrs(Edge, Face, 0.0, OrigWe),
+	    wings_va:set_edge_attrs(NewEdge, Face, Attr, We);
+	#edge{vs=V} ->
+	    Attr = wings_va:edge_attrs(Edge, Face, 0.0, OrigWe),
+	    wings_va:set_edge_attrs(NextNewEdge, Face, Attr, We);
+	#edge{ve=V,lf=Face} ->
+	    Attr = wings_va:edge_attrs(Edge, Face, 1.0, OrigWe),
+	    wings_va:set_edge_attrs(NewEdge, Face, Attr, We);
+	#edge{ve=V} ->
+	    Attr = wings_va:edge_attrs(Edge, Face, 1.0, OrigWe),
+	    wings_va:set_edge_attrs(NextNewEdge, Face, Attr, We)
     end.
 
 bevel_vertices_1(V, Ids, N, Vct0, Vtab0) ->
@@ -316,12 +348,6 @@ bevel_normalize_1(VecVs, Min0) ->
 			   end,
 		     {{e3d_vec:norm(Vec),[V]},Min}
 	     end, Min0, VecVs).
-
-bevel_color(ColEdge, Face, Etab0) ->
-    case array:get(ColEdge, Etab0) of
-	#edge{lf=Face,a=Col} -> Col;
-	#edge{rf=Face,b=Col} -> Col
-    end.
 
 adjacent(V, Vs, We) ->
     wings_vertex:fold(

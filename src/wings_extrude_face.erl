@@ -28,7 +28,7 @@ faces(Faces, We) when is_list(Faces) ->
 faces(Faces, We) ->
     faces(gb_sets:to_list(Faces), We).
     
-inner_extrude([Face|Faces], #we{next_id=AnEdge,fs=Ftab0,es=OrigEtab}=We0) ->
+inner_extrude([Face|Faces], #we{next_id=AnEdge,fs=Ftab0}=We0) ->
     Mat = wings_facemat:face(Face, We0),
     Ftab = gb_trees:update(Face, AnEdge, Ftab0),
     We1 = We0#we{fs=Ftab},
@@ -36,15 +36,18 @@ inner_extrude([Face|Faces], #we{next_id=AnEdge,fs=Ftab0,es=OrigEtab}=We0) ->
     NumVs = length(Edges),
     {Ids,We2} = wings_we:new_wrap_range(NumVs, 2, We1),
     PrevEdge = last(Edges),
-    We = inner_extrude_1(Edges, PrevEdge, Face, Mat, Ids, OrigEtab, We2),
+    We3 = inner_extrude_1(Edges, PrevEdge, Face, Mat, Ids, We2),
+    We = case wings_va:any_attributes(We3) of
+	     false -> We3;
+	     true -> inner_extrude_attrs(Edges, PrevEdge, Face, Ids, We2, We3)
+	 end,
     inner_extrude(Faces, We);
 inner_extrude([], We) -> We.
 
 inner_extrude_edges(Face, We) ->
-    wings_face:fold(fun(_, E, Rec, A) -> [{E,Rec}|A] end, [], Face, We).
+    wings_face:fold(fun(_, E, _Rec, A) -> [E|A] end, [], Face, We).
 
-inner_extrude_1([{Edge,_}=CurEdge|Es], {PrevEdge,PrevRec}, Face,
-		Mat, Ids0, OrigEtab, We0) ->
+inner_extrude_1([Edge|Es], PrevEdge, Face, Mat, Ids0, We0) ->
     PrevHor = wings_we:id(2-2, Ids0),
     PrevFace = PrevHor,
 
@@ -61,31 +64,20 @@ inner_extrude_1([{Edge,_}=CurEdge|Es], {PrevEdge,PrevRec}, Face,
     
     Erec0 = array:get(Edge, Etab0),
     Erec = case Erec0 of
-	       #edge{a=InCol,lf=Face,vs=Va,ve=Vb,rtpr=Next,ltpr=Prev}=Erec0 ->
-		   OutCol = get_vtx_color(Next, Va, OrigEtab),
-		   Erec0#edge{lf=NewFace,a=OutCol,
-			      ltsu=VertEdge,ltpr=NextVert};
-	       #edge{b=InCol,rf=Face,ve=Va,vs=Vb,ltpr=Next,rtpr=Prev}=Erec0 ->
-		   OutCol = get_vtx_color(Next, Va, OrigEtab),
-		   Erec0#edge{rf=NewFace,b=OutCol,
-				  rtsu=VertEdge,rtpr=NextVert}
+	       #edge{lf=Face,vs=Va}=Erec0 ->
+		   Erec0#edge{lf=NewFace,ltsu=VertEdge,ltpr=NextVert};
+	       #edge{rf=Face,ve=Va}=Erec0 ->
+		   Erec0#edge{rf=NewFace,rtsu=VertEdge,rtpr=NextVert}
 	   end,
     Etab1 = array:set(Edge, Erec, Etab0),
 
-    case PrevRec of
-	#edge{lf=Face,b=ACol} -> ok;
-	#edge{rf=Face,a=ACol} -> ok
-    end,
-
-    VertEdgeRec = #edge{vs=Va,ve=V,a=ACol,b=InCol,
-			lf=PrevFace,rf=NewFace,
+    VertEdgeRec = #edge{vs=Va,ve=V,lf=PrevFace,rf=NewFace,
 			ltsu=PrevEdge,ltpr=PrevHor,
 			rtsu=HorEdge,rtpr=Edge},
     Etab2 = array:set(VertEdge, VertEdgeRec, Etab1),
 
     Etab = array:set(HorEdge,
 		     #edge{vs=NextV,ve=V,
-			   a=get_vtx_color(Prev, Vb, OrigEtab),b=InCol,
 			   lf=NewFace,rf=Face,
 			   ltsu=NextVert,ltpr=VertEdge,
 			   rtsu=PrevHor,rtpr=NextHor}, Etab2),
@@ -96,17 +88,32 @@ inner_extrude_1([{Edge,_}=CurEdge|Es], {PrevEdge,PrevRec}, Face,
 
     Ftab = gb_trees:insert(NewFace, NewFace, Ftab0),
     We1 = wings_facemat:assign(Mat, [NewFace], We0),
-    
     We = We1#we{fs=Ftab,es=Etab,vc=Vct,vp=Vtab},
-    inner_extrude_1(Es, CurEdge, Face, Mat, Ids, OrigEtab, We);
-inner_extrude_1([], _PrevEdge, _Face, _Mat, _Ids, _, We) -> We.
-    
 
-get_vtx_color(Edge, V, Etab) ->
-    case array:get(Edge, Etab) of
-	#edge{vs=V,a=Col} -> Col;
-	#edge{ve=V,b=Col} -> Col
-    end.
+    inner_extrude_1(Es, Edge, Face, Mat, Ids, We);
+inner_extrude_1([], _PrevEdge, _Face, _Mat, _Ids, We) -> We.
+
+inner_extrude_attrs([Edge|Es], PrevEdge, Face, Ids0, OrigWe, We0) ->
+    PrevHor = wings_we:id(2-2, Ids0),
+    HorEdge = wings_we:id(2, Ids0),
+    VertEdge = HorEdge + 1,
+    NewFace = HorEdge,
+
+    Ids = wings_we:bump_id(Ids0),
+
+    %% Set the vertex attributes.
+    InsideAttr = wings_va:edge_attrs(Edge, Face, OrigWe),
+    OtherFace = {other,Face},
+    OutsideAttr = wings_va:edge_attrs(Edge, OtherFace, OrigWe),
+    OtherOutsideAttr = wings_va:edge_attrs(PrevEdge, OtherFace, OrigWe),
+    We1 = wings_va:set_edge_attrs(Edge, NewFace, OutsideAttr, We0),
+    We2 = wings_va:set_edge_attrs(HorEdge, right, InsideAttr, We1),
+    We3 = wings_va:set_edge_attrs(PrevHor, left, InsideAttr, We2),
+    We4 = wings_va:set_edge_attrs(VertEdge, right, InsideAttr, We3),
+    We = wings_va:set_edge_attrs(VertEdge, left, OtherOutsideAttr, We4),
+
+    inner_extrude_attrs(Es, Edge, Face, Ids, OrigWe, We);
+inner_extrude_attrs([], _PrevEdge, _Face, _Ids, _OrigWe, We) -> We.
 
 %%%
 %%% Extrude entire regions (does NOT work for single faces).

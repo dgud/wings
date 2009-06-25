@@ -75,13 +75,14 @@ read_object_1(<<L:16,T0/binary>>) ->
 		       {0,1} -> 2;		%Hidden, unlocked
 		       {0,0} -> 3		%Hidden, locked
 		   end,
-	    {Etab,Htab,T3} = read_edges(T2),
+	    {Etab,Htab,ColTab,T3} = read_edges(T2),
 	    T4 = skip_faces(T3),
 	    {Vtab,T5} = read_vertices(T4),
 	    T = skip_rest(T5),
 	    We0 = #we{mode=vertex,es=Etab,vp=Vtab,he=Htab,perm=Perm},
 	    We1 = wings_we:rebuild(We0),
-	    We = clean_bad_edges(We1),
+	    We2 = wings_va:set_edge_colors(ColTab, We1),
+	    We = clean_bad_edges(We2),
 	    {Name,We,T}
     end.
 
@@ -120,24 +121,25 @@ skip_texture(N, <<Pixels:8,_RGB:24,T/binary>>) when N > 0 ->
 
 read_edges(<<NumEdges:16,T/binary>>) ->
     io:format(?__(1," edges ~w\n"), [NumEdges]),
-    read_edges(0, NumEdges, T, [], []).
+    read_edges(0, NumEdges, T, [], [], []).
     
-read_edges(N, N, T, Eacc, Hacc) ->
+read_edges(N, N, T, Eacc, Hacc, ColAcc) ->
     Etab = array:from_orddict(reverse(Eacc)),
     Htab = gb_sets:from_ordset(reverse(Hacc)),
-    {Etab,Htab,T};
-read_edges(Edge, N, <<EdgeRec0:25/binary,T/binary>>, Eacc, Hacc0) ->
+    {Etab,Htab,ColAcc,T};
+read_edges(Edge, N, <<EdgeRec0:25/binary,T/binary>>, Eacc, Hacc0, ColAcc) ->
     <<Vb:16,Va:16,Lf:16,Rf:16,Ltsu:16,Rtsu:16,Rtpr:16,Ltpr:16,
      Hardness:8,BColor0:4/binary,AColor0:4/binary>> = EdgeRec0,
     AColor = convert_color(AColor0),
     BColor = convert_color(BColor0),
-    EdgeRec = {Edge,#edge{vs=Va,ve=Vb,a=AColor,b=BColor,lf=Lf,rf=Rf,
+    EdgeRec = {Edge,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,
 			  ltpr=Ltpr,ltsu=Ltsu,rtpr=Rtpr,rtsu=Rtsu}},
     Hacc = if
-	       Hardness == 0 -> Hacc0;
+	       Hardness =:= 0 -> Hacc0;
 	       true -> [Edge|Hacc0]
 	   end,
-    read_edges(Edge+1, N, T, [EdgeRec|Eacc], Hacc).
+    ColInfo = {Edge,AColor,BColor},
+    read_edges(Edge+1, N, T, [EdgeRec|Eacc], Hacc, [ColInfo|ColAcc]).
 
 skip_faces(<<NumFaces:16,T0/binary>>) ->
     io:format(?__(1," faces ~w\n"), [NumFaces]),
@@ -213,25 +215,27 @@ shape(#we{name=Name,perm=Perm}=We0, St, Acc) ->
     Header = <<Vis:8,Sense:8,Shaded:8,EnableColors:8,0:72/unit:8>>,
     We1 = wings_we:uv_to_color(We0, St),
     We = wings_we:renumber(We1, 0),
-    #we{vc=Vct,vp=Vtab,es=Etab,fs=Ftab,he=Htab} = We,
-    EdgeChunk = write_edges(array:sparse_to_orddict(Etab), Htab, []),
+    #we{vc=Vct,vp=Vtab,es=Etab,fs=Ftab} = We,
+    EdgeChunk = write_edges(array:sparse_to_orddict(Etab), We, []),
     FaceChunk = write_faces(gb_trees:values(Ftab), []),
     VertexChunk = write_vertices(array:sparse_to_list(Vct),
 				 array:sparse_to_list(Vtab), []),
     FillChunk = [0,0,0,0,0,1],
     [[NameChunk,Header,EdgeChunk,FaceChunk,VertexChunk,FillChunk]|Acc].
 
-write_edges([{Edge,Erec0}|Es], Htab, Acc) ->
+write_edges([{Edge,Erec0}|Es], #we{he=Htab}=We, Acc) ->
     Hardness = case gb_sets:is_member(Edge, Htab) of
 		   false -> 0;
 		   true -> 1
 	       end,
-    #edge{vs=Va,ve=Vb,a=ACol,b=BCol,lf=Lf,rf=Rf,
+    ACol = wings_va:attr(color, wings_va:edge_attrs(Edge, left, We)),
+    BCol = wings_va:attr(color, wings_va:edge_attrs(Edge, right, We)),
+    #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,
 	  ltpr=Ltpr,ltsu=Ltsu,rtpr=Rtpr,rtsu=Rtsu} = Erec0,
     Erec = [<<Vb:16,Va:16,Lf:16,Rf:16,Ltsu:16,Rtsu:16,Rtpr:16,Ltpr:16,
 	     Hardness:8>>,convert_color(BCol)|convert_color(ACol)],
-    write_edges(Es, Htab, [Erec|Acc]);
-write_edges([], _Htab, Acc) ->
+    write_edges(Es, We, [Erec|Acc]);
+write_edges([], _We, Acc) ->
     list_to_binary([<<(length(Acc)):16>>|reverse(Acc)]).
 
 write_faces([Edge|Fs], Acc) ->

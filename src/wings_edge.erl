@@ -79,11 +79,10 @@ cut_1(N, Edge, Pos0, Vec, We0) ->
 %%  be set to the midpoint of the edge.
 
 fast_cut(Edge, Pos0, We0) ->
-    {NewEdge=NewV,We} = wings_we:new_ids(1, We0),
-    #we{es=Etab0,vc=Vct0,vp=Vtab0,he=Htab0} = We,
+    {NewEdge=NewV,We1} = wings_we:new_ids(1, We0),
+    #we{es=Etab0,vc=Vct0,vp=Vtab0,he=Htab0} = We1,
     Template = array:get(Edge, Etab0),
-    #edge{vs=Vstart,ve=Vend,a=ACol,b=BCol,lf=Lf,rf=Rf,
-	  ltpr=EdgeA,rtsu=EdgeB,rtpr=NextBCol} = Template,
+    #edge{vs=Vstart,ve=Vend,ltpr=EdgeA,rtsu=EdgeB} = Template,
     VendPos = array:get(Vend, Vtab0),
     Vct1 = array:set(Vend, NewEdge, Vct0),
     VstartPos = wings_vertex:pos(Vstart, Vtab0),
@@ -97,40 +96,37 @@ fast_cut(Edge, Pos0, We0) ->
     Vct = array:set(NewV, NewEdge, Vct1),
     Vtab = array:set(NewV, NewVPos, Vtab0),
 
-    %% Here we handle vertex colors/UV coordinates.
-    AColOther = get_vtx_color(EdgeA, Lf, Etab0),
-    BColOther = get_vtx_color(NextBCol, Rf, Etab0),
+    NewEdgeRec = Template#edge{vs=NewV,ltsu=Edge,rtpr=Edge},
+    Etab1 = array:set(NewEdge, NewEdgeRec, Etab0),
+    Etab2 = patch_edge(EdgeA, NewEdge, Edge, Etab1),
+    Etab3 = patch_edge(EdgeB, NewEdge, Edge, Etab2),
+    EdgeRec = Template#edge{ve=NewV,rtsu=NewEdge,ltpr=NewEdge},
+    Etab = array:set(Edge, EdgeRec, Etab3),
+    Htab = case gb_sets:is_member(Edge, Htab0) of
+	       false -> Htab0;
+	       true -> gb_sets:insert(NewEdge, Htab0)
+	   end,
+    We2 = We1#we{es=Etab,vc=Vct,vp=Vtab,he=Htab},
+
+    %% Now interpolate and set vertex attributes.
     Weight = if
-		 Pos0 == default -> 0.5;
-		 VstartPos == VendPos -> 0.5;
-		 Pos0 == VstartPos -> 0.0;
-		 Pos0 == VendPos -> 1.0;
+		 Pos0 =:= default -> 0.5;
+		 VstartPos =:= VendPos -> 0.5;
+		 Pos0 =:= VstartPos -> 0.0;
+		 Pos0 =:= VendPos -> 1.0;
 		 true ->
 		     ADist = e3d_vec:dist(Pos0, VstartPos),
 		     BDist = e3d_vec:dist(Pos0, VendPos),
 		     ADist/(ADist+BDist)
 	     end,
-    NewColA = wings_color:mix(Weight, AColOther, ACol),
-    NewColB = wings_color:mix(Weight, BCol, BColOther),
+    AttrMidLeft = wings_va:edge_attrs(Edge, left, Weight, We1),
+    AttrMidRight = wings_va:edge_attrs(Edge, right, Weight, We1),
+    AttrEndLeft = wings_va:edge_attrs(Edge, right, We1),
 
-    NewEdgeRec = Template#edge{vs=NewV,a=NewColA,ltsu=Edge,rtpr=Edge},
-    Etab1 = array:set(NewEdge, NewEdgeRec, Etab0),
-    Etab2 = patch_edge(EdgeA, NewEdge, Edge, Etab1),
-    Etab3 = patch_edge(EdgeB, NewEdge, Edge, Etab2),
-    EdgeRec = Template#edge{ve=NewV,b=NewColB,rtsu=NewEdge,ltpr=NewEdge},
-    Etab = array:set(Edge, EdgeRec, Etab3),
+    We3 = wings_va:set_edge_attrs(Edge, right, AttrMidRight, We2),
+    We = wings_va:set_both_edge_attrs(NewEdge, AttrMidLeft, AttrEndLeft, We3),
 
-    Htab = case gb_sets:is_member(Edge, Htab0) of
-	       false -> Htab0;
-	       true -> gb_sets:insert(NewEdge, Htab0)
-	   end,
-    {We#we{es=Etab,vc=Vct,vp=Vtab,he=Htab},NewV}.
-
-get_vtx_color(Edge, Face, Etab) ->
-    case array:get(Edge, Etab) of
-	#edge{lf=Face,a=Col} -> Col;
-	#edge{rf=Face,b=Col} -> Col
-    end.
+    {We,NewV}.
 
 %% screaming_cut(Edge, Position, We0) -> {We,NewVertex,NewEdge}
 %%  Cut an edge in two parts screamlingly fast. Does not handle
@@ -335,7 +331,7 @@ dissolve_vertex(V, Edge, #we{es=Etab}=We0) ->
 %%
 
 merge_edges(Dir, Edge, Rec, #we{es=Etab}=We) ->
-    {Va,Vb,_,_,_,_,To,To} = half_edge(Dir, Rec),
+    {Va,Vb,_,_,To,To} = half_edge(Dir, Rec),
     case array:get(To, Etab) of
 	#edge{vs=Va,ve=Vb} ->
 	    del_2edge_face(Dir, Edge, Rec, To, We);
@@ -345,18 +341,31 @@ merge_edges(Dir, Edge, Rec, #we{es=Etab}=We) ->
 	    merge_1(Dir, Edge, Rec, To, We)
     end.
 
-merge_1(Dir, Edge, Rec, To, #we{es=Etab0,fs=Ftab0,he=Htab0}=We) ->
+merge_1(Dir, Edge, Rec, To, #we{es=Etab0,fs=Ftab0,he=Htab0}=We0) ->
     OtherDir = reverse_dir(Dir),
-    {Vkeep,Vdelete,Lf,Rf,A,B,L,R} = half_edge(OtherDir, Rec),
+    {Vkeep,Vdelete,Lf,Rf,L,R} = half_edge(OtherDir, Rec),
     Etab1 = patch_edge(L, To, Edge, Etab0),
     Etab2 = patch_edge(R, To, Edge, Etab1),
-    Etab3 = patch_half_edge(To, Vkeep, Lf, A, L, Rf, B, R, Vdelete, Etab2),
+    Etab3 = patch_half_edge(To, Vkeep, Lf, L, Rf, R, Vdelete, Etab2),
     Htab = hardness(Edge, soft, Htab0),
     Etab = array:reset(Edge, Etab3),
     #edge{lf=Lf,rf=Rf} = Rec,
     Ftab1 = update_face(Lf, To, Edge, Ftab0),
     Ftab = update_face(Rf, To, Edge, Ftab1),
-    merge_2(To, We#we{es=Etab,fs=Ftab,he=Htab,vc=undefined}).
+    We1 = We0#we{es=Etab,fs=Ftab,he=Htab,vc=undefined},
+    We = case {wings_va:any_attributes(We1),Dir} of
+	     {false,_} ->
+		 We1;
+	     {_,backward} ->
+		 Attr = wings_va:edge_attrs(Edge, right, We0),
+		 We2 = wings_va:set_edge_attrs(To, Rf, Attr, We1),
+		 wings_va:del_edge_attrs(Edge, We2);
+	     {_,forward} ->
+		 Attr = wings_va:edge_attrs(Edge, left, We0),
+		 We2 = wings_va:set_edge_attrs(To, Lf, Attr, We1),
+		 wings_va:del_edge_attrs(Edge, We2)
+	 end,
+    merge_2(To, We).
 
 merge_2(Edge, #we{es=Etab}=We) ->
     %% If the merged edge is part of a two-edge face, we must
@@ -377,7 +386,7 @@ update_face(Face, Edge, OldEdge, Ftab) ->
 
 del_2edge_face(Dir, EdgeA, RecA, EdgeB,
 	       #we{es=Etab0,fs=Ftab0,he=Htab0}=We) ->
-    {_,_,Lf,Rf,_,_,_,_} = half_edge(reverse_dir(Dir), RecA),
+    {_,_,Lf,Rf,_,_} = half_edge(reverse_dir(Dir), RecA),
     RecB = array:get(EdgeB, Etab0),
     Del = gb_sets:from_list([EdgeA,EdgeB]),
     EdgeANear = stabile_neighbor(RecA, Del),
@@ -730,21 +739,21 @@ decr_from_edge(Edge, We, Orig, Acc) ->
 reverse_dir(forward) -> backward;
 reverse_dir(backward) -> forward.
 
-half_edge(backward, #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,a=A,b=B,ltsu=L,rtpr=R}) ->
-    {Va,Vb,Lf,Rf,A,B,L,R};
-half_edge(forward, #edge{ve=Va,vs=Vb,lf=Lf,rf=Rf,a=A,b=B,ltpr=L,rtsu=R}) ->
-    {Va,Vb,Lf,Rf,A,B,L,R}.
+half_edge(backward, #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,ltsu=L,rtpr=R}) ->
+    {Va,Vb,Lf,Rf,L,R};
+half_edge(forward, #edge{ve=Va,vs=Vb,lf=Lf,rf=Rf,ltpr=L,rtsu=R}) ->
+    {Va,Vb,Lf,Rf,L,R}.
 
-patch_half_edge(Edge, V, FaceA, A, Ea, FaceB, B, Eb, OrigV, Etab) ->
+patch_half_edge(Edge, V, FaceA, Ea, FaceB, Eb, OrigV, Etab) ->
     New = case array:get(Edge, Etab) of
 	      #edge{vs=OrigV,lf=FaceA,rf=FaceB}=Rec ->
-		  Rec#edge{a=A,vs=V,ltsu=Ea,rtpr=Eb};
+		  Rec#edge{vs=V,ltsu=Ea,rtpr=Eb};
 	      #edge{vs=OrigV,lf=FaceB,rf=FaceA}=Rec ->
-		  Rec#edge{a=B,vs=V,ltsu=Eb,rtpr=Ea};
+		  Rec#edge{vs=V,ltsu=Eb,rtpr=Ea};
 	      #edge{ve=OrigV,lf=FaceA,rf=FaceB}=Rec ->
-		  Rec#edge{b=B,ve=V,ltpr=Ea,rtsu=Eb};
+		  Rec#edge{ve=V,ltpr=Ea,rtsu=Eb};
 	      #edge{ve=OrigV,lf=FaceB,rf=FaceA}=Rec ->
-		  Rec#edge{b=A,ve=V,ltpr=Eb,rtsu=Ea}
+		  Rec#edge{ve=V,ltpr=Eb,rtsu=Ea}
 	  end,
     array:set(Edge, New, Etab).
 

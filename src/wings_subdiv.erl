@@ -107,21 +107,14 @@ face_centers(Faces, We) ->
     face_centers(Faces, We, []).
 
 face_centers([Face|Fs], We, Acc) ->
-    {Vs,Cols} = wings_face:fold(
-		  fun(V, _, #edge{ve=V,a=C}, {Vs0,Col0}) ->
-			  {[V|Vs0],[C|Col0]};
-		     (V, _, #edge{vs=V,b=C}, {Vs0,Col0}) ->
-			  {[V|Vs0],[C|Col0]}
-		  end, {[],[]}, Face, We),
-    case Vs of
+    Attrs = wings_va:face_mixed_attrs(Face, We),
+    case wings_face:vertex_positions(Face, We) of
 	[_,_] ->
 	    wings_u:error(?__(1,"Face ") ++ integer_to_list(Face) ++
 			  ?__(2," has only two edges."));
-	_ ->
-	    Center0 = wings_vertex:center(Vs, We),
-	    Center = wings_util:share(Center0),
-	    Col = wings_color:average(Cols),
-	    face_centers(Fs, We, [{Face,{Center,Col,length(Vs)}}|Acc])
+	Positions ->
+	    Center = wings_util:share(e3d_vec:average(Positions)),
+	    face_centers(Fs, We, [{Face,{Center,Attrs,length(Positions)}}|Acc])
     end;
 face_centers([], _We, Acc) -> reverse(Acc).
 
@@ -129,9 +122,13 @@ face_centers([], _We, Acc) -> reverse(Acc).
 %%% Updating of the topology (edge and hard edge tables).
 %%%
 
-cut_edges(Es, Hard, #we{es=Etab0,he=Htab0,next_id=Id0}=We) ->
+cut_edges(Es, Hard, #we{es=Etab0,he=Htab0,next_id=Id0}=We0) ->
     {Id,Etab,Htab} = cut_edges_1(Es, Hard, Id0, Etab0, Htab0),
-    We#we{es=Etab,he=Htab,next_id=Id}.
+    We = We0#we{es=Etab,he=Htab,next_id=Id},
+    case wings_va:any_attributes(We) of
+	false -> We;
+	true -> cut_edges_attrs(Es, Id0, We0, We)
+    end.
 
 cut_edges_1([Edge|Es], Hard, NewEdge, Etab0, Htab0) ->
     Rec = array:get(Edge, Etab0),
@@ -150,59 +147,63 @@ cut_edges_1([], _Hard, Id, Etab, Htab) ->
     {Id,Etab,Htab}.
 
 fast_cut(Edge, Template, NewV=NewEdge, Etab0) ->
-    #edge{a=ACol,b=BCol,lf=Lf,rf=Rf,
-	  ltpr=EdgeA,rtsu=EdgeB,rtpr=NextBCol} = Template,
-    NewColA = mix_color(EdgeA, Etab0, Lf, ACol),
-    NewColB = mix_color(NextBCol, Etab0, Rf, BCol),
-    NewEdgeRec = Template#edge{vs=NewV,a=NewColA,ltsu=Edge,rtpr=Edge},
+    #edge{ltpr=EdgeA,rtsu=EdgeB} = Template,
+    NewEdgeRec = Template#edge{vs=NewV,ltsu=Edge,rtpr=Edge},
     Etab1 = array:set(NewEdge, NewEdgeRec, Etab0),
-    EdgeRec = Template#edge{ve=NewV,b=NewColB,rtsu=NewEdge,ltpr=NewEdge},
+    EdgeRec = Template#edge{ve=NewV,rtsu=NewEdge,ltpr=NewEdge},
     Etab2 = array:set(Edge, EdgeRec, Etab1),
     Etab = wings_edge:patch_edge(EdgeA, NewEdge, Edge, Etab2),
     wings_edge:patch_edge(EdgeB, NewEdge, Edge, Etab).
 
-mix_color(_, _, _, none) -> none;
-mix_color(E, Etab, Face, OtherColor) ->
-    wings_color:average(OtherColor,
-			case array:get(E, Etab) of
-			    #edge{lf=Face,a=Col} -> Col;
-			    #edge{rf=Face,b=Col} -> Col
-			end).
+cut_edges_attrs([Edge|Es], NewEdge, OrigWe, We0) ->
+    AttrMidLeft = wings_va:edge_attrs(Edge, left, 0.5, OrigWe),
+    AttrMidRight = wings_va:edge_attrs(Edge, right, 0.5, OrigWe),
+    AttrEndLeft = wings_va:edge_attrs(Edge, right, OrigWe),
+    We1 = wings_va:set_edge_attrs(Edge, right, AttrMidRight, We0),
+    We = wings_va:set_both_edge_attrs(NewEdge, AttrMidLeft, AttrEndLeft, We1),
+    cut_edges_attrs(Es, NewEdge+1, OrigWe, We);
+cut_edges_attrs([], _, _, We) -> We.
 
 smooth_faces(FacePos, Id, We0) ->
-    We = smooth_faces_1(FacePos, Id, We0),
+    We1 = smooth_faces_1(FacePos, Id, We0),
+    We = case wings_va:any_attributes(We1) of
+	     false ->
+		 We1;
+	     true ->
+		 smooth_faces_attrs(FacePos, Id, We0, We1)
+	 end,
     case wings_we:any_hidden(We0) of
 	false -> {We,[]};
 	true -> {We,smooth_faces_hide(FacePos, We0)}
     end.
 
-smooth_faces_1([{Face,{_,Color,NumIds}}|Fs], Id, #we{es=Etab0}=We0) ->
+smooth_faces_1([{Face,{_,_,NumIds}}|Fs], Id, #we{es=Etab0}=We0) ->
     {Ids,We} = wings_we:new_wrap_range(NumIds, 1, We0),
     NewV = wings_we:id(0, Ids),
-    Fun = smooth_edge_fun(Face, NewV, Color, Id),
+    Fun = smooth_edge_fun(Face, NewV, Id),
     {Etab,_} = face_fold(Fun, {Etab0,Ids}, Face, We),
     smooth_faces_1(Fs, Id, We#we{es=Etab});
 smooth_faces_1([], _, We) ->
     We#we{fs=undefined}.
 
-smooth_edge_fun(Face, NewV, Color, Id) ->
+smooth_edge_fun(Face, NewV, Id) ->
     fun(Edge, Rec0, Next, {Etab0,Ids0}) ->
 	    LeftEdge = RFace = wings_we:id(0, Ids0),
 	    NewEdge = LFace = wings_we:id(1, Ids0),
 	    RightEdge = wings_we:id(2, Ids0),
 	    case Rec0 of
-		#edge{ve=Vtx,b=OldCol,rf=Face} when Vtx >= Id ->
+		#edge{ve=Vtx,rf=Face} when Vtx >= Id ->
 		    Ids = Ids0,
 		    Rec = Rec0#edge{rf=RFace,rtsu=NewEdge},
-		    NewErec = #edge{vs=Vtx,a=OldCol,ve=NewV,b=Color,
+		    NewErec = #edge{vs=Vtx,ve=NewV,
 				    rf=RFace,lf=LFace,
 				    rtpr=Edge,rtsu=LeftEdge,
 				    ltpr=RightEdge,ltsu=Next},
 		    Etab1 = array:set(NewEdge, NewErec, Etab0);
-		#edge{vs=Vtx,a=OldCol,lf=Face} when Vtx >= Id ->
+		#edge{vs=Vtx,lf=Face} when Vtx >= Id ->
 		    Ids = Ids0,
 		    Rec = Rec0#edge{lf=RFace,ltsu=NewEdge},
-		    NewErec = #edge{vs=Vtx,a=OldCol,ve=NewV,b=Color,
+		    NewErec = #edge{vs=Vtx,ve=NewV,
 				    rf=RFace,lf=LFace,
 				    rtpr=Edge,rtsu=LeftEdge,
 				    ltpr=RightEdge,ltsu=Next},
@@ -218,6 +219,35 @@ smooth_edge_fun(Face, NewV, Color, Id) ->
 	    end,
 	    Etab = array:set(Edge, Rec, Etab1),
 	    {Etab,Ids}
+    end.
+
+smooth_faces_attrs([{Face,{_,Color,NumIds}}|Fs], Id, OrigWe0, We0) ->
+    {Ids,OrigWe} = wings_we:new_wrap_range(NumIds, 1, OrigWe0),
+    Fun = smooth_edge_fun_attrs(Face, Color, Id),
+    {We,_} = face_fold(Fun, {We0,Ids}, Face, OrigWe),
+    smooth_faces_attrs(Fs, Id, OrigWe, We);
+smooth_faces_attrs([], _, _, We) -> We.
+
+smooth_edge_fun_attrs(Face, Color, Id) ->
+    fun(Edge, Rec0, _Next, {We0,Ids0}) ->
+	    NewEdge = wings_we:id(1, Ids0),
+	    case Rec0 of
+		#edge{ve=Vtx,rf=Face} when Vtx >= Id ->
+		    Ids = Ids0,
+		    OldAttrs = wings_va:edge_attrs(Edge, right, We0),
+		    We = wings_va:set_both_edge_attrs(NewEdge, OldAttrs, Color, We0);
+		#edge{vs=Vtx,lf=Face} when Vtx >= Id ->
+		    Ids = Ids0,
+		    OldAttrs = wings_va:edge_attrs(Edge, left, We0),
+		    We = wings_va:set_both_edge_attrs(NewEdge, OldAttrs, Color, We0);
+		#edge{vs=Vtx,rf=Face} when Vtx >= Id ->
+		    We = We0,
+		    Ids = wings_we:bump_id(Ids0);
+		#edge{ve=Vtx,lf=Face} when Vtx >= Id ->
+		    We = We0,
+		    Ids = wings_we:bump_id(Ids0)
+	    end,
+	    {We,Ids}
     end.
 
 smooth_faces_hide(Fs, #we{next_id=Id}) ->
