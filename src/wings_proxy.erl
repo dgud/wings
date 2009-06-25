@@ -13,7 +13,7 @@
 
 -module(wings_proxy).
 -export([setup/1,quick_preview/1,update/2,draw/2,draw_smooth_edges/1,
-	 smooth/2, smooth_dl/1, smooth_faces_all/2, invalidate_dl/2]).
+	 smooth/2, smooth_dl/1, invalidate_dl/2]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -27,14 +27,10 @@
 	 faces = none,
 	 smooth = none,
 	 proxy_edges = none,
-	 %% Vertex Array Data
-	 face_vs,
-	 face_fn,
-	 face_sn,
-	 face_uv,
-	 face_vc,
-	 mat_map,
-	 face_ns  %% List ordered in face appearance order in bins above
+	 
+	 vab = none
+	 %% Note: face_map is a list ordered in face appearance order in bins above
+	 
 	}).
 
 quick_preview(_St) ->
@@ -116,7 +112,7 @@ update(#dlo{proxy_data=#sp{faces=[_]}=Pd0}=D, St) ->
     update(D#dlo{proxy_data=Pd0#sp{faces=none}},St);
 update(#dlo{src_we=We0,proxy_data=#sp{faces=none}=Pd0}=D, St) ->
     Pd = proxy_smooth(We0, Pd0, St),
-    Faces = draw_faces(Pd, St),
+    Faces = wings_draw:draw_flat_faces(Pd#sp.vab, St),
     ProxyEdges = update_edges(D, Pd),
     D#dlo{proxy_data=Pd#sp{faces=Faces,proxy_edges=ProxyEdges}};
 update(#dlo{proxy_data=#sp{proxy_edges=none}=Pd}=D, _) ->
@@ -144,7 +140,7 @@ update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, so
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     Dl;
-update_edges_1(_, #sp{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}, all) ->
+update_edges_1(_, #sp{vab=#vab{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}}, all) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
     wings_draw_setup:vertexPointer(BinVs),
@@ -152,9 +148,9 @@ update_edges_1(_, #sp{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}, all) ->
     gl:enableClientState(?GL_VERTEX_ARRAY),
     gl:enableClientState(?GL_NORMAL_ARRAY),
     Count = case MatMap of
-		[{_Mat,Start,MCount}|_] ->
+		[{_Mat,_Type,_Uvs,Start,MCount}|_] ->
 		    Start+MCount;
-		{color,Num} ->
+		{color,_Type,Num} ->
 		    Num
 	    end,
     gl:drawArrays(?GL_QUADS, 0, Count),
@@ -165,12 +161,14 @@ update_edges_1(_, #sp{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}, all) ->
 
 smooth(D=#dlo{proxy=false},_) -> D;
 smooth(D=#dlo{src_we=We},_) when ?IS_ANY_LIGHT(We) -> D;
-smooth(D=#dlo{proxy_data=#sp{smooth=none, face_ns=FN, we=We}=Pd0},St) ->
+smooth(D=#dlo{proxy_data=#sp{smooth=none, vab=#vab{face_map=FN}=Vab0, we=We}=Pd0},St) ->
     PartialNs = lists:sort(FN),
     Flist = wings_we:normals(PartialNs, We),
     Ftab  = array:from_orddict(Flist),
     SN    = setup_smooth_normals(FN, Ftab, <<>>),
-    smooth_faces_all(D#dlo{proxy_data=Pd0#sp{face_sn={0,SN}}},St);
+    Vab   = Vab0#vab{face_sn={0,SN}},
+    DL    = wings_draw:draw_smooth_faces(Vab, St),
+    D#dlo{proxy_data=Pd0#sp{smooth=DL, vab=Vab}};
 smooth(D,_) ->
     D.
 
@@ -252,7 +250,7 @@ draw_edges_1(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
     wings_dl:call(ProxyEdges).
 
-proxy_smooth(We, #sp{src_we=We,face_vs=Bin}=Pd, _St)
+proxy_smooth(We, #sp{src_we=We,vab=#vab{face_vs=Bin}}=Pd, _St)
   when Bin =/= none ->
     %% Nothing important changed, recreate lists
     Pd;
@@ -271,127 +269,6 @@ proxy_smooth(We0, _Pd, St) ->
     Plan = wings_draw_setup:prepare(gb_trees:to_list(Ftab), We, St),
     flat_faces(Plan, #sp{src_we=We0,we=We}).
 
-%%%
-%%% Specialized drawing routines that exploits the fact that
-%%% a sub-divided surface only can contain quads.
-%%%
-
-draw_faces(#sp{face_vs=BinVs,face_fn=Ns,face_vc=Col,
-	       mat_map={color,NumElements}}, #st{mat=Mtab}) ->
-    Faces = gl:genLists(1),
-    gl:newList(Faces, ?GL_COMPILE),
-    wings_draw_setup:vertexPointer(BinVs),
-    wings_draw_setup:normalPointer(Ns),
-    wings_draw_setup:colorPointer(Col),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:enableClientState(?GL_NORMAL_ARRAY),
-    gl:enableClientState(?GL_COLOR_ARRAY),
-    wings_material:apply_material(default, Mtab),
-    gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
-    gl:enable(?GL_COLOR_MATERIAL),
-    gl:drawArrays(?GL_QUADS, 0, NumElements),
-    gl:disable(?GL_COLOR_MATERIAL),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    gl:disableClientState(?GL_NORMAL_ARRAY),
-    gl:disableClientState(?GL_COLOR_ARRAY),
-    gl:endList(),
-    Faces;
-draw_faces(#sp{face_vs=BinVs,face_fn=Ns,face_uv=UV,mat_map=MatMap}, #st{mat=Mtab}) ->
-    Faces = gl:genLists(1),
-    gl:newList(Faces, ?GL_COMPILE),
-    wings_draw_setup:vertexPointer(BinVs),
-    wings_draw_setup:normalPointer(Ns),
-    wings_draw_setup:texCoordPointer(UV),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:enableClientState(?GL_NORMAL_ARRAY),
-    foreach(fun(MatFs) -> draw_mat_fs(MatFs, Mtab) end, MatMap),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    gl:disableClientState(?GL_NORMAL_ARRAY),
-    gl:endList(),
-    Faces.
-
-draw_mat_fs({Mat,Start,NumElements}, Mtab) ->
-    gl:pushAttrib(?GL_TEXTURE_BIT),
-    case wings_material:apply_material(Mat, Mtab) of
-	false ->
-	    gl:drawArrays(?GL_QUADS, Start, NumElements);
-	true ->
-	    gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),
-	    gl:drawArrays(?GL_QUADS, Start, NumElements),
-	    gl:disableClientState(?GL_TEXTURE_COORD_ARRAY)
-    end,
-    gl:popAttrib().
-
-%%%
-%%% Smooth drawing.
-%%%
-
-smooth_faces_all(#dlo{proxy_data=#sp{face_vs=BinVs,face_sn=Ns,
-				     face_vc=Col,mat_map={color,NumElements}}=PD}=D,
-		 #st{mat=Mtab}) ->
-    wings_draw_setup:vertexPointer(BinVs),
-    wings_draw_setup:normalPointer(Ns),
-    wings_draw_setup:colorPointer(Col),
-
-    Dl = gl:genLists(1),
-    gl:newList(Dl, ?GL_COMPILE),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:enableClientState(?GL_NORMAL_ARRAY),
-    gl:enableClientState(?GL_COLOR_ARRAY),
-    wings_material:apply_material(default, Mtab),
-    gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
-    gl:enable(?GL_COLOR_MATERIAL),
-    gl:drawArrays(?GL_QUADS, 0, NumElements),
-    gl:disable(?GL_COLOR_MATERIAL),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    gl:disableClientState(?GL_NORMAL_ARRAY),
-    gl:disableClientState(?GL_COLOR_ARRAY),
-    gl:endList(),
-    free(D),
-    D#dlo{proxy_data=PD#sp{smooth={[Dl,none],false}}};
-smooth_faces_all(#dlo{proxy_data=#sp{face_vs=BinVs,face_sn=Ns,face_uv=UV,mat_map=MatMap}=PD}=D,
-		 #st{mat=Mtab}) ->
-    ListOp = gl:genLists(1),
-    wings_draw_setup:vertexPointer(BinVs),
-    wings_draw_setup:normalPointer(Ns),
-    wings_draw_setup:texCoordPointer(UV),
-
-    DrawSolid = fun(Data={Mat,_,_}, Tr) ->
-			case wings_material:is_transparent(Mat, Mtab) of
-			    false ->
-				draw_mat_fs(Data,Mtab),
-				Tr;
-			    true ->
-				[Data|Tr]
-			end
-		end,
-
-    gl:newList(ListOp, ?GL_COMPILE),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:enableClientState(?GL_NORMAL_ARRAY),
-    Trans = foldl(DrawSolid, [], MatMap),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    gl:disableClientState(?GL_NORMAL_ARRAY),
-    gl:endList(),
-
-    case Trans of
-	[] ->
-	    D#dlo{proxy_data=PD#sp{smooth={[ListOp,none],false}}};
-	_ ->
-	    ListTr = gl:genLists(1),
-	    gl:newList(ListTr, ?GL_COMPILE),
-	    gl:enableClientState(?GL_VERTEX_ARRAY),
-	    gl:enableClientState(?GL_NORMAL_ARRAY),
-	    foreach(fun(MatFs) -> draw_mat_fs(MatFs,Mtab) end, Trans),
-	    gl:disableClientState(?GL_VERTEX_ARRAY),
-	    gl:disableClientState(?GL_NORMAL_ARRAY),
-	    gl:endList(),
-	    free(D),
-	    D#dlo{proxy_data=PD#sp{smooth={[ListOp,ListTr],true}}}
-    end.
-
-free(_) -> ok.
-
 %%% Setup binaries and meta info
 flat_faces({material,MatFaces}, Pd) ->
     plain_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
@@ -402,7 +279,7 @@ flat_faces({color,Ftab,We}, Pd) ->
 
 plain_flat_faces([{Mat,Fs}|T], Pd=#sp{we=We}, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, We, Start0, Vs0, Fmap0),
-    MatInfo = [{Mat,Start0,Start-Start0}|MatInfo0],
+    MatInfo = [{Mat,?GL_QUADS, false, Start0,Start-Start0}|MatInfo0],
     plain_flat_faces(T, Pd, Start, Vs, FaceMap, MatInfo);
 plain_flat_faces([], Pd, _Start, Vs, FaceMap, MatInfo) ->
     case Vs of
@@ -412,8 +289,8 @@ plain_flat_faces([], Pd, _Start, Vs, FaceMap, MatInfo) ->
 	    <<_:3/unit:32,Ns/bytes>> = Vs
     end,
     S = 24,
-    Pd#sp{face_vs={S,Vs},face_fn={S,Ns},face_uv=none,
-	  face_ns=reverse(FaceMap),mat_map=MatInfo}.
+    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv=none,
+		   face_map=reverse(FaceMap),mat_map=MatInfo}}.
 
 flat_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap) ->
     VsPos  = wings_face:vertex_positions(Face, Edge, We),
@@ -424,7 +301,7 @@ flat_faces_1([], _, Start, Vs, FaceMap) ->
 
 uv_flat_faces([{Mat,Fs}|T], Pd = #sp{we=We}, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = uv_flat_faces_1(Fs, We, Start0, Vs0, Fmap0),
-    MatInfo = [{Mat,Start0,Start-Start0}|MatInfo0],
+    MatInfo = [{Mat,?GL_QUADS, true, Start0,Start-Start0}|MatInfo0],
     uv_flat_faces(T, Pd, Start, Vs, FaceMap, MatInfo);
 uv_flat_faces([], D, _Start, Vs, FaceMap, MatInfo) ->
     case Vs of
@@ -435,8 +312,8 @@ uv_flat_faces([], D, _Start, Vs, FaceMap, MatInfo) ->
 	    <<_:3/unit:32,UV/bytes>> = Ns
     end,
     S = 32,
-    D#sp{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},
-	 face_ns=reverse(FaceMap),mat_map=MatInfo}.
+    D#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},
+		  face_map=reverse(FaceMap),mat_map=MatInfo}}.
 
 uv_flat_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap) ->
     {VsPos,UV} = wings_va:face_pos_attr(uv, Face, Edge, We),
@@ -455,10 +332,10 @@ col_flat_faces(Fs, We, Pd) ->
 	    <<_:3/unit:32,Normals/bytes>> = Vs,
 	    <<_:3/unit:32,Col/bytes>> = Normals
     end,
-    MatInfo = {color,Start},
+    MatInfo = {color,?GL_QUADS,Start},
     S = 36,
-    Pd#sp{face_vs={S,Vs},face_fn={S,Normals},face_vc={S,Col},face_uv=none,
-	  face_ns=reverse(FaceMap),mat_map=MatInfo}.
+    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Normals},face_vc={S,Col},face_uv=none,
+		   face_map=reverse(FaceMap),mat_map=MatInfo}}.
 
 col_flat_faces_1([{Face,Edge}|T], We, Start, Vs, Fmap) ->
     {VsPos,Col} = wings_va:face_pos_attr(color, Face, Edge, We),

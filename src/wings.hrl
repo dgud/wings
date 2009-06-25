@@ -82,55 +82,8 @@
 
 -type wings_vtx_buffer() :: 'none' | {integer(),binary()}.
 
-%% Display lists per object.
-%%  Important: Plain integers and integers in lists will be assumed to
-%%  be display lists. Arbitrary integers must be stored inside a tuple
-%%  or record to not be interpreted as a display list.
--record(dlo,
-	{work=none,				%Workmode faces.
-	 smooth=none,				%Smooth-shaded faces.
-	 edges=none,				%Edges and wire-frame.
-	 vs=none,				%Unselected vertices.
-	 hard=none,				%Hard edges.
-	 sel=none,				%Selected items.
-	 orig_sel=none,				%Original selection.
-	 normals=none,				%Normals.
 
-	 %% Vertex buffers. Each vertex buffer looks like
-	 %% {Stride,Binary}, where Stride is the stride to be
-	 %% used when setting up the vertex buffer.
-	 face_vs  = none :: wings_vtx_buffer(), %Vertex binary for drawing faces
-	 face_fn  = none :: wings_vtx_buffer(), %Face Normals (flat but per vertex)
-	 face_sn  = none :: wings_vtx_buffer(), %Face Normals (smooth)
-	 face_uv  = none :: wings_vtx_buffer(), %UV coords
-	 face_vc  = none :: wings_vtx_buffer(), %Vertex Colors coords
-	 face_map = none,                       %FaceId -> {BinPos,TriCount}
-	 mat_map  = none,                       %Face per Material draw info
-	 tri_map = none,			%Tri -> Face map (for picking)
-
-	 %% Miscellanous.
-	 hilite=none,				%Hilite display list.
-	 mirror=none,				%Virtual mirror data.
-	 ns=none,				%Normals/positions per face.
-	 plugins=[],                            %Draw lists for plugins.
-	 proxy=false,                           %Proxy Data is used.
-
-	 %% Source for display lists.
-	 src_we=none,				%Source object.
-	 src_sel=none,				%Source selection.
-	 orig_mode=none,			%Original selection mode.
-	 split=none,				%Split data.
-	 drag=none,				%For dragging.
-	 transparent=false,			%Object includes transparancy.
-	 proxy_data=none,			%Data for smooth proxy.
-	 open=false,				%Open (has hole).
-
-	 %% List of display lists known to be needed only based
-	 %% on display modes, not whether the lists themselves exist.
-	 %% Example: [work,edges]
-	 needed=[]
-	}).
-
+%% State and records
 %% Main state record containing all objects and other important state.
 -record(st,
 	{shapes=gb_trees:empty() :: gb_tree(),	%All visible objects
@@ -257,4 +210,60 @@
 	 hither,				%Near clipping plane.
 	 yon					%Far clipping plane.
 	}).
+
+
+%% Display lists per object.
+%%  Important: Plain integers and integers in lists will be assumed to
+%%  be display lists. Arbitrary integers must be stored inside a tuple
+%%  or record to not be interpreted as a display list.
+-record(dlo,
+	{work=none,				%Workmode faces.
+	 smooth=none,				%Smooth-shaded faces.
+	 edges=none,				%Edges and wire-frame.
+	 vs=none,				%Unselected vertices.
+	 hard=none,				%Hard edges.
+	 sel=none,				%Selected items.
+	 orig_sel=none,				%Original selection.
+	 normals=none,				%Normals.
+
+	 vab     = none,                        %% Vertex array (see below)
+	 tri_map = none,			%Tri -> Face map (for picking)
+
+	 %% Miscellanous.
+	 hilite=none,				%Hilite display list.
+	 mirror=none,				%Virtual mirror data.
+	 ns=none,				%Normals/positions per face.
+	 plugins=[],                            %Draw lists for plugins.
+	 proxy=false,                           %Proxy Data is used.
+
+	 %% Source for display lists.
+	 src_we=none,				%Source object.
+	 src_sel=none,				%Source selection.
+	 orig_mode=none,			%Original selection mode.
+	 split=none,				%Split data.
+	 drag=none,				%For dragging.
+	 transparent=false,			%Object includes transparancy.
+	 proxy_data=none,			%Data for smooth proxy.
+	 open=false,				%Open (has hole).
+
+	 %% List of display lists known to be needed only based
+	 %% on display modes, not whether the lists themselves exist.
+	 %% Example: [work,edges]
+	 needed=[]
+	}).
+
+%% Vertex array buffers
+-record(vab, 
+	{
+	  %% Vertex buffers. Each vertex buffer looks like
+	  %% {Stride,Binary}, where Stride is the stride to be
+	  %% used when setting up the vertex buffer.
+	  face_vs  = none :: wings_vtx_buffer(), %Vertex binary for drawing faces
+	  face_fn  = none :: wings_vtx_buffer(), %Face Normals (flat but per vertex)
+	  face_sn  = none :: wings_vtx_buffer(), %Face Normals (smooth)
+	  face_uv  = none :: wings_vtx_buffer(), %UV coords
+	  face_vc  = none :: wings_vtx_buffer(), %Vertex Colors coords
+	  face_map = none,                       %FaceId -> {BinPos,TriCount}
+	  mat_map  = none                        %Face per Material draw info
+	 }).
 

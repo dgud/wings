@@ -218,7 +218,7 @@ hilit_draw_sel(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
     gl:vertex3fv(array:get(Va, Vtab)),
     gl:vertex3fv(array:get(Vb, Vtab)),
     gl:'end'();
-hilit_draw_sel(face, Face, #dlo{face_map=Map, face_vs=Vs}) ->
+hilit_draw_sel(face, Face, #dlo{vab=#vab{face_map=Map, face_vs=Vs}}) ->
     case wings_pref:get_value(selection_style) of
 	stippled -> gl:enable(?GL_POLYGON_STIPPLE);
 	solid -> ok
@@ -230,7 +230,7 @@ hilit_draw_sel(face, Face, #dlo{face_map=Map, face_vs=Vs}) ->
     gl:drawArrays(?GL_TRIANGLES, Start, NoElements),
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:disable(?GL_POLYGON_STIPPLE);
-hilit_draw_sel(body, _, #dlo{face_vs=Vs}=D) ->
+hilit_draw_sel(body, _, #dlo{vab=#vab{face_vs=Vs}}=D) ->
     case wings_pref:get_value(selection_style) of
 	stippled -> gl:enable(?GL_POLYGON_STIPPLE);
 	solid -> ok
@@ -906,9 +906,11 @@ dlo_pick(St) ->
 do_dlo_pick(#dlo{src_we=#we{perm=Perm}}=D, _St, Acc)
   when ?IS_NOT_SELECTABLE(Perm) ->
     {D,Acc};
-do_dlo_pick(#dlo{face_vs=none}=D, St, Acc) ->
+do_dlo_pick(D=#dlo{vab=none}, St, Acc) ->
     do_dlo_pick(wings_draw_setup:work(D, St), St, Acc);
-do_dlo_pick(#dlo{face_vs=Vs,src_we=#we{id=Id}=We}=D, _, Acc)
+do_dlo_pick(D=#dlo{vab=#vab{face_vs=none}}, St, Acc) ->
+    do_dlo_pick(wings_draw_setup:work(D, St), St, Acc);
+do_dlo_pick(#dlo{vab=#vab{face_vs=Vs},src_we=#we{id=Id}=We}=D, _, Acc)
   when ?IS_LIGHT(We) ->
     case wpc_pick:faces(Vs) of
 	[] -> {D,Acc};
@@ -928,7 +930,7 @@ do_dlo_pick(#dlo{mirror=Matrix,src_we=#we{id=Id}}=D0, _, Acc0) ->
     set_pick_matrix(),
     {D,Acc}.
 
-do_dlo_pick_0(Id, #dlo{face_vs=Vs,face_map=Map0}=D0, Acc) ->
+do_dlo_pick_0(Id, #dlo{vab=#vab{face_vs=Vs,face_map=Map0}}=D0, Acc) ->
     case wpc_pick:faces(Vs) of
 	[] ->
 	    {D0,Acc};

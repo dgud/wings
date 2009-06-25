@@ -38,24 +38,29 @@ texCoordPointer({Stride,UV}) ->
     gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV);
 texCoordPointer(none) -> ok.
 
-face_vertex_count(#dlo{mat_map=[{_Mat,Start,Count}|_]}) ->
+face_vertex_count(#dlo{vab=#vab{mat_map=[{_Mat,_Type,_HaveUvs,Start,Count}|_]}}) ->
     Start+Count;
-face_vertex_count(#dlo{mat_map={color,N}}) ->
+face_vertex_count(#dlo{vab=#vab{mat_map={color,_Type,N}}}) ->
     N.
 
 %% Setup face_vs and face_fn and additional uv coords or vertex colors
-work(#dlo{face_vs=none,src_we=#we{fs=Ftab}}=D, St) ->
+work(#dlo{vab=none,src_we=#we{fs=Ftab}}=D, St) ->
     Prepared = prepare(gb_trees:to_list(Ftab), D, St),
     flat_faces(Prepared, D);
-work(#dlo{face_fn=none}=D, _St) ->
+work(#dlo{vab=#vab{face_vs=none},src_we=#we{fs=Ftab}}=D, St) ->
+    Prepared = prepare(gb_trees:to_list(Ftab), D, St),
+    flat_faces(Prepared, D);
+work(#dlo{vab=#vab{face_fn=none}}=D, _St) ->
     %% Can this really happen?
     setup_flat_normals(D);
 work(D, _) -> D.
 
 %% Setup face_vs and face_sn and additional uv coords or vertex colors
-smooth(#dlo{face_vs=none}=D, St) ->
+smooth(#dlo{vab=none}=D, St) ->
     setup_smooth_normals(work(D, St));
-smooth(D=#dlo{face_sn=none}, _St) ->
+smooth(#dlo{vab=#vab{face_vs=none}}=D, St) ->
+    setup_smooth_normals(work(D, St));
+smooth(D=#dlo{vab=#vab{face_sn=none}}, _St) ->
     setup_smooth_normals(D);
 smooth(D, _) -> D.
 
@@ -70,7 +75,7 @@ flat_faces({color,Ftab,We}, D) ->
 
 plain_flat_faces([{Mat,Fs}|T], #dlo{ns=Ns}=D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, Ns, Start0, Vs0, Fmap0),
-    MatInfo = [{Mat,Start0,Start-Start0}|MatInfo0],
+    MatInfo = [{Mat,?GL_TRIANGLES,false,Start0,Start-Start0}|MatInfo0],
     plain_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 plain_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
@@ -81,8 +86,8 @@ plain_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
 	    <<_:3/unit:32,Ns/bytes>> = Vs
     end,
     S = 24,
-    D#dlo{face_vs={S,Vs},face_fn={S,Ns},face_uv=none,
-	  face_map=FaceMap,mat_map=MatInfo}.
+    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv=none,
+		   face_map=FaceMap,mat_map=MatInfo}}.
 
 flat_faces_1([{Face,_}|Fs], Ns, Start, Vs, FaceMap) ->
     case array:get(Face, Ns) of
@@ -105,7 +110,7 @@ flat_faces_1([], _, Start, Vs, FaceMap) ->
 
 uv_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = uv_flat_faces_1(Fs, D, Start0, Vs0, Fmap0),
-    MatInfo = [{Mat,Start0,Start-Start0}|MatInfo0],
+    MatInfo = [{Mat,?GL_TRIANGLES, true, Start0,Start-Start0}|MatInfo0],
     uv_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 uv_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
@@ -117,8 +122,8 @@ uv_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
 	    <<_:3/unit:32,UV/bytes>> = Ns
     end,
     S = 32,
-    D#dlo{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},
-	  face_map=FaceMap,mat_map=MatInfo}.
+    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},
+		   face_map=FaceMap,mat_map=MatInfo}}.
 
 uv_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
     UVs = wings_va:face_attr(uv, Face, Edge, We),
@@ -151,10 +156,10 @@ col_flat_faces(Fs, We, #dlo{ns=Ns}=D) ->
 	    <<_:3/unit:32,Normals/bytes>> = Vs,
 	    <<_:3/unit:32,Col/bytes>> = Normals
     end,
-    MatInfo = {color,Start},
+    MatInfo = {color,?GL_TRIANGLES,Start},
     S = 36,
-    D#dlo{face_vs={S,Vs},face_fn={S,Normals},face_vc={S,Col},face_uv=none,
-	  face_map=FaceMap,mat_map=MatInfo}.
+    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Normals},face_vc={S,Col},face_uv=none,
+		   face_map=FaceMap,mat_map=MatInfo}}.
 
 col_flat_faces_1([{Face,Edge}|T], We, Ns, Start, Vs0, Fmap0) ->
     Cols = wings_va:face_attr(color, Face, Edge, We),
@@ -178,10 +183,10 @@ col_flat_faces_1([], _, _, Start, Vs, Fmap) ->
     {Start,Vs,Fmap}.
 
 %% setup only normals
-setup_flat_normals(D=#dlo{face_map=Fmap0,ns=Ns}) ->
+setup_flat_normals(D=#dlo{vab=#vab{face_map=Fmap0}=Vab,ns=Ns}) ->
     Fs = lists:keysort(2, array:sparse_to_orddict(Fmap0)),
     FN = setup_flat_normals_1(Fs, Ns, <<>>),
-    D#dlo{face_fn={0,FN}}.
+    D#dlo{vab=Vab#vab{face_fn={0,FN}}}.
 
 setup_flat_normals_1([{Face, {_, Count}}|Fs], Ns, FN) ->
     [Normal|_] = array:get(Face,Ns),
@@ -189,7 +194,7 @@ setup_flat_normals_1([{Face, {_, Count}}|Fs], Ns, FN) ->
 setup_flat_normals_1([],_,FN) ->
     FN.
 
-setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,face_map=Fmap0}) ->
+setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,vab=#vab{face_map=Fmap0}=Vab}) ->
     Ns1 = array:sparse_foldl(fun(F,[N|_], A) -> [{F,N}|A];
 				(F,{N,_,_}, A) -> [{F,N}|A]
 			     end, [], Ns0),
@@ -198,7 +203,7 @@ setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,face_map=Fmap0}) ->
     Ftab  = array:from_orddict(Flist),
     Fs    = lists:keysort(2, array:sparse_to_orddict(Fmap0)),
     SN = setup_smooth_normals(Fs, Ftab, Ns0, <<>>),
-    D#dlo{face_sn={0,SN}}.
+    D#dlo{vab=Vab#vab{face_sn={0,SN}}}.
 
 setup_smooth_normals([{Face,{_,3}}|Fs], Ftab, Flat, SN0) ->
     %% One triangle.
