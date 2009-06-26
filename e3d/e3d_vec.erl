@@ -179,19 +179,16 @@ normal([{Ax,Ay,Az},{Bx,By,Bz},{Cx,Cy,Cz}])
     norm(SqrLen, Sx, Sy, Sz);
 normal([{Ax,Ay,Az},{Bx,By,Bz},{Cx,Cy,Cz},{Dx,Dy,Dz}])
   when is_float(Ax), is_float(Ay), is_float(Az),
-       is_float(Bx), is_float(By), is_float(Bz),
-       is_float(Cx), is_float(Cy), is_float(Cz) ->
-    %% Daniel Sunday: "Fast Polygon Area and Newell Normal Computation"
-    %% journal of graphics tools, 7(2):9-13, 2002.
-    %% In addition, we have eliminated a total of 6 subtractions
-    %% (2 per coordinate) by reusing a previous subtraction with
-    %% changed sign (e.e. -Dy*CzMinusAz instead of +Dy*AzMinusCz).
-    CzMinusAz = Cz-Az, DzMinusBz = Dz-Bz,
-    CxMinusAx = Cx-Ax, DxMinusBx = Dx-Bx,
-    CyMinusAy = Cy-Ay, DyMinusBy = Dy-By,
-    Nx = By*CzMinusAz + Cy*DzMinusBz - Dy*CzMinusAz - Ay*DzMinusBz,
-    Ny = Bz*CxMinusAx + Cz*DxMinusBx - Dz*CxMinusAx - Az*DxMinusBx,
-    Nz = Bx*CyMinusAy + Cx*DyMinusBy - Dx*CyMinusAy - Ax*DyMinusBy,
+       is_float(Bx), is_float(By), is_float(Bz) ->
+    %% The same result as the Newell normal (after normalization)
+    %% can be calculated by taking the cross product of the vectors
+    %% formed by the diagonals of the quad. (From Christer Ericson:
+    %% "Real-Time Collision Detection", Chapter 12.)
+    V10 = Dx-Bx, V11 = Dy-By, V12 = Dz-Bz,
+    V20 = Ax-Cx, V21 = Ay-Cy, V22 = Az-Cz,
+    Nx = V11*V22-V12*V21,
+    Ny = V12*V20-V10*V22,
+    Nz = V10*V21-V11*V20,
     SqrLen = Nx*Nx + Ny*Ny + Nz*Nz,
     norm(SqrLen, Nx, Ny, Nz);
 normal([{Ax,Ay,Az},{Bx,By,Bz}|[{Cx,Cy,Cz}|_]=T]=First)
