@@ -51,6 +51,10 @@ ambient_occlusion(St) ->
     St3 = create_ambient_light(St2),
     St3.
 
+process_obj(We, _) when ?IS_NOT_VISIBLE(We#we.perm) ->
+    We;
+process_obj(We, _) when ?IS_NOT_SELECTABLE(We#we.perm) ->
+    We;
 process_obj(We, _) when ?IS_ANY_LIGHT(We) ->
     case We#we.name =/= "Ambient" of
 	true -> We#we{perm=[]};
@@ -76,7 +80,8 @@ process_obj(We0, DispList) ->
 make_disp_list(St) ->
     #st{shapes=Shapes} = St,
     GetAllFaces = fun(_Key,Val) ->
-	case ?IS_ANY_LIGHT(Val) of
+	Perm = Val#we.perm,
+	case ?IS_ANY_LIGHT(Val) or ?IS_NOT_VISIBLE(Perm) or ?IS_NOT_SELECTABLE(Perm) of
 	    true ->
 		[];
 	    false  ->
