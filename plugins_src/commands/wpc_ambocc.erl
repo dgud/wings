@@ -97,10 +97,10 @@ make_disp_list(St) ->
 	lists:foreach(ProcessFace, RawFs2)
     end,
     RawFs = gb_trees:map(GetAllFaces, Shapes),
-    AllRawfs = lists:append(gb_trees:values(RawFs)),
+    AllRawFs = lists:append(gb_trees:values(RawFs)),
     DispList = gl:genLists(1),
     gl:newList(DispList, ?GL_COMPILE),
-    AddPolygons(AllRawfs),
+    AddPolygons(AllRawFs),
     gl:endList(),
     DispList.
 
@@ -132,24 +132,18 @@ get_ao_color(Eye, Lookat, DispList) ->
     Factor = read_frame(),
     {Factor,Factor,Factor}.
 
+get_up_right({0.0,0.0,1.0}) ->
+    Up = {0.0,+1.0,0.0},
+    Right = {1.0,0.0,0.0},
+    {Up,Right};
+get_up_right({0.0,0.0,-1.0}) ->
+    Up = {0.0,-1.0,0.0},
+    Right = {1.0,0.0,0.0},
+    {Up,Right};
 get_up_right(Lookat) ->
-    Up0 = {0.0,0.0,1.0},
-    UpN = e3d_vec:neg(Up0),
-    case (Lookat == Up0) or (Lookat == UpN) of
-	true ->
-	    {_LookatX,_LookatY,LookatZ} = Lookat,
-	    case LookatZ of
-		1.0 ->
-		    Up = {0.0,+1.0,0.0};
-		_ ->
-		    Up = {0.0,-1.0,0.0}
-	    end,
-	    Right = {1.0,0.0,0.0};
-	false ->
-	    Up1 = {0.0,0.0,1.0},
-	    Right = e3d_vec:cross(Up1, Lookat),
-	    Up = e3d_vec:cross(Lookat, Right)
-    end,
+    Up1 = {0.0,0.0,1.0},
+    Right = e3d_vec:cross(Up1, Lookat),
+    Up = e3d_vec:cross(Lookat, Right),
     {Up,Right}.
 
 render_hemicube(Eye, Lookat, DispList) ->
