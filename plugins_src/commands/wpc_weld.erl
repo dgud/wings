@@ -95,7 +95,7 @@ weld(St) ->
    St.
 
 weld_select(OrigSt) ->
-    Desc = ?__(1,"Select target vertex for weld operation (both verticies must share a common edge) "),
+    Desc = ?__(1,"Select target vertex for weld operation (both vertices must share a common edge) "),
     Fun = fun(check, St) -> weld_check_selection(St, OrigSt);
 	     (exit, {_,_,#st{sel=Vert2}=St}) ->
 		  case weld_check_selection(St, OrigSt) of
@@ -109,7 +109,7 @@ weld_check_selection(#st{shapes=Shs,sel=[{Obj,VertSel2}]},#st{sel=[{Obj,VertSel1
    case gb_sets:size(VertSel2)==1 andalso gb_sets:size(VertSel1)==1 of
      true ->
       if
-         VertSel2==VertSel1 -> {none,?__(1,"You cannot weld vertex to itself")};
+         VertSel2==VertSel1 -> {none,?__(1,"You cannot weld a vertex to itself")};
          true -> 
             St2=wings_sel_conv:mode(vertex,St),
             [{_,Sel2}]=St2#st.sel,
@@ -136,222 +136,21 @@ weld_check_selection(#st{sel=[]},_) ->
 weld_check_selection(_,_) ->
    {none,?__(5,"You can weld only in same object")}.
 
-weld([{_,VertSel2}]=NewSel,#st{sel=[{Obj,VertSel1}],shapes=Shs}=St) ->
-   Vert1 = gb_sets:smallest(VertSel1),
-   Vert2 = gb_sets:smallest(VertSel2),
-   We = gb_trees:get(Obj, Shs),
-   {RemoveEdge,LF,RF,FixMe} = get_edge_info(Vert1,Vert2,We),
-   NewVp = array:reset(Vert1,We#we.vp),
-   NewEs = fix_edge(Vert1,Vert2,RemoveEdge,FixMe,LF,RF,We),
-   NewMat = fix_mat(FixMe,We),
-   NewHe = fix_hardedge(NewEs, We#we.he),
-   NewWe = wings_we:rebuild(We#we{vp=NewVp, es=NewEs, he=NewHe, vc=undefined, fs=undefined, mat=NewMat}),
-   NewShs = gb_trees:update(Obj,NewWe,Shs),
-   {save_state,St#st{shapes=NewShs,sel=NewSel}}.
+weld([{_,VertSel2}]=NewSel, #st{sel=[{Obj,VertSel1}],shapes=Shs0}=St) ->
+    Vremove = gb_sets:smallest(VertSel1),
+    Vkeep = gb_sets:smallest(VertSel2),
+    We0 = gb_trees:get(Obj, Shs0),
 
-get_edge_info(Vert1,Vert2,We) ->
-   [{RemoveEdge,LF,RF}] = wings_vertex:edge_through(Vert1, Vert2, We),
-   NLF = wings_face:vertices(LF, We),
-   NRF = wings_face:vertices(RF, We),
-   if
-      NLF < 4 -> FixMe0 = [LF];
-      true -> FixMe0 = []
-   end,
-   if
-      NRF < 4 -> FixMe = [RF|FixMe0];
-      true -> FixMe = FixMe0
-   end,
-   {RemoveEdge,LF,RF,FixMe}.
+    %% It has already been verified that the vertices share an edge.
+    [{Edge,_,_}] = wings_vertex:edge_through(Vkeep, Vremove, We0),
 
-fix_edge(Vert1,Vert2,RemoveEdge,FixMe,LF,RF,We) ->
-   ABTransform = calculate_ab(Vert1,Vert2,LF,RF,We),
-   SurEs = gb_sets:delete(RemoveEdge,gb_sets:from_list(wings_face:to_edges(wings_face:from_vs([Vert1,Vert2], We),We))),
-   Etab0 = array:reset(RemoveEdge, We#we.es),
-   Etab = fix_edge_1(Vert1,Vert2,RemoveEdge,ABTransform,SurEs,We,Etab0),
-   foldl(fun(Face,ParseEtab) -> remove_face(Face,ParseEtab,SurEs) end,Etab,FixMe).
+    %% Collapse the edge going through the vertices,
+    %% keeping vertex Vkeep but at the wrong position.
+    We1 = wings_collapse:collapse_edge(Edge, Vkeep, We0),
 
-fix_edge_1(Vert1,Vert2,RemoveEdge,ABTransform,SurEs,Orig,Result) ->
-   case gb_sets:is_empty(SurEs) of
-      true -> Result;
-      false ->
-         {Edge,SurEs2} = gb_sets:take_smallest(SurEs),
-         #edge{vs=V1,ve=V2,a=C1,b=C2,lf=LF,rf=RF,ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} = array:get(Edge,Orig#we.es),
-         #edge{lf=OLF,rf=ORF,ltpr=OLP,ltsu=OLS,rtpr=ORP,rtsu=ORS} = array:get(RemoveEdge,Orig#we.es),
-         case V1 of
-            Vert1 -> NV1=Vert2,
-                     NC1=transformAB(C1,ABTransform);
-            _ -> NV1=V1,
-                 NC1=C1
-         end,
-         case V2 of
-            Vert1 -> NV2=Vert2,
-                     NC2=transformAB(C2,ABTransform);
-            _ -> NV2=V2,
-                 NC2=C2
-         end,
-         case LP of
-            RemoveEdge ->
-               if
-                  LF == OLF -> NLP = OLP;
-                  true -> NLP = ORP
-               end;
-            _ -> NLP = LP
-         end,
-         case LS of
-            RemoveEdge ->
-               if
-                  LF == OLF -> NLS = OLS;
-                  true -> NLS = ORS
-               end;
-            _ -> NLS = LS
-         end,
-         case RP of
-            RemoveEdge ->
-               if
-                  RF == ORF -> NRP = ORP;
-                  true -> NRP = OLP
-               end;
-            _ -> NRP = RP
-         end,
-         case RS of
-            RemoveEdge ->
-               if
-                  RF == ORF -> NRS = ORS;
-                  true -> NRS = OLS
-               end;
-            _ -> NRS = RS
-         end,
-         NewEdgeData = #edge{vs=NV1,ve=NV2,a=NC1,b=NC2,lf=LF,rf=RF,ltpr=NLP,ltsu=NLS,rtpr=NRP,rtsu=NRS},
-         Result2 = array:set(Edge,NewEdgeData,Result),
-         fix_edge_1(Vert1,Vert2,RemoveEdge,ABTransform,SurEs2,Orig,Result2)
-   end.
+    %% Move back vertex Vkeep to its original position.
+    Pos = wings_vertex:pos(Vkeep, We0),
+    We = We1#we{vp=array:set(Vkeep, Pos, We1#we.vp)},
 
-fix_mat(FixMe,We) ->
-   NewMat = foldl(fun(Face,ParseWe) -> wings_facemat:delete_face(Face,ParseWe) end,We,FixMe),
-   NewMat#we.mat.
-
-fix_hardedge(Etab,He) ->
-   New = gb_sets:empty(),
-   fix_hardedge(Etab,He,New).
-
-fix_hardedge(Etab,He,Result) ->
-   case gb_sets:is_empty(He) of
-      true -> Result;
-      false -> 
-         {Edge,He2} = gb_sets:take_smallest(He),
-	   case array:get(Edge, Etab) of
-            #edge{} -> Result2 = gb_sets:add(Edge,Result);
-            _ -> Result2 = Result
-         end,
-         fix_hardedge(Etab,He2,Result2)
-   end.
-
-remove_face(Face,Etab,SurEs) ->
-   [Key1,Key2]=find_edge(Face,Etab,SurEs),
-   OldEdge = array:get(Key1,Etab),
-   NewEdge = array:get(Key2,Etab),
-   K1 = find_edge_to_face(OldEdge,Face),
-   K2 = find_edge_to_face(NewEdge,Face),
-   if
-      K1 == K2 ->
-         if
-            K1 == left ->
-               NewEdge2=NewEdge#edge{a=OldEdge#edge.b, lf=OldEdge#edge.rf, ltpr=OldEdge#edge.rtpr, ltsu=OldEdge#edge.rtsu};
-            true ->
-               NewEdge2=NewEdge#edge{b=OldEdge#edge.a, rf=OldEdge#edge.lf, rtpr=OldEdge#edge.ltpr, rtsu=OldEdge#edge.ltsu}
-         end;
-      true ->
-         if
-            K1 == left ->
-               NewEdge2=NewEdge#edge{b=OldEdge#edge.b, rf=OldEdge#edge.rf, rtpr=OldEdge#edge.rtpr, rtsu=OldEdge#edge.rtsu};
-            true ->
-               NewEdge2=NewEdge#edge{a=OldEdge#edge.a, lf=OldEdge#edge.lf, ltpr=OldEdge#edge.ltpr, ltsu=OldEdge#edge.ltsu}
-         end
-   end,
-   Etab2 = array:set(Key2,NewEdge2,Etab),
-   Etab3 = array:reset(Key1,Etab2),
-   substitute(Key1,Key2,Etab3,SurEs).
-
-substitute(This,WithThis,Etab,SurEs) ->
-   case gb_sets:is_empty(SurEs) of 
-      true -> Etab;
-      false ->
-         {Edge,SurEs2} = gb_sets:take_smallest(SurEs),
-         Etab2 = case catch array:get(Edge,Etab) of
-             #edge{}=EdgeRec ->
-                 NewEdge = substitute_1(This,WithThis,EdgeRec),
-                 array:set(Edge,NewEdge,Etab);
-             _otherwise ->
-                 Etab
-         end,
-         substitute(This,WithThis,Etab2,SurEs2)
-   end.
-
-substitute_1(This,WithThis,Edge) ->
-   if
-      Edge#edge.rtpr == This -> Rtpr = WithThis;
-      true -> Rtpr = Edge#edge.rtpr
-   end,
-   if
-      Edge#edge.rtsu == This -> Rtsu = WithThis;
-      true -> Rtsu = Edge#edge.rtsu
-   end,
-   if
-      Edge#edge.ltpr == This -> Ltpr = WithThis;
-      true -> Ltpr = Edge#edge.ltpr
-   end,
-   if
-      Edge#edge.ltsu == This -> Ltsu = WithThis;
-      true -> Ltsu = Edge#edge.ltsu
-   end,
-   Edge#edge{ltsu=Ltsu, ltpr=Ltpr, rtsu=Rtsu, rtpr=Rtpr}.
-
-find_edge(Face,Etab,SurEs) ->
-   find_edge(Face,Etab,SurEs,[]).
-
-find_edge(Face,Etab,SurEs,Result) ->
-   case gb_sets:is_empty(SurEs) of
-      true -> Result;
-      false ->
-         {Edge,SurEs2} = gb_sets:take_smallest(SurEs),
-          Result2 = case catch array:get(Edge,Etab) of
-             #edge{lf=Face} -> [Edge|Result];
-             #edge{rf=Face} -> [Edge|Result];
-             _otherwise -> Result
-          end,
-         find_edge(Face,Etab,SurEs2,Result2)
-   end.
-
-find_edge_to_face(#edge{lf=Face},Face) -> left;
-find_edge_to_face(#edge{rf=Face},Face) -> right;
-find_edge_to_face(_,_) -> none.
-
-calculate_ab(VA,VB,FA,FB,We) ->
-   VA1 = calculate_ab_1(VA,FA,We),
-   VB1 = calculate_ab_1(VB,FA,We),
-   VA2 = calculate_ab_1(VA,FB,We),
-   VB2 = calculate_ab_1(VB,FB,We),
-   [{VA1,VB1},{VA2,VB2}].
-
-calculate_ab_1(Vertex,Face,We) ->
-   Edge = gb_trees:get(Face,We#we.fs),
-   calculate_ab_2(Vertex,Face,Edge,Edge,We#we.es,nil).
-
-calculate_ab_2(_,_,Edge,Edge,_,Value) when (Value =/= nil) -> Value;
-calculate_ab_2(_,_,_,_,_,Value) when ((Value =/= nil) and (Value =/= none)) -> Value;
-calculate_ab_2(Vertex,Face,Edge,LastEdge,Etab,_) ->
-   case catch array:get(Edge,Etab) of
-      #edge{vs=Vertex,a=Value,lf=Face,ltsu=Next} ->
-         calculate_ab_2(Vertex,Face,Next,LastEdge,Etab,Value);
-      #edge{ve=Vertex,b=Value,rf=Face,rtsu=Next} ->
-         calculate_ab_2(Vertex,Face,Next,LastEdge,Etab,Value);
-      #edge{rf=Face,rtsu=Next} ->
-         calculate_ab_2(Vertex,Face,Next,LastEdge,Etab,none);
-      #edge{lf=Face,ltsu=Next} ->
-         calculate_ab_2(Vertex,Face,Next,LastEdge,Etab,none)
-   end.
-
-transformAB(Value,[]) -> Value;
-transformAB(_Value,[{_Value,To}|_]) -> To;
-transformAB(Value,[{_,_}|Rest]) ->
-   transformAB(Value,Rest).
+    Shs = gb_trees:update(Obj, We, Shs0),
+    {save_state,St#st{shapes=Shs,sel=NewSel}}.
