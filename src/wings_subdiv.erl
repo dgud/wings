@@ -56,17 +56,16 @@ smooth(EntireObject, Fs, Vs, Es, Htab, #we{vp=Vp,next_id=Id}=We0) ->
     wings_pb:update(0.60, ?__(6,"moving vertices")),
 
     %% Now calculate all vertex positions.
-    FacePos = gb_trees:from_orddict(FacePos0),
-    {UpdatedVs,Mid} =
+    FacePos = array:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
+    {RevUpdatedVs,Mid} =
 	case EntireObject of
 	    true ->
 		update_edge_vs_all(We0, FacePos, Htab, Vp, Id);
 	    false ->
 		update_edge_vs_some(Es, We0, FacePos, Htab, Vp, Id)
 	end,
-    NewVs = smooth_new_vs(FacePos0, Mid),
-    Vtab = smooth_move_orig(EntireObject, Vs, FacePos, Htab, We0,
-			    UpdatedVs ++ NewVs),
+    VtabTail = smooth_new_vs(FacePos0, Mid, RevUpdatedVs),
+    Vtab = smooth_move_orig(EntireObject, Vs, FacePos, Htab, We0, VtabTail),
 
     %% Done, except that we'll need to re-hide any hidden faces
     %% and rebuild tables.
@@ -83,11 +82,11 @@ smooth(EntireObject, Fs, Vs, Es, Htab, #we{vp=Vp,next_id=Id}=We0) ->
 inc_smooth(#we{vp=Vp,next_id=Next}=We0, OldWe) ->
     {Faces,Htab} = smooth_faces_htab(We0),
     FacePos0 = face_centers(Faces, We0),
-    FacePos = gb_trees:from_orddict(FacePos0),
-    {UpdatedVs,Mid} = update_edge_vs_all(We0, FacePos, Htab, Vp, Next),
-    NewVs = smooth_new_vs(FacePos0, Mid),
+    FacePos = array:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
+    {RevUpdatedVs,Mid} = update_edge_vs_all(We0, FacePos, Htab, Vp, Next),
+    VtabTail = smooth_new_vs(FacePos0, Mid, RevUpdatedVs),
     Vtab = smooth_move_orig(true, wings_util:array_keys(Vp), FacePos, Htab, We0,
-			    UpdatedVs ++ NewVs),
+			    VtabTail),
     OldWe#we{vp=Vtab}.
 
 smooth_faces_htab(#we{mirror=none,fs=Ftab,he=Htab}) ->
@@ -155,22 +154,28 @@ fast_cut(Edge, Template, NewV=NewEdge, Etab0) ->
     Etab = wings_edge:patch_edge(EdgeA, NewEdge, Edge, Etab2),
     wings_edge:patch_edge(EdgeB, NewEdge, Edge, Etab).
 
-cut_edges_attrs([Edge|Es], NewEdge, OrigWe, We0) ->
-    AttrMidLeft = wings_va:edge_attrs(Edge, left, 0.5, OrigWe),
-    AttrMidRight = wings_va:edge_attrs(Edge, right, 0.5, OrigWe),
-    AttrEndLeft = wings_va:edge_attrs(Edge, right, OrigWe),
+cut_edges_attrs([Edge|Es], NewEdge, #we{es=Etab}=OrigWe, We0) ->
+    #edge{lf=Lf,rf=Rf,ltpr=Ltpr,rtpr=Rtpr} = array:get(Edge, Etab),
+
+    LeftAttrA = wings_va:edge_attrs(Edge, left, OrigWe),
+    LeftAttrB =	wings_va:edge_attrs(Ltpr, Lf, OrigWe),
+    AttrMidLeft = wings_va:average_attrs(LeftAttrA, LeftAttrB),
+
+    AttrRightA = wings_va:edge_attrs(Edge, right, OrigWe),
+    AttrRightB = wings_va:edge_attrs(Rtpr, Rf, OrigWe),
+    AttrMidRight = wings_va:average_attrs(AttrRightA, AttrRightB),
+
     We1 = wings_va:set_edge_attrs(Edge, right, AttrMidRight, We0),
-    We = wings_va:set_both_edge_attrs(NewEdge, AttrMidLeft, AttrEndLeft, We1),
+    We = wings_va:set_both_edge_attrs(NewEdge, AttrMidLeft, AttrRightA, We1),
+
     cut_edges_attrs(Es, NewEdge+1, OrigWe, We);
 cut_edges_attrs([], _, _, We) -> We.
 
 smooth_faces(FacePos, Id, We0) ->
     We1 = smooth_faces_1(FacePos, Id, We0),
     We = case wings_va:any_attributes(We1) of
-	     false ->
-		 We1;
-	     true ->
-		 smooth_faces_attrs(FacePos, Id, We0, We1)
+	     false -> We1;
+	     true -> smooth_faces_attrs(FacePos, Id, We0, We1)
 	 end,
     case wings_we:any_hidden(We0) of
 	false -> {We,[]};
@@ -362,25 +367,20 @@ smooth_move_orig_1(V, S, MoveFun, We) ->
 smooth_move_orig_fun(Vtab, FacePos, Htab) ->
     case gb_sets:is_empty(Htab) of
 	true ->
-	    %% No hard edges imply that all faces can be found
-	    %% in the FacePos table. Therefore gb_trees:get/2 is safe.
 	    fun(_Edge, Face, Erec, {V,Ps,_}) ->
 		    OPos = wings_vertex:other_pos(V, Erec, Vtab),
-		    {FPos,_,_} = gb_trees:get(Face, FacePos),
+		    FPos = array:get(Face, FacePos),
 		    {V,[OPos,FPos|Ps],[]}
 	    end;
 	false ->
 	    fun(Edge, Face, Erec, {V,Ps0,Hard0}) ->
 		    OPos = wings_vertex:other_pos(V, Erec, Vtab),
-		    FPos = case gb_trees:lookup(Face, FacePos) of
-			       none -> none;
-			       {value,{Fp,_,_}} -> Fp
-			   end,
+		    FPos = array:get(Face, FacePos),
+		    Ps = [FPos,OPos|Ps0],
 		    Es = case gb_sets:is_member(Edge, Htab) of
 			     true -> [OPos|Hard0];
 			     false -> Hard0
 			 end,
-		    Ps = [FPos,OPos|Ps0],
 		    {V,Ps,Es}
 	    end
     end.
@@ -396,7 +396,7 @@ update_edge_vs_all([{Edge,Rec}|Es], FacePos, Hard, Vtab, V, Acc) ->
     Pos = update_edge_vs_1(Edge, Hard, Rec, FacePos, Vtab),
     update_edge_vs_all(Es, FacePos, Hard, Vtab, V+1, [{V,Pos}|Acc]);
 update_edge_vs_all([], _, _, _, V, Acc) ->
-    {reverse(Acc),V}.
+    {Acc,V}.
 
 update_edge_vs_some(Es, #we{es=Etab}, FacePos, Hard, Vtab, V) ->
     update_edge_vs_some(Es, Etab, FacePos, Hard, Vtab, V, []).
@@ -406,7 +406,7 @@ update_edge_vs_some([E|Es], Etab, FacePos, Hard, Vtab, V, Acc) ->
     Pos = update_edge_vs_1(E, Hard, Rec, FacePos, Vtab),
     update_edge_vs_some(Es, Etab, FacePos, Hard, Vtab, V+1, [{V,Pos}|Acc]);
 update_edge_vs_some([], _, _, _, _, V, Acc) ->
-    {reverse(Acc),V}.
+    {Acc,V}.
 
 update_edge_vs_1(Edge, Hard, Rec, FacePos, Vtab) ->
     case gb_sets:is_member(Edge, Hard) of
@@ -415,17 +415,14 @@ update_edge_vs_1(Edge, Hard, Rec, FacePos, Vtab) ->
 	    e3d_vec:average(array:get(Va, Vtab), array:get(Vb, Vtab));
 	false ->
 	    #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf} = Rec,
-	    {LfPos,_,_} = gb_trees:get(Lf, FacePos),
-	    {RfPos,_,_} = gb_trees:get(Rf, FacePos),
+	    LfPos = array:get(Lf, FacePos),
+	    RfPos = array:get(Rf, FacePos),
 	    Pos0 = e3d_vec:average(array:get(Va, Vtab),
 				   array:get(Vb, Vtab),
 				   LfPos, RfPos),
 	    wings_util:share(Pos0)
     end.
 
-smooth_new_vs(FacePos, V) ->
-    smooth_new_vs(FacePos, V, []).
-    
 smooth_new_vs([{_,{Center,_,NumIds}}|Fs], V, Acc) ->
     smooth_new_vs(Fs, V+NumIds, [{V,Center}|Acc]);
 smooth_new_vs([], _, Acc) -> reverse(Acc).
