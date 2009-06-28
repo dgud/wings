@@ -56,23 +56,22 @@ process_obj(We, _) when ?IS_ANY_LIGHT(We) ->
 	true -> We#we{perm=[]};
 	false -> We
     end;
-process_obj(We, DispList) ->
-    #we{es=Etab,vp=Vtab,name=Name} = We,
+process_obj(We0, DispList) ->
+    #we{es=Etab,vp=Vtab,name=Name} = We0,
     io:fwrite("Processing: ~s\n", [Name]),
     GetColor = fun(Key,_Val) ->
-	Eye = wings_vertex:pos(Key,We) ,
-	LookAt = wings_vertex:normal(Key,We),
+	Eye = wings_vertex:pos(Key,We0) ,
+	LookAt = wings_vertex:normal(Key,We0),
 	get_ao_color(Eye,LookAt,DispList)
     end,
     VertexColors = array:sparse_map(GetColor, Vtab),
-    SetColor = fun(_Key,Val) ->
-	#edge{vs=Va,ve=Vb} = Val,
-	Color1 = array:get(Va,VertexColors),
-	Color2 = array:get(Vb,VertexColors),
-	Val#edge{a=Color1,b=Color2}
+    SetColor = fun(Edge, #edge{vs=Va,ve=Vb}, W) ->
+	Color1 = array:get(Va, VertexColors),
+	Color2 = array:get(Vb, VertexColors),
+        wings_va:set_edge_color(Edge, Color1, Color2, W)
     end,
-    Etab1 = array:sparse_map(SetColor, Etab),
-    We#we{mode=vertex,es=Etab1}.
+    We = array:sparse_foldl(SetColor, We0, Etab),
+    We#we{mode=vertex}.
 
 make_disp_list(St) ->
     #st{shapes=Shapes} = St,
