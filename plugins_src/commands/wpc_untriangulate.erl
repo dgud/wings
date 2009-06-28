@@ -3,7 +3,7 @@
 %%
 %%    Plug-in to untriangulate (make quads from a triangle soup).
 %%
-%%  Copyright (c) 2005-2008 Dave Rodgers
+%%  Copyright (c) 2005-2009 Dave Rodgers
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -413,17 +413,18 @@ check_uv_coords(Edge, We) ->
     case We#we.mode of
       vertex -> true;
       material ->
-        #edge{ltpr=Ltpr, rtpr=Rtpr, lf=Lf, rf=Rf,
-              a=Luv, b=Ruv} = array:get(Edge, We#we.es),
+	Luv = wings_va:attr(uv, wings_va:edge_attrs(Edge, left, We)),
+	Ruv = wings_va:attr(uv, wings_va:edge_attrs(Edge, right, We)),
+        #edge{ltpr=Ltpr, rtpr=Rtpr, lf=Lf, rf=Rf} =
+		array:get(Edge, We#we.es),
         Luv2 = matching_uv(Lf, Ltpr, We),
         Ruv2 = matching_uv(Rf, Rtpr, We),
-        (compare_uvs(Luv,Ruv2) and compare_uvs(Ruv,Luv2))
+        compare_uvs(Luv, Ruv2) andalso compare_uvs(Ruv, Luv2)
     end.
+
 matching_uv(Face, Edge, We) ->
-    case array:get(Edge, We#we.es) of
-      #edge{lf=Face,a=A} -> A;
-      #edge{rf=Face,b=B} -> B
-    end.
+    wings_va:attr(uv, wings_va:edge_attrs(Edge, Face, We)).
+
 compare_uvs({U0,V0},{U1,V1}) ->
     %% allows for repeating textures
     Du = abs(U0 - U1),
