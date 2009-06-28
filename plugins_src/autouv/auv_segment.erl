@@ -694,11 +694,11 @@ map_edge(E0, Emap) ->
 %%% Cutting along hard edges.
 %%%
 
-cut_model(Charts, Cuts0, #we{es=Etab0}=We0) ->
-    Etab = array:sparse_map(fun(_, Rec) ->
-				    Rec#edge{a=none,b=none}
-			    end, Etab0),
-    We = We0#we{mode=material,es=Etab},
+cut_model(Charts, Cuts0, #we{es=Etab}=We0) ->
+    Clean = fun(Edge, _Rec, W) ->
+		    wings_va:set_both_edge_attrs(Edge, none, none, W)
+	    end,
+    We = array:sparse_foldl(Clean, We0#we{mode=material}, Etab),
     Cuts = gb_sets:to_list(Cuts0),
     cut_model_1(Charts, Cuts, We#we{mirror=none}, length(Charts), []).
 

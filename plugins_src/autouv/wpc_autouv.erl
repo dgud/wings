@@ -330,11 +330,7 @@ update_selected_uvcoords(#st{bb=Uvs}=St) ->
 
 %% update_uvs(Charts, We0) -> We
 %%  Update the UV coordinates for the original model.
-update_uvs(Cs, #we{es=Etab0}=GeomWe) ->
-    update_uvs_1(Cs, GeomWe, Etab0).
-
-update_uvs_1([#we{vp=Vpos0,name=#ch{vmap=Vmap}}=ChartWe|Cs],
-	     We, Etab0) ->
+update_uvs([#we{vp=Vpos0,name=#ch{vmap=Vmap}}=ChartWe|Cs], We0) ->
     VFace0 = wings_face:fold_faces(
 	       fun(Face, V, _, _, A) ->
 		       [{V,Face}|A]
@@ -344,38 +340,20 @@ update_uvs_1([#we{vp=Vpos0,name=#ch{vmap=Vmap}}=ChartWe|Cs],
     VFace2 = sofs:relation_to_family(VFace1),
     VFace = sofs:to_external(VFace2),
     Vpos = array:sparse_to_orddict(Vpos0),
-    Etab = update_uvs_2(Vpos, VFace, Vmap, We, Etab0),
-    update_uvs_1(Cs, We, Etab);
-update_uvs_1([], We, Etab) -> We#we{es=Etab}.
+    We = update_uvs_1(Vpos, VFace, Vmap, We0),
+    update_uvs(Cs, We);
+update_uvs([], We) -> We.
 
-update_uvs_2([{V0,{X,Y,_}}|Vs], [{V0,Fs}|VFs], Vmap, We, Etab0) ->
+update_uvs_1([{V0,{X,Y,_}}|Vs], [{V0,Fs}|VFs], Vmap, We0) ->
     UV = {X,Y},
     V = auv_segment:map_vertex(V0, Vmap),
-    Etab = foldl(fun(Face, A) ->
-			 update_uvs_3(V, Face, UV, A, We)
-		 end, Etab0, Fs),
-    update_uvs_2(Vs, VFs, Vmap, We, Etab);
-update_uvs_2([{V0,none}|Vs], [{V0,Fs}|VFs], Vmap, We, Etab0) ->
+    We = wings_va:set_vtx_face_uvs(V, Fs, UV, We0),
+    update_uvs_1(Vs, VFs, Vmap, We);
+update_uvs_1([{V0,none}|Vs], [{V0,Fs}|VFs], Vmap, We0) ->
     V = auv_segment:map_vertex(V0, Vmap),
-    Etab = foldl(fun(Face, A) ->
-			 update_uvs_3(V, Face, none, A, We)
-		 end, Etab0, Fs),
-    update_uvs_2(Vs, VFs, Vmap, We, Etab);
-update_uvs_2([], [], _, _, Etab) -> Etab.
-
-update_uvs_3(V, Face, UV, Etab, We) ->
-    wings_vertex:fold(
-      fun(Edge, _, Rec0, Et) ->
-	      case Rec0 of
-		  #edge{vs=V,lf=Face,a=A} when A =/= UV ->
-		      Rec = array:get(Edge, Et),
-		      array:set(Edge, Rec#edge{a=UV}, Et);
-		  #edge{ve=V,rf=Face,b=B} when B =/= UV ->
-		      Rec = array:get(Edge, Et),
-		      array:set(Edge, Rec#edge{b=UV}, Et);
-		  _ -> Et
-	      end
-      end, Etab, V, We).
+    We = wings_va:set_vtx_face_uvs(V, Fs, none, We0),
+    update_uvs_1(Vs, VFs, Vmap, We);
+update_uvs_1([], [], _, We) -> We.
 
 insert_material(Cs, MatName, We) ->
     Faces = lists:append([wings_we:visible(W) || W <- gb_trees:values(Cs)]),

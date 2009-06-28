@@ -5,7 +5,7 @@
 %%%
 %%% Created : 28 May 2003 by Dan Gudmundsson
 %%-------------------------------------------------------------------
-%%  Copyright (c) 2002-2004 Dan Gudmundsson, Bjorn Gustavsson
+%%  Copyright (c) 2002-2009 Dan Gudmundsson, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -255,27 +255,26 @@ scale(W,H,IW,IH) ->
  	    end
     end.
 
-update_uv_fun(Vs) ->
-    fun(Face, _V, Edge, Rec0, E0) ->
+update_uv_fun(Vtab) ->
+    fun(Face, V, Edge, Rec0, We) ->
 	    case Rec0 of
 		#edge{vs=V,lf=Face} ->
-		    Rec  = array:get(Edge, E0),
-		    Vpos = array:get(V, Vs),
+		    Vpos = array:get(V, Vtab),
 		    UV = calc_uv(Vpos),
-		    array:set(Edge, Rec#edge{a=UV},E0);
+		    Attr = wings_va:new_attr(uv, UV),
+		    wings_va:set_edge_attrs(Edge, left, Attr, We);
 		#edge{ve=V,rf=Face} ->
-		    Rec  = array:get(Edge, E0),
-		    Vpos = array:get(V, Vs),
+		    Vpos = array:get(V, Vtab),
 		    UV = calc_uv(Vpos),
-		    array:set(Edge, Rec#edge{b=UV},E0)
+		    Attr = wings_va:new_attr(uv, UV),
+		    wings_va:set_edge_attrs(Edge, right, Attr, We)
 	    end
     end.
 
 insert_uvs(St0) ->
-    wings_sel:map(fun(Items, We=#we{vp=Vs,es=Etab0}) ->  
-			  AddUv = update_uv_fun(Vs),
-			  Etab = wings_face:fold_faces(AddUv, Etab0, Items, We),
-			  We#we{es=Etab}
+    wings_sel:map(fun(Items, We=#we{vp=Vtab}) ->
+			  AddUv = update_uv_fun(Vtab),
+			  wings_face:fold_faces(AddUv, We, Items, We)
 		  end, St0).
 
 set_materials(Image,St0) ->     
