@@ -19,11 +19,12 @@
 	 set_both_edge_attrs/4,set_edge_uvs/2,set_edge_colors/2,del_edge_attrs/2,
 	 set_edge_color/4,
 	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/2,
-	 set_vtx_face_uvs/4]).
+	 set_vtx_face_uvs/4,
+	 renumber/2,merge/2]).
 
 -include("wings.hrl").
 
--import(lists, [any/2,member/2]).
+-import(lists, [any/2,member/2,sort/1]).
 
 -opaque all_attributes() :: {float(),float(),float()} | {float(),float()} | 'none'.
 -type side() :: 'left'|'right'|face_num().
@@ -385,6 +386,32 @@ set_vtx_face_uvs(V, Fs, UV, #we{lv=Lva0,rv=Rva0}=We) ->
 	  end, {Lva0,Rva0}, V, We),
     We#we{lv=Lva,rv=Rva}.
 
+%% renumber(GbTreesEdgeMap, We0) -> We
+%%  Renumbers vertex attributes using EdgeMap, a gb_tree
+%%  containing a mapping from the old edge numbers to the
+%%  new edge numbers.
+%%
+renumber(Emap, #we{lv=Lva0,rv=Rva0}=We) ->
+    Update = fun(Edge0, Attr, Acc) ->
+		     %% We may have vertex attributes left for
+		     %% edges that have been deleted, so we must
+		     %% be prepared to handle that.
+		     case gb_trees:lookup(Edge0, Emap) of
+			 none -> Acc;
+			 {value,Edge} -> [{Edge,Attr}|Acc]
+		     end
+	     end,
+    Lva = renumber_1(Update, Lva0),
+    Rva = renumber_1(Update, Rva0),
+    We#we{lv=Lva,rv=Rva}.
+
+%% merge([We], We0) -> We
+%%  Merge the vertex attributes from all We records in the first
+%%  argument, storing the result into We0.
+merge(Wes, We) ->
+    {Lva,Rva} = merge_1(Wes, [], []),
+    We#we{lv=Lva,rv=Rva}.
+
 %%%
 %%% Local functions.
 %%%
@@ -642,6 +669,27 @@ average_1([none|T], _, _) ->
 average_1([[Col|UV]|T], A, B) ->
     average_1(T, [Col|A], [UV|B]);
 average_1([], A, B) -> {A,B}.
+
+renumber_1(_, none) -> none;
+renumber_1(Update, VaTab0) ->
+    VaTab = array:sparse_foldl(Update, [], VaTab0),
+    array:from_orddict(sort(VaTab), none).
+
+merge_1([#we{lv=Lva,rv=Rva}|Wes], LvaAcc0, RvaAcc0) ->
+    LvaAcc = merge_2(Lva, LvaAcc0),
+    RvaAcc = merge_2(Rva, RvaAcc0),
+    merge_1(Wes, LvaAcc, RvaAcc);
+merge_1([], LvaAcc, RvaAcc) ->
+    {merge_3(LvaAcc),merge_3(RvaAcc)}.
+
+merge_2(none, Acc) -> Acc;
+merge_2(VaTab, Acc) -> [array:sparse_to_orddict(VaTab)|Acc].
+
+merge_3(Lists) ->
+    case lists:merge(Lists) of
+	[] -> none;
+	VaTab -> array:from_orddict(VaTab, none)
+    end.
 
 aset(_, none, none) -> none;
 aset(K, V, none) -> array:set(K, V, array:new({default,none}));

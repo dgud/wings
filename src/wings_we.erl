@@ -595,8 +595,9 @@ merge([#we{id=Id,name=Name}|_]=Wes0) ->
     Vpt = array:from_orddict(Vpt0),
     Et = array:from_orddict(Et0),
     Ht = gb_sets:from_ordset(Ht0),
-    rebuild(#we{id=Id,name=Name,vc=undefined,fs=undefined,
-		pst=Pst,vp=Vpt,es=Et,he=Ht,mat=MatTab}).
+    We = rebuild(#we{id=Id,name=Name,vc=undefined,fs=undefined,
+		     pst=Pst,vp=Vpt,es=Et,he=Ht,mat=MatTab}),
+    wings_va:merge(Wes1, We).
 
 merge_1([We]) -> We;
 merge_1(Wes) -> merge_1(Wes, [], [], []).
@@ -686,7 +687,6 @@ do_renumber(#we{mode=Mode,vp=Vtab0,es=Etab0,fs=Ftab0,
 		  end, [], Etab1),
     Etab = array:from_orddict(reverse(Etab2)),
 
-
     Htab1 = foldl(fun(E, A) ->
 			  renum_hard_edge(E, Emap, A)
 		  end, [], gb_sets:to_list(Htab0)),
@@ -721,9 +721,10 @@ do_renumber(#we{mode=Mode,vp=Vtab0,es=Etab0,fs=Ftab0,
         end, Pst0, Pst_Elements),
 
     RootSet = map_rootset(RootSet0, Emap, Vmap, Fmap),
-    We = We0#we{mode=Mode,vc=undefined,fs=undefined,
+    We1 = We0#we{mode=Mode,vc=undefined,fs=undefined,
 		vp=Vtab,es=Etab,mat=MatTab,he=Htab,
 		perm=Perm,mirror=Mirror,pst=Pst},
+    We = wings_va:renumber(Emap, We1),
 
     %% In case this function will be used for merging #we records,
     %% it is essential to update the next_id field. Its value can
