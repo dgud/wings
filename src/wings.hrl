@@ -139,6 +139,8 @@
 						%  object's selection.
 	 name="" :: string() | tuple(),		%Name. (AutoUV stores other things here.)
 	 es=array:new() :: array(),		%array containing edges
+	 lv=none :: 'none' | array(),	        %Left vertex attributes
+	 rv=none :: 'none' | array(),	        %Right vertex attributes,
 	 fs :: gb_tree(),		        %Faces
 	 he=gb_sets:empty() :: gb_set(),	%Hard edges
 	 vc :: array(),		                %Connection info (=incident edge)
@@ -187,8 +189,6 @@
 -record(edge,
 	{vs=0 :: vertex_num(),			%Start vertex for edge
 	 ve=0 :: vertex_num(),			%End vertex for edge
-	 a=none,			        %Color or UV coordinate.
-	 b=none,			        %Color or UV coordinate.
 	 lf=0 :: face_num(),			%Left face
 	 rf=0 :: face_num(),			%Right face
 	 ltpr=0 :: edge_num(),			%Left traversal predecessor

@@ -18,11 +18,12 @@
 	 all/2,edge_attrs/3,edge_attrs/4,set_edge_attrs/4,
 	 set_both_edge_attrs/4,set_edge_uvs/2,set_edge_colors/2,del_edge_attrs/2,
 	 set_edge_color/4,
-	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/2]).
+	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/2,
+	 set_vtx_face_uvs/4]).
 
 -include("wings.hrl").
 
--import(lists, [any/2]).
+-import(lists, [any/2,member/2]).
 
 -opaque all_attributes() :: {float(),float(),float()} | {float(),float()} | 'none'.
 -type side() :: 'left'|'right'|face_num().
@@ -42,11 +43,13 @@ set_face_color(Fs, Color, We) ->
 			 set_face_color_1(F, Color, W)
 		 end, We#we{mode=vertex}, Fs).
 
-set_body_color(Color, #we{es=Etab0}=We) ->
-    Etab = array:sparse_map(fun(_, Rec) ->
-				    Rec#edge{a=Color,b=Color}
-			    end, Etab0),
-    We#we{es=Etab,mode=vertex}.
+set_body_color(Color, #we{es=Etab,lv=Lva0,rv=Rva0}=We) ->
+    Update = fun(E, _, Tab) ->
+		     set_color(E, Color, Tab)
+	     end,
+    Lva = array:sparse_foldl(Update, Lva0, Etab),
+    Rva = array:sparse_foldl(Update, Rva0, Etab),
+    We#we{lv=Lva,rv=Rva,mode=vertex}.
 
 %% info(We, St) -> [color|uv]
 %%  Return a list of the available vertex attributes for the We.
@@ -67,8 +70,8 @@ info(#we{mode=material}=We, #st{mat=Mtab}) ->
 %%  Find out whether We has any attributes at all.
 %%
 -spec any_attributes(#we{}) -> boolean().
-any_attributes(_) ->
-    true.
+any_attributes(#we{lv=none,rv=none}) -> false;
+any_attributes(_) -> true.
 
 %% face_attr(What, Face, We) -> [Attribute]
 %%  Return vertex attributes for the all vertices in the face.
@@ -82,36 +85,38 @@ face_attr(What, Face, #we{fs=Ftab}=We) ->
 %%     Attribute = {_,_,_} | {_,_} | none
 %%  Return vertex attributes for the all vertices in the face.
 %%
-face_attr(uv, Face, Edge, #we{es=Etab}) ->
-    face_attr(Edge, Etab, Face, Edge, []);
-face_attr(color, Face, Edge, #we{es=Etab}) ->
-    face_attr(Edge, Etab, Face, Edge, []);
-face_attr([vertex|uv], Face, Edge, #we{es=Etab}) ->
-    face_vtx_attr(Edge, Etab, Face, Edge, []);
-face_attr([vertex|color], Face, Edge, #we{es=Etab}) ->
-    face_vtx_attr(Edge, Etab, Face, Edge, []).
+face_attr(uv, Face, Edge, #we{es=Etab,lv=Lva,rv=Rva}) ->
+    face_attr_uv(Edge, Etab, Lva, Rva, Face, Edge, []);
+face_attr(color, Face, Edge, #we{es=Etab,lv=Lva,rv=Rva}) ->
+    face_attr_color(Edge, Etab, Lva, Rva, Face, Edge, []);
+face_attr([vertex|uv], Face, Edge, #we{es=Etab,lv=Lva,rv=Rva}) ->
+    face_vtx_attr_uv(Edge, Etab, Face, {Lva,Rva}, Edge, []);
+face_attr([vertex|color], Face, Edge, #we{es=Etab,lv=Lva,rv=Rva}) ->
+    face_vtx_attr_color(Edge, Etab, Face, {Lva,Rva}, Edge, []).
 
 %% Returns {[VsPos],[Info]}
-face_pos_attr(uv, Face, Edge, #we{es=Etab,vp=Vtab}) ->
-    face_pos_attr_1(Edge, Etab, Vtab, Face, Edge, [], []);
-face_pos_attr(color, Face, Edge, #we{es=Etab,vp=Vtab}) ->
-    face_pos_attr_1(Edge, Etab, Vtab, Face, Edge, [], []).
+face_pos_attr(uv, Face, Edge, #we{es=Etab,vp=Vtab,lv=Lva,rv=Rva}) ->
+    face_pos_attr_uv(Edge, Etab, {Vtab,Lva,Rva}, Face, Edge, [], []);
+face_pos_attr(color, Face, Edge, #we{es=Etab,vp=Vtab,lv=Lva,rv=Rva}) ->
+    face_pos_attr_color(Edge, Etab, {Vtab,Lva,Rva}, Face, Edge, [], []).
 
-fold(W, F, Acc, Face, #we{es=Etab,fs=Ftab}) when W =:= uv; W =:= color ->
+fold(uv, F, Acc, Face, #we{es=Etab,fs=Ftab,lv=Lva,rv=Rva}) ->
     Edge = gb_trees:get(Face, Ftab),
-    fold_1(F, Acc, Face, Edge, Edge, Etab, not_done).
+    fold_uv(F, Acc, Face, Edge, Edge, {Etab,Lva,Rva}, not_done);
+fold(color, F, Acc, Face, #we{es=Etab,fs=Ftab,lv=Lva,rv=Rva}) ->
+    Edge = gb_trees:get(Face, Ftab),
+    fold_color(F, Acc, Face, Edge, Edge, {Etab,Lva,Rva}, not_done).
 
 %% face_mixed_attrs(Face, We) -> Attrs
 %%       Attr = opaque representation of attributes
 %%  Returns the averaged attributes for all vertices in the face.
 %%
-face_mixed_attrs(Face, #we{fs=Ftab}=We) ->
+face_mixed_attrs(_, #we{lv=none,rv=none}) ->
+    none;
+face_mixed_attrs(Face, #we{fs=Ftab,es=Etab,lv=Lva,rv=Rva}) ->
     Edge = gb_trees:get(Face, Ftab),
-    face_mixed_attrs(Face, Edge, We).
-
-face_mixed_attrs(Face, Edge, #we{es=Etab}) ->
-    Attrs = face_attr(Edge, Etab, Face, Edge, []),
-    wings_color:average(Attrs).
+    Attrs = face_attr(Edge, Etab, Lva, Rva, Face, Edge, []),
+    average(Attrs).
 
 %% set_face_attrs(Face, Attrs, We0) -> We
 %%       Attrs = opaque representation of attributes
@@ -139,21 +144,23 @@ all(color, #we{}=We) -> all_1(3, We).
 %%
 -spec edge_attrs(edge_num(), side()|{other,face_num()}, #we{}) ->
     all_attributes().
-edge_attrs(Edge, left, #we{es=Etab}) ->
-    #edge{a=La} = array:get(Edge, Etab),
-    La;
-edge_attrs(Edge, right, #we{es=Etab}) ->
-    #edge{b=Ra} = array:get(Edge, Etab),
-    Ra;
-edge_attrs(Edge, {other,Face}, #we{es=Etab}) ->
+edge_attrs(Edge, left, #we{lv=Lva}) ->
+    aget(Edge, Lva);
+edge_attrs(Edge, right, #we{rv=Rva}) ->
+    aget(Edge, Rva);
+edge_attrs(Edge, {other,Face}, #we{es=Etab,lv=Lva,rv=Rva}) ->
     case array:get(Edge, Etab) of
-	#edge{a=La,rf=Face} -> La;
-	#edge{b=Ra,lf=Face} -> Ra
+	#edge{rf=Face} ->
+	    aget(Edge, Lva);
+	#edge{lf=Face} ->
+	    aget(Edge, Rva)
     end;
-edge_attrs(Edge, Face, #we{es=Etab}) ->
+edge_attrs(Edge, Face, #we{es=Etab,lv=Lva,rv=Rva}) ->
     case array:get(Edge, Etab) of
-	#edge{a=La,lf=Face} -> La;
-	#edge{b=Ra,rf=Face} -> Ra
+	#edge{lf=Face} ->
+	    aget(Edge, Lva);
+	#edge{rf=Face} ->
+	    aget(Edge, Rva)
     end.
 
 %% edge_attrs(Edge, Side, Weight, We) -> Attr
@@ -166,39 +173,56 @@ edge_attrs(Edge, Face, #we{es=Etab}) ->
 %%
 -spec edge_attrs(edge_num(), side(), float(), #we{}) ->
     all_attributes().
-edge_attrs(Edge, left, 0.0, #we{es=Etab}) ->
-    #edge{a=La} = array:get(Edge, Etab),
-    La;
-edge_attrs(Edge, left, W, #we{es=Etab}) ->
-    #edge{a=La,lf=Lf,ltpr=Ltpr} = array:get(Edge, Etab),
+edge_attrs(_Edge, left, _W, #we{lv=none,rv=none}) -> none;
+edge_attrs(Edge, left, W, #we{es=Etab,lv=Lva,rv=Rva}) ->
+    #edge{lf=Lf,ltpr=Ltpr} = array:get(Edge, Etab),
+    La = aget(Edge, Lva),
     case array:get(Ltpr, Etab) of
-	#edge{lf=Lf,a=Lb} -> wings_color:mix(W, Lb, La);
-	#edge{rf=Lf,b=Lb} -> wings_color:mix(W, Lb, La)
+	#edge{lf=Lf} ->
+	    Lb = aget(Ltpr, Lva),
+	    mix(W, Lb, La);
+	#edge{rf=Lf} ->
+	    Lb = aget(Ltpr, Rva),
+	    mix(W, Lb, La)
     end;
-edge_attrs(Edge, right, 1.0, #we{es=Etab}) ->
-    #edge{b=Ra} = array:get(Edge, Etab),
-    Ra;
-edge_attrs(Edge, right, W, #we{es=Etab}) ->
-    #edge{b=Ra,rf=Rf,rtpr=Rtpr} = array:get(Edge, Etab),
+edge_attrs(_Edge, right, _W, #we{lv=none,rv=none}) -> none;
+edge_attrs(Edge, right, W, #we{es=Etab,lv=Lva,rv=Rva}) ->
+    #edge{rf=Rf,rtpr=Rtpr} = array:get(Edge, Etab),
+    Ra = aget(Edge, Rva),
     case array:get(Rtpr, Etab) of
-	#edge{lf=Rf,a=Rb} -> wings_color:mix(W, Ra, Rb);
-	#edge{rf=Rf,b=Rb} -> wings_color:mix(W, Ra, Rb)
+	#edge{lf=Rf} ->
+	    Rb = aget(Rtpr, Lva),
+	    mix(W, Ra, Rb);
+	#edge{rf=Rf} ->
+	    Rb = aget(Rtpr, Rva),
+	    mix(W, Ra, Rb)
     end;
-edge_attrs(Edge, Face, W, #we{es=Etab}) ->
+edge_attrs(_Edge, _, _W, #we{lv=none,rv=none}) -> none;
+edge_attrs(Edge, Face, W, #we{es=Etab,lv=Lva,rv=Rva}) ->
     case array:get(Edge, Etab) of
-	#edge{a=La,lf=Face} when W =:= 0.0 ->
-	    La;
-	#edge{a=La,lf=Face,ltpr=Ltpr} ->
+	#edge{lf=Face} when W =:= 0.0 ->
+	    aget(Edge, Lva);
+	#edge{lf=Face,ltpr=Ltpr} ->
+	    La = aget(Edge, Lva),
 	    case array:get(Ltpr, Etab) of
-		#edge{lf=Face,a=Lb} -> wings_color:mix(W, Lb, La);
-		#edge{rf=Face,b=Lb} -> wings_color:mix(W, Lb, La)
+		#edge{lf=Face} ->
+		    Lb = aget(Ltpr, Lva),
+		    mix(W, Lb, La);
+		#edge{rf=Face} ->
+		    Lb = aget(Ltpr, Rva),
+		    mix(W, Lb, La)
 	    end;
-	#edge{b=Ra,rf=Face} when W =:= 1.0 ->
-	    Ra;
-	#edge{b=Ra,rf=Face,rtpr=Rtpr} ->
+	#edge{rf=Face} when W =:= 1.0 ->
+	    aget(Edge, Rva);
+	#edge{rf=Face,rtpr=Rtpr} ->
+	    Ra = aget(Edge, Rva),
 	    case array:get(Rtpr, Etab) of
-		#edge{lf=Face,a=Rb} -> wings_color:mix(W, Ra, Rb);
-		#edge{rf=Face,b=Rb} -> wings_color:mix(W, Ra, Rb)
+		#edge{lf=Face} ->
+		    Rb = aget(Rtpr, Lva),
+		    mix(W, Ra, Rb);
+		#edge{rf=Face} ->
+		    Rb = aget(Rtpr, Rva),
+		    mix(W, Ra, Rb)
 	    end
     end.
 
@@ -212,18 +236,16 @@ edge_attrs(Edge, Face, W, #we{es=Etab}) ->
 %%
 -spec set_edge_attrs(edge_num(), side(), all_attributes(), #we{}) ->
     #we{}.
-set_edge_attrs(Edge, left, Attr, #we{es=Etab}=We) ->
-    Rec = array:get(Edge, Etab),
-    We#we{es=array:set(Edge, Rec#edge{a=Attr}, Etab)};
-set_edge_attrs(Edge, right, Attr, #we{es=Etab}=We) ->
-    Rec = array:get(Edge, Etab),
-    We#we{es=array:set(Edge, Rec#edge{b=Attr}, Etab)};
-set_edge_attrs(Edge, Face, Attr, #we{es=Etab}=We) ->
+set_edge_attrs(Edge, left, Attr, #we{lv=Lva}=We) ->
+    We#we{lv=aset(Edge, Attr, Lva)};
+set_edge_attrs(Edge, right, Attr, #we{rv=Rva}=We) ->
+    We#we{rv=aset(Edge, Attr, Rva)};
+set_edge_attrs(Edge, Face, Attr, #we{es=Etab,lv=Lva,rv=Rva}=We) ->
     case array:get(Edge, Etab) of
-	#edge{lf=Face}=Rec ->
-	    We#we{es=array:set(Edge, Rec#edge{a=Attr}, Etab)};
-	#edge{rf=Face}=Rec ->
-	    We#we{es=array:set(Edge, Rec#edge{b=Attr}, Etab)}
+	#edge{lf=Face} ->
+	    We#we{lv=aset(Edge, Attr, Lva)};
+	#edge{rf=Face} ->
+	    We#we{rv=aset(Edge, Attr, Rva)}
     end.
 
 %% set_both_edge_attrs(Edge, LeftAttr, RightAttr, We0) -> We
@@ -233,55 +255,59 @@ set_edge_attrs(Edge, Face, Attr, #we{es=Etab}=We) ->
 %%
 -spec set_both_edge_attrs(edge_num(), all_attributes(), all_attributes(), #we{}) ->
     #we{}.
-set_both_edge_attrs(Edge, LeftAttr, RightAttr, #we{es=Etab}=We) ->
-    Rec = array:get(Edge, Etab),
-    We#we{es=array:set(Edge, Rec#edge{a=LeftAttr,b=RightAttr}, Etab)}.
+set_both_edge_attrs(_, none, none, We) -> We;
+set_both_edge_attrs(Edge, LeftAttr, RightAttr, #we{lv=Lva,rv=Rva}=We) ->
+    We#we{lv=aset(Edge, LeftAttr, Lva),
+	  rv=aset(Edge, RightAttr, Rva)}.
 
 %% set_edge_uvs([{Edge,LeftUV,RightUV}, We0) -> We
 %%  Assign UV coordinates to the edges in the list.
 %%
 -type uv_coords() :: {float(),float()}.
 -spec set_edge_uvs([{edge_num(),uv_coords(),uv_coords()}], #we{}) -> #we{}.
-set_edge_uvs(List, #we{es=Etab}=We) ->
-    We#we{es=set_edge_uvs_1(List, Etab)}.
+set_edge_uvs(List, #we{lv=Lva0,rv=Rva0}=We) ->
+    {Lva,Rva} = set_edge_uvs_1(List, Lva0, Rva0),
+    We#we{lv=Lva,rv=Rva}.
 
 %% set_edge_colors([{Edge,LeftColor,RightColor}, We0) -> We
 %%  Assign vertex colors to the edges in the list.
 %%
 -type vertex_color() :: {float(),float(),float()}.
 -spec set_edge_colors([{edge_num(),vertex_color(),vertex_color()}], #we{}) -> #we{}.
-set_edge_colors(List, #we{es=Etab}=We) ->
-    We#we{es=set_edge_uvs_1(List, Etab)}.
+set_edge_colors(List, #we{lv=Lva0,rv=Rva0}=We) ->
+    {Lva,Rva} = set_edge_colors_1(List, Lva0, Rva0),
+    We#we{lv=Lva,rv=Rva}.
 
 %% set_edge_color(Edge, LeftColor, RightColor, We0) -> We
 %%  Assign vertex colors to the edge Edge.
-set_edge_color(Edge, LeftCol, RightCol, #we{es=Etab}=We) ->
-    Rec0 = array:get(Edge, Etab),
-    Rec = Rec0#edge{a=LeftCol,b=RightCol},
-    We#we{es=array:set(Edge, Rec, Etab)}.
+set_edge_color(Edge, LeftCol, RightCol, #we{lv=Lva0,rv=Rva0}=We) ->
+    Lva = set_color(Edge, LeftCol, Lva0),
+    Rva = set_color(Edge, RightCol, Rva0),
+    We#we{lv=Lva,rv=Rva}.
 
 %% del_edge_attrs(Edge, We0) -> We.
 %%  Delete all vertex attributes for the given edge.
 %%  Should only be use when an edge has been removed.
 %%
-del_edge_attrs(_Edge, We) ->
-    %% A dummy for now, since attributes are stored in
-    %% the edge table and the edge has already been removed.
-    We.
+del_edge_attrs(Edge, #we{lv=Lva,rv=Rva}=We) ->
+    We#we{lv=array:reset(Edge, Lva),
+	  rv=array:reset(Edge, Rva)}.
 
 %% vtx_attrs(Vertex, We) -> Attr.
 %%       Attr = opaque representation of attributes
 %%  Return the averaged attributes for vertex Vertex.
 %%
 -spec vtx_attrs(vertex_num(), #we{}) -> all_attributes().
-vtx_attrs(V, We) ->
-    Fun = fun(_, _, E, Acc) ->
-		  case E of
-		      #edge{vs=V,a=Attr} -> [Attr|Acc];
-		      #edge{ve=V,b=Attr} -> [Attr|Acc]
+vtx_attrs(V, #we{lv=Lva,rv=Rva}=We) ->
+    Fun = fun(E, _, Rec, Acc) ->
+		  case Rec of
+		      #edge{vs=V} ->
+			  [aget(E, Lva)|Acc];
+		      #edge{ve=V} ->
+			  [aget(E, Rva)|Acc]
 		  end
 	  end,
-    wings_color:average(wings_vertex:fold(Fun, [], V, We)).
+    average(wings_vertex:fold(Fun, [], V, We)).
 
 %% vtx_attrs(Vertex, Face, We) -> Attr.
 %%       Attr = opaque representation of attributes
@@ -289,11 +315,13 @@ vtx_attrs(V, We) ->
 %%
 -spec vtx_attrs(vertex_num(), face_num(), #we{}) ->
     all_attributes().
-vtx_attrs(V, Face, We) ->
-    Fun = fun(_, _, E, NotDone) ->
-		  case E of
-		      #edge{lf=Face,vs=V,a=Attr} -> Attr;
-		      #edge{rf=Face,ve=V,b=Attr} -> Attr;
+vtx_attrs(V, Face, #we{lv=Lva,rv=Rva}=We) ->
+    Fun = fun(E, _, Rec, NotDone) ->
+		  case Rec of
+		      #edge{lf=Face,vs=V} ->
+			  aget(E, Lva);
+		      #edge{rf=Face,ve=V} ->
+			  aget(E, Rva);
 		      _ -> NotDone
 		  end
 	  end,
@@ -306,116 +334,321 @@ vtx_attrs(V, Face, We) ->
 %%   retrive the attribute given by What.
 %%
 -spec attr('uv' | 'color', all_attributes()) -> term().
-attr(uv, Attrs) -> Attrs;
-attr(color, Attrs) -> Attrs.
+attr(uv, [_|UV]) -> UV;
+attr(color, [Color|_]) -> Color;
+attr(uv, none) -> none;
+attr(color, none) -> none.
 
 %% new_attr(Color, UV) -> Attrs
 %%     Attrs = opaque representation of attributes
 %%   Create an opaque collection of attributes given
 %%   vertex color and UV coordinates.
 %%
-new_attr(Color, none) -> Color;
-new_attr(_, UV) -> UV.
+new_attr(none, none) -> none;
+new_attr(Color, UV) -> [Color|UV].
 
 %% new_attr(AttrA, AttrB) -> Attr
 %%     AttrA, AttrB, Attr = opaque representation of attributes
 %%   Average the attributes AttrA and AttrB
 %%
 average_attrs(AttrA, AttrB) ->
-    wings_color:mix(0.5, AttrA, AttrB).
+    mix(0.5, AttrA, AttrB).
+
+%% set_vtx_face_uvs(Vertex, [Face], UV, We0) -> We
+%%  Set the UV coordinates for vertex Vertex in each face
+%%  contain in the list of faces.
+%%
+set_vtx_face_uvs(V, Fs, UV, #we{lv=Lva0,rv=Rva0}=We) ->
+    {Lva,Rva} =
+	wings_vertex:fold(
+	  fun(Edge, _, #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}, {Lv0,Rv0}) ->
+		  Lv1 = case member(Lf, Fs) andalso V =:= Va of
+			    true ->
+				AttrL = case aget(Edge, Lv0) of
+					    none -> [none|UV];
+					    [_|UV]=AttrL0 -> AttrL0;
+					    [Cl|_] -> [Cl|UV]
+					end,
+				aset(Edge, AttrL, Lv0);
+			  false -> Lv0
+			end,
+		  case member(Rf, Fs) andalso V =:= Vb of
+		      true ->
+			  AttrR = case aget(Edge, Rv0) of
+				      none -> [none|UV];
+				      [_|UV]=AttrR0 -> AttrR0;
+				      [Cr|_] -> [Cr|UV]
+				  end,
+			  {Lv1,aset(Edge, AttrR, Rv0)};
+		      false -> {Lv1,Rv0}
+		  end
+	  end, {Lva0,Rva0}, V, We),
+    We#we{lv=Lva,rv=Rva}.
 
 %%%
 %%% Local functions.
 %%%
 
-set_vertex_color_1(V, Color, #we{es=Etab0}=We) ->
-    Etab = wings_vertex:fold(
-	     fun(Edge, _Face, Rec0, Es) ->
-		     Rec = case Rec0 of
-			       #edge{vs=V} -> Rec0#edge{a=Color};
-			       #edge{ve=V} -> Rec0#edge{b=Color}
-			   end,
-		     array:set(Edge, Rec, Es)
-	     end, Etab0, V, We),
-    We#we{es=Etab}.
+set_vertex_color_1(V, Color, #we{lv=Lva0,rv=Rva0}=We) ->
+    {Lva,Rva} = wings_vertex:fold(
+		  fun(Edge, _Face, Rec0, {Lv,Rv}) ->
+			  case Rec0 of
+			      #edge{vs=V} ->
+				  {set_color(Edge, Color, Lv),Rv};
+			      #edge{ve=V} ->
+				  {Lv,set_color(Edge, Color, Rv)}
+			  end
+		  end, {Lva0,Rva0}, V, We),
+    We#we{lv=Lva,rv=Rva}.
 
-set_edge_color_1(E, Color, #we{es=Etab0}=We) ->
-    Rec0 = #edge{vs=Va,ve=Vb,rtpr=Rp,ltpr=Lp} = array:get(E, Etab0),
-    Rec = Rec0#edge{a=Color,b=Color},
-    Etab1 = array:set(E, Rec, Etab0),
-    Etab2 = set_edge_color_2(Rp, Va, Color, Etab1),
-    Etab = set_edge_color_2(Lp, Vb, Color, Etab2),
-    We#we{es=Etab}.
+set_edge_color_1(E, Color, #we{es=Etab,lv=Lva0,rv=Rva0}=We) ->
+    Lva1 = set_color(E, Color, Lva0),
+    Rva1 = set_color(E, Color, Rva0),
+    #edge{vs=Va,ve=Vb,rtpr=Rp,ltpr=Lp} = array:get(E, Etab),
+    {Lva2,Rva2} = set_edge_color_2(Rp, Va, Color, Etab, Lva1, Rva1),
+    {Lva,Rva} = set_edge_color_2(Lp, Vb, Color, Etab, Lva2, Rva2),
+    We#we{lv=Lva,rv=Rva}.
 
-set_edge_color_2(E, V, Color, Etab) ->
-    Rec = case array:get(E, Etab) of
-	      #edge{vs=V}=Rec0 -> Rec0#edge{a=Color};
-	      #edge{ve=V}=Rec0 -> Rec0#edge{b=Color}
-	  end,
-    array:set(E, Rec, Etab).
-
-set_face_color_1(F, Color, #we{es=Etab0}=We) ->
-    Etab = wings_face:fold(
-	     fun(_V, Edge, Rec0, Es) ->
-		     Rec = case Rec0 of
-			       #edge{lf=F} -> Rec0#edge{a=Color};
-			       #edge{rf=F} -> Rec0#edge{b=Color}
-			   end,
-		     array:set(Edge, Rec, Es)
-	     end, Etab0, F, We),
-    We#we{es=Etab}.
-
-face_attr(LastEdge, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
-face_attr(Edge, Etab, Face, LastEdge, Acc) ->
-    case array:get(Edge, Etab) of
-	#edge{a=Info,lf=Face,ltsu=NextEdge} ->
-	    face_attr(NextEdge, Etab, Face, LastEdge, [Info|Acc]);
-	#edge{b=Info,rf=Face,rtsu=NextEdge} ->
-	    face_attr(NextEdge, Etab, Face, LastEdge, [Info|Acc])
+set_edge_color_2(E, V, Color, Etab, Lva, Rva) ->
+    case array:get(E, Etab) of
+	#edge{vs=V} ->
+	    {set_color(E, Color, Lva),Rva};
+	#edge{ve=V} ->
+	    {Lva,set_color(E, Color, Rva)}
     end.
 
-face_vtx_attr(LastEdge, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
-face_vtx_attr(Edge, Etab, Face, LastEdge, Acc) ->
+set_face_color_1(F, Color, #we{lv=Lva0,rv=Rva0}=We) ->
+    {Lva,Rva} = wings_face:fold(
+		  fun(_V, Edge, Rec, {Lv0,Rv0}) ->
+			  case Rec of
+			      #edge{lf=F} ->
+				  Lv = set_color(Edge, Color, Lv0),
+				  {Lv,Rv0};
+			      #edge{rf=F} ->
+				  Rv = set_color(Edge, Color, Rv0),
+				  {Lv0,Rv}
+			  end
+		  end, {Lva0,Rva0}, F, We),
+    We#we{lv=Lva,rv=Rva}.
+
+face_attr(LastEdge, _, _, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
+face_attr(Edge, Etab, Lva, Rva, Face, LastEdge, Acc) ->
     case array:get(Edge, Etab) of
-	#edge{vs=V,a=Info,lf=Face,ltsu=NextEdge} ->
-	    face_vtx_attr(NextEdge, Etab, Face, LastEdge, [[V|Info]|Acc]);
-	#edge{ve=V,b=Info,rf=Face,rtsu=NextEdge} ->
-	    face_vtx_attr(NextEdge, Etab, Face, LastEdge, [[V|Info]|Acc])
+	#edge{lf=Face,ltsu=NextEdge} ->
+	    Info = aget(Edge, Lva),
+	    face_attr(NextEdge, Etab, Lva, Rva, Face, LastEdge, [Info|Acc]);
+	#edge{rf=Face,rtsu=NextEdge} ->
+	    Info = aget(Edge, Rva),
+	    face_attr(NextEdge, Etab, Lva, Rva, Face, LastEdge, [Info|Acc])
     end.
 
-face_pos_attr_1(LastEdge, _, _, _, LastEdge, Vs, Info)
+face_attr_uv(LastEdge, _, _, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
+face_attr_uv(Edge, Etab, Lva, Rva, Face, LastEdge, Acc) ->
+    case array:get(Edge, Etab) of
+	#edge{lf=Face,ltsu=NextEdge} ->
+	    Info = case aget(Edge, Lva) of
+		       none -> none;
+		       [_|UV] -> UV
+		   end,
+	    face_attr_uv(NextEdge, Etab, Lva, Rva, Face, LastEdge, [Info|Acc]);
+	#edge{rf=Face,rtsu=NextEdge} ->
+	    Info = case aget(Edge, Rva) of
+		       none -> none;
+		       [_|UV] -> UV
+		   end,
+	    face_attr_uv(NextEdge, Etab, Lva, Rva, Face, LastEdge, [Info|Acc])
+    end.
+
+face_attr_color(LastEdge, _, _, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
+face_attr_color(Edge, Etab, Lva, Rva, Face, LastEdge, Acc) ->
+    case array:get(Edge, Etab) of
+	#edge{lf=Face,ltsu=NextEdge} ->
+	    Info = case aget(Edge, Lva) of
+		       none -> none;
+		       [Color|_] -> Color
+		   end,
+	    face_attr_color(NextEdge, Etab, Lva, Rva, Face, LastEdge, [Info|Acc]);
+	#edge{rf=Face,rtsu=NextEdge} ->
+	    Info = case aget(Edge, Rva) of
+		       none -> none;
+		       [Color|_] -> Color
+		   end,
+	    face_attr_color(NextEdge, Etab, Lva, Rva, Face, LastEdge, [Info|Acc])
+    end.
+
+face_vtx_attr_uv(LastEdge, _, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
+face_vtx_attr_uv(Edge, Etab, Face, {Lva,Rva}=Tabs, LastEdge, Acc) ->
+    case array:get(Edge, Etab) of
+	#edge{vs=V,lf=Face,ltsu=NextEdge} ->
+	    Info = case aget(Edge, Lva) of
+		       none -> none;
+		       [_|UV] -> UV
+		   end,
+	    face_vtx_attr_uv(NextEdge, Etab, Face, Tabs, LastEdge, [[V|Info]|Acc]);
+	#edge{ve=V,rf=Face,rtsu=NextEdge} ->
+	    Info = case aget(Edge, Rva) of
+		       none -> none;
+		       [_|UV] -> UV
+		   end,
+	    face_vtx_attr_uv(NextEdge, Etab, Face, Tabs, LastEdge, [[V|Info]|Acc])
+    end.
+
+face_vtx_attr_color(LastEdge, _, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
+face_vtx_attr_color(Edge, Etab, Face, {Lva,Rva}=Tabs, LastEdge, Acc) ->
+    case array:get(Edge, Etab) of
+	#edge{vs=V,lf=Face,ltsu=NextEdge} ->
+	    Info = case aget(Edge, Lva) of
+		       none -> none;
+		       [Color|_] -> Color
+		   end,
+	    face_vtx_attr_color(NextEdge, Etab, Face, Tabs,
+				LastEdge, [[V|Info]|Acc]);
+	#edge{ve=V,rf=Face,rtsu=NextEdge} ->
+	    Info = case aget(Edge, Rva) of
+		       none -> none;
+		       [Color|_] -> Color
+		   end,
+	    face_vtx_attr_color(NextEdge, Etab, Face, Tabs,
+				LastEdge, [[V|Info]|Acc])
+    end.
+
+face_pos_attr_uv(LastEdge, _, _, _, LastEdge, Vs, Info)
   when Vs =/= [] -> {Vs,Info};
-face_pos_attr_1(Edge, Etab, Vtab, Face, LastEdge, Vs, Info) ->
+face_pos_attr_uv(Edge, Etab, {Vtab,Lva,Rva}=Tabs, Face, LastEdge, Vs, InfoAcc) ->
     case array:get(Edge, Etab) of
-	#edge{vs=V,a=Col,lf=Face,ltsu=NextEdge} ->
+	#edge{vs=V,lf=Face,ltsu=NextEdge} ->
 	    Pos = array:get(V, Vtab),
-	    face_pos_attr_1(NextEdge, Etab, Vtab, Face, LastEdge,
-			    [Pos|Vs], [Col|Info]);
-	#edge{ve=V,b=Col,rtsu=NextEdge} ->
+	    Info = case aget(Edge, Lva) of
+		       none -> none;
+		       [_|UV] -> UV
+		   end,
+	    face_pos_attr_uv(NextEdge, Etab, Tabs, Face, LastEdge,
+			     [Pos|Vs], [Info|InfoAcc]);
+	#edge{ve=V,rtsu=NextEdge} ->
 	    Pos = array:get(V, Vtab),
-	    face_pos_attr_1(NextEdge, Etab, Vtab, Face, LastEdge,
-			    [Pos|Vs], [Col|Info])
+	    Info = case aget(Edge, Rva) of
+		       none -> none;
+		       [_|UV] -> UV
+		   end,
+	    face_pos_attr_uv(NextEdge, Etab, Tabs, Face, LastEdge,
+			     [Pos|Vs], [Info|InfoAcc])
     end.
 
-fold_1(_F, Acc, _Face, LastEdge, LastEdge, _Etab, done) -> Acc;
-fold_1(F, Acc0, Face, Edge, LastEdge, Etab, _) ->
-    Acc = case array:get(Edge, Etab) of
-	      #edge{vs=V,a=VInfo,lf=Face,ltsu=NextEdge} ->
-		  F(V, VInfo, Acc0);
-	      #edge{ve=V,b=VInfo,rf=Face,rtsu=NextEdge} ->
-		  F(V, VInfo, Acc0)
-	  end,
-    fold_1(F, Acc, Face, NextEdge, LastEdge, Etab, done).
+face_pos_attr_color(LastEdge, _, _, _, LastEdge, Vs, Info)
+  when Vs =/= [] -> {Vs,Info};
+face_pos_attr_color(Edge, Etab, {Vtab,Lva,Rva}=Tabs, Face, LastEdge, Vs, InfoAcc) ->
+    case array:get(Edge, Etab) of
+	#edge{vs=V,lf=Face,ltsu=NextEdge} ->
+	    Pos = array:get(V, Vtab),
+	    Info = case aget(Edge, Lva) of
+		       none -> none;
+		       [Col|_] -> Col
+		   end,
+	    face_pos_attr_color(NextEdge, Etab, Tabs, Face, LastEdge,
+				[Pos|Vs], [Info|InfoAcc]);
+	#edge{ve=V,rtsu=NextEdge} ->
+	    Pos = array:get(V, Vtab),
+	    Info = case aget(Edge, Rva) of
+		       none -> none;
+		       [Col|_] -> Col
+		   end,
+	    face_pos_attr_color(NextEdge, Etab, Tabs, Face, LastEdge,
+				[Pos|Vs], [Info|InfoAcc])
+    end.
 
-all_1(Sz, #we{es=Etab}) ->
-    Cuvs0 = array:sparse_foldl(fun(_, #edge{a=A,b=B}, Acc) ->
-				       [A,B|Acc]
-			       end, [], Etab),
-    Cuvs = [E || E <- Cuvs0, tuple_size(E) =:= Sz],
+fold_uv(_F, Acc, _Face, LastEdge, LastEdge, _Tabs, done) -> Acc;
+fold_uv(F, Acc0, Face, Edge, LastEdge, {Etab,Lva,Rva}=Tabs, _) ->
+    Acc = case array:get(Edge, Etab) of
+	      #edge{vs=V,lf=Face,ltsu=NextEdge} ->
+		  Info = case aget(Edge, Lva) of
+			     none -> none;
+			     [_|UV] -> UV
+			 end,
+		  F(V, Info, Acc0);
+	      #edge{ve=V,rf=Face,rtsu=NextEdge} ->
+		  Info = case aget(Edge, Rva) of
+			     none -> none;
+			     [_|UV] -> UV
+			 end,
+		  F(V, Info, Acc0)
+	  end,
+    fold_uv(F, Acc, Face, NextEdge, LastEdge, Tabs, done).
+
+fold_color(_F, Acc, _Face, LastEdge, LastEdge, _Tabs, done) -> Acc;
+fold_color(F, Acc0, Face, Edge, LastEdge, {Etab,Lva,Rva}=Tabs, _) ->
+    Acc = case array:get(Edge, Etab) of
+	      #edge{vs=V,lf=Face,ltsu=NextEdge} ->
+		  Info = case aget(Edge, Lva) of
+			     none -> none;
+			     [Col|_] -> Col
+			 end,
+		  F(V, Info, Acc0);
+	      #edge{ve=V,rf=Face,rtsu=NextEdge} ->
+		  Info = case aget(Edge, Rva) of
+			     none -> none;
+			     [Col|_] -> Col
+			 end,
+		  F(V, Info, Acc0)
+	  end,
+    fold_color(F, Acc, Face, NextEdge, LastEdge, Tabs, done).
+
+all_1(Sz, #we{lv=Lva,rv=Rva}) ->
+    Get = fun(_, [C|UV], Acc) -> [C,UV|Acc] end,
+    Cuvs0 = afoldl(Get, [], Lva),
+    Cuvs1 = afoldl(Get, Cuvs0, Rva),
+    Cuvs = [E || E <- Cuvs1, tuple_size(E) =:= Sz],
     ordsets:from_list(Cuvs).
 
-set_edge_uvs_1([{Edge,LeftUV,RightUV}|T], Etab0) ->
-    Rec = array:get(Edge, Etab0),
-    Etab = array:set(Edge, Rec#edge{a=LeftUV,b=RightUV}, Etab0),
-    set_edge_uvs_1(T, Etab);
-set_edge_uvs_1([], Etab) -> Etab.
+set_edge_uvs_1([{Edge,LeftUV,RightUV}|T], Lva0, Rva0) ->
+    Lva = set_uv(Edge, LeftUV, Lva0),
+    Rva = set_uv(Edge, RightUV, Rva0),
+    set_edge_uvs_1(T, Lva, Rva);
+set_edge_uvs_1([], Lva, Rva) -> {Lva,Rva}.
+
+set_edge_colors_1([{Edge,LeftUV,RightUV}|T], Lva0, Rva0) ->
+    Lva = set_color(Edge, LeftUV, Lva0),
+    Rva = set_color(Edge, RightUV, Rva0),
+    set_edge_colors_1(T, Lva, Rva);
+set_edge_colors_1([], Lva, Rva) -> {Lva,Rva}.
+
+set_color(Edge, Color, Tab) ->
+    case aget(Edge, Tab) of
+	none -> aset(Edge, [Color|none], Tab);
+	[Color|_] -> Tab;
+	[_|UV] -> aset(Edge, [Color|UV], Tab)
+    end.
+
+set_uv(Edge, UV, Tab) ->
+    Attr = case aget(Edge, Tab) of
+	       none -> [none|UV];
+	       [Color|_] -> [Color|UV]
+	   end,
+    aset(Edge, Attr, Tab).
+
+mix(_, none, _) -> none;
+mix(_, [_|_], none) -> none;
+mix(W, [Col1|UV1], [Col2|UV2]) ->
+    [wings_color:mix(W, Col1, Col2)|wings_color:mix(W, UV1, UV2)].
+
+average(L) ->
+    {A0,B0} = average_1(L, [], []),
+    case {wings_color:average(A0),wings_color:average(B0)} of
+	{none,none} -> none;
+	{A,B} -> [A|B]
+    end.
+
+average_1([none|T], _, _) ->
+    average_1(T, [none], [none]);
+average_1([[Col|UV]|T], A, B) ->
+    average_1(T, [Col|A], [UV|B]);
+average_1([], A, B) -> {A,B}.
+
+aset(_, none, none) -> none;
+aset(K, V, none) -> array:set(K, V, array:new({default,none}));
+aset(K, V, A) -> array:set(K, V, A).
+
+aget(_, none) -> none;
+aget(K, A) -> array:get(K, A).
+
+afoldl(_, Acc, none) -> Acc;
+afoldl(Fun, Acc, VaTab) -> array:sparse_foldl(Fun, Acc, VaTab).
