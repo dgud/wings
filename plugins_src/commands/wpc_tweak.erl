@@ -1063,8 +1063,7 @@ screen_to_obj({MVM,PM,VP}, {Xs,Ys,Zs}) ->
 
 tweak_pos(false, true, _, Pos0, TweakPos, #dlo{src_we=#we{}=We,src_sel={face,Sel0}}) ->
     Faces = gb_sets:to_list(Sel0),
-    FaceRegions = wings_sel:strict_face_regions(Faces,We),
-    Normals = face_region_normals(FaceRegions,We,[]),
+    Normals = face_normals(Faces,We,[]),
     case Normals of
     [[]] -> TweakPos;
     _Otherwise ->
@@ -1094,12 +1093,11 @@ tweak_pos(false, true,Vs, Pos0, TweakPos, D) ->
 %%%% Along Average Normal
 tweak_pos(true, false, _, Pos0, TweakPos, #dlo{src_we=#we{}=We,src_sel={face,Sel0}}) ->
     Faces = gb_sets:to_list(Sel0),
-    FaceRegions = wings_sel:strict_face_regions(Faces,We),
-    Normals = face_region_normals(FaceRegions,We,[]),
+    Normals = face_normals(Faces,We,[]),
     case Normals of
     [[]] -> TweakPos;
     _Otherwise ->
-        N = e3d_vec:average(Normals),
+        N = e3d_vec:norm(e3d_vec:add(Normals)),
         %% Return the point along the normal closest to TweakPos.
         Dot = e3d_vec:dot(N, N),
         if
@@ -1112,7 +1110,7 @@ tweak_pos(true, false, _, Pos0, TweakPos, #dlo{src_we=#we{}=We,src_sel={face,Sel
 
 tweak_pos(true, false, Vs, Pos0, TweakPos, D) ->
     Normals = [vertex_normal(V, D) || V <- Vs],
-    N = e3d_vec:average(Normals),
+    N = e3d_vec:norm(e3d_vec:add(Normals)),
     %% Return the point along the normal closest to TweakPos.
     Dot = e3d_vec:dot(N, N),
       if
@@ -1121,26 +1119,6 @@ tweak_pos(true, false, Vs, Pos0, TweakPos, D) ->
         T = e3d_vec:dot(N, e3d_vec:sub(TweakPos, Pos0)) / Dot,
         e3d_vec:add_prod(Pos0, N, T)
       end.
-
-face_region_normals([Faces|Regions],We,Normals) ->
-    Edges = wings_face:outer_edges(Faces, We),
-    LoopNorm = loop_norm(Edges, We),
-    face_region_normals(Regions,We,[LoopNorm|Normals]);
-face_region_normals([],_,Normals) ->
-    Normals.
-
-loop_norm([], _) ->
-    [];
-loop_norm(Edges,We) ->
-%%%% Return average normal of multiple loops in a single face region
-    Loops = wings_edge_loop:edge_loop_vertices(Edges, We),
-    loop_norm_1(Loops, We, []).
-
-loop_norm_1([Vs|Loops], We, Normals) ->
-    Norm = wings_face:face_normal_ccw(Vs, We),
-    loop_norm_1(Loops, We, [Norm|Normals]);
-loop_norm_1([], _, [First|Normals]) ->
-    e3d_vec:norm(e3d_vec:average([e3d_vec:neg(First)]++Normals)).
 
 %% vertex_normal(Vertex, DLO) -> UnormalizedNormal
 %%  Calculate the vertex normal. Will also work for vertices surrounded
@@ -1158,6 +1136,12 @@ face_normal(Face, #dlo{src_we=#we{vp=Vtab}}=D) ->
     Vs = wings_face:vertices_ccw(Face, OrigWe),
     VsPos = [vertex_pos(V, Vtab, OrigVtab) || V <- Vs],
     e3d_vec:normal(VsPos).
+
+face_normals([Face|Fs], We, Normals) ->
+    N = wings_face:normal(Face, We),
+    face_normals(Fs, We, [N|Normals]);
+face_normals([], _We, Normals) ->
+    Normals.
 
 vertex_pos(V, Vtab, OrigVtab) ->
     case array:get(V, Vtab) of
