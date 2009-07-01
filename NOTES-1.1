@@ -1,3 +1,67 @@
+--- 1.1.5 ----------------------------------------------------------------------
+- Fixed Tweak drag Normal. (Thanks to Fonte Boa). [optigon]
+
+- Moving or duplicating a light in body mode would cause
+  a crash on the next attempt to select anything.
+  (Thanks to extrudeface.) [bjorng]
+
+- Marquee selection would selected locked vertices or edges.
+  (Thanks to ycarry.) [bjorng]
+
+- Select|Similar is now faster if the initial selection
+  contains elements that are similar to each other.
+  (Thanks to Ran13.) [bjorng]
+
+- The Wavefront (OBJ) exporter now tries to minimize
+  the number of smoothing groups. (Thanks to Ran13.) [bjorng]
+
+- Fixed loading models when in smooth-preview mode.
+  Reported by Ran13. [dgud]
+
+- There is a major internal change in how vertex attributes
+  (i.e. vertex colors and UV coordinates that are associated with
+  a vertex in a particular face) are handled.
+  
+  Vertex attributes used to be stored in the edge table (with
+  two words per edge always reserved for vertex attributes)
+  and each vertex could have EITHER a vertex color or
+  UV coordinates.
+  
+  Vertex attributes are now stored by themeselves. Objects
+  without vertex attributes will consume less memory (two
+  words per edge less than in previous releases). Each
+  vertex can now have both a vertex color and UV coordinates.
+  
+  The wings file format should be completely compatible. If
+  you load a wings file containing an object with both vertex
+  colors and UV coordinates into an older release of Wings,
+  only the UV coordinates will be kept. (If you resave such
+  a file from an older version of Wings, the vertex colors
+  will be permanently lost.)
+  
+  Most commands have not been updated yet to take full
+  advantage of the new vertex attribute implementation. So
+  while Ambient Occlusion will preserve existing UV coordinates,
+  there is no way yet to show vertex colors at the same time
+  as textures.
+  
+  You can use the commands "Material Mode" and "Vertex Color Mode" in
+  the body mode menu to switch between seeing materials/textures and
+  vertex colors. (The commands are not new, but there were few
+  situations in which they were needed in previous releases of Wings.)
+  In a future release, we will probably eliminate those commands and
+  extend materials so that you can choose whether vertex colors,
+  materials/textures, or a mixture of both should be shown.
+  
+  Performance seems to be about the same if there are no
+  vertex attributes, but somewhat slower for models with
+  vertex attributes.
+  
+  For developers: Plug-ins using #edge.a and #edge.b will not
+  compile. Instead use the new wings_va module that provides an API
+  to the vertex attributes. I have tried to comment each
+  exported function in the API. [bjorng]
+
 --- 1.1.4.1 --------------------------------------------------------------------
 - Having wireframe on and workmode off would cause a
   crash. (Thanks to Siber.) [bjorng]
