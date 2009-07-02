@@ -1528,12 +1528,12 @@ show_cursor(OX,OY,CX,CY) ->
     {{X1,Y1},{W,H}} = wings_wm:win_rect(),
     Xw = X1+W,
     Yh = Y1+H,
-    X = if X0 < X1 -> X1;
-           X0 > Xw -> Xw;
+    X = if X0 < X1 -> X1+20;
+           X0 > Xw -> Xw-20;
            true -> X0
         end,
-    Y = if Y0 < Y1 -> Y1;
-           Y0 > Yh -> Yh;
+    Y = if Y0 < Y1 -> Y1+20;
+           Y0 > Yh -> Yh-20;
            true -> Y0
         end,
     wings_wm:release_focus(),
