@@ -65,7 +65,7 @@ init() ->
     wings_pref:set_default(tweak_double_click_speed54,Val),
     wings_pref:set_default(tweak_ctrl,slide),
     wings_pref:set_default(tweak_mmb_select,false),
-	wings_pref:set_default(tweak_mag_step,0.05),
+    wings_pref:set_default(tweak_mag_step,0.05),
     case wings_pref:get_value(start_in_tweak) of
       true ->
         self() ! {external, launch_tweak},
@@ -112,10 +112,10 @@ tweak(Ask,maya,_St) when is_atom(Ask) ->
                          {Radio2,slide}],tweak_ctrl}],
        [{title,?__(7,"Button Options")},{hook,ClickHook}]}],
        [{title,?__(9,"Options Panel")},{hook,MmbHook}]},
-	   
-	   {hframe,[{slider,{text,MagStep,[{key,tweak_mag_step},{range,{0.001,0.1}}]}}],
-	   [{title,?__(10,"Magnet Radius Increment")}]}
-	   ]}],
+
+       {hframe,[{slider,{text,MagStep,[{key,tweak_mag_step},{range,{0.001,0.1}}]}}],
+       [{title,?__(10,"Magnet Radius Increment")}]}
+       ]}],
 
     PrefQs = [{Lbl,make_query(Ps)} || {Lbl,Ps} <- TweakPrefs],
     wings_ask:dialog(Ask, ?__(4,"Tweak Mode Preferences"),PrefQs,
@@ -129,7 +129,7 @@ tweak(Ask,_Cam,_St) when is_atom(Ask) ->
               (_, _) -> void
           end,
     DblClkSpd = wings_pref:get_value(tweak_double_click_speed54)/100000,
-	MagStep = wings_pref:get_value(tweak_mag_step),
+    MagStep = wings_pref:get_value(tweak_mag_step),
     TweakPrefs = [{vframe,
         [{?__(1,"Lmb single click Selects/Deselects"),tweak_single_click},
          {?__(2,"Lmb double click initiates Paint Select/Deselect"),tweak_double_click},
@@ -139,10 +139,10 @@ tweak(Ask,_Cam,_St) when is_atom(Ask) ->
        {vframe,[{vradio,[{Radio1,select},
                          {Radio2,slide}],tweak_ctrl}],
        [{title,?__(7,"Button Options")},{hook,ClickHook}]},
-	   
-	   {hframe,[{slider,{text,MagStep,[{key,tweak_mag_step},{range,{0.001,0.1}}]}}],
-	   [{title,?__(10,"Magnet Radius Increment")}]}
-	   ]}],
+
+       {hframe,[{slider,{text,MagStep,[{key,tweak_mag_step},{range,{0.001,0.1}}]}}],
+       [{title,?__(10,"Magnet Radius Increment")}]}
+       ]}],
 
     PrefQs = [{Lbl,make_query(Ps)} || {Lbl,Ps} <- TweakPrefs],
     wings_ask:dialog(Ask, ?__(4,"Tweak Mode Preferences"),PrefQs,
@@ -309,10 +309,10 @@ handle_tweak_event0(#mousemotion{x=X,y=Y,state=State,mod=Mod},
             #tweak{tmode=drag,cx=CX,cy=CY,ox=OX,oy=OY}=T0)
             when State =/= ?SDL_BUTTON_RMASK ->
     {GX,GY} = wings_wm:local2global(X, Y),
-    DX = float(GX-OX), %since last move X and Y
-    DY = float(GY-OY),
-    DxOrg = float(DX+CX), %total X
-    DyOrg = float(DY+CY), %total Y
+    DX = GX-OX, %since last move X and Y
+    DY = GY-OY,
+    DxOrg = DX+CX, %total X
+    DyOrg = DY+CY, %total Y
     FKeys = fkey_combo(),
     TKeys = wings_pref:get_value(tweak_xyz),
     C = tweak_constraints(FKeys,TKeys,[]),
@@ -667,19 +667,19 @@ cmd_type({select,Cmd}, _, St) ->
     wings_sel_cmd:command(Cmd, St#st{temp_sel=none});
 cmd_type(Cmd, Ev, St) ->
     case Ev of
-	none ->
-	    wings:command(Cmd, St);
-	_ ->
-	    %% The command was obtained through a hotkey, which for all
-	    %% we know may be from an ancient version Wings or for a
-	    %% plug-in that has been disabled.
-	    try
-		wings:command(Cmd, St)
-	    catch
-		error:_ ->
-		    wings_hotkey:handle_error(Ev, Cmd),
-		    St#st{repeatable=ignore}
-	    end
+    none ->
+        wings:command(Cmd, St);
+    _ ->
+        %% The command was obtained through a hotkey, which for all
+        %% we know may be from an ancient version Wings or for a
+        %% plug-in that has been disabled.
+        try
+        wings:command(Cmd, St)
+        catch
+        error:_ ->
+            wings_hotkey:handle_error(Ev, Cmd),
+            St#st{repeatable=ignore}
+        end
     end.
 
 hotkey_select_setup(Cmd,#tweak{st=St0}=T) ->
@@ -718,9 +718,8 @@ begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, MM, St, T) ->
     D#dlo{drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}};
 begin_drag_fun(D, _, _, _) -> D.
 
-end_drag(#tweak{st=St0,ox=X,oy=Y}=T) ->
-    wings_wm:release_focus(),
-    wings_io:ungrab(X,Y),
+end_drag(#tweak{st=St0,ox=OX,oy=OY,cx=CX,cy=CY}=T) ->
+    show_cursor(OX,OY,CX,CY),
     St = wings_dl:map(fun end_drag/2, St0),
     help(T),
     handle_tweak_event2({new_state,St}, none, T#tweak{tmode=wait}).
@@ -771,9 +770,8 @@ end_drag(#dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
     {D2#dlo{vs=none,sel=none,drag=none},St};
 end_drag(D, St) -> {D, St}.
 
-end_pick(true, #tweak{st=#st{selmode=Selmode}=St0,ox=X,oy=Y}=T0) ->
-    wings_wm:release_focus(),
-    wings_io:ungrab(X,Y),
+end_pick(true, #tweak{st=#st{selmode=Selmode}=St0,ox=OX,oy=OY,cx=CX,cy=CY}=T0) ->
+    show_cursor(OX,OY,CX,CY),
     St1 = wings_dl:map(fun end_pick_1/2, St0),
     {_,X1,Y1} = wings_wm:local_mouse_state(),
     St = case wings_pick:do_pick(X1, Y1, St1#st{selmode=Selmode}) of
@@ -784,9 +782,8 @@ end_pick(true, #tweak{st=#st{selmode=Selmode}=St0,ox=X,oy=Y}=T0) ->
     help(T),
     handle_tweak_event2({new_state,St}, none, T);
 
-end_pick(false, #tweak{st=St0,ox=X,oy=Y}=T) ->
-    wings_wm:release_focus(),
-    wings_io:ungrab(X,Y),
+end_pick(false, #tweak{st=St0,ox=OX,oy=OY,cx=CX,cy=CY}=T) ->
+    show_cursor(OX,OY,CX,CY),
     St = wings_dl:map(fun end_pick_1/2, St0),
     help(T),
     handle_tweak_event2({new_state,St}, none, T#tweak{tmode=wait}).
@@ -973,7 +970,7 @@ collapse_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
     Short = array:sparse_foldl(
           fun(Edge, #edge{vs=Va,ve=Vb}, A) ->
               case array:get(Va,Vtab) of
-	      undefined -> A;
+          undefined -> A;
               VaPos ->
                   case array:get(Vb,Vtab) of
                   undefined -> A;
@@ -1145,8 +1142,8 @@ face_normals([], _We, Normals) ->
 
 vertex_pos(V, Vtab, OrigVtab) ->
     case array:get(V, Vtab) of
-	undefined -> array:get(V, OrigVtab);
-	Pos -> Pos
+    undefined -> array:get(V, OrigVtab);
+    Pos -> Pos
     end.
 
 help(#tweak{magnet=false}) ->
@@ -1522,3 +1519,22 @@ geom_title(geom) ->
     ?__(1,"Geometry");
 geom_title({geom,N}) ->
     ?__(2,"Geometry #") ++ integer_to_list(N).
+
+%% After releasing lmb to conclude drag, unhide the cursor and make sure its
+%% inside the window.
+show_cursor(OX,OY,CX,CY) ->
+    X0 = OX+CX,
+    Y0 = OY+CY,
+    {{X1,Y1},{W,H}} = wings_wm:win_rect(),
+    Xw = X1+W,
+    Yh = Y1+H,
+    X = if X0 < X1 -> X1;
+           X0 > Xw -> Xw;
+           true -> X0
+        end,
+    Y = if Y0 < Y1 -> Y1;
+           Y0 > Yh -> Yh;
+           true -> Y0
+        end,
+    wings_wm:release_focus(),
+    wings_io:ungrab(X,Y).
