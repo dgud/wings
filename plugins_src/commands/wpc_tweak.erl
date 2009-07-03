@@ -835,50 +835,14 @@ collect_neib_verts(V,#we{es=Es}=We) ->
           NearVerts ++ D
       end, [],Facelist).
 
-check_if_face_contains_vs(Face,We,Vs)->
-    Verts=wings_face:to_vertices([Face],We),
-    foldl(fun({Vert,_,_,_,_},P)->
-          case member(Vert,Verts) of
-              true -> P;
-              _ -> none
-          end
-      end,all,Vs).
-
-check_if_Vs_have_V(V,Vs)->
-    foldl(fun({VinVs,_,_,_,_},Res)-> if VinVs==V -> true; true->Res end end,false,Vs).
-
-check_if_Vs_have_V12(V1,V2,Vs)->
-    case check_if_Vs_have_V(V1,Vs) of
-    true -> check_if_Vs_have_V(V2,Vs);
-    _ -> false
-    end.
-
-get_nverts(Vs)->
-    foldl(fun(_,S)->S+1 end,0,Vs).
-
-collect_neib_verts_vs(V,#we{es=Es}=We,Vs) ->
-    Facelist0=collect_neib_faces(V,We),
-    Facelist=case get_nverts(Vs) of
-         2-> foldl(fun(Face,FL)->
-                   Res=check_if_face_contains_vs(Face,We,Vs),
-                   case	Res of
-                       all -> [Face|FL];
-                       _ ->FL
-                   end
-               end,[],Facelist0);
-         _->Facelist0
-         end,
+collect_neib_verts_vs(V,#we{es=Es}=We) ->
+    Facelist = collect_neib_faces(V,We),
     foldl(fun(Face,D) ->
           Edges = wings_face:to_edges([Face], We),
           NearVerts=foldl(fun(E,B) ->
                       Edg=array:get(E,Es),
                       #edge{vs=VS,ve=VE}=Edg,
-                      Have= case get_nverts(Vs) of
-                            2 -> check_if_Vs_have_V12(VE,VS,Vs);
-                            _ ->false
-                        end,
                       if
-                          Have==true -> B;
                           V==VS -> [VE|B];
                           V==VE -> [VS|B];
                           true -> B
@@ -902,7 +866,7 @@ get_orig_pos(V,We,Vs)->
     end.
 
 collect_neib_verts_coor_vs(V,We,Vs)->
-    VertList=collect_neib_verts_vs(V,We,Vs),
+    VertList=collect_neib_verts_vs(V,We),
     foldl(fun(E,B) -> [get_orig_pos(E,We,Vs)|B] end,[],VertList).
 
 sub_pos_from_list(List,Pos) ->
