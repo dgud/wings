@@ -618,8 +618,8 @@ split_1(D, Vs, St) ->
     split_2(D, Vs, update_materials(D, St)).
 
 split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
-	     proxy=UsesProxy, proxy_data=Pd,
-	     ns=Ns,needed=Needed,open=Open}=D, Vs0, St) ->
+	     proxy=UsesProxy,ns=Ns,needed=Needed,open=Open}=D,
+	Vs0, St) ->
     Vs = sort(Vs0),
     Faces = wings_we:visible(wings_face:from_vs(Vs, We), We),
     StaticVs = static_vs(Faces, Vs, We),
@@ -632,6 +632,8 @@ split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
     WeDyn = wings_facemat:gc(We#we{fs=gb_trees:from_orddict(FtabDyn)}),
     DynPlan = wings_draw_setup:prepare(FtabDyn, We, St),
     StaticVtab = insert_vtx_data(StaticVs, We#we.vp, []),
+
+    Pd = wings_proxy:split_proxy(D, Vs, St),
 
     Split = #split{static_vs=StaticVtab,dyn_vs=DynVs,
 		   dyn_plan=DynPlan,orig_ns=Ns,
@@ -750,7 +752,9 @@ update_dynamic(#dlo{src_we=We}=D0, Vtab) when ?IS_LIGHT(We) ->
     %% Tweak mode, which does dragging in a slightly different way).
     D = changed_we(D0, D1),
     update_normals(D);
-update_dynamic(#dlo{src_we=We0,split=#split{static_vs=StaticVs}}=D0, Vtab0) ->
+update_dynamic(#dlo{src_we=We0,
+		    split=#split{orig_st=St,static_vs=StaticVs}}=D0,
+	       Vtab0) ->
     Vtab1 = keysort(1, StaticVs++Vtab0),
     Vtab = array:from_orddict(Vtab1),
     We = We0#we{vp=Vtab},
@@ -758,7 +762,8 @@ update_dynamic(#dlo{src_we=We0,split=#split{static_vs=StaticVs}}=D0, Vtab0) ->
     D2 = changed_we(D0, D1),
     D3 = update_normals(D2),
     D4 = dynamic_faces(D3),
-    D  = dynamic_edges(D4),
+    D5 = dynamic_edges(D4),
+    D  = wings_proxy:update_dynamic(Vtab0, St, D5),
     dynamic_vs(D).
 
 dynamic_faces(#dlo{work=[Work|_],
@@ -808,7 +813,7 @@ join(#dlo{src_we=#we{vp=Vtab0},ns=Ns1,split=#split{orig_we=We0,orig_ns=Ns0},
     We = We0#we{vp=Vtab},
     Ns = join_ns(We, Ns1, Ns0),
     D#dlo{vs=none,drag=none,sel=none,split=none,src_we=We,ns=Ns,
-	  proxy_data=wings_proxy:invalidate_dl(PD,all)}.
+	  proxy_data=wings_proxy:reset_dynamic(PD)}.
 
 join_ns(_, NsNew, none) ->
     NsNew;

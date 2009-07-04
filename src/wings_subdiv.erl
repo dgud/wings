@@ -12,7 +12,7 @@
 %%
 
 -module(wings_subdiv).
--export([smooth/1,smooth/5,inc_smooth/2]).
+-export([smooth/1,smooth/5,inc_smooth/2,inc_smooth/4]).
 
 -include("wings.hrl").
 
@@ -79,15 +79,27 @@ smooth(EntireObject, Fs, Vs, Es, Htab, #we{vp=Vp,next_id=Id}=We0) ->
 	 end,
     wings_pb:done(We).
 
-inc_smooth(#we{vp=Vp,next_id=Next}=We0, OldWe) ->
+inc_smooth(#we{vp=Vp,next_id=Next}=We0, Smoothed) ->
     {Faces,Htab} = smooth_faces_htab(We0),
     FacePos0 = face_centers(Faces, We0),
     FacePos = gb_trees:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
     {RevUpdatedVs,Mid} = update_edge_vs_all(We0, FacePos, Htab, Vp, Next),
     VtabTail = smooth_new_vs(FacePos0, Mid, RevUpdatedVs),
-    Vtab = smooth_move_orig(true, wings_util:array_keys(Vp), FacePos, Htab, We0,
-			    VtabTail),
-    OldWe#we{vp=Vtab}.
+    Vtab = smooth_move_orig(true, wings_util:array_keys(Vp),
+			    FacePos, Htab, We0, VtabTail),
+    Smoothed#we{vp=Vtab}.
+
+inc_smooth(Vtab0, #we{vp=Vp,next_id=Next}=We0, UpdVs, Smoothed = #we{vp=OldVp}) ->
+    {Faces,Htab} = smooth_faces_htab(We0),
+    FacePos0 = face_centers(Faces, We0),
+    FacePos = array:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
+
+    {RevUpdatedVs,Mid} = update_edge_vs_drag(We0, UpdVs, FacePos, Htab, Vp, Next),
+    VtabTail = smooth_new_vs_drag(FacePos0, Mid, UpdVs, RevUpdatedVs),
+    MoveFun = smooth_move_orig_fun(Vp, FacePos, Htab),
+    Vs = smooth_move_orig_all(Vtab0, MoveFun, We0, VtabTail),
+    Vtab = lists:foldl(fun({V,Pos},Acc) -> array:set(V,Pos,Acc) end, OldVp, Vs),
+    Smoothed#we{vp=Vtab}.
 
 smooth_faces_htab(#we{mirror=none,fs=Ftab,he=Htab}) ->
     Faces = gb_trees:keys(Ftab),
@@ -413,6 +425,21 @@ update_edge_vs_some([E|Es], Etab, FacePos, Hard, Vtab, V, Acc) ->
 update_edge_vs_some([], _, _, _, _, V, Acc) ->
     {Acc,V}.
 
+update_edge_vs_drag(#we{es=Etab}, Update, FacePos, Hard, Vtab, V) ->
+    Es = array:sparse_to_orddict(Etab),
+    update_edge_vs_drag(Es, Update, FacePos, Hard, Vtab, V, []).
+
+update_edge_vs_drag([{Edge,Rec}|Es], Update, FacePos, Hard, Vtab, V, Acc) ->
+    case gb_sets:is_member(V, Update) of
+	true ->
+	    Pos = update_edge_vs_1(Edge, Hard, Rec, FacePos, Vtab),
+	    update_edge_vs_drag(Es, Update, FacePos, Hard, Vtab, V+1, [{V,Pos}|Acc]);
+	false -> %% Keep vertex numbering in sync
+	    update_edge_vs_drag(Es, Update, FacePos, Hard, Vtab, V+1, Acc)
+    end;
+update_edge_vs_drag([], _, _, _, _, V, Acc) ->
+    {Acc,V}.
+
 update_edge_vs_1(Edge, Hard, Rec, FacePos, Vtab) ->
     case gb_sets:is_member(Edge, Hard) of
 	true ->
@@ -431,3 +458,12 @@ update_edge_vs_1(Edge, Hard, Rec, FacePos, Vtab) ->
 smooth_new_vs([{_,{Center,_,NumIds}}|Fs], V, Acc) ->
     smooth_new_vs(Fs, V+NumIds, [{V,Center}|Acc]);
 smooth_new_vs([], _, Acc) -> reverse(Acc).
+
+smooth_new_vs_drag([{_,{Center,_,NumIds}}|Fs], V, Upd, Acc) ->
+    case gb_sets:is_member(V,Upd) of
+	true ->  smooth_new_vs_drag(Fs, V+NumIds, Upd, [{V,Center}|Acc]);
+	false -> smooth_new_vs_drag(Fs, V+NumIds, Upd, Acc)
+    end;
+smooth_new_vs_drag([], _, _, Acc) -> reverse(Acc).
+
+
