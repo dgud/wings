@@ -1286,16 +1286,16 @@ clear_temp_sel(#st{temp_sel={Mode,Sh}}=St) ->
 
 tweak_hotkey(C, #tweak{magnet=Mag,mag_type=MagType}=T) ->
     case magnet_hotkey(C, MagType) of
-    none -> constraint_hotkey();
+    none -> constraint_hotkey(T);
     toggle when Mag == true ->
         setup_magnet(T#tweak{magnet=false});
     toggle when Mag == false ->
         setup_magnet(T#tweak{magnet=true});
-    _ when Mag == false -> constraint_hotkey();
+    _ when Mag == false -> constraint_hotkey(T);
     Type -> setup_magnet(T#tweak{mag_type=Type})
     end.
 
-constraint_hotkey() ->
+constraint_hotkey(T) ->
 %% Alt + F1/2/3 toggles xyx constraints on/off
     Alt = mod_key_combo() == {false,false,true},
     Fkeys = fkey_combo(),
@@ -1305,7 +1305,7 @@ constraint_hotkey() ->
       true when Fkeys =/= [false,false,false] ->
         C = set_constraint_toggles(Fkeys,Constraints,[]),
         wings_pref:set_value(tweak_xyz,C),
-        none;
+        T;
       _other -> none
     end.
 set_constraint_toggles([true|Fkeys],[Pref|Constraints],C) ->
@@ -1339,7 +1339,6 @@ setup_magnet(#tweak{tmode=drag}=T) ->
              setup_magnet_fun(D, T)
          end, []),
     do_tweak(0.0, 0.0, 0.0, 0.0,screen),
-    wings_wm:dirty(),
     T;
 setup_magnet(T) -> T.
 
