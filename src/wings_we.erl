@@ -484,8 +484,8 @@ build_tables([H|T], Emap, Vtab0, Etab0, Ftab0, UvTab0) ->
     Ftab = [{Lf,Edge},{Rf,Edge}|Ftab0],
     Vtab = [{Vs,Edge},{Ve,Edge}|Vtab0],
     UvTab = case {LUV,RUV} of
-		{{_,_},{_,_}} -> [{Edge,LUV,RUV}|UvTab0];
-		_ -> UvTab0
+		{none,none} -> UvTab0;
+		{_,_} -> [{Edge,LUV,RUV}|UvTab0]
 	    end,
     build_tables(T, Emap, Vtab, Etab, Ftab, UvTab);
 build_tables([], _Emap, Vtab, Etab0, Ftab, UvTab) ->

@@ -326,7 +326,7 @@ vtx_attrs(V, Face, #we{lv=Lva,rv=Rva}=We) ->
 		      _ -> NotDone
 		  end
 	  end,
-    wings_vertex:until(Fun, not_done, V, We).
+    wings_vertex:until(Fun, none, V, We).
 
 %% attr(What, Attrs) -> [Attribute]
 %%     What = uv | color | [vertex|uv] | [vertex|color]
