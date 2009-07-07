@@ -627,12 +627,13 @@ merge_plugins(Wes) ->
     gb_trees:from_orddict(Merged).
 		    
 merge_renumber(Wes0) ->
-    [{_,We}|Wes] = merge_bounds(Wes0, []),
+    [{_,We1}|Wes] = merge_bounds(Wes0, []),
+    We = wings_va:gc(We1),
     merge_renumber(Wes, [We], []).
 
 merge_renumber([{Low,We}|Wes], [#we{next_id=Next}|_]=Done, NotDone)
   when Low >= Next ->
-    merge_renumber(Wes, [We|Done], NotDone);
+    merge_renumber(Wes, [wings_va:gc(We)|Done], NotDone);
 merge_renumber([{_,We}|Wes], Done, NotDone) ->
     merge_renumber(Wes, Done, [We|NotDone]);
 merge_renumber([], [#we{next_id=Next}|_]=Done, NotDone) ->

@@ -20,11 +20,11 @@
 	 set_edge_color/4,
 	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/2,
 	 set_vtx_face_uvs/4,
-	 renumber/2,merge/2]).
+	 renumber/2,merge/2,gc/1]).
 
 -include("wings.hrl").
 
--import(lists, [any/2,member/2,sort/1]).
+-import(lists, [any/2,member/2,sort/1,reverse/1]).
 
 -opaque all_attributes() :: {float(),float(),float()} | {float(),float()} | 'none'.
 -type side() :: 'left'|'right'|face_num().
@@ -412,6 +412,14 @@ merge(Wes, We) ->
     {Lva,Rva} = merge_1(Wes, [], []),
     We#we{lv=Lva,rv=Rva}.
 
+%% gc(We0) -> We
+%%  Remove attributes for edges that no longer exists.
+%%
+gc(#we{lv=Lva0,rv=Rva0,es=Etab}=We) ->
+    Lva = gc_1(Lva0, Etab),
+    Rva = gc_1(Rva0, Etab),
+    We#we{lv=Lva,rv=Rva}.
+
 %%%
 %%% Local functions.
 %%%
@@ -690,6 +698,21 @@ merge_3(Lists) ->
 	[] -> none;
 	VaTab -> array:from_orddict(VaTab, none)
     end.
+
+gc_1(none, _Etab) ->
+    none;
+gc_1(VaTab0, Etab) ->
+    gc_2(array:sparse_to_orddict(VaTab0), Etab, []).
+
+gc_2([{E,_}=H|T], Etab, Acc) ->
+    case array:get(E, Etab) of
+	undefined -> gc_2(T, Etab, Acc);
+	_ -> gc_2(T, Etab, [H|Acc])
+    end;
+gc_2([], _, []) ->
+    none;
+gc_2([], _, Acc) ->
+    array:from_orddict(reverse(Acc)).
 
 aset(_, none, none) -> none;
 aset(K, V, none) -> array:set(K, V, array:new({default,none}));
