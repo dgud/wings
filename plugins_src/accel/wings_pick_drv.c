@@ -64,6 +64,8 @@ static ErlDrvBinary* result;
 static unsigned res_size;
 static int cull = 1;
 static int ccw_is_front = 1;
+static int one_hit = 1;
+static double last_depth;
 
 /* Declarations of internal functions */
 static void pick(float* vertices, unsigned stride, unsigned num_tris);
@@ -135,6 +137,10 @@ control(ErlDrvData handle, unsigned int command,
     ccw_is_front = buf[0];
     return 0;
   }
+  case 3: {
+    one_hit = buf[0];		/* One hit (if non-zero) or all hits */
+    return 0;
+  }
   default:
     return -1;
   }
@@ -165,6 +171,7 @@ pick(float* vs, unsigned stride, unsigned num_tris)
   unsigned i;
 
   res_size = 0;
+  last_depth = 42.0;
   for (i = 0; i < num_tris; i++) {
     /* Storage for triangle vertices follow. We do the clipping
      * in the same buffer, moving forward all the time, never
@@ -383,7 +390,16 @@ do_accept(unsigned i, vertex* vp)
     }
   }
 
-  if (res_size < MAX_RES_SIZE) {
+  if (one_hit) {
+    double depth = vp[0].z / vp[0].w;
+    if (depth < last_depth) {
+      unsigned *p = (unsigned *) result->orig_bytes;
+      *p++ = i;
+      *p++ = (unsigned) (depth * (double) (0xFFFFFFFF) + 0.5);
+      res_size = 2*sizeof(unsigned);
+      last_depth = depth;
+    }
+  } else if (res_size < MAX_RES_SIZE) {
     unsigned *p = (unsigned *) (result->orig_bytes+res_size);
     *p = i;
     res_size += sizeof(unsigned);

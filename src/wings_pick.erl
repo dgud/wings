@@ -533,7 +533,7 @@ do_pick(X, Y, St) ->
 	    update_selection(Hit, St)
     end.
 
-raw_pick(X0, Y0, #st{selmode=Mode}=St) ->
+raw_pick(X0, Y0, St) ->
     {W,H} = wings_wm:win_size(),
     X = float(X0),
     Y = H-float(Y0),
@@ -546,10 +546,9 @@ raw_pick(X0, Y0, #st{selmode=Mode}=St) ->
 	_ ->
 	    wpc_pick:cull(true)
     end,
-    Hits = dlo_pick(St),
-    case best_face_hit(Hits, Mode) of
-	none -> none;
-	{Id,Face} -> convert_hit(Id, Face, X, Y, St)
+    case dlo_pick(St, true) of
+	[] -> none;
+	[{Id,Face}] -> convert_hit(Id, Face, X, Y, St)
     end.
 
 set_pick_matrix(X, Y, Xs, Ys, W, H) ->
@@ -610,83 +609,6 @@ expand_light_items(Mode, Id, Items, #st{shapes=Shs}) ->
 	false -> Items;
 	true -> wings_sel:get_all_items(Mode, We)
     end.
-
-%%%
-%%% Filter face hits to obtain just one hit.
-%%%
-
-best_face_hit([], _) -> none;
-best_face_hit([Hit], _) -> Hit;
-best_face_hit([{Id,_}|T]=Hits, body) ->
-    %% If all hits are in the same body we can return any hit.
-    best_face_hit_body(T, Id, Hits);
-best_face_hit(Hits, _) -> best_face_hit_1(Hits).
-
-best_face_hit_body([{Id,_}|T], Id, Hits) ->
-    best_face_hit_body(T, Id, Hits);
-best_face_hit_body([_|_], _, Hits) ->
-    %% Different bodies.  Must find the nearest face the in the usual way.
-    best_face_hit_1(Hits);
-best_face_hit_body([], _, [Hit|_]) -> Hit.
-
-best_face_hit_1(Hits0) ->
-    Hits = sort([{abs(Id),Id,Face} || {Id,Face} <- Hits0]),
-    {_,_,W,H} =  wings_wm:viewport(),
-    Model = gl:getDoublev(?GL_MODELVIEW_MATRIX),
-    Proj = gl:getDoublev(?GL_PROJECTION_MATRIX),
-    ViewPort = {0,0,W,H},
-    Orig = glu:unProject(0, 0, 0, Model, Proj, ViewPort),
-    Dir0 = glu:unProject(0, 0, 0.5, Model, Proj, ViewPort),
-    Dir = e3d_vec:norm_sub(Dir0, Orig),
-    ViewRay = {Orig,Dir},
-    {_,Best,_} = wings_dl:fold(fun(D, A) ->
-				       best_face_hit_1(D, ViewRay, A) end,
-			       {Hits,none,infinite}),
-    Best.
-
-best_face_hit_1(#dlo{src_we=#we{id=Id}=We,ns=Ns}, EyePoint,
-		{[{Id,_,_}|_],_,_}=A) ->
-    best_face_hit_2(We, Ns, EyePoint, A);
-best_face_hit_1(_, _, A) -> A.
-
-best_face_hit_2(#we{id=Id}=We, Ns, Ray, {[{Id,Id,Face}|Hits],Hit0,T0})
-  when ?IS_LIGHT(We) ->
-    {Orig,Dir} = Ray,
-    P = wings_light:light_pos(We),
-    T = e3d_vec:dot(Dir, P) - e3d_vec:dot(Dir, Orig),
-    A = if
-	    T < T0 ->
-		{Hits,{Id,Face},T};
-	    true ->
-		{Hits,Hit0,T0}
-	end,
-    best_face_hit_2(We, Ns, Ray, A);
-best_face_hit_2(#we{id=AbsId}=We, Ns, Ray, {[{AbsId,Id,Face}|Hits],Hit0,T0}) ->
-    case array:get(Face, Ns) of
-	[N|[P0|_]] -> ok;
-	{N,_,[P0|_]} -> ok
-    end,
-    P = if 
-	    Id < 0 ->
-		e3d_mat:mul_point(wings_dl:mirror_matrix(AbsId), P0);
-	    true ->
-		P0
-	end,
-    {Orig,Dir} = Ray,
-    A = case e3d_vec:dot(N, Dir) of
-	    Den when abs(Den) < 1.0e-20 ->
-		{Hits,Hit0,T0};
-	    Den ->
-		T = (e3d_vec:dot(N, P) - e3d_vec:dot(N, Orig)) / Den,
-		if
-		    T < T0 ->
-			{Hits,{Id,Face},T};
-		    true ->
-			{Hits,Hit0,T0}
-		end
-	end,
-    best_face_hit_2(We, Ns, Ray, A);
-best_face_hit_2(_, _, _, A) -> A.
 
 %%
 %% Given a face selection hit, return the correct vertex/edge/face/body.
@@ -824,7 +746,7 @@ pick_all(DrawFaces, X, Y0, W, H, St) ->
     case DrawFaces of
 	true ->
 	    wpc_pick:cull(true),
-	    {dlo_pick(St),St};
+	    {dlo_pick(St, false),St};
 	false ->
 	    wpc_pick:cull(false),
 	    {marquee_pick(St),St}
@@ -859,7 +781,7 @@ marquee_pick(#st{selmode=vertex}) ->
 		      end
 	      end,
     setup_pick_context(PickFun);
-marquee_pick(St) -> dlo_pick(St).
+marquee_pick(St) -> dlo_pick(St, false).
 
 visible_edges([{Edge,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}|Es], Vtab, Vis, Acc) ->
     case gb_sets:is_member(Lf, Vis) orelse gb_sets:is_member(Rf, Vis) of
@@ -898,52 +820,52 @@ setup_pick_context_fun(#dlo{mirror=Matrix,src_we=We}, PickFun, Acc0) ->
 %% Draw for the purpose of picking the items that the user clicked on.
 %%
 
-dlo_pick(St) ->
-    wings_dl:map(fun(D, Acc) ->
-			 do_dlo_pick(D, St, Acc)
-		 end, []).
+dlo_pick(St, OneHit) ->
+    Hits0 = wings_dl:map(fun(D, Acc) ->
+				 do_dlo_pick(D, St, OneHit, Acc)
+			 end, []),
+    case Hits0 of
+	{_,Hits} -> Hits;
+	_ -> Hits0
+    end.
 
-do_dlo_pick(#dlo{src_we=#we{perm=Perm}}=D, _St, Acc)
+do_dlo_pick(#dlo{src_we=#we{perm=Perm}}=D, _St, _OneHit, Acc)
   when ?IS_NOT_SELECTABLE(Perm) ->
     {D,Acc};
-do_dlo_pick(D=#dlo{vab=none}, St, Acc) ->
-    do_dlo_pick(wings_draw_setup:work(D, St), St, Acc);
-do_dlo_pick(D=#dlo{vab=#vab{face_vs=none}}, St, Acc) ->
-    do_dlo_pick(wings_draw_setup:work(D, St), St, Acc);
-do_dlo_pick(#dlo{vab=#vab{face_vs=Vs},src_we=#we{id=Id}=We}=D, _, Acc)
-  when ?IS_LIGHT(We) ->
-    case wpc_pick:faces(Vs) of
-	[] -> {D,Acc};
-	_ -> {D,[{Id,0}|Acc]}
-    end;
-do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}}=D, _, Acc) ->
-    do_dlo_pick_0(Id, D, Acc);
-do_dlo_pick(#dlo{mirror=Matrix,src_we=#we{id=Id}}=D0, _, Acc0) ->
-    {D1,Acc1} = do_dlo_pick_0(Id, D0, Acc0),
+do_dlo_pick(D=#dlo{vab=none}, St, OneHit, Acc) ->
+    do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Acc);
+do_dlo_pick(D=#dlo{vab=#vab{face_vs=none}}, St, OneHit, Acc) ->
+    do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Acc);
+do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}}=D, _, OneHit, Acc) ->
+    do_dlo_pick_0(Id, D, OneHit, Acc);
+do_dlo_pick(#dlo{mirror=Matrix,src_we=#we{id=Id}}=D0, _, OneHit, Acc0) ->
+    {D1,Acc1} = do_dlo_pick_0(Id, D0, OneHit, Acc0),
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
     set_pick_matrix(),
     wpc_pick:front_face(cw),
-    {D,Acc} = do_dlo_pick_0(-Id, D1, Acc1),
+    {D,Acc} = do_dlo_pick_0(-Id, D1, OneHit, Acc1),
     wpc_pick:front_face(ccw),
     gl:popMatrix(),
     set_pick_matrix(),
     {D,Acc}.
 
-do_dlo_pick_0(Id, #dlo{vab=#vab{face_vs=Vs,face_map=Map0}}=D0, Acc) ->
-    case wpc_pick:faces(Vs) of
+do_dlo_pick_0(Id, #dlo{vab=#vab{face_vs=Vs,face_map=Map0}}=D0, OneHit, Acc0) ->
+    case wpc_pick:faces(Vs, OneHit) of
 	[] ->
-	    {D0,Acc};
+	    {D0,Acc0};
+	{Hit0,Depth} ->
+	    case Acc0 of
+		{PrevDepth,_} when PrevDepth < Depth ->
+		    {D0,Acc0};
+		_ ->
+		    {D,Map} = dlo_tri_map(D0, Map0),
+		    Acc = do_dlo_pick_1([Hit0], Map, Id, []),
+		    {D,{Depth,Acc}}
+	    end;
 	RawHits ->
-	    {D,Map} =
-		case D0 of
-		    #dlo{tri_map=none} ->
-			Map1 = keysort(2, array:sparse_to_orddict(Map0)),
-			{D0#dlo{tri_map=Map1},Map1};
-		    #dlo{tri_map=TriMap} ->
-			{D0,TriMap}
-		end,
-	    {D,usort(do_dlo_pick_1(RawHits, Map, Id, Acc))}
+	    {D,Map} = dlo_tri_map(D0, Map0),
+	    {D,usort(do_dlo_pick_1(RawHits, Map, Id, Acc0))}
     end.
 
 do_dlo_pick_1([H|Hits], [{Face,{Start,Num}}|_]=T, Id, Acc)
@@ -953,3 +875,8 @@ do_dlo_pick_1([_|_]=Hits, [_|T], Id, Acc) ->
     do_dlo_pick_1(Hits, T, Id, Acc);
 do_dlo_pick_1([], [_|_], _, Acc) -> Acc;
 do_dlo_pick_1([], [], _, Acc) -> Acc.
+
+dlo_tri_map(#dlo{tri_map=none}=D, Map0) ->
+    Map1 = keysort(2, array:sparse_to_orddict(Map0)),
+    {D#dlo{tri_map=Map1},Map1};
+dlo_tri_map(#dlo{tri_map=TriMap}=D, _) -> {D,TriMap}.

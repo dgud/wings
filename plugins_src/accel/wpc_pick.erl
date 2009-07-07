@@ -37,7 +37,7 @@
 %%
 -module(wpc_pick).
 -export([init/0,pick_matrix/5,matrix/2,cull/1,front_face/1,
-	 faces/1,vertices/1,edges/1]).
+	 faces/2,vertices/1,edges/1]).
 
 %% Comment out the following line to use the pure Erlang
 %% reference implementation.
@@ -69,7 +69,7 @@ init() ->
 %% pick_matrix(X, Y, Xs, Ys, ViewPort) -> PickMatrix
 %%  Set up a pick matrix like glu:pickMatrix/5,
 %%  but with a diffrent viewing volume (the cube (0...1)^3
-%%  instead of (0...1)^3).
+%%  instead of (-1...1)^3).
 %%
 %%  Typical use:
 %%
@@ -123,20 +123,37 @@ front_face(cw) ->
 	_ -> drv_ccw_is_front(0)
     end.
 
-%% faces({Stride,VertexBuffer}) -> [Index]
-%%  Given a vertex buffer containing triangles, return a
-%%  list of indices for each triangle that are wholly or
-%%  partly inside the viewing volume.
+%% faces({Stride,VertexBuffer}, OneHit) -> {Index,Depth} | [Index]
+%%     Depth = 0..2^32-1 (0 means the near clipping plane)
+%%  Given a vertex buffer containing triangles, either return
+%%  {Index,Depth} (if OneHit is 'true'), or a list of indices for each
+%%  triangle that are wholly or partly inside the viewing volume
+%%  (if OneHit is 'false').
 %%
 -ifdef(USE_DRIVER).
-faces({Stride,Bin}) ->
+faces({Stride,Bin}, OneHit0) ->
+    OneHit = case OneHit0 of
+		 false -> <<0>>;
+		 true -> <<1>>
+	     end,
+    erlang:port_control(wings_pick_port, 3, OneHit),
     erlang:port_command(wings_pick_port, [<<Stride:32/native>>,Bin]),
     receive
 	{Port,{data,Data}} when is_port(Port) ->
-	    [Hit || <<Hit:32/native>> <= Data]
+	    case OneHit0 of
+		false ->
+		    [Hit || <<Hit:32/native>> <= Data];
+		true ->
+		    case Data of
+			<<>> ->
+			    [];
+			<<Hit:32/native,Depth:32/native>> ->
+			    {Hit,Depth}
+		    end
+	    end
     end.
 -else.
-faces({Stride,Bin}) ->
+faces({Stride,Bin}, OneHit) ->
     Matrix = get({?MODULE,matrix}),
     Cull0 = get({?MODULE,cull}) =:= true,
     CwIsFront = get({?MODULE,front_face}) =:= cw,
@@ -145,7 +162,7 @@ faces({Stride,Bin}) ->
 	       {true,true} -> cull_ccw;
 	       {true,false} -> cull_cw
 	   end,
-    faces_1(Bin, Stride-12, Matrix, Cull, 0, []).
+    faces_1(Bin, Stride-12, Matrix, Cull, OneHit, 0, []).
 -endif.
 
 %% vertices([{Vertex,Position}]) -> [Vertex]
@@ -295,7 +312,7 @@ pdot2(1, {_,_,Z,W}) -> W-Z.
 %%%
 
 -ifndef(USE_DRIVER).
-faces_1(Bin0, Unused, Mat, Cull, I, Acc) ->
+faces_1(Bin0, Unused, Mat, Cull, OneHit, I, Acc) ->
     case Bin0 of
 	<<X1:?FL,Y1:?FL,Z1:?FL,_:Unused/binary,
 	 X2:?FL,Y2:?FL,Z2:?FL,_:Unused/binary,
@@ -303,26 +320,44 @@ faces_1(Bin0, Unused, Mat, Cull, I, Acc) ->
 	 Bin/binary>> ->
 	    Tri0 = [{X1,Y1,Z1,1.0},{X2,Y2,Z2,1.0},{X3,Y3,Z3,1.0}],
 	    Tri = [e3d_mat:mul(Mat, P) || P <- Tri0],
-	    case is_inside(Tri, Cull) of
-		false -> faces_1(Bin, Unused, Mat, Cull, I+3, Acc);
-		true -> faces_1(Bin, Unused, Mat, Cull, I+3, [I|Acc])
+	    case clip_tri(Tri, Cull) of
+		[] ->
+		    %% Outside.
+		    faces_1(Bin, Unused, Mat, Cull, OneHit, I+3, Acc);
+		[{_,_,Z,W}|_] ->
+		    %% Inside. Now clipped to the view frustum.
+		    Depth = round((Z/W)*16#FFFFFFFF),
+		    faces_1(Bin, Unused, Mat, Cull, OneHit, I+3, [{Depth,I}|Acc])
 	    end;
 	<<>> ->
-	    sort(Acc)
-    end.
-
-is_inside(Tri, Cull) ->
-    case is_inside_1(Tri) of
-	[] -> false;
-	Vs ->
-	    case Cull of
-		none -> true;
-		cull_cw -> is_ccw(Vs);
-		cull_ccw -> not is_ccw(Vs)
+	    Hits = sort(Acc),
+	    case OneHit of
+		false ->
+		    sort([Hit || {_,Hit} <- Hits]);
+		true ->
+		    case Hits of
+			[] -> [];
+			[{Depth,Hit}|_] -> {Hit,Depth}
+		    end
 	    end
     end.
 
-is_inside_1(Tri) ->
+clip_tri(Tri, Cull) ->
+    case clip_tri_1(Tri) of
+	[] -> [];
+	Vs ->
+	    Inside = case Cull of
+			 none -> true;
+			 cull_cw -> is_ccw(Vs);
+			 cull_ccw -> not is_ccw(Vs)
+		     end,
+	    case Inside of
+		true -> Vs;
+		false -> []
+	    end
+    end.
+
+clip_tri_1(Tri) ->
     OutCodes = [outcode(P) || P <- Tri],
     And = foldl(fun(Code, Acc) -> Code band Acc end, 16#3F, OutCodes),
     case And of
