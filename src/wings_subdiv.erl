@@ -56,7 +56,7 @@ smooth(EntireObject, Fs, Vs, Es, Htab, #we{vp=Vp,next_id=Id}=We0) ->
     wings_pb:update(0.60, ?__(6,"moving vertices")),
 
     %% Now calculate all vertex positions.
-    FacePos = array:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
+    FacePos = gb_trees:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
     {RevUpdatedVs,Mid} =
 	case EntireObject of
 	    true ->
@@ -82,7 +82,7 @@ smooth(EntireObject, Fs, Vs, Es, Htab, #we{vp=Vp,next_id=Id}=We0) ->
 inc_smooth(#we{vp=Vp,next_id=Next}=We0, OldWe) ->
     {Faces,Htab} = smooth_faces_htab(We0),
     FacePos0 = face_centers(Faces, We0),
-    FacePos = array:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
+    FacePos = gb_trees:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
     {RevUpdatedVs,Mid} = update_edge_vs_all(We0, FacePos, Htab, Vp, Next),
     VtabTail = smooth_new_vs(FacePos0, Mid, RevUpdatedVs),
     Vtab = smooth_move_orig(true, wings_util:array_keys(Vp), FacePos, Htab, We0,
@@ -368,14 +368,19 @@ smooth_move_orig_fun(Vtab, FacePos, Htab) ->
     case gb_sets:is_empty(Htab) of
 	true ->
 	    fun(_Edge, Face, Erec, {V,Ps,_}) ->
+		    %% No hard edges imply that all faces can be found
+		    %% in the FacePos table. Therefore gb_trees:get/2 is safe.
 		    OPos = wings_vertex:other_pos(V, Erec, Vtab),
-		    FPos = array:get(Face, FacePos),
+		    FPos = gb_trees:get(Face, FacePos),
 		    {V,[OPos,FPos|Ps],[]}
 	    end;
 	false ->
 	    fun(Edge, Face, Erec, {V,Ps0,Hard0}) ->
 		    OPos = wings_vertex:other_pos(V, Erec, Vtab),
-		    FPos = array:get(Face, FacePos),
+		    FPos = case gb_trees:lookup(Face, FacePos) of
+			       none -> none;
+			       {value,FPos0} -> FPos0
+			   end,
 		    Ps = [FPos,OPos|Ps0],
 		    Es = case gb_sets:is_member(Edge, Htab) of
 			     true -> [OPos|Hard0];
@@ -415,8 +420,8 @@ update_edge_vs_1(Edge, Hard, Rec, FacePos, Vtab) ->
 	    e3d_vec:average(array:get(Va, Vtab), array:get(Vb, Vtab));
 	false ->
 	    #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf} = Rec,
-	    LfPos = array:get(Lf, FacePos),
-	    RfPos = array:get(Rf, FacePos),
+	    LfPos = gb_trees:get(Lf, FacePos),
+	    RfPos = gb_trees:get(Rf, FacePos),
 	    Pos0 = e3d_vec:average(array:get(Va, Vtab),
 				   array:get(Vb, Vtab),
 				   LfPos, RfPos),
