@@ -2,7 +2,7 @@
 %%  wpc_circularise.erl --
 %%
 %%    Plugin to flatten, equalise, and inflate open or closed edge loops
-%%    making them circular
+%%    making them circular.
 %%
 %%  Copyright (c) 2008-2009 Richard Jones.
 %%
@@ -299,7 +299,6 @@ check_selection(_, _) ->
 %    Data Setup     %
 % % % % % % % % % % %
 
-
 %%%% Arc Setup LMB - find plane for each arc
 %%%% Arc Setup RMB - arc to common plane
 arc_setup(Plane,VsData,St) ->
@@ -313,11 +312,34 @@ arc_setup(Plane,VsData,St) ->
     wings_drag:setup(Tvs, Units, Flags, St).
 
 arc_setup(State,Plane0,[VsList|Loops],#we{id=Id,vp=Vtab}=We,Acc) ->
-    Vs0 = arc_vs(VsList,[]),
+    {Vs0,Edges} = arc_vs(VsList,[],[]),
     CwNorm = wings_face:face_normal_cw(Vs0,Vtab),
-    Plane = check_for_user_plane(Plane0,CwNorm,Vs0,We),
-    Vs = check_vertex_order(Vs0,Plane,CwNorm),
-    {Vlist,DegVertList} = make_degree_vert_list(Vs,Vtab,0,[],[]),
+    case e3d_vec:is_zero(CwNorm) of
+        true ->
+          Plane = check_plane(Vs0,We),
+          {[NewVsList],TempVtab} = adjust_vertex_order(Plane0, Edges, Vs0, Plane, We),
+          {Vs,_} = arc_vs(NewVsList,[],[]),
+          CwNorm1 = wings_face:face_normal_ccw(Vs,TempVtab),
+          {Vlist,DegVertList} = make_degree_vert_list(Vs,TempVtab,0,[],[]),
+          Norm = CwNorm1;
+        false when Plane0==find_plane ->
+          Vs = Vs0,
+          {Vlist,DegVertList} = make_degree_vert_list(Vs0,Vtab,0,[],[]),
+          Norm = e3d_vec:neg(CwNorm);
+        false ->
+          Plane = check_for_user_plane(Plane0, CwNorm),
+          Vs = check_vertex_order(Vs0,Plane,CwNorm),
+          {Vlist,DegVertList} = make_degree_vert_list(Vs,Vtab,0,[],[]),
+          [V0|_] = Vs,
+          V1 = array:get(V0,Vtab),
+          V2 = array:get(lists:last(Vs),Vtab),
+          Vec = e3d_vec:norm_sub(V1,V2),
+          Cr1 = e3d_vec:norm(e3d_vec:cross(Vec,Plane)),
+          Cr2 = e3d_vec:neg(Cr1),
+          Norm = if Cr1 > Cr2 -> e3d_vec:neg(Plane);
+                    true -> Plane
+                 end
+    end,
     NumVs = length(DegVertList) + 1,
     [StartVs|_] = Vs,
     EndVs = lists:last(Vs),
@@ -325,16 +347,16 @@ arc_setup(State,Plane0,[VsList|Loops],#we{id=Id,vp=Vtab}=We,Acc) ->
     EPos = array:get(EndVs, Vtab),
     Hinge = e3d_vec:average(SPos, EPos),
     Chord = e3d_vec:sub(Hinge, SPos),
-    Cross = e3d_vec:norm(e3d_vec:cross(Plane,Chord)),
+    Cross = e3d_vec:norm(e3d_vec:cross(Norm,Chord)),
     Opp = e3d_vec:len(Chord),
-    Data = {{CwNorm, Cross, Opp, Plane, SPos, Hinge, NumVs}, DegVertList},
+    Data = {{CwNorm, Cross, Opp, Norm, SPos, Hinge, NumVs}, DegVertList},
     arc_setup(State,Plane0,Loops,We,[{Id,{Vlist, make_arc_fun(Data,State)}}|Acc]);
 arc_setup(_,_,[],_,Acc) -> Acc.
 
 %%%% Arc Setup MMB
 arc_center_setup(Plane,Center,VsList,#we{id=Id,vp=Vtab},St) ->
     Flatten = wings_pref:get_value(circularise_flatten, true),
-    Vs0 = arc_vs(VsList,[]),
+    {Vs0,_} = arc_vs(VsList,[],[]),
     Vs = check_vertex_order(Vs0,Plane,wings_face:face_normal_cw(Vs0,Vtab)),
     {Vlist,DegVertList} = make_degree_vert_list(Vs,Vtab,0,[],[]),
     NumVs = length(DegVertList) + 1,
@@ -360,10 +382,10 @@ arc_center_setup(Plane,Center,VsList,#we{id=Id,vp=Vtab},St) ->
     wings_drag:setup(Tvs, [percent], Flags, St).
 
 %% StartVs and EndVs are in 3rd of First and 2nd of Last
-arc_vs([{_,LastV,V}|[]],Acc) ->
-    [LastV,V|Acc];
-arc_vs([{_,_,V}|VsList],Acc) ->
-    arc_vs(VsList, [V|Acc]).
+arc_vs([{E,LastV,V}|[]], VAcc, EAcc) ->
+    {[LastV,V|VAcc], [E|EAcc]};
+arc_vs([{E,_,V}|VsList], VAcc, EAcc) ->
+    arc_vs(VsList, [V|VAcc], [E|EAcc]).
 
 %%%% Index vertices for open edge loop (Arc)
 %% The first and last vertices in the list don't move, so we skip them.
@@ -452,8 +474,36 @@ circle_setup_1([Vs0|Groups],#we{vp=Vtab,id=Id}=We,Plane,State,Acc) ->
 %% Check whether the UserAxis is opposite to the cw normal of the vert list and
 %% if so, reverse the vertex list. This check reduces the probablility of the
 %% user having to use the Reverse Normal option.
-check_vertex_order(Vs,UserAxis,CwVertAxis) ->
-    Dot = e3d_vec:dot(UserAxis,CwVertAxis),
+adjust_vertex_order(find_plane,Edges, [_,V2|_],Norm,#we{vp=Vtab}=We) ->
+    V2pos = array:get(V2,Vtab),
+    TempV2pos = e3d_vec:add(V2pos,Norm),
+    TempVtab = array:set(V2,TempV2pos,Vtab),
+    We1 = We#we{vp=TempVtab},
+    {wings_edge_loop:edge_links(Edges,We1),TempVtab};
+adjust_vertex_order(Plane,Edges, [_,V2|_]=Vs,Norm,#we{vp=Vtab}=We) ->
+    LastV = lists:last(Vs),
+    V2pos = array:get(V2,Vtab),
+    Lpos = array:get(LastV,Vtab),
+    Chord = e3d_vec:norm_sub(V2pos,Lpos),
+
+    Cr1 = e3d_vec:cross(Plane,Chord),
+    Cr2 = e3d_vec:neg(Cr1),
+    D1 = e3d_vec:dot(Cr1,Norm),
+    D2 = e3d_vec:dot(Cr2,Norm),
+    Vec = if D1+D2==0.0 ->
+                 if Cr1 > Cr2 -> Cr1;
+                    true -> Cr2
+                 end;
+             D1 > D2 -> Cr1;
+             D1 < D2 -> Cr2
+          end,
+    TempV2pos = e3d_vec:add(V2pos,Vec),
+    TempVtab = array:set(V2,TempV2pos,Vtab),
+    We1 = We#we{vp=TempVtab},
+    {wings_edge_loop:edge_links(Edges,We1),TempVtab}.
+
+check_vertex_order(Vs,Axis1,Axis2) ->
+    Dot = e3d_vec:dot(Axis1,Axis2),
     if Dot < 0.0 -> Vs;
        true -> lists:reverse(Vs)
     end.
@@ -465,14 +515,12 @@ axis_orientation(Plane,Vec,Chord) ->
     end.
 
 %% Differenciate between Lmb and Rmb Arc commands
-check_for_user_plane(find_plane,CwNorm,Vs,We) ->
-    case e3d_vec:is_zero(CwNorm) of
-      true ->
-        Normals = normals_for_surrounding_faces(Vs,We,[]),
-        e3d_vec:average(Normals);
-      false -> CwNorm
-    end;
-check_for_user_plane(Plane,_,_,_) -> Plane.
+check_plane(Vs,We) ->
+    Normals = normals_for_surrounding_faces(Vs,We,[]),
+    e3d_vec:average(Normals).
+
+check_for_user_plane(find_plane,CwNorm) -> CwNorm;
+check_for_user_plane(Plane,_) -> Plane.
 
 normals_for_surrounding_faces([V|Vs],We,Acc) ->
     Normal = wings_vertex:normal(V,We),
