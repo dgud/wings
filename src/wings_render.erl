@@ -190,6 +190,7 @@ render_plain(#dlo{work=Faces,edges=Edges,open=Open,
 		false ->
 		    wings_dl:call(Faces);
 		true ->
+		    gl:lightModeli(?GL_LIGHT_MODEL_TWO_SIDE, ?GL_TRUE),
 		    gl:disable(?GL_CULL_FACE),
 		    wings_dl:call(Faces),
 		    gl:enable(?GL_CULL_FACE)
@@ -275,7 +276,7 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth0,transparent=Trans0,
 	    Trans  = Trans0
     end,
 
-    case Trans of
+    case Trans orelse Open of
 	false -> gl:lightModeli(?GL_LIGHT_MODEL_TWO_SIDE, ?GL_FALSE);
 	true -> gl:lightModeli(?GL_LIGHT_MODEL_TWO_SIDE, ?GL_TRUE)
     end,
