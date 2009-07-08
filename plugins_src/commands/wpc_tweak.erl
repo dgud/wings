@@ -786,8 +786,8 @@ end_pick(false, #tweak{st=St0,ox=OX,oy=OY,cx=CX,cy=CY}=T) ->
     help(T),
     handle_tweak_event2({new_state,St}, none, T#tweak{tmode=wait}).
 
-end_pick_1(#dlo{mirror=M,ns=Ns,proxy_data=Pd,src_we=We},St0) ->
-    {#dlo{ns=Ns,mirror=M,proxy_data=Pd,src_we=We},St0}.
+end_pick_1(#dlo{mirror=M,ns=Ns,proxy=Proxy,proxy_data=Pd,src_we=We},St0) ->
+    {#dlo{ns=Ns,mirror=M,proxy=Proxy,proxy_data=Pd,src_we=We},St0}.
 
 sel_to_vs(vertex, Vs, _) -> Vs;
 sel_to_vs(edge, Es, We) -> wings_vertex:from_edges(Es, We);
