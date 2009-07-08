@@ -24,8 +24,9 @@
 -record(sp,
 	{src_we=#we{},	     % Previous source we.
 	 we=none,	     % Previous smoothed we.
-	 upd_vs =none,       % Update only these vs
+	 upd_fs =none,       % Update only these faces
 	 dyn    =none,       % Update tables
+	 info   =none,       % proxy drag info
 	 %% Display Lists
 	 faces = none,
 	 smooth = none,
@@ -284,6 +285,7 @@ proxy_smooth_1(We0, #sp{we=SWe}) ->
     end.
 
 split_proxy(#dlo{proxy=true, proxy_data=Pd0, src_we=SrcWe}, DynVs, St) ->
+    DynFs = wings_face:from_vs(DynVs, SrcWe),
     {_, #we{fs=Ftab0}=We0} = proxy_smooth_1(SrcWe, Pd0),
     Fs0 = wings_face:from_vs(DynVs, We0),
     UpdateVs0 = gb_sets:from_ordset(wings_face:to_vertices(Fs0, We0)),
@@ -301,7 +303,9 @@ split_proxy(#dlo{proxy=true, proxy_data=Pd0, src_we=SrcWe}, DynVs, St) ->
     #sp{vab=StaticVab} = flat_faces(StaticPlan, #sp{we=We0}),
     StaticDL = wings_draw:draw_flat_faces(StaticVab, St),
     DynPlan  = wings_draw_setup:prepare(DynFtab, We0, St),
-    DynD = flat_faces(DynPlan, #sp{we=We0, src_we=SrcWe, dyn=DynPlan, upd_vs=UpdateVs}),
+    Info = wings_subdiv:get_proxy_info(DynVs, UpdateVs, SrcWe),
+    Sp = #sp{we=We0, src_we=SrcWe, dyn=DynPlan, upd_fs=DynFs, info=Info},
+    DynD = flat_faces(DynPlan, Sp),
     Temp = wings_draw:draw_flat_faces(DynD#sp.vab, St),
     DynD#sp{faces=[StaticDL,Temp]};
 
@@ -309,12 +313,12 @@ split_proxy(#dlo{proxy_data=PD},_, _St) ->
     PD.
 
 update_dynamic(ChangedVs, St, #dlo{proxy=true,proxy_data=Pd0}=D0) ->
-    #sp{faces=[SDL|_],we=SmoothedWe,dyn=DynPlan,
-	src_we=SrcWe0=#we{vp=Vtab0}, upd_vs=Upd} = Pd0,
+    #sp{faces=[SDL|_],we=SmoothedWe,dyn=DynPlan, info=Info,
+	src_we=SrcWe0=#we{vp=Vtab0}, upd_fs=Upd} = Pd0,
     Vtab = lists:foldl(fun({V,Pos},Acc) -> array:set(V,Pos,Acc) end,
 		       Vtab0, ChangedVs),
     SrcWe = SrcWe0#we{vp=Vtab},
-    We   = wings_subdiv:inc_smooth(ChangedVs, SrcWe, Upd, SmoothedWe),
+    We   = wings_subdiv:inc_smooth(SrcWe, Upd, Info, SmoothedWe),
     Pd1  = flat_faces(DynPlan, Pd0#sp{we=We, src_we=SrcWe}),
     Temp = wings_draw:draw_flat_faces(Pd1#sp.vab, St),
     D0#dlo{proxy_data=Pd1#sp{faces=[SDL,Temp]}};
@@ -325,7 +329,6 @@ reset_dynamic(#sp{we=We, src_we=We0}) ->
     #sp{we=We,src_we=We0};
 reset_dynamic(D) ->
     D.
-
 
 %%% Setup binaries and meta info
 flat_faces({material,MatFaces}, Pd) ->
