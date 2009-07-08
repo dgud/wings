@@ -26,7 +26,6 @@
 	 we=none,	     % Previous smoothed we.
 	 upd_vs =none,       % Update only these vs
 	 dyn    =none,       % Update tables
-	 src_st,             % Src st for materials only, during drag
 	 %% Display Lists
 	 faces = none,
 	 smooth = none,
@@ -302,7 +301,7 @@ split_proxy(#dlo{proxy=true, proxy_data=Pd0, src_we=SrcWe}, DynVs, St) ->
     #sp{vab=StaticVab} = flat_faces(StaticPlan, #sp{we=We0}),
     StaticDL = wings_draw:draw_flat_faces(StaticVab, St),
     DynPlan  = wings_draw_setup:prepare(DynFtab, We0, St),
-    DynD = flat_faces(DynPlan, #sp{we=We0, src_we=SrcWe, src_st=St, dyn=DynPlan, upd_vs=UpdateVs}),
+    DynD = flat_faces(DynPlan, #sp{we=We0, src_we=SrcWe, dyn=DynPlan, upd_vs=UpdateVs}),
     Temp = wings_draw:draw_flat_faces(DynD#sp.vab, St),
     DynD#sp{faces=[StaticDL,Temp]};
 
@@ -322,9 +321,8 @@ update_dynamic(ChangedVs, St, #dlo{proxy=true,proxy_data=Pd0}=D0) ->
 update_dynamic(_, _, D) ->
     D.
 
-reset_dynamic(#sp{we=We=#we{fs=Ftab}, src_we=We0, src_st=St}) ->
-    Plan = wings_draw_setup:prepare(gb_trees:to_list(Ftab), We, St),
-    flat_faces(Plan, #sp{src_we=We0,we=We});
+reset_dynamic(#sp{we=We, src_we=We0}) ->
+    #sp{we=We,src_we=We0};
 reset_dynamic(D) ->
     D.
 
