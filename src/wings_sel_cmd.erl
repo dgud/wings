@@ -812,10 +812,10 @@ uv_mapped_faces(#st{shapes=Shs}=St) ->
 %% Select by numerical item id.
 %%
 
-by_id(#st{selmode=body}=St) ->
+by_id(#st{selmode=body}) ->
     ask([{"Object Id",1}],
 	fun([Id]) ->
-		valid_sel("", [{Id,gb_sets:singleton(0)}], St)
+		{"",[{Id,gb_sets:singleton(0)}]}
 	end);
 by_id(#st{selmode=vertex}=St) ->
     item_by_id("Vertex Id", St);
