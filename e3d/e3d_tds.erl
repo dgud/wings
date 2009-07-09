@@ -4,7 +4,7 @@
 %%     Functions for reading and writing 3D Studio Max files (.tds),
 %%     version 3.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,10 +18,10 @@
 -include("e3d.hrl").
 -include("e3d_image.hrl").
 
--import(lists, [map/2,foldl/3,reverse/1,reverse/2,
+-import(lists, [map/2,foldl/3,reverse/1,reverse/2,member/2,
 		sort/1,keysort/2,usort/1,keydelete/3,keyreplace/4]).
 
--define(DEBUG, 1).
+%%-define(DEBUG, 1).
 
 -define(FLOAT, float-little).
 
@@ -254,16 +254,16 @@ material(16#A084, Chunk, Acc) ->
 material(16#A087, <<_Wiresize:32/?FLOAT>>, Acc) ->
     ?dbg("Wire size: ~p\n", [_Wiresize]),
     Acc;
-material(16#A100, <<Shading:16/little>>, Acc) ->
-    _Str = case Shading of
+material(16#A100, <<_Shading:16/little>>, Acc) ->
+    ?dbg("Shading: ~s\n",
+	 [case _Shading of
 	      0 -> "Wire";
 	      1 -> "Flat";
 	      2 -> "Gouraud";
 	      3 -> "Phong";
 	      4 -> "Metal";
 	      _ -> "Unknown"
-	  end,
-    ?dbg("Shading: ~s\n", [_Str]),
+	  end]),
     Acc;
 material(16#A200, Chunk, Acc) ->
     read_map(diffuse, Chunk, Acc);
@@ -397,7 +397,13 @@ insert_mat([_|_]=Fs, [MatFace|[MatFace|_]=Mfs], Face, Mat, Acc) ->
 insert_mat([F|Fs], [MatFace|_]=Mfs, Face, Mat, Acc) when Face < MatFace ->
     insert_mat(Fs, Mfs, Face+1, Mat, [F|Acc]);
 insert_mat([#e3d_face{mat=Mat0}=F|Fs], [Face|Mfs], Face, Mat, Acc) ->
-    insert_mat(Fs, Mfs, Face+1, Mat, [F#e3d_face{mat=[Mat|Mat0]}|Acc]);
+    case member(Mat, Mat0) of
+	true ->
+	    %% Don't add an already existing material.
+	    insert_mat(Fs, Mfs, Face+1, Mat, [F|Acc]);
+	false ->
+	    insert_mat(Fs, Mfs, Face+1, Mat, [F#e3d_face{mat=[Mat|Mat0]}|Acc])
+    end;
 insert_mat([], _, _Face, _Mat, Acc) -> reverse(Acc);
 insert_mat(Rest, [], _Face, _Mat, Acc) -> reverse(Acc, Rest).
 
