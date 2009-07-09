@@ -131,6 +131,12 @@ front_face(cw) ->
 %%  (if OneHit is 'false').
 %%
 -ifdef(USE_DRIVER).
+faces({_,<<>>}, _) ->
+    %% An empty binary is most probably not reference-counted,
+    %% so we must *not* send it down to the driver. (The length
+    %% of the I/O vector will be 2, not 3, and the driver will
+    %% ignore the request without sending any data back to us.)
+    [];
 faces({Stride,Bin}, OneHit0) ->
     OneHit = case OneHit0 of
 		 false -> <<0>>;
