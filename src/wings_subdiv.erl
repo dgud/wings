@@ -17,7 +17,7 @@
 
 -include("wings.hrl").
 
--import(lists, [reverse/1,reverse/2,sort/1]).
+-import(lists, [reverse/1,reverse/2,sort/1,foldl/3]).
 
 %%% The Catmull-Clark subdivision algorithm is used, with
 %%% Tony DeRose's extensions for creases.
@@ -93,19 +93,19 @@ inc_smooth(#we{vp=Vp,next_id=Next}=We0, Smoothed) ->
 get_proxy_info(DynVs, UpdateVs, #we{es=Etab,next_id=Next}=We0) ->
     {Faces,Htab} = smooth_faces_htab(We0),
     FacePos0  = face_centers(Faces, We0),
-    FacePos = array:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
+    FacePos = gb_trees:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
     Elist = array:sparse_to_orddict(Etab),
     {EdgeSplit,Mid} = get_edge_vs(Elist, UpdateVs, Htab, Next, []),
     SmoothNew = get_new_vs(FacePos0, Mid, UpdateVs, []),
     OrigVs = get_orig_vs(DynVs, get_orig_vs_fun(Htab), We0, []),
-    {FacePos, EdgeSplit, SmoothNew, OrigVs}.
+    {FacePos,EdgeSplit,SmoothNew,OrigVs}.
 
 inc_smooth(#we{vp=Vtab}=We, Faces, {FacePos0,EdgeSplit,SmoothNew,OrigVs},
 	   Smoothed = #we{vp=Vp0}) ->
-    FacePos = lists:foldl(fun(Face, FacePos) ->
-				  Pos = wings_face:vertex_positions(Face, We),
-				  array:set(Face, e3d_vec:average(Pos), FacePos)
-			  end, FacePos0, Faces),
+    FacePos = foldl(fun(Face, FacePos) ->
+			    Pos = wings_face:vertex_positions(Face, We),
+			    gb_trees:update(Face, e3d_vec:average(Pos), FacePos)
+		    end, FacePos0, Faces),
     Vp1 = update_edge_vs(EdgeSplit, Vtab, FacePos, Vp0),
     Vp2 = update_new_vs(SmoothNew, FacePos, Vp1),
     Vp3 = update_orig_vs(OrigVs, Vtab, FacePos, Vp2),
@@ -454,7 +454,7 @@ get_orig_vs([],_, _, Acc) ->
 
 update_orig_vs([{V,Ps0,A,B}|Vs], Vtab, Ftab, Vpos) ->
     S   = array:get(V, Vtab),
-    Ps  = add_positions(Ps0, Vtab, Ftab, {0.0, 0.0, 0.0}),
+    Ps  = add_positions(Ps0, Vtab, Ftab, {0.0,0.0,0.0}),
     Pos = e3d_vec:add_prod(e3d_vec:mul(Ps, A), S, B),
     update_orig_vs(Vs, Vtab, Ftab, array:set(V,Pos, Vpos));
 update_orig_vs([{V,Hard0}|Vs], Vtab, Ftab, Vpos) ->
@@ -463,15 +463,13 @@ update_orig_vs([{V,Hard0}|Vs], Vtab, Ftab, Vpos) ->
     Pos0 = e3d_vec:add([e3d_vec:mul(S, 6.0)|Hard]),
     Pos  = e3d_vec:mul(Pos0, 1/8),
     update_orig_vs(Vs, Vtab, Ftab, array:set(V,Pos, Vpos));
-update_orig_vs([], _, _, Vpos) ->
-    Vpos.
+update_orig_vs([], _, _, Vpos) -> Vpos.
 
 add_positions([V,F|Rest], Vtab, Ftab, Sum0) ->
-    Sum1 = e3d_vec:add(array:get(V,Vtab), Sum0),
-    Sum  = e3d_vec:add(array:get(F,Ftab), Sum1),
+    Sum1 = e3d_vec:add(array:get(V, Vtab), Sum0),
+    Sum  = e3d_vec:add(gb_trees:get(F, Ftab), Sum1),
     add_positions(Rest, Vtab, Ftab, Sum);
-add_positions([],_,_,Sum) ->
-    Sum.
+add_positions([],_,_,Sum) -> Sum.
 
 %% Update the position for the vertex that was created in the middle
 %% of each original edge.
@@ -526,38 +524,32 @@ get_edge_vs([{Edge,Rec}|Es], Update, Hard, V, Acc) ->
 	false ->
 	    get_edge_vs(Es,Update,Hard,V+1,Acc)
     end;
-get_edge_vs([], _, _, V, Acc) ->
-    {Acc,V}.
+get_edge_vs([], _, _, V, Acc) -> {Acc,V}.
 
 update_edge_vs([{V,Va,Vb}|Vs], Vtab, Ftab, Vpos) ->
     Pos = e3d_vec:average(array:get(Va, Vtab), array:get(Vb, Vtab)),
     update_edge_vs(Vs, Vtab, Ftab, array:set(V, Pos, Vpos));
 update_edge_vs([{V,Va,Vb,Lf,Rf}|Vs], Vtab, Ftab, Vpos) ->
-    LfPos = array:get(Lf, Ftab),
-    RfPos = array:get(Rf, Ftab),
+    LfPos = gb_trees:get(Lf, Ftab),
+    RfPos = gb_trees:get(Rf, Ftab),
     Pos = e3d_vec:average(array:get(Va, Vtab),
 			  array:get(Vb, Vtab),
 			  LfPos, RfPos),
     update_edge_vs(Vs, Vtab, Ftab, array:set(V, Pos, Vpos));
-update_edge_vs([], _, _, Vpos) ->
-    Vpos.
+update_edge_vs([], _, _, Vpos) -> Vpos.
 
 smooth_new_vs([{_,{Center,_,NumIds}}|Fs], V, Acc) ->
     smooth_new_vs(Fs, V+NumIds, [{V,Center}|Acc]);
 smooth_new_vs([], _, Acc) -> reverse(Acc).
 
 get_new_vs([{Face,{_,_,NumIds}}|Fs], V, Upd, Acc) ->
-    case gb_sets:is_member(V,Upd) of
+    case gb_sets:is_member(V, Upd) of
 	true ->  get_new_vs(Fs, V+NumIds, Upd, [{V,Face}|Acc]);
 	false -> get_new_vs(Fs, V+NumIds, Upd, Acc)
     end;
-get_new_vs([], _, _, Acc) ->
-    Acc.
+get_new_vs([], _, _, Acc) -> Acc.
 
 update_new_vs([{V,Face}|Vs], Ftab, Vpos) ->
-    Pos = array:get(Face, Ftab),
+    Pos = gb_trees:get(Face, Ftab),
     update_new_vs(Vs, Ftab, array:set(V, Pos, Vpos));
-update_new_vs([], _, Vpos) ->
-    Vpos.
-
-
+update_new_vs([], _, Vpos) -> Vpos.
