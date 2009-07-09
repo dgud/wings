@@ -808,51 +808,10 @@ do_tweak(DX, DY, DxOrg, DyOrg, Mode) ->
 %%  Additional functions for lookup around vertex
 %%
 
-collect_neib_faces(V,#we{mirror=MirrorFace}=We) ->
-    %% The We is not a complete one, but from the display lists. Therefore,
-    %% the face table is not complete. In particular, it does not contain
-    %% hidden faces (negative face numbers), so we must ignore any negative
-    %% face number.
-    wings_vertex:fold(fun(_, Face, _, A) when Face =/= MirrorFace,
-                          Face >= 0 ->
-                  [Face|A];
-             (_,_,_,A) ->
-                  A
-              end, [],V,We).
-
-collect_neib_verts(V,#we{es=Es}=We) ->
-    Facelist=collect_neib_faces(V,We),
-    foldl(fun(Face,D) ->
-          Edges = wings_face:to_edges([Face], We),
-          NearVerts=foldl(fun(E,B) ->
-                      #edge{vs=Vs,ve=Ve}=array:get(E,Es),
-                      if
-                          V==Vs -> [Ve|B];
-                          V==Ve -> [Vs|B];
-                          true -> B
-                      end
-                  end,[],Edges),
-          NearVerts ++ D
-      end, [],Facelist).
-
-collect_neib_verts_vs(V,#we{es=Es}=We) ->
-    Facelist = collect_neib_faces(V,We),
-    foldl(fun(Face,D) ->
-          Edges = wings_face:to_edges([Face], We),
-          NearVerts=foldl(fun(E,B) ->
-                      Edg=array:get(E,Es),
-                      #edge{vs=VS,ve=VE}=Edg,
-                      if
-                          V==VS -> [VE|B];
-                          V==VE -> [VS|B];
-                          true -> B
-                      end
-                  end,[],Edges),
-          NearVerts ++ D
-      end, [],Facelist).
-
 collect_neib_verts_coor(V,We)->
-    VertList=collect_neib_verts(V,We),
+    VertList = wings_vertex:fold(fun(_,_,ERec,Acc) ->
+	               [wings_vertex:other(V,ERec)|Acc]
+				   end,[],V,We),
     foldl(fun(E,B) -> [wings_vertex:pos(E,We)|B] end,[],VertList).
 
 get_orig_pos(V,We,Vs)->
@@ -866,11 +825,14 @@ get_orig_pos(V,We,Vs)->
     end.
 
 collect_neib_verts_coor_vs(V,We,Vs)->
-    VertList=collect_neib_verts_vs(V,We),
+    VertList = wings_vertex:fold(fun(_,_,ERec,Acc) ->
+	               [wings_vertex:other(V,ERec)|Acc]
+				   end,[],V,We),
     foldl(fun(E,B) -> [get_orig_pos(E,We,Vs)|B] end,[],VertList).
 
 sub_pos_from_list(List,Pos) ->
-    foldl(fun(E,B) -> [e3d_vec:sub(E,Pos)|B] end,[],List).
+    foldl(fun
+	    (E,B) -> [e3d_vec:sub(E,Pos)|B] end,[],List).
 
 relax_vec(V, We) ->
     case collect_neib_verts_coor(V, We) of
@@ -884,21 +846,19 @@ relax_vec(V, We) ->
 
 slide_one_vec(Vpos, TweakPos, PosList) ->
     Dpos=e3d_vec:sub(TweakPos,Vpos),
-    {Dp,_} = foldl(fun(Vec, {VP,W}) ->
+    {Dp,_} = foldl(fun
+	    ({0.0,0.0,0.0},VPW) -> VPW;
+        (Vec, {VP,W}) ->
               Vn = e3d_vec:norm(Vec),
-              Dotp0 = e3d_vec:dot(Vn,Dpos),
-              {Dotp,Sign} = if
-                  Dotp0 < 0 -> {-Dotp0/1.5, -1.0};
-                  true -> {Dotp0, 1.0}
-              end,
+              Dotp = e3d_vec:dot(Vn,Dpos),
               if
-                  Dotp > W ->
+                  Dotp > W, Dotp > 0 ->
                       Len = e3d_vec:len(Vec),
                       Dotp2 = if
                           Dotp > Len -> Len;
                           true -> Dotp
                       end,
-                      {e3d_vec:mul(Vn, Dotp2 * Sign),Dotp};
+                      {e3d_vec:mul(Vn, Dotp2),Dotp};
                   true -> {VP,W}
               end
      end,{{0,0,0},0},PosList),
