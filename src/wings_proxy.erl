@@ -21,12 +21,16 @@
 
 -import(lists, [foreach/2, foldl/3, reverse/1, any/2]).
 
+-record(split,
+	{upd_fs,			        % Update only these faces
+	  dyn,					% Update tables
+	  info					% proxy drag info
+	 }).
+
 -record(sp,
 	{src_we=#we{},	     % Previous source we.
 	 we=none,	     % Previous smoothed we.
-	 upd_fs =none,       % Update only these faces
-	 dyn    =none,       % Update tables
-	 info   =none,       % proxy drag info
+	 split,
 	 %% Display Lists
 	 faces = none,
 	 smooth = none,
@@ -304,7 +308,8 @@ split_proxy(#dlo{proxy=true, proxy_data=Pd0, src_we=SrcWe}, DynVs, St) ->
     StaticDL = wings_draw:draw_flat_faces(StaticVab, St),
     DynPlan  = wings_draw_setup:prepare(DynFtab, We0, St),
     Info = wings_subdiv:get_proxy_info(DynVs, UpdateVs, SrcWe),
-    Sp = #sp{we=We0, src_we=SrcWe, dyn=DynPlan, upd_fs=DynFs, info=Info},
+    Split = #split{upd_fs=DynFs,dyn=DynPlan,info=Info},
+    Sp = #sp{we=We0,src_we=SrcWe,split=Split},
     DynD = flat_faces(DynPlan, Sp),
     Temp = wings_draw:draw_flat_faces(DynD#sp.vab, St),
     DynD#sp{faces=[StaticDL,Temp]};
@@ -313,10 +318,11 @@ split_proxy(#dlo{proxy_data=PD},_, _St) ->
     PD.
 
 update_dynamic(ChangedVs, St, #dlo{proxy=true,proxy_data=Pd0}=D0) ->
-    #sp{faces=[SDL|_],we=SmoothedWe,dyn=DynPlan, info=Info,
-	src_we=SrcWe0=#we{vp=Vtab0}, upd_fs=Upd} = Pd0,
-    Vtab = lists:foldl(fun({V,Pos},Acc) -> array:set(V,Pos,Acc) end,
-		       Vtab0, ChangedVs),
+    #sp{faces=[SDL|_],we=SmoothedWe,split=Split,
+	src_we=SrcWe0=#we{vp=Vtab0}}=Pd0,
+    #split{upd_fs=Upd,dyn=DynPlan,info=Info} = Split,
+    Vtab = foldl(fun({V,Pos},Acc) -> array:set(V,Pos,Acc) end,
+		 Vtab0, ChangedVs),
     SrcWe = SrcWe0#we{vp=Vtab},
     We   = wings_subdiv:inc_smooth(SrcWe, Upd, Info, SmoothedWe),
     Pd1  = flat_faces(DynPlan, Pd0#sp{we=We, src_we=SrcWe}),
