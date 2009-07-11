@@ -288,14 +288,20 @@ proxy_smooth_1(We0, #sp{we=SWe}) ->
        true -> {smooth, wings_subdiv:smooth(We0)}
     end.
 
-split_proxy(#dlo{proxy=true, proxy_data=Pd0, src_we=SrcWe}, DynVs, St) ->
-    DynFs = wings_face:from_vs(DynVs, SrcWe),
+split_proxy(#dlo{proxy=true, proxy_data=Pd0, src_we=SrcWe}, DynVs0, St) ->
+    DynFs0 = wings_face:from_vs(DynVs0, SrcWe),
+    case SrcWe#we.mirror of
+	none   -> DynFs = DynFs0;
+	Mirror -> DynFs = ordsets:del_element(Mirror,DynFs0)
+    end,
+
+    DynVs = wings_vertex:from_faces(DynFs, SrcWe),
     {_, #we{fs=Ftab0}=We0} = proxy_smooth_1(SrcWe, Pd0),
     Fs0 = wings_face:from_vs(DynVs, We0),
-    UpdateVs0 = gb_sets:from_ordset(wings_face:to_vertices(Fs0, We0)),
     OutEs = wings_face:outer_edges(Fs0, We0),
-    OuterVs = gb_sets:from_ordset(wings_edge:to_vertices(OutEs, We0)),
-    UpdateVs = gb_sets:subtract(UpdateVs0, OuterVs),
+    UpdateVs0 = gb_sets:from_ordset(wings_face:to_vertices(Fs0, We0)),
+    OuterVs  = gb_sets:from_ordset(wings_edge:to_vertices(OutEs, We0)),
+    UpdateVs = gb_sets:subtract(UpdateVs0,OuterVs),
 
     Ftab = sofs:from_external(gb_trees:to_list(Ftab0), [{face,data}]),
     Fs = sofs:from_external(Fs0, [face]),
