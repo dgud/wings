@@ -263,7 +263,15 @@ setup_fbo(Size, What) ->
 setup_fbo_1(Size, Types) ->
     [FB] = gl:?genFramebuffers(1),
     gl:?bindFramebuffer(?GL_FRAMEBUFFER_EXT, FB),
-    Buffers = [{fbo, FB}|[setup_fbo_2(Type, Size) || Type <- Types]],
+    {Bfs,_} = lists:foldl(fun(What, {Acc, ColCount}) ->
+				  case setup_fbo_2(What, Size, ColCount) of
+				      {color, _} = Res ->
+					  {[Res|Acc], ColCount+1};
+				      Res ->
+					  {[Res|Acc], ColCount}
+				  end
+			  end, {[],0}, Types),
+    Buffers = [{fbo, FB}|lists:reverse(Bfs)],
     case check_fbo_status(FB) of
 	false ->
 	    delete_fbo(Buffers),
@@ -272,7 +280,7 @@ setup_fbo_1(Size, Types) ->
 	    Buffers
     end.
 
-setup_fbo_2({color, Options}, {W,H}) ->
+setup_fbo_2({color, Options}, {W,H}, Count) ->
     %% Init color texture
     [Col] = gl:genTextures(1),
     gl:bindTexture(?GL_TEXTURE_2D, Col),
@@ -283,10 +291,10 @@ setup_fbo_2({color, Options}, {W,H}) ->
     MinF = proplists:get_value(min, Options, ?GL_LINEAR),
     gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_MIN_FILTER,MinF),
     gl:?framebufferTexture2D(?GL_FRAMEBUFFER_EXT,
-			     ?GL_COLOR_ATTACHMENT0_EXT,
+			     ?GL_COLOR_ATTACHMENT0_EXT + Count,
 			     ?GL_TEXTURE_2D, Col, 0),
     {color, Col};
-setup_fbo_2({depth, Options}, {W,H}) ->
+setup_fbo_2({depth, Options}, {W,H}, _) ->
     [Depth] = gl:?genRenderbuffers(1),
     %% Init depth texture
     gl:?bindRenderbuffer(?GL_RENDERBUFFER_EXT, Depth),
@@ -294,7 +302,8 @@ setup_fbo_2({depth, Options}, {W,H}) ->
     gl:?renderbufferStorage(?GL_RENDERBUFFER_EXT,Internal, W, H),
     gl:?framebufferRenderbuffer(?GL_FRAMEBUFFER_EXT,
 				?GL_DEPTH_ATTACHMENT_EXT,
-				?GL_RENDERBUFFER_EXT, Depth).
+				?GL_RENDERBUFFER_EXT, Depth),
+    {depth, Depth}.
 
 delete_fbo(List) ->
     gl:?framebufferTexture2D(?GL_FRAMEBUFFER_EXT,
