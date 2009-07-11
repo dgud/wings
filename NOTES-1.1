@@ -1,3 +1,43 @@
+--- 1.1.6 ----------------------------------------------------------------------
+- Re-exporting an imported model with tesselation could
+  cause a crash. Also, when importing objects that had UV coordinates
+  on some faces but not all, UV coordinates would be discarded
+  on both side of edges that only had UV coordinates on one side.
+  (Thanks to Siber.) [bjorng]
+
+- Separating, then Combining an object with vertex
+  attributes would cause a crash. (Thanks to zdarby.) [bjorng]
+
+- Smoothing objects with hidden faces would crash. [bjorng]
+
+- The command Select By|Id would crash in body mode. [bjorng]
+
+- Eliminate selection glitches where elements behind a face
+  could be selected through the face. (Thanks to deerwood.) [bjorng]
+
+- Wings would freeze if there were empty objects in the
+  scene. (Empty objects can only be created by import or possibly
+  by a plug-in, as the core Wings commands will delete an object
+  that becomes empty.) [bjorng]
+
+- The Ambient Occlusion plugin will now correctly
+  ignore hidden or locked objects. [scorpius]
+
+- Some fixes and improvements to Edge|Circularise. Open edge loops
+  should process more uniformly. (Thanks to puzzledpaul). [optigon]
+
+- Warp mouse to proper position follow drag in Tweak. [optigon]
+
+- Toggling xyz constraints in tweak wouldn't update the info line.
+  Now fixed. [optigon]
+
+- Tweak Slide would not work correctly for single edges and
+  would not work at all for selections of two unconnected vertices.
+  Now fixed. (Thanks to Fonte Boa.) [optigon]
+
+- Tweak Slide would not stop at edges. Also made some
+  optimisations. [optigon]
+
 --- 1.1.5 ----------------------------------------------------------------------
 - Fixed Tweak drag Normal. (Thanks to Fonte Boa). [optigon]
 
