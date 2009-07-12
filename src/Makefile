@@ -116,6 +116,7 @@ MODULES= \
 	wings_vertex_cmd \
 	wings_view \
 	wings_we \
+	wings_we_build \
 	wings_we_util \
 	wings_wm \
 	wings_wm_toplevel \
