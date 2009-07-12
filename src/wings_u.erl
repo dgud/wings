@@ -109,6 +109,12 @@ crash_log(WinName, Reason, StackTrace) ->
     io:format(F, "Version: ~s\n", [?WINGS_VERSION]),
     io:format(F, "Window: ~p\n", [WinName]),
     io:format(F, "Reason: ~p\n\n", [Reason]),
+    report_stacktrace(F, StackTrace),
+    analyse(F, StackTrace),
+    file:close(F),
+    LogName.
+
+report_stacktrace(F, [_|_]=StackTrace) ->
     ShortStackTrace = [{M,N,if
 				is_list(A) -> length(A);
 				true -> A
@@ -119,11 +125,13 @@ crash_log(WinName, Reason, StackTrace) ->
 	    io:format(F, "Long stack trace:\n~p\n\n", [StackTrace]);
 	true ->
 	    io:format(F, "Stack trace:\n~p\n\n", [StackTrace])
-    end,
-    analyse(F, StackTrace),
-    file:close(F),
-    LogName.
-
+    end;
+report_stacktrace(_, []) ->
+    %% Make sure we don't write anything if there is no stacktracke.
+    %% (There will be no stacktrace if we were called from the
+    %% process that runs wings:halt_loop/1.)
+    ok.
+    
 caption(#st{file=undefined}=St) ->
     Caption = wings(),
     sdl_video:wm_setCaption(Caption, Caption),
