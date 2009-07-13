@@ -138,17 +138,16 @@ locking_1(invert_masked, #st{}=St) ->
 locking_1(deselect,#st{sel=[]}=St) -> St;
 locking_1(deselect, #st{selmode=body}=St) ->
     St;
-locking_1(deselect, #st{selmode=Selmode}=St) when Selmode /= body ->
+locking_1(deselect, #st{selmode=Selmode}=St) ->
     NewSel = wings_sel:fold(fun (Items,#we{pst=Pst,id=Id} = We,Acc) ->
 			   Lvs0 = get_locked_vs(Pst),
 			   Lvs = convert_sel(Selmode,We,make_obj(Selmode,Lvs0,We)),
-			   Items2 = convert_sel(Selmode,We,Items),
-			   NewVerts = gb_sets:subtract(Items2,Lvs),
+			   %Items2 = convert_sel(Selmode,We,Items),
+			   NewVerts = gb_sets:subtract(Items,Lvs),
 			   NewSel = make_obj(Selmode,NewVerts,We),
 			   [{Id,NewSel} | Acc]
 			   end, [], St),
-    St#st{sel=lists:reverse(NewSel)}.
-
+    St#st{sel=lists:sort(NewSel), sh=false}.
 
 % construct a set of edges or faces from verts
 make_obj(vertex,Vs,_) -> Vs;
