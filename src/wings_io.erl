@@ -26,6 +26,8 @@
 	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
 	 get_process_option/0,set_process_option/1,
 
+	 batch/1, foreach/2,
+
 	 blend/2,
 	 border/5,border/6,border_only/4,border_only/5,
 	 gradient_border/5,gradient_border/7,
@@ -77,6 +79,12 @@ get_process_option() ->
 set_process_option(Opts) ->
     ?BACKEND_MOD:set_process_option(Opts).
 
+%% Batch processing
+foreach(Fun, List) ->
+    ?BACKEND_MOD:foreach(Fun, List).
+
+batch(Fun) ->
+    ?BACKEND_MOD:batch(Fun).
 
 %% Cursor support and Mouse handling
 
@@ -88,7 +96,6 @@ hourglass() ->
 
 set_cursor(Cursor) ->
     ?BACKEND_MOD:set_cursor(Cursor).
-
 
 grab() ->
     ?BACKEND_MOD:grab().

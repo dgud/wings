@@ -621,13 +621,13 @@ redraw_all() ->
     %% Remove late buffers clear due to problems with ATI cards when AA.
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
     Windows = keysort(2, gb_trees:to_list(get(wm_windows))),
-    foreach(fun({Name,_}) ->
-		    dispatch_matching(fun({wm,{send_to,N,_}}) ->
-					      N =:= Name;
-					 (_) -> false
-				      end),
-		    do_dispatch(Name, redraw)
-	    end, Windows),
+    wings_io:foreach(fun({Name,_}) ->
+			     dispatch_matching(fun({wm,{send_to,N,_}}) ->
+						       N =:= Name;
+						  (_) -> false
+					       end),
+			     do_dispatch(Name, redraw)
+		     end, Windows),
     wings_io:swapBuffers(),
     clean(),
     wings_io:set_cursor(get(wm_cursor)),

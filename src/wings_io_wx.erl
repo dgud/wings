@@ -21,6 +21,7 @@
 	 is_maximized/0, set_title/1, set_icon/1,
 	 get_process_option/0,set_process_option/1
 	]).
+-export([batch/1, foreach/2]).
 -export([change_event_handler/2, read_events/1]).
 -export([reset_grab/0,grab/0,ungrab/2,is_grabbed/0,warp/2]).
 -export([reset_video_mode_for_gl/2, swapBuffers/0]).
@@ -49,6 +50,11 @@ set_process_option([{Env, Canvas}]) ->
     wx:set_env(Env),
     wxGLCanvas:setCurrent(Canvas),
     ok.
+
+batch(Fun) ->  wx:batch(Fun).
+foreach(Fun, List) -> wx:foreach(Fun, List).
+
+
 
 is_maximized() ->
     wxTopLevelWindow:isMaximized(get(top_frame)).

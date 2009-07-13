@@ -167,7 +167,7 @@ init() ->
 
     wxWindow:connect(Frame, close_window),
     %%wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
-    %%wxWindow:connect(Canvas, paint, [{skip, false}]),
+    wxWindow:connect(Canvas, paint, [{skip, true}]),
     wxWindow:connect(Canvas, size),
     wxWindow:connect(Canvas, enter_window,
 		     [{callback, fun(_, _) ->

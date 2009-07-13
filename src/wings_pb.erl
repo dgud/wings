@@ -104,7 +104,12 @@ init() ->
 	false ->
 	    case whereis(?PB) of
 		undefined ->
-		    Pid = spawn_link(?MODULE, loop, [#state{}]),
+		    POpt = wings_io:get_process_option(),
+		    Pid = spawn_link(fun() ->
+					     wings_io:set_process_option(POpt),
+					     loop(#state{})
+				     end),
+
 		    register(?PB, Pid),
 		    started;
 		_ -> already_started

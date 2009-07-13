@@ -209,13 +209,17 @@ redraw(St) ->
     redraw(info(St), St).
 
 redraw(Info, St) ->
-    wings_wm:clear_background(),
-    wings_render:render(St),
-    call_post_hook(St),
-    case Info =/= [] andalso wings_wm:get_prop(show_info_text) of
-    true -> wings_io:info(Info);
-    false -> ok
-    end.
+    Render =
+	fun() ->
+		wings_wm:clear_background(),
+		wings_render:render(St),
+		call_post_hook(St),
+		case Info =/= [] andalso wings_wm:get_prop(show_info_text) of
+		    true -> wings_io:info(Info);
+		    false -> ok
+		end
+	end,
+    wings_io:batch(Render).
 
 call_post_hook(St) ->
     case wings_wm:lookup_prop(postdraw_hook) of
