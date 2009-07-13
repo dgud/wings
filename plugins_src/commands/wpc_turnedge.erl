@@ -79,26 +79,37 @@ turn_edges(Edges0, ModeFun, Opt, #we{es=Etab}=We0) ->
 		  {W,[E|Sel]}
 	  end, {We0,[]}, Edges).
 
-try_turn(Edge, ModeFun, Opt, #we{vp=Vtab}=We0) ->
+try_turn(Edge, ModeFun, Opt, #we{vp=Vtab,he=Htab0}=We0) ->
     {Vstart,Vend,V1,V2} = ModeFun(Edge, We0),
     case optimize(Opt, Vstart, Vend, V1, V2, Vtab) of
-	{Vert1,Vert2} ->
-	    We1 = wings_edge:dissolve_edge(Edge, We0),
-	    case array:get(Edge, We1#we.es) of
-                #edge{} ->
-		    {Edge, We0};
-                undefined ->
-                    Vs0 = gb_sets:from_list([Vert1,Vert2]),
-                    We = wings_vertex_cmd:connect(Vs0, We1),
-                    if 
-                        We1#we.next_id =/= We#we.next_id ->
-			    {We1#we.next_id,We};
+    {Vert1,Vert2} ->
+        We1 = wings_edge:dissolve_edge(Edge, We0),
+        case array:get(Edge, We1#we.es) of
+                    #edge{} ->
+                      {Edge, We0};
+                    undefined ->
+                      Vs0 = gb_sets:from_list([Vert1,Vert2]),
+                      We = wings_vertex_cmd:connect(Vs0, We1),
+                      NewEdge = We1#we.next_id,
+                      if
+                        NewEdge =/= We#we.next_id ->
+                          Htab = check_hard_edges(Edge, NewEdge, Htab0),
+                          {NewEdge,We#we{he=Htab}};
                         true ->
-			    {Edge,We0}
-                    end
-	    end;
-	_ ->
-	    {Edge,We0}
+                          {Edge,We0}
+                      end
+        end;
+    _ ->
+        {Edge,We0}
+    end.
+
+check_hard_edges(Edge, NewEdge, Htab0) ->
+    case gb_sets:is_member(Edge, Htab0) of
+      true ->
+          Htab = gb_sets:delete(Edge, Htab0),
+          gb_sets:add(NewEdge, Htab);
+      false ->
+          Htab0
     end.
 
 cw_mode(Edge, #we{es=Etab}) ->
