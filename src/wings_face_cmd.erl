@@ -239,10 +239,17 @@ dissolve(St0) ->
     {St,Sel} = wings_sel:mapfold(fun dissolve_sel/3, [], St0),
     wings_sel:set(Sel, St).
 
-dissolve_sel(Faces, #we{id=Id}=We0, Acc) ->
-    We = wings_dissolve:faces(Faces, We0),
-    Sel = wings_we:new_items_as_gbset(face, We0, We),
-    {We,[{Id,Sel}|Acc]}.
+dissolve_sel(Faces, #we{id=Id,fs=Ftab}=We0, Acc) ->
+    F1 = gb_sets:size(Faces),
+    F2 = gb_trees:size(Ftab),
+    case F1==F2 of
+      false ->
+        We = wings_dissolve:faces(Faces, We0),
+        Sel = wings_we:new_items_as_gbset(face, We0, We),
+        {We,[{Id,Sel}|Acc]};
+      true ->
+        {#we{},Acc}
+    end.
 
 %%%
 %%% Clean Dissolve
@@ -252,14 +259,21 @@ clean_dissolve(St0) ->
     {St,Sel} = wings_sel:mapfold(fun clean_dissolve_sel/3, [], St0),
     wings_sel:set(Sel, St).
 
-clean_dissolve_sel(Faces, #we{id=Id}=We0, Acc) ->
-    IsolatedVs1 = wings_vertex:isolated(We0),
-    We1 = wings_dissolve:faces(Faces, We0),
-    IsolatedVs2 = wings_vertex:isolated(We1),
-    C = IsolatedVs2 -- IsolatedVs1,
-    We = wings_edge:dissolve_isolated_vs(C, We1),
-    Sel = wings_we:new_items_as_gbset(face, We0, We),
-    {We,[{Id,Sel}|Acc]}.
+clean_dissolve_sel(Faces, #we{id=Id,fs=Ftab}=We0, Acc) ->
+    F1 = gb_sets:size(Faces),
+    F2 = gb_trees:size(Ftab),
+    case F1==F2 of
+      false ->
+         IsolatedVs1 = wings_vertex:isolated(We0),
+         We1 = wings_dissolve:faces(Faces, We0),
+         IsolatedVs2 = wings_vertex:isolated(We1),
+         C = IsolatedVs2 -- IsolatedVs1,
+         We = wings_edge:dissolve_isolated_vs(C, We1),
+         Sel = wings_we:new_items_as_gbset(face, We0, We),
+         {We,[{Id,Sel}|Acc]};
+      true ->
+        {#we{},Acc}
+    end.
 
 %%%
 %%% The Intrude command.

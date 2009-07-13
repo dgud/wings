@@ -300,13 +300,20 @@ cut_pick_marker({finish,[I]}, D0, Edge, We, Start, Dir, Char) ->
 %%%
 
 clean_dissolve(St0) ->
-    St = wings_sel:map(fun(Es, We) ->
- 				     IsolatedVs1 = wings_vertex:isolated(We),
- 				     We1 = wings_edge:dissolve_edges(Es, We),
- 				     IsolatedVs2 = wings_vertex:isolated(We1),
- 				     C = IsolatedVs2 -- IsolatedVs1,
- 				     wings_edge:dissolve_isolated_vs(C, We1)
-		       end, St0),
+    St = wings_sel:map(fun(Es, #we{es=Etab}=We) ->
+            E1 = gb_sets:size(Es),
+            E2 = length(array:sparse_to_list(Etab)),
+            case E1 == E2 of
+              false ->
+                    IsolatedVs1 = wings_vertex:isolated(We),
+                    We1 = wings_edge:dissolve_edges(Es, We),
+                    IsolatedVs2 = wings_vertex:isolated(We1),
+                    C = IsolatedVs2 -- IsolatedVs1,
+                    wings_edge:dissolve_isolated_vs(C, We1);
+              true ->
+                   #we{}
+            end
+    end, St0),
     wings_sel:clear(St).
 
 %%%
@@ -314,9 +321,16 @@ clean_dissolve(St0) ->
 %%%
 
 dissolve(St0) ->
-    St = wings_sel:map(fun(Es, We) ->
-			       wings_edge:dissolve_edges(Es, We)
-		       end, St0),
+    St = wings_sel:map(fun(Es, #we{es=Etab}=We) ->
+            E1 = gb_sets:size(Es),
+            E2 = length(array:sparse_to_list(Etab)),
+            case E1 == E2 of
+              false ->
+                   wings_edge:dissolve_edges(Es, We);
+              true ->
+                   #we{}
+            end
+    end, St0),
     wings_sel:clear(St).
 
 %%%
