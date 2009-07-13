@@ -16,19 +16,24 @@
 
 -include("wings.hrl").
 
--import(lists, [keysort/2,reverse/1,zip/2]).
+-import(lists, [keysort/2,reverse/1,zip/2,foldl/3,member/2]).
 
-%% we([Face], VertexPositions, HardEdges) -> We
+%% we([Face], VertexPositions, HardEdges) -> We | error
 %%      Face = {Material,Vertices} | {Material,Vertices,UVS}
 %%      Vertices = [VertexIndex]
 %%      VertexPositions = [{X,Y,Z}]
 %%      HardEdges = [{VertexIndex1,VertexIndex2}]
 %%  Construct a new #we{} record.
 %%
-we(Fs0, Vs, HardEdges) ->
-    {Es0,Fs} = build_and_fix_holes(Fs0, 0),
-    Es = number_edges(Es0),
-    build_rest(Es, Fs, Vs, HardEdges).
+we(Fs0, Vs0, HardEdges0) ->
+    try
+	{Es1,Fs,Vs,HardEdges} = build_etab(Fs0, Vs0, HardEdges0),
+	Es = number_edges(Es1),
+	build_rest(Es, Fs, Vs, HardEdges)
+    catch
+	throw:bad_model ->
+	    error
+    end.
 
 %% incident_tab([{Elem,Edge}]) -> [{Elem,Edge}]
 %%      Elem = Face or Vertex
@@ -48,16 +53,36 @@ incident_tab(ElemToEdgeRel) ->
 %%% Local functions.
 %%%
 
-build_and_fix_holes(Fs, N)
-  when N < 10 -> %% Ensure that we don't loop forever
+build_etab(Fs0, Vs0, HardEdges0) ->
+    case eliminate_shared_vertices(Fs0, Vs0, HardEdges0) of
+	{_,_,_,_}=Done ->
+	    %% There were neither any shared vertices and nor holes.
+	    Done;
+	{Fs1,Vs1,HardEdges} ->
+	    %% Shared vertices and/or holes have been eliminated.
+	    %% Re-try the build. (We may need several iterations
+	    %% to fill all holes.)
+	    {Es,Fs} = build_and_fix_holes(Fs1, 0),
+	    {Es,Fs,Vs1,HardEdges}
+    end.
+
+build_and_fix_holes(Fs, N) when N < 9 ->
     case build_edges(Fs) of
 	{Good,[]} ->
 	    {Good,Fs};
-	{_,Bad} ->
-	    HF = fill_holes(Bad),
-	    [_|_] = HF, %% Assert that we could fix something
-	    build_and_fix_holes(HF++Fs, N+1)
-    end.
+	{_,Unconnectable} ->
+	    case fill_holes(Unconnectable) of
+		[_|_]=HF ->
+		    build_and_fix_holes(HF++Fs, N+1);
+		[] ->
+		    %% No possible to fill any more holes, but there are
+		    %% still unconnectable edges. Give up.
+		    throw(bad_model)
+	    end
+    end;
+build_and_fix_holes(_, _) ->
+    %% Too many attempts to fill holes. Give up.
+    throw(bad_model).
 
 build_rest(Es, Fs, Vs, HardEdges) ->
     Htab = vpairs_to_edges(HardEdges, Es),
@@ -95,22 +120,25 @@ number_vertices([], _, Acc) ->
     array:from_orddict(reverse(Acc)).
 
 build_edges(Fs) ->
-    build_edges(Fs, 0, []).
+    HalfEdges = build_half_edges(Fs),
+    combine_half_edges(wings_util:rel2fam(HalfEdges)).
 
-build_edges([{_Material,Vs,Tx}|Fs], Face, Eacc0) ->
-    build_edges_1(Vs, Tx, Fs, Face, Eacc0);
-build_edges([{_Material,Vs}|Fs], Face, Eacc0) ->
-    build_edges_1(Vs, tx_filler(Vs), Fs, Face, Eacc0);
-build_edges([Vs|Fs], Face, Eacc0) ->
-    build_edges_1(Vs, tx_filler(Vs), Fs, Face, Eacc0);
-build_edges([], _Face, Eacc) ->
-    combine_half_edges(wings_util:rel2fam(Eacc)).
+build_half_edges(Fs) ->
+    build_half_edges(Fs, 0, []).
 
-build_edges_1(Vs, UVs, Fs, Face, Acc0) ->
+build_half_edges([{_Material,Vs,Tx}|Fs], Face, Eacc0) ->
+    build_half_edges_1(Vs, Tx, Fs, Face, Eacc0);
+build_half_edges([{_Material,Vs}|Fs], Face, Eacc0) ->
+    build_half_edges_1(Vs, tx_filler(Vs), Fs, Face, Eacc0);
+build_half_edges([Vs|Fs], Face, Eacc0) ->
+    build_half_edges_1(Vs, tx_filler(Vs), Fs, Face, Eacc0);
+build_half_edges([], _Face, HalfEdges) -> HalfEdges.
+
+build_half_edges_1(Vs, UVs, Fs, Face, Acc0) ->
     Vuvs = zip(Vs, UVs),
     Pairs = pairs(Vuvs),
     Acc = build_face_edges(Pairs, Face, Acc0),
-    build_edges(Fs, Face+1, Acc).
+    build_half_edges(Fs, Face+1, Acc).
 
 build_face_edges([{Pred,_}|[{E0,{_UVa,UVb}},{Succ,_}|_]=Es], Face, Acc0) ->
     Acc = case E0 of
@@ -243,3 +271,190 @@ make_digraph([{{Vb,Va},[{left,_Data}]}|Es], G) ->
     digraph:add_edge(G, Va, Vb),
     make_digraph(Es, G);
 make_digraph([], _G) -> ok.
+
+%%%
+%%% Eliminate "shared vertices", that is vertices that are shared
+%%% between geometry that does not share edges. Wings does not
+%%% allow creation of shared vertices using modeling commands, so
+%%% it should not create when importing models.
+%%%
+%%% Example of a shared vertex:
+%%%
+%%%    A +------------+ B
+%%%    	 |     	      |
+%%%    	 |	      |
+%%%    	 |	      |
+%%%    	 |	      |
+%%%    C +------------+-------------+ E
+%%%		    D |	       	    |
+%%%		      |		    |
+%%%		      |		    |
+%%%		      |		    |
+%%%		    F +-------------+ G
+%%%
+%%% We eliminate shared vertices by introducing a new vertex
+%%% at the same position as the shared vertex (no vertices are
+%%% moved):
+%%%
+%%%    A +------------+ B
+%%%    	 |     	      |
+%%%    	 |	      |
+%%%    	 |	      |
+%%%    	 |	      |
+%%%    C +------------+ D
+%%%                   H +-------------+ E
+%%%		        |	      |
+%%%		        |	      |
+%%%		        |	      |
+%%%		        |	      |
+%%%		      F +-------------+	G
+%%%
+%%% If there is face sharing the edge D-E, that face would be
+%%% modified to have the edge H-E instead.
+%%%
+
+eliminate_shared_vertices(Fs0, Vs0, HardEdges0) ->
+    {Edges,Uncombinable} = build_edges(Fs0),
+    case find_shared_vertices(Edges) of
+	[] ->
+	    %% There were no shared vertices.
+	    case Uncombinable of
+		[] ->
+		    %% No holes. We are done.
+		    {Edges,Fs0,Vs0,HardEdges0};
+		_ ->
+		    %% There were some edges that could not be combined.
+		    %% Trying filling in holes.
+		    HF = fill_holes(Uncombinable),
+		    {HF++Fs0,Vs0,HardEdges0}
+	    end;
+	Shared ->
+	    do_eliminate_shared_vs(Shared, Fs0, Vs0, HardEdges0)
+    end.
+
+do_eliminate_shared_vs(Shared, Fs0, Vs0, HardEdges0) ->
+    R0 = sofs:relation(Shared, [{vertex,[face]}]),
+
+    %% Compute DupVs, an ordered list of vertices to be duplicated.
+    DupVs = sofs:to_external(sofs:domain(R0)),
+
+    %% First add the duplicated vertex positions to the end of
+    %% vertex list.
+    Vtab = list_to_tuple(Vs0),
+    Vs = Vs0 ++ [element(V+1, Vtab) || V <- DupVs],
+
+    %% Create a map from old vertex number to new vertex number.
+    VtxMap = elim_vtx_map(DupVs, length(Vs0), []),
+
+    %% Compute which vertices to rename in which faces:
+    %%   [{Face,[Vertex]}]
+    R1 = sofs:family_to_relation(R0),
+    R2 = sofs:converse(R1),
+    R3 = sofs:relation_to_family(R2),
+    R = sofs:to_external(R3),
+
+    %% Renumber vertices in the appropriate faces.
+    Fs = elim_renum_vs(Fs0, R, 0, VtxMap, []),
+
+    %% XXX There is no easy way to safely renumber hard edges
+    %% with the information we have collected. For the moment,
+    %% accept that hard edges around shared vertices may get
+    %% lost. I will fix it if it turns out to be an issue in
+    %% practice.
+    HardEdges = HardEdges0,
+
+    {Fs,Vs,HardEdges}.
+
+elim_vtx_map([V|Vs], Id, Acc) ->
+    elim_vtx_map(Vs, Id+1, [{V,Id}|Acc]);
+elim_vtx_map([], _, Acc) ->
+    array:from_orddict(reverse(Acc)).
+
+elim_renum_vs([{Mat,Vs0}|Faces], [{Face,DupVs}|ToDo], Face, VtxMap, Acc) ->
+    Vs = elim_renum_vs_1(Vs0, DupVs, VtxMap),
+    elim_renum_vs(Faces, ToDo, Face+1, VtxMap, [{Mat,Vs}|Acc]);
+elim_renum_vs([{Mat,Vs0,Tx}|Faces], [{Face,DupVs}|ToDo], Face, VtxMap, Acc) ->
+    Vs = elim_renum_vs_1(Vs0, DupVs, VtxMap),
+    elim_renum_vs(Faces, ToDo, Face+1, VtxMap, [{Mat,Vs,Tx}|Acc]);
+elim_renum_vs([MatVs|Faces], ToDo, Face, VtxMap, Acc) ->
+    elim_renum_vs(Faces, ToDo, Face+1, VtxMap, [MatVs|Acc]);
+elim_renum_vs([], [], _, _, Acc) -> reverse(Acc).
+
+elim_renum_vs_1(Vs, DupVs, VtxMap) ->
+    [begin
+	 case member(V, DupVs) of
+	     false -> V;
+	     true -> array:get(V, VtxMap)
+	 end
+     end || V <- Vs].
+
+find_shared_vertices(Es) ->
+    R0 = shared_vs_edges(Es, []),
+    R1 = sofs:relation(R0, [{vertex,data}]),
+    R2 = sofs:relation_to_family(R1),
+    R = sofs:to_external(R2),
+    shared_vs_1(R, []).
+
+shared_vs_edges([{{Va,Vb}=E,Data}|T], Acc0) ->
+    Acc = [{Va,{E,Data}},{Vb,{E,Data}}|Acc0],
+    shared_vs_edges(T, Acc);
+shared_vs_edges([], Acc) -> Acc.
+
+shared_vs_1([{V,Es}|T], Acc0) ->
+    case are_all_connected(V, Es) of
+	true ->
+	    shared_vs_1(T, Acc0);
+	false ->
+	    case shared_digraph(Es) of
+		[_] ->
+		    shared_vs_1(T, Acc0);
+		[_|Cs] ->
+		    Acc = foldl(fun(Face, A) ->
+					[{V,Face}|A]
+				end, Acc0, Cs),
+		    shared_vs_1(T, Acc)
+	    end
+    end;
+shared_vs_1([], Acc) -> Acc.
+
+are_all_connected(V, [E|Es]) ->
+    are_all_connected_1(V, E, Es).
+
+are_all_connected_1(V, {{V,_}=E,{_,{F,_,Pred,_}}}, Es) ->
+    are_all_connected_2(V, F, Pred, E, Es);
+are_all_connected_1(V, {{_,V}=E,{_,{F,_,_,Succ}}}, Es) ->
+    are_all_connected_2(V, F, Succ, E, Es).
+
+are_all_connected_2(_, _, Last, Last, []) -> true;
+are_all_connected_2(_, _, Last, Last, [_|_]) -> false;
+are_all_connected_2(V, Face, Edge, Last, Es0) ->
+    case orddict:find(Edge, Es0) of
+	error ->
+	    false;
+	{ok,Data} ->
+	    Es = orddict:erase(Edge, Es0),
+	    case {Edge,Data} of
+		{{V,_},{{Face,_,_,_},{Other,_,NextEdge,_}}} ->
+		    are_all_connected_2(V, Other, NextEdge, Last, Es);
+		{{_,V},{{Face,_,_,_},{Other,_,_,NextEdge}}} ->
+		    are_all_connected_2(V, Other, NextEdge, Last, Es);
+		{{V,_},{{Other,_,_,NextEdge},{Face,_,_,_}}} ->
+		    are_all_connected_2(V, Other, NextEdge, Last, Es);
+		{{_,V},{{Other,_,NextEdge,_},{Face,_,_,_}}} ->
+		    are_all_connected_2(V, Other, NextEdge, Last, Es)
+	    end
+    end.
+
+shared_digraph(Es) ->
+    G = digraph:new(),
+    shared_digraph_1(Es, G),
+    Res = digraph_utils:components(G),
+    digraph:delete(G),
+    Res.
+
+shared_digraph_1([{_,{{Lf,_,_,_},{Rf,_,_,_}}}|Es], G) ->
+    digraph:add_vertex(G, Lf),
+    digraph:add_vertex(G, Rf),
+    digraph:add_edge(G, Lf, Rf),
+    shared_digraph_1(Es, G);
+shared_digraph_1([], _) -> ok.

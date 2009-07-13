@@ -3,7 +3,7 @@
 %%
 %%     This module handles import of foreign objects.
 %%
-%%  Copyright (c) 2001-2007 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -68,9 +68,9 @@ import_object(#e3d_object{name=_Name,obj=Mesh0}) ->
 -define(P_NOFAIL(N), {nofail,N,fun N/2}).
 
 import_mesh(ObjType, Mesh) ->
-    Pss0 = [{seq,[?P(imp_build),
+    Pss0 = [{seq,[?P_NOFAIL(imp_build),
 		  ?P_NOFAIL(imp_orient_normals),
-		  ?P(imp_build)]},
+		  ?P_NOFAIL(imp_build)]},
 	    ?P(imp_partition)],
     Pss = polygonify_passes(Pss0, Mesh),
     run(Pss, ObjType, Mesh).
@@ -97,7 +97,7 @@ imp_partition(ObjType, Mesh0) ->
     end,
     Pss0 = [?P(imp_build),
 	    ?P_NOFAIL(imp_orient_normals),
-	    ?P(imp_build),
+	    ?P_NOFAIL(imp_build),
 	    ?P(imp_rip_apart)],
     Pss = polygonify_passes(Pss0, Mesh0),
     Wes = [run(Pss, ObjType, Mesh) || Mesh <- Meshes],
@@ -116,12 +116,11 @@ imp_rip_apart(ObjType, Mesh) ->
     We#we{mode=Mode}.
 
 polygonify_passes(Pss, #e3d_mesh{type=triangle}) ->
-    [{seq,[?P_NOFAIL(imp_polygons),?P(imp_build),
-	   ?P_NOFAIL(imp_orient_normals),?P(imp_build)]},
-     {seq,[?P_NOFAIL(imp_quads),?P(imp_build),
-	   ?P_NOFAIL(imp_orient_normals),?P(imp_build)]}|Pss];
+    [{seq,[?P_NOFAIL(imp_polygons),?P_NOFAIL(imp_build),
+	   ?P_NOFAIL(imp_orient_normals),?P_NOFAIL(imp_build)]},
+     {seq,[?P_NOFAIL(imp_quads),?P_NOFAIL(imp_build),
+	   ?P_NOFAIL(imp_orient_normals),?P_NOFAIL(imp_build)]}|Pss];
 polygonify_passes(Pss, _) -> Pss.
-
 
 run([{seq,Seq}|Ps], ObjType, Mesh) ->
     try
@@ -134,7 +133,8 @@ run([{nofail,_Name,Final}|Fs], ObjType, Mesh0) ->
     %%io:format("~p\n", [_Name]),
     case Final(ObjType, Mesh0) of
 	#we{}=We -> We;
-	#e3d_mesh{}=Mesh -> run(Fs, ObjType, Mesh)
+	#e3d_mesh{}=Mesh -> run(Fs, ObjType, Mesh);
+	error -> run(Fs, ObjType, Mesh0)
     end;
 run([{_Name,Final}], ObjType, Mesh0) ->
     %%io:format("~p\n", [_Name]),
@@ -175,7 +175,7 @@ rip_apart_2([#e3d_face{vs=Vs,tx=Tx}=Face|T], Mode, Template, Acc) ->
     BackFace = Face#e3d_face{vs=reverse(Vs),tx=reverse(Tx),mat=['_hole_']},
     Fs = [Face,BackFace],
     Mesh = e3d_mesh:renumber(Template#e3d_mesh{fs=Fs,he=[]}),
-    We = wings_we:build(Mode, Mesh),
+    #we{} = We = wings_we:build(Mode, Mesh),
     rip_apart_2(T, Mode, Template, [We|Acc]);
 rip_apart_2([], _, _, Wes) -> Wes.
 
