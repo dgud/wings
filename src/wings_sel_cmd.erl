@@ -53,7 +53,10 @@ menu(St) ->
 	{?__(22,"Grow Edge Ring"),edge_ring_incr,
 	 ?__(23,"Grow edge selection by one edge in ring direction")},
 	{?__(24,"Shrink Edge Ring"),edge_ring_decr,
-	 ?__(25,"Shrink edge selection by one edge in ring directions")}]}},
+	 ?__(25,"Shrink edge selection by one edge in ring directions")},
+	separator,
+	{?__(96,"To Complete Loops"),complete_loops,
+	 ?__(97,"Switches to Edge mode and completes loop selection")}]}},
      separator,
      {?__(26,"Adjacent"),
       {adjacent,[{?__(27,"Vertices"),vertex},
@@ -250,6 +253,8 @@ command({edge_loop,prev_edge_loop}, St) ->
     {save_state,wings_edge_loop:select_prev(St)};
 command({edge_loop,edge_loop_to_region}, St) ->
     {save_state,wings_edge:select_region(St)};
+command({edge_loop,complete_loops}, St) ->
+    {save_state,complete_loops(St)};
 command(deselect, St) ->
     {save_state,wings_sel:reset(St)};
 command(more, St) ->
@@ -1366,3 +1371,14 @@ is_area_similar(Area1, Tolerance, Face, We) ->
     Area2 = wings_face:area(Face, We),
     AreaDiff = abs(Area1-Area2),
     AreaDiff =< Tolerance.
+
+%%%
+%%% Change selection to complete loops from any mode
+%%%
+complete_loops(#st{sel=[]}=St) ->
+    St;
+complete_loops(#st{selmode=edge}=St) ->
+    wings_edge_loop:select_loop(St);
+complete_loops(St0) ->
+    St = wings_sel_conv:mode(edge,St0),
+    wings_edge_loop:select_loop(St).
