@@ -153,7 +153,10 @@ init() ->
     Frame = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
     %% wx:debug(2),
 
-    GLAttrs = [?WX_GL_RGBA,?WX_GL_DOUBLEBUFFER,0],
+    GLAttrs = [?WX_GL_RGBA,
+	       ?WX_GL_MIN_RED,8,?WX_GL_MIN_GREEN,8,?WX_GL_MIN_BLUE,8,
+	       ?WX_GL_DEPTH_SIZE, 24, ?WX_GL_STENCIL_SIZE, 8,
+	       ?WX_GL_DOUBLEBUFFER,0],
     Canvas = wxGLCanvas:new(Frame, [{attribList, GLAttrs}]),
 
     put(top_frame, Frame),
