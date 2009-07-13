@@ -94,7 +94,7 @@ collapse_vertices(Vs, We0) ->
 collapse_faces(Faces, #we{id=Id,fs=Ftab}=We0, SelAcc)->
     F1 = gb_sets:size(Faces),
     F2 = gb_trees:size(Ftab),
-    case F1==F2 of
+    case F1 =:= F2 of
       false ->
         We1 = foldl(fun collapse_face/2, We0, gb_sets:to_list(Faces)),
         We = wings_facemat:gc(We1),
@@ -203,8 +203,8 @@ delete_edges(V, Edge, Face, {Etab0,Vct0,Vtab0,Ftab0,Htab0}) ->
 
 uniform_collapse_edges(Edges0, #we{id=Id,es=Etab}=We0, SelAcc)->
     E1 = gb_sets:size(Edges0),
-    E2 = length(array:sparse_to_list(Etab)),
-    case E1 == E2 of
+    E2 = wings_util:array_entries(Etab),
+    case E1 =:= E2 of
       false ->
         EdgeSets = wings_edge_loop:partition_edges(Edges0, We0),
         Edges1 = gb_sets:to_list(Edges0),
@@ -223,23 +223,30 @@ uniform_collapse_edges(Edges0, #we{id=Id,es=Etab}=We0, SelAcc)->
     end.
 
 clean_uniform_edge_collapse(Edges0, #we{id=Id,es=Etab0}=We0, SelAcc)->
-    EdgeSets = wings_edge_loop:partition_edges(Edges0, We0),
-    IsolatedVs1 = lists:umerge(wings_vertex:isolated(We0),vertices_w_two_edges(Etab0)),
-    Edges1 = gb_sets:to_list(Edges0),
-    #we{es=Etab}=We1 = foldl(fun(Es, WeAcc) ->
-        Center = wings_vertex:center(wings_edge:to_vertices(Es, We0),We0),
-        uniform_collapse(Es,Center,WeAcc)
-        end,We0,EdgeSets),
-    check_consistency(We1),
-    IsolatedVs2 = vertices_w_two_edges(Etab),
-    IssVs = IsolatedVs2 -- IsolatedVs1,
-    We2 = collapse_vertices(IssVs, We1),
-    We = wings_edge:dissolve_isolated_vs(wings_vertex:isolated(We2), We2),
-    Sel = foldl(fun(Edge, A) ->
-             #edge{vs=Va,ve=Vb} = array:get(Edge, Etab0),
-             gb_sets:add(Va, gb_sets:add(Vb, A))
-        end, gb_sets:empty(), Edges1),
-    {We,[{Id,Sel}|SelAcc]}.
+    E1 = gb_sets:size(Edges0),
+    E2 = wings_util:array_entries(Etab0),
+    case E1 =:= E2 of
+      false ->
+        EdgeSets = wings_edge_loop:partition_edges(Edges0, We0),
+        IsolatedVs1 = lists:umerge(wings_vertex:isolated(We0),vertices_w_two_edges(Etab0)),
+        Edges1 = gb_sets:to_list(Edges0),
+        #we{es=Etab}=We1 = foldl(fun(Es, WeAcc) ->
+            Center = wings_vertex:center(wings_edge:to_vertices(Es, We0),We0),
+            uniform_collapse(Es,Center,WeAcc)
+            end,We0,EdgeSets),
+        check_consistency(We1),
+        IsolatedVs2 = vertices_w_two_edges(Etab),
+        IssVs = IsolatedVs2 -- IsolatedVs1,
+        We2 = collapse_vertices(IssVs, We1),
+        We = wings_edge:dissolve_isolated_vs(wings_vertex:isolated(We2), We2),
+        Sel = foldl(fun(Edge, A) ->
+                 #edge{vs=Va,ve=Vb} = array:get(Edge, Etab0),
+                 gb_sets:add(Va, gb_sets:add(Vb, A))
+            end, gb_sets:empty(), Edges1),
+        {We,[{Id,Sel}|SelAcc]};
+      true ->
+        {#we{},SelAcc}
+    end.
 
 vertices_w_two_edges(Etab) ->
     array:foldl(fun
@@ -324,8 +331,8 @@ internal_collapse_edge(Edge, Center, Vkeep, Vremove, Rec,
 %%
 collapse_vertices_cmd(Vs, #we{id=Id,vp=Vtab}=We0, SelAcc) ->
     V1 = gb_sets:size(Vs),
-    V2 = length(array:sparse_to_list(Vtab)),
-    case V1==V2 of
+    V2 = wings_util:array_entries(Vtab),
+    case V1 =:= V2 of
       false ->
         {We,Sel} = do_collapse_vertices(gb_sets:to_list(Vs), We0),
         check_consistency(We),
