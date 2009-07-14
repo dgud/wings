@@ -42,7 +42,8 @@ scale_to_bb(Dir, #st{bb=Dest}=St) ->
     case wings_sel:bounding_box(St) of
 	none -> St;
 	Src ->
-	    Matrix = make_scale(Dir, Src, Dest),
+	    Center = wings_sel:center(St),
+	    Matrix = make_scale(Dir, Src, Dest, Center),
 	    transform(Matrix, St)
     end.
 
@@ -51,7 +52,8 @@ scale_to_bb_prop(Dir, #st{bb=Dest}=St) ->
     case wings_sel:bounding_box(St) of
 	none -> St;
 	Src ->
-	    Matrix = make_prop_scale(Dir, Src, Dest),
+	    Center = wings_sel:center(St),
+	    Matrix = make_prop_scale(Dir, Src, Dest, Center),
 	    transform(Matrix, St)
     end.
 
@@ -75,7 +77,9 @@ make_move(Dir, Src, Dest0) ->
     Tvec = filter_coord(Dir, e3d_vec:sub(DestMid, SrcMid)),
     e3d_mat:translate(Tvec).
 
-make_scale(Dir, Src0, Dest0) ->
+make_scale(Dir, Src0, Dest0, Center) ->
+    Pre = e3d_mat:translate(Center),
+    Post = e3d_mat:translate(e3d_vec:neg(Center)),
     Src1 = e3d_vec:sub(Src0),
     Dest1 = e3d_vec:sub(Dest0),
     Src = filter_coord(Dir, Src1),
@@ -83,16 +87,18 @@ make_scale(Dir, Src0, Dest0) ->
     Sc0 = make_scales(Dest, Src),
     [ScX,ScY,ScZ] = map(fun(none) -> 1.0;
 			   (Sc) -> Sc end, Sc0),
-    e3d_mat:scale(ScX, ScY, ScZ).
+    e3d_mat:mul(e3d_mat:mul(Pre,e3d_mat:scale(ScX, ScY, ScZ)),Post).
 
-make_prop_scale(Dir, Src0, Dest0) ->
+make_prop_scale(Dir, Src0, Dest0, Center) ->
+    Pre = e3d_mat:translate(Center),
+    Post = e3d_mat:translate(e3d_vec:neg(Center)),
     Src1 = e3d_vec:sub(Src0),
     Dest1 = e3d_vec:sub(Dest0),
     Src = filter_coord(Dir, Src1),
     Dest = filter_coord(Dir, Dest1),
     Sc0 = make_scales(Dest, Src),
     Min = min_scale(Sc0),
-    e3d_mat:scale(Min, Min, Min).
+    e3d_mat:mul(e3d_mat:mul(Pre,e3d_mat:scale(Min, Min, Min)),Post).
 
 make_scales(Ta, Tb) ->
     make_scales(1, Ta, Tb).
