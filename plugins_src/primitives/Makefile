@@ -29,6 +29,7 @@ TYPE_FLAGS=
 endif
 
 MODULES= \
+	wpc_bbox \
 	wpc_image \
 	wpc_knot \
 	wpc_spiral \
