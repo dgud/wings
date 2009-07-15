@@ -43,7 +43,7 @@ tools_menu_entry() ->
       [{?__(2,"Lock"),mask,?__(6,"Lock selection against the influence of magnets")},
        {?__(3,"Unlock"),unmask,?__(7,"Unlock any locked elements in the selection")},
        {?__(4,"Invert"),invert_masked,?__(8,"Invert the locked and unlocked elements")},
-       {?__(9,"Deselect"),deselect,?__(10,"Deselect locked elements")},
+       {?__(9,"Deselect"),deselect,?__(10,"Deselect locked elements in the selection")},
        mask_on_off(Mask)]}}].
 
 mask_on_off(true) ->
@@ -136,27 +136,19 @@ locking_1(invert_masked, #st{}=St) ->
               We#we{pst=NewPst}
             end,St);
 locking_1(deselect,#st{sel=[]}=St) -> St;
-locking_1(deselect, #st{selmode=body}=St) ->
-    St;
+locking_1(deselect, #st{selmode=body}=St) -> St;
 locking_1(deselect, #st{selmode=Selmode}=St) ->
     NewSel = wings_sel:fold(fun (Items,#we{pst=Pst,id=Id} = We,Acc) ->
 			   Lvs0 = get_locked_vs(Pst),
-			   Lvs = convert_sel(Selmode,We,make_obj(Selmode,Lvs0,We)),
-			   %Items2 = convert_sel(Selmode,We,Items),
-			   NewVerts = gb_sets:subtract(Items,Lvs),
-			   NewSel = make_obj(Selmode,NewVerts,We),
+			   LockedCurSelmode = convert_vs_to_selmode(Selmode,Lvs0,We),
+			   NewSel = gb_sets:subtract(Items,LockedCurSelmode),
 			   [{Id,NewSel} | Acc]
 			   end, [], St),
     St#st{sel=lists:sort(NewSel), sh=false}.
 
-% construct a set of edges or faces from verts
-make_obj(vertex,Vs,_) -> Vs;
-make_obj(edge,Vs,We) -> wings_edge:from_vs(Vs,We);
-make_obj(face,Vs,We) -> gb_sets:from_ordset(wings_face:from_vs(Vs,We)).
-
-
-
-
+convert_vs_to_selmode(vertex,Vs,_) -> Vs;
+convert_vs_to_selmode(edge,Vs,We) -> wings_edge:from_vs(Vs,We);
+convert_vs_to_selmode(face,Vs,We) -> gb_sets:from_ordset(wings_face:from_vs(Vs,We)).
 
 select_locked(St) ->
     Sel = fun(V,#we{pst=Pst}) ->
