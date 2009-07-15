@@ -31,8 +31,6 @@ init() ->
 
 menu({tools},Menu) ->
     Menu ++ tools_menu_entry();
-menu({select,by},Menu) ->
-    Menu ++ select_menu_entry();
 menu({view,show},Menu) ->
     Menu ++ view_menu_entry();
 menu(_,Menu) -> Menu.
@@ -42,17 +40,17 @@ tools_menu_entry() ->
     [{?__(1,"Magnet Mask"),{magnet_mask,
       [{?__(2,"Lock"),mask,?__(6,"Lock selection against the influence of magnets")},
        {?__(3,"Unlock"),unmask,?__(7,"Unlock any locked elements in the selection")},
+       separator,
+       {?__(11,"Select"),select,?__(12,"Add locked elements to current selection")},
+       {?__(9,"Deselect"),deselect,?__(10,"Subtract locked elements from current selection")},
        {?__(4,"Invert"),invert_masked,?__(8,"Invert the locked and unlocked elements")},
-       {?__(9,"Deselect"),deselect,?__(10,"Deselect locked elements in the selection")},
+       separator,
        mask_on_off(Mask)]}}].
 
 mask_on_off(true) ->
     {?__(1,"Switch Masking Off"),magnet_mask_on,?__(2,"Toggle masking On/Off")};
 mask_on_off(false) ->
     {?__(3,"Switch Masking On"),magnet_mask_on,?__(2,"Toggle masking On/Off")}.
-
-select_menu_entry() ->
-    [{?__(1,"Magnet Mask"),magnet_mask}].
 
 view_menu_entry() ->
     [{?__(1,"Show Magnet Mask"),show_magnet_mask,crossmark(show_magnet_mask)}].
@@ -75,8 +73,6 @@ command({tools,{magnet_mask,magnet_mask_on}},St) ->
     St;
 command({tools,{magnet_mask,Type}},St) ->
     {save_state,locking(Type,St)};
-command({select,{by,magnet_mask}}, St) ->
-    {save_state,select_locked(St)};
 command({view,{show,show_magnet_mask}}, St) ->
     Bool = wings_pref:get_value(show_magnet_mask),
     wings_pref:set_value(show_magnet_mask, not Bool),
@@ -101,7 +97,7 @@ locking_1(mask, #st{selmode=Selmode}=St) ->
     wings_sel:map(fun
            (Sel, #we{pst=Pst}=We) ->
               Lvs = get_locked_vs(Pst),
-              Vertices = convert_sel(Selmode,We,Sel),
+              Vertices = convert_to_vs(Selmode,We,Sel),
               Locked = gb_sets:union(Lvs, Vertices),
               NewPst = set_locked_vs(Locked,Pst),
               We#we{pst=NewPst}
@@ -110,7 +106,7 @@ locking_1(unmask, #st{selmode=Selmode}=St) ->
     wings_sel:map(fun
            (Sel, #we{pst=Pst}=We) ->
               Lvs = get_locked_vs(Pst),
-              Vertices = convert_sel(Selmode,We,Sel),
+              Vertices = convert_to_vs(Selmode,We,Sel),
               Locked = gb_sets:difference(Lvs, Vertices),
               NewPst = set_locked_vs(Locked,Pst),
               We#we{pst=NewPst}
@@ -135,33 +131,38 @@ locking_1(invert_masked, #st{}=St) ->
               NewPst = set_locked_vs(Diff,Pst),
               We#we{pst=NewPst}
             end,St);
+
 locking_1(deselect,#st{sel=[]}=St) -> St;
 locking_1(deselect, #st{selmode=body}=St) -> St;
 locking_1(deselect, #st{selmode=Selmode}=St) ->
     NewSel = wings_sel:fold(fun (Items,#we{pst=Pst,id=Id} = We,Acc) ->
-			   Lvs0 = get_locked_vs(Pst),
-			   LockedCurSelmode = convert_vs_to_selmode(Selmode,Lvs0,We),
-			   NewSel = gb_sets:subtract(Items,LockedCurSelmode),
-			   [{Id,NewSel} | Acc]
-			   end, [], St),
+               Lvs0 = get_locked_vs(Pst),
+               LockedCurSelmode = convert_vs_to_selmode(Selmode,Lvs0,We),
+               NewSel = gb_sets:subtract(Items,LockedCurSelmode),
+               [{Id,NewSel} | Acc]
+               end, [], St),
+    St#st{sel=lists:sort(NewSel), sh=false};
+locking_1(select, #st{selmode=body}=St) -> St;
+locking_1(select, #st{selmode=Selmode}=St) ->
+    NewSel = wings_sel:fold(fun (Items,#we{pst=Pst,id=Id} = We,Acc) ->
+               Lvs0 = get_locked_vs(Pst),
+               LockedCurSelmode = convert_vs_to_selmode(Selmode,Lvs0,We),
+               NewSel = gb_sets:union(Items,LockedCurSelmode),
+               [{Id,NewSel} | Acc]
+               end, [], St),
     St#st{sel=lists:sort(NewSel), sh=false}.
 
 convert_vs_to_selmode(vertex,Vs,_) -> Vs;
 convert_vs_to_selmode(edge,Vs,We) -> wings_edge:from_vs(Vs,We);
 convert_vs_to_selmode(face,Vs,We) -> gb_sets:from_ordset(wings_face:from_vs(Vs,We)).
 
-select_locked(St) ->
-    Sel = fun(V,#we{pst=Pst}) ->
-        lists:member(V,gb_sets:to_list(get_locked_vs(Pst)))
-    end,
-    {save_state,wings_sel:make(Sel, vertex, St)}.
 
-convert_sel(vertex,_,Sel) -> Sel;
-convert_sel(edge,We,Sel) ->
+convert_to_vs(vertex,_,Sel) -> Sel;
+convert_to_vs(edge,We,Sel) ->
     gb_sets:from_ordset(wings_edge:to_vertices(Sel, We));
-convert_sel(face,We,Sel) ->
+convert_to_vs(face,We,Sel) ->
     gb_sets:from_ordset(wings_face:to_vertices(Sel, We));
-convert_sel(body,We,_) ->
+convert_to_vs(body,We,_) ->
     gb_sets:from_list(wings_we:visible_vs(We)).
 
 update_dlist({vs,LockedVs},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}=We}=D, _) ->
@@ -249,10 +250,10 @@ draw(_,_,_,_) -> ok.
 
 vert_display(Size,vertex) ->
     VSize = wings_pref:get_value(selected_vertex_size),
-	case VSize >= Size of
-	  true -> VSize + 2;
-	  false -> Size
-	end;
+    case VSize >= Size of
+      true -> VSize + 2;
+      false -> Size
+    end;
 vert_display(Size,_Selmode) -> Size.
 
 % Called from wings_we:merge/1.
