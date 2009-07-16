@@ -194,12 +194,13 @@ setup_flat_normals_1([{Face, {_, Count}}|Fs], Ns, FN) ->
 setup_flat_normals_1([],_,FN) ->
     FN.
 
-setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,vab=#vab{face_map=Fmap0}=Vab}) ->
+setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,mirror=MM,
+			    vab=#vab{face_map=Fmap0}=Vab}) ->
     Ns1 = array:sparse_foldl(fun(F,[N|_], A) -> [{F,N}|A];
 				(F,{N,_,_}, A) -> [{F,N}|A]
 			     end, [], Ns0),
     Ns = reverse(Ns1),
-    Flist = wings_we:normals(Ns, We),
+    Flist = wings_we:normals(Ns, We, MM),
     Ftab  = array:from_orddict(Flist),
     Fs    = lists:keysort(2, array:sparse_to_orddict(Fmap0)),
     SN = setup_smooth_normals(Fs, Ftab, Ns0, <<>>),

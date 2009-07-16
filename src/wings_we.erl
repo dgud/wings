@@ -24,7 +24,7 @@
 	 uv_mapped_faces/1,
 	 transform_vs/2,
 	 separate/1,
-	 normals/2,
+	 normals/3,
 	 new_items_as_ordset/3,new_items_as_gbset/3,
 	 is_consistent/1,is_face_consistent/2,
 	 hide_faces/2,show_faces/1,num_hidden/1,
@@ -726,18 +726,20 @@ transform_vs_1(Transform, #we{vp=Vtab0}=We) ->
 %%% Calculate normals.
 %%%
 
-%% normals(FaceNormals, We) -> [{Face,[VertexNormal]}]
+%% vertex_normals(FaceNormals, We, MirrorMatrix) -> [{Face,[VertexNormal]}]
+%%       MirrorMatrix = Matrix | none
 %%  Given the face normals for an object, calculate the
-%%  vertex normals.
+%%  vertex normals. If the object has a virtual mirror face,
+%%  the mirror matrix must be given.
 %%
-normals(Ns, #we{mirror=none}=We) ->
+normals(Ns, #we{mirror=none}=We, MM) ->
     case any_hidden(We) of
-	false -> normals_2(Ns, We);
-	true -> normals_1(Ns, We)
+	false -> normals_2(Ns, We, MM);
+	true -> normals_1(Ns, We, MM)
     end;
-normals(Ns, We) -> normals_1(Ns, We).
+normals(Ns, We, MM) -> normals_1(Ns, We, MM).
 
-normals_1(FaceNormals, #we{fs=Ftab,he=Htab0}=We) ->
+normals_1(FaceNormals, #we{fs=Ftab,he=Htab0}=We, MM) ->
     Edges = case {visible(We),gb_trees:size(Ftab)} of
 		{Vis,Sz} when 2*length(Vis) < Sz ->
 		    wings_face:outer_edges(Vis, We);
@@ -746,9 +748,9 @@ normals_1(FaceNormals, #we{fs=Ftab,he=Htab0}=We) ->
 		    wings_face:outer_edges(InVis, We)
 	    end,
     Htab = gb_sets:union(Htab0, gb_sets:from_ordset(Edges)),
-    normals_2(FaceNormals, We#we{he=Htab}).
+    normals_2(FaceNormals, We#we{he=Htab}, MM).
 
-normals_2(FaceNormals, #we{he=He}=We) ->
+normals_2(FaceNormals, #we{he=He}=We, MM) ->
     wings_pb:start(?__(1,"calculating soft normals")),
     Res = case FaceNormals of
 	      [_,_] ->
@@ -756,12 +758,20 @@ normals_2(FaceNormals, #we{he=He}=We) ->
 	      _ ->
 		  case gb_sets:is_empty(He) of
 		      true -> all_soft(FaceNormals, We);
-		      false -> mixed_edges(FaceNormals, We)
+		      false -> mixed_edges(FaceNormals, We, MM)
 		  end
 	  end,
     wings_pb:done(Res).
 
 all_soft(FaceNormals, #we{vp=Vtab}=We) ->
+    %% The simple case: There are no hard edges and no
+    %% virtual mirror.
+    %%
+    %% Therefore the normals for all vertices can be
+    %% calculated by simply adding the normals for the
+    %% faces surrounding the vertex and normalizing.
+    %% (Each vertex will have the same normal in each
+    %% face it appears in.)
     wings_pb:update(0.10, ?__(1,"preparing")),
     VisVs = visible_vs(array:sparse_to_orddict(Vtab), We),
     VtxNormals = soft_vertex_normals(VisVs, FaceNormals, We),
@@ -777,38 +787,105 @@ all_soft_1(FoldFun, [{Face,_}|FNs], We, Acc) ->
     all_soft_1(FoldFun, FNs, We, [{Face,Vs}|Acc]);
 all_soft_1(_, [], _, Acc) -> reverse(Acc).
 
-mixed_edges(FaceNormals0, We) ->
+mixed_edges(FaceNormals0, #we{mirror=MirrorFace}=We, MirrorMatrix) ->
+    %% The complicated case: There are some hard edges and/or
+    %% a virtual mirror.
     wings_pb:update(0.20, ?__(1,"preparing")),
     G = digraph:new(),
     FaceNormals = gb_trees:from_orddict(FaceNormals0),
     wings_pb:update(0.50,  ?__(2,"vertex normals")),
+
+    %% For all vertices that are not connected to any hard
+    %% edges, calculate vertex normals as in the simple
+    %% case above (all_soft/2). For all other vertices (i.e.
+    %% those connected to at least one hard edge), build a
+    %% digraph for the faces around the vertices; a pair of
+    %% faces will be connected with an edge in the digraph if
+    %% the edge between them is soft.
     VtxNormals = vertex_normals(We, G, FaceNormals),
     wings_pb:update(0.99,  ?__(3,"vertex normals per face")),
+
+    %% If there is a virtual mirror face, we have added hard
+    %% edges around it, but the hard edges should not actually
+    %% be displayed as hard edges. (We have added them as hard
+    %% edges to force a virtual face to be handle as a special
+    %% case by this function, rather than complicating and
+    %% making all_soft/2 slower.)
+    %%
+    %% Here we want to collect the vertices that surround the
+    %% virtual mirror face so that we quickly can test whether
+    %% a given vertex is part of the virtual mirror face. We
+    %% also need th virtual mirror matrix for transforming
+    %% normal vectors.
+    Mirror =
+	case MirrorFace of
+	    none -> none;
+	    _ ->
+		MirrorVs0 = wings_face:to_vertices([MirrorFace], We),
+		MirrorVs = gb_sets:from_ordset(MirrorVs0),
+		{MirrorVs,MirrorMatrix}
+	end,
+
+    %% Go through each face in the object and calculate the
+    %% normals for each vertex in the face.
     Ns = foldl(fun({Face,_}, Acc) ->
-		       Vs = n_face(Face, G, FaceNormals, VtxNormals, We),
+		       Vs = n_face(Face, G, FaceNormals,
+				   VtxNormals, Mirror, We),
 		       [{Face,Vs}|Acc]
 	       end, [], FaceNormals0),
     digraph:delete(G),
     reverse(Ns).
 
-n_face(Face, G, FaceNormals, VtxNormals, We) ->
+n_face(Face, G, FaceNormals, VtxNormals, Mirror, We) ->
     wings_face:fold(
       fun(V, _, _, Acc) ->
 	      case gb_trees:lookup(V, VtxNormals) of
 		  {value,Normal} ->
+		      %% Since the normal for the vertex was found in the
+		      %% VtxNormals table, it means that all edges
+		      %% surrounding the vertex are soft and that the
+		      %% vertex normal is the same in all faces that
+		      %% vertex is part of.
 		      [Normal|Acc];
 		  none ->
-		      Normal = hard_vtx_normal(G, V, Face, FaceNormals),
+		      %% Not found. That means that there is at least
+		      %% one hard edge (and/or virtual mirror face) around
+		      %% the vertex. We must use the digraph to find the
+		      %% faces that are reachable without crossing a
+		      %% hard edge.
+		      Normal = hard_vtx_normal(G, V, Face, FaceNormals, Mirror),
 		      [Normal|Acc]
 	      end
       end, [], Face, We).
 
-hard_vtx_normal(G, V, Face, FaceNormals) ->
+hard_vtx_normal(G, V, Face, FaceNormals, Mirror) ->
+    %% Collect the face normals for all faces that can be reached
+    %% from this face without crossing a hard edge.
     Reachable = digraph_utils:reachable([{V,Face}], G),
-    case [gb_trees:get(AFace, FaceNormals) || {_,AFace} <- Reachable] of
- 	[N] -> N;
- 	Ns -> e3d_vec:norm(e3d_vec:add(Ns))
+    Ns = [gb_trees:get(AFace, FaceNormals) || {_,AFace} <- Reachable],
+
+    %% Average the normals.
+    average_normals(Ns, V, Mirror).
+
+average_normals(Ns, _, none) ->
+    %% No virtual mirror at all.
+    average_normals_1(Ns);
+average_normals(Ns0, V, {MirrorVs,MirrorMatrix}) ->
+    case gb_sets:is_member(V, MirrorVs) of
+	false ->
+	    %% This vertex is not part of the virtual mirror face.
+	    average_normals_1(Ns0);
+	true ->
+	    %% This vertex is part of the virtual mirror face.
+	    %% By adding the list of mirrored faces normals to the
+	    %% list of face normals, we will make it appear that the
+	    %% edges around the virtual mirror face are soft.
+	    Ns = [e3d_mat:mul_vector(MirrorMatrix, N) || N <- Ns0] ++ Ns0,
+	    average_normals_1(Ns)
     end.
+
+average_normals_1([N]) -> N;
+average_normals_1(Ns) -> e3d_vec:norm(e3d_vec:add(Ns)).
 
 two_faced([{FaceA,Na},{FaceB,Nb}], We) ->
     [{FaceA,two_faced_1(FaceA, Na, We)},
@@ -868,7 +945,6 @@ soft_vertex_normals(Vtab, FaceNormals, We) ->
 			 [{V,N}|Acc]
 		 end, [], Vtab),
     gb_trees:from_orddict(reverse(Soft)).
-
 
 new_items_as_ordset_1(Tab, Wid, NewWid) when NewWid-Wid < 32 ->
     new_items_as_ordset_2(Wid, NewWid, Tab, []);

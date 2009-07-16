@@ -176,9 +176,12 @@ update_edges_1(_, #sp{vab=#vab{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}}, all) -
 smooth(D=#dlo{proxy=false},_) -> D;
 smooth(D=#dlo{drag=Active},_) when Active =/= none -> D;
 smooth(D=#dlo{src_we=We},_) when ?IS_ANY_LIGHT(We) -> D;
-smooth(D=#dlo{proxy_data=#sp{smooth=none, vab=#vab{face_map=FN}=Vab0, we=We}=Pd0},St) ->
+smooth(D=#dlo{proxy_data=#sp{smooth=none,
+			     vab=#vab{face_map=FN}=Vab0,
+			     we=We}=Pd0,
+	      mirror=MM},St) ->
     PartialNs = lists:sort(FN),
-    Flist = wings_we:normals(PartialNs, We),
+    Flist = wings_we:normals(PartialNs, We, MM),
     Ftab  = array:from_orddict(Flist),
     SN    = setup_smooth_normals(FN, Ftab, <<>>),
     Vab   = Vab0#vab{face_sn={0,SN}},

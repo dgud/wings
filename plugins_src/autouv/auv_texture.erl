@@ -783,7 +783,7 @@ fix({R,G,B}, true) -> {R,G,B,1.0}.
     
 setup_normals(We = #we{fs=Ftab}) ->
     FN0	= [{Face,wings_face:normal(Face, We)} || Face <- gb_trees:keys(Ftab)],
-    Ns = wings_we:normals(FN0, We),
+    Ns = wings_we:normals(FN0, We, none),
     gb_trees:from_orddict(sort(Ns)).
 
 get_material(Face, We, OrigWe, Materials) ->
