@@ -357,20 +357,9 @@ mirror_face(Face, #we{fs=Ftab}=OrigWe, #we{next_id=Id}=We0) ->
     N = wings_face:vertices(Face, We),
     mirror_weld(N, IterA, Face, IterB, FaceNew, We, We).
 
-mirror_vs(Face, #we{vp=Vtab0}=We) ->
-    Normal = wings_face:normal(Face, We),
-    Center = wings_face:center(Face, We),
-    Vtab1 = array:sparse_foldl(fun(V, Pos, A) ->
-				       mirror_move_vs(V, Pos, Normal, Center, A)
-			       end, [], Vtab0),
-    Vtab = array:from_orddict(reverse(Vtab1)),
-    We#we{vp=Vtab}.
-
-mirror_move_vs(V, Pos0, PlaneNormal, Center, A) ->
-    ToCenter = e3d_vec:sub(Center, Pos0),
-    Dot = e3d_vec:dot(ToCenter, PlaneNormal),
-    Pos = wings_util:share(e3d_vec:add_prod(Pos0, PlaneNormal, 2.0*Dot)),
-    [{V,Pos}|A].
+mirror_vs(Face, We) ->
+    MirrorMatrix = wings_face:mirror_matrix(Face, We),
+    wings_we:transform_vs(MirrorMatrix, We).
 
 mirror_weld(0, _IterA0, FaceA, _IterB0, FaceB, _WeOrig, #we{fs=Ftab0}=We0) ->
     Ftab1 = gb_trees:delete(FaceA, Ftab0),

@@ -211,16 +211,7 @@ update_mirror(#dlo{mirror=none,src_we=#we{fs=Ftab,mirror=Face}=We}=D) ->
 	false ->
 	    D#dlo{mirror=none};
 	true ->
-	    VsPos = wings_face:vertex_positions(Face, We),
-	    N = e3d_vec:normal(VsPos),
-	    Center = e3d_vec:average(VsPos),
-	    RotBack = e3d_mat:rotate_to_z(N),
-	    Rot = e3d_mat:transpose(RotBack),
-	    Mat0 = e3d_mat:mul(e3d_mat:translate(Center), Rot),
-	    Mat1 = e3d_mat:mul(Mat0, e3d_mat:scale(1.0, 1.0, -1.0)),
-	    Mat2 = e3d_mat:mul(Mat1, RotBack),
-	    Mat = e3d_mat:mul(Mat2, e3d_mat:translate(e3d_vec:neg(Center))),
-	    D#dlo{mirror=Mat}
+	    D#dlo{mirror=wings_face:mirror_matrix(Face, We)}
     end;
 update_mirror(D) -> D.
 

@@ -20,6 +20,7 @@
 	 face_normal_cw/2,face_normal_ccw/2,
 	 good_normal/2,is_thin/2,
 	 center/2,area/2,
+	 mirror_matrix/2,
 	 vertices_cw/2,vertices_cw/3,
 	 vertices_ccw/2,vertices_ccw/3,
 	 vertex_positions/2,vertex_positions/3,
@@ -205,6 +206,20 @@ area(Face, We) ->
     E3dFaces = [#e3d_face{vs=FaceVs}],
     [Area] = e3d_mesh:face_areas(E3dFaces, Vcoords),
     Area.
+
+%% mirror_matrix(Face, We) -> Matrix
+%%  Calculate the matrix needed to reflect a point or
+%%  vector in the plane of the face Face.
+mirror_matrix(Face, We) ->
+    VsPos = vertex_positions(Face, We),
+    N = e3d_vec:normal(VsPos),
+    Center = e3d_vec:average(VsPos),
+    RotBack = e3d_mat:rotate_to_z(N),
+    Rot = e3d_mat:transpose(RotBack),
+    Mat0 = e3d_mat:mul(e3d_mat:translate(Center), Rot),
+    Mat1 = e3d_mat:mul(Mat0, e3d_mat:scale(1.0, 1.0, -1.0)),
+    Mat = e3d_mat:mul(Mat1, RotBack),
+    e3d_mat:mul(Mat, e3d_mat:translate(e3d_vec:neg(Center))).
 
 vertices_cw(Face, #we{es=Etab,fs=Ftab}) ->
     Edge = gb_trees:get(Face, Ftab),
