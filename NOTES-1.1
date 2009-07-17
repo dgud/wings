@@ -1,3 +1,45 @@
+--- 1.1.7 ----------------------------------------------------------------------
+- In rare circumstances, the progress bar could reach 1.0
+  (the far end) even if the operation was not finished and cause
+  Wings to crash hard. (Thanks to deerwood.) [bjorng]
+
+- The smooth proxy is now updated directly when invoking
+  interactive commands. [dgud]
+
+- New Feature: Create Bounding Box added to the primitives menu. [optigon]
+
+- Scale to Bounding Box selections now keep their original centre. [optigon]
+
+- Turn Edge now preserves Hard Edges. (Thanks to BlackHarmo). [optigon]
+
+- New Feature: Select|Edge Loop|To Complete Loops turns any selection
+  into an edge loop selection. Works from all selection modes and is based on
+  the request by deerwood to be able to extend loops beyond where they stop
+  when using the regular Edge Loop command (L). [optigon]
+
+- Dissolve and Collapse cmds now delete wholly selected efficiently. [optigon]
+
+- Shared vertices are now eliminated on import. (The
+  modeling commands in Wings does not allow creating of shared
+  vertices (also called waists), i.e. faces that only share vertices
+  but no edges, so it should not be allowed on import.) [bjorng]
+
+- When displaying objects that have a virtual mirror face in
+  the smooth preview mode (i.e. turning off workmode by pressing TAB),
+  the seam between the real part of the object and mirror image will
+  now be soft. The Smooth command (and the Smooth Proxy mode) will
+  still sub-divide faces around the virtual mirror face as if the
+  edges were hard, so Smoothing before freezing the mirror and
+  after freezing may still not give exactly the same result
+  (how close the result is depends on the object; for some objects
+  the difference may not be noticeable). [bjorng]
+
+- New Feature: Magnet Mask Deselect - Subtracts locked elements from
+  the current selection. (Thanks to Fonte Boa) [metadave, optigon]
+  
+  Magnet Mask Select - fixed: Adds locked elements to current selection.
+  (Thanks to Fonte Boa). [optigon]
+
 --- 1.1.6 ----------------------------------------------------------------------
 - Re-exporting an imported model with tesselation could
   cause a crash. Also, when importing objects that had UV coordinates
