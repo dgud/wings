@@ -45,24 +45,35 @@ spawn_halt(File) ->
       end).
 
 halt_loop(Wings) ->
+    %% Handle normal and abnormal termination of the Wings process.
+    %% None of the strings are translated because when this code
+    %% executes, the ETS table that holds the translated strings
+    %% has been deleted.
     receive
-    {'EXIT',Wings,normal} ->
-        halt();
-    {'EXIT',Wings,{window_crash,Name,Reason,StkTrace}} ->
-        Log = wings_u:crash_log(Name, Reason, StkTrace),
-        io:format("\n\n"),
-        io:format(?__(1,"Fatal internal error - log written to ~s\n"),
-              [Log]),
-        ok;
-    {'EXIT',Wings,Reason} ->
-        Log = wings_u:crash_log(?__(2,"<Unknown Window Name>"),
-                    Reason),
-        io:format("\n\n"),
-        io:format(?__(3,"Fatal internal error - log written to ~s\n"),
-              [Log]),
-        ok;
-    _Other ->				%Can't happen.
-        halt_loop(Wings)
+	{'EXIT',Wings,normal} ->
+	    %% Normal termination.
+	    halt();
+	{'EXIT',Wings,{window_crash,Name,Reason,StkTrace}} ->
+	    %% Crash in a window with an error reason and stack trace.
+	    Log = wings_u:crash_log(Name, Reason, StkTrace),
+	    io:format("\n\n"),
+	    %% Intentionally not translated.
+	    io:format("Fatal internal error - log written to ~s\n",
+		      [Log]),
+	    ok;
+	{'EXIT',Wings,Reason} ->
+	    %% Some other crash.
+	    Log = wings_u:crash_log("<Unknown Window Name>", Reason, []),
+	    io:format("\n\n"),
+	    %% Intentionally not translated.
+	    io:format("Fatal internal error - log written to ~s\n",
+		      [Log]),
+	    ok;
+	_Other ->
+	    %% We are not supposed to receive any other messages,
+	    %% but it is good practice to always throw away
+	    %% unexpected messages.
+	    halt_loop(Wings)
     end.
 
 do_spawn(File) ->

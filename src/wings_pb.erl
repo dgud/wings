@@ -3,7 +3,7 @@
 %%
 %%     This module contains a progress bar
 %%
-%%  Copyright (c) 2004 Dan Gudmundsson and Bjorn Gustavsson 
+%%  Copyright (c) 2004-2009 Dan Gudmundsson and Bjorn Gustavsson 
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -163,16 +163,21 @@ loop(#state{refresh=After,level=Level,msg=Msg0}=S0) ->
     end.
 
 update(Msg, Percent, #state{msg=[_|Msg0],stats=Stats0,t0=Time0}=S) ->
-    NowDiff = now_diff(now(), Time0),
+    NowDiff = timer:now_diff(now(), Time0),
     Stats = [Percent,NowDiff|Stats0],
     S#state{msg=[Msg|Msg0],next_pos=Percent,stats=Stats}.
 
 calc_position(#state{pos=Pos0,next_pos=NextPos}=S) when Pos0 < NextPos ->
     Pos = Pos0 + (NextPos - Pos0) / 5,
-    S#state{pos=Pos}.
+    S#state{pos=Pos};
+calc_position(S) ->
+    %% Do nothing if the position has not advanced. This is not really
+    %% supposed to happen, but can happen if the position has reached
+    %% 1.0 because of limited floating point precision.
+    S.
 
 print_stats(#state{t0=Time0,stats=[_|Stats0]}) ->
-    Total = now_diff(now(), Time0),
+    Total = timer:now_diff(now(), Time0),
     [_|Stats] = lists:reverse(Stats0),
     io:nl(),
     print_stats_1(Stats, Total).
@@ -183,13 +188,10 @@ print_stats_1([Est,TimeDiff|T], Total) ->
     print_stats_1(T, Total);
 print_stats_1([], _) -> ok.
 
-now_diff({A2, B2, C2}, {A1, B1, C1}) ->
-    ((A2-A1)*1000000 + B2-B1)*1000000 + C2-C1.
-
 %% Draw Progress Bar 
 
 draw_position(#state{t0=T0}=S) ->
-    case now_diff(now(), T0) of
+    case timer:now_diff(now(), T0) of
 	Diff when Diff < 500000 -> ok;
 	_Diff -> draw_position_1(S)
     end,
