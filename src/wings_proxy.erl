@@ -97,6 +97,9 @@ setup_1(D, Sel) -> {D,Sel}.
 setup_all(Activate) ->
     wings_dl:map(fun(D, _) -> setup_all(D, Activate) end, []).
 
+setup_all(#dlo{src_we=We}=D, _) when ?IS_ANY_LIGHT(We) ->
+    %% Never use proxies on lights.
+    D;
 setup_all(#dlo{src_we=#we{id=Id},proxy_data=none}=D, true) ->
     Wire0 = wings_wm:get_prop(wings_wm:this(), wireframed_objects),
     Wire = gb_sets:add(Id, Wire0),
