@@ -22,7 +22,8 @@
 -include("auv.hrl").
 -include("e3d.hrl").
 
--import(lists, [foreach/2, reverse/1, sort/1, foldl/3, min/1,max/1]).
+-import(lists, [foreach/2, reverse/1, sort/1, foldl/3]).
+-import(erlang, [min/2, max/2]).
 -import(auv_segment, [map_vertex/2]).
 
 -define(OPT_BG, [{type_sel,color},{undefined,ignore},{1.0,1.0,1.0}]).
@@ -83,7 +84,7 @@
 
 draw_options() ->
     [MaxTxs0|_] = gl:getIntegerv(?GL_MAX_TEXTURE_SIZE),
-    MaxTxs = max([min([4096,MaxTxs0]),256]),
+    MaxTxs = max(min(4096, MaxTxs0), 256),
     Prefs = get_pref(tx_prefs, pref_to_list(#opt{})),
     TexSz = proplists:get_value(texsz, Prefs, 512),
     Shaders = shaders(),
@@ -112,7 +113,7 @@ draw_options() ->
 
 render_passes(Prefs,Shaders) ->
     %% Ugly count of shaders
-    NoOfPasses = lists:max([length([ok||{{auv_pass,_},_}<- Prefs])-1,1]), 
+    NoOfPasses = max(length([ok || {{auv_pass,_},_} <- Prefs])-1, 1),
     Menu = renderers(Shaders),
     Background = 
 	{hframe, 
