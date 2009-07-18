@@ -81,7 +81,7 @@ command(_,_) ->
     next.
 
 %%%% Some temp selection
-locking(Type, #st{sel=[]}=St0) ->
+locking(Type, #st{sel=[]}=St0) when Type=/=select; Type=/=deselect ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_pick:do_pick(X, Y, St0) of
       {add,_,TempSt} ->
@@ -142,7 +142,18 @@ locking_1(deselect, #st{selmode=Selmode}=St) ->
                [{Id,NewSel} | Acc]
                end, [], St),
     St#st{sel=lists:sort(NewSel), sh=false};
+
 locking_1(select, #st{selmode=body}=St) -> St;
+locking_1(select, #st{sel=[],selmode=Selmode}=St) ->
+    Sel = fun(V,#we{pst=Pst}) ->
+        lists:member(V,gb_sets:to_list(get_locked_vs(Pst)))
+    end,
+    case Selmode =:= vertex of
+      false ->
+        wings_sel_conv:mode(Selmode,wings_sel:make(Sel, vertex, St));
+      true ->
+        wings_sel:make(Sel, vertex, St)
+    end;
 locking_1(select, #st{selmode=Selmode}=St) ->
     NewSel = wings_sel:fold(fun (Items,#we{pst=Pst,id=Id} = We,Acc) ->
                Lvs0 = get_locked_vs(Pst),
