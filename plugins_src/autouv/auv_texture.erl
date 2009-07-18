@@ -12,7 +12,7 @@
 %%
 
 -module(auv_texture).
--export([get_texture/2, draw_options/0]).
+-export([get_texture/2,draw_options/0]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -22,14 +22,13 @@
 -include("auv.hrl").
 -include("e3d.hrl").
 
--import(lists, [foreach/2, reverse/1, sort/1, foldl/3]).
--import(erlang, [min/2, max/2]).
+-import(lists, [foreach/2,reverse/1,sort/1,foldl/3,member/2]).
+-import(erlang, [min/2,max/2]).
 -import(auv_segment, [map_vertex/2]).
 
 -define(OPT_BG, [{type_sel,color},{undefined,ignore},{1.0,1.0,1.0}]).
--define(OPT_EDGES, [all_edges,{0.0,0.0,0.0}, 1.0, false]).
+-define(OPT_EDGES, [all_edges,{0.0,0.0,0.0},1.0,false]).
 -define(OPT_FACES, [texture]).
--define(OPT_LIGHT, [64]).
 
 -record(opt, {texsz = {512,512},   %% Texture size
 	      no_renderers = 4,
@@ -62,8 +61,7 @@
  	 n,         % Normal            (binary) Optional
 	 bi,        % BiNormal          (binary) Optional
 	 bb,        % BoundingBox 3D pos
-	 uvc,       % Previous uv or vertex color (binary)
-	 uvc_mode   % material (uv) or vertex
+	 vc        % Vertex colors     (binary)
 	}).
 
 -record(chart, 
@@ -77,7 +75,6 @@
 -record(fs,
 	{vs,        % triangulated vertex id in uv window [[Id1,Id2,Id3]]
 	 vse,       % face vertex id's untriangulated for edge drawings
-	 mat,       % material 
 	 id}).      % Face Id
 
 %% Menu
@@ -88,18 +85,18 @@ draw_options() ->
     Prefs = get_pref(tx_prefs, pref_to_list(#opt{})),
     TexSz = proplists:get_value(texsz, Prefs, 512),
     Shaders = shaders(),
-    Qs = [{hframe,[{menu,gen_tx_sizes(MaxTxs,[]),TexSz,
+    Qs = [{hframe,[{menu,gen_tx_sizes(MaxTxs, []),TexSz,
 		    [{key,texsz}]}],
 	   [{title,?__(1,"Size")}]},
-	  {vframe, render_passes(Prefs,Shaders), [{title,?__(2,"Render")}]},
-	  {hframe, [{button,?__(4,"New Pass"),done,[{key,add_shader}]},
-		    {button,?__(5,"Delete Unused Pass"),done,[{key,del_shader}]}]}
+	  {vframe,render_passes(Prefs, Shaders), [{title,?__(2,"Render")}]},
+	  {hframe,[{button,?__(4,"New Pass"),done,[{key,add_shader}]},
+		   {button,?__(5,"Delete Unused Pass"),done,[{key,del_shader}]}]}
 	 ],
     
     wings_ask:dialog(?__(3,"Draw Options"), Qs,
 		     fun(Options) ->
 			     {{changed,New},Opt} = list_to_prefs(Options),
-			     set_pref([{tx_prefs, pref_to_list(Opt)}]),
+			     set_pref([{tx_prefs,pref_to_list(Opt)}]),
 			     if New -> 
 				     {auv,{draw_options,restart}};
 				true  ->
@@ -111,7 +108,7 @@ draw_options() ->
 %% Menu handling
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-render_passes(Prefs,Shaders) ->
+render_passes(Prefs, Shaders) ->
     %% Ugly count of shaders
     NoOfPasses = max(length([ok || {{auv_pass,_},_} <- Prefs])-1, 1),
     Menu = renderers(Shaders),
@@ -120,22 +117,21 @@ render_passes(Prefs,Shaders) ->
 	 [{label, integer_to_list(0) ++ ": "},
 	  {menu,[{?__(1,"Background"), auv_background}],auv_background,
 	   [{key,{auv_pass,0}},layout]}, 
-	  {value, get_def(Prefs,auv_opt,0), store_opt(0)},
+	  {value,get_def(Prefs,auv_opt,0), store_opt(0)},
 	  {button,?__(2,"Options"),keep,[option_hook(0,background(),[]),
 					 drop_flags(0)]}],[]},
     Other = [{hframe, 
 	      [{label, integer_to_list(Id) ++ ": "},
-	       {menu,Menu,default_menu(Id,Prefs),
+	       {menu,Menu,default_menu(Id, Prefs),
 		[{key,{auv_pass,Id}},layout,pass_hook(Id)]}, 
-	       {value, get_def(Prefs,auv_opt,Id), store_opt(Id)},
+	       {value,get_def(Prefs, auv_opt, Id),store_opt(Id)},
 	       {button,?__(3,"Options"),keep,
-		[option_hook(Id,Menu,Shaders),
+		[option_hook(Id, Menu, Shaders),
 		 drop_flags(Id)]}],
-	      []} 
-	     || Id <- lists:seq(1,NoOfPasses)],
+	      []} || Id <- lists:seq(1, NoOfPasses)],
     [Background|Other].
 
-default_menu(Pass,Prefs) -> 
+default_menu(Pass, Prefs) ->
     case get_def(Prefs, auv_pass, Pass) of
 	ignore -> default_menu(Pass);
 	Val -> Val
@@ -146,21 +142,19 @@ default_menu(_) -> ignore.
 
 get_def(List, What, Id) ->
     case proplists:get_value({What,Id}, List) of
-	undefined when What == auv_pass -> ignore;
-	undefined when What == auv_opt  -> [];
+	undefined when What =:= auv_pass -> ignore;
+	undefined when What =:= auv_opt  -> [];
 	Val -> Val
     end.
 
 background() ->
     [{?__(1,"Background"), auv_background}].
 renderers(Shaders) ->
-    Menu0 = [{"*"++Name++"*", {shader,Id}} || 
+    Menu0 = [{"*"++Name++"*",{shader,Id}} ||
 		#sh{name=Name,id=Id} <- Shaders],
-    Menu1 = Menu0,
     [{?__(1,"None"), ignore},
      {?__(2,"Draw Edges"),auv_edges},
-     {?__(3,"Draw Faces"),auv_faces}| Menu1
-    ].
+     {?__(3,"Draw Faces"),auv_faces}|Menu0].
 
 options(auv_background, [{type_sel,Type},{Image,_},Color],_) ->
     [{hradio,[{?__(1,"Image"),image},{?__(2,"Color"),color}],
@@ -171,20 +165,15 @@ options(auv_background, [{type_sel,Type},{Image,_},Color],_) ->
       [is_enabled(color)]}];
 options(auv_background, _Bad,Sh) ->  
     options(auv_background, ?OPT_BG,Sh);
-options(auv_edges,[Type,Color,Size,UseMat],_) ->
+options(auv_edges,[Type,Color,Size,UseVtxColors],_) ->
     [{vradio,[{?__(3,"Draw All Edges"),all_edges},
 	      {?__(4,"Draw Border Edges"), border_edges}], 
       Type, []},
-     {hframe,[{label,?__(5,"Edge Color:")},{color, Color}]},
+     {hframe,[{label,?__(5,"Edge Color:")},{color,Color}]},
      {hframe,[{label,?__(6,"Edge Width:")},{text,Size,[{range,{0.0,100.0}}]}]},
-     {?__(7,"Use face material (on border edges)"), UseMat}
+     {?__(8,"Use vertex colors (on border edges)"),UseVtxColors}
     ];
 options(auv_edges,_,Sh) -> options(auv_edges,?OPT_EDGES,Sh);
-options(auv_faces,[Type],_) ->
-    [{vradio,[{?__(8,"Use Material Colors"),materials},
-	      {?__(9,"Use (previous) Texture/Vertex colors"), texture}],
-      Type, []}];
-options(auv_faces,_,Sh) -> options(auv_faces,?OPT_FACES,Sh);
 options({shader,Id},Vals,Sh) ->
     {value,Shader} = lists:keysearch(Id,#sh.id,Sh),
     shader_options(Shader,Vals);
@@ -267,7 +256,8 @@ is_enabled(Type) ->
 
 option_hook(Id,Renderers,Shaders) ->
     {hook, fun(is_disabled,{_Var,_I,Sto}) ->
-		   gb_trees:get({auv_pass,Id}, Sto) == ignore;
+		   Pass = gb_trees:get({auv_pass,Id}, Sto),
+		   Pass =:= ignore orelse Pass =:= auv_faces;
 	      (is_minimized, _) ->
 		   false;
 	      (update,{_Var,_I,_B,Sto}) ->
@@ -322,8 +312,8 @@ get_texture(St = #st{bb=#uvstate{}}, {Options,Shaders}) ->
 %% Texture Rendering
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-render_image(Geom = #ts{uv=UVpos,pos=Pos,n=Ns,bi=BiNs,uvc=Uvc,uvc_mode=Mode}, 
-	     Passes,#opt{texsz={TexW,TexH}},Reqs) ->
+render_image(#ts{uv=UVpos,pos=Pos,n=Ns,bi=BiNs,vc=Vc}=Geom,
+	     Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     
     Current = wings_wm:viewport(),
@@ -341,11 +331,8 @@ render_image(Geom = #ts{uv=UVpos,pos=Pos,n=Ns,bi=BiNs,uvc=Uvc,uvc_mode=Mode},
 	true -> gl:normalPointer(?GL_FLOAT, 0, Ns);
 	false -> ignore
     end,
-    case Mode of
-	vertex -> gl:colorPointer(3,?GL_FLOAT,0,Uvc);
-	_Other -> (catch gl:clientActiveTexture(?GL_TEXTURE0)),
-		  gl:texCoordPointer(2,?GL_FLOAT,0,Uvc)
-    end,
+
+    gl:colorPointer(3, ?GL_FLOAT, 0, Vc),
     case have_shaders() of
 	false -> ignore;
 	true  -> 
@@ -559,29 +546,23 @@ set_viewport({X,Y,W,H}=Viewport) ->
 %% Data setup 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-setup(St = #st{bb=#uvstate{id=RId, st=#st{mat=Mat,shapes=Sh0},
-			   orig_st=#st{mat=OrigMat,shapes=OrigSh}}},
-      Reqs) ->
-    We   = gb_trees:get(RId,Sh0),
-    Orig = gb_trees:get(RId,OrigSh),
-    Mats = merge_mats(gb_trees:to_list(OrigMat),Mat),
-    {Charts,{_Cnt,UVpos,Vpos,Ns,Ts,BB,Uvc}} = setup_charts(St,We,Orig,Mats,Reqs),
+setup(#st{bb=#uvstate{id=RId,st=#st{shapes=Sh0}}}=St, Reqs) ->
+    We = gb_trees:get(RId,Sh0),
+    {Charts,{_Cnt,UVpos,Vpos,Ns,Ts,BB,Vc}} = setup_charts(St, We, Reqs),
     #ts{charts=Charts,
 	uv =to_bin(UVpos,uv),
 	pos=to_bin(Vpos,pos),
 	n  =to_bin(Ns,pos),
 	bi =to_bin(Ts,pos),
 	bb = BB,
-	uvc=to_bin(Uvc,Orig#we.mode), 
-	uvc_mode=Orig#we.mode}.
+	vc=to_bin(Vc, vertex)}.
 
-setup_charts(#st{shapes=Cs0,selmode=Mode,sel=Sel},We,OrigWe,Mats,Reqs) ->
-    Ns = case lists:member(normal,Reqs) orelse lists:member(binormal,Reqs) of
+setup_charts(#st{shapes=Cs0,selmode=Mode,sel=Sel}, We, Reqs) ->
+    Ns = case member(normal, Reqs) orelse member(binormal, Reqs) of
 	     true -> setup_normals(We);
 	     false -> []
 	 end,
-    Start = {0,[],[],[],[],[],[]}, %% {UvPos,3dPos,Normal,Tangent,Uvc}
-    Mat = fun(Face) -> get_material(Face,We,OrigWe,Mats) end,
+    Start = {0,[],[],[],[],[],[]}, %% {UvPos,3dPos,Normal,Tangent,Vc}
     Shapes = if Sel =:= [] -> 
 		     gb_trees:values(Cs0);
 		Mode =:= body -> 
@@ -589,21 +570,22 @@ setup_charts(#st{shapes=Cs0,selmode=Mode,sel=Sel},We,OrigWe,Mats,Reqs) ->
 		true -> 
 		     gb_trees:values(Cs0)
 	     end,
-    Setup = fun(Ch,Acc) -> setup_chart(Ch,Mat,Ns,Reqs,We,OrigWe,Acc) end,
+    Setup = fun(Ch,Acc) ->
+		    setup_chart(Ch, Ns, Reqs, We, Acc)
+	    end,
     lists:mapfoldl(Setup, Start, Shapes).
 
-setup_chart(Uv = #we{id=Id},Mat,Ns,Reqs,WWe,OWe,State0) ->
-    OEs0 = outer_verts(Uv), 
+setup_chart(#we{id=Id}=Ch, Ns, Reqs, WWe, State0) ->
+    OEs0 = outer_verts(Ch),
     BB = [],
     {Fs,{OEs,UvBB,State}}  = 
-	create_faces(Uv,WWe,OWe,Ns,Mat,Reqs,{OEs0,BB,State0}),
+	create_faces(Ch, WWe, Ns, Reqs, {OEs0,BB,State0}),
     {#chart{id=Id,fs=Fs,oes=OEs,bb_uv=UvBB},State}.
 
-create_faces(We = #we{vp=Vtab,name=#ch{vmap=Vmap}},
-	     RWe = #we{vp=Vt3d},OWe=#we{mode=OldMode},
-	     NTab,GetMat,Reqs,State) ->
+create_faces(#we{vp=Vtab,name=#ch{vmap=Vmap}}=We,
+	     #we{vp=Vt3d}=RealWe, NTab, Reqs, State) ->
     Fs = wings_we:visible(We),
-    C=fun(Face,{OEs,UvBB,{Cnt,UVpos,Vpos,Ns,Ts,PosBB,Uvc}}) ->
+    C=fun(Face,{OEs,UvBB,{Cnt,UVpos,Vpos,Ns,Ts,PosBB,Vc}}) ->
 	      Vs0 = wings_face:vertices_ccw(Face,We),
 	      UVcoords = [array:get(V, Vtab) || V <- Vs0],
 	      Coords   = [array:get(map_vertex(V,Vmap),Vt3d) 
@@ -614,10 +596,10 @@ create_faces(We = #we{vp=Vtab,name=#ch{vmap=Vmap}},
 			    true ->
 				fix_normals(Vs0, Vmap,
 					    wings_va:face_attr([vertex|uv],
-							       Face,RWe),
+							       Face, RealWe),
 					    gb_trees:get(Face,NTab))
 			end,
-	      OldUvc  = fix_uvc(Vs0,Face,OWe,Vmap,OldMode),
+	      OldVc  = fix_vc(Vs0, Face, RealWe, Vmap),
 	      Len = length(Vs0),
 	      FaceVs = lists:seq(0, Len-1),
 	      Vs = case Len of
@@ -627,9 +609,8 @@ create_faces(We = #we{vp=Vtab,name=#ch{vmap=Vmap}},
 %	      io:format("Face ~p Normals ~p~n", [Face,Normals]),
 	      Tangents = fix_tang_vecs(Vs,Coords,UVcoords,Normals,Reqs), 
 	      Indx = fun(I) -> [V+Cnt || V <- I] end,
-	      Mat  = GetMat(Face),
-	      {#fs{vs=Indx(Vs),vse=Indx(FaceVs),mat=Mat,id=Face},
-	       {map_oes(OEs,Vs0,Cnt+Len-1,Face,Mat),
+	      {#fs{vs=Indx(Vs),vse=Indx(FaceVs),id=Face},
+	       {map_oes(OEs, Vs0, Cnt+Len-1, Face),
 		e3d_vec:bounding_box(UvBB ++ UVcoords),
 		{Cnt+Len,
 		 UVcoords ++ UVpos,
@@ -637,7 +618,7 @@ create_faces(We = #we{vp=Vtab,name=#ch{vmap=Vmap}},
 		 Normals  ++ Ns,
 		 Tangents ++ Ts,
 		 e3d_vec:bounding_box(PosBB ++ Coords),
-		 OldUvc   ++ Uvc}}}
+		 OldVc   ++ Vc}}}
       end,
     lists:mapfoldl(C, State, Fs).
 
@@ -646,16 +627,16 @@ triangulate(FaceVs,Vcoords) ->
     T3dfaces = e3d_mesh:triangulate_face(E3dface, Vcoords),
     lists:append([FVs || #e3d_face{vs=FVs} <- T3dfaces]).
 
-map_oes([[A,B,Face]|OEs],Vs0,Cnt,Face,Mat) ->
-    MA = member(A,Vs0,Cnt),
-    MB = member(B,Vs0,Cnt),
-    [[MA,MB,Mat]|map_oes(OEs,Vs0,Cnt,Face,Mat)];
-map_oes([Other|OEs],Vs0,Cnt,Face,Mat) ->
-    [Other|map_oes(OEs,Vs0,Cnt,Face,Mat)];
-map_oes([],_,_,_,_) -> [].
+map_oes([[A,B,Face]|OEs], Vs0, Cnt, Face) ->
+    MA = find_index(A, Vs0, Cnt),
+    MB = find_index(B, Vs0, Cnt),
+    [[MA,MB,Face]|map_oes(OEs, Vs0, Cnt, Face)];
+map_oes([Other|OEs], Vs0, Cnt, Face) ->
+    [Other|map_oes(OEs, Vs0, Cnt, Face)];
+map_oes([], _, _, _) -> [].
 
-member(Val,[Val|_],Pos) -> Pos;
-member(Val,[_|R],Pos) -> member(Val,R,Pos-1).
+find_index(Val, [Val|_], Pos) -> Pos;
+find_index(Val, [_|R], Pos) -> find_index(Val, R, Pos-1).
 
 fix_normals(Vs,Vmap,VsI,Ns0) -> %% can be different order 
     fix_normals(Vs,n_zip(VsI,Ns0),Vmap).  
@@ -685,22 +666,21 @@ binormals(Normals,FaceNormal) ->
 	end,
     [R(N) || N <- Normals].
    
-fix_uvc(Vs,Face,OWe,Vmap,Mode) ->
+fix_vc(Vs, Face, We, Vmap) ->
     try 
-	Uvc = wings_va:face_attr([vertex|uv], Face, OWe),
-	fix_uvc1(Vs,Uvc,Vmap,Mode,[])
+	Uvc = wings_va:face_attr([vertex|color], Face, We),
+	fix_vc1(Vs, Uvc, Vmap, [])
     catch error:_ ->
-	    fix_uvc1(Vs,[],Vmap,Mode,[])
+	    fix_vc1(Vs, [], Vmap, [])
     end.
-fix_uvc1([V|Vs],Uvc,Vmap,Mode, Acc) ->
-    Val = case find(map_vertex(V,Vmap),Uvc) of
-	      Color = {_,_,_} when Mode == vertex ->  Color;
-	      _ when Mode == vertex -> {1.0,1.0,1.0};
-	      Uv = {_,_} -> Uv;
-	      _ -> {0.0,0.0}
+
+fix_vc1([V|Vs], Uvc, Vmap, Acc) ->
+    Val = case find(map_vertex(V, Vmap), Uvc) of
+	      {_,_,_}=Color ->  Color;
+	      _ -> {1.0,1.0,1.0}
 	  end,
-    fix_uvc1(Vs,Uvc,Vmap,Mode,[Val|Acc]);
-fix_uvc1([],_,_,_,Acc) -> reverse(Acc).
+    fix_vc1(Vs, Uvc, Vmap, [Val|Acc]);
+fix_vc1([], _, _, Acc) -> reverse(Acc).
 
 find(V, [[V|Info]|_R]) -> Info;
 find(V, [_|R]) -> find(V,R);
@@ -720,22 +700,6 @@ setup_normals(We = #we{fs=Ftab}) ->
     FN0	= [{Face,wings_face:normal(Face, We)} || Face <- gb_trees:keys(Ftab)],
     Ns = wings_we:normals(FN0, We, none),
     gb_trees:from_orddict(sort(Ns)).
-
-get_material(Face, We, OrigWe, Materials) ->
-    Mat1 = wings_facemat:face(Face,We),
-    Mat = try
-	      case reverse(atom_to_list(Mat1)) of
-		  "vua_" ++ _ -> 
-		      try wings_facemat:face(Face,OrigWe)
-		      catch _:_ -> Mat1
-		      end;
-		  _ ->
-		      Mat1
-	      end
-	  catch _:_ ->
-		  Mat1
-	  end,
-    gb_trees:get(Mat, Materials).
 
 outer_verts(We = #we{es=Etab}) ->
     Fs = wings_we:visible(We),
@@ -763,24 +727,12 @@ to_bin3to2([{A,B,_}|R],Acc) ->
     to_bin3to2(R,[<<A:32/native-float,B:32/native-float>>|Acc]);
 to_bin3to2([],Acc) -> list_to_binary(Acc).
 
-%%
-%% Workaround for ATI gl:'end' doesn't bite for line loop/strip...
+%% Workaround for ATI: gl:'end' doesn't bite for line loop/strip...
 vs_lines([A|R=[B|_]],Last) ->
     [A,B|vs_lines(R,Last)];
 vs_lines([B],Last) ->
     [B,Last].
 
-merge_mats([{MatName,Mat}|R], Mats) ->
-    case gb_trees:is_defined(MatName, Mats) of
-	true ->
-	    merge_mats(R, Mats);
-	false ->
-	    %% This can happen if the material has been deleted
-	    %% from the Outliner after entering the AutoUV window.
-	    merge_mats(R, gb_trees:insert(MatName, Mat, Mats))
-    end;
-merge_mats([], Mats) -> Mats.
-	     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Builtin Shader Passes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -837,8 +789,7 @@ pass({auv_edges, [all_edges,Color,Width,_UseMat]},_) ->
     end;
 pass({auv_edges, [border_edges,Color,Width,UseMat]},_) -> 
     R= fun(#chart{oes=Es}) when UseMat ->
-	       Draw = fun([A,B,Mat]) ->
-			      gl:color4fv(get_diffuse(Mat)),
+	       Draw = fun([A,B,_]) ->
 			      gl:drawElements(?GL_LINES,2,?GL_UNSIGNED_INT,[A,B])
 		      end,
 	       foreach(Draw,Es);
@@ -850,45 +801,30 @@ pass({auv_edges, [border_edges,Color,Width,UseMat]},_) ->
 	    gl:color3fv(Color),
 	    gl:lineWidth(Width),
 	    gl:enableClientState(?GL_VERTEX_ARRAY),
+	    gl:enableClientState(?GL_COLOR_ARRAY),
 	    gl:disable(?GL_DEPTH_TEST),
 	    foreach(R, Charts),
+	    gl:disableClientState(?GL_COLOR_ARRAY),
 	    gl:disableClientState(?GL_VERTEX_ARRAY)
     end;
 pass({auv_edges, _},Sh) ->
     pass({auv_edges, ?OPT_EDGES},Sh);
 
-pass({auv_faces, [Type]},_) ->
-    fun(#ts{charts=Charts,uvc_mode=Mode},_) ->  
+pass({auv_faces,[_]},_) ->
+    fun(#ts{charts=Charts}, _) ->
 	    gl:disable(?GL_DEPTH_TEST),
 	    gl:disable(?GL_ALPHA_TEST),
 	    gl:enable(?GL_BLEND),	   
 	    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
 	    gl:enableClientState(?GL_VERTEX_ARRAY),
 	    gl:clientActiveTexture(?GL_TEXTURE0),
-	    R = case Type of
-		    materials ->			
-			fun(#fs{vs=Vs,mat=Mat}) ->
-				gl:color4fv(get_diffuse(Mat)),
-				gl:drawElements(?GL_TRIANGLES,length(Vs),
-						?GL_UNSIGNED_INT,Vs)
-			end;
-		    _ when Mode == vertex -> 
-			gl:enableClientState(?GL_COLOR_ARRAY),
-			fun(#fs{vs=Vs}) ->
-				gl:drawElements(?GL_TRIANGLES,length(Vs),
-						?GL_UNSIGNED_INT,Vs)
-			end;
-		    _ -> 
-			gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),
-			fun(#fs{vs=Vs,mat=Mat}) ->
-				set_diffuse_tx(Mat),
-				gl:drawElements(?GL_TRIANGLES,length(Vs),
-						?GL_UNSIGNED_INT,Vs)
-			end
+	    gl:enableClientState(?GL_COLOR_ARRAY),
+	    R = fun(#fs{vs=Vs}) ->
+			gl:drawElements(?GL_TRIANGLES,length(Vs),
+					?GL_UNSIGNED_INT,Vs)
 		end,
-	    erase({?MODULE,use_tx}),
 	    gl:disable(?GL_TEXTURE_2D),
-	    foreach(fun(#chart{fs=Fs}) -> foreach(R,Fs) end,Charts),
+	    foreach(fun(#chart{fs=Fs}) -> foreach(R, Fs) end, Charts),
 	    gl:disable(?GL_TEXTURE_2D),
 	    gl:disableClientState(?GL_VERTEX_ARRAY),
 	    gl:disableClientState(?GL_COLOR_ARRAY),
@@ -1057,32 +993,6 @@ get_requirements(Shaders) ->
     lists:foldl(fun(#sh{reqs=List},Acc) ->
 			List ++ Acc
 		end, [], Shaders).
-
-%%%%%%%%%%%%%%%% 
-%% Materials
-get_diffuse(Mat) ->
-    proplists:get_value(diffuse, proplists:get_value(opengl, Mat)).
-
-set_diffuse_tx(Mat) ->
-    case get({?MODULE,use_tx}) of
-	Mat -> ok;
-	_ ->
-	    Maps = proplists:get_value(maps, Mat),
-	    Ogl = proplists:get_value(opengl,Mat),
-	    gl:color4fv(proplists:get_value(diffuse,Ogl)),
-	    case proplists:get_value(diffuse, Maps, none) of
-		none ->
-		    gl:disable(?GL_TEXTURE_2D),
-		    put({?MODULE,use_tx},Mat),
-		    false;
-		Diff0 ->
-		    gl:enable(?GL_TEXTURE_2D),
-		    Diff = wings_image:txid(Diff0),
-		    gl:bindTexture(?GL_TEXTURE_2D,Diff),
-		    put({?MODULE,use_tx},Mat),
-		    true
-	    end
-    end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Shader loading/handling 

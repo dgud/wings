@@ -25,9 +25,7 @@
 	 bg_img,           %% The background image
 	 id,               %% The we id of the shape we are working with.
 	 mode=object,      %% object mode or a gb_sets of faces which we are editing
-	 st,               %% Wings working 'st', i.e. no autouv stuff in this one
-	 orig_st           %% A copy of entering 'st', to keep orig
-	                   %% uv-coords/vertex-colors and materials. 
+	 st                %% Wings working 'st', i.e. no autouv stuff in this one
 	}).
 
 -define(HOLE, 'Ignore Chart').

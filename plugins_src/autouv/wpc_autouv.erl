@@ -88,9 +88,9 @@ start_uvmap_1([{Id,_}|T], Action, St) ->
 	    wings_wm:send(SegWin, {add_faces,Fs,St}),
 	    wings_wm:raise(SegWin);
 	Op when element(1,Op) == edit ->	    
-	    create_window(Op, EditWin, Id, St,St);
+	    create_window(Op, EditWin, Id, St);
 	Op ->	    
-	    create_window(Op, SegWin, Id, St,St)
+	    create_window(Op, SegWin, Id, St)
     end,
     start_uvmap_1(T, Action, St);
 start_uvmap_1([], _, _) -> keep.
@@ -121,7 +121,7 @@ segment_or_edit(segment_old,Id,#st{selmode=face,sel=Sel}) ->
 segment_or_edit(segment_old,_Id,_) ->
     {seg_ui,object,keep_old}.
 	    
-create_window(Action, Name, Id, #st{shapes=Shs}=St, OrigSt) ->
+create_window(Action, Name, Id, #st{shapes=Shs}=St) ->
     #we{name=ObjName} = We = gb_trees:get(Id, Shs),
     Op = {replace,fun(Ev) -> auv_event(Ev, St) end},
     Segment = if element(1,Action) == edit -> ""; true -> ?__(1,"Segmenting") end,
@@ -133,12 +133,12 @@ create_window(Action, Name, Id, #st{shapes=Shs}=St, OrigSt) ->
     wings_wm:toplevel(Name, Title, {X,Y,highest}, {W,H},
 		      [resizable,closable,menubar,{properties,Props},
 		       {toolbar,CreateToolbar}], Op),
-    wings_wm:send(Name, {init,{Action,We},OrigSt}).
+    wings_wm:send(Name, {init,{Action,We}}).
 
-auv_event({init,Op,OrigSt}, St) ->
+auv_event({init,Op}, St) ->
     wings:init_opengl(St),
     case Op of
-	{{edit,What},We} -> start_edit(What, We, St, OrigSt);
+	{{edit,What},We} -> start_edit(What, We, St);
 	{{seg_ui,_,Oper},We} ->  auv_seg_ui:start(Oper, We, We, St)
     end;
 auv_event(redraw, _) ->
@@ -153,7 +153,7 @@ auv_event(_Ev, _) -> keep.
 %%% Start the UV editor.
 %%%
 
-start_edit(Mode, We, St, OrigSt) ->
+start_edit(Mode, We, St) ->
     MatNames0 = wings_facemat:all(We),
     MatNames1 = sofs:from_external(MatNames0, [{face,material}]),
     MatNames2 = sofs:converse(MatNames1),
@@ -162,13 +162,13 @@ start_edit(Mode, We, St, OrigSt) ->
     MatNames = [Mat || {Name,_}=Mat <- MatNames4, get_texture(Name, St) /= false],
     case MatNames of
 	[{MatName,_}] ->
-	    do_edit(MatName, Mode, We, St, OrigSt);
+	    do_edit(MatName, Mode, We, St);
 	_ ->
-	    do_edit(none, Mode, We, St,OrigSt)
+	    do_edit(none, Mode, We, St)
     end.
 
-do_edit(MatName, Mode, We, GeomSt, OrigSt) ->
-    AuvSt = create_uv_state(gb_trees:empty(), MatName, Mode, We, GeomSt,OrigSt),
+do_edit(MatName, Mode, We, GeomSt) ->
+    AuvSt = create_uv_state(gb_trees:empty(), MatName, Mode, We, GeomSt),
     new_geom_state(GeomSt, AuvSt).
 
 init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
@@ -176,7 +176,7 @@ init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
     Charts  = gb_trees:from_orddict(keysort(1, Charts1)),
     MatName0 = list_to_atom(WeName++"_auv"),
     {GeomSt1,MatName} = 
-	case gb_trees:is_defined(MatName0,GeomSt0#st.mat) of
+	case gb_trees:is_defined(MatName0, GeomSt0#st.mat) of
 	    true -> 
 		{GeomSt0,MatName0};
 	    false ->
@@ -190,12 +190,12 @@ init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
 	    wings_wm:send(EditWin, {add_faces,Fs,GeomSt}),
 	    wings_wm:send(geom, {new_state,GeomSt});
 	false ->
-	    create_window({edit,Fs},EditWin,Id,GeomSt,GeomSt0),
+	    create_window({edit,Fs}, EditWin, Id, GeomSt),
 	    wings_wm:send(geom, {new_state,GeomSt})
     end,
     GeomSt.
 
-create_uv_state(Charts, MatName, Fs, We, GeomSt = #st{shapes=Shs0},OrigSt) ->
+create_uv_state(Charts, MatName, Fs, We, #st{shapes=Shs0}=GeomSt) ->
     wings:mode_restriction([vertex,edge,face,body]),
     wings_wm:current_state(#st{selmode=body,sel=[]}),
 
@@ -210,7 +210,6 @@ create_uv_state(Charts, MatName, Fs, We, GeomSt = #st{shapes=Shs0},OrigSt) ->
 		   id      = We#we.id,
 		   mode    = Fs,
 		   bg_img  = Image,
-		   orig_st = OrigSt,
 		   matname = MatName},
     St = FakeGeomSt#st{selmode=body,sel=[],shapes=Charts,bb=Uvs,
 		       repeatable=ignore,ask_args=none,drag_args=none},
