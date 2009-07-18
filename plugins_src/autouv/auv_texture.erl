@@ -14,8 +14,6 @@
 -module(auv_texture).
 -export([get_texture/2, draw_options/0]).
 
--compile(export_all).
-
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -define(ERROR, error(?LINE)).
@@ -158,10 +156,6 @@ renderers(Shaders) ->
     Menu0 = [{"*"++Name++"*", {shader,Id}} || 
 		#sh{name=Name,id=Id} <- Shaders],
     Menu1 = Menu0,
-%%     Menu1 = case Shaders of 
-%% 		[] -> Menu0;
-%% 		_ -> [{?__(4, "Lights"), auv_light}|Menu0]
-%% 	    end,
     [{?__(1,"None"), ignore},
      {?__(2,"Draw Edges"),auv_edges},
      {?__(3,"Draw Faces"),auv_faces}| Menu1
@@ -190,9 +184,6 @@ options(auv_faces,[Type],_) ->
 	      {?__(9,"Use (previous) Texture/Vertex colors"), texture}],
       Type, []}];
 options(auv_faces,_,Sh) -> options(auv_faces,?OPT_FACES,Sh);
-options(auv_light,[Size],_Sh) -> 
-    [{hframe,[{label,?__(10,"No Lights:")},{text,Size,[{range,{4,100}}]}]}];
-options(auv_light,_,Sh) -> options(auv_light,?OPT_LIGHT,Sh);
 options({shader,Id},Vals,Sh) ->
     {value,Shader} = lists:keysearch(Id,#sh.id,Sh),
     shader_options(Shader,Vals);
@@ -674,12 +665,9 @@ fix_normals([],_,_) -> [].
 fix_tang_vecs(_,_,_,[],_) -> [];
 fix_tang_vecs(_Vs,Coords,_UVCoords,Normals,Reqs) ->
     case lists:member(binormal,Reqs) of
-	true -> % Not tested enough, but I think it's better 
-% 	    All = fix_tang_vecs1(Vs,Coords,UVCoords,Normals,[]),
-% 	    R1 = fix_tang_vecs2(sort(All),[]),
-	    R2 = binormals(Normals,e3d_vec:normal(Coords)),
-%	    io:format("~p~n~p~n~n",[R1,R2]),
-	    R2;
+	true ->
+	    %% Not tested enough, but I think it's better
+	    binormals(Normals,e3d_vec:normal(Coords));
 	false ->
 	    []
     end.
@@ -695,61 +683,7 @@ binormals(Normals,FaceNormal) ->
 		e3d_vec:norm(e3d_vec:cross(Bi,N))
 	end,
     [R(N) || N <- Normals].
-
-%%% This code should be inside wings somewhere its copied 
-%%% from wpc_opengl.erl
-fix_tang_vecs1([A,B,C|Vs],Coords,UVCoords,Normals,Acc) ->
-    {UV1x,UV1y,_} = lists:nth(A+1,UVCoords),
-    {UV2x,UV2y,_} = lists:nth(B+1,UVCoords),
-    {UV3x,UV3y,_} = lists:nth(C+1,UVCoords),
-    V1 = lists:nth(A+1,Coords),N1 = lists:nth(A+1,Coords),
-    V2 = lists:nth(B+1,Coords),N2 = lists:nth(B+1,Coords),
-    V3 = lists:nth(C+1,Coords),N3 = lists:nth(C+1,Coords),
-    TBN1 = calcTS(V3,V1,V2,UV3x,UV3y,UV1x,UV1y,UV2x,UV2y,N1),
-    TBN2 = calcTS(V1,V2,V3,UV1x,UV1y,UV2x,UV2y,UV3x,UV3y,N2),
-    TBN3 = calcTS(V2,V3,V1,UV2x,UV2y,UV3x,UV3y,UV1x,UV1y,N3),
-    fix_tang_vecs1(Vs,Coords,UVCoords,Normals,
-		   [{A,TBN1},{B,TBN2},{C,TBN3}|Acc]);
-fix_tang_vecs1([],_Coords,_UVCoords,_Normals,Acc) -> 
-    Acc.
    
-calcTS(V1,V2,V3,S1,T1,S2,T2,S3,T3,N) ->
-    Side1 = e3d_vec:sub(V1,V2),
-    Side2 = e3d_vec:sub(V3,V2),
-    DT1 = T1-T2,
-    DT2 = T3-T2,
-    Stan1 = e3d_vec:norm(e3d_vec:sub(e3d_vec:mul(Side1,DT2),
-				     e3d_vec:mul(Side2,DT1))),	    
-    DS1 = S1-S2,
-    DS2 = S3-S2,
-    Ttan1 = e3d_vec:norm(e3d_vec:sub(e3d_vec:mul(Side1,DS2),
-				     e3d_vec:mul(Side2,DS1))),
-    %% OK we have the 2 tangents but cross them again with normal
-    %% so they are orthogonal
-    Stan  = e3d_vec:norm(e3d_vec:cross(Ttan1,N)),
-    Ttan  = e3d_vec:norm(e3d_vec:cross(Stan1,N)),
-    check_coordsys(Stan,Ttan,N).
-
-fix_tang_vecs2([{_,{S1,_,_}},{_,{S2,_,_}},{_,{S3,_,_}}],[]) ->
-    [S1,S2,S3];
-fix_tang_vecs2(List=[{Id,{_,_,N}}|_], Acc) ->
-    {Stans,R} = get_same(Id, List,[]),
-    T = e3d_vec:cross(e3d_vec:average(Stans),N),
-    fix_tang_vecs2(R,[e3d_vec:norm(T)|Acc]);
-fix_tang_vecs2([],Acc) ->
-    lists:reverse(Acc).
-
-get_same(Id, [{Id,{S,_,_}}|R],Acc) ->
-    get_same(Id,R,[S|Acc]);
-get_same(_,R,Acc) -> {Acc,R}.
-
-check_coordsys(Stan,Ttan,N) ->
-    Check = e3d_vec:dot(e3d_vec:cross(Stan,Ttan),N),
-    if 
-	Check < 0.0 -> {e3d_vec:mul(Stan,-1.0),e3d_vec:mul(Ttan,-1.0),N};
-	true ->        {Stan,Ttan,N}
-    end.
-
 fix_uvc(Vs,Face,OWe,Vmap,Mode) ->
     try 
 	Uvc = wings_va:face_attr([vertex|uv], Face, OWe),
@@ -828,8 +762,8 @@ to_bin3to2([{A,B,_}|R],Acc) ->
     to_bin3to2(R,[<<A:32/native-float,B:32/native-float>>|Acc]);
 to_bin3to2([],Acc) -> list_to_binary(Acc).
 
-%
-% Workaround for ATI gl:'end' doesn't bite for line loop/strip..
+%%
+%% Workaround for ATI gl:'end' doesn't bite for line loop/strip...
 vs_lines([A|R=[B|_]],Last) ->
     [A,B|vs_lines(R,Last)];
 vs_lines([B],Last) ->
@@ -889,9 +823,6 @@ pass({auv_edges, [all_edges,Color,Width,_UseMat]},_) ->
 			     Patched = vs_lines(Vs,hd(Vs)),
 			     gl:drawElements(?GL_LINES,length(Patched),
 					     ?GL_UNSIGNED_INT,Patched)
-%%                     Doesn't work
-%% 			     gl:drawElements(?GL_LINE_LOOP,length(Vs),
-%% 					     ?GL_UNSIGNED_INT,Vs) 
 			     end,
 	      foreach(Draw,Fs)
       end,
@@ -964,33 +895,6 @@ pass({auv_faces, [Type]},_) ->
     end;
 pass({auv_faces, _},Sh) ->
     pass({auv_faces,?OPT_FACES},Sh);
-pass({auv_light, _},_Sh) ->
-%%     Circle = fun(N, Y, R) ->
-%% 		     Delta = math:pi()*2 / N,
-%% 		     [{R*math:cos(I*Delta), Y, R*math:sin(I*Delta)} 
-%% 		      || I <- lists:seq(0, N-1)]
-%% 	     end,
-%%     Sphere = fun(Ns,Nl) ->
-%% 		     Delta = math:pi() / Nl,
-%% 		     PosAndRads= [{math:cos(I*Delta), math:sin(I*Delta)} 
-%% 				  || I <- lists:seq(1, Nl-1)],
-%% 		     Circles = [Circle(Ns, Pos, Rad) || {Pos, Rad} <- PosAndRads],
-%% 		     lists:flatten(Circles)
-%% 	     end,
-%%  Lights = Sphere(8,4) ++ [{0.0,1.0,0.0}, {0.0,-1.0,0.0}],
-    Ligths = [{1.0,0.0,0.0}],
-    
-    VsS = wings_gl:compile(vertex, read_file("light1.vs")),
-    LP1 = wings_gl:link_prog([VsS]),
-    io:format("Light Prog ~p ~n",[LP1]),
-
-    fun(Ts = #ts{bb=BB=[Min,Max]},_) ->
-	    Center = e3d_vec:average(BB),
-	    Dist   = e3d_vec:dist(Min,Max),
-	    PM = get_lightProjM(Dist),
-	    render_lights(Ligths, PM, 10.0+Dist, Center,LP1,Ts)
-    end;
-
 pass({{shader,Id}, Opts},{Sh,Compiled}) ->
     shader_pass(lists:keysearch(Id,#sh.id,Sh),
 		lists:keysearch(Id,1,Compiled),Opts);
@@ -1152,72 +1056,6 @@ get_requirements(Shaders) ->
     lists:foldl(fun(#sh{reqs=List},Acc) ->
 			List ++ Acc
 		end, [], Shaders).
-
-%%%%%%%%%%%% Ligth shader funcs
-
-get_lightProjM(Dist) ->
-    %% Calc ProjMatrix
-    gl:matrixMode(?GL_PROJECTION),
-    gl:pushMatrix(),
-    gl:loadIdentity(),
-    Sz     = Dist*math:tan(45*math:pi()/180/2),
-    gl:ortho(-Sz, Sz, -Sz, Sz, 1.0, Dist*2+10),
-    PM = gl:getDoublev(?GL_PROJECTION_MATRIX),
-    gl:popMatrix(),
-    PM.
-
-id(Id) ->
-    <<R:8,G:8,B:8,A:8>> = <<Id:32/big>>,
-    V = {A/255,B/255,G/255,(255-R)/255},
-    io:format("~p ~n",[V]),
-    V.
-
-render_lights([{Lx,Ly,Lz}| Ligths], PM, Dist, C={Cx,Cy,Cz}, LP1,Ts = #ts{charts=Charts}) ->
-    io:format("~p ~p ~p ~n", [C, Dist, {Lx,Ly,Lz}]),
-    gl:matrixMode(?GL_PROJECTION),  gl:pushMatrix(),  gl:loadMatrixd(PM),
-    gl:matrixMode(?GL_MODELVIEW),   gl:pushMatrix(),  gl:loadIdentity(),
-    glu:lookAt(Lx*Dist,Ly*Dist,Lz*Dist,Cx,Cy,Cz,0.0,1.0,0.0),
-    gl:clear(?GL_DEPTH_BUFFER_BIT bor ?GL_COLOR_BUFFER_BIT),
-%%    gl:enable(?GL_CULL_FACE),
-    gl:enable(?GL_DEPTH_TEST), 
-    gl:disable(?GL_BLEND), 
-    gl:disable(?GL_ALPHA_TEST), 
-    gl:disable(?GL_TEXTURE_2D), 
-    gl:shadeModel(?GL_FLAT),
-    gl:cullFace(?GL_BACK),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:disableClientState(?GL_COLOR_ARRAY),
-    gl:clientActiveTexture(?GL_TEXTURE1),
-    gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),
-
-    gl:useProgram(LP1),    
-    
-    R = fun(#fs{vs=Vs,id=Id}) ->
-		%% gl:color4ubv(id(Id)),
-		%% XXX The following line is broken. id/1 returns a tuple,
-		%% but a list of tuples is needed for argument 3.
-		wings_gl:set_uloc(LP1, "id", id(Id)),
-		gl:drawElements(?GL_TRIANGLES,length(Vs),
-				?GL_UNSIGNED_INT,Vs)
-	end,
-    foreach(fun(#chart{fs=Fs}) -> foreach(R,Fs) end,Charts),
-    gl:popMatrix(),
-    gl:matrixMode(?GL_PROJECTION),
-    gl:popMatrix(),
-    
-%%     %% Pass 2
-%%     gl:useProgram(Vert2d),
-%%     MVP = e3d_mat:mul(MM,PM),
-%%     foreach(fun(#chart{fs=Fs}) -> foreach(R,Fs) end,Charts),
-    
-%%     %% Hmm kan vi verkligen använda DEPTH_BUFFERN HÄR utan 
-%%     %% att swappa render buffers?
-    render_lights(Ligths, PM, Dist, C, LP1, Ts);
-render_lights([],_,_,_,LP1,_) -> 
-    gl:deleteProgram(LP1),
-    ok.
-
-%%%%%%%%%%%% Ligth shader funcs
 
 %%%%%%%%%%%%%%%% 
 %% Materials
