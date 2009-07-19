@@ -484,14 +484,9 @@ prepare_1(Ftab, We, St) ->
 		    {material,prepare_mat(Ftab, We)}
 	    end;
 	[color] ->
-	    case {wings_pref:get_value(show_colors),Ftab} of
-		{false,[{_,Edge}|_]} when is_integer(Edge) ->
-		    Fs0 = sofs:from_external(Ftab, [{face,edge}]),
-		    Fs1 = sofs:domain(Fs0),
-		    Fs = sofs:to_external(Fs1),
-		    {material,[{{color,wings_color:white()},Fs}]};
-		{true,_} ->
-		    {color,Ftab,We}
+	    case wings_pref:get_value(show_colors) of
+		false -> {material,[{default,Ftab}]};
+		true -> {color,Ftab,We}
 	    end
     end.
 
