@@ -81,7 +81,7 @@ command(_,_) ->
     next.
 
 %%%% Some temp selection
-locking(Type, #st{sel=[]}=St0) when Type=/=select; Type=/=deselect ->
+locking(Type, #st{sel=[]}=St0) when Type =:= mask; Type =:= unmask ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_pick:do_pick(X, Y, St0) of
       {add,_,TempSt} ->
@@ -97,7 +97,10 @@ locking_1(mask, #st{selmode=Selmode}=St) ->
     wings_sel:map(fun
            (Sel, #we{pst=Pst}=We) ->
               Lvs = get_locked_vs(Pst),
-              Vertices = convert_to_vs(Selmode,We,Sel),
+              Vertices = case Selmode =:= vertex of
+                false -> gb_sets:from_list(convert_to_vs(Selmode,Sel,We));
+                true -> Sel
+              end,
               Locked = gb_sets:union(Lvs, Vertices),
               NewPst = set_locked_vs(Locked,Pst),
               We#we{pst=NewPst}
@@ -106,7 +109,10 @@ locking_1(unmask, #st{selmode=Selmode}=St) ->
     wings_sel:map(fun
            (Sel, #we{pst=Pst}=We) ->
               Lvs = get_locked_vs(Pst),
-              Vertices = convert_to_vs(Selmode,We,Sel),
+              Vertices = case Selmode =:= vertex of
+                false -> gb_sets:from_list(convert_to_vs(Selmode,Sel,We));
+                true -> Sel
+              end,
               Locked = gb_sets:difference(Lvs, Vertices),
               NewPst = set_locked_vs(Locked,Pst),
               We#we{pst=NewPst}
@@ -133,48 +139,89 @@ locking_1(invert_masked, #st{}=St) ->
             end,St);
 
 locking_1(deselect,#st{sel=[]}=St) -> St;
-locking_1(deselect, #st{selmode=body}=St) -> St;
-locking_1(deselect, #st{selmode=Selmode}=St) ->
-    NewSel = wings_sel:fold(fun (Items,#we{pst=Pst,id=Id} = We,Acc) ->
-               Lvs0 = get_locked_vs(Pst),
-               LockedCurSelmode = convert_vs_to_selmode(Selmode,Lvs0,We),
-               NewSel = gb_sets:subtract(Items,LockedCurSelmode),
-               [{Id,NewSel} | Acc]
-               end, [], St),
-    St#st{sel=lists:sort(NewSel), sh=false};
-
-locking_1(select, #st{selmode=body}=St) -> St;
+locking_1(select, #st{sel=[],selmode=body}=St) ->
+    Sel = fun(_,#we{pst=Pst}) ->
+            not gb_sets:is_empty(get_locked_vs(Pst))
+          end,
+    wings_sel:make(Sel,body,St);
 locking_1(select, #st{sel=[],selmode=Selmode}=St) ->
-    Sel = fun(V,#we{pst=Pst}) ->
-        lists:member(V,gb_sets:to_list(get_locked_vs(Pst)))
+    Sel = locked_vs_as_selection(Selmode),
+    wings_sel:make(Sel, Selmode, St);
+locking_1(Type, #st{sel=OrigSel,selmode=body}=St) ->
+    Sel0 = fun(_,#we{pst=Pst}) ->
+            not gb_sets:is_empty(get_locked_vs(Pst))
+          end,
+    #st{sel=Sel1} = wings_sel:make(Sel0,body,St),
+    Sel = case Type of
+      select -> union(OrigSel, Sel1);
+      deselect -> subtract(OrigSel, Sel1)
     end,
-    case Selmode =:= vertex of
-      false ->
-        wings_sel_conv:mode(Selmode,wings_sel:make(Sel, vertex, St));
-      true ->
-        wings_sel:make(Sel, vertex, St)
+    St#st{sel=Sel,sh=false};
+locking_1(Type, #st{sel=OrigSel,selmode=Selmode}=St) ->
+    LvsSel0 = locked_vs_as_selection(Selmode),
+    #st{sel=LvsSel} = wings_sel:make(LvsSel0,Selmode,St),
+    Sel = case Type of
+      select -> union(OrigSel, LvsSel);
+      deselect -> subtract(OrigSel, LvsSel)
+    end,
+    St#st{sel=Sel,sh=false}.
+
+locked_vs_as_selection(Selmode) ->
+    fun(Elem,#we{pst=Pst}=We) ->
+        Vs = convert_to_vs(Selmode,[Elem],We),
+        Lvs = get_locked_vs(Pst),
+        is_in_locked_vs(Vs,Lvs)
+    end.
+
+is_in_locked_vs([V|Vs],Lvs) ->
+    case gb_sets:is_member(V,Lvs) of
+      true -> is_in_locked_vs(Vs,Lvs);
+      false -> false
     end;
-locking_1(select, #st{selmode=Selmode}=St) ->
-    NewSel = wings_sel:fold(fun (Items,#we{pst=Pst,id=Id} = We,Acc) ->
-               Lvs0 = get_locked_vs(Pst),
-               LockedCurSelmode = convert_vs_to_selmode(Selmode,Lvs0,We),
-               NewSel = gb_sets:union(Items,LockedCurSelmode),
-               [{Id,NewSel} | Acc]
-               end, [], St),
-    St#st{sel=lists:sort(NewSel), sh=false}.
+is_in_locked_vs([],_Lvs) ->
+    true.
 
-convert_vs_to_selmode(vertex,Vs,_) -> Vs;
-convert_vs_to_selmode(edge,Vs,We) -> wings_edge:from_vs(Vs,We);
-convert_vs_to_selmode(face,Vs,We) -> gb_sets:from_ordset(wings_face:from_vs(Vs,We)).
+%% From wings_sel_cmd (selection groups code)
+union(Sa, Sb) ->
+    combine_sel(fun(Ss) -> gb_sets:union(Ss) end, Sa, Sb).
 
+combine_sel(Combine, Sa, Sb) ->
+    combine_sel(Combine, lists:merge(Sa, Sb)).
+combine_sel(Combine, [{Id,Sa},{Id,Sb}|T]) ->
+    S = Combine([Sa,Sb]),
+    case gb_sets:is_empty(S) of
+    true -> combine_sel(Combine, T);
+    false -> [{Id,S}|combine_sel(Combine, T)]
+    end;
+combine_sel(Combine, [{Id,S0}|T]) ->
+    S = Combine([S0]),
+    case gb_sets:is_empty(S) of
+    true -> combine_sel(Combine, T);
+    false -> [{Id,S}|combine_sel(Combine, T)]
+    end;
+combine_sel(_Combine, []) -> [].
 
-convert_to_vs(vertex,_,Sel) -> Sel;
-convert_to_vs(edge,We,Sel) ->
-    gb_sets:from_ordset(wings_edge:to_vertices(Sel, We));
-convert_to_vs(face,We,Sel) ->
-    gb_sets:from_ordset(wings_face:to_vertices(Sel, We));
-convert_to_vs(body,We,_) ->
-    gb_sets:from_list(wings_we:visible_vs(We)).
+subtract([{Id1,_}=E1|Es1], [{Id2,_}|_]=Set2) when Id1 < Id2 ->
+    [E1|subtract(Es1, Set2)];
+subtract([{Id1,_}|_]=Set1, [{Id2,_}|Es2]) when Id1 > Id2 ->
+    subtract(Set1, Es2);
+subtract([{Id,E1}|Es1], [{Id,E2}|Es2]) ->	%E1 == E2
+    E = gb_sets:subtract(E1, E2),
+    case gb_sets:is_empty(E) of
+    true -> subtract(Es1, Es2);
+    false -> [{Id,E}|subtract(Es1, Es2)]
+    end;
+subtract([], _Es2) -> [];
+subtract(Es1, []) -> Es1.
+%%%%
+
+convert_to_vs(vertex,Sel,_) -> Sel;
+convert_to_vs(edge,Sel,We) ->
+    wings_edge:to_vertices(Sel, We);
+convert_to_vs(face,Sel,We) ->
+    wings_face:to_vertices(Sel, We);
+convert_to_vs(body,_,We) ->
+    wings_we:visible_vs(We).
 
 update_dlist({vs,LockedVs},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}=We}=D, _) ->
     Key = ?MODULE,
