@@ -485,8 +485,7 @@ scan_colors(#st{mat=Mtab}=St, Cols0) ->
     Cols = scan_materials(gb_trees:values(Mtab), Cols1),
     lists:usort(Cols).
 
-scan_color(#we{mode=material}, Acc) -> Acc;
-scan_color(#we{mode=vertex}=We, Acc) ->
+scan_color(We, Acc) ->
     Cols = wings_va:all(color, We),
     ordsets:union(Cols, Acc).
 

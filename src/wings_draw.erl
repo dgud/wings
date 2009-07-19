@@ -491,12 +491,6 @@ update_sel(#dlo{sel=none,src_sel={vertex,Vs}}=D) ->
 update_sel(#dlo{}=D) -> D.
 
 %% Select all faces.
-update_sel_all(#dlo{work=Faces,src_we=#we{mode=Mode}}=D)
-  when Faces =/= none, Mode =/= vertex ->
-    D#dlo{sel=Faces};
-update_sel_all(#dlo{smooth=Faces,src_we=#we{mode=Mode}}=D)
-  when Faces =/= none, Mode =/= vertex ->
-    D#dlo{sel=Faces};
 update_sel_all(#dlo{vab=#vab{face_vs=Vs}}=D) when Vs =/= none ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
@@ -508,7 +502,7 @@ update_sel_all(#dlo{vab=#vab{face_vs=Vs}}=D) when Vs =/= none ->
     gl:endList(),
     D#dlo{sel=List};
 update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
-    %% No suitable display list to re-use. Build selection from scratch.
+    %% No vertex arrays to re-use. Rebuild from scratch.
     update_face_sel(gb_trees:keys(Ftab), D).
 
 update_face_sel(Fs0, #dlo{src_we=We,vab=#vab{face_vs=Vs,face_map=Map}}=D)
