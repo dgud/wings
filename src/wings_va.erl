@@ -12,7 +12,7 @@
 %%
 -module(wings_va).
 -export([set_vertex_color/3,set_edge_color/3,set_face_color/3,set_body_color/2,
-	 info/2,any_attributes/1,
+	 info/2,any_attributes/1,any_colors/1,any_uvs/1,
 	 face_attr/3,face_attr/4,face_pos_attr/4,fold/5,set_face_attrs/3,
 	 face_mixed_attrs/2,
 	 all/2,edge_attrs/3,edge_attrs/4,set_edge_attrs/4,
@@ -74,8 +74,25 @@ info(#we{mode=material}=We, #st{mat=Mtab}) ->
 any_attributes(#we{lv=none,rv=none}) -> false;
 any_attributes(_) -> true.
 
+%% any_colors(We) -> true|false.
+%%  Find out whether We has any vertex colors.
+%%
+-spec any_colors(#we{}) -> boolean().
+any_colors(#we{lv=none,rv=none}) -> false;
+any_colors(#we{lv=Lva,rv=Rva}) ->
+    any_colors_1(Lva) orelse any_colors_1(Rva).
+
+%% any_uvs(We) -> true|false.
+%%  Find out whether We has any vertex colors.
+%%
+-spec any_uvs(#we{}) -> boolean().
+any_uvs(#we{lv=none,rv=none}) -> false;
+any_uvs(#we{lv=Lva,rv=Rva}) ->
+    any_uvs_1(Lva) orelse any_uvs_1(Rva).
+
+
 %% face_attr(What, Face, We) -> [Attribute]
-%%  Return vertex attributes for the all vertices in the face.
+%%  Return vertex attributes for all vertices in the face.
 %%
 face_attr(What, Face, #we{fs=Ftab}=We) ->
     Edge = gb_trees:get(Face, Ftab),
@@ -465,6 +482,28 @@ set_face_color_1(F, Color, #we{lv=Lva0,rv=Rva0}=We) ->
 			  end
 		  end, {Lva0,Rva0}, F, We),
     We#we{lv=Lva,rv=Rva}.
+
+any_uvs_1(none) -> false;
+any_uvs_1(VaTab) ->
+    try
+	array:sparse_foldl(fun(_, [_|none], _) -> false;
+			      (_, [_|_], _) -> throw(true)
+			   end, [], VaTab)
+    catch
+	throw:Res ->
+	    Res
+    end.
+
+any_colors_1(none) -> false;
+any_colors_1(VaTab) ->
+    try
+	array:sparse_foldl(fun(_, [none|_], _) -> false;
+			      (_, [_|_], _) -> throw(true)
+			   end, [], VaTab)
+    catch
+	throw:Res ->
+	    Res
+    end.
 
 face_attr(LastEdge, _, _, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
 face_attr(Edge, Etab, Lva, Rva, Face, LastEdge, Acc) ->
