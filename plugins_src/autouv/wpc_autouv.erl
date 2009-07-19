@@ -313,8 +313,9 @@ redundant_separators([H|T]) ->
 insert_initial_uvcoords(Charts, Id, MatName, #st{shapes=Shs0}=St) ->
     We0 = gb_trees:get(Id, Shs0),
     We1 = update_uvs(gb_trees:values(Charts), We0),
-    We2 = insert_material(Charts, MatName, We1),
-    We = We2#we{mode=material},    
+    We2 = preserve_old_materials(We1, St),
+    We3 = insert_material(Charts, MatName, We2),
+    We = We3#we{mode=material},
     Shs = gb_trees:update(Id, We, Shs0),
     St#st{shapes=Shs}.
    
@@ -354,6 +355,18 @@ update_uvs_1([{V0,none}|Vs], [{V0,Fs}|VFs], Vmap, We0) ->
     We = wings_va:set_vtx_face_uvs(V, Fs, none, We0),
     update_uvs_1(Vs, VFs, Vmap, We);
 update_uvs_1([], [], _, We) -> We.
+
+%% preserve_old_materials(We0) -> We
+%%  If the object contains materials with colors and no
+%%  vertex colors, convert the materials to vertex colors.
+preserve_old_materials(We, St) ->
+    case not wings_va:any_colors(We) andalso
+	wings_facemat:any_interesting_materials(We) of
+	true ->
+	    wings_we:uv_to_color(We#we{mode=material}, St);
+	false ->
+	    We
+    end.
 
 insert_material(Cs, MatName, We) ->
     Faces = lists:append([wings_we:visible(W) || W <- gb_trees:values(Cs)]),
