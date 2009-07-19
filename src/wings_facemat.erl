@@ -16,13 +16,14 @@
 
 -module(wings_facemat).
 -export([all/1,face/2,used_materials/1,mat_faces/2,
+	 any_interesting_materials/1,
 	 assign/2,assign/3,
 	 delete_face/2,delete_faces/2,keep_faces/2,
 	 hide_faces/1,show_faces/1,
 	 renumber/2,gc/1,merge/1]).
 
 -include("wings.hrl").
--import(lists, [keysearch/3,reverse/1,reverse/2,sort/1]).
+-import(lists, [keysearch/3,reverse/1,reverse/2,sort/1,any/2]).
 
 %%%
 %%% API functions for retrieving information.
@@ -56,6 +57,19 @@ mat_faces(Ftab, #we{mat=AtomMat}) when is_atom(AtomMat) ->
     [{AtomMat,Ftab}];
 mat_faces(Ftab, #we{mat=MatTab}) ->
     mat_faces_1(Ftab, remove_invisible(MatTab), []).
+
+%% any_interesting_materials(We) -> true|false
+%%  Find out whether there are any interesting materials
+%%  (not 'default' and not '_hole_).
+any_interesting_materials(#we{mat=Mat0}) ->
+    Mat = case is_atom(Mat0) of
+	      true -> [Mat0];
+	      false -> Mat0
+	  end,
+    any(fun(default) -> false;
+	   ('_hole_') -> false;
+	   (_)  -> true
+	end, Mat).
 
 %%%
 %%% API functions for updating material name mapping.
