@@ -259,11 +259,18 @@ add_defaults(Props0) ->
 
 add_defaults_1(P) ->
     Def = {1.0,1.0,1.0,1.0},
+    VertexColor = valid_vertex_color(prop_get(vertex_colors, P, ignore)),
     [{diffuse,norm(prop_get(diffuse, P, Def))},
      {ambient,norm(prop_get(ambient, P, Def))},
      {specular,norm(prop_get(specular, P, Def))},
      {emission,norm(prop_get(emission, P, {0.0,0.0,0.0,0.0}))},
-     {shininess,prop_get(shininess, P, 1.0)}].
+     {shininess,prop_get(shininess, P, 1.0)},
+     {vertex_colors,VertexColor}].
+
+%% For future compatibility, ignore anything that we don't recognize.
+valid_vertex_color(multiply=A) -> A;
+valid_vertex_color(set=A) -> A;
+valid_vertex_color(_) -> ignore.
 
 update_materials([{Name,Mat0}|Ms], St) ->
     Mat1 = add_defaults(Mat0),
@@ -351,6 +358,9 @@ new_name(Name0, Tab) ->
 
 has_texture(Name, Mtab) ->
     Mat = gb_trees:get(Name, Mtab),
+    has_texture(Mat).
+
+has_texture(Mat) ->
     Maps = prop_get(maps, Mat, []),
     none =/= prop_get(diffuse, Maps, none).
 
@@ -456,22 +466,6 @@ is_mat_transparent(Mat) ->
 		  end, false, OpenGL),
     Trans.
 
-%% case Trans of
-%% 	true -> true;
-%% 	false -> 
-%% 	    Maps = prop_get(maps, Mat),    
-%% 	    case prop_get(diffuse, Maps, none) of
-%% 		none -> false;
-%% 		DiffMap -> 		    
-%% 		    case wings_image:info(DiffMap) of
-%% 			#e3d_image{bytes_pp=4} -> true;
-%% 			#e3d_image{type=a8} -> true;
-%% 			_ -> false
-%% 		    end
-%% 	    end
-%%     end.
-%%% The material editor.
-
 -define(PREVIEW_SIZE, 100).
 
 edit(Name, Assign, #st{mat=Mtab}=St) ->
@@ -483,6 +477,7 @@ edit(Name, Assign, #st{mat=Mtab}=St) ->
 
 edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     OpenGL0 = prop_get(opengl, Mat0),
+    VertexColors0 = prop_get(vertex_colors, OpenGL0, ignore),
     {Diff0,Opacity0} = ask_prop_get(diffuse, OpenGL0),
     {Amb0,_} = ask_prop_get(ambient, OpenGL0),
     {Spec0,_} = ask_prop_get(specular, OpenGL0),
@@ -492,6 +487,12 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     Preview = fun(A,S,D,F,G) ->
 		      mat_preview(A,S,D,F,G,prop_get(maps,Mat0))
 	      end,
+    Hook = {hook,fun(is_disabled, {_Var,_I,Sto}) ->
+			 gb_trees:get(vertex_colors, Sto) =/= ignore;
+		    (_, _) -> void
+		 end},
+    AnyTexture = has_texture(Mat0),
+    VtxColMenu = vertex_color_menu(AnyTexture, VertexColors0),
     Qs1 = [{vframe,
 	    [
 	     {hframe, 
@@ -500,14 +501,17 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 		[{label,?__(1,"Diffuse")},
 		 {label,?__(2,"Ambient")},
 		 {label,?__(3,"Specular")},
-		 {label,?__(4,"Emission")}]
+		 {label,?__(4,"Emission")},
+		 {label,"Vertex Colors"}
+		]
 	       },
 	       {vframe,
-		[{slider,{color,Diff0,[{key,diffuse}]}},
+		[{slider,{color,Diff0,
+			  [{key,diffuse},Hook]}},
 		 {slider,{color,Amb0,[{key,ambient}]}},
 		 {slider,{color,Spec0,[{key,specular}]}},
-		 {slider,{color,Emiss0,[{key,emission}]}}
-		]}]},
+		 {slider,{color,Emiss0,[{key,emission}]}},
+		 VtxColMenu]}]},
 	     {hframe, [{vframe, [{label,?__(5,"Shininess")},
 				 {label,?__(6,"Opacity")}]},
 		       {vframe, [{slider,{text,Shine0,
@@ -522,13 +526,18 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     Qs = {hframe,[{vframe,Qs2},
 		  {vframe,[{button,?__(7,"OK"),done,[ok,{key,material_editor_ok}]},
 			   {button,wings_s:cancel(),cancel,[cancel]}]}]},
-    Ask = fun([{diffuse,Diff},{ambient,Amb},{specular,Spec},
-	       {emission,Emiss},{shininess,Shine},{opacity,Opacity}|More0]) ->
+    Ask = fun([{diffuse,Diff},
+	       {ambient,Amb},
+	       {specular,Spec},
+	       {emission,Emiss},
+	       {vertex_colors,VertexColors},
+	       {shininess,Shine},{opacity,Opacity}|More0]) ->
 		  OpenGL = [ask_prop_put(diffuse, Diff, Opacity),
 			    ask_prop_put(ambient, Amb, Opacity),
 			    ask_prop_put(specular, Spec, Opacity),
 			    ask_prop_put(emission, Emiss, Opacity),
-			    {shininess,Shine}],
+			    {shininess,Shine},
+			    {vertex_colors,VertexColors}],
 		  Mat1 = keyreplace(opengl, 1, Mat0, {opengl,OpenGL}),
 		  {Mat2,More} = update_maps(Mat1, More0),
 		  case plugin_results(Name, Mat2, More) of
@@ -539,6 +548,23 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 		  end
 	  end,
     {dialog,Qs,Ask}.
+
+vertex_color_menu(MultiplyPossible, Def0) ->
+    Def = case MultiplyPossible of
+	      true -> Def0;
+	      false when Def0 =:= multiply -> set;
+	      false -> Def0
+	  end,
+    {menu,[{"Ignore",ignore,[{info,"Ignore vertex colors"}]},
+	   {"Set",set,[{info,"Show vertex colors"}]}|
+	   case MultiplyPossible of
+	       true ->
+		   [{"Multiply",multiply,
+		     [{info,"Multiply texture colors with vertex colors"}]}];
+	       false -> []
+	   end],Def,
+     [{info,"Choose how to use vertex colors"},
+      {key,vertex_colors}]}.
 
 maybe_assign(false, _, St) -> St;
 maybe_assign(true, Name, St) -> set_material(Name, St).
