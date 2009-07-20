@@ -54,9 +54,9 @@ start(Op, #we{id=Id}=We0, OrigWe, St0) ->
 				   Es = wings_face:outer_edges(Chart,We1),
 				   gb_sets:union(gb_sets:from_list(Es),Acc)
 			   end, Cuts0, Charts),
-		 We1#we{he=Cuts, mode=material};
+		 We1#we{he=Cuts};
 	     delete_old ->
-		 We1#we{mode=material}
+		 We1
 	 end,
 
     St = St1#st{sel=[],selmode=face,shapes=gb_trees:from_orddict([{Id,We}])},

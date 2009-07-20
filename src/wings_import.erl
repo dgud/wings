@@ -101,9 +101,7 @@ imp_partition(ObjType, Mesh0) ->
 	    ?P(imp_rip_apart)],
     Pss = polygonify_passes(Pss0, Mesh0),
     Wes = [run(Pss, ObjType, Mesh) || Mesh <- Meshes],
-    [#we{mode=Mode}|_] = Wes,
-    We = wings_pb:done(wings_we:merge(Wes)),
-    We#we{mode=Mode}.
+    wings_pb:done(wings_we:merge(Wes)).
 
 imp_orient_normals(_, Mesh) ->
     e3d_mesh:orient_normals(Mesh).
@@ -111,9 +109,7 @@ imp_orient_normals(_, Mesh) ->
 imp_rip_apart(ObjType, Mesh) ->
     dump(Mesh),
     Wes = rip_apart(ObjType, Mesh),
-    [#we{mode=Mode}|_] = Wes,
-    We = wings_we:merge(Wes),
-    We#we{mode=Mode}.
+    wings_we:merge(Wes).
 
 polygonify_passes(Pss, #e3d_mesh{type=triangle}) ->
     [{seq,[?P_NOFAIL(imp_polygons),?P_NOFAIL(imp_build),

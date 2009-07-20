@@ -249,12 +249,12 @@ arg(F, N) ->
 dump_shape(F, #we{}=We) ->
     dump_we(F, We).
 
-dump_we(F, #we{name=Name,id=Id,mode=Mode,es=Etab,fs=Ftab,
+dump_we(F, #we{name=Name,id=Id,es=Etab,fs=Ftab,
 	       next_id=Next}) ->
     io:put_chars(F, "\n"),
     io:format(F, "OBJECT ~p: ~p\n", [Id,Name]),
     io:format(F, "=======================\n", []),
-    io:format(F, "   mode=~p next_id=~p\n", [Mode,Next]),
+    io:format(F, "   next_id=~p\n", [Next]),
     dump_faces(F, gb_trees:to_list(Ftab)),
     dump_edges(F, array:sparse_to_orddict(Etab)).
     

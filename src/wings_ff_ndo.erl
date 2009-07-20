@@ -79,7 +79,7 @@ read_object_1(<<L:16,T0/binary>>) ->
 	    T4 = skip_faces(T3),
 	    {Vtab,T5} = read_vertices(T4),
 	    T = skip_rest(T5),
-	    We0 = #we{mode=vertex,es=Etab,vp=Vtab,he=Htab,perm=Perm},
+	    We0 = #we{es=Etab,vp=Vtab,he=Htab,perm=Perm},
 	    We1 = wings_we:rebuild(We0),
 	    We2 = wings_va:set_edge_colors(ColTab, We1),
 	    We = clean_bad_edges(We2),

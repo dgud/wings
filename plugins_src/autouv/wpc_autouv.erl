@@ -313,11 +313,10 @@ insert_initial_uvcoords(Charts, Id, MatName, #st{shapes=Shs0}=St) ->
     We0 = gb_trees:get(Id, Shs0),
     We1 = update_uvs(gb_trees:values(Charts), We0),
     We2 = preserve_old_materials(We1, St),
-    We3 = insert_material(Charts, MatName, We2),
-    We = We3#we{mode=material},
+    We = insert_material(Charts, MatName, We2),
     Shs = gb_trees:update(Id, We, Shs0),
     St#st{shapes=Shs}.
-   
+
 update_selected_uvcoords(#st{bb=Uvs}=St) ->
     Charts = wpa:sel_fold(fun(_, We, Acc) -> [We|Acc] end, [], St),
     #uvstate{st=#st{shapes=Shs0}=GeomSt0,id=Id} = Uvs,
@@ -362,7 +361,7 @@ preserve_old_materials(We, St) ->
     case not wings_va:any_colors(We) andalso
 	wings_facemat:any_interesting_materials(We) of
 	true ->
-	    wings_we:uv_to_color(We#we{mode=material}, St);
+	    wings_we:uv_to_color(We, St);
 	false ->
 	    We
     end.

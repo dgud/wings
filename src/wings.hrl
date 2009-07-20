@@ -180,7 +180,6 @@
 						% edges, and faces.
 						% (Needed because we never re-use
 						%  IDs.)
-	 mode=material :: 'vertex'|'material'|'uv',
 	 mirror=none :: 'none' | non_neg_integer(),	%Mirror: none|Face
 	 light=none,				%Light data: none|Light
 	 has_shape=true :: bool()		%true|false

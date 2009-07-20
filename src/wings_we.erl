@@ -43,8 +43,7 @@
 
 build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He}) when is_atom(Mode) ->
     Fs = translate_faces(Fs0, list_to_tuple(Tx), []),
-    We = wings_we_build:we(Fs, Vs, He),
-    We#we{mode=Mode};
+    wings_we_build:we(Fs, Vs, He);
 build(Fs, Vs) ->
     wings_we_build:we(Fs, Vs, []).
 
@@ -478,7 +477,7 @@ do_renumber(We0, Id) ->
     {We,_} = do_renumber(We0, Id, []),
     We.
 
-do_renumber(#we{mode=Mode,vp=Vtab0,es=Etab0,fs=Ftab0,
+do_renumber(#we{vp=Vtab0,es=Etab0,fs=Ftab0,
 		mat=MatTab0,he=Htab0,perm=Perm0,mirror=Mirror0,pst=Pst0}=We0,
 	    Id, RootSet0) ->
     Vtab1 = array:sparse_to_orddict(Vtab0),
@@ -530,7 +529,7 @@ do_renumber(#we{mode=Mode,vp=Vtab0,es=Etab0,fs=Ftab0,
         end, Pst0, Pst_Elements),
 
     RootSet = map_rootset(RootSet0, Emap, Vmap, Fmap),
-    We1 = We0#we{mode=Mode,vc=undefined,fs=undefined,
+    We1 = We0#we{vc=undefined,fs=undefined,
 		vp=Vtab,es=Etab,mat=MatTab,he=Htab,
 		perm=Perm,mirror=Mirror,pst=Pst},
     We = wings_va:renumber(Emap, We1),
@@ -677,17 +676,15 @@ copy_dependents(We0) ->
 %%% Convert textures to vertex colors.
 %%%
 
-uv_to_color(#we{mode=material,es=Etab}=We0, St) ->
-    We = array:sparse_foldl(
-	   fun(Edge, #edge{lf=Lf,rf=Rf}, W) ->
-		   UVa = wings_va:attr(uv, wings_va:edge_attrs(Edge, left, W)),
-		   UVb = wings_va:attr(uv, wings_va:edge_attrs(Edge, right, W)),
-		   ColA = wings_material:color(Lf, UVa, We0, St),
-		   ColB = wings_material:color(Rf, UVb, We0, St),
-		   wings_va:set_edge_color(Edge, ColA, ColB, W)
-	   end, We0, Etab),
-    We#we{mode=vertex};
-uv_to_color(We, _St) -> We.
+uv_to_color(#we{es=Etab}=We0, St) ->
+    array:sparse_foldl(
+      fun(Edge, #edge{lf=Lf,rf=Rf}, W) ->
+	      UVa = wings_va:attr(uv, wings_va:edge_attrs(Edge, left, W)),
+	      UVb = wings_va:attr(uv, wings_va:edge_attrs(Edge, right, W)),
+	      ColA = wings_material:color(Lf, UVa, We0, St),
+	      ColB = wings_material:color(Rf, UVb, We0, St),
+	      wings_va:set_edge_color(Edge, ColA, ColB, W)
+      end, We0, Etab).
 
 %% uv_mapped_faces(We) -> [Face]
 %%  Return an ordered list of all faces that have UV coordinates.

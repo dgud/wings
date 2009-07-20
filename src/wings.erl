@@ -1151,25 +1151,21 @@ item_list([], _Sep, Desc) -> [Desc|?__(1," selected")].
 
 shape_info(We) when ?IS_LIGHT(We) ->
     wings_light:info(We);
-shape_info(#we{id=Id,name=Name,fs=Ftab,es=Etab,vp=Vtab,mode=Mode}=We) ->
+shape_info(#we{id=Id,name=Name,fs=Ftab,es=Etab,vp=Vtab}=We) ->
     Faces = gb_trees:size(Ftab),
     Edges = wings_util:array_entries(Etab),
     Vertices = wings_util:array_entries(Vtab),
     wings_util:format(?__(new_object_info,
-              "Object ~p \"~s\" has ~p polygons, "
-              "~p edges, ~p vertices~s.\n"
-              "Mode is ~s"),
+			  "Object ~p \"~s\" has ~p polygons, "
+			  "~p edges, ~p vertices~s."),
               [Id,Name,Faces,Edges,Vertices,
-	       vtx_attributes(We),object_mode(Mode)]).
+	       vtx_attributes(We)]).
 
 vtx_attributes(We) ->
     case wings_va:any_attributes(We) of
 	false -> "";
 	true -> ", " ++ ?__(1,"vertex attributes")
     end.
-
-object_mode(vertex) -> ?__(vertex,"vertex color");
-object_mode(material) -> ?__(material,"material").
 
 shape_info(Objs, Shs) ->
     shape_info(Objs, Shs, 0, 0, 0, 0).

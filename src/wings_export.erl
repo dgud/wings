@@ -109,61 +109,54 @@ tesselate(triangulate,We) ->
 tesselate(quadrangulate,We) ->
     wings_tesselation:quadrangulate(We).
 
-make_face(Face, Mat, _ColTab, UvTab, #we{mode=material}=We) ->
-    case gb_trees:is_empty(UvTab) of
-	false -> make_uv_face(Face, Mat, UvTab, We);
-	true -> make_plain_face(Face, Mat, We)
-    end;
-make_face(Face, Mat, ColTab, _UvTab, #we{mode=vertex}=We) ->
-    case gb_trees:is_empty(ColTab) of
-	false -> make_col_face(Face, Mat, ColTab, We);
-	true -> make_plain_face(Face, Mat, We)
-    end.
+make_face(Face, Mat, ColTab, UvTab, We) ->
+    E3dFace0 = make_plain_face(Face, Mat, We),
+    E3dFace = add_uvs(Face, E3dFace0, UvTab, We),
+    add_colors(Face, E3dFace, ColTab, We).
 
 make_plain_face(Face, Mat, We) ->
-    Vs = wings_face:fold(
-	   fun(V, _, _, Acc) ->
-		   [V|Acc]
-	   end, [], Face, We),
+    Vs = wings_face:vertices_ccw(Face, We),
     #e3d_face{vs=Vs,mat=make_face_mat(Mat)}.
 
-make_uv_face(Face, Mat, UvTab, We) ->
-    {Vs,UVs0} = wings_va:fold(
-		  uv,
-		  fun(V, {_,_}=UV, {VAcc,UVAcc}) ->
-			  {[V|VAcc],[gb_trees:get(UV, UvTab)|UVAcc]};
-		     (V, _, {VAcc,UVAcc}) ->
-			  {[V|VAcc],UVAcc}
-		  end, {[],[]}, Face, We),
-    UVs = if
-	      length(Vs) =:= length(UVs0) -> UVs0;
-	      true -> []
-	  end,
-    #e3d_face{vs=Vs,tx=UVs,mat=make_face_mat(Mat)}.
+add_uvs(Face, #e3d_face{vs=Vs}=E3dFace, UvTab, We) ->
+    case gb_trees:is_empty(UvTab) of
+	true -> E3dFace;
+	false ->
+	    UVs0 = wings_va:face_attr(uv, Face, We),
+	    UVs1 = [gb_trees:get(UV, UvTab) || {_,_}=UV <- UVs0],
+	    UVs = if
+		      length(Vs) =:= length(UVs1) -> UVs1;
+		      true -> []
+		  end,
+	    E3dFace#e3d_face{tx=UVs}
+    end.
 
-make_col_face(Face, Mat, ColTab, We) ->
-    {Vs,Cols} = wings_va:fold(
-		  color,
-		  fun(V, {_,_,_}=Col, {VAcc,ColAcc}) ->
-			  {[V|VAcc],[gb_trees:get(Col, ColTab)|ColAcc]};
-		     (V, _Info, {VAcc,ColAcc}) ->
-			  Col = wings_color:white(),
-			  {[V|VAcc],[gb_trees:get(Col, ColTab)|ColAcc]}
-		  end, {[],[]}, Face, We),
-    #e3d_face{vs=Vs,vc=Cols,mat=make_face_mat(Mat)}.
+add_colors(Face, E3dFace, ColTab, We) ->
+    case gb_trees:is_empty(ColTab) of
+	true -> E3dFace;
+	false ->
+	    Cols0 = wings_va:face_attr(color, Face, We),
+	    Cols = [gb_trees:get(def_color(C), ColTab) || C <- Cols0],
+	    E3dFace#e3d_face{vc=Cols}
+    end.
 
-make_tables(Ps, #we{mode=vertex}=We) ->
+def_color({_,_,_}=C) -> C;
+def_color(_) -> {1.0,1.0,1.0}.
+
+make_tables(Ps, We) ->
     {case proplists:get_value(include_colors, Ps, true) of
 	 false ->
 	     [];
 	 true ->
-	     ColorTable = ordsets:add_element(wings_color:white(),
-					      wings_va:all(color, We)),
-	     number(ColorTable)
+	     ColorTable0 = wings_va:all(color, We),
+	     case ColorTable0 of
+		 [] -> [];
+		 [_|_] ->
+		     ColorTable = ordsets:add_element(wings_color:white(),
+						      ColorTable0),
+		     number(ColorTable)
+	     end
      end,
-     []};
-make_tables(Ps, #we{mode=material}=We) ->
-    {[],
      case proplists:get_value(include_uvs, Ps, true) of
 	 false -> [];
 	 true -> number(wings_va:all(uv, We))
@@ -171,6 +164,7 @@ make_tables(Ps, #we{mode=material}=We) ->
 
 number(L) ->
     number(L, 0, []).
+
 number([H|T], I, Acc) ->
     number(T, I+1, [{H,I}|Acc]);
 number([], _, Acc) -> reverse(Acc).

@@ -198,12 +198,11 @@ select_material(Mat, St) ->
 
 set_material(Mat, #st{selmode=face}=St) ->
     wings_sel:map(fun(Faces, We) ->
-			  wings_facemat:assign(Mat, Faces, We#we{mode=material})
+			  wings_facemat:assign(Mat, Faces, We)
 		  end, St);
 set_material(Mat, #st{selmode=body}=St) ->
     wings_sel:map(fun(_, #we{fs=Ftab}=We) ->
-			  wings_facemat:assign(Mat, gb_trees:keys(Ftab),
-					       We#we{mode=material})
+			  wings_facemat:assign(Mat, gb_trees:keys(Ftab), We)
 		  end, St);
 set_material(_, St) -> St.
 

@@ -300,7 +300,7 @@ intrude(Faces0, #we{id=Id,es=Etab,fs=Ftab,next_id=Wid}=We0, SelAcc) ->
     Sel = gb_sets:difference(Sel0, gb_sets:from_list(BridgeFaces)),
     We4 = intrude_bridge(RootSet0, RootSet, We3),
     We = restore_mirror(We4, We0),
-    {We#we{mode=We0#we.mode},[{Id,Sel}|SelAcc]}.
+    {We,[{Id,Sel}|SelAcc]}.
 
 restore_mirror(We, #we{mirror=none}) -> We;
 restore_mirror(We, #we{mirror=Face}) -> We#we{mirror=Face}.
@@ -332,12 +332,11 @@ mirror(St0) ->
     St = wings_sel:map(fun mirror_faces/2, St0),
     wings_sel:clear(St).
 
-mirror_faces(Faces, #we{mode=Mode}=We0) when is_list(Faces) ->
+mirror_faces(Faces, We0) when is_list(Faces) ->
     OrigWe = wings_we:invert_normals(We0),
-    We = foldl(fun(Face, WeAcc) ->
-		       mirror_face(Face, OrigWe, WeAcc)
-	       end, We0, Faces),
-    We#we{mode=Mode};
+    foldl(fun(Face, WeAcc) ->
+		  mirror_face(Face, OrigWe, WeAcc)
+	  end, We0, Faces);
 mirror_faces(Faces, We) ->
     mirror_faces(gb_sets:to_list(Faces), We).
 
@@ -608,13 +607,10 @@ smooth_connect_3(Va, Vb, Face, Hide, We0) ->
 bridge(#st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
     case {gb_sets:to_list(FacesA),gb_sets:to_list(FacesB)} of
 	{[FA],[FB0]} ->
-	    #we{next_id=Id}=WeA0 = gb_trees:get(IdA, Shapes0),
+	    #we{next_id=Id}=WeA = gb_trees:get(IdA, Shapes0),
 	    #we{}=WeB0 = gb_trees:get(IdB, Shapes0),
-	    {WeB1,[{face,FB}]} = wings_we:renumber(WeB0, Id, [{face,FB0}]),
-	    Mode = unify_modes(WeA0, WeB1),
-	    WeA = bridge_null_uvs(Mode, WeA0),
-	    WeB = bridge_null_uvs(Mode, WeB1),
-	    We = (wings_we:merge(WeA, WeB))#we{mode=Mode},
+	    {WeB,[{face,FB}]} = wings_we:renumber(WeB0, Id, [{face,FB0}]),
+	    We = wings_we:merge(WeA, WeB),
 	    Shapes1 = gb_trees:delete(IdB, Shapes0),
 	    Shapes = gb_trees:update(IdA, We, Shapes1),
 	    Sel = [{IdA,gb_sets:from_list([FA,FB])}],
@@ -636,17 +632,6 @@ bridge(#st{shapes=Shapes0,sel=[{Id,Faces}]}=St) ->
     end;
 bridge(_St) ->
     bridge_error().
-
-unify_modes(#we{mode=Mode}, #we{mode=Mode}) -> Mode;
-unify_modes(_, _) ->
-    wings_u:error(?__(1,
-			 "An object with vertex colors cannot be bridged with an object with materials.")).
-
-bridge_null_uvs(Mode, #we{mode=Mode}=We) -> We;
-bridge_null_uvs(uv, #we{es=Etab}=We) ->
-    NullUV = {0.0,0.0},
-    EsUVs = [{E,NullUV,NullUV} || E <- wings_util:array_keys(Etab)],
-    wings_va:set_edge_uvs(EsUVs, We).
 
 bridge(FaceA, FaceB, #we{vp=Vtab}=We) ->
     VsA = wings_face:vertices_ccw(FaceA, We),

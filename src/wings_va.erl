@@ -32,17 +32,17 @@
 set_vertex_color(Vs, Color, We) ->
     gb_sets:fold(fun(V, W) ->
 			 set_vertex_color_1(V, Color, W)
-		 end, We#we{mode=vertex}, Vs).
+		 end, We, Vs).
 
 set_edge_color(Es, Color, We) ->
     gb_sets:fold(fun(E, W) ->
 			 set_edge_color_1(E, Color, W)
-		 end, We#we{mode=vertex}, Es).
+		 end, We, Es).
 
 set_face_color(Fs, Color, We) ->
     gb_sets:fold(fun(F, W) ->
 			 set_face_color_1(F, Color, W)
-		 end, We#we{mode=vertex}, Fs).
+		 end, We, Fs).
 
 set_body_color(Color, #we{es=Etab,lv=Lva0,rv=Rva0}=We) ->
     Update = fun(E, _, Tab) ->
@@ -50,7 +50,7 @@ set_body_color(Color, #we{es=Etab,lv=Lva0,rv=Rva0}=We) ->
 	     end,
     Lva = array:sparse_foldl(Update, Lva0, Etab),
     Rva = array:sparse_foldl(Update, Rva0, Etab),
-    We#we{lv=Lva,rv=Rva,mode=vertex}.
+    We#we{lv=Lva,rv=Rva}.
 
 %% any_attributes(We) -> true|false.
 %%  Find out whether We has any attributes at all.

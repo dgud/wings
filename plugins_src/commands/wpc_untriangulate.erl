@@ -409,17 +409,13 @@ check_hard_edge(Edge, We) ->
     not gb_sets:is_member(Edge, We#we.he).
 
 check_uv_coords(Edge, We) ->
-    case We#we.mode of
-      vertex -> true;
-      material ->
-	Luv = wings_va:attr(uv, wings_va:edge_attrs(Edge, left, We)),
-	Ruv = wings_va:attr(uv, wings_va:edge_attrs(Edge, right, We)),
-        #edge{ltpr=Ltpr, rtpr=Rtpr, lf=Lf, rf=Rf} =
-		array:get(Edge, We#we.es),
-        Luv2 = matching_uv(Lf, Ltpr, We),
-        Ruv2 = matching_uv(Rf, Rtpr, We),
-        compare_uvs(Luv, Ruv2) andalso compare_uvs(Ruv, Luv2)
-    end.
+    Luv = wings_va:attr(uv, wings_va:edge_attrs(Edge, left, We)),
+    Ruv = wings_va:attr(uv, wings_va:edge_attrs(Edge, right, We)),
+    #edge{ltpr=Ltpr, rtpr=Rtpr, lf=Lf, rf=Rf} =
+	array:get(Edge, We#we.es),
+    Luv2 = matching_uv(Lf, Ltpr, We),
+    Ruv2 = matching_uv(Rf, Rtpr, We),
+    compare_uvs(Luv, Ruv2) andalso compare_uvs(Ruv, Luv2).
 
 matching_uv(Face, Edge, We) ->
     wings_va:attr(uv, wings_va:edge_attrs(Edge, Face, We)).

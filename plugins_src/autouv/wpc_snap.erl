@@ -279,12 +279,6 @@ insert_uvs(St0) ->
 
 set_materials(Image,St0) ->     
     Fix = fun(Items,We0,NewMats0) ->
-		  case We0#we.mode of
-		      vertex -> 
-			  wpa:error(?__(1,"Can't put on image when object has vertex colors"));
-		      _ -> 
-			  continue
-		  end,
 		  Set = fun(Face,_,_,_,{We1,NMats0}) ->
 				FaceM = wings_facemat:face(Face, We0),
 				case lists:keysearch(FaceM,1,element(1,NMats0)) of

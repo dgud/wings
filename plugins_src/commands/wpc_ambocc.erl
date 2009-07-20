@@ -74,8 +74,7 @@ process_obj(We0, DispList) ->
 	Color2 = array:get(Vb, VertexColors),
         wings_va:set_edge_color(Edge, Color1, Color2, W)
     end,
-    We = array:sparse_foldl(SetColor, We0, Etab),
-    We#we{mode=vertex}.
+    array:sparse_foldl(SetColor, We0, Etab).
 
 make_disp_list(St) ->
     #st{shapes=Shapes} = St,
