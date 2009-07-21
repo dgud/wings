@@ -90,7 +90,16 @@ import_objects([Sh0|Shs], Mode, NameMap, Oid, ShAcc) ->
     {object,Name,{winged,Es,Fs,Vs,He},Props} = Sh0,
     ObjMode = import_object_mode(Props),
     Etab = import_edges(Es, 0, []),
-    FaceMat = import_face_mat(Fs, NameMap, 0, []),
+    %% The 'default' material saved in this .wings file might not
+    %% match the current default material, so it could have been
+    %% renamed (to 'default2', for instance). We must make sure
+    %% that we use the correctly named default material on faces
+    %% without explicit material.
+    DefaultMat = case gb_trees:lookup(default, NameMap) of
+		     none -> default;
+		     {value,DefaultMat0} -> DefaultMat0
+		 end,
+    FaceMat = import_face_mat(Fs, NameMap, DefaultMat, 0, []),
     Vtab = import_vs(Vs, 0, []),
     Htab = gb_sets:from_list(He),
     Perm = import_perm(Props),
@@ -138,15 +147,15 @@ import_edge([_|T], Rec, Attrs) ->
     import_edge(T, Rec, Attrs);
 import_edge([], Rec, Attrs) -> {Rec,Attrs}.
 
-import_face_mat([F|Fs], NameMap, Face, Acc) ->
-    Mat = import_face_mat_1(F, NameMap, default),
-    import_face_mat(Fs, NameMap, Face+1, [{Face,Mat}|Acc]);
-import_face_mat([], _, _, Acc) -> reverse(Acc).
+import_face_mat([F|Fs], NameMap, Default, Face, Acc) ->
+    Mat = import_face_mat_1(F, NameMap, Default),
+    import_face_mat(Fs, NameMap, Default, Face+1, [{Face,Mat}|Acc]);
+import_face_mat([], _, _, _, Acc) -> reverse(Acc).
 
-import_face_mat_1([{material,Name}|T], NameMap, _) ->
+import_face_mat_1([{material,Name}|T], NameMap, Default) ->
     %% Silently ignore materials not found in the name map.
     Mat = case gb_trees:lookup(Name, NameMap) of
-	      none ->  default;
+	      none -> Default;
 	      {value,Other} -> Other
 	  end,
     import_face_mat_1(T, NameMap, Mat);
