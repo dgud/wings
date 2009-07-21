@@ -409,7 +409,7 @@ render_image(Geom = #ts{uv=UVpos,pos=Pos,n=Ns,bi=BiNs,uvc=Uvc,uvc_mode=Mode},
 
 setup_fbo(W,H) ->
     case wings_gl:setup_fbo({W,H}, [{color,[]}, {color,[]}, {depth,[]}]) of
-	no_supported -> false;
+	not_supported -> false;
 	List ->
 	    [Col1,Col2] = [Col || {color, Col} <- List],
 	    #sh_conf{texsz={W,H},fbo_r=Col2,fbo_w=Col1,
