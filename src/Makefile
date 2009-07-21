@@ -159,7 +159,7 @@ $(EBIN)/%.beam: $(ESRC)/%.erl
 # ----------------------------------------------------
 # Dependencies
 # ----------------------------------------------------
-$(EBIN)/wings_export.beam $(EBIN)/wings_file.beam $(EBIN)/wings_help.beam $(EBIN)/wings_text.beam $(EBIN)/wings_pref.beam $(EBIN)/wings_u.beam: ../vsn.mk
+$(EBIN)/wings_export.beam $(EBIN)/wings_file.beam $(EBIN)/wings_help.beam $(EBIN)/wings_text.beam $(EBIN)/wings_pref.beam $(EBIN)/wings_u.beam $(EBIN)/wpa.beam: ../vsn.mk
 
 $(TARGET_FILES): $(EBIN)/wings_lang.beam wings.hrl
 

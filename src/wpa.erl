@@ -41,7 +41,7 @@
 	 image_formats/0,image_read/1,image_write/1,
 	 vm_freeze/1,
 	 triangulate/1,triangulate/2,quadrangulate/1,quadrangulate/2,
-	 popup_console/0
+	 popup_console/0,version/0
 	]).
 
 %% Commands from other processes
@@ -561,7 +561,6 @@ quadrangulate(Faces, We) ->
 popup_console() ->
     wings_console:popup_window().
 
-
 %%% 
 %%% External commands
 %%%
@@ -579,3 +578,8 @@ handle_external({get_state,Pid},#st{shapes=Sh,file=File,
 		     mat=Mat,pal=Pal}};
 handle_external(_, _St) ->
     ignore.
+
+%% Return version string.
+version() ->
+    ?WINGS_VERSION.
+
