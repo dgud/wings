@@ -12,7 +12,7 @@
 %%
 -module(wings_va).
 -export([set_vertex_color/3,set_edge_color/3,set_face_color/3,set_body_color/2,
-	 info/2,any_attributes/1,any_colors/1,any_uvs/1,
+	 any_attributes/1,any_colors/1,any_uvs/1,
 	 face_attr/3,face_attr/4,face_pos_attr/4,fold/5,set_face_attrs/3,
 	 face_mixed_attrs/2,
 	 all/2,edge_attrs/3,edge_attrs/4,set_edge_attrs/4,
@@ -51,21 +51,6 @@ set_body_color(Color, #we{es=Etab,lv=Lva0,rv=Rva0}=We) ->
     Lva = array:sparse_foldl(Update, Lva0, Etab),
     Rva = array:sparse_foldl(Update, Rva0, Etab),
     We#we{lv=Lva,rv=Rva,mode=vertex}.
-
-%% info(We, St) -> [color|uv]
-%%  Return a list of the available vertex attributes for the We.
-%%
-info(#we{mode=vertex}, _St) ->
-    [color];
-info(#we{mode=material}=We, #st{mat=Mtab}) ->
-    Used = wings_facemat:used_materials(We),
-    AnyTexture = any(fun(Mat) ->
-			     wings_material:has_texture(Mat, Mtab)
-		     end, Used),
-    case AnyTexture of
-	false -> [];
-	true -> [uv]
-    end.
 
 %% any_attributes(We) -> true|false.
 %%  Find out whether We has any attributes at all.

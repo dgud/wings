@@ -495,26 +495,41 @@ prepare(Ftab0, #we{}=We, St) ->
     prepare_1(Ftab, We, St).
 
 prepare_1(Ftab, We, St) ->
-    %% We only handle the kind of vertex attributes that
-    %% are possible today. In a future release, an object
-    %% will be able to have both vertex colors and UV coordinates.
-    case wings_va:info(We, St) of
-	[] ->
-	    %% Only materials.
-	    {plain,prepare_mat(Ftab, We)};
-	[uv] ->
-	    case wings_pref:get_value(show_textures) of
-		true ->
-		    {uv,prepare_mat(Ftab, We)};
-		false ->
-		    {plain,prepare_mat(Ftab, We)}
-	    end;
-	[color] ->
-	    case wings_pref:get_value(show_colors) of
-		false -> {plain,[{default,Ftab}]};
-		true -> {color,prepare_mat(Ftab, We)}
-	    end
+    case wings_va:any_attributes(We) of
+	false ->
+	    %% Since there are no vertex attributes,
+	    %% we don't need to look at the materials
+	    %% to figure out what to do.
+	    prepare_2([], Ftab, We);
+	true ->
+	    %% There are UV coordinates and/or vertex colors,
+	    %% so we will have to look at the materials to
+	    %% figure out what we'll need.
+	    Attrs = wings_material:needed_attributes(We, St),
+	    prepare_2(Attrs, Ftab, We)
     end.
+
+prepare_2([], Ftab, We) ->
+    %% No special attributes needed.
+    {plain,prepare_mat(Ftab, We)};
+prepare_2([color], Ftab, We) ->
+    %% We need vertex colors.
+    case wings_pref:get_value(show_colors) of
+	false -> {plain,[{default,Ftab}]};
+	true -> {color,prepare_mat(Ftab, We)}
+    end;
+prepare_2([uv], Ftab, We) ->
+    %% We need UV coordinates.
+    case wings_pref:get_value(show_textures) of
+	true ->
+	    {uv,prepare_mat(Ftab, We)};
+	false ->
+	    {plain,prepare_mat(Ftab, We)}
+    end;
+prepare_2([color,uv], Ftab, We) ->
+    %% For the moment, only use the UV coordinates.
+    %% (Blending vertex colors and textures will not work.)
+    prepare_2([uv], Ftab, We).
 
 prepare_mat(Ftab, We) ->
     case wings_pref:get_value(show_materials) of

@@ -17,7 +17,7 @@
 	 update_materials/2,
 	 update_image/4,used_images/1,
 	 used_materials/1,has_texture/2,
-	 apply_material/2,is_transparent/2,
+	 apply_material/3,is_transparent/2,
 	 needed_attributes/2]).
 
 -define(NEED_OPENGL, 1).
@@ -365,16 +365,37 @@ has_texture(Mat) ->
     Maps = prop_get(maps, Mat, []),
     none =/= prop_get(diffuse, Maps, none).
 
-apply_material(Name, Mtab) when is_atom(Name) ->
+apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
     Mat = gb_trees:get(Name, Mtab),
     OpenGL = prop_get(opengl, Mat),
-    gl:materialfv(?GL_FRONT_AND_BACK, ?GL_DIFFUSE, prop_get(diffuse, OpenGL)), 
-    gl:materialfv(?GL_FRONT_AND_BACK, ?GL_AMBIENT, prop_get(ambient, OpenGL)),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_SPECULAR, prop_get(specular, OpenGL)),
     Shine = prop_get(shininess, OpenGL)*128,
     gl:materialf(?GL_FRONT_AND_BACK, ?GL_SHININESS, Shine),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_EMISSION, prop_get(emission, OpenGL)),
-    Maps = prop_get(maps, Mat, []),
+    Maps0 = prop_get(maps, Mat, []),
+    VertexColors = case ActiveVertexColors of
+		       false -> ignore;
+		       true -> prop_get(vertex_colors, OpenGL, ignore)
+		   end,
+    Maps = case VertexColors of
+	       ignore ->
+		   %% Ignore vertex colors.
+		   gl:disable(?GL_COLOR_MATERIAL),
+		   Maps0;
+	       set ->
+		   %% Vertex colors overrides diffuse and ambient color
+		   %% and suppresses any texture.
+		   gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
+		   gl:enable(?GL_COLOR_MATERIAL),
+		   [];
+	       multiply ->
+		   %% Vertex colors are multiplied with the texture.
+		   gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
+		   gl:enable(?GL_COLOR_MATERIAL),
+		   Maps0
+	   end,
+    gl:materialfv(?GL_FRONT_AND_BACK, ?GL_DIFFUSE, prop_get(diffuse, OpenGL)),
+    gl:materialfv(?GL_FRONT_AND_BACK, ?GL_AMBIENT, prop_get(ambient, OpenGL)),
     apply_texture(prop_get(diffuse, Maps, none)).
 
 apply_texture(none) -> no_texture();
@@ -402,7 +423,8 @@ apply_texture_1(Image, TxId) ->
     case wings_gl:is_ext({1,2}) of
 	true ->
 	    %% Calculate specular color correctly on textured models.
-	    gl:lightModeli(?GL_LIGHT_MODEL_COLOR_CONTROL,?GL_SEPARATE_SPECULAR_COLOR);
+	    gl:lightModeli(?GL_LIGHT_MODEL_COLOR_CONTROL,
+			   ?GL_SEPARATE_SPECULAR_COLOR);
 	false -> ok
     end,
     case wings_image:info(Image) of
@@ -478,7 +500,7 @@ needed_attributes(We, #st{mat=Mat}) ->
 needed_attributes_1(_, _, true, true) -> [color,uv];
 needed_attributes_1([M|Ms], MatTab, Col0, UV0) ->
     Mat = gb_trees:get(M, MatTab),
-    UV = UV0 orelse has_texture(Mat),
+    UV = UV0 orelse needs_uvs(Mat),
     Col = Col0 orelse needs_vertex_colors(Mat),
     needed_attributes_1(Ms, MatTab, Col, UV);
 needed_attributes_1([], _, Col, UV) ->
@@ -494,6 +516,17 @@ needed_attributes_1([], _, Col, UV) ->
 needs_vertex_colors(Mat) ->
     OpenGL = prop_get(opengl, Mat),
     prop_get(vertex_colors, OpenGL, ignore) =/= ignore.
+
+needs_uvs(Mat) ->
+    OpenGL = prop_get(opengl, Mat),
+    case prop_get(vertex_colors, OpenGL, ignore) of
+	set ->
+	    %% Vertex colors overrides the texture (if any).
+	    false;
+	_ ->
+	    %% We need UV coordinates if there is a diffuse texture.
+	    has_texture(Mat)
+    end.
 
 -define(PREVIEW_SIZE, 100).
 
