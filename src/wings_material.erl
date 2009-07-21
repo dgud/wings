@@ -16,8 +16,9 @@
 	 add_materials/2,add_materials/3,
 	 update_materials/2,
 	 update_image/4,used_images/1,
-	 used_materials/1, has_texture/2,
-	 apply_material/2,is_transparent/2]).
+	 used_materials/1,has_texture/2,
+	 apply_material/2,is_transparent/2,
+	 needed_attributes/2]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -465,6 +466,34 @@ is_mat_transparent(Mat) ->
 		     (_, _) -> false
 		  end, false, OpenGL),
     Trans.
+
+%% needed_attributes(We, St) -> [Attr]
+%%     Attr = uv|color
+%%  Return a ordered list of the type of attributes that are needed
+%%  according to the materials.
+needed_attributes(We, #st{mat=Mat}) ->
+    Used = wings_facemat:used_materials(We),
+    needed_attributes_1(Used, Mat, false, false).
+
+needed_attributes_1(_, _, true, true) -> [color,uv];
+needed_attributes_1([M|Ms], MatTab, Col0, UV0) ->
+    Mat = gb_trees:get(M, MatTab),
+    UV = UV0 orelse has_texture(Mat),
+    Col = Col0 orelse needs_vertex_colors(Mat),
+    needed_attributes_1(Ms, MatTab, Col, UV);
+needed_attributes_1([], _, Col, UV) ->
+    L = case UV of
+	    true -> [uv];
+	    false -> []
+	end,
+    case Col of
+	true -> [color|L];
+	false -> L
+    end.
+
+needs_vertex_colors(Mat) ->
+    OpenGL = prop_get(opengl, Mat),
+    prop_get(vertex_colors, OpenGL, ignore) =/= ignore.
 
 -define(PREVIEW_SIZE, 100).
 
