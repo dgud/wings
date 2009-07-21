@@ -13,7 +13,10 @@
 
 -module(wings_draw_setup).
 -export([work/2,smooth/2,prepare/3,flat_faces/2]).
--export([vertexPointer/1,normalPointer/1,colorPointer/1,texCoordPointer/1]).
+-export([enableVertexPointer/1,enableNormalPointer/1,
+	 enableColorPointer/1,enableTexCoordPointer/1,
+	 disableVertexPointer/1,disableNormalPointer/1,
+	 disableColorPointer/1,disableTexCoordPointer/1]).
 -export([face_vertex_count/1]).
 
 -define(NEED_OPENGL, 1).
@@ -22,26 +25,47 @@
 -import(lists, [reverse/1,any/2,sort/1]).
 
 %%%
-%%% Help functions to set up buffer pointers.
+%%% Help functions to activate and disable buffer pointers.
 %%%
 
-vertexPointer({Stride,BinVs}) ->
-    gl:vertexPointer(3, ?GL_FLOAT, Stride, BinVs).
+enableVertexPointer({Stride,BinVs}) ->
+    gl:vertexPointer(3, ?GL_FLOAT, Stride, BinVs),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    true.
 
-normalPointer({Stride,Ns}) ->
-    gl:normalPointer(?GL_FLOAT, Stride, Ns).
+enableNormalPointer({Stride,Ns}) ->
+    gl:normalPointer(?GL_FLOAT, Stride, Ns),
+    gl:enableClientState(?GL_NORMAL_ARRAY),
+    true.
 
-colorPointer({Stride,Color}) ->
-    gl:colorPointer(3, ?GL_FLOAT, Stride, Color).
+enableColorPointer({Stride,Color}) ->
+    gl:colorPointer(3, ?GL_FLOAT, Stride, Color),
+    gl:enableClientState(?GL_COLOR_ARRAY),
+    true;
+enableColorPointer(none) -> false.
 
-texCoordPointer({Stride,UV}) ->
-    gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV);
-texCoordPointer(none) -> ok.
+enableTexCoordPointer({Stride,UV}) ->
+    gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV),
+    gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),
+    true;
+enableTexCoordPointer(none) -> false.
 
-face_vertex_count(#dlo{vab=#vab{mat_map=[{_Mat,_Type,_HaveUvs,Start,Count}|_]}}) ->
-    Start+Count;
-face_vertex_count(#dlo{vab=#vab{mat_map={color,_Type,N}}}) ->
-    N.
+disableVertexPointer({_Stride,_BinVs}) ->
+    gl:disableClientState(?GL_VERTEX_ARRAY).
+
+disableNormalPointer({_Stride,_Ns}) ->
+    gl:disableClientState(?GL_NORMAL_ARRAY).
+
+disableColorPointer({_Stride,_Color}) ->
+    gl:disableClientState(?GL_COLOR_ARRAY);
+disableColorPointer(none) -> ok.
+
+disableTexCoordPointer({_Stride,_UV}) ->
+    gl:disableClientState(?GL_TEXTURE_COORD_ARRAY);
+disableTexCoordPointer(none) -> ok.
+
+face_vertex_count(#dlo{vab=#vab{mat_map=[{_Mat,_Type,Start,Count}|_]}}) ->
+    Start+Count.
 
 %% Setup face_vs and face_fn and additional uv coords or vertex colors
 work(#dlo{vab=none,src_we=#we{fs=Ftab}}=D, St) ->
@@ -66,16 +90,16 @@ smooth(D, _) -> D.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-flat_faces({material,MatFaces}, D) ->
+flat_faces({plain,MatFaces}, D) ->
     plain_flat_faces(MatFaces, D, 0, <<>>, [], []);
 flat_faces({uv,MatFaces}, D) ->
     uv_flat_faces(MatFaces, D, 0, <<>>, [], []);
-flat_faces({color,Ftab,We}, D) ->
-    col_flat_faces(Ftab, We, D).
+flat_faces({color,MatFaces}, D) ->
+    col_flat_faces(MatFaces, D, 0, <<>>, [], []).
 
 plain_flat_faces([{Mat,Fs}|T], #dlo{ns=Ns}=D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, Ns, Start0, Vs0, Fmap0),
-    MatInfo = [{Mat,?GL_TRIANGLES,false,Start0,Start-Start0}|MatInfo0],
+    MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
     plain_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 plain_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
@@ -110,7 +134,7 @@ flat_faces_1([], _, Start, Vs, FaceMap) ->
 
 uv_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = uv_flat_faces_1(Fs, D, Start0, Vs0, Fmap0),
-    MatInfo = [{Mat,?GL_TRIANGLES, true, Start0,Start-Start0}|MatInfo0],
+    MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
     uv_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 uv_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
@@ -146,40 +170,42 @@ uv_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) -
 uv_flat_faces_1([], _, Start, Vs, FaceMap) ->
     {Start,Vs,FaceMap}.
 
-col_flat_faces(Fs, We, #dlo{ns=Ns}=D) ->
-    {Start,Vs,FaceMap0} = col_flat_faces_1(Fs, We, Ns, 0, <<>>, []),
+col_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
+    {Start,Vs,FaceMap} = col_flat_faces_1(Fs, D, Start0, Vs0, Fmap0),
+    MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
+    col_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
+col_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
     case Vs of
 	<<>> ->
-	    Normals = Col = Vs;
+	    Ns = Col = Vs;
 	_ ->
-	    <<_:3/unit:32,Normals/bytes>> = Vs,
-	    <<_:3/unit:32,Col/bytes>> = Normals
+	    <<_:3/unit:32,Ns/bytes>> = Vs,
+	    <<_:3/unit:32,Col/bytes>> = Ns
     end,
-    MatInfo = {color,?GL_TRIANGLES,Start},
     S = 36,
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Normals},face_vc={S,Col},face_uv=none,
-		   face_map=FaceMap,mat_map=MatInfo}}.
+    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_vc={S,Col},
+		   face_uv=none,face_map=FaceMap,mat_map=MatInfo}}.
 
-col_flat_faces_1([{Face,Edge}|T], We, Ns, Start, Vs0, Fmap0) ->
+col_flat_faces_1([{Face,Edge}|T], #dlo{ns=Ns,src_we=We}=D, Start, Vs0, Fmap0) ->
     Cols = wings_va:face_attr(color, Face, Edge, We),
     case array:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
 	    Vs = add_col_tri(Vs0, Normal, Pos, Cols),
 	    Fmap = [{Face,{Start,3}}|Fmap0],
-	    col_flat_faces_1(T, We, Ns, Start+3, Vs, Fmap);
+	    col_flat_faces_1(T, D, Start+3, Vs, Fmap);
 	[Normal|Pos] ->
 	    Vs = add_col_quad(Vs0, Normal, Pos, Cols),
 	    Fmap = [{Face,{Start,6}}|Fmap0],
-	    col_flat_faces_1(T, We, Ns, Start+6, Vs, Fmap);
+	    col_flat_faces_1(T, D, Start+6, Vs, Fmap);
 	{Normal,Faces,VsPos} ->
 	    NumVs  = length(Faces) * 3,
 	    Vs = add_col_poly(Vs0, Normal, Faces,
 			      list_to_tuple(VsPos), list_to_tuple(Cols)),
 	    Fmap = [{Face,{Start,NumVs}}|Fmap0],
-	    col_flat_faces_1(T, We, Ns, Start+NumVs, Vs, Fmap)
+	    col_flat_faces_1(T, D, Start+NumVs, Vs, Fmap)
     end;
-col_flat_faces_1([], _, _, Start, Vs, Fmap) ->
+col_flat_faces_1([], _, Start, Vs, Fmap) ->
     {Start,Vs,Fmap}.
 
 %% setup only normals
@@ -475,18 +501,18 @@ prepare_1(Ftab, We, St) ->
     case wings_va:info(We, St) of
 	[] ->
 	    %% Only materials.
-	    {material,prepare_mat(Ftab, We)};
+	    {plain,prepare_mat(Ftab, We)};
 	[uv] ->
 	    case wings_pref:get_value(show_textures) of
 		true ->
 		    {uv,prepare_mat(Ftab, We)};
 		false ->
-		    {material,prepare_mat(Ftab, We)}
+		    {plain,prepare_mat(Ftab, We)}
 	    end;
 	[color] ->
 	    case wings_pref:get_value(show_colors) of
-		false -> {material,[{default,Ftab}]};
-		true -> {color,Ftab,We}
+		false -> {plain,[{default,Ftab}]};
+		true -> {color,prepare_mat(Ftab, We)}
 	    end
     end.
 

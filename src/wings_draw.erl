@@ -494,11 +494,10 @@ update_sel(#dlo{}=D) -> D.
 update_sel_all(#dlo{vab=#vab{face_vs=Vs}}=D) when Vs =/= none ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
-    wings_draw_setup:vertexPointer(Vs),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
+    wings_draw_setup:enableVertexPointer(Vs),
     Count = wings_draw_setup:face_vertex_count(D),
     gl:drawArrays(?GL_TRIANGLES, 0, Count),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
+    wings_draw_setup:disableVertexPointer(Vs),
     gl:endList(),
     D#dlo{sel=List};
 update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
@@ -510,14 +509,13 @@ update_face_sel(Fs0, #dlo{src_we=We,vab=#vab{face_vs=Vs,face_map=Map}}=D)
     Fs = wings_we:visible(Fs0, We),
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    wings_draw_setup:vertexPointer(Vs),
+    wings_draw_setup:enableVertexPointer(Vs),
     Draw = fun(Face) ->
 		   {Start,NoElements} = array:get(Face, Map),
 		   gl:drawArrays(?GL_TRIANGLES, Start, NoElements)
 	   end,
     [Draw(Face) || Face <- Fs],
-    gl:disableClientState(?GL_VERTEX_ARRAY),
+    wings_draw_setup:disableVertexPointer(Vs),
     gl:endList(),
     D#dlo{sel=List};
 update_face_sel(Fs0, #dlo{src_we=We}=D) ->
@@ -856,57 +854,28 @@ tricky_share({X,Y,Z}, {_,_,Z}=Old) ->
 draw_flat_faces(#dlo{vab=Vab},St) ->
     draw_flat_faces(Vab,St);
 
-draw_flat_faces(#vab{face_vs=BinVs,face_fn=Ns,
-		     face_vc=Col,
-		     mat_map={color,Type,NumElements}}=D,
-		#st{mat=Mtab}) ->
-    Dl = gl:genLists(1),
-    gl:newList(Dl, ?GL_COMPILE),
-    wings_draw_setup:vertexPointer(BinVs),
-    wings_draw_setup:normalPointer(Ns),
-    wings_draw_setup:colorPointer(Col),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:enableClientState(?GL_NORMAL_ARRAY),
-    gl:enableClientState(?GL_COLOR_ARRAY),
-    wings_material:apply_material(default, Mtab),
-    gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
-    gl:enable(?GL_COLOR_MATERIAL),
-    gl:drawArrays(Type, 0, NumElements),
-    gl:disable(?GL_COLOR_MATERIAL),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    gl:disableClientState(?GL_NORMAL_ARRAY),
-    gl:disableClientState(?GL_COLOR_ARRAY),
-    gl:endList(),
-    free(D),
-    Dl;
-draw_flat_faces(#vab{face_vs=BinVs,face_fn=Ns,face_uv=UV,mat_map=MatMap}=D,
+draw_flat_faces(#vab{face_vs=BinVs,face_fn=Ns,face_uv=UV,
+		     face_vc=Col,mat_map=MatMap}=D,
 	       #st{mat=Mtab}) ->
+    wings_draw_setup:enableVertexPointer(BinVs),
+    wings_draw_setup:enableNormalPointer(Ns),
+    ColorActive = wings_draw_setup:enableColorPointer(Col),
+    wings_draw_setup:enableTexCoordPointer(UV),
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
-    wings_draw_setup:vertexPointer(BinVs),
-    wings_draw_setup:normalPointer(Ns),
-    wings_draw_setup:texCoordPointer(UV),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:enableClientState(?GL_NORMAL_ARRAY),
-    foreach(fun(MatFs) -> draw_mat_fs(MatFs, Mtab) end, MatMap),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    gl:disableClientState(?GL_NORMAL_ARRAY),
+    DrawFun = fun() ->
+		      foreach(fun(MatFs) ->
+				      draw_mat_fs(MatFs, Mtab)
+			      end, MatMap)
+	      end,
+    color_material_draw(ColorActive, DrawFun),
     gl:endList(),
+    wings_draw_setup:disableVertexPointer(BinVs),
+    wings_draw_setup:disableNormalPointer(Ns),
+    wings_draw_setup:disableColorPointer(Col),
+    wings_draw_setup:disableTexCoordPointer(UV),
     free(D),
     Dl.
-
-draw_mat_fs({Mat,Type,HaveUvs,Start,NumElements}, Mtab) ->
-    gl:pushAttrib(?GL_TEXTURE_BIT),
-    case wings_material:apply_material(Mat, Mtab) of
-	true when HaveUvs->
-	    gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),
-	    gl:drawArrays(Type, Start, NumElements),
-	    gl:disableClientState(?GL_TEXTURE_COORD_ARRAY);
-	_ ->
-	    gl:drawArrays(Type, Start, NumElements)
-    end,
-    gl:popAttrib().
-
 
 %%%
 %%% Smooth drawing.
@@ -915,69 +884,69 @@ draw_mat_fs({Mat,Type,HaveUvs,Start,NumElements}, Mtab) ->
 draw_smooth_faces(#dlo{vab=Vab},St) ->
     draw_smooth_faces(Vab,St);
 
-draw_smooth_faces(#vab{face_vs=BinVs,face_sn=Ns,
-		       face_vc=Col,mat_map={color,Type,NumElements}}=D,
+draw_smooth_faces(#vab{face_vs=BinVs,face_sn=Ns,face_uv=UV,
+		       face_vc=Col,mat_map=MatMap}=D,
 		  #st{mat=Mtab}) ->
-    wings_draw_setup:vertexPointer(BinVs),
-    wings_draw_setup:normalPointer(Ns),
-    wings_draw_setup:colorPointer(Col),
+    wings_draw_setup:enableVertexPointer(BinVs),
+    wings_draw_setup:enableNormalPointer(Ns),
+    wings_draw_setup:enableTexCoordPointer(UV),
+    ColorActive = wings_draw_setup:enableColorPointer(Col),
 
-    Dl = gl:genLists(1),
-    gl:newList(Dl, ?GL_COMPILE),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:enableClientState(?GL_NORMAL_ARRAY),
-    gl:enableClientState(?GL_COLOR_ARRAY),
-    wings_material:apply_material(default, Mtab),
-    gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
-    gl:enable(?GL_COLOR_MATERIAL),
-    gl:drawArrays(Type, 0, NumElements),
-    gl:disable(?GL_COLOR_MATERIAL),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    gl:disableClientState(?GL_NORMAL_ARRAY),
-    gl:disableClientState(?GL_COLOR_ARRAY),
-    gl:endList(),
-    free(D),
-    {[Dl,none],false};
-draw_smooth_faces(#vab{face_vs=BinVs,face_sn=Ns,face_uv=UV,mat_map=MatMap}=D,
-		  #st{mat=Mtab}) ->
     ListOp = gl:genLists(1),
-    wings_draw_setup:vertexPointer(BinVs),
-    wings_draw_setup:normalPointer(Ns),
-    wings_draw_setup:texCoordPointer(UV),
 
-    DrawSolid = fun(Data={Mat,_,_,_,_}, Tr) ->
-			case wings_material:is_transparent(Mat, Mtab) of
-			    false ->
-				draw_mat_fs(Data,Mtab),
-				Tr;
-			    true ->
-				[Data|Tr]
-			end
-		end,
+    DrawSolid =
+	fun({Mat,_,_,_}=Data, Tr) ->
+		case wings_material:is_transparent(Mat, Mtab) of
+		    false ->
+			DrawTrans = fun() -> draw_mat_fs(Data, Mtab) end,
+			color_material_draw(ColorActive, DrawTrans),
+			Tr;
+		    true ->
+			[Data|Tr]
+		end
+	end,
 
     gl:newList(ListOp, ?GL_COMPILE),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:enableClientState(?GL_NORMAL_ARRAY),
     Trans = foldl(DrawSolid, [], MatMap),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    gl:disableClientState(?GL_NORMAL_ARRAY),
     gl:endList(),
 
-    case Trans of
-	[] ->
-	    {[ListOp,none],false};
-	_ ->
-	    ListTr = gl:genLists(1),
-	    gl:newList(ListTr, ?GL_COMPILE),
-	    gl:enableClientState(?GL_VERTEX_ARRAY),
-	    gl:enableClientState(?GL_NORMAL_ARRAY),
-	    foreach(fun(MatFs) -> draw_mat_fs(MatFs,Mtab) end, Trans),
-	    gl:disableClientState(?GL_VERTEX_ARRAY),
-	    gl:disableClientState(?GL_NORMAL_ARRAY),
-	    gl:endList(),
-	    free(D),
-	    {[ListOp,ListTr],true}
-    end.
+    Res = case Trans of
+	      [] ->
+		  {[ListOp,none],false};
+	      _ ->
+		  DrawMatFs = fun(Data) ->
+				      draw_mat_fs(Data, Mtab)
+			      end,
+		  DrawFun = fun() ->
+				    foreach(DrawMatFs, Trans)
+			    end,
+		  ListTr = gl:genLists(1),
+		  gl:newList(ListTr, ?GL_COMPILE),
+		  color_material_draw(ColorActive, DrawFun),
+		  gl:endList(),
+		  {[ListOp,ListTr],true}
+	  end,
+
+    wings_draw_setup:disableVertexPointer(BinVs),
+    wings_draw_setup:disableNormalPointer(Ns),
+    wings_draw_setup:disableTexCoordPointer(UV),
+    wings_draw_setup:disableColorPointer(Col),
+    free(D),
+    Res.
+
+draw_mat_fs({Mat,Type,Start,NumElements}, Mtab) ->
+    gl:pushAttrib(?GL_TEXTURE_BIT),
+    wings_material:apply_material(Mat, Mtab),
+    gl:drawArrays(Type, Start, NumElements),
+    gl:popAttrib().
+
+color_material_draw(false, DrawFun) ->
+    DrawFun();
+color_material_draw(true, DrawFun) ->
+    gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
+    gl:enable(?GL_COLOR_MATERIAL),
+    DrawFun(),
+    gl:disable(?GL_COLOR_MATERIAL).
 
 %%
 %% Draw normals for the selected elements.

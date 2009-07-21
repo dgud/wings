@@ -19,7 +19,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [foreach/2, foldl/3, reverse/1, any/2]).
+-import(lists, [foreach/2,foldl/3,reverse/1,any/2,sort/1]).
 
 -record(split,
 	{upd_fs,			        % Update only these faces
@@ -119,7 +119,7 @@ setup_all(#dlo{src_we=#we{id=Id}}=D, false) ->
 setup_all(D, _) -> D.
 
 update(#dlo{proxy=false}=D, _) -> D;
-%% Proxy data is not up to date recalc!
+%% Proxy data is not up to date. Recalculate!
 update(#dlo{proxy_data=#sp{faces=[_]}=Pd0}=D, St) ->
     update(D#dlo{proxy_data=Pd0#sp{faces=none}},St);
 update(#dlo{src_we=We0,proxy_data=#sp{faces=none}=Pd0}=D, St) ->
@@ -158,22 +158,16 @@ update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, so
     gl:endList(),
     Dl;
 update_edges_1(_, #sp{vab=#vab{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}}, all) ->
+    wings_draw_setup:enableVertexPointer(BinVs),
+    wings_draw_setup:enableNormalPointer(Ns),
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
-    wings_draw_setup:vertexPointer(BinVs),
-    wings_draw_setup:normalPointer(Ns),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    gl:enableClientState(?GL_NORMAL_ARRAY),
-    Count = case MatMap of
-		[{_Mat,_Type,_Uvs,Start,MCount}|_] ->
-		    Start+MCount;
-		{color,_Type,Num} ->
-		    Num
-	    end,
+    [{_Mat,_Type,Start,MCount}|_] = MatMap,
+    Count = Start+MCount,
     gl:drawArrays(?GL_QUADS, 0, Count),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    gl:disableClientState(?GL_NORMAL_ARRAY),
     gl:endList(),
+    wings_draw_setup:disableVertexPointer(BinVs),
+    wings_draw_setup:disableNormalPointer(Ns),
     Dl.
 
 smooth(D=#dlo{proxy=false},_) -> D;
@@ -273,10 +267,10 @@ draw_edges_1(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
 
 proxy_smooth(We0, Pd0, St) ->
     case proxy_smooth_1(We0, Pd0) of
-	{false, _} ->
+	{false,_} ->
 	    Pd0;
-	{_, We = #we{fs=Ftab}} ->
-	    %% inc smooth could be optimized ?
+	{_,#we{fs=Ftab}=We} ->
+	    %% Could incremental smooth be optimized?
 	    Plan = wings_draw_setup:prepare(gb_trees:to_list(Ftab), We, St),
 	    flat_faces(Plan, #sp{src_we=We0,we=We})
     end.
@@ -349,16 +343,16 @@ reset_dynamic(D) ->
     D.
 
 %%% Setup binaries and meta info
-flat_faces({material,MatFaces}, Pd) ->
+flat_faces({plain,MatFaces}, Pd) ->
     plain_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
 flat_faces({uv,MatFaces}, Pd) ->
     uv_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
-flat_faces({color,Ftab,We}, Pd) ->
-    col_flat_faces(Ftab, We, Pd).
+flat_faces({color,MatFaces}, Pd) ->
+    col_flat_faces(MatFaces, Pd, 0, <<>>, [], []).
 
-plain_flat_faces([{Mat,Fs}|T], Pd=#sp{we=We}, Start0, Vs0, Fmap0, MatInfo0) ->
+plain_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, We, Start0, Vs0, Fmap0),
-    MatInfo = [{Mat,?GL_QUADS, false, Start0,Start-Start0}|MatInfo0],
+    MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
     plain_flat_faces(T, Pd, Start, Vs, FaceMap, MatInfo);
 plain_flat_faces([], Pd, _Start, Vs, FaceMap, MatInfo) ->
     case Vs of
@@ -378,11 +372,11 @@ flat_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap) ->
 flat_faces_1([], _, Start, Vs, FaceMap) ->
     {Start,Vs,FaceMap}.
 
-uv_flat_faces([{Mat,Fs}|T], Pd = #sp{we=We}, Start0, Vs0, Fmap0, MatInfo0) ->
+uv_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = uv_flat_faces_1(Fs, We, Start0, Vs0, Fmap0),
-    MatInfo = [{Mat,?GL_QUADS, true, Start0,Start-Start0}|MatInfo0],
+    MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
     uv_flat_faces(T, Pd, Start, Vs, FaceMap, MatInfo);
-uv_flat_faces([], D, _Start, Vs, FaceMap, MatInfo) ->
+uv_flat_faces([], Pd, _Start, Vs, FaceMap, MatInfo) ->
     case Vs of
 	<<>> ->
 	    Ns = UV = Vs;
@@ -391,37 +385,40 @@ uv_flat_faces([], D, _Start, Vs, FaceMap, MatInfo) ->
 	    <<_:3/unit:32,UV/bytes>> = Ns
     end,
     S = 32,
-    D#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},
+    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},
 		  face_map=reverse(FaceMap),mat_map=MatInfo}}.
 
 uv_flat_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap) ->
     {VsPos,UV} = wings_va:face_pos_attr(uv, Face, Edge, We),
     Normal = e3d_vec:normal(VsPos),
-    uv_flat_faces_1(Fs,We,Start+4, add_quad_uv(Vs,Normal,VsPos,UV),
+    uv_flat_faces_1(Fs, We, Start+4,
+		    add_quad_uv(Vs, Normal, VsPos, UV),
 		    [{Face,Normal}|FaceMap]);
 uv_flat_faces_1([], _, Start, Vs, FaceMap) ->
     {Start,Vs,FaceMap}.
 
-col_flat_faces(Fs, We, Pd) ->
-    {Start,Vs,FaceMap} = col_flat_faces_1(Fs, We, 0, <<>>, []),
+col_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
+    {Start,Vs,FaceMap} = col_flat_faces_1(Fs, We, Start0, Vs0, Fmap0),
+    MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
+    col_flat_faces(T, Pd, Start, Vs, FaceMap, MatInfo);
+col_flat_faces([], Pd, _Start, Vs, FaceMap, MatInfo) ->
     case Vs of
 	<<>> ->
-	    Normals = Col = Vs;
+	    Ns = Col = Vs;
 	_ ->
-	    <<_:3/unit:32,Normals/bytes>> = Vs,
-	    <<_:3/unit:32,Col/bytes>> = Normals
+	    <<_:3/unit:32,Ns/bytes>> = Vs,
+	    <<_:3/unit:32,Col/bytes>> = Ns
     end,
-    MatInfo = {color,?GL_QUADS,Start},
     S = 36,
-    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Normals},face_vc={S,Col},face_uv=none,
-		   face_map=reverse(FaceMap),mat_map=MatInfo}}.
+    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_vc={S,Col},
+		   face_uv=none,face_map=reverse(FaceMap),mat_map=MatInfo}}.
 
 col_flat_faces_1([{Face,Edge}|T], We, Start, Vs, Fmap) ->
     {VsPos,Col} = wings_va:face_pos_attr(color, Face, Edge, We),
     Normal = e3d_vec:normal(VsPos),
-    col_flat_faces_1(T,We,Start+4, add_quad_col(Vs,Normal,VsPos,Col),
+    col_flat_faces_1(T, We, Start+4,
+		     add_quad_col(Vs, Normal, VsPos, Col),
 		     [{Face,Normal}|Fmap]);
-
 col_flat_faces_1([], _, Start, Vs, Fmap) ->
     {Start,Vs,Fmap}.
 

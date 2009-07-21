@@ -224,11 +224,10 @@ hilit_draw_sel(face, Face, #dlo{vab=#vab{face_map=Map, face_vs=Vs}}) ->
 	solid -> ok
     end,
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    wings_draw_setup:vertexPointer(Vs),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
+    wings_draw_setup:enableVertexPointer(Vs),
     {Start,NoElements} = array:get(Face,Map),
     gl:drawArrays(?GL_TRIANGLES, Start, NoElements),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
+    wings_draw_setup:disableVertexPointer(Vs),
     gl:disable(?GL_POLYGON_STIPPLE);
 hilit_draw_sel(body, _, #dlo{vab=#vab{face_vs=Vs}}=D) ->
     case wings_pref:get_value(selection_style) of
@@ -236,11 +235,10 @@ hilit_draw_sel(body, _, #dlo{vab=#vab{face_vs=Vs}}=D) ->
 	solid -> ok
     end,
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    wings_draw_setup:vertexPointer(Vs),
+    wings_draw_setup:enableVertexPointer(Vs),
     Count = wings_draw_setup:face_vertex_count(D),
     gl:drawArrays(?GL_TRIANGLES, 0, Count),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
+    wings_draw_setup:disableVertexPointer(Vs),
     gl:disable(?GL_POLYGON_STIPPLE).
 
 enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev={SelMode,_,{Obj,Elem}}})->
