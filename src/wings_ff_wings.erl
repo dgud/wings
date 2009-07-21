@@ -16,7 +16,7 @@
 
 -include("wings.hrl").
 -include("e3d_image.hrl").
--import(lists, [sort/1,reverse/1,foldl/3]).
+-import(lists, [sort/1,reverse/1,foldl/3,any/2,keymember/3]).
 
 -define(WINGS_HEADER, "#!WINGS-1.0\r\n\032\04").
 
@@ -64,7 +64,8 @@ import_vsn2(Shapes, Materials0, Props, Dir, St0) ->
     wings_pb:update(0.10, ?__(1,"images and materials")),
     Images = import_images(Dir,Props),
     Materials1 = translate_materials(Materials0),
-    Materials  = translate_map_images(Materials1, Images),
+    Materials2 = translate_map_images(Materials1, Images),
+    Materials = translate_object_modes(Materials2, Shapes),
     {St1,NameMap0} = wings_material:add_materials(Materials, St0),
     NameMap1 = gb_trees:from_orddict(sort(NameMap0)),
     NameMap = optimize_name_map(Materials, NameMap1, []),
@@ -88,7 +89,6 @@ import_objects(Shapes, NameMap, #st{selmode=Mode,shapes=Shs0,onext=Oid0}=St) ->
 
 import_objects([Sh0|Shs], Mode, NameMap, Oid, ShAcc) ->
     {object,Name,{winged,Es,Fs,Vs,He},Props} = Sh0,
-    ObjMode = import_object_mode(Props),
     Etab = import_edges(Es, 0, []),
     %% The 'default' material saved in this .wings file might not
     %% match the current default material, so it could have been
@@ -109,7 +109,7 @@ import_objects([Sh0|Shs], Mode, NameMap, Oid, ShAcc) ->
 	  catch error:_ -> gb_trees:empty()
 	  end,
     We = #we{he=Htab,perm=Perm,pst=Pst,
-	     id=Oid,name=Name,mode=ObjMode,mirror=Mirror,mat=FaceMat},
+	     id=Oid,name=Name,mirror=Mirror,mat=FaceMat},
     HiddenFaces = proplists:get_value(num_hidden_faces, Props, 0),
     import_objects(Shs, Mode, NameMap, Oid+1, [{HiddenFaces,We,{Vtab,Etab}}|ShAcc]);
 import_objects([], _Mode, _NameMap, Oid, Objs0) ->
@@ -182,15 +182,6 @@ import_perm(Props) ->
 	hidden_locked -> 3;
 	{hidden,Mode,Set} -> {Mode,gb_sets:from_list(Set)};
 	_Unknown -> 0
-    end.
-
-import_object_mode(Ps) ->
-    case proplists:get_value(mode, Ps, material) of
-	undefined ->
-	    io:format(?__(1,"Changed undefined mode to material\n")),
-	    material;
-	uv -> material;
-	Other -> Other
     end.
 
 import_props([{selection,{Mode,Sel0}}|Ps], St) ->
@@ -503,6 +494,46 @@ translate_material([], _, OpenGL, Maps) ->
     [{opengl,OpenGL},{maps,Maps}].
 
 trans({Key,{R,G,B}}, Opac) -> {Key,{R,G,B,Opac}}.
+
+%%
+%% Object modes were removed after the 1.1.7 release and
+%% replaced with information about vertex colors in the
+%% materials. At the same time the 'default' material was
+%% changed to show vertex colors for the faces it was applied
+%% to.
+%%
+%% Left alone, there would be two annoyances when loading
+%% old models:
+%%
+%% 1. Vertex colors would not be shown.
+%%
+%% 2. Since the 'default' materials do not match, the 'default'
+%%    material in the file will be renamed to 'default2' (or
+%%    something similar) and therew would be a new 'default'
+%%    material.
+%%
+%% We will avoid both those annoyances by changing the 'default'
+%% material in the file so that it is more likely to match
+%% current 'default' material. We will only do this change if
+%% the file contains an implicit object mode for some object,
+%% i.e. was saved by 1.1.7 or earlier.
+%%
+translate_object_modes(Mats, Objects) ->
+    OldFile = any(fun(Obj) ->
+			  {object,_Name,_Winged,Props} = Obj,
+			  keymember(mode, 1, Props)
+		  end, Objects),
+    case OldFile of
+	false -> Mats;
+	true -> [translate_object_mode(M) || M <- Mats]
+    end.
+
+translate_object_mode({default=Name,Props0}) ->
+    OpenGL0 = proplists:get_value(opengl, Props0, []),
+    OpenGL = [{vertex_colors,set}|OpenGL0],
+    Props = [{opengl,OpenGL}|lists:keydelete(opengl, 1, Props0)],
+    {Name,Props};
+translate_object_mode(Mat) -> Mat.
     
 %%%
 %%% Save a Wings file (in version 2).
@@ -619,7 +650,7 @@ write_file(Name, Bin) ->
 	{error,Reason} -> {error,file:format_error(Reason)}
     end.
 
-shape({Hidden,#we{mode=ObjMode,name=Name,vp=Vs0,es=Es0,he=Htab,pst=Pst}=We}, Acc) ->
+shape({Hidden,#we{name=Name,vp=Vs0,es=Es0,he=Htab,pst=Pst}=We}, Acc) ->
     Vs1 = foldl(fun export_vertex/2, [], array:sparse_to_list(Vs0)),
     Vs = reverse(Vs1),
     UvFaces = gb_sets:from_ordset(wings_we:uv_mapped_faces(We)),
@@ -630,7 +661,7 @@ shape({Hidden,#we{mode=ObjMode,name=Name,vp=Vs0,es=Es0,he=Htab,pst=Pst}=We}, Acc
     Fs1 = foldl(fun export_face/2, [], wings_facemat:all(We)),
     Fs = reverse(Fs1),
     He = gb_sets:to_list(Htab),
-    Props0 = [{mode,ObjMode}|export_perm(We)],
+    Props0 = export_perm(We),
     Props1 = hidden_faces(Hidden, Props0),
     Props2 = mirror(We, Props1),
     Props  = export_pst(Pst,Props2),

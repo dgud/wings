@@ -210,15 +210,18 @@ set_material(_, St) -> St.
 default() ->
     Dm = wings_pref:get_value(material_default),
     Hm = wings_pref:get_value(material_hole),
-    M = [{default,make_default(Dm, 1.0)},
-        {'_hole_',make_default(Hm, 0.50)}],
+    M = [{default,make_default(Dm, 1.0, [{vertex_colors,set}])},
+	 {'_hole_',make_default(Hm, 0.50)}],
     gb_trees:from_orddict(sort(M)).
 
-make_default({R,G,B}, Opacity) ->
+make_default(Color, Opacity) ->
+    make_default(Color, Opacity, []).
+
+make_default({R,G,B}, Opacity, More) ->
     Color = {R,G,B,Opacity},
     White = {1.0,1.0,1.0,1.0},
     Mat = [{opengl,[{diffuse,Color},{ambient,Color},{specular,White},
-		    {emission,{0.0,0.0,0.0,0.0}},{shininess,1.0}]},
+		    {emission,{0.0,0.0,0.0,0.0}},{shininess,1.0}|More]},
 	   {maps,[]}],
     sort([{K,sort(L)} || {K,L} <- Mat]).
 
