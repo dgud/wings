@@ -95,7 +95,9 @@ flat_faces({plain,MatFaces}, D) ->
 flat_faces({uv,MatFaces}, D) ->
     uv_flat_faces(MatFaces, D, 0, <<>>, [], []);
 flat_faces({color,MatFaces}, D) ->
-    col_flat_faces(MatFaces, D, 0, <<>>, [], []).
+    col_flat_faces(MatFaces, D, 0, <<>>, [], []);
+flat_faces({color_uv,MatFaces}, D) ->
+    col_uv_faces(MatFaces, D, 0, <<>>, [], []).
 
 plain_flat_faces([{Mat,Fs}|T], #dlo{ns=Ns}=D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, Ns, Start0, Vs0, Fmap0),
@@ -208,6 +210,46 @@ col_flat_faces_1([{Face,Edge}|T], #dlo{ns=Ns,src_we=We}=D, Start, Vs0, Fmap0) ->
 col_flat_faces_1([], _, Start, Vs, Fmap) ->
     {Start,Vs,Fmap}.
 
+col_uv_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
+    {Start,Vs,FaceMap} = col_uv_faces_1(Fs, D, Start0, Vs0, Fmap0),
+    MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
+    col_uv_faces(T, D, Start, Vs, FaceMap, MatInfo);
+col_uv_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
+    FaceMap = array:from_orddict(sort(FaceMap0)),
+    case Vs of
+	<<>> ->
+	    Ns = Col = UV = Vs;
+	_ ->
+	    <<_:3/unit:32,Ns/bytes>> = Vs,
+	    <<_:3/unit:32,Col/bytes>> = Ns,
+	    <<_:3/unit:32,UV/bytes>> = Col
+    end,
+    S = 44,
+    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},
+		   face_vc={S,Col},face_uv={S,UV},
+		   face_map=FaceMap,mat_map=MatInfo}}.
+
+col_uv_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
+    UVs = wings_va:face_attr([color|uv], Face, Edge, We),
+    case array:get(Face, Ns) of
+	[Normal|Pos =[_,_,_]] ->
+	    col_uv_faces_1(Fs, D, Start+3,
+			   add_col_uv_tri(Vs, Normal, Pos, UVs),
+			   [{Face,{Start,3}}|FaceMap]);
+	[Normal|Pos] ->
+	    col_uv_faces_1(Fs, D, Start+6,
+			   add_col_uv_quad(Vs, Normal, Pos, UVs),
+			   [{Face,{Start,6}}|FaceMap]);
+	{Normal,Faces,VsPos} ->
+	    NoVs  = length(Faces) * 3,
+	    VsBin = add_col_uv_poly(Vs, Normal, Faces,
+			     list_to_tuple(VsPos), list_to_tuple(UVs)),
+	    col_uv_faces_1(Fs, D, NoVs+Start,
+			   VsBin, [{Face,{Start,NoVs}}|FaceMap])
+    end;
+col_uv_faces_1([], _, Start, Vs, FaceMap) ->
+    {Start,Vs,FaceMap}.
+
 %% setup only normals
 setup_flat_normals(D=#dlo{vab=#vab{face_map=Fmap0}=Vab,ns=Ns}) ->
     Fs = lists:keysort(2, array:sparse_to_orddict(Fmap0)),
@@ -319,6 +361,28 @@ add_tri(Bin,N, Pos, _UV) ->
     Z = {0.0,0.0},
     add_tri(Bin, N, Pos, [Z,Z,Z]).
 
+add_col_uv_tri(Bin, {NX,NY,NZ},
+	       [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}],
+	       [[{R1,G1,B1}|{U1,V1}],
+		[{R2,G2,B2}|{U2,V2}],
+		[{R3,G3,B3}|{U3,V3}]]) ->
+    <<Bin/binary,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R1:?F32,G1:?F32,B1:?F32,
+     U1:?F32,V1:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R2:?F32,G2:?F32,B2:?F32,
+     U2:?F32,V2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R3:?F32,G3:?F32,B3:?F32,
+     U3:?F32,V3:?F32>>;
+add_col_uv_tri(Bin, N, Pos, Attrs0) ->
+    Attrs = fix_color_uv(Attrs0),
+    add_col_uv_tri(Bin, N, Pos, Attrs).
+
 add_col_tri(Bin, {NX,NY,NZ},
 	    [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}],
 	    [{R1,G1,B1},{R2,G2,B2},{R3,G3,B3}]) ->
@@ -404,6 +468,41 @@ add_col_quad(Bin, N, Pos, Cols0) ->
     Cols = [def_color(C) || C <- Cols0],
     add_col_quad(Bin, N, Pos, Cols).
 
+add_col_uv_quad(Bin, {NX,NY,NZ},
+		[{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}],
+		[[{R1,G1,B1}|{U1,V1}],
+		 [{R2,G2,B2}|{U2,V2}],
+		 [{R3,G3,B3}|{U3,V3}],
+		 [{R4,G4,B4}|{U4,V4}]]) ->
+    <<Bin/binary,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R1:?F32,G1:?F32,B1:?F32,
+     U1:?F32,V1:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R2:?F32,G2:?F32,B2:?F32,
+     U2:?F32,V2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R3:?F32,G3:?F32,B3:?F32,
+     U3:?F32,V3:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R3:?F32,G3:?F32,B3:?F32,
+     U3:?F32,V3:?F32,
+     X4:?F32,Y4:?F32,Z4:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R4:?F32,G4:?F32,B4:?F32,
+     U4:?F32,V4:?F32,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R1:?F32,G1:?F32,B1:?F32,
+     U1:?F32,V1:?F32>>;
+add_col_uv_quad(Bin, N, Pos, Attrs0) ->
+    Attrs = fix_color_uv(Attrs0),
+    add_col_uv_quad(Bin, N, Pos, Attrs).
+
 add_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab) ->
     PA = element(A, Vtab),
     PB = element(B, Vtab),
@@ -436,6 +535,18 @@ add_col_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab, ColTab) ->
     add_col_poly(Vs, Normal, Fs, Vtab, ColTab);
 add_col_poly(Vs, _, _, _, _) -> Vs.
 
+add_col_uv_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab, AttrTab) ->
+    PA = element(A, Vtab),
+    PB = element(B, Vtab),
+    PC = element(C, Vtab),
+    %% A tesselated face may have more vertices than vertex attributes
+    AttrA = attr_element(A, AttrTab),
+    AttrB = attr_element(B, AttrTab),
+    AttrC = attr_element(C, AttrTab),
+    Vs = add_col_uv_tri(Vs0, Normal, [PA,PB,PC], [AttrA,AttrB,AttrC]),
+    add_col_uv_poly(Vs, Normal, Fs, Vtab, AttrTab);
+add_col_uv_poly(Vs, _, _, _, _) -> Vs.
+
 uv_element(A, Tab) when A =< tuple_size(Tab) ->
     element(A, Tab);
 uv_element(_, _) ->
@@ -445,6 +556,26 @@ col_element(A, Tab) when A =< tuple_size(Tab) ->
     element(A, Tab);
 col_element(_, _) ->
     {1.0,1.0,1.0}.
+
+attr_element(A, Tab) when A =< tuple_size(Tab) ->
+    element(A, Tab);
+attr_element(_, _) ->
+    [none|none].
+
+fix_color_uv(Attrs) ->
+    case good_uvs(Attrs) of
+	false ->
+	    %% Bad UVs, possibly bad vertex colors too. Fix both.
+	    Zuv = {0.0,0.0},
+	    [[def_color(C)|Zuv] || [C|_] <- Attrs];
+	true ->
+	    %% Good UVs, bad vertex colors.
+	    [[def_color(C)|UV] || [C|UV] <- Attrs]
+    end.
+
+good_uvs([[_|{_,_}]|T]) -> good_uvs(T);
+good_uvs([_|_]) -> false;
+good_uvs([]) -> true.
 
 def_color({_,_,_}=C) -> C;
 def_color(_) -> {1.0,1.0,1.0}.
@@ -527,9 +658,17 @@ prepare_2([uv], Ftab, We) ->
 	    {plain,prepare_mat(Ftab, We)}
     end;
 prepare_2([color,uv], Ftab, We) ->
-    %% For the moment, only use the UV coordinates.
-    %% (Blending vertex colors and textures will not work.)
-    prepare_2([uv], Ftab, We).
+    case wings_pref:get_value(show_colors) of
+	false ->
+	    prepare_2([uv], Ftab, We);
+	true ->
+	    case wings_pref:get_value(show_textures) of
+		false ->
+		    {color,prepare_mat(Ftab, We)};
+		true ->
+		    {color_uv,prepare_mat(Ftab, We)}
+	    end
+    end.
 
 prepare_mat(Ftab, We) ->
     case wings_pref:get_value(show_materials) of

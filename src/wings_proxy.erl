@@ -348,7 +348,9 @@ flat_faces({plain,MatFaces}, Pd) ->
 flat_faces({uv,MatFaces}, Pd) ->
     uv_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
 flat_faces({color,MatFaces}, Pd) ->
-    col_flat_faces(MatFaces, Pd, 0, <<>>, [], []).
+    col_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
+flat_faces({color_uv,MatFaces}, Pd) ->
+    col_uv_faces(MatFaces, Pd, 0, <<>>, [], []).
 
 plain_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, We, Start0, Vs0, Fmap0),
@@ -422,6 +424,33 @@ col_flat_faces_1([{Face,Edge}|T], We, Start, Vs, Fmap) ->
 col_flat_faces_1([], _, Start, Vs, Fmap) ->
     {Start,Vs,Fmap}.
 
+col_uv_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
+    {Start,Vs,FaceMap} = col_uv_faces_1(Fs, We, Start0, Vs0, Fmap0),
+    MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
+    col_uv_faces(T, Pd, Start, Vs, FaceMap, MatInfo);
+col_uv_faces([], Pd, _Start, Vs, FaceMap, MatInfo) ->
+    case Vs of
+	<<>> ->
+	    Ns = Col = UV = Vs;
+	_ ->
+	    <<_:3/unit:32,Ns/bytes>> = Vs,
+	    <<_:3/unit:32,Col/bytes>> = Ns,
+	    <<_:3/unit:32,UV/bytes>> = Col
+    end,
+    S = 44,
+    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},
+		   face_vc={S,Col},face_uv={S,UV},
+		   face_map=reverse(FaceMap),mat_map=MatInfo}}.
+
+col_uv_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap) ->
+    {VsPos,UV} = wings_va:face_pos_attr([color|uv], Face, Edge, We),
+    Normal = e3d_vec:normal(VsPos),
+    col_uv_faces_1(Fs, We, Start+4,
+		   add_quad_col_uv(Vs, Normal, VsPos, UV),
+		   [{Face,Normal}|FaceMap]);
+col_uv_faces_1([], _, Start, Vs, FaceMap) ->
+    {Start,Vs,FaceMap}.
+
 add_quad(Bin, {NX,NY,NZ},
 	 [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}]) ->
     <<Bin/binary,
@@ -474,6 +503,48 @@ add_quad_col(Bin, {NX,NY,NZ},
 add_quad_col(Bin, N, Pos, Cols0) ->
     Cols = [def_color(C) || C <- Cols0],
     add_quad_col(Bin, N, Pos, Cols).
+
+add_quad_col_uv(Bin, {NX,NY,NZ},
+		[{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}],
+		[[{R1,G1,B1}|{U1,V1}],
+		 [{R2,G2,B2}|{U2,V2}],
+		 [{R3,G3,B3}|{U3,V3}],
+		 [{R4,G4,B4}|{U4,V4}]]) ->
+    <<Bin/binary,
+     X1:?F32,Y1:?F32,Z1:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R1:?F32,G1:?F32,B1:?F32,
+     U1:?F32,V1:?F32,
+     X2:?F32,Y2:?F32,Z2:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R2:?F32,G2:?F32,B2:?F32,
+     U2:?F32,V2:?F32,
+     X3:?F32,Y3:?F32,Z3:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R3:?F32,G3:?F32,B3:?F32,
+     U3:?F32,V3:?F32,
+     X4:?F32,Y4:?F32,Z4:?F32,
+     NX:?F32,NY:?F32,NZ:?F32,
+     R4:?F32,G4:?F32,B4:?F32,
+     U4:?F32,V4:?F32>>;
+add_quad_col_uv(Bin, N, Pos, Attrs0) ->
+    Attrs = fix_color_uv(Attrs0),
+    add_quad_col_uv(Bin, N, Pos, Attrs).
+
+fix_color_uv(Attrs) ->
+    case good_uvs(Attrs) of
+	false ->
+	    %% Bad UVs, possibly bad vertex colors too. Fix both.
+	    Zuv = {0.0,0.0},
+	    [[def_color(C)|Zuv] || [C|_] <- Attrs];
+	true ->
+	    %% Good UVs, bad vertex colors.
+	    [[def_color(C)|UV] || [C|UV] <- Attrs]
+    end.
+
+good_uvs([[_|{_,_}]|T]) -> good_uvs(T);
+good_uvs([_|_]) -> false;
+good_uvs([]) -> true.
 
 def_color({_,_,_}=C) -> C;
 def_color(_) -> {1.0,1.0,1.0}.

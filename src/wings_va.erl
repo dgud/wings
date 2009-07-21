@@ -92,6 +92,8 @@ face_attr(uv, Face, Edge, #we{es=Etab,lv=Lva,rv=Rva}) ->
     face_attr_uv(Edge, Etab, Lva, Rva, Face, Edge, []);
 face_attr(color, Face, Edge, #we{es=Etab,lv=Lva,rv=Rva}) ->
     face_attr_color(Edge, Etab, Lva, Rva, Face, Edge, []);
+face_attr([color|uv], Face, Edge, #we{es=Etab,lv=Lva,rv=Rva}) ->
+    face_attr_color_uv(Edge, Etab, Lva, Rva, Face, Edge, []);
 face_attr([vertex|uv], Face, Edge, #we{es=Etab,lv=Lva,rv=Rva}) ->
     face_vtx_attr_uv(Edge, Etab, Face, {Lva,Rva}, Edge, []);
 face_attr([vertex|color], Face, Edge, #we{es=Etab,lv=Lva,rv=Rva}) ->
@@ -101,7 +103,9 @@ face_attr([vertex|color], Face, Edge, #we{es=Etab,lv=Lva,rv=Rva}) ->
 face_pos_attr(uv, Face, Edge, #we{es=Etab,vp=Vtab,lv=Lva,rv=Rva}) ->
     face_pos_attr_uv(Edge, Etab, {Vtab,Lva,Rva}, Face, Edge, [], []);
 face_pos_attr(color, Face, Edge, #we{es=Etab,vp=Vtab,lv=Lva,rv=Rva}) ->
-    face_pos_attr_color(Edge, Etab, {Vtab,Lva,Rva}, Face, Edge, [], []).
+    face_pos_attr_color(Edge, Etab, {Vtab,Lva,Rva}, Face, Edge, [], []);
+face_pos_attr([color|uv], Face, Edge, #we{es=Etab,vp=Vtab,lv=Lva,rv=Rva}) ->
+    face_pos_attr_col_uv(Edge, Etab, {Vtab,Lva,Rva}, Face, Edge, [], []).
 
 fold(uv, F, Acc, Face, #we{es=Etab,fs=Ftab,lv=Lva,rv=Rva}) ->
     Edge = gb_trees:get(Face, Ftab),
@@ -518,6 +522,23 @@ face_attr_uv(Edge, Etab, Lva, Rva, Face, LastEdge, Acc) ->
 	    face_attr_uv(NextEdge, Etab, Lva, Rva, Face, LastEdge, [Info|Acc])
     end.
 
+face_attr_color_uv(LastEdge, _, _, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
+face_attr_color_uv(Edge, Etab, Lva, Rva, Face, LastEdge, Acc) ->
+    case array:get(Edge, Etab) of
+	#edge{lf=Face,ltsu=NextEdge} ->
+	    Info = case aget(Edge, Lva) of
+		       none -> [none|none];
+		       [_|_]=ColUV -> ColUV
+		   end,
+	    face_attr_color_uv(NextEdge, Etab, Lva, Rva, Face, LastEdge, [Info|Acc]);
+	#edge{rf=Face,rtsu=NextEdge} ->
+	    Info = case aget(Edge, Rva) of
+		       none -> [none|none];
+		       [_|_]=ColUV -> ColUV
+		   end,
+	    face_attr_color_uv(NextEdge, Etab, Lva, Rva, Face, LastEdge, [Info|Acc])
+    end.
+
 face_attr_color(LastEdge, _, _, _, _, LastEdge, Acc) when Acc =/= [] -> Acc;
 face_attr_color(Edge, Etab, Lva, Rva, Face, LastEdge, Acc) ->
     case array:get(Edge, Etab) of
@@ -613,6 +634,29 @@ face_pos_attr_color(Edge, Etab, {Vtab,Lva,Rva}=Tabs, Face, LastEdge, Vs, InfoAcc
 		   end,
 	    face_pos_attr_color(NextEdge, Etab, Tabs, Face, LastEdge,
 				[Pos|Vs], [Info|InfoAcc])
+    end.
+
+face_pos_attr_col_uv(LastEdge, _, _, _, LastEdge, Vs, Info)
+  when Vs =/= [] -> {Vs,Info};
+face_pos_attr_col_uv(Edge, Etab, {Vtab,Lva,Rva}=Tabs, Face,
+		     LastEdge, Vs, InfoAcc) ->
+    case array:get(Edge, Etab) of
+	#edge{vs=V,lf=Face,ltsu=NextEdge} ->
+	    Pos = array:get(V, Vtab),
+	    Info = case aget(Edge, Lva) of
+		       none -> [none|none];
+		       [_|_]=Attr -> Attr
+		   end,
+	    face_pos_attr_col_uv(NextEdge, Etab, Tabs, Face, LastEdge,
+				[Pos|Vs], [Info|InfoAcc]);
+	#edge{ve=V,rtsu=NextEdge} ->
+	    Pos = array:get(V, Vtab),
+	    Info = case aget(Edge, Rva) of
+		       none -> [none|none];
+		       [_|_]=Attr -> Attr
+		   end,
+	    face_pos_attr_col_uv(NextEdge, Etab, Tabs, Face, LastEdge,
+				 [Pos|Vs], [Info|InfoAcc])
     end.
 
 fold_uv(_F, Acc, _Face, LastEdge, LastEdge, _Tabs, done) -> Acc;
