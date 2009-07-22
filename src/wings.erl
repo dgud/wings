@@ -627,7 +627,7 @@ command_1({edit,repeat}, #st{sel=[]}=St) -> St;
 command_1({edit,repeat}, #st{selmode=Mode,repeatable=Cmd0}=St) ->
     case repeatable(Mode, Cmd0) of
 	no -> keep;
-	Cmd when is_tuple(Cmd) -> raw_command(Cmd, true, St)
+	Cmd when is_tuple(Cmd) -> raw_command(Cmd, none, St)
     end;
 command_1({edit,repeat}, St) -> St;
 command_1({edit,repeat_args}, #st{sel=[]}=St) -> St;
