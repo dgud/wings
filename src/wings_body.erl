@@ -83,7 +83,13 @@ menu(X, Y, St) ->
 	      [{?__(41,"Colors to Materials"),colors_to_materials,
 		?__(42,"Convert vertex colors to materials")},
 	       {?__(43,"Materials to Colors"),materials_to_colors,
-		?__(44,"Convert materials to vertex colors")}]}}|
+		?__(44,"Convert materials to vertex colors")},
+	       {?__(45,"Remove Colors"),remove_colors,
+		?__(46,"Remove all vertex colors")},
+	       {?__(47,"Remove UV Coordinates"),remove_uv_coordinates,
+		?__(48,"Remove all UV coordinates")},
+	       {?__(49,"Remove All Attributes"),remove_all_attributes,
+		?__(50,"Remove all vertex colors and UV coordinates")}]}}|
 	    mode_dependent(St)],
     wings_menu:popup_menu(X, Y, body, Menu).
 
@@ -197,6 +203,12 @@ command({vertex_attributes,materials_to_colors}, St) ->
     {save_state,materials_to_colors(St)};
 command({vertex_attributes,colors_to_materials}, St) ->
     {save_state,colors_to_materials(St)};
+command({vertex_attributes,remove_colors}, St) ->
+    {save_state,va_remove(color, St)};
+command({vertex_attributes,remove_uv_coordinates}, St) ->
+    {save_state,va_remove(uv, St)};
+command({vertex_attributes,remove_all_attributes}, St) ->
+    {save_state,va_remove(all, St)};
 command({weld,Ask}, St) ->
     weld(Ask, St);
 command(vertex_color, St) ->
@@ -782,6 +794,15 @@ fmt_int(I) ->
 
 fmt_int(3, L) -> L;
 fmt_int(N, L) -> fmt_int(N+1, [$0|L]).
+
+%%%
+%%% Removing vertex attributes.
+%%%
+
+va_remove(What, St) ->
+    wings_sel:map(fun(_, We) ->
+			  wings_va:remove(What, We)
+		  end, St).
 
 %%%
 %%% The Weld command.

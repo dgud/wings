@@ -20,7 +20,7 @@
 	 set_edge_color/4,
 	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/2,
 	 set_vtx_face_uvs/4,
-	 renumber/2,merge/2,gc/1]).
+	 remove/2,renumber/2,merge/2,gc/1]).
 
 -include("wings.hrl").
 
@@ -392,6 +392,22 @@ set_vtx_face_uvs(V, Fs, UV, #we{lv=Lva0,rv=Rva0}=We) ->
 	  end, {Lva0,Rva0}, V, We),
     We#we{lv=Lva,rv=Rva}.
 
+%% remove(What, We0) -> We
+%%       What = all | color | uv
+%%  Remove the specified kind of attributes from the object.
+%%
+-spec remove('color'|'uv'|'all', #we{}) -> #we{}.
+remove(all, We) ->
+    We#we{lv=none,rv=none};
+remove(color, We) ->
+    remove_1(fun(_, [_|none]) -> none;
+		(_, [_|UV]) -> [none|UV]
+	     end, We);
+remove(uv, We) ->
+    remove_1(fun(_, [none|_]) -> none;
+		(_, [Color|_]) -> [Color|none]
+	     end, We).
+
 %% renumber(GbTreesEdgeMap, We0) -> We
 %%  Renumbers vertex attributes using EdgeMap, a gb_tree
 %%  containing a mapping from the old edge numbers to the
@@ -746,6 +762,13 @@ average_1([[Col|UV]|T], A, B) ->
     average_1(T, [Col|A], [UV|B]);
 average_1([], A, B) -> {A,B}.
 
+remove_1(F, #we{lv=Lva0,rv=Rva0,es=Etab}=We) when is_function(F, 2) ->
+    Lva1 = amap(F, Lva0),
+    Lva = gc_1(Lva1, Etab),
+    Rva1 = amap(F, Rva0),
+    Rva = gc_1(Rva1, Etab),
+    We#we{lv=Lva,rv=Rva}.
+
 renumber_1(_, none) -> none;
 renumber_1(Update, VaTab0) ->
     VaTab = array:sparse_foldl(Update, [], VaTab0),
@@ -791,3 +814,6 @@ aget(K, A) -> array:get(K, A).
 
 afoldl(_, Acc, none) -> Acc;
 afoldl(Fun, Acc, VaTab) -> array:sparse_foldl(Fun, Acc, VaTab).
+
+amap(_Fun, none) -> none;
+amap(Fun, VaTab) -> array:sparse_map(Fun, VaTab).
