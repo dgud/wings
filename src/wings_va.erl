@@ -780,7 +780,7 @@ gc_2([{E,_}=H|T], Etab, Acc) ->
 gc_2([], _, []) ->
     none;
 gc_2([], _, Acc) ->
-    array:from_orddict(reverse(Acc)).
+    array:from_orddict(reverse(Acc), none).
 
 aset(_, none, none) -> none;
 aset(K, V, none) -> array:set(K, V, array:new({default,none}));
