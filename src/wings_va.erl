@@ -362,31 +362,40 @@ average_attrs(AttrA, AttrB) ->
 
 %% set_vtx_face_uvs(Vertex, [Face], UV, We0) -> We
 %%  Set the UV coordinates for vertex Vertex in each face
-%%  contain in the list of faces.
+%%  contained in the list of faces.
 %%
 set_vtx_face_uvs(V, Fs, UV, #we{lv=Lva0,rv=Rva0}=We) ->
     {Lva,Rva} =
 	wings_vertex:fold(
-	  fun(Edge, _, #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}, {Lv0,Rv0}) ->
-		  Lv1 = case member(Lf, Fs) andalso V =:= Va of
-			    true ->
-				AttrL = case aget(Edge, Lv0) of
-					    none -> [none|UV];
-					    [_|UV]=AttrL0 -> AttrL0;
-					    [Cl|_] -> [Cl|UV]
-					end,
-				aset(Edge, AttrL, Lv0);
-			  false -> Lv0
-			end,
-		  case member(Rf, Fs) andalso V =:= Vb of
-		      true ->
-			  AttrR = case aget(Edge, Rv0) of
-				      none -> [none|UV];
-				      [_|UV]=AttrR0 -> AttrR0;
-				      [Cr|_] -> [Cr|UV]
-				  end,
-			  {Lv1,aset(Edge, AttrR, Rv0)};
-		      false -> {Lv1,Rv0}
+	  fun(Edge, _, #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}, {Lv,Rv}=Acc) ->
+		  case V of
+		      Va ->
+			  case member(Lf, Fs)  of
+			      true ->
+				  case aget(Edge, Lv) of
+				      none ->
+					  {aset(Edge, [none|UV], Lv),Rv};
+				      [_|UV] ->
+					  Acc;
+				      [Cl|_] ->
+					  {aset(Edge, [Cl|UV], Lv),Rv}
+				  end;
+			      false -> Acc
+			  end;
+		      Vb ->
+			  case member(Rf, Fs) of
+			      true ->
+				  case aget(Edge, Rv) of
+				      none ->
+					  {Lv,aset(Edge, [none|UV], Rv)};
+				      [_|UV] ->
+					  Acc;
+				      [Cr|_] ->
+					  {Lv,aset(Edge, [Cr|UV], Rv)}
+				  end;
+			      false -> Acc
+			  end;
+		      _ -> Acc
 		  end
 	  end, {Lva0,Rva0}, V, We),
     We#we{lv=Lva,rv=Rva}.
