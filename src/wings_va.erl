@@ -262,7 +262,6 @@ set_edge_attrs(Edge, Face, Attr, #we{es=Etab,lv=Lva,rv=Rva}=We) ->
 %%
 -spec set_both_edge_attrs(edge_num(), all_attributes(), all_attributes(), #we{}) ->
     #we{}.
-set_both_edge_attrs(_, none, none, We) -> We;
 set_both_edge_attrs(Edge, LeftAttr, RightAttr, #we{lv=Lva,rv=Rva}=We) ->
     We#we{lv=aset(Edge, LeftAttr, Lva),
 	  rv=aset(Edge, RightAttr, Rva)}.
