@@ -670,7 +670,7 @@ copy_dependents(We0) ->
     Vtab1 = sofs:relation(array:sparse_to_orddict(Vtab0), [{vertex,edge}]),
     Vtab2 = sofs:restriction(Vtab1, Vs),
     Vtab = array:from_orddict(sofs:to_external(Vtab2)),
-    wings_facemat:gc(We#we{he=Htab,vp=Vtab}).
+    wings_va:gc(wings_facemat:gc(We#we{he=Htab,vp=Vtab})).
 
 %%%
 %%% Convert textures to vertex colors.
