@@ -76,3 +76,10 @@ clean:
 
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
+
+# ----------------------------------------------------
+# Dependencies
+# ----------------------------------------------------
+
+$(TARGET_FILES): $(WINGS_E3D)/e3d.hrl
+

@@ -156,9 +156,25 @@ $(EBIN)/wings_u.beam: $(ESRC)/wings_u.erl
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
 
-$(TARGET_FILES): $(EBIN)/wings_lang.beam wings.hrl
-
 # ----------------------------------------------------
 # Dependencies
 # ----------------------------------------------------
 $(EBIN)/wings_export.beam $(EBIN)/wings_file.beam $(EBIN)/wings_help.beam $(EBIN)/wings_text.beam $(EBIN)/wings_pref.beam $(EBIN)/wings_u.beam: ../vsn.mk
+
+$(TARGET_FILES): $(EBIN)/wings_lang.beam wings.hrl
+
+DEPENDENT_OF_E3D_HRL = \
+	wings_draw \
+	wings_export \
+	wings_face \
+	wings_file \
+	wings_import \
+	wings_job \
+	wings_light \
+	wings_pick \
+	wings_plugin \
+	wings_tesselation \
+	wings_we \
+	wpa
+
+$(DEPENDENT_OF_E3D_HRL:%=$(EBIN)/%.beam): ../e3d/e3d.hrl

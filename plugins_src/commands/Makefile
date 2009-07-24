@@ -85,3 +85,5 @@ clean:
 
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
+
+$(EBIN)/wpc_constraints.beam: $(WINGS_E3D)/e3d.hrl

@@ -17,7 +17,6 @@
 -export([init/0,menu/2,command/2]).
 -import(lists, [foldl/3]).
 -include("wings.hrl").
--include("e3d.hrl").
 
 -define(HUGE, 1.0E307).
 -define(EPSILON, 1.0E-6).

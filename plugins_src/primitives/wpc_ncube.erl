@@ -3,7 +3,7 @@
 %%
 %%     N-Cube and N-Gon Plugin
 %%
-%%  Copyright (c) 2003-2008 Anthony D'Agostino
+%%  Copyright (c) 2003-2009 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -14,7 +14,6 @@
 -module(wpc_ncube).
 -export([init/0,menu/2,command/2]).
 -import(math, [cos/1,sin/1,pi/0]).
--include("e3d.hrl").
 -include("wings.hrl").
 
 init() -> true.

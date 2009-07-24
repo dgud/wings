@@ -3,7 +3,7 @@
 %%
 %%     Geodesic Dome Plugin
 %%
-%%  Copyright (c) 2003-2008 Anthony D'Agostino
+%%  Copyright (c) 2003-2009 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -14,7 +14,6 @@
 -module(wpc_geodome).
 -export([init/0, menu/2, command/2]).
 -include("wings.hrl").
--include("e3d.hrl").
 
 init() -> true.
 

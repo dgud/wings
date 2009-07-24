@@ -3,7 +3,7 @@
 #
 #     Makefile for building plug-ins for primitives.
 #
-#  Copyright (c) 2001-2008 Bjorn Gustavsson
+#  Copyright (c) 2001-2009 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -70,3 +70,5 @@ clean:
 
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
+
+$(EBIN)/wpc_image.beam $(EBIN)/wpc_tt.beam: $(WINGS_E3D)/e3d.hrl
