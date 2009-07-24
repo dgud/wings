@@ -62,14 +62,7 @@ export_1(#we{name=Name}=We, Ps, Acc) when not ?IS_ANY_LIGHT(We) ->
     [#e3d_object{name=Name,obj=Mesh}|Acc];
 export_1(_, _, Acc) -> Acc.
 
-make_mesh(#we{mirror=none}=We, Ps) ->
-    make_mesh_1(We, Ps);
-make_mesh(#we{mirror=Face}=We0, Ps) ->
-    %% Freeze the virtual mirror.
-    We = wings_face_cmd:mirror_faces([Face], We0),
-    make_mesh_1(We, Ps).
-
-make_mesh_1(We0, Ps) ->
+make_mesh(We0, Ps) ->
     SubDivs = proplists:get_value(subdivisions, Ps, 0),
     Tess = proplists:get_value(tesselation, Ps, none),
     We1 = sub_divide(SubDivs, We0),
