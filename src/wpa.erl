@@ -138,6 +138,7 @@ import_filename(Ps, Cont) ->
 %%       {include_colors,Bool}
 %%       {include_uvs,Bool}
 %%       {include_hard_edges,Bool}
+%%       {include_normals,Bool}
 
 export(none, Exporter, St) ->
     wings_export:export(Exporter, none, [], St);

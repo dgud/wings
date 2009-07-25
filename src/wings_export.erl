@@ -17,7 +17,8 @@
 -include("wings.hrl").
 -include("e3d.hrl").
 -include("e3d_image.hrl").
--import(lists, [foldl/3,keydelete/3,reverse/1]).
+-import(lists, [foldl/3,keydelete/3,reverse/1,last/1]).
+-import(erlang, [min/2,max/2]).
 
 export(Exporter, Name, Ps, #st{shapes=Shs}=St0) ->
     St = wings_view:freeze_mirror(St0),
@@ -72,11 +73,21 @@ make_mesh(We0, Ps) ->
     {ColTab0,UvTab0} = make_tables(Ps, We),
     ColTab1 = gb_trees:from_orddict(ColTab0),
     UvTab1 = gb_trees:from_orddict(UvTab0),
+    Sgs = case proplists:get_bool(include_normals, Ps) of
+	      false -> gb_trees:empty();
+	      true -> smooth_groups(We)
+	  end,
     Fs0 = foldl(fun({_,'_hole_'}, A) -> A;
 		   ({Face,Mat}, A) ->
 			case make_face(Face, Mat, ColTab1, UvTab1, We) of
 			    #e3d_face{vs=[_,_]} -> A;
-			    E3DFace -> [E3DFace|A]
+			    E3DFace ->
+				case gb_trees:lookup(Face, Sgs) of
+				    {value,Sg} ->
+					[E3DFace#e3d_face{sg=Sg}|A];
+				    none ->
+					[E3DFace|A]
+				end
 			end
 		end, [], wings_facemat:all(We)),
     Fs = reverse(Fs0),
@@ -223,3 +234,93 @@ save_images_3([{Type,#e3d_image{filename=none,name=Name}=Im0}|T],
 save_images_3([H|T], Dir, Filetype, Acc) ->
     save_images_3(T, Dir, Filetype, [H|Acc]);
 save_images_3([], _, _, Acc) -> Acc.
+
+%%%
+%%% Calculate smoothing groups.
+%%%
+
+smooth_groups(#we{he=He}=We) ->
+    case gb_sets:is_empty(He) of
+	true ->
+	    %% Optimization: put all faces in the same smoothing group
+	    %% directly without constructing a digraph if there are
+	    %% no hard edges. The easiest way to do that is to return
+	    %% an empty gb_tree.
+	    gb_trees:empty();
+	false ->
+	    smooth_groups_1(We)
+    end.
+
+smooth_groups_1(#we{fs=Fs,he=He}=We) ->
+    Es = foldl(fun(Face, Acc) ->
+		       wings_face:fold(fun(_, Edge, _, A) ->
+					       [{Edge,Face}|A]
+				       end, Acc, Face, We)
+	       end, [], gb_trees:keys(Fs)),
+    R = sofs:relation(Es, [{edge,face}]),
+    Fam0 = sofs:relation_to_family(R),
+    Fam = sofs:to_external(Fam0),
+
+    %% Create a digraph. Create a vertex in the digraph for each
+    %% face in the object. Connect two vertices (i.e. faces in the
+    %% object) with an edge only if the edge between the faces in
+    %% the object is soft. The resulting components of the digraph
+    %% will be the smoothing groups.
+    G = digraph:new(),
+    build_graph(G, Fam, He),
+    Cs = digraph_utils:components(G),
+    digraph:delete(G),
+
+    %% Generate a mapping from Face to a list of all neighboring faces.
+    Neib0 = sofs:range(Fam0),
+    Neib1 = sofs:canonical_relation(Neib0),
+    Neib2 = sofs:relation_to_family(Neib1),
+    Neib3 = sofs:family_union(Neib2),
+    Neib4 = sofs:to_external(Neib3),
+    Neib = gb_trees:from_orddict(Neib4),
+
+    %% Number the smoothing groups starting from 1.
+    %%
+    %% Try to generate as few smoothing groups as possible,
+    %% since some applications may have trouble handling
+    %% hundreds or thousands of smoothing groups.
+    exp_sgs_1(Cs, Neib, gb_trees:empty()).
+
+%% Return [{Face,SG}].
+exp_sgs_1([Fs|Cs], Neib, SgMap0) ->
+    SG = find_sg(Fs, Neib, SgMap0),
+    SgMap = foldl(fun(F, M) ->
+			  gb_trees:insert(F, SG, M)
+		  end, SgMap0, Fs),
+    exp_sgs_1(Cs, Neib, SgMap);
+exp_sgs_1([], _, SgMap) -> SgMap.
+
+%% find_sg(Faces, NeighborMap, SgMap) -> SG
+%%  Find the lowest smoothing group number (>= 1) that is not
+%%  used by any face that is a neighbor to any face in Faces.
+%%
+find_sg(Fs, Neib, SgMap) ->
+    find_sg_2(find_sg_1(Fs, Neib, SgMap, gb_sets:new()), 1).
+
+find_sg_1([F|Fs], Neib, SgMap, Acc0) ->
+    Acc = foldl(fun(N, A) ->
+			case gb_trees:lookup(N, SgMap) of
+			    none -> A;
+			    {value,SG} when is_integer(SG) -> gb_sets:add(SG, A)
+			end
+		end, Acc0, gb_trees:get(F, Neib)),
+    find_sg_1(Fs, Neib, SgMap, Acc);
+find_sg_1([], _, _, Acc) -> gb_sets:to_list(Acc).
+
+find_sg_2([SG|T], SG) -> find_sg_2(T, SG+1);
+find_sg_2(_, SG) -> SG.
+
+build_graph(G, [{Edge,[Fa,Fb]}|T], He) ->
+    digraph:add_vertex(G, Fa),
+    digraph:add_vertex(G, Fb),
+    case gb_sets:is_member(Edge, He) of
+	true -> ok;
+	false -> digraph:add_edge(G, Fa, Fb)
+    end,
+    build_graph(G, T, He);
+build_graph(_, [], _) -> ok.

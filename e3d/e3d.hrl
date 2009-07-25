@@ -34,6 +34,7 @@
 	 tx=[],				        %List of texture indices.
 	 ns=[],				        %List of normal indices.
 	 mat=[],				%Materials for face.
+	 sg=1 :: integer(),			%Smooth group for face.
 	 vis=-1}).				%Visible edges (as in 3DS).
 
 %% Polygon mesh.

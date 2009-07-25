@@ -3,7 +3,7 @@
 %%
 %%     Wavefront import/export.
 %%
-%%  Copyright (c) 2002-2005 Bjorn Gustavsson
+%%  Copyright (c) 2002-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -83,8 +83,10 @@ do_export(Attr, _Op, Exporter, _St) when is_list(Attr) ->
     SubDivs = proplists:get_value(subdivisions, Attr, 0),
     Tesselation = proplists:get_value(tesselation, Attr, none),
     Uvs = proplists:get_bool(include_uvs, Attr),
+    Normals = proplists:get_bool(include_normals, Attr),
     Ps = [{tesselation,Tesselation},{subdivisions,SubDivs},
-	  {include_uvs,Uvs},{include_colors,false}|props()],
+	  {include_uvs,Uvs},{include_colors,false},
+	  {include_normals,Normals}|props()],
     Exporter(Ps, export_fun(Attr)).
 
 export_fun(Attr) ->
