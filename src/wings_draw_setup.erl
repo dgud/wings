@@ -516,9 +516,9 @@ add_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab, UVtab) ->
     PB = element(B, Vtab),
     PC = element(C, Vtab),
     %% A tesselated face may have more Vs than UVs
-    UVa = uv_element(A, UVtab),
-    UVb = uv_element(B, UVtab),
-    UVc = uv_element(C, UVtab),
+    UVa = uv_element(A, Vtab, UVtab),
+    UVb = uv_element(B, Vtab, UVtab),
+    UVc = uv_element(C, Vtab, UVtab),
     Vs = add_tri(Vs0, Normal, [PA,PB,PC], [UVa,UVb,UVc]),
     add_poly(Vs, Normal, Fs, Vtab, UVtab);
 add_poly(Vs, _, _, _, _) -> Vs.
@@ -528,9 +528,9 @@ add_col_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab, ColTab) ->
     PB = element(B, Vtab),
     PC = element(C, Vtab),
     %% A tesselated face may have more vertices than colors
-    ColA = col_element(A, ColTab),
-    ColB = col_element(B, ColTab),
-    ColC = col_element(C, ColTab),
+    ColA = col_element(A, Vtab, ColTab),
+    ColB = col_element(B, Vtab, ColTab),
+    ColC = col_element(C, Vtab, ColTab),
     Vs = add_col_tri(Vs0, Normal, [PA,PB,PC], [ColA,ColB,ColC]),
     add_col_poly(Vs, Normal, Fs, Vtab, ColTab);
 add_col_poly(Vs, _, _, _, _) -> Vs.
@@ -547,15 +547,23 @@ add_col_uv_poly(Vs0, Normal, [{A,B,C}|Fs], Vtab, AttrTab) ->
     add_col_uv_poly(Vs, Normal, Fs, Vtab, AttrTab);
 add_col_uv_poly(Vs, _, _, _, _) -> Vs.
 
-uv_element(A, Tab) when A =< tuple_size(Tab) ->
+uv_element(A, _Vtab, Tab) when A =< tuple_size(Tab) ->
     element(A, Tab);
-uv_element(_, _) ->
-    {0.0,0.0}.
+uv_element(A, Vtab, Tab) ->
+    find_element(tuple_size(Tab), element(A, Vtab), Vtab, Tab, {0.0,0.0}).
 
-col_element(A, Tab) when A =< tuple_size(Tab) ->
+col_element(A, _, Tab) when A =< tuple_size(Tab) ->
     element(A, Tab);
-col_element(_, _) ->
-    {1.0,1.0,1.0}.
+col_element(A, Vtab, Tab) ->
+    find_element(tuple_size(Tab), element(A, Vtab), Vtab, Tab, {1.0,1.0,1.0}).
+
+find_element(0, _, _, _, Def) ->
+    Def;
+find_element(I, P, Vtab, UVTab, Def) ->
+    case P =:= element(I, Vtab) of
+	true -> element(I, UVTab);
+	false -> find_element(I-1, P, Vtab, UVTab, Def)
+    end.
 
 attr_element(A, Tab) when A =< tuple_size(Tab) ->
     element(A, Tab);
