@@ -48,7 +48,9 @@
 
 %% Drag per object.
 -record(do,
-	{funs					%List of transformation funs.
+	{funs,					%List of transformation funs.
+	 we_funs				%List of funs that operate on
+						%  the We.
 	}).
 
 setup(Tvs, Unit, St) ->
@@ -188,26 +190,28 @@ break_apart(Tvs, St) ->
 
 break_apart_1(#dlo{src_we=#we{id=Id}=We}=D0, [{Id,TvList0}|Tvs], St) ->
     TvList = mirror_constrain(TvList0, We),
-    {Vs,FunList} = combine_tvs(TvList, We),
+    {Vs,FunList,WeFuns} = combine_tvs(TvList, We),
     D1 = if
 	     ?IS_LIGHT(We) -> D0#dlo{split=none};
 	     true -> D0
 	 end,
     D = wings_draw:split(D1, Vs, St),
-    Do = #do{funs=FunList},
+    Do = #do{funs=FunList,we_funs=WeFuns},
     {D#dlo{drag=Do},Tvs};
 break_apart_1(D, Tvs, _) -> {D,Tvs}.
 
 combine_tvs(TvList, #we{vp=Vtab}) ->
-    {FunList,VecVs0} = split_tv(TvList, [], []),
+    {FunList,WeFuns,VecVs0} = split_tv(TvList, [], [], []),
     SS = sofs:from_term(VecVs0, [{vec,[vertex]}]),
     FF = sofs:relation_to_family(SS),
     FU = sofs:family_union(FF),
     VecVs1 = sofs:to_external(FU),
     Affected = foldl(fun({_,Vs}, A) -> Vs++A end, [], VecVs1),
     case insert_vtx_data(VecVs1, Vtab, []) of
-	[] -> combine_tv_1(FunList, Affected, []);
-	VecVs -> combine_tv_1(FunList, Affected, [translate_fun(VecVs)])
+	[] ->
+	    combine_tv_1(FunList, WeFuns, Affected, []);
+	VecVs ->
+	    combine_tv_1(FunList, WeFuns, Affected, [translate_fun(VecVs)])
     end.
 
 translate_fun(VecVs) ->
@@ -219,15 +223,19 @@ translate_fun(VecVs) ->
 		  end, Acc, VecVs)
     end.
 
-combine_tv_1([{Aff,Fun}|T], Aff0, FunList) ->
-    combine_tv_1(T, Aff++Aff0, [Fun|FunList]);
-combine_tv_1([], Aff, FunList) -> {Aff,FunList}.
+combine_tv_1([{Aff,Fun}|T], WeFuns, Aff0, FunList) ->
+    combine_tv_1(T, WeFuns, Aff++Aff0, [Fun|FunList]);
+combine_tv_1([], WeFuns, Aff, FunList) ->
+    {Aff,FunList,WeFuns}.
 
-split_tv([{_,F}=Fun|T], Facc, Vacc) when is_function(F) ->
-    split_tv(T, [Fun|Facc], Vacc);
-split_tv([L|T], Facc, Vacc) when is_list(L) ->
-    split_tv(T, Facc, L++Vacc);
-split_tv([], Funs, VecVs) -> {Funs,VecVs}.
+split_tv([{we,F}|T], WeFacc, Facc, Vacc) when is_function(F, 2) ->
+    split_tv(T, [F|WeFacc], Facc, Vacc);
+split_tv([{_,F}=Fun|T], WeFacc, Facc, Vacc) when is_function(F, 2) ->
+    split_tv(T, WeFacc, [Fun|Facc], Vacc);
+split_tv([L|T], WeFacc, Facc, Vacc) when is_list(L) ->
+    split_tv(T, WeFacc, Facc, L++Vacc);
+split_tv([], WeFuns, Funs, VecVs) ->
+    {Funs,WeFuns,VecVs}.
 
 insert_vtx_data([{Vec,Vs0}|VecVs], Vtab, Acc) ->
     Vs = insert_vtx_data_1(Vs0, Vtab, []),
@@ -1070,7 +1078,9 @@ motion_update_fun(#dlo{drag={matrix,Trans,Matrix0,_}}=D, Move) ->
     D#dlo{drag={matrix,Trans,Matrix0,Matrix}};
 motion_update_fun(#dlo{drag={general,Fun}}=D, Move) ->
     Fun(Move, D);
-motion_update_fun(#dlo{drag=#do{funs=Tv}}=D, Move) ->
+motion_update_fun(#dlo{drag=#do{funs=Tv,we_funs=WeFuns},src_we=We0}=D0, Move) ->
+    We = foldl(fun(WeFun, W) -> WeFun(W, Move) end, We0, WeFuns),
+    D = D0#dlo{src_we=We},
     Vtab = foldl(fun(F, A) -> F(Move, A) end, [], Tv),
     wings_draw:update_dynamic(D, Vtab);
 motion_update_fun(D, _) -> D.

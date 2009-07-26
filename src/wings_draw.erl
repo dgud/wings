@@ -795,12 +795,11 @@ abort_split(D) -> D.
 %%% Re-joining of display lists that have been split.
 %%%
 
-join(#dlo{src_we=#we{vp=Vtab0},ns=Ns1,split=#split{orig_we=We0,orig_ns=Ns0},
+join(#dlo{src_we=#we{vp=Vtab0}=SrcWe,ns=Ns1,split=#split{orig_we=We0,orig_ns=Ns0},
 	  proxy_data=PD}=D) ->
     #we{vp=OldVtab} = We0,
-
     Vtab = join_update(Vtab0, OldVtab),
-    We = We0#we{vp=Vtab},
+    We = wings_va:merge([SrcWe], We0#we{vp=Vtab}),
     Ns = join_ns(We, Ns1, Ns0),
     D#dlo{vs=none,drag=none,sel=none,split=none,src_we=We,ns=Ns,
 	  proxy_data=wings_proxy:reset_dynamic(PD)}.
