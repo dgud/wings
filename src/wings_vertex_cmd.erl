@@ -349,37 +349,52 @@ adjacent(V, Vs, We) ->
 %%% Update vertex attributes for Bevel.
 %%%
 
-bevel_va_fun(V, Es, InnerFace, OrigWe) ->
+bevel_va_fun(V, Es0, InnerFace, OrigWe) ->
+    Es = bevel_va_preprocess_edges(Es0, V, OrigWe),
     fun(We, [Move]) ->
-	    bevel_va(Move, V, Es, InnerFace, OrigWe, We)
+	    bevel_va(Es, Move, V, InnerFace, OrigWe, We)
     end.
 
-bevel_va(Move, V, Es, InnerFace, OrigWe, We) ->
-    foldl(fun(E, W) ->
-		  bevel_va_1(Move, V, InnerFace, E, OrigWe, W)
-	  end, We, Es).
-
-bevel_va_1(Move, V, InnerFace, {Edge,_,Rec0}, OrigWe, #we{es=Etab}=We0) ->
-    case Rec0 of
+%% Preprocess the edge information to optimize performance
+%% of the drag operation.
+bevel_va_preprocess_edges([{Edge,_,Rec}|T], V, OrigWe) ->
+    %% If performance becomes a real issue, we could precalculate
+    %% a lot more (at the expense of using more memory). Here we
+    %% basically just precalculates Scale (because it seems
+    %% ridiculously expensive to calculate it for every mouse
+    %% motion event).
+    case Rec of
 	#edge{vs=V,ve=OtherV} ->
-	    W = bevel_mix_weight(Move, V, OtherV, OrigWe),
-	    LeftAttr = wings_va:edge_attrs(Edge, left, W, OrigWe),
-	    RightAttr = wings_va:edge_attrs(Edge, right, W, OrigWe),
-	    InnerAttr = wings_va:average_attrs(LeftAttr, RightAttr),
-	    #edge{rtpr=Rtpr,rf=Rf} = array:get(Edge, Etab),
-	    We1 = wings_va:set_edge_attrs(Rtpr, Rf, RightAttr, We0),
-	    We2 = bevel_va_inner(Rtpr, InnerFace, InnerAttr, We1),
-	    wings_va:set_edge_attrs(Edge, left, LeftAttr, We2);
+	    Scale = bevel_scale_factor(V, OtherV, OrigWe),
+	    [{vs,Edge,Scale}|bevel_va_preprocess_edges(T, V, OrigWe)];
 	#edge{ve=V,vs=OtherV} ->
-	    W = 1.0 - bevel_mix_weight(Move, V, OtherV, OrigWe),
-	    LeftAttr = wings_va:edge_attrs(Edge, left, W, OrigWe),
-	    RightAttr = wings_va:edge_attrs(Edge, right, W, OrigWe),
-	    InnerAttr = wings_va:average_attrs(LeftAttr, RightAttr),
-	    #edge{ltpr=Ltpr,lf=Lf} = array:get(Edge, Etab),
-	    We1 = wings_va:set_edge_attrs(Ltpr, Lf, LeftAttr, We0),
-	    We2 = bevel_va_inner(Ltpr, InnerFace, InnerAttr, We1),
-	    wings_va:set_edge_attrs(Edge, right, RightAttr, We2)
-    end.
+	    Scale = bevel_scale_factor(V, OtherV, OrigWe),
+	    [{ve,Edge,Scale}|bevel_va_preprocess_edges(T, V, OrigWe)]
+    end;
+bevel_va_preprocess_edges([], _, _) -> [].
+
+%% During the drag, update the vertex attributes.
+bevel_va([{vs,Edge,Scale}|Es], Move, V, InnerFace, OrigWe, #we{es=Etab}=We0) ->
+    W = Move * Scale,
+    LeftAttr = wings_va:edge_attrs(Edge, left, W, OrigWe),
+    RightAttr = wings_va:edge_attrs(Edge, right, W, OrigWe),
+    InnerAttr = wings_va:average_attrs(LeftAttr, RightAttr),
+    #edge{rtpr=Rtpr,rf=Rf} = array:get(Edge, Etab),
+    We1 = wings_va:set_edge_attrs(Rtpr, Rf, RightAttr, We0),
+    We2 = bevel_va_inner(Rtpr, InnerFace, InnerAttr, We1),
+    We = wings_va:set_edge_attrs(Edge, left, LeftAttr, We2),
+    bevel_va(Es, Move, V, InnerFace, OrigWe, We);
+bevel_va([{ve,Edge,Scale}|Es], Move, V, InnerFace, OrigWe, #we{es=Etab}=We0) ->
+    W = 1.0 - Move*Scale,
+    LeftAttr = wings_va:edge_attrs(Edge, left, W, OrigWe),
+    RightAttr = wings_va:edge_attrs(Edge, right, W, OrigWe),
+    InnerAttr = wings_va:average_attrs(LeftAttr, RightAttr),
+    #edge{ltpr=Ltpr,lf=Lf} = array:get(Edge, Etab),
+    We1 = wings_va:set_edge_attrs(Ltpr, Lf, LeftAttr, We0),
+    We2 = bevel_va_inner(Ltpr, InnerFace, InnerAttr, We1),
+    We = wings_va:set_edge_attrs(Edge, right, RightAttr, We2),
+    bevel_va(Es, Move, V, InnerFace, OrigWe, We);
+bevel_va([], _, _, _, _, We) -> We.
 
 bevel_va_inner(E, Inner, Attr, #we{es=Etab}=We) ->
     case array:get(E, Etab) of
@@ -389,12 +404,18 @@ bevel_va_inner(E, Inner, Attr, #we{es=Etab}=We) ->
 	    wings_va:set_edge_attrs(Rtpr, Inner, Attr, We)
     end.
 
-bevel_mix_weight(W, Va, Vb, #we{vp=Vtab}) ->
-    %% Re-parameterize to the range 0..1
+%% bevel_scale_factor(VertexA, VertexB) -> Scale
+%%  Calculate a scale factor to multiply the scale factor
+%%  to multiply Move by to reparameterize it to the
+%%  interval 0..1.
+bevel_scale_factor(Va, Vb, #we{vp=Vtab}) ->
     PosA = array:get(Va, Vtab),
     PosB = array:get(Vb, Vtab),
-    W / e3d_vec:dist(PosB, PosA).
-    
+    case e3d_vec:dist(PosB, PosA) of
+	Dist when Dist < 1.0E-10 -> 1.0;
+	Dist -> 1.0 / Dist
+    end.
+
 %%%
 %%% The Connect command.
 %%%
