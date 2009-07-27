@@ -20,7 +20,7 @@
 	 set_edge_color/4,
 	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/2,
 	 set_vtx_face_uvs/4,
-	 remove/2,renumber/2,merge/2,gc/1]).
+	 remove/2,renumber/2,merge/2,gc/1,any_update/2]).
 
 -include("wings.hrl").
 
@@ -449,6 +449,13 @@ gc(#we{lv=Lva0,rv=Rva0,es=Etab}=We) ->
     Lva = gc_1(Lva0, Etab),
     Rva = gc_1(Rva0, Etab),
     We#we{lv=Lva,rv=Rva}.
+
+%% any_update(We0, We1) -> true | false.
+%%  Check whether there has been any change to vertex attributes.
+%%  (Optimized for speed; may return false positives.)
+%%
+any_update(#we{lv=Lva,rv=Rva}, #we{lv=Lva,rv=Rva}) -> false;
+any_update(_, _) -> true.
 
 %%%
 %%% Local functions.

@@ -269,7 +269,7 @@ proxy_smooth(We0, Pd0, St) ->
     case proxy_smooth_1(We0, Pd0) of
 	{false,_} ->
 	    Pd0;
-	{_,#we{fs=Ftab}=We} ->
+	{true,#we{fs=Ftab}=We} ->
 	    %% Could incremental smooth be optimized?
 	    Plan = wings_draw_setup:prepare(gb_trees:to_list(Ftab), We, St),
 	    flat_faces(Plan, #sp{src_we=We0,we=We})
@@ -277,15 +277,15 @@ proxy_smooth(We0, Pd0, St) ->
 
 proxy_smooth_1(We, #sp{we=SWe,src_we=We,vab=#vab{face_vs=Bin}})
   when Bin =/= none ->
-    %% Nothing important changed, recreate lists
-    {false, SWe};
+    %% Nothing important changed - just recreate the display lists
+    {false,SWe};
 proxy_smooth_1(#we{es=Etab,he=Hard,mat=M,next_id=Next,mirror=Mirror}=We0,
 	       #sp{we=OldWe,src_we=#we{es=Etab,he=Hard,mat=M,next_id=Next,
 				       mirror=Mirror}}) ->
-    {inc, wings_subdiv:inc_smooth(We0, OldWe)};
+    {true,wings_subdiv:inc_smooth(We0, OldWe)};
 proxy_smooth_1(We0, #sp{we=SWe}) ->
-    if ?IS_ANY_LIGHT(We0) -> {false, SWe};
-       true -> {smooth, wings_subdiv:smooth(We0)}
+    if ?IS_ANY_LIGHT(We0) -> {false,SWe};
+       true -> {true,wings_subdiv:smooth(We0)}
     end.
 
 split_proxy(#dlo{proxy=true, proxy_data=Pd0, src_we=SrcWe}, DynVs0, St) ->
@@ -296,7 +296,7 @@ split_proxy(#dlo{proxy=true, proxy_data=Pd0, src_we=SrcWe}, DynVs0, St) ->
     end,
 
     DynVs = wings_vertex:from_faces(DynFs, SrcWe),
-    {_, #we{fs=Ftab0}=We0} = proxy_smooth_1(SrcWe, Pd0),
+    {_,#we{fs=Ftab0}=We0} = proxy_smooth_1(SrcWe, Pd0),
     Fs0 = wings_face:from_vs(DynVs, We0),
     OutEs = wings_face:outer_edges(Fs0, We0),
     UpdateVs0 = gb_sets:from_ordset(wings_face:to_vertices(Fs0, We0)),

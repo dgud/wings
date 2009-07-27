@@ -81,14 +81,23 @@ smooth(EntireObject, Fs, Vs, Es, Htab, #we{vp=Vp,next_id=Id}=We0) ->
     wings_pb:done(We).
 
 inc_smooth(#we{vp=Vp,next_id=Next}=We0, Smoothed) ->
-    {Faces,Htab} = smooth_faces_htab(We0),
-    FacePos0 = face_centers(Faces, We0),
-    FacePos = gb_trees:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
-    {RevUpdatedVs,Mid} = update_edge_vs_all(We0, FacePos, Htab, Vp, Next),
-    VtabTail = smooth_new_vs(FacePos0, Mid, RevUpdatedVs),
-    Vtab = smooth_move_orig(true, wings_util:array_keys(Vp),
-			    FacePos, Htab, We0, VtabTail),
-    Smoothed#we{vp=Vtab}.
+    case wings_va:any_update(We0, Smoothed) of
+	true ->
+	    %% Vertex attributes may have changed. Fall back to
+	    %% complete smooth.
+	    smooth(We0);
+	false ->
+	    %% Do an incremental smooth.
+	    {Faces,Htab} = smooth_faces_htab(We0),
+	    FacePos0 = face_centers(Faces, We0),
+	    FacePos = gb_trees:from_orddict([{F,Pos} ||
+						{F,{Pos,_,_}} <- FacePos0]),
+	    {RevUpdatedVs,Mid} = update_edge_vs_all(We0, FacePos, Htab, Vp, Next),
+	    VtabTail = smooth_new_vs(FacePos0, Mid, RevUpdatedVs),
+	    Vtab = smooth_move_orig(true, wings_util:array_keys(Vp),
+				    FacePos, Htab, We0, VtabTail),
+	    Smoothed#we{vp=Vtab}
+    end.
 
 get_proxy_info(DynVs, UpdateVs, #we{es=Etab,next_id=Next}=We0) ->
     {Faces,Htab} = smooth_faces_htab(We0),
