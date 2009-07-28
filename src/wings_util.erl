@@ -72,6 +72,7 @@ make_vector(z) -> {0.0,0.0,1.0};
 make_vector(free) -> free;
 make_vector(normal) -> normal;
 make_vector(intrude) -> normal;
+make_vector({region,normal}) -> normal;
 make_vector(Axis) when Axis == last_axis; Axis == default_axis ->
     {_,Vec} = wings_pref:get_value(Axis),
     Vec.
