@@ -110,7 +110,7 @@ prepare_fun_2(#dlo{proxy=IsUsed, proxy_data=Proxy,ns=Ns}=D, We, Wes) ->
     Open = wings_we:any_hidden(We),
     {changed_we(D, #dlo{src_we=We,open=Open,mirror=none,
 			proxy=IsUsed,
-			proxy_data=wings_proxy:invalidate_dl(Proxy,maybe),
+			proxy_data=wings_proxy:invalidate(Proxy, maybe),
 			ns=Ns}),Wes}.
 
 only_permissions_changed(#we{perm=P}, #we{perm=P}) -> false;
@@ -123,12 +123,19 @@ invalidate_by_mat(Changed0) ->
 invalidate_by_mat(#dlo{work=none,vs=none,smooth=none,proxy=false}=D, _) ->
     %% Nothing to do.
     D;
-invalidate_by_mat(#dlo{src_we=We, proxy_data=Pd}=D, Changed) ->
+invalidate_by_mat(#dlo{src_we=We,proxy_data=Pd}=D, Changed) ->
     Used = wings_facemat:used_materials(We),
     case ordsets:is_disjoint(Used, Changed) of
-	true -> D;
-	false -> D#dlo{work=none,edges=none,vs=none,smooth=none,
-		       proxy_data = wings_proxy:invalidate_dl(Pd, material)}
+	true ->
+	    %% The changed material is not used on any face in this object.
+	    D;
+	false ->
+	    %% The changed material is used by this object. We'll need to
+	    %% invalidate the vertex buffers as well as the display lists,
+	    %% because the vertex colors settings in the material may have
+	    %% been changed.
+	    D#dlo{work=none,edges=none,vs=none,smooth=none,vab=none,
+		  proxy_data=wings_proxy:invalidate(Pd, vab)}
     end.
 
 invalidate_sel(#dlo{src_we=#we{id=Id},src_sel=SrcSel}=D,

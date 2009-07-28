@@ -174,7 +174,7 @@ delete_dlists() ->
     end.
 
 clear_old_dl([#dlo{src_we=We,proxy_data=Pd0,ns=Ns}|T]) ->
-    Pd = wings_proxy:invalidate_dl(Pd0, all),
+    Pd = wings_proxy:invalidate(Pd0, dl),
     [#dlo{src_we=We,mirror=none,proxy_data=Pd,ns=Ns}|clear_old_dl(T)];
 clear_old_dl([]) -> [].
 

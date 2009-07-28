@@ -13,7 +13,7 @@
 
 -module(wings_proxy).
 -export([setup/1,quick_preview/1,update/2,draw/2,draw_smooth_edges/1,
-	 smooth/2, smooth_dl/1, invalidate_dl/2,
+	 smooth/2, smooth_dl/1, invalidate/2,
 	 split_proxy/3, update_dynamic/3, reset_dynamic/1]).
 
 -define(NEED_OPENGL, 1).
@@ -51,17 +51,25 @@ quick_preview(_St) ->
 	    wings_wm:set_prop(workmode, true)
     end.
 
-invalidate_dl(none, _) -> none;
-invalidate_dl(Pd=#sp{}, all) ->
-    Pd#sp{faces=none, smooth=none};
-invalidate_dl(Pd=#sp{faces=none}, maybe) ->
+-spec invalidate('none'|#sp{}, 'vab'|'dl'|'edges'|'maybe') ->
+    'none'|#sp{}.
+
+invalidate(none, _) -> none;
+invalidate(#sp{}=Pd, 'vab') ->
+    %% Invalidate vertex buffers - implies invalidating displays lists.
+    %% Used when there are changes having to do with UV coordinates and/or
+    %% vertex colors (including toggling their visibility using
+    %% View|Show Colors or View|Show Textures).
+    Pd#sp{faces=none,smooth=none,vab=none};
+invalidate(#sp{}=Pd, 'dl') ->
+    %% Invalidate displays lists.
+    Pd#sp{faces=none,smooth=none};
+invalidate(#sp{faces=none}=Pd, maybe) ->
     Pd;
-invalidate_dl(Pd=#sp{faces=FL}, maybe) ->
+invalidate(#sp{faces=FL}=Pd, maybe) ->
     Pd#sp{faces=[FL]};
-invalidate_dl(Pd=#sp{}, edges) ->
-    Pd#sp{proxy_edges=none};
-invalidate_dl(Pd=#sp{}, material) ->
-    Pd#sp{faces=none, smooth=none}.
+invalidate(#sp{}=Pd, edges) ->
+    Pd#sp{proxy_edges=none}.
 
 smooth_dl(#sp{smooth=Smooth}) when Smooth =/= none -> Smooth;
 smooth_dl(#sp{smooth=none, faces=FL}) when FL =/= none -> {[FL,[]], false};

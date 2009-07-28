@@ -1151,7 +1151,7 @@ normalize_fun(#dlo{drag={matrix,_,_,_},transparent=#we{id=Id}=We,
 		   proxy_data=PD}=D0, _Move, Shs0) when ?IS_LIGHT(We) ->
     Shs = gb_trees:update(Id, We, Shs0),
     D = D0#dlo{work=none,smooth=none,drag=none,src_we=We,transparent=false,
-	   proxy_data=wings_proxy:invalidate_dl(PD,all)},
+	   proxy_data=wings_proxy:invalidate(PD, dl)},
     {wings_draw:changed_we(D, D),Shs};
 normalize_fun(#dlo{drag={matrix,_,_,Matrix},src_we=#we{id=Id}=We0,
 		   proxy_data=PD}=D0,
@@ -1159,7 +1159,7 @@ normalize_fun(#dlo{drag={matrix,_,_,Matrix},src_we=#we{id=Id}=We0,
     We = wings_we:transform_vs(Matrix, We0),
     Shs = gb_trees:update(Id, We, Shs0),
     D = D0#dlo{work=none,smooth=none,edges=none,sel=none,drag=none,src_we=We,
-	       mirror=none,proxy_data=wings_proxy:invalidate_dl(PD,all)},
+	       mirror=none,proxy_data=wings_proxy:invalidate(PD, dl)},
     {wings_draw:changed_we(D, D),Shs};
 normalize_fun(#dlo{drag={general,Fun},src_we=#we{id=Id}=We}=D0, Move, Shs) ->
     D1 = Fun({finish,Move}, D0),
