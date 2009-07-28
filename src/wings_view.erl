@@ -299,6 +299,7 @@ command(orthogonal_view, St) ->
 command({show,show_textures}, St) ->
     toggle_option(show_textures),
     wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+			 %% Must invalidate vertex buffers.
 			 D#dlo{work=none,smooth=none,vab=none,
 			       proxy_data=wings_proxy:invalidate_dl(PD, all)};
 		    (D, _) -> D
@@ -307,13 +308,15 @@ command({show,show_textures}, St) ->
 command({show,show_materials}, St) ->
     toggle_option(show_materials),
     wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 D#dlo{work=none,smooth=none,vab=none,
+			 %% We only need to invalidate display lists.
+			 D#dlo{work=none,smooth=none,
 			       proxy_data=wings_proxy:invalidate_dl(PD, all)}
 		 end, []),
     St;
 command({show,show_colors}, St) ->
     toggle_option(show_colors),
     wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+			 %% Must invalidate vertex buffers.
 			 D#dlo{work=none,smooth=none,vab=none,
 			       proxy_data=wings_proxy:invalidate_dl(PD,all)};
 		    (D, _) -> D

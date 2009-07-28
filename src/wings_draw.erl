@@ -851,9 +851,8 @@ tricky_share({X,Y,Z}, {_,_,Z}=Old) ->
 %%% Drawing routines for workmode.
 %%%
 
-draw_flat_faces(#dlo{vab=Vab},St) ->
-    draw_flat_faces(Vab,St);
-
+draw_flat_faces(#dlo{vab=Vab}, St) ->
+    draw_flat_faces(Vab, St);
 draw_flat_faces(#vab{face_vs=BinVs,face_fn=Ns,face_uv=UV,
 		     face_vc=Col,mat_map=MatMap}=D,
 	       #st{mat=Mtab}) ->
@@ -863,9 +862,7 @@ draw_flat_faces(#vab{face_vs=BinVs,face_fn=Ns,face_uv=UV,
     wings_draw_setup:enableTexCoordPointer(UV),
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
-    foreach(fun(MatFs) ->
-		    draw_mat_fs(MatFs, Mtab, ActiveColor)
-	    end, MatMap),
+    draw_mat_faces(MatMap, Mtab, ActiveColor),
     gl:endList(),
     wings_draw_setup:disableVertexPointer(BinVs),
     wings_draw_setup:disableNormalPointer(Ns),
@@ -889,33 +886,29 @@ draw_smooth_faces(#vab{face_vs=BinVs,face_sn=Ns,face_uv=UV,
     ActiveColor = wings_draw_setup:enableColorPointer(Col),
     wings_draw_setup:enableTexCoordPointer(UV),
 
+    %% Partition into transparent and solid material face groups.
+    {Transparent,Solid} =
+	lists:partition(fun({Mat,_,_,_}) ->
+				wings_material:is_transparent(Mat, Mtab)
+			end, MatMap),
+
+    %% Create display list for solid faces.
     ListOp = gl:genLists(1),
-
-    DrawSolid =
-	fun({Mat,_,_,_}=Data, Tr) ->
-		case wings_material:is_transparent(Mat, Mtab) of
-		    false ->
-			draw_mat_fs(Data, Mtab, ActiveColor),
-			Tr;
-		    true ->
-			[Data|Tr]
-		end
-	end,
-
     gl:newList(ListOp, ?GL_COMPILE),
-    Trans = foldl(DrawSolid, [], MatMap),
+    draw_mat_faces(Solid, Mtab, ActiveColor),
     gl:endList(),
 
-    Res = case Trans of
+    %% Create display list for transparent faces if there are
+    %% any transparent faces.
+    Res = case Transparent of
 	      [] ->
+		  %% All faces are solid.
 		  {[ListOp,none],false};
 	      _ ->
-		  DrawMatFs = fun(Data) ->
-				      draw_mat_fs(Data, Mtab, ActiveColor)
-			      end,
+		  %% Create the display list for the transparent faces.
 		  ListTr = gl:genLists(1),
 		  gl:newList(ListTr, ?GL_COMPILE),
-		  foreach(DrawMatFs, Trans),
+		  draw_mat_faces(Transparent, Mtab, ActiveColor),
 		  gl:endList(),
 		  {[ListOp,ListTr],true}
 	  end,
@@ -927,11 +920,28 @@ draw_smooth_faces(#vab{face_vs=BinVs,face_sn=Ns,face_uv=UV,
     free(D),
     Res.
 
-draw_mat_fs({Mat,Type,Start,NumElements}, Mtab, ActiveColor) ->
-    gl:pushAttrib(?GL_TEXTURE_BIT),
-    wings_material:apply_material(Mat, Mtab, ActiveColor),
-    gl:drawArrays(Type, Start, NumElements),
-    gl:popAttrib().
+draw_mat_faces(MatGroups, Mtab, ActiveColor) ->
+    case wings_pref:get_value(show_materials) of
+	false ->
+	    %% Showing of materials has been turned off. Use
+	    %% the 'default' material for all faces.
+	    gl:pushAttrib(?GL_TEXTURE_BIT),
+	    wings_material:apply_material(default, Mtab, ActiveColor),
+	    foreach(
+	      fun({_,Type,Start,NumElements}) ->
+		      gl:drawArrays(Type, Start, NumElements)
+	      end, MatGroups),
+	    gl:popAttrib();
+	true ->
+	    %% Show materials.
+	    foreach(
+	      fun({Mat,Type,Start,NumElements}) ->
+		      gl:pushAttrib(?GL_TEXTURE_BIT),
+		      wings_material:apply_material(Mat, Mtab, ActiveColor),
+		      gl:drawArrays(Type, Start, NumElements),
+		      gl:popAttrib()
+	      end, MatGroups)
+    end.
 
 %%
 %% Draw normals for the selected elements.

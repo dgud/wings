@@ -626,52 +626,40 @@ prepare(Ftab0, #we{}=We, St) ->
     prepare_1(Ftab, We, St).
 
 prepare_1(Ftab, We, St) ->
+    MatFaces = wings_facemat:mat_faces(Ftab, We),
     case wings_va:any_attributes(We) of
 	false ->
 	    %% Since there are no vertex attributes,
 	    %% we don't need to look at the materials
 	    %% to figure out what to do.
-	    prepare_2([], Ftab, We);
+	    {plain,MatFaces};
 	true ->
 	    %% There are UV coordinates and/or vertex colors,
 	    %% so we will have to look at the materials to
 	    %% figure out what we'll need.
 	    Attrs = wings_material:needed_attributes(We, St),
-	    prepare_2(Attrs, Ftab, We)
+	    {prepare_2(Attrs),MatFaces}
     end.
 
-prepare_2([], Ftab, We) ->
-    %% No special attributes needed.
-    {plain,prepare_mat(Ftab, We)};
-prepare_2([color], Ftab, We) ->
-    %% We need vertex colors.
+prepare_2([]) ->
+    plain;
+prepare_2([color]) ->
     case wings_pref:get_value(show_colors) of
-	false -> {plain,[{default,Ftab}]};
-	true -> {color,prepare_mat(Ftab, We)}
+	false -> plain;
+	true -> color
     end;
-prepare_2([uv], Ftab, We) ->
-    %% We need UV coordinates.
+prepare_2([uv]) ->
     case wings_pref:get_value(show_textures) of
-	true ->
-	    {uv,prepare_mat(Ftab, We)};
-	false ->
-	    {plain,prepare_mat(Ftab, We)}
+	true -> uv;
+	false -> plain
     end;
-prepare_2([color,uv], Ftab, We) ->
+prepare_2([color,uv]) ->
     case wings_pref:get_value(show_colors) of
 	false ->
-	    prepare_2([uv], Ftab, We);
+	    prepare_2([uv]);
 	true ->
 	    case wings_pref:get_value(show_textures) of
-		false ->
-		    {color,prepare_mat(Ftab, We)};
-		true ->
-		    {color_uv,prepare_mat(Ftab, We)}
+		false -> color;
+		true -> color_uv
 	    end
-    end.
-
-prepare_mat(Ftab, We) ->
-    case wings_pref:get_value(show_materials) of
-	false -> [{default,Ftab}];
-	true -> wings_facemat:mat_faces(Ftab, We)
     end.
