@@ -3,7 +3,7 @@
 %%
 %%     Text and font support.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -88,31 +88,19 @@ make_font_dlists_1(C, Base) ->
     gl:endList(),
     make_font_dlists_1(C+1, Base).
 
-char(C) when is_atom(C) ->
-    special(C);
-char(C) ->
-    try
-	(current_font()):char(C)
-    catch
-	error:function_clause ->
-	    bad_char(C);
-	  error:{badchar,_} ->
-	    bad_char(C)
-    end.
+char(C) when is_atom(C) -> special(C);
+char(C) -> (current_font()):char(C).
 
-bold(S) ->
-    (current_font()):bold(S).
+bold(S) -> (current_font()):bold(S).
 
 current_font() ->
     case wings_wm:this() of
 	none ->
 	    FontKey = wings_pref:get_value(new_system_font),
-	    [{_,Font,_}] = ets:lookup(wings_fonts, FontKey),
-	    Font;
+	    ets:lookup_element(wings_fonts, FontKey, 2);
 	This ->
 	    FontKey = wings_wm:get_prop(This, font),
-	    [{_,Font,_}] = ets:lookup(wings_fonts, FontKey),
-	    Font
+	    ets:lookup_element(wings_fonts, FontKey, 2)
     end.
 
 verify_font(PrefKey) ->
@@ -121,18 +109,7 @@ verify_font(PrefKey) ->
 	FontKey ->
 	    case is_font(FontKey) of
 		true -> ok;
-		false ->
-		    wings_pref:delete_value(PrefKey),
-		    case atom_to_list(FontKey) of
-			"wpf_"++Key ->
-			    NewFontKey = list_to_atom(Key),
-			    case is_font(NewFontKey) of
-				false -> ok;
-				true ->
-				    wings_pref:set_value(PrefKey, NewFontKey)
-			    end;
-			_ -> ok
-		    end
+		false -> wings_pref:delete_value(PrefKey)
 	    end
     end.
 
@@ -419,12 +396,6 @@ caret() ->
 			lists:duplicate(H-2, 2#00100000),
 			2#11011000]),
     gl:bitmap(5, H, 2, 2, 2, 0, B).
-
-bad_char(C) ->
-    W = width([C]),
-    H = height(),
-    B = list_to_binary(lists:duplicate(((W+7) div 8)*H, 16#FF)),
-    gl:bitmap(W, H, 0, 0, W+1, 0, B).
 
 %%%
 %%% Load a Wings font.

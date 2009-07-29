@@ -3,7 +3,7 @@
 %%
 %%     Generic font operations.
 %%
-%%  Copyright (c) 2005 Bjorn Gustavsson.
+%%  Copyright (c) 2005-2009 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -55,9 +55,13 @@ draw_glyph({W,H,Xorig,Yorig,Xmove,B}) ->
 
 glyph_info(C) ->
     case ets:lookup(GlyphTab, C) of
-	[] ->
-	    erlang:error({badchar,C});
+	[] when is_integer(C), C > 0 ->
+	    %% Undefined character. Return a filled box.
+	    NumBytes = ((Width+7) div 8) * Height,
+	    B = <<(-1):NumBytes/unit:8>>,
+	    {Width,Height,0,0,Width+1,B};
 	[{_,W,H,Xorig,Yorig,Xmove,Offset}] ->
+	    %% Valid character.
 	    NumBytes = ((W+7) div 8)*H,
 	    <<_:Offset/binary,B:NumBytes/binary,_/binary>> = Bitmaps,
 	    {W,H,Xorig,Yorig,Xmove,B}
