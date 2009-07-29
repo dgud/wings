@@ -16,11 +16,11 @@
 	 geom_windows/0,menu_restriction/2,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
 	 export_we/2,win_crash/1,crash_log/2,crash_log/3,
-	 caption/1]).
+	 pretty_filename/1,caption/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
--import(lists, [member/2,foreach/2]).
+-import(lists, [member/2,foreach/2,all/2]).
 
 -spec error([any()]) -> no_return().
 
@@ -149,6 +149,24 @@ caption(#st{file=Name}=St) ->
     Caption = wings() ++ " - " ++ filename:basename(Name) ++ "*",
     wings_io:set_title(Caption),
     St.
+
+%% pretty_filename(Name) -> PrettyName
+%%  If the Name *seems* to be encoded in UTF8, convert to a
+%%  list of Unicode characters. Leave it alone otherwise.
+%%
+pretty_filename(Name0) ->
+    case all(fun(C) -> C < 128 end, Name0) of
+	true ->
+	    %% Only 7-bit ASCII characters. Already fine.
+	    Name0;
+	false ->
+	    %% Try to convert it from UTF8 to a list of Unicode characters.
+	    Name1 = list_to_binary(Name0),
+	    case unicode:characters_to_list(Name1, utf8) of
+		Name when is_list(Name) -> unicode_combine(Name);
+		_ -> Name0
+	    end
+    end.
 
 wings() ->
     case ?wings_branch of
@@ -283,3 +301,45 @@ show_edge(F, Edge, #edge{vs=Vs,ve=Ve,lf=Lf,rf=Rf,ltpr=Lpred,ltsu=Lsucc,
 
 show_face(F, Face, Edge) ->
     io:format(F, "~p: edge=~p\n", [Face,Edge]).
+
+
+%% unicode_combine(String0) -> String
+%%  Combine diacritical characters with the previous character.
+%%  (We need to do this because Mac OS X encodes filenames in
+%%  this way. Sigh!)
+%%
+%%  For instance, the characters 'LATIN CAPITAL LETTER A' (U+0041) and
+%%  'COMBINING DIAERESIS' (U+0308) combines to form the letter
+%%  'LATIN CAPITAL LETTER A WITH DIAERESIS' (U+00C4).
+%%
+%%  Currently, we only handle a few of the possible character combinations,
+%%  namely those that occur in Swedish/Finnish, German, and Russian.
+%%
+unicode_combine([$A,16#0308|T]) ->
+    [16#C4|unicode_combine(T)];			%"Ä"
+unicode_combine([$a,16#0308|T]) ->
+    [16#E4|unicode_combine(T)];			%"ä"
+unicode_combine([$A,16#030A|T]) ->
+    [16#C5|unicode_combine(T)];			%"Å"
+unicode_combine([$a,16#030A|T]) ->
+    [16#E5|unicode_combine(T)];			%"å"
+unicode_combine([$O,16#0308|T]) ->
+    [16#D6|unicode_combine(T)];			%"Ö"
+unicode_combine([$o,16#0308|T]) ->
+    [16#F6|unicode_combine(T)];			%"ö"
+unicode_combine([$U,16#0308|T]) ->
+    [16#DC|unicode_combine(T)];			%"Ü"
+unicode_combine([$u,16#0308|T]) ->
+    [16#FC|unicode_combine(T)];			%"ü"
+%% Russian.
+unicode_combine([16#0415,16#0308|T]) ->
+    [16#0401|unicode_combine(T)];		%"Ё"
+unicode_combine([16#0435,16#0308|T]) ->
+    [16#0451|unicode_combine(T)];		%"ё"
+unicode_combine([16#0418,16#0306|T]) ->
+    [16#0419|unicode_combine(T)];		%"Й"
+unicode_combine([16#0438,16#0306|T]) ->
+    [16#0439|unicode_combine(T)];		%"й"
+unicode_combine([H|T]) ->
+    [H|unicode_combine(T)];
+unicode_combine([]) -> [].

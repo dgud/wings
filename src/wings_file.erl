@@ -578,7 +578,8 @@ recent_files(Tail) ->
 	    recent_files_1(Files, 1, Help, [separator|Tail])
     end.
 
-recent_files_1([{Base,_}|T], I, Help, Tail) ->
+recent_files_1([{Base0,_}|T], I, Help, Tail) ->
+    Base = wings_u:pretty_filename(Base0),
     [{Base,I,Help}|recent_files_1(T, I+1, Help, Tail)];
 recent_files_1([], _, _, Tail) -> Tail.
 
