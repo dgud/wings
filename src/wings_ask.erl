@@ -343,13 +343,15 @@ ask_unzip([], Labels, Vals) ->
 %%
 %% {text,Def[,Flags]}				-- Numerical or text field
 %%     Def = integer()|float()|String  -- Start value
-%%     Flags = {range,{Min,Max}}|{width,CharW}|{password,Bool}|RegularFlag
+%%     Flags = {range,{Min,Max}}|{width,CharW}|{password,Bool}|
+%%             {charset,Charset}|RegularFlag
 %%     CharW = integer() >= 1
 %%         %% Min and Max should be of same type as Def and is not
 %%         %% allowed with a String field. 
 %%         %% Min can also be '-infinity' and Max 'infinity'.
 %%         %% CharW is in characters. Default width is 30 for
 %%         %% String fields, 8 for integer() and 12 for float().
+%%         %% Charset is latin1 or unicode; default is latin1.
 %%
 %% {String,Bool[,RegularFlags]}			-- Checkbox
 %%
@@ -2956,65 +2958,55 @@ validator(Val, Flags) when is_integer(Val) ->
     integer_validator(Flags);
 validator(Val, Flags) when is_float(Val) ->
     float_validator(Flags);
-validator(Val, _Flags) when is_list(Val) ->
-    string_validator().
+validator(Val, Flags) when is_list(Val) ->
+    string_validator(Flags).
 
 integer_validator(Flags) ->
     case proplists:get_value(range, Flags) of
-	undefined -> {8,fun accept_all/1,fun all_chars/1};
-	{'-infinity',infinity} -> {8,fun accept_all/1,fun all_chars/1};
+	undefined -> {8,accept_all_fun(),latin1_charset()};
+	{'-infinity',infinity} -> {8,accept_all_fun(),latin1_charset()};
 	{Min,infinity} when is_integer(Min) ->
-	    {8,integer_range(Min, infinity),fun all_chars/1};
+	    {8,integer_range(Min, infinity),latin1_charset()};
 	{'-infinity',Max} when is_integer(Max) ->
-	    {8,integer_range('-infinity', Max),fun all_chars/1};
+	    {8,integer_range('-infinity', Max),latin1_charset()};
 	{Min,Max,Default} when is_integer(Min), is_integer(Max), is_integer(Default),
 	    Min =< Default, Default =< Max ->
 	    Digits = trunc(math:log(Max-Min+1)/math:log(10))+2,
-	    {Digits,integer_range(Min, Max, Default),fun all_chars/1};
+	    {Digits,integer_range(Min, Max, Default),latin1_charset()};
 	{Min,Max} when is_integer(Min), is_integer(Max), Min =< Max ->
 	    Digits = trunc(math:log(Max-Min+1)/math:log(10))+2,
-	    {Digits,integer_range(Min, Max),fun all_chars/1}
+	    {Digits,integer_range(Min, Max),latin1_charset()}
     end.
 
 float_validator(Flags) ->
     case proplists:get_value(range, Flags) of
-	undefined -> {12,fun accept_all/1,fun all_chars/1};
-	{'-infinity',infinity} -> {12,fun accept_all/1,fun all_chars/1};
+	undefined -> {12,accept_all_fun(),latin1_charset()};
+	{'-infinity',infinity} -> {12,accept_all_fun(),latin1_charset()};
 	{Min,infinity} when is_float(Min) ->
-	    {12,float_range(Min, infinity),fun all_chars/1};
+	    {12,float_range(Min, infinity),latin1_charset()};
 	{'-infinity',Max} when is_float(Max) ->
-	    {12,float_range('-infinity', Max),fun all_chars/1};
+	    {12,float_range('-infinity', Max),latin1_charset()};
 	{Min,Max,Default} when is_float(Min), is_float(Max), is_float(Default),
 	    Min =< Default, Default =< Max ->
 	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 20),
-	    {Digits,float_range(Min, Max, Default),fun all_chars/1};
+	    {Digits,float_range(Min, Max, Default),latin1_charset()};
 	{Min,Max} when is_float(Min), is_float(Max), Min =< Max ->
 	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 20),
-	    {Digits,float_range(Min, Max),fun all_chars/1}
+	    {Digits,float_range(Min, Max),latin1_charset()}
     end.
 
-string_validator() -> {30,fun accept_all/1,fun all_chars/1}.
+string_validator(Flags) ->
+    Charset = case proplists:get_value(charset, Flags, latin1) of
+		  latin1 -> latin1_charset();
+		  unicode -> unicode_charset()
+	      end,
+    {30,accept_all_fun(),Charset}.
 
-%integer_chars() -> integer_chars(-1, 1).
+latin1_charset() ->
+    fun(C) -> C < 256 end.
 
-% integer_chars(Min, Max) ->
-%     fun ($-) when Min < 0 -> true;
-% 	($+) when Max > 0 -> true;
-% 	(C) when $0 =< C, C =< $9 -> true;
-% 	(_) -> false
-%     end.
-
-%float_chars() -> float_chars(-1.0, +1.0).
-
-% float_chars(Min, Max) ->
-%     fun ($-) when Min < 0.0 -> true;
-% 	($+) when Max > 0.0 -> true;
-% 	(C) when $0 =< C, C =< $9 -> true;
-% 	($.) -> true;
-% 	(_) -> false
-%     end.
-
-all_chars(_) -> true.
+unicode_charset() ->
+    fun(C) -> C < 16#1FFFFF end.
 
 integer_range(Min, Max, Default) ->
     fun(Str) ->
@@ -3076,7 +3068,9 @@ float_range(Min, Max) ->
 	    end
     end.
 
-accept_all(_) -> ok.
+accept_all_fun() ->
+    fun(_) -> ok end.
+
 
 %% Does eval two time per character not nice... but it's late...
 text_get_val(#text{last_val=OldVal}=Ts) when is_integer(OldVal) ->
@@ -3424,8 +3418,7 @@ key($\^P, _, #text{}=Ts) ->
 key($\^N, _, #text{}=Ts) ->
     Txt = read_next_hist(type(Ts#text.last_val), get_text(Ts)),
     Ts#text{sel=0, bef=[], aft=Txt};
-key(C, _, #text{charset=Charset}=Ts0)
-  when $\s =< C, C < 256 ->
+key(C, _, #text{charset=Charset}=Ts0) when $\s =< C ->
     case Charset(C) of
 	true ->
 	    #text{bef=Bef} = Ts = del_sel(Ts0),
