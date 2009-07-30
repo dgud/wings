@@ -3,7 +3,7 @@
 %%
 %%     Standard plugin for dialogs.
 %%
-%%  Copyright (c) 2001-2004 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,6 +18,7 @@
 -include("wings_intl.hrl").
 
 init(Next) ->
+    wpa:pref_set_default(?MODULE, utf8, true),
     fun(What) -> ui(What, Next) end.
 
 ui({file,open_dialog,Prop,Cont}, _Next) ->
@@ -74,24 +75,34 @@ dialog(Type, Title, Props, Cont) ->
 dialog_1(DlgType, Types, Title, Cont, Ps) ->
     Dir = proplists:get_value(directory, Ps),
     DefType = proplists:get_value(filetype, Ps),
-    Filename = proplists:get_value(filename, Ps),
+    Utf8 = wpa:pref_get(?MODULE, utf8),
+    Filename0 = proplists:get_value(filename, Ps),
+    Filename = maybe_pretty(Filename0, Utf8),
     Wc = atom_to_list(DefType),
-    FileList = file_list(Dir, Wc),
-    DirMenu = dir_menu(Dir, []),
+    FileList = file_list(Dir, Wc, Utf8),
+    DirMenu = dir_menu(Dir, Utf8, []),
     OkHook = fun(Op, Arg) -> ok_hook(Op, Arg, DlgType) end,
+    Charset = case Utf8 of
+		  false -> latin1;
+		  true -> unicode
+	      end,
     Qs = {vframe,
 	  [{hframe,[{label,?__(1,"Look in")},
 		    {menu,DirMenu,Dir,[{key,directory},{hook,fun menu_hook/2}]},
-		    {button,?__(2,"Up"),fun(_) -> ignore end,[{key,up},{hook,fun up_button/2}]}]},
+		    {button,?__(2,"Up"),fun(_) -> ignore end,
+		     [{key,up},{hook,fun up_button/2}]}]},
 	   panel,
 	   FileList,
+	   {?__(9,"UTF-8 encoded file names"),Utf8,
+	    [{key,utf8},{hook,fun utf8_hook/2}]},
 	   panel,
 	   {hframe,
 	    [{vframe,
 	      [{label,?__(3,"File name")},
 	       {label,?__(4,"File format")}]},
 	     {vframe,
-	      [{text,Filename,[{key,filename},{hook,fun filename_hook/2}]},
+	      [{text,Filename,[{key,filename},{hook,fun filename_hook/2},
+			       {charset,Charset}]},
 	       {menu,Types,DefType,[{key,filetype},{hook,fun menu_hook/2}]}]},
 	     {vframe,[{button,Title,
 		       %% We will always exit the dialog through this
@@ -108,32 +119,46 @@ dialog_1(DlgType, Types, Title, Cont, Ps) ->
 		      {NewFilename} ->
 			  %% Here we must ask whether an existing
 			  %% file should be overwritten.
-			  Res = [{filename,NewFilename}|Res0],
+			  Res1 = [{filename,NewFilename}|Res0],
 			  YesNoQs = {vframe,
-				     [{label,NewFilename ++ ?__(6," exists; overwrite?"),
+				     [{label,NewFilename ++
+				       ?__(6," exists; overwrite?"),
 				       [{break,45}]},
 				      {hframe,
 				       [{button,?__(7,"Yes"),
 					 fun(_) ->
-						 ok_action(Cont, Res)
+						 ok_action(Cont, Res1)
 					 end},
 					{button,?__(8,"No"),done,[cancel]}]}]},
 			  {dialog,YesNoQs,
 			   fun(_) ->
 				   %% Will be called if the answer is No.
 				   %% Restart the file dialog.
+				   Name = maybe_unpretty(NewFilename, Utf8),
+				   Res = [{filename,Name}|Res1],
 				   dialog_1(DlgType, Types, Title, Cont, Res)
 			   end};
-		      _ -> 
+		      Name0 ->
 			  %% Standard restart.
-			  dialog_1(DlgType, Types, Title, Cont, Res0)
+			  Name = maybe_unpretty(Name0, Utf8),
+			  Res = [{filename,Name}|Res0],
+			  dialog_1(DlgType, Types, Title, Cont, Res)
 		  end
 	  end,
     {dialog,Qs,Ask}.
 
 ok_action(Cont, Res) ->
     Dir = proplists:get_value(directory, Res),
-    Name = proplists:get_value(filename, Res),
+    Name0 = proplists:get_value(filename, Res),
+    Utf8 = proplists:get_value(utf8, Res),
+    wpa:pref_set(?MODULE, utf8, Utf8),
+    Name = case Utf8 of
+	       false ->
+		   Name0;
+	       true ->
+		   Name1 = unicode:characters_to_binary(Name0, utf8),
+		   binary_to_list(Name1)
+	   end,
     NewName = filename:join(Dir, Name),
     Cont(NewName).
 
@@ -142,7 +167,7 @@ ok_hook(is_disabled, {_Var,_I,Store}, _) ->
     %% in the filename field OR a directory is selected in
     %% file_list table.
 
-    gb_trees:get(filename, Store) == [] andalso
+    gb_trees:get(filename, Store) =:= [] andalso
 	begin
 	    case gb_trees:get(file_list, Store) of
 		{[Sel],Els} ->
@@ -175,6 +200,12 @@ ok_hook(update, {_Var,_I,_Val,Store}, DlgType) ->
     end;
 ok_hook(_, _, _) -> void.
 
+utf8_hook(update, {Var,_I,Val,Sto0}) ->
+    Sto = gb_trees:update(filename, "", Sto0),
+    wpa:pref_set(?MODULE, Var, Val),
+    {done,gb_trees:update(Var, Val, Sto)};
+utf8_hook(_, _) -> void.
+
 filename_hook(update, {Var,_I,Val,Sto0}) ->
     {_,Els} = gb_trees:get(file_list, Sto0),
     Sto = gb_trees:update(file_list, {[],Els}, Sto0),
@@ -182,10 +213,12 @@ filename_hook(update, {Var,_I,Val,Sto0}) ->
 filename_hook(_, _) -> void.
 
 check_filename(Store, DlgType) ->
+    Utf8 = gb_trees:get(utf8, Store),
     Dir = gb_trees:get(directory, Store),
     Name0 = gb_trees:get(filename, Store),
     Name1 = maybe_add_extension(Name0, gb_trees:get(filetype, Store)),
-    Name = filename:join(Dir, Name1),
+    Name2 = maybe_unpretty(Name1, Utf8),
+    Name = filename:join(Dir, Name2),
     case DlgType of
 	open ->
 	    case filelib:is_file(Name) of
@@ -206,14 +239,18 @@ check_filename(Store, DlgType) ->
 	    end
     end.
 
-dir_menu(Dir0, Acc) ->
+dir_menu(Dir0, Utf8, Acc) ->
     Entry = case Dir0 of
-		"/" -> {Dir0,Dir0};
-		_ -> {filename:basename(Dir0),Dir0}
+		"/" ->
+		    {Dir0,Dir0};
+		_ ->
+		    DirText0 = filename:basename(Dir0),
+		    DirText = maybe_pretty(DirText0, Utf8),
+		    {DirText,Dir0}
 	    end,
     case filename:dirname(Dir0) of
 	Dir0 -> [Entry|Acc];
-	Dir -> dir_menu(Dir, [Entry|Acc])
+	Dir -> dir_menu(Dir, Utf8, [Entry|Acc])
     end.
 
 menu_hook(update, {Var,_I,Val,Sto}) ->
@@ -243,35 +280,37 @@ file_filter({"."++Ext0,Desc0}) ->
     Desc = Desc0 ++ " (*." ++ Ext0 ++ ")",
     {Desc,Ext}.
 
-file_list(Dir, Wc) ->
+file_list(Dir, Wc, Utf8) ->
     {ok,Files0} = file:list_dir(Dir),
-    {Folders,Files} = file_list_filter(Files0, Dir, Wc),
+    {Folders,Files} = file_list_filter(Files0, Dir, Wc, Utf8),
     All0 = sort(Folders) ++ sort(Files),
     All = [{F} || F <- All0],
     {table,[{?__(1,"Filename")}|All],[{key,file_list},{hook,fun choose_file/2}]}.
 
-file_list_filter(Files0, Dir, Wc) ->
-    {Folders,Files} = file_list_folders(Files0, Dir, [], []),
-    {Folders,file_list_filter_1(Files, Wc)}.
+file_list_filter(Files0, Dir, Wc, Utf8) ->
+    {Folders,Files} = file_list_folders(Files0, Dir, Utf8, [], []),
+    {Folders,file_list_filter_1(Files, Wc, Utf8)}.
 
-file_list_filter_1(Files, []) ->
+file_list_filter_1(Files, [], Utf8) ->
     Space = {space,wings_text:width([folder])},
-    [{F,[Space|F]} || F <- Files];
-file_list_filter_1(Files, Wc) ->
+    [{F,[Space|maybe_pretty(F, Utf8)]} || F <- Files];
+file_list_filter_1(Files, Wc, Utf8) ->
     Space = {space,wings_text:width([folder])},
     Ext = [$.|Wc],
-    [{F,[Space|F]} || F <- Files, lists:suffix(Ext, F)].
+    [{F,[Space|maybe_pretty(F, Utf8)]} ||
+	F <- Files, lists:suffix(Ext, F)].
 
-file_list_folders(["."++_|Fs], Dir, DirAcc, FileAcc) ->
-    file_list_folders(Fs, Dir, DirAcc, FileAcc);
-file_list_folders([F|Fs], Dir, DirAcc, FileAcc) ->
+file_list_folders(["."++_|Fs], Dir, Utf8, DirAcc, FileAcc) ->
+    file_list_folders(Fs, Dir, Utf8, DirAcc, FileAcc);
+file_list_folders([F|Fs], Dir, Utf8, DirAcc, FileAcc) ->
     case filelib:is_dir(filename:join(Dir, F)) of
 	true ->
-	    file_list_folders(Fs, Dir, [{{dir,F},[folder|F]}|DirAcc], FileAcc);
+	    DirItem = {{dir,F},[folder|maybe_pretty(F, Utf8)]},
+	    file_list_folders(Fs, Dir, Utf8, [DirItem|DirAcc], FileAcc);
 	false ->
-	    file_list_folders(Fs, Dir, DirAcc, [F|FileAcc])
+	    file_list_folders(Fs, Dir, Utf8, DirAcc, [F|FileAcc])
     end;
-file_list_folders([], _, DirAcc, FileAcc) -> {DirAcc,FileAcc}.
+file_list_folders([], _, _, DirAcc, FileAcc) -> {DirAcc,FileAcc}.
 
 choose_file(update, {_Var,_I,{[],_},_Sto}) ->
     void;
@@ -280,11 +319,20 @@ choose_file(update, {Var,_I,{[Sel],Els}=Val,Sto0}) ->
 	{{{dir,_File},_}} ->
 	    Sto = gb_trees:update(Var, Val, Sto0),
 	    {store,Sto};
-	{{File,_}} ->
+	{{File0,_}} ->
+	    File = maybe_pretty(File0, gb_trees:get(utf8, Sto0)),
 	    Sto1 = gb_trees:update(Var, Val, Sto0),
 	    {store,gb_trees:update(filename, File, Sto1)}
     end;
 choose_file(_, _) -> void.
+
+maybe_unpretty(Name0, true) ->
+    Name = unicode:characters_to_binary(Name0, utf8),
+    binary_to_list(Name);
+maybe_unpretty(Name, false) -> Name.
+
+maybe_pretty(Name, true) -> wings_u:pretty_filename(Name);
+maybe_pretty(Name, false) -> Name.
 
 maybe_add_extension(Name, '') -> Name;
 maybe_add_extension(Name, Ext) ->
