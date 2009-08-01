@@ -46,7 +46,7 @@ plus_minus({'ASK',Ask}, Tvs, St0) ->
 plus_minus(Type, Tvs0, #st{selmode=Mode}=St) ->
     Vec = make_vector(Type),
     Tvs = plus_minus_2(Mode, Vec, Tvs0, []),
-	Flags = [flags(Type),{initial,[0.0,0.0,0.0,1.0]}],
+    Flags = [flags(Type),{initial,[0.0,0.0,0.0,1.0]}],
     wings_drag:setup(Tvs, unit(Type, [{percent,{0.0,infinity}}]), Flags, St).
 
 plus_minus_2(Mode, Vec, [{Items,NewVs,Forbidden,We}|T], Acc0) ->
@@ -59,7 +59,7 @@ plus_minus_3(Tv0, NewVs, Forbidden, #we{id=Id}=We, Acc) ->
     Affected0 = affected(Tv0),
     Vecs = move_vectors(NewVs, Forbidden, gb_sets:from_list(Affected0), We, []),
     Affected = [V || {V,_,_} <- Vecs],
-    VsPos = move_away(1.0, Vecs),
+    VsPos = move_away(1.0, Vecs, []),
     MoveAway = {Affected,move_away_fun(Vecs, VsPos)},
     [{Id,Tv0},{Id,MoveAway}|Acc].
 
@@ -91,19 +91,18 @@ flags(_) -> [].
 
 move_away_fun(Tv, VsPos0) ->
     fun(view_changed, _Acc) ->
-        move_away_fun(Tv, VsPos0);
-       ([_, _, _, Percent|_], A) ->
-        VsPos = move_away(Percent, Tv),
-        VsPos ++ A
+	    move_away_fun(Tv, VsPos0);
+       ([_,_,_,Percent|_], A) ->
+	    move_away(Percent, Tv, A)
     end.
 
-move_away(R0, Tv) ->
+move_away(R0, Tv, Acc) ->
     R = R0-1.0,
     foldl(fun({V,Vec,{X,Y,Z}}, A) -> 
 		  {Xt,Yt,Zt} = e3d_vec:mul(Vec, R),
 		  Pos = wings_util:share(X+Xt, Y+Yt, Z+Zt),
 		  [{V,Pos}|A]
-	  end, [], Tv).
+	  end, Acc, Tv).
     
 move_vectors([V|Vs], Forbidden, VsSet, #we{vp=Vtab}=We, Acc0) ->
     Acc = wings_vertex:fold(
@@ -123,7 +122,7 @@ move_vectors([V|Vs], Forbidden, VsSet, #we{vp=Vtab}=We, Acc0) ->
 move_vectors([], _, _, _, Acc) -> Acc.
 
 %%
-%% Conversion of vertice selections to vertices. :-)
+%% Conversion of vertex selection to vertices. :-)
 %% Not entirely pointless, as we'll need to add vectors for
 %% the points (vertices).
 %%
