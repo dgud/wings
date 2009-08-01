@@ -1,3 +1,42 @@
+--- 1.1.9 ----------------------------------------------------------------------
+- Calculations of smoothing groups in the Wavefront exporter
+  could crash if there was two different edges between the same pair
+  of vertices. (Thanks to Siber for reporting this bug.)
+  
+  For plugin developers: A new field, sg, containing an integer
+  representing the smoothing group has been added to the #e3d_face{}
+  record. Plug-ins using that record must be re-compiled. [bjorng]
+
+- In the Smoothed Preview mode, changes to vertex colors or
+  UV coordinates would not be visible. (Thanks to FonteBoa.) [bjorng]
+
+- Fixed the bugs in the View|Show Colors and View|Show Materials
+  reported by Micheus. Also made sure that a change to the vertex
+  color option of a material would immediately be seen in the
+  scene. [bjorng]
+
+- Repeat cmds for Extrude now fixed. (Thanks to Fonte Boa). [optigon]
+
+- Bevel for vertices now properly updates UV coordinates and
+  vertex colors dynamically during dragging. (In the Smoothed Preview
+  mode, the UV coordinates will only become correct when the drag
+  has finished.) [bjorng]
+
+- If the workaround against disappearing text was enabled,
+  there would be crash when attempting to display any character
+  not included in the fonts, which could happen when using the
+  file dialog on Linux to browse a file system where the filenames
+  are encoded using UTF-8. (Thanks to mifth.) [bjorng]
+
+- In the file dialog on Mac OS X, selecting a filename
+  containing non-US ASCII characters (such as the Swedish
+  letters Å, Ä, or Ö) would cause a hard crash. [bjorng]
+
+- By default, the file dialog box for Linux now assumes
+  that filenames are encoded in UTF-8. There is a new checkbox
+  to revert to the previous behaviour (that is, to assume that
+  filenames are encoded in ISO latin1). [bjorng]
+
 --- 1.1.8 ----------------------------------------------------------------------
 - Switching to the Smoothed Preview mode would cause a crash
   if there were any area lights in the scene. (Thanks to Micheus.)
