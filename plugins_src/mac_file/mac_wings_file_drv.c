@@ -1,10 +1,9 @@
 /*
- *
  *  mac_wings_file_drv.c --
  *
  *     Erlang driver for native file dialog boxes for Mac OS X.
  *
- *  Copyright (c) 2001-2003 Patrik Nyblom, Bjorn Gustavsson.
+ *  Copyright (c) 2001-2009 Patrik Nyblom, Bjorn Gustavsson.
  *
  *  Modified to support OSX by Sean Hinde
  *
@@ -119,19 +118,16 @@ static int mac_wings_file_control(ErlDrvData handle, unsigned int command,
 	defname = title + strlen(title) + 1; /* Default name for file */
 	filter = defname + strlen(defname) + 1; /* Filter expression (.wings) */
 
-        defdir1 = [NSString stringWithCString:defdir];
-        title1 = [NSString stringWithCString:title];
-        defname1 = [NSString stringWithCString:defname];
+        defdir1 = [NSString stringWithUTF8String:defdir];
+        title1 = [NSString stringWithUTF8String:title];
+        defname1 = [NSString stringWithUTF8String:defname];
 	
-	rbuff = driver_alloc(PATH_MAX+1);
-	strcpy(rbuff, defname);
-	
-	if (command == 1) {
+	if (command == 1) {	/* Open/Import */
 	  NSOpenPanel* oPanel = [NSOpenPanel openPanel];
 	  NSMutableArray* fileTypes = [NSMutableArray arrayWithCapacity:10];
 
 	  while (filter[0] != 0) {
-	    NSString* AFilter = [NSString stringWithCString:filter];
+	    NSString* AFilter = [NSString stringWithUTF8String:filter];
 
 	    [fileTypes addObject:AFilter];
 	    filter += strlen(filter) + 1;
@@ -141,21 +137,25 @@ static int mac_wings_file_control(ErlDrvData handle, unsigned int command,
 	  result = [oPanel runModalForDirectory:defdir1 file:nil types:fileTypes];
 	  if (result == NSOKButton) {
 	    NSString *aFile = [oPanel filename];
-	    [aFile getCString:rbuff];
+	    const char* utf8str = [aFile UTF8String];
+	    rbuff = driver_alloc(strlen(utf8str)+1);
+	    strcpy(rbuff, utf8str);
 	    *res = rbuff;
 	    [pool release];
 	    return strlen(rbuff);
 	  }
-	} else {
+	} else {		/* Save/Export */
 	  NSSavePanel *sPanel = [NSSavePanel savePanel];
-	  NSString* fileType = [NSString stringWithCString:filter];
+	  NSString* fileType = [NSString stringWithUTF8String:filter];
 
 	  [sPanel setRequiredFileType:fileType];
 	  [sPanel setTitle:title1];
 	  result = [sPanel runModalForDirectory:defdir1 file:defname1];
 	  if (result == NSOKButton) {
 	    NSString *aFile = [sPanel filename];
-	    [aFile getCString:rbuff];
+	    const char* utf8str = [aFile UTF8String];
+	    rbuff = driver_alloc(strlen(utf8str)+1);
+	    strcpy(rbuff, utf8str);
 	    *res = rbuff;
 	    [pool release];
 	    return strlen(rbuff);
