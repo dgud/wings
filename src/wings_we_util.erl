@@ -110,7 +110,7 @@ verify_vertex(V, Edge, #we{vc=Vct}=We) ->
     case array:get(V, Vct) of
 	undefined ->
 	    crash({edge,Edge,referenced,undefined,vertex,V}, We);
-	Edge when is_integer(Edge) -> ok
+	E when is_integer(E) -> ok
     end.
 
 crash(Reason, We) ->
