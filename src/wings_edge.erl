@@ -73,7 +73,8 @@ cut_1(N, Edge, Pos0, Vec, We0) ->
     {We,NewE} = fast_cut(Edge, Pos, We0),
     cut_1(N-1, NewE, Pos, Vec, We).
 
-%% fast_cut(Edge, Position, We0) -> {We,NewVertex,NewEdge}
+%% fast_cut(Edge, Position, We0) -> {We,NewElement}
+%%      NewElement = ID for the new vertex and the new Edge
 %%  Cut an edge in two parts. Position can be given as
 %%  the atom `default', in which case the position will
 %%  be set to the midpoint of the edge.
