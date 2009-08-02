@@ -381,16 +381,14 @@ new_vertex(V, G, Edges, ForbiddenFaces, ExtrudeDist, {We0,F0}=Acc) ->
 	    {We,F0}
     end.
 
-new_vertex_1(V, G, Edge, Center, ExtrudeDist, We0) ->
-    {We,NewE=NewV} = wings_edge:cut(Edge, 2, We0),
+new_vertex_1(V, G, Edge, Center, ExtrudeDist, #we{es=Etab}=We0) ->
+    OtherPos = wings_vertex:other_pos(V, array:get(Edge, Etab), We0),
+    Dir = e3d_vec:norm_sub(OtherPos, Center),
+    Pos = e3d_vec:add_prod(Center, Dir, ExtrudeDist),
+    {We,NewV=NewE} = wings_edge:fast_cut(Edge, Pos, We0),
     Rec = get_edge_rec(V, NewV, Edge, NewE, We),
     digraph_edge(G, Rec),
-    #we{vp=Vtab0} = We,
-    Pos0 = array:get(NewV, Vtab0),
-    Dir = e3d_vec:norm_sub(Pos0, Center),
-    Pos = e3d_vec:add_prod(Center, Dir, ExtrudeDist),
-    Vtab = array:set(NewV, Pos, Vtab0),
-    We#we{vp=Vtab}.
+    We.
 
 get_edge_rec(Va, Vb, EdgeA, EdgeB, #we{es=Etab}) ->
     case array:get(EdgeA, Etab) of
