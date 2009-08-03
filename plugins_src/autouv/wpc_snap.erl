@@ -216,17 +216,22 @@ draw_image(Image,_St) ->
     gl:'end'(),
     gl:popAttrib().
     
-calc_uv(_V = {X,Y,Z}) ->
-    {MM,PM,Viewport = {_,_,W,H}} = wings_u:get_matrices(0, original),
-    {S,T, _} = wings_gl:project(X,Y,Z,MM,PM,Viewport),
+calc_uv_fun() ->
+    %% First do all the view-dependent calculations that are
+    %% common for all vertices.
+    {MM,PM,{_,_,W,H}=Viewport} = wings_u:get_matrices(0, original),
     #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty} = get(?MODULE),
-    {Xs,Ys} = scale(W,H,IW,IH),
-    Center = 0.5,
-    Res = {Tx/2+(S/W*Xs*Sx+Center-Sx*Xs/2),Ty/2+(T/H*Sy*Ys+Center-Sy*Ys/2)},
-%%    io:format("~p st ~.3f,~.3f XsYs ~.2f ~.2f Res ~p~n", [_V, S/W,T/H,Xs,Ys,Res]),
-    Res.
+    {Xs,Ys} = scale(W, H, IW, IH),
 
-scale(W,H,IW,IH) ->
+    %% In the fun, do the calculations that are specific
+    %% for each vertex.
+    fun({X,Y,Z}) ->
+	    {S,T,_} = wings_gl:project(X, Y, Z, MM, PM, Viewport),
+	    Center = 0.5,
+	    {Tx/2+(S/W*Xs*Sx+Center-Sx*Xs/2),Ty/2+(T/H*Sy*Ys+Center-Sy*Ys/2)}
+    end.
+
+scale(W, H, IW, IH) ->
     if 
 	W == H ->
 	    if 
@@ -255,27 +260,25 @@ scale(W,H,IW,IH) ->
  	    end
     end.
 
-update_uv_fun(Vtab) ->
-    fun(Face, V, Edge, Rec0, We) ->
-	    case Rec0 of
-		#edge{vs=V,lf=Face} ->
-		    Vpos = array:get(V, Vtab),
-		    UV = calc_uv(Vpos),
-		    Attr = wings_va:new_attr(uv, UV),
-		    wings_va:set_edge_attrs(Edge, left, Attr, We);
-		#edge{ve=V,rf=Face} ->
-		    Vpos = array:get(V, Vtab),
-		    UV = calc_uv(Vpos),
-		    Attr = wings_va:new_attr(uv, UV),
-		    wings_va:set_edge_attrs(Edge, right, Attr, We)
-	    end
-    end.
-
 insert_uvs(St0) ->
-    wings_sel:map(fun(Items, We=#we{vp=Vtab}) ->
-			  AddUv = update_uv_fun(Vtab),
-			  wings_face:fold_faces(AddUv, We, Items, We)
+    CalcUV = calc_uv_fun(),
+    wings_sel:map(fun(Faces, We) ->
+			  insert_we_uvs(Faces, CalcUV, We)
 		  end, St0).
+
+insert_we_uvs(Faces, CalcUV, We) ->
+    VFace = wings_face:fold_faces(
+	      fun(Face, V, _, _, A) ->
+		      [{V,Face}|A]
+	      end, [], Faces, We),
+    VFaces = wings_util:rel2fam(VFace),
+    insert_we_uvs_1(VFaces, CalcUV, We).
+    
+insert_we_uvs_1([{V,Faces}|T], CalcUV, We0) ->
+    UV = CalcUV(wings_vertex:pos(V, We0)),
+    We = wings_va:set_vtx_face_uvs(V, Faces, UV, We0),
+    insert_we_uvs_1(T, CalcUV, We);
+insert_we_uvs_1([], _, We) -> We.
 
 set_materials(Image,St0) ->     
     Fix = fun(Items,We0,NewMats0) ->
@@ -299,7 +302,7 @@ dup_mat(MatName,{Used,St0},{Image,Name}) ->
     Maps0 = proplists:get_value(maps, Mat0),
     case proplists:get_value(diffuse, Maps0) of
 	Image -> 
-	    %% It already has the texture no need to create new material
+	    %% It already has the texture; no need to create new material
 	    {MatName,{[{MatName,MatName}|Used],St0}};
 	Else ->
 	    NewMatName = list_to_atom(atom_to_list(MatName) ++ "_" ++ Name),
@@ -307,7 +310,21 @@ dup_mat(MatName,{Used,St0},{Image,Name}) ->
 		       undefined -> [{diffuse,Image}|Maps0];
 		       _ -> lists:keyreplace(diffuse,1,Maps0,{diffuse,Image})
 		   end,
-	    Mat   = {NewMatName,lists:keyreplace(maps,1,Mat0, {maps,Maps})},
+
+	    %% Make sure that vertex colors will not override the texture.
+	    %% If the Vertex Color attribute in the material is 'Set',
+	    %% change it to 'Multiply'.
+	    OpenGL0 = proplists:get_value(opengl, Mat0),
+	    VtxColors = case proplists:get_value(vertex_colors, OpenGL0) of
+			    set -> multiply;
+			    Other -> Other
+			end,
+	    OpenGL1 = proplists:delete(vertex_colors, OpenGL0),
+	    OpenGL = [{vertex_colors,VtxColors}|OpenGL1],
+
+	    Mat1 = proplists:delete(opengl, Mat0),
+	    Mat2 = proplists:delete(maps, Mat1),
+	    Mat = {NewMatName,[{opengl,OpenGL},{maps,Maps}|Mat2]},
 	    case wings_material:add_materials([Mat], St0) of
 		{St,[]} ->
 		    {NewMatName, {[{MatName,NewMatName}|Used],St}};
