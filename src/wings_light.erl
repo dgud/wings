@@ -611,7 +611,7 @@ get_light_1(#we{light=L}=We) ->
 		 true -> OpenGL0
 	     end,
     OpenGL = case Type of
-		 area -> [{mesh,wings_export:make_mesh(We, [])}|OpenGL1];
+		 area -> [{mesh,export_mesh(We)}|OpenGL1];
 		 _ -> OpenGL1
 	     end,
     [{opengl,OpenGL}|Prop].
@@ -622,6 +622,29 @@ export_perm({_,_}, Ps) ->
     [{visible,false},{locked,false}|Ps];
 export_perm(P, Ps) when is_integer(P) ->
     [{visible,P < 2},{locked,(P band 1) =/= 0}|Ps].
+
+%% This is the classic definition of e3d_face{}, as it was defined
+%% before 1.1.9.
+-record(classic_e3d_face,
+	{vs=[],				        %List of vertex indices.
+	 vc=[],					%Vertex color indices.
+	 tx=[],				        %List of texture indices.
+	 ns=[],				        %List of normal indices.
+	 mat=[],				%Materials for face.
+	 vis=-1}).				%Visible edges (as in 3DS).
+
+export_mesh(We) ->
+    #e3d_mesh{fs=Fs0} = Mesh = wings_export:make_mesh(We, []),
+    Fs = [export_fix_face(F) || F <- Fs0],
+    Mesh#e3d_mesh{fs=Fs}.
+
+export_fix_face(#e3d_face{vs=Vs,mat=Mat}) ->
+    %% Fix the face record so that it looks like the classic
+    %% definition of #e3d_face{} (before 1.1.9).
+    FaceRec = #classic_e3d_face{vs=Vs,mat=Mat},
+
+    %% Patch the record type.
+    setelement(1, FaceRec, e3d_face).
 
 %%%
 %%% Importing lights.
@@ -667,7 +690,7 @@ import_we(#light{type=area}=Light, OpenGL, {X,Y,Z}) ->
 					mat=['_hole_']}],
 			  vs=[{X+1.0,Y,Z+1.0},{X-1.0,Y,Z+1.0},
 			      {X-1.0,Y,Z-1.0},{X+1.0,Y,Z-1.0}]};
-	    {mesh,M} -> e3d_mesh:transform(e3d_mesh:clean_faces(M))
+	    {mesh,M} -> import_fix_mesh(M)
 	end,
     We = wings_import:import_mesh(material, Mesh),
     We#we{light=Light,has_shape=true};
@@ -683,6 +706,24 @@ import_we(#light{}=Light, _OpenGL, {X,Y,Z}) ->
 	  {X-S,Y-S,Z-S},{X-S,Y+S,Z-S},{X+S,Y+S,Z-S},{X+S,Y-S,Z-S}],
     We = wings_we:build(Fs, Vs),
     We#we{light=Light,has_shape=false}.
+
+import_fix_mesh(#e3d_mesh{fs=Fs0}=Mesh0) ->
+    Fs = [import_fix_face(F) || F <- Fs0],
+    Mesh1 = Mesh0#e3d_mesh{fs=Fs},
+    Mesh = e3d_mesh:clean_faces(Mesh1),
+    e3d_mesh:transform(Mesh).
+
+import_fix_face(FaceRec) when is_tuple(FaceRec) ->
+    %% Different versions of Wings can have #e3d_face{}
+    %% records of different size (for example, in Wings 1.1.9
+    %% a new 'sg' field was added to #e3d_face{}). We know
+    %% that the fields we are interested in are in the same
+    %% place, so we can retrieve them using element/2.
+    %%
+    e3d_face = element(1, FaceRec),		%Crash on unknown record type.
+    Vs = element(#e3d_face.vs, FaceRec),
+    Mat = element(#e3d_face.mat, FaceRec),
+    #e3d_face{vs=Vs,mat=Mat}.
 
 %%%
 %%% Setting up lights.
