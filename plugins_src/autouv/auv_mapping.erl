@@ -570,7 +570,7 @@ reorder_edge_loop(V1, [H|Tail], Acc) ->
 -record(lsq,{a,x0,ap,temp1,temp2,dr}).
 
 lsq_setup(Fs,We,Pinned) ->
-    {M,N,D,DR,L1,L2,_X0} = lsq_init(Fs,We,Pinned),
+    {M,N,D,DR,L1,L2} = lsq_init(Fs,We,Pinned),
     {Lquv0,{Np,Usum,Vsum}} =  
 	lists:mapfoldl(
 	  fun({P,{U,V} = UV}, {I,X,Y}) ->
@@ -601,9 +601,9 @@ lsq_init(Fs0,We0,Pinned0) ->
     We = wings_tesselation:triangulate(Fs0, We0),
     Fs = Fs0 ++ wings_we:new_items_as_ordset(face,We0,We),
     Pinned = gb_trees:from_orddict(lists:sort(Pinned0)),
-    lsq_init_fs(Fs,Pinned,We,{0,dict:new(),dict:new()},0,[],[],[]).
+    lsq_init_fs(Fs,Pinned,We,{0,dict:new(),dict:new()},0,[],[]).
 
-lsq_init_fs([F|Fs],P,We = #we{vp=Vtab},Ds0,N,Re0,Im0,X0) ->
+lsq_init_fs([F|Fs],P,We = #we{vp=Vtab},Ds0,N,Re0,Im0) ->
     Vs = [[A0|_],[B0|_],[C0|_]] = wings_va:face_attr([vertex|uv], F, We),
     {[A,B,C],Ds} = update_dicts(Vs,Ds0),
 %%    {X1=Z0x,Y1=Z0y,X2=Z1x,Y2=Z1y,X3=Z2x,Y3=Z2y} = 
@@ -660,10 +660,9 @@ lsq_init_fs([F|Fs],P,We = #we{vp=Vtab},Ds0,N,Re0,Im0,X0) ->
     %% nlEnd(NL_ROW) ;
     %% }
 
-    lsq_init_fs(Fs,P,We,Ds,N+1,Re,Im,fixuv(Vs,P,Ds0)++X0);
-lsq_init_fs([],_,_We,{M,D,DR},N,Re0,Im0,X0) ->
-%%    io:format("X0 = ~p~n",[ X0]),
-    {M,N,D,DR,vecs(M,Re0,[]),vecs(M,Im0,[]),auv_matrix:vector(X0)}.
+    lsq_init_fs(Fs,P,We,Ds,N+1,Re,Im);
+lsq_init_fs([],_,_We,{M,D,DR},N,Re0,Im0) ->
+    {M,N,D,DR,vecs(M,Re0,[]),vecs(M,Im0,[])}.
 
 vecs(M,[R|Rs],Acc) ->
     vecs(M,Rs,[auv_matrix:vector(M,R)|Acc]);
@@ -681,20 +680,6 @@ update_dicts([[P|_]|Rest],N,D,DR,Acc) ->
     end;
 update_dicts([],N,D,DR,Acc) ->
     {lists:reverse(Acc),{N,D,DR}}.
-
-fixuv([[Id|UV]|R],Pinned,Ds={_,D,_}) ->
-    case dict:find(Id,D) of
-	{ok, _} -> fixuv(R,Pinned,Ds);
-	error -> 
-	    case {gb_trees:is_defined(Id, Pinned),UV} of
-		{true,_} ->   fixuv(R,Pinned,Ds);
-		{_,{U,V}}  -> [U,V|fixuv(R,Pinned,Ds)];
-		{_,_What} ->      
-%%		    io:format("~p ~p",[Id,_What]),
-		    [0.5,0.5|fixuv(R,Pinned,Ds)]
-	    end
-    end;
-fixuv([],_,_) -> [].
 
 project_tri(P0,P1,P2) ->
     L = e3d_vec:sub(P1,P0),

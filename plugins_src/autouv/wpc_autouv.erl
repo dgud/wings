@@ -1820,17 +1820,24 @@ remap(stretch_opt, _, _, We, St) ->
     ?SLOW(auv_mapping:stretch_opt(We, Vs3d));
 remap(proj_lsqcm, _, Sel, We0, St = #st{selmode=face}) ->
     Vs3d = orig_pos(We0, St),
-    try Vs0 = auv_mapping:projectFromChartNormal(gb_sets:to_list(Sel),We0#we{vp=Vs3d}),
-	Vtab = array:from_orddict(Vs0),
-	SelVs = wings_vertex:from_faces(Sel,We0),
-	Pinned = [begin
-		      {S,T,_} = array:get(V, Vtab),
-		      {V,{S,T}}
-		  end || V <- SelVs],
-	remap(lsqcm, Pinned, Sel, We0, St)
+    try
+	Fs0   = gb_sets:to_list(Sel),
+	Vs0   = auv_mapping:projectFromChartNormal(Fs0,We0#we{vp=Vs3d}),
+	case length(Vs0) == wings_util:array_entries(We0#we.vp) of
+	    true -> %% Everything projected nothing to unfold
+		update_and_scale_chart(Vs0,We0);
+	    false -> %% Unfold rest of faces
+		Vtab  = array:from_orddict(Vs0),
+		SelVs = wings_vertex:from_faces(Sel,We0),
+		Pinned = [begin
+			      {S,T,_} = array:get(V, Vtab),
+			      {V,{S,T}}
+			  end || V <- SelVs],
+		remap(lsqcm, Pinned, Sel, We0, St)
+	end
     catch throw:{_,What} ->
 	    wpa:error(What);
-	      throw:What ->
+	throw:What ->
 	    wpa:error(What)
     end;
 remap(Type, Pinned, _, We0, St) ->
