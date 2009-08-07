@@ -381,7 +381,14 @@ apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
 		   end,
     Maps = case VertexColors of
 	       ignore ->
-		   %% Ignore vertex colors.
+		   %% Ignore vertex colors. If the hemispherical lighting
+		   %% shader is enabled, it is not enough to only disable
+		   %% COLOR_MATERIAL, but we must also disable the color
+		   %% array.
+		   case ActiveVertexColors of
+		       true -> gl:disableClientState(?GL_COLOR_ARRAY);
+		       false -> ok
+		   end,
 		   gl:disable(?GL_COLOR_MATERIAL),
 		   Maps0;
 	       set ->
