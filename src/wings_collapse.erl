@@ -27,9 +27,6 @@
 collapse(#st{selmode=face}=St0) ->
     {St,Sel} = wings_sel:mapfold(fun collapse_faces/3, [], St0),
     wings_sel:set(vertex, Sel, St);
-collapse(#st{selmode=edge}=St0) ->
-    {St,Sel} = wings_sel:mapfold(fun collapse_edges/3, [], St0),
-    wings_sel:valid_sel(wings_sel:set(vertex, Sel, St));
 collapse(#st{selmode=vertex}=St0) ->
     {St1,Sel} = wings_sel:mapfold(fun collapse_vertices_cmd/3, [], St0),
     case wings_sel:valid_sel(wings_sel:set(face, Sel, St1)) of
@@ -255,16 +252,6 @@ vertices_w_two_edges(Etab) ->
       (_,#edge{ve=V,ltpr=E2,rtsu=E2},Acc) -> [V|Acc];
       (_,_,Acc) -> Acc
     end,[],Etab).
-
-collapse_edges(Edges0, #we{id=Id,es=Etab}=We0, SelAcc)->
-    Edges = gb_sets:to_list(Edges0),
-    We = foldl(fun collapse_edge/2, We0, Edges),
-    check_consistency(We),
-    Sel = foldl(fun(Edge, A) ->
-			#edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-			gb_sets:add(Va, gb_sets:add(Vb, A))
-		end, gb_sets:empty(), Edges),
-    {We,[{Id,Sel}|SelAcc]}.
 
 collapse_edge_1(Edge, Center, Vkeep, Rec, We0) ->
     Faces = case Rec of
