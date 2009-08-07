@@ -18,20 +18,29 @@ main(_) ->
     extract_notes(Log),
     halt(0).
 
+author_to_nick(<<"Bjorn Gustavsson",_/binary>>) -> <<"bjorng">>;
+author_to_nick(<<"Richard Jones",_/binary>>) -> <<"optigon">>;
+author_to_nick(<<"Dan Gudmundsson",_/binary>>) -> <<"dgud">>;
+author_to_nick(<<"Andrzej Giniewicz",_/binary>>) -> <<"giniu">>;
+author_to_nick(<<"Anthony D'Agostino",_/binary>>) -> <<"scorpius">>;
+author_to_nick(Author) ->
+    re:replace(Author, "\s*<.*$", "", [{return,binary}]).
+
 extract_notes(Log) ->
     Res = re:run([Log,"\ncommit"],
-		 "\n\\s*NOTE:(.*?)\ncommit",
+		 "Author:\s*([^\n]*).*?\n\\s*NOTE:(.*?)\ncommit",
 		 [{capture,all_but_first,binary},dotall,global]),
     case Res of
 	{match,Notes} ->
-	    [format_note(N) || [N] <- Notes],
+	    [format_note(Au, N) || [Au,N] <- Notes],
 	    ok;
 	nomatch ->
 	    ok
     end.
 
-format_note(Note0) ->
-    {Note,T} = split_after_nl(skip_ws(Note0)),
+format_note(Author, Note0) ->
+    Note1 = maybe_add_nick(Author, Note0),
+    {Note,T} = split_after_nl(skip_ws(Note1)),
     io:put_chars(["- ",Note]),
     format_note_1(skip_ws(T)),
     io:nl().
@@ -52,6 +61,15 @@ split_after_nl_1(<<_,T/binary>>, N) ->
     split_after_nl_1(T, N+1);
 split_after_nl_1(<<>>, N) ->
     N.
+
+maybe_add_nick(Author, Note) ->
+    case re:run(Note, "\\[.*?\\]\s*$") of
+	{match,_} -> Note;
+	nomatch ->
+	    Nick0 = author_to_nick(Author),
+	    Nick = <<$\s,$[,Nick0/binary,$],$\n>>,
+	    <<(chomp(Note))/binary,Nick/binary>>
+	end.
 
 skip_ws(<<S,T/binary>>) when S =< $\s -> skip_ws(T);
 skip_ws(T) -> T.
