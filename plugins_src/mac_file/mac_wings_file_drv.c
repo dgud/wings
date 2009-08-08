@@ -97,7 +97,7 @@ static int mac_wings_file_control(ErlDrvData handle, unsigned int command,
 			      char** res, int res_size)
 {
   int result;
-  char *rbuff;
+  char *rbuff = 0;
   char *defdir;
   char *filter;
   char *title;
@@ -161,7 +161,9 @@ static int mac_wings_file_control(ErlDrvData handle, unsigned int command,
 	    return strlen(rbuff);
 	  }
 	}
-	driver_free(rbuff);
+	if (rbuff) {
+	  driver_free(rbuff);
+	}
 	[pool release];
 	return 0;
       }
