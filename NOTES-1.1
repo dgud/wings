@@ -1,3 +1,30 @@
+--- 1.1.10 ---------------------------------------------------------------------
+- Tools|Snap Image was broken in several ways. It will now
+  also preserve vertex colors. (Thanks to PuzzledPaul.) [bjorng]
+
+- Attempting to extrude an edge between two isolated vertices
+  would cause a crash. [bjorng]
+
+- Extrude in edge mode would distort UV coordinates and
+  vertex colors. That has been corrected. [bjorng]
+
+- When the hemispherical shader was active, vertex colors was
+  shown even for materials that disabled vertex colors, provided
+  that the object had at least one material with vertex colors
+  enabled. [bjorng]
+
+- Wings 1.1.9 (and 1.1.9.1) would crash when attempting to open
+  a .wings file containing area lights saved by a previous version of
+  Wings. This has been corrected.  Furthermore, when saving area
+  lights, they will be saved in the same way as in versions before
+  1.1.9. That means that a .wings file containing area lights saved
+  by this version of Wings cannot be opened by 1.1.9.x, but it can
+  be opened by older versions such as 1.0.1 and 1.1.8.
+  (Thanks to Micheus.) [bjorng]
+
+- Autouv: Fixed Face|Project Unfold crash when every face in
+  the chart was selected. [dgud]
+
 --- 1.1.9.1 --------------------------------------------------------------------
 - File dialogs would crash on Linux in the 1.1.9
   release. [bjorn]
