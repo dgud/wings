@@ -167,7 +167,7 @@ dissolve_edges(Edges0, We0) when is_list(Edges0) ->
     case [E || E <- Edges0, array:get(E, Etab) =/= undefined] of
 	Edges0 ->
 	    %% No edge was deleted in the last pass. We are done.
-	    We = wings_we:rebuild(We0#we{vc=undefined}),
+	    We = wings_we:rebuild(We0),
 	    wings_we:validate_mirror(We);
 	Edges ->
 	    dissolve_edges(Edges, We1)
@@ -227,9 +227,9 @@ dissolve_edge_1(Edge, #edge{lf=Lf,rf=Rf}=Rec, We) ->
     end.
 
 dissolve_edge_2(Edge, FaceRemove, FaceKeep,
-		#edge{ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS},
-		#we{fs=Ftab0,es=Etab0,he=Htab0}=We0) ->
-    %% First change face for all edges surrounding the face we will remove.
+		#edge{vs=Va,ve=Vb,ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS},
+		#we{fs=Ftab0,es=Etab0,vc=Vct0,he=Htab0}=We0) ->
+    %% First change the face for all edges surrounding the face we will remove.
     Etab1 = wings_face:fold(
 	      fun (_, E, _, IntEtab) when E =:= Edge -> IntEtab;
 		  (_, E, R, IntEtab) ->
@@ -255,14 +255,40 @@ dissolve_edge_2(Edge, FaceRemove, FaceKeep,
     Etab = array:reset(Edge, Etab5),
     Htab = hardness(Edge, soft, Htab0),
 
-    %% Remove the face. Patch the face entry for the remaining face.
+    %% Update the incident vertex table for both vertices
+    %% to make sure they point to the correct existing edges.
+    %% 
+    %% We used to simply set the 'vc' field to 'undefined' to
+    %% force a complete rebuild of the vertex table, but that
+    %% could cause Extrude (for regions) to become slow for certain
+    %% selection shapes, as the Extrude command internally does a
+    %% collapse of one edge in a triangle face, which in turns causes
+    %% a dissolve of one of the remaining edges.
+    Vct = case Vct0 of
+	      undefined ->
+		  Vct0;
+	      _ ->
+		  %% For the vertices Va and Vb, pick one of the still existing
+		  %% edges emanating from the vertex.
+		  %%
+		  %% The edges LS ('ltsu') and RP ('rtpr') emanate from Va ('vs').
+		  %% The edges LP ('ltpr') and RS ('rtsu') emanate from Vb ('ve').
+		  Vct1 = array:set(Va, LS, Vct0),
+		  array:set(Vb, RS, Vct1)
+	  end,
+
+    %% Remove the face. Update the incident face to make sure
+    %% the face points to an existing edge.
     Ftab1 = gb_trees:delete(FaceRemove, Ftab0),
     We1 = wings_facemat:delete_face(FaceRemove, We0),
-    Ftab = gb_trees:update(FaceKeep, LP, Ftab1),
+    AnEdge = LP,
+    Ftab = gb_trees:update(FaceKeep, AnEdge, Ftab1),
 
-    %% Return result.
-    We = We1#we{es=Etab,fs=Ftab,vc=undefined,he=Htab},
-    AnEdge = gb_trees:get(FaceKeep, Ftab),
+    %% Store all updated tables.
+    We = We1#we{es=Etab,fs=Ftab,vc=Vct,he=Htab},
+
+    %% If the kept face (FaceKeep) has become a two-edge face,
+    %% we must get rid of that face by dissolving one of its edges.
     case array:get(AnEdge, Etab) of
 	#edge{lf=FaceKeep,ltpr=Same,ltsu=Same} ->
 	    internal_dissolve_edge(AnEdge, We);
