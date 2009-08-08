@@ -2709,9 +2709,10 @@ label_draw([], _, _) -> keep.
 mktree_table([Head|Elements], Sto, I, Flags) ->
     Rows = proplists:get_value(rows, Flags, 20),
     Elh = proplists:get_value(element_height, Flags, ?LINE_HEIGHT),
+    Cw = element(1, proplists:get_value(col_widths, Flags, {30})),
     Fun = fun table_event/3,
     TopMarg = wings_text:height()+3,
-    W = 30*wings_text:width(),
+    W = Cw*wings_text:width(),
     H = Rows * Elh + TopMarg + 6,
     T = #table{head=tuple_to_list(Head),num_els=length(Elements),
 	       elh=Elh,rows=Rows,tmarg=TopMarg},
