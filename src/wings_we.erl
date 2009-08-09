@@ -617,7 +617,8 @@ update_id_bounds(#we{vp=Vtab,es=Etab,fs=Ftab}=We) ->
 	false ->
 	    LastId = lists:max([wings_util:array_greatest_key(Vtab),
 				wings_util:array_greatest_key(Etab),
-				wings_util:gb_trees_largest_key(Ftab)]),
+				wings_util:gb_trees_largest_key(Ftab),
+				-wings_util:gb_trees_smallest_key(Ftab)-1]),
 	    We#we{next_id=LastId+1}
     end.
 
