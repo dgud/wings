@@ -307,7 +307,7 @@ do_menu(Id,X,Y,#pst{cols=Cols}) ->
     Rest = [separator,
 	    {?__(5,"Clear All"), clear_all,?__(6,"Clear palette")},
 	    {?__(7,"Compact"), compact,?__(8,"Compact Palette")},
-	    {?__(9,"Scan Colors"), scan_all, ?__(10,"Scan colors from selected objects")},
+	    {?__(9,"Scan Colors"), scan_all, ?__(10,"Scan colors from selection")},
 	    separator,
 	    {?__(11,"Export"), export,?__(12,"Export palette to file")},
 	    {?__(13,"Import"), import,?__(14,"Import palette from file")}],
@@ -447,7 +447,6 @@ drag_and_drop(Ev, What) ->
     wings_wm:drag(Ev, {?BOX_W,?BOX_H}, DropData).
 
 draw_objs(#pst{cols=Cols0, w=W, h=_H, knob=Knob}) ->
-    true = length(Cols0) == W*_H, %% Assertion
     {_Bef,Cols} = lists:split(Knob*W, Cols0),
     draw_objs(0, ?BORD, ?BORD, W, Cols).
 draw_objs(_,_,_,_,[]) ->    ok;
@@ -478,16 +477,39 @@ select(X,Y,#pst{w=ColsW,h=ColsH, knob=Knob}) ->
 	true -> Id
     end.
 
-scan_colors(#st{mat=Mtab}=St, Cols0) ->
-    Cols1 = wings_sel:fold(fun(_, We, Cols) ->
-				   scan_color(We, Cols)
-			   end, ordsets:from_list(Cols0), St),
-    Cols = scan_materials(gb_trees:values(Mtab), Cols1),
+scan_colors(#st{mat=Mtab, selmode=Mode}=St, Cols0) ->
+    Cols1 = scan_materials(gb_trees:values(Mtab), Cols0),
+
+    Cols  = wings_sel:fold(fun(Items, We, Cols) ->
+				   scan_color(Items, Mode, We, Cols)
+			   end, ordsets:from_list(Cols1), St),
     lists:usort(Cols).
 
-scan_color(We, Acc) ->
+scan_color(_, body, We, Acc) ->
     Cols = wings_va:all(color, We),
-    ordsets:union(Cols, Acc).
+    ordsets:union(Cols, Acc);
+scan_color(Sel, vertex, We, Acc0) ->
+    foldl(fun(V, Acc1) ->
+		  wings_vertex:fold(fun(_, Face, _, Acc) ->
+					    Attr = wings_va:vtx_attrs(V, Face, We),
+					    add_cols([Attr], Acc)
+				    end, Acc1, V, We)
+	  end, Acc0, gb_sets:to_list(Sel));
+
+scan_color(Sel, edge, We = #we{es=Etab}, Acc0) ->
+    foldl(fun(Edge, Acc) ->
+		  #edge{lf=LF,rf=RF,ve=Ve,vs=Vs} = array:get(Edge, Etab),
+		  A = wings_va:vtx_attrs(Vs, LF, We),
+		  B = wings_va:vtx_attrs(Vs, RF, We),
+		  C = wings_va:vtx_attrs(Ve, LF, We),
+		  D = wings_va:vtx_attrs(Ve, RF, We),
+		  add_cols([A,B,C,D], Acc)
+	  end, Acc0, gb_sets:to_list(Sel));
+scan_color(Sel, face, We, Acc0) ->
+    foldl(fun(Face, Acc) ->
+		  Attrs = wings_va:face_attr(color, Face, We),
+		  add_cols(Attrs, Acc)
+	  end, Acc0, gb_sets:to_list(Sel)).
 
 scan_materials([Mat|Ms], Cols) ->
     Opengl = proplists:get_value(opengl, Mat),
@@ -498,3 +520,11 @@ scan_materials([Mat|Ms], Cols) ->
     scan_materials(Ms, [color(Diff),color(Amb),color(Spec),
 			color(Emis)|Cols]);
 scan_materials([], Cols) -> Cols.
+
+add_cols([none|R], Acc) ->
+    add_cols(R,Acc);
+add_cols([Col|R], Acc) when tuple_size(Col) =:= 3 ->
+    add_cols(R, [Col|Acc]);
+add_cols([Attr|R], Acc) ->
+    add_cols(R, [wings_va:attr(color, Attr)|Acc]);
+add_cols([], Acc) -> Acc.
