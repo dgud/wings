@@ -27,16 +27,31 @@ author_to_nick(Author) ->
     re:replace(Author, "\s*<.*$", "", [{return,binary}]).
 
 extract_notes(Log) ->
-    Res = re:run([Log,"\ncommit"],
-		 "Author:\s*([^\n]*).*?\n\\s*NOTE:(.*?)\ncommit",
-		 [{capture,all_but_first,binary},dotall,global]),
+    Commits = break_into_commits(Log),
+    {ok,Re} = re:compile("Author:\s*([^\n]*).*?\n\\s*NOTE:(.*?)$",
+			 [dotall]),
+    Notes = filter_commits(Commits, Re),
+    [format_note(Au, N) || [Au,N] <- Notes],
+    ok.
+
+break_into_commits(Bin) ->
+    bic_1(Bin, <<>>).
+
+bic_1(<<"\ncommit ",T/binary>>, Commit) ->
+    [<<Commit/binary,$\n>>|bic_1(T, <<"commit ">>)];
+bic_1(<<H,T/binary>>, Commit) ->
+    bic_1(T, <<Commit/binary,H>>);
+bic_1(<<>>, Commit) -> [Commit].
+
+filter_commits([C|Cs], Re) ->
+    Res = re:run(C, Re, [{capture,all_but_first,binary}]),
     case Res of
-	{match,Notes} ->
-	    [format_note(Au, N) || [Au,N] <- Notes],
-	    ok;
 	nomatch ->
-	    ok
-    end.
+	    filter_commits(Cs, Re);
+	{match,Note} ->
+	    [Note|filter_commits(Cs, Re)]
+    end;
+filter_commits([], _) -> [].
 
 format_note(Author, Note0) ->
     Note1 = maybe_add_nick(Author, Note0),
