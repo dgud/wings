@@ -56,6 +56,10 @@ menu(X, Y, St) ->
 	    {?__(29,"Tesselate"),{tesselate,wings_tesselation:submenu()}},
 	    separator,
 	    {?__(32,"Hide"),hide,?__(33,"Hide the selected faces")},
+	    {?__(37,"Hole"),hole_fun(),
+	     {?__(38,"Create hole"),
+	      [],
+	      ?__(39,"Remove holes adjacent to selected faces")},[]},
 	    separator] ++ wings_material:material_menu(St) ++
 	[{?__(30,"Vertex Color"),vertex_color,
 	  ?__(31,"Apply vertex colors to selected faces")}],
@@ -94,6 +98,12 @@ mirror_fun() ->
        (3, _Ns) ->
 	    {face,mirror_separate};
        (_, _) -> ignore
+    end.
+
+hole_fun() ->
+    fun(1, _Ns) -> {face,create_hole};
+       (3, _Ns) -> {face,remove_hole};
+       (_, _Ns) -> ignore
     end.
 
 command({extrude, Dir}, St) ->
@@ -145,7 +155,11 @@ command(vertex_color, St) ->
 			       set_color(Color, St)
 		       end);
 command(hide, St) ->
-    {save_state,hide_faces(St)}.
+    {save_state,hide_faces(St)};
+command(create_hole, St) ->
+    {save_state,create_hole(St)};
+command(remove_hole, St) ->
+    {save_state,remove_hole(St)}.
 
 %%%
 %%% Extrude individual faces or regions.
@@ -1121,6 +1135,49 @@ hide_faces_fun(Fs, We0) ->
 	true -> We0#we{perm=[]};		%Hide entire object.
 	false -> We
     end.
+
+%%%
+%%% The Hole command.
+%%%
+
+create_hole(St0) ->
+    St = wings_sel:map(fun create_hole_1/2, St0),
+    wings_sel:clear(St).
+
+create_hole_1(Fs0, #we{holes=Holes0}=We0) ->
+    %% Adjacent holes should be coalesced. The easiest way to do that
+    %% is to include existing holes in the selection when dissolving.
+    Fs = ordsets:union(gb_sets:to_list(Fs0), Holes0),
+    We1 = wings_dissolve:faces(Fs, We0#we{holes=[]}),
+    case wings_util:array_is_empty(We1#we.es) of
+	false ->
+	    Holes = wings_we:new_items_as_ordset(face, We0, We1),
+	    We2 = wings_facemat:assign(default, Holes, We1),
+	    We = wings_va:remove(all, Holes, We2),
+	    wings_we:create_holes(Holes, We);
+	true ->
+	    wings_u:error(?__(1,"A hole cannot comprise all faces in an object."))
+    end.
+
+remove_hole(St0) ->
+    St = wings_sel:map(fun remove_hole_1/2, St0),
+    wings_sel:clear(St).
+
+remove_hole_1(Fs, #we{holes=Holes0}=We) ->
+    %% Find all hidden faces adjacent to the selection.
+    Find = fun(Face, _, _, #edge{lf=Face,rf=Hole}, A) when Hole < 0 ->
+		   [Hole|A];
+	      (Face, _, _, #edge{rf=Face,lf=Hole}, A) when Hole < 0 ->
+		   [Hole|A];
+	      (_, _, _, _, A) -> A
+	   end,
+    RemoveHoles0 = wings_face:fold_faces(Find, [], Fs, We),
+    RemoveHoles1 = ordsets:from_list(RemoveHoles0),
+    RemoveHoles = ordsets:intersection(RemoveHoles1, Holes0),
+
+    %% Update the list of holes and unhide the hole faces.
+    Holes = ordsets:subtract(Holes0, RemoveHoles),
+    wings_we:show_faces(RemoveHoles, We#we{holes=Holes}).
 
 %%
 %% Common help function.
