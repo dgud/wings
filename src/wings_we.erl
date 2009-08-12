@@ -28,6 +28,7 @@
 	 new_items_as_ordset/3,new_items_as_gbset/3,
 	 is_consistent/1,is_face_consistent/2,
 	 hide_faces/2,show_faces/1,num_hidden/1,
+	 create_holes/2,show_faces/2,
 	 any_hidden/1,all_hidden/1,
 	 visible/1,visible/2,visible_vs/1,visible_vs/2,
 	 visible_edges/1,visible_edges/2,
@@ -107,6 +108,30 @@ hide_faces(Fs, We) when is_list(Fs) ->
 hide_faces(Fs, We) ->
     hide_faces_1(Fs, We).
 
+%% show_faces(We0) -> We
+%%  Show all faces previously hidden by the user (not including
+%%  holes hidden by Face|Create Hole).
+%%
+show_faces(We) ->
+    case any_hidden(We) of
+	false ->
+	    We;
+	true ->
+	    #we{fs=Ftab,holes=Holes} = We,
+	    Hidden = [F || F <- gb_trees:keys(Ftab), F < 0],
+	    Unhide = ordsets:subtract(Hidden, Holes),
+	    show_faces_1(Unhide, We)
+    end.
+
+%% show_faces(Faces, We0) -> We
+%%  Show the faces in given in the list Faces. The list must contain
+%%  the face numbers in their hidden form (i.e. negative).
+%%
+%%  The #we.holes list is neither used nor updated.
+%%
+show_faces(Faces, We) ->
+    show_faces_1(Faces, We).
+
 num_hidden(#we{fs=Ftab}=We) ->
     case any_hidden(We) of
 	false -> 0;
@@ -120,6 +145,17 @@ any_hidden(#we{fs=Ftab}) ->
 all_hidden(#we{fs=Ftab}) ->
     not gb_trees:is_empty(Ftab) andalso
 	wings_util:gb_trees_largest_key(Ftab) < 0.
+
+%% create_holes([Face], We0) -> We
+%%  Mark the given faces as holes and hide them.
+%%
+create_holes(NewHoles, #we{holes=Holes0}=We) ->
+    %% This code is complicated because some of the faces
+    %% in the NewHoles list may already be hidden (i.e. negative).
+    ToHide = [F || F <- NewHoles, F >= 0],
+    NewHiddenHoles = ordsets:from_list([-F-1 || F <- ToHide]),
+    Holes = ordsets:union(NewHiddenHoles, Holes0),
+    wings_we:hide_faces(ToHide, We#we{holes=Holes}).
 
 %%%
 %%% Local functions.
@@ -286,25 +322,19 @@ visible_edges(Es, We) ->
 	    end
     end.
 
-show_faces(We) ->
-    case any_hidden(We) of
-	false -> We;
-	true -> show_faces_1(We)
-    end.
-
-show_faces_1(#we{es=Etab0}=We0) ->
-    Map = fun(_, #edge{lf=Lf0,rf=Rf0}=R) when Lf0 < 0; Rf0 < 0 ->
-		  Lf = show_face(Lf0),
-		  Rf = show_face(Rf0),
-		  R#edge{lf=Lf,rf=Rf};
-	     (_, R) -> R
-	  end,
-    Etab = array:sparse_map(Map, Etab0),
+show_faces_1(Faces, #we{es=Etab0}=We0) ->
+    Show = fun(Face, _, E, _, Et) ->
+		   R = case array:get(E, Et) of
+			   #edge{lf=Face}=R0 ->
+			       R0#edge{lf=-Face-1};
+			   #edge{rf=Face}=R0 ->
+			       R0#edge{rf=-Face-1}
+		       end,
+		   array:set(E, R, Et)
+	   end,
+    Etab = wings_face:fold_faces(Show, Etab0, Faces, We0),
     We = We0#we{es=Etab,fs=undefined},
     wings_facemat:show_faces(rebuild(We)).
-
-show_face(F) when F < 0 -> -F-1;
-show_face(F) -> F.
 
 validate_mirror(#we{mirror=none}=We) -> We;
 validate_mirror(#we{fs=Ftab,mirror=Face}=We) ->
