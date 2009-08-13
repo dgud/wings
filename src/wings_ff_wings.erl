@@ -16,7 +16,7 @@
 
 -include("wings.hrl").
 -include("e3d_image.hrl").
--import(lists, [sort/1,reverse/1,foldl/3,any/2,keymember/3]).
+-import(lists, [sort/1,reverse/1,foldl/3,any/2,keymember/3,keyfind/3]).
 
 -define(WINGS_HEADER, "#!WINGS-1.0\r\n\032\04").
 
@@ -375,9 +375,10 @@ share_list_2([{Vtab0,Etab0,Attr}|Ts],
 		 wings_we:hide_faces(Hidden, We2)
 	 end,
     We4 = ensure_valid_mirror_face(We3),
-    We = foldl(fun({E,Lt,Rt}, W) ->
+    We5 = foldl(fun({E,Lt,Rt}, W) ->
 		       wings_va:set_both_edge_attrs(E, Lt, Rt, W)
 	       end, We4, Attr),
+    We = translate_old_holes(We5),
     share_list_2(Ts, Wes, [{Id,We}|Acc]);
 share_list_2([], [], Wes) -> sort(Wes).
 
@@ -511,7 +512,7 @@ trans({Key,{R,G,B}}, Opac) -> {Key,{R,G,B,Opac}}.
 %%
 %% 2. Since the 'default' materials do not match, the 'default'
 %%    material in the file will be renamed to 'default2' (or
-%%    something similar) and therew would be a new 'default'
+%%    something similar) and there would be a new 'default'
 %%    material.
 %%
 %% We will avoid both those annoyances by changing the 'default'
@@ -536,6 +537,33 @@ translate_object_mode({default=Name,Props0}) ->
     Props = [{opengl,OpenGL}|lists:keydelete(opengl, 1, Props0)],
     {Name,Props};
 translate_object_mode(Mat) -> Mat.
+
+%%
+%% There used to be a '_hole_' material up to the 1.1.10 release.
+%% The '_hole_' material was pre-defined and was specially handled
+%% when exporting (faces having the material would not be exported)
+%% and importing (missing faces would be created and assigned the
+%% material).
+%%
+%% Translate faces with the '_hole_' material to the new type
+%% of holes introduced after the 1.1.10 release.
+%%
+translate_old_holes(#we{holes=[]}=We) ->
+    case wings_facemat:is_material_used('_hole_', We) of
+	false -> We;
+	true -> translate_old_holes_1(We)
+    end;
+translate_old_holes(We) -> We.
+
+translate_old_holes_1(#we{fs=Ftab}=We0) ->
+    MatFaces = wings_facemat:mat_faces(gb_trees:to_list(Ftab), We0),
+    {_,Holes0} = keyfind('_hole_', 1, MatFaces),
+    Holes = [F || {F,_} <- Holes0],
+    We1 = wings_dissolve:faces(Holes, We0),
+    NewHoleFaces = wings_we:new_items_as_ordset(face, We0, We1),
+    We = wings_facemat:assign(default, NewHoleFaces, We1),
+    HiddenNewHoleFaces = ordsets:from_list([-F-1 || F <- NewHoleFaces]),
+    wings_we:hide_faces(NewHoleFaces, We#we{holes=HiddenNewHoleFaces}).
     
 %%%
 %%% Save a Wings file (in version 2).
