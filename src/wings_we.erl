@@ -428,27 +428,30 @@ merge([#we{id=Id,name=Name}|_]=Wes0) ->
     Wes1 = merge_renumber(Wes0),
     Pst  = merge_plugins(Wes1),
     MatTab = wings_facemat:merge(Wes1),
-    {Vpt0,Et0,Ht0} = merge_1(Wes1),
+    {Vpt0,Et0,Ht0,Holes} = merge_1(Wes1),
     Vpt = array:from_orddict(Vpt0),
     Et = array:from_orddict(Et0),
     Ht = gb_sets:from_ordset(Ht0),
     We = rebuild(#we{id=Id,name=Name,vc=undefined,fs=undefined,
-		     pst=Pst,vp=Vpt,es=Et,he=Ht,mat=MatTab}),
+		     pst=Pst,vp=Vpt,es=Et,he=Ht,mat=MatTab,
+		     holes=Holes}),
     wings_va:merge(Wes1, We).
 
 merge_1([We]) -> We;
-merge_1(Wes) -> merge_1(Wes, [], [], []).
+merge_1(Wes) -> merge_1(Wes, [], [], [], []).
 
-merge_1([#we{vp=Vp0,es=Es,he=He}|Wes], Vpt0, Et0, Ht0) ->
+merge_1([#we{vp=Vp0,es=Es,he=He,holes=Holes}|Wes], Vpt0, Et0, Ht0, Ho0) ->
     Vpt = [array:sparse_to_orddict(Vp0)|Vpt0],
     Et = [array:sparse_to_orddict(Es)|Et0],
     Ht = [gb_sets:to_list(He)|Ht0],
-    merge_1(Wes, Vpt, Et, Ht);
-merge_1([], Vpt0, Et0, Ht0) ->
+    Ho = [Holes|Ho0],
+    merge_1(Wes, Vpt, Et, Ht, Ho);
+merge_1([], Vpt0, Et0, Ht0, Ho0) ->
     Vpt = lists:merge(Vpt0),
     Et = lists:merge(Et0),
     Ht = lists:merge(Ht0),
-    {Vpt,Et,Ht}.
+    Ho = lists:merge(Ho0),
+    {Vpt,Et,Ht,Ho}.
 
 merge_plugins(Wes) ->
     Psts  = [gb_trees:keys(We#we.pst) || We <- Wes],
@@ -508,7 +511,8 @@ do_renumber(We0, Id) ->
     We.
 
 do_renumber(#we{vp=Vtab0,es=Etab0,fs=Ftab0,
-		mat=MatTab0,he=Htab0,perm=Perm0,mirror=Mirror0,pst=Pst0}=We0,
+		mat=MatTab0,he=Htab0,perm=Perm0,holes=Holes0,
+		mirror=Mirror0,pst=Pst0}=We0,
 	    Id, RootSet0) ->
     Vtab1 = array:sparse_to_orddict(Vtab0),
     Vmap = make_map(Vtab1, Id),
@@ -538,6 +542,8 @@ do_renumber(#we{vp=Vtab0,es=Etab0,fs=Ftab0,
 	       _ -> Perm0
 	   end,
 
+    Holes = [gb_trees:get(F, Fmap) || F <- Holes0],
+
     Mirror = if
 		 Mirror0 == none -> Mirror0;
 		 true -> gb_trees:get(Mirror0, Fmap)
@@ -560,8 +566,8 @@ do_renumber(#we{vp=Vtab0,es=Etab0,fs=Ftab0,
 
     RootSet = map_rootset(RootSet0, Emap, Vmap, Fmap),
     We1 = We0#we{vc=undefined,fs=undefined,
-		vp=Vtab,es=Etab,mat=MatTab,he=Htab,
-		perm=Perm,mirror=Mirror,pst=Pst},
+		 vp=Vtab,es=Etab,mat=MatTab,he=Htab,
+		 perm=Perm,holes=Holes,mirror=Mirror,pst=Pst},
     We = wings_va:renumber(Emap, We1),
 
     %% In case this function will be used for merging #we records,
