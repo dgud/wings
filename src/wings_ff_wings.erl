@@ -104,11 +104,13 @@ import_objects([Sh0|Shs], Mode, NameMap, Oid, ShAcc) ->
     Htab = gb_sets:from_list(He),
     Perm = import_perm(Props),
     Mirror = proplists:get_value(mirror_face, Props, none),
+    Holes0 = proplists:get_value(holes, Props, []),
+    Holes = ordsets:from_list([-F-1 || F <- Holes0]),
     Pst0 = proplists:get_value(plugin_states, Props, []),
     Pst = try gb_trees:from_orddict(Pst0)
 	  catch error:_ -> gb_trees:empty()
 	  end,
-    We = #we{he=Htab,perm=Perm,pst=Pst,
+    We = #we{he=Htab,perm=Perm,holes=Holes,pst=Pst,
 	     id=Oid,name=Name,mirror=Mirror,mat=FaceMat},
     HiddenFaces = proplists:get_value(num_hidden_faces, Props, 0),
     import_objects(Shs, Mode, NameMap, Oid+1, [{HiddenFaces,We,{Vtab,Etab}}|ShAcc]);
@@ -664,7 +666,8 @@ shape({Hidden,#we{name=Name,vp=Vs0,es=Es0,he=Htab,pst=Pst}=We}, Acc) ->
     Props0 = export_perm(We),
     Props1 = hidden_faces(Hidden, Props0),
     Props2 = mirror(We, Props1),
-    Props  = export_pst(Pst,Props2),
+    Props3 = export_holes(We, Props2),
+    Props  = export_pst(Pst, Props3),
     [{object,Name,{winged,Es,Fs,Vs,He},Props}|Acc].
 
 mirror(#we{mirror=none}, Props) -> Props;
@@ -672,6 +675,9 @@ mirror(#we{mirror=Face}, Props) -> [{mirror_face,Face}|Props].
 
 hidden_faces(0, Props) -> Props;
 hidden_faces(N, Props) -> [{num_hidden_faces,N}|Props].
+
+export_holes(#we{holes=[]}, Props) -> Props;
+export_holes(#we{holes=Holes}, Props) -> [{holes,Holes}|Props].
 
 export_perm(#we{perm=[]}) ->
     [{state,hidden_locked}];	     %Only for backward compatibility.
