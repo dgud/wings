@@ -162,8 +162,13 @@ export_sel_set_holes(body, _, We) -> We;
 export_sel_set_holes(face, Faces0, #we{fs=Ftab}=We) ->
     Faces1 = gb_sets:to_list(Faces0),
     AllFaces = gb_trees:keys(Ftab),
-    Faces = ordsets:subtract(AllFaces, Faces1),
-    wings_facemat:assign('_hole_', Faces, We).
+    Holes = ordsets:subtract(AllFaces, Faces1),
+
+    %% Create holes from the complement of the selection to prevent
+    %% those faces from being exported. Normally we dissolve
+    %% hole faces to save memory, but that is not necessary here 
+    %% since this We is only temporary.
+    wings_we:create_holes(Holes, We).
 
 %% export_filename([Prop], Continuation).
 %%   The Continuation fun will be called like this: Continuation(Filename).

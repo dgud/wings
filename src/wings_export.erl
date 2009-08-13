@@ -30,8 +30,7 @@ export(Exporter, Name, Ps, #st{shapes=Shs}=St0) ->
     Creator = "Wings 3D " ++ ?WINGS_VERSION,
 
     Mat0 = wings_material:used_materials(St),
-    Mat1 = keydelete('_hole_', 1, Mat0),
-    Mat = mat_images(Mat1),
+    Mat = mat_images(Mat0),
     Contents = #e3d_file{objs=Objs,mat=Mat,creator=Creator},
     wings_pb:update(1.0),
     try Exporter(Name, Contents) of
@@ -67,8 +66,10 @@ make_mesh(We0, Ps) ->
     SubDivs = proplists:get_value(subdivisions, Ps, 0),
     Tess = proplists:get_value(tesselation, Ps, none),
     We1 = sub_divide(SubDivs, We0),
-    We2 = tesselate(Tess, We1),
-    #we{vp=Vs0,es=Etab,he=He0} = We = wings_we:renumber(We2, 0),
+    We2 = wings_we:show_faces(We1),
+    We3 = tesselate(Tess, We2),
+    We = wings_we:renumber(We3, 0),
+    #we{vp=Vs0,es=Etab,he=He0,holes=Holes0} = We,
     Vs = array:sparse_to_list(Vs0),
     {ColTab0,UvTab0} = make_tables(Ps, We),
     ColTab1 = gb_trees:from_orddict(ColTab0),
@@ -77,8 +78,15 @@ make_mesh(We0, Ps) ->
 	      false -> gb_trees:empty();
 	      true -> smooth_groups(We)
 	  end,
-    Fs0 = foldl(fun({_,'_hole_'}, A) -> A;
-		   ({Face,Mat}, A) ->
+
+    %% Remove hole faces.
+    FaceMat0 = wings_facemat:all(We),
+    FaceMat1 = sofs:relation(FaceMat0, [{face,material}]),
+    Holes = sofs:set(Holes0, [face]),
+    FaceMat2 = sofs:drestriction(FaceMat1, Holes),
+    FaceMat = sofs:to_external(FaceMat2),
+    
+    Fs0 = foldl(fun({Face,Mat}, A) ->
 			case make_face(Face, Mat, ColTab1, UvTab1, We) of
 			    #e3d_face{vs=[_,_]} -> A;
 			    E3DFace ->
@@ -89,7 +97,7 @@ make_mesh(We0, Ps) ->
 					[E3DFace|A]
 				end
 			end
-		end, [], wings_facemat:all(We)),
+		end, [], FaceMat),
     Fs = reverse(Fs0),
     He = case proplists:get_value(include_hard_edges, Ps, true) of
 	     false -> [];
@@ -108,10 +116,12 @@ sub_divide(N, We0) ->
     sub_divide(N-1, We).
 
 tesselate(none, We) -> We;
-tesselate(triangulate,We) -> 
-    wings_tesselation:triangulate(We);
-tesselate(quadrangulate,We) ->
-    wings_tesselation:quadrangulate(We).
+tesselate(triangulate, We) ->
+    Fs = wings_we:visible(We),
+    wings_tesselation:triangulate(Fs, We);
+tesselate(quadrangulate, We) ->
+    Fs = wings_we:visible(We),
+    wings_tesselation:quadrangulate(Fs, We).
 
 make_face(Face, Mat, ColTab, UvTab, We) ->
     E3dFace0 = make_plain_face(Face, Mat, We),

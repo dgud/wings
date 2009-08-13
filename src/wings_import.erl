@@ -167,9 +167,8 @@ rip_apart_1(#e3d_mesh{fs=Fs}=Mesh0, Mode, Acc0) ->
 	    rip_apart_2(Fs, Mode, Mesh0, Acc0)
     end.
 
-rip_apart_2([#e3d_face{vs=Vs,tx=Tx}=Face|T], Mode, Template, Acc) ->
-    BackFace = Face#e3d_face{vs=reverse(Vs),tx=reverse(Tx),mat=['_hole_']},
-    Fs = [Face,BackFace],
+rip_apart_2([#e3d_face{}=Face|T], Mode, Template, Acc) ->
+    Fs = [Face],
     Mesh = e3d_mesh:renumber(Template#e3d_mesh{fs=Fs,he=[]}),
     #we{} = We = wings_we:build(Mode, Mesh),
     rip_apart_2(T, Mode, Template, [We|Acc]);

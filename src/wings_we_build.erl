@@ -103,16 +103,23 @@ build_rest(Es, Fs, Vs, HardEdges) ->
     assign_materials(Fs, We).
 
 assign_materials([L|_], We) when is_list(L) -> We;
-assign_materials(Fs, We) ->
-    MatFace = mat_face(Fs),
-    wings_facemat:assign(MatFace, We).
+assign_materials(Fs, We0) ->
+    {MatFace,Holes} = mat_face(Fs),
+    We = wings_facemat:assign(MatFace, We0),
+    wings_we:create_holes(Holes, We).
 
 mat_face(Fs) ->
-    mat_face(Fs, 0, []).
+    mat_face(Fs, 0, [], []).
 
-mat_face([T|Ts], Face, Acc) ->
-    mat_face(Ts, Face+1, [{Face,element(1, T)}|Acc]);
-mat_face([], _, Acc) -> Acc.
+mat_face([T|Ts], Face, Acc, HoleAcc) ->
+    case element(1, T) of
+	{hole} ->
+	    mat_face(Ts, Face+1, Acc, [Face|HoleAcc]);
+	Mat when is_atom(Mat) ->
+	    mat_face(Ts, Face+1, [{Face,Mat}|Acc], HoleAcc)
+    end;
+mat_face([], _, Acc, HoleAcc) ->
+    {Acc,ordsets:from_list(HoleAcc)}.
 
 number_vertices([P|Ps], V, Acc) ->
     number_vertices(Ps, V+1, [{V,P}|Acc]);
@@ -254,7 +261,8 @@ make_hole_faces(G, [[V|_]|Cs], Acc) ->
     case digraph:get_cycle(G, V) of
 	[_|Vs] when length(Vs) >= 3 ->
 	    true = length(Vs) =:= length(ordsets:from_list(Vs)),
-	    make_hole_faces(G, Cs, [{'_hole_',Vs}|Acc]);
+	    %% We'll mark holes with {hole} instead of a material.
+	    make_hole_faces(G, Cs, [{{hole},Vs}|Acc]);
 	_Other ->
 	    make_hole_faces(G, Cs, Acc)
     end;
@@ -276,7 +284,7 @@ make_digraph([], _G) -> ok.
 %%% Eliminate "shared vertices", that is vertices that are shared
 %%% between geometry that does not share edges. Wings does not
 %%% allow creation of shared vertices using modeling commands, so
-%%% it should not create when importing models.
+%%% it should not create them when importing models.
 %%%
 %%% Example of a shared vertex:
 %%%
