@@ -15,7 +15,7 @@
 %%
 
 -module(wings_facemat).
--export([all/1,face/2,used_materials/1,mat_faces/2,
+-export([all/1,face/2,used_materials/1,is_material_used/2,mat_faces/2,
 	 any_interesting_materials/1,
 	 assign/2,assign/3,
 	 delete_face/2,delete_faces/2,keep_faces/2,
@@ -23,14 +23,14 @@
 	 renumber/2,gc/1,merge/1]).
 
 -include("wings.hrl").
--import(lists, [keysearch/3,reverse/1,reverse/2,sort/1,any/2]).
+-import(lists, [keysearch/3,keymember/3,reverse/1,reverse/2,sort/1,any/2]).
 
 %%%
 %%% API functions for retrieving information.
 %%%
 
 %% all(We) -> [{Face,MaterialName}]
-%%  Return materials for all faces as an ordered list.
+%%  Return materials for all *visible* faces as an ordered list.
 all(#we{mat=M}=We) when is_atom(M) ->
     Vis = visible_faces(We),
     make_tab(Vis, M);
@@ -50,13 +50,22 @@ used_materials(#we{mat=M}) when is_atom(M) -> [M];
 used_materials(#we{mat=L}) when is_list(L) ->
     used_materials_1(L, []).
 
+%% is_material_used(Material, We) -> true|false
+%%  Test whether the material Material is used by the
+%%  the object We.
+is_material_used(Mat, #we{mat=M}) when is_atom(M) ->
+    Mat =:= M;
+is_material_used(Mat, #we{mat=L}) when is_list(L) ->
+    keymember(Mat, 2, L).
+
 %% mat_faces([{Face,Info}], We) -> [{Mat,[{Face,Info}]}]
-%%  Group face tab into groups based on material.
-%%  Used for displaying objects.
+%%  Group the face tab into groups based on material.
+%%  The input list must be sorted in face order, but does
+%%  not need to contain all faces of the object.
 mat_faces(Ftab, #we{mat=AtomMat}) when is_atom(AtomMat) ->
     [{AtomMat,Ftab}];
 mat_faces(Ftab, #we{mat=MatTab}) ->
-    mat_faces_1(Ftab, remove_invisible(MatTab), []).
+    mat_faces_1(Ftab, MatTab, []).
 
 %% any_interesting_materials(We) -> true|false
 %%  Find out whether there are any interesting materials
