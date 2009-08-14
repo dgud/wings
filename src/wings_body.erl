@@ -593,7 +593,8 @@ combine(#st{shapes=Shs0,sel=[{Id,_}=S|_]=Sel0}=St) ->
     {Wes0,Shs2} = sofs:partition(1, Shs1, Sel2),
     Wes = sofs:to_external(sofs:range(Wes0)),
     We0 = wings_we:merge(Wes),
-    We = We0#we{id=Id},
+    We1 = wings_we:rehide_holes(We0),
+    We = We1#we{id=Id},
     Shs = gb_trees:from_orddict(sort([{Id,We}|sofs:to_external(Shs2)])),
     St#st{shapes=Shs,sel=[S]}.
 		    

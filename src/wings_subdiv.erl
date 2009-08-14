@@ -120,12 +120,16 @@ inc_smooth(#we{vp=Vtab}=We, Faces, {FacePos0,EdgeSplit,SmoothNew,OrigVs},
     Vp3 = update_orig_vs(OrigVs, Vtab, FacePos, Vp2),
     Smoothed#we{vp=Vp3}.
 
-smooth_faces_htab(#we{mirror=none,fs=Ftab,he=Htab}) ->
+smooth_faces_htab(#we{mirror=none,fs=Ftab,he=Htab,holes=[]}) ->
     Faces = gb_trees:keys(Ftab),
     {Faces,Htab};
-smooth_faces_htab(#we{mirror=Face,fs=Ftab,he=Htab}=We) ->
-    Faces = gb_trees:keys(gb_trees:delete(Face, Ftab)),
-    He0 = wings_face:to_edges([Face], We),
+smooth_faces_htab(#we{mirror=Mirror,fs=Ftab,he=Htab,holes=Holes}=We) ->
+    Exclude = case Mirror of
+		  none -> Holes;
+		  _ -> ordsets:add_element(Mirror, Holes)
+	      end,
+    Faces = ordsets:subtract(gb_trees:keys(Ftab), Exclude),
+    He0 = wings_face:to_edges(Exclude, We),
     He = gb_sets:union(gb_sets:from_list(He0), Htab),
     {Faces,He}.
 

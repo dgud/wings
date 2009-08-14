@@ -211,7 +211,7 @@ extrude_region_vmirror(OldWe, #we{mirror=Face0}=We0) ->
 	    Dissolve = gb_sets:insert(Face0, Dissolve0),
 	    We1 = wings_dissolve:faces(Dissolve, We0),
 	    [Face] = NewFace = wings_we:new_items_as_ordset(face, We0, We1),
-	    We = wings_facemat:assign('_hole_', NewFace, We1),
+	    We = wings_facemat:assign(default, NewFace, We1),
 	    wings_we:mirror_flatten(OldWe, We#we{mirror=Face})
     end.
 
@@ -294,27 +294,34 @@ clean_dissolve_sel(Faces, #we{id=Id,fs=Ftab}=We0, Acc) ->
 %%%
 
 intrude(St0) ->
-    St1 = dissolve(St0),
-    {St,Sel} = wings_sel:mapfold(fun intrude/3, [], St1),
+    {St,Sel} = wings_sel:mapfold(fun intrude/3, [], St0),
     wings_move:setup(intrude, wings_sel:set(Sel, St)).
 
-intrude(Faces0, #we{id=Id,es=Etab,fs=Ftab,next_id=Wid}=We0, SelAcc) ->
-    Faces = gb_sets:to_list(Faces0),
+intrude(Faces0, We0, SelAcc) ->
+    We1 = wings_dissolve:faces(Faces0, We0),
+    Faces = wings_we:new_items_as_ordset(face, We0, We1),
+    #we{id=Id,es=Etab,fs=Ftab,next_id=Wid} = We1,
     RootSet0 = foldl(
 		 fun(F, A) ->
 			 Edge = gb_trees:get(F, Ftab),
 			 #edge{vs=V} = array:get(Edge, Etab),
 			 [{face,F},{vertex,V}|A]
 		 end, [], Faces),
-    {We1,RootSet} = wings_we:renumber(We0, Wid, RootSet0),
-    We2 = wings_we:invert_normals(We1),
-    We3 = wings_we:merge(We0, We2),
-    Sel0 = wings_we:new_items_as_gbset(face, We0, We3),
-    BridgeFaces = [F || {face,F} <- RootSet0 ++ RootSet],
-    Sel = gb_sets:difference(Sel0, gb_sets:from_list(BridgeFaces)),
-    We4 = intrude_bridge(RootSet0, RootSet, We3),
-    We = restore_mirror(We4, We0),
-    {We,[{Id,Sel}|SelAcc]}.
+    {We2,RootSet} = wings_we:renumber(We1, Wid, RootSet0),
+    We3 = wings_we:invert_normals(We2),
+    We4 = wings_we:merge(We1, We3),
+    We5 = wings_we:rehide_holes(We4),
+    Sel0 = wings_we:new_items_as_gbset(face, We1, We5),
+    Exclude = [F || {face,F} <- RootSet0 ++ RootSet] ++ We5#we.holes,
+    Sel = gb_sets:difference(Sel0, gb_sets:from_list(Exclude)),
+    case gb_sets:is_empty(Sel) of
+	false ->
+	    We6 = intrude_bridge(RootSet0, RootSet, We5),
+	    We = restore_mirror(We6, We0),
+	    {We,[{Id,Sel}|SelAcc]};
+	true ->
+	    wings_u:error(?__(1,"Intrude does not work with all faces selected."))
+    end.
 
 restore_mirror(We, #we{mirror=none}) -> We;
 restore_mirror(We, #we{mirror=Face}) -> We#we{mirror=Face}.
@@ -360,7 +367,8 @@ mirror_face(Face, #we{fs=Ftab}=OrigWe, #we{next_id=Id}=We0) ->
     {WeNew0,RootSet} = wings_we:renumber(OrigWe, Id, RootSet0),
     [{face,FaceNew},{edge,ANewEdge}] = RootSet,
     WeNew = mirror_vs(FaceNew, WeNew0),
-    We = wings_we:merge(We0, WeNew),
+    We1 = wings_we:merge(We0, WeNew),
+    We = wings_we:rehide_holes(We1),
 
     %% Now weld the old face with new (mirrored) face.
     IterA0 = wings_face:iterator(Face, We),
@@ -559,9 +567,11 @@ all_edges(Faces, We) ->
 		{[],[]}, Faces, We),
     {ordsets:from_list(Vs),ordsets:from_list(Es)}.
 
-smooth_connect(Vs, Faces0, #we{mirror=Mirror}=We0) ->
+smooth_connect(Vs, Faces0, #we{mirror=Mirror,holes=Holes0}=We0) ->
     Faces1 = ordsets:add_element(Mirror, Faces0),
-    Faces = sofs:from_external(Faces1, [face]),
+    Faces2 = sofs:from_external(Faces1, [face]),
+    Holes = sofs:from_external(Holes0, [face]),
+    Faces = sofs:union(Faces2, Holes),
     FaceVs0 = wings_vertex:per_face(Vs, We0),
     FaceVs1 = sofs:from_external(FaceVs0, [{face,[vertex]}]),
     FaceVs2 = sofs:drestriction(FaceVs1, Faces),
@@ -570,13 +580,8 @@ smooth_connect(Vs, Faces0, #we{mirror=Mirror}=We0) ->
     wings_we:hide_faces(Hide, We).
 
 smooth_connect_0([{Face,Vs}|Fvs], Hide0, We0) ->
-    case wings_facemat:face(Face, We0) of
-	'_hole_' ->
-	    smooth_connect_0(Fvs, Hide0, We0);
-	_ ->
-	    {We,Hide} = smooth_connect_1(Face, Vs, Hide0, We0),
-	    smooth_connect_0(Fvs, Hide, We)
-    end;
+    {We,Hide} = smooth_connect_1(Face, Vs, Hide0, We0),
+    smooth_connect_0(Fvs, Hide, We);
 smooth_connect_0([], Hide, We) -> {We,Hide}.
 
 smooth_connect_1(Face, [V], Hide, We) ->
@@ -624,7 +629,7 @@ bridge(#st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
 	    #we{next_id=Id}=WeA = gb_trees:get(IdA, Shapes0),
 	    #we{}=WeB0 = gb_trees:get(IdB, Shapes0),
 	    {WeB,[{face,FB}]} = wings_we:renumber(WeB0, Id, [{face,FB0}]),
-	    We = wings_we:merge(WeA, WeB),
+	    We = wings_we:rehide_holes(wings_we:merge(WeA, WeB)),
 	    Shapes1 = gb_trees:delete(IdB, Shapes0),
 	    Shapes = gb_trees:update(IdA, We, Shapes1),
 	    Sel = [{IdA,gb_sets:from_list([FA,FB])}],
