@@ -310,7 +310,7 @@ update_fun(D, [], _) -> D.
 
 update_materials(D, St) ->
     We = original_we(D),
-    if ?IS_ANY_LIGHT(We), ?HAS_SHAPE(We) ->
+    if ?IS_AREA_LIGHT(We) ->
 	    wings_light:shape_materials(We#we.light, St);
        true -> St
     end.

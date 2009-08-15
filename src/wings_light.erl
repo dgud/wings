@@ -30,8 +30,11 @@
 -define(DEF_POS, {?DEF_X,?DEF_Y,?DEF_Z}).
 
 %% Light record in We.
+%%
+%% The type field must be the first field, since it is used by
+%% the light testing macros in wings.hrl.
 -record(light,
-	{type,
+	{type,					%Type. (DO NOT MOVE.)
 	 diffuse={1.0,1.0,1.0,1.0},
 	 ambient={0.0,0.0,0.0,1.0},
 	 specular={1.0,1.0,1.0,1.0},
@@ -693,7 +696,7 @@ import_we(#light{type=area}=Light, OpenGL, {X,Y,Z}) ->
 	    {mesh,M} -> import_fix_mesh(M)
 	end,
     We = wings_import:import_mesh(material, Mesh),
-    We#we{light=Light,has_shape=true};
+    We#we{light=Light};
 import_we(#light{}=Light, _OpenGL, {X,Y,Z}) ->
     %% We used to put all vertices at the same position, but with
     %% then rewritten pick handling we need a vertex array for picking.
@@ -705,7 +708,7 @@ import_we(#light{}=Light, _OpenGL, {X,Y,Z}) ->
     Vs = [{X-S,Y-S,Z+S},{X-S,Y+S,Z+S},{X+S,Y+S,Z+S},{X+S,Y-S,Z+S},
 	  {X-S,Y-S,Z-S},{X-S,Y+S,Z-S},{X+S,Y+S,Z-S},{X+S,Y-S,Z-S}],
     We = wings_we:build(Fs, Vs),
-    We#we{light=Light,has_shape=false}.
+    We#we{light=Light}.
 
 import_fix_mesh(#e3d_mesh{fs=Fs0}=Mesh0) ->
     Fs = [import_fix_face(F) || F <- Fs0],
@@ -830,14 +833,15 @@ scene_lights_fun(#dlo{transparent=#we{light=L}=We}, Lnum) ->
 scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D, Lnum) ->
     %% Area lights handled here in all selection modes +
     %% other lights in vertex/edge/face modes.
-    We = if ?HAS_SHAPE(We0) -> 
+    We = case We0 of
+	     #we{light=#light{type=area}} ->
 		 %% For an area light it looks better in vertex/edge/face
 		 %% modes to emulate with the static non-splitted shape
 		 %% during drag. It would be more correct if the area light
 		 %% updating would use the resulting #we{}, but it does not
 		 %% exist until the drag is done.
 		 wings_draw:original_we(D);
-	    true -> 
+	     _ -> 
 		 %% Non-area lights drag the whole shape so they can use
 		 %% the dynamic part of the splitted shape 
 		 %% (which is the whole shape).

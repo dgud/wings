@@ -182,7 +182,6 @@
 						%  IDs.)
 	 mirror=none :: 'none' | non_neg_integer(),	%Mirror: none|Face
 	 light=none,				%Light data: none|Light
-	 has_shape=true :: bool(),		%true|false
 	 holes=[] :: [integer()]		%List of hole faces.
 	}).
 
@@ -191,9 +190,17 @@
 -define(IS_SELECTABLE(Perm), (Perm =:= 0)).
 -define(IS_NOT_SELECTABLE(Perm), (Perm =/= 0)).
 
--define(IS_LIGHT(We), ((We#we.light =/= none) andalso (not We#we.has_shape))).
+%%
+%% Macros for testing for lights. We don't want to put the record
+%% definition for the light record here (to discourage plug-in
+%% writes bypassing the API in wings_light), so we'll depend on
+%% the type of light to be in the second element of the tuple.
+%%
 -define(IS_ANY_LIGHT(We), (We#we.light =/= none)).
--define(HAS_SHAPE(We), (We#we.has_shape)).
+-define(IS_LIGHT(We), (We#we.light =/= none andalso
+		       element(2, We#we.light) =/= area)).
+-define(IS_AREA_LIGHT(We), (We#we.light =/= none andalso
+			    element(2, We#we.light) =:= area)).
 
 %% Edge in a winged-edge object.
 %%

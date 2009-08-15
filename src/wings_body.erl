@@ -114,9 +114,9 @@ dup(Type) ->
 
 mode_dependent(St) ->
     SelObj = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St),
-    Kind = foldl(fun(#we{has_shape=Shape}=We, A) ->
+    Kind = foldl(fun(We, A) ->
 			 Type = if 
-				    ?IS_ANY_LIGHT(We), Shape -> arealight;
+				    ?IS_AREA_LIGHT(We) -> arealight;
 				    true -> object
 				end,
 			 case A of
@@ -707,9 +707,8 @@ to_arealight_1([], Shs, St) ->
 to_arealight_1([We0|Wes], Shs, St) when ?IS_ANY_LIGHT(We0) ->
     to_arealight_1(Wes, Shs, St);
 to_arealight_1([#we{id=Id}=We0|Wes], Shs, St) ->
-    #we{light=Light,has_shape=HasShape} = 
-	wings_light:import([{opengl,[{type,area}]}]),
-    We = We0#we{light=Light,has_shape=HasShape},
+    #we{light=Light} = wings_light:import([{opengl,[{type,area}]}]),
+    We = We0#we{light=Light},
     to_arealight_1(Wes, gb_trees:update(Id, We, Shs), St).
 
 
@@ -719,8 +718,7 @@ to_arealight_1([#we{id=Id}=We0|Wes], Shs, St) ->
 %%%
 from_arealight(#st{shapes=Shs}=St) ->
     Wes = wings_sel:fold(
-	    fun (_, #we{has_shape=HasShape}=We, A) 
-		when ?IS_ANY_LIGHT(We), HasShape -> 
+	    fun (_, We, A) when ?IS_AREA_LIGHT(We)-> 
 		    [We|A];
 		(_, _, A) ->
 		    A
@@ -733,11 +731,9 @@ from_arealight(Objects, #st{shapes=Shs}=St) ->
 
 from_arealight_1([], Shs, St) -> 
     St#st{shapes=Shs};
-from_arealight_1([#we{id=Id,has_shape=HasShape}=We|Wes], Shs, St)
-    when ?IS_ANY_LIGHT(We), HasShape ->
+from_arealight_1([#we{id=Id}=We|Wes], Shs, St) when ?IS_AREA_LIGHT(We) ->
     from_arealight_1(Wes, gb_trees:update(Id, We#we{light=none}, Shs), St);
-from_arealight_1([We|Wes], Shs, St) 
-  when ?IS_ANY_LIGHT(We) ->
+from_arealight_1([We|Wes], Shs, St) when ?IS_ANY_LIGHT(We) ->
     to_arealight_1(Wes, Shs, St).
 
 %%%
