@@ -316,11 +316,11 @@ insert_matrix(Tvs) ->
 
 insert_matrix_fun(#dlo{work=Work,edges=Edges,sel=Sel,src_sel=SrcSel,smooth=Smooth,
 		       src_we=#we{id=Id}=We,mirror=M,
-		       proxy=Proxy,proxy_data=Pd},
+		       proxy=Proxy,proxy_data=Pd,open=Open},
 		  [{Id,Tr}|Tvs], Matrix) ->
     {#dlo{work=Work,edges=Edges,sel=Sel,drag={matrix,Tr,Matrix,Matrix},
 	  src_we=We,src_sel=SrcSel,mirror=M,smooth=Smooth,
-	  proxy=Proxy, proxy_data=Pd},Tvs};
+	  proxy=Proxy,proxy_data=Pd,open=Open},Tvs};
 insert_matrix_fun(D, Tvs, _) -> {D,Tvs}.
 
 break_apart_general(Tvs) ->
