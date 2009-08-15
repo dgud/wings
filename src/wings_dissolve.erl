@@ -37,11 +37,13 @@ faces([], _, We) -> We;
 faces(Faces, Complement, We) -> dissolve_1(Faces, Complement, We).
 
 %% complement([Face], We) -> We'
-%%  Dissolve all faces BUT the given faces. Also invalidate the
-%%  mirror face if it existed and was dissolved.
-complement(Fs0, #we{fs=Ftab0}=We0) when is_list(Fs0) ->
-    Fs = ordsets:subtract(gb_trees:keys(Ftab0), ordsets:from_list(Fs0)),
-    case faces(Fs, Fs0, We0) of
+%%  Dissolve all faces BUT the given faces. Also invalidate
+%%  the mirror face and holes (if any) if they are dissolved.
+complement(KeepFaces, #we{fs=Ftab0,holes=Holes0}=We0) when is_list(KeepFaces) ->
+    KeepSet = ordsets:from_list(KeepFaces),
+    RemoveSet = ordsets:subtract(gb_trees:keys(Ftab0), KeepSet),
+    Holes = ordsets:intersection(Holes0, KeepSet),
+    case faces(RemoveSet, KeepSet, We0#we{holes=Holes}) of
 	#we{mirror=none}=We -> We;
 	#we{mirror=Face,fs=Ftab}=We ->
 	    case gb_trees:is_defined(Face, Ftab) of
