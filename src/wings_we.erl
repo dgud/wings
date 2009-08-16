@@ -28,7 +28,7 @@
 	 new_items_as_ordset/3,new_items_as_gbset/3,
 	 is_consistent/1,is_face_consistent/2,
 	 hide_faces/2,show_faces/1,num_hidden/1,
-	 create_holes/2,show_faces/2,
+	 create_holes/2,rehide_holes/1,show_faces/2,
 	 any_hidden/1,all_hidden/1,
 	 visible/1,visible/2,visible_vs/1,visible_vs/2,
 	 visible_edges/1,visible_edges/2,
@@ -158,6 +158,43 @@ create_holes(NewHoles, #we{holes=Holes0}=We) ->
     NewHiddenHoles = ordsets:from_list([-F-1 || F <- ToHide]),
     Holes = ordsets:union([NewHiddenHoles,Holes0,AlreadyHidden]),
     wings_we:hide_faces(ToHide, We#we{holes=Holes}).
+
+%% rehide_holes(We0) -> We.
+%%  Rehide any holes that have become visible because of
+%%  renumbering.
+%%
+%%  This function is needed as long as hidden faces are implemented
+%%  as negative faces numbers.
+%%
+rehide_holes(#we{holes=[]}=We) ->
+    We;
+rehide_holes(#we{holes=Holes}=We) ->
+    create_holes(Holes, We#we{holes=[]}).
+
+%% renumber(We0, Start) -> We
+%%     Start = integer, >= 0
+%%  Renumber all vertex, edge, and face identifiers to consecutive
+%%  numbers starting at Start. Hidden faces will be assigned the
+%%  lowest numbers.
+%%
+%%  As long as hidden faces are implemented as negative face numbers,
+%%  renumbering will force all hidden faces (including holes) to become
+%%  visible.
+%%
+renumber(We0, Id) ->
+    We = do_renumber(We0, Id),
+    rebuild(We).
+
+%% renumber(We0, Start, RootSet0) -> {We,RootSet}
+%%     Start = integer, >= 0
+%%     RootSet = [{vertex,V}|{edge,E}|{face,F}]
+%%  Renumber all vertex, edge, and face identifiers to consecutive
+%%  exactly as renumber/2, but also renumber all identifiers in the
+%%  given root set.
+%%
+renumber(We0, Id, RootSet0) ->
+    {We,RootSet} = do_renumber(We0, Id, RootSet0),
+    {rebuild(We),RootSet}.
 
 %%%
 %%% Local functions.
@@ -497,15 +534,6 @@ merge_bounds([#we{vp=Vtab,fs=Ftab,es=Etab}=We0|Wes], Acc) ->
     We = update_id_bounds(We0),
     merge_bounds(Wes, [{First,We}|Acc]);
 merge_bounds([], Acc) -> sort(Acc).
-
-%%% Renumber a winged-edge structure.
-renumber(We0, Id) ->
-    We = do_renumber(We0, Id),
-    rebuild(We).
-
-renumber(We0, Id, RootSet0) ->
-    {We,RootSet} = do_renumber(We0, Id, RootSet0),
-    {rebuild(We),RootSet}.
 
 %% Leaves the vc and fs fields undefined.
 do_renumber(We0, Id) ->
