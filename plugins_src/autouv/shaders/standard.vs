@@ -14,6 +14,8 @@
 varying vec2 w3d_uv;
 varying vec3 w3d_pos;
 
+uniform vec2 auv_texsz;
+
 void main(void)
 {
     // UV coords comes here since we are actually drawing on a texture    
@@ -22,5 +24,5 @@ void main(void)
     w3d_pos   = gl_MultiTexCoord1.xyz;
     
     vec4 Position = gl_Vertex;
-    gl_Position   = gl_ModelViewProjectionMatrix * Position;
+    gl_Position   = (gl_ModelViewProjectionMatrix * Position);
 }

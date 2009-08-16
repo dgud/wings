@@ -183,7 +183,7 @@ options(Command,Vals,_) ->
 
 shader_options(#sh{args=Args,def=Defs,file=File}, Vals) ->
     case shader_menu(Args,reverse(Vals),[]) of
-	{failed,_} -> 
+	{failed,_} ->
 	    case shader_menu(Args,Defs,[]) of
 		{failed,What} -> 
 		    io:format("AUV: Bad default value ~p in ~p~n",
@@ -191,7 +191,8 @@ shader_options(#sh{args=Args,def=Defs,file=File}, Vals) ->
 		    [];
 		Menues -> Menues
 	    end;
-	Menues -> Menues
+	Menues ->
+	    Menues
     end.
 shader_menu([{uniform,color,_,_,Label}|As],[Col={_,_,_,_}|Vs],Acc) ->
     Menu = {hframe, [{label,Label},{color,Col}]},
@@ -217,10 +218,11 @@ shader_menu([{uniform,{image,_},_,_Def,Label}|As],[Def|Vs],Acc) ->
 shader_menu([{uniform,menu,_,_,Labels}|As],[Def|Vs],Acc) ->
     Menu = {menu,Labels,Def,[]},
     shader_menu(As,Vs,[Menu|Acc]);
-shader_menu([{auv,{auv_send_texture,Label,_}}|As],[Def0|Vs],Acc) ->
-    case Def0 of
-	{auv_send_texture, Def} -> Def;
-	Def -> Def
+shader_menu([{auv,{auv_send_texture,Label,Def0}}|As],Vs0,Acc) ->
+    case Vs0 of
+	[{auv_send_texture, Def}|Vs] -> ok;
+	[Def|Vs] -> ok;
+	[] -> Def = Def0, Vs = []
     end,
     Menu = {Label, Def, [{key,auv_send_texture}]},
     shader_menu(As,Vs,[Menu|Acc]);
@@ -848,7 +850,7 @@ shader_pass(_,false,_) ->
 shader_pass(false,_,_) ->    
     io:format("AUV: Not shader found skipped ~p~n", [?LINE]),
     ignore;
-shader_pass({value,#sh{args=Args,tex_units=TexUnits,reqs=Reqs}},
+shader_pass({value,#sh{name=_Name, args=Args,tex_units=TexUnits,reqs=Reqs}},
 	    {value,{_,Prog}},Opts) ->
     fun(Ts = #ts{charts=Charts},Config) ->
 	    gl:disable(?GL_DEPTH_TEST),
@@ -859,8 +861,10 @@ shader_pass({value,#sh{args=Args,tex_units=TexUnits,reqs=Reqs}},
 	    try 
 		Conf = Config#sh_conf{prog=Prog,ts=Ts},
 		PerChartUniF = shader_uniforms(reverse(Args),Opts,Conf),
-		case lists:keysearch(auv_send_texture,1,Opts) of 
-		    {value,{auv_send_texture,true}} -> 
+		case send_texture(reverse(Args),Opts) of
+		    true ->
+			gl:enable(?GL_TEXTURE_2D),
+			gl:disable(?GL_BLEND),
 			draw_texture_square();
 		    _ -> 
 			gl:enableClientState(?GL_VERTEX_ARRAY),
@@ -908,6 +912,19 @@ shader_pass({value,#sh{args=Args,tex_units=TexUnits,reqs=Reqs}},
 	    end
     end.
 
+send_texture([{auv,{auv_send_texture,_, _Def0}}|_],
+	     [{auv_send_texture,Def}|_]) ->
+    Def;
+send_texture([{auv,{auv_send_texture,_, _Def0}}|_],
+	     [Def|_]) ->
+    Def;
+send_texture([{auv,_}|Next], Opts) ->
+    send_texture(Next,Opts);
+send_texture([_|Next], [_|Opts]) ->
+    send_texture(Next,Opts);
+send_texture([],_) -> false.
+
+
 shader_uniforms([{uniform,color,Name,_,_}|As],[Val|Opts],Conf) ->
     wings_gl:set_uloc(Conf#sh_conf.prog,Name,Val),
     shader_uniforms(As,Opts,Conf);
@@ -949,6 +966,8 @@ shader_uniforms([{auv,{auv_bg,Unit}}|Rest],Opts,Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog, "auv_bg"),
     gl:activeTexture(?GL_TEXTURE0),
     gl:bindTexture(?GL_TEXTURE_2D, Conf#sh_conf.fbo_r),
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_NEAREST),
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_NEAREST),
     gl:uniform1i(Loc, Unit),
     shader_uniforms(Rest,Opts,Conf);
 shader_uniforms([{auv,auv_texsz}|As],Opts,Conf = #sh_conf{texsz={W,H}}) ->

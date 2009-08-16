@@ -20,6 +20,8 @@ FILES = standard.vs \
 	wood.fs \
 	wpc_filter.auv \
 	image_filter.fs \
+	wpc_edgefilter.auv \
+	edge_filter.fs \
 	README-shaders.txt
 
 
