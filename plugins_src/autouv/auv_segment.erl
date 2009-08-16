@@ -630,12 +630,10 @@ find_delete(Face,Level,Dist0,Next0,Fs0,Fg) ->
 %%
 
 segment_by_direction(We) ->
-    Rel = foldl(fun({_,'_hole_'}, A) -> A;
-		   ({_,?HOLE}, A) -> A;
-		   ({Face,_}, A) ->
-			N = wings_face:normal(Face, We),
-			[{seg_dir(N),Face}|A]
-		end, [], wings_facemat:all(We)),
+    Rel = [begin
+	       N = wings_face:normal(Face, We),
+	       {seg_dir(N),Face}
+	   end || Face <- wings_we:visible(We)],
     segment_by_cluster(Rel, We).
 
 seg_dir({X,Y,Z}) ->
@@ -649,12 +647,8 @@ seg_dir({X,Y,Z}) ->
 	-Z =:= Max -> '-z'
     end.
 
-%% By Color 
 segment_by_material(We) ->
-    Rel = foldl(fun({_,'_hole_'}, A) -> A;
-		   ({_,?HOLE}, A) -> A;
-		   ({Face,Name}, A) -> [{Name,Face}|A]
-		end, [], wings_facemat:all(We)),
+    Rel = [{Name,Face} || {Face,Name} <- wings_facemat:all(We)],
     segment_by_cluster(Rel, We).
 
 %% segment_by_cluster([{Key,Face}], We)
@@ -913,9 +907,11 @@ collect_fun(Cuts) ->
 %%% Build a map [F|V] => UV.
 %%%
 
-fv_to_uv_map(object,#we{fs=Ftab}=We) ->
-    FsEs = gb_trees:to_list(Ftab),
-    fvuvmap_1(FsEs, We, [], []);
+fv_to_uv_map(object,#we{fs=Ftab,holes=Holes0}=We) ->
+    AllFsEs = sofs:relation(gb_trees:to_list(Ftab)),
+    Holes = sofs:set(Holes0),
+    FsEs = sofs:drestriction(AllFsEs, Holes),
+    fvuvmap_1(sofs:to_external(FsEs), We, [], []);
 fv_to_uv_map(Faces0,#we{fs=Ftab}=We) ->
     AllFsEs = sofs:relation(gb_trees:to_list(Ftab)),
     Fs = sofs:set(gb_sets:to_list(Faces0)),

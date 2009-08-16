@@ -28,8 +28,6 @@
 	 st                %% Wings working 'st', i.e. no autouv stuff in this one
 	}).
 
--define(HOLE, 'Ignore Chart').
-
 -ifdef(DEBUG).
 -define(DBG(S,A), io:format("~p:~p " ++ S, [?MODULE,?LINE|A])).
 -else.
