@@ -53,18 +53,20 @@ build(Fs, Vs) ->
 %%  fewer elements in the 'vc' table than in the 'vp' table,
 %%  remove redundant entries in the 'vp' table. Updated id
 %%  bounds.
-rebuild(#we{vc=undefined,fs=undefined,es=Etab0}=We0) ->
+rebuild(#we{vc=undefined,fs=undefined,es=Etab0,holes=Holes0}=We0) ->
     Etab = array:sparse_to_orddict(Etab0),
     Ftab = rebuild_ftab(Etab),
+    Holes = ordsets:intersection(gb_trees:keys(Ftab), Holes0),
     VctList = rebuild_vct(Etab),
-    We = We0#we{vc=array:from_orddict(VctList),fs=Ftab},
+    We = We0#we{vc=array:from_orddict(VctList),fs=Ftab,holes=Holes},
     rebuild_1(VctList, We);
 rebuild(#we{vc=undefined,es=Etab}=We) ->
     VctList = rebuild_vct(array:sparse_to_orddict(Etab), []),
     rebuild_1(VctList, We#we{vc=array:from_orddict(VctList)});
-rebuild(#we{fs=undefined,es=Etab}=We) ->
+rebuild(#we{fs=undefined,es=Etab,holes=Holes0}=We) ->
     Ftab = rebuild_ftab(array:sparse_to_orddict(Etab)),
-    rebuild(We#we{fs=Ftab});
+    Holes = ordsets:intersection(gb_trees:keys(Ftab), Holes0),
+    rebuild(We#we{fs=Ftab,holes=Holes});
 rebuild(We) -> update_id_bounds(We).
 
 %%% Utilities for allocating IDs.
