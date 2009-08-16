@@ -296,12 +296,10 @@ proxy_smooth_1(We0, #sp{we=SWe}) ->
        true -> {true,wings_subdiv:smooth(We0)}
     end.
 
-split_proxy(#dlo{proxy=true, proxy_data=Pd0, src_we=SrcWe}, DynVs0, St) ->
+split_proxy(#dlo{proxy=true,proxy_data=Pd0,src_we=SrcWe}, DynVs0, St) ->
     DynFs0 = wings_face:from_vs(DynVs0, SrcWe),
-    case SrcWe#we.mirror of
-	none   -> DynFs = DynFs0;
-	Mirror -> DynFs = ordsets:del_element(Mirror,DynFs0)
-    end,
+    #we{mirror=Mirror,holes=Holes} = SrcWe,
+    DynFs = ordsets:subtract(DynFs0, ordsets:union([Mirror], Holes)),
 
     DynVs = wings_vertex:from_faces(DynFs, SrcWe),
     {_,#we{fs=Ftab0}=We0} = proxy_smooth_1(SrcWe, Pd0),
