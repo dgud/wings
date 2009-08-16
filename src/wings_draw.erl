@@ -608,14 +608,14 @@ split_1(D, Vs, St) ->
     split_2(D, Vs, update_materials(D, St)).
 
 split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
-	     proxy=UsesProxy,ns=Ns,needed=Needed,open=Open}=D,
+	     proxy=UsesProxy,needed=Needed,open=Open}=D,
 	Vs0, St) ->
     Vs = sort(Vs0),
     Faces = wings_we:visible(wings_face:from_vs(Vs, We), We),
     StaticVs = static_vs(Faces, Vs, We),
 
     VisFtab = wings_we:visible(gb_trees:to_list(Ftab), We),
-    {Work,FtabDyn} = split_faces(D, VisFtab, Faces, St),
+    {Work,#dlo{ns=Ns},FtabDyn} = split_faces(D, VisFtab, Faces, St),
     StaticEdgeDl = make_static_edges(Faces, D),
     {DynVs,VsDlist} = split_vs_dlist(Vs, StaticVs, Sel, We),
 
@@ -665,17 +665,40 @@ split_faces(#dlo{needed=Need}=D0, Ftab0, Fs0, St) ->
 	    %% This is wireframe mode. We don't need any
 	    %% 'work' display list for faces.
 	    FtabDyn = sofs:to_external(sofs:restriction(Ftab, Fs)),
-	    {none,FtabDyn};
+	    {none,D0,FtabDyn};
 	true ->
 	    %% Faces needed. (Either workmode or smooth mode.)
 	    {FtabDyn0,StaticFtab0} = sofs:partition(1, Ftab, Fs),
 	    FtabDyn = sofs:to_external(FtabDyn0),
 	    StaticFtab = sofs:to_external(StaticFtab0),
-	    StaticPlan = wings_draw_setup:prepare(StaticFtab, D0, St),
-	    D = wings_draw_setup:flat_faces(StaticPlan, D0),
+
+	    %% Make sure that every static face has an entry
+	    %% in the normals array. Most of the time, this is
+	    %% not needed because newly created faces are
+	    %% dynamic, but it can happen in rare circumstances,
+	    %% for instance with the Intrude command if there are holes.
+	    D1 = split_new_normals(StaticFtab, D0),
+
+	    StaticPlan = wings_draw_setup:prepare(StaticFtab, D1, St),
+	    D = wings_draw_setup:flat_faces(StaticPlan, D1),
 	    Dl = draw_flat_faces(D, St),
-	    {[Dl],FtabDyn}
+	    {[Dl],D1,FtabDyn}
     end.
+
+split_new_normals(Ftab, #dlo{ns=Ns0,src_we=We}=D) ->
+    Ns = split_new_normals(Ftab, We, Ns0),
+    D#dlo{ns=Ns}.
+
+split_new_normals([{Face,Edge}|T], We, Ns0) ->
+    case array:get(Face, Ns0) of
+	undefined ->
+	    Ps = wings_face:vertex_positions(Face, Edge, We),
+	    Ns = array:set(Face, face_ns_data(Ps), Ns0),
+	    split_new_normals(T, We, Ns);
+	_ ->
+	    split_new_normals(T, We, Ns0)
+    end;
+split_new_normals([], _, Ns) -> Ns.
 
 make_static_edges(DynFaces, #dlo{ns=none}) ->
     make_static_edges_1(DynFaces, [], []);
