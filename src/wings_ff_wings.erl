@@ -104,8 +104,7 @@ import_objects([Sh0|Shs], Mode, NameMap, Oid, ShAcc) ->
     Htab = gb_sets:from_list(He),
     Perm = import_perm(Props),
     Mirror = proplists:get_value(mirror_face, Props, none),
-    Holes0 = proplists:get_value(holes, Props, []),
-    Holes = ordsets:from_list([-F-1 || F <- Holes0]),
+    Holes = proplists:get_value(holes, Props, []),
     Pst0 = proplists:get_value(plugin_states, Props, []),
     Pst = try gb_trees:from_orddict(Pst0)
 	  catch error:_ -> gb_trees:empty()
@@ -369,11 +368,12 @@ share_list_2([{Vtab0,Etab0,Attr}|Ts],
     We1 = wings_we:rebuild(We0#we{vp=Vtab,es=Etab,mat=default}),
     We2 = wings_facemat:assign(FaceMat, We1),
     We3 = if
-	     NumHidden =:= 0 -> We2;
-	     true ->
-		 Hidden = lists:seq(0, NumHidden-1),
-		 wings_we:hide_faces(Hidden, We2)
-	 end,
+	      NumHidden =:= 0 -> We2;
+	      true ->
+		  Hidden = lists:seq(0, NumHidden-1),
+		  Holes = ordsets:from_list([-F-1 || F <- We2#we.holes]),
+		  wings_we:hide_faces(Hidden, We2#we{holes=Holes})
+	  end,
     We4 = ensure_valid_mirror_face(We3),
     We5 = foldl(fun({E,Lt,Rt}, W) ->
 		       wings_va:set_both_edge_attrs(E, Lt, Rt, W)
