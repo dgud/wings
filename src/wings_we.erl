@@ -36,7 +36,7 @@
 
 -include("wings.hrl").
 -include("e3d.hrl").
--import(lists, [foreach/2,foldl/3,sort/1,keysort/2,reverse/1,zip/2]).
+-import(lists, [foreach/2,foldl/3,sort/1,keysort/2,reverse/1,zip/2,partition/2]).
 
 %%%
 %%% API.
@@ -152,9 +152,9 @@ all_hidden(#we{fs=Ftab}) ->
 create_holes(NewHoles, #we{holes=Holes0}=We) ->
     %% This code is complicated because some of the faces
     %% in the NewHoles list may already be hidden (i.e. negative).
-    ToHide = [F || F <- NewHoles, F >= 0],
+    {ToHide,AlreadyHidden} = partition(fun(F) -> F >= 0 end, NewHoles),
     NewHiddenHoles = ordsets:from_list([-F-1 || F <- ToHide]),
-    Holes = ordsets:union(NewHiddenHoles, Holes0),
+    Holes = ordsets:union([NewHiddenHoles,Holes0,AlreadyHidden]),
     wings_we:hide_faces(ToHide, We#we{holes=Holes}).
 
 %%%
