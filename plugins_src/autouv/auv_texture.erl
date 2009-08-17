@@ -26,7 +26,7 @@
 -import(erlang, [min/2,max/2]).
 -import(auv_segment, [map_vertex/2]).
 
--define(OPT_BG, [{type_sel,color},{undefined,ignore},{1.0,1.0,1.0}]).
+-define(OPT_BG, [{type_sel,color},{undefined,ignore},{1.0,1.0,1.0,0.0}]).
 -define(OPT_EDGES, [all_edges,{0.0,0.0,0.0},1.0,false]).
 -define(OPT_FACES, [texture]).
 
@@ -790,12 +790,7 @@ pass({auv_edges, [all_edges,Color,Width,_UseMat]},_) ->
 	    gl:disableClientState(?GL_VERTEX_ARRAY)
     end;
 pass({auv_edges, [border_edges,Color,Width,UseMat]},_) -> 
-    R= fun(#chart{oes=Es}) when UseMat ->
-	       Draw = fun([A,B,_]) ->
-			      gl:drawElements(?GL_LINES,2,?GL_UNSIGNED_INT,[A,B])
-		      end,
-	       foreach(Draw,Es);
-	  (#chart{oes=Es0}) ->
+    R= fun(#chart{oes=Es0}) ->
 	       Es = foldl(fun([A,B,_],Acc) -> [A,B|Acc] end, [], Es0),
 	       gl:drawElements(?GL_LINES,length(Es),?GL_UNSIGNED_INT,Es)
        end,
@@ -803,10 +798,15 @@ pass({auv_edges, [border_edges,Color,Width,UseMat]},_) ->
 	    gl:color3fv(Color),
 	    gl:lineWidth(Width),
 	    gl:enableClientState(?GL_VERTEX_ARRAY),
-	    gl:enableClientState(?GL_COLOR_ARRAY),
 	    gl:disable(?GL_DEPTH_TEST),
-	    foreach(R, Charts),
-	    gl:disableClientState(?GL_COLOR_ARRAY),
+	    case UseMat of
+		true ->
+		    gl:enableClientState(?GL_COLOR_ARRAY),
+		    foreach(R, Charts),
+		    gl:disableClientState(?GL_COLOR_ARRAY);
+		_ ->
+		    foreach(R, Charts)
+	    end,
 	    gl:disableClientState(?GL_VERTEX_ARRAY)
     end;
 pass({auv_edges, _},Sh) ->
