@@ -52,7 +52,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_SHADER_TYPE, generic).
 -define(DEF_CAUS, false).
 -define(DEF_TIR, false).
--define(DEF_IOR, 1.0).
+-define(DEF_IOR, 1.5).
 -define(DEF_MIN_REFLE, 0.0).
 -define(DEF_USE_HARDNESS, false).
 -define(DEF_AUTOSMOOTH, true).
@@ -76,13 +76,13 @@ key(Key) -> {key,?KEY(Key)}.
 
 %% Render
 -define(DEF_AA_PASSES, 0).
--define(DEF_AA_MINSAMPLES, 1).
+-define(DEF_AA_MINSAMPLES, 5).
 -define(DEF_AA_PIXELWIDTH, 1.0).
 -define(DEF_AA_THRESHOLD, 0.125).
 -define(DEF_AA_JITTERFIRST, false).
 -define(DEF_CLAMP_RGB, false).
--define(DEF_RAYDEPTH, 3).
--define(DEF_BIAS, 0.1).
+-define(DEF_RAYDEPTH, 12).
+-define(DEF_BIAS, 0.001).
 -define(DEF_WIDTH, 100).
 -define(DEF_HEIGHT, 100).
 -define(DEF_ORTHO, false).
@@ -112,15 +112,15 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_HALO_FOG_COLOR, {0.0,0.0,0.0}).
 
 %% Photonlight
--define(DEF_MODE,diffuse).
--define(DEF_PHOTONS,5000).
--define(DEF_SEARCH,50).
+-define(DEF_MODE,caustic).
+-define(DEF_PHOTONS,5000000).
+-define(DEF_SEARCH,64).
 -define(DEF_DEPTH,3).
 -define(DEF_CAUS_DEPTH,4).
 -define(DEF_DIRECT,false).
 -define(DEF_MINDEPTH,1).
--define(DEF_FIXEDRADIUS,1.0).
--define(DEF_CLUSTER,1.0).
+-define(DEF_FIXEDRADIUS,0.08).
+-define(DEF_CLUSTER,0.01).
 %% Softlight
 -define(DEF_RES, 100).
 -define(DEF_RADIUS, 1).
@@ -138,6 +138,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_BACKGROUND_EXPOSURE_ADJUST, 0).
 -define(DEF_BACKGROUND_MAPPING, probe).
 -define(DEF_BACKGROUND_POWER, 1.0).
+-define(DEF_BACKGROUND_PREFILTER, true).
 -define(DEF_SAMPLES, 256).
 %% Pathlight
 -define(DEF_PATHLIGHT_MODE, undefined).
@@ -2003,13 +2004,16 @@ light_dialog(_Name, ambient, Ps) ->
     BgFnameHDRI = proplists:get_value(background_filename_HDRI, Ps, 
 				      ?DEF_BACKGROUND_FILENAME),
     BrowsePropsHDRI = [{dialog_type,open_dialog},
-		       {extensions,[{".hdr",?__(56,"High Dynamic Range image")}]}],
+		       {extensions,[{".hdr",?__(56,"High Dynamic Range image")},
+				    {".exr",?__(95,"OpenEXR image")}]}],
     BgExpAdj = proplists:get_value(background_exposure_adjust, Ps, 
 				   ?DEF_BACKGROUND_EXPOSURE_ADJUST),
     BgMapping = proplists:get_value(background_mapping, Ps, 
 				    ?DEF_BACKGROUND_MAPPING),
     BgPower = proplists:get_value(background_power, Ps, 
 				  ?DEF_BACKGROUND_POWER),
+    BgPrefilter = proplists:get_value(background_prefilter, Ps,
+				  ?DEF_BACKGROUND_PREFILTER),
     BgEnlight = proplists:get_value(background_enlight, Ps, false),
     %%
     Type = proplists:get_value(type, Ps, ?DEF_AMBIENT_TYPE),
@@ -2138,13 +2142,14 @@ light_dialog(_Name, ambient, Ps) ->
 	[{hframe,[{label,?__(85,"Exposure Adjust")},
 		  {text,BgExpAdj,[key(background_exposure_adjust),
 				  range(exposure_adjust)]},
-		  {menu,[{?__(86,"Angular Map"),probe},{?__(87,"Spherical Map"),spherical}],
+		  {menu,[{?__(86,"Light Probe (Angular)"),probe},{?__(87,"Spherical (Lat-Long)"),spherical}],
 		   BgMapping,[key(background_mapping)]}],
 	  [hook(open, [member,?KEY(background),'HDRI'])]},
 	 {hframe,[{label,?__(88,"Power")},
 		  {text,BgPower,[key(background_power),range(power)]}],
 	  [hook(open, [member,?KEY(background),image])]},
-	 {?__(89,"Enlight"),BgEnlight,[key(background_enlight)]}],
+	 {?__(89,"Enlight"),BgEnlight,[key(background_enlight)]},
+	 {?__(96,"Prefilter"),BgPrefilter,[key(background_prefilter)]}],
 	[hook(open, [member,?KEY(background),'HDRI',image])]},
        {hframe,[{label,?__(90,"Color")},
 		{color,BgColor,[key(background_color)]}],
@@ -2196,11 +2201,11 @@ light_result([_,{?KEY(arealight_samples),_}|_]=Ps) ->
     split_list(Ps, 3);
 %% Ambient
 light_result([{?KEY(type),hemilight}|_]=Ps) ->
-    split_list(Ps, 29);
+    split_list(Ps, 30);
 light_result([{?KEY(type),pathlight}|_]=Ps) ->
-    split_list(Ps, 29);
+    split_list(Ps, 30);
 light_result([{?KEY(type),globalphotonlight}|_]=Ps) ->
-    split_list(Ps, 29);
+    split_list(Ps, 30);
 light_result(Ps) ->
 %    erlang:display({?MODULE,?LINE,Ps}),
     {[],Ps}.
@@ -3494,10 +3499,12 @@ export_background(F, Name, Ps) ->
     OpenGL = proplists:get_value(opengl, Ps, []),
     YafRay = proplists:get_value(?TAG, Ps, []),
     Bg = proplists:get_value(background, YafRay, ?DEF_BACKGROUND),
-    print(F, "<background type=\"~s\" name=\"~s\"", 
-	  [format(Bg),Name]),
     case Bg of
 	constant ->
+
+	    print(F, "<background type=\"~s\" name=\"~s\"",
+		  [format(Bg),Name]),
+
 	    println(F, ">"),
 	    BgColor = proplists:get_value(background_color, YafRay, 
 					  ?DEF_BACKGROUND_COLOR),
@@ -3511,6 +3518,10 @@ export_background(F, Name, Ps) ->
 	    D_var = proplists:get_value(d_var, YafRay, ?DEF_SUNSKY_VAR),
 	    E_var = proplists:get_value(e_var, YafRay, ?DEF_SUNSKY_VAR),
 	    Position = proplists:get_value(position, OpenGL, {1.0,1.0,1.0}),
+
+	    print(F, "<background type=\"~s\" name=\"~s\"",
+		  [format(Bg),Name]),
+
 	    println(F, "~n            turbidity=\"~.3f\" a_var=\"~.3f\"~n"
 		    "            b_var=\"~.3f\" c_var=\"~.3f\"~n"
 		    "            d_var=\"~.3f\" e_var=\"~.3f\" "
@@ -3531,15 +3542,26 @@ export_background(F, Name, Ps) ->
 					   ?DEF_BACKGROUND_EXPOSURE_ADJUST),
 	    BgMapping = proplists:get_value(background_mapping, YafRay, 
 					    ?DEF_BACKGROUND_MAPPING),
-	    println(F, "~n            exposure_adjust=\"~w\" mapping=\"~s\">", 
-		    [BgExpAdj,format(BgMapping)]),
+	    BgPrefilter = proplists:get_value(background_prefilter, YafRay,
+					    ?DEF_BACKGROUND_PREFILTER),
+	    print(F, "<background type=\"image\" name=\"~s\"",
+	  [Name]),
+
+	    println(F, "~n            exposure_adjust=\"~w\" mapping=\"~s\""
+		    " prefilter=\"~s\">",
+		    [BgExpAdj,format(BgMapping),format(BgPrefilter)]),
 	    println(F, "    <filename value=\"~s\" />", [BgFname]);
 	image ->
 	    BgFname = proplists:get_value(background_filename_image, YafRay,
 					  ?DEF_BACKGROUND_FILENAME),
 	    BgPower = proplists:get_value(background_power, YafRay, 
 					   ?DEF_BACKGROUND_POWER),
-	    println(F, " power=\"~.3f\">", [BgPower]),
+	    BgPrefilter = proplists:get_value(background_prefilter, YafRay,
+					    ?DEF_BACKGROUND_PREFILTER),
+	    print(F, "<background type=\"~s\" name=\"~s\"",
+		  [format(Bg),Name]),
+
+	    println(F, " power=\"~.3f\" prefilter=\"~s\">", [BgPower,format(BgPrefilter)]),
 	    println(F, "    <filename value=\"~s\" />", [BgFname])
     end,
     println(F, "</background>").
@@ -3860,31 +3882,30 @@ help(text, {material_dialog,object}) ->
       "that have this material on a majority of their faces."),
      ?__(8,"Mapping to YafRay object parameters:"),
      ?__(9,"Cast Shadow -> 'shadow'."),
-     ?__(10,"Emit Rad -> 'emit_rad'."),
-     ?__(11,"Recv Rad -> 'recv_rad'."),
+     ?__(10,"Emit Rad -> 'emit_rad' -> Emit Radiosity."),
+     ?__(11,"Recv Rad -> 'recv_rad' -> Receive Radiosity."),
      ?__(12,"Use Edge Hardness -> Emulate hard edges by "
       "slitting the object mesh along hard edges."),
-     ?__(13,"Caustic -> Make the object caustic, i.e refract and "
-      "reflect photons but not get hit by them. This is done by "
-      "setting options 'caus_IOR', 'caus_rcolor' and 'caus_tcolor' "
-      "from the corresponding Fresnel Parameters."),
-     ?__(14,"Autosmooth Angle -> 'autosmooth'.")];
+     ?__(13,"Autosmooth Angle -> 'autosmooth'."),
+     ?__(14,"A Photon Light must be present for Emit Rad and Recv Rad "
+     "to have an affect. Set Fresnel Parameters to add Caustics.")];
 help(title, {material_dialog,fresnel}) ->
     ?__(15,"YafRay Material Properties: Fresnel Parameters");
 help(text, {material_dialog,fresnel}) ->
     [?__(16,"Fresnel Parameters affect how rays reflect off and refract in "
       "glass-like materials. This is a different light model than the "
       "OpenGL (Diffuse,Specular,Shininess) model and they do not often "
-      "go well together."),
+      "go well together. "
+      "A Photon Light must be present to produce Caustics."),
      ?__(17,"Mapping to YafRay shader parameters:"),
-     ?__(18,"Index Of Refraction -> 'ior'."),
-     ?__(19,"Total Internal Reflection -> 'tir'."),
-     ?__(20,"Minimum Reflection -> 'min_refle'."),
-     ?__(21,"Reflected -> 'reflected'."),
-     ?__(22,"Transmitted -> 'transmitted'."),
+     ?__(18,"Index Of Refraction -> 'ior' -> 1.5 for Glass/Caustics."),
+     ?__(19,"Total Internal Reflection -> 'tir' -> Enable for Glass."),
+     ?__(20,"Minimum Reflection -> 'min_refle' -> 1.0 for Metal."),
+     ?__(21,"Reflected -> 'reflected' -> Reflective Caustics."),
+     ?__(22,"Transmitted -> 'transmitted' -> Glass/Refractive Caustics."),
      ?__(23,"Set Default -> Sets 'transmitted' to Diffuse * (1 - Opacity). "
       "This makes a semi-transparent object in OpenGL look the same in "
-      "YafRay provided that Index Of Refraction is 1.0."),
+      "YafRay provided that Index Of Refraction is 1.1 minimum."),
      ?__(24,"Grazing Angle Colors -> Use the secondary Reflected and Transmitted "
       "colors following that show from grazing angles of the material. "
       "For a glass with green edges set Transmitted to white and "
@@ -3898,9 +3919,10 @@ help(text, light_dialog) ->
     [?__(27,"OpenGL properties that map to YafRay light parameters are:"),
      ?__(28,"Diffuse -> 'color'"),
      ?__(29,"All other OpenGl properties are ignored, particulary the "
-      "Attenuation properties"),
-     ?__(30,"YafRay parameters mapping is pretty straightforward - "
-      "the dialog field names should be self-explanatory except:"),
+      "Attenuation properties."),
+     ?__(30,"Spotlight set to Photonlight is used to produce Caustics or Radiosity. "
+      "Photonlight set to Caustic for Caustics. "
+      "Photonlight set to Diffuse for Radiosity. "),
      ?__(31,"The Enlight checkbox in a Hemilight with an image background "
       "activates the background image as ambient light source instead of "
       "the defined ambient color by excluding the 'color' tag "
