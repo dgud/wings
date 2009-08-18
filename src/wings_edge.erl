@@ -196,12 +196,35 @@ internal_dissolve_edge(Edge, #we{es=Etab}=We0) ->
 
 %% dissolve_edge_1(Edge, EdgeRecord, We) -> We
 %%  Remove an edge and a face. If one of the faces is degenerated
-%%  (only consists of two edges), remove that one. Otherwise, it
-%%  doesn't matter which face we remove.
+%%  (only consists of two edges), remove that one. If no face is
+%%  degenerated, prefer to keep an invisible face (if an edge
+%%  bordering a hole is dissolved, we except except the hole to
+%%  expand). Otherwise, it does not matter which face we keep.
+%%
 dissolve_edge_1(Edge, #edge{lf=Remove,rf=Keep,ltpr=Same,ltsu=Same}=Rec, We) ->
     dissolve_edge_2(Edge, Remove, Keep, Rec, We);
-dissolve_edge_1(Edge, #edge{lf=Keep,rf=Remove}=Rec, We) ->
-    dissolve_edge_2(Edge, Remove, Keep, Rec, We).
+dissolve_edge_1(Edge, #edge{lf=Keep,rf=Remove,rtpr=Same,rtsu=Same}=Rec, We) ->
+    dissolve_edge_2(Edge, Remove, Keep, Rec, We);
+dissolve_edge_1(Edge, #edge{lf=Lf,rf=Rf}=Rec, We) ->
+    if
+	Lf < 0 ->
+	    %% Keep left face.
+	    if
+		Rf < 0 ->
+		    %% The right face is also hidden. (Probably unusual
+		    %% in practice.) It might also be a hole.
+		    Holes = ordsets:del_element(Rf, We#we.holes),
+		    dissolve_edge_2(Edge, Rf, Lf, Rec, We#we{holes=Holes});
+		true ->
+		    dissolve_edge_2(Edge, Rf, Lf, Rec, We)
+	    end;
+	Rf < 0 ->
+	    %% Keep the right face. Remove the (visible) left face.
+	    dissolve_edge_2(Edge, Lf, Rf, Rec, We);
+	true ->
+	    %% It does not matter which one we keep.
+	    dissolve_edge_2(Edge, Rf, Lf, Rec, We)
+    end.
 
 dissolve_edge_2(Edge, FaceRemove, FaceKeep,
 		#edge{ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS},
@@ -386,7 +409,7 @@ update_face(Face, Edge, OldEdge, Ftab) ->
     end.
 
 del_2edge_face(Dir, EdgeA, RecA, EdgeB,
-	       #we{es=Etab0,fs=Ftab0,he=Htab0}=We) ->
+	       #we{es=Etab0,fs=Ftab0,he=Htab0,holes=Holes0}=We) ->
     {_,_,Lf,Rf,_,_} = half_edge(reverse_dir(Dir), RecA),
     RecB = array:get(EdgeB, Etab0),
     Del = gb_sets:from_list([EdgeA,EdgeB]),
@@ -411,8 +434,12 @@ del_2edge_face(Dir, EdgeA, RecA, EdgeB,
     Ftab2 = update_face(KeepFace, EdgeANear, EdgeA, Ftab1),
     Ftab = update_face(KeepFace, EdgeBNear, EdgeB, Ftab2),
 
+    %% It is probably unusual that 2 edge face is a hole,
+    %% but better safe than sorry.
+    Holes = ordsets:del_element(DelFace, Holes0),
+
     %% Return result.
-    We#we{vc=undefined,es=Etab,fs=Ftab,he=Htab}.
+    We#we{vc=undefined,es=Etab,fs=Ftab,he=Htab,holes=Holes}.
 
 stabile_neighbor(#edge{ltpr=Ea,ltsu=Eb,rtpr=Ec,rtsu=Ed}, Del) ->
     [Edge] = foldl(fun(E, A) ->
