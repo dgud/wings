@@ -31,7 +31,7 @@
 	 create_holes/2,rehide_holes/1,show_faces/2,
 	 any_hidden/1,all_hidden/1,
 	 visible/1,visible/2,visible_vs/1,visible_vs/2,
-	 visible_edges/1,visible_edges/2,
+	 visible_edges/1,visible_edges/2,fully_visible_edges/2,
 	 validate_mirror/1,mirror_flatten/2]).
 
 -include("wings.hrl").
@@ -195,6 +195,21 @@ renumber(We0, Id) ->
 renumber(We0, Id, RootSet0) ->
     {We,RootSet} = do_renumber(We0, Id, RootSet0),
     {rebuild(We),RootSet}.
+
+%% fully_visible_edges(OrderedEdgeSet0, We) -> FullyVisibleEdges
+%%     OrderedEdgeSet = An ordered list of edges.
+%%  Filter an ordered list of edges, removing any edge from the list
+%%  that do not have visible faces on both sides.
+%%
+fully_visible_edges(Es, #we{mirror=none,es=Etab}=We) ->
+    case any_hidden(We) of
+	false -> Es;
+	true -> fully_visible_edges_1(Es, Etab)
+    end;
+fully_visible_edges(Es0, #we{mirror=Face}=We) ->
+    MirrorEdges = wings_face:to_edges([Face], We),
+    Es = ordsets:subtract(Es0, MirrorEdges),
+    fully_visible_edges(Es, We#we{mirror=none}).
 
 %%%
 %%% Local functions.
@@ -360,6 +375,15 @@ visible_edges(Es, We) ->
 		    gb_sets:intersection(Vis, Es)
 	    end
     end.
+
+fully_visible_edges_1([E|Es], Etab) ->
+    case array:get(E, Etab) of
+	#edge{lf=Lf,rf=Rf} when Lf < 0; Rf < 0 ->
+	    fully_visible_edges_1(Es, Etab);
+	_ ->
+	    [E|fully_visible_edges_1(Es, Etab)]
+    end;
+fully_visible_edges_1([], _) -> [].
 
 show_faces_1(Faces, #we{es=Etab0}=We0) ->
     Show = fun(Face, _, E, _, Et) ->
