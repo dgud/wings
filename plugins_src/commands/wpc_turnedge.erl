@@ -64,15 +64,19 @@ command_help(turn_optimized) ->
 %%
 
 turn_edges(ModeFun, Opt, St0) ->
-    SelFun = fun(Es, #we{id=Id}=We0, Acc) ->
-		     {We,Sel} = turn_edges(Es, ModeFun, Opt, We0),
-		     {We,[{Id,gb_sets:from_list(Sel)}|Acc]}
+    SelFun = fun(Es0, #we{id=Id}=We0, Acc) ->
+		     Es1 = gb_sets:to_list(Es0),
+		     case wings_we:fully_visible_edges(Es1, We0) of
+			 [] -> {We0,Acc};
+			 Es ->
+			     {We,Sel} = turn_edges(Es, ModeFun, Opt, We0),
+			     {We,[{Id,gb_sets:from_list(Sel)}|Acc]}
+		     end
 	     end,
     {St,Sel} = wings_sel:mapfold(SelFun, [], St0),
     wings_sel:set(Sel, St).
 
-turn_edges(Edges0, ModeFun, Opt, #we{es=Etab}=We0) ->
-    Edges = gb_sets:to_list(Edges0),
+turn_edges(Edges, ModeFun, Opt, #we{es=Etab}=We0) ->
     validate_edges(Edges, Etab),
     foldl(fun(E0, {W0,Sel}) ->
 		  {E,W} = try_turn(E0, ModeFun, Opt, W0),
