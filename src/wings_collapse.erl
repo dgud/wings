@@ -306,7 +306,7 @@ internal_collapse_edge(Edge, Center, Vkeep, Vremove, Rec,
     Etab4 = wings_edge:patch_edge(LS, LP, LF, Edge, Etab3),
     Etab5 = wings_edge:patch_edge(RP, RS, RF, Edge, Etab4),
     Etab = wings_edge:patch_edge(RS, RP, RF, Edge, Etab5),
-	    
+
     %% Patch the face entries for the surrounding faces.
     Ftab1= wings_face:patch_face(LF, Edge, LP, Ftab0),
     Ftab = wings_face:patch_face(RF, Edge, RP, Ftab1),
@@ -353,7 +353,7 @@ do_collapse_vertices([], We0, Sel, Isolated, Vs) ->
     %% still be there (it will not have been removed by
     %% wings_vertex:dissolve_isolated/2 if it is not isolated
     %% in all faces it occurs in).
-    %% 
+    %%
     do_collapse_vertices(Isolated++Vs, We, Sel, [], []).
 
 collapse_vertex_1(Vremove, We0, Sel0) ->
@@ -368,11 +368,13 @@ collapse_vertex_1(Vremove, We0, Sel0) ->
 	    %% isolated vertices at once.
 	    isolated;
 	_ ->
-	    Vlist = reverse([V || {V,_} <- VsEs]),
+	    Vlist = [V || {V,_} <- VsEs],
+
+	    %% Check for duplicated vertices.
 	    check_vertices(Vlist),
 
 	    %% Connect vertices.
-	    Pairs = make_pairs(Vlist),
+	    Pairs = make_pairs(VsEs),
 	    We1 = foldl(fun(Pair, W) ->
 				collapse_connect(Pair, W)
 			end, We0, Pairs),
@@ -386,20 +388,50 @@ collapse_vertex_1(Vremove, We0, Sel0) ->
 	    {We,Sel}
     end.
 
-collapse_connect(Pair, #we{mirror=MirrorFace}=We) ->
+collapse_connect([{Va,EdgeA},{Vb,EdgeB}], #we{mirror=MirrorFace}=We) ->
+    Pair = [Va,Vb],
     FaceVs = wings_vertex:per_face(Pair, We),
+    Edges = {EdgeA,EdgeB},
     foldl(fun({Face,_}, Acc) when Face =:= MirrorFace -> Acc;
-	     ({Face,Vs}, Acc) -> collapse_connect_1(Face, Vs, Acc)
+	     ({Face,Vs}, Acc) -> collapse_connect_1(Face, Vs, Edges, Acc)
 	  end, We, FaceVs).
 
-collapse_connect_1(Face, [Va,Vb], We0) ->
+collapse_connect_1(Face, [Va,Vb], {EdgeA,EdgeB}, #we{es=Etab}=We0) ->
     case wings_vertex:edge_through(Va, Vb, Face, We0) of
 	none ->
-	    {We,_} = wings_vertex:force_connect(Va, Vb, Face, We0),
-	    We;
+	    %% Here we will create one of the new edges that will
+	    %% surround the new face that will replace the vertex
+	    %% being collapsed.
+	    %% 
+	    %% Choose the vertex order so that the existing face
+	    %% will be placed on the outside (i.e. the vertex being
+	    %% collapsed will not be part of it), and the new face
+	    %% inside (two original edges, soon to be dissolved, and
+	    %% the new edge will surround the new face). This is
+	    %% particularily important when the existing face is a
+	    %% hole (the hole face would dissappear or shrink to a
+	    %% triangle if it is placed inside).
+	    %%
+	    case array:get(EdgeA, Etab) of
+		#edge{vs=Va,lf=Face,ltpr=EdgeB} ->
+		    {We,_} = wings_vertex:force_connect(Vb, Va, Face, We0),
+		    We;
+		#edge{ve=Va,rf=Face,rtpr=EdgeB} ->
+		    {We,_} = wings_vertex:force_connect(Vb, Va, Face, We0),
+		    We;
+		#edge{vs=Vb,rf=Face,rtsu=EdgeB} ->
+		    {We,_} = wings_vertex:force_connect(Vb, Va, Face, We0),
+		    We;
+		#edge{ve=Vb,lf=Face,ltsu=EdgeB} ->
+		    {We,_} = wings_vertex:force_connect(Vb, Va, Face, We0),
+		    We;
+		_ ->
+		    {We,_} = wings_vertex:force_connect(Va, Vb, Face, We0),
+		    We
+	    end;
 	_ -> We0
     end;
-collapse_connect_1(_, _, We) -> We.
+collapse_connect_1(_, _, _, We) -> We.
 
 collapse_vtx_faces([V|Vs], We, Acc0) ->
     Acc = wings_vertex:fold(

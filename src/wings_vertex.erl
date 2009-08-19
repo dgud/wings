@@ -447,7 +447,10 @@ try_connect_1(Va, Vb, Face, We0) ->
 
 %% force_connect(Vstart, Vend, Face, We0) -> We
 %%  Create a new edge between the vertices Vstart and Vend
-%%  in face Face. (A new face will also be created.)
+%%  in face Face, also creating a new face.
+%%
+%%  The edges between Vstart and Vend (in the clockwise direction)
+%%  and the left side of the new edge will belong to the new face.
 %%
 force_connect(Vstart, Vend, Face, #we{es=Etab0,fs=Ftab0}=We0) ->
     {NewFace,We1} = wings_we:new_ids(1, We0),
