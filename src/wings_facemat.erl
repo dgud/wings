@@ -69,14 +69,13 @@ mat_faces(Ftab, #we{mat=MatTab}) ->
 
 %% any_interesting_materials(We) -> true|false
 %%  Find out whether there are any interesting materials
-%%  (not 'default' and not '_hole_).
+%%  (not 'default').
 any_interesting_materials(#we{mat=Mat0}) ->
     Mat = case is_atom(Mat0) of
 	      true -> [Mat0];
 	      false -> Mat0
 	  end,
     any(fun(default) -> false;
-	   ('_hole_') -> false;
 	   (_)  -> true
 	end, Mat).
 

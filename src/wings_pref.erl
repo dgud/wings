@@ -430,7 +430,6 @@ defaults() ->
      {normal_vector_color,{0.0,0.0,0.65}},
      {smart_highlighting,false},
      {material_default,{1.0,1.0,1.0}},
-     {material_hole,{0.0,0.0,0.9}},
 
      {selection_style,solid},
      {hide_sel_while_dragging,false},
@@ -624,7 +623,8 @@ not_bad(wire_edge_color, _) -> false;
 not_bad(show_wire_backfaces, _) -> false;	%Now a window property.
 not_bad(smoothed_preview_cage, _) -> false;
 not_bad(smoothed_preview_edges, _) -> false;
-not_bad(contour,_) -> false;
+not_bad(contour, _) -> false;
+not_bad(material_hole, _) -> false;
 
 %% Crashes have occurred.
 not_bad(last_axis, Val) -> is_wings_vector(Val);

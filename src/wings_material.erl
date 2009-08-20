@@ -84,7 +84,7 @@ command({duplicate,MatList}, St) ->
 command({delete,MatList}, St) ->
     delete_material(MatList, St);
 command({rename,MatList0}, St) ->
-    case MatList0 -- ["default","_hole_"] of
+    case MatList0 -- ["default"] of
 	[] -> St;
 	MatList -> rename(MatList, St)
     end;
@@ -117,8 +117,6 @@ duplicate_material([M0|Ms], #st{mat=Mat}=St0) ->
 duplicate_material([], St) -> St.
 
 delete_material(["default"|Ms], St) ->
-    delete_material(Ms, St);
-delete_material(["_hole_"|Ms], St) ->
     delete_material(Ms, St);
 delete_material([M0|Ms], #st{mat=Mat0}=St0) ->
     M = list_to_atom(M0),
@@ -208,9 +206,7 @@ set_material(_, St) -> St.
 
 default() ->
     Dm = wings_pref:get_value(material_default),
-    Hm = wings_pref:get_value(material_hole),
-    M = [{default,make_default(Dm, 1.0, [{vertex_colors,set}])},
-	 {'_hole_',make_default(Hm, 0.50)}],
+    M = [{default,make_default(Dm, 1.0, [{vertex_colors,set}])}],
     gb_trees:from_orddict(sort(M)).
 
 make_default(Color, Opacity) ->
@@ -334,11 +330,6 @@ load_map_1(File0, Dir) ->
 	    none
     end.
     
-add('_hole_'=Name, Mat, #st{mat=MatTab}=St) ->
-    case gb_trees:is_defined(Name, MatTab) of
-	true -> St;
-	false -> St#st{mat=gb_trees:insert(Name, Mat, MatTab)}
-    end;
 add(Name, Mat0, #st{mat=MatTab}=St) ->
     Mat = sort([{K,sort(L)} || {K,L} <- Mat0]),
     case gb_trees:lookup(Name, MatTab) of

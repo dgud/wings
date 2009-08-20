@@ -121,14 +121,11 @@ gen_prefs() ->
 	    {color,?__(46,"Color"),normal_vector_color,
 	     [{info,?__(47,"Color of normals")}]}]}],
 	 [{title,?__(48,"Normals Display")}]},
-  {vframe,
-	[{label_column,
-	 [{color,?__(51,"Default"),material_default,
-	  [{info,?__(52,"Sets the colour of the default material")}]},
-	  {color,?__(53,"Hole"),material_hole,
-	  [{info,?__(54,"Sets the colour of the hole material")}]}]}],
+	{vframe,
+	 [{label_column,
+	   [{color,?__(51,"Default"),material_default,
+	     [{info,?__(52,"Sets the colour of the default material")}]}]}],
 	 [{title,?__(55,"Materials")}]}]},
-	
 	  {hframe,
 	   [{vframe,
 	 [{?__(36,"Show Axis Letters"),show_axis_letters},
@@ -655,9 +652,6 @@ smart_set_value_1(Key, Val, St) ->
 		material_default ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(3,"The change to the default material color will take\neffect the next time Wings 3D is started."));
-		material_hole ->
-		    delayed_set_value(Key, OldVal, Val),
-		    wings_u:message(?__(5,"The change to the hole material color will take\neffect the next time Wings 3D is started."));
 		show_develop_menu ->
 		    wings:init_menubar(),
 		    foreach(fun(W) ->
