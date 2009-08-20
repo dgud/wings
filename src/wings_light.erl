@@ -688,9 +688,7 @@ import_we(#light{type=area}=Light, OpenGL, {X,Y,Z}) ->
 	    none ->
 		#e3d_mesh{type=polygon,
 			  fs=[#e3d_face{vs=[0,1,2,3],
-					mat=[default]},
-			      #e3d_face{vs=[3,2,1,0],
-					mat=['_hole_']}],
+					mat=[default]}],
 			  vs=[{X+1.0,Y,Z+1.0},{X-1.0,Y,Z+1.0},
 			      {X-1.0,Y,Z-1.0},{X+1.0,Y,Z-1.0}]};
 	    {mesh,M} -> import_fix_mesh(M)
@@ -932,14 +930,13 @@ light_pos(We) ->
     wings_vertex:center(We).
 
 arealight_posdirexp(#we{light=#light{type=area}}=We) ->
-    FaceMats = wings_facemat:all(We),
+    Faces = wings_we:visible(We),
     ANCs = 
 	[begin 
 	     {wings_face:area(Face, We),
 	      wings_face:normal(Face, We),
 	      wings_face:center(Face, We)}
-	 end || {Face,Mat} <- FaceMats, 
-		(Mat =/= '_hole_') andalso wings_face:good_normal(Face, We)],
+	 end || Face <- Faces, wings_face:good_normal(Face, We)],
     Area = foldl(fun ({A,_,_}, Acc) -> A+Acc end, 0.0, ANCs),
     AreaNormal = 
 	foldl(fun ({A,N,_}, Acc) -> 
@@ -969,18 +966,13 @@ move_light(Pos, #we{vp=Vtab0}=We) ->
     Vtab = array:sparse_map(fun(V, _) -> {V,Pos} end, Vtab0),
     We#we{vp=Vtab}.
 
-shape_materials(#light{diffuse={_,_,_,Af}=Front,ambient={_,_,_,Ab}=Back}, St) ->
+shape_materials(#light{diffuse={_,_,_,Af}=Front}, St) ->
     BlackF = {0.0,0.0,0.0,Af},
-    BlackB = {0.0,0.0,0.0,Ab},
     Default = 
 	sort([{opengl,sort([{diffuse,BlackF},{ambient,BlackF},{specular,BlackF},
 			    {emission,Front},{shininess,0.0}])},
 	      {maps,[]}]),
-    Hole = 
-	sort([{opengl,sort([{diffuse,BlackB},{ambient,BlackB},{specular,BlackB},
-			    {emission,Back},{shininess,0.0}])},
-	      {maps,[]}]),
-    wings_material:update_materials([{default,Default},{'_hole_',Hole}], St).
+    wings_material:update_materials([{default,Default}], St).
 
 mul_point({1.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,1.0, Tx,Ty,Tz}, {X,Y,Z}) ->
     {X+Tx,Y+Ty,Z+Tz};
