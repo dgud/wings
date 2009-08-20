@@ -20,7 +20,7 @@
 	 set_edge_color/4,
 	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/2,
 	 set_vtx_face_uvs/4,
-	 remove/2,renumber/2,merge/2,gc/1,any_update/2]).
+	 remove/2,remove/3,renumber/2,merge/2,gc/1,any_update/2]).
 
 -include("wings.hrl").
 
@@ -415,6 +415,25 @@ remove(uv, We) ->
     remove_1(fun(_, [none|_]) -> none;
 		(_, [Color|_]) -> [Color|none]
 	     end, We).
+
+%% remove(What, We0) -> We
+%%       What = all
+%%  Remove the specified kind of attributes from the object.
+%%
+-spec remove('color'|'uv'|'all', [face_num()], #we{}) -> #we{}.
+remove(_, _, #we{lv=none,rv=none}=We) ->
+    We;
+remove(all, Faces, #we{lv=Lva0,rv=Rva0}=We) ->
+    F = fun(Face, _, E, Rec, {Lv,Rv}) ->
+		case Rec of
+		    #edge{lf=Face} ->
+			{areset(E, Lv),Rv};
+		    #edge{rf=Face} ->
+			{Lv,areset(E, Rv)}
+		end
+	end,
+    {Lva,Rva} = wings_face:fold_faces(F, {Lva0,Rva0}, Faces, We),
+    We#we{lv=Lva,rv=Rva}.
 
 %% renumber(GbTreesEdgeMap, We0) -> We
 %%  Renumbers vertex attributes using EdgeMap, a gb_tree
@@ -823,6 +842,9 @@ gc_2([], _, Acc) ->
 aset(_, none, none) -> none;
 aset(K, V, none) -> array:set(K, V, array:new({default,none}));
 aset(K, V, A) -> array:set(K, V, A).
+
+areset(_, none) -> none;
+areset(K, A) -> array:reset(K, A).
 
 aget(_, none) -> none;
 aget(K, A) -> array:get(K, A).
