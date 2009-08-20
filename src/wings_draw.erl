@@ -955,23 +955,23 @@ draw_mat_faces(MatGroups, Mtab, ActiveColor) ->
 	    %% Showing of materials has been turned off. Use
 	    %% the 'default' material for all faces.
 	    gl:pushAttrib(?GL_TEXTURE_BIT),
-	    gl:pushClientAttrib(?GL_CLIENT_VERTEX_ARRAY_BIT),
-	    wings_material:apply_material(default, Mtab, ActiveColor),
+	    DeApply = wings_material:apply_material(default, Mtab,
+						    ActiveColor),
 	    foreach(
 	      fun({_,Type,Start,NumElements}) ->
 		      gl:drawArrays(Type, Start, NumElements)
 	      end, MatGroups),
-	    gl:popClientAttrib(),
+	    DeApply(),
 	    gl:popAttrib();
 	true ->
 	    %% Show materials.
 	    foreach(
 	      fun({Mat,Type,Start,NumElements}) ->
 		      gl:pushAttrib(?GL_TEXTURE_BIT),
-		      gl:pushClientAttrib(?GL_CLIENT_VERTEX_ARRAY_BIT),
-		      wings_material:apply_material(Mat, Mtab, ActiveColor),
+		      DeApply = wings_material:apply_material(Mat, Mtab,
+							      ActiveColor),
 		      gl:drawArrays(Type, Start, NumElements),
-		      gl:popClientAttrib(),
+		      DeApply(),
 		      gl:popAttrib()
 	      end, MatGroups)
     end.
