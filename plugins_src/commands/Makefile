@@ -31,6 +31,8 @@ endif
 MODULES= \
 	wpc_absolute_move \
 	wpc_absolute_scale \
+	wpc_ambocc \
+	ambocc_gl2 \
 	wpc_arc_intersect \
 	wpc_bend \
 	wpc_circularise \
@@ -51,7 +53,6 @@ MODULES= \
 	wpc_turnedge \
 	wpc_tweak \
 	wpc_untriangulate \
-	wpc_ambocc \
 	wpc_weld
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
