@@ -1,3 +1,51 @@
+--- 1.1.11 ---------------------------------------------------------------------
+- Clicking the Cancel button in the file dialog for Mac OS X
+  would cause a hard crash. (Thanks to ycarry.) [bjorng]
+
+- Wings have had the _hole_ material for a long time to fake
+  holes by marking faces that should not be included when exporting.
+  
+  This release introduce the command Face|Hole to create a holes
+  that looks like holes also in the Geometry window.
+  
+  To remove a hole, select a face adjacent to the hole and RMB
+  click on the Face|Hole command to create a face to cover the
+  hole.
+  
+  When loading old .wings files, all faces containing the _hole_
+  material will be converted to the new type of hole.
+  
+  If you load a .wings file saved with this version of Wings in
+  an old release, the holes will become hidden faces, but they
+  will NOT have the _hole_ material (i.e. they will not behave
+  as holes when exported). [bjorng]
+
+- The Turn Edge command will now only turn edges that have
+  visible faces on both sides. In previous releases, it would happily
+  turn edges next to invisible faces (even edges making up the
+  virtual mirror face). [bjorng]
+
+- Face|Extrude (on regions) could be slow if many faces were
+  selected in a pattern with many inner corners (e.g. the selection
+  obtained by first selecting a single face and then pressing
+  "F" repeatedly). [bjorng]
+
+- Palette window: Fixed crash and made the scan command aware
+  of the selection mode. (Thanks to Fonteboa and Deerwood.) [dgud]
+
+- Added an edge filter. Original idea and code from Ed Kolis. [dgud]
+
+- Yafray exporter:
+  * Changed default settings for Photon Spotlight.
+  
+  * Added to Help info.
+  
+  * Changed type for HDRI from HDRI to Image.
+  
+  * Added .EXR to HDRI Background file browser.
+  
+  * Added Prefilter option for Ambient light background. [oort]
+
 --- 1.1.10 ---------------------------------------------------------------------
 - Tools|Snap Image was broken in several ways. It will now
   also preserve vertex colors. (Thanks to PuzzledPaul.) [bjorng]
