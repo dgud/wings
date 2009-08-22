@@ -716,15 +716,12 @@ outer_verts(We = #we{es=Etab}) ->
 %% and not on the process heap spent hours debugging this.. :-(
 to_bin(List, uv) -> to_bin3to2(List,[<<0:512>>]);
 to_bin(List, pos) -> to_bin3(List,[<<0:512>>]);
-to_bin(List, vertex) -> to_bin3(List,[<<0:512>>]);  %% Vertex colors
-to_bin(List, material) -> to_bin2(List,[<<0:512>>]).  %% UV coords.
+to_bin(List, vertex) -> to_bin3(List,[<<0:512>>]).  %% Vertex colors
 
 to_bin3([{A,B,C}|R],Acc) -> 
     to_bin3(R,[<<A:32/native-float,B:32/native-float,C:32/native-float>>|Acc]);
 to_bin3([],Acc) -> list_to_binary(Acc).
-to_bin2([{A,B}|R],Acc) -> 
-    to_bin2(R,[<<A:32/native-float,B:32/native-float>>|Acc]);
-to_bin2([],Acc) -> list_to_binary(Acc).
+
 to_bin3to2([{A,B,_}|R],Acc) -> 
     to_bin3to2(R,[<<A:32/native-float,B:32/native-float>>|Acc]);
 to_bin3to2([],Acc) -> list_to_binary(Acc).
