@@ -30,8 +30,8 @@
 	(?SDL_BUTTON_LMASK bor ?SDL_BUTTON_MMASK bor ?SDL_BUTTON_RMASK)).
 
 -import(erlang, [min/2,max/2]).
--import(lists, [reverse/1,reverse/2,duplicate/2,member/2]).
-
+-import(lists, [reverse/1,reverse/2,duplicate/2,member/2,
+		foldl/3,sum/1,duplicate/1]).
 
 
 %%-define(DEBUG_CATEGORIES, [temp]).
@@ -2694,6 +2694,7 @@ label_draw([], _, _) -> keep.
 
 -record(table,
 	{head,					%Table header.
+	 col_widths,				%Column widths.
 	 num_els,				%Number of elements.
 	 elh,					%Height of each element.
 	 rows,					%Number of rows.
@@ -2707,15 +2708,21 @@ label_draw([], _, _) -> keep.
 %% list is the original list of all elements.
 
 mktree_table([Head|Elements], Sto, I, Flags) ->
+    NumCols = tuple_size(Head),
     Rows = proplists:get_value(rows, Flags, 20),
     Elh = proplists:get_value(element_height, Flags, ?LINE_HEIGHT),
-    Cw = element(1, proplists:get_value(col_widths, Flags, {30})),
+
+    %% Default width is 30 for the first columns, 10 for all others.
+    ColWidths0 = setelement(1, erlang:make_tuple(NumCols, 10), 30),
+    ColWidths1 = proplists:get_value(col_widths, Flags, ColWidths0),
+    CharWidth = wings_text:width(),
+    ColWidths = [Cw*CharWidth || Cw <- tuple_to_list(ColWidths1)],
+    W = sum(ColWidths),
     Fun = fun table_event/3,
     TopMarg = wings_text:height()+3,
-    W = Cw*wings_text:width(),
     H = Rows * Elh + TopMarg + 6,
-    T = #table{head=tuple_to_list(Head),num_els=length(Elements),
-	       elh=Elh,rows=Rows,tmarg=TopMarg},
+    T = #table{head=tuple_to_list(Head),col_widths=ColWidths,
+	       num_els=length(Elements),elh=Elh,rows=Rows,tmarg=TopMarg},
     #fi{key=Key} = Fi = mktree_leaf(Fun, enabled, undefined, W, H, I, Flags),
     Val = {[],Elements},
     mktree_priv(Fi, gb_trees:enter(var(Key, I), Val, Sto), I, T).
@@ -2767,36 +2774,52 @@ table_is_scroll_ev_1(X, _Y, #fi{x=FiX,w=FiW}, _)
 table_is_scroll_ev_1(_, _, _, _) -> true.
 
 table_redraw(#fi{x=X,y=Y0,w=W,h=H}=Fi,
-	     #table{head=Head,elh=Elh,rows=Rows,first=First,tmarg=TopMarg}=Tab,
+	     #table{head=Head,col_widths=ColWidths0,elh=Elh,
+		    rows=Rows,first=First,tmarg=TopMarg}=Tab,
 	     {Sel0,Els0}, _DisEnabled, Active) ->
+    ColWidths = table_extend_last_col(ColWidths0, W),
     Ch = wings_text:height(),
     wings_io:sunken_rect(X, Y0+Ch+2, W, H-Ch-4, {0.9,0.9,0.9}, color4(), Active),
-    wings_io:sunken_gradient(X, Y0+2, W, Ch+1,
-			     color3_high(), color4(), Active),
-    gl:color3fv(color3_text()),
-    Y = Y0 + TopMarg,
-    wings_io:text_at(X+2, Y-2, hd(Head)),
+    table_draw_head(Head, ColWidths, X, Y0, Ch, Active, TopMarg),
     Els1 = lists:nthtail(First, Els0),
     Sel = [El-First || El <- Sel0],
     Els = table_mark_sel(Els1, Sel),
-    table_draw_els(Els, Rows, X+2, Y, W, Elh),
+    Y = Y0 + TopMarg,
+    table_draw_els(Els, ColWidths, Rows, X+2, Y, W, Elh),
     table_draw_scroller(Fi, Tab),
     keep.
 
-table_draw_els(_, 0, _, _, _, _) -> ok;
-table_draw_els([], _, _, _, _, _) -> ok;
-table_draw_els([{sel,El}|Els], Rows, X, Y, W, Elh) ->
-    {_,Text} = element(1, El),
+table_extend_last_col([_], WidthLeft) ->
+    [WidthLeft];
+table_extend_last_col([Cw|Cws], WidthLeft) ->
+    [Cw|table_extend_last_col(Cws, WidthLeft-Cw)].
+
+table_draw_head([H|T], [Cw|ColWidths], X, Y, Ch, Active, TopMarg) ->
+    wings_io:sunken_gradient(X, Y+2, Cw, Ch+1,
+			     color3_high(), color4(), Active),
+    gl:color3fv(color3_text()),
+    wings_io:text_at(X+2, Y+TopMarg-2, H),
+    table_draw_head(T, ColWidths, X+Cw, Y, Ch, Active, TopMarg);
+table_draw_head([], [], _, _, _, _, _) -> ok.
+
+table_draw_els(_, _, 0, _, _, _, _) -> ok;
+table_draw_els([], _, _, _, _, _, _) -> ok;
+table_draw_els([{sel,El}|Els], Cws, Rows, X, Y, W, Elh) ->
     gl:color3f(0, 0, 0.5),
     gl:recti(X, Y+3, X+W-6, Y+Elh+3),
     gl:color3f(1, 1, 1),
-    wings_io:text_at(X, Y+Elh, Text),
+    table_draw_row(El, 1, Cws, X, Y, Elh),
     gl:color3fv(color3_text()),
-    table_draw_els(Els, Rows-1, X, Y+Elh, W, Elh);
-table_draw_els([El|Els], Rows, X, Y, W, Elh) ->
-    {_,Text} = element(1, El),
+    table_draw_els(Els, Cws, Rows-1, X, Y+Elh, W, Elh);
+table_draw_els([El|Els], Cws, Rows, X, Y, W, Elh) ->
+    table_draw_row(El, 1, Cws, X, Y, Elh),
+    table_draw_els(Els, Cws, Rows-1, X, Y+Elh, W, Elh).
+
+table_draw_row(Cols, I, [Cw|Cws], X, Y, Elh) ->
+    {_,Text} = element(I, Cols),
     wings_io:text_at(X, Y+Elh, Text),
-    table_draw_els(Els, Rows-1, X, Y+Elh, W, Elh).
+    table_draw_row(Cols, I+1, Cws, X+Cw, Y, Elh);
+table_draw_row(_, _, [], _, _, _) -> ok.
 
 table_mark_sel(Els, []) -> Els;
 table_mark_sel(Els, Sel) -> table_mark_sel_1(Els, 0, Sel).
