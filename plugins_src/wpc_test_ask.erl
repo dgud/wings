@@ -118,7 +118,8 @@ table_dialog(_) ->
     Dir = filename:dirname(code:which(wings)),
     {ok,Files0} = file:list_dir(Dir),
     Files = [table_file(F, Dir) || F <- Files0],
-    Qs = [{table,[{"Filename","Size","Modified"}|Files]}],
+    Qs = [{table,[{"Filename","Size","Modified"}|Files],
+	   [{col_widths,{30,10,25}}]}],
     Ask = fun(Res) ->
 		  io:format("~p\n", [Res]),
 		  ignore
@@ -128,8 +129,14 @@ table_dialog(_) ->
 table_file(F, Dir) ->
     {ok,#file_info{mtime=Mtime,size=Sz}} =
 	file:read_file_info(filename:join(Dir, F)),
-    DateTime = lists:flatten(io_lib:format("~p", [Mtime])),
+    {{Y,Mon,D},{H,Min,_}} = Mtime,
+    DateTime = lists:flatten(io_lib:format("~w-~s-~s ~s:~s",
+					   [Y,num00(Mon),num00(D),
+					    num00(H),num00(Min)])),
     {{F,F},{Sz,integer_to_list(Sz)},{Mtime,DateTime}}.
+
+num00(N) ->
+    tl(integer_to_list(N+100)).
 
 filename_dialog(_) ->
     Filename = code:which(?MODULE),
