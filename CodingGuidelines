@@ -1,0 +1,339 @@
+The most important coding rule is to imitate the existing code
+(that is always a good idea in any project you are contributing
+to). If you add or modify code in existing modules, try to match
+the style of the surrounding code in the module.
+
+First a few general rules that perhaps go without saying:
+
+- Make sure that your code compiles without warnings.
+
+- Make sure that there are no calls to undefined functions.
+  In the Wings shell, use wx(). (Use wh() to show a list of
+  other useful utility commands.)
+
+- This is not really a coding guideline, but don't forget
+  Bjorn's Law: "If it isn't tested, it doesn't work." This law
+  has proved itself to be correct many times in the fifteen years
+  or so since I formulated it. There is no change to the code
+  (or Makefile) that is so trivial that it can't possibly be wrong
+  and does not need testing.
+
+- Don't sacrifice clarity for efficiency, unless it is truly
+  needed. Make sure that you measure (use the ?TC() macro) to
+  find the real bottleneck before you start optimizing. Even good
+  programmers are usually wrong when they try to guess where the
+  where the bottlenecks are located.
+
+  There some hints about efficiency in the guidelines below. For
+  more about efficiency, see 
+
+      http://www.erlang.org/doc/efficiency_guide/part_frame.html
+
+And now over to more concrete rules:
+
+- Indent Erlang code using a mixture of tabs and spaces,
+  and interpret tabs as up to 8 spaces (this is the default
+  settings for the Erlang mode in Emacs).
+
+  It is also OK to indent using spaces only, if you use an
+  editor where it is difficult to mix tabs and spaces.
+
+  What is not OK is to change the definitions of tabs in your
+  editor, because that will make indentation look different
+  for everybody else.
+
+- Each new level should be indented 4 more positions than
+  the previous one (default for the Erlang mode in Emacs).
+
+- One percent character ("%") is used for comments *only* following
+  a line of code. Never place single percent characters at the
+  beginning of a line. Example:
+
+     -record(some_record,
+             {bar,                         %List of bar objects
+	      foo			   %Keep track of the foos
+              .
+	      .
+	      .
+ 	      }).
+
+- Use two percent characters ("%%") for comment blocks before
+  a function or inside a function. Thus the percent characters are
+  either at the beginning of a line or preceded by white-space.
+  See src/wings_va.erl for the recommend way to comment exported
+  API functions.
+
+- Use three percent characters ("%%%") for comments that apply
+  to more than one function. For instance like this:
+
+     %%%
+     %%% Local functions.
+     %%%
+
+  to indicate that the rest of the file contain local functions.
+
+- Try to use at most 80 characters per line.
+
+- Never comment out deleted code. Delete it from the file. We
+  use Git to keep track of the history of the file. Explain in
+  the check-in comment why you deleted the code. (The only
+  acceptable exception is *frequently* used io:format/2 calls used
+  for debugging.)
+
+- Place the exported functions (and no local function) at the
+  beginning of the module. Local functions should follow all exported
+  functions. (This rule apply to new modules. Do not change all modules
+  that break that rule at once. We will do it step-by-step when doing
+  other changes to avoid huge diffs in the Git repository.)
+
+- Place one blank line between each function definition, except possibly
+  for related one-line functions.
+
+- Do not use -import. Use fully qualified calls -
+  Module:Function(Arguments...) - instead.
+
+- But do import functions (such as map/2, reverse/1, and foldl/3) from
+  the 'lists' module. Importing those functions (that can be thought
+  of being part of the language) improves readability so much that
+  it justifies breaking the general rule. Further justification:
+  Robert Virding does it this way. (Robert Virding is one of the
+  original inventors of Erlang.)
+
+- Also import min/2 and max/2 from the 'erlang' module for the
+  same reason.
+
+- Commas in function heads and function calls should be followed
+  by one space. Example:
+
+      g(A, B, C) ->
+          A + g(B, c).
+
+- Don't use any space after commas in terms and records. Example:
+
+      {ok,[1,2,3]}
+
+- Don't use spaces around '=' in records.
+
+- When you want to match and bind a variable at the same time in a
+  function head or case clause, put the pattern before the variable,
+  and no spaces around the '='. Example:
+
+       foo(#edge{vs=Va,lf=Lf}=Rec) ->
+            ...
+
+- Never use is is_record/2. Match the record directly instead:
+
+       bar(#we{}=We) ->
+           ...
+
+  The Erlang compiler usually generate better code if the
+  record is matched directly, especially if there are other
+  clauses that match other records or data structures.
+
+- Prefer matching out variables from records like this
+
+       foobar(Face, #we{fs=Ftab0}=We) ->
+            case gb_trees:get(Face, Ftab0) of
+	    	 ......
+
+  instead of using the Rec#record.field syntax
+
+       foobar(Face, We) ->
+            case gb_trees:get(Face, We#we.fs) of
+	    	 ...
+
+  The Erlang compiler usually generates better code in the former
+  case. Especially avoid using the Rec#record.field in guards, as
+  the Erlang compiler usually generates terrible code. That is,
+  do NOT write:
+
+        bad_idea(We) when We#we.id > 0 ->
+            ...
+
+- Spread out record definitions on multiple lines with each field
+  name on separate line and comment each field with a comment
+  on the same line.
+
+- Atom and function names consisting of several words should be
+  written in lowercase and combined with underscores ('_').
+  Example: long_atom_name
+
+- Variable names consisting of several words should be written in
+  CamelCase, that is, the first letter of each word should be in
+  uppercase and the words should be joined together without spaces.
+  Example: VariableInCamelCase
+
+- Frequently used variables are better kept short, to avoid having
+  to break too many lines. Try to use the existing conventions
+  instead of inventing your own. Common names to hold entire
+  records are:
+
+  	We to hold a #we{} record
+  	St to hold a #st{} record
+
+  Common names for record fields are:
+
+	#we{fs=Ftab,es=Etab,vp=Vtab}
+
+	#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,
+	      ltpr=Ltpr,ltsu=Ltsu,rtpr=Rtpr,rtsu=Rtsu}
+
+  If you have no better names (more specific), use [H|T] for
+  matching out the head and tail of a list (there is no reason to
+  use longer names such as [Head|Tail] and [First|Rest]).
+
+- When naming variables, atoms, and functions, prefer pronounceable
+  names. Avoid names such as "Btn" (short for "Button") and "Mnu"
+  (short for "Menu") which were constructed by removing vowels from
+  a single word.
+
+  Accepted abbreviations such as HTML is OK to use in variable names,
+  as are new abbreviations constructed by taking the first letter of
+  several words (e.g. "Lf" which stands for "Left Face").
+
+  Naming is the hardest thing in programming (at least for me) and in
+  the end you will just have to use your common sense to come up
+  with good names.
+
+- Don't look into abstract/opaque data types. For instance, do NOT
+  write like this
+  
+         ugly_selected_element(#st{sel=[{Id,{1,Element,_,_}}]}=St) ->
+             do_something(Id, Element, St);
+	 ugly_selected_element(_) ->
+	     wings_u:error("Only select a single element.").
+  
+  to implement a command that only accepts a selection containing
+  a single element. Breaking abstractions is not acceptable. You
+  will just have to bite the bullet and write:
+
+         selected_element(#st{sel=[{Id,Sel}]}=St) ->
+	     case gb_sets:to_list(Sel) of
+	         [Element] ->
+		     do_something(Id, Element, St);
+		 _ ->
+		     mul_sel_error()
+             end;
+	 selected_element(_) -> mul_sel_error().
+
+         mul_sel_error() ->
+	     wings_u:error("Only select a single element.").
+
+  Common abstract data types in the standard libraries are
+  gb_trees, gb_sets, array, dict, and sets. In Wings, we have
+  the wings_va module that must be used for all manipulation of
+  vertex attributes.
+
+- Use existing APIs and libraries. Don't write new code to
+  manipulate common data structures before doing a serious attempt
+  to find out whether there is existing functionality that can
+  solve your problem.
+
+- Never use size/1; use either tuple_size/1 or byte_size/1.
+
+- Don't use lists:keysearch/3; use lists:keyfind/3 (introduced
+  in R13B) which eliminates the outer '{value,...}' tuple.
+
+- Avoid 'and' and 'or'. They force you to use parenthesis around
+  the conditions
+
+        (A =:= B) and (C =:= D)
+
+  Instead, use comma (for 'and') or semi-colon (for 'or') in guards
+
+        f(A, B, C, D) when A =:= B, C =:= D ->
+	    ...
+
+  For Boolean expression outside of guards, prefer 'andalso'/'orelse':
+
+        case A =:= B andalso C =:= D of
+	    false -> ...'
+	    true -> ...
+        end
+
+  Only use 'and' or 'or' if it is important that the right-hand side
+  is evaluated. For instance, the following expression
+
+        true or length(L) > 1
+
+  will cause an exception if L is not bound to a list, while 
+
+        true orelse length(B) > 1
+
+  will never cause an exception.
+
+  'and' and 'andalso' will in general only behave differently when they
+  are nested inside another Boolean expression or in a negated Boolean
+  expression. For example, the following expression
+
+         not (false and (length(L) > 42))
+
+  will behave differently from 
+
+         not (false andalso length(L) > 42)
+
+  when L is not bound to a list.
+
+- Only use 'andalso'/'orelse' in guards when ',' and ';' cannot say
+  what you want to say. For example, do not write
+
+         foo(A, B) when A =:= 7 orelse B =:= 42 ->
+	     ...
+
+  when
+
+         foo(A, B) when A =:= 7; B =:= 42 ->
+	     ...
+
+  will do just fine.
+
+- When you need several variable names in order to update a data
+  structure, number using "0" as suffix for the first instance.
+  Example:
+
+         update(We0) ->
+	     We1 = some_update(We0),
+	     We2 = some_other_update(We1),
+	     We = penultimate_update(We2),
+	     final_update(We).
+
+- Note the difference between '==' and '=:=':
+
+         2 == 2.0 returns 'true'.
+         2 =:= 2.0 returns 'false'.
+
+  In matching, '=:=' is used implicitly. So given the following
+  function definition
+
+         equal(Same, Same) -> true;
+         equal(_, _) -> false.
+
+  calling cmp(2, 2) will return 'true' and cmp(2, 2.0) returns
+  'false'. So to be consistent with matching, you must use the
+  '=:=' operator.
+
+  On the other hand, the '<', '>', '=<', and '>=' operators all
+  behave similar to '=='. Therefore, in the following function
+
+         cmp(A, B) when A < B -> less;
+         cmp(A, B) when A == B -> equal;
+         cmp(A, B when A > B -> greater.
+
+  the operator in the second cluase must be '==' and not '=:='.
+  If the function was defined like this
+
+         bad_cmp(A, B) when A < B -> less;
+         bad_cmp(A, B) when A =:= B -> equal;
+         bad_cmp(A, B when A > B -> greater.
+
+  the call bad_cmp(2, 2.0) will cause 'function_clause' exception
+  because none of the clauses will match.
+
+  For non-numeric data types, '==' and '=:=' gives the same result,
+  but '=:=' is slightly faster.
+
+  To corresponding operators for testing non-equality are called
+  '/=' and '=/='.
+
+  I recommend using '=:=' and '=/=' unless there is a specific
+  reason not to.
