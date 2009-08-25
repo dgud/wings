@@ -258,6 +258,8 @@ mirror_constrain(Tvs, #we{mirror=Face,fs=Ftab}=We) ->
 	    mirror_constrain_1(Tvs, VsSet, {N,Vpos}, [])
     end.
 
+mirror_constrain_1([{we,Tr}=Fun|Tvs], VsSet, N, Acc) when is_function(Tr) ->
+    mirror_constrain_1(Tvs, VsSet, N, [Fun|Acc]);
 mirror_constrain_1([{Vs,Tr0}=Fun|Tvs], VsSet, N, Acc) when is_function(Tr0) ->
     case ordsets:intersection(ordsets:from_list(Vs), VsSet) of
 	[] ->
