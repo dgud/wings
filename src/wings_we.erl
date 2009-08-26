@@ -397,7 +397,7 @@ show_faces_1(Faces, #we{es=Etab0}=We0) ->
 	   end,
     Etab = wings_face:fold_faces(Show, Etab0, Faces, We0),
     We = We0#we{es=Etab,fs=undefined},
-    wings_facemat:show_faces(rebuild(We)).
+    wings_facemat:show_faces(Faces, rebuild(We)).
 
 validate_mirror(#we{mirror=none}=We) -> We;
 validate_mirror(#we{fs=Ftab,mirror=Face}=We) ->

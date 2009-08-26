@@ -19,7 +19,7 @@
 	 any_interesting_materials/1,
 	 assign/2,assign/3,
 	 delete_face/2,delete_faces/2,keep_faces/2,
-	 hide_faces/1,show_faces/1,
+	 hide_faces/1,show_faces/2,
 	 renumber/2,gc/1,merge/1]).
 
 -include("wings.hrl").
@@ -140,12 +140,12 @@ hide_faces(#we{mat=L0,fs=Ftab}=We) ->
     L = hide_faces_1(L0, Ftab, []),
     We#we{mat=L}.
 
-%% show_faces(We) -> We'
-%%  Update the material name mapping in the We to reflect
-%%  that all faces are again visible.
-show_faces(#we{mat=M}=We) when is_atom(M) -> We;
-show_faces(#we{mat=L0}=We) ->
-    L = show_faces_1(L0, []),
+%% show_faces(Faces, We) -> We'
+%%  Update the material name mapping in the We for all faces
+%%  in the list Faces.
+show_faces(_, #we{mat=M}=We) when is_atom(M) -> We;
+show_faces(Faces, #we{mat=L0}=We) ->
+    L = show_faces_1(Faces, L0, []),
     We#we{mat=L}.
 
 %% renumber(MaterialMapping, FaceOldToNew) -> MaterialMapping.
@@ -264,9 +264,11 @@ hide_faces_1([{F,M}=P|Fms], Ftab, Acc) ->
     end;
 hide_faces_1([], _, Acc) -> sort(Acc).
 
-show_faces_1([{F,M}|Fms], Acc) when F < 0 ->
-    show_faces_1(Fms, [{-F-1,M}|Acc]);
-show_faces_1(Fs, Acc) -> sort(Acc++Fs).
+show_faces_1([F|Fs], [{F,M}|Fms], Acc) ->
+    show_faces_1(Fs, Fms, [{-F-1,M}|Acc]);
+show_faces_1([_|_]=Fs, [FaceMat|Fms], Acc) ->
+    show_faces_1(Fs, Fms, [FaceMat|Acc]);
+show_faces_1([], Fs, Acc) -> sort(Acc++Fs).
 
 renumber_1([{F,M}|T], Fmap, Acc) ->
     renumber_1(T, Fmap, [{gb_trees:get(F, Fmap),M}|Acc]);
