@@ -12,6 +12,9 @@
 %%
 
 -module(wings_draw_setup).
+
+-export([we/3]).  %% For plugins
+
 -export([work/2,smooth/2,prepare/3,flat_faces/2]).
 -export([enableVertexPointer/1,enableNormalPointer/1,
 	 enableColorPointer/1,enableTexCoordPointer/1,
@@ -23,6 +26,36 @@
 -include("wings.hrl").
 
 -import(lists, [reverse/1,any/2,sort/1]).
+
+%%%
+%%% we(We, [Option], St) -> #vab{} See wings.hrl
+%%%    Generates rendering buffers from a we,
+%%%    reuses data if available.
+%%% Options are:
+%%%    {smooth, true|false}  default false
+%%%    {subdiv, Level}       default  0 not implemented yet.
+%%%
+we(We, Options, St) ->
+    wings_dl:fold(fun(Dl, undefined) -> we_1(Dl, We, Options, St);
+		     (_Dl, Res)      -> Res
+		  end, undefined).
+
+we_1(Dlo=#dlo{src_we=Orig=#we{id=Id}}, Curr=#we{id=Id}, Opt, St) ->
+    case Orig =:= Curr of
+	true  -> we_2(Dlo, Opt, St);
+	false -> we_2(#dlo{src_we=Curr}, Opt, St)
+    end;
+we_1(_, _, _, _) ->
+    undefined.
+
+we_2(Dlo, Opt, St) ->
+    Smooth = proplists:get_value(smooth, Opt, false),
+    #dlo{vab=Vab} =
+	case Smooth of
+	    true ->  smooth(Dlo, St);
+	    false -> work(Dlo, St)
+	end,
+    Vab.
 
 %%%
 %%% Help functions to activate and disable buffer pointers.
@@ -65,6 +98,8 @@ disableTexCoordPointer({_Stride,_UV}) ->
 disableTexCoordPointer(none) -> ok.
 
 face_vertex_count(#dlo{vab=#vab{mat_map=[{_Mat,_Type,Start,Count}|_]}}) ->
+    Start+Count;
+face_vertex_count(#vab{mat_map=[{_Mat,_Type,Start,Count}|_]}) ->
     Start+Count.
 
 %% Setup face_vs and face_fn and additional uv coords or vertex colors
