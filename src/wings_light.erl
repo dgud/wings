@@ -15,7 +15,8 @@
 -export([light_types/0,menu/3,command/2,is_any_light_selected/1,info/1,
 	 create/2,update_dynamic/2,update_matrix/2,update/1,render/1,
 	 modeling_lights/2,global_lights/0,camera_lights/0,
-	 export/1,export_camera_lights/0,import/2,import/1,shape_materials/2,
+	 export/1,export_bc/1,export_camera_lights/0,
+	 import/2,import/1,shape_materials/2,
 	 light_pos/1]).
 
 -define(NEED_OPENGL, 1).
@@ -309,7 +310,7 @@ edit(_) -> wings_u:error(?__(1,"Select only one light.")).
 
 edit(Id, #st{shapes=Shs}=St) ->
     We = #we{light=#light{type=Type}} = gb_trees:get(Id, Shs),
-    {Name,Prop} = get_light(We),
+    {Name,Prop} = get_light(We, false),
     case Type of
 	ambient ->
 	    {dialog,Qs,Fun} = edit_ambient_dialog(Name, Prop, We, Shs, St),
@@ -558,9 +559,17 @@ render(#dlo{work=Light}) ->
 %%% Exporting lights.
 %%%
 
-export(#st{shapes=Shs}) ->
+%% For exporters.
+export(St) ->
+    export(St, false).
+
+%% For saving in .wings files.
+export_bc(St) ->
+    export(St, true).
+
+export(#st{shapes=Shs}, BackwardsCompatible) ->
     L = foldl(fun(We, A) when ?IS_ANY_LIGHT(We) ->
-		      [get_light(We)|A];
+		      [get_light(We, BackwardsCompatible)|A];
 		 (_, A) -> A
 	      end, [], gb_trees:values(Shs)),
     reverse(L).
@@ -581,20 +590,20 @@ export_camera_lights() ->
 		 We = #we{name = Name,
 			  vp = array:from_orddict([{1, LPos}]),
 			  light = Li#light{aim=Aim}},
-		 get_light(We)
+		 get_light(We, false)
 	 end,
     [GL(Light) || Light <- [Amb|Ls]].
 
-get_light(#we{name=Name,perm=P}=We) ->
-    Ps0 = get_light_1(We),
+get_light(#we{name=Name,perm=P}=We, BC) ->
+    Ps0 = get_light_1(We, BC),
     Ps = export_perm(P, Ps0),
     {Name,Ps}.
 
-get_light_1(#we{light=#light{type=ambient,ambient=Amb,prop=Prop}}=We) ->
+get_light_1(#we{light=#light{type=ambient,ambient=Amb,prop=Prop}}=We, _) ->
     P = light_pos(We),
     OpenGL = [{type,ambient},{ambient,Amb},{position,P}],
     [{opengl,OpenGL}|Prop];
-get_light_1(#we{light=L}=We) ->
+get_light_1(#we{light=L}=We, BC) ->
     #light{type=Type,diffuse=Diff,ambient=Amb,specular=Spec,
 	   aim=Aim,spot_angle=Angle,spot_exp=SpotExp,
 	   lin_att=LinAtt,quad_att=QuadAtt,prop=Prop} = L,
@@ -614,7 +623,7 @@ get_light_1(#we{light=L}=We) ->
 		 true -> OpenGL0
 	     end,
     OpenGL = case Type of
-		 area -> [{mesh,export_mesh(We)}|OpenGL1];
+		 area -> [{mesh,export_mesh(We, BC)}|OpenGL1];
 		 _ -> OpenGL1
 	     end,
     [{opengl,OpenGL}|Prop].
@@ -636,9 +645,14 @@ export_perm(P, Ps) when is_integer(P) ->
 	 mat=[],				%Materials for face.
 	 vis=-1}).				%Visible edges (as in 3DS).
 
-export_mesh(We) ->
+export_mesh(We, BC) ->
     #e3d_mesh{fs=Fs0} = Mesh = wings_export:make_mesh(We, []),
-    Fs = [export_fix_face(F) || F <- Fs0],
+    Fs = case BC of
+	     false ->
+		 Fs0;
+	     true ->
+		 [export_fix_face(F) || F <- Fs0]
+	 end,
     Mesh#e3d_mesh{fs=Fs}.
 
 export_fix_face(#e3d_face{vs=Vs,mat=Mat}) ->

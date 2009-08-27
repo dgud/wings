@@ -572,7 +572,7 @@ translate_old_holes_1(#we{fs=Ftab}=We0) ->
 export(Name, St0) ->
     wings_pb:start( ?__(1,"saving")),
     wings_pb:update(0.01, ?__(2,"lights")),
-    Lights = wings_light:export(St0),
+    Lights = wings_light:export_bc(St0),
     Materials = case wings_pref:get_value(save_unused_materials) of
         true -> 
             #st{mat=Mat} = St0,
