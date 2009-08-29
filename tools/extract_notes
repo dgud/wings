@@ -16,7 +16,7 @@ main(_) ->
     PrevRel = binary_to_list(chomp(git(["describe","--abbrev=0"]))),
     Log = git(["log","--reverse",PrevRel++".."]),
     extract_notes(Log),
-    halt(0).
+    init:stop().
 
 author_to_nick(<<"Bjorn Gustavsson",_/binary>>) -> <<"bjorng">>;
 author_to_nick(<<"Richard Jones",_/binary>>) -> <<"optigon">>;
@@ -41,7 +41,9 @@ bic_1(<<"\ncommit ",T/binary>>, Commit) ->
     [<<Commit/binary,$\n>>|bic_1(T, <<"commit ">>)];
 bic_1(<<H,T/binary>>, Commit) ->
     bic_1(T, <<Commit/binary,H>>);
-bic_1(<<>>, Commit) -> [Commit].
+bic_1(<<>>, Commit) ->
+    %% Ensure that each commit ends with exactly two newlines.
+    [<<Commit/binary,$\n>>].
 
 filter_commits([C|Cs], Re) ->
     Res = re:run(C, Re, [{capture,all_but_first,binary}]),
