@@ -12,8 +12,10 @@
 %%
 
 -module(wings_edge_loop).
--export([select_next/1,select_prev/1,stoppable_sel_loop/1, select_loop/1, 
-	 select_link_decr/1, select_link_incr/1]).
+
+%% Commands.
+-export([select_next/1,select_prev/1,stoppable_sel_loop/1,select_loop/1,
+	 select_link_decr/1,select_link_incr/1]).
 
 %% Utilities.
 -export([edge_loop_vertices/2,edge_links/2,partition_edges/2]).
@@ -21,17 +23,87 @@
 -include("wings.hrl").
 -import(lists, [append/1,reverse/1,foldl/3]).
 
-%%%
-%%% Select next/previous edge loop.
-%%%
-
+%% select_next(St0) -> St.
+%%  Implement the Select|Edge Loop|Next Edge Loop command.
+%%
 select_next(#st{selmode=edge,sel=[_]}=St) ->
     find_loop(St, next);
 select_next(St) -> St.
 
+%% select_next(St0) -> St.
+%%  Implement the Select|Edge Loop|Previous Edge Loop command.
+%%
 select_prev(#st{selmode=edge,sel=[_]}=St) ->
     find_loop(St, previous);
 select_prev(St) -> St.
+
+%% stoppable_sel_loop(St0) -> St.
+%%  Implement the Select|Edge Loop|Edge Loop command.
+%%
+%%  If there are two paths that can connect two selected edges,
+%%  only include the shorter path in the selection.
+%%
+stoppable_sel_loop(#st{selmode=edge}=St) ->
+    Sel = wings_sel:fold(fun stoppable_select_loop/3, [], St),
+    wings_sel:set(Sel, St);
+stoppable_sel_loop(St) -> St.
+
+%% select_loop(St0) -> St.
+%%  Implement the Select|Edge Loop|To Complete Loops command.
+%%
+%%  For each selected edge, select as many loop edges as
+%%  possible in both directions.
+%%
+select_loop(#st{selmode=edge}=St) ->
+    Sel = wings_sel:fold(fun select_loop/3, [], St),
+    wings_sel:set(Sel, St);
+select_loop(St) -> St.
+
+%% select_link_decr(St0) -> St.
+%%  Implement the Select|Edge Loop|Shrink Edge Loop command.
+%%
+select_link_decr(#st{selmode=edge}=St) ->
+    Sel = wings_sel:fold(fun select_link_decr/3, [], St),
+    wings_sel:set(Sel, St);
+select_link_decr(St) -> St.
+
+%% select_link_incr(St0) -> St.
+%%  Implement the Select|Edge Loop|Grow Edge Loop command.
+%%
+select_link_incr(#st{selmode=edge}=St) ->
+    Sel = wings_sel:fold(fun select_link_incr/3, [], St),
+    wings_sel:set(Sel, St);
+select_link_incr(St) -> St.
+
+%% edge_loop_vertices(EdgeSet, WingedEdge) -> [[Vertex]] | none
+%%  Given a set of edges that is supposed to form
+%%  one or more simple closed loops, this function returns
+%%  the vertices that make up each loop in the correct order.
+edge_loop_vertices(Edges, We) when is_list(Edges) ->
+    edge_loop_vertices(gb_sets:from_list(Edges), We, []);
+edge_loop_vertices(Edges, We) ->
+    edge_loop_vertices(Edges, We, []).
+
+%% edge_links(Edges, We0) -> [[{Edge,Vs,Ve}]]
+%%   Return a list of edge links.
+edge_links(Edges, We) when is_list(Edges) ->
+    edge_links(gb_sets:from_list(Edges), We, []);
+edge_links(Edges, We) ->
+    edge_links(Edges, We, []).
+
+%% partition_edges(EdgeSet, WingedEdge) -> [[EdgeSet']]
+%%  Given a set of edges, partition the edges into connected groups.
+
+partition_edges(Edges, We) when is_list(Edges) ->
+    partition_edges(gb_sets:from_list(Edges), We, []);
+partition_edges(Edges, We) ->
+    partition_edges(Edges, We, []).
+
+%%%
+%%% Local functions
+%%%
+
+%%% find_loop/2 and helpers.
 
 find_loop(#st{sel=[{Id,Edges}=PrevSel],shapes=Shapes}=St, Dir0) ->
     We = gb_trees:get(Id, Shapes),
@@ -111,24 +183,7 @@ follow_edge_1(G, E, Edges, Etab) ->
 	    add_edge(G, E, Va, Vb)
     end.
 
-add_edge(G, E, Va, Vb) ->
-    digraph:add_vertex(G, Va),
-    digraph:add_vertex(G, Vb),
-    digraph:add_edge(G, E, Va, Vb, []).
-
-%%%
-%%% The Select Edge Loop command.
-%%%
-
-stoppable_sel_loop(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun stoppable_select_loop/3, [], St),
-    wings_sel:set(Sel, St);
-stoppable_sel_loop(St) -> St.
-
-select_loop(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun select_loop/3, [], St),
-    wings_sel:set(Sel, St);
-select_loop(St) -> St.
+%%% Helpers for select_loop/1.
 
 select_loop(Edges0, #we{id=Id,es=Etab}=We, Acc) ->
     Edges1 = select_loop_1(Edges0, Etab, gb_sets:empty()),
@@ -184,20 +239,7 @@ next_edge(From, V, Face, Edge, Etab) ->
 	#edge{ve=V,lf=Face,ltpr=From,rtsu=To} -> To
     end.
 
-add_mirror_edges(Edges, We) ->
-    MirrorEdges = gb_sets:from_list(mirror_edges(We)),
-    case gb_sets:is_disjoint(Edges, MirrorEdges) of
-	true -> Edges;
-	false -> gb_sets:union(Edges, MirrorEdges)
-    end.
-
-mirror_edges(#we{mirror=none}) -> [];
-mirror_edges(#we{mirror=Face}=We) -> wings_face:to_edges([Face], We).
-
-select_link_decr(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun select_link_decr/3, [], St),
-    wings_sel:set(Sel, St);
-select_link_decr(St) -> St.
+%%% Helpers for select_link_decr/1.
 
 select_link_decr(Edges0, #we{id=Id,es=Etab}, Acc) ->
     EndPoints = lists:append(init_expand(Edges0, Etab)),
@@ -207,6 +249,8 @@ select_link_decr(Edges0, #we{id=Id,es=Etab}, Acc) ->
 decrease_edge_link([{_V,Edge}|R], Edges) ->
     decrease_edge_link(R, gb_sets:delete_any(Edge, Edges));
 decrease_edge_link([], Edges) -> Edges.
+
+%%% Helpers for stoppable_select_loop/1 and select_link_incr/1.
 
 stoppable_select_loop(Edges0, #we{id=Id}=We, Acc) ->
     Edges1 = loop_incr(Edges0, We),
@@ -282,28 +326,28 @@ expand_loop2({V,OrigEdge,Sel},Stop,#we{es=Etab}=We,MirrorEdges) ->
     end.
 
 get_edges(V,OrigEdge,We,MirrorEdges) ->
-    {Eds0,Eds1} = wings_vertex:fold(fun(E,_,_,{Acc,false}) -> 
-					    case gb_sets:is_member(E,MirrorEdges) of
-						true -> {[],[E|Acc]};
-						false ->{[E|Acc],false}
-					    end;
-				       (E,_,_,{Acc,Mirror}) -> 
-					    case gb_sets:is_member(E,MirrorEdges) of
-						true -> {reverse([E|Acc]),Mirror};
-						false ->{[E|Acc],Mirror}
-					    end
-				    end,
-				    {[],false}, V, We),
-    Eds = if Eds1 == false -> Eds0;
-	     true -> %% Add mirror edges
+    {Eds0,Eds1} =
+	wings_vertex:fold(
+	  fun(E,_,_,{Acc,false}) ->
+		  case gb_sets:is_member(E,MirrorEdges) of
+		      true -> {[],[E|Acc]};
+		      false ->{[E|Acc],false}
+		  end;
+	     (E,_,_,{Acc,Mirror}) ->
+		  case gb_sets:is_member(E,MirrorEdges) of
+		      true -> {reverse([E|Acc]),Mirror};
+		      false ->{[E|Acc],Mirror}
+		  end
+	  end,
+	  {[],false}, V, We),
+    Eds = if
+	      Eds1 == false ->
+		  Eds0;
+	      true ->
+		  %% Add mirror edges.
 		  reverse(Eds1) ++ Eds1 ++ Eds0 ++ reverse(Eds0)
 	  end,
     reorder(Eds, OrigEdge, []).
-
-select_link_incr(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun select_link_incr/3, [], St),
-    wings_sel:set(Sel, St);
-select_link_incr(St) -> St.
 
 select_link_incr(Edges0, #we{id=Id,es=Etab}=We, Acc) ->
     EndPoints = lists:append(init_expand(Edges0, Etab)),
@@ -354,16 +398,8 @@ find_end_vs([V|R], G, Acc) ->
 	    find_end_vs(R,G,Acc)
     end;
 find_end_vs([], _G, Acc) -> Acc.
-    
 
-%% edge_loop_vertices(EdgeSet, WingedEdge) -> [[Vertex]] | none
-%%  Given a set of edges that is supposed to form
-%%  one or more simple closed loops, this function returns
-%%  the vertices that make up each loop in the correct order.
-edge_loop_vertices(Edges, We) when is_list(Edges) ->
-    edge_loop_vertices(gb_sets:from_list(Edges), We, []);
-edge_loop_vertices(Edges, We) ->
-    edge_loop_vertices(Edges, We, []).
+%%% Helpers for edge_loop_vertices/2.
 
 edge_loop_vertices(Edges0, #we{es=Etab}=We, Acc) ->
     case gb_sets:is_empty(Edges0) of
@@ -393,12 +429,7 @@ edge_loop_vertices1(Edges0, V, Vend, We, Acc) ->
 	    edge_loop_vertices1(Edges, OtherV, Vend, We, [V|Acc])
     end.
 
-%% edge_link, find links in edges set and returns [[{Edge,Vs,Ve}]] in
-%% order.
-edge_links(Edges, We) when is_list(Edges) ->
-    edge_links(gb_sets:from_list(Edges), We, []);
-edge_links(Edges, We) ->
-    edge_links(Edges, We, []).
+%%% Helpers for edge_links/2.
 
 edge_links(Edges0, #we{es=Etab}=We, Acc) ->
     case gb_sets:is_empty(Edges0) of
@@ -437,13 +468,7 @@ edge_link(Edges0, V, Vend, Dir, We, Acc) ->
 	    edge_link(Edges,OtherV,Vend,Dir,We,[{Edge,V,OtherV}|Acc])
     end.
 
-%% partition_edges(EdgeSet, WingedEdge) -> [[EdgeSet']]
-%%  Given a set of edges, partition the edges into connected groups.
-
-partition_edges(Edges, We) when is_list(Edges) ->
-    partition_edges(gb_sets:from_list(Edges), We, []);
-partition_edges(Edges, We) ->
-    partition_edges(Edges, We, []).
+%% Helpers for partition_edges/2.
 
 partition_edges(Edges0, #we{es=Etab}=We, Acc) ->
     case gb_sets:is_empty(Edges0) of
@@ -478,3 +503,20 @@ partition_edges_1(Ws0, We, Edges0, EdgeAcc0) ->
 		   end, Ws1, V, We),
 	    partition_edges_1(Ws, We, Edges, EdgeAcc)
     end.
+
+%%% Common utilities.
+
+add_edge(G, E, Va, Vb) ->
+    digraph:add_vertex(G, Va),
+    digraph:add_vertex(G, Vb),
+    digraph:add_edge(G, E, Va, Vb, []).
+
+add_mirror_edges(Edges, We) ->
+    MirrorEdges = gb_sets:from_list(mirror_edges(We)),
+    case gb_sets:is_disjoint(Edges, MirrorEdges) of
+	true -> Edges;
+	false -> gb_sets:union(Edges, MirrorEdges)
+    end.
+
+mirror_edges(#we{mirror=none}) -> [];
+mirror_edges(#we{mirror=Face}=We) -> wings_face:to_edges([Face], We).
