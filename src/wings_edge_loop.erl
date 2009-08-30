@@ -21,7 +21,7 @@
 -export([edge_loop_vertices/2,edge_links/2,partition_edges/2]).
 
 -include("wings.hrl").
--import(lists, [append/1,reverse/1,foldl/3]).
+-import(lists, [append/1,reverse/1,foldl/3,usort/1,member/2]).
 
 %% select_next(St0) -> St.
 %%  Implement the Select|Edge Loop|Next Edge Loop command.
@@ -242,7 +242,7 @@ next_edge(From, V, Face, Edge, Etab) ->
 %%% Helpers for select_link_decr/1.
 
 select_link_decr(Edges0, #we{id=Id,es=Etab}, Acc) ->
-    EndPoints = lists:append(init_expand(Edges0, Etab)),
+    EndPoints = append(component_endpoints(Edges0, Etab)),
     Edges = decrease_edge_link(EndPoints, Edges0),
     [{Id,Edges}|Acc].
 
@@ -257,75 +257,120 @@ stoppable_select_loop(Edges0, #we{id=Id}=We, Acc) ->
     Edges = wings_we:visible_edges(Edges1, We),
     [{Id,Edges}|Acc].
 
-loop_incr(Edges0, #we{es=Etab}=We) ->
-    %% Setup everything
-    EndPoints0 = init_expand(Edges0,Etab),
-    {_,EndPoints} = foldl(fun(Link0, {No, Acc}) -> 
-				  Link = [{V,Edge,[]}||{V,Edge}<-Link0],
-				  {No+1, [{No+1,Link}|Acc]} 
-			  end, 
-			  {0,[]}, EndPoints0),
-    %% Could be nicer
-    Edges2Link0 = [[{Edge,LinkNo}|| {_,Edge,_} <- Link] || {LinkNo, Link} <- EndPoints],
-    Edges2Link = gb_trees:from_orddict(lists:usort(lists:append(Edges2Link0))),
-    MEds = gb_sets:from_list(mirror_edges(We)),
-    loop_incr(EndPoints, [], Edges2Link, We, MEds, Edges0).
+loop_incr(Edges, #we{es=Etab}=We) ->
+    %% Group the selected edges into connected components and for each
+    %% components find its end points. Note that there can be more than
+    %% two end points (for example if three edges are selected in a T
+    %% pattern).
+    EndPoints0 = component_endpoints(Edges, Etab),
 
-loop_incr([],[], _Stop, _We, _Meds, Selected) -> 
-    Selected;
-loop_incr([],Prev,Stop,We,Meds,Selected) -> 
-    loop_incr(Prev,[],Stop,We,Meds,Selected);
-loop_incr([{Id,This}|Rest],Prev, Stop, We, Meds, Selected) ->
-    case expand_loop(This,Id,Stop,We,Meds) of
-	{stop, Sel, Link} ->
-	    loop_incr(lists:keydelete(Link,1,Rest),
-		      lists:keydelete(Link,1,Prev),
-		      Stop,We,Meds,gb_sets:union(Sel,Selected));
-	{done,Sel} ->
-	    loop_incr(Rest,Prev,Stop,We,Meds,gb_sets:union(Sel,Selected));
-	{cont, New} ->
-	    loop_incr(Rest,[{Id,New}|Prev],Stop,We,Meds,Selected)
+    %% Flatten the list of components to a list with one element for
+    %% each end point in all components. Each element will look like
+    %% this:
+    %%
+    %%    {CompId,Vertex,Edge,EmptySelection}
+    %%
+    %% where CompId is an arbitrary term used for identifying the
+    %% components (we use negative integers as they cannot be confused
+    %% with vertex and edge numbers), and EmptySelection is an
+    %% empty list.
+    {_,EndPoints} =
+	foldl(fun(Link0, {LinkNum,Acc0}) ->
+		      Acc = [{LinkNum,V,Edge,[]} || {V,Edge} <- Link0] ++ Acc0,
+		      {LinkNum-1,Acc}
+	      end, {-1,[]}, EndPoints0),
+
+    %% Construct a gb_tree mapping edge numbers to component
+    %% identifiers.
+    Edge2Link0 = [{Edge,LinkNum} || {LinkNum,_,Edge,_} <- EndPoints],
+    Edge2Link = gb_trees:from_orddict(usort(Edge2Link0)),
+
+    %% Construct a gb_set containing the virtual mirror edges (if any).
+    MirrorEdges = gb_sets:from_list(mirror_edges(We)),
+
+    %% Queue all end points and start working.
+    Q = queue:from_list(EndPoints),
+    loop_incr_1(Q, Edge2Link, MirrorEdges, We, Edges, []).
+
+%% The basic idea is to extend each end point by one edge at
+%% the time. If the new end point meets an edge that was originally
+%% selected, we take it out of the queue.
+loop_incr_1(Q0, Edge2Link, MirrorEdges, We, Sel0, Stuck0) ->
+    case queue:out(Q0) of
+	{empty,_} ->
+	    %% Now we will add all "stuck" selections to
+	    %% the selection.
+	    gb_sets:union([Sel || {_,Sel} <- Stuck0] ++ [Sel0]);
+	{{value,Item0},Q1} ->
+	    case loop_incr_2(Item0, Edge2Link, MirrorEdges, We) of
+		{stop,Sel1} ->
+		    %% We have hit one of the original edges in the
+		    %% same component. We will update the selection,
+		    %% but we will continue to extend the selection
+		    %% for the other end points of this component.
+		    Sel = gb_sets:union(Sel0, Sel1),
+		    loop_incr_1(Q1, Edge2Link, MirrorEdges, We, Sel, Stuck0);
+		{stop,Sel1,KillLinks} ->
+		    %% Stop because we have met an edge that was
+		    %% part of the original selection but in another
+		    %% component. In this case, we don't want to expand
+		    %% the other end points in either component.
+		    Sel = gb_sets:union(Sel0, Sel1),
+
+		    %% Make sure that we don't collect any more
+		    %% edges for the two components that met.
+		    Q = queue:filter(fun({L,_,_,_}) ->
+					     not member(L, KillLinks)
+				     end, Q1),
+
+		    %% Also, make sure that we discard any selection
+		    %% resulting from getting stuck when expanding
+		    %% the other end points.
+		    Stuck = lists:filter(fun({L,_}) ->
+						 not member(L, KillLinks)
+					 end, Stuck0),
+		    loop_incr_1(Q, Edge2Link, MirrorEdges, We, Sel, Stuck);
+		{stuck,Stuck1} ->
+		    %% Stuck. Save this selection. We will only use it if none
+		    %% of the other end points hit another component.
+		    Stuck = [Stuck1|Stuck0],
+		    loop_incr_1(Q1, Edge2Link, MirrorEdges, We, Sel0, Stuck);
+		{update,Item} ->
+		    %% One more edge was added to the selection for the
+		    %% link in this direction.
+		    Q = queue:in(Item, Q1),
+		    loop_incr_1(Q, Edge2Link, MirrorEdges, We, Sel0, Stuck0)
+	    end
     end.
 
-expand_loop(Eds,Id,Stop,We,Meds) ->
-    expand_loop(Eds,Id,Stop,We,Meds,done,[]).
-expand_loop([Done={done,_}|R],Id,Stop,We,Meds,Res,Acc) ->
-    expand_loop(R,Id,Stop,We,Meds,Res,[Done|Acc]);
-expand_loop([This|R],Id,Stop,We,Meds,Res,Acc) ->
-    case expand_loop2(This,Stop,We,Meds) of
-	{stop, Sel, Id} ->
-	    expand_loop(R,Id,Stop,We,Meds,Res,[{done,Sel}|Acc]);
-	{stop, _, _} = Stopped ->
-	    Stopped;
-	{done,_} = Done ->
-	    expand_loop(R,Id,Stop,We,Meds,Res,[Done|Acc]);
-	{cont,Updated} ->
-	    expand_loop(R,Id,Stop,We,Meds,cont,[Updated|Acc])
-    end;
-expand_loop([],_,_,_,_,done,Res) ->
-    {done, foldl(fun({done,Sel},All) -> gb_sets:union(Sel,All) end,
-		 gb_sets:empty(), Res)};
-expand_loop([],_,_,_,_,cont,Res) -> {cont,Res}.
-
-expand_loop2({V,OrigEdge,Sel},Stop,#we{es=Etab}=We,MirrorEdges) ->
-    Eds = get_edges(V,OrigEdge,We,MirrorEdges),
-    NumEdges = length(Eds),
-    case NumEdges rem 2 of
+loop_incr_2({CompId,V,Edge0,Sel}, Edge2Link, MirrorEdges, #we{es=Etab}=We) ->
+    OutEdges = get_edges(V, Edge0, MirrorEdges, We),
+    NumEdges = length(OutEdges),
+    case NumEdges band 1 of
 	0 ->
-	    Edge = lists:nth(1+(NumEdges div 2), Eds),
-	    case gb_trees:lookup(Edge,Stop) of
-		{value, Link} ->
-		    {stop, gb_sets:from_list([OrigEdge|Sel]), Link};
-		none ->	
-%		    io:format("Adding Edge ~p to ~p ~n",[Edge,OrigEdge]),
+	    %% There is a way forward. Pick the middle edge.
+	    Edge = lists:nth(1+(NumEdges bsr 1), OutEdges),
+	    case gb_trees:lookup(Edge, Edge2Link) of
+		{value,CompId} ->
+		    {stop,gb_sets:from_list(Sel)};
+		{value,OtherCompId} ->
+		    %% We have met an edge that was part of the original
+		    %% selection, so we should stop here. Don't collect
+		    %% any more edges for CompId or OtherCompId.
+		    {stop,gb_sets:from_list(Sel),[CompId,OtherCompId]};
+		none ->
+		    %% Nothing to stop us to continue.
 		    Rec = array:get(Edge, Etab),
-		    {cont,{wings_vertex:other(V,Rec),Edge,[OrigEdge|Sel]}}
+		    OtherV = wings_vertex:other(V, Rec),
+		    {update,{CompId,OtherV,Edge,[Edge|Sel]}}
 	    end;
-	1 -> 
-	    {done, gb_sets:from_list([OrigEdge|Sel])}
+	1 ->
+	    %% Stuck. We don't know which edge to follow. Save this
+	    %% selection for later.
+	    {stuck,{CompId,gb_sets:from_list(Sel)}}
     end.
 
-get_edges(V,OrigEdge,We,MirrorEdges) ->
+get_edges(V, OrigEdge, MirrorEdges, We) ->
     {Eds0,Eds1} =
 	wings_vertex:fold(
 	  fun(E,_,_,{Acc,false}) ->
@@ -350,14 +395,14 @@ get_edges(V,OrigEdge,We,MirrorEdges) ->
     reorder(Eds, OrigEdge, []).
 
 select_link_incr(Edges0, #we{id=Id,es=Etab}=We, Acc) ->
-    EndPoints = lists:append(init_expand(Edges0, Etab)),
+    EndPoints = append(component_endpoints(Edges0, Etab)),
     MirrorEdges = gb_sets:from_list(mirror_edges(We)),
     Edges1 = expand_edge_link(EndPoints, We, MirrorEdges, Edges0),
     Edges = wings_we:visible_edges(Edges1, We),
     [{Id,Edges}|Acc].
 
 expand_edge_link([{V,OrigEdge}|R], We, MirrorEdges, Sel0) ->
-    Eds = get_edges(V,OrigEdge,We,MirrorEdges),
+    Eds = get_edges(V, OrigEdge, MirrorEdges, We),
     NumEdges = length(Eds),
     case NumEdges rem 2 of	
 	0 ->
@@ -374,28 +419,46 @@ reorder([Edge|R], Edge, Acc) ->
 reorder([E|R], Edge, Acc) ->
     reorder(R, Edge, [E|Acc]).
 
-%% Returns start and end tuple {vertex, edge} for each link
-init_expand(Edges, Etab) ->
+%% component_endpoints(Edges, Etab) -> [[{Vertex,Edge}]]
+%%  Group the selected edges into connected components and for each
+%%  components find its end points. An end point is a vertex connected
+%%  to only one edge within the component.
+%%
+%%  If a single edge is selected, the return value will look like:
+%%
+%%      [ [{Va,Edge},{Vb,Edge}] ]
+%%
+%%  If any number of edges are selected in a continous chain, the
+%%  return value will look like:
+%%
+%%      [ [{Va,EdgeA},{Vb,EdgeB}] ]
+%%
+%%  If the three edges emanating from the same vertex on a cube,
+%%  the return value will look like:
+%%
+%%      [ [{Va,EdgeA},{Vb,EdgeB},{Vc,EdgeC}] ]
+%%
+component_endpoints(Edges, Etab) ->
     G = digraph:new(),
-    init_expand(gb_sets:to_list(Edges), Etab, G), 
+    component_endpoints_1(G, gb_sets:to_list(Edges), Etab),
     Cs = digraph_utils:components(G),
-    Expand = [find_end_vs(C, G, [])||C <- Cs],
+    EndPoints = [find_end_vs(C, G, []) || C <- Cs],
     digraph:delete(G),
-    Expand.
+    EndPoints.
 
-init_expand([Edge|R], Etab, G) ->
-    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-    add_edge(G, Edge, Va, Vb),
-    init_expand(R, Etab, G);
-init_expand([], _Etab, G) -> G.
+component_endpoints_1(G, [E|Es], Etab) ->
+    #edge{vs=Va,ve=Vb} = array:get(E, Etab),
+    add_edge(G, E, Va, Vb),
+    component_endpoints_1(G, Es, Etab);
+component_endpoints_1(_, [], _) -> ok.
 
 find_end_vs([V|R], G, Acc) ->
-    New = digraph:in_edges(G,V) ++ digraph:out_edges(G,V),
+    New = digraph:in_edges(G, V) ++ digraph:out_edges(G, V),
     case New of
 	[Edge] ->
-	    find_end_vs(R,G,[{V,Edge}|Acc]);
+	    find_end_vs(R, G ,[{V,Edge}|Acc]);
 	_ ->
-	    find_end_vs(R,G,Acc)
+	    find_end_vs(R, G, Acc)
     end;
 find_end_vs([], _G, Acc) -> Acc.
 
