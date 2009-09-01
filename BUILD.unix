@@ -192,8 +192,9 @@ Building an installation package for MacOS X
 
 To build everything and pack it into a DMG file, you'll need:
 
-- Xcode 3.0. Older versions may work, but I haven't tested them
-  with modern versions of Wings.
+- Xcode 3.2 (running on Snow Leopard). Xcode 3.x running on Leopard will
+  probably also work, but I have not tested to build any Wings version after
+  1.1.12 with that configuration.
 
 - The FBX library. http://www.autodesk.com/fbx
 
