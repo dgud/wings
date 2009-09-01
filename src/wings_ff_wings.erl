@@ -745,7 +745,6 @@ edge_data_uv(Side, Face, {U,V}, UvFaces, Acc) ->
     end;
 edge_data_uv(_, _, _, _, Acc) -> Acc.
 
-edge_data_color(_Side, {1.0,1.0,1.0}, Acc) -> Acc;
 edge_data_color(left, {R,G,B}, Acc) ->
     [{color_lt,<<R:32/float,G:32/float,B:32/float>>}|Acc];
 edge_data_color(right, {R,G,B}, Acc) ->
