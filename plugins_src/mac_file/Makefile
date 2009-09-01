@@ -15,6 +15,7 @@ WINGS_EBIN = ../../ebin
 WINGS_INTL=../../intl_tools
 UNIVERSAL_FLAGS = -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc
 CFLAGS = $(UNIVERSAL_FLAGS)
+CC = gcc-4.0
 
 ERL_DIR := $(shell echo 'io:format("~s~n",[code:root_dir()]),halt().' | erl | sed 's,^[0-9]*> *,,g' | tail +2)
 
@@ -42,12 +43,12 @@ $(LIBDIR)/%.beam: %.erl
 
 $(LIBDIR)/mac_wings_file_drv.so: mac_wings_file_drv.c
 	install -d $(LIBDIR)
-	cc -ObjC -I $(ERL_DIR)/usr/include -bundle -flat_namespace -undefined suppress \
+	$(CC) -ObjC -I $(ERL_DIR)/usr/include -bundle -flat_namespace -undefined suppress \
           -framework Cocoa -o $(LIBDIR)/mac_wings_file_drv.so $(UNIVERSAL_FLAGS) \
 	  mac_wings_file_drv.c
 
 $(LIBDIR)/mac_wings_image_drv.so: mac_wings_image_drv.m
 	install -d $(LIBDIR)
-	cc -I $(ERL_DIR)/usr/include -bundle -flat_namespace -undefined suppress \
+	$(CC) -I $(ERL_DIR)/usr/include -bundle -flat_namespace -undefined suppress \
           -framework Cocoa -o $(LIBDIR)/mac_wings_image_drv.so $(UNIVERSAL_FLAGS) \
 	  mac_wings_image_drv.m
