@@ -98,7 +98,7 @@ handle_connect_event0(Ev, S) -> handle_connect_event1(Ev, S).
 handle_connect_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
 		      #cs{st=St0}=C0) ->
     case wpa:pick(X,Y,St0) of
-	{add,MM,St = #st{selmode=edge,sel=[{Shape,Edge0}],shapes=Sh}} ->
+	{add,{_,_,MM},#st{selmode=edge,sel=[{Shape,Edge0}],shapes=Sh}=St} ->
 	    #we{es=Es} = gb_trees:get(Shape, Sh),
 	    [Edge] = gb_sets:to_list(Edge0),
 	    #edge{vs=V1,ve=V2} = array:get(Edge, Es),
@@ -117,7 +117,7 @@ handle_connect_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
 handle_connect_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED},
 		      #cs{st=St0}=C0) ->
     case wpa:pick(X,Y,St0) of
-	{add,MM,St} ->
+	{add,{_,_,MM},St} ->
 	    C = do_connect(X,Y,MM,St,C0),
 	    update_hook(C),
 	    wings_draw:refresh_dlists(C#cs.st),
@@ -571,7 +571,7 @@ fake_sel_1(St0) ->
 	false -> St0;
 	true ->
 	    {_,X,Y} = wings_wm:local_mouse_state(),
-	    case wings_pick:do_pick(X, Y, St0) of
+	    case wpa:pick(X, Y, St0) of
 		{add,_,St} -> St;
 		_ -> St0
 	    end

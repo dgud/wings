@@ -441,6 +441,15 @@ sel_strict_face_regions(Faces, We) ->
 %%% Picking.
 %%%
 
+%% pick(X, Y, St0) -> {add|delete,{Id,Item,original|mirror},St}.
+%%  Pick the item (body, face, edge, or vertex, depending on the selection
+%%  mode in St0) and either add it to the selection or delete it from
+%%  the selection.
+%%
+%%  The first element in the returned tuple will indicate whether
+%%  something was added or deleted from the selection, and the second
+%%  element will indicate which item in which object was picked.
+%%
 pick(X, Y, St) ->
     wings_pick:do_pick(X, Y, St).
 

@@ -562,18 +562,18 @@ handle_tweak_event2(_, _, _) ->
 pick_event(X, Y, Cam, B, #tweak{st=#st{}=St0}=T0) ->
     {GX,GY} = wings_wm:local2global(X, Y),
     case wings_pick:do_pick(X, Y, St0) of
-      {add,MM,St1} ->
+      {add,What,St1} ->
         wings_wm:grab_focus(),
         wings_io:grab(),
-        begin_drag(MM, St1, T0),
+        begin_drag(What, St1, T0),
         do_tweak(0.0, 0.0, 0.0, 0.0, screen),
         Time = now(),
         T = T0#tweak{tmode=drag,ox=GX,oy=GY,cx=0,cy=0,dc={Time,0}},
         update_tweak_handler(T);
-      {delete,MM,_} ->
+      {delete,What,_} ->
         wings_wm:grab_focus(),
         wings_io:grab(),
-        begin_drag(MM, St0, T0),
+        begin_drag(What, St0, T0),
         do_tweak(0.0, 0.0, 0.0, 0.0, screen),
         Time = now(),
         T = T0#tweak{tmode=drag,ox=GX,oy=GY,cx=0,cy=0,dc={Time,0}},
@@ -695,23 +695,27 @@ redraw(St) ->
     wings:redraw(St),
     keep.
 
-begin_drag(MM, St, T) ->
+begin_drag(SelItem, St, T) ->
     wings_draw:refresh_dlists(St),
     wings_dl:map(fun(D, _) ->
-             begin_drag_fun(D, MM, St, T)
+             begin_drag_fun(D, SelItem, St, T)
          end, []).
 
-begin_drag_fun(#dlo{src_sel={body,_},src_we=#we{vp=Vtab}=We}=D, _MM, _St, _T) ->
+begin_drag_fun(#dlo{src_sel={body,_},src_we=#we{vp=Vtab}=We}=D, _, _, _) ->
     Vs = wings_util:array_keys(Vtab),
     Center = wings_vertex:center(Vs, We),
     Id = e3d_mat:identity(),
     D#dlo{drag={matrix,Center,Id,e3d_mat:expand(Id)}};
-
-begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, MM, St, T) ->
+begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=#we{id=WeId}=We}=D0,
+	       {SelId,_,MM0}, St, T) ->
     Vs0 = sel_to_vs(Mode, gb_sets:to_list(Els), We),
     Center = wings_vertex:center(Vs0, We),
     {Vs,Magnet} = begin_magnet(T, Vs0, Center, We),
     D = wings_draw:split(D0, Vs, St),
+    MM = if
+	     WeId =:= SelId -> MM0;
+	     true -> original
+	 end,
     D#dlo{drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}};
 begin_drag_fun(D, _, _, _) -> D.
 

@@ -523,6 +523,23 @@ pick_event(#mousebutton{button=B,state=?SDL_RELEASED}, #pick{st=St})
     pop;
 pick_event(_, _) -> keep.
 
+%% do_pick(X, Y, St0) -> {add|delete,{Id,Item,original|mirror},St}.
+%%  Pick the item (body, face, edge, or vertex, depending on the selection
+%%  mode in St0) and either add it to the selection or delete it from
+%%  the selection.
+%%
+%%  The first element in the returned tuple will indicate whether
+%%  something was added or deleted from the selection, and the second
+%%  element will indicate which item in which object was picked.
+%%
+%%  NOTE: Lights will only be selected in their entirety.
+%%  So in face mode, for instance, a light will have either all of
+%%  its faces selected or none.
+%%
+-type vm_mirror_side() :: 'original'|'mirror'.
+-spec do_pick(non_neg_integer(), non_neg_integer(), #st{}) ->
+    'none' | {'add'|'delete',{non_neg_integer(),non_neg_integer(),
+			      vm_mirror_side()},#st{}}.
 do_pick(X, Y, St) ->
     case raw_pick(X, Y, St) of
 	none ->
@@ -562,7 +579,8 @@ set_pick_matrix() ->
     ProjMatrix = gl:getDoublev(?GL_PROJECTION_MATRIX),
     wpc_pick:matrix(ModelMatrix, ProjMatrix).
 
-%% update_selection({Mode,MM,{Id,Item}}, St0) -> {add|delete,St0}.
+%% update_selection({Mode,MM,{Id,Item}}, St0) ->
+%%                 {add|delete,{Id,Item,MM},St0}.
 %%    Mode = body|face|edge|vertex
 %%    MM = original|mirror
 %%  If the item (body/face/edge/vertex) was not selected, add it
@@ -577,7 +595,7 @@ set_pick_matrix() ->
 update_selection({Mode,MM,{Id,Item}}, #st{sel=Sel0}=St) ->
     Items = expand_light_items(Mode, Id, gb_sets:singleton(Item), St),
     {Type,Sel} = update_selection(Id, Items, Sel0, []),
-    {Type,MM,St#st{selmode=Mode,sel=Sel,sh=false}}.
+    {Type,{Id,Item,MM},St#st{selmode=Mode,sel=Sel,sh=false}}.
 
 update_selection(Id, Items, [{I,_}=H|T], Acc) when Id > I ->
     update_selection(Id, Items, T, [H|Acc]);
