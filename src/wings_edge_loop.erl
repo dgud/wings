@@ -152,12 +152,12 @@ prev_loop(_, _) -> {away,none}.
     
 pick_loop([C|Cs], Dir, PrevLoop, #st{sel=[{Id,_}]}=St) ->
     IsPrev = PrevLoop =:= C,
-    if
-	(Dir == away) and IsPrev ->
+    case Dir of
+	away when IsPrev ->
 	    pick_loop(Cs, Dir, PrevLoop, St);
-	(Dir == towards) and (not IsPrev) ->
+	towards when not IsPrev ->
 	    pick_loop(Cs, Dir, PrevLoop, St);
-	true -> {Id,C}
+	_ -> {Id,C}
     end;
 pick_loop([], _, _, #st{sel=[_]}) -> none.
 
