@@ -21,7 +21,7 @@
 -export([edge_loop_vertices/2,edge_links/2,partition_edges/2]).
 
 -include("wings.hrl").
--import(lists, [append/1,reverse/1,foldl/3,usort/1,member/2]).
+-import(lists, [append/1,reverse/1,foldl/3,usort/1,member/2,any/2]).
 
 %% select_next(St0) -> St.
 %%  Implement the Select|Edge Loop|Next Edge Loop command.
@@ -100,8 +100,15 @@ partition_edges(Edges, We) ->
     partition_edges(Edges, We, []).
 
 %%%
-%%% Local functions
+%%% Local functions and data structures.
 %%%
+
+%% Border edges that need to be handled specially.
+-record(be,
+	{
+	  mirror,				%Mirror edges.
+	  hole					%Interesting hole edges.
+	 }).
 
 %%% find_loop/2 and helpers.
 
@@ -285,31 +292,31 @@ loop_incr(Edges, #we{es=Etab}=We) ->
     Edge2Link0 = [{Edge,LinkNum} || {LinkNum,_,Edge,_} <- EndPoints],
     Edge2Link = gb_trees:from_orddict(usort(Edge2Link0)),
 
-    %% Construct a gb_set containing the virtual mirror edges (if any).
-    MirrorEdges = gb_sets:from_list(mirror_edges(We)),
+    %% Get all border edges (for the virtual mirror face and for holes).
+    BorderEdges = border_edges(Edges, We),
 
     %% Queue all end points and start working.
     Q = queue:from_list(EndPoints),
-    loop_incr_1(Q, Edge2Link, MirrorEdges, We, Edges, []).
+    loop_incr_1(Q, Edge2Link, BorderEdges, We, Edges, []).
 
 %% The basic idea is to extend each end point by one edge at
 %% the time. If the new end point meets an edge that was originally
 %% selected, we take it out of the queue.
-loop_incr_1(Q0, Edge2Link, MirrorEdges, We, Sel0, Stuck0) ->
+loop_incr_1(Q0, Edge2Link, BorderEdges, We, Sel0, Stuck0) ->
     case queue:out(Q0) of
 	{empty,_} ->
 	    %% Now we will add all "stuck" selections to
 	    %% the selection.
 	    gb_sets:union([Sel || {_,Sel} <- Stuck0] ++ [Sel0]);
 	{{value,Item0},Q1} ->
-	    case loop_incr_2(Item0, Edge2Link, MirrorEdges, We) of
+	    case loop_incr_2(Item0, Edge2Link, BorderEdges, We) of
 		{stop,Sel1} ->
 		    %% We have hit one of the original edges in the
 		    %% same component. We will update the selection,
 		    %% but we will continue to extend the selection
 		    %% for the other end points of this component.
 		    Sel = gb_sets:union(Sel0, Sel1),
-		    loop_incr_1(Q1, Edge2Link, MirrorEdges, We, Sel, Stuck0);
+		    loop_incr_1(Q1, Edge2Link, BorderEdges, We, Sel, Stuck0);
 		{stop,Sel1,KillLinks} ->
 		    %% Stop because we have met an edge that was
 		    %% part of the original selection but in another
@@ -329,27 +336,23 @@ loop_incr_1(Q0, Edge2Link, MirrorEdges, We, Sel0, Stuck0) ->
 		    Stuck = lists:filter(fun({L,_}) ->
 						 not member(L, KillLinks)
 					 end, Stuck0),
-		    loop_incr_1(Q, Edge2Link, MirrorEdges, We, Sel, Stuck);
+		    loop_incr_1(Q, Edge2Link, BorderEdges, We, Sel, Stuck);
 		{stuck,Stuck1} ->
 		    %% Stuck. Save this selection. We will only use it if none
 		    %% of the other end points hit another component.
 		    Stuck = [Stuck1|Stuck0],
-		    loop_incr_1(Q1, Edge2Link, MirrorEdges, We, Sel0, Stuck);
+		    loop_incr_1(Q1, Edge2Link, BorderEdges, We, Sel0, Stuck);
 		{update,Item} ->
 		    %% One more edge was added to the selection for the
 		    %% link in this direction.
 		    Q = queue:in(Item, Q1),
-		    loop_incr_1(Q, Edge2Link, MirrorEdges, We, Sel0, Stuck0)
+		    loop_incr_1(Q, Edge2Link, BorderEdges, We, Sel0, Stuck0)
 	    end
     end.
 
-loop_incr_2({CompId,V,Edge0,Sel}, Edge2Link, MirrorEdges, #we{es=Etab}=We) ->
-    OutEdges = get_edges(V, Edge0, MirrorEdges, We),
-    NumEdges = length(OutEdges),
-    case NumEdges band 1 of
-	0 ->
-	    %% There is a way forward. Pick the middle edge.
-	    Edge = lists:nth(1+(NumEdges bsr 1), OutEdges),
+loop_incr_2({CompId,V,Edge0,Sel}, Edge2Link, BorderEdges, #we{es=Etab}=We) ->
+    case find_middle_edge(V, Edge0, BorderEdges, We) of
+	Edge when is_integer(Edge) ->
 	    case gb_trees:lookup(Edge, Edge2Link) of
 		{value,CompId} ->
 		    {stop,gb_sets:from_list(Sel)};
@@ -364,60 +367,89 @@ loop_incr_2({CompId,V,Edge0,Sel}, Edge2Link, MirrorEdges, #we{es=Etab}=We) ->
 		    OtherV = wings_vertex:other(V, Rec),
 		    {update,{CompId,OtherV,Edge,[Edge|Sel]}}
 	    end;
-	1 ->
+	none ->
 	    %% Stuck. We don't know which edge to follow. Save this
 	    %% selection for later.
 	    {stuck,{CompId,gb_sets:from_list(Sel)}}
     end.
 
-get_edges(V, OrigEdge, MirrorEdges, We) ->
-    {Eds0,Eds1} =
-	wings_vertex:fold(
-	  fun(E,_,_,{Acc,false}) ->
-		  case gb_sets:is_member(E,MirrorEdges) of
-		      true -> {[],[E|Acc]};
-		      false ->{[E|Acc],false}
-		  end;
-	     (E,_,_,{Acc,Mirror}) ->
-		  case gb_sets:is_member(E,MirrorEdges) of
-		      true -> {reverse([E|Acc]),Mirror};
-		      false ->{[E|Acc],Mirror}
-		  end
-	  end,
-	  {[],false}, V, We),
-    Eds = if
-	      Eds1 == false ->
-		  Eds0;
-	      true ->
-		  %% Add mirror edges.
-		  reverse(Eds1) ++ Eds1 ++ Eds0 ++ reverse(Eds0)
-	  end,
-    reorder(Eds, OrigEdge, []).
+find_middle_edge(V, Edge0, #be{mirror=Mirror,hole=Holes}, We) ->
+    Edges0 = wings_vertex:fold(fun(E, _, _, Acc) -> [E|Acc] end, [], V, We),
 
-select_link_incr(Edges0, #we{id=Id,es=Etab}=We, Acc) ->
-    EndPoints = append(component_endpoints(Edges0, Etab)),
-    MirrorEdges = gb_sets:from_list(mirror_edges(We)),
-    Edges1 = expand_edge_link(EndPoints, We, MirrorEdges, Edges0),
-    Edges = wings_we:visible_edges(Edges1, We),
-    [{Id,Edges}|Acc].
-
-expand_edge_link([{V,OrigEdge}|R], We, MirrorEdges, Sel0) ->
-    Eds = get_edges(V, OrigEdge, MirrorEdges, We),
-    NumEdges = length(Eds),
-    case NumEdges rem 2 of	
+    %% Find out which border edges (virtual mirror or hole edges) to
+    %% handle specially. We want to give hole edges higher priority
+    %% than virtual mirror edges.
+    %%
+    %% To ensure termination of the algorithm, we must make sure that
+    %% we follow the same path regardless of direction when we pass this
+    %% vertex. That means that we must base the decision on all edges
+    %% around vertex V. We could get stuck in an infinite loop if we
+    %% would base the decision only on Edge0.
+    Edges = case any(fun(E) -> gb_sets:is_member(E, Holes) end, Edges0) of
+		true ->
+		    %% At least one edge is a hole edge. Use only the
+		    %% hole edges as border edges.
+		    get_edges(Edges0, Edge0, Holes);
+		false ->
+		    %% None of the edges around this vertex is an hole edge.
+		    %% Use the mirror edges as border edges.
+		    get_edges(Edges0, Edge0, Mirror)
+	    end,
+    NumEdges = length(Edges),
+    case NumEdges band 1 of
 	0 ->
-	    NewEd = lists:nth(1+(NumEdges div 2), Eds),
-	    Sel = gb_sets:add(NewEd, Sel0),
-	    expand_edge_link(R, We, MirrorEdges, Sel);
+	    %% Pick the middle edge.
+	    lists:nth(1+(NumEdges bsr 1), Edges);
 	1 ->
-	    expand_edge_link(R, We, MirrorEdges, Sel0)
+	    none
+    end.
+
+get_edges(Edges0, Edge, BorderEdges) ->
+    case get_edges_1(Edges0, BorderEdges, [], []) of
+	{Edges,[]} ->
+	    reorder(Edges, Edge, []);
+	{Edges1,Edges2} ->
+	    Edges = reverse(Edges2) ++ Edges2 ++ Edges1 ++ reverse(Edges1),
+	    reorder(Edges, Edge, [])
+    end.
+
+get_edges_1([E|Es], BorderEdges, Acc, []) ->
+    case gb_sets:is_member(E, BorderEdges) of
+	false ->
+	    get_edges_1(Es, BorderEdges, [E|Acc], []);
+	true ->
+	    get_edges_1(Es, BorderEdges, [], [E|Acc])
     end;
-expand_edge_link([], _, _, Sel) -> Sel.
+get_edges_1([E|Es], BorderEdges, Acc, Bacc) ->
+    case gb_sets:is_member(E, BorderEdges) of
+	false ->
+	    get_edges_1(Es, BorderEdges, [E|Acc], Bacc);
+	true ->
+	    get_edges_1(Es, BorderEdges, reverse([E|Acc]), Bacc)
+    end;
+get_edges_1([], _, Acc, Bacc) -> {Acc,Bacc}.
 
 reorder([Edge|R], Edge, Acc) ->
     [Edge|Acc ++ reverse(R)];
 reorder([E|R], Edge, Acc) ->
     reorder(R, Edge, [E|Acc]).
+
+select_link_incr(Edges0, #we{id=Id,es=Etab}=We, Acc) ->
+    EndPoints = append(component_endpoints(Edges0, Etab)),
+    BorderEdges = border_edges(Edges0, We),
+    Edges1 = expand_edge_link(EndPoints, We, BorderEdges, Edges0),
+    Edges = wings_we:visible_edges(Edges1, We),
+    [{Id,Edges}|Acc].
+
+expand_edge_link([{V,OrigEdge}|R], We, BorderEdges, Sel0) ->
+    case find_middle_edge(V, OrigEdge, BorderEdges, We) of
+	Edge when is_integer(Edge) ->
+	    Sel = gb_sets:add(Edge, Sel0),
+	    expand_edge_link(R, We, BorderEdges, Sel);
+	none ->
+	    expand_edge_link(R, We, BorderEdges, Sel0)
+    end;
+expand_edge_link([], _, _, Sel) -> Sel.
 
 %% component_endpoints(Edges, Etab) -> [[{Vertex,Edge}]]
 %%  Group the selected edges into connected components and for each
@@ -581,5 +613,30 @@ add_mirror_edges(Edges, We) ->
 	false -> gb_sets:union(Edges, MirrorEdges)
     end.
 
+%% border_edges(SelectedEdges, We) -> #be{}
+%%  Collect border edges that are to be treated specially.
+%%
+%%  The virtual mirror face edges should always be treated
+%%  specially, but we only want to include edges around holes
+%%  that has at least one edge included in the initial selection.
+%%
+border_edges(Edges, #we{holes=Holes}=We) ->
+    MirrorEdges = gb_sets:from_list(mirror_edges(We)),
+    HoleEdges = hole_edges(Holes, Edges, We, gb_sets:empty()),
+    #be{mirror=MirrorEdges,hole=HoleEdges}.
+
 mirror_edges(#we{mirror=none}) -> [];
 mirror_edges(#we{mirror=Face}=We) -> wings_face:to_edges([Face], We).
+
+hole_edges([F|Fs], Edges, We, Acc) ->
+    Bes = gb_sets:from_list(wings_face:to_edges([F], We)),
+    case gb_sets:is_disjoint(Bes, Edges) of
+	false ->
+	    %% One of the edges around this hole is selected.
+	    %% Include all of the edges for this hole in
+	    %% the border edges.
+	    hole_edges(Fs, Edges, We, gb_sets:union(Bes, Acc));
+	true ->
+	    hole_edges(Fs, Edges, We, Acc)
+    end;
+hole_edges([], _, _, Acc) -> Acc.
