@@ -995,12 +995,13 @@ make_normals_dlist(D) -> D.
 
 make_normals_dlist_1(vertex, Vs, #we{vp=Vtab}=We) ->
     Length = wings_pref:get_value(normal_vector_size),
-    foldl(fun(V, Bin) ->
-		  {X1,Y1,Z1} = Pos = array:get(V, Vtab),
-		  N = wings_vertex:normal(V, We),
-		  {X2,Y2,Z2} = e3d_vec:add_prod(Pos, N, Length),
-		  <<Bin/binary, X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>
-	  end, <<>>, gb_sets:to_list(Vs));
+    gb_sets:fold(
+      fun(V, Bin) ->
+	      {X1,Y1,Z1} = Pos = array:get(V, Vtab),
+	      N = wings_vertex:normal(V, We),
+	      {X2,Y2,Z2} = e3d_vec:add_prod(Pos, N, Length),
+	      <<Bin/binary, X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>
+      end, <<>>, Vs);
 make_normals_dlist_1(edge, Edges, #we{es=Etab,vp=Vtab}=We) ->
     Et0 = sofs:relation(array:sparse_to_orddict(Etab), [{edge,data}]),
     Es = sofs:from_external(gb_sets:to_list(Edges), [edge]),

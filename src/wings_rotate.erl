@@ -99,11 +99,12 @@ edges_to_vertices(Vec, Center, Magnet, Edges, We, Acc) ->
     edges_to_vertices_1(Vec, Center, Magnet, Edges, We, Acc).
 
 edges_to_vertices_1(normal, Center, Magnet, Es, #we{es=Etab}=We, Acc) ->
-    Ns = foldl(fun(Edge, A) ->
-		       #edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
-		       [wings_face:normal(Lf, We),
-			wings_face:normal(Rf, We)|A]
-	       end, [], gb_sets:to_list(Es)),
+    Ns = gb_sets:fold(
+	   fun(Edge, A) ->
+		   #edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
+		   [wings_face:normal(Lf, We),
+		    wings_face:normal(Rf, We)|A]
+	   end, [], Es),
     Vec = e3d_vec:norm(e3d_vec:add(Ns)),
     edges_to_vertices_1(Vec, Center, Magnet, Es, We, Acc);
 edges_to_vertices_1(Vec, Center, Magnet, Es, We, Acc) ->
@@ -129,9 +130,10 @@ faces_to_vertices(Vec, Center, Magnet, Faces, We, Acc) ->
     faces_to_vertices_1(Vec, Center, Magnet, Faces, We, Acc).
 
 faces_to_vertices_1(normal, Center, Magnet, Faces, We, Acc) ->
-    Ns = foldl(fun(Face, N0) ->
-		       [wings_face:normal(Face, We)|N0]
-	       end, [], gb_sets:to_list(Faces)),
+    Ns = gb_sets:fold(
+	   fun(Face, N0) ->
+		   [wings_face:normal(Face, We)|N0]
+	   end, [], Faces),
     Vec = e3d_vec:norm(e3d_vec:add(Ns)),
     Vs = wings_face:to_vertices(Faces, We),
     rotate(Vec, Center, Magnet, Vs, We, Acc);

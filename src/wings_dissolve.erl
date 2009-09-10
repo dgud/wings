@@ -135,9 +135,10 @@ simple_del(Faces, Ftab0, Etab0, Htab0, We) ->
 	    Htab = simple_del_hard(Htab0, sofs:to_external(Keep), undefined),
 	    {Ftab,Etab,Htab};
 	{_,_} ->
-	    Ftab = foldl(fun(Face, Ft) ->
-				 gb_trees:delete(Face, Ft)
-			 end, Ftab0, gb_sets:to_list(Faces)),
+	    Ftab = gb_sets:fold(
+		     fun(Face, Ft) ->
+			     gb_trees:delete(Face, Ft)
+		     end, Ftab0, Faces),
 	    Inner = wings_face:inner_edges(Faces, We),
 	    Etab = foldl(fun(Edge, Et) ->
 				 array:reset(Edge, Et)
@@ -188,9 +189,9 @@ do_dissolve_1([EdgeList|Ess], Mat, #we{es=Etab0,fs=Ftab0}=We0) ->
 do_dissolve_1([], _Mat, We) -> We.
 
 do_dissolve_faces(Faces, #we{fs=Ftab0}=We) ->
-    Ftab = foldl(fun(Face, Ft) ->
-			 gb_trees:delete(Face, Ft)
-		 end, Ftab0, gb_sets:to_list(Faces)),
+    Ftab = gb_sets:fold(fun(Face, Ft) ->
+				gb_trees:delete(Face, Ft)
+			end, Ftab0, Faces),
     We#we{fs=Ftab}.
 
 delete_inner(Inner, #we{es=Etab0}=We) ->

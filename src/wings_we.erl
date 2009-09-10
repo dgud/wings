@@ -583,9 +583,9 @@ do_renumber(#we{vp=Vtab0,es=Etab0,fs=Ftab0,
 		  end, [], Etab1),
     Etab = array:from_orddict(reverse(Etab2)),
 
-    Htab1 = foldl(fun(E, A) ->
-			  renum_hard_edge(E, Emap, A)
-		  end, [], gb_sets:to_list(Htab0)),
+    Htab1 = gb_sets:fold(fun(E, A) ->
+				 renum_hard_edge(E, Emap, A)
+			 end, [], Htab0),
     Htab = gb_sets:from_list(Htab1),
 
     Perm = case Perm0 of

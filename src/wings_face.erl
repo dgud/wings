@@ -275,14 +275,15 @@ vertex_positions_1(Edge, Etab, Vtab, Face, LastEdge, Acc) ->
 %%  Extend the the given set of faces to include all faces not in the
 %%  set that share at least one edge with a face in the set.
 extend_border(Fs0, We) ->
-    foldl(fun(Face, S0) ->
-		  fold(fun(_, _, #edge{lf=Lf,rf=Rf}, S1) ->
-			       if
-				   Lf =/= Face -> gb_sets:add(Lf, S1);
-				   true -> gb_sets:add(Rf, S1)
-			       end
-		       end, S0, Face, We)
-	  end, Fs0, gb_sets:to_list(Fs0)).
+    gb_sets:fold(
+      fun(Face, S0) ->
+	      fold(fun(_, _, #edge{lf=Lf,rf=Rf}, S1) ->
+			   if
+			       Lf =/= Face -> gb_sets:add(Lf, S1);
+			       true -> gb_sets:add(Rf, S1)
+			   end
+		   end, S0, Face, We)
+      end, Fs0, Fs0).
 
 %% inner_edges(Faces, We) -> [Edge]
 %%  Given a set of faces, return all inner edges.

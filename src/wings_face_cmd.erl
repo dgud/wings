@@ -525,9 +525,9 @@ do_flatten(Faces, PlaneNormal, We) ->
     wings_vertex:flatten(Vs, PlaneNormal, Center, We).
 
 do_flatten_normal(Faces, Center, We) ->
-    N0 = foldl(fun(Face, A) ->
-		       [wings_face:normal(Face, We)|A]
-	       end, [], gb_sets:to_list(Faces)),
+    N0 = gb_sets:fold(fun(Face, A) ->
+			      [wings_face:normal(Face, We)|A]
+		      end, [], Faces),
     N = e3d_vec:norm(e3d_vec:add(N0)),
     Vs = wings_face:to_vertices(Faces, We),
     wings_vertex:flatten(Vs, N, Center, We).

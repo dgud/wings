@@ -145,22 +145,23 @@ edge_less(St) ->
 	     end, edge, St).
 
 edge_less_1(Edges, Etab) ->
-    foldl(fun(Edge, A0) ->
-		  Rec = array:get(Edge, Etab),
-		  #edge{vs=Va,ve=Vb,
-			ltpr=LP,ltsu=LS,
-			rtpr=RP,rtsu=RS} = Rec,
-		  A = case gb_sets:is_member(LS, Edges) andalso
-			  gb_sets:is_member(RP, Edges) of
-			  true -> A0;
-			  false -> [Va|A0]
-		      end,
-		  case gb_sets:is_member(LP, Edges) andalso
-		      gb_sets:is_member(RS, Edges) of
-		      true -> A;
-		      false -> [Vb|A]
-		  end
-	  end, [], gb_sets:to_list(Edges)).
+    gb_sets:fold(
+      fun(Edge, A0) ->
+	      Rec = array:get(Edge, Etab),
+	      #edge{vs=Va,ve=Vb,
+		    ltpr=LP,ltsu=LS,
+		    rtpr=RP,rtsu=RS} = Rec,
+	      A = case gb_sets:is_member(LS, Edges) andalso
+		      gb_sets:is_member(RP, Edges) of
+		      true -> A0;
+		      false -> [Va|A0]
+		  end,
+	      case gb_sets:is_member(LP, Edges) andalso
+		  gb_sets:is_member(RS, Edges) of
+		  true -> A;
+		  false -> [Vb|A]
+	      end
+      end, [], Edges).
 
 adjacent_edges(Vs, We) ->
     adjacent_edges(Vs, We, gb_sets:empty()).
@@ -174,11 +175,12 @@ adjacent_edges(Vs, We, Acc) ->
 	  end, Acc, Vs).
 
 edge_extend_sel(Es0, #we{es=Etab}=We) ->
-    Es = foldl(fun(Edge, S) ->
-		       #edge{ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} =
-			   array:get(Edge, Etab),
-		       gb_sets:union(S, gb_sets:from_list([LP,LS,RP,RS]))
-	       end, Es0, gb_sets:to_list(Es0)),
+    Es = gb_sets:fold(
+	   fun(Edge, S) ->
+		   #edge{ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} =
+		       array:get(Edge, Etab),
+		   gb_sets:union(S, gb_sets:from_list([LP,LS,RP,RS]))
+	   end, Es0, Es0),
     wings_we:visible_edges(Es, We).
 
 %%
@@ -211,9 +213,9 @@ face_more(St) ->
     conv_sel(fun face_more/2, face, St).
 
 face_more(Fs0, We) ->
-    Fs = foldl(fun(Face, A) ->
-		       do_face_more(Face, We, A)
-	       end, Fs0, gb_sets:to_list(Fs0)),
+    Fs = gb_sets:fold(fun(Face, A) ->
+			      do_face_more(Face, We, A)
+		      end, Fs0, Fs0),
     remove_invisible_faces(Fs, We).
 
 do_face_more(Face, We, Acc) ->

@@ -221,10 +221,10 @@ cut(N, #st{selmode=edge}=St0) when N > 1 ->
 cut(_, St) -> St.
 
 cut_edges(Edges, N, We0) ->
-    foldl(fun(Edge, W0) ->
-		  {We,_} = wings_edge:cut(Edge, N, W0),
-		  We
-	  end, We0, gb_sets:to_list(Edges)).
+    gb_sets:fold(fun(Edge, W0) ->
+			 {We,_} = wings_edge:cut(Edge, N, W0),
+			 We
+		 end, We0, Edges).
 
 %%%
 %%% Cut at an arbitrary position.

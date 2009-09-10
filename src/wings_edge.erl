@@ -628,10 +628,10 @@ select_edge_ring_decr(St) -> St.
 
 build_selection(Edges, #we{id=Id}=We, ObjAcc) ->
     Init = init_edge_ring([],unknown,Edges,We,0,[]),
-    Stops0 = lists:foldl(fun(#r{id=MyId,ls=O},S0) ->
-				 foldl(fun(E,S) -> [{E,MyId} | S] end,
-				       S0, gb_sets:to_list(O))
-			 end,[],Init),
+    Stops0 = foldl(fun(#r{id=MyId,ls=O},S0) ->
+			   gb_sets:fold(fun(E,S) -> [{E,MyId} | S] end,
+					S0, O)
+		   end,[],Init),
     Stop = gb_trees:from_orddict(lists:sort(Stops0)),
     Sel0 = grow_rings(Init,[],Stop,We,gb_sets:empty()),
     Sel = wings_we:visible_edges(Sel0, We),
@@ -748,10 +748,11 @@ next_edge(Edge, Face, #we{es=Etab})->
     end.
 
 incr_ring_selection(Edges, #we{id=Id}=We, ObjAcc) ->
-    [{Id,foldl(fun(Edge, EdgeAcc) ->
-		       Es = incr_from_edge(Edge, We, EdgeAcc),
-		       wings_we:visible_edges(Es, We)
-	       end, gb_sets:empty(), gb_sets:to_list(Edges))}|ObjAcc].
+    [{Id,gb_sets:fold(
+	   fun(Edge, EdgeAcc) ->
+		   Es = incr_from_edge(Edge, We, EdgeAcc),
+		   wings_we:visible_edges(Es, We)
+	   end, gb_sets:empty(), Edges)}|ObjAcc].
 
 incr_from_edge(Edge, We, Acc) ->
     Selected = gb_sets:add(Edge, Acc),
@@ -766,9 +767,10 @@ incr_from_edge(Edge, We, Acc) ->
     end.
 
 decr_ring_selection(Edges, #we{id=Id} = We, ObjAcc) ->
-    [{Id,foldl(fun(Edge, EdgeAcc) ->
-		       decr_from_edge(Edge, We, Edges, EdgeAcc)
-	       end, Edges, gb_sets:to_list(Edges))}|ObjAcc].
+    [{Id,gb_sets:fold(
+	   fun(Edge, EdgeAcc) ->
+		   decr_from_edge(Edge, We, Edges, EdgeAcc)
+	   end, Edges, Edges)}|ObjAcc].
 
 decr_from_edge(Edge, We, Orig, Acc) ->
     Left = opposing_edge(Edge, We, left),

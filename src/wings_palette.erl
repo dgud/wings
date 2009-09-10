@@ -489,27 +489,29 @@ scan_color(_, body, We, Acc) ->
     Cols = wings_va:all(color, We),
     ordsets:union(Cols, Acc);
 scan_color(Sel, vertex, We, Acc0) ->
-    foldl(fun(V, Acc1) ->
-		  wings_vertex:fold(fun(_, Face, _, Acc) ->
-					    Attr = wings_va:vtx_attrs(V, Face, We),
-					    add_cols([Attr], Acc)
-				    end, Acc1, V, We)
-	  end, Acc0, gb_sets:to_list(Sel));
-
+    gb_sets:fold(
+      fun(V, Acc1) ->
+	      wings_vertex:fold(fun(_, Face, _, Acc) ->
+					Attr = wings_va:vtx_attrs(V, Face, We),
+					add_cols([Attr], Acc)
+				end, Acc1, V, We)
+      end, Acc0, Sel);
 scan_color(Sel, edge, We = #we{es=Etab}, Acc0) ->
-    foldl(fun(Edge, Acc) ->
-		  #edge{lf=LF,rf=RF,ve=Ve,vs=Vs} = array:get(Edge, Etab),
-		  A = wings_va:vtx_attrs(Vs, LF, We),
-		  B = wings_va:vtx_attrs(Vs, RF, We),
-		  C = wings_va:vtx_attrs(Ve, LF, We),
-		  D = wings_va:vtx_attrs(Ve, RF, We),
-		  add_cols([A,B,C,D], Acc)
-	  end, Acc0, gb_sets:to_list(Sel));
+    gb_sets:fold(
+      fun(Edge, Acc) ->
+	      #edge{lf=LF,rf=RF,ve=Ve,vs=Vs} = array:get(Edge, Etab),
+	      A = wings_va:vtx_attrs(Vs, LF, We),
+	      B = wings_va:vtx_attrs(Vs, RF, We),
+	      C = wings_va:vtx_attrs(Ve, LF, We),
+	      D = wings_va:vtx_attrs(Ve, RF, We),
+	      add_cols([A,B,C,D], Acc)
+      end, Acc0, Sel);
 scan_color(Sel, face, We, Acc0) ->
-    foldl(fun(Face, Acc) ->
-		  Attrs = wings_va:face_attr(color, Face, We),
-		  add_cols(Attrs, Acc)
-	  end, Acc0, gb_sets:to_list(Sel)).
+    gb_sets:fold(
+      fun(Face, Acc) ->
+	      Attrs = wings_va:face_attr(color, Face, We),
+	      add_cols(Attrs, Acc)
+      end, Acc0, Sel).
 
 scan_materials([Mat|Ms], Cols) ->
     Opengl = proplists:get_value(opengl, Mat),

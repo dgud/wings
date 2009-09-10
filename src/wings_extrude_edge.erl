@@ -267,12 +267,13 @@ extrude_1(Edges, ExtrudeDist, We0, Acc) ->
     {We,[{Edges,NewVs,Forbidden,We}|Acc]}.
 
 orig_normals(Es0, #we{es=Etab,vp=Vtab}) ->
-    VsVec0 = foldl(fun(E, A) ->
-			   #edge{vs=Va,ve=Vb} = array:get(E, Etab),
-			   Vec = e3d_vec:norm_sub(array:get(Va, Vtab),
-						  array:get(Vb, Vtab)),
-			   [{Va,{Vec,Vb}},{Vb,{Vec,Va}}|A]
-		   end, [], gb_sets:to_list(Es0)),
+    VsVec0 = gb_sets:fold(
+	       fun(E, A) ->
+		       #edge{vs=Va,ve=Vb} = array:get(E, Etab),
+		       Vec = e3d_vec:norm_sub(array:get(Va, Vtab),
+					      array:get(Vb, Vtab)),
+		       [{Va,{Vec,Vb}},{Vb,{Vec,Va}}|A]
+	       end, [], Es0),
     VsVec1 = sofs:relation(VsVec0, [{vertex,info}]),
     VsVec2 = sofs:relation_to_family(VsVec1),
     VsVec = sofs:to_external(VsVec2),
@@ -343,11 +344,12 @@ extrude_edges(Edges, ForbiddenFaces, ExtrudeDist,
     %% a vertex's incident edge points to a completely unrelated
     %% face (i.e. a vertex is shared by two faces that have no
     %% common edge).
-    Vct = foldl(fun(Edge, A) ->
-			#edge{vs=Va,ve=Vb} = Rec = array:get(Edge, Etab),
-			digraph_edge(G, ForbiddenFaces, Rec),
-			array:set(Vb, Edge, array:set(Va, Edge, A))
-		end, Vct0, gb_sets:to_list(Edges)),
+    Vct = gb_sets:fold(
+	    fun(Edge, A) ->
+		    #edge{vs=Va,ve=Vb} = Rec = array:get(Edge, Etab),
+		    digraph_edge(G, ForbiddenFaces, Rec),
+		    array:set(Vb, Edge, array:set(Va, Edge, A))
+	    end, Vct0, Edges),
     Vs0 = digraph:vertices(G),
     Vs = sofs:to_external(sofs:domain(sofs:relation(Vs0))),
     {We1,Forbidden} =

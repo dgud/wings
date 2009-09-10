@@ -93,7 +93,7 @@ collapse_faces(Faces, #we{id=Id,fs=Ftab}=We0, SelAcc)->
     F2 = gb_trees:size(Ftab),
     case F1 =:= F2 of
       false ->
-        We1 = foldl(fun collapse_face/2, We0, gb_sets:to_list(Faces)),
+        We1 = gb_sets:fold(fun collapse_face/2, We0, Faces),
         We = wings_facemat:gc(We1),
         check_consistency(We),
         Sel = wings_we:new_items_as_gbset(vertex, We0, We),

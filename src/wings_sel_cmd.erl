@@ -978,17 +978,19 @@ oriented_faces([Tolerance,false,Save], St) ->
     {save_state,wings_sel:make(Sel, face, St)};
 
 oriented_faces([Tolerance,true,Save], St0) ->
-    wings_pref:set_value(similar_normals_angle,{Save,Tolerance}),
-    wings_pref:set_value(similar_normals_connected,true),
+    wings_pref:set_value(similar_normals_angle, {Save,Tolerance}),
+    wings_pref:set_value(similar_normals_connected, true),
     CosTolerance = math:cos(Tolerance * (math:pi() / 180.0)),
-    Sel = wings_sel:fold(fun(Faces, #we{id=Id}=We, A) ->
-	        Normals0 = foldl(fun(F,Acc) ->
-			        [wings_face:normal(F, We)|Acc]
-		    end,[],gb_sets:to_list(Faces)),
-            Normals = lists:usort(Normals0),
-            [{Id,norm_search(Faces,Normals,CosTolerance,We,Faces)}|A]
-    end, [], St0),
-    wings_sel:set(face,Sel,St0).
+    Sel = wings_sel:fold(
+	    fun(Faces, #we{id=Id}=We, A) ->
+		    Normals0 = gb_sets:fold(
+				 fun(F,Acc) ->
+					 [wings_face:normal(F, We)|Acc]
+				 end, [], Faces),
+		    Normals = lists:usort(Normals0),
+		    [{Id,norm_search(Faces, Normals, CosTolerance, We, Faces)}|A]
+	    end, [], St0),
+    wings_sel:set(face, Sel, St0).
 
 norm_search(Faces,Normals,CosTolerance,We,LastSel) ->
     Fs0 = wings_face:extend_border(LastSel, We),
@@ -1046,9 +1048,9 @@ similar_material([Connected|_], #st{selmode=face,sel=[]}) ->
 similar_material([false,Mode], St) ->
     Materials = wings_sel:fold(fun
        (Faces, We, A) when Mode =:= vertex_color ->
-        foldl(fun(F, Acc) ->
+        gb_sets:fold(fun(F, Acc) ->
                    [average_colors(F, We)|Acc]
-        end,A,gb_sets:to_list(Faces));
+        end,A,Faces);
        (Faces, We, A) ->
                [wings_facemat:face(SelI, We) ||
                    SelI <- gb_sets:to_list(Faces)] ++ A
@@ -1067,9 +1069,9 @@ similar_material([false,Mode], St) ->
 similar_material([true,Mode], St0) ->
     Selection = wings_sel:fold(fun
         (Faces, #we{id=Id}=We, A) when Mode =:= vertex_color ->
-            AllCols = foldl(fun(F,Acc) ->
+            AllCols = gb_sets:fold(fun(F,Acc) ->
                 [average_colors(F, We)|Acc]
-            end,A,gb_sets:to_list(Faces)),
+            end,A,Faces),
             Colours = lists:usort(AllCols),
             [{Id,mat_search(Faces,Colours,We,Mode,Faces)}|A];
         (Faces, #we{id=Id}=We, A) ->
