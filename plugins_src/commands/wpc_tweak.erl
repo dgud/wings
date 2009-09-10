@@ -275,6 +275,12 @@ handle_tweak_event0(#keyboard{sym=$=}, #tweak{tmode=drag}=T) ->
 handle_tweak_event0(#keyboard{sym=$-}, #tweak{tmode=drag}=T) ->
     update_tweak_handler(magnet_radius(-1,T));
 
+handle_tweak_event0(#keyboard{sym=?SDLK_KP_PLUS}, #tweak{tmode=drag}=T) ->
+    update_tweak_handler(magnet_radius(1,T));
+
+handle_tweak_event0(#keyboard{sym=?SDLK_KP_MINUS}, #tweak{tmode=drag}=T) ->
+    update_tweak_handler(magnet_radius(-1,T));
+
 handle_tweak_event0(#keyboard{sym=C}, #tweak{tmode=drag}=T) ->
     case tweak_hotkey(C, T) of
       none -> keep;
