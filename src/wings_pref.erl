@@ -168,82 +168,10 @@ win32_pref_1(R, [FolderType|T]) ->
 		File -> File
 	    end
     end;
-win32_pref_1(R, []) ->
-    case try_location(wings_util:lib_dir(wings), ?WIN32_PREFS) of
-	none -> win32_pref_2(R);
-	File -> File
-    end.
-
-%% No preferences found so far. Search in old installations of
-%% Wings for preference files.
-win32_pref_2(R) ->
-    case win32_9816(R) of
-	none -> win32_pref_pre9816(R);
-	File -> File
-    end.
-
-win32_9816(R) ->
-    %% Search for a preference file in a Wings installation in 0.98.16.
-    %% (Too bad... in a special place in this release only.)
-    case win32reg:change_key(R, "\\hklm\\SOFTWARE\\Wings 3D") of
-	ok ->
-	    case win32reg:sub_keys(R) of
-		{ok,SubKeys0} ->
-		    SubKeys = reverse(sort(SubKeys0)),
-		    {ok,Curr} = win32reg:current_key(R),
-		    win32_9816_1(R, SubKeys, Curr);
-		{error,_Error} ->
-		    %% Can't read sub keys - strange.
-		    none
-	    end;
-	{error,_Error} ->
-	    %% No 'Wings 3D' key (this is STRANGE)
-	    none
-    end.
-
-win32_9816_1(R, [K|Keys], Curr) ->
-    ok = win32reg:change_key(R, K),
-    Dir = reg_get_default(R),
-    ok = win32reg:change_key(R, Curr),
-    WingsDirs = filelib:wildcard(Dir++"/lib/wings-*"),
-    case try_locations(WingsDirs, ?WIN32_OLD_PREFS) of
-	none -> win32_9816_1(R, Keys, Curr);
-	File -> File
-    end;
-win32_9816_1(_, [], _) -> none.
-
-win32_pref_pre9816(R) ->
-    %% Search for a preference file in a Wings installation older than 0.98.16
-    %% using the uninstall string.
-    case win32reg:change_key(R, "\\hklm\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Wings 3D") of
-	ok ->
-	    case win32reg:value(R, "UninstallString") of
-		{ok,Str0} ->
-		    Str = strip_quotes(Str0),
-		    try_location(filename:dirname(Str), ?WIN32_OLD_PREFS);
-		{error,_} -> none
-	    end;
-	{error,_} -> none
-    end.
-
-reg_get_default(R) ->
-    %% There seems to be a bug in win32reg:value/2 preventing
-    %% us from retrieving the default value. Workaround follows.
-    case win32reg:values(R) of
-	{ok,Values} ->
-	    case keysearch(default, 1, Values) of
-		{value,{default,Val}} -> Val;
-		false -> ""
-	    end;
-	{error,_} -> ""
-    end.
-
-strip_quotes([$"|T0]) ->
-    case reverse(T0) of
-	[$"|T] -> reverse(T);
-	_ -> T0
-    end;
-strip_quotes(S) -> S.
+win32_pref_1(_, []) ->
+    %% This should normally never happen. See the "desperate
+    %% fallback" in win32_new_pref_1/2 below.
+    try_location(wings_util:lib_dir(wings), ?WIN32_PREFS).
 
 %%%
 %%% Return a suitable path for a new preference file.
@@ -280,13 +208,6 @@ win32_new_pref_1(_, []) ->
 %%%
 %%% Utilities.
 %%%
-
-try_locations([D|Ds], File) ->
-    case try_location(D, File) of
-	none -> try_locations(Ds, File);
-	Name -> Name
-    end;
-try_locations([], _) -> none.
 
 try_location(Dir, File) ->
     Name = filename:join(Dir, File),
