@@ -160,7 +160,7 @@ win32_pref() ->
 %% Search for a preference file in "special folders", such as "AppData"
 %% and "My Documents".
 win32_pref_1(R, [FolderType|T]) ->
-    case win32_special_folder(R, FolderType) of
+    case wings_u:win32_special_folder(R, FolderType) of
 	none -> win32_pref_1(R, T);
 	Path ->
 	    case try_location(Path, ?WIN32_PREFS) of
@@ -226,17 +226,6 @@ win32_pref_pre9816(R) ->
 	{error,_} -> none
     end.
 
-win32_special_folder(R, FolderType) ->
-    Key = "\\hkcu\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
-    case win32reg:change_key(R, Key) of
-	ok ->
-	    case win32reg:value(R, FolderType) of
-		{error,_} -> none;
-		{ok,Value} -> Value
-	    end;
-	_ -> error
-    end.
-
 reg_get_default(R) ->
     %% There seems to be a bug in win32reg:value/2 preventing
     %% us from retrieving the default value. Workaround follows.
@@ -277,7 +266,7 @@ win32_new_pref() ->
     Res.
 
 win32_new_pref_1(R, [FolderType|T]) ->
-    case win32_special_folder(R, FolderType) of
+    case wings_u:win32_special_folder(R, FolderType) of
 	none -> win32_new_pref_1(R, T);
 	Path ->
 	    File = filename:join(Path, ?WIN32_PREFS),

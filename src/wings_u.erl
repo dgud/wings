@@ -16,7 +16,7 @@
 	 geom_windows/0,menu_restriction/2,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
 	 export_we/2,win_crash/1,crash_log/2,crash_log/3,
-	 pretty_filename/1,caption/1]).
+	 pretty_filename/1,caption/1,win32_special_folder/2]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -168,6 +168,7 @@ pretty_filename(Name0) ->
 	    end
     end.
 
+
 wings() ->
     case ?wings_branch of
 	"" -> debug("Wings3D");
@@ -179,6 +180,17 @@ debug(Caption) -> Caption ++ " [debug]".
 -else.
 debug(Caption) -> Caption.
 -endif.
+
+win32_special_folder(R, FolderType) ->
+    Key = "\\hkcu\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+    case win32reg:change_key(R, Key) of
+	ok ->
+	    case win32reg:value(R, FolderType) of
+		{error,_} -> none;
+		{ok,Value} -> Value
+	    end;
+	_ -> error
+    end.
 
 %%%
 %%% Local functions.
@@ -208,23 +220,18 @@ log_file_dir() ->
 	_Other -> "."
     end.
 
-log_file_dir({unix,_}) -> os:getenv("HOME");
+log_file_dir({unix,_}) ->
+    os:getenv("HOME");
 log_file_dir({win32,_}) ->
-    Root = code:root_dir(),
-    case filelib:is_file("Wings3D.exe") of
-        true -> Root;
-        false ->
-            %% Development system.
-            case code:which(?MODULE) of
-                Name0 when is_list(Name0) ->
-                    Name = filename:dirname(Name0),
-                    case filename:basename(Name) of
-                        "ebin" -> filename:dirname(Name);
-                        "patches" -> filename:dirname(Name);
-                        _Other -> Name
-                    end
-            end
-    end.
+    {ok,R} = win32reg:open([read]),
+    Res = case win32_special_folder(R, "Desktop") of
+	      none ->
+		  {ok,[Drive,$:|_]} = file:get_cwd(),
+		  [Drive,$:,$/];
+	      Path -> Path
+	  end,
+    ok = win32reg:close(R),
+    Res.
 	
 open_log_file(Name) ->
     {ok,F} = file:open(Name, [write]),
