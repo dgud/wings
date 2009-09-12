@@ -3,7 +3,7 @@
 %%
 %%     Arithmetic on vectors and points (represented as three-tuples).
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -28,7 +28,7 @@
 zero() ->
     {0.0,0.0,0.0}.
 
--spec is_zero(e3d_vector()) -> bool().
+-spec is_zero(e3d_vector()) -> boolean().
      
 is_zero({0.0,0.0,0.0}) -> true;
 is_zero(_) -> false.

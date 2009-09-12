@@ -3,7 +3,7 @@
 %%
 %%     Operations on matrices.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson and Dan Gudmundsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson and Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -31,7 +31,7 @@ identity() ->
      Zero,Zero,One,
      Zero,Zero,Zero}.
 
--spec is_identity(e3d_matrix()) -> bool().
+-spec is_identity(e3d_matrix()) -> boolean().
 
 is_identity(identity) -> true;
 is_identity({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0}) -> true;

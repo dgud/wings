@@ -115,12 +115,12 @@
 -record(st,
 	{shapes=gb_trees:empty() :: gb_tree(),	%All visible objects
 	 selmode=face :: sel_mode(),		%Selection mode.
-	 sh=false :: bool(),			%Smart highlighting active.
+	 sh=false :: boolean(),			%Smart highlighting active.
 	 sel=[],				%Current sel: [{Id,GbSet}]
 	 ssels=gb_trees:empty() :: gb_tree(),   %Saved selections:
 
 	 %% Selection only temporary?
-	 temp_sel=none :: 'none' | {sel_mode(),bool()},
+	 temp_sel=none :: 'none' | {sel_mode(),boolean()},
 
 	 mat=gb_trees:empty() :: gb_tree(),	%Defined materials (GbTree).
 	 pal=[],                                %Palette
@@ -149,7 +149,7 @@
 	 %% Undo information.
 	 last_cmd=empty_scene,		        %Last command.
 	 undo=queue:new() :: queue(),		%Undo (de)queue.
-	 next_is_undo=true :: bool(),		%State of undo/redo toggle.
+	 next_is_undo=true :: boolean(),	%State of undo/redo toggle.
 	 undone=[] :: list()		        %States that were undone.
 	}).
 
