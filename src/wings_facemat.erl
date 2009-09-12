@@ -11,8 +11,6 @@
 %%
 %%     $Id$
 %%
-%%
-%%
 
 -module(wings_facemat).
 -export([all/1,face/2,used_materials/1,is_material_used/2,mat_faces/2,
@@ -23,7 +21,7 @@
 	 renumber/2,gc/1,merge/1]).
 
 -include("wings.hrl").
--import(lists, [keysearch/3,keymember/3,reverse/1,reverse/2,sort/1,any/2]).
+-import(lists, [keyfind/3,keymember/3,reverse/1,reverse/2,sort/1,any/2]).
 
 %%%
 %%% API functions for retrieving information.
@@ -41,7 +39,7 @@ all(#we{mat=L}) when is_list(L) ->
 %%  Return the material for the face Face.
 face(_, #we{mat=M}) when is_atom(M) -> M;
 face(Face, #we{mat=Tab}) ->
-    {value,{_,Mat}} = keysearch(Face, 1, Tab),
+    {_,Mat} = keyfind(Face, 1, Tab),
     Mat.
 
 %% used_materials(We) -> [MaterialName]

@@ -26,7 +26,7 @@
 -include("e3d_image.hrl").
 
 -import(lists, [sort/1,foldl/3,reverse/1,
-		keyreplace/4,keydelete/3,keysearch/3,flatten/1]).
+		keyreplace/4,keydelete/3,keyfind/3,flatten/1]).
 
 material_menu(St) ->
     [{?__(4,"Material"),{material,material_fun(St)}}].
@@ -187,10 +187,10 @@ select_material(Mat, St) ->
     wings_sel:make(fun(_, #we{mat=AtomMat}) when is_atom(AtomMat) ->
 			   Mat =:= AtomMat;
 		      (Face, #we{mat=MatTab}) ->
-			   case keysearch(Face, 1, MatTab) of
+			   case keyfind(Face, 1, MatTab) of
 			       false -> false;
-			       {value,{_,Mat}} -> true;
-			       {value,_} -> false
+			       {_,Mat} -> true;
+			       _ -> false
 			   end
 		   end, face, St).
 
@@ -223,7 +223,7 @@ make_default({R,G,B}, Opacity, More) ->
 update_image(MatName, MapType, Image, #st{mat=Mtab}) ->
     Mat = gb_trees:get(MatName, Mtab),
     Maps = prop_get(maps, Mat, []),
-    {value,{MapType,ImageId}} = keysearch(MapType, 1, Maps),
+    {MapType,ImageId} = keyfind(MapType, 1, Maps),
     wings_image:update(ImageId, Image).
 
 add_materials(Ms, St) ->

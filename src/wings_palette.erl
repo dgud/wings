@@ -19,7 +19,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [foldl/3,reverse/1]).
+-import(lists, [foldl/3,reverse/1,keyfind/3]).
 
 -define(BOX_W, 16).
 -define(BOX_H, 16).
@@ -373,8 +373,8 @@ command(import, #pst{cols=Cols0}) ->
     Fun = fun(Name) ->
 		  case file:consult(Name) of
 		      {ok,Content} ->
-			  case lists:keysearch(palette,1,Content) of
-			      {value, {palette, Pal}} when is_list(Pal) ->
+			  case keyfind(palette,1,Content) of
+			      {palette, Pal} when is_list(Pal) ->
 				  Cols = del_trailing(Cols0) ++ Pal,
 				  wings_wm:send(palette, {new_color,Cols}),
 				  keep;

@@ -20,7 +20,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 -import(lists, [map/2,foldl/3,reverse/1,reverse/2,
-		keymember/3,keysearch/3,sort/1]).
+		keymember/3,keyfind/3,sort/1]).
 
 %%%
 %%% Exported functions.
@@ -713,9 +713,9 @@ maybe_unlock(#we{perm=P}=We) when ?IS_VISIBLE(P) -> We#we{perm=0};
 maybe_unlock(We) -> We.
     
 get_sel(Id, #st{selmode=Mode,sel=Sel}) ->
-    case keysearch(Id, 1, Sel) of
+    case keyfind(Id, 1, Sel) of
 	false -> [];
-	{value,{Id,Set}} -> {Mode,Set}
+	{Id,Set} -> {Mode,Set}
     end.
 
 update_sel(#we{id=Id,perm={Mode,Set}}, #st{selmode=Mode,sel=Sel}) ->

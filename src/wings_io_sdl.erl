@@ -30,7 +30,7 @@
 -include("wings.hrl").
 
 -import(erlang, [max/2]).
--import(lists, [flatmap/2,keysearch/3,member/2,reverse/1,reverse/2]).
+-import(lists, [flatmap/2,keyfind/3,member/2,reverse/1,reverse/2]).
 
 -import(wings_io, [put_state/1, get_state/0]).
 

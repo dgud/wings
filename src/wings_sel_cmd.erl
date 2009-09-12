@@ -19,7 +19,7 @@
 -export([select_all/1]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldl/3,reverse/1,keymember/3,keysearch/3,usort/1]).
+-import(lists, [map/2,foldl/3,reverse/1,keymember/3,keyfind/3,usort/1]).
 -import(erlang, [max/2]).
 
 menu(St) ->
@@ -462,9 +462,9 @@ inverse(#st{selmode=Mode}=St) ->
 
 hide_selected(#st{selmode=Mode,shapes=Shs0,sel=Sel}=St) ->
     Shs1 = map(fun(#we{id=Id}=We) ->
-		       case keysearch(Id, 1, Sel) of
+		       case keyfind(Id, 1, Sel) of
 			   false -> {Id,We};
-			   {value,{_,Set}} -> {Id,We#we{perm={Mode,Set}}}
+			   {_,Set} -> {Id,We#we{perm={Mode,Set}}}
 		       end
 	       end, gb_trees:values(Shs0)),
     Shs = gb_trees:from_orddict(Shs1),

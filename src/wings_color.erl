@@ -3,7 +3,7 @@
 %%
 %%     Color utilites.
 %%
-%%  Copyright (c) 2001-2003 Bjorn Gustavsson
+%%  Copyright (c) 2001-2009 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -17,7 +17,7 @@
 	 rgb_to_hsv/3,hsv_to_rgb/3]).
 
 -include("wings.hrl").
--import(lists, [foreach/2,keysearch/3]).
+-import(lists, [foreach/2,keyfind/3]).
 
 -define(BLACK, {0.0,0.0,0.0}).
 -define(WHITE, {1.0,1.0,1.0}).
@@ -267,9 +267,9 @@ choose_1(RGB0, Done) ->
 					     {red,green,blue}, SIRange)}]}]}
 	      |Aslider]}]}],
     Fun = fun([{red,R},{green,G},{blue,B}|More]) ->
-		  RGB = case keysearch(alpha, 1, More) of
+		  RGB = case keyfind(alpha, 1, More) of
 			    false -> {R,G,B};
-			    {value,{alpha,A}} -> {R,G,B,A}
+			    {alpha,A} -> {R,G,B,A}
 			end,
 		  Done(RGB)
 	  end,

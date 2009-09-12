@@ -22,7 +22,7 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--import(lists, [reverse/1,keysearch/3,sort/1,foreach/2]).
+-import(lists, [reverse/1,keyfind/3,sort/1,foreach/2]).
 -import(erlang, [min/2,max/2]).
 
 toplevel(Name, Title, Pos, Size, Flags, Op) ->
@@ -38,9 +38,9 @@ toplevel(Name, Title, Pos, Size, Flags, Op) ->
 
 new_controller(Client, Title, Flags) ->
     Z = wings_wm:win_z(Client),
-    case keysearch(properties, 1, Flags) of
+    case keyfind(properties, 1, Flags) of
 	false -> ok;
-	{value,{properties,Props}} ->
+	{properties,Props} ->
 	    foreach(fun({K,V}) -> wings_wm:set_prop(Client, K, V) end, Props)
     end,
     Controller = {controller,Client},
@@ -90,11 +90,11 @@ ctrl_create_windows([_|Flags], Client) ->
 ctrl_create_windows([], _) -> [].
 
 ctrl_anchor(Client, Flags) ->
-    case keysearch(anchor, 1, Flags) of
+    case keyfind(anchor, 1, Flags) of
 	false ->
 	    %% Dummy update to position and size all helper windows properly.
 	    wings_wm:update_window(Client, [{dx,0}]);
-	{value,{anchor,Anchor}} ->
+	{anchor,Anchor} ->
 	    {_,Y} = controller_pos(Client),
 	    {_,Cy} = wings_wm:win_ul(Client),
 	    ctrl_anchor_1(Anchor, Client, Cy-Y),

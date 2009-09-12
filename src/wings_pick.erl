@@ -22,7 +22,7 @@
 -include("e3d.hrl").
 
 -import(lists, [foreach/2,reverse/2,sort/1,usort/1,map/2,min/1,
-		keysearch/3,member/2,keysort/2]).
+		keyfind/3,member/2,keysort/2]).
 
 %% For ordinary picking.
 -record(pick,
@@ -196,9 +196,9 @@ insert_hilite_dl_1(#dlo{hilite=none}=D, _, _) -> D;
 insert_hilite_dl_1(D, _, _) -> D#dlo{hilite=none}.
 
 hilite_color({Id,Item}, #st{sel=Sel}) ->
-    Key = case keysearch(Id, 1, Sel) of
+    Key = case keyfind(Id, 1, Sel) of
 	      false -> unselected_hlite;
-	      {value,{Id,Items}} ->
+	      {Id,Items} ->
 		  case gb_sets:is_member(Item, Items) of
 		      false -> unselected_hlite;
 		      true -> selected_hlite

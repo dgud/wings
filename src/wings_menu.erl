@@ -18,7 +18,7 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--import(lists, [map/2,foldl/3,reverse/1,keysearch/3,foreach/2]).
+-import(lists, [map/2,foldl/3,reverse/1,keyfind/3,foreach/2]).
 
 -define(SUB_MENU_TIME, 150).
 -define(SEPARATOR_HEIGHT, (wings_text:height()-4)).
@@ -991,8 +991,8 @@ handle_button_event(redraw, _Cmds, Mi) ->
     redraw(Mi),
     keep;
 handle_button_event(#mousebutton{button=B,state=?SDL_RELEASED}, Cmds, Mi) ->
-    case keysearch(B, 1, Cmds) of
-	{value,{B,Cmd}} ->
+    case keyfind(B, 1, Cmds) of
+	{B,Cmd} ->
 	    wings_wm:message(hotkey_key_message(Cmd)),
 	    {replace,fun(Ev) ->
 			     handle_key_event(Ev, Cmd, Mi)

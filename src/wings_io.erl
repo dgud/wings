@@ -52,7 +52,7 @@
 -include("wings.hrl").
 
 -import(erlang, [max/2]).
--import(lists, [flatmap/2,keysearch/3,member/2,reverse/1,reverse/2]).
+-import(lists, [flatmap/2,keyfind/3,member/2,reverse/1,reverse/2]).
 
 -ifdef(USE_WX).
 -define(BACKEND_MOD, wings_io_wx).
@@ -547,9 +547,9 @@ draw_icons(Body) ->
 
 draw_icon(X, Y, Icon) ->
     #io{tex=Tex} = get_state(),
-    case keysearch(Icon, 1, Tex) of
+    case keyfind(Icon, 1, Tex) of
 	false -> ok;
-	{value,{Icon,{Id,W,H,MinU,MinV,MaxU,MaxV}}} ->
+	{Icon,{Id,W,H,MinU,MinV,MaxU,MaxV}} ->
 	    case get(?ACTIVE_TX) of
 		Id -> ok;
 		_ ->
