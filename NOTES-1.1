@@ -1,3 +1,31 @@
+--- 1.1.13 ---------------------------------------------------------------------
+- Selecting two objects, one with a virtual mirror and one
+  without a virtual mirror, and Tweaking the object with the virtual
+  mirror would cause a crash. (Thanks to BlackHarmo.)
+  
+  For developers: wings_pick:do_pick/3 and wpa:pick/3 returns more
+  information about what was picked in the second element of the
+  result tuple. Plug-ins that use the second element must
+  be updated. [bjorng]
+
+- Select|Edge Loop|Edge Loop (and Grow/Shrink Edge Loop) can
+  now select edge loops around holes. [bjorng]
+
+- This release for Mac OS X has been built with Snow
+  Leopard (10.6) as the host OS. It is still supposed to work on
+  Tiger (10.4) with either PPC or Intel CPUs, but I have no way to
+  actually test that. [bjorng]
+
+- On Windows, the wings_crash.dump file will now be written to the
+  Desktop, since writing it to the installation directory for Wings
+  would not work in Windows Vista or Windows 7. [bjorng]
+
+- Vertex colors that were completely white were not saved in
+  .wings files. (Thanks to tuxtax.) [bjorng]
+
+- The '+' and '-' keys on the keypad can now be used for
+  adjusting the magnet radius in Tweak mode. [bjorng]
+
 --- 1.1.12 ---------------------------------------------------------------------
 - For developers: In the source distribution, there is a new
   text file CodingGuidelines containing coding guidelinings for
