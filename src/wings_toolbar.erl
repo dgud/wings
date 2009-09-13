@@ -223,8 +223,12 @@ button_was_hit_1(_X, []) ->
 	    ok
     end.
 
-button_help(X, #but{mode=Mode,buttons=Buttons}) ->
-    wings_wm:message(button_help_1(X, Buttons, Mode)).
+button_help(X, #but{mode=Mode,sh=false,buttons=Buttons}) ->
+    wings_wm:message(button_help_1(X, Buttons, Mode));
+button_help(X, #but{sh=true,buttons=Buttons}) ->
+    %% Smart highlighting is on. We don't really have any mode.
+    %% Make sure that the help texts reflects that.
+    wings_wm:message(button_help_1(X, Buttons, undecided)).
 
 button_help_1(X, [{Pos,Name}|_], Mode) when Pos =< X, X < Pos+?BUTTON_WIDTH ->
     button_help_2(Name, Mode);

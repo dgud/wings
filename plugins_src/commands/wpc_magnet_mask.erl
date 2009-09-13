@@ -53,7 +53,8 @@ mask_on_off(false) ->
     {?__(3,"Switch Masking On"),magnet_mask_on,?__(2,"Toggle masking On/Off")}.
 
 view_menu_entry() ->
-    [{?__(1,"Show Magnet Mask"),show_magnet_mask,crossmark(show_magnet_mask)}].
+    [{?__(1,"Show Magnet Mask"),show_magnet_mask,
+      ?__(2,"Show the magnet mask"),crossmark(show_magnet_mask)}].
 
 crossmark(Key) ->
     Val = case wings_pref:get_value(Key) of
