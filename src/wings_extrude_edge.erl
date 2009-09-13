@@ -17,6 +17,7 @@
 
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1]).
+-import(erlang, [min/2]).
 
 -define(DEFAULT_EXTRUDE_DIST, 0.2).
 -define(BEVEL_EXTRUDE_DIST_KLUDGE, 0.0001).
@@ -188,7 +189,7 @@ bevel_min_limit([{_Edge,[{O1,D1},{O2,D2}]}|Tail], We, Min0) ->
 			    %% The vertices will be moved directly towards each
 			    %% others.
 			    S = Odist / (2*D1Len),
-			    bevel_min_limit(Tail, We, lists:min([Min0,S]));
+			    bevel_min_limit(Tail, We, min(Min0, S));
 			_ ->
 			    %% The vertices will not meet each other.
 			    bevel_min_limit(Tail, We, Min0)
@@ -200,7 +201,7 @@ bevel_min_limit([{_Edge,[{O1,D1},{O2,D2}]}|Tail], We, Min0) ->
 	    T = e3d_vec:dot(e3d_vec:cross(O2MinusO1, D1), D1CrossD2)/SqrLen,
 	    if
 		S > 0, T > 0 ->
-		    Min = lists:min([S,T,Min0]),
+		    Min = min(S, min(T, Min0)),
 		    bevel_min_limit(Tail, We, Min);
 		true ->
 		    %% No intersection in the forward direction.
