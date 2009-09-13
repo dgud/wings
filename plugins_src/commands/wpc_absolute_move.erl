@@ -110,7 +110,7 @@ move(#st{shapes=Shapes}=St) ->
 
 snap({From,To}, St) ->
     Sel = get_selection(St),
-    do_move([From, To, false, {false, false, false}, {false, false, false}, 0], Sel, St).
+    {save_state,do_move([From, To, false, {false, false, false}, {false, false, false}, 0], Sel, St)}.
 
 %%%
 %%% absolute snap with center as reference
@@ -119,7 +119,7 @@ snap({From,To}, St) ->
 csnap(To, #st{shapes=Shs}=St) ->
     Sel = get_selection(St),
     From = get_center(Sel, Shs),
-    do_move([From, To, false, {false, false, false}, {false, false, false}, 0], Sel, St).
+    {save_state,do_move([From, To, false, {false, false, false}, {false, false, false}, 0], Sel, St)}.
 
 %%%
 %%% absolute snap with numeric entry
