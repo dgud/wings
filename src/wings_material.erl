@@ -706,7 +706,7 @@ mat_preview(X, Y, _W, _H, Common, Maps) ->
     gl:pushMatrix(),
     gl:loadIdentity(),
     gl:translatef(0.0, 0.0, -2.0),
-    wings_light:modeling_lights(camera,mat_preview),
+    wings_light:camera_lights(mat_preview),
     gl:shadeModel(?GL_SMOOTH),
     Alpha = gb_trees:get(opacity, Common),
     Amb = preview_mat(ambient, Common, Alpha),

@@ -13,8 +13,9 @@
 %%
 
 -module(wings_render).
--export([init/0, render/1,polygonOffset/1,
-	 enable_lighting/0, disable_lighting/0]).
+-export([init/0,
+	 render/1,polygonOffset/1,
+	 enable_lighting/1,disable_lighting/0]).
 
 -import(erlang, [max/2]).
 
@@ -45,12 +46,12 @@ render(#st{selmode=Mode}=St) ->
 	false -> gl:disable(?GL_MULTISAMPLE);
 	undefined -> ok
     end,
-    wings_view:load_matrices(true),
+    SceneLights = wings_view:load_matrices(true),
     ground_and_axes(),
     mini_axis_icon(),
     show_saved_bb(St),
     user_clipping_planes(on),
-    render_objects(Mode),
+    render_objects(Mode, SceneLights),
     user_clipping_planes(off),
     axis_letters(),
     gl:lineWidth(1),
@@ -121,62 +122,62 @@ init_polygon_stipple() ->
 	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77>>,
     gl:polygonStipple(P).
 
-render_objects(Mode) ->
+render_objects(Mode, SceneLights) ->
     Dls = wings_dl:display_lists(),
     case wings_wm:get_prop(workmode) of
 	false ->
-	    render_smooth_objects(Dls, Mode, false),
-	    render_smooth_objects(Dls, Mode, true);
+	    render_smooth_objects(Dls, Mode, false, SceneLights),
+	    render_smooth_objects(Dls, Mode, true, SceneLights);
 	true ->
-	    render_work_objects(Dls, Mode)
+	    render_work_objects(Dls, Mode, SceneLights)
     end.
 
-render_smooth_objects([D|Dls], Mode, RenderTrans) ->
-    render_object(D, Mode, false, RenderTrans),
-    render_smooth_objects(Dls, Mode, RenderTrans);
-render_smooth_objects([], _, _) -> ok.
+render_smooth_objects([D|Dls], Mode, RenderTrans, SceneLights) ->
+    render_object(D, Mode, false, RenderTrans, SceneLights),
+    render_smooth_objects(Dls, Mode, RenderTrans, SceneLights);
+render_smooth_objects([], _, _, _) -> ok.
 
-render_work_objects([D|Dls], Mode) ->
-    render_object(D, Mode, true, false),
-    render_work_objects(Dls, Mode);
-render_work_objects([], _) -> ok.
+render_work_objects([D|Dls], Mode, SceneLights) ->
+    render_object(D, Mode, true, false, SceneLights),
+    render_work_objects(Dls, Mode, SceneLights);
+render_work_objects([], _, _) -> ok.
 
-render_object(#dlo{drag={matrix,_,_,Matrix}}=D, Mode, Work, RT) ->
+render_object(#dlo{drag={matrix,_,_,Matrix}}=D, Mode, Work, RT, SceneLights) ->
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
-    render_object_1(D, Mode, Work, RT),
+    render_object_1(D, Mode, Work, RT, SceneLights),
     gl:popMatrix();
-render_object(D, Mode, Work, RT) ->
-    render_object_1(D, Mode, Work, RT).
+render_object(D, Mode, Work, RT, SceneLights) ->
+    render_object_1(D, Mode, Work, RT, SceneLights).
 
-render_object_1(#dlo{mirror=none}=D, Mode, Work, RenderTrans) ->
-    render_object_2(D, Mode, Work, RenderTrans);
-render_object_1(#dlo{mirror=Matrix}=D, Mode, Work, RenderTrans) ->
-    render_object_2(D, Mode, Work, RenderTrans),
+render_object_1(#dlo{mirror=none}=D, Mode, Work, RenderTrans, SceneLights) ->
+    render_object_2(D, Mode, Work, RenderTrans, SceneLights);
+render_object_1(#dlo{mirror=Matrix}=D, Mode, Work, RenderTrans, SceneLights) ->
+    render_object_2(D, Mode, Work, RenderTrans, SceneLights),
     gl:frontFace(?GL_CW),
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
-    render_object_2(D, Mode, Work, RenderTrans),
+    render_object_2(D, Mode, Work, RenderTrans, SceneLights),
     gl:popMatrix(),
     gl:frontFace(?GL_CCW).
 
-render_object_2(#dlo{src_we=We}=D, _, _, false) when ?IS_LIGHT(We) ->
+render_object_2(#dlo{src_we=We}=D, _, _, false, _) when ?IS_LIGHT(We) ->
     wings_light:render(D);
-render_object_2(#dlo{src_we=We}, _, _, true) when ?IS_LIGHT(We) ->
+render_object_2(#dlo{src_we=We}, _, _, true, _) when ?IS_LIGHT(We) ->
     ok;
-render_object_2(D, Mode, true, _) ->
-    render_plain(D, Mode);
-render_object_2(#dlo{transparent=true}=D, _, false, false) ->
+render_object_2(D, Mode, true, _, SceneLights) ->
+    render_plain(D, Mode, SceneLights);
+render_object_2(#dlo{transparent=true}=D, _, false, false, SceneLights) ->
     gl:disable(?GL_CULL_FACE),
-    render_smooth(D, false),
+    render_smooth(D, false, SceneLights),
     gl:enable(?GL_CULL_FACE);
-render_object_2(#dlo{transparent=true}=D, _, false, true) ->
-    render_smooth(D, true);
-render_object_2(#dlo{transparent=false}=D, _, false, RenderTrans) ->
-    render_smooth(D, RenderTrans).
+render_object_2(#dlo{transparent=true}=D, _, false, true, SceneLights) ->
+    render_smooth(D, true, SceneLights);
+render_object_2(#dlo{transparent=false}=D, _, false, RenderTrans, SceneLights) ->
+    render_smooth(D, RenderTrans, SceneLights).
 
 render_plain(#dlo{work=Faces,edges=Edges,open=Open,
-		  src_we=We,proxy=false}=D, SelMode) ->
+		  src_we=We,proxy=false}=D, SelMode, SceneLights) ->
     %% Draw faces for winged-edge-objects.
     Wire = wire(We),
     case Wire of
@@ -185,7 +186,7 @@ render_plain(#dlo{work=Faces,edges=Edges,open=Open,
 	    gl:enable(?GL_POLYGON_OFFSET_FILL),
 	    polygonOffset(2),
 	    gl:shadeModel(?GL_SMOOTH),
-	    enable_lighting(),
+	    enable_lighting(SceneLights),
 	    case Open of
 		false ->
 		    wings_dl:call(Faces);
@@ -234,9 +235,9 @@ render_plain(#dlo{work=Faces,edges=Edges,open=Open,
 	    end
     end,
     render_plain_rest(D, Wire, SelMode);
-render_plain(#dlo{src_we=We}=D, SelMode) ->
+render_plain(#dlo{src_we=We}=D, SelMode, SceneLights) ->
     Wire = wire(We),
-    wings_proxy:draw(D, Wire),
+    wings_proxy:draw(D, Wire, SceneLights),
     render_plain_rest(D, Wire, SelMode).
 
 render_plain_rest(#dlo{}=D, Wire, SelMode) ->
@@ -261,10 +262,10 @@ render_plain_rest(#dlo{}=D, Wire, SelMode) ->
 
 render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth0,transparent=Trans0,
 		   src_we=We,proxy=Proxy,proxy_data=PD,open=Open}=D,
-	      RenderTrans) ->
+	      RenderTrans, SceneLights) ->
     gl:shadeModel(?GL_SMOOTH),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    enable_lighting(),
+    enable_lighting(SceneLights),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     gl:polygonOffset(2, 2),
 
@@ -636,21 +637,23 @@ show_saved_bb(#st{bb=[{X1,Y1,Z1},{X2,Y2,Z2}]}) ->
     end;
 show_saved_bb(_) -> ok.
 
-enable_lighting() ->
+enable_lighting(SceneLights) ->
     Progs = get(light_shaders),
-    NumLights = wings_pref:get_value(number_of_lights),
-    NumShaders = wings_pref:get_value(number_of_shaders),
-    UseProg = (Progs /= undefined) andalso
-	      (not wings_pref:get_value(scene_lights)) andalso
-	      (NumLights == 2),
+    UseProg = Progs =/= undefined andalso
+	      not SceneLights andalso
+	      wings_pref:get_value(number_of_lights) =:= 2,
     case UseProg of
 	false ->
 	    gl:enable(?GL_LIGHTING);
 	true ->
+	    NumShaders = wings_pref:get_value(number_of_shaders),
 	    {Prog,_Name} = element(NumShaders, Progs),
-	    gl:color4ub(255,255,255,255), %% Reset color needed by crappy drivers.
-	    %% We put it here and not in apply_material because we can't use some
-	    %% optimizations (i.e. reuse display lists) when drawing selected objects
+
+	    %% Reset color. Needed by some drivers.
+	    %% We put it here and not in apply_material, because we
+	    %% can't use some optimizations (e.g. reuse display lists)
+	    %% when drawing selected objects.
+	    gl:color4ub(255, 255, 255, 255), 
 	    gl:useProgram(Prog)
     end.
 

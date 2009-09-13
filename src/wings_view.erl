@@ -17,7 +17,7 @@
 	 init/0,initial_properties/0,delete_all/1,
 	 current/0,set_current/1,
 	 load_matrices/1,projection/0,
-	 modelview/0,modelview/1,align_view_to_normal/1,
+	 modelview/0,align_view_to_normal/1,
 	 eye_point/0,export_views/1,import_views/2,camera_info/2,
 	 freeze_mirror/1]).
 
@@ -921,19 +921,30 @@ modelview(IncludeLights) ->
 	  elevation=El,pan_x=PanX,pan_y=PanY} = current(),
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
-    if
-	IncludeLights -> wings_light:camera_lights();
-	true -> ok
+
+    case IncludeLights of
+	true ->
+	    UseSceneLights = wings_pref:get_value(scene_lights) andalso
+		wings_light:any_enabled_lights(),
+	    case UseSceneLights of
+		false -> wings_light:camera_lights();
+		true -> ok
+	    end;
+	false ->
+	    UseSceneLights = false
     end,
+
     gl:translatef(PanX, PanY, -Dist),
     gl:rotatef(El, 1, 0, 0),
     gl:rotatef(Az, 0, 1, 0),
     {OX,OY,OZ} = Origin,
     gl:translatef(OX, OY, OZ),
-    if
-	IncludeLights -> wings_light:global_lights();
-	true -> ok
-    end.
+
+    case UseSceneLights of
+	false -> ok;
+	true -> wings_light:global_lights()
+    end,
+    UseSceneLights.
 
 %% Calculate the location of the viewer in 3D space.
 %% (The (0,0,0) point multiplied by the inverse model transformation matrix.)

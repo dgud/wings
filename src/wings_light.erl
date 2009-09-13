@@ -12,9 +12,10 @@
 %%
 
 -module(wings_light).
--export([light_types/0,menu/3,command/2,is_any_light_selected/1,info/1,
+-export([light_types/0,menu/3,command/2,is_any_light_selected/1,
+	 any_enabled_lights/0,info/1,
 	 create/2,update_dynamic/2,update_matrix/2,update/1,render/1,
-	 modeling_lights/2,global_lights/0,camera_lights/0,
+	 global_lights/0,camera_lights/0,camera_lights/1,
 	 export/1,export_bc/1,export_camera_lights/0,
 	 import/2,import/1,shape_materials/2,
 	 light_pos/1]).
@@ -142,6 +143,11 @@ is_any_light_selected([{Id,_}|Sel], Shs) ->
 	#we{} -> is_any_light_selected(Sel, Shs)
     end;
 is_any_light_selected([], _) -> false.
+
+any_enabled_lights() ->
+    wings_dl:fold(fun(#dlo{src_we=We}, Bool) ->
+			  Bool orelse ?IS_ANY_LIGHT(We)
+		  end, false).
 
 info(#we{name=Name,light=#light{type=Type}=L}=We) ->
     Info0 = wings_util:format(?__(1,"Light ~s"), [Name]),
@@ -745,50 +751,9 @@ import_fix_face(FaceRec) when is_tuple(FaceRec) ->
 %%%
 
 camera_lights() ->
-    setup_lights(camera).
+    camera_lights(wings_pref:get_value(number_of_lights)).
 
-global_lights() ->
-    setup_lights(global).
-
-setup_lights(CoordType) ->
-    case wings_pref:get_value(scene_lights) of
-	false -> 
-	    NoOfLights = wings_pref:get_value(number_of_lights),
-	    modeling_lights(CoordType, NoOfLights);
-	true -> scene_lights(CoordType)
-    end.
-
-camera_ambient() ->
-    #light{type = ambient, 
-	   aim = {0.0,0.0,0.0},
-	   ambient = {0.1,0.1,0.1,1.0}}.
-camera_infinite_1_0() ->
-    #light{type = infinite, 
-	   diffuse  = {0.7,0.7,0.7,1},
-	   specular = {0.2,0.2,0.2,1},
-	   ambient  = {0,0,0,1.0},
-	   aim      = {0.110,0.0,0.994}
-	  }.
-camera_infinite_2_0() ->
-    #light{type = infinite, 
-	   diffuse  = {1,1,1,1},
-	   specular = {0.3,0.3,0.3,1},
-	   ambient  = {0,0,0,1.0},
-	   aim      = {0.71,0.71,0.0}
-	  }.
-camera_infinite_2_1() ->
-    #light{type = infinite, 
-	   diffuse  = {0.5,0.5,0.5,0.5},
-	   specular = {0.3,0.3,0.3,1},
-	   ambient  = {0,0,0,1.0},
-	   aim      = {-0.71,-0.71,0.0}
-	  }.
-
-
-infinite({X,Y,Z}) -> {X,Y,Z,0.0}.
-
-modeling_lights(global, _Type) -> ok;
-modeling_lights(camera, Type) ->
+camera_lights(Type) ->
     gl:enable(?GL_LIGHT0),
     gl:disable(?GL_LIGHT2),
     gl:disable(?GL_LIGHT3),
@@ -824,11 +789,38 @@ modeling_lights(camera, Type) ->
 	    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, {1,1,2,0})
     end.
 
-scene_lights(camera) -> ok;
-scene_lights(global) ->
+global_lights() ->
     gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, {0.0,0.0,0.0,1.0}),
     Lnum = wings_dl:fold(fun scene_lights_fun/2, ?GL_LIGHT0),
     disable_from(Lnum).
+
+camera_ambient() ->
+    #light{type = ambient, 
+	   aim = {0.0,0.0,0.0},
+	   ambient = {0.1,0.1,0.1,1.0}}.
+camera_infinite_1_0() ->
+    #light{type = infinite, 
+	   diffuse  = {0.7,0.7,0.7,1},
+	   specular = {0.2,0.2,0.2,1},
+	   ambient  = {0,0,0,1.0},
+	   aim      = {0.110,0.0,0.994}
+	  }.
+camera_infinite_2_0() ->
+    #light{type = infinite, 
+	   diffuse  = {1,1,1,1},
+	   specular = {0.3,0.3,0.3,1},
+	   ambient  = {0,0,0,1.0},
+	   aim      = {0.71,0.71,0.0}
+	  }.
+camera_infinite_2_1() ->
+    #light{type = infinite, 
+	   diffuse  = {0.5,0.5,0.5,0.5},
+	   specular = {0.3,0.3,0.3,1},
+	   ambient  = {0,0,0,1.0},
+	   aim      = {-0.71,-0.71,0.0}
+	  }.
+
+infinite({X,Y,Z}) -> {X,Y,Z,0.0}.
 
 disable_from(Lnum) when Lnum > ?GL_LIGHT7 -> ok;
 disable_from(Lnum) ->

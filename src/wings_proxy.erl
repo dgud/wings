@@ -12,7 +12,7 @@
 %%
 
 -module(wings_proxy).
--export([setup/1,quick_preview/1,update/2,draw/2,draw_smooth_edges/1,
+-export([setup/1,quick_preview/1,update/2,draw/3,draw_smooth_edges/1,
 	 smooth/2, smooth_dl/1, invalidate/2,
 	 split_proxy/3, update_dynamic/3, reset_dynamic/1]).
 
@@ -210,15 +210,15 @@ any_proxy() ->
 		     (#dlo{}, _) -> true end, false).
 
 
-draw(#dlo{proxy=false}, _Wire) -> ok;
-draw(#dlo{proxy_data=#sp{faces=Dl}, drag=none}=D, Wire) ->
-    draw_1(D, Dl, Wire, proxy_static_opacity, cage);
-draw(#dlo{proxy_data=#sp{faces=Dl}}=D, _Wire) ->
-    draw_1(D, Dl, true, proxy_moving_opacity, cage).
+draw(#dlo{proxy=false}, _Wire, _) -> ok;
+draw(#dlo{proxy_data=#sp{faces=Dl},drag=none}=D, Wire, SceneLights) ->
+    draw_1(D, Dl, Wire, proxy_static_opacity, cage, SceneLights);
+draw(#dlo{proxy_data=#sp{faces=Dl}}=D, _Wire, SceneLights) ->
+    draw_1(D, Dl, true, proxy_moving_opacity, cage, SceneLights).
 
-draw_1(D, Dl, Wire, Key, EdgeStyleKey) ->
+draw_1(D, Dl, Wire, Key, EdgeStyleKey, SceneLights) ->
     gl:shadeModel(?GL_SMOOTH),
-    wings_render:enable_lighting(),
+    wings_render:enable_lighting(SceneLights),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     wings_render:polygonOffset(2),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
