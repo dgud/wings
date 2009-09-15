@@ -33,6 +33,7 @@ MODULES= \
 	wpc_3ds \
 	wpc_ai \
 	wpc_bzw \
+	wpc_collada \
 	wpc_hlines \
 	wpc_kerky \
 	wpc_lwo \
