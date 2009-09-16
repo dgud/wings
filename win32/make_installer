@@ -2,12 +2,11 @@
 #
 # Script for creating a self-contained Wings package for Windows.
 #
-# $Id$
-#
 
 #
-# The pre-built Erlang/OTP R12B-0 for Windows requires this version of the VC80.CRT.
-# It must be updated if future release of Erlang requires a later version.
+# The pre-built Erlang/OTP R12B-0 for Windows requires this version
+# of the VC80.CRT. It must be updated if future release of Erlang
+# requires a later version.
 #
 WINGS_VCREDIST_VERSION=8.0.50727.762
 
@@ -97,10 +96,16 @@ dest="$DEST_ROOT"
 erts_src=`echo "$src"/erts-*`
 stdlib=`basename "$src"/lib/stdlib-*`
 kernel=`basename "$src"/lib/kernel-*`
+xmerl=`basename "$src"/lib/xmerl-*`
 
-$INSTALL -d "$dest/bin" "$dest/lib/$stdlib/ebin" "$dest/lib/$kernel/ebin"
+$INSTALL -d "$dest/bin" \
+    "$dest/lib/$stdlib/ebin" \
+    "$dest/lib/$kernel/ebin" \
+    "$dest/lib/$xmerl/ebin"
+
 $INSTALL -c -m 644 "$src"/lib/kernel-*/ebin/* "$dest/lib/$kernel/ebin"
 $INSTALL -c -m 644 "$src"/lib/stdlib-*/ebin/* "$dest/lib/$stdlib/ebin"
+$INSTALL -c -m 644 "$src"/lib/xmerl-*/ebin/* "$dest/lib/$xmerl/ebin"
 
 $INSTALL -c "$erts_src/bin/werl.exe" "$dest/bin"
 $INSTALL -c "$erts_src/bin/erlexec.dll" "$dest/bin"
