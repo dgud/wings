@@ -782,7 +782,7 @@ marquee_pick(#st{selmode=edge}) ->
     setup_pick_context(PickFun);
 marquee_pick(#st{selmode=vertex}) ->
     PickFun = fun(#we{vp=Vtab,id=Id}=We, Acc) ->
-		      VsPos = case wings_we:any_hidden(We) of
+		      VsPos = case wings_we:is_open(We) of
 				  false ->
 				      array:sparse_to_orddict(Vtab);
 				  true ->

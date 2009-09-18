@@ -70,7 +70,7 @@ prepare_dlists(#st{shapes=Shs}) ->
 prepare_fun(eol, [#we{perm=Perm}|Wes]) when ?IS_NOT_VISIBLE(Perm) ->
     prepare_fun(eol, Wes);
 prepare_fun(eol, [We|Wes]) ->
-    D = #dlo{src_we=We,open=wings_we:any_hidden(We)},
+    D = #dlo{src_we=We,open=wings_we:is_open(We)},
     {changed_we(D, D),Wes};
 prepare_fun(eol, []) ->
     eol;
@@ -107,7 +107,7 @@ prepare_fun_1(#dlo{src_we=#we{perm=Perm0}=We0}=D, #we{perm=Perm1}=We, Wes) ->
     end.
 
 prepare_fun_2(#dlo{proxy=IsUsed, proxy_data=Proxy,ns=Ns}=D, We, Wes) ->
-    Open = wings_we:any_hidden(We),
+    Open = wings_we:is_open(We),
     {changed_we(D, #dlo{src_we=We,open=Open,mirror=none,
 			proxy=IsUsed,
 			proxy_data=wings_proxy:invalidate(Proxy, maybe),
@@ -427,7 +427,7 @@ drawPolygons(Polys, PsLens) ->
     free(Polys).
 
 visible_vertices(#we{vp=Vtab0}=We) ->
-    case wings_we:any_hidden(We) of
+    case wings_we:is_open(We) of
 	false ->
 	    array:sparse_to_list(Vtab0);
 	true ->

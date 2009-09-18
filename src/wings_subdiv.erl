@@ -212,7 +212,7 @@ smooth_faces(FacePos, Id, We0) ->
 	     false -> We1;
 	     true -> smooth_faces_attrs(FacePos, Id, We0, We1)
 	 end,
-    case wings_we:any_hidden(We0) of
+    case wings_we:is_open(We0) of
 	false -> {We,[]};
 	true -> {We,smooth_faces_hide(FacePos, We0)}
     end.

@@ -29,7 +29,7 @@
 	 is_consistent/1,is_face_consistent/2,
 	 hide_faces/2,show_faces/1,num_hidden/1,
 	 create_holes/2,rehide_holes/1,show_faces/2,
-	 any_hidden/1,all_hidden/1,
+	 is_open/1,all_hidden/1,
 	 visible/1,visible/2,visible_vs/1,visible_vs/2,
 	 visible_edges/1,visible_edges/2,fully_visible_edges/2,
 	 validate_mirror/1,mirror_flatten/2]).
@@ -115,7 +115,7 @@ hide_faces(Fs, We) ->
 %%  holes hidden by Face|Create Hole).
 %%
 show_faces(We) ->
-    case any_hidden(We) of
+    case is_open(We) of
 	false ->
 	    We;
 	true ->
@@ -135,12 +135,16 @@ show_faces(Faces, We) ->
     show_faces_1(Faces, We).
 
 num_hidden(#we{fs=Ftab}=We) ->
-    case any_hidden(We) of
+    case is_open(We) of
 	false -> 0;
 	true -> num_hidden_1(gb_trees:keys(Ftab), 0)
     end.
 
-any_hidden(#we{fs=Ftab}) ->
+%% is_open(We) -> true|false
+%%  Return true if the object has a hidden face or hole through
+%%  which the inside of the object can be seen.
+%%
+is_open(#we{fs=Ftab}) ->
     not gb_trees:is_empty(Ftab) andalso
 	wings_util:gb_trees_smallest_key(Ftab) < 0.
 
@@ -202,7 +206,7 @@ renumber(We0, Id, RootSet0) ->
 %%  that do not have visible faces on both sides.
 %%
 fully_visible_edges(Es, #we{mirror=none,es=Etab}=We) ->
-    case any_hidden(We) of
+    case is_open(We) of
 	false -> Es;
 	true -> fully_visible_edges_1(Es, Etab)
     end;
@@ -303,7 +307,7 @@ visible_2([F|Fs]) when F < 0 -> visible_2(Fs);
 visible_2(Fs) -> Fs.
 
 visible_vs(#we{mirror=Face,vc=Vct,es=Etab}=We) ->
-    case any_hidden(We) of
+    case is_open(We) of
 	false -> wings_util:array_keys(Vct);
 	true -> visible_vs_1(array:sparse_to_list(Etab), Face, [])
     end.
@@ -319,7 +323,7 @@ visible_vs_1([#edge{vs=Va,ve=Vb}|Es], Mirror, Acc) ->
 visible_vs_1([], _, Acc) -> ordsets:from_list(Acc).
 
 visible_vs(Vs, #we{mirror=Face,es=Etab}=We) ->
-    case any_hidden(We) of
+    case is_open(We) of
 	false -> Vs;
 	true ->
 	    Vis0 = visible_vs_1(array:sparse_to_list(Etab), Face, []),
@@ -336,7 +340,7 @@ visible_vs(Vs, #we{mirror=Face,es=Etab}=We) ->
     end.
 
 visible_edges(#we{es=Etab,mirror=Face}=We) ->
-    case any_hidden(We) of
+    case is_open(We) of
 	false -> wings_util:array_keys(Etab);
 	true -> visible_es_1(array:sparse_to_orddict(Etab), Face, [])
     end.
@@ -363,7 +367,7 @@ visible_es_1([{E,#edge{lf=Lf,rf=Rf}}|Es], Face, Acc) ->
 visible_es_1([], _, Acc) -> ordsets:from_list(Acc).
 
 visible_edges(Es, We) ->
-    case any_hidden(We) of
+    case is_open(We) of
 	false -> Es;
 	true ->
 	    Vis0 = visible_edges(We),
@@ -821,7 +825,7 @@ transform_vs_1(Transform, #we{vp=Vtab0}=We) ->
 %%  the mirror matrix must be given.
 %%
 normals(Ns, #we{mirror=none}=We, MM) ->
-    case any_hidden(We) of
+    case is_open(We) of
 	false -> normals_2(Ns, We, MM);
 	true -> normals_1(Ns, We, MM)
     end;
