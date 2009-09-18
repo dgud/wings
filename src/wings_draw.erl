@@ -433,7 +433,7 @@ visible_vertices(#we{vp=Vtab0}=We) ->
 	true ->
 	    Vis0 = wings_we:visible_vs(We),
 	    Vis  = sofs:from_external(Vis0, [vertex]),
-	    Vtab = sofs:from_external(array:sparse_to_list(Vtab0),
+	    Vtab = sofs:from_external(array:sparse_to_orddict(Vtab0),
 				      [{vertex,position}]),
 	    sofs:to_external(sofs:image(Vtab, Vis))
     end.
