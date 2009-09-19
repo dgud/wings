@@ -30,10 +30,10 @@
 %% all(We) -> [{Face,MaterialName}]
 %%  Return materials for all *visible* faces as an ordered list.
 all(#we{mat=M}=We) when is_atom(M) ->
-    Vis = visible_faces(We),
+    Vis = wings_we:visible(We),
     make_tab(Vis, M);
-all(#we{mat=L}) when is_list(L) ->
-    remove_invisible(L).
+all(#we{mat=L}=We) when is_list(L) ->
+    wings_we:visible(L, We).
 
 %% face(Face, We) -> MaterialName
 %%  Return the material for the face Face.
@@ -240,18 +240,6 @@ make_tab(Fs, M) ->
 make_tab_1([F|Fs], M, Acc) ->
     make_tab_1(Fs, M, [{F,M}|Acc]);
 make_tab_1([], _, Acc) -> reverse(Acc).
-
-
-visible_faces(#we{fs=Ftab}) ->
-    visible_faces_1(gb_trees:keys(Ftab)).
-
-visible_faces_1([F|Fs]) when F < 0 ->
-    visible_faces_1(Fs);
-visible_faces_1(Fs) -> Fs.
-    
-remove_invisible([{F,_}|Fs]) when F < 0 ->
-    remove_invisible(Fs);
-remove_invisible(Fs) -> Fs.
 
 hide_faces_1([{F,_}=P|Fms], Ftab, Acc) when F < 0 ->
     hide_faces_1(Fms, Ftab, [P|Acc]);

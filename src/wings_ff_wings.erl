@@ -374,7 +374,8 @@ share_list_2([{Vtab0,Etab0,Attr}|Ts],
 		  Holes = ordsets:from_list([-F-1 || F <- We2#we.holes]),
 		  wings_we:hide_faces(Hidden, We2#we{holes=Holes})
 	  end,
-    We4 = ensure_valid_mirror_face(We3),
+    %% Very old Wings files can have invalid mirror faces for some reason.
+    We4 = wings_we:validate_mirror(We3),
     We5 = foldl(fun({E,Lt,Rt}, W) ->
 		       wings_va:set_both_edge_attrs(E, Lt, Rt, W)
 	       end, We4, Attr),
@@ -454,14 +455,6 @@ share_tuple({A0,B0,C0}=Tuple0, Floats, Shared) ->
 	{value,Tuple} -> {Tuple,Shared}
     end;
 share_tuple(none, _, Shared) -> {none,Shared}.
-
-%% Very old Wings files can have invalid mirror faces for some reason.
-ensure_valid_mirror_face(#we{mirror=none}=We) -> We;
-ensure_valid_mirror_face(#we{mirror=Face,fs=Ftab}=We) ->
-    case gb_trees:is_defined(Face, Ftab) of
-	false -> We#we{mirror=none};
-	true -> We
-    end.
 
 %%%
 %%% Import of old materials format (up to and including wings-0.94.02).
