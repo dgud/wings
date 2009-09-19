@@ -1,3 +1,21 @@
+--- 1.1.14 ---------------------------------------------------------------------
+- If View|Scene Lights has been turned on, but the scene
+  contains no lights, the usual modeling lights will be turned on
+  instead so the objects do not turn black. [bjorng]
+
+- Undoing Absolute Command|Snap would undo the preceding
+  command too. (Thanks to BlackHarmo.) [bjorng]
+
+- In vertex selection mode, unselected vertices would not be
+  shown if there were any hidden faces or holes. [bjorng]
+
+- Some inconsistencies noticed by gordo in the user-interface
+  have been corrected. [bjorng]
+
+- New Feature: Collada export. Objects including
+  UV coordinates and materials are exported. Lights and
+  cameras are not exported yet. [metadave]
+
 --- 1.1.13 ---------------------------------------------------------------------
 - Selecting two objects, one with a virtual mirror and one
   without a virtual mirror, and Tweaking the object with the virtual
