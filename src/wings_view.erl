@@ -436,21 +436,22 @@ sel_to_set(#st{sel=Sel0}) ->
 virtual_mirror_fun(Faces, We) ->
     case gb_sets:to_list(Faces) of
 	[Face] ->
-	    We#we{mirror=Face};
+	    wings_we:create_mirror(Face, We);
 	_ ->
 	    wings_u:error(?__(1,"Only a single face must be selected per object."))
     end.
 
 break_mirror(#st{shapes=Shs0}=St) ->
-    Shs = foldl(fun(#we{id=Id}=We, Shs) ->
-			gb_trees:update(Id, We#we{mirror=none}, Shs)
+    Shs = foldl(fun(#we{id=Id}=We0, Shs) ->
+			We = wings_we:break_mirror(We0),
+			gb_trees:update(Id, We, Shs)
 		end, Shs0, sel_mirror_objects(St)),
     St#st{shapes=Shs}.
 
 freeze_mirror(#st{shapes=Shs0}=St) ->
-    Shs = foldl(fun(#we{id=Id,mirror=Face}=We0, Shs) ->
-			We = wings_face_cmd:mirror_faces([Face], We0),
-			gb_trees:update(Id, We#we{mirror=none}, Shs)
+    Shs = foldl(fun(#we{id=Id}=We0, Shs) ->
+			We = wings_we:freeze_mirror(We0),
+			gb_trees:update(Id, We, Shs)
 		end, Shs0, sel_mirror_objects(St)),
     St#st{shapes=Shs}.
 
@@ -1032,10 +1033,9 @@ kill_mirror(#st{shapes=Shs0}=St) ->
     Shs = kill_mirror_1(gb_trees:values(Shs0), []),
     St#st{shapes=Shs}.
 
-kill_mirror_1([#we{id=Id,mirror=none}=We|Wes], Acc) ->
+kill_mirror_1([#we{id=Id}=We0|Wes], Acc) ->
+    We = wings_we:break_mirror(We0),
     kill_mirror_1(Wes, [{Id,We}|Acc]);
-kill_mirror_1([#we{id=Id}=We|Wes], Acc) ->
-    kill_mirror_1(Wes, [{Id,We#we{mirror=none}}|Acc]);
 kill_mirror_1([], Acc) ->
     gb_trees:from_orddict(lists:reverse(Acc)).
 

@@ -196,12 +196,12 @@ face_selection(#st{selmode=face}=St) ->
     conv_sel(
       fun(Sel0, We) ->
 	      Sel = wings_face:extend_border(Sel0, We),
-	      remove_invisible_faces(Sel, We)
+	      remove_invisible_faces(Sel)
       end, face, St);
 face_selection(#st{selmode=edge}=St) ->
     conv_sel(fun(Es, We) ->
 		     Fs = wings_face:from_edges(Es, We),
-		     remove_invisible_faces(Fs, We)
+		     remove_invisible_faces(Fs)
 	     end, face, St);
 face_selection(#st{selmode=vertex}=St) ->
     conv_sel(fun(Vs, We) ->
@@ -216,7 +216,7 @@ face_more(Fs0, We) ->
     Fs = gb_sets:fold(fun(Face, A) ->
 			      do_face_more(Face, We, A)
 		      end, Fs0, Fs0),
-    remove_invisible_faces(Fs, We).
+    remove_invisible_faces(Fs).
 
 do_face_more(Face, We, Acc) ->
     foldl(fun(V, A0) ->
@@ -263,28 +263,23 @@ vtx_bordering(V, FaceSet, We) ->
 	      not gb_sets:is_member(Face, FaceSet)
       end, false, V, We).
 
-remove_invisible_faces(Fs, #we{mirror=none}) ->
-    remove_invisible_faces_1(Fs);
-remove_invisible_faces(Fs, #we{mirror=Face}) ->
-    remove_invisible_faces_1(gb_sets:delete_any(Face, Fs)).
-
-remove_invisible_faces_1(Fs) ->
+remove_invisible_faces(Fs) ->
     case gb_sets:is_empty(Fs) of
 	true -> Fs;
 	false ->
 	    case gb_sets:smallest(Fs) of
-		F when F < 0 -> remove_invisible_faces_2(Fs);
+		F when F < 0 -> remove_invisible_faces_1(Fs);
 		_ -> Fs
 	    end
     end.
 				    
-remove_invisible_faces_2(Fs0) ->
+remove_invisible_faces_1(Fs0) ->
     case gb_sets:is_empty(Fs0) of
 	true -> Fs0;
 	false ->
 	    case gb_sets:take_smallest(Fs0) of
 		{F,Fs} when F < 0 ->
-		    remove_invisible_faces_2(Fs);
+		    remove_invisible_faces_1(Fs);
 		{_,_} ->
 		    gb_sets:balance(Fs0)
 	    end

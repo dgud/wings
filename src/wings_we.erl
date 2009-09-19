@@ -32,7 +32,8 @@
 	 is_open/1,all_hidden/1,
 	 visible/1,visible/2,visible_vs/1,visible_vs/2,
 	 visible_edges/1,visible_edges/2,fully_visible_edges/2,
-	 validate_mirror/1,mirror_flatten/2,mirror_projection/1]).
+	 validate_mirror/1,mirror_flatten/2,mirror_projection/1,
+	 create_mirror/2,freeze_mirror/1,break_mirror/1]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
@@ -114,14 +115,14 @@ hide_faces(Fs, We) ->
 %%  Show all faces previously hidden by the user (not including
 %%  holes hidden by Face|Create Hole).
 %%
-show_faces(We) ->
+show_faces(#we{mirror=Face}=We) ->
     case is_open(We) of
 	false ->
 	    We;
 	true ->
 	    #we{fs=Ftab,holes=Holes} = We,
 	    Hidden = [F || F <- gb_trees:keys(Ftab), F < 0],
-	    Unhide = ordsets:subtract(Hidden, Holes),
+	    Unhide = ordsets:subtract(Hidden, Holes) -- [Face],
 	    show_faces_1(Unhide, We)
     end.
 
@@ -144,10 +145,15 @@ num_hidden(#we{fs=Ftab}=We) ->
 %%  Return true if the object has a hidden face or hole through
 %%  which the inside of the object can be seen.
 %%
-is_open(#we{fs=Ftab}) ->
-    not gb_trees:is_empty(Ftab) andalso
-	wings_util:gb_trees_smallest_key(Ftab) < 0.
+is_open(#we{mirror=none}=We) ->
+    any_invisible_faces(We);
+is_open(#we{fs=Ftab0,mirror=Mirror}=We) ->
+    Ftab = gb_trees:delete(Mirror, Ftab0),
+    any_invisible_faces(We#we{fs=Ftab}).
 
+%% all_hidden(We) -> true|false
+%%  Return true if all faces in the object are hidden.
+%%
 all_hidden(#we{fs=Ftab}) ->
     not gb_trees:is_empty(Ftab) andalso
 	wings_util:gb_trees_largest_key(Ftab) < 0.
@@ -161,7 +167,62 @@ create_holes(NewHoles, #we{holes=Holes0}=We) ->
     {ToHide,AlreadyHidden} = partition(fun(F) -> F >= 0 end, NewHoles),
     NewHiddenHoles = ordsets:from_list([-F-1 || F <- ToHide]),
     Holes = ordsets:union([NewHiddenHoles,Holes0,AlreadyHidden]),
-    wings_we:hide_faces(ToHide, We#we{holes=Holes}).
+    hide_faces(ToHide, We#we{holes=Holes}).
+
+%% visible(We) -> [Face]
+%%  Return a list of all visible faces in the object.
+%%
+visible(#we{fs=Ftab}) ->
+    visible_2(gb_trees:keys(Ftab)).
+
+%% visible([{Face,Any}], We) -> [{Face,Any}];
+%% visible([Face], We) -> [Face].
+%%  Filter the ordered list of Face or {Face,Edge} tuples to only
+%%  contain visible faces.
+%%
+visible([{_,_}|_]=Fs, #we{}) -> visible_1(Fs);
+visible([_|_]=Fs, #we{}) -> visible_2(Fs);
+visible([], #we{}) -> [].
+
+%% visible_vs(We) -> [Vertex]
+%%  Return a list of all visible vertices.
+%%
+visible_vs(#we{vc=Vct}=We) ->
+    case is_open(We) of
+	false -> wings_util:array_keys(Vct);
+	true -> visible_vs_1(We)
+    end.
+
+%% visible_vs([Vertex], We) -> [Vertex];
+%% visible_vs([{Vertex,Data}], We) -> [{Vertex,Data}].
+%%  Filter the list of vertices to only include the visible vertices.
+%%
+visible_vs(Vs, We) ->
+    case is_open(We) of
+	false -> Vs;
+	true ->
+	    Vis0 = visible_vs_1(We),
+	    case Vs of
+		[{_,_}|_] ->
+		    VsSet = sofs:relation(Vs),
+		    VisSet = sofs:from_external(Vis0, [atom]),
+		    sofs:to_external(sofs:restriction(VsSet, VisSet));
+		[_|_] ->
+		    ordsets:intersection(Vis0, Vs);
+		[] ->
+		    []
+	    end
+    end.
+
+%% visible_edges(We) -> [Edge]
+%%  Return a list of all edges that have a visible face
+%%  on at least one side.
+%%
+visible_edges(#we{es=Etab}=We) ->
+    case is_open(We) of
+	false -> wings_util:array_keys(Etab);
+	true -> visible_es_1(We)
+    end.
 
 %% rehide_holes(We0) -> We.
 %%  Rehide any holes that have become visible because of
@@ -205,15 +266,39 @@ renumber(We0, Id, RootSet0) ->
 %%  Filter an ordered list of edges, removing any edge from the list
 %%  that do not have visible faces on both sides.
 %%
-fully_visible_edges(Es, #we{mirror=none,es=Etab}=We) ->
-    case is_open(We) of
+fully_visible_edges(Es, #we{es=Etab}=We) ->
+    case any_invisible_faces(We) of
 	false -> Es;
 	true -> fully_visible_edges_1(Es, Etab)
-    end;
-fully_visible_edges(Es0, #we{mirror=Face}=We) ->
-    MirrorEdges = wings_face:to_edges([Face], We),
-    Es = ordsets:subtract(Es0, MirrorEdges),
-    fully_visible_edges(Es, We#we{mirror=none}).
+    end.
+
+%% validate_mirror(We0) -> We
+%%  Reset the virtual mirror face if it refers to a
+%%  non-existing face.
+%%
+validate_mirror(#we{mirror=none}=We) -> We;
+validate_mirror(#we{fs=Ftab,mirror=Face}=We) ->
+    case gb_trees:is_defined(Face, Ftab) of
+	false -> We#we{mirror=none};
+	true -> We
+    end.
+
+%% mirror_flatten(OldWe, We0) -> We
+%%  Project mirror vertices in We0 to the virtual mirror plane
+%%  defined by the virtual mirror in OldWe.
+%%
+mirror_flatten(OldWe, #we{mirror=Face,vp=Vtab0}=We) ->
+    case mirror_projection(OldWe) of
+	identity ->
+	    We;
+	Flatten ->
+	    Vtab = foldl(fun(V, Vt) ->
+				 Pos0 = array:get(V, Vt),
+				 Pos = e3d_mat:mul_point(Flatten, Pos0),
+				 array:set(V, Pos, Vt)
+			 end, Vtab0, wings_face:vertices_ccw(Face, We)),
+	    We#we{vp=Vtab}
+    end.
 
 %% mirror_projection(We) -> Matrix | 'identity'
 %%  If there is a virtual mirror for We, return a matrix that
@@ -230,6 +315,27 @@ mirror_projection(#we{mirror=Face}=We) ->
     M0 = e3d_mat:translate(Origin),
     M = e3d_mat:mul(M0, e3d_mat:project_to_plane(PlaneNormal)),
     e3d_mat:mul(M, e3d_mat:translate(e3d_vec:neg(Origin))).
+
+%% create_mirror(Face, We0) -> We
+%%  Make face Face the virtual mirror face for object We0.
+%%
+create_mirror(Face, We0) when Face >= 0 ->
+    We = hide_faces([Face], We0),
+    We#we{mirror=-Face-1}.
+
+%% freeze_mirror(We0) -> We
+%%  Freeze the virtual mirror (if any) for the object We0.
+%%
+freeze_mirror(#we{mirror=none}=We) -> We;
+freeze_mirror(#we{mirror=Face}=We) ->
+    wings_face_cmd:mirror_faces([Face], We#we{mirror=none}).
+
+%% break_mirror(We0) -> We
+%%  Break the virtual mirror (if any) for the object We0.
+%%
+break_mirror(#we{mirror=none}=We) -> We;
+break_mirror(#we{mirror=Face}=We0) ->
+    show_faces([Face], We0#we{mirror=none}).
 
 %%%
 %%% Local functions.
@@ -279,6 +385,14 @@ vertex_gc_1([], _, Acc) ->
 %%% Handling of hidden faces.
 %%%
 
+%% any_invisible_faces(We) -> true|false.
+%%  Check whether there are any invisible faces (hidden
+%%  faces, holes, or virtual mirror face).
+%%
+any_invisible_faces(#we{fs=Ftab}) ->
+    not gb_trees:is_empty(Ftab) andalso
+	wings_util:gb_trees_smallest_key(Ftab) < 0.
+
 hide_faces_1(Fs, #we{es=Etab0}=We0) ->
     Map = fun(_, #edge{lf=Lf0,rf=Rf0}=R0) ->
 		  Lf = hide_map_face(Lf0, Fs),
@@ -302,85 +416,29 @@ num_hidden_1([F|Fs], N) when F < 0 ->
     num_hidden_1(Fs, N+1);
 num_hidden_1(_, N) -> N.
 	    
-
-visible(#we{mirror=none,fs=Ftab}) ->
-    visible_2(gb_trees:keys(Ftab));
-visible(#we{mirror=Face,fs=Ftab}) ->
-    visible_2(gb_trees:keys(gb_trees:delete(Face, Ftab))).
-
-visible([{_,_}|_]=Fs, #we{mirror=none}) ->
-    visible_1(Fs);
-visible([{_,_}|_]=Fs0, #we{mirror=Face}) ->
-    Fs = lists:keydelete(Face, 1, Fs0),
-    visible_1(Fs);
-visible(Fs, #we{mirror=none}) -> visible_2(Fs);
-visible(Fs, #we{mirror=Face}) -> visible_2(Fs--[Face]).
-
 visible_1([{F,_}|Fs]) when F < 0 -> visible_1(Fs);
 visible_1(Fs) -> Fs.
 
 visible_2([F|Fs]) when F < 0 -> visible_2(Fs);
 visible_2(Fs) -> Fs.
 
-visible_vs(#we{mirror=Face,vc=Vct,es=Etab}=We) ->
-    case is_open(We) of
-	false -> wings_util:array_keys(Vct);
-	true -> visible_vs_1(array:sparse_to_list(Etab), Face, [])
-    end.
+visible_vs_1(#we{es=Etab}) ->
+    Vs = array:sparse_foldl(
+	   fun(_, #edge{lf=Lf,rf=Rf}, A) when Lf < 0, Rf < 0 ->
+		   A;
+	      (_, #edge{vs=Va,ve=Vb}, A) ->
+		   [Va,Vb|A]
+	   end, [], Etab),
+    ordsets:from_list(Vs).
 
-visible_vs_1([#edge{lf=Mirror,rf=Rf}|Es], Mirror, Acc) when Rf < 0 ->
-    visible_vs_1(Es, Mirror, Acc);
-visible_vs_1([#edge{rf=Mirror,lf=Lf}|Es], Mirror, Acc) when Lf < 0 ->
-    visible_vs_1(Es, Mirror, Acc);
-visible_vs_1([#edge{lf=Lf,rf=Rf}|Es], Mirror, Acc) when Lf < 0, Rf < 0 ->
-    visible_vs_1(Es, Mirror, Acc);
-visible_vs_1([#edge{vs=Va,ve=Vb}|Es], Mirror, Acc) ->
-    visible_vs_1(Es, Mirror, [Va,Vb|Acc]);
-visible_vs_1([], _, Acc) -> ordsets:from_list(Acc).
-
-visible_vs(Vs, #we{mirror=Face,es=Etab}=We) ->
-    case is_open(We) of
-	false -> Vs;
-	true ->
-	    Vis0 = visible_vs_1(array:sparse_to_list(Etab), Face, []),
-	    case Vs of
-		[{_,_}|_] ->
-		    VsSet = sofs:relation(Vs),
-		    VisSet = sofs:from_external(Vis0, [atom]),
-		    sofs:to_external(sofs:restriction(VsSet, VisSet));
-		[_|_] ->
-		    ordsets:intersection(Vis0, Vs);
-		[] ->
-		    []
-	    end
-    end.
-
-visible_edges(#we{es=Etab,mirror=Face}=We) ->
-    case is_open(We) of
-	false -> wings_util:array_keys(Etab);
-	true -> visible_es_1(array:sparse_to_orddict(Etab), Face, [])
-    end.
-
-visible_es_1([{E,#edge{lf=Lf,rf=Rf}}|Es], Face, Acc) ->
-    if
-	Lf < 0 ->
-	    %% Left face hidden.
-	    if
-		Rf < 0; Rf =:= Face ->
-		    %% Both faces invisible (in some way).
-		    visible_es_1(Es, Face, Acc);
-		true ->
-		    %% Right face is visible.
-		    visible_es_1(Es, Face, [E|Acc])
-	    end;
-	Lf =:= Face, Rf < 0 ->
-	    %% Left face mirror, right face hidden.
-	    visible_es_1(Es, Face, Acc);
-	true ->
-	    %% At least one face visible.
-	    visible_es_1(Es, Face, [E|Acc])
-    end;
-visible_es_1([], _, Acc) -> ordsets:from_list(Acc).
+visible_es_1(#we{es=Etab}) ->
+    Es = array:sparse_foldl(
+	   fun(_, #edge{lf=Lf,rf=Rf}, A) when Lf < 0, Rf < 0 ->
+		   A;
+	      (E, _, A) ->
+		   [E|A]
+	   end, [], Etab),
+    ordsets:from_list(Es).
 
 visible_edges(Es, We) ->
     case is_open(We) of
@@ -419,26 +477,6 @@ show_faces_1(Faces, #we{es=Etab0}=We0) ->
     We = We0#we{es=Etab,fs=undefined},
     wings_facemat:show_faces(Faces, rebuild(We)).
 
-validate_mirror(#we{mirror=none}=We) -> We;
-validate_mirror(#we{fs=Ftab,mirror=Face}=We) ->
-    case gb_trees:is_defined(Face, Ftab) of
-	false -> We#we{mirror=none};
-	true -> We
-    end.
-
-mirror_flatten(OldWe, #we{mirror=Face,vp=Vtab0}=We) ->
-    case mirror_projection(OldWe) of
-	identity ->
-	    We;
-	Flatten ->
-	    Vtab = foldl(fun(V, Vt) ->
-				 Pos0 = array:get(V, Vt),
-				 Pos = e3d_mat:mul_point(Flatten, Pos0),
-				 array:set(V, Pos, Vt)
-			 end, Vtab0, wings_face:vertices_ccw(Face, We)),
-	    We#we{vp=Vtab}
-    end.
-    
 %%%
 %%% Build Winged-Edges.
 %%%
@@ -506,17 +544,18 @@ merge(We0, We1) ->
 merge([]) -> [];
 merge([We]) -> We;
 merge([#we{id=Id,name=Name}|_]=Wes0) ->
-    Wes1 = merge_renumber(Wes0),
-    Pst  = merge_plugins(Wes1),
-    MatTab = wings_facemat:merge(Wes1),
-    {Vpt0,Et0,Ht0,Holes} = merge_1(Wes1),
+    Wes1 = [break_mirror(We) || We <- Wes0],
+    Wes = merge_renumber(Wes1),
+    Pst = merge_plugins(Wes),
+    MatTab = wings_facemat:merge(Wes),
+    {Vpt0,Et0,Ht0,Holes} = merge_1(Wes),
     Vpt = array:from_orddict(Vpt0),
     Et = array:from_orddict(Et0),
     Ht = gb_sets:from_ordset(Ht0),
     We = rebuild(#we{id=Id,name=Name,vc=undefined,fs=undefined,
 		     pst=Pst,vp=Vpt,es=Et,he=Ht,mat=MatTab,
 		     holes=Holes}),
-    wings_va:merge(Wes1, We).
+    wings_va:merge(Wes, We).
 
 merge_1([We]) -> We;
 merge_1(Wes) -> merge_1(Wes, [], [], [], []).
@@ -617,7 +656,7 @@ do_renumber(#we{vp=Vtab0,es=Etab0,fs=Ftab0,
     Holes = [gb_trees:get(F, Fmap) || F <- Holes0],
 
     Mirror = if
-		 Mirror0 == none -> Mirror0;
+		 Mirror0 =:= none -> Mirror0;
 		 true -> gb_trees:get(Mirror0, Fmap)
 	     end,
 
@@ -734,8 +773,9 @@ update_id_bounds(#we{vp=Vtab,es=Etab,fs=Ftab}=We) ->
 %%% Separate a combined winged-edge structure.
 %%%
 
-separate(We) ->
-    separate(We#we{mirror=none,vc=undefined,fs=undefined}, []).
+separate(We0) ->
+    We = break_mirror(We0),
+    separate(We#we{vc=undefined,fs=undefined}, []).
 
 separate(#we{es=Etab0}=We, Acc) ->
     case wings_util:array_is_empty(Etab0) of

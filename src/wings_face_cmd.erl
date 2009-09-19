@@ -210,8 +210,10 @@ extrude_region_vmirror(OldWe, #we{mirror=Face0}=We0) ->
 	false ->
 	    Dissolve = gb_sets:insert(Face0, Dissolve0),
 	    We1 = wings_dissolve:faces(Dissolve, We0),
-	    [Face] = NewFace = wings_we:new_items_as_ordset(face, We0, We1),
-	    We = wings_facemat:assign(default, NewFace, We1),
+	    [Face1] = FaceList = wings_we:new_items_as_ordset(face, We0, We1),
+	    We2 = wings_we:hide_faces(FaceList, We1),
+	    Face = -Face1 - 1,
+	    We = wings_facemat:assign(default, [Face], We2),
 	    wings_we:mirror_flatten(OldWe, We#we{mirror=Face})
     end.
 

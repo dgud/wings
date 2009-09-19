@@ -756,10 +756,9 @@ kill_mirror(#st{shapes=Shs0}=St) ->
     Shs = kill_mirror_1(gb_trees:values(Shs0), []),
     St#st{shapes=Shs}.
 
-kill_mirror_1([#we{id=Id,mirror=none}=We|Wes], Acc) ->
+kill_mirror_1([#we{id=Id}=We0|Wes], Acc) ->
+    We = wings_we:break_mirror(We0),
     kill_mirror_1(Wes, [{Id,We}|Acc]);
-kill_mirror_1([#we{id=Id}=We|Wes], Acc) ->
-    kill_mirror_1(Wes, [{Id,We#we{mirror=none}}|Acc]);
 kill_mirror_1([], Acc) ->
     gb_trees:from_orddict(reverse(Acc)).
 

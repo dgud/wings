@@ -379,7 +379,15 @@ share_list_2([{Vtab0,Etab0,Attr}|Ts],
     We5 = foldl(fun({E,Lt,Rt}, W) ->
 		       wings_va:set_both_edge_attrs(E, Lt, Rt, W)
 	       end, We4, Attr),
-    We = translate_old_holes(We5),
+    We6 = translate_old_holes(We5),
+    We = case We6 of
+	     #we{mirror=none} ->
+		 We6;
+	     #we{mirror=MirrorFace} ->
+		 %% Hide the virtual mirror face.
+		 We7 = wings_we:hide_faces([MirrorFace], We6),
+		 We7#we{mirror=-MirrorFace-1}
+	 end,
     share_list_2(Ts, Wes, [{Id,We}|Acc]);
 share_list_2([], [], Wes) -> sort(Wes).
 
@@ -577,8 +585,10 @@ export(Name, St0) ->
     remove_lights(St0),
     Sel0 = collect_sel(St),
     wings_pb:update(0.65, ?__(3,"renumbering")),
-    {Shs1,Sel} = renumber(gb_trees:to_list(Shs0), Sel0, 0, [], []),
-    Shs = foldl(fun shape/2, [], Shs1),
+    Shs1 = [{Id,show_mirror_face(We)} ||
+	       {Id,We} <- gb_trees:to_list(Shs0)],
+    {Shs2,Sel} = renumber(Shs1, Sel0, 0, [], []),
+    Shs = foldl(fun shape/2, [], Shs2),
     wings_pb:update(0.98, ?__(4,"objects")),
     Props0 = export_props(Sel),
     Props1 = case Lights of
@@ -626,6 +636,12 @@ collect_sel_groups([{{Mode,Name},Sel}|Gs], St, Acc0) ->
 	      {Id,Elems} <- wings_sel:valid_sel(Sel, Mode, St)] ++ Acc0,
     collect_sel_groups(Gs, St, Acc);
 collect_sel_groups([], _, Acc) -> Acc.
+
+show_mirror_face(#we{mirror=none}=We) -> We;
+show_mirror_face(#we{mirror=Face}=We) ->
+    %% The mirror face should not be hidden in a .wings file.
+    %% (For compatibility with previous versions.)
+    wings_we:show_faces([Face], We#we{mirror=-Face-1}).
 
 renumber([{Id,We0}|Shs], [{Id,Root0}|Sel], NewId, WeAcc, RootAcc) ->
     Hidden = wings_we:num_hidden(We0),

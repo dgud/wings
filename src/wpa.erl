@@ -548,10 +548,7 @@ image_write(Ps) ->
 %%% Virtual mirror.
 %%%
 
-vm_freeze(#we{mirror=none}=We) -> We;
-vm_freeze(#we{mirror=Face}=We0) ->
-    We = wings_face_cmd:mirror_faces([Face], We0),
-    We#we{mirror=none}.
+vm_freeze(We) -> wings_we:freeze_mirror(We).
 
 %%%
 %%% Tesselation/subdivision.
