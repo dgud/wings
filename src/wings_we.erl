@@ -32,7 +32,7 @@
 	 is_open/1,all_hidden/1,
 	 visible/1,visible/2,visible_vs/1,visible_vs/2,
 	 visible_edges/1,visible_edges/2,fully_visible_edges/2,
-	 validate_mirror/1,mirror_flatten/2]).
+	 validate_mirror/1,mirror_flatten/2,mirror_projection/1]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
@@ -214,6 +214,22 @@ fully_visible_edges(Es0, #we{mirror=Face}=We) ->
     MirrorEdges = wings_face:to_edges([Face], We),
     Es = ordsets:subtract(Es0, MirrorEdges),
     fully_visible_edges(Es, We#we{mirror=none}).
+
+%% mirror_projection(We) -> Matrix | 'identity'
+%%  If there is a virtual mirror for We, return a matrix that
+%%  projects points to the mirror plane. Otherwise return
+%%  'identity'.
+%%
+-spec mirror_projection(#we{}) -> e3d_matrix().
+mirror_projection(#we{mirror=none}) ->
+    identity;
+mirror_projection(#we{mirror=Face}=We) ->
+    PlaneNormal = wings_face:normal(Face, We),
+    FaceVs = wings_face:to_vertices([Face], We),
+    Origin = wings_vertex:center(FaceVs, We),
+    M0 = e3d_mat:translate(Origin),
+    M = e3d_mat:mul(M0, e3d_mat:project_to_plane(PlaneNormal)),
+    e3d_mat:mul(M, e3d_mat:translate(e3d_vec:neg(Origin))).
 
 %%%
 %%% Local functions.
@@ -410,20 +426,18 @@ validate_mirror(#we{fs=Ftab,mirror=Face}=We) ->
 	true -> We
     end.
 
-mirror_flatten(_, #we{mirror=none}=We) -> We;
-mirror_flatten(#we{mirror=OldFace}=OldWe, #we{mirror=Face,vp=Vtab0}=We) ->
-    PlaneNormal = wings_face:normal(OldFace, OldWe),
-    FaceVs = wings_face:to_vertices(gb_sets:singleton(OldFace), OldWe),
-    Origin = wings_vertex:center(FaceVs, OldWe),
-    M0 = e3d_mat:translate(Origin),
-    M = e3d_mat:mul(M0, e3d_mat:project_to_plane(PlaneNormal)),
-    Flatten = e3d_mat:mul(M, e3d_mat:translate(e3d_vec:neg(Origin))),
-    Vtab = foldl(fun(V, Vt) ->
-			 Pos0 = array:get(V, Vt),
-			 Pos = e3d_mat:mul_point(Flatten, Pos0),
-			 array:set(V, Pos, Vt)
-		 end, Vtab0, wings_face:vertices_ccw(Face, We)),
-    We#we{vp=Vtab}.
+mirror_flatten(OldWe, #we{mirror=Face,vp=Vtab0}=We) ->
+    case mirror_projection(OldWe) of
+	identity ->
+	    We;
+	Flatten ->
+	    Vtab = foldl(fun(V, Vt) ->
+				 Pos0 = array:get(V, Vt),
+				 Pos = e3d_mat:mul_point(Flatten, Pos0),
+				 array:set(V, Pos, Vt)
+			 end, Vtab0, wings_face:vertices_ccw(Face, We)),
+	    We#we{vp=Vtab}
+    end.
     
 %%%
 %%% Build Winged-Edges.

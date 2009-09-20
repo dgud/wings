@@ -120,17 +120,7 @@ other_pos(V, #edge{ve=V,vs=Other}, Tab) -> pos(Other, Tab).
 %%  Find the geometric center of a body.
 center(#we{vp=Vtab}=We) ->
     Center = e3d_vec:average(array:sparse_to_list(Vtab)),
-    center_1(Center, We).
-
-center_1(Center, #we{mirror=none}) -> Center;
-center_1(Center, #we{mirror=Face}=We) ->
-    %% Slide the center point down to the nearest point on the mirror plane.
-    MirrorNormal = wings_face:normal(Face, We),
-    FaceVs = wings_face:to_vertices(gb_sets:singleton(Face), We),
-    Origin = wings_vertex:center(FaceVs, We),
-    M0 = e3d_mat:translate(Origin),
-    M = e3d_mat:mul(M0, e3d_mat:project_to_plane(MirrorNormal)),
-    Flatten = e3d_mat:mul(M, e3d_mat:translate(e3d_vec:neg(Origin))),
+    Flatten = wings_we:mirror_projection(We),
     e3d_mat:mul_point(Flatten, Center).
 
 %% center(VertexGbSet, We) -> {CenterX,CenterY,CenterZ}

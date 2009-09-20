@@ -246,67 +246,59 @@ insert_vtx_data_1([V|Vs], Vtab, Acc) ->
     insert_vtx_data_1(Vs, Vtab, [{V,array:get(V, Vtab)}|Acc]);
 insert_vtx_data_1([], _Vtab, Acc) -> Acc.
 
-mirror_constrain(Tvs, #we{mirror=none}) -> Tvs;
-mirror_constrain(Tvs, #we{mirror=Face,fs=Ftab}=We) ->
-    case gb_trees:is_defined(Face, Ftab) of
-	false -> Tvs;
-	true ->
-	    [V|_] = Vs = wings_face:vertices_cw(Face, We),
-	    VsSet = ordsets:from_list(Vs),
-	    N = wings_face:face_normal_cw(Vs, We),
-	    Vpos = wings_vertex:pos(V, We),
-	    mirror_constrain_1(Tvs, VsSet, {N,Vpos}, [])
-    end.
+mirror_constrain(Tvs, #we{mirror=none}) ->
+    Tvs;
+mirror_constrain(Tvs, #we{mirror=Face}=We) ->
+    M = wings_we:mirror_projection(We),
+    Vs = wings_face:vertices_cw(Face, We),
+    VsSet = ordsets:from_list(Vs),
+    mirror_constrain_1(Tvs, VsSet, M, []).
 
-mirror_constrain_1([{we,Tr}=Fun|Tvs], VsSet, N, Acc) when is_function(Tr) ->
-    mirror_constrain_1(Tvs, VsSet, N, [Fun|Acc]);
-mirror_constrain_1([{Vs,Tr0}=Fun|Tvs], VsSet, N, Acc) when is_function(Tr0) ->
+mirror_constrain_1([{we,Tr}=Fun|Tvs], VsSet, M, Acc) when is_function(Tr) ->
+    mirror_constrain_1(Tvs, VsSet, M, [Fun|Acc]);
+mirror_constrain_1([{Vs,Tr0}=Fun|Tvs], VsSet, M, Acc) when is_function(Tr0) ->
     case ordsets:intersection(ordsets:from_list(Vs), VsSet) of
 	[] ->
-	    mirror_constrain_1(Tvs, VsSet, N, [Fun|Acc]);
+	    mirror_constrain_1(Tvs, VsSet, M, [Fun|Acc]);
 	[_|_]=Mvs ->
-	    Tr = constrain_fun(Tr0, N, Mvs),
-	    mirror_constrain_1(Tvs, VsSet, N, [{Vs,Tr}|Acc])
+	    Tr = constrain_fun(Tr0, M, Mvs),
+	    mirror_constrain_1(Tvs, VsSet, M, [{Vs,Tr}|Acc])
     end;
-mirror_constrain_1([VecVs0|Tvs], VsSet, N, Acc) ->
+mirror_constrain_1([VecVs0|Tvs], VsSet, M, Acc) ->
     VecVs1 = sofs:from_term(VecVs0, [{vec,[vertex]}]),
     VecVs2 = sofs:family_to_relation(VecVs1),
     VecVs3 = sofs:to_external(VecVs2),
-    VecVs = mirror_constrain_2(VecVs3, VsSet, N, []),
-    mirror_constrain_1(Tvs, VsSet, N, [VecVs|Acc]);
+    VecVs = mirror_constrain_2(VecVs3, VsSet, M, []),
+    mirror_constrain_1(Tvs, VsSet, M, [VecVs|Acc]);
 mirror_constrain_1([], _, _, Acc) -> Acc.
 
-mirror_constrain_2([{Vec0,V}|T], VsSet, {N,_}=Plane, Acc) ->
+mirror_constrain_2([{Vec0,V}|T], VsSet, M, Acc) ->
     case member(V, VsSet) of
 	false ->
-	    mirror_constrain_2(T, VsSet, Plane, [{Vec0,[V]}|Acc]);
+	    mirror_constrain_2(T, VsSet, M, [{Vec0,[V]}|Acc]);
 	true ->
-	    Vec = project_vector(Vec0, N),
-	    mirror_constrain_2(T, VsSet, Plane, [{Vec,[V]}|Acc])
+	    Vec = e3d_mat:mul_vector(M, Vec0),
+	    mirror_constrain_2(T, VsSet, M, [{Vec,[V]}|Acc])
     end;
 mirror_constrain_2([], _, _, Acc) -> Acc.
 
-project_vector(Vec, Plane) ->
-    e3d_vec:sub(Vec, e3d_vec:mul(Plane, e3d_vec:dot(Vec, Plane))).
-
-constrain_fun(Tr0, Plane, Vs) ->
+constrain_fun(Tr0, M, Vs) ->
     fun(Cmd, Arg) ->
 	    case Tr0(Cmd, Arg) of
-		Tr when is_function(Tr) ->
-		    constrain_fun(Tr, Plane, Vs);
+		Tr when is_function(Tr, 2) ->
+		    constrain_fun(Tr, M, Vs);
 		List ->
-		    constrain_vs(List, Vs, Plane, [])
+		    constrain_vs(List, Vs, M, [])
 	    end
     end.
 
-constrain_vs([{V,Pos0}=H|T], Vs, {N,Point}=Plane, Acc) ->
+constrain_vs([{V,Pos0}=H|T], Vs, M, Acc) ->
     case member(V, Vs) of
-	false -> constrain_vs(T, Vs, Plane, [H|Acc]);
+	false ->
+	    constrain_vs(T, Vs, M, [H|Acc]);
 	true ->
-	    ToPoint = e3d_vec:sub(Point, Pos0),
-	    Dot = e3d_vec:dot(ToPoint, N),
-	    Pos = e3d_vec:add_prod(Pos0, N, Dot),
-	    constrain_vs(T, Vs, Plane, [{V,Pos}|Acc])
+	    Pos = e3d_mat:mul_point(M, Pos0),
+	    constrain_vs(T, Vs, M, [{V,Pos}|Acc])
     end;
 constrain_vs([], _, _, Acc) -> Acc.
 
