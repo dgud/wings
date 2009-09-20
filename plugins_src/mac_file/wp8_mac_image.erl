@@ -82,8 +82,8 @@ read_image_1(Name, Prop) ->
 	Res -> read_image_2(Res, Prop)
     end.
 
-read_image_2(<<W:32/native,H:32/native,SamplesPerPixel0:32/native,BytesPerRow:32,
-	      Bits/binary>>, Prop) ->
+read_image_2(<<W:32/native,H:32/native,SamplesPerPixel0:32/native,
+	      BytesPerRow:32/native,Bits/binary>>, Prop) ->
     SamplesPerPixel = case {BytesPerRow div W,SamplesPerPixel0} of
 			  {4,3} -> 4;
 			  _ -> SamplesPerPixel0
