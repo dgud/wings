@@ -433,10 +433,11 @@ sel_to_set(#st{sel=Sel0}) ->
     Sel = foldl(fun({Id,_}, A) -> [Id|A] end, [], Sel0),
     gb_sets:from_list(Sel).
 
-virtual_mirror_fun(Faces, We) ->
+virtual_mirror_fun(Faces, We0) ->
     case gb_sets:to_list(Faces) of
 	[Face] ->
-	    wings_we:create_mirror(Face, We);
+	    We = wings_we:create_mirror(Face, We0),
+	    wings_we:mirror_flatten(We, We);
 	_ ->
 	    wings_u:error(?__(1,"Only a single face must be selected per object."))
     end.
