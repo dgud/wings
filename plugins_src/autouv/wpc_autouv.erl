@@ -1463,7 +1463,11 @@ new_geom_state_1(Shs, #st{bb=#uvstate{id=Id,st=#st{shapes=Orig}}}=AuvSt) ->
     case {gb_trees:lookup(Id, Shs),gb_trees:lookup(Id, Orig)} of
 	{none,_} -> delete;
 	{{value,We},{value,We}} -> {AuvSt,false};
-	{{value,#we{es=Etab}},{value,#we{es=Etab}}} -> {AuvSt,false};
+	{{value,#we{es=Etab}=We},{value,#we{es=Etab}=OldWe}} ->
+	    case wings_va:any_update(We, OldWe) of
+		false -> {AuvSt,false};
+		true -> {rebuild_charts(We, AuvSt, []),true}
+	    end;
 	{{value,We},_} -> {rebuild_charts(We, AuvSt, []),true}
     end.
 
