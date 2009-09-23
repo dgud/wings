@@ -175,25 +175,27 @@ new_viewer(Name, {X,Y}, Size, Props, ToolbarHidden, St) ->
     Op = main_loop_noredraw(St),
     Title = geom_title(Name),
     wings_wm:toplevel(Name, Title, {X,Y,highest}, Size,
-              [resizable,closable,{anchor,nw},
-               {toolbar,
-            fun(A, B, C) -> wings_toolbar:create(A, B, C) end},
-               menubar,
-               {properties,Props}],
-              Op),
+		      [resizable,closable,{anchor,nw},
+		       {toolbar,fun(A, B, C) ->
+					wings_toolbar:create(A, B, C)
+				end},
+		       menubar,
+		       {properties,Props}],
+		      Op),
     wings_wm:menubar(Name, get(wings_menu_template)),
     wings_wm:send({menubar,Name}, {current_state,St}),
+    wings_wm:send({toolbar,Name}, {current_state,St}),
     set_drag_filter(Name),
     if
-    ToolbarHidden -> wings_wm:hide({toolbar,Name});
-    true -> ok
+	ToolbarHidden -> wings_wm:hide({toolbar,Name});
+	true -> ok
     end,
     Name.
 
 free_viewer_num(N) ->
     case wings_wm:is_window({geom,N}) of
-    false -> N;
-    true -> free_viewer_num(N+1)
+	false -> N;
+	true -> free_viewer_num(N+1)
     end.
 
 open_file(none) -> ok;

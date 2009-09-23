@@ -29,8 +29,8 @@
 -define(BUTTON_HEIGHT, 28).
 
 -record(but,
-	{mode,					%Selection mode.
-	 sh,					%Smart highlighting (true|false).
+	{mode=face :: sel_mode(),		%Selection mode.
+	 sh=true :: boolean(),			%Smart highlighting (true|false).
 	 buttons,				%Buttons to show.
 	 all_buttons,				%All buttons.
 	 restr=none				%Restriction (none|[Mode]).
@@ -42,7 +42,7 @@ create({toolbar,Client}=Name, Pos, W) ->
     wings_wm:set_prop(Name, display_lists, wings_wm:get_prop(Client, display_lists)).
 
 init_button() ->
-    {seq,push,get_button_event(#but{mode=face})}.
+    {seq,push,get_button_event(#but{})}.
 
 get_button_event(But) ->
     {replace,fun(Ev) -> button_event(Ev, But) end}.
