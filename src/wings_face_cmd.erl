@@ -12,8 +12,13 @@
 %%
 
 -module(wings_face_cmd).
+
+%% User interface.
 -export([menu/3,command/2]).
--export([mirror_faces/2,set_color/2,force_bridge/5]).
+
+%% Useful functions.
+-export([mirror_faces/2,set_color/2,force_bridge/5,
+	 extrude_faces/1,extrude_region/2]).
 
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1,sort/1,member/2]).
@@ -168,7 +173,7 @@ command(remove_hole, St) ->
 extrude({faces, Axis}, St) ->
     wings_move:setup(Axis, extrude_faces(St));
 extrude({region, Axis}, St0) ->
-    St = wings_sel:map(fun extrude_region_0/2, St0),
+    St = wings_sel:map(fun extrude_region/2, St0),
     wings_move:setup(Axis, St).
 
 %%% Extrude Faces
@@ -178,7 +183,7 @@ extrude_faces(St) ->
 		  end, St).
 
 %%% Extrude the selected regions.
-extrude_region_0(Faces0, We0) ->
+extrude_region(Faces0, We0) ->
     %% We KNOW that a gb_set with fewer elements sorts before
     %% a gb_set with more elements.
     Rs = sort(wings_sel:face_regions(Faces0, We0)),

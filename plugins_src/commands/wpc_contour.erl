@@ -70,62 +70,13 @@ command(_,_) ->
 
 %%%% Setup
 contour_setup(inset_faces,St) ->
-    inset_faces_setup(inset_faces,extrude_faces(St));
+    inset_faces_setup(inset_faces,wings_face_cmd:extrude_faces(St));
 contour_setup(inset_region, St0) ->
-    St = wings_sel:map(fun extrude_region_0/2, St0),
+    St = wings_sel:map(fun wings_face_cmd:extrude_region/2, St0),
     inset_regions_setup(inset_region, St);
 contour_setup(offset_region, St0) ->
-    St = wings_sel:map(fun extrude_region_0/2, St0),
+    St = wings_sel:map(fun wings_face_cmd:extrude_region/2, St0),
     offset_regions_setup(offset_region, St).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%% Extrude %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                                                                              %%
-extrude_faces(St) ->                                                          %%
-    wings_sel:map(fun(Faces, We) ->                                           %%
-        wings_extrude_face:faces(Faces, We)                                   %%
-    end, St).                                                                 %%
-                                                                              %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%% Extrude Region (from wings_face_cmd.erl) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                                                                              %%
-extrude_region_0(Faces0, We0) ->                                              %%
-    %% We KNOW that a gb_set with fewer elements sorts before                 %%
-    %% a gb_set with more elements.                                           %%
-    Rs = lists:sort(wings_sel:face_regions(Faces0, We0)),                     %%
-    We = extrude_region_1(Rs, We0, []),                                       %%
-    extrude_region_vmirror(We0, We).                                          %%
-                                                                              %%
-extrude_region_1([Faces0|Rs0]=Rs, We0, Acc) ->                                %%
-    case gb_sets:size(Faces0) of                                              %%
-    1 ->                                                                      %%
-        [Face] = gb_sets:to_list(Faces0),                                     %%
-        extrude_region_1(Rs0, We0, [Face|Acc]);                               %%
-    _Other ->                                                                 %%
-        We = wings_extrude_face:faces(Acc, We0),                              %%
-        wings_extrude_face:regions(Rs, We)                                    %%
-    end;                                                                      %%
-extrude_region_1([], We, Faces) ->                                            %%
-    wings_extrude_face:faces(Faces, We).                                      %%
-                                                                              %%
-extrude_region_vmirror(_, #we{mirror=none}=We) -> We;                         %%
-extrude_region_vmirror(OldWe, #we{mirror=Face0}=We0) ->                       %%
-  %% Merge the mirror face and any newly created faces to one new mirror face %%
-  %% and flatten it.                                                          %%
-    FaceSet = gb_sets:singleton(Face0),                                       %%
-    Bordering = wings_face:extend_border(FaceSet, We0),                       %%
-    NewFaces = wings_we:new_items_as_gbset(face, OldWe, We0),                 %%
-    Dissolve0 = gb_sets:intersection(Bordering, NewFaces),                    %%
-    case gb_sets:is_empty(Dissolve0) of                                       %%
-    true -> We0;                                                              %%
-    false ->                                                                  %%
-        Dissolve = gb_sets:insert(Face0, Dissolve0),                          %%
-        We1 = wings_dissolve:faces(Dissolve, We0),                            %%
-        [Face] = NewFace = wings_we:new_items_as_ordset(face, We0, We1),      %%
-        We = wings_facemat:assign(default, NewFace, We1),                     %%
-        wings_we:mirror_flatten(OldWe, We#we{mirror=Face})                    %%
-    end.                                                                      %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 offset_regions_setup(offset_region, St) ->
     State = drag_mode(offset_region),
