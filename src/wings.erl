@@ -1509,20 +1509,26 @@ restore_windows_1([{{geom,_}=Name,Pos0,Size,Ps0}|Ws], St) ->
     set_geom_props(Ps, Name),
     restore_windows_1(Ws, St);
 restore_windows_1([{{object,_}=Name,{_,_}=Pos,{_,_}=Size}|Ws], St) ->
-    wings_shape:window(Name, Pos, Size, St),
+    wings_shape:window(Name, validate_pos(Pos), Size, St),
     restore_windows_1(Ws, St);
 restore_windows_1([{outliner,{_,_}=Pos,{_,_}=Size}|Ws], St) ->
-    wings_outliner:window(Pos, Size, St),
+    wings_outliner:window(validate_pos(Pos), Size, St),
     restore_windows_1(Ws, St);
 restore_windows_1([{console,{_,_}=Pos,{_,_}=Size}|Ws], St) ->
-    wings_console:window(console, Pos, Size),
+    wings_console:window(console, validate_pos(Pos), Size),
     restore_windows_1(Ws, St);
 restore_windows_1([{palette,{_,_}=Pos,{_,_}=Size}|Ws], St) ->
-    wings_palette:window(Pos,Size,St),
+    wings_palette:window(validate_pos(Pos),Size,St),
     restore_windows_1(Ws, St);
 restore_windows_1([_|Ws], St) ->
     restore_windows_1(Ws, St);
 restore_windows_1([], _) -> ok.
+
+validate_pos({X,Y}=Pos) ->
+    case Y < 0 of
+      false -> Pos;
+      true -> {X,20}
+    end.
 
 geom_pos({X,Y}=Pos) ->
     {_,Upper0} = wings_wm:win_ul(desktop),
@@ -1533,8 +1539,10 @@ geom_pos({X,Y}=Pos) ->
              Upper0+ToolbarH
          end,
     {_,TitleH} = wings_wm:win_size({controller,geom}),
-    case Upper1 + TitleH of
-    Upper when Y < Upper -> {X,Upper};
+    {_,MenuBarH} = wings_wm:win_size({menubar,geom}),
+    case Upper1 + TitleH + MenuBarH of
+    Upper when Y < Upper -> 
+      {X,Upper};
     _ -> Pos
     end.
 
