@@ -182,17 +182,21 @@ make_fake_selection_1([#we{id=Id,mat=MatTab}|Shs], OldMat) ->
     end;
 make_fake_selection_1([], _) -> [].
 
-select_material(Mat, St) ->
-    %% XXX Works but is slow.
-    wings_sel:make(fun(_, #we{mat=AtomMat}) when is_atom(AtomMat) ->
-			   Mat =:= AtomMat;
-		      (Face, #we{mat=MatTab}) ->
-			   case keyfind(Face, 1, MatTab) of
-			       false -> false;
-			       {_,Mat} -> true;
-			       _ -> false
-			   end
-		   end, face, St).
+select_material(Mat, #st{shapes=Shs}=St) ->
+    Sel = foldl(fun(We, A) ->
+			select_material_1(We, Mat, A)
+		end, [], gb_trees:values(Shs)),
+    wings_sel:set(Sel, St).
+
+select_material_1(#we{id=Id,fs=Ftab}=We, Mat, Acc) ->
+    MatFaces = wings_facemat:mat_faces(gb_trees:to_list(Ftab), We),
+    case keyfind(Mat, 1, MatFaces) of
+	false ->
+	    Acc;
+	{Mat,FaceInfoList} ->
+	    Sel = [F || {F,_} <- FaceInfoList],
+	    [{Id,gb_sets:from_ordset(Sel)}|Acc]
+    end.
 
 set_material(Mat, #st{selmode=face}=St) ->
     wings_sel:map(fun(Faces, We) ->
