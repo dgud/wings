@@ -852,6 +852,12 @@ do_dlo_pick(D=#dlo{vab=none}, St, OneHit, Acc) ->
     do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Acc);
 do_dlo_pick(D=#dlo{vab=#vab{face_vs=none}}, St, OneHit, Acc) ->
     do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Acc);
+do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}=We}=D, _, OneHit, Acc)
+  when ?IS_AREA_LIGHT(We) ->
+    wpc_pick:cull(false),
+    Res = do_dlo_pick_0(Id, D, OneHit, Acc),
+    wpc_pick:cull(true),
+    Res;
 do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}}=D, _, OneHit, Acc) ->
     do_dlo_pick_0(Id, D, OneHit, Acc);
 do_dlo_pick(#dlo{mirror=Matrix,src_we=#we{id=Id}}=D0, _, OneHit, Acc0) ->
