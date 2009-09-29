@@ -502,8 +502,9 @@ select_region(#st{selmode=edge}=St) ->
     wings_sel:set(face, Sel, St);
 select_region(St) -> St.
 
-select_region(Edges, #we{id=Id}=We, Acc) ->
-    Part = wings_edge_loop:partition_edges(Edges, We),
+select_region(Edges0, #we{id=Id}=We, Acc) ->
+    Part = wings_edge_loop:partition_edges(Edges0, We),
+    Edges = select_region_borders(Edges0, We),
     FaceSel0 = select_region_1(Part, Edges, We, []),
     FaceSel = gb_sets:from_ordset(wings_we:visible(FaceSel0, We)),
     [{Id,FaceSel}|Acc].
@@ -561,6 +562,19 @@ select_region_2(P) ->
 	_ ->
 	    [{_,Fs}|_] = sort([{length(Fs),Fs} || {Fs,_} <- P]),
 	    Fs
+    end.
+
+select_region_borders(Edges0, #we{mirror=Mirror,holes=Holes}=We) ->
+    Bs = case Mirror of
+	     none -> Holes;
+	     _ -> [Mirror|Holes]
+	 end,
+    case Bs of
+	[] ->
+	    Edges0;
+	[_|_] ->
+	    BorderEdges = wings_face:to_edges(Bs, We),
+	    gb_sets:union(gb_sets:from_list(BorderEdges), Edges0)
     end.
 
 make_digraph(G, [Es|T]) ->
