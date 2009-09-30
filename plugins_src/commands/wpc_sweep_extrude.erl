@@ -175,7 +175,7 @@ sweep_setup(Type,Axis,St) ->
     Tvs = wings_sel:fold(fun(Fs, #we{id=Id}=We, Acc) ->
 
             Regions = wings_sel:face_regions(Fs,We),
-            {AllVs,VsData} = collect_data(Regions, We, Axis, SelC, [], State, [], []),
+            {AllVs,VsData} = collect_data(Type, Regions, We, Axis, SelC, [], State, [], []),
             [{Id, {AllVs, sweep_fun(Type, VsData, State)}} | Acc]
          end, [], St),
     Units = units(Type),
@@ -187,10 +187,20 @@ units(relative) -> [angle,percent,percent,angle].
 
 
 %% LoopNorm is the extrude direction
-collect_data([Fs0|Rs], We, Axis0, SelC0, AllVs0, State, LVAcc0, ExData) ->
-    Fs = wings_face:extend_border(Fs0, We),
+collect_data(Type, [Fs0|Rs], #we{mirror=M}=We, Axis0, SelC0, AllVs0, State, LVAcc0, ExData) ->
+    Fs = gb_sets:delete_any(M, wings_face:extend_border(Fs0, We)),
     {OuterEs, RegVs} =  reg_data_0(Fs, We, [], []),
-    {LoopNorm, LoopVs} = loop_data_0(OuterEs, Fs, We),
+    {LoopNorm, LoopVs0} = loop_data_0(OuterEs, Fs, We),
+
+    LoopVs = case Type of
+      sweep_extrude -> LoopVs0;
+      _otherwise when M =/= none ->
+          MirEs = wings_face:to_edges([M],We),
+          LoopEs = OuterEs -- MirEs,
+          LoopVerts = wings_edge:to_vertices(LoopEs,We),
+          LoopVerts;
+      _otherwise -> LoopVs0
+    end,
     Axis = axis_conversion(Axis0,LoopNorm),
 
     ExVs = ordsets:subtract(RegVs, LoopVs),
@@ -207,9 +217,9 @@ collect_data([Fs0|Rs], We, Axis0, SelC0, AllVs0, State, LVAcc0, ExData) ->
     NW = non_warping_norm(Axis, LoopNorm),
     CN = specify_warp_and_center(Axis, NW, LoopC, SelC, State),
     Data = {{SelC, LoopC, LoopNorm, MaxR, NW, Axis}, CN},
-    collect_data(Rs, We, Axis0, SelC0, AllVs, State, LVAcc, [{Data,AllVpos}|ExData]);
+    collect_data(Type, Rs, We, Axis0, SelC0, AllVs, State, LVAcc, [{Data,AllVpos}|ExData]);
 
-collect_data([], _We, _Axis0, _SelC0, AllVs, _State, _LVs, VsData) ->
+collect_data(_Type, [], _We, _Axis0, _SelC0, AllVs, _State, _LVs, VsData) ->
     {AllVs, VsData}.
 
 
@@ -253,7 +263,7 @@ loop_data_1(Es0, Fs, Etab, Vtab, M, LNorms, Vs0) ->
       false ->
         {Edge, Es1} = gb_sets:take_smallest(Es0),
         {Es, LoopNorm, Links, Vs} = loop_data_2(Edge, Edge, Es1, Fs, Etab, Vtab, M, Vs0),
-        loop_data_1(Es, Fs, Etab, Vtab, M, [{Links,LoopNorm}|LNorms], Vs);
+        loop_data_1(Es, Fs, Etab, Vtab, M, [{Links,e3d_vec:neg(LoopNorm)}|LNorms], Vs);
       true ->
         AvgLoopNorm = e3d_vec:neg(average_loop_norm(LNorms)),
         {AvgLoopNorm, ordsets:from_list(Vs0)}
@@ -263,11 +273,11 @@ loop_data_2(Edge, Edge, Es, Fs, Etab, Vtab, M, Vs) ->
     E = array:get(Edge, Etab),
     #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,ltsu=NextLeft,rtsu=NextRight} = E,
     case gb_sets:is_member(Rf,Fs) of
-      true ->
+      false ->
         VpA = array:get(Va,Vtab),
         EData = array:get(NextLeft,Etab),
         loop_data_3(NextLeft, EData, Edge, Es, Fs, Lf, Va, VpA, Etab, Vtab, M, [], Vs, 0);
-      false ->
+      true ->
         VpB = array:get(Vb,Vtab),
         EData = array:get(NextRight,Etab),
         loop_data_3(NextRight, EData, Edge, Es, Fs, Rf, Vb, VpB, Etab, Vtab, M, [], Vs, 0)
