@@ -3,7 +3,7 @@
 %%
 %%     LightWave Object File Format (*.lwo) Import/Export
 %%
-%%  Copyright (c) 2003-2008 Anthony D'Agostino
+%%  Copyright (c) 2003-2009 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -322,7 +322,10 @@ read_pnts(Data) ->
 read_pols(<<"FACE",Rest/binary>>) ->
     read_point_idxs(Rest);
 read_pols(<<"PTCH",Rest/binary>>) ->
-    read_point_idxs(Rest).
+    read_point_idxs(Rest);
+read_pols(<<"SUBD",_/binary>>) ->
+    wings_u:error("LWO files containing \"SUBD\" sub-forms in "
+		  "\"POLS\" not supported.").
 
 read_point_idxs(<<>>) -> [];
 read_point_idxs(Data) ->
