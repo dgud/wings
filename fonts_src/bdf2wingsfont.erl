@@ -30,7 +30,7 @@ convert([Out|SrcFonts]) ->
 
 read_fonts([N|Ns], Acc) ->
     io:format("Reading ~s\n", [N]),
-    {ok,F} = file:open(N, [binary,read,read_ahead]),
+    {ok,F} = file:open(N, [binary,read,read_ahead,raw]),
     G = read_font(F),
     file:close(F),
     read_fonts(Ns, G++Acc);
@@ -63,7 +63,7 @@ read_props_1(F, N, Acc) ->
     read_props_1(F, N-1, [P|Acc]).
 
 read_one_prop(F) ->
-    read_one_prop_1(io:get_line(F, ''), []).
+    read_one_prop_1(raw_read_line(F), []).
 
 read_one_prop_1(<<C,Cs/bytes>>, Key) when C =< $\s ->
     read_one_prop_2(Cs, reverse(Key));
@@ -143,7 +143,7 @@ read_one_glyph_1(F, G) ->
     end.
     
 read_bitmap(F, Acc) ->
-    case io:get_line(F, '') of
+    case raw_read_line(F) of
 	<<"ENDCHAR",_/bytes>> ->
 	    list_to_binary(Acc);
 	<<H1,H2,_/bytes>> ->
@@ -188,7 +188,7 @@ filter_unicode(Gs) ->
     
 
 read_map(MapName) ->
-    {ok,F} = file:open(MapName, [binary,read,read_ahead]),
+    {ok,F} = file:open(MapName, [binary,read,read_ahead,raw]),
     Map = read_map_1(F, []),
     file:close(F),
     Map.
@@ -207,14 +207,14 @@ error(Term) ->
     throw({error,Term}).
 
 read_map_line(F) ->
-    case skip_whitespace(io:get_line(F, '')) of
+    case skip_whitespace(raw_read_line(F)) of
 	eof -> eof;
 	<<$#,_/bytes>> -> read_map_line(F);
 	Cs -> collect_tokens(Cs)
     end.
 
 read_line(F) ->
-    case read_line_1(io:get_line(F, ''), F) of
+    case read_line_1(raw_read_line(F), F) of
 	["COMMENT"|_] -> read_line(F);
 	Line -> Line
     end.
@@ -249,6 +249,12 @@ skip_whitespace(<<C,Cs/bytes>>) when C =< $\s ->
 skip_whitespace([C|Cs]) when C =< $\s ->
     skip_whitespace(Cs);
 skip_whitespace(Cs) -> Cs.
+
+raw_read_line(F) ->
+    case file:read_line(F) of
+	eof -> eof;
+	{ok,Line} -> Line
+    end.
 
 %%%
 %%% Writing the font.
