@@ -16,7 +16,7 @@
 -export([clear/1,reset/1,set/2,set/3,
 	 map/2,fold/3,mapfold/3,
 	 make/3,valid_sel/1,valid_sel/3,
-	 center/1,bounding_box/1,bounding_boxes/1,
+	 center/1,bbox_center/1,bounding_box/1,bounding_boxes/1,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
 	 select_object/2,deselect_object/2,
 	 get_all_items/2,get_all_items/3,
@@ -164,6 +164,9 @@ center(#st{selmode=Mode}=St) ->
 		   end, [], St),
     e3d_vec:average(Centers).
 
+bbox_center(St) ->
+    BBox = bounding_box(St),
+    e3d_vec:average(BBox).
 %%%
 %%% Calculate the bounding-box for the selection.
 %%%

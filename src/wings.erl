@@ -476,6 +476,8 @@ highlight_sel_style({tools,save_bb}) -> temporary;
 highlight_sel_style({tools,{scale_to_bb,_}}) -> temporary;
 highlight_sel_style({tools,{scale_to_bb_prop,_}}) -> temporary;
 highlight_sel_style({tools,{move_to_bb,_}}) -> temporary;
+highlight_sel_style({tools,{move_bb_to_sel,_}}) -> temporary;
+highlight_sel_style({tools,{scale_bb_to_sel,_}}) -> temporary;
 highlight_sel_style({view,align_to_selection}) -> temporary;
 highlight_sel_style({view,aim}) -> temporary;
 highlight_sel_style({view,highlight_aim}) -> temporary;
@@ -731,6 +733,10 @@ command_1({tools,{scale_to_bb_prop,Dir}}, St) ->
     {save_state,wings_align:scale_to_bb_prop(Dir, St)};
 command_1({tools,{move_to_bb,Dir}}, St) ->
     {save_state,wings_align:move_to_bb(Dir, St)};
+command_1({tools,{move_bb_to_sel,Dir}}, St) ->
+    {save_state,wings_align:move_bb_to_sel(Dir, St)};
+command_1({tools,{scale_bb_to_sel,Dir}}, St) ->
+    {save_state,wings_align:scale_bb_to_sel(Dir, St)};
 command_1({tools,{virtual_mirror,Cmd}}, St) ->
     wings_view:virtual_mirror(Cmd, St);
 command_1({tools, screenshot}, St) ->
@@ -831,6 +837,8 @@ tools_menu(_) ->
      {?__(11,"Scale to Saved BB"),{scale_to_bb,Dirs}},
      {?__(12,"Scale to Saved BB Proportionally"),{scale_to_bb_prop,Dirs}},
      {?__(13,"Move to Saved BB"),{move_to_bb,wings_menu_util:all_xyz()}},
+     {?__(32,"Move BB to Selection"),{move_bb_to_sel,wings_menu_util:all_xyz()}},
+     {?__(33,"Scale BB to Selection"),{scale_bb_to_sel,Dirs}},
      separator,
      {?__(14,"Set Default Axis"),set_default_axis,
       ?__(15,"Define and store axis (with ref. point) for later use with any ")++

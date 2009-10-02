@@ -50,6 +50,7 @@ render(#st{selmode=Mode}=St) ->
     ground_and_axes(),
     mini_axis_icon(),
     show_saved_bb(St),
+    show_bb_center(St),
     user_clipping_planes(on),
     render_objects(Mode, SceneLights),
     user_clipping_planes(off),
@@ -612,7 +613,7 @@ show_saved_bb(#st{bb=[{X1,Y1,Z1},{X2,Y2,Z2}]}) ->
 	true ->
 	    gl:enable(?GL_LINE_STIPPLE),
 	    gl:lineStipple(4, 2#1110111011101110),
-	    gl:color3f(0, 0, 1),
+	    gl:color3fv(wings_pref:get_value(active_vector_color)),
 	    gl:'begin'(?GL_LINE_STRIP),
 	    gl:vertex3f(X1, Y1, Z1),
 	    gl:vertex3f(X2, Y1, Z1),
@@ -636,6 +637,30 @@ show_saved_bb(#st{bb=[{X1,Y1,Z1},{X2,Y2,Z2}]}) ->
 	    gl:disable(?GL_LINE_STIPPLE)
     end;
 show_saved_bb(_) -> ok.
+
+show_bb_center(#st{bb=[_,_]=BB}) ->
+    case wings_pref:get_value(show_bb_center) of
+      false -> ok;
+      true ->
+        {Cx,Cy,Cz} = Center = e3d_vec:average(BB),
+        Colour = gl:color3fv(wings_pref:get_value(active_vector_color)),
+        Colour,
+        gl:pointSize(8.0),
+        gl:'begin'(?GL_POINTS),
+        gl:vertex3fv(Center),
+        gl:'end'(),
+        gl:'begin'(?GL_LINES),
+        Colour,
+        gl:vertex3fv({Cx,Cy+0.2,Cz}),
+        gl:vertex3fv({Cx,Cy-0.2,Cz}),
+        gl:vertex3fv({Cx+0.2,Cy,Cz}),
+        gl:vertex3fv({Cx-0.2,Cy,Cz}),
+        gl:vertex3fv({Cx,Cy,Cz+0.2}),
+        gl:vertex3fv({Cx,Cy,Cz-0.2}),
+        gl:'end'()
+
+    end;
+show_bb_center(_) -> ok.
 
 enable_lighting(SceneLights) ->
     Progs = get(light_shaders),

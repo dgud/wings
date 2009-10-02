@@ -13,8 +13,8 @@
 
 -module(wings_align).
 -export([align/2,center/2,copy_bb/1,
-	 scale_to_bb/2,scale_to_bb_prop/2,move_to_bb/2,put_on_ground/1,
-	 unitize/1]).
+	 scale_to_bb/2,scale_to_bb_prop/2,move_to_bb/2,move_bb_to_sel/2,
+	 scale_bb_to_sel/2,put_on_ground/1,unitize/1]).
 
 -include("wings.hrl").
 -import(lists, [map/2,foldl/3,reverse/1]).
@@ -65,6 +65,39 @@ move_to_bb(Dir, #st{bb=Dest}=St) ->
 	    Matrix = make_move(Dir, Src, Dest),
 	    transform(Matrix, St)
     end.
+
+move_bb_to_sel(_Dir, #st{sel=[]}=St) -> St;
+move_bb_to_sel(Dir, #st{bb=[P1,P2]=BB}=St) ->
+    CurrentCenter = e3d_vec:average(BB),
+    Vec1 = e3d_vec:sub(CurrentCenter,P1),
+    Vec2 = e3d_vec:sub(CurrentCenter,P2),
+    SelC = filter_coord(Dir, e3d_vec:sub(wings_sel:bbox_center(St),CurrentCenter)),
+    SelCenter = e3d_vec:add(CurrentCenter,SelC),
+    BB1 = e3d_vec:add(SelCenter, Vec1),
+    BB2 = e3d_vec:add(SelCenter, Vec2),
+    St#st{bb=[BB1,BB2]};
+move_bb_to_sel(_Dir, St) -> St.
+
+scale_bb_to_sel(_Dir, #st{sel=[]}=St) -> St;
+scale_bb_to_sel(Dir, #st{bb=[A1,A2]}=St) ->
+    [B1,B2] = wings_sel:bounding_box(St),
+    {B11x,B11y,B11z} = filter_coord2(Dir,B1),
+    {B21x,B21y,B21z} = filter_coord2(Dir,B2),
+    {A11x,A11y,A11z} = A1,
+    {A21x,A21y,A21z} = A2,
+    Point1 = {if B11x =:= none -> A11x; true -> B11x end,
+              if B11y =:= none -> A11y; true -> B11y end,
+              if B11z =:= none -> A11z; true -> B11z end},
+    Point2 = {if B21x =:= none -> A21x; true -> B21x end,
+              if B21y =:= none -> A21y; true -> B21y end,
+              if B21z =:= none -> A21z; true -> B21z end},
+    BBC1 = e3d_vec:average(Point1,Point2),
+    BBC2 = e3d_vec:average(A1,A2),
+    TransVec = e3d_vec:sub(BBC2,BBC1),
+    BB1 = e3d_vec:add(TransVec,Point1),
+    BB2 = e3d_vec:add(TransVec,Point2),
+    St#st{bb=[BB1,BB2]};
+scale_bb_to_sel(_Dir, St) -> St.
 
 transform(Matrix, St) ->
     wings_sel:map(fun(_Items, We0) ->
@@ -146,6 +179,15 @@ filter_coord(radial_x, {_,Y,Z}) -> {0.0,Y,Z};
 filter_coord(radial_y, {X,_,Z}) -> {X,0.0,Z};
 filter_coord(radial_z, {X,Y,_}) -> {X,Y,0.0};
 filter_coord(all, All) -> All.
+
+filter_coord2(x, {X,_,_}) -> {X,none,none};
+filter_coord2(y, {_,Y,_}) -> {none,Y,none};
+filter_coord2(z, {_,_,Z}) -> {none,none,Z};
+filter_coord2(radial_x, {_,Y,Z}) -> {none,Y,Z};
+filter_coord2(radial_y, {X,_,Z}) -> {X,none,Z};
+filter_coord2(radial_z, {X,Y,_}) -> {X,Y,none};
+filter_coord2(all, All) -> All.
+
 
 offset(Offset, Vtab0) ->
     Vtab = array:sparse_foldl(fun(V, Pos, A) ->
