@@ -841,8 +841,12 @@ dlo_pick(St, OneHit) ->
 				 do_dlo_pick(D, St, OneHit, Acc)
 			 end, []),
     case Hits0 of
-	{_,Hits} -> Hits;
-	_ -> Hits0
+	{_,Hits} ->
+	    %% Only one hit.
+	    Hits;
+	_ ->
+	    %% All hits.
+	    usort(Hits0)
     end.
 
 do_dlo_pick(#dlo{src_we=#we{perm=Perm}}=D, _St, _OneHit, Acc)
@@ -875,8 +879,10 @@ do_dlo_pick(#dlo{mirror=Matrix,src_we=#we{id=Id}}=D0, _, OneHit, Acc0) ->
 do_dlo_pick_0(Id, #dlo{vab=#vab{face_vs=Vs,face_map=Map0}}=D0, OneHit, Acc0) ->
     case wpc_pick:faces(Vs, OneHit) of
 	[] ->
+	    %% No hit.
 	    {D0,Acc0};
 	{Hit0,Depth} ->
+	    %% OneHit is true - only the nearest hit is returned.
 	    case Acc0 of
 		{PrevDepth,_} when PrevDepth < Depth ->
 		    {D0,Acc0};
@@ -886,8 +892,9 @@ do_dlo_pick_0(Id, #dlo{vab=#vab{face_vs=Vs,face_map=Map0}}=D0, OneHit, Acc0) ->
 		    {D,{Depth,Acc}}
 	    end;
 	RawHits ->
+	    %% OneHit is false - all hits are returned.
 	    {D,Map} = dlo_tri_map(D0, Map0),
-	    {D,usort(do_dlo_pick_1(RawHits, Map, Id, Acc0))}
+	    {D,do_dlo_pick_1(RawHits, Map, Id, Acc0)}
     end.
 
 do_dlo_pick_1([H|Hits], [{Face,{Start,Num}}|_]=T, Id, Acc)
