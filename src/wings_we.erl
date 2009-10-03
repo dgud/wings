@@ -375,7 +375,8 @@ merge([#we{id=Id,name=Name}|_]=Wes0) ->
 %%%
 
 rebuild_1(VctList, #we{vp=Vtab0}=We) ->
-    Vtab = vertex_gc_1(VctList, array:sparse_to_orddict(Vtab0), []),
+    Vtab1 = [{V,array:get(V, Vtab0)} || {V,_} <- VctList],
+    Vtab = array:from_orddict(Vtab1),
     rebuild(We#we{vp=Vtab}).
 
 rebuild_vct(Es) ->
@@ -407,12 +408,6 @@ rebuild_maybe_add(Ka, Kb, E, [{Kb,_}|_]=Acc) ->
 rebuild_maybe_add(Ka, Kb, E, Acc) ->
     [{Ka,E},{Kb,E}|Acc].
 
-vertex_gc_1([{V,_}|Vct], [{V,_}=Vtx|Vpos], Acc) ->
-    vertex_gc_1(Vct, Vpos, [Vtx|Acc]);
-vertex_gc_1([_|_]=Vct, [_|Vpos], Acc) ->
-    vertex_gc_1(Vct, Vpos, Acc);
-vertex_gc_1([], _, Acc) ->
-    array:from_orddict(reverse(Acc)).
 
 %%%
 %%% Handling of hidden faces.
