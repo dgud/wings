@@ -162,9 +162,9 @@ discard_old_states_1(0, St) -> St;
 discard_old_states_1(N, Undo) ->
     discard_old_states_1(N-1, queue:drop(Undo)).
 
-uncompress([#we{id=Id,next_id=Next}=We0|Wes], Acc) ->
-    We = wings_we:rebuild(We0),
-    uncompress(Wes, [{Id,We#we{next_id=Next}}|Acc]);
+uncompress([#we{id=Id}=We0|Wes], Acc) ->
+    We = wings_we:fast_rebuild(We0),
+    uncompress(Wes, [{Id,We}|Acc]);
 uncompress([], Acc) -> gb_trees:from_orddict(reverse(Acc)).
 
 %%%

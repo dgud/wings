@@ -14,7 +14,7 @@
 %%
 
 -module(wings_we).
--export([build/2,rebuild/1,
+-export([build/2,rebuild/1,fast_rebuild/1,
 	 new_wrap_range/3,id/2,bump_id/1,
 	 new_id/1,new_ids/2,
 	 invert_normals/1,
@@ -51,10 +51,9 @@ build(Fs, Vs) ->
     wings_we_build:we(Fs, Vs, []).
 
 %% rebuild(We) -> We'
-%%  Rebuild any missing 'vc' and 'fs' tables. If there are
-%%  fewer elements in the 'vc' table than in the 'vp' table,
-%%  remove redundant entries in the 'vp' table. Updated id
-%%  bounds.
+%%  Rebuild any missing 'vc' and 'fs' tables. Also remove any
+%%  unused entries in the 'vp' table. Update the 'next_id' field.
+%%
 rebuild(#we{vc=undefined,fs=undefined,es=Etab0,holes=Holes0}=We0) ->
     Etab = array:sparse_to_orddict(Etab0),
     Ftab = rebuild_ftab(Etab),
@@ -70,6 +69,17 @@ rebuild(#we{fs=undefined,es=Etab,holes=Holes0}=We) ->
     Holes = ordsets:intersection(gb_trees:keys(Ftab), Holes0),
     rebuild(We#we{fs=Ftab,holes=Holes});
 rebuild(We) -> update_id_bounds(We).
+
+%% fast_rebuild(We) -> We'
+%%  Unconditionally rebuild the 'vc' and 'fs' tables. Do not
+%%  update the 'next_id' field and do not GC away unused positions
+%%  in the 'vp' table.
+%%
+fast_rebuild(#we{es=Etab0}=We) ->
+    Etab = array:sparse_to_orddict(Etab0),
+    Ftab = rebuild_ftab(Etab),
+    Vct = array:from_orddict(rebuild_vct(Etab)),
+    We#we{vc=Vct,fs=Ftab}.
 
 %%% Utilities for allocating IDs.
 
