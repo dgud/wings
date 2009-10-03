@@ -1464,9 +1464,11 @@ save_windows_1([_|T]) -> save_windows_1(T);
 save_windows_1([]) -> [].
 
 save_window(Name, Ns) ->
-    Pos = wings_wm:win_ur({controller,Name}),
+    {MaxX,_} = wings_wm:win_size(desktop),
+    {PosX0,PosY} = wings_wm:win_ur({controller,Name}),
+    PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
     Size = wings_wm:win_size(Name),
-    W = {Name,Pos,Size},
+    W = {Name,{PosX,PosY},Size},
     [W|save_windows_1(Ns)].
 
 save_geom_window(Name, Ns) ->
