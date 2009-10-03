@@ -1108,7 +1108,7 @@ message_redraw(Msg, Right) ->
 		    wings_io:set_color(wings_pref:get_value(menu_color)),
 		    gl:recti(Pos-Cw, 1-wings_text:height(),
 			     Pos+RightW+Cw, 3),
-		    gl:color3b(0, 0, 0),
+		    wings_io:set_color(wings_pref:get_value(info_line_text)),
 		    wings_io:text_at(Pos, Right);
 		true -> ok
 	    end
@@ -1126,7 +1126,7 @@ message_setup() ->
     wings_io:ortho_setup(none),
     {W,H} = win_size(),
     wings_io:gradient_rect(0, 0, W, H, wings_pref:get_value(info_line_bg)),
-    gl:color3b(0, 0, 0),
+    wings_io:set_color(wings_pref:get_value(info_line_text)),
     gl:translatef(10, H-5.375, 0),
     {W,H}.
 

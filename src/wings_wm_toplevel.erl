@@ -827,7 +827,7 @@ menubar_draw([{Desc,Name,_}|T], X, Sel) ->
 				     W, H-2, wings_pref:get_value(menu_color));
 	true -> ok
     end,
-    gl:color3b(0, 0, 0),
+    wings_io:set_color(wings_pref:get_value(menubar_text)),
     wings_io:text_at(X, ?CHAR_HEIGHT, Desc),
     menubar_draw(T, X+W, Sel);
 menubar_draw([], _, _) -> keep.
