@@ -1,3 +1,49 @@
+--- 1.1.15 ---------------------------------------------------------------------
+- It was not possible to load JPEG, PNG, or GIF images (either
+  as textures or using the Image Plane commands) on Snow Leopard.
+  (Thanks to Riolan and nobrandname.) [bjorng]
+
+- The Tools|Virtual Mirror|Create command will now
+  automatically flatten the virtual mirror face. [bjorng]
+
+- The Select|Edge Loop|Edge Loop To Region command will
+  now allow virtual mirror and hole edges to close an edge loop.
+  (Suggested by FonteBoa.) [bjorng]
+
+- Combine and Separate became much slower in 1.1 if there
+  were many objects in the scene. This has been corrected.
+  (Thanks to ycarry.) [dgud/bjorng]
+
+- Select by material is now much faster for big objects with
+  more than one material. (Thanks for ycarry for noticing the
+  slowness.) [bjorng]
+
+- Gordo has designed new (much nicer) install and uninstall icons
+  for the installer on Windows. [bjorng]
+
+- Undoing a change of UV coordindates would not update the
+  AutoUV window. (Thanks to no204.) [bjorng]
+
+- Creating a new Geometry window and moving the mouse cursor
+  over the toolbar of the new window before doing anything else would
+  cause Wings to crash. (Thanks to BlackHarmo.) [bjorng]
+
+- Area lights can now be selected from both sides, not only
+  from the front face. (Thanks to Micheus.) [bjorng]
+
+- Newer LWO files may contain a sub form of POLS called SUBD.
+  Unfortunately, I have found no description on how to interpret those
+  forms. If you happen to know how to interpret those forms, please
+  post a message in the Programming forum. The LWO importer will now
+  quit with an error message instead of crashing when encountering
+  ae SUBD form. (Thanks to Siber.) [bjorng]
+
+- Fixes to Sweep. (Thanks to BlackHarmo and Fonte Boa). [optigon]
+
+- Windows could appear above the visible screen area. Now some code
+  checks for this as windows are loaded and moves them within the visible
+  range. [optigon]
+
 --- 1.1.14 ---------------------------------------------------------------------
 - If View|Scene Lights has been turned on, but the scene
   contains no lights, the usual modeling lights will be turned on
