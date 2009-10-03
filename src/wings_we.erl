@@ -787,17 +787,17 @@ update_id_bounds(#we{vp=Vtab,es=Etab,fs=Ftab}=We) ->
 
 separate(We0) ->
     We = break_mirror(We0),
-    separate(We#we{vc=undefined,fs=undefined}, []).
+    separate_1(We#we{vc=undefined,fs=undefined}, 0, []).
 
-separate(#we{es=Etab0}=We, Acc) ->
+separate_1(#we{es=Etab0}=We, Smallest0, Acc) ->
     case wings_util:array_is_empty(Etab0) of
 	true -> Acc;
 	false ->
-	    Edge = wings_util:array_smallest_key(Etab0),
+	    {Edge,Smallest} = smallest(Smallest0, Etab0),
 	    Ws = gb_sets:singleton(Edge),
 	    {EtabLeft,NewEtab} = separate(Ws, Etab0, array:new()),
 	    NewWe = copy_dependents(We#we{es=NewEtab}),
-	    separate(We#we{es=EtabLeft}, [NewWe|Acc])
+	    separate_1(We#we{es=EtabLeft}, Smallest, [NewWe|Acc])
     end.
 
 separate(Ws0, Etab0, Acc0) ->
@@ -805,17 +805,21 @@ separate(Ws0, Etab0, Acc0) ->
 	true -> {Etab0,Acc0};
 	false ->
 	    {Edge,Ws1} = gb_sets:take_smallest(Ws0),
-	    case array:get(Edge, Etab0) of
-		undefined ->
-		    separate(Ws1, Etab0, Acc0);
-		Rec ->
-		    Etab = array:reset(Edge, Etab0),
-		    Acc = array:set(Edge, Rec, Acc0),
-		    #edge{ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} = Rec,
-		    Set = gb_sets:from_list([LP,LS,RP,RS]),
-		    Ws = gb_sets:union(Ws1, Set),
-		    separate(Ws, Etab, Acc)
-	    end
+	    Rec = array:get(Edge, Etab0),
+	    Etab = array:reset(Edge, Etab0),
+	    Acc = array:set(Edge, Rec, Acc0),
+	    #edge{ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS} = Rec,
+	    List = [E || E <- [LP,LS,RP,RS],
+			 array:get(E, Etab) =/= undefined],
+	    Set = gb_sets:from_list(List),
+	    Ws = gb_sets:union(Ws1, Set),
+	    separate(Ws, Etab, Acc)
+    end.
+
+smallest(I, A) ->
+    case array:get(I, A) of
+	undefined -> smallest(I+1, A);
+	_ -> {I,I+1}
     end.
 
 copy_dependents(We0) ->
