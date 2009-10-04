@@ -119,6 +119,11 @@ import_objects([], _Mode, _NameMap, Oid, Objs0) ->
     %%io:format("size: ~p\n", [erts_debug:size(Objs)]),
     {Objs,Oid}.
     
+import_edges([[{edge,Va,Vb,Lf,Rf,Ltpr,Ltsu,Rtpr,Rtsu}]|Es], Edge, Acc) ->
+    Rec = #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,
+		ltpr=Ltpr,ltsu=Ltsu,rtpr=Rtpr,rtsu=Rtsu},
+    EdgeData = {Rec,none},
+    import_edges(Es, Edge+1, [{Edge,EdgeData}|Acc]);
 import_edges([E|Es], Edge, Acc) ->
     EdgeData = import_edge(E, none, #va{}),
     import_edges(Es, Edge+1, [{Edge,EdgeData}|Acc]);
@@ -412,6 +417,8 @@ share_floats_1([{_,{A,B,C}}|T], Shared) ->
     share_floats_1(T, [A,B,C|Shared]);
 share_floats_1([], Shared) -> Shared.
 
+share_floats_2([{_,{_,none}}|T], Shared) ->
+    share_floats_2(T, Shared);
 share_floats_2([{_,{_,#va{}=Va}}|T], Shared0) ->
     Shared1 = share_floats_3(Va#va.color_lt, Shared0),
     Shared2 = share_floats_3(Va#va.color_rt, Shared1),
@@ -437,6 +444,8 @@ share_vs([{V,{X0,Y0,Z0}}|Vs], Floats, Acc) ->
     share_vs(Vs, Floats, [{V,{X,Y,Z}}|Acc]);
 share_vs([], _, Acc) -> reverse(Acc).
 
+share_es([{E,{Rec,none}}|Vs], Floats, Acc, AttrAcc, Shared) ->
+    share_es(Vs, Floats, [{E,Rec}|Acc], AttrAcc, Shared);
 share_es([{E,{Rec,Va0}}|Vs], Floats, Acc, AttrAcc0, Shared0) ->
     #va{color_lt=ColLt0,color_rt=ColRt0,
 	uv_lt=UvLt0,uv_rt=UvRt0} = Va0,
