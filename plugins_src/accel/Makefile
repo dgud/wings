@@ -46,7 +46,7 @@ else
    GL_LIBS =
  else
    LIBS = -shared -fpic
-   GL_LIBS = -lGLU -lGL
+   GL_LIBS = -L/usr/local/lib -lGLU -lGL
    CFLAGS = $(COMMON_CFLAGS)
  endif
 endif

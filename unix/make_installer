@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Script for creating a self-contained Wings package for Unix systems.
 #
@@ -96,6 +96,7 @@ sdl_lib=`ldd "$dest/priv/sdl_driver.so" | awk '$1 ~ /^libSDL/ { print $3}'`
 sdl_lib_name=`basename $sdl_lib`
 if [ ! -L $sdl_lib ]; then
     echo `basename $0`: "$sdl_lib expected to be a symlink"
+    $INSTALL -c $sdl_lib "$dest/priv"
 else
     lib_dir=`dirname $sdl_lib`
     linkname=`readlink $sdl_lib`
