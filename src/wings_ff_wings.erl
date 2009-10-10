@@ -367,6 +367,8 @@ share_list_2([{Vtab0,Etab0,Attr}|Ts],
     Etab = array:from_orddict(Etab0),
     We1 = wings_we:rebuild(We0#we{vp=Vtab,es=Etab,mat=default}),
     We2 = wings_facemat:assign(FaceMat, We1),
+
+    %% Hide invisible faces and set holes.
     We3 = if
 	      NumHidden =:= 0 -> We2;
 	      true ->
@@ -374,19 +376,25 @@ share_list_2([{Vtab0,Etab0,Attr}|Ts],
 		  Holes = ordsets:from_list([-F-1 || F <- We2#we.holes]),
 		  wings_we:hide_faces(Hidden, We2#we{holes=Holes})
 	  end,
+    We4 = translate_old_holes(We3),
+    We5 = validate_holes(We4),
+
     %% Very old Wings files can have invalid mirror faces for some reason.
-    We4 = wings_we:validate_mirror(We3),
-    We5 = foldl(fun({E,Lt,Rt}, W) ->
-		       wings_va:set_both_edge_attrs(E, Lt, Rt, W)
-	       end, We4, Attr),
-    We6 = translate_old_holes(We5),
-    We = case We6 of
+    We6 = wings_we:validate_mirror(We5),
+
+    %% Set attributes (if any) for all edges.
+    We7 = foldl(fun({E,Lt,Rt}, W) ->
+			wings_va:set_both_edge_attrs(E, Lt, Rt, W)
+		end, We6, Attr),
+
+    %% At last, hide the virtual mirror face.
+    We = case We7 of
 	     #we{mirror=none} ->
-		 We6;
+		 We7;
 	     #we{mirror=MirrorFace} ->
 		 %% Hide the virtual mirror face.
-		 We7 = wings_we:hide_faces([MirrorFace], We6),
-		 We7#we{mirror=-MirrorFace-1}
+		 We8 = wings_we:hide_faces([MirrorFace], We7),
+		 We8#we{mirror=-MirrorFace-1}
 	 end,
     share_list_2(Ts, Wes, [{Id,We}|Acc]);
 share_list_2([], [], Wes) -> sort(Wes).
@@ -565,6 +573,15 @@ translate_old_holes_1(#we{fs=Ftab}=We0) ->
     We = wings_facemat:assign(default, NewHoleFaces, We1),
     HiddenNewHoleFaces = ordsets:from_list([-F-1 || F <- NewHoleFaces]),
     wings_we:hide_faces(NewHoleFaces, We#we{holes=HiddenNewHoleFaces}).
+
+%% validate_holes(We0) -> We
+%%  Remove any invalid entries in We#we.holes. Ideally, there should
+%%  be no invalid entries, but because of bugs there could be.
+%%
+validate_holes(#we{fs=Ftab,holes=Holes0}=We) ->
+    %% Only keep faces that exist and are invisible.
+    Holes = [F || F <- Holes0, F < 0, gb_trees:is_defined(F, Ftab)],
+    We#we{holes=Holes}.
     
 %%%
 %%% Save a Wings file (in version 2).
