@@ -317,14 +317,13 @@ intrude(Faces0, We0, SelAcc) ->
     {We2,RootSet} = wings_we:renumber(We1, Wid, RootSet0),
     We3 = wings_we:invert_normals(We2),
     We4 = wings_we:merge(We1, We3),
-    We5 = wings_we:rehide_holes(We4),
-    Sel0 = wings_we:new_items_as_gbset(face, We1, We5),
-    Exclude = [F || {face,F} <- RootSet0 ++ RootSet] ++ We5#we.holes,
+    Sel0 = wings_we:new_items_as_gbset(face, We1, We4),
+    Exclude = [F || {face,F} <- RootSet0 ++ RootSet] ++ We4#we.holes,
     Sel = gb_sets:difference(Sel0, gb_sets:from_list(Exclude)),
     case gb_sets:is_empty(Sel) of
 	false ->
-	    We6 = intrude_bridge(RootSet0, RootSet, We5),
-	    We = restore_mirror(We6, We0),
+	    We5 = intrude_bridge(RootSet0, RootSet, We4),
+	    We = restore_mirror(We5, We0),
 	    {We,[{Id,Sel}|SelAcc]};
 	true ->
 	    wings_u:error(?__(1,"Intrude does not work with all faces selected."))
@@ -374,8 +373,7 @@ mirror_face(Face, #we{fs=Ftab}=OrigWe, #we{next_id=Id}=We0) ->
     {WeNew0,RootSet} = wings_we:renumber(OrigWe, Id, RootSet0),
     [{face,FaceNew},{edge,ANewEdge}] = RootSet,
     WeNew = mirror_vs(FaceNew, WeNew0),
-    We1 = wings_we:merge(We0, WeNew),
-    We = wings_we:rehide_holes(We1),
+    We = wings_we:merge(We0, WeNew),
 
     %% Now weld the old face with new (mirrored) face.
     IterA0 = wings_face:iterator(Face, We),
@@ -636,7 +634,7 @@ bridge(#st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
 	    #we{next_id=Id}=WeA = gb_trees:get(IdA, Shapes0),
 	    #we{}=WeB0 = gb_trees:get(IdB, Shapes0),
 	    {WeB,[{face,FB}]} = wings_we:renumber(WeB0, Id, [{face,FB0}]),
-	    We = wings_we:rehide_holes(wings_we:merge(WeA, WeB)),
+	    We = wings_we:merge(WeA, WeB),
 	    Shapes1 = gb_trees:delete(IdB, Shapes0),
 	    Shapes = gb_trees:update(IdA, We, Shapes1),
 	    Sel = [{IdA,gb_sets:from_list([FA,FB])}],

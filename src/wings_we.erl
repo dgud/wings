@@ -28,7 +28,7 @@
 	 new_items_as_ordset/3,new_items_as_gbset/3,
 	 is_consistent/1,is_face_consistent/2,
 	 hide_faces/2,show_faces/1,num_hidden/1,
-	 create_holes/2,rehide_holes/1,show_faces/2,
+	 create_holes/2,show_faces/2,
 	 is_open/1,all_hidden/1,
 	 visible/1,visible/2,visible_vs/1,visible_vs/2,
 	 visible_edges/1,visible_edges/2,fully_visible_edges/2,
@@ -225,18 +225,6 @@ visible_edges(#we{es=Etab}=We) ->
 	true -> visible_es_1(We)
     end.
 
-%% rehide_holes(We0) -> We.
-%%  Rehide any holes that have become visible because of
-%%  renumbering.
-%%
-%%  This function is needed as long as hidden faces are implemented
-%%  as negative faces numbers.
-%%
-rehide_holes(#we{holes=[]}=We) ->
-    We;
-rehide_holes(#we{holes=Holes}=We) ->
-    create_holes(Holes, We#we{holes=[]}).
-
 %% renumber(We0, Start) -> We
 %%     Start = integer, >= 0
 %%  Renumber all vertex, edge, and face identifiers to consecutive
@@ -337,6 +325,40 @@ freeze_mirror(#we{mirror=Face}=We) ->
 break_mirror(#we{mirror=none}=We) -> We;
 break_mirror(#we{mirror=Face}=We0) ->
     show_faces([Face], We0#we{mirror=none}).
+
+%% merge(We0, We1) -> We
+%%  Merge two winged-edge structures. See merge/1.
+%%
+merge(We0, We1) ->
+    merge([We0,We1]).
+
+%% merge([We0]) -> We
+%%  Merge a list of winged-edge structures.
+%%
+%%  Holes will be automatically re-hidden in the combined
+%%  #we{} record, but invisible faces may become visible.
+%%
+merge([]) -> [];
+merge([We]) -> We;
+merge([#we{id=Id,name=Name}|_]=Wes0) ->
+    Wes1 = [break_mirror(We) || We <- Wes0],
+    Wes = merge_renumber(Wes1),
+    Pst = merge_plugins(Wes),
+    MatTab = wings_facemat:merge(Wes),
+    {Vpt0,Et0,Ht0,Holes} = merge_1(Wes),
+    Vpt = array:from_orddict(Vpt0),
+    Et = array:from_orddict(Et0),
+    Ht = gb_sets:from_ordset(Ht0),
+    We0 = rebuild(#we{id=Id,name=Name,vc=undefined,fs=undefined,
+		      pst=Pst,vp=Vpt,es=Et,he=Ht,mat=MatTab,
+		      holes=Holes}),
+    case wings_va:merge(Wes, We0) of
+	#we{holes=[]}=We ->
+	    We;
+	#we{holes=Holes}=We ->
+	    %% Re-hide all holes that have become visible.
+	    create_holes(Holes, We#we{holes=[]})
+    end.
 
 %%%
 %%% Local functions.
@@ -536,27 +558,6 @@ slide_colors(Face, Edge, LastEdge, PrevAttrs, #we{es=Etab}=OrigWe, We0, _) ->
 	    We = wings_va:set_edge_attrs(Edge, Face, PrevAttrs, We0),
 	    slide_colors(Face, NextEdge, LastEdge, Attrs, OrigWe, We, done)
     end.
-
-%% Merge two winged-edge structures.
-merge(We0, We1) ->
-    merge([We0,We1]).
-
-%% Merge a list of winged-edge structures.
-merge([]) -> [];
-merge([We]) -> We;
-merge([#we{id=Id,name=Name}|_]=Wes0) ->
-    Wes1 = [break_mirror(We) || We <- Wes0],
-    Wes = merge_renumber(Wes1),
-    Pst = merge_plugins(Wes),
-    MatTab = wings_facemat:merge(Wes),
-    {Vpt0,Et0,Ht0,Holes} = merge_1(Wes),
-    Vpt = array:from_orddict(Vpt0),
-    Et = array:from_orddict(Et0),
-    Ht = gb_sets:from_ordset(Ht0),
-    We = rebuild(#we{id=Id,name=Name,vc=undefined,fs=undefined,
-		     pst=Pst,vp=Vpt,es=Et,he=Ht,mat=MatTab,
-		     holes=Holes}),
-    wings_va:merge(Wes, We).
 
 merge_1([We]) -> We;
 merge_1(Wes) -> merge_1(Wes, [], [], [], []).
