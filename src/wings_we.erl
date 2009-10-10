@@ -38,6 +38,7 @@
 -include("wings.hrl").
 -include("e3d.hrl").
 -import(lists, [foreach/2,foldl/3,sort/1,keysort/2,reverse/1,zip/2,partition/2]).
+-import(erlang, [max/2]).
 
 %%%
 %%% API.
@@ -608,9 +609,14 @@ merge_bounds([#we{vp=Vtab,fs=Ftab,es=Etab}=We0|Wes], Acc) ->
     First = case wings_util:array_is_empty(Etab) of
 		true -> 0;
 		false ->
-		    lists:min([wings_util:array_smallest_key(Vtab),
-			       wings_util:array_smallest_key(Etab),
-			       wings_util:gb_trees_smallest_key(Ftab)])
+		    Min = lists:min([wings_util:array_smallest_key(Vtab),
+				     wings_util:array_smallest_key(Etab),
+				     wings_util:gb_trees_smallest_key(Ftab)]),
+
+		    %% We must not return a negative number here (caused by
+		    %% a hidden face), because the list will become sorted
+		    %% in the wrong order.
+		    max(Min, 0)
 	    end,
     We = update_id_bounds(We0),
     merge_bounds(Wes, [{First,We}|Acc]);
