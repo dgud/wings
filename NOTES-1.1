@@ -1,3 +1,39 @@
+--- 1.1.16 ---------------------------------------------------------------------
+- Wings now compiles cleanly on FreeBSD. [scorpius]
+
+- For developers: Erlang/OTP R13B02 is now required for building
+  Wings. [bjorng]
+
+- When importing holes were not always handled correctly.
+  There could be faces marked as holes internally, but the faces
+  would still be visible. Future operations (such as Combine), could
+  then cause the faces to suddenly disappear (i.e. become holes).
+  (Thanks to Siber.) [bjorng]
+
+- Wings will now validate holes when loading .wings files,
+  and remove from the list of holes any non-existent face or
+  face that is not invisible. (Importing objects with holes and
+  saving in a previous release of Wings could cause such
+  inconsistencies, as described in the previous release note.)
+  [bjorng]
+
+- Selecting many elements in many objects using marquee
+  selection is now much faster. (Thanks to ycarry for noticing
+  the slowness.) [bjorng]
+
+- The Separate command is now significantly faster when run
+  on objects with many sub-objects. (Thanks to ycarry for noticing
+  the slowness.) [bjorng]
+
+- Opening .wings files without vertex attributes is now
+  slightly faster. (Thanks to ycarry.) [bjorng]
+
+- Added Bbox Move and Scale to Selection tools. BBox now
+  displays with a visible center and uses the user define Vector
+  colour. [optigon]
+
+- Added colour prefs for the Menubar and Info Line Text. [optigon]
+
 --- 1.1.15 ---------------------------------------------------------------------
 - It was not possible to load JPEG, PNG, or GIF images (either
   as textures or using the Image Plane commands) on Snow Leopard.
