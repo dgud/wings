@@ -720,10 +720,12 @@ force_bridge(FaceA, Va, FaceB, Vb, We0) ->
     IterB = wings_face:skip_to_ccw(Vb, wings_face:iterator(FaceB, We)),
     do_bridge(Len, Va, FaceA, IterA, Vb, FaceB, IterB, Ids, We, We).
 
-do_bridge(0, _Va, FaceA, _IterA, _Vb, FaceB, _IterB, _, _, #we{fs=Ftab0}=We) ->
+do_bridge(0, _Va, FaceA, _IterA, _Vb, FaceB, _IterB, _, _,
+	  #we{fs=Ftab0,holes=Holes0}=We) ->
     Ftab1 = gb_trees:delete(FaceA, Ftab0),
     Ftab = gb_trees:delete(FaceB, Ftab1),
-    wings_facemat:delete_faces([FaceA,FaceB], We#we{fs=Ftab});
+    Holes = ordsets:subtract(Holes0, ordsets:from_list([FaceA,FaceB])),
+    wings_facemat:delete_faces([FaceA,FaceB], We#we{fs=Ftab,holes=Holes});
 do_bridge(N, Va0, FaceA, IterA0, Vb0, FaceB, IterB0, Ids0, OrigWe, We0) ->
     #we{es=Etab0,fs=Ftab0} = We0,
     NewEdge = wings_we:id(2, Ids0),
