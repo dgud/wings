@@ -1167,14 +1167,22 @@ shape_info(#we{id=Id,name=Name,fs=Ftab,es=Etab,vp=Vtab}=We) ->
     Vertices = wings_util:array_entries(Vtab),
     wings_util:format(?__(new_object_info,
 			  "Object ~p \"~s\" has ~p polygons, "
-			  "~p edges, ~p vertices~s."),
+			  "~p edges, ~p vertices~s~s."),
               [Id,Name,Faces,Edges,Vertices,
-	       vtx_attributes(We)]).
+	       vtx_attributes(We),hole_info(We)]).
 
 vtx_attributes(We) ->
     case wings_va:any_attributes(We) of
 	false -> "";
 	true -> ", " ++ ?__(1,"vertex attributes")
+    end.
+
+hole_info(#we{holes=[]}) ->
+    "";
+hole_info(#we{holes=Holes}) ->
+    case length(Holes) of
+	1 -> [", 1 ",?__(1,"hole")];
+	N -> [", ",integer_to_list(N)," ",?__(2,"holes")]
     end.
 
 shape_info(Objs, Shs) ->
