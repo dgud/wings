@@ -227,8 +227,8 @@ extrude_region_vmirror(OldWe, #we{mirror=Face0}=We0) ->
 
 %%% Shell Extrude
 shell_extrude(Axis, St0) ->
-    St1 = extract_1(St0, St0),
-    #st{sel=Sel}=St2 = recreate_face_topology(St1),
+    #st{sel=Sel0}=St1 = extract_1(St0, St0),
+    #st{sel=Sel}=St2 = recreate_face_topology(St1#st{sel=sort(Sel0)}),
     St = wings_sel:set(Sel, St2),
     wings_move:setup(Axis, St).
 
