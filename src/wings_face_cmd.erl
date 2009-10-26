@@ -251,12 +251,18 @@ extract({faces, Axis}, St0) ->
 
 extract_1(St, St0) ->
     wings_sel:fold(
-	    fun(Faces, We0, #st{sel=Sel0,onext=Oid}=S0) ->
-		    We = wings_dissolve:complement(Faces, We0),
-		    S = wings_shape:insert(We, extract, S0),
-		    Sel = [{Oid,Faces}|Sel0],
-		    S#st{sel=Sel}
+	    fun(Faces, We0, S0) ->
+		    Regions = wings_sel:face_regions(Faces, We0),
+		    extract_2(Regions, We0, S0)
 	    end, St0#st{sel=[]}, St).
+
+extract_2([Faces|Regions], We0, #st{sel=Sel0,onext=Oid}=St0) ->
+    We = wings_dissolve:complement(Faces, We0),
+    St = wings_shape:insert(We, extract, St0),
+    Sel = [{Oid,Faces}|Sel0],
+    extract_2(Regions, We0, St#st{sel=Sel});
+extract_2([],_,St) ->
+    St.
 
 recreate_face_topology(St) ->
     wings_sel:map(fun(Fs, #we{fs=AllFs0}=We0) ->
