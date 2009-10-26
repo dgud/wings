@@ -616,7 +616,12 @@ split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
 
     VisFtab = wings_we:visible(gb_trees:to_list(Ftab), We),
     {Work,#dlo{ns=Ns},FtabDyn} = split_faces(D, VisFtab, Faces, St),
-    StaticEdgeDl = make_static_edges(Faces, D),
+
+    %% To support commands that create new objects with static
+    %% geometry (such as Shell Extrude), we must be sure to pass
+    %% on the new normals table or the static edges will not be
+    %% visible.
+    StaticEdgeDl = make_static_edges(Faces, D#dlo{ns=Ns}),
     {DynVs,VsDlist} = split_vs_dlist(Vs, StaticVs, Sel, We),
 
     WeDyn = wings_facemat:gc(We#we{fs=gb_trees:from_orddict(FtabDyn)}),
@@ -676,7 +681,8 @@ split_faces(#dlo{needed=Need}=D0, Ftab0, Fs0, St) ->
 	    %% in the normals array. Most of the time, this is
 	    %% not needed because newly created faces are
 	    %% dynamic, but it can happen in rare circumstances,
-	    %% for instance with the Intrude command if there are holes.
+	    %% for instance with the Intrude command if there are holes
+	    %% or with the new Shell Extrude command.
 	    D1 = split_new_normals(StaticFtab, D0),
 
 	    StaticPlan = wings_draw_setup:prepare(StaticFtab, D1, St),
@@ -689,6 +695,12 @@ split_new_normals(Ftab, #dlo{ns=Ns0,src_we=We}=D) ->
     Ns = split_new_normals(Ftab, We, Ns0),
     D#dlo{ns=Ns}.
 
+split_new_normals([{Face,Edge}|T], We, none) ->
+    %% No normals means that a new object was created in an
+    %% interative command (Shell Extrude).
+    Ps = wings_face:vertex_positions(Face, Edge, We),
+    Ns = array:set(Face, face_ns_data(Ps), array:new()),
+    split_new_normals(T, We, Ns);
 split_new_normals([{Face,Edge}|T], We, Ns0) ->
     case array:get(Face, Ns0) of
 	undefined ->
