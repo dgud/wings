@@ -31,6 +31,7 @@ menu(X, Y, St) ->
 	    separator,
 	    {?__(3,"Extrude"),{extrude,Dir}},
 	    {?__(35,"Extract"),{extract,Dir}},
+	    {?__(36,"Shell Extrude"),{shell_extrude,Dir}},
 	    separator,
 	    wings_menu_util:flatten(),
 	    separator,
@@ -115,6 +116,8 @@ command({extrude, Dir}, St) ->
     ?SLOW(extrude(Dir, St));
 command({extract, Dir}, St) ->
     ?SLOW(extract(Dir, St));
+command({shell_extrude, Dir}, St) ->
+    ?SLOW(shell_extrude(Dir, St));
 command(bump, St) ->
     ?SLOW(wings_extrude_edge:bump(St));
 command({flatten,Plane}, St) ->
@@ -222,35 +225,58 @@ extrude_region_vmirror(OldWe, #we{mirror=Face0}=We0) ->
 	    wings_we:mirror_flatten(OldWe, We#we{mirror=Face})
     end.
 
+%%% Shell Extrude
+shell_extrude(Axis, St0) ->
+    St1 = extract_1(St0, St0),
+    #st{sel=Sel}=St2 = recreate_face_topology(St1),
+    St = wings_sel:set(Sel, St2),
+    wings_move:setup(Axis, St).
+
 %%%
 %%% The Extract command.
 %%%
 
 extract({region, Axis}, St0) ->
-    St1 = wings_sel:fold(
+    #st{sel=Sel}=St1 = extract_1(St0, St0),
+    St = wings_sel:set(Sel, St1),
+    wings_move:setup(Axis, St);
+
+extract({faces, Axis}, St0) ->
+    St1 = wings_sel:map(fun(Faces, We) ->
+				wings_extrude_face:faces(Faces, We)
+			end, St0),
+    #st{sel=Sel}=St2 = extract_1(St1, St0),
+    St = wings_sel:set(Sel, St2),
+    wings_move:setup(Axis, St).
+
+extract_1(St, St0) ->
+    wings_sel:fold(
 	    fun(Faces, We0, #st{sel=Sel0,onext=Oid}=S0) ->
 		    We = wings_dissolve:complement(Faces, We0),
 		    S = wings_shape:insert(We, extract, S0),
 		    Sel = [{Oid,Faces}|Sel0],
 		    S#st{sel=Sel}
-	    end, St0#st{sel=[]}, St0),
-    Sel = St1#st.sel,
-    St = wings_sel:set(Sel, St1),
-    wings_move:setup(Axis, St);
-extract({faces, Axis}, St0) ->
-    St1 = wings_sel:map(fun(Faces, We) ->
-        wings_extrude_face:faces(Faces, We)
-    end, St0),
-    St2 = wings_sel:fold(
-    fun(Faces, We0, #st{sel=Sel0,onext=Oid}=S0) ->
-        We = wings_dissolve:complement(Faces, We0),
-        S = wings_shape:insert(We, extract, S0),
-        Sel = [{Oid,Faces}|Sel0],
-        S#st{sel=Sel}
-    end, St0#st{sel=[]}, St1),
-    Sel = St2#st.sel,
-    St = wings_sel:set(Sel, St2),
-    wings_move:setup(Axis, St).
+	    end, St0#st{sel=[]}, St).
+
+recreate_face_topology(St) ->
+    wings_sel:map(fun(Fs, #we{fs=AllFs0}=We0) ->
+        AllFs = gb_sets:from_ordset(gb_trees:keys(AllFs0)),
+        Inverse = gb_sets:difference(AllFs,Fs),
+        intrude_extract(Inverse, We0)
+        end, St).
+
+intrude_extract(Faces0, #we{es=Etab,fs=Ftab,next_id=Wid}=We0) ->
+    Faces = gb_sets:to_list(Faces0),
+    RootSet0 = lists:foldl(
+         fun(F, A) ->
+             Edge = gb_trees:get(F, Ftab),
+             #edge{vs=V} = array:get(Edge, Etab),
+             [{face,F},{vertex,V}|A]
+         end, [], Faces),
+    {We1,RootSet} = wings_we:renumber(We0, Wid, RootSet0),
+    We2 = wings_we:invert_normals(We1),
+    We3 = wings_we:merge(We0, We2),
+    intrude_bridge(RootSet0, RootSet, We3).
 
 %%%
 %%% The Dissolve command.

@@ -63,6 +63,10 @@ dirs_help([duplicate|_]) ->
     {?STR(dirs,15,"Duplicate; move along std. axis"),
      ?STR(dirs,16,"Duplicate; don't move"),
      ?STR(dirs,17,"Duplicate; pick axis to move along")};
+dirs_help([shell_extrude|_]) ->
+    {?STR(dirs,22,"Extract Shell and Extrude along std. axis"),
+     ?STR(dirs,23,"Extract Shell and Extrude along selection's normal"),
+     ?STR(dirs,24,"Pick axis to Extract Shell and Extrude along")};
 dirs_help(_) -> "".
 
 dirs_1(body, Ns) -> directions([free,x,y,z], Ns);
@@ -320,6 +324,10 @@ dir_help_1([lift|_], [free|Text]) ->
     ?STR(dir_help_1,11,"Lift face and move it ") ++ Text;
 dir_help_1([duplicate|_], [free|Text]) ->
     ?STR(dir_help_1,12,"Duplicate and move freely ")++ Text;
+dir_help_1([shell_extrude|_], [normal|_]) ->
+    ?STR(dir_help_1,24,"Extract and Extrude faces as region, then move faces along the region's normal");
+dir_help_1([shell_extrude|_], [free|Text]) ->
+    ?STR(dir_help_1,25,"Extract and Extrude faces as region, then move faces ") ++ Text;
 
 %% Axis
 dir_help_1([move|_], Text) ->
@@ -346,4 +354,6 @@ dir_help_1([lift|_], Text) ->
     ?STR(dir_help_1,22,"Lift face along ")++ Text;
 dir_help_1([duplicate|_], Text) ->
     ?STR(dir_help_1,23,"Duplicate, then move along ")++ Text;
+dir_help_1([shell_extrude|_], Text) ->
+    ?STR(dir_help_1,26,"Extract and Extrude faces as region, then move along ") ++ Text;
 dir_help_1(_, _) -> "".
