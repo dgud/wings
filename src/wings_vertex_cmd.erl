@@ -156,11 +156,17 @@ edge_ratio(V, #we{vp=Vtab}) ->
 	_ -> 0.25
     end.
 
+ex_connect([_,Face|T], More, #we{mirror=Face}=We) ->
+    ex_connect(T, More, We);
 ex_connect([Va,Face|[Vb|_]=T], More, We0) ->
     {We,_} = wings_vertex:force_connect(Va, Vb, Face, We0),
     ex_connect(T, More, We);
+ex_connect([_,Face], _, #we{mirror=Face}=We) ->
+    We;
 ex_connect([Va,Face], [Vb|_], We0) ->
     {We,_} = wings_vertex:force_connect(Va, Vb, Face, We0),
+    We;
+ex_connect([], _, We) ->
     We.
 
 %%%

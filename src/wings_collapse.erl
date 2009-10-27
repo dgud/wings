@@ -388,12 +388,11 @@ collapse_vertex_1(Vremove, We0, Sel0) ->
 	    {We,Sel}
     end.
 
-collapse_connect([{Va,EdgeA},{Vb,EdgeB}], #we{mirror=MirrorFace}=We) ->
+collapse_connect([{Va,EdgeA},{Vb,EdgeB}], We) ->
     Pair = [Va,Vb],
     FaceVs = wings_vertex:per_face(Pair, We),
     Edges = {EdgeA,EdgeB},
-    foldl(fun({Face,_}, Acc) when Face =:= MirrorFace -> Acc;
-	     ({Face,Vs}, Acc) -> collapse_connect_1(Face, Vs, Edges, Acc)
+    foldl(fun({Face,Vs}, Acc) -> collapse_connect_1(Face, Vs, Edges, Acc)
 	  end, We, FaceVs).
 
 collapse_connect_1(Face, [Va,Vb], {EdgeA,EdgeB}, #we{es=Etab}=We0) ->
