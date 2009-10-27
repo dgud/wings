@@ -260,8 +260,9 @@ dissolve(St0) ->
     {St,Sel} = wings_sel:mapfold(fun dissolve_sel/3, [], St0),
     wings_sel:set(Sel, St).
 
-dissolve_sel(Faces, #we{id=Id,fs=Ftab}=We0, Acc) ->
-    F1 = gb_sets:size(Faces),
+dissolve_sel(Faces, #we{id=Id,fs=Ftab,holes=Holes,mirror=M}=We0, Acc) ->
+    Mirror = if M =:= none -> 0; true -> 1 end,
+    F1 = gb_sets:size(Faces) + length(Holes) + Mirror,
     F2 = gb_trees:size(Ftab),
     case F1 =:= F2 of
       false ->
@@ -280,8 +281,9 @@ clean_dissolve(St0) ->
     {St,Sel} = wings_sel:mapfold(fun clean_dissolve_sel/3, [], St0),
     wings_sel:set(Sel, St).
 
-clean_dissolve_sel(Faces, #we{id=Id,fs=Ftab}=We0, Acc) ->
-    F1 = gb_sets:size(Faces),
+clean_dissolve_sel(Faces, #we{id=Id,fs=Ftab,holes=Holes,mirror=M}=We0, Acc) ->
+    Mirror = if M =:= none -> 0; true -> 1 end,
+    F1 = gb_sets:size(Faces) + length(Holes) + Mirror,
     F2 = gb_trees:size(Ftab),
     case F1 =:= F2 of
       false ->
