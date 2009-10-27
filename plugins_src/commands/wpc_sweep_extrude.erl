@@ -133,36 +133,18 @@ selection_ask([plane|Rest],Ask) ->
     Desc = ?__(1,"Choosing an axis perpendicular to the extrusion normal, will constrain all movement to its radial plane. Otherwise, it acts as an off axis component."),
     selection_ask(Rest,[{axis,Desc}|Ask]).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%% Extrude %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-sweep_extrude(Type, Axis,St) ->                                               %%
-    sweep_setup(Type, Axis,extrude_faces(St)).                                %%
-                                                                              %%
-extrude_faces(St) ->                                                          %%
-    wings_sel:map(fun(Faces, We) ->                                           %%
-        wings_extrude_face:faces(Faces, We)                                   %%
-    end, St).                                                                 %%
-                                                                              %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-sweep_region(Type, Axis, St0) ->                                              %%
-    St = wings_sel:map(fun wings_face_cmd:extrude_region/2, St0),             %%
-    sweep_setup(Type, Axis, St).                                              %%
-                                                                              %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%% Extract (from wings_face_cmd.erl) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-sweep_extract(Type,Axis, St0) ->                                              %%
-    St1 = wings_sel:fold(                                                     %%
-        fun(Faces, We0, #st{sel=Sel0,onext=Oid}=S0) ->                        %%
-            We = wings_dissolve:complement(Faces, We0),                       %%
-            S = wings_shape:insert(We, extract, S0),                          %%
-            Sel = [{Oid,Faces}|Sel0],                                         %%
-            S#st{sel=Sel}                                                     %%
-        end, St0#st{sel=[]}, St0),                                            %%
-    Sel = St1#st.sel,                                                         %%
-    St = wings_sel:set(Sel, St1),                                             %%
-    sweep_region(Type, Axis, St).                                             %%
-                                                                              %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Start by Extruding Selection
+sweep_extrude(Type, Axis, St0) ->
+    St = wings_face_cmd:extrude_faces(St0),
+    sweep_setup(Type, Axis, St).
+
+sweep_region(Type, Axis, St0) ->
+    St = wings_face_cmd:extrude_region(St0),
+    sweep_setup(Type, Axis, St).
+
+sweep_extract(Type, Axis, St0) ->
+    St = wings_face_cmd:extract_region(St0),
+    sweep_region(Type, Axis, St).
 
 %%%% Setup
 sweep_setup(Type,Axis,St) ->

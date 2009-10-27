@@ -69,13 +69,15 @@ command(_,_) ->
     next.
 
 %%%% Setup
-contour_setup(inset_faces,St) ->
-    inset_faces_setup(inset_faces,wings_face_cmd:extrude_faces(St));
+%% Start by Extruding the selection
+contour_setup(inset_faces,St0) ->
+    St = wings_face_cmd:extrude_faces(St0),
+    inset_faces_setup(inset_faces, St);
 contour_setup(inset_region, St0) ->
-    St = wings_sel:map(fun wings_face_cmd:extrude_region/2, St0),
+    St = wings_face_cmd:extrude_region(St0),
     inset_regions_setup(inset_region, St);
 contour_setup(offset_region, St0) ->
-    St = wings_sel:map(fun wings_face_cmd:extrude_region/2, St0),
+    St = wings_face_cmd:extrude_region(St0),
     offset_regions_setup(offset_region, St).
 
 offset_regions_setup(offset_region, St) ->

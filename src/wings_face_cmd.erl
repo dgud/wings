@@ -18,7 +18,9 @@
 
 %% Useful functions.
 -export([mirror_faces/2,set_color/2,force_bridge/5,
-	 extrude_faces/1,extrude_region/2]).
+	 extrude_faces/1,extrude_region/1,extract_region/1]).
+	 % not currently used outside this module (but could be)
+	 % extract_faces/1, shell_extrude/1
 
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1,sort/1,member/2]).
@@ -176,7 +178,7 @@ command(remove_hole, St) ->
 extrude({faces, Axis}, St) ->
     wings_move:setup(Axis, extrude_faces(St));
 extrude({region, Axis}, St0) ->
-    St = wings_sel:map(fun extrude_region/2, St0),
+    St = extrude_region(St0),
     wings_move:setup(Axis, St).
 
 %%% Extrude Faces
@@ -186,6 +188,9 @@ extrude_faces(St) ->
 		  end, St).
 
 %%% Extrude the selected regions.
+extrude_region(St) ->
+    wings_sel:map(fun extrude_region/2, St).
+
 extrude_region(Faces0, We0) ->
     %% We KNOW that a gb_set with fewer elements sorts before
     %% a gb_set with more elements.
@@ -227,27 +232,37 @@ extrude_region_vmirror(OldWe, #we{mirror=Face0}=We0) ->
 
 %%% Shell Extrude
 shell_extrude(Axis, St0) ->
+    St = shell_extrude(St0),
+    wings_move:setup(Axis, St).
+
+shell_extrude(St0) ->
     #st{sel=Sel0}=St1 = extract_1(St0, St0),
     #st{sel=Sel}=St2 = recreate_face_topology(St1#st{sel=sort(Sel0)}),
-    St = wings_sel:set(Sel, St2),
-    wings_move:setup(Axis, St).
+    wings_sel:set(Sel, St2).
 
 %%%
 %%% The Extract command.
 %%%
 
 extract({region, Axis}, St0) ->
-    #st{sel=Sel}=St1 = extract_1(St0, St0),
-    St = wings_sel:set(Sel, St1),
+    St = extract_region(St0),
     wings_move:setup(Axis, St);
 
 extract({faces, Axis}, St0) ->
+    St = extract_faces(St0),
+    wings_move:setup(Axis, St).
+
+%% extract_faces/1 and extract_region/1 takes St0 and returns NewSt.
+extract_faces(St0) ->
     St1 = wings_sel:map(fun(Faces, We) ->
 				wings_extrude_face:faces(Faces, We)
 			end, St0),
     #st{sel=Sel}=St2 = extract_1(St1, St0),
-    St = wings_sel:set(Sel, St2),
-    wings_move:setup(Axis, St).
+    wings_sel:set(Sel, St2).
+
+extract_region(St0) ->
+    #st{sel=Sel}=St = extract_1(St0, St0),
+    wings_sel:set(Sel, St).
 
 extract_1(St, St0) ->
     wings_sel:fold(
