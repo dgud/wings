@@ -12,7 +12,7 @@
 %%
 
 -module(wings_shape).
--export([new/3,insert/3,replace/3,window/1,window/4]).
+-export([new/3,insert/3,replace/3,window/1,window/5]).
 -export([all_selectable/1]).
 -export([show_all/1,unlock_all/1,permissions/3]).
 
@@ -163,11 +163,11 @@ window(St) ->
 	    W = 28*?CHAR_WIDTH,
 	    Pos = {DeskW-5,DeskY+55},
 	    Size = {W,DeskH div 2},
-	    window(Name, Pos, Size, St),
+	    window(Name, Pos, Size, [], St),
 	    keep
     end.
 
-window({_,Client}=Name, Pos, Size, St) ->
+window({_,Client}=Name, Pos, Size, Ps, St) ->
     Title = title(Client),
     Ost = #ost{first=0,lh=18,active=-1},
     Current = {current_state,St},
@@ -175,7 +175,7 @@ window({_,Client}=Name, Pos, Size, St) ->
     Props = [{display_lists,geom_display_lists}],
     wings_wm:toplevel(Name, Title, Pos, Size,
 		      [{sizeable,?PANE_COLOR},closable,vscroller,
-		       {anchor,ne},{properties,Props}], Op).
+		       {anchor,ne},{properties,Props}|Ps], Op).
 
 title(geom) ->
     ?STR(title,1,"Geometry Graph");

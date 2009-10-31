@@ -19,7 +19,7 @@
 	 setopts/1,getopts/1]).
 
 %% Wings window
--export([window/0,window/1,window/3,popup_window/0]).
+-export([window/0,window/1,window/4,popup_window/0]).
 
 -define(SERVER_NAME, ?MODULE).
 -define(WIN_NAME, console).
@@ -125,8 +125,8 @@ window() ->
 window(Name) ->
     do_window(Name).
 
-window(Name, Pos, Size) ->
-    do_window(Name, Pos, Size).
+window(Name, Pos, Size, Ps) ->
+    do_window(Name, Pos, Size, Ps).
 
 popup_window() ->
     case wings_wm:is_window(?WIN_NAME) of
@@ -182,14 +182,14 @@ do_window(Name) ->
     H = min(1 + (Height0*Lh) + 4, H1-Th),
     Size = {W,H},
     PosUR = {X1+W+Sw,H1-(H+Th)},
-    do_window(Name, Font, CwLh, PosUR, Size).
+    do_window(Name, Font, CwLh, PosUR, Size, []).
 
-do_window(Name, Pos, Size) ->
+do_window(Name, Pos, Size, Ps) ->
     Font = wings_pref:get_value(new_console_font),
     CwLh = wings_io:use_font(Font, fun() -> {?CHAR_WIDTH,?LINE_HEIGHT} end),
-    do_window(Name, Font, CwLh, Pos, Size).
+    do_window(Name, Font, CwLh, Pos, Size, Ps).
 
-do_window(Name, Font, {Cw,Lh}, {X,Y}, {W,H}=Size) -> % {X,Y} is upper right
+do_window(Name, Font, {Cw,Lh}, {X,Y}, {W,H}=Size, Ps) -> % {X,Y} is upper right
     Width = (-3+W-3) div Cw,
     Height = (-1+H-4) div Lh,
     setopts([{width,Width},{height,Height},
@@ -203,7 +203,7 @@ do_window(Name, Font, {Cw,Lh}, {X,Y}, {W,H}=Size) -> % {X,Y} is upper right
     Props = [{font,Font}],
     wings_wm:toplevel(Name, Title, {X,Y,highest}, Size,
 		      [closable,vscroller,{anchor,ne},
-		       {properties,Props}],
+		       {properties,Props}|Ps],
 		      Op),
     wings_wm:dirty().
 
