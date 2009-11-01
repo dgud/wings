@@ -288,8 +288,24 @@ setup_fbo_2({color, Options}, {W,H}, Count) ->
     Format = proplists:get_value(format, Options, ?GL_RGBA),
     Type = proplists:get_value(type, Options, ?GL_UNSIGNED_BYTE),
     gl:texImage2D(?GL_TEXTURE_2D, 0, Internal, W, H, 0, Format, Type, 0),
+
     MinF = proplists:get_value(min, Options, ?GL_LINEAR),
-    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_MIN_FILTER,MinF),
+    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_MIN_FILTER, MinF),
+    MagF = proplists:get_value(mag, Options, ?GL_LINEAR),
+    gl:texParameterf(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, MagF),
+
+    WS = proplists:get_value(wrap_s, Options, ?GL_REPEAT),
+    gl:texParameterf(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, WS),
+    WT = proplists:get_value(wrap_t, Options, ?GL_REPEAT),
+    gl:texParameterf(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, WT),
+
+    GEN_MM = proplists:get_value(gen_mipmap, Options, ?GL_FALSE),
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, GEN_MM),
+    if GEN_MM =:= ?GL_TRUE ->
+	    gl:generateMipmapEXT(?GL_TEXTURE_2D);
+       true -> ok
+    end,
+
     gl:?framebufferTexture2D(?GL_FRAMEBUFFER_EXT,
 			     ?GL_COLOR_ATTACHMENT0_EXT + Count,
 			     ?GL_TEXTURE_2D, Col, 0),
