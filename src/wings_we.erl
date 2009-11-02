@@ -319,7 +319,8 @@ mirror_projection(#we{mirror=Face}=We) ->
 %%  Make face Face the virtual mirror face for object We0.
 %%
 create_mirror(Face, We0) when Face >= 0 ->
-    We = hide_faces([Face], We0),
+    We1 = hide_faces([Face], We0),
+    We = break_mirror(We1),
     We#we{mirror=-Face-1}.
 
 %% freeze_mirror(We0) -> We
