@@ -668,6 +668,7 @@ circ_mode() ->
       ({key,$1},{false,_normal,_dragmode})        -> {true,_normal,_dragmode};
       ({key,$2},{_flatten,normal,_dragmode})      -> {_flatten,reverse,_dragmode};
       ({key,$2},{_flatten,reverse,_dragmode})     -> {_flatten,normal,_dragmode};
+      ({key,$2},{_flatten,none,_dragmode})     -> {_flatten,none,_dragmode};
       ({key,$3},{_flatten,_normal,relative}) -> {_flatten,_normal,absolute};
       ({key,$3},{_flatten,_normal,absolute}) -> {_flatten,_normal,relative};
       (units,State) -> circularise_units(State);
