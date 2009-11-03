@@ -379,7 +379,9 @@ intrude(Faces0, We0, SelAcc) ->
     end.
 
 restore_mirror(We, #we{mirror=none}) -> We;
-restore_mirror(We, #we{mirror=Face}) -> We#we{mirror=Face}.
+restore_mirror(We, #we{fs=Ftab, mirror=Mir}) ->
+    Face = -(Mir + 1),
+    wings_we:create_mirror(Face, We).
 
 intrude_bridge([{face,FaceA},{vertex,Va}|FsA],
 	       [{face,FaceB},{vertex,Vb}|FsB], We0) ->
