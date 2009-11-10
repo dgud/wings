@@ -414,7 +414,7 @@ do_hotkey(Ev, #st{sel=[]}=St0) ->
         {add,_,St} ->
             case wings_hotkey:event(Ev, St) of
             next -> next;
-            {view,highlight_aim} -> {{view,aim},set_temp_sel(St0, St)};
+            {view,highlight_aim} -> highlight_aim_setup(St0);
             Cmd ->
                 case highlight_sel_style(Cmd) of
                 none -> {Cmd,St0};
@@ -1663,10 +1663,10 @@ highlight_aim_setup(St0) ->
     HL1 = wings_pref:get_value(highlight_aim_at_selected),
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_pick:do_pick(X, Y, St0) of
-	{add,_,#st{selmode=Selmode,sel=Sel}} when HL0 =:= true ->
-	    {{view,{highlight_aim,{add,{Selmode,Sel}}}},St0};
-	{delete,_,#st{selmode=Selmode,sel=Sel}} when HL1 =:= true ->
-	    {{view,{highlight_aim,{delete,{Selmode,Sel}}}},St0};
+	{add,MM,#st{selmode=Selmode,sel=Sel}} when HL0 =:= true ->
+	    {{view,{highlight_aim,{add,{Selmode,Sel,MM}}}},St0};
+	{delete,MM,#st{selmode=Selmode,sel=Sel}} when HL1 =:= true ->
+	    {{view,{highlight_aim,{delete,{Selmode,Sel,MM}}}},St0};
 	_Other ->
 	    {{view,aim},St0}
     end.

@@ -342,8 +342,8 @@ command(show_edges, St) ->
 	    wings_dl:map(fun(D, _) -> D#dlo{hard=none} end, []),
 	    St
     end;
-command({highlight_aim,{Type,{Selmode,Sel}}}, St) ->
-    highlight_aim(Type, Selmode, Sel, St),
+command({highlight_aim,{Type,{Selmode,Sel,MM}}}, St) ->
+    highlight_aim(Type, Selmode, Sel, MM, St),
     St;
 command(highlight_aim, St) ->
     aim(St),
@@ -964,18 +964,18 @@ view_matrix(#view{origin=Origin,distance=Dist,azimuth=Az,elevation=El,
     e3d_mat:mul(M2, e3d_mat:translate(-PanX, -PanY, Dist)).
 
 %%%% Highlight Aim is called via event handler (see wings:do_hotkey/2)
-highlight_aim(add, Selmode, Sel0, #st{selmode=body,sel=Sel1}=St) ->
+highlight_aim(add, Selmode, Sel0, MM, #st{selmode=body,sel=Sel1}=St) ->
     Sel = lists:subtract(Sel0,Sel1),
-    aim(St#st{selmode=Selmode,sel=Sel});
-highlight_aim(delete, Selmode, Sel0, #st{selmode=body,sel=Sel1}=St) ->
+    aim(St#st{selmode=Selmode,sel=Sel},MM);
+highlight_aim(delete, Selmode, Sel0, MM, #st{selmode=body,sel=Sel1}=St) ->
     Sel = lists:subtract(Sel1,Sel0),
-    aim(St#st{selmode=Selmode,sel=Sel});
-highlight_aim(add, Selmode, Sel0, #st{sel=Sel1}=St) ->
+    aim(St#st{selmode=Selmode,sel=Sel},MM);
+highlight_aim(add, Selmode, Sel0, MM, #st{sel=Sel1}=St) ->
     Sel = highlighted_element(Sel0, Sel1),
-    aim(St#st{selmode=Selmode,sel=Sel});
-highlight_aim(delete, Selmode, Sel0, #st{sel=Sel1}=St) ->
+    aim(St#st{selmode=Selmode,sel=Sel},MM);
+highlight_aim(delete, Selmode, Sel0, MM, #st{sel=Sel1}=St) ->
     Sel = highlighted_element(Sel1, Sel0),
-    aim(St#st{selmode=Selmode,sel=Sel}).
+    aim(St#st{selmode=Selmode,sel=Sel},MM).
 
 highlighted_element([{Id,Sel0}], [{Id,Sel1}]) ->
     [{Id,gb_sets:subtract(Sel0,Sel1)}];
@@ -1004,6 +1004,36 @@ aim(St) ->
 	       _Other -> Dist0
 	   end,
     set_current(View#view{origin=Origin,distance=Dist,pan_x=0.0,pan_y=0.0}).
+
+aim(#st{sel=[]}, _) ->
+    View = current(),
+    set_current(View#view{origin=e3d_vec:zero()});
+aim(St, {_, _, original}) ->
+    aim(St);
+aim(#st{shapes=Shapes}=St, {Id, _Elem, mirror}) ->
+    We = gb_trees:get(Id, Shapes),
+    #we{mirror=Face} = We,
+    MirNormal = wings_face:normal(Face,We),
+    Mirror = wings_face:center(Face,We),
+
+    Original = wings_sel:center(St),
+    Distance = dist_along_vector(Mirror,Original,MirNormal),
+    Origin0 = e3d_vec:add_prod(Original, MirNormal, Distance * 2),
+    Origin = e3d_vec:neg(Origin0),
+
+    #view{distance=Dist0} = View = current(),
+    Dist = case e3d_vec:dist(eye_point(), Origin0) of
+	       D when D < Dist0 -> D;
+	       _Other -> Dist0
+	   end,
+    set_current(View#view{origin=Origin,distance=Dist,pan_x=0.0,pan_y=0.0}).
+
+dist_along_vector(PosA,PosB,Vector) ->
+    %% Return Distance between PosA and PosB along Vector
+    {Xa,Ya,Za} = PosA,
+    {Xb,Yb,Zb} = PosB,
+    {Vx,Vy,Vz} = e3d_vec:norm(Vector),
+    Vx*(Xa-Xb)+Vy*(Ya-Yb)+Vz*(Za-Zb).
 
 frame(#st{sel=[],shapes=Shs}) ->
     BB = foldl(fun(#we{perm=P,vp=Vtab}=We, BB) when ?IS_VISIBLE(P) ->

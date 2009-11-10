@@ -45,6 +45,7 @@ init() ->
     wings_pref:set_default(wh_scroll_info,true),
     wings_pref:set_default(wh_pan_spd, 50),
     wings_pref:set_default(wh_rot_spd, 7.50),
+    wings_pref:set_default(highlight_zoom_aim, false),
     case {wings_pref:get_value(num_buttons),wings_pref:get_value(camera_mode)} of
 	{3,_} -> ok;
 	{_,nendo} -> ok;
@@ -65,6 +66,7 @@ prefs() ->
     ArrowKeysPan = wings_pref:get_value(pan_using_arrow_keys,true),
     WhPanSpd = wings_pref:get_value(wh_pan_spd, 50),
     WhRotate = wings_pref:get_value(wh_rot_spd, 7.5),
+    ZoomAim = wings_pref:get_value(highlight_zoom_aim),
 
     Hook = fun (is_disabled, {_Var,_I,Sto}) ->
             not gb_trees:get(wheel_zooms, Sto);
@@ -95,7 +97,8 @@ prefs() ->
        [{title,?__(16,"Arrow Key Pan Speed")}]}]},
     {vframe,
       [{vframe,
-       [{?__(4,"Wheel Zooms"),ZoomFlag0,[{key,wheel_zooms}]},
+       [{hframe,[{?__(4,"Wheel Zooms"),ZoomFlag0,[{key,wheel_zooms}]},
+                 {?__(20,"Zooming in aims Camera"),ZoomAim,[{key,highlight_zoom_aim}]}]},
     {vradio,[{?__(5,"Forwards Zooms In"),false},
              {?__(6,"Forwards Zooms Out"),true}],
      InvertZW,
@@ -199,7 +202,7 @@ scroll_help() ->
 event(Ev, St=#st{}) -> 
     event(Ev,St,none).
 %% Scroll wheel camera events
-event(#mousebutton{button=B}=Ev, _St, _Redraw) when B==4; B==5 ->
+event(#mousebutton{button=B}=Ev, _St, _Redraw) when B=:=4; B=:=5 ->
     generic_event(Ev,_St,_Redraw);
 % Camera mode specific events
 event(Ev, St, Redraw) ->
@@ -469,7 +472,7 @@ maya(#keyboard{sym=Sym}, _Redraw) ->
 maya(_, _) -> next.
 
 maya_event(#keyboard{sym=Alt,state=?SDL_RELEASED},
-	   Camera, _Redraw) when Alt == ?SDLK_LALT; Alt == ?SDLK_RALT ->
+	   Camera, _Redraw) when Alt =:= ?SDLK_LALT; Alt =:= ?SDLK_RALT ->
     maya_stop_camera(Camera);
 maya_event(#mousebutton{button=B,state=?SDL_RELEASED}, Camera, _)
   when B < 4 ->
@@ -484,13 +487,13 @@ maya_event(#mousebutton{button=B,state=?SDL_RELEASED}, Camera, _)
 maya_event(#mousemotion{x=X,y=Y,state=Buttons}, Camera0, Redraw) ->
     {Dx,Dy,Camera} = camera_mouse_range(X, Y, Camera0),
     if
-	Buttons band 4 == 4 ->			%RMB
+	Buttons band 4 =:= 4 ->			%RMB
 	    zoom(-Dx);
-	Buttons band 3 == 3 ->			%LMB+MMB
+	Buttons band 3 =:= 3 ->			%LMB+MMB
 	    zoom(-Dx);
-	Buttons band 1 == 1 ->			%LMB
+	Buttons band 1 =:= 1 ->			%LMB
 	    rotate(Dx, Dy);
-	Buttons band 2 == 2 ->			%MMB
+	Buttons band 2 =:= 2 ->			%MMB
 	    pan(Dx, Dy);
 	true -> ok
     end,
@@ -691,14 +694,52 @@ generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redr
 generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
   when Mod band ?ALT_BITS =/= 0 ->
   	zoom_step_alt(-1);
+generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, #st{}=St, _Redraw) ->
+    case wings_pref:get_value(inverted_wheel_zoom) of
+      true -> zoom_step(-1);
+      false ->
+        aim_zoom(-1, St)
+    end;
 generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, _Camera, _Redraw) ->
     zoom_step(-1);
 generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
   when Mod band ?ALT_BITS =/= 0 ->
   	zoom_step_alt(1);
+generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, #st{}=St, _Redraw) ->
+    case wings_pref:get_value(inverted_wheel_zoom) of
+      false -> zoom_step(1);
+      true ->
+        aim_zoom(1, St)
+    end;
 generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _Camera, _Redraw) ->
     zoom_step(1);
+
 generic_event(_, _, _) -> keep.
+
+aim_zoom(Dir, St0) ->
+    case wings_pref:get_value(highlight_zoom_aim) of
+      true ->
+        #view{origin=OriginB}=Before = wings_view:current(),
+        {{_,Cmd},_} = wings:highlight_aim_setup(St0),
+        wings_view:command(Cmd,St0),
+        #view{origin=OriginA} = wings_view:current(),
+        O = e3d_vec:zero(),
+        if OriginA =:= O, Cmd =:= aim ->
+              wings_view:set_current(Before),
+              zoom_step(Dir);
+            OriginA =:= OriginB ->
+              zoom_step(Dir);
+            true ->
+              Client = wings_wm:this(),
+              {X0,Y0} = wings_wm:win_size(Client),
+              {X,Y} = wings_wm:local2global(X0 div 2, Y0 div 2),
+              wings_io:warp(X,Y),
+              zoom_step(Dir)
+        end;
+      false ->
+        zoom_step(Dir)
+    end.
+
 
 rotate(Dx, Dy) ->
     Speed = wings_pref:get_value(cam_rotation_speed,25)/25,
@@ -844,7 +885,7 @@ camera_mouse_range(X0, Y0, #camera{x=OX,y=OY, xt=Xt0, yt=Yt0}=Camera) ->
     {XD,YD} = wings_pref:lowpass(XD0 + Xt0, YD0 + Yt0),
 
     if
-	XD0 == 0, YD0 == 0 ->
+	XD0 =:= 0, YD0 =:= 0 ->
 	    {0.0,0.0,Camera#camera{xt=0,yt=0}};
 	true ->
 	    wings_io:warp(OX, OY),
