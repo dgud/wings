@@ -6,13 +6,15 @@
 %%% @end
 %%% Created : 25 Aug 2009 by Dan Gudmundsson <dan.gudmundsson@ericsson.com>
 %%%-------------------------------------------------------------------
--module(test).
+-module(kd3).
 
 -compile(export_all).
 
 -define(TC(Cmd), tc(fun() -> Cmd end, ?MODULE, ?LINE)).
 
--define(SAMPLE, 10).
+-define(SAMPLE, 50).
+
+-define(POINT, {0.6,0.72,0.17}).
 
 go() ->
     start().
@@ -23,7 +25,7 @@ start() ->
 		    {As*math:cos(B),As*math:sin(B),math:cos(A)}
 	    end,
     Vec = [math:pi()*I/?SAMPLE || I <- lists:seq(0, ?SAMPLE-1)],
-    L0 = lists:usort([Coord(A,B) || A <- Vec, B <- Vec]),
+    L0 = lists:sort([Coord(A,B) || A <- Vec, B <- Vec]),
     {L,_} = lists:mapfoldl(fun(A,Acc) -> {{A,Acc},Acc+1} end,0, L0),
     io:format("Testdata ~p ~n", [length(L)]),
 %%     L  = [{e3d_vec:norm(P), Id} || {P,Id} <- L0],
@@ -43,55 +45,58 @@ start() ->
     w(kdtree:nearest({0,0,1},K), e3d_kd3:nearest({0,0,1}, E)),
     w(kdtree:nearest({0.2,0.77,0.60},K), e3d_kd3:nearest({0.2,0.77,0.60}, E)),
 
-    ?TC(check_nearest(kdtree,  K, L)),
+    %%?TC(check_nearest(kdtree,  K, L)),
     ?TC(check_nearest(e3d_kd3, E, L)),
+    io:format("~n"),
+    %%?TC(check_delete(kdtree,  K, L)),
+    ?TC(check_delete(e3d_kd3, E, L)),
+    io:format("~n"),
+    %%?TC(check_delete2(kdtree,  K, L)),
+    ?TC(check_delete2(e3d_kd3, E, L)),
+
     io:format("~n"),
        
     %%     io:format("~p~n~p~n",[
     %% 			  [Id || {_,Id} <- kdtree:to_list(K)],
     %% 			  [Id || {_,Id} <- e3d_kd3:to_list(E)]]),			  
     
-    Dist = [{e3d_vec:dist_sqr({0.5,1.0,0.0}, P),O} || O = {P,_} <- L],
-    SL   = [O || {_, O} <- lists:sort(Dist)],
+    SList = ?TC(lists:sort([{e3d_vec:dist_sqr(?POINT, P),O} || O = {P,_} <- L])),
+    SL   = [O || {_, O} <- SList],
 
     %% [ io:format("~p ~p ~n", [D,A]) || {D,{_,A}} <- lists:sort(Dist) ],
-    %check_take_nearest(kdtree,  K, SL),
+    %% check_take_nearest(kdtree,  K, SL),
     %?TC(check_take_nearest(kdtree,  K, SL)), 
-    ?TC(check_take_nearest(e3d_kd3, E, SL)), 
+    ?TC(check_take_nearest(e3d_kd3, E, SL, length(SL))), 
     io:format("~n"),
-    ?TC(check_take_nearest2(kdtree,  K, SL)), 
+    %?TC(check_take_nearest2(kdtree,  K, SL)), 
     ?TC(check_take_nearest2(e3d_kd3, E, SL)), 
-    io:format("~n"),
-    ?TC(check_delete(kdtree,  K, L)),
-    ?TC(check_delete(e3d_kd3, E, L)),
-    io:format("~n"),
-    ?TC(check_delete2(kdtree,  K, L)),
-    ?TC(check_delete2(e3d_kd3, E, L)),
-
     ok.
 
 check_nearest(Mod, T, L) ->
-    lists:foreach(fun({P, Id}) ->
-			  {P, Id} = Mod:nearest(P, T)
+    lists:foreach(fun({P, _Id}) ->
+			  {P, _MaybeOtherId} = Mod:nearest(P, T)
 		  end, L).
 
-check_take_nearest(Mod, T, [Obj|Res]) ->
-    case Mod:take_nearest({0.0,0.8,0.0}, T) of
-	{Obj,Rest} ->
-	    %% io:format("~p ",[element(2, Obj)]),
-	    check_take_nearest(Mod,Rest,Res);
+%% check_take_nearest(Mod, T, [Obj={P,1011}|Res], Len) ->
+%%     io:format("Size ~p~n", [?TC(e3d_kd3:size(T))]),
+%%     Node = ?TC(Mod:nearest(?POINT, T)),
+%%     ?TC(Mod:delete_object(Node, T));  %% DEBUG
+check_take_nearest(Mod, T, [Obj={P,_Obj}|Res], Len) ->
+    case (Mod:take_nearest(?POINT, T)) of
+	{{P,_},Rest} ->
+	    check_take_nearest(Mod,Rest,Res, Len-1);
 	{Other,_} ->
-	    io:format("~p = ~p ~n",[Obj,Other])	    
+	    io:format("~p = ~p ~n",[Obj,Other])
     end;
-check_take_nearest(Mod, T, []) ->
-    undefined = Mod:take_nearest({0.0,0.0,0.0}, T).    
+check_take_nearest(Mod, T, [], 0) ->
+    undefined = Mod:take_nearest({0.0,0.0,0.0}, T).
 
-check_take_nearest2(Mod, T, [{P,Id}|Res]) ->
+check_take_nearest2(Mod, T, [{P,_Id}|Res]) ->
     case Mod:take_nearest(P, T) of
-	{{P,Id},Rest} ->
+	{{P,_},Rest} ->
 	    check_take_nearest2(Mod,Rest,Res);
 	{Other,_} ->
-	    io:format("~p = ~p ~n",[{P,Id},Other])	    
+	    io:format("~p = ~p ~n",[{P,_Id},Other])	    
     end;
 check_take_nearest2(Mod, T, []) ->
     undefined = Mod:take_nearest({0.0,0.0,0.0}, T).    
