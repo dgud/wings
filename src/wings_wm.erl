@@ -1105,7 +1105,7 @@ message_redraw(Msg, Right) ->
 	    if 
 		MsgW+RightW < W - RMarg ->
 		    Pos = W - RightW - RMarg,
-		    wings_io:set_color(wings_pref:get_value(menu_color)),
+		    wings_io:set_color(e3d_vec:mul(wings_pref:get_value(info_line_bg),0.9)),
 		    gl:recti(Pos-Cw, 1-wings_text:height(),
 			     Pos+RightW+Cw, 3),
 		    wings_io:set_color(wings_pref:get_value(info_line_text)),
