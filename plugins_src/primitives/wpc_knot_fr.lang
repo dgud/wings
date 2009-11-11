@@ -3,6 +3,19 @@
  [
   {torus_menu,
    [
-    {1,"Noeud de Tore"}
+    {1,"Nœud de tore"}
+   ]}
+ ]}.
+%% [wpc_knot,torus_menu] is not used
+
+%%
+%% The following strings have no translation.
+%%
+
+{wpc_knot,
+ [
+  {knot_menu,
+   [
+    {1,"Noeud de tore"}
    ]}
  ]}.

@@ -4,24 +4,25 @@
   {draw_menu,
    [
     {1,"Souder"},
-    {2,"Souderles points selectionnes les un aux autres (partage de l'arete commune)"}
+    {2,"Souder le sommet sélectionné à un autre (qui partage une arête commune)"}
    ]},
   {weld,
    [
-    {1,"Impossible de souder un plan en miroir"},
+    {1,"Vous ne pouvez pas souder au plan en miroir"},
     {2,"L'objet doit avoir au moins 4 sommets"},
     {3,"Vous pouvez souder seulement un sommet "}
    ]},
   {weld_check_selection,
    [
-    {1,"Vous ne pouvez pas souder le sommet � lui-m�me "},
-    {2,"Les sommets que vous voulez la soudure doivent partager l'arete"},
-    {3,"Vous pouvez souder seulement un point "},
-    {4,"Rien de selectionne"},
-    {5,"Vous pouvez souder seulement dans le meme objet "}
+    {1,"Vous ne pouvez pas souder un sommet à lui-même"},
+    {2,"Les sommets que vous voulez soudre doivent partager une arête"},
+    {3,"Vous pouvez souder à seulement un endroit"},
+    {4,"Rien n'est sélectionné"},
+    {5,"Vous pouvez souder seulement au sein du même objet"},
+    {6,"Souder laisserait un étranglement"}
    ]},
   {weld_select,
    [
-    {1,"Choisir pour l'op�ration de soudure le sommet cible   (les deux points doivent partager une arete commune ) "}
+    {1,"Choisir le sommet cible pour la soudure (les deux sommets doivent partager une arête commune)"}
    ]}
  ]}.

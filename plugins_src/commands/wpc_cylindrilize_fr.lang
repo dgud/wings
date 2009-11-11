@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_cylindrilize,
+ [
+  {axis_menu,
+   [
+    {1,"Gonfle les sommets cylindriquement autour de l'axe central ~s"},
+    {2,"Choisir le centre et le rayon"}
+   ]},
+  {cylindrilize_menu,
+   [
+    {1,"Rendre cylindrique"},
+    {2,"Gonfle les sommets cylindriquement autour XYZ"},
+    {3,"Choisir l'axe central"},
+    {4,"Choisir l'axe central, le centre et le rayon"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Choisir l'axe central"},
+    {2,"Choisir le centre"},
+    {3,"Choisir le rayon"}
+   ]}
+ ]}.

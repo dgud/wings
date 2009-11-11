@@ -3,16 +3,16 @@
  [
   {intersect,
    [
-    {1,"Les aretes selectionnees ne doivent partager aucun points"}
+    {1,"Les arêtes sélectionnées ne doivent partager aucun sommets"}
    ]},
   {intersect_edges,
    [
-    {1,"Ligne et plan sont presque parralleles:\n impossible de trouver une intersection."}
+    {1,"La ligne et le plan sont presque parrallèles :\nimpossible de trouver une intersection."}
    ]},
   {intl_vec,
    [
-    {1,"dernier axe"},
-    {2,"axe par defaut"}
+    {1,"axe précédent"},
+    {2,"axe par défaut"}
    ]},
   {menu_item,
    [
@@ -20,18 +20,18 @@
    ]},
   {standard_plane_fun,
    [
-    {1,"L'intersection de l'arete avec le plan est defini par le"},
-    {2,"L'intersection de l'arete avec le"},
+    {1,"Intersection de l'arête avec le plan défini par"},
+    {2,"Intersection de l'arête avec le"},
     {3,"plan"},
     {4,"Choisir le point sur le plan"}
    ]},
   {submenu,
    [
-    {1,"L'intersection standard du plan"},
-    {2,"Choisir le plan et la reference du point sur le plan"},
+    {1,"Intersection d'un plan standard"},
+    {2,"Choisir le plan et le point de réference sur le plan"},
     {3,"Choisir le plan"},
-    {4,"Choisir l'axe perpendiculaire au plan"},
-    {5,"Choisir le point qui passe a travers le plan"},
-    {6,"Choisir l'axe perpendiculaire au plan (le plan doit passer a travers la base des axes)"}
+    {4,"Choisir un axe perpendiculaire au plan"},
+    {5,"Choisir un point que le plan traversera"},
+    {6,"Choisir un axe perpendiculaire au plan (le plan traversera la base de l'axes)"}
    ]}
  ]}.

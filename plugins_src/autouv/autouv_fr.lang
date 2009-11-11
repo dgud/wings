@@ -3,59 +3,55 @@
  [
   {chart_normal,
    [
-    {1,"Impossible de calculer la carte des normales."}
+    {1,"Impossible de calculer les normales pour le carte."}
    ]},
   {find_axes,
    [
-    {1,"Actuellement le mapping spherique et ou cylindrique est impossible sur ce genre de carte / coupure\nImpossible de calculer lequels des axes vous souhaitez comme X, Y, Z,\nSVP utilisez un depliage ou un mappage de projection."}
+    {1,"Le mappage sphérique ou cylindrique est impossible sur ce genre de carte/coupures.\nImpossible de savoir quels axes vous souhaitez pour X, Y et Z. \nUtilisez le dépliage ou un des mappages de projection."}
    ]},
   {get_face_vspos,
    [
-    {1,"Erreur: La face n'est pas trianngulee ~p avec ~p points"}
+    {1,"Erreur : La face n'est pas trianngulée ~p avec ~p sommets"}
    ]},
   {map_chart,
    [
-    {1,"Une surface fermee ne peut etre mappee. (Chacun se divise en deux ou plusieurs cartes, ou coupe le long de quelques aretes.)"},
-    {2,"Une coupure dans un surface close doit contenir au moins deux aretes."},
-    {3,"Au moins 2 points (par carte) doivent etre selectionnes"},
-    {4,"Erreur:"},
+    {1,"Une surface fermée ne peut pas être mappée. (Diviser en deux cartes ou plus, ou couper le long de quelques arêtes.)"},
+    {2,"Une coupure dans une surface fermée doit comporter au moins deux arêtes."},
+    {3,"Au moins 2 sommets (par carte) doivent etre sélectionnés"},
+    {4,"Erreur :"},
     {5,"Erreur Interne"}
    ]},
   {map_chart_1,
    [
-    {1,"Probleme Numerique, surement une facette avec une aire vide."},
+    {1,"Problème numérique, probablement une mauvaise facette avec une zone vide."},
     {2,"Erreur Interne:"},
     {3,"Erreur"}
    ]},
-  {project_faces,
-   [
-    {1,"Erreur: Facettes non triangulees ~p avec ~p points"}
-   ]},
   {stretch_iter,
    [
-    {1,"iteration"}
+    {1,"itération"}
    ]},
   {stretch_opt,
    [
     {1,"optimisation"},
     {2,"initialisation"},
-    {3,"Apres la somme des etirements (moyenne) ~p"}
+    {3,"Somme suite aux étirements (moyenne) ~p"}
    ]},
   {stretch_setup,
    [
-    {1,"Somme des etirements (le plus mauvais) ~p"},
-    {2,"Somme des etirements (moyenne) ~p"}
+    {1,"Somme des étirements (le plus mauvais) ~p"},
+    {2,"Somme des étirements (moyenne) ~p"}
    ]}
  ]}.
 {auv_seg_ui,
  [
   {mappers,
    [
-    {1,"Depliage"},
-    {2,"Projection de Normale"},
-    {3,"Projection de Camera"},
-    {4,"Map Spheriquue"},
-    {5,"Map Cylindrique"}
+    {1,"Dépliage"},
+    {2,"Projection normale"},
+    {3,"Projection de la caméra"},
+    {4,"Mappage sphériquue"},
+    {5,"Mappage cylindrique"}
    ]},
   {seg_event,
    [
@@ -66,21 +62,21 @@
     {1,"Continuer"},
     {2,"Segmenter par"},
     {3,"Projection"},
-    {4,"Detection des traits (figure)"}
+    {4,"Détection des caractéristiques"}
    ]},
   {seg_init_message,
    [
-    {1,"Selectionner"},
-    {2,"Choisir le Menu"}
+    {1,"Sélectionner"},
+    {2,"Montrer menu"}
    ]},
   {seg_map_charts,
    [
-    {1,"Preparer le Mappage"},
-    {2,"Segmentation"},
-    {3,"Normalisation"},
-    {4,"Decoupage"},
+    {1,"préparation du mappage"},
+    {2,"segmentation"},
+    {3,"normalisation"},
+    {4,"découpage"},
     {5,"Pas de facettes mappables."},
-    {6,"Mappage"}
+    {6,"mappage en cours"}
    ]},
   {seg_map_charts_1,
    [
@@ -88,340 +84,287 @@
    ]},
   {seg_mode_menu,
    [
-    {1,"Marquer les aretes pour les couper"},
-    {2,"Aretes non marquees"},
-    {3,"Selectionner les aretes marquees"},
+    {1,"Marque les arêtes pour coupure"},
+    {2,"Enlever la marque"},
+    {3,"Sélectionner les arêtes marquées"},
     {4,"Ignorer les facettes"},
     {5,"Selectionner"}
    ]}
  ]}.
 {auv_texture,
  [
+  {background,
+   [
+    {1,"Arrière-plan"}
+   ]},
   {draw_options,
    [
-    {1,"Dessiner toutes les aretes"},
-    {2,"Dessiner le bord des aretes"},
-    {3,"Ne pas dessiner les aretes"},
-    {4,"Options de l'arete"},
-    {5,"Utiliser Facette/Point Couleur sur le bord des aretes"},
-    {6,"Largeur de l'arete"},
-    {7,"Mettre a decouvert les options"},
-    {8,"Choisir Couleurs (ou texture)"},
-    {9,"Texture d'arriere Plan (si disponible)"},
-    {10,"Montrer couleur t textures?"},
-    {11,"Format de la texture"},
-    {12,"Retirer les options"}
+    {1,"Taille"},
+    {2,"Rendre"},
+    {3,"Options de dessin"},
+    {4,"Nouvelle passe"},
+    {5,"Supprimer les passes inutilisées"}
+   ]},
+  {options,
+   [
+    {1,"Image"},
+    {2,"Couleur"},
+    {3,"Dessiner toutes les arêtes"},
+    {4,"Dessiner les arêtes du contour"},
+    {5,"Couleur des arêtes :"},
+    {6,"Largeur des arêtes :"},
+    {8,"Utiliser les couleurs des sommets (sur les arêtes du contour)"}
+   ]},
+  {render_passes,
+   [
+    {1,"Arrière-plan"},
+    {2,"Options"},
+    {3,"Options"}
+   ]},
+  {renderers,
+   [
+    {1,"Aucun"},
+    {2,"Dessiner les arêtes"},
+    {3,"Dessiner les facettes"}
    ]}
  ]}.
 {wpc_autouv,
  [
   {align_error,
    [
-    {1,"Selectionner deux points ou une arete"}
+    {1,"Selectionner deux sommets ou une arête"}
    ]},
   {auv_menu,
    [
     {1,"Mappage UV"},
-    {2,"Generer une uv Map ou une texture"},
-    {3,"Forcer le mode de segmentation"},
-    {4,"Direct"},
-    {5,"Ouvrir directement une fenetre UV si la selection contient deja une carte UV"},
-    {6,"Forcer un segment"},
-    {7,"Detruire les anciennes coordonnees UV et recommencer avec une segmentation"}
+    {2,"Générer un mappage UV ou une texture"},
+    {3,"Forcer le mode de segmentation (supprime l'ancienne segmentation)"},
+    {25,"Re-segmenter les objets"}
    ]},
   {command_menu,
    [
-    {1,"Gestion de la carte"},
-    {2,"Deplacer"},
-    {3,"Deplacer la carte selectionnee"},
-    {4,"Reduire/Agrandir"},
-    {5,"Reduire/Agrandir la carte selectionnee"},
-    {6,"Pivoter"},
-    {7,"Pivoter la carte selectionnee"},
-    {8,"Deplacer vers"},
+    {2,"Déplacer"},
+    {3,"Déplacer les cartes sélectionnées"},
+    {4,"Mise à l'échelle"},
+    {5,"Mettre à l'échelle les cartes sélectionnées"},
+    {6,"Faire tourner"},
+    {7,"Fait tourner les cartes sélectionnées"},
+    {8,"Déplacer vers"},
     {9,"Centre"},
-    {10,"Deplacer vers le centre"},
+    {10,"Déplacer vers le centre"},
     {11,"Centre X"},
-    {12,"Deplacer vers le centre horizontal"},
+    {12,"Déplacer vers le centre horizontal"},
     {13,"Centre Y"},
-    {14,"Deplacer vers le centre vertical"},
+    {14,"Déplacer vers le centre vertical"},
     {15,"Bas"},
-    {16,"Deplacer vers le bord bas"},
+    {16,"Déplacer vers le bord du bas"},
     {17,"Haut"},
-    {18,"Dplacer vers le bord haut"},
+    {18,"Déplacer vers le bord du haut"},
     {19,"Gauche"},
-    {20,"Deplacer vers le bord gauche"},
+    {20,"Déplacer vers le bord gauche"},
     {21,"Droit"},
-    {22,"Deplacer vers le bord droit"},
-    {23,"Deplacer la carte a la position"},
+    {22,"Déplacer vers le bord droit"},
+    {23,"Déplacer les cartes vers la position"},
     {24,"Retourner"},
-    {25,"Horizontale"},
-    {26,"Retourner la selection horizontalement"},
-    {27,"Verticale"},
-    {28,"Retourner la selection verticalement"},
-    {29,"Retourner la carte selectionnee"},
-    {30,"Tendre"},
-    {31,"Deplacer les coordonnees UV dans la direction de la moyenne du milieu"},
+    {25,"Horizontalement"},
+    {26,"Retourner la sélection horizontalement"},
+    {27,"Verticalement"},
+    {28,"Retourner la sélection verticalement"},
+    {29,"Retourner les cartes sélectionnées"},
+    {30,"Resserrer"},
+    {31,"Déplacer les coordonnées UV vers un point central moyen"},
     {32,"Cacher"},
-    {33,"Cache la carte selectionnee mais conserve les coordonnees UV"},
-    {34,"Detruire"},
-    {35,"Supprimer les coordonnees UV pour les cartes selectionnees"},
-    {36,"Re-mapper les UV"},
-    {37,"optimisation du deploiemeent"},
-    {38,"Optimiser le deploiement de la carte"},
-    {39,"Deplier"},
-    {40,"Deplier la carte"},
+    {33,"Cache les cartes sélectionnées mais conserve les coordonnées UV"},
+    {34,"Supprimer"},
+    {35,"Supprime les coordonnées UV pour les cartes sélectionnées"},
+    {36,"Remapper les UV"},
+    {37,"Optimiser l'étirement"},
+    {38,"Optimiser l'étirement de la carte"},
+    {39,"Déplier"},
+    {40,"Déplier la carte"},
     {41,"Projeter les normales"},
-    {42,"Projeter les UV depuis les normales de la carte"},
-    {43,"Spherique"},
-    {44,"Mappage Spherique"},
-    {45,"Calculer les nouvelles UV en choisissant l'algorithme"},
-    {46,"Gestion de Facette"},
-    {47,"Deplacer"},
-    {48,"Deplacer les facettes selectionnees"},
-    {49,"Agrandir/Reduire"},
-    {50,"Agrandir/Reduire les facettes selectionnees"},
-    {51,"Pivoter"},
-    {52,"Pivoter les facettes selectionnees"},
+    {42,"Projeter les coordonnées UV selon les normales de la carte"},
+    {43,"Sphérique"},
+    {44,"Mappage sphérique"},
+    {45,"Calculer les nouvelles coordonnées UV avec l'algorithme choisi"},
+    {47,"Déplacer"},
+    {48,"Déplacer les facettes sélectionnées"},
+    {49,"Mettre à l'échelle"},
+    {50,"Mettre à l'échelle les facettes sélectionnées"},
+    {51,"Faire tourner"},
+    {52,"Faire tourner les facettes sélectionnées"},
     {53,"Libre"},
-    {54,"Pivoter librement la selection"},
-    {55,"Carte a X"},
-    {56,"Pivoter la carte afin d'aligner les aretes selectionnees sur l'axe X"},
-    {57,"Carte a Y"},
-    {58,"Pivoter la carte afin d'aligner les aretes selectionnees sur l'axe Y"},
-    {59,"Gestion des Aretes"},
-    {60,"Deplacer"},
-    {61,"Deplacer les points selectionnes"},
-    {62,"Agrandir/Reduire"},
-    {63,"Agrandir/Reduire les points selectionnes"},
-    {64,"Pivoter"},
-    {65,"Les commandes du pivot"},
+    {54,"Faire tourner librement la sélection"},
+    {55,"Carte à X"},
+    {56,"Faire tourner la carte afin d'aligner les arêtes sélectionnées sur l'axe X"},
+    {57,"Carte à Y"},
+    {58,"Faire tourner la carte afin d'aligner les aretes sélectionnées sur l'axe Y"},
+    {60,"Déplacer"},
+    {61,"Deplacer les arêtes sélectionnées"},
+    {62,"Mettre à l'échelle"},
+    {63,"Mettre à l'échelle les arêtes sélectionnées"},
+    {64,"Faire tourner"},
+    {65,"Commandes de rotation"},
     {66,"Coudre"},
-    {67,"Coudre les aretes/les cartes"},
+    {67,"Coudre les arêtes/les cartes"},
     {68,"Couper"},
-    {69,"Couper les aretes selectionnees"},
+    {69,"Couper les arêtes sélectionnées"},
     {70,"Libre"},
-    {71,"Pivoter librement la selection"},
-    {72,"Carte a X"},
-    {73,"Pivoter la carte pour l'aligner (virtuellement) a l'arete en joignant les points selectionnes sur l'axe X"},
-    {74,"Carte a Y"},
-    {75,"Pivoter la carte pour l'aligner (virtuellement) a l'arete en joignant les points selectionnes sur l'axe Y"},
-    {76,"Gestion des points"},
-    {77,"Deplacer"},
-    {78,"Deplacer les points selectionnes"},
-    {79,"Reduire / Agrandir"},
-    {80,"Reduire/Augmenter les points selctionnes"},
+    {71,"Faire tourner librement la sélection"},
+    {72,"Carte à X"},
+    {73,"Faire tourner la carte pour aligner (virtuellement) l'arête en joignant les sommets sélectionnes sur l'axe X"},
+    {74,"Carte à Y"},
+    {75,"Faire tourner la carte pour aligner (virtuellement) l'arête en joignant les sommets sélectionnes sur l'axe Y"},
+    {77,"Déplacer"},
+    {78,"Déplacer les sommets sélectionnés"},
+    {79,"Mettre à l'échelle"},
+    {80,"Mettre à l'échelle les sommets sélectionnés"},
     {81,"Faire tourner"},
     {82,"Commandes de rotation"},
     {83,"Aplanir"},
-    {84,"Aplanir Horizontalement"},
+    {84,"Aplanir horizontalement"},
     {85,"Aplanir verticalement"},
-    {86,"Aplanir les points selectionnes"},
-    {87,"Tendre"},
-    {88,"Deplacer les coordonnees UV dans la direction moyenne du milieu"},
-    {89,"Deplier"},
-    {90,"Deplier la carte (sans deplacer les points selectionnes)"},
-    {91,"Map Spherique"},
-    {92,"Creer une map spherique avec les points selectionnes entre le pole nord et le pole sud"},
-    {411,"Normaliser l'echelle"},
-    {412,"Normaliser l'echelle de la carte afin que chaque carte aie en correspondance une seconde aire"},
+    {86,"Aplanir les sommets sélectionnés"},
+    {87,"Resserrer"},
+    {88,"Déplacer les coordonnées UV vers le milieu moyen"},
+    {89,"Déplier"},
+    {90,"Déplier la carte (sans déplacer les sommets sélectionnés)"},
+    {91,"Mappage sphérique"},
+    {92,"Créer un mappage sphérique avec les sommets sélectionnés étant le pôle nord/sud"},
+    {411,"Normaliser les tailles"},
+    {412,"Normaliser les tailles des cartes afin que chaque carte obtienne sa zone 2D correspondante"},
+    {521,"Projection-Déplier"},
+    {522,"Projetter les facettes sélectionnées selon la normale et déplier le reste de la carte"},
     {641,"Glisser"},
-    {642,"Glisser le long des aretes voisines"},
-    {643,"Distribuer"},
-    {644,"Distribuer horizontalement"},
-    {645,"Distribuer verticalement"},
-    {646,"Distribuer les points regulierement"}
+    {642,"Glisser le long des arêtes voisines"},
+    {643,"Répartir"},
+    {644,"Répartir horizontalement"},
+    {645,"Répartir verticalement"},
+    {646,"Répartir uniformément les sommets"}
    ]},
   {create_window,
    [
-    {1,"Segmenter"}
+    {1,"Segmentation"}
    ]},
   {drag_filter,
    [
-    {1,"Abandonner: Changer la texture de l'image"}
-   ]},
-  {handle_drop,
-   [
-    {1,"Vous etes en train d'editer les coordonnees UV de plusieurs\nmateriaux, quitter la fenetre d'edition UV et apposer sur toutes les facettes\nle meme materiau"}
+    {1,"Abandon : Changez l'image de la texture"}
    ]},
   {handle_event_3,
    [
-    {1,"Selectionner"},
-    {2,"Choisir menu"}
+    {1,"Sélectionner"},
+    {2,"Montrer menu"}
    ]},
   {menu,
    [
-    {1,"Fenetre d'edition des UV"},
-    {2,"Ouvrir un editeur d'UV pour caque objet selectionne"}
+    {1,"Fenêtre d'éditeur UV"},
+    {2,"Ouvre une fenêtre d'éditeur UV pour chaque objet sélectionné"}
    ]},
   {menubar,
    [
     {1,"Editer"},
     {2,"Annuler/Refaire"},
-    {3,"Annuler ou Refaire la derniere commande"},
+    {3,"Annuler ou refaire la dernière commande"},
     {4,"Refaire"},
-    {5,"Refaire la commande qui vient d'etre annulee"},
+    {5,"Refaire la commande qui vient d'être annulée"},
     {6,"Annuler"},
-    {7,"Annuler la derniere commande"},
+    {7,"Annuler la dernière commande"},
     {8,"Vue"},
-    {9,"Choisir/Cacher l'image d'arriere plan"},
-    {10,"Affichage des boutons a l'arriere plan de l'image de texture"},
-    {11,"Selectionner"}
+    {9,"Montrer/Cacher l'image d'arrière-plan"},
+    {10,"Bascule l'affichage de l'image d'arrière-plan"},
+    {11,"Sélectionner"},
+    {71,"Répéter"},
+    {72,"Répéter la dernière commande"},
+    {74,"Répéter les arguments"},
+    {75,"Répéter la dernière commande avec les mêmes arguments"},
+    {76,"Répéter le glissé"},
+    {77,"Répéter la dernière commande avec les mêmes arguments à la même distance"}
    ]},
   {option_menu,
    [
-    {1,"Creer une texture"},
-    {2,"Construire et attacher une texture au modele"}
+    {1,"Créer une texture"},
+    {2,"Crée et assigne une texture au modèle"}
    ]},
   {remap,
    [
-    {1,"mapper a nouveau"},
+    {1,"remappage"},
     {2,"carte"}
    ]},
   {reunfold,
    [
-    {1,"Selectionne deux points, au pole Nord et pole Sud"},
-    {2,"Au moins deux points par carte doivent etre goupille"},
-    {3,"mapper a nouveau"},
+    {1,"Sélectionnez deux sommets, le pôle nord et pôle sud"},
+    {2,"Au moins deux sommets par carte doivent être épinglés"},
+    {3,"remappage"},
     {4,"carte"}
    ]},
   {scale_directions,
    [
     {1,"Uniforme"},
-    {2,"Mettre a l'echelle dans les deux directions"},
-    {3,"Horizontale"},
-    {4,"Mettre a l'echelle horizontalement (X dir)"},
-    {5,"Verticale"},
-    {6,"Mettre a l'echelle veerticalement (Y dir)"}
+    {2,"Mettre à l'échelle dans les deux directions"},
+    {3,"Horizontalement"},
+    {4,"Mettre à l'échelle horizontalement (X)"},
+    {5,"Verticalement"},
+    {6,"Mettre à l'échelle verticalement (Y)"}
    ]},
   {start_uvmap,
    [
-    {1,"rien de selectionne"}
+    {1,"Rien n'est sélectionné"}
    ]},
   {stitch_charts,
    [
-    {1,"Hmm, Je ne peux pas coudre autant de cartes en meme temps"}
+    {1,"Ne peux pas coudre autant de cartes en même temps"}
    ]},
   {stretch_directions,
    [
-    {1,"Max Uniforme"},
-    {2,"Maximiser chacun verticalement et horizontalement"},
-    {3,"Max Horizontale"},
-    {4,"Maximiser horizontalement (X dir)"},
-    {5,"Max Verticale"},
-    {6,"Maximiser verticalement (Y dir)"}
+    {1,"Maximum uniforme"},
+    {2,"Mettre à l'échelle au maximum dans les deux directions"},
+    {3,"Maximum horizontal"},
+    {4,"Mettre à l'échelle au maximum horizontalement (X)"},
+    {5,"Maximum vertical"},
+    {6,"Mettre à l'échelle au maximum verticalement (Y)"}
    ]}
  ]}.
 {wpc_snap,
  [
+  {find_a_id,
+   [
+    {1,"Visible object required."}
+   ]},
   {menu,
    [
-    {1,"Plaquer une image"},
-    {2,"Debuter mode instantane \"plaquage\" coordonnees UV a propos d'une image"},
-    {3,"Quitter mode instantane"},
-    {4,"Quitter mode instantane"},
-    {5,"Plaquer l'image"},
-    {6,"Mettre l'image d'arriere plan sur les facetes selectionnees en leur assignant les coordonnees UV"}
+    {1,"Épingler l'image"},
+    {2,"Démarrer le mode pour épingler les coordonnées UV sur une image"},
+    {3,"Quitter mode épinglage"},
+    {4,"Quitter le mode épinglage"},
+    {5,"Épingler l'image"},
+    {6,"Mettre l'image d'arrière-plan sur les facettes sélectionnées en leur assignant des coordonnées UV"}
    ]},
   {select_image,
    [
-    {1,"Auncune image presente, il faut d'abord importer une image."},
-    {2,"Chosir l'image a plaquer"}
-   ]},
-  {set_materials,
-   [
-    {1,"Impossible de mettre une image quand un objet a les points colores"}
+    {1,"Auncune image presente, importez d'abord une image."},
+    {2,"Choisissez l'image à épingler"}
    ]},
   {snap_menu,
    [
-    {1,"Horizontale"},
-    {2,"Reduire horizontalement l'echelle de l'image en arriere plan"},
-    {3,"Verticale"},
-    {4,"Reduire verticalement l'echelle de l'image en arriere plan"},
+    {1,"Horizontalement"},
+    {2,"Mettre à l'échelle horizontalement "},
+    {3,"Verticalement"},
+    {4,"Mettre à l'échelle verticalement l'image d'arrière-plan"},
     {5,"Libre"},
-    {6,"Mettre librement a l'echelle l'image de fond"},
+    {6,"Mettre à l'échelle librement l'image d'arrière-plan"},
     {7,"Uniforme"},
-    {8,"Mettre uniformement a l'echelle l'image de fond"},
-    {9,"Horizontale"},
-    {10,"Deplacer horizontalement l'image en arriere plan"},
-    {11,"Verticale"},
-    {12,"Deplacer verticalement l'image en arriere plan"},
+    {8,"Mettre à l'échelle uniformement l'image d'arrière-plan"},
+    {9,"Horizontalement"},
+    {10,"Déplacer l'image d'arrière-plan horizontalement"},
+    {11,"Verticalement"},
+    {12,"Déplacer l'image d'arrière-plan verticalement"},
     {13,"Libre"},
-    {14,"Deplacer librement l'image de fond"},
-    {15,"Mise a l'echelle instantane de l'image"},
-    {16,"Mettre a l'echelle l'image de fond"},
-    {17,"Deplacement instantane de l'image"},
-    {18,"Deplacer l'image d'arriere plan"},
-    {19,"Quitter mode instantane"},
-    {20,"Quitter le mode instantane"}
-   ]}
- ]}.
-%% Not used [auv_mapping,project_faces] in "../../plugins/autouv/autouv_fr.lang"
-%% Not used [auv_texture,draw_options,6] in "../../plugins/autouv/autouv_fr.lang"
-%% Not used [auv_texture,draw_options,7] in "../../plugins/autouv/autouv_fr.lang"
-%% Not used [auv_texture,draw_options,8] in "../../plugins/autouv/autouv_fr.lang"
-%% Not used [auv_texture,draw_options,9] in "../../plugins/autouv/autouv_fr.lang"
-%% Not used [auv_texture,draw_options,10] in "../../plugins/autouv/autouv_fr.lang"
-%% Not used [auv_texture,draw_options,11] in "../../plugins/autouv/autouv_fr.lang"
-%% Not used [auv_texture,draw_options,12] in "../../plugins/autouv/autouv_fr.lang"
-%% Not used [wpc_autouv,handle_drop] in "../../plugins/autouv/autouv_fr.lang"
-
-%%
-%% The following strings have no translation.
-%%
-
-{auv_texture,
- [
-  {renderers,
-   [
-    {1,"Aucun"},
-    {2,"Dessiner les aretes"},
-    {3,"Dessiner Les facettes"}
-   ]},
-  {render_passes,
-   [
-    {1,"Arriere-plan"},
-    {2,"Options"},
-    {3,"Options"}
-   ]},
-  {options,
-   [
-    {1,"Image"},
-    {2,"Couleur"},
-    {3,"Dessiner toutes les aretes"},
-    {4,"Dessiner � la frontiere des aretes"},
-    {5,"Couleur des aretes:"},
-    {6,"Largeur des Aretes:"},
-    {7,"Utiliser la mati�re de la facette (� la frontiere des aretes)"},
-    {8,"Utiliser les couleurs de la matiere"},
-    {9,"utiliser (precedent) Texture/Coueurs des points"},
-    {10,"Aucune Lumiere:"}
-   ]},
-  {background,
-   [
-    {1,"Arriere -plan"}
-   ]}
- ]}.
-{wpc_autouv,
- [
-  {menubar,
-   [
-    {77,"Repeter la derniere commande avec les m�mes arguments � la m�me distance"},
-    {76,"Repeter le deplacement"},
-    {75,"Repeter la commande avec les m�mes arguments"},
-    {74,"Repeter les arguments"},
-    {72,"Repeter la m�me commande"},
-    {71,"Repeter"}
-   ]},
-  {command_menu,
-   [
-    {522,"Selectionner les facettes du projet depuis les normales et devoiler le reste du diagramme"},
-    {521,"Project-devoiler-deplier"}
-   ]},
-  {auv_menu,
-   [
-    {25,"Re-segmenter les objets"},
-    {9,"Re-segenter avec l'ancien systeme de coordonnees UV "},
-    {8,"Forcer le segment (garder le precedent)"}
+    {14,"Déplacer librement l'image d'arrière-plan"},
+    {15,"Mise à l'échelle épinglée de l'image"},
+    {16,"Mettre a l'echelle l'image d'arrière-plan"},
+    {17,"Déplacement épinglé de l'image"},
+    {18,"Déplacer l'image d'arrière-plan"},
+    {19,"Quitter mode épinglage"},
+    {20,"Quitter le mode épinglage"}
    ]}
  ]}.

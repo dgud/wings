@@ -1,0 +1,28 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_magnet_mask,
+ [
+  {mask_on_off,
+   [
+    {1,"Switch masque Off"},
+    {2,"Toggle masque On/Off"},
+    {3,"Switch masque On"}
+   ]},
+  {tools_menu_entry,
+   [
+    {1,"Masque d'aimant"},
+    {2,"Lock"},
+    {3,"Unlock"},
+    {4,"Inverser"},
+    {6,"Lock selection against the influence of magnets"},
+    {7,"Unlock any locked elements in the selection"},
+    {8,"Invert the locked and unlocked elements"},
+    {9,"Déselectionner"},
+    {10,"Subtract locked elements from current selection"},
+    {11,"Sélectionner"},
+    {12,"Add locked elements to current selection"}
+   ]},
+  {view_menu_entry,
+   [
+    {1,"Montrer le masque de l'aimant"}
+   ]}
+ ]}.

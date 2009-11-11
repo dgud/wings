@@ -12,25 +12,35 @@
    ]},
   {gen,
    [
-    {1,"Texte a echoue: "},
-    {2,"erreur decelee : "},
-    {3,"Le texte a echoue : erreur interne "}
+    {1,"Le texte a échoué : "},
+    {2,"erreur décélée : "},
+    {3,"Le texte a échoué : erreur interne"}
    ]},
   {getdirs,
    [
-    {1,"Mauvaise direction du format"}
+    {1,"Mauvais format de répertoire"}
    ]},
   {gettabs,
    [
-    {1,"Mauvaise table offsets/taille"}
+    {1,"Mauvaise table des décallages/tailles"}
+   ]},
+  {help,
+   [
+    {1,"Pour une raison quelconque, sur Windows, les polices dans le dossier Windows/Fonts ne sont pas sélectionnable via le bouton Parcourir en raison du fait qu'ils sont dans le dossier système de Windows"},
+    {3,"Donc, pour utiliser ces polices TrueType, vous devez copier le dossier WINDOWS/Fonts à l'extérieur du dossier système."},
+    {4,"Vous pouvez ensuite naviguer à la copie du dossier Fonts en utilisant le bouton Parcourir et sélectionnez une police."},
+    {5,"Après avoir créé un objet de texte en 3D à partir du nouveau dossier, Wings enregistrera l'emplacement pour la prochaine fois."}
+   ]},
+  {help_button,
+   [
+    {1,"Parcourir pour des polices sous Windows"}
    ]},
   {make_text,
    [
-    {1,"Creer un texte"},
+    {1,"Créer un texte"},
     {2,"Texte"},
     {3,"Police TrueType"},
-    {4,"Direction des polices"},
-    {5,"Nombre de bissections d'aretes"}
+    {5,"Nombre de subdivision des arêtes"}
    ]},
   {menu_entry,
    [
@@ -39,14 +49,14 @@
    ]},
   {parsecmaptab,
    [
-    {1,"Aucune carte de caract�re appropri�e"}
+    {1,"Aucune carte de caractères appropriée"}
    ]},
   {parsett,
    [
-    {1,"Mauvaise table offset"}
+    {1,"Mauvaise table des décallages"}
    ]},
   {trygen,
    [
-    {1,"Impossible de trouver dedans la section du TrueType "}
+    {1,"Impossible de trouver la section TrueType dans "}
    ]}
  ]}.

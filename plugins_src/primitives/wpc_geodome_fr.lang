@@ -1,0 +1,28 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_geodome,
+ [
+  {dialog,
+   [
+    {1,"Résolution"},
+    {2,"Fréquence (subdivision des arêtes)"},
+    {3,"Profondeur (subdivision récursive)"},
+    {4,"Type de subdivision"},
+    {5,"Icosahèdre"},
+    {6,"Octahèdre"},
+    {7,"Tétrahèdre"},
+    {8,"Forme de base"},
+    {9,"Oui"},
+    {10,"Non"},
+    {11,"Sphérique"},
+    {12,"Hémisphère"}
+   ]},
+  {geodome_menu,
+   [
+    {1,"Dôme géodésique"}
+   ]},
+  {make_geodome,
+   [
+    {1,"Options du dôme géodésique"},
+    {2,"-Dôme géodésique"}
+   ]}
+ ]}.

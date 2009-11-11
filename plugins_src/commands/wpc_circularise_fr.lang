@@ -1,0 +1,70 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_circularise,
+ [
+  {angle_help,
+   [
+    {1,"  [3] Utiliser un angle obtus"},
+    {2,"  [3] Utiliser un angle aigu"}
+   ]},
+  {check_selection,
+   [
+    {1,"Rien n'est sélectionné"},
+    {2,"Le sommet doit faire partie de la boucle d'arête originale"},
+    {4,"La sélection doit inclure qu'un seul arête ou un seul sommet"}
+   ]},
+  {circ_norm_help,
+   [
+    {1,"  [2] Normale du plan inversé"},
+    {2,"  [2] Normale du plan original"}
+   ]},
+  {circ_sel_error,
+   [
+    {2,"La sélection doit inclure qu'une seule boucle d'arêtes, fermée ou non"}
+   ]},
+  {circ_sel_error_1,
+   [
+    {1,"Les boucles d'arêtes sélectionnées ne doivent pas partager de sommet"}
+   ]},
+  {circ_sel_error_3,
+   [
+    {2,"Les sélections incluant des arêtes isolées ne peuvent être utilisées"}
+   ]},
+  {circ_sel_error_4,
+   [
+    {2,"Les boucles d'arêtes sélectionnées ne doivent pas se rejoindrent et doivent être toutes ouvertes ou toutes fermées."}
+   ]},
+  {circular_arc_menu,
+   [
+    {1,"Circulariser"},
+    {2,"Aplani, égalise et gonfle les boucles d'arêtes sélectionnées les rendant circulaires"},
+    {4,"Circularise une seule boucle d'arêtes (ouverte ou fermée) en utilisant une sélection secondaire"},
+    {5,"Choisir un plan commun sur lequel les boucles seront aplanies"}
+   ]},
+  {flatten_help,
+   [
+    {1,"[1] Ne pas aplanir"},
+    {2,"[1] Aplanir"}
+   ]},
+  {norm_help,
+   [
+    {1,"  [2] Normale de l'arc inversé"},
+    {2,"  [2] Normale de l'arc original"}
+   ]},
+  {radius_help,
+   [
+    {1,"  [3] Utiliser un diamètre absolu"},
+    {2,"  [3] Utiliser un diamètre relatif"}
+   ]},
+  {secondary_sel_ask,
+   [
+    {1,"Sélectionner une seule arête ou un seul sommet de la boucle d'arêtes originale marquant le rayon stable du point central"},
+    {2,"Choisir le point central"},
+    {3,"Choisir le plan"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Choisir le plan"},
+    {2,"Choisir le point central"},
+    {3,"Choisir le point à partir duquel le centre sera calculé relativement au plan choisi et la fin de la sélection d'arêtes"}
+   ]}
+ ]}.

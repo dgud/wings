@@ -1,41 +1,19 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
-{wpc_turnedge,
- [
-  {menu,
-   [
-    {1,"Tourner l'arete"}
-   ]},
-  {menu_entry,
-   [
-    {1,"Tourner"},
-    {2,"Tourner"},
-    {3,"Tourner l'arete"},
-    {4,"Optimiser l'arete tourner"},
-    {5,"Tourner l'arete seulement si la longueur de la nouvelle arete etait plus courte"}
-   ]},
-  {pref_edit,
-   [
-    {1,"Preferences de l'outil"},
-    {2,"Permettre"}
-   ]},
-  {turn_help,
-   [
-    {1,"Tourner l'arete"},
-    {2,"Tourner l'arete seulement si la longueur de la nouvelle arete etait plus courte"}
-   ]}
- ]}.
-
-%%
-%% The following strings have no translation.
-%%
+%% -*- mode:erlang; erlang-indent-level: 2 -*-é
 
 {wpc_turnedge,
  [
-  {pref_edit,
+  {command_help,
    [
-    {6,"Tourner dans le sens contraire des aiguilles d'une montre "},
-    {5,"Tourner dans le sens des aiguilles d'une montre "},
-    {4,"Tourner les aretes"},
-    {3,"Mode tourner"}
+    {turn_ccw,"Tourner l'arête dans le sens antihoraire."},
+    {turn_cw,"Tourner l'arête dans le sens horaire"},
+    {turn_optimized,"Tourner l'arête (dans le sens horaire) seulement si la nouvelle arête serait plus courte"}
+   ]},
+  {command_name,
+   [
+    {turn,"Tourner"}
+   ]},
+  {validate_edges,
+   [
+    {1,"Les arêtes sélectionnées ne doivent pas être de la même facette."}
    ]}
  ]}.

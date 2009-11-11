@@ -3,14 +3,14 @@
  [
   {do_export,
    [
-    {1,"Options d'export au format 3dsmax"}
+    {1,"Options d'exportation au format 3ds Max"}
    ]},
   {do_import,
    [
-    {1,"Options d'importt au format 3dsmax"}
+    {1,"Options d'importation du format 3ds Max"}
    ]},
   {props,
    [
-    {1,"Fichier 3dsmax"}
+    {1,"Fichier 3ds Max"}
    ]}
  ]}.

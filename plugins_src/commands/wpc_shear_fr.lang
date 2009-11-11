@@ -1,0 +1,54 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_shear,
+ [
+  {glide_plane_menu,
+   [
+    {1,"Glisse les surfaces planes face à ~s. (Parallèlement au plan auquel le mouvement des sommets est restreint)"},
+    {2,"Choisir le vecteur de cisaillement et l'origine. (Le point de mesure sera calculé automatiquement)"},
+    {3,"Choisir le vecteur de cisaillement, l'origine et le point de mesure."}
+   ]},
+  {radial_menu,
+   [
+    {3,"Restreint le mouvement des sommets au vecteur de cisaillement ~s en suivant leur plan de glisse individuel face à ~s"},
+    {4,". (L'origine et le point de mesure seront calculés automatiquement)"},
+    {5,"Choisir l'origine et le point de mesure"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Sélectionner le plan de glisse"},
+    {2," (plan selon lequel tous les sommets bougent parallèlement)"},
+    {3,"Sélectionner l'origine (point déterminant le plan de glisse stationnaire)"},
+    {4,"Sélectionner le vecteur de cisaillement"},
+    {5," (la direction les sommets bougeront en suivant leur plan de glisse individuel)"},
+    {6,"Sélectionner le point de mesure"},
+    {7," (point selon lequel le mouvement suivant le plan de glisse sera mesuré)"},
+    {8,"Resélectionner le vecteur de cisaillement"},
+    {9,". Ne doit pas être perpendiculaire au plan de glisse spécifié"},
+    {10,"Resélectionner le point de mesure"},
+    {11,". Doit être sur un plan de glisse unique à l'origine spécifiée"},
+    {12,"Resélectionner le plan de glisse"},
+    {13," Ne doit pas être parallèle au vecteur de cisaillement spécifié"}
+   ]},
+  {shear,
+   [
+    {1,"Cisailler"},
+    {2,"Cisailler XYZ"},
+    {3,"Choisir un plan de glisse parallèle auquel le mouvement sera restreint, le vecteur de cisaillement, l'origine déterminant le plan de glisse stationnaire et le point de mesure pour la distance"}
+   ]},
+  {shear_anchor_help,
+   [
+    {1,"Ancrer l'origine"},
+    {2,"Libérer l'origine"}
+   ]},
+  {shear_dir_help,
+   [
+    {1,"Assymmétrique"},
+    {2,"Symmétrique"}
+   ]},
+  {shear_mode_help,
+   [
+    {1,"Relatif"},
+    {2,"Angle"},
+    {3,"Absolu"}
+   ]}
+ ]}.

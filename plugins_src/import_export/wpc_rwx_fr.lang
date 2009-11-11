@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_rwx,
+ [
+  {dialog,
+   [
+    {1,"Échantillonage facetté"},
+    {2,"Optimiser la taille de fichier ?"},
+    {3,"Ambiante"},
+    {4,"Diffusion"},
+    {5,"Spéculaire"},
+    {6,"Échelle d'exportation"},
+    {7,"Niveau de subdivision"}
+   ]},
+  {do_export,
+   [
+    {1,"Options d'exportation Renderware"}
+   ]},
+  {props,
+   [
+    {1,"Fichier Renderware (.rwx)"}
+   ]}
+ ]}.

@@ -1,0 +1,59 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_sweep_extrude,
+ [
+  {axis_menu,
+   [
+    {2,"Extruder relatif au percentage du rayon de la sélection"}
+   ]},
+  {axis_menu_string,
+   [
+    {1,"Extrusion giratoire libre, relative à l'écran"},
+    {2,"Extrude le long de la normale sans mouvements de côté."},
+    {3,"Si l'axe ~s est perpendiculaire à la normale de l'extrusion, les movements seront contraints à son plan radial. Sinon, cela agit comme un composant désaxé."}
+   ]},
+  {base_help,
+   [
+    {1,"  [4] Geler la base"},
+    {2,"  [4] Dégeler la base"}
+   ]},
+  {cntr_help,
+   [
+    {1,"[1] Centre de la sélection"},
+    {2,"[1] Centre de la région"}
+   ]},
+  {lock_help,
+   [
+    {1,"  [3] Verrouiller l'axe"},
+    {2,"  [3] Relative à l'écran"}
+   ]},
+  {menu_string_1,
+   [
+    {1,"Extrude le long de la normale, utilisant l'axe de côté standard"},
+    {2,"Extrude la région le long de la normale, utilisant l'axe de côté standard"},
+    {3,"Extrait et extrude la région le long de la normale, utilisant l'axe de côté standard"}
+   ]},
+  {menu_title,
+   [
+    {1,"Extrusion giratoire"},
+    {2,"Extrusion giratoire par région"},
+    {3,"Extrusion giratoire extraite"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Choisir un axe perpendiculaire à la normale de l'extrusion, va restreindre les movements à son plan radial. Sinon, cela agit comme un composant désaxé."}
+   ]},
+  {sweep_error,
+   [
+    {2,"L'extrusion giratoire par région ne fonctionera pas pour un objet entièrement sélectionné"}
+   ]},
+  {sweep_menu,
+   [
+    {3,"Choisir l'axe"},
+    {4,"Choisir l'axe and extruder relatif au percentage du rayon de la sélection"}
+   ]},
+  {warp_help,
+   [
+    {1,"  [2] Conserver la forme"},
+    {2,"  [2] Permettre la déformation"}
+   ]}
+ ]}.

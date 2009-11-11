@@ -1,0 +1,155 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_constraints,
+ [
+  {angle_error,
+   [
+    {1,"Exactly two elements must be selected"}
+   ]},
+  {axis_to_string,
+   [
+    {2,"along vector <~s  ~s  ~s>"},
+    {3,"along ~s axis"}
+   ]},
+  {check_selection,
+   [
+    {1,"Nothing selected"},
+    {3,"Current length is too short. Select edges that aren't perpendicular to the chosen axis."},
+    {4," Original ~s ~s\n Current ~s ~s\n Percent ~s%  Reciprocal ~s%"},
+    {5,"Resulting percentage is to small"},
+    {6,"Difference is too small"},
+    {7," Original ~s ~s\n Current ~s ~s\n Difference ~s"},
+    {8,"Distance between centers is too short"},
+    {9," Original center ~s\n Current center ~s\n Distance ~s ~s"},
+    {10,"Current area is too small"},
+    {11," Original Angle ~s"},
+    {12,"\n Current Angle ~s"},
+    {13,"\n Difference ~s"},
+    {14,"Select exactly two edges or two faces to define angle"},
+    {15," Original"},
+    {16," Angle ~s"}
+   ]},
+  {element_error,
+   [
+    {1,"Exactly one element must be selected"}
+   ]},
+  {general_menu,
+   [
+    {1,"Set Constraint"}
+   ]},
+  {general_menu2,
+   [
+    {1,"Choose a different axis to measure the second selection"}
+   ]},
+  {length_check,
+   [
+    {1,"Selection must have an area greater than zero"},
+    {2,"Selection must have length greater than zero"},
+    {3,"Length along vector is too short"},
+    {4,"Length along ~s axis is too short"}
+   ]},
+  {menu_heading,
+   [
+    {1,"Normal"},
+    {2,"Pick"},
+    {3,"Direct"},
+    {4,"Angle"},
+    {5,"15"},
+    {6,"22.5"},
+    {7,"30"},
+    {8,"45"},
+    {9,"60"},
+    {10,"90"}
+   ]},
+  {menu_string1,
+   [
+    {1,"Total the lengths of the selected edges and save the result as a distance constraint in the Preferences"},
+    {2,"Calculate the average length of the selected edges and save the result as a distance constraint in the Preferences"},
+    {3,"Calculate the angle between any two ~s and save the result as a rotation constraint in the Preferences"},
+    {4,"Calculate the differnce between two angles and save the result as a rotation constraint in the Preferences"},
+    {5,"Measure the angle between a single ~s and a standard axis or defined vector. Save the result as a rotation constraint in the Preferences"},
+    {6,"Calculate the difference in scale between the ~s of two ~s selections and save the result as a scale constraint in the Preferences"},
+    {7,"Calculate the difference in ~s between two ~s selections and save the result as a distance constraint in the Preferences"},
+    {8,"Calculate the distance between the center points of two selections and save the result as a distance constraint in the Preferences"}
+   ]},
+  {menu_string2,
+   [
+    {1,"Measure the ~s of both selections according to their ~s normals"},
+    {2,"Pick an axis along which to measure the ~s both selections"},
+    {3,"Measure the ~s of both selections' ~s only along the ~s axis"}
+   ]},
+  {menu_string3,
+   [
+    {1,"Measure the selected edges along their normals"},
+    {2,"Pick an axis along which to measure the selected edges"},
+    {3,"Measure the selected edges only along the ~s axis"},
+    {4,"Measure the selected angle"},
+    {5,"Specify the axis from which to measure the selected angle"},
+    {6,"Measure the selected angle as viewed from the ~s axis"},
+    {7,"Measure the distance between the centers of the two selections"},
+    {8,"Pick an axis along which to measure the distance between the centers of the two selections"},
+    {9,"Measure only the distance along the ~s axis between the centers of the two selections"},
+    {11,"Pick an axis along which to measure the ~s of the ~s selection's ~s"},
+    {12,"Measure the ~s of the ~s selection's ~s only along the ~s axis"},
+    {13,"Measure the ~s of the ~s selection's ~s along their normals"},
+    {18,"Subtract the currently selected angle from ~s"},
+    {19,"Pick a second angle from which to subtract the currently selected angle"},
+    {20,"Pick a vector and calculate the angle to the original ~s"},
+    {21,"Calculate the angle from the ~s axis to the original ~s"},
+    {22," and then caluculate their average length"}
+   ]},
+  {menu_title,
+   [
+    {1,"Total Length"},
+    {2,"Average Length"},
+    {3,"Angle"},
+    {4,"Subtract Angle"},
+    {5,"Edge To Axis"},
+    {6,"Face To Axis"},
+    {7,"Percentage"},
+    {8,"Difference"},
+    {9,"Centers"}
+   ]},
+  {mod_string,
+   [
+    {1,". Constraint bound to held modifier key(s)."}
+   ]},
+  {mode_strings,
+   [
+    {1,"vertices"},
+    {2,"edges"},
+    {3,"faces"},
+    {4,"vertex"},
+    {5,"edge"},
+    {6,"face"},
+    {8,"second"},
+    {9,"distance"},
+    {10,"lengths"},
+    {11,"areas"}
+   ]},
+  {secondary_sel_ask,
+   [
+    {1,"Select the edges to divide into the original selection"},
+    {2,"Select the edges to subtract from the original selection"},
+    {3,"Center of selection will determine the distance from the center of the original selection"},
+    {4,"Select the faces whose total area will be divided into the first selection's area"},
+    {5,"Select an angle made from two edges or two faces to subtract the original angle from"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Choose the axis each edge will be measured along"},
+    {2," for the first selection"},
+    {3," for the second selection"},
+    {4,"Choose the axis along which the angle will be measured orthographically"},
+    {5,"Choose an axis for measuring the distance between the centers of the selections"},
+    {6,"Choose an axis along which the areas of the first selection will be measure orthographically"},
+    {7,"Choose an axis along which the areas of the second selection will be measure orthographically"},
+    {8,"Choose vector to calculate the angle to the to the original selection"}
+   ]},
+  {tag,
+   [
+    {1,"Rotation"},
+    {2,"Scale Factor"},
+    {3,"Distance"},
+    {4,"Alternate Distance"}
+   ]}
+ ]}.

@@ -1,0 +1,45 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_plane,
+ [
+  {make_lumpy_plane,
+   [
+    {1,"Créer un plan bosselé"},
+    {2,"Résolution"},
+    {3,"Taille"},
+    {4,"Bosses"},
+    {5,"Épaisseur"}
+   ]},
+  {make_regular_plane,
+   [
+    {1,"Créer un plan régulier"},
+    {2,"Résolution"},
+    {3,"Taille"},
+    {4,"Épaisseur"}
+   ]},
+  {make_sombrero_plane,
+   [
+    {1,"Créer un plan sombrero"},
+    {2,"Résolution"},
+    {3,"Taille"},
+    {4,"Vagues"},
+    {5,"Atténuation"},
+    {6,"Hauteur"},
+    {7,"Épaisseur"}
+   ]},
+  {make_wavy_plane,
+   [
+    {1,"Créer un plan ondulé"},
+    {2,"Résolution"},
+    {3,"Taille"},
+    {4,"Vagues"},
+    {5,"Hauteur"},
+    {6,"Épaisseur"}
+   ]},
+  {plane_menu,
+   [
+    {1,"Plan régulier"},
+    {2,"Plan bosselé"},
+    {3,"Plan ondulé"},
+    {4,"Plan sombrero"}
+   ]}
+ ]}.

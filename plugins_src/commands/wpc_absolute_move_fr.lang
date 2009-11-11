@@ -4,32 +4,32 @@
   {draw,
    [
     {1,"Commandes absolues"},
-    {2,"Deplacer"},
-    {3,"Deplacer vers une position exacte avec les coordonnees absolues."},
-    {4,"Rupture"},
-    {5,"Deplacer vers une selection secondaire."},
-    {6,"Deplacer vers une selection secondaire et tirer les valeurs."}
+    {2,"Déplacer"},
+    {3,"Déplacer vers une position exacte en coordonnées absolues."},
+    {4,"Épingler"},
+    {5,"Déplacer vers une selection secondaire."},
+    {6,"Déplacer en utilisant le centre comme référence."},
+    {7,"Déplacer et afficher l'entrée numérique."}
    ]},
   {draw_window1,
    [
-    {1,"Options de deplacement absolu"},
-    {2,"Reglage de position"},
-    {3,"Deplacer l'objet"},
-    {4,"Deplacer les objets"},
+    {1,"Options du déplacement absolu"},
+    {2,"Établir la position"},
+    {3,"Déplacer l'objet"},
+    {4,"Déplacer les objets"},
     {5,"Dupliquer"},
     {6,"Aligner"},
-    {7,"Aplatir"}
+    {7,"Aplanir"},
+    {8,"Le point de référence est"},
+    {9,"Verrouiller"}
    ]},
   {mirror_error,
    [
-    {1,"impossible de deplacer un point depuis un plan en miroir"}
+    {1,"Vous ne pouvez pas déplacer les sommets du plan mirroir"}
    ]},
-  {simple_check_selection,
+  {selection_ask,
    [
-    {1,"Rien de selectionne"}
-   ]},
-  {simple_select,
-   [
-    {1,"Choisir la cible pour l'op�ration instantanee "}
+    {1,"Sélectionner le point de référence pour l'épinglage"},
+    {2,"Sélectionner le point cible pour l'épinglage"}
    ]}
  ]}.

@@ -3,11 +3,11 @@
  [
   {do_export,
    [
-    {1,"Options d'export VRML"}
+    {1,"Options d'exportation au format VRML"}
    ]},
   {export,
    [
-    {1,"Erreur VRML: ~P in"}
+    {1,"Erreur VRML : ~P in"}
    ]},
   {props,
    [

@@ -7,19 +7,19 @@
    ]},
   {dialog_1,
    [
-    {1,"Regarder a l'interieur"},
-    {2,"En haut"},
+    {1,"Regarder dans"},
+    {2,"Remonter"},
     {3,"Nom du fichier"},
     {4,"Format du fichier"},
-    {5,"Annulation"},
-    {6," existe; ecraser?"},
+    {5,"Annuler"},
+    {6," existe déjà. Écraser ?"},
     {7,"Oui"},
     {8,"Non"}
    ]},
   {file_filters,
    [
     {1,"Fichier Wings"},
-    {2,"Tous les fichiers (*)"}
+    {2,"Tous les fichiers (*.*)"}
    ]},
   {file_list,
    [
@@ -27,14 +27,14 @@
    ]},
   {image_formats,
    [
-    {1,"Fichier Bitmap BMp"},
-    {2,"Tiff Bitmap"},
+    {1,"Fichier BMP"},
+    {2,"Fichier TIFF"},
     {3,"Fichier PNG"},
-    {4,"Fichier Targa"}
+    {4,"Fichier TGA"}
    ]},
   {ui,
    [
     {1,"Ouvrir"},
-    {2,"Sauver"}
+    {2,"Enregistrer"}
    ]}
  ]}.

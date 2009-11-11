@@ -1,0 +1,15 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_bbox,
+ [
+  {bb_menu,
+   [
+    {1,"Boite englobante"},
+    {2,"Créer une boite englobante"}
+   ]},
+  {create_bbox,
+   [
+    {1,"Créer une boite englobante"},
+    {2,"Dimensions :"},
+    {3,"Centre :"}
+   ]}
+ ]}.

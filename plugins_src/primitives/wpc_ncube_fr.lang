@@ -1,0 +1,31 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ncube,
+ [
+  {make_ncube,
+   [
+    {1,"Options du cube N"},
+    {2,"Cube N"}
+   ]},
+  {make_ngon,
+   [
+    {1,"Options du polygone"},
+    {2,"Polygone"}
+   ]},
+  {ncube_dialog,
+   [
+    {1,"Nombre de coupures"},
+    {2,"Oui"},
+    {3,"Non"},
+    {4,"Sphérique"}
+   ]},
+  {ncube_menu,
+   [
+    {1,"Cube N"},
+    {2,"Polygone"}
+   ]},
+  {ngon_dialog,
+   [
+    {3,"Nombre de sommets"},
+    {4,"Rayon"}
+   ]}
+ ]}.

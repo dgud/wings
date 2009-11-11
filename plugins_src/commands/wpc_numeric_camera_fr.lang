@@ -1,0 +1,39 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_numeric_camera,
+ [
+  {handle_event,
+   [
+    {1,"Prévisualisation de la position de la caméra"}
+   ]},
+  {help,
+   [
+    {1,"Ouvrir à nouveau la fenêtre de positionnement"},
+    {2,"Accepter la position courrante de la caméra et quitter"},
+    {3,"Basculer entre l'ancienne et la nouvelle position de la caméra"}
+   ]},
+  {menu_entry,
+   [
+    {1,"Positionnement numérique de la caméra"},
+    {2,"Établis numériquement la position de la caméra."}
+   ]},
+  {set_camera_position,
+   [
+    {1,"Positionnement numérique de la caméra"},
+    {2,"Position de la caméra :"},
+    {3,"Point focal :"},
+    {4,"Zoom :"},
+    {5,"Spécifie la distance entre la caméra et le point focal"},
+    {6,"Adjuste la distance entre la caméra et le point focal"},
+    {7," le long d'un vecteur defini par la position et le point focal."},
+    {8,"Distance"},
+    {9,"Faire tourner la caméra autour de l'axe Y global et à travers le point focal :"},
+    {10,"Droite"},
+    {11,"Gauche"},
+    {12,"Degrées"},
+    {13,"Faire tourner la caméra autour de l'axe X relatif à l'écran et à travers le point focal :"},
+    {14,"Vers le haut"},
+    {15,"Vers le bas"},
+    {16,"Modication panoramique relative à l'écran :"},
+    {17,"Prévisualiser la nouvelle position après un clic sur OK"}
+   ]}
+ ]}.

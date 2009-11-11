@@ -1,38 +1,38 @@
 %% -*- mode:erlang; erlang-indent-level: 2 -*-
 {wpc_torus,
  [
-  {make_lutorus,
+  {make_lu_torus,
    [
-    {1,"Creer un Tore irregulier"},
-    {2,"Resolution U"},
-    {3,"Resolution V"},
-    {4,"Rayon Majeur"},
-    {5,"Rayon Mineur"},
-    {6,"Morceau"},
-    {7,"Amplitude des Morceaux"}
+    {1,"Options de tore boursoufflé"},
+    {2,"Résolution U"},
+    {3,"Résolution V"},
+    {4,"Rayon majeur"},
+    {5,"Rayon mineur"},
+    {6,"Boursouflures"},
+    {7,"Ampleur des boursouflures"}
    ]},
-  {make_sptorus,
+  {make_sp_torus,
    [
-    {1,"Creer un tore spirale"},
-    {2,"Resolution U"},
-    {3,"Resolution V"},
-    {4,"Rayon Majeur"},
-    {5,"Rayon Mineur"},
-    {6,"Boucle       "},
-    {7,"Rayon de la Boucle"}
+    {1,"Créer un tore en spirale"},
+    {2,"Résolution U"},
+    {3,"Résolution V"},
+    {4,"Rayon majeur"},
+    {5,"Rayon mineur"},
+    {6,"Boucles"},
+    {7,"Rayon des boucles"}
    ]},
-  {make_uvtorus,
+  {make_uv_torus,
    [
-    {1,"Creer un Tore UV"},
-    {2,"Resolution U"},
-    {3,"Resolution V"},
-    {4,"Rayon Majeur"},
-    {5,"Rayon Mineur"}
+    {1,"Créer un tore UV"},
+    {2,"Résolution U"},
+    {3,"Résolution V"},
+    {4,"Rayon majeur"},
+    {5,"Rayon mineur"}
    ]},
   {torus_menu,
    [
     {1,"Tore UV"},
-    {2,"Tore Irregulier"},
-    {3,"Tore Spirale"}
+    {2,"Tore boursoufflé"},
+    {3,"Tore en spirale"}
    ]}
  ]}.

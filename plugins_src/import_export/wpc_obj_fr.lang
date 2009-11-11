@@ -3,19 +3,19 @@
  [
   {dialog,
    [
-    {1,"Un groupe par materiau"},
+    {1,"Un groupe par matériau"},
     {2,"Environnement Vue d'Esprit"}
    ]},
   {do_export,
    [
-    {1,"Options d'export Autodesk Maya"}
+    {1,"Options d'exportation au format OBJ"}
    ]},
   {do_import,
    [
-    {1,"Options d'export Autodesk Maya"}
+    {1,"Options d'exportation au format OBJ"}
    ]},
   {props,
    [
-    {1,"Fichier Autodesk Maya"}
+    {1,"Fichier OBJ"}
    ]}
  ]}.

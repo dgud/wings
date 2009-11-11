@@ -4,19 +4,20 @@
   {menu_entry,
    [
     {1,"Subdivision Doo-Sabin"},
-    {2,"Utiliser une subdivivion Doo-Sabin selon le principe WasaMonkey (avertir pour nepas detruire les coordonnee UV)"}
+    {2,"Utiliser une subdivision Doo-Sabin (avertir pour ne pas détruire les coordonnées UV)"}
    ]},
   {doo_sabin,
    [
     {1,"Doo-Sabin"},
-    {2,"Lisser la passe 1"},
-    {3,"Lisser la passe 2"},
-    {4,"Dissoudre la passe 1"},
-    {5,"Dissoudre la passe 2"},
-    {6,"Mettre a jour la subdivision"}
+    {2,"Lissage : passe 1"},
+    {3,"Lissage : passe 2"},
+    {4,"Dissolution : passe 1"},
+    {5,"Dissolution : passe 2"},
+    {6,"Mise à jour de la subdivision"}
    ]},
   {menu,
    [
-    {1,"Doo Sabin subdivision"}
+    {1,"Subdivision Doo-Sabin "}
    ]}
  ]}.
+%% [wpc_doosabin,menu] is not used

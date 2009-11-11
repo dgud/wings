@@ -3,13 +3,13 @@
  [
   {adv_submenu,
    [
-    {1,"Decalage planaire"},
-    {2,"Decalage spherique"},
-    {3,"Decalage cylindrique"}
+    {1,"Décalage planaire"},
+    {2,"Décalage sphérique"},
+    {3,"Décalage cylindrique"}
    ]},
-  {menu,
+  {menu_heading,
    [
-    {1,"Decalage"}
+    {1,"Décalage"}
    ]},
   {submenu_items,
    [

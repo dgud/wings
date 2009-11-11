@@ -3,27 +3,20 @@
  [
   {help,
    [
-    {1,"Selectionner le point de coupe de l'arere  [presser le bouton pour glisser]"},
+    {1,"Sélectionner le sommet ou couper l'arête  (tenir le bouton pour glisser)"},
     {2,"Quitter connecter"},
-    {3,"Connecter aretes/points [reselectionner le dernier point pour terminer]"},
+    {3,"Connecter arêtes/sommets (resélectionner le dernier sommet pour terminer)"},
     {4,"Quitter connecter"}
+   ]},
+  {lc_help,
+   [
+    {1,"Créer une boucle : Non"},
+    {2,"Créer une boucle : Oui"}
    ]},
   {menu,
    [
     {1,"Connecter"},
-    {2,"Maniere pour connecter rapidement points et aretes"}
+    {2,"Outil pour connecter rapidement sommets ou des arêtes"}
    ]}
  ]}.
 
-%%
-%% The following strings have no translation.
-%%
-
-{wpc_connect_tool,
- [
-  {lc_help,
-   [
-    {1,"Connection de la boucle fermee"},
-    {2,"Connection de la boucle ouverte"}
-   ]}
- ]}.

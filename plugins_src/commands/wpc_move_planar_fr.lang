@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_move_planar,
+ [
+  {axis_menu_string,
+   [
+    {1,"Limiter tout mouvement au plan défini par ~s"}
+   ]},
+  {move_planar_menu,
+   [
+    {1,"Planar"},
+    {2,"Limiter tout mouvement à un plan standard"},
+    {3,"Choisir le plan"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Choisir le plan auquel tout mouvement sera limité"}
+   ]}
+ ]}.

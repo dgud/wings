@@ -3,14 +3,14 @@
  [
   {make_spiral,
    [
-    {1,"Creer une spirale"},
+    {1,"Créer une spirale"},
     {2,"Boucles"},
     {3,"Segments"},
     {4,"Sections"}
    ]},
   {make_spring,
    [
-    {1,"Creer un ressort"},
+    {1,"Créer un ressort"},
     {2,"Boucles"},
     {3,"Segments"},
     {4,"Sections"}

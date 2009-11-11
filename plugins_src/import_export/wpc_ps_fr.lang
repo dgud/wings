@@ -1,0 +1,20 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ps,
+ [
+  {command,
+   [
+    {2,"Niveau de subdivision"},
+    {4,"Options d'importation de fichier PS ou EPS"},
+    {5,"Fichier PostScript"},
+    {6,"Fichier PostScript encapsulé"}
+   ]},
+  {make_ps,
+   [
+    {1,"Échec de l'importation de fichier PostScript"},
+    {2,"Importation de fichier PostScript : Erreur interne"}
+   ]},
+  {try_import_ps,
+   [
+    {1,"N'est pas un fichier PostScript"}
+   ]}
+ ]}.

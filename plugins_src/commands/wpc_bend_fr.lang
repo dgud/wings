@@ -3,45 +3,41 @@
  [
   {adv_submenu_clamped,
    [
-    {1,"Serrer la plasticite du pli"},
-    {2,"Serrer le pivot du pli"},
-    {3,"Serrer le topad du pli"}
+    {1,"Pli plastique serré"},
+    {2,"Pli de pivot serré"},
+    {3,"Pli TopRad serré"}
    ]},
   {adv_submenu_noclamp,
    [
-    {1,"Plasticite du pli"},
-    {2,"Pivot du pli"},
-    {3,"TopRad du pli"}
-   ]},
-  {bend_vertex,
-   [
-    {1,"Angle"}
+    {1,"Pli plastique"},
+    {2,"Pli de pivot"},
+    {3,"Pli TopRad"}
    ]},
   {bend_verts,
    [
-    {1,"Configuration ne donne aucun resultat ans la pliure/courbe"}
+    {1,"La configuration ne produit pas de pli"}
    ]},
   {menu,
    [
     {1,"Pli"},
-    {2,"Serrage du pli"}
+    {2,"Pli serré"}
    ]},
   {submenu_clamp,
    [
-    {1,"Choisir de serrer le point au-dessus"},
-    {2,"Choisir de serrer le point en-dessous"}
+    {1,"Choisir le point de serrerage du haut"},
+    {2,"Choisir le point de serrerage du bas"}
    ]},
   {submenu_items,
    [
-    {1,"Choisir une tige au centre"},
-    {2,"Choisir une tige au-dessus"},
+    {1,"Choisir le centre de la tige"},
+    {2,"Choisir le haut de la tige"},
     {3,"Choisir la normale du pli"},
-    {4,"Choisir une tige au centre"},
-    {5,"Choisir une tige au-dessus"},
+    {4,"Choisir le centre de la tige"},
+    {5,"Choisir le haut de la tige"},
     {6,"Choisir l'axe du pivot"},
-    {7,"Choisir la localisation du pivot"},
-    {8,"Choisir une tige au centre"},
-    {9,"Choisir une tige au-dessus"},
+    {7,"Choisir l'emplacement du pivot"},
+    {8,"Choisir le centre de la tige"},
+    {9,"Choisir le haut de la tige"},
     {10,"Choisir la normale du pli"}
    ]}
  ]}.
