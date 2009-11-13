@@ -715,11 +715,24 @@ command_1({material,Cmd}, St) ->
 
 %% Tools menu.
 
-command_1({tools,set_default_axis}, St) ->
-    wings:ask({[axis,point],[]}, St,
+command_1({tools,{set_default_axis, Type0}}, St) ->
+    Type = case Type0 of
+      axis_point -> [axis,point];
+      _ -> [Type0]
+    end,
+    wings:ask({Type,[]}, St,
           fun({Axis,Point}, _) ->
-              wings_pref:set_value(default_axis, {Point,Axis}),
-              keep
+               Default = {Point,Axis},
+               wings_pref:set_value(default_axis, Default),
+               keep;
+             (NewDef, _) ->
+               {Point,Axis} = wings_pref:get_value(default_axis),
+               Default = case Type0 of
+                 axis -> {Point, NewDef};
+                 point -> {NewDef, Axis}
+               end,
+               wings_pref:set_value(default_axis, Default),
+               keep
           end);
 command_1({tools,{align,Dir}}, St) ->
     {save_state,wings_align:align(Dir, St)};
@@ -840,7 +853,10 @@ tools_menu(_) ->
      {?__(32,"Move BB to Selection"),{move_bb_to_sel,wings_menu_util:all_xyz()}},
      {?__(33,"Scale BB to Selection"),{scale_bb_to_sel,Dirs}},
      separator,
-     {?__(14,"Set Default Axis"),set_default_axis,
+     {?__(14,"Set Default Axis"),{set_default_axis,
+       [{?__(34,"Set Axis and Point"),axis_point},
+        {?__(35,"Set Axis"),axis},
+        {?__(36,"Set Point"),point}]},
       ?__(15,"Define and store axis (with ref. point) for later use with any ")++
       ?__(16,"\"Default Axis\" command (e.g. Scale|Default Axis)")},
      separator,
