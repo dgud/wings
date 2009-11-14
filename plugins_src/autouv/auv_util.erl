@@ -111,11 +111,15 @@ number([H|T], N) ->
 number([], _) -> [].
 
 
-mark_segments(Charts, Cuts, We0, St) ->
+mark_segments(Charts0, Cuts, We0, St) ->
     We = We0#we{he=Cuts},			%Hard edges mark the cuts.
 
     %% Use materials to mark different charts.
-    Template = list_to_tuple([auv_util:make_mat(Diff) || {_,Diff} <- seg_materials()]),
+    Template = list_to_tuple([auv_util:make_mat(Diff) ||
+				 {_,Diff} <- seg_materials()]),
+    io:format("Combining ~p ~n", [length(Charts0)]),
+    Charts = ?TC(reuse_materials(Charts0, We0, length(Charts0))),
+    io:format("Result ~p ~n", [length(Charts)]),
     assign_materials(Charts, We, Template, 0, St).
 
 assign_materials([Faces|T], We0, Template, I0, #st{mat=Mat0}=St0) ->
@@ -151,3 +155,36 @@ seg_materials() -> % Intensity 0.7 for all
      {'AuvChart7',{0.0,0.7,0.4}},  % Cyan -> Green
      {'AuvChart8',{0.4,0.0,0.7}},  % Magenta -> Blue
      {'AuvChart9',{0.7,0.4,0.0}}]. 
+
+reuse_materials(Charts, _We, Size)
+  when Size < 10 ->
+    Charts;
+reuse_materials(Charts0, We, Size) ->
+    MakeSet = fun(Chart) ->
+		      Set0 = gb_sets:from_ordset(lists:sort(Chart)),
+		      Set = wings_face:extend_border(Set0, We),
+		      {gb_sets:size(Set), Set, Chart}
+	      end,
+    Charts1 = lists:reverse(lists:sort([MakeSet(Chart) ||
+					   Chart <- Charts0])),
+    reuse_materials(Charts1, We, Size, []).
+
+reuse_materials([Chart|Rest], We, Size0, Done)
+  when Size0 > 9 ->
+    {Next, Combined, Size} =
+	reuse_materials_1(Chart, Rest, Size0, We, []),
+    reuse_materials(Next, We, Size, [Combined|Done]);
+reuse_materials(_, _, _, Done) ->
+    Done.
+
+reuse_materials_1(Orig={_, Outer, Fs0}, [Keep = {_, Chart,Fs1}|Rest],
+		    Size, We, Acc) ->
+    case gb_sets:is_disjoint(Outer, Chart) of
+	true ->
+	    Border = gb_sets:union(Outer, Chart),
+	    reuse_materials_1({0,Border,Fs0++Fs1}, Rest, Size-1, We, Acc);
+	false ->
+	    reuse_materials_1(Orig, Rest, Size, We, [Keep|Acc])
+    end;
+reuse_materials_1({_, _, Combined}, [], Size, _We, Acc) ->
+    {lists:reverse(Acc), Combined, Size}.
