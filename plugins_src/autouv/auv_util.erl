@@ -117,9 +117,7 @@ mark_segments(Charts0, Cuts, We0, St) ->
     %% Use materials to mark different charts.
     Template = list_to_tuple([auv_util:make_mat(Diff) ||
 				 {_,Diff} <- seg_materials()]),
-    io:format("Combining ~p ~n", [length(Charts0)]),
-    Charts = ?TC(reuse_materials(Charts0, We0, length(Charts0))),
-    io:format("Result ~p ~n", [length(Charts)]),
+    Charts = reuse_materials(Charts0, We0, length(Charts0)),
     assign_materials(Charts, We, Template, 0, St).
 
 assign_materials([Faces|T], We0, Template, I0, #st{mat=Mat0}=St0) ->
@@ -165,17 +163,16 @@ reuse_materials(Charts0, We, Size) ->
 		      Set = wings_face:extend_border(Set0, We),
 		      {gb_sets:size(Set), Set, Chart}
 	      end,
-    Charts1 = lists:reverse(lists:sort([MakeSet(Chart) ||
-					   Chart <- Charts0])),
-    reuse_materials(Charts1, We, Size, []).
+    Charts1 = lists:sort([MakeSet(Chart) || Chart <- Charts0]),
+    reuse_materials(lists:reverse(Charts1), We, Size, []).
 
 reuse_materials([Chart|Rest], We, Size0, Done)
   when Size0 > 9 ->
     {Next, Combined, Size} =
 	reuse_materials_1(Chart, Rest, Size0, We, []),
     reuse_materials(Next, We, Size, [Combined|Done]);
-reuse_materials(_, _, _, Done) ->
-    Done.
+reuse_materials(Rest, _, _, Done) ->
+    Done ++ [Fs || {_, _, Fs} <- Rest].
 
 reuse_materials_1(Orig={_, Outer, Fs0}, [Keep = {_, Chart,Fs1}|Rest],
 		    Size, We, Acc) ->
