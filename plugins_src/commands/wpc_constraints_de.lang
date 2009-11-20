@@ -91,9 +91,6 @@
     {11,"Achse wählen entlang der die ~s der ~s ~s-Auswahl gemessen werden"},
     {12,"Die ~s der ~s ~s-Auswahl entlang der ~s Achse messen"},
     {13,"Die ~s der ~s ~s-Auswahl entlang ihrer Normalen messen"},
-    {14,"Die ~s beider Auswahlen bezogen auf ihre ~sn-Normalen messen"},
-    {15,"Achse wählen entlang der die ~s beider ~s-Auswahlen gemessen werden"},
-    {17,"Die ~s beider ~s-Auswahlen entlang der ~s Achse messen"},
     {18,"Aktuell ausgewählten Winkel von ~s abziehen"},
     {19,"Zweiten Winkel wählen von dem der aktuell ausgewählte Winkel abgezogen wird"},
     {20,"Vektor wählen und Winkel zur ursprünglichen ~s berechnen"},
@@ -124,7 +121,6 @@
     {4,"Knoten"},
     {5,"Kante"},
     {6,"Fläche"},
-    {7,"erste(n)"},
     {8,"zweite(n)"},
     {9,"Abstand"},
     {10,"Längen"},
@@ -157,7 +153,3 @@
     {4,"Alternativer Abstand"}
    ]}
  ]}.
-%% [wpc_constraints,menu_string3,14] is not used
-%% [wpc_constraints,menu_string3,15] is not used
-%% [wpc_constraints,menu_string3,17] is not used
-%% [wpc_constraints,mode_strings,7] is not used

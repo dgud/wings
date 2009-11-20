@@ -7,7 +7,7 @@
     {2,"Sphärisch versetzen"},
     {3,"Zylindrisch versetzen"}
    ]},
-  {menu,
+  {menu_heading,
    [
     {1,"Versetzen"}
    ]},
@@ -18,18 +18,5 @@
     {3,"Zentrum auswählen"},
     {4,"Achse auswählen"},
     {5,"Punkt auswählen"}
-   ]}
- ]}.
-%% [wpc_shift,menu] is not used
-
-%%
-%% The following strings have no translation.
-%%
-
-{wpc_shift,
- [
-  {menu_heading,
-   [
-    {1,"Versetzen"}
    ]}
  ]}.

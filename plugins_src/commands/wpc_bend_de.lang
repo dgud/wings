@@ -13,10 +13,6 @@
     {2,"Um Pivotpunkt biegen"},
     {3,"Mit Radius biegen"}
    ]},
-  {bend_vertex,
-   [
-    {1,"Winkel"}
-   ]},
   {bend_verts,
    [
     {1,"Biegen mit dieser Konfiguration nicht möglich"}

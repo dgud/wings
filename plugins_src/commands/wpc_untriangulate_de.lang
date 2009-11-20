@@ -29,7 +29,7 @@
   {process_edges,
    [
     {1,"De-triangulieren"},
-    {2,"Ziel-Kanten wählen"},
+    {2,"Zielkanten wählen"},
     {3,"Bilde Auswahlbaum"}
    ]},
   {untriangulate,

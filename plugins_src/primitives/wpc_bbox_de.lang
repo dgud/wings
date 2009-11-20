@@ -1,0 +1,15 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_bbox,
+ [
+  {bb_menu,
+   [
+    {1,"3D Rahmen"},
+    {2,"3D Rahmen erzeugen"}
+   ]},
+  {create_bbox,
+   [
+    {1,"3D Rahmen erzeugen"},
+    {2,"3D Dimensionen:"},
+    {3,"3D Zentrum:"}
+   ]}
+ ]}.

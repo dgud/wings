@@ -10,12 +10,7 @@
    [
     {1,"Keine Auswahl"},
     {2,"Knoten muß aus der ursprünglichen Kantenschleife sein"},
-    {3,"Kante muß aus der ursprünglichen Kantenschleife sein"},
     {4,"Nur eine Kante oder ein Knoten darf ausgewählt sein"}
-   ]},
-  {circ_mode_help,
-   [
-    {1,"[+] oder [-] Durchmesser anpassen "}
    ]},
   {circ_norm_help,
    [
@@ -24,29 +19,26 @@
    ]},
   {circ_sel_error,
    [
-    {1,"Auswahl muss entweder eine offene oder geschlossene Kantenschleife sein"}
+    {2,"Auswahl muß aus einer einzelnen geschlossenen oder offenen Kantenschleife bestehen"}
    ]},
   {circ_sel_error_1,
    [
     {1,"Ausgewählte Kantenschleifen dürfen keine gemeinsamen Knoten haben"}
    ]},
-  {circ_sel_error_2,
-   [
-    {1,"Auswahl muß aus geschlossenen Kantenschleifen\noder einer geschlossenen Knotenschleife bestehen"}
-   ]},
   {circ_sel_error_3,
    [
-    {1,"Kreisförmig machen offener Kantenschleifen erfordert Erweiterte Menüs"}
+    {2,"Auswahlen mit vereinzelten Kanten können nicht verarbeitet werden"}
    ]},
   {circ_sel_error_4,
    [
-    {1,"Mindestens zwei Kanten müssen ausgewählt sein"}
+    {2,"Kantenschleifen dürfen sich nicht schneiden und müssen alle offen oder geschlossen sein."}
    ]},
   {circular_arc_menu,
    [
     {1,"Kreisförmig"},
     {2,"Ausgewählte Kantenschleife durch ebenen, ausgleichen und aufblasen kreisförmig machen"},
-    {4,"Eine einzelne offene oder geschlossene Schleife anhand zweiter Auswahl kreisförmig machen"}
+    {4,"Eine einzelne offene oder geschlossene Schleife anhand zweiter Auswahl kreisförmig machen"},
+    {5,"Gemeinsame Ebene auswählen, auf die alle Kantenschleifen eingeebnet werden"}
    ]},
   {flatten_help,
    [
@@ -58,54 +50,21 @@
     {1,"  [2] Winkel-Normale umkehren"},
     {2,"  [2] ursprüngliche Winkel-Normale"}
    ]},
+  {radius_help,
+   [
+    {1,"  [3] Absoluten Durchmesser verwenden"},
+    {2,"  [3] Relativen Durchmesser verwenden"}
+   ]},
   {secondary_sel_ask,
    [
-    {1,"Knoten oder Kante der ursprünglichen Kantenschleife auswählen, der den stabilen Strahl zum Zentrum markiert"}
+    {1,"Knoten oder Kante der ursprünglichen Kantenschleife auswählen, der den stabilen Strahl zum Zentrum markiert"},
+    {2,"Mittelpunkt wählen"},
+    {3,"Ebene wählen"}
    ]},
   {selection_ask,
    [
     {1,"Ebene wählen"},
     {2,"Zentrums-Punkt wählen"},
     {3,"Punkt auswählen, von dem aus das Zentrum relativ zur gewählten Ebene und den Enden der Kantenauswahl berechnet wird"}
-   ]}
- ]}.
-%% [wpc_circularise,check_selection,3] is not used
-%% [wpc_circularise,circ_sel_error,1] is not used
-%% [wpc_circularise,circ_sel_error_3,1] is not used
-%% [wpc_circularise,circ_sel_error_4,1] is not used
-%% [wpc_circularise,circ_mode_help] is not used
-%% [wpc_circularise,circ_sel_error_2] is not used
-
-%%
-%% The following strings have no translation.
-%%
-
-{wpc_circularise,
- [
-  {secondary_sel_ask,
-   [
-    {3,"Ebene wählen"},
-    {2,"Mittelpunkt wählen"}
-   ]},
-  {radius_help,
-   [
-    {1,"  [3] Absoluten Durchmesser verwenden"},
-    {2,"  [3] Relativen Durchmesser verwenden"}
-   ]},
-  {circular_arc_menu,
-   [
-    {5,"Gemeinsame Ebene auswählen, auf die alle Kantenschleifen eingeebnet werden"}
-   ]},
-  {circ_sel_error_4,
-   [
-    {2,"Kantenschleifen dürfen sich nicht schneiden und müssen alle offen oder geschlossen sein."}
-   ]},
-  {circ_sel_error_3,
-   [
-    {2,"Auswahlen mit vereinzelten Kanten können nicht verarbeitet werden"}
-   ]},
-  {circ_sel_error,
-   [
-    {2,"Auswahl muß aus einer einzelnen geschlossenen oder offenen Kantenschleife bestehen"}
    ]}
  ]}.

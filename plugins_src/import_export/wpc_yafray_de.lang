@@ -251,11 +251,6 @@
    ]},
   {help,
    [
-    {1,"YafRay Material Eigenschaften"},
-    {2,"Jedes Material erzeugt einen YafRay Schattierer. OpenGL Eigenschaften die auf YafRay Schattierer Parameter abgebildet werden, sind:"},
-    {3,"Diffus * Deckkraft -> 'color'."},
-    {4,"Spiegelnd -> 'specular'."},
-    {5,"Glanz * 128 -> 'hard'."},
     {6,"YafRay Material Eigenschaften: Objekt Parameters"},
     {7,"Objekt-Parameter werden auf ganze Objekte angewandt und zwar auf die, die dieses Material auf der Mehrzahl ihrer Flächen haben."},
     {8,"Abbildung auf YafRay Objekt Parameter:"},
@@ -420,7 +415,9 @@
     {91,"Hintergrund"},
     {92,"Globaler Photonenlicht Dummy"},
     {93,"Abtastungen"},
-    {94,"Penumbra Abtastungen"}
+    {94,"Penumbra Abtastungen"},
+    {95,"OpenEXR Bild"},
+    {96,"Vorfilter"}
    ]},
   {material_dialog,
    [
@@ -508,7 +505,6 @@
    [
     {1,"Render"},
     {2,"Export"},
-    {3,"YafRay Datei"},
     {4,"Ausgewählte exportieren"},
     {5,"YafRay Datei"}
    ]},
@@ -517,9 +513,3 @@
     {1,"WARNUNG: Multiple Hintergründe"}
    ]}
  ]}.
-%% [wpc_yafray,help,1] is not used
-%% [wpc_yafray,help,2] is not used
-%% [wpc_yafray,help,3] is not used
-%% [wpc_yafray,help,4] is not used
-%% [wpc_yafray,help,5] is not used
-%% [wpc_yafray,props,3] is not used

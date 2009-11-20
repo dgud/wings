@@ -14,7 +14,8 @@
     {5,"Abbrechen"},
     {6," existiert; überschreiben?"},
     {7,"Ja"},
-    {8,"Nein"}
+    {8,"Nein"},
+    {9,"UTF-8 kodierte Dateinamen"}
    ]},
   {file_filters,
    [

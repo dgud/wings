@@ -56,7 +56,10 @@
     {2,"Malen Aus-/Abwählen mit Doppelklick linke Maustaste"},
     {3,"Klickgeschwindigkeit"},
     {4,"Feineinstellungen Voreinstellungen"},
-    {7,"Tastenoptionen"}
+    {7,"Tastenoptionen"},
+    {8,"MMT Wählt an/ab (Nur im Maya Kamera Modus)"},
+    {9,"Optionenpanel"},
+    {10,"Magnetradius Inkrement"}
    ]},
   {tweak_pref,
    [
@@ -64,19 +67,5 @@
     {2,"[Alt]+L Gleiten (+[Strg] zum Bereinigen)"},
     {3,"[Strg]+L Auswählen"},
     {4,"[Strg]+L Gleiten (+[Alt] zum Bereinigen)"}
-   ]}
- ]}.
-
-%%
-%% The following strings have no translation.
-%%
-
-{wpc_tweak,
- [
-  {tweak,
-   [
-    {10,"Magnetradius Inkrement"},
-    {9,"Optionenpanel"},
-    {8,"MMT Wählt an/ab (Nur im Maya Kamera Modus)"}
    ]}
  ]}.

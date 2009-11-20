@@ -1,10 +1,6 @@
 %% -*- mode:erlang; erlang-indent-level: 2 -*-
 {wpc_shear,
  [
-  {check_glide_plane_norm,
-   [
-    {3,"Achse durch Gleitebene ist zu kurz"}
-   ]},
   {glide_plane_menu,
    [
     {1,"Gleitebene Flächen gegenüber ~s.(Parallel zu der Knotenbewegung beschränkt ist)"},
@@ -48,10 +44,6 @@
    [
     {1,"Asymmetrisch"},
     {2,"Symmetrisch"}
-   ]},
-  {shear_help,
-   [
-    {5,"[+] oder [-] Kurve"}
    ]},
   {shear_mode_help,
    [

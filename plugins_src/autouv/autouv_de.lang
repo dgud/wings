@@ -113,10 +113,7 @@
     {4,"Rand-Kanten zeichnen"},
     {5,"Kantenfarbe:"},
     {6,"Kantenbreite:"},
-    {7,"Flächen-Material verwenden (an Rand-Kanten)"},
-    {8,"Material-Farben verwenden"},
-    {9,"(Vorherige) Textur-/Knoten-Farben verwenden"},
-    {10,"Keine Lichtquellen:"}
+    {8,"Material-Farben verwenden"}
    ]},
   {render_passes,
    [
@@ -142,17 +139,10 @@
     {1,"UV Abbildung"},
     {2,"UV Abbildung oder Textur erzeugen"},
     {3,"Segmentier-Modus erzwingen (alte Segmente löschen)"},
-    {4,"Direkt"},
-    {5,"UV Fenster direkt öffnen, wenn Auswahl bereits UV-Koordinaten enthält"},
-    {6,"Segmentierung erzwingen (Vorherige löschen)"},
-    {7,"Alte UV-Koordinaten löschen und neue Segmentierung starten"},
-    {8,"Segmentierung erzwingen (Vorherige beibehalten))"},
-    {9,"Neu-Segmentierung mit vorhandenen UV-Koordinaten "},
     {25,"Objekt(e) neu segmentieren"}
    ]},
   {command_menu,
    [
-    {1,"Karten-Operationen"},
     {2,"Verschieben"},
     {3,"Ausgewählte Karten verschieben"},
     {4,"Skalieren"},
@@ -197,7 +187,6 @@
     {43,"Sphärisch"},
     {44,"Sphärische Abbildung"},
     {45,"UV-Koordinaten mit gewähltem Algorithmus berechnen"},
-    {46,"Flächen Operationen"},
     {47,"Verschieben"},
     {48,"Ausgewählte Flächen verschieben"},
     {49,"Skalieren"},
@@ -210,7 +199,6 @@
     {56,"Karte rotieren und ausgewählte Kante an X-Achse ausrichten"},
     {57,"Karte auf Y"},
     {58,"Karte rotieren und ausgewählte Kante an Y-Achse ausrichten"},
-    {59,"Kanten Operationen"},
     {60,"Verschieben"},
     {61,"Ausgewählte Kanten verschieben"},
     {62,"Skalieren"},
@@ -227,7 +215,6 @@
     {73,"Karte rotieren und (imaginäre) Kante auf ausgewählte Knoten zur X-Achse ausrichten"},
     {74,"Karte auf Y"},
     {75,"Karte rotieren und (imaginäre) Kante auf ausgewählte Knoten zur Y-Achse ausrichten"},
-    {76,"Knoten Operationen"},
     {77,"Verschieben"},
     {78,"Ausgewählte Knoten verschieben"},
     {79,"Skalieren"},
@@ -385,13 +372,6 @@
     {20,"Fangen-Modus beenden"}
    ]}
  ]}.
-%% [wpc_autouv,auv_menu,4] is not used
-%% [wpc_autouv,auv_menu,5] is not used
-%% [wpc_autouv,auv_menu,6] is not used
-%% [wpc_autouv,auv_menu,7] is not used
-%% [wpc_autouv,auv_menu,8] is not used
-%% [wpc_autouv,auv_menu,9] is not used
-%% [wpc_autouv,command_menu,1] is not used
-%% [wpc_autouv,command_menu,46] is not used
-%% [wpc_autouv,command_menu,59] is not used
-%% [wpc_autouv,command_menu,76] is not used
+%% [auv_texture,options,7] is not used
+%% [auv_texture,options,9] is not used
+%% [auv_texture,options,10] is not used

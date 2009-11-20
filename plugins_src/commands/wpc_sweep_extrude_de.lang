@@ -3,13 +3,18 @@
  [
   {axis_menu,
    [
-    {1,"Ausziehen relativ zur Länge der Auswahl entlang der Achse"}
+    {2,"Ausziehen relativ zum Anteil am Auswahlradius"}
    ]},
   {axis_menu_string,
    [
     {1,"Relativ zum Bildschirm frei ausziehen"},
     {2,"Ohne seitwärts Bewegung entlang der Normalen ausziehen "},
     {3,"Wenn die ~s Achse senkrecht zur Auszieh-Normalen ist, werden alle Bewegungen auf deren radiale Ebene beschränkt. Andernfalls verhält sie sich wie eine off-axis Komponente."}
+   ]},
+  {base_help,
+   [
+    {1,"  [4] Basis einfrieren"},
+    {2,"  [4] Basis auftauen"}
    ]},
   {cntr_help,
    [
@@ -39,44 +44,16 @@
    ]},
   {sweep_error,
    [
-    {1,"Die mittlere Normale einer Region kann nicht Null sein"}
+    {2,"Region ausziehen für vollständig ausgewählte Objekte nicht möglich"}
    ]},
   {sweep_menu,
    [
-    {2,"Achse auswählen und Ausziehen relativ zur Ausdehnung der Auswahl entlang dieser Achse messen"},
-    {3,"Achse auswählen"}
+    {3,"Achse auswählen"},
+    {4,"Achse wählen und relativ zum Anteil am Auswahlradius ausziehen"}
    ]},
   {warp_help,
    [
     {1,"  [2] Form beibehalten"},
     {2,"  [2] Verwindung erlauben"}
-   ]}
- ]}.
-%% [wpc_sweep_extrude,axis_menu,1] is not used
-%% [wpc_sweep_extrude,sweep_error,1] is not used
-%% [wpc_sweep_extrude,sweep_menu,2] is not used
-
-%%
-%% The following strings have no translation.
-%%
-
-{wpc_sweep_extrude,
- [
-  {sweep_menu,
-   [
-    {4,"Achse wählen und relativ zum Anteil am Auswahlradius ausziehen"}
-   ]},
-  {sweep_error,
-   [
-    {2,"Region ausziehen für vollständig ausgewählte Objekte nicht möglich"}
-   ]},
-  {base_help,
-   [
-    {1,"  [4] Basis einfrieren"},
-    {2,"  [4] Basis auftauen"}
-   ]},
-  {axis_menu,
-   [
-    {2,"Ausziehen relativ zum Anteil am Auswahlradius"}
    ]}
  ]}.

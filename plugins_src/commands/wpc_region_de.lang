@@ -4,7 +4,7 @@
   {menu,
    [
     {1,"Region"},
-    {2,"Region entlang der Normalen ihrer Kantenschleife verschieben."},
+    {2,"Region entlang Normale ihrer Kantenschleife verschieben."},
     {3,"Region"},
     {4,"Region von der Ebene ihrer Kantenschleife aus skalieren."},
     {5,"Region"},

@@ -18,22 +18,11 @@
     {2,"Zu verschmelzende Knoten müssen eine gemeinsame Kante haben"},
     {3,"Sie können nur auf einen Punkt verschmelzen"},
     {4,"Keine Auswahl"},
-    {5,"Sie können nur innerhalb des selben Objekts verschmelzen"}
+    {5,"Sie können nur innerhalb des selben Objekts verschmelzen"},
+    {6,"Verschmelzen würde Zwischenstück übrig lassen"}
    ]},
   {weld_select,
    [
     {1,"Ziel-Knoten für Verschmelzung auswählen (Knoten müssen eine gemeinsame Kante haben) "}
-   ]}
- ]}.
-
-%%
-%% The following strings have no translation.
-%%
-
-{wpc_weld,
- [
-  {weld_check_selection,
-   [
-    {6,"Verschmelzen würde Zwischenstück übrig lassen"}
    ]}
  ]}.

@@ -7,10 +7,6 @@
     {2,"Maskierung umschalten"},
     {3,"Maskierung Einschalten"}
    ]},
-  {select_menu_entry,
-   [
-    {1,"Magnetmaske"}
-   ]},
   {tools_menu_entry,
    [
     {1,"Magnetmaske"},
@@ -19,10 +15,15 @@
     {4,"Umkehren"},
     {6,"Auswahl gegen Einfluß von Magneten sperren"},
     {7,"Alle gesperrten Elemente der Auswahl entsperren"},
-    {8,"Gesperrte und entsperrte Elemente umkehren"}
+    {8,"Gesperrte und entsperrte Elemente umkehren"},
+    {9,"Abwählen"},
+    {10,"Gesperrte Element aus aktueller Auswahl entfernen"},
+    {11,"Auswählen"},
+    {12,"Gesperrte Elemente zur aktuellen Auswahl hinzufügen"}
    ]},
   {view_menu_entry,
    [
-    {1,"Magnetmaske zeigen"}
+    {1,"Magnetmaske zeigen"},
+    {2,"Magnetmaske zeigen"}
    ]}
  ]}.

@@ -13,13 +13,6 @@
    ]},
   {menu_item,
    [
-    {1,"Schnittpunkt"},
-    {2,"Auf einer Geraden"},
-    {3,"Knoten entlang einer Geraden gegebener Richtung auf Schnittpunkt mit gewählter Ebene verschieben"},
-    {4,"In einer Ebene"},
-    {5,"Knoten in Ebene mit gegebener Normalen auf Schnittpunkt mit gegebener Linie verschieben"},
-    {6,"Gerade und Ebene wählen"},
-    {7,"Knoten auf Schnittpunkt einer Geraden aus Richtung und Ortspunkt mit Ebene aus Normale und Ortspunkt verschieben"},
     {8,"Schnittpunkt"}
    ]},
   {submenu_items,

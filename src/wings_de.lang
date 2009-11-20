@@ -38,7 +38,7 @@
     {8,"Letzten Befehl rückgängig machen"},
     {9,"Wiederholen"},
     {10,"Parameter wiederholen"},
-    {11,"Verschieben wiederholen"},
+    {11,"Vorgang wiederholen"},
     {12,"Einstellungen für Erweiterungen"},
     {13,"Rückgängig Historie leeren"}
    ]},
@@ -54,12 +54,6 @@
    [
     {1,"Geometrie"},
     {2,"Geometrie #"}
-   ]},
-  {halt_loop,
-   [
-    {1,"Schwerer interner Fehler - Protokoll ~s\n"},
-    {2,"<Unbekannter Fenstername>"},
-    {3,"Schwerer interner Fehler - Siehe Logdatei ~s\n"}
    ]},
   {handle_drop_1,
    [
@@ -79,6 +73,11 @@
    [
     {1,"Auswählen"},
     {2,"Kontextmenü anzeigen"}
+   ]},
+  {hole_info,
+   [
+    {1,"Loch"},
+    {2,"Löcher"}
    ]},
   {info_1,
    [
@@ -117,11 +116,6 @@
     {5,". Abstand ~s  <~s, ~s, ~s>"},
     {6,". Winkel ~s"}
    ]},
-  {object_mode,
-   [
-    {material,"Material"},
-    {vertex,"Knoten-Farbe"}
-   ]},
   {patches,
    [
     {1,"Verwende "}
@@ -133,15 +127,10 @@
     {3,"Keine Schritte zum löschen"},
     {4,"Alle Schritte löschen (NICHT umkehrbar)?"}
    ]},
-  {scene_size_info,
-   [
-    {1,"Die Szene belegt ungefähr ~s ~s [~p Bytes]"},
-    {2,"Speicherverbrauch"}
-   ]},
   {shape_info,
    [
     {2,"~p Objekte, ~p Flächen, ~p Kanten, ~p Knoten"},
-    {object_info,"Objekt ~p \"~s\" hat ~p Polygone, ~p Kanten, ~p Knoten.\nModus ~s"}
+    {new_object_info,"Objekt ~p \"~s\" hat ~p Polygone, ~p Kanten, ~p Knoten~s~s."}
    ]},
   {tools_menu,
    [
@@ -169,8 +158,8 @@
     {29,"Ausgewählte Objekte auf die Bodenplatte positionieren"},
     {30,"Vereinheitlichen"},
     {31,"Ausgewählte Objekte in einheitliche Sphäre einpassen und auf den Ursprung verschieben"},
-    {32,"Speicherverbrauch"},
-    {33,"Berechnet den Speicherverbrauch der aktuellen Szene basierend auf dem gespeicherten Status"}
+    {32,"3D-Rahmen auf Auswahl verschieben"},
+    {33,"3D-Rahmen auf Auswahl skalieren"}
    ]},
   {undo_info,
    [
@@ -179,6 +168,10 @@
     {3,"es gibt ~p Rückgängig-Schritte"},
     {4,"; eine Aktion kann rückgängig gemacht werden"},
     {5,"; ~p Aktionen? können rückgängig gemacht werden"}
+   ]},
+  {vtx_attributes,
+   [
+    {1,"Knoten-Attribute"}
    ]},
   {window_menu,
    [
@@ -264,22 +257,14 @@
     {1,"Achse auswählen entlang der Objekt gespiegelt wird"},
     {2,"Punkt entlang der gewählten Achse auswählen um Objekt zu spiegeln"}
    ]},
-  {mat_col_conv,
-   [
-    {1,"Farben zu Materialien"},
-    {2,"Knoten-Farben in Materialien umwandeln"},
-    {3,"Materialien zu Farben"},
-    {4,"Materialien in Knoten-Farben umwandeln"}
-   ]},
   {menu,
    [
-    {1,"Körper Operationen"},
     {2,"Verschieben"},
     {3,"Spiegeln"},
     {10,"Invertieren"},
     {11,"Alle Normalen umdrehen. Dreht das Objekt von innen nach außen."},
     {12,"Straffen"},
-    {13,"Alle Knoten gegen den gemeinsamen Mittelpunkt verschieben"},
+    {13,"Knoten gegen gemeinsamen Mittelpunkt verschieben"},
     {14,"Glätten"},
     {15,"Alle Flächen unterteilen, um dem Objekt ein weicheres Aussehen zu geben"},
     {16,"Kombinieren"},
@@ -299,33 +284,33 @@
     {30,"Ausgewählte Objekte umbenennen"},
     {31,"Alle zeigen"},
     {32,"Alle Flächen des Objekts zeigen"},
+    {33,"Knoten-Attribute"},
     {34,"Objekt entlang ~s Achse spiegeln"},
     {35,"Punkt wählen an dem Objekt entlang ~s Achse gespiegelt wird"},
     {36,"Objekt entlang globaler ~s Achse spiegeln"},
     {37,"Wählen"},
     {38,"Achse wählen entlang der Objekt gespiegelt wird"},
     {39,"Achse und Punkt wählen entlang denen Objekt gespiegelt wird"},
-    {40,"Globale Achse wählen entlang der Objekt gespiegelt wird"}
-   ]},
-  {mode_conv,
-   [
-    {1,"Knoten-Farbe-Modus"},
-    {2,"Objekt-Modus in Knoten-Farbe-Modus ändern (Materialien bleiben erhalten, aber nicht angezeigt)"},
-    {3,"Material-Modus"},
-    {4,"Objekt-Modus in Material-Modus ändern (Knoten-Farben bleiben erhalten, aber nicht angezeigt)"}
+    {40,"Globale Achse wählen entlang der Objekt gespiegelt wird"},
+    {41,"Farben in Materialien"},
+    {42,"Knoten-Farben in Materialien umwandeln"},
+    {43,"Materialen in Farben"},
+    {44,"Materialien in Knoten-Farben umwandeln"},
+    {45,"Farben entfernen"},
+    {46,"Alle Knoten-Farben entfernen"},
+    {47,"UV Koordinaten entfernen"},
+    {48,"Alle UV Koordinaten entfernen"},
+    {49,"Alle Attribute entfernen"},
+    {50,"Alle Knoten-Farben und UV Koordinaten entfernen"}
    ]},
   {rename_1,
    [
     {1,"Umbenennen"}
    ]},
-  {unify_modes,
-   [
-    {1,"Objekte mit Knoten-Farben können nicht mit Objekten mit Materialien kombiniert werden."}
-   ]},
   {vertex_color_item,
    [
     {1,"Knoten-Farbe"},
-    {2,"Knoten-Farben ausgewählte Objekten zuweisen (Wechselt in Knoten-Farbe-Modus falls erforderlich)"}
+    {3,"Knotenfarbe auf ausgewählte Objekte übertragen"}
    ]},
   {weld,
    [
@@ -454,7 +439,7 @@
     {1,"Zufällig"},
     {2,"einer zufälligen Richtung verschieben"},
     {4,"seiner Normalen verschieben"},
-    {8,"Jeden Knoten einen zufälligen Betrag verschieben"}
+    {8,"Jeden Knoten um einen zufälligen Betrag verschieben"}
    ]},
   {dir,
    [
@@ -587,7 +572,6 @@
    ]},
   {menu,
    [
-    {1,"Kanten Operationen"},
     {2,"Verschieben"},
     {3,"Gleiten"},
     {4,"Kante entlang Nachbarkanten gleiten lassen"},
@@ -607,6 +591,7 @@
     {18,"Objekte entlang Kantenschleifen in zwei Objekte aufteilen"},
     {19,"Knoten-Farbe"},
     {20,"Knoten-Farben auf ausgewählte Kanten anwenden"},
+    {21,"Kanten löschen, durch Knoten ersetzen und neu entstandene isolierte Knoten entfernen"},
     {50,"Ausgewählte Kanten eliminieren und übrig gebliebene isolierte Knoten entfernen."}
    ]},
   {plain_cut_menu,
@@ -663,6 +648,14 @@
    [
     {1,"Ziel-Elemente auswählen auf der die Duplikate aufgesetzt werden sollen"}
    ]},
+  {create_hole_1,
+   [
+    {1,"Ein Loch kann nicht alle Flächen eines Objekts einschließen."}
+   ]},
+   {intrude,
+   [
+    {1,"Eindringen nicht möglich wenn alle Flächen ausgewählt sind."}
+   ]},
   {lift_check_selection,
    [
     {1,"Ausgewählte Fläche und Kanten passen nicht zueinander."},
@@ -687,11 +680,8 @@
    ]},
   {menu,
    [
-    {1,"Flächen Befehle"},
     {2,"Verschieben"},
     {3,"Ausstoßen"},
-    {4,"Region ausstoßen"},
-    {5,"Region extrahieren"},
     {8,"Eindringen"},
     {9,"Objekt aushöhlen und ausgewählte Flächen zu Löchern machen"},
     {10,"Abkanten"},
@@ -702,7 +692,7 @@
     {15,"Ausgewählte Flächen ausbeulen"},
     {16,"Anheben"},
     {17,"Aufsetzen"},
-    {18,"Objekt verschieben, rotieren und mit Fläche auf Element aufsetzen"},
+    {18,"Objekt verschieben und rotieren, mit gewählter Fläche an anderem Element ausrichten"},
     {19,"Objekt duplizieren und auf Element(e) aufsetzen"},
     {20,"Spiegeln"},
     {21,"Objekt an ausgewählter Flächen spiegeln und zu einem Objekt vereinigen"},
@@ -718,7 +708,12 @@
     {31,"Knoten-Farben auf ausgewählte Flächen anwenden"},
     {32,"Verbergen"},
     {33,"Ausgewählte Flächen verbergen"},
-    {34,"Ausgewählte Flächen eleminieren und verbleibende isolierte Ecken löschen"}
+    {34,"Ausgewählte Flächen eleminieren und verbleibende isolierte Ecken löschen"},
+    {35,"Extrahieren"},
+    {36,"Hülle Extrahieren"},
+    {37,"Loch"},
+    {38,"Loch erzeugen"},
+    {39,"An ausgewählte Ebene grenzende Löcher entfernen"}
    ]},
   {put_on,
    [
@@ -736,10 +731,6 @@
   {smooth,
    [
     {1,"glätten"}
-   ]},
-  {unify_modes,
-   [
-    {1,"Zwischen Objekten mit Knoten-Farben und Objekten mit Materialien kann nicht überbrückt werden."}
    ]}
  ]}.
 {wings_ff_ndo,
@@ -814,10 +805,6 @@
    [
     {1,"unbenanntes Bild"},
     {2,"Fehlerhaftes Bild: ~p\n"}
-   ]},
-  {import_object_mode,
-   [
-    {1,"Undefinierten Modus in Material geändert\n"}
    ]},
   {import_props,
    [
@@ -906,7 +893,9 @@
     {25,"Beenden"},
     {26,"Dateinamen inkrementieren und Szene speichern"},
     {27,"Erweiterung installieren"},
-    {28,"Wings 3D beenden"}
+    {28,"Wings 3D beenden"},
+    {29,"Nicht verwendete Materialien speichern"},
+    {30,"Nicht verwendete Materialien beim Speichern einer .wings Datei einschließen"}
    ]},
   {merge,
    [
@@ -945,24 +934,6 @@
  ]}.
 {wings_help,
  [
-  {advanced_menus,
-   [
-    {1,"Im "},
-    {4," Dialog ist ein Kontrollkästchen für \"Erweiterte Menüs\"."},
-    {5,"\"Erweiterte Menüs\" bieten folgende zusätzlichen Funktionen an:"},
-    {6,"Neue Befehle: "},
-    {7,"Fläche"},
-    {8,"Aufsetzen"},
-    {9," und "},
-    {10,"Fläche"},
-    {11,"Anheben"},
-    {12,"Vektor basierte Operationen: Hierbei wird eine Achse (oder ein Vektor) spezifiziert mit der die Möglichkeit diese so zu verschieben, dass sie durch einen neuen Punkt geht."},
-    {13,"Magnet Operationen: Eine Einrichtung die bei der Anwendung aller zulässigen Werkzeuge weiche Modifikationen/Verschiebungen der umgebenden Geometrie ermöglicht. Einstellungen für Magnettyp und Einflussradius bieten weitere Steuerungsoptionen."},
-    {14,"Vektor- und Magnet-Operationen können kombiniert werden."},
-    {15,"Wenn \"Erweiterte Menüs\" aktiviert sind, führen viele Menüeinträge zu unterschiedlichen Befehle, je nach dem mit welcher Maustaste sie ausgewählt werden."},
-    {16,"Zum Beispiel: Ein Klick mit der rechten Maustaste auf den \"Rotieren\" Eintrag erlaubt die Angabe einer Achse (oder eines Vektors) um den die aktuelle Auswahl rotiert, während ein Klick mit der mittleren Taste die    Angabe einer Achse und eines neuen Punktes durch den diese Achse geht erlaubt (Ein Vektor darf nicht parallel zu einer X, Y oder Z Achse sein)."},
-    {17,"Wenn \"Erweiterte Menüs\" verwendet werden, wird dringend empfohlen, den Inhalt der Informationszeile am unteren Rand des Wings Fensters zu    lesen."}
-   ]},
   {def_commands,
    [
     {1,"Standard Befehle können unter "},
@@ -979,9 +950,9 @@
     {4,"Um einen Befehl einer Kurztaste zuzuweisen:"},
     {5,"1. Öffnen Sie das Menü, dass den Befehl enthält und markieren Sie den Befehl."},
     {6,"2. Drücken Sie die [Einfg] oder die [/] Taste."},
-    {7,"3. Wenn der Befehl unterschiedliche Dinge bewirkt, je nachdem, welche Maus-Taste gedrückt wird (wenn Erweiterte Menüs aktiviert sind), erscheint in der Informationszeile eine Aufforderung, eine Maus-Taste zu drücken um zu festzulegen, welche Variante des Befehl der Kurztaste zugewiesen werden soll (Hinweis: Der Mauszeiger muss in dem Menü bleiben, während Sie klicken)."},
     {8,"4. Die Informationszeile fordert Sie auf die Taste zu drücken, der sie den Befehl zuweisen wollen."},
-    {9,"Um eine Kurztaste zu löschen, markieren Sie den Menübefehl auf die gleiche Weise und drücken Sie die [Entf] oder die [\\] Taste. Ein Dialog erscheint, der alle Tasten auflistet, denen der Befehl zugewiesen ist. Markieren Sie alle Tasten, die Sie löschen wollen."}
+    {9,"Um eine Kurztaste zu löschen, markieren Sie den Menübefehl auf die gleiche Weise und drücken Sie die [Entf] oder die [\\] Taste. Ein Dialog erscheint, der alle Tasten auflistet, denen der Befehl zugewiesen ist. Markieren Sie alle Tasten, die Sie löschen wollen."},
+    {10,"3. Wenn der Befehl unterschiedliche Dinge bewirkt, je nachdem welche Maus-Taste gedrückt wird, erscheint in der Informationszeile die Aufforderung, eine Maus-Taste zu drücken um zu festzulegen, welche Variante des Befehl der Kurztaste zugewiesen werden soll (Hinweis: Der Mauszeiger muss in dem Menü bleiben, während Sie klicken)."}
    ]},
   {edit_prefs,
    [
@@ -1007,7 +978,6 @@
     {4,"Definierte Kurztasten"},
     {5,"Kurztasten definieren"},
     {6,"Licht Grundlagen"},
-    {7,"Erweiterte Menüs"},
     {8,"Standard Befehle"},
     {9,"Performanz Hinweise"},
     {10,"OpenGL Informationen"},
@@ -1088,7 +1058,8 @@
     {41,"Max. Anzahl Textureinheiten"},
     {42,"Anzahl Komprimierungsformate"},
     {43,"Max. Anzahl Knoteneinheiten"},
-    {44,"OpenGL Erweiterungen"}
+    {44,"OpenGL Erweiterungen"},
+    {45,"Sample buffers"}
    ]},
   {performance_tips,
    [
@@ -1123,7 +1094,6 @@
     {29,"Kanten anzeigen"},
     {30," aus."},
     {31,"Weniger Rückgängig-Ebenene verwenden. 4 oder weniger Ebenen (Standard 32) ermöglicht das arbeiten an Modellen mit 8-mal mehr Details. In diesem Fall empfiehlt sich eine kürzere Periode (Standard 10 Min.) beim automatischen Speichern."}
-
    ]},
   {splash_contents,
    [
@@ -1308,7 +1278,6 @@
    ]},
   {menu,
    [
-    {1,"Lichtquelle Operationen"},
     {2,"Verschieben"},
     {3,"Position Zielpunkt"},
     {4,"Zielpunkt oder Ort der Lichtquelle festlegen"},
@@ -1425,9 +1394,6 @@
    ]},
   {material_menu,
    [
-    {1,"Material"},
-    {2,"Neu..."},
-    {3,"Neues Material erzeugen und ausgewählten Flächen zuweisen"},
     {4,"Material"}
    ]},
   {new_1,
@@ -1501,10 +1467,6 @@
     {2,"Achse skalieren"},
     {3,"Radial skalieren"}
    ]},
-  {basic_scale,
-   [
-    {1,"Skalieren"}
-   ]},
   {dir_help,
    [
     {3,"letzten Achse"},
@@ -1516,17 +1478,17 @@
    ]},
   {dir_help_1,
    [
-    {1,"Element verschieben "},
+    {1,"Elemente verschieben "},
     {2,"Frei rotieren"},
     {3,"Um die Normale jedes Elements rotieren"},
     {4,"Jedes Element ausstoßen, dann verschieben "},
-    {5,"Flächen als Region ausstoßen, dann Flächen entlang Normalen der Region verschieben"},
+    {5,"Flächen als Region ausstoßen, dann Flächen entlang Normale der Region verschieben"},
     {6,"Flächen als Region ausstoßen, dann Flächen verschieben "},
-    {7,"Flächen extrahieren, dann Flächen entlang Normalen der Region verschieben"},
+    {7,"Flächen extrahieren, dann Flächen entlang Normale der Region verschieben"},
     {8,"Flächen extrahieren, dann Flächen verschieben "},
     {9,"Elemente auf Normalenebene ebnen"},
     {10,"Fläche entlang ihrer Normalen anheben"},
-    {11,"Fläche anheben und frei bewegen "},
+    {11,"Fläche anheben und verschieben "},
     {12,"Duplizieren und frei bewegen "},
     {13,"Elemente verschieben entlang der "},
     {14,"Element ausstoßen und verschieben entlang der "},
@@ -1538,27 +1500,35 @@
     {20,"Ebnen senkrecht zur "},
     {21,"Ebnen und verschieben nach "},
     {22,"Fläche anheben entlang der "},
-    {23,"Duplizieren, dann verschieben entlang der "}
+    {23,"Duplizieren, dann verschieben entlang der "},
+    {24,"Jedes Element extrahieren, dann verschieben "},
+    {25,"Elemente extrahieren, dann verschieben entlang "},
+    {26,"Flächen als Region extrahieren und ausstoßen, dann verschieben entlang "}
    ]},
   {dirs,
    [
     {1,"Entlang Standardachse verschieben"},
-    {2,"Entlang ausgewählter Achse verschieben"},
+    {2,"Achse wählen entlang der verschoben wird"},
     {3,"Entlang der Standardachse verschieben"},
     {4,"Entlang Normale der Auswahl verschieben"},
     {5,"Entlang ausgewählter Achse verschieben"},
     {6,"Entlang Standardachse ausstoßen"},
     {7,"Entlang Normale der Auswahl ausstoßen"},
     {8,"Achse auswählen entlang der ausgestoßen wird"},
-    {9,"Entlang Standardachse ausstoßen"},
-    {10,"Entlang Normale der Auswahl ausstoßen"},
-    {11,"Achse auswählen entlang der ausgestoßen wird"},
     {12,"Entlang Standardachse extrahieren"},
-    {13,"Entlang Normale der Auswahl extrahieren"},
-    {14,"Achse auswählen entlang der extrahiert wird"},
     {15,"Duplizieren und entlang Standardachse verschieben"},
     {16,"Duplizieren, nicht verschieben"},
-    {17,"Duplizieren und Achse auswählen entlang der verschoben wird"}
+    {17,"Duplizieren und Achse auswählen entlang der verschoben wird"},
+    {22,"Hülle extrahieren und entlang Standardachse ausstoßen"},
+    {23,"Hülle extrahieren und entlang Normale der Auswahl ausstoßen"},
+    {24,"Achse wählen und Hülle entlang dieser extrahieren und ausstoßen"}
+   ]},
+  {dirs_help,
+   [
+    {18,"Achse wählen entlang der alle Flächen ausgestoßen werden"},
+    {19,"Pick axis to extrude each region of faces along"},
+    {20,"Achse wählen entlang der alle Flächen ausgestoßen werden"},
+    {21,"Pick axis to extract each region of faces along"}
    ]},
   {flatten,
    [
@@ -1980,8 +1950,6 @@
     {50,"Antialiasing für Kanten"},
     {51,"Standard"},
     {52,"Farbe des Standard-Materials setzen"},
-    {53,"Loch"},
-    {54,"Farbe des Loch-Materials setzen"},
     {55,"Materialien"},
     {56,"Mini-Achse zeigen"},
     {57,"Breite harte Kanten"},
@@ -1992,6 +1960,12 @@
     {62,"Zusätzliche Informationen für ausgewählte Elemente anzeigen"},
     {63,"Mouseover"},
     {64,"Zusätzliche Informationen für hervorgehobene Elemente anzeigen, wenn Maus darüber bewegt wird"},
+    {65,"Größe der Knoten der Magnetmaske"},
+    {66,"Pixelgröße der Kanten der Magenetmaske"},
+    {67,"Nicht ausgewählte Knoten"},
+    {68,"Farbe nicht ausgewählter Knoten"},
+    {69,"Magnetmaske"},
+    {70,"Kantenfarbe der Magnetmaske"},
     {aa_ortho1,"Ortho.-Modus bei Hauptachsenausrichtung"},
     {aa_ortho2,"In Orthogonal Modus wechseln, wenn die Ansicht entlang einer der Hauptachsen ausgerichtet ist"}
    ]},
@@ -2024,14 +1998,15 @@
     {20,"Problem tritt unter Mac OS X 10.3 (Panther) auf"},
     {21,"Behelfslösungen"},
     {22,"Anzeigeprobleme bei Kanten?"},
-    {23,"Kantenversatz:"}
+    {23,"Kantenversatz:"},
+    {24,"Entwicklermenü anzeigen"},
+    {25,"Menü mit Werkzeugen für Wings-Entwickler anzeigen"}
    ]},
   {smart_set_value_1,
    [
     {1,"Änderungen der Systemschriftart werden\nbeim nächsten Start von Wings 3D wirksam."},
     {2,"Änderungen der Werkzeugleistensymbole werden\nbeim nächsten Start von Wings 3D wirksam."},
-    {3,"Änderungen der Standard-Material Farbe werden beim\nnächsten Start von Wings 3D wirksam."},
-    {5,"Änderungen der Loch-Material Farbe werden beim\nnächsten Start von Wings 3D wirksam."}
+    {3,"Änderungen der Standard-Material Farbe werden beim\nnächsten Start von Wings 3D wirksam."}
    ]},
   {ui_prefs,
    [
@@ -2064,6 +2039,8 @@
     {27,"Erweiterte Werkzeugleistensymbole"},
     {28,"Menüleiste Hintergrund"},
     {29,"Informationstext Hintergrund"},
+    {30,"Informationstext Vordergrund"},
+    {31,"Menüleiste Vordergrund"},
     {50,"Oberflächensymbole"},
     {51,"Klassisch"},
     {52,"Blauer Würfel"},
@@ -2299,6 +2276,8 @@
     {93,"Kürzester Pfad (A-Star)"},
     {94,"Kürzesten Pfad zwischen zwei Knoten auswählen (A-Star)"},
     {95,"Knoten-Pfad"},
+    {96,"Schleifen vervollständigen"},
+    {97,"Wechselt in den Kantenmodus und vervollständigt die Schleifenauswahl"},
     {401,"6 oder mehr"},
     {nq0,"Nicht viereckige Flächen"},
     {nq1,"Alle nicht viereckigen Flächen"},
@@ -2383,7 +2362,9 @@
    [
     {2,"Nur verbundene Flächen"},
     {3,"Mindestens eine Fläche muß ausgewählt sein"},
-    {4,"Flächen mit dem selben Material auswählen"}
+    {4,"Flächen mit dem selben Material auswählen"},
+    {5,"Materialien"},
+    {6,"Knotenfarbe"}
    ]},
   {similar_material_faces,
    [
@@ -2748,7 +2729,6 @@
     {145,"Internationale Tastaturen"},
     {146,"Definierte Kurztasten"},
     {147,"Kurztasten definieren"},
-    {148,"Erweiterte Menüs"},
     {149,"Standard-Befehle"},
     {150,"Performanz Hinweise"},
     {151,"OpenGL Informationen"},
@@ -2890,7 +2870,7 @@
     {287,"Objekt zu Flächenlicht"},
     {288,"Materialien zu Farben"},
     {289,"Schneiden"},
-    {290,"Eben bewegen"}
+    {290,"Eben verschieben"}
    ]}
  ]}.
 {wings_vec,
@@ -2977,13 +2957,12 @@
  [
   {menu,
    [
-    {1,"Knoten Befehle"},
     {2,"Verschieben"},
     {3,"Auspressen"},
     {4,"Verbinden"},
     {5,"Neue Kante durch verbinden der ausgewählten Knoten erzeugen"},
     {6,"Straffen"},
-    {7,"Ausgewählte Knoten gegen den gemeinsamen Mittelpunkt verschieben"},
+    {7,"Ausgewählte Knoten gegen gemeinsamen Mittelpunkt verschieben"},
     {8,"Abkanten"},
     {9,"Flächen aus ausgewählten Knoten erzeugen"},
     {10,"Auflösen"},
@@ -3090,7 +3069,7 @@
     {55,"-Y"},
     {56,"-Z"},
     {57,"An Auswahl ausrichten"},
-    {58,"Ansicht an der Normalen der ausgewählten Objekte ausrichten"},
+    {58,"Ansicht an Normale der ausgewählten Objekte ausrichten"},
     {59,"Ansicht rotieren"},
     {60,"Ansicht rotieren lassen"},
     {61,"Sichtbegrenzungen"},
@@ -3098,7 +3077,9 @@
     {65,"Rahmen ignoriert Spiegel"},
     {66,"Ausrichtung hervorheben"},
     {67,"Kamera auf Maus-Markierung ausrichten (Setzt 'Hervorhebung als temporäre Auswahl verwenden' und eine zugewiesene Kurztaste voraus)."},
-    {68,"Zeige"}
+    {68,"Zeige"},
+    {69,"Zentrum von 3D-Rahmen anzeigen"},
+    {70,"Das Zentrum jedes gespeicherten 3D-Rahmens anzeigen"}
    ]},
   {shader_submenu,
    [
@@ -3305,50 +3286,5 @@
   {import_scale_s,
    [
     {1,"Import Skalierung"}
-   ]}
- ]}.
-%% [wings,tools_menu,32] is not used
-%% [wings,tools_menu,33] is not used
-%% [wings,scene_size_info] is not used
-%% [wings_body,menu,1] is not used
-%% [wings_edge_cmd,menu,1] is not used
-%% [wings_face_cmd,menu,1] is not used
-%% [wings_help,header,7] is not used
-%% [wings_help,advanced_menus] is not used
-%% [wings_light,menu,1] is not used
-%% [wings_material,material_menu,1] is not used
-%% [wings_material,material_menu,2] is not used
-%% [wings_material,material_menu,3] is not used
-%% [wings_menu_util,basic_scale] is not used
-%% [wings_util,translation_string,148] is not used
-%% [wings_vertex_cmd,menu,1] is not used
-
-%%
-%% The following strings have no translation.
-%%
-
-{wings_file,
- [
-  {menu,
-   [
-    {30,"Nicht verwendete Materialien beim Speichern einer .wings Datei einschließen"},
-    {29,"Nicht verwendete Materialien speichern"}
-   ]}
- ]}.
-{wings_pref_dlg,
- [
-  {misc_prefs,
-   [
-    {25,"Menü mit Werkzeugen für Wings-Entwickler anzeigen"},
-    {24,"Entwicklermenü anzeigen"}
-   ]},
-  {gen_prefs,
-   [
-    {70,"Kantenfarbe der Magnetmaske"},
-    {69,"Magnetmaske"},
-    {68,"Farbe nicht ausgewählter Knoten"},
-    {67,"Nicht ausgewählte Knoten"},
-    {66,"Pixelgröße der Kanten der Magenetmaske"},
-    {65,"Größe der Knoten der Magnetmaske"}
    ]}
  ]}.

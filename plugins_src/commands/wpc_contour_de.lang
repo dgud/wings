@@ -6,40 +6,34 @@
     {1,"Abstand"},
     {2,"Prozent"}
    ]},
-  {add_to_dict,
-   [
-    {1,"Erzeugen einer Kante um eine Region herum erfordert,\ndas angrenzende Flächen mindestens eine Kante mir ihr haben"}
-   ]},
-  {contour_lmb_help,
-   [
-    {1,"Kanten innerhalb des Umriss der Auswahl erzeugen"}
-   ]},
-  {contour_menu,
-   [
-    {1,"Region einsetzen"},
-    {2,"Flächen einsetzen"},
-    {3,"Region versetzen"}
-   ]},
-  {contour_mmb_help,
-   [
-    {1,"Kanten innerhalb einzelner Flächen erzeugen"}
-   ]},
-  {contour_rmb_help,
-   [
-    {1,"Kanten außerhalb des Umriss der Auswahl erzeugen"}
-   ]},
-  {contour_title,
-   [
-    {1,"Umriss"}
-   ]},
   {extrude_norm_help1,
    [
     {1,"Ausbeulen: Flächennormale"},
     {2,"Ausbeulen: Normale der Region"}
    ]},
-  {loop_norm,
+  {lmb_help,
    [
-    {1,"Vollständig ausgewählte Objekte können nicht umrissen werden"}
+    {1,"Fläche in jede ausgewählte Fläche einsetzen"}
+   ]},
+  {loop_error_1,
+   [
+    {1,"Region einsetzen/versetzen für vollständig ausgewählte Objekte nicht möglich"}
+   ]},
+  {loop_error_2,
+   [
+    {1,"Region versetzen bedingt, das benachbarte Flächen\nmindestens eine gemeinsame Kante haben"}
+   ]},
+  {mmb_help,
+   [
+    {1,"Region versetzen durch erzeugen neuer Kanten um jede Flächengruppenauswahl"}
+   ]},
+  {mode_help,
+   [
+    {1,"Skalieren mit kürzestem Vektor um: "}
+   ]},
+  {rmb_help,
+   [
+    {1,"Region einsetzen durch erzeugen neuer Kanten in jeder Flächengruppenauswahl"}
    ]},
   {stop_edge_help,
    [
@@ -48,63 +42,14 @@
    ]},
   {string,
    [
-    {1,"Normalisieren"},
     {2,"Entlang der Kanten"},
-    {3,"Durchschnitt"}
+    {3,"Durchschnitt"},
+    {4,"Körper"},
+    {5,"Fläche"},
+    {6,"Mittelwert entlang Kanten"}
    ]},
-  {vector,
-   [
-    {1,"Kanten sind zu nah beieinander.\nVor erneutem Versuch Befehl 'Aufräumen' anwenden."}
-   ]}
- ]}.
-%% [wpc_contour,string,1] is not used
-%% [wpc_contour,add_to_dict] is not used
-%% [wpc_contour,contour_lmb_help] is not used
-%% [wpc_contour,contour_menu] is not used
-%% [wpc_contour,contour_mmb_help] is not used
-%% [wpc_contour,contour_rmb_help] is not used
-%% [wpc_contour,contour_title] is not used
-%% [wpc_contour,loop_norm] is not used
-%% [wpc_contour,vector] is not used
-
-%%
-%% The following strings have no translation.
-%%
-
-{wpc_contour,
- [
   {title,
    [
     {1,"Einsetzen"}
-   ]},
-  {string,
-   [
-    {6,"Mittelwert entlang Kanten"},
-    {5,"Fläche"},
-    {4,"Körper"}
-   ]},
-  {rmb_help,
-   [
-    {1,"Region einsetzen durch erzeugen neuer Kanten in jeder Flächengruppenauswahl"}
-   ]},
-  {mode_help,
-   [
-    {1,"Skalieren mit kürzestem Vektor um: "}
-   ]},
-  {mmb_help,
-   [
-    {1,"Region versetzen durch erzeugen neuer Kanten um jede Flächengruppenauswahl"}
-   ]},
-  {loop_error_2,
-   [
-    {1,"Region versetzen bedingt, das benachbarte Flächen\nmindestens eine gemeinsame Kante haben"}
-   ]},
-  {loop_error_1,
-   [
-    {1,"Region einsetzen/versetzen für vollständig ausgewählte Objekte nicht möglich"}
-   ]},
-  {lmb_help,
-   [
-    {1,"Fläche in jede ausgewählte Fläche einsetzen"}
    ]}
  ]}.

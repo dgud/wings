@@ -9,13 +9,6 @@
    ]},
   {command_name,
    [
-    {turn,"Drehen"},
-    {turn_ccw,"Gegen Uhrzeigersinn drehen"},
-    {turn_cw,"Im Uhrzeigersinn drehen"},
-    {turn_optimized,"Optimiertes drehen"}
-   ]},
-  {menu_entry,
-   [
     {turn,"Drehen"}
    ]},
   {validate_edges,
