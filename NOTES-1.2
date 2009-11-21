@@ -1,3 +1,37 @@
+Changes in 1.2.rc2 (compared to 1.2.rc1)
+========================================
+
+- Using Virtual Mirror on the same object twice would leave an illegal hole in
+  the object. [optigon]
+
+- Face|Intrude would crash if a virtual mirror was present. [optigon]
+
+- Tools|Set Default Axis now offers individual Point and Axis assignments. [optigon]
+
+- Rewrite of Object|Weld to improve its handling of neighbouring faces. [optigon]
+
+- There are a couple of new Camera features which improve upon the
+  Highlight Aim tool. The first is a new option to allow auto aiming while
+  zooming the camera in when part of the model is highlighted. This feature
+  works best when Highlight Aim is enabled. By default the new zoom behaviour
+  is turned off. To enable it, go to Edit|Preferences|Camera|Scroll Wheel and
+  tick the box labeled "Zooming in aims Camera".
+  The second new Highlight Aim improvement, is that it will now recognise
+  if you are aiming at the original or mirrored side of a model that contains
+  a virtual mirror. [optigon]
+
+- Torsten Manz (flugel3d) has updated to the German translation of Wings.
+  [Torsten Manz]
+
+- Vital Proulx (Tulip Vorlax) has added a much updated French translation
+  to Wings. [Vital Proulx]
+
+- Optimized and improved the ambient occlusion plugin. [dgud]
+
+- AUV: When segmenting tries to minimize the number of materials used. [dgud]
+
+- AUV: Decreased the amount vertices and charts were displaced. [dgud]
+
 Changes in 1.2.rc1 (compared to 1.1.16)
 =======================================
 
