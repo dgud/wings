@@ -339,7 +339,9 @@ update_fun_2(hard_edges, #dlo{hard=none,src_we=#we{he=Htab}=We}=D, _) ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
     gl:enableClientState(?GL_VERTEX_ARRAY),
-    drawVertices(?GL_LINES, edges_f32(gb_sets:to_list(Htab), We)),
+    VisibleHard = wings_we:visible_edges(Htab, We),
+    Edges= gb_sets:to_list(VisibleHard),
+    drawVertices(?GL_LINES, edges_f32(Edges, We)),
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     D#dlo{hard=List};
