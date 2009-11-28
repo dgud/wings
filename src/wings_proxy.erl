@@ -287,6 +287,8 @@ draw_edges_1(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
     wings_dl:call(ProxyEdges).
 
 proxy_smooth(We0, Pd0, St) ->
+    Data = ?TC(wings_cc:setup(We0)),
+    ?TC(wings_cc:addp_subdiv(Data)),
     case proxy_smooth_1(We0, Pd0) of
 	{false,_} ->
 	    Pd0;
