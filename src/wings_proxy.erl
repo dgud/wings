@@ -223,7 +223,7 @@ draw(#dlo{proxy_data=#sp{faces=Dl},drag=none}=D, Wire, SceneLights) ->
 draw(#dlo{proxy_data=#sp{faces=Dl}}=D, _Wire, SceneLights) ->
     draw_1(D, Dl, true, proxy_moving_opacity, cage, SceneLights).
 
-draw_1(D, Dl, Wire, Key, EdgeStyleKey, SceneLights) ->
+draw_1(#dlo{src_we=We} = D, Dl, Wire, Key, EdgeStyleKey, SceneLights) ->
     gl:shadeModel(?GL_SMOOTH),
     wings_render:enable_lighting(SceneLights),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
@@ -240,7 +240,12 @@ draw_1(D, Dl, Wire, Key, EdgeStyleKey, SceneLights) ->
 		    gl:blendColor(0, 0, 0, Opacity)
 	    end
     end,
+    case wings_we:is_open(We) of
+	true -> gl:disable(?GL_CULL_FACE);
+	false -> ignore
+    end,
     wings_dl:call(Dl),
+    gl:enable(?GL_CULL_FACE),
     gl:disable(?GL_POLYGON_OFFSET_FILL),
     wings_render:disable_lighting(),
     gl:shadeModel(?GL_FLAT),
