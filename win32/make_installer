@@ -47,8 +47,8 @@ fi
 # Copy the Wings application.
 
 WINGS_DIR="`pwd`"
-WINGS_APP=`basename "$WINGS_DIR"`
-WINGS_VSN=`echo "$WINGS_APP" | sed -e 's/.*wings-//'`
+WINGS_VSN=`sed -n "/WINGS_VSN/s/^WINGS_VSN[^0-9]*//p" vsn.mk`
+WINGS_APP="wings-$WINGS_VSN"
 
 dest="$DEST_ROOT"
 
