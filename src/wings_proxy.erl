@@ -152,7 +152,14 @@ update_edges_1(_, _, cage) -> none;
 update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, some) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
-    Edges = wings_edge:from_vs(wings_util:array_keys(OldVtab), We),
+    Edges0 = wings_edge:from_vs(wings_util:array_keys(OldVtab), We),
+    case wings_we:is_open(We) of
+	true ->
+	    Visible = wings_we:visible_edges(gb_sets:from_list(Edges0), We),
+	    Edges   = gb_sets:to_list(Visible);
+	false ->
+	    Edges = Edges0
+    end,
     Bin = lists:foldl(fun(E, Bin) ->
 			      #edge{vs=Va,ve=Vb} = array:get(E, Etab),
 			      {X1,Y1,Z1} = array:get(Va,Vtab),
