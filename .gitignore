@@ -40,6 +40,7 @@
 
 # /plugins_src/fbx/
 /plugins_src/fbx/*.o
+/plugins_src/fbx/*.obj
 /plugins_src/fbx/*.so
 /plugins_src/fbx/fbx_ops.h
 /plugins_src/fbx/fbx_ops.hrl
@@ -51,6 +52,8 @@
 /wings-*
 /build/*
 /macosx/build/*
+/win32/Wings3D.exe
+/win32/wings3d_res.o
 
 # crash dump files
 *.dump
@@ -58,3 +61,4 @@
 # Emacs Tag files
 TAGS
 
+# 
