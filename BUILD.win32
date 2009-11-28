@@ -125,14 +125,15 @@ Running Wings
 To run the Wings you have just build, you'll need to write a command line
 similar to this:
 
-	werl -smp disable -pa $ESDL_PATH/ebin -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt
+	werl -smp disable -pa $ESDL_PATH/ebin -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt -extra <MY_APP_DATA_DIRECTORY>
 
 where you should substitute <MY_WINGS_PATH> with the path to the Wings
-source directory.
+source directory and <MY_APP_DATA_DIRECTORY> with the path to the
+local settings folder.
 
 Example:
 
-$ werl -smp disable -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-1.0/ebin -run wings_start start_halt
+$ werl -smp disable -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-1.0/ebin -run wings_start start_halt -extra "c:/Documents and Settings/bjorng/Application Data"
 $
 
 An Erlang console should appear, followed by the Wings window.

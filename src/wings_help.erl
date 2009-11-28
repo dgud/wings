@@ -13,7 +13,8 @@
 
 -module(wings_help).
 -export([menu/1,command/2]).
--export([cmd/1,help_window/2,no_more_basic_menus/0]).
+-export([cmd/1,help_window/2,no_more_basic_menus/0,
+	 not_possible_to_save_prefs/0]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -111,6 +112,17 @@ no_more_basic_menus() ->
 				     wings_pref:set_value(K, V),
 				     ignore
 			     end).
+
+not_possible_to_save_prefs() ->
+    H = [{label,"The Wings3D.exe program was not able to locate the folder "
+	  "for applications settings."},
+	 panel,
+	 {label,"This is not supposed to happen. "
+	  "You should report this bug."},
+	 panel,
+	 {hframe,[{button,ok,[ok]}]}],
+    Qs = {vframe,H},
+    wings_ask:dialog("", Qs, fun(_) -> ignore end).
 
 getting_started(Head) ->
     B = "(",

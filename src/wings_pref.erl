@@ -82,7 +82,17 @@ finish() ->
     foreach(fun({Key,Val}) ->
 		    set_value(Key, Val)
 	    end, ets:tab2list(wings_delayed_update)),
-    PrefFile = new_pref_file(),
+    case new_pref_file() of
+	none ->
+	    %% No location for saving the preferences.
+	    %% The user has already been warned about this.
+	    %% Do nothing.
+	    ok;
+	PrefFile ->
+	    finish_save_prefs(PrefFile)
+    end.
+
+finish_save_prefs(PrefFile) ->
     List0 = ets:tab2list(wings_state),
     List = prune_defaults(List0),
     Format = "~p. \n",
@@ -158,6 +168,7 @@ win32_pref() ->
 		"for the AppData folder.\n"
 		"Trying to locate preferences using the registry...\n",
 	    io:put_chars(W),
+	    self() ! {external,not_possible_to_save_prefs},
 	    win32_pref_registry(["AppData","Personal"]);
 	AppData ->
 	    case try_location(AppData, ?WIN32_PREFS) of
@@ -208,22 +219,14 @@ new_pref_file() ->
     end.
 
 win32_new_pref() ->
-    {ok,R} = win32reg:open([read]),
-    Res = win32_new_pref_1(R, ["AppData","Personal"]),
-    ok = win32reg:close(R),
-    Res.
-
-win32_new_pref_1(R, [FolderType|T]) ->
-    case wings_u:win32_special_folder(R, FolderType) of
-	none -> win32_new_pref_1(R, T);
-	Path ->
-	    File = filename:join(Path, ?WIN32_PREFS),
+    case win32_appdata() of
+	none ->
+	    none;
+	AppData ->
+	    File = filename:join(AppData, ?WIN32_PREFS),
 	    filelib:ensure_dir(File),
 	    File
-    end;
-win32_new_pref_1(_, []) ->
-    %% Desperate fallback... (no standard folders found - should not happen).
-    filename:join(wings_util:lib_dir(wings), ?WIN32_PREFS).
+    end.
 
 %%%
 %%% Utilities.
