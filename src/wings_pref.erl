@@ -152,8 +152,28 @@ unix_pref() ->
     try_location(os:getenv("HOME"), ".wings").
 
 win32_pref() ->
+    case win32_appdata() of
+	none ->
+	    W = "Warning: Wings3D.exe provided no location "
+		"for the AppData folder.\n"
+		"Trying to locate preferences using the registry...\n",
+	    io:put_chars(W),
+	    win32_pref_registry(["AppData","Personal"]);
+	AppData ->
+	    case try_location(AppData, ?WIN32_PREFS) of
+		none ->
+		    %% We did not find a preference file
+		    %% in AppData. Continue searching using
+		    %% the registry.
+		    win32_pref_registry(["Personal"]);
+		File -> File
+	    end
+    end.
+
+%% Try to find old preferences using the registry.
+win32_pref_registry(RegistryLocations) ->
     {ok,R} = win32reg:open([read]),
-    Res = win32_pref_1(R, ["AppData","Personal"]),
+    Res = win32_pref_1(R, RegistryLocations),
     ok = win32reg:close(R),
     Res.
 
@@ -208,6 +228,17 @@ win32_new_pref_1(_, []) ->
 %%%
 %%% Utilities.
 %%%
+
+win32_appdata() ->
+    case init:get_plain_arguments() of
+	[AppData] ->
+	    AppData;
+	[] ->
+	    %% No AppData location provided. Probably because
+	    %% a developer started Wings using a script that
+	    %% does not provide the location.
+	    none
+    end.
 
 try_location(Dir, File) ->
     Name = filename:join(Dir, File),
