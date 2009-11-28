@@ -15,6 +15,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #undef WIN32_LEAN_AND_MEAN
+#include <shlobj.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -29,7 +30,8 @@ WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
   int argc = __argc;
   char** argv = __argv;
   char install_dir[MAX_PATH];
-  char cmd_line[2*MAX_PATH];
+  char cmd_line[3*MAX_PATH];
+  TCHAR pref_dir[MAX_PATH];
   char message[40];
   int i;
   int ok;
@@ -55,12 +57,16 @@ WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
     --i;
   }
   install_dir[i] = '\0';
+
+  pref_dir[0] = '\0';
+  SHGetFolderPath(NULL,	CSIDL_APPDATA|CSIDL_FLAG_CREATE, NULL, 0, pref_dir);
   sprintf(cmd_line, "\"%s\\bin\\werl.exe\" -smp disable -run wings_start start_halt",
           install_dir);
   if (argc > 1) {
     sprintf(cmd_line+strlen(cmd_line), " \"%s\"", argv[1]);
   }
-    
+  sprintf(cmd_line+strlen(cmd_line),  " -extra \"%s\"", pref_dir);
+
   siStartInfo.cb = sizeof(STARTUPINFO); 
   siStartInfo.wShowWindow = SW_MINIMIZE;
   siStartInfo.dwFlags = STARTF_USESHOWWINDOW;
