@@ -296,8 +296,8 @@ set_edge_color(Edge, LeftCol, RightCol, #we{lv=Lva0,rv=Rva0}=We) ->
 %%  Should only be use when an edge has been removed.
 %%
 del_edge_attrs(Edge, #we{lv=Lva,rv=Rva}=We) ->
-    We#we{lv=array:reset(Edge, Lva),
-	  rv=array:reset(Edge, Rva)}.
+    We#we{lv=areset(Edge, Lva),
+	  rv=areset(Edge, Rva)}.
 
 %% vtx_attrs(Vertex, We) -> Attr.
 %%       Attr = opaque representation of attributes
