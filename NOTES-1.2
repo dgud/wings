@@ -1,3 +1,23 @@
+Changes in 1.2.rc3 (compared to 1.2.rc2)
+========================================
+
+- Wings could not always save the preferences on Windows Vista
+  and Windows 7 because the registry has a different layout.
+  Wings will no longer attempt to use the registry to find an
+  appropriate directoy into which preferences should be saved,
+  but will use the documented Windows API function.
+  
+  Note to developers: You will need to adjust your scripts/shortcuts
+  for starting Wings. See BUILD.win32. [bjorng]
+
+- Dissolving or collapsing an isolated vertex could
+  cause a crash. (Thanks to ania.) [bjorng]
+
+- Fixed various hidden/hole face drawing problems. Hidden hard
+  edges was drawn reported by Ania. Smooth-preview showed edges on
+  hidden faces and the backside of visible faces was not shown in flat
+  shaded view. [dgud]
+
 Changes in 1.2.rc2 (compared to 1.2.rc1)
 ========================================
 
