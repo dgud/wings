@@ -223,7 +223,8 @@ draw(#dlo{proxy_data=#sp{faces=Dl},drag=none}=D, Wire, SceneLights) ->
 draw(#dlo{proxy_data=#sp{faces=Dl}}=D, _Wire, SceneLights) ->
     draw_1(D, Dl, true, proxy_moving_opacity, cage, SceneLights).
 
-draw_1(#dlo{src_we=We} = D, Dl, Wire, Key, EdgeStyleKey, SceneLights) ->
+draw_1(#dlo{proxy_data=#sp{src_we=We}} = D, Dl, Wire,
+       Key, EdgeStyleKey, SceneLights) ->
     gl:shadeModel(?GL_SMOOTH),
     wings_render:enable_lighting(SceneLights),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
