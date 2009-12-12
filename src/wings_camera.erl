@@ -694,7 +694,10 @@ generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redr
 generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
   when Mod band ?ALT_BITS =/= 0 ->
   	zoom_step_alt(-1);
-generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, #st{}=St, _Redraw) ->
+generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, #st{}=St, none) ->
+%% Matching 'none' stops zoom aim from being activated during a drag sequence.
+%% Zoom aim warps the mouse to the screen's centre, and this can cause a crash
+%% in since drag events also depend on cursor position.
     case wings_pref:get_value(inverted_wheel_zoom) of
       true -> zoom_step(-1);
       false ->
@@ -705,7 +708,8 @@ generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, _Camera, _Redraw) ->
 generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
   when Mod band ?ALT_BITS =/= 0 ->
   	zoom_step_alt(1);
-generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, #st{}=St, _Redraw) ->
+generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, #st{}=St, none) ->
+%% Matching 'none' stops zoom aim from being activated during a drag sequence
     case wings_pref:get_value(inverted_wheel_zoom) of
       false -> zoom_step(1);
       true ->
