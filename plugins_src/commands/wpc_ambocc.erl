@@ -138,7 +138,7 @@ setup_gl() ->
     gl:disable(?GL_CULL_FACE).
 
 get_ao_color(Eye, Lookat, DispList) ->
-    gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
+    gl:clear(?GL_COLOR_BUFFER_BIT),
     render_hemicube(0, 0, Eye, Lookat, DispList),
     Factor = read_frame(),
     {Factor,Factor,Factor}.
