@@ -100,6 +100,7 @@
 
 -define(SLOW(Cmd), begin wings_io:hourglass(), Cmd end).
 -define(TC(Cmd), wings_util:tc(fun() -> Cmd end, ?MODULE, ?LINE)).
+-define(WHERE,   try 1=2 catch _:_ -> erlang:get_stacktrace() end).
 
 -ifdef(DEBUG).
 -define(ASSERT(E), case E of
