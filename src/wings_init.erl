@@ -151,7 +151,6 @@ init() ->
     wings_pref:set_default(window_size, {780,570}),
     TopSize = wings_pref:get_value(window_size),
     Frame = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
-    %% wx:debug(2),
 
     GLAttrs = [?WX_GL_RGBA,
 	       ?WX_GL_MIN_RED,8,?WX_GL_MIN_GREEN,8,?WX_GL_MIN_BLUE,8,
@@ -162,15 +161,14 @@ init() ->
     put(top_frame, Frame),
     put(gl_canvas, Canvas),
 
-%%     Redraw = fun(Ev,_) ->    %% Might be needed on windows
-%% 		     DC = wxPaintDC:new(Canvas),
-%% 		     wings ! Ev,
-%% 		     wxPaintDC:destroy(DC)
-%% 	     end,
+    Redraw = fun(Ev,_) ->
+		     wings ! Ev,
+		     DC = wxPaintDC:new(Canvas),
+		     wxPaintDC:destroy(DC)
+	     end,
 
     wxWindow:connect(Frame, close_window),
-    %%wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
-    wxWindow:connect(Canvas, paint, [{skip, true}]),
+    wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
     wxWindow:connect(Canvas, size),
     wxWindow:connect(Canvas, enter_window,
 		     [{callback, fun(_, _) ->
@@ -185,7 +183,6 @@ init() ->
     wxWindow:connect(Canvas, right_up),
     wxWindow:connect(Canvas, right_down),
     wxWindow:connect(Canvas, mousewheel),
-    %%wxWindow:connect(Frame, paint,  [callback]),
     wxWindow:connect(Canvas, key_down),
     set_icon(),
     wxWindow:setFocus(Canvas), %% Get keyboard focus
