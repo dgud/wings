@@ -1,0 +1,33 @@
+%%                     -*- mode:erlang; erlang-indent-level: 2 -*-
+%%  wpc_file_pl.lang --
+%%
+%%     Polish language strings for Absolute Move.
+%%
+%%  Copyright (c) 2006 Andrzej Giniewicz
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wp8_file_pl.lang,v 1.1 2006/01/19 22:32:28 giniu Exp $
+%%
+%%  Translation:  Andrzej Giniewicz
+%%  Correction:   Małgorzata Napiontek
+%%  Verification: Krzysztof Giniewicz
+%%
+{wp8_file,
+ [
+  {file_add_all,
+   [
+    {1,"Wszystkie pliki"}
+   ]},
+  {file_filters,
+   [
+    {1,"Pliki Wings"},
+    {2,"Wszystkie pliki"}
+   ]},
+  {fileop,
+   [
+    {1,"Otwórz"},
+    {2,"Zapisz"}
+   ]}
+ ]}.
