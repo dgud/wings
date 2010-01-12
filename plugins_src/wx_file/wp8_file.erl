@@ -15,6 +15,7 @@
 -module(wp8_file).
 
 -export([menus/0, init/1]).
+-export([file_filters/1]).
 
 -include_lib("wx/include/wx.hrl").  %% includes wx headers
 -include("wings_intl.hrl").
@@ -43,7 +44,7 @@ file_dialog(Type, Prop, Title, Cont) ->
     DefDir = proplists:get_value(directory, Prop),
     DefName = proplists:get_value(default_filename, Prop, ""),
     Filters = file_filters(Prop),
-	    Dlg = wxFileDialog:new(Frame,
+    Dlg = wxFileDialog:new(Frame,
 			   [{message, Title}, 
 			    {defaultDir, DefDir}, 
 			    {defaultFile, DefName}, 
@@ -68,13 +69,20 @@ file_filters(Prop) ->
 		   [{Ext,ExtDesc}];
 	       Other -> Other
 	   end,
-    lists:flatten([file_add_all(Exts),file_filters_1(Exts++[{".*", ?__(2,"All Files")}], [])]).
+    lists:flatten([file_add_all(Exts),
+		   file_filters_0(Exts++[{".*", ?__(2,"All Files")}])]).
 
-file_filters_1([{Ext,Desc}|T], Acc0) ->
+file_filters_0(Exts) ->
+    file_filters_1(lists:reverse(Exts),[]).
+
+file_filters_1([{Ext,Desc}|T], Acc) ->
     Wildcard = "*" ++ Ext,
-    Acc = [Acc0,Desc," (",Wildcard,")","|",Wildcard],
-    file_filters_1(T, Acc);
-file_filters_1([], Acc) -> [Acc].
+    ExtString = [Desc," (",Wildcard,")","|",Wildcard|Acc],
+    case T of
+	[] -> ExtString;
+	_  ->
+	    file_filters_1(T, ["|"|ExtString])
+    end.
     
 file_add_all([_]) -> [];
 file_add_all(Exts) ->
