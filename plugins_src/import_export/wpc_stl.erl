@@ -3,12 +3,10 @@
 %%
 %%     Binary StereoLithography File Format (*.stl) Import/Export
 %%
-%%  Copyright (c) 2005-2008 Anthony D'Agostino
+%%  Copyright (c) 2005-2010 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
-%%
-%%     $Id$
 %%
 
 -module(wpc_stl).
@@ -43,9 +41,9 @@ menu_entry(Menu) ->
 props() ->
     [{ext, ".stl"},{ext_desc, "StereoLithography Binary File"}].
 
-% ================================
-% === StereoLithography Export ===
-% ================================
+%%% ================================
+%%% === StereoLithography Export ===
+%%% ================================
 export(FileName, Contents) ->
     STL = make_stl(Contents),
     file:write_file(FileName, STL).
@@ -91,9 +89,9 @@ reindex_faces(Incs, AllFs) ->
 make_header(Creator) -> % An 80 Byte Header
     A = "Exported from " ++ Creator,
     B = "\nSTL plugin written by Anthony D'Agostino\n2005",
-    C = list_to_binary([A,B]),
-    true = size(C) =< 80,			%Assertion.
-    <<C/binary, 0:((80-size(C))*8)>>.
+    C = list_to_binary([lists:sublist(A, 80-length(B)), B]),
+    true = byte_size(C) =< 80, % Assertion.
+    <<C/binary, 0:((80-byte_size(C))*8)>>.
 
 make_body({Vs, Fs}) ->
     NumFaces = <<(length(Fs)):32/little>>,
@@ -111,9 +109,9 @@ raw_triangles_to_bin(RawTriangles) ->
 	[FaceNorm, FaceVerts, FacePad] end,
     lists:map(TriToBinary, RawTriangles).
 
-% ================================
-% === StereoLithography Import ===
-% ================================
+%%% ================================
+%%% === StereoLithography Import ===
+%%% ================================
 stl_import(Name) ->
     case file:read_file(Name) of
     {ok,Bin} ->
@@ -136,7 +134,7 @@ read_stl(Data) ->
     print_header(Header),
     Raw_Triangles = read_raw_triangles(Rest),
     {Vs,Fs} = e3d_util:raw_to_indexed(Raw_Triangles),
-    NumFs = length(Fs),					%Assertion.
+    NumFs = length(Fs), % Assertion.
     {Vs,Fs}.
 
 print_header(Header) ->
@@ -146,17 +144,17 @@ print_header(Header) ->
 
 read_raw_triangles(<<>>) -> [];
 read_raw_triangles(Data) ->
-    <<_:12/binary,  % Face Normal
+    <<_:12/binary, % Face Normal
     X1:32/float-little, Y1:32/float-little, Z1:32/float-little,
     X2:32/float-little, Y2:32/float-little, Z2:32/float-little,
     X3:32/float-little, Y3:32/float-little, Z3:32/float-little,
-    _:2/binary,   % Padding
+    _:2/binary, % Padding
     Rest/binary>> = Data,
     [[{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}] | read_raw_triangles(Rest)].
 
-% ============
-% === Misc ===
-% ============
+%%% ============
+%%% === Misc ===
+%%% ============
 print_boxed(String) ->
     A = length(String),
     io:fwrite("\n", []),
