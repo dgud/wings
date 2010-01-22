@@ -14,7 +14,8 @@
 %%
 
 -module(wings_we).
--export([build/2,rebuild/1,fast_rebuild/1,
+-export([map/2, 
+	 build/2,rebuild/1,fast_rebuild/1,
 	 new_wrap_range/3,id/2,bump_id/1,
 	 new_id/1,new_ids/2,
 	 invert_normals/1,
@@ -44,6 +45,14 @@
 %%% API.
 %%%
 
+%% Apply fun on all we's.
+map(Fun, St = #st{shapes=Shs0}) ->
+    Objs0 = lists:map(Fun, gb_trees:values(Shs0)),
+    Shs = gb_trees:from_orddict([{We#we.id, We} || We <- Objs0]),
+    St#st{shapes=Shs}.
+
+%% build() -> We'
+%% Create a we from faces and vertices or a mesh.
 build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He}) when is_atom(Mode) ->
     Fs = translate_faces(Fs0, list_to_tuple(Tx), []),
     wings_we_build:we(Fs, Vs, He);

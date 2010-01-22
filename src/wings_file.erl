@@ -41,7 +41,14 @@ export_filename(Prop0, #st{file=File}, Cont) ->
 
 %% import_filename([Prop], Continuation).
 %%   The Continuation fun will be called like this: Continuation(Filename).
-import_filename(Ps0, Cont) ->
+import_filename(Prop, Cont) ->
+    case get(wings_not_running) of
+	undefined ->
+	    import_filename_1(Prop, Cont);
+	{import, FileName} ->
+	    Cont(FileName)
+    end.
+import_filename_1(Ps0, Cont) ->
     This = wings_wm:this(),
     Dir = wings_pref:get_value(current_directory),
     String = case os:type() of
@@ -65,7 +72,15 @@ import_filename(Ps0, Cont) ->
 
 %% export_filename([Prop], Continuation).
 %%   The Continuation fun will be called like this: Continuation(Filename).
-export_filename(Prop0, Cont) ->
+export_filename(Prop, Cont) ->
+    case get(wings_not_running) of
+	undefined -> 
+	    export_filename_1(Prop, Cont);
+	{export, FileName} ->
+	    Cont(FileName)
+    end.
+			 
+export_filename_1(Prop0, Cont) ->
     This = wings_wm:this(),
     Dir = wings_pref:get_value(current_directory),
     Prop = Prop0 ++ [{directory,Dir}],
@@ -83,10 +98,10 @@ export_filename(Prop0, Cont) ->
 		  end
 	  end,
     String = case os:type() of
-        {win32,_} -> "Export";
-        _Other    -> ?__(1,"Export")
-	end,
-	wings_plugin:call_ui({file,save_dialog,Prop++[{title,String}],Fun}).
+		 {win32,_} -> "Export";
+		 _Other    -> ?__(1,"Export")
+	     end,
+    wings_plugin:call_ui({file,save_dialog,Prop++[{title,String}],Fun}).
 
 init() ->
     wings_pref:set_default(save_unused_materials,false),
