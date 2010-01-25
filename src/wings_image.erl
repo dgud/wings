@@ -184,7 +184,8 @@ req(Req, Notify) ->
     wings_image ! {Self,Ref,Req},
     receive
 	{Ref,Answer} ->
-	    case Notify of
+	    Running = get(wings_not_running) == undefined,
+	    case Notify andalso Running of
 		false -> ok;
 		true -> wings_wm:notify(image_change)
 	    end,
@@ -205,7 +206,12 @@ req(Req, Notify) ->
 
 server(Opt) ->
     register(wings_image, self()),
-    wings_io:set_process_option(Opt),
+    case Opt of 
+	wings_not_running ->
+	    put(wings_not_running, true);
+	_ ->
+	    wings_io:set_process_option(Opt)
+    end,
     loop(#ist{images=gb_trees:empty()}).
 
 loop(S0) ->
@@ -463,8 +469,12 @@ make_texture(Id, Image) ->
     TxId.
 
 init_texture(Image) ->
-    [TxId] = gl:genTextures(1),
-    init_texture(Image, TxId).
+    case get(wings_not_running) of
+	true -> 0;
+	_ ->
+	    [TxId] = gl:genTextures(1),
+	    init_texture(Image, TxId)
+    end.
 
 init_texture(Image0, TxId) ->
     Image = maybe_scale(Image0),

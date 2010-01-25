@@ -1,5 +1,5 @@
 #!/usr/bin/env escript
-%%   -*- erlang-mode -*- 
+%%   -*- erlang -*- 
 %%     Wings 3D File convertion.
 %%
 %%  Copyright (c) 2010 Dan Gudmundsson
@@ -16,6 +16,7 @@
 -record(opts, 
 	{dir = ".",       %% Ouput to directory
 	 out_module,      %% Output format
+	 verbose=false,   %% Verbose output
 	 in_format,       %% In format (if unknown extension).
 	 image_format,    %% Image out format 
 	 in_formats,      %% Scanned, all import formats
@@ -73,6 +74,10 @@ strip_path("crs/"  ++ Path) -> lists:reverse(Path);
 strip_path(Path)            -> lists:reverse(Path).    
 
 convert(Fs, Opts) ->
+    wings_pref:init(),
+    wings_file:init(),
+    wings_image:init(wings_not_running),
+    wings_color:init(),
     [import_file(File, Opts) || File <- Fs],
     ok.
 
@@ -116,6 +121,11 @@ parse_args(["-o", Dir|Rest], Opts) ->
     parse_args(Rest, Opts#opts{dir=Dir});
 parse_args(["--outdir", Dir|Rest], Opts) ->
     parse_args(Rest, Opts#opts{dir=Dir});
+parse_args(["-v"|Rest], Opts) ->
+    parse_args(Rest, Opts#opts{verbose=true});
+parse_args(["--verbose"|Rest], Opts) ->
+    parse_args(Rest, Opts#opts{verbose=true});
+
 parse_args(["--subdiv", N0|Rest], Opts=#opts{modify=Mod}) ->
     N = try 
 	    list_to_integer(N0) 
@@ -164,6 +174,7 @@ usage(#opts{in_formats=In, out_formats=Out}) ->
 	      "  Output is written to the current directory by default.~n~n"
 	      " Options:~n"
 	      "   -o, --outdir DIR       Write converted files to DIR.~n"
+	      "   -v, --verbose          Verbose output.~n"
 	      "   --informat FORMAT      Ignore file extension and use FORMAT as input.~n"
 	      "   --subdiv N             Subdivide object N times (default 0).~n"
 	      "   --tess TYPE            Tesselate object none|tri|quad (default none)~n"
@@ -190,11 +201,8 @@ get_module(_, []) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 import_file(File, Opts) ->
-    wings_pref:init(),
-    wings_file:init(),
-    wings_image:init(wings_not_running),
-    wings_color:init(),
     put(wings_not_running, {import, File}),
+    verbose("~s => ", [File], Opts#opts.verbose),
     try import_file_1(File,Opts) of	
 	{error,Reason} ->
 	    io:format("**** Import Failed: ~p On file: ~p~n~n", [Reason, File]),
@@ -239,6 +247,7 @@ import_file_2(Str, File, Opts = #opts{in_formats=In}) ->
 
 export_file(WingsData, File, Opts=#opts{dir=Dir, out_module=F=#format{ext_type=Ext}}) ->
     FileName = filename:join(Dir, File++"."++ atom_to_list(Ext)),
+    verbose("~s~n", [FileName], Opts#opts.verbose),
     put(wings_not_running, {export, FileName}),
     try export_file_1(F, FileName, WingsData, Opts) of
 	{error,Reason} ->
@@ -271,6 +280,10 @@ export_file_2(#format{mod=Mod, ext_type=Type, option=false},
 export_file_2(#format{mod=Mod, ext_type=Type, option=true}, 
 	      _FileName, WingsData, #opts{modify=Modify}) ->
     Mod:command({file,{export,{Type,Modify}}}, WingsData).
+
+verbose(_,_, false) -> ok;
+verbose(F,A, true) ->
+    io:format(F,A).
 
 modify_model([], WingsData) ->
     WingsData;
