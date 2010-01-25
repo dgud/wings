@@ -74,10 +74,11 @@ strip_path("crs/"  ++ Path) -> lists:reverse(Path);
 strip_path(Path)            -> lists:reverse(Path).    
 
 convert(Fs, Opts) ->
-    wings_pref:init(),
-    wings_file:init(),
-    wings_image:init(wings_not_running),
-    wings_color:init(),
+    wings_pref:init(),   %% Preference ets table is needed
+    wings_file:init(),   %% more preferences
+    wings_image:init(wings_not_running), %% Needed for image export
+    wings_color:init(),  %% Needed for materials
+    wings_plugin:init(), %% Needed for image export
     [import_file(File, Opts) || File <- Fs],
     ok.
 
@@ -231,9 +232,15 @@ import_file_2(#format{mod=wings}, File, _) ->
 import_file_2(#format{mod=ndo}, File, _) ->
     St0 = wings:new_st(),
     wings_ff_ndo:import(File, St0);
-import_file_2(#format{mod=Mod}, File,_) when is_atom(Mod) ->
-    io:format("**** Error:  Import Not supported right now ~p ~p~n~n", [Mod, File]),
-    ok;
+import_file_2(#format{mod=Mod, ext_type=Type, option=false},
+	      _File, _Opts) when is_atom(Mod) ->
+    St0 = wings:new_st(),
+    Mod:command({file,{import,Type}}, St0);
+import_file_2(#format{mod=Mod, ext_type=Type, option=true}, 
+	      _File, #opts{modify=Modify}) when is_atom(Mod) ->
+    St0 = wings:new_st(),
+    Mod:command({file,{import,{Type,Modify}}}, St0);
+
 import_file_2(Str, File, Opts = #opts{in_formats=In}) ->
     case get_module(Str, In) of
 	error ->

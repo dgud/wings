@@ -92,7 +92,12 @@ eyedropper() ->
     ?BACKEND_MOD:eyedropper().
 
 hourglass() ->
-    ?BACKEND_MOD:hourglass().
+    case get(wings_not_running) of
+	undefined -> 
+	    ?BACKEND_MOD:hourglass();
+	_ ->
+	    ignore
+    end.
 
 set_cursor(Cursor) ->
     ?BACKEND_MOD:set_cursor(Cursor).
