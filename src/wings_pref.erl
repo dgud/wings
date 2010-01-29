@@ -399,6 +399,7 @@ defaults() ->
      {highlight_aim_at_unselected,true},
      {hilite_select,false},
      {start_in_tweak, false},
+     {conditional_deselect, false},
 
      %% Constraints preferences.
      {con_dist_alt,10.0},

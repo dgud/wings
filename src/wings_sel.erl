@@ -14,6 +14,7 @@
 -module(wings_sel).
 
 -export([clear/1,reset/1,set/2,set/3,
+	 conditional_reset/1,
 	 map/2,fold/3,mapfold/3,
 	 make/3,valid_sel/1,valid_sel/3,
 	 center/1,bbox_center/1,bounding_box/1,bounding_boxes/1,
@@ -34,6 +35,11 @@ reset(#st{selmode=Mode}=St) ->
 	true when Mode =:= body -> St#st{selmode=face,sel=[],sh=true};
 	true -> St#st{sel=[],sh=true}
     end.
+
+conditional_reset(#st{sel=[]}=St) ->
+    reset(St);
+conditional_reset(St) ->
+    St#st{sel=[],sh=false}.
 
 set(Sel, St) ->
     St#st{sel=sort(Sel),sh=false}.
