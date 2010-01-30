@@ -589,7 +589,7 @@ handle_event({add_faces,Fs,GeomSt}, St0) ->
 	    get_event(AuvSt)
     end;
 handle_event(Ev, St) ->
-    case wings_camera:event(Ev, St, fun() -> redraw(St) end) of
+    case wings_camera:event(Ev, St) of
 	next ->
 	    FreeLmbMod = wings_msg:free_lmb_modifier(),
 %%	    io:format("Ev ~W~n",[Ev,3]),
