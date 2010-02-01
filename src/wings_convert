@@ -11,7 +11,7 @@
 -mode(compile).
 
 %% If moved outside of wings directory modify
--define(WINGS_DIR, "/ldisk/dgud/src/wings/ebin").
+-define(WINGS_DIR, "c:/src/wings/ebin").
 
 -record(opts, 
 	{dir = ".",       %% Ouput to directory
@@ -61,6 +61,7 @@ setup_paths() ->
 	    io:format("             use 'set WINGS_DIR=c:\PATH_TO_WINGS_INSTALL~n~n")
     end.
 
+test_paths([false|Rest]) -> test_paths(Rest);
 test_paths([Path0|Rest]) ->
     Path = strip_path(lists:reverse(Path0)),    
     case filelib:is_regular(filename:join([Path, "ebin", "wings.beam"])) of
