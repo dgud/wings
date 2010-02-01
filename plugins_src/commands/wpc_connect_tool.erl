@@ -217,6 +217,9 @@ handle_connect_event1({action,Action}, #cs{st=St0}=C) ->
 	    wings_wm:later({action,Other}),
 	    exit_connect(C)
     end;
+handle_connect_event1({update_state,St}, C) ->
+    wings_draw:refresh_dlists(St),
+    update_connect_handler(C#cs{st=St});
 handle_connect_event1(Ev, #cs{st=St}) ->
     case wings_hotkey:event(Ev, St) of
 	next -> keep;

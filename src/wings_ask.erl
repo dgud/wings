@@ -659,7 +659,7 @@ drop_event(X, Y, DropData, #s{ox=Ox,oy=Oy,fi=TopFi}=S0) ->
 next_focus(Dir, S=#s{focus=Index,focusable=Focusable,fi=TopFi}) ->
     J = case binsearch(fun (I) when I < Index -> -1;
 			   (I) when Index < I -> +1;
-			   (_) -> 0 end, 
+			   (_) -> 0 end,
 		       Focusable) of
 	    {I,_} when 0 < Dir -> I;
 	    {_,I} -> I;
@@ -902,6 +902,7 @@ collect_result_1(Fi=#fi{state=inert}, Sto, Path, R) ->
     collect_result_2(Fi, Sto, Path, R);
 collect_result_1(Fi=#fi{handler=Handler,key=Key}, Sto, Path, R0) ->
     R = case Handler(value, [Fi|Path], Sto) of
+        keep -> R0;
 	    none -> R0;
 	    {value,Res} when is_integer(Key) -> [Res|R0];
 	    {value,Res} -> [{Key,Res}|R0]
@@ -1512,23 +1513,29 @@ focusable(Fi) ->
     T = list_to_tuple(reverse(focusable_1(Fi, []))),
     ?DEBUG_DISPLAY(tree, T),
     T.
-
 focusable_1(#fi{state=disabled,extra=#container{}}, R) ->
     R;
 focusable_1(#fi{index=Index,state=State,minimized=Minimized,
-		extra=#container{fields=Fields,selected=Selected}}, R0) ->
-    R = if State =:= enabled -> [Index|R0];
-	   true -> R0 end,
+		extra=#container{fields=Fields,selected=Selected},flags=Flags}, R0) ->
+    NoFocus = lists:member(no_focus, Flags),
+    R = if
+        NoFocus -> R0;
+        State =:= enabled -> [Index|R0];
+        true -> R0 end,
     case Minimized of
 	true -> R;
 	_ ->
 	    case Selected of
 		undefined -> focusable_2(1, Fields, R);
-		_ -> focusable_1(element(Selected, Fields), R) 
+		_ -> focusable_1(element(Selected, Fields), R)
 	    end
     end;
 focusable_1(#fi{minimized=true,extra=#leaf{}}, R) -> R;
-focusable_1(#fi{index=Index,state=enabled,extra=#leaf{}}, R) -> [Index|R];
+focusable_1(#fi{index=Index,state=enabled,extra=#leaf{},flags=Flags}, R) ->
+    NoFocus = lists:member(no_focus, Flags),
+    if NoFocus -> R;
+       true -> [Index|R]
+    end;
 focusable_1(#fi{extra=#leaf{}}, R) -> R.
     
 focusable_2(I, Fields, R) when I =< tuple_size(Fields) ->
@@ -2022,7 +2029,7 @@ rb_draw(Active, #fi{x=X,y=Y0}, #rb{label=Label,val=Val}, Common, DisEnabled) ->
 	      end,
     Y = Y0+?CHAR_HEIGHT,
     gl:color3fv(case DisEnabled of
-		    enabled -> {1,1,1};
+		    enabled -> color3_high();
 		    _ -> color3()
 		end),
     Fg = <<
@@ -2043,7 +2050,7 @@ rb_draw(Active, #fi{x=X,y=Y0}, #rb{label=Label,val=Val}, Common, DisEnabled) ->
 	       	<<
 	       	 2#0001110000000000:16,
 	       	 2#0010001000000000:16,
-       	       	 2#0100100100000000:16,
+	       	 2#0100100100000000:16,
 	       	 2#1001110010000000:16,
 	       	 2#1011111010000000:16,
 	       	 2#1001110010000000:16,
@@ -2337,7 +2344,7 @@ popup_redraw_1(Sel, Menu, Sel, W, X, Y) ->
     {Desc,_,_,_} = element(Sel, Menu),
     gl:color3fv(color5()),
     gl:recti(X-2, Y+2, X+W-4*?CHAR_WIDTH, Y-?CHAR_HEIGHT+2),
-    gl:color3fv(color7()),
+    gl:color3fv(color6()),
     wings_io:text_at(X, Y, Desc),
     popup_redraw_1(Sel+1, Menu, Sel, W, X, Y+?LINE_HEIGHT);
 popup_redraw_1(I, Menu, Sel, W, X, Y) when I =< tuple_size(Menu) ->
@@ -2662,7 +2669,7 @@ mktree_label(Text, Sto, I, Flags) ->
     Lbl = #label{lines=Lines},
     Fun = fun label_event/3,
     {W,H} = label_dimensions(Lines, 0, 2),
-    Fi = mktree_leaf(Fun, inert, undefined, W, H, I, Flags),
+    Fi = mktree_leaf(Fun, enabled, undefined, W, H, I, [no_focus|Flags]),
     mktree_priv(Fi, Sto, I, Lbl).
 
 label_dimensions([L|Lines], W0, H) ->
@@ -2672,14 +2679,18 @@ label_dimensions([L|Lines], W0, H) ->
     end;
 label_dimensions([], W, H) -> {W,H}.
 
-label_event({redraw,_Active,_DisEnabled}, [#fi{x=X,y=Y,index=I}|_], Store) ->
+label_event({redraw,_Active,DisEnabled}, [#fi{x=X,y=Y,index=I}|_], Store) ->
     #label{lines=Lines} = gb_trees:get(-I, Store),
-    gl:color3fv(color3_text()),
+    FgColor = case DisEnabled of
+		  enabled -> color3_text();
+		  _ -> color3_disabled()
+	      end,
+    gl:color3fv(FgColor),
     label_draw(Lines, X, Y+?CHAR_HEIGHT);
 label_event(_Ev, _Path, _Store) -> keep.
 
 label_draw([L|Lines], X, Y) ->
-    gl:color3fv(color3_text()),
+    %gl:color3fv(color3_text()),
     wings_io:text_at(X, Y, L),
     label_draw(Lines, X, Y+?LINE_HEIGHT),
     gl:color3b(0, 0, 0),
@@ -2799,6 +2810,7 @@ table_draw_head([H|T], [Cw|ColWidths], X, Y, Ch, Active, TopMarg) ->
 			     color3_high(), color4(), Active),
     gl:color3fv(color3_text()),
     wings_io:text_at(X+2, Y+TopMarg-2, H),
+    gl:color3f(0, 0, 0),
     table_draw_head(T, ColWidths, X+Cw, Y, Ch, Active, TopMarg);
 table_draw_head([], [], _, _, _, _, _) -> ok.
 
@@ -2806,10 +2818,10 @@ table_draw_els(_, _, 0, _, _, _, _) -> ok;
 table_draw_els([], _, _, _, _, _, _) -> ok;
 table_draw_els([{sel,El}|Els], Cws, Rows, X, Y, W, Elh) ->
     gl:color3f(0, 0, 0.5),
-    gl:recti(X, Y+3, X+W-6, Y+Elh+3),
+    gl:recti(X-1, Y+3, X+W-6, Y+Elh+3),
     gl:color3f(1, 1, 1),
     table_draw_row(El, 1, Cws, X, Y, Elh),
-    gl:color3fv(color3_text()),
+    gl:color3f(0, 0, 0),
     table_draw_els(Els, Cws, Rows-1, X, Y+Elh, W, Elh);
 table_draw_els([El|Els], Cws, Rows, X, Y, W, Elh) ->
     table_draw_row(El, 1, Cws, X, Y, Elh),
@@ -3290,24 +3302,29 @@ draw_text_active(#fi{x=X0,y=Y0,w=Width},
     CaretPos = X + CaretPos0,
 
     %% Draw caret or selection background.
-    case {DisEnabled,Sel} of
+    {Xpos, SelS} = case {DisEnabled,Sel} of
 	{enabled,0} ->
 	    gl:color3f(1, 0, 0),
-	    wings_io:text_at(CaretPos, Y, [caret]);
+	    wings_io:text_at(CaretPos, Y, [caret]),
+	    {0,[]};
 	{enabled,N} ->
-	    gl:color3f(0.71, 0.84, 1),
+	    %% Draw highlighted text rectangle
+	    gl:color3fv(color5()),
 	    if
 		N > 0 ->
 		    SelStr = lists:sublist(Aft, N),
 		    SelW = wings_text:width(SelStr),
-		    gl:recti(CaretPos, Y-Ch+3, min(CaretPos+SelW, X0+Width), Y+2);
+		    gl:recti(CaretPos-1, Y-Ch+3, min(CaretPos+SelW, X0+Width), Y+2),
+		    {CaretPos, SelStr};
 		true ->
 		    SelStr = lists:sublist(Bef1, -N),
 		    SelW = wings_text:width(SelStr),
-		    gl:recti(CaretPos, Y-Ch+3, max(CaretPos-SelW, X0), Y+2)
+		    gl:recti(CaretPos, Y-Ch+3, max(CaretPos-SelW, X0)-1, Y+2),
+		    {CaretPos-SelW, reverse(SelStr)}
+
 	    end;
 	_ ->
-	    ok
+	    {0,[]}
     end,
 
     %% Draw the text itself.
@@ -3315,8 +3332,29 @@ draw_text_active(#fi{x=X0,y=Y0,w=Width},
     Bef = lists:nthtail(First, reverse(Bef1)),
     wings_io:text_at(X, Y, Bef),
     text_draw_fitting(Aft, CaretPos, Y, Width-CaretPos0),
+
+    %% Draw highlighted text
+    gl:color3fv(color6()),
+    draw_selected_text(SelS, Xpos, X, Y, X0+Width+1),
+
     gl:color3b(0, 0, 0),
     Text#text{first=First}.
+
+draw_selected_text([C|SelS], Xpos, X, Y, XMax) when Xpos < X ->
+    Cw = wings_text:width([C]),
+    draw_selected_text(SelS, Xpos+Cw, X, Y, XMax);
+draw_selected_text(_, Xpos, _, _, XMax) when Xpos >= XMax ->
+    ok;
+draw_selected_text([C|SelS], Xpos0, X, Y, XMax) ->
+    CL = [C],
+    Cw = wings_text:width(CL),
+    Xpos = Cw + Xpos0,
+    if Xpos > XMax -> ok;
+       true ->
+         wings_io:text_at(Xpos0, Y, CL),
+         draw_selected_text(SelS, Xpos, X, Y, XMax)
+    end;
+draw_selected_text([], _, _, _, _) -> ok.
 
 text_draw_fitting([C|Cs], X, Y, W0) ->
     CL = [C],
@@ -3741,18 +3779,10 @@ color3({R,G,B,_}) -> {R,G,B}.
 color4() ->
     wings_pref:get_value(dialog_color).
 
-color5() -> color5(color6()).
-
-color5({R,G,B}) -> {R,G,B}.
-
-color6() ->
+color5() ->
     wings_pref:get_value(menu_hilite).
 
-color7() -> color7(color8()).
-
-color7({R,G,B}) -> {R,G,B}.
-
-color8() ->
+color6() ->
     wings_pref:get_value(menu_hilited_text).
 
 rgb_to_hsv({R,G,B}) ->

@@ -824,10 +824,11 @@ menubar_draw([{Desc,Name,_}|T], X, Sel) ->
 	Name =:= Sel ->
 	    {_,_,_,H} = wings_wm:viewport(),
 	    wings_io:gradient_border(X+2-?MENU_MARGIN, 0,
-				     W, H-2, wings_pref:get_value(menu_color));
-	true -> ok
+				     W, H-2, wings_pref:get_value(menu_hilite)),
+	    wings_io:set_color(wings_pref:get_value(menu_hilited_text));
+	true ->
+	    wings_io:set_color(wings_pref:get_value(menubar_text))
     end,
-    wings_io:set_color(wings_pref:get_value(menubar_text)),
     wings_io:text_at(X, ?CHAR_HEIGHT, Desc),
     menubar_draw(T, X+W, Sel);
 menubar_draw([], _, _) -> keep.

@@ -217,18 +217,18 @@ import_props([{scene_prefs,ScenePrefs}|Ps], St) ->
 		  end,
 		  ScenePrefs),
     import_props(Ps, St);
-import_props([{plugin_states,Pst0}|Ps], St0 =#st{pst=Previous}) ->
+import_props([{plugin_states,Pst0}|Ps], #st{pst=Previous}=St0) ->
     St = try 
 	     case gb_trees:keys(Previous) of
-		 [] -> 
+		 [] ->
 		     Pst = gb_trees:from_orddict(lists:sort(Pst0)),
 		     St0#st{pst=Pst};
-		 _ when Pst0 =:= [] -> 
+		 _ when Pst0 =:= [] ->
 		     St0;
 		 PrevKeys ->
 		     M=fun({Mod,Data},Acc) ->
 			       case lists:member(Mod,PrevKeys) of
-				   true -> 
+				   true ->
 				       try
 					   Pst = Mod:merge_st(Data,St0),
 					   [{Mod,Pst}|lists:keydelete(Mod,1,Acc)]

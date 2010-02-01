@@ -424,7 +424,7 @@ cat_import_export(M) ->
     try_menu([{file,import},{file,export}], M, export_import).
 
 cat_primitive(M) ->
-    try_menu([{shape},{shape,more}], M, primitive).
+    try_menu([{shape},{shape}], M, primitive).
 
 cat_select(M) ->
     try_menu([{select}], M, select).
@@ -459,7 +459,7 @@ plugin_info(command, M) ->
     Menus = collect_menus(Names, M),
     plugin_menu_info(Menus);
 plugin_info(primitive, M) ->
-    Menus = collect_menus([{shape},{shape,more}], M),
+    Menus = collect_menus([{shape},{shape}], M),
     plugin_menu_info(Menus);
 plugin_info(select, M) ->
     Menus = collect_menus([{select}], M),

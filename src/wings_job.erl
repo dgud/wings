@@ -52,7 +52,6 @@ render_formats() ->
 %%
 init() ->
     wings_pref:set_default(render_load_image, false),
-    wings_pref:set_default(render_iload_image, false),
     wings_pref:set_default(viewer_frame, 1),
     lists:foreach(
       fun({Format,_,_}) ->
@@ -79,13 +78,13 @@ render_done({Format,Filename}, _St) ->
     case {ViewImage,Viewer} of
 	{true,""} -> ok;
 	{true,_} ->
+	    %% External Viewer
 	    io:format("Viewing rendered image~n~n"),
 	    view_image(Filename, Format, Viewer); % Ignoring errors
 	{false,_} -> ok
     end,
-    LoadImage = wings_pref:get_value(render_iload_image), % Bad prefname
-    case {LoadImage,lists:member(Format, ?LOAD_IMAGE_FORMATS)} of
-	{true,true} ->
+    case lists:member(Format, ?LOAD_IMAGE_FORMATS) of
+	true ->
 	    io:format("Loading rendered image~n~n"),
 	    load_image(Filename);
 	_ -> keep
@@ -96,8 +95,12 @@ load_image(Filename) ->
 			 {alignment,1}]) of
 	#e3d_image{}=Image ->
 	    Id = wings_image:new_temp("<<Rendered>>", Image),
-	    wings_image:window(Id),
-	    keep;
+	    case wings_pref:get_value(render_load_image) of
+	      true -> keep;
+	      false ->
+	        wings_image:window(Id),
+	        keep
+	    end;
 	_ ->
 	    wpa:error("No image rendered")
     end.

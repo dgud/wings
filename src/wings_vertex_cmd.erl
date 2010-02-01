@@ -74,9 +74,9 @@ command({deform,Deform}, St0) ->
 command(auto_smooth, St) ->
     wings_body:auto_smooth(St);
 command(dissolve, St) ->
-    {save_state,dissolve(St)};
+    {save_state,wings_shape:update_folders(dissolve(St))};
 command(collapse, St) ->
-    {save_state,wings_collapse:collapse(St)};
+    {save_state,wings_shape:update_folders(wings_collapse:collapse(St))};
 command({move,Type}, St) ->
     wings_move:setup(Type, St);
 command({rotate,Type}, St) ->

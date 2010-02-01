@@ -40,9 +40,7 @@ menu(X, Y, _) ->
 	     {prim_name(light),{light,wings_light:light_types()},
 	      prim_help(light)},
 	     material,
-	     image,
-	     separator,
-	     {?STR(menu,15,"More"),{more,[]},?STR(menu,16,"More primitives")}],
+	     image],
     Menu = [prim_trans(Item) || Item <- Menu0],
     wings_menu:popup_menu(X, Y, shape, Menu).
 

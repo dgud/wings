@@ -274,7 +274,7 @@ blend(Color, Draw) ->
     gl:disable(?GL_BLEND).
 
 border(X, Y, W, H, FillColor) ->
-    border(X, Y, W, H, FillColor, {0.20,0.20,0.20}).
+    border(X, Y, W, H, FillColor, {0.0,0.0,0.0}).
 
 border(X0, Y0, Mw, Mh, FillColor, BorderColor)
   when is_integer(X0), is_integer(Y0), is_integer(Mw), is_integer(Mh) ->

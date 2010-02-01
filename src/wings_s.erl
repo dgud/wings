@@ -13,7 +13,7 @@
 
 -module(wings_s).
 -export([yes/0,no/0,cancel/0,accept/0,
-	 lmb/0,mmb/0,rmb/0,
+	 lmb/0,mmb/0,rmb/0,scroll/0,
 	 modkey/1,shift/0,ctrl/0,alt/0,command/0,
 	 key/1,dir/1,dir_axis/1,
 	 camera_mode/1]).
@@ -29,6 +29,7 @@ accept() -> ?__(1,"Accept").
 lmb() -> ?STR(mouse_b,l,"L").
 mmb() -> ?STR(mouse_b,m,"M").
 rmb() -> ?STR(mouse_b,r,"R").
+scroll() -> ?__(scroll,"Scroll").
 
 %% Modifier keys.
 shift() ->   ?STR(mod,shift,"Shift").

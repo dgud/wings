@@ -20,9 +20,9 @@
 init() ->
     true.
 
-menu({shape,more}, []) ->
+menu({shape}, []) ->
     spiral_menu();
-menu({shape,more}, Menu) ->
+menu({shape}, Menu) ->
     Menu ++ [separator|spiral_menu()];
 menu(_, Menu) -> Menu.
 
@@ -30,8 +30,8 @@ spiral_menu() ->
     [{?__(1,"Spiral"),spiral,[option]},
      {?__(2,"Spring"),spring,[option]}].
 
-command({shape,{more,{spiral,Ask}}}, _St) -> make_spiral(Ask);
-command({shape,{more,{spring,Ask}}}, _St) -> make_spring(Ask);
+command({shape,{spiral,Ask}}, _St) -> make_spiral(Ask);
+command({shape,{spring,Ask}}, _St) -> make_spring(Ask);
 command(_, _) -> next.
 
 %%% The rest are local functions.
@@ -41,7 +41,7 @@ make_spiral(Ask) when is_atom(Ask) ->
 	    [{?__(2,"Loops"),2,[{range,{1,32}}]},
 	     {?__(3,"Segments"),16,[{range,{3,128}}]},
 	     {?__(4,"Sections"),8,[{range,{2,64}}]}],
-	    fun(Res) -> {shape,{more,{spiral,Res}}} end);
+	    fun(Res) -> {shape,{spiral,Res}} end);
 make_spiral([L,Ns,Nl]) ->
     Vs = spiral_vertices(Ns, Nl, L),
     Fs = spiral_faces(Ns, Nl, L),
@@ -52,7 +52,7 @@ make_spring(Ask) when is_atom(Ask) ->
 	    [{?__(2,"Loops"),2,[{range,{1,32}}]},
 	     {?__(3,"Segments"),16,[{range,{3,128}}]},
 	     {?__(4,"Sections"),8,[{range,{2,64}}]}],
-	    fun(Res) -> {shape,{more,{spring,Res}}} end);
+	    fun(Res) -> {shape,{spring,Res}} end);
 make_spring([L,Ns,Nl]) ->
     Vs = spiral_vertices2(Ns, Nl, L),
     Fs = spiral_faces(Ns, Nl, L),

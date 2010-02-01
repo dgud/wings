@@ -329,6 +329,7 @@ break_apart_general(D, Tvs) -> {D,Tvs}.
 %%%
 
 do_drag(#drag{flags=Flags}=Drag, none) ->
+    wings_menu:kill_menus(), %% due to toolbar menu facility
     case proplists:get_bool(rescale_normals, Flags) of
 	false -> ok;
 	true -> gl:enable(gl_rescale_normal())
@@ -354,6 +355,7 @@ do_drag(#drag{unit=Units}=Drag0, Move) when length(Units) =:= length(Move) ->
     wings_wm:later(DragEnded),
     keep;
 do_drag(Drag0, _) ->
+    wings_menu:kill_menus(),
     {_,X,Y} = wings_wm:local_mouse_state(),
     {GX,GY} = wings_wm:local2global(X, Y),
     ungrab(Drag0#drag{x=GX,y=GY}),
