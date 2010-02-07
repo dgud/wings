@@ -24,6 +24,7 @@
 
 menu(St) ->
     Help = ?__(99," (from selection or all visible objects (if no selection))"),
+    RHelp = random_help(),
     [{?__(1,"Deselect"),deselect,?__(2,"Clear the selection")},
      separator,
      {?__(3,"More"),more,more_help(St)},
@@ -90,15 +91,17 @@ menu(St) ->
 	      {?__(nq2,"Odd Non Quadrangle Faces"),odd,Help},
 	      {?__(nq3,"Even Non Quadrangle Faces"),even,Help}]}},
 	   {?__(46,"Random"),
-	    {random,[{"10%",10},
-		     {"20%",20},
-		     {"30%",30},
-		     {"40%",40},
-		     {"50%",50},
-		     {"60%",60},
-		     {"70%",70},
-		     {"80%",80},
-		     {"90%",90}]}},
+	    {random,[{"10%",10, RHelp},
+		     {"20%",20, RHelp},
+		     {"30%",30, RHelp},
+		     {"40%",40, RHelp},
+		     {"50%",50, RHelp},
+		     {"60%",60, RHelp},
+		     {"70%",70, RHelp},
+		     {"80%",80, RHelp},
+		     {"90%",90, RHelp},
+		     {"__%",pick, RHelp}
+		     ]}},
 	   {?__(56,"Short Edges"),
 	    short_edges,?__(57,"Select (too) short edges")++Help,[option]},
 	   {?__(87,"Sharp Edges"),
@@ -141,6 +144,9 @@ menu(St) ->
       ?__(82,"Recall the selection from the selection group named \"StoredSelection\"")},
      separator,
      {?__(83,"New Group..."),new_group,?__(84,"Create a new selection group")}|groups_menu(St)].
+
+random_help() ->
+    ?__(1,"Select random elements from current selection, or all visible objects (no selection)").
 
 sel_all_str(#st{selmode=vertex}) -> ?__(1,"All Vertices");
 sel_all_str(#st{selmode=edge}) -> ?__(2,"All Edges");
@@ -345,8 +351,8 @@ by_command({faces_with,N}, St) ->
     {save_state,faces_with({faces_with,N}, St)};
 by_command(material_edges, St) ->
     material_edges(St);
-by_command({random,Percent}, St) ->
-    {save_state,random(Percent, St)};
+by_command({random, Percent}, St) ->
+    random(Percent, St);
 by_command({short_edges,Ask}, St) ->
     short_edges(Ask, St);
 by_command({sharp_edges,Ask}, St) ->
@@ -729,9 +735,28 @@ compare(A, B) ->
 %% Select Random.
 %%
 
-random(Percent, #st{selmode=Mode}=St) ->
+random(pick, _) ->
+    Qs = [{hframe,[{slider,{text,wings_pref:get_value(random_select, 25.0),
+            [{range,{0.0,100.0}}]}}]}],
+    wings_ask:dialog(true, ?__(1,"Select Random"),
+    [{vframe,Qs}],
+    fun([Res]) ->
+      wings_pref:set_value(random_select, Res),
+      {select,{by,{random,Res}}} end);
+random(Percent, #st{selmode=Mode, sel=[]}=St) ->
     P = Percent / 100,
-    wings_sel:make(fun(_, _) -> random:uniform() < P end, Mode, St).
+    {save_state, wings_sel:make(fun(_, _) -> random:uniform() < P end, Mode, St)};
+random(Percent, St) ->
+    P = Percent / 100,
+    NewSel = wings_sel:fold(fun(Sel0, #we{id=Id}, Acc) ->
+            Sel1 = gb_sets:to_list(Sel0),
+            Sel2 = [Elem || Elem <- Sel1, random:uniform() < P ],
+            case Sel2 of
+              [] -> Acc;
+              _ -> [{Id,gb_sets:from_list(Sel2)}|Acc]
+            end
+        end,[],St),
+    {save_state, wings_sel:set(NewSel, St)}.
 
 %%
 %% Select short edges.
