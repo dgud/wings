@@ -35,9 +35,13 @@ reset(#st{selmode=Mode}=St) ->
 	true -> St#st{sel=[],sh=true}
     end.
 
+set([], St) ->
+    clear(St);
 set(Sel, St) ->
     St#st{sel=sort(Sel),sh=false}.
 
+set(Mode, [], St) ->
+    clear(St#st{selmode=Mode});
 set(Mode, Sel, St) ->
     St#st{selmode=Mode,sel=sort(Sel),sh=false}.
 
