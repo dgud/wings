@@ -596,15 +596,28 @@ get_vec(face, [Face1, Face2], [We0, We1]) ->
        ?__(20,"Use direction between face centers")}}];
 
 %% Use single edge as axis
-get_vec(edge, [Edge], #we{es=Etab,vp=Vtab}=We) ->
+get_vec(edge, [Edge], #we{es=Etab,vp=Vtab,mirror=Mir}=We) ->
     #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf} = array:get(Edge, Etab),
     VaPos = array:get(Va, Vtab),
     VbPos = array:get(Vb, Vtab),
     Vec = e3d_vec:norm_sub(VbPos, VaPos),
     Center = wings_vertex:center([Va,Vb], We),
-    Ln = wings_face:normal(Lf, We),
-    Rn = wings_face:normal(Rf, We),
-    Normal = e3d_vec:norm(e3d_vec:add(Ln, Rn)),
+    Normal = case Mir of
+      Lf ->
+        Mn = wings_face:normal(Mir, We),
+        Rn = wings_face:normal(Rf, We),
+        Cross = e3d_vec:cross(Mn, Rn),
+        e3d_vec:norm(e3d_vec:cross(Cross, Mn));
+      Rf ->
+        Mn = wings_face:normal(Mir, We),
+        Ln = wings_face:normal(Lf, We),
+        Cross = e3d_vec:cross(Mn, Ln),
+        e3d_vec:norm(e3d_vec:cross(Cross, Mn));
+      _ ->
+        Ln = wings_face:normal(Lf, We),
+        Rn = wings_face:normal(Rf, We),
+        e3d_vec:norm(e3d_vec:add(Ln, Rn))
+    end,
     [{{Center,Vec},
       {?__(1,"Edge saved as axis"),?__(2,"Save edge normal")}},
      {{Center,Normal},
@@ -647,7 +660,7 @@ get_vec(edge, Edges, #we{vp=Vtab}=We) ->
 
 %% Vertex normal
 get_vec(vertex, [V], We) ->
-    Vec = wings_vertex:normal(V, We),
+    Vec = vertex_no_mirror_norm(V,We),
     Center = wings_vertex:center([V], We),
     [{{Center,Vec},?__(8,"Vertex normal saved.")}];
 %% Direction between 2 vertices as axis
@@ -656,8 +669,8 @@ get_vec(vertex, [Va,Vb]=Vs, We) ->
     VbPos = wings_vertex:pos(Vb, We),
     Vec = e3d_vec:norm_sub(VaPos, VbPos),
     Center = wings_vertex:center(Vs, We),
-    Normal = e3d_vec:norm(e3d_vec:add(wings_vertex:normal(Va, We),
-				      wings_vertex:normal(Vb, We))),
+    Normal = e3d_vec:norm(e3d_vec:add(vertex_no_mirror_norm(Va,We),
+        vertex_no_mirror_norm(Vb,We))),
     [{{Center,Vec},
       {?__(9,"Direction between vertices saved as axis."),
        ?__(10,"Use average of vertex normals as axis")}},
@@ -872,3 +885,18 @@ make_vec_dlist_1(Center) ->
     gl:'begin'(?GL_POINTS),
     gl:vertex3fv(Center),
     gl:'end'().
+
+vertex_no_mirror_norm(V, #we{mirror=Mir}=We) ->
+    {Mn,Ns} = wings_vertex:fold(fun(_, Face, _, {M,A}) when Face =/= Mir ->
+          {M,[wings_face:normal(Face, We)|A]};
+          (_,_,_,{_,A}) ->
+            {wings_face:normal(Mir, We),A}
+      end, {none,[]}, V, We),
+    N = e3d_vec:norm(e3d_vec:add(Ns)),
+    case Mn of
+      none ->
+        N;
+      Mn ->
+        Cross = e3d_vec:cross(Mn,N),
+        e3d_vec:cross(Cross,Mn)
+    end.
