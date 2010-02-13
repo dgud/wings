@@ -50,6 +50,11 @@ set_values([], _) -> ignore.
 
 
 gen_prefs() ->
+    Conditional_Deselect = fun (is_disabled, {_Var,_I,Store}) ->
+		       not gb_trees:get(smart_highlighting, Store);
+		       (_, _) ->	void
+	end,
+
     {vframe,
      [{hframe,
        [{vframe,
@@ -90,7 +95,10 @@ gen_prefs() ->
 	  {hframe,
 	   [{label,?__(19,"Unselected")},{color,unselected_hlite},
 	    {label,?__(20,"Selected")},{color,selected_hlite}]},
-	  {?__(21,"Smart Highlighting"),smart_highlighting}],
+	  {?__(21,"Smart Highlighting"),smart_highlighting},
+	  {?__(71,"Conditional Deselection"), conditional_deselect,
+	   [{info,?__(72,"Deselecting keeps you in the same Selection Mode, unless there is no selection")},
+	   {hook, Conditional_Deselect}]}],
 	 [{title,?__(22,"Highlighting")}]},
 
 	{vframe,
