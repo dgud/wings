@@ -401,6 +401,9 @@ handle_event_3({external,not_possible_to_save_prefs}, _St) ->
     wings_help:not_possible_to_save_prefs();
 handle_event_3({external,launch_tweak}, St) ->
     wpc_tweak:command({tools,{tweak,false}},St);
+handle_event_3({external, win32_start_maximized}, _St) ->
+    restore_windows_pos(),
+    keep;
 handle_event_3({external,Op}, St) ->
     wpa:handle_external(Op,St),
     keep;
@@ -1576,6 +1579,37 @@ validate_pos({X,Y}=Pos) ->
       false -> Pos;
       true -> {X,20}
     end.
+
+%%%% Restore window positions on MS Windows
+restore_windows_pos() ->
+    case wings_pref:get_value(saved_windows) of
+    undefined -> ok;
+    Windows ->
+       move_windows(Windows)
+    end.
+
+move_windows([{Name,Pos,_}|Windows]) ->
+    move_windows_1(Name, Pos),
+    move_windows(Windows);
+move_windows([{Name,Pos,_,_}|Windows]) ->
+    move_windows_1(Name, Pos),
+    move_windows(Windows);
+move_windows([]) -> ok.
+
+move_windows_1(geom,Pos) ->
+    wings_wm:move(geom,Pos);
+move_windows_1({geom,_}=Name,Pos) ->
+    wings_wm:move(Name,Pos);
+move_windows_1({tweak, _}=Name,Pos) ->
+    wings_wm:move(Name,Pos);
+move_windows_1(Name,{X,Y}) ->
+    case wings_wm:is_window(Name) of
+      true ->
+        {W,H} = wings_wm:win_size({controller,Name}),
+        wings_wm:move(Name,{X-W,Y+H});
+      false -> ok
+    end.
+%%%%
 
 geom_pos({X,Y}=Pos) ->
     {_,Upper0} = wings_wm:win_ul(desktop),

@@ -48,10 +48,22 @@ load() ->
 		{ok,List0} ->
 		    List = clean(List0),
 		    catch ets:insert(wings_state, List),
+		    win32_window_layout(),
 		    no_more_basic_menus();
 		{error,_Reason} ->
 		    ok
 	    end
+    end.
+
+%%%% Restore window layout on MS Windows
+win32_window_layout() ->
+    Max = get_value(win32_start_maximized),
+    Os = os:type(),
+    case Os of
+      {win32,_} when Max ->
+        self() ! {external, win32_start_maximized},
+        ok;
+      _ -> ok
     end.
 
 no_more_basic_menus() ->
