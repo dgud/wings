@@ -838,22 +838,15 @@ undo_info(St) ->
     end.
 
 tools_menu(_) ->
-    Dirs = [{wings_s:dir(all),all},
-        {wings_s:dir(x),x},
-        {wings_s:dir(y),y},
-        {wings_s:dir(z),z},
-        {wings_s:dir(radial_x),radial_x},
-        {wings_s:dir(radial_y),radial_y},
-        {wings_s:dir(radial_z),radial_z}],
-    [{?__(8,"Align"),{align,Dirs}},
-     {?__(9,"Center"),{center,Dirs}},
+    [{?__(8,"Align"),{align,tool_dirs(align)}},
+     {?__(9,"Center"),{center,tool_dirs(center)}},
      separator,
      {?__(10,"Save Bounding Box"),save_bb},
-     {?__(11,"Scale to Saved BB"),{scale_to_bb,Dirs}},
-     {?__(12,"Scale to Saved BB Proportionally"),{scale_to_bb_prop,Dirs}},
+     {?__(11,"Scale to Saved BB"),{scale_to_bb,tool_dirs(bb)}},
+     {?__(12,"Scale to Saved BB Proportionally"),{scale_to_bb_prop,tool_dirs(bb)}},
      {?__(13,"Move to Saved BB"),{move_to_bb,wings_menu_util:all_xyz()}},
      {?__(32,"Move BB to Selection"),{move_bb_to_sel,wings_menu_util:all_xyz()}},
-     {?__(33,"Scale BB to Selection"),{scale_bb_to_sel,Dirs}},
+     {?__(33,"Scale BB to Selection"),{scale_bb_to_sel,tool_dirs(bb)}},
      separator,
      {?__(14,"Set Default Axis"),{set_default_axis,
        [{?__(34,"Set Axis and Point"),axis_point},
@@ -879,7 +872,9 @@ tools_menu(_) ->
      {?__(28,"Put on Ground"), put_on_ground,
       ?__(29,"Put selected objects on the ground plane")},
      {?__(30,"Unitize"), unitize,
-      ?__(31,"Scale selected objects to fit inside a unit sphere and move to origin")}].
+      ?__(31,"Scale selected objects to fit inside a unit sphere and move to origin")},
+     separator,
+     {?__(38,"Tweak"), {tweak_menu,wings_tweak:menu()}}].
 
 window_menu(_) ->
     Name = case wings_wm:this() of
@@ -893,9 +888,25 @@ window_menu(_) ->
      {Name,object,
       ?__(5,"Open a Geometry Graph window (showing objects)")},
      {?__(6,"Palette"), palette,?__(7,"Open the color palette window")},
+     {?__(12,"Tweak Palette"), tweak_palette,
+      ?__(13,"Open palettes from which tweak tools may be selected or bound to modifier keys")},
      separator,
      {?__(8,"New Geometry Window"),geom_viewer, ?__(9,"Open a new Geometry window")},
      {?__(10,"Console"),console,?__(11,"Open a console window for information messages")}].
+
+tool_dirs(Tool) ->
+    Help = case Tool of
+      align -> ?__(1,"Align two or more objects along the given axis according to their respective selection centers");
+      center -> ?__(2,"Center the selected objects along the given axis according to their cumulative selection center");
+      bb -> []
+    end,
+    [{wings_s:dir(all),all,Help},
+     {wings_s:dir(x),x,Help},
+     {wings_s:dir(y),y,Help},
+     {wings_s:dir(z),z,Help},
+     {wings_s:dir(radial_x),radial_x,Help},
+     {wings_s:dir(radial_y),radial_y,Help},
+     {wings_s:dir(radial_z),radial_z,Help}].
 
 patches() ->
     case wings_start:get_patches() of
