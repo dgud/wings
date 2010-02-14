@@ -875,9 +875,7 @@ tools_menu(_) ->
      {?__(28,"Put on Ground"), put_on_ground,
       ?__(29,"Put selected objects on the ground plane")},
      {?__(30,"Unitize"), unitize,
-      ?__(31,"Scale selected objects to fit inside a unit sphere and move to origin")},
-     separator,
-     {?__(38,"Tweak"), {tweak_menu,wings_tweak:menu()}}].
+      ?__(31,"Scale selected objects to fit inside a unit sphere and move to origin")}].
 
 window_menu(_) ->
     Name = case wings_wm:this() of
