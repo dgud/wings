@@ -23,6 +23,8 @@
 -import(erlang, [max/2]).
 
 menu(St) ->
+    Help = ?__(99," (from selection or all visible objects (if no selection))"),
+    RHelp = random_help(),
     [{?__(1,"Deselect"),deselect,?__(2,"Clear the selection")},
      separator,
      {?__(3,"More"),more,more_help(St)},
@@ -65,43 +67,45 @@ menu(St) ->
 		 {?__(30,"Objects"),body}]}},
      {?__(31,"By"),
       {by,[{?__(32,"Hard Edges"),
-	    hard_edges,?__(33,"Select all hard edges")},
+	    hard_edges,?__(33,"Select all hard edges")++Help},
 	   {?__(34,"Isolated Vertices"),
-	    isolated_vertices,?__(35,"Select all isolated vertices")},
+	    isolated_vertices,?__(35,"Select all isolated vertices")++Help},
 	   {?__(85,"Non-planar Faces"),
-	    nonplanar_faces,?__(86,"Select all non-planar faces"),[option]},
+	    nonplanar_faces,?__(86,"Select all non-planar faces")++Help,[option]},
 	   {?__(36,"Vertices With"),
 	    {vertices_with,
-	     [{?__(37,"2 Edges"),2},
-	      {?__(38,"3 Edges"),3},
-	      {?__(39,"4 Edges"),4},
-	      {?__(40,"5 Edges"),5},
-	      {?__(401,"6 or More"),6}]}},
+	     [{?__(37,"2 Edges"),2,Help},
+	      {?__(38,"3 Edges"),3,Help},
+	      {?__(39,"4 Edges"),4,Help},
+	      {?__(40,"5 Edges"),5,Help},
+	      {?__(401,"6 or More"),6,Help}]}},
 	   {?__(41,"Faces With"),
 	    {faces_with,
-	     [{?__(42,"2 Edges"),2},
-	      {?__(43,"3 Edges"),3},
-	      {?__(44,"4 Edges"),4},
-	      {?__(45,"5 or More"),5}]}},
+	     [{?__(42,"2 Edges"),2,Help},
+	      {?__(43,"3 Edges"),3,Help},
+	      {?__(44,"4 Edges"),4,Help},
+	      {?__(45,"5 or More"),5,Help}]}},
 	   {?__(nq0,"Non Quadrangle Faces"),
 	    {non_quad,
-	     [{?__(nq1,"All Non Quadrangle Faces"),all},
-	      {?__(nq2,"Odd Non Quadrangle Faces"),odd},
-	      {?__(nq3,"Even Non Quadrangle Faces"),even}]}},
+	     [{?__(nq1,"All Non Quadrangle Faces"),all,Help},
+	      {?__(nq2,"Odd Non Quadrangle Faces"),odd,Help},
+	      {?__(nq3,"Even Non Quadrangle Faces"),even,Help}]}},
 	   {?__(46,"Random"),
-	    {random,[{"10%",10},
-		     {"20%",20},
-		     {"30%",30},
-		     {"40%",40},
-		     {"50%",50},
-		     {"60%",60},
-		     {"70%",70},
-		     {"80%",80},
-		     {"90%",90}]}},
+	    {random,[{"10%",10, RHelp},
+		     {"20%",20, RHelp},
+		     {"30%",30, RHelp},
+		     {"40%",40, RHelp},
+		     {"50%",50, RHelp},
+		     {"60%",60, RHelp},
+		     {"70%",70, RHelp},
+		     {"80%",80, RHelp},
+		     {"90%",90, RHelp},
+		     {"__%",pick, RHelp}
+		     ]}},
 	   {?__(56,"Short Edges"),
-	    short_edges,?__(57,"Select (too) short edges"),[option]},
+	    short_edges,?__(57,"Select (too) short edges")++Help,[option]},
 	   {?__(87,"Sharp Edges"),
-	    sharp_edges,?__(88,"Select sharp edges"),[option]},
+	    sharp_edges,?__(88,"Select sharp edges")++Help,[option]},
 	   {?__(95,"Vertex Path"),
 	    {vertex_path,
 	     [{?__(89,"Fewest Edges Path"),
@@ -111,9 +115,9 @@ menu(St) ->
 	      {?__(93,"Shortest Path (A-Star)"),
 	       astar_shortest_path,?__(94,"Select the shortest path between two vertices (A-Star)")}]}},
 	   {?__(58,"Material Edges"),material_edges,
-	    ?__(59,"Select all edges between different materials")},
+	    ?__(59,"Select all edges between different materials")++Help},
 	   {?__(60,"UV-Mapped Faces"),uv_mapped_faces,
-	    ?__(61,"Select all edges that have UV coordinates")},
+	    ?__(61,"Select all edges that have UV coordinates")++Help},
 	   {?__(62,"Id..."),id,?__(63,"Select by numeric id")}]}},
      {?__(64,"Lights"),lights,?__(65,"Select all lights")},
      separator,
@@ -140,6 +144,9 @@ menu(St) ->
       ?__(82,"Recall the selection from the selection group named \"StoredSelection\"")},
      separator,
      {?__(83,"New Group..."),new_group,?__(84,"Create a new selection group")}|groups_menu(St)].
+
+random_help() ->
+    ?__(1,"Select random elements from current selection, or all visible objects (no selection)").
 
 sel_all_str(#st{selmode=vertex}) -> ?__(1,"All Vertices");
 sel_all_str(#st{selmode=edge}) -> ?__(2,"All Edges");
@@ -325,62 +332,27 @@ command(Type, St) ->
     set_select_mode(Type, St).
 
 by_command(hard_edges, St) ->
-    Sel = fun(Edge, #we{he=Htab}) ->
-		  gb_sets:is_member(Edge, Htab)
-	  end,
-    {save_state,wings_sel:make(Sel, edge, St)};
+    hard_edges(St);
 by_command(isolated_vertices, St) ->
     {save_state,select_isolated(St)};
 by_command({nonplanar_faces,Ask}, St) ->
     nonplanar_faces(Ask, St);
-by_command({vertices_with,6}, St) ->
-    Sel = fun(V, We) ->
-		  Cnt = wings_vertex:fold(
-			  fun(_, _, _, Cnt) ->
-				  Cnt+1
-			  end, 0, V, We),
-		  Cnt >= 6
-	  end,
-    {save_state,wings_sel:make(Sel, vertex, St)};
 by_command({vertices_with,N}, St) ->
-    Sel = fun(V, We) ->
-		  Cnt = wings_vertex:fold(
-			  fun(_, _, _, Cnt) ->
-				  Cnt+1
-			  end, 0, V, We),
-		  Cnt =:= N
-	  end,
-    {save_state,wings_sel:make(Sel, vertex, St)};
+    {save_state,vertices_with(N, St)};
 by_command({non_quad,all}, St) ->
-    Sel = fun(Face, We) ->
-		  wings_face:vertices(Face, We) =/= 4
-	    end,
-    {save_state,wings_sel:make(Sel, face, St)};
+    {save_state,faces_with({non_quad,all}, St)};
 by_command({non_quad,odd}, St) ->
-    Sel = fun(Face, We) ->
-		  wings_face:vertices(Face, We) rem 2 =/= 0
-	  end,
-    {save_state,wings_sel:make(Sel, face, St)};
+    {save_state,faces_with({non_quad,odd}, St)};
 by_command({non_quad,even}, St) ->
-    Sel = fun(Face, We) ->
-		  N = wings_face:vertices(Face, We),
-		  N =/= 4 andalso N rem 2 =:= 0
-	  end,
-    {save_state,wings_sel:make(Sel, face, St)};
+    {save_state,faces_with({non_quad,even}, St)};
 by_command({faces_with,5}, St) ->
-    Sel = fun(Face, We) ->
-		  wings_face:vertices(Face, We) >= 5
-	    end,
-    {save_state,wings_sel:make(Sel, face, St)};
+    {save_state,faces_with({faces_with,5}, St)};
 by_command({faces_with,N}, St) ->
-    Sel = fun(Face, We) ->
-		  N =:= wings_face:vertices(Face, We)
-	  end,
-    {save_state,wings_sel:make(Sel, face, St)};
+    {save_state,faces_with({faces_with,N}, St)};
 by_command(material_edges, St) ->
     material_edges(St);
-by_command({random,Percent}, St) ->
-    {save_state,random(Percent, St)};
+by_command({random, Percent}, St) ->
+    random(Percent, St);
 by_command({short_edges,Ask}, St) ->
     short_edges(Ask, St);
 by_command({sharp_edges,Ask}, St) ->
@@ -773,9 +745,28 @@ compare(A, B) ->
 %% Select Random.
 %%
 
-random(Percent, #st{selmode=Mode}=St) ->
+random(pick, _) ->
+    Qs = [{hframe,[{slider,{text,wings_pref:get_value(random_select, 25.0),
+            [{range,{0.0,100.0}}]}}]}],
+    wings_ask:dialog(true, ?__(1,"Select Random"),
+    [{vframe,Qs}],
+    fun([Res]) ->
+      wings_pref:set_value(random_select, Res),
+      {select,{by,{random,Res}}} end);
+random(Percent, #st{selmode=Mode, sel=[]}=St) ->
     P = Percent / 100,
-    wings_sel:make(fun(_, _) -> random:uniform() < P end, Mode, St).
+    {save_state, wings_sel:make(fun(_, _) -> random:uniform() < P end, Mode, St)};
+random(Percent, St) ->
+    P = Percent / 100,
+    NewSel = wings_sel:fold(fun(Sel0, #we{id=Id}, Acc) ->
+            Sel1 = gb_sets:to_list(Sel0),
+            Sel2 = [Elem || Elem <- Sel1, random:uniform() < P ],
+            case Sel2 of
+              [] -> Acc;
+              _ -> [{Id,gb_sets:from_list(Sel2)}|Acc]
+            end
+        end,[],St),
+    {save_state, wings_sel:set(NewSel, St)}.
 
 %%
 %% Select short edges.
@@ -787,11 +778,22 @@ short_edges(Ask, _St) when is_atom(Ask) ->
     wings_ask:dialog(Ask, ?__(2,"Select Short Edges"),
 		     [{hframe,Qs}],
 		     fun(Res) -> {select,{by,{short_edges,Res}}} end);
-short_edges([Tolerance], St0) ->
+short_edges([Tolerance], #st{sel=[]}=St0) ->
     St = wings_sel:make(fun(Edge, We) ->
 				short_edge(Tolerance, Edge, We)
 			end, edge, St0),
-    {save_state,St#st{selmode=edge}}.
+    {save_state,St#st{selmode=edge}};
+short_edges([Tolerance], #st{selmode=Mode}=St0) ->
+    St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
+    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
+				Sel1 = gb_sets:to_list(Sel0),
+				ShortEdges = [Edge || Edge <- Sel1, short_edge(Tolerance, Edge, We)],
+				case ShortEdges of
+				  [] -> Acc;
+				  _ -> [{Id,gb_sets:from_list(ShortEdges)}|Acc]
+				end
+			end, [], St),
+    {save_state,wings_sel:set(edge,Sel,St0)}.
 
 short_edge(Tolerance, Edge, #we{es=Etab,vp=Vtab}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
@@ -803,8 +805,19 @@ short_edge(Tolerance, Edge, #we{es=Etab,vp=Vtab}) ->
 %% Select all edges between materials.
 %%
 
-material_edges(St) ->
-    wings_sel:make(fun material_edges_fun/2, edge, St).
+material_edges(#st{sel=[]}=St) ->
+    wings_sel:make(fun material_edges_fun/2, edge, St);
+material_edges(#st{selmode=Mode}=St0) ->
+    St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
+    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We,Acc) ->
+		  Sel1 = gb_sets:to_list(Sel0),
+		  MatEdges = [Edge || Edge <- Sel1, material_edges_fun(Edge, We)],
+		  case MatEdges of
+		    [] -> Acc;
+		    _ -> [{Id, gb_sets:from_list(MatEdges)}|Acc]
+		  end
+	  end,[],St),
+    wings_sel:set(edge, Sel, St0).
 
 material_edges_fun(E, #we{es=Etab}=We) ->
     #edge{lf=Lf,rf=Rf} = array:get(E, Etab),
@@ -814,14 +827,27 @@ material_edges_fun(E, #we{es=Etab}=We) ->
 %% Select all faces that have (proper) UV coordinates.
 %%
 
-uv_mapped_faces(#st{shapes=Shs}=St) ->
+uv_mapped_faces(#st{shapes=Shs,sel=[]}=St) ->
     Sel = foldl(fun(#we{id=Id}=We, A) ->
 			case wings_we:uv_mapped_faces(We) of
 			    [] -> A;
 			    Fs -> [{Id,gb_sets:from_ordset(Fs)}|A]
 			end
 		end, [], gb_trees:values(Shs)),
-    wings_sel:set(face, Sel, St).
+    wings_sel:set(face, Sel, St);
+uv_mapped_faces(#st{selmode=Mode}=St0) ->
+    St = if Mode =:= face -> St0; true -> wings_sel_conv:mode(face, St0) end,
+    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
+				Sel1 = gb_sets:to_list(Sel0),
+				UVF = wings_we:uv_mapped_faces(We),
+				Faces = [Face || Face <- Sel1, lists:member(Face, UVF)],
+				case Faces of
+				  [] -> Acc;
+				  _ -> [{Id,gb_sets:from_list(Faces)}|Acc]
+				end
+			end, [], St),
+	wings_sel:set(face,Sel,St0).
+
 
 %%
 %% Select by numerical item id.
@@ -915,11 +941,22 @@ select_lights_1([], _) -> [].
 %%% Select isolated vertices.
 %%%
 
-select_isolated(#st{shapes=Shs}=St) ->
+select_isolated(#st{shapes=Shs, sel=[]}=St) ->
     Sel = foldl(fun(#we{perm=Perm}=We, A) when ?IS_SELECTABLE(Perm) ->
 			select_isolated_1(We, A);
 		   (_, A) -> A
 		end, [], gb_trees:values(Shs)),
+    wings_sel:set(vertex, Sel, St);
+select_isolated(#st{selmode=Mode}=St0) ->
+    St = if Mode =:= vertex -> St0; true -> wings_sel_conv:mode(vertex, St0) end,
+    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, A) ->
+			Isolated0 = gb_sets:from_list(wings_vertex:isolated(We)),
+			Isolated = gb_sets:intersection(Sel0, Isolated0),
+			case gb_sets:is_empty(Isolated) of
+			  true -> A;
+			  false -> [{Id,Isolated}|A]
+			end
+		end, [], St),
     wings_sel:set(vertex, Sel, St).
 
 select_isolated_1(#we{id=Id}=We, A) ->
@@ -939,11 +976,23 @@ nonplanar_faces(Ask, _St) when is_atom(Ask) ->
     wings_ask:dialog(Ask, ?__(2,"Select Non-planar Faces"),
 		     [{hframe,Qs}],
 		     fun(Res) -> {select,{by,{nonplanar_faces,Res}}} end);
-nonplanar_faces([Tolerance], St) ->
+nonplanar_faces([Tolerance], #st{sel=[]}=St) ->
     Sel = fun(Face, We) ->
 		  not wings_face:is_planar(Tolerance,Face,We)
 	  end,
-    {save_state,wings_sel:make(Sel, face, St)}.
+    {save_state,wings_sel:make(Sel, face, St)};
+nonplanar_faces([Tolerance], #st{selmode=Mode}=St0) ->
+    St = if Mode =:= face -> St0; true -> wings_sel_conv:mode(face, St0) end,
+    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
+		  Sel1 = gb_sets:to_list(Sel0),
+		  NPFaces = [Face || Face <- Sel1, not wings_face:is_planar(Tolerance,Face,We)],
+		  case NPFaces of
+		    [] -> Acc;
+		    _ -> [{Id,gb_sets:from_list(NPFaces)}|Acc]
+		  end
+	  end,[],St),
+    {save_state,wings_sel:set(face, Sel, St0)}.
+
 
 %%%
 %%% Select similarly oriented faces.
@@ -1143,12 +1192,25 @@ sharp_edges(Ask, _St) when is_atom(Ask) ->
 	fun(Res) ->
 	    {select,{by,{sharp_edges,Res}}}
 	end);
-sharp_edges([Tolerance], St0) ->
+sharp_edges([Tolerance], #st{sel=[]}=St0) ->
     CosTolerance = -math:cos(Tolerance * math:pi() / 180.0),
     St = wings_sel:make(fun(Edge, We) ->
 	     sharp_edge(CosTolerance, Edge, We)
 	 end, edge, St0),
-    {save_state,St}.
+    {save_state,St};
+sharp_edges([Tolerance], #st{selmode=Mode}=St0) ->
+    St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
+    CosTolerance = -math:cos(Tolerance * math:pi() / 180.0),
+    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
+		  Sel1 = gb_sets:to_list(Sel0),
+		  SharpEdges = [Edge || Edge <- Sel1, sharp_edge(CosTolerance, Edge, We)],
+		  case SharpEdges of
+		    [] -> Acc;
+		    _ -> [{Id, gb_sets:from_list(SharpEdges)}|Acc]
+		  end
+	  end,[],St),
+    {save_state,wings_sel:set(edge, Sel, St0)}.
+
 
 sharp_edge(CosTolerance, Edge, #we{es=Etab}=We) ->
     #edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
@@ -1397,3 +1459,82 @@ complete_loops(#st{selmode=edge}=St) ->
 complete_loops(St0) ->
     St = wings_sel_conv:mode(edge,St0),
     wings_edge_loop:select_loop(St).
+
+hard_edges(#st{sel=[]}=St) ->
+    Sel = fun(Edge, #we{he=Htab}) ->
+		  gb_sets:is_member(Edge, Htab)
+	  end,
+    {save_state,wings_sel:make(Sel, edge, St)};
+hard_edges(#st{selmode=Mode}=St0) ->
+    St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
+    Sel = wings_sel:fold(fun(Sel0, #we{id=Id,he=Htab},Acc) ->
+		  Sel1 = gb_sets:to_list(Sel0),
+		  HardEdges = [Edge || Edge <- Sel1, gb_sets:is_member(Edge, Htab)],
+		  case HardEdges of
+		    [] -> Acc;
+		    _ -> [{Id, gb_sets:from_list(HardEdges)}|Acc]
+		  end
+	  end,[],St),
+    {save_state,wings_sel:set(edge, Sel, St0)}.
+
+vertices_with(N, #st{sel=[]}=St) ->
+    Sel = fun(V, We) ->
+		  Cnt = wings_vertex:fold(
+			  fun(_, _, _, Cnt) ->
+				  Cnt+1
+			  end, 0, V, We),
+		  Cnt =:= N
+	  end,
+    wings_sel:make(Sel, vertex, St);
+vertices_with(N, #st{selmode=Mode}=St0) ->
+    St = if Mode =:= vertex -> St0; true -> wings_sel_conv:mode(vertex, St0) end,
+    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We,Acc) ->
+		  Sel1 = gb_sets:to_list(Sel0),
+		  Vertices = [Vertex || Vertex <- Sel1, vertices_with(N, Vertex, We)],
+		  case Vertices of
+		    [] -> Acc;
+		    _ -> [{Id, gb_sets:from_list(Vertices)}|Acc]
+		  end
+	  end,[],St),
+    wings_sel:set(vertex, Sel, St0).
+
+vertices_with(6, V, We) ->
+    Cnt = wings_vertex:fold(
+	  fun(_, _, _, Cnt) ->
+		  Cnt+1
+	  end, 0, V, We),
+    Cnt >= 6;
+vertices_with(N, V, We) ->
+    Cnt = wings_vertex:fold(
+	  fun(_, _, _, Cnt) ->
+		  Cnt+1
+	  end, 0, V, We),
+    Cnt =:= N.
+
+
+faces_with(Filter, #st{sel=[]}=St) ->
+    Sel = fun(Face, We) ->
+		  faces_with(Filter, Face, We)
+	    end,
+    wings_sel:make(Sel, face, St);
+faces_with(Filter, #st{selmode=Mode}=St0) ->
+    St = if Mode =:= face -> St0; true -> wings_sel_conv:mode(face, St0) end,
+    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
+				Sel1 = gb_sets:to_list(Sel0),
+				Faces = [Face || Face <- Sel1, faces_with(Filter, Face, We)],
+				case Faces of
+				  [] -> Acc;
+				  _ -> [{Id,gb_sets:from_list(Faces)}|Acc]
+				end
+			end, [], St),
+	wings_sel:set(face,Sel,St0).
+
+faces_with(Filter, Face, We) ->
+    Vs = wings_face:vertices(Face, We),
+    case Filter of
+      {non_quad,all} -> Vs =/= 4;
+      {non_quad,odd} -> Vs rem 2 =/= 0;
+      {non_quad,even} -> Vs =/= 4 andalso Vs rem 2 =:= 0;
+      {faces_with,5} -> Vs >= 5;
+      {faces_with,N} -> Vs =:= N
+    end.

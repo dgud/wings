@@ -41,9 +41,13 @@ conditional_reset(#st{sel=[]}=St) ->
 conditional_reset(St) ->
     St#st{sel=[],sh=false}.
 
+set([], St) ->
+    clear(St);
 set(Sel, St) ->
     St#st{sel=sort(Sel),sh=false}.
 
+set(Mode, [], St) ->
+    clear(St#st{selmode=Mode});
 set(Mode, Sel, St) ->
     St#st{selmode=Mode,sel=sort(Sel),sh=false}.
 
