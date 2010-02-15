@@ -889,8 +889,6 @@ window_menu(_) ->
      {Name,object,
       ?__(5,"Open a Geometry Graph window (showing objects)")},
      {?__(6,"Palette"), palette,?__(7,"Open the color palette window")},
-     {?__(12,"Tweak Palette"), tweak_palette,
-      ?__(13,"Open palettes from which tweak tools may be selected or bound to modifier keys")},
      separator,
      {?__(8,"New Geometry Window"),geom_viewer, ?__(9,"Open a new Geometry window")},
      {?__(10,"Console"),console,?__(11,"Open a console window for information messages")}].
@@ -1597,8 +1595,6 @@ move_windows([]) -> ok.
 move_windows_1(geom,Pos) ->
     wings_wm:move(geom,Pos);
 move_windows_1({geom,_}=Name,Pos) ->
-    wings_wm:move(Name,Pos);
-move_windows_1({tweak, _}=Name,Pos) ->
     wings_wm:move(Name,Pos);
 move_windows_1(Name,{X,Y}) ->
     case wings_wm:is_window(Name) of
