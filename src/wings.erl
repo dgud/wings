@@ -1678,11 +1678,18 @@ get_mode_restriction() ->
 
 area_volume_info(St) ->
     #st{shapes=Shapes} = St,
-    Header = io_lib:fwrite("~s: '~s' [~s] (~s)\n", ["#", ?__(1,"Object Name"),
-                           ?__(2,"Area"),?__(3, "Volume")]),
-    Info = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
-    Msg = lists:flatten(Header ++ Info),
-    wings_help:help_window(?__(5,"Scene Info: Area & Volume"), [Msg]).
+    case gb_trees:is_empty(Shapes) of
+        true -> wings_u:error_msg(?__(1,"No objects in scene"));
+        false ->
+            Rows = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
+            A = lists:max([length(A) || {{_,A},{_,_},{_,_},{_,_}} <- Rows]) + 2,
+            B = lists:max([length(B) || {{_,_},{_,B},{_,_},{_,_}} <- Rows]) + 2,
+            C = lists:max([length(C) || {{_,_},{_,_},{_,C},{_,_}} <- Rows]) + 2,
+            D = lists:max([length(D) || {{_,_},{_,_},{_,_},{_,D}} <- Rows]) + 4,
+            Qs = [{table,[{" #"," Name"," Area"," Volume"}|Rows],[{col_widths,{A,B,C,D}}]}],
+            Ask = fun(_Res) -> ignore end,
+            wings_ask:dialog(?__(5,"Scene Info: Area & Volume"), Qs, Ask)
+    end.
 
 get_object_info(Id, Shapes) ->
     We0 = gb_trees:get(Id, Shapes),
@@ -1691,7 +1698,18 @@ get_object_info(Id, Shapes) ->
     Both = [area_volume(Face, We) || Face <- gb_trees:keys(Ftab)],
     Area =  lists:sum([A || {A,_} <- Both]),
     Volume =lists:sum([V || {_,V} <- Both]),
-    io_lib:fwrite("~p: '~s' [~f] (~f)\n", [Id,Name,Area,Volume]).
+    ToString = fun(Item) ->
+	case Item of
+	    Item when is_float(Item) ->
+		lists:concat(hd(io_lib:fwrite("~12f", [Item])));
+	    Item when is_integer(Item) ->
+		integer_to_list(Item);
+	    Item when is_list(Item) ->
+		Item
+	end
+    end,
+    [Id2,Name2,Area2,Volume2] = lists:map(ToString, [Id,Name,Area,Volume]),
+    {{Id,Id2},{Name,Name2},{Area,Area2},{Volume,Volume2}}.
 
 area_volume(Face, We) ->
     [V1,V2,V3] = wings_face:vertex_positions(Face, We),
