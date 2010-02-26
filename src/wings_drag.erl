@@ -340,6 +340,7 @@ do_drag(#drag{flags=Flags}=Drag, none) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     Ev = #mousemotion{x=X,y=Y,state=0},
     {GX,GY} = wings_wm:local2global(X, Y),
+    wings_tweak:toggle_draw(false),
     {seq,push,handle_drag_event_1(Ev, Drag#drag{x=GX,y=GY})};
 do_drag(#drag{unit=Units}=Drag0, Move) when length(Units) =:= length(Move) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
@@ -481,6 +482,7 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
         true ->
             wings_dl:map(fun invalidate_fun/2, []),
             ungrab(Drag),
+            wings_tweak:toggle_draw(true),
             wings_wm:later(revert_state),
             pop
 	end;
@@ -565,6 +567,7 @@ handle_drag_event_1({drag_arguments,Move}, Drag0) ->
     Drag = ?SLOW(motion_update(Move, Drag1)),
     St = normalize(Move, Drag),
     DragEnded = {new_state,St#st{drag_args=Move}},
+    wings_tweak:toggle_draw(true),
     wings_wm:later(DragEnded),
     pop;
 
@@ -599,6 +602,7 @@ quit_drag(#drag{last_move=Move} = Drag) ->
     ungrab(Drag),
     St = normalize(Move, Drag),
     DragEnded = {new_state,St#st{drag_args=Move}},
+    wings_tweak:toggle_draw(true),
     wings_wm:later(DragEnded),
     pop.
 

@@ -108,6 +108,7 @@ MODULES= \
 	wings_toolbar \
 	wings_tesselation \
 	wings_text \
+	wings_tweak \
 	wings_u \
 	wings_undo \
 	wings_util \

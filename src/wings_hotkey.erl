@@ -13,7 +13,7 @@
 
 -module(wings_hotkey).
 -export([event/1,event/2,matching/1,bind_unicode/3,bind_virtual/4,
-	 bind_from_event/2,unbind/1,hotkeys_by_commands/1,
+	 bind_from_event/2,unbind/1,hotkeys_by_commands/1,bindkey/2,
 	 set_default/0,listing/0,handle_error/2]).
 
 -define(NEED_ESDL, 1).
@@ -392,6 +392,9 @@ default_keybindings() ->
      {{$z,[ctrl]},          {edit,undo_toggle}},
      {{?SDLK_KP_PLUS,[]},   {select,more}},
      {{?SDLK_KP_MINUS,[]},  {select,less}},
+     {{?SDLK_F1,[]},        {tweak,{axis_constraint,x}}},
+     {{?SDLK_F2,[]},        {tweak,{axis_constraint,y}}},
+     {{?SDLK_F3,[]},        {tweak,{axis_constraint,z}}},
      {{?SDLK_F6,[]},        {select,{edge_loop,prev_edge_loop}}},
      {{?SDLK_F7,[]},        {select,{edge_loop,next_edge_loop}}},
      {{?SDLK_F5,[]},        {select,{by,{faces_with,5}}}},

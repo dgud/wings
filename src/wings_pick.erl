@@ -13,7 +13,7 @@
 
 -module(wings_pick).
 -export([event/2,event/3,hilite_event/3, hilite_event/4]).
--export([do_pick/3]).
+-export([do_pick/3,raw_pick/3]).
 -export([marquee_pick/3,paint_pick/3]).
 
 -define(NEED_OPENGL, 1).
@@ -101,7 +101,12 @@ paint_pick(X, Y, St0) ->
 get_hilite_event(HL) ->
     fun(Ev) -> handle_hilite_event(Ev, HL) end.
 
-handle_hilite_event(redraw,#hl{redraw=#st{sel=[]}=St,prev={SelMode,Where,{Obj,Elem}}}=Hl) ->
+handle_hilite_event(redraw,#hl{redraw=#st{sel=[]}=St,prev=Prev}=Hl) when is_tuple(Prev) ->
+    case Prev of
+      {_,_} ->
+        {{SelMode,Where,{Obj,Elem}},_} = Prev;
+      _ -> {SelMode,Where,{Obj,Elem}} = Prev
+    end,
     Mode = case SelMode of
       vertex -> ?__(4,"Vertex");
       edge -> ?__(5,"Edge");
@@ -135,31 +140,86 @@ handle_hilite_event(redraw, #hl{redraw=#st{}=St}) ->
 handle_hilite_event(redraw, #hl{redraw=Redraw}) ->
     Redraw(),
     keep;
-handle_hilite_event(#mousemotion{x=X,y=Y}, HL) ->
-    #hl{prev=PrevHit,always_dirty=Dirty,st=St,filter=Accept}=HL,
+handle_hilite_event(#mousemotion{x=X,y=Y}, #hl{prev={_,_}=PH}=HL0) ->
+    #hl{always_dirty=Dirty,st=St,filter=Accept}=HL0,
+    case {raw_pick(X, Y, St),tweak_hilite(X,Y,St)} of
+	PH when Dirty ->
+	    wings_wm:dirty(),
+	    get_hilite_event(HL0);
+	PH ->
+	    wings_draw:refresh_dlists(St),
+	    get_hilite_event(HL0);
+	{none,none} ->
+	    wings_wm:dirty(),
+	    insert_hilite_dl(none, St),
+	    wings_draw:refresh_dlists(St),
+	    get_hilite_event(HL0#hl{prev=none});
+	{SelHit,PointHit}=Hit ->
+	    case accept_hl(Accept, PointHit) of
+		true ->
+		    wings_wm:dirty(),
+		    case tweak_vector() of
+		      true ->
+		        insert_tweak_vector(SelHit, PointHit, St),
+		        HL = HL0#hl{prev=Hit};
+		      _ ->
+		        insert_hilite_dl(SelHit, St),
+		        HL = HL0#hl{prev=SelHit}
+		    end,
+		    wings_draw:refresh_dlists(St),
+		    get_hilite_event(HL);
+		false ->
+		    wings_wm:dirty(),
+		    insert_hilite_dl(none, St),
+		    wings_draw:refresh_dlists(St),
+		    get_hilite_event(HL0#hl{prev=none})
+		end
+    end;
+handle_hilite_event(#mousemotion{x=X,y=Y}, #hl{prev=PrevHit}=HL0) ->
+    #hl{always_dirty=Dirty,st=St,filter=Accept}=HL0,
     case raw_pick(X, Y, St) of
 	PrevHit when Dirty ->
 	    wings_wm:dirty(),
-	    get_hilite_event(HL);
+	    get_hilite_event(HL0);
 	PrevHit ->
+	    case tweak_vector() of
+	      true ->
+	        case tweak_hilite(X,Y,St) of
+	          none ->
+	            HL = HL0;
+	          Hit ->
+	            wings_wm:dirty(),
+	            insert_tweak_vector(PrevHit, Hit, St),
+	            HL = HL0#hl{prev={PrevHit,Hit}}
+	        end;
+	      _ ->
+	        HL = HL0
+	    end,
+	    wings_draw:refresh_dlists(St),
 	    get_hilite_event(HL);
 	none ->
 	    wings_wm:dirty(),
 	    insert_hilite_dl(none, St),
 	    wings_draw:refresh_dlists(St),
-	    get_hilite_event(HL#hl{prev=none});
+	    get_hilite_event(HL0#hl{prev=none});
 	Hit ->
 	    case accept_hl(Accept, Hit) of
-		true ->
-		    wings_wm:dirty(),
-		    insert_hilite_dl(Hit, St),
-		    wings_draw:refresh_dlists(St),
-		    get_hilite_event(HL#hl{prev=Hit});
-		false ->
-		    wings_wm:dirty(),
-		    insert_hilite_dl(none, St),
-		    wings_draw:refresh_dlists(St),
-		    get_hilite_event(HL#hl{prev=none})
+	    true ->
+	        wings_wm:dirty(),
+	        case tweak_vector() of
+	          true ->
+	            Hit0 = tweak_hilite(X, Y, St),
+	            insert_tweak_vector(Hit, Hit0, St);
+	          _ ->
+	            insert_hilite_dl(Hit, St)
+	        end,
+	        wings_draw:refresh_dlists(St),
+	        get_hilite_event(HL0#hl{prev=Hit});
+	    false ->
+	        wings_wm:dirty(),
+	        insert_hilite_dl(none, St),
+	        wings_draw:refresh_dlists(St),
+	        get_hilite_event(HL0#hl{prev=none})
 	    end
     end;
 handle_hilite_event(init_opengl, #hl{st=St}) ->
@@ -167,6 +227,10 @@ handle_hilite_event(init_opengl, #hl{st=St}) ->
 handle_hilite_event(_, _) ->
     insert_hilite_dl(none, none),
     next.
+
+tweak_hilite(X, Y, St) ->
+    Stp = St#st{selmode=face,sel=[],sh=true},
+    raw_pick(X, Y, Stp).
 
 accept_hl(Fun, Hit) when is_function(Fun) ->
     Fun(Hit);
@@ -195,6 +259,57 @@ insert_hilite_dl_1(#dlo{src_we=#we{id=Id}}=D, {Mode,_,{Id,Item}=Hit}, St) ->
 insert_hilite_dl_1(#dlo{hilite=none}=D, _, _) -> D;
 insert_hilite_dl_1(D, _, _) -> D#dlo{hilite=none}.
 
+tweak_vector() ->
+    Draw = wings_wm:lookup_prop(tweak_draw) =:= {value,true},
+    case wings_pref:get_value(tweak_active) of
+      true when Draw ->
+        case wings_wm:is_geom() of
+          true ->
+            case wings_pref:get_value(tweak_point) of
+              from_element -> true;
+              _ ->
+                case wings_pref:get_value(tweak_axis) of
+                  element_normal -> true;
+                  element_normal_edge -> true;
+                  _ -> false
+                end
+            end;
+          false -> false
+        end;
+      _other -> false
+    end.
+
+insert_tweak_vector(Hit, Hit0, St) ->
+    wings_dl:map(fun(D, _) ->
+			  insert_tweak_vector_1(D, Hit, Hit0, St)
+			end, []).
+
+insert_tweak_vector_1(#dlo{src_we=We}=D, _, _, _) when ?IS_LIGHT(We) -> D;
+insert_tweak_vector_1(#dlo{src_we=#we{id=Id}=We}=D, {Mode,_,{Id,Item}=Hit},
+  {Mode0,_,{Id,Item0}}, St) ->
+    List = gl:genLists(1),
+    gl:newList(List, ?GL_COMPILE),
+    hilite_color(Hit, St),
+    {Normal,ENorm,Center} = wings_tweak:point_center(Mode0, Item0, We),
+    Norm = case wings_pref:get_value(tweak_axis) of
+      element_normal_edge -> ENorm;
+      _ -> Normal
+    end,
+	case wings_wm:lookup_prop(select_backface) of
+	{value,true} ->
+	    gl:disable(?GL_CULL_FACE),
+	    hilit_draw_sel(Mode, Item, D),
+	    draw_tweak_vector(Center, Normal),
+	    gl:enable(?GL_CULL_FACE);
+	_ ->
+	    hilit_draw_sel(Mode, Item, D),
+	    draw_tweak_vector(Center, Norm)
+    end,
+    gl:endList(),
+    D#dlo{hilite=List};
+insert_tweak_vector_1(#dlo{hilite=none}=D, _, _, _) -> D;
+insert_tweak_vector_1(D, _, _, _) -> D#dlo{hilite=none}.
+
 hilite_color({Id,Item}, #st{sel=Sel}) ->
     Key = case keyfind(Id, 1, Sel) of
 	      false -> unselected_hlite;
@@ -205,6 +320,22 @@ hilite_color({Id,Item}, #st{sel=Sel}) ->
 		  end
 	  end,
     gl:color3fv(wings_pref:get_value(Key)).
+
+draw_tweak_vector(Center, Normal) ->
+    Length = wings_pref:get_value(tweak_vector_size),
+    Width = wings_pref:get_value(tweak_vector_width),
+    Color = wings_pref:get_value(tweak_vector_color),
+    Point = e3d_vec:add_prod(Center, Normal, Length),
+    gl:color3fv(Color),
+    gl:lineWidth(Width),
+    gl:'begin'(?GL_LINES),
+    gl:vertex3fv(Center),
+    gl:vertex3fv(Point),
+    gl:'end'(),
+    gl:pointSize(Width+2),
+    gl:'begin'(?GL_POINTS),
+    gl:vertex3fv(Point),
+    gl:'end'().
 
 hilit_draw_sel(vertex, V, #dlo{src_we=#we{vp=Vtab}}) ->
     gl:pointSize(wings_pref:get_value(selected_vertex_size)),
@@ -241,7 +372,12 @@ hilit_draw_sel(body, _, #dlo{vab=#vab{face_vs=Vs}}=D) ->
     wings_draw_setup:disableVertexPointer(Vs),
     gl:disable(?GL_POLYGON_STIPPLE).
 
-enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev={SelMode,_,{Obj,Elem}}})->
+enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tuple(Prev) ->
+    case Prev of
+      {_,_} ->
+        {{SelMode,_,{Obj,Elem}},_} = Prev;
+      _ -> {SelMode,_,{Obj,Elem}} = Prev
+    end,
     case wings_pref:get_value(info_text_on_hilite) of
       true ->
         We = gb_trees:get(Obj, Shs),
@@ -294,16 +430,8 @@ area_info(Face, We) ->
 %% Marquee picking.
 %%
 clear_hilite_marquee_mode(#marquee{st=St}=Pick) ->
-    Ctrl = wings_s:key(ctrl),
-    Shift = wings_s:key(shift),
-    CtrlMsg = ?__(ctrl_action,"Deselect"),
-    ShiftMsg = ?__(shift_action,
-		   "(De)select only elements wholly inside marquee"),
-    Mctrl = wings_util:key_format(Ctrl, CtrlMsg),
-    Mshift = wings_util:key_format(Shift, ShiftMsg),
-    Message = wings_msg:join(Mctrl, Mshift),
-    wings_wm:message(Message),
-    wings_wm:dirty_mode(front),
+    marquee_message(),
+    wings_wm:dirty(),
     {seq,push,
      fun(redraw) ->
 	     wings:redraw(St),
@@ -319,6 +447,17 @@ clear_hilite_marquee_mode(#marquee{st=St}=Pick) ->
 	     wings_io:putback_event(Ev),
 	     keep
      end}.
+
+marquee_message() ->
+    Ctrl = wings_s:key(ctrl),
+    Shift = wings_s:key(shift),
+    CtrlMsg = ?__(ctrl_action,"Deselect"),
+    ShiftMsg = ?__(shift_action,
+		   "(De)select only elements wholly inside marquee"),
+    Mctrl = wings_util:key_format(Ctrl, CtrlMsg),
+    Mshift = wings_util:key_format(Shift, ShiftMsg),
+    Message = wings_msg:join(Mctrl, Mshift),
+    wings_wm:message(Message).
 
 get_marquee_event(Pick) ->
     {replace,fun(Ev) -> marquee_event(Ev, Pick) end}.
@@ -336,11 +475,7 @@ marquee_event(#mousemotion{x=X,y=Y}, #marquee{cx=Cx,cy=Cy}=M) ->
     draw_marquee(Cx, Cy, M),
     draw_marquee(X, Y, M),
     get_marquee_event(M#marquee{cx=X,cy=Y});
-marquee_event(#mousebutton{x=X0,y=Y0,mod=Mod,button=B,state=?SDL_RELEASED}, M)
-        when B==1;B==2 ->
-    %% Button 2 is only used in Tweak Mode for Maya cam. If there are any
-    %% issues I will revert the code to only accept release states from B 1.
-    %% - Richard
+marquee_event(#mousebutton{x=X0,y=Y0,mod=Mod,button=1,state=?SDL_RELEASED}, M) ->
     {Inside,Op} =
 	if
 	    Mod band ?SHIFT_BITS =/= 0, Mod band ?CTRL_BITS =/= 0 ->
@@ -513,11 +648,7 @@ pick_event(#mousemotion{x=X,y=Y}, #pick{op=Op,st=St0}=Pick) ->
 	    get_pick_event(Pick#pick{st=St});
 	{_,_,_} -> keep
     end;
-pick_event(#mousebutton{button=B,state=?SDL_RELEASED}, #pick{st=St})
-        when B==1;B==2 ->
-    %% Button 2 is only used in Tweak Mode for Maya cam. If there are any
-    %% issues I will revert the code to only accept release states from B 1.
-    %% - Richard
+pick_event(#mousebutton{button=1,state=?SDL_RELEASED}, #pick{st=St}) ->
     wings_wm:release_focus(),
     wings_wm:later({new_state,St}),
     pop;

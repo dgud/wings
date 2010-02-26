@@ -213,7 +213,6 @@ advanced_prefs() ->
       {?__(54,"Extend selection via hotkey on temporary highlight"),hilite_select,
 	   [{info,?__(55,"Affects: Select All, Edge Loop, Edge Ring, Select Similar, Similar Normals, Similar Materials, and Similar Area.")},
 	     {hook,HighlightDisable}]},
-      {?__(53,"Launch Wings in Tweak Mode"),start_in_tweak},
      {vframe,
        [{label_column,
      [{?__(14,"Length"),active_vector_size,

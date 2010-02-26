@@ -52,7 +52,6 @@ MODULES= \
 	wpc_shift \
 	wpc_sweep_extrude \
 	wpc_turnedge \
-	wpc_tweak \
 	wpc_untriangulate \
 	wpc_weld
 

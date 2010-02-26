@@ -21,6 +21,7 @@
 -export([init_menubar/0]).
 -export([highlight_aim_setup/1]).
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).
+-export([info_line/0]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -133,6 +134,7 @@ init(File) ->
     wings_ask:init(),
     wings_job:init(),
     wings_develop:init(),
+    wings_tweak:init(),
 
     Op = main_loop_noredraw(St),		%Replace crash handler
                         %with this handler.
@@ -216,10 +218,18 @@ redraw(Info, St) ->
 		wings_wm:clear_background(),
 		wings_render:render(St),
 		call_post_hook(St),
+		TweakInfo = wings_tweak:statusbar(),
 		case Info =/= [] andalso wings_wm:get_prop(show_info_text) of
-		    true -> wings_io:info(Info);
-		    false -> ok
-		end
+		    true when TweakInfo =:= [] ->
+		        wings_io:info(Info);
+		    true ->
+		        wings_io:info([TweakInfo,"\n",Info]);
+		    false when TweakInfo =:= [] ->
+		        ok;
+		    false ->
+		        wings_io:info(TweakInfo)
+		end,
+		wings_tweak:tweak_keys_info()
 	end,
     wings_io:batch(Render).
 
@@ -282,8 +292,15 @@ handle_event({open_file,Name}, St0) ->
     end;
 handle_event(Ev, St) ->
     case wings_camera:event(Ev, St) of
-	next -> handle_event_0(Ev, St);
-	Other -> Other
+      next -> handle_event_tweak(Ev, St);
+      Other -> Other
+    end.
+
+handle_event_tweak(Ev, St) ->
+%% Check for Tweak events
+    case wings_tweak:tweak_event(Ev, St) of
+      next -> handle_event_0(Ev, St);
+      Other -> Other
     end.
 
 handle_event_0(#mousebutton{button=But,state=ButSt,mod=Mod}=Ev, St)
@@ -311,19 +328,24 @@ handle_event_2(#mousebutton{x=X,y=Y}=Ev0, #st{sel=Sel}=St0) ->
     case wings_menu:is_popup_event(Ev0) of
     no ->
         handle_event_3(Ev0, St0);
-    {yes,Xglobal,Yglobal,_} ->
-        case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
-        false ->
-            popup_menu(Xglobal, Yglobal, St0);
-        true ->
-            case wings_pick:do_pick(X, Y, St0) of
-            {add,_,St} ->
-                Ev = wings_wm:local2global(Ev0),
-                wings_io:putback_event(Ev),
-                wings_wm:later({temporary_selection,St});
-            _ ->
-                popup_menu(Xglobal, Yglobal, St0)
-            end
+    {yes,Xglobal,Yglobal,Mod} ->
+        case Mod band ?CTRL_BITS =/= 0 of
+          true ->
+              wings_tweak:menu(Xglobal,Yglobal);
+          false ->
+              case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
+                false ->
+                    popup_menu(Xglobal, Yglobal, St0);
+                true ->
+                    case wings_pick:do_pick(X, Y, St0) of
+                      {add,_,St} ->
+                          Ev = wings_wm:local2global(Ev0),
+                          wings_io:putback_event(Ev),
+                          wings_wm:later({temporary_selection,St});
+                      _ ->
+                          popup_menu(Xglobal, Yglobal, St0)
+                    end
+              end
         end
     end;
 handle_event_2(Ev, St) -> handle_event_3(Ev, St).
@@ -363,6 +385,7 @@ handle_event_3(quit, St) ->
 	_ -> keep
     end;
 handle_event_3({new_state,St}, St0) ->
+    info_line(),
     save_state(St0, St);
 handle_event_3({temporary_selection,St}, St0) ->
     main_loop(set_temp_sel(St0, St));
@@ -377,11 +400,7 @@ handle_event_3(need_save, St) ->
 handle_event_3({new_default_command,DefCmd}, St) ->
     main_loop_noredraw(St#st{def=DefCmd});
 handle_event_3(got_focus, _) ->
-    Msg1 = wings_msg:button_format(?__(1,"Select")),
-    Msg2 = wings_camera:help(),
-    Msg3 = wings_msg:button_format([], [], ?__(2,"Show menu")),
-    Message = wings_msg:join([Msg1,Msg2,Msg3]),
-    wings_wm:message(Message),
+    info_line(),
     keep;
 handle_event_3(lost_focus, _) -> keep;
 handle_event_3({note,menu_aborted}, St) ->
@@ -399,8 +418,6 @@ handle_event_3({external,no_more_basic_menus}, _St) ->
     wings_help:no_more_basic_menus();
 handle_event_3({external,not_possible_to_save_prefs}, _St) ->
     wings_help:not_possible_to_save_prefs();
-handle_event_3({external,launch_tweak}, St) ->
-    wpc_tweak:command({tools,{tweak,false}},St);
 handle_event_3({external, win32_start_maximized}, _St) ->
     restore_windows_pos(),
     keep;
@@ -408,6 +425,22 @@ handle_event_3({external,Op}, St) ->
     wpa:handle_external(Op,St),
     keep;
 handle_event_3(ignore, _St) -> keep.
+
+info_line() ->
+    case wings_pref:get_value(tweak_active) of
+      false ->
+        Msg1 = wings_msg:button_format(?__(1,"Select")),
+        Msg2 = wings_camera:help(),
+        Msg3 = wings_msg:button_format([], [], ?__(2,"Show menu")),
+        TweakMenu = wings_msg:button_format([], [], ?__(3,"Tweak menu")),
+        Msg4 = [wings_s:key(ctrl), "+", TweakMenu],
+        Message = wings_msg:join([Msg1,Msg2,Msg3,Msg4]),
+        wings_tweak:tweak_disabled_msg(),
+        wings_wm:message(Message);
+      true ->
+        wings_tweak:tweak_info_line(),
+        wings_tweak:tweak_magnet_help()
+    end.
 
 do_hotkey(Ev, #st{sel=[]}=St0) ->
     case wings_pref:get_value(use_temp_sel) of
@@ -693,6 +726,11 @@ command_1({window,palette}, St) ->
 command_1({window,console}, _St) ->
     wings_console:window(),
     keep;
+command_1({window,tweak_palette}, St) ->
+    wings_tweak:window(St),
+    wings_tweak:mag_window(St),
+    wings_tweak:axis_window(St),
+    keep;
 
 %% Body menu.
 command_1({body,Cmd}, St) ->
@@ -767,6 +805,10 @@ command_1({tools, put_on_ground}, St) ->
     {save_state,wings_align:put_on_ground(St)};
 command_1({tools, unitize}, St) ->
     {save_state,wings_align:unitize(St)};
+command_1({tools, tweak_menu}, _St) ->
+    {_,X0,Y0} = wings_wm:local_mouse_state(),
+    {X,Y} = wings_wm:local2global(X0, Y0),
+    wings_tweak:menu(X, Y);
 
 %% Develop menu.
 command_1({develop,Cmd}, St) ->
@@ -774,8 +816,11 @@ command_1({develop,Cmd}, St) ->
 
 %% wings_job action events.
 command_1({wings_job,Command}, St) ->
-    wings_job:command(Command, St).
+    wings_job:command(Command, St);
 
+%% Tweak menu
+command_1({tweak, Cmd}, St) ->
+    wings_tweak:command(Cmd, St).
 
 popup_menu(X, Y, #st{sel=[]}=St) ->
     wings_shapes:menu(X, Y, St);
@@ -875,7 +920,9 @@ tools_menu(_) ->
      {?__(28,"Put on Ground"), put_on_ground,
       ?__(29,"Put selected objects on the ground plane")},
      {?__(30,"Unitize"), unitize,
-      ?__(31,"Scale selected objects to fit inside a unit sphere and move to origin")}].
+      ?__(31,"Scale selected objects to fit inside a unit sphere and move to origin")},
+     separator,
+     {?__(40,"Tweak"),tweak_menu,?__(41,"Open the Tweak menu")}].
 
 window_menu(_) ->
     Name = case wings_wm:this() of
@@ -889,6 +936,8 @@ window_menu(_) ->
      {Name,object,
       ?__(5,"Open a Geometry Graph window (showing objects)")},
      {?__(6,"Palette"), palette,?__(7,"Open the color palette window")},
+     {?__(12,"Tweak Palette"), tweak_palette,
+      ?__(13,"Open palettes from which tweak tools may be selected or bound to modifier keys")},
      separator,
      {?__(8,"New Geometry Window"),geom_viewer, ?__(9,"Open a new Geometry window")},
      {?__(10,"Console"),console,?__(11,"Open a console window for information messages")}].
@@ -1488,6 +1537,8 @@ save_windows_1([console|Ns]) ->
     save_window(console, Ns);
 save_windows_1([palette|Ns]) ->
     save_window(palette, Ns);
+save_windows_1([{tweak, _}=Tweak|Ns]) ->
+    save_window(Tweak, Ns);
 save_windows_1([outliner|Ns]) ->
     save_window(outliner, Ns);
 save_windows_1([{object,_}=N|Ns]) ->
@@ -1500,9 +1551,15 @@ save_windows_1([_|T]) -> save_windows_1(T);
 save_windows_1([]) -> [].
 
 save_window(Name, Ns) ->
-    {MaxX,_} = wings_wm:win_size(desktop),
-    {PosX0,PosY} = wings_wm:win_ur({controller,Name}),
+    {MaxX,MaxY} = wings_wm:win_size(desktop),
+    {PosX0,PosY0} = case Name of
+      {tweak, Palette} ->
+        wings_wm:win_ul({tweak, Palette});
+      _ ->
+        wings_wm:win_ur({controller,Name})
+    end,
     PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
+    PosY = if PosY0 < 0 -> 20; PosY0 > MaxY -> 20; true -> PosY0 end,
     Size = wings_wm:win_size(Name),
     W = {Name,{PosX,PosY},Size},
     [W|save_windows_1(Ns)].
@@ -1544,7 +1601,7 @@ restore_windows_1([{geom,{_,_}=Pos0,{_,_}=Size,Ps0}|Ws], St) ->
     end,
     Pos = geom_pos(Pos0),
     wings_wm:move(geom, Pos, Size),
-    set_geom_props(Ps, geom),
+    wings_wm:set_prop(geom, tweak_draw, true),
     restore_windows_1(Ws, St);
 restore_windows_1([{{geom,_}=Name,Pos0,Size,Ps0}|Ws], St) ->
     Ps = geom_props(Ps0),
@@ -1565,6 +1622,15 @@ restore_windows_1([{console,{_,_}=Pos,{_,_}=Size}|Ws], St) ->
     restore_windows_1(Ws, St);
 restore_windows_1([{palette,{_,_}=Pos,{_,_}=Size}|Ws], St) ->
     wings_palette:window(validate_pos(Pos),Size,St),
+    restore_windows_1(Ws, St);
+restore_windows_1([{{tweak, palette},{_,_}=Pos, _, Ps}|Ws], St) ->
+    wings_tweak:window(validate_pos(Pos), Ps, St),
+    restore_windows_1(Ws, St);
+restore_windows_1([{{tweak, mag_palette},{_,_}=Pos, _, Ps}|Ws], St) ->
+    wings_tweak:mag_window(validate_pos(Pos), Ps, St),
+    restore_windows_1(Ws, St);
+restore_windows_1([{{tweak, axis_palette},{_,_}=Pos, _, Ps}|Ws], St) ->
+    wings_tweak:axis_window(validate_pos(Pos), Ps, St),
     restore_windows_1(Ws, St);
 restore_windows_1([_|Ws], St) ->
     restore_windows_1(Ws, St);
@@ -1595,6 +1661,8 @@ move_windows([]) -> ok.
 move_windows_1(geom,Pos) ->
     wings_wm:move(geom,Pos);
 move_windows_1({geom,_}=Name,Pos) ->
+    wings_wm:move(Name,Pos);
+move_windows_1({tweak, _}=Name,Pos) ->
     wings_wm:move(Name,Pos);
 move_windows_1(Name,{X,Y}) ->
     case wings_wm:is_window(Name) of
@@ -1646,7 +1714,8 @@ set_geom_props([{clipping_planes,Hither,Yon}|T], Name)
     set_geom_props(T, Name);
 set_geom_props([_|T], Name) ->
     set_geom_props(T, Name);
-set_geom_props([], _) -> ok.
+set_geom_props([], Name) ->
+    wings_wm:set_prop(Name, tweak_draw, true).
 
 initial_properties() ->
     [{display_lists,geom_display_lists}|wings_view:initial_properties()].

@@ -55,9 +55,10 @@ command({tools,connect}, St0) ->
     wings_draw:refresh_dlists(St),
     C = #cs{ost=St0, st=St},
     help(C),
+    wings_tweak:toggle_draw(false),
     {seq,push,update_connect_handler(C)};
 command(_, _) -> next.
-
+                      
 %% Event handler for connect mode
 
 update_connect_handler(#cs{st=St}=C) ->
@@ -144,6 +145,7 @@ handle_connect_event1({current_state,St}=Ev, C) ->
 	    wings_draw:refresh_dlists(St),
 	    update_connect_handler(C#cs{st=St});
 	true ->
+	    wings_tweak:toggle_draw(true),
 	    wings_wm:later(Ev),
 	    wings:unregister_postdraw_hook(geom,?MODULE),
 	    pop
@@ -152,6 +154,7 @@ handle_connect_event1({slide_setup,Drag},_C) ->
     wings_drag:do_drag(Drag,none);
 handle_connect_event1({new_state,St0=#st{shapes=Sh}},
 		      C0=#cs{mode=slide,we=Shape,v=[V|VR],backup=Old}) ->
+    wings_tweak:toggle_draw(false),
     #we{vp=Vtab} = gb_trees:get(Shape, Sh),
     Pos = array:get(V#vi.id, Vtab),
     St1 = St0#st{sel=[],temp_sel=none, sh=true},    
@@ -173,6 +176,7 @@ handle_connect_event1({new_state,St}=Ev, C) ->
 	    wings_draw:refresh_dlists(St),
 	    update_connect_handler(C#cs{st=St});
 	true ->
+	    wings_tweak:toggle_draw(true),
 	    wings_wm:later(Ev),
 	    wings:unregister_postdraw_hook(geom,?MODULE),
 	    pop
@@ -231,6 +235,7 @@ undo_refresh(St0,C0) ->
     update_connect_handler(C).
 
 exit_connect(#cs{ost=St,st=#st{shapes=Shs,views=Views}}) ->
+    wings_tweak:toggle_draw(true),
     wings:unregister_postdraw_hook(geom, ?MODULE),
     wings_wm:later({new_state,St#st{shapes=Shs,views=Views}}),
     pop.
