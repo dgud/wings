@@ -1185,38 +1185,53 @@ any_matching_material(Material, [Mat|T]) ->
 %%%
 
 sharp_edges(Ask, _St) when is_atom(Ask) ->
-    Qs = [{label,?__(1,"Max Angle")},
-	  {text,120.0,[{range,{0.0,180.0}}]}],
+    Qs = [{hframe,[{label,?__(1,"Max Angle")},
+      {slider,{text,120.0,[{range,{0.0,180.0}}]}}]},
+      {hradio,[{?__(3,"Peaks"),convex},
+               {?__(4,"Valleys"),concave},
+               {?__(5,"Both"),both}],both}],
     wings_ask:dialog(Ask,
-	?__(2,"Select Sharp Edges"), [{hframe,Qs}],
-	fun(Res) ->
-	    {select,{by,{sharp_edges,Res}}}
-	end);
-sharp_edges([Tolerance], #st{sel=[]}=St0) ->
+    ?__(2,"Select Sharp Edges"), [{vframe,Qs}],
+    fun(Res) ->
+        {select,{by,{sharp_edges,Res}}}
+    end);
+sharp_edges([Tolerance,Type], #st{sel=[]}=St0) ->
     CosTolerance = -math:cos(Tolerance * math:pi() / 180.0),
     St = wings_sel:make(fun(Edge, We) ->
-	     sharp_edge(CosTolerance, Edge, We)
-	 end, edge, St0),
+         sharp_edge(CosTolerance, Type, Edge, We)
+     end, edge, St0),
     {save_state,St};
-sharp_edges([Tolerance], #st{selmode=Mode}=St0) ->
+sharp_edges([Tolerance,Type], #st{selmode=Mode}=St0) ->
     St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
     CosTolerance = -math:cos(Tolerance * math:pi() / 180.0),
     Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
-		  Sel1 = gb_sets:to_list(Sel0),
-		  SharpEdges = [Edge || Edge <- Sel1, sharp_edge(CosTolerance, Edge, We)],
-		  case SharpEdges of
-		    [] -> Acc;
-		    _ -> [{Id, gb_sets:from_list(SharpEdges)}|Acc]
-		  end
-	  end,[],St),
+          Sel1 = gb_sets:to_list(Sel0),
+          SharpEdges = [Edge || Edge <- Sel1, sharp_edge(CosTolerance, Type, Edge, We)],
+          case SharpEdges of
+            [] -> Acc;
+            _ -> [{Id, gb_sets:from_list(SharpEdges)}|Acc]
+          end
+      end,[],St),
     {save_state,wings_sel:set(edge, Sel, St0)}.
 
-
-sharp_edge(CosTolerance, Edge, #we{es=Etab}=We) ->
-    #edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
+sharp_edge(CosTolerance, Type, Edge, #we{es=Etab,vp=Vtab}=We) ->
+    #edge{lf=Lf,rf=Rf,vs=Va,ve=Vb} = array:get(Edge, Etab),
     Lfn = wings_face:normal(Lf, Edge, We),
     Rfn = wings_face:normal(Rf, Edge, We),
-    e3d_vec:dot(Lfn,Rfn) < CosTolerance.
+    Dot = e3d_vec:dot(Lfn,Rfn),
+    case Dot < CosTolerance of
+      false -> false;
+      true when Type =:= both -> true;
+      true ->
+        EdgeNormal = e3d_vec:add(Lfn,Rfn),
+        EdgeCenter = e3d_vec:average(array:get(Va, Vtab), array:get(Vb, Vtab)),
+        FacesCenter = e3d_vec:average(wings_face:center(Lf,We),wings_face:center(Rf,We)),
+        Vec = e3d_vec:sub(EdgeCenter,FacesCenter),
+        case Type of
+           convex -> e3d_vec:dot(EdgeNormal,Vec) > 0.0;
+           concave -> e3d_vec:dot(EdgeNormal,Vec) < 0.0
+        end
+    end.
 
 %%%
 %%% Select shortest path
