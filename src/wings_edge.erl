@@ -20,7 +20,8 @@
 	 cut/3,fast_cut/3,screaming_cut/3,
 	 dissolve_edges/2,dissolve_edge/2,
 	 hardness/3,
-	 patch_edge/4,patch_edge/5]).
+	 patch_edge/4,patch_edge/5,
+	 select_nth_ring/2]).
 
 -export([dissolve_isolated_vs/2]).
 
@@ -852,3 +853,109 @@ patch_edge(Edge, ToEdge, Face, OrigEdge, Etab) ->
 		  R#edge{rtpr=ToEdge}
 	  end,
     array:set(Edge, New, Etab).
+
+%%%% Select every nth ring
+select_nth_ring(N, #st{selmode=edge}=St) ->
+    Sel = wings_sel:fold(fun(Edges, #we{id=Id}=We, ObjAcc) ->
+                EdgeRings = nth_ring_1(Edges, {N,N}, We, Edges, gb_sets:new()),
+                Sel0 = wings_we:visible_edges(EdgeRings, We),
+                [{Id,Sel0}|ObjAcc]
+        end,[],St),
+    wings_sel:set(Sel, St);
+select_nth_ring(_N, St) ->
+    St.
+
+nth_ring_1(Edges0, N, We, OrigEs, Acc) ->
+    case gb_sets:is_empty(Edges0) of
+      true -> Acc;
+      false ->
+        {Edge,Edges1} = gb_sets:take_smallest(Edges0),
+        Rings = nth_ring_2(Edge, N, We, OrigEs, gb_sets:singleton(Edge)),
+        Edges = gb_sets:subtract(Edges1, Rings),
+        nth_ring_1(Edges, N, We, OrigEs, gb_sets:union(Rings,Acc))
+    end.
+
+nth_ring_2(Edge, {N,Int}, We, OrigEs, Acc) ->
+    case opposing_edge(Edge, We, left) of
+      unknown ->
+        case opposing_edge(Edge, We, right) of
+          unknown ->
+            Acc;
+          NextEdge ->
+            {_,Edges0} = nth_ring_3(NextEdge,Edge,Edge,{N-1,Int},right,left,We,OrigEs,Acc),
+            Edges0
+        end;
+      NextEdge ->
+        {Check0,Edges0} = case gb_sets:is_member(NextEdge,OrigEs) of
+          true -> {stop,Acc};
+          false -> nth_ring_3(NextEdge,Edge,Edge,{N-1,Int},left,right,We,OrigEs,Acc)
+        end,
+        case opposing_edge(Edge, We, right) of
+          unknown ->
+            Edges0;
+          PrevEdge ->
+            {Check1,Edges1} = case gb_sets:is_member(PrevEdge,OrigEs) of
+              true -> {stop,Acc};
+              false -> nth_ring_3(PrevEdge,Edge,Edge,{N-1,Int},right,left,We,OrigEs,Acc)
+            end,
+            nth_ring_4(Check0,Edges0,Check1,Edges1,OrigEs)
+        end
+    end.
+
+nth_ring_3(CurEdge,PrevEdge,LastEdge,{0,N},Side,Oposite,We,OrigEs,Acc0) ->
+    Acc = gb_sets:insert(CurEdge,Acc0),
+    nth_ring_3(CurEdge,PrevEdge,LastEdge,{N,N},Side,Oposite,We,OrigEs,Acc);
+nth_ring_3(CurEdge,PrevEdge,LastEdge,{N0,Int},Side,Oposite,We,OrigEs,Acc) ->
+    case opposing_edge(CurEdge, We, Side) of
+      unknown -> {ok,Acc};
+      PrevEdge ->
+        case opposing_edge(CurEdge, We, Oposite) of
+          unknown -> {ok,Acc};
+          PrevEdge -> {ok,Acc};
+          LastEdge -> {ok,Acc};
+          NextEdge ->
+            case gb_sets:is_member(NextEdge,OrigEs) of
+              true ->
+                {stop,Acc};
+              false ->
+                nth_ring_3(NextEdge,CurEdge,LastEdge,{N0-1,Int},Oposite,Side,We,OrigEs,Acc)
+            end
+        end;
+      LastEdge -> {ok,Acc};
+      NextEdge ->
+        case gb_sets:is_member(NextEdge,OrigEs) of
+          true ->
+            {stop,Acc};
+          false ->
+            nth_ring_3(NextEdge,CurEdge,LastEdge,{N0-1,Int},Side,Oposite,We,OrigEs,Acc)
+        end
+    end.
+
+nth_ring_4(_,Edges,_,Edges,_) ->
+    Edges;
+nth_ring_4(Check0,Edges0,Check1,Edges1,OrigEs) ->
+    S0 = gb_sets:size(Edges0),
+    S1 = gb_sets:size(Edges1),
+    if
+      S0 =:= 1 -> Edges1;
+      S1 =:= 1 -> Edges0;
+      true -> nth_ring_5(Check0,S0,Edges0,Check1,S1,Edges1,OrigEs)
+    end.
+
+nth_ring_5(ok,_,Edges0,ok,_,Edges1,_) ->
+    gb_sets:union(Edges0,Edges1);
+nth_ring_5(stop,S0,Edges0,stop,S1,Edges1,_) ->
+    case S0 > S1 of
+      true -> Edges1;
+      false -> Edges0
+    end;
+nth_ring_5(stop,_,Edges0,_,_,Edges1,OrigEs) ->
+    case gb_sets:is_subset(Edges0,OrigEs) of
+      true -> Edges1;
+      false -> Edges0
+    end;
+nth_ring_5(_,_,Edges0,stop,_,Edges1,OrigEs) ->
+    case gb_sets:is_subset(Edges1,OrigEs) of
+      true -> Edges0;
+      false -> Edges1
+    end.

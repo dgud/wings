@@ -42,6 +42,10 @@ menu(St) ->
 	 ?__(11,"Select all faces on one side of an edge loop")},
 	{?__(12,"Edge Ring"),
 	 edge_ring,?__(13,"Expand edge selection to ring")},
+	{?__(100,"Every Nth Ring"),{nth_edge_ring,
+	    [{?__(101,"Second"),2},
+	     {?__(102,"Third"),3},
+	     {?__(103,"Nth..."),nth}]}},
 	separator,
 	{?__(14,"Previous Edge Loop"),
 	 prev_edge_loop,?__(15,"Select the previous edge loop")},
@@ -248,6 +252,10 @@ command({edge_loop,edge_link_decr}, St) ->
     {save_state,wings_edge_loop:select_link_decr(St)};
 command({edge_loop,edge_link_incr}, St) ->
     {save_state,wings_edge_loop:select_link_incr(St)};
+command({edge_loop,{nth_edge_ring,nth}}, St) ->
+    select_nth_ring(St);
+command({edge_loop,{nth_edge_ring,N}}, St) ->
+    {save_state,wings_edge:select_nth_ring(N,St)};
 command({edge_loop,edge_ring}, St) ->
     {save_state,wings_edge:select_edge_ring(St)};
 command({edge_loop,edge_ring_incr}, St) ->
@@ -1538,3 +1546,13 @@ faces_with(Filter, Face, We) ->
       {faces_with,5} -> Vs >= 5;
       {faces_with,N} -> Vs =:= N
     end.
+
+select_nth_ring(#st{selmode=edge}) ->
+    Qs = [{label,?__(1,"Interval")},
+	  {text,2,[{range,{1,1000}}]}],
+    wings_ask:dialog(true,
+	?__(2,"Select Every Nth Edge Ring"), [{hframe,Qs}],
+	fun([Res]) ->
+	    {select,{edge_loop,{nth_edge_ring,Res}}}
+	end);
+select_nth_ring(St) -> {save_state,St}.
