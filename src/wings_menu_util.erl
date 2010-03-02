@@ -12,7 +12,8 @@
 %%
 
 -module(wings_menu_util).
--export([directions/1,directions/2,scale/1,rotate/1,flatten/0,all_xyz/0]).
+-export([directions/1,directions/2,scale/1,rotate/1,flatten/0,all_xyz/0,
+	 crossmark/1]).
 
 -include("wings.hrl").
 
@@ -357,3 +358,16 @@ dir_help_1([duplicate|_], Text) ->
 dir_help_1([shell_extrude|_], Text) ->
     ?STR(dir_help_1,26,"Extract and Extrude faces as region, then move along ") ++ Text;
 dir_help_1(_, _) -> "".
+
+%% Menu checkmark
+crossmark(Key) ->
+    Val = case wings_pref:get_value(Key) of
+	      undefined ->
+		  {_,Client} = wings_wm:this(),
+		  wings_wm:get_prop(Client, Key);
+	      Other -> Other
+	  end,
+    case Val of
+	false -> [];
+	true -> [crossmark]
+    end.

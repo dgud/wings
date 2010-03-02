@@ -124,6 +124,7 @@ init(File) ->
     St1 = wings_sel:reset(St0),
     St = wings_undo:init(St1),
     wings_view:init(),
+    wings_sel_cmd:init(),
     wings_file:init(),
     wings_u:caption(St),
     wings_wm:init(),
