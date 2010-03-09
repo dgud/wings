@@ -46,6 +46,7 @@ MODULES= \
 	wpc_magnet_mask \
 	wpc_move_planar \
 	wpc_numeric_camera \
+	wpc_plane_cut \
 	wpc_region \
 	wpc_rotate_unconstrained \
 	wpc_shear \
