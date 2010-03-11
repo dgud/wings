@@ -37,7 +37,8 @@ menu(St) ->
       {edge_loop,
        [{?__(7,"Edge Loop"),
 	 edge_loop,?__(8,"Expand edge selection to loop; ")++
-	 ?__(9,"convert face selection to selected border edges")},
+	 ?__(9,"convert face selection to selected border edges")++
+	 ?__(98,"; convert consecutive vertices to edges")},
 	{?__(10,"Edge Loop to Region"),edge_loop_to_region,
 	 ?__(11,"Select all faces on one side of an edge loop")},
 	{?__(12,"Edge Ring"),
@@ -240,6 +241,8 @@ similar_help(#st{selmode=face}) ->
 similar_help(#st{selmode=body}) ->
     ?__(4,"Select objects with the same number of edges, faces, and vertices").
 
+command({edge_loop,edge_loop}, #st{selmode=vertex}=St) ->
+    {save_state,vs_to_edge_loop(St)};
 command({edge_loop,edge_loop}, #st{selmode=face}=St) ->
     {save_state,face_region_to_edge_loop(St)};
 command({edge_loop,edge_loop}, St) ->
@@ -383,6 +386,32 @@ face_region_to_edge_loop(St) ->
 subtract_mirror_edges(Es, #we{mirror=none}) -> Es;
 subtract_mirror_edges(Es, #we{mirror=Face}=We) ->
     Es -- wings_face:to_edges([Face], We).
+
+vs_to_edge_loop(St) ->
+    Sel = wings_sel:fold(
+      fun(Vs, #we{id=Id}=We, Acc) ->
+        Es0 = vs_to_edges(Vs, We, []),
+        Es1 = subtract_mirror_edges(Es0, We),
+        Es = gb_sets:from_list(Es1),
+        [{Id,Es}|Acc]
+      end, [], St),
+    wings_sel:set(edge, Sel, St).
+
+vs_to_edges(Vs0, We, Es0) ->
+    case gb_sets:is_empty(Vs0) of
+      true -> lists:usort(Es0);
+      false ->
+        {Va,Vs} = gb_sets:take_smallest(Vs0),
+        Es = wings_vertex:fold(
+          fun(Edge, _, EdgeRec, Es1) ->
+            Vb = wings_vertex:other(Va, EdgeRec),
+            case gb_sets:is_element(Vb, Vs) of
+              true -> [Edge|Es1];
+              _ -> Es1
+            end
+          end, Es0, Va, We),
+        vs_to_edges(Vs, We, Es)
+    end.
 
 %%%
 %%% Selection commands.
