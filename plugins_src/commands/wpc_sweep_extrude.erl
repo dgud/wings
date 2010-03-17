@@ -30,18 +30,18 @@ parse([], NewMenu, true) ->
     NewMenu;
 parse([], NewMenu, false) ->
     [sweep_menu_headings()|NewMenu];
-parse([S,A={_,{flatten,_}},S|Rest], NewMenu, false) when S==separator ->
+parse([S,A={_,{flatten,_}},S|Rest], NewMenu, false) when S=:=separator ->
     parse(Rest, [S,A,S,sweep_menu_headings()|NewMenu], true);
 parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 
 sweep_menu_headings() ->
-    [{menu_title(sweep_extrude),
-    {sweep,
+    {menu_title(sweep_extrude),
+     {sweep,
       [sweep_menu(sweep_extrude),
        sweep_menu(sweep_region),
-       sweep_menu(sweep_extract)]
-    }}].
+       sweep_menu(sweep_extract)]},
+     ?__(1,"Make a mitered extrusion that can be scaled and twisted interactively")}.
 
 %%%% Menus
 sweep_menu(Type) ->
@@ -52,10 +52,10 @@ sweep_menu(Type) ->
 		Str3 = ?__(3,"Pick axis"),
 		{Str1,Str2,Str3};
 	   (1, _Ns) -> xyz(Type);
-	   (2, _Ns) -> {face,{Type,{relative,{'ASK',[plane]}}}};
-	   (3, _Ns) -> {face,{Type,{absolute,{'ASK',[plane]}}}}
+	   (2, _Ns) -> {face,{sweep,{Type,{relative,{'ASK',[plane]}}}}};
+	   (3, _Ns) -> {face,{sweep,{Type,{absolute,{'ASK',[plane]}}}}}
         end,
-    {MenuTitle,{sweep_extrude,F}}.
+    {MenuTitle,{Type,F}}.
 
 menu_title(sweep_extrude) -> ?__(1,"Sweep");
 menu_title(sweep_region) ->  ?__(2,"Sweep Region");
@@ -78,17 +78,19 @@ xyz(Type) ->
      axis_menu(Type,last_axis),
      axis_menu(Type,default_axis)].
 
-axis_menu(Type,Axis) ->
+axis_menu(Type, Axis) ->
     AxisStr = wings_util:cap(wings_s:dir(Axis)),
-    Help = axis_menu_string(Axis),
-    F = fun (help, _Ns) ->
-		Str3 = ?__(2,"Extrude relative to percentage of selection's radius"),
-		{Help,[],Str3};
-	    (1, _Ns) -> {face,{Type,{absolute,Axis}}};
-	    (3, _Ns) -> {face,{Type,{relative,Axis}}};
-	    (_,_) -> ignore
-        end,
-    {AxisStr,{Axis,F},Help}.
+    F =
+      fun
+        (help, _Ns) ->
+            Str1 = axis_menu_string(Axis),
+            Str3 = ?__(2,"Extrude relative to percentage of selection's radius"),
+            {Str1,[],Str3};
+        (1, _Ns) -> {face,{sweep,{Type,{absolute,Axis}}}};
+        (3, _Ns) -> {face,{sweep,{Type,{relative,Axis}}}};
+        (_,_) -> ignore
+      end,
+    {AxisStr,{Axis,F}}.
 
 axis_menu_string(free) ->
     ?__(1,"Sweep freely relative to the screen");
@@ -100,25 +102,25 @@ axis_menu_string(Axis) ->
     wings_util:format(Str,[AxisStr]).
 
 %%%% Commands
-command({face,{sweep_extrude,{Type,{'ASK',Ask}}}},St) ->
+command({face,{sweep,{sweep_extrude,{Type,{'ASK',Ask}}}}},St) ->
     wings:ask(selection_ask(Ask), St, fun (Axis,St0) ->
         sweep_extrude(Type, Axis, St0)
     end);
-command({face,{sweep_extrude,{Type, Axis}}},St) ->
+command({face,{sweep,{sweep_extrude,{Type, Axis}}}},St) ->
     sweep_extrude(Type, Axis, St);
 
-command({face,{sweep_region,{Type,{'ASK',Ask}}}},St) ->
+command({face,{sweep,{sweep_region,{Type,{'ASK',Ask}}}}},St) ->
     wings:ask(selection_ask(Ask), St, fun (Axis,St0) ->
         sweep_region(Type, Axis, St0)
     end);
-command({face,{sweep_region,{Type, Axis}}},St) ->
+command({face,{sweep,{sweep_region,{Type, Axis}}}},St) ->
     sweep_region(Type, Axis, St);
 
-command({face,{sweep_extract,{Type,{'ASK',Ask}}}},St) ->
+command({face,{sweep,{sweep_extract,{Type,{'ASK',Ask}}}}},St) ->
     wings:ask(selection_ask(Ask), St, fun (Axis,St0) ->
         sweep_extract(Type, Axis, St0)
     end);
-command({face,{sweep_extract,{Type,Axis}}},St) ->
+command({face,{sweep,{sweep_extract,{Type,Axis}}}},St) ->
     sweep_extract(Type, Axis, St);
 
 command(_,_) -> next.

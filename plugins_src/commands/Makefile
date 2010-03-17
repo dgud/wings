@@ -36,9 +36,9 @@ MODULES= \
 	wpc_arc_intersect \
 	wpc_bend \
 	wpc_circularise \
+	wpc_inset \
 	wpc_connect_tool \
 	wpc_constraints \
-	wpc_contour \
 	wpc_cylindrilize \
 	wpc_doosabin \
 	wpc_intersect_edge \

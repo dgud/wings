@@ -1,18 +1,16 @@
 %%
-%%  wpc_contour.erl --
+%%  wpc_inset.erl --
 %%
-%%  Contour shows up in the face menu as Inset and includes the commands: Inset,
-%%  Inset Region, and Offset Region.
+%%  Face|Inset includes the commands: Inset, Inset Region, and Offset Region.
 %%
-%%  Copyright (c) (2008-2009) Richard Jones.
+%%  Copyright (c) (2008-2010) Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id$
 %%
 
--module(wpc_contour).
+-module(wpc_inset).
 -export([init/0,menu/2,command/2]).
 -include("wings.hrl").
 
@@ -27,19 +25,25 @@ menu(_,Menu) ->
 parse([], NewMenu, true) ->
     NewMenu;
 parse([], NewMenu, false) ->
-    [contour_menu()|NewMenu];
+    [inset_menu()|NewMenu];
 parse([A = {_,intrude,_}|Rest], NewMenu, false) ->
-    parse(Rest, [A,contour_menu()|NewMenu], true);
+    parse(Rest, [A,inset_menu()|NewMenu], true);
 parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 
 %%%% Menus
-contour_menu() ->
+inset_menu() ->
     Title = title(),
     HelpL = lmb_help(),
     HelpM = mmb_help(),
     HelpR = rmb_help(),
-    {Title, contour_fun(), {HelpL,HelpM,HelpR},[]}.
+    Fun = fun
+      (1,_Ns) -> {face,inset_faces};
+      (2,_Ns) -> {face,offset_region};
+      (3,_Ns) -> {face,inset_region};
+      (_, _)  -> ignore
+    end,
+    {Title,Fun,{HelpL,HelpM,HelpR},[]}.
 
 title() ->
     ?__(1,"Inset").
@@ -50,33 +54,22 @@ mmb_help() ->
 rmb_help() ->
     ?__(1,"Inset Region creating new edges inside each face group selection").
 
-contour_fun() ->
-    fun
-      (1,_Ns) -> {face,{contour,insetfaces}};
-      (2,_Ns) -> {face,{contour,offsetregion}};
-      (3,_Ns) -> {face,{contour,insetregion}};
-      (_, _)  -> ignore
-    end.
-
 %%%% Commands
-command({face,{contour,insetregion}}, St) ->
-    ?SLOW(contour_setup(inset_region, St));
-command({face,{contour,insetfaces}}, St) ->
-    ?SLOW(contour_setup(inset_faces, St));
-command({face, {contour,offsetregion}}, St) ->
-    ?SLOW(contour_setup(offset_region, St));
+command({face,Type}, St)
+  when Type =:= inset_faces; Type =:= inset_region; Type =:= offset_region ->
+    ?SLOW(inset_setup(Type, St));
 command(_,_) ->
     next.
 
 %%%% Setup
 %% Start by Extruding the selection
-contour_setup(inset_faces,St0) ->
+inset_setup(inset_faces,St0) ->
     St = wings_face_cmd:extrude_faces(St0),
     inset_faces_setup(inset_faces, St);
-contour_setup(inset_region, St0) ->
+inset_setup(inset_region, St0) ->
     St = wings_face_cmd:extrude_region(St0),
     inset_regions_setup(inset_region, St);
-contour_setup(offset_region, St0) ->
+inset_setup(offset_region, St0) ->
     St = wings_face_cmd:extrude_region(St0),
     offset_regions_setup(offset_region, St).
 
@@ -128,10 +121,10 @@ drag_mode(Type) ->
     {Mode,Norm} = wings_pref:get_value(Type,{average,loop}),
     {Type,Mode,Norm}.
 
-drag_units({inset_faces,_,absolute,_,_}) -> [distance,skip,skip,bump];
-drag_units({inset_faces,_,relative,continue,_}) -> [percent,skip,skip,bump];
-drag_units({inset_faces,_,relative,stop,_}) -> [{percent,{0.0,1.0}},skip,skip,bump];
-drag_units({_,_,_}) -> [distance,skip,skip,bump].
+drag_units({inset_faces,_,absolute,_,_}) -> [distance,skip,bump];
+drag_units({inset_faces,_,relative,continue,_}) -> [percent,skip,bump];
+drag_units({inset_faces,_,relative,stop,_}) -> [{percent,{0.0,1.0}},skip,bump];
+drag_units({_,_,_}) -> [distance,skip,bump].
 
 modes() ->
     fun
@@ -775,7 +768,7 @@ offset_regions_fun(OffsetData,{_,Solution,_}=State) ->
     fun
       (new_mode_data, {NewState,_}) ->
           offset_regions_fun(OffsetData, NewState);
-      ([Dist, _, _, Bump|_], A) ->
+      ([Dist, _, Bump|_], A) ->
         lists:foldl(fun({LoopNormal,VsData},VsAcc0) ->
             lists:foldl(fun
               ({V,{Vpos0,VNorm}},VsAcc) ->
@@ -797,7 +790,7 @@ inset_regions_fun(InsetData,State) ->
     fun
       (new_mode_data, {NewState,_}) ->
           inset_regions_fun(InsetData, NewState);
-      ([Dist, _, _, Bump|_], A) ->
+      ([Dist, _, Bump|_], A) ->
         lists:foldl(fun({LoopNormal,VsData},VsAcc0) ->
             lists:foldl(fun
               ({V,{Vpos0,VNorm}},VsAcc) ->
@@ -815,7 +808,7 @@ inset_faces_fun(InsetData,State) ->
     fun
       (new_mode_data, {NewState,_}) ->
           inset_faces_fun(InsetData, NewState);
-      ([Amount, _, _, Bump|_], A) ->
+      ([Amount, _, Bump|_], A) ->
         {SmallestDistObj,VData} = InsetData,
         lists:foldl(fun({FNorm,SmallestDistF,VertexData},VsAcc0) ->
             lists:foldl(fun({Vs,Data},VsAcc) ->
@@ -862,6 +855,6 @@ bump(Vpos,FNorm,Bump)->
     e3d_vec:add(Vpos, e3d_vec:mul(FNorm,Bump)).
 
 loop_error_1() ->
-    wings_u:error(?__(1,"Inset/Offset Region doesn't work for wholly selected objects")).
+    wings_u:error_msg(?__(1,"Inset/Offset Region doesn't work for wholly selected objects")).
 loop_error_2() ->
-    wings_u:error(?__(1,"Offset Region requires that neighbouring faces\nshare at least one edge")).
+    wings_u:error_msg(?__(1,"Offset Region requires that neighbouring faces\nshare at least one edge")).
