@@ -454,7 +454,6 @@ defaults() ->
      {con_scale_default,alt},
 
      %% Drag preferences.
-     {drag_resets,false},
      {drag_custom,false},
      {drag_cam_dist_abs,true},
      {drag_speed_abs,5.0},

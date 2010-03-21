@@ -46,7 +46,7 @@ plus_minus({'ASK',Ask}, Tvs, St0) ->
 plus_minus(Type, Tvs0, #st{selmode=Mode}=St) ->
     Vec = make_vector(Type),
     Tvs = plus_minus_2(Mode, Vec, Tvs0, []),
-    Flags = [flags(Type),{initial,[0.0,0.0,0.0,1.0]}],
+    Flags = [flags(Type),{initial,[0.0,0.0,1.0]}],
     wings_drag:setup(Tvs, unit(Type, [{percent,{0.0,infinity}}]), Flags, St).
 
 plus_minus_2(Mode, Vec, [{Items,NewVs,Forbidden,We}|T], Acc0) ->
@@ -83,7 +83,7 @@ unit(Type) ->
 unit(free, T) -> [dx,dy,dz|T];
 unit(free_2d, T) -> [dx,dy|T];
 unit(intrude, T) -> [{distance,{0.0,9.9E307}}|T];
-unit(_, T) -> [distance,skip,skip|T].
+unit(_, T) -> [distance,skip|T].
 
 flags(free) -> [screen_relative];
 flags(free_2d) -> [screen_relative];
@@ -92,7 +92,7 @@ flags(_) -> [].
 move_away_fun(Tv, VsPos0) ->
     fun(view_changed, _Acc) ->
 	    move_away_fun(Tv, VsPos0);
-       ([_,_,_,Percent|_], A) ->
+       ([_,_,Percent|_], A) ->
 	    move_away(Percent, Tv, A)
     end.
 

@@ -164,8 +164,8 @@ sweep_setup(Type,Axis,St) ->
     Flags = [{mode,{modes(),State}}|flag(Axis)],
     wings_drag:setup(Tvs, Units, Flags, St).
 
-units(absolute) -> [angle,distance,percent,angle];
-units(relative) -> [angle,percent,percent,angle].
+units(absolute) -> [distance,skip,angle,percent,angle];
+units(relative) -> [percent,skip,angle,percent,angle].
 
 
 %% LoopNorm is the extrude direction
@@ -483,7 +483,7 @@ sweep_fun(Type, VsData, State) ->
            end,
            sweep_fun(Type,NewData,NewState);
 
-       ([Angle,Dist,Scale,Rotate|_], A) ->  %% when drag changes
+       ([Dist,_,Angle,Scale,Rotate|_], A) ->  %% when drag changes
          sweep(Type, Base, VsData, {-Angle,Dist,Rotate,Scale}, A)
     end.
 
