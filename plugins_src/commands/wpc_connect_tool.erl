@@ -3,7 +3,7 @@
 %%
 %%     Connect/Cut mode plugin.
 %%
-%%  Copyright (c) 2004-2009 Dan Gudmundsson
+%%  Copyright (c) 2004-2010 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -36,7 +36,7 @@
 	     mm,    %% MatrixMode
 	     pos}). %% Vertex Pos
 
--define(EPS, 0.000001).
+-define(EPS, 1.0E-6).
 
 init() -> true.
 
@@ -103,7 +103,7 @@ handle_connect_event1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
 	    [Edge] = gb_sets:to_list(Edge0),
 	    #edge{vs=V1,ve=V2} = array:get(Edge, Es),
 	    case cut_edge(X,Y,MM,St,C0) of
-		C0 -> 
+		C0 ->
 		    keep;
 		C ->
 		    wings_draw:refresh_dlists(C#cs.st),
@@ -134,9 +134,14 @@ handle_connect_event1(init_opengl, #cs{st=St}) ->
 handle_connect_event1(quit=Ev, C) ->
     wings_wm:later(Ev),
     exit_connect(C);
-handle_connect_event1(got_focus, C = #cs{st=St}) ->
-    update_connect_handler(C#cs{st=St#st{selmode=edge,sel=[],sh=true}});
-handle_connect_event1({current_state,St}, #cs{st=St}) ->    
+handle_connect_event1(got_focus, C = #cs{st=#st{selmode=Mode0,sh=Sh0}=St}) ->
+    {Mode,Sh} = case Mode0 of
+      edge -> {Mode0,Sh0};
+      vertex -> {Mode0,Sh0};
+      _ -> {edge,true}
+    end,
+    update_connect_handler(C#cs{st=St#st{selmode=Mode,sel=[],sh=Sh}});
+handle_connect_event1({current_state,St}, #cs{st=St}) ->
     keep; %% Ignore my own changes.
 handle_connect_event1({current_state,St}=Ev, C) ->
     case topological_change(St) of
@@ -154,7 +159,7 @@ handle_connect_event1({new_state,St0=#st{shapes=Sh}},
 		      C0=#cs{mode=slide,we=Shape,v=[V|VR],backup=Old}) ->
     #we{vp=Vtab} = gb_trees:get(Shape, Sh),
     Pos = array:get(V#vi.id, Vtab),
-    St1 = St0#st{sel=[],temp_sel=none, sh=true},    
+    St1 = St0#st{sel=[],temp_sel=none, sh=true},
     C1 = C0#cs{mode=normal,v=[V#vi{pos=Pos}|VR],st=St1},
     case connect_edge(C1) of
 	C1 when VR /= [] -> 
@@ -455,7 +460,7 @@ check_normal(Face,{Way,MM},We = #we{id=Id}) ->
 	true -> false
     end.
 
-pos2Dto3D({IX,IY}, {V1Sp,V2Sp}, V1,V2,#we{vp=Vs}) ->
+pos2Dto3D({IX,IY}, {V1Sp,V2Sp}, V1,V2, #we{vp=Vs}) ->
     Pos1 = array:get(V1, Vs),
     Pos2 = array:get(V2, Vs),
     TotDist = e3d_vec:dist(V1Sp,V2Sp),
@@ -480,32 +485,24 @@ calc_edgepos(X,Y0,Edge,MM,#we{id=Id,es=Es,vp=Vs},VL) ->
     Matrices = wings_u:get_matrices(Id, MM),
     V1Sp = setelement(3,obj_to_screen(Matrices, Pos1),0.0),
     V2Sp = setelement(3,obj_to_screen(Matrices, Pos2),0.0),
-    Dist = 
-	case VL of
-	    [] ->
-		V1Dist  = e3d_vec:dist(V1Sp,{float(X),float(Y),0.0}),
-		V2Dist  = e3d_vec:dist(V2Sp,{float(X),float(Y),0.0}),
-		%%TotDist = e3d_vec:dist(V1Sp,V2Sp),
-		TotDist = V1Dist+V2Dist,
-		V1Dist/TotDist;
-	    [#vi{pos=Start0}|_] ->
-		Start = setelement(3, obj_to_screen(Matrices, Start0), 0.0),
-		{IX,IY} = 
-		    case line_intersect2d(Start,{float(X),float(Y),0.0},V1Sp,V2Sp) of
-			{false,{_, paralell}} -> exit(paralell);
-			{false,{_,IPoint}} -> IPoint;
-			{_, IPoint} -> IPoint 
-%%%			{{point,_},IPoint} -> IPoint
-		    end,
-		TotDist = e3d_vec:dist(V1Sp,V2Sp),
-		e3d_vec:dist(V1Sp,{float(IX),float(IY),0.0}) / TotDist
-	end,
-    Vec = e3d_vec:mul(e3d_vec:sub(Pos2,Pos1),Dist),
-    Pos = e3d_vec:add(Pos1, Vec),
+    Dist = case VL of
+        [] ->
+          V1Dist  = e3d_vec:dist(V1Sp,{float(X),float(Y),0.0}),
+          V2Dist  = e3d_vec:dist(V2Sp,{float(X),float(Y),0.0}),
+          %%TotDist = e3d_vec:dist(V1Sp,V2Sp),
+          TotDist = V1Dist+V2Dist,
+          V1Dist/TotDist;
+        _ ->
+          Cursor = {float(X),float(Y),0.0},
+          e3d_vec:dist(V1Sp, Cursor) / e3d_vec:dist(V1Sp,V2Sp)
+    end,
+    Vec = e3d_vec:sub(Pos2,Pos1),
+    Pos = e3d_vec:add(Pos1,e3d_vec:mul(Vec, abs(Dist))),
     {Pos, ordsets:from_list([F1,F2])}.
 
 line_intersect2d({V1,V2},{V3,V4}) ->
     line_intersect2d(V1,V2,V3,V4).
+
 line_intersect2d({X1,Y1,_},{X2,Y2,_},{X3,Y3,_},{X4,Y4,_}) ->
     line_intersect2d({X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4});
 line_intersect2d({X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4}) ->
@@ -601,7 +598,7 @@ gldraw_connect(Pos0, Pos1) ->
     {W,H} = wings_wm:win_size(),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     gl:disable(?GL_LIGHTING),
-    gl:disable(?GL_DEPTH_TEST),    
+    gl:disable(?GL_DEPTH_TEST),
     gl:disable(?GL_ALPHA_TEST),
     gl:color3f(0, 0, 0),
     gl:matrixMode(?GL_PROJECTION),
