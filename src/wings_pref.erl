@@ -24,7 +24,8 @@
 -include("wings.hrl").
 -import(lists, [foreach/2,reverse/1,sort/1,last/1,foldl/3]).
 
--define(MAC_PREFS, "Library/Preferences/Wings 3D Preferences.txt").
+-define(MAC_PREFS, "Library/Preferences/Wings3D/Preferences.txt").
+-define(MAC_OLD_PREFS, "Library/Preferences/Wings 3D Preferences.txt").
 -define(WIN32_PREFS, "Wings3D/Preferences.txt").
 
 init() ->
@@ -161,17 +162,24 @@ win32_save_maximized() ->
 
 old_pref_file() ->
     case os:type() of
-	{unix,darwin} ->
-	    case try_location(os:getenv("HOME"), ?MAC_PREFS) of
-		none -> unix_pref();
-		File -> File
-	    end;
+	{unix,darwin} -> mac_pref();
 	{unix,_} -> unix_pref();
 	{win32,_} -> win32_pref()
     end.
 
 unix_pref() ->
     try_location(os:getenv("HOME"), ".wings").
+
+mac_pref() ->
+    Home = os:getenv("HOME"),
+    case try_location(Home, ?MAC_PREFS) of
+	none ->
+	    case try_location(Home, ?MAC_OLD_PREFS) of
+		none -> unix_pref();
+		File -> File
+	    end;
+	File -> File
+    end.
 
 win32_pref() ->
     case win32_appdata() of
