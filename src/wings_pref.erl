@@ -27,6 +27,8 @@
 -define(MAC_PREFS, "Library/Preferences/Wings3D/Preferences.txt").
 -define(MAC_OLD_PREFS, "Library/Preferences/Wings 3D Preferences.txt").
 -define(WIN32_PREFS, "Wings3D/Preferences.txt").
+-define(UNIX_PREFS, ".wings3d/preferences.txt").
+-define(OLD_UNIX_PREFS, ".wings").
 
 init() ->
     ets:new(wings_state, [named_table,public,ordered_set]),
@@ -168,7 +170,12 @@ old_pref_file() ->
     end.
 
 unix_pref() ->
-    try_location(os:getenv("HOME"), ".wings").
+    Home = os:getenv("HOME"),
+    case try_location(Home, ?UNIX_PREFS) of
+	none ->
+	    try_location(Home, ?OLD_UNIX_PREFS);
+	File -> File
+    end.
 
 mac_pref() ->
     Home = os:getenv("HOME"),
@@ -233,7 +240,7 @@ new_pref_file() ->
 	{unix,darwin} ->
 	    filename:join(os:getenv("HOME"), ?MAC_PREFS);
 	{unix,_} ->
-	    filename:join(os:getenv("HOME"), ".wings");
+	    filename:join(os:getenv("HOME"), ?UNIX_PREFS);
 	{win32,_} ->
 	    win32_new_pref()
     end.
