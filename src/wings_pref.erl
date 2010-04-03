@@ -100,6 +100,7 @@ finish() ->
 	    %% Do nothing.
 	    ok;
 	PrefFile ->
+	    filelib:ensure_dir(PrefFile),
 	    finish_save_prefs(PrefFile)
     end.
 
@@ -234,9 +235,7 @@ win32_new_pref() ->
 	none ->
 	    none;
 	AppData ->
-	    File = filename:join(AppData, ?WIN32_PREFS),
-	    filelib:ensure_dir(File),
-	    File
+	    filename:join(AppData, ?WIN32_PREFS)
     end.
 
 %%%
