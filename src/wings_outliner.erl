@@ -243,7 +243,7 @@ image_menu(Id, Im) ->
 image_menu_1(Id, #e3d_image{filename=none}) ->
     [{?__(1,"Make External..."),menu_cmd(make_external, Id)}|common_image_menu(Id)];
 image_menu_1(Id, _) ->
-    [{?__(2,"Refresh"),menu_cmd(refresh_image, Id)},
+    [{?__(2,"Refresh"),menu_cmd(refresh_image, Id),?__(11,"Update image to the contents of the saved file")},
      {?__(3,"Make Internal"),menu_cmd(make_internal, Id)}|common_image_menu(Id)].
 
 common_image_menu(Id) ->
@@ -371,6 +371,7 @@ make_external(Id) ->
 		   case wings_image:image_write(Ps) of
 		       ok ->
 			   wings_image:update_filename(Id, Name),
+			   rename(Id, Name),
 			   keep;
 		       {_,Error0} ->
 			   Error = Name ++ ": " ++ file:format_error(Error0),
@@ -405,7 +406,9 @@ export_image(Id) ->
 		   Image = wings_image:info(Id),
 		   Ps = [{image,Image},{filename,Name}],
 		   case wings_image:image_write(Ps) of
-		       ok -> keep;
+		       ok ->
+			   rename(Id, Name),
+			   keep;
 		       {_,Error0} ->
 			   Error = Name ++ ": " ++ file:format_error(Error0),
 			   wings_u:message(Error)
@@ -634,3 +637,13 @@ lines(#ost{lh=Lh}) ->
 
 title() ->
     ?__(1,"Outliner").
+
+rename(Id, Name) ->
+    {NewName,_} = lists:splitwith(fun(Char) ->
+        case Char of
+          $\ -> false;
+          $/ -> false;
+          _ -> true
+        end
+      end, reverse(Name)),
+    wings_image:rename(Id, reverse(NewName)).

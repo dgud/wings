@@ -757,9 +757,8 @@ command_1({tools,{scale_bb_to_sel,Dir}}, St) ->
     {save_state,wings_align:scale_bb_to_sel(Dir, St)};
 command_1({tools,{virtual_mirror,Cmd}}, St) ->
     wings_view:virtual_mirror(Cmd, St);
-command_1({tools, screenshot}, St) ->
-    wings_image:screenshot(),
-    St;
+command_1({tools, {screenshot,Ask}}, St) ->
+    wings_image:screenshot(Ask,St);
 command_1({tools, area_volume_info}, St) ->
     area_volume_info(St),
     St;
@@ -868,7 +867,7 @@ tools_menu(_) ->
      ?__(23,"Create real geometry from the virtual mirrors")}]}},
      separator,
      {?__(24,"Screenshot"), screenshot,
-      ?__(25,"Grab an image of the window (export it from the outliner)")},
+      ?__(25,"Grab an image of the window (export it from the outliner)"),[option]},
      separator,
      {?__(26,"Scene Info: Area & Volume"), area_volume_info,
       ?__(27,"Calculate area and volume for each object in the scene")},
