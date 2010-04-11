@@ -25,7 +25,6 @@
 -import(lists, [foreach/2,reverse/1,sort/1,last/1,foldl/3]).
 
 -define(MAC_PREFS, "Library/Preferences/Wings 3D Preferences.txt").
--define(WIN32_OLD_PREFS, "Preferences").
 -define(WIN32_PREFS, "Wings3D/Preferences.txt").
 
 init() ->
