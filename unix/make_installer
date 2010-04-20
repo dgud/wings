@@ -48,7 +48,6 @@ $INSTALL -c -m 644 fonts/* "$dest/fonts"
 
 $INSTALL -c -m 644 plugins/default/wp9_dialogs* "$dest/plugins/default"
 $INSTALL -c -m 644 plugins/accel/* "$dest/plugins/accel"
-$INSTALL -c -m 644 plugins/fonts/* "$dest/plugins/fonts"
 $INSTALL -c -m 644 plugins/import_export/* "$dest/plugins/import_export"
 $INSTALL -c -m 644 plugins/commands/* "$dest/plugins/commands"
 $INSTALL -c -m 644 plugins/primitives/* "$dest/plugins/primitives"
