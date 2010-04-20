@@ -4,7 +4,7 @@
 #
 
 # Configurable stuff.
-INSTALL=/usr/bin/install
+INSTALL=`which install`
 if [ -z "$ESDL_PATH" ]; then
     echo "The environment variable ESDL_PATH must be set to " \
 	 "the top of the ESDL installation." >&2
