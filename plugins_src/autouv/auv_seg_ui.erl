@@ -42,7 +42,7 @@ start(Op, #we{id=Id}=We0, OrigWe, St0) ->
 		     member(Name, Allowed)],
     wings_wm:menubar(This, Menu),
     wings_pref:set_value(scene_lights, false), %% ugly hack 
-    
+    wings_view:frame(St0),
     St1 = seg_create_materials(St0),
     {Fs,We1} = seg_hide_other(Id,We0,St0),
     We = case Op of 

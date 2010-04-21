@@ -15,7 +15,7 @@
 -export([menu/1,command/2,
 	 virtual_mirror/2,
 	 init/0,initial_properties/0,delete_all/1,
-	 current/0,set_current/1,
+	 current/0,set_current/1,frame/1,
 	 load_matrices/1,projection/0,
 	 modelview/0,align_view_to_normal/1,
 	 eye_point/0,export_views/1,import_views/2,camera_info/2,
