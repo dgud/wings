@@ -48,6 +48,7 @@ MODULES= \
 	wpc_numeric_camera \
 	wpc_region \
 	wpc_rotate_unconstrained \
+	wpc_sculpt \
 	wpc_shear \
 	wpc_shift \
 	wpc_sweep_extrude \
