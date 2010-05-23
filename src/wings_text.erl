@@ -15,6 +15,7 @@
 -export([init/0,resize/0,width/0,width/1,height/0,draw/1,char/1,bold/1]).
 -export([break_lines/2]).
 -export([fonts/0]).
+-export([current_font/0]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
@@ -24,12 +25,12 @@
 -import(lists, [reverse/1,foreach/2]).
 
 init() ->
-    ets:new(wings_fonts, [named_table,ordered_set]),
-    load_fonts(),
-    verify_font(new_system_font),
-    verify_font(new_console_font),
     wings_pref:set_default(new_system_font, '7x14'),
-    wings_pref:set_default(new_console_font, 'fixed7x14').
+    wings_pref:set_default(new_console_font, 'fixed7x14'),
+    ets:new(system_font, [named_table,ordered_set]),
+    ets:new(console_font, [named_table,ordered_set]),
+    ets:new(wings_fonts, [named_table,ordered_set]),
+    load_fonts().
 
 resize() ->
     %% Force rebuild of display lists next time each font
@@ -39,59 +40,89 @@ resize() ->
 	    ets:select(wings_fonts, MatchSpec)).
 
 width(S) ->
-    Mod = current_font(),
-    CwFun = case width() of
-		W when W < 7 -> fun cw_small/1;
-		_ -> fun cw_large/1
-	    end,
-    WF0 = Mod:width_fun(),
-    WF = fun(C, W) when is_atom(C) ->
-		 W+CwFun(C);
-	    (C, W) ->
-		 W+WF0(C)
-	 end,
-    width_1(S, WF, 0).
+    width_1(S, 0).
 
-width_1([{bold,S}|Cs], WF, W) ->
-    width_1(Cs, WF, width_1(S, WF, W+length(S)));
-width_1([C|Cs], WF, W) ->
-    width_1(Cs, WF, WF(C, W));
-width_1([], _, W) -> W.
+width_1([{bold,S}|Cs], W) ->
+    BSW = bold_string_width(S, 0),
+    width_1(Cs, BSW+W);
+width_1([C|Cs], W) when is_atom(C) ->
+    CW = case ?CHAR_WIDTH < 7 of
+       true -> cw_small(C);
+       false -> cw_large(C)
+    end,
+    width_1(Cs, CW+W);
+width_1([[C|R]|Cs], W0) ->
+    CW = char_width(C),
+    W = width_1(R, CW+W0),
+    width_1(Cs, W);
+width_1([C|Cs], W) ->
+    CW = char_width(C),
+    width_1(Cs, CW+W);
+width_1([], W) -> W.
 
-width() -> (current_font()):width().
+bold_string_width([C|S], W) ->
+    BCW = case wings_font_table:bold_char_width(C) of
+        undefined -> (current_font()):bold_char_width(C);
+        Other -> Other
+    end,
+    bold_string_width(S, BCW+W);
+bold_string_width([], W) ->
+    W.
 
-height() -> (current_font()):height().
-
-draw(S) ->
-    Font = current_font(),
-    case wings_pref:get_value(text_display_lists, false) of
-	true ->
-	    ListBase = case get(Font) of
-			    undefined -> make_font_dlists(Font);
-			    Base -> Base
-			end,
-	    gl:listBase(ListBase),
-	    wings_gl:callLists(S);
-	false ->
-	    Font:draw(S)
+char_width(C) ->
+    case wings_font_table:char_width(C) of
+        undefined -> (current_font()):char_width(C);
+        Other -> Other
     end.
 
-make_font_dlists(Font) ->
-    Base = gl:genLists(256),
-    put(Font, Base),
-    make_font_dlists_1(0, Base).
+width() ->
+    case wings_font_table:char(char_width) of
+        undefined -> (current_font()):width();
+        Other -> Other
+    end.
 
-make_font_dlists_1(256, Base) -> Base;
-make_font_dlists_1(C, Base) ->
-    gl:newList(Base+C, ?GL_COMPILE),
+height() ->
+    case wings_font_table:char(char_height) of
+        undefined -> (current_font()):height();
+        Other -> Other
+    end.
+
+draw([{bold,S}|Cs]) ->
+    bold(S),
+    draw(Cs);
+draw([C|Cs]) when is_atom(C) ->
+    special(C),
+    draw(Cs);
+draw([[C|R]|Cs]) ->
     char(C),
-    gl:endList(),
-    make_font_dlists_1(C+1, Base).
+    draw(R),
+    draw(Cs);
+draw([C|Cs]) ->
+    char(C),
+    draw(Cs);
+draw([]) -> ok.
 
 char(C) when is_atom(C) -> special(C);
-char(C) -> (current_font()):char(C).
+char(C) ->
+    case wings_font_table:char(C) of
+        undefined -> (current_font()):char(C);
+        Other -> Other
+    end.
 
-bold(S) -> (current_font()):bold(S).
+bold([C|S]) ->
+    case wings_font_table:bold_char(C) of
+        undefined -> (current_font()):bold_char(C);
+        Other -> Other
+    end,
+    bold(S);
+bold([]) -> ok.
+
+%% Table of characters already seen.
+%% Because the CJK fonts are HUGE (+30000 glyphs), I wrote a character
+%% accumulator. The reason for this is due to the nature of the ets, which when
+%% accessed, copies the requested data to the memory of the local process. With
+%% the smaller font libraries, this wasn't a problem, but with the CJK font for
+%% supporting Chinese, Japanese, and Korean - this became an issue.
 
 current_font() ->
     case wings_wm:this() of
@@ -101,22 +132,6 @@ current_font() ->
 	This ->
 	    FontKey = wings_wm:get_prop(This, font),
 	    ets:lookup_element(wings_fonts, FontKey, 2)
-    end.
-
-verify_font(PrefKey) ->
-    case wings_pref:get_value(PrefKey) of
-	undefined -> ok;
-	FontKey ->
-	    case is_font(FontKey) of
-		true -> ok;
-		false -> wings_pref:delete_value(PrefKey)
-	    end
-    end.
-
-is_font(FontKey) ->
-    case ets:lookup(wings_fonts, FontKey) of
-	[] -> false;
-	[_] -> true
     end.
 
 fonts() ->
@@ -402,12 +417,42 @@ caret() ->
 %%%
 
 load_fonts() ->
-    Wc = filename:join([wings_util:lib_dir(wings),"fonts","*.wingsfont"]),
+    SystemFont = wings_pref:get_value(new_system_font),
+    ConsoleFont = wings_pref:get_value(new_console_font),
+    WingsDir = wings_util:lib_dir(wings),
+    WF = ".wingsfont",
+    SFont = filename:join([WingsDir,"fonts",atom_to_list(SystemFont)++WF]),
+    CFont = filename:join([WingsDir,"fonts",atom_to_list(ConsoleFont)++WF]),
+    %% Make sure font is available, otherwise load default font
+    System = case filelib:is_file(SFont) of
+        true -> SystemFont;
+        false ->
+            wings_pref:set_value(new_system_font, '7x14'),
+            '7x14'
+    end,
+    Console = case filelib:is_file(CFont) of
+        true -> ConsoleFont;
+        false ->
+            wings_pref:set_value(new_console_font, 'fixed7x14'),
+            'fixed7x14'
+    end,
+    Wc = filename:join([WingsDir,"fonts","*.wingsfont"]),
     Fonts = filelib:wildcard(Wc),
-    foreach(fun(F) -> load_font(F) end, Fonts).
+    foreach(fun(F) ->
+        load_font(System, Console, F)
+    end, Fonts).
 
-load_font(Name) ->
-    {ok,Bin} = file:read_file(Name),
+load_font(SystemFont, ConsoleFont, FontDir) ->
+    FontNameStr = filename:basename(FontDir, ".wingsfont"),
+    FontNameAtom = list_to_atom(FontNameStr),
+    case FontNameAtom of
+        SystemFont -> load_font_0(FontDir);
+        ConsoleFont -> load_font_0(FontDir);
+        _other -> ets:insert(wings_fonts, {FontNameAtom,ok,FontNameStr})
+    end.
+
+load_font_0(FontDir) ->
+    {ok,Bin} = file:read_file(FontDir),
     Font = binary_to_term(Bin),
     Mod = load_font_1(Font),
     Key = Mod:key(),

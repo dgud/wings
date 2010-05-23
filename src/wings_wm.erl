@@ -671,7 +671,7 @@ resize_windows(W, H) ->
     Event = #resize{w=W,h=H},
 
     MsgData0 = get_window_data(message),
-    MsgH = ?CHAR_HEIGHT+7,
+    MsgH = ?CHAR_HEIGHT+9,
     MsgY = H-MsgH,
     MsgData1 = MsgData0#win{x=0,y=MsgY,w=W,h=MsgH},
     put_window_data(message, MsgData1),
@@ -1168,8 +1168,8 @@ message_event(_) -> keep.
 message_redraw(Msg, Right) ->
     {W,_} = message_setup(),
     if
-	Msg == [] -> ok;
-	true -> wings_io:text_at(0, Msg)
+	Msg =:= [] -> ok;
+	true -> wings_io:text_at(0, -1, Msg)
     end,
     OsType = get(wings_os_type),
     RMarg0 = case OsType of
@@ -1179,18 +1179,19 @@ message_redraw(Msg, Right) ->
     case Right of
 	[] -> ok;
 	_ ->
-	    Cw = wings_text:width(),
-	    MsgW = wings_text:width(Msg),
+	    Col = e3d_vec:mul(wings_pref:get_value(info_line_bg),0.6),
+	    Cw = ?CHAR_WIDTH,
+	    CH = ?CHAR_HEIGHT,
+	    Lh = ?LINE_HEIGHT,
+	    MsgW = wings_text:width(lists:flatten(Msg)),
 	    RightW = wings_text:width(Right),
 	    RMarg = RMarg0 + 2*Cw,
-	    if 
+	    if
 		MsgW+RightW < W - RMarg ->
 		    Pos = W - RightW - RMarg,
-		    wings_io:set_color(e3d_vec:mul(wings_pref:get_value(info_line_bg),0.9)),
-		    gl:recti(Pos-Cw, 1-wings_text:height(),
-			     Pos+RightW+Cw, 3),
+		    wings_io:sunken_rect(Pos-12, -CH, RightW+12, Lh, Col, Col),
 		    wings_io:set_color(wings_pref:get_value(info_line_text)),
-		    wings_io:text_at(Pos, Right);
+		    wings_io:text_at(Pos-6, -1, Right);
 		true -> ok
 	    end
     end,
@@ -1206,7 +1207,7 @@ message_redraw(Msg, Right) ->
 message_setup() ->
     wings_io:ortho_setup(none),
     {W,H} = win_size(),
-    wings_io:gradient_rect(0, 0, W, H, wings_pref:get_value(info_line_bg)),
+    wings_io:gradient_rect_burst(0, 0, W, H, wings_pref:get_value(info_line_bg)),
     wings_io:set_color(wings_pref:get_value(info_line_text)),
     gl:translatef(10, H-5.375, 0),
     {W,H}.

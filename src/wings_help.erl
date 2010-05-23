@@ -406,8 +406,8 @@ help_window(Name, Title, Text0) ->
     {Rows,Lines} = wings_text:break_lines(Text, 60),
     {W,H} = wings_wm:top_size(),
     MaxH = trunc(H*0.75),
-    Cw = wings_text:width(),
-    Lh = wings_text:height()+2,
+    Cw = ?CHAR_WIDTH,
+    Lh = ?CHAR_HEIGHT+2,
     Xs = 64*Cw,
     Ys = case Rows*Lh of
 	     Ys0 when Ys0 > MaxH -> MaxH;
@@ -533,7 +533,7 @@ splash_size_1([{icon,_,W,H}|T], W0, H0) ->
     splash_size_1(T, max(W, W0), H0+H);
 splash_size_1([{text,Text}|T], W0, H0) ->
     Tw = wings_text:width(Text),
-    splash_size_1(T, max(W0, Tw), H0+wings_text:height()+4);
+    splash_size_1(T, max(W0, Tw), H0+?CHAR_HEIGHT+4);
 splash_size_1([{spacer,W,H}|T], W0, H0) ->
     splash_size_1(T, max(W0, W), H0+H);
 splash_size_1([], W, H) -> {W,H}.
@@ -549,7 +549,7 @@ draw_splash_1([{icon,Name,Iw,Ih}|T], Y) ->
     draw_splash_1(T, Y+Ih);
 draw_splash_1([{text,Text}|T], Y) ->
     gl:color3b(0, 0, 0),
-    Th = wings_text:height(),
+    Th = ?CHAR_HEIGHT,
     {W,_} = wings_wm:win_size(),
     Tw = wings_text:width(Text),
     X = W - Tw - ?MARGIN,

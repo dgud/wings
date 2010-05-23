@@ -67,6 +67,7 @@ MODULES= \
 	wings_file \
 	wings_ff_ndo \
 	wings_ff_wings \
+	wings_font_table \
 	wings__font \
 	wings_gl \
 	wings_help \

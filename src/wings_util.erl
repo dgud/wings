@@ -82,6 +82,7 @@ key_format(Key, Msg) ->
 
 %% Like io_lib:format/2, but with very restricted format characters.
 %% BUT allows arguments to ~s to be lists containing Unicode characters.
+%% Now allows ~ts for translation of Asian glyphs.
 %%
 %% Format directives allowed: ~s ~p
 
@@ -254,6 +255,8 @@ format_1("~p"++F, [S0|Args], Acc) ->
     format_1(F, Args, [S|Acc]);
 format_1("~~"++F, Args, Acc) ->
     format_1(F, Args, [$~|Acc]);
+format_1("~ts"++F, Args, Acc) ->
+    format_1("~s"++F, Args, Acc);
 format_1([C|F], Args, Acc) when C =/= $~ ->
     format_1(F, Args, [C|Acc]);
 format_1([], [], Acc) -> reverse(Acc).

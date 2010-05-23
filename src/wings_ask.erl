@@ -1639,8 +1639,8 @@ frame_redraw(Active, DisEnabled, #fi{flags=Flags}=Fi) ->
 frame_redraw_1(Active, DisEnabled, 
 	       #fi{x=X0,y=Y0,w=W0,h=H0,minimized=Minimized,flags=Flags}, 
 	       Title) ->
-    Cw = wings_text:width(),
-    Ch = wings_text:height(),
+    Cw = ?CHAR_WIDTH,
+    Ch = ?CHAR_HEIGHT,
     Y = Y0 + Ch div 2 + 3,
     H = H0 - (Y-Y0) - 4,
     ColLow = color4_lowlight(),
@@ -2097,7 +2097,7 @@ rb_set(#fi{key=Key,index=I,hook=Hook,flags=Flags}, #rb{val=Val}, Store) ->
     hook(Hook, update, [var(Key, I),I,Val,Store,Flags]).
 
 %%%
-%%% Menu
+%%% Menu Box
 %%%
 
 -record(menu, {menu}).
@@ -2107,7 +2107,7 @@ mktree_menu(Menu0, Def, Sto, I, Flags) ->
 		{D,V} -> {D,V,[]};
 		{_,_,F}=DVF when is_list(F) -> DVF 
 	    end || X <- Menu0],
-    W = menu_width(Menu, 0) + 2*wings_text:width(" ") + 10,
+    W = menu_width(Menu, 0) + 4 * ?CHAR_WIDTH,
     Fun = fun menu_event/3,
     Fi = #fi{key=Key} = mktree_leaf(Fun, enabled, undefined,
 				    W, ?LINE_HEIGHT+4, I, Flags),
@@ -2151,29 +2151,39 @@ menu_draw(Active, X, Y0, W, H, Text, DisEnabled) ->
     blend(fun(Col) ->
 		  case DisEnabled of
 		      enabled ->
-			  wings_io:gradient_border(X, Y0+1, W-?CHAR_WIDTH+10,
-						   H-3, Col, FgColor, Active);
+			  wings_io:gradient_border(X, Y0+3, W - ?CHAR_WIDTH,
+						   H-2, Col, FgColor, Active);
 		      _ ->
-			  wings_io:border(X, Y0+1, W-?CHAR_WIDTH+10,
-					  H-3, Col, FgColor)
+			  wings_io:border(X, Y0+3, W - ?CHAR_WIDTH,
+					  H-2, Col, FgColor)
 		  end
 	  end),
     Y = Y0+?CHAR_HEIGHT,
     gl:color3fv(FgColor),
-    wings_io:text_at(X+5, Y, Text),
-    Xr = X + W-8,
-    Arrows = <<
-	      2#00010000,
-	      2#00111000,
-	      2#01111100,
-	      2#00000000,
-	      2#01111100,
-	      2#00111000,
-	      2#00010000>>,
-    gl:rasterPos2f(Xr+0.5, Y+0.5),
-    gl:bitmap(7, 7, 0, -1, 7, 0, Arrows),
+    wings_io:text_at(X+4, Y+3, Text),
+    Xr = X + W - round(?CHAR_HEIGHT * 0.75),
+    draw_double_arrows(Xr, Y+4),
     gl:color3b(0, 0, 0),
     keep.
+
+draw_double_arrows(X, Y) ->
+    Cw = ?CHAR_WIDTH,
+    H = ?CHAR_HEIGHT,
+    ?CHECK_ERROR(),
+    %% Top Triangle
+    gl:'begin'(?GL_TRIANGLES),
+    gl:vertex2i(X, Y - round(H/2.5)),
+    gl:vertex2i(X - Cw, Y - round(H/2.5)),
+    %% Tip
+    gl:vertex2i(X - Cw div 2, Y - H + H div 3),
+
+    %% Bottom Triangle
+    gl:vertex2i(X, Y - round(H/3.5)),
+    gl:vertex2i(X - Cw, Y - round(H/3.5)),
+    %% Tip
+    gl:vertex2i(X - Cw div 2, Y),
+    gl:'end'(),
+    ?CHECK_ERROR().
 
 %% Menu popup
 
@@ -2375,7 +2385,7 @@ mktree_button(Label, Action, Sto, I, Flags) ->
     W = case proplists:get_value(width, Flags) of
 	      undefined -> max(wings_text:width([$\s,$\s|Label]),
 			       wings_text:width(" cancel "));
-	    M when is_integer(M), M >= 1 -> (M+2)*wings_text:width()
+	    M when is_integer(M), M >= 1 -> (M+2)*?CHAR_WIDTH
 	  end,
     Fun = fun button_event/3,
     Fi = #fi{key=Key} = 
@@ -2434,10 +2444,10 @@ button_draw(Active, #fi{x=X,y=Y0,w=W,h=H}, #but{label=Label}, DisEnabled) ->
     blend(fun(Col) ->
 		  case DisEnabled of
 		      enabled ->
-			  wings_io:gradient_border(X, Y0+2, W, H-4,
+			  wings_io:gradient_border(X, Y0+2, W, H-3,
 						   Col, FgColor, Active);
 		      _ ->
-			  wings_io:border(X, Y0+2, W, H-4, Col, FgColor)
+			  wings_io:border(X, Y0+2, W, H-3, Col, FgColor)
 		  end
 	  end),
     TextX = X + 2 + (W-wings_text:width(Label)) div 2,
@@ -2574,17 +2584,17 @@ col_draw(Active, #fi{x=X,y=Y0}, RGB, DisEnabled) ->
 	      end,
     case DisEnabled of
 	enabled ->
-	    wings_io:sunken_rect(X, Y0+3, 3*?CHAR_WIDTH, ?CHAR_HEIGHT,
+	    wings_io:sunken_rect(X, Y0+3, round(1.5*?CHAR_HEIGHT), ?CHAR_HEIGHT,
 				 RGB, color4(), Active);
 	_ ->
-	    wings_io:border(X, Y0+3, 3*?CHAR_WIDTH, ?CHAR_HEIGHT,
+	    wings_io:border(X+1, Y0+3, round(1.5*?CHAR_HEIGHT), ?CHAR_HEIGHT,
 			    RGB, FgColor)
     end,
     gl:color3b(0, 0, 0),
     keep.
 
 col_inside(Xm, Ym, #fi{x=X,y=Y}) ->
-    inside(Xm, Ym, X, Y, 3*?CHAR_WIDTH, ?CHAR_HEIGHT+2).
+    inside(Xm, Ym, X, Y, round(1.5*?CHAR_HEIGHT), ?CHAR_HEIGHT+2).
 
 pick_color(Key, Store) ->
     RGB0 = gb_trees:get(Key, Store),
@@ -2725,11 +2735,11 @@ mktree_table([Head|Elements], Sto, I, Flags) ->
     %% Default width is 30 for the first columns, 10 for all others.
     ColWidths0 = setelement(1, erlang:make_tuple(NumCols, 10), 30),
     ColWidths1 = proplists:get_value(col_widths, Flags, ColWidths0),
-    CharWidth = wings_text:width(),
+    CharWidth = ?CHAR_WIDTH,
     ColWidths = [Cw*CharWidth || Cw <- tuple_to_list(ColWidths1)],
     W = sum(ColWidths),
     Fun = fun table_event/3,
-    TopMarg = wings_text:height()+3,
+    TopMarg = ?CHAR_HEIGHT+3,
     H = Rows * Elh + TopMarg + 6,
     T = #table{head=tuple_to_list(Head),col_widths=ColWidths,
 	       num_els=length(Elements),elh=Elh,rows=Rows,tmarg=TopMarg},
@@ -2788,7 +2798,7 @@ table_redraw(#fi{x=X,y=Y0,w=W,h=H}=Fi,
 		    rows=Rows,first=First,tmarg=TopMarg}=Tab,
 	     {Sel0,Els0}, _DisEnabled, Active) ->
     ColWidths = table_extend_last_col(ColWidths0, W),
-    Ch = wings_text:height(),
+    Ch = ?CHAR_HEIGHT,
     wings_io:sunken_rect(X, Y0+Ch+2, W, H-Ch-4, {0.9,0.9,0.9}, color4(), Active),
     table_draw_head(Head, ColWidths, X, Y0, Ch, Active, TopMarg),
     Els1 = lists:nthtail(First, Els0),
@@ -2968,7 +2978,7 @@ mktree_text(Val, Sto, I, Flags) ->
 	      M when is_integer(M), M >= 1 -> M
 	  end,
     Password = proplists:get_bool(password, Flags),
-    Cw = wings_text:width(),
+    Cw = ?CHAR_WIDTH,
     W = (1+Max)*Cw,
     Ts = #text{last_val=Val,bef=[],aft=ValStr,
 	       integer=IsInteger,charset=Charset,
@@ -3280,7 +3290,7 @@ draw_text_inactive(#fi{x=X0,y=Y0,w=Width},
 		      end),
 		color3_disabled()
 	end,
-    Y = Y0 + ?CHAR_HEIGHT,
+    Y = Y0 + ?CHAR_HEIGHT+1,
     X = X0 + Margin,
     gl:color3fv(FgColor),
     text_draw_fitting(Str, X, Y, Width),
@@ -3291,9 +3301,9 @@ draw_text_active(#fi{x=X0,y=Y0,w=Width},
 		       bef=Bef0,aft=Aft0,password=Password,
 		       margin=Margin}=Text,
 		 DisEnabled) ->
-    Ch = wings_text:height(),
+    Ch = ?CHAR_HEIGHT+1,
 
-    wings_io:sunken_gradient(X0, Y0+2, Width, Ch+1,
+    wings_io:sunken_gradient(X0, Y0+2, Width, Ch,
 			     color3_high(), color4(), true),
     Y = Y0 + Ch,
     X = X0 + Margin,

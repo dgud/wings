@@ -21,7 +21,7 @@
 -import(lists, [map/2,foldl/3,reverse/1,keyfind/3,foreach/2]).
 
 -define(SUB_MENU_TIME, 150).
--define(SEPARATOR_HEIGHT, (wings_text:height()-4)).
+-define(SEPARATOR_HEIGHT, (?CHAR_HEIGHT-4)).
 -define(INITIAL_LEVEL, 1).
 
 -type unicode_char() :: 0..2097151.
@@ -97,7 +97,7 @@ menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0}=Mi0) ->
     end,
     {MwL,MwM,MwR,Hs} = menu_dims(Menu),
     ToolbarSize = wings_pref:get_value(menu_toolbar_size),
-    Cw = wings_text:width(),
+    Cw = ?CHAR_WIDTH,
     TotalW = total_width(AddToolbar, MwL + MwM + MwR + 8*Cw, ToolbarSize),
     Mh = lists:sum(Hs),
     Margin = 3,
@@ -375,7 +375,7 @@ menu_dims(Menu, I, MaxA0, MaxB0, MaxC0, Hacc) ->
 		end;
 	    {S,{_,_},Hotkey,_,_} ->
 		{wings_text:width([$.,$.|S]),wings_text:width(Hotkey),
-		 wings_text:width(),?LINE_HEIGHT};
+		 ?CHAR_WIDTH,?LINE_HEIGHT};
 	    {S,_,Hotkey,_,Ps} ->
 		{wings_text:width([$.,$.|S]),wings_text:width(Hotkey),
 		 right_width(Ps),?LINE_HEIGHT};
@@ -390,7 +390,7 @@ menu_dims(Menu, I, MaxA0, MaxB0, MaxC0, Hacc) ->
 	      max(Wc, MaxC0), [H|Hacc]).
 
 right_width(Ps) ->
-    Cw = wings_text:width(),
+    Cw = ?CHAR_WIDTH,
     case have_option_box(Ps) of
 	true -> Cw;
 	false ->
@@ -974,7 +974,7 @@ menu_draw_1(Y, Ps, Sel, #mi{sel=Sel,sel_side=Side,w=W},
     %% Draw blue background for highlighted item.
     wings_io:set_color(wings_pref:get_value(menu_hilite)),
     Color = wings_pref:get_value(menu_hilite),
-    Cw = wings_text:width(),
+    Cw = ?CHAR_WIDTH,
     Right = W - (2*right_width(Ps)) - Cw,
     case Side of
 	right ->
@@ -1166,8 +1166,8 @@ draw_right_1(X0, Y0, Mw, Ps) ->
     case proplists:get_value(color, Ps, none) of
 	none -> ok;
 	Color ->
-	    Cw = wings_text:width(),
-	    Ch = wings_text:height(),
+	    Cw = ?CHAR_WIDTH,
+	    Ch = ?CHAR_HEIGHT,
 	    X = X0 + Mw - 5*Cw,
 	    Y = Y0 - Ch + 1,
 	    wings_io:border(X, Y, Cw, Ch-1, Color)
@@ -1175,8 +1175,8 @@ draw_right_1(X0, Y0, Mw, Ps) ->
 
 draw_submenu_marker(popup, _Item, _X, _Y) -> ok;
 draw_submenu_marker(plain, _Item, X, Y) ->
-    Cw = wings_text:width(),
-    H = (wings_text:height()+2) div 3,
+    Cw = ?CHAR_WIDTH,
+    H = (?CHAR_HEIGHT+2) div 3,
     ?CHECK_ERROR(),
     gl:'begin'(?GL_TRIANGLES),
     gl:vertex2i(X-Cw div 2, Y),
@@ -1187,7 +1187,7 @@ draw_submenu_marker(plain, _Item, X, Y) ->
 
 draw_separator(X, Y, Mw) ->
     ?CHECK_ERROR(),
-    Cw = wings_text:width(),
+    Cw = ?CHAR_WIDTH,
     LeftX = X-2*Cw+0.5,
     RightX = X+Mw-4*Cw+0.5,
     UpperY = Y-?SEPARATOR_HEIGHT+0.5,

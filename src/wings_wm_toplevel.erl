@@ -271,7 +271,7 @@ ctrl_redraw(#ctrl{title=Title}) ->
 	   end,
     wings_io:blend(wings_pref:get_value(Pref),
 		   fun(C) ->
-			   wings_io:gradient_border(0, 0, W-1, TitleBarH-1, C)
+			   wings_io:gradient_border_burst(0, 0, W-1, TitleBarH-1, C)
 		   end),
     wings_io:set_color(wings_pref:get_value(title_text_color)),
     wings_io:text_at(10, TitleBarH-5, Title),
@@ -750,36 +750,18 @@ new_closer(Client) ->
 close_event(redraw) ->
     wings_io:ortho_setup(none),
     {W,H} = wings_wm:win_size(),
+    B = W div 4,
     wings_io:gradient_border(0, 0, W-1, H-1, ?PANE_COLOR),
     gl:color3b(0, 0, 0),
-    if
-	H < 12 ->
-	    Close = <<
-		     2#11001100,
-		     2#01111000,
-		     2#00110000,
-		     2#01111000,
-		     2#11001100
-		     >>,
-	    Half = (W-6) div 2,
-	    gl:rasterPos2i(Half+1, H - Half),
-	    gl:bitmap(6, 5, 0, 0, 0, 0, Close),
-	    keep;
-	true ->
-	    Close = <<
-		     2#11000011,
-		     2#01100110,
-		     2#00111100,
-		     2#00011000,
-		     2#00111100,
-		     2#01100110,
-		     2#11000011
-		     >>,
-	    Half = (W-8) div 2,
-	    gl:rasterPos2i(Half, H - Half),
-	    gl:bitmap(8, 7, 0, 0, 0, 0, Close),
-	    keep
-    end;
+    gl:lineWidth(2),
+    gl:'begin'(?GL_LINES),
+    gl:vertex2f(0+B,0+B),
+    gl:vertex2f(W-B,H-B),
+    gl:vertex2f(0+B,H-B),
+    gl:vertex2f(W-B,0+B),
+    gl:'end'(),
+    gl:lineWidth(1),
+    keep;
 close_event(got_focus) ->
     wings_wm:message(?__(1,"Close this window")),
     keep;
@@ -797,9 +779,9 @@ close_event(_) -> keep.
 %% Menubar for each window.
 %%
 
--define(MENU_MARGIN, 8).
--define(MENU_ITEM_SPACING, 2).
--define(MENU_HEIGHT, (?CHAR_HEIGHT+6)).
+-define(MENU_MARGIN, ?CHAR_WIDTH).
+-define(MENU_ITEM_SPACING, ?CHAR_HEIGHT+8).
+-define(MENU_HEIGHT, (?CHAR_HEIGHT+?CHAR_WIDTH)).
 
 -record(mb,
 	{sel=none,
@@ -871,7 +853,7 @@ menubar_redraw_1(Menubar, #mb{sel=Sel}) ->
     menubar_draw(Menubar, ?MENU_MARGIN, Sel).
 
 menubar_draw([{Desc,Name,_}|T], X, Sel) ->
-    W = ?CHAR_WIDTH*(?MENU_ITEM_SPACING+length(Desc)),
+    W = wings_text:width(Desc)+?MENU_ITEM_SPACING,
     if
 	Name =:= Sel ->
 	    {_,_,_,H} = wings_wm:viewport(),
@@ -881,7 +863,7 @@ menubar_draw([{Desc,Name,_}|T], X, Sel) ->
 	true ->
 	    wings_io:set_color(wings_pref:get_value(menubar_text))
     end,
-    wings_io:text_at(X, ?CHAR_HEIGHT, Desc),
+    wings_io:text_at(X, ?CHAR_HEIGHT+2, Desc),
     menubar_draw(T, X+W, Sel);
 menubar_draw([], _, _) -> keep.
 
@@ -892,12 +874,11 @@ menubar_hit(X0, #mb{bar=Bar}=Mb) ->
     end.
 
 menubar_hit_1([{Desc,Name,Fun}|T], Mb, RelX, X) ->
-    case ?CHAR_WIDTH*length(Desc) of
+    case wings_text:width(Desc)+?MENU_ITEM_SPACING of
 	W when RelX < W ->
 	    {X+2,Name,Fun};
 	W ->
-	    Iw = W+?MENU_ITEM_SPACING*?CHAR_WIDTH,
-	    menubar_hit_1(T, Mb, RelX-Iw, X+Iw)
+	    menubar_hit_1(T, Mb, RelX-W, X+W)
     end;
 menubar_hit_1([], _, _, _) -> none.
 
@@ -946,9 +927,9 @@ toolbar_pos(Client) ->
 
 closer_pos(Client) ->
     {X,_} = wings_wm:win_ul(Client),
-    CloserH = title_height() - 6,
+    CloserH = title_height() -6,
     {_,Y0} = menubar_pos(Client),
-    Y = Y0 - CloserH - 3,
+    Y = Y0 - CloserH -3,
     W = controller_width(Client),
     {X+W-CloserH-4,Y}.
 
