@@ -1479,12 +1479,8 @@ hard_edges(#st{selmode=Mode}=St0) ->
 
 vertices_with(N, #st{sel=[]}=St) ->
     Sel = fun(V, We) ->
-		  Cnt = wings_vertex:fold(
-			  fun(_, _, _, Cnt) ->
-				  Cnt+1
-			  end, 0, V, We),
-		  Cnt =:= N
-	  end,
+	  vertices_with(N, V, We)
+    end,
     wings_sel:make(Sel, vertex, St);
 vertices_with(N, #st{selmode=Mode}=St0) ->
     St = if Mode =:= vertex -> St0; true -> wings_sel_conv:mode(vertex, St0) end,
