@@ -40,6 +40,7 @@ MODULES= \
 	wpc_constraints \
 	wpc_contour \
 	wpc_cylindrilize \
+	wpc_corner \
 	wpc_doosabin \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
