@@ -136,11 +136,22 @@ build_tree(Start, End, Nodes0, PrimIndx0, PrimBBs, PrimCs,
 	   NodeBox, CentriodBB = {Cmin,Cmax}, Parent, Child, Depth) ->
     Step = if (End - Start) < ?FULL_SWEEP  -> 1; true -> ?SKIP_FACTOR end,
     %% Find axis to do the split
-    Axis = e3d_bv:max_extent(CentriodBB),
-    K0 = CminAxis = element(Axis, Cmin),
-    CdistAxis = (element(Axis, Cmax) - K0),
-    try ?NB_BINS / CdistAxis of
-	K1 ->
+    case e3d_bv:max_extent(CentriodBB) of
+	undefined ->
+	    io:format("BB ~p~n",[CentriodBB]),
+	    %% If the bbox is a point, create a leaf, hoping there are
+	    %% not more than 64 primitives that share the same center.
+	    case (End - Start) > 64 of
+		true  -> exit({geometry_error, 
+			       too_many_faces_with_same_center});
+		false -> 
+		    {PrimIndx0, create_tmp_leaf(Parent, Child, Start, End, 
+						NodeBox, Nodes0)}
+	    end;	   
+	Axis ->
+	    K0 = CminAxis = element(Axis, Cmin),
+	    CdistAxis = (element(Axis, Cmax) - K0),
+	    K1 = ?NB_BINS / CdistAxis,
 	    case Depth rem 2 of
 		0 ->
 		    {Curr, Nodes1} = 
@@ -172,17 +183,6 @@ build_tree(Start, End, Nodes0, PrimIndx0, PrimBBs, PrimCs,
 			   LBB, LCBB, Curr, LeftChild, Depth+1),
 	    build_tree(Store, End, Nodes, PrimIndx, PrimBBs, PrimCs, 
 		       RBB, RCBB, Curr, RightChild, Depth+1)
-    catch 
-	_:_ ->
-	    %% If the bbox is a point, create a leaf, hoping there are
-	    %% not more than 64 primitives that share the same center.
-	    case (End - Start) > 64 of
-		true  -> exit({geometry_error, 
-			       too_many_faces_with_same_center});
-		false -> 
-		    {PrimIndx0, create_tmp_leaf(Parent, Child, Start, End, 
-						NodeBox, Nodes0)}
-	    end
     end.
 
 create_node(Parent, _Child, _NodeBox, {Nodes, NNodes}) when Parent < 0 ->

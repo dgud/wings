@@ -51,6 +51,7 @@ subdirs:
 	(cd primitives; $(MAKE))
 	(cd commands; $(MAKE))
 	(cd autouv; $(MAKE))
+	(cd pbr; $(MAKE))
 
 template: opt
 	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
@@ -64,6 +65,7 @@ subdirs_lang:
 	(cd primitives; $(MAKE) lang)
 	(cd commands; $(MAKE) lang)
 	(cd autouv; $(MAKE) lang)
+	(cd pbr; $(MAKE) lang)
 
 clean: subdirs_clean
 	rm -f $(TARGET_FILES)
@@ -75,6 +77,7 @@ subdirs_clean:
 	(cd primitives; $(MAKE) clean)
 	(cd commands; $(MAKE) clean)
 	(cd autouv; $(MAKE) clean)
+	(cd pbr; $(MAKE) clean)
 
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<

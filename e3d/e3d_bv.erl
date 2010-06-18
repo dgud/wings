@@ -245,7 +245,7 @@ max_extent({Min, Max}) ->
     {X,Y,Z} = e3d_vec:sub(Max, Min),
     if X > Y, X > Z -> 1;
        Y > Z -> 2;
-       Y =:= Z -> undefined;
+       Y =:= Z, Z =< 0.0 -> undefined; %% Zero
        true -> 3
     end.
         
