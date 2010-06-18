@@ -195,14 +195,21 @@ rotate_s_to_t(S, T) ->
 	    rotate_s_to_t_1(V, E)
     end.
 
--spec transpose(e3d_compact_matrix() | 'identity') -> e3d_compact_matrix().
+-spec transpose(e3d_compact_matrix() | 'identity') -> e3d_compact_matrix();
+	       (e3d_matrix()) -> e3d_matrix().
 
 transpose(identity=I) -> I;
 transpose({M1,M2,M3,M4,M5,M6,M7,M8,M9,0.0=Z,0.0,0.0}) ->
     {M1,M4,M7,
      M2,M5,M8,
      M3,M6,M9,
-     Z,Z,Z}.
+     Z,Z,Z};
+transpose({A,B,C,WX,D,E,F,WY,G,H,I,WZ,Tx,Ty,Tz,WW}) ->
+    { A, D, G,Tx,
+      B, E, H,Ty,
+      C, F, I,Tz,
+     WX,WY,WZ,WW}.
+
 
 -spec add(M::e3d_matrix(), N::e3d_matrix()) -> e3d_matrix().
 add({B_a,B_b,B_c,B_d,B_e,B_f,B_g,B_h,B_i,B_tx,B_ty,B_tz},
