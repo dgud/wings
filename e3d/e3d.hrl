@@ -35,6 +35,14 @@
 -type e3d_bbox() :: {e3d_point(), e3d_point()}.
 -type e3d_bsphere() :: {e3d_point(), number()}.
 -type e3d_bv() :: e3d_bbox() | e3d_bsphere().
+
+%% Types for transform
+-record(e3d_transf,
+	{mat = e3d_mat:identity() :: e3d_matrix(),
+	 inv = e3d_mat:identity() :: e3d_matrix()}).
+
+-type e3d_transform() :: #e3d_transf{}.
+
   
 -record(e3d_face,
 	{vs=[],				        %List of vertex indices.

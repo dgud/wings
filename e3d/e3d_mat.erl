@@ -13,11 +13,13 @@
 
 -module(e3d_mat).
 
--export([identity/0,is_identity/1,compress/1,expand/1,
+-export([identity/0,is_identity/1,determinant/1,print/1,
+	 compress/1,expand/1,
 	 translate/1,translate/3,scale/1,scale/3,
 	 rotate/2,rotate_to_z/1,rotate_s_to_t/2,
 	 project_to_plane/1,
-	 transpose/1,mul/2,mul_point/2,mul_vector/2,eigenv3/1]).
+	 transpose/1,invert/1,
+	 mul/2,mul_point/2,mul_vector/2,eigenv3/1]).
 -compile(inline).
 -include("e3d.hrl").
 
@@ -44,7 +46,10 @@ is_identity({_,_,_,_,_,_,_,_,_,_,_,_}) -> false.
 
 compress(identity=I) -> I;
 compress({A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0}) ->
-    {A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}.
+    {A,B,C,D,E,F,G,H,I,Tx,Ty,Tz};
+compress(Mat) 
+  when tuple_size(Mat) =:= 12 -> 
+    Mat.
 
 -spec expand(e3d_matrix()) -> e3d_matrix().
     
@@ -238,7 +243,10 @@ mul({A,B,C,Q0,D,E,F,Q1,G,H,I,Q2,Tx,Ty,Tz,Q3}, {X,Y,Z,W})
     {X*A + Y*D + Z*G + W*Tx,
      X*B + Y*E + Z*H + W*Ty,
      X*C + Y*F + Z*I + W*Tz,
-     X*Q0 + Y*Q1 + Z*Q2 + W*Q3}.
+     X*Q0 + Y*Q1 + Z*Q2 + W*Q3};
+mul(M1,M2) 
+  when tuple_size(M1) =:= 12; tuple_size(M2) =:= 12 ->
+    mul(expand(M1), expand(M2)).
 
 -spec mul_point(Matrix::e3d_matrix(), Point::e3d_vector()) -> e3d_vector().
     
@@ -256,7 +264,24 @@ mul_point({A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0}, {X,Y,Z})
        is_float(Tx), is_float(Ty), is_float(Tz), is_float(X), is_float(Y), is_float(Z) ->
     share(X*A + Y*D + Z*G + Tx,
 	  X*B + Y*E + Z*H + Ty,
-	  X*C + Y*F + Z*I + Tz).
+	  X*C + Y*F + Z*I + Tz);
+mul_point({A,B,C,WX,D,E,F,WY,G,H,I,WZ,Tx,Ty,Tz,WW}, {X,Y,Z})
+  when is_float(A), is_float(B), is_float(C), is_float(D), is_float(E),
+       is_float(F), is_float(G), is_float(H), is_float(I), 
+       is_float(Tx), is_float(Ty), is_float(Tz), 
+       is_float(WX), is_float(WY), is_float(WZ), is_float(WW), 
+       is_float(X), is_float(Y), is_float(Z) ->
+    W = WX*X + WY*Y + WZ * Z + WW,
+    case W =:= 1.0 of
+	true -> 
+	    share(X*A + Y*D + Z*G + Tx,
+		  X*B + Y*E + Z*H + Ty,
+		  X*C + Y*F + Z*I + Tz);
+	false ->
+	    share((X*A + Y*D + Z*G + Tx)/W,
+		  (X*B + Y*E + Z*H + Ty)/W,
+		  (X*C + Y*F + Z*I + Tz)/W)
+    end.
 
 -spec mul_vector(Matrix::e3d_matrix(), Vector::e3d_vector()) -> e3d_vector().
 
@@ -268,13 +293,103 @@ mul_vector({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}, {X,Y,Z})
     share(X*A + Y*D + Z*G,
 	  X*B + Y*E + Z*H,
 	  X*C + Y*F + Z*I);
-mul_vector({A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0}, {X,Y,Z})
+mul_vector({A,B,C,_,D,E,F,_,G,H,I,_,Tx,Ty,Tz,_}, {X,Y,Z})
   when is_float(A), is_float(B), is_float(C), is_float(D), is_float(E),
        is_float(F), is_float(G), is_float(H), is_float(I), 
        is_float(Tx), is_float(Ty), is_float(Tz), is_float(X), is_float(Y), is_float(Z) ->
     share(X*A + Y*D + Z*G,
 	  X*B + Y*E + Z*H,
 	  X*C + Y*F + Z*I).
+
+%%--------------------------------------------------------------------
+%% @doc  Calculates the determinant
+%% @end
+%%--------------------------------------------------------------------
+-spec determinant(e3d_matrix()) -> float().
+determinant(identity) -> 1.0;
+determinant(Mat) 
+  when tuple_size(Mat) =:= 12 ->
+    determinant(e3d_mat:expand(Mat));
+determinant({M0,M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M13,M14,M15}) ->
+    A0 = M0*M5 - M1*M4,    A1 = M0*M6 - M2*M4,
+    A2 = M0*M7 - M3*M4,    A3 = M1*M6 - M2*M5,
+    A4 = M1*M7 - M3*M5,    A5 = M2*M7 - M3*M6,
+    
+    B0 =  M8*M13 -  M9*M12,  B1 =  M8*M14 - M10*M12,
+    B2 =  M8*M15 - M11*M12,  B3 =  M9*M14 - M10*M13,
+    B4 =  M9*M15 - M11*M13,  B5 = M10*M15 - M11*M14,
+    
+    A0*B5 - A1*B4 + A2*B3 + A3*B2 - A4*B1 + A5*B0.
+
+%%--------------------------------------------------------------------
+%% @doc  Calculates the inverse matrix
+%% @end
+%%--------------------------------------------------------------------
+-spec invert(e3d_matrix()) -> e3d_matrix().
+invert(identity) -> identity;
+invert(Mat) 
+  when tuple_size(Mat) =:= 12 ->
+    invert(e3d_mat:expand(Mat));
+invert({M0, M1,  M2, M3,
+	M4, M5,  M6, M7,
+	M8, M9, M10,M11,
+	M12,M13,M14,M15}) ->
+    A0 = M0*M5 - M1*M4,    A1 = M0*M6 - M2*M4,
+    A2 = M0*M7 - M3*M4,    A3 = M1*M6 - M2*M5,
+    A4 = M1*M7 - M3*M5,    A5 = M2*M7 - M3*M6,
+
+    B0 =  M8*M13 -  M9*M12,  B1 =  M8*M14 - M10*M12,
+    B2 =  M8*M15 - M11*M12,  B3 =  M9*M14 - M10*M13,
+    B4 =  M9*M15 - M11*M13,  B5 = M10*M15 - M11*M14,
+    
+    Det = A0*B5 - A1*B4 + A2*B3 + A3*B2 - A4*B1 + A5*B0,
+    case abs(Det) > 0.00005 of
+	true ->
+	    InvDet = 1.0/Det,
+	    {(+  M5*B5 -  M6*B4 +  M7*B3) * InvDet,
+	     (-  M1*B5 +  M2*B4 -  M3*B3) * InvDet,
+	     (+ M13*A5 - M14*A4 + M15*A3) * InvDet,
+	     (-  M9*A5 + M10*A4 - M11*A3) * InvDet,
+	     (-  M4*B5 +  M6*B2 -  M7*B1) * InvDet,
+	     (+  M0*B5 -  M2*B2 +  M3*B1) * InvDet,
+	     (- M12*A5 + M14*A2 - M15*A1) * InvDet,
+	     (+  M8*A5 - M10*A2 + M11*A1) * InvDet,
+	     (+  M4*B4 -  M5*B2 +  M7*B0) * InvDet,
+	     (-  M0*B4 +  M1*B2 -  M3*B0) * InvDet,
+	     (+ M12*A4 - M13*A2 + M15*A0) * InvDet,
+	     (-  M8*A4 +  M9*A2 - M11*A0) * InvDet,
+	     (-  M4*B3 +  M5*B1 -  M6*B0) * InvDet,
+	     (+  M0*B3 -  M1*B1 +  M2*B0) * InvDet,
+	     (- M12*A3 + M13*A1 - M14*A0) * InvDet,
+	     (+  M8*A3 -  M9*A1 + M10*A0) * InvDet
+	    };
+	false ->
+	    exit(singular_matrix)
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc  Prints a matrix
+%% @end
+%%--------------------------------------------------------------------
+-spec print(e3d_transform()) -> ok.
+
+print(#e3d_transf{mat=Mat}) ->
+    print_1(Mat);
+print(identity) ->
+    print_1(e3d_mat:identity());
+print(Mat) when tuple_size(Mat) =:= 12; 
+		tuple_size(Mat) =:= 16 ->
+    print_1(Mat).
+
+print_1({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}) ->
+    print_1({A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0});
+print_1(_Mat = {A,B,C,D,E,F,G,H,I,J,K,L,TX,TY,TZ,W}) ->
+    io:format(" ~7.3f ~7.3f ~7.3f ~7.3f~n ~7.3f ~7.3f ~7.3f ~7.3f~n"
+    	      " ~7.3f ~7.3f ~7.3f ~7.3f~n ~7.3f ~7.3f ~7.3f ~7.3f~n~n", 
+    	      [A,E,I,TX,
+    	       B,F,J,TY,
+    	       C,G,K,TZ,
+    	       D,H,L,W]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Calculates Eigenvalues and vectors

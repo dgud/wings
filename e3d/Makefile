@@ -30,6 +30,7 @@ MODULES= \
 	e3d_file \
 	e3d_obj \
 	e3d_tds \
+	e3d_transform \
 	e3d_mat \
 	e3d_util \
 	e3d_vec \
