@@ -3,7 +3,7 @@
 %%
 %%     Setup and Create data binaries for drawing
 %%
-%%  Copyright (c) 2009 Dan Gudmundsson & Björn Gustavsson
+%%  Copyright (c) 2010 Dan Gudmundsson & Björn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -15,7 +15,7 @@
 
 -export([we/3]).  %% For plugins
 
--export([work/2,smooth/2,prepare/3,flat_faces/2]).
+-export([work/2,smooth/2,prepare/3,prepare/4,flat_faces/2]).
 -export([enableVertexPointer/1,enableNormalPointer/1,
 	 enableColorPointer/1,enableTexCoordPointer/1,
 	 disableVertexPointer/1,disableNormalPointer/1,
@@ -32,9 +32,11 @@
 %%%    Generates rendering buffers from a we,
 %%%    reuses data if available.
 %%% Options are:
-%%%    {smooth, true|false}  default false
-%%%    {subdiv, Level}       default  0 not implemented yet.
-%%%
+%%%    {smooth, true|false}                            default false
+%%%    {subdiv, Level :: integer()}                    default 0 
+%%%    {attribs, undefined|plain|uv|color|color_uv}    default undefined 
+%%%              undefined -> you get what is available and enabled in wings_prefs
+%%%              plain ->  only vertex positions and normal
 we(We, Options, St) ->
     wings_dl:fold(fun(Dl, undefined) -> we_1(Dl, We, Options, St);
 		     (_Dl, Res)      -> Res
@@ -43,19 +45,40 @@ we(We, Options, St) ->
 we_1(Dlo=#dlo{src_we=Orig=#we{id=Id}}, Curr=#we{id=Id}, Opt, St) ->
     case Orig =:= Curr of
 	true  -> we_2(Dlo, Opt, St);
-	false -> we_2(#dlo{src_we=Curr}, Opt, St)
+	false -> we_2(wings_draw:changed_we(Dlo,#dlo{src_we=Curr}), Opt, St)
     end;
 we_1(_, _, _, _) ->
     undefined.
 
-we_2(Dlo, Opt, St) ->
+we_2(Dlo0, Opt, St) ->
     Smooth = proplists:get_value(smooth, Opt, false),
+    Attrib = proplists:get_value(attribs, Opt, undefined),
+    Dlo1 = case proplists:get_value(subdiv, Opt, 0) of
+	       0 -> 
+		   Dlo0;
+	       N -> 
+		   SubDived = sub_divide(N, Dlo0#dlo.src_we),
+		   wings_draw:changed_we(#dlo{}, #dlo{src_we=SubDived})
+	   end,
+    Dlo = check_attrib(Attrib, Dlo1),
     #dlo{vab=Vab} =
 	case Smooth of
-	    true ->  smooth(Dlo, St);
-	    false -> work(Dlo, St)
+	    true  -> smooth(Dlo, St, Attrib);
+	    false -> work(Dlo, St, Attrib)
 	end,
     Vab.
+
+check_attrib(undefined, Dlo) -> Dlo;     
+check_attrib(_, Dlo = #dlo{vab=none}) -> Dlo;
+check_attrib(uv, Dlo = #dlo{vab = #vab{face_uv={_,_}, face_vc=none}}) -> Dlo;
+check_attrib(color, Dlo = #dlo{vab = #vab{face_vc={_,_}, face_uv=none}}) -> Dlo;
+check_attrib(color_uv, Dlo = #dlo{vab = #vab{face_vc={_,_}, face_uv={_,_}}}) -> Dlo;
+check_attrib(_, D) -> 
+    D#dlo{vab=none}. %% Force rebuild
+
+sub_divide(0, We) -> We;
+sub_divide(N, We) -> 
+    sub_divide(N-1, wings_subdiv:smooth(We)).
 
 %%%
 %%% Help functions to activate and disable buffer pointers.
@@ -103,25 +126,37 @@ face_vertex_count(#vab{mat_map=[{_Mat,_Type,Start,Count}|_]}) ->
     Start+Count.
 
 %% Setup face_vs and face_fn and additional uv coords or vertex colors
-work(#dlo{vab=none,src_we=#we{fs=Ftab}}=D, St) ->
-    Prepared = prepare(gb_trees:to_list(Ftab), D, St),
+work(Dlo, St) ->
+    work(Dlo, St, undefined).
+
+work(#dlo{ns={_}}=D0, St, Attr) ->
+    D = wings_draw:update_normals(D0),
+    work(D, St, Attr);
+work(#dlo{vab=none,src_we=#we{fs=Ftab}}=D, St, Attr) ->
+    Prepared = prepare(gb_trees:to_list(Ftab), D, St, Attr),
     flat_faces(Prepared, D);
-work(#dlo{vab=#vab{face_vs=none},src_we=#we{fs=Ftab}}=D, St) ->
-    Prepared = prepare(gb_trees:to_list(Ftab), D, St),
+work(#dlo{vab=#vab{face_vs=none},src_we=#we{fs=Ftab}}=D, St, Attr) ->
+    Prepared = prepare(gb_trees:to_list(Ftab), D, St, Attr),
     flat_faces(Prepared, D);
-work(#dlo{vab=#vab{face_fn=none}}=D, _St) ->
+work(#dlo{vab=#vab{face_fn=none}}=D, _St, _) ->
     %% Can this really happen?
     setup_flat_normals(D);
-work(D, _) -> D.
+work(D, _, _) -> D.
 
 %% Setup face_vs and face_sn and additional uv coords or vertex colors
-smooth(#dlo{vab=none}=D, St) ->
-    setup_smooth_normals(work(D, St));
-smooth(#dlo{vab=#vab{face_vs=none}}=D, St) ->
-    setup_smooth_normals(work(D, St));
-smooth(D=#dlo{vab=#vab{face_sn=none}}, _St) ->
+smooth(Dlo, St) ->
+    smooth(Dlo, St, undefined).
+
+smooth(#dlo{ns={_}}=D0, St, Attr) ->
+    D = wings_draw:update_normals(D0),
+    smooth(D, St, Attr);
+smooth(#dlo{vab=none}=D, St, Attr) ->
+    setup_smooth_normals(work(D, St, Attr));
+smooth(#dlo{vab=#vab{face_vs=none}}=D, St, Attr) ->
+    setup_smooth_normals(work(D, St, Attr));
+smooth(D=#dlo{vab=#vab{face_sn=none}}, _St, _) ->
     setup_smooth_normals(D);
-smooth(D, _) -> D.
+smooth(D, _, _) -> D.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -661,45 +696,53 @@ dup3(I, Bin0, N={NX,NY,NZ}) ->
 %%%
 %%% Collect information about faces.
 %%%
+prepare(Ftab, Dlo, St) ->
+    prepare(Ftab, Dlo, St, undefined).
 
-prepare(Ftab, #dlo{src_we=We}, St) ->
-    prepare(Ftab, We, St);
-prepare(Ftab0, #we{}=We, St) ->
+prepare(Ftab, #dlo{src_we=We}, St, Attr) ->
+    prepare(Ftab, We, St, Attr);
+prepare(Ftab0, #we{}=We, St, Attr) ->
     Ftab = wings_we:visible(Ftab0, We),
-    prepare_1(Ftab, We, St).
+    prepare_1(Ftab, We, St, Attr).
 
-prepare_1(Ftab, We, St) ->
+prepare_1(Ftab, We, St, Attr) ->
     MatFaces = wings_facemat:mat_faces(Ftab, We),
     case wings_va:any_attributes(We) of
-	false ->
+	false when Attr =:= undefined ->
 	    %% Since there are no vertex attributes,
 	    %% we don't need to look at the materials
 	    %% to figure out what to do.
 	    {plain,MatFaces};
+	false  ->
+	    {Attr, MatFaces};
 	true ->
 	    %% There are UV coordinates and/or vertex colors,
 	    %% so we will have to look at the materials to
 	    %% figure out what we'll need.
 	    Attrs = wings_material:needed_attributes(We, St),
-	    {prepare_2(Attrs),MatFaces}
+	    {prepare_2(Attr, Attrs),MatFaces}
     end.
 
-prepare_2([]) ->
+prepare_2(Attr, _) 
+  when Attr == plain; Attr == color; 
+       Attr == uv; Attr == color_uv ->
+    Attr;
+prepare_2(_, []) ->
     plain;
-prepare_2([color]) ->
+prepare_2(_, [color]) ->
     case wings_pref:get_value(show_colors) of
 	false -> plain;
 	true -> color
     end;
-prepare_2([uv]) ->
+prepare_2(_, [uv]) ->
     case wings_pref:get_value(show_textures) of
 	true -> uv;
 	false -> plain
     end;
-prepare_2([color,uv]) ->
+prepare_2(_, [color,uv]) ->
     case wings_pref:get_value(show_colors) of
 	false ->
-	    prepare_2([uv]);
+	    prepare_2(undefined, [uv]);
 	true ->
 	    case wings_pref:get_value(show_textures) of
 		false -> color;
