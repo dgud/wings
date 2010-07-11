@@ -131,7 +131,7 @@ union(BBox1 = {Min1={V10,V11,V12}, Max1={V20,V21,V22}},
 					    {Min2, {V40, V21, erlang:max(V42,V22)}}
 				    end;
 			       true -> 
-				    {Min2, {V40, erlang:max(V41,V21), erlang:max(V42,V22)}}
+				    {Min2, {V20, erlang:max(V41,V21), erlang:max(V42,V22)}}
 			    end;
 		       true -> 			    
 			    {{V30, V31, V12}, max_point(Max1, Max2)}

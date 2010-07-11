@@ -9,7 +9,7 @@
 -module(qbvh).
 
 -compile(export_all).
--include_lib("e3d.hrl").
+-include_lib("../e3d.hrl").
 -include_lib("cl/include/cl.hrl").
 
 -define(F32, 32/float-native).
@@ -33,6 +33,12 @@
 
 -define(RAYHIT_SZ, 16).
 
+-record(ray, 
+	{o,d, 					% Origin, Direction vector
+	 n, f}).				% Near far (or MinT MaxT)
+
+-record(hit, {t, b1, b2, f = 16#ffffffff}).
+
 go()  -> start().
 
 start() ->
@@ -42,15 +48,18 @@ start() ->
     Qbvh = e3d_qbvh:init([{tuple_size(TFs), 
 			   fun(Face) -> 
 				   [V1,V2,V3] = element(Face+1, TFs),
-				   {element(V1+1,?VS), element(V2+1,?VS), element(V3+1, ?VS)}
+	        		   {element(V1+1,?VS), element(V2+1,?VS), element(V3+1, ?VS)}
 			   end}]),
-    {Rays, Res} = init_cl(Qbvh),
-    check_rays(Rays, Res, array:from_list(Fs), ?VS),
+    %% {Rays, Res} = init_cl(Qbvh),
+    %% check_rays(Rays, Res, array:from_list(Fs), ?VS),
+    
+    erl_ray_trace([e3d_qbvh:ray({0.0, 0.5, 5.0},{0.0,0.0,-1.0})], Qbvh),
+    %%erl_ray_trace(Rays, Qbvh),
     ok.
   
 check_rays([_Miss|Ds],  <<_:12/binary, 16#FFFFFFFF:32, Rest/binary>>, Fs, Vs) ->
     check_rays(Ds, Rest, Fs, Vs);
-check_rays([Dir|Ds],  <<T:?F32,B1:?F32,B2:?F32,Face:?I32, Rest/binary>>, Fs, Vs) ->
+check_rays([#ray{d=Dir}|Ds],  <<T:?F32,B1:?F32,B2:?F32,Face:?I32, Rest/binary>>, Fs, Vs) ->
     io:format("~s => ~s ~s ~s ~s~n",[f(Dir), f(T),f(B1),f(B2),f(Face)]),
     FVs = [V1,V2,V3] = array:get(Face, Fs),
     io:format("   ~p => [~s,~s,~s]~n",
@@ -58,6 +67,20 @@ check_rays([Dir|Ds],  <<T:?F32,B1:?F32,B2:?F32,Face:?I32, Rest/binary>>, Fs, Vs)
     check_rays(Ds, Rest, Fs, Vs);
 check_rays([],<<>>, _, _) ->
     ok.
+
+erl_ray_trace([Ray|Rays], Qbvh) ->
+    case e3d_qbvh:ray_trace(Ray,Qbvh) of
+	#hit{f=16#ffffffff} ->
+	    io:format("E miss~n",[]),
+	    ok;
+	#hit{t=T, b1=B1, b2=B2, f=Face} ->
+	    io:format("E ~s => ~s ~s ~s ~s~n",
+		      [f(Ray#ray.d), f(T),f(B1),f(B2),f(Face)])
+    end,
+    erl_ray_trace(Rays, Qbvh);
+erl_ray_trace([], _) ->
+    ok.
+
 
 format_faces(I, [FVs=[V1,V2,V3]|Fs], Vs) ->
     io:format("~p ~p => [~s,~s,~s]~n",
@@ -100,7 +123,8 @@ init_cl(Qbvh) ->
     end.
 
 compile(CL, File) ->
-    {ok, Bin} = file:read_file(File),
+    Dir = filename:dirname(code:which(?MODULE)),
+    {ok, Bin} = file:read_file(filename:join([Dir, File])),
     {ok, Program} = clu:build_source(CL, Bin),
     {ok, [Kernel]} = cl:create_kernels_in_program(Program),
     Kernel.
@@ -128,7 +152,9 @@ create_rays() ->
     MaxT = ?E3D_INFINITY, 
     Dirs = [calc_dir(Dir/255) || Dir <- lists:seq(0, 255)],
     {<< << (create_ray(Origo, Dir, MinT, MaxT))/binary >>
-	|| Dir <- Dirs >>, Dirs, 256}.
+	|| Dir <- Dirs >>, 
+     [e3d_qbvh:ray(Origo, Dir, MinT, MaxT) || Dir <- Dirs], 
+     256}.
     
 calc_dir(Dir) ->
     e3d_vec:norm(e3d_q:vec_rotate({1.0,0.0,0.0}, e3d_q:from_angle_axis(Dir*360, {0.0,1.0,0.0}))).
@@ -137,3 +163,26 @@ create_ray({OX,OY,OZ}, {DX,DY,DZ}, MinT, MaxT) ->
     <<OX:?F32, OY:?F32, OZ:?F32, 
       DX:?F32, DY:?F32, DZ:?F32, 
       MinT:?F32, MaxT:?F32>>.
+
+max_float() ->
+    max_float(3.000000e+38, 1.0e+37, 50000).
+
+max_float(X, Next, N) when N > 0, Next > 1.0 ->
+    Bin = <<X:?F32>>,
+    Op = try 
+	     <<Y:?F32>> = Bin,
+	     erlang:display({Y, Next}),
+	     inc
+	 catch error:_ ->
+		 erlang:display({fail,X,Next}),
+		 dec
+	 end,
+    if
+	Op == inc ->
+	    max_float(X+Next, Next*1.2, N);
+	Op == dec ->
+	    max_float(X-Next, Next / 2, N-1)
+    end;
+max_float(X,_,_) -> 
+    X.
+

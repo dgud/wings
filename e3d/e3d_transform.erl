@@ -132,15 +132,16 @@ mul(#e3d_transf{mat=M1,inv=I1}, #e3d_transf{mat=M2,inv=I2}) ->
 -spec lookat(e3d_point(), e3d_vector(), e3d_vector()) -> e3d_transform().
 lookat(Pos, Look, Up) ->
     Dir = e3d_vec:norm_sub(Look, Pos),
-    Right = e3d_vec:norm(e3d_vec:cross(Dir, Up)),
+    Right = e3d_vec:norm(e3d_vec:cross(Dir, e3d_vec:norm(Up))),
     NewUp = e3d_vec:norm(e3d_vec:cross(Right, Dir)),
-    AsList = [tuple_to_list(Right), 0.0, 
-	      tuple_to_list(NewUp), 0.0,
-	      tuple_to_list(Dir),   0.0,
-	      tuple_to_list(e3d_vec:neg(Pos)),   1.0],
+    AsList = [tuple_to_list(Right),             0.0, 
+	      tuple_to_list(NewUp),             0.0,
+	      tuple_to_list(e3d_vec:neg(Dir)),  0.0,
+	      0.0, 0.0, 0.0,                    1.0],
     CamToWorld = list_to_tuple(lists:flatten(AsList)),
     WorldToCam = e3d_mat:invert(CamToWorld),
-    #e3d_transf{mat=WorldToCam,inv=CamToWorld}.
+    Translate = translate(identity(), e3d_vec:neg(Pos)),
+    mul(Translate, #e3d_transf{mat=WorldToCam,inv=CamToWorld}).
 
 %%--------------------------------------------------------------------
 %% @doc  Generates a ortho transformation
