@@ -13,6 +13,7 @@
 
 %% 3D vector or location.
 -type e3d_vector() :: {float(),float(),float()}.
+-type e3d_point() :: {float(),float(),float()}.
 
 %% Compact 4x4 matrix representation.
 -type e3d_compact_matrix() ::
@@ -27,6 +28,21 @@
    float(),float(),float(),float(),
    float(),float(),float(),float(),
    float(),float(),float(),float()}.
+
+
+%% Types for e3d_bv
+-define(E3D_INFINITY, 3.402823e+38).  %% 32 bits float max
+-type e3d_bbox() :: {e3d_point(), e3d_point()}.
+-type e3d_bsphere() :: {e3d_point(), number()}.
+-type e3d_bv() :: e3d_bbox() | e3d_bsphere().
+
+%% Types for transform
+-record(e3d_transf,
+	{mat = e3d_mat:identity() :: e3d_matrix(),
+	 inv = e3d_mat:identity() :: e3d_matrix()}).
+
+-type e3d_transform() :: #e3d_transf{}.
+
   
 -record(e3d_face,
 	{vs=[],				        %List of vertex indices.
@@ -62,4 +78,5 @@
 	 creator="", 				%Creator string.
 	 dir					%Directory for file.
 	}).
+
 

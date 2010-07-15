@@ -30,10 +30,12 @@ MODULES= \
 	e3d_file \
 	e3d_obj \
 	e3d_tds \
+	e3d_transform \
 	e3d_mat \
 	e3d_util \
 	e3d_vec \
 	e3d_q \
+	e3d_qbvh \
 	e3d_bv \
 	e3d__tri_quad \
 	e3d__meshclean \

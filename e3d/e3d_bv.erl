@@ -2,9 +2,9 @@
 %%  e3d_bv.erl --
 %%
 %%     Bounding volume operations.
-%%        Currently only quickhull, and eigen-vecs calculation implemented
+%%        Bounding boxes and quickhull, and eigen-vecs calculation implemented
 %%
-%%  Copyright (c) 2001-2008 Dan Gudmundsson
+%%  Copyright (c) 2001-2010 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,13 +13,282 @@
 %%
 
 -module(e3d_bv).
--export([eigen_vecs/1,quickhull/1,covariance_matrix/1]).
 
--import(e3d_vec, [dot/2,add/2,average/1,normal/1]).
+%% Bounding Box/Sphere
+-export([box/0,box/1,box/2,box/3,
+	 union/2,
+	 center/1,max_extent/1,
+	 surface_area/1,volume/1,
+	 sphere/1,
+	 inside/2]).
+
+%% Other Stuff
+-export([eigen_vecs/1,quickhull/1,covariance_matrix/1]).
+-import(e3d_vec, [dot/2,add/2,average/1,average/2,dist_sqr/2,normal/1]).
 -import(lists, [foldl/3]).
+
+-include("e3d.hrl").
 
 -compile(inline).
 
+-define(BB_MIN, {{?E3D_INFINITY,?E3D_INFINITY,?E3D_INFINITY},
+		 {-?E3D_INFINITY,-?E3D_INFINITY,-?E3D_INFINITY}}).
+
+
+%%--------------------------------------------------------------------
+%% @doc Creates a bounding box
+%%  Infinite if no arguments is given
+%%  Enclosing the two points or list if given.
+%%  The box is expanded with Epsilon in all directions if given.
+%%    box() -> infinite_box;
+%%    box(point, point |[Epsilon])
+%%    box([points]|[Epsilon])
+%% @end
+%%--------------------------------------------------------------------
+
+-spec box() -> e3d_bbox().
+box() ->
+    ?BB_MIN.
+
+-spec box([e3d_point()]) -> e3d_bbox().
+box([{X,Y,Z}|Vs]) ->
+    bounding_box_1(Vs, X, X, Y, Y, Z, Z).
+
+-spec box(e3d_point()|[e3d_point()], e3d_point()|float()) -> e3d_bbox().
+box([{X,Y,Z}|Vs], Expand) ->
+    {Min, Max} = bounding_box_1(Vs, X, X, Y, Y, Z, Z),
+    {add(Min, {-Expand,-Expand,-Expand}), add(Max,{Expand,Expand,Expand})};
+
+box({V10,V11,V12}, {V20,V21,V22}) ->
+    {MinX, MaxX} = if V10 < V20 -> {V10,V20};
+		      true      -> {V20,V10}
+		   end,
+    {MinY, MaxY} = if V11 < V21 -> {V11, V21};
+		      true      -> {V21, V11}
+		   end,
+    {MinZ, MaxZ} =if V12 < V22 -> {V12, V22};
+		     true      -> {V22, V12}
+		  end,
+    {{MinX,MinY,MinZ},{MaxX,MaxY,MaxZ}}.
+
+-spec box(e3d_vector(), e3d_vector(), float()) -> e3d_bbox().
+box({V10,V11,V12}, {V20,V21,V22}, Expand) ->
+
+    {MinX, MaxX} = if V10 < V20 -> {V10,V20};
+		      true      -> {V20,V10}
+		   end,
+    {MinY, MaxY} = if V11 < V21 -> {V11, V21};
+		      true      -> {V21, V11}
+		   end,
+    {MinZ, MaxZ} =if V12 < V22 -> {V12, V22};
+		     true      -> {V22, V12}
+		  end,
+    {add({MinX,MinY,MinZ}, {-Expand,-Expand,-Expand}),
+     add({MaxX,MaxY,MaxZ}, {Expand,Expand,Expand})}.
+
+%%--------------------------------------------------------------------
+%% @doc Creates the union of a bounding box and point| bounding box
+%% @end
+%%--------------------------------------------------------------------
+
+-spec union(e3d_bbox(), e3d_vector() | e3d_bbox()) -> e3d_bbox().
+union(BBox1 = {Min1={V10,V11,V12}, Max1={V20,V21,V22}}, 
+      BBox2 = {Min2={V30,V31,V32}, Max2={V40,V41,V42}}) ->
+    %%  Avoid tuple construction if unnecessary
+    %%    {{erlang:min(V10,V30), erlang:min(V11,V31), erlang:min(V12,V32)},
+    %%     {erlang:max(V20,V40), erlang:max(V21,V41), erlang:max(V22,V42)}};
+    %% Bjorn fix the compiler :-)
+    %% The compiler can not optimize away the tuple construction
+    %% that's why the code looks like this.
+    if V10 =< V30  -> 
+	    if V11 =< V31 -> 
+		    if V12 =< V32 -> 
+			    if V20 >= V40  -> 
+				    if V21 >= V41 -> 
+					    if V22 >= V42 -> BBox1;
+					       true -> {Min1, {V20,V21,V42}}
+					    end;
+				       true -> {Min1, {V20, V41, erlang:max(V22,V42)}}
+				    end;
+			       true -> 
+				    {Min1, {V40, erlang:max(V21,V41), erlang:max(V22,V42)}}
+			    end;
+		       true -> 
+			    {{V10,V11,V32}, max_point(Max1, Max2)}
+		    end;
+	       true -> 
+		    {{V10, V31, erlang:min(V12,V32)}, max_point(Max1, Max2)}
+	    end;
+       true -> 
+	    if V31 =< V11 ->
+		    if V32 =< V12 ->
+			    if V40 >= V20  -> 
+				    if V41 >= V21 -> 
+					    if V42 >= V22 -> BBox2;
+					       true -> {Min2, {V40,V41,V22}}
+					    end;
+				       true ->					    
+					    {Min2, {V40, V21, erlang:max(V42,V22)}}
+				    end;
+			       true -> 
+				    {Min2, {V20, erlang:max(V41,V21), erlang:max(V42,V22)}}
+			    end;
+		       true -> 			    
+			    {{V30, V31, V12}, max_point(Max1, Max2)}
+		    end;
+	       true ->
+		    {{V30, V11, erlang:min(V12, V32)}, max_point(Max1, Max2)}
+	    end
+    end;
+
+union(BBox = {Min0={V10,V11,V12}, Max0 = {V20,V21,V22}}, 
+      Point = {V30,V31,V32}) ->
+    if V10 =< V30  -> 
+	    if V11 =< V31 -> 
+		    if V12 =< V32 -> 
+			    if V20 >= V30  -> 
+				    if V21 >= V31 -> 
+					    if V22 >= V32 -> BBox;
+					       true -> {Min0, {V20,V21,V32}}
+					    end;
+				       true -> {Min0, {V20, V31, erlang:max(V22,V32)}}
+				    end;
+			       true -> 
+				    {Min0, {V30, erlang:max(V21,V31), erlang:max(V22,V32)}}
+			    end;
+		       true -> 
+			    {{V10,V11,V32}, max_point(Max0, Point)}
+		    end;
+	       true -> 
+		    {{V10, V31, erlang:min(V12,V32)}, max_point(Max0, Point)}
+	    end;
+       true -> 
+	    if V31 =< V11 -> 
+		    if V32 =< V12 -> {Point, max_point(Max0, Point)};
+		       true -> {{V30,V31,V12}, max_point(Max0, Point)}
+		    end;
+	       true -> {{V30,V11,erlang:min(V12,V32)}, max_point(Max0, Point)}
+	    end
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc Creates a bounding sphere from a bounding box
+%% @end
+%%--------------------------------------------------------------------
+
+-spec sphere(e3d_bbox()) -> e3d_bsphere().
+sphere(BB = {{_,_,_}, Max = {_,_,_}}) ->
+    Center = center(BB), 
+    {Center, 
+     case inside(BB, Center) of
+	 true  -> dist_sqr(Center, Max);
+	 false -> 0.0
+     end}.
+
+%%--------------------------------------------------------------------
+%% @doc Returns the center of the bounding volume
+%% @end
+%%--------------------------------------------------------------------
+-spec center(e3d_bv()) -> e3d_point().
+center({Min = {_,_,_}, Max = {_,_,_}}) ->
+    average(Min,Max);
+center({Center, DistSqr}) when is_list(DistSqr) ->
+    Center.
+
+%%--------------------------------------------------------------------
+%% @doc Returns the surface area of the bounding volume
+%% @end
+%%--------------------------------------------------------------------
+-spec surface_area(e3d_bv()) -> float().
+surface_area({Min = {Minx,_,_}, Max = {MaxX,_,_}}) ->
+    if Minx > MaxX -> 0;
+       true -> 
+	    {X,Y,Z} = e3d_vec:sub(Max, Min),
+	    X*Y+Y*Z+Z*X*2
+    end.
+
+
+%%--------------------------------------------------------------------
+%% @doc Returns the volume of the bounding volume
+%% @end
+%%--------------------------------------------------------------------
+-spec volume(e3d_bv()) -> float().
+volume({Min = {Minx,_,_}, Max = {MaxX,_,_}}) ->
+    if Minx > MaxX -> 0;
+       true -> 
+	    {X,Y,Z} = e3d_vec:sub(Max, Min),
+	    X*Y*Z
+    end.
+
+	
+%%--------------------------------------------------------------------
+%% @doc Returns true if point is inside baounding volume
+%% @end
+%%--------------------------------------------------------------------
+-spec inside(e3d_bv(), e3d_vector()) -> boolean().
+inside({{V10,V11,V12}, {V20,V21,V22}}, {V30,V31,V32}) ->
+    V10 >= V30 andalso V30 >= V20 andalso 
+	V11 >= V31 andalso V31 >= V21 andalso 
+	V12 >= V32 andalso V32 >= V22;
+inside({Center, DistSqr}, Point) when is_number(DistSqr) ->
+    dist_sqr(Center, Point) =< DistSqr.
+
+%%--------------------------------------------------------------------
+%% @doc Returns the largest dimension of the bounding box,
+%%      1 = X, 2 = Y, Z = 3
+%% @end
+%%--------------------------------------------------------------------
+
+-spec max_extent(e3d_bbox()) -> 1 | 2 | 3.
+				
+max_extent({Min, Max}) ->
+    {X,Y,Z} = e3d_vec:sub(Max, Min),
+    if X > Y, X > Z -> 1;
+       Y > Z -> 2;
+       true -> 3
+    end.
+        
+			
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Internals
+max_point(Max0 = {V20,V21,V22}, Max1 = {V30,V31,V32}) ->
+    if V20 >= V30  -> 
+	    if V21 >= V31 -> 
+		    if V22 >= V32 -> Max0;
+		       true -> {V20,V21,V32}
+		    end;
+	       true -> {V20, V31, erlang:max(V22,V32)}
+	    end;
+       true -> 
+	    if V31 >= V21 -> 
+		    if V32 >= V22 -> Max1;
+		       true -> {V30,V31,V22}
+		    end;
+	       true -> {V30, V21, erlang:max(V22,V32)}
+	    end
+    end.
+
+bounding_box_1([{X,_,_}|_]=Vs, X0, X1, Y0, Y1, Z0, Z1) when X < X0 ->
+    bounding_box_1(Vs, X, X1, Y0, Y1, Z0, Z1);
+bounding_box_1([{X,_,_}|_]=Vs, X0, X1, Y0, Y1, Z0, Z1) when X > X1 ->
+    bounding_box_1(Vs, X0, X, Y0, Y1, Z0, Z1);
+bounding_box_1([{_,Y,_}|_]=Vs, X0, X1, Y0, Y1, Z0, Z1) when Y < Y0 ->
+    bounding_box_1(Vs, X0, X1, Y, Y1, Z0, Z1);
+bounding_box_1([{_,Y,_}|_]=Vs, X0, X1, Y0, Y1, Z0, Z1) when Y > Y1 ->
+    bounding_box_1(Vs, X0, X1, Y0, Y, Z0, Z1);
+bounding_box_1([{_,_,Z}|_]=Vs, X0, X1, Y0, Y1, Z0, Z1) when Z < Z0 ->
+    bounding_box_1(Vs, X0, X1, Y0, Y1, Z, Z1);
+bounding_box_1([{_,_,Z}|_]=Vs, X0, X1, Y0, Y1, Z0, Z1) when Z > Z1 ->
+    bounding_box_1(Vs, X0, X1, Y0, Y1, Z0, Z);
+bounding_box_1([_|Vs], X0, X1, Y0, Y1, Z0, Z1) ->
+    bounding_box_1(Vs, X0, X1, Y0, Y1, Z0, Z1);
+bounding_box_1([], X0, X1, Y0, Y1, Z0, Z1) ->
+    {{X0,Y0,Z0},{X1,Y1,Z1}}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 eigen_vecs(Vs) ->
     Fs = quickhull(Vs),
     SymMat = covariance_matrix(Fs),
