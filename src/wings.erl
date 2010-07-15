@@ -404,6 +404,9 @@ handle_event_3({external,launch_tweak}, St) ->
 handle_event_3({external, win32_start_maximized}, _St) ->
     restore_windows_pos(),
     keep;
+handle_event_3({external, Fun}, St) 
+  when is_function(Fun) ->
+    Fun(St);
 handle_event_3({external,Op}, St) ->
     wpa:handle_external(Op,St),
     keep;
