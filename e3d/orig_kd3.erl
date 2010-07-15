@@ -25,7 +25,7 @@
 %%  an element which is needed standard algorithm.
 %%  Since take_nearest is probably the most used function in the api.
 
--module(e3d_kd3).
+-module(orig_kd3).
 
 -export([from_list/1, to_list/1,
  	 empty/0,is_empty/1,is_kd3/1,size/1,
@@ -125,8 +125,6 @@ delete_object_3(Object, [H|T], Acc) ->
 from_list([]) -> 
     #e3d_kd3{tree=nil};
 from_list(List) ->
-    BB = lists:foldl(fun({Point, _}, BB) -> e3d_bv:union(BB, Point) end, 
-		     e3d_bv:bbox(), List),
     #e3d_kd3{tree=from_list(List, length(List), 1, 1)}.
 
 from_list(List = [_,_|_], Len, Axis, Try) ->

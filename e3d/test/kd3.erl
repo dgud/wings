@@ -10,9 +10,9 @@
 
 -compile(export_all).
 
--define(TC(Cmd), tc(fun() -> Cmd end, ?MODULE, ?LINE)).
+-define(TC(Info,Cmd), tc(fun() -> R = Cmd, erlang:garbage_collect(),R end, Info, ?LINE)).
 
--define(SAMPLE, 50).
+-define(SAMPLE, 100).
 
 -define(POINT, {0.6,0.72,0.17}).
 
@@ -30,46 +30,48 @@ start() ->
     io:format("Testdata ~p ~n", [length(L)]),
 %%     L  = [{e3d_vec:norm(P), Id} || {P,Id} <- L0],
     %% Warmup
-    %% kdtree:from_list(L), e3d_kd3:from_list(L),
-    K = ?TC(kdtree:from_list(L)),
-    E = ?TC(e3d_kd3:from_list(L)),
-    ?TC(gb_trees:from_orddict(lists:sort(L))),
+    _ = orig_kd3:from_list(L),
+    erlang:garbage_collect(),
+    K = ?TC(ori_fl, orig_kd3:from_list(L)),
+    E = ?TC(e3d_fl, e3d_kd3:from_list(L)),
+    ?TC(gb_fl, gb_trees:from_orddict(lists:sort(L))),
     io:format("~n"),
     
-    w(kdtree:nearest({0,0,0},K), e3d_kd3:nearest({0,0,0}, E)),
-    w(kdtree:nearest({1,1,1},K), e3d_kd3:nearest({1,1,1}, E)),
-    w(kdtree:nearest({0,1,1},K), e3d_kd3:nearest({0,1,1}, E)),
-    w(kdtree:nearest({0,1,0},K), e3d_kd3:nearest({0,1,0}, E)),
-    w(kdtree:nearest({1,1,0},K), e3d_kd3:nearest({1,1,0}, E)),
-    w(kdtree:nearest({1,0,0},K), e3d_kd3:nearest({1,0,0}, E)),
-    w(kdtree:nearest({0,0,1},K), e3d_kd3:nearest({0,0,1}, E)),
-    w(kdtree:nearest({0.2,0.77,0.60},K), e3d_kd3:nearest({0.2,0.77,0.60}, E)),
+    w(orig_kd3:nearest({0,0,0},K), e3d_kd3:nearest({0,0,0}, E)),
+    w(orig_kd3:nearest({1,1,1},K), e3d_kd3:nearest({1,1,1}, E)),
+    w(orig_kd3:nearest({0,1,1},K), e3d_kd3:nearest({0,1,1}, E)),
+    w(orig_kd3:nearest({0,1,0},K), e3d_kd3:nearest({0,1,0}, E)),
+    w(orig_kd3:nearest({1,1,0},K), e3d_kd3:nearest({1,1,0}, E)),
+    w(orig_kd3:nearest({1,0,0},K), e3d_kd3:nearest({1,0,0}, E)),
+    w(orig_kd3:nearest({0,0,1},K), e3d_kd3:nearest({0,0,1}, E)),
+    w(orig_kd3:nearest({0.2,0.77,0.60},K), e3d_kd3:nearest({0.2,0.77,0.60}, E)),
 
-    %%?TC(check_nearest(kdtree,  K, L)),
-    ?TC(check_nearest(e3d_kd3, E, L)),
+    erlang:garbage_collect(),
+    ?TC(ori_cn, check_nearest(orig_kd3, E, L)),
+    ?TC(e3d_cn, check_nearest(e3d_kd3, E, L)),
+    io:format("~n"),    
+    ?TC(ori_cd, check_delete(orig_kd3, E, L)),
+    ?TC(e3d_cd, check_delete(e3d_kd3, E, L)),
     io:format("~n"),
-    %%?TC(check_delete(kdtree,  K, L)),
-    ?TC(check_delete(e3d_kd3, E, L)),
-    io:format("~n"),
-    %%?TC(check_delete2(kdtree,  K, L)),
-    ?TC(check_delete2(e3d_kd3, E, L)),
+    ?TC(ori_cd2, check_delete2(orig_kd3, E, L)),
+    ?TC(e3d_cd2, check_delete2(e3d_kd3, E, L)),
 
     io:format("~n"),
        
     %%     io:format("~p~n~p~n",[
-    %% 			  [Id || {_,Id} <- kdtree:to_list(K)],
+    %% 			  [Id || {_,Id} <- orig_kd3:to_list(K)],
     %% 			  [Id || {_,Id} <- e3d_kd3:to_list(E)]]),			  
     
-    SList = ?TC(lists:sort([{e3d_vec:dist_sqr(?POINT, P),O} || O = {P,_} <- L])),
+    SList = ?TC(create_ref, lists:sort([{e3d_vec:dist_sqr(?POINT, P),O} || O = {P,_} <- L])),
     SL   = [O || {_, O} <- SList],
 
     %% [ io:format("~p ~p ~n", [D,A]) || {D,{_,A}} <- lists:sort(Dist) ],
-    %% check_take_nearest(kdtree,  K, SL),
-    %?TC(check_take_nearest(kdtree,  K, SL)), 
-    ?TC(check_take_nearest(e3d_kd3, E, SL, length(SL))), 
+    erlang:garbage_collect(),
+    ?TC(ori_tn, check_take_nearest(orig_kd3, E, SL, length(SL))), 
+    ?TC(e3d_tn, check_take_nearest(e3d_kd3, E, SL, length(SL))), 
     io:format("~n"),
-    %?TC(check_take_nearest2(kdtree,  K, SL)), 
-    ?TC(check_take_nearest2(e3d_kd3, E, SL)), 
+    ?TC(ori_tn2, check_take_nearest2(orig_kd3, E, SL)), 
+    ?TC(e3d_tn2, check_take_nearest2(e3d_kd3, E, SL)), 
     ok.
 
 check_nearest(Mod, T, L) ->
