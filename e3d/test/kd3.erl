@@ -32,8 +32,10 @@ start() ->
     %% Warmup
     _ = orig_kd3:from_list(L),
     erlang:garbage_collect(),
-    K = ?TC(ori_fl, orig_kd3:from_list(L)),
-    E = ?TC(e3d_fl, e3d_kd3:from_list(L)),
+    _K = ?TC(ori_fl, orig_kd3:from_list(L)),
+    _E = ?TC(e3d_fl, e3d_kd3:from_list(L)),
+    K = _E, E = _E,
+    %%K = _K, E = _K,
     ?TC(gb_fl, gb_trees:from_orddict(lists:sort(L))),
     io:format("~n"),
     
@@ -47,13 +49,13 @@ start() ->
     w(orig_kd3:nearest({0.2,0.77,0.60},K), e3d_kd3:nearest({0.2,0.77,0.60}, E)),
 
     erlang:garbage_collect(),
-    ?TC(ori_cn, check_nearest(orig_kd3, E, L)),
     ?TC(e3d_cn, check_nearest(e3d_kd3, E, L)),
+    ?TC(ori_cn, check_nearest(orig_kd3, K, L)),
     io:format("~n"),    
-    ?TC(ori_cd, check_delete(orig_kd3, E, L)),
+    ?TC(ori_cd, check_delete(orig_kd3, K, L)),
     ?TC(e3d_cd, check_delete(e3d_kd3, E, L)),
     io:format("~n"),
-    ?TC(ori_cd2, check_delete2(orig_kd3, E, L)),
+    ?TC(ori_cd2, check_delete2(orig_kd3, K, L)),
     ?TC(e3d_cd2, check_delete2(e3d_kd3, E, L)),
 
     io:format("~n"),
@@ -67,10 +69,10 @@ start() ->
 
     %% [ io:format("~p ~p ~n", [D,A]) || {D,{_,A}} <- lists:sort(Dist) ],
     erlang:garbage_collect(),
-    ?TC(ori_tn, check_take_nearest(orig_kd3, E, SL, length(SL))), 
+    ?TC(ori_tn, check_take_nearest(orig_kd3, K, SL, length(SL))), 
     ?TC(e3d_tn, check_take_nearest(e3d_kd3, E, SL, length(SL))), 
     io:format("~n"),
-    ?TC(ori_tn2, check_take_nearest2(orig_kd3, E, SL)), 
+    ?TC(ori_tn2, check_take_nearest2(orig_kd3, K, SL)), 
     ?TC(e3d_tn2, check_take_nearest2(e3d_kd3, E, SL)), 
     ok.
 

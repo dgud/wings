@@ -235,16 +235,17 @@ inside({Center, DistSqr}, Point) when is_number(DistSqr) ->
 
 %%--------------------------------------------------------------------
 %% @doc Returns the largest dimension of the bounding box,
-%%      1 = X, 2 = Y, Z = 3
+%%      1 = X, 2 = Y, Z = 3  undefined = if zero dimension
 %% @end
 %%--------------------------------------------------------------------
 
--spec max_extent(e3d_bbox()) -> 1 | 2 | 3.
+-spec max_extent(e3d_bbox()) -> 0 | 1 | 2 | 3.
 				
 max_extent({Min, Max}) ->
     {X,Y,Z} = e3d_vec:sub(Max, Min),
     if X > Y, X > Z -> 1;
        Y > Z -> 2;
+       Y =:= Z -> undefined;
        true -> 3
     end.
         

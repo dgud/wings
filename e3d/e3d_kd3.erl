@@ -35,6 +35,7 @@
 %% 	 map/2
 	]).
 
+-define(REBALANCE, 0.7). %% Rebalance after % deletions
 -define(NODE(Point,Axis,Left,Right), {Point,Axis,Left,Right}). 
 
 -type point()   :: {number(), number(), number()}.
@@ -43,11 +44,12 @@
 %% Internal 
 -opaque tree() ::  [object()] |
 		   {Med   :: point(), 
-		    Axis  :: integer(),  
+		    Axis  :: integer(),
 		    Left  :: tree(), 
 		    Right :: tree()}.
 
 -record(e3d_kd3, { tree=[] :: tree() }).
+  %%, total=0 :: integer(), deleted=0 :: integer()}).
 
 %%% @spec () -> kd-tree().
 %%% @doc Returns an empty Tree.
@@ -60,7 +62,6 @@ is_empty(#e3d_kd3{}) -> false.
 
 is_kd3(#e3d_kd3{}) -> true;
 is_kd3(_) -> false.
-    
 
 %%% @spec (Tree::kd-tree()) -> integer().
 %%% @doc Returns the number of objects in the Tree.
@@ -97,7 +98,7 @@ delete_2(Med, Axis, L, R) -> ?NODE(Med,Axis,L,R).
 %%% @spec (object(), Tree1::e3d_kd3()) -> Tree2::e3d_kd3().
 %%% @doc Removes the Object from Tree1 and returns the new Tree2
 %%% crashes if object is not present.
-delete_object({{_,_,_},_} = Object, #e3d_kd3{tree=Tree}) ->
+delete_object({{_,_,_},_} = Object, _T=#e3d_kd3{tree=Tree}) ->
     #e3d_kd3{tree=delete_object_1(Object, Tree)}.
 
 delete_object_1({Key,_}=Object,{Med, Axis, L0, R0}) ->
@@ -120,34 +121,31 @@ delete_object_3(Object, [Object|R], Acc) -> Acc ++ R;
 delete_object_3(Object, [H|T], Acc) ->
     delete_object_3(Object, T, [H|Acc]).
 
+%% rebalence(Tree = #e3d_kd3{deleted=D, total=T}) when T > 1000, D/T > ?REBALANCE ->        
+%%     from_list(to_list(Tree));
+%%rebalence(T) -> T.
+
 %%% @spec ([object()]) -> e3d_kd3().
 %%% @doc Builds a kd-tree from a list of objects.
 from_list([]) -> 
-    #e3d_kd3{tree=nil};
+    #e3d_kd3{tree=[]};
 from_list(List) ->
-    BB = lists:foldl(fun({Point, _}, BB) -> e3d_bv:union(BB, Point) end, 
-		     e3d_bv:bbox(), List),
-    #e3d_kd3{tree=from_list(List, length(List), 1, 1)}.
+    {_N,BB} = lists:foldl(fun({Point, _}, {N,BB}) -> {N+1,e3d_bv:union(BB, Point)} end, 
+			  {0,e3d_bv:box()}, List),
+    #e3d_kd3{tree=from_list(List, BB)}. %, total=N}.
 
-from_list(List = [_,_|_], Len, Axis, Try) ->
-    Ordered = sort(List, Axis),
-    case split(Len, Axis, Ordered) of
-	{Med,LLen,Left,RLen,Right} ->
-	    NextAxis = next_axis(Axis),
-	    ?NODE(Med, Axis, %(Len bsl 2) bor Axis,
-		  from_list(Left,  LLen, NextAxis, NextAxis),
-		  from_list(Right, RLen, NextAxis, NextAxis));
-	next_axis -> 
-	    %% All positions are the same on this axis
-	    Next = next_axis(Axis),
-	    case Next == Try of
-		true ->  %% All positions are exactly the same
-		    List;
-		_ ->
-		    from_list(List, Len, Next, Try)
-	    end
+from_list(List = [_|_], BB) ->
+    case e3d_bv:max_extent(BB) of
+	undefined -> %% All positions are exactly the same
+	    List;
+	Axis ->
+	    Split = element(Axis, e3d_bv:center(BB)),
+	    {Left,LBB,Right,RBB} = split(List, Axis, Split),
+	    ?NODE(Split, Axis, %(Len bsl 2) bor Axis,
+		  from_list(Left,  LBB),
+		  from_list(Right, RBB))
     end;
-from_list(Data, 1, _, _) -> Data.
+from_list(Data, _) -> Data.
 
 %%% @spec (e3d_kd3()) -> [object()]
 %%% @doc  Return all nodes in the tree.
@@ -173,8 +171,7 @@ nearest({_,_,_} = Point, #e3d_kd3{tree=Tree}) ->
     [_|[Node|_]] = nearest_1(Point, Tree, [undefined|undefined]),
     Node.
 
-nearest_1(Point, {SplitPos,Axis0,L,R}, Closest) ->
-    Axis = axis(Axis0), 
+nearest_1(Point, {SplitPos,Axis,L,R}, Closest) ->
     PointPos = element(Axis, Point),
     BorderDist = (PointPos - SplitPos),
     Border   = BorderDist * BorderDist,
@@ -195,37 +192,18 @@ nearest_2(Point, ThisSide, OtherSide, Border, Closest0) ->
     end.
     
 %%% Internal stuff  %%%
-sort(List, Axis) ->
-    lists:sort(fun({A,_}, {B,_}) ->
-		       element(Axis, A) =< element(Axis,B)
-	       end, List).
+split(List, Axis, Pos) ->
+    split(List, Axis, Pos, [], e3d_bv:box(), [], e3d_bv:box()).
 
-split(Total, Axis, Records) ->
-    Length = Total div 2,
-    {RLeft,Right} = split_1(Length, Records, []),
-    verify_med(RLeft, Right, Axis, Length, Total).
-
-split_1(0, Right, ReverseLeft) ->
-    {ReverseLeft,Right};
-split_1(N, [L|Right], Acc) ->
-    split_1(N-1, Right, [L|Acc]).
-
-verify_med([{L,_}|_]=Left0, [{R,_}=Node|Right]=RAll, Axis, LeftLen, Total) ->
-    Split = element(Axis, L),
-    case element(Axis, R) > Split of
+split([H = {V,_}|T], Axis, Pos, L, LB, R, RB) ->
+    case element(Axis, V) =< Pos of
 	true -> 
-	    {Split, LeftLen, Left0, Total-LeftLen, RAll};
+	    split(T, Axis, Pos, [H|L], e3d_bv:union(LB,V), R, RB);
 	false ->
-	    verify_med([Node|Left0], Right, Axis, LeftLen+1, Total)
+	    split(T, Axis, Pos, L, LB, [H|R], e3d_bv:union(RB,V))
     end;
-verify_med(_, [], _, _, _) ->
-    next_axis.
-
-next_axis(1) -> 2;
-next_axis(2) -> 3;
-next_axis(3) -> 1.
-
-axis(Axis) -> Axis. %% band 3.
+split([], _, _, L,LB,R,RB) ->
+    {L,LB,R,RB}.
 
 closest([Dist1|_]=Node1, [Dist2|_]) when Dist1 < Dist2 -> Node1;
 closest(_, Node) -> Node.
