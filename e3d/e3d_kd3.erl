@@ -31,7 +31,8 @@
  	 empty/0,is_empty/1,is_kd3/1,size/1,
 %% 	 enter/3,
 	 delete/2, delete_object/2,
-	 nearest/2, take_nearest/2
+	 nearest/2, take_nearest/2,
+	 fold/5
 %% 	 map/2
 	]).
 
@@ -43,7 +44,7 @@
 
 %% Internal 
 -opaque tree() ::  [object()] |
-		   {Med   :: point(), 
+		   {Med   :: float(), 
 		    Axis  :: integer(),
 		    Left  :: tree(), 
 		    Right :: tree()}.
@@ -191,6 +192,33 @@ nearest_2(Point, ThisSide, OtherSide, Border, Closest0) ->
 	    nearest_1(Point, OtherSide, Closest)
     end.
     
+%%% @spec (Fun/2, Acc0::term(), Key::point(), Dist, Tree::e3d_kd3()) -> Acc::term()
+%%% @doc Traverse all Objects within Dist distance from point, notice that the order 
+%%% is not specified.
+fold(Fun, Acc, {_,_,_} = Point, Dist, #e3d_kd3{tree=Tree}) ->
+    fold_1(Tree, Point, Dist*Dist, Fun, Acc).
+
+fold_1({SplitPos,Axis,L,R}, Point, Dist2, Fun, Acc0) ->
+    PointPos = element(Axis, Point),
+    BorderDist = (PointPos - SplitPos),
+    Border   = BorderDist * BorderDist,
+    if Border < Dist2 ->
+	    Acc = fold_1(R, Point, Dist2, Fun, Acc0),
+	    fold_1(L, Point, Dist2, Fun, Acc);
+       SplitPos < PointPos ->
+	    fold_1(R, Point, Dist2, Fun, Acc0);
+       true -> 
+	    fold_1(L, Point, Dist2, Fun, Acc0)
+    end;
+fold_1([], _Point, _Dist2, _Fun, Acc) -> Acc;
+fold_1(List = [{Pos,_}|_], Point, Dist2, Fun, Acc) ->
+    case e3d_vec:dist_sqr(Pos, Point) =< Dist2 of
+	true -> 
+	    lists:foldl(Fun, Acc, List);
+	false ->
+	    Acc
+    end.
+
 %%% Internal stuff  %%%
 split(List, Axis, Pos) ->
     split(List, Axis, Pos, [], e3d_bv:box(), [], e3d_bv:box()).

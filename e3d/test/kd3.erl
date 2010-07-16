@@ -12,7 +12,7 @@
 
 -define(TC(Info,Cmd), tc(fun() -> R = Cmd, erlang:garbage_collect(),R end, Info, ?LINE)).
 
--define(SAMPLE, 100).
+-define(SAMPLE, 1000).
 
 -define(POINT, {0.6,0.72,0.17}).
 
@@ -29,8 +29,6 @@ start() ->
     {L,_} = lists:mapfoldl(fun(A,Acc) -> {{A,Acc},Acc+1} end,0, L0),
     io:format("Testdata ~p ~n", [length(L)]),
 %%     L  = [{e3d_vec:norm(P), Id} || {P,Id} <- L0],
-    %% Warmup
-    _ = orig_kd3:from_list(L),
     erlang:garbage_collect(),
     _K = ?TC(ori_fl, orig_kd3:from_list(L)),
     _E = ?TC(e3d_fl, e3d_kd3:from_list(L)),
@@ -69,8 +67,11 @@ start() ->
 
     %% [ io:format("~p ~p ~n", [D,A]) || {D,{_,A}} <- lists:sort(Dist) ],
     erlang:garbage_collect(),
-    ?TC(ori_tn, check_take_nearest(orig_kd3, K, SL, length(SL))), 
-    ?TC(e3d_tn, check_take_nearest(e3d_kd3, E, SL, length(SL))), 
+    %?TC(ori_tn, check_take_nearest(orig_kd3, K, SL, length(SL))), 
+    %?TC(e3d_tn, check_take_nearest(e3d_kd3, E, SL, length(SL))), 
+    
+    ?TC(e3d_fo, check_fold_all(e3d_kd3, E, length(SL))),
+    ?TC(e3d_fo, check_fold_dist(e3d_kd3, E, element(1, lists:split(50, SL)))),
     io:format("~n"),
     ?TC(ori_tn2, check_take_nearest2(orig_kd3, K, SL)), 
     ?TC(e3d_tn2, check_take_nearest2(e3d_kd3, E, SL)), 
@@ -81,10 +82,22 @@ check_nearest(Mod, T, L) ->
 			  {P, _MaybeOtherId} = Mod:nearest(P, T)
 		  end, L).
 
-%% check_take_nearest(Mod, T, [Obj={P,1011}|Res], Len) ->
-%%     io:format("Size ~p~n", [?TC(e3d_kd3:size(T))]),
-%%     Node = ?TC(Mod:nearest(?POINT, T)),
-%%     ?TC(Mod:delete_object(Node, T));  %% DEBUG
+check_fold_all(Mod, T, Len) ->
+    DoAll = fun({_,_}, N) -> N-1 end,
+    0 = Mod:fold(DoAll, Len, ?POINT, 2.0, T).
+
+check_fold_dist(Mod, T, List) ->
+    [{Last,_}|_] = lists:reverse(List),
+    Dist = e3d_vec:dist(Last, ?POINT),
+    Check = fun(Object, L) -> 
+		    case lists:member(Object, L) of
+			true -> lists:delete(Object,L);
+			false -> erlang:display(check_dist)
+		    end 
+	    end,
+    [] = Mod:fold(Check, List, ?POINT, Dist, T).
+
+
 check_take_nearest(Mod, T, [Obj={P,_Obj}|Res], Len) ->
     case (Mod:take_nearest(?POINT, T)) of
 	{{P,_},Rest} ->
