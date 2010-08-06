@@ -201,8 +201,8 @@ flatten(1, [flatten,vertex]) ->
     %% Vertex mode flatten.
     flatten_common();
 flatten(1, [flatten,edge]) ->
-    %% Vertex mode flatten.
-    flatten_common();
+    %% Edge mode flatten.
+    [flatten_common()|flatten_edge_loops()];
 flatten(1, _) ->
     %% Face mode flatten.
     [flatten_fun(normal)|flatten_common()];
@@ -233,6 +233,11 @@ flatten_fun_1(Vec, Axis, String) ->
     Help0 = dir_help(Axis, [flatten]),
     Help = {Help0,[],?STR(flatten_fun_1,1,"Pick point on plane")},
     {String,F,Help,[]}.
+
+flatten_edge_loops() ->
+    [separator,
+     {?__(1,"Edge Loops"),edge_loop,
+      ?__(2,"Flatten each closed edge loop to its normal")}].
 
 %%%
 %%% General directions.
