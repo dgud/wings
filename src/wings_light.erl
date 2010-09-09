@@ -969,7 +969,7 @@ arealight_posdirexp(#we{light=#light{type=area}}=We) ->
     end.
 
 move_light(Pos, #we{vp=Vtab0}=We) ->
-    Vtab = array:sparse_map(fun(V, _) -> {V,Pos} end, Vtab0),
+    Vtab = array:sparse_map(fun(_, _) -> Pos end, Vtab0),
     We#we{vp=Vtab}.
 
 shape_materials(#light{diffuse={_,_,_,Af}=Front}, St) ->
