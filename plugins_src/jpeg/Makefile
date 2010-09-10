@@ -12,7 +12,11 @@
 #
 
 ifeq ($(findstring CYGWIN,$(shell uname -s)),CYGWIN)
-  CYGWIN := true
+  WINDOWS := true
+endif
+
+ifeq ($(findstring MINGW32,$(shell uname -s)),MINGW32)
+  WINDOWS := true
 endif
 
 WINGS_INTL=../../intl_tools
@@ -27,7 +31,7 @@ ERLC = erlc
 ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH)
 ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS) -pa $(WINGS_INTL) -I $(WINGS_INTL) +debug_info
 
-ifdef CYGWIN
+ifdef WINDOWS
 SO_EXT = dll
 else
 SO_EXT = so
@@ -48,7 +52,7 @@ $(LIBDIR)/%.beam: %.erl
 	install -d $(LIBDIR)
 	$(ERLC) $(ERLC_FLAGS) $(ERL_COMPILE_FLAGS) $<
 
-ifdef CYGWIN
+ifdef WINDOWS
 
 $(LIBDIR)/wings_jpeg_image_drv.dll: wings_jpeg_image_drv.c
 	install -d $(LIBDIR)
