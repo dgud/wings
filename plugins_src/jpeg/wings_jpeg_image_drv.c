@@ -158,6 +158,13 @@ jpeg_image_control(ErlDrvData handle, unsigned int command,
 
     jpeg_create_decompress(&cinfo);
     jpeg_buffer_src(&cinfo, buf, count);
+
+    jpeg_save_markers(&cinfo, JPEG_COM, 0xFFFF);
+
+    for (i = 0; i < 16; i++) {  /* Ignore jpeg application markers */
+       jpeg_save_markers(&cinfo, JPEG_APP0 + i, 0xFFFF);
+    }
+
     (void) jpeg_read_header(&cinfo, TRUE);
     (void) jpeg_start_decompress(&cinfo);
 
@@ -263,7 +270,8 @@ fill_input_buffer(j_decompress_ptr cinfo)
 METHODDEF(void)
 skip_input_data (j_decompress_ptr cinfo, long num_bytes)
 {
-  /* We assume that this function will never get called. */
+   /* We assume that this function will never get called. */
+   /* fprintf(stderr, "skip_input_data\r\n"); */
 }
 
 METHODDEF(void)
