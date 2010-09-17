@@ -56,8 +56,6 @@ win32: all lang
 	(cd plugins_src/win32_file; $(MAKE))
 	(cd plugins_src/jpeg; $(MAKE))
 	(cd plugins_src/jpeg; $(MAKE) lang)
-	(cd plugins_src/fbx; $(MAKE))
-	(cd plugins_src/fbx; $(MAKE) lang)
 	(cd win32; $(MAKE))
 	win32/make_installer
 
@@ -68,8 +66,6 @@ win32: all lang
 macosx: all lang
 	(cd plugins_src/mac_file; $(MAKE))
 	(cd plugins_src/mac_file; $(MAKE) lang)
-	(cd plugins_src/fbx; $(MAKE))
-	(cd plugins_src/fbx; $(MAKE) lang)
 	(cd macosx; xcodebuild; ./make_dmg $(WINGS_VSN))
 
 #
