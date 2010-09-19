@@ -586,7 +586,10 @@ misc_prefs() ->
 		      ?__(18,"Problem occurs on some Matrox cards")},
 		     {jumpy_camera,
 		      ?__(19,"Camera moves and interactive commands are jumpy"),
-		      ?__(20,"Problem occurs on Mac OS X 10.3 (Panther)")}
+		      ?__(20,"Problem occurs on Mac OS X 10.3 (Panther)")},
+		     {ungrab_bug,
+		      ?__(26,"Camera moves steals focus"),
+		      ?__(27,"Problem occurs on linux")}
 		    ])},
 	separator,
 	{hframe,[{label,?__(23,"Edge offsets:")},

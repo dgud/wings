@@ -166,7 +166,8 @@ reset_grab() ->
     Io = get_state(),
     put_state(Io#io{grab_count=0}),
     sdl_mouse:showCursor(true),
-    sdl_video:wm_grabInput(?SDL_GRAB_OFF).
+    wm_grabInput(?SDL_GRAB_OFF),
+    ok.
 
 grab() ->
     %%io:format("Grab mouse~n", []),
@@ -181,7 +182,8 @@ do_grab(0) ->
     %%
     %% Good for Linux to read out any mouse events here.
     sdl_events:peepEvents(1, ?SDL_MOUSEMOTIONMASK),
-    sdl_video:wm_grabInput(?SDL_GRAB_ON);
+    wm_grabInput(?SDL_GRAB_ON),
+    ok;
 do_grab(_N) -> ok.
 
 ungrab(X, Y) ->
@@ -192,13 +194,21 @@ ungrab(X, Y) ->
 	    put_state(Io#io{grab_count=Cnt-1}),
 	    case Cnt-1 of
 		0 ->
-		    sdl_video:wm_grabInput(?SDL_GRAB_OFF),
+		    wm_grabInput(?SDL_GRAB_OFF),
 		    sdl_mouse:warpMouse(X, Y),
 		    sdl_mouse:showCursor(true),
 		    no_grab;
 		_ ->
 		    still_grabbed
 	    end
+    end.
+
+wm_grabInput(Kind) ->
+    case wings_pref:get_value(ungrab_bug) of
+	true -> 
+	    ignore;
+	_ -> 
+	    sdl_video:wm_grabInput(Kind)
     end.
 
 is_grabbed() ->
