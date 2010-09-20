@@ -54,7 +54,7 @@ make_image(Name) ->
 	#e3d_image{}=Image ->
 	    make_image_1(Name, Image);
 	{error,Error} ->
-	    wpa:error(?__(1,"Failed to load \"~s\": ~s\n"),
+	    wpa:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
 		      [Name,file:format_error(Error)])
     end.
 
@@ -77,7 +77,7 @@ make_image_1(Name0, #e3d_image{type=Type}=Image0) ->
     ImageId = wings_image:new(Name, Image),
     case can_texture_be_loaded(Image) of
 	false ->
-	    wpa:error(?__(1,"The image cannot be loaded as a texture (it is probably too large)."));
+	    wpa:error_msg(?__(1,"The image cannot be loaded as a texture (it is probably too large)."));
 	true ->
 	    MaxU = W0/W,
 	    MaxV = H0/H,

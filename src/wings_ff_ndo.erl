@@ -192,7 +192,7 @@ export(Name, #st{shapes=Shapes0}=St) ->
 check_size(#we{name=Name,es=Etab}) ->
     case wings_util:array_entries(Etab) of
 	Sz when Sz > 65535 ->
-	    wings_u:error(?__(1,"Object \"")
+	    wings_u:error_msg(?__(1,"Object \"")
 			  ++Name
 			  ++?__(2,"\" cannot be exported ")
 			  ++?__(3,"to Nendo format (too many edges)."));

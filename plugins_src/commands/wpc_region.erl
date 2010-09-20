@@ -187,4 +187,4 @@ flatten_region_2(Vs, We) ->
 %%%
 
 region_error() ->
-    wpa:error(?__(1,"Each region must have exactly one edge loop.")).
+    wpa:error_msg(?__(1,"Each region must have exactly one edge loop.")).

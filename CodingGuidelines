@@ -201,7 +201,7 @@ And now over to more concrete rules:
          ugly_selected_element(#st{sel=[{Id,{1,Element,_,_}}]}=St) ->
              do_something(Id, Element, St);
 	 ugly_selected_element(_) ->
-	     wings_u:error("Only select a single element.").
+	     wings_u:error_msg("Only select a single element.").
   
   to implement a command that only accepts a selection containing
   a single element. Breaking abstractions is not acceptable. You
@@ -217,7 +217,7 @@ And now over to more concrete rules:
 	 selected_element(_) -> mul_sel_error().
 
          mul_sel_error() ->
-	     wings_u:error("Only select a single element.").
+	     wings_u:error_msg("Only select a single element.").
 
   Common abstract data types in the standard libraries are
   gb_trees, gb_sets, array, dict, and sets. In Wings, we have

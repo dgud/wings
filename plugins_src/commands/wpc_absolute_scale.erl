@@ -128,12 +128,6 @@ lookup(Key, List, Default) ->
       _ -> Default
    end.
 
-min(A, B) when A<B -> A;
-min(_, B) -> B.
-
-max(A, B) when A>B -> A;
-max(_, B) -> B.
-
 normalizeBB([{AX1,AY1,AZ1},{AX2,AY2,AZ2}]) ->
     [{min(AX1,AX2), min(AY1,AY2), min(AZ1, AZ2)},
      {max(AX1,AX2), max(AY1,AY2), max(AZ1, AZ2)}].

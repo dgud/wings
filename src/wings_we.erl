@@ -38,7 +38,6 @@
 -include("wings.hrl").
 -include("e3d.hrl").
 -import(lists, [foreach/2,foldl/3,sort/1,keysort/2,reverse/1,zip/2,partition/2]).
--import(erlang, [max/2]).
 
 %%%
 %%% API.
@@ -1165,7 +1164,7 @@ validate_face(Face, Edge, Etab) ->
     validate_face_vertices(Vs, V).
 
 validate_face_vertices([V|_], V) ->
-    erlang:error(repeated_vertex);
+    error(repeated_vertex);
 validate_face_vertices([_], _) ->
     true;
 validate_face_vertices([V|Vs], _) ->

@@ -16,7 +16,6 @@
 
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--import(erlang, [max/2]).
 
 -define(ZOOM_FACTOR, 20).
 -define(ZOOM_FACTOR_ALT, 1).

@@ -57,7 +57,7 @@ dissolve_1(Faces, Complement, We0) ->
 	true ->
 	    We;
 	false ->
-	    wings_u:error(?__(1,"Dissolving would cause an inconsistent object structure."))
+	    wings_u:error_msg(?__(1,"Dissolving would cause an inconsistent object structure."))
     end.
 
 optimistic_dissolve(Faces0, Compl, We0) ->
@@ -248,7 +248,7 @@ outer_edge_loop_1({_,V}, _, V, _N, _) ->
 outer_edge_loop_1({_,_}, _, _, 0, _) ->
     %% We have used all possible edges, but somehow the loop
     %% is not complete. I can't see how this is possible.
-    erlang:error(internal_error);
+    error(internal_error);
 outer_edge_loop_1({Edge,Vb}, Es, EndV, N, Acc0) ->
     Acc = [Edge|Acc0],
     outer_edge_loop_1(gb_trees:get(Vb, Es), Es, EndV, N-1, Acc).

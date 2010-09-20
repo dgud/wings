@@ -17,8 +17,6 @@
 	 render/1,polygonOffset/1,
 	 enable_lighting/1,disable_lighting/0]).
 
--import(erlang, [max/2]).
-
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 

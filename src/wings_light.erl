@@ -199,7 +199,7 @@ color(St) ->
 		     Flags = [{initial,[H,V,S]}],
 		     {Tvs,Units,Flags};
 		(_, We, _) when ?IS_LIGHT(We) ->
-		     wings_u:error(?__(1,"Select only one light."));
+		     wings_u:error_msg(?__(1,"Select only one light."));
 		(_, _, A) -> A
 	     end, none, St),
     case Drag of
@@ -250,7 +250,7 @@ spot_angle(St) ->
 	    Flags = [{initial,[SpotAngle]}],
 	    wings_drag:setup(Tvs, Units, Flags, St);
 	{_,_} ->
-	    wings_u:error(?__(1,"Not a spotlight."))
+	    wings_u:error_msg(?__(1,"Not a spotlight."))
     end.
 
 spot_falloff(St) ->
@@ -263,7 +263,7 @@ spot_falloff(St) ->
 	    Flags = [{initial,[SpotExp]}],
 	    wings_drag:setup(Tvs, Units, Flags, St);
 	{_,_} ->
-	    wings_u:error(?__(1,"Not a spotlight."))
+	    wings_u:error_msg(?__(1,"Not a spotlight."))
     end.
 
 attenuation(Type, St) ->
@@ -276,7 +276,7 @@ attenuation(Type, St) ->
 	    Flags = [{initial,[Initial]}],
 	    wings_drag:setup(Tvs, Units, Flags, St);
 	{_,_} ->
-	    wings_u:error(?__(1,"Not a point light or spotlight."))
+	    wings_u:error_msg(?__(1,"Not a point light or spotlight."))
     end.
 
 att_initial(linear, #light{lin_att=LinAtt}) -> LinAtt;
@@ -292,7 +292,7 @@ selected_light(St) ->
     wings_sel:fold(fun(_, #we{id=Id,light=L}=We, none) when ?IS_LIGHT(We) ->
 			   {Id,L};
 		      (_, We, _) when ?IS_LIGHT(We) ->
-			   wings_u:error(?__(1,
+			   wings_u:error_msg(?__(1,
 						"Select only one light."));
 		      (_, _, A) -> A
 		   end, none, St).
@@ -312,7 +312,7 @@ adjust_fun_1(AdjFun, Ds, #dlo{src_we=#we{light=L0}=We0}=D) ->
 %%
 edit(#st{sel=[{Id,_}]}=St) ->
     edit(Id, St);
-edit(_) -> wings_u:error(?__(1,"Select only one light.")).
+edit(_) -> wings_u:error_msg(?__(1,"Select only one light.")).
 
 edit(Id, #st{shapes=Shs}=St) ->
     We = #we{light=#light{type=Type}} = gb_trees:get(Id, Shs),
@@ -387,7 +387,7 @@ plugin_results(Name, Prop0, Res0) ->
 	  io:format(?__(1,
 			"Light editor plugin(s) left garbage:~n    ~P~n"), 
 		    [Res,20]),
-	    wings_u:error(?__(2,"Plugin(s) left garbage"))
+	    wings_u:error_msg(?__(2,"Plugin(s) left garbage"))
     end.
 
 qs_specific(#light{type=spot,spot_angle=Angle,spot_exp=SpotExp}=L) ->

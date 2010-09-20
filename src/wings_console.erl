@@ -29,7 +29,6 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 -import(lists, [reverse/1,reverse/2,foldl/3]).
--import(erlang, [min/2,max/2]).
 
 %% Debug exports
 -export([code_change/0,get_state/0]).
@@ -87,7 +86,7 @@ start(GroupLeader) when is_pid(GroupLeader) ->
 	    Mref = erlang:monitor(process, Server),
 	    receive
 		{wings_console_started,Server} ->
-		    demonitor(Mref),
+		    console_demonitor(Mref),
 		    Server;
 		{'DOWN',Mref,_,_,Reason} -> 
 		    exit(Reason)
@@ -368,14 +367,14 @@ req(Server, Request) ->
     Server ! {wings_console_request,self(),Mref,Request},
     receive
 	{wings_console_reply,Mref,Reply} ->
-	    demonitor(Mref),
+	    console_demonitor(Mref),
 	    Reply;
 	{'DOWN',Mref,_,_,Reason} ->
 	    exit(Reason)
     end.
 
-demonitor(Mref) ->
-    erlang:demonitor(Mref),
+console_demonitor(Mref) ->
+    demonitor(Mref),
     receive {'DOWN',Mref,_,_,_} -> ok after 0 -> ok end.
 
 server_loop(#state{gmon=Gmon,tref=Tref}=State) ->

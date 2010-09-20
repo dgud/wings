@@ -71,7 +71,7 @@ command({window,uv_editor_window}, St) ->
 command(_Cmd, _) -> 
     next.
 
-start_uvmap(edit, #st{sel=[]}) -> wings_u:error(?__(1,"Nothing selected"));
+start_uvmap(edit, #st{sel=[]}) -> wings_u:error_msg(?__(1,"Nothing selected"));
 start_uvmap(Action, #st{sel=Sel}=St) ->
     start_uvmap_1(Sel, Action, St).
 
@@ -1226,7 +1226,7 @@ stitch_charts([ChartStitches|Other],Moved,St0=#st{shapes=Sh0}) ->
 		 We1 = wings_we:transform_vs(T, We1_1),
 		 gb_trees:update(Id1, We1, Sh0);
 	     _ ->
-		 wings_u:error(?__(1,"Hmm, I can't stitch so many charts at the same time"))
+		 wings_u:error_msg(?__(1,"Hmm, I can't stitch so many charts at the same time"))
 	 end,
     St = foldl(fun stitch_charts2/2, St0#st{shapes=Sh}, ChartStitches),
     stitch_charts(Other, gb_sets:add(Id2,gb_sets:add(Id1,Moved)), St).
@@ -1722,7 +1722,7 @@ align_chart(Dir, V1={X1,Y1,_},V2={X2,Y2,_}, We) ->
     rotate_chart(-Deg,Center,We).
 
 align_error() ->
-    wings_u:error(?__(1,"Select two vertices or one edge")).
+    wings_u:error_msg(?__(1,"Select two vertices or one edge")).
 
 flip_horizontal(We) ->
     flip(e3d_mat:scale(-1.0, 1.0, 1.0), We).
@@ -1783,10 +1783,10 @@ reunfold(Method,#st{sel=Sel,selmode=vertex}=St0) ->
 		 case gb_sets:size(Vs) of
 		     N when N /= 2, Method == sphere -> 
 			 E = ?__(1,"Select two vertices, the North and South pole"),
-			 wpa:error(E);
+			 wpa:error_msg(E);
 		     N when N < 2 ->
 			 E = ?__(2,"At least two vertices per chart must be pinned"),
-			 wpa:error(E);
+			 wpa:error_msg(E);
 		     _-> ok
 		 end
 	 end,
@@ -1841,16 +1841,16 @@ remap(proj_lsqcm, _, Sel, We0, St = #st{selmode=face}) ->
 		remap(lsqcm, Pinned, Sel, We0, St)
 	end
     catch throw:{_,What} ->
-	    wpa:error(What);
+	    wpa:error_msg(What);
 	throw:What ->
-	    wpa:error(What)
+	    wpa:error_msg(What)
     end;
 remap(Type, Pinned, _, We0, St) ->
     %% Get 3d positions (even for mapped vs).
     Vs3d = orig_pos(We0, St),
     case auv_mapping:map_chart(Type, We0#we{vp=Vs3d}, Pinned) of
 	{error,Msg} -> 
-	    wpa:error(Msg);
+	    wpa:error_msg(Msg);
 	Vs0 -> 
 	    update_and_scale_chart(Vs0,We0)
     end.

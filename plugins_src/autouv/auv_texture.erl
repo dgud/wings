@@ -16,14 +16,13 @@
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
--define(ERROR, error(?LINE)).
+-define(ERROR, error_msg(?LINE)).
 -include("wings.hrl").
 -include("e3d_image.hrl").
 -include("auv.hrl").
 -include("e3d.hrl").
 
 -import(lists, [foreach/2,reverse/1,sort/1,foldl/3,member/2]).
--import(erlang, [min/2,max/2]).
 -import(auv_segment, [map_vertex/2]).
 
 -define(OPT_BG, [{type_sel,color},{undefined,ignore},{1.0,1.0,1.0,0.0}]).
@@ -397,7 +396,7 @@ setup_fbo(W,H) ->
 		     fbo_d=fun() -> wings_gl:delete_fbo(List) end}
     end.
 	
-error(Line) ->
+error_msg(Line) ->
     case wings_gl:error_string(gl:getError()) of 
 	no_error -> ok; 
 	Err -> io:format("~p: ~p ~n",[Line,Err])

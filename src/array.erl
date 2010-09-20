@@ -250,7 +250,7 @@ new(Options) ->
 new(Size, Options) when is_integer(Size), Size >= 0 ->
     new_0(Options, Size, true);
 new(_, _) ->
-    erlang:error(badarg).
+    error(badarg).
 
 new_0(Options, Size, Fixed) when is_list(Options) ->
     new_1(Options, Size, Fixed, ?DEFAULT);
@@ -273,7 +273,7 @@ new_1([Size | Options], _, _, Default)
 new_1([], Size, Fixed, Default) ->
     new(Size, Fixed, Default);
 new_1(_Options, _Size, _Fixed, _Default) ->
-    erlang:error(badarg).
+    error(badarg).
 
 new(Size, Fixed, Default) ->
     E = find_max(Size - 1, ?LEAFSIZE),
@@ -315,7 +315,7 @@ is_array(_) ->
 -spec size(array()) -> non_neg_integer().
 
 size(#array{size = N}) -> N;
-size(_) -> erlang:error(badarg).
+size(_) -> error(badarg).
 
 
 %% @spec (array()) -> term()
@@ -326,7 +326,7 @@ size(_) -> erlang:error(badarg).
 -spec default(array()) -> term().
 
 default(#array{default = D}) -> D;
-default(_) -> erlang:error(badarg).
+default(_) -> error(badarg).
 
 
 -ifdef(EUNIT).
@@ -504,7 +504,7 @@ resize(Size, #array{size = N, max = M, elements = E}=A)
 	    A
     end;
 resize(_Size, _) ->
-    erlang:error(badarg).
+    error(badarg).
 
 
 %% @spec (array()) -> array()
@@ -581,10 +581,10 @@ set(I, Value, #array{size = N, max = M, default = D, elements = E}=A)
 	    A#array{size = I+1, max = M1,
 		    elements = set_1(I, E1, Value, D)};
        true ->
-	    erlang:error(badarg)
+	    error(badarg)
     end;
 set(_I, _V, _A) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% See get_1/3 for details about switching and the NODEPATTERN macro.
 
@@ -640,10 +640,10 @@ get(I, #array{size = N, max = M, elements = E, default = D})
        M > 0 ->
 	    D;
        true ->
-	    erlang:error(badarg)
+	    error(badarg)
     end;
 get(_I, _A) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% The use of NODEPATTERN(S) to select the right clause is just a hack,
 %% but it is the only way to get the maximum speed out of this loop
@@ -737,7 +737,7 @@ to_list(#array{size = 0}) ->
 to_list(#array{size = N, elements = E, default = D}) ->
     to_list_1(E, D, N - 1);
 to_list(_) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% this part handles the rightmost subtrees
 
@@ -811,7 +811,7 @@ sparse_to_list(#array{size = 0}) ->
 sparse_to_list(#array{size = N, elements = E, default = D}) ->
     sparse_to_list_1(E, D, N - 1);
 sparse_to_list(_) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% see to_list/1 for details
 
@@ -893,7 +893,7 @@ from_list(List, Default) when is_list(List) ->
     {E, N, M} = from_list_1(?LEAFSIZE, List, Default, 0, [], []),
     #array{size = N, max = M, default = Default, elements = E};
 from_list(_, _) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% Note: A cleaner but slower algorithm is to first take the length of
 %% the list and compute the max size of the final tree, and then
@@ -915,7 +915,7 @@ from_list_1(0, Xs, D, N, As, Es) ->
 	[_|_] ->
 	    from_list_1(?LEAFSIZE, Xs, D, N, [], [E | Es]);
 	_ ->
-	    erlang:error(badarg)
+	    error(badarg)
     end;
 from_list_1(I, Xs, D, N, As, Es) ->
     case Xs of
@@ -993,7 +993,7 @@ to_orddict(#array{size = N, elements = E, default = D}) ->
     I = N - 1,
     to_orddict_1(E, I, D, I);
 to_orddict(_) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% see to_list/1 for comparison
 
@@ -1086,7 +1086,7 @@ sparse_to_orddict(#array{size = N, elements = E, default = D}) ->
     I = N - 1,
     sparse_to_orddict_1(E, I, D, I);
 sparse_to_orddict(_) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% see to_orddict/1 for details
 
@@ -1182,7 +1182,7 @@ from_orddict(List, Default) when is_list(List) ->
     {E, N, M} = from_orddict_0(List, 0, ?LEAFSIZE, Default, []),
     #array{size = N, max = M, default = Default, elements = E};
 from_orddict(_, _) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% 2 pass implementation, first pass builds the needed leaf nodes
 %% and adds hole sizes.
@@ -1213,7 +1213,7 @@ from_orddict_0(Xs0=[{_, _}|_], Ix0, Max, D, Es) ->
     {Xs,E,Ix} = from_orddict_1(Ix0, Max, Xs0, Ix0, D, []),
     from_orddict_0(Xs, Ix, Ix+?LEAFSIZE, D, [E|Es]);
 from_orddict_0(Xs, _, _, _,_) ->
-    erlang:error({badarg, Xs}).
+    error({badarg, Xs}).
 
 from_orddict_1(Ix, Ix, Xs, N, _D, As) ->
     %% Leaf is full
@@ -1228,7 +1228,7 @@ from_orddict_1(Ix, Max, Xs, N0, D, As) ->
 	    N = Ix+1,
 	    from_orddict_1(N, Max, Xs, N, D, [D | As]);
 	[_ | _] ->
-	    erlang:error({badarg, Xs});
+	    error({badarg, Xs});
 	_ ->
 	    from_orddict_1(Ix+1, Max, Xs, N0, D, [D | As])
     end.
@@ -1380,7 +1380,7 @@ map(Function, Array=#array{size = N, elements = E, default = D})
 	    Array
     end;
 map(_, _) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% It might be simpler to traverse the array right-to-left, as done e.g.
 %% in the to_orddict/1 function, but it is better to guarantee
@@ -1472,7 +1472,7 @@ sparse_map(Function, Array=#array{size = N, elements = E, default = D})
 	    Array
     end;
 sparse_map(_, _) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% see map/2 for details
 %% TODO: we can probably optimize away the use of div/rem here
@@ -1569,7 +1569,7 @@ foldl(Function, A, #array{size = N, elements = E, default = D})
 	    A
     end;
 foldl(_, _, _) ->
-    erlang:error(badarg).
+    error(badarg).
 
 foldl_1(N, E=?NODEPATTERN(S), A, Ix, F, D) ->
     foldl_2(1, E, A, Ix, F, D, N div S + 1, N rem S, S);
@@ -1644,7 +1644,7 @@ sparse_foldl(Function, A, #array{size = N, elements = E, default = D})
 	    A
     end;
 sparse_foldl(_, _, _) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% see foldl/3 for details
 %% TODO: this can be optimized
@@ -1724,7 +1724,7 @@ foldr(Function, A, #array{size = N, elements = E, default = D})
 	    A
     end;
 foldr(_, _, _) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% this is based on to_orddict/1
 
@@ -1805,7 +1805,7 @@ sparse_foldr(Function, A, #array{size = N, elements = E, default = D})
 	    A
     end;
 sparse_foldr(_, _, _) ->
-    erlang:error(badarg).
+    error(badarg).
 
 %% see foldr/3 for details
 %% TODO: this can be optimized

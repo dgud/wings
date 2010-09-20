@@ -14,7 +14,7 @@
 %%       from the wings core modules.
 
 -module(wpa).
--export([ask/3,ask/4,dialog/3,dialog/4,error/1,error/2,
+-export([ask/3,ask/4,dialog/3,dialog/4,error_msg/1,error_msg/2,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
 	 bind_unicode/2,bind_virtual/3,
 	 import/2,import/3,import_filename/2,
@@ -75,11 +75,11 @@ dialog(Bool, Title, Qs, Fun) ->
     wings_ask:dialog(Bool, Title, Qs, Fun).
 
 %% Show String in a dialog box.
-error(String) ->
-    wings_u:error(String).
+error_msg(String) ->
+    wings_u:error_msg(String).
 
-error(Format, Args) ->
-    wings_u:error(Format, Args).
+error_msg(Format, Args) ->
+    wings_u:error_msg(Format, Args).
 
 yes_no(Question, Yes) ->
     wings_u:yes_no(Question, Yes).
@@ -110,7 +110,7 @@ import(Props, Importer, St0) ->
 		   case ?SLOW(do_import(Importer, Name, St0)) of
 		       #st{}=St -> St;
 		       {error,Reason} ->
-			   error(?__(1,"Import failed: ") ++ Reason)
+			   error_msg(?__(1,"Import failed: ") ++ Reason)
 		   end
 	   end,
     import_filename(Props, Cont).
@@ -122,7 +122,7 @@ do_import(Importer, Name, St0) ->
 	{ok,#e3d_file{}=E3DFile} ->
 	    wings_import:import(E3DFile, St0);
 	{error,Reason} ->
-	    wings_u:error(Reason)
+	    wings_u:error_msg(Reason)
     end.
 
 %% import_filename([Prop], Continuation).
@@ -156,7 +156,7 @@ export_selected(Props, Exporter, #st{selmode=Mode}=St)
 	     end, [], St),
     Shs = gb_trees:from_orddict(reverse(Shs0)),
     export(Props, Exporter, St#st{shapes=Shs});
-export_selected(_, _, _) -> error(?__(1,"Select objects or faces.")).
+export_selected(_, _, _) -> error_msg(?__(1,"Select objects or faces.")).
 
 export_sel_set_holes(body, _, We) -> We;
 export_sel_set_holes(face, Faces0, #we{fs=Ftab}=We) ->

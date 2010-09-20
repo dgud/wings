@@ -71,7 +71,7 @@ command({render_done,Handler,Status}, St) ->
 
 render_done({error,Error}, _St) ->
     io:format("Rendering error: ~p~n~n", [Error]),
-    wpa:error("Rendering error");
+    wpa:error_msg("Rendering error");
 render_done({Format,Filename}, _St) ->
     io:format("Rendering Job ready~n~n"),
     ViewImage = wings_pref:get_value(render_load_image), % Misleading prefname
@@ -99,7 +99,7 @@ load_image(Filename) ->
 	    wings_image:window(Id),
 	    keep;
 	_ ->
-	    wpa:error("No image rendered")
+	    wpa:error_msg("No image rendered")
     end.
 
 view_image(Filename, Format, Viewer) ->

@@ -129,7 +129,7 @@ intersect(Plane0, Center, St) ->
 		       intersect_body(Es, Plane, Center, We)
 	       end, St)};
 	invalid ->
-	    wpa:error(?__(1,"Selected edges may not share any vertices")),
+	    wpa:error_msg(?__(1,"Selected edges may not share any vertices")),
 	    keep
     end.
 
@@ -170,7 +170,7 @@ intersect_edges(Plane,Center,EdgeTab,VertPosTab0,[EdgeNum|OtherEdgeNums]) ->
     LineDotPlane = e3d_vec:dot(V1V2,Plane),
     if
 	abs(LineDotPlane) < 0.001 ->
-	    wpa:error(?__(1,"Line and plane are nearly parallel:\n"
+	    wpa:error_msg(?__(1,"Line and plane are nearly parallel:\n"
 			       "can't find intersection.")),
 	    VertPosTab = VertPosTab0;
 	true ->

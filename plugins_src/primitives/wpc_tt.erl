@@ -106,10 +106,10 @@ gen(Font, Dir, Text, Nsubsteps) ->
 	    wpa:pref_set(wpc_tt, bisections, Nsubsteps),
 	    S;
 	{error,Reason} ->
-	    wpa:error(?__(1,"Text failed: ") ++ Reason);
+	    wpa:error_msg(?__(1,"Text failed: ") ++ Reason);
 	X ->
 	    io:format(?__(2,"caught error: ") ++"~p~n", [X]),
-	    wpa:error(?__(3,"Text failed: internal error"))
+	    wpa:error_msg(?__(3,"Text failed: internal error"))
     end.
 
 trygen(File, Text, Nsubsteps) ->

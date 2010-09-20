@@ -45,7 +45,7 @@ read_font(F) ->
 	    to_unicode(G, Ps);
 	Other ->
 	    io:format("~p\n", [Other]),
-	    error(invalid_bdf_file)
+	    error_msg(invalid_bdf_file)
     end.
 
 read_props(F) ->
@@ -203,7 +203,7 @@ read_map_1(F, Acc) ->
 	    read_map_1(F, [{From,To}|Acc])
     end.
 
-error(Term) ->
+error_msg(Term) ->
     throw({error,Term}).
 
 read_map_line(F) ->
@@ -220,7 +220,7 @@ read_line(F) ->
     end.
 
 read_line_1(eof, _) ->
-    error(eof);
+    error_msg(eof);
 read_line_1(<<>>, Fd) ->
     %% Blank line - ignore and read the next line.
     read_line(Fd);

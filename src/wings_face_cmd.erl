@@ -375,7 +375,7 @@ intrude(Faces0, We0, SelAcc) ->
 	    We = restore_mirror(We5, We0),
 	    {We,[{Id,Sel}|SelAcc]};
 	true ->
-	    wings_u:error(?__(1,"Intrude does not work with all faces selected."))
+	    wings_u:error_msg(?__(1,"Intrude does not work with all faces selected."))
     end.
 
 restore_mirror(We, #we{mirror=none}) -> We;
@@ -842,7 +842,7 @@ bridge_error() ->
     bridge_error(?__(1,"Exactly two faces must be selected.")).
 
 bridge_error(Error) ->
-    wings_u:error(Error).
+    wings_u:error_msg(Error).
 
 %%%
 %%% The Lift command.
@@ -922,7 +922,7 @@ lift_from_edge(Dir, EdgeSel, St0) ->
     end.
 
 lift_sel_mismatch() ->
-    wings_u:error(?__(1,"Face and edge selections don't match.")).
+    wings_u:error_msg(?__(1,"Face and edge selections don't match.")).
 	
 lift_from_edge(Dir, Faces, Edges, We0, Tv) ->
     case lift_face_edge_pairs(Faces, Edges, We0) of
@@ -1012,7 +1012,7 @@ lift_from_vertex(Dir, VsSel, St0) ->
     end.
 
 lift_vtx_sel_mismatch() ->
-    wings_u:error(?__(1,"Face and vertex selections don't match.")).
+    wings_u:error_msg(?__(1,"Face and vertex selections don't match.")).
 
 lift_from_vertex(Dir, Faces, Vs, We, Tv) ->
     case lift_face_vertex_pairs(Faces, Vs, We) of
@@ -1088,10 +1088,10 @@ put_on(#st{sel=[{_,Faces}]}=St) ->
 	1 ->
 	    wings:ask(put_on_selection(St), St, fun put_on/2);
 	_ ->
-	    wings_u:error(?__(1,"There must only be one face selected."))
+	    wings_u:error_msg(?__(1,"There must only be one face selected."))
     end;
 put_on(_) ->
-    wings_u:error(?__(1,"There must only be one face selected.")).
+    wings_u:error_msg(?__(1,"There must only be one face selected.")).
 
 put_on_selection(OrigSt) ->
     Desc = ?__(1,"Select target element on which to put source object"),
@@ -1143,10 +1143,10 @@ clone_on(#st{sel=[{_,Faces}]}=St) ->
 	1 ->
 	    wings:ask(clone_on_selection(), St, fun clone_on/2);
 	_ ->
-	    wings_u:error(?__(1,"There must only be one face selected."))
+	    wings_u:error_msg(?__(1,"There must only be one face selected."))
     end;
 clone_on(_) ->
-    wings_u:error(?__(1,"There must only be one face selected.")).
+    wings_u:error_msg(?__(1,"There must only be one face selected.")).
 
 clone_on_selection() ->
     Desc = ?__(1,"Select target elements on which to put clones"),
@@ -1219,7 +1219,7 @@ create_hole_1(Fs0, #we{holes=Holes0}=We0) ->
 	    We = wings_va:remove(all, Holes, We2),
 	    wings_we:create_holes(Holes, We);
 	true ->
-	    wings_u:error(?__(1,"A hole cannot comprise all faces in an object."))
+	    wings_u:error_msg(?__(1,"A hole cannot comprise all faces in an object."))
     end.
 
 remove_hole(St0) ->

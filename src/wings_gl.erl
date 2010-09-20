@@ -148,7 +148,7 @@ check_error(Mod, Line) ->
 	    ok;
 	Str ->
 	    io:format("~p, line ~p: ~s\n", [Mod,Line,Str]),
-	    erlang:error(gl_error, [Mod,Line])
+	    error(gl_error, [Mod,Line])
     end.
 -else.
 check_error(_Mod, _Line) ->

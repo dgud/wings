@@ -290,9 +290,6 @@ menu_dims(Menu, I, MaxA0, MaxB0, MaxC0, Hacc) ->
     menu_dims(Menu, I-1, max(Wa, MaxA0), max(Wb, MaxB0),
 	      max(Wc, MaxC0), [H|Hacc]).
 
-max(A, B) when A > B -> A;
-max(_A, B) -> B.
-
 right_width(Ps) ->
     Cw = wings_text:width(),
     case have_option_box(Ps) of

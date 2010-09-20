@@ -271,9 +271,9 @@ non_trivial_edge_visible(Code0, Clip, P0, P1, Plane, A0, B0) ->
 	    NewAlpha = Dot0 / (Dot0 - Dot1),
 	    {A,B} = case Code0 band Plane of
 			0 ->
-			    {A0,erlang:min(B0, NewAlpha)};
+			    {A0,min(B0, NewAlpha)};
 			_ ->
-			    {erlang:max(A0, NewAlpha),B0}
+			    {max(A0, NewAlpha),B0}
 		    end,
 	    if
 		B < A ->
