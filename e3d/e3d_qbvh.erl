@@ -19,7 +19,11 @@
 
 -export([init/1, init/2]).
 
--export([ray/2, ray/4, ray_trace/2, print_tree/3]).  %% For testing purposes
+-export([ray/2, ray/4, ray_trace/2]). 
+
+-ifdef(DEBUG).
+-export([print_tree/3, print_stack/1, print_split/4]).
+-endif.
 
 -include("e3d.hrl").
 
@@ -35,8 +39,6 @@
 -define(I32, 32/signed-native).
 -define(QNODE_SZ, ((24+4)*4)).
 -define(QTRI_SZ,  ((12*3+4)*4)).
-
--define(DEBUG, 1).
 
 -record(qnode, 
 	{children, 				% 4 Children 
@@ -440,17 +442,6 @@ add_stack([_|Visit], [_|Chs], Stack) ->
     add_stack(Visit,Chs,Stack);
 add_stack([],[],Stack) -> Stack.
 
-print_stack([Top|Rest]) ->
-    case is_leaf(Top) of
-	true ->
-	    io:format(" leaf ~p(~p), ", [first_quad(Top), no_quads(Top)]);
-	false ->
-	    io:format(" node ~p, ",[Top])
-    end,
-    print_stack(Rest);
-print_stack([]) ->
-    io:format("~n",[]).
-
 qtri_intersect(Offset, Size, Ray0, Hit0, Tris) 
   when Offset < Size ->
     Tri = get_qtriangles(Offset, Tris),
@@ -603,7 +594,7 @@ get_qtriangles(Index, Binary) ->
 	  f  = [Prim1,Prim2, Prim3, Prim4]}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+-ifdef(DEBUG).
 print_tree(Nodes, PrimIndx, WorldBB) ->
     print_tree(0, Nodes, PrimIndx, WorldBB, 1).
 
@@ -653,6 +644,18 @@ print_split(Start,Store,End, PrimIndx) ->
      || Id <- lists:seq(Store,End-1)],
     io:format("]~n",[]).
 
+print_stack([Top|Rest]) ->
+    case is_leaf(Top) of
+	true ->
+	    io:format(" leaf ~p(~p), ", [first_quad(Top), no_quads(Top)]);
+	false ->
+	    io:format(" node ~p, ",[Top])
+    end,
+    print_stack(Rest);
+print_stack([]) ->
+    io:format("~n",[]).
+
+-endif.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
