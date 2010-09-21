@@ -25,7 +25,7 @@ LIBDIR = ../../plugins/jpeg
 ERL_DIR := $(shell echo 'io:format("~s~n",[code:root_dir()]),init:stop().' | erl | sed -n '/^1>/s/^1> //p')
 ERL_INC = $(ERL_DIR)/usr/include
 BEAM = $(LIBDIR)/wp8_jpeg_image.beam
-LIBS = -shared -ljpeg
+LIBS = -shared 
 
 ERLC = erlc
 ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH)
@@ -54,10 +54,13 @@ $(LIBDIR)/%.beam: %.erl
 
 ifdef WINDOWS
 
+JPEG_DIR = /usr/local
+
 $(LIBDIR)/wings_jpeg_image_drv.dll: wings_jpeg_image_drv.c
 	install -d $(LIBDIR)
 	mingw32-gcc -I$(ERL_INC) -o $(LIBDIR)/wings_jpeg_image_drv.dll \
-  wings_jpeg_image_drv.c $(LIBS)
+		-I$(JPEG_DIR)/include \
+		wings_jpeg_image_drv.c $(LIBS) $(JPEG_DIR)/lib/libjpeg.a
 
 else
 
@@ -65,7 +68,7 @@ $(LIBDIR)/wings_jpeg_image_drv.so: wings_jpeg_image_drv.c
 	install -d $(LIBDIR)
 	gcc -o $(LIBDIR)/wings_jpeg_image_drv.so -I$(ERL_INC) \
 	-I/usr/local/include -L/usr/local/lib \
-  wings_jpeg_image_drv.c $(LIBS)
+  wings_jpeg_image_drv.c $(LIBS) -ljpeg
 
 endif
 
