@@ -130,6 +130,7 @@ jpeg_image_control(ErlDrvData handle, unsigned int command,
   case 0: {			/* Read */
     struct jpeg_decompress_struct cinfo;
     int row_stride;		/* physical row width in output buffer */
+    int i;
     unsigned char* rbuf;
     struct my_error_mgr jerr;
 
