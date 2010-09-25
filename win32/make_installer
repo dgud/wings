@@ -8,16 +8,17 @@
 # of the VC80.CRT. It must be updated if future release of Erlang
 # requires a later version.
 #
-WINGS_VCREDIST_VERSION=8.0.50727.762
+WINGS_VCREDIST_VERSION=2.0.50727.4053
 
 OS=`uname -o`
-if [ X$OS != XCygwin ]; then
+if [ X$OS != XMsys ]; then
     echo "This script is supposed to be run in the" \
-	 "cygwin environment on windows only." >&2
+	 "msys environment on windows only." >&2
     exit 1
 fi
 
 # Configurable stuff.
+TEMPDIR=$TMP
 INSTALL=/usr/bin/install
 NSIS=`which makensis 2>/dev/null`
 if [ -z "$NSIS" ]; then
@@ -75,7 +76,7 @@ $INSTALL -c -m 644 shaders/* "$dest/shaders"
 $INSTALL -d "$dest/plugins/default" "$dest/plugins/accel" \
  "$dest/plugins/import_export" "$dest/plugins/commands" \
  "$dest/plugins/primitives" "$dest/plugins/win32_file" \
- "$dest/plugins/autouv" "$dest/plugins/jpeg" "$dest/plugins/fbx"
+ "$dest/plugins/autouv" "$dest/plugins/jpeg"
 
 $INSTALL -c -m 644 fonts/* "$dest/fonts"
 
@@ -87,7 +88,6 @@ $INSTALL -c -m 644 plugins/primitives/* "$dest/plugins/primitives"
 $INSTALL -c -m 644 plugins/win32_file/* "$dest/plugins/win32_file"
 $INSTALL -c -m 644 plugins/autouv/* "$dest/plugins/autouv"
 $INSTALL -c -m 644 plugins/jpeg/* "$dest/plugins/jpeg"
-$INSTALL -c -m 644 plugins/fbx/* "$dest/plugins/fbx"
 
 # Copy the relevant parts of Erlang/OTP.
 
@@ -129,12 +129,12 @@ $WINGS_DIR/tools/wings_reduce_otp "$DEST_ROOT"
 
 # Strip debug information from all beam files.
 cd "$latest_wings"
-erlc -o`cygpath -m /tmp` tools/strip.erl
+erlc -o "$TEMPDIR" tools/strip.erl
 cd "$DEST_ROOT"
-erl -noshell -pa `cygpath -m /tmp` -run strip strip
+erl -noshell -pa $TEMPDIR -run strip strip
 
 # Run NSIS
-"$NSIS" /DWINGS_VERSION=$WINGS_VSN /DREDIST_DLL_VERSION=$WINGS_VCREDIST_VERSION wings.nsi
+"$NSIS" //DREDIST_DLL_VERSION=$WINGS_VCREDIST_VERSION //DWINGS_VERSION=$WINGS_VSN wings.nsi
 
 cd "$WINGS_DIR"
 cp wings*.exe ..
