@@ -411,10 +411,11 @@ mirror(St0) ->
     wings_sel:clear(St).
 
 mirror_faces(Faces, We0) when is_list(Faces) ->
-    OrigWe = wings_we:invert_normals(We0),
+    We = wings_we:break_mirror(We0),
+    OrigWe = wings_we:invert_normals(We),
     foldl(fun(Face, WeAcc) ->
 		  mirror_face(Face, OrigWe, WeAcc)
-	  end, We0, Faces);
+	  end, We, Faces);
 mirror_faces(Faces, We) ->
     mirror_faces(gb_sets:to_list(Faces), We).
 
