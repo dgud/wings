@@ -61,6 +61,8 @@ menu(#st{views={CurrentView,Views}}=St) ->
      {?__(11,"Toggle Wireframe"),toggle_wireframe,
       ?__(12,"Toggle display mode for selected objects (same for all objects if nothing is selected)"),wireframe_crossmark(St)},
      {?__(19,"Show Edges"),show_edges,?__(20,"Show edges in workmode"),crossmark(show_edges)},
+     {?__(72,"Show Backfaces"),show_backfaces,
+      ?__(73,"Show backfaces when there is a hole or hiddwn faces in an object"),crossmark(show_backfaces)},
      {?__(21,"Show Wireframe Backfaces"),show_wire_backfaces,
       ?__(22,"Show wireframe backfaces"),crossmark(show_wire_backfaces)},
      separator,
@@ -342,6 +344,10 @@ command(show_edges, St) ->
 	    wings_dl:map(fun(D, _) -> D#dlo{hard=none} end, []),
 	    St
     end;
+command(show_backfaces, St) ->
+    Bool = wings_pref:get_value(show_backfaces),
+    wings_pref:set_value(show_backfaces, not Bool),
+    St;
 command({highlight_aim,{Type,{Selmode,Sel,MM}}}, St) ->
     highlight_aim(Type, Selmode, Sel, MM, St),
     St;
@@ -357,7 +363,7 @@ command(frame, St) ->
 command(frame_mode, St) ->
     Bool = wings_pref:get_value(frame_disregards_mirror),
     wings_pref:set_value(frame_disregards_mirror, not Bool),
-	St;
+    St;
 command({views,Views}, St) ->
     views(Views, St);
 command({along,Axis}, St) ->
@@ -850,6 +856,7 @@ set_current(View) ->
 
 init() ->
     wings_pref:set_default(show_edges, true),
+    wings_pref:set_default(show_backfaces, true),
     wings_pref:set_default(number_of_lights, 1),
     wings_pref:set_default(number_of_shaders, 1),
     wings_pref:set_default(show_normals, false),
