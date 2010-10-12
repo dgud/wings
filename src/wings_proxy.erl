@@ -241,7 +241,7 @@ draw_1(#dlo{proxy_data=#sp{src_we=We}} = D, Dl, Wire,
 		    gl:blendColor(0, 0, 0, Opacity)
 	    end
     end,
-    case wings_we:is_open(We) of
+    case wings_we:is_open(We) andalso wings_pref:get_value(show_backfaces) of
 	true -> gl:disable(?GL_CULL_FACE);
 	false -> ignore
     end,

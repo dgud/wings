@@ -229,8 +229,8 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
     Tdist = e3d_mat:translate({TrackX, TrackY, -Distance}),
     Veye = e3d_mat:mul(Tdist, e3d_mat:mul(e3d_mat:mul(Rx, Ry), Taim)),
 
-    Wbb = max(get_pref(bb_width, ?DEF_WIDTH), 1),
-    Hbb = max(get_pref(bb_height, ?DEF_HEIGHT), 1),
+    Wbb = get_max(get_pref(bb_width, ?DEF_WIDTH), 1),
+    Hbb = get_max(get_pref(bb_height, ?DEF_HEIGHT), 1),
     ARbb = Wbb / Hbb,
 
     {Wwin, Hwin} = proplists:get_value(win_size, Props),
@@ -342,7 +342,7 @@ io:format(?__(5,"Exporting")),
             {Edge_type2, Edges} <- Edges_dict,
             Edge_type1 == Edge_type2]),
 
-    Prog_step = max(Edges_total div 20, 250),
+    Prog_step = get_max(Edges_total div 20, 250),
 
     BB = {{0.0, 0.0}, {Wbb, Hbb}},
     Line_cap = get_pref(line_cap, ?DEF_LINE_CAP),
@@ -718,11 +718,11 @@ sign(A) when A > 0 -> 1;
 sign(A) when A == 0 -> 0;
 sign(A) when A < 0 -> -1.
 
-min(A, B) when A =< B -> A;
-min(A, B) when A > B -> B.
+get_min(A, B) when A =< B -> A;
+get_min(A, B) when A > B -> B.
 
-max(A, B) when A >= B -> A;
-max(A, B) when A < B -> B.
+get_max(A, B) when A >= B -> A;
+get_max(A, B) when A < B -> B.
 
 add({X1, Y1, Z1}, {X2, Y2, Z2}) ->
     {X1 + X2, Y1 + Y2, Z1 + Z2};
@@ -877,7 +877,7 @@ clip_z({LC1, LC2}, View_port) when size(View_port) == 2 ->
 
 nearer({{_, _, LZ1}, {_, _, LZ2}},
     {{_, _, TZ1}, {_, _, TZ2}, {_, _, TZ3}}) ->
-    is_gt(min(LZ1, LZ2), max(TZ1, max(TZ2, TZ3))).
+    is_gt(get_min(LZ1, LZ2), get_max(TZ1, get_max(TZ2, TZ3))).
 
 %edge_of_tria(LIt, TIt) when LIt == nil -> false;
 edge_of_tria(LIt, TIt) ->
@@ -1125,12 +1125,12 @@ find_section(Smin, Smax, Find_one, LCt, LP, [{EC1, EC2, {EN, ED}} | T]) ->
                                     {S, S}
                                     ;
                                 true ->
-                                    find_section(min(S, Smin), max(S, Smax),
+                                    find_section(get_min(S, Smin), get_max(S, Smax),
                                         Find_one, LCt, LP, T)
                             end
                             ;
                         false ->
-                            find_section(min(S, Smin), max(S, Smax),
+                            find_section(get_min(S, Smin), get_max(S, Smax),
                                 Find_one, LCt, LP, T)
                     end
                     ;
@@ -1244,13 +1244,13 @@ intersects({{X1, Y1}, {X2, Y2}}, {{Xmin, Ymin}, {Xmax, Ymax}}) ->
     Dx = X2 - X1,
     Tx1 = zero_div(Xmin - X1, Dx),
     Tx2 = zero_div(Xmax - X1, Dx),
-    Tx_near = max(-?BIG, min(Tx1, Tx2)),
-    Tx_far = min(?BIG, max(Tx1, Tx2)),
+    Tx_near = get_max(-?BIG, get_min(Tx1, Tx2)),
+    Tx_far = get_min(?BIG, get_max(Tx1, Tx2)),
     Dy = Y2 - Y1,
     Ty1 = zero_div(Ymin - Y1, Dy),
     Ty2 = zero_div(Ymax - Y1, Dy),
-    Ty_near = max(Tx_near, min(Ty1, Ty2)),
-    Ty_far = min(Tx_far, max(Ty1, Ty2)),
+    Ty_near = get_max(Tx_near, get_min(Ty1, Ty2)),
+    Ty_far = get_min(Tx_far, get_max(Ty1, Ty2)),
     (Ty_near =< Ty_far) andalso (Ty_near >= 0.0) andalso (Ty_far =< 1.0).
 
 overlays({LC1, LC2}, Box) ->
@@ -1262,18 +1262,18 @@ mid({{Xmin, Ymin}, {Xmax, Ymax}}) -> {(Xmin + Xmax) / 2.0, (Ymin + Ymax) / 2.0}.
 bbox_size({{Xmin, Ymin}, {Xmax, Ymax}}) -> {Xmax - Xmin, Ymax - Ymin}.
 
 bbox({{X1, Y1}, {X2, Y2}}) ->
-    Xmin = min(X1, X2),
-    Ymin = min(Y1, Y2),
-    Xmax = max(X1, X2),
-    Ymax = max(Y1, Y2),
+    Xmin = get_min(X1, X2),
+    Ymin = get_min(Y1, Y2),
+    Xmax = get_max(X1, X2),
+    Ymax = get_max(Y1, Y2),
     {{Xmin, Ymin}, {Xmax, Ymax}}.
 
 bbox({{Xmin_1, Ymin_1}, {Xmax_1, Ymax_1}},
     {{Xmin_2, Ymin_2}, {Xmax_2, Ymax_2}}) ->
-    Xmin = min(Xmin_1, Xmin_2),
-    Ymin = min(Ymin_1, Ymin_2),
-    Xmax = max(Xmax_1, Xmax_2),
-    Ymax = max(Ymax_1, Ymax_2),
+    Xmin = get_min(Xmin_1, Xmin_2),
+    Ymin = get_min(Ymin_1, Ymin_2),
+    Xmax = get_max(Xmax_1, Xmax_2),
+    Ymax = get_max(Ymax_1, Ymax_2),
     {{Xmin, Ymin}, {Xmax, Ymax}}.
 
 bbox_2d({{Xmin, Ymin, _}, {Xmax, Ymax, _}}) -> {{Xmin, Ymin}, {Xmax, Ymax}}.
@@ -1301,10 +1301,10 @@ bbox(Proj, Zf, View_port, {TVC1, TVC2, TVC3}) ->
 
 intersection({{Xmin_1, Ymin_1}, {Xmax_1, Ymax_1}},
     {{Xmin_2, Ymin_2}, {Xmax_2, Ymax_2}}) ->
-    Xmin = max(Xmin_1, Xmin_2),
-    Ymin = max(Ymin_1, Ymin_2),
-    Xmax = min(Xmax_1, Xmax_2),
-    Ymax = min(Ymax_1, Ymax_2),
+    Xmin = get_max(Xmin_1, Xmin_2),
+    Ymin = get_max(Ymin_1, Ymin_2),
+    Xmax = get_min(Xmax_1, Xmax_2),
+    Ymax = get_min(Ymax_1, Ymax_2),
     if
         (Xmin < Xmax) and (Ymin < Ymax) ->
             {{Xmin, Ymin}, {Xmax, Ymax}}
@@ -1359,8 +1359,8 @@ merge(LS1, {{Xmin_1, Ymin_1}, {Xmax_1, Ymax_1}} = BB1, [LS2 | T], Dthr) ->
     {{Xmin_2, Ymin_2}, {Xmax_2, Ymax_2}} = BB2 = bbox(LS2),
     {{Xmin, Ymin}, {Xmax, Ymax}} = BB = bbox(BB1, BB2),
     case
-        (max(Xmin_1, Xmin_2) =< min(Xmax_1, Xmax_2) + Dthr)
-            andalso (max(Ymin_1, Ymin_2) =< min(Ymax_1, Ymax_2) + Dthr)
+        (get_max(Xmin_1, Xmin_2) =< get_min(Xmax_1, Xmax_2) + Dthr)
+            andalso (get_max(Ymin_1, Ymin_2) =< get_min(Ymax_1, Ymax_2) + Dthr)
     of
         true ->
             {LS11, _LS12} = LS1,
@@ -1408,7 +1408,7 @@ lstree_insert1(U0, Mid_LS0, LS0, {U, Mid_LS, LSs, Small, Big}, Dthr) ->
     V = sub(Mid_LS0, Mid_LS),
     D1 = cross(U, V),
     D2 = cross(U0, neg(V)),
-    D0 = min(abs(D1), abs(D2)),
+    D0 = get_min(abs(D1), abs(D2)),
     D = if D1 >= 0.0 -> D0 ; true -> -D0 end,
     if
         D < -Dthr ->
@@ -1457,7 +1457,7 @@ write_eps_header(F, {{Xbb_min, Ybb_min}, {Xbb_max, Ybb_max}}, Line_cap) ->
 write_eps_line_group(_F, [], _Line_width, _Group_count) -> ok;
 write_eps_line_group(F, Ls, Line_width, Group_count)
     when Group_count > 0; Line_width /= 1.0 ->
-    io:fwrite(F, "~.1f setlinewidth~n", [max(Line_width, 0.0)]),
+    io:fwrite(F, "~.1f setlinewidth~n", [get_max(Line_width, 0.0)]),
     write_eps_line_group(F, Ls);
 write_eps_line_group(F, Ls, _Line_width, _Group_count) ->
     write_eps_line_group(F, Ls).

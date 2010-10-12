@@ -143,7 +143,7 @@ validate_edges(Edges, Etab) ->
     SortedFaces = lists:sort(Faces),
     case lists:usort(SortedFaces) of
 	SortedFaces -> ok;
-	_ -> wings_u:error(?__(1, "Selected edges must not be in the same face."))
+	_ -> wings_u:error_msg(?__(1, "Selected edges must not be in the same face."))
     end.
     
 ve_collect_edge_faces([E|Es], Etab, Acc) ->

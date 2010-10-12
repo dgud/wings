@@ -84,7 +84,7 @@
 -define(ASSERT(E), case E of
 		       true -> ok;
 		       _ ->
-			   erlang:error({assertion_failed,?MODULE,?LINE})
+			   error({assertion_failed,?MODULE,?LINE})
 		   end).
 -define(CHECK_ERROR(), wings_gl:check_error(?MODULE, ?LINE)).
 -else.

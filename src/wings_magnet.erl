@@ -147,7 +147,7 @@ mf(spike, D0, R) when is_float(D0), is_float(R) ->
     D*D.
 
 check_radius(R) when R < 1.0E-6 ->
-    wings_u:error(?__(1,"Too short influence radius."));
+    wings_u:error_msg(?__(1,"Too short influence radius."));
 check_radius(_) -> ok.
 
 %%%

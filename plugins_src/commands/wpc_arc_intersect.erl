@@ -3,12 +3,11 @@
 %%
 %%    Plugin to rotate selected element to intersect with a secondary selection
 %%
-%%  Copyright (c) 2008-2009 Richard Jones.
+%%  Copyright (c) 2008-2010 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id$
 %%
 
 -module(wpc_arc_intersect).
@@ -25,23 +24,26 @@ menu(_,Menu) ->
     Menu.
 
 arc_intersect_menu(Mode) ->
-    {?__(1,"Rotate to Target"), arc_intersect_options(Mode),
-      {?__(2,"Rotate around specified center from Point A to Point B"),
-       ?__(3,"Rotate Point to Plane"),
-       ?__(4,"Rotate around specified center by an angle defined by Vector A and Vector B")},magnet_possible(Mode)}.
+    Help = {?__(2,"Rotate around specified center from Point A to Point B"),
+            ?__(3,"Rotate Point to Plane"),
+            ?__(4,"Rotate around specified center by an angle defined by Vector A and Vector B")},
+    {?__(1,"Rotate to Target"),
+      {arc_intersect, arc_intersect_options(Mode, Help)},magnet_possible(Mode)}.
 
 magnet_possible(body) -> [];
 magnet_possible(_) -> [magnet].
 
-arc_intersect_options(body) ->
+arc_intersect_options(body, Help) ->
     fun
+      (help,_) -> Help;
       (1,_Ns) -> {body,{arc_intersect,{lmb,{'ASK',[rotation_axis,center,point_A,point_B]}}}};
       (2,_Ns) -> {body,{arc_intersect,{mmb,{'ASK',[rotation_axis,center,point,plane]}}}};
       (3,_Ns) -> {body,{arc_intersect,{rmb,{'ASK',[rotation_axis,center,plane_A,plane_B]}}}};
       (_,_)   -> ignore
     end;
-arc_intersect_options(Mode) ->
+arc_intersect_options(Mode, Help) ->
     fun
+      (help,_) -> Help;
       (1,_Ns) -> {Mode,{arc_intersect,{lmb,{'ASK',{[rotation_axis,center,point_A,point_B],[],[magnet]}}}}};
       (2,_Ns) -> {Mode,{arc_intersect,{mmb,{'ASK',{[rotation_axis,center,point,plane],[],[magnet]}}}}};
       (3,_Ns) -> {Mode,{arc_intersect,{rmb,{'ASK',{[rotation_axis,center,plane_A,plane_B],[],[magnet]}}}}};

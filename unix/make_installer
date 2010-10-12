@@ -4,7 +4,8 @@
 #
 
 # Configurable stuff.
-INSTALL=/usr/bin/install
+INSTALL=`which install`
+MAKESELF=`which makeself makeself.sh 2> /dev/null | head -1`
 if [ -z "$ESDL_PATH" ]; then
     echo "The environment variable ESDL_PATH must be set to " \
 	 "the top of the ESDL installation." >&2
@@ -48,7 +49,6 @@ $INSTALL -c -m 644 fonts/* "$dest/fonts"
 
 $INSTALL -c -m 644 plugins/default/wp9_dialogs* "$dest/plugins/default"
 $INSTALL -c -m 644 plugins/accel/* "$dest/plugins/accel"
-$INSTALL -c -m 644 plugins/fonts/* "$dest/plugins/fonts"
 $INSTALL -c -m 644 plugins/import_export/* "$dest/plugins/import_export"
 $INSTALL -c -m 644 plugins/commands/* "$dest/plugins/commands"
 $INSTALL -c -m 644 plugins/primitives/* "$dest/plugins/primitives"
@@ -123,7 +123,7 @@ sed -e "s;%WINGS_VSN%;$WINGS_VSN;" -e "s;%ESDL_NAME%;$ESDL_NAME;" -e "s;%LIB_SDL
 chmod +x $INSTALLER
 
 dest=$DEST_ROOT
-makeself.sh --bzip2 $dest $dest.bzip2.run Wings3D ./install_wings "$WINGS_VSN"
+$MAKESELF --bzip2 $dest $dest.bzip2.run Wings3D ./install_wings "$WINGS_VSN"
 if [ -f $dest.run ]; then
     cp $dest.run ..
 fi

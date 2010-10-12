@@ -18,9 +18,9 @@
 
 init() -> true.
 
-menu({shape,more}, []) ->
+menu({shape}, []) ->
     gear_menu();
-menu({shape,more}, Menu) ->
+menu({shape}, Menu) ->
     Menu ++ [separator|gear_menu()];
 menu(_, Menu) -> Menu.
 
@@ -28,8 +28,8 @@ gear_menu() ->
     [{?__(1,"Gear"),gear,[option]},
      {?__(2,"Tube"),tube,[option]}].
 
-command({shape,{more,{gear, Ask}}},_St) -> make_gear(Ask);
-command({shape,{more,{tube, Ask}}},_St) -> make_tube(Ask);
+command({shape,{gear, Ask}},_St) -> make_gear(Ask);
+command({shape,{tube, Ask}},_St) -> make_tube(Ask);
 command(_, _) -> next.
 
 %%% The rest are local functions.
@@ -39,7 +39,7 @@ command(_, _) -> next.
 % ============
 make_gear(Arg) when is_atom(Arg) ->
     wpa:dialog(Arg, ?__(1,"Gear Options"), gear_dialog(),
-	fun(Res) -> {shape,{more,{gear,Res}}} end);
+	fun(Res) -> {shape,{gear,Res}} end);
 make_gear(Arg) ->
     ArgDict = dict:from_list(Arg),
     NumTeeth = dict:fetch(numteeth, ArgDict),
@@ -110,7 +110,7 @@ make_tube(Ask) when is_atom(Ask) ->
 	 {?__(3,"Outer Radius"),1.0},
 	 {?__(4,"Inner Radius"),0.8},
 	 {?__(5,"Length"),2.0}],
-	fun(Res) -> {shape,{more,{tube,Res}}} end);
+	fun(Res) -> {shape,{tube,Res}} end);
 make_tube([Nres, Radius1, Radius2, Length]) ->
     Vs = tube_verts(Nres, Radius1, Radius2, Length),
     Fs = tube_faces(Nres),

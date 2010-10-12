@@ -12,7 +12,7 @@
 %%
 -module(wings_palette).
 
--export([window/1,window/3]).
+-export([window/1,window/4]).
 -export([palette/1]).
 
 -define(NEED_ESDL, 1).
@@ -41,11 +41,11 @@ window(St) ->
 	    Pos  = {DeskW-5,DeskY+55},
 	    Size = {?COLS_W*?BOX_W+?COLS_W*?BORD+?BORD*2,
 		    ?COLS_H*?BOX_H+?COLS_H*?BORD+?BORD*2},
-	    window(Pos, Size, St),
+	    window(Pos, Size, [], St),
 	    keep
     end.
 
-window(Pos, {W,_}=Size, St) ->
+window(Pos, {W,_}=Size, Ps, St) ->
     Cols = get_all_colors(St),
     {ColsW,ColsH} = calc_size(Cols,W),
     Pst = #pst{st=St, cols=add_empty(Cols,ColsW,ColsH), w=ColsW, h=ColsH},
@@ -55,7 +55,7 @@ window(Pos, {W,_}=Size, St) ->
 		      [{sizeable,?PANE_COLOR},
 		       closable, vscroller,
 		       {anchor,ne},
-		       {properties,Props}], Op),
+		       {properties,Props}|Ps], Op),
     F = fun({color,_}) -> yes;
 	   ({material, _}) -> yes;
 	   (_) -> no

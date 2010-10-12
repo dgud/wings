@@ -4,7 +4,7 @@
 %%     This module contains the Extrude (edge), Bevel (face/edge) and
 %%     Bump commands. (All based on edge extrusion.)
 %%
-%%  Copyright (c) 2001-2009 Bjorn Gustavsson
+%%  Copyright (c) 2001-2010 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,11 +13,10 @@
 %%
 
 -module(wings_extrude_edge).
--export([bump/1,bevel/1,bevel_faces/1,extrude/2]).
+-export([bump/1,bevel/1,bevel_faces/1,extrude/2,crease/1]).
 
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1]).
--import(erlang, [min/2]).
 
 -define(DEFAULT_EXTRUDE_DIST, 0.2).
 -define(BEVEL_EXTRUDE_DIST_KLUDGE, 0.0001).
@@ -98,7 +97,7 @@ bevel_faces(Faces, #we{id=Id,mirror=MirrorFace}=We0, {Tvs,Limit0}) ->
     {We1,OrigVs,_,Forbidden} = extrude_edges(Edges, Dist, We0#we{mirror=none}),
     case {wings_util:array_entries(We0#we.es),wings_util:array_entries(We1#we.es)} of
 	{Same,Same} ->
-	    wings_u:error(?__(1,"Object is too small to bevel."));
+	    wings_u:error_msg(?__(1,"Object is too small to bevel."));
 	{_,_} ->
 	    We2 = wings_edge:dissolve_edges(Edges, We1),
 	    Tv0 = bevel_tv(OrigVs, We2, Forbidden),
@@ -228,7 +227,99 @@ extrude_problem() ->
     M = ?__(1,"Can't extrude/bevel; two or more vertices are "
 	    "probably too near to each other.\n"
 	    "Try the Cleanup command."),
-    wings_u:error(M).
+    wings_u:error_msg(M).
+
+%%
+%% Crease command
+%%
+
+crease(St0) ->
+    Dist = calc_extrude_dist(St0),
+    {St,Tvs} = wings_sel:mapfold(fun(Edges, We0, A) ->
+        {We1,[{_,NewVs0,F,_}|A]} = extrude_1(Edges, Dist, We0, A),
+        ValidCaps = find_cap_vs(Edges, We0, []),
+        #we{vp=Vtab}=We = foldl(fun(V, We2) ->
+            EndCap = wings_vertex:fold(fun
+              (Edge, _, #edge{lf=Lf,rf=Rf}=E, EndCapAcc) ->
+                case wings_face:vertices(Lf, We2) of
+                    3 ->
+                      case wings_face:vertices(Rf, We2) of
+                          3 ->
+                              Other = wings_vertex:other(V, E),
+                              case lists:member(Other, ValidCaps) of
+                                  true -> [{d,Edge}|EndCapAcc];
+                                  false -> EndCapAcc
+                              end;
+                          _ -> EndCapAcc
+                      end;
+                    N1 when N1 > 4 ->
+                      case wings_face:vertices(Rf, We2) of
+                          N2 when N2 > 4 ->
+                            Other = wings_vertex:other(V, E),
+                            [{c,Edge,Other}|EndCapAcc];
+                          _ -> EndCapAcc
+                      end;
+                    _ -> EndCapAcc
+                end
+            end, [], V, We2), % vertex fold
+            case lists:sort(EndCap) of
+                [{d,E1},{c,E2,V1}] ->
+                    We3 = wings_edge:dissolve_edge(E1, We2),
+                    Pos = wings_vertex:pos(V1, We3),
+                    #we{vp=Vtab0}=We4 = wings_collapse:collapse_edge(E2, V1, We3),
+                    Vtab = array:set(V1, Pos, Vtab0),
+                    We4#we{vp=Vtab};
+                [{d,E1}|_] ->
+                    #we{vp=Vtab0}=We3 = wings_edge:dissolve_edge(E1, We2),
+                    RVs = wings_vertex:fold(fun(_,_,Erec,RVs0) ->
+                        [wings_vertex:other(V, Erec)|RVs0]
+                    end, [], V, We3),
+                    Center = wings_vertex:center(RVs, We3),
+                    Vtab = array:set(V, Center, Vtab0),
+                    We3#we{vp=Vtab};
+                _ -> We2
+            end
+        end, We1, NewVs0), % list foldl
+        AllVs = orddict:fetch_keys(array:sparse_to_orddict(Vtab)),
+        NewVs =  ordsets:intersection(lists:sort(NewVs0), AllVs),
+        {We,[{Edges,NewVs,F,We}|A]}
+    end, [], St0),
+    wings_move:plus_minus(normal, Tvs, St).
+
+find_cap_vs(Edges0, #we{es=Etab}=We, Acc) ->
+    case gb_sets:is_empty(Edges0) of
+      true ->
+          CapVs = find_cap_vs(lists:sort(Acc), []),
+          valid_caps(CapVs, We);
+      false ->
+          {Edge,Edges} = gb_sets:take_smallest(Edges0),
+          #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
+          find_cap_vs(Edges, We, [Va,Vb|Acc])
+    end.
+
+find_cap_vs([V,V|Vs0], CapVs) ->
+    Vs = rem_v(V, Vs0),
+    find_cap_vs(Vs, CapVs);
+find_cap_vs([V|Vs], CapVs) ->
+    find_cap_vs(Vs, [V|CapVs]);
+find_cap_vs([], CapVs) ->
+    CapVs.
+
+rem_v(V, [V|Vs]) ->
+    rem_v(V, Vs);
+rem_v(_, Vs) ->
+    Vs.
+
+valid_caps(CapVs, We) ->
+    foldl(fun(V, Acc) ->
+        Count = wings_vertex:fold(fun(_, _, _, Cnt) ->
+            Cnt+1
+        end, 0, V, We),
+        case Count rem 2 of
+            0 -> [V|Acc];
+            _ -> Acc
+        end
+    end, [], CapVs).
 
 %%
 %% The Extrude command (for edges).

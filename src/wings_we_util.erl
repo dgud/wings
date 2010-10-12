@@ -114,4 +114,4 @@ verify_vertex(V, Edge, #we{vc=Vct}=We) ->
     end.
 
 crash(Reason, We) ->
-    erlang:error({crash,get(where),Reason}, [We]).
+    error({crash,get(where),Reason}, [We]).

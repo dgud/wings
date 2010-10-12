@@ -252,7 +252,7 @@ bend_setup_clamps(#bend_data{rodCenter=RC, rodNormal=RN}=BD,
 
 bend_verts(BendData, St) ->
   case BendData#bend_data.rodLength of
-    0.0 -> wpa:error(?__(1,"Configuration does not result in bending"));
+    0.0 -> wpa:error_msg(?__(1,"Configuration does not result in bending"));
     _ ->
       %% FIXME
       %%   Run a test call. If you don't do this before

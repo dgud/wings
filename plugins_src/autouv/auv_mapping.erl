@@ -713,10 +713,10 @@ lsq(L, Lpuv, Method0) when is_record(L,lsq), is_list(Lpuv), is_atom(Method0) ->
     catch
 	error:badarg ->
 	    ST = erlang:get_stacktrace(),
-	    erlang:error(badarg, {[L,Lpuv,Method],ST})
+	    error(badarg, {[L,Lpuv,Method],ST})
     end;
 lsq(L, Lpuv, Method) ->
-    erlang:error(badarg, [L, Lpuv, Method]).
+    error(badarg, [L, Lpuv, Method]).
 
 lsq_int(#lsq{a=Af,x0=X0,ap=Ap,temp1=LuLv,temp2=Lquv,dr=Rdict},_Pinned,Method) ->
     %% Clean this mess up    
@@ -936,10 +936,10 @@ pick(L, P) when is_list(L), is_list(P) ->
 	{_, _} = Ok ->
 	    Ok;
 	Fault ->
-	    erlang:error(Fault, [L, P])
+	    error(Fault, [L, P])
     end;
 pick(L, P) ->
-    erlang:error(badarg, [L, P]).
+    error(badarg, [L, P]).
 
 pick(_, L, [], R, Q) ->
     {lists:reverse(R, L), lists:reverse(Q)};
@@ -967,10 +967,10 @@ insert(L, S) when is_list(L), is_list(S) ->
 	R when is_list(R) ->
 	    R;
 	Fault ->
-	    erlang:error(Fault, [L, S])
+	    error(Fault, [L, S])
     end;
 insert(L, S) ->
-    erlang:error(badarg, [L, S]).
+    error(badarg, [L, S]).
 
 insert(_, L, [], R) ->
     lists:reverse(R, L);
@@ -1299,7 +1299,7 @@ get_face_vspos([Face|Fs], We, Tris) ->
        true ->
 	    io:format(?__(1,"Error: Face isn't triangulated ~p with ~p vertices")++"~n",
 		      [Face, Vs1]),
-	    erlang:error({triangulation_bug, [Face, Vs1]})    
+	    error({triangulation_bug, [Face, Vs1]})    
     end;
 get_face_vspos([], _, Tris) ->
     Tris.

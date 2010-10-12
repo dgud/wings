@@ -42,14 +42,14 @@
 init() -> true.
 
 menu({shape}, Menu) ->
-    insert_before_more(Menu);
+    insert_before(Menu);
 menu(_, Menu) -> Menu.
 
-insert_before_more([H|_]=More) when element(1, element(2, H)) == more ->
-    [menu_entry(),separator|More];
-insert_before_more([H|T]) ->
-    [H|insert_before_more(T)];
-insert_before_more([]) ->
+insert_before([{_,grid,_,_}=Grid|Rest]) ->
+    [Grid,separator,menu_entry()|Rest];
+insert_before([H|T]) ->
+    [H|insert_before(T)];
+insert_before([]) ->
     [menu_entry()].
 
 menu_entry() ->
@@ -106,10 +106,10 @@ gen(Font, Dir, Text, Nsubsteps) ->
 	    wpa:pref_set(wpc_tt, bisections, Nsubsteps),
 	    S;
 	{error,Reason} ->
-	    wpa:error(?__(1,"Text failed: ") ++ Reason);
+	    wpa:error_msg(?__(1,"Text failed: ") ++ Reason);
 	X ->
 	    io:format(?__(2,"caught error: ") ++"~p~n", [X]),
-	    wpa:error(?__(3,"Text failed: internal error"))
+	    wpa:error_msg(?__(3,"Text failed: internal error"))
     end.
 
 trygen(File, Text, Nsubsteps) ->

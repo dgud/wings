@@ -48,7 +48,8 @@
 	 level=?INITIAL_LEVEL,			%Menu level.
 	 type :: 'plain'|'popup',	        %Type of menu.
 	 owner,					%Owning window.
-	 flags=[] :: list()			%Flags (magnet/dialog).
+	 flags=[] :: list(),			%Flags (magnet/dialog).
+	 orig_xy				%Originally input global X and Y
 	}).
 
 %%%
@@ -79,10 +80,20 @@ popup_menu(X, Y, Name, Menu) ->
     menu_setup(popup, X, Y, Name, Menu, #mi{owner=wings_wm:this()}).
 
 menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0}=Mi0) ->
-    Names = [Name|Names0],
-    Menu1 = wings_plugin:menu(list_to_tuple(reverse(Names)), Menu0),
-    Hotkeys = wings_hotkey:matching(Names),
-    Menu = normalize_menu(Menu1, Hotkeys, Type =:= popup),
+    Menu = case Name of
+        more ->
+            Names = Names0,
+            ToolBar = false,
+            Hotkeys = wings_hotkey:matching(Names),
+            normalize_menu(Menu0, Hotkeys, Type =:= popup);
+        _ ->
+            Names = [Name|Names0],
+            ToolBar = wings_pref:get_value(menu_toolbar),
+            Menu1 = wings_plugin:menu(list_to_tuple(reverse(Names)), Menu0),
+            Menu2 = add_menu_toolbar(ToolBar, Type, Names, Menu1),
+            Hotkeys = wings_hotkey:matching(Names),
+            normalize_menu(Menu2, Hotkeys, Type =:= popup)
+    end,
     {MwL,MwM,MwR,Hs} = menu_dims(Menu),
     Cw = wings_text:width(),
     TotalW = MwL + MwM + MwR + 8* Cw,
@@ -93,12 +104,13 @@ menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0}=Mi0) ->
 		  plain ->
 		      {X0,Y0};
 		  popup ->
-		      {X0-TotalW div 2,Y0 - Margin - ?CHAR_HEIGHT}
+		      {(X0-TotalW div 2)+54, Y0 - Margin - ?CHAR_HEIGHT}
 	      end,
     {X,Y} = move_if_outside(X1, Y1, TotalW, Mh+2*Margin+InfoLine, Mi0),
+    move_cursor_to_toolbar(ToolBar, Type, Y),
     W = TotalW-10,
-    Mi = Mi0#mi{ymarg=Margin,shortcut=MwL+Cw,w=TotalW-10,h=Mh,hs=Hs,
-		sel=none,ns=Names,menu=Menu,type=Type},
+    Mi = Mi0#mi{ymarg=Margin,shortcut=MwL+Cw,w=W,h=Mh,hs=Hs,
+		sel=none,ns=Names,menu=Menu,type=Type,orig_xy={X0,Y0}},
     #mi{level=Level} = Mi,
     setup_menu_killer(Mi),
     Op = {seq,push,get_menu_event(Mi)},
@@ -106,6 +118,35 @@ menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0}=Mi0) ->
     wings_wm:delete({menu,Level}),
     wings_wm:new(WinName, {X,Y,highest}, {W,Mh+10}, Op),
     delete_from(Level+1).
+
+
+add_menu_toolbar(true, popup, Ns, Menu) ->
+    Name = lists:last(Ns),
+    case toolbar_menu(Name) of
+      true ->
+        [menu_toolbar|Menu];
+      false -> Menu
+    end;
+add_menu_toolbar(_, _, _, Menu) -> Menu.
+
+toolbar_menu(Name) ->
+    case Name of
+      shape -> true;
+      vertex -> true;
+      edge -> true;
+      face -> true;
+      body -> true;
+      select -> true;
+      tools -> true;
+      tweak -> true;
+      _ -> false
+    end.
+
+move_cursor_to_toolbar(true, popup, Y) ->
+    {_,X0,Y0} = wings_wm:local_mouse_state(),
+    {X,_} = wings_wm:local2global(X0, Y0),
+    wings_io:warp(X, Y + 1 + ?LINE_HEIGHT div 2);
+move_cursor_to_toolbar(_,_,_) -> ok.
 
 delete_from(Level) ->
     Name = {menu,Level},
@@ -145,9 +186,17 @@ raise_menubar(Owner) ->
 	true -> wings_wm:raise(Menubar)
     end.
 
-menu_killer(#mousebutton{button=1,state=?SDL_PRESSED}, Owner) ->
-    wings_wm:notify(menu_aborted),
-    kill_menus(Owner);
+menu_killer(#mousebutton{button=Button,state=?SDL_PRESSED}=Ev, Owner) ->
+    case wings_pref:get_value(menu_abort) of
+      true ->
+        wings_wm:notify(menu_aborted),
+        wings_wm:send_after_redraw(geom, {adv_menu_abort,Ev}),
+        kill_menus(Owner);
+      false when Button =:= 1 ->
+        wings_wm:notify(menu_aborted),
+        kill_menus(Owner);
+      false -> keep
+    end;
 menu_killer(#keyboard{sym=27}, Owner) -> %Escape.
     wings_wm:notify(menu_aborted),
     kill_menus(Owner);
@@ -165,7 +214,8 @@ kill_menus(Owner) ->
     delete.
 
 menu_show(#mi{ymarg=Margin,shortcut=Shortcut,w=Mw,h=Mh}=Mi) ->
-    wings_io:blend(wings_pref:get_value(menu_color),
+    MenuColor = wings_pref:get_value(menu_color),
+    wings_io:blend(MenuColor,
 		   fun(Color) ->
 			   wings_io:border(0, 0, Mw-1, Mh + 2*Margin+3, Color)
 		   end),
@@ -173,31 +223,62 @@ menu_show(#mi{ymarg=Margin,shortcut=Shortcut,w=Mw,h=Mh}=Mi) ->
 	      Shortcut, Mw, 1, Mi#mi.hs, Mi).
 
 normalize_menu(Menu, Hotkeys, Adv) ->
-    normalize_menu(Menu, Hotkeys, Adv, []).
+    Pref = wings_pref:get_value(max_menu_height),
+    MaxHeight =
+      if Pref < 1 -> % auto menu clipping
+             {_,Y} = wings_wm:win_size(geom),
+             Y-?LINE_HEIGHT;
+         true ->
+             Pref
+      end,
+    CurrentHeight = 0,
+    normalize_menu(Menu, Hotkeys, Adv, MaxHeight, CurrentHeight, []).
 
-normalize_menu([[_|_]=List|Els], Hotkeys, Adv, Acc) ->
-    normalize_menu(List++Els, Hotkeys, Adv, Acc);
-normalize_menu([Elem0|Els], Hotkeys, Adv, Acc) ->
+normalize_menu([[_|_]=List|Els], Hotkeys, Adv, MaxH, CurH, Acc) ->
+    normalize_menu(List++Els, Hotkeys, Adv, MaxH, CurH, Acc);
+normalize_menu([Elem0|Els0], Hotkeys, Adv, MaxH, CurH, Acc) when MaxH > CurH ->
     Elem1 = case Elem0 of
-		{S,Name,Help,Ps} ->
-		    {S,Name,[],Help,Props=Ps};
-		{S,Name,[C|_]=Help} when is_integer(C) ->
-		    {S,Name,[],Help,Props=[]};
-		{S,Name,Ps} ->
-		    {S,Name,[],[],Props=Ps};
-		{S,Name} ->
-		    {S,Name,[],[],Props=[]};
-		separator ->
-		    Name = none,
-		    Props = [],
-		    separator
-	    end,
+        {S,Name,Help,Ps} ->
+            H = ?LINE_HEIGHT,
+            {S,Name,[],Help,Props=Ps};
+        {S,Name,[C|_]=Help} when is_integer(C) ->
+            H = ?LINE_HEIGHT,
+            {S,Name,[],Help,Props=[]};
+        {S,Name,Ps} ->
+            H = ?LINE_HEIGHT,
+            {S,Name,[],[],Props=Ps};
+        menu_toolbar ->
+            Name = none,
+            Props = [],
+            H = 17,
+            menu_toolbar;
+        {S,Name} ->
+            H = ?LINE_HEIGHT,
+            {S,Name,[],[],Props=[]};
+        separator ->
+            H = ?SEPARATOR_HEIGHT,
+            Name = none,
+            Props = [],
+            separator
+    end,
     Elem2 = norm_add_hotkey(Name, Elem1, Hotkeys, Props),
     Elem = norm_help(Elem2, Adv),
-    normalize_menu(Els, Hotkeys, Adv, [Elem|Acc]);
-normalize_menu([], _Hotkeys, _Adv, Acc) -> list_to_tuple(reverse(Acc)).
+    normalize_menu(Els0, Hotkeys, Adv, MaxH, CurH+H, [Elem|Acc]);
+normalize_menu([Elem0|Els0]=Els1, _, _, _, _, Acc) ->
+    Els = case Elem0 of
+        separator -> Els0;
+        _ -> Els1
+    end,
+    E = {?__(1,"More..."),Els,[],[],[more]},
+    [LastElem|_] = Acc,
+    case LastElem of
+        separator -> list_to_tuple(reverse([E|Acc]));
+        _ -> list_to_tuple(reverse([E,separator|Acc]))
+    end;
+normalize_menu([], _Hotkeys, _Adv, _, _, Acc) -> list_to_tuple(reverse(Acc)).
 
 norm_add_hotkey(_, separator, _, _) -> separator;
+norm_add_hotkey(_, menu_toolbar, _, _) -> menu_toolbar;
 norm_add_hotkey(_, Elem, [], _) -> Elem;
 norm_add_hotkey({_,[_|_]}, Elem, _, _) -> Elem;
 norm_add_hotkey({Key,Fun}, Elem, Hotkeys, Props) when is_function(Fun) ->
@@ -216,6 +297,7 @@ norm_add_hotkey(Name, Elem, Hotkeys, Props) ->
     Key = match_hotkey(Name, Hotkeys, have_option_box(Props)),
     setelement(3, Elem, Key).
 
+match_hotkey(Name, [{{_,Name},Key}|_], false) -> Key;
 match_hotkey(Name, [{Name,Key}|_], false) -> Key;
 match_hotkey(Name, [{{Name,false},Key}|_], true) -> Key;
 match_hotkey(Name, [{{Name,true},Key}|_], true) -> Key;
@@ -231,7 +313,7 @@ reduce_name(Name) -> Name.
 
 reduce_ask({'ASK',Ask}) -> reduce_ask_1(Ask);
 reduce_ask(Term) -> Term.
-    
+
 reduce_ask_1({A,B,_}) -> reduce_ask_1({A,B});
 reduce_ask_1({[],[Res]}) -> Res;
 reduce_ask_1({[],Res}) ->
@@ -239,6 +321,7 @@ reduce_ask_1({[],Res}) ->
 reduce_ask_1(_) -> none.
 
 norm_help(separator=Item, _) -> Item;
+norm_help(menu_toolbar=Item, _) -> Item;
 norm_help(Item, false) -> norm_help_basic(Item);
 norm_help(Elem, true) ->  norm_help_adv(Elem, {[],[],[]}).
 
@@ -272,7 +355,7 @@ menu_dims(_Menu, 0, MaxA, MaxB, MaxC, H) -> {MaxA,MaxB,MaxC,H};
 menu_dims(Menu, I, MaxA0, MaxB0, MaxC0, Hacc) ->
     {Wa,Wb,Wc,H} =
 	case element(I, Menu) of
- 	    {S,ignore,[],[],[]} when I == 1 ->
+ 	    {S,ignore,[],[],[]} when I =:= 1 ->
 		case wings_text:width([$\s|S]) - (MaxA0+MaxB0+MaxC0) of
 		    W when W < 0 ->
 			{0,0,0,?LINE_HEIGHT};
@@ -285,13 +368,11 @@ menu_dims(Menu, I, MaxA0, MaxB0, MaxC0, Hacc) ->
 	    {S,_,Hotkey,_,Ps} ->
 		{wings_text:width([$.,$.|S]),wings_text:width(Hotkey),
 		 right_width(Ps),?LINE_HEIGHT};
-	    separator -> {0,0,0,?SEPARATOR_HEIGHT}
+	    separator -> {0,0,0,?SEPARATOR_HEIGHT};
+	    menu_toolbar -> {140,0,0,17}
 	end,
     menu_dims(Menu, I-1, max(Wa, MaxA0), max(Wb, MaxB0),
 	      max(Wc, MaxC0), [H|Hacc]).
-
-max(A, B) when A > B -> A;
-max(_A, B) -> B.
 
 right_width(Ps) ->
     Cw = wings_text:width(),
@@ -309,10 +390,13 @@ right_width(Ps) ->
 %%%
 
 get_menu_event(Mi) ->
-    {replace,fun(Ev) -> handle_menu_event(Ev, Mi) end}.
+    {replace,fun(Ev) ->
+        handle_menu_event(Ev, Mi) end}.
 
 handle_menu_event(redraw, Mi) ->
     redraw(Mi),
+    {_,X,Y} = wings_wm:local_mouse_state(),
+    update_highlight(X, Y, Mi),
     keep;
 handle_menu_event(lost_focus, Mi) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
@@ -346,22 +430,33 @@ clear_menu_selection(#mi{owner=Owner}) ->
 mousemotion(X, Y, Mi0) ->
     Mi1 = update_highlight(X, Y, Mi0),
     Mi = set_submenu_timer(Mi1, Mi0, X, Y),
+    wings_wm:dirty(),
     get_menu_event(Mi).
 
-button_pressed(#mousebutton{button=B,x=X,y=Y,state=?SDL_RELEASED},
-	       #mi{type=plain}=Mi) when B =< 3 ->
-    wings_wm:dirty(),
-    button_pressed(1, 0, X, Y, Mi);
 button_pressed(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_RELEASED},
-	       #mi{type=popup}=Mi) when B =< 3 ->
+	       Mi) when B =< 3 ->
     wings_wm:dirty(),
     button_pressed(B, Mod, X, Y, Mi);
+button_pressed(#mousebutton{button=Button,x=X,y=Y,state=?SDL_PRESSED},
+  #mi{menu=Menu,sel_side=Side,w=Mw}=Mi)
+  when Button =:= 4; Button =:= 5 ->
+    case selected_item(Y, Mi) of
+        1 ->
+          case element(1,Menu) of
+              menu_toolbar when Side =:= right; Side =:= left ->
+                  menu_toolbar_action(Button, button_check(X, Mw), Mi);
+              menu_toolbar ->
+                  menu_toolbar_action(Button, Side, Mi);
+              _ -> keep
+          end;
+        _ -> keep
+    end;
 button_pressed(_, _) -> keep.
 
-button_pressed(Button, Mod, X, Y, #mi{ns=Names,menu=Menu,type=Type}=Mi0) ->
+button_pressed(Button, Mod, X, Y,
+  #mi{ns=Names,menu=Menu,type=Type,sel_side=Side,w=Mw,level=Level,owner=Owner}=Mi0) ->
     clear_timer(Mi0),
-    Mi1 = update_highlight(X, Y, Mi0),
-    Mi = update_flags(Mod, Mi1),
+    Mi = update_flags(Mod, Mi0),
     case selected_item(Y, Mi) of
 	none ->
 	    get_menu_event(Mi);
@@ -378,8 +473,37 @@ button_pressed(Button, Mod, X, Y, #mi{ns=Names,menu=Menu,type=Type}=Mi0) ->
 		    call_action(Act0, Button, Names, Ps, Mi);
 		{_,Act0,_,_,Ps} when is_atom(Act0); is_integer(Act0) ->
 		    Act = was_option_hit(Button, Act0, X, Ps, Mi),
-		    do_action(Act, Names, Ps, Mi)
+		    do_action(Act, Names, Ps, Mi);
+		menu_toolbar ->
+		    case Side of
+		      right ->
+		        menu_toolbar_action(Button, button_check(X, Mw), Mi);
+		      left ->
+		        menu_toolbar_action(Button, button_check(X, Mw), Mi);
+		      history when Button =:= 2 ->
+		        keep;
+		      tools when Button =/= 1 ->
+		        keep;
+		      _ ->
+		        menu_toolbar_action(Button, Side, Mi)
+		    end;
+		{_,More,[],[],[more]} ->
+		    clear_timer(Mi),
+		    X0 = Mw-?CHAR_WIDTH,
+		    {X1,Y1} = wings_wm:local2global(X0, Y),
+		    menu_setup(Type, X1, Y1, more, More,
+		      #mi{ns=Names,level=Level+1,owner=Owner})
 	    end
+    end.
+
+menu_toolbar_action(Button, Side, #mi{ns=Names,owner=Owner,orig_xy=OrigXY}) ->
+    case lists:last(Names) of
+      N when N =:= select; N =:= tools; N =:= tweak ->
+        wings_wm:send_after_redraw(Owner, {menu_toolbar,{new_mode,Button,OrigXY,Side}}),
+        keep;
+      _ ->
+        wings_wm:send_after_redraw(Owner, {menu_toolbar,{Button,OrigXY,Side}}),
+        keep
     end.
 
 call_action(Act, Button, Ns, Ps, Mi) ->
@@ -400,6 +524,18 @@ do_action(Act0, Ns, Ps, Mi) ->
 	  end,
     send_action(Act, Mi).
 
+send_action(Action, #mi{type=popup,ns=Names,owner=Owner,orig_xy=OrigXY}=Mi) ->
+    Name = lists:last(Names),
+    case wings_pref:get_value(menu_toolbar) of
+      true when Name =:= select ->
+        wings_wm:send_after_redraw(Owner, {menu_toolbar, OrigXY}),
+        wings_wm:send(Owner, {action,Action}),
+        keep;
+      _ ->
+        clear_menu_selection(Mi),
+        wings_wm:send_after_redraw(Owner, {action,Action}),
+        delete_all(Mi)
+    end;
 send_action(Action, #mi{owner=Owner}=Mi) ->
     clear_menu_selection(Mi),
     wings_wm:send_after_redraw(Owner, {action,Action}),
@@ -408,15 +544,24 @@ send_action(Action, #mi{owner=Owner}=Mi) ->
 is_magnet_active(Ps, #mi{flags=Flags}) ->
     have_magnet(Ps) andalso have_magnet(Flags).
 
-handle_key(Ev, Mi) ->
-    handle_key_1(key(Ev), Mi).
+handle_key(Ev, #mi{owner=Owner,orig_xy=OrigXY}=Mi) ->
+    case handle_key_1(key(Ev), Mi) of
+        none ->
+            case wings_pref:get_value(hotkeys_from_menus) of
+                true ->
+                    wings_wm:send_after_redraw(Owner, {hotkey_in_menu,Ev,OrigXY}),
+                    keep;
+                false -> keep
+            end;
+        Other -> Other
+    end.
 
 handle_key_1(cancel, _) ->
     wings_wm:send(menu_killer, #keyboard{sym=27});
 handle_key_1(delete, Mi0) ->
     %% Delete hotkey bound to this entry.
     case current_command(Mi0) of
-      [] -> keep;
+      [] -> none;
       [_|_]=Cmds0 ->
         Cmds = case Cmds0 of
           [{1,{A,{B,false}}}] -> [{A,{B,false}},{A,{B,true}}];
@@ -424,17 +569,17 @@ handle_key_1(delete, Mi0) ->
           _Cmd -> [C || {_,C} <- Cmds0]
         end,
         case wings_hotkey:hotkeys_by_commands(Cmds) of
-          [] -> keep;			%No hotkeys for this entry.
+          [] -> none;			%No hotkeys for this entry.
           Hotkeys -> hotkey_delete_dialog(Hotkeys)
         end
     end;
 handle_key_1(insert, Mi) ->
     %% Define new hotkey for this entry.
     case current_command(Mi) of
-	[] -> keep;
+	[] -> none;
 	[_|_]=Cmds -> get_hotkey(Cmds, Mi)
     end;
-handle_key_1(_, _) -> keep.
+handle_key_1(_, _) -> none.
 
 key(#keyboard{sym=27}) -> cancel;
 key(#keyboard{sym=?SDLK_INSERT}) -> insert;
@@ -634,36 +779,50 @@ redraw(Mi) ->
     wings_io:ortho_setup(),
     menu_show(Mi).
 
-update_highlight(X, Y, #mi{menu=Menu,sel=OldSel,sel_side=OldSide,w=W}=Mi0) ->
+update_highlight(X, Y, #mi{ns=Ns,menu=Menu,sel=OldSel,sel_side=OldSide,w=W}=Mi0) ->
     case selected_item(Y, Mi0) of
 	OldSel when is_integer(OldSel) ->
-	    Ps = element(5, element(OldSel, Menu)),
-	    RightWidth = right_width(Ps),
-	    Right = W - (2*RightWidth) - ?CHAR_WIDTH,
-	    Side = if
-		       X < Right; RightWidth == 0 -> left;
-		       true -> right
-		   end,
-	    if
-		Side =:= OldSide -> Mi0;
-		true ->
-		    wings_wm:dirty(),
-		    help_text(Mi0),
-		    Mi0#mi{sel_side=Side}
+	    case element(OldSel, Menu) of
+	      menu_toolbar ->
+	        Icon = button_check(X, W),
+	        menu_toolbar_help(lists:last(Ns), Icon),
+	        Mi0#mi{sel_side=Icon};
+	      MenuItemData ->
+	        Ps = element(5, MenuItemData),
+	        RightWidth = right_width(Ps),
+	        Right = W - (2*RightWidth) - ?CHAR_WIDTH,
+	        Side = if
+	                 X < Right; RightWidth == 0 -> left;
+	                 true -> right
+	               end,
+	        if
+	          Side =:= OldSide -> Mi0;
+	          true ->
+	              help_text(Mi0),
+	              Mi0#mi{sel_side=Side}
+	        end
 	    end;
 	OldSel -> Mi0;
-	NoSel when NoSel == outside; NoSel == none ->
-	    wings_wm:dirty(),
+	NoSel when NoSel =:= outside; NoSel =:= none ->
 	    Mi = Mi0#mi{sel=none},
 	    help_text(Mi),
 	    Mi;
-	Item when is_integer(Item), OldSel == none ->
-	    wings_wm:dirty(),
+	Item when is_integer(Item), Item < 3 ->
+	    case element(Item, Menu) of
+	      menu_toolbar ->
+	        Icon = button_check(X, W),
+	        menu_toolbar_help(lists:last(Ns), Icon),
+	        Mi0#mi{sel=Item,sel_side=Icon};
+	      _other ->
+	        Mi = Mi0#mi{sel=Item,sel_side=left},
+	        help_text(Mi),
+	        Mi
+	    end;
+	Item when is_integer(Item), OldSel =:= none ->
 	    Mi = Mi0#mi{sel=Item},
 	    help_text(Mi),
 	    Mi;
 	Item when is_integer(Item) ->
-	    wings_wm:dirty(),
 	    Mi = Mi0#mi{sel=Item},
 	    help_text(Mi),
 	    Mi
@@ -718,17 +877,23 @@ selected_item_1(Y0, I, [H|Hs], #mi{sel=OldSel,menu=Menu}=Mi) ->
 			I-1 =< OldSel, OldSel =< I+2-> OldSel;
 			true -> none
 		    end;
+		menu_toolbar -> I;
 		_Other -> I
 	    end;
 	Y -> selected_item_1(Y, I+1, Hs, Mi)
     end.
 
-is_submenu(_I, #mi{type=popup}) -> false;
+is_submenu(I, #mi{type=popup,menu=Menu}) when is_integer(I) ->
+    case element(I, Menu) of
+	{_,_More,[],[],[more]} -> true;
+	_Other -> false
+    end;
 is_submenu(I, #mi{type=plain,menu=Menu}) when is_integer(I) ->
     case element(I, Menu) of
 	separator -> false;
 	{_Text,{'VALUE',_},_Hotkey,_Help,_Ps} -> false;
 	{_Text,{_,_},_Hotkey,_Help,_Ps} -> true;
+	{_,_More,[],[],[more]} -> true;
 	_Other -> false
     end;
 is_submenu(_, _) -> false.
@@ -737,12 +902,15 @@ build_command(Name, Names) ->
     foldl(fun(N, A) -> {N,A} end, Name, Names).
 
 menu_draw(_X, _Y, _Shortcut, _Mw, _I, [], _Mi) -> ok;
-menu_draw(X, Y, Shortcut, Mw, I, [H|Hs], #mi{menu=Menu,type=Type}=Mi) ->
+menu_draw(X, Y, Shortcut, Mw, I, [H|Hs], #mi{sel_side=Side,menu=Menu,type=Type}=Mi) ->
     ?CHECK_ERROR(),
     Elem = element(I, Menu),
     Text = menu_text(Elem, Type),
     case Elem of
-	separator -> draw_separator(X, Y, Mw);
+	separator ->
+	    draw_separator(X, Y, Mw);
+	menu_toolbar ->
+	    draw_menu_toolbar(Mw, Side);
 	{_,ignore,_,_,Ps} ->
 	    menu_draw_1(Y, Ps, I, Mi,
 			fun() -> wings_io:unclipped_text(X, Y, Text) end);
@@ -763,8 +931,15 @@ menu_draw(X, Y, Shortcut, Mw, I, [H|Hs], #mi{menu=Menu,type=Type}=Mi) ->
 				wings_io:unclipped_text(X, Y, Text),
 				draw_hotkey(X, Y, Shortcut, Hotkey)
 			end),
-	    
+
 	    draw_submenu_marker(Type, Sub,
+				X+Mw-5*?CHAR_WIDTH, Y-?CHAR_HEIGHT div 3);
+	{_,Sub,_,_,[more]=Ps} ->
+	    menu_draw_1(Y, Ps, I, Mi,
+			fun() ->
+				draw_menu_text(X, Y, Text, Ps)
+			end),
+	    draw_submenu_marker(plain, Sub,
 				X+Mw-5*?CHAR_WIDTH, Y-?CHAR_HEIGHT div 3);
 	{_,_,Hotkey,_Help,Ps} ->
 	    menu_draw_1(Y, Ps, I, Mi,
@@ -794,7 +969,7 @@ menu_draw_1(Y, Ps, Sel, #mi{sel=Sel,sel_side=Side,w=W},
 	    {X1,Y1,X2,Y2} = {Right, Y-?CHAR_HEIGHT, Right+3*Cw-2, Y+3},
 	    wings_io:gradient_rect(X1, Y1, X2-X1, Y2-Y1, Color),
 	    wings_io:set_color(wings_pref:get_value(menu_text));
-	left ->
+	__left ->
 	    {X1,Y1,X2,Y2} = {?CHAR_WIDTH, Y-?CHAR_HEIGHT, Right, Y+3},
 	    wings_io:gradient_rect(X1, Y1, X2-X1, Y2-Y1, Color),
 	    wings_io:set_color(wings_pref:get_value(menu_hilited_text))
@@ -802,11 +977,11 @@ menu_draw_1(Y, Ps, Sel, #mi{sel=Sel,sel_side=Side,w=W},
     DrawLeft(),
     case {DrawRight,Side} of
 	{ignore,_} -> ok;
-	{_,left} ->
-	    wings_io:set_color(wings_pref:get_value(menu_text)),
-	    DrawRight();
 	{_,right} ->
 	    wings_io:set_color(wings_pref:get_value(menu_hilited_text)),
+	    DrawRight();
+	{_,_left} ->
+	    wings_io:set_color(wings_pref:get_value(menu_text)),
 	    DrawRight()
     end;
 menu_draw_1(_, _, _, _, DrawLeft, DrawRight) ->
@@ -820,7 +995,8 @@ menu_draw_1(_, _, _, _, DrawLeft, DrawRight) ->
 menu_text({Text,{_,Fun},_,_,_}, popup) when is_function(Fun) -> [$.,Text,$.];
 menu_text({Text,Fun,_,_,_}, popup) when is_function(Fun) -> [$.,Text,$.];
 menu_text({Text,_,_,_,_}, _) -> Text;
-menu_text(separator, _) -> [].
+menu_text(separator, _) -> [];
+menu_text(menu_toolbar, _) -> [].
 
 draw_hotkey(_, _, _, []) -> ok;
 draw_hotkey(X, Y, Pos, Hotkey) -> wings_io:text_at(X+Pos, Y, Hotkey).
@@ -841,16 +1017,95 @@ draw_menu_text(X, Y, Text, Props) ->
 	    wings_io:unclipped_text(X, Y, Text)
     end.
 
+menu_toolbar_help(_,tools) ->
+    Msg = wings_msg:button_format(?__(1,"Open the Tools menu")),
+    wings_wm:message(Msg);
+menu_toolbar_help(_,select) ->
+    Msg1 = wings_msg:button_format(?__(2,"Open the Select menu")),
+    Msg2 = wings_msg:button_format([], ?__(3,"Recall Stored Selection")),
+    Msg3 = wings_msg:button_format([], [], ?__(4,"Store Selection")),
+    Message = wings_msg:join([Msg1,Msg2,Msg3]),
+    wings_wm:message(Message);
+menu_toolbar_help(SelMode, deselect) ->
+    Msg1 = wings_msg:button_format(?__(5,"Deselect | Select All")),
+    Msg2 = [],
+    Msg3 = wings_msg:button_format([], [], ?__(6,"Deselect and close menu")),
+    Msg4 = scroll_help(SelMode, deselect),
+    Message = wings_msg:join([Msg1,Msg2,Msg3,Msg4]),
+    wings_wm:message(Message);
+menu_toolbar_help(SelMode, body) ->
+    Msg1 = wings_toolbar:button_help_2(body, SelMode),
+    Msg2 = scroll_help(SelMode, body),
+    Message = wings_msg:join([Msg1,Msg2]),
+    wings_wm:message(Message);
+menu_toolbar_help(SelMode, history) ->
+    Msg1 = wings_msg:button_format(wings_toolbar:button_help_2(undo, SelMode)),
+    Msg2 = wings_msg:button_format([],[],wings_toolbar:button_help_2(redo, SelMode)),
+    Msg3 = scroll_help(SelMode, history),
+    Message = wings_msg:join([Msg1,Msg2,Msg3]),
+    wings_wm:message(Message);
+menu_toolbar_help(SelMode, repeat) ->
+    Msg1 = wings_msg:button_format(?__(7,"Repeat Drag"),?__(8,"Repeat Args"),
+          ?__(9,"Repeat")),
+    Msg2 = scroll_help(SelMode, repeat),
+    Message = wings_msg:join([Msg1,Msg2]),
+    wings_wm:message(Message);
+menu_toolbar_help(SelMode, Icon) ->
+    Msg1 = wings_msg:button_format(wings_toolbar:button_help_2(Icon, SelMode)),
+    Msg2 = mmb_menu_toolbar_help(SelMode, Icon),
+    Msg3 = rmb_menu_toolbar_help(SelMode, Icon),
+    Msg4 = scroll_help(SelMode, Icon),
+    Message = wings_msg:join([Msg1,Msg2,Msg3,Msg4]),
+    wings_wm:message(Message).
+
+scroll_help(SelMode, Icon) ->
+    Scroll = wings_s:scroll() ++ ": ",
+    case Icon of
+        repeat -> Scroll ++ ?__(1,"Repeat Drag | Undo");
+        history ->  Scroll ++ ?__(2,"Undo | Redo");
+        edge when SelMode =:= edge ->
+            None = Scroll ++ ?__(3,"Next/Previous Edge Loop"),
+            Ctrl = wings_s:key(ctrl)++"+"++Scroll ++ ?__(4,"Grow/Shrink Edge Loop"),
+            Alt = wings_s:key(alt)++"+"++Scroll ++ ?__(5,"Grow/Shrink Edge Ring"),
+            wings_msg:join([None,Ctrl,Alt]);
+        _ -> Scroll ++ ?__(6,"Select More | Select Less")
+    end.
+
+mmb_menu_toolbar_help(edge,Icon) ->
+    Msg = case Icon of
+      vertex -> [];
+      edge -> ?__(1,"Edge Ring");
+      face -> [];
+      body -> []
+    end,
+    wings_msg:button_format([], Msg, []);
+mmb_menu_toolbar_help(_,_) -> [].
+
+rmb_menu_toolbar_help(SelMode,Icon) ->
+    Msg = case Icon of
+      _ when SelMode =:= body -> [];
+      vertex -> [];
+      edge when SelMode =:= vertex ->
+          ?__(3,"Select edges which have both vertices selected");
+      edge -> ?__(1,"Edge Loop");
+      face when SelMode =:= edge -> ?__(2,"Edge Loop to Region");
+      face -> [];
+      body -> []
+    end,
+    wings_msg:button_format([], [], Msg).
+
 help_text(#mi{sel=none}) ->
     wings_wm:message("");
 help_text(#mi{menu=Menu,sel=Sel}=Mi) ->
     Elem = element(Sel, Menu),
     help_text_1(Elem, Mi).
 
-help_text_1({Text,{Sub,_},_,_,_}, #mi{type=plain}) when Sub =/= 'VALUE' ->
+help_text_1({Text,{Sub,_},_,[],_}, #mi{type=plain}) when Sub =/= 'VALUE' ->
     %% No specific help text for submenus in plain mode.
     Help = [Text|?__(1," submenu")],
     wings_wm:message(Help, "");
+help_text_1({_,{Sub,_},_,SubMenuHelp,_}, #mi{type=plain}) when Sub =/= 'VALUE' ->
+    wings_wm:message(SubMenuHelp, "");
 help_text_1({_,{Name,Fun},_,_,Ps}, #mi{ns=Ns}=Mi) when is_function(Fun) ->
     %% "Submenu" in advanced mode.
     Help0 = Fun(help, [Name|Ns]),
@@ -860,7 +1115,9 @@ help_text_1({_,_,_,Help0,Ps}, Mi) ->
     %% Plain entry - not submenu.
     Help = help_text_2(Help0),
     magnet_help(Help, Ps, Mi);
-help_text_1(separator, _) -> ok.
+help_text_1(separator, _) -> ok;
+help_text_1(menu_toolbar, _) -> ok.
+
 
 help_text_2({S1,S2,S3}) -> wings_msg:button_format(S1, S2, S3);
 help_text_2(Help) -> Help.
@@ -891,7 +1148,7 @@ draw_right(X0, Y0, Mw, Ps) ->
 	    X = X0 + Mw - 5*?CHAR_WIDTH,
 	    Y = Y0 - ?CHAR_HEIGHT div 3,
 	    wings_io:text_at(X, Y, [option_box]);
-	false -> draw_right_1(X0, Y0, Mw, Ps)
+	false -> draw_right_1(X0, Y0, Mw, Ps)          
     end.
 
 draw_right_1(X0, Y0, Mw, Ps) ->
@@ -924,12 +1181,234 @@ draw_separator(X, Y, Mw) ->
     RightX = X+Mw-4*Cw+0.5,
     UpperY = Y-?SEPARATOR_HEIGHT+0.5,
     gl:lineWidth(1),
-    gl:color3f(0.10, 0.10, 0.10),
+    wings_io:set_color(wings_pref:get_value(menu_text)),
     gl:'begin'(?GL_LINES),
     gl:vertex2f(LeftX, UpperY),
     gl:vertex2f(RightX, UpperY),
     gl:'end'(),
     gl:color3b(0, 0, 0).
+
+%% Icon bar in context menus for quick selection mode changes using the mouse
+draw_menu_toolbar(Mw, Icon) ->
+    ?CHECK_ERROR(),
+    Col1 = wings_pref:get_value(menu_text),
+    Col2 = wings_pref:get_value(selected_color),
+    Col3 = wings_pref:get_value(menu_color),
+    Col4 = case Col3 of
+      {R,G,B,_} -> {R,G,B};
+      RGB -> RGB
+    end,
+
+    Y15 = 15,
+    Y16 = 16,
+    Y17 = 17,
+    Y18 = 18,
+    MidX = round(Mw/2),
+    Vx = MidX-36,
+    Ex = Vx+Y18,
+    Fx = Ex+Y18,
+    Bx = Fx+Y18,
+    Hx = Vx-54,
+    Rx = Hx+Y18,
+    Sx = Bx+36,
+    Tlx = Sx+Y18,
+
+    % menu_toolbar backgroud
+    gl:color3fv(e3d_vec:mul(Col4, 0.8)),
+    gl:rectf(1,1,Mw-1, 20),
+
+    wings_io:set_color({1,1,1}),
+    % toolbar box highlight
+    {THX,BM} = case Icon of
+      vertex -> {Vx+1,outline_bitmap_0()};
+      edge -> {Ex+1,outline_bitmap_0()};
+      face -> {Fx+1,outline_bitmap_0()};
+      body -> {Bx+1,outline_bitmap_0()};
+      history -> {Hx,outline_bitmap_1()};
+      repeat -> {Rx,outline_bitmap_1()};
+      select -> {Sx,outline_bitmap_1()};
+      tools -> {Tlx,outline_bitmap_1()};
+      _deselect -> {true,none}
+    end,
+    if THX -> ok;
+       true ->
+    gl:rasterPos2i(THX, Y18),
+    gl:bitmap(16, 16, 0, 0, 16, 0, BM)
+       end,
+
+    % Icon Color
+    gl:color3fv(e3d_vec:mul(Col1,0.6)),
+    % history icon
+    History = history_bitmap(),
+    gl:rasterPos2i(Hx, Y17),
+    gl:bitmap(14, 14, -1, 0, 14, 0, History),
+    % repeat icon
+    Repeat = repeat_bitmap(),
+    gl:rasterPos2i(Rx, Y17),
+    gl:bitmap(14, 14, -1, 0, 14, 0, Repeat),
+    % vertex icon
+    wings_shape:draw_cube(Vx,Y15),
+    % edge icon
+    wings_shape:draw_cube(Ex,Y15),
+    % face icon
+    wings_shape:draw_cube(Fx,Y15),
+    % body icon
+    wings_shape:draw_cube(Bx,Y15),
+    % select icon
+    Select = select_bitmap(),
+    gl:rasterPos2i(Sx, Y17),
+    gl:bitmap(14, 14, -1, 0, 14, 0, Select),
+    % tools icon
+    Tools = tools_bitmap(),
+    gl:rasterPos2i(Tlx, Y17),
+    gl:bitmap(14, 14, -1, 0, 14, 0, Tools),
+
+    % Selection Colors
+    gl:color3fv(Col2),
+    VertSel = wings_shape:vertex_sel_cube_bitmap(),
+    gl:rasterPos2i(Vx, Y17),
+    gl:bitmap(15, 14, -1, 0, 14, 0, VertSel),
+    EdgeSel = wings_shape:edge_sel_cube_bitmap(),
+    gl:rasterPos2i(Ex, Y16),
+    gl:bitmap(14, 14, -1, 0, 14, 0, EdgeSel),
+    FaceSel = wings_shape:face_sel_cube_bitmap(),
+    gl:rasterPos2i(Fx, Y16),
+    gl:bitmap(14, 14, -1, 0, 14, 0, FaceSel),
+    SelCube = wings_shape:selcube_bitmap(),
+    gl:rasterPos2i(Bx, Y16),
+    gl:bitmap(14, 14, -1, 0, 14, 0, SelCube),
+
+    gl:color3b(0, 0, 0).
+
+button_check(X, Mw) ->
+    MidX = Mw div 2,
+    if X < MidX-93 -> deselect;
+       X < MidX-75 -> history;
+       X < MidX-57 -> repeat;
+       X < MidX-36 -> deselect;
+       X < MidX-18 -> vertex;
+       X < MidX -> edge;
+       X < MidX+18 -> face;
+       X < MidX+36 -> body;
+       X < MidX+55 -> deselect;
+       X < MidX+71 -> select;
+       X < MidX+89 -> tools;
+       true -> deselect
+    end.
+
+repeat_bitmap() ->
+    <<
+    2#0000011110000000:16,
+    2#0001100001100000:16,
+    2#0010000000010000:16,
+    2#0100011110001000:16,
+    2#0100100001001000:16,
+    2#1001000000100100:16,
+    2#1001000000100100:16,
+    2#1001001000100100:16,
+    2#1001001100100100:16,
+    2#0100111110001000:16,
+    2#0100001100001000:16,
+    2#0010001000010000:16,
+    2#0001100001100000:16,
+    2#0000011110000000:16,
+    2#0000000000000000:16,
+    2#0000000000000000:16>>.
+	
+history_bitmap() ->
+    <<
+    2#0000011110000000:16,
+    2#0001100001100000:16,
+    2#0010000010010000:16,
+    2#0100000011001000:16,
+    2#0100111111101000:16,
+    2#1000000011000100:16,
+    2#1000000010000100:16,
+    2#1000010000000100:16,
+    2#1000110000000100:16,
+    2#0101111111001000:16,
+    2#0100110000001000:16,
+    2#0010010000010000:16,
+    2#0001100001100000:16,
+    2#0000011110000000:16,
+    2#0000000000000000:16,
+    2#0000000000000000:16>>.
+
+select_bitmap() ->
+    <<
+    2#0000011110000000:16,
+    2#0001100001100000:16,
+    2#0010000000010000:16,
+    2#0100000100001000:16,
+    2#0100000110001000:16,
+    2#1000001111000100:16,
+    2#1000001111100100:16,
+    2#1000011110000100:16,
+    2#1000011000000100:16,
+    2#0100100000001000:16,
+    2#0100000000001000:16,
+    2#0010000000010000:16,
+    2#0001100001100000:16,
+    2#0000011110000000:16,
+    2#0000000000000000:16,
+    2#0000000000000000:16>>.
+
+tools_bitmap() ->
+    <<
+    2#0000011110000000:16,
+    2#0001100001100000:16,
+    2#0010001100010000:16,
+    2#0100001100001000:16,
+    2#0100001100001000:16,
+    2#1000001100000100:16,
+    2#1000001100000100:16,
+    2#1000011110000100:16,
+    2#1000111111000100:16,
+    2#0100110011001000:16,
+    2#0100010010001000:16,
+    2#0010000000010000:16,
+    2#0001100001100000:16,
+    2#0000011110000000:16,
+    2#0000000000000000:16,
+    2#0000000000000000:16>>.
+
+outline_bitmap_0() ->
+    <<
+    2#01111111111111110:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01000000000000010:16,
+    2#01111111111111110:16>>.
+
+outline_bitmap_1() ->
+    <<
+    2#1111111111111111:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1000000000000001:16,
+    2#1111111111111111:16>>.
 
 move_if_outside(X0, Y, Mw, Mh, Mi) ->
     {W,H} = wings_wm:top_size(),

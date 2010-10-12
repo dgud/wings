@@ -25,14 +25,14 @@ init() ->
     true.
 
 menu({shape}, Menu) ->
-    insert_before_more(Menu);
+    insert_before_image(Menu);
 menu(_, Menu) -> Menu.
 
-insert_before_more([H|_]=More) when element(1, element(2, H)) == more ->
-    [image_menu(),separator|More];
-insert_before_more([H|T]) ->
-    [H|insert_before_more(T)];
-insert_before_more([]) ->
+insert_before_image([{_,image,_}=Image|Rest]) ->
+    [Image,image_menu(),separator|Rest];
+insert_before_image([H|T]) ->
+    [H|insert_before_image(T)];
+insert_before_image([]) ->
     [image_menu()].
 
 image_menu() ->
@@ -54,7 +54,7 @@ make_image(Name) ->
 	#e3d_image{}=Image ->
 	    make_image_1(Name, Image);
 	{error,Error} ->
-	    wpa:error(?__(1,"Failed to load \"~s\": ~s\n"),
+	    wpa:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
 		      [Name,file:format_error(Error)])
     end.
 
@@ -77,17 +77,26 @@ make_image_1(Name0, #e3d_image{type=Type}=Image0) ->
     ImageId = wings_image:new(Name, Image),
     case can_texture_be_loaded(Image) of
 	false ->
-	    wpa:error(?__(1,"The image cannot be loaded as a texture (it is probably too large)."));
+	    wpa:error_msg(?__(1,"The image cannot be loaded as a texture (it is probably too large)."));
 	true ->
 	    MaxU = W0/W,
 	    MaxV = H0/H,
 	    M = [image],
-	    Fs = [#e3d_face{vs=[0,3,2,1],tx=[1,0,3,2],mat=M},
-		  #e3d_face{vs=[1,2,3,0],tx=[2,3,0,1],mat=M}],
-	    UVs = [{0.0,0.0},{MaxU,0.0},{MaxU,MaxV},{0.0,MaxV}],
+	    Fs = [#e3d_face{vs=[0,3,2,1]},
+		  #e3d_face{vs=[2,3,7,6],tx=[6,2,3,7],mat=M},
+		  #e3d_face{vs=[0,4,7,3]},
+		  #e3d_face{vs=[1,2,6,5]},
+		  #e3d_face{vs=[4,5,6,7]},
+		  #e3d_face{vs=[0,1,5,4],tx=[4,0,1,5],mat=M}],
+	    UVs = [{0.0,MaxV},{MaxU,MaxV},{0.0,0.0},{MaxU,0.0},
+	           {0.0,0.0},{MaxU,0.0},{0.0,MaxV},{MaxU,MaxV}],
+	    HardEdges = [{0,3},{2,3},{1,2},{0,1},{3,7},{6,7},
+	                 {2,6},{0,4},{4,7},{4,5},{5,6},{1,5}],
 	    {X,Y} = ratio(W0, H0),
-	    Vs = [{0.0,-Y,-X},{0.0,Y,-X},{0.0,Y,X},{0.0,-Y,X}],
-	    Mesh = #e3d_mesh{type=polygon,fs=Fs,vs=Vs,tx=UVs},
+	    D = 1.0e-3/2,
+	    Vs = [{-D,-Y,X},{-D,Y,X},{D,Y,X},{D,-Y,X},
+	          {-D,-Y,-X},{-D,Y,-X},{D,Y,-X},{D,-Y,-X}],
+	    Mesh = #e3d_mesh{type=polygon,fs=Fs,vs=Vs,tx=UVs,he=HardEdges},
 	    Obj = #e3d_object{obj=Mesh},
 	    White = wings_color:white(),
 	    Black = wings_color:white(),

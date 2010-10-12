@@ -71,7 +71,7 @@ command({window,uv_editor_window}, St) ->
 command(_Cmd, _) -> 
     next.
 
-start_uvmap(edit, #st{sel=[]}) -> wings_u:error(?__(1,"Nothing selected"));
+start_uvmap(edit, #st{sel=[]}) -> wings_u:error_msg(?__(1,"Nothing selected"));
 start_uvmap(Action, #st{sel=Sel}=St) ->
     start_uvmap_1(Sel, Action, St).
 
@@ -418,18 +418,19 @@ change_texture_id(NewId, MatName, GeomSt0=#st{mat=Materials}) ->
 %%%% Menus.
 
 command_menu(body, X, Y) ->
-    Menu = [{?__(2,"Move"), move, ?__(3,"Move selected charts")},
+    Menu = [{?__(2,"Move"), {move, move_directions(false)},
+	     ?__(3,"Move selected charts")},
 	    {?__(4,"Scale"), {scale, scale_directions(false) ++ 
 			      [separator] ++ stretch_directions() ++
-			      [separator, 
-			       {?__(411,"Normalize Sizes"), normalize, 
+			      [separator,
+			       {?__(411,"Normalize Sizes"), normalize,
 				?__(412,"Normalize Chart Sizes so that each"
-				    "chart get it's corresponding 2d area")}]}, 
+				    "chart get it's corresponding 2d area")}]},
 	     ?__(5,"Scale selected charts")},
 	    {?__(6,"Rotate"), rotate, ?__(7,"Rotate selected charts")},
 	    separator,
-	    {?__(8,"Move to"), 
-	     {move_to, 
+	    {?__(8,"Move to"),
+	     {move_to,
 	      [{?__(9,"Center"), center, ?__(10,"Move to Center")},
 	       {?__(11,"Center X"), center_x, ?__(12,"Move to horizontal center")},
 	       {?__(13,"Center Y"), center_y, ?__(14,"Move to vertical center")},
@@ -460,24 +461,26 @@ command_menu(body, X, Y) ->
 				 ]}, 
 	     ?__(45,"Calculate new UVs with chosen algorithm")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, auv, Menu);
+    wings_menu:popup_menu(X,Y, {auv,body}, Menu);
 command_menu(face, X, Y) ->
     Scale = scale_directions(true),
-    Menu = [{?__(47,"Move"),move,?__(48,"Move selected faces"),[magnet]},
+    Move = move_directions(true),
+    Menu = [{?__(47,"Move"),{move,Move},?__(48,"Move selected faces"),[magnet]},
 	    {?__(49,"Scale"),{scale,Scale},?__(50,"Scale selected faces"), [magnet]},
 	    {?__(51,"Rotate"),rotate,?__(52,"Rotate selected faces"), [magnet]},
 	    separator,
 	    {?__(521,"Project-Unfold"),	proj_lsqcm,
 	     ?__(522,"Project selected faces from normal and unfold the rest of chart")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, auv, Menu);
+    wings_menu:popup_menu(X,Y, {auv,face}, Menu);
 command_menu(edge, X, Y) ->
     Scale = scale_directions(true),
+    Move = move_directions(true),
     Align = 	    
 	[{?__(53,"Free"),free,?__(54,"Rotate selection freely"), [magnet]},
 	 {?__(55,"Chart to X"), align_x, ?__(56,"Rotate chart to align selected edge to X-axis")},
 	 {?__(57,"Chart to Y"), align_y, ?__(58,"Rotate chart to align selected edge to Y-axis")}],
-    Menu = [{?__(60,"Move"),move,?__(61,"Move selected edges"),[magnet]},
+    Menu = [{?__(60,"Move"),{move,Move},?__(61,"Move selected edges"),[magnet]},
 	    {?__(62,"Scale"),{scale,Scale},?__(63,"Scale selected edges"), [magnet]},
 	    {?__(64,"Rotate"),{rotate,Align},?__(65,"Rotate commands")},
 	    {?__(641,"Slide"),slide,?__(642,"Slide along neighbor edges")},
@@ -490,9 +493,10 @@ command_menu(edge, X, Y) ->
 	    {?__(66,"Stitch"), stitch, ?__(67,"Stitch edges/charts")},
 	    {?__(68,"Cut"), cut_edges, ?__(69,"Cut selected edges")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, auv, Menu);
+    wings_menu:popup_menu(X,Y, {auv,edge}, Menu);
 command_menu(vertex, X, Y) ->
     Scale = scale_directions(true),
+    Move = move_directions(true),
     Align = 	    
 	[{?__(70,"Free"),free,?__(71,"Rotate selection freely"), [magnet]},
 	 {?__(72,"Chart to X"), align_x, 
@@ -500,7 +504,7 @@ command_menu(vertex, X, Y) ->
 	 {?__(74,"Chart to Y"), align_y, 
 	  ?__(75,"Rotate chart to align (imaginary) edge joining selected verts to Y-axis")}],
 
-    Menu = [{?__(77,"Move"),move,?__(78,"Move selected vertices"),[magnet]},
+    Menu = [{?__(77,"Move"),{move,Move},?__(78,"Move selected vertices"),[magnet]},
 	    {?__(79,"Scale"),{scale,Scale},?__(80,"Scale selected vertices"), [magnet]},
 	    {?__(81,"Rotate"),{rotate,Align},?__(82,"Rotation commands")},
 	    separator,
@@ -516,15 +520,24 @@ command_menu(vertex, X, Y) ->
 	    {?__(91,"SphereMap"),sphere,?__(92,"Create a spherical mapping with "
 	     "selected vertices being North/South pole")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, auv, Menu);
+    wings_menu:popup_menu(X,Y, {auv,vertex}, Menu);
 command_menu(_, X, Y) ->
     [_|Menu] = option_menu(),
-    wings_menu:popup_menu(X,Y, auv, Menu).
+    wings_menu:popup_menu(X,Y, {auv,option}, Menu).
 
 stretch_directions() ->
     [{?__(1,"Max Uniform"), max_uniform, ?__(2,"Maximize either horizontally or vertically")},
      {?__(3,"Max Horizontal"), max_x, ?__(4,"Maximize horizontally (X dir)")},
      {?__(5,"Max Vertical"),   max_y, ?__(6,"Maximize vertically (Y dir)")}].
+
+move_directions(true) ->
+    [{?__(1,"Free"), free_2d, ?__(2,"Move in both directions"), [magnet]},
+     {?__(3,"Horizontal"), x, ?__(4,"Move horizontally (X dir)"), [magnet]},
+     {?__(5,"Vertical"),   y, ?__(6,"Move vertically (Y dir)"), [magnet]}];
+move_directions(false) ->
+    [{?__(1,"Free"), free_2d, ?__(2,"Move in both directions")},
+     {?__(3,"Horizontal"), x, ?__(4,"Move horizontally (X dir)")},
+     {?__(5,"Vertical"),   y, ?__(6,"Move vertically (Y dir)")}].
 
 scale_directions(true) ->
     [{?__(1,"Uniform"),    uniform, ?__(2,"Scale in both directions"), [magnet]},
@@ -652,7 +665,7 @@ handle_event_3(#mousebutton{button=?SDL_BUTTON_RIGHT}=Ev,
     end;
 handle_event_3({drop,_,DropData}, St) ->
     handle_drop(DropData, St);
-handle_event_3({action,{auv,create_texture}},_St) ->
+handle_event_3({action,{{auv,_},create_texture}},_St) ->
     auv_texture:draw_options();
 handle_event_3({action,{auv,{draw_options,restart}}}, _St) ->
     auv_texture:draw_options();
@@ -692,6 +705,9 @@ handle_event_3({callback,Fun}, _) when is_function(Fun) ->
 handle_event_3({action,{auv,quit}}, _St) ->
     cleanup_before_exit(),
     delete;
+handle_event_3({action,{{auv,_},Cmd}}, St) ->
+%%    io:format("Cmd ~p ~n", [Cmd]),
+    handle_command(Cmd, St);
 handle_event_3({action,{auv,Cmd}}, St) ->
 %%    io:format("Cmd ~p ~n", [Cmd]),
     handle_command(Cmd, St);
@@ -733,6 +749,8 @@ handle_event_3({action,Ev}, St) ->
 	    handle_command({scale,uniform},St);
 	{_, slide} ->
 	    handle_command(slide,St);
+	{_, circularise} ->
+	    handle_command(circularise,St);
 	{view,aim} ->
 	    St1 = fake_selection(St),
 	    wings_view:command(aim, St1),
@@ -834,11 +852,12 @@ handle_command_1(sphere, St0) ->
     get_event(St);
 handle_command_1(move, St) ->
     wings_move:setup(free_2d, St);
-handle_command_1({move,{move,Magnet}}, St) ->
-    wings_move:setup({free_2d,Magnet}, St); %% Repeat drag with mag
-handle_command_1({move,Magnet}, St) ->
-%%    do_drag(wings_move:setup({free_2d,Magnet}, St),none);
-    wings_move:setup({free_2d,Magnet}, St);
+handle_command_1({move,{'ASK',Ask}}, St) ->
+    wings:ask(Ask, St, fun(M,St0) ->
+			       do_drag(wings_move:setup(M, St0))
+		       end);
+handle_command_1({move,Axis}, St) ->
+    wings_move:setup(Axis, St);
 handle_command_1({scale,Dir}, St0) %% Maximize chart
   when Dir == max_uniform; Dir == max_x; Dir == max_y -> 
     St1 = wpa:sel_map(fun(_, We) -> stretch(Dir,We) end, St0),
@@ -955,9 +974,15 @@ handle_command_1(cut_edges, St0 = #st{selmode=edge,bb=#uvstate{id=Id,st=Geom}}) 
     St  = update_selected_uvcoords(St2),
     get_event(St);
 
-handle_command_1(_Cmd, #st{sel=[]}) ->
-    io:format("Error unknown command ~p ~n", [_Cmd]),
-    keep.
+handle_command_1(Cmd, #st{selmode=Mode}=St0) ->
+    case wings_plugin:command({{auv,Mode},Cmd}, St0) of
+      next ->
+        io:format("Error unknown command ~p ~n", [Cmd]),
+        keep;
+      St0 -> St0;
+      #st{}=St -> {save_state,St};
+      Other -> Other
+    end.
 
 remember_command(Cmd,St0) ->
     St0#st{repeatable=Cmd,ask_args=none,drag_args=none}.
@@ -986,7 +1011,9 @@ repeat(drag, Cmd0, St = #st{ask_args=AskArgs,drag_args=DragArgs}) ->
 
 repeat2(Cmd,St,DragArgs) ->
     case handle_command_1(Cmd,St) of
-	{drag,Drag} -> wings_drag:do_drag(Drag, DragArgs); 
+	{drag,Drag} ->
+	  wings_wm:set_prop(show_info_text, true),
+	  wings_drag:do_drag(Drag, DragArgs); 
 	Other -> Other
     end.
 
@@ -1226,7 +1253,7 @@ stitch_charts([ChartStitches|Other],Moved,St0=#st{shapes=Sh0}) ->
 		 We1 = wings_we:transform_vs(T, We1_1),
 		 gb_trees:update(Id1, We1, Sh0);
 	     _ ->
-		 wings_u:error(?__(1,"Hmm, I can't stitch so many charts at the same time"))
+		 wings_u:error_msg(?__(1,"Hmm, I can't stitch so many charts at the same time"))
 	 end,
     St = foldl(fun stitch_charts2/2, St0#st{shapes=Sh}, ChartStitches),
     stitch_charts(Other, gb_sets:add(Id2,gb_sets:add(Id1,Moved)), St).
@@ -1722,7 +1749,7 @@ align_chart(Dir, V1={X1,Y1,_},V2={X2,Y2,_}, We) ->
     rotate_chart(-Deg,Center,We).
 
 align_error() ->
-    wings_u:error(?__(1,"Select two vertices or one edge")).
+    wings_u:error_msg(?__(1,"Select two vertices or one edge")).
 
 flip_horizontal(We) ->
     flip(e3d_mat:scale(-1.0, 1.0, 1.0), We).
@@ -1783,10 +1810,10 @@ reunfold(Method,#st{sel=Sel,selmode=vertex}=St0) ->
 		 case gb_sets:size(Vs) of
 		     N when N /= 2, Method == sphere -> 
 			 E = ?__(1,"Select two vertices, the North and South pole"),
-			 wpa:error(E);
+			 wpa:error_msg(E);
 		     N when N < 2 ->
 			 E = ?__(2,"At least two vertices per chart must be pinned"),
-			 wpa:error(E);
+			 wpa:error_msg(E);
 		     _-> ok
 		 end
 	 end,
@@ -1841,16 +1868,16 @@ remap(proj_lsqcm, _, Sel, We0, St = #st{selmode=face}) ->
 		remap(lsqcm, Pinned, Sel, We0, St)
 	end
     catch throw:{_,What} ->
-	    wpa:error(What);
+	    wpa:error_msg(What);
 	throw:What ->
-	    wpa:error(What)
+	    wpa:error_msg(What)
     end;
 remap(Type, Pinned, _, We0, St) ->
     %% Get 3d positions (even for mapped vs).
     Vs3d = orig_pos(We0, St),
     case auv_mapping:map_chart(Type, We0#we{vp=Vs3d}, Pinned) of
 	{error,Msg} -> 
-	    wpa:error(Msg);
+	    wpa:error_msg(Msg);
 	Vs0 -> 
 	    update_and_scale_chart(Vs0,We0)
     end.

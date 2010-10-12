@@ -14,6 +14,7 @@
 
 -module(wings_pref_dlg).
 -export([menu/1,command/2]).
+-export([set_values/2]).
 
 -include("wings.hrl").
 -import(wings_pref, [get_value/1,set_value/2]).
@@ -210,10 +211,13 @@ advanced_prefs() ->
        [{info,?__(22,"Default to using the virtual mirror for secondary selections")}]},
       {?__(12,"Power-user temporary selections"),use_super_temp_sel,
        [{info,?__(13,"In the secondary selection mode, RMB-clicking always adds to the selection")},{hook,SuperDisable}]},
+      {?__(56,"Power-user menu abort"), menu_abort,
+       [{info,?__(57,"Mouse events such as Selection or Camera events abort menus")}]},
+      {?__(58,"Power-user menu hotkey support"), hotkeys_from_menus,
+       [{info,?__(59,"Allow hotkeys to be called even when menus are open")}]},
       {?__(54,"Extend selection via hotkey on temporary highlight"),hilite_select,
 	   [{info,?__(55,"Affects: Select All, Edge Loop, Edge Ring, Select Similar, Similar Normals, Similar Materials, and Similar Area.")},
 	     {hook,HighlightDisable}]},
-      {?__(53,"Launch Wings in Tweak Mode"),start_in_tweak},
      {vframe,
        [{label_column,
      [{?__(14,"Length"),active_vector_size,
@@ -235,11 +239,9 @@ advanced_prefs() ->
         {?__(29,"Unselected Geometry"),highlight_aim_at_unselected}],
        [{title,?__(30,"Highlight Aim Targets")},{hook,HighlightDisable}]}]},
      {vframe,
-        [{vframe,
-          [{?__(36,"Switching Modes Resets Model's Position"),drag_resets,
-              [{info,?__(37,"Only affects tools with more than one drag mode such as Edge|Slide")}]},
-           {?__(38,"Customize Drag Response"),drag_custom,
-               [{info,?__(39,"Customize the drag to mouse motion ratio. Unchecked uses default settings.")}]}]},
+      [{vframe,
+       [{?__(38,"Customize Drag Response"),drag_custom,
+         [{info,?__(39,"Customize the drag to mouse motion ratio. Unchecked uses default settings.")}]}]},
         {vframe,
           [{?__(40,"Factor in Distance from Camera"),drag_cam_dist_abs},
            {hframe,
@@ -424,49 +426,65 @@ ui_prefs() ->
 		      {?__(52,"Blue Cube"), bluecube},
 		      {?__(53,"Purple Tube"), purpletube}],
     Langs = [{language_name(L),L} || L <- Langs0],
+
+    Bitmap = fun (is_disabled, {_Var,_I,Store}) ->
+		       not gb_trees:get(bitmap_icons, Store);
+		       (_, _) ->	void
+		   end,
+
     {vframe,
      [{hframe,
        [{vframe,
-	 [{vframe,
-	   [{menu,Fonts,new_system_font}],
-	   [{title,?__(1,"System Font")}]},
-	  {hframe,
+	 [{hframe,
 	   [{vframe,
 	     [{label,?__(12,"Title (Active) Background")},
 	      {label,?__(11,"Title (Passive) Background")},
 	      {label,?__(10,"Title Text")},
+	       separator,
 	      {label,?__(2,"Desktop/Geometry Background")},
+	       separator,
 	      {label,?__(28,"Menubar Background")},
 	      {label,?__(31,"Menubar Text")},
+	       separator,
 	      {label,?__(6,"Menu Background")},
 	      {label,?__(3,"Menu Text")},
 	      {label,?__(4,"Menu Highlight")},
 	      {label,?__(5,"Menu Highlighted Text")},
+	       separator,
 	      {label,?__(9,"Dialog Background")},
 	      {label,?__(7,"Dialog Text")},
 	      {label,?__(8,"Dialog (Disabled) Text")},
+	       separator,
 	      {label,?__(29,"Info Line Background")},
 	      {label,?__(30,"Info Line Text")}]},
 	    {vframe,
 	     [{color,title_active_color},
 	      {color,title_passive_color},
 	      {color,title_text_color},
+	        separator,
 	      {color,background_color},
+	       separator,
 	      {color,menu_bar_bg},
 	      {color,menubar_text},
+	       separator,
 	      {color,menu_color},
 	      {color,menu_text},
 	      {color,menu_hilite},
 	      {color,menu_hilited_text},
+	       separator,
 	      {color,dialog_color},
 	      {color,dialog_text},
 	      {color,dialog_disabled},
+	       separator,
 	      {color,info_line_bg},
 	      {color,info_line_text}]}],
 	   [{title,?__(13,"Colors")}]}
 	 ]},
 	{vframe,
 	 [{vframe,
+	   [{menu,Fonts,new_system_font}],
+	   [{title,?__(1,"System Font")}]},
+	  {vframe,
 	   [{menu,Langs,language}],
 	   [{title,?__(23,"Language")}]},
 	  {vframe,
@@ -486,15 +504,35 @@ ui_prefs() ->
 			    {color,console_cursor_color}]}],
 	   [{title,?__(22,"Console")}]},
 	  {vframe,
-	   [{menu,InterfaceIcons,interface_icons}],
-	   [{title,?__(50,"Interface Icons")}]}]}
-       ]},
+	   [{menu,InterfaceIcons,interface_icons},
+	    {?__(27,"Extended Toolbar Icons"),extended_toolbar},
+	    {?__(40,"Menu Toolbar"), menu_toolbar,
+	     [{info,?__(41,"Adds a mini toolbar to the tops of the right-click menus")}]}],
+	   [{title,?__(50,"Interface Icons")}]}]},
+    {vframe,
+     [{vframe,
+       [{?__(24,"Objects in Outliner"),objects_in_outliner},
+	    {?__(32,"Adaptive Icons"), bitmap_icons,
+	     [{info, ?__(33,"Icons in the Outliner and Geometry Graph that allow for further color theming")}]},
+      {hframe,
+	   [{vframe,
+	    [{label,?__(35,"Background")},
+	     {label,?__(36,"Text")},
+	     {label,?__(37,"Highlighter")},
+	     {label,?__(38,"Highlighted Text")},
+	     {label,?__(39,"Disabled")}]},
+	    {vframe,
+	     [{color, outliner_geograph_bg},
+	      {color, outliner_geograph_text},
+	      {color, outliner_geograph_hl},
+	      {color, outliner_geograph_hl_text},
+	      {color, outliner_geograph_disabled}]}],
+	    [{title,?__(13,"Colors")},{hook,Bitmap}]}],
+	    [{title,?__(34,"Outliner/Geometry Graph")}]}	    ]}
+	   ]},
       {hframe,
 	    [{vframe,[{?__(14,"No Progress Bar"),no_progress_bar},
-	       {?__(25,"View image after rendering"),render_load_image},
-	       {?__(26,"Load image after rendering"),render_iload_image}]},
-	     {vframe,[{?__(24,"Objects in Outliner"),objects_in_outliner},
-	       {?__(27,"Extended Toolbar Icons"),extended_toolbar}]}]},
+	       {?__(42,"View render with external viewer"),render_load_image}]}]},
       {oframe,
        [{atom_to_list(Format),viewer_prefs(Format)}
 	|| {Format,_,_} <- wings_job:render_formats()],
@@ -586,7 +624,10 @@ misc_prefs() ->
 		      ?__(18,"Problem occurs on some Matrox cards")},
 		     {jumpy_camera,
 		      ?__(19,"Camera moves and interactive commands are jumpy"),
-		      ?__(20,"Problem occurs on Mac OS X 10.3 (Panther)")}
+		      ?__(20,"Problem occurs on Mac OS X 10.3 (Panther)")},
+		     {ungrab_bug,
+		      ?__(26,"Camera moves steals focus"),
+		      ?__(27,"Problem occurs on linux")}
 		    ])},
 	separator,
 	{hframe,[{label,?__(23,"Edge offsets:")},
@@ -596,7 +637,13 @@ misc_prefs() ->
        [{title,?__(21,"Workarounds")}]},
       {vframe,
        [{hframe,[{?__(24,"Show Develop menu"),show_develop_menu,
-		  [{info,?__(25,"Show a menu with tools for the Wings developers")}]}]}]}
+		  [{info,?__(25,"Show a menu with tools for the Wings developers")}]}]},
+	{vframe,
+	  [{label_column,
+	    [{?__(28,"Maximum menu height in pixels"),max_menu_height,
+	     [{info,?__(29,"Menus are clipped and continue in 'More...' submenu.")
+	       ++" "++?__(30,"Less than 1 sets menu clipping to auto.")}]}]}]}]}
+       
      ]}.
 
 workaround(L) ->
@@ -644,7 +691,13 @@ smart_set_value_1(Key, Val, St) ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(2,"The change to the interface icons will take\neffect the next time Wings 3D is started."));
 		new_console_font ->
-		    wings_console:window();
+		    set_console();
+		console_color ->
+		    set_console();
+		console_text_color ->
+		    set_console();
+		console_cursor_color ->
+		    set_console();
 		camera_mode ->
 		    wings_wm:translation_change();
 		num_buttons ->
@@ -664,6 +717,8 @@ smart_set_value_1(Key, Val, St) ->
 		material_default ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(3,"The change to the default material color will take\neffect the next time Wings 3D is started."));
+		objects_in_outliner ->
+		    wings_wm:send(outliner, {current_state,St});
 		show_develop_menu ->
 		    wings:init_menubar(),
 		    foreach(fun(W) ->
@@ -752,3 +807,12 @@ make_query({oframe,Frames,Key,Flags}) ->
 make_query(Tuple) when is_tuple(Tuple) ->
     list_to_tuple([make_query(El) || El <- tuple_to_list(Tuple)]);
 make_query(Other) -> Other.
+
+set_console() ->
+	case wings_wm:is_window(console) of
+	  true ->
+		{Pos,Size} = wings_wm:win_rect(console),
+		wings_console:window(),
+		wings_wm:move(console, Pos, Size);
+	  false -> ok
+	end.

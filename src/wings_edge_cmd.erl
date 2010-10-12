@@ -33,6 +33,8 @@ menu(X, Y, St) ->
 	     ?__(4,"Slide edges along neighbor edges")},
 	    separator,
 	    {?__(5,"Extrude"),{extrude,Dir}},
+	    {?__(22,"Crease"),crease,
+	     ?__(23,"Extrusion commonly used for adding wrinkles to organic models")},
 	    separator,
 	    wings_menu_util:flatten(),
 	    separator,
@@ -133,13 +135,14 @@ command({cut,Num}, St) ->
 command(connect, St) ->
     {save_state,connect(St)};
 command(clean_dissolve, St) ->
-    {save_state,clean_dissolve(St)};
+    {save_state,wings_shape:update_folders(clean_dissolve(St))};
 command(dissolve, St) ->
-    {save_state,dissolve(St)};
+    {save_state,wings_shape:update_folders(dissolve(St))};
 command(collapse, St) ->
     {save_state, wings_collapse:uniform_collapse(St)};
-command(clean_collapse, St) ->
-    {save_state, wings_collapse:clean_uniform_collapse(St)};
+command(clean_collapse, St0) ->
+    St = wings_collapse:clean_uniform_collapse(St0),
+    {save_state,wings_shape:update_folders(St)};
 command({hardness,Type}, St) ->
     {save_state,hardness(Type, St)};
 command(loop_cut, St) ->
@@ -152,6 +155,8 @@ command({rotate,Type}, St) ->
     wings_rotate:setup(Type, St);
 command({scale,Type}, St) ->
     wings_scale:setup(Type, St);
+command(crease, St) ->
+    ?SLOW(wings_extrude_edge:crease(St));
 command(vertex_color, St) ->
     wings_color:choose(fun(Color) ->
 			       set_color(Color, St)
@@ -245,7 +250,7 @@ cut_pick(St) ->
     wings_drag:setup(Tvs, Units, Flags, wings_sel:set(vertex, Sel, St)).
 
 cut_pick_error() ->
-    wings_u:error(?__(1,"Only one edge can be cut at an arbitrary position.")).
+    wings_u:error_msg(?__(1,"Only one edge can be cut at an arbitrary position.")).
 
 cut_pick_make_tvs(Edge, #we{id=Id,es=Etab,vp=Vtab,next_id=NewV}=We) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
@@ -610,7 +615,7 @@ loop_cut(Edges, #we{name=Name,id=Id,fs=Ftab}=We0, {Sel,St0}) ->
     AdjFaces = wings_face:from_edges(Edges, We0),
     case loop_cut_partition(AdjFaces, Edges, We0, []) of
 	[_] ->
-	    wings_u:error(?__(1,"Edge loop doesn't divide ~p into two (or more) parts."),
+	    wings_u:error_msg(?__(1,"Edge loop doesn't divide ~p into two (or more) parts."),
 			  [Name]);
 	Parts0 ->
 	    %% We arbitrarily decide that the largest part of the object
@@ -686,6 +691,21 @@ flatten({'ASK',Ask}, St) ->
     wings:ask(Ask, St, fun flatten/2);
 flatten({Plane,Center}, St) ->
     flatten(Plane, Center, St);
+flatten(edge_loop, St) ->
+    {save_state,
+     wings_sel:map(
+       fun(Es, We0) ->
+	       EGroups = wings_edge_loop:partition_edges(Es, We0),
+	       foldl(fun(Edges, #we{vp=Vtab}=We) ->
+	           case wings_edge_loop:edge_loop_vertices(Edges,We) of
+	               [Vs] ->
+	                   Positions = [array:get(V, Vtab) || V <- Vs],
+	                   Plane = e3d_vec:normal(Positions),
+	                   wings_vertex:flatten(Vs, Plane, We);
+	               _ -> We
+	           end
+	       end, We0, EGroups)
+       end, St)};
 flatten(Plane, St) ->
     flatten(Plane, average, St).
 
@@ -693,9 +713,12 @@ flatten(Plane0, average, St) ->
     Plane = wings_util:make_vector(Plane0),
     {save_state,
      wings_sel:map(
-       fun(Es, We) ->
-	       Vs = wings_edge:to_vertices(Es, We),
-	       wings_vertex:flatten(Vs, Plane, We)
+       fun(Es, We0) ->
+	       EGroups = wings_edge_loop:partition_edges(Es, We0),
+	       foldl(fun(Edges, We) ->
+	           Vs = wings_edge:to_vertices(Edges, We),
+	           wings_vertex:flatten(Vs, Plane, We)
+	       end, We0, EGroups)
        end, St)};
 flatten(Plane0, Center, St) ->
     Plane = wings_util:make_vector(Plane0),

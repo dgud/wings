@@ -16,11 +16,13 @@
 -export([menu/1,command/2]).
 
 %% Utilities.
--export([select_all/1]).
+-export([init/0,select_all/1]).
 
 -include("wings.hrl").
 -import(lists, [map/2,foldl/3,reverse/1,keymember/3,keyfind/3,usort/1]).
--import(erlang, [max/2]).
+
+init() ->
+    wings_pref:set_default(saved_selections_cycle_by_mode,false).
 
 menu(St) ->
     Help = ?__(99," (from selection or all visible objects (if no selection))"),
@@ -37,11 +39,16 @@ menu(St) ->
       {edge_loop,
        [{?__(7,"Edge Loop"),
 	 edge_loop,?__(8,"Expand edge selection to loop; ")++
-	 ?__(9,"convert face selection to selected border edges")},
+	 ?__(9,"convert face selection to selected border edges")++
+	 ?__(98,"; convert consecutive vertices to edges")},
 	{?__(10,"Edge Loop to Region"),edge_loop_to_region,
 	 ?__(11,"Select all faces on one side of an edge loop")},
 	{?__(12,"Edge Ring"),
 	 edge_ring,?__(13,"Expand edge selection to ring")},
+	{?__(100,"Every Nth Ring"),{nth_edge_ring,
+	    [{?__(101,"Second"),2},
+	     {?__(102,"Third"),3},
+	     {?__(103,"Nth..."),nth}]}},
 	separator,
 	{?__(14,"Previous Edge Loop"),
 	 prev_edge_loop,?__(15,"Select the previous edge loop")},
@@ -173,32 +180,45 @@ similar_material_faces(_) ->
 
 groups_menu(#st{ssels=Ssels}=St) ->
     case gb_trees:is_empty(Ssels) of
-	true -> [];
-	false ->
-	    [{?__(1,"Delete Group"),
-	      {delete_group,
-	       groups_and_help(?__(2,"Delete group \""), "\"", St)}},
-	     separator,
-	     {?__(4,"Add to Group"),
-	      {add_to_group,
-	       groups_and_help(?__(5,"Add current selection to group \""),"\"", St)}},
-	     {?__(7,"Subtract from Group"),
-	      {subtract_from_group,
-	       groups_and_help(?__(8,"Subtract current selection from group \""),"\"", St)}},
-	     separator,
-	     {?__(10,"Select Group"),
-	      {select_group,
-	       groups_and_help(?__(11,"Select group \""), "\"", St)}},
-	     separator,
-	     {?__(13,"Union Group"),
-	      {union_group,
-	       groups_and_help(?__(14,"Union group \""),?__(15,"\" with current selection"), St)}},
-	     {?__(16,"Subtract Group"),
-	      {subtract_group,
-	       groups_and_help(?__(17,"Subtract group \""),?__(18,"\" from current selection"), St)}},
-	     {?__(19,"Intersect Group"),
-	      {intersect_group,
-	       groups_and_help(?__(20,"Intersect group \""),?__(21,"\" with current selection"), St)}}]
+        true -> [];
+        false ->
+          [{?__(22,"Selection Groups"),
+            {ssels,
+             [{?__(1,"Delete Group"),
+               {delete_group,
+                groups_and_help(?__(2,"Delete group \""), "\"", St)}},
+               separator,
+               {?__(4,"Add to Group"),
+                {add_to_group,
+                 groups_and_help(?__(5,"Add current selection to group \""),
+                   "\"", St)}},
+               {?__(7,"Subtract from Group"),
+                {subtract_from_group,
+                 groups_and_help(?__(8,"Subtract current selection from group \""),
+                   "\"", St)}},
+               separator,
+               {?__(10,"Select Group"),
+                {select_group,
+                 groups_and_help(?__(11,"Select group \""), "\"", St)++
+                 [separator,
+                 {?__(24,"Next Group"),next},
+                 {?__(25,"Previous Group"),prev},
+                 {?__(26,"Cycle In Selection Mode"),saved_selections_cycle_by_mode,
+                  ?__(27,"Cycle Prev/Next only within active selection mode"),
+                  wings_menu_util:crossmark(saved_selections_cycle_by_mode)}]}},
+               separator,
+               {?__(13,"Union Group"),
+                {union_group,
+                 groups_and_help(?__(14,"Union group \""),
+                   ?__(15,"\" with current selection"), St)}},
+               {?__(16,"Subtract Group"),
+                {subtract_group,
+                 groups_and_help(?__(17,"Subtract group \""),
+                   ?__(18,"\" from current selection"), St)}},
+               {?__(19,"Intersect Group"),
+                {intersect_group,
+                 groups_and_help(?__(20,"Intersect group \""),
+                   ?__(21,"\" with current selection"), St)}}]}}]
     end.
 
 groups_and_help(Help0, Help1, #st{ssels=Ssels}) ->
@@ -240,6 +260,8 @@ similar_help(#st{selmode=face}) ->
 similar_help(#st{selmode=body}) ->
     ?__(4,"Select objects with the same number of edges, faces, and vertices").
 
+command({edge_loop,edge_loop}, #st{selmode=vertex}=St) ->
+    {save_state,vs_to_edge_loop(St)};
 command({edge_loop,edge_loop}, #st{selmode=face}=St) ->
     {save_state,face_region_to_edge_loop(St)};
 command({edge_loop,edge_loop}, St) ->
@@ -248,6 +270,10 @@ command({edge_loop,edge_link_decr}, St) ->
     {save_state,wings_edge_loop:select_link_decr(St)};
 command({edge_loop,edge_link_incr}, St) ->
     {save_state,wings_edge_loop:select_link_incr(St)};
+command({edge_loop,{nth_edge_ring,nth}}, St) ->
+    select_nth_ring(St);
+command({edge_loop,{nth_edge_ring,N}}, St) ->
+    {save_state,wings_edge:select_nth_ring(N,St)};
 command({edge_loop,edge_ring}, St) ->
     {save_state,wings_edge:select_edge_ring(St)};
 command({edge_loop,edge_ring_incr}, St) ->
@@ -283,24 +309,35 @@ command({similar_area,Ask}, St) ->
 	
 command({similar_material,Ask}, St) ->
     similar_material(Ask, St);
+
+command({ssels,{select_group,saved_selections_cycle_by_mode}}, St) ->
+    Pref = wings_pref:get_value(saved_selections_cycle_by_mode),
+    wings_pref:set_value(saved_selections_cycle_by_mode, not Pref),
+    {save_state,St};
+command({ssels,{select_group,Id}}, St) when Id =:= next; Id =:= prev ->
+    {save_state,cycle_group(Id, St)};
 	
-command({select_group,Id}, St) ->
+command({ssels,{select_group,Id}}, St) ->
     {save_state,select_group(Id, St)};
-command({union_group, Id}, St) ->
+command({ssels,{union_group,Id}}, St) ->
     {save_state,union_group(Id, St)};
-command({subtract_group, Id}, St) ->
+command({ssels,{subtract_group,Id}}, St) ->
     {save_state,subtract_group(Id, St)};
-command({intersect_group, Id}, St) ->
+command({ssels,{intersect_group,Id}}, St) ->
     {save_state,intersect_group(Id, St)};
-command({add_to_group, Id}, St) ->
+command({ssels,{add_to_group,Id}}, St) ->
     {save_state,add_to_group(Id, St)};
-command({subtract_from_group, Id}, St) ->
+command({ssels,{subtract_from_group,Id}}, St) ->
     {save_state,subtract_from_group(Id, St)};
 command({new_group_name, Name}, St) ->
     {save_state,new_group_name(Name, St)};
 command(new_group, St) ->
     new_group(St);
-command({delete_group,Id}, #st{ssels=Ssels}=St) ->
+command({ssels,{delete_group,invalid}}, St) ->
+    {save_state,delete_invalid_groups(St)};
+command({ssels,{delete_group,all}}, St) ->
+    {save_state,St#st{ssels=gb_trees:empty()}};
+command({ssels,{delete_group,Id}}, #st{ssels=Ssels}=St) ->
     {save_state,St#st{ssels=gb_trees:delete(Id, Ssels)}};
 command(inverse, St) ->
     {save_state,inverse(St)};
@@ -383,6 +420,32 @@ face_region_to_edge_loop(St) ->
 subtract_mirror_edges(Es, #we{mirror=none}) -> Es;
 subtract_mirror_edges(Es, #we{mirror=Face}=We) ->
     Es -- wings_face:to_edges([Face], We).
+
+vs_to_edge_loop(St) ->
+    Sel = wings_sel:fold(
+      fun(Vs, #we{id=Id}=We, Acc) ->
+        Es0 = vs_to_edges(Vs, We, []),
+        Es1 = subtract_mirror_edges(Es0, We),
+        Es = gb_sets:from_list(Es1),
+        [{Id,Es}|Acc]
+      end, [], St),
+    wings_sel:set(edge, Sel, St).
+
+vs_to_edges(Vs0, We, Es0) ->
+    case gb_sets:is_empty(Vs0) of
+      true -> lists:usort(Es0);
+      false ->
+        {Va,Vs} = gb_sets:take_smallest(Vs0),
+        Es = wings_vertex:fold(
+          fun(Edge, _, EdgeRec, Es1) ->
+            Vb = wings_vertex:other(Va, EdgeRec),
+            case gb_sets:is_element(Vb, Vs) of
+              true -> [Edge|Es1];
+              _ -> Es1
+            end
+          end, Es0, Va, We),
+        vs_to_edges(Vs, We, Es)
+    end.
 
 %%%
 %%% Selection commands.
@@ -476,7 +539,7 @@ update_unsel(Perm, #st{shapes=Shs0,sel=Sel}=St) ->
 union_group(Key, #st{sel=Sel0}=St) ->
     Ssel = coerce_ssel(Key, St),
     Sel = union(Sel0, Ssel),
-    St#st{sel=Sel}.
+    wings_sel:valid_sel(St#st{sel=Sel}).
 
 union(Sa, Sb) ->
     combine_sel(fun(Ss) -> gb_sets:union(Ss) end, Sa, Sb).
@@ -546,7 +609,25 @@ select_group({Mode,_}=Key, #st{ssels=Ssels}=St) ->
     ValidSel = wings_sel:valid_sel(Ssel, Mode, St),
     St#st{selmode=Mode,sel=ValidSel}.
 
-add_to_group({Mode,_}=Key, #st{ssels=Ssels}=St) ->
+%%%% Delete Groups that return an empty selection. Invalid ssels can result from
+%%%% creating or deleting geomerty.
+delete_invalid_groups(#st{ssels=Ssels}=St0) ->
+    case gb_trees:is_empty(Ssels) of
+      true ->
+        St0;
+      false ->
+        Keys = gb_trees:keys(Ssels),
+        lists:foldl(fun(Key,#st{ssels=Ss,selmode=Mode}=St) ->
+                Ssel = gb_trees:get(Key,Ss),
+                ValidSel = wings_sel:valid_sel(Ssel, Mode, St),
+                case ValidSel of
+                  [] -> St#st{ssels=gb_trees:delete(Key,Ss)};
+                  _ -> St
+                end
+        end,St0,Keys)
+    end.
+
+add_to_group({Mode,_}=Key, #st{ssels=Ssels}=St) -> 
     Ssel0 = gb_trees:get(Key, Ssels),
     Ssel1 = wings_sel:valid_sel(Ssel0, Mode, St),
     #st{sel=Sel} = possibly_convert(Mode, St),
@@ -583,7 +664,7 @@ new_group_name(Name, #st{ssels=Ssels0,selmode=Mode,sel=Sel}=St) ->
 	    Exists = ?__(exists,"already exists."),
 	    Msg0 = [GroupMode," \"",Name,"\" ",Exists],
 	    Msg = lists:flatten(Msg0),
-	    wings_u:error(Msg)
+	    wings_u:error_msg(Msg)
     end,
     Ssels = gb_trees:insert(Key, Sel, Ssels0),
     St#st{ssels=Ssels}.
@@ -596,6 +677,54 @@ group_mode_string(face) ->
     ?__(face, "Face selection group");
 group_mode_string(body) ->
     ?__(body, "Body selection group").
+
+%%%% Cycle Through Save Selections
+cycle_group(Dir, #st{selmode=SelMode,ssels=Ssels,sh=Sh}=St) ->
+    case gb_trees:is_empty(Ssels) of
+      true -> St;
+      false ->
+        Keys0 = gb_trees:keys(Ssels),
+        Keys1 = case wings_pref:get_value(saved_selections_cycle_by_mode) of
+          true when Sh -> Keys0;
+          true -> [Key || {Mode,_}=Key <- Keys0, Mode =:= SelMode];
+          false -> Keys0
+        end,
+        Keys = case Dir of
+          next -> Keys1;
+          prev -> lists:reverse(Keys1)
+        end,
+        cycle_ss_keys(Keys,St)
+    end.
+
+cycle_ss_keys([],St) -> St;
+cycle_ss_keys(Keys,St) ->
+    case search_ssel_keys(Keys,St,[]) of
+      {none,[]} -> [Key|_] = Keys;
+      {none,Acc} ->
+        Key = lists:last(Acc);
+      [] ->
+        [Key|_] = Keys;
+      Other ->
+        [Key|_] = Other
+    end,
+    case select_group(Key,St) of
+      #st{sel=[]} -> cycle_ss_keys(lists:delete(Key,Keys),St);
+      NewSt -> NewSt
+    end.
+
+search_ssel_keys([{Mode,_}=PKey|Keys],#st{selmode=Mode,sel=Sel,ssels=Ssels}=St,Acc) ->
+    PSel0 = gb_trees:get(PKey,Ssels),
+    PSel = wings_sel:valid_sel(PSel0, Mode, St),
+    case PSel =:= Sel of
+      true ->
+        Keys;
+      false ->
+        search_ssel_keys(Keys,St,[PKey|Acc])
+    end;
+search_ssel_keys([_|Keys],St,Acc) ->
+    search_ssel_keys(Keys,St,Acc);
+search_ssel_keys([],_St,Acc) ->
+    {none,Acc}.
 
 %%%
 %%% Select Similar.
@@ -872,7 +1001,7 @@ item_by_id(Prompt, #st{sel=[{Id,_}]}) ->
 	end);
 item_by_id(Prompt, #st{shapes=Shs}) ->
     case gb_trees:to_list(Shs) of
-	[] -> wings_u:error(?__(1,"Nothing to select."));
+	[] -> wings_u:error_msg(?__(1,"Nothing to select."));
 	[{Id,_}] ->
 	    ask([{Prompt,0}],
 		fun([Item]) ->
@@ -896,11 +1025,11 @@ valid_sel(Prompt, Sel, #st{shapes=Shs,selmode=Mode}=St) ->
 	    [Item] = gb_sets:to_list(Item0),
 	    case gb_trees:is_defined(Id, Shs) of
 		false ->
-		    wings_u:error(?__(1,"The Object Id ")++
+		    wings_u:error_msg(?__(1,"The Object Id ")++
 				  integer_to_list(Id)++
 				  ?__(2," is invalid."));
 		true ->
-		    wings_u:error(?__(3,"The ")++Prompt++" "++
+		    wings_u:error_msg(?__(3,"The ")++Prompt++" "++
 				  integer_to_list(Item)++
 				  ?__(4," is invalid."))
 	    end;
@@ -1019,7 +1148,7 @@ oriented_faces(Ask, _St) when is_atom(Ask) ->
 oriented_faces([Tolerance,Connected,Save], #st{selmode=face, sel=[]}) ->
     wings_pref:set_value(similar_normals_connected,Connected),
     wings_pref:set_value(similar_normals_angle,{Save,Tolerance}),
-    wings_u:error(?__(4,"At least one face must be selected"));
+    wings_u:error_msg(?__(4,"At least one face must be selected"));
 
 oriented_faces([Tolerance,false,Save], St) ->
     wings_pref:set_value(similar_normals_connected,false),
@@ -1102,7 +1231,7 @@ similar_material(Ask, _St) when is_atom(Ask) ->
 
 similar_material([Connected|_], #st{selmode=face,sel=[]}) ->
     wings_pref:set_value(similar_materials_connected,Connected),
-    wings_u:error(?__(3,"At least one face must be selected"));
+    wings_u:error_msg(?__(3,"At least one face must be selected"));
 
 similar_material([false,Mode], St) ->
     Materials = wings_sel:fold(fun
@@ -1185,38 +1314,53 @@ any_matching_material(Material, [Mat|T]) ->
 %%%
 
 sharp_edges(Ask, _St) when is_atom(Ask) ->
-    Qs = [{label,?__(1,"Max Angle")},
-	  {text,120.0,[{range,{0.0,180.0}}]}],
+    Qs = [{hframe,[{label,?__(1,"Max Angle")},
+      {slider,{text,120.0,[{range,{0.0,180.0}}]}}]},
+      {hradio,[{?__(3,"Peaks"),convex},
+               {?__(4,"Valleys"),concave},
+               {?__(5,"Both"),both}],both}],
     wings_ask:dialog(Ask,
-	?__(2,"Select Sharp Edges"), [{hframe,Qs}],
-	fun(Res) ->
-	    {select,{by,{sharp_edges,Res}}}
-	end);
-sharp_edges([Tolerance], #st{sel=[]}=St0) ->
+    ?__(2,"Select Sharp Edges"), [{vframe,Qs}],
+    fun(Res) ->
+        {select,{by,{sharp_edges,Res}}}
+    end);
+sharp_edges([Tolerance,Type], #st{sel=[]}=St0) ->
     CosTolerance = -math:cos(Tolerance * math:pi() / 180.0),
     St = wings_sel:make(fun(Edge, We) ->
-	     sharp_edge(CosTolerance, Edge, We)
-	 end, edge, St0),
+         sharp_edge(CosTolerance, Type, Edge, We)
+     end, edge, St0),
     {save_state,St};
-sharp_edges([Tolerance], #st{selmode=Mode}=St0) ->
+sharp_edges([Tolerance,Type], #st{selmode=Mode}=St0) ->
     St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
     CosTolerance = -math:cos(Tolerance * math:pi() / 180.0),
     Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
-		  Sel1 = gb_sets:to_list(Sel0),
-		  SharpEdges = [Edge || Edge <- Sel1, sharp_edge(CosTolerance, Edge, We)],
-		  case SharpEdges of
-		    [] -> Acc;
-		    _ -> [{Id, gb_sets:from_list(SharpEdges)}|Acc]
-		  end
-	  end,[],St),
+          Sel1 = gb_sets:to_list(Sel0),
+          SharpEdges = [Edge || Edge <- Sel1, sharp_edge(CosTolerance, Type, Edge, We)],
+          case SharpEdges of
+            [] -> Acc;
+            _ -> [{Id, gb_sets:from_list(SharpEdges)}|Acc]
+          end
+      end,[],St),
     {save_state,wings_sel:set(edge, Sel, St0)}.
 
-
-sharp_edge(CosTolerance, Edge, #we{es=Etab}=We) ->
-    #edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
+sharp_edge(CosTolerance, Type, Edge, #we{es=Etab,vp=Vtab}=We) ->
+    #edge{lf=Lf,rf=Rf,vs=Va,ve=Vb} = array:get(Edge, Etab),
     Lfn = wings_face:normal(Lf, Edge, We),
     Rfn = wings_face:normal(Rf, Edge, We),
-    e3d_vec:dot(Lfn,Rfn) < CosTolerance.
+    Dot = e3d_vec:dot(Lfn,Rfn),
+    case Dot < CosTolerance of
+      false -> false;
+      true when Type =:= both -> true;
+      true ->
+        EdgeNormal = e3d_vec:add(Lfn,Rfn),
+        EdgeCenter = e3d_vec:average(array:get(Va, Vtab), array:get(Vb, Vtab)),
+        FacesCenter = e3d_vec:average(wings_face:center(Lf,We),wings_face:center(Rf,We)),
+        Vec = e3d_vec:sub(EdgeCenter,FacesCenter),
+        case Type of
+           convex -> e3d_vec:dot(EdgeNormal,Vec) > 0.0;
+           concave -> e3d_vec:dot(EdgeNormal,Vec) < 0.0
+        end
+    end.
 
 %%%
 %%% Select shortest path
@@ -1226,12 +1370,12 @@ shortest_path(Method, St) ->
     #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
     case (Mode==vertex) andalso (length(Sel)==1) of
 	true -> ok;
-	false -> wings_u:error(?__(1,"Exactly two vertices must be\n selected on the same object."))
+	false -> wings_u:error_msg(?__(1,"Exactly two vertices must be\n selected on the same object."))
     end,
     [{Id,SelectedVs}] = Sel,
     case gb_sets:size(SelectedVs)==2 of
 	true -> ok;
-	false -> wings_u:error(?__(2,"Exactly two vertices must be selected."))
+	false -> wings_u:error_msg(?__(2,"Exactly two vertices must be selected."))
     end,
     We = gb_trees:get(Id, Shapes),
     [Pa,Pb] = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(SelectedVs)],
@@ -1428,12 +1572,12 @@ similar_area([Tolerance], St) ->
     #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
     case (Mode==face) and (length(Sel)==1) of
 	true -> ok;
-	false -> wings_u:error(?__(3,"Exactly one face must be\n selected on a single object."))
+	false -> wings_u:error_msg(?__(3,"Exactly one face must be\n selected on a single object."))
     end,
     [{Id,SelectedFs}] = Sel,
     case gb_sets:size(SelectedFs)==1 of
 	true -> ok;
-	false -> wings_u:error(?__(4,"Exactly one face must be selected."))
+	false -> wings_u:error_msg(?__(4,"Exactly one face must be selected."))
     end,
     We = gb_trees:get(Id, Shapes),
     Face1 = hd(gb_sets:to_list(SelectedFs)),
@@ -1479,12 +1623,8 @@ hard_edges(#st{selmode=Mode}=St0) ->
 
 vertices_with(N, #st{sel=[]}=St) ->
     Sel = fun(V, We) ->
-		  Cnt = wings_vertex:fold(
-			  fun(_, _, _, Cnt) ->
-				  Cnt+1
-			  end, 0, V, We),
-		  Cnt =:= N
-	  end,
+	  vertices_with(N, V, We)
+    end,
     wings_sel:make(Sel, vertex, St);
 vertices_with(N, #st{selmode=Mode}=St0) ->
     St = if Mode =:= vertex -> St0; true -> wings_sel_conv:mode(vertex, St0) end,
@@ -1538,3 +1678,13 @@ faces_with(Filter, Face, We) ->
       {faces_with,5} -> Vs >= 5;
       {faces_with,N} -> Vs =:= N
     end.
+
+select_nth_ring(#st{selmode=edge}) ->
+    Qs = [{label,?__(1,"Interval")},
+	  {text,2,[{range,{1,1000}}]}],
+    wings_ask:dialog(true,
+	?__(2,"Select Every Nth Edge Ring"), [{hframe,Qs}],
+	fun([Res]) ->
+	    {select,{edge_loop,{nth_edge_ring,Res}}}
+	end);
+select_nth_ring(St) -> {save_state,St}.

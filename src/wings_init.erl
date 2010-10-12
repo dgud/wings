@@ -87,7 +87,7 @@ video_mode_failure() ->
     io:format(?__(2,"Failed to find any suitable OpenGL mode.\n\n")),
     io:format(?__(3,"Make sure that OpenGL drivers are installed.\n\n")),
     io:format("\n###########################################\n\n"),
-    erlang:error(?__(5,"No suitable OpenGL mode found (are OpenGL drivers installed?)")).
+    error(?__(5,"No suitable OpenGL mode found (are OpenGL drivers installed?)")).
 
 try_video_modes_1([Mode|Modes], TopSize) ->
     io:format("  ~p\n", [Mode]),

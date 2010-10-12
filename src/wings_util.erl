@@ -152,7 +152,7 @@ array_keys(Array) ->
 array_smallest_key(Array) ->
     try
 	array:sparse_foldl(fun(I, _, _) -> throw(I) end, [], Array),
-	erlang:error(empty_array)
+	error(empty_array)
     catch
 	throw:I when is_integer(I) ->
 	    I
@@ -161,7 +161,7 @@ array_smallest_key(Array) ->
 array_greatest_key(Array) ->
     try
 	array:sparse_foldr(fun(I, _, _) -> throw(I) end, [], Array),
-	erlang:error(empty_array)
+	error(empty_array)
     catch
 	throw:I when is_integer(I) ->
 	    I
@@ -246,7 +246,7 @@ format_1("~s"++F, [S0|Args], Acc) ->
 	    true -> 
 		io:format("Bad string formatter for ~p in ~p~n", 
 			  [S0, lists:flatten(reverse(Acc) ++ F)]),
-		erlang:error(badarg)
+		error(badarg)
 	end,
     format_1(F, Args, [S|Acc]);
 format_1("~p"++F, [S0|Args], Acc) ->

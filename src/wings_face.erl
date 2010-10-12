@@ -444,7 +444,7 @@ bad_edges([F|Fs], Ftab, Etab, Acc) ->
 	{value,Edge} ->
 	    case array:get(Edge, Etab) of
 		#edge{ltpr=Same,ltsu=Same,rtpr=Same,rtsu=Same} ->
-		    erlang:error({internal_error,one_edged_face,F});
+		    error({internal_error,one_edged_face,F});
 		#edge{ltpr=Same,ltsu=Same} ->
 		    bad_edges(Fs, Ftab, Etab, [Edge|Acc]);
 		#edge{rtpr=Same,rtsu=Same} ->

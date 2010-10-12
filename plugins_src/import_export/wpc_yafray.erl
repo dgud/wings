@@ -389,7 +389,7 @@ command_file(render, Attr, St) when is_list(Attr) ->
 		      props(render, Attr), 
 		      [{?TAG_RENDER,true}|Attr], St);
 	true ->
-	    wpa:error(?__(1,"Already rendering."))
+	    wpa:error_msg(?__(1,"Already rendering."))
     end;
 command_file(render=Op, Ask, _St) when is_atom(Ask) ->
     export_dialog(Op, Ask, ?__(2,"YafRay Render Options"),
@@ -3651,7 +3651,7 @@ open(Filename, export) ->
 	{ok, F} ->
 	    F;
 	Error ->
-	    erlang:error(Error, [Filename, export])
+	    error(Error, [Filename, export])
     end.
 
 println(F) ->
@@ -3662,7 +3662,7 @@ print(F, DeepString) ->
 	ok ->
 	    ok;
 	Error ->
-	    erlang:error(Error, [F,DeepString])
+	    error(Error, [F,DeepString])
     end.
 
 println(F, DeepString) ->
@@ -3670,7 +3670,7 @@ println(F, DeepString) ->
 	ok ->
 	    ok;
 	Error ->
-	    erlang:error(Error, [F,DeepString])
+	    error(Error, [F,DeepString])
     end.
 
 print(F, Format, Args) ->
@@ -3678,7 +3678,7 @@ print(F, Format, Args) ->
 	ok ->
 	    ok;
 	Error ->
-	    erlang:error(Error, [F,Format,Args])
+	    error(Error, [F,Format,Args])
     end.
 
 println(F, Format, Args) ->
@@ -3686,7 +3686,7 @@ println(F, Format, Args) ->
 	ok ->
 	    ok;
 	Error ->
-	    erlang:error(Error, [F,Format,Args])
+	    error(Error, [F,Format,Args])
     end.
 
 close(F) ->
@@ -3694,7 +3694,7 @@ close(F) ->
 	ok ->
 	    ok;
 	Error ->
-	    erlang:error(Error, [F])
+	    error(Error, [F])
     end.
 
 
@@ -3830,7 +3830,7 @@ split_list(List, Pos) when is_list(List), is_integer(Pos), Pos >= 0 ->
 	{_,_}=Result ->
 	    Result;
 	Error ->
-	    erlang:error(Error, [List, Pos])
+	    error(Error, [List, Pos])
     end.
 %%
 split_list1(List, 0, Head) ->
@@ -3857,10 +3857,6 @@ zip_lists([H1|T1], [H2|T2]) -> [{H1,H2}|zip_lists(T1, T2)].
 %%% 	true -> filter2_1(Pred, T, [H|True], False);
 %%% 	false -> filter2_1(Pred, T, True, [H|False])
 %%%     end.
-
-max(X, Y) when X > Y -> X;
-max(_, Y) -> Y.
-
 
 
 -ifdef(print_mesh_1).

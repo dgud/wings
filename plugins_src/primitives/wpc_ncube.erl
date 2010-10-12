@@ -18,9 +18,9 @@
 
 init() -> true.
 
-menu({shape,more}, []) ->
+menu({shape}, []) ->
     ncube_menu();
-menu({shape,more}, Menu) ->
+menu({shape}, Menu) ->
     Menu ++ [separator|ncube_menu()];
 menu(_, Menu) -> Menu.
 
@@ -28,8 +28,8 @@ ncube_menu() ->
     [{?__(1,"N-Cube"),ncube,[option]},
      {?__(2,"N-Gon"),ngon,[option]}].
 
-command({shape,{more,{ncube, Arg}}},_St) -> make_ncube(Arg);
-command({shape,{more,{ngon, Arg}}},_St) -> make_ngon(Arg);
+command({shape,{ncube, Arg}},_St) -> make_ncube(Arg);
+command({shape,{ngon, Arg}},_St) -> make_ngon(Arg);
 command(_, _) -> next.
 
 %%% The rest are local functions.
@@ -39,7 +39,7 @@ command(_, _) -> next.
 % =============
 make_ncube(Arg) when is_atom(Arg) ->
     wpa:dialog(Arg, ?__(1,"N-Cube Options"), ncube_dialog(),
-	fun(Res) -> {shape,{more,{ncube,Res}}} end);
+	fun(Res) -> {shape,{ncube,Res}} end);
 make_ncube(Arg) ->
     % set_pref(Arg),	% don't save
     ArgDict = dict:from_list(Arg),
@@ -112,7 +112,7 @@ dtc_round(Float, Decimals) -> % Accurately rounds decimals - www.digithings.com
 % =============
 make_ngon(Arg) when is_atom(Arg) ->
     wpa:dialog(Arg, ?__(1,"N-Gon Options"), ngon_dialog(),
-	fun(Res) -> {shape,{more,{ngon,Res}}} end);
+	fun(Res) -> {shape,{ngon,Res}} end);
 make_ngon(Arg) ->
     ArgDict = dict:from_list(Arg),
     NumVerts = dict:fetch(numverts, ArgDict),

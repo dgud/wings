@@ -46,13 +46,13 @@ menu({face}, Menu) ->
 	    [{?__(5,"Snap Image"),snap_image,
 	      ?__(6,"Put background image on selected faces by assigning "
 	      "UV coordinates to them")}|
-	     snap_menu()] ++ Menu    
+	     snap_menu()] ++ Menu
     end;
 menu({Type}, Menu) when Type == vertex; Type == edge;
 			Type == body; Type == shape ->
     case active() of
 	false -> Menu;
-	true -> snap_menu() ++ Menu    
+	true -> snap_menu() ++ Menu
     end;
 menu(_, Menu) -> Menu.
 
@@ -60,15 +60,33 @@ snap_menu() ->
     ScaleMenu = [{?__(1,"Horizontal"),x,?__(2,"Scale the background image horizontally")},
 		 {?__(3,"Vertical"),y,?__(4,"Scale the background image vertically")},
 		 {?__(5,"Free"),free,?__(6,"Scale the background image freely")},
-		 {?__(7,"Uniform"),uniform,?__(8,"Scale the background image uniformly")}],
-    MoveMenu = [{?__(9,"Horizontal"),x,?__(10,"Move the background image horizontally")},
-		{?__(11,"Vertical"),y, ?__(12,"Move the background image vertically")},
-		{?__(13,"Free"),free,  ?__(14,"Move the background image freely")}], 
+		 {?__(7,"Uniform"),uniform,?__(8,"Scale the background image uniformly")},
+		 {?__(32,"Proportional"),{auv_snap_prop,proportional_scale()},?__(33,"Make image scale proportional")}],
+    MoveMenu = [{?__(1,"Horizontal"),x,?__(10,"Move the background image horizontally")},
+		{?__(3,"Vertical"),y, ?__(12,"Move the background image vertically")},
+		{?__(5,"Free"),free,  ?__(14,"Move the background image freely")},
+		separator,
+		{?__(30,"Center"),center, ?__(31,"Center the background image to the viewport")},
+		{?__(26,"Center X"),center_x, ?__(27,"Center the background image horizontally")},
+		{?__(28,"Center Y"),center_y, ?__(29,"Center the background image vertically")}],
 
     [{?__(15,"Scale Snap Image"),{auv_snap_scale,ScaleMenu},?__(16,"Scale the background image")},
      {?__(17,"Move Snap Image"),{auv_snap_move,MoveMenu},?__(18,"Move the background image")},
+     {?__(21,"Fit Snap Image"),{auv_snap_fit,
+         [{?__(22,"Both"),both},
+          {?__(1,"Horizontal"),x},
+          {?__(3,"Vertical"),y}]},
+      ?__(25,"Fit image to the dimensions of the viewport")},
      {?__(19,"Exit Snap Mode"),exit_snap_mode,?__(20,"Exit the snap mode")},
      separator].
+
+proportional_scale() ->
+    [{?__(1,"...to Current X"),proportional_x,
+      ?__(2,"Scale image's Y value to be proportional to it's current X value")},
+     {?__(3,"...to Current Y"),proportional_y,
+      ?__(4,"Scale image's X value to be proportional to it's current Y value")},
+     {?__(5,"Actual Size"),actual_size,
+      ?__(6,"Reset image to its actual size")}].
 
 command({face,snap_image}, St) ->
     snap(St);
@@ -76,6 +94,8 @@ command({_,{auv_snap_scale,Op}}, St) ->
     scale(Op,St);
 command({_,{auv_snap_move,Op}}, St) ->
     move(Op,St);
+command({_,{auv_snap_fit,Op}}, St) ->
+    fit(Op,St);
 command({tools,snap_image_mode}, St) ->
     select_image(St);
 command({_,exit_snap_mode}, St) ->
@@ -99,7 +119,7 @@ select_image(_St) ->
     Images = find_images(),
     case Images of
 	[] -> 
-	    wpa:error(?__(1,"No images present, import an image first."));
+	    wpa:error_msg(?__(1,"No images present, import an image first."));
 	_ ->
 	    Qs = [{vframe, Images}],
 	    Select = fun([Reply]) ->		     
@@ -116,7 +136,7 @@ select_image(_St) ->
     end.
 
 find_images() ->
-    case wings_image:images() of 
+    case wings_image:images() of
 	[] -> [];
 	Imgs = [{Def,_}|_] -> find_images_1(Imgs, Def, 0)
     end.
@@ -124,17 +144,25 @@ find_images() ->
 find_images_1([{Id,#e3d_image{name=Name}}|Tail], Def, Key) ->
     [{key_alt,{Key,Def},Name,Id}|find_images_1(Tail, Def, Key-1)];
 find_images_1([], _Def, _Key) -> [].
-    
+
+scale({auv_snap_prop,Proportional}, St) ->
+    State = #s{sx=Ix,sy=Iy} = get(?MODULE),
+    case Proportional of
+      proportional_x -> put(?MODULE, State#s{sy=Ix});
+      proportional_y -> put(?MODULE, State#s{sx=Iy});
+      actual_size -> put(?MODULE, State#s{sx=1.0,sy=1.0})
+    end,
+    St;
 scale(Op, St) ->
     #s{sx=Ix,sy=Iy} = get(?MODULE),
     ScaleFun = fun({finish,_}, Dlo) -> Dlo;
-		  ([X,Y], Dlo) -> 
+		  ([X,Y], Dlo) ->
 		       State = #s{sx=SX,sy=SY} = get(?MODULE),
-		       case Op of 
+		       case Op of
 			   x ->    put(?MODULE, State#s{sx=X});
 			   y ->    put(?MODULE, State#s{sy=Y});
 			   free -> put(?MODULE, State#s{sx=X,sy=Y});
-			   uniform -> 
+			   uniform ->
 			       Diff = X-SX,
 			       DY   = SY+Diff,
 			       put(?MODULE, State#s{sx=X,sy=DY})
@@ -146,35 +174,54 @@ scale(Op, St) ->
     Flags = [{initial, [Ix,Iy]}],
     wings_drag:setup(Tvs,Units,Flags,St).
 
+move(Op, St) when Op =:= center_x; Op =:= center_y; Op =:= center ->
+    S = get(?MODULE),
+    case Op of
+      center_x -> put(?MODULE, S#s{tx=0.0});
+      center_y -> put(?MODULE, S#s{ty=0.0});
+      center -> put(?MODULE, S#s{tx=0.0,ty=0.0})
+    end,
+    St;
 move(Op, St) ->
     #s{tx=Ix,ty=Iy} = get(?MODULE),
     MoveFun = fun({finish,_}, Dlo) -> Dlo;
-		 ([X,Y], Dlo) -> 
+		 ([X,Y], Dlo) ->
 		      State = get(?MODULE),
-		      case Op of 
+		      case Op of
 			  x ->    put(?MODULE, State#s{tx=-X});
 			  y ->    put(?MODULE, State#s{ty=-Y});
 			  free -> put(?MODULE, State#s{tx=-X,ty=-Y})
 		      end,
 		      Dlo
 	      end,
-    
+
     Tvs   = {general, [{find_a_id(St), MoveFun}]},
     Units = [{dx, {-?HUGE,?HUGE}},{dy,{-?HUGE,?HUGE}}],
     Flags = [{initial, [-Ix,-Iy]}],
     wings_drag:setup(Tvs,Units,Flags,St).
 
+fit(Op, St) ->
+    #s{w=IW,h=IH}=S = get(?MODULE),
+    {_,_,W,H} = wings_wm:viewport(),
+    {X,Y} = scale(W,H,IW,IH),
+    case Op of
+      x -> put(?MODULE, S#s{sx=1.0/X,tx=0.0});
+      y -> put(?MODULE, S#s{sy=1.0/Y,ty=0.0});
+      both -> put(?MODULE, S#s{sx=1.0/X,sy=1.0/Y,tx=0.0,ty=0.0})
+    end,
+    St.
+
 find_a_id(#st{shapes=Shs}) ->
     Ida = [Id || #we{id=Id,perm=Perm} <- gb_trees:values(Shs),
         ?IS_VISIBLE(Perm)],
     Id = case length(Ida) of
-    0 -> wpa:error(?__(1,"Visible object required."));
+    0 -> wpa:error_msg(?__(1,"Visible object required."));
     _ -> lists:min(Ida)
-    end,   
+    end,
     Id.
 
 draw_image(Image,_St) ->
-    gl:pushAttrib(?GL_ALL_ATTRIB_BITS),        
+    gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     gl:matrixMode(?GL_PROJECTION),
     gl:loadIdentity(),
     glu:ortho2D(0.0, 1.0, 0.0, 1.0),
@@ -182,7 +229,7 @@ draw_image(Image,_St) ->
     gl:loadIdentity(),
 
     gl:disable(?GL_LIGHTING),
-    gl:disable(?GL_DEPTH_TEST),    
+    gl:disable(?GL_DEPTH_TEST),
     gl:disable(?GL_ALPHA_TEST),
 
     gl:enable(?GL_BLEND),
@@ -195,7 +242,7 @@ draw_image(Image,_St) ->
     gl:color4f(1.0, 1.0, 1.0, 0.55),   %%Semitransparant
     {_,_,W,H} = wings_wm:viewport(),
     {Xs,Ys,Xe,Ye} = {0,0,1,1},
-    
+
     #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty} = get(?MODULE),
     {X,Y} = scale(W,H,IW,IH),
 
@@ -215,7 +262,7 @@ draw_image(Image,_St) ->
 
     gl:'end'(),
     gl:popAttrib().
-    
+
 calc_uv_fun() ->
     %% First do all the view-dependent calculations that are
     %% common for all vertices.
@@ -232,10 +279,10 @@ calc_uv_fun() ->
     end.
 
 scale(W, H, IW, IH) ->
-    if 
+    if
 	W == H ->
-	    if 
-		IW == IH -> 
+	    if
+		IW == IH ->
 		    {1,1};
 		IW > IH ->
 		    {1.0,IW/IH};
@@ -247,15 +294,15 @@ scale(W, H, IW, IH) ->
 		    {W/H, 1.0};
  	       IH > IW ->
  		    {W/H*IH/IW, 1.0};
-	       true -> 
+	       true ->
 		    {W/H,IW/IH}
  	    end;
-	true -> 
+	true ->
  	    if IW == IH ->
 		    {1.0, H/W};
  	       IW > IH ->
  		    {1.0, IW/IH*H/W};
-	       true -> 
+	       true ->
 		    {IH/IW,H/W}
  	    end
     end.
@@ -273,14 +320,14 @@ insert_we_uvs(Faces, CalcUV, We) ->
 	      end, [], Faces, We),
     VFaces = wings_util:rel2fam(VFace),
     insert_we_uvs_1(VFaces, CalcUV, We).
-    
+
 insert_we_uvs_1([{V,Faces}|T], CalcUV, We0) ->
     UV = CalcUV(wings_vertex:pos(V, We0)),
     We = wings_va:set_vtx_face_uvs(V, Faces, UV, We0),
     insert_we_uvs_1(T, CalcUV, We);
 insert_we_uvs_1([], _, We) -> We.
 
-set_materials(Image,St0) ->     
+set_materials(Image,St0) ->
     Fix = fun(Items,We0,NewMats0) ->
 		  Set = fun(Face,_,_,_,{We1,NMats0}) ->
 				FaceM = wings_facemat:face(Face, We0),
@@ -301,7 +348,7 @@ dup_mat(MatName,{Used,St0},{Image,Name}) ->
     Mat0 = gb_trees:get(MatName, St0#st.mat),
     Maps0 = proplists:get_value(maps, Mat0),
     case proplists:get_value(diffuse, Maps0) of
-	Image -> 
+	Image ->
 	    %% It already has the texture; no need to create new material
 	    {MatName,{[{MatName,MatName}|Used],St0}};
 	Else ->
@@ -332,4 +379,4 @@ dup_mat(MatName,{Used,St0},{Image,Name}) ->
 		    {ChangedMatName, {[{MatName,ChangedMatName}|Used],St}}
 	    end
     end.
-    
+

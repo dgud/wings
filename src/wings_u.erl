@@ -12,7 +12,7 @@
 %%
 
 -module(wings_u).
--export([error/1,error/2,message/1,get_matrices/2,
+-export([error_msg/1,error_msg/2,message/1,get_matrices/2,
 	 geom_windows/0,menu_restriction/2,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
 	 export_we/2,win_crash/1,crash_log/2,crash_log/3,
@@ -22,16 +22,16 @@
 -include("wings.hrl").
 -import(lists, [member/2,foreach/2,all/2]).
 
--spec error([any()]) -> no_return().
+-spec error_msg([any()]) -> no_return().
 
-error(Message) when is_list(Message) ->
+error_msg(Message) when is_list(Message) ->
     wings_pb:cancel(),
     throw({command_error,Message}).
 
--spec error([any()], [any()]) -> no_return().
+-spec error_msg([any()], [any()]) -> no_return().
 
-error(Format, Arg) ->
-    error(lists:flatten(io_lib:format(Format, Arg))).
+error_msg(Format, Arg) ->
+    error_msg(lists:flatten(io_lib:format(Format, Arg))).
 
 message(Message) ->
     Qs = {vframe,

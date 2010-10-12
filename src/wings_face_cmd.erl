@@ -42,7 +42,8 @@ menu(X, Y, St) ->
 	    {?__(10,"Bevel"),bevel,
 	     ?__(11,"Round off edges of selected faces")},
 	    {?__(12,"Bridge"),bridge,
-	     ?__(13,"Create a bridge or tunnel between two faces")},
+	     ?__(13,"Create a bridge or tunnel between two faces") ++
+	     ?__(40," or face regions")},
 	    separator,
 	    {?__(14,"Bump"),bump,
 	     ?__(15,"Create bump of selected faces")},
@@ -133,11 +134,11 @@ command(mirror_separate, St) ->
 command(intrude, St) ->
     ?SLOW(intrude(St));
 command(dissolve, St) ->
-    {save_state,dissolve(St)};
+    {save_state,wings_shape:update_folders(dissolve(St))};
 command(clean_dissolve, St) ->
-    {save_state,clean_dissolve(St)};
+    {save_state,wings_shape:update_folders(clean_dissolve(St))};
 command(bridge, St) ->
-    {save_state,bridge(St)};
+    {save_state,wings_shape:recreate_folder_system(bridge(St))};
 command(smooth, St) ->
     ?SLOW({save_state,smooth(St)});
 command(auto_smooth, St) ->
@@ -149,7 +150,7 @@ command(put_on, St) ->
 command(clone_on, St) ->
     clone_on(St);
 command(collapse, St) ->
-    {save_state,wings_collapse:collapse(St)};
+    {save_state,wings_shape:update_folders(wings_collapse:collapse(St))};
 command({material,Cmd}, St) ->
     wings_material:command(Cmd, St);
 command({move,Type}, St) ->
@@ -375,7 +376,7 @@ intrude(Faces0, We0, SelAcc) ->
 	    We = restore_mirror(We5, We0),
 	    {We,[{Id,Sel}|SelAcc]};
 	true ->
-	    wings_u:error(?__(1,"Intrude does not work with all faces selected."))
+	    wings_u:error_msg(?__(1,"Intrude does not work with all faces selected."))
     end.
 
 restore_mirror(We, #we{mirror=none}) -> We;
@@ -411,10 +412,11 @@ mirror(St0) ->
     wings_sel:clear(St).
 
 mirror_faces(Faces, We0) when is_list(Faces) ->
-    OrigWe = wings_we:invert_normals(We0),
+    We = wings_we:break_mirror(We0),
+    OrigWe = wings_we:invert_normals(We),
     foldl(fun(Face, WeAcc) ->
 		  mirror_face(Face, OrigWe, WeAcc)
-	  end, We0, Faces);
+	  end, We, Faces);
 mirror_faces(Faces, We) ->
     mirror_faces(gb_sets:to_list(Faces), We).
 
@@ -682,8 +684,8 @@ smooth_connect_3(Va, Vb, Face, Hide, We0) ->
 bridge(#st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
     case {gb_sets:to_list(FacesA),gb_sets:to_list(FacesB)} of
 	{[FA],[FB0]} ->
-	    #we{next_id=Id}=WeA = gb_trees:get(IdA, Shapes0),
-	    #we{}=WeB0 = gb_trees:get(IdB, Shapes0),
+	    #we{next_id=Id}=WeA = wings_we:break_mirror(gb_trees:get(IdA, Shapes0)),
+	    #we{}=WeB0 = wings_we:break_mirror(gb_trees:get(IdB, Shapes0)),
 	    {WeB,[{face,FB}]} = wings_we:renumber(WeB0, Id, [{face,FB0}]),
 	    We = wings_we:merge(WeA, WeB),
 	    Shapes1 = gb_trees:delete(IdB, Shapes0),
@@ -692,41 +694,134 @@ bridge(#st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
 	    St1 = wings_sel:set(Sel, St0),
 	    St = St1#st{shapes=Shapes},
 	    bridge(St);
-	_Other ->
-	    bridge_error()
+	{[_],FB0} ->
+	    WeB0 = gb_trees:get(IdB, Shapes0),
+	    case wings_sel:face_regions(FB0, WeB0) of
+	      [Region] ->
+	        WeB = wings_dissolve:faces(Region, WeB0),
+	        Face = wings_we:new_items_as_gbset(face, WeB0, WeB),
+	        Shapes = gb_trees:update(IdB, WeB, Shapes0),
+	        St = St0#st{shapes=Shapes,sel=[{IdA,FacesA},{IdB,Face}]},
+	        bridge(St);
+	      _ -> bridge_error()
+	    end;
+	{FA0,[_]} ->
+	    WeA0 = gb_trees:get(IdA, Shapes0),
+	    case wings_sel:face_regions(FA0, WeA0) of
+	      [Region] ->
+	        WeA = wings_dissolve:faces(Region, WeA0),
+	        Face = wings_we:new_items_as_gbset(face, WeA0, WeA),
+	        Shapes = gb_trees:update(IdA, WeA, Shapes0),
+	        St = St0#st{shapes=Shapes,sel=[{IdA,Face},{IdB,FacesB}]},
+	        bridge(St);
+	      _ -> bridge_error()
+	    end;
+	{FA0,FB0} ->
+	    WeA0 = gb_trees:get(IdA, Shapes0),
+	    case wings_sel:face_regions(FA0, WeA0) of
+	      [RegionA] ->
+	        WeB0 = gb_trees:get(IdB, Shapes0),
+	        case wings_sel:face_regions(FB0, WeB0) of
+	          [RegionB] ->
+	            WeB = wings_dissolve:faces(RegionB, WeB0),
+	            FaceB = wings_we:new_items_as_gbset(face, WeB0, WeB),
+	            Shapes1 = gb_trees:update(IdB, WeB, Shapes0),
+	            WeA = wings_dissolve:faces(RegionA, WeA0),
+	            FaceA = wings_we:new_items_as_gbset(face, WeA0, WeA),
+	            Shapes = gb_trees:update(IdA, WeA, Shapes1),
+	            St = St0#st{shapes=Shapes,sel=[{IdA,FaceA},{IdB,FaceB}]},
+	            bridge(St);
+	          _ -> bridge_error()
+	        end;
+	      _ -> bridge_error()
+	    end
     end;
-bridge(#st{shapes=Shapes0,sel=[{Id,Faces}]}=St) ->
-    case gb_sets:to_list(Faces) of
+bridge(#st{shapes=Shapes0,sel=[{Id,Faces0}]}=St0) ->
+    case gb_sets:to_list(Faces0) of
 	[FA,FB] ->
 	    We0 = gb_trees:get(Id, Shapes0),
-	    We = bridge(FA, FB, We0),
+	    We = bridge_0(FA, FB, We0),
 	    Shapes = gb_trees:update(Id, We, Shapes0),
-	    St#st{shapes=Shapes,sel=[]};
-	_Other ->
-	    bridge_error()
+	    St0#st{shapes=Shapes,sel=[]};
+	FaceSel ->
+	    We0 = gb_trees:get(Id, Shapes0),
+	    case wings_sel:face_regions(FaceSel, We0) of
+	      [_,_] ->
+	        We = wings_dissolve:faces(FaceSel, We0),
+	        Faces = wings_we:new_items_as_gbset(face, We0, We),
+	        Shapes = gb_trees:update(Id, We, Shapes0),
+	        St = St0#st{shapes=Shapes,sel=[{Id,Faces}]},
+	        bridge(St);
+	      _ -> bridge_error()
+	    end
     end;
 bridge(_St) ->
     bridge_error().
 
-bridge(FaceA, FaceB, #we{vp=Vtab}=We) ->
-    VsA = wings_face:vertices_ccw(FaceA, We),
-    VsB = wings_face:vertices_ccw(FaceB, We),
-    if
-	length(VsA) =/= length(VsB) ->
-	    bridge_error(?__(1,"Faces must have the same number of vertices."));
-	true ->
-	    An = wings_face:face_normal_cw(VsA, Vtab),
-	    Bn = wings_face:face_normal_cw(VsB, Vtab),
-	    case e3d_vec:dot(An, Bn) of
-		Dot when Dot > 0.99 ->
-		    bridge_error(?__(2,"Faces must not point in the same direction."));
-		_Dot ->
-		    case wings_face:are_neighbors(FaceA, FaceB, We) of
-			true ->
-			    bridge_error(?__(3,"Faces must not be neighbors."));
-			false ->
-			    bridge(FaceA, VsA, FaceB, VsB, We)
-		    end
+bridge_0(FaceA, FaceB, We0) ->
+    VsA0 = wings_face:vertices_ccw(FaceA, We0),
+    VsB0 = wings_face:vertices_ccw(FaceB, We0),
+    SizeA = length(VsA0),
+    SizeB = length(VsB0),
+    case SizeA =:= SizeB of
+      true ->
+        bridge_1(FaceA, VsA0, FaceB, VsB0, We0);
+      false ->
+        if
+          SizeA > SizeB ->
+            Diff = SizeA - SizeB,
+            [Va|Vs] = VsB0,
+            We = cut_in_extra_edges_0(Vs, Va, SizeB, Diff, FaceB, We0),
+            VsB = wings_face:vertices_ccw(FaceB, We),
+            bridge_1(FaceA, VsA0, FaceB, VsB, We);
+          true ->
+            Diff = SizeB - SizeA,
+            [Va|Vs] = VsA0,
+            We = cut_in_extra_edges_0(Vs, Va, SizeA, Diff, FaceA, We0),
+            VsA = wings_face:vertices_ccw(FaceA, We),
+            bridge_1(FaceA, VsA, FaceB, VsB0, We)
+        end
+    end.
+
+cut_in_extra_edges_0([Va|Vs], Vb, Size, Diff0, Face, We0) ->
+    N = Size/Diff0,
+    if N < 1.0 ->
+        EdgeCount = 1,
+        PartsPerEdge = round(1/N) + 1;
+       true ->
+         EdgeCount = round(N),
+         PartsPerEdge = 2
+    end,
+    Edge = wings_vertex:edge_through(Va, Vb, Face, We0),
+    {We,_} = wings_edge:cut(Edge, PartsPerEdge, We0),
+    Diff = Diff0 - (PartsPerEdge - 1),
+    cut_in_extra_edges(Vs, Va, Vb, PartsPerEdge, Face, EdgeCount, EdgeCount, Diff, We).
+
+cut_in_extra_edges(_, _, _, _, _, _, _, 0, We) -> We;
+cut_in_extra_edges([], Vb, V, _, Face, _, _, Diff, We0) ->
+    Edge = wings_vertex:edge_through(V, Vb, Face, We0),
+    {We,_} = wings_edge:cut(Edge, Diff+1, We0),
+    We;
+cut_in_extra_edges([Va|Vs], Vb, V, Parts, Face, 1, N, Diff0, We0) ->
+    Edge = wings_vertex:edge_through(Va, Vb, Face, We0),
+    {We,_} = wings_edge:cut(Edge, Parts, We0),
+    Diff = Diff0 - (Parts - 1),
+    cut_in_extra_edges(Vs, Va, V, Parts, Face, N, N, Diff, We);
+cut_in_extra_edges([Va|Vs], _, V,Parts, Face, Count, N, Diff, We) ->
+    cut_in_extra_edges(Vs, Va, V, Parts, Face, Count-1, N, Diff, We).
+
+bridge_1(FaceA, VsA, FaceB, VsB, #we{vp=Vtab}=We) ->
+    An = wings_face:face_normal_cw(VsA, Vtab),
+    Bn = wings_face:face_normal_cw(VsB, Vtab),
+    case e3d_vec:dot(An, Bn) of
+	Dot when Dot > 0.99 ->
+	    bridge_error(?__(2,"Faces must not point in the same direction."));
+	_Dot ->
+	    case wings_face:are_neighbors(FaceA, FaceB, We) of
+		true ->
+		    bridge_error(?__(3,"Faces must not be neighbors."));
+		false ->
+		    bridge(FaceA, VsA, FaceB, VsB, We)
 	    end
     end.
 
@@ -746,7 +841,7 @@ try_bridge(N, Len, Va0, FaceA, IterA0, Vb, FaceB, IterB, Ids, We0,
 	   {EdgeSum0,_}=Best0) ->
     We = do_bridge(Len, Va0, FaceA, IterA0, Vb, FaceB, IterB, Ids, We0, We0),
     Best = case sum_edge_lens(Len, Ids, We, 0) of
-		  Min when Min < EdgeSum0 -> {Min,We};
+	       Min when Min < EdgeSum0 -> {Min,We};
 	       _ -> Best0
 	   end,
     {_,_,_,IterA} = wings_face:next_cw(IterA0),
@@ -839,10 +934,11 @@ get_edge(Edge, Etab) ->
     end.
 
 bridge_error() ->
-    bridge_error(?__(1,"Exactly two faces must be selected.")).
+    %?__(1,"Exactly two faces must be selected.")
+    bridge_error(?__(2,"Exactly two face regions must be selected.")).
 
 bridge_error(Error) ->
-    wings_u:error(Error).
+    wings_u:error_msg(Error).
 
 %%%
 %%% The Lift command.
@@ -922,7 +1018,7 @@ lift_from_edge(Dir, EdgeSel, St0) ->
     end.
 
 lift_sel_mismatch() ->
-    wings_u:error(?__(1,"Face and edge selections don't match.")).
+    wings_u:error_msg(?__(1,"Face and edge selections don't match.")).
 	
 lift_from_edge(Dir, Faces, Edges, We0, Tv) ->
     case lift_face_edge_pairs(Faces, Edges, We0) of
@@ -1012,7 +1108,7 @@ lift_from_vertex(Dir, VsSel, St0) ->
     end.
 
 lift_vtx_sel_mismatch() ->
-    wings_u:error(?__(1,"Face and vertex selections don't match.")).
+    wings_u:error_msg(?__(1,"Face and vertex selections don't match.")).
 
 lift_from_vertex(Dir, Faces, Vs, We, Tv) ->
     case lift_face_vertex_pairs(Faces, Vs, We) of
@@ -1088,10 +1184,10 @@ put_on(#st{sel=[{_,Faces}]}=St) ->
 	1 ->
 	    wings:ask(put_on_selection(St), St, fun put_on/2);
 	_ ->
-	    wings_u:error(?__(1,"There must only be one face selected."))
+	    wings_u:error_msg(?__(1,"There must only be one face selected."))
     end;
 put_on(_) ->
-    wings_u:error(?__(1,"There must only be one face selected.")).
+    wings_u:error_msg(?__(1,"There must only be one face selected.")).
 
 put_on_selection(OrigSt) ->
     Desc = ?__(1,"Select target element on which to put source object"),
@@ -1143,10 +1239,10 @@ clone_on(#st{sel=[{_,Faces}]}=St) ->
 	1 ->
 	    wings:ask(clone_on_selection(), St, fun clone_on/2);
 	_ ->
-	    wings_u:error(?__(1,"There must only be one face selected."))
+	    wings_u:error_msg(?__(1,"There must only be one face selected."))
     end;
 clone_on(_) ->
-    wings_u:error(?__(1,"There must only be one face selected.")).
+    wings_u:error_msg(?__(1,"There must only be one face selected.")).
 
 clone_on_selection() ->
     Desc = ?__(1,"Select target elements on which to put clones"),
@@ -1157,16 +1253,15 @@ clone_on_selection() ->
 	  end,
     {[{Fun,Desc}],[],[],[face,edge,vertex]}.
 
-clone_on({Mode,Sel}, #st{sel=[{Id,Faces}],shapes=Shs0}=St) ->
+clone_on({Mode,Sel}, #st{selmode=OrigMode,sel=[{Id,Faces}]=OrigSel,shapes=Shs0}=St0) ->
     We = gb_trees:get(Id, Shs0),
     [Face] = gb_sets:to_list(Faces),
     Vs = wings_face:vertices_ccw(Face, We),
     Center = wings_vertex:center(Vs, We),
     Translate = e3d_mat:translate(e3d_vec:neg(Center)),
     N = wings_face:face_normal_cw(Vs, We),
-    #st{shapes=Shs,onext=Onext} =
-	clone_on_1(Translate, N, We, St#st{selmode=Mode,sel=Sel}),
-    {save_state,St#st{shapes=Shs,onext=Onext}}.
+    St = clone_on_1(Translate, N, We, St0#st{selmode=Mode,sel=Sel}),
+    {save_state,St#st{selmode=OrigMode,sel=OrigSel}}.
     
 clone_on_1(Tr, N, Clone, St) ->
     wings_sel:fold(
@@ -1219,7 +1314,7 @@ create_hole_1(Fs0, #we{holes=Holes0}=We0) ->
 	    We = wings_va:remove(all, Holes, We2),
 	    wings_we:create_holes(Holes, We);
 	true ->
-	    wings_u:error(?__(1,"A hole cannot comprise all faces in an object."))
+	    wings_u:error_msg(?__(1,"A hole cannot comprise all faces in an object."))
     end.
 
 remove_hole(St0) ->

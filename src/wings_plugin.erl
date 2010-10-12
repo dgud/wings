@@ -81,12 +81,12 @@ dialog_1(Dialog, Ps, [M|Tail]) ->
 	    dialog_1(Dialog, Ps, Tail);
 	{'EXIT',Reason} ->
 	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
-	    wings_u:error("~w:dialog/2: crashed", [M]);
+	    wings_u:error_msg("~w:dialog/2: crashed", [M]);
 	NewPs when is_list(NewPs) ->
 	    dialog_1(Dialog, NewPs, Tail);
 	Other ->
 	    io:format("~w:dialog/2: bad return value: ~P\n", [M,Other,20]),
-	    wings_u:error("~w:dialog/2: bad return value", [M])
+	    wings_u:error_msg("~w:dialog/2: bad return value", [M])
     end;
 dialog_1(_Dialog, Ps, []) -> 
     Ps.
@@ -100,13 +100,13 @@ dialog_result1(Dialog, Ps, [M|Tail]) ->
 	    dialog_result1(Dialog, Ps, Tail);
 	{'EXIT',Reason} ->
 	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
-	    wings_u:error("~w:dialog/2: crashed", [M]);
+	    wings_u:error_msg("~w:dialog/2: crashed", [M]);
 	{Content,NewPs} when is_list(NewPs) ->
 	    dialog_result1(setelement(tuple_size(Dialog), Dialog, Content), 
 			   NewPs, Tail);
 	Other ->
 	    io:format("~w:dialog/2: bad return value: ~P\n", [M,Other,20]),
-	    wings_u:error("~w:dialog/2: bad return value", [M])
+	    wings_u:error_msg("~w:dialog/2: bad return value", [M])
     end;
 dialog_result1(Dialog, Ps, []) -> 
     {element(tuple_size(Dialog), Dialog),Ps}.
@@ -276,7 +276,7 @@ install_file_type(Name) ->
 		".tar" -> tar;
 		".beam" -> beam;
 		_ ->
-		    wings_u:error(?__(1,"File \"~s\": Unknown file type"),
+		    wings_u:error_msg(?__(1,"File \"~s\": Unknown file type"),
 				  [filename:basename(Name)])
 	    end
     end.
@@ -290,12 +290,12 @@ install_beam(Name) ->
 	    case file:copy(Name, Dest) of
 		{ok,_} -> ok;
 		{error,Reason} ->
- 		 wings_u:error(?__(1,"Install of \"~s\" failed: ~p"),
+ 		 wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
 			       [filename:basename(Name),
 				file:format_error(Reason)])
 	    end;
 	false ->
-	    wings_u:error(?__(2,"File \"~s\" is not a Wings plug-in module"),
+	    wings_u:error_msg(?__(2,"File \"~s\" is not a Wings plug-in module"),
 			  [filename:basename(Name)])
     end.
 
@@ -305,7 +305,7 @@ install_tar(Name) ->
     erl_tar:extract(Name, [compressed,{cwd,plugin_dir()}]).
 
 install_verify_files(["/"++_|_], Name) ->
-    wings_u:error(?__(1,"File \"~s\" contains a file with an absolute path"),
+    wings_u:error_msg(?__(1,"File \"~s\" contains a file with an absolute path"),
 		  [filename:basename(Name)]);
 install_verify_files([F|Fs], Name) ->
     case is_plugin(F) of
@@ -313,7 +313,7 @@ install_verify_files([F|Fs], Name) ->
 	true -> ok
     end;
 install_verify_files([], Name) ->
-    wings_u:error(?__(2,"File \"~s\" does not contain any Wings plug-in modules"),
+    wings_u:error_msg(?__(2,"File \"~s\" does not contain any Wings plug-in modules"),
 		  [filename:basename(Name)]).
 
 is_plugin(Name) ->
@@ -324,7 +324,7 @@ is_plugin(Name) ->
 
 plugin_dir() ->
     case try_dir(wings_util:lib_dir(wings), "plugins") of
-	none -> wings_u:error(?__(1,"No \"plugins\" directory found"));
+	none -> wings_u:error_msg(?__(1,"No \"plugins\" directory found"));
 	PluginDir -> PluginDir
     end.
     
@@ -424,7 +424,7 @@ cat_import_export(M) ->
     try_menu([{file,import},{file,export}], M, export_import).
 
 cat_primitive(M) ->
-    try_menu([{shape},{shape,more}], M, primitive).
+    try_menu([{shape},{shape}], M, primitive).
 
 cat_select(M) ->
     try_menu([{select}], M, select).
@@ -459,7 +459,7 @@ plugin_info(command, M) ->
     Menus = collect_menus(Names, M),
     plugin_menu_info(Menus);
 plugin_info(primitive, M) ->
-    Menus = collect_menus([{shape},{shape,more}], M),
+    Menus = collect_menus([{shape},{shape}], M),
     plugin_menu_info(Menus);
 plugin_info(select, M) ->
     Menus = collect_menus([{select}], M),
@@ -509,14 +509,15 @@ plugin_menu_info([_|_]=Menus0) ->
     Menus = normalize_menu(Menus0),
     plugin_menu_info_1(Menus).
 
-plugin_menu_info_1(Cmds) ->
-    case wings_util:rel2fam(Cmds) of
+plugin_menu_info_1(Cmds0) ->
+    Cmds = wings_util:rel2fam(Cmds0),
+    case Cmds of
 	[{Root,SubCmds0}] ->
 	    SubCmds = [wings_util:stringify(C) || C <- SubCmds0],
 	    Str = string:join(SubCmds, ", "),
 	    {label,plugin_root_menu(Root)++Str};
 	_ ->
-	    plugin_menu_info_2(Cmds)
+	    plugin_menu_info_2(Cmds0)
     end.
 
 plugin_menu_info_2(Cmds) ->
@@ -561,10 +562,12 @@ normalize_menu([{Name,Menu}|T]) ->
     end;
 normalize_menu([]) -> [].
 
+plugin_key({_,{Key,_},_}) when is_atom(Key) -> Key;
 plugin_key({_,{Key,_}}) when is_atom(Key) -> Key;
 plugin_key({_,Key,_}) when is_atom(Key) -> Key;
 plugin_key({_,Key,_,_}) when is_atom(Key) -> Key;
-plugin_key(_Other) -> none.
+plugin_key(Other) when is_tuple(Other) -> list_to_atom(element(1, Other));
+plugin_key(_) -> none.
 
 plugin_default_menu() ->
     [plugin_manager_category].

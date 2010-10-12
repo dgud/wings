@@ -3,12 +3,11 @@
 %%
 %%    Plugin for shearing vertex selections
 %%
-%%  Copyright (c) 2008-2009 Richard Jones.
+%%  Copyright (c) 2008-2010 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%    $Id: wpc_shear.erl,v 1.43 Sun Feb 03 21:28:39 EST 2008 optigon Exp $
 %%
 
 -module(wpc_shear).
@@ -244,7 +243,7 @@ shear_callback({GlidePlane,Radial,Origin,GlidePoint},St) ->
             shear_verts(ShearData,State,Data,Vs,We,Acc)
             end, [], St),
     Units = shear_units(Mode),
-    Flags = [{mode,{shear_modes(),State}},{initial,[0.0,0.0,0.0,1.0]}],
+    Flags = [{mode,{shear_modes(),State}},{initial,[0.0,0.0,1.0]}],
     wings_drag:setup(Tvs, Units, Flags, St);
 
 %%%% To catch 'repeat drag' arguments where the user was re-asked selections
@@ -256,12 +255,12 @@ shear_callback(_,St) ->
     end).
 
 shear_units(absolute) ->
-    [distance,skip,skip,{curve,{1.0,infinity}}];
+    [distance,skip,{curve,{1.0,infinity}}];
 shear_units(relative) ->
-    [percent,skip,skip,{curve,{1.0,infinity}}];
+    [percent,skip,{curve,{1.0,infinity}}];
 shear_units(angle) ->
     Limit = 90.0 - 1.0E-9,
-    [{angle,{-Limit,Limit}},skip,skip,{curve,{1.0,infinity}}].
+    [{angle,{-Limit,Limit}},skip,{curve,{1.0,infinity}}].
 
 shear_modes() ->
     fun(help, State) -> shear_help(State);
@@ -302,7 +301,7 @@ shear_verts(ShearData,State,Data,Vs0,#we{id=Id}=We,Acc) ->
 shear_fun({Sf,Norm,DBbox,Dir,Anchor},Data,VsPos,State) ->
     fun(new_mode_data, {NewState,_}) ->
           shear_fun({Sf,Norm,DBbox,Dir,Anchor},Data,VsPos,NewState);
-       ([Dist,_,_,CurveFactor|_], A) ->
+       ([Dist,_,CurveFactor|_], A) ->
           shear_verts_by_mode({Sf,Norm,DBbox,Dir,Anchor},State,Data,VsPos,-Dist,CurveFactor,A)
     end.
 

@@ -43,7 +43,7 @@ dim({?TAG,N,_}) ->
 dim(V) when is_number(V) ->
     {1,1};
 dim(A) ->
-    erlang:error(badarg, [A]).
+    error(badarg, [A]).
 
 
 
@@ -56,14 +56,14 @@ vector(V) when is_number(V) ->
 vector(L) when is_list(L) ->
     case vector_from_list(0, L, []) of
 	{[], 0} ->
-	    erlang:error(badarg, [L]);
+	    error(badarg, [L]);
 	{A, N} when is_list(A) ->
 	    fix({?TAG,N,A});
 	Fault ->
-	    erlang:error(Fault, [L])
+	    error(Fault, [L])
     end;
 vector(L) ->
-    erlang:error(badarg, [L]).
+    error(badarg, [L]).
 
 vector_to_list_r([], C) -> C;
 vector_to_list_r([V | A], C) when is_float(V) ->
@@ -90,10 +90,10 @@ vector(N, D) when is_integer(N), is_list(D), 1 =< N ->
 	L when is_list(L) ->
 	    fix({?TAG,N,L});
 	Fault ->
-	    erlang:error(Fault, [N, D])
+	    error(Fault, [N, D])
     end;
 vector(N, D) ->
-    erlang:error(badarg, [N, D]).
+    error(badarg, [N, D]).
 
 vector_from_tuplist(I, N, [], C) when I =< N ->
     vector_from_tuplist(N+1, N, [], push_v(N+1-I, C));
@@ -120,7 +120,7 @@ rows({?TAG,_,_} = A) ->
 rows(V) when is_number(V) ->
     [V];
 rows(A) ->
-    erlang:error(badarg, [A]).
+    error(badarg, [A]).
 
 rows_to_list(_, [], C) ->
     lists:reverse(C);
@@ -136,10 +136,10 @@ rows(M, L) when is_integer(M), is_list(L), M >= 1 ->
 	{A, N} when is_list(A) ->
 	    fix({?TAG,N,M,A});
 	Fault ->
-	    erlang:error(Fault, [M, L])
+	    error(Fault, [M, L])
     end;
 rows(M, L) ->
-    erlang:error(badarg, [M, L]).
+    error(badarg, [M, L]).
 
 
 
@@ -152,7 +152,7 @@ cols({?TAG,_,_} = A) ->
 cols(V) when is_number(V) ->
     [V];
 cols(A) ->
-    erlang:error(badarg, A).
+    error(badarg, A).
 
 
 
@@ -164,10 +164,10 @@ cols(N, L)
 	{A, M} when is_list(A) ->
 	    trans({?TAG,M,N,A});
 	Fault ->
-	    erlang:error(Fault, [N, L])
+	    error(Fault, [N, L])
     end;
 cols(N, L) ->
-    erlang:error(badarg, [N, L]).
+    error(badarg, [N, L]).
 
 
 
@@ -182,7 +182,7 @@ cat_cols({?TAG,N,_} = A, {?TAG,N,_,_} = B) ->
 cat_cols({?TAG,N,_} = A, {?TAG,N,_} = B) ->
     cols(N, cols(A)++cols(B));
 cat_cols(A, B) ->
-    erlang:error(badarg, [A, B]).
+    error(badarg, [A, B]).
 
 
 
@@ -197,7 +197,7 @@ cat_rows({?TAG,_,1,_} = A, {?TAG,_,_} = B) ->
 cat_rows({?TAG,_,_} = A, {?TAG,_,_} = B) ->
     rows(1, rows(A)++rows(B));
 cat_rows(A, B) ->
-    erlang:error(badarg, [A, B]).
+    error(badarg, [A, B]).
 
 
 
@@ -219,10 +219,10 @@ diag(L) when is_list(L) ->
 	A when is_list(A) ->
 	    fix({?TAG,N,N,A});
 	Fault ->
-	    erlang:error(Fault, [L])
+	    error(Fault, [L])
     end;
 diag(A) ->
-    erlang:error(badarg, [A]).
+    error(badarg, [A]).
 
 diag_rows(_, [], C) ->
     lists:reverse(C);
@@ -262,7 +262,7 @@ row_norm({?TAG,_,_,A}) ->
 row_norm({?TAG,_,A}) ->
     row_norm_col(A, []);
 row_norm(A) ->
-    erlang:error(badarg, [A]).
+    error(badarg, [A]).
 
 row_norm_int([], C) ->
     lists:reverse(C);
@@ -294,7 +294,7 @@ trans({?TAG,N,A}) ->
 trans(A) when is_number(A) ->
     float(A);
 trans(A) ->
-    erlang:error(badarg, [A]).
+    error(badarg, [A]).
 
 trans_cols_forw(J, M, _, C_r) when J == M+1 ->
     lists:reverse(C_r);
@@ -351,7 +351,7 @@ mult({?TAG,N,A}, B) when is_number(B) ->
 mult(A, B) when is_number(A), is_number(B) ->
     float(A*B);
 mult(A, B) ->
-    erlang:error(badarg, [A, B]).
+    error(badarg, [A, B]).
 
 mult_vec(VecA, B) ->
     mult_vec_1(list_to_tuple(reverse(vector_to_list_r(VecA, []))), B, 0.0, []).
@@ -381,7 +381,7 @@ mult_trans(A, B) when is_number(B) ->
 mult_trans(A, B) when is_number(A) ->
     trans(mult(A, B));
 mult_trans(A, B) ->
-    erlang:error(badarg, [A, B]).
+    error(badarg, [A, B]).
 
 mult_row([], _, C) ->
     lists:reverse(C);
@@ -418,7 +418,7 @@ add(Va, B) when is_number(Va) ->
     add(B, Va);
 %%
 add(A, B) ->
-    erlang:error(badarg, [A, B]).
+    error(badarg, [A, B]).
 
 add_row([], [], C) ->
     lists:reverse(C);
@@ -444,7 +444,7 @@ reduce({?TAG,N,M,A}) ->
 	    {?TAG,N,M,B}
     end;
 reduce(A) ->
-    erlang:error(badarg, [A]).
+    error(badarg, [A]).
 
 reduce_sort([], C) ->
     reduce_row(lists:sort(C), []);
@@ -495,7 +495,7 @@ backsubst({?TAG,N,M,A} = AA) when M == N+1 ->
 		{'EXIT', Reason} ->
 		    exit(Reason);
 		Fault ->
-		    erlang:error(Fault, [AA])
+		    error(Fault, [AA])
 	    end;
 	{error, Reason} ->
 	    Reason;
@@ -504,10 +504,10 @@ backsubst({?TAG,N,M,A} = AA) when M == N+1 ->
 	{'EXIT', Reason} ->
 	    exit(Reason);
 	Fault ->
-	    erlang:error(Fault, [AA])
+	    error(Fault, [AA])
     end;
 backsubst(A) ->
-    erlang:error(badarg, [A]).
+    error(badarg, [A]).
 
 backsubst_rev(_, [], C) ->
     lists:reverse(C);

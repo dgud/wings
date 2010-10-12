@@ -16,7 +16,7 @@
 -export([init/0,quit/0,
 	 resize/0,
 	 set_cursor/1,hourglass/0,eyedropper/0,
-	 info/1, version_info/0,
+	 info/1, info/3, version_info/0,
 
 	 is_maximized/0, set_title/1, reset_video_mode_for_gl/2,
 	 change_event_handler/2,
@@ -51,7 +51,6 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--import(erlang, [max/2]).
 -import(lists, [flatmap/2,keyfind/3,member/2,reverse/1,reverse/2]).
 
 -ifdef(USE_WX).
@@ -92,7 +91,12 @@ eyedropper() ->
     ?BACKEND_MOD:eyedropper().
 
 hourglass() ->
-    ?BACKEND_MOD:hourglass().
+    case get(wings_not_running) of
+	undefined -> 
+	    ?BACKEND_MOD:hourglass();
+	_ ->
+	    ignore
+    end.
 
 set_cursor(Cursor) ->
     ?BACKEND_MOD:set_cursor(Cursor).
@@ -243,16 +247,19 @@ resize() ->
     wings_text:resize().
 
 info(Info) ->
+    info(0, 0, Info).
+
+info(X, Y, Info) ->
     ortho_setup(),
     blend(wings_pref:get_value(info_background_color),
 	  fun(Color) ->
 		  set_color(Color),
 		  N = info_lines(Info),
 		  {W,_} = wings_wm:win_size(),
-		  gl:recti(0, 0, W, N*?LINE_HEIGHT)
+		  gl:recti(X, Y, W, Y + N*?LINE_HEIGHT + 2)
 	  end),
     set_color(wings_pref:get_value(info_color)),
-    text_at(4, ?CHAR_HEIGHT, Info).
+    text_at(X + 4, Y + ?CHAR_HEIGHT, Info).
 
 info_lines(Info) ->
     info_lines_1(Info, 1).
@@ -274,7 +281,7 @@ blend(Color, Draw) ->
     gl:disable(?GL_BLEND).
 
 border(X, Y, W, H, FillColor) ->
-    border(X, Y, W, H, FillColor, {0.20,0.20,0.20}).
+    border(X, Y, W, H, FillColor, {0.0,0.0,0.0}).
 
 border(X0, Y0, Mw, Mh, FillColor, BorderColor)
   when is_integer(X0), is_integer(Y0), is_integer(Mw), is_integer(Mh) ->

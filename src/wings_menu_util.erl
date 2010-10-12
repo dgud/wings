@@ -12,7 +12,8 @@
 %%
 
 -module(wings_menu_util).
--export([directions/1,directions/2,scale/1,rotate/1,flatten/0,all_xyz/0]).
+-export([directions/1,directions/2,scale/1,rotate/1,flatten/0,all_xyz/0,
+	 crossmark/1]).
 
 -include("wings.hrl").
 
@@ -201,8 +202,8 @@ flatten(1, [flatten,vertex]) ->
     %% Vertex mode flatten.
     flatten_common();
 flatten(1, [flatten,edge]) ->
-    %% Vertex mode flatten.
-    flatten_common();
+    %% Edge mode flatten.
+    [flatten_common()|flatten_edge_loops()];
 flatten(1, _) ->
     %% Face mode flatten.
     [flatten_fun(normal)|flatten_common()];
@@ -233,6 +234,11 @@ flatten_fun_1(Vec, Axis, String) ->
     Help0 = dir_help(Axis, [flatten]),
     Help = {Help0,[],?STR(flatten_fun_1,1,"Pick point on plane")},
     {String,F,Help,[]}.
+
+flatten_edge_loops() ->
+    [separator,
+     {?__(1,"Edge Loops"),edge_loop,
+      ?__(2,"Flatten each closed edge loop to its normal")}].
 
 %%%
 %%% General directions.
@@ -357,3 +363,16 @@ dir_help_1([duplicate|_], Text) ->
 dir_help_1([shell_extrude|_], Text) ->
     ?STR(dir_help_1,26,"Extract and Extrude faces as region, then move along ") ++ Text;
 dir_help_1(_, _) -> "".
+
+%% Menu checkmark
+crossmark(Key) ->
+    Val = case wings_pref:get_value(Key) of
+	      undefined ->
+		  {_,Client} = wings_wm:this(),
+		  wings_wm:get_prop(Client, Key);
+	      Other -> Other
+	  end,
+    case Val of
+	false -> [];
+	true -> [crossmark]
+    end.

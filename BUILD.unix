@@ -194,8 +194,6 @@ To build everything and pack it into a DMG file, you'll need:
   probably also work, but I have not tested to build any Wings version after
   1.1.12 with that configuration.
 
-- The FBX library. http://www.autodesk.com/fbx
-
 Make sure that your current directory is the directory in which the
 sources were unpacked.
 

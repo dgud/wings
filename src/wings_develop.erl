@@ -37,7 +37,10 @@ menu(_) ->
       crossmark(develop_gl_errors)},
      separator,
      {"Print Scene Size",print_scene_size,
-      "Print the scene size to the console"}].
+      "Print the scene size to the console"},
+     separator,
+     {"Show Cursor",show_cursor,
+      "Unhide the cursor in case of a crash and it disappears"}].
 
 command(time_commands, _) ->
     toggle(develop_time_commands),
@@ -56,6 +59,14 @@ command(opengl_errors, _) ->
 command(print_scene_size, St) ->
     Words = erts_debug:size(St),
     io:format("The current scene is using ~p words\n", [Words]),
+    keep;
+command(show_cursor, _) ->
+    case wings_io:is_grabbed() of
+      true ->
+          {_,X,Y} = wings_io:get_mouse_state(),
+          wings_io:ungrab(X,Y);
+      false -> ok
+    end,
     keep.
 
 time_command(CmdFun, Cmd) ->

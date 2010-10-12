@@ -19,7 +19,7 @@
 	 setopts/1,getopts/1]).
 
 %% Wings window
--export([window/0,window/1,window/3,popup_window/0]).
+-export([window/0,window/1,window/4,popup_window/0]).
 
 -define(SERVER_NAME, ?MODULE).
 -define(WIN_NAME, console).
@@ -29,7 +29,6 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 -import(lists, [reverse/1,reverse/2,foldl/3]).
--import(erlang, [min/2,max/2]).
 
 %% Debug exports
 -export([code_change/0,get_state/0]).
@@ -87,7 +86,7 @@ start(GroupLeader) when is_pid(GroupLeader) ->
 	    Mref = erlang:monitor(process, Server),
 	    receive
 		{wings_console_started,Server} ->
-		    demonitor(Mref),
+		    console_demonitor(Mref),
 		    Server;
 		{'DOWN',Mref,_,_,Reason} -> 
 		    exit(Reason)
@@ -125,8 +124,8 @@ window() ->
 window(Name) ->
     do_window(Name).
 
-window(Name, Pos, Size) ->
-    do_window(Name, Pos, Size).
+window(Name, Pos, Size, Ps) ->
+    do_window(Name, Pos, Size, Ps).
 
 popup_window() ->
     case wings_wm:is_window(?WIN_NAME) of
@@ -182,14 +181,14 @@ do_window(Name) ->
     H = min(1 + (Height0*Lh) + 4, H1-Th),
     Size = {W,H},
     PosUR = {X1+W+Sw,H1-(H+Th)},
-    do_window(Name, Font, CwLh, PosUR, Size).
+    do_window(Name, Font, CwLh, PosUR, Size, []).
 
-do_window(Name, Pos, Size) ->
+do_window(Name, Pos, Size, Ps) ->
     Font = wings_pref:get_value(new_console_font),
     CwLh = wings_io:use_font(Font, fun() -> {?CHAR_WIDTH,?LINE_HEIGHT} end),
-    do_window(Name, Font, CwLh, Pos, Size).
+    do_window(Name, Font, CwLh, Pos, Size, Ps).
 
-do_window(Name, Font, {Cw,Lh}, {X,Y}, {W,H}=Size) -> % {X,Y} is upper right
+do_window(Name, Font, {Cw,Lh}, {X,Y}, {W,H}=Size, Ps) -> % {X,Y} is upper right
     Width = (-3+W-3) div Cw,
     Height = (-1+H-4) div Lh,
     setopts([{width,Width},{height,Height},
@@ -203,7 +202,7 @@ do_window(Name, Font, {Cw,Lh}, {X,Y}, {W,H}=Size) -> % {X,Y} is upper right
     Props = [{font,Font}],
     wings_wm:toplevel(Name, Title, {X,Y,highest}, Size,
 		      [closable,vscroller,{anchor,ne},
-		       {properties,Props}],
+		       {properties,Props}|Ps],
 		      Op),
     wings_wm:dirty().
 
@@ -368,14 +367,14 @@ req(Server, Request) ->
     Server ! {wings_console_request,self(),Mref,Request},
     receive
 	{wings_console_reply,Mref,Reply} ->
-	    demonitor(Mref),
+	    console_demonitor(Mref),
 	    Reply;
 	{'DOWN',Mref,_,_,Reason} ->
 	    exit(Reason)
     end.
 
-demonitor(Mref) ->
-    erlang:demonitor(Mref),
+console_demonitor(Mref) ->
+    demonitor(Mref),
     receive {'DOWN',Mref,_,_,_} -> ok after 0 -> ok end.
 
 server_loop(#state{gmon=Gmon,tref=Tref}=State) ->

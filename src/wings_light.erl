@@ -131,7 +131,7 @@ command(edit, St) ->
 command({edit,Id}, St) ->
     edit(Id, St);
 command(delete, St) ->
-    {save_state,delete(St)};
+    {save_state,wings_shape:update_folders(delete(St))};
 command({duplicate,Dir}, St) ->
     duplicate(Dir, St).
     
@@ -199,7 +199,7 @@ color(St) ->
 		     Flags = [{initial,[H,V,S]}],
 		     {Tvs,Units,Flags};
 		(_, We, _) when ?IS_LIGHT(We) ->
-		     wings_u:error(?__(1,"Select only one light."));
+		     wings_u:error_msg(?__(1,"Select only one light."));
 		(_, _, A) -> A
 	     end, none, St),
     case Drag of
@@ -250,7 +250,7 @@ spot_angle(St) ->
 	    Flags = [{initial,[SpotAngle]}],
 	    wings_drag:setup(Tvs, Units, Flags, St);
 	{_,_} ->
-	    wings_u:error(?__(1,"Not a spotlight."))
+	    wings_u:error_msg(?__(1,"Not a spotlight."))
     end.
 
 spot_falloff(St) ->
@@ -263,7 +263,7 @@ spot_falloff(St) ->
 	    Flags = [{initial,[SpotExp]}],
 	    wings_drag:setup(Tvs, Units, Flags, St);
 	{_,_} ->
-	    wings_u:error(?__(1,"Not a spotlight."))
+	    wings_u:error_msg(?__(1,"Not a spotlight."))
     end.
 
 attenuation(Type, St) ->
@@ -276,7 +276,7 @@ attenuation(Type, St) ->
 	    Flags = [{initial,[Initial]}],
 	    wings_drag:setup(Tvs, Units, Flags, St);
 	{_,_} ->
-	    wings_u:error(?__(1,"Not a point light or spotlight."))
+	    wings_u:error_msg(?__(1,"Not a point light or spotlight."))
     end.
 
 att_initial(linear, #light{lin_att=LinAtt}) -> LinAtt;
@@ -292,7 +292,7 @@ selected_light(St) ->
     wings_sel:fold(fun(_, #we{id=Id,light=L}=We, none) when ?IS_LIGHT(We) ->
 			   {Id,L};
 		      (_, We, _) when ?IS_LIGHT(We) ->
-			   wings_u:error(?__(1,
+			   wings_u:error_msg(?__(1,
 						"Select only one light."));
 		      (_, _, A) -> A
 		   end, none, St).
@@ -312,7 +312,7 @@ adjust_fun_1(AdjFun, Ds, #dlo{src_we=#we{light=L0}=We0}=D) ->
 %%
 edit(#st{sel=[{Id,_}]}=St) ->
     edit(Id, St);
-edit(_) -> wings_u:error(?__(1,"Select only one light.")).
+edit(_) -> wings_u:error_msg(?__(1,"Select only one light.")).
 
 edit(Id, #st{shapes=Shs}=St) ->
     We = #we{light=#light{type=Type}} = gb_trees:get(Id, Shs),
@@ -387,7 +387,7 @@ plugin_results(Name, Prop0, Res0) ->
 	  io:format(?__(1,
 			"Light editor plugin(s) left garbage:~n    ~P~n"), 
 		    [Res,20]),
-	    wings_u:error(?__(2,"Plugin(s) left garbage"))
+	    wings_u:error_msg(?__(2,"Plugin(s) left garbage"))
     end.
 
 qs_specific(#light{type=spot,spot_angle=Angle,spot_exp=SpotExp}=L) ->
@@ -605,17 +605,17 @@ get_light(#we{name=Name,perm=P}=We, BC) ->
     Ps = export_perm(P, Ps0),
     {Name,Ps}.
 
-get_light_1(#we{light=#light{type=ambient,ambient=Amb,prop=Prop}}=We, _) ->
+get_light_1(#we{light=#light{type=ambient,ambient=Amb,prop=Prop},pst=Pst}=We, _) ->
     P = light_pos(We),
-    OpenGL = [{type,ambient},{ambient,Amb},{position,P}],
+    OpenGL = [{type,ambient},{ambient,Amb},{position,P},{pst,Pst}],
     [{opengl,OpenGL}|Prop];
-get_light_1(#we{light=L}=We, BC) ->
+get_light_1(#we{light=L,pst=Pst}=We, BC) ->
     #light{type=Type,diffuse=Diff,ambient=Amb,specular=Spec,
 	   aim=Aim,spot_angle=Angle,spot_exp=SpotExp,
 	   lin_att=LinAtt,quad_att=QuadAtt,prop=Prop} = L,
     P = light_pos(We),
     Common = [{type,Type},{position,P},{aim_point,Aim},
-	      {diffuse,Diff},{ambient,Amb},{specular,Spec}],
+	      {diffuse,Diff},{ambient,Amb},{specular,Spec},{pst,Pst}],
     OpenGL0 = case Type of
 		  spot ->
 		      [{cone_angle,Angle},{spot_exponent,SpotExp}|Common];
@@ -623,7 +623,7 @@ get_light_1(#we{light=L}=We, BC) ->
 		      Common
 	     end,
     OpenGL1 = if
-		 Type == point; Type == spot; Type == area ->
+		 Type =:= point; Type =:= spot; Type =:= area ->
 		     [{linear_attenuation,LinAtt},
 		      {quadratic_attenuation,QuadAtt}|OpenGL0];
 		 true -> OpenGL0
@@ -714,8 +714,9 @@ import_we(#light{type=area}=Light, OpenGL, {X,Y,Z}) ->
 	    {mesh,M} -> import_fix_mesh(M)
 	end,
     We = wings_import:import_mesh(material, Mesh),
-    We#we{light=Light};
-import_we(#light{}=Light, _OpenGL, {X,Y,Z}) ->
+    Pst = proplists:get_value(pst, OpenGL, gb_trees:empty()),
+    We#we{light=Light,pst=Pst};
+import_we(#light{}=Light, OpenGL, {X,Y,Z}) ->
     %% We used to put all vertices at the same position, but with
     %% then rewritten pick handling we need a vertex array for picking.
     %% The cube will be slightly larger than the sphere that is shown
@@ -726,7 +727,8 @@ import_we(#light{}=Light, _OpenGL, {X,Y,Z}) ->
     Vs = [{X-S,Y-S,Z+S},{X-S,Y+S,Z+S},{X+S,Y+S,Z+S},{X+S,Y-S,Z+S},
 	  {X-S,Y-S,Z-S},{X-S,Y+S,Z-S},{X+S,Y+S,Z-S},{X+S,Y-S,Z-S}],
     We = wings_we:build(Fs, Vs),
-    We#we{light=Light}.
+    Pst = proplists:get_value(pst, OpenGL, gb_trees:empty()),
+    We#we{light=Light,pst=Pst}.
 
 import_fix_mesh(#e3d_mesh{fs=Fs0}=Mesh0) ->
     Fs = [import_fix_face(F) || F <- Fs0],
@@ -969,7 +971,7 @@ arealight_posdirexp(#we{light=#light{type=area}}=We) ->
     end.
 
 move_light(Pos, #we{vp=Vtab0}=We) ->
-    Vtab = array:sparse_map(fun(V, _) -> {V,Pos} end, Vtab0),
+    Vtab = array:sparse_map(fun(_, _) -> Pos end, Vtab0),
     We#we{vp=Vtab}.
 
 shape_materials(#light{diffuse={_,_,_,Af}=Front}, St) ->

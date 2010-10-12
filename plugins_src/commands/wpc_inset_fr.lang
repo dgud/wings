@@ -1,0 +1,55 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_inset,
+ [
+  {abs_rel_help,
+   [
+    {1,"Distance"},
+    {2,"Pourcentage"}
+   ]},
+  {extrude_norm_help1,
+   [
+    {1,"Bosse : Normale des facettes"},
+    {2,"Bosse : Normale de la région"}
+   ]},
+  {lmb_help,
+   [
+    {1,"Insère une facette à l'intérieur de chaqe facette sélectionnée"}
+   ]},
+  {loop_error_1,
+   [
+    {1,"Insérer une région ne fonctionne pas pour des objets entiers"}
+   ]},
+  {loop_error_2,
+   [
+    {1,"Pour créer un contour les facettes voisines doivent partager au moins un arrête"}
+   ]},
+  {mmb_help,
+   [
+    {1,"Crée un contour autour de chaque groupe de facettes sélectionnées"}
+   ]},
+  {mode_help,
+   [
+    {1,"Mise à l'échelle par le vecteur le plus court de : "}
+   ]},
+  {rmb_help,
+   [
+    {1,"Insère la région créant de nouvelles arrêtes à l'intérieur chaque groupe de facettes sélectionnées"}
+   ]},
+  {stop_edge_help,
+   [
+    {1,"Arrête aux arrêtes"},
+    {2,"Dépasse les arrêtes"}
+   ]},
+  {string,
+   [
+    {2,"Le long des arrêtes"},
+    {3,"Moyenne"},
+    {4,"Objet"},
+    {5,"Facette"},
+    {6,"Moyenne le long des arrêtes"}
+   ]},
+  {title,
+   [
+    {1,"Insérer"}
+   ]}
+ ]}.

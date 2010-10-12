@@ -15,7 +15,7 @@
 -export([menu/1,command/2,
 	 virtual_mirror/2,
 	 init/0,initial_properties/0,delete_all/1,
-	 current/0,set_current/1,
+	 current/0,set_current/1,frame/1,
 	 load_matrices/1,projection/0,
 	 modelview/0,align_view_to_normal/1,
 	 eye_point/0,export_views/1,import_views/2,camera_info/2,
@@ -25,7 +25,6 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(erlang, [max/2]).
 -import(lists, [foldl/3,zip/2]).
 
 menu(#st{views={CurrentView,Views}}=St) ->
@@ -61,6 +60,8 @@ menu(#st{views={CurrentView,Views}}=St) ->
      {?__(11,"Toggle Wireframe"),toggle_wireframe,
       ?__(12,"Toggle display mode for selected objects (same for all objects if nothing is selected)"),wireframe_crossmark(St)},
      {?__(19,"Show Edges"),show_edges,?__(20,"Show edges in workmode"),crossmark(show_edges)},
+     {?__(72,"Show Backfaces"),show_backfaces,
+      ?__(73,"Show backfaces when there is a hole or hiddwn faces in an object"),crossmark(show_backfaces)},
      {?__(21,"Show Wireframe Backfaces"),show_wire_backfaces,
       ?__(22,"Show wireframe backfaces"),crossmark(show_wire_backfaces)},
      separator,
@@ -98,23 +99,16 @@ menu(#st{views={CurrentView,Views}}=St) ->
 				    {?__(53,"+Z"),z},
 				    {?__(54,"-X"),neg_x},
 				    {?__(55,"-Y"),neg_y},
-				    {?__(56,"-Z"),neg_z}]}},
+				    {?__(56,"-Z"),neg_z},
+				    separator,
+				    {?__(71,"Nearest Axis"),nearest_axis}]}},
       separator,
       {?__(34,"Camera Settings..."),camera_settings,?__(35,"Set field of view, and near and far clipping planes")},
       separator,
       {?__(59,"Auto Rotate"),auto_rotate,?__(60,"Spin the view")}]].
 
 crossmark(Key) ->
-    Val = case wings_pref:get_value(Key) of
-	      undefined ->
-		  {_,Client} = wings_wm:this(),
-		  wings_wm:get_prop(Client, Key);
-	      Other -> Other
-	  end,
-    case Val of
-	false -> [];
-	true -> [crossmark]
-    end.
+    wings_menu_util:crossmark(Key).
 
 wireframe_crossmark(#st{sel=[],shapes=Shs}) ->
     {menubar,Client} = wings_wm:this(),
@@ -342,6 +336,10 @@ command(show_edges, St) ->
 	    wings_dl:map(fun(D, _) -> D#dlo{hard=none} end, []),
 	    St
     end;
+command(show_backfaces, St) ->
+    Bool = wings_pref:get_value(show_backfaces),
+    wings_pref:set_value(show_backfaces, not Bool),
+    St;
 command({highlight_aim,{Type,{Selmode,Sel,MM}}}, St) ->
     highlight_aim(Type, Selmode, Sel, MM, St),
     St;
@@ -357,7 +355,7 @@ command(frame, St) ->
 command(frame_mode, St) ->
     Bool = wings_pref:get_value(frame_disregards_mirror),
     wings_pref:set_value(frame_disregards_mirror, not Bool),
-	St;
+    St;
 command({views,Views}, St) ->
     views(Views, St);
 command({along,Axis}, St) ->
@@ -390,7 +388,7 @@ virtual_mirror(create, #st{selmode=face}=St0) ->
     St = wings_sel:map(fun virtual_mirror_fun/2, St0),
     {save_state,St#st{sel=[]}};
 virtual_mirror(create, _) ->
-    wings_u:error(?__(1,"Virtual mirror requires a face selection."));
+    wings_u:error_msg(?__(1,"Virtual mirror requires a face selection."));
 virtual_mirror(break, St0) ->
     case break_mirror(St0) of
 	St0 -> St0;
@@ -441,7 +439,7 @@ virtual_mirror_fun(Faces, We0) ->
 	    We = wings_we:create_mirror(Face, We0),
 	    wings_we:mirror_flatten(We, We);
 	_ ->
-	    wings_u:error(?__(1,"Only a single face must be selected per object."))
+	    wings_u:error_msg(?__(1,"Only a single face must be selected per object."))
     end.
 
 break_mirror(#st{shapes=Shs0}=St) ->
@@ -850,6 +848,7 @@ set_current(View) ->
 
 init() ->
     wings_pref:set_default(show_edges, true),
+    wings_pref:set_default(show_backfaces, true),
     wings_pref:set_default(number_of_lights, 1),
     wings_pref:set_default(number_of_shaders, 1),
     wings_pref:set_default(show_normals, false),
@@ -1250,19 +1249,57 @@ along(y) -> along(y, 0.0, 90.0);
 along(z) -> along(z, 0.0, 0.0);
 along(neg_x) -> along(x, 90.0, 0.0);
 along(neg_y) -> along(y, 0.0, -90.0);
-along(neg_z) -> along(z, 180.0, 0.0).
+along(neg_z) -> along(z, 180.0, 0.0);
+along(nearest_axis) ->
+  %% Set view to nearest cardinal axis and keep the orientation of the model.
+    #view{azimuth=Az0,elevation=El0} = View = current(),
+    [Az,El] = foldl(fun(D0, Acc) ->
+        D1 = round(D0),
+        D2 = D1 rem 180,
+        Rot = D1 div 180 rem 2,
+        [round_to_cardinal(Rot, D2)|Acc]
+    end, [], [El0,Az0]),
+    Along = along(Az, El),
+    set_current(View#view{azimuth=Az,elevation=El,along_axis=Along}).
+
+round_to_cardinal(Rot, Deg) when Deg < -135 ->
+    if Rot =:= 0 -> 180.0; true -> 0.0 end;
+round_to_cardinal(Rot, Deg) when Deg < -45 ->
+    if Rot =:= 0 -> -90.0; true -> 90.0 end;
+round_to_cardinal(Rot, Deg) when Deg =< 45 ->
+    if Rot =:= 0 -> 0.0; true -> 180.0 end;
+round_to_cardinal(Rot, Deg) when Deg =< 135 ->
+    if Rot =:= 0 -> 90.0; true -> -90.0 end;
+round_to_cardinal(Rot, _) ->
+    if Rot =:= 0 -> 180.0; true -> 0.0 end.
 
 along(Along, Az, El) ->
     View = current(),
     set_current(View#view{azimuth=Az,elevation=El,along_axis=Along}).
 
-along(-90.0, 0.0) -> x;
-along(0.0,  90.0) -> y;
-along(0.0,   0.0) -> z;
-along(90.0,  0.0) -> neg_x;
-along(0.0,  -90.0) -> neg_y;
-along(180.0, 0.0) -> neg_z;
-along(_Az,   _El) -> none.
+along(Az, El) when Az =:= 90.0; Az =:= -90.0 ->
+    case El of
+      0.0 -> x;
+      90.0 -> y;
+      -90.0 -> y;
+      180.0 -> x;
+      _ -> none
+    end;
+along(Az, El) when El =:= 90.0; El =:= -90.0 ->
+    case Az of
+      0.0 -> y;
+      90.0 -> x;
+      -90.0 -> x;
+      180.0 -> y;
+      _ -> none
+    end;
+along(Az, El) when Az =:= 0.0; Az =:= 180.0 ->
+    case El of
+      0.0 -> z;
+      180.0 -> z;
+      _ -> none
+    end;
+along(_, _) -> none.
 
 align_to_selection(#st{sel=[]}=St) -> St;
 align_to_selection(#st{selmode=vertex}=St) ->

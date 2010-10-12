@@ -105,9 +105,11 @@ MODULES= \
 	wings_shapes \
 	wings_start \
 	wings_subdiv \
+	wings_theme \
 	wings_toolbar \
 	wings_tesselation \
 	wings_text \
+	wings_tweak \
 	wings_u \
 	wings_undo \
 	wings_util \

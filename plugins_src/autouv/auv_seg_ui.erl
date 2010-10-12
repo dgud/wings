@@ -42,7 +42,7 @@ start(Op, #we{id=Id}=We0, OrigWe, St0) ->
 		     member(Name, Allowed)],
     wings_wm:menubar(This, Menu),
     wings_pref:set_value(scene_lights, false), %% ugly hack 
-    
+    wings_view:frame(St0),
     St1 = seg_create_materials(St0),
     {Fs,We1} = seg_hide_other(Id,We0,St0),
     We = case Op of 
@@ -366,7 +366,7 @@ seg_map_charts(Method, #seg{st=#st{shapes=Shs},we=OrigWe}=Ss) ->
     wings_pb:done(),
     case length(Charts) of
 	0 ->
-	    wings_u:error(?__(5,"No mappable faces."));
+	    wings_u:error_msg(?__(5,"No mappable faces."));
 	N ->
 	    wings_pb:start(?__(6,"mapping")),
 	    seg_map_charts_1(Charts, Method, 1, N, [], [], Ss)

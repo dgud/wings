@@ -1,0 +1,55 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_inset,
+ [
+  {abs_rel_help,
+   [
+    {1,"Abstand"},
+    {2,"Prozent"}
+   ]},
+  {extrude_norm_help1,
+   [
+    {1,"Ausbeulen: Flächennormale"},
+    {2,"Ausbeulen: Normale der Region"}
+   ]},
+  {lmb_help,
+   [
+    {1,"Fläche in jede ausgewählte Fläche einsetzen"}
+   ]},
+  {loop_error_1,
+   [
+    {1,"Region einsetzen/versetzen für vollständig ausgewählte Objekte nicht möglich"}
+   ]},
+  {loop_error_2,
+   [
+    {1,"Region versetzen bedingt, das benachbarte Flächen\nmindestens eine gemeinsame Kante haben"}
+   ]},
+  {mmb_help,
+   [
+    {1,"Region versetzen durch erzeugen neuer Kanten um jede Flächengruppenauswahl"}
+   ]},
+  {mode_help,
+   [
+    {1,"Skalieren mit kürzestem Vektor um: "}
+   ]},
+  {rmb_help,
+   [
+    {1,"Region einsetzen durch erzeugen neuer Kanten in jeder Flächengruppenauswahl"}
+   ]},
+  {stop_edge_help,
+   [
+    {1,"Stop am Kantenende"},
+    {2,"Fortsetzen über Kantenende"}
+   ]},
+  {string,
+   [
+    {2,"Entlang der Kanten"},
+    {3,"Durchschnitt"},
+    {4,"Körper"},
+    {5,"Fläche"},
+    {6,"Mittelwert entlang Kanten"}
+   ]},
+  {title,
+   [
+    {1,"Einsetzen"}
+   ]}
+ ]}.

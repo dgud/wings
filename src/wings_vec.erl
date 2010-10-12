@@ -62,11 +62,13 @@ do_ask_1(_, [], Res, _, St, Cb) ->
     wings_wm:later(build_result(Res, Cb, St)),
     keep;
 do_ask_1(Modes, Do0, Done, Flags, NewSt, Cb) ->
+    wings_menu:kill_menus(),
     Do = add_help_text(Do0),
     Mag = member(magnet, Flags),
     Ss = #ss{cb=Cb,mag=Mag,selmodes=Modes,new_st=NewSt,
 	     f=fun(_, _) -> keep end},
     wings_wm:later({ask_init,Do,Done}),
+    wings_tweak:toggle_draw(false),
     erase_vector(),
     St = wings_wm:get_current_state(),
     {seq,push,get_event(Ss, St)}.
@@ -199,6 +201,15 @@ handle_event_4({new_state,St}, #ss{f=Check}=Ss, _St0) ->
 	[{Vec,{Msg,SwMsg}},{AltVec,_}] ->
 	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=AltVec,sw_msg=SwMsg}, St)
     end;
+handle_event_4({update_state,St}, #ss{f=Check}=Ss, _St0) ->
+    case Check(check, St) of
+	{Vec,Msg} -> 
+	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);
+	[{Vec,Msg}] -> 
+	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);
+	[{Vec,{Msg,SwMsg}},{AltVec,_}] ->
+	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=AltVec,sw_msg=SwMsg}, St)
+    end;
 handle_event_4(redraw, Ss, St) ->
     redraw(Ss, St),
     keep;
@@ -249,11 +260,13 @@ handle_event_4({action,{view,Cmd}}, Ss, St0) ->
     get_event(Ss, St);
 handle_event_4({action,{secondary_selection,abort}}, _, _) ->
     erase_vector(),
+    wings_tweak:toggle_draw(true),
     wings_wm:later(revert_state),
     pick_finish(),
     pop;
 handle_event_4(quit, _Ss, _St) ->
     erase_vector(),
+    wings_tweak:toggle_draw(true),
     wings_io:putback_event(quit),
     pop;
 handle_event_4(init_opengl, _, St) ->
@@ -284,6 +297,7 @@ pick_next(Do, Done, #ss{is_axis=true,vec={{_,_,_},{_,_,_}}=Vec}=Ss, St) ->
 pick_next(Do, Done, Ss, St) -> pick_next_1(Do, Done, Ss, St).
 
 pick_next_1([], Res, #ss{cb=Cb,new_st=NewSt}, _) ->
+    wings_tweak:toggle_draw(true),
     pick_finish(),
     wings:clear_mode_restriction(),
     wings_wm:later(build_result(Res, Cb, NewSt)),

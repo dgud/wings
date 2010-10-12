@@ -36,24 +36,28 @@ MODULES= \
 	wpc_arc_intersect \
 	wpc_bend \
 	wpc_circularise \
+	wpc_inset \
 	wpc_connect_tool \
 	wpc_constraints \
-	wpc_contour \
 	wpc_cylindrilize \
+	wpc_corner \
 	wpc_doosabin \
+	wpc_explode \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
 	wpc_magnet_mask \
 	wpc_move_planar \
 	wpc_numeric_camera \
+	wpc_plane_cut \
 	wpc_region \
 	wpc_rotate_unconstrained \
+	wpc_sculpt \
 	wpc_shear \
 	wpc_shift \
 	wpc_sweep_extrude \
 	wpc_turnedge \
-	wpc_tweak \
 	wpc_untriangulate \
+	wpc_grid_snap \
 	wpc_weld
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
