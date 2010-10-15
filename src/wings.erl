@@ -22,6 +22,8 @@
 -export([highlight_aim_setup/1]).
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).
 
+-export([new_st/0]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -108,19 +110,7 @@ init(File) ->
     wings_camera:init(),
     wings_vec:init(),
         
-    Empty = gb_trees:empty(),
-    St0 = #st{shapes=Empty,
-          selmode=face,
-          sel=[],
-          ssels=Empty,
-          mat=wings_material:default(),
-          saved=true,
-          onext=1,
-          repeatable=ignore,
-          ask_args=none,
-          drag_args=none,
-          def={ignore,ignore}
-         },
+    St0 = new_st(),
     St1 = wings_sel:reset(St0),
     St = wings_undo:init(St1),
     wings_view:init(),
@@ -160,6 +150,22 @@ init(File) ->
 	    wings_io:quit(),
 	    exit(Reason)
     end.
+
+
+new_st() ->
+    Empty = gb_trees:empty(),
+    #st{shapes=Empty,
+	selmode=face,
+	sel=[],
+	ssels=Empty,
+	mat=wings_material:default(),
+	saved=true,
+	onext=1,
+	repeatable=ignore,
+	ask_args=none,
+	drag_args=none,
+	def={ignore,ignore}
+       }.
 
 new_viewer(St) ->
     {Pos,{W,H}} = wings_wm:win_rect(desktop),

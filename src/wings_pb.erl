@@ -25,8 +25,13 @@
 -define(PB, progress_bar).
 
 start(Msg) when is_list(Msg) ->
-    WinInfo = wings_wm:viewport(message),
-    cast({start,Msg,percent,WinInfo}).
+    case get(wings_not_running) of
+	undefined ->
+	    WinInfo = wings_wm:viewport(message),
+	    cast({start,Msg,percent,WinInfo});
+	_ ->
+	    ignore
+    end.
 
 update(Percent) when is_float(Percent) -> 
     cast({update,"",Percent}).
