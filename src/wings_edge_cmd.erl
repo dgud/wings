@@ -33,6 +33,8 @@ menu(X, Y, St) ->
 	     ?__(4,"Slide edges along neighbor edges")},
 	    separator,
 	    {?__(5,"Extrude"),{extrude,Dir}},
+	    {?__(22,"Crease"),crease,
+	     ?__(23,"Extrusion commonly used for adding wrinkles to organic models")},
 	    separator,
 	    wings_menu_util:flatten(),
 	    separator,
@@ -153,6 +155,8 @@ command({rotate,Type}, St) ->
     wings_rotate:setup(Type, St);
 command({scale,Type}, St) ->
     wings_scale:setup(Type, St);
+command(crease, St) ->
+    ?SLOW(wings_extrude_edge:crease(St));
 command(vertex_color, St) ->
     wings_color:choose(fun(Color) ->
 			       set_color(Color, St)
