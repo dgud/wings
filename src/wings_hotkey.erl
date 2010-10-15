@@ -41,60 +41,28 @@ event(Ev, #st{selmode=Mode}=St) ->
     end;
 event(Ev, Cmd) -> event_1(Ev, Cmd).
 
-event_1(#keyboard{}=Ev, {Selmode,_}=Cmd)
-  when Selmode==vertex; Selmode==edge; Selmode==face; Selmode==body; Selmode==light ->
-    case lookup(Ev, Cmd) of
-	next -> event_1(Ev,Selmode);
+event_1(#keyboard{}=Ev, SelMode) ->
+    case lookup(Ev, SelMode) of
+	next -> lookup(Ev, none);
+	other_mode -> next;
 	Action -> Action
-    end;
-event_1(#keyboard{}=Ev, Selmode)
-  when is_atom(Selmode) ->
-    case lookup(Ev, Selmode) of
-	next -> lookup_1(Ev,Selmode);
-	Action -> Action
-    end;
-
-event_1(#keyboard{}=Ev, Cmd) when Cmd =/= none ->
-    Mode = check_for_mode_specific_menubar_items(Cmd),
-    case lookup(Ev, Cmd) of
-      next when is_atom(Mode) -> event_1(Ev,Mode);
-      next -> lookup(Ev,none);
-      Action -> Action
     end;
 event_1(_, _) -> next.
 
+lookup(Ev, {Menu,_}=Cmd) ->
+    Mode = suitable_mode(Menu),
+    case ets:lookup(?KL, bindkey(Ev, Cmd)) of
+	[{_,Action,_}] when not Mode -> Action;
+	[{_,{Menu,_}=Action,_}] -> Action;
+	[] -> next;
+	_ -> other_mode
+    end;
 lookup(Ev, Cmd) ->
     case ets:lookup(?KL, bindkey(Ev, Cmd)) of
-	[{_,Action,_}] -> Action;
+	[{_,Action,_}] ->
+	    Action;
 	[] -> next
     end.
-
-lookup_1(Ev,SelMode) ->
-%% Checks for menubar items that are selection mode specific called by hotkey.
-    case lookup(Ev, none) of
-      {select,{edge_loop,edge_loop}}=EL when SelMode == face ->
-          EL;
-      {select,{edge_loop,complete_loops}}=EL ->
-          EL;
-      {select,{edge_loop,_}} when SelMode =/= edge ->
-          next;
-      {select,{oriented_faces,_}} when SelMode =/= face ->
-          next;
-      {select,{similar_material,_}} when SelMode =/= face ->
-          next;
-      {select,{similar_area,_}} when SelMode =/= face ->
-          next;
-      {tools,{virtual_mirror,create}} when SelMode =/= face ->
-          next;
-      Other -> Other
-    end.
-
-check_for_mode_specific_menubar_items({select,{edge_loop,_}}) -> edge;
-check_for_mode_specific_menubar_items({select,{oriented_faces,_}}) -> face;
-check_for_mode_specific_menubar_items({select,{similar_material,_}}) -> face;
-check_for_mode_specific_menubar_items({select,{similar_area,_}}) -> face;
-check_for_mode_specific_menubar_items({tools,{virtual_mirror,create}}) -> face;
-check_for_mode_specific_menubar_items(Cmd) -> Cmd.
 
 %%%
 %%% Binding and unbinding of keys.
@@ -186,7 +154,20 @@ suitable_mode(vertex) -> true;
 suitable_mode(edge) -> true;
 suitable_mode(face) -> true;
 suitable_mode(body) -> true;
-suitable_mode(_) -> false.
+suitable_mode(Menu) ->
+    case Menu of
+      shape -> false;
+      file -> false;
+      edit -> false;
+      view -> false;
+      select -> false;
+      tools -> false;
+      windows -> false;
+      help -> false;
+      tweak -> false;
+      none -> false;
+      _ -> true
+    end.
 
 %%%
 %%% Make a listing of all hotkeys.
