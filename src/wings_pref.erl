@@ -24,9 +24,11 @@
 -include("wings.hrl").
 -import(lists, [foreach/2,reverse/1,sort/1,last/1,foldl/3]).
 
--define(MAC_PREFS, "Library/Preferences/Wings 3D Preferences.txt").
--define(WIN32_OLD_PREFS, "Preferences").
+-define(MAC_PREFS, "Library/Preferences/Wings3D/Preferences.txt").
+-define(MAC_OLD_PREFS, "Library/Preferences/Wings 3D Preferences.txt").
 -define(WIN32_PREFS, "Wings3D/Preferences.txt").
+-define(UNIX_PREFS, ".wings3d/preferences.txt").
+-define(OLD_UNIX_PREFS, ".wings").
 
 init() ->
     ets:new(wings_state, [named_table,public,ordered_set]),
@@ -101,6 +103,7 @@ finish() ->
 	    %% Do nothing.
 	    ok;
 	PrefFile ->
+	    filelib:ensure_dir(PrefFile),
 	    finish_save_prefs(PrefFile)
     end.
 
@@ -161,17 +164,29 @@ win32_save_maximized() ->
 
 old_pref_file() ->
     case os:type() of
-	{unix,darwin} ->
-	    case try_location(os:getenv("HOME"), ?MAC_PREFS) of
-		none -> unix_pref();
-		File -> File
-	    end;
+	{unix,darwin} -> mac_pref();
 	{unix,_} -> unix_pref();
 	{win32,_} -> win32_pref()
     end.
 
 unix_pref() ->
-    try_location(os:getenv("HOME"), ".wings").
+    Home = os:getenv("HOME"),
+    case try_location(Home, ?UNIX_PREFS) of
+	none ->
+	    try_location(Home, ?OLD_UNIX_PREFS);
+	File -> File
+    end.
+
+mac_pref() ->
+    Home = os:getenv("HOME"),
+    case try_location(Home, ?MAC_PREFS) of
+	none ->
+	    case try_location(Home, ?MAC_OLD_PREFS) of
+		none -> unix_pref();
+		File -> File
+	    end;
+	File -> File
+    end.
 
 win32_pref() ->
     case win32_appdata() of
@@ -225,7 +240,7 @@ new_pref_file() ->
 	{unix,darwin} ->
 	    filename:join(os:getenv("HOME"), ?MAC_PREFS);
 	{unix,_} ->
-	    filename:join(os:getenv("HOME"), ".wings");
+	    filename:join(os:getenv("HOME"), ?UNIX_PREFS);
 	{win32,_} ->
 	    win32_new_pref()
     end.
@@ -235,9 +250,7 @@ win32_new_pref() ->
 	none ->
 	    none;
 	AppData ->
-	    File = filename:join(AppData, ?WIN32_PREFS),
-	    filelib:ensure_dir(File),
-	    File
+	    filename:join(AppData, ?WIN32_PREFS)
     end.
 
 %%%
