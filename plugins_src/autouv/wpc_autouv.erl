@@ -421,15 +421,15 @@ command_menu(body, X, Y) ->
     Menu = [{?__(2,"Move"), move, ?__(3,"Move selected charts")},
 	    {?__(4,"Scale"), {scale, scale_directions(false) ++ 
 			      [separator] ++ stretch_directions() ++
-			      [separator, 
-			       {?__(411,"Normalize Sizes"), normalize, 
+			      [separator,
+			       {?__(411,"Normalize Sizes"), normalize,
 				?__(412,"Normalize Chart Sizes so that each"
-				    "chart get it's corresponding 2d area")}]}, 
+				    "chart get it's corresponding 2d area")}]},
 	     ?__(5,"Scale selected charts")},
 	    {?__(6,"Rotate"), rotate, ?__(7,"Rotate selected charts")},
 	    separator,
-	    {?__(8,"Move to"), 
-	     {move_to, 
+	    {?__(8,"Move to"),
+	     {move_to,
 	      [{?__(9,"Center"), center, ?__(10,"Move to Center")},
 	       {?__(11,"Center X"), center_x, ?__(12,"Move to horizontal center")},
 	       {?__(13,"Center Y"), center_y, ?__(14,"Move to vertical center")},
@@ -460,7 +460,7 @@ command_menu(body, X, Y) ->
 				 ]}, 
 	     ?__(45,"Calculate new UVs with chosen algorithm")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, auv, Menu);
+    wings_menu:popup_menu(X,Y, {auv,body}, Menu);
 command_menu(face, X, Y) ->
     Scale = scale_directions(true),
     Menu = [{?__(47,"Move"),move,?__(48,"Move selected faces"),[magnet]},
@@ -470,7 +470,7 @@ command_menu(face, X, Y) ->
 	    {?__(521,"Project-Unfold"),	proj_lsqcm,
 	     ?__(522,"Project selected faces from normal and unfold the rest of chart")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, auv, Menu);
+    wings_menu:popup_menu(X,Y, {auv,face}, Menu);
 command_menu(edge, X, Y) ->
     Scale = scale_directions(true),
     Align = 	    
@@ -490,7 +490,7 @@ command_menu(edge, X, Y) ->
 	    {?__(66,"Stitch"), stitch, ?__(67,"Stitch edges/charts")},
 	    {?__(68,"Cut"), cut_edges, ?__(69,"Cut selected edges")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, auv, Menu);
+    wings_menu:popup_menu(X,Y, {auv,edge}, Menu);
 command_menu(vertex, X, Y) ->
     Scale = scale_directions(true),
     Align = 	    
@@ -516,10 +516,10 @@ command_menu(vertex, X, Y) ->
 	    {?__(91,"SphereMap"),sphere,?__(92,"Create a spherical mapping with "
 	     "selected vertices being North/South pole")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, auv, Menu);
+    wings_menu:popup_menu(X,Y, {auv,vertex}, Menu);
 command_menu(_, X, Y) ->
     [_|Menu] = option_menu(),
-    wings_menu:popup_menu(X,Y, auv, Menu).
+    wings_menu:popup_menu(X,Y, {auv,option}, Menu).
 
 stretch_directions() ->
     [{?__(1,"Max Uniform"), max_uniform, ?__(2,"Maximize either horizontally or vertically")},
@@ -652,7 +652,7 @@ handle_event_3(#mousebutton{button=?SDL_BUTTON_RIGHT}=Ev,
     end;
 handle_event_3({drop,_,DropData}, St) ->
     handle_drop(DropData, St);
-handle_event_3({action,{auv,create_texture}},_St) ->
+handle_event_3({action,{{auv,_},create_texture}},_St) ->
     auv_texture:draw_options();
 handle_event_3({action,{auv,{draw_options,restart}}}, _St) ->
     auv_texture:draw_options();
@@ -692,6 +692,9 @@ handle_event_3({callback,Fun}, _) when is_function(Fun) ->
 handle_event_3({action,{auv,quit}}, _St) ->
     cleanup_before_exit(),
     delete;
+handle_event_3({action,{{auv,_},Cmd}}, St) ->
+%%    io:format("Cmd ~p ~n", [Cmd]),
+    handle_command(Cmd, St);
 handle_event_3({action,{auv,Cmd}}, St) ->
 %%    io:format("Cmd ~p ~n", [Cmd]),
     handle_command(Cmd, St);
@@ -733,6 +736,8 @@ handle_event_3({action,Ev}, St) ->
 	    handle_command({scale,uniform},St);
 	{_, slide} ->
 	    handle_command(slide,St);
+	{_, circularise} ->
+	    handle_command(circularise,St);
 	{view,aim} ->
 	    St1 = fake_selection(St),
 	    wings_view:command(aim, St1),
@@ -955,9 +960,15 @@ handle_command_1(cut_edges, St0 = #st{selmode=edge,bb=#uvstate{id=Id,st=Geom}}) 
     St  = update_selected_uvcoords(St2),
     get_event(St);
 
-handle_command_1(_Cmd, #st{sel=[]}) ->
-    io:format("Error unknown command ~p ~n", [_Cmd]),
-    keep.
+handle_command_1(Cmd, #st{selmode=Mode}=St0) ->
+    case wings_plugin:command({{auv,Mode},Cmd}, St0) of
+      next ->
+        io:format("Error unknown command ~p ~n", [Cmd]),
+        keep;
+      St0 -> St0;
+      #st{}=St -> {save_state,St};
+      Other -> Other
+    end.
 
 remember_command(Cmd,St0) ->
     St0#st{repeatable=Cmd,ask_args=none,drag_args=none}.
