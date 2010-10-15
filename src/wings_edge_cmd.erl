@@ -686,6 +686,21 @@ flatten({'ASK',Ask}, St) ->
     wings:ask(Ask, St, fun flatten/2);
 flatten({Plane,Center}, St) ->
     flatten(Plane, Center, St);
+flatten(edge_loop, St) ->
+    {save_state,
+     wings_sel:map(
+       fun(Es, We0) ->
+	       EGroups = wings_edge_loop:partition_edges(Es, We0),
+	       foldl(fun(Edges, #we{vp=Vtab}=We) ->
+	           case wings_edge_loop:edge_loop_vertices(Edges,We) of
+	               [Vs] ->
+	                   Positions = [array:get(V, Vtab) || V <- Vs],
+	                   Plane = e3d_vec:normal(Positions),
+	                   wings_vertex:flatten(Vs, Plane, We);
+	               _ -> We
+	           end
+	       end, We0, EGroups)
+       end, St)};
 flatten(Plane, St) ->
     flatten(Plane, average, St).
 
@@ -693,9 +708,12 @@ flatten(Plane0, average, St) ->
     Plane = wings_util:make_vector(Plane0),
     {save_state,
      wings_sel:map(
-       fun(Es, We) ->
-	       Vs = wings_edge:to_vertices(Es, We),
-	       wings_vertex:flatten(Vs, Plane, We)
+       fun(Es, We0) ->
+	       EGroups = wings_edge_loop:partition_edges(Es, We0),
+	       foldl(fun(Edges, We) ->
+	           Vs = wings_edge:to_vertices(Edges, We),
+	           wings_vertex:flatten(Vs, Plane, We)
+	       end, We0, EGroups)
        end, St)};
 flatten(Plane0, Center, St) ->
     Plane = wings_util:make_vector(Plane0),
