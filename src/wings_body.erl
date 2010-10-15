@@ -30,7 +30,7 @@ menu(X, Y, St) ->
 	    wings_menu_util:rotate(St),
 	    wings_menu_util:scale(St),
 	    separator,
-	    {?__(3,"Flip"),{flip,
+	    {?__(3,"Flip..."),{flip,
 	       [{wings_s:dir(x),flip_fun(x),
 	         {io_lib:format(FlipStrL,[wings_s:dir(x)]),
 	          io_lib:format(FlipStrM,[wings_s:dir(x)]),
@@ -73,8 +73,9 @@ menu(X, Y, St) ->
 	    separator,
 	    {?__(26,"Duplicate"),{duplicate,Dir}},
 	    {?__(27,"Delete"),delete,?__(28,"Delete the selected objects")},
-	    {?__(29,"Rename..."),rename,
-	     ?__(30,"Rename selected objects")},
+	    {?__(29,"Rename"),rename_fun(),
+	     {?__(30,"Rename selected objects"),[],
+	      ?__(51,"Add a common prefix to each selected object")},[]},
 	    separator,
 	    {?__(31,"Show All"),show_all,
 	     ?__(32,"Show all faces for this object")},
@@ -92,6 +93,13 @@ menu(X, Y, St) ->
 		?__(50,"Remove all vertex colors and UV coordinates")}]}}|
 	    mode_dependent(St)],
     wings_menu:popup_menu(X, Y, body, Menu).
+
+rename_fun() ->
+    fun
+        (1,_) -> {body,rename};
+        (3,_) -> {body,{rename,prefix}};
+        (_,_) -> ignore
+    end.
 
 flip_fun(pick) ->
     fun
@@ -156,9 +164,9 @@ command({duplicate,Dir}, St) ->
 command({duplicate_object,Ids}, St) ->
     {save_state,duplicate_object(Ids, St)};
 command(delete, St) ->
-    {save_state,delete(St)};
+    {save_state,wings_shape:update_folders(delete(St))};
 command({delete_object,Ids}, St) ->
-    {save_state,delete_object(Ids, St)};
+    {save_state,wings_shape:update_folders(delete_object(Ids, St))};
 command(tighten, St) ->
     tighten(St);
 command(smooth, St) ->
@@ -186,9 +194,11 @@ command(cleanup, St) ->
 command({cleanup,Ask}, St) ->
     cleanup(Ask, St);
 command(collapse, St) ->
-    {save_state,wings_collapse:collapse(St)};
+    {save_state,wings_shape:update_folders(wings_collapse:collapse(St))};
 command(rename, St) ->
     rename(St);
+command({rename,prefix}, St) ->
+    rename_prefix(St);
 command({rename,Ids}, St) ->
     rename(Ids, St);
 command(to_arealight, St) ->
@@ -220,6 +230,7 @@ command(show_all, St) ->
      wings_sel:map(fun(_, We) ->
 			   wings_we:show_faces(We)
 		   end, St)}.
+
 %%%
 %%% The Cleanup command.
 %%%
@@ -586,17 +597,17 @@ smooth(St) ->
 %%%
 
 combine(#st{sel=[]}=St) -> St;
+combine(#st{sel=[_]}=St) -> St;
 combine(#st{shapes=Shs0,sel=[{Id,_}=S|_]=Sel0}=St) ->
     Shs1 = sofs:from_external(gb_trees:to_list(Shs0), [{id,object}]),
     Sel1 = sofs:from_external(Sel0, [{id,dummy}]),
     Sel2 = sofs:domain(Sel1),
     {Wes0,Shs2} = sofs:partition(1, Shs1, Sel2),
     Wes = sofs:to_external(sofs:range(Wes0)),
-    We1 = wings_we:merge(Wes),
-    We = We1#we{id=Id},
+    We = wings_we:merge(Wes),
     Shs = gb_trees:from_orddict(sort([{Id,We}|sofs:to_external(Shs2)])),
-    St#st{shapes=Shs,sel=[S]}.
-		    
+    wings_shape:recreate_folder_system(St#st{shapes=Shs,sel=[S]}).
+
 %%%
 %%% The Separate command.
 %%%
@@ -659,6 +670,18 @@ cos_degrees(Angle) ->
 %%%
 %%% Rename selected objects.
 %%%
+
+rename_prefix(St0) ->
+    Wes = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St0),
+    Q = [{hframe,[{text,"Enter Prefix"}]}],
+    wings_ask:dialog(?__(1,"Prefix Selected Objects"), Q,
+        fun([Prefix]) ->
+            foldl(fun(#we{id=Id,name=Name}=We, #st{shapes=Shs0}=St) ->
+                NewName = Prefix++Name,
+                Shs = gb_trees:update(Id, We#we{name=NewName}, Shs0),
+                St#st{shapes=Shs}
+            end, St0, Wes)
+        end).
 
 rename(St) ->
     Wes = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St),

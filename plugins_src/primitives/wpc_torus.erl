@@ -27,9 +27,9 @@
 
 init() -> true.
 
-menu({shape,more}, []) ->
+menu({shape}, []) ->
     torus_menu();
-menu({shape,more}, Menu) ->
+menu({shape}, Menu) ->
     Menu ++ [separator|torus_menu()];
 menu(_, Menu) -> Menu.
 
@@ -38,9 +38,9 @@ torus_menu() ->
      {?__(2,"Lumpy Torus")  ,lutorus,[option]},
      {?__(3,"Spiral Torus") ,sptorus,[option]}].
 
-command({shape,{more,{uvtorus,Ask}}}, _St) -> make_uv_torus(Ask);
-command({shape,{more,{lutorus,Ask}}}, _St) -> make_lu_torus(Ask);
-command({shape,{more,{sptorus,Ask}}}, _St) -> make_sp_torus(Ask);
+command({shape,{uvtorus,Ask}}, _St) -> make_uv_torus(Ask);
+command({shape,{lutorus,Ask}}, _St) -> make_lu_torus(Ask);
+command({shape,{sptorus,Ask}}, _St) -> make_sp_torus(Ask);
 command(_, _) -> next.
 
 %%% The rest are local functions.
@@ -52,7 +52,7 @@ make_uv_torus(Ask) when is_atom(Ask) ->
 	     {?__(3,"V Resolution"),16},
 	     {?__(4,"Major Radius"),1.0},
 	     {?__(5,"Minor Radius"),0.2}],
-	    fun(Res) -> {shape,{more,{uvtorus,Res}}} end);
+	    fun(Res) -> {shape,{uvtorus,Res}} end);
 make_uv_torus([URES, VRES, MajR, MinR]) ->
     case {URES>0, VRES>0} of
 	{true, true} ->
@@ -78,7 +78,7 @@ make_lu_torus(Ask) when is_atom(Ask) ->
 	     {?__(5,"Minor Radius"),0.2},
 	     {?__(6,"Lumps"),8},
 	     {?__(7,"Lump Amplitude"),0.5}],
-	    fun(Res) -> {shape,{more,{lutorus,Res}}} end);
+	    fun(Res) -> {shape,{lutorus,Res}} end);
 make_lu_torus([Ures, Vres, MajR, MinR, Loops, LoopRad]) ->
     Vs = make_verts(Ures, Vres, MajR, MinR, Loops, LoopRad, 2),
     Fs = make_faces(Ures, Vres),
@@ -93,7 +93,7 @@ make_sp_torus(Ask) when is_atom(Ask) ->
 	     {?__(5,"Minor Radius"),0.2},
 	     {?__(6,"Loops"),8},
 	     {?__(7,"Loop Radius "),0.2}],
-	    fun(Res) -> {shape,{more,{sptorus,Res}}} end);
+	    fun(Res) -> {shape,{sptorus,Res}} end);
 make_sp_torus([Ures, Vres, MajR, MinR, Loops, LoopRad]) ->
     Vs = make_verts(Ures, Vres, MajR, MinR, Loops, LoopRad, 3),
     Fs = make_faces(Ures, Vres),

@@ -68,7 +68,14 @@ get_event(Ost) ->
 event(redraw, Ost) ->
     wings_io:ortho_setup(),
     {W,H} = wings_wm:win_size(),
-    wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR),
+    case wings_pref:get_value(bitmap_icons) of
+        false -> wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR);
+        true ->
+          wings_io:blend(wings_pref:get_value(outliner_geograph_bg),
+            fun(Color) ->
+              wings_io:border(0, 0, W-1, H-1, Color)
+            end)
+    end,
     draw_objects(Ost),
     keep;
 event(resized, Ost) ->
@@ -540,16 +547,17 @@ draw_objects(#ost{os=Objs0,first=First,lh=Lh,active=Active,n=N0}=Ost) ->
 	    N1 when N1 < Lines -> N1;
 	    _ -> Lines
 	end,
-    draw_icons(N, Objs, Ost, Lh-2),
-    draw_objects_1(N, Objs, Ost, R, Active-First, Lh-2).
+	B = wings_pref:get_value(bitmap_icons),
+    draw_icons(N, B, Objs, Ost, Lh-2),
+    draw_objects_1(N, B, Objs, Ost, R, Active-First, Lh-2).
 
-draw_objects_1(0, _, _, _, _, _) -> ok;
-draw_objects_1(N, [O|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
+draw_objects_1(0, _, _, _, _, _, _) -> ok;
+draw_objects_1(N, B, [O|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
     case O of
 	{material,Name,Color,TextColor} ->
-	    wings_io:border(2, Y-10, 12, 12, Color),
+	    wings_io:border(4, Y-11, 12, 12, Color),
 	    gl:color3fv(TextColor),
-	    gl:rasterPos2f(5.5, Y),
+	    gl:rasterPos2f(7.5, Y-1),
 	    wings_io:draw_char(m_bitmap()),
 	    gl:color3b(0, 0, 0);
 	{image,_,#e3d_image{name=Name}} -> ok;
@@ -557,25 +565,36 @@ draw_objects_1(N, [O|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
 	{image_preview,_} -> Name = [];
 	ignore -> Name = []
     end,
-    if
-	Active == 0 ->
+    case Active =:= 0 of
+	true when B ->
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
+	    gl:recti(name_pos()-2, Y-?CHAR_HEIGHT, R-2, Y+4),
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
+	true ->
 	    gl:color3f(0, 0, 0.5),
 	    gl:recti(name_pos()-2, Y-?CHAR_HEIGHT, R-2, Y+4),
 	    gl:color3f(1, 1, 1);
-	true -> ok
+	false when B ->
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_text));
+	false -> ok
     end,
     wings_io:text_at(name_pos(), Y, Name),
     gl:color3b(0, 0, 0),
-    draw_objects_1(N-1, Objs, Ost, R, Active-1, Y+Lh).
+    draw_objects_1(N-1, B, Objs, Ost, R, Active-1, Y+Lh).
 
-draw_icons(N, Objs, Ost, Y) ->
-    wings_io:draw_icons(fun() -> draw_icons_1(N, Objs, Ost, Y-14) end),
+draw_icons(N, B, Objs, Ost, Y) ->
+    case B of
+      false ->
+        wings_io:draw_icons(fun() -> draw_icons_1(N, Objs, Ost, Y-14) end);
+      true ->
+        wings_io:draw_icons(fun() -> draw_bitmap_icons(N, Objs, Ost, Y) end)
+    end,
     gl:enable(?GL_TEXTURE_2D),
     gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE),
     draw_previews(N, Objs, Ost, Y-14),
     gl:bindTexture(?GL_TEXTURE_2D, 0),
     gl:disable(?GL_TEXTURE_2D).
-    
+
 draw_icons_1(0, _, _, _) -> ok;
 draw_icons_1(N, [ignore|Objs], #ost{lh=Lh}=Ost, Y) ->
     draw_icons_1(N-1, Objs, Ost, Y+Lh);
@@ -599,6 +618,55 @@ draw_icons_1(N, [O|Objs], #ost{lh=Lh}=Ost, Y) ->
     end,
     draw_icons_1(N-1, Objs, Ost, Y+Lh).
 
+draw_bitmap_icons(0, _, _, _) -> ok;
+draw_bitmap_icons(N, [ignore|Objs], #ost{lh=Lh}=Ost, Y) ->
+    draw_bitmap_icons(N-1, Objs, Ost, Y+Lh);
+draw_bitmap_icons(N, [O|Objs], #ost{lh=Lh}=Ost, Y) ->
+    X = 2,
+    Type = element(1, O),
+    case Type of
+	object ->
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
+	    wings_shape:draw_cube(X, Y),
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_disabled)),
+	    ShadeCube = wings_shape:selcube_bitmap(),
+	    gl:rasterPos2i(X, Y + 1),
+	    gl:bitmap(14, 14, -1, 0, 14, 0, ShadeCube);
+	light ->
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
+	    wings_shape:draw_light(X, Y),
+	    gl:color3fv({1.0, 1.0, 0.5}),
+	    LightObj = wings_shape:light_1_bitmap(),
+	    gl:rasterPos2i(X, Y + 2),
+	    gl:bitmap(14, 15, -1, 0, 14, 0, LightObj);
+	image ->
+	    case O of
+		{_,_,#e3d_image{filename=none}} ->
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
+	    ImgObj0 = img_bitmap_0(),
+	    gl:rasterPos2i(X, Y + 4),
+	    gl:bitmap(14, 14, -1, 0, 14, 0, ImgObj0),
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_disabled)),
+	    ImgObj1 = img_bitmap_1(),
+	    gl:rasterPos2i(X, Y + 4),
+	    gl:bitmap(14, 14, -1, 0, 14, 0, ImgObj1);
+
+		_ ->
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_disabled)),
+	    ImgObj0 = img_bitmap_0(),
+	    gl:rasterPos2i(X, Y + 4),
+	    gl:bitmap(14, 14, -1, 0, 14, 0, ImgObj0),
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
+	    ImgObj1 = img_bitmap_1(),
+	    gl:rasterPos2i(X, Y + 4),
+	    gl:bitmap(14, 14, -1, 0, 14, 0, ImgObj1)
+	    end;
+	image_preview -> ok;
+	material -> ok
+    end,
+    gl:color3b(0, 0, 0),
+    draw_bitmap_icons(N-1, Objs, Ost, Y + Lh).
+
 draw_previews(0, _, _, _) -> ok;
 draw_previews(N, [{image_preview,Im}|Objs], #ost{lh=Lh}=Ost, Y) ->
     W = H = 2*Lh,
@@ -617,6 +685,43 @@ m_bitmap() ->
        2#10101010,
        2#11000110,
        2#10000010>>}.
+
+img_bitmap_0() ->
+     <<2#0000000000000000:16,
+       2#0000000000000000:16,
+       2#0011111100000000:16,
+       2#0011111100000000:16,
+       2#0011111100000000:16,
+       2#0011111100000000:16,
+       2#0011111100000000:16,
+       2#0011111100000000:16,
+       2#0000000011111100:16,
+       2#0000000011111100:16,
+       2#0000000011111100:16,
+       2#0000000011111100:16,
+       2#0000000011111100:16,
+       2#0000000011111100:16,
+       2#0000000000000000:16,
+       2#0000000000000000:16>>.
+
+img_bitmap_1() ->
+     <<2#0000000000000000:16,
+       2#0000000000000000:16,
+       2#0000000011111100:16,
+       2#0000000011111100:16,
+       2#0000000011111100:16,
+       2#0000000011111100:16,
+       2#0000000011111100:16,
+       2#0000000011111100:16,
+       2#0011111100000000:16,
+       2#0011111100000000:16,
+       2#0011111100000000:16,
+       2#0011111100000000:16,
+       2#0011111100000000:16,
+       2#0011111100000000:16,
+       2#0000000000000000:16,
+       2#0000000000000000:16>>.
+
 
 top_of_first_object() ->
     0.

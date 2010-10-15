@@ -17,7 +17,7 @@
 
 init() -> true.
 
-menu({shape}, Menu) ->
+menu(Mode, Menu) when Mode =:= {shape}; Mode =:= {tools,bbox} ->
     lists:reverse(parse(Menu, [], false));
 menu(_,Menu) -> Menu.
 
@@ -31,10 +31,12 @@ parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 
 bb_menu() ->
-    [{?__(1,"Bounding Box"),bbox,
+    [{?__(1,"Bounding Box..."),bbox,
       ?__(2,"Create Bounding Box")}].
 
 command({shape, bbox}, St) ->
+    create_bbox(St);
+command({tools,{bbox,bbox}}, St) ->
     create_bbox(St);
 command(_, _) -> next.
 

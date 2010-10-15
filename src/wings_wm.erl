@@ -20,7 +20,7 @@
 	 later/1,send/2,psend/2,send_after_redraw/2,
 	 set_timer/2,cancel_timer/1,
 	 this/0,offset/3,move/2,move/3,resize/2,pos/1,windows/0,is_window/1,
-	 window_below/2,
+	 window_below/2,resize_windows/2,
 	 update_window/2,clear_background/0,
 	 callback/1,current_state/1,get_current_state/0,notify/1,
 	 local2global/1,local2global/2,global2local/2,local_mouse_state/0,
@@ -586,7 +586,7 @@ update_focus(Active) ->
 	    do_dispatch(Active, got_focus)
     end.
 
-resize_windows(W, H) ->    
+resize_windows(W, H) ->
     Event = #resize{w=W,h=H},
 
     MsgData0 = get_window_data(message),

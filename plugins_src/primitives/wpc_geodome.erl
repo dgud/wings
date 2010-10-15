@@ -17,23 +17,23 @@
 
 init() -> true.
 
-menu({shape, more}, []) ->
+menu({shape}, []) ->
     geodome_menu();
-menu({shape, more}, Menu) ->
+menu({shape}, Menu) ->
     Menu ++ [separator|geodome_menu()];
 menu(_, Menu) -> Menu.
 
 geodome_menu() ->
     [{?__(1,"GeoDome"), geodome, [option]}].
 
-command({shape,{more,{geodome, Arg}}},_St) -> make_geodome(Arg);
+command({shape,{geodome, Arg}},_St) -> make_geodome(Arg);
 command(_, _) -> next.
 
 %%% The rest are local functions.
 
 make_geodome(Arg) when is_atom(Arg) ->
     wpa:dialog(Arg, ?__(1,"Geodesic Dome Options"), dialog(),
-	fun(Res) -> {shape,{more,{geodome, Res}}} end);
+	fun(Res) -> {shape,{geodome, Res}} end);
 make_geodome(Arg) ->
     %set_pref(Arg), % save preferences
     ArgDict = dict:from_list(Arg),

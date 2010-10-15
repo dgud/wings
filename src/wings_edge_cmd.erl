@@ -133,13 +133,14 @@ command({cut,Num}, St) ->
 command(connect, St) ->
     {save_state,connect(St)};
 command(clean_dissolve, St) ->
-    {save_state,clean_dissolve(St)};
+    {save_state,wings_shape:update_folders(clean_dissolve(St))};
 command(dissolve, St) ->
-    {save_state,dissolve(St)};
+    {save_state,wings_shape:update_folders(dissolve(St))};
 command(collapse, St) ->
     {save_state, wings_collapse:uniform_collapse(St)};
-command(clean_collapse, St) ->
-    {save_state, wings_collapse:clean_uniform_collapse(St)};
+command(clean_collapse, St0) ->
+    St = wings_collapse:clean_uniform_collapse(St0),
+    {save_state,wings_shape:update_folders(St)};
 command({hardness,Type}, St) ->
     {save_state,hardness(Type, St)};
 command(loop_cut, St) ->

@@ -62,6 +62,7 @@ do_ask_1(_, [], Res, _, St, Cb) ->
     wings_wm:later(build_result(Res, Cb, St)),
     keep;
 do_ask_1(Modes, Do0, Done, Flags, NewSt, Cb) ->
+    wings_menu:kill_menus(),
     Do = add_help_text(Do0),
     Mag = member(magnet, Flags),
     Ss = #ss{cb=Cb,mag=Mag,selmodes=Modes,new_st=NewSt,
@@ -191,6 +192,15 @@ handle_event_3(#keyboard{}=Ev, Ss, St0) ->
 handle_event_3(Ev, Ss, St) -> handle_event_4(Ev, Ss, St).
 
 handle_event_4({new_state,St}, #ss{f=Check}=Ss, _St0) ->
+    case Check(check, St) of
+	{Vec,Msg} -> 
+	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);
+	[{Vec,Msg}] -> 
+	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);
+	[{Vec,{Msg,SwMsg}},{AltVec,_}] ->
+	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=AltVec,sw_msg=SwMsg}, St)
+    end;
+handle_event_4({update_state,St}, #ss{f=Check}=Ss, _St0) ->
     case Check(check, St) of
 	{Vec,Msg} -> 
 	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);

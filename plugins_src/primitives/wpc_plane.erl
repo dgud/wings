@@ -18,9 +18,9 @@
 
 init() -> true.
 
-menu({shape,more}, []) ->
+menu({shape}, []) ->
     plane_menu();
-menu({shape,more}, Menu) ->
+menu({shape}, Menu) ->
     Menu ++ [separator|plane_menu()];
 menu(_, Menu) -> Menu.
 
@@ -30,10 +30,10 @@ plane_menu() ->
      {?__(3,"Wavy Plane"),wavyplane,[option]},
      {?__(4,"Sombrero Plane"),sombreroplane,[option]}].
 
-command({shape,{more,{regularplane  ,Ask}}},_St) -> make_regular_plane(Ask);
-command({shape,{more,{lumpyplane    ,Ask}}},_St) -> make_lumpy_plane(Ask);
-command({shape,{more,{wavyplane     ,Ask}}},_St) -> make_wavy_plane(Ask);
-command({shape,{more,{sombreroplane ,Ask}}},_St) -> make_sombrero_plane(Ask);
+command({shape,{regularplane  ,Ask}},_St) -> make_regular_plane(Ask);
+command({shape,{lumpyplane    ,Ask}},_St) -> make_lumpy_plane(Ask);
+command({shape,{wavyplane     ,Ask}},_St) -> make_wavy_plane(Ask);
+command({shape,{sombreroplane ,Ask}},_St) -> make_sombrero_plane(Ask);
 command(_, _) -> next.
 
 %%% The rest are local functions.
@@ -44,7 +44,7 @@ make_regular_plane(Ask) when is_atom(Ask) ->
 	    [{?__(2,"Resolution"),7},
 	     {?__(3,"Size"),2.0},
 	     {?__(4,"Thickness"), 0.1}],
-	    fun(Res) -> {shape,{more,{regularplane,Res}}} end);
+	    fun(Res) -> {shape,{regularplane,Res}} end);
 make_regular_plane([Nres, Size, Thickness]) ->
     Vs = regular_plane_verts(Nres, Size, +Thickness/2) ++
 	 regular_plane_verts(Nres, Size, -Thickness/2),
@@ -58,7 +58,7 @@ make_lumpy_plane(Ask) when is_atom(Ask) ->
 	     {?__(3,"Size"),2.0},
 	     {?__(4,"Lumps"),2},
 	     {?__(5,"Thickness"), 0.1}],
-	    fun(Res) -> {shape,{more,{lumpyplane,Res}}} end);
+	    fun(Res) -> {shape,{lumpyplane,Res}} end);
 make_lumpy_plane([Nres, Size, Lumps, Thickness]) ->
     Vs = lumpy_plane_verts(Nres, Size, Lumps, +Thickness/2) ++
 	 lumpy_plane_verts(Nres, Size, Lumps, -Thickness/2),
@@ -73,7 +73,7 @@ make_wavy_plane(Ask) when is_atom(Ask) ->
 	     {?__(4,"Waves"),4},
 	     {?__(5,"Height"), 0.2},
 	     {?__(6,"Thickness"), 0.1}],
-	    fun(Res) -> {shape,{more,{wavyplane,Res}}} end);
+	    fun(Res) -> {shape,{wavyplane,Res}} end);
 make_wavy_plane([Nres, Size, Waves, Height, Thickness]) ->
     Vs = wavy_plane_verts(Nres, Size, Waves, Height, +Thickness/2) ++
 	 wavy_plane_verts(Nres, Size, Waves, Height, -Thickness/2),
@@ -89,7 +89,7 @@ make_sombrero_plane(Ask) when is_atom(Ask) ->
 	     {?__(5,"Falloff"),1},
 	     {?__(6,"Height"), 1},
 	     {?__(7,"Thickness"), 0.1}],
-	    fun(Res) -> {shape,{more,{sombreroplane,Res}}} end);
+	    fun(Res) -> {shape,{sombreroplane,Res}} end);
 make_sombrero_plane([Nres, Size, Waves, Falloff, Height, Thickness]) ->
     Vs = sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, +Thickness/2) ++
 	 sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, -Thickness/2),

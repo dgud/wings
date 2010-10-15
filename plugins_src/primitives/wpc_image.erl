@@ -25,14 +25,14 @@ init() ->
     true.
 
 menu({shape}, Menu) ->
-    insert_before_more(Menu);
+    insert_before_image(Menu);
 menu(_, Menu) -> Menu.
 
-insert_before_more([H|_]=More) when element(1, element(2, H)) == more ->
-    [image_menu(),separator|More];
-insert_before_more([H|T]) ->
-    [H|insert_before_more(T)];
-insert_before_more([]) ->
+insert_before_image([{_,image,_}=Image|Rest]) ->
+    [Image,image_menu(),separator|Rest];
+insert_before_image([H|T]) ->
+    [H|insert_before_image(T)];
+insert_before_image([]) ->
     [image_menu()].
 
 image_menu() ->

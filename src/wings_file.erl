@@ -139,10 +139,10 @@ menu(_) ->
       ?__(14,"Save only the selected objects or faces")},
      {?__(15,"Save Incrementally"),save_incr,
       ?__(26,"Generate new filename and save")},
-	  %% if there are more options we'll make a panel
-	 {?__(29,"Save Unused Materials"),save_unused_materials,
-	  ?__(30,"Include unused materials when saving a .wings file"),
-	  save_unused_mats()},
+      %% if there are more options we'll make a panel
+     {?__(29,"Save Unused Materials"),save_unused_materials,
+      ?__(30,"Include unused materials when saving a .wings file"),
+      save_unused_mats()},
      separator,
      {?__(16,"Revert"),revert,
       ?__(17,"Revert current scene to the saved contents")},
@@ -157,13 +157,21 @@ menu(_) ->
      separator,
      {?__(24,"Install Plug-In"),install_plugin,
       ?__(27,"Install a plug-in")},
+     separator,
+     {?__(31,"Save Preference Subset..."),save_pref,
+      ?__(32,"Save a preference subset from your current settings")},
+     {?__(33,"Load Preference Subset"),
+       {load_pref,
+         [{?__(35,"Load..."),custom_theme,
+           ?__(36,"Load a previously saved preference subset")}]
+          ++wings_pref:recent_prefs()}},
      separator|recent_files(Tail)].
 
 save_unused_mats() ->
     case wings_pref:get_value(save_unused_materials) of
 	  true -> [crossmark];
 	  false -> []
-	end.
+    end.
 
 command(new, St) ->
     new(St);
@@ -238,6 +246,15 @@ command(install_plugin, _St) ->
     install_plugin();
 command({install_plugin,Filename}, _St) ->
     wings_plugin:install(Filename);
+
+command(save_pref, _St) ->
+    wings_pref:pref(save);
+command({load_pref,Request}, St) ->
+    wings_pref:pref({load,Request,St});
+command({pref,Request}, St) ->
+    wings_pref:pref(Request,St),
+    keep;
+
 command(quit, #st{saved=true}) ->
     quit;
 command(quit, _) ->
@@ -269,7 +286,8 @@ confirmed_new(#st{file=File}=St) ->
 
 new(#st{saved=true}=St0) ->
     St1 = clean_st(St0#st{file=undefined}),
-    St = clean_images(wings_undo:init(St1)),
+    St2 = clean_images(wings_undo:init(St1)),
+    St = wings_shape:create_folder_system(St2),
     wings_u:caption(St),
     {new,St#st{saved=true}};
 new(#st{}=St0) ->		      %File is not saved or autosaved.
@@ -308,11 +326,12 @@ confirmed_open(Name, St0) ->
 		  %%   Name: Original name of file to be opened.
 		  %%   File: Either original file or the autosave file
 		  St1 = clean_st(St0#st{file=undefined}),
-		  St2 = wings_undo:init(St1),
+		  St2 = wings_shape:create_folder_system(wings_undo:init(St1)),
 		  case ?SLOW(wings_ff_wings:import(File, St2)) of
 		      #st{}=St3 ->
 			  set_cwd(dirname(File)),
-			  St = clean_images(St3),
+			  St4 = clean_images(St3),
+			  St = wings_shape:recreate_folder_system(St4),
 			  add_recent(Name),
 			  wings_u:caption(St#st{saved=true,file=Name});
 		      {error,Reason} ->
@@ -356,7 +375,7 @@ merge(Name, St0) ->
 			  wings_u:error(?__(2,"Read failed: ") ++ Reason);
 		      #st{}=St ->
 			  set_cwd(dirname(Name)),
-			  St#st{saved=false}
+			  wings_shape:recreate_folder_system(St)
 		  end
 	  end,
     use_autosave(Name, Fun).
@@ -604,9 +623,11 @@ recent_files_1([], _, _, Tail) -> Tail.
 
 revert(#st{file=undefined}=St) -> St;
 revert(#st{file=File}=St0) ->
-    St1 = clean_st(St0),
+    St1 = wings_shape:create_folder_system(clean_st(St0)),
     case ?SLOW(wings_ff_wings:import(File, St1)) of
-	#st{}=St -> clean_images(St);
+	#st{}=St2 ->
+	    St = wings_shape:recreate_folder_system(St2),
+	    clean_images(St);
 	{error,_}=Error ->
 	    Error
     end.

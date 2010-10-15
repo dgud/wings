@@ -35,6 +35,7 @@
 	 sel=[] :: list(),
 	 onext=1 :: elem_num(),
 	 mat=wings_material:default(),
+	 pst=gb_trees:empty() :: gb_tree(),
 
 	 %% For the Develop menu.
 	 cmd,
@@ -61,9 +62,9 @@ undo(#st{undone=Undone}=St0) ->
 redo(#st{undone=[StOld|Undone]}=St0) ->
     St1 = push(St0, St0),
     #st{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,
-	mat=Mat,last_cmd=Cmd} = StOld,
+	mat=Mat,last_cmd=Cmd,pst=Pst} = StOld,
     St = St1#st{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,
-		mat=Mat,last_cmd=Cmd},
+		mat=Mat,last_cmd=Cmd,pst=Pst},
     mem_stat(St#st{undone=Undone,next_is_undo=true});
 redo(St) -> St.
 
@@ -99,12 +100,12 @@ push_1(#st{undo=Undo0}=St, #est{sel=Sel}=Est0) ->
     end.
 
 save_essential(#st{last_cmd=Cmd,shapes=Sh,selmode=Mode,sel=Sel,
-		   onext=Onext,mat=Mat}) ->
-    #est{cmd=Cmd,shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,mat=Mat}.
+		   onext=Onext,mat=Mat,pst=Pst}) ->
+    #est{cmd=Cmd,shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,mat=Mat,pst=Pst}.
     
 compare_states(Old, New) ->
-    #est{shapes=Osh,selmode=Omode,sel=Osel,onext=Oonext,mat=Omat} = Old,
-    #est{shapes=Nsh,selmode=Nmode,sel=Nsel,onext=Nonext,mat=Nmat} = New,
+    #est{shapes=Osh,selmode=Omode,sel=Osel,onext=Oonext,mat=Omat,pst=Opst} = Old,
+    #est{shapes=Nsh,selmode=Nmode,sel=Nsel,onext=Nonext,mat=Nmat,pst=Npst} = New,
     if
 	Omode =/= Nmode, (Osel =/= [] orelse Nsel =/= []) -> new;
 	Oonext =/= Nonext -> new;
@@ -115,6 +116,7 @@ compare_states(Old, New) ->
 		true -> new
 	    end;
 	Osh =/= Nsh -> new;
+	Opst =/= Npst -> new;
 	true -> unchanged
     end.
 
@@ -144,10 +146,10 @@ pop(#st{undo=Undo0}=St) ->
 	{empty,_} -> empty;
 	{{value,Est},Undo} ->
 	    #est{shapes=Sh0,selmode=Mode,sel=Sel,
-		 onext=Onext,mat=Mat,cmd=Cmd} = Est,
+		 onext=Onext,mat=Mat,cmd=Cmd,pst=Pst} = Est,
 	    Sh = uncompress(Sh0, []),
 	    St#st{undo=Undo,shapes=Sh,selmode=Mode,sel=Sel,
-		  onext=Onext,mat=Mat,last_cmd=Cmd}
+		  onext=Onext,mat=Mat,last_cmd=Cmd,pst=Pst}
     end.
 
 discard_old_states(#st{undo=Undo0}=St) ->

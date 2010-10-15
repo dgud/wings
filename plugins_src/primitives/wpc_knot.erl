@@ -18,23 +18,23 @@
 
 init() -> true.
 
-menu({shape, more}, []) ->
+menu({shape}, []) ->
     knot_menu();
-menu({shape, more}, Menu) ->
+menu({shape}, Menu) ->
     Menu ++ [separator|knot_menu()];
 menu(_, Menu) -> Menu.
 
 knot_menu() ->
     [{?__(1,"Torus Knot"), knot, [option]}].
 
-command({shape,{more,{knot, Arg}}}, _) -> make_knot(Arg);
+command({shape,{knot, Arg}}, _) -> make_knot(Arg);
 command(_, _) -> next.
 
 %%% The rest are local functions.
 
 make_knot(Arg) when is_atom(Arg) ->
     wpa:dialog(Arg, "Torus Knot Options", dialog(),
-	fun(Res) -> {shape,{more,{knot, Res}}} end);
+	fun(Res) -> {shape,{knot, Res}} end);
 make_knot(Arg) ->
     ArgDict = dict:from_list(Arg),
     TypeFlag = dict:fetch(typeflag, ArgDict),

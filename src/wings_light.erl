@@ -131,7 +131,7 @@ command(edit, St) ->
 command({edit,Id}, St) ->
     edit(Id, St);
 command(delete, St) ->
-    {save_state,delete(St)};
+    {save_state,wings_shape:update_folders(delete(St))};
 command({duplicate,Dir}, St) ->
     duplicate(Dir, St).
     
@@ -605,17 +605,17 @@ get_light(#we{name=Name,perm=P}=We, BC) ->
     Ps = export_perm(P, Ps0),
     {Name,Ps}.
 
-get_light_1(#we{light=#light{type=ambient,ambient=Amb,prop=Prop}}=We, _) ->
+get_light_1(#we{light=#light{type=ambient,ambient=Amb,prop=Prop},pst=Pst}=We, _) ->
     P = light_pos(We),
-    OpenGL = [{type,ambient},{ambient,Amb},{position,P}],
+    OpenGL = [{type,ambient},{ambient,Amb},{position,P},{pst,Pst}],
     [{opengl,OpenGL}|Prop];
-get_light_1(#we{light=L}=We, BC) ->
+get_light_1(#we{light=L,pst=Pst}=We, BC) ->
     #light{type=Type,diffuse=Diff,ambient=Amb,specular=Spec,
 	   aim=Aim,spot_angle=Angle,spot_exp=SpotExp,
 	   lin_att=LinAtt,quad_att=QuadAtt,prop=Prop} = L,
     P = light_pos(We),
     Common = [{type,Type},{position,P},{aim_point,Aim},
-	      {diffuse,Diff},{ambient,Amb},{specular,Spec}],
+	      {diffuse,Diff},{ambient,Amb},{specular,Spec},{pst,Pst}],
     OpenGL0 = case Type of
 		  spot ->
 		      [{cone_angle,Angle},{spot_exponent,SpotExp}|Common];
@@ -623,7 +623,7 @@ get_light_1(#we{light=L}=We, BC) ->
 		      Common
 	     end,
     OpenGL1 = if
-		 Type == point; Type == spot; Type == area ->
+		 Type =:= point; Type =:= spot; Type =:= area ->
 		     [{linear_attenuation,LinAtt},
 		      {quadratic_attenuation,QuadAtt}|OpenGL0];
 		 true -> OpenGL0
@@ -714,8 +714,9 @@ import_we(#light{type=area}=Light, OpenGL, {X,Y,Z}) ->
 	    {mesh,M} -> import_fix_mesh(M)
 	end,
     We = wings_import:import_mesh(material, Mesh),
-    We#we{light=Light};
-import_we(#light{}=Light, _OpenGL, {X,Y,Z}) ->
+    Pst = proplists:get_value(pst, OpenGL, gb_trees:empty()),
+    We#we{light=Light,pst=Pst};
+import_we(#light{}=Light, OpenGL, {X,Y,Z}) ->
     %% We used to put all vertices at the same position, but with
     %% then rewritten pick handling we need a vertex array for picking.
     %% The cube will be slightly larger than the sphere that is shown
@@ -726,7 +727,8 @@ import_we(#light{}=Light, _OpenGL, {X,Y,Z}) ->
     Vs = [{X-S,Y-S,Z+S},{X-S,Y+S,Z+S},{X+S,Y+S,Z+S},{X+S,Y-S,Z+S},
 	  {X-S,Y-S,Z-S},{X-S,Y+S,Z-S},{X+S,Y+S,Z-S},{X+S,Y-S,Z-S}],
     We = wings_we:build(Fs, Vs),
-    We#we{light=Light}.
+    Pst = proplists:get_value(pst, OpenGL, gb_trees:empty()),
+    We#we{light=Light,pst=Pst}.
 
 import_fix_mesh(#e3d_mesh{fs=Fs0}=Mesh0) ->
     Fs = [import_fix_face(F) || F <- Fs0],

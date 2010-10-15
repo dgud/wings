@@ -134,11 +134,11 @@ command(mirror_separate, St) ->
 command(intrude, St) ->
     ?SLOW(intrude(St));
 command(dissolve, St) ->
-    {save_state,dissolve(St)};
+    {save_state,wings_shape:update_folders(dissolve(St))};
 command(clean_dissolve, St) ->
-    {save_state,clean_dissolve(St)};
+    {save_state,wings_shape:update_folders(clean_dissolve(St))};
 command(bridge, St) ->
-    {save_state,bridge(St)};
+    {save_state,wings_shape:recreate_folder_system(bridge(St))};
 command(smooth, St) ->
     ?SLOW({save_state,smooth(St)});
 command(auto_smooth, St) ->
@@ -150,7 +150,7 @@ command(put_on, St) ->
 command(clone_on, St) ->
     clone_on(St);
 command(collapse, St) ->
-    {save_state,wings_collapse:collapse(St)};
+    {save_state,wings_shape:update_folders(wings_collapse:collapse(St))};
 command({material,Cmd}, St) ->
     wings_material:command(Cmd, St);
 command({move,Type}, St) ->
@@ -1252,16 +1252,15 @@ clone_on_selection() ->
 	  end,
     {[{Fun,Desc}],[],[],[face,edge,vertex]}.
 
-clone_on({Mode,Sel}, #st{sel=[{Id,Faces}],shapes=Shs0}=St) ->
+clone_on({Mode,Sel}, #st{selmode=OrigMode,sel=[{Id,Faces}]=OrigSel,shapes=Shs0}=St0) ->
     We = gb_trees:get(Id, Shs0),
     [Face] = gb_sets:to_list(Faces),
     Vs = wings_face:vertices_ccw(Face, We),
     Center = wings_vertex:center(Vs, We),
     Translate = e3d_mat:translate(e3d_vec:neg(Center)),
     N = wings_face:face_normal_cw(Vs, We),
-    #st{shapes=Shs,onext=Onext} =
-	clone_on_1(Translate, N, We, St#st{selmode=Mode,sel=Sel}),
-    {save_state,St#st{shapes=Shs,onext=Onext}}.
+    St = clone_on_1(Translate, N, We, St0#st{selmode=Mode,sel=Sel}),
+    {save_state,St#st{selmode=OrigMode,sel=OrigSel}}.
     
 clone_on_1(Tr, N, Clone, St) ->
     wings_sel:fold(
