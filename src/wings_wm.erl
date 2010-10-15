@@ -15,7 +15,7 @@
 -export([toplevel/6,toplevel_title/1,toplevel_title/2,set_knob/3]).
 -export([init/0,enter_event_loop/0,dirty/0,dirty_mode/1,pdirty/0,
 	 reinit_opengl/0,
-	 new/4,delete/1,raise/1,
+	 new/4,delete/1,raise/1,rollup/2,
 	 link/2,hide/1,show/1,is_hidden/1,
 	 later/1,send/2,psend/2,send_after_redraw/2,
 	 set_timer/2,cancel_timer/1,
@@ -30,7 +30,7 @@
 -export([top_size/0,viewport/0,viewport/1,
 	 win_size/0,win_ul/0,win_rect/0,
 	 win_size/1,win_ul/1,win_ur/1,win_ll/1,win_lr/1,win_z/1,
-	 win_rect/1]).
+	 win_rect/1,win_rollup/1]).
 
 %% Focus management.
 -export([grab_focus/0,grab_focus/1,release_focus/0,
@@ -67,7 +67,8 @@
 	 name,					%Name of window.
 	 stk,					%Event handler stack.
 	 props,					%Window properties.
-	 links=[]			  %Windows linked to this one.
+	 links=[],			  %Windows linked to this one.
+	 rollup=false			%Rollup window into Title Bar {controller,Name}
 	}).
 
 -record(se,					%Stack entry record.
@@ -239,7 +240,6 @@ delete_windows(Name, W0) ->
 		     (_, A) -> A
 		  end, W, Links)
     end.
-
 raise(Name) ->
     case get_window_data(Name) of
 	#win{z=Z} when Z < ?Z_LOWEST_DYNAMIC -> ok;
@@ -250,6 +250,73 @@ raise(Name) ->
 		_ -> ok
 	    end
     end.
+
+rollup(Action, Name) ->
+    case (Action =:= rolldown) =:= win_rollup(Name) of
+      true ->
+        WinData = gb_trees:values(get(wm_windows)),
+        rollup(Action, WinData, Name);
+      false ->
+        ok
+    end.
+
+rollup(Action, [#win{name={closer,Name}}|T], Name) ->
+    rollup(Action,T, Name);
+rollup(Action, [#win{name={controller,Name}}|T], Name) when Name /= geom ->
+    rollup(Action, T, Name);
+rollup(rollup, [#win{name=geom}=W|T], geom) ->
+    put_window_data(geom, W#win{z=?Z_LOWEST_DYNAMIC, rollup=true}),
+    rollup(rollup, T, geom);
+rollup(rolldown, [#win{name=geom}=W|T], geom) ->
+    put_window_data(geom, W#win{rollup=false}),
+    rollup(rolldown, T, geom);
+rollup(rollup, [#win{name={object,geom}}|T], geom) ->
+    rollup(rollup, T, geom);
+
+rollup(rollup, [#win{z=Z,name={toolbar,Name}=Win}=W|T], Name) when Name /= geom ->
+    case Z < -1 of
+      true -> ok;
+      false -> 
+        put_window_data(Win, W#win{z=-1})
+    end,
+    rollup(rollup, T, Name);
+rollup(rolldown, [#win{z=Z,name={toolbar,Name}=Win}=W|T], Name) when Name /= geom ->
+    case Z < -1 of
+      true -> ok;
+      false -> 
+        put_window_data(Win, W#win{z=win_z({controller,Name})})
+    end,
+    rollup(rolldown, T, Name);
+
+rollup(Action, [#win{z=Z,name={toolbar,geom}=Win}=W|T], geom) ->
+    case Z < 0 of
+     true -> ok;
+     false ->
+       put_window_data(Win, W#win{z=?Z_LOWEST_DYNAMIC})
+    end,
+    rollup(Action, T, geom);
+
+rollup(rollup, [#win{name={_,geom}=Win}=W|T], geom) ->
+    put_window_data(Win, W#win{z=?Z_LOWEST_DYNAMIC, rollup=true}),
+    rollup(rollup, T, geom);
+rollup(rolldown, [#win{name={_,geom}}|T], geom) ->
+    rollup(rolldown, T, geom);
+rollup(rollup, [#win{z=Z,name=Name}=W|T], Name) ->
+    put_window_data(Name, W#win{z=-Z, rollup=true}),
+    rollup(rollup, T, Name);
+rollup(rolldown, [#win{z=Z,name=Name}=W|T], Name) ->
+    put_window_data(Name, W#win{z=-Z, rollup=false}),
+    rollup(rolldown, T, Name);
+rollup(rollup, [#win{name={_,Name}=Win}|T], Name) ->
+    hide(Win),
+    rollup(rollup, T, Name);
+rollup(rolldown, [#win{name={_,Name}=Win}|T], Name) ->
+    show(Win),
+    rollup(rolldown, T, Name);
+rollup(Action, [_|T], Name) ->
+    rollup(Action, T, Name);
+rollup(_, [], _) ->
+    dirty().
 
 highest_z() ->
     highest_z_1(gb_trees:values(get(wm_windows)), 0).
@@ -360,6 +427,8 @@ update_window_1([{w,W}|T], Win) ->
     update_window_1(T, Win#win{w=W});
 update_window_1([{h,H}|T], Win) ->
     update_window_1(T, Win#win{h=H});
+update_window_1([{rollup,Rollup}|T], Win) ->
+    update_window_1(T, Win#win{rollup=Rollup});
 update_window_1([], Win) ->
     range_check(Win).
 
@@ -447,6 +516,11 @@ win_z(Name) ->
 win_rect(Name) ->
     #win{x=X,y=Y,w=W,h=H} = get_window_data(Name),
     {{X,Y},{W,H}}.
+
+win_rollup({dialog,_}) -> no;
+win_rollup(Name) ->
+    #win{rollup=Rollup} = get_window_data(Name),
+    Rollup.
 
 local2global(#mousebutton{x=X0,y=Y0}=Ev) ->
     {X,Y} = local2global(X0, Y0),

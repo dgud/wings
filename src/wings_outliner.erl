@@ -12,7 +12,7 @@
 %%
 
 -module(wings_outliner).
--export([window/1,window/3]).
+-export([window/1,window/4]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
@@ -45,18 +45,18 @@ window(St) ->
 	    W = 28*?CHAR_WIDTH,
 	    Pos = {DeskW-5,DeskY+55},
 	    Size = {W,DeskH div 2},
-	    window(Pos, Size, St),
+	    window(Pos, Size, [], St),
 	    keep
     end.
 
-window(Pos, Size, St) ->
+window(Pos, Size, Ps, St) ->
     Ost = #ost{first=0,lh=18,active=-1},
     Current = {current_state,St},
     Op = {seq,push,event(Current, Ost)},
     Props = [{display_lists,geom_display_lists}],
     wings_wm:toplevel(outliner, title(), Pos, Size,
 		      [{sizeable,?PANE_COLOR},closable,vscroller,{anchor,ne},
-		       {properties,Props}], Op),
+		       {properties,Props}|Ps], Op),
     F = fun({image,_,_}) -> yes;
 	   (_) -> no
 	end,

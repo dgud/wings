@@ -31,9 +31,10 @@ toplevel(Name, Title, Pos, Size, Flags, Op) ->
 
 -record(ctrl,
 	{title,					%Title of window.
-	 state=idle,				%idle|moving
+	 state=idle,			%idle|moving
 	 local,
-	 prev_focus				%Previous focus holder.
+	 prev_focus,			%Previous focus holder.
+	 rollup					%rollup function
 	}).
 
 new_controller(Client, Title, Flags) ->
@@ -50,6 +51,11 @@ new_controller(Client, Title, Flags) ->
 		 {seq,push,get_ctrl_event(Cs)}),
     wings_wm:link(Client, Controller),
     ctrl_anchor(Client, Flags),
+    case keyfind(rollup, 1, Flags) of
+      {rollup,true} -> wings_wm:rollup(rollup,Client);
+      _ when Client =:= geom -> wings_wm:rollup(rollup,Client);
+      _ -> ok
+    end,
     keep.
 
 ctrl_create_windows([vscroller|Flags], Client) ->
@@ -137,20 +143,36 @@ get_ctrl_event(Cs) ->
     {replace,fun(Ev) -> ctrl_event(Ev, Cs) end}.
 		     
 ctrl_event(redraw, Cs) ->
+    ctrl_message(),
     ctrl_redraw(Cs);
-ctrl_event(got_focus, _) ->
-    ctrl_message();
 ctrl_event(#mousebutton{button=1,state=?SDL_PRESSED},
 	   #ctrl{state=moving,prev_focus=Focus}=Cs) ->
     wings_wm:grab_focus(Focus),
     get_ctrl_event(Cs#ctrl{state=idle});
+
 ctrl_event(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED}, Cs) ->
     {_,Client} = Self = wings_wm:this(),
+    Rollup = wings_wm:win_rollup(Client),
+    Time = if Rollup ->  wings_wm:rollup(rolldown,Client), undefined;
+                true -> now()
+           end,
     wings_wm:raise(Client),
     Focus = wings_wm:grabbed_focus_window(),
     wings_wm:grab_focus(Self),
-    get_ctrl_event(Cs#ctrl{local={X,Y},state=moving,prev_focus=Focus});
-ctrl_event(#mousebutton{button=1,state=?SDL_RELEASED}, #ctrl{prev_focus=Focus}=Cs) ->
+    get_ctrl_event(Cs#ctrl{local={X,Y},state=moving,prev_focus=Focus,rollup=Time});
+
+ctrl_event(#mousebutton{button=1,state=?SDL_RELEASED}, #ctrl{prev_focus=Focus,rollup=Time}=Cs) ->
+    {_, Client} = wings_wm:this(),
+    T = if Time =:= undefined -> 300000; true -> timer:now_diff(now(),Time) end,
+    Rollup = wings_wm:win_rollup(Client),
+    case  Rollup of
+      true when T < 300000 ->
+        wings_wm:rollup(rolldown,Client),
+        wings_wm:raise(Client);
+      false when T < 300000 ->
+        wings_wm:rollup(rollup,Client);
+      _ -> no_change
+    end,
     wings_wm:grab_focus(Focus),
     get_ctrl_event(Cs#ctrl{state=idle});
 ctrl_event(#mousebutton{button=2,state=?SDL_RELEASED}, Cs) ->
@@ -179,6 +201,13 @@ ctrl_event(#mousebutton{}=Ev, _) ->
     case is_resizeable() of
 	false -> ok;
 	true ->
+	    {_, Client} = wings_wm:this(),
+	    case Client of
+		geom -> ok;
+		_ ->
+	      wings_wm:rollup(rolldown,Client),
+	      wings_wm:raise(Client)
+	    end,
 	    case wings_menu:is_popup_event(Ev) of
 		{yes,X,Y,_} -> ctrl_menu(X, Y);
 		no -> ok
@@ -203,6 +232,18 @@ ctrl_event({title,Title}, Cs) ->
 ctrl_event(_, _) -> keep.
 
 ctrl_message() ->
+    {_,Client} = wings_wm:this(),
+    Rollup = case wings_wm:win_rollup(Client) of
+        true when Client =:= geom ->
+          wings_msg:button_format(?__(6,"Click to bring Geometry Window to Front"));
+        false when Client =:= geom ->
+          wings_msg:button_format(?__(7,"Click to send Geometry Window to Back"));
+        true ->
+          wings_msg:button_format(?__(4,"Click to show window"));
+        false ->
+          wings_msg:button_format(?__(5,"Click to rollup window into titlebar"));
+        no -> []
+    end,
     M0 = wings_msg:button_format(?__(1,"Drag to Move")),
     M1 = case is_resizeable() of
 	     false -> [];
@@ -211,7 +252,7 @@ ctrl_message() ->
 					 ?__(2,"Fit"), 
 					 ?__(3,"Show menu"))
 	 end,
-    M = wings_msg:join(M0, M1),
+    M = wings_msg:join([Rollup, M0, M1]),
     wings_wm:message(M),
     wings_wm:dirty().
 
@@ -297,6 +338,12 @@ ctrl_command(hide_toolbar, _) ->
     wings_wm:hide(Toolbar),
     {_,H} = wings_wm:win_size(Toolbar),
     wings_wm:update_window(Client, [{dy,-H},{dh,H}]),
+    case wings_wm:win_rollup(Client) of
+      true when Client /= geom ->
+        wings_wm:rollup(rolldown,Client),
+        wings_wm:raise(Client);
+      _ -> keep
+    end,
     wings_wm:dirty();
 ctrl_command(show_toolbar, _) ->
     {_,Client} = wings_wm:this(),
@@ -304,6 +351,12 @@ ctrl_command(show_toolbar, _) ->
     wings_wm:show({toolbar,Client}),
     {_,H} = wings_wm:win_size(Toolbar),
     wings_wm:update_window(Client, [{dy,H},{dh,-H}]),
+    case wings_wm:win_rollup(Client) of
+      true when Client /= geom ->
+        wings_wm:rollup(rolldown,Client),
+        wings_wm:raise(Client);
+      _ -> keep
+    end,
     wings_wm:dirty();
 ctrl_command({fit,Fit}, _) ->
     ctrl_fit(Fit),

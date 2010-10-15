@@ -1541,14 +1541,16 @@ save_window(Name, Ns) ->
     {PosX0,PosY} = wings_wm:win_ur({controller,Name}),
     PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
     Size = wings_wm:win_size(Name),
-    W = {Name,{PosX,PosY},Size},
+    Rollup = {rollup, wings_wm:win_rollup(Name)},
+    W = {Name, {PosX,PosY}, Size, [Rollup]},
     [W|save_windows_1(Ns)].
 
 save_geom_window(Name, Ns) ->
     {Pos,Size} = wings_wm:win_rect(Name),
+    Rollup = {rollup, wings_wm:win_rollup(Name)},
     Ps0 = [{toolbar_hidden,wings_wm:is_hidden({toolbar,Name})}],
     Ps = save_geom_props(wings_wm:get_props(Name), Ps0),
-    Geom = {Name,Pos,Size,Ps},
+    Geom = {Name,Pos,Size,[Rollup|Ps]},
     [Geom|save_windows_1(Ns)].
 
 save_geom_props([{show_axes,_}=P|T], Acc) ->
@@ -1576,8 +1578,8 @@ restore_windows(St) ->
 restore_windows_1([{geom,{_,_}=Pos0,{_,_}=Size,Ps0}|Ws], St) ->
     Ps = geom_props(Ps0),
     case proplists:get_bool(toolbar_hidden, Ps) of
-    true -> wings_wm:hide({toolbar,geom});
-    false -> ok
+        true -> wings_wm:hide({toolbar,geom});
+        false -> ok
     end,
     Pos = geom_pos(Pos0),
     wings_wm:move(geom, Pos, Size),
@@ -1590,18 +1592,24 @@ restore_windows_1([{{geom,_}=Name,Pos0,Size,Ps0}|Ws], St) ->
     Pos = geom_pos(Pos0),
     wings_wm:move(Name, Pos, Size),
     set_geom_props(Ps, Name),
+    case lists:keyfind(rollup,1,Ps0) of
+        false -> ok;
+        Rollup -> wings_wm:update_window(Name,[Rollup])
+    end,
     restore_windows_1(Ws, St);
-restore_windows_1([{{object,_}=Name,{_,_}=Pos,{_,_}=Size}|Ws], St) ->
-    wings_shape:window(Name, validate_pos(Pos), Size, St),
+restore_windows_1([{Name,Pos,Size}|Ws0], St) -> % OldFormat
+    restore_windows_1([{Name,Pos,Size,[]}|Ws0], St);
+restore_windows_1([{{object,_}=Name,{_,_}=Pos,{_,_}=Size,Ps}|Ws], St) ->
+    wings_shape:window(Name, validate_pos(Pos), Size, Ps, St),
     restore_windows_1(Ws, St);
-restore_windows_1([{outliner,{_,_}=Pos,{_,_}=Size}|Ws], St) ->
-    wings_outliner:window(validate_pos(Pos), Size, St),
+restore_windows_1([{outliner,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
+    wings_outliner:window(validate_pos(Pos), Size, Ps, St),
     restore_windows_1(Ws, St);
-restore_windows_1([{console,{_,_}=Pos,{_,_}=Size}|Ws], St) ->
-    wings_console:window(console, validate_pos(Pos), Size),
+restore_windows_1([{console,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
+    wings_console:window(console, validate_pos(Pos), Size, Ps),
     restore_windows_1(Ws, St);
-restore_windows_1([{palette,{_,_}=Pos,{_,_}=Size}|Ws], St) ->
-    wings_palette:window(validate_pos(Pos),Size,St),
+restore_windows_1([{palette,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
+    wings_palette:window(validate_pos(Pos), Size, Ps, St),
     restore_windows_1(Ws, St);
 restore_windows_1([_|Ws], St) ->
     restore_windows_1(Ws, St);
