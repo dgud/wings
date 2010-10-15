@@ -842,7 +842,7 @@ arrow_key_pan(Dx, Dy) ->
 
 key_pan(Dx0, Dy0) ->
     #view{pan_x=PanX0,pan_y=PanY0,distance=D} = View = wings_view:current(),
-    S = D/(101-wings_pref:get_value(pan_speed_arrow_keys)),
+    S = D * (wings_pref:get_value(pan_speed_arrow_keys)/100),
     Dx = Dx0*S,
     Dy = Dy0*S,
     PanX = PanX0 + Dx,
@@ -858,7 +858,7 @@ whpan(Dx0, Dy0) ->
     true ->
         wings_wm:dirty(),
         #view{pan_x=PanX0,pan_y=PanY0,distance=D} = View = wings_view:current(),
-        S = D/(101-wings_pref:get_value(wh_pan_spd)),
+        S = D * (wings_pref:get_value(wh_pan_spd)/100),
         Dx = Dx0*S,
         Dy = Dy0*S,
         PanX = PanX0 + Dx,
