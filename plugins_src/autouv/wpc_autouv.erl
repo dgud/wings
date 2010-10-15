@@ -418,7 +418,8 @@ change_texture_id(NewId, MatName, GeomSt0=#st{mat=Materials}) ->
 %%%% Menus.
 
 command_menu(body, X, Y) ->
-    Menu = [{?__(2,"Move"), move, ?__(3,"Move selected charts")},
+    Menu = [{?__(2,"Move"), {move, move_directions(false)},
+	     ?__(3,"Move selected charts")},
 	    {?__(4,"Scale"), {scale, scale_directions(false) ++ 
 			      [separator] ++ stretch_directions() ++
 			      [separator,
@@ -463,7 +464,8 @@ command_menu(body, X, Y) ->
     wings_menu:popup_menu(X,Y, {auv,body}, Menu);
 command_menu(face, X, Y) ->
     Scale = scale_directions(true),
-    Menu = [{?__(47,"Move"),move,?__(48,"Move selected faces"),[magnet]},
+    Move = move_directions(true),
+    Menu = [{?__(47,"Move"),{move,Move},?__(48,"Move selected faces"),[magnet]},
 	    {?__(49,"Scale"),{scale,Scale},?__(50,"Scale selected faces"), [magnet]},
 	    {?__(51,"Rotate"),rotate,?__(52,"Rotate selected faces"), [magnet]},
 	    separator,
@@ -473,11 +475,12 @@ command_menu(face, X, Y) ->
     wings_menu:popup_menu(X,Y, {auv,face}, Menu);
 command_menu(edge, X, Y) ->
     Scale = scale_directions(true),
+    Move = move_directions(true),
     Align = 	    
 	[{?__(53,"Free"),free,?__(54,"Rotate selection freely"), [magnet]},
 	 {?__(55,"Chart to X"), align_x, ?__(56,"Rotate chart to align selected edge to X-axis")},
 	 {?__(57,"Chart to Y"), align_y, ?__(58,"Rotate chart to align selected edge to Y-axis")}],
-    Menu = [{?__(60,"Move"),move,?__(61,"Move selected edges"),[magnet]},
+    Menu = [{?__(60,"Move"),{move,Move},?__(61,"Move selected edges"),[magnet]},
 	    {?__(62,"Scale"),{scale,Scale},?__(63,"Scale selected edges"), [magnet]},
 	    {?__(64,"Rotate"),{rotate,Align},?__(65,"Rotate commands")},
 	    {?__(641,"Slide"),slide,?__(642,"Slide along neighbor edges")},
@@ -493,6 +496,7 @@ command_menu(edge, X, Y) ->
     wings_menu:popup_menu(X,Y, {auv,edge}, Menu);
 command_menu(vertex, X, Y) ->
     Scale = scale_directions(true),
+    Move = move_directions(true),
     Align = 	    
 	[{?__(70,"Free"),free,?__(71,"Rotate selection freely"), [magnet]},
 	 {?__(72,"Chart to X"), align_x, 
@@ -500,7 +504,7 @@ command_menu(vertex, X, Y) ->
 	 {?__(74,"Chart to Y"), align_y, 
 	  ?__(75,"Rotate chart to align (imaginary) edge joining selected verts to Y-axis")}],
 
-    Menu = [{?__(77,"Move"),move,?__(78,"Move selected vertices"),[magnet]},
+    Menu = [{?__(77,"Move"),{move,Move},?__(78,"Move selected vertices"),[magnet]},
 	    {?__(79,"Scale"),{scale,Scale},?__(80,"Scale selected vertices"), [magnet]},
 	    {?__(81,"Rotate"),{rotate,Align},?__(82,"Rotation commands")},
 	    separator,
@@ -525,6 +529,15 @@ stretch_directions() ->
     [{?__(1,"Max Uniform"), max_uniform, ?__(2,"Maximize either horizontally or vertically")},
      {?__(3,"Max Horizontal"), max_x, ?__(4,"Maximize horizontally (X dir)")},
      {?__(5,"Max Vertical"),   max_y, ?__(6,"Maximize vertically (Y dir)")}].
+
+move_directions(true) ->
+    [{?__(1,"Free"), free_2d, ?__(2,"Move in both directions"), [magnet]},
+     {?__(3,"Horizontal"), x, ?__(4,"Move horizontally (X dir)"), [magnet]},
+     {?__(5,"Vertical"),   y, ?__(6,"Move vertically (Y dir)"), [magnet]}];
+move_directions(false) ->
+    [{?__(1,"Free"), free_2d, ?__(2,"Move in both directions")},
+     {?__(3,"Horizontal"), x, ?__(4,"Move horizontally (X dir)")},
+     {?__(5,"Vertical"),   y, ?__(6,"Move vertically (Y dir)")}].
 
 scale_directions(true) ->
     [{?__(1,"Uniform"),    uniform, ?__(2,"Scale in both directions"), [magnet]},
@@ -839,11 +852,12 @@ handle_command_1(sphere, St0) ->
     get_event(St);
 handle_command_1(move, St) ->
     wings_move:setup(free_2d, St);
-handle_command_1({move,{move,Magnet}}, St) ->
-    wings_move:setup({free_2d,Magnet}, St); %% Repeat drag with mag
-handle_command_1({move,Magnet}, St) ->
-%%    do_drag(wings_move:setup({free_2d,Magnet}, St),none);
-    wings_move:setup({free_2d,Magnet}, St);
+handle_command_1({move,{'ASK',Ask}}, St) ->
+    wings:ask(Ask, St, fun(M,St0) ->
+			       do_drag(wings_move:setup(M, St0))
+		       end);
+handle_command_1({move,Axis}, St) ->
+    wings_move:setup(Axis, St);
 handle_command_1({scale,Dir}, St0) %% Maximize chart
   when Dir == max_uniform; Dir == max_x; Dir == max_y -> 
     St1 = wpa:sel_map(fun(_, We) -> stretch(Dir,We) end, St0),
@@ -997,7 +1011,9 @@ repeat(drag, Cmd0, St = #st{ask_args=AskArgs,drag_args=DragArgs}) ->
 
 repeat2(Cmd,St,DragArgs) ->
     case handle_command_1(Cmd,St) of
-	{drag,Drag} -> wings_drag:do_drag(Drag, DragArgs); 
+	{drag,Drag} ->
+	  wings_wm:set_prop(show_info_text, true),
+	  wings_drag:do_drag(Drag, DragArgs); 
 	Other -> Other
     end.
 
