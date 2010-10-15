@@ -51,6 +51,7 @@ MODULES= \
 	wpc_plane_cut \
 	wpc_region \
 	wpc_rotate_unconstrained \
+	wpc_sculpt \
 	wpc_shear \
 	wpc_shift \
 	wpc_sweep_extrude \
