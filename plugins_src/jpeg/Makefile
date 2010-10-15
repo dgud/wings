@@ -59,7 +59,7 @@ else
 
 $(LIBDIR)/wings_jpeg_image_drv.so: wings_jpeg_image_drv.c
 	install -d $(LIBDIR)
-	gcc -o $(LIBDIR)/wings_jpeg_image_drv.so -I$(ERL_INC) \
+	gcc -fPIC -o $(LIBDIR)/wings_jpeg_image_drv.so -I$(ERL_INC) \
 	-I/usr/local/include -L/usr/local/lib \
   wings_jpeg_image_drv.c $(LIBS)
 
