@@ -1,5 +1,5 @@
 %% -*- mode:erlang; erlang-indent-level: 2 -*-
-{wpc_contour,
+{wpc_inset,
  [
   {abs_rel_help,
    [

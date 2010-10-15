@@ -20,21 +20,23 @@
 init() ->
     true.
 
-menu({body}, Menu) -> add_menu(Menu);
-menu(_, Menu) -> Menu.
+menu({body},Menu) ->
+    lists:reverse(parse(Menu, [], false));
+menu(_,Menu) ->
+    Menu.
 
-add_menu([Smooth = {_,smooth,_}|Rest]) ->
-    %% Preferred position.
-    [Smooth,menu_entry(Rest)];
-add_menu([Other|Rest]) ->
-    [Other|add_menu(Rest)];
-add_menu([]) ->
-    %% Fallback position.
-    menu_entry([]).
+parse([{_,smooth,_}=A|Rest], NewMenu, false) ->
+    parse(Rest, [menu_entry(),A|NewMenu], true);
+parse([Elem|Rest], NewMenu, Found) ->
+    parse(Rest, [Elem|NewMenu], Found);
+parse([], NewMenu, true) ->
+    NewMenu;
+parse([], NewMenu, false) ->
+    [menu_entry()|NewMenu].
 
-menu_entry(T) ->
-    [{?__(1,"Doo Sabin Subdivision"), doo_sabin, 
-      ?__(2,"Makes a Doo-Sabin subdivision according to WasaMonkey (WARNING: messes up all UV coordinates)")}|T].
+menu_entry() ->
+    {?__(1,"Doo Sabin Subdivision"), doo_sabin,
+      ?__(2,"Makes a Doo-Sabin subdivision according to WasaMonkey (WARNING: messes up all UV coordinates)")}.
 
 command({body,doo_sabin}, St0) ->
     %% Do for each selected object

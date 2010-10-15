@@ -216,6 +216,7 @@ norm_add_hotkey(Name, Elem, Hotkeys, Props) ->
     Key = match_hotkey(Name, Hotkeys, have_option_box(Props)),
     setelement(3, Elem, Key).
 
+match_hotkey(Name, [{{_,Name},Key}|_], false) -> Key;
 match_hotkey(Name, [{Name,Key}|_], false) -> Key;
 match_hotkey(Name, [{{Name,false},Key}|_], true) -> Key;
 match_hotkey(Name, [{{Name,true},Key}|_], true) -> Key;

@@ -25,25 +25,27 @@ menu(_, Menu) -> Menu.
 
 %% function name and help (bottom line)
 orbitrot_menu(Mode) ->
+    Help = {?__(2,"Rotate freely around selection "), [],	%% lmb help, [] mmb none,
+            ?__(3,"Pick rotation center")},
     {?__(1,"Unconstrained"),	% function name visible in menu
-    orbitrot_options(Mode),
-        {?__(2,"Rotate freely around selection "), [],	%% lmb help, [] mmb none,
-         ?__(3,"Pick rotation center")},magnet_possible(Mode)}.
+    {rotate_unconstrained,orbitrot_options(Mode, Help)}, magnet_possible(Mode)}.
 
 %% magnet (doesn't work yet
 magnet_possible(body) -> [];
 magnet_possible(_) -> [magnet].
 
 %% lmb, rmb options (have to match with the things after command)
-orbitrot_options(body) ->
+orbitrot_options(body, Help) ->
     fun
+      (help, _Ns) -> Help;
       (1,_Ns) -> {body,{rotate, {unconstrained, lmb}}};
       (3,_Ns) -> 	%'ASK' is an atom too
           {body,{rotate, {unconstrained,{rmb,{'ASK',{[center],[],[]}}}}}};
       (_,_)   -> ignore
     end;
-orbitrot_options(Mode) ->
+orbitrot_options(Mode, Help) ->
     fun
+      (help, _Ns) -> Help;
       (1,_Ns) ->
           {Mode,{rotate, {unconstrained,{lmb,{'ASK',{[],[],[magnet]}}}}}};
       (3,_Ns) ->    % [magnet]={magnet,Type,Route,Point}
@@ -109,6 +111,7 @@ center_setup({Center, Mag}, St) ->
     finish_setup(Center, Mag, St).
 
 %%%% FOLDING AND DRAGGING
+finish_setup(Center, {}, St) -> finish_setup(Center, none, St);
 finish_setup(Center0, body, St) -> 	% body (uses whole matrix instead of single vert coordinates)
     Tvs = wings_sel:fold(
         fun(_, #we{id=Id}=We, Acc) ->
