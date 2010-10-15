@@ -1,0 +1,18 @@
+%% -*- erlang -*-
+%%  wpc_normal.auv --
+%%
+%%     Config file for worldspace normal shader
+%%
+%%  Copyright (c) 2009 Dan Gudmundsson
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+ 
+%%  Everything behind a '%' is a comment
+
+{name, "Object Normals"}.  % The name in the shader selector
+{vertex_shader, "normal.vs"}. % Vertex shader used
+{fragment_shader, "normal.fs"}.  % Fragment shader used
+{requires, [normal]}.
+
