@@ -105,16 +105,7 @@ menu(#st{views={CurrentView,Views}}=St) ->
       {?__(59,"Auto Rotate"),auto_rotate,?__(60,"Spin the view")}]].
 
 crossmark(Key) ->
-    Val = case wings_pref:get_value(Key) of
-	      undefined ->
-		  {_,Client} = wings_wm:this(),
-		  wings_wm:get_prop(Client, Key);
-	      Other -> Other
-	  end,
-    case Val of
-	false -> [];
-	true -> [crossmark]
-    end.
+    wings_menu_util:crossmark(Key).
 
 wireframe_crossmark(#st{sel=[],shapes=Shs}) ->
     {menubar,Client} = wings_wm:this(),
