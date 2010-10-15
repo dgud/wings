@@ -3,7 +3,7 @@
 %%
 %%     This module handles interactive commands.
 %%
-%%  Copyright (c) 2001-2009 Bjorn Gustavsson
+%%  Copyright (c) 2001-2010 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -22,41 +22,40 @@
 
 %% Main drag record. Kept in state.
 -record(drag,
-	{x,					%Original 2D position
-	 y,
-	 xs=0,					%Summary of mouse movements
-	 ys=0,
-	 zs=0,                  %Z move in screen relative
-	 fp=0,                  %An optional forth drag parameter
-	 psum=[0,0,0,0],        % Whereas xs,ys,zs and fp are the displayed distances
-	                        % psum is the unconstrained mouse summary pre parameter 
-	 xt=0,					%Last warp length
-	 yt=0,
-	 mmb_count=0,
-	 fp_count=0,            % Rmb depression timer (forth parameter)
-	 offset,				%Offset for each dimension.
-	 unit,					%Unit that drag is done in.
-	 unit_sc,				%Scales for each dimension.
-	 flags=[],				%Flags.
-	 falloff,				%Magnet falloff.
-	 mode_fun,				%Special mode.
-	 mode_data,				%State for mode.
-	 info="",                               %Information line.
-	 st,					%Saved st record.
-	 last_move				%Last move.
+	{x,y,			% Original 2D position,
+	 xs=0,ys=0,		% Summary of mouse movements
+	 zs=0,			% Z move in screen relative
+	 p4=0,p5=0,		% An optional forth drag parameter
+	 psum=[0,0,0,0,0],	% Whereas xs,ys,zs,p4 and p5 are the displayed
+	 			%  distances psum is the unconstrained mouse
+	 			%  summary pre parameter
+	 xt=0,yt=0,		% Last warp length
+	 lmb_timer=0,		% Lmb is pressed timer
+	 mmb_timer=0,		% Mmb is pressed timer
+	 rmb_timer=0,		% Rmb is pressed timer (forth parameter)
+	 offset,		% Offset for each dimension.
+	 unit,			% Unit that drag is done in.
+	 unit_sc,		% Scales for each dimension.
+	 flags=[],		% Flags.
+	 falloff,		% Magnet falloff.
+	 mode_fun,		% Special mode.
+	 mode_data,		% State for mode.
+	 info="",		% Information line.
+	 st,			% Saved st record.
+	 last_move		% Last move.
 	}).
 
 %% Drag per object.
 -record(do,
-	{funs,					%List of transformation funs.
-	 we_funs				%List of funs that operate on
-						%  the We.
+	{funs,			%List of transformation funs.
+	 we_funs		%List of funs that operate on the We.
 	}).
 
 setup(Tvs, Unit, St) ->
     setup(Tvs, Unit, [], St).
 
 setup(Tvs, Units, Flags, St) ->
+    cursor_boundary(60),
     wings_io:grab(),
     wings_wm:grab_focus(),
     Offset0 = proplists:get_value(initial, Flags, []),
@@ -80,6 +79,25 @@ setup(Tvs, Units, Flags, St) ->
 	    break_apart(Tvs, St)
     end,
     {drag,Drag}.
+
+%% make sure cursor isn't too close to the edge of the window since this can
+%% cause drag response problems.
+cursor_boundary(P) ->
+    {{Wx,Wy},{W,H}} = wings_wm:win_rect(),
+    {_,Mx,My} = wings_io:get_mouse_state(),
+    X = if Mx-P > Wx ->
+            if Mx+P < Wx+W -> Mx;
+               true -> Wx+W-P
+            end;
+           true -> Wx+P
+        end,
+    Y = if My-P > Wy ->
+            if My+P < Wy+H -> My;
+               true -> Wy+H-P
+            end;
+           true -> Wy+P
+        end,
+    wings_io:warp(X, Y).
 
 setup_mode(Flags, Falloff) ->
     case proplists:get_value(mode, Flags, none) of
@@ -168,8 +186,8 @@ falloff([]) -> none.
 
 pad_offsets(Ds) ->
     case length(Ds) of
-	L when L >= 4 -> Ds;
-	L -> Ds ++ lists:duplicate(4-L, 0.0)
+	L when L >= 5 -> Ds;
+	L -> Ds ++ lists:duplicate(5-L, 0.0)
     end.
 
 %% When the zoom changes during a camera event the units have to be rescaled.
@@ -368,15 +386,14 @@ gl_rescale_normal() ->
 
 help_message(#drag{unit=Unit,mode_fun=ModeFun,mode_data=ModeData}) ->
     Accept = wings_msg:button_format(wings_s:accept()),
-    ZMsg = zmove_help(Unit),
-    FpMsg = fpmove_help(Unit),
-    Cancel = wings_msg:button_format([], [],wings_s:cancel()),
+    Message = wings_msg:join(drag_help(Unit)),
+    Cancel = wings_msg:button_format([], [], wings_s:cancel()),
     NumEntry = ?__(1,"Numeric Entry"),
     Tab = wings_util:key_format("[Tab]", NumEntry),
     Switch = switch(),
     Constraint = ?__(2,"Switch Constraint Set")++Switch,
     ShiftTab = wings_util:key_format("[Shift]+[Tab]", Constraint),
-    Msg = wings_msg:join([Accept,ZMsg,FpMsg,Cancel,Tab,ShiftTab]),
+    Msg = wings_msg:join([Accept, Message, Cancel, Tab, ShiftTab]),
     MsgRight = ModeFun(help, ModeData),
     wings_wm:message(Msg, MsgRight).
 
@@ -385,44 +402,79 @@ switch() ->
       true -> ?__(1," (using Alternate Constraints)");
       false -> []
     end.
-	
-zmove_help([_]) -> [];
-zmove_help([_,_]) -> [];
-zmove_help([_,_,falloff]) -> [];
-zmove_help([_,_,dz|_]) ->
-    zmove_help_1(?__(1,"Drag to move along Z"));
-zmove_help([_,_,percent|_]) ->
-    zmove_help_1(?__(3,"Drag to adjust Scale"));
-zmove_help([_,_,skip|_]) -> [];
-zmove_help([_,_,_|_]) ->
-    zmove_help_1(?__(2,"Drag to adjust third parameter")).
 
-fpmove_help([_]) -> [];
-fpmove_help([_,_]) -> [];
-fpmove_help([_,_,_]) -> [];
-fpmove_help([_,_,_,falloff]) -> [];
-fpmove_help([_,_,_,_,falloff]) ->
-    fpmove_help_1(?__(1,"Drag to adjust forth parameter"));
-fpmove_help([_,_,_,angle|_]) ->
-    fpmove_help_1(?__(2,"Drag to adjust Rotation"));
-fpmove_help([_,_,_,percent|_]) ->
-    fpmove_help_1(?__(3,"Drag to adjust Scale"));
-fpmove_help([_,_,skip,Type|_]) ->
-    Str = wings_util:stringify(Type),
-    Help = ?__(4,"Drag to adjust") ++ " " ++ Str,
-    fpmove_help_1(Help);
-fpmove_help([_,_,_,_|_]) ->
-    fpmove_help_1(?__(1,"Drag to adjust forth parameter")).
+drag_help(Units) ->
+    {_,_,Message} = foldl(fun
+        (falloff, {N,S,Acc}) -> {N+1,S,Acc};
+        (skip, {N,_,Acc}) -> {N+1,true,Acc};
+        (P, {3,S,MsgAcc}) ->
+          case P of
+            dz ->
+              Msg = zmove_help(?__(1,"Move along Screen Normal")),
+              {4,S,[Msg|MsgAcc]};
+            angle ->
+              Msg = zmove_help(?__(4,"Rotate")),
+              {4,S,[Msg|MsgAcc]};
+            percent ->
+              Msg = zmove_help(?__(2,"Scale")),
+              {4,S,[Msg|MsgAcc]};
+            _ when S ->
+              Msg = zmove_help(wings_util:stringify(P)),
+              {4,S,[Msg|MsgAcc]};
+            _ ->
+              Msg = zmove_help(?__(3,"Adjust 2nd value")),
+              {4,S,[Msg|MsgAcc]}
+          end;
+        (P, {4,S,MsgAcc}) ->
+          case P of
+            angle ->
+              Msg = p4_help(?__(4,"Rotate")),
+              {5,S,[Msg|MsgAcc]};
+            percent ->
+              Msg = p4_help(?__(2,"Scale")),
+              {5,S,[Msg|MsgAcc]};
+            _ when S ->
+              Msg = p4_help(wings_util:stringify(P)),
+              {5,S,[Msg|MsgAcc]};
+            _ ->
+              Msg = p4_help(?__(5,"Adjust 3rd value")),
+              {5,S,[Msg|MsgAcc]}
+          end;
+        (P, {5,S,MsgAcc}) ->
+          case P of
+            angle ->
+              Msg = p5_help(?__(4,"Rotate")),
+              {6,S,[Msg|MsgAcc]};
+            percent ->
+              Msg = p5_help(?__(2,"Scale")),
+              {6,S,[Msg|MsgAcc]};
+            _ when S ->
+              Msg = p5_help(wings_util:stringify(P)),
+              {6,S,[Msg|MsgAcc]};
+            _ ->
+              Msg = p5_help(?__(6,"Adjust 4th value")),
+              {6,S,[Msg|MsgAcc]}
+          end;
+        (_, {N,S,Acc}) -> {N+1,S,Acc}
+    end,{1,false,[]}, Units),
+    reverse(Message).
 
-zmove_help_1(Msg) ->
+zmove_help(Msg) ->
+    wings_s:lmb() ++ plus_drag_string() ++ Msg.
+
+p4_help(Msg) ->
+    DragMsg = plus_drag_string() ++ Msg,
     case wings_pref:get_value(camera_mode) of
-	tds -> wings_msg:mod_format(?CTRL_BITS, 3, Msg);
-	blender -> wings_msg:mod_format(?CTRL_BITS, 3, Msg);
-	sketchup -> wings_msg:mod_format(?CTRL_BITS, 3, Msg);
-	_ -> wings_msg:mod_format(0, 2, Msg)
+      tds -> wings_s:key(ctrl) ++ "+" ++ wings_s:rmb() ++ DragMsg;
+      blender -> wings_s:key(ctrl) ++ "+" ++ wings_s:rmb() ++ DragMsg;
+      sketchup -> wings_s:key(ctrl) ++ "+" ++ wings_s:rmb() ++ DragMsg;
+      _ -> wings_s:mmb() ++ DragMsg
     end.
-fpmove_help_1(Msg) ->
-	wings_msg:mod_format(0, 3, Msg).
+
+p5_help(Msg) ->
+    wings_s:rmb() ++ plus_drag_string() ++ Msg.
+
+plus_drag_string() -> ?__(1,"+Drag: ").
 
 get_drag_event(Drag) ->
     case wings_pref:get_value(hide_sel_while_dragging) of
@@ -437,18 +489,21 @@ get_drag_event(Drag) ->
 get_drag_event_1(Drag) ->
     {replace,fun(Ev) -> handle_drag_event(Ev, Drag) end}.
 
-%%%% When the Rmb is pressed we store the time in order to determine if the
-%%%% intention is to drag or cancel the command. Later, when the Rmb is released
-%%%% we take the time again. If the time interval is short then the event is
-%%%% handled as an intention to cancel the command.
+%% When the Rmb is pressed we store the time in order to determine if the
+%% intention is to drag or cancel the command. Later, when the Rmb is released
+%% we take the time again. If the time interval is short then the event is
+%% handled as an intention to cancel the command.
 handle_drag_event(#mousebutton{button=3,state=?SDL_PRESSED}=Ev,
-		  #drag{fp_count=C}=Drag) when C == 0 ->
-	StartTimer = now(),
-    handle_drag_event(Ev, Drag#drag{fp_count=StartTimer});
-
+  #drag{rmb_timer=0}=Drag) ->
+    StartTimer = now(),
+    handle_drag_event(Ev, Drag#drag{rmb_timer=StartTimer});
+handle_drag_event(#mousebutton{button=1,state=?SDL_PRESSED}=Ev,
+  #drag{lmb_timer=0}=Drag) ->
+    StartTimer = now(),
+    handle_drag_event(Ev, Drag#drag{lmb_timer=StartTimer});
 handle_drag_event(#keyboard{sym=9, mod=Mod},Drag)->
     case Mod band ?SHIFT_BITS =/= 0 of
-      true -> 
+      true ->
         case wings_pref:get_value(con_alternate) of
           true ->  wings_pref:set_value(con_alternate,false);
           false -> wings_pref:set_value(con_alternate,true)
@@ -456,39 +511,56 @@ handle_drag_event(#keyboard{sym=9, mod=Mod},Drag)->
       false -> numeric_input(Drag)
     end;
 handle_drag_event(#mousebutton{button=2,state=?SDL_RELEASED},
-		  #drag{mmb_count=C,fp_count=0}=Drag) when C > 2 ->
-    get_drag_event_1(Drag#drag{mmb_count=0,fp_count=0});
+  #drag{lmb_timer=0,mmb_timer=C,rmb_timer=0}=Drag) when C > 2 ->
+    get_drag_event_1(Drag#drag{mmb_timer=0});
 handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
-		  #drag{mmb_count=C}=Drag) when C > 2 ->
+  #drag{mmb_timer=C}=Drag) when C > 2 ->
     if
 	Mod band ?CTRL_BITS =/= 0 ->
-	    get_drag_event_1(Drag#drag{mmb_count=0,fp_count=0});
+	    get_drag_event_1(Drag#drag{lmb_timer=0,mmb_timer=0,rmb_timer=0});
 	true ->
-	    handle_drag_event_0(Ev,Drag#drag{fp_count=0})
+	    handle_drag_event_0(Ev,Drag#drag{lmb_timer=0,rmb_timer=0})
     end;
 
-%%%% When Rmb is released we subtract the StartTime (when the Rmb was pressed)
-%%%% from the Stop time (relased) and if the result is less than 16000 ms, then
-%%%% we cancel the drag.
 handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
-          #drag{fp_count=StartTime}=Drag) when StartTime=/=0->
+  #drag{rmb_timer=StartTime}=Drag) when StartTime =/= 0 ->
+%% When Rmb is released we subtract the StartTime (when the Rmb was pressed)
+%% from the Stop time (relased) and if the result is less than 500000 ms, then
+%% we cancel the drag. If not we continue the drag using the 
     Stop = now(),
     Time = timer:now_diff(Stop, StartTime),
     % io:format("Time ~p\n",[Time]),
-    case Time < 250000 of
+    case Time < 500000 of
         false ->
-            get_drag_event_1(Drag#drag{fp_count=0});
+            get_drag_event_1(Drag#drag{lmb_timer=0,mmb_timer=0,rmb_timer=0});
         true ->
             wings_dl:map(fun invalidate_fun/2, []),
             ungrab(Drag),
             wings_wm:later(revert_state),
             pop
 	end;
-handle_drag_event(#mousebutton{button=3,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Drag0) ->
-%%%% This function guards against reported crashes of the rmb being held, and
-%%%% clicking the lmb. I can't reproduce this crash, but I don;t doubt that it
-%%%% happens. The probable cause is likely to do with misinterpreted or conflated
-%%%% mouse button hits. ~Richard Jones
+
+handle_drag_event(#mousebutton{button=1,x=X,y=Y,mod=Mod,state=?SDL_RELEASED},
+  #drag{lmb_timer=StartTime}=Drag0) when StartTime =/= 0 ->
+%% When Lmb timer is less than 500000 ms, we Accept and finish the drag, if
+%% not, then we continue using the lmb parameter.
+    Stop = now(),
+    Time = timer:now_diff(Stop, StartTime),
+    % io:format("Time ~p\n",[Time]),
+    case Time < 500000 of
+        false ->
+          get_drag_event_1(Drag0#drag{lmb_timer=0,mmb_timer=0,rmb_timer=0});
+        true ->
+          Ev = #mousemotion{x=X,y=Y,state=0,mod=Mod},
+          Drag = ?SLOW(motion(Ev, Drag0)),
+          quit_drag(Drag)
+	end;
+handle_drag_event(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Drag0)
+  when B =:= 1; B =:= 3 ->
+%% This function guards against reported crashes of the rmb being held, and
+%% clicking the lmb. I can't reproduce this crash, but I don't doubt that it
+%% happens. The probable cause is likely to do with misinterpreted or conflated
+%% mouse button hits. ~Richard Jones
     Ev = #mousemotion{x=X,y=Y,state=0,mod=Mod},
     Drag = ?SLOW(motion(Ev, Drag0)),
     quit_drag(Drag);
@@ -503,12 +575,12 @@ handle_drag_event(Event, Drag = #drag{st=St}) ->
 			    (D, _) -> D#dlo{hilite=none}
 			 end, []),
 	    %% Recalc unit_scales since zoom can have changed.   UNITS ARE MIXED IN SOME CASES
-	    #drag{xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0,psum=Psum0,unit=Unit,
+	    #drag{xs=Xs0,ys=Ys0,zs=Zs0,p4=P4th0,p5=P5th0,psum=Psum0,unit=Unit,
 	          unit_sc=Us0} = Drag,
 	    Us = unit_scales(Unit),
 		Psum = adjust_unit_scaling(Psum0,Us,Us0),
-		[Xs,Ys,Zs,Fp] = adjust_unit_scaling([Xs0,Ys0,Zs0,Fp0],Us,Us0),
-	    get_drag_event(Drag#drag{xs=Xs,ys=Ys,zs=Zs,fp=Fp,psum=Psum,unit_sc=Us});
+		[Xs,Ys,Zs,P4th,P5th] = adjust_unit_scaling([Xs0,Ys0,Zs0,P4th0,P5th0],Us,Us0),
+	    get_drag_event(Drag#drag{xs=Xs,ys=Ys,zs=Zs,p4=P4th,p5=P5th,psum=Psum,unit_sc=Us});
 	Other ->
 	    %% Clear any potential marker for an edge about to be
 	    %% cut (Cut RMB).
@@ -526,22 +598,17 @@ handle_drag_event_0(#keyboard{unicode=C}=Ev,
 	    wings_wm:dirty(),
 	    wings_wm:message_right(ModeFun(help, ModeData)),
 	    Val = {ModeData,Drag0#drag.falloff},
-	    Drag1 = case wings_pref:get_value(drag_resets) of %% Probably Remove This %%         
-	        false -> parameter_update(new_mode_data, Val,
-	                 Drag0#drag{mode_data={changed,ModeData}});
-	        true -> parameter_update(new_mode_data, Val,
-	                Drag0#drag{mode_data=ModeData,xs=0,ys=0,zs=0,fp=0,
-	                           psum=[0,0,0,0]})
-	    end,
+	    Drag1 = parameter_update(new_mode_data, Val,
+	                 Drag0#drag{mode_data={changed,ModeData}}),
 	    Drag = case ModeFun(units, ModeData) of
 		       none -> Drag1;
 		       Units ->
 		           Us = unit_scales(Units),
-		           #drag{xs=Xs0,ys=Ys0,zs=Zs0,fp=Fp0,psum=Psum0,
+		           #drag{xs=Xs0,ys=Ys0,zs=Zs0,p4=P4th0,p5=P5th0,psum=Psum0,
 		                 unit_sc=Us0} = Drag1,
 		           Psum = adjust_unit_scaling(Psum0,Us,Us0),
-		           [Xs,Ys,Zs,Fp] = adjust_unit_scaling([Xs0,Ys0,Zs0,Fp0],Us,Us0),
-		           Drag1#drag{xs=Xs,ys=Ys,zs=Zs,fp=Fp,psum=Psum,unit=Units,
+		           [Xs,Ys,Zs,P4th,P5th] = adjust_unit_scaling([Xs0,Ys0,Zs0,P4th0,P5th0],Us,Us0),
+		           Drag1#drag{xs=Xs,ys=Ys,zs=Zs,p4=P4th,p5=P5th,psum=Psum,unit=Units,
 		                      unit_sc=Us}
 		   end,
 	    get_drag_event(Drag)
@@ -555,10 +622,6 @@ handle_drag_event_1(redraw, Drag) ->
 handle_drag_event_1(#mousemotion{}=Ev, Drag0) ->
     Drag = motion(Ev, Drag0),
     get_drag_event(Drag);
-handle_drag_event_1(#mousebutton{button=1,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Drag0) ->
-    Ev = #mousemotion{x=X,y=Y,state=0,mod=Mod},
-    Drag = ?SLOW(motion(Ev, Drag0)),
-    quit_drag(Drag);
 handle_drag_event_1({drag_arguments,Move}, Drag0) ->
     ungrab(Drag0),
     Drag1 = possible_falloff_update(Move, Drag0),
@@ -701,7 +764,7 @@ view_changed(#drag{flags=Flags}=Drag0) ->
 	      false ->
 	    wings_dl:map(fun view_changed_fun/2, []),
 	    {_,X,Y} = wings_io:get_mouse_state(),
-	        Drag0#drag{x=X,y=Y,xs=0,ys=0,zs=0,fp=0,psum=[0,0,0,0]}
+	        Drag0#drag{x=X,y=Y,xs=0,ys=0,zs=0,p4=0,p5=0,psum=[0,0,0,0,0]}
 	    end
     end.
 
@@ -730,7 +793,7 @@ mouse_translate(Event0, Drag0) ->
 	mouse_range(Event, Drag1, Mod).
 
 mouse_pre_translate(Mode, #mousemotion{state=Mask,mod=Mod}=Ev,Drag)
-        when Mode==blender; Mode==sketchup; Mode==tds ->
+        when Mode=:=blender; Mode=:=sketchup; Mode=:=tds ->
     if
     Mask band ?SDL_BUTTON_RMASK =/= 0,
     Mod band ?CTRL_BITS =/= 0 ->
@@ -738,23 +801,22 @@ mouse_pre_translate(Mode, #mousemotion{state=Mask,mod=Mod}=Ev,Drag)
          Mod band (bnot ?CTRL_BITS),Drag};
     true -> {Ev,Mod,Drag}
     end;
-
 mouse_pre_translate(_, #mousemotion{mod=Mod}=Ev,Drag) ->
     {Ev,Mod,Drag}.
 
 mouse_range(#mousemotion{x=X0, y=Y0, state=Mask},
             #drag{x=OX, y=OY,
-                   xs=Xs0, ys=Ys0, zs=Zs0, fp=Fp0,
+                   xs=Xs0, ys=Ys0, zs=Zs0, p4=P4th0,p5=P5th0,
                    psum=Psum0,
                    mode_data=MD,
-                   xt=Xt0, yt=Yt0, mmb_count=Count0,
+                   xt=Xt0, yt=Yt0, mmb_timer=Count0,
                    unit_sc=UnitScales, unit=Unit, offset=Offset,
                    last_move=LastMove}=Drag0,
 			Mod) ->
     %%io:format("Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xs0,Ys0}]),
-    [Xp,Yp,Zp,Fpp] = case Mod =/= 0 of
+    [Xp,Yp,Zp,P4thp,P5thp] = case Mod =/= 0 of
         true -> Psum0;
-        false -> [Xs0,Ys0,Zs0,Fp0]
+        false -> [Xs0,Ys0,Zs0,P4th0,P5th0]
     end,
     {X,Y} = wings_wm:local2global(X0, Y0),
 
@@ -773,45 +835,52 @@ mouse_range(#mousemotion{x=X0, y=Y0, state=Mask},
           {_,MD0} -> MD0;
           MD0 -> MD0
         end,
-
-        case {Mask band ?SDL_BUTTON_MMASK =/= 0,Mask band ?SDL_BUTTON_RMASK =/= 0} of
-          {true,false} ->
+        ParaNum = length(Unit),
+        case Mask of
+          ?SDL_BUTTON_LEFT when ParaNum >= 3 ->
             Xs = {no_con, Xs0},
             Ys = {no_con, -Ys0},
-            Zs = case wings_pref:get_value(camera_mode) of
-                   maya -> {con, - (Zp - XD)};	%Horizontal motion
-                   _cam -> {con, - (Zp + YD)}	%Vertical motion
-                 end,
-            Fp = {no_con, -Fp0},
-            Count = Count0 + 1;
-          {false,true} ->
+            Zs = {con, - (Zp - XD)},	%Horizontal motion
+            P4th = {no_con, -P4th0},
+            P5th = {no_con, -P5th0},
+            Count = Count0;
+          ?SDL_BUTTON_MMASK when ParaNum >= 4 ->
             Xs = {no_con, Xs0},
             Ys = {no_con, -Ys0},
             Zs = {no_con, -Zs0},
-            Fp = {con, - (Fpp + XD)},
+            P4th = {con, - (P4thp + XD)},
+            P5th = {no_con, -P5th0},
+            Count = Count0 + 1;
+          ?SDL_BUTTON_RMASK when ParaNum >= 5 ->
+            Xs = {no_con, Xs0},
+            Ys = {no_con, -Ys0},
+            Zs = {no_con, -Zs0},
+            P4th = {no_con, -P4th0},
+            P5th = {con, - (P5thp + XD)},
             Count = Count0;
-          {_,_} ->
+          _ ->
             Xs = {con, Xp + XD},
             Ys = {con, - (Yp + YD)},
             Zs = {no_con, -Zs0},
-            Fp = {no_con, -Fp0},
+            P4th = {no_con, -P4th0},
+            P5th = {no_con, -P5th0},
             Count = Count0
         end,
         wings_io:warp(OX, OY),
 
         % Ds means DragSummary
-        Ds0 = mouse_scale([Xs,Ys,Zs,Fp], UnitScales),
+        Ds0 = mouse_scale([Xs,Ys,Zs,P4th,P5th], UnitScales),
         Ds1 = add_offset_to_drag_sum(Ds0, Unit, Offset),
         Ds = round_to_constraint(Unit, Ds1, Mod, []),
 
-        Psum = [S || {_,S} <- [Xs,Ys,Zs,Fp]],
-        [Xs2,Ys2,Zs2,Fp2] = constrain_2(Unit, Psum, UnitScales, Offset),
+        Psum = [S || {_,S} <- [Xs,Ys,Zs,P4th,P5th]],
+        [Xs2,Ys2,Zs2,P4th2,P5th2] = constrain_2(Unit, Psum, UnitScales, Offset),
 
-        [Xs1,Ys1,Zs1,Fp1] = scale_mouse_back(Ds, UnitScales, Offset),
+        [Xs1,Ys1,Zs1,P4th1,P5th1] = scale_mouse_back(Ds, UnitScales, Offset),
         Move = constrain_1(Unit, Ds, Drag0),
-        Drag = Drag0#drag{xs=Xs1,ys=-Ys1,zs=-Zs1,fp=-Fp1,
-                          psum=[Xs2,-Ys2,-Zs2,-Fp2],
-                          xt=XD0,yt=YD0,mmb_count=Count,mode_data=ModeData},
+        Drag = Drag0#drag{xs=Xs1,ys=-Ys1,zs=-Zs1,p4=-P4th1,p5=-P5th1,
+                          psum=[Xs2,-Ys2,-Zs2,-P4th2,-P5th2],
+                          xt=XD0,yt=YD0,mmb_timer=Count,mode_data=ModeData},
         {Move,Drag}
     end.
 
@@ -902,19 +971,19 @@ constraint_factor(angle, Mod) ->
     RCSA = wings_pref:get_value(con_rot_shift_alt),
     RCCSA = wings_pref:get_value(con_rot_ctrl_shift_alt),
     if
-	Mod band ?SHIFT_BITS =/= 0,
-	Mod band ?ALT_BITS =/= 0,
-	Mod band ?CTRL_BITS =/= 0 -> {1/RCCSA,RCCSA};
-	Mod band ?SHIFT_BITS =/= 0,
-	Mod band ?ALT_BITS =/= 0 -> {1/RCSA,RCSA};
-	Mod band ?CTRL_BITS =/= 0,
-	Mod band ?ALT_BITS =/= 0 -> {1/RCCA,RCCA};
-	Mod band ?SHIFT_BITS =/= 0,
-	Mod band ?CTRL_BITS =/= 0 -> {1/RCCS,RCCS};
-	Mod band ?CTRL_BITS =/= 0 -> {1/RCC,RCC};
-	Mod band ?SHIFT_BITS =/= 0 -> {1/RCS,RCS};
-	Mod band ?ALT_BITS =/= 0 -> {1/RCA,RCA};
-	true -> none
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0,
+      Mod band ?CTRL_BITS =/= 0 -> {1/RCCSA,RCCSA};
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/RCSA,RCSA};
+      Mod band ?CTRL_BITS =/= 0,
+      Mod band ?ALT_BITS =/= 0 -> {1/RCCA,RCCA};
+      Mod band ?SHIFT_BITS =/= 0,
+      Mod band ?CTRL_BITS =/= 0 -> {1/RCCS,RCCS};
+      Mod band ?CTRL_BITS =/= 0 -> {1/RCC,RCC};
+      Mod band ?SHIFT_BITS =/= 0 -> {1/RCS,RCS};
+      Mod band ?ALT_BITS =/= 0 -> {1/RCA,RCA};
+      true -> none
     end;
 constraint_factor(percent, Mod) ->
     SCS = wings_pref:get_value(con_scale_shift),
