@@ -35,6 +35,8 @@ menu(_) ->
 	 separator,
 	 default_commands,
 	 separator,
+	 tweak_help,
+	 separator,
 	 performance_tips,
 	 separator,
 	 opengl_info,
@@ -64,8 +66,12 @@ header(performance_tips) ->
 header(opengl_info) ->
     ?__(10,"OpenGL Info");
 header(about) ->
-    ?__(11,"About Wings 3D").
+    ?__(11,"About Wings 3D");
+header(tweak_help) ->
+    ?__(12,"Tweak").
 
+command(tweak_help, St) ->
+    wings_tweak:command(show_help, St);
 command(Item, _St) ->
     command_1(Item, header(Item)).
 
@@ -89,6 +95,7 @@ command_1(opengl_info, Header) ->
     opengl_info(Header);
 command_1(about, Header) ->
     about(Header).
+
 
 no_more_basic_menus() ->
     Qs = {vframe,

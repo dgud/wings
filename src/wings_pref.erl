@@ -403,7 +403,6 @@ defaults() ->
      {highlight_aim_at_selected,true},
      {highlight_aim_at_unselected,true},
      {hilite_select,false},
-     {start_in_tweak, false},
      {conditional_deselect, false},
      {menu_abort, false},
      {hotkeys_from_menus, false},
@@ -581,6 +580,10 @@ bad_command({select,select_region}) -> true;
 bad_command({select,edge_ring}) -> true;
 bad_command({select,prev_edge_loop}) -> true;
 bad_command({select,next_edge_loop}) -> true;
+bad_command({tweak,{screen,1}}) -> true;
+bad_command({tweak,{normal,1}}) -> true;
+bad_command({tweak,{tangent,1}}) -> true;
+bad_command({tweak,{constrainXYZ,_}}) -> true;
 bad_command(_) -> false.
 
 build_command(Name, Names) ->

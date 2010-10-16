@@ -16,7 +16,7 @@
 -export([init/0,quit/0,
 	 resize/0,
 	 set_cursor/1,hourglass/0,eyedropper/0,
-	 info/1, version_info/0,
+	 info/1, info/3, version_info/0,
 
 	 is_maximized/0, set_title/1, reset_video_mode_for_gl/2,
 	 change_event_handler/2,
@@ -248,16 +248,19 @@ resize() ->
     wings_text:resize().
 
 info(Info) ->
+    info(0, 0, Info).
+
+info(X, Y, Info) ->
     ortho_setup(),
     blend(wings_pref:get_value(info_background_color),
 	  fun(Color) ->
 		  set_color(Color),
 		  N = info_lines(Info),
 		  {W,_} = wings_wm:win_size(),
-		  gl:recti(0, 0, W, N*?LINE_HEIGHT)
+		  gl:recti(X, Y, W, Y + N*?LINE_HEIGHT + 2)
 	  end),
     set_color(wings_pref:get_value(info_color)),
-    text_at(4, ?CHAR_HEIGHT, Info).
+    text_at(X + 4, Y + ?CHAR_HEIGHT, Info).
 
 info_lines(Info) ->
     info_lines_1(Info, 1).

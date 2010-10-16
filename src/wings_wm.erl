@@ -24,7 +24,7 @@
 	 update_window/2,clear_background/0,
 	 callback/1,current_state/1,get_current_state/0,notify/1,
 	 local2global/1,local2global/2,global2local/2,local_mouse_state/0,
-	 translation_change/0]).
+	 translation_change/0,is_geom/0]).
 
 %% Window information.
 -export([top_size/0,viewport/0,viewport/1,
@@ -358,6 +358,13 @@ this() ->
     case get(wm_active) of
 	undefined -> none;
 	Active -> Active
+    end.
+
+is_geom() ->
+    case this() of
+      geom -> true;
+      {geom,_} -> true;
+      _ -> false
     end.
 
 windows() ->	    

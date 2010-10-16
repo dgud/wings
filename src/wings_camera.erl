@@ -14,6 +14,8 @@
 -module(wings_camera).
 -export([init/0,prefs/0,help/0,event/2,event/3]).
 
+-export([tweak_camera_event/4]).
+
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 -import(erlang, [max/2]).
@@ -218,6 +220,67 @@ event(Ev, St, Redraw) ->
     end.
 
 %%%
+%%% Tweak Camera
+%%%
+
+tweak_camera_event(Sym, X, Y, St) when Sym =:= $c; Sym =:= $s; Sym =:= $d ->
+    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    {seq,push,get_tweak_cam_event(Sym, Camera, St)};
+tweak_camera_event(Sym, _, _, _) ->
+    arrow_key_pan(Sym).
+
+get_tweak_cam_event(Sym, Camera, St) ->
+    {replace,fun(Ev) -> tweak_cam_event(Ev, Sym, Camera, St) end}.
+
+tweak_cam_event(#mousemotion{x=X0,y=Y0}, Sym, Camera0, St) ->
+    case wings_io:is_key_pressed(Sym) of
+      true when Sym =:= $c ->
+        {Dx,Dy,Camera} = camera_mouse_range(X0, Y0, Camera0),
+        rotate(Dx,Dy),
+        wings_wm:dirty(),
+        get_tweak_cam_event(Sym, Camera, St);
+      true when Sym =:= $s ->
+        {Dx,Dy,Camera} = camera_mouse_range(X0, Y0, Camera0),
+        pan(Dx,Dy),
+        wings_wm:dirty(),
+        get_tweak_cam_event(Sym, Camera, St);
+      true when Sym =:= $d ->
+        {_,Dy,Camera} = camera_mouse_range(X0, Y0, Camera0),
+        zoom(Dy),
+        wings_wm:dirty(),
+        get_tweak_cam_event(Sym, Camera, St);
+      false ->
+        quit_tweak_cam()
+     end;
+tweak_cam_event(redraw, _Sym, _Camera, St) ->
+    wings:redraw(St),
+    keep;
+tweak_cam_event(#mousebutton{button=B,state=?SDL_RELEASED}=Ev, Sym, Camera, St)
+  when B =< 3->
+    case wings_io:is_key_pressed(Sym) of
+      true ->
+        generic_event(Ev, Camera, St);
+      false ->
+        quit_tweak_cam()
+     end;
+tweak_cam_event(Ev, Sym, Camera, St) ->
+    case wings_io:is_key_pressed(Sym) of
+      true ->
+        generic_event(Ev, Camera, St);
+      false ->
+        quit_tweak_cam()
+     end.
+
+quit_tweak_cam() ->
+    case wings_io:get_mouse_state() of
+      {0,X,Y} ->
+        wings_wm:later(#mousebutton{button=1,x=X,y=Y,mod=0,state=?SDL_RELEASED}),
+        pop;
+      _ ->
+        pop
+    end.
+
+%%%
 %%% Blender style camera.
 %%%
 
@@ -281,18 +344,18 @@ nendo_event(#mousebutton{button=1,state=?SDL_RELEASED}, Camera, _, _) ->
 nendo_event(#mousemotion{x=X,y=Y,state=Buttons}, Camera0, Redraw, true) ->
     {Dx,Dy,Camera} = camera_mouse_range(X, Y, Camera0),
     case Buttons band 6 of
-	0 ->					%None of MMB/RMB pressed.
+	0 ->
 	    rotate(-Dx, -Dy);
-	_Other ->				%MMB and/or RMB pressed.
+	_Other ->
 	    zoom(Dy)
     end,
     get_nendo_event(Camera, Redraw, true);
 nendo_event(#mousemotion{x=X,y=Y,state=Buttons}, Camera0, Redraw, false) ->
     {Dx,Dy,Camera} = camera_mouse_range(X, Y, Camera0),
     case Buttons band 6 of
-	0 ->					%None of MMB/RMB pressed.
+	0 ->
 	    pan(-Dx, -Dy);
-	_Other ->				%MMB and/or RMB pressed.
+	_Other ->
 	    zoom(Dy)
     end,
     get_nendo_event(Camera, Redraw, false);
@@ -569,7 +632,7 @@ mb_help() ->
 %%%
 
 sketchup(#mousebutton{button=2,state=?SDL_PRESSED,x=X0,y=Y0,mod=Mod}, Redraw)
-  when Mod band ?ALT_BITS =:= 0 ->
+  when (Mod band (?ALT_BITS  bor ?CTRL_BITS)) =:= 0  ->
     {X,Y} = wings_wm:local2global(X0, Y0),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),
@@ -610,7 +673,7 @@ sketchup_help() ->
 %%%
 
 wings_cam(#mousebutton{button=2,x=X0,y=Y0,mod=Mod,state=?SDL_RELEASED}, Redraw)
-  when Mod band ?CTRL_BITS =:= 0 ->
+  when Mod band (?CTRL_BITS bor ?SHIFT_BITS bor ?ALT_BITS) =:= 0 ->
     {X,Y} = wings_wm:local2global(X0, Y0),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),

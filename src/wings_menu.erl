@@ -433,12 +433,8 @@ mousemotion(X, Y, Mi0) ->
     wings_wm:dirty(),
     get_menu_event(Mi).
 
-button_pressed(#mousebutton{button=B,x=X,y=Y,state=?SDL_RELEASED},
-	       #mi{type=plain}=Mi) when B =< 3 ->
-    wings_wm:dirty(),
-    button_pressed(1, 0, X, Y, Mi);
 button_pressed(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_RELEASED},
-	       #mi{type=popup}=Mi) when B =< 3 ->
+	       Mi) when B =< 3 ->
     wings_wm:dirty(),
     button_pressed(B, Mod, X, Y, Mi);
 button_pressed(#mousebutton{button=Button,x=X,y=Y,state=?SDL_PRESSED},
