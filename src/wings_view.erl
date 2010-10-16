@@ -98,7 +98,9 @@ menu(#st{views={CurrentView,Views}}=St) ->
 				    {?__(53,"+Z"),z},
 				    {?__(54,"-X"),neg_x},
 				    {?__(55,"-Y"),neg_y},
-				    {?__(56,"-Z"),neg_z}]}},
+				    {?__(56,"-Z"),neg_z},
+				    separator,
+				    {?__(71,"Nearest Axis"),nearest_axis}]}},
       separator,
       {?__(34,"Camera Settings..."),camera_settings,?__(35,"Set field of view, and near and far clipping planes")},
       separator,
@@ -1241,19 +1243,57 @@ along(y) -> along(y, 0.0, 90.0);
 along(z) -> along(z, 0.0, 0.0);
 along(neg_x) -> along(x, 90.0, 0.0);
 along(neg_y) -> along(y, 0.0, -90.0);
-along(neg_z) -> along(z, 180.0, 0.0).
+along(neg_z) -> along(z, 180.0, 0.0);
+along(nearest_axis) ->
+  %% Set view to nearest cardinal axis and keep the orientation of the model.
+    #view{azimuth=Az0,elevation=El0} = View = current(),
+    [Az,El] = foldl(fun(D0, Acc) ->
+        D1 = round(D0),
+        D2 = D1 rem 180,
+        Rot = D1 div 180 rem 2,
+        [round_to_cardinal(Rot, D2)|Acc]
+    end, [], [El0,Az0]),
+    Along = along(Az, El),
+    set_current(View#view{azimuth=Az,elevation=El,along_axis=Along}).
+
+round_to_cardinal(Rot, Deg) when Deg < -135 ->
+    if Rot =:= 0 -> 180.0; true -> 0.0 end;
+round_to_cardinal(Rot, Deg) when Deg < -45 ->
+    if Rot =:= 0 -> -90.0; true -> 90.0 end;
+round_to_cardinal(Rot, Deg) when Deg =< 45 ->
+    if Rot =:= 0 -> 0.0; true -> 180.0 end;
+round_to_cardinal(Rot, Deg) when Deg =< 135 ->
+    if Rot =:= 0 -> 90.0; true -> -90.0 end;
+round_to_cardinal(Rot, _) ->
+    if Rot =:= 0 -> 180.0; true -> 0.0 end.
 
 along(Along, Az, El) ->
     View = current(),
     set_current(View#view{azimuth=Az,elevation=El,along_axis=Along}).
 
-along(-90.0, 0.0) -> x;
-along(0.0,  90.0) -> y;
-along(0.0,   0.0) -> z;
-along(90.0,  0.0) -> neg_x;
-along(0.0,  -90.0) -> neg_y;
-along(180.0, 0.0) -> neg_z;
-along(_Az,   _El) -> none.
+along(Az, El) when Az =:= 90.0; Az =:= -90.0 ->
+    case El of
+      0.0 -> x;
+      90.0 -> y;
+      -90.0 -> y;
+      180.0 -> x;
+      _ -> none
+    end;
+along(Az, El) when El =:= 90.0; El =:= -90.0 ->
+    case Az of
+      0.0 -> y;
+      90.0 -> x;
+      -90.0 -> x;
+      180.0 -> y;
+      _ -> none
+    end;
+along(Az, El) when Az =:= 0.0; Az =:= 180.0 ->
+    case El of
+      0.0 -> z;
+      180.0 -> z;
+      _ -> none
+    end;
+along(_, _) -> none.
 
 align_to_selection(#st{sel=[]}=St) -> St;
 align_to_selection(#st{selmode=vertex}=St) ->
