@@ -393,6 +393,7 @@ defaults() ->
      {polygon_offset_f,1.0},
      {polygon_offset_r,1.0},
      {multisample,undefined},
+     {ungrab_bug, false},
 
      %% Advanced features.
      {default_commands,false},
