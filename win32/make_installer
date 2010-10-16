@@ -75,7 +75,7 @@ $INSTALL -c -m 644 shaders/* "$dest/shaders"
 $INSTALL -d "$dest/plugins/default" "$dest/plugins/accel" \
  "$dest/plugins/import_export" "$dest/plugins/commands" \
  "$dest/plugins/primitives" "$dest/plugins/win32_file" \
- "$dest/plugins/autouv" "$dest/plugins/jpeg" "$dest/plugins/fbx"
+ "$dest/plugins/autouv" "$dest/plugins/jpeg"
 
 $INSTALL -c -m 644 fonts/* "$dest/fonts"
 
@@ -87,7 +87,6 @@ $INSTALL -c -m 644 plugins/primitives/* "$dest/plugins/primitives"
 $INSTALL -c -m 644 plugins/win32_file/* "$dest/plugins/win32_file"
 $INSTALL -c -m 644 plugins/autouv/* "$dest/plugins/autouv"
 $INSTALL -c -m 644 plugins/jpeg/* "$dest/plugins/jpeg"
-$INSTALL -c -m 644 plugins/fbx/* "$dest/plugins/fbx"
 
 # Copy the relevant parts of Erlang/OTP.
 
