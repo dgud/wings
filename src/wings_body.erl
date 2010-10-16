@@ -854,11 +854,13 @@ weld_objects(Tolerance, SelAcc0, St0) ->
     {St1,Sel0} = wings_sel:mapfold(fun(_, We0, Acc) ->
 					  case weld_1(Tolerance, We0, Acc) of
 					    {We0,_} when SelAcc0 =:= Empty ->
-					      wings_u:error(?__(1,"Found no faces to weld."));
-					    We -> We
+					      wings_u:error_msg(?__(1,"Found no faces to weld."));
+					    {We,S} ->
+					      {We,S}
 					  end
 				  end, [], St0),
 	case St0 =:= St1 of
+	  _ when Sel0 =:= [] -> wings_u:error_msg(?__(1,"Found no faces to weld."));
 	  true ->
 	   [{Id,_}] = Sel0,
        St = wings_sel:set(vertex, [{Id,SelAcc0}], St1),
@@ -924,7 +926,7 @@ try_weld(Fa, Fb, Tol, We) ->
              [] ->  %io:format("~p\n",["single vertex"]),
                We;
              CommonEs ->
-               weld_neighbours(Fa, Fb, CommonEs, Tol, We)
+               weld_neighbors(Fa, Fb, CommonEs, Tol, We)
            end;
          false ->
            try_weld_1(Fa, Fb, Tol, We)
@@ -945,12 +947,12 @@ get_shared_edges([_|Es]) ->
 get_shared_edges([]) ->
     [].
 
-weld_neighbours(Fa, Fb, CommonEs, Tol, We0) ->
+weld_neighbors(Fa, Fb, CommonEs, Tol, We0) ->
     Vs0 = wings_edge:to_vertices(CommonEs,We0),
     #we{fs=Ftab}=We1 = dissolve_edges(CommonEs,We0),
     case gb_trees:is_defined(Fa,Ftab) of
       true ->
-        case check_weld_neighbours(Fa, Vs0, Tol, We1) of
+        case check_weld_neighbors(Fa, Vs0, Tol, We1) of
           error ->
             wings_dissolve:faces([Fa,Fb],We0);
           Other -> Other
@@ -959,7 +961,7 @@ weld_neighbours(Fa, Fb, CommonEs, Tol, We0) ->
           % check for other face id in case both faces were deleted
           case gb_trees:is_defined(Fb,Ftab) of
             true ->
-              case check_weld_neighbours(Fb, Vs0, Tol, We1) of
+              case check_weld_neighbors(Fb, Vs0, Tol, We1) of
                 error ->
                   wings_dissolve:faces([Fa,Fb],We0);
                 Other -> Other
@@ -968,7 +970,7 @@ weld_neighbours(Fa, Fb, CommonEs, Tol, We0) ->
           end
     end.
 
-check_weld_neighbours(Face, Vs0, Tol, We0) ->
+check_weld_neighbors(Face, Vs0, Tol, We0) ->
     Vs1 = wings_face:to_vertices([Face], We0),
     if
       Vs0 =:= Vs1 -> error;
