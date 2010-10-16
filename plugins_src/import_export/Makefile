@@ -42,6 +42,7 @@ MODULES= \
 	wpc_ps \
 	wpc_rwx \
 	wpc_stl \
+	wpc_svg_path \
 	wpc_wrl \
 	wpc_x \
 	wpc_yafray
