@@ -174,8 +174,8 @@ units(relative) -> [percent,skip,angle,percent,angle].
 collect_data(Type, [Fs0|Rs], #we{mirror=M}=We, Axis0, SelC0, AllVs0, State, LVAcc0, ExData) ->
     Fs = gb_sets:delete_any(M, wings_face:extend_border(Fs0, We)),
     {OuterEs, RegVs} =  reg_data_0(Fs, We, [], []),
-    {LoopNorm, LoopVs0} = loop_data_0(OuterEs, Fs, We),
-
+    LoopVs0 = wings_edge:to_vertices(OuterEs, We),
+    LoopNorm = average_face_norm(Fs0, We, []),
     LoopVs = case Type of
       sweep_extrude -> LoopVs0;
       _otherwise when M =/= none ->
@@ -206,6 +206,18 @@ collect_data(Type, [Fs0|Rs], #we{mirror=M}=We, Axis0, SelC0, AllVs0, State, LVAc
 collect_data(_Type, [], _We, _Axis0, _SelC0, AllVs, _State, _LVs, VsData) ->
     {AllVs, VsData}.
 
+average_face_norm(Fs0, We, Normals) ->
+    case gb_sets:is_empty(Fs0) of
+      true ->
+          case e3d_vec:norm(e3d_vec:add(Normals)) of
+              {0.0,0.0,0.0} -> sweep_error();
+              Norm -> Norm
+          end;
+      false ->
+        {Face,Fs} = gb_sets:take_smallest(Fs0),
+        N = wings_face:normal(Face, We),
+        average_face_norm(Fs, We, [N|Normals])
+    end.
 
 reg_data_0(Faces0, #we{es=Etab,fs=Ftab}=We, EAcc0, Vs0) ->
     case gb_sets:is_empty(Faces0) of
@@ -236,103 +248,6 @@ reg_data_2(Edge,Face,LastEdge,Etab,EAcc,Vs) ->
         reg_data_2(NextEdge,Face,LastEdge,Etab,[Edge|EAcc],[V|Vs])
     end.
 
-loop_data_0([], _, _) ->
-    sweep_error(); % "Wholly selected objects cannot be Swept"
-loop_data_0(OuterEs, Fs, #we{es=Etab, vp=Vtab, mirror=M}) ->
-    EdgeSet = gb_sets:from_list(OuterEs),
-    loop_data_1(EdgeSet, Fs, Etab, Vtab, M, [], []).
-
-loop_data_1(Es0, Fs, Etab, Vtab, M, LNorms, Vs0) ->
-    case gb_sets:is_empty(Es0) of
-      false ->
-        {Edge, Es1} = gb_sets:take_smallest(Es0),
-        {Es, LoopNorm, Links, Vs} = loop_data_2(Edge, Edge, Es1, Fs, Etab, Vtab, M, Vs0),
-        loop_data_1(Es, Fs, Etab, Vtab, M, [{Links,e3d_vec:neg(LoopNorm)}|LNorms], Vs);
-      true ->
-        AvgLoopNorm = e3d_vec:neg(average_loop_norm(LNorms)),
-        {AvgLoopNorm, ordsets:from_list(Vs0)}
-    end.
-
-loop_data_2(Edge, Edge, Es, Fs, Etab, Vtab, M, Vs) ->
-    E = array:get(Edge, Etab),
-    #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,ltsu=NextLeft,rtsu=NextRight} = E,
-    case gb_sets:is_member(Rf,Fs) of
-      false ->
-        VpA = array:get(Va,Vtab),
-        EData = array:get(NextLeft,Etab),
-        loop_data_3(NextLeft, EData, Edge, Es, Fs, Lf, Va, VpA, Etab, Vtab, M, [], Vs, 0);
-      true ->
-        VpB = array:get(Vb,Vtab),
-        EData = array:get(NextRight,Etab),
-        loop_data_3(NextRight, EData, Edge, Es, Fs, Rf, Vb, VpB, Etab, Vtab, M, [], Vs, 0)
-    end.
-
-
-loop_data_3(LastE,#edge{ve=Vb,lf=PrevF},
-        LastE, Es, _Fs, PrevF, Vb, VpB, _Etab, _Vtab, M, VPs, Vs0, Links) ->
-    case M == PrevF of
-      false ->
-        LoopNorm = e3d_vec:normal([VpB|VPs]),
-        Vs = [Vb|Vs0],
-        {Es, LoopNorm, Links+1, Vs};
-      true ->
-        LoopNorm = e3d_vec:normal(VPs),
-        {Es, LoopNorm, Links, Vs0}
-    end;
-
-loop_data_3(LastE,#edge{vs=Va,rf=PrevF},
-        LastE, Es, _Fs, PrevF, Va, VpA, _Etab, _Vtab, M, VPs, Vs0, Links) ->
-    case M == PrevF of
-      false ->
-        LoopNorm = e3d_vec:normal([VpA|VPs]),
-        Vs = [Va|Vs0],
-        {Es, LoopNorm, Links+1, Vs};
-      true ->
-        LoopNorm = e3d_vec:normal(VPs),
-        {Es, LoopNorm, Links, Vs0}
-    end;
-
-loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=PrevF,rf=Face,rtsu=NextEdge,ltsu=IfCurIsMember},
-        LastE, Es0, Fs, PrevF, Vb, VpB, Etab, Vtab, M, VPs0, Vs0, Links) ->
-    case gb_sets:is_member(CurE,Es0) of
-      true ->
-        EData = array:get(IfCurIsMember,Etab),
-        Es = gb_sets:delete(CurE,Es0),
-        VpA = array:get(Va,Vtab),
-        case M == PrevF of
-          false ->
-            VPs = [VpB|VPs0],
-            Vs = [Vb|Vs0],
-            loop_data_3(IfCurIsMember,EData,LastE,Es,Fs,PrevF,Va,VpA,Etab,Vtab,M,VPs,Vs,Links+1);
-          true ->
-            loop_data_3(IfCurIsMember,EData,LastE,Es,Fs,Face,Va,VpA,Etab,Vtab,M,VPs0,Vs0,Links)
-        end;
-      false ->
-        EData = array:get(NextEdge,Etab),
-        loop_data_3(NextEdge, EData, LastE, Es0, Fs, Face, Vb, VpB, Etab, Vtab, M, VPs0, Vs0, Links)
-    end;
-
-loop_data_3(CurE,#edge{vs=Va,ve=Vb,lf=Face,rf=PrevF,ltsu=NextEdge,rtsu=IfCurIsMember},
-        LastE, Es0, Fs, PrevF, Va, VpA, Etab, Vtab, M, VPs0, Vs0, Links) ->
-    case gb_sets:is_member(CurE,Es0) of
-      true ->
-        EData = array:get(IfCurIsMember,Etab),
-        Es = gb_sets:delete(CurE,Es0),
-        VpB = array:get(Vb,Vtab),
-        case M == PrevF of
-          false ->
-            VPs = [VpA|VPs0],
-            Vs = [Va|Vs0],
-            loop_data_3(IfCurIsMember,EData,LastE,Es,Fs,PrevF,Vb,VpB,Etab,Vtab,M,VPs,Vs,Links+1);
-          true ->
-            loop_data_3(IfCurIsMember,EData,LastE,Es,Fs,Face,Vb,VpB,Etab,Vtab,M,VPs0,Vs0,Links)
-        end;
-      false ->
-        EData = array:get(NextEdge,Etab),
-        loop_data_3(NextEdge, EData, LastE, Es0, Fs, Face, Va, VpA, Etab, Vtab, M, VPs0, Vs0, Links)
-    end.
-
-
 %%%% Setup Utilities
 add_vpos_data(Type, Vs, #we{vp=Vtab}, Acc) ->
     lists:foldl(fun(V, A) ->
@@ -349,17 +264,6 @@ outer_edges_1([E,E|T],Out) ->
 outer_edges_1([E|T],Out) ->
     outer_edges_1(T,[E|Out]);
 outer_edges_1([],Out) -> Out.
-
-average_loop_norm([{_,LNorms}]) ->
-    e3d_vec:norm(LNorms);
-average_loop_norm([{LinksA,LNormA},{LinksB,LNormB}]) ->
-    case LinksA < LinksB of
-      true -> e3d_vec:norm(e3d_vec:add(e3d_vec:neg(LNormA),LNormB));
-      false -> e3d_vec:norm(e3d_vec:add(e3d_vec:neg(LNormB),LNormA))
-    end;
-average_loop_norm(LNorms) ->
-    LoopNorms = [Norm||{_,Norm}<-LNorms],
-    e3d_vec:norm(e3d_vec:neg(e3d_vec:add(LoopNorms))).
 
 sqr_length({X,Y,Z}) ->
     X*X+Y*Y+Z*Z.
