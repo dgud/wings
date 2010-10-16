@@ -250,7 +250,7 @@ cut_pick(St) ->
     wings_drag:setup(Tvs, Units, Flags, wings_sel:set(vertex, Sel, St)).
 
 cut_pick_error() ->
-    wings_u:error(?__(1,"Only one edge can be cut at an arbitrary position.")).
+    wings_u:error_msg(?__(1,"Only one edge can be cut at an arbitrary position.")).
 
 cut_pick_make_tvs(Edge, #we{id=Id,es=Etab,vp=Vtab,next_id=NewV}=We) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
@@ -615,7 +615,7 @@ loop_cut(Edges, #we{name=Name,id=Id,fs=Ftab}=We0, {Sel,St0}) ->
     AdjFaces = wings_face:from_edges(Edges, We0),
     case loop_cut_partition(AdjFaces, Edges, We0, []) of
 	[_] ->
-	    wings_u:error(?__(1,"Edge loop doesn't divide ~p into two (or more) parts."),
+	    wings_u:error_msg(?__(1,"Edge loop doesn't divide ~p into two (or more) parts."),
 			  [Name]);
 	Parts0 ->
 	    %% We arbitrarily decide that the largest part of the object

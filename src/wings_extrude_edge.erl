@@ -17,7 +17,6 @@
 
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1]).
--import(erlang, [min/2]).
 
 -define(DEFAULT_EXTRUDE_DIST, 0.2).
 -define(BEVEL_EXTRUDE_DIST_KLUDGE, 0.0001).
@@ -98,7 +97,7 @@ bevel_faces(Faces, #we{id=Id,mirror=MirrorFace}=We0, {Tvs,Limit0}) ->
     {We1,OrigVs,_,Forbidden} = extrude_edges(Edges, Dist, We0#we{mirror=none}),
     case {wings_util:array_entries(We0#we.es),wings_util:array_entries(We1#we.es)} of
 	{Same,Same} ->
-	    wings_u:error(?__(1,"Object is too small to bevel."));
+	    wings_u:error_msg(?__(1,"Object is too small to bevel."));
 	{_,_} ->
 	    We2 = wings_edge:dissolve_edges(Edges, We1),
 	    Tv0 = bevel_tv(OrigVs, We2, Forbidden),
@@ -228,7 +227,7 @@ extrude_problem() ->
     M = ?__(1,"Can't extrude/bevel; two or more vertices are "
 	    "probably too near to each other.\n"
 	    "Try the Cleanup command."),
-    wings_u:error(M).
+    wings_u:error_msg(M).
 
 %%
 %% Crease command

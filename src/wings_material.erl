@@ -650,7 +650,7 @@ plugin_results(Name, Mat0, Res0) ->
 	{_,Res} ->
 	    io:format(?__(1,"Material editor plugin(s) left garbage:~n    ~P~n"), 
 		      [Res,20]),
-		      wings_u:error(?__(2,"Plugin(s) left garbage"))
+		      wings_u:error_msg(?__(2,"Plugin(s) left garbage"))
     end.
 
 update_maps(Mat0, More0) ->

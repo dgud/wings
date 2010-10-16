@@ -81,12 +81,12 @@ dialog_1(Dialog, Ps, [M|Tail]) ->
 	    dialog_1(Dialog, Ps, Tail);
 	{'EXIT',Reason} ->
 	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
-	    wings_u:error("~w:dialog/2: crashed", [M]);
+	    wings_u:error_msg("~w:dialog/2: crashed", [M]);
 	NewPs when is_list(NewPs) ->
 	    dialog_1(Dialog, NewPs, Tail);
 	Other ->
 	    io:format("~w:dialog/2: bad return value: ~P\n", [M,Other,20]),
-	    wings_u:error("~w:dialog/2: bad return value", [M])
+	    wings_u:error_msg("~w:dialog/2: bad return value", [M])
     end;
 dialog_1(_Dialog, Ps, []) -> 
     Ps.
@@ -100,13 +100,13 @@ dialog_result1(Dialog, Ps, [M|Tail]) ->
 	    dialog_result1(Dialog, Ps, Tail);
 	{'EXIT',Reason} ->
 	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
-	    wings_u:error("~w:dialog/2: crashed", [M]);
+	    wings_u:error_msg("~w:dialog/2: crashed", [M]);
 	{Content,NewPs} when is_list(NewPs) ->
 	    dialog_result1(setelement(tuple_size(Dialog), Dialog, Content), 
 			   NewPs, Tail);
 	Other ->
 	    io:format("~w:dialog/2: bad return value: ~P\n", [M,Other,20]),
-	    wings_u:error("~w:dialog/2: bad return value", [M])
+	    wings_u:error_msg("~w:dialog/2: bad return value", [M])
     end;
 dialog_result1(Dialog, Ps, []) -> 
     {element(tuple_size(Dialog), Dialog),Ps}.
@@ -276,7 +276,7 @@ install_file_type(Name) ->
 		".tar" -> tar;
 		".beam" -> beam;
 		_ ->
-		    wings_u:error(?__(1,"File \"~s\": Unknown file type"),
+		    wings_u:error_msg(?__(1,"File \"~s\": Unknown file type"),
 				  [filename:basename(Name)])
 	    end
     end.
@@ -290,12 +290,12 @@ install_beam(Name) ->
 	    case file:copy(Name, Dest) of
 		{ok,_} -> ok;
 		{error,Reason} ->
- 		 wings_u:error(?__(1,"Install of \"~s\" failed: ~p"),
+ 		 wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
 			       [filename:basename(Name),
 				file:format_error(Reason)])
 	    end;
 	false ->
-	    wings_u:error(?__(2,"File \"~s\" is not a Wings plug-in module"),
+	    wings_u:error_msg(?__(2,"File \"~s\" is not a Wings plug-in module"),
 			  [filename:basename(Name)])
     end.
 
@@ -305,7 +305,7 @@ install_tar(Name) ->
     erl_tar:extract(Name, [compressed,{cwd,plugin_dir()}]).
 
 install_verify_files(["/"++_|_], Name) ->
-    wings_u:error(?__(1,"File \"~s\" contains a file with an absolute path"),
+    wings_u:error_msg(?__(1,"File \"~s\" contains a file with an absolute path"),
 		  [filename:basename(Name)]);
 install_verify_files([F|Fs], Name) ->
     case is_plugin(F) of
@@ -313,7 +313,7 @@ install_verify_files([F|Fs], Name) ->
 	true -> ok
     end;
 install_verify_files([], Name) ->
-    wings_u:error(?__(2,"File \"~s\" does not contain any Wings plug-in modules"),
+    wings_u:error_msg(?__(2,"File \"~s\" does not contain any Wings plug-in modules"),
 		  [filename:basename(Name)]).
 
 is_plugin(Name) ->
@@ -324,7 +324,7 @@ is_plugin(Name) ->
 
 plugin_dir() ->
     case try_dir(wings_util:lib_dir(wings), "plugins") of
-	none -> wings_u:error(?__(1,"No \"plugins\" directory found"));
+	none -> wings_u:error_msg(?__(1,"No \"plugins\" directory found"));
 	PluginDir -> PluginDir
     end.
     

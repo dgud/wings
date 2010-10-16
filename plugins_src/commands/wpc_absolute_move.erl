@@ -174,7 +174,7 @@ check_mirror([{Obj,VSet}|Rest],Shs) ->
     end.
 
 mirror_error() ->
-    wings_u:error(?__(1,"You cannot move vertices from mirror plane")).
+    wings_u:error_msg(?__(1,"You cannot move vertices from mirror plane")).
 
 get_selection(#st{selmode=SelMode}=St) ->
     #st{sel=Sel} = case SelMode of

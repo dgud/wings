@@ -119,7 +119,7 @@ select_image(_St) ->
     Images = find_images(),
     case Images of
 	[] -> 
-	    wpa:error(?__(1,"No images present, import an image first."));
+	    wpa:error_msg(?__(1,"No images present, import an image first."));
 	_ ->
 	    Qs = [{vframe, Images}],
 	    Select = fun([Reply]) ->		     
@@ -215,7 +215,7 @@ find_a_id(#st{shapes=Shs}) ->
     Ida = [Id || #we{id=Id,perm=Perm} <- gb_trees:values(Shs),
         ?IS_VISIBLE(Perm)],
     Id = case length(Ida) of
-    0 -> wpa:error(?__(1,"Visible object required."));
+    0 -> wpa:error_msg(?__(1,"Visible object required."));
     _ -> lists:min(Ida)
     end,
     Id.

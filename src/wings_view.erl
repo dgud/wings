@@ -25,7 +25,6 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(erlang, [max/2]).
 -import(lists, [foldl/3,zip/2]).
 
 menu(#st{views={CurrentView,Views}}=St) ->
@@ -383,7 +382,7 @@ virtual_mirror(create, #st{selmode=face}=St0) ->
     St = wings_sel:map(fun virtual_mirror_fun/2, St0),
     {save_state,St#st{sel=[]}};
 virtual_mirror(create, _) ->
-    wings_u:error(?__(1,"Virtual mirror requires a face selection."));
+    wings_u:error_msg(?__(1,"Virtual mirror requires a face selection."));
 virtual_mirror(break, St0) ->
     case break_mirror(St0) of
 	St0 -> St0;
@@ -434,7 +433,7 @@ virtual_mirror_fun(Faces, We0) ->
 	    We = wings_we:create_mirror(Face, We0),
 	    wings_we:mirror_flatten(We, We);
 	_ ->
-	    wings_u:error(?__(1,"Only a single face must be selected per object."))
+	    wings_u:error_msg(?__(1,"Only a single face must be selected per object."))
     end.
 
 break_mirror(#st{shapes=Shs0}=St) ->

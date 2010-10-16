@@ -144,7 +144,7 @@ face_centers([Face|Fs], We, Acc) ->
     Attrs = wings_va:face_mixed_attrs(Face, We),
     case wings_face:vertex_positions(Face, We) of
 	[_,_] ->
-	    wings_u:error(?__(1,"Face ") ++ integer_to_list(Face) ++
+	    wings_u:error_msg(?__(1,"Face ") ++ integer_to_list(Face) ++
 			  ?__(2," has only two edges."));
 	Positions ->
 	    Center = wings_util:share(e3d_vec:average(Positions)),

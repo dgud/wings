@@ -51,7 +51,6 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--import(erlang, [max/2]).
 -import(lists, [flatmap/2,keyfind/3,member/2,reverse/1,reverse/2]).
 
 -ifdef(USE_WX).

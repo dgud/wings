@@ -427,5 +427,5 @@ check_range(Range, Axis0) when Range < 0.01 ->
     Axis = wings_util:upper(atom_to_list(Axis0)),
     Error = lists:concat([?__(1,"Extent along "),Axis,
 			  ?__(2,"axis is too short.")]),
-    wings_u:error(Error);
+    wings_u:error_msg(Error);
 check_range(_Range, _Axis) -> ok.

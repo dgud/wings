@@ -300,7 +300,7 @@ dissolve_edge_2(Edge, FaceRemove, FaceKeep,
 		true ->
 		    We;
 		false ->
-		    wings_u:error(?__(1,"Dissolving would cause a badly formed face."))
+		    wings_u:error_msg(?__(1,"Dissolving would cause a badly formed face."))
 	    end
     end.
 

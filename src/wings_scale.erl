@@ -133,7 +133,7 @@ edges_to_vertices(Vec, center, Magnet, Edges0, We, Acc) ->
 	[Edges] ->
 	    edges_to_vertices_1(Vec, center, Magnet, Edges, We, Acc);
 	_Other ->
-	    wings_u:error(?__(1,"Magnet scale on multiple edge regions requires an explicit scale origin."))
+	    wings_u:error_msg(?__(1,"Magnet scale on multiple edge regions requires an explicit scale origin."))
     end;
 edges_to_vertices(Vec, Point, Magnet, Edges, We, Acc) ->
     edges_to_vertices_1(Vec, Point, Magnet, Edges, We, Acc).
@@ -155,7 +155,7 @@ faces_to_vertices(Vec, center, Magnet, Faces0, We, Acc) ->
 	[Faces] ->
 	    faces_to_vertices_1(Vec, center, Magnet, Faces, We, Acc);
 	_Other ->
-	    wings_u:error(?__(1,"Magnet scale on multiple face regions requires an explicit scale origin."))
+	    wings_u:error_msg(?__(1,"Magnet scale on multiple face regions requires an explicit scale origin."))
     end;
 faces_to_vertices(Vec, Point, Magnet, Faces, We, Acc) ->
     faces_to_vertices_1(Vec, Point, Magnet, Faces, We, Acc).

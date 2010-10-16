@@ -424,7 +424,7 @@ cleanup_2edged_faces(#we{fs=Ftab}=We) ->
 delete_2edged_faces_1([Face|Faces], We0) ->
     case delete_if_bad(Face, We0) of
 	bad_edge ->
-	    wings_u:error(?__(1,"Face") ++ integer_to_list(Face) ++
+	    wings_u:error_msg(?__(1,"Face") ++ integer_to_list(Face) ++
 			     ?__(2,"has only one edge"));
 	We -> delete_2edged_faces_1(Faces, We)
     end;

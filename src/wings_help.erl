@@ -20,7 +20,6 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--import(erlang, [max/2]).
 -import(lists, [foldl/3]).
 
 menu(_) ->

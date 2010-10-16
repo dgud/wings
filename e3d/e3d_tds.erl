@@ -67,7 +67,7 @@ import_2(<<16#4D4D:16/little,_Size:32/little,T/binary>>) ->
 	       Other -> Other
 	   end,
     File#e3d_file{objs=Objs,mat=Mat};
-import_2(_) -> error("Not a .3ds file").
+import_2(_) -> error_msg("Not a .3ds file").
 
 main(16#0002, <<_Ver:32/little>>, Acc) ->
     ?dbg("3DS Version ~p\n", [_Ver]),
@@ -448,7 +448,7 @@ get_cstring(<<C:8,T/binary>>, Str) ->
 get_cstring(<<>>=T, Str) ->
     {reverse(Str),T}.
     
-error(Message) ->
+error_msg(Message) ->
     throw({error,Message}).
 
 hard_edges(SmoothGroups, Faces) ->

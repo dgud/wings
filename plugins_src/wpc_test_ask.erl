@@ -169,7 +169,7 @@ minimal_dialog(_St) ->
 		  ?DISPLAY(Res),
 		  case Res of 
 		      [{a,true}|_] -> 
-			  wpa:error("Uncheck the checkbox!");
+			  wpa:error_msg("Uncheck the checkbox!");
 		      _ -> ok
 		  end, ignore
 	  end,

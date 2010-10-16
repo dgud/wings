@@ -206,7 +206,7 @@ command(save_incr, St) ->
 command(revert, St0) ->
     case revert(St0) of
 	{error,Reason} ->
-	    wings_u:error(?__(1,"Revert failed: ") ++ Reason),
+	    wings_u:error_msg(?__(1,"Revert failed: ") ++ Reason),
 	    St0;
 	#st{}=St -> {save_state,St}
     end;
@@ -272,7 +272,7 @@ command(Key, St) when is_integer(Key), 1 =< Key ->
 	false ->
 	    Recent = delete_nth(Recent0, Key),
 	    wings_pref:set_value(recent_files, Recent),
-	    wings_u:error(?__(5,"This file has been moved or deleted."))
+	    wings_u:error_msg(?__(5,"This file has been moved or deleted."))
     end.
 
 delete_nth([_|T], 1) -> T;
@@ -336,7 +336,7 @@ confirmed_open(Name, St0) ->
 			  wings_u:caption(St#st{saved=true,file=Name});
 		      {error,Reason} ->
 			  clean_new_images(St2),
-			  wings_u:error(?__(1,"Read failed: ") ++ Reason)
+			  wings_u:error_msg(?__(1,"Read failed: ") ++ Reason)
 		  end
 	  end,
     use_autosave(Name, Fun).
@@ -372,7 +372,7 @@ merge(Name, St0) ->
 		  case ?SLOW(wings_ff_wings:import(File, St0)) of
 		      {error,Reason} ->
 			  clean_new_images(St1),
-			  wings_u:error(?__(2,"Read failed: ") ++ Reason);
+			  wings_u:error_msg(?__(2,"Read failed: ") ++ Reason);
 		      #st{}=St ->
 			  set_cwd(dirname(Name)),
 			  wings_shape:recreate_folder_system(St)
@@ -410,14 +410,14 @@ save_now(Next, #st{file=Name}=St) ->
 	    maybe_send_action(Next),
 	    {saved,wings_u:caption(St#st{saved=true})};
 	{error,Reason} ->
-	    wings_u:error(?__(1,"Save failed: ") ++ Reason)
+	    wings_u:error_msg(?__(1,"Save failed: ") ++ Reason)
     end.
 
 maybe_send_action(ignore) -> keep;
 maybe_send_action(Action) -> wings_wm:later({action,Action}).
     
 save_selected(#st{sel=[]}) ->
-    wings_u:error(?__(1,"This command requires a selection."));
+    wings_u:error_msg(?__(1,"This command requires a selection."));
 save_selected(St) ->
     String = case os:type() of
         {win32,_} -> "Save Selected";
@@ -433,7 +433,7 @@ save_selected(Name, #st{shapes=Shs0,sel=Sel}=St0) ->
     St = St0#st{shapes=gb_trees:from_orddict(Shs)},
     case ?SLOW(wings_ff_wings:export(Name, St)) of
 	ok -> keep;
-	{error,Reason} -> wings_u:error(Reason)
+	{error,Reason} -> wings_u:error_msg(Reason)
     end.
 
 %%%
@@ -646,7 +646,7 @@ import_ndo(Name, St0) ->
 	#st{}=St ->
 	    {save_state,St};
 	{error,Reason} ->
-	    wings_u:error(?__(1,"Import failed: ") ++ Reason),
+	    wings_u:error_msg(?__(1,"Import failed: ") ++ Reason),
 	    St0
     end.
 
@@ -660,7 +660,7 @@ import_image(Name) ->
 	Im when is_integer(Im) ->
 	    keep;
 	{error,Error} ->
-	    wings_u:error(?__(1,"Failed to load \"~s\": ~s\n"),
+	    wings_u:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
 			     [Name,file:format_error(Error)])
     end.
 
@@ -676,7 +676,7 @@ export_ndo(Cmd, Title, St) ->
 do_export_ndo(Name, St) ->
     case wings_ff_ndo:export(Name, St) of
 	ok -> keep;
-	{error,Reason} -> wings_u:error(Reason)
+	{error,Reason} -> wings_u:error_msg(Reason)
     end.
 
 %%%

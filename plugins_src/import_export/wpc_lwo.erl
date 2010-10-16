@@ -301,7 +301,7 @@ read_header(Data) ->
     FormId = <<"FORM">>,
     case (FormType == <<"LWO2">>) or (FormType == <<"LXOB">>) of
 	true -> Rest;
-	false -> wings_u:error("LWO files in v5.5 format are not supported.")
+	false -> wings_u:error_msg("LWO files in v5.5 format are not supported.")
     end.
 
 read_tags(Data) ->
@@ -324,7 +324,7 @@ read_pols(<<"FACE",Rest/binary>>) ->
 read_pols(<<"PTCH",Rest/binary>>) ->
     read_point_idxs(Rest);
 read_pols(<<"SUBD",_/binary>>) ->
-    wings_u:error("LWO files containing \"SUBD\" sub-forms in "
+    wings_u:error_msg("LWO files containing \"SUBD\" sub-forms in "
 		  "\"POLS\" not supported.").
 
 read_point_idxs(<<>>) -> [];

@@ -113,7 +113,7 @@ intersect(LineDir0, LinePoint, PlaneNorm0, PlanePoint, St) ->
 		       intersect_body(Vs, We, IntersectData)
 	       end, St)};
 	true ->
- 	    wpa:error(?__(1,"Line and plane are nearly parallel:\n"
+ 	    wpa:error_msg(?__(1,"Line and plane are nearly parallel:\n"
 		      "can't find intersection.")),
 	    keep
     end.

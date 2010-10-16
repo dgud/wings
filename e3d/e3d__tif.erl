@@ -303,7 +303,7 @@ get_info([{?BitsPerSample, Type = short, Count, {offset, Off}}|R], Tif, Orig,Enc
 % 	    Bps = [8,8,8|_] -> Bps;
 % 	    Err ->
 % 		io:format("~p: Unsupported BitsPerSample ~p ~n", [?MODULE, Err]),
-% 		erlang:error({?MODULE, unsupported, bitsPerSample})
+% 		error({?MODULE, unsupported, bitsPerSample})
 % 	end,
     get_info(R, Tif#tif{bps = Bpp}, Orig,Enc);
 get_info([{?SamplesPerPixel, _, 1, {value, SPP}}|R], Tif, Orig,Enc) ->
@@ -664,7 +664,7 @@ lzw_compress(<<>>, CC, _W, Omega, BitLen, _TabCount, Build, Acc) ->
             list_to_binary(lists:reverse([Bin|N2acc]));
 	_Else ->
 	    io:format("~p:~p Error ~p ~p ~n", [?MODULE, ?LINE, {PaddL, Codes}, CC]),
-	    erlang:error({?MODULE, decoder, {internal_error, ?LINE}})
+	    error({?MODULE, decoder, {internal_error, ?LINE}})
     end;
 lzw_compress(Bin, CC, W, Omega, BitLen, TabCount, Build, Acc) when CC == W ->
     Code =?get_lzw(Omega),
@@ -692,7 +692,7 @@ lzw_compress(<<Char:8, Bin/binary>>, CC, W, Omega, BitLen, TabC, Build, Acc) ->
     end.
 
 lzw_write({_,undefined}, _, _) -> 
-    erlang:error({undef,value});
+    error({undef,value});
 lzw_write({CLen, Code}, {Totlen, List}, Acc) ->
     NewLen = CLen + Totlen,
     if 
@@ -706,7 +706,7 @@ lzw_write({CLen, Code}, {Totlen, List}, Acc) ->
 		Else ->
 		    io:format("~p:~p Error ~p ~p ~n", [?MODULE, ?LINE, Else, 
 						       [{CLen, Code}, {Totlen, List}]]),
-		    erlang:error({?MODULE, decoder, {internal_error, ?LINE}})
+		    error({?MODULE, decoder, {internal_error, ?LINE}})
 	    end;
 	NewLen > 100 -> 
 	    case catch lzw_buildbin(lists:reverse([{CLen,Code}|List])) of
@@ -716,7 +716,7 @@ lzw_write({CLen, Code}, {Totlen, List}, Acc) ->
 		Else ->
 		    io:format("~p:~p Error ~p ~p ~n", [?MODULE, ?LINE, Else, 
 						       [{CLen, Code}, {Totlen, List}]]),
-		    erlang:error({?MODULE, decoder, {internal_error, ?LINE}})
+		    error({?MODULE, decoder, {internal_error, ?LINE}})
 	    end;
 	true ->
 	    {{Totlen + CLen,[{CLen,Code}|List]}, Acc}

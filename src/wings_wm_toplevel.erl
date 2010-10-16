@@ -23,7 +23,6 @@
 -include("wings.hrl").
 
 -import(lists, [reverse/1,keyfind/3,sort/1,foreach/2]).
--import(erlang, [min/2,max/2]).
 
 toplevel(Name, Title, Pos, Size, Flags, Op) ->
     wings_wm:new(Name, Pos, Size, Op),
@@ -376,7 +375,7 @@ ctrl_resize(Client, W, H) ->
     {TopW,TopH} = wings_wm:top_size(),
     if
 	W > TopW; H > TopH ->
-	    wings_u:error(?__(1,"Too large size specified"));
+	    wings_u:error_msg(?__(1,"Too large size specified"));
 	true ->
 	    wings_wm:resize(Client, {W,H})
     end.

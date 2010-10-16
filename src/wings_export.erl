@@ -18,7 +18,6 @@
 -include("e3d.hrl").
 -include("e3d_image.hrl").
 -import(lists, [foldl/3,keydelete/3,reverse/1,last/1]).
--import(erlang, [min/2,max/2]).
 
 export(Exporter, Name, Ps, #st{shapes=Shs}=St0) ->
     St = wings_view:freeze_mirror(St0),
@@ -36,13 +35,13 @@ export(Exporter, Name, Ps, #st{shapes=Shs}=St0) ->
     try Exporter(Name, Contents) of
 	ok -> ok;
 	{error,Atom} when is_atom(Atom) ->
-	    wings_u:error(file:format_error(Atom));
+	    wings_u:error_msg(file:format_error(Atom));
 	{error,Reason} ->
-	    wings_u:error(Reason)
+	    wings_u:error_msg(Reason)
     catch
 	error:Reason ->
 	    Msg = ?__(4,"Exporter crashed"),
-	    wings_u:error(Msg++": ~P\n\n~P\n",
+	    wings_u:error_msg(Msg++": ~P\n\n~P\n",
 			  [Reason,20,erlang:get_stacktrace(),20])
     after
 	wings_pb:done()

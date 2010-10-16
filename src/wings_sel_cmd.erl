@@ -20,7 +20,6 @@
 
 -include("wings.hrl").
 -import(lists, [map/2,foldl/3,reverse/1,keymember/3,keyfind/3,usort/1]).
--import(erlang, [max/2]).
 
 init() ->
     wings_pref:set_default(saved_selections_cycle_by_mode,false).
@@ -665,7 +664,7 @@ new_group_name(Name, #st{ssels=Ssels0,selmode=Mode,sel=Sel}=St) ->
 	    Exists = ?__(exists,"already exists."),
 	    Msg0 = [GroupMode," \"",Name,"\" ",Exists],
 	    Msg = lists:flatten(Msg0),
-	    wings_u:error(Msg)
+	    wings_u:error_msg(Msg)
     end,
     Ssels = gb_trees:insert(Key, Sel, Ssels0),
     St#st{ssels=Ssels}.
@@ -1002,7 +1001,7 @@ item_by_id(Prompt, #st{sel=[{Id,_}]}) ->
 	end);
 item_by_id(Prompt, #st{shapes=Shs}) ->
     case gb_trees:to_list(Shs) of
-	[] -> wings_u:error(?__(1,"Nothing to select."));
+	[] -> wings_u:error_msg(?__(1,"Nothing to select."));
 	[{Id,_}] ->
 	    ask([{Prompt,0}],
 		fun([Item]) ->
@@ -1026,11 +1025,11 @@ valid_sel(Prompt, Sel, #st{shapes=Shs,selmode=Mode}=St) ->
 	    [Item] = gb_sets:to_list(Item0),
 	    case gb_trees:is_defined(Id, Shs) of
 		false ->
-		    wings_u:error(?__(1,"The Object Id ")++
+		    wings_u:error_msg(?__(1,"The Object Id ")++
 				  integer_to_list(Id)++
 				  ?__(2," is invalid."));
 		true ->
-		    wings_u:error(?__(3,"The ")++Prompt++" "++
+		    wings_u:error_msg(?__(3,"The ")++Prompt++" "++
 				  integer_to_list(Item)++
 				  ?__(4," is invalid."))
 	    end;
@@ -1149,7 +1148,7 @@ oriented_faces(Ask, _St) when is_atom(Ask) ->
 oriented_faces([Tolerance,Connected,Save], #st{selmode=face, sel=[]}) ->
     wings_pref:set_value(similar_normals_connected,Connected),
     wings_pref:set_value(similar_normals_angle,{Save,Tolerance}),
-    wings_u:error(?__(4,"At least one face must be selected"));
+    wings_u:error_msg(?__(4,"At least one face must be selected"));
 
 oriented_faces([Tolerance,false,Save], St) ->
     wings_pref:set_value(similar_normals_connected,false),
@@ -1232,7 +1231,7 @@ similar_material(Ask, _St) when is_atom(Ask) ->
 
 similar_material([Connected|_], #st{selmode=face,sel=[]}) ->
     wings_pref:set_value(similar_materials_connected,Connected),
-    wings_u:error(?__(3,"At least one face must be selected"));
+    wings_u:error_msg(?__(3,"At least one face must be selected"));
 
 similar_material([false,Mode], St) ->
     Materials = wings_sel:fold(fun
@@ -1371,12 +1370,12 @@ shortest_path(Method, St) ->
     #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
     case (Mode==vertex) andalso (length(Sel)==1) of
 	true -> ok;
-	false -> wings_u:error(?__(1,"Exactly two vertices must be\n selected on the same object."))
+	false -> wings_u:error_msg(?__(1,"Exactly two vertices must be\n selected on the same object."))
     end,
     [{Id,SelectedVs}] = Sel,
     case gb_sets:size(SelectedVs)==2 of
 	true -> ok;
-	false -> wings_u:error(?__(2,"Exactly two vertices must be selected."))
+	false -> wings_u:error_msg(?__(2,"Exactly two vertices must be selected."))
     end,
     We = gb_trees:get(Id, Shapes),
     [Pa,Pb] = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(SelectedVs)],
@@ -1573,12 +1572,12 @@ similar_area([Tolerance], St) ->
     #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
     case (Mode==face) and (length(Sel)==1) of
 	true -> ok;
-	false -> wings_u:error(?__(3,"Exactly one face must be\n selected on a single object."))
+	false -> wings_u:error_msg(?__(3,"Exactly one face must be\n selected on a single object."))
     end,
     [{Id,SelectedFs}] = Sel,
     case gb_sets:size(SelectedFs)==1 of
 	true -> ok;
-	false -> wings_u:error(?__(4,"Exactly one face must be selected."))
+	false -> wings_u:error_msg(?__(4,"Exactly one face must be selected."))
     end,
     We = gb_trees:get(Id, Shapes),
     Face1 = hd(gb_sets:to_list(SelectedFs)),

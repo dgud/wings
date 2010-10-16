@@ -765,10 +765,10 @@ reverse_norm(_,Norm,_) -> Norm.
 
 %%%% Selection errors
 circ_sel_error() ->
-    wings_u:error(?__(2,"Selection must consist of either a single closed or open edge loop")).
+    wings_u:error_msg(?__(2,"Selection must consist of either a single closed or open edge loop")).
 circ_sel_error_1() ->
-    wings_u:error(?__(1,"Selected edge loops may not share vertices")).
+    wings_u:error_msg(?__(1,"Selected edge loops may not share vertices")).
 circ_sel_error_3() ->
-    wings_u:error(?__(2,"Selections including single edges cannot be processed")).
+    wings_u:error_msg(?__(2,"Selections including single edges cannot be processed")).
 circ_sel_error_4() ->
-    wings_u:error(?__(2,"Selected edge loops must be non-intersecting, and be either all open or all closed.")).
+    wings_u:error_msg(?__(2,"Selected edge loops must be non-intersecting, and be either all open or all closed.")).

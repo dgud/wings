@@ -73,7 +73,7 @@ weld(#st{sel=[{Obj,VertSel}],shapes=Shs}=St) ->
             Vert = gb_sets:smallest(VertSel),
             case member(Vert,Verts) of
                true ->
-                  wings_u:error(?__(1,"You cannot weld at mirror plane")),
+                  wings_u:error_msg(?__(1,"You cannot weld at mirror plane")),
                   St;
                _ -> ok
             end;
@@ -81,17 +81,17 @@ weld(#st{sel=[{Obj,VertSel}],shapes=Shs}=St) ->
       end,
       if
          Vertices < 4 -> 
-            wings_u:error(?__(2,"Object must have at least 4 vertices")),
+            wings_u:error_msg(?__(2,"Object must have at least 4 vertices")),
             St;
          true ->
             wings:ask(weld_select(St), St, fun weld/2)
       end;
     false ->
-      wings_u:error(?__(3,"You can weld only one vertex")),
+      wings_u:error_msg(?__(3,"You can weld only one vertex")),
       St
    end;
 weld(St) ->
-   wings_u:error(?__(3,"You can weld only one vertex")),
+   wings_u:error_msg(?__(3,"You can weld only one vertex")),
    St.
 
 weld_select(OrigSt) ->

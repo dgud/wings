@@ -686,15 +686,15 @@ length_check(Axis,Length) ->
       true ->
         case Axis of
           area ->
-            wings_u:error(?__(1,"Selection must have an area greater than zero"));
+            wings_u:error_msg(?__(1,"Selection must have an area greater than zero"));
           normal ->
-            wings_u:error(?__(2,"Selection must have length greater than zero"));
+            wings_u:error_msg(?__(2,"Selection must have length greater than zero"));
           {_,_,_} ->
-            wings_u:error(?__(3,"Length along vector is too short"));
+            wings_u:error_msg(?__(3,"Length along vector is too short"));
           _xyz ->
             AxStr = wings_s:dir(Axis),
             Str = ?__(4,"Length along ~s axis is too short"),
-            wings_u:error(wings_util:format(Str,[AxStr]))
+            wings_u:error_msg(wings_util:format(Str,[AxStr]))
         end;
       false -> okay
     end.
@@ -738,7 +738,7 @@ check_element(_St) ->
 
 element_error() ->
     Str = ?__(1,"Exactly one element must be selected"),
-    wings_u:error(Str).
+    wings_u:error_msg(Str).
 
 check_angle_sel(#st{sel=[{_,Sel}]}) ->
     case gb_sets:size(Sel) of
@@ -754,7 +754,7 @@ check_angle_sel(_St) ->
     angle_error().
 
 angle_error() ->
-    wings_u:error(?__(1,"Exactly two elements must be selected")).
+    wings_u:error_msg(?__(1,"Exactly two elements must be selected")).
 
 %%% Main Angle functions
 sub_angle(Axis, St) ->
