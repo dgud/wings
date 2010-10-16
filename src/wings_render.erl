@@ -186,7 +186,7 @@ render_plain(#dlo{work=Faces,edges=Edges,open=Open,
 	    polygonOffset(2),
 	    gl:shadeModel(?GL_SMOOTH),
 	    enable_lighting(SceneLights),
-	    case Open of
+	    case Open andalso wings_pref:get_value(show_backfaces) of
 		false ->
 		    wings_dl:call(Faces);
 		true ->
@@ -291,7 +291,7 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth0,transparent=Trans0,
 	    gl:depthMask(?GL_TRUE)
     end,
 
-    case Open of
+    case Open andalso wings_pref:get_value(show_backfaces) of
 	false -> ok;
 	true -> gl:disable(?GL_CULL_FACE)
     end,
