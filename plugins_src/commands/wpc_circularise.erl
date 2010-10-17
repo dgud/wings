@@ -282,7 +282,7 @@ arc_center_setup(Plane,Center,VsList,#we{id=Id,vp=Vtab},St) ->
     Hinge = e3d_vec:average(SPos, EPos),
     Chord = e3d_vec:sub(Hinge, SPos),
     Cross = e3d_vec:cross(Chord,Plane),
-    CenterPoint = intersect_vec_plane(Hinge,Center,Cross),
+    CenterPoint = intersect_vec_plane(Hinge,Center,e3d_vec:norm(Cross)),
     %% get angle
     Vec1 = e3d_vec:sub(CenterPoint,SPos),
     Vec2 = e3d_vec:sub(CenterPoint,EPos),
