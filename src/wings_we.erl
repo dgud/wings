@@ -599,7 +599,7 @@ merge_plugins(Wes) ->
 		    catch _:_ -> Acc
 		    end
 	    end,
-    Merged = lists:foldl(Merge, [], PMods),
+    Merged = lists:reverse(lists:foldl(Merge, [], PMods)),
     gb_trees:from_orddict(Merged).
 		    
 merge_renumber(Wes0) ->
