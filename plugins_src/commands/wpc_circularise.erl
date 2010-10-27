@@ -37,7 +37,7 @@ parse([Elem|Rest], NewMenu, Mode, Found) ->
 circular_arc_menu(edge) ->
     Name = ?__(1,"Circularise"),
     Help = {?__(2,"Flatten, equalise, and inflate selected edge loops making them circular"),
-       ?__(4,"Circularise a single open or closed loop using secondary selections"),
+       ?__(6,"Specify using secondary selections"),
        ?__(5,"Choose common plane to which loops will be flattened")},
     F = fun
       (1,_Ns) -> {edge,circularise};
@@ -103,38 +103,57 @@ process_circ_cmd(Plane0, St0) ->
 process_cc_cmd(Data, #st{shapes=Shs,sel=[{Id,Sel}]}=St0) ->
     We = gb_trees:get(Id, Shs),
     Edges = gb_sets:to_list(Sel),
-    VsList = wings_edge_loop:edge_links(Edges, We),
-    case VsList of
-      [Vs] ->
-        case wings_edge_loop:edge_loop_vertices(Edges, We) of
-          [Vs0] ->
-            second_ask(Edges, Vs0, We, St0);
-          _other ->
-            EdgeGroups = wings_edge_loop:partition_edges(Edges, We),
-            case check_if_partial_and_full_loops_are_mixed(VsList, We) of
-              not_mixed when length(EdgeGroups) =:= length(VsList) ->
-                case Data of
-                  {Plane,Center} ->
-                      arc_center_setup(Plane, Center, Vs, We, St0);
-                  _ ->
-                    wings:ask(selection_ask([plane,arc_center]), St0,
-                      fun({Plane,Center}, St) ->
-                        arc_center_setup(Plane, Center, Vs, We, St)
-                      end)
-                end;
-              not_mixed ->
-                circ_sel_error();
-              single_edge ->
-                circ_sel_error_3();
-              mixed ->
-                circ_sel_error()
-            end
-        end;
-      _ ->
-        circ_sel_error()
+    case wings_edge_loop:edge_loop_vertices(Edges, We) of
+      [Vs0] ->
+        %% Single closed loop mmb
+        second_ask(Edges, Vs0, We, St0);
+      _other ->
+        Vs = wings_edge_loop:edge_links(Edges, We),
+        EdgeGroups = wings_edge_loop:partition_edges(Edges, We),
+        case check_if_partial_and_full_loops_are_mixed(Vs, We) of
+          not_mixed when length(EdgeGroups) =:= length(Vs) ->
+            case Data of
+              {Plane,Center} ->
+                  arc_center_setup(Plane, Center, [{Vs,We}], St0);
+              _ ->
+                wings:ask(selection_ask([plane,arc_center]), St0,
+                  fun({Plane,Center}, St) ->
+                    arc_center_setup(Plane, Center, [{Vs,We}], St)
+                  end)
+            end;
+          not_mixed ->
+            circ_sel_error();
+          single_edge ->
+            circ_sel_error_3();
+          mixed ->
+            circ_sel_error()
+        end
     end;
-process_cc_cmd(_, _) ->
-    circ_sel_error().
+process_cc_cmd(Data, St0) ->
+    VsData = wings_sel:fold(fun(Es, We, Acc) ->
+        Edges = gb_sets:to_list(Es),
+        Vs = wings_edge_loop:edge_links(Edges, We),
+        EdgeGroups = wings_edge_loop:partition_edges(Edges, We),
+        case check_if_partial_and_full_loops_are_mixed(Vs, We) of
+          not_mixed when length(EdgeGroups) =:= length(Vs) ->
+            [{Vs,We}|Acc];
+          not_mixed ->
+            circ_sel_error();
+          single_edge ->
+            circ_sel_error_3();
+          mixed ->
+            circ_sel_error()
+        end
+    end, [], St0),
+    case Data of
+      {Plane,Center} ->
+          arc_center_setup(Plane, Center, VsData, St0);
+      _ ->
+        wings:ask(selection_ask([plane,arc_center]), St0,
+          fun({Plane,Center}, St) ->
+            arc_center_setup(Plane, Center, VsData, St)
+          end)
+    end.
 
 %%%% Asks
 selection_ask(Asks) ->
@@ -269,32 +288,42 @@ arc_setup(State,Plane0,[VsList|Loops],#we{id=Id,vp=Vtab}=We,Acc) ->
 arc_setup(_,_,[],_,Acc) -> Acc.
 
 %%%% Arc Setup MMB
-arc_center_setup(Plane,Center,VsList,#we{id=Id,vp=Vtab},St) ->
+arc_center_setup(Plane, Center, VsData, St) ->
     Flatten = wings_pref:get_value(circularise_flatten, true),
-    {Vs0,_} = arc_vs(VsList,[],[]),
-    Vs = check_vertex_order(Vs0,Plane,wings_face:face_normal_cw(Vs0,Vtab)),
-    {Vlist,DegVertList} = make_degree_vert_list(Vs,Vtab,0,[],[]),
-    NumVs = length(DegVertList) + 1,
-    [StartVs|_] = Vs,
-    EndVs = lists:last(Vs),
-    SPos = array:get(StartVs, Vtab),
-    EPos = array:get(EndVs, Vtab),
-    Hinge = e3d_vec:average(SPos, EPos),
-    Chord = e3d_vec:sub(Hinge, SPos),
-    Cross = e3d_vec:cross(Chord,Plane),
-    CenterPoint = intersect_vec_plane(Hinge,Center,e3d_vec:norm(Cross)),
-    %% get angle
-    Vec1 = e3d_vec:sub(CenterPoint,SPos),
-    Vec2 = e3d_vec:sub(CenterPoint,EPos),
-    Angle = e3d_vec:degrees(Vec1,Vec2),
-
-    {ObtuseAcute,Axis} = axis_orientation(Plane,Cross,Vec1),
-    State = {Flatten,normal,ObtuseAcute},
-
-    Data = {Angle, CenterPoint, Axis, SPos, DegVertList, NumVs},
-    Tvs = [{Id,{Vlist,make_arc_center_fun(Data,State)}}],
+    State = {Flatten,normal,acute},
+    Tvs = lists:foldl(fun({ArcVs,#we{id=Id,vp=Vtab}}, Acc) ->
+            {Vlist,Data} = arc_center_setup_1(ArcVs, Plane, Center, Vtab),
+            [{Id,{Vlist,make_arc_center_fun(Data, State)}}|Acc]
+    end, [], VsData),
     Flags = [{mode,{arc_modes(),State}},{initial,[1.0]}],
     wings_drag:setup(Tvs, [percent], Flags, St).
+
+arc_center_setup_1(VData, Plane, Center, Vtab) ->
+    lists:foldl(fun(ArcVs, {VlistAcc,DataAcc}) ->
+        {Vs0,_} = arc_vs(ArcVs, [], []),
+        Vs = check_vertex_order(Vs0,Plane,wings_face:face_normal_cw(Vs0,Vtab)),
+        {Vlist,DegVertList} = make_degree_vert_list(Vs,Vtab,0,[],[]),
+        NumVs = length(DegVertList) + 1,
+        [StartV|_] = Vs,
+        EndV = lists:last(Vs),
+        SPos = array:get(StartV, Vtab),
+        EPos = array:get(EndV, Vtab),
+        Hinge = e3d_vec:average(SPos, EPos),
+        Chord = e3d_vec:sub(Hinge, SPos),
+        Cross = e3d_vec:cross(Chord,Plane),
+        CenterPoint = intersect_vec_plane(Hinge,Center,e3d_vec:norm(Cross)),
+        %% get angle
+        Vec1 = e3d_vec:sub(CenterPoint,SPos),
+        Vec2 = e3d_vec:sub(CenterPoint,EPos),
+        Angle = e3d_vec:degrees(Vec1,Vec2),
+        Axis0 = e3d_vec:normal([SPos,EPos,CenterPoint]),
+        Axis = case Axis0 =:= e3d_vec:zero() of
+            true -> Plane;
+            false -> Axis0
+        end,
+        Data = {Angle, CenterPoint, Axis, SPos, DegVertList, NumVs},
+        {Vlist++VlistAcc,[Data|DataAcc]}
+    end, {[],[]}, VData).
 
 %% StartVs and EndVs are in 3rd of First and 2nd of Last
 arc_vs([{E,LastV,V}|[]], VAcc, EAcc) ->
@@ -421,12 +450,6 @@ check_vertex_order(Vs,Axis1,Axis2) ->
     Dot = e3d_vec:dot(Axis1,Axis2),
     if Dot < 0.0 -> Vs;
        true -> lists:reverse(Vs)
-    end.
-
-axis_orientation(Plane,Vec,Chord) ->
-    Dot = e3d_vec:dot(Vec,Chord),
-    if Dot < 0.0 -> {acute,Plane};
-       true -> {obtuse,e3d_vec:neg(Plane)}
     end.
 
 %% Differenciate between Lmb and Rmb Arc commands
@@ -618,15 +641,17 @@ make_arc_fun(Data0,State) ->
     end.
 
 %%%% Arc Center drag data MMB
-make_arc_center_fun(Data,State) ->
+make_arc_center_fun(Data, State) ->
     fun
       (new_mode_data,{NewState,_}) ->
         make_arc_center_fun(Data,NewState);
       ([Percent|_], A) ->
-        {Angle, Center, Plane, Pos, DegVertList, NumVs} = Data,
-        lists:foldl(fun({V, {Vpos, Index}}, VsAcc) ->
-          [{V,arc_center(Vpos,Angle,Index,NumVs,Pos,Center,Plane,State,Percent)}|VsAcc]
-        end, A, DegVertList)
+        lists:foldl(fun(D, Acc) ->
+            {Angle, Center, Plane, Pos, DegVertList, NumVs} = D,
+            lists:foldl(fun({V, {Vpos, Index}}, VsAcc) ->
+                [{V,arc_center(Vpos,Angle,Index,NumVs,Pos,Center,Plane,State,Percent)}|VsAcc]
+             end, Acc, DegVertList)
+         end, A, Data)
     end.
 
 %%%% Circularise Mode, Diameter, and Percentage changes LMB/RMB
@@ -765,7 +790,7 @@ reverse_norm(_,Norm,_) -> Norm.
 
 %%%% Selection errors
 circ_sel_error() ->
-    wings_u:error_msg(?__(2,"Selection must consist of either a single closed or open edge loop")).
+    wings_u:error_msg(?__(3,"Selection must consist of one or more open edge loops\nor a single closed loop")).
 circ_sel_error_1() ->
     wings_u:error_msg(?__(1,"Selected edge loops may not share vertices")).
 circ_sel_error_3() ->
