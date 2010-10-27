@@ -143,9 +143,15 @@ toolbar_menu(Name) ->
     end.
 
 move_cursor_to_toolbar(true, popup, Y) ->
-    {_,X0,Y0} = wings_wm:local_mouse_state(),
-    {X,_} = wings_wm:local2global(X0, Y0),
-    wings_io:warp(X, Y + 1 + ?LINE_HEIGHT div 2);
+    Windows = wings_wm:windows(),
+    Pref = wings_pref:get_value(menu_toolbar_snap_cursor),
+    case lists:keymember(menu, 1, Windows) of
+        false when not Pref -> ok;
+        _ ->
+            {_,X0,Y0} = wings_wm:local_mouse_state(),
+            {X,_} = wings_wm:local2global(X0, Y0),
+            wings_io:warp(X, Y + 1 + ?LINE_HEIGHT div 2)
+    end;
 move_cursor_to_toolbar(_,_,_) -> ok.
 
 delete_from(Level) ->
