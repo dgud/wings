@@ -1639,6 +1639,7 @@ restore_windows_1([{geom,{_,_}=Pos0,{_,_}=Size,Ps0}|Ws], St) ->
     end,
     Pos = geom_pos(Pos0),
     wings_wm:move(geom, Pos, Size),
+    set_geom_props(Ps, geom),
     wings_wm:set_prop(geom, tweak_draw, true),
     restore_windows_1(Ws, St);
 restore_windows_1([{{geom,_}=Name,Pos0,Size,Ps0}|Ws], St) ->
