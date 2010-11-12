@@ -65,7 +65,7 @@ flow_connect(St0) ->
 flow_connect_drag(St0) ->
     {St1,{Tvs,Sel}} = wings_sel:mapfold(fun(Edges, #we{id=Id}=We0, {Tvs0,SelAcc}) ->
         {NewEdges,Vs,Data,We} = calculate_cuts_data(Edges, Edges, We0, []),
-        TvsData = [{Id,{Vs,fc_tension_fun(Data)}}|Tvs0],
+        TvsData = [{Id,{Vs,flow_connect_tension_fun(Data)}}|Tvs0],
         {We,{TvsData,[{Id,NewEdges}|SelAcc]}}
     end, {[],[]}, St0),
     St = wings_sel:set(edge, Sel, St1),
@@ -102,10 +102,9 @@ edge_link_vectors(Edge, Es, #we{mirror=Mir,es=Etab,vp=Vtab}=We) ->
     ENormA = e3d_vec:norm(EvecA),
     ENormB = e3d_vec:norm(EvecB),
     Len = e3d_vec:len(EvecA),
-    EdgeNorm = edge_norm(Lf, Rf, We),
     OrgMir = orig_on_mirror(Mir, Lf, Rf),
-    {OppR,RVec,Nr} = vec_acc(Va, Rp, PosA, PosB, Edge, ENormA, Es, Len, EdgeNorm, OrgMir, We, []),
-    {OppL,LVec,Nl} = vec_acc(Vb, Lp, PosB, PosA, Edge, ENormB, Es, Len, EdgeNorm, OrgMir, We, []),
+    {OppR,RVec,Nr} = vec_acc(Va, Rp, PosA, PosB, Edge, ENormA, Es, Len, OrgMir, We, []),
+    {OppL,LVec,Nl} = vec_acc(Vb, Lp, PosB, PosA, Edge, ENormB, Es, Len, OrgMir, We, []),
     %% Favour poles of 4 (a vertex connecting four edges)
     case OppR < OppL of
         true when Nr=:=4 ->
@@ -126,37 +125,27 @@ edge_link_vectors(Edge, Es, #we{mirror=Mir,es=Etab,vp=Vtab}=We) ->
             cut_point_data(PosB, Mid, ENormB, LVec, OppL)
     end.
 
-edge_norm(Mir, Face, #we{mirror=Mir}=We) ->
+%% Vector in Mirror
+mirrored_vector(Vec, Mir, We) ->
     MirNorm = wings_face:normal(Mir, We),
-    FNorm = wings_face:normal(Face, We),
-    U = e3d_vec:mul(MirNorm, e3d_vec:dot(MirNorm, FNorm)),
-    InMir = e3d_vec:sub(FNorm, e3d_vec:mul(U, 2.0)),
-    e3d_vec:norm(e3d_vec:add(FNorm, InMir));
-edge_norm(Face, Mir, #we{mirror=Mir}=We) ->
-    MirNorm = wings_face:normal(Mir, We),
-    FNorm = wings_face:normal(Face, We),
-    U = e3d_vec:mul(MirNorm, e3d_vec:dot(MirNorm, FNorm)),
-    InMir = e3d_vec:sub(FNorm, e3d_vec:mul(U, 2.0)),
-    e3d_vec:norm(e3d_vec:add(FNorm, InMir));
-edge_norm(Lf, Rf, We) ->
-    Ln = wings_face:normal(Lf, We),
-    Rn = wings_face:normal(Rf, We),
-    e3d_vec:norm(e3d_vec:add(Ln, Rn)).
+    U = e3d_vec:mul(MirNorm, e3d_vec:dot(MirNorm, Vec)),
+    InMir = e3d_vec:sub(Vec, e3d_vec:mul(U, 2.0)),
+    e3d_vec:norm(e3d_vec:add(Vec, InMir)).
 
 orig_on_mirror(Mir, Mir, _) -> true;
 orig_on_mirror(Mir, _, Mir) -> true;
 orig_on_mirror(_, _, _) -> false.
 
-vec_acc(V, Edge, PosA, PosB, OrigE, EVec, Es, Len, EdgeNorm, OrgMir, We, Acc) ->
+vec_acc(V, Edge, PosA, PosB, OrigE, EVec, Es, Len, OrgMir, We, Acc) ->
     case adjacent_vector(V, Edge, PosA, PosB, OrigE, OrgMir, We) of
         {VecE,OrigE} ->
-            get_best_vec(EVec, Es, Len, EdgeNorm, [VecE|Acc]);
+            get_best_vec(EVec, Es, Len, [VecE|Acc]);
         {VecE,NextE} ->
-            vec_acc(V, NextE, PosA, PosB, OrigE, EVec, Es, Len, EdgeNorm, OrgMir, We, [VecE|Acc]);
+            vec_acc(V, NextE, PosA, PosB, OrigE, EVec, Es, Len, OrgMir, We, [VecE|Acc]);
         {VecE,MirVec,OrigE} ->
-            get_best_vec(EVec, Es, Len, EdgeNorm, [VecE,MirVec|Acc]);
+            get_best_vec(EVec, Es, Len, [VecE,MirVec|Acc]);
         {VecE,MirVec,NextE} ->
-            vec_acc(V, NextE, PosA, PosB, OrigE, EVec, Es, Len, EdgeNorm, OrgMir, We, [VecE,MirVec|Acc])
+            vec_acc(V, NextE, PosA, PosB, OrigE, EVec, Es, Len, OrgMir, We, [VecE,MirVec|Acc])
     end.
 
 adjacent_vector(Va, Edge, PosA, PosB, OrigE, OrgMir, #we{mirror=Mir,es=Etab,vp=Vtab}=We) ->
@@ -168,12 +157,8 @@ adjacent_vector(Va, Edge, PosA, PosB, OrigE, OrgMir, #we{mirror=Mir,es=Etab,vp=V
                 true ->
                     {{VecE,Edge},NextE};
                 false ->
-                    MirPlane = wings_face:normal(Mir, We),
-                    MirCenter = wings_face:center(Mir, We),
-                    PosAtMir = intersect_vec_plane(PosB, MirCenter, MirPlane, MirPlane),
-                    Vec = e3d_vec:sub(PosAtMir, PosB),
-                    PosInMir = e3d_vec:add(PosAtMir, Vec),
-                    MirVec = e3d_vec:norm_sub(PosA, PosInMir),
+                    Vec = e3d_vec:norm_sub(PosA, PosB),
+                    MirVec = mirrored_vector(Vec, Mir, We),
                     {{VecE,Edge},{MirVec,OrigE},NextE}
             end;
         #edge{vs=Va,ve=V,rtpr=NextE,rf=Rf,lf=Lf} when Rf=:=Mir; Lf=:=Mir ->
@@ -183,12 +168,8 @@ adjacent_vector(Va, Edge, PosA, PosB, OrigE, OrgMir, #we{mirror=Mir,es=Etab,vp=V
                 true ->
                     {{VecE,Edge},NextE};
                 false ->
-                    MirPlane = wings_face:normal(Mir, We),
-                    MirCenter = wings_face:center(Mir, We),
-                    PosAtMir = intersect_vec_plane(PosB, MirCenter, MirPlane, MirPlane),
-                    Vec = e3d_vec:sub(PosAtMir, PosB),
-                    PosInMir = e3d_vec:add(PosAtMir, Vec),
-                    MirVec = e3d_vec:norm_sub(PosA, PosInMir),
+                    Vec = e3d_vec:norm_sub(PosA, PosB),
+                    MirVec = mirrored_vector(Vec, Mir, We),
                     {{VecE,Edge},{MirVec,OrigE},NextE}
             end;
         #edge{vs=V,ve=Va,ltpr=NextE} ->
@@ -198,12 +179,8 @@ adjacent_vector(Va, Edge, PosA, PosB, OrigE, OrgMir, #we{mirror=Mir,es=Etab,vp=V
                 false ->
                     {{VecE,Edge},NextE};
                 true ->
-                    MirPlane = wings_face:normal(Mir, We),
-                    MirCenter = wings_face:center(Mir, We),
-                    PosAtMir = intersect_vec_plane(PosS, MirCenter, MirPlane, MirPlane),
-                    Vec = e3d_vec:sub(PosAtMir, PosS),
-                    PosInMir = e3d_vec:add(PosAtMir, Vec),
-                    MirVec = e3d_vec:norm_sub(PosA, PosInMir),
+                    Vec = e3d_vec:norm_sub(PosA, PosS),
+                    MirVec = mirrored_vector(Vec, Mir, We),
                     {{VecE,Edge},{MirVec,Edge},NextE}
             end;
         #edge{vs=Va,ve=V,rtpr=NextE} ->
@@ -213,58 +190,38 @@ adjacent_vector(Va, Edge, PosA, PosB, OrigE, OrgMir, #we{mirror=Mir,es=Etab,vp=V
                 false ->
                     {{VecE,Edge},NextE};
                 true ->
-                    MirPlane = wings_face:normal(Mir, We),
-                    MirCenter = wings_face:center(Mir, We),
-                    PosAtMir = intersect_vec_plane(PosS, MirCenter, MirPlane, MirPlane),
-                    Vec = e3d_vec:sub(PosAtMir, PosS),
-                    PosInMir = e3d_vec:add(PosAtMir, Vec),
-                    MirVec = e3d_vec:norm_sub(PosA, PosInMir),
+                    Vec = e3d_vec:norm_sub(PosA, PosS),
+                    MirVec = mirrored_vector(Vec, Mir, We),
                     {{VecE,Edge},{MirVec,Edge},NextE}
             end
     end.
 
-get_best_vec(EVec, Es, Len, EdgeNorm, Acc0) ->
+get_best_vec(EVec, Es, Len, Acc0) ->
     Acc = lists:usort(Acc0),
     N = length(Acc)+1,
-    New = {not_allowed,none,0.0,[]},
-    {Opp0,Vec0,DN0,VecAcc} = get_best_vec_1(EVec, Es, Len, EdgeNorm, New, Acc),
+    New = {not_allowed,none,?ANGLE,[]},
+    {Opp0,Vec0,Deg0,VecAcc} = get_best_vec_1(EVec, Es, Len, New, Acc),
     case N rem 2 of
-        0 ->{Opp0,Vec0,N};
+        0 -> {Opp0,Vec0,N};
         1 ->
             AvgVec = e3d_vec:average(VecAcc),
-            Check1 = {Opp0,Vec0,DN0,[]},
+            Check1 = {Opp0,Vec0,Deg0,[]},
             Check2 = [{AvgVec,gb_sets:smallest(Es)}],
-            {Opp,Vec,_,_} = get_best_vec_1(EVec, Es, Len, EdgeNorm, Check1, Check2),
+            {Opp,Vec,_,_} = get_best_vec_1(EVec, Es, Len, Check1, Check2),
             case round_float(Opp) < round_float(Opp0) of
                 true -> {Opp,Vec,N};
                 false -> {Opp0,Vec0,N}
             end
     end.
 
-get_best_vec_1(EVec, Es, Len, EdgeNorm, New, Acc) ->
-    lists:foldl(fun({Vec,Edge}, {Opp0,Vec0,DN0,VecAcc}) ->
+get_best_vec_1(EVec, Es, Len, New, Acc) ->
+    lists:foldl(fun({Vec,Edge}, {Opp0,Vec0,Deg0,VecAcc}) ->
         Deg = round_float(e3d_vec:degrees(EVec, Vec)),
-        Cross = e3d_vec:norm(e3d_vec:cross(EVec, Vec)),
-        Dot0 = e3d_vec:dot(EdgeNorm, Cross),
-        Dot = abs(Dot0),
-        DN = if
-            Dot >= 1.0 -> 180.0;
-            true -> round_float(math:acos(Dot) * (180.0 / math:pi()))
-        end,
-        case DN >= DN0 of
-            true ->
-                case get_result(Deg, Len, gb_sets:is_element(Edge, Es)) of
-                    not_allowed ->
-                        {Opp0,Vec0,DN0,[Vec|VecAcc]};
-                    Opp when Opp < Opp0 andalso DN =:= DN0 ->
-                        {Opp,Vec,DN,[Vec|VecAcc]};
-                    _Opp when DN =:= DN0 ->
-                        {Opp0,Vec0,DN0,[Vec|VecAcc]};
-                    Opp ->
-                        {Opp,Vec,DN,[Vec|VecAcc]}
-                end;
-            false ->
-                {Opp0,Vec0,DN0,[Vec|VecAcc]}
+        case get_result(Deg, Len, gb_sets:is_element(Edge, Es)) of
+            Opp when Deg > Deg0 ->
+                {Opp,Vec,Deg,[Vec|VecAcc]};
+            _Opp ->
+                {Opp0,Vec0,Deg0,[Vec|VecAcc]}
         end
     end, New, Acc).
 
@@ -322,7 +279,7 @@ round_float(Float) when is_float(Float) ->
     round(10000*Float)/10000;
 round_float(Other) -> Other.
 
-fc_tension_fun(Data) ->
+flow_connect_tension_fun(Data) ->
     fun
         ([Percent], A) ->
             lists:foldl(fun({V,Mid,Vec,Opp}, VpAcc) ->
