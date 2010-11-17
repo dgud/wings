@@ -500,7 +500,7 @@ rotate(Vpos,Norm,{Cx,Cy,Cz},Angle) ->
     e3d_mat:mul_point(A2,Vpos).
 
 sweep_error() ->
-    wings_u:error_msg(?__(2,"Sweep Region won't work for wholly selected objects")).
+    wings_u:error_msg(?__(3,"Sweep Region won't work for selections where the average normal is (0,0,0)")).
 
 view_vector() ->
     #view{azimuth=Az,elevation=El} = wings_view:current(),
