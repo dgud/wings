@@ -44,6 +44,7 @@ MODULES= \
 	wpc_deselect_previous \
 	wpc_doosabin \
 	wpc_explode \
+	wpc_flow_connect \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
 	wpc_magnet_mask \
