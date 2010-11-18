@@ -624,51 +624,46 @@ draw_icons_1(N, [O|Objs], #ost{lh=Lh}=Ost, Y) ->
 draw_bitmap_icons(0, _, _, _) -> ok;
 draw_bitmap_icons(N, [ignore|Objs], #ost{lh=Lh}=Ost, Y) ->
     draw_bitmap_icons(N-1, Objs, Ost, Y+Lh);
-draw_bitmap_icons(N, [O|Objs], #ost{lh=Lh}=Ost, Y) ->
+draw_bitmap_icons(N, [O|Objs], #ost{lh=Lh}=Ost, Y0) ->
     X = 2,
+    Y = Y0+2,
     Type = element(1, O),
     case Type of
 	object ->
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
-	    wings_shape:draw_cube(X, Y),
+	    Cube = wings_shape:cube_bitmap(),
+	    wings_shape:draw_bitmap_16(X, Y, Cube),
 	    gl:color3fv(wings_pref:get_value(outliner_geograph_disabled)),
 	    ShadeCube = wings_shape:selcube_bitmap(),
-	    gl:rasterPos2i(X, Y + 1),
-	    gl:bitmap(14, 14, -1, 0, 14, 0, ShadeCube);
+	    wings_shape:draw_bitmap_16(X, Y, ShadeCube);
 	light ->
 	    gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
-	    wings_shape:draw_light(X, Y),
+	    Light = wings_shape:light_bitmap_0(),
+	    wings_shape:draw_bitmap_16(X, Y, Light),
 	    gl:color3fv({1.0, 1.0, 0.5}),
-	    LightObj = wings_shape:light_1_bitmap(),
-	    gl:rasterPos2i(X, Y + 2),
-	    gl:bitmap(14, 15, -1, 0, 14, 0, LightObj);
+	    LightObj = wings_shape:light_bitmap_1(),
+	    wings_shape:draw_bitmap_16(X, Y, LightObj);
 	image ->
 	    case O of
-		{_,_,#e3d_image{filename=none}} ->
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
-	    ImgObj0 = img_bitmap_0(),
-	    gl:rasterPos2i(X, Y + 4),
-	    gl:bitmap(14, 14, -1, 0, 14, 0, ImgObj0),
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_disabled)),
-	    ImgObj1 = img_bitmap_1(),
-	    gl:rasterPos2i(X, Y + 4),
-	    gl:bitmap(14, 14, -1, 0, 14, 0, ImgObj1);
-
-		_ ->
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_disabled)),
-	    ImgObj0 = img_bitmap_0(),
-	    gl:rasterPos2i(X, Y + 4),
-	    gl:bitmap(14, 14, -1, 0, 14, 0, ImgObj0),
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
-	    ImgObj1 = img_bitmap_1(),
-	    gl:rasterPos2i(X, Y + 4),
-	    gl:bitmap(14, 14, -1, 0, 14, 0, ImgObj1)
+	      {_,_,#e3d_image{filename=none}} ->
+	        gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
+	        ImgObj0 = img_bitmap_0(),
+	        wings_shape:draw_bitmap_16(X, Y, ImgObj0),
+	        gl:color3fv(wings_pref:get_value(outliner_geograph_disabled)),
+	        ImgObj1 = img_bitmap_1(),
+	        wings_shape:draw_bitmap_16(X, Y, ImgObj1);
+	      _ ->
+	        gl:color3fv(wings_pref:get_value(outliner_geograph_disabled)),
+	        ImgObj0 = img_bitmap_0(),
+	        wings_shape:draw_bitmap_16(X, Y, ImgObj0),
+	        gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
+	        ImgObj1 = img_bitmap_1(),
+	        wings_shape:draw_bitmap_16(X, Y, ImgObj1)
 	    end;
 	image_preview -> ok;
 	material -> ok
     end,
     gl:color3b(0, 0, 0),
-    draw_bitmap_icons(N-1, Objs, Ost, Y + Lh).
+    draw_bitmap_icons(N-1, Objs, Ost, Y0 + Lh).
 
 draw_previews(0, _, _, _) -> ok;
 draw_previews(N, [{image_preview,Im}|Objs], #ost{lh=Lh}=Ost, Y) ->

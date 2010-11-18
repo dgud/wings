@@ -465,6 +465,7 @@ defaults() ->
      {bitmap_icons, false},
      {menu_toolbar, true},
      {menu_toolbar_snap_cursor, false},
+     {menu_toolbar_size, big},
 
      %% Console
      {console_width,80},
