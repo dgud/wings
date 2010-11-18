@@ -41,6 +41,7 @@ MODULES= \
 	wpc_constraints \
 	wpc_cylindrilize \
 	wpc_corner \
+	wpc_deselect_previous \
 	wpc_doosabin \
 	wpc_explode \
 	wpc_intersect_edge \

@@ -291,9 +291,9 @@ command({edge_loop,complete_loops}, St) ->
 command(deselect, St) ->
     {save_state,deselect(St)};
 command(more, St) ->
-    wings_sel_conv:more(St);
+    {save_state,wings_sel_conv:more(St)};
 command(less, St) ->
-    wings_sel_conv:less(St);
+    {save_state,wings_sel_conv:less(St)};
 command(all, St) ->
     {save_state,select_all(St)};
 command(lights, St) ->
