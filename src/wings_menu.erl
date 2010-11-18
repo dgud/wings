@@ -233,7 +233,7 @@ normalize_menu(Menu, Hotkeys, Adv) ->
     MaxHeight =
       if Pref < 1 -> % auto menu clipping
              {_,Y} = wings_wm:win_size(geom),
-             Y-?LINE_HEIGHT;
+             Y - 48;
          true ->
              Pref
       end,
