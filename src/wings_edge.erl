@@ -163,18 +163,36 @@ screaming_cut(Edge, NewVPos, We0) ->
 dissolve_edge(Edge, We) ->
     dissolve_edges([Edge], We).
 
-dissolve_edges(Edges0, We0) when is_list(Edges0) ->
-    #we{es=Etab} = We1 = foldl(fun internal_dissolve_edge/2, We0, Edges0),
-    case [E || E <- Edges0, array:get(E, Etab) =/= undefined] of
-	Edges0 ->
-	    %% No edge was deleted in the last pass. We are done.
-	    We = wings_we:rebuild(We0),
-	    wings_we:validate_mirror(We);
-	Edges ->
-	    dissolve_edges(Edges, We1)
-    end;
+dissolve_edges(Edges, We) when is_list(Edges) ->
+    Faces = gb_sets:to_list(wings_face:from_edges(Edges, We)),
+    dissolve_edges(Edges, Faces, We);
 dissolve_edges(Edges, We) ->
     dissolve_edges(gb_sets:to_list(Edges), We).
+
+dissolve_edges(Edges0, Faces, We0) when is_list(Edges0) ->
+    #we{es=Etab} = We1 = foldl(fun internal_dissolve_edge/2, We0, Edges0),
+    case [E || E <- Edges0, array:get(E, Etab) =/= undefined] of
+        Edges0 ->
+            %% No edge was deleted in the last pass. We are done.
+            We2 = wings_we:rebuild(We0),
+            #we{fs=Ftab}=We = wings_we:validate_mirror(We2),
+            lists:foreach(fun(Face) ->
+                case gb_trees:is_defined(Face, Ftab) of
+                    true ->
+                        case wings_we:is_face_consistent(Face, We) of
+                            true ->
+                                ok;
+                            false ->
+                                wings_u:error_msg(?__(1,"Dissolving would cause a badly formed face."))
+                        end;
+                    false ->
+                        ok
+                end
+            end, Faces),
+            We;
+        Edges ->
+            dissolve_edges(Edges, Faces, We1)
+    end.
 
 internal_dissolve_edge(Edge, #we{es=Etab}=We0) ->
     case array:get(Edge, Etab) of
@@ -295,13 +313,7 @@ dissolve_edge_2(Edge, FaceRemove, FaceKeep,
 	    internal_dissolve_edge(AnEdge, We);
 	#edge{rf=FaceKeep,rtpr=Same,rtsu=Same} ->
 	    internal_dissolve_edge(AnEdge, We);
-	_Other ->
-	    case wings_we:is_face_consistent(FaceKeep, We) of
-		true ->
-		    We;
-		false ->
-		    wings_u:error_msg(?__(1,"Dissolving would cause a badly formed face."))
-	    end
+	_Other -> We
     end.
 
 %% dissolve_isolated_vs([Vertex], We) -> We'
