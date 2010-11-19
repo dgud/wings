@@ -172,11 +172,11 @@ tweak_event_handler(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev,St) ->
         T = #tweak{magnet=Mag,mag_type=MagType,mag_rad=MagR,sym=Sym,st=St},
         magnet_adjust(T);
       {tweak,{axis_constraint,Axis}} ->
-        ReturnAxis = toggle_data(Axis),
         Pressed = wings_pref:get_value(tweak_axis_toggle),
         case lists:keymember(Sym, 1, Pressed) of
           true -> keep;
           false ->
+            ReturnAxis = toggle_data(Axis),
             wings_pref:set_value(tweak_axis_toggle,[{Sym,ReturnAxis,now()}|Pressed]),
             wings_io:change_event_handler(?SDL_KEYUP, ?SDL_ENABLE),
             toggle_axis(Axis),
@@ -219,7 +219,12 @@ tweak_event_handler(#keyboard{sym=Sym,state=?SDL_RELEASED},_St) ->
       false -> keep
     end;
 
-tweak_event_handler(_,_) -> next.
+tweak_event_handler(lost_focus,_) ->
+    wings_pref:set_value(tweak_axis_toggle,[]),
+    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_IGNORE),
+    next;
+tweak_event_handler(_,_) ->
+    next.
 
 %%%
 %%% Start Tweak
