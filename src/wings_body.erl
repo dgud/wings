@@ -1028,7 +1028,7 @@ connect_and_collapse(Face, [{Va,Vb}|CPList], NVs, [], We0) ->
       true ->
         case gb_trees:is_defined(NewFace,Ftab) of
           true ->
-            NFVs = wings_face:to_vertices(NewFace, We2) -- NVs,
+            NFVs = wings_face:to_vertices([NewFace], We2) -- NVs,
             NFCPList = get_pairs_for_this_face(CPList,NFVs),
             FCPList = CPList -- NFCPList,
             connect_and_collapse(NewFace, NFCPList, NVs, [{Face,FCPList}], We2);
@@ -1050,7 +1050,7 @@ connect_and_collapse(Face, [{Va,Vb}|CPList], NVs, StoredFs, We0) ->
       true ->
         case gb_trees:is_defined(NewFace,Ftab) of
           true ->
-            NFVs = wings_face:to_vertices(NewFace, We2) -- NVs,
+            NFVs = wings_face:to_vertices([NewFace], We2) -- NVs,
             NFCPList = get_pairs_for_this_face(CPList,NFVs),
             FCPList = CPList -- NFCPList,
             F = {Face,FCPList},
