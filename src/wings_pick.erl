@@ -242,16 +242,17 @@ insert_hilite_dl(Hit, St) ->
 			end, []).
 
 insert_hilite_dl_1(#dlo{src_we=We}=D, _, _) when ?IS_LIGHT(We) -> D;
-insert_hilite_dl_1(#dlo{src_we=#we{id=Id}}=D, {Mode,_,{Id,Item}=Hit}, St) ->
+insert_hilite_dl_1(#dlo{open=Open,src_we=#we{id=Id}}=D, {Mode,_,{Id,Item}=Hit}, St) ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
     hilite_color(Hit, St),
+    Pref = wings_pref:get_value(show_backfaces),
     case wings_wm:lookup_prop(select_backface) of
-	{value,true} ->
+	Value when Value=:={value,true}; Pref andalso Open ->
 	    gl:disable(?GL_CULL_FACE),
 	    hilit_draw_sel(Mode, Item, D),
 	    gl:enable(?GL_CULL_FACE);
-	_ ->	    
+	_ ->
 	    hilit_draw_sel(Mode, Item, D)
     end,
     gl:endList(),
@@ -356,7 +357,7 @@ hilit_draw_sel(face, Face, #dlo{vab=#vab{face_map=Map, face_vs=Vs}}) ->
     end,
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     wings_draw_setup:enableVertexPointer(Vs),
-    {Start,NoElements} = array:get(Face,Map),
+    {Start,NoElements} = array:get(Face, Map),
     gl:drawArrays(?GL_TRIANGLES, Start, NoElements),
     wings_draw_setup:disableVertexPointer(Vs),
     gl:disable(?GL_POLYGON_STIPPLE);
@@ -993,14 +994,24 @@ do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}=We}=D, _, OneHit, Acc)
     Res = do_dlo_pick_0(Id, D, OneHit, Acc),
     wpc_pick:cull(true),
     Res;
-do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}}=D, _, OneHit, Acc) ->
+do_dlo_pick(#dlo{mirror=none,open=Open,src_we=#we{id=Id}}=D, _, OneHit, Acc) ->
+    case wings_pref:get_value(show_backfaces) of
+        true when Open -> wpc_pick:front_face(cw);
+        _ -> wpc_pick:front_face(ccw)
+    end,
     do_dlo_pick_0(Id, D, OneHit, Acc);
-do_dlo_pick(#dlo{mirror=Matrix,src_we=#we{id=Id}}=D0, _, OneHit, Acc0) ->
-    {D1,Acc1} = do_dlo_pick_0(Id, D0, OneHit, Acc0),
+do_dlo_pick(#dlo{mirror=Matrix,open=Open,src_we=#we{id=Id}}=D0, _, OneHit, Acc0) ->
+    case wings_pref:get_value(show_backfaces) of
+        true when Open ->
+            wpc_pick:front_face(cw),
+            {D1,Acc1} = do_dlo_pick_0(Id, D0, OneHit, Acc0);
+        _ ->
+            {D1,Acc1} = do_dlo_pick_0(Id, D0, OneHit, Acc0),
+            wpc_pick:front_face(cw)
+    end,
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
     set_pick_matrix(),
-    wpc_pick:front_face(cw),
     {D,Acc} = do_dlo_pick_0(-Id, D1, OneHit, Acc1),
     wpc_pick:front_face(ccw),
     gl:popMatrix(),

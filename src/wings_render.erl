@@ -186,14 +186,14 @@ render_plain(#dlo{work=Faces,edges=Edges,open=Open,
 	    polygonOffset(2),
 	    gl:shadeModel(?GL_SMOOTH),
 	    enable_lighting(SceneLights),
-	    case Open andalso wings_pref:get_value(show_backfaces) of
-		false ->
-		    wings_dl:call(Faces);
-		true ->
+	    case wings_pref:get_value(show_backfaces) of
+		true when Open ->
 		    gl:lightModeli(?GL_LIGHT_MODEL_TWO_SIDE, ?GL_TRUE),
 		    gl:disable(?GL_CULL_FACE),
 		    wings_dl:call(Faces),
-		    gl:enable(?GL_CULL_FACE)
+		    gl:enable(?GL_CULL_FACE);
+		_ ->
+		    wings_dl:call(Faces)
 	    end,
 	    disable_lighting(),
 	    gl:shadeModel(?GL_FLAT);
@@ -291,9 +291,9 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth0,transparent=Trans0,
 	    gl:depthMask(?GL_TRUE)
     end,
 
-    case Open andalso wings_pref:get_value(show_backfaces) of
-	false -> ok;
-	true -> gl:disable(?GL_CULL_FACE)
+    case wings_pref:get_value(show_backfaces) of
+	true when Open -> gl:disable(?GL_CULL_FACE);
+	_ -> ok
     end,
     case {Smooth,RenderTrans} of
 	{none,false} ->   wings_dl:call(Work);
@@ -329,6 +329,7 @@ wire(#we{id=Id}) ->
     W = wings_wm:get_prop(wireframed_objects),
     gb_sets:is_member(Id, W).
 
+draw_sel(#dlo{sel=none}) -> ok;
 draw_sel(#dlo{sel=SelDlist,src_sel={edge,_}}) ->
     gl:lineWidth(wings_pref:get_value(selected_edge_width)),
     sel_color(),
@@ -337,19 +338,27 @@ draw_sel(#dlo{sel=SelDlist,src_sel={vertex,_}}) ->
     gl:pointSize(wings_pref:get_value(selected_vertex_size)),
     sel_color(),
     wings_dl:call(SelDlist);
-draw_sel(#dlo{orig_sel=OrigSel,sel=SelDlist}) ->
+draw_sel(#dlo{open=Open,sel=SelDlist}) ->
     sel_color(),
+    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     gl:polygonOffset(1, 1),
-    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    case OrigSel =/= none orelse wings_pref:get_value(selection_style) =:= solid of
-	true -> 				%Solid selection style.
-	    wings_dl:call(SelDlist);
-	false ->				%Stippled selection style.
-	    gl:enable(?GL_POLYGON_STIPPLE),
-	    wings_dl:call(SelDlist),
-	    gl:disable(?GL_POLYGON_STIPPLE)
-    end.
+    %Stippled selection style.
+    gl:enable(?GL_POLYGON_STIPPLE),
+    draw_face_sel(Open, SelDlist),
+    gl:disable(?GL_POLYGON_STIPPLE).
+
+draw_face_sel(true, SelDlist) ->
+    case wings_pref:get_value(show_backfaces) of
+        true ->
+            gl:disable(?GL_CULL_FACE),
+            wings_dl:call(SelDlist),
+            gl:enable(?GL_CULL_FACE);
+        _ ->
+            wings_dl:call(SelDlist)
+    end;
+draw_face_sel(false, SelDlist) ->
+    wings_dl:call(SelDlist).
 
 sel_color() ->
     gl:color3fv(wings_pref:get_value(selected_color)).
