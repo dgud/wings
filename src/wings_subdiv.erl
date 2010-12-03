@@ -15,6 +15,8 @@
 -export([smooth/1,smooth/5,inc_smooth/2,
 	 get_proxy_info/3, inc_smooth/4]).
 
+-export([smooth_faces_htab/1]).
+
 -include("wings.hrl").
 
 -import(lists, [reverse/1,reverse/2,sort/1,foldl/3]).

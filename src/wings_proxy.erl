@@ -23,9 +23,9 @@
 
 -record(split,
 	{upd_fs,			        % Update only these faces
-	  dyn,					% Update tables
-	  info					% proxy drag info
-	 }).
+	 dyn,					% Update tables
+	 info					% proxy drag info
+	}).
 
 -record(sp,
 	{src_we=#we{},	     % Previous source we.
@@ -287,15 +287,24 @@ draw_edges_1(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
     wings_dl:call(ProxyEdges).
 
 proxy_smooth(We0, Pd0, St) ->
-    Data = ?TC(wings_cc:setup(We0)),
-    ?TC(wings_cc:addp_subdiv(Data)),
     case proxy_smooth_1(We0, Pd0) of
-	{false,_} ->
-	    Pd0;
-	{true,#we{fs=Ftab}=We} ->
-	    %% Could incremental smooth be optimized?
-	    Plan = wings_draw_setup:prepare(gb_trees:to_list(Ftab), We, St),
-	    flat_faces(Plan, #sp{src_we=We0,we=We})
+    	{false,_} ->
+    	    Pd0;
+    	{true,#we{fs=Ftab}=We} ->
+    	    %% Could incremental smooth be optimized?
+    	    Plan = wings_draw_setup:prepare(gb_trees:to_list(Ftab), We, St),
+	    Data = ?TC(wings_cc:setup(We0)),
+	    %% catch shell ! {setup, Data},
+	    Vs = ?TC(wings_cc:subdiv(Data, 1)),
+	    case Vs of
+		<<>> ->
+		    Ns = Vs;
+		_ ->
+		    <<_:3/unit:32,Ns/bytes>> = Vs
+	    end,
+	    S = 24,
+	    Pd = #sp{vab=Vab} = flat_faces(Plan, #sp{src_we=We0,we=We}),
+	    Pd#sp{vab=Vab#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv=none}}
     end.
 
 proxy_smooth_1(We, #sp{we=SWe,src_we=We,vab=#vab{face_vs=Bin}})
@@ -305,10 +314,10 @@ proxy_smooth_1(We, #sp{we=SWe,src_we=We,vab=#vab{face_vs=Bin}})
 proxy_smooth_1(#we{es=Etab,he=Hard,mat=M,next_id=Next,mirror=Mirror}=We0,
 	       #sp{we=OldWe,src_we=#we{es=Etab,he=Hard,mat=M,next_id=Next,
 				       mirror=Mirror}}) ->
-    {true,wings_subdiv:inc_smooth(We0, OldWe)};
+    {true,?TC(wings_subdiv:inc_smooth(We0, OldWe))};
 proxy_smooth_1(We0, #sp{we=SWe}) ->
     if ?IS_ANY_LIGHT(We0) -> {false,SWe};
-       true -> {true,wings_subdiv:smooth(We0)}
+       true -> {true,?TC(wings_subdiv:smooth(We0))}
     end.
 
 split_proxy(#dlo{proxy=true,proxy_data=Pd0,src_we=SrcWe}, DynVs0, St) ->

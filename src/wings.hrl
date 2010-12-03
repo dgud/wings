@@ -63,7 +63,9 @@
 -define(NORMAL_LINEWIDTH, 1.0).
 -define(DEGREE, 176).				%Degree character.
 
--define(F32, 32/float-native).
+-define(F32,  32/float-native).
+-define(I32,  32/signed-native).
+-define(UI32, 32/native).
 
 -define(PANE_COLOR, {0.52,0.52,0.52}).
 -define(BEVEL_HIGHLIGHT, {0.9,0.9,0.9}).
