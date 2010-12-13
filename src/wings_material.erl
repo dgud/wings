@@ -188,15 +188,17 @@ select_material(Mat, #st{shapes=Shs}=St) ->
 		end, [], gb_trees:values(Shs)),
     wings_sel:set(Sel, St).
 
-select_material_1(#we{id=Id,fs=Ftab}=We, Mat, Acc) ->
+select_material_1(#we{id=Id,fs=Ftab,perm=Perm}=We, Mat, Acc) when ?IS_SELECTABLE(Perm) ->
     MatFaces = wings_facemat:mat_faces(gb_trees:to_list(Ftab), We),
     case keyfind(Mat, 1, MatFaces) of
 	false ->
 	    Acc;
 	{Mat,FaceInfoList} ->
-	    Sel = [F || {F,_} <- FaceInfoList],
+	    Sel = [F || {F,_} <- FaceInfoList, F >= 0],
 	    [{Id,gb_sets:from_ordset(Sel)}|Acc]
-    end.
+    end;
+select_material_1(_, _, Acc) ->
+    Acc.
 
 set_material(Mat, #st{selmode=face}=St) ->
     wings_sel:map(fun(Faces, We) ->
