@@ -367,7 +367,7 @@ intrude(St0) ->
     wings_move:setup(intrude, wings_sel:set(Sel, St)).
 
 intrude(Faces0, We0, SelAcc) ->
-    We1 = wings_dissolve:faces(Faces0, We0),
+    We1 = wings_dissolve:faces(Faces0, wings_we:break_mirror(We0)),
     Faces = wings_we:new_items_as_ordset(face, We0, We1),
     #we{id=Id,es=Etab,fs=Ftab,next_id=Wid} = We1,
     RootSet0 = foldl(
