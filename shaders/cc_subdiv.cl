@@ -3,22 +3,6 @@
 // @copyright (C) 2010
 // @doc Catmull Clark subdivision
 
-// typedef struct {
-//   float x, y, z;
-// } Point;
-
-#pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
-#pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
-#pragma OPENCL EXTENSION cl_khr_global_int32_extended_atomics : enable
-#pragma OPENCL EXTENSION cl_khr_local_int32_extended_atomics : enable
-
-#define LOCK_SZ 32
-
-typedef struct {
-  float pos[3];
-  int vc;  // valence
-} Vertex;
-
 typedef struct {
   int start;
   int len;
@@ -52,7 +36,7 @@ __kernel void gen_faces(
   center /= i;
   // Create new center vertex
   const uint ov_id = noVs + face_id;
-  center.w = 16.0;  // Valance = 4 and hard_edge count = 0 (4 << 2)
+  center.w = fi.len*4.0;  // Valance = faceVs and hard_edge count = 0 (Valance << 2)
   VsOut[ov_id] = center;
 
   center.w = 0.0;
@@ -68,9 +52,9 @@ __kernel void gen_faces(
     
     // Create Faces    
     FsOut[id].x = v_id;
-    FsOut[id].y = -1; 
+    FsOut[id].y = -5; 
     FsOut[id].z = ov_id; 
-    FsOut[id].w = -1;
+    FsOut[id].w = -5;
   }
 }
 
@@ -131,6 +115,16 @@ __kernel void gen_edges(__global float4 *VsIn,
   int hard = 0;
   int ov_id = noVs+noFs+edge_id;
   int hov_id = ov_id;
+  const int4 hole_edge = {-1,-1,-1,-1};
+
+  if(edge.y < 0) { // Indicates edge in hole
+      const int oe_id = edge_id*4;
+      EsOut[oe_id+0] = hole_edge;
+      EsOut[oe_id+1] = hole_edge;
+      EsOut[oe_id+2] = hole_edge;
+      EsOut[oe_id+3] = hole_edge;
+      return;
+  }
 
   if(edge.x < 0) {  // Indicates hard edge
       hard = 1;
@@ -153,36 +147,43 @@ __kernel void gen_edges(__global float4 *VsIn,
   // New vertex at edge center position
   VsOut[ov_id] = center;
   // Complete faces 
-  int F11,F12,F21,F22, CCW1,CCW2;
-  FaceIndex IF1 = FiIn[edge.z];
-  FaceIndex IF2 = FiIn[edge.w];
-  // Be sure to create faces with the correct order 
-  find_faces(edge.x,edge.y,IF1,FsIn,&F11,&F12,&CCW1);
-  find_faces(edge.x,edge.y,IF2,FsIn,&F21,&F22,&CCW2);
-  if(CCW1) {
-      FsOut[F11*4+1] = ov_id;
-      FsOut[F12*4+3] = ov_id;
-  } else {
-      FsOut[F11*4+3] = ov_id;
-      FsOut[F12*4+1] = ov_id;
-  }
-  if(CCW2) {
-      FsOut[F21*4+1] = ov_id;
-      FsOut[F22*4+3] = ov_id;
-  } else {
-      FsOut[F21*4+3] = ov_id;
-      FsOut[F22*4+1] = ov_id;
-  }
-  
-  // Hmm init only when declaring var on nvidia? 
+  int F11=-1,F12=-1,F21=-1,F22=-1, CCW1,CCW2;
   const int oe_id = edge_id*4;
-  const int4 e0 = {hov_id,edge.x,F11,F21};
-  EsOut[oe_id+0] = e0;
-  const int4 e1 = {hov_id,edge.y,F12,F22};
-  EsOut[oe_id+1] = e1;
-  const int4 e2 = {ov_id,noVs+edge.z,F11,F12};
+  // Be sure to create faces with the correct order   
+  if(edge.z >= 0) { // Edge is not a border
+      FaceIndex IF1 = FiIn[edge.z];
+      find_faces(edge.x,edge.y,IF1,FsIn,&F11,&F12,&CCW1);
+      const int4 e0 = {ov_id,noVs+edge.z,F11,F12};
+      EsOut[oe_id+0] = e0;
+      if(CCW1) {
+	  FsOut[F11*4+1] = ov_id;
+	  FsOut[F12*4+3] = ov_id;
+      } else {
+	  FsOut[F11*4+3] = ov_id;
+	  FsOut[F12*4+1] = ov_id;
+      }
+  } else {
+      EsOut[oe_id+0] = hole_edge;
+  }
+  if(edge.w >= 0) { // Edge is not a border
+      FaceIndex IF2 = FiIn[edge.w];
+      find_faces(edge.x,edge.y,IF2,FsIn,&F21,&F22,&CCW2);
+      const int4 e1 = {ov_id,noVs+edge.w,F21,F22};
+      EsOut[oe_id+1] = e1;
+      if(CCW2) {
+	  FsOut[F21*4+1] = ov_id;
+	  FsOut[F22*4+3] = ov_id;
+      } else {
+	  FsOut[F21*4+3] = ov_id;
+	  FsOut[F22*4+1] = ov_id;
+      }
+  } else {
+      EsOut[oe_id+1] = hole_edge;
+  }
+  // Hmm init only when declaring var on nvidia? 
+  const int4 e2 = {hov_id,edge.x,F11,F21};
   EsOut[oe_id+2] = e2;
-  const int4 e3 = {ov_id,noVs+edge.w,F21,F22};
+  const int4 e3 = {hov_id,edge.y,F12,F22};
   EsOut[oe_id+3] = e3;
 }
 
@@ -204,43 +205,52 @@ __kernel void add_edge_verts(
 
   for(id=0; id < noEs; id++) {
       edge = EsIn[id];
-      if(edge.x < 0) { // Hard edge
-	  edge.x = -1-edge.x;
-	  v0 = VsIn[edge.x];
-	  v0.w = 0.0;
-	  VsOut[edge.y] += v0;
-	  v1 = VsIn[edge.y];
-	  v1.w = 0.0;
-	  VsOut[edge.x] += v1;
-      } else { // Only add soft edges if vertex don't have hardedges
-	  v0 = VsIn[edge.x];
-	  v1 = VsIn[edge.y];
-
-	  hard_v0 = trunc(v0.w);	  
-	  hard_v1 = trunc(v1.w);
-	  hard_v0 = hard_v0 % 4;
-	  hard_v1 = hard_v1 % 4;
-	  if(hard_v1 < 2) {
+      if(edge.y >= 0) {
+	  if(edge.x < 0) { // Hard edge
+	      edge.x = -1-edge.x;
+	      v0 = VsIn[edge.x];
 	      v0.w = 0.0;
 	      VsOut[edge.y] += v0;
-	  }
-	  if(hard_v0 < 2) {
-	      v1.w = 0.0;	  
+	      v1 = VsIn[edge.y];
+	      v1.w = 0.0;
 	      VsOut[edge.x] += v1;
+	  } else { // Only add soft edges if vertex have <2 hardedges
+	      v0 = VsIn[edge.x];
+	      v1 = VsIn[edge.y];
+	      
+	      hard_v0 = trunc(v0.w);	  
+	      hard_v1 = trunc(v1.w);
+	      hard_v0 = hard_v0 % 4;
+	      hard_v1 = hard_v1 % 4;
+	      if(hard_v1 < 2) {
+		  v0.w = 0.0;
+		  VsOut[edge.y] += v0;
+	      }
+	      if(hard_v0 < 2) {
+		  v1.w = 0.0;	  
+		  VsOut[edge.x] += v1;
+	      }
 	  }
-      }
+      }    
   }
 }
 
 __kernel void move_verts(
 			 __global float4 *VsIn,
 			 __global float4 *VsOut,
-			 const uint noVs
+			 const uint noInVs,
+			 const uint noOutVs
 			 )
 {
   const int v_id = get_global_id(0);
-  if(v_id >= noVs)
-      return;
+  if(v_id >= noOutVs)
+    return;
+  if(v_id >= noInVs) {  
+    // Copy buffer VsIn and VsOut should be equal
+    // after this pass
+    VsIn[v_id] = VsOut[v_id];
+    return;
+  }
   float4 v_in  = VsIn[v_id];
   float4 v_out = VsOut[v_id];
   uint hc = trunc(v_in.w);  
@@ -248,21 +258,23 @@ __kernel void move_verts(
   hc = hc % 4;
   vc = vc / 4;
   if(hc < 2) {
-      float a = 1.0/(vc*vc);
-      float b = (vc-2.0)/vc;
-      //  We started with Inpos remove it
-      v_out -= v_in;
-      v_out *= a;
-      v_out += (v_in * b);
-      v_out.w = v_in.w;
-      VsOut[v_id] = v_out;
+    float a = 1.0/(vc*vc);
+    float b = (vc-2.0)/vc;
+    //  We started with Inpos remove it
+    v_out -= v_in;
+    v_out *= a;
+    v_out += (v_in * b);
+    v_out.w = v_in.w;
+    VsOut[v_id] = v_out;
+    VsIn[v_id] = v_out;
   } else if(hc == 2) {
-      v_out += v_in * 6.0;
-      v_out *= 1.0/8.0;
-      v_out.w = v_in.w;
-      VsOut[v_id] = v_out;
+    v_out += v_in * 6.0;
+    v_out *= 1.0/8.0;
+    v_out.w = v_in.w;
+    VsOut[v_id] = v_out;
+    VsIn[v_id] = v_out;
   } else {
-      VsOut[v_id] = v_in;
+    VsOut[v_id] = v_in;
   }
 }
 

@@ -304,7 +304,11 @@ proxy_smooth(We0, Pd0, St) ->
 	    end,
 	    S = 24,
 	    Pd = #sp{vab=Vab} = flat_faces(Plan, #sp{src_we=We0,we=We}),
-	    Pd#sp{vab=Vab#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv=none}}
+	    MatInfo = [{default,?GL_QUADS,0,size(Vs) div S}],
+	    io:format("~p:~p: QUADS ~p (~p div ~p) ~n", 
+		      [?MODULE, ?LINE, size(Vs) div S, size(Vs), S]),
+	    Pd#sp{vab=Vab#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv=none,
+			      mat_map=MatInfo}}
     end.
 
 proxy_smooth_1(We, #sp{we=SWe,src_we=We,vab=#vab{face_vs=Bin}})
