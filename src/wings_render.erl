@@ -386,13 +386,13 @@ draw_orig_sel_1(edge, DlistSel) ->
     wings_dl:call(DlistSel),
     gl:disable(?GL_BLEND);
 draw_orig_sel_1(_, DlistSel) ->
-    sel_color(),
-    gl:enable(?GL_POLYGON_STIPPLE),
-    gl:enable(?GL_POLYGON_OFFSET_FILL),
+    gl:enable(?GL_BLEND),
+    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+    {R0,G0,B0} = wings_pref:get_value(selected_color),
+    gl:color4f(R0, G0, B0, 0.5),
     gl:polygonOffset(1, 1),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    wings_dl:call(DlistSel),
-    gl:disable(?GL_POLYGON_STIPPLE).
+    wings_dl:call(DlistSel).
 
 draw_hard_edges(#dlo{hard=none}, _) -> ok;
 draw_hard_edges(#dlo{hard=Hard}, SelMode) ->
@@ -474,8 +474,7 @@ dummy_axis_letter(_, _, {_,_,W,H}) ->
     gl:matrixMode(?GL_MODELVIEW).
 
 axis_letters() ->
-    case wings_pref:get_value(show_axis_letters) andalso
-	wings_wm:get_prop(show_axes) of
+    case wings_wm:get_prop(show_axes) of
 	false ->
 	    case wings_pref:get_value(dummy_axis_letter) of
 		false -> ok;

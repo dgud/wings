@@ -200,17 +200,10 @@ raise_menubar(Owner) ->
 	true -> wings_wm:raise(Menubar)
     end.
 
-menu_killer(#mousebutton{button=Button,state=?SDL_PRESSED}=Ev, Owner) ->
-    case wings_pref:get_value(menu_abort) of
-      true ->
-        wings_wm:notify(menu_aborted),
-        wings_wm:send_after_redraw(geom, {adv_menu_abort,Ev}),
-        kill_menus(Owner);
-      false when Button =:= 1 ->
-        wings_wm:notify(menu_aborted),
-        kill_menus(Owner);
-      false -> keep
-    end;
+menu_killer(#mousebutton{state=?SDL_PRESSED}=Ev, Owner) ->
+    wings_wm:notify(menu_aborted),
+    wings_wm:send_after_redraw(geom, {adv_menu_abort,Ev}),
+    kill_menus(Owner);
 menu_killer(#keyboard{sym=27}, Owner) -> %Escape.
     wings_wm:notify(menu_aborted),
     kill_menus(Owner);
@@ -569,12 +562,8 @@ is_magnet_active(Ps, #mi{flags=Flags}) ->
 handle_key(Ev, #mi{owner=Owner,orig_xy=OrigXY}=Mi) ->
     case handle_key_1(key(Ev), Mi) of
         none ->
-            case wings_pref:get_value(hotkeys_from_menus) of
-                true ->
-                    wings_wm:send_after_redraw(Owner, {hotkey_in_menu,Ev,OrigXY}),
-                    keep;
-                false -> keep
-            end;
+            wings_wm:send_after_redraw(Owner, {hotkey_in_menu,Ev,OrigXY}),
+            keep;
         Other -> Other
     end.
 

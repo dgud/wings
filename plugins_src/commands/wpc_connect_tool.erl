@@ -197,14 +197,8 @@ handle_connect_event1({action,Action}, #cs{st=St0}=C) ->
 	    update_connect_handler(C);
 	{view,highlight_aim} ->
 	    St = fake_selection(St0),
-	    case wings_pref:get_value(highlight_aim_at_unselected) of
-	      false ->
-	          wings_view:command(aim, St0),
-	          update_connect_handler(C);
-	      true ->
-	          wings_view:command(aim, St),
-	          update_connect_handler(C)
-	    end;
+	    wings_view:command(aim, St),
+	    update_connect_handler(C);
 	{view,Cmd} ->
 	    case wings_view:command(Cmd, St0) of
 		keep ->
@@ -572,14 +566,10 @@ fake_selection(St) ->
 		  end, St).
 
 fake_sel_1(St0) ->
-    case wings_pref:get_value(use_temp_sel) of
-	false -> St0;
-	true ->
-	    {_,X,Y} = wings_wm:local_mouse_state(),
-	    case wpa:pick(X, Y, St0) of
-		{add,_,St} -> St;
-		_ -> St0
-	    end
+    {_,X,Y} = wings_wm:local_mouse_state(),
+    case wpa:pick(X, Y, St0) of
+	{add,_,St} -> St;
+	_ -> St0
     end.
 
 update_hook(#cs{v=[]}) ->

@@ -39,9 +39,7 @@ init() ->
     wings_pref:set_default(num_buttons, 3),
     wings_pref:set_default(cam_rotation_speed, 25),
     wings_pref:set_default(pan_speed, 25),
-    wings_pref:set_default(pan_using_arrow_keys, true),
     wings_pref:set_default(pan_speed_arrow_keys, 50),
-    wings_pref:set_default(inverted_wheel_zoom, false),
     wings_pref:set_default(wheel_adds, false),
     wings_pref:set_default(wh_scroll_info,true),
     wings_pref:set_default(wh_pan_spd, 50),
@@ -61,10 +59,8 @@ prefs() ->
     CamRotSpeed = wings_pref:get_value(cam_rotation_speed, 25),
     PanSpeed0 = wings_pref:get_value(pan_speed, 25),
     ArrowPanSpeed = wings_pref:get_value(pan_speed_arrow_keys, 50),
-    InvertZW = wings_pref:get_value(inverted_wheel_zoom, false),
     WheelAdds = wings_pref:get_value(wheel_adds,false),
     WhScrollInfo = wings_pref:get_value(wh_scroll_info,true),
-    ArrowKeysPan = wings_pref:get_value(pan_using_arrow_keys,true),
     WhPanSpd = wings_pref:get_value(wh_pan_spd, 50),
     WhRotate = wings_pref:get_value(wh_rot_spd, 7.5),
     ZoomAim = wings_pref:get_value(highlight_zoom_aim),
@@ -77,10 +73,6 @@ prefs() ->
              not ((gb_trees:get(wheel_adds, Sto)) andalso (gb_trees:get(wheel_zooms, Sto)));
              (_, _) -> void
             end,
-    ArrowKeyHook = fun (is_disabled, {_Var,_I,Sto}) ->
-            not gb_trees:get(pan_using_arrow_keys, Sto);
-             (_, _) -> void
-           end,
     {hframe,
     [{vframe,
      [{vframe,[mouse_buttons()],[{title,?__(1,"Mouse Buttons")}]},
@@ -92,18 +84,12 @@ prefs() ->
        [{hframe,[{slider,{text,PanSpeed0,[{key,pan_speed},{range,{1,100}}]}}]}],
        [{title,?__(3,"Pan Speed")}]},
       {vframe,
-       [{?__(18,"Arrow Keys Pan"),ArrowKeysPan,[{key,pan_using_arrow_keys}]},
-       {hframe,[{slider,{text,ArrowPanSpeed,[{key,pan_speed_arrow_keys},{range,{1,100}},
-        {hook,ArrowKeyHook}]}}]}],
+       [{hframe,[{slider,{text,ArrowPanSpeed,[{key,pan_speed_arrow_keys},{range,{1,100}}]}}]}],
        [{title,?__(16,"Arrow Key Pan Speed")}]}]},
     {vframe,
       [{vframe,
        [{hframe,[{?__(4,"Wheel Zooms"),ZoomFlag0,[{key,wheel_zooms}]},
                  {?__(20,"Zooming in aims Camera"),ZoomAim,[{key,highlight_zoom_aim}]}]},
-    {vradio,[{?__(5,"Forwards Zooms In"),false},
-             {?__(6,"Forwards Zooms Out"),true}],
-     InvertZW,
-     [{key,inverted_wheel_zoom},{hook,Hook}]},
     {hframe,
      [{label,?__(7,"Zoom Factor"),[{hook,Hook}]},
       {text,ZoomFactor0,
@@ -755,28 +741,20 @@ generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redr
 
 generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
   when Mod band ?ALT_BITS =/= 0 ->
-  	zoom_step_alt(-1);
+    zoom_step_alt(-1);
 generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, #st{}=St, none) ->
 %% Matching 'none' stops zoom aim from being activated during a drag sequence.
 %% Zoom aim warps the mouse to the screen's centre, and this can cause a crash
 %% in since drag events also depend on cursor position.
-    case wings_pref:get_value(inverted_wheel_zoom) of
-      true -> zoom_step(-1);
-      false ->
-        aim_zoom(-1, St)
-    end;
+    aim_zoom(-1, St);
 generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, _Camera, _Redraw) ->
     zoom_step(-1);
 generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
   when Mod band ?ALT_BITS =/= 0 ->
-  	zoom_step_alt(1);
-generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, #st{}=St, none) ->
+    zoom_step_alt(1);
+generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _, none) ->
 %% Matching 'none' stops zoom aim from being activated during a drag sequence
-    case wings_pref:get_value(inverted_wheel_zoom) of
-      false -> zoom_step(1);
-      true ->
-        aim_zoom(1, St)
-    end;
+    zoom_step(1);
 generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _Camera, _Redraw) ->
     zoom_step(1);
 
@@ -855,14 +833,10 @@ zoom_step(Dir) ->
 		wheel_zoom(ZoomFactor,Dir)
     end.
 
-wheel_zoom(Factor,Dir) ->
+wheel_zoom(Factor, Dir) ->
     wings_wm:dirty(),
     #view{distance=Dist} = View = wings_view:current(),
-    ZoomPercent0 = Factor/100,
-    ZoomPercent = case wings_pref:get_value(inverted_wheel_zoom) of
-		      false -> ZoomPercent0;
-		      true -> -ZoomPercent0
-		  end,
+    ZoomPercent = Factor/100,
     Delta = dist_factor(Dist)*Dir*ZoomPercent,
     wings_view:set_current(View#view{distance=Dist+Delta}),
     keep.
@@ -881,21 +855,11 @@ pan(Dx0, Dy0) ->
     PanY = PanY0 - Dy,
     wings_view:set_current(View#view{pan_x=PanX,pan_y=PanY}).
 
-arrow_key_pan(Key) when Key=:=?SDLK_LEFT; Key=:=?SDLK_RIGHT; Key=:=?SDLK_UP; Key=:=?SDLK_DOWN ->
-    case wings_pref:get_value(pan_using_arrow_keys) of
-	  true -> arrow_key_pan_1(Key);
-	  _other -> next
-	end;
+arrow_key_pan(?SDLK_LEFT) -> arrow_key_pan(0.05, 0.0);
+arrow_key_pan(?SDLK_RIGHT) -> arrow_key_pan(-0.05, 0.0);
+arrow_key_pan(?SDLK_UP) -> arrow_key_pan(0.0, 0.05);
+arrow_key_pan(?SDLK_DOWN) -> arrow_key_pan(0.0, -0.05);
 arrow_key_pan(_) -> next.
-
-arrow_key_pan_1(?SDLK_LEFT) ->
-    arrow_key_pan(0.05, 0.0);
-arrow_key_pan_1(?SDLK_RIGHT) ->
-    arrow_key_pan(-0.05, 0.0);
-arrow_key_pan_1(?SDLK_UP) ->
-    arrow_key_pan(0.0, 0.05);
-arrow_key_pan_1(?SDLK_DOWN) ->
-    arrow_key_pan(0.0, -0.05).
 
 arrow_key_pan(Dx, Dy) ->
     key_pan(Dx, Dy),

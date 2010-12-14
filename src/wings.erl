@@ -342,10 +342,8 @@ handle_event_2(#mousebutton{x=X,y=Y}=Ev0, #st{sel=Sel}=St0) ->
           true ->
               wings_tweak:menu(Xglobal,Yglobal);
           false ->
-              case Sel =:= [] andalso wings_pref:get_value(use_temp_sel) of
-                false ->
-                    popup_menu(Xglobal, Yglobal, St0);
-                true ->
+              case Sel of
+                [] ->
                     case wings_pick:do_pick(X, Y, St0) of
                       {add,_,St} ->
                           Ev = wings_wm:local2global(Ev0),
@@ -353,7 +351,9 @@ handle_event_2(#mousebutton{x=X,y=Y}=Ev0, #st{sel=Sel}=St0) ->
                           wings_wm:later({temporary_selection,St});
                       _ ->
                           popup_menu(Xglobal, Yglobal, St0)
-                    end
+                    end;
+                _ ->
+                    popup_menu(Xglobal, Yglobal, St0)
               end
         end
     end;
@@ -472,46 +472,35 @@ info_line() ->
     end.
 
 do_hotkey(Ev, #st{sel=[]}=St0) ->
-    case wings_pref:get_value(use_temp_sel) of
-    false ->
-        do_hotkey_1(Ev, St0);
-    true ->
-        {_,X,Y} = wings_wm:local_mouse_state(),
-        case wings_pick:do_pick(X, Y, St0) of
-        {add,_,St} ->
-            case wings_hotkey:event(Ev, St) of
-            next -> next;
-            {view,highlight_aim} -> highlight_aim_setup(St0);
-            Cmd ->
-                case highlight_sel_style(Cmd) of
-                none -> {Cmd,St0};
-                temporary -> {Cmd,set_temp_sel(St0, St)};
-                permanent -> {Cmd,St}
-                end
-            end;
-        _Other -> do_hotkey_1(Ev, St0)
-        end
+    {_,X,Y} = wings_wm:local_mouse_state(),
+    case wings_pick:do_pick(X, Y, St0) of
+    {add,_,St} ->
+        case wings_hotkey:event(Ev, St) of
+        next -> next;
+        {view,highlight_aim} -> highlight_aim_setup(St0);
+        Cmd ->
+            case highlight_sel_style(Cmd) of
+            none -> {Cmd,St0};
+            temporary -> {Cmd,set_temp_sel(St0, St)};
+            permanent -> {Cmd,St}
+            end
+        end;
+    _Other -> do_hotkey_1(Ev, St0)
     end;
-
 %%%% Hack to get a basic form of Highlight Aim (see wings_view:highlight_aim/2)
 do_hotkey(Ev, St0) ->
-    case wings_pref:get_value(use_temp_sel) of
-      false ->
-        do_hotkey_1(Ev, St0);
-      true ->
-	    Hs = wings_pref:get_value(hilite_select),
-        case wings_hotkey:event(Ev, St0) of
-          next -> next;
-          {view,highlight_aim} -> highlight_aim_setup(St0);
-          {select,{edge_loop,edge_loop}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
-          {select,{edge_loop,edge_ring}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
-          {select,{oriented_faces,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
-          {select,{similar_material,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
-          {select,{similar_area,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
-          {select,similar}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
-          {select,all}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
-          Cmd -> {Cmd,St0}
-        end
+    Hs = wings_pref:get_value(hilite_select),
+    case wings_hotkey:event(Ev, St0) of
+      next -> next;
+      {view,highlight_aim} -> highlight_aim_setup(St0);
+      {select,{edge_loop,edge_loop}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+      {select,{edge_loop,edge_ring}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+      {select,{oriented_faces,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+      {select,{similar_material,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+      {select,{similar_area,_}}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+      {select,similar}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+      {select,all}=Cmd when Hs -> hotkey_select_setup(Cmd,St0);
+      Cmd -> {Cmd,St0}
     end.
 
 do_hotkey_1(Ev, St) ->
@@ -1473,22 +1462,17 @@ geom_title({geom,N}) ->
     ?__(2,"Geometry #") ++ integer_to_list(N).
 
 do_use_command(#mousebutton{x=X,y=Y}, Cmd0, #st{sel=[]}=St0) ->
-    case wings_pref:get_value(use_temp_sel) of
-    false ->
-        keep;
-    true ->
-        case wings_pick:do_pick(X, Y, St0) of
-        {add,_,#st{selmode=Mode}=St} ->
-            %% The selection mode may have changed.
-            %% Must check (and possibly convert) the command again.
-            case repeatable(Mode, Cmd0) of
-            no -> keep;
-            Cmd ->
-                wings_wm:later({action,Cmd}),
-                main_loop_noredraw(set_temp_sel(St0, St))
-            end;
-        _Other -> keep
-        end
+    case wings_pick:do_pick(X, Y, St0) of
+    {add,_,#st{selmode=Mode}=St} ->
+        %% The selection mode may have changed.
+        %% Must check (and possibly convert) the command again.
+        case repeatable(Mode, Cmd0) of
+        no -> keep;
+        Cmd ->
+            wings_wm:later({action,Cmd}),
+            main_loop_noredraw(set_temp_sel(St0, St))
+        end;
+    _Other -> keep
     end;
 do_use_command(_, Cmd, _) -> wings_wm:later({action,Cmd}).
 
@@ -1832,13 +1816,11 @@ area_volume(Face, We) ->
     {Area, Volume}.
 
 highlight_aim_setup(St0) ->
-    HL0 = wings_pref:get_value(highlight_aim_at_unselected),
-    HL1 = wings_pref:get_value(highlight_aim_at_selected),
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_pick:do_pick(X, Y, St0) of
-	{add,MM,#st{selmode=Selmode,sel=Sel}} when HL0 =:= true ->
+	{add,MM,#st{selmode=Selmode,sel=Sel}} ->
 	    {{view,{highlight_aim,{add,{Selmode,Sel,MM}}}},St0};
-	{delete,MM,#st{selmode=Selmode,sel=Sel}} when HL1 =:= true ->
+	{delete,MM,#st{selmode=Selmode,sel=Sel}} ->
 	    {{view,{highlight_aim,{delete,{Selmode,Sel,MM}}}},St0};
 	_Other ->
 	    {{view,aim},St0}

@@ -357,21 +357,16 @@ defaults() ->
      %% The remaining items are constants. The generated code
      %% will be much more compact.
      {info_enhanced_text,false},
-     {info_text_on_hilite,false},
      {vertex_size,4.0},
      {selected_vertex_size,5.0},
      {masked_vertex_size,8.0},
      {edge_width,2.0},
      {selected_edge_width,2.0},
      {hard_edge_width,2.0},
-     {show_axis_letters,true},
      {constrain_axes,true},
      {mini_axis,true},
      {force_show_along_grid,false},
      {force_ortho_along_axis,false},
-     {vertex_hilite,true},
-     {edge_hilite,true},
-     {face_hilite,true},
      {body_hilite,true},
      {auto_rotate_angle,1.0},
      {auto_rotate_delay,60},
@@ -381,7 +376,6 @@ defaults() ->
      {active_vector_width,2.0},
      {normal_vector_size,0.3},
      {normal_vector_width,2.0},
-     {smart_highlighting,false},
      {hide_sel_while_dragging,false},
      {hide_sel_in_camera_moves,false},
      {negative_height,24},
@@ -397,16 +391,9 @@ defaults() ->
 
      %% Advanced features.
      {default_commands,false},
-     {use_temp_sel,false},
-     {use_super_temp_sel,false},
-     {use_mirror_for_sels,true},
      {clip_plane_size,1.5},
-     {highlight_aim_at_selected,true},
-     {highlight_aim_at_unselected,true},
      {hilite_select,false},
      {conditional_deselect, false},
-     {menu_abort, false},
-     {hotkeys_from_menus, false},
 
      %% Constraints preferences.
      {con_dist_alt,10.0},
@@ -445,9 +432,7 @@ defaults() ->
 
      %% Drag preferences.
      {drag_custom,false},
-     {drag_cam_dist_abs,true},
      {drag_speed_abs,8.5},
-     {drag_cam_dist_relative,true},
      {drag_speed_relative,8.5},
      {drag_speed_rotate,8.5},
 
@@ -457,9 +442,7 @@ defaults() ->
      {proxy_moving_opacity,1.0},
 
      %% User interface preferences.
-     {no_progress_bar,false},
      {interface_icons,bluecube},
-     {objects_in_outliner,true},
      {aa_edges,false},
      {extended_toolbar,true},
      {bitmap_icons, false},
