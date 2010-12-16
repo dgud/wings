@@ -666,8 +666,9 @@ ungrab(#drag{x=Ox,y=Oy}) ->
     wings_io:ungrab(Ox, Oy).
 
 invalidate_fun(#dlo{drag=none}=D, _) -> D;
-invalidate_fun(#dlo{src_we=We}=D, _) ->
-    wings_draw:abort_split(D#dlo{src_we=We#we{es=array:new()}}).
+invalidate_fun(#dlo{src_we=We,proxy_data=PD}=D, _) ->
+    wings_draw:abort_split(D#dlo{src_we=We#we{es=array:new()},
+        proxy_data=wings_proxy:invalidate(PD, vab)}).
 
 numeric_input(Drag0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
