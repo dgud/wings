@@ -1217,20 +1217,22 @@ any_matching_normal(CosTolerance, Norm, [N|T]) ->
 %%% Select faces of the same material.
 %%%
 similar_material(_, #st{selmode=Mode}) when Mode =/= face ->
-    keep;					%Wrong mode (invoked through hotkey).
+    keep; %Wrong mode (invoked through hotkey).
 
 similar_material(Ask, _St) when is_atom(Ask) ->
-    Connected = wings_pref:get_value(similar_materials_connected,false),
+    Connected = wings_pref:get_value(similar_materials_connected, false),
+    Mode = wings_pref:get_value(similar_materials, material),
     Qs = [{?__(2,"Connected Faces Only"),Connected},
 	  {vradio,[{?__(5,"Materials"),material},
 		   {?__(6,"Vertex Color"),vertex_color}],
-	   material}],
+	   Mode}],
     wings_ask:dialog(Ask, ?__(4,"Select Faces with the same Material"),
     [{vframe,Qs}],
     fun(Res) -> {select,{similar_material,Res}} end);
 
-similar_material([Connected|_], #st{selmode=face,sel=[]}) ->
-    wings_pref:set_value(similar_materials_connected,Connected),
+similar_material([Connected,Mode], #st{selmode=face,sel=[]}) ->
+    wings_pref:set_value(similar_materials, Mode),
+    wings_pref:set_value(similar_materials_connected, Connected),
     wings_u:error_msg(?__(3,"At least one face must be selected"));
 
 similar_material([false,Mode], St) ->
@@ -1246,28 +1248,29 @@ similar_material([false,Mode], St) ->
     Sel = fun	
         (F, We) when Mode =:= vertex_color ->
           Col = average_colors(F, We),
-          any_matching_material(Col,Materials);
+          any_matching_material(Col, Materials);
         (Face, We) ->
-          Mat = wings_facemat:face(Face,We),
+          Mat = wings_facemat:face(Face, We),
           any_matching_material(Mat, Materials)
       end,
-    wings_pref:set_value(similar_materials_connected,false),
+    wings_pref:set_value(similar_materials, Mode),
+    wings_pref:set_value(similar_materials_connected, false),
     {save_state,wings_sel:make(Sel, face, St)};
 
 similar_material([true,Mode], St0) ->
     Selection = wings_sel:fold(fun
         (Faces, #we{id=Id}=We, A) when Mode =:= vertex_color ->
-            AllCols = gb_sets:fold(fun(F,Acc) ->
+            AllCols = gb_sets:fold(fun(F, Acc) ->
                 [average_colors(F, We)|Acc]
             end,A,Faces),
             Colours = lists:usort(AllCols),
-            [{Id,mat_search(Faces,Colours,We,Mode,Faces)}|A];
+            [{Id,mat_search(Faces, Colours, We, Mode, Faces)}|A];
         (Faces, #we{id=Id}=We, A) ->
             AllMats = [wings_facemat:face(Face, We) || Face <- gb_sets:to_list(Faces)],
             Materials = lists:usort(AllMats),
-            [{Id,mat_search(Faces,Materials,We,Mode,Faces)}|A]
+            [{Id,mat_search(Faces, Materials, We, Mode, Faces)}|A]
     end, [], St0),
-    wings_sel:set(face,Selection,St0).
+    wings_sel:set(face, Selection, St0).
 
 average_colors(Face, We) ->
     wings_color:average([C || C <- wings_va:face_attr(color, Face, We)]).
