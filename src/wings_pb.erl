@@ -3,7 +3,7 @@
 %%
 %%     This module contains a progress bar
 %%
-%%  Copyright (c) 2004-2009 Dan Gudmundsson and Bjorn Gustavsson 
+%%  Copyright (c) 2004-2010 Dan Gudmundsson and Bjorn Gustavsson 
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

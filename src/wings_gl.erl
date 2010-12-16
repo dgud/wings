@@ -3,7 +3,7 @@
 %%
 %%     A few OpenGL utilities.
 %%
-%%  Copyright (c) 2001-2008 Bjorn Gustavsson
+%%  Copyright (c) 2001-2010 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

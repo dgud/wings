@@ -17,7 +17,7 @@ run all plug-ins and to build an installation package.
 
 - The Wings source files. http://www.wings3d.com
 
-- Erlang/OTP R14B or later. http://www.erlang.org
+- Erlang/OTP R14B01 or later. http://www.erlang.org
 
 - SDL development library. http://www.libsdl.org.
   (There are pre-built libraries for most platforms.)

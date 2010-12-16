@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for extending an edge to the intersection with a plane.
 %%
-%%  Copyright (c) 2004-2009 Bjorn Gustavsson.
+%%  Copyright (c) 2004-2010 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

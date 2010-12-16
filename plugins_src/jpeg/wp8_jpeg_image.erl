@@ -4,7 +4,7 @@
 %%     Plug-in for reading and writing JPEG files
 %%     using libjpeg from IJG (Independent JPEG Group).
 %%
-%%  Copyright (c) 2004-2008 Bjorn Gustavsson
+%%  Copyright (c) 2004-2010 Bjorn Gustavsson
 %%
 %%  libjpeg is copyright (C) 1991-1998, Thomas G. Lane.
 %%

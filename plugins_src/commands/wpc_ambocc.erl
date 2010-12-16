@@ -8,7 +8,7 @@
 %%     used to sample the environment's visibility. The results are stored in
 %%     the vertex-colors and can also be baked to a texture through autouv.
 %%
-%%  CopyRight (c) 2008-2009 Anthony D'Agostino, Dan Gudmundsson
+%%  CopyRight (c) 2008-2010 Anthony D'Agostino, Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

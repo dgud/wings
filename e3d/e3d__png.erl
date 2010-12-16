@@ -3,7 +3,7 @@
 %%
 %%     Functions for reading and writing PNG files.
 %%
-%%  Copyright (c) 2005-2008 Dan Gudmundsson
+%%  Copyright (c) 2005-2010 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

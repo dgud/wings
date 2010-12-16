@@ -4,7 +4,7 @@
 %%    Adobe PostScript (*.ps/*.eps) import based on wpc_ai.erl by Howard Trickey
 %%    To work, the wpc_tt plugin must also be loaded.
 %%
-%%  Copyright (c) 2009 Richard Jones.
+%%  Copyright (c) 2009-2010 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

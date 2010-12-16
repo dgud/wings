@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for shifting vertices
 %%
-%%  Copyright (c) 2005-2009 Dave Rodgers
+%%  Copyright (c) 2005-2010 Dave Rodgers
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

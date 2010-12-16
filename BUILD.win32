@@ -16,7 +16,7 @@ The following software is needed:
 - MinGW, http://www.mingw.org, including MSYS, http://www.mingw.org/wiki/msys,
   to compile the source code.
 
-- Erlang/Opt R14B (erts-5.8.1.1) or later. http://www.erlang.org
+- Erlang/Opt R14B01 or later. http://www.erlang.org
   Include the vcredist packaged with Erlang, in your installation.
   (It is easiest to download the pre-built binaries for Windows.)
 

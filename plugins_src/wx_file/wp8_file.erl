@@ -4,7 +4,7 @@
 %%     Native file dialog boxes for Win32.
 %%
 %%  Copyright (c) 2001 Patrik Nyblom
-%%                2002-2008 Bjorn Gustavsson
+%%                2002-2010 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

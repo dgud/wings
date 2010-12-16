@@ -3,7 +3,7 @@
 %%
 %%     This module implements the Help menu.
 %%
-%%  Copyright (c) 2001-2009 Bjorn Gustavsson
+%%  Copyright (c) 2001-2010 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -574,7 +574,7 @@ splash_contents() ->
      {text,?__(5,"(including commercial).")},
      {spacer,0,10},
      {text,?__(6,"Copyright") 
-      ++ [$\s,169] ++ " 2001-2009 "++"Bj" ++ [246] ++ "rn Gustavsson " ++
+      ++ [$\s,169] ++ " 2001-2010 "++"Bj" ++ [246] ++ "rn Gustavsson " ++
       ?__(7,"& Others")},
      {text,?__(8,"JPEG library: Copyright") ++ [$\s,169] ++
       " 1991-1998 Thomas G. Lane"}

@@ -1,3 +1,13 @@
+%%
+%%  wpc_deselect_previous.erl --
+%%
+%%    Subtract current selection from previous selection.
+%%
+%%  Copyright (c) 2010 Richard Jones.
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
 
 -module(wpc_deselect_previous).
 -export([init/0,menu/2,command/2]).

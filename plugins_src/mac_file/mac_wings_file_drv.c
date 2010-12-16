@@ -3,7 +3,7 @@
  *
  *     Erlang driver for native file dialog boxes for Mac OS X.
  *
- *  Copyright (c) 2001-2009 Patrik Nyblom, Bjorn Gustavsson.
+ *  Copyright (c) 2001-2010 Patrik Nyblom, Bjorn Gustavsson.
  *
  *  Modified to support OSX by Sean Hinde
  *
