@@ -62,8 +62,11 @@ is_material_used(Mat, #we{mat=L}) when is_list(L) ->
 %%  not need to contain all faces of the object.
 mat_faces(Ftab, #we{mat=AtomMat}) when is_atom(AtomMat) ->
     [{AtomMat,Ftab}];
-mat_faces(Ftab, #we{mat=MatTab}) ->
-    mat_faces_1(Ftab, MatTab, []).
+mat_faces(Ftab = [{_,_}|_], #we{mat=MatTab}) ->
+    mat_faces_1(Ftab, MatTab, []);
+mat_faces(FList, #we{mat=MatTab}) ->
+    mat_faces_2(FList, MatTab, []).
+
 
 %% any_interesting_materials(We) -> true|false
 %%  Find out whether there are any interesting materials
@@ -307,3 +310,9 @@ mat_faces_1([{F1,_}|_]=Fs, [{F2,_}|Ms], Acc) when F2 < F1 ->
 mat_faces_1([{F,Info}|Fs], [{F,Mat}|Ms], Acc) ->
     mat_faces_1(Fs, Ms, [{Mat,{F,Info}}|Acc]);
 mat_faces_1([], _, Acc) -> wings_util:rel2fam(Acc).
+
+mat_faces_2([F1|_]=Fs, [{F2,_}|Ms], Acc) when F2 < F1 ->
+    mat_faces_2(Fs, Ms, Acc);
+mat_faces_2([F|Fs], [{F,Mat}|Ms], Acc) ->
+    mat_faces_2(Fs, Ms, [{Mat,F}|Acc]);
+mat_faces_2([], _, Acc) -> wings_util:rel2fam(Acc).

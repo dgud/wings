@@ -8,6 +8,13 @@ typedef struct {
   int len;
 } FaceIndex;
 
+typedef struct {
+  int start;
+  int len;
+  int vab;
+} VabIndex;
+
+
 void find_faces(int V0, int V1, FaceIndex Fi, __global int *Fs, 
 		int * F1, int *F2, int *CCW);
 
@@ -278,6 +285,48 @@ __kernel void move_verts(
   }
 }
 
+__kernel void create_vab(
+			 __global float4 *VsIn,
+			 __global int4 *FsIn,
+			 __global VabIndex *FiIn,
+			 __global float *Vab,
+			 const int noFs
+			 )
+{
+    const int id = get_global_id(0);
+    if(id >= noFs)
+	return;
+    VabIndex fi = FiIn[id];
+    const int f_sz;
+    int4 face;
+    float4 v1, v2, v3, v4, normal;
+    int vab, out = fi.vab*24;
+    for(int i=0; i < fi.len; i++) {
+	face = FsIn[fi.start+i];
+	vab = out+i*24;
+	v1 = VsIn[face.x];
+	v2 = VsIn[face.y];
+	v3 = VsIn[face.z];
+	v4 = VsIn[face.w];
+	normal = normalize(cross(v3-v1,v4-v2));
+	// Output V1
+	Vab[vab+0] = v1.x;  Vab[vab+3] = normal.x;
+	Vab[vab+1] = v1.y;  Vab[vab+4] = normal.y;
+	Vab[vab+2] = v1.z;  Vab[vab+5] = normal.z;   
+	// Output V2        
+	Vab[vab+6] = v2.x;  Vab[vab+9]  = normal.x;
+	Vab[vab+7] = v2.y;  Vab[vab+10] = normal.y;
+	Vab[vab+8] = v2.z;  Vab[vab+11] = normal.z;
+	// Output V3
+	Vab[vab+12] = v3.x; Vab[vab+15] = normal.x;
+	Vab[vab+13] = v3.y; Vab[vab+16] = normal.y;
+	Vab[vab+14] = v3.z; Vab[vab+17] = normal.z;
+	// Output V4
+	Vab[vab+18] = v4.x; Vab[vab+21] = normal.x;
+	Vab[vab+19] = v4.y; Vab[vab+22] = normal.y;
+	Vab[vab+20] = v4.z; Vab[vab+23] = normal.z;    
+    }
+}
 __kernel void collect_face_info(
 				__global float4 *Vs,
 				__global int4 *Fs,
@@ -353,7 +402,6 @@ void find_faces(int V0, int V1, FaceIndex Fi, __global int *Fs,
     *F2 = -2;
     *CCW = 1;
 }
-
 
 // void lock(int v_id, __global int *locks) {
 //   int pos = v_id % LOCK_SZ;
