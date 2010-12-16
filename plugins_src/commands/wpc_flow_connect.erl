@@ -65,11 +65,23 @@ flow_connect(St0) ->
 flow_connect_drag(St0) ->
     {St1,{Tvs,Sel}} = wings_sel:mapfold(fun(Edges, #we{id=Id}=We0, {Tvs0,SelAcc}) ->
         {NewEdges,Vs,Data,We} = calculate_cuts_data(Edges, Edges, We0, []),
-        TvsData = [{Id,{Vs,flow_connect_tension_fun(Data)}}|Tvs0],
+        TvsData = [{Id,{Vs,flow_connect_tension_fun(Data,false)}}|Tvs0],
         {We,{TvsData,[{Id,NewEdges}|SelAcc]}}
     end, {[],[]}, St0),
     St = wings_sel:set(edge, Sel, St1),
-    wings_drag:setup(Tvs, [percent], wings_sel:valid_sel(St)).
+    Flags = [{mode,{mode(),false}}], %% mode
+    wings_drag:setup(Tvs, [percent], Flags, wings_sel:valid_sel(St)).
+
+mode() ->
+    fun
+      (help, State) -> help(State);
+      ({key,$1}, true) -> false;
+      ({key,$1}, false) -> true;
+      (_,_) -> none
+    end.
+
+help(false) -> "[1] " ++ ?__(1,"Move in direction of face normals");
+help(true) -> "[1] " ++ ?__(2,"Move in direction of geometry flow").
 
 calculate_cuts_data(Edges0, Es, We, Acc) ->
     case gb_sets:is_empty(Edges0) of
@@ -87,13 +99,14 @@ calculate_cuts(Edges0, Es, We, Acc) ->
             cut_edges(Acc, We, []);
         false ->
             {Edge,Edges} = gb_sets:take_smallest(Edges0),
-            {Mid,Vec,Opp} = edge_link_vectors(Edge, Es, We),
+            {Mid,Vec,_,Opp} = edge_link_vectors(Edge, Es, We),
             Pos = e3d_vec:add(Mid, e3d_vec:mul(Vec, Opp)),
             calculate_cuts(Edges, Es, We, [{Edge,Pos}|Acc])
     end.
 
 edge_link_vectors(Edge, Es, #we{mirror=Mir,es=Etab,vp=Vtab}=We) ->
     #edge{vs=Va,ve=Vb,ltpr=Lp,rtpr=Rp,lf=Lf,rf=Rf} = array:get(Edge, Etab),
+    FNorm = edge_normal(Lf, Rf, We),
     PosA = array:get(Va, Vtab),
     PosB = array:get(Vb, Vtab),
     Mid = e3d_vec:average(PosA, PosB),
@@ -108,22 +121,27 @@ edge_link_vectors(Edge, Es, #we{mirror=Mir,es=Etab,vp=Vtab}=We) ->
     %% Favour poles of 4 (a vertex connecting four edges)
     case OppR < OppL of
         true when Nr=:=4 ->
-            cut_point_data(PosA, Mid, ENormA, RVec, OppR);
+            cut_point_data(PosA, Mid, ENormA, RVec, FNorm, OppR);
         true when is_atom(OppL) ->
-            cut_point_data(PosA, Mid, ENormA, RVec, OppR);
+            cut_point_data(PosA, Mid, ENormA, RVec, FNorm, OppR);
         true when Nl=:=4 ->
-            cut_point_data(PosB, Mid, ENormB, LVec, OppL);
+            cut_point_data(PosB, Mid, ENormB, LVec, FNorm, OppL);
         true ->
-            cut_point_data(PosA, Mid, ENormA, RVec, OppR);
+            cut_point_data(PosA, Mid, ENormA, RVec, FNorm, OppR);
         false when is_atom(OppR) andalso is_atom(OppL) ->
-            {Mid,e3d_vec:zero(),0.0};
+            {Mid,e3d_vec:zero(),e3d_vec:zero(),0.0};
         false when Nl=:=4 ->
-            cut_point_data(PosB, Mid, ENormB, LVec, OppL);
+            cut_point_data(PosB, Mid, ENormB, LVec, FNorm, OppL);
         false when Nr=:=4 andalso not is_atom(OppR) ->
-            cut_point_data(PosA, Mid, ENormA, RVec, OppR);
+            cut_point_data(PosA, Mid, ENormA, RVec, FNorm, OppR);
         false ->
-            cut_point_data(PosB, Mid, ENormB, LVec, OppL)
+            cut_point_data(PosB, Mid, ENormB, LVec, FNorm, OppL)
     end.
+
+edge_normal(Fa, Fb, We) ->
+    FaNorm = wings_face:normal(Fa, We),
+    FbNorm = wings_face:normal(Fb, We),
+    e3d_vec:norm(e3d_vec:add(FaNorm, FbNorm)).
 
 %% Vector in Mirror
 mirrored_vector(Vec, Mir, We) ->
@@ -225,10 +243,13 @@ get_best_vec_1(EVec, Es, Len, New, Acc) ->
         end
     end, New, Acc).
 
-cut_point_data(PosA, Mid, Evec, Vec0, FinalOpp) ->
+cut_point_data(PosA, Mid, Evec, Vec0, FNorm, FinalOpp) ->
     Pos = intersect_vec_plane(PosA, Mid, e3d_vec:norm(Evec), Vec0),
     Vec = e3d_vec:norm_sub(Pos, Mid),
-    {Mid,Vec,FinalOpp}.
+    case e3d_vec:dot(Vec, FNorm) < 0 of
+        true -> {Mid,Vec,e3d_vec:neg(Vec),FinalOpp};
+        false -> {Mid,Vec,Vec,FinalOpp}
+    end.
 
 get_result(Deg, _, _) when Deg =< ?ANGLE ->
     not_allowed;
@@ -258,9 +279,9 @@ intersect_vec_plane(PosA, PosB, Plane, Vec) ->
     end.
 
 %% Drag option cut
-cut_edges([{Edge,{Mid,Vec,Opp}}|Edges], We0, Acc, TvsAcc) ->
+cut_edges([{Edge,{Mid,Vec,FVec,Opp}}|Edges], We0, Acc, TvsAcc) ->
     {We,V} = wings_edge:fast_cut(Edge, Mid, We0),
-    cut_edges(Edges, We, [V|Acc], [{V,Mid,Vec,Opp}|TvsAcc]);
+    cut_edges(Edges, We, [V|Acc], [{V,Mid,Vec,FVec,Opp}|TvsAcc]);
 cut_edges([], We0, Vs, TvsAcc) ->
     We = wings_vertex_cmd:connect(Vs, We0),
     NewEdges = wings_we:new_items_as_gbset(edge, We0, We),
@@ -279,10 +300,14 @@ round_float(Float) when is_float(Float) ->
     round(10000*Float)/10000;
 round_float(Other) -> Other.
 
-flow_connect_tension_fun(Data) ->
+flow_connect_tension_fun(Data, Bool) ->
     fun
+        (new_mode_data, {NewBool,_}) ->
+            flow_connect_tension_fun(Data, NewBool);
         ([Percent], A) ->
-            lists:foldl(fun({V,Mid,Vec,Opp}, VpAcc) ->
-                [{V,e3d_vec:add(Mid, e3d_vec:mul(Vec, Opp*Percent))}|VpAcc]
+            lists:foldl(fun({V,Mid,Vec,FVec,Opp}, VpAcc) ->
+                Factor = Opp*Percent,
+                Vector = if Bool -> FVec; true -> Vec end,
+                [{V,e3d_vec:add(Mid, e3d_vec:mul(Vector, Factor))}|VpAcc]
             end, A, Data)
     end.
