@@ -228,40 +228,16 @@ do_face_more(Face, We, Acc) ->
 
 face_less(St) ->
     conv_sel(
-      fun(Faces0, We) ->
-	      Faces1 = gb_sets:to_list(Faces0),
-	      Faces = sofs:from_external(Faces1, [face]),
-	      VsFs0 = vs_faces(Faces1, We),
-	      VsFs = sofs:relation(VsFs0, [{vertex,face}]),
-	      Vs = sofs:to_external(sofs:domain(VsFs)),
-	      BorderVs0 = vs_bordering(Vs, Faces0, We),
-	      BorderVs = sofs:from_external(BorderVs0, [vertex]),
-	      BorderFs = sofs:restriction(VsFs, BorderVs),
-	      Border = sofs:range(BorderFs),
-	      Sel = sofs:difference(Faces, Border),
-	      gb_sets:from_ordset(sofs:to_external(Sel))
+      fun(Faces0, #we{mirror=Mirror}=We) ->
+          Es0 = wings_face:outer_edges(Faces0, We),
+          MirEs = case Mirror of
+              none -> [];
+              _ -> wings_face:to_edges([Mirror], We)
+          end,
+          Es = Es0 -- MirEs,
+          Faces = wings_face:from_edges(Es, We),
+          gb_sets:difference(Faces0, Faces)
       end, face, St).
-
-vs_faces(Faces, We) ->
-    wings_face:fold_faces(fun(Face, V, _, _, A) ->
-				  [{V,Face}|A]
-			  end, [], Faces, We).
-
-vs_bordering(Vs, FaceSet, We) ->
-    B = foldl(fun(V, A) ->
-		      case vtx_bordering(V, FaceSet, We) of
-			  true -> [V|A];
-			  false -> A
-		      end
-	      end, [], Vs),
-    ordsets:from_list(B).
-
-vtx_bordering(V, FaceSet, We) ->
-    wings_vertex:fold(
-      fun(_, _, _, true) -> true;
-	 (_, Face, _, false) ->
-	      not gb_sets:is_member(Face, FaceSet)
-      end, false, V, We).
 
 remove_invisible_faces(Fs) ->
     case gb_sets:is_empty(Fs) of
@@ -272,7 +248,7 @@ remove_invisible_faces(Fs) ->
 		_ -> Fs
 	    end
     end.
-				    
+
 remove_invisible_faces_1(Fs0) ->
     case gb_sets:is_empty(Fs0) of
 	true -> Fs0;
