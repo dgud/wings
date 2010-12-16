@@ -69,8 +69,7 @@ menu_string_1(sweep_extract) ->
     ?__(3,"Extract and extrude region along its normal, using standard side to side axis").
 
 xyz(Type) ->
-    [axis_menu(Type,normal),
-     axis_menu(Type,free),
+    [axis_menu(Type,free),
      axis_menu(Type,x),
      axis_menu(Type,y),
      axis_menu(Type,z),
@@ -94,8 +93,6 @@ axis_menu(Type, Axis) ->
 
 axis_menu_string(free) ->
     ?__(1,"Sweep freely relative to the screen");
-axis_menu_string(normal) ->
-    ?__(2,"Extrude along normal with no side to side motion.");
 axis_menu_string(Axis) ->
     AxisStr = wings_s:dir(Axis),
     Str = ?__(3,"If the ~s axis is perpendicular to the extrusion normal, all movement will be constrained to its radial plane. Otherwise, it acts as an off axis component."),
@@ -172,10 +169,11 @@ units(relative) -> [percent,skip,angle,percent,angle].
 
 %% LoopNorm is the extrude direction
 collect_data(Type, [Fs0|Rs], #we{mirror=M}=We, Axis0, SelC0, AllVs0, State, LVAcc0, ExData) ->
-    Fs = gb_sets:delete_any(M, wings_face:extend_border(Fs0, We)),
+    Fs1 = wings_face:extend_border(Fs0, We),
+    Fs = gb_sets:delete_any(M, Fs1),
     {OuterEs, RegVs} =  reg_data_0(Fs, We, [], []),
     LoopVs0 = wings_edge:to_vertices(OuterEs, We),
-    LoopNorm = average_face_norm(Fs0, We, []),
+    LoopNorm = average_face_norm(Fs0, We, M, Fs1=/=Fs, []),
     LoopVs = case Type of
       sweep_extrude -> LoopVs0;
       _otherwise when M =/= none ->
@@ -185,7 +183,7 @@ collect_data(Type, [Fs0|Rs], #we{mirror=M}=We, Axis0, SelC0, AllVs0, State, LVAc
           LoopVerts;
       _otherwise -> LoopVs0
     end,
-    Axis = axis_conversion(Axis0,LoopNorm),
+    Axis = axis_conversion(Axis0),
 
     ExVs = ordsets:subtract(RegVs, LoopVs),
     AllVs = ordsets:union(RegVs ,AllVs0),
@@ -206,7 +204,8 @@ collect_data(Type, [Fs0|Rs], #we{mirror=M}=We, Axis0, SelC0, AllVs0, State, LVAc
 collect_data(_Type, [], _We, _Axis0, _SelC0, AllVs, _State, _LVs, VsData) ->
     {AllVs, VsData}.
 
-average_face_norm(Fs0, We, Normals) ->
+%% Calculate average norm of face region accounting for Virtual Mirror (if any).
+average_face_norm(Fs0, We, Mir0, TouchingMir, Normals) ->
     case gb_sets:is_empty(Fs0) of
       true ->
           case e3d_vec:norm(e3d_vec:add(Normals)) of
@@ -215,9 +214,25 @@ average_face_norm(Fs0, We, Normals) ->
           end;
       false ->
         {Face,Fs} = gb_sets:take_smallest(Fs0),
-        N = wings_face:normal(Face, We),
-        average_face_norm(Fs, We, [N|Normals])
+        {Mir,N} = normal(Face, Mir0, TouchingMir, We),
+        average_face_norm(Fs, We, Mir, TouchingMir, [N|Normals])
     end.
+
+normal(Face, _, false, We) -> {none,wings_face:normal(Face, We)};
+normal(Face, Mir, true, We) when is_integer(Mir) ->
+    MirNorm = e3d_vec:neg(wings_face:normal(Mir, We)),
+    NormA = wings_face:normal(Face, We),
+    NormB = mirrored_vector(NormA, MirNorm),
+    {MirNorm,e3d_vec:norm(e3d_vec:add(NormA, NormB))};
+normal(Face, Mir, true, We) ->
+    NormA = wings_face:normal(Face, We),
+    NormB = mirrored_vector(NormA, Mir),
+    {Mir,e3d_vec:norm(e3d_vec:add(NormA, NormB))}.
+
+%% Vector in Mirror
+mirrored_vector(Vec, MirNorm) ->
+    U = e3d_vec:mul(MirNorm, e3d_vec:dot(MirNorm, Vec)),
+    e3d_vec:sub(Vec, e3d_vec:mul(U, 2.0)).
 
 reg_data_0(Faces0, #we{es=Etab,fs=Ftab}=We, EAcc0, Vs0) ->
     case gb_sets:is_empty(Faces0) of
@@ -348,7 +363,6 @@ sweep_help({Lock,Axis,Warp,Cntr,Base}) ->
 cntr_help(region)         -> ?__(1,"[1] Selection Center");
 cntr_help(common)         -> ?__(2,"[1] Region Center").
 
-warp_help(normal,_)       -> [];
 warp_help(_,warped)       -> ?__(1,"  [2] Maintain Shape");
 warp_help(_,unwarped)     -> ?__(2,"  [2] Allow Warping").
 
@@ -356,7 +370,6 @@ lock_help(unlocked,free)  -> ?__(1,"  [3] Lock Axis");
 lock_help(locked,free)    -> ?__(2,"  [3] Screen Relative");
 lock_help(_,_)            -> [].
 
-base_help(normal,_) -> [];
 base_help(_,free_base)      -> ?__(1,"  [4] Freeze Base");
 base_help(_,freeze_base)    -> ?__(2,"  [4] Thaw Base").
 
@@ -472,13 +485,12 @@ seed_face(_,Vpos,{{_,_,LoopNorm,_,_,Axis},{Norm,Center}},{Angle,_Dist,_Rotate,_S
     end.
 
 %%%%  Helper functions
-axis_conversion(Axis,Norm) ->
+axis_conversion(Axis) ->
     case Axis of
       x -> {1.0,0.0,0.0};
       y -> {0.0,1.0,0.0};
       z -> {0.0,0.0,1.0};
       free -> view_vector();
-      normal -> Norm;
       last_axis ->
           {_, Dir} = wings_pref:get_value(last_axis),
           Dir;
