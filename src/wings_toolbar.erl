@@ -124,12 +124,9 @@ button_redraw_sh(true, Buttons) ->
     end.
 
 button_sh_filter(_, false) -> false;
-button_sh_filter(vertex, true) ->
-    wings_pref:get_value(vertex_hilite);
-button_sh_filter(edge, true) ->
-    wings_pref:get_value(edge_hilite);
-button_sh_filter(face, true) ->
-    wings_pref:get_value(face_hilite);
+button_sh_filter(vertex, true) -> true;
+button_sh_filter(edge, true) -> true;
+button_sh_filter(face, true) -> true;
 button_sh_filter(_, _) -> false.
 
 buttons_place(W) when W < 140 -> [];

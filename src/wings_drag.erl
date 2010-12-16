@@ -137,23 +137,13 @@ custom_drag(Units) ->
 
 custom_absolute_drag() ->
     Speed = wings_pref:get_value(drag_speed_abs),
-    case wings_pref:get_value(drag_cam_dist_abs) of
-      true ->
-        #view{fov=Fov, distance=D} = wings_view:current(),
-        (D/((11-Speed)*((11-Speed)*300)))*Fov/60;
-      false ->
-        1/((11-Speed)*80)
-    end.
+    #view{fov=Fov, distance=D} = wings_view:current(),
+    (D/((11-Speed)*((11-Speed)*300)))*Fov/60.
 
 custom_relative_drag() ->
     Speed = wings_pref:get_value(drag_speed_relative),
-    case wings_pref:get_value(drag_cam_dist_relative) of
-      true ->
-        #view{distance=D} = wings_view:current(),
-        (D/((11-Speed)*((11-Speed)*900)));
-      false ->
-        1/((11-Speed)*100)
-    end.
+    #view{distance=D} = wings_view:current(),
+    (D/((11-Speed)*((11-Speed)*900))).
 
 custom_rotations_drag() ->
     Speed = wings_pref:get_value(drag_speed_rotate),

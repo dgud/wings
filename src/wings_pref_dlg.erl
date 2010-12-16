@@ -51,11 +51,6 @@ set_values([], _) -> ignore.
 
 
 gen_prefs() ->
-    Conditional_Deselect = fun (is_disabled, {_Var,_I,Store}) ->
-		       not gb_trees:get(smart_highlighting, Store);
-		       (_, _) ->	void
-	end,
-
     {vframe,
      [{hframe,
        [{vframe,
@@ -89,23 +84,16 @@ gen_prefs() ->
       {hframe,
        [{vframe,
 	 [{hframe,
-	   [{?__(15,"Vertices"),vertex_hilite},
-	    {?__(16,"Edges"),edge_hilite},
-	    {?__(17,"Faces"),face_hilite},
-	    {?__(18,"Objects"),body_hilite}]},
+	   [{?__(18,"Objects"),body_hilite}]},
 	  {hframe,
 	   [{label,?__(19,"Unselected")},{color,unselected_hlite},
 	    {label,?__(20,"Selected")},{color,selected_hlite}]},
-	  {?__(21,"Smart Highlighting"),smart_highlighting},
 	  {?__(71,"Conditional Deselection"), conditional_deselect,
-	   [{info,?__(72,"Deselecting keeps you in the same Selection Mode, unless there is no selection")},
-	   {hook, Conditional_Deselect}]}],
+	   [{info,?__(72,"Deselecting keeps you in the same Selection Mode, unless there is no selection")}]}],
 	 [{title,?__(22,"Highlighting")}]},
 
 	{vframe,
-	 [{vradio,[{?__(23,"Solid Face Selections"),solid},
-               {?__(24,"Stippled Face Selections"),stippled}], selection_style},
-	  {hframe,[{label,?__(25,"Selection Color")},{color,selected_color}]}],
+	 [{label,?__(25,"Selection Color")},{color,selected_color}],
 	 [{title,?__(26,"Selection")}]}]},
 
       {hframe,
@@ -117,9 +105,7 @@ gen_prefs() ->
 	     [{info,?__(30,"Color of background for information text (including transparency)")}]}]},
 	  {hframe,
 	     [{?__(61,"Verbose"),info_enhanced_text,
-	       [{info,?__(62,"Show additional information about selected elements")}]},
-	     {?__(63,"Mouseover"),info_text_on_hilite,
-	       [{info,?__(64,"Show additional information for highlighted element on mouseover")}]}]}],
+	       [{info,?__(62,"Show additional information about selected elements")}]}]}],
 	 [{title,?__(31,"Information Text")}]},
 	{vframe,
 	 [{label_column,
@@ -137,8 +123,7 @@ gen_prefs() ->
 	 [{title,?__(55,"Materials")}]}]},
 	  {hframe,
 	   [{vframe,
-	 [{?__(36,"Show Axis Letters"),show_axis_letters},
-	  {?__(49,"Constrain Axes to Grid"),constrain_axes},
+	 [{?__(49,"Constrain Axes to Grid"),constrain_axes},
 	  {?__(56,"Show Mini Axis"),mini_axis}]},
 	  {hframe,
 	   [{label_column,
@@ -171,85 +156,47 @@ multisampling() ->
 	      [{title,"Anti-Aliasing"}]}]
     end.
 
-
 advanced_prefs() ->
-%%     DisableHook = fun (is_disabled, {_Var,_I,Store}) ->
-%% 			  not gb_trees:get(advanced_menus, Store);
-%% 		      (_, _) -> void
-%% 		  end,
-    SuperDisable = fun (is_disabled, {_Var,_I,Store}) ->
-%%			   not gb_trees:get(advanced_menus, Store) orelse
-			       not gb_trees:get(use_temp_sel, Store);
-		       (_, _) ->	void
-		   end,
-    HighlightDisable = fun (is_disabled, {_Var,_I,Store}) ->
-		       not gb_trees:get(use_temp_sel, Store);
-		       (_, _) ->	void
-		   end,
-%%    Flags = [{hook,DisableHook}],
-    Flags = [],
     Disable = fun (is_disabled, {_Var,_I, Store}) ->
 		       not gb_trees:get(drag_custom,Store);
 		       (_, _) -> void
 		       end,
-
     {hframe,
     [{vframe,
      [{?__(1,"Default Commands"),default_commands,
        [{info,?__(2,"Allow defining commands that can be invoked by Ctrl+L or Ctrl+M")}]},
-      {?__(3,"Use Highlight as Temporary Selection"),use_temp_sel,
-       [{info,?__(4,"If there is no selection, ")++
-      ?__(5,"allow commands to act on the highlighted element")}]},
       {?__(6,"Hide Selection While Dragging"),hide_sel_while_dragging,
        [{info,?__(7,"Don't show the selection in any interactive command")}]},
       {?__(8,"Hide Selection While Moving Camera"),hide_sel_in_camera_moves,
        [{info,?__(9,"Don't show the selection when the camera is being moved")}]},
-      panel,
-%%      {?__(10,"Advanced Menus"),advanced_menus,
-%%       [{info,?__(11,"More commands and more options, such as magnets")}]},
-      {?__(21,"Use Mirror for Selections"),use_mirror_for_sels,
-       [{info,?__(22,"Default to using the virtual mirror for secondary selections")}]},
-      {?__(12,"Power-user temporary selections"),use_super_temp_sel,
-       [{info,?__(13,"In the secondary selection mode, RMB-clicking always adds to the selection")},{hook,SuperDisable}]},
-      {?__(56,"Power-user menu abort"), menu_abort,
-       [{info,?__(57,"Mouse events such as Selection or Camera events abort menus")}]},
-      {?__(58,"Power-user menu hotkey support"), hotkeys_from_menus,
-       [{info,?__(59,"Allow hotkeys to be called even when menus are open")}]},
       {?__(54,"Extend selection via hotkey on temporary highlight"),hilite_select,
-	   [{info,?__(55,"Affects: Select All, Edge Loop, Edge Ring, Select Similar, Similar Normals, Similar Materials, and Similar Area.")},
-	     {hook,HighlightDisable}]},
+	   [{info,?__(55,"Affects: Select All, Edge Loop, Edge Ring, Select Similar, Similar Normals, Similar Materials, and Similar Area.")}]},
      {vframe,
        [{label_column,
      [{?__(14,"Length"),active_vector_size,
-       [{info,?__(15,"Length of vector in secondary selections")},{range,{0.1,10.0}}|Flags]},
+       [{info,?__(15,"Length of vector in secondary selections")},{range,{0.1,10.0}}]},
       {?__(16,"Width"),active_vector_width,
-       [{info,?__(17,"Width of vector (in pixels)")},{range,{1.0,10.0}}|Flags]},
+       [{info,?__(17,"Width of vector (in pixels)")},{range,{1.0,10.0}}]},
       {color,?__(18,"Color"),active_vector_color,
-       [{info,?__(19,"Color of vector")}|Flags]}]}],
+       [{info,?__(19,"Color of vector")}]}]}],
        [{title,?__(20,"Vector Display")}]},
       {vframe,
        [{label_column,
      [{?__(23,"Size"),clip_plane_size,
-       [{info,?__(24,"Size of user-defined clipping indicator")},{range,{0.1,100.0}}|Flags]},
+       [{info,?__(24,"Size of user-defined clipping indicator")},{range,{0.1,100.0}}]},
       {color,?__(25,"Color"),clip_plane_color,
        [{info,?__(26,"Color of user-defined clipping indicator")}]}]}],
-       [{title,?__(27,"Clipping Plane Indicator")}]},
-     {vframe,
-       [{?__(28,"Selected Geometry"),highlight_aim_at_selected},
-        {?__(29,"Unselected Geometry"),highlight_aim_at_unselected}],
-       [{title,?__(30,"Highlight Aim Targets")},{hook,HighlightDisable}]}]},
+       [{title,?__(27,"Clipping Plane Indicator")}]}]},
      {vframe,
       [{vframe,
        [{?__(38,"Customize Drag Response"),drag_custom,
          [{info,?__(39,"Customize the drag to mouse motion ratio. Unchecked uses default settings.")}]}]},
         {vframe,
-          [{?__(40,"Factor in Distance from Camera"),drag_cam_dist_abs},
-           {hframe,
+          [{hframe,
               [{slider,{text,drag_speed_abs,[{range,{1.0,10.0}}]}}]}],
           [{title,?__(50,"Mouse Speed for Dragging")},{hook,Disable}]},
          {vframe,
-          [{?__(43,"Factor in Distance from Camera"),drag_cam_dist_relative},
-            {hframe,
+          [{hframe,
               [{slider,{text,drag_speed_relative,[{range,{1.0,10.0}}]}}]}],
            [{title,?__(51,"Mouse Speed for Scaling")},{hook,Disable}]},
          {vframe,
@@ -505,9 +452,8 @@ ui_prefs() ->
 	   [{title,?__(22,"Console")}]}]},
     {vframe,
      [{vframe,
-       [{?__(24,"Objects in Outliner"),objects_in_outliner},
-	    {?__(32,"Adaptive Icons"), bitmap_icons,
-	     [{info, ?__(33,"Icons in the Outliner and Geometry Graph that allow for further color theming")}]},
+       [{?__(32,"Adaptive Icons"), bitmap_icons,
+	 [{info, ?__(33,"Icons in the Outliner and Geometry Graph that allow for further color theming")}]},
       {hframe,
 	   [{vframe,
 	    [{label,?__(35,"Background")},
@@ -535,8 +481,8 @@ ui_prefs() ->
 	   [{title,?__(50,"Interface Icons")}]}]}
 	   ]},
       {hframe,
-	    [{vframe,[{?__(14,"No Progress Bar"),no_progress_bar},
-	       {?__(42,"View render with external viewer"),render_load_image}]}]},
+        [{vframe,
+          [{?__(42,"View render with external viewer"),render_load_image}]}]},
       {oframe,
        [{atom_to_list(Format),viewer_prefs(Format)}
 	|| {Format,_,_} <- wings_job:render_formats()],
@@ -706,8 +652,6 @@ smart_set_value_1(Key, Val, St) ->
 		    wings_wm:translation_change();
 		num_buttons ->
 		    wings_wm:translation_change();
-		no_progress_bar ->
-		    wings_pb:init();
 		language ->
 		    wings_lang:load_language(Val);
 		polygon_offset_f ->
@@ -721,8 +665,6 @@ smart_set_value_1(Key, Val, St) ->
 		material_default ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(3,"The change to the default material color will take\neffect the next time Wings 3D is started."));
-		objects_in_outliner ->
-		    wings_wm:send(outliner, {current_state,St});
 		show_develop_menu ->
 		    wings:init_menubar(),
 		    foreach(fun(W) ->

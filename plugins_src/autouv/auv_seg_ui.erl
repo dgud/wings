@@ -438,12 +438,8 @@ fake_selection(St) ->
 		  end, St).
 
 fake_sel_1(St0) ->
-    case wings_pref:get_value(use_temp_sel) of
-	false -> St0;
-	true ->
-	    {_,X,Y} = wings_wm:local_mouse_state(),
-	    case wings_pick:do_pick(X, Y, St0) of
-		{add,_,St} -> St;
-		_ -> St0
-	    end
+    {_,X,Y} = wings_wm:local_mouse_state(),
+    case wings_pick:do_pick(X, Y, St0) of
+	{add,_,St} -> St;
+	_ -> St0
     end.

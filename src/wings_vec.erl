@@ -226,35 +226,22 @@ handle_event_4({action,{view,auto_rotate}}, _, _) ->
 
 %%%% Vector op Highlight Aim
 handle_event_4({action,{view,highlight_aim}}, Ss, St0) ->
-    case wings_pref:get_value(use_temp_sel) of
-      false ->
-	    handle_event_4({action,{view,aim}}, Ss, St0);
-      true ->
-        {{_,Cmd},St1} = wings:highlight_aim_setup(St0),
-        St2 = wings_view:command(Cmd,St1),
-        get_event(Ss, St2)
-    end;
-
+    {{_,Cmd},St1} = wings:highlight_aim_setup(St0),
+    St2 = wings_view:command(Cmd,St1),
+    get_event(Ss, St2);
 %%%% Temporary Select Aim for View commands with no selection
 handle_event_4({action,{view,Cmd}}, Ss, #st{sel=[]}=St0)
   when Cmd == align_to_selection; Cmd == aim; Cmd == frame ->
-    case wings_pref:get_value(use_temp_sel) of
-    false ->
-      St = wings_view:command(Cmd, St0),
-      get_event(Ss, St);
-    true ->
-      {_,X,Y} = wings_wm:local_mouse_state(),
-      case wings_pick:do_pick(X, Y, St0) of
-        {add,_,St} ->
-          St1 = wings_view:command(Cmd,St),
-		  St2 = wings_sel:clear(St1),
-          get_event(Ss, St2);
-        _Other ->
-          St = wings_view:command(Cmd, St0),
-          get_event(Ss, St)
-      end
+    {_,X,Y} = wings_wm:local_mouse_state(),
+    case wings_pick:do_pick(X, Y, St0) of
+      {add,_,St} ->
+        St1 = wings_view:command(Cmd,St),
+        St2 = wings_sel:clear(St1),
+        get_event(Ss, St2);
+      _Other ->
+        St = wings_view:command(Cmd, St0),
+        get_event(Ss, St)
     end;
-
 handle_event_4({action,{view,Cmd}}, Ss, St0) ->
     St = wings_view:command(Cmd, St0),
     get_event(Ss, St);
@@ -276,19 +263,9 @@ handle_event_4(_Event, Ss, St) ->
     get_event(Ss, St).
 
 temp_selection(X, Y, St0) ->
-    case wings_pref:get_value(use_temp_sel) of
-	false ->
-	    none;
-	true ->
-	    case wings_pick:do_pick(X, Y, St0) of
-		{add,_,#st{sel=[{_,Sel}]}=St} ->
-		    case gb_sets:size(Sel) < 2 orelse
-			wings_pref:get_value(use_super_temp_sel) of
-			true -> St;
-			false -> none
-		    end;
-		_ -> none
-	    end
+    case wings_pick:do_pick(X, Y, St0) of
+	{add,_,St} -> St;
+	_ -> none
     end.
 
 pick_next(Do, Done, #ss{is_axis=true,vec={{_,_,_},{_,_,_}}=Vec}=Ss, St) ->
@@ -749,28 +726,18 @@ get_vec(_, _, _) -> {none,?__(23,"Select vertices, edges, or faces.")}.
 check_point(#st{sel=[]}) -> {none,""};
 check_point(St) ->
     case kill_mirror(St) of
-	St ->
-	    Center = e3d_vec:average(wings_sel:bounding_box(St)),
-	    [{Center,?__(1,"Midpoint of selection saved.")}];
-	NoMirror ->
-	    Center = e3d_vec:average(wings_sel:bounding_box(St)),
-	    NoMirrorCenter = e3d_vec:average(wings_sel:bounding_box(NoMirror)),
-            UseMirrorPref = wings_pref:get_value(use_mirror_for_sels),
-            if UseMirrorPref ->
-              [{Center,
-                {?__(1,"Midpoint of selection saved."),
-                 ?__(2,"Disregard virtual mirror in reference point calculation")}},
-               {NoMirrorCenter,
-                {?__(1,"Midpoint of selection saved."),
-                 ?__(3,"Include virtual mirror in reference point calculation")}}];
-            true ->
-              [{NoMirrorCenter,
-                {?__(1,"Midpoint of selection saved."),
-                 ?__(3,"Include virtual mirror in reference point calculation")}},
-               {Center,
-                {?__(1,"Midpoint of selection saved."),
-                 ?__(2,"Disregard virtual mirror in reference point calculation")}}]
-            end
+        St ->
+            Center = e3d_vec:average(wings_sel:bounding_box(St)),
+            [{Center,?__(1,"Midpoint of selection saved.")}];
+        NoMirror ->
+            Center = e3d_vec:average(wings_sel:bounding_box(St)),
+            NoMirrorCenter = e3d_vec:average(wings_sel:bounding_box(NoMirror)),
+            [{NoMirrorCenter,
+              {?__(1,"Midpoint of selection saved."),
+               ?__(3,"Include virtual mirror in reference point calculation")}},
+             {Center,
+              {?__(1,"Midpoint of selection saved."),
+               ?__(2,"Disregard virtual mirror in reference point calculation")}}]
     end.
 
 check_magnet_point(#st{sel=[]}) -> {none,""};

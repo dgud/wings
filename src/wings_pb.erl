@@ -102,23 +102,17 @@ reply(Pid, What) ->
 
 %% Start progressbar process
 init() ->
-    case wings_pref:get_value(no_progress_bar) of
-	true ->
-	    cast(terminate),
-	    sent_termination_request;
-	false ->
-	    case whereis(?PB) of
-		undefined ->
-		    POpt = wings_io:get_process_option(),
-		    Pid = spawn_link(fun() ->
-					     wings_io:set_process_option(POpt),
-					     loop(#state{})
-				     end),
+    case whereis(?PB) of
+	undefined ->
+	    POpt = wings_io:get_process_option(),
+	    Pid = spawn_link(fun() ->
+				     wings_io:set_process_option(POpt),
+				     loop(#state{})
+			     end),
 
-		    register(?PB, Pid),
-		    started;
-		_ -> already_started
-	    end
+	    register(?PB, Pid),
+	    started;
+	_ -> already_started
     end.
 
 loop(#state{refresh=After,level=Level,msg=Msg0}=S0) ->

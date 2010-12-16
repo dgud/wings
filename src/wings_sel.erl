@@ -30,10 +30,9 @@ clear(St) ->
     St#st{sel=[],sh=false}.
 
 reset(#st{selmode=Mode}=St) ->
-    case wings_pref:get_value(smart_highlighting) of
-	false -> St#st{sel=[],sh=false};
-	true when Mode =:= body -> St#st{selmode=face,sel=[],sh=true};
-	true -> St#st{sel=[],sh=true}
+    case Mode of
+	body -> St#st{selmode=face,sel=[],sh=true};
+	_ -> St#st{sel=[],sh=true}
     end.
 
 conditional_reset(#st{sel=[]}=St) ->

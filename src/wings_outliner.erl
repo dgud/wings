@@ -453,22 +453,14 @@ update_state(St, #ost{first=OldFirst}=Ost0) ->
 	    Ost#ost{first=First}
     end.
 
-% update_state_1(#st{shapes=Shs,mat=Mat}=St, #ost{st=#st{shapes=Shs,mat=Mat}}=Ost) ->
-%     Ost#ost{st=St};
 update_state_1(St, Ost) ->
     update_state_2(St, Ost).
 
 update_state_2(#st{mat=Mat,shapes=Shs0}=St, #ost{os=Objs0,active=Act0}=Ost) ->
-    Objects =
-      case wings_pref:get_value(objects_in_outliner) of
-        true -> [{object,Id,Name} || #we{id=Id,name=Name}=We <- gb_trees:values(Shs0),
-				     not ?IS_ANY_LIGHT(We)];
-        _ -> []
-      end,
     Lights = [{light,Id,Name} || #we{id=Id,name=Name}=We <- gb_trees:values(Shs0),
 			         ?IS_ANY_LIGHT(We)],
     Materials = [make_mat(M) || M <- gb_trees:to_list(Mat)],
-    Objs = Objects ++ Lights ++ Materials ++ update_images(),
+    Objs = Lights ++ Materials ++ update_images(),
     case Objs of
 	Objs0 -> ok;
 	_ -> wings_wm:dirty()

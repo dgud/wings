@@ -74,10 +74,8 @@ hilite_event(#mousemotion{}=Mm, #st{selmode=Mode}=St, Redraw, Options) ->
     end;
 hilite_event(_, _, _,_) -> next.
 
-hilite_enabled(vertex) -> wings_pref:get_value(vertex_hilite);
-hilite_enabled(edge) -> wings_pref:get_value(edge_hilite);
-hilite_enabled(face) -> wings_pref:get_value(face_hilite);
-hilite_enabled(body) -> wings_pref:get_value(body_hilite).
+hilite_enabled(body) -> wings_pref:get_value(body_hilite);
+hilite_enabled(_) -> true.
 
 marquee_pick(X, Y, St)  ->
     Pick = #marquee{ox=X,oy=Y,st=St},
@@ -351,10 +349,7 @@ hilit_draw_sel(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
     gl:vertex3fv(array:get(Vb, Vtab)),
     gl:'end'();
 hilit_draw_sel(face, Face, #dlo{vab=#vab{face_map=Map, face_vs=Vs}}) ->
-    case wings_pref:get_value(selection_style) of
-	stippled -> gl:enable(?GL_POLYGON_STIPPLE);
-	solid -> ok
-    end,
+    gl:enable(?GL_POLYGON_STIPPLE),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     wings_draw_setup:enableVertexPointer(Vs),
     {Start,NoElements} = array:get(Face, Map),
@@ -362,10 +357,7 @@ hilit_draw_sel(face, Face, #dlo{vab=#vab{face_map=Map, face_vs=Vs}}) ->
     wings_draw_setup:disableVertexPointer(Vs),
     gl:disable(?GL_POLYGON_STIPPLE);
 hilit_draw_sel(body, _, #dlo{vab=#vab{face_vs=Vs}}=D) ->
-    case wings_pref:get_value(selection_style) of
-	stippled -> gl:enable(?GL_POLYGON_STIPPLE);
-	solid -> ok
-    end,
+    gl:enable(?GL_POLYGON_STIPPLE),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     wings_draw_setup:enableVertexPointer(Vs),
     Count = wings_draw_setup:face_vertex_count(D),
@@ -379,45 +371,41 @@ enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tupl
         {{SelMode,_,{Obj,Elem}},_} = Prev;
       _ -> {SelMode,_,{Obj,Elem}} = Prev
     end,
-    case wings_pref:get_value(info_text_on_hilite) of
-      true ->
-        We = gb_trees:get(Obj, Shs),
-        case SelMode of
-          vertex ->
-            {X,Y,Z} = wings_vertex:pos(Elem, We),
-            [Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
-                               [wings_util:nice_float(X),
-                                wings_util:nice_float(Y),
-                                wings_util:nice_float(Z)])];
-          edge -> 
-            #edge{vs=Va,ve=Vb} = array:get(Elem, We#we.es),
-            {Xa,Ya,Za} = wings_vertex:pos(Va, We),
-            {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
-            Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
-            {X,Y,Z} = e3d_vec:average({Xa,Ya,Za}, {Xb,Yb,Zb}),
-            [Base|io_lib:format(?__(3,". Midpoint <~s  ~s  ~s>\nLength ~s") ++
-                                "  <~s  ~s  ~s>", %++ "\nVa = ~p\nVb = ~p",
-                                [wings_util:nice_float(X),
-                                 wings_util:nice_float(Y),
-                                 wings_util:nice_float(Z),
-                                 wings_util:nice_float(Length),
-                                 wings_util:nice_float(abs(Xb - Xa)),
-                                 wings_util:nice_float(abs(Yb - Ya)),
-                                 wings_util:nice_float(abs(Zb - Za))])];
-								% Va,Vb])];
-          face ->
-            {X,Y,Z} = wings_face:center(Elem, We),
-            Area = area_info(Elem, We),
-            Mat = wings_facemat:face(Elem, We),
-            [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~s.")
-                                ++ Area,
-                                [wings_util:nice_float(X),
-                                 wings_util:nice_float(Y),
-                                 wings_util:nice_float(Z),
-                                 Mat])]
-         end;
-      false ->
-        Base
+    %% Mouseover info text for temp hilited selection
+    We = gb_trees:get(Obj, Shs),
+    case SelMode of
+      vertex ->
+        {X,Y,Z} = wings_vertex:pos(Elem, We),
+        [Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
+                            [wings_util:nice_float(X),
+                             wings_util:nice_float(Y),
+                             wings_util:nice_float(Z)])];
+      edge -> 
+        #edge{vs=Va,ve=Vb} = array:get(Elem, We#we.es),
+        {Xa,Ya,Za} = wings_vertex:pos(Va, We),
+        {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
+        Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
+        {X,Y,Z} = e3d_vec:average({Xa,Ya,Za}, {Xb,Yb,Zb}),
+        [Base|io_lib:format(?__(3,". Midpoint <~s  ~s  ~s>\nLength ~s") ++
+                            "  <~s  ~s  ~s>", %++ "\nVa = ~p\nVb = ~p",
+                            [wings_util:nice_float(X),
+                             wings_util:nice_float(Y),
+                             wings_util:nice_float(Z),
+                             wings_util:nice_float(Length),
+                             wings_util:nice_float(abs(Xb - Xa)),
+                             wings_util:nice_float(abs(Yb - Ya)),
+                             wings_util:nice_float(abs(Zb - Za))])];
+                             % Va,Vb])];
+      face ->
+        {X,Y,Z} = wings_face:center(Elem, We),
+        Area = area_info(Elem, We),
+        Mat = wings_facemat:face(Elem, We),
+        [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~s.")
+                            ++ Area,
+                            [wings_util:nice_float(X),
+                             wings_util:nice_float(Y),
+                             wings_util:nice_float(Z),
+                             Mat])]
     end.
 
 area_info(Face, We) ->

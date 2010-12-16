@@ -618,15 +618,15 @@ handle_event_0(Ev=#mousebutton{state=?SDL_PRESSED,
 			       mod=Mod},
 	       #st{sel=Sel}=St0, FreeLmbMod) 
   when (Mod band 16#0FFF) == 0 -> %% No modifiers
-    case (Sel == []) and wings_pref:get_value(use_temp_sel) of
-	true ->
+    case Sel of
+	[] ->
 	    case wings_pick:do_pick(X, Y, St0) of
 		{add,_,St} -> 
 		    start_tweak(temp_selection, Ev, St);
 		_ -> 
 		    handle_event_1(Ev, St0, FreeLmbMod)
 	    end;
-	false ->
+	_ ->
 	    case wings_pick:do_pick(X,Y,St0) of
 		{delete,_,_} ->
 		    start_tweak(selection, Ev, St0);
@@ -1059,14 +1059,10 @@ fake_selection(St) ->
 		  end, St).
 
 fake_sel_1(St0) ->
-    case wings_pref:get_value(use_temp_sel) of
-	false -> St0;
-	true ->
-	    {_,X,Y} = wings_wm:local_mouse_state(),
-	    case wings_pick:do_pick(X, Y, St0) of
-		{add,_,St} -> St;
-		_ -> St0
-	    end
+    {_,X,Y} = wings_wm:local_mouse_state(),
+    case wings_pick:do_pick(X, Y, St0) of
+	{add,_,St} -> St;
+	_ -> St0
     end.
 
 add_faces(NewFs,St0=#st{bb=ASt=#uvstate{id=Id,mode=Mode,st=GeomSt=#st{shapes=Shs0}}}) ->
