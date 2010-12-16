@@ -225,20 +225,23 @@ button_was_hit_1(X, [{Pos,Name}|_]) when Pos =< X, X < Pos+?BUTTON_WIDTH ->
 button_was_hit_1(X, [_|Is]) ->
     button_was_hit_1(X, Is);
 button_was_hit_1(_X, []) ->
-    wings_wm:send(geom, {action,{select,deselect}}),
-    try 
+    try
 	%% Try to load any new code, but ignore any errors.
 	case user_default:lm() of
-	    [] -> ok;
+	    [] -> wings_wm:send(geom, {action,{select,deselect}});
 	    Mods ->
+	        %% If modules are reloaded, then don't clear the selection.
 		{_,Ms} = lists:unzip(Mods),
-		io:fwrite("Reloaded: ~p\n", [Ms])
+		Msg = io_lib:format("Reloaded: ~p\n", [Ms]),
+		io:fwrite(Msg),
+		Fun = fun() -> wings_u:error_msg("Module(s) Reloaded"), keep end,
+		wings_wm:send(geom, {action,Fun})
 	end
     catch
 	_:_ ->
 	    %% If the beam files have been stripped (as in the Wings distribution)
 	    %% user_default:lm/0 will crash.
-	    ok
+	        wings_wm:send(geom, {action,{select,deselect}})
     end.
 
 button_help(X, #but{mode=Mode,sh=false,buttons=Buttons}) ->
