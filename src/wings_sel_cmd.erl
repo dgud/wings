@@ -85,13 +85,15 @@ menu(St) ->
 	      {?__(38,"3 Edges"),3,Help},
 	      {?__(39,"4 Edges"),4,Help},
 	      {?__(40,"5 Edges"),5,Help},
-	      {?__(401,"6 or More"),6,Help}]}},
+	      {?__(401,"6 or More"),6,Help},
+	      {?__(402,"Specify..."),specify,Help}]}},
 	   {?__(41,"Faces With"),
 	    {faces_with,
 	     [{?__(42,"2 Edges"),2,Help},
 	      {?__(43,"3 Edges"),3,Help},
 	      {?__(44,"4 Edges"),4,Help},
-	      {?__(45,"5 or More"),5,Help}]}},
+	      {?__(45,"5 or More"),5,Help},
+	      {?__(402,"Specify..."),specify,Help}]}},
 	   {?__(nq0,"Non Quadrangle Faces"),
 	    {non_quad,
 	     [{?__(nq1,"All Non Quadrangle Faces"),all,Help},
@@ -375,17 +377,15 @@ by_command(isolated_vertices, St) ->
 by_command({nonplanar_faces,Ask}, St) ->
     nonplanar_faces(Ask, St);
 by_command({vertices_with,N}, St) ->
-    {save_state,vertices_with(N, St)};
+    vertices_with(N, St);
 by_command({non_quad,all}, St) ->
     {save_state,faces_with({non_quad,all}, St)};
 by_command({non_quad,odd}, St) ->
     {save_state,faces_with({non_quad,odd}, St)};
 by_command({non_quad,even}, St) ->
     {save_state,faces_with({non_quad,even}, St)};
-by_command({faces_with,5}, St) ->
-    {save_state,faces_with({faces_with,5}, St)};
 by_command({faces_with,N}, St) ->
-    {save_state,faces_with({faces_with,N}, St)};
+    faces_with({faces_with,N}, St);
 by_command(material_edges, St) ->
     material_edges(St);
 by_command({random, Percent}, St) ->
@@ -1624,6 +1624,18 @@ hard_edges(#st{selmode=Mode}=St0) ->
 	  end,[],St),
     {save_state,wings_sel:set(edge, Sel, St0)}.
 
+vertices_with(specify, _) ->
+    Qs = [{vframe,
+           [{hframe,[{label,?__(1,"Number of Edges")},
+             {text,2,[{range,{2,1000}}]}]},
+             {hradio,[{?__(3,"More"),more},
+               {?__(4,"Less"),less},
+               {?__(5,"Exactly"),exactly}],exactly}]}],
+    wings_ask:dialog(true,
+        ?__(2,"Select Vertices"), [{hframe,Qs}],
+        fun(Res) ->
+            {select,{by,{vertices_with,Res}}}
+        end);
 vertices_with(N, #st{sel=[]}=St) ->
     Sel = fun(V, We) ->
 	  vertices_with(N, V, We)
@@ -1639,7 +1651,7 @@ vertices_with(N, #st{selmode=Mode}=St0) ->
 		    _ -> [{Id, gb_sets:from_list(Vertices)}|Acc]
 		  end
 	  end,[],St),
-    wings_sel:set(vertex, Sel, St0).
+    {save_state,wings_sel:set(vertex, Sel, St0)}.
 
 vertices_with(6, V, We) ->
     Cnt = wings_vertex:fold(
@@ -1647,14 +1659,35 @@ vertices_with(6, V, We) ->
 		  Cnt+1
 	  end, 0, V, We),
     Cnt >= 6;
-vertices_with(N, V, We) ->
+vertices_with(N, V, We) when is_integer(N) ->
     Cnt = wings_vertex:fold(
 	  fun(_, _, _, Cnt) ->
 		  Cnt+1
 	  end, 0, V, We),
-    Cnt =:= N.
+    Cnt =:= N;
+vertices_with([N,Mode], V, We) ->
+    Cnt = wings_vertex:fold(
+	  fun(_, _, _, Cnt) ->
+		  Cnt+1
+	  end, 0, V, We),
+    case Mode of
+        more -> Cnt >= N;
+        less -> Cnt =< N;
+        exactly -> Cnt =:= N
+    end.
 
-
+faces_with({faces_with,specify}, _) ->
+    Qs = [{vframe,
+           [{hframe,[{label,?__(1,"Number of Edges")},
+             {text,2,[{range,{2,1000}}]}]},
+             {hradio,[{?__(3,"More"),more},
+               {?__(4,"Less"),less},
+               {?__(5,"Exactly"),exactly}],exactly}]}],
+    wings_ask:dialog(true,
+        ?__(2,"Select Faces"), [{hframe,Qs}],
+        fun(Res) ->
+            {select,{by,{faces_with,Res}}}
+        end);
 faces_with(Filter, #st{sel=[]}=St) ->
     Sel = fun(Face, We) ->
 		  faces_with(Filter, Face, We)
@@ -1670,7 +1703,7 @@ faces_with(Filter, #st{selmode=Mode}=St0) ->
 				  _ -> [{Id,gb_sets:from_list(Faces)}|Acc]
 				end
 			end, [], St),
-	wings_sel:set(face,Sel,St0).
+	{save_state,wings_sel:set(face,Sel,St0)}.
 
 faces_with(Filter, Face, We) ->
     Vs = wings_face:vertices(Face, We),
@@ -1679,7 +1712,10 @@ faces_with(Filter, Face, We) ->
       {non_quad,odd} -> Vs rem 2 =/= 0;
       {non_quad,even} -> Vs =/= 4 andalso Vs rem 2 =:= 0;
       {faces_with,5} -> Vs >= 5;
-      {faces_with,N} -> Vs =:= N
+      {faces_with,N} when is_integer(N)-> Vs =:= N;
+      {faces_with,[N,more]} -> Vs >= N;
+      {faces_with,[N,less]} -> Vs =< N;
+      {faces_with,[N,exactly]} -> Vs =:= N
     end.
 
 select_nth_ring(#st{selmode=edge}) ->
