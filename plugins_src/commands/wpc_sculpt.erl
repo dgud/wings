@@ -36,9 +36,10 @@ init() ->
     wings_pref:set_default(sculpt_strength, 0.005),
     wings_pref:set_default(sculpt_mode, pull),
     wings_pref:set_default(sculpt_magnet, {false,1.0}),
-    wings_pref:set_default(sculpt_magnet_color,{0.0, 0.0, 1.0, 0.1}),
     wings_pref:set_default(sculpt_magnet_type, dome),
     wings_pref:set_default(sculpt_initial, false),
+    %% Delete old prefs
+    wings_pref:delete_value(sculpt_magnet_color),
     true.
 
 menu({tools}, Menu) ->
@@ -213,7 +214,13 @@ handle_magnet_event(#mousebutton{button=4,state=?SDL_RELEASED}, X, Y, Sc0) ->
 handle_magnet_event(#mousebutton{button=5,state=?SDL_RELEASED}, X, Y, Sc0) ->
     Sc = adjust_strength(-1, Sc0),
     update_magnet_handler(X, Y, Sc);
-handle_magnet_event(_, X, Y, Sc) -> update_magnet_handler(X, Y, Sc).
+handle_magnet_event(lost_focus, X, Y, #sculpt{str=Str}=Sc) ->
+    wings_pref:set_value(sculpt_strength, Str),
+    wings_io:ungrab(X, Y),
+    wings_wm:dirty(),
+    update_sculpt_handler(Sc);
+handle_magnet_event(_, X, Y, Sc) ->
+    update_magnet_handler(X, Y, Sc).
 
 %%%
 %%% Adjust Radius
@@ -223,14 +230,14 @@ adjust_magnet_radius(0, Sc) ->
     Sc;
 adjust_magnet_radius(MouseMovement, #sculpt{rad=Rad0}=Sc)
   when MouseMovement < 0 ->
-    case Rad0 - 0.025 of
+    case Rad0 - 0.05*Rad0 of
     Rad when Rad >= 0.01 ->
         Sc#sculpt{rad=Rad};
     _otherwise ->
         Sc#sculpt{rad=0.01}
     end;
 adjust_magnet_radius(_, #sculpt{rad=Rad0}=Sc) ->
-    Rad = Rad0 + 0.025,
+    Rad = Rad0 + 0.05*Rad0,
     Sc#sculpt{rad=Rad}.
 
 %%%
@@ -240,16 +247,22 @@ adjust_magnet_radius(_, #sculpt{rad=Rad0}=Sc) ->
 adjust_strength(0, Sc) ->
     Sc;
 adjust_strength(MouseMovement, #sculpt{str=Str0}=Sc) when MouseMovement < 0 ->
-    case Str0 - 0.001 of
-    Str when Str > 0.001 ->
-        Sc#sculpt{str=Str};
-    _otherwise -> Sc#sculpt{str=0.001}
+    case Str0 - strength_increment() of
+        Str when Str > 0.001 ->
+            Sc#sculpt{str=Str};
+        _otherwise -> Sc#sculpt{str=0.001}
     end;
 adjust_strength(_, #sculpt{str=Str0}=Sc) ->
-   case Str0 + 0.001 of
-    Str when Str < 0.01 ->
-        Sc#sculpt{str=Str};
-    _otherwise -> Sc#sculpt{str=0.01}
+    case Str0 + strength_increment() of
+        Str when Str < 0.1 ->
+            Sc#sculpt{str=Str};
+        _otherwise -> Sc#sculpt{str=0.1}
+    end.
+
+strength_increment() ->
+    case wings_io:is_modkey_pressed(?SHIFT_BITS) of
+        true -> 0.01;
+        false -> 0.001
     end.
 
 %%%
@@ -258,7 +271,6 @@ adjust_strength(_, #sculpt{str=Str0}=Sc) ->
 
 draw_magnet(X, Y, #sculpt{rad=Rad,str=Str,st=#st{shapes=Shs}=St}) ->
     {LX,LY} = wings_wm:global2local(X, Y),
-    Alpha = Str*100,
     {Xm,Ym,Zm} = case wings_pick:raw_pick(LX, LY, St#st{selmode=face,sel=[],sh=false}) of
       {_,Side,{Id,Face}} ->
           #we{mirror=Mir}=We = gb_trees:get(Id, Shs),
@@ -279,8 +291,8 @@ draw_magnet(X, Y, #sculpt{rad=Rad,str=Str,st=#st{shapes=Shs}=St}) ->
     gl:enable(?GL_BLEND),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     wings_view:load_matrices(false),
-    {R,G,B,A} = wings_pref:get_value(sculpt_magnet_color),
-    wings_io:set_color({R*Alpha,G*Alpha,B*Alpha,A}),
+    P = Str*10,
+    wings_io:set_color({1.0*P,0.0,1.0/P,0.1}),
     gl:translatef(Xm, Ym, Zm),
     Obj = glu:newQuadric(),
     glu:sphere(Obj, Rad, 40, 40),
@@ -558,7 +570,10 @@ smooth(V, Pos, Inf, Str, Mir, #we{id=Id}=We, Vtab) ->
     array:set(V, NewPos, Vtab).
 
 pinch(V, Pos, Cnt, Inf, Str, Mir, #we{id=Id}, Vtab) ->
-    Vec = e3d_vec:sub(Cnt, Pos),
+    Vec = case wings_io:is_modkey_pressed(?CTRL_BITS) of
+          false -> e3d_vec:sub(Cnt, Pos);
+          true -> e3d_vec:sub(Pos, Cnt)
+    end,
     NewPos0 = e3d_vec:add_prod(Pos, Vec, Str*Inf),
     NewPos = handle_mirror(Id, V, NewPos0, Mir),
     array:set(V, NewPos, Vtab).
@@ -680,7 +695,9 @@ exit_sculpt(#sculpt{mag=Mag,mag_type=MagType,str=Str,rad=Rad,mode=Mode,st=#st{sh
 help(#sculpt{mag=Mag,rad=Rad,mag_type=MagType,str=Str,mode=Mode}) ->
     ModeMsg =
         case Mode of
-            pinch -> mode(pinch);
+            pinch ->
+              Pinch = mode(pinch),
+              Pinch++" "++?__(12,"(Hold [Ctrl]: Inflate)");
             smooth -> mode(smooth);
             _ ->
               Pull = mode(pull),
@@ -690,7 +707,7 @@ help(#sculpt{mag=Mag,rad=Rad,mag_type=MagType,str=Str,mode=Mode}) ->
     Menu = ?__(2,"[Ctrl]+R: Sculpt Menu"),
     MagnetType = io_lib:format(?__(3,"Magnet: ~s"),[magtype(MagType)]),
     Radius = ?__(4,"R+Drag: Adjust Radius"),
-    Strength = ?__(5,"R+Scroll: ")  ++ ?__(6,"Adjust Strength"),
+    Strength = ?__(5,"R+Scroll(+[Shift]): ")  ++ ?__(6,"Adjust Strength"),
     Exit = "[Esc]: " ++ exit_string(),
     StatusBar = io_lib:format(?__(7,"Strength: ~p")++"  "++
                               ?__(8,"Radius: ~s"),
@@ -700,7 +717,9 @@ help(#sculpt{mag=Mag,rad=Rad,mag_type=MagType,str=Str,mode=Mode}) ->
                                    MagnetType;
                                   true -> ?__(9,"None (Magnet is off)")
                                end]),
-    wings_io:info(wings_msg:join([?__(10,"Sculpt Mode")++": "++ModeMsg, StatusBar])),
+    {_,H} = wings_wm:win_size(),
+    LLine = wings_msg:join([?__(10,"Sculpt Mode")++": "++ModeMsg, StatusBar]),
+    wings_io:info(0, H-?LINE_HEIGHT-3, LLine),
     wings_wm:message(wings_msg:join([Sculpt,Menu,Exit]),
                      wings_msg:join([Radius,Strength])).
 
@@ -713,7 +732,8 @@ magtype(absolute) -> ?__(5,"Absolute").
 mode(push) -> ?__(1,"Push");
 mode(pull) -> ?__(2,"Pull");
 mode(pinch) -> ?__(3,"Pinch");
-mode(smooth) -> ?__(4,"Smooth").
+mode(smooth) -> ?__(4,"Smooth");
+mode(inflate) -> ?__(5,"Inflate").
 
 exit_string() -> ?__(1,"Exit").
 
@@ -725,10 +745,8 @@ prefs(#sculpt{str=Str}) ->
     Strength = trunc(Str/0.001),
     Confine = wings_pref:get_value(sculpt_initial),
     Menu = [{vframe,
-      [{hframe,[{slider,{text,Strength,[{key,sculpt_strength},{range,{1,10}}]}}],
-         [{title,?__(1,"Strength")}]}]},
-       {label_column,
-         [{color,?__(2,"Magnet Radius Display Color"),sculpt_magnet_color}]}],
+      [{hframe,[{slider,{text,Strength,[{key,sculpt_strength},{range,{1,100}}]}}],
+         [{title,?__(1,"Strength")}]}]}],
     C = [separator,{?__(3,"Confine sculpt to initial object"),
           Confine,[{key,sculpt_initial}]}],
     PrefQs = [{Lbl, make_query(Ps)} || {Lbl, Ps} <- Menu] ++ C,
@@ -761,7 +779,7 @@ sculpt_menu(X0, Y0) ->
 
 sculpt_menu() ->
     [{mode(push)++"/"++mode(pull),pull},
-     {mode(pinch),pinch},
+     {mode(pinch)++"/"++mode(inflate),pinch},
      {mode(smooth),smooth},
      separator,
      {magtype(dome),dome},
