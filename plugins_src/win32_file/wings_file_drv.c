@@ -5,7 +5,7 @@
  *     Erlang driver for native file dialog boxes for Win32.
  *
  *  Copyright (c) 2001 Patrik Nyblom
- *                2008 Bjorn Gustavsson
+ *                2008-2010 Bjorn Gustavsson
  *
  *  See the file "license.terms" for information on usage and redistribution
  *  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

@@ -3,7 +3,7 @@
  *
  *     Erlang driver for picking.
  *
- *  Copyright (c) 2009 Bjorn Gustavsson
+ *  Copyright (c) 2009-2010 Bjorn Gustavsson
  *
  *  See the file "license.terms" for information on usage and redistribution
  *  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

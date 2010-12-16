@@ -8,7 +8,7 @@
 %% ftp://ftp.expa.fnt.hvu.nl/pub/ammeraal/English/older/ppcgraph.zip
 %% ftp://ftp.expa.fnt.hvu.nl/pub/ammeraal/English/grjava.zip
 %%
-%% Copyright (c) 2003-2008 Dmitry Efremov <defremov@aha.ru>
+%% Copyright (c) 2003-2010 Dmitry Efremov <defremov@aha.ru>
 %%
 %% BUGS:
 %%  Near clipping will not work correctly if occurs in the viewport

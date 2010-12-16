@@ -3,7 +3,7 @@
 %%
 %%     A semi-simple semi-automatic UV-mapping semi-plugin.
 %%
-%%  Copyright (c) 2001-2008 Jakob Cederlund, Bjorn Gustavsson
+%%  Copyright (c) 2001-2010 Jakob Cederlund, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

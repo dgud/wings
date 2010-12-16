@@ -3,7 +3,7 @@
 %%
 %%     More transformation matrix utilities
 %%
-%%  Copyright (c) 2019 Dan Gudmundsson
+%%  Copyright (c) 2010 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

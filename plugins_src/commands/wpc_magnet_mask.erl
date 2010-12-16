@@ -6,7 +6,7 @@
 %%     store vextex data.  The vertex data is renumerbered when the objects are
 %%     merged or saved.
 %%
-%%  Copyright (c) 2009 Richard Jones.
+%%  Copyright (c) 2009-2010 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

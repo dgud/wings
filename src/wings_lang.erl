@@ -4,7 +4,7 @@
 %%     Implementation of languages.
 %%
 %%  Copyright (c) 2004 Riccardo Venier, Dan Gudmundsson
-%%                2004-2009 Dan Gudmundsson, Bjorn Gustavsson
+%%                2004-2010 Dan Gudmundsson, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

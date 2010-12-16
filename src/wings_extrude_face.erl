@@ -3,7 +3,7 @@
 %%
 %%     This module contains the Extrude command for faces and face regions.
 %%
-%%  Copyright (c) 2001-2009 Bjorn Gustavsson
+%%  Copyright (c) 2001-2010 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
