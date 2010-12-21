@@ -908,9 +908,11 @@ weld_part([F|Fs], Tol, We) ->
 weld_part([], _, We) -> We.
 
 weld_part_1(Fa, [Fb|Fs], Tol, We0, Acc) ->
-    case try_weld(Fa, Fb, Tol, We0) of
+    case catch try_weld(Fa, Fb, Tol, We0) of
 	We0 -> weld_part_1(Fa, Fs, Tol, We0, [Fb|Acc]);
-	We -> weld_part(Fs++Acc, Tol, We)
+	#we{}=We -> weld_part(Fs++Acc, Tol, We);
+	_ ->
+	    weld_error()
     end;
 weld_part_1(_, [], Tol, We, Acc) ->
     weld_part(Acc, Tol, We).
@@ -1067,6 +1069,9 @@ connect_and_collapse(Face, [{Va,Vb}|CPList], NVs, StoredFs, We0) ->
             connect_and_collapse(NewFace, CPList, NVs, StoredFs, We2)
         end
     end.
+
+weld_error() ->
+    wings_u:error_msg(?__(1,"Weld could not be resolved")).
 
 % Assume if Va is in the face then Vb is as well
 get_pairs_for_this_face([{Va,Vb}|CPList],FVs) ->
