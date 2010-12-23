@@ -612,9 +612,10 @@ recent_files(Tail) ->
 	    recent_files_1(Files, 1, Help, [separator|Tail])
     end.
 
-recent_files_1([{Base0,_}|T], I, Help, Tail) ->
+recent_files_1([{Base0,Base1}|T], I, Help0, Tail) ->
     Base = wings_u:pretty_filename(Base0),
-    [{Base,I,Help}|recent_files_1(T, I+1, Help, Tail)];
+    Help = lists:flatten([Help0," -- "|wings_u:pretty_filename(Base1)]),
+    [{Base,I,Help}|recent_files_1(T, I+1, Help0, Tail)];
 recent_files_1([], _, _, Tail) -> Tail.
 
 %%
