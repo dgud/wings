@@ -219,39 +219,30 @@ get_tweak_cam_event(Sym, Camera, St) ->
 
 tweak_cam_event(#mousemotion{x=X0,y=Y0}, Sym, Camera0, St) ->
     case wings_io:is_key_pressed(Sym) of
-      true when Sym =:= $c ->
-        {Dx,Dy,Camera} = camera_mouse_range(X0, Y0, Camera0),
-        rotate(Dx,Dy),
-        wings_wm:dirty(),
-        get_tweak_cam_event(Sym, Camera, St);
-      true when Sym =:= $s ->
-        {Dx,Dy,Camera} = camera_mouse_range(X0, Y0, Camera0),
-        pan(Dx,Dy),
-        wings_wm:dirty(),
-        get_tweak_cam_event(Sym, Camera, St);
-      true when Sym =:= $d ->
-        {_,Dy,Camera} = camera_mouse_range(X0, Y0, Camera0),
-        zoom(Dy),
-        wings_wm:dirty(),
-        get_tweak_cam_event(Sym, Camera, St);
+      true  ->
+          {Dx,Dy,Camera} = camera_mouse_range(X0, Y0, Camera0),
+          case Sym of
+              $c -> rotate(Dx,Dy);
+              $s -> pan(Dx,Dy);
+              $d -> zoom(Dy)
+          end,
+          wings_wm:dirty(),
+          get_tweak_cam_event(Sym, Camera, St);
       false ->
         quit_tweak_cam()
      end;
-tweak_cam_event(redraw, _Sym, _Camera, St) ->
-    wings:redraw(St),
-    keep;
 tweak_cam_event(#mousebutton{button=B,state=?SDL_RELEASED}=Ev, Sym, Camera, St)
   when B =< 3->
     case wings_io:is_key_pressed(Sym) of
       true ->
-        generic_event(Ev, Camera, St);
+        generic_event(Ev, Camera, #state{st=St, func=none});
       false ->
         quit_tweak_cam()
      end;
 tweak_cam_event(Ev, Sym, Camera, St) ->
     case wings_io:is_key_pressed(Sym) of
       true ->
-        generic_event(Ev, Camera, St);
+        generic_event(Ev, Camera, #state{st=St, func=none});
       false ->
         quit_tweak_cam()
      end.

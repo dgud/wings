@@ -748,9 +748,9 @@ command_1({window,console}, _St) ->
     wings_console:window(),
     keep;
 command_1({window,tweak_palette}, St) ->
-    wings_tweak:window(St),
-    wings_tweak:mag_window(St),
-    wings_tweak:axis_window(St),
+    wings_tweak:palette(tweak_palette, St),
+    wings_tweak:palette(mag_palette, St),
+    wings_tweak:palette(axis_palette, St),
     keep;
 
 %% Body menu.
@@ -1652,14 +1652,14 @@ restore_windows_1([{console,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
 restore_windows_1([{palette,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
     wings_palette:window(validate_pos(Pos), Size, Ps, St),
     restore_windows_1(Ws, St);
-restore_windows_1([{{tweak, palette},{_,_}=Pos, _, Ps}|Ws], St) ->
-    wings_tweak:window(validate_pos(Pos), Ps, St),
+restore_windows_1([{{tweak, tweak_palette},{_,_}=Pos, _, Ps}|Ws], St) ->
+    wings_tweak:palette(tweak_palette, validate_pos(Pos), Ps, St),
     restore_windows_1(Ws, St);
 restore_windows_1([{{tweak, mag_palette},{_,_}=Pos, _, Ps}|Ws], St) ->
-    wings_tweak:mag_window(validate_pos(Pos), Ps, St),
+    wings_tweak:palette(mag_palette, validate_pos(Pos), Ps, St),
     restore_windows_1(Ws, St);
 restore_windows_1([{{tweak, axis_palette},{_,_}=Pos, _, Ps}|Ws], St) ->
-    wings_tweak:axis_window(validate_pos(Pos), Ps, St),
+    wings_tweak:palette(axis_palette, validate_pos(Pos), Ps, St),
     restore_windows_1(Ws, St);
 restore_windows_1([_|Ws], St) ->
     restore_windows_1(Ws, St);
