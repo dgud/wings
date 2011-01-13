@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for Doo-Sabin subdivision according to Wasamonkey.
 %%
-%%  Copyright (c) 2005-2010 Dan Gudmundsson, Wasamonkey
+%%  Copyright (c) 2005-2011 Dan Gudmundsson, Wasamonkey
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

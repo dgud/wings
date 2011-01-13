@@ -3,7 +3,7 @@
 %%
 %%     Segmentation UI for AutoUV.
 %%
-%%  Copyright (c) 2002-2010 Dan Gudmundsson, Bjorn Gustavsson
+%%  Copyright (c) 2002-2011 Dan Gudmundsson, Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

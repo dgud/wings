@@ -3,7 +3,7 @@
 %%
 %%     Plug-in for scale -> absolute
 %%
-%%  Copyright (c) 2006-2010 Andrzej Giniewicz
+%%  Copyright (c) 2006-2011 Andrzej Giniewicz
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

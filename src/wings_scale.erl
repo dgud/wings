@@ -6,7 +6,7 @@
 %%
 %%     -- Inset removed at revision 388 and replaced by wpc_contour.erl --
 %%
-%%  Copyright (c) 2001-2010 Bjorn Gustavsson.
+%%  Copyright (c) 2001-2011 Bjorn Gustavsson.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

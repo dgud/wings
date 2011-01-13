@@ -1,10 +1,10 @@
 %%%-------------------------------------------------------------------
 %%% @author Dan Gudmundsson <dgud@erlang.org>
-%%% @copyright (C) 2010, Dan Gudmundsson
+%%% @copyright (C) 2010-2011, Dan Gudmundsson
 %%% @doc  Some test cases for qbvh
 %%%
 %%% @end
-%%% Created :  9 Jun 2010 by Dan Gudmundsson <dgud@erlang.org>
+%%% Created :  9 Jun 2010-2011 by Dan Gudmundsson <dgud@erlang.org>
 %%%-------------------------------------------------------------------
 -module(qbvh).
 

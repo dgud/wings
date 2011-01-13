@@ -3,7 +3,7 @@
 %%
 %%     Dialog boxes.
 %%
-%%  Copyright (c) 2002-2010 Bjorn Gustavsson
+%%  Copyright (c) 2002-2011 Bjorn Gustavsson
 %%	          2003-2006 Raimo Niskanen
 %%
 %%  See the file "license.terms" for information on usage and redistribution

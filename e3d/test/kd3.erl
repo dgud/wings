@@ -1,6 +1,6 @@
 %%%-------------------------------------------------------------------
 %%% @author Dan Gudmundsson <dan.gudmundsson@ericsson.com>
-%%% @copyright (C) 2009-2010, Dan Gudmundsson
+%%% @copyright (C) 2009-2011, Dan Gudmundsson
 %%% @doc
 %%%
 %%% @end

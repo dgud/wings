@@ -3,7 +3,7 @@
 %%
 %%     A plugin to add a few basic sculpting tools.
 %%
-%%  Copyright (c) 2010 Richard Jones
+%%  Copyright (c) 2010-2011 Richard Jones
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

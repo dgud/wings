@@ -3,7 +3,7 @@
 %%
 %%     Kerkythea Plugin User Interface.
 %%
-%%  Copyright (c) 2007-2010 Chris Hegarty
+%%  Copyright (c) 2007-2011 Chris Hegarty
 %%
 %%     $Id$
 %%

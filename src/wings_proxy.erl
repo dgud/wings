@@ -3,7 +3,7 @@
 %%
 %%     This module implements the smooth proxy.
 %%
-%%  Copyright (c) 2001-2010 Bjorn Gustavsson & Dan Gudmundsson
+%%  Copyright (c) 2001-2011 Bjorn Gustavsson & Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

@@ -4,7 +4,7 @@
 %%     Utility module for stripping debug information from beam files
 %%     in the current working directory and in all sub-directories.
 %%
-%%  Copyright (c) 2003-2010 Bjorn Gustavsson
+%%  Copyright (c) 2003-2011 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
