@@ -38,7 +38,7 @@ ambient_occlusion(St) ->
     EndTime = now(),
     Seconds = timer:now_diff(EndTime,StartTime)/1.0e6,
     VidCard = gl:getString(?GL_RENDERER),
-    io:fwrite("OpenGL AmbOcc GL2 time: ~.1fs (~s)\n", [Seconds,VidCard]),
+    io:fwrite(?__(1,"OpenGL AmbOcc GL2 time: ~.1fs (~s)\n"), [Seconds,VidCard]),
     St2.
 
 setup_gl() ->
@@ -69,13 +69,13 @@ process_obj(We, _) when ?IS_NOT_VISIBLE(We#we.perm) ->
 process_obj(We, _) when ?IS_NOT_SELECTABLE(We#we.perm) ->
     We;
 process_obj(We, _) when ?IS_ANY_LIGHT(We) ->
-    case We#we.name =/= "Ambient" of
+    case We#we.name =/= wpc_ambocc:ambient() of
 	true -> We#we{perm=[]};
 	false -> We
     end;
 process_obj(We0, AO) ->
     #we{es=Etab,vp=Vtab,name=Name} = We0,
-    io:fwrite("Processing: ~s\n", [Name]),
+    io:fwrite(?__(1,"Processing: ~s\n"), [Name]),
     gl:clear(?GL_COLOR_BUFFER_BIT  bor ?GL_DEPTH_BUFFER_BIT),
     VertexColors = calc_ao(array:sparse_to_orddict(Vtab), We0, AO, []),
     SetColor = fun(Edge, #edge{vs=Va,ve=Vb}, W) ->

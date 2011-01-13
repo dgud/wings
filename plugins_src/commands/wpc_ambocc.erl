@@ -20,7 +20,7 @@
 
 %% Reused by ambocc_gl2.erl
 -export([make_disp_list/1, get_up_right/1, render_hemicube/5,
-	 get_ao_factor/1]).
+	 get_ao_factor/1, ambient/0]).
 
 
 -define(NEED_OPENGL, 1).
@@ -30,8 +30,8 @@ init() ->
     true.
 
 menu({tools}, Menu) ->
-    Menu ++ [separator,{"Ambient Occlusion",ambient_occlusion,
-			"Add Ambient-Occlusion vertex colors via OpenGL"}];
+    Menu ++ [separator,{?__(1,"Ambient Occlusion"),ambient_occlusion,
+			?__(2,"Add Ambient-Occlusion vertex colors via OpenGL")}];
 menu(_, Menu) -> Menu.
 
 command({tools,ambient_occlusion}, St0) ->
@@ -58,7 +58,7 @@ ambient_occlusion(St) ->
     EndTime = now(),
     Seconds = timer:now_diff(EndTime,StartTime)/1.0e6,
     VidCard = gl:getString(?GL_RENDERER),
-    io:fwrite("OpenGL AmbOcc time: ~.1fs (~s)\n", [Seconds,VidCard]),
+    io:fwrite(?__(1,"OpenGL AmbOcc time: ~.1fs (~s)\n"), [Seconds,VidCard]),
     St2.
 
 process_obj(We, _) when ?IS_NOT_VISIBLE(We#we.perm) ->
@@ -66,13 +66,13 @@ process_obj(We, _) when ?IS_NOT_VISIBLE(We#we.perm) ->
 process_obj(We, _) when ?IS_NOT_SELECTABLE(We#we.perm) ->
     We;
 process_obj(We, _) when ?IS_ANY_LIGHT(We) ->
-    case We#we.name =/= "Ambient" of
+    case We#we.name =/= ambient() of
 	true -> We#we{perm=[]};
 	false -> We
     end;
 process_obj(We0, DispList) ->
     #we{es=Etab,vp=Vtab,name=Name} = We0,
-    io:fwrite("Processing: ~s\n", [Name]),
+    io:fwrite(?__(1,"Processing: ~s\n"), [Name]),
     GetColor =
 	fun(Key,_Val) ->
 		Eye = wings_vertex:pos(Key,We0) ,
@@ -195,11 +195,14 @@ render_view(Eye, Lookat, Up, Frustum, Viewport, DispList) ->
 create_ambient_light(St) ->
     wings_pref:set_value(scene_lights, true),
     SceneLights = wings_light:export(St),
-    case proplists:is_defined("Ambient", SceneLights) of
+    case proplists:is_defined(ambient(), SceneLights) of
 	true ->
 	    St;
 	false ->
 	    White = {1.0,1.0,1.0,1.0},
-	    Lights = [{"Ambient",[{opengl,[{type,ambient},{ambient,White}]}]}],
+	    Lights = [{ambient(),[{opengl,[{type,ambient},{ambient,White}]}]}],
 	    wings_light:import(Lights,St)
     end.
+
+ambient() ->
+    ?__(1,"Ambient").
