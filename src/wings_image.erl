@@ -22,8 +22,9 @@
 	 update/2,update_filename/2,draw_preview/5,
 	 window/1]).
 -export([image_formats/0,image_read/1,image_write/1]).
-
 -export([loop/1]).
+-export([maybe_exceds_opengl_caps/1]).
+
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 -include("e3d_image.hrl").
@@ -257,6 +258,8 @@ loop(S0) ->
     receive
 	{Client,Ref,Req} ->
 	    case handle(Req, S0) of
+		{{error,_GlErr}=Err,S} ->
+		    Client ! {Ref,Err};
 		#ist{}=S ->
 		    Client ! {Ref,ok};
 		{Resp,S} ->
@@ -281,11 +284,14 @@ handle({new,#e3d_image{name=Name0}=Im0,false}, #ist{next=Id,images=Images0}=S) -
     Name = make_unique(Name0, Images0),
     Im = maybe_convert(Im0#e3d_image{name=Name}),
     Images = gb_trees:insert(Id, Im, Images0),
-    make_texture(Id, Im),
-    {Id,S#ist{next=Id+1,images=Images}};
+    case make_texture(Id, Im) of
+	{error,_GlErr}=Err ->
+	    {Err,S};
+	_ ->
+	    {Id,S#ist{next=Id+1,images=Images}}
+    end;
 handle({new,#e3d_image{name=Name}=Im,true}, #ist{images=Images}=S0) ->
-    Prev = [Id || {Id,#e3d_image{name=N}} <- gb_trees:to_list(Images),
-		 N =:= Name],
+    Prev = [Id || {Id,#e3d_image{name=N}} <- gb_trees:to_list(Images), N =:= Name],
     case Prev of
 	[] ->
 	    handle({new,Im,false}, S0);
@@ -306,7 +312,7 @@ handle({txid,Id}, S) ->
      end,S};
 handle({bumpid,Id}, S) ->
     {case get({Id,bump}) of
-	 undefined -> 
+	 undefined ->
 	     create_bump(Id,undefined,S);
 	 TxId -> 
 	     TxId
@@ -503,59 +509,116 @@ init_background_tx() ->
     put(background, init_texture(Im)).
 
 make_texture(Id, Image) ->
-    TxId = init_texture(Image),
-    put(Id, TxId),
-    TxId.
+    case init_texture(Image) of
+	{error,_}=Error ->
+	    Error;
+	TxId ->
+	    put(Id, TxId),
+	    TxId
+    end.
 
 init_texture(Image) ->
     case get(wings_not_running) of
-	true -> 0;
-	_ ->
-	    [TxId] = gl:genTextures(1),
-	    init_texture(Image, TxId)
+        true -> 0;
+        _ ->
+            [TxId] = gl:genTextures(1),
+            case init_texture(Image, TxId) of
+                {error,_}=Error ->
+                    gl:deleteTextures(1, [TxId]),
+                    Error;
+                Other ->
+                    Other
+            end
     end.
 
 init_texture(Image0, TxId) ->
-    Image = maybe_scale(Image0),
-    #e3d_image{width=W,height=H,image=Bits} = Image,
-    gl:pushAttrib(?GL_TEXTURE_BIT),
-    gl:enable(?GL_TEXTURE_2D),
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    case wings_gl:is_ext({1,4},'GL_SGIS_generate_mipmap') of
-	true -> 
-	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, ?GL_TRUE),
-	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, 
-			     ?GL_LINEAR_MIPMAP_LINEAR);
-	false ->
-	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR)
-    end,
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
-    Format = texture_format(Image),
-    gl:texImage2D(?GL_TEXTURE_2D, 0, internal_format(Format),
-		  W, H, 0, Format, ?GL_UNSIGNED_BYTE, Bits),
-    gl:popAttrib(),
-    TxId.
-
-maybe_scale(#e3d_image{width=W0,height=H0,bytes_pp=BytesPerPixel,
-		       image=Bits0}=Image) ->
-%%    case wings_gl:is_ext({2,0}, 'GL_ARB_texture_non_power_of_two') of
-%%  Aarg ATI doesn't support ARB_NPOT textures, though it report GL_VER >= 2.0
-    case wings_gl:is_ext('GL_ARB_texture_non_power_of_two') of
-	true -> Image;
-	false ->
-	    case {nearest_power_two(W0),nearest_power_two(H0)} of
-		{W0,H0} -> Image;
-		{W,H} ->
-		    Out = wings_io:get_buffer(BytesPerPixel*W*H, ?GL_UNSIGNED_BYTE),
-		    Format = texture_format(Image),
-		    glu:scaleImage(Format, W0, H0, ?GL_UNSIGNED_BYTE,
-				   Bits0, W, H, ?GL_UNSIGNED_BYTE, Out),
-		    Bits = wings_io:get_bin(Out),
-		    Image#e3d_image{width=W,height=H,image=Bits}
-	    end
+    case maybe_scale(Image0) of
+        {error,_}=Error ->
+            Error;
+        Image ->
+            #e3d_image{width=W,height=H,image=Bits} = Image,
+            gl:pushAttrib(?GL_TEXTURE_BIT),
+            gl:enable(?GL_TEXTURE_2D),
+            gl:bindTexture(?GL_TEXTURE_2D, TxId),
+            case wings_gl:is_ext({1,4},'GL_SGIS_generate_mipmap') of
+              true ->
+                gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, ?GL_TRUE),
+                gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER,
+                                 ?GL_LINEAR_MIPMAP_LINEAR);
+              false ->
+                gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR)
+            end,
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
+            Format = texture_format(Image),
+            gl:texImage2D(?GL_TEXTURE_2D, 0, internal_format(Format),
+                    W, H, 0, Format, ?GL_UNSIGNED_BYTE, Bits),
+            gl:popAttrib(),
+            TxId
     end.
+
+maybe_scale(#e3d_image{width=W0,height=H0}=Image) ->
+%%  case wings_gl:is_ext({2,0}, 'GL_ARB_texture_non_power_of_two') of
+%%  Aarg ATI doesn't support ARB_NPOT textures, though it report GL_VER >= 2.0
+    case maybe_exceds_opengl_caps(Image) of
+        {error,_}=Error ->
+            Error;
+        Image1 ->
+            #e3d_image{width=W1,height=H1}=Image1,
+            case {W1,H1} of
+                {W0,H0} ->
+                    GL_ARB = wings_gl:is_ext('GL_ARB_texture_non_power_of_two');
+                {_,_} -> GL_ARB = false
+            end,
+            case GL_ARB of
+                true ->
+                    Image;
+                false ->
+                    case {nearest_power_two(W1),nearest_power_two(H1)} of
+                        {W1,H1} ->
+                            Image1;
+                        {W,H} ->
+                            resize_image(Image1, W, H)
+                    end
+            end
+    end.
+
+maybe_exceds_opengl_caps(#e3d_image{width=W0,height=H0}=Image) ->
+    MaxSize = lists:last(gl:getIntegerv(?GL_MAX_TEXTURE_SIZE)),
+    case need_resize_image(W0, H0, MaxSize) of
+        true ->
+            ScaleFactor = case W0 > H0 of
+                true ->
+                    MaxSize/W0;
+                false ->
+                    MaxSize/H0
+            end,
+            W = trunc(W0*ScaleFactor),
+            H = trunc(H0*ScaleFactor),
+            resize_image(Image, W, H);
+        false ->
+            Image
+    end.
+
+resize_image(#e3d_image{width=W0,height=H0,bytes_pp=BytesPerPixel,
+  image=Bits0}=Image, W, H) ->
+    Out = wings_io:get_buffer(BytesPerPixel*W*H, ?GL_UNSIGNED_BYTE),
+    Format = texture_format(Image),
+    GlErr =glu:scaleImage(Format, W0, H0, ?GL_UNSIGNED_BYTE,
+        Bits0, W, H, ?GL_UNSIGNED_BYTE, Out),
+    case GlErr of
+        0 ->
+            Bits = wings_io:get_bin(Out),
+            Image#e3d_image{width=W,height=H,bytes_pp=BytesPerPixel,image=Bits};
+        _ ->
+            {error,GlErr}
+    end.
+
+need_resize_image(W, H, Max) when W > Max; H > Max ->
+    true;
+need_resize_image(_, _, _) ->
+    false.
 
 nearest_power_two(N) when (N band -N) =:= N -> N;
 nearest_power_two(N) -> nearest_power_two(N, 1).
@@ -619,7 +682,7 @@ do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
     Im0 = #e3d_image{filename=File,name=OldName} = gb_trees:get(Id, Images0),
     Name = if is_list(NewName), length(NewName) > 2 -> NewName;
 	      true -> OldName
-	   end,	       
+	   end,
     Im   = maybe_convert(In#e3d_image{filename=File, name=Name}),
     TxId = get(Id),
     Images = gb_trees:update(Id, Im, Images0),
@@ -630,13 +693,13 @@ do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
 	    gl:texSubImage2D(?GL_TEXTURE_2D, 0, 0, 0,
 			     W, H, texture_format(Im), 
 			     ?GL_UNSIGNED_BYTE, Im#e3d_image.image);
-	_ ->	    
+	_ ->
 	    init_texture(Im, TxId)
     end,
     case get({Id,bump}) of
-	undefined ->     
+	undefined ->
 	    S#ist{images=Images};
-	Bid -> 
+	Bid ->
 	    create_bump(Id, Bid, S#ist{images=Images}),
 	    S#ist{images=Images}
     end.

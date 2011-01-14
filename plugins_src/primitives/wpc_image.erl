@@ -60,25 +60,26 @@ make_image(Name) ->
 
 make_image_1(Name0, #e3d_image{type=Type}=Image0) ->
     %% Convert to the format that wings_image wants before padding (faster).
-    Image1 = e3d_image:convert(Image0, img_type(Type), 1, lower_left),
-    Name = filename:rootname(filename:basename(Name0)),
-    #e3d_image{width=W0,height=H0} = Image1,
-    Image = case pad_image(Image1) of
-		Image1 ->
-		    %% The image was not padded, therefore it is safe
-		    %% to keep the image as external.
-		    Image0;
-		Image2 ->
-		    %% The image has been padded. We must make sure that
-		    %% the new image is saved - so force it to be internal.
-		    Image2#e3d_image{filename=none}
-	    end,
-    #e3d_image{width=W,height=H} = Image,
-    ImageId = wings_image:new(Name, Image),
-    case can_texture_be_loaded(Image) of
-	false ->
-	    wpa:error_msg(?__(1,"The image cannot be loaded as a texture (it is probably too large)."));
-	true ->
+	case wings_image:maybe_exceds_opengl_caps(Image0) of
+    {error,GlErr} ->
+	    wpa:error_msg(?__(1,"The image cannot be loaded as a texture.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"),
+		      [Name0,GlErr, glu:errorString(GlErr)]);
+	Image0i -> 
+		Image1 = e3d_image:convert(Image0i, img_type(Type), 1, lower_left),
+		Name = filename:rootname(filename:basename(Name0)),
+		#e3d_image{width=W0,height=H0} = Image1,
+		Image = case pad_image(Image1) of
+			Image1 ->
+				%% The image was not padded, therefore it is safe
+				%% to keep the image as external.
+				Image0;
+			Image2 ->
+				%% The image has been padded. We must make sure that
+				%% the new image is saved - so force it to be internal.
+				Image2#e3d_image{filename=none}
+			end,
+		#e3d_image{width=W,height=H} = Image,
+		ImageId = wings_image:new(Name, Image),
 	    MaxU = W0/W,
 	    MaxV = H0/H,
 	    M = [image],
@@ -117,12 +118,6 @@ ratio(D, D) -> {1.0,1.0};
 ratio(W, H) when W < H -> {1.0,H/W};
 ratio(W, H) -> {W/H,1.0}.
     
-can_texture_be_loaded(#e3d_image{width=W,height=H,image=Pixels}) ->
-    gl:texImage2D(?GL_PROXY_TEXTURE_2D, 0, ?GL_RGB,
-		  W, H, 0, ?GL_RGB, ?GL_UNSIGNED_BYTE, Pixels),
-    W == gl:getTexLevelParameteriv(?GL_PROXY_TEXTURE_2D, 0,
-				   ?GL_TEXTURE_WIDTH).
-
 pad_image(#e3d_image{width=W0,image=Pixels0,bytes_pp=PP}=Image) ->
     case nearest_power_two(W0) of
 	W0 ->

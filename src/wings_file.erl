@@ -660,8 +660,14 @@ import_image(Name) ->
 	Im when is_integer(Im) ->
 	    keep;
 	{error,Error} ->
-	    wings_u:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
-			     [Name,file:format_error(Error)])
+		case Error of
+		100902 -> % GLU_OUT_OF_MEMORY
+			wings_u:error_msg(?__(2,"The image cannot be loaded.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"),
+				  	[Name,Error, glu:errorString(Error)]);
+		_ ->
+	    	wings_u:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
+				     [Name,file:format_error(Error)])
+		end
     end.
 
 %%
