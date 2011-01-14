@@ -730,12 +730,6 @@ lines(#ost{lh=Lh}) ->
 title() ->
     ?__(1,"Outliner").
 
-rename(Id, Name) ->
-    {NewName,_} = lists:splitwith(fun(Char) ->
-        case Char of
-          $\ -> false;
-          $/ -> false;
-          _ -> true
-        end
-      end, reverse(Name)),
-    wings_image:rename(Id, reverse(NewName)).
+rename(Id, File) ->
+    Name = filename:rootname(filename:basename(File)),
+    wings_image:rename(Id, Name).
