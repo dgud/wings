@@ -410,9 +410,13 @@ get_menu_event(Mi) ->
 
 handle_menu_event(redraw, Mi) ->
     redraw(Mi),
-    {_,X,Y} = wings_wm:local_mouse_state(),
-    update_highlight(X, Y, Mi),
     keep;
+handle_menu_event(#mousemotion{x=X,y=Y}, Mi) ->
+    mousemotion(X, Y, Mi);
+handle_menu_event(#mousebutton{}=Ev, Mi) ->
+    button_pressed(Ev, Mi);
+handle_menu_event(#keyboard{}=Ev, Mi) ->
+    handle_key(Ev, Mi);
 handle_menu_event(lost_focus, Mi) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     {_,H} = wings_wm:win_size(),
@@ -421,12 +425,6 @@ handle_menu_event(lost_focus, Mi) ->
 	Y >= H -> mousemotion(X, H-2, Mi);
 	true -> keep
     end;
-handle_menu_event(#keyboard{}=Ev, Mi) ->
-    handle_key(Ev, Mi);
-handle_menu_event(#mousemotion{x=X,y=Y}, Mi) ->
-    mousemotion(X, Y, Mi);
-handle_menu_event(#mousebutton{}=Ev, Mi) ->
-    button_pressed(Ev, Mi);
 handle_menu_event(#mi{}=Mi, _) ->		%Key bound/unbound.
     help_text(Mi),
     wings_wm:dirty(),
@@ -445,7 +443,6 @@ clear_menu_selection(#mi{owner=Owner}) ->
 mousemotion(X, Y, Mi0) ->
     Mi1 = update_highlight(X, Y, Mi0),
     Mi = set_submenu_timer(Mi1, Mi0, X, Y),
-    wings_wm:dirty(),
     get_menu_event(Mi).
 
 button_pressed(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_RELEASED},
@@ -795,9 +792,13 @@ update_highlight(X, Y, #mi{ns=Ns,menu=Menu,sel=OldSel,sel_side=OldSide,w=W}=Mi0)
 	OldSel when is_integer(OldSel) ->
 	    case element(OldSel, Menu) of
 	      menu_toolbar ->
-	        Icon = button_check(X, W),
-	        menu_toolbar_help(lists:last(Ns), Icon),
-	        Mi0#mi{sel_side=Icon};
+	        case button_check(X, W) of
+	            OldSide -> Mi0;
+	            Icon ->
+	                menu_toolbar_help(lists:last(Ns), Icon),
+	                wings_wm:dirty(),
+	                Mi0#mi{sel_side=Icon}
+	        end;
 	      MenuItemData ->
 	        Ps = element(5, MenuItemData),
 	        RightWidth = right_width(Ps),
@@ -810,32 +811,27 @@ update_highlight(X, Y, #mi{ns=Ns,menu=Menu,sel=OldSel,sel_side=OldSide,w=W}=Mi0)
 	          Side =:= OldSide -> Mi0;
 	          true ->
 	              help_text(Mi0),
+	              wings_wm:dirty(),
 	              Mi0#mi{sel_side=Side}
 	        end
 	    end;
-	OldSel -> Mi0;
-	NoSel when NoSel =:= outside; NoSel =:= none ->
-	    Mi = Mi0#mi{sel=none},
-	    help_text(Mi),
-	    Mi;
-	Item when is_integer(Item), Item < 3 ->
+	Item when is_integer(Item) ->
 	    case element(Item, Menu) of
 	      menu_toolbar ->
 	        Icon = button_check(X, W),
 	        menu_toolbar_help(lists:last(Ns), Icon),
+	        wings_wm:dirty(),
 	        Mi0#mi{sel=Item,sel_side=Icon};
 	      _other ->
 	        Mi = Mi0#mi{sel=Item,sel_side=left},
 	        help_text(Mi),
+	        wings_wm:dirty(),
 	        Mi
 	    end;
-	Item when is_integer(Item), OldSel =:= none ->
-	    Mi = Mi0#mi{sel=Item},
+	_ ->
+	    Mi = Mi0#mi{sel=none},
 	    help_text(Mi),
-	    Mi;
-	Item when is_integer(Item) ->
-	    Mi = Mi0#mi{sel=Item},
-	    help_text(Mi),
+	    wings_wm:dirty(),
 	    Mi
     end.
 
@@ -921,8 +917,8 @@ menu_draw(X, Y, Shortcut, Mw, I, [H|Hs], #mi{sel_side=Side,menu=Menu,type=Type}=
 	separator ->
 	    draw_separator(X, Y, Mw);
 	menu_toolbar ->
-	    Icon = wings_pref:get_value(menu_toolbar_size),
-	    draw_menu_toolbar(Icon, Mw, Side);
+	    IconSize = wings_pref:get_value(menu_toolbar_size),
+	    draw_menu_toolbar(IconSize, Mw, Side);
 	{_,ignore,_,_,Ps} ->
 	    menu_draw_1(Y, Ps, I, Mi,
 			fun() -> wings_io:unclipped_text(X, Y, Text) end);
@@ -943,7 +939,6 @@ menu_draw(X, Y, Shortcut, Mw, I, [H|Hs], #mi{sel_side=Side,menu=Menu,type=Type}=
 				wings_io:unclipped_text(X, Y, Text),
 				draw_hotkey(X, Y, Shortcut, Hotkey)
 			end),
-
 	    draw_submenu_marker(Type, Sub,
 				X+Mw-5*?CHAR_WIDTH, Y-?CHAR_HEIGHT div 3);
 	{_,Sub,_,_,[more]=Ps} ->
@@ -971,7 +966,7 @@ menu_draw_1(Y, Ps, Sel, Mi, DrawLeft) ->
 
 menu_draw_1(Y, Ps, Sel, #mi{sel=Sel,sel_side=Side,w=W},
 	    DrawLeft, DrawRight) ->
-    %% Draw blue background for highlighted item.
+    %% Draw background for highlighted item.
     wings_io:set_color(wings_pref:get_value(menu_hilite)),
     Color = wings_pref:get_value(menu_hilite),
     Cw = ?CHAR_WIDTH,
@@ -981,7 +976,7 @@ menu_draw_1(Y, Ps, Sel, #mi{sel=Sel,sel_side=Side,w=W},
 	    {X1,Y1,X2,Y2} = {Right, Y-?CHAR_HEIGHT, Right+3*Cw-2, Y+3},
 	    wings_io:gradient_rect(X1, Y1, X2-X1, Y2-Y1, Color),
 	    wings_io:set_color(wings_pref:get_value(menu_text));
-	__left ->
+	_left ->
 	    {X1,Y1,X2,Y2} = {?CHAR_WIDTH, Y-?CHAR_HEIGHT, Right, Y+3},
 	    wings_io:gradient_rect(X1, Y1, X2-X1, Y2-Y1, Color),
 	    wings_io:set_color(wings_pref:get_value(menu_hilited_text))
@@ -992,7 +987,7 @@ menu_draw_1(Y, Ps, Sel, #mi{sel=Sel,sel_side=Side,w=W},
 	{_,right} ->
 	    wings_io:set_color(wings_pref:get_value(menu_hilited_text)),
 	    DrawRight();
-	{_,_left} ->
+	{_,_} ->
 	    wings_io:set_color(wings_pref:get_value(menu_text)),
 	    DrawRight()
     end;
@@ -1467,7 +1462,6 @@ tools_bitmap(big) ->
     2#000000000111111000000000:24,
     2#000000000000000000000000:24,
     2#000000000000000000000000:24>>.
-
 
 outline_bitmap(small) ->
     <<
