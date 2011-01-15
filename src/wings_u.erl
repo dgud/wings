@@ -137,16 +137,16 @@ caption(#st{file=undefined}=St) ->
     wings_io:set_title(Caption),
     St;
 caption(#st{saved=true,file=Name}=St) ->
-    Caption = wings() ++ " - " ++ filename:basename(Name),
+    Caption = wings() ++ " - " ++ Name,
     wings_io:set_title(Caption),
     St;
 caption(#st{saved=auto,file=Name}=St) ->
-    Caption = wings() ++ " - " ++ filename:basename(Name) ++
+    Caption = wings() ++ " - " ++ Name ++
 	"* [" ++ ?__(1,"auto-saved") ++ "]",
     wings_io:set_title(Caption),
     St;
 caption(#st{file=Name}=St) ->
-    Caption = wings() ++ " - " ++ filename:basename(Name) ++ "*",
+    Caption = wings() ++ " - " ++ Name ++ "*",
     wings_io:set_title(Caption),
     St.
 
