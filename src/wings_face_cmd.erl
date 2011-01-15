@@ -64,7 +64,9 @@ menu(X, Y, St) ->
 	     ?__(28,"Subdivide selected faces to smooth them (Catmull-Clark)")},
 	    {?__(29,"Tesselate"),{tesselate,wings_tesselation:submenu()}},
 	    separator,
-	    {?__(32,"Hide"),hide,?__(33,"Hide the selected faces")},
+	    {?__(32,"Hide"),hide_fun(),
+	     {?__(33,"Hide the selected faces"),[],
+	      ?__(41,"Unhide faces adjacent to selection")},[]},
 	    {?__(37,"Hole"),hole_fun(),
 	     {?__(38,"Create hole"),
 	      [],
@@ -107,6 +109,12 @@ mirror_fun() ->
        (3, _Ns) ->
 	    {face,mirror_separate};
        (_, _) -> ignore
+    end.
+
+hide_fun() ->
+    fun(1, _Ns) -> {face,hide};
+       (3, _Ns) -> {face,unhide};
+       (_, _Ns) -> ignore
     end.
 
 hole_fun() ->
@@ -167,6 +175,8 @@ command(vertex_color, St) ->
 		       end);
 command(hide, St) ->
     {save_state,hide_faces(St)};
+command(unhide, St) ->
+    {save_state,unhide_faces(St)};
 command(create_hole, St) ->
     {save_state,create_hole(St)};
 command(remove_hole, St) ->
@@ -1295,6 +1305,10 @@ clone_3(El, We, Tr, N, Clone, #st{selmode=Mode}=St) ->
     NewWe = wings_we:transform_vs(M, Clone),
     wings_shape:insert(NewWe, clone, St).
 
+%%%
+%%% Hide/Unhide Faces
+%%%
+
 hide_faces(St0) ->
     St = wings_sel:map(fun hide_faces_fun/2, St0),
     wings_sel:clear(St).
@@ -1305,6 +1319,17 @@ hide_faces_fun(Fs, We0) ->
 	true -> We0#we{perm=[]};		%Hide entire object.
 	false -> We
     end.
+
+unhide_faces(St0) ->
+    St = wings_sel:map(fun unhide_faces_1/2, St0),
+    wings_sel:clear(St).
+
+unhide_faces_1(Faces, #we{fs=Ftab,holes=Holes,mirror=Mirror}=We) ->
+    AdjFs = wings_face:extend_border(Faces, We),
+    AllHidden = [F || F <- gb_trees:keys(Ftab), F < 0],
+    Hidden = gb_sets:from_ordset(ordsets:subtract(AllHidden, Holes) -- [Mirror]),
+    AdjHidden = gb_sets:intersection(AdjFs, Hidden),
+    wings_we:show_faces(AdjHidden, We).
 
 %%%
 %%% The Hole command.
