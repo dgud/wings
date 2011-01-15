@@ -3,7 +3,7 @@
 %%
 %%     A rewrite of wpc_tweak.erl to add Tweak into the Wings core.
 %%
-%%  Copyright (c) 2009-2010 Richard Jones
+%%  Copyright (c) 2009-2011 Richard Jones
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

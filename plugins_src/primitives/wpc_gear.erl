@@ -3,7 +3,7 @@
 %%
 %%     Gear and Tube Plugin
 %%
-%%  Copyright (c) 2003-2010 Anthony D'Agostino
+%%  Copyright (c) 2003-2011 Anthony D'Agostino
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

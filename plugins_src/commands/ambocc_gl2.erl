@@ -4,7 +4,7 @@
 %%     This module improves performance with newer cards requires shading
 %%     and fbo.
 %%
-%%  Copyright (c) 2009-2010 Anthony D'Agostino, Dan Gudmundsson
+%%  Copyright (c) 2009-2011 Anthony D'Agostino, Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

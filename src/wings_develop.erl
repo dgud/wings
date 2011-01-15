@@ -4,7 +4,7 @@
 %%     This module implements a Develop menu with useful functions
 %%     for Wings and plug-in developers.
 %%
-%%  Copyright (c) 2009-2010 Bjorn Gustavsson
+%%  Copyright (c) 2009-2011 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

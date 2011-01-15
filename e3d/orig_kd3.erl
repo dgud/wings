@@ -3,7 +3,7 @@
 %%
 %%     Kd tree implementation.
 %%
-%%  Copyright (c) 2009-2010 Dan Gudmundsson
+%%  Copyright (c) 2009-2011 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

@@ -3,7 +3,7 @@
 %%
 %%     Conversion of BDF fonts to Wings' own font format.
 %%
-%%  Copyright (c) 2005-2010 Bjorn Gustavsson
+%%  Copyright (c) 2005-2011 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

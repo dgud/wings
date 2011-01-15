@@ -4,7 +4,7 @@
 %%    Plugin for making angled extrusions/regions/extractions that can be
 %%    scaled and twisted interactively.
 %%
-%%  Copyright (c) 2008-2010 Richard Jones.
+%%  Copyright (c) 2008-2011 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

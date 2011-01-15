@@ -4,7 +4,7 @@
 %%	--	Unconstrained Rotation
 %%		(also known as trackball rotation)
 %%
-%%	Copyright (c) Anna Celarek 2010
+%%	Copyright (c) Anna Celarek 2010-2011
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

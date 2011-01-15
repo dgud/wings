@@ -4,7 +4,7 @@
 %%     Provides matrix ops for sparsely populated matrixes.
 %%
 %%  Copyright (c) 2001-2002 Raimo Niskanen,
-%%                2004-2010 Bjorn Gustavsson
+%%                2004-2011 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

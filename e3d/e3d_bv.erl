@@ -4,7 +4,7 @@
 %%     Bounding volume operations.
 %%        Bounding boxes and quickhull, and eigen-vecs calculation implemented
 %%
-%%  Copyright (c) 2001-2010 Dan Gudmundsson
+%%  Copyright (c) 2001-2011 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

@@ -3,7 +3,7 @@
 %%
 %%     POV-Ray Plugin User Interface.
 %%
-%%  Copyright (c) 2007-2010 Chris Hegarty
+%%  Copyright (c) 2007-2011 Chris Hegarty
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

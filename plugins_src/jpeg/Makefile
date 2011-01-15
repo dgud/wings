@@ -3,7 +3,7 @@
 #
 #     Makefile for building file JPEG image plug-in.
 #
-#  Copyright (c) 2004-2010 Bjorn Gustavsson
+#  Copyright (c) 2004-2011 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
