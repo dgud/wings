@@ -251,14 +251,15 @@ shell_extrude(Axis, St0) ->
 
 shell_extrude(St0) ->
     Prev = wings_wm:get_prop(wireframed_objects),
-    #st{sel=Sel}=St = wings_sel:fold(fun(Faces, We0, S0) ->
+    #st{sel=Sel0}=St = wings_sel:fold(fun(Faces, We0, S0) ->
             Regions = wings_sel:face_regions(Faces, We0),
             shell_extrude_1(Regions, We0, S0)
         end, St0#st{sel=[]}, St0),
+    Sel = lists:sort(Sel0),
     Ids = gb_sets:from_list(orddict:fetch_keys(Sel)),
     New = gb_sets:difference(Prev, Ids),
     wings_wm:set_prop(wireframed_objects, New),
-    St.
+    St#st{sel=Sel}.
 
 shell_extrude_1([Faces|Regions], We0, #st{sel=Sel0,onext=Oid}=St0) ->
     #we{fs=AllFs0}=We1 = wings_dissolve:complement(Faces, We0),
@@ -267,7 +268,7 @@ shell_extrude_1([Faces|Regions], We0, #st{sel=Sel0,onext=Oid}=St0) ->
     We = intrude_extract(Inverse, We1),
     Sel = [{Oid,Faces}|Sel0],
     St = wings_shape:insert(We, extract, St0),
-    shell_extrude_1(Regions, We, St#st{sel=Sel});
+    shell_extrude_1(Regions, We0, St#st{sel=Sel});
 shell_extrude_1([], _, St) ->
     St.
 
