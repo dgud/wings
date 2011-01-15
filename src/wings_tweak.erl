@@ -15,7 +15,7 @@
 -export([init/0,command/2]).
 -export([tweak_event/2,menu/2,menu/0,tweak_keys_info/0,tweak_disabled_msg/0,
     tweak_info_line/0,tweak_magnet_help/0,statusbar/0]).
--export([window/1,window/3,mag_window/1,mag_window/3,axis_window/1,axis_window/3]).
+-export([palette/2,palette/4]).
 -export([toggle_draw/1,point_center/3]).
 
 -define(NEED_OPENGL, 1).
@@ -114,7 +114,7 @@ set_tweak_keys(Cam) ->
     TweakKeys = default_tweak_keys(),
     wings_pref:set_value(tweak_prefs,{Cam,TweakKeys}),
     wings_wm:dirty(),
-    wings_wm:send({tweak,palette}, update_palette).
+    wings_wm:send({tweak,tweak_palette}, update_palette).
 
 default_tweak_keys() ->
 %% This is the format {{MouseButton, {Crtl, Shift, Alt}}, TweakMode}
@@ -1565,7 +1565,7 @@ is_tweak_hotkey({tweak,Cmd}, #tweak{magnet=Magnet,sym=Sym,st=St0}=T0) ->
       {Mode,1} when Mode =:= move; Mode =:= move_normal; Mode =:= slide;
           Mode =:= scale; Mode =:= scale_uniform; Mode =:= relax ->
           set_tweak_pref(Mode, 1, {false, false, false}),
-          wings_wm:send({tweak,palette}, update_palette),
+          wings_wm:send({tweak,tweak_palette}, update_palette),
           is_tweak_combo(T0);
       _ ->
           keep
@@ -1878,7 +1878,7 @@ crossmark(_) -> [crossmark].
 command(toggle_tweak, St) ->
     Pref = wings_pref:get_value(tweak_active),
     wings_pref:set_value(tweak_active, not Pref),
-    wings_wm:send({tweak,palette}, update_palette),
+    wings_wm:send({tweak,tweak_palette}, update_palette),
     case wings_wm:is_geom() of
       true -> wings:info_line();
       false -> ok
@@ -1930,12 +1930,12 @@ command({Mode,B}, St) when B =< 3->
     Shift = Mod band ?SHIFT_BITS =/= 0,
     Alt = Mod band ?ALT_BITS =/= 0,
     set_tweak_pref(Mode, B, {Ctrl, Shift, Alt}),
-    wings_wm:send({tweak,palette},update_palette),
+    wings_wm:send({tweak,tweak_palette},update_palette),
     St;
 command(Mode, St) when Mode =:= move; Mode =:= move_normal; Mode =:= scale;
   Mode =:= scale_uniform; Mode =:= slide; Mode =:= relax ->
     set_tweak_pref(Mode, 1, {false, false, false}),
-    wings_wm:send({tweak,palette},update_palette),
+    wings_wm:send({tweak,tweak_palette},update_palette),
     St;
 command(_,_) -> next.
 
@@ -2010,21 +2010,25 @@ toggle_draw(Bool) ->
 %%%
 %%% Toggle Axes
 %%%
-toggle_axis([X,Y,Z]) ->
+
+toggle_axis(Axis) ->
+    toggle_axis_1(Axis).
+
+toggle_axis_1([X,Y,Z]) ->
     wings_pref:set_value(tweak_axis, screen),
     wings_pref:set_value(tweak_xyz, [X,Y,Z]);
-toggle_axis(clear) ->
+toggle_axis_1(clear) ->
     wings_pref:set_value(tweak_xyz,[false,false,false]),
     wings_pref:set_value(tweak_point,none),
     wings_pref:set_value(tweak_axis, screen),
     wings_pref:set_value(tweak_radial, false);
-toggle_axis(P) when P =:= from_cursor; P =:= from_element; P =:= from_default ->
+toggle_axis_1(P) when P =:= from_cursor; P =:= from_element; P =:= from_default; P =:= none ->
     Pref = case wings_pref:get_value(tweak_point) of
       P -> none;
       _ -> P
     end,
     wings_pref:set_value(tweak_point,Pref);
-toggle_axis(Axis) when Axis =:= x; Axis =:= y; Axis =:= z->
+toggle_axis_1(Axis) when Axis =:= x; Axis =:= y; Axis =:= z->
     case wings_pref:get_value(tweak_xyz) of
       [X,Y,Z] ->
           NewPref = case Axis of
@@ -2036,7 +2040,7 @@ toggle_axis(Axis) when Axis =:= x; Axis =:= y; Axis =:= z->
           wings_pref:set_value(tweak_xyz, NewPref);
       _ -> ok
     end;
-toggle_axis(radial) ->
+toggle_axis_1(radial) ->
     case wings_pref:get_value(tweak_radial) of
       true ->
         wings_pref:set_value(tweak_radial, false);
@@ -2048,7 +2052,7 @@ toggle_axis(radial) ->
           _ -> ok
         end
     end;
-toggle_axis(Axis) ->
+toggle_axis_1(Axis) ->
     wings_pref:set_value(tweak_xyz,[false,false,false]),
     case wings_pref:get_value(tweak_axis) of
       Axis ->
@@ -2140,7 +2144,6 @@ set_values([{Key,Value}|Result]) ->
     wings_pref:set_value(Key, Value),
     set_values(Result);
 set_values([]) -> ok.
-
 
 %%%
 %%% Tweak Mode Active Info Line
@@ -2348,10 +2351,10 @@ tweak_magnet_radius_help(false) ->
 %%%
 
 -record(tb,		% text box
-    {str=[],	% string
-     chr=0,		% length of current line
-     br=60,		% max line length allowed (break)
-     wrd=[], 	% accumulated letters from the current word
+    {text=[],	% string
+     lw=0,		% length of current line
+     max=60,		% max line length allowed (break)
+     word=[], 	% accumulated letters from the current word
      line=[],	% line acc
      res=[]}).	% Result
 
@@ -2361,12 +2364,8 @@ tweak_magnet_radius_help(false) ->
 
 info_box(Text0, {W,_}) ->
     CW = ?CHAR_WIDTH,
-    LH = ?LINE_HEIGHT,
-    LW = W div CW,
-    #tb{res=Text1} = string_to_text_box(Text0, LW - 2),
-    Text = reverse(Text1),
-    X = W - LW*CW,
-    {Text, X + CW, length(Text), LH}.
+    #tb{res=Text} = string_to_text_box(Text0, max(W-CW*2, CW*3)),
+    {reverse(Text), CW, length(Text), ?LINE_HEIGHT}.
 
 help_msg() ->
     [help_msg_basic(),
@@ -2405,7 +2404,7 @@ help_msg_keys() ->
     TweakTools = "("++mode(move)++C++mode(move_normal)++C++mode(scale)++C++
                       mode(scale_uniform)++C++mode(relax)++C++?__(3," and ")++
                       mode(slide)++")",
-    Str = io_lib:format(?__(2,"Each of the Tweak Tools ~scan be assigned a modifier key combination (Ctrl, Shift, Alt)."),[TweakTools]),
+    Str = io_lib:format(?__(2,"Each of the Tweak Tools ~s can be assigned a modifier key combination (Ctrl, Shift, Alt)."),[TweakTools]),
     [{bold,?__(1,"--Assigning Tweak Keys--")},"\n",
      bl(),?SPACE,Str,"\n",
      bl(),?SPACE,?__(4,"To assign a key combination to a Tweak Tool:"),"\n",
@@ -2434,83 +2433,65 @@ help_msg_hotkeys() ->
      bl(),?SPACE,?__(3,"Pressing the hotkey assigns that Tweak Tool to Lmb."),cr()].
 
 help_msg_palette() ->
-    [{bold,?__(1,"--Tweak Palette (Windows|Tweak Palette)--")},"\n",
+    [{bold,?__(1,"--Tweak Palette (Window|Tweak Palette)--")},"\n",
      bl(),?SPACE,?__(2,"The Tweak Palette is a group of 3 windows that contain the main commands from the Tweak Menu."),"\n",
-     bl(),?SPACE,?__(3,"Use the Tweak Palette to change switch between Tweak Tools, Magnet Types, or Axis Constraints.")].
+     bl(),?SPACE,?__(3,"Use the Tweak Palette to switch between Tweak Tools, Magnet Types, or Axis Constraints.")].
 
 cr() -> "\n\n".
 bl() -> bullet.
 
 %% Formats strings to fit the width of a line length given in characters
-string_to_text_box(Info, MaxChar) ->
-    str_to_tb(#tb{str=Info, br=MaxChar}).
+string_to_text_box(Text, W) ->
+    string_to_text_box(#tb{text=lists:flatten(Text),max=W}).
 
 %% String parsing for Text Box
-str_to_tb(#tb{str=[?SPACE|Str], chr=Ch0, br=Ch0, wrd=[]}=Tb) ->
-    str_to_tb(Tb#tb{str=Str});
-
-str_to_tb(#tb{str=[?SPACE|Str], chr=Ch0, br=Ch0, wrd=W0, line=Line}=Tb) ->
-    Word = reverse(W0),
-    str_to_tb(Tb#tb{str=Str, wrd=[], line=[Word|Line]});
-
-str_to_tb(#tb{str=[?SPACE|Str], chr=Ch, wrd=W0, line=Line}=Tb) ->
-    Word = reverse(W0),
-    str_to_tb(Tb#tb{str=Str, wrd=[], chr=Ch+1, line=[?SPACE,Word|Line]});
-
-str_to_tb(#tb{str=[?NL|Str], chr=Ch0, br=Ch0, wrd=[], line=Line, res=R}=Tb) ->
-    str_to_tb(Tb#tb{str=Str, chr=0, line=[], res=[reverse([?NL|Line])|R]});
-
-str_to_tb(#tb{str=[?NL|Str], wrd=W0, line=Line, res=R}=Tb) ->
-    Word = reverse(W0),
-    str_to_tb(Tb#tb{str=Str, wrd=[], chr=0, line=[], res=[reverse([?NL, Word|Line])|R]});
-
-str_to_tb(#tb{str=[?TAB|Str], chr=Ch0, br=Ch0, wrd=[]}=Tb) ->
-    str_to_tb(Tb#tb{str=Str});
-
-str_to_tb(#tb{str=[?TAB|Str], chr=Ch0, br=Ch0, wrd=W0, line=Line}=Tb) ->
-    Word = reverse(W0),
-    str_to_tb(Tb#tb{str=Str, wrd=[], line=[Word|Line]});
-
-str_to_tb(#tb{str=[?TAB|Str], chr=Ch, wrd=W0, line=Line}=Tb) ->
-    Word = reverse(W0),
-    str_to_tb(Tb#tb{str=Str, wrd=[], chr=Ch+2, line=[?SPACE,?SPACE,Word|Line]});
-
-str_to_tb(#tb{str=[H|T]}=Tb0) when is_list(H) ->
-    Tb = str_to_tb(Tb0#tb{str=H}),
-    str_to_tb(Tb#tb{str=T});
-
-str_to_tb(#tb{str=[C|Str], chr=Ch0, br=Ch0, wrd=[], line=Line, res=R}=Tb) ->
-    str_to_tb(Tb#tb{str=Str, chr=1, wrd=[C], line=[], res=[reverse([?NL|Line])|R]});
-
-str_to_tb(#tb{str=[C|Str], chr=Ch0, br=Ch0, wrd=W, line=Line, res=R}=Tb) ->
-    Word0 = [C|W],
-    Ch = length(Word0),
-    case Ch >= Ch0 of
-      true ->
-        [C1|Word1] = W,
-        Word = reverse(Word1),
-        str_to_tb(Tb#tb{str=Str, wrd=[C,C1], chr=2, line=[], res=[reverse([?NL, $-, Word|Line])|R]});
-      false ->
-        str_to_tb(Tb#tb{str=Str, wrd=Word0, chr=Ch, line=[], res=[reverse([?NL|Line])|R]})
+string_to_text_box(#tb{lw=LineWidth,max=Max,line=Line0,res=Res0}=Tb)
+  when LineWidth > Max ->
+    {Word,Line} = lists:splitwith(fun(Char) -> Char =/= ?SPACE end, Line0),
+    case Line of
+        [] ->
+            [NextLine|HyphinateLine] = Line0,
+            Res = [reverse([?NL,$-|HyphinateLine])|Res0],
+            LW = wings_text:width([NextLine]),
+            string_to_text_box(Tb#tb{lw=LW,line=[NextLine],res=Res});
+        _ ->
+            Res = [reverse([?NL|Line])|Res0],
+            LW = wings_text:width(Word),
+            string_to_text_box(Tb#tb{lw=LW,line=Word,res=Res})
     end;
 
-str_to_tb(#tb{str=[C|Str], chr=Ch, wrd=W}=Tb) ->
-    str_to_tb(Tb#tb{str=Str, wrd=[C|W], chr=Ch+1});
+string_to_text_box(#tb{text=[?NL|Text],line=Line,res=Res0}=Tb) ->
+    Res = [reverse([?NL|Line])|Res0],
+    string_to_text_box(Tb#tb{text=Text,lw=0,line=[],res=Res});
 
-str_to_tb(#tb{str=[], wrd=[], line=[]}=Tb) ->
-    Tb;
-str_to_tb(#tb{str=[], wrd=[], line=Line, res=Res}=Tb) ->
-    Tb#tb{res=[reverse(Line)|Res]};
-str_to_tb(#tb{str=[], wrd=W0, chr=Ch0, br=Ch0, line=Line, res=Res}=Tb) ->
-    Word = reverse(W0),
-    Ch = length(Word),
-    case Ch =:= Ch0 of
-      true -> Tb#tb{wrd=[], line=[], res=[reverse([Word|Line])|Res]};
-      false -> Tb#tb{wrd=[], chr=Ch+1, line=[], res=[[Word,?SPACE],reverse([?NL|Line])|Res]}
-    end;
-str_to_tb(#tb{str=[], wrd=W0, chr=Ch, line=Line, res=Res}=Tb) ->
-    Word = reverse(W0),
-    Tb#tb{wrd=[], chr=Ch+1, line=[], res=[reverse([?SPACE,Word|Line])|Res]}.
+string_to_text_box(#tb{text=[?TAB|Text],lw=LW,line=Line0}=Tb) ->
+    CharWidth = wings_text:width([?SPACE])*2,
+    Line = [?SPACE,?SPACE|Line0],
+    string_to_text_box(Tb#tb{text=Text,lw=LW+CharWidth,line=Line});
+
+string_to_text_box(#tb{text=[{bold,Bold}|Text],res=Res}=Tb0) ->
+    #tb{res=BoldString0} = string_to_text_box(Tb0#tb{text=Bold,line=[],res=[]}),
+    BoldString = foldl(fun(L, Acc) ->
+                        [H|T] = reverse(L),
+                        case H of
+                            ?NL -> [{bold,reverse(T)},?NL|Acc];
+                            _ -> [{bold,L}|Acc]
+                        end
+                end, [], BoldString0),
+    string_to_text_box(Tb0#tb{text=Text,res=reverse(BoldString)++Res});
+
+string_to_text_box(#tb{text=[Char|Text],lw=LineWidth0,line=Line}=Tb) ->
+    CharWidth = wings_text:width([Char]),
+    LW = LineWidth0+CharWidth,
+    string_to_text_box(Tb#tb{text=Text,lw=LW,line=[Char|Line]});
+
+string_to_text_box(#tb{text=[],line=Line,res=Res0}=Tb) when length(Line) < 2->
+    Res = [Line|Res0],
+    Tb#tb{lw=0,line=[],res=Res};
+
+string_to_text_box(#tb{text=[],line=Line,res=Res0}=Tb) ->
+    Res = [reverse(Line)|Res0],
+    Tb#tb{lw=0,line=[],res=Res}.
 
 %%%
 %%% Help Window Events
@@ -2518,10 +2499,10 @@ str_to_tb(#tb{str=[], wrd=W0, chr=Ch, line=Line, res=Res}=Tb) ->
 
 -record(twk_help,
     {text,			% Text in the help panel
-     x,				% left x
+     x,				% start text from left at x
      lh,			% line height
      lines,			% number of lines at current dimensions
-     knob=0}).		% scroll
+     knob=0}).			% scroll
 
 help_window() ->
     case wings_wm:is_window(tweak_help) of
@@ -2611,7 +2592,7 @@ update_scroller(Knob,Lines) ->
      st
     }).
 
-palette_title({tweak,palette}) ->
+palette_title({tweak,tweak_palette}) ->
     ?__(1,"Tweak");
 palette_title({tweak,mag_palette}) ->
     ?__(2,"Tweak Magnet");
@@ -2619,91 +2600,35 @@ palette_title({tweak,axis_palette}) ->
     ?__(3,"Tweak Axis");
 palette_title(_) -> [].
 
-window(St) ->
-    case wings_wm:is_window({tweak,palette}) of
+palette(Name, St) ->
+    case wings_wm:is_window({tweak,Name}) of
     true ->
-        wings_wm:raise({tweak,palette}),
+        wings_wm:raise({tweak,Name}),
         keep;
     false ->
-        Pos = {5,150},
-        window(Pos, [], St),
+        Pos = case Name of
+            tweak_palette -> {5,150};
+            mag_palette -> {25,170};
+            axis_palette -> {45,190}
+        end,
+        palette(Name, Pos, [], St),
         keep
     end.
 
-window(Pos, Ps, St) ->
-    Title = {tweak,palette},
+palette(Name, Pos, Ps, St) ->
+    Title = {tweak,Name},
     Cw = ?CHAR_WIDTH,
     Lh = ?LINE_HEIGHT,
-    Menu = valid_menu_items(menu()),
+    Menu = valid_menu_items(menu(Name)),
     N = length(Menu),
-    W = max_width(Menu, 0, Title),
+    W = max_width(Menu, 10, Title),
     Height = Lh * N + 4,
-    Width = Cw * W + (Cw*4),
+    Width = W + (Cw*4),
     Size = {Width, Height},
-    Mode = tweak_tool(1, {false, false, false}),
+    Mode = palette_mode(Name),
     Tw = #tw{h=Height, w=Width, menu=Menu, n=N, current=[], lh=Lh, mode=Mode, st=St},
     Op = {seq,push,get_event(Tw)},
     wings_wm:toplevel(Title, palette_title(Title), Pos, Size, [closable|Ps], Op).
-
-%%%
-%%% Tweak Magnet Palette
-%%%
-
-mag_window(St) ->
-    case wings_wm:is_window({tweak,mag_palette}) of
-    true ->
-        wings_wm:raise({tweak,mag_palette}),
-        keep;
-    false ->
-        Pos = {25,170},
-        mag_window(Pos, [], St),
-        keep
-    end.
-
-mag_window(Pos, Ps, St) ->
-    Title = {tweak,mag_palette},
-    Cw = ?CHAR_WIDTH,
-    Lh = ?LINE_HEIGHT,
-    Menu = valid_menu_items(tweak_magnet_menu()),
-    N = length(Menu),
-    W = max_width(Menu, 0, Title),
-    Height = Lh * N + 4,
-    Width = Cw * W + (Cw*4),
-    Size = {Width, Height},
-    Magnet = wings_pref:get_value(tweak_magnet),
-    Tw = #tw{h=Height, w=Width, menu=Menu, n=N, current=[], lh=Lh, mode=Magnet, st=St},
-    Op = {seq,push,get_event(Tw)},
-    wings_wm:toplevel(Title, palette_title(Title), Pos, Size, [closable|Ps], Op).
-
-%%%
-%%% Tweak Axis Palette
-%%%
-
-axis_window(St) ->
-    case wings_wm:is_window({tweak,axis_palette}) of
-    true ->
-        wings_wm:raise({tweak,axis_palette}),
-        keep;
-    false ->
-        Pos = {45,190},
-        axis_window(Pos, [], St),
-        keep
-    end.
-
-axis_window(Pos, Ps, St) ->
-    Title = {tweak,axis_palette},
-    Cw = ?CHAR_WIDTH,
-    Lh = ?LINE_HEIGHT,
-    Menu = valid_menu_items(constraints_menu()),
-    N = length(Menu),
-    W = max_width(Menu, 0, Title),
-    Height = Lh * N + 4,
-    Width = Cw * W + (Cw*4),
-    Size = {Width, Height},
-    Tw = #tw{h=Height, w=Width, menu=Menu, n=N, current=[], lh=Lh, mode=none, st=St},
-    Op = {seq,push,get_event(Tw)},
-    wings_wm:toplevel(Title, palette_title(Title), Pos, Size, [closable|Ps], Op).
-
 
 %%%
 %%% Tweak Palette Window Events
@@ -2727,7 +2652,7 @@ event(update_palette, Tw0) ->
     N = length(Menu),
     W = max_width(Menu, 0, Win),
     Height = Lh * N + 4,
-    Width = Cw * W + (Cw*4),
+    Width = W + (Cw*4),
     Size = {Width, Height},
     wings_wm:resize(Win, Size),
     wings_wm:dirty(),
@@ -2875,19 +2800,26 @@ text_style([crossmark],Name) ->
 text_style([],Name) ->
     ["  ",Name].
 
-
 %%%
 %%% Tweak Palette Utilities
 %%%
 
+palette_mode(tweak_palette) -> tweak_tool(1, {false, false, false});
+palette_mode(mag_palette) -> wings_pref:get_value(tweak_magnet);
+palette_mode(axis_palette) -> none.
+
+menu(tweak_palette) -> menu();
+menu(mag_palette) -> tweak_magnet_menu();
+menu(axis_palette) -> constraints_menu().
+
 max_width([],L0, Palette) ->
     PaletteTitle = palette_title(Palette),
-    L1 = length(PaletteTitle)+2,
+    L1 = wings_text:width(PaletteTitle)+2,
     if L1 > L0 -> L1; true -> L0 end;
 max_width([separator|Tm], L, Pt) ->
    max_width(Tm, L, Pt);
 max_width([MenuItem|Tm], L0, Pt) ->
-    L1 = length(element(1,MenuItem)),
+    L1 = wings_text:width(element(1,MenuItem)),
     L2 = if L1 > L0 -> L1; true -> L0 end,
     max_width(Tm, L2, Pt).
 
@@ -2943,7 +2875,7 @@ update_highlight(_X, Y, #tw{menu=Menu,n=N,lh=Lh}=Tw) ->
 
 update_tweak_palette(Tw) ->
     {Mode,Menu} = case wings_wm:this() of
-      {tweak,palette} ->
+      {tweak,tweak_palette} ->
         {tweak_tool(1, {false, false, false}), valid_menu_items(menu())};
       {tweak,mag_palette} ->
         {wings_pref:get_value(tweak_magnet),valid_menu_items(tweak_magnet_menu())};
@@ -2954,7 +2886,7 @@ update_tweak_palette(Tw) ->
 
 cmd_prefix(Cmd) ->
     case wings_wm:this() of
-      {tweak,palette} ->
+      {tweak,tweak_palette} ->
         Cmd;
       {tweak,mag_palette} ->
         {tweak_magnet,Cmd};
