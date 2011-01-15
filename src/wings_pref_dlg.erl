@@ -1,4 +1,4 @@
-%%		       -*- mode:erlang; coding:iso-latin-1-unix -*-
+%%		       -*- mode:erlang; encoding: utf-8 -*-
 %%
 %%  wings_pref_dlg.erl --
 %%
@@ -9,7 +9,6 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id$
 %%
 
 -module(wings_pref_dlg).
@@ -502,24 +501,24 @@ viewer_prefs(Format) ->
 	  {label,?__(3,"..filename..")},
 	  {text,{viewer_postopts,Format},[{width,10}]}]}]}]}.
 
-
-language_name("cs") ->
-    %% "Czech" in Czech as Unicode:
-    [16#10C|"eský"];
+%% Localised languages in their local language with unicode integers
+language_name("cs") -> [268,"esk",253]; %Czech 
 language_name("en") -> "English";
 language_name("de") -> "Deutsch";
-language_name("es") -> "Español";
+language_name("es") -> ["Espa",241,"ol"];
 language_name("fi") -> "Suomi";
-language_name("fr") -> "Français";
+language_name("fr") -> ["Fran",231,"ais"];
 language_name("hu") -> "Hungarian";
 language_name("it") -> "Italiano";
 language_name("pl") -> "Polski";
-language_name("pt") -> "Português";
-language_name("tr") -> "Türkçe";
-language_name("ru") ->
-    %% "Russian" in Russian as Unicode:
-    [1056,1091,1089,1089,1082,1080,1081];
+language_name("pt") -> ["Portugu",234,"s"]; 
+language_name("tr") -> ["T",252,"rk",231,"e"]; %Turkish
+language_name("ru") -> [1056,1091,1089,1089,1082,1080,1081]; %Russian
 language_name("sv") -> "Svenska";
+language_name("ko") -> "Korean";
+language_name("zh-cn") -> "Simplified Chinese";
+language_name("zh-tw") -> "Traditional Chinese";
+language_name("jp") -> "Japanese";
 language_name(Other) -> Other.
 
 misc_prefs() ->
@@ -563,12 +562,7 @@ misc_prefs() ->
        [{title,?__(14,"Proxy Mode")}]},
       {vframe,
        [{hframe,
-	 %% Note: text_display_lists is specially handled
-	 %% in make_query/1 and smart_set_value/3 to have its value inverted
-	 %% to keep preference files backward compatible.
-	 workaround([{text_display_lists,
-		      ?__(15,"Text in menus and dialogs disappear"),
-		      ?__(16,"Problem occurs on some Matrox cards")},
+	 workaround([
 		     {dummy_axis_letter,
 		      ?__(17,"Wings crashes if axes are turned off"),
 		      ?__(18,"Problem occurs on some Matrox cards")},
@@ -609,9 +603,6 @@ workaround_1([], A, B) ->
     [{vframe,[{label,?__(1,"Problem")},separator|reverse(A)]},
      {vframe,[{label,?__(2,"Use Workaround?")},separator|reverse(B)]}].
 
-smart_set_value(text_display_lists=Key, Val, St) ->
-    %% Reverse sense to keep backwards comptibility of preferences.
-    smart_set_value_1(Key, not Val, St);
 smart_set_value(Key, Val, St) ->
     smart_set_value_1(Key, Val, St).
 
@@ -641,7 +632,8 @@ smart_set_value_1(Key, Val, St) ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(2,"The change to the interface icons will take\neffect the next time Wings 3D is started."));
 		new_console_font ->
-		    set_console();
+		    delayed_set_value(Key, OldVal, Val),
+		    wings_u:message(?__(4,"The change to the console font will take\neffect the next time Wings 3D is started."));
 		console_color ->
 		    set_console();
 		console_text_color ->
@@ -653,7 +645,15 @@ smart_set_value_1(Key, Val, St) ->
 		num_buttons ->
 		    wings_wm:translation_change();
 		language ->
-		    wings_lang:load_language(Val);
+		    case Val of
+		      V when V =:= "zh-cn"; V =:= "zh-tw"; V =:= "ko" ->
+		          delayed_set_value(Key, OldVal, Val),
+		          wings_u:message(?__(5,"The language change will take effect\nthe next time Wings 3D is started."));
+		      _ ->
+		          ets:delete_all_objects(system_font),
+		          ets:delete_all_objects(console_font),
+		          wings_lang:load_language(Val)
+		    end;
 		polygon_offset_f ->
 		    erase(polygon_offset);
 		polygon_offset_r ->
@@ -707,12 +707,6 @@ make_query({color,[_|_]=Str,Key}) ->
 make_query({color,[_|_]=Str,Key,Flags}) ->
     Def = get_value(Key),
     {Str,{color,Def,[{key,Key}|Flags]}};
-make_query({[_|_]=Str,text_display_lists=Key}) ->
-    %% Reverse sense to keep backwards comptibility of preferences.
-    {Str,not get_value(Key),[{key,Key}]};
-make_query({[_|_]=Str,text_display_lists=Key,Flags}) ->
-    %% Reverse sense to keep backwards comptibility of preferences.
-    {Str,not get_value(Key),[{key,Key}|Flags]};
 make_query({[_|_]=Str,Key}) ->
     case get_value(Key) of
 	Def when Def == true; Def == false ->

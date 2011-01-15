@@ -382,7 +382,6 @@ defaults() ->
      {negative_width,36},
 
      %% Compatibility preferences.
-     {text_display_lists,true},
      {dummy_axis_letter,false},
      {polygon_offset_f,1.0},
      {polygon_offset_r,1.0},
@@ -459,7 +458,7 @@ defaults() ->
      {num_undo_levels,32},
 
      %% Languages.
-     {lang,en},
+     {language,"en"},
 
      %% Develop menu.
      {show_develop_menu,false},
@@ -653,7 +652,7 @@ pref(Action) -> %% load|save dialog
           Dialog = save_dialog,
           Options = [panel]
     end,
-    FileName = ?__(12,"Preference Subset.pref"),
+    FileName = "Preference Subset.pref",
     Directory = case get_value(pref_directory) of
       undefined -> get_pref_directory(FileName);
       Dir -> Dir
@@ -677,7 +676,7 @@ pref(Action) -> %% load|save dialog
     FileBrowser =
         [{button, {text, Directory, [{key, pref_directory},
             {props, [{dialog_type, Dialog},
-            {extensions, [{".pref", Title}]}]}]}}],
+            {extensions, [{".pref", "Preference Subset"}]}]}]}}],
     Qs = Button ++ PrefFeilds ++ Options ++ FileBrowser,
     wings_ask:dialog(true, Title, Qs,
         fun(Res) ->

@@ -17,32 +17,37 @@
 -import(lists, [reverse/1,sort/1,foldl/3]).
 
 -record(glyph,
-	{code,					%Unicode for glyph.
+	{code,					%Unicode
 	 bbx,					%Bounding box.
 	 dwidth,				%Width.
 	 bitmap}).
 
 convert([Out|SrcFonts]) ->
-    G = read_fonts(SrcFonts, []),
-    io:format("  Writing ~s (~p glyphs)\n", [Out,length(G)]),
+    G = read_fonts(SrcFonts, orddict:new()),
+    io:format("  Writing ~s (~p glyphs)\n", [Out,orddict:size(G)]),
     write_font(G, Out),
     init:stop().
 
-read_fonts([N|Ns], Acc) ->
+read_fonts([N|Ns], Acc0) ->
     io:format("Reading ~s\n", [N]),
     {ok,F} = file:open(N, [binary,read,read_ahead,raw]),
-    G = read_font(F),
+    Acc = read_bdf_font(F, Acc0),
     file:close(F),
-    read_fonts(Ns, G++Acc);
-read_fonts([], Acc) ->
-    sort(Acc).
+    read_fonts(Ns, Acc);
+read_fonts([], Acc0) ->
+    Font = orddict:fold(fun(_,CharSet, Acc) ->
+        CharSet ++ Acc
+        end, [], Acc0),
+    lists:sort(Font).
 
-read_font(F) ->
+read_bdf_font(F, Acc0) ->
     case read_line(F) of
 	["STARTFONT","2.1"] ->
 	    Ps = read_props(F),
-	    G = read_font_glyphs(F),
-	    to_unicode(G, Ps);
+	    {Map,CharSet} = charset(Ps, Acc0),
+	    Acc = read_font_glyphs(F, CharSet),
+	    Set = to_unicode(Acc, Ps),
+	    orddict:store(Map, Set, Acc0);
 	Other ->
 	    io:format("~p\n", [Other]),
 	    error_msg(invalid_bdf_file)
@@ -83,14 +88,23 @@ convert_val("\""++Str0) ->
 convert_val(Str) ->
     list_to_integer(Str).
 
-read_font_glyphs(F) ->
+charset(Ps, Sets) ->
+    R = proplists:get_value("CHARSET_REGISTRY", Ps),
+    E = proplists:get_value("CHARSET_ENCODING", Ps),
+    CharMap = R ++ E,
+    case orddict:find(CharMap, Sets) of
+      error -> {CharMap, orddict:new()};
+      {ok,CharSet} -> {CharMap, CharSet}
+    end.
+
+read_font_glyphs(F, Acc0) ->
     case read_line(F) of
 	["CHARS",N0] ->
 	    N = list_to_integer(N0),
 	    try
-		Gl = read_font_glyphs(F, N, []),
+		Acc = read_font_glyphs(F, N, Acc0),
 		case read_line(F) of
-		    ["ENDFONT"] -> Gl;
+		    ["ENDFONT"] -> Acc;
 		    ["STARTCHAR"|_] ->
 			io:format("CHARS declaration said there were ~p glyphs;"
 				  " but there is at least one more glyph.\n",
@@ -108,53 +122,58 @@ read_font_glyphs(F) ->
 		    exit(error)
 	    end;
 	_ ->
-	    read_font_glyphs(F)
+	    read_font_glyphs(F, Acc0)
     end.
 
 read_font_glyphs(_, 0, Acc) -> Acc;
-read_font_glyphs(F, N, Acc) ->
+read_font_glyphs(F, N, Acc0) ->
     case read_line(F) of
 	["STARTCHAR"|_] ->
-	    G = read_one_glyph(F),
-	    read_font_glyphs(F, N-1, [G|Acc]);
+	    #glyph{code=C} = G = read_one_glyph(F, #glyph{}),
+	     Acc = orddict:store(C, G, Acc0),
+	     read_font_glyphs(F, N-1, Acc);
 	["ENDFONT"] ->
 	    throw({endfont,N})
     end.
 
-read_one_glyph(F) ->
-    read_one_glyph_1(F, #glyph{}).
-
-read_one_glyph_1(F, G) ->
+read_one_glyph(F, G) ->
     case read_line(F) of
 	["ENCODING",Code0] ->
 	    Code = list_to_integer(Code0),
-	    read_one_glyph_1(F, G#glyph{code=Code});
+	    read_one_glyph(F, G#glyph{code=Code});
 	["DWIDTH"|Ints] ->
 	    Dwidth = [list_to_integer(S) || S <- Ints],
-	    read_one_glyph_1(F, G#glyph{dwidth=Dwidth});
+	    read_one_glyph(F, G#glyph{dwidth=Dwidth});
 	["BBX"|Ints] ->
 	    BBx = [list_to_integer(S) || S <- Ints],
-	    read_one_glyph_1(F, G#glyph{bbx=BBx});
+	    read_one_glyph(F, G#glyph{bbx=BBx});
 	["SWIDTH"|_] ->
-	    read_one_glyph_1(F, G);
+	    read_one_glyph(F, G);
 	["BITMAP"] ->
 	    Bitmap = read_bitmap(F, []),
 	    G#glyph{bitmap=Bitmap}
     end.
-    
-read_bitmap(F, Acc) ->
+
+read_bitmap(F, Acc0) ->
     case raw_read_line(F) of
 	<<"ENDCHAR",_/bytes>> ->
-	    list_to_binary(Acc);
-	<<H1,H2,_/bytes>> ->
-	    Hex = erlang:list_to_integer([H1,H2], 16),
-	    read_bitmap(F, [Hex|Acc])
+	    list_to_binary(Acc0);
+	<<Line0/bytes>> ->
+	    [_|Line] = reverse(binary_to_list(Line0)),
+	    Acc = read_bitmap_line(Line, Acc0),
+	    read_bitmap(F, Acc)
     end.
+
+read_bitmap_line([Hex1,Hex2|Line], Acc) ->
+    Hex = erlang:list_to_integer([Hex2,Hex1], 16),
+    read_bitmap_line(Line, [Hex|Acc]);
+read_bitmap_line([], Acc) ->
+    Acc.
 
 to_unicode(Gs, Ps) ->
     case proplists:get_value("CHARSET_REGISTRY", Ps) of
 	"ISO10646" ->				%Already in Unicode.
-	    filter_unicode(Gs);
+	    Gs;
 	"ISO8859" ->
 	    case proplists:get_value("CHARSET_ENCODING", Ps) of
 		"1" -> Gs;
@@ -162,30 +181,30 @@ to_unicode(Gs, Ps) ->
 		    to_unicode_1(Gs, "map-ISO8859-"++Enc);
 		Enc ->
 		    to_unicode_1(Gs, "map-ISO8859-"++Enc)
-	    end
+	    end;
+	"ksx1001.1998" ->
+	    to_unicode_1(Gs, "map-KSX1001");
+	"KOI8" ->
+	    to_unicode_1(Gs, "map-KOI8-R")
     end.
 
-to_unicode_1(Gs0, MapName) ->
+to_unicode_1(Gs, MapName) ->
     Map = read_map(MapName),
-    Gs = [G#glyph{code=gb_trees:get(C, Map)} || #glyph{code=C}=G <- Gs0],
-
-    %% Throw away any Unicode characters falling in the 0x00 - 0xFF
-    %% (ISO-8859-1) range. They are already defined in the ISO-8859-1 font.
-    [G || #glyph{code=C}=G <- Gs, C >= 256].
-
-filter_unicode(Gs) ->
-    MapFiles = filelib:wildcard("map-ISO8859-*"),
-    io:put_chars("  Filtering Unicode font to only include characters in:"),
-    Map = foldl(fun(F, A) ->
-			"map-"++CharSet = filename:basename(F),
-			io:format(" ~s", [CharSet]),
-			gb_trees:to_list(read_map(F)) ++ A
-		end, [], MapFiles),
-    io:nl(),
-    Needed0 = [To || {_From,To} <- Map],
-    Needed = gb_sets:from_list(Needed0),
-    [G || #glyph{code=C}=G <- Gs, gb_sets:is_member(C, Needed)].
-    
+    orddict:fold(fun
+        (N, #glyph{code=C0}=G, Acc) ->
+            case gb_trees:is_defined(C0, Map) of
+              true ->
+                C = gb_trees:get(C0, Map),
+    %%% Throw away any Unicode characters falling in the 0x00 - 0xFF
+    %%% (ISO-8859-1) range. They are already defined in the ISO-8859-1 font.
+                case C =< 256 of
+                  true -> Acc;
+                  false -> orddict:store(N, G#glyph{code=C}, Acc)
+                end;
+              false ->
+                Acc
+            end
+    end, orddict:new(), Gs).
 
 read_map(MapName) ->
     {ok,F} = file:open(MapName, [binary,read,read_ahead,raw]),
@@ -261,7 +280,7 @@ raw_read_line(F) ->
 %%%
 
 write_font(G, Out) ->
-    #glyph{bbx=[W,H,_,_]} = findchar(0, G),
+    {0,#glyph{bbx=[W,H,_,_]}} = lists:keyfind(0, 1, G),
     {Gl,Bit} = write_font_1(G, 0, [], []),
     Key = list_to_atom(filename:rootname(filename:basename(Out))),
     Desc = atom_to_list(Key),
@@ -270,7 +289,7 @@ write_font(G, Out) ->
     Bin = term_to_binary(Term, [compressed]),
     file:write_file(Out, Bin).
 
-write_font_1([#glyph{code=C,bbx=BBx,dwidth=Dwidth,bitmap=B}|Gs],
+write_font_1([{_,#glyph{code=C,bbx=BBx,dwidth=Dwidth,bitmap=B}}|Gs],
 	     Offset, GlAcc, BiAcc) ->
     [W,H,Xorig,Yorig] = BBx,
     [Xmove,0] = Dwidth,
@@ -278,6 +297,3 @@ write_font_1([#glyph{code=C,bbx=BBx,dwidth=Dwidth,bitmap=B}|Gs],
     write_font_1(Gs, Offset+size(B), [G|GlAcc], [B|BiAcc]);
 write_font_1([], _, GlAcc, BiAcc) ->
     {reverse(GlAcc),list_to_binary(reverse(BiAcc))}.
-
-findchar(C, [#glyph{code=C}=G|_]) -> G;
-findchar(C, [_|Gs]) -> findchar(C, Gs).

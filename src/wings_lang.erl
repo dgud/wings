@@ -40,11 +40,26 @@ str({_,_,_}=Key, DefStr) ->
 
 init() ->
     wings_pref:set_default(language, ?DEF_LANG_STR),
-    Lang = case wings_pref:get_value(language) of 
+    Lang0 = wings_pref:get_value(language),
+    Asian = ["zh-cn","zh-tw","jp","ko"],
+    Lang = case Lang0 of 
 	       ?DEF_LANG_STR=L -> L;
 	       Other ->
 		   case lists:member(Other, available_languages()) of
-		       true -> Other;
+		       true ->
+		           case lists:member(Lang0, Asian) of
+		               true ->
+		                   Prefs = [new_system_font,new_console_font],
+		                   lists:foreach(fun(FontPref) ->
+		                       Font = wings_pref:get_value(FontPref),
+		                       case atom_to_list(Font) of
+		                           [$C,$J,$K|_] -> ok;
+		                           _ -> wings_pref:set_value(FontPref,'CJK-16')
+		                       end
+		                   end, Prefs);
+		               false -> ok
+		           end,
+		           Other;
 		       false -> ?DEF_LANG_STR
 		   end
 	   end,

@@ -64,7 +64,7 @@ legacy_colors() ->
      {menu_bar_bg,{0.52,0.52,0.52}},
      {menubar_text,{0.0,0.0,0.0}},
      {info_line_bg,{0.52,0.52,0.52}},
-     {info_line_text,{0.0,0.0,0.0}},
+     {info_line_text,{1.0,1.0,1.0}},
 
      %% Console
      {console_color,{0.0,0.0,0.0}},

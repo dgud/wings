@@ -39,6 +39,7 @@ menu(_) ->
      {"Print Scene Size",print_scene_size,
       "Print the scene size to the console"},
      separator,
+     {"Loaded Font Glyphs",font_libs},
      {"Show Cursor",show_cursor,
       "Unhide the cursor in case of a crash and it disappears"}].
 
@@ -60,6 +61,11 @@ command(print_scene_size, St) ->
     Words = erts_debug:size(St),
     io:format("The current scene is using ~p words\n", [Words]),
     keep;
+command(font_libs, _) ->
+    Sf = length(ets:tab2list(system_font)),
+    Cf = length(ets:tab2list(console_font)),
+    Str =io_lib:format("system_font glyphs loaded: ~p\n console_font glyphs loaded: ~p\n",[Sf,Cf]),
+    wings_u:message(Str);
 command(show_cursor, _) ->
     case wings_io:is_grabbed() of
       true ->

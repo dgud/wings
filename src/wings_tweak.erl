@@ -2304,7 +2304,6 @@ info_line(Mode) ->
     Spc = spacebar_msg(),
     Extra = extra_msg(Mode),
     Help = wings_msg:join([M, Cam, Spc, Extra]),
-
     wings_wm:message(Help).
 
 camera_msg() ->

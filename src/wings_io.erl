@@ -30,11 +30,12 @@
 
 	 blend/2,
 	 border/5,border/6,border_only/4,border_only/5,
-	 gradient_border/5,gradient_border/7,
+	 gradient_border/5,gradient_border_burst/5,
+	 gradient_border_burst/7,gradient_border/7,
 	 sunken_rect/4,sunken_rect/5,sunken_rect/6,sunken_rect/7,
 	 sunken_gradient/7,
 	 raised_rect/4,raised_rect/5,raised_rect/6,
-	 gradient_rect/5,
+	 gradient_rect/5,gradient_rect_burst/5,
 	 use_font/2,text_at/2,text_at/3,unclipped_text/3,
 	 draw_icons/1,draw_icon/3,draw_char/1,
 	 set_color/1]).
@@ -259,7 +260,7 @@ info(X, Y, Info) ->
 		  gl:recti(X, Y, W, Y + N*?LINE_HEIGHT + 2)
 	  end),
     set_color(wings_pref:get_value(info_color)),
-    text_at(X + 4, Y + ?CHAR_HEIGHT, Info).
+    text_at(X + 4, Y + ?CHAR_HEIGHT-1, Info).
 
 info_lines(Info) ->
     info_lines_1(Info, 1).
@@ -297,6 +298,17 @@ border(X0, Y0, Mw, Mh, FillColor, BorderColor)
     gl:vertex2f(X+Mw, Y+Mh),
     gl:'end'(),
     gl:color3b(0, 0, 0).
+
+gradient_border_burst(X, Y, W, H, FillColor) ->
+    gradient_border_burst(X, Y, W, H, FillColor, {0,0,0}, false).
+
+gradient_border_burst(X0, Y0, Mw, Mh, FillColor, BorderColor, Double)
+  when is_integer(X0), is_integer(Y0), is_integer(Mw), is_integer(Mh) ->
+    X = X0 + 0.5,
+    Y = Y0 + 0.5,
+    gradient_rect_burst(X0, Y0, Mw, Mh, FillColor),
+    set_color(BorderColor),
+    border_only(X, Y, Mw, Mh, Double).
 
 gradient_border(X, Y, W, H, FillColor) ->
     gradient_border(X, Y, W, H, FillColor, {0,0,0}, false).
@@ -394,12 +406,12 @@ sunken_border(X, Y, Mw, Mh, PaneColor, false) ->
     gl:vertex2f(X, Y+Mh),
     gl:'end'().
 
-gradient_rect(X, Y, W, H=18, Color) ->
+gradient_rect_burst(X, Y, W, H, Color) ->
     GradColors = [0.882353, 0.882353, 0.850980, 0.807843, 0.776471, 0.729412,
 		  0.701961, 0.666667, 0.619608, 0.741176, 0.733333, 0.760784,
 		  0.784314, 0.811765, 0.854902, 0.890196, 0.890196],
     Draw_Line = fun(Idx) ->
-			GreyValue = lists:nth(Idx+1, GradColors),
+			GreyValue = lists:nth(round((Idx/H)*17)+1, GradColors),
 			LineColor = mul_color(Color, GreyValue),
 			set_color(LineColor),
 			gl:vertex2f(X-0.5+W, Y-0.5+H-Idx),
@@ -407,8 +419,9 @@ gradient_rect(X, Y, W, H=18, Color) ->
 		end,
     gl:lineWidth(1),
     gl:'begin'(?GL_LINES),
-    lists:foreach(Draw_Line, lists:seq(0, 16)),
-    gl:'end'();
+    lists:foreach(Draw_Line, lists:seq(0, H-2)),
+    gl:'end'().
+
 gradient_rect(X, Y, W, H, Color) ->
     gl:shadeModel(?GL_SMOOTH),
     gl:'begin'(?GL_QUADS),

@@ -42,7 +42,7 @@
 -define(WINGS_VERSION, ?wings_version).
 
 -define(CHAR_HEIGHT, wings_text:height()).
--define(CHAR_WIDTH, wings_text:width()).
+-define(CHAR_WIDTH, wings_text:height() div 2). %% because of double wide Chinese fonts
 
 -define(LINE_HEIGHT, (?CHAR_HEIGHT+2)).
 -define(GROUND_GRID_SIZE, 1).
