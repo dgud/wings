@@ -475,8 +475,8 @@ do_action(#mousebutton{x=X,y=Y,button=B,state=S},
 		      Folder ->
 		          {Default,Fld} = gb_trees:get(?FOLDERS, StPst0),
 		          case Default=:=Folder of
-		              true -> {?NO_FLD,Fld};
-		              false -> {Folder,Fld}
+		              true when B =:= 1 -> {?NO_FLD,Fld};
+		              _ -> {Folder,Fld}
 		          end
 		    end,
 		    StPst = gb_trees:enter(?FOLDERS, Folders, StPst0),
@@ -746,9 +746,9 @@ toggle_wire_folder(#we{id=Id0,pst=WePst}, #ost{st=#st{pst=Pst0}=St}) ->
 
 do_menu(-1, X, Y, _) ->
     Menu =
-        [{?__(15,"Remove Selected From Folders"),
-             menu_cmd(move_to_folder, ?NO_FLD)},
-         {?__(7,"Create Folder"),menu_cmd(create_folder)}],
+        [{?__(7,"Create Folder"),menu_cmd(create_folder)},
+         {?__(15,"Remove Selected From Folders"),
+             menu_cmd(move_to_folder, ?NO_FLD)}],
     wings_menu:popup_menu(X, Y, objects, Menu);
 do_menu(Act, X, Y, #ost{os=Objs}) ->
     Menu = case lists:nth(Act+1, Objs) of
@@ -878,7 +878,7 @@ draw_icons(N, Objs, Ost, R, I, Y) ->
     wings_io:draw_icons(fun() ->
         foldl(fun draw_icons_1/2, DrawData, Objs)
     end).
-			
+
 draw_icons_1(_, done) -> done;
 draw_icons_1(_, {0,_,_,_,_,_}) -> done;
 draw_icons_1({_,#we{id=Id,perm=Perm,pst=Pst}=We},{N,#ost{sel=Sel,lh=Lh}=Ost,
