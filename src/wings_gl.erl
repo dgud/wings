@@ -25,7 +25,10 @@
 -export([have_fbo/0, setup_fbo/2, delete_fbo/1]).
 
 %% GL wrappers
--export([callLists/1, project/6, unProject/6, triangulate/2, deleteTextures/1]).
+-export([callLists/1, project/6, unProject/6, 
+	 triangulate/2, deleteTextures/1,
+	 bindFramebuffer/2
+	]).
 
 %% Debugging.
 -export([check_error/2]).
@@ -33,7 +36,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--ifdef(USE_WX).
+-ifdef(USE_WX_OPENGL).
 -define(genFramebuffers,genFramebuffers).
 -define(bindFramebuffer, bindFramebuffer).
 -define(framebufferTexture2D,framebufferTexture2D).
@@ -365,7 +368,11 @@ check_fbo_status(FB) ->
 
 %%%%%%%%%%%%% Wrappers for functions that differs between wx and esdl
 
--ifdef(USE_WX).
+bindFramebuffer(W, Fbo) ->
+    gl:?bindFramebuffer(W,Fbo).
+
+
+-ifdef(USE_WX_OPENGL).
 callLists(List) ->  gl:callLists(List).
 
 project(X,Y,Z, Mod, Proj, View) ->

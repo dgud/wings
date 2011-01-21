@@ -109,11 +109,11 @@ render_hemisphere(_,Y,Vs,We,AO) ->
     render_hemisphere(0,Y+1,Vs,We,AO).
 
 read_frame(#ao{tex=Tex, fbo=Fbo, buf=Buffer}) ->
-    gl:bindFramebufferEXT(?GL_FRAMEBUFFER_EXT, 0),
+    wings_gl:bindFramebuffer(?GL_FRAMEBUFFER_EXT, 0),
     gl:bindTexture(?GL_TEXTURE_2D, Tex),
     gl:getTexImage(?GL_TEXTURE_2D, 0, ?GL_LUMINANCE, ?GL_UNSIGNED_BYTE, Buffer),
     ImageBin = wings_io:get_bin(Buffer),
-    gl:bindFramebufferEXT(?GL_FRAMEBUFFER_EXT, Fbo),
+    wings_gl:bindFramebuffer(?GL_FRAMEBUFFER_EXT, Fbo),
     gl:clear(?GL_COLOR_BUFFER_BIT  bor ?GL_DEPTH_BUFFER_BIT),
     %% test_img("Test", ImageBin),
     ImageBin.

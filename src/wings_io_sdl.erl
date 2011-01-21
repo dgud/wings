@@ -41,9 +41,18 @@ init(Icons) ->
 quit() ->
     sdl:quit().
 
-get_process_option() -> [].
+-ifndef(USE_WX_OPENGL).
+get_process_option() ->     
+    [].
 set_process_option(_) ->
     ok.
+-else.
+get_process_option() ->
+    [{opengl_port,get(opengl_port)}].
+set_process_option([{opengl_port,Port}]) ->
+    put(opengl_port, Port),
+    ok.
+-endif.
 
 batch(Fun) ->  Fun().
 foreach(Fun, List) -> lists:foreach(Fun, List).
