@@ -27,9 +27,9 @@
 init() ->
     wings_pref:set_default(new_system_font, '7x14'),
     wings_pref:set_default(new_console_font, 'fixed7x14'),
-    ets:new(system_font, [named_table,ordered_set]),
-    ets:new(console_font, [named_table,ordered_set]),
-    ets:new(wings_fonts, [named_table,ordered_set]),
+    ets:new(system_font, [named_table,ordered_set,public]),
+    ets:new(console_font, [named_table,ordered_set,public]),
+    ets:new(wings_fonts, [named_table,ordered_set,public]),
     load_fonts().
 
 resize() ->
@@ -463,6 +463,6 @@ load_font_1({wings_font,?wings_version,Font}) ->
     load_font_2(Font).
 
 load_font_2({Key,Desc,Width,Height,GlyphInfo,Bitmaps}) ->
-    T = ets:new(font, [set]),
+    T = ets:new(font, [set,public]),
     ets:insert(T, GlyphInfo),
     wings__font:new(Key, Desc, Width, Height, T, Bitmaps).
