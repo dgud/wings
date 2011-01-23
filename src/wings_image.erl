@@ -524,7 +524,7 @@ init_texture(Image) ->
             [TxId] = gl:genTextures(1),
             case init_texture(Image, TxId) of
                 {error,_}=Error ->
-                    gl:deleteTextures(1, [TxId]),
+                    wings_gl:deleteTextures([TxId]),
                     Error;
                 Other ->
                     Other
@@ -541,19 +541,19 @@ init_texture(Image0, TxId) ->
             gl:enable(?GL_TEXTURE_2D),
             gl:bindTexture(?GL_TEXTURE_2D, TxId),
             case wings_gl:is_ext({1,4},'GL_SGIS_generate_mipmap') of
-              true ->
-                gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, ?GL_TRUE),
-                gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER,
-                                 ?GL_LINEAR_MIPMAP_LINEAR);
-              false ->
-                gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR)
+		true ->
+		    gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, ?GL_TRUE),
+		    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER,
+				     ?GL_LINEAR_MIPMAP_LINEAR);
+		false ->
+		    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR)
             end,
             gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
             gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
             gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
             Format = texture_format(Image),
             gl:texImage2D(?GL_TEXTURE_2D, 0, internal_format(Format),
-                    W, H, 0, Format, ?GL_UNSIGNED_BYTE, Bits),
+			  W, H, 0, Format, ?GL_UNSIGNED_BYTE, Bits),
             gl:popAttrib(),
             TxId
     end.
@@ -585,7 +585,7 @@ maybe_scale(#e3d_image{width=W0,height=H0}=Image) ->
     end.
 
 maybe_exceds_opengl_caps(#e3d_image{width=W0,height=H0}=Image) ->
-    MaxSize = lists:last(gl:getIntegerv(?GL_MAX_TEXTURE_SIZE)),
+    MaxSize = hd(gl:getIntegerv(?GL_MAX_TEXTURE_SIZE)),
     case need_resize_image(W0, H0, MaxSize) of
         true ->
             ScaleFactor = case W0 > H0 of
