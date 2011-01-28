@@ -25,15 +25,16 @@
 %%%
 
 -module(wings_cc).
--export([subdiv/2]).
+-export([init/2, update/2, gen_vab/1, gen_vab/2]).
 
+%% debug 
 -import(lists, [reverse/1, foldl/3]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 -include_lib("cl/include/cl.hrl").
 
--compile(export_all).
+%% -compile(export_all).
 
 -record(v, {pos,                     % position
 	    vc}).                    % Valence
@@ -44,9 +45,11 @@
 	       f,    %% array of [v0,v1..,vn]   nf
 	       fi,   %% array of {Start,Size}   nf
 	       e,    %% array of v0,v1,f1,f2    ne
+	       level,%% Subdiv levels
 	       n,    %% Number of faces 
 	       mmap, %% Material map, {mat, start, vertex_count}
 	       vmap, %% array Wings Vertex Id -> CL vertex id
+	       fmap, %% gb_tree Wings face id -> CL face id
 	       type  %% Type of data plain,uv,color,color_uv
 	      }).
 
@@ -55,104 +58,146 @@
 		   %% CL temp buffers and respective sizes
 		   vab, vab_sz=0, fl, fl_sz=0, fi, fi_sz=0}).
 -record(cl_mem,   {v, v_no, f, fs_no, e, e_no, fi, fi0}).
--record(cc_cache, {mem1, mem2, level, base, wait}).
+-record(cc_cache, {mem, wait}).
 -record(kernel,   {name, id, wg}).
 
 -define(EDGE_SZ, (4*4)).
 -define(FACE_SZ, (4*4)).
 -define(VERTEX_SZ, ((3*4)+4)).
 -define(LOCK_SZ, 32).
-%%-define(DEFAULT, erlang).
+%% -define(DEFAULT, erlang).
 -define(DEFAULT, opencl).
 
 %%%% API %%%%%%%%%
 
 %% Returns opaque data
-subdiv(Plan, We) ->
-    subdiv(Plan, We, 2, ?DEFAULT).
+init(Plan, We) ->
+    build_data(Plan,3,We,?DEFAULT).
 
-subdiv(Plan, We, N, Impl) ->
-    Base = ?TC(build_data(Plan, N, We, Impl)),
+%% Update state with new vertex positions
+update(ChangedVs, Data) ->
+    case ?DEFAULT of 
+	erlang ->  wings_cc_ref:update(ChangedVs, Data);
+	_ ->       update_1(ChangedVs, Data)
+    end.
+
+%% Generates a subdivided #vab{}
+gen_vab(Base) ->
+    case subdiv(Base, ?DEFAULT) of
+	skip -> create_vab(<<>>, []);
+	Data ->
+	    gen_vab_1(Data, Base)
+    end.
+%% Generates a subdivided #vab{} from Material Plan
+gen_vab(Plan, Base) ->
+    case subdiv(Base, ?DEFAULT) of
+	skip -> create_vab(<<>>, []);
+	Data ->
+	    gen_vab_1(Plan, Data, Base)
+    end.
+
+%% Subdivide mesh
+subdiv(Base = #base{level=N, n=Total}, Impl) when Total > 0 ->
     try 
 	case Impl of
 	    opencl ->
-		{In,Out,CL} = cl_allocate(N, Base, cl_setup()),
+		{In,Out,CL} = cl_allocate(Base, cl_setup()),
 		Wait = cl_write_input(Base, In, Out, CL),
-		Data = ?TC(subdiv_1(N, In, Out, CL, Wait)),
-		Data#cc_cache{base=Base, level=N};
+		?TC(subdiv_1(N, In, Out, CL, Wait));
 	    erlang ->
-		{wings_cc_ref:subdiv(Base, N), Base, N}
+		wings_cc_ref:subdiv(Base)
 	end
     catch
 	_:Reas ->
 	    io:format("Error ~p:~p ~n", [Reas, erlang:get_stacktrace()])
-    end.
+    end;
+subdiv(_, _) ->
+    skip.
 
 %% Generates a vab (and updates Data)
-%% Returns {Vab, Data}
-gen_vab(Data0) ->
+%% Returns Vab
+gen_vab_1(Data0, Base) ->
     try 
-	{Vs, MatInfo, Data} = 
+	{Bin, MatInfo} = 
 	    case ?DEFAULT of
-		erlang -> wings_cc_ref:gen_vab(Data0);
-		opencl -> gen_vab_1(Data0)
+		erlang -> wings_cc_ref:gen_vab(Data0, Base);
+		opencl -> gen_vab_2(Data0, Base)
 	    end,
-	Ns = case Vs of
-		 <<>> -> Vs;
-		 <<_:3/unit:32,NsP/bytes>> ->
-		     NsP
-	     end,
-	S = 24,
-	%% io:format("~p:~p: QUADS ~p (~p div ~p) ~n", 
-	%% 	  [?MODULE, ?LINE, size(Vs) div S, size(Vs), S]),
-	%% io:format("MatInfo ~p~n", [MatInfo]),
-	{#vab{face_vs={S,Vs},face_fn={S,Ns}, 
-	      face_uv=none,mat_map=MatInfo}, Data}
+	create_vab(Bin,MatInfo)
     catch
 	_:Reas ->
 	    io:format("Error ~p:~p ~n", [Reas, erlang:get_stacktrace()])
     end.
 
-%% Update vertex table and generates a new vab
-%% update(ChangedVs0, 
-%%        Data0=#cc_cache{base=#base{vmap=VMap, v=VsBin0}=Base0,
-%% 		       mem1=In, mem2=Out,
-%% 		       level=N
-%% 		      })
-%%   when is_list(ChangedVs0) ->
-%%     ChangedVs = [{array:get(Id,VMap),Pos} || {Id,Pos} <- ChangedVs0],
-%%     VsBin = update_1(lists:sort(ChangedVs), VsBin0),
-    
-%%     Base = Base0#base{v=VsBin},
-%%     Wait = cl_write_input(Base, In, Out, CL),
-%%     Data = subdiv_cl(N, In, Out, CL, Wait),
-%%     xxx.
+gen_vab_1(Plan, Data, Base) ->
+    try 
+	{Bin, MatInfo} = 
+	    case ?DEFAULT of
+		erlang -> wings_cc_ref:gen_vab(Plan, Data, Base);
+		opencl -> gen_vab_2(Plan, Data, Base)
+	    end,
+	create_vab(Bin,MatInfo)
+    catch
+	_:Reas ->
+	    io:format("Error ~p:~p ~n", [Reas, erlang:get_stacktrace()])
+    end.
 
+create_vab(Vs, MatInfo) ->
+    Ns = case Vs of
+	     <<>> -> Vs;
+	     <<_:3/unit:32,NsP/bytes>> ->
+		 NsP
+	 end,
+    S = 24,
+    #vab{face_vs={S,Vs},face_fn={S,Ns}, 
+	 face_uv=none,mat_map=MatInfo}.
+
+update_1(ChangedVs0, #base{vmap=VMap, v=VsBin0}=Base)
+  when is_list(ChangedVs0) ->
+    ChangedVs = [{array:get(Id,VMap),Pos} || {Id,Pos} <- ChangedVs0],
+    VsList = update_vs(lists:sort(ChangedVs), 0, VsBin0),
+    VsBin  = iolist_to_binary(VsList),
+    Base#base{v=VsBin};
+
+update_1(#we{vp=Vpos}, #base{vmap=VMap, v=VsBin0}=Base) ->
+    Change = fun(Vid, CLid, Acc) ->
+		     Pos = array:get(Vid, Vpos),
+		     Skip = CLid*16+12,
+		     <<_:Skip/binary, VI:4/binary, _/binary>> = VsBin0,
+		     [{CLid, Pos, VI}|Acc]
+	     end,
+    VsInfo = array:sparse_foldl(Change, [], VMap),
+    VsBin = << <<X:?F32,Y:?F32,Z:?F32,VI/binary>> 
+	       || {_,{X,Y,Z}, VI} <- lists:sort(VsInfo) >>,
+    true = size(VsBin) == size(VsBin0), %% Assert
+    Base#base{v=VsBin}.
+    
+update_vs([{Id, {X,Y,Z}}|Vs], Where, Bin) ->
+    Skip = Id*4*4-Where,
+    <<Head:Skip/binary, _:(4*3)/binary, Rest/binary>> = Bin,
+    New = <<X:?F32,Y:?F32,Z:?F32>>,
+    [Head, New | update_vs(Vs, Where+Skip+12, Rest)];
+update_vs([], _, Bin) -> [Bin].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 build_data({Type, MatFs}, N, We0, Impl) ->
     {FMap0, We} = gen_fmap(MatFs, We0),
-    %% {Faces, Htab} = wings_subdiv:smooth_faces_htab(We),
-    %% CreateMap = fun(Face,[N|Map]) -> [N+1,{Face,N}|Map] end,
-    %% [_N|Map0] = foldl(CreateMap, [0], Faces),
     FMap  = gb_trees:from_orddict(lists:sort(FMap0)),
     Empty = array:new(),
-    Acc = {Empty, Empty, {0, Empty}},
+    Acc  = {Empty, Empty, {0, Empty}},
     Data = build_data(FMap0, [], Acc, FMap, We),
-    {Total, MatMap} = calc_matmap(MatFs, N, Data),
-    %% io:format("FMap ~p~n", [gb_trees:to_list(FMap)]), 
-    %% io:format("MatMap ~p ~p~n", [Total, MatMap]), 
-    pack_data(Data, Type, Total, MatMap, Impl).
+    MatMap = calc_matmap(MatFs, N, Data),
+    pack_data(Data, Type, N, MatMap, Impl).
 
 build_data([{F,_}|Fs], Ftab0, Acc0, FMap, We) -> 
     {Vs, Acc} = wings_face:fold(fun(V,Eid,E,Acc) ->  %% CCW
 					get_face_info(V,Eid,E,Acc,FMap,We)
 				end, {[], Acc0}, F, We),
     build_data(Fs, [Vs|Ftab0], Acc, FMap, We);
-build_data([], Ftab0, {Vtab, Etab, VMap}, _, _) ->
+build_data([], Ftab0, {Vtab, Etab, {_,VMap}}, FMap, _) ->
     Ftab = reverse(Ftab0),
-    {Vtab, Etab, Ftab, VMap}.
+    {Vtab, Etab, Ftab, VMap, FMap}.
 
 gen_fmap(Plan, We = #we{}) ->
     Fmap0=[{_,Last}|_] = gen_fmap(Plan, 0, []),
@@ -202,22 +247,23 @@ hidden_fs2(Iter0, Exclude, Hidden) ->
 	    Hidden
     end.
 
-calc_matmap(MatMap0, N, {_Vtab0, _Etab0, Ftab0, _VMap}) ->
-    Mul = trunc(math:pow(4,N-1))*4,  %% Subd level * 4 verticies
-    calc_matmap(MatMap0, 0, Ftab0, Mul, []).
+calc_matmap(MatMap0, N, {_Vtab0, _Etab0, Ftab0, _VMap, _}) ->
+    Mul = trunc(math:pow(4,N-1)),  %% Subd level 
+    calc_matmap(MatMap0, 0, Ftab0, Mul, [], []).
 
-calc_matmap([{Mat,Fs}|Mfs], Start, Ftab0, Mul, Acc) ->
-    {Next, Ftab} = calc_matmap_1(Fs, Ftab0, Mul, Start),
-    calc_matmap(Mfs, Next, Ftab, Mul, 
-		[{Mat, ?GL_QUADS, Start, Next-Start}|Acc]);
-calc_matmap([], Total, _, _, Acc) ->
-    {Total div 4, reverse(Acc)}.
+calc_matmap([{Mat,Fs}|Mfs], Start, Ftab0, Mul, FMap0, Acc) ->
+    {Next, Ftab, FMap} = calc_matmap_1(Fs, Ftab0, Mul, Start, FMap0),
+    calc_matmap(Mfs, Next, Ftab, Mul, FMap, 
+		[{Mat, ?GL_QUADS, Start*4, (Next-Start)*4}|Acc]);
+calc_matmap([], Total, _, _, FMap, Acc) ->
+    {Total, reverse(Acc), gb_trees:from_orddict(lists:sort(FMap))}.
 
-calc_matmap_1([_|Fs], [Vs|Ftab], Mul, Count) ->
-    calc_matmap_1(Fs, Ftab, Mul, Count + length(Vs)*Mul);
-calc_matmap_1([], Ftab, _, Count) ->
-    {Count, Ftab}.
-
+calc_matmap_1([Id|Fs], [Vs|Ftab], Mul, Count, FMap) ->
+    Size = length(Vs),
+    FInfo = {Id, {Count, Size*Mul}},
+    calc_matmap_1(Fs, Ftab, Mul, Count + Size*Mul, [FInfo|FMap]);
+calc_matmap_1([], Ftab, _, Count, FMap) ->
+    {Count, Ftab, FMap}.
 
 get_face_info(Orig, Eid, E, {Vs, {Vtab0, Etab0, VMap0}}, FMap, We) ->
     {V, Vtab, VMap1} = setup_vertex(Orig, Vtab0, VMap0, We),
@@ -273,16 +319,18 @@ update_vmap(Orig, VM={N,VMap}) ->
 	    {V, VM}
     end.
 
-pack_data({Vtab0, Etab0, Ftab0, VMap}, Type, Count, MatMap, erlang) ->
+pack_data({Vtab0, Etab0, Ftab0, VMap, _FMap}, Type, N, 
+	  {Count, MatMap, FMap}, erlang) ->
     Etab = array:from_list(array:sparse_to_list(Etab0)),
     Ftab = array:from_list(Ftab0),
-    #base{v=Vtab0, e=Etab, f=Ftab, n=Count, 
-	  mmap=MatMap, type=Type, vmap=VMap};
+    #base{v=Vtab0, e=Etab, f=Ftab, n=Count, level=N,
+	  mmap=MatMap, type=Type, vmap=VMap, fmap=FMap};
 
-pack_data({Vtab0, Etab0, Ftab0, VMap}, Type, Count, MatMap, opencl) ->
-    GetFs = fun(Vs, {N, FI, Fs}) ->
+pack_data({Vtab0, Etab0, Ftab0, VMap, _FMap}, Type, N, 
+	  {Count, MatMap, FMap}, opencl) ->
+    GetFs = fun(Vs, {No, FI, Fs}) ->
 		    Len = length(Vs),
-		    {N+Len, <<FI/binary, N:?I32, Len:?I32>>,
+		    {No+Len, <<FI/binary, No:?I32, Len:?I32>>,
 		     << Fs/binary, 
 			(<< <<V:?I32>> || V <- Vs >>)/binary >>}
 	    end,
@@ -301,13 +349,8 @@ pack_data({Vtab0, Etab0, Ftab0, VMap}, Type, Count, MatMap, opencl) ->
 		       X1:?F32,Y1:?F32,Z1:?F32,VI:?F32 >>
 	    end,
     Vtab = array:foldl(GetVs, <<>>, Vtab0),
-    #base{v=Vtab, e=Etab, f=Ftab, fi=FI, n=Count,
-	  mmap=MatMap, type=Type, vmap=VMap}.
-
-zip_map([{W,F}|Map], [Vs|Fs], C) ->
-    Len = length(Vs),
-    [{W,{F,C,Len}}|zip_map(Map,Fs,C+Len)];
-zip_map([],[],_) -> [].
+    #base{v=Vtab, e=Etab, f=Ftab, fi=FI, n=Count, level=N,
+	  mmap=MatMap, type=Type, vmap=VMap, fmap=FMap}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%% Opencl Implementation
@@ -348,11 +391,10 @@ subdiv_1(_C, ResultBuffs, OutBuffs, _, Wait) ->
     %% io:format("Fs ~p ~n",[[F || <<F:?I32>> <= FsBin]]),
     %% {ok, EsBin} = cl:wait(WR2),
     %% io:format("Es ~p ~n",[[F || <<F:?I32>> <= EsBin]]),
-    
-    %%cl_release(OutBuffs, false),
-    #cc_cache{mem1=ResultBuffs, mem2=OutBuffs, wait=Wait}.
+    cl_release(OutBuffs, false),
+    #cc_cache{mem=ResultBuffs, wait=Wait}.
 
-gen_vab_1(#cc_cache{mem1=Mem,wait=Wait,base=B=#base{n=NoFs}} = Cache) ->
+gen_vab_2(#cc_cache{mem=Mem,wait=Wait}, B=#base{n=NoFs}) ->
     CL=#cli{q=Q, vab=Vab} = cl_setup(),
     %% Create #vab{}
     #cl_mem{v=Vs, f=Fs} = Mem,
@@ -360,50 +402,47 @@ gen_vab_1(#cc_cache{mem1=Mem,wait=Wait,base=B=#base{n=NoFs}} = Cache) ->
     {ok, WData} = cl:enqueue_read_buffer(Q,Vab,0,NoFs*4*6*4,[WVab]),
     {ok, VabBin} = cl:wait(WData),
     [cl:release_event(Ev) || Ev <- [WVab,WData|Wait]],
-    %% DEBUG Release
-    %% cl_destroy(Mem),
-    {VabBin, B#base.mmap, Cache#cc_cache{wait=[]}}.
+    cl_release(Mem, true),
+    {VabBin, B#base.mmap}.
 
+gen_vab_2({_Type, MatFs}, #cc_cache{mem=Mem,wait=Wait}, #base{fmap=FMap}) ->
+    CL=#cli{q=Q, vab=Vab, fl=FL} = cl_setup(),
+    %% Create #vab{}
+    #cl_mem{v=Vs, f=Fs} = Mem,
+    CountF = fun(WFace, [Start|Bin0]) ->
+		     {Fstart,FSz} = gb_trees:get(WFace,FMap),
+		     Bin = <<
+			     Bin0/binary,
+			     Fstart:?I32,       %% Start in Fs
+			     FSz:?I32,          %% No of faces
+			     Start:?I32         %% Start in vab
+			   >>,
+		     [Start+FSz|Bin]
+	     end,
+    {NoOutFs,FsBin,MatI} = mat_index(MatFs, CountF, [0|<<>>], []),
+    NoInFs = byte_size(FsBin) div 12,
+    case NoInFs > 0 of 
+	true ->
+	    {ok,W1} = cl:enqueue_write_buffer(Q, FL, 0, byte_size(FsBin), 
+					      FsBin, []),
+	    WVab = cl_apply(create_vab, [Vs,Fs,FL,Vab,NoInFs], 
+			    NoInFs, [W1|Wait],CL),
+	    {ok, WData}  = cl:enqueue_read_buffer(Q,Vab,0,NoOutFs*4*6*4,[WVab]),
+	    {ok, VabBin} = cl:wait(WData),
+	    [cl:release_event(Ev) || Ev <- [WVab,W1|Wait]],
+	    cl_release(Mem, true),
+	    {VabBin, MatI};
+	false ->
+	    {<<>>, []}
+    end.
 
-%% gen_vab_cl(MatFs, #cc_cache{mem1=Mem,wait=Wait,
-%% 			    level=N,fmap=FMap} = Cache) ->
-%%     CL=#cli{q=Q, vab=Vab, fl=FL} = cl_setup(), 
-%%     %% Create #vab{}
-%%     #cl_mem{v=Vs, f=Fs} = Mem,
-
-%%     Mul = trunc(math:pow(4,N-1)),
-%%     CountF = fun(WFace, [Start|Bin0]) ->
-%% 		     {_Fid,Fstart,FSz0} = gb_trees:get(WFace,FMap),
-%% 		     FSz = FSz0*Mul,		     
-%% 		     Bin = <<
-%% 			     Bin0/binary,
-%% 			     (Fstart*Mul):?I32, %% Start in Fs
-%% 			     FSz:?I32,          %% No of faces
-%% 			     Start:?I32         %% Start in vab
-%% 			   >>,
-%% 		     [Start+FSz|Bin]
-%% 	     end,
-%%     {NoOutFs,FsBin,MatI} = mat_index(MatFs, CountF, [0|<<>>], []),
-%%     NoInFs = byte_size(FsBin) div 12,
-%%     {ok,W1} = cl:enqueue_write_buffer(Q, FL, 0, byte_size(FsBin), 
-%% 				      FsBin, []),
-%%     WVab = cl_apply(create_vab, [Vs,Fs,FL,Vab,NoInFs], 
-%% 		    NoInFs, [W1|Wait],CL),
-%%     {ok, WData} = cl:enqueue_read_buffer(Q,Vab,0,NoOutFs*4*6*4,[WVab]),
-%%     {ok, VabBin} = cl:wait(WData),
-%%     [cl:release_event(Ev) || Ev <- [WVab,W1|Wait]],
-%%     %% DEBUG Release
-%%     %% cl_destroy(Mem),
-%%     {VabBin, MatI, Cache#cc_cache{wait=[]}}.
-
-%% mat_index([{Mat,Fs}|MFs], Fun, Acc0 = [Start|_], MI) ->
-%%     Acc = [Next|_] = foldl(Fun, Acc0, Fs),
-%%     NoVs = (Next-Start)*4,
-%%     MatInfo = {Mat,?GL_QUADS,Start*4,NoVs},
-%%     mat_index(MFs, Fun, Acc, [MatInfo|MI]);
-%% mat_index([], _, [Total|Bin], MatInfo) ->
-%%     {Total, Bin, MatInfo}.
-
+mat_index([{Mat,Fs}|MFs], Fun, Acc0 = [Start|_], MI) ->
+    Acc = [Next|_] = foldl(Fun, Acc0, Fs),
+    NoVs = (Next-Start)*4,
+    MatInfo = {Mat,?GL_QUADS,Start*4,NoVs},
+    mat_index(MFs, Fun, Acc, [MatInfo|MI]);
+mat_index([], _, [Total|Bin], MatInfo) ->
+    {Total, Bin, MatInfo}.
 
 cl_setup() ->
     case get({?MODULE, cl}) of 
@@ -437,15 +476,21 @@ cl_setup_1() ->
 	    %% io:format("~s", [Str]),
 	    exit(Err);
 	{ok, Program} -> 
+	    {ok, MaxWGS} = cl:get_device_info(Device, max_work_group_size),
 	    {ok, Kernels0} = cl:create_kernels_in_program(Program),
-	    Kernels = [kernel_info(K,Device) || K <- Kernels0],
-	    io:format("Kernels ~p~n",[Kernels]),
+	    Kernels = [kernel_info(K,Device, MaxWGS) || K <- Kernels0],
+	    %% io:format("Kernels ~p~n",[Kernels]),
 	    CLI = #cli{context=CL#cl.context,kernels=Kernels,
 		       q=Queue, device=Device, cl=CL},
 	    cl:release_program(Program),
 	    put({?MODULE, cl}, CLI),
 	    CLI
     end.
+
+kernel_info(K,Device, MaxWGS) ->
+    {ok, WG} = cl:get_kernel_workgroup_info(K, Device, work_group_size),
+    {ok, Name} = cl:get_kernel_info(K, function_name),
+    #kernel{name=list_to_atom(Name), wg=min(WG,MaxWGS), id=K}.
 
 cl_apply(Name, Args, No, Wait, #cli{q=Q, kernels=Ks}) ->
     #kernel{id=K, wg=WG0} = lists:keyfind(Name, 2, Ks),
@@ -458,19 +503,13 @@ cl_apply(Name, Args, No, Wait, #cli{q=Q, kernels=Ks}) ->
     {GWG,WG} = if  No > WG0  -> 
 		       {(1+(No div WG0))*WG0, WG0};
 		   true -> {No,No}
-	       end,    
-    %% io:format("Exec: ~p(#~p) ~p GW ~p ~p~n", 
-    %% 	      [Name, length(Args), No, GWG, WG]),
+	       end,
+    %% io:format("X ~p GWG ~p WG ~p~n", [Name, GWG, WG]),
     {ok, Event} = cl:enqueue_nd_range_kernel(Q,K,[GWG],[WG],Wait),
     Event.
 
-kernel_info(K,Device) ->
-    {ok, WG} = cl:get_kernel_workgroup_info(K, Device, work_group_size),
-    {ok, Name} = cl:get_kernel_info(K, function_name),
-    #kernel{name=list_to_atom(Name), wg=WG, id=K}.
-
 %% For now only one level at the time
-cl_allocate(N, Base=#base{fi=Fi}, CL0=#cli{context=Ctxt}) ->
+cl_allocate(Base=#base{fi=Fi, level=N}, CL0=#cli{context=Ctxt}) ->
     {NoFs,NoEs,NoVs, NoFs1, MaxFs,MaxEs,MaxVs} = verify_size(N, Base, CL0),
     {ok,FiIn}  = cl:create_buffer(Ctxt, [], byte_size(Fi), Fi),
     {ok,FsIn}  = cl:create_buffer(Ctxt, [], MaxFs*?FACE_SZ),
@@ -497,7 +536,6 @@ cl_write_input(#base{f=Fs,e=Es,v=Vs},
     {ok, W4} = cl:enqueue_write_buffer(Q,  EsIn, 0, byte_size(Es), Es, []),
     [W1,W2,W3,W4].
     
-
 cl_release(#cl_mem{v=Vs,f=Fs,e=Es, fi0=Fi0}, All) ->
     Vs /= undefined andalso cl:release_mem_object(Vs),
     Fs /= undefined andalso cl:release_mem_object(Fs),
@@ -538,22 +576,6 @@ check_temp(undefined, _, Req, Ctxt, Opt, Fun) ->
 check_temp(Buff0, _, Req, Ctxt, Opt, Data) ->
     cl:release_mem_object(Buff0),
     check_temp(undefined, 0, Req, Ctxt, Opt, Data).
-	       
-cl_destroy(Mem) ->
-    %% During DEBUGGING REMOVE LATER BUGBUG
-    cl_release(Mem, true),
-    #cli{q=Q,kernels=Ks,context=C, 
-	 fl=Fl, fi=Fi,vab=Vab} = get({?MODULE, cl}),
-
-    cl:release_mem_object(Vab),
-    cl:release_mem_object(Fi),
-    cl:release_mem_object(Fl),
-
-    erase({?MODULE, cl}),
-    cl:release_queue(Q),
-    [cl:release_kernel(K) || #kernel{id=K} <- Ks],
-    cl:release_context(C),
-    ok.
 
 verify_size(N, #base{fi=Fi, e=Es, v=Vs}, #cli{device=Device}) ->
     NoFs = size(Fi) div 8,
@@ -564,8 +586,6 @@ verify_size(N, #base{fi=Fi, e=Es, v=Vs}, #cli{device=Device}) ->
     <<_:Skip/binary, NoFs0:?I32, LastFc:?I32>> = Fi,
     NoFs1 = NoFs0+LastFc,
     {ok, DevTotal} = cl:get_device_info(Device, max_mem_alloc_size),
-    %% io:format(" N 0 Fs ~p Es ~p Vs ~p MaxMem: ~pkb~n", 
-    %% 	      [NoFs, NoEs, NoVs, DevTotal div 1024]),
     Res = verify_size_1(N-1, N, NoFs1, NoEs*4, NoVs+NoEs+NoFs, DevTotal),
     case Res of
 	false -> 
@@ -578,7 +598,6 @@ verify_size(N, #base{fi=Fi, e=Es, v=Vs}, #cli{device=Device}) ->
 verify_size_1(N, No, Fs, Es, Vs, CardMax) ->
     VertexSz = (3+3)*4*4,
     Total = Fs*VertexSz+2*(Fs*?FACE_SZ+Es*?EDGE_SZ+Vs*?VERTEX_SZ),
-    %% io:format(" N ~p Fs ~p Es ~p Vs ~p~n",[No-N, Fs, Es, Vs]),
     case Total < CardMax of
 	true when N == 0 ->
 	    {Fs,Es,Vs};
@@ -599,6 +618,7 @@ verify_size_1(N, No, Fs, Es, Vs, CardMax) ->
 %% DEBUG
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+-ifdef(DO_DEBUG).
 cl_vs(Str, N, Vs, Count, #cli{q=Q}, Wait0) ->
     Wait = if is_list(Wait0) -> Wait0; true -> [Wait0] end,
     {ok, W1} = cl:enqueue_read_buffer(Q,Vs,0,Count*?VERTEX_SZ,Wait),
@@ -635,3 +655,22 @@ cl_face(Str, N, Vs, Count, #cli{q=Q}, Wait) ->
     after 
 	file:close(FD)	
     end.
+
+
+cl_destroy(Mem) ->
+    %% During DEBUGGING REMOVE LATER BUGBUG
+    cl_release(Mem, true),
+    #cli{q=Q,kernels=Ks,context=C, 
+	 fl=Fl, fi=Fi,vab=Vab} = get({?MODULE, cl}),
+
+    cl:release_mem_object(Vab),
+    cl:release_mem_object(Fi),
+    cl:release_mem_object(Fl),
+
+    erase({?MODULE, cl}),
+    cl:release_queue(Q),
+    [cl:release_kernel(K) || #kernel{id=K} <- Ks],
+    cl:release_context(C),
+    ok.
+
+-endif.

@@ -288,68 +288,110 @@ draw_edges_1(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
     wings_dl:call(ProxyEdges).
 
 proxy_smooth(We0, Pd0, St) ->
-    case proxy_smooth_1(We0, Pd0, St) of
-    	{false,_} ->
-    	    Pd0;
-    	{true,We} ->
-	    ?TC(dummy_new(We0,We,St));
-    	{true,#we{fs=Ftab}=We} ->
-	    Plan = wings_draw_setup:prepare(gb_trees:to_list(Ftab), We, St),
-	    ?TC(flat_faces(Plan, #sp{src_we=We0,we=We}))
+    %% Impl = ?MODULE,
+    Impl = wings_cc,
+    case proxy_needs_update(We0, Pd0) of
+	{false,_} ->
+	    Pd0;
+	{_, _} = Info when Impl =:= ?MODULE ->
+	    ?TC(create_proxy_subdiv(Info, We0, St));
+	{Op, _} ->
+	    case Pd0 of		
+		#sp{type={wings_cc,Data}} when Op =:= update ->
+		    ?TC(update_proxy_cc(We0, Data));
+		_ ->
+		    ?TC(create_proxy_cc(We0, St))
+	    end
     end.
 
-proxy_smooth_1(We, #sp{we=SWe,src_we=We,vab=#vab{face_vs=Bin}})
+proxy_needs_update(We, #sp{we=SWe,src_we=We,vab=#vab{face_vs=Bin}})
   when Bin =/= none ->
     %% Nothing important changed - just recreate the display lists
-    {false,SWe};
-proxy_smooth_1(#we{es=Etab,he=Hard,mat=M,next_id=Next,mirror=Mirror}=We0,
-	       #sp{we=OldWe,src_we=#we{es=Etab,he=Hard,mat=M,next_id=Next,
-				       mirror=Mirror}}) ->
-    {true,?TC(wings_subdiv:inc_smooth(We0, OldWe))};
-proxy_smooth_1(We0, #sp{}) ->
-    if ?IS_ANY_LIGHT(We0) -> {false,We0};
-       true -> {true,?TC(wings_subdiv:smooth(We0))}
+    {false, SWe};
+proxy_needs_update(#we{es=Etab,he=Hard,mat=M,next_id=Next,mirror=Mirror},
+		  #sp{we=OldWe,src_we=#we{es=Etab,he=Hard,mat=M,next_id=Next,
+					  mirror=Mirror}}) ->
+    {update,OldWe};
+proxy_needs_update(We0, #sp{}) ->
+    if ?IS_ANY_LIGHT(We0) -> 
+	    {false,We0};
+       true ->
+	    {smooth,We0}
     end.
 
+update_proxy_subdiv({false, We}, _) ->
+    We;
+update_proxy_subdiv({update, OldWe}, We0) ->
+    wings_subdiv:inc_smooth(We0, OldWe);
+update_proxy_subdiv({smooth, We}, _) ->
+    wings_subdiv:smooth(We).
 
-proxy_smooth_1(We, #sp{we=SWe,src_we=We,vab=#vab{face_vs=Bin}}, _)
-  when Bin =/= none ->
-    %% Nothing important changed - just recreate the display lists
-    {false,SWe};
-proxy_smooth_1(#we{es=Etab,he=Hard,mat=M,next_id=Next,mirror=Mirror}=We0,
-	       #sp{we=OldWe,src_we=#we{es=Etab,he=Hard,mat=M,next_id=Next,
-				       mirror=Mirror}},
-	       _) ->
-    {true,?TC(wings_subdiv:inc_smooth(We0, OldWe))};
-proxy_smooth_1(We0, #sp{}, St) ->
-    if ?IS_ANY_LIGHT(We0) -> {false,We0};
-       true -> %%{true,?TC(wings_subdiv:smooth(We0))}
-	    {true,?TC(dummy_old(We0,St))}
-    end.
+create_proxy_subdiv(Info, We0, St) ->
+    We = update_proxy_subdiv(Info, We0),
+    Plan = wings_draw_setup:prepare(gb_trees:to_list(We#we.fs), We, St),
+    flat_faces(Plan, #sp{src_we=We0,we=We}).
 
-dummy_old(We0,St) ->
-    #we{fs=Ftab}= We = wings_subdiv:smooth(We0),
-    Plan = wings_draw_setup:prepare(gb_trees:to_list(Ftab), We, St),
-    ?TC(flat_faces(Plan, #sp{src_we=We0,we=We})),
-    We.
+update_proxy_cc(We0, Data0) ->
+    Data = wings_cc:update(We0, Data0),
+    Vab  = wings_cc:gen_vab(Data),
+    #sp{src_we=We0,we=We0,vab=Vab,type={wings_cc,Data}}.
 
-dummy_new(We0,We,St) ->
-    Plan = wings_draw_setup:prepare(gb_trees:keys(We0#we.fs), We0, St),
-    Data0 = ?TC(wings_cc:subdiv(Plan, We0)),
-    {Vab,Data} = ?TC(wings_cc:gen_vab(Data0)),
-    #sp{src_we=We0,we=We,vab=Vab,type={wings_cc,Data}}.
+create_proxy_cc(We = #we{fs=Ftab}, St) ->
+    Plan = wings_draw_setup:prepare(gb_trees:keys(Ftab), We, St),
+    Data = wings_cc:init(Plan, We),
+    Vab  = wings_cc:gen_vab(Data),
+    #sp{src_we=We,we=We,vab=Vab,type={wings_cc,Data}}.
 
-split_proxy(#dlo{proxy=true,proxy_data=Pd=#sp{type={wings_cc,_}}}, _DynVs0, _St) ->
-    %% This can be probably be optimized to do as the erlang variant below
-    Pd;
+split_proxy(#dlo{proxy=true, src_we=We=#we{fs=Ftab},
+		 proxy_data=Pd=#sp{type={wings_cc,Data0}}},
+	    DynVs0, St) ->
+    Fs0 = gb_trees:keys(Ftab),
+    DynFs0 = wings_face:from_vs(DynVs0, We),
+    %% #we{mirror=Mirror,holes=Holes} = SrcWe,
+    %% DynFs = ordsets:subtract(DynFs0, ordsets:union([Mirror], Holes)),
+
+    %% Expand once (to get the split drawing faces)
+    DynVs1 = wings_face:to_vertices(DynFs0, We),
+    DynFs = wings_face:from_vs(DynVs1, We),
+
+    Data = case proxy_needs_update(We, Pd) of
+	       {false, _} -> 
+		   Data0;
+	       {update, _} ->
+		   wings_cc:update(DynVs0, Data0);
+	       {_, _} ->
+		   Plan = wings_draw_setup:prepare(Fs0, We, St),
+		   wings_cc:init(Plan, We)
+	   end,
+    StaticFsSet = gb_sets:subtract(gb_sets:from_ordset(Fs0), 
+				   gb_sets:from_ordset(DynFs)),
+    StaticFs = gb_sets:to_list(StaticFsSet),
+    %%io:format("Gen Static ~w~n", [StaticFs]),
+    StaticPlan = wings_draw_setup:prepare(StaticFs, We, St),
+    StaticVab = wings_cc:gen_vab(StaticPlan, Data),
+    StaticDL = wings_draw:draw_flat_faces(StaticVab, St),
     
+    %% To get the subdiv correct we need outer layer of faces during calc
+    SubdivVs = wings_face:to_vertices(DynFs, We),
+    SubdivFs = wings_face:from_vs(SubdivVs, We),
+    SubdivPlan = wings_draw_setup:prepare(SubdivFs, We, St),
+    SubdivData = wings_cc:init(SubdivPlan, We),
+    
+    %%io:format("Gen Dynamic ~w~n", [DynFs]),
+    DynPlan  = wings_draw_setup:prepare(DynFs, We, St),
+    DynVab   = wings_cc:gen_vab(DynPlan, SubdivData),
+    DynDL = wings_draw:draw_flat_faces(DynVab, St),
+    Split = #split{dyn=DynPlan, info=SubdivData},
+    #sp{we=We,src_we=We,type={wings_cc,Data},
+	faces=[StaticDL,DynDL],split=Split};
+
 split_proxy(#dlo{proxy=true,proxy_data=Pd0,src_we=SrcWe}, DynVs0, St) ->
     DynFs0 = wings_face:from_vs(DynVs0, SrcWe),
     #we{mirror=Mirror,holes=Holes} = SrcWe,
     DynFs = ordsets:subtract(DynFs0, ordsets:union([Mirror], Holes)),
 
     DynVs = wings_vertex:from_faces(DynFs, SrcWe),
-    {_,#we{fs=Ftab0}=We0} = proxy_smooth_1(SrcWe, Pd0),
+    #we{fs=Ftab0}=We0 = update_proxy_subdiv(proxy_needs_update(SrcWe, Pd0),SrcWe),
     Fs0 = wings_face:from_vs(DynVs, We0),
     OutEs = wings_face:outer_edges(Fs0, We0),
     UpdateVs0 = gb_sets:from_ordset(wings_face:to_vertices(Fs0, We0)),
@@ -376,7 +418,8 @@ split_proxy(#dlo{proxy=true,proxy_data=Pd0,src_we=SrcWe}, DynVs0, St) ->
 split_proxy(#dlo{proxy_data=PD},_, _St) ->
     PD.
 
-update_dynamic(ChangedVs, St, #dlo{proxy=true,proxy_data=#sp{type=?MODULE}=Pd0}=D0) ->
+update_dynamic(ChangedVs, St, 
+	       #dlo{proxy=true,proxy_data=#sp{type=?MODULE}=Pd0}=D0) ->
     #sp{faces=[SDL|_],we=SmoothedWe,split=Split,
 	src_we=SrcWe0=#we{vp=Vtab0}}=Pd0,
     #split{upd_fs=Upd,dyn=DynPlan,info=Info} = Split,
@@ -387,16 +430,18 @@ update_dynamic(ChangedVs, St, #dlo{proxy=true,proxy_data=#sp{type=?MODULE}=Pd0}=
     Pd1  = flat_faces(DynPlan, Pd0#sp{we=We, src_we=SrcWe}),
     Temp = wings_draw:draw_flat_faces(Pd1#sp.vab, St),
     D0#dlo{proxy_data=Pd1#sp{faces=[SDL,Temp]}};
-update_dynamic(ChangedVs, St, D0=#dlo{proxy=true,
-				      proxy_data=#sp{type={wings_cc,Data0}}=Pd0}) ->
-    {Vab,Data} = wings_cc:update(ChangedVs, Data0),
-    Vab = wings_draw:draw_flat_faces(Vab, St),
-    D0#dlo{proxy_data=Pd0#sp{vab=Vab,type={wings_cc,Data}}};
+update_dynamic(ChangedVs, St, 
+	       D0=#dlo{proxy=true,proxy_data=#sp{type={wings_cc,_}}=Pd0}) ->
+    #sp{faces=[SDL|_],split=SP=#split{dyn=DynPlan, info=Data0}}=Pd0,
+    Data = wings_cc:update(ChangedVs, Data0),
+    Vab  = wings_cc:gen_vab(DynPlan, Data),
+    DL   = wings_draw:draw_flat_faces(Vab, St),
+    D0#dlo{proxy_data=Pd0#sp{faces=[SDL,DL], split=SP#split{info=Data}}};
 update_dynamic(_, _, D) ->
     D.
 
-reset_dynamic(#sp{we=We, src_we=We0}) ->
-    #sp{we=We,src_we=We0};
+reset_dynamic(#sp{we=We, src_we=We0, type=Type}) ->
+    #sp{we=We,src_we=We0,type=Type};
 reset_dynamic(D) ->
     D.
 

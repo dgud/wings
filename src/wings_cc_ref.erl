@@ -31,9 +31,11 @@
 	       f,    %% array of [v0,v1..,vn]   nf
 	       fi,   %% array of {Start,Size}   nf
 	       e,    %% array of v0,v1,f1,f2    ne
+	       level,%% Subdiv levels
 	       n,    %% Number of faces 
 	       mmap, %% Material map, {mat, start, vertex_count}
 	       vmap, %% array Wings Vertex Id -> CL vertex id
+	       fmap, %% gb_tree Wings face id -> CL face id
 	       type  %% Type of data plain,uv,color,color_uv
 	      }).
 
@@ -42,7 +44,7 @@
 -define(VERTEX_SZ, ((3*4)+4)).
 -define(LOCK_SZ, 32).
 
-subdiv(#base{v=Vs,e=Es,f=Fs}, N) ->
+subdiv(#base{v=Vs,e=Es,f=Fs, level=N}) ->
     subdiv_erl_1(Fs, Es, Vs, N).
 
 subdiv_erl_1(InFs, Es0, InVs, N) when N > 0 ->
@@ -57,10 +59,38 @@ subdiv_erl_1(InFs, Es0, InVs, N) when N > 0 ->
     %% erl_vs("evs_out3", N, OutVs),
     subdiv_erl_1(OutFs, Es, OutVs, N-1);
 subdiv_erl_1(Fs0, _Es0, Vtab, _N) ->
-    assert(Vtab, _Es0, Fs0),
+    %% assert(Vtab, _Es0, Fs0),
     {Vtab, Fs0}.
 
-gen_vab(Data = {{Vtab, Ftab}, #base{n=Total, mmap=Mats}, _N}) -> 
+update(Changed, B=#base{v=Vs0,vmap=Map}) ->
+    Vs = case Changed of
+	     [_|_] ->
+		 Move = fun({Vid, Pos}, Vs) ->
+				try 
+				CLid = array:get(Vid, Map),
+				V = array:get(CLid, Vs),
+				array:set(CLid, V#v{pos=Pos}, Vs)
+				catch _:badarg ->
+					io:format("VMap ~w~n", 
+						  [array:to_orddict(Map)]),
+					io:format("Vid ~p ~n", [Vid]),
+					io:format("CLid ~p ~n", [catch array:get(Vid, Map)]),
+					exit(foo)
+				end
+			end,
+		 %% io:format("Changed ~p~n",[Changed]),
+		 foldl(Move, Vs0, Changed);
+	     #we{vp=Vpos} ->
+		 Move = fun(Vid, CLid, Vs) ->
+				Pos = array:get(Vid, Vpos),
+				V = array:get(CLid, Vs),
+				array:set(CLid, V#v{pos=Pos}, Vs)
+			end,
+		 array:sparse_foldl(Move, Vs0, Map)
+	 end,
+    B#base{v=Vs}.
+
+gen_vab({Vtab, Ftab}, #base{n=Total, mmap=Mats}) -> 
     Gen = fun(Id, Vs0, Bin) when Id < Total ->
 		  Vs = [(array:get(V,Vtab))#v.pos || V <- Vs0],
 		  {Nx,Ny,Nz} = e3d_vec:normal(Vs),
@@ -76,23 +106,23 @@ gen_vab(Data = {{Vtab, Ftab}, #base{n=Total, mmap=Mats}, _N}) ->
 	  catch throw:Bin1 ->
 		  Bin1
 	  end,
-    {Bin, Mats, Data}.
+    {Bin, Mats}.
 
-%% gen_vab({{Vtab, Ftab}, Base, N}, Start, Bin0) ->
-%%     FaceM = trunc(math:pow(4,N-1)),
-%%     %%io:format("Mat: ~p Fs: ~p ~p~n",[Mat, length(Fs), Fs]),
-%%     Build = fun(WFace, {C,Acc}) ->
-%% 		    {_,FStart,Fsz} = gb_trees:get(WFace,FMap),
-%% 		    NoFs = Fsz*FaceM,
-%% 		    Face = FStart*FaceM,
-%% 		    Bin = gen_faces(Face, Face+NoFs, Ftab, Vtab, Acc),
-%% 		    {C+NoFs*4, Bin}
-%% 	    end,
-%%     {Stop, Bin} = lists:foldl(Build, {Start, Bin0}, Fs),
-%%     MatInfo = {Mat,?GL_QUADS,Start,Stop-Start},
-%%     gen_vab_erl(T, D, Stop, Bin, [MatInfo|MI]);
-%% gen_vab_erl([], D, _, Bin, Mi) ->
-%%     {Bin, Mi, D}.
+gen_vab({_Type, MatFs}, Data, #base{fmap=FMap}) ->
+    gen_vab(MatFs, Data, FMap, 0, <<>>, []).
+
+gen_vab([{Mat,Fs}|T], D={Vtab,Ftab},FMap, Start, Bin0, MI) ->
+    %%io:format("Mat: ~p Fs: ~p ~p~n",[Mat, length(Fs), Fs]),
+    Build = fun(WFace, {C,Acc}) ->
+		    {FStart,Fsz} = gb_trees:get(WFace,FMap),
+		    Bin = gen_faces(FStart, FStart+Fsz, Ftab, Vtab, Acc),
+		    {C+Fsz*4, Bin}
+	    end,
+    {Stop, Bin} = lists:foldl(Build, {Start, Bin0}, Fs),
+    MatInfo = {Mat,?GL_QUADS,Start,Stop-Start},
+    gen_vab(T, D, FMap, Stop, Bin, [MatInfo|MI]);
+gen_vab([], _, _,_, Bin, Mi) ->
+    {Bin, Mi}.
 
 gen_faces(N, End, Ftab, Vtab, Acc0) when N < End -> 
     Vs0 = array:get(N, Ftab),
