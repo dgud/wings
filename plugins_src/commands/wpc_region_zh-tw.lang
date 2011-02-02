@@ -1,0 +1,19 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_region,
+ [
+  {menu,
+   [
+    {1,"面域"},
+    {2,"移動面域沿法線屬於它的循環邊."},
+    {3,"面域"},
+    {4,"縮放面域從平面循環邊."},
+    {5,"面域"},
+    {6,"旋轉面域沿法線屬於它的循環邊."},
+    {7,"面域"},
+    {8,"壓扁面域到法線屬於它的循環邊."}
+   ]},
+  {region_error,
+   [
+    {1,"Chaque région doit voir exactement une boucle d'arêtes."}
+   ]}
+ ]}.

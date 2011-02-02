@@ -1,0 +1,14 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_rotate_unconstrained,
+ [
+  {orbitrot_menu,
+   [
+    {1,"不受約束"},
+    {2,"選擇自由旋轉圍繞"},
+    {3,"選擇旋轉中心"}
+   ]},
+  {selection_ask,
+   [
+    {1,"選擇旋轉中心"}
+   ]}
+ ]}.

@@ -1,0 +1,24 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_doosabin,
+ [
+  {menu_entry,
+   [
+    {1,"細分 Doo-Sabin"},
+    {2,"做一個細分 Doo-Sabin (警告:搞亂所有UV坐標)"}
+   ]},
+  {doo_sabin,
+   [
+    {1,"Doo-Sabin"},
+    {2,"平滑通過 1"},
+    {3,"平滑通過 2"},
+    {4,"解散通過 1"},
+    {5,"解散通過 2"},
+    {6,"更新選擇"}
+   ]},
+  {menu,
+   [
+    {1,"Subdivision Doo-Sabin "}
+   ]}
+ ]}.
+%% [wpc_doosabin,menu] is not used
+%% [wpc_doosabin,menu] is not used

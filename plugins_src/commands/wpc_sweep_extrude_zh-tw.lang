@@ -1,0 +1,77 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_sweep_extrude,
+ [
+  {axis_menu,
+   [
+    {2,"擠壓相對比例選擇的半徑"}
+   ]},
+  {axis_menu_string,
+   [
+    {1,"掃描到屏幕上的相對自由"},
+    {2,"Extrude le long de la normale sans mouvements de côté."},
+    {3,"如果 ~ts 的軸垂直擠壓正常，所有的運動將受到限制其徑向平面。否則，它作為一個離軸的組成部分。"}
+   ]},
+  {base_help,
+   [
+    {1,"  [4] 凍結基地"},
+    {2,"  [4] 解凍基地"}
+   ]},
+  {cntr_help,
+   [
+    {1,"[1] 選擇中心"},
+    {2,"[1] 區域中心"}
+   ]},
+  {lock_help,
+   [
+    {1,"  [3] 鎖定軸"},
+    {2,"  [3] 畫面相對"}
+   ]},
+  {menu_string_1,
+   [
+    {1,"擠壓沿著正常，使用標準的一邊到另一邊軸"},
+    {2,"擠壓地區沿著正常，使用標準的一邊到另一邊軸"},
+    {3,"提取和擠壓地區沿其正常使用標準的一邊到另一邊軸"}
+   ]},
+  {menu_title,
+   [
+    {1,"掃描"},
+    {2,"掃描區域"},
+    {3,"掃描提取物"}
+   ]},
+  {selection_ask,
+   [
+    {1,"選擇一軸垂直擠壓正常，將限制其所有運動徑向平面。否則，它作為一個離軸的組成部分。"}
+   ]},
+  {sweep_error,
+   [
+    {2,"L'extrusion giratoire par région ne fonctionera pas pour un objet entièrement sélectionné"}
+   ]},
+  {sweep_menu,
+   [
+    {3,"挑選軸"},
+    {4,"挑選軸和擠壓相對比例選擇的半徑"}
+   ]},
+  {warp_help,
+   [
+    {1,"  [2] 保持形狀"},
+    {2,"  [2] 允許翹曲"}
+   ]}
+ ]}.
+%% [wpc_sweep_extrude,axis_menu_string,2] is not used
+%% [wpc_sweep_extrude,sweep_error,2] is not used
+
+%%
+%% The following strings have no translation.
+%%
+
+{wpc_sweep_extrude,
+ [
+  {sweep_menu_headings,
+   [
+    {1,"做一個斜接擠壓，可縮放和扭曲交互"}
+   ]},
+  {sweep_error,
+   [
+    {3,"掃區域不會選擇在那裡工作的平均正常是 (0,0,0)"}
+   ]}
+ ]}.

@@ -1,0 +1,9 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_deselect_previous,
+ [
+  {deselect_previous,
+   [
+    {1,"取消以前"},
+    {2,"前面的選擇狀態中減去從當前選擇"}
+   ]}
+ ]}.
