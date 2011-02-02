@@ -123,7 +123,7 @@ dialog_1(DlgType, Types, Title, Cont, Ps) ->
 			  YesNoQs = {vframe,
 				     [{label,NewFilename ++
 				       ?__(6," exists; overwrite?"),
-				       [{break,45}]},
+				       [{break,45*wings_text:width()}]},
 				      {hframe,
 				       [{button,?__(7,"Yes"),
 					 fun(_) ->

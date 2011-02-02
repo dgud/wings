@@ -39,12 +39,15 @@ resize() ->
     foreach(fun(Font) -> erase(Font) end,
 	    ets:select(wings_fonts, MatchSpec)).
 
-width(S) ->
+width(S) when is_list(S)->
     width_1(S, 0).
 
 width_1([{bold,S}|Cs], W) ->
     BSW = bold_string_width(S, 0),
     width_1(Cs, BSW+W);
+width_1([{ul,S}|Cs], W) ->
+    SW = width_1(S, 0),
+    width_1(Cs, SW+W);
 width_1([C|Cs], W) when is_atom(C) ->
     CW = case ?CHAR_WIDTH < 7 of
        true -> cw_small(C);
@@ -89,6 +92,9 @@ height() ->
 
 draw([{bold,S}|Cs]) ->
     bold(S),
+    draw(Cs);
+draw([{ul,S}|Cs]) ->
+    draw(S),
     draw(Cs);
 draw([C|Cs]) when is_atom(C) ->
     special(C),
@@ -138,45 +144,88 @@ fonts() ->
     MatchSpec = ets:fun2ms(fun({Key,_Font,Desc}) -> {Desc,Key} end),
     ets:select(wings_fonts, MatchSpec).
 
-break_lines(Lines, Limit) ->
-    break_lines(Lines, Limit, 0, []).
 
-break_lines([S|T], Limit, Rows, Acc) ->
-    break_line(S, T, Limit, Rows, Acc);
-break_lines([], _, Rows, Lines) ->
-    {Rows,reverse(Lines)}.
+%% Formats strings to fit the width of a line length given in PIXELS
 
-break_line(S, T, Limit, Rows, Acc) ->
-    case break_line_1(S, Limit) of
-	done when T =/= [] ->
-	    break_lines(T, Limit, Rows+1, [[]|Acc]);
-	done ->
-	    break_lines(T, Limit, Rows, Acc);
-	{Line,More} ->
-	    break_line(More, T, Limit, Rows+1, [Line|Acc])
-    end.
+-record(tb,		% text box record
+    {text=[],	% input string
+     lw=0,		% length of current line in pixels
+     max=600,		% max allowed line length in pixels
+     word=[], 	% accumulated letters from the current word
+     line=[],	% current line acc of words
+     res=[]}).	% output string with line breaks
 
-break_line_1([$\n|T], Limit) -> break_line_1(T, Limit);
-break_line_1([$\s|T], Limit) -> break_line_1(T, Limit);
-break_line_1([], _) -> done;
-break_line_1(T, Limit) -> break_line_2(T, 0, Limit, [], []).
+break_lines(InputText, infinite) ->
+    {W,_} = wings_wm:top_size(),
+    break_lines(InputText, W-40);
+break_lines(InputText, W) ->
+%% Returns Text formatted with line breaks to max width of W and height in Rows
+    CW = ?CHAR_WIDTH,
+    Text0 = lists:flatten(InputText),
+    Width = max(W-CW*2, CW*3),
+    #tb{res=Text} = string_to_text_box(#tb{text=Text0, max=Width}),
+    OutputText = reverse(Text),
+    Rows = length(Text),
+    {Rows,OutputText}.
 
-break_line_2(_, N, Limit, _Acc, {Bef,More}) when N > Limit ->
-    {reverse(Bef),More};
-break_line_2([$\n|T], _N, _Limit, Acc, _Break) ->
-    {reverse(Acc),T};
-break_line_2([$\s|T0], N, Limit, Acc, _Break) ->
-    T = skip_blanks(T0),
-    break_line_2(T, N+1, Limit, [$\s|Acc], {Acc,T});
-break_line_2([{_,Str}=C|T], N, Limit, Acc, Break) ->
-    break_line_2(T, N+length(Str), Limit, [C|Acc], Break);
-break_line_2([C|T], N, Limit, Acc, Break) ->
-    break_line_2(T, N+1, Limit, [C|Acc], Break);
-break_line_2([], _, _Limit, Acc, _Break) -> {reverse(Acc),[]}.
+%% String parsing for Text Box
+string_to_text_box(#tb{lw=Lw,line=[]}=Tb) when Lw =/= 0 ->
+    string_to_text_box(Tb#tb{lw=0});
+string_to_text_box(#tb{lw=LineWidth,max=Max,line=Line0,res=Res0}=Tb)
+  when LineWidth > Max ->
+  %% Make a New Line when the LineWidth reaches the Max
+    {Word,Line} = lists:splitwith(fun(Char) -> Char=/=$\s end, Line0),
+    case Line of
+        [] ->
+            [NextLine|HyphinateLine] = Line0,
+            Res = [reverse([$\n,$-|HyphinateLine])|Res0],
+            LW = wings_text:width([NextLine]),
+            string_to_text_box(Tb#tb{lw=LW,line=[NextLine],res=Res});
+        _ ->
+            Res = [reverse([$\n|Line])|Res0],
+            LW = wings_text:width(Word),
+            string_to_text_box(Tb#tb{lw=LW,line=Word,res=Res})
+    end;
 
-skip_blanks([$\n|T]) -> skip_blanks(T);
-skip_blanks([$\s|T]) -> skip_blanks(T);
-skip_blanks(T) -> T.
+string_to_text_box(#tb{text=[$\n|Text],line=Line,res=Res0}=Tb) ->
+    Res = [reverse([$\n|Line])|Res0],
+    string_to_text_box(Tb#tb{text=Text,line=[],res=Res});
+
+string_to_text_box(#tb{text=[$\t|Text],lw=LW,line=Line0}=Tb) ->
+    CharWidth = wings_text:width([$\s])*2,
+    Line = [$\s,$\s|Line0],
+    string_to_text_box(Tb#tb{text=Text,lw=LW+CharWidth,line=Line});
+    
+string_to_text_box(#tb{text=[{Style,String}=Stylized|Text],lw=Lw, max=Max, line=Line0,res=Res}=Tb0) ->
+    Sw = width([Stylized]),
+    NLW = Lw + Sw,
+    case NLW =< Max of
+        true ->
+            Line = [Stylized|Line0],
+            string_to_text_box(Tb0#tb{text=Text,lw=NLW,line=Line});
+        false ->
+            Rem = Max - Lw,
+            Parts = Max/Sw,
+            Section = Sw * Parts/1.5,
+            {Line,ResAcc,_} = lists:foldl(fun
+                (C, {Acc,R,I}) when I > Section -> {[],[reverse_list([$\n,$-,{Style,[C]}|Acc])|R],0};
+                (C, {Acc,R,I}) -> {[{Style,[C]}|Acc],R,I+width([C])}
+            end, {[],Line0,Rem}, String),
+            string_to_text_box(Tb0#tb{text=Text,lw=width(Line),line=Line,res=[reverse_list(ResAcc)|Res]})
+    end;
+
+string_to_text_box(#tb{text=[Char|Text],lw=LineWidth0,line=Line}=Tb) ->
+    CharWidth = wings_text:width([Char]),
+    LW = LineWidth0+CharWidth,
+    string_to_text_box(Tb#tb{text=Text,lw=LW,line=[Char|Line]});
+
+string_to_text_box(#tb{text=[],line=Line,res=Res0}=Tb) ->
+    Res = [reverse_list(Line)|Res0],
+    Tb#tb{line=[],res=Res}.
+
+%% Avoid single item list reverse error.
+reverse_list(A) when length(A) < 2 -> A;
+reverse_list(A) -> reverse(A).
 
 %%%
 %%% Special characters.
