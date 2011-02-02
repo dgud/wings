@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_obj,
+ [
+  {dialog,
+   [
+    {1,"머테리얼(재질) 당 1 그룹"},
+    {2,"Vue d'Esprit 해결 방법"}
+   ]},
+  {do_export,
+   [
+    {1,"Wavefront 수출 옵션"}
+   ]},
+  {do_import,
+   [
+    {1,"Wavefront 수입 옵션"}
+   ]},
+  {props,
+   [
+    {1,"Wavefront File"}
+   ]}
+ ]}.

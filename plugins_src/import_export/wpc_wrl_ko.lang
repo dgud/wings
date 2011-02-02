@@ -1,0 +1,16 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_wrl,
+ [
+  {do_export,
+   [
+    {1,"VRML 수출 옵션"}
+   ]},
+  {export,
+   [
+    {1,"VRML 오류: ~P 의 "}
+   ]},
+  {props,
+   [
+    {1,"VRML 2.0 File"}
+   ]}
+ ]}.

@@ -1,0 +1,28 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_svg_path,
+ [
+  {command,
+   [
+    {1,".svg 패스 수입 옵션"},
+    {2,"엣지 등분의 수"},
+    {3,"(Inkscape에서 수입할 때 최상의 결과를 얻으려면,\n모든 오브젝트를 패스로 변환하고 단순한 .svg로 저장하십시오)"},
+    {4,".svg File"}
+   ]},
+  {make_svg,
+   [
+    {1,"Inkscape .svg 패스 수입 실패"},
+    {2,"Inkscape .svg 패스 수입 내부 오류"}
+   ]},
+  {parse_chars,
+   [
+    {1,"닫힌 패스가 아닙니다."}
+   ]},
+  {parse_path,
+   [
+    {3,"이 파일을 처리하지 못했습니다."}
+   ]},
+  {try_import_svg,
+   [
+    {1,".svg 파일이 아닙니다."}
+   ]}
+ ]}.

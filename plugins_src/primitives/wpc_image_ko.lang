@@ -1,0 +1,17 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_image,
+ [
+  {image_menu,
+   [
+    {1,"이미지 플레인..."},
+    {2,"이미지를 포함한 플레인(평면) 만들기"}
+   ]},
+  {make_image,
+   [
+    {1,"수입하지 못했습니다. \"~ts\": ~ts\n"}
+   ]},
+  {make_image_1,
+   [
+    {1,"이미지를 텍스쳐로 수입할 수 없습니다. ~n파일: \"~ts\"~n GLU 오류: ~p - ~ts~n"}
+   ]}
+ ]}.

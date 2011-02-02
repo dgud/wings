@@ -4,40 +4,40 @@
   {area_info,
    [
     % " Area ~ts"
-    {40,"区 ~ts"}
+    {40,"영역 ~ts"}
    ]},
   {area_volume_info,
    [
     % "No objects in scene"
     {1,"장면에 오브젝트가 없습니다."},
     % "Scene Info: Area & Volume"
-    {5,"장면 정보：지역 및 용량"}
+    {5,"장면 정보: 영역 및 용량"}
    ]},
   {cannot_repeat,
    [
     % "Can't repeat"
-    {1,"반복할 수 없음"}
+    {1,"반복 불가능"}
    ]},
   {crash_handler,
    [
     % "Internal error - log written to"
     {1,"내부 오류 - 로그에 기록"},
     % "Click a mouse button to continue working"
-    {2,"계속 작업하기 위해 마우스 버튼 클릭"},
+    {2,"계속 작업하려면 마우스 버튼 클릭"},
     % "Continue working"
     {3,"계속 작업"}
    ]},
   {define_command,
    [
     % "Do you want to define"
-    {1,"당신이 정의하려면"},
+    {1,"정의하려면"},
     % "as a default command"
     {2,"기본 명령으로"}
    ]},
   {edit_menu,
    [
     % "Delete undo history to reclaim memory"
-    {1,"메모리 회복을 위해 실행 취소 기록 지우기"},
+    {1,"실행 취소 기록 지우고 메모리 복구"},
     % "Undo/Redo"
     {3,"실행 취소/재실행"},
     % "Undo or redo the last command"
@@ -77,9 +77,9 @@
   {geom_title,
    [
     % "Geometry"
-    {1,"기하학"},
+    {1,"지오메트리"},
     % "Geometry #"
-    {2,"기하학 ＃"}
+    {2,"지오메트리 ＃"}
    ]},
   {handle_drop_1,
    [
@@ -88,57 +88,57 @@
     % "Cancel drop operation"
     {2,"드롭 작업 취소"},
     % "Assign material to selected faces"
-    {3,"선택된 페이스에 재질 할당"},
+    {3,"선택 페이스에 머테리얼 할당"},
     % "Assign material \""
-    {4,"재질 할당 \""},
+    {4,"머테리얼 할당 \""},
     % "\" only to selected faces"
-    {5,"\" 선택된 페이스만"},
+    {5,"\" 선택 페이스만"},
     % "Assign material to all faces"
-    {6,"모든 페이스에 재질 할당"},
+    {6,"모든 페이스에 머테리얼 할당"},
     % "Assign material \""
-    {7,"재질 할당 \""},
+    {7,"머테리얼 할당 \""},
     % "\" to all faces in objects having a selection"
     {8,"\" 선택을 가진 오브젝트의 모든 페이스에"},
     % "Assign material to all faces"
-    {9,"모든 페이스에 재질 할당"},
+    {9,"모든 페이스에 머테리얼 할당"},
     % "Assign material \""
-    {10,"재질 할당 \""},
+    {10,"머테리얼 할당 \""},
     % "\" to all faces in objects having a selection"
     {11,"\" 선택을 가진 오브젝트의 모든 페이스에"}
    ]},
   {hole_info,
    [
     % "hole"
-    {1,"홀"},
+    {1,"홀(구멍)"},
     % "holes"
-    {2,"홀"}
+    {2,"홀(구멍)"}
    ]},
   {info_1,
    [
     % "Vertex ~p selected"
-    {1,"버텍스 ~p 选择"},
+    {1,"버텍스 ~p 선택"},
     % "Vertices"
     {2,"버텍스"},
     % "~p vertices selected"
-    {3,"~p 选定的顶点"},
+    {3,"~p 선택 버텍스"},
     % "Edge ~p selected"
-    {4,"엣지 ~p 选择"},
+    {4,"엣지 ~p 선택"},
     % "Edges"
     {5,"엣지"},
     % "~p edges selected"
-    {6,"~p 边选"},
+    {6,"~p 선택 엣지"},
     % "Face ~p selected"
-    {7,"페이스 ~p 选择"},
+    {7,"페이스 ~p 선택"},
     % "Faces"
     {8,"페이스"},
     % "~p faces selected"
-    {9,"~p 面临选择"},
+    {9,"~p 선택 페이스"},
     % "~p vertices selected in ~p objects"
-    {10,"~p 选定的顶点 ~p 对象"},
+    {10,"~p 선택 버텍스 ~p 오브젝트"},
     % "~p edges selected in ~p objects"
-    {11,"~p 选定的边缘 ~p 对象"},
+    {11,"~p 선택 엣지 ~p 오브젝트"},
     % "~p faces selected in ~p objects"
-    {12,"~p 在面临选择 ~p 对象"}
+    {12,"~p 선택 페이스 ~p 오브젝트"}
    ]},
   {info_line,
    [
@@ -174,15 +174,15 @@
   {measure,
    [
     % ". Position <~ts  ~ts  ~ts>"
-    {1,"。位置<~ts  ~ts  ~ts>"},
+    {1,"。위치<~ts  ~ts  ~ts>"},
     % ". Midpoint <~ts  ~ts  ~ts>\nLength ~ts"
-    {3,"。中点<~ts  ~ts  ~ts>\n长 ~ts"},
+    {3,"。중심점<~ts  ~ts  ~ts>\n길이 ~ts"},
     % ". Midpoint <~ts  ~ts  ~ts> \nMaterial ~ts."
-    {4,"。中点<~ts  ~ts  ~ts> \n材料 ~ts。"},
+    {4,"。중심점<~ts  ~ts  ~ts> \n머테리얼 ~ts。"},
     % ". Distance ~ts  <~ts  ~ts  ~ts>"
-    {5,"。距离 ~ts <~ts  ~ts  ~ts>"},
+    {5,"。거리 ~ts <~ts  ~ts  ~ts>"},
     % ". Angle ~ts"
-    {6,"。角 ~ts"}
+    {6,"。각도 ~ts"}
    ]},
   {patches,
    [
@@ -192,27 +192,27 @@
   {purge_undo,
    [
     % "Undo states: "
-    {1,"실행 취소 상태："},
+    {1,"실행 취소 상태: "},
     % "Redo states: "
-    {2,"재실행 상태："},
+    {2,"재실행 상태: "},
     % "Nothing to remove"
-    {3,"제거할 것 없음"},
+    {3,"제거 상태가 없습니다."},
     % "Remove all states (NOT undoable)?"
-    {4,"모든 상태를 제거(취소할 수 없음)하시겠습니까?"}
+    {4,"모든 상태를 제거하시겠습니까? (기록 복구 불가능)"}
    ]},
   {shape_info,
    [
     % "~p objects, ~p faces, ~p edges, ~p vertices"
     {2,"~p 오브젝트， ~p 페이스， ~p 엣지， ~p 버텍스"},
     % "Object ~p \"~ts\" has ~p polygons, ~p edges, ~p vertices~ts~ts."
-    {new_object_info,"오브젝트 ~p \"~ts\"있음 ~p 폴리곤， ~p 엣지， ~p 버텍스~ts~ts."}
+    {new_object_info,"오브젝트 ~p \"~ts\" ~p 폴리곤， ~p 엣지， ~p 버텍스~ts~ts."}
    ]},
   {tool_dirs,
    [
     % "Align two or more objects along the given axis according to their respective selection centers"
-    {1,"2 또는 그 이상 오브젝트 각각의 선택된 중심을 주어진 축을 따라 정렬"},
+    {1,"2 또는 그 이상 오브젝트 각각의 선택 중심을 주어진 축을 따라 정렬"},
     % "Center the selected objects along the given axis according to their cumulative selection center"
-    {2,"오브젝트의 누적 선택된 중심을 주어진 축을 따라 집중"}
+    {2,"오브젝트의 누적 선택 중심을 주어진 축을 따라 집중"}
    ]},
   {tools_menu,
    [
@@ -221,7 +221,7 @@
     % "Center"
     {9,"중심"},
     % "Save Bounding Box"
-    {10,"경계 박스 저장"},
+    {10,"바운딩 박스 저장"},
     % "Scale to Saved BB"
     {11,"저장된 BB 스케일"},
     % "Scale to Saved BB Proportionally"
@@ -235,102 +235,102 @@
     % "\"Default Axis\" command (e.g. Scale|Default Axis)"
     {16,"\"기본 축\"명령（예: 스케일|기본 축）"},
     % "Virtual Mirror"
-    {17,"가상 대칭"},
+    {17,"버추얼 미러(가상 대칭)"},
     % "Create"
     {18,"만들기"},
     % "Given a face selection, set up a virtual mirror"
-    {19,"가상대칭을 설정하려면, 페이스를 선택"},
+    {19,"가상 대칭을 설정하려면, 페이스를 선택"},
     % "Break"
     {20,"분리"},
     % "Remove virtual mirrors for all objects"
-    {21,"모든 오브젝트에 대한 가상대칭 제거"},
+    {21,"모든 오브젝트의 가상 대칭 제거"},
     % "Freeze"
     {22,"고정"},
     % "Create real geometry from the virtual mirrors"
-    {23,"가상대칭으로 실제 기하학 만들기"},
+    {23,"가상 대칭으로 실제 지오메트리(형상) 만들기"},
     % "Screenshot"
     {24,"스크린샷"},
     % "Grab an image of the window (export it from the outliner)"
-    {25,"윈도우의 이미지를 포착(개요로 수출)"},
+    {25,"윈도우의 이미지 캡쳐 (아웃라이너로 수출)"},
     % "Scene Info: Area & Volume"
-    {26,"장면 정보：지역 및 용량"},
+    {26,"장면 정보: 영역 및 용량"},
     % "Calculate area and volume for each object in the scene"
-    {27,"장면의 각 오브젝트에 대한 지역과 용량 계산"},
+    {27,"장면의 각 오브젝트에 대한 영역과 용량 계산"},
     % "Put on Ground"
     {28,"그라운드 위"},
     % "Put selected objects on the ground plane"
-    {29,"선택된 오브젝트를 그라운드 평면 위에 위치"},
+    {29,"선택 오브젝트를 그라운드 플레인 위에 위치"},
     % "Unitize"
-    {30,"Unitize(유니타이즈)"},
+    {30,"유니타이즈(기본 크기)"},
     % "Scale selected objects to fit inside a unit sphere and move to origin"
-    {31,"선택된 오브젝트 스케일을 단위 영역 및 원점으로 이동"},
+    {31,"선택 오브젝트 스케일을 단위 영역 및 원점으로 이동"},
     % "Move BB to Selection"
-    {32,"移动BP机的选择"},
+    {32,"선택으로 BB 이동"},
     % "Scale BB to Selection"
-    {33,"规模BP机选型"},
+    {33,"선택으로 BB 스케일"},
     % "Set Axis and Point"
-    {34,"设定和点轴"},
+    {34,"축과 포인트 설정"},
     % "Set Axis"
-    {35,"设置坐标轴"},
+    {35,"축 설정"},
     % "Set Point"
-    {36,"设置点"},
+    {36,"포인트 설정"},
     % "Bounding Box"
-    {37,"Bounding Box(경계 박스)"},
+    {37,"바운딩 박스"},
     % "Bounding boxes are useful for scaling or aligning objects"
-    {38,"包围盒是缩放或调整对象是非常有用"},
+    {38,"바운딩 박스는 스케일이나 오브젝트를 정렬하는데 유용합니다."},
     % "Create bounding box around current selection"
-    {39,"建立在目前的选择框的边界"},
+    {39,"현재 선택 주위에 바운딩 박스 만들기"},
     % "Tweak"
-    {40,"트윅"},
+    {40,"트윅(변형)"},
     % "Open the Tweak menu"
-    {41,"트윅 메뉴 열기"}
+    {41,"트윅(변형) 메뉴 열기"}
    ]},
   {undo_info,
    [
     % "there are no undo states"
-    {1,"国家有没有撤消"},
+    {1,"0 실행 취소 상태"},
     % "there is one undo state"
-    {2,"有一个撤消状态"},
+    {2,"1 실행 취소 상태"},
     % "there are ~p undo states"
-    {3,"有 ~p 撤消国家"},
+    {3," ~p 실행 취소 상태"},
     % "; one operation can be redone"
-    {4,";一次手术可以重做"},
+    {4,"; 1 작업 완료 가능"},
     % "; ~p operations can be redone"
-    {5,"; ~p 操作可以重做"}
+    {5,"; ~p 작업 완료 가능."}
    ]},
   {vtx_attributes,
    [
     % "vertex attributes"
-    {1,"顶点属性"}
+    {1,"버텍스 특성"}
    ]},
   {window_menu,
    [
     % "Geometry Graph"
-    {1,"기하학 그래프"},
+    {1,"지오메트리 그래프"},
     % "Geometry Graph #"
-    {2,"기하학 그래프 ＃"},
+    {2,"지오메트리 그래프 ＃"},
     % "Outliner"
-    {3,"개요"},
+    {3,"아웃라이너"},
     % "Open the outliner window (showing materials and objects)"
-    {4,"打开大纲窗口（显示材料和对象）"},
+    {4,"아웃라이너 창 열기 (머테리얼과 오브젝트 보기)"},
     % "Open a Geometry Graph window (showing objects)"
-    {5,"打开一个几何图形窗口（显示对象）"},
+    {5,"지오메트리 그래프 창 열기 (오브젝트 보기)"},
     % "Palette"
     {6,"팔레트"},
     % "Open the color palette window"
-    {7,"打开窗口的调色板"},
+    {7,"컬러 팔레트 창 열기"},
     % "New Geometry Window"
-    {8,"新的几何窗"},
+    {8,"새 지오메트리 창"},
     % "Open a new Geometry window"
-    {9,"打开一个新窗口几何"},
+    {9,"새 지오메트리 창 열기"},
     % "Console"
     {10,"콘솔"},
     % "Open a console window for information messages"
-    {11,"打开一个控制台窗口的信息消息"},
+    {11,"정보 메시지를 위한 콘솔 창 열기"},
     % "Tweak Palette"
     {12,"트윅 팔레트"},
     % "Open palettes from which tweak tools may be selected or bound to modifier keys"
-    {13,"开放的调整工具可以选择或修改键绑定调色板"}
+    {13,"트윅 도구를 선택하거나 제한 수정자 키 팔레트 열기"}
    ]}
  ]}.
 {wings_ask,
@@ -343,11 +343,11 @@
   {frame_event,
    [
     % "Expand this frame; collapse other frames"
-    {1,"展开这个框架;崩溃的帧"},
+    {1,"이 프레임 확장; 다른 프레임 축소"},
     % "Expand this frame"
-    {2,"这个框架展开"},
+    {2,"이 프레임 확장"},
     % "Collapse this frame"
-    {3,"折叠此框架"}
+    {3,"이 프레임 축소"}
    ]},
   {mktree,
    [
@@ -360,48 +360,48 @@
   {arealight_conv,
    [
     % "Area Light to Object"
-    {1,"区轻到对象"},
+    {1,"영역 라이트를 오브젝트로"},
     % "Convert selected area lights to objects"
-    {2,"选定的区域灯光转换为对象"},
+    {2,"선택 영역 라이트를 오브젝트로 변환"},
     % "Object To Area Light"
-    {3,"反对区轻"},
+    {3,"오브젝트를 영역 라이트로"},
     % "Convert selected objects to area lights"
-    {4,"转换选择的对象到区域灯光"}
+    {4,"선택 오브젝트를 영역 라이트로 변환"}
    ]},
   {auto_smooth,
    [
     % "Auto Smooth Parameters"
-    {1,"自动平滑参数"},
+    {1,"오토 스무드 파라미터"},
     % "Crease Angle"
-    {2,"抗皱角"}
+    {2,"주름 각도"}
    ]},
   {clean_isolated_vertices,
    [
     % "Removed 1 isolated vertex\n"
-    {1,"删除一孤立点\n"},
+    {1,"1 절연 버텍스 제거\n"},
     % "Removed ~p isolated vertices\n"
-    {2,"删除 ~p 孤立点\n"}
+    {2,"~p 절연 버텍스 제거\n"}
    ]},
   {cleanup,
    [
     % "Short Edges"
-    {1,"짧은 엣지"},
+    {1,"숏 엣지"},
     % "Length Tolerance"
-    {2,"长度公差"},
+    {2,"길이 허용차"},
     % "Isolated Vertices"
-    {3,"독립 버텍스"},
+    {3,"절연 버텍스"},
     % "Cleanup"
-    {4,"Cleanup(정리)"}
+    {4,"클린업(정리)"}
    ]},
   {cleanup_rep_1,
    [
     % "Repeated vertex ~p in face ~p\n"
-    {1,"重复顶点 ~p 在面对面 ~p\n"}
+    {1,"페이스 ~p 에 반복된 버텍스 ~p\n"}
    ]},
   {cleanup_waists_1,
    [
     % "Removed waist vertex: ~p\n"
-    {1,"删除腰顶点： ~p\n"}
+    {1,"제거된 웨이스트 버텍스: ~p\n"}
    ]},
   {color_material,
    [
@@ -413,58 +413,58 @@
     % "Face"
     {1,"페이스"},
     % "has only one edge"
-    {2,"只有一个边缘"}
+    {2,"1 엣지만 가지고 있습니다."}
    ]},
   {flip_ask,
    [
     % "Select axis to flip object along"
-    {1,"选择对象沿轴线翻转"},
+    {1,"뒤집는 축을 따라 오브젝트 선택"},
     % "Select point along the chosen axis to flip object"
-    {2,"选择沿轴指向所选择的对象翻转"}
+    {2,"선택 축을 따라 오브젝트를 뒤집는 포인트 선택"}
    ]},
   {flip_str,
    [
     % "[Alt]+Click to Duplicate object"
-    {1,"[Alt]+点击复制对象"}
+    {1,"오브젝트를 복제하려면 [Alt]+클릭."}
    ]},
   {menu,
    [
     % "Move"
-    {2,"Move(이동)"},
+    {2,"무브(이동)"},
     % "Flip..."
-    {3,"Flip(뒤집기)..."},
+    {3,"플립(뒤집기)..."},
     % "Invert"
-    {10,"Invert(반전)"},
+    {10,"인버트(반전)"},
     % "Flip all normals, turning the object inside out"
-    {11,"翻转所有资料，把内而外对象"},
+    {11,"오브젝트 내외부 방향 전환하여, 모든 노멀 뒤집기"},
     % "Tighten"
-    {12,"Tighten(조이기/늘이기)"},
+    {12,"타이튼(조이기)"},
     % "Move vertices towards average midpoint"
-    {13,"平均中点走向顶点"},
+    {13,"평균 중심점으로 버텍스 이동"},
     % "Smooth"
-    {14,"Smooth(스무드)"},
+    {14,"스무드(세분)"},
     % "Subdivide all faces to give the object a smoother apperance"
-    {15,"细分给所有面对象的平滑外观"},
+    {15,"오브젝트에 부드러운 외관을 만들기 위해 모든 페이스 세분"},
     % "Combine"
-    {16,"Combine(결합)"},
+    {16,"콤바인(결합)"},
     % "Combine multiple objects into a single object"
-    {17,"对象组合成一个单一的多个对象"},
+    {17,"1 오브젝트에 다중 오브젝트 결합"},
     % "Separate"
-    {18,"Separate(분리)"},
+    {18,"세퍼레이트(분리)"},
     % "Separate a combined objects into its components"
-    {19,"其组成部分单独成合并对象"},
+    {19,"결합된 오브젝트를 각 구성 요소로 분리"},
     % "Weld"
-    {20,"Weld(용접)"},
+    {20,"웰드(용접)"},
     % "Merge pair of faces that are nearly coincident"
-    {21,"合并对面孔几乎是一致的"},
+    {21,"거의 일치하는 페이스 쌍을 연결"},
     % "Cleanup"
-    {22,"Cleanup(정리)"},
+    {22,"클린업(정리)"},
     % "Remove various defects"
-    {23,"消除各种缺陷"},
+    {23,"다양한 결함 제거"},
     % "Auto-Smooth"
-    {24,"Auto-Smooth(자동 스무드)"},
+    {24,"오토 스무드"},
     % "Set edges hard or soft depending on the angle between faces"
-    {25,"设置边缘硬或软的面之间的角度不同，"},
+    {25,"페이스 사이의 각도로 하드 또는 소프트 엣지 설정"},
     % "Duplicate"
     {26,"복제"},
     % "Delete"
@@ -478,45 +478,47 @@
     % "Show All"
     {31,"모두 보기"},
     % "Show all faces for this object"
-    {32,"显示该对象的所有面"},
+    {32,"모든 오브젝트의 페이스 보기"},
     % "Vertex Attributes"
-    {33,"顶点属性"},
+    {33,"버텍스 특성"},
     % "Flip the object along ~ts axis"
-    {34,"翻转对象沿 ~ts 轴"},
+    {34," ~ts 축을 따라 오브젝트 뒤집기"},
     % "Pick point to flip object along the ~ts axis"
-    {35,"挑点沿着物体翻转 ~ts 轴"},
+    {35,"피크 지점 ~ts 축을 따라 오브젝트 뒤집기"},
     % "Flip object along the global ~ts axis"
-    {36,"随着全球翻转对象 ~ts 轴"},
+    {36,"글로벌 ~ts 축을 따라 오브젝트 뒤집기"},
     % "Pick"
-    {37,"挑"},
+    {37,"피크"},
     % "Pick axis to flip object along"
-    {38,"挑沿轴线翻转对象"},
+    {38,"피크 축을 따라 오브젝트 뒤집기"},
     % "Pick axis and point to flip object along"
-    {39,"选择轴和沿指向对象翻转"},
+    {39,"피크 축과 지점을 따라 오브젝트 뒤집기"},
     % "Pick global axis to flip object along"
-    {40,"挑选全球沿轴线翻转对象"},
+    {40,"피크 글로벌 축을 따라 오브젝트 뒤집기"},
     % "Colors to Materials"
-    {41,"在材料 색"},
+    {41,"컬러를 머테리얼로"},
     % "Convert vertex colors to materials"
-    {42,"顶点颜色转换材料"},
+    {42,"버텍스 컬러를 머테리얼로 변환"},
     % "Materials to Colors"
-    {43,"到颜色材料"},
+    {43,"머테리얼을 컬러로"},
     % "Convert materials to vertex colors"
-    {44,"到顶点的颜色转换材料"},
+    {44,"머테리얼을 버텍스 컬러으로 변환"},
     % "Remove Colors"
-    {45,"색 제거"},
+    {45,"컬러 제거"},
     % "Remove all vertex colors"
-    {46,"删除所有顶点 색"},
+    {46,"모든 버텍스 컬러 제거"},
     % "Remove UV Coordinates"
     {47,"UV 좌표 제거"},
     % "Remove all UV coordinates"
     {48,"모든 UV 좌표 제거"},
     % "Remove All Attributes"
-    {49,"删除所有属性"},
+    {49,"모든 특성 제거"},
     % "Remove all vertex colors and UV coordinates"
-    {50,"모든 버텍스 색과 UV 좌표 제거"},
+    {50,"모든 버텍스 컬러와 UV 좌표 제거"},
     % "Add a common prefix to each selected object"
-    {51,"一个共同的前缀添加到每个选定的对象"}
+    {51,"선택 각 오브젝트에 공통 접두사 추가"},
+    % "Unhide Faces"
+    {52,"숨긴 페이스 보기"}
    ]},
   {rename_1,
    [
@@ -526,26 +528,31 @@
   {rename_prefix,
    [
     % "Prefix Selected Objects"
-    {1,"前缀选择的对象"}
+    {1,"선택 오브젝트 접두사"}
    ]},
   {vertex_color_item,
    [
     % "Vertex Color"
-    {1,"버텍스 색"},
+    {1,"버텍스 컬러"},
     % "Apply vertex colors to selected objects"
-    {3,"申请顶点的颜色是选择的对象"}
+    {3,"버텍스 컬러를 선택 오브젝트에 적용"}
    ]},
   {weld,
    [
     % "Distance Tolerance"
-    {1,"距离公差"},
+    {1,"거리 허용차"},
     % "Weld"
-    {2,"용접"}
+    {2,"웰드(용접)"}
+   ]},
+  {weld_error,
+   [
+    % "Weld could not be resolved"
+    {1,"용접을 처리할 수 없습니다."}
    ]},
   {weld_objects,
    [
     % "Found no faces to weld."
-    {1,"没有找到面焊接。"}
+    {1,"용접할 페이스를 찾지 못했습니다."}
    ]}
  ]}.
 {wings_camera,
@@ -567,89 +574,89 @@
   {info,
    [
     % "Note: Only the Nendo camera mode can be used with a one-button mouse"
-    {1,"注意：只有Nendo相机模式可以使用一键鼠标"},
+    {1,"참고: Nendo 카메라 모드는 마우스 1개 버튼만 사용할 수 있습니다."},
     % "Note: Only the Nendo and Blender camera modes can be used with a two-button mouse"
-    {2,"注意：只有Nendo和搅拌机相机模式都可以用一个两键鼠标"},
+    {2,"참고: Nendo와 Blender 카메라 모드는 마우스 2개 버튼만 사용할 수 있습니다."},
     % "Note: The "
-    {3,"注意："},
+    {3,"참고: "},
     % " camera mode requires at least 2 mouse buttons"
-    {4,"相机模式至少需要2鼠标按钮"},
+    {4," 카메라 모드는 최소한 마우스 2개 버튼이 필요합니다."},
     % "Note: The "
-    {5,"注意："},
+    {5,"참고: "},
     % " camera mode requires 3 mouse buttons"
-    {6,"相机模式下需要3个鼠标键"}
+    {6," 카메라 모드는 최소한 마우스 3개 버튼이 필요합니다."}
    ]},
   {message,
    [
     % "Drag to Dolly"
-    {2,"拖动以多利"},
+    {2,"돌리로 드래그"},
     % "Move mouse to tumble"
-    {3,"移动鼠标倒下来"},
+    {3,"회전으로 마우스 이동"},
     % "[Q]"
     {4,"[Q]"},
     % "Move mouse to track"
-    {5,"移动鼠标跟踪"},
+    {5,"트랙으로 마우스 이동"},
     % "Cancel/restore view"
-    {6,"取消/恢复视图"},
+    {6,"뷰 취소/복귀"},
     % "Restore view"
-    {7,"恢复视图"},
+    {7,"뷰 복귀"},
     % "Drag to Pan"
-    {8,"潘拖动"}
+    {8,"팬으로 드래그"}
    ]},
   {mode_help,
    [
     % "Track"
-    {1,"追踪"},
+    {1,"이동"},
     % "Dolly"
-    {2,"小车"},
+    {2,"돌리"},
     % "Tumble"
-    {3,"下跌"},
+    {3,"회전"},
     % "Scroll: Dolly"
-    {4,"滚动：多利"}
+    {4,"스크롤: 돌리"}
    ]},
   {prefs,
    [
     % "Mouse Buttons"
     {1,"마우스 버튼"},
     % "Camera Mode"
-    {2,"相机模式"},
+    {2,"카메라 모드"},
     % "Pan Speed"
-    {3,"潘速"},
+    {3,"팬 속도"},
     % "Wheel Zooms"
-    {4,"车轮放大"},
+    {4,"휠 줌"},
     % "Forwards Zooms In"
-    {5,"前锋会放大"},
+    {5,"이전으로 확대"},
     % "Forwards Zooms Out"
-    {6,"远期可缩小"},
+    {6,"이전으로 축소"},
     % "Zoom Factor"
-    {7,"变焦倍数"},
+    {7,"줌 요소"},
     % "Scroll Wheel"
-    {9,"滚轮"},
+    {9,"스크롤 휠"},
     % "Alternate Zoom Factor(Alt+Scroll)"
-    {10,"备用缩放因子（按Alt +滚轮）"},
+    {10,"줌 요소 변경(Alt+스크롤)"},
     % "Wheel Pans & Rotates"
-    {11,"锅和旋转轮"},
+    {11,"휠 팬과 회전"},
     % "Pan Speed"
-    {12,"潘速"},
+    {12,"팬 속도"},
     % "Rotation Step in Degrees"
-    {13,"步度회전"},
+    {13,"각도의 회전 단계"},
     % "Unidirectional Camera"
-    {15,"单向相机"},
+    {15,"단일 방향 카메라"},
     % "Arrow Key Pan Speed"
-    {16,"潘速度箭头键"},
+    {16,"화살표 키 팬 속도"},
     % "Show Info Line Help String"
-    {17,"显示信息的帮助字符串线"},
+    {17,"정보 라인 도움말 문자열 보기"},
     % "Arrow Keys Pan"
-    {18,"潘箭头键"},
+    {18,"화살표 키 팬"},
     % "Rotation Speed"
-    {19,"转速"},
+    {19,"회전 속도"},
     % "Zooming in aims Camera"
-    {20,"放大目的相机"}
+    {20,"조준선 카메라 확대"}
    ]},
   {scroll_help,
    [
     % "  [Ctrl](+[Alt])+Scroll: Pan  [Shift](+[Alt])+Scroll: Rotate"
-    {1,"[Ctrl]（+ [Alt]）+스크롤：팬  [Shift]（+ [Alt]）+스크롤：회전"}
+    {1,"  [Ctrl](+[Alt])+스크롤: 팬  [Shift](+[Alt])+스크롤: 회전"}
    ]}
  ]}.
 {wings_collapse,
@@ -657,14 +664,14 @@
   {check_consistency,
    [
     % "Collapsing would cause an inconsistent object structure."
-    {1,"折叠会导致不一致的对象结构。"}
+    {1,"컬랩싱(Collapsing)은 조화되지 않는 오브젝트 구조를 만들 것입니다."}
    ]},
   {check_vertices_1,
    [
     % "Non-collapsible vertex"
-    {1,"非折叠顶点"},
+    {1,"비 축소 버텍스"},
     % "would leave waist.\n"
-    {2,"会离开腰部。\n"}
+    {2,"허리를 떠날 것입니다.\n"}
    ]}
  ]}.
 {wings_color,
@@ -672,7 +679,7 @@
   {choose_1,
    [
     % "Choose Color"
-    {1,"색 선택"}
+    {1,"컬러 선택"}
    ]}
  ]}.
 {wings_console,
@@ -680,30 +687,30 @@
   {do_window,
    [
     % "Console "
-    {1,"콘솔"},
+    {1,"콘솔  "},
     % "x"
     {2,"x"}
    ]},
   {handle_action,
    [
     % "Write"
-    {1,"写"},
+    {1,"기록"},
     % "Text File"
     {3,"텍스트 파일"},
     % "Write error: ~w"
-    {4,"写错误： ~w"}
+    {4,"기록 오류: ~w"}
    ]},
   {popup_menu,
    [
     % "Write to File"
-    {1,"写入文件"},
+    {1,"파일에 기록"},
     % "Write console contents to a file"
-    {2,"控制台的内容写入到文件"}
+    {2,"파일에 콘솔 내용 기록"}
    ]},
   {server_loop,
    [
     % ":~w Received unknown: ~p~n"
-    {1,"：~w 收到未知： ~p~n"}
+    {1,":~w 알 수없는 수신: ~p~n"}
    ]}
  ]}.
 {wings_deform,
@@ -711,9 +718,9 @@
   {check_range,
    [
     % "Extent along "
-    {1,"沿程度"},
+    {1,"범위를 따라 "},
     % "axis is too short."
-    {2,"轴是太短了。"}
+    {2,"축이 너무 짧습니다."}
    ]},
   {crumple_dirs,
    [
@@ -724,63 +731,63 @@
     % "its normal"
     {4,"노멀"},
     % "Move each vertex a random amount along"
-    {8,"移动每个顶点沿一个随机量"}
+    {8,"임의의 양에 따라 각 버텍스 이동함."}
    ]},
   {dir,
    [
     % "Twist selected vertices around the "
-    {1,"选定的顶点周围扭"},
+    {1,"선택 버텍스 주위 트위스트 "},
     % " passing through the center of the selection"
-    {2,"经过遴选중심"},
+    {2," 선택의 중심 통과"},
     % " passing through the origin"
-    {3,"经过原点"}
+    {3," 원점 통과"}
    ]},
   {inflate_fun,
    [
     % "Pick center and radius"
-    {1,"匹克中心，半径"},
+    {1,"피크 중심과 반경"},
     % "Inflate elements"
-    {2,"充气元素"},
+    {2,"요소 팽창"},
     % "Pick center point"
-    {3,"选取中心点"},
+    {3,"피크 중심점"},
     % "Pick point to define radius"
-    {4,"挑点来定义半径"}
+    {4,"피크 지점 반경 정의"}
    ]},
   {sub_menu,
    [
     % "Inflate elements"
-    {1,"充气元素"},
+    {1,"요소 팽창"},
     % "Pick center and radius"
-    {2,"匹克中心，半径"},
+    {2,"피크 중심과 반경"},
     % "Crumple"
-    {3,"Crumple(구기기)"},
+    {3,"크럼플(주름)"},
     % "Randomly move vertices"
-    {4,"随机移动顶点"},
+    {4,"무작위 버텍스 이동"},
     % "Inflate"
-    {5,"膨胀"},
+    {5,"인플레이트(팽창)"},
     % "Taper"
-    {6,"Taper(점점 좁게)"},
+    {6,"테이퍼(줄이기)"},
     % "Twist"
-    {7,"Twist(트위스트)"},
+    {7,"트위스트(비틀기)"},
     % "Torque"
-    {8,"Torque(목걸이)"}
+    {8,"토크(회전 효과)"}
    ]},
   {taper_item,
    [
     % "Taper along "
-    {1,"沿锥形"},
+    {1,"테이퍼를 따라"},
     % " (with effect on "
-    {2,"（与影响"},
+    {2,"（효과 "},
     % ")"
     {3,"）"},
     % "Choose effect axis"
-    {4,"选择影响轴"},
+    {4,"효과 축 선택"},
     % "Pick axis center location"
-    {5,"轴中心位置选择"},
+    {5,"축 중심 회전 피크"},
     % "Pick taper origin"
-    {6,"原产地挑选锥度"},
+    {6,"테이퍼 원점 피크"},
     % "Effect on "
-    {7,"对"}
+    {7,"효과 "}
    ]}
  ]}.
 {wings_dissolve,
@@ -788,7 +795,7 @@
   {dissolve_1,
    [
     % "Dissolving would cause an inconsistent object structure."
-    {1,"溶解会造成不一致的对象结构。"}
+    {1,"디졸빙(제거)은 조화되지 않는 오브젝트 구조를 만들 것입니다."}
    ]}
  ]}.
 {wings_drag,
@@ -796,24 +803,24 @@
   {drag_help,
    [
     % "Move along Screen Normal"
-    {1,"沿着屏幕正常"},
+    {1,"화면 노멀을 따라 이동"},
     % "Scale"
     {2,"스케일"},
     % "Adjust 2nd value"
-    {3,"调整第二个值"},
+    {3,"2번째 값 조정"},
     % "Rotate"
     {4,"회전"},
     % "Adjust 3rd value"
-    {5,"调整第三值"},
+    {5,"3번째 값 조정"},
     % "Adjust 4th value"
-    {6,"第四届值调整"}
+    {6,"4번째 값 조정"}
    ]},
   {help_message,
    [
     % "Numeric Entry"
     {1,"숫자 입력"},
     % "Switch Constraint Set"
-    {2,"开关约束集"}
+    {2,"제한 설정 전환"}
    ]},
   {make_query_1,
    [
@@ -828,7 +835,7 @@
   {plus_drag_string,
    [
     % "+Drag: "
-    {1,"+드래그："}
+    {1,"+드래그: "}
    ]},
   {qstr,
    [
@@ -850,12 +857,12 @@
     % "[Shift] and/or [Ctrl] and/or [Alt] Constrain"
     {1,"[Shift]와/또는 [Ctrl]과/또는 [Alt] 제한"},
     % "[+] or [-] Adjust Radius"
-    {2,"[+] 또는 [ - ]调整半径"}
+    {2,"[+] 또는 [-] 반경 조정"}
    ]},
   {switch,
    [
     % " (using Alternate Constraints)"
-    {1,"（使用备用约束）"}
+    {1," (변경 제한 사용)"}
    ]}
  ]}.
 {wings_edge,
@@ -863,7 +870,12 @@
   {dissolve_edge_2,
    [
     % "Dissolving would cause a badly formed face."
-    {1,"溶解会造成严重形成的脸。"}
+    {1,"디졸빙(제거)은 좋지 않은 페이스를 만들 것입니다."}
+   ]},
+  {dissolve_edges,
+   [
+    % "Dissolving would cause a badly formed face."
+    {1,"디졸빙(제거)은 좋지 않은 페이스를 만들 것입니다."}
    ]}
  ]}.
 {wings_edge_cmd,
@@ -871,97 +883,97 @@
   {command,
    [
     % "Segments"
-    {1,"세그먼트"}
+    {1,"세그먼트(분할)"}
    ]},
   {cut_ask_entry,
    [
     % "Cut into <N> segments"
-    {1,"切成段<N>键"},
+    {1,"<N> 조각으로 자르기"},
     % "Enter Number..."
-    {2,"输入号码..."}
+    {2,"숫자 입력..."}
    ]},
   {cut_command,
    [
     % "Cut"
-    {1,"컷"}
+    {1,"컷(자르기)"}
    ]},
   {cut_entry,
    [
     % "Cut into "
-    {1,"切成"},
+    {1,"자르기 "},
     % " edges of equal length"
-    {2,"边等长"}
+    {2," 동일 길이의 엣지"}
    ]},
   {cut_fun,
    [
     % "Cut into edges of equal length"
-    {1,"切成等长的边"},
+    {1,"동일 길이의 엣지 자르기"},
     % "Cut at arbitrary position"
-    {2,"在任意位置切"}
+    {2,"임의의 위치 자르기"}
    ]},
   {cut_pick_error,
    [
     % "Only one edge can be cut at an arbitrary position."
-    {1,"只有一个边，可切割任意位置。"}
+    {1,"1 엣지만 임의의 위치에서 자를 수 있습니다."}
    ]},
   {loop_cut,
    [
     % "Edge loop doesn't divide ~p into two (or more) parts."
-    {1,"循环没有分裂的边缘 ~p 为两个（或更多）的组成部分。"}
+    {1,"~p : 엣지 루프는 2(또는 그 이상)부분으로 분할하지 않습니다."}
    ]},
   {menu,
    [
     % "Move"
-    {2,"Move(이동)"},
+    {2,"무브(이동)"},
     % "Slide"
-    {3,"Slide(슬라이드)"},
+    {3,"슬라이드(이동)"},
     % "Slide edges along neighbor edges"
-    {4,"邻居边沿着边缘滑动"},
+    {4,"인접 엣지를 따라 슬라이드 이동"},
     % "Extrude"
-    {5,"Extrude(압출)"},
+    {5,"익스트루드(압출)"},
     % "Connect"
-    {6,"Connect(연결)"},
+    {6,"커넥트(연결)"},
     % "Create a new edge by connecting midpoints of selected edges"
-    {7,"对选定的边创建一个新的边缘连接中点"},
+    {7,"선택 엣지의 중심점을 연결하여 새 엣지 만들기"},
     % "Bevel"
-    {8,"Bevel(베벨)"},
+    {8,"베벨(빗각)"},
     % "Round off selected edges"
-    {9,"四舍五入选定的边"},
+    {9,"선택 엣지 라운드 마무리"},
     % "Dissolve"
-    {10,"디졸브"},
+    {10,"디졸브(제거)"},
     % "Eliminate selected edges"
-    {11,"消除选定的边"},
+    {11,"선택 엣지 제거"},
     % "Collapse"
-    {12,"Collapse(축소)"},
+    {12,"컬랩스(압축)"},
     % "Delete edges, replacing them with vertices"
-    {13,"删除的边缘，取而代之的是他们的顶点"},
+    {13,"버텍스로 바꾸면서, 엣지 제거"},
     % "Hardness"
-    {14,"Hardness(경도)"},
+    {14,"하드니스(경도)"},
     % "Soft"
     {15,"소프트"},
     % "Hard"
     {16,"하드"},
     % "Loop Cut"
-    {17,"루프 컷"},
+    {17,"루프 컷(분리)"},
     % "Cut into two objects along edge loop"
-    {18,"切成两沿边缘环形对象"},
+    {18,"엣지 루프를 따라 2 오브젝트로 자르기"},
     % "Vertex Color"
-    {19,"버텍스 색"},
+    {19,"버텍스 컬러"},
     % "Apply vertex colors to selected edges"
-    {20,"应用到选定的边顶点 색"},
+    {20,"선택 엣지에 버텍스 컬러 적용"},
     % "Delete edges, replacing them with vertices and remove any newly created isolated vertices"
-    {21,"删除的边缘，取而代之的顶点他们删除任何新创建的孤立点"},
+    {21,"엣지를 지우고, 그들을 버텍스로 바꾸면서, 새로 만들어진 절연 버텍스 제거"},
     % "Crease"
-    {22,"防皱"},
+    {22,"크리스(주름)"},
     % "Extrusion commonly used for adding wrinkles to organic models"
-    {23,"挤压通常用于添加皱纹，有机模型"},
+    {23,"압출은 일반적으로 유기적인 모델에 주름을 추가하기 위해 사용"},
     % "Eliminate selected edges and remove remaining isolated verts"
-    {50,"消除选定的边，消除剩余的孤立verts"}
+    {50,"선택 엣지를 없애고 나머지 절연된 버텍스 제거"}
    ]},
   {plain_cut_menu,
    [
     % "Cut into edges of equal length"
-    {2,"切成等长的边"}
+    {2,"동일 길이의 엣지로 자르기"}
    ]},
   {slide_help_mode,
    [
@@ -970,13 +982,13 @@
     % "Relative"
     {2,"절대적"},
     % "Freeze direction"
-    {3,"冻结方向"},
+    {3,"고정 방향"},
     % "Thaw direction"
-    {4,"解冻方向"},
+    {4,"분리 방향"},
     % "Stop at other edges"
-    {5,"停止在其他边"},
+    {5,"다른 엣지에서 정지"},
     % "Continue past other edges"
-    {6,"继续过去的其他边"}
+    {6,"이전 다른 엣지를 계속"}
    ]}
  ]}.
 {wings_export,
@@ -986,9 +998,9 @@
     % "exporting"
     {1,"수출"},
     % "preparing"
-    {2,"准备"},
+    {2,"준비"},
     % "Exporter crashed"
-    {4,"出口商坠毁"}
+    {4,"수출 충돌"}
    ]}
  ]}.
 {wings_extrude_edge,
@@ -996,12 +1008,12 @@
   {bevel_faces,
    [
     % "Object is too small to bevel."
-    {1,"对象是太小斜角。"}
+    {1,"베벨 오브젝트가 너무 작습니다."}
    ]},
   {extrude_problem,
    [
     % "Can't extrude/bevel; two or more vertices are probably too near to each other.\nTry the Cleanup command."
-    {1,"无法挤出/伞;两个或更多的顶点可能过于接近对方。\n尝试清理命令。"}
+    {1,"익스트루드(압출)/베벨(빗각) 할 수 없습니다; 2 이상의 버텍스가 너무 가까이 있을 것입니다.\n정리 명령을 시도하십시오."}
    ]}
  ]}.
 {wings_face_cmd,
@@ -1009,153 +1021,155 @@
   {bridge_1,
    [
     % "Faces must not point in the same direction."
-    {2,"面临不能指向同一个方向。"},
+    {2,"페이스는 같은 방향 포인트가 안됩니다."},
     % "Faces must not be neighbors."
-    {3,"面临绝不能成为邻居。"}
+    {3,"페이스는 인접이 안됩니다."}
    ]},
   {bridge_error,
    [
     % "Exactly two face regions must be selected."
-    {2,"正好有两个脸区域必须选择。"}
+    {2,"정확하게 2 페이스 영역이 선택되어야 합니다."}
    ]},
   {clone_on,
    [
     % "There must only be one face selected."
-    {1,"只能有一个面选择。"}
+    {1,"1 페이스만 선택해야 합니다."}
    ]},
   {clone_on_selection,
    [
     % "Select target elements on which to put clones"
-    {1,"选择目标元素上把克隆"}
+    {1,"선택 대상 요소가 어떤 것에 복제"}
    ]},
   {create_hole_1,
    [
     % "A hole cannot comprise all faces in an object."
-    {1,"阿孔不能包括所有在对象的面孔。"}
+    {1,"홀(구멍)이 오브젝트의 모든 페이스로 구성될 수 없습니다."}
    ]},
   {intrude,
    [
     % "Intrude does not work with all faces selected."
-    {1,"介入并不适用于所有面临选择。"}
+    {1,"인트루드(관입)는 모든 페이스 선택에는 작동하지 않습니다."}
    ]},
   {lift_check_selection,
    [
     % "Face and edge selections don't match."
-    {1,"工作面和边缘选择不匹配。"},
+    {1,"페이스와 엣지 선택이 일치하지 않습니다."},
     % "Face and vertex selections don't match."
-    {2,"脸部和顶点的选择不匹配。"}
+    {2,"페이스와 버텍스 선택이 일치하지 않습니다."}
    ]},
   {lift_fun,
    [
     % "Lift, rotating face around edge or vertex"
-    {1,"电梯，旋转面对周围边或顶点"},
+    {1,"리프트(회전), 페이스를 엣지 또는 버텍스 주위에 회전"},
     % "Lift in std. directions"
-    {2,"电梯在性病。方向"}
+    {2,"표준 방향 리프트(회전)"}
    ]},
   {lift_sel_mismatch,
    [
     % "Face and edge selections don't match."
-    {1,"工作面和边缘选择不匹配。"}
+    {1,"페이스와 엣지 선택이 일치하지 않습니다."}
    ]},
   {lift_selection,
    [
     % "Select edge or vertex to act as hinge"
-    {1,"选择边或顶点作为铰链"}
+    {1,"경첩 역할하는 엣지나 버텍스 선택"}
    ]},
   {lift_vtx_sel_mismatch,
    [
     % "Face and vertex selections don't match."
-    {1,"脸部和顶点的选择不匹配。"}
+    {1,"페이스와 버텍스 선택이 일치하지 않습니다."}
    ]},
   {menu,
    [
     % "Move"
-    {2,"Move(이동)"},
+    {2,"무브(이동)"},
     % "Extrude"
-    {3,"Extrude(압출)"},
+    {3,"익스트루드(압출)"},
     % "Intrude"
-    {8,"Intrude(침입)"},
+    {8,"인트루드(관입)"},
     % "Carve out interior of object, making selected faces holes"
-    {9,"能开出的物体内部，使选择的面洞"},
+    {9,"선택 페이스 구멍 만들면서, 오브젝트의 내부 베어 내기"},
     % "Bevel"
-    {10,"Bevel(베벨)"},
+    {10,"베벨(빗각)"},
     % "Round off edges of selected faces"
-    {11,"选择的面圆边关闭"},
+    {11,"선택 페이스의 엣지를 라운드 마무리"},
     % "Bridge"
-    {12,"Bridge(브릿지)"},
+    {12,"브릿지(관통)"},
     % "Create a bridge or tunnel between two faces"
-    {13,"之间建立一座桥梁或隧道两个面孔"},
+    {13,"2 페이스 사이에 다리 또는 터널 만들기"},
     % "Bump"
-    {14,"Bump(범프)"},
+    {14,"범프(요철)"},
     % "Create bump of selected faces"
-    {15,"创建凹凸面的选择"},
+    {15,"선택 페이스의 범프 만들기"},
     % "Lift"
-    {16,"Lift(상승)"},
+    {16,"리프트(회전)"},
     % "Put On"
-    {17,"Put On(올림)"},
+    {17,"풋 온(올림)"},
     % "Move and rotate object, aligning the selected face to another element"
-    {18,"移动和旋转对象，对准选定的人脸到另一个元素"},
+    {18,"다른 요소에 선택된 페이스를 정렬하면서, 오브젝트가 이동 및 회전"},
     % "Clone object on to one or more elements"
-    {19,"克隆对象到一个或多个元素"},
+    {19,"1 이상의 요소가 오브젝트 위에 복제"},
     % "Mirror"
-    {20,"대칭 Mirror"},
+    {20,"미러(대칭)"},
     % "Mirror object around selected faces and merge to object"
-    {21,"围绕选定的对象镜的面孔和合并对象"},
+    {21,"오브젝트 주위의 선택 페이스와 거울로 대칭하며 오브젝트 결합"},
     % "Mirror and create separate objects"
-    {22,"镜与创建单独的对象"},
+    {22,"거울로 대칭 및 개별 오브젝트 만들기"},
     % "Dissolve"
-    {23,"디졸브"},
+    {23,"디졸브(제거)"},
     % "Eliminate all edges between selected faces"
-    {24,"消除所有的边面之间的选择"},
+    {24,"선택 페이스 사이의 모든 엣지 제거"},
     % "Collapse"
-    {25,"Collapse(축소)"},
+    {25,"컬랩스(압축)"},
     % "Delete faces, replacing them with vertices"
-    {26,"删除的面孔，他们取代顶点"},
+    {26,"버텍스로 변경하며, 페이스 삭제"},
     % "Smooth"
-    {27,"스무드"},
+    {27,"스무드(세분)"},
     % "Subdivide selected faces to smooth them (Catmull-Clark)"
-    {28,"细分选择的面平滑他们（的Catmull - Clark）的"},
+    {28,"스무드하게 만들기 위해 페이스 세분 (Catmull-Clark)"},
     % "Tesselate"
-    {29,"Tesselate"},
+    {29,"테슬레이트(분할)"},
     % "Vertex Color"
-    {30,"버텍스 색"},
+    {30,"버텍스 컬러"},
     % "Apply vertex colors to selected faces"
-    {31,"应用面顶点的颜色来选择"},
+    {31,"버텍스 컬러를 선택 페이스에 적용"},
     % "Hide"
-    {32,"Hide(숨김)"},
+    {32,"하이드(숨기기)"},
     % "Hide the selected faces"
-    {33,"隐藏选定的头像"},
+    {33,"선택 페이스 숨기기"},
     % "Eliminate selected faces and remove remaining isolated verts"
-    {34,"消除选定的面，消除剩余的孤立verts"},
+    {34,"선택 페이스 제거 후의 나머지 절연 버텍스 제거"},
     % "Extract"
-    {35,"추출 Extract"},
+    {35,"익스트렉트(추출)"},
     % "Shell Extrude"
-    {36,"壳牌挤压"},
+    {36,"셀 익스트루드(분리 압출)"},
     % "Hole"
-    {37,"홀"},
+    {37,"홀(구멍)"},
     % "Create hole"
-    {38,"홀 만들기"},
+    {38,"홀(구멍) 만들기"},
     % "Remove holes adjacent to selected faces"
-    {39,"删除选定的面孔洞毗邻"},
+    {39,"선택 페이스에 인접한 홀(구멍) 제거"},
     % " or face regions"
-    {40,"否则将面临地区"}
+    {40," 또는 페이스 영역"},
+    % "Unhide faces adjacent to selection"
+    {41,"선택에 인접한 숨긴 페이스 보기"}
    ]},
   {put_on,
    [
     % "There must only be one face selected."
-    {1,"只能有一个面选择。"}
+    {1,"그 곳은 1 페이스만 선택해야 합니다."}
    ]},
   {put_on_check_selection,
    [
     % "Selection must not be in the same object."
-    {1,"选择不能在同一个对象。"},
+    {1,"동일한 오브젝트에 선택해서는 안됩니다"},
     % "Select only one element."
-    {2,"选择只有一个元素。"}
+    {2,"1 요소만 선택"}
    ]},
   {put_on_selection,
    [
     % "Select target element on which to put source object"
-    {1,"选择目标元素上把源对象"}
+    {1,"소스 오브젝트를 넣으려면 대상 요소 선택"}
    ]},
   {smooth,
    [
@@ -1170,43 +1184,43 @@
     % "Object \""
     {1,"오브젝트 \""},
     % "\" cannot be exported "
-    {2,"\"能不能出口"},
+    {2,"\" 수출될 수 없습니다 "},
     % "to Nendo format (too many edges)."
-    {3,"到Nendo格式（太多边）。"}
+    {3,"Nendo 포맷(너무 많은 엣지)에."}
    ]},
   {clean_bad_edges,
    [
     % "Bad edge: ~w\n"
-    {1,"坏的边缘： ~w\n"}
+    {1,"잘못된 엣지: ~w\n"}
    ]},
   {import,
    [
     % "Nendo 1.0 files not supported"
-    {1,"Nendo 1.0不支持文件"},
+    {1,"지원하지 않는 Nendo 1.0 파일"},
     % "not a Nendo file"
-    {2,"不是Nendo文件"}
+    {2,"Nendo 파일 아님"}
    ]},
   {import_1,
    [
     % "~w object(s)\n"
-    {1,"~w 오브젝트（s）\n"}
+    {1,"~w 오브젝트\n"}
    ]},
   {read_edges,
    [
     % " edges ~w\n"
-    {1,"엣지 ~w\n"}
+    {1," 엣지 ~w\n"}
    ]},
   {read_object_1,
    [
     % "~w: ~ts: vis=~p sensitivity=~p\n"
-    {1,"~w： ~ts：可见=~p 灵敏度=~p\n"}
+    {1,"~w: ~ts: vis=~p 센스티버티(감도)=~p\n"}
    ]},
   {read_objects,
    [
     % "  ~w empty object(s)\n"
-    {1," ~w 빈 오브젝트（s）\n"},
+    {1," ~w 빈 오브젝트\n"},
     % "  garbage: ~w\n"
-    {2,"垃圾： ~w\n"}
+    {2,"  garbage(불필요 정보): ~w\n"}
    ]},
   {read_vertices,
    [
@@ -1224,63 +1238,63 @@
   {export,
    [
     % "saving"
-    {1,"节能"},
+    {1,"저장하기"},
     % "lights"
     {2,"라이트"},
     % "renumbering"
-    {3,"重编"},
+    {3,"다시 번호 매기기"},
     % "objects"
     {4,"오브젝트"},
     % "compressing"
-    {5,"压缩"},
+    {5,"압축하기"},
     % "writing file"
-    {6,"写文件"}
+    {6,"파일 쓰기"}
    ]},
   {import,
    [
     % "opening wings file"
-    {1,"打开文件的翅膀"},
+    {1,"wings 파일 열기"},
     % "reading file"
-    {2,"读文件"}
+    {2,"파일 읽기"}
    ]},
   {import_1,
    [
     % "converting binary"
-    {1,"转换成二进制"},
+    {1,"바이너리 변환"},
     % "Pre-0.80 Wings format no longer supported."
-    {2,"预0.80翼格式不再支持。"},
+    {2,"더 이상 지원하지 않는 이전 0.80 Wings 포맷"},
     % "Pre-0.92 Wings format no longer supported."
-    {3,"预0.92翼格式不再支持。"},
+    {3,"더 이상 지원하지 않는 이전 0.92 Wings 포맷"},
     % "unknown wings format"
-    {4,"格式未知的翅膀"},
+    {4,"알 수 없는 wings 포맷"},
     % "corrupt Wings file"
-    {5,"腐败的翅膀文件"},
+    {5,"손상된 Wings 파일"},
     % "not a Wings file (or old Wings format)"
-    {6,"没有翅膀的文件（或格式旧翼）"}
+    {6,"Wings 파일 아님 (또는 이전 Wings 포맷)"}
    ]},
   {import_image,
    [
     % "unnamed image"
     {1,"이름 없는 이미지"},
     % "Bad image: ~p\n"
-    {2,"잘못된 이미지： ~p\n"}
+    {2,"잘못된 이미지: ~p\n"}
    ]},
   {import_props,
    [
     % "<Stored Selection>"
-    {1,"<Stored选择>"}
+    {1,"<저장된 선택>"}
    ]},
   {import_vsn2,
    [
     % "images and materials"
-    {1,"图像和材料"},
+    {1,"이미지와 머테리얼"},
     % "objects"
     {2,"오브젝트"}
    ]},
   {translate_map_images_2,
    [
     % "Material ~p, ~p texture: reference to non-existing image ~p\n"
-    {1,"材料 ~p， ~p 质地：引用不存在的形象 ~p\n"}
+    {1,"머테리얼 ~p， ~p 텍스쳐: 존재하지 않는 이미지 참고자료 ~p\n"}
    ]}
  ]}.
 {wings_file,
@@ -1288,25 +1302,25 @@
   {autosave,
    [
     % "Autosaving \"~ts\" failed: ~ts"
-    {1,"自动储存\"~ts\"失败： ~ts"}
+    {1,"자동 저장 \"~ts\" 실패: ~ts"}
    ]},
   {command,
    [
     % "Revert failed: "
-    {1,"还原失败："},
+    {1,"복귀 실패: "},
     % "Export"
     {2,"수출"},
     % "Export Selected"
     {3,"선택 수출"},
     % "Do you want to save your changes before quitting?"
-    {4,"종료하기 전에 변경 사항을 저장하시겠습니까？"},
+    {4,"종료 전에 변경 사항을 저장하시겠습니까？"},
     % "This file has been moved or deleted."
-    {5,"此文件已被移动或删除。"}
+    {5,"이 파일은 이동되었거나 삭제되었습니다."}
    ]},
   {confirmed_open,
    [
     % "Read failed: "
-    {1,"读取失败："}
+    {1,"읽기 실패: "}
    ]},
   {confirmed_open_dialog,
    [
@@ -1326,58 +1340,60 @@
   {import_image,
    [
     % "Failed to load \"~ts\": ~ts\n"
-    {1,"无法载入\"~ts\"： ~ts\n"}
+    {1,"불러오기 실패 \"~ts\": ~ts\n"},
+    % "The image cannot be loaded.~nFile: \"~ts\"~n GLU Error: ~p - ~ts~n"
+    {2,"이미지를 불러올 수 없습니다.~n파일: \"~ts\"~n GLU 오류: ~p - ~ts~n"}
    ]},
   {import_ndo,
    [
     % "Import failed: "
-    {1,"导入失败："}
+    {1,"수입 실패: "}
    ]},
   {install_plugin,
    [
     % "Install Plug-In"
     {1,"플러그인 설치"},
     % "GZip Compressed File"
-    {2,"gzip压缩文件"},
+    {2,"GZip 압축 파일"},
     % "Tar File"
-    {3,"tar文件"},
+    {3,"Tar 파일"},
     % "Compressed Tar File"
-    {4,"压缩的tar文件"},
+    {4,"압축 Tar 파일"},
     % "Beam File"
-    {5,"梁文件"}
+    {5,"Beam 파일"}
    ]},
   {menu,
    [
     % "New"
-    {3,"새 파일"},
+    {3,"새 장면"},
     % "Create a new, empty scene"
-    {4,"创建一个新的空的场景"},
+    {4,"새 빈 장면 만들기"},
     % "Open..."
     {5,"열기..."},
     % "Open a previously saved scene"
-    {6,"打开一个以前保存的场景"},
+    {6,"저장된 이전 장면 열기"},
     % "Merge..."
     {7,"추가..."},
     % "Merge a previously saved scene into the current scene"
-    {8,"合并以前保存到当前的一幕一幕"},
+    {8,"현재 장면에 저장된 이전 장면 추가"},
     % "Save"
     {9,"저장"},
     % "Save the current scene"
-    {10,"保存当前场景"},
+    {10,"현재 장면 저장"},
     % "Save As..."
     {11,"다른 이름으로 저장..."},
     % "Save the current scene under a new name"
-    {12,"以新名称保存当前场景"},
+    {12,"새 이름으로 현재 장면 저장"},
     % "Save Selected..."
     {13,"선택 저장..."},
     % "Save only the selected objects or faces"
-    {14,"只保存选择的对象或面"},
+    {14,"선택 오브젝트 또는 페이스만 저장"},
     % "Save Incrementally"
     {15,"점진적 저장"},
     % "Revert"
     {16,"복귀"},
     % "Revert current scene to the saved contents"
-    {17,"当前场景恢复到保存的内容"},
+    {17,"저장된 내용으로 현재 장면 복귀"},
     % "Import"
     {18,"수입"},
     % "Export"
@@ -1387,7 +1403,7 @@
     % "Import Image..."
     {21,"이미지 수입..."},
     % "Import an image file"
-    {22,"导入的图像文件"},
+    {22,"이미지 파일 수입"},
     % "Render"
     {23,"렌더"},
     % "Install Plug-In"
@@ -1395,37 +1411,37 @@
     % "Exit"
     {25,"종료"},
     % "Generate new filename and save"
-    {26,"生成新的文件名和保存"},
+    {26,"새 파일명과 저장 만들기"},
     % "Install a plug-in"
     {27,"플러그인 설치"},
     % "Exit Wings 3D"
     {28,"Wings 3D 종료"},
     % "Save Unused Materials"
-    {29,"미사용 재질 저장"},
+    {29,"미사용 머테리얼 저장"},
     % "Include unused materials when saving a .wings file"
-    {30,"包括未用的材料时，储存。翅膀文件"},
+    {30,".wings 파일 저장 시 사용하지 않는 머테리얼 포함"},
     % "Save Preference Subset..."
     {31,"하위 환경 설정 저장..."},
     % "Save a preference subset from your current settings"
-    {32,"从当前的设置保存一个子集偏好"},
+    {32,"현재 설정에서 환경 설정의 하위 설정 저장"},
     % "Load Preference Subset"
     {33,"하위 환경 설정 불러오기"},
     % "Load..."
     {35,"불러오기..."},
     % "Load a previously saved preference subset"
-    {36,"加载以前保存的偏好集"}
+    {36,"저장된 이전 환경 설정의 하위 설정 불러오기"}
    ]},
   {merge,
    [
     % "Merge"
     {1,"추가"},
     % "Read failed: "
-    {2,"读取失败："}
+    {2,"읽기 실패: "}
    ]},
   {recent_files,
    [
     % "Open this recently used file"
-    {1,"最近使用的文件打开此"}
+    {1,"최근 사용한 이 파일 열기"}
    ]},
   {save_as,
    [
@@ -1435,24 +1451,24 @@
   {save_now,
    [
     % "Save failed: "
-    {1,"保存失败："}
+    {1,"저장 실패: "}
    ]},
   {save_selected,
    [
     % "This command requires a selection."
-    {1,"此命令需要进行选择。"},
+    {1,"이 명령은 선택이 필요합니다."},
     % "Save Selected"
     {2,"선택 저장"}
    ]},
   {str_save_changes,
    [
     % "Do you want to save your changes?"
-    {1,"是否要保存更改？"}
+    {1,"변경 사항을 저장하시겠습니까?"}
    ]},
   {use_autosave_1,
    [
     % "An autosaved file with a later time stamp exists; do you want to load the autosaved file instead?"
-    {1,"与稍后的时间戳记自动保存文件存在，你们要加载自动保存文件，而不是？"}
+    {1,"시간이 늦게 찍힌 자동 저장 파일 존재; 대신 자동 저장된 파일을 열겠습니까?"}
    ]},
   {wings_prop,
    [
@@ -1465,36 +1481,36 @@
   {def_commands,
    [
     % "In the "
-    {1,"在"},
+    {1," "},
     % " dialog, you can turn on \"Default Commands\"."
-    {4,"对话框中，您可以打开\"默认命令\"。"},
+    {4," 대화 상자에서, \"기본 명령\"을 설정할 수 있습니다."},
     % "Two default commands can be defined. To save the previous command that was executed, use one of:"
-    {5,"两个默认的命令可以被定义。为了拯救被执行以前的命令，使用之一："},
+    {5,"두 가지 기본 명령을 정의할 수 있습니다. 실행된 이전 명령을 저장하려면, 아래 하나를 사용합니다:"},
     % "To use a command that has been defined this way, use one of:"
-    {8,"要使用已定义这样的命令，使用之一："},
+    {8,"이런 식으로 정의한 명령을 사용하려면, 아래 하나를 사용합니다:"},
     % "Note: When using the "
-    {11,"注意：当使用"},
+    {11,"참고 : "},
     % " or "
-    {13,"或"},
+    {13," 또는 "},
     % " camera modes, the second default command cannot be used."
-    {15,"相机模式，第二个默认的命令不能使用。"}
+    {15," 카메라 모드를 사용하는 경우, 두 번째 기본 명령을 사용할 수 없습니다."}
    ]},
   {def_hotkeys,
    [
     % "Any command that appears in a menu, can be assigned a keyboard short-cut (hotkey)."
-    {1,"任何命令，在出现一个菜单，可以分配一个键盘捷径（热键）。"},
+    {1,"메뉴에 나오는 모든 명령을, 키보드 지름길로 할당할 수 있습니다 (단축키)."},
     % "To assign a hotkey to a command:"
-    {4,"要指定一个热键命令："},
+    {4,"단축키를 명령에 할당하려면:"},
     % "1. Open the menu containing the command and highlight the command."
-    {5,"1。打开菜单，里面包含的命令，并强调该命令。"},
+    {5,"1. 명령이 포함된 메뉴를 열고, 명령을 강조 표시합니다."},
     % "2. Press the [Insert] or [/] key."
-    {6,"2。按[插入]或[/]。"},
+    {6,"2. [Insert] 또는 [/] 키를 누릅니다."},
     % "4. The information line asks you to press the key that the command should be assigned to."
-    {8,"4。该信息行要求你按该命令应分配的关键。"},
+    {8,"4. 정보 라인은 명령이 할당될 키를 누를 것을 당신에게 요청합니다."},
     % "To delete a hotkey, similarly highlight the command in a menu, and press the [Del] or [\\] key. A dialog box listing all keys bound to the command will appear. Check all hotkeys you want to delete."
-    {9,"要删除一个热键，同样突出了一个菜单命令，然后按[德尔]或[\ \]。一个对话框，列出绑定到命令所有的键就会出现。检查所有的热键要删除。"},
+    {9,"단축키를 삭제하려면, 비슷하게 메뉴의 명령을 강조 표시하고,  [Del] 또는 [\\] 키를 누릅니다. 명령에 연결된 모든 키를 나열하는 대화 상자가 나타납니다. 삭제하려는 모든 단축키를 체크합니다."},
     % "3. If the command does different things depending on which mouse button is pressed there will be a message in the information line asking you to press a mouse button to choose which variant of the command to assign to the hotkey. (Note: The mouse cursor must remain inside the menu when you click.)"
-    {10,"3。如果该命令根据不同的事情上按下鼠标按钮将会出现在信息，要求您按下一个按钮，鼠标线的消息选择哪个命令的变体分配给热键。 （注：鼠标光标必须保持内部的菜单时，你点击。）"}
+    {10,"3. 만약 어떤 마우스 버튼이 명령에 따라 다른 일을 하고자 할 경우에는, 마우스 버튼을 눌러 정보 라인의 메시지가 당신에게 요청하는 단축키에 할당할 명령이 있는 다른 형태 어떤 버튼을 눌러 선택합니다. (참고 : 클릭할 때 마우스 커서는 메뉴 안에 있어야 합니다.)"}
    ]},
   {edit_prefs,
    [
@@ -1506,36 +1522,36 @@
   {getting_started,
    [
     % "When learning Wings, keep an eye on the information line at the bottom of the screen. Generally it shows what the mouse buttons will do at any given moment."
-    {1,"在学习的翅膀，保持在屏幕的底部在信息行的眼睛。一般来说，显示了鼠标按钮将做任何特定的时刻。"},
+    {1,"Wings를 배울 때, 화면 하단의 정보 라인을 주시하십시오. 일반적으로 그것은 언제든지 마우스 버튼이 무엇을 할 것인지 보여줍니다."},
     % "The actions for the mouse buttons are given first, labeled "
-    {2,"为鼠标按钮的行动首先给出，标记"},
+    {2,"처음으로, 마우스 버튼을 위한 동작이 표시되어 제공됩니다. "},
     % "Generally, L (left mouse button) is used for selecting and accepting, M (middle mouse button) for operating the camera, and R (right mouse button) to access the context-sensitive pop-up menus."
-    {7,"一般来说，L（左鼠标按钮）用于选择和接受，为操作相机米（鼠标中键）和R（右鼠标按钮）来访问上下文相关的弹出菜单。"},
+    {7,"일반적으로, L (마우스 좌버튼) 은 선택하고 허용하는데 사용되며, M (마우스 중버튼) 은 카메라를 위해 작동하고, R (마우스 우버튼) 은 상황에 맞는 팝업 메뉴에 접근합니다."},
     % "Note that different mouse buttons can be used in pop-up menus to choose different variations of a command. Generally, the most common way to execute the command is found on the left mouse buttons, while the more advanced commands are found on the middle and right mouse buttons."
-    {8,"请注意，不同的鼠标按钮可以在弹出的菜单用来选择一个命令不同的变化。一般来说，最常见的方法来执行命令发现鼠标左键按钮，而更先进的命令是在中间，右鼠标按钮找到。"},
+    {8,"다른 마우스 버튼은 팝업 메뉴에서 명령의 다른 변화를 선택하는데 사용할 수 있습니다. 보통, 명령을 실행하는 가장 일반적인 방법은 마우스 좌버튼에서 찾을 수 있고, 고급 명령은 마우스 우버튼 및 중버튼에서 찾을 수 있습니다."},
     % "left mouse button"
     {left_def,"좌버튼"},
     % "middle button or scroll wheel"
-    {middle_def,"中间键或滚轮"},
+    {middle_def,"중버튼 또는 스크롤 휠"},
     % "right button"
-    {right_def,"右键"},
+    {right_def,"우버튼"},
     % "followed by any hotkey actions."
-    {two_a,"其次是行动的热键。"}
+    {two_a,"모든 단축키 동작이 따라갑니다."}
    ]},
   {header,
    [
     % "Getting Started"
     {1,"시작하기"},
     % "Using a Mouse With One or Two Buttons"
-    {2,"使用一个或两个按钮的鼠标"},
+    {2,"1 또는 2 버튼 마우스 사용"},
     % "French and German Keyboards"
-    {3,"法国和德国的键盘"},
+    {3,"프랑스, 독일의 키보드"},
     % "Defined Hotkeys"
-    {4,"定义热键"},
+    {4,"정의된 단축키"},
     % "How To Define Hotkeys"
-    {5,"如何定义热键"},
+    {5,"단축키 정의하는 법"},
     % "Light Basics"
-    {6,"轻基础知识"},
+    {6,"라이트 기본"},
     % "Default Commands"
     {8,"기본 명령"},
     % "Performance Tips"
@@ -1543,38 +1559,38 @@
     % "OpenGL Info"
     {10,"OpenGL 정보"},
     % "About Wings 3D"
-    {11," Wings 3D 정보"},
+    {11,"Wings 3D 정보"},
     % "Tweak"
     {12,"트윅"}
    ]},
   {help_window,
    [
     % "No help text"
-    {1,"没有说明文字"}
+    {1,"도움말 텍스트 없음"}
    ]},
   {international,
    [
     % "Unfortunately, on French and German keyboards (and possibly others), the Undo/Redo commands will not be bound to the [Z] key. (That might be changed in a future release of Wings.)"
-    {1,"不幸的是，法国和德国的键盘（或其他），撤消/重做命令不会被绑定到为[Z]。 （这可能是改变了一对翅膀以后的版本。）"},
+    {1,"유감스럽게도, 프랑스, 독일 키보드(필요하다면 기타)에, 실행 취소/재실행 명령은 [Z] 키에 연결되지 않습니다. (이것은 Wings의 향후 공개에서 변경될 수 있습니다.)"},
     % "On French keyboards, the Undo/Redo commands are found on the [W] key ([Ctrl]+[W], [Ctrl]+[Alt]+[W] and so on)."
-    {2,"论法国键盘，撤消/重做命令发现按[W]（按[ctrl] + [黑白]，按下[Ctrl] + [Alt]+ [w]和等）。"},
+    {2,"프랑스 키보드에서, 실행 취소/재실행 명령은 [W] 키에서 찾을 수 있습니다. ([Ctrl]+[W], [Ctrl]+[Alt]+[W] 등)."},
     % "On German keyboards, the Undo/Redo commands are found on the [Y] key ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] and so on)."
-    {3,"关于德国键盘，撤消/重做命令被发现在[Y]（按[ctrl] + [年]，按下[Ctrl] + [Alt]+ [年]等）。"}
+    {3,"독일 키보드에서, 실행 취소/재실행 명령은 [Y] 키에서 찾을 수 있습니다. ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] 등)."}
    ]},
   {lights,
    [
     % "1. Create lights using the Light command in the primitives menu (R-click when there is no selection)."
-    {1,"1。创建灯光使用的原语菜单轻命令（R点击在没有选择）。"},
+    {1,"1. 프리미티브 메뉴의 라이트 명령을 사용하여 라이트를 만듭니다. (선택 없을 때 우클릭)"},
     % "2. Select a light by L-clicking on it. When any light is selected, a special Light menu will pop up when you R-click."
-    {2,"2。选择由L -上按一下，一盏灯。当任何光线被选中时，特殊的光菜单弹出时的R -点击。"},
+    {2,"2. 그것을 좌클릭하여 라이트를 선택합니다. 모든 라이트를 선택할 때, 전용 라이트 메뉴가 팝업되면 우클릭합니다."},
     % "3. To tell Wings to actually use the lights you have created, use the "
-    {3,"3。要告诉翼实际使用您所创建的灯光，使用"},
+    {3,"3. Wings에서 실제로 당신이 만든 라이트를 사용한다고 말하기 위해서는, "},
     % "View"
     {4,"뷰"},
     % "Scene Lights"
     {5,"장면 라이트"},
     % " command."
-    {6,"命令。"}
+    {6," 명령을 사용합니다."}
    ]},
   {message,
    [
@@ -1584,24 +1600,24 @@
   {one_or_two,
    [
     % "Note that only the "
-    {1,"请注意，只有"},
+    {1,""},
     % " and "
-    {2,"和"},
+    {2," 및 "},
     % " modes can be used with a two-button mouse. Only the "
-    {3,"模式都可以用一个两键鼠标。只有"},
+    {3," 모드만 2 버튼 마우스를 사용할 수 있습니다. "},
     % " mode can be used with an one-button mouse."
-    {4,"模式可使用一个单按钮鼠标。"}
+    {4," 모드만 1 버튼 마우스를 사용할 수 있습니다."}
    ]},
   {opengl_info,
    [
     % "Vendor: "
-    {1,"공급업체："},
+    {1,"공급업체: "},
     % "Renderer: "
-    {2,"렌더러："},
+    {2,"렌더러: "},
     % "Version: "
-    {3,"버전："},
+    {3,"버전: "},
     % "Version tuple: "
-    {4,"버전 튜플："},
+    {4,"버전 튜플: "},
     % "Red bits"
     {5,"적색 비트"},
     % "Green bits"
@@ -1611,7 +1627,7 @@
     % "Alpha bits"
     {8,"알파 비트"},
     % "Depth bits"
-    {9,"깊이 비트"},
+    {9,"뎁스 비트"},
     % "Stencil bits"
     {10,"스텐실 비트"},
     % "Accum. red bits"
@@ -1625,137 +1641,137 @@
     % "Max number of lights"
     {15,"라이트의 최대 수"},
     % "Max clip planes"
-    {16,"최대 클립 평면"},
+    {16,"최대 클립 플레인"},
     % "Max modelview stack depth"
-    {17,"最大堆栈深度模型视图"},
+    {17,"최대 모델뷰 스택 깊이"},
     % "Max projection stack depth"
-    {18,"最大投影叠前深度"},
+    {18,"최대 프로젝션 스택 깊이"},
     % "Max texture stack depth"
-    {19,"纹理最大堆栈深度"},
+    {19,"최대 텍스쳐 스택 깊이"},
     % "Subpixel bits"
-    {20,"亚像素位"},
+    {20,"서브픽셀 비트"},
     % "Max 3D texture size"
-    {21,"MAX三维纹理尺寸"},
+    {21,"최대 3D 텍스쳐 크기"},
     % "Max texture size"
-    {22,"最大纹理尺寸"},
+    {22,"최대 텍스쳐 크기"},
     % "Max pixel map table"
-    {23,"最大像素映射表"},
+    {23,"최대 픽셀 맵 테이블"},
     % "Max name stack depth"
-    {24,"最大的名字堆栈深度"},
+    {24,"최대 이름 스택 깊이"},
     % "Max display-list call nesting"
-    {25,"最大显示列表的嵌套调用"},
+    {25,"최대 표시 목록 호출 중첩"},
     % "Max evaluator polynomial order"
-    {26,"多项式阶最高评估"},
+    {26,"최대 다항식 계산 순서"},
     % "Max viewport dimensions"
-    {27,"最大尺寸视"},
+    {27,"최대 뷰포트 크기"},
     % "Max depth of attribute stack"
-    {28,"最大深度堆栈属性"},
+    {28,"특성 스택의 최대 깊이"},
     % "Max depth of client attribute stack"
-    {29,"最大的客户属性堆栈深度"},
+    {29,"클라이언트 특성 스택의 최대 깊이"},
     % "Number of auxiliary buffers"
-    {30,"辅助缓冲区的数目"},
+    {30,"보조 버퍼의 수"},
     % "Color buffers store RGBA"
-    {31,"商店的RGBA颜色缓冲区"},
+    {31,"RGBA 컬러 버퍼 저장"},
     % "Color buffers store indices"
-    {32,"颜色缓冲储存指数"},
+    {32,"인덱스 컬러 버퍼 저장"},
     % "Double buffering"
-    {33,"双缓冲"},
+    {33,"2중 버퍼링"},
     % "Stereo buffers"
-    {34,"立体声缓冲区"},
+    {34,"스테레오 버퍼"},
     % "Range of aliased point sizes"
-    {35,"别名点大小范围"},
+    {35,"앨리어스 포인트 크기의 범위"},
     % "Range of antialised point sizes"
-    {36,"点大小范围antialised"},
+    {36,"안티앨리어스 포인트 크기의 범위"},
     % "Range of aliased line widths"
-    {37,"别名线宽范围"},
+    {37,"앨리어스 라인 너비의 범위"},
     % "Range of antialised line widths"
-    {38,"线宽范围antialised"},
+    {38,"안티앨리어스 라인 너비의 범위"},
     % "Recommended max number of indices for drawRangeElement()"
-    {39,"推荐指数的最大数量为drawRangeElement（）"},
+    {39,"drawRangeElement용 인덱스의 권장 최대 수（）"},
     % "Recommended max number of vertices for drawRangeElement()"
-    {40,"推荐的最大数量的顶点为drawRangeElement（）"},
+    {40,"drawRangeElement용 버텍스의 권장 최대 수（）"},
     % "Max number of texturing units"
-    {41,"最大数量的纹理单元"},
+    {41,"텍스쳐링 유닛의 최대 수"},
     % "Number of compression formats"
-    {42,"数压缩格式"},
+    {42,"압축 포맷의 수"},
     % "Max number of vertex units"
-    {43,"最大数量的顶点单元"},
+    {43,"버텍스 유닛의 최대 수"},
     % "OpenGL Extensions"
     {44,"OpenGL 확장"},
     % "Sample buffers"
-    {45,"样本缓冲区"}
+    {45,"샘플 버퍼"}
    ]},
   {performance_tips,
    [
     % "The performance of Wings is dependent on many different things, such as"
-    {1,"翅膀的性能依赖于许多不同的事情，比如"},
+    {1,"Wings의 성능은 많은 다른 것에 의존합니다. 예를 들면"},
     % "the speed of the CPU"
-    {2,"CPU的速度"},
+    {2,"CPU의 속도"},
     % "type and size of the CPU cache"
-    {3,"类型和CPU的缓存的大小"},
+    {3,"CPU 캐시의 종류와 크기"},
     % "amount and speed of memory"
-    {4,"数量和内存速度"},
+    {4,"메모리의 양과 속도"},
     % "type of graphics card"
-    {5,"显卡类型"},
+    {5,"그래픽 카드의 종류"},
     % "amount of video memory"
-    {6,"视频内存量"},
+    {6,"비디오 메모리의 양"},
     % "the phase of the moon"
-    {7,"月亮的相位"},
+    {7,"달의 위상"},
     % "Therefore, it is difficult to give any firm advice on how to improve Wings performance. The following tips MAY improve performance:"
-    {8,"因此，很难给出任何关于如何改善公司业绩的翅膀意见。以下建议可提高性能："},
+    {8,"따라서, Wings 성능을 향상시키는 방법에 대한 어떤 확실한 조언을 주기가 어렵습니다. 다음 팁은 성능을 향상시킬 수 있습니다:"},
     % "Try different number of colors and different screen resolutions. Especially if the graphics card doesn't have much memory, many colors and/or high resolution may drastically reduce performance. Using a smaller Wings window (not maximized) may also help."
-    {9,"尝试不同的颜色和屏幕分辨率不同的数字。特别是如果图形卡上没有太多的内存，许多颜色and/or高解析度可能大幅降低其性能。使用较小的翅膀窗口（不是最大化）可能也有帮助。"},
+    {9,"컬러와 다른 화면 해상도의 다른 숫자를 사용해 보십시오. 특히 그래픽 카드에 메모리가 많지 않거나, 많은 컬러 및/또는 고해상도라면 성능이 저하될 수 있습니다. 또한 더 작은 Wings 창(최대화되지 않게)을 사용하는 것은 도움이 될 수 있습니다."},
     % "Close unnecessary windows inside Wings."
-    {10,"关闭不必要的Windows里面的翅膀。"},
+    {10,"Wings 내부의 불필요한 창을 닫습니다."},
     % "Make sure that Geometry windows don't overlap."
-    {11,"确保几何窗口不重叠。"},
+    {11,"지오메트리 창이 겹치지 않도록 확인합니다."},
     % "Use as few (active) lights as possible. More lights means less speed on most grahics cards."
-    {12,"使用尽可能少的（在职），可能的灯。更多的灯意味着在大多数grahics卡更难。"},
+    {12,"가능하면 일부(활성) 라이트만 사용합니다. 많은 라이트는 대부분 그래픽 카드의 속도를 저하시킵니다."},
     % "If possible, use the "
-    {13,"如果可能的话，请使用"},
+    {13,"가능하면, "},
     % "Tools"
     {14,"도구"},
     % "Virtual Mirror"
-    {15,"가상 대칭"},
+    {15,"버추얼 미러(가상 대칭)"},
     % " command."
-    {16,"命令。"},
+    {16," 명령을 사용합니다."},
     % "Hide models that you don't work on for the moment."
-    {17,"隐藏模式，你不工作的时刻。"},
+    {17,"지금 당장 작업하지 않는 모델을 숨깁니다."},
     % "Use the "
-    {18,"사용"},
+    {18,"만약 당신의 모델이 버텍스 컬러를 갖고 있다면, 버텍스 컬러 표시를 해제하는 "},
     % "View"
     {19,"뷰"},
     % "Show Colors"
-    {20,"색 보기"},
+    {20,"컬러 보기"},
     % " command to turn off vertex color display if your model has vertex colors."
-    {21,"命令关闭顶点颜色模型显示，如果你的顶点颜色。"},
+    {21," 명령을 사용합니다."},
     % "Use the "
-    {22,"사용"},
+    {22,"모델링하는 동안 텍스쳐를 해제하는 "},
     % "View"
     {23,"뷰"},
     % "Show Textures"
     {24,"텍스쳐 보기"},
     % " command to turn off textures while modeling."
-    {25,"命令来关闭，而造型纹理。"},
+    {25," 명령을 사용합니다."},
     % "Work in wireframe mode."
-    {26,"工作线框模式。"},
+    {26,"와이어프레임 모드에서 작업합니다."},
     % "Some graphics cards display edges slowly. Turn off edge display using the "
-    {27,"某些图形显示卡的边缘缓慢。关闭边缘显示使用"},
+    {27,"일부 그래픽 카드는 엣지를 천천히 표시합니다. 버텍스 엣지 표시를 해제하는 "},
     % "View"
     {28,"뷰"},
     % "Show Edges"
     {29,"엣지 보기"},
     % " command."
-    {30,"命令。"},
+    {30," 명령을 사용합니다."},
     % "Use fewer Undo levels. Setting to 4 or less (default 32) will let you work on models with almost 8 times the detail. In this case, using a shorter autosave period (default 10mins) may be advisable."
-    {31,"使用较少的撤消级别。设定为4或更小（默认32）会让你模型上工作近8倍的细节。在这种情况下，使用较短的自动保存时间（默认10分钟），可能是可取的。"}
+    {31,"실행 취소 수를 적게 사용합니다. 4(기본값 32) 이하의 설정은 세부 모델에서 거의 8배 작업을 하게 할 것입니다. 이 경우에는 더 짧은 자동 저장 시간(기본값 10분)을 사용할 것을 권장합니다."}
    ]},
   {splash_contents,
    [
     % "Wings 3D is a subdivision modeler inspired"
-    {1,"Wings 3D는 Nendo와 IZware의 Mirai에서 염감을 받은"},
+    {1,"Wings 3D는 Nendo 및 IZware의 Mirai에서 영감을 받은"},
     % "by Nendo and Mirai from IZware."
-    {2,"세분 모델러(subdivision modeler)입니다."},
+    {2,"세분 모델러(Subdivision Modeler)입니다."},
     % "Wings 3D comes with absolutely no warranty,"
     {3,"Wings 3D는 절대적인 보증도 포함하지만,"},
     % "but is completely free for any kind of use"
@@ -1772,9 +1788,9 @@
   {use_one_or_two,
    [
     % "To use mice with only one or two buttons, you must inform Wings how many buttons your mouse has in the "
-    {1,"若要使用只有一个或两个按钮鼠标，你必须通知你的翅膀许多按钮在鼠标"},
+    {1,"1 또는 2개의 버튼 마우스만을 사용하려면, 당신은 "},
     % " dialog."
-    {2,"对话框。"}
+    {2," 대화창에서 몇 개의 버튼 마우스인지 Wings에 알려 주어야 합니다."}
    ]}
  ]}.
 {wings_hotkey,
@@ -1793,24 +1809,24 @@
   {list_header,
    [
     % "Hotkeys in all modes"
-    {1,"在所有模式热键"},
+    {1,"모든 모드의 단축키"},
     % "Hotkeys in object mode"
-    {2,"在对象模式热键"},
+    {2,"모든 오브젝트의 단축키"},
     % "Hotkeys in edge mode"
-    {3,"热键模式在边缘"},
+    {3,"모든 엣지의 단축키"},
     % "Hotkeys in face mode"
-    {4,"人脸模式热键"},
+    {4,"모든 페이스의 단축키"},
     % "Hotkeys for lights"
-    {5,"热键的灯"},
+    {5,"라이트의 단축키"},
     % "Hotkeys for vertices"
-    {6,"热键的顶点"}
+    {6,"버텍스의 단축키"}
    ]},
   {list_keys,
    [
     % " (user-defined)"
-    {1,"（用户定义）"},
+    {1," (사용자 정의)"},
     % " (plug-in-defined)"
-    {2,"（插件定义）"}
+    {2," (플러그인 정의)"}
    ]},
   {vkeyname,
    [
@@ -1869,7 +1885,7 @@
   {create_default,
    [
     % "~p Don't know about the type ~p; ignoring\n"
-    {1,"~p 不知道有关类型 ~p;忽视\n"}
+    {1,"~p 알지 못하는 형식 ~p; 무시하기\n"}
    ]},
   {create_image,
    [
@@ -1902,7 +1918,7 @@
   {event_1,
    [
     % "Show in natural size"
-    {1,"自然大小显示"}
+    {1,"자연스러운 크기 보기"}
    ]},
   {screenshot,
    [
@@ -1911,14 +1927,14 @@
     % "Capture viewport only"
     {2,"뷰포트만 캡쳐"},
     % "Add current view to Saved Views"
-    {3,"添加到当前视图保存的视图"},
+    {3,"저장된 뷰에 현재 뷰 추가"},
     % "Name"
     {4,"이름"}
    ]},
   {window_params,
    [
     % "Image: ~ts [~wx~wx~w]"
-    {1,"이미지： ~ts [~wx~wx~w]"}
+    {1,"이미지: ~ts [~wx~wx~w]"}
    ]}
  ]}.
 {wings_init,
@@ -1926,21 +1942,21 @@
   {display_actual_mode,
    [
     % "Actual: RGBA: ~p ~p ~p ~p Depth: ~p Stencil: ~p Accum: ~p ~p ~p ~p\n"
-    {1,"实际：RGBA： ~p ~p ~p ~p 深度： ~p 模板： ~p Accum： ~p ~p ~p ~p\n"}
+    {1,"액츄얼: RGBA: ~p ~p ~p ~p 뎁스: ~p 스텐실: ~p 어큐뮬레이터: ~p ~p ~p ~p\n"}
    ]},
   {try_video_modes,
    [
     % "Trying OpenGL modes\n"
-    {1,"OpenGL的模式尝试\n"}
+    {1,"OpenGL 모드 시도\n"}
    ]},
   {video_mode_failure,
    [
     % "Failed to find any suitable OpenGL mode.\n\n"
-    {2,"没有找到任何合适的OpenGL模式。\n\n"},
+    {2,"모든 적합한 OpenGL 모드 찾을 수 없습니다.\n\n"},
     % "Make sure that OpenGL drivers are installed.\n\n"
-    {3,"确保OpenGL的驱动程序。\n\n"},
+    {3,"OpenGL 드라이버가 설치되어 있는지 확인하십시오.\n\n"},
     % "No suitable OpenGL mode found (are OpenGL drivers installed?)"
-    {5,"没有合适的OpenGL模式中找到（已安装OpenGL驱动？）"}
+    {5,"적합한 OpenGL 모드 찾을 수 없습니다. (OpenGL 드라이버가 설치되어 있습니까?)"}
    ]}
  ]}.
 {wings_light,
@@ -1948,50 +1964,50 @@
   {attenuation,
    [
     % "Not a point light or spotlight."
-    {1,"不是一个点光源或聚光灯下。"}
+    {1,"포인트 라이트 또는 스포트라이트가 없습니다."}
    ]},
   {color,
    [
     % "Select only one light."
-    {1,"仅选择一盏灯。"}
+    {1,"1 라이트만 선택"}
    ]},
   {edit,
    [
     % "Select only one light."
-    {1,"仅选择一盏灯。"},
+    {1,"1 라이트만 선택"},
     % "Ambient Light Properties"
-    {2,"环境光性能"},
+    {2,"앰비언트(주변) 라이트 속성"},
     % "Light Properties"
-    {3,"光特性"}
+    {3,"라이트 속성"}
    ]},
   {edit_ambient_dialog,
    [
     % "Ambient"
-    {1,"环境"},
+    {1,"앰비언트"},
     % "Color"
-    {2,"색"},
+    {2,"컬러"},
     % "OK"
     {3,"확인"}
    ]},
   {edit_dialog,
    [
     % "Diffuse"
-    {1,"漫射"},
+    {1,"디퓨즈(확산)"},
     % "Ambient"
-    {2,"环境"},
+    {2,"앰비언트(주변)"},
     % "Specular"
-    {3,"镜面"},
+    {3,"스페큘러(반사)"},
     % "Colors"
-    {4,"색"},
+    {4,"컬러"},
     % "OK"
     {5,"확인"}
    ]},
   {export_camera_lights,
    [
     % "Ambient"
-    {1,"环境"},
+    {1,"앰비언트(주변)"},
     % "Infinite"
-    {2,"无限"},
+    {2,"인피니트(감소)"},
     % "Infinite1"
     {3,"Infinite1"},
     % "Infinite2"
@@ -2002,120 +2018,120 @@
     % "Light ~ts"
     {1,"라이트 ~ts"},
     % ": Pos ~ts ~ts ~ts"
-    {2,"：名次 ~ts ~ts ~ts"}
+    {2,": Pos ~ts ~ts ~ts"}
    ]},
   {info_1,
    [
     % ". Aim ~ts ~ts ~ts. Dir ~ts ~ts ~ts"
-    {1,"。目的 ~ts ~ts ~ts。目录 ~ts ~ts ~ts"},
+    {1,". Aim ~ts ~ts ~ts. Dir ~ts ~ts ~ts"},
     % ". Angle ~ts~c"
     {2,". 각도 ~ts~c"}
    ]},
   {light_types,
    [
     % "Infinite"
-    {1,"无限"},
+    {1,"인피니트(감소)"},
     % "Create a far-away, directional light (like the sun)"
-    {2,"创建一个遥远的，方向灯（如太阳）"},
+    {2,"원거리, 방향 라이트 만들기 (태양처럼)"},
     % "Point"
-    {3,"点"},
+    {3,"포인트"},
     % "Create a light that radiates light in every direction"
-    {4,"创建一盏灯在各个方向辐射"},
+    {4,"모든 방향으로 빛나는 라이트 만들기"},
     % "Spot"
-    {5,"现场"},
+    {5,"스포트"},
     % "Create a spotlight"
-    {6,"创建一个聚光灯"},
+    {6,"스포트라이트 만들기"},
     % "Ambient"
-    {7,"环境"},
+    {7,"앰비언트(주변)"},
     % "Create an ambient light source"
-    {8,"创建一个环境光源"},
+    {8,"주변 광원 만들기"},
     % "Area"
-    {9,"区"},
+    {9,"에리어(지역)"},
     % "Create an area that radiates light"
-    {10,"创建一个区域，辐射光"}
+    {10,"지역을 비추는 라이트 만들기"}
    ]},
   {menu,
    [
     % "Move"
-    {2,"이동"},
+    {2,"무브(이동)"},
     % "Position Highlight"
-    {3,"突出位置"},
+    {3,"포지션 하이라이트(배치)"},
     % "Position the aim point or location of light"
-    {4,"定位瞄准点或光的位置"},
+    {4,"조준선 포인트 또는 라이트의 위치 배치"},
     % "Color"
-    {5,"색"},
+    {5,"컬러"},
     % "Interactively adjust hue, value, and saturation"
-    {6,"交互式调整色相，明度和饱和度"},
+    {6,"색조, 값 및 채도를 대화형으로 조정"},
     % "Attenuation"
-    {7,"衰减"},
+    {7,"어테뉴에이션(감쇠)"},
     % "Linear"
-    {8,"线性"},
+    {8,"리니어(선형)"},
     % "Interactively adjust how much light weakens as it travels away from its source (linear factor)"
-    {9,"交互式调整多少光减弱，因为它远离它的传播源（线性系数）"},
+    {9,"소스로부터 멀리 이동할 때 빛의 감소를 대화형으로 조정 (선형 계수)"},
     % "Quadratic"
-    {10,"二次"},
+    {10,"쿼드라틱(정방형)"},
     % "Interactively adjust how much light weakens as it travels away from its source (quadratic factor)"
-    {11,"交互式调整多少光减弱，因为它远离它的传播源（二次系数）"},
+    {11,"소스로부터 멀리 이동할 때 빛의 감소를 대화형으로 조정 (정방형 계수)"},
     % "Spot Angle"
-    {12,"现货角"},
+    {12,"스포트 앵글(각도)"},
     % "Interactivly adjust the angle of the spotlight cone"
-    {13,"Interactivly调整聚光灯锥角"},
+    {13,"스포트 라이트 콘(원뿔)의 각도를 대화형으로 조정"},
     % "Spot Falloff"
-    {14,"现货衰减"},
+    {14,"스포트 폴오프(감소)"},
     % "Interactivly adjust how much light weakens farther away from the center of the spotlight cone"
-    {15,"Interactivly调整多少光减弱远离聚光灯的锥중심"},
+    {15,"멀리 떨어진 스포트 라이트 콘(원뿔)의 중심에서 많은 빛의 감소를 대화형으로 조정"},
     % "Edit Properties..."
-    {16,"编辑属性..."},
+    {16,"속성 편집..."},
     % "Edit light properties"
-    {17,"编辑光特性"},
+    {17,"라이트 속성 편집"},
     % "Duplicate"
     {18,"복제"},
     % "Duplicate and move selected lights"
-    {19,"复制和移动选定的灯"},
+    {19,"선택 라이트 복제와 이동"},
     % "Delete"
     {20,"삭제"},
     % "Delete seleced lights"
-    {21,"删除seleced灯"}
+    {21,"선택 라이트 삭제"}
    ]},
   {plugin_results,
    [
     % "Light editor plugin(s) left garbage:~n    ~P~n"
-    {1,"光编辑器插件（s）左垃圾：~n  ~p~n"},
+    {1,"왼쪽 불필요 정보 라이트 에디터 플러그인:~n    ~P~n"},
     % "Plugin(s) left garbage"
-    {2,"插件（s）左垃圾"}
+    {2,"왼쪽 불필요 정보 플러그인"}
    ]},
   {qs_att,
    [
     % "Linear"
-    {1,"线性"},
+    {1,"리니어(선형)"},
     % "Quadratic"
-    {2,"二次"},
+    {2,"쿼드라틱(정방형)"},
     % "Attenuation"
-    {3,"衰减"}
+    {3,"어테뉴에이션(감쇠)"}
    ]},
   {qs_specific,
    [
     % "Angle"
-    {1,"각도"},
+    {1,"앵글(각도)"},
     % "Falloff"
-    {2,"衰减"},
+    {2,"폴오프(감소)"},
     % "Spot Parameters"
-    {3,"现货参数"}
+    {3,"스포트 파라미터"}
    ]},
   {selected_light,
    [
     % "Select only one light."
-    {1,"仅选择一盏灯。"}
+    {1,"1 라이트만 선택"}
    ]},
   {spot_angle,
    [
     % "Not a spotlight."
-    {1,"不是关注的焦点。"}
+    {1,"스포트라이트가 없습니다."}
    ]},
   {spot_falloff,
    [
     % "Not a spotlight."
-    {1,"不是关注的焦点。"}
+    {1,"스포트라이트가 없습니다."}
    ]}
  ]}.
 {wings_magnet,
@@ -2123,21 +2139,21 @@
   {check_radius,
    [
     % "Too short influence radius."
-    {1,"太短影响半径。"}
+    {1,"너무 작은 작용 반경"}
    ]},
   {common_dialog,
    [
     % "Distance Route"
-    {4,"远程航线"}
+    {4,"거리 루트"}
    ]},
   {dialog,
    [
     % "Magnet Options"
-    {1,"자석 옵션"},
+    {1,"마그넷 옵션"},
     % "Influence Radius"
-    {2,"影响半径"},
+    {2,"작용 반경"},
     % "Magnet Options"
-    {3,"자석 옵션"}
+    {3,"마그넷 옵션"}
    ]},
   {drag_help,
    [
@@ -2147,7 +2163,7 @@
   {info_string,
    [
     % "Magnet route:"
-    {1,"磁铁路线："}
+    {1,"마그넷 루트:"}
    ]},
   {magnet_route,
    [
@@ -2156,7 +2172,7 @@
     % "Shortest"
     {shortest,"최단"},
     % "Surface"
-    {surface,"표면 Surface"}
+    {surface,"표면"}
    ]},
   {magnet_shape_str,
    [
@@ -2175,57 +2191,57 @@
   {edit,
    [
     % "Material Properties: "
-    {1,"재질 속성："}
+    {1,"머테리얼 속성: "}
    ]},
   {edit_dialog,
    [
     % "Diffuse"
-    {1,"漫射"},
+    {1,"디퓨즈(확산)"},
     % "Ambient"
-    {2,"环境"},
+    {2,"앰비언트(주변)"},
     % "Specular"
-    {3,"镜面"},
+    {3,"스페큘러(반사)"},
     % "Emission"
-    {4,"排放"},
+    {4,"이미션(발광)"},
     % "Shininess"
-    {5,"光泽"},
+    {5,"샤이니스(광택)"},
     % "Opacity"
-    {6,"不透明度"},
+    {6,"오파시티(불투명도)"},
     % "OK"
     {7,"확인"}
    ]},
   {load_map_1,
    [
     % "Failed to load"
-    {1,"无法载入"}
+    {1,"불러오지 못했습니다."}
    ]},
   {material_fun,
    [
     % "Assign existing material to selection"
-    {1,"分配现有材料的选择"},
+    {1,"기존 머테리얼을 선택에 할당"},
     % "Create and assign new material"
-    {2,"创建和分配新材料"}
+    {2,"새 머테리얼을 만들고 할당"}
    ]},
   {material_menu,
    [
     % "Material"
-    {4,"재질"}
+    {4,"머테리얼"}
    ]},
   {new_1,
    [
     % "New Material"
-    {1,"새 재질"},
+    {1,"새 머테리얼"},
     % "Material Name"
-    {2,"재질 이름"},
+    {2,"머테리얼 이름"},
     % "New Material"
     {3,"New Material"}
    ]},
   {plugin_results,
    [
     % "Material editor plugin(s) left garbage:~n    ~P~n"
-    {1,"材质编辑器插件（s）左垃圾：~n  ~p~n"},
+    {1,"왼쪽 불필요 정보 머테리얼 에디터 플러그인:~n    ~P~n"},
     % "Plugin(s) left garbage"
-    {2,"插件（s）左垃圾"}
+    {2,"왼쪽 불필요 정보 플러그인"}
    ]},
   {rename,
    [
@@ -2234,10 +2250,10 @@
    ]},
   {show_map,
    [
-    % "~p: <image deleted>"
-    {1,"~p：<image deleted>"},
+    % "~p: <이미지 삭제>"
+    {1,"~p: <이미지 삭제>"},
     % "~p: ~p [~px~px~p]"
-    {2,"~p： ~p [~px~px~p]"},
+    {2,"~p: ~p [~px~px~p]"},
     % "Delete"
     {3,"삭제"}
    ]},
@@ -2252,9 +2268,9 @@
   {handle_key_event,
    [
     % "This key is already bound to the "
-    {1,"这关键是已经绑定到"},
+    {1,"이 키는 이미 연결된 "},
     % " command. Do you want to re-define it?"
-    {2,"命令。你要重新定义它？"}
+    {2," 명령. 다시 정의하시겠습니까?"}
    ]},
   {help_text_1,
    [
@@ -2269,34 +2285,34 @@
   {hotkey_key_message,
    [
     % "Press the key to bind the \""
-    {1,"按下键绑定\""},
+    {1,"연결할 키 누름. \""},
     % "\" command to."
-    {2,"\"命令。"}
+    {2,"\" 명령."}
    ]},
   {hotkey_mouse_message,
    [
     % "Click a mouse button to choose command to bind"
-    {1,"点击鼠标按钮，选择命令绑定"}
+    {1,"연결할 명령을 선택하려면 마우스 버튼 클릭"}
    ]},
   {magnet_help,
    [
     % "Click for Magnet"
-    {2,"点击磁铁"}
+    {2,"마그넷을 보려면 클릭"}
    ]},
   {menu_toolbar_help,
    [
     % "Open the Tools menu"
-    {1,"打开工具菜单"},
+    {1,"도구 메뉴 열기"},
     % "Open the Select menu"
-    {2,"打开选择菜单"},
+    {2,"선택 메뉴 열기"},
     % "Recall Stored Selection"
-    {3,"调用存储的选择"},
+    {3,"저장된 선택 부르기"},
     % "Store Selection"
     {4,"선택 저장"},
     % "Deselect | Select All"
-    {5,"取消选中|全选"},
+    {5,"비선택 | 모두 선택"},
     % "Deselect and close menu"
-    {6,"取消选择并关闭菜单"},
+    {6,"비선택과 메뉴 닫기"},
     % "Repeat Drag"
     {7,"드래그 반복"},
     % "Repeat Args"
@@ -2307,7 +2323,7 @@
   {mk_dialog,
    [
     % "Check all hotkeys to be deleted."
-    {1,"检查所有热键被删除。"}
+    {1,"삭제하는 모든 단축키를 확인하십시오."}
    ]},
   {mmb_menu_toolbar_help,
    [
@@ -2317,7 +2333,7 @@
   {norm_help_adv,
    [
     % "Open option dialog"
-    {1,"打开选项对话框"}
+    {1,"옵션 대화창 열기"}
    ]},
   {normalize_menu,
    [
@@ -2329,9 +2345,9 @@
     % "Edge Loop"
     {1,"엣지 루프"},
     % "Edge Loop to Region"
-    {2,"河套地区的边缘"},
+    {2,"영역 엣지 루프"},
     % "Select edges which have both vertices selected"
-    {3,"选择边有两个顶点选择"}
+    {3,"2 버텍스를 선택한 엣지 선택"}
    ]},
   {scroll_help,
    [
@@ -2342,9 +2358,9 @@
     % "Next/Previous Edge Loop"
     {3,"다음/이전 엣지 루프"},
     % "Grow/Shrink Edge Loop"
-    {4,"확대/축소 엣지 루프"},
+    {4,"확장/축소 엣지 루프"},
     % "Grow/Shrink Edge Ring"
-    {5,"확대/축소 엣지 링"},
+    {5,"확장/축소 엣지 링"},
     % "Select More | Select Less"
     {6,"선택 추가 | 선택 감소"}
    ]}
@@ -2354,11 +2370,11 @@
   {adv_scale_1,
    [
     % "Scale Uniform"
-    {1,"유니폼 스케일"},
+    {1,"스케일 유니폼(동일형)"},
     % "Scale Axis"
-    {2,"축 스케일"},
+    {2,"스케일 엑시스(축)"},
     % "Scale Radial"
-    {3,"방사형 스케일"}
+    {3,"스케일 레이디얼(방사형)"}
    ]},
   {dir_help,
    [
@@ -2367,181 +2383,181 @@
     % "the default axis"
     {4,"기본 축"},
     % "around"
-    {7,"围绕"},
+    {7,"주위로"},
     % "along its normal"
-    {10,"沿着正常"},
+    {10,"노멀을 따라"},
     % "freely in all directions"
-    {11,"自由地在各个方向"},
+    {11,"모든 방향 자유롭게"},
     % "Scale equally in all directions"
-    {12,"同样规模在所有方向"}
+    {12,"모든 방향 동일하게 스케일"}
    ]},
   {dir_help_1,
    [
     % "Move each element "
-    {1,"移动每个元素"},
+    {1,"각 요소 이동 "},
     % "Rotate freely"
-    {2,"自由회전"},
+    {2,"자유 회전"},
     % "Rotate around each element's normal"
-    {3,"绕每个元素的正常"},
+    {3,"각 요소의 노멀의 주위로 회전"},
     % "Extrude each element, then move it "
-    {4,"挤压每个元素，然后将其移动"},
+    {4,"각 요소를 압출시켜, 그것을 이동 "},
     % "Extrude faces as region, then move faces along the region's normal"
-    {5,"作为地区面临挤压，然后将面临着沿线地区的正常"},
+    {5,"영역으로 페이스를 압출시켜, 영역의 노멀을 따라 페이스 이동"},
     % "Extrude faces as region, then move faces "
-    {6,"挤出面临着区域，然后将脸"},
+    {6,"영역으로 페이스를 압출시켜, 페이스 이동 "},
     % "Extract faces, then move faces along the region's normal"
-    {7,"提取的脸，然后沿着该地区的正常面孔"},
+    {7,"페이스 추출시켜, 영역의 노멀을 따라 페이스 이동"},
     % "Extract faces, then move faces "
-    {8,"提取的脸，然后将脸"},
+    {8,"페이스 추출시켜, 페이스 이동 "},
     % "Flatten elements to normal plane"
-    {9,"压扁元素法平面"},
+    {9,"노멀 평면에 요소를 평평하게"},
     % "Lift face along its normal"
-    {10,"工作面沿电梯正常"},
+    {10,"노멀을 따라 페이스 들어올리기"},
     % "Lift face and move it "
-    {11,"电梯脸和移动"},
+    {11,"페이스 들어올리고 그것을 이동 "},
     % "Duplicate and move freely "
-    {12,"复制和自由移动"},
+    {12,"복제 및 자유롭게 이동 "},
     % "Move each element along "
-    {13,"随着移动每个元素"},
+    {13,"따라 각 요소 이동 "},
     % "Extrude elements, then move along "
-    {14,"挤压元素，然后沿着"},
+    {14,"요소를 압출시켜, 그것을 따라 이동 "},
     % "Extrude faces as region, then move along "
-    {15,"挤出面临着区域，然后沿着"},
+    {15,"영역으로 페이스를 압출시켜, 그것을 따라 이동 "},
     % "Extract faces, then move along "
-    {16,"提取的脸，然后沿着"},
+    {16,"페이스를 추출시켜, 그것을 따라 이동 "},
     % "Rotate around "
-    {17,"绕"},
+    {17,"주위에 회전 "},
     % "Scale "
     {18,"스케일"},
     % "Scale along "
-    {19,"随着规模"},
+    {19,"따라 크기 조정 "},
     % "Flatten to "
-    {20,"压平"},
+    {20,"평평하게 "},
     % "Flatten and move to "
-    {21,"压扁并移动到"},
+    {21,"평평하게 및 이동 "},
     % "Lift face along "
-    {22,"工作面沿电梯"},
+    {22,"따라 페이스 들어올리기 "},
     % "Duplicate, then move along "
-    {23,"复制，然后沿着"},
-    % "Extract and Extrude faces as region, then move faces along the region's normal"
-    {24,"提取每个元素，然后将其移动"},
-    % "Extract and Extrude faces as region, then move faces "
-    {25,"提取元素，然后沿着"},
+    {23,"따라 복제 및 이동 "},
+    % "Extract each element, then move it "
+    {24,"각 요소를 추출시켜, 그것을 따라 이동 "},
+    % "Extract elements, then move along "
+    {25,"요소를 추출시켜, 그것을 따라 이동 "},
     % "Extract and Extrude faces as region, then move along "
-    {26,"提取和挤压面临着区域，然后沿着"}
+    {26,"영역으로 추출 및 압출시켜, 따라 페이스 이동 "}
    ]},
   {dirs,
    [
     % "Move along std. axis"
-    {1,"沿着性病。轴"},
+    {1,"표준을 따라 이동. 축"},
     % "Pick axis to move along"
-    {2,"挑沿轴"},
+    {2,"따라 이동하는 축 피크"},
     % "Move along std. axis"
-    {3,"沿着性病。轴"},
+    {3,"표준을 따라 이동. 축"},
     % "Move along selection's normal"
-    {4,"沿着选择的正常"},
+    {4,"선택의 노멀을 따라 이동"},
     % "Pick axis to move along"
-    {5,"挑沿轴"},
+    {5,"따라 이동하는 축 피크"},
     % "Extrude along std. axis"
-    {6,"沿挤出性病。轴"},
+    {6,"표준을 따라 압출. 축"},
     % "Extrude along selection's normal"
-    {7,"沿挤出选择的正常"},
+    {7,"선택의 노멀을 따라 압출"},
     % "Pick axis to extrude along"
-    {8,"挑沿挤压轴"},
+    {8,"따라 압출하는 축 피크"},
     % "Extract along std. axis"
-    {12,"沿提取性病。轴"},
+    {12,"표준을 따라 추출. 축"},
     % "Duplicate; move along std. axis"
-    {15,"一式两份;沿着性病。轴"},
+    {15,"복제; 표준을 따라 이동. 축"},
     % "Duplicate; don't move"
-    {16,"重复，不动"},
+    {16,"복제; 이동 안함"},
     % "Duplicate; pick axis to move along"
-    {17,"一式两份;挑轴沿着"},
+    {17,"복제; 따라 이동하는 축 피크"},
     % "Extract Shell and Extrude along std. axis"
-    {22,"壳牌和沿挤出提取性病。轴"},
+    {22,"표준을 따라 분리 압출 및 압출. 축"},
     % "Extract Shell and Extrude along selection's normal"
-    {23,"壳牌与挤出提取沿选择的正常"},
+    {23,"선택의 노멀을 따라 분리 압출 및 압출"},
     % "Pick axis to Extract Shell and Extrude along"
-    {24,"选择轴提取壳牌和沿挤出"}
+    {24,"따라 분리 압출 및 압출하는 축 피크"}
    ]},
   {dirs_help,
    [
     % "Pick axis to extrude each face along"
-    {18,"选择轴挤压每个面沿"},
+    {18,"따라 각 페이스를 압출하는 축 피크"},
     % "Pick axis to extrude each region of faces along"
-    {19,"选择轴挤出每个地区面临的沿"},
+    {19,"따라 각 페이스의 영역을 압출하는 축 피크"},
     % "Pick axis to extract each face along"
-    {20,"选择轴提取每个工作面沿"},
+    {20,"따라 각 페이스를 추출하는 축 피크"},
     % "Pick axis to extract each region of faces along"
-    {21,"选择提取每个轴的地区面临的沿"}
+    {21,"따라 각 페이스의 영역을 추출하는 축 피크"}
    ]},
   {flatten,
    [
     % "Flatten"
-    {1,"Flatten(평평하게)"},
+    {1,"플래튼(평행)"},
     % "Flatten to std. planes"
-    {2,"压平性病。飞机"},
+    {2,"표준을 따라 평평하게. 플레인"},
     % "Pick plane and ref point on plane"
-    {3,"选择飞机，在飞机上档点"},
+    {3,"플레인 위에 플레인 및 참고자료 포인트 피크"},
     % "Pick plane"
-    {4,"选择飞机"}
+    {4,"플레인 위에 플레인 및 참고자료 포인트 피크"}
    ]},
   {flatten_edge_loops,
    [
     % "Edge Loops"
     {1,"엣지 루프"},
     % "Flatten each closed edge loop to its normal"
-    {2,"各禁区边缘环形拼合到正常"}
+    {2,"그것의 노멀에 각 닫힌 엣지 루프를 평평하게"}
    ]},
   {flatten_fun_1,
    [
     % "Pick point on plane"
-    {1,"在飞机上挑点"}
+    {1,"포인트 및 플레인 피크"}
    ]},
   {rotate,
    [
     % "Rotate around std. axis"
-    {1,"绕性病。轴"},
+    {1,"표준을 따라 회전. 축"},
     % "Pick axis and ref point"
-    {2,"选择轴和参考点"},
+    {2,"축 및 참고자료 포인트 피크"},
     % "Pick axis to rotate around"
-    {3,"选择左右旋转轴"}
+    {3,"주위에 회전하는 축 피크"}
    ]},
   {rotate_1,
    [
     % "Rotate"
-    {1,"회전"}
+    {1,"로테이트(회전)"}
    ]},
   {rotate_fun,
    [
     % "Pick point for axis to pass through"
-    {1,"挑选轴点都可以通过"}
+    {1,"축이 통과하기 위한 포인트 피크"}
    ]},
   {scale,
    [
     % "Scale outward from std. axis"
-    {1,"规模从性病向外。轴"},
+    {1,"표준에서 외부로 크기 조정. 축"},
     % "Pick axis and point to scale from"
-    {2,"选择轴并指向规模从"},
+    {2,"축 및 포인트에서 크기 조정하는 축 피크"},
     % "Pick axis to scale out from"
-    {3,"选择轴规模从"},
+    {3,"외부로 크기 하는 축 피크"},
     % "Scale along std. axis"
-    {4,"随着规模性病。轴"},
+    {4,"표준을 따라 크기 조정. 축"},
     % "Pick axis and point to scale from"
-    {5,"选择轴并指向规模从"},
+    {5,"에서 크기 조정하는 축 및 포인트 피크"},
     % "Pick axis to scale along"
-    {6,"挑沿轴线规模"}
+    {6,"따라 크기 조정하는 축 피크"}
    ]},
   {scale_fun,
    [
     % "Pick point to scale from"
-    {1,"挑点规模从"}
+    {1,"에서 크기 조정하는 포인트 피크"}
    ]},
   {uniform_scale,
    [
     % "Choose point to scale from"
-    {1,"选择指向规模从"},
+    {1,"에서 크기 조정하는 포인트 선택"},
     % "Scale uniformly from midpoint of selection"
-    {2,"尺度均匀地从中点的选择"}
+    {2,"선택의 중심점에서 동일하게 크기 조정"}
    ]}
  ]}.
 {wings_outliner,
@@ -2549,7 +2565,7 @@
   {command,
    [
     % "NYI: ~p\n"
-    {1,"纽约摄影学院： ~p\n"}
+    {1,"NYI: ~p\n"}
    ]},
   {common_image_menu,
    [
@@ -2560,53 +2576,53 @@
     % "Duplicate"
     {3,"복제"},
     % "Duplicate selected image"
-    {4,"선택된 이미지 복제"},
+    {4,"선택 이미지 복제"},
     % "Delete"
     {5,"삭제"},
     % "Delete selected image"
-    {6,"선택된 이미지 삭제"},
+    {6,"선택 이미지 삭제"},
     % "Rename"
     {7,"이름 바꾸기"},
     % "Rename selected image"
-    {8,"선택된 이미지 이름 바꾸기"},
+    {8,"선택 이미지 이름 바꾸기"},
     % "Pick up Image"
     {9,"이미지 추출"},
     % "Pick up the Image to it put on a material as a texture"
-    {10,"拿起它的图像放在一个材料作为纹理"}
+    {10,"머테리얼에 있는 텍스쳐의 이미지 피크"}
    ]},
   {delete_image,
    [
     % "The image is used by a material."
-    {1,"该图像是使用的材料。"},
+    {1,"이 이미지가 머테리얼로 사용."},
     % "Are you sure you want to delete the image (NOT undoable)?"
-    {2,"你确定要删除图像（不能撤消）？"}
+    {2,"이미지를 삭제하시겠습니까? (복구 불가능)"}
    ]},
   {do_menu,
    [
     % "Edit Material..."
-    {1,"재잘 편집..."},
+    {1,"머테리얼 편집..."},
     % "Edit material properties"
-    {2,"재질 등록 정보를 편집"},
+    {2,"머테리얼 등록 정보 편집"},
     % "Assign to Selection"
     {3,"선택에 할당"},
     % "Assign the material to the selected faces or bodies"
-    {4,"分配到选定的脸或身体材料"},
+    {4,"머테리얼을 선택 페이스나 바디에 할당"},
     % "Select"
     {5,"선택"},
     % "Select all faces that have this material"
-    {6,"选择所有的面有这种材料"},
+    {6,"이 머테리얼을 가진 모든 페이스 선택"},
     % "Duplicate"
     {7,"복제"},
     % "Duplicate this material"
-    {8,"이 재질 복제"},
+    {8,"이 머테리얼 복제"},
     % "Delete"
     {9,"삭제"},
     % "Delete this material"
-    {10,"이 재질 삭제"},
+    {10,"이 머테리얼 삭제"},
     % "Rename"
     {11,"이름 바꾸기"},
     % "Rename this material"
-    {12,"이 재질 이름 바꾸기"},
+    {12,"이 머테리얼 이름 바꾸기"},
     % "Duplicate"
     {13,"복제"},
     % "Duplicate this object"
@@ -2636,29 +2652,29 @@
     % "Rename this light"
     {26,"이 라이트 이름 바꾸기"},
     % "Drop picked object"
-    {121,"선택된 오브젝트 드롭"},
+    {121,"선택 오브젝트 드롭"},
     % "Drop a previously picked object on this material"
-    {122,"拾起跌落在此以前实物"}
+    {122,"이 머테리얼에 미리 선택한 오브젝트 드롭"}
    ]},
   {event,
    [
     % "Select"
     {1,"선택"},
     % "Show outliner menu (if selection) or creation menu (if no selection)"
-    {2,"显示大纲菜单（如果选择）或创建菜单（如果没有选择）"}
+    {2,"아웃라이너 메뉴 보기(선택 경우) 또는 메뉴 만들기(선택 없는 경우)"}
    ]},
   {handle_drop,
    [
     % "Texture Type"
     {1,"텍스쳐 형식"},
     % "Diffuse"
-    {2,"漫射"},
+    {2,"디퓨즈(확산)"},
     % "Gloss"
-    {3,"掩饰"},
+    {3,"글로스(광택)"},
     % "Bump (HeightMap)"
-    {4,"범프 (하리라이트맵)"},
+    {4,"범프(하이라이트맵)"},
     % "Bump (NormalMap)"
-    {5,"범프 (노멀)"}
+    {5,"범프(노멀맵)"}
    ]},
   {image_menu,
    [
@@ -2674,19 +2690,19 @@
     % "Refresh"
     {2,"새로고침"},
     % "Make Internal"
-    {3,"进行内部"},
+    {3,"내부 만들기"},
     % "Update image to the contents of the saved file"
-    {11,"更新图片保存的文件的内容"}
+    {11,"저장된 파일의 내용에 이미지 업데이트"}
    ]},
   {make_external,
    [
     % "Make External"
-    {1,"使外部"}
+    {1,"외부 만들기"}
    ]},
   {refresh_image,
    [
     % "Failed to refresh \""
-    {1,"无法刷新\""}
+    {1,"새로고침 실패 \""}
    ]},
   {rename_image,
    [
@@ -2696,7 +2712,7 @@
   {title,
    [
     % "Outliner"
-    {1,"개요"}
+    {1,"아웃라이너"}
    ]}
  ]}.
 {wings_palette,
@@ -2704,48 +2720,48 @@
   {command,
    [
     % "No start color found."
-    {1,"没有找到启动的颜色。"},
+    {1,"시작 컬러를 발견하지 못했습니다."},
     % "No end color found."
-    {2,"没有找到结束颜色。"},
+    {2,"끝 컬러를 발견하지 못했습니다."},
     % "Export"
     {3,"수출"},
     % "Wings Palette"
     {5,"Wings 팔레트"},
     % "Export error: ~w"
-    {6,"수출 오류： ~w"},
+    {6,"수출 오류: ~w"},
     % "Import"
     {7,"수입"},
     % "Wings Palette"
     {9,"Wings 팔레트"},
     % "No palette found"
-    {10,"没有找到调色板"},
+    {10,"팔레트를 발견하지 못했습니다."},
     % "Import error: ~w"
-    {11,"수입 오류： ~w"},
+    {11,"수입 오류: ~w"},
     % "Import error: ~w"
-    {12,"수입 오류： ~w"}
+    {12,"수입 오류: ~w"}
    ]},
   {do_menu,
    [
     % "Edit"
     {1,"편집"},
     % "Edit color"
-    {2,"색 편집"},
+    {2,"컬러 편집"},
     % "Interpolate"
     {3,"입력"},
     % "Interpolate Empty Colors"
-    {4,"内插空 색"},
+    {4,"빈 컬러 수정 입력"},
     % "Clear All"
     {5,"모두 지우기"},
     % "Clear palette"
     {6,"팔레트 지우기"},
     % "Compact"
-    {7,"紧凑"},
+    {7,"압축"},
     % "Compact Palette"
-    {8,"紧凑型面板"},
+    {8,"팔레트 압축"},
     % "Scan Colors"
-    {9,"扫描色彩"},
+    {9,"스캔 컬러"},
     % "Scan colors from selection"
-    {10,"从扫描的色彩选择"},
+    {10,"선택에서 컬러 스캔"},
     % "Export"
     {11,"수출"},
     % "Export palette to file"
@@ -2758,13 +2774,13 @@
   {event,
    [
     % "Assign color to selection"
-    {1,"指定颜色的选择"},
+    {1,"컬러를 선택에 할당"},
     % "Edit color"
-    {2,"색 편집"},
+    {2,"컬러 편집"},
     % "Show menu"
     {3,"메뉴 보기"},
     % "Clear color"
-    {4,"색 지우기"}
+    {4,"컬러 지우기"}
    ]},
   {title,
    [
@@ -2785,7 +2801,7 @@
   {area_info,
    [
     % " Area ~ts"
-    {40,"区 ~ts"}
+    {40," 영역 ~ts"}
    ]},
   {enhanced_hl_info,
    [
@@ -2794,7 +2810,7 @@
     % ". Midpoint <~ts  ~ts  ~ts>\nLength ~ts"
     {3,". 중심점 <~ts  ~ts  ~ts>\n길이 ~ts"},
     % ". Midpoint <~ts  ~ts  ~ts> \nMaterial ~ts."
-    {4,". 중심점 <~ts  ~ts  ~ts> \n재질 ~ts."}
+    {4,". 중심점 <~ts  ~ts  ~ts> \n머테리얼 ~ts."}
    ]},
   {handle_hilite_event,
    [
@@ -2812,9 +2828,9 @@
   {marquee_message,
    [
     % "Deselect"
-    {ctrl_action,"선택 해제"},
+    {ctrl_action,"비선택"},
     % "(De)select only elements wholly inside marquee"
-    {shift_action,"(De)전전으로 차양 안의 요소만 선택"}
+    {shift_action,"(De) 마퀴(선택 표시선) 안의 요소만 선택"}
    ]}
  ]}.
 {wings_plugin,
@@ -2839,31 +2855,31 @@
   {def_ui_plugin,
    [
     % "Reinstall Wings. Missing plugin for ~p."
-    {1,"重新安装翅膀。缺少插件 ~p。"}
+    {1,"Wings를 다시 설치합니다. 플러그인 누락 ~p."}
    ]},
   {install,
    [
     % "The plug-in was successfully installed."
-    {1,"该插件已成功安装。"}
+    {1,"플러그인이 성공적으로 설치되었습니다."}
    ]},
   {install_beam,
    [
     % "Install of \"~ts\" failed: ~p"
-    {1,"安装\"~ts\"失败： ~p"},
+    {1,"설치 \"~ts\" 실패: ~p"},
     % "File \"~ts\" is not a Wings plug-in module"
-    {2,"文件\"~ts\"是不是翅膀插件模块"}
+    {2,"파일 \"~ts\" 은(는) Wings 플러그인 모듈이 아닙니다."}
    ]},
   {install_file_type,
    [
     % "File \"~ts\": Unknown file type"
-    {1,"文件\"~ts\"：未知的文件类型"}
+    {1,"파일 \"~ts\": 알 수 없는 파일 형식"}
    ]},
   {install_verify_files,
    [
     % "File \"~ts\" contains a file with an absolute path"
-    {1,"文件\"~ts\"包含一个绝对路径的文件"},
+    {1,"파일 \"~ts\" 절대 경로를 가진 파일이 포함되어 있습니다."},
     % "File \"~ts\" does not contain any Wings plug-in modules"
-    {2,"文件\"~ts\"不包含任何翼插件模块"}
+    {2,"파일 \"~ts\" Wings 플러그인 모듈이 포함되어 있지 않습니다."}
    ]},
   {manager_command,
    [
@@ -2878,30 +2894,30 @@
   {plugin_dir,
    [
     % "No \"plugins\" directory found"
-    {1,"无\"插件\"目录中找到"}
+    {1,"\"plugins\" 디렉토리를 찾지 못했습니다."}
    ]},
   {plugin_menu_info_3,
    [
     % "(The Plug-In Manager was unable to find more information)"
-    {1,"（插件管理器是无法找到更多信息）"}
+    {1,"(플러그인 매니저가 더 많은 정보를 찾을 수 없습니다.)"}
    ]},
   {plugin_modules,
    [
     % "Enable or disable this plug-in "
-    {1,"启用或禁用此插件"},
+    {1,"이 플러그인 활성화 또는 비활성화 "},
     % "(a disbled plug-in does not show up in menus)"
-    {2,"（一已停用插件不显示在菜单）"}
+    {2,"(비활성화된 플러그인은 이 메뉴에 표시되지 않습니다.)"}
    ]},
   {plugin_root_menu,
    [
     % "body: "
-    {1,"바디："},
+    {1,"바디: "},
     % "edge: "
-    {2,"엣지："},
+    {2,"엣지: "},
     % "face: "
-    {3,"페이스："},
+    {3,"페이스: "},
     % "vertex: "
-    {4,"버텍스："},
+    {4,"버텍스: "},
     % "Select|"
     {5,"선택|"},
     % "Tools|"
@@ -2931,20 +2947,20 @@
     % "Merge hotkeys"
     {9,"단축키 추가"},
     % "Remove existing hotkeys first"
-    {10,"删除现有的第一个热键"},
+    {10,"기존의 처음 단축키 제거"},
     % "This file has been moved or deleted."
-    {11,"此文件已被移动或删除。"},
+    {11,"이 파일은 이동되었거나 삭제되었습니다."},
     % "Preference Subset.pref"
-    {12,"偏好Subset.pref"},
+    {12,"Subset.pref 환경 설정"},
     % "Not a .pref file"
-    {13,"不是。府文件"},
+    {13,".pref 파일이 없습니다."},
     % "Select Valid Preference Fields for Current File"
-    {14,"选择当前文件的有效优先领域"}
+    {14,"현재 파일에 유효한 환경 설정 필드 선택"}
    ]},
   {recent_pref_help,
    [
     % "Load a recent Preference Subset"
-    {1,"加载一个子集最近偏好"}
+    {1,"최근 환경 설정 하위 설정 불러오기"}
    ]}
  ]}.
 {wings_pref_dlg,
@@ -2954,87 +2970,87 @@
     % "Default Commands"
     {1,"기본 명령"},
     % "Allow defining commands that can be invoked by Ctrl+L or Ctrl+M"
-    {2,"允许定义，可以按Ctrl + L键或Ctrl +男调用命令"},
+    {2,"Ctrl+L 또는 Ctrl+M으로 불러올 수 있는 정의 명령 허용"},
     % "Use Highlight as Temporary Selection"
-    {3,"作为临时选择使用高亮"},
+    {3,"임시 선택으로 하이라이트 사용"},
     % "If there is no selection, "
-    {4,"如果没有选择，"},
+    {4,"만약 선택이 없다면, "},
     % "allow commands to act on the highlighted element"
-    {5,"允许命令行事的突出显示的元素"},
+    {5,"하이라이트 요소에 따라 행동 명령 허용"},
     % "Hide Selection While Dragging"
-    {6,"隐藏选区拖动时"},
+    {6,"휠 드래그 중 선택 숨기기"},
     % "Don't show the selection in any interactive command"
-    {7,"不显示任何交互式命令选择"},
+    {7,"모든 대화형 명령의 선택을 표시하지 않음"},
     % "Hide Selection While Moving Camera"
-    {8,"隐藏在移动摄像机的选择"},
+    {8,"카메라 이동 중 선택 숨기기"},
     % "Don't show the selection when the camera is being moved"
-    {9,"选择不显示当相机被移动"},
+    {9,"카메라 이동할 때 선택을 표시하지 않음"},
     % "Power-user temporary selections"
-    {12,"电源用户临时的选择"},
+    {12,"파워 유저 임시 선택"},
     % "In the secondary selection mode, RMB-clicking always adds to the selection"
-    {13,"在二次选择模式，人民币点击总是添加到选择"},
+    {13,"보조 선택 모드에서, RMB 클릭 중 항상 선택에 추가"},
     % "Length"
     {14,"길이"},
     % "Length of vector in secondary selections"
-    {15,"在中等长度的选择载体"},
+    {15,"보조 선택의 벡터의 길이"},
     % "Width"
     {16,"너비"},
     % "Width of vector (in pixels)"
-    {17,"向量的宽度（像素）"},
+    {17,"벡터의 너비 (픽셀)"},
     % "Color"
-    {18,"색"},
+    {18,"컬러"},
     % "Color of vector"
-    {19,"颜色矢量"},
+    {19,"벡터의 컬러"},
     % "Vector Display"
-    {20,"矢量显示"},
+    {20,"벡터 표시"},
     % "Use Mirror for Selections"
-    {21,"使用镜面选择"},
+    {21,"선택을 위해 대칭 사용"},
     % "Default to using the virtual mirror for secondary selections"
-    {22,"默认使用二次选择的虚拟镜子"},
+    {22,"기본값은 보조 선택의 가상 대칭 사용"},
     % "Size"
-    {23,"尺寸"},
+    {23,"크기"},
     % "Size of user-defined clipping indicator"
-    {24,"尺寸用户自定义裁剪指标"},
+    {24,"사용자 정의 클리핑 표시기의 크기"},
     % "Color"
-    {25,"색"},
+    {25,"컬러"},
     % "Color of user-defined clipping indicator"
-    {26,"颜色的用户定义剪贴指标"},
+    {26,"사용자 정의 클리핑 표시기의 컬러"},
     % "Clipping Plane Indicator"
-    {27,"裁剪面指标"},
+    {27,"클리핑 플레인 표시기"},
     % "Selected Geometry"
-    {28,"选定的几何图形"},
+    {28,"선택 지오메트리"},
     % "Unselected Geometry"
-    {29,"未选定几何"},
+    {29,"비선택 지오메트리"},
     % "Highlight Aim Targets"
-    {30,"突出显示目标的目标"},
+    {30,"하이라이트 조준선 대상"},
     % "Customize Drag Response"
-    {38,"自定义拖动响应"},
+    {38,"사용자 정의 드래그 응답"},
     % "Customize the drag to mouse motion ratio. Unchecked uses default settings."
-    {39,"自定义鼠标拖动议案的比例。未经检查的使用默认设置。"},
+    {39,"마우스 속도 비율로 사용자 정의 드래그. 체크 안하면 기본 설정 사용"},
     % "Factor in Distance from Camera"
-    {40,"距离因素在从相机"},
+    {40,"카메라에서 거리 파악"},
     % "Factor in Distance from Camera"
-    {43,"距离因素在从相机"},
+    {43,"카메라에서 거리 파악"},
     % "Drag Preferences"
-    {49,"拖动偏好"},
+    {49,"드래그 환경 설정"},
     % "Mouse Speed for Dragging"
-    {50,"鼠标拖动转速"},
+    {50,"마우스 드래깅 속도"},
     % "Mouse Speed for Scaling"
-    {51,"鼠标速度的尺度"},
+    {51,"마우스 스케일링 속도"},
     % "Mouse Speed for Rotating"
-    {52,"鼠标速度的회전"},
+    {52,"마우스 회전 속도"},
     % "Extend selection via hotkey on temporary highlight"
-    {54,"通过扩展选择临时突出热键"},
+    {54,"임시 하이라이트 단축키로 선택 확장"},
     % "Affects: Select All, Edge Loop, Edge Ring, Select Similar, Similar Normals, Similar Materials, and Similar Area."
-    {55,"影响：全选，边环，边缘环，选择相似，类似的资料，类似物质，以及类似地区。"},
+    {55,"영향: 모두 선택, 엣지 루프, 엣지 링, 유사 선택, 유사 노멀, 유사 머테리얼, 유사 영역."},
     % "Power-user menu abort"
-    {56,"电源中断用户菜单"},
+    {56,"파워 유저 메뉴 중지"},
     % "Mouse events such as Selection or Camera events abort menus"
-    {57,"如选择或照相机事件鼠标事件中止菜单"},
+    {57,"선택 또는 카메라 이벤트와 같은 마우스 이벤트 메뉴 중지"},
     % "Power-user menu hotkey support"
-    {58,"电源用户菜单热键支持"},
+    {58,"파워 유저 단축키 메뉴 지원"},
     % "Allow hotkeys to be called even when menus are open"
-    {59,"允许热键被称为是开放的，即使菜单"}
+    {59,"단축키는 메뉴가 열려있는 경우에도 호출하도록 허용"}
    ]},
   {command,
    [
@@ -3062,80 +3078,80 @@
     % "Scale"
     {3,"스케일"},
     % "Default Modifier Keys"
-    {4,"默认修改键"},
+    {4,"기본 수정자 키"},
     % "Distance Constraints"
-    {9,"距离的限制"},
+    {9,"거리 제한"},
     % "Alternate Distances"
-    {10,"备用距离"},
+    {10,"교차 거리"},
     % "Save Constraints to..."
-    {11,"保存的制约因素..."},
+    {11,"제한 저장..."},
     % "Constraint bound to ~ts for distance operations."
-    {12,"约束的必然 ~ts 远距离操作。"},
+    {12,"거리 작동을 위한 ~ts 에 연결된 제한."},
     % "Constraint bound to ~ts for rotations."
-    {13,"约束的必然 ~ts 为旋转。"},
+    {13,"회전을 위한 ~ts 에 연결된 제한."},
     % "Constraint bound to ~ts for scale operations."
-    {14,"约束的必然 ~ts 为大规模行动。"},
+    {14,"스케일 작동을 위한 ~ts 에 연결된 제한."},
     % " Alternate constrains to reciprocal (1.0/Value)."
-    {15,"备用约束倒数（1.0/Value）。"},
+    {15," 교차는 역방향에 강제 (1.0/값)."},
     % " Alternate constrains to supplementary (180.0 minus angle)."
-    {16,"对补充替代约束（180.0减去角）。"},
+    {16," 교차는 보충하는 강제 (180.0 마이너스 각도)."},
     % "(default 1/~ts)"
-    {17,"（默认1 /~ts）"},
+    {17,"(기본 1/~ts)"},
     % "(default 5/8)"
-    {18,"（默认为5 / 8）"},
+    {18,"(기본 5/8)"},
     % "(default 3/64)"
-    {19,"（默认3 / 64）"},
+    {19,"(기본 3/64)"},
     % "Distance Constraints"
-    {22,"距离的限制"},
+    {22,"거리 제한"},
     % "Rotation Constraints"
-    {23,"旋转约束"},
+    {23,"회전 제한"},
     % "Scale Factors"
-    {25,"规模的因素"},
+    {25,"스케일 요인"},
     % "Alternate Distances"
-    {29,"备用距离"},
+    {29,"교차 거리"},
     % "Deleting value or entering '0' resets constraint to Wings default"
-    {30,"删除值或输入'0'重置默认约束，翅膀"},
+    {30,"Wings 기본값으로 값을 지우거나 제한을 '0'으로 재설정 입력"},
     % "Set Constraint Preferences"
-    {31,"首集约束"},
+    {31,"제한 환경 설정"},
     % "Default Constraint Values"
-    {32,"默认约束值"},
+    {32,"기본 제한 값"},
     % "Use Alternate Constraints"
-    {33,"使用备用约束"},
+    {33,"교차 제한 사용"},
     % "Checked uses alternate distances, reciprocal scale factors, and supplementary angles."
-    {34,"检查使用备用的距离，相互规模因素，补角。"},
+    {34,"교차 거리, 상호 스케일 요인, 보조 각도 사용 확인"},
     % " Switch on the fly pressing [Shift]+[Tab] during a drag operation."
-    {35,"接通拖动操作期间按[Shift]+ [Tab]飞。"}
+    {35," 드래그 작업 중 [Shift]+[Tab] 누르면 즉시 전환"}
    ]},
   {gen_prefs,
    [
     % "Unselected Size"
-    {1,"未选择的尺寸"},
+    {1,"비선택 크기"},
     % "Size in pixels of unselected vertices (0.0 means not shown)"
-    {2,"在未选定的顶点像素尺寸（0.0表示不显示）"},
+    {2,"비선택 버텍스의 픽셀 크기 (0.0 은 보이지 않음)"},
     % "Selected Size"
-    {3,"选定尺寸"},
+    {3,"선택 크기"},
     % "Size in pixels of selected vertices"
-    {4,"大小选定的顶点像素"},
+    {4,"선택 버텍스의 픽셀 크기"},
     % "Vertex Display"
-    {5,"顶点显示"},
+    {5,"버텍스 표시"},
     % "Unselected Width"
-    {6,"未选定的宽度"},
+    {6,"비선택 너비"},
     % "Width in pixels of unselected edges"
-    {7,"反选边宽度，以像素"},
+    {7,"비선택 엣지의 픽셀 너비"},
     % "Selected Width"
-    {8,"选定的宽度"},
+    {8,"선택 너비"},
     % "Width in pixels of selected edges"
-    {9,"选定的边缘宽度，以像素"},
+    {9,"선택 엣지의 픽셀 너비"},
     % "Soft Edges"
-    {10,"柔边"},
+    {10,"소프트 엣지"},
     % "Color of soft edges"
-    {11,"软边 색"},
+    {11,"소프트 엣지의 컬러"},
     % "Hard Edges"
     {12,"하드 엣지"},
     % "Color of hard edges"
-    {13,"硬边 색"},
+    {13,"하드 엣지의 컬러"},
     % "Edge Display"
-    {14,"边缘显示"},
+    {14,"엣지 표시"},
     % "Vertices"
     {15,"버텍스"},
     % "Edges"
@@ -3145,7 +3161,7 @@
     % "Objects"
     {18,"오브젝트"},
     % "Unselected"
-    {19,"未选定"},
+    {19,"비선택"},
     % "Selected"
     {20,"선택"},
     % "Smart Highlighting"
@@ -3157,41 +3173,41 @@
     % "Stippled Face Selections"
     {24,"점묘된 페이스 선택"},
     % "Selection Color"
-    {25,"선택 색"},
+    {25,"선택 컬러"},
     % "Selection"
     {26,"선택"},
     % "Text"
-    {27,"글자"},
+    {27,"텍스트"},
     % "Color of information text"
-    {28,"정보 글자 색"},
+    {28,"정보 텍스트 컬러"},
     % "Background"
     {29,"배경"},
     % "Color of background for information text (including transparency)"
-    {30,"颜色对信息的文本（包括透明度）的背景"},
+    {30,"정보 텍스트의 배경 컬러 (투명성 포함)"},
     % "Information Text"
-    {31,"정보 글자"},
+    {31,"정보 텍스트"},
     % "Color"
-    {32,"색"},
+    {32,"컬러"},
     % "Force Axis-Aligned Grid"
-    {33,"力轴对齐网格"},
+    {33,"축 정렬 그리드 강제"},
     % "Always show the grid when the view is aligned along one of the major axes"
-    {34,"始终显示在网格视图时沿主要轴线之一对齐"},
+    {34,"주요 축 중의 하나를 따라 뷰를 정렬할 때 항상 그리드 보기"},
     % "Grid"
     {35,"그리드"},
     % "Show Axis Letters"
-    {36,"显示轴快报"},
+    {36,"축 문자 보기"},
     % "+X Color"
-    {37,"+X 색"},
+    {37,"+X 컬러"},
     % "+Y Color"
-    {38,"+Y 색"},
+    {38,"+Y 컬러"},
     % "+Z Color"
-    {39,"+Z 색"},
+    {39,"+Z 컬러"},
     % "-X Color"
-    {40,"-X 색"},
+    {40,"-X 컬러"},
     % "-Y Color"
-    {41,"-Y 색"},
+    {41,"-Y 컬러"},
     % "-Z Color"
-    {42,"-Z 색"},
+    {42,"-Z 컬러"},
     % "Axes"
     {43,"축"},
     % "Length"
@@ -3199,171 +3215,175 @@
     % "Length of normals"
     {45,"노멀 길이"},
     % "Color"
-    {46,"색"},
+    {46,"컬러"},
     % "Color of normals"
-    {47,"노멀 색"},
+    {47,"노멀 컬러"},
     % "Normals Display"
-    {48,"노멀 보기"},
+    {48,"노멀 표시"},
     % "Constrain Axes to Grid"
-    {49,"电网约束轴"},
+    {49,"그리드 축 제한"},
     % "Draw Anti-Aliased Edges"
-    {50,"画反走样边"},
+    {50,"안티 앨리어스 엣지 드로우"},
     % "Default"
     {51,"기본값"},
     % "Sets the colour of the default material"
-    {52,"设置默认的颜色材料"},
+    {52,"기본 머테리얼의 컬러 설정"},
     % "Materials"
-    {55,"재질"},
+    {55,"머테리얼"},
     % "Show Mini Axis"
     {56,"작은 축 보기"},
     % "Hard Edge Width"
-    {57,"硬边宽"},
+    {57,"하드 엣지 너비"},
     % "Width in pixels of hard edges"
-    {58,"硬边宽度，以像素"},
+    {58,"하드 엣지의 픽셀의 너비"},
     % "Width"
     {59,"너비"},
     % "Width of normals"
     {60,"노멀 너비"},
     % "Verbose"
-    {61,"详细"},
+    {61,"상세 정보"},
     % "Show additional information about selected elements"
-    {62,"显示所选元素的附加信息"},
+    {62,"선택 요소의 추가 정보 보기"},
     % "Mouseover"
-    {63,"鼠标悬停"},
+    {63,"마우스오버"},
     % "Show additional information for highlighted element on mouseover"
-    {64,"显示附加信息突出显示鼠标悬停元"},
+    {64,"마우스오버 위에서 하이라이트 요소의 추가 정보 보기"},
     % "Magnet Mask Vertex Size"
-    {65,"磁屏蔽顶点尺寸"},
+    {65,"마그넷 마스크 버텍스 크기"},
     % "Size in pixels of magnet mask vertices"
-    {66,"大小磁铁的面具顶点像素"},
+    {66,"마그넷 마스크 버텍스의 픽셀 크기"},
     % "Unselected Vertices"
-    {67,"未选定的顶点"},
+    {67,"비선택 버텍스"},
     % "Color of unselected vertices"
-    {68,"未选定的顶点 색"},
+    {68,"비선택 버텍스의 컬러"},
     % "Magnet Mask"
-    {69,"磁屏蔽"},
+    {69,"마그넷 마스크"},
     % "Color of magnet mask vertices"
-    {70,"磁屏蔽顶点 색"},
+    {70,"마그넷 마스크 버텍스의 컬러"},
     % "Conditional Deselection"
-    {71,"有条件取消选择"},
+    {71,"조건 비선택"},
     % "Deselecting keeps you in the same Selection Mode, unless there is no selection"
-    {72,"取消选择保持在相同的选择模式你，除非没有选择"},
+    {72,"비선택이 없을 때, 동일 선택 모드에서 비선택 유지"},
     % "Force Axis-Aligned Ortho"
-    {aa_ortho1,"力轴对齐邻"},
+    {aa_ortho1,"축 정렬 직각 강제"},
     % "Always go into orthogonal mode when the view is aligned along one of the major axes"
-    {aa_ortho2,"进入正交模式始终视图时沿主要轴线之一对齐"}
+    {aa_ortho2,"주요 축 중의 하나를 따라 뷰를 정렬할 때 항상 직각 모드로 이동"}
    ]},
   {menu,
    [
     % "Preferences..."
     {1,"환경 설정..."},
     % "Edit the preferences for Wings"
-    {2,"编辑翅膀喜好"}
+    {2,"Wings의 환경 설정 편집"}
    ]},
   {misc_prefs,
    [
     % "Opacity settings not supported using this version of OpenGL"
-    {1,"不支持不透明度设置使用此版本的OpenGL"},
+    {1,"OpenGL의 이 버전 사용은, 불투명도 설정이 지원되지 않습니다."},
     % "Save automatically every"
-    {2,"自动保存每"},
+    {2,"모두 자동 저장"},
     % "minutes"
-    {3,"分钟"},
+    {3,"분"},
     % "Undo levels"
-    {4,"撤消级别"},
+    {4,"실행 취소 수"},
     % "Angle"
     {5,"각도"},
     % "Delay (ms)"
-    {6,"延时（ms）"},
+    {6,"지연(ms)"},
     % "Auto Rotate"
     {7,"자동 회전"},
     % "Cage"
-    {8,"笼"},
+    {8,"케이지"},
     % "Some Edges"
-    {9,"一些边"},
+    {9,"일부 엣지"},
     % "All Edges"
     {10,"모든 엣지"},
     % "Shaded Mode Edge Style"
-    {11,"阴影模式边缘风格"},
+    {11,"쉐이드 모드 엣지 스타일"},
     % "Stationary Opacity"
-    {12,"固定不透明度"},
+    {12,"정지 불투명도"},
     % "Moving Opacity"
-    {13,"移动不透明度"},
+    {13,"이동 불투명도"},
     % "Proxy Mode"
-    {14,"代理模式"},
+    {14,"프록시 모드"},
     % "Text in menus and dialogs disappear"
-    {15,"在菜单和对话框的文本消失"},
+    {15,"메뉴와 대화창에서 텍스트가 사라짐."},
     % "Problem occurs on some Matrox cards"
-    {16,"问题发生在一些Matrox显卡"},
+    {16,"문제는 일부 Matrox 카드에서 발생함."},
     % "Wings crashes if axes are turned off"
-    {17,"翼崩溃如果轴是关闭"},
+    {17,"축이 꺼진 경우 Wings가 충돌함."},
     % "Problem occurs on some Matrox cards"
-    {18,"问题发生在一些Matrox显卡"},
+    {18,"문제는 일부 Matrox 카드에서 발생함."},
     % "Camera moves and interactive commands are jumpy"
-    {19,"摄像机移动和交互命令跳动"},
+    {19,"카메라 이동과 대화형 명령이 불안함."},
     % "Problem occurs on Mac OS X 10.3 (Panther)"
-    {20,"问题发生在Mac OS X 10.3（Panther）的"},
+    {20,"문제는 Mac OS X 10.3 (Panther)에서 발생함."},
     % "Workarounds"
-    {21,"因应措施"},
+    {21,"해결 방법"},
     % "Edge display problems?"
-    {22,"边显示问题？"},
+    {22,"엣지 보기 문제?"},
     % "Edge offsets:"
-    {23,"边缘偏移："},
+    {23,"엣지 오프셋:"},
     % "Show Develop menu"
-    {24,"显示开发菜单"},
+    {24,"개발 메뉴 보기"},
     % "Show a menu with tools for the Wings developers"
-    {25,"显示为两翼开发人员的工具菜单"},
+    {25,"Wings 개발자 도구 메뉴 보기"},
     % "Camera moves steals focus"
-    {26,"摄像机移动抢断焦点"},
+    {26,"카메라 이동 초점 스틸"},
     % "Problem occurs on linux"
-    {27,"问题发生在Linux上"},
+    {27,"문제는 linux에서 발생함."},
     % "Maximum menu height in pixels"
-    {28,"菜单上的最大高度，以像素"},
+    {28,"최대 메뉴 높이 픽셀"},
     % "Menus are clipped and continue in 'More...' submenu."
-    {29,"菜单被剪切并继续在'更多...'子菜单。"},
+    {29,"메뉴가 잘리고 '더보기...' 하위 메뉴로 계속."},
     % "Less than 1 sets menu clipping to auto."
-    {30,"不到1台自动裁剪菜单。"}
+    {30,"1 설정 미만 메뉴는 자동으로 잘림."}
    ]},
   {smart_set_value_1,
    [
     % "The change to the system font will take\neffect the next time Wings 3D is started."
-    {1,"시스템 글꼴 변경 효과는\nWings 3D 재시작 시 적용됩니다."},
+    {1,"시스템 폰트 변경 효과는\nWings 3D 재시작 시 적용됩니다."},
     % "The change to the interface icons will take\neffect the next time Wings 3D is started."
     {2,"인터페이스 아이콘 변경 효과는\nWings 3D 재시작 시 적용됩니다."},
     % "The change to the default material color will take\neffect the next time Wings 3D is started."
-    {3,"기본 재질 색 변경 효과는\nWings 3D 재시작 시 적용됩니다."}
+    {3,"기본 머테리얼 컬러 변경 효과는\nWings 3D 재시작 시 적용됩니다."},
+    % "The change to the console font will take\neffect the next time Wings 3D is started."
+    {4,"콘솔 폰트 변경은 Wings 3D가 시작되는 \n다음 시간에 효과가 적용됩니다."},
+    % "The language change will take effect\nthe next time Wings 3D is started."
+    {5,"언어 변경은 Wings 3D가 시작되는 \n다음 시간에 효과가 적용됩니다."}
    ]},
   {ui_prefs,
    [
     % "System Font"
-    {1,"시스템 글꼴"},
+    {1,"시스템 폰트"},
     % "Desktop/Geometry Background"
-    {2,"화면/기하학 배경"},
+    {2,"화면/지오메트리 배경"},
     % "Menu Text"
-    {3,"메뉴 글자"},
+    {3,"메뉴 텍스트"},
     % "Menu Highlight"
-    {4,"메뉴 강조"},
+    {4,"메뉴 하이라이트"},
     % "Menu Highlighted Text"
-    {5,"메뉴 강조 글자"},
+    {5,"메뉴 하이라이트 텍스트"},
     % "Menu Background"
     {6,"메뉴 배경"},
     % "Dialog Text"
-    {7,"대화 글자"},
+    {7,"대화창 텍스트"},
     % "Dialog (Disabled) Text"
-    {8,"대화(비활성) 글자"},
+    {8,"대화창(비활성) 텍스트"},
     % "Dialog Background"
-    {9,"대화 배경"},
+    {9,"대화창 배경"},
     % "Title Text"
-    {10,"제목 글자"},
+    {10,"제목 텍스트"},
     % "Title (Passive) Background"
     {11,"제목(비활성) 배경"},
     % "Title (Active) Background"
     {12,"제목(활성) 배경"},
     % "Colors"
-    {13,"색"},
+    {13,"컬러"},
     % "No Progress Bar"
     {14,"진행 표시줄 없음"},
     % "Console Font"
-    {15,"콘솔 글꼴"},
+    {15,"콘솔 폰트"},
     % "Width"
     {16,"너비"},
     % "Height"
@@ -3381,7 +3401,7 @@
     % "Language"
     {23,"언어"},
     % "Objects in Outliner"
-    {24,"개요 오브젝트"},
+    {24,"아웃라이너 오브젝트"},
     % "Extended Toolbar Icons"
     {27,"확장 도구바 아이콘"},
     % "Menubar Background"
@@ -3389,37 +3409,45 @@
     % "Info Line Background"
     {29,"정보 표시줄 배경"},
     % "Info Line Text"
-    {30,"정보 표시줄 글자"},
+    {30,"정보 표시줄 텍스트"},
     % "Menubar Text"
-    {31,"메뉴 표시줄 글자"},
+    {31,"메뉴 표시줄 텍스트"},
     % "Adaptive Icons"
     {32,"아이콘 활성"},
     % "Icons in the Outliner and Geometry Graph that allow for further color theming"
-    {33,"개요와 기하학 그래프에 색 테마 아이콘 추가 허용"},
+    {33,"아웃라이너/지오메트리 그래프에 컬러 테마 아이콘 추가 허용"},
     % "Outliner/Geometry Graph"
-    {34,"개요/기하학 그래프"},
+    {34,"아웃라이너/지오메트리 그래프"},
     % "Background"
     {35,"배경"},
     % "Text"
     {36,"텍스트"},
     % "Highlighter"
-    {37,"강조"},
+    {37,"하이라이터"},
     % "Highlighted Text"
-    {38,"강조 글자"},
+    {38,"하이라이트 텍스트"},
     % "Disabled"
     {39,"비활성"},
     % "Menu Toolbar"
     {40,"메뉴 도구바"},
     % "Adds a mini toolbar to the tops of the right-click menus"
-    {41,"마우스 우 버튼 클릭 메뉴 위에 작은 도구바를 추가합니다."},
+    {41,"마우스 우클릭 메뉴 위 작은 도구바 추가"},
     % "View render with external viewer"
     {42,"외부 뷰어로 렌더 보기"},
+    % "Large Icons"
+    {44,"큰 아이콘"},
+    % "Small Icons"
+    {45,"작은 아이콘"},
+    % "Show Menu Toolbar"
+    {46,"메뉴 도구바 보기"},
+    % "Snap mouse"
+    {47,"스냅 마우스"},
     % "Interface Icons"
     {50,"인터페이스 아이콘"},
     % "Classic"
-    {51,"고전"},
+    {51,"클래식"},
     % "Blue Cube"
-    {52,"청색 입방체"},
+    {52,"청색 큐브"},
     % "Purple Tube"
     {53,"보라색 튜브"}
    ]},
@@ -3445,12 +3473,12 @@
   {edges_to_vertices,
    [
     % "Magnet Rotate on multiple edge regions requires an explicit rotate origin."
-    {1,"磁铁旋转多边缘地区需要一个明确的旋转的起源。"}
+    {1,"다중 엣지 영역 위의 마그넷 회전은 명확한 회전 원본을 필요로 합니다."}
    ]},
   {faces_to_vertices,
    [
     % "Magnet Rotate on multiple face regions requires an explicit rotate origin."
-    {1,"磁铁旋转多面地区需要一个明确的旋转的起源。"}
+    {1,"다중 페이스 영역 위의 마그넷 회전은 명확한 회전 원본을 필요로 합니다."}
    ]}
  ]}.
 {wings_s,
@@ -3458,7 +3486,7 @@
   {accept,
    [
     % "Accept"
-    {1,"接受"}
+    {1,"허용"}
    ]},
   {camera_mode,
    [
@@ -3491,7 +3519,7 @@
     % "default axis"
     {da,"기본 축"},
     % "Free"
-    {f,"자유"},
+    {f,"프리"},
     % "last axis"
     {la,"최종 축"},
     % "Normal"
@@ -3550,12 +3578,12 @@
   {edges_to_vertices,
    [
     % "Magnet scale on multiple edge regions requires an explicit scale origin."
-    {1,"磁铁多边缘地区规模，需要一个明确的规模起源。"}
+    {1,"다중 엣지 영역 위의 마그넷 스케일은 명확한 스케일 원본을 필요로 합니다."}
    ]},
   {faces_to_vertices,
    [
     % "Magnet scale on multiple face regions requires an explicit scale origin."
-    {1,"磁铁多个脸区域规模，需要一个明确的规模起源。"}
+    {1,"다중 페이스 영역 위의 마그넷 스케일은 명확한 스케일 원본을 필요로 합니다."}
    ]}
  ]}.
 {wings_sel_cmd,
@@ -3563,99 +3591,112 @@
   {ask,
    [
     % "Select By Id"
-    {1,"Id로 선택"}
+    {1,"ID로 선택"}
+   ]},
+  {faces_with,
+   [
+    % "Number of Edges"
+    {1,"엣지 수"},
+    % "Select Faces"
+    {2,"페이스 선택"},
+    % "More"
+    {3,"이상"},
+    % "More"
+    {4,"이하"},
+    % "Exactly"
+    {5,"지정"}
    ]},
   {group_mode_string,
    [
     % "Body selection group"
-    {body,"身体的选择组"},
+    {body,"바디 선택 그룹"},
     % "Edge selection group"
-    {edge,"边沿选择组"},
+    {edge,"엣지 선택 그룹"},
     % "Face selection group"
-    {face,"面对选择组"},
+    {face,"페이스 선택 그룹"},
     % "Vertex selection group"
-    {vertex,"选择组顶点"}
+    {vertex,"버텍스 선택 그룹"}
    ]},
   {group_title,
    [
     % "vertex: "
-    {1,"버텍스："},
+    {1,"버텍스: "},
     % "edge: "
-    {2,"엣지："},
+    {2,"엣지: "},
     % "face: "
-    {3,"페이스："},
+    {3,"페이스: "},
     % "body: "
-    {4,"바디："}
+    {4,"바디: "}
    ]},
   {groups_menu,
    [
     % "Delete Group"
     {1,"그룹 삭제"},
     % "Delete group \""
-    {2,"删除组\""},
+    {2,"그룹 삭제 \""},
     % "Add to Group"
     {4,"그룹 추가"},
     % "Add current selection to group \""
-    {5,"当前选择添加到组\""},
+    {5,"그룹에 현재 선택 추가 \""},
     % "Subtract from Group"
     {7,"그룹 빼기"},
     % "Subtract current selection from group \""
-    {8,"减去当前选择从组\""},
+    {8,"그룹에서 현재 선택 빼기 \""},
     % "Select Group"
     {10,"그룹 선택"},
     % "Select group \""
-    {11,"选择组\""},
+    {11,"그룹 선택 \""},
     % "Union Group"
-    {13,"유니온 그룹"},
+    {13,"그룹 합치기"},
     % "Union group \""
-    {14,"华联集团\""},
+    {14,"그룹 합치기 \""},
     % "\" with current selection"
-    {15,"\"与当前的选择"},
+    {15,"\" 현재 선택으로"},
     % "Subtract Group"
     {16,"그룹 빼기"},
     % "Subtract group \""
-    {17,"减去组\""},
+    {17,"그룹 빼기 \""},
     % "\" from current selection"
-    {18,"\"从当前的选择"},
+    {18,"\" 현재 선택에서"},
     % "Intersect Group"
     {19,"그룹 교차"},
     % "Intersect group \""
-    {20,"交叉组\""},
+    {20,"그룹 교차 \""},
     % "\" with current selection"
-    {21,"\"与当前的选择"},
+    {21,"\" 현재 선택으로"},
     % "Selection Groups"
     {22,"그룹 선택"},
     % "Next Group"
-    {24,"下一组"},
+    {24,"다음 그룹"},
     % "Previous Group"
-    {25,"上一组"},
+    {25,"이전 그룹"},
     % "Cycle In Selection Mode"
-    {26,"循环的选择模式"},
+    {26,"선택 모드 순환"},
     % "Cycle Prev/Next only within active selection mode"
-    {27,"循环上一页/下一页只有在积极选择模式"}
+    {27,"활성 선택 모드에서만 이전/다음 순환"}
    ]},
   {item_by_id,
    [
     % "Nothing to select."
-    {1,"没有什么选择。"},
+    {1,"아무 선택이 없습니다."},
     % "Object Id"
-    {2,"오브젝트 Id "}
+    {2,"오브젝트 ID "}
    ]},
   {less_help,
    [
     % "Deselect all vertices adjacent to an unselected vertex"
-    {1,"取消选择所有的顶点相邻，未选中的顶点"},
+    {1,"비선택 버텍스에 인접한 모든 버텍스 비선택"},
     % "Deselect all edges adjacent to an unselected edge"
-    {2,"取消选择所有的边缘相邻，未选中"},
+    {2,"비선택 엣지에 인접한 모든 엣지 비선택"},
     % "Deselect all faces sharing a vertex with an unselected face"
-    {3,"取消选择所有面分享未选定面对一个顶点"}
+    {3,"비선택 페이스로 버텍스를 공유하는 모든 페이스 비선택"}
    ]},
   {menu,
    [
     % "Deselect"
-    {1,"선택 해제"},
+    {1,"비선택"},
     % "Clear the selection"
-    {2,"清除选择"},
+    {2,"선택 지우기"},
     % "More"
     {3,"증가"},
     % "Less"
@@ -3667,43 +3708,43 @@
     % "Edge Loop"
     {7,"엣지 루프"},
     % "Expand edge selection to loop; "
-    {8,"扩大优势选择，以循环;"},
+    {8,"루프로 엣지 선택 확장; "},
     % "convert face selection to selected border edges"
-    {9,"面对选择转换选定的边框边缘"},
+    {9,"페이스 선택을 선택 테두리 엣지로 변환"},
     % "Edge Loop to Region"
-    {10,"河套地区的边缘"},
+    {10,"영역 엣지 루프"},
     % "Select all faces on one side of an edge loop"
-    {11,"选择所有的面孔在一个侧面的边环"},
+    {11,"엣지 루프 한쪽의 모든 페이스 선택"},
     % "Edge Ring"
     {12,"엣지 링"},
     % "Expand edge selection to ring"
-    {13,"响展开边沿选择"},
+    {13,"링으로 엣지 선택 확장"},
     % "Previous Edge Loop"
     {14,"이전 엣지 루프"},
     % "Select the previous edge loop"
-    {15,"选择上一个边环"},
+    {15,"이전 엣지 루프 선택"},
     % "Next Edge Loop"
     {16,"다음 엣지 루프"},
     % "Select the next edge loop"
-    {17,"选择下一个边环"},
+    {17,"다음 엣지 루프 선택"},
     % "Grow Edge Loop"
-    {18,"成长边环"},
+    {18,"엣지 루프 확장"},
     % "Grow edge selection by one edge in loop directions"
-    {19,"增长一环方向的边边沿选择"},
+    {19,"루프 방향 1 엣지로 엣지 선택 확장"},
     % "Shrink Edge Loop"
-    {20,"收缩边环"},
+    {20,"엣지 루프 축소"},
     % "Shrink edge selection by one in loop direction"
-    {21,"收缩环由一个边缘的选择方向"},
+    {21,"루프 방향 1로 엣지 선택 축소"},
     % "Grow Edge Ring"
-    {22,"边成长环"},
+    {22,"엣지 링 확장"},
     % "Grow edge selection by one edge in ring direction"
-    {23,"增长一环方向边边沿选择"},
+    {23,"링 방향 1 엣지로 엣지 선택 확장"},
     % "Shrink Edge Ring"
-    {24,"收缩环的边缘"},
+    {24,"엣지 링 축소"},
     % "Shrink edge selection by one edge in ring directions"
-    {25,"收缩环由一个方向边边沿选择"},
+    {25,"링 방향 1 엣지로 엣지 선택 축소"},
     % "Adjacent"
-    {26,"相邻"},
+    {26,"인접"},
     % "Vertices"
     {27,"버텍스"},
     % "Edges"
@@ -3713,17 +3754,17 @@
     % "Objects"
     {30,"오브젝트"},
     % "By"
-    {31,"通过"},
+    {31,"종류"},
     % "Hard Edges"
     {32,"하드 엣지"},
     % "Select all hard edges"
-    {33,"选择所有硬边"},
+    {33,"모든 하드 엣지 선택"},
     % "Isolated Vertices"
-    {34,"독립 버텍스"},
+    {34,"절연 버텍스"},
     % "Select all isolated vertices"
-    {35,"选择所有孤立点"},
+    {35,"모든 절연 버텍스 선택"},
     % "Vertices With"
-    {36,"버텍스로..."},
+    {36,"버텍스..."},
     % "2 Edges"
     {37,"2 엣지"},
     % "3 Edges"
@@ -3733,7 +3774,7 @@
     % "5 Edges"
     {40,"5 엣지"},
     % "Faces With"
-    {41,"페이스로..."},
+    {41,"페이스..."},
     % "2 Edges"
     {42,"2 엣지"},
     % "3 Edges"
@@ -3745,169 +3786,175 @@
     % "Random"
     {46,"무작위"},
     % "Short Edges"
-    {56,"짧은 엣지"},
+    {56,"숏 엣지"},
     % "Select (too) short edges"
-    {57,"(매우)짧은 엣지 선택"},
+    {57,"매우 짧은 엣지 선택"},
     % "Material Edges"
-    {58,"재질 엣지"},
+    {58,"머테리얼 엣지"},
     % "Select all edges between different materials"
-    {59,"选择不同的材料之间的所有边"},
+    {59,"다른 머테리얼 사이의 모든 엣지 선택"},
     % "UV-Mapped Faces"
-    {60,"紫外线映射面"},
+    {60,"UV 매핑된 페이스"},
     % "Select all edges that have UV coordinates"
-    {61,"选择所有的边是UV坐标"},
+    {61,"UV 좌표가 있는 모든 엣지 선택"},
     % "Id..."
-    {62,"Id..."},
+    {62,"ID..."},
     % "Select by numeric id"
-    {63,"选择用数字编号"},
+    {63,"ID 번호로 선택"},
     % "Lights"
     {64,"라이트"},
     % "Select all lights"
-    {65,"选择所有的灯"},
+    {65,"모든 라이트 선택"},
     % "Select all elements"
-    {66,"选择所有元素"},
+    {66,"모든 요소 선택"},
     % "Inverse"
     {67,"반전"},
     % "Invert the selection"
-    {68,"反选"},
+    {68,"선택 반전"},
     % "Hide Selected"
-    {69,"선택 숨김"},
+    {69,"선택 숨기기"},
     % "Hide all (partly or wholly) selected objects"
-    {70,"隐藏所有（部分或全部），选择的对象"},
+    {70,"모든 (일부 또는 전체) 선택 오브젝트 숨기기"},
     % "Hide Unselected"
-    {71,"비선택 숨김"},
+    {71,"비선택 숨기기"},
     % "Hide objects that have no selection"
-    {72,"隐藏没有选择的对象"},
+    {72,"선택 안된 오브젝트 숨기기"},
     % "Lock Unselected"
-    {73,"비선택 잠금"},
+    {73,"비선택 잠그기"},
     % "Lock objects that have no selection"
-    {74,"锁定对象没有选择"},
+    {74,"선택 안된 오브젝트 잠그기"},
     % "Show All"
     {75,"모두 보기"},
     % "Show all objects that have been hidden"
-    {76,"显示所有已隐藏的对象"},
+    {76,"모든 숨긴 오브젝트 보기"},
     % "Unlock All"
-    {77,"开启所有"},
+    {77,"모든 잠금 풀기"},
     % "Unlock all locked objects"
-    {78,"解除所有锁定的对象"},
+    {78,"모든 잠금 오브젝트 풀기"},
     % "Store Selection"
     {79,"선택 저장"},
     % "Store the selection into the selection group named \"StoredSelection\""
-    {80,"商店的选择到选择命名组\"StoredSelection\""},
+    {80,"지정된 선택 그룹으로 선택 저장 \"StoredSelection\""},
     % "Recall Selection"
     {81,"선택 불러오기"},
     % "Recall the selection from the selection group named \"StoredSelection\""
-    {82,"回想从选择命名组的选择\"StoredSelection\""},
+    {82,"지정된 선택 그룹에서 선택 불러오기 \"StoredSelection\""},
     % "New Group..."
-    {83,"新建组..."},
+    {83,"새 그룹..."},
     % "Create a new selection group"
-    {84,"创建一个新的选择组"},
+    {84,"새 선택 그룹 만들기"},
     % "Non-planar Faces"
     {85,"비평면 페이스"},
     % "Select all non-planar faces"
-    {86,"选择所有非平面的面孔"},
+    {86,"비평면 페이스 선택"},
     % "Sharp Edges"
-    {87,"锋利的边缘"},
+    {87,"샤프 엣지"},
     % "Select sharp edges"
-    {88,"选择锋利"},
+    {88,"샤프 엣지 선택"},
     % "Fewest Edges Path"
-    {89,"最少的边路径"},
+    {89,"최소 엣지 경로"},
     % "Select the path with the fewest edges between two vertices"
-    {90,"选择两个顶点之间用最少的边缘路径"},
+    {90,"2 버텍스 사이의 최소 엣지에서 경로 선택"},
     % "Shortest Path (Dijkstra)"
-    {91,"最短路径（Dijkstra算法）"},
+    {91,"최단 경로 (Dijkstra)"},
     % "Select the shortest path between two vertices (Dijkstra)"
-    {92,"两个顶点之间选择（迪杰斯特拉）最短路径"},
+    {92,"2 버텍스 사이의 가장 짧은 경로 선택 (Dijkstra)"},
     % "Shortest Path (A-Star)"
-    {93,"最短路径（一星级）"},
+    {93,"최단 경로 (A-Star)"},
     % "Select the shortest path between two vertices (A-Star)"
-    {94,"选择两个顶点之间的最短路径（一星级）"},
+    {94,"2 버텍스 사이의 가장 짧은 경로 선택 (A-Star)"},
     % "Vertex Path"
-    {95,"顶点路径"},
+    {95,"버텍스 경로"},
     % "To Complete Loops"
-    {96,"要完成循环"},
+    {96,"루프 완료하기"},
     % "Switches to Edge mode and completes loop selection"
-    {97,"切换到EDGE模式的选择，并完成环"},
+    {97,"엣지 모드로 전환하고 루프 선택 완료"},
     % "; convert consecutive vertices to edges"
-    {98,";转换为连续边顶点"},
+    {98,"; 연속된 버텍스를 엣지로 변환"},
     % " (from selection or all visible objects (if no selection))"
-    {99,"（从选择或全部（如果没有选择）可见的物体）"},
+    {99," (선택 또는 모든 보이는 오브젝트에서 (선택없으면))"},
     % "Every Nth Ring"
-    {100,"每隔n个环"},
+    {100,"모든 N 링"},
     % "Second"
     {101,"2"},
     % "Third"
     {102,"3"},
     % "Nth..."
     {103,"N..."},
+    % "Unlock All Objects"
+    {105,"모든 잠금 오브젝트 풀기"},
+    % "Unhide All Objects"
+    {104,"모든 숨긴 오브젝트 보기"},
     % "6 or More"
     {401,"6 이상"},
+    % "Specify..."
+    {402,"지정..."},
     % "Non Quadrangle Faces"
-    {nq0,"非四边形面"},
+    {nq0,"비4각 페이스"},
     % "All Non Quadrangle Faces"
-    {nq1,"所有非四边形面"},
+    {nq1,"모든 비4각 페이스"},
     % "Odd Non Quadrangle Faces"
-    {nq2,"奇非工作面四合院"},
+    {nq2,"이상한 비4각 페이스"},
     % "Even Non Quadrangle Faces"
-    {nq3,"即使非四边形面"}
+    {nq3,"평평한 비4각 페이스"}
    ]},
   {more_help,
    [
     % "Select all vertices adjacent to a selected vertex"
-    {1,"选择所有顶点相邻选定的顶点"},
+    {1,"선택 버텍스에 인접하 모든 버텍스 선택"},
     % "Select all edges adjacent to a selected edge"
-    {2,"选择所有的边缘相邻选定"},
+    {2,"선택 엣지에 인접하 모든 엣지 선택"},
     % "Select all faces sharing a vertex with a selected face"
-    {3,"选择所有面临选择的面分享一个顶点"}
+    {3,"선택 페이스의 버텍스를 공유하는 모든 페이스 선택"}
    ]},
   {new_group,
    [
     % "Create New Group"
-    {1,"创建新组"},
+    {1,"새 그룹 만들기"},
     % "Group Name"
-    {2,"集团名称"}
+    {2,"그룹명"}
    ]},
   {new_group_name,
    [
     % "already exists."
-    {exists,"已经存在。"}
+    {exists,"이미 존재합니다."}
    ]},
   {nonplanar_faces,
    [
     % "Distance tolerance"
-    {1,"距离公差"},
+    {1,"거리 허용차"},
     % "Select Non-planar Faces"
-    {2,"选择非平面面"}
+    {2,"비평면 페이스 선택"}
    ]},
   {oriented_faces,
    [
     % "Angle Tolerance"
-    {1,"角度公差"},
+    {1,"각도 허용차"},
     % "Select Similarly Oriented Faces"
-    {2,"面临同样的选择导向"},
+    {2,"유사 방향 페이스 선택"},
     % "Connected Faces Only"
-    {3,"相连的面只有"},
+    {3,"연결 페이스만 "},
     % "At least one face must be selected"
-    {4,"至少必须选取一个面"},
+    {4,"최소한 1 페이스를 선택해야 합니다."},
     % "Save Angle"
-    {5,"保存角"}
+    {5,"각도 저장"}
    ]},
   {oriented_faces_menu,
    [
     % "Similar Normals"
     {1,"유사 노멀"},
     % "Select faces with normals similar to those of the already selected faces"
-    {2,"选择面脸与正常人相似，被选中的"}
+    {2,"이미 선택 페이스와 유사한 노멀을 가진 페이스 선택"}
    ]},
   {random,
    [
     % "Select Random"
-    {1,"随机选择"}
+    {1,"무작위 선택"}
    ]},
   {random_help,
    [
     % "Select random elements from current selection, or all visible objects (no selection)"
-    {1,"选择随机元素从当前选择，或所有可见对象（不选择）"}
+    {1,"현재 선택이나 볼 수 있는 모든 오브젝트의 무작위 요소 선택（비선택)"}
    ]},
   {sel_all_str,
    [
@@ -3923,96 +3970,109 @@
   {select_nth_ring,
    [
     % "Interval"
-    {1,"区间"},
+    {1,"간격"},
     % "Select Every Nth Edge Ring"
-    {2,"选择每隔n个边环"}
+    {2,"모든 N 엣지 링 선택"}
    ]},
   {sharp_edges,
    [
     % "Max Angle"
-    {1,"最大角度"},
+    {1,"최대각"},
     % "Select Sharp Edges"
-    {2,"选择锋利"},
+    {2,"샤프 엣지 선택"},
     % "Peaks"
-    {3,"皮克斯"},
+    {3,"꼭대기"},
     % "Valleys"
-    {4,"河谷"},
+    {4,"골짜기"},
     % "Both"
-    {5,"两个"}
+    {5,"양쪽"}
    ]},
   {short_edges,
    [
     % "Length tolerance"
-    {1,"长度公差"},
+    {1,"길이 허용차"},
     % "Select Short Edges"
-    {2,"选择短边"}
+    {2,"숏 엣지 선택"}
    ]},
   {shortest_path,
    [
     % "Exactly two vertices must be\n selected on the same object."
-    {1,"恰有两个顶点必须\n 选定同一个对象。"},
+    {1,"2 버텍스는 정확하게 동일한 오브젝트에서\n 선택해야 합니다."},
     % "Exactly two vertices must be selected."
-    {2,"恰有两个顶点必须选择。"}
+    {2,"정확하게 2 페이스를 선택해야 합니다."}
    ]},
   {similar_area,
    [
     % "Area Tolerance"
-    {1,"地区性"},
+    {1,"영역 허용차"},
     % "Select Similar Area"
-    {2,"选择同类地区"},
+    {2,"유사 영역 선택"},
     % "Exactly one face must be\n selected on a single object."
-    {3,"恰好一个必须面对\n 选定一个单一的对象。"},
+    {3,"정확하게 1 오브젝트에서 1 페이스를\n 선택해야 합니다."},
     % "Exactly one face must be selected."
-    {4,"整整一个面必须选择。"}
+    {4,"정확하게 1 페이스를 선택해야 합니다."}
    ]},
   {similar_area_faces_menu,
    [
     % "Similar Area"
     {1,"유사 영역"},
     % "Select faces with areas similar to that of the already selected face"
-    {2,"选择面的地区的相似，但已经选定的人脸"}
+    {2,"이미 선택 페이스와 유사한 영역을 가진 페이스 선택"}
    ]},
   {similar_help,
    [
     % "Select vertices similar to the already selected vertices"
-    {1,"选择类似的顶点已经选定的顶点"},
+    {1,"이미 선택 버텍스와 유사한 버텍스 선택"},
     % "Select edges similar to the already selected edges"
-    {2,"选择边类似于已经选定的边"},
+    {2,"이미 선택 엣지와 유사한 엣지 선택"},
     % "Select faces similar to the already selected faces"
-    {3,"面临着类似的选择已经选定的头像"},
+    {3,"이미 선택 페이스와 유사한 페이스 선택"},
     % "Select objects with the same number of edges, faces, and vertices"
-    {4,"选择对象与相同数量的边，面和顶点"}
+    {4,"같은 수의 엣지, 페이스, 버텍스를 가진 오브젝트 선택"}
    ]},
   {similar_material,
    [
     % "Connected Faces Only"
-    {2,"相连的面只有"},
+    {2,"연결 페이스만 "},
     % "At least one face must be selected"
-    {3,"至少必须选取一个面"},
+    {3,"최소한 1 페이스를 선택해야 합니다."},
     % "Select Faces with the same Material"
-    {4,"选择面使用同样的材料"},
+    {4,"동일 머테리얼 페이스 선택"},
     % "Materials"
-    {5,"재질"},
+    {5,"머테리얼"},
     % "Vertex Color"
-    {6,"버텍스 색"}
+    {6,"버텍스 컬러"}
    ]},
   {similar_material_faces,
    [
     % "Similar Material"
-    {1,"相似材料"},
+    {1,"유사 머테리얼"},
     % "Select faces with a similar material to those already selected"
-    {2,"选择面向那些已经选择具有类似的材料"}
+    {2,"이미 선택과 유사한 머테리얼을 가진 페이스 선택"}
    ]},
   {valid_sel,
    [
     % "The Object Id "
-    {1,"오브젝트 Id "},
+    {1,"오브젝트 ID "},
     % " is invalid."
     {2," 은(는) 잘못되었습니다."},
     % "The "
     {3,"이"},
     % " is invalid."
     {4," 은(는) 잘못되었습니다."}
+   ]},
+  {vertices_with,
+   [
+    % "Number of Edges"
+    {1,"엣지 수"},
+    % "Select Vertices"
+    {2,"버텍스 선택"},
+    % "More"
+    {3,"이상"},
+    % "Less"
+    {4,"이하"},
+    % "Exactly"
+    {5,"지정"}
    ]}
  ]}.
 {wings_shape,
@@ -4056,7 +4116,7 @@
     % "Move selected objects to this folder"
     {12,"선택 오브젝트를 이 폴더로 이동"},
     % "Empty Folder"
-    {13,"빈 폴더"},
+    {13,"폴더 비우기"},
     % "Remove From Folder"
     {14,"폴더에서 제거"},
     % "Remove Selected From Folders"
@@ -4069,33 +4129,33 @@
     % "Show menu"
     {2,"메뉴 보기"},
     % "Toggle visibility of active object"
-    {3,"切换显示的活动对象"},
+    {3,"활성 오브젝트의 보기/숨기기 전환"},
     % "Toggle visibility of all other objects"
-    {4,"切换显示的所有其他对象"},
+    {4,"모든 다른 오브젝트의 보기/숨기기 전환"},
     % "Lock/unlock active object"
-    {5,"锁定/解锁活动对象"},
+    {5,"활성 오브젝트의 잠그기/풀기"},
     % "Lock/unlock all objects"
-    {6,"锁定/解锁所有对象"},
+    {6,"모든 오브젝트의 잠그기/풀기"},
     % "Toggle selection for active object"
-    {7,"切换活动对象的选择"},
+    {7,"활성 오브젝트의 선택 전환"},
     % "Toggle selection for all other objects"
-    {8,"切换选择的所有其他对象"},
+    {8,"모든 오브젝트의 선택 전환"},
     % "Toggle shaded/wireframe for active object"
-    {9,"切换阴影主动对象/线框"},
+    {9,"활성 오브젝트의 쉐이드/와이어프레임 전환"},
     % "Toggle shaded/wireframe for all other objects"
-    {10,"切换阴影的所有其他对象/线框"},
+    {10,"모든 오브젝트의 쉐이드/와이어프레임 전환"},
     % "Toggle folder open/closed"
-    {11,"切换文件夹打开/关闭"},
+    {11,"폴더 열기/닫기 전환"},
     % "Toggle all folders open/closed"
-    {12,"切换所有文件夹打开/关闭"},
+    {12,"모든 폴더 열기/닫기 전환"},
     % "Toggle visibility for objects in folder"
-    {13,"切换显示在文件夹中的对象"},
+    {13,"폴더 오브젝트의 보기/숨기기 전환"},
     % "Lock/unlock objects in folder"
-    {14,"锁定/解锁文件夹对象"},
+    {14,"폴더 오브젝트의 잠그기/풀기 전환"},
     % "Toggle shaded/wireframe for objects in folder"
-    {15,"切换阴影中夹/线框的对象"},
+    {15,"폴더 오브젝트의 쉐이드/와이어프레임 전환"},
     % "Toggle selection for folder"
-    {16,"切换选择文件夹"}
+    {16,"폴더의 선택 전환"}
    ]},
   {rename_folder_dialog,
    [
@@ -4107,9 +4167,9 @@
   {title,
    [
     % "Geometry Graph"
-    {1,"기하학 그래프"},
+    {1,"지오메트리 그래프"},
     % "Geometry Graph #"
-    {2,"기하학 그래프 ＃"}
+    {2,"지오메트리 그래프 ＃"}
    ]}
  ]}.
 {wings_shapes,
@@ -4117,7 +4177,7 @@
   {cone,
    [
     % "Sections"
-    {1,"섹션"},
+    {1,"섹션(분할)"},
     % "Height"
     {2,"높이"},
     % "X Diameter"
@@ -4137,17 +4197,17 @@
   {cylinder,
    [
     % "Sections"
-    {1,"섹션"},
+    {1,"섹션(분할)"},
     % "Height"
     {2,"높이"},
     % "Top Face X Diameter"
-    {3,"顶面X直径"},
+    {3,"상단 페이스 X 지름"},
     % "Top Face Z Diameter"
-    {4,"顶面直径Z"},
+    {4,"상단 페이스 Z 지름"},
     % "Bottom Face X Diameter"
-    {5,"底面X直径"},
+    {5,"하단 페이스 X 지름"},
     % "Bottom Face Z Diameter"
-    {6,"底面直径Z"}
+    {6,"하단 페이스 Z 지름"}
    ]},
   {dodecahedron,
    [
@@ -4157,7 +4217,7 @@
   {grid,
    [
     % "Rows/Cols"
-    {1,"行/ cols"},
+    {1,"행/열"},
     % "X Spacing"
     {2,"X 간격"},
     % "Z Spacing"
@@ -4173,75 +4233,75 @@
   {prim_help,
    [
     % "Create a cone"
-    {cone,"创建一个圆锥"},
+    {cone,"콘(원뿔형) 만들기"},
     % "Create a cube"
-    {cube,"创建一个立方体"},
+    {cube,"큐브(입방체) 만들기"},
     % "Create a cylinder"
-    {cylinder,"创建一个圆柱体"},
+    {cylinder,"실린더(원통형) 만들기"},
     % "Create a dodecahedron"
-    {dodecahedron,"创建一个十二面体"},
+    {dodecahedron,"도데카헤드론(12면체) 만들기"},
     % "Create a grid"
-    {grid,"创建一个网格"},
+    {grid,"그리드(평면형) 만들기"},
     % "Create an icosahedron"
-    {icosahedron,"创建一个二十面体"},
+    {icosahedron,"아이코사헤드론(20면체) 만들기"},
     % "Create an image..."
-    {image,"创建一个图片..."},
+    {image,"이미지 만들기..."},
     % "Create a light"
-    {light,"创建一个光"},
+    {light,"라이트 만들기"},
     % "Create a material..."
-    {material,"创建材料..."},
+    {material,"머테리얼(재질) 만들기..."},
     % "Create an octahedron"
-    {octahedron,"创建一个八面体"},
+    {octahedron,"옥타헤드론(8면체) 만들기"},
     % "Create an octotoad"
-    {octotoad,"创建octotoad"},
+    {octotoad,"옥토토드(26면체) 만들기"},
     % "Create a sphere"
-    {sphere,"创建一个球体"},
+    {sphere,"스피어(구형) 만들기"},
     % "Create a tetrahedron"
-    {tetrahedron,"创建一个四面体"},
+    {tetrahedron,"테트라헤드론(4면체) 만들기"},
     % "Create a torus"
-    {torus,"创建一个圆环"}
+    {torus,"토러스(원환체) 만들기"}
    ]},
   {prim_name,
    [
     % "Cone"
-    {cone,"Cone(원뿔)"},
+    {cone,"콘(원뿔형)"},
     % "Cube"
-    {cube,"Cube(입방체)"},
+    {cube,"큐브(입방체)"},
     % "Cylinder"
-    {cylinder,"Cylinder(원통)"},
+    {cylinder,"실린더(원통형)"},
     % "Dodecahedron"
-    {dodecahedron,"Dodecahedron(12면체)"},
+    {dodecahedron,"도데카헤드론(12면체)"},
     % "Grid"
-    {grid,"Grid(그리드)"},
+    {grid,"그리드(평면형)"},
     % "Icosahedron"
-    {icosahedron,"Icosahedron(20면체)"},
+    {icosahedron,"아이코사헤드론(20면체)"},
     % "Image..."
     {image,"이미지..."},
     % "Light"
     {light,"라이트"},
     % "Material..."
-    {material,"재질..."},
+    {material,"머테리얼(재질)..."},
     % "Octahedron"
-    {octahedron,"Octahedron(8면체)"},
+    {octahedron,"옥타헤드론(8면체)"},
     % "Octotoad"
-    {octotoad,"Octotoad(26면체)"},
+    {octotoad,"옥토토드(26면체)"},
     % "Sphere"
-    {sphere,"Sphere(구)"},
+    {sphere,"스피어(구형)"},
     % "Tetrahedron"
-    {tetrahedron,"Tetrahedron(4면체)"},
+    {tetrahedron,"테트라헤드론(4면체)"},
     % "Torus"
-    {torus,"Torus(원환체)"}
+    {torus,"토러스(원환체)"}
    ]},
   {sphere,
    [
     % "Sections"
-    {1,"섹션"},
+    {1,"섹션(분할)"},
     % "Slices"
-    {2,"快讯"},
+    {2,"슬라이스(분할)"},
     % "X Radial"
-    {3,"X射线"},
+    {3,"X 방사형"},
     % "Y Radial"
-    {4,"Ÿ径向"}
+    {4,"Y 방사형"}
    ]},
   {tetrahedron,
    [
@@ -4251,15 +4311,15 @@
   {torus,
    [
     % "Sections"
-    {1,"섹션"},
+    {1,"섹션(분할)"},
     % "Slices"
-    {2,"快讯"},
+    {2,"슬라이스(분할)"},
     % "Minor Radius"
-    {4,"小半径"},
+    {4,"작은 반경"},
     % "Major X Radius"
-    {31,"主要X半径"},
+    {31,"주요 X 반경"},
     % "Major Z Radius"
-    {32,"主要ž半径"}
+    {32,"주요 Z 반경"}
    ]}
  ]}.
 {wings_subdiv,
@@ -4269,24 +4329,24 @@
     % "Face "
     {1,"페이스"},
     % " has only two edges."
-    {2,"只有两个边缘。"}
+    {2," 2 엣지가 있습니다."}
    ]},
   {smooth,
    [
     % "smoothing"
     {1,"스무딩"},
     % "calculating face centers"
-    {2,"面对中心的计算"},
+    {2,"페이스 중심 계산"},
     % "cutting edges"
-    {3,"切削刃"},
+    {3,"엣지 커팅"},
     % "updating materials"
-    {4,"更新材料"},
+    {4,"머테리얼 업데이트하기"},
     % "creating new faces"
-    {5,"创造新的面孔"},
+    {5,"새 페이스 만들기"},
     % "moving vertices"
-    {6,"移动顶点"},
+    {6,"페이스 이동"},
     % "finishing"
-    {7,"精加工"}
+    {7,"마감"}
    ]}
  ]}.
 {wings_tesselation,
@@ -4294,9 +4354,9 @@
   {submenu,
    [
     % "Triangulate"
-    {1,"3각"},
+    {1,"트라이앵귤레이트(3각)"},
     % "Quadrangulate"
-    {2,"4각"}
+    {2,"쿼드랭귤레이트(4각)"}
    ]}
  ]}.
 {wings_theme,
@@ -4306,9 +4366,9 @@
     % "Themes"
     {1,"테마"},
     % "Classic Green Theme"
-    {2,"고전 녹색 테마"},
+    {2,"클래식 녹색 테마"},
     % "Change the display colors to the original Wings3D theme with the green titlebars"
-    {3,"更改显示的颜色与原来的Wings3D主题标题栏的绿色"},
+    {3,"Wings3D의 최초 녹색 제목 표시줄 테마로 컬러 표시 변경"},
     % "Olive Theme"
     {4,"올리브 테마"},
     % "Grey Blue Theme"
@@ -4316,7 +4376,7 @@
     % "Dark Blue Theme"
     {6,"진한 청색 테마"},
     % "Change color scheme"
-    {7,"색 구성표 변경"}
+    {7,"컬러 구성표 변경"}
    ]}
  ]}.
 {wings_toolbar,
@@ -4324,60 +4384,60 @@
   {button_help_1,
    [
     % "Deselect"
-    {1,"선택 해제"}
+    {1,"비선택"}
    ]},
   {button_help_2,
    [
     % "Select adjacent vertices"
-    {1,"选择相邻的顶点"},
+    {1,"인접 버텍스 선택"},
     % "Change to vertex selection mode"
-    {2,"选择模式切换到顶点"},
+    {2,"버텍스 선택 모드로 변경"},
     % "Select adjcacent edges"
-    {3,"选择adjcacent边缘"},
+    {3,"인접 엣지 선택"},
     % "Change to edge selection mode"
-    {4,"切换到边选择模式"},
+    {4,"엣지 선택 모드로 변경"},
     % "Select adjacent faces"
-    {5,"选择相邻的面"},
+    {5,"인접 페이스 선택"},
     % "Change to face selection mode"
-    {6,"面对选择模式的变化"},
+    {6,"페이스 선택 모드로 변경"},
     % "Change to body selection mode"
-    {7,"切换到身体的选择模式"}
+    {7,"바디 선택 모드로 변경"}
    ]},
   {button_help_3,
    [
     % "Undo the last command"
     {1,"최종 명령 실행 취소"},
     % "Redo the last command that was undone"
-    {2,"重做最后被撤消命令"},
+    {2,"취소한 최종 명령 재실행"},
     % "Open a previously saved scene"
-    {3,"打开一个以前保存的场景"},
+    {3,"이전 저장된 장면 열기"},
     % "Save the current scene"
-    {4,"保存当前场景"},
+    {4,"현재 장면 저장"},
     % "Edit the preferences for Wings"
-    {5,"编辑翅膀喜好"}
+    {5,"Wings 환경 설정 편집"}
    ]},
   {messages,
    [
     % "axes"
     {axes,"축"},
     % "Change to"
-    {change_to,"更改为"},
+    {change_to,"변경"},
     % "flat shading"
-    {flat,"平面阴影"},
+    {flat,"플랫 쉐이딩"},
     % "ground plane"
-    {groundplane,"그라운드 평면"},
+    {groundplane,"그라운드 플레인"},
     % "Hide"
-    {hide,"Hide(숨김)"},
+    {hide,"숨기기"},
     % "orthogonal view"
-    {orthogonal,"正交视图"},
+    {orthogonal,"직각 뷰"},
     % "perspective view"
-    {perspective,"透视"},
+    {perspective,"원근 뷰"},
     % "Show"
     {show,"보기"},
     % "Show objects with"
-    {show_objects,"显示物体"},
+    {show_objects,"오브젝트 보기"},
     % "smooth shading"
-    {smooth,"平滑阴影"}
+    {smooth,"스무드 쉐이딩"}
    ]}
  ]}.
 {wings_tweak,
@@ -4387,219 +4447,219 @@
     % "Default Axis"
     {1,"기본 축"},
     % "Element Normal"
-    {2,"元素师"},
+    {2,"요소 노멀"},
     % "Element Normal (edges)"
-    {3,"元正常（边）"},
+    {3,"요소 노멀 (엣지)"},
     % "Radial"
     {4,"방사형"},
     % "From Cursor"
-    {5,"从游标"},
+    {5,"커서에서"},
     % "From Element"
-    {6,"从元素"},
+    {6,"요소에서"},
     % "From Default Point"
-    {7,"从预设点"}
+    {7,"기본 포인트에서"}
    ]},
   {cam_conflict,
    [
     % "Key combo was not assigned.\n\n    That key combination would conflict with the Camera buttons"
-    {1,"组合键是不被分配。\n\n 这种组合键有冲突的相机按钮"}
+    {1,"키 조합이 할당되지 않았습니다.\n\n    키 조합은 카메라 버튼과 충돌합니다."}
    ]},
   {camera_msg,
    [
     % "[C]: Tumble camera  [S]: Pan  [D]: Dolly"
-    {1,"[中]：滚筒相机[的]：潘研究[D]：多莉"}
+    {1,"[C]: 회전 카메라  [S]: 팬  [D]: 돌리"}
    ]},
   {constraints_menu,
    [
     % "Locks movement to the selection's Normal."
-    {1,"锁定运动的选择是正常的。"},
+    {1,"선택의 노멀 이동 잠그기"},
     % "Locks movement to the Default Axis."
-    {2,"锁转移到默认的轴。"},
+    {2,"기본 축 이동 잠그기."},
     % "Locks movement to the Radial of the current Tweak Axis."
-    {3,"锁运动当前扭轴的径向。"},
+    {3,"현재 트윅 축의 방사형의 이동 잠그기"},
     % "Locks movement to the ~ts axis."
-    {5,"锁转移到 ~ts 轴。"},
+    {5," ~ts 축 이동 잠그기."},
     % "Constrained movement to normal of element marked by Tweak Vector."
-    {6,"受约束的运动矢量标记元素拧正常。"},
+    {6,"트윅 벡터에서 표시한 요소의 노멀로 제한 이동."},
     % "Scale from mouse cursor."
-    {7,"规模从鼠标光标。"},
+    {7,"마우스 커서에서 스케일."},
     % "Scale from element marked by Tweak Vector."
-    {8,"从元素尺度矢量标志拧。"},
+    {8,"트윅 벡터에서 표시한 요소로 스케일."},
     % "Scale from Default Point."
-    {9,"规模从违约点。"},
+    {9,"기본 포인트에서 스케일."},
     % "Clear Constraints"
-    {10,"明确约束"},
+    {10,"제한 삭제"},
     % "Clear all locked axes."
-    {11,"清除所有锁定轴。"}
+    {11,"모든 잠금 축 지우기"}
    ]},
   {extra_msg,
    [
     % "Slide Collapse"
-    {1,"滑动折叠"}
+    {1,"Slide Collapse"}
    ]},
   {help_msg_axes,
    [
     % "--Axis Constraints--"
-    {1,"- 轴约束 - "},
+    {1,"--축 제한--"},
     % "Axis Constraints only affect Tweak Move and Scale operations."
-    {2,"约束只影响扭轴移动和规模经营。"},
+    {2,"축 제한은 트윅 이동 및 스케일 운영에 영향을 미칩니다."},
     % "[F1], [F2], and [F3] can be held to constrain movement to the 3 cardinal axes, X, Y, and Z."
-    {3,"[F1]，[F2]和[F3键]可以限制移动举行的3枢机轴，的X，Y和Z"},
+    {3," X, Y 및 Z 3 기본 축에 이동을 제한하기 위해 [F1], [F2] 및 [F3]을 잡을 수 있습니다."},
     % "Click axis constraint hotkeys to toggle them."
-    {4,"按热键切换轴约束他们。"},
+    {4,"그들을 전환하기 위해 축 제한 단축키를 누릅니다"},
     % "Any of the axes can be toggled to stay on via the Tweak Menu or the Tweak Palette."
-    {5,"轴的任何可通过切换留菜单或拧拧调色板。"},
+    {5,"어떤 축이 트윅 메뉴 또는 트윅 팔레트를 통해 머물도록 전환할 수 있습니다."},
     % "The From Element and From Point axes activate the Tweak Vector."
-    {6,"从元素与点轴的激活这个优化载体。"},
+    {6,"요소 및 포인트 축에서 트윅 벡터를 활성화 합니다."},
     % "Axes can be combined."
-    {7,"轴可以结合起来。"}
+    {7,"축은 결합 수 있습니다."}
    ]},
   {help_msg_basic,
    [
     % "--What is Tweak?--"
-    {1,"- 什么是拧？ - "},
+    {1,"--트윅은 무엇입니까?--"},
     % "Tweak lets you edit a model quickly by clicking and dragging geometry."
-    {2,"调整可让您编辑通过点击和拖动几何模型快速。"},
+    {2,"트윅은 당신이 모델을 클릭하고 드래그하여 신속하게 지오메트리(형상)를 편집하게 할 수 있습니다."},
     % "While Tweak is enabled, all the regular Wings commands are still available,"
-    {3,"虽然拧启用，所有的常规翼命令依然有效，"},
+    {3,"트윅이 활성화되어 있는 동안 모든 표준 Wings 명령을 계속 사용할 수 있습니다."},
     % " but certain mouse buttons and modifier keys will activate the Tweak tools."
-    {4,"但某些鼠标按钮和修改键将激活这个优化工具。"}
+    {4," 그러나 어떤 마우스 버튼과 수정자 키는 트윅 도구를 활성화합니다."}
    ]},
   {help_msg_hotkeys,
    [
     % "--Hotkeyed Tweak Tools--"
-    {1,"- Hotkeyed拧工具 - "},
+    {1,"--트윅 도구 단축키--"},
     % "An alternative to usings Tweak Key combinations is to assign hotkeys to the various Tweak Tools usings the [Insert] method."
-    {2,"就使用的Using扭组合键选择是分配到各个热键的Using拧工具的[插入]的方法。"},
+    {2,"트윅 키 조합을 사용하는 대안은 [Insert] 방법을 사용하여 단축키를 다양한 트윅 도구에게 할당하는 것입니다."},
     % "Pressing the hotkey assigns that Tweak Tool to Lmb."
-    {3,"按下热键赋给拧工具分子生物学实验室。"}
+    {3,"단축키를 눌러 트윅 도구를 Lmb(좌버튼)에 할당합니다."}
    ]},
   {help_msg_keys,
    [
     % "--Assigning Tweak Keys--"
-    {1,"- 分配拧钥匙 - "},
+    {1,"--트윅 키 할당하기--"},
     % "Each of the Tweak Tools ~tscan be assigned a modifier key combination (Ctrl, Shift, Alt)."
-    {2,"每个拧工具 ~tscan 分配一个修改键组合（Ctrl，Shift，Alt）。"},
+    {2,"각 트윅 도구 ~ts 의 수정자 키 조합을 할당할 수 있습니다. (Ctrl, Shift, Alt)."},
     % " and "
-    {3,"和"},
+    {3," 및 "},
     % "To assign a key combination to a Tweak Tool:"
-    {4,"要指定组合键来一拧工具："},
+    {4,"트윅 도구 키 조합을 할당하려면 :"},
     % "\t1) Open the Tweak Menu."
-    {5,"\ T1）的开启此项修改菜单。"},
+    {5,"\t1) 트윅 메뉴를 엽니다."},
     % "\t2) Highlight one of the Tweak Tools."
-    {6,"\ t2）的亮点这个优化工具之一。"},
+    {6,"\t2) 트윅 도구 중의 하나를 강조 표시합니다."},
     % "\t3) Press and hold the modifier key combination and/or press the activating mouse button."
-    {7,"\ T3）的修改按住组合键and/or按鼠标左键激活。"}
+    {7,"\t3) 수정자 키 조합을 누르고 잡거나 활성화된 마우스 버튼을 누릅니다."}
    ]},
   {help_msg_magnet,
    [
     % "--Magnets--"
-    {1,"- 磁铁 - "},
+    {1,"--마그넷--"},
     % "Magnets allow for soft selection."
-    {2,"磁体允许软选择。"},
+    {2,"마그넷은 부드러운 선택을 할 수 있습니다."},
     % "There are 3 magnet types: Dome, Straight, and Spike."
-    {3,"有3磁铁类型：圆顶，直，与穗。"},
+    {3,"마그넷은 3 형식이 있습니다: 돔, 스트레이트 및 스파이크."},
     % "Adjust the Magnet's Radius by holding [Alt] and moving the mouse."
-    {4,"调整按住[Alt]并移动鼠标的磁铁的半径。"},
+    {4,"[Alt]를 누르고 마우스를 이동하여 마그넷의 반경을 조정합니다."},
     % "Commands for switching magnets can be assigned to hotkeys in the Tweak Menu|Magnets."
-    {5,"用于开关磁铁命令可以分配给这个优化菜单热键|磁体。"},
+    {5,"마그넷을 의한 명령은 트윅 메뉴|마그넷에서 단축키를 할당할 수 있습니다."},
     % "Magnet options can be set in the Tweak Preferences."
-    {6,"磁铁选项可以设置在此项修改首选项。"}
+    {6,"마그넷 옵션은 트윅 설정에서 설정할 수 있습니다"}
    ]},
   {help_msg_palette,
    [
     % "--Tweak Palette (Windows|Tweak Palette)--"
-    {1,"- 扭调色板（窗口|扭盘） - "},
+    {1,"--트윅 팔레트 (윈도우|트윅 팔레트)--"},
     % "The Tweak Palette is a group of 3 windows that contain the main commands from the Tweak Menu."
-    {2,"此项修改调色板是一个包含3个窗口，从这个优化菜单的主要命令组。"},
+    {2,"트윅 팔레트는 트윅 메뉴에서 기본 명령을 포함하는 3 그룹의 창입니다."},
     % "Use the Tweak Palette to change switch between Tweak Tools, Magnet Types, or Axis Constraints."
-    {3,"使用此项修改调色板工具之间切换扭，磁铁类型，或轴约束切换。"}
+    {3,"트윅 도구, 마그넷 형식 또는 축 제한 사이의 변경을 위한 전환은 트윅 팔레트를 사용합니다"}
    ]},
   {help_msg_using_keys,
    [
     % "--Using Tweak--"
-    {1,"- 使用扭 - "},
+    {1,"--트윅 사용하기--"},
     % "1) Enabled Tweak."
-    {2,"1）启用拧。"},
+    {2,"1) 트윅 활성화."},
     % "2) Highlight or select one or more elements of geometry."
-    {3,"2）选择或选择一个或多个几何元素。"},
+    {3,"2) 지오메트리(형상)의 하나 이상의 요소를 강조 표시 또는 선택합니다."},
     % "3) Press the Tweak Key combination and associated mouse button to activate Tweak."
-    {4,"3）按这个优化组合键和鼠标按钮激活相关拧。"},
+    {4,"3) 트윅 키 조합과 트윅 활성화에 연결된 마우스 버튼을 누릅니다."},
     % "4) Drag geometry to it new position."
-    {5,"4）拖动几何了新的位置。"},
+    {5,"4) 그것에 새 위치 지오메트리(형상)를 드래그합니다."},
     % "5) Release the mouse button to complete the Tweak."
-    {6,"5）松开鼠标按钮完成此项修改。"},
+    {6,"5) 트윅을 완료하기 위해 마우스 버튼을 해제합니다."},
     % "Releasing the Tweak Keys will not end the Tweak event."
-    {7,"松开拧钥匙不会结束此项修改事件。"},
+    {7,"트윅 키 해제는 트윅 이벤트를 끝내지 않습니다."},
     % "This allows other hotkeys to be used in mid-tweak to activate another Tweak tool, an axis constraint, aim the camera, or adjust the magnet radius."
-    {8,"这使其他热键将在中期调整到使用的激活另一个拧工具，一轴约束，将相机，或调整磁铁半径。"},
+    {8,"이것은 트윅 중에 다른 트윅 도구, 축 제한, 카메라 조준선 또는 마그넷 반경 조정을 활성화하는 데 다른 단축키를 사용되도록 허용합니다."},
     % "Pressing [C] in mid-tweak tumbles the camera."
-    {9,"按[中]中旬调整跌倒相机。"},
+    {9,"트윅 중에 [C]를 누르면 카메라 회전."},
     % "Pressing [S] or the Arrow Keys in mid-tweak pans the camera."
-    {10,"按[S]或在中期调整锅箭头键相机。"},
+    {10,"트윅 중에 [S] 또는 화살표 키를 누르면 카메라 팬."},
     % "Pressing [D] in mid-tweak dollies the camera."
-    {11,"按研究[D]相机在中期调整推车。"},
+    {11,"트윅 중에 [D]를 누르면 카메라 돌리."},
     % "Pressing [Spacebar] in mid-tweak switches to the Tweak Tool assigned to the Lmb."
-    {12,"按[空格键]在中期调整切换到这个优化工具分配到分子生物学实验室。"},
+    {12,"트윅 중에 [스페이스바]를 누르면 트윅 도구의 전환을 Lmb(좌버튼)에 할당."},
     % "Holding [F] while finalizing a Slide operation collapses all newly created short edges."
-    {13,"控股[F]中，同时完成幻灯片操作坍塌所有新创建的短边。"}
+    {13,"슬라이드 동작을 마무리하면서 [F]을 잡는 것은 새로 만든 모든 숏 엣지를 축소."}
    ]},
   {help_window,
    [
     % "Tweak Help"
-    {1,"Tweak Help"}
+    {1,"트윅 도움말"}
    ]},
   {mag_thelp,
    [
     % "This magnet pulls and pushes geometry with an even and rounded effect."
-    {1,"这与磁铁拉和推动作用均匀，圆形的几何形状。"},
+    {1,"이 마그넷은 평평하고 둥근 효과로 지오메트리(형상)을 당기고 밉니다."},
     % "This magnet pulls and pushes geometry with a straight effect."
-    {2,"这种磁铁拉和推动作用几何与直。"},
+    {2,"이 마그넷은 곧은 효과로 지오메트리(형상)을 당기고 밉니다."},
     % "This magnet pulls and pushes geometry out to a sharp point."
-    {3,"这种磁铁拉出来，并推到尖锐的几何点。"}
+    {3,"이 마그넷은 날카로운 포인트로 지오메트리(형상)을 당기고 밉니다."}
    ]},
   {magnet_type,
    [
     % "Dome"
-    {1,"拱顶"},
+    {1,"돔"},
     % "Straight"
-    {2,"直"},
+    {2,"스트레이트"},
     % "Spike"
-    {3,"穗"}
+    {3,"스파이크"}
    ]},
   {menu,
    [
     % "Tweak is a collection of tools for quickly adjusting a mesh."
-    {1,"调整是一个工具，用于快速调整A网的集合。"},
+    {1,"트윅은 신속하게 메쉬를 조정하는 도구의 모음입니다."},
     % "Enable Tweak"
-    {2,"启用拧"},
+    {2,"트윅 활성"},
     % "Disable Tweak"
-    {3,"禁止拧"},
+    {3,"트윅 비활성"},
     % "Magnets"
-    {4,"자석 Magnet"},
+    {4,"마그넷"},
     % "Axis Constraints"
-    {5,"轴约束"},
+    {5,"축 제한"},
     % "Move selection relative to screen, or constrained to an axis."
-    {6,"移动选择相对屏幕，或限制在一个轴。"},
+    {6,"화면에 상대적인, 또는 축에 제한적인 선택 이동."},
     % "Move selection along average normal."
-    {7,"沿着平均正常选择。"},
+    {7,"노멀을 따라 선택 이동."},
     % "Scale selection relative to screen, or constrained to an axis."
-    {8,"选择规模相对屏幕，或限制在一个轴。"},
+    {8,"화면에 상대적인, 또는 축에 제한적인 선택 스케일."},
     % "Scale elements uniformly from the selection center."
-    {9,"从分子尺度均匀甄选中心。"},
+    {9,"선택 중심에서 동일하게 요소 스케일."},
     % "Relax selection toward the average plane of neighbors."
-    {10,"选择放松对邻居的平均平面。"},
+    {10,"이웃의 평균 평면 쪽으로 선택 릴렉스(완화)."},
     % "Slide elements along adjacent edges."
-    {11,"相邻的边沿线幻灯片元素。"},
+    {11,"인접한 엣지를 따라 요소 슬라이드."},
     % "Tweak Preferences"
-    {13,"트윅 설정"},
+    {13,"트윅 환경 설정"},
     % "Preferences for Tweak"
-    {14,"트윅을 위한 환경 설정"}
+    {14,"트윅 환경 설정"}
    ]},
   {menu_conflict,
    [
     % "Key combo was not assigned.\n\n    Those keys would conflict with the right click Tweak menu."
-    {1,"组合键是不被分配。\n\n 这些键会冲突与右击拧菜单。"}
+    {1,"키 조합이 할당되지 않았습니다.\n\n    키 조합은 우클릭 트윅 메뉴와 충돌합니다."}
    ]},
   {mode,
    [
@@ -4610,9 +4670,9 @@
     % "Scale"
     {3,"스케일"},
     % "Scale Uniform"
-    {4,"유니폼 스케일"},
+    {4,"스케일 유니폼"},
     % "Relax"
-    {5,"완화"},
+    {5,"릴렉스"},
     % "Slide"
     {6,"슬라이드"}
    ]},
@@ -4621,26 +4681,26 @@
     % "Tweak"
     {1,"트윅"},
     % "Tweak Magnet"
-    {2,"트윅 자석"},
+    {2,"트윅 마그넷"},
     % "Tweak Axis"
     {3,"트윅 축"}
    ]},
   {spacebar_msg,
    [
     % "[Space]: Switch to Tweak tool assigned to L"
-    {1,"[Space]：切换工具来调整分配到L"}
+    {1,"[Space]: 트윅 도구의 전환을 L 에 할당"}
    ]},
   {toggle_bold,
    [
     % "Active Point: "
-    {1,"活动点："},
+    {1,"활성 포인트: "},
     % "Active Axis: "
-    {2,"활성 축："}
+    {2,"활성 축: "}
    ]},
   {tweak_disabled_msg,
    [
     % "Tweak: Disabled"
-    {1,"트윅: OFF"}
+    {1,"트윅: 비활성"}
    ]},
   {tweak_info_line,
    [
@@ -4656,86 +4716,86 @@
   {tweak_magnet_help,
    [
     % "Magnet: "
-    {1,"자석: "},
+    {1,"마그넷: "},
     % "Magnet: Off"
-    {2,"자석： OFF"},
+    {2,"마그넷: OFF"},
     % "+Drag: "
-    {3,"+드래그："},
+    {3,"+드래그: "},
     % "Adjust Radius"
     {4,"반경 조정"}
    ]},
   {tweak_magnet_menu,
    [
     % "Disable Magnet"
-    {1,"자석 OFF"},
+    {1,"마그넷 비활성"},
     % "Enable Magnet"
-    {2,"자석 ON"},
+    {2,"마그넷 활성"},
     % "Tweak magnets are similar to 'soft selection'."
-    {3,"调整磁铁类似于'软选择'。"},
+    {3,"트윅 마그넷은 '소프트 선택'과 비슷합니다."},
     % "Radius Adjust Key"
-    {5,"半径调整的关键"},
+    {5,"반경 조정 키"},
     % "Press [Insert] to customize hotkey for adjusting the magnet radius. "
-    {6,"按[插入]自订调整磁铁半径热键。"},
+    {6,"마그넷 반경을 조정하려면 사용자 정의 단축키 [Insert] 누름. "},
     % "Without a hotkey assigned, the magnet radius is adjusted by holding [Alt]."
-    {7,"如果没有指定热键，磁铁半径调整按住[Alt]。"},
+    {7,"단축키 할당없이, 마그넷 반경은 [Alt] 누르고 조정."},
     % "Reset Radius"
-    {8,"复位半径"},
+    {8,"반경 재설정"},
     % "Reset the magnet radius to 1.0"
-    {9,"重置磁铁半径为1.0"},
+    {9,"마그넷 반경 1.0으로 재설정"},
     % "Next Magnet Type"
-    {10,"下一步永磁型"},
+    {10,"다음 마그넷 형식"},
     % "Can be hotkeyed to cycle through the magnets."
-    {11,"可hotkeyed可循环的磁铁。"}
+    {11,"마그넷을 통해 순환하는 단축키일 수 있습니다."}
    ]},
   {tweak_magnet_radius_help,
    [
     % "Drag right to increase and left to decrease the magnet radius."
-    {1,"拖动左右，以增加和减少磁铁半径。"},
+    {1,"마그넷 반경은 우 드래그하면 증가, 좌 드래그하면 감소."},
     % "Magnet is currently off."
-    {2,"磁铁目前关闭。"}
+    {2,"현재 마그넷은 꺼졌습니다."}
    ]},
   {tweak_menu_item,
    [
     % "Binding: "
-    {1,"결합："},
+    {1,"연결: "},
     % "Set: "
-    {2,"설정："},
+    {2,"설정: "},
     % "Swap: "
-    {3,"교환："},
+    {3,"교환: "},
     % "Hold modifiers and/or press any mouse button."
-    {4,"持有改性剂and/or按任何鼠标按钮。"},
+    {4,"수정자 및(또는) 마우스 버튼 누름."},
     % "Press another tool's key binding."
-    {5,"按另一种工具的关键约束力。"},
+    {5,"다른 도구의 연결 키 누름."},
     % "Unbind: "
-    {6,"분리："}
+    {6,"분리: "}
    ]},
   {tweak_preferences_dialog,
    [
     % "Click Speed for Select/Deselect"
-    {1,"点击选择/取消选择速度"},
+    {1,"선택/비선택의 속도"},
     % "Lower to increase control or raise to increase speed."
-    {2,"控制下，增加或提高，以增加速度。"},
+    {2,"낮은 제어 상승 또는 속도 증가."},
     % "Tweak Speed (Drag Response)"
-    {3,"调整速度（拖动响应）"},
+    {3,"트윅 속도 (드래그 응답)"},
     % "Magnet Radius Adjustment Sensitivity"
-    {4,"调整灵敏度磁力半径"},
+    {4,"마그넷 반경 조정 감도"},
     % "Magnet Radius Display Color"
-    {5,"永磁半径显示 색"},
+    {5,"마그넷 반경 표시 컬러"},
     % "Length"
     {6,"길이"},
     % "Width"
     {7,"너비"},
     % "Color"
-    {8,"색"},
+    {8,"컬러"},
     % "Tweak Vector"
     {9,"트윅 벡터"},
     % "Tweak Preferences"
-    {10,"트윅 설정"}
+    {10,"트윅 환경 설정"}
    ]},
   {xyzkey_help,
    [
     % "Active Axis: "
-    {1,"활성 축："}
+    {1,"활성 축: "}
    ]}
  ]}.
 {wings_u,
@@ -4775,7 +4835,7 @@
     % "Help"
     {12,"도움말"},
     % "New"
-    {13,"새 파일"},
+    {13,"새 장면"},
     % "Open"
     {14,"열기"},
     % "Merge"
@@ -4825,13 +4885,13 @@
     % "Plugin Manager"
     {37,"플러그인 매니저"},
     % "Show Ground Plane"
-    {38,"그라운드 평면 보기"},
+    {38,"그라운드 플레인 보기"},
     % "Show Axes"
     {39,"축 보기"},
     % "Show Info Text"
-    {40,"정보 글자 보기"},
+    {40,"정보 텍스트 보기"},
     % "Workmode"
-    {41,"작업 모드"},
+    {41,"워크모드"},
     % "Wireframe"
     {42,"와이어프레임"},
     % "Shade"
@@ -4841,21 +4901,21 @@
     % "Show Edges"
     {45,"엣지 보기"},
     % "Show Wireframe Backfaces"
-    {46,"와이어 프레임 백페이스 보기"},
+    {46,"와이어프레임 백페이스 보기"},
     % "Toggle Smooth Proxy"
     {47,"스무드 프록시 전환"},
     % "Quick Smoothed Preview"
     {48,"퀵 스무드 프리뷰"},
     % "Show Bounding Box"
-    {49,"경계 박스 보기"},
+    {49,"바운딩 박스 보기"},
     % "Clipping Plane"
-    {50,"평면 클리핑"},
+    {50,"클리핑 플레인"},
     % "Show Normals"
     {51,"노멀 보기"},
     % "Show Colors"
-    {52,"색 보기"},
+    {52,"컬러 보기"},
     % "Show Materials"
-    {53,"재질 보기"},
+    {53,"머테리얼 보기"},
     % "Show Textures"
     {54,"텍스쳐 보기"},
     % "Scene Lights"
@@ -4867,9 +4927,9 @@
     % "Reset View"
     {58,"뷰 재설정"},
     % "Aim"
-    {59,"목표물"},
+    {59,"에임(조준선)"},
     % "Highlight Aim"
-    {60,"강조 목표물"},
+    {60,"하이라이트 에임(조준선)"},
     % "Frame"
     {61,"프레임"},
     % "Frame Mode"
@@ -4885,7 +4945,7 @@
     % "Jump"
     {67,"점프"},
     % "Along"
-    {68,"沿"},
+    {68,"Along"},
     % "Rename"
     {69,"이름 바꾸기"},
     % "Delete All"
@@ -4895,7 +4955,7 @@
     % "Auto Rotate"
     {72,"자동 회전"},
     % "Deselect"
-    {73,"선택 해제"},
+    {73,"비선택"},
     % "More"
     {74,"증가"},
     % "Less"
@@ -4905,7 +4965,7 @@
     % "Edge Loop"
     {77,"엣지 루프"},
     % "Edge Loop to Region"
-    {78,"河套地区的边缘"},
+    {78,"영역 엣지 루프"},
     % "Edge Ring"
     {79,"엣지 링"},
     % "Previous Edge Loop"
@@ -4913,23 +4973,23 @@
     % "Next Edge Loop"
     {81,"다음 엣지 루프"},
     % "Edge Link Increase"
-    {82,"边缘的链接增加"},
+    {82,"엣지 링크 증가"},
     % "Edge Link Decrease"
-    {83,"边缘的链接减少"},
+    {83,"엣지 링크 감소"},
     % "Edge Ring Increase"
-    {84,"边环增加"},
+    {84,"엣지 링 증가"},
     % "Edge Ring Decrease"
-    {85,"边环减少"},
+    {85,"엣지 링 감소"},
     % "Adjacent"
-    {86,"相邻"},
+    {86,"인접"},
     % "Inverse"
     {87,"반전"},
     % "Hide Selected"
-    {88,"선택 숨김"},
+    {88,"선택 숨기기"},
     % "Hide Unselected"
-    {89,"비선택 숨김"},
+    {89,"비선택 숨기기"},
     % "Lock Unselected"
-    {90,"비선택 잠금"},
+    {90,"비선택 잠그기"},
     % "Show All"
     {91,"모두 보기"},
     % "Store Selection"
@@ -4951,57 +5011,57 @@
     % "Select Group"
     {100,"그룹 선택"},
     % "Union Group"
-    {101,"유니온 그룹"},
+    {101,"그룹 합치기"},
     % "Subtract Group"
     {102,"그룹 빼기"},
     % "Intersect Group"
     {103,"그룹 교차"},
     % "By"
-    {104,"通过"},
+    {104,"종류"},
     % "Hard Edges"
     {105,"하드 엣지"},
     % "Isolated Vertices"
-    {106,"독립 버텍스"},
+    {106,"절연 버텍스"},
     % "Non-Planar Faces"
     {107,"비평면 페이스"},
     % "Vertices With"
-    {108,"버텍스로..."},
+    {108,"버텍스..."},
     % "Faces With"
-    {109,"페이스로..."},
+    {109,"페이스..."},
     % "Non Quadrangle"
-    {110,"非四合院"},
+    {110,"비4각"},
     % "Odd"
-    {111,"奇"},
+    {111,"Odd(이상한)"},
     % "Even"
-    {112,"即使"},
+    {112,"Even(평평한)"},
     % "Random"
     {113,"무작위"},
     % "Short Edges"
-    {114,"짧은 엣지"},
+    {114,"숏 엣지"},
     % "Sharp Edges"
-    {115,"锋利的边缘"},
+    {115,"샤프 엣지"},
     % "Vertex Path"
-    {116,"顶点路径"},
+    {116,"버텍스 경로"},
     % "Fewest Edges Path"
-    {117,"最少的边路径"},
+    {117,"최소 엣지 경로"},
     % "Shortest Path (Dijkstra)"
-    {118,"最短路径（Dijkstra算法）"},
+    {118,"최단 경로 (Dijkstra)"},
     % "Shortest Path (A-Star)"
-    {119,"最短路径（一星级）"},
+    {119,"최단 경로 (A-Star)"},
     % "Material Edges"
-    {120,"재질 엣지"},
+    {120,"머테리얼 엣지"},
     % "Align"
     {121,"정렬"},
     % "Save Bounding Box"
-    {122,"경계 박스 저장"},
+    {122,"바운딩 박스 저장"},
     % "Scale to Bounding Box"
-    {123,"缩放到边框"},
+    {123,"바운딩 박스로 스케일"},
     % "Scale to Bounding Box Proportionally"
-    {124,"规模，边框以比例"},
+    {124,"비례하여 바운딩 박스로 스케일"},
     % "Move to Bounding Box"
-    {125,"경계 박스로 이동"},
+    {125,"바운딩 박스로 이동"},
     % "Virtual Mirror"
-    {126,"가상 대칭"},
+    {126,"버추얼 미러(가상 대칭)"},
     % "Create"
     {127,"만들기"},
     % "Break"
@@ -5011,27 +5071,27 @@
     % "Screenshot"
     {130,"스크린샷"},
     % "Area Volume Info"
-    {131,"지역 용량 정보"},
+    {131,"영역 용량 정보"},
     % "Memory Usage"
     {132,"메모리 사용량"},
     % "Put on Ground"
     {133,"그라운드 위"},
     % "Unitize"
-    {134,"Unitize(유니타이즈)"},
+    {134,"유니타이즈(기본 크기)"},
     % "Tweak"
     {135,"트윅"},
     % "Snap Image"
-    {136,"이미지 스냅"},
+    {136,"스냅 이미지"},
     % "Outliner"
-    {137,"개요"},
+    {137,"아웃라이너"},
     % "Geometry Graph"
-    {138,"기하학 그래프"},
+    {138,"지오메트리 그래프"},
     % "Palette"
     {139,"팔레트"},
     % "Console"
     {140,"콘솔"},
     % "New Geomerty Window"
-    {141,"새 기하학 창"},
+    {141,"새 지오메트리 창"},
     % "UV Editor Window"
     {142,"UV 에디터 창"},
     % "Getting Started"
@@ -5041,9 +5101,9 @@
     % "International Keyboards"
     {145,"국제적 키보드"},
     % "Defined Hotkeys"
-    {146,"定义热键"},
+    {146,"정의된 단축키"},
     % "Defining Hotkeys"
-    {147,"定义热键"},
+    {147,"단축키 정의하기"},
     % "Default Commands"
     {149,"기본 명령"},
     % "Performance Tips"
@@ -5053,71 +5113,71 @@
     % "About"
     {152,"정보"},
     % "Shapes"
-    {153,"모양 Shapes"},
+    {153,"Shape(모양)"},
     % "Tetrahedron"
-    {154,"Tetrahedron(4면체)"},
+    {154,"테트라헤드론(4면체)"},
     % "Octahedron"
-    {155,"Octahedron(8면체)"},
+    {155,"옥타헤드론(8면체)"},
     % "Octotoad"
-    {156,"Octotoad(26면체)"},
+    {156,"옥토토드(26면체)"},
     % "Dodecahedron"
-    {157,"Dodecahedron(12면체)"},
+    {157,"도데카헤드론(12면체)"},
     % "Icosahedron"
-    {158,"Icosahedron(20면체)"},
+    {158,"아이코사헤드론(20면체)"},
     % "Cube"
-    {159,"Cube(입방체)"},
+    {159,"큐브(입방체)"},
     % "Cylinder"
-    {160,"Cylinder(원통)"},
+    {160,"실린더(원통형)"},
     % "Cone"
-    {161,"Cone(원뿔)"},
+    {161,"콘(원뿔형)"},
     % "Sphere"
-    {162,"Sphere(구)"},
+    {162,"스피어(구형)"},
     % "Torus"
-    {163,"Torus(원환체)"},
+    {163,"토러스(원환체)"},
     % "Grid"
-    {164,"Grid(그리드)"},
+    {164,"그리드(평면형)"},
     % "Material"
-    {165,"재질"},
+    {165,"머테리얼"},
     % "Image"
     {166,"이미지"},
     % "Image Plane"
-    {167,"이미지 평면 Image Plane"},
+    {167,"이미지 플레인"},
     % "Text"
     {168,"텍스트"},
     % "Gear"
     {169,"기어"},
     % "Tube"
-    {170,"튜브"},
+    {170,"튜브(관형)"},
     % "Geo Dome"
-    {171,"지오 돔"},
+    {171,"지오 돔(최단선 구형)"},
     % "Torus Knot"
-    {172,"Torus Knot(원환체 매듭)"},
+    {172,"토러스 낫(원환체 매듭)"},
     % "N-Cube"
-    {173,"N-Cube(N입방체)"},
+    {173,"N 큐브(N 입방체)"},
     % "N-Gon"
-    {174,"N-Gon(N곤)"},
+    {174,"N 곤(N 면체)"},
     % "Regular Plane"
-    {175,"표준 평면 Regular Plane"},
+    {175,"레귤러 플레인(표준형)"},
     % "Lumpy Plane"
-    {176,"요철 평면 Lumpy Plane"},
+    {176,"럼피 플레인(요철형)"},
     % "Wavy Plane"
-    {177,"물결 평면 Wavy Plane"},
+    {177,"웨이비 플레인(물결형)"},
     % "Sombrero Plane"
-    {178,"솜브레로 평면 Sombrero Plane"},
+    {178,"솜브레로 플레인(파문형)"},
     % "Spiral"
-    {179,"나선 Spiral"},
+    {179,"스파이럴(나선형)"},
     % "Spring"
     {180,"스프링"},
     % "UV Torus"
-    {181,"UV Torus(UV 원환체)"},
+    {181,"UV 토러스(UV 원환체)"},
     % "Lumpy Torus"
-    {182,"Lumpy Torus(요철 원환체)"},
+    {182,"럼피 토러스(요철 원환체)"},
     % "Spiral Torus"
-    {183,"Spiral Torus(나선 원환체)"},
+    {183,"스파이럴 토러스(나선 원환체)"},
     % "Normal"
     {184,"노멀"},
     % "Free"
-    {185,"자유"},
+    {185,"프리"},
     % "Center"
     {186,"중심"},
     % "Central Axis"
@@ -5139,19 +5199,19 @@
     % "Default Axis"
     {195,"기본 축"},
     % "True"
-    {196,"真"},
+    {196,"정확"},
     % "False"
-    {197,"假"},
+    {197,"부정확"},
     % "All"
     {198,"모두"},
     % "Pick All"
-    {199,"选择全部"},
+    {199,"모두 피크"},
     % "Radial X"
-    {200,"径向X"},
+    {200,"방사형 X"},
     % "Radial Y"
-    {201,"径向Y"},
+    {201,"방사형 Y"},
     % "Radial Z"
-    {202,"径向Z"},
+    {202,"방사형 Z"},
     % "ASK"
     {203,"ASK"},
     % "LMB"
@@ -5165,169 +5225,169 @@
     % "Absolute"
     {208,"상대적"},
     % "Move"
-    {209,"이동"},
+    {209,"무브(이동)"},
     % "Rotate"
-    {210,"회전"},
+    {210,"로테이트(회전)"},
     % "Scale"
     {211,"스케일"},
     % "Uniform"
     {212,"유니폼"},
     % "Extrude"
-    {213,"Extrude(압출)"},
+    {213,"익스트루드(압출)"},
     % "Extract"
-    {214,"추출 Extract"},
+    {214,"익스트렉트(추출)"},
     % "Dissolve"
-    {215,"디졸브"},
+    {215,"디졸브(제거)"},
     % "Collapse"
-    {216,"Collapse(축소)"},
+    {216,"컬랩스(압축)"},
     % "Delete"
     {217,"삭제"},
     % "Flatten"
-    {218,"Flatten(평평하게)"},
+    {218,"플래튼(평행)"},
     % "Smooth"
-    {219,"스무드"},
+    {219,"스무드(세분)"},
     % "Tighten"
-    {220,"Tighten(조이기/늘이기)"},
+    {220,"타이튼(조이기)"},
     % "Bevel"
-    {221,"Bevel(베벨)"},
+    {221,"베벨(빗각)"},
     % "Weld"
-    {222,"용접"},
+    {222,"웰드(용접)"},
     % "Vertex Color"
-    {223,"버텍스 색"},
+    {223,"버텍스 컬러"},
     % "Snap"
-    {224,"정렬"},
+    {224,"스냅(정렬)"},
     % "Snap|Numeric Entry"
-    {225,"扣|数字输入"},
+    {225,"정렬|숫자 입력"},
     % "Scale to Target Size"
-    {226,"目标大小规模"},
+    {226,"대상 크기의 스케일"},
     % "Scale|Center"
-    {227,"规模|중심"},
+    {227,"스케일|중심"},
     % "Intersect"
-    {228,"相交"},
+    {228,"인터섹트(교차)"},
     % "Stay on Line"
-    {229,"留在线上"},
+    {229,"라인에 머물기"},
     % "Stay on Plane"
-    {230,"留在平面"},
+    {230,"평면에 머물기"},
     % "Connecting Edges"
-    {231,"连接边"},
+    {231,"엣지 연결하기"},
     % "Bend"
-    {232,"Bend(굽히기)"},
+    {232,"벤드(굽히기)"},
     % "Shift"
-    {233,"Shift(교대)"},
+    {233,"시프트(교대)"},
     % "Deform"
-    {234,"Deform(변형)"},
+    {234,"디폼(변형)"},
     % "Crumple"
-    {235,"Crumple(구기기)"},
+    {235,"크럼플(주름)"},
     % "Taper"
-    {236,"Taper(점점 좁게)"},
+    {236,"테이퍼(줄이기)"},
     % "Twist"
-    {237,"Twist(트위스트)"},
+    {237,"트위스트(비틀기)"},
     % "Torque"
-    {238,"Torque(목걸이)"},
+    {238,"토크(회전 효과)"},
     % "Inflate"
-    {239,"膨胀"},
+    {239,"인플레이트(팽창)"},
     % "Inflate Cylindrically"
-    {240,"充气圆柱"},
+    {240,"실린더(원통형)으로 팽창"},
     % "Shear"
-    {241,"剪"},
+    {241,"Shear(전단 응력)"},
     % "Slide"
-    {242,"Slide(슬라이드)"},
+    {242,"슬라이드(이동)"},
     % "Clean Dissolve"
-    {243,"Clean Dissolve(디졸브 지우기)"},
+    {243,"디졸브 지우기"},
     % "Cut"
-    {244,"컷"},
+    {244,"컷(자르기)"},
     % "Connect"
-    {245,"Connect(연결)"},
+    {245,"커넥트(연결)"},
     % "Hardness"
-    {246,"Hardness(경도)"},
+    {246,"하드니스(경도)"},
     % "Soft"
     {247,"소프트"},
     % "Hard"
     {248,"하드"},
     % "Circularise"
-    {249,"Circularise"},
+    {249,"사이클라이즈(원형)"},
     % "Circularise|Center"
-    {250,"Circularise |중심"},
+    {250,"사이클라이즈|중심"},
     % "Loop Cut"
-    {251,"루프 컷"},
+    {251,"루프 컷(분리)"},
     % "Turn CCW"
-    {252,"좌회전 Turn CCW"},
+    {252,"좌회전"},
     % "Turn CW"
-    {253,"우회전 Turn CW"},
+    {253,"우회전"},
     % "Turn Optimized"
-    {254,"최적 회전 Turn Optimized"},
+    {254,"최적 회전"},
     % "Bridge"
-    {255,"Bridge(브릿지)"},
+    {255,"브릿지(관통)"},
     % "Bump"
-    {256,"Bump(범프)"},
+    {256,"범프(요철)"},
     % "Extrude Region"
-    {257,"挤压区"},
+    {257,"영역 압출"},
     % "Extract Region"
-    {258,"提取区"},
+    {258,"영역 추출"},
     % "Sweep Extrude"
-    {259,"扫描挤压"},
+    {259,"압출 연장"},
     % "Sweep Region"
-    {260,"扫描区域"},
+    {260,"영역 연장"},
     % "Sweep Extract"
-    {261,"扫描提取"},
+    {261,"추출 연장"},
     % "Inset"
-    {262,"插页"},
+    {262,"인셋(유입)"},
     % "Intrude"
-    {263,"Intrude(침입)"},
+    {263,"인트루드(관입)"},
     % "Lift"
-    {264,"Lift(상승)"},
+    {264,"리프트(회전)"},
     % "Put On"
-    {265,"Put On(올림)"},
+    {265,"풋 온(올림)"},
     % "Clone On"
-    {266,"복제 Clone On"},
+    {266,"클론 온(복제)"},
     % "Mirror"
-    {267,"대칭 Mirror"},
+    {267,"미러(대칭)"},
     % "Mirror Separate"
-    {268,"镜独立"},
+    {268,"Mirror Separate(대칭 분리)"},
     % "Tesselate"
-    {269,"Tesselate(3각/4각 분할)"},
+    {269,"테슬레이트(분할)"},
     % "Triangulate"
-    {270,"3각"},
+    {270,"트라이앵귤레이트(3각)"},
     % "Quadrangulate"
-    {271,"4각"},
+    {271,"쿼드랭귤레이트(4각)"},
     % "Untriangulate"
-    {272,"3각 해제"},
+    {272,"언트라이앵귤레이트(3각 해제)"},
     % "Hide"
-    {273,"Hide(숨김)"},
+    {273,"숨기기"},
     % "AutoUV"
-    {274,"AutoUV(오토UV)"},
+    {274,"AutoUV(자동 UV)"},
     % "Segment"
-    {275,"세그먼트"},
+    {275,"Segment(세그먼트)"},
     % "Segment Old"
-    {276,"老段"},
+    {276,"Segment Old(세그먼트 올드)"},
     % "Force Segment"
-    {277,"部队分部"},
+    {277,"Force Segment(강제 세그먼트)"},
     % "Flip"
-    {278,"뒤집기 Flip"},
+    {278,"플립(뒤집기)"},
     % "Invert"
-    {279,"Invert(반전)"},
+    {279,"인버트(반전)"},
     % "Doo Sabin"
-    {280,"두 세이빈 Doo Sabin"},
+    {280,"두 세이빈(세분)"},
     % "Combine"
-    {281,"결합"},
+    {281,"콤바인(결합)"},
     % "Separate"
-    {282,"분리"},
+    {282,"세퍼레이트(분리)"},
     % "Cleanup"
-    {283,"Cleanup(정리)"},
+    {283,"클린업(정리)"},
     % "Auto Smooth"
-    {284,"Auto Smooth(자동 스무드)"},
+    {284,"오토 스무드"},
     % "Duplicate"
     {285,"복제"},
     % "Vertex Color Mode"
-    {286,"顶点颜色模式"},
+    {286,"버텍스 컬러 모드"},
     % "To Area Light"
-    {287,"为区域灯光"},
+    {287,"영영 라이트에"},
     % "Materials to Colors"
-    {288,"到颜色材料"},
+    {288,"머테리얼을 컬러로"},
     % "Rotate to Target"
-    {289,"旋转到目标"},
+    {289,"회전 대상"},
     % "Move Planar"
-    {290,"平面移动"}
+    {290,"평면 이동"}
    ]}
  ]}.
 {wings_vec,
@@ -5335,37 +5395,37 @@
   {add_help_text,
    [
     % "Pick axis (and point)"
-    {1,"选择轴（和点）"},
+    {1,"축(포인트) 피크"},
     % "Pick axis"
-    {2,"选择轴"},
+    {2,"축 피크"},
     % "Pick point"
-    {3,"挑点"},
+    {3,"포인트 피크"},
     % "Pick outer boundary point for magnet influence"
-    {4,"挑选磁铁的影响外边界点"}
+    {4,"마그넷 영향력에 외부 경계 포인트 피크"}
    ]},
   {add_magnet,
    [
     % "Pick outer boundary point for magnet influence"
-    {1,"挑选磁铁的影响外边界点"}
+    {1,"마그넷 영향력에 외부 경계 포인트 피크"}
    ]},
   {check_magnet_point,
    [
     % "Midpoint of selection saved."
-    {1,"选拔中点保存。"}
+    {1,"저장 선택의 중심점"}
    ]},
   {check_point,
    [
     % "Midpoint of selection saved."
-    {1,"选拔中点保存。"},
+    {1,"저장 선택의 중심점"},
     % "Disregard virtual mirror in reference point calculation"
-    {2,"忽略虚拟镜像参考点计算"},
+    {2,"참고자료 포인트 계산에 가상 대칭 무시"},
     % "Include virtual mirror in reference point calculation"
-    {3,"包括虚拟镜像参考点计算"}
+    {3,"참고자료 포인트 계산에 가상 대칭 포함"}
    ]},
   {common_magnet_message,
    [
     % "Magnet"
-    {1,"자석 Magnet"}
+    {1,"마그넷"}
    ]},
   {common_message,
    [
@@ -5377,84 +5437,84 @@
   {exit_menu,
    [
     % "Cancel current command"
-    {2,"取消当前命令"}
+    {2,"현재 명령 취소"}
    ]},
   {get_vec,
    [
     % "Edge saved as axis"
-    {1,"边缘保存为轴线"},
+    {1,"축으로 엣지 저장"},
     % "Save edge normal"
-    {2,"保存边缘正常"},
+    {2,"엣지 노멀 저장"},
     % "Edge normal saved as axis"
-    {3,"正常保存为轴心的边缘"},
+    {3,"축으로 엣지 노멀 저장"},
     % "Save edge direction"
-    {4,"保存边缘方向"},
+    {4,"엣지 방향 저장"},
     % "Direction between edges saved as axis."
-    {5,"边方向之间保存为轴心。"},
+    {5,"엣지 사이의 방향을 축으로 저장"},
     % "Edge loop normal saved as axis."
-    {6,"边回路正常保存为轴心。"},
+    {6,"축으로 엣지 루프 노멀 저장"},
     % "Vertex normal saved."
-    {8,"顶点正常保存。"},
+    {8,"버텍스 노멀 저장"},
     % "Direction between vertices saved as axis."
-    {9,"顶点之间保存为轴线方向。"},
+    {9,"버텍스 사이의 방향을 축으로 저장"},
     % "Use average of vertex normals as axis"
-    {10,"使用平均顶点法线为轴"},
+    {10,"버텍스 노멀의 평균을 축으로 사용"},
     % "Average of vertex normals saved as axis."
-    {11,"顶点法线平均保存为轴心。"},
+    {11,"버텍스 노멀의 평균을 축으로 저장"},
     % "Use direction between vertices as axis"
-    {12,"使用方向为轴顶点之间"},
+    {12,"버텍스 사이의 방향을 축으로 사용"},
     % "3-point perp. normal saved as axis."
-    {13,"3点PERP的。正常保存为轴心。"},
+    {13,"3-point perp. 노멀을 축으로 저장"},
     % "Vertex loop normal saved as axis."
-    {14,"顶点回路正常保存为轴心。"},
+    {14,"버텍스 루프 노멀을 축으로 사용"},
     % "Multi-vertex selection must form a single closed edge loop."
-    {15,"多点选择必须形成一个封闭的边环。"},
+    {15,"다중 버텍스 선택은 하나의 닫힌 엣지 루프를 만들어야 합니다."},
     % "Face normal saved as axis."
-    {16,"面对正常的轴保存。"},
+    {16,"페이스 노멀을 축으로 저장"},
     % "Direction between face centers saved as axis."
-    {17,"面对中心之间保存为轴线方向。"},
+    {17,"페이스 중심 사이의 방향을 축으로 저장"},
     % "Use average of face normals"
-    {18,"使用平均面法线"},
+    {18,"페이스 노멀의 평균을 사용"},
     % "Average of face normals saved as axis."
-    {19,"面法线平均保存为轴心。"},
+    {19,"페이스 노멀의 평균을 축으로 저장"},
     % "Use direction between face centers"
-    {20,"使用方向之间的脸중심"},
+    {20,"페이스 중심 사이의 방향을 사용"},
     % "Edge loop normal for region saved as axis."
-    {21,"作为轴边缘环形保存地区正常。"},
+    {21,"영역의 엣지 루프 노멀을 축으로 저장"},
     % "Multi-face selection must have a single edge loop."
-    {22,"多面选择必须有一个边环。"},
+    {22,"다중 페이스 선택은 하나의 엣지 루프를 가지고 있어야 합니다."},
     % "Select vertices, edges, or faces."
-    {23,"选择顶点，边，或面。"},
+    {23,"버텍스, 엣지, 또는 페이스 선택."},
     % "Save cross vector"
-    {24,"保存跨载体"},
+    {24,"교차한 벡터 저장"},
     % "Cross product of edges saved as axis"
-    {25,"跨产品的边为轴保存"},
+    {25,"엣지의 교차한 제품을 축으로 저장"},
     % "Save direction between edges"
-    {26,"保存方向之间的边缘"},
+    {26,"엣지 사이의 방향을 저장"},
     % "Vertices cannot share coordinates when defining a 3 point plane normal"
-    {27,"不能共享顶点的坐标点时，定义了3架飞机正常"},
+    {27,"3 포인트 평면 노멀을 정의할 때 페이스는 좌표를 공유할 수 없습니다."},
     % "Axis between edge loop centers saved as axis."
-    {28,"中心轴之间的边缘环形保存为轴心。"},
+    {28,"엣지 루프 중심 사이의 축을 축으로 저장"},
     % "Multi-edge selection must form either a single or two closed edge loops."
-    {29,"多边缘的选择必须形成单个或两个封闭的环边。"}
+    {29,"다중 엣지 선택은 1 또는 2개의 닫힌 엣지 루프를 만들어야 합니다."}
    ]},
   {guard_string,
    [
     % "Select parts of one object only"
-    {1,"一个选择部分对象只"},
+    {1,"1 오브젝트만의 부분 선택"},
     % ", or select one element in each of two objects"
-    {2,"，或选择一两个对象中的每个元素"},
+    {2,", 또는 2 오브젝트의 1 요소 선택"},
     % ", or any three vertices."
-    {3,"或任意三个顶点。"},
+    {3,", 또는 모든 3 버텍스."},
     % ",\nor a single edge loop on each object "
-    {4,"，\n或对每一个对象的单个边环"}
+    {4,",\n또는 각 오브젝트 위의 하나의 엣지 루프 "}
    ]},
   {magnet_message,
    [
     % "Execute "
     {1,"실행"},
     % "Magnet options"
-    {2,"자석 옵션"}
+    {2,"마그넷 옵션"}
    ]}
  ]}.
 {wings_vertex_cmd,
@@ -5462,37 +5522,37 @@
   {menu,
    [
     % "Move"
-    {2,"Move(이동)"},
+    {2,"무브(이동)"},
     % "Extrude"
-    {3,"Extrude(압출)"},
+    {3,"익스트루드(압출)"},
     % "Connect"
-    {4,"Connect(연결)"},
+    {4,"커넥트(연결)"},
     % "Create a new edge by connecting selected vertices"
-    {5,"通过连接选择创建一个新的边缘顶点"},
+    {5,"선택 버텍스를 연결하여 새 엣지 만들기"},
     % "Tighten"
-    {6,"Tighten(조이기/늘이기)"},
+    {6,"타이튼(조이기)"},
     % "Move selected vertices towards average midpoint"
-    {7,"走向平均中点选择的顶点"},
+    {7,"평균 중심점쪽으로 선택 버텍스 이동"},
     % "Bevel"
-    {8,"Bevel(베벨)"},
+    {8,"베벨(빗각)"},
     % "Create faces of selected vertices"
-    {9,"创建面临选择的顶点"},
+    {9,"선택 버텍스의 페이스 만들기"},
     % "Dissolve"
-    {10,"디졸브"},
+    {10,"디졸브(제거)"},
     % "Delete selected vertices (clearing selection)"
-    {11,"删除选定的顶点（结算选择）"},
+    {11,"선택 버텍스 삭제 (선택 지우기)"},
     % "Collapse"
-    {12,"Collapse(축소)"},
+    {12,"컬랩스(압축)"},
     % "Delete selected vertices (creating a face selection)"
-    {13,"删除选定的顶点（创建一个面选择）"},
+    {13,"선택 버텍스 삭제 (페이스 선택 만들기)"},
     % "Deform"
-    {14,"Deform(변형)"},
+    {14,"디폼(변형)"},
     % "Vertex Color"
-    {15,"버텍스 색"},
+    {15,"버텍스 컬러"},
     % "Apply vertex colors to selected vertices"
-    {16,"应用到选定的顶点顶点 색"},
+    {16,"버텍스 컬러를 선택 버텍스에 적용"},
     % "Connect vertices and return the new edge selected"
-    {17,"连接顶点并返回选定新的边缘"}
+    {17,"버텍스를 연결하고 선택 새 엣지로 복귀"}
    ]}
  ]}.
 {wings_view,
@@ -5509,7 +5569,7 @@
   {camera,
    [
     % "Negative Format"
-    {1,"부정적 포맷"},
+    {1,"부정 형식"},
     % "Custom"
     {4,"사용자 맞춤"},
     % "x"
@@ -5517,11 +5577,11 @@
     % "Wide-Angle Lens"
     {6,"와이드 앵글 렌즈"},
     % "Moderate Wide-Angle Lens"
-    {7,"适度广角镜头"},
+    {7,"보통 광각 렌즈"},
     % "Standard Lens"
     {8,"표준 렌즈"},
     % "Portrait Telephoto Lens"
-    {9,"人像长焦镜头"},
+    {9,"인물 망원 렌즈"},
     % "Telephoto Lens"
     {10,"망원 렌즈"},
     % "Custom Lens"
@@ -5535,97 +5595,97 @@
     % "Field of View"
     {15,"시야"},
     % "Near Clipping Plane"
-    {16,"近裁剪面"},
+    {16,"근거리 클리핑 플레인"},
     % "Far Clipping Plane"
-    {17,"远裁剪面"},
+    {17,"원거리 클리핑 플레인"},
     % "Camera Settings"
     {18,"카메라 설정"}
    ]},
   {help,
    [
     % "Camera Settings: Field of View"
-    {1,"相机设置：视场"},
+    {1,"카메라 설정: 시야"},
     % "Sets the vertical field of view, i.e. the angle from lower to upper border seen from the camera. "
-    {2,"设置垂直领域的观点，即从较低的角度上缘从相机看到。"},
+    {2,"수직적인 시야, 즉 카메라에서 본 더 낮은 각도의 상단 경계 설정. "},
     % "The Lens controls sets the field of view according to other perhaps more well-known entities, at least for a photographer. The negative size is stored among the user preferences."
-    {3,"镜头控制设置视野根据或者其他比较著名的实体，至少一名摄影师。负大小存储在用户的喜好。"},
+    {3,"렌즈 제어는 어쩌면 더 잘 알려진 다른 존재에 따라 적어도 사진 작가를 위해 시야를 설정합니다. 부정 형식 크기는 사용자 환경 설정 사이에 저장됩니다."},
     % "The Lens controls make the height of the picture right for the choosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."
-    {4,"镜头controls作出的选择lens为图片右侧的高度，所以如果你没有为负的镜头画面大小相同的宽高比为窗口的几何尺寸，宽度将是错误的。"},
+    {4,"렌즈 제어는 사진의 높이를 선택된 렌즈에 알맞게 만듭니다, 그래서 렌즈 프레임에 부정 형식 크기에 대한 동일한 종횡비가 없다면, 지오메트리 창의 크기에 관련된, 너비 오류가 있을 것입니다."},
     % "Note: the zoom factor is relative a standard lens length of the negative diagonal, while only the negative height affects the effective lens length."
-    {5,"注：缩放因子是相对的一负对角线长度标准镜头，只有高度的负面影响的有效镜头长度。"}
+    {5,"참고: 오직 부정 형식 높이가 효과적인 렌즈의 길이에 영향을 미치는 반면, 줌 요소는 부정 형식 대각선의 상대적인 표준 렌즈 길이입니다."}
    ]},
   {menu,
    [
     % "Ground Plane"
-    {1,"그라운드 평면"},
+    {1,"그라운드 플레인"},
     % "Show the ground plane"
-    {2,"그라운드 평면 보기"},
+    {2,"그라운드 플레인 보기"},
     % "Axes"
     {3,"축"},
     % "Show the coordinate axes"
-    {4,"显示坐标轴"},
+    {4,"좌표 축 보기"},
     % "Workmode"
-    {5,"작업 모드"},
+    {5,"워크모드"},
     % "Toggle flat/smooth shading"
-    {6,"切换平/平滑阴影"},
+    {6,"플랫/스무드 쉐이딩 전환"},
     % "Wireframe"
     {7,"와이어프레임"},
     % "Display selected objects as a wireframe (same for all objects if nothing is selected)"
-    {8,"显示选定为线框对象（所有对象相同的，如果没有被选中）"},
+    {8,"선택 오브젝트를 와이어프레임으로 표시 (아무 선택없으면 모든 오브젝트에 동일)"},
     % "Shade"
     {9,"쉐이드"},
     % "Display selected objects as shaded (same for all objects if nothing is selected)"
-    {10,"显示选定（适用于所有对象，如果没有选择相同）物体阴影"},
+    {10,"선택 오브젝트를 쉐이드(음영)으로 표시 (아무 선택없으면 모든 오브젝트에 동일)"},
     % "Toggle Wireframe"
     {11,"와이어프레임 전환"},
     % "Toggle display mode for selected objects (same for all objects if nothing is selected)"
-    {12,"对选定的对象切换显示模式（适用于所有对象相同的，如果没有被选中）"},
+    {12,"선택 오브젝트의 표시 모드 전환 (아무 선택없으면 모든 오브젝트에 동일)"},
     % "Toggle Proxy Mode"
     {13,"프록시 모드 전환"},
     % "Toggle the smooth proxy mode for selected objects"
-    {14,"切换为代理模式选择的对象顺利"},
+    {14,"선택 오브젝트의 스무드 프록시 모드 전환"},
     % "Quick Smoothed Preview"
     {15,"퀵 스무드 프리뷰"},
     % "Toggle the smooth proxy mode for all objects"
-    {16,"切换所有对象的顺利代理模式"},
+    {16,"모든 오브젝트의 스무드 프록시 모드 전환"},
     % "Show Saved BB"
-    {17,"显示已保存BB心跳"},
+    {17,"저장된 BB 보기"},
     % "Display any saved bounding box"
-    {18,"显示任何已保存的包围盒"},
+    {18,"모든 저장된 바운딩 박스 표시"},
     % "Show Edges"
     {19,"엣지 보기"},
     % "Show edges in workmode"
-    {20,"在工作模式显示边缘"},
+    {20,"워크모드에서 엣지 보기"},
     % "Show Wireframe Backfaces"
-    {21,"와이어 프레임 백페이스 보기"},
+    {21,"와이어프레임 백페이스 보기"},
     % "Show wireframe backfaces"
-    {22,"와이어 프레임 백페이스 보기"},
+    {22,"와이어프레임 백페이스 보기"},
     % "Show Normals"
     {23,"노멀 보기"},
     % "Show normals for selected elements"
-    {24,"为选定的元素显示法线"},
+    {24,"선택 요소의 노멀 보기"},
     % "Reset View"
     {25,"뷰 재설정"},
     % "Reset view to the default position"
-    {26,"视图复位为默认位置"},
+    {26,"뷰를 기본 위치로 재설정"},
     % "Aim"
-    {27,"목표물"},
+    {27,"에임(조준선)"},
     % "Aim the camera at the selected element"
-    {28,"对准所选元素的相机"},
+    {28,"선택 요소에 카메라 조준선"},
     % "Frame"
     {29,"프레임"},
     % "Dolly to show all selected elements (or all objects if nothing is selected)"
-    {30,"多莉显示所有选中的元素（或所有对象，如果没有被选中）"},
+    {30,"모든 선택 요소를 보기 위해 돌리 이동 (또는 아무 선택없는 경우의 모든 오브젝트)"},
     % "Orthographic View"
     {31,"직각 뷰"},
     % "Toggle between orthographic and perspective views"
-    {32,"正交之间切换的意见和观点"},
+    {32,"직각 뷰/원근 뷰 전환"},
     % "Saved Views: "
-    {33,"저장된 뷰："},
+    {33,"저장된 뷰: "},
     % "Camera Settings..."
     {34,"카메라 설정..."},
     % "Set field of view, and near and far clipping planes"
-    {35,"设置视野，和近及远裁剪面"},
+    {35,"뷰, 근거리/원거리 클리핑 플레인의 필드 설정"},
     % "Scene Lights"
     {36,"장면 라이트"},
     % "Use the lights defined in the scene"
@@ -5639,21 +5699,21 @@
     % "Use one work light"
     {41,"1 작업 라이트 사용"},
     % "Show Colors"
-    {42,"색 보기"},
+    {42,"컬러 보기"},
     % "Show vertex colors"
-    {43,"버텍스 색 보기"},
+    {43,"버텍스 컬러 보기"},
     % "Show Materials"
-    {44,"재질 보기"},
+    {44,"머테리얼 보기"},
     % "Show materials"
-    {45,"재질 보기"},
+    {45,"머테리얼 보기"},
     % "Show Textures"
     {46,"텍스쳐 보기"},
     % "Show textures"
     {47,"텍스쳐 보기"},
     % "Show Info Text"
-    {48,"정보 글자 보기"},
+    {48,"정보 텍스트 보기"},
     % "Show an informational text at the top of this Geometry window"
-    {49,"显示在此窗口顶部的几何信息文本"},
+    {49,"이 지오메트리 창의 정보 텍스트 보기"},
     % "View Along"
     {50,"뷰 방향"},
     % "+X"
@@ -5671,33 +5731,33 @@
     % "Align to Selection"
     {57,"선택에 정렬"},
     % "Align the view to the normal of the selection"
-    {58,"对齐到普通视图的选择"},
+    {58,"선택의 노멀로 뷰 정렬"},
     % "Auto Rotate"
     {59,"자동 회전"},
     % "Spin the view"
-    {60,"自旋的看法"},
+    {60,"뷰 회전"},
     % "Clipping Planes"
-    {61,"平面裁剪"},
+    {61,"클리핑 플레인"},
     % "Toggle extra clipping planes (use default axis)"
-    {62,"额外的切换（使用默认的轴）裁剪机"},
+    {62,"임시 클리핑 플레인 전환 (기본축 사용)"},
     % "Frame Disregards Mirror"
     {65,"프레임 대칭 무시"},
     % "Highlight Aim"
-    {66,"강조 목표물"},
+    {66,"하이라이트 에임(조준선)"},
     % "Aim camera at mouseover highlight. (Requires 'Use Highlight as Temporary Selection' enabled, and an assigned hotkey)"
-    {67,"鼠标悬停相机对准亮点。 （需要'使用凸显临时选择'启用，和分配的热键）"},
+    {67,"마우스오버 하이라이트에 카메라 조준선. ('임시 선택으로 하이라이트 사용' 활성 및 할당 단축키 필요)"},
     % "Show"
     {68,"보기"},
     % "Show BB Center"
     {69,"BB 중심 보기"},
     % "Display the Center of any saved bounding box"
-    {70,"显示任何保存中心边框"},
+    {70,"모든 저장된 바운딩 박스의 중심 표시"},
     % "Nearest Axis"
-    {71,"가까운 축"},
+    {71,"근거리 축"},
     % "Show Backfaces"
     {72,"백페이스 보기"},
     % "Show backfaces when there is a hole or hiddwn faces in an object"
-    {73,"显示backfaces当有一孔或hiddwn在对象面"}
+    {73,"홀(구멍) 또는 오브젝트에 숨긴 페이스가 있을 때 백페이스 보기"}
    ]},
   {shader_submenu,
    [
@@ -5706,7 +5766,7 @@
     % "Previous"
     {2,"이전"},
     % "Shaders: "
-    {3,"쉐이더："}
+    {3,"쉐이더: "}
    ]},
   {view_legend,
    [
@@ -5723,78 +5783,78 @@
     % "along -Z"
     {7,"along -Z"},
     % "towards Origin"
-    {8,"원본 쪽으로"},
+    {8,"원본"},
     % "towards "
     {9,"towards "},
     % "distance"
     {distance,"거리"},
     % "From"
-    {from,"From"}
+    {from,"방향"}
    ]},
   {views,
    [
     % "This view is already the current"
-    {1,"这种观点已是当前"},
+    {1,"뷰는 이미 현재입니다."},
     % "No saved views"
-    {2,"没有保存的意见"},
+    {2,"저장된 뷰가 없습니다."},
     % "Rename view"
-    {3,"重命名视图"},
+    {3,"뷰 이름 바꾸기"},
     % "You have to be at the current view"
-    {4,"你必须要在当前视图"},
+    {4,"현재 뷰에 있어야 합니다."},
     % "Are you sure you want to delete all saved views?"
-    {5,"你确定要删除所有已保存的意见？"}
+    {5,"모든 저장된 뷰를 삭제하시겠습니까?"}
    ]},
   {views_jump,
    [
     % "No such view slot"
-    {1,"没有这样的看法插槽"}
+    {1,"뷰 슬롯이 없습니다."}
    ]},
   {views_jumpmenu,
    [
     % "Jump"
     {1,"점프"},
     % "No saved views!"
-    {2,"没有保存的意见！"},
+    {2,"저장된 뷰가 없습니다!"},
     % "Jump to prev["
-    {3,"跳转到上一页["},
+    {3,"이전으로 점프["},
     % "Jump to current["
-    {5,"跳转到当前["},
+    {5,"현재로 점프["},
     % "Jump to next["
-    {7,"跳转到下一个["},
+    {7,"다음으로 점프["},
     % "Jump to ["
-    {9,"跳转到["},
+    {9,"점프 ["},
     % "Jump"
     {11,"점프"}
    ]},
   {views_move,
    [
     % "No such view ["
-    {1,"没有这样的看法["}
+    {1,"뷰가 없습니다. ["}
    ]},
   {views_movemenu,
    [
     % "Move Current"
-    {1,"当前移动"},
+    {1,"현재 이동"},
     % "No saved views!"
-    {2,"没有保存的意见！"},
+    {2,"저장된 뷰가 없습니다!"},
     % "Move \""
-    {3,"移动\""},
+    {3,"이동 \""},
     % "] to prev["
-    {5,"]到上一页["},
+    {5,"] 이전으로["},
     % "Move \""
-    {7,"移动\""},
+    {7,"이동 \""},
     % "] nowhere"
-    {9,"]无处"},
+    {9,"] nowhere"},
     % "Move \""
-    {10,"移动\""},
+    {10,"이동 \""},
     % "] to next["
-    {12,"]下一个["},
+    {12,"] 다음으로["},
     % "Move \""
-    {14,"移动\""},
+    {14,"이동 \""},
     % "] to ["
-    {16,"]到["},
+    {16,"] to ["},
     % "Move Current"
-    {18,"当前移动"}
+    {18,"현재 이동"}
    ]},
   {views_rename_qs,
    [
@@ -5804,7 +5864,7 @@
   {views_save_dialog,
    [
     % "Save view as"
-    {1,"뷰로 저장"}
+    {1,"뷰 저장"}
    ]},
   {views_submenu,
    [
@@ -5817,7 +5877,7 @@
     % "Save"
     {4,"저장"},
     % "Save this view at "
-    {5,"이 뷰를 저장 "},
+    {5,"이 뷰 저장 "},
     % "Rename..."
     {7,"이름 바꾸기..."},
     % "Delete"
@@ -5828,25 +5888,25 @@
   {views_submenu_help,
    [
     % "No saved views!"
-    {1,"没有保存的意见！"},
+    {1,"저장된 뷰가 없습니다!"},
     % "Jump to \""
-    {2,"跳转到\""},
+    {2,"점프 \""},
     % "Rename \""
-    {5,"重命名\""},
+    {5,"이름 바꾸기 \""},
     % "Delete \""
-    {8,"删除\""},
+    {8,"삭제 \""},
     % "Delete all saved views"
-    {11,"删除所有保存的视图"}
+    {11,"모든 저장된 뷰 삭제"}
    ]},
   {virtual_mirror,
    [
     % "Virtual mirror requires a face selection."
-    {1,"虚拟镜需要面对的选择。"}
+    {1,"가상 대칭은 페이스 선택을 필요로 합니다."}
    ]},
   {virtual_mirror_fun,
    [
     % "Only a single face must be selected per object."
-    {1,"只有一个面，必须选择每个对象。"}
+    {1,"오브젝트당 1 페이스만 선택해야 합니다."}
    ]}
  ]}.
 {wings_we,
@@ -5854,23 +5914,23 @@
   {all_soft,
    [
     % "preparing"
-    {1,"准备"},
+    {1,"준비"},
     % "collecting"
-    {2,"收集"}
+    {2,"수집"}
    ]},
   {mixed_edges,
    [
     % "preparing"
-    {1,"准备"},
+    {1,"준비"},
     % "vertex normals"
-    {2,"顶点法线"},
+    {2,"버텍스 노멀"},
     % "vertex normals per face"
-    {3,"每个面顶点法线"}
+    {3,"페이스당 버텍스 노멀"}
    ]},
   {normals_2,
    [
     % "calculating soft normals"
-    {1,"软计算法线"}
+    {1,"소프트 노멀 계산"}
    ]}
  ]}.
 {wings_wm,
@@ -5878,7 +5938,7 @@
   {message_event,
    [
     % "This is the information line"
-    {1,"这是信息行"}
+    {1,"여기는 정보 라인입니다."}
    ]}
  ]}.
 {wings_wm_toplevel,
@@ -5886,7 +5946,7 @@
   {close_event,
    [
     % "Close this window"
-    {1,"关闭此窗口"}
+    {1,"이 창 닫기"}
    ]},
   {ctrl_command,
    [
@@ -5900,63 +5960,63 @@
   {ctrl_menu,
    [
     % "Fit"
-    {1,"适合"},
+    {1,"맞춤"},
     % "Both"
-    {2,"两个"},
+    {2,"양쪽"},
     % "Let window use all available space by expanding in all directions"
-    {3,"让窗口使用所有可用空间在各个方向扩展"},
+    {3,"창을 모든 방향 확장하여 사용 가능한 모든 공간을 사용하게 합니다."},
     % "Horizontal"
-    {4,"水平"},
+    {4,"수평"},
     % "Let window use all available space by expanding it horizontally"
-    {5,"让窗口使用水平，扩大它的所有可用空间"},
+    {5,"창을 수평 확장하여 사용 가능한 모든 공간을 사용하게 합니다."},
     % "Vertical"
-    {6,"垂直"},
+    {6,"수직"},
     % "Let window use all available space by expanding it vertically"
-    {7,"让窗口使用范围扩大垂直所有可用空间"},
+    {7,"창을 수직 확장하여 사용 가능한 모든 공간을 사용하게 합니다."},
     % "Size"
-    {8,"尺寸"},
+    {8,"크기"},
     % "Set window size numerically"
-    {9,"数值设置窗口大小"}
+    {9,"창 크기 수치 설정"}
    ]},
   {ctrl_menu_toolbar,
    [
     % "Hide Toolbar"
-    {1,"隐藏工具栏"},
+    {1,"도구바 숨기기"},
     % "Hide the toolbar"
-    {2,"隐藏工具栏"},
+    {2,"도구바 숨기기"},
     % "Show Toolbar"
-    {3,"显示工具栏"},
+    {3,"도구바 보기"},
     % "Show the toolbar"
-    {4,"显示工具栏"}
+    {4,"도구바 보기"}
    ]},
   {ctrl_message,
    [
     % "Drag to Move"
-    {1,"拖动以移动"},
+    {1,"드래그 이동"},
     % "Fit"
-    {2,"适合"},
+    {2,"맞춤"},
     % "Show menu"
     {3,"메뉴 보기"},
     % "Click to show window"
-    {4,"点击橱窗"},
+    {4,"창을 보려면 클릭"},
     % "Click to rollup window into titlebar"
-    {5,"点击进入汇总窗口标题栏"},
+    {5,"창을 롤업하려면 제목 표시줄 클릭"},
     % "Click to bring Geometry Window to Front"
-    {6,"点击窗口接待带来几何"},
+    {6,"지오메트리 창을 앞으로 가져오려면 클릭"},
     % "Click to send Geometry Window to Back"
-    {7,"点击发送几何窗口返回"}
+    {7,"지오메트리 창을 뒤로 보내려면 클릭"}
    ]},
   {ctrl_resize,
    [
     % "Too large size specified"
-    {1,"过大尺寸规定"}
+    {1,"지정 크기가 너무 큽니다."}
    ]},
   {resize_event,
    [
     % "Resize"
-    {1,"크기 조정"},
+    {1,"리사이즈"},
     % "Resize, keeping current aspect ratio"
-    {2,"调整，保持目前的高宽比"}
+    {2,"리사이즈, 현재 종횡비 유지"}
    ]}
  ]}.
 {wpa,
@@ -5964,54 +6024,54 @@
   {dialog_template,
    [
     % "Swap Y and Z Axes"
-    {1,"交换Y和Z轴"},
+    {1,"Y/Z 축 바꾸기"},
     % "Sub-division Steps"
-    {6,"分科步骤"},
+    {6,"하위 분할 단계"},
     % "Default texture file type"
-    {7,"文件类型的默认纹理"},
+    {7,"기본 텍스쳐 파일 형식"},
     % "Export vertex colors"
-    {color,"出口顶点 색"},
+    {color,"버텍스 컬러 수출"},
     % "Export normals/smoothing groups"
-    {norms,"出口资料/平滑组"},
+    {norms,"노멀/스무딩 그룹 수출"},
     % "Tesselation"
-    {tess,"Tesselation"},
+    {tess,"테슬레이션(분할)"},
     % "None"
     {tess0,"없음"},
     % "Triangulation"
-    {tess3,"三角测量"},
+    {tess3,"트라이앵귤레이션(3각)"},
     % "Quadrangulation"
-    {tess4,"Quadrangulation"},
+    {tess4,"쿼드랭귤레이션(4각)"},
     % "Export UV coordinates"
-    {uv,"出口UV坐标"}
+    {uv,"UV 좌표 수출"}
    ]},
   {do_import,
    [
     % "reading file"
-    {1,"读文件"}
+    {1,"파일 읽기"}
    ]},
   {export_scale_s,
    [
     % "Export scale"
-    {1,"出口规模"}
+    {1,"스케일 수출"}
    ]},
   {export_selected,
    [
     % "Select objects or faces."
-    {1,"选择对象或面。"}
+    {1,"오브젝트 또는 페이스를 선택하십시오."}
    ]},
   {format_error,
    [
     % "Internal error: ~P\n"
-    {1,"内部错误： ~p\n"}
+    {1,"내부 오류: ~p\n"}
    ]},
   {import,
    [
     % "Import failed: "
-    {1,"导入失败："}
+    {1,"수입 실패: "}
    ]},
   {import_scale_s,
    [
     % "Import scale"
-    {1,"进出口规模"}
+    {1,"스케일 수입"}
    ]}
  ]}.

@@ -1,0 +1,20 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ps,
+ [
+  {command,
+   [
+    {2,"엣지 등분의 수"},
+    {4,"PS/EPS 수입 옵션"},
+    {5,"PostScript File"},
+    {6,"Encapsulated PostScript File"}
+   ]},
+  {make_ps,
+   [
+    {1,"PS 수입 실패"},
+    {2,"PS 수입 내부 오류"}
+   ]},
+  {try_import_ps,
+   [
+    {1,"Adobe 포스트스크립트 파일이 아닙니다."}
+   ]}
+ ]}.
