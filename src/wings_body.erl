@@ -221,7 +221,7 @@ command({vertex_attributes,remove_uv_coordinates}, St) ->
 command({vertex_attributes,remove_all_attributes}, St) ->
     {save_state,va_remove(all, St)};
 command({weld,Ask}, St) ->
-    weld(Ask, St);
+    ?SLOW(weld(Ask, St));
 command(vertex_color, St) ->
     wings_color:choose(fun(Color) ->
 			       set_color(Color, St)
@@ -840,7 +840,7 @@ weld([Tolerance], #st{shapes=Shs0,sel=Sel0}=St0) ->
     Selected = gb_trees:keys(Shs) -- Unselected,
     Sel = [ {Id, gb_sets:singleton(0)} || Id <- Selected ],
     St = combine(St1#st{sel=Sel}),
-    weld_objects(Tolerance, gb_sets:empty(), St).
+    weld_objects(Tolerance, gb_sets:empty(), status, St).
 
 %% Cycle over St until it doesn't change. This is done because matching faces
 %% that are connected by a single vertex can't be processed (as far as I've
@@ -850,75 +850,77 @@ weld([Tolerance], #st{shapes=Shs0,sel=Sel0}=St0) ->
 %% only single vert mathcing face pairs, then nothing can be done. If you know
 %% how to weld faces with only one common vertex, append the code at
 %% "single vertex").
-weld_objects(Tolerance, SelAcc0, St0) ->
+weld_objects(Tolerance, SelAcc0, Status0, St0) ->
     Empty = gb_sets:empty(),
-    {St1,Sel0} = wings_sel:mapfold(fun(_, We0, Acc) ->
+    ErrorMsg = ?__(1,"Found no faces to weld."),
+    {St1,{Sel0,Status}} = wings_sel:mapfold(fun(_, We0, Acc) ->
 					  case weld_1(Tolerance, We0, Acc) of
 					    {We0,_} when SelAcc0 =:= Empty ->
-					      wings_u:error_msg(?__(1,"Found no faces to weld."));
-					    {We,S} ->
-					      {We,S}
+					        wings_u:error_msg(ErrorMsg);
+					    Result ->
+					        Result
 					  end
-				  end, [], St0),
-	case St0 =:= St1 of
-	  _ when Sel0 =:= [] -> wings_u:error_msg(?__(1,"Found no faces to weld."));
-	  true ->
-	   [{Id,_}] = Sel0,
-       St = wings_sel:set(vertex, [{Id,SelAcc0}], St1),
-       {save_state,wings_sel:valid_sel(St)};
-      false ->
+				  end, {[],Status0}, St0),
+	case Status of
+	  _ when Sel0 =:= [] -> wings_u:error_msg(ErrorMsg);
+      single_vertex when St0 =/= St1 ->
         [{_,Vs}] = Sel0,
         SelAcc = gb_sets:union(SelAcc0,Vs),
-        weld_objects(Tolerance, SelAcc, St1)
+        weld_objects(Tolerance, SelAcc, status, St1);
+	  _ ->
+	    [{Id,Vs}] = Sel0,
+        SelAcc = gb_sets:union(SelAcc0,Vs),
+        St = wings_sel:set(vertex, [{Id,SelAcc}], St1),
+        {save_state,wings_sel:valid_sel(St)}
     end.
 
-weld_1(Tol, #we{id=Id,fs=Fs0}=We0, Acc) ->
-    Fs = weld_1_list(gb_trees:keys(Fs0), Tol, We0, []),
+weld_1(Tol, #we{id=Id,fs=Fs0}=We0, {Sel,Status0}) ->
+    Fs = qualified_fs(gb_trees:keys(Fs0), Tol, We0, []),
     R = sofs:relation(Fs, [{key,face}]),
     F = sofs:relation_to_family(R),
     Part0 = sofs:range(F),
     Part1 = sofs:specification({external,fun([_]) -> false;
 					    (_) -> true end}, Part0),
     Part = sofs:to_external(Part1),
-    case weld_2(Part, Tol, We0) of
-	We0 ->
-	    {We0,[{Id,gb_sets:singleton(0)}]}; % Nothing to weld or done
-	We ->
-	    {We,[{Id,weld_selection(lists:append(Part), We0, We)}|Acc]}
+    case weld_part(Part, Tol, We0, Status0) of
+	{We0,Status} ->
+	    {We0,{[{Id,gb_sets:singleton(0)}],Status}}; % Nothing to weld or done
+	{We,Status} ->
+	    {We,{[{Id,weld_selection(lists:append(Part), We0, We)}|Sel],Status}}
     end.
 
-weld_1_list([F|Fs], Tol, We, Acc) ->
+qualified_fs([F|Fs], Tol, We, Acc) ->
     Vs = wings_face:fold(
 	   fun(V, _, _, Acc0) ->
 		   [V|Acc0]
 	   end, [], F, We),
     {X,Y,Z} = wings_vertex:center(Vs, We),
     Center = {granularize(X, Tol),granularize(Y, Tol),granularize(Z, Tol)},
-    weld_1_list(Fs, Tol, We, [{{length(Vs),Center},F}|Acc]);
-weld_1_list([], _, _, Acc) -> Acc.
+    qualified_fs(Fs, Tol, We, [{{length(Vs),Center},F}|Acc]);
+qualified_fs([], _, _, Acc) -> Acc.
 
 granularize(F, Tol) -> Tol*round(F/Tol).
 
-weld_2([P|Ps], Tol, We0) ->
-    We = weld_part(P, Tol, We0),
-    weld_2(Ps, Tol, We);
-weld_2([], _, We) -> We.
+weld_part([P|Ps], Tol, We0, Status0) ->
+    {We,Status} = weld_part_1(P, Tol, We0, Status0),
+    weld_part(Ps, Tol, We, Status);
+weld_part([], _, We, Status) -> {We,Status}.
 
-weld_part([F|Fs], Tol, We) ->
-    weld_part_1(F, Fs, Tol, We, []);
-weld_part([], _, We) -> We.
+weld_part_1([F|Fs], Tol, We, Status) ->
+    weld_part_2(F, Fs, Tol, We, [], Status);
+weld_part_1([], _, We, Status) -> {We,Status}.
 
-weld_part_1(Fa, [Fb|Fs], Tol, We0, Acc) ->
-    case catch try_weld(Fa, Fb, Tol, We0) of
-	We0 -> weld_part_1(Fa, Fs, Tol, We0, [Fb|Acc]);
-	#we{}=We -> weld_part(Fs++Acc, Tol, We);
-	_ ->
-	    weld_error()
+weld_part_2(Fa, [Fb|Fs], Tol, We0, Acc, Status0) ->
+    case catch try_weld(Fa, Fb, Tol, We0, Status0) of
+        {We0,Status} -> weld_part_2(Fa, Fs, Tol, We0, [Fb|Acc], Status);
+        {#we{}=We,Status} -> weld_part_1(Fs++Acc, Tol, We, Status);
+        _ ->
+            weld_error()
     end;
-weld_part_1(_, [], Tol, We, Acc) ->
-    weld_part(Acc, Tol, We).
+weld_part_2(_, [], Tol, We, Acc, Status) ->
+    weld_part_1(Acc, Tol, We, Status).
 
-try_weld(Fa, Fb, Tol, We) ->
+try_weld(Fa, Fb, Tol, We, Status) ->
     Na = wings_face:normal(Fa, We),
     Nb = wings_face:normal(Fb, We),
     case e3d_vec:dot(Na, Nb) of
@@ -927,14 +929,14 @@ try_weld(Fa, Fb, Tol, We) ->
          true ->
            case shared_edges(Fa,Fb,We) of
              [] ->  %io:format("~p\n",["single vertex"]),
-               We;
+               {We,single_vertex};
              CommonEs ->
-               weld_neighbors(Fa, Fb, CommonEs, Tol, We)
+               {weld_neighbors(Fa, Fb, CommonEs, Tol, We),Status}
            end;
          false ->
-           try_weld_1(Fa, Fb, Tol, We)
+           {try_weld_1(Fa, Fb, Tol, We),Status}
        end;
-     _Dot -> We
+     _Dot -> {We,Status}
     end.
 
 shared_edges(Fa, Fb, We) ->
@@ -953,66 +955,80 @@ get_shared_edges([]) ->
 weld_neighbors(Fa, Fb, CommonEs, Tol, We0) ->
     Vs0 = wings_edge:to_vertices(CommonEs,We0),
     #we{fs=Ftab}=We1 = dissolve_edges(CommonEs,We0),
-    case gb_trees:is_defined(Fa,Ftab) of
-      true ->
-        case check_weld_neighbors(Fa, Vs0, Tol, We1) of
-          error ->
-            wings_dissolve:faces([Fa,Fb],We0);
-          Other -> Other
-        end;
-      false ->
-          % check for other face id in case both faces were deleted
-          case gb_trees:is_defined(Fb,Ftab) of
-            true ->
-              case check_weld_neighbors(Fb, Vs0, Tol, We1) of
+    ARemains = gb_trees:is_defined(Fa,Ftab),
+    BRemains = gb_trees:is_defined(Fb,Ftab),
+    case {ARemains,BRemains} of
+        {true,false} ->
+            case check_weld_neighbors(Fa, Vs0, Tol, We1) of
                 error ->
-                  wings_dissolve:faces([Fa,Fb],We0);
+                    wings_dissolve:faces([Fa,Fb],We0);
                 Other -> Other
-              end;
-            false -> wings_dissolve:faces([Fa,Fb],We0)
-          end
+            end;
+        {false,true} ->
+            case check_weld_neighbors(Fb, Vs0, Tol, We1) of
+                error ->
+                    wings_dissolve:faces([Fa,Fb],We0);
+                Other -> Other
+            end;
+        {_,_} ->
+            We = wings_dissolve:faces([Fa,Fb],We0),
+            case wings_we:new_items_as_ordset(face, We0, We) of
+                [NewFace] ->
+                    case check_weld_neighbors(NewFace, Vs0, Tol, We) of
+                        error -> We;
+                        Other -> Other
+                    end;
+                _ -> We
+            end
     end.
 
-check_weld_neighbors(Face, Vs0, Tol, We0) ->
-    Vs1 = wings_face:to_vertices([Face], We0),
+check_weld_neighbors(Face, Vs0, Tol, We) ->
+    Vs1 = wings_face:to_vertices([Face], We),
     if
       Vs0 =:= Vs1 -> error;
       true ->
         Vs =  Vs1 -- Vs0,
         if
           Vs =:= [] -> error;
-          length(Vs) rem 2 =:= 0 ->
+          true ->
             NVs = Vs0 -- Vs,
-            case get_vs_pairs(Vs, Tol, Face, We0) of
-              error -> error;
+            case get_vs_pairs(Vs, Tol, Face, We) of
+              [] -> error;
               CPList ->
-                connect_and_collapse(Face, CPList, NVs, [], We0)
-            end;
-          true -> We0
+                connect_and_collapse(Face, CPList, NVs, [], We)
+            end
         end
     end.
 
 get_vs_pairs(Vs, Tol, Face, We) ->
-    [{V,P}|VposList]=All = wings_util:add_vpos(Vs, We),
-    closest_pair(VposList, {V,P}, {none,Tol}, Face, All, Tol, [], We).
+    VPos = wings_util:add_vpos(Vs, We),
+    get_vs_pairs_1(VPos, Tol, Face, [], We).
 
-closest_pair([{Vb,VposB}|VposList], {Va,VposA}=V, {V0,D0}, Face, All, Tol, Acc, We) ->
-    D1 = e3d_vec:dist(VposA,VposB),
+get_vs_pairs_1([VPos|VposList0], Tol, Face, Acc, We) ->
+    case closest_pair(VposList0, VPos, {none,Tol}, Face, We) of
+        {_,Vb}=Pair ->
+            VposList = VposList0 -- [Vb],
+            get_vs_pairs_1(VposList, Tol, Face, [Pair|Acc], We);
+        none ->
+            get_vs_pairs_1(VposList0, Tol, Face, Acc, We)
+    end;
+get_vs_pairs_1([], _, _, Acc, _) ->
+    Acc.
+
+        
+closest_pair([{Vb,PosB}|VposList], {Va,PosA}, {V0,D0}, Face, We) ->
+    D1 = e3d_vec:dist(PosA,PosB),
     D = if
       D1 =< D0 ->
-        case wings_vertex:edge_through(Va,Vb,Face,We) of
-          none -> {{Vb,VposB},D1};
+        case wings_vertex:edge_through(Va, Vb, Face, We) of
+          none -> {{Vb,PosB},D1};
           _other -> {V0,D0}
         end;
       true -> {V0,D0}
     end,
-    closest_pair(VposList, V, D, Face, All, Tol, Acc, We);
-closest_pair([], {V1,_}, {{V2,_},_}, _, [_,_], _Tol, Acc, _We) ->
-    [{V1,V2}|Acc];
-closest_pair([], {V1,_}=Vp1, {{V2,_}=Vp2,_}, Face, All0, Tol, Acc, We) ->
-    [{V,P}|VposList]=All = All0 -- [Vp1,Vp2],
-    closest_pair(VposList, {V,P}, {none,Tol}, Face, All, Tol, [{V1,V2}|Acc], We);
-closest_pair(_,_,_,_,_,_,_,_) -> error.
+    closest_pair(VposList, {Va,PosA}, D, Face, We);
+closest_pair([], {Va,_}, {{Vb,_},_}, _Face, #we{}) -> {Va,Vb};
+closest_pair([], _, _, _, _) -> none.
 
 dissolve_edges([E|CommonEs],We0) ->
     case catch wings_edge:dissolve_edge(E,We0) of
