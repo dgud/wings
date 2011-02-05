@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ambocc,
+ [
+  {ambient,
+   [
+    {1,"Ambient"}
+   ]},
+  {ambient_occlusion,
+   [
+    {1,"OpenGL AO 시간: ~.1fs (~ts)\n"}
+   ]},
+  {menu,
+   [
+    {1,"앰비언트 오클루젼(AO)"},
+    {2,"OpenGL을 통해 앰비언트 오클루젼 버텍스 컬러 추가"}
+   ]},
+  {process_obj,
+   [
+    {1,"프로세싱: ~ts\n"}
+   ]}
+ ]}.

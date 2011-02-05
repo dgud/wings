@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_rwx,
+ [
+  {dialog,
+   [
+    {1,"면체의 lightsampling"},
+    {2,"최적화 파일 크기?"},
+    {3,"엠비언트"},
+    {4,"디퓨즈"},
+    {5,"스페큘러"},
+    {6,"수출 스케일"},
+    {7,"하위 분할 단계"}
+   ]},
+  {do_export,
+   [
+    {1,"Renderware 수출 옵션"}
+   ]},
+  {props,
+   [
+    {1,"Criterion Renderware File"}
+   ]}
+ ]}.
