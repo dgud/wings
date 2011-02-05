@@ -1,0 +1,17 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_image,
+ [
+  {image_menu,
+   [
+    {1,"影像平面..."},
+    {2,"創建一個包含圖像的平面"}
+   ]},
+  {make_image,
+   [
+    {1,"無法載入 \"~ts\": ~ts\n"}
+   ]},
+  {make_image_1,
+   [
+    {1,"圖像無法載入作為紋理(它可能是太大了)。"}
+   ]}
+ ]}.

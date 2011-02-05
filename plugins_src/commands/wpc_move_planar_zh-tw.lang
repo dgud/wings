@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_move_planar,
+ [
+  {axis_menu_string,
+   [
+    {1,"限制所有轉移到平面定義 ~ts"}
+   ]},
+  {move_planar_menu,
+   [
+    {1,"平面"},
+    {2,"限制轉移到標準的平面"},
+    {3,"挑選平面"}
+   ]},
+  {selection_ask,
+   [
+    {1,"選擇平面而所有的運動將受到限制"}
+   ]}
+ ]}.

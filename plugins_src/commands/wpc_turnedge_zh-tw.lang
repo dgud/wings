@@ -1,0 +1,19 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-é
+
+{wpc_turnedge,
+ [
+  {command_help,
+   [
+    {turn_ccw,"逆時針方向旋轉邊"},
+    {turn_cw,"順時針方向旋轉邊"},
+    {turn_optimized,"順時針方向旋轉邊只有當新的邊將會太短時"}
+   ]},
+  {command_name,
+   [
+    {turn,"旋轉"}
+   ]},
+  {validate_edges,
+   [
+    {1,"選擇邊必須不能在同樣的面。"}
+   ]}
+ ]}.

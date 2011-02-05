@@ -1,0 +1,88 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_circularise,
+ [
+  {angle_help,
+   [
+    {1,"  [3] 使用鈍角"},
+    {2,"  [3] 使用銳角"}
+   ]},
+  {check_selection,
+   [
+    {1,"沒有選擇"},
+    {2,"頂點必須從原來的邊環"},
+    {4,"只有一條邊或頂點可以選擇"}
+   ]},
+  {circ_norm_help,
+   [
+    {1,"  [2] 反平面正常"},
+    {2,"  [2] 原始平面正常"}
+   ]},
+  {circ_sel_error,
+   [
+    {2,"La sélection doit inclure qu'une seule boucle d'arêtes, fermée ou non"}
+   ]},
+  {circ_sel_error_1,
+   [
+    {1,"選擇循環邊可能不能共享頂點"}
+   ]},
+  {circ_sel_error_3,
+   [
+    {2,"選擇包括單邊不能處理"}
+   ]},
+  {circ_sel_error_4,
+   [
+    {2,"選擇循環邊必須是不相交的，並且或者所有打開或全部關閉。"}
+   ]},
+  {circular_arc_menu,
+   [
+    {1,"使成圓形"},
+    {2,"扁平，均衡，和膨脹循環邊使他們選擇圓形"},
+    {4,"選擇共同平面的循環將被扁平"},
+    {5,"Choisir un plan commun sur lequel les boucles seront aplanies"}
+   ]},
+  {flatten_help,
+   [
+    {1,"[1] 不要壓扁"},
+    {2,"[1] 壓扁"}
+   ]},
+  {norm_help,
+   [
+    {1,"  [2] 反向弧正常"},
+    {2,"  [2] 原弧正常"}
+   ]},
+  {radius_help,
+   [
+    {1,"  [3] 使用絕對直徑"},
+    {2,"  [3] 使用相對直徑"}
+   ]},
+  {secondary_sel_ask,
+   [
+    {1,"選擇一條邊或頂點從原來的邊緣環形標誌著穩定射線中心點"},
+    {2,"選取中心點"},
+    {3,"選擇平面"}
+   ]},
+  {selection_ask,
+   [
+    {1,"選擇平面"},
+    {2,"選取中心點"},
+    {3,"選取點從該中心將計算相對選擇平面和兩端邊沿選擇"}
+   ]}
+ ]}.
+%% [wpc_circularise,circ_sel_error,2] is not used
+%% [wpc_circularise,circular_arc_menu,4] is not used
+
+%%
+%% The following strings have no translation.
+%%
+
+{wpc_circularise,
+ [
+  {circular_arc_menu,
+   [
+    {6,"指定使用二次選擇"}
+   ]},
+  {circ_sel_error,
+   [
+    {3,"選擇必須由一個或多個打開的邊循環\也不是一個單一的封閉的循環"}
+   ]}
+ ]}.
