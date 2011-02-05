@@ -331,9 +331,9 @@ dir_help_1([lift|_], [free|Text]) ->
 dir_help_1([duplicate|_], [free|Text]) ->
     ?STR(dir_help_1,12,"Duplicate and move freely ")++ Text;
 dir_help_1([shell_extrude|_], [normal|_]) ->
-    ?STR(dir_help_1,24,"Extract and Extrude faces as region, then move faces along the region's normal");
+    ?STR(dir_help_1,27,"Extract and Extrude faces as region, then move faces along the region's normal");
 dir_help_1([shell_extrude|_], [free|Text]) ->
-    ?STR(dir_help_1,25,"Extract and Extrude faces as region, then move faces ") ++ Text;
+    ?STR(dir_help_1,28,"Extract and Extrude faces as region, then move faces ") ++ Text;
 
 %% Axis
 dir_help_1([move|_], Text) ->
