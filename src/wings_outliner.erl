@@ -731,5 +731,5 @@ title() ->
     ?__(1,"Outliner").
 
 rename(Id, File) ->
-    Name = filename:rootname(filename:basename(File)),
+    Name = filename:basename(File),
     wings_image:rename(Id, Name).
