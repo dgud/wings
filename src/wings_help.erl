@@ -178,7 +178,7 @@ one_or_two(Head) ->
 use_one_or_two() ->
     ?__(1,
 	 "To use mice with only one or two buttons, "
-	 "you must inform Wings how many buttons "
+	 "you must inform Wings of how many buttons "
 	 "your mouse has in the ")++
 	edit_prefs()++
 	?__(2," dialog.").
@@ -402,11 +402,11 @@ help_window(Title, Text) ->
 help_window(Name, Title, Text0) ->
     wings_wm:delete(Name),
     Text = [if is_binary(Line) -> binary_to_list(Line);
-	       true -> Line end || Line <- Text0],
-    {Rows,Lines} = wings_text:break_lines(Text, 60),
+	       true -> [Line,$\n,$\n] end || Line <- Text0],
+    Cw = ?CHAR_WIDTH,
+    {Rows,Lines} = wings_text:break_lines(Text, 60*Cw),
     {W,H} = wings_wm:top_size(),
     MaxH = trunc(H*0.75),
-    Cw = ?CHAR_WIDTH,
     Lh = ?CHAR_HEIGHT+2,
     Xs = 64*Cw,
     Ys = case Rows*Lh of

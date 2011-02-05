@@ -2350,23 +2350,6 @@ tweak_magnet_radius_help(false) ->
 %%% Tweak Help Window
 %%%
 
--record(tb,		% text box
-    {text=[],	% string
-     lw=0,		% length of current line
-     max=60,		% max line length allowed (break)
-     word=[], 	% accumulated letters from the current word
-     line=[],	% line acc
-     res=[]}).	% Result
-
--define(SPACE,$\s). % unicode space
--define(NL,$\n). 	% unicode new line
--define(TAB,$\t). 	% unicode tab (but we sub in 2 spaces)
-
-info_box(Text0, {W,_}) ->
-    CW = ?CHAR_WIDTH,
-    #tb{res=Text} = string_to_text_box(Text0, max(W-CW*2, CW*3)),
-    {reverse(Text), CW, length(Text), ?LINE_HEIGHT}.
-
 help_msg() ->
     [help_msg_basic(),
      help_msg_magnet(),
@@ -2378,26 +2361,26 @@ help_msg() ->
 
 help_msg_basic() ->
     [{bold,?__(1,"--What is Tweak?--")},"\n",
-     bl(),?SPACE,?__(2,"Tweak lets you edit a model quickly by clicking and dragging geometry."),"\n",
-     bl(),?SPACE,?__(3,"While Tweak is enabled, all the regular Wings commands are still available,"),
+     bl(),$\s,?__(2,"Tweak lets you edit a model quickly by clicking and dragging geometry."),"\n",
+     bl(),$\s,?__(3,"While Tweak is enabled, all the regular Wings commands are still available,"),
      ?__(4," but certain mouse buttons and modifier keys will activate the Tweak tools."),cr()].
 
 help_msg_magnet() ->
     [{bold,?__(1,"--Magnets--")},"\n",
-     bl(),?SPACE,?__(2,"Magnets allow for soft selection."),"\n",
-     bl(),?SPACE,?__(3,"There are 3 magnet types: Dome, Straight, and Spike."),"\n",
-     bl(),?SPACE,?__(4,"Adjust the Magnet's Radius by holding [Alt] and moving the mouse."),"\n",
-     bl(),?SPACE,?__(5,"Commands for switching magnets can be assigned to hotkeys in the Tweak Menu|Magnets."),"\n",
-     bl(),?SPACE,?__(6,"Magnet options can be set in the Tweak Preferences."),cr()].
+     bl(),$\s,?__(2,"Magnets allow for soft selection."),"\n",
+     bl(),$\s,?__(3,"There are 3 magnet types: Dome, Straight, and Spike."),"\n",
+     bl(),$\s,?__(4,"Adjust the Magnet's Radius by holding [Alt] and moving the mouse."),"\n",
+     bl(),$\s,?__(5,"Commands for switching magnets can be assigned to hotkeys in the Tweak Menu|Magnets."),"\n",
+     bl(),$\s,?__(6,"Magnet options can be set in the Tweak Preferences."),cr()].
 
 help_msg_axes() ->
     [{bold,?__(1,"--Axis Constraints--")},"\n",
-     bl(),?SPACE,?__(2,"Axis Constraints only affect Tweak Move and Scale operations."),"\n",
-     bl(),?SPACE,?__(3,"[F1], [F2], and [F3] can be held to constrain movement to the 3 cardinal axes, X, Y, and Z."),"\n",
-     bl(),?SPACE,?__(4,"Click axis constraint hotkeys to toggle them."),"\n",
-     bl(),?SPACE,?__(5,"Any of the axes can be toggled to stay on via the Tweak Menu or the Tweak Palette."),"\n",
-     bl(),?SPACE,?__(6,"The From Element and From Point axes activate the Tweak Vector."),"\n",
-     bl(),?SPACE,?__(7,"Axes can be combined."),cr()].
+     bl(),$\s,?__(2,"Axis Constraints only affect Tweak Move and Scale operations."),"\n",
+     bl(),$\s,?__(3,"[F1], [F2], and [F3] can be held to constrain movement to the 3 cardinal axes, X, Y, and Z."),"\n",
+     bl(),$\s,?__(4,"Click axis constraint hotkeys to toggle them."),"\n",
+     bl(),$\s,?__(5,"Any of the axes can be toggled to stay on via the Tweak Menu or the Tweak Palette."),"\n",
+     bl(),$\s,?__(6,"The From Element and From Point axes activate the Tweak Vector."),"\n",
+     bl(),$\s,?__(7,"Axes can be combined."),cr()].
 
 help_msg_keys() ->
     C = ", ",
@@ -2406,8 +2389,8 @@ help_msg_keys() ->
                       mode(slide)++")",
     Str = io_lib:format(?__(2,"Each of the Tweak Tools ~s can be assigned a modifier key combination (Ctrl, Shift, Alt)."),[TweakTools]),
     [{bold,?__(1,"--Assigning Tweak Keys--")},"\n",
-     bl(),?SPACE,Str,"\n",
-     bl(),?SPACE,?__(4,"To assign a key combination to a Tweak Tool:"),"\n",
+     bl(),$\s,Str,"\n",
+     bl(),$\s,?__(4,"To assign a key combination to a Tweak Tool:"),"\n",
      ?__(5,"\t1) Open the Tweak Menu."),"\n",
      ?__(6,"\t2) Highlight one of the Tweak Tools."),"\n",
      ?__(7,"\t3) Press and hold the modifier key combination and/or press the activating mouse button."),cr()].
@@ -2419,79 +2402,26 @@ help_msg_using_keys() ->
      ?__(4,"3) Press the Tweak Key combination and associated mouse button to activate Tweak."),"\n",
      ?__(5,"4) Drag geometry to it new position."),"\n",
      ?__(6,"5) Release the mouse button to complete the Tweak."),cr(),
-     bl(),?SPACE,?__(7,"Releasing the Tweak Keys will not end the Tweak event."),
+     bl(),$\s,?__(7,"Releasing the Tweak Keys will not end the Tweak event."),
      ?__(8,"This allows other hotkeys to be used in mid-tweak to activate another Tweak tool, an axis constraint, aim the camera, or adjust the magnet radius."),"\n",
-     bl(),?SPACE,?__(9,"Pressing [C] in mid-tweak tumbles the camera."),"\n",
-     bl(),?SPACE,?__(10,"Pressing [S] or the Arrow Keys in mid-tweak pans the camera."),"\n",
-     bl(),?SPACE,?__(11,"Pressing [D] in mid-tweak dollies the camera."),"\n",
-     bl(),?SPACE,?__(12,"Pressing [Spacebar] in mid-tweak switches to the Tweak Tool assigned to the Lmb."),"\n",
-     bl(),?SPACE,?__(13,"Holding [F] while finalizing a Slide operation collapses all newly created short edges."),cr()].
+     bl(),$\s,?__(9,"Pressing [C] in mid-tweak tumbles the camera."),"\n",
+     bl(),$\s,?__(10,"Pressing [S] or the Arrow Keys in mid-tweak pans the camera."),"\n",
+     bl(),$\s,?__(11,"Pressing [D] in mid-tweak dollies the camera."),"\n",
+     bl(),$\s,?__(12,"Pressing [Spacebar] in mid-tweak switches to the Tweak Tool assigned to the Lmb."),"\n",
+     bl(),$\s,?__(13,"Holding [F] while finalizing a Slide operation collapses all newly created short edges."),cr()].
 
 help_msg_hotkeys() ->
     [{bold,?__(1,"--Hotkeyed Tweak Tools--")},"\n",
-     bl(),?SPACE,?__(2,"An alternative to usings Tweak Key combinations is to assign hotkeys to the various Tweak Tools usings the [Insert] method."),"\n",
-     bl(),?SPACE,?__(3,"Pressing the hotkey assigns that Tweak Tool to Lmb."),cr()].
+     bl(),$\s,?__(2,"An alternative to usings Tweak Key combinations is to assign hotkeys to the various Tweak Tools usings the [Insert] method."),"\n",
+     bl(),$\s,?__(3,"Pressing the hotkey assigns that Tweak Tool to Lmb."),cr()].
 
 help_msg_palette() ->
     [{bold,?__(1,"--Tweak Palette (Window|Tweak Palette)--")},"\n",
-     bl(),?SPACE,?__(2,"The Tweak Palette is a group of 3 windows that contain the main commands from the Tweak Menu."),"\n",
-     bl(),?SPACE,?__(3,"Use the Tweak Palette to switch between Tweak Tools, Magnet Types, or Axis Constraints.")].
+     bl(),$\s,?__(2,"The Tweak Palette is a group of 3 windows that contain the main commands from the Tweak Menu."),"\n",
+     bl(),$\s,?__(3,"Use the Tweak Palette to switch between Tweak Tools, Magnet Types, or Axis Constraints.")].
 
 cr() -> "\n\n".
 bl() -> bullet.
-
-%% Formats strings to fit the width of a line length given in characters
-string_to_text_box(Text, W) ->
-    string_to_text_box(#tb{text=lists:flatten(Text),max=W}).
-
-%% String parsing for Text Box
-string_to_text_box(#tb{lw=LineWidth,max=Max,line=Line0,res=Res0}=Tb)
-  when LineWidth > Max ->
-    {Word,Line} = lists:splitwith(fun(Char) -> Char =/= ?SPACE end, Line0),
-    case Line of
-        [] ->
-            [NextLine|HyphinateLine] = Line0,
-            Res = [reverse([?NL,$-|HyphinateLine])|Res0],
-            LW = wings_text:width([NextLine]),
-            string_to_text_box(Tb#tb{lw=LW,line=[NextLine],res=Res});
-        _ ->
-            Res = [reverse([?NL|Line])|Res0],
-            LW = wings_text:width(Word),
-            string_to_text_box(Tb#tb{lw=LW,line=Word,res=Res})
-    end;
-
-string_to_text_box(#tb{text=[?NL|Text],line=Line,res=Res0}=Tb) ->
-    Res = [reverse([?NL|Line])|Res0],
-    string_to_text_box(Tb#tb{text=Text,lw=0,line=[],res=Res});
-
-string_to_text_box(#tb{text=[?TAB|Text],lw=LW,line=Line0}=Tb) ->
-    CharWidth = wings_text:width([?SPACE])*2,
-    Line = [?SPACE,?SPACE|Line0],
-    string_to_text_box(Tb#tb{text=Text,lw=LW+CharWidth,line=Line});
-
-string_to_text_box(#tb{text=[{bold,Bold}|Text],res=Res}=Tb0) ->
-    #tb{res=BoldString0} = string_to_text_box(Tb0#tb{text=Bold,line=[],res=[]}),
-    BoldString = foldl(fun(L, Acc) ->
-                        [H|T] = reverse(L),
-                        case H of
-                            ?NL -> [{bold,reverse(T)},?NL|Acc];
-                            _ -> [{bold,L}|Acc]
-                        end
-                end, [], BoldString0),
-    string_to_text_box(Tb0#tb{text=Text,res=reverse(BoldString)++Res});
-
-string_to_text_box(#tb{text=[Char|Text],lw=LineWidth0,line=Line}=Tb) ->
-    CharWidth = wings_text:width([Char]),
-    LW = LineWidth0+CharWidth,
-    string_to_text_box(Tb#tb{text=Text,lw=LW,line=[Char|Line]});
-
-string_to_text_box(#tb{text=[],line=Line,res=Res0}=Tb) when length(Line) < 2->
-    Res = [Line|Res0],
-    Tb#tb{lw=0,line=[],res=Res};
-
-string_to_text_box(#tb{text=[],line=Line,res=Res0}=Tb) ->
-    Res = [reverse(Line)|Res0],
-    Tb#tb{lw=0,line=[],res=Res}.
 
 %%%
 %%% Help Window Events
@@ -2499,8 +2429,6 @@ string_to_text_box(#tb{text=[],line=Line,res=Res0}=Tb) ->
 
 -record(twk_help,
     {text,			% Text in the help panel
-     x,				% start text from left at x
-     lh,			% line height
      lines,			% number of lines at current dimensions
      knob=0}).			% scroll
 
@@ -2519,9 +2447,9 @@ help_window() ->
         keep
     end.
 
-help_window(Pos,Size) ->
-    {Text,X,Lines,LHeight} = info_box(help_msg(),Size),
-    TwkHelp = #twk_help{text=Text,x=X,lines=Lines,lh=LHeight},
+help_window(Pos,{W,_}=Size) ->
+    {Lines,Text} = wings_text:break_lines(help_msg(),W),
+    TwkHelp = #twk_help{text=Text,lines=Lines},
     Op = {seq,push, get_help_event(TwkHelp)},
     wings_wm:toplevel(tweak_help, ?__(1,"Tweak Help"), Pos, Size,
               [{sizeable,?PANE_COLOR},closable,vscroller,{anchor,ne}], Op).
@@ -2529,19 +2457,19 @@ help_window(Pos,Size) ->
 get_help_event(TwkHelp) ->
    {replace,fun(Ev) -> help_event(Ev, TwkHelp) end}.
 
-help_event(redraw, #twk_help{text=Text0,x=X,knob=Knob,lh=Lh}) ->
+help_event(redraw, #twk_help{text=Text0,knob=Knob}) ->
     {W,H} = wings_wm:win_size(tweak_help),
     {_,T2} = lists:split(Knob, Text0),
     wings_io:ortho_setup(),
     wings_io:border(0, 0, W-1, H-1, {1,1,1}),
-    wings_io:text_at(X, Lh+2, T2),
+    wings_io:text_at(?CHAR_WIDTH, ?LINE_HEIGHT+2, T2),
     keep;
 help_event(resized,  #twk_help{knob=Pos,lines=L0}=TwkHelp0) ->
     P = Pos/L0,
-    {W,H} = wings_wm:win_size(tweak_help),
-    {Text, X, Lines, Lh} = info_box(help_msg(), {W,H}),
+    {W,_} = wings_wm:win_size(tweak_help),
+    {Lines,Text} = wings_text:break_lines(help_msg(), W),
     NewPos = round(Lines*P),
-    TwkHelp = TwkHelp0#twk_help{knob=NewPos,text=Text,x=X,lines=Lines,lh=Lh},
+    TwkHelp = TwkHelp0#twk_help{knob=NewPos,text=Text,lines=Lines},
     update_scroller(NewPos, Lines),
     wings_wm:dirty(),
     get_help_event(TwkHelp);
@@ -2559,8 +2487,8 @@ help_event(#mousebutton{button=B},#twk_help{knob=Pos,lines=Lines}=TwkHelp0)
     update_scroller(Knob, Lines),
     wings_wm:dirty(),
     get_help_event(TwkHelp);
-help_event({set_knob_pos, Pos}, #twk_help{lines=Lines,lh=Lh}=TwkHelp0) ->
-    Knob = round(Lines*Lh*Pos) div Lh,
+help_event({set_knob_pos, Pos}, #twk_help{lines=Lines}=TwkHelp0) ->
+    Knob = round(Lines*?LINE_HEIGHT*Pos) div ?LINE_HEIGHT,
     TwkHelp = TwkHelp0#twk_help{knob=Knob},
     update_scroller(Knob, Lines),
     wings_wm:dirty(),
@@ -2570,7 +2498,7 @@ help_event(close, _) ->
 help_event(_, _) ->
     keep.
 
-update_scroller(Knob,Lines) ->
+update_scroller(Knob, Lines) ->
     {_,H} = wings_wm:win_size(tweak_help),
     Total = Lines*?LINE_HEIGHT,
     Name = wings_wm:this(),
@@ -2582,7 +2510,6 @@ update_scroller(Knob,Lines) ->
 
 -record(tw,
     {n,						% number of menu Items.
-     lh,					% Line height.
      menu,					% menu items.
      w,						% Menu width in pixels
      h,						% Menu height in pixels
@@ -2626,7 +2553,7 @@ palette(Name, Pos, Ps, St) ->
     Width = W + (Cw*4),
     Size = {Width, Height},
     Mode = palette_mode(Name),
-    Tw = #tw{h=Height, w=Width, menu=Menu, n=N, current=[], lh=Lh, mode=Mode, st=St},
+    Tw = #tw{h=Height, w=Width, menu=Menu, n=N, current=[], mode=Mode, st=St},
     Op = {seq,push,get_event(Tw)},
     wings_wm:toplevel(Title, palette_title(Title), Pos, Size, [closable|Ps], Op).
 
@@ -2646,12 +2573,12 @@ event(redraw, #tw{w=W,h=H}=Tw) ->
     draw_tweak_palette(Tw),
     keep;
 event(update_palette, Tw0) ->
-    #tw{menu=Menu,lh=Lh}=Tw = update_tweak_palette(Tw0),
+    #tw{menu=Menu}=Tw = update_tweak_palette(Tw0),
     Cw = ?CHAR_WIDTH,
     Win = wings_wm:this(),
     N = length(Menu),
     W = max_width(Menu, 0, Win),
-    Height = Lh * N + 4,
+    Height = ?LINE_HEIGHT * N + 4,
     Width = W + (Cw*4),
     Size = {Width, Height},
     wings_wm:resize(Win, Size),
@@ -2687,54 +2614,54 @@ event(_,_) ->
 %%% Draw the Palette Names and Highlights
 %%%
 
-draw_tweak_palette(#tw{menu=Menu,lh=Lh}=Tw) ->
-    draw_tweak_menu_items(Menu, Lh, Tw).
+draw_tweak_palette(#tw{menu=Menu}=Tw) ->
+    draw_tweak_menu_items(Menu, ?LINE_HEIGHT, Tw).
 
-draw_tweak_menu_items([{Name,{_,{Mode,_}},Help,Bound}|Menu], Y, #tw{lh=Lh, w=W, current=Mode, mode=Mode}=Tw) ->
-    draw_menu_item(gradient_border, Name, Bound, Help, Menu, Y, W, Lh, Tw);
-draw_tweak_menu_items([{Name,{_,{Mode,_}},Help,Bound}|Menu], Y, #tw{lh=Lh, w=W, current=Mode}=Tw) ->
-    draw_menu_item(gradient_rect, Name, Bound, Help, Menu, Y, W, Lh, Tw);
-draw_tweak_menu_items([{Name,{_,{Mode,_}},_,_}|Menu], Y, #tw{lh=Lh, w=W, mode=Mode}=Tw) ->
-    draw_menu_item(gradient_border, Name, [], [], Menu, Y, W, Lh, Tw);
-draw_tweak_menu_items([{Name,{_,{_,_}},_,[crossmark]=B}|Menu], Y, #tw{lh=Lh, w=W}=Tw) ->
-    draw_menu_item(border, Name, B, [], Menu, Y, W, Lh, Tw);
-draw_tweak_menu_items([{Name,{_,{_,_}},_,_}|Menu], Y, #tw{lh=Lh}=Tw) ->
+draw_tweak_menu_items([{Name,{_,{Mode,_}},Help,Bound}|Menu], Y, #tw{w=W, current=Mode, mode=Mode}=Tw) ->
+    draw_menu_item(gradient_border, Name, Bound, Help, Menu, Y, W, Tw);
+draw_tweak_menu_items([{Name,{_,{Mode,_}},Help,Bound}|Menu], Y, #tw{w=W, current=Mode}=Tw) ->
+    draw_menu_item(gradient_rect, Name, Bound, Help, Menu, Y, W, Tw);
+draw_tweak_menu_items([{Name,{_,{Mode,_}},_,_}|Menu], Y, #tw{w=W, mode=Mode}=Tw) ->
+    draw_menu_item(gradient_border, Name, [], [], Menu, Y, W, Tw);
+draw_tweak_menu_items([{Name,{_,{_,_}},_,[crossmark]=B}|Menu], Y, #tw{w=W}=Tw) ->
+    draw_menu_item(border, Name, B, [], Menu, Y, W, Tw);
+draw_tweak_menu_items([{Name,{_,{_,_}},_,_}|Menu], Y, Tw) ->
     wings_io:set_color(wings_pref:get_value(menu_text)),
     wings_io:text_at(?CHAR_WIDTH, Y - 2, ["  ",Name]),
-    Ly = Y + Lh,
+    Ly = Y + ?LINE_HEIGHT,
     draw_tweak_menu_items(Menu, Ly, Tw);
-draw_tweak_menu_items([{Name,Cmd,Help}|Menu], Y, #tw{lh=Lh, w=W, current={_,{_,Cmd}}}=Tw) ->
-    draw_menu_item(gradient_rect, Name, [], Help, Menu, Y, W, Lh, Tw);
-draw_tweak_menu_items([{Name,Cmd,Help}|Menu], Y, #tw{lh=Lh, w=W, current={_,Cmd}}=Tw) ->
-    draw_menu_item(gradient_rect, Name, [], Help, Menu, Y, W, Lh, Tw);
-draw_tweak_menu_items([{Name,_,_}|Menu], Y, #tw{lh=Lh}=Tw) ->
+draw_tweak_menu_items([{Name,Cmd,Help}|Menu], Y, #tw{w=W, current={_,{_,Cmd}}}=Tw) ->
+    draw_menu_item(gradient_rect, Name, [], Help, Menu, Y, W, Tw);
+draw_tweak_menu_items([{Name,Cmd,Help}|Menu], Y, #tw{w=W, current={_,Cmd}}=Tw) ->
+    draw_menu_item(gradient_rect, Name, [], Help, Menu, Y, W, Tw);
+draw_tweak_menu_items([{Name,_,_}|Menu], Y, Tw) ->
     wings_io:set_color(wings_pref:get_value(menu_text)),
     wings_io:text_at(?CHAR_WIDTH, Y - 2, ["  ",Name]),
-    Ly = Y + Lh,
+    Ly = Y + ?LINE_HEIGHT,
     draw_tweak_menu_items(Menu, Ly, Tw);
 
-draw_tweak_menu_items([{Name,Cmd,Help,Bound}|Menu], Y, #tw{lh=Lh, w=W, current={_,{_,Cmd}}, mode={_,Cmd,_}}=Tw) ->
-    draw_menu_item(gradient_border, Name, Bound, Help, Menu, Y, W, Lh, Tw);
-draw_tweak_menu_items([{Name,Cmd,Help,Bound}|Menu], Y, #tw{lh=Lh, w=W, current={_,{_,Cmd}}}=Tw) ->
-    draw_menu_item(gradient_rect, Name, Bound, Help, Menu, Y, W, Lh, Tw);
+draw_tweak_menu_items([{Name,Cmd,Help,Bound}|Menu], Y, #tw{w=W, current={_,{_,Cmd}}, mode={_,Cmd,_}}=Tw) ->
+    draw_menu_item(gradient_border, Name, Bound, Help, Menu, Y, W, Tw);
+draw_tweak_menu_items([{Name,Cmd,Help,Bound}|Menu], Y, #tw{w=W, current={_,{_,Cmd}}}=Tw) ->
+    draw_menu_item(gradient_rect, Name, Bound, Help, Menu, Y, W, Tw);
 
-draw_tweak_menu_items([{Name,Cmd,Help,_}|Menu], Y, #tw{lh=Lh, w=W, current={_,Cmd}, mode={_,Cmd,_}}=Tw) ->
-    draw_menu_item(gradient_border, Name, [], Help, Menu, Y, W, Lh, Tw);
-draw_tweak_menu_items([{Name,Cmd,Help,_}|Menu], Y, #tw{lh=Lh, w=W, current={_,Cmd}}=Tw) ->
-    draw_menu_item(gradient_rect, Name, [], Help, Menu, Y, W, Lh, Tw);
+draw_tweak_menu_items([{Name,Cmd,Help,_}|Menu], Y, #tw{w=W, current={_,Cmd}, mode={_,Cmd,_}}=Tw) ->
+    draw_menu_item(gradient_border, Name, [], Help, Menu, Y, W, Tw);
+draw_tweak_menu_items([{Name,Cmd,Help,_}|Menu], Y, #tw{w=W, current={_,Cmd}}=Tw) ->
+    draw_menu_item(gradient_rect, Name, [], Help, Menu, Y, W, Tw);
 
-draw_tweak_menu_items([{Name,Cmd,_,_}|Menu], Y, #tw{lh=Lh, w=W, mode={_,Cmd,_}}=Tw) ->
-    draw_menu_item(gradient_border, Name, [], [], Menu, Y, W, Lh, Tw);
-draw_tweak_menu_items([{Name,_,_,[crossmark]=B}|Menu], Y, #tw{lh=Lh, w=W}=Tw) ->
-    draw_menu_item(border, Name, B, [], Menu, Y, W, Lh, Tw);
-draw_tweak_menu_items([{Name,_,_,_}|Menu], Y, #tw{lh=Lh}=Tw) ->
+draw_tweak_menu_items([{Name,Cmd,_,_}|Menu], Y, #tw{w=W, mode={_,Cmd,_}}=Tw) ->
+    draw_menu_item(gradient_border, Name, [], [], Menu, Y, W, Tw);
+draw_tweak_menu_items([{Name,_,_,[crossmark]=B}|Menu], Y, #tw{w=W}=Tw) ->
+    draw_menu_item(border, Name, B, [], Menu, Y, W, Tw);
+draw_tweak_menu_items([{Name,_,_,_}|Menu], Y, Tw) ->
     wings_io:set_color(wings_pref:get_value(menu_text)),
     wings_io:text_at(?CHAR_WIDTH, Y - 2, ["  ",Name]),
-    Ly = Y + Lh,
+    Ly = Y + ?LINE_HEIGHT,
     draw_tweak_menu_items(Menu, Ly, Tw);
 
-draw_tweak_menu_items([separator|Menu], Y, #tw{lh=Lh, w=W}=Tw) ->
-    {X1,Y1,X2} = {?CHAR_WIDTH - 1, Y - (Lh div 2 - 2), W - ?CHAR_WIDTH + 1},
+draw_tweak_menu_items([separator|Menu], Y, #tw{w=W}=Tw) ->
+    {X1,Y1,X2} = {?CHAR_WIDTH - 1, Y - (?LINE_HEIGHT div 2 - 2), W - ?CHAR_WIDTH + 1},
     TextCol = wings_pref:get_value(menu_text),
     wings_io:set_color(TextCol),
     gl:lineWidth(1),
@@ -2742,14 +2669,14 @@ draw_tweak_menu_items([separator|Menu], Y, #tw{lh=Lh, w=W}=Tw) ->
     gl:vertex2f(X1,Y1),
     gl:vertex2f(X2,Y1),
     gl:'end'(),
-    draw_tweak_menu_items(Menu, Y+Lh, Tw);
+    draw_tweak_menu_items(Menu, Y+?LINE_HEIGHT, Tw);
 
 draw_tweak_menu_items([_|Menu], Y, Tw) ->
     draw_tweak_menu_items(Menu, Y, Tw);
 draw_tweak_menu_items(_,_,_) -> ok.
 
-draw_menu_item(Style, Name, Bound, Help, Menu, Y, W, Lh, Tw) ->
-    {X1,Y1,X2,Y2} = {?CHAR_WIDTH - 1, Y + 1, W - ?CHAR_WIDTH + 1, Y-Lh+1},
+draw_menu_item(Style, Name, Bound, Help, Menu, Y, W, Tw) ->
+    {X1,Y1,X2,Y2} = {?CHAR_WIDTH - 1, Y + 1, W - ?CHAR_WIDTH + 1, Y-?LINE_HEIGHT+1},
     MenuHl = wings_pref:get_value(menu_hilite),
     case Style of
       border ->
@@ -2790,7 +2717,7 @@ draw_menu_item(Style, Name, Bound, Help, Menu, Y, W, Lh, Tw) ->
         end
     end,
     wings_io:text_at(?CHAR_WIDTH, Y - 2, text_style(Bound, Name)),
-    Ly = Y + Lh,
+    Ly = Y + ?LINE_HEIGHT,
     if Help =:= [] -> ok; true -> wings_wm:message(Help) end,
     draw_tweak_menu_items(Menu, Ly, Tw).
 
@@ -2859,8 +2786,8 @@ valid_menu_items([I|Menu]) ->
     end;
 valid_menu_items([]) -> [].
 
-update_highlight(_X, Y, #tw{menu=Menu,n=N,lh=Lh}=Tw) ->
-    Selected0 = ((Y+2) div Lh) + 1,
+update_highlight(_X, Y, #tw{menu=Menu,n=N}=Tw) ->
+    Selected0 = ((Y+2) div ?LINE_HEIGHT) + 1,
     Selected = case Selected0 + 1 > N of
       true -> N;
       false -> Selected0
