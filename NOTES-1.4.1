@@ -1,0 +1,23 @@
+--- 1.4.1 ----------------------------------------------------------------------
+- Major update to the Traditional Chinese translation of Wings
+  including AutoUV, many plugins, tools, and other interface strings.
+  Many thanks to szzz for this amazing contribution! [optigon]
+
+- Wings could crash when launching and opening a file at the same
+  time . The cause was the ets table for fonts could not be written to
+  while the Progress Bar was active. ets tables can only be accessed from
+  the process they are created in unless specifically stated. In Wings the
+  PB run on a separate process so accessing the ets font table while the
+  PB was active led to a badarg since the call was not allowed. The font
+  table is now set to public so it can be accessed by any process.
+  (Thanks to dgud and those who reported the crash) [optigon]
+
+- Help dialog formatting adjustments for Asian fonts. [optigon]
+
+- Improvements to Body|Weld for handeling neighbouring faces. [optigon]
+
+- Update to the the Korean translation to include the interface
+  strings and some key plugins including AutoUV. Many thanks to korea3d
+  for this wonderful contribution and for reporting the string errors
+  he found during the process. [optigon]
+
