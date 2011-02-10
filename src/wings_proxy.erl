@@ -296,7 +296,7 @@ proxy_smooth(We0, Pd0, St) ->
 	{_, _} = Info when Impl =:= ?MODULE ->
 	    ?TC(create_proxy_subdiv(Info, We0, St));
 	{Op, _} ->
-	    case Pd0 of		
+	    case Pd0 of
 		#sp{type={wings_cc,Data}} when Op =:= update ->
 		    ?TC(update_proxy_cc(We0, Data));
 		_ ->
@@ -308,9 +308,11 @@ proxy_needs_update(We, #sp{we=SWe,src_we=We,vab=#vab{face_vs=Bin}})
   when Bin =/= none ->
     %% Nothing important changed - just recreate the display lists
     {false, SWe};
-proxy_needs_update(#we{es=Etab,he=Hard,mat=M,next_id=Next,mirror=Mirror},
-		  #sp{we=OldWe,src_we=#we{es=Etab,he=Hard,mat=M,next_id=Next,
-					  mirror=Mirror}}) ->
+proxy_needs_update(#we{es=Etab,he=Hard,mat=M,next_id=Next,
+		       lv=Lv,rv=Rv,mirror=Mirror},
+		   #sp{we=OldWe,src_we=
+			   #we{es=Etab,he=Hard,mat=M,next_id=Next,
+			       lv=Lv,rv=Rv,mirror=Mirror}}) ->
     {update,OldWe};
 proxy_needs_update(We0, #sp{}) ->
     if ?IS_ANY_LIGHT(We0) -> 

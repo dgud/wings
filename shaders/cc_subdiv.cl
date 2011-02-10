@@ -14,6 +14,56 @@ typedef struct {
   int vab;
 } VabIndex;
 
+typedef struct {
+    float x;
+    float y;
+    float z;
+} color;
+
+typedef struct {
+    float x;
+    float y;
+    float z;
+    float u;
+    float v;
+} color_uv;
+
+
+inline color* float4_to_color(float4 vec, color* col) {
+    col->x = vec.x;
+    col->y = vec.y;
+    col->z = vec.z;
+    return col;
+}
+
+inline float4 color_to_float4(color col) {
+    float4 vec = {col.x, col.y, col.z, 0.0};
+    return vec;
+}
+
+inline void add_color_uv(color_uv in, color_uv *out) {
+    out->x += in.x;
+    out->y += in.y;
+    out->z += in.z;
+    out->u += in.u;
+    out->v += in.v;
+}
+
+inline void div_color_uv(float in, color_uv *out) {
+    out->x /= in;
+    out->y /= in;
+    out->z /= in;
+    out->u /= in;
+    out->v /= in;
+}
+
+inline void aver_color_uv(color_uv in1, color_uv in2, color_uv *aver) {
+    aver->x = (in1.x + in2.x) / 2.0;
+    aver->y = (in1.y + in2.y) / 2.0;
+    aver->z = (in1.z + in2.z) / 2.0;
+    aver->u = (in1.u + in2.u) / 2.0;
+    aver->v = (in1.v + in2.v) / 2.0;
+}
 
 void find_faces(int V0, int V1, FaceIndex Fi, __global int *Fs, 
 		int * F1, int *F2, int *CCW);
@@ -285,49 +335,136 @@ __kernel void move_verts(
   }
 }
 
-__kernel void create_vab(
-			 __global float4 *VsIn,
-			 __global int4 *FsIn,
-			 __global VabIndex *FiIn,
-			 __global float *Vab,
-			 const int noFs
+__kernel void subd_vcolor(
+			 __global color *AsIn,
+			 __global FaceIndex *FiIn,
+			 __global color *AsOut,
+			 const uint noFs
 			 )
 {
-    const int id = get_global_id(0);
-    if(id >= noFs)
+    int i;
+    const int face_id = get_global_id(0);
+    if (face_id >= noFs)
 	return;
-    VabIndex fi = FiIn[id];
-    const int f_sz;
-    int4 face;
-    float4 v1, v2, v3, v4, normal;
-    int vab, out = fi.vab*24;
-    for(int i=0; i < fi.len; i++) {
-	face = FsIn[fi.start+i];
-	vab = out+i*24;
-	v1 = VsIn[face.x];
-	v2 = VsIn[face.y];
-	v3 = VsIn[face.z];
-	v4 = VsIn[face.w];
-	normal = normalize(cross(v3-v1,v4-v2));
-	// Output V1
-	Vab[vab+0] = v1.x;  Vab[vab+3] = normal.x;
-	Vab[vab+1] = v1.y;  Vab[vab+4] = normal.y;
-	Vab[vab+2] = v1.z;  Vab[vab+5] = normal.z;   
-	// Output V2        
-	Vab[vab+6] = v2.x;  Vab[vab+9]  = normal.x;
-	Vab[vab+7] = v2.y;  Vab[vab+10] = normal.y;
-	Vab[vab+8] = v2.z;  Vab[vab+11] = normal.z;
-	// Output V3
-	Vab[vab+12] = v3.x; Vab[vab+15] = normal.x;
-	Vab[vab+13] = v3.y; Vab[vab+16] = normal.y;
-	Vab[vab+14] = v3.z; Vab[vab+17] = normal.z;
-	// Output V4
-	Vab[vab+18] = v4.x; Vab[vab+21] = normal.x;
-	Vab[vab+19] = v4.y; Vab[vab+22] = normal.y;
-	Vab[vab+20] = v4.z; Vab[vab+23] = normal.z;    
+    const FaceIndex fi = FiIn[face_id];
+    float4 aver, prev, curr, next, center = {0.0,0.0,0.0,0.0};
+    color col;
+    
+    for(i=0; i < fi.len; i++) {
+    	col = AsIn[fi.start+i];
+    	center += color_to_float4(col);
+    }
+
+    center /= i;
+
+    prev = color_to_float4(col);    
+    curr = color_to_float4(AsIn[fi.start]);
+
+    for(i=0; i < fi.len; i++) {
+    	int id = (fi.start+i);
+	next = color_to_float4(AsIn[fi.start+((i+1)%fi.len)]);
+	
+    	// Create face colors
+    	id *= 4;
+    	float4_to_color(curr, &col);
+    	AsOut[id+0] = col;
+    	aver = (curr + next)/2.0;
+    	float4_to_color(aver, &col);
+    	AsOut[id+1] = col;
+    	float4_to_color(center, &col);
+    	AsOut[id+2] = col;
+    	aver = (curr + prev)/2.0;
+    	float4_to_color(aver, &col);
+    	AsOut[id+3] = col;
+    	prev = curr;
+    	curr = next;
     }
 }
-__kernel void collect_face_info(
+
+__kernel void subd_uv(
+		      __global float2 *AsIn,
+		      __global FaceIndex *FiIn,
+		      __global float2 *AsOut,
+		      const uint noFs
+		      )
+{
+    int i;
+    const int face_id = get_global_id(0);
+    if (face_id >= noFs)
+	return;
+    const FaceIndex fi = FiIn[face_id];
+    float2 aver, prev, curr, next, center = {0.0,0.0};
+    
+    for(i=0; i < fi.len; i++) {
+    	curr = AsIn[fi.start+i];
+    	center += curr;
+    }
+
+    center /= i;
+
+    prev = curr;
+    curr = AsIn[fi.start];
+
+    for(i=0; i < fi.len; i++) {
+    	int id = (fi.start+i);
+	next = AsIn[fi.start+((i+1)%fi.len)];
+	
+    	// Create face uv's
+    	id *= 4;
+    	AsOut[id+0] = curr;
+    	aver = (curr + next)/2.0;
+    	AsOut[id+1] = aver;
+    	AsOut[id+2] = center;
+    	aver = (curr + prev)/2.0;
+    	AsOut[id+3] = aver;
+    	prev = curr;
+    	curr = next;
+    }
+}
+
+__kernel void subd_col_uv(
+			 __global color_uv *AsIn,
+			 __global FaceIndex *FiIn,
+			 __global color_uv *AsOut,
+			 const uint noFs
+			 )
+{
+    int i;
+    const int face_id = get_global_id(0);
+    if (face_id >= noFs)
+	return;
+    const FaceIndex fi = FiIn[face_id];
+    color_uv aver, prev, curr, next, center = {0.0,0.0,0.0,0.0,0.0,0.0};
+    color_uv col;
+    
+    for(i=0; i < fi.len; i++) {
+    	col = AsIn[fi.start+i];
+    	add_color_uv(col, &center);
+    }
+
+    div_color_uv(i, &center);
+
+    prev = col;
+    curr = AsIn[fi.start];
+
+    for(i=0; i < fi.len; i++) {
+    	int id = (fi.start+i);
+	next = AsIn[fi.start+((i+1)%fi.len)];
+	
+    	// Create face colors
+    	id *= 4;    	
+    	AsOut[id+0] = curr;
+    	aver_color_uv(curr,next,&aver);
+    	AsOut[id+1] = aver;
+    	AsOut[id+2] = center;
+	aver_color_uv(curr,prev,&aver);
+    	AsOut[id+3] = aver;
+    	prev = curr;
+    	curr = next;
+    }
+}
+
+__kernel void create_vab_all(
 				__global float4 *Vs,
 				__global int4 *Fs,
 				__global float *Vab,
@@ -363,6 +500,111 @@ __kernel void collect_face_info(
     Vab[id*f_sz+20] = v4.z; Vab[id*f_sz+23] = normal.z;    
 }
 
+
+__kernel void create_vab_sel(
+			 __global float4 *VsIn,
+			 __global int4 *FsIn,
+			 __global VabIndex *FiIn,
+			 __global float *Vab,
+			 const int noFs
+			 )
+{
+    const int id = get_global_id(0);
+    if(id >= noFs)
+	return;
+    VabIndex fi = FiIn[id];
+    int4 face;
+    float4 v1, v2, v3, v4, normal;
+    int vab, out = fi.vab*24;
+    for(int i=0; i < fi.len; i++) {
+	face = FsIn[fi.start+i];
+	vab = out+i*24;
+	v1 = VsIn[face.x];
+	v2 = VsIn[face.y];
+	v3 = VsIn[face.z];
+	v4 = VsIn[face.w];
+	normal = normalize(cross(v3-v1,v4-v2));
+	// Output V1
+	Vab[vab+0] = v1.x;  Vab[vab+3] = normal.x;
+	Vab[vab+1] = v1.y;  Vab[vab+4] = normal.y;
+	Vab[vab+2] = v1.z;  Vab[vab+5] = normal.z;   
+	// Output V2        
+	Vab[vab+6] = v2.x;  Vab[vab+9]  = normal.x;
+	Vab[vab+7] = v2.y;  Vab[vab+10] = normal.y;
+	Vab[vab+8] = v2.z;  Vab[vab+11] = normal.z;
+	// Output V3
+	Vab[vab+12] = v3.x; Vab[vab+15] = normal.x;
+	Vab[vab+13] = v3.y; Vab[vab+16] = normal.y;
+	Vab[vab+14] = v3.z; Vab[vab+17] = normal.z;
+	// Output V4
+	Vab[vab+18] = v4.x; Vab[vab+21] = normal.x;
+	Vab[vab+19] = v4.y; Vab[vab+22] = normal.y;
+	Vab[vab+20] = v4.z; Vab[vab+23] = normal.z;    
+    }
+}
+
+__kernel void get_sel_vcolor(
+			    __global VabIndex *FiIn,
+			    __global color *AsIn,
+			    __global color *AsOut,
+			    const int noFs
+			    )
+{
+    const int id = get_global_id(0);
+    if(id >= noFs)
+	return;
+    VabIndex fi = FiIn[id];
+    int in, out;
+    for(int i=0; i < fi.len; i++) {
+	in  = (fi.start+i)*4;
+	out = (fi.vab  +i)*4;
+	AsOut[out+0] = AsIn[in+0];
+	AsOut[out+1] = AsIn[in+1];
+	AsOut[out+2] = AsIn[in+2];
+	AsOut[out+3] = AsIn[in+3];
+    }
+}
+
+__kernel void get_sel_uv(
+			 __global VabIndex *FiIn,
+			 __global float8 *AsIn,
+			 __global float8 *AsOut,
+			 const int noFs
+			 )
+{
+    const int id = get_global_id(0);
+    if(id >= noFs)
+	return;
+    VabIndex fi = FiIn[id];
+    int in, out;
+    for(int i=0; i < fi.len; i++) {
+	in  = (fi.start+i);
+	out = (fi.vab  +i);
+	AsOut[out] = AsIn[in];
+    }
+}
+
+__kernel void get_sel_col_uv(
+			    __global VabIndex *FiIn,
+			    __global color_uv *AsIn,
+			    __global color_uv *AsOut,
+			    const int noFs
+			    )
+{
+    const int id = get_global_id(0);
+    if(id >= noFs)
+	return;
+    VabIndex fi = FiIn[id];
+    int in, out;
+    for(int i=0; i < fi.len; i++) {
+	in  = (fi.start+i)*4;
+	out = (fi.vab  +i)*4;
+	AsOut[out+0] = AsIn[in+0];
+	AsOut[out+1] = AsIn[in+1];
+	AsOut[out+2] = AsIn[in+2];
+	AsOut[out+3] = AsIn[in+3];
+    }
+}
 
 // Helpers
 // Find the order of faces so that vertices for a face
@@ -416,4 +658,21 @@ void find_faces(int V0, int V1, FaceIndex Fi, __global int *Fs,
 //   int pos = v_id % LOCK_SZ;
 //   __global int * semaphor = &(locks[pos]);
 //   atom_xchg(semaphor, 0);
+// }
+
+
+// void AtomicAdd(__global float *val, const float delta) {
+//     union {
+//         float f;
+//         unsigned int i;
+//     } oldVal;
+//     union {
+//         float f;
+//         unsigned int i;
+//     } newVal;
+
+//     do {
+//         oldVal.f = *val;
+//         newVal.f = oldVal.f + delta;
+//     } while (atom_cmpxchg((__global unsigned int *)val, oldVal.i, newVal.i) != oldVal.i);
 // }

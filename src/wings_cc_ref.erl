@@ -31,6 +31,7 @@
 	       f,    %% array of [v0,v1..,vn]   nf
 	       fi,   %% array of {Start,Size}   nf
 	       e,    %% array of v0,v1,f1,f2    ne
+	       as,   %% Vertex attrs
 	       level,%% Subdiv levels
 	       n,    %% Number of faces 
 	       mmap, %% Material map, {mat, start, vertex_count}
@@ -44,10 +45,10 @@
 -define(VERTEX_SZ, ((3*4)+4)).
 -define(LOCK_SZ, 32).
 
-subdiv(#base{v=Vs,e=Es,f=Fs, level=N}) ->
-    subdiv_erl_1(Fs, Es, Vs, N).
+subdiv(#base{v=Vs,e=Es,f=Fs, as=As, level=N}) ->
+    subdiv_erl_1(Fs, Es, Vs, As, N).
 
-subdiv_erl_1(InFs, Es0, InVs, N) when N > 0 ->
+subdiv_erl_1(InFs, Es0, InVs, As, N) when N > 0 ->
     SFs0 = array:sparse_foldl(fun(_F, Vs, R=[Prev|_]) ->
 				      [Prev+length(Vs)|R]
 			      end, [0], InFs),
@@ -56,11 +57,12 @@ subdiv_erl_1(InFs, Es0, InVs, N) when N > 0 ->
     {OutVs2, OutFs, Es} = gen_edge_points(Es0, InVs, OutVs1, 
 					  SFs, InFs, OutFs1, undefined),
     OutVs = move_vertex_points(InVs,OutVs2),
+    OutAs = subdiv_attrs(As),
     %% erl_vs("evs_out3", N, OutVs),
-    subdiv_erl_1(OutFs, Es, OutVs, N-1);
-subdiv_erl_1(Fs0, _Es0, Vtab, _N) ->
-    %% assert(Vtab, _Es0, Fs0),
-    {Vtab, Fs0}.
+    subdiv_erl_1(OutFs, Es, OutVs, OutAs, N-1);
+subdiv_erl_1(Fs0, _Es0, Vtab, As, _N) ->
+    %% assert(Vtab, _Es0, Fs0),    
+    {Vtab, As, Fs0}.
 
 update(Changed, B=#base{v=Vs0,vmap=Map}) ->
     Vs = case Changed of
@@ -90,7 +92,7 @@ update(Changed, B=#base{v=Vs0,vmap=Map}) ->
 	 end,
     B#base{v=Vs}.
 
-gen_vab({Vtab, Ftab}, #base{n=Total, mmap=Mats}) -> 
+gen_vab({Vtab, As, Ftab}, #base{n=Total, type=Type, mmap=Mats}) -> 
     Gen = fun(Id, Vs0, Bin) when Id < Total ->
 		  Vs = [(array:get(V,Vtab))#v.pos || V <- Vs0],
 		  {Nx,Ny,Nz} = e3d_vec:normal(Vs),
@@ -105,13 +107,54 @@ gen_vab({Vtab, Ftab}, #base{n=Total, mmap=Mats}) ->
 	      array:foldl(Gen, <<>>, Ftab)
 	  catch throw:Bin1 ->
 		  Bin1
+	  end,    
+    AsBin = case As of
+		undefined -> <<>>;
+		_ ->
+		    try 		
+			lists:foldl(gen_attrib_fun(Type), <<>>, As)
+		    catch throw:Bin2 ->
+			    Bin2
+		    end
+	    end,
+    {Bin, <<>>, AsBin, Mats}.
+
+%% print( <<R:?F32, G:?F32, B:?F32, U:?F32, V:?F32, Rest/binary>>, Face) ->
+%%     io:format("~w: {~.4f,~.4f,~.4f}, {~.4f,~.4f}~n", [Face,R,G,B,U,V]),
+%%     print(Rest, Face+1);
+%% print(<<>>, _) -> ok.
+
+gen_attrib_fun(color) ->
+    fun(Colors, Bin) ->
+	    Face = << <<(col_bin(Col))/binary>> || Col <- Colors >>,
+	    <<Bin/binary, Face/binary >>
+    end;
+gen_attrib_fun(uv) ->
+    fun(Uvs, Bin) ->
+	    Face = << <<(uv_bin(Uv))/binary>> || Uv <- Uvs >>,
+	    <<Bin/binary, Face/binary >>
+    end;
+gen_attrib_fun(color_uv) ->
+    Gen = fun([Col|Uv], Bin) ->
+		  <<Bin/binary, (col_bin(Col))/binary,(uv_bin(Uv))/binary>>;
+	     (none, Bin) ->
+		  <<Bin/binary, (col_bin(none))/binary,(uv_bin(none))/binary>>
 	  end,
-    {Bin, Mats}.
+    fun(Uvs, Bin) ->
+	    foldl(Gen,Bin, Uvs)
+    end;
+gen_attrib_fun(_) -> fun(_, _) -> throw(<<>>) end.
+
+uv_bin({U,V}) -> <<U:?F32, V:?F32>>;
+uv_bin(_) -> <<0.0:?F32, 0.0:?F32>>.
+     
+col_bin({R,G,B}) -> <<R:?F32, G:?F32, B:?F32>>;
+col_bin(_) -> <<1.0:?F32, 1.0:?F32, 1.0:?F32>>.
 
 gen_vab({_Type, MatFs}, Data, #base{fmap=FMap}) ->
     gen_vab(MatFs, Data, FMap, 0, <<>>, []).
 
-gen_vab([{Mat,Fs}|T], D={Vtab,Ftab},FMap, Start, Bin0, MI) ->
+gen_vab([{Mat,Fs}|T], D={Vtab, _, Ftab},FMap, Start, Bin0, MI) ->
     %%io:format("Mat: ~p Fs: ~p ~p~n",[Mat, length(Fs), Fs]),
     Build = fun(WFace, {C,Acc}) ->
 		    {FStart,Fsz} = gb_trees:get(WFace,FMap),
@@ -122,7 +165,7 @@ gen_vab([{Mat,Fs}|T], D={Vtab,Ftab},FMap, Start, Bin0, MI) ->
     MatInfo = {Mat,?GL_QUADS,Start,Stop-Start},
     gen_vab(T, D, FMap, Stop, Bin, [MatInfo|MI]);
 gen_vab([], _, _,_, Bin, Mi) ->
-    {Bin, Mi}.
+    {Bin, <<>>, <<>>, Mi}.
 
 gen_faces(N, End, Ftab, Vtab, Acc0) when N < End -> 
     Vs0 = array:get(N, Ftab),
@@ -261,6 +304,33 @@ vc_div(3) -> {1/9,  1/3};
 vc_div(4) -> {1/16, 2/4};
 vc_div(5) -> {1/25, 3/5};
 vc_div(N) -> {1/(N*N), (N-2.0)/N}.
+
+subdiv_attrs(undefined) -> undefined;
+subdiv_attrs(As0) -> 
+    {_,As} = lists:foldl(fun(Attrs = [First|_], {F,Out}) ->
+			     Last = lists:last(Attrs),			     
+			     Center = average(Attrs),
+			     {F+1,subdiv_attrs(Last, Attrs, Center, First, Out)}
+		     end, {0,[]}, As0),
+    reverse(As).
+
+subdiv_attrs(Last, [Curr|Attrs=[Next|_]], Center, First, Out) ->
+    FaceAttr = [Curr, average(Curr,Next),
+		Center, average(Curr,Last)],
+    subdiv_attrs(Curr, Attrs, Center, First, [FaceAttr|Out]);
+subdiv_attrs(Last, [Curr], Center, Next, Out) ->
+    FaceAttr = [Curr, average(Curr,Next),
+		Center, average(Curr,Last)],
+    [FaceAttr|Out].
+
+average(Attrs = [[_|_]|_]) ->
+    wings_va:average_attrs(Attrs);
+average(Attrs) ->
+    wings_color:average(Attrs).
+average(Attr1 = [_|_], Attr2) ->
+    wings_va:average_attrs(Attr1, Attr2);
+average(A1, A2) ->
+    wings_color:average(A1,A2).
 
 %% The order is important to get ccw winding
 %% find_new_faces(V0,V1,[V0,V1,_,_],Sid) -> {Sid+0,Sid+1,true};
