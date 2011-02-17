@@ -1,8 +1,7 @@
 %%
-%%  wings_cc_ref.erl --
+%%  wings_cc.erl --
 %%
-%%     This module implements the smooth proxy in erlang, this is a
-%%     reference implementation to the one using opencl.
+%%     This module implements the smooth proxy in opencl.
 %% 
 %%  Copyright (c) 2010-2011 Dan Gudmundsson
 %%
@@ -36,6 +35,8 @@
 
 -compile(export_all).
 
+-define(PL_UNITS, 4).
+
 -record(v, {pos,                     % position
 	    vc}).                    % Valence
 
@@ -55,16 +56,15 @@
 	      }).
 
 %% OpenCL defines
--record(cli,      
-	{context, kernels, q, cl, device, 
-	 %% CL temp buffers and respective sizes
+-record(cls,      
+	{cl,
+	 %% CL temp buffers and respective sizes	  
 	 vab, vab_sz=0, fl, fl_sz=0, fi, fi_sz=0,
-	 sn, sn_vz %% Smooth normals ? can reuse fl?
+	 sn, sn_sz %% Smooth normals ? can reuse fl?
 	}).
 
--record(cl_mem,   {v, v_no, f, fs_no, e, e_no, fi, fi0, as}).
+-record(cl_mem,   {v, v_no, f, fs_no, e, e_no, fi, fi0, as, max_vs}).
 -record(cc_cache, {mem, old, wait}).
--record(kernel,   {name, id, wg}).
 
 -define(EDGE_SZ, (4*4)).
 -define(FACE_SZ, (4*4)).
@@ -77,7 +77,7 @@
 
 %% Returns opaque data
 init(Plan, We) ->
-    ?TC(build_data(Plan,4,We,?DEFAULT)).
+    ?TC(build_data(Plan,3,We,?DEFAULT)).
 
 %% Update state with new vertex positions
 update(ChangedVs, Data) ->
@@ -129,7 +129,8 @@ gen_vab_1(Data0, Base) ->
 	end
     catch
 	_:Reas ->
-	    io:format("Error ~p:~p ~n", [Reas, erlang:get_stacktrace()])
+	    io:format("Error ~p:~p ~n", [Reas, erlang:get_stacktrace()]),
+	    exit({error,Reas})
     end.
 
 gen_vab_1(Plan, Data, Base) ->
@@ -140,7 +141,8 @@ gen_vab_1(Plan, Data, Base) ->
 	end
     catch
 	_:Reas ->
-	    io:format("Error ~p:~p ~n", [Reas, erlang:get_stacktrace()])
+	    io:format("Error ~p:~p ~n", [Reas, erlang:get_stacktrace()]),
+	    exit({error,Reas})
     end.
 
 create_vab({Vs, SNs0, Attrs0, MatInfo}, #base{type=Type}) ->
@@ -152,7 +154,7 @@ create_vab({Vs, SNs0, Attrs0, MatInfo}, #base{type=Type}) ->
     S = 3*4+3*4,
     SNs = case SNs0 of
 	      <<>> -> {S, Ns};
-	      _ -> {3*4, SNs0}
+	      _ -> {4*4, SNs0}  %% Special case easier cl code
 	  end,
     Colors = case Attrs0 of 
 		 <<>> -> none;
@@ -378,7 +380,7 @@ pack_data(B0=#base{v=Vtab0, e=Etab0, f=Ftab0}, opencl) ->
     Etab = array:sparse_foldl(GetEs, <<>>,  Etab0),
 
     GetVs = fun(_, #v{pos={X1,Y1,Z1}, vc={Vc,Hc}}, Bin) ->
-		    VI = (Vc bsl 2) bor Hc,
+		    VI = (Vc bsl 2) bor min(Hc,3),
 		    << Bin/binary,
 		       X1:?F32,Y1:?F32,Z1:?F32,VI:?F32 >>
 	    end,
@@ -436,71 +438,71 @@ subdiv_1(N,
 	 In = #cl_mem{v=VsIn, f=FsIn, fi=FiIn, e=EsIn, as=AsIn,
 		      v_no=NoVs, fs_no=NoFs, e_no=NoEs},
 	 Out= #cl_mem{v=VsOut, f=FsOut, e=EsOut, fi=FiOut, as=AsOut,
-		      v_no=NoVs1,fs_no=NoFs1, e_no=NoEs1},
-	 Type, CL, Wait0)
+		      v_no=NoVsOut,fs_no=NoFs1, e_no=NoEs1},
+	 Type, CLS=#cls{cl=CL}, Wait0)
   when N > 0 ->
     Args1 = [VsIn, FsIn, FiIn, VsOut, FsOut, NoFs, NoVs],
-    W0 = cl_apply(gen_faces, Args1, NoFs, Wait0, CL),
+    W0 = wings_cl:tcast(gen_faces, Args1, NoFs, Wait0, CL),
     [cl:release_event(Ev) || Ev <- Wait0],
-    Args2 = [FsIn, FiIn, VsOut, NoFs, NoVs],
-    W1 = cl_apply(add_center, Args2, 1, [W0], CL),
+    Args2 = [FsIn, FiIn, VsOut, NoFs, NoVs, NoVsOut],
+    W1 = wings_cl:tcast(add_center, Args2, ?PL_UNITS, [W0], CL),
 
-    Args3 = [VsIn, FsIn, EsIn, FiIn, 
-	     VsOut, FsOut, EsOut, 
-	     NoFs, NoVs, NoEs],
-    W2 = cl_apply(gen_edges, Args3, NoEs, [W1], CL),
-    Args4 = [VsIn, VsOut, EsIn, NoEs],
-    W3 = cl_apply(add_edge_verts, Args4, 1, [W2], CL),
+    Args3 = [VsIn, FsIn, EsIn, FiIn,VsOut, FsOut, EsOut, NoFs, NoVs, NoEs],
+    W2 = wings_cl:tcast(gen_edges, Args3, NoEs, [W1], CL),
+    Args4 = [VsIn, VsOut, EsIn, NoEs, NoVsOut],
+    W3 = wings_cl:tcast(add_edge_verts, Args4, ?PL_UNITS, [W2], CL),
 
-    Args5 = [VsIn,VsOut,NoVs,NoVs1],
-    W4 = cl_apply(move_verts, Args5, NoVs1, [W3], CL),
+    Args5 = [VsIn,VsOut,NoVs,NoVsOut],
+    W4 = wings_cl:tcast(move_verts, Args5, NoVsOut, [W3], CL),
     Wait = case Type of 
 	       plain -> W4;
 	       color -> 
 		   Args6 = [AsIn, FiIn, AsOut, NoFs],
-		   cl_apply(subd_vcolor, Args6, NoFs, [W4], CL);
+		   wings_cl:cast(subd_vcolor, Args6, NoFs, [W4], CL);
 	       uv -> 
 		   Args6 = [AsIn, FiIn, AsOut, NoFs],
-		   cl_apply(subd_uv, Args6, NoFs, [W4], CL);
+		   wings_cl:cast(subd_uv, Args6, NoFs, [W4], CL);
 	       color_uv -> 
 		   Args6 = [AsIn, FiIn, AsOut, NoFs],
-		   cl_apply(subd_col_uv, Args6, NoFs, [W4], CL);
+		   wings_cl:cast(subd_col_uv, Args6, NoFs, [W4], CL);
 	       _ -> %%  unknown ignore
 		   W4
 	   end,
     [cl:release_event(Ev) || Ev <- [W0,W1,W2,W3]],
     subdiv_1(N-1, Out, 
-	     In#cl_mem{fi=FiOut, v_no=NoVs1+NoFs1+NoEs1,
+	     In#cl_mem{fi=FiOut, v_no=NoVsOut+NoFs1+NoEs1,
 		       fs_no=NoFs1*4, e_no=NoEs1*4},
-	     Type, CL, [Wait]);
+	     Type, CLS, [Wait]);
 subdiv_1(_C, ResultBuffs, OutBuffs, _, _, Wait) ->
     #cc_cache{mem=ResultBuffs, old=OutBuffs, wait=Wait}.
 
-gen_vab_2(#cc_cache{mem=Mem,old=Old,wait=Wait}, B=#base{n=NoFs, type=Type}) ->
-    CL=#cli{q=Q, vab=Vab} = cl_setup(),
+gen_vab_2(#cc_cache{mem=Mem,old=Old,wait=Wait}, B=#base{n=NoFs,type=Type}) ->
+    #cls{cl=CL, vab=Vab} = cl_setup(),
     %% Create #vab{}
     #cl_mem{v=Vs, f=Fs, as=As} = Mem,
-    WVab = cl_apply(create_vab_all,[Vs,Fs,Vab,NoFs], NoFs, Wait,CL),
+    WVab = wings_cl:cast(create_vab_all,[Vs,Fs,Vab,NoFs], NoFs, Wait,CL),
     Attrs = case attrs(Type) of
 		{plain,_} -> <<>>;
 		{_, Sz} -> 
-		    {ok, AData} = cl:enqueue_read_buffer(Q,As,0,NoFs*4*Sz,Wait),
+		    AData = wings_cl:read(As,NoFs*4*Sz,Wait,CL),
 		    {ok, A0} = cl:wait(AData),
 		    A0;
 		_ -> 
 		    <<>>
 	    end,
-    {ok, WData} = cl:enqueue_read_buffer(Q,Vab,0,NoFs*4*6*4,[WVab]),
+    WData = wings_cl:read(Vab,NoFs*4*6*4,[WVab],CL),
     {ok, VabBin} = cl:wait(WData),
+    Smooth = gen_smooth_normals(Vab, NoFs, Mem, Old, [WVab], CL),
+
     [cl:release_event(Ev) || Ev <- [WVab,WData|Wait]],
     cl_release(Mem, true),
     cl_release(Old, false),
-    {VabBin, <<>>, Attrs, B#base.mmap}.
+    {VabBin, Smooth, Attrs, B#base.mmap}.
 
 gen_vab_2({_Type, MatFs}, 
-	  #cc_cache{mem=Mem,old=Old,wait=Wait}, 
+	  #cc_cache{mem=Mem, wait=Wait0, old=Old}, 
 	  #base{fmap=FMap, type=Type}) ->
-    CL=#cli{q=Q, vab=Vab, fl=FL} = cl_setup(),
+    #cls{cl=CL, vab=Vab, fl=FL} = cl_setup(),
     %% Create #vab{}
     #cl_mem{v=Vs, f=Fs, as=AsIn} = Mem,
     CountF = fun(WFace, [Start|Bin0]) ->
@@ -517,29 +519,16 @@ gen_vab_2({_Type, MatFs},
     NoInFs = byte_size(FsBin) div 12,
     case NoInFs > 0 of 
 	true ->
-	    {ok,W1} = cl:enqueue_write_buffer(Q, FL, 0, byte_size(FsBin), 
-					      FsBin, []),
-	    WVab = cl_apply(create_vab_sel, [Vs,Fs,FL,Vab,NoInFs], 
-			    NoInFs, [W1|Wait],CL),
-	    Attrs = 
-		case attrs(Type) of
-		    {plain,_} -> <<>>;
-		    {T,Sz} ->
-			Func = case T of 
-				   color    -> get_sel_vcolor;
-				   uv       -> get_sel_uv;
-				   [color|uv] -> get_sel_col_uv
-			       end,
-			#cl_mem{as=AsOut} = Old,
-			Args = [FL,AsIn,AsOut,NoInFs],
-			AW = cl_apply(Func,Args,NoInFs,[W1|Wait],CL),
-			{ok, AData} = 
-			    cl:enqueue_read_buffer(Q,AsOut,0,NoOutFs*4*Sz,[AW]),
-			{ok, A0} = cl:wait(AData),
-			A0
-		end,
-	    {ok, WData}  = cl:enqueue_read_buffer(Q,Vab,0,NoOutFs*4*6*4,[WVab]),
+	    W1 = wings_cl:write(FL, FsBin, CL),
+	    Wait = [W1|Wait0],
+	    Args0 = [Vs,Fs,FL,Vab,NoInFs],
+	    WVab = wings_cl:cast(create_vab_sel,Args0,NoInFs,Wait,CL),
+	    #cl_mem{as=AsOut} = Old,
+	    VabSz = NoOutFs*4*6*4,
+	    WData = wings_cl:read(Vab,VabSz,[WVab],CL),	    
 	    {ok, VabBin} = cl:wait(WData),
+	    Args1 = [FL,AsIn,AsOut,NoInFs],
+	    Attrs = gen_sel_attr(Type, Args1, NoOutFs,Wait,CL),
 	    [cl:release_event(Ev) || Ev <- [WVab,W1|Wait]],
 	    cl_release(Mem, true),
 	    cl_release(Old, false),
@@ -555,6 +544,39 @@ mat_index([{Mat,Fs}|MFs], Fun, Acc0 = [Start|_], MI) ->
     mat_index(MFs, Fun, Acc, [MatInfo|MI]);
 mat_index([], _, [Total|Bin], MatInfo) ->
     {Total, Bin, MatInfo}.
+
+gen_smooth_normals(Vab, NoFs, 
+		   #cl_mem{f=Fs,e=Es,e_no=NoEs,v=VsNs,v_no=NoVs,as=Out1}, 
+		   #cl_mem{v=Vs,as=Out2}, Wait, CL) ->
+    VsOut = NoFs*4,
+    C1 = wings_cl:tcast(clearf, [VsNs,4,NoVs], NoVs, Wait, CL),
+    C2 = wings_cl:tcast(clearf, [Out1,4,VsOut], VsOut, Wait, CL),
+    C3 = wings_cl:tcast(clearf, [Out2,4,VsOut], VsOut, Wait, CL),
+    Args0 = [Fs,Vab,VsNs,NoFs,NoVs],
+    Pass0 = wings_cl:tcast(smooth_ns_pass0, Args0, ?PL_UNITS, [C1], CL),
+    Args1 = [Es,Fs,Vab,Out1,Out2,NoEs],
+    Pass1 = wings_cl:tcast(smooth_ns_pass1, Args1, NoEs, [C3,C2,Pass0], CL),
+    Args2 = [Fs,Vs,VsNs,Vab,Out1,Out2,NoFs,NoVs],
+    Pass2 = wings_cl:tcast(smooth_ns, Args2, NoFs, [Pass1], CL),
+
+    WData = wings_cl:read(Out1,VsOut*4*4,[Pass2],CL),
+    {ok, OutBin} = cl:wait(WData),
+    OutBin.
+
+gen_sel_attr(plain, _, _, _, _) ->
+    <<>>;
+gen_sel_attr(Type,[FL,AsIn,AsOut,NoInFs],NoOutFs,Wait,CL) ->
+    {T,Sz} = attrs(Type), 
+    Func = case T of 
+	       color    -> get_sel_vcolor;
+	       uv       -> get_sel_uv;
+	       [color|uv] -> get_sel_col_uv
+	   end,
+    Args = [FL,AsIn,AsOut,NoInFs],
+    AW = wings_cl:cast(Func,Args,NoInFs,Wait,CL),
+    AData = wings_cl:read(AsOut,NoOutFs*4*Sz,[AW],CL),
+    {ok, A0} = cl:wait(AData),
+    A0.
 
 attrs(uv) -> % wings_va type and byte size
     {uv, 2*4};
@@ -574,102 +596,55 @@ cl_setup() ->
     end.
 
 cl_setup_1() ->
-    Opts = [],
-    Prefered = proplists:get_value(cl_type, Opts, cpu),
-    Other = [gpu,cpu] -- [Prefered],
-    CL = case clu:setup(Prefered) of 
-	     {error, _} -> 
-		 case clu:setup(Other) of
-		     {error, R} -> 
-			 exit({no_opencl_device, R});
-		     Cpu -> Cpu
-		 end;
-	     Gpu ->
-		 Gpu
-	 end,
-    [Device|_] = CL#cl.devices,
-    {ok,Queue} = cl:create_queue(CL#cl.context,Device,[]),
-    %%% Compile
-    Dir = filename:join(code:lib_dir(wings),"shaders"),
-    {ok, Bin} = file:read_file(filename:join([Dir, "cc_subdiv.cl"])),
-    case clu:build_source(CL, Bin) of
-	{error, {Err={error,build_program_failure}, _}} ->
-	    %% io:format("~s", [Str]),
-	    exit(Err);
-	{ok, Program} -> 
-	    {ok, MaxWGS} = cl:get_device_info(Device, max_work_group_size),
-	    {ok, Kernels0} = cl:create_kernels_in_program(Program),
-	    Kernels = [kernel_info(K,Device, MaxWGS) || K <- Kernels0],
-	    %% io:format("Kernels ~p~n",[Kernels]),
-	    CLI = #cli{context=CL#cl.context,kernels=Kernels,
-		       q=Queue, device=Device, cl=CL},
-	    cl:release_program(Program),
-	    put({?MODULE, cl}, CLI),
-	    CLI
-    end.
+    CL0 = wings_cl:compile("cc_subdiv.cl", wings_cl:setup()),
+    CL = #cls{cl=CL0},
+    put({?MODULE, cl}, CL),
+    CL.
 
-kernel_info(K,Device, MaxWGS) ->
-    {ok, WG} = cl:get_kernel_workgroup_info(K, Device, work_group_size),
-    {ok, Name} = cl:get_kernel_info(K, function_name),
-    #kernel{name=list_to_atom(Name), wg=min(WG,MaxWGS), id=K}.
-
-cl_apply(Name, Args, No, Wait, #cli{q=Q, kernels=Ks}) ->
-    #kernel{id=K, wg=WG0} = lists:keyfind(Name, 2, Ks),
-    try clu:apply_kernel_args(K, Args) of
-	ok -> ok
-    catch error:Reason ->
-	    io:format("Bad args ~p: ~p~n",[Name, Args]),
-	    erlang:raise(error,Reason, erlang:get_stacktrace())
-    end,
-    {GWG,WG} = if  No > WG0  -> 
-		       {(1+(No div WG0))*WG0, WG0};
-		   true -> {No,No}
-	       end,
-    %% io:format("X ~p GWG ~p WG ~p~n", [Name, GWG, WG]),
-    {ok, Event} = cl:enqueue_nd_range_kernel(Q,K,[GWG],[WG],Wait),
-    Event.
 
 %% For now only one level at the time
-cl_allocate(Base=#base{fi=Fi, type=Type}, CL0=#cli{context=Ctxt}) ->
+cl_allocate(Base=#base{fi=Fi, type=Type}, CL0=#cls{cl=CLI}) ->
+    Ctxt = wings_cl:get_context(CLI),
     {NoFs,NoEs,NoVs, NoFs1, MaxFs,MaxEs,MaxVs} = verify_size(Base, CL0),
     {ok,FiIn}  = cl:create_buffer(Ctxt, [], byte_size(Fi), Fi),
     {ok,FsIn}  = cl:create_buffer(Ctxt, [], MaxFs*?FACE_SZ),
     {ok,EsIn}  = cl:create_buffer(Ctxt, [], MaxEs*?EDGE_SZ),
-    {ok,VsIn}  = cl:create_buffer(Ctxt, [], MaxVs*?VERTEX_SZ),
+    {ok,VsIn}  = cl:create_buffer(Ctxt, [], MaxVs*?VERTEX_SZ*?PL_UNITS),
     
     {ok,FsOut} = cl:create_buffer(Ctxt, [], MaxFs*?FACE_SZ),
     {ok,EsOut} = cl:create_buffer(Ctxt, [], MaxEs*?EDGE_SZ),
-    {ok,VsOut} = cl:create_buffer(Ctxt, [], MaxVs*?VERTEX_SZ),
+    {ok,VsOut} = cl:create_buffer(Ctxt, [], MaxVs*?VERTEX_SZ*?PL_UNITS),
     
-    CL = #cli{fi=FiOut} = check_temp_buffs(CL0, MaxFs),
+    CL = #cls{fi=FiOut} = check_temp_buffs(CL0, Ctxt, MaxFs),
+    put({?MODULE, cl}, CL),
 
-    {AsIn,AsOut} = 
-	case attrs(Type) of
-	    {_, 0} -> {undefined, undefined};
-	    {_, ASz} -> 
-		{ok,As1} = cl:create_buffer(Ctxt, [], MaxFs*ASz*4),
-		{ok,As2} = cl:create_buffer(Ctxt, [], MaxFs*ASz*4),
-		{As1, As2}
-	end,
-		
+    {_, ASz0} = attrs(Type),
+    ASz = max(ASz0, 4*4),  %% Also used for smooth normals 
+    {ok,AsIn}  = cl:create_buffer(Ctxt, [], MaxFs*ASz*4),
+    {ok,AsOut} = cl:create_buffer(Ctxt, [], MaxFs*ASz*4),
+    
     {#cl_mem{v=VsIn, f=FsIn, e=EsIn, fi=FiIn, fi0=FiIn, as=AsIn,
-	     v_no=NoVs, fs_no=NoFs, e_no=NoEs},
+	     v_no=NoVs, fs_no=NoFs, e_no=NoEs, max_vs=MaxVs},
      #cl_mem{v=VsOut, f=FsOut, e=EsOut, fi=FiOut, fi0=FiIn, as=AsOut,
-	     v_no=NoVs+NoFs+NoEs, fs_no=NoFs1, e_no=NoEs*4},
+	     v_no=NoVs+NoFs+NoEs, fs_no=NoFs1, e_no=NoEs*4, max_vs=MaxVs},
      CL}.
 
 cl_write_input(#base{f=Fs,e=Es,v=Vs, as=As}, 
-	       #cl_mem{v=VsIn,f=FsIn,e=EsIn,as=AsIn}, #cl_mem{v=VsOut}, 
-	       #cli{q=Q}) ->
-    {ok, W1} = cl:enqueue_write_buffer(Q,  VsIn, 0, byte_size(Vs), Vs, []),
-    {ok, W2} = cl:enqueue_write_buffer(Q, VsOut, 0, byte_size(Vs), Vs, []),
-    {ok, W3} = cl:enqueue_write_buffer(Q,  FsIn, 0, byte_size(Fs), Fs, []),
-    {ok, W4} = cl:enqueue_write_buffer(Q,  EsIn, 0, byte_size(Es), Es, []),
+	       #cl_mem{v=VsIn,f=FsIn,e=EsIn,as=AsIn,max_vs=MaxVs}, 
+	       #cl_mem{v=VsOut},
+	       #cls{cl=CL}) ->
+    NoVs = MaxVs * ?PL_UNITS,
+    Wait0 = wings_cl:cast(clearf, [VsIn, 4, NoVs], NoVs, [], CL),
+    Wait1 = wings_cl:cast(clearf, [VsOut, 4, NoVs], NoVs, [], CL), 
+    W3 = wings_cl:write(FsIn,  Fs, CL), 
+    W4 = wings_cl:write(EsIn,  Es, CL), 
+    {ok, _} = cl:wait(Wait0), {ok, _} = cl:wait(Wait1),
+    W1 = wings_cl:write(VsIn,  Vs, CL),
+    W2 = wings_cl:write(VsOut, Vs, CL),
     Last = case As of
 	       undefined -> [];
 	       _ ->
-		   Sz = byte_size(As),
-		   {ok, W5} = cl:enqueue_write_buffer(Q, AsIn, 0, Sz, As, []),
+		   W5 = wings_cl:write(AsIn, As, CL), 
 		   [W5]
 	   end,
     [W1,W2,W3,W4|Last].
@@ -681,12 +656,12 @@ cl_release(#cl_mem{v=Vs,f=Fs,e=Es,fi0=Fi0,as=As}, All) ->
     As /= undefined andalso cl:release_mem_object(As),
     All andalso cl:release_mem_object(Fi0).
 
-check_temp_buffs(CL=#cli{context=Ctxt, 
+check_temp_buffs(CL=#cls{
 			 vab=Vab0, vab_sz=VabSz0, 
 			 fl=FL0, fl_sz=FLSz0, 
 			 fi=Fi0, fi_sz=FiSz0
 			 %%sn = SN0, sn_vz = SNSz0
-			}, MaxFs0) ->
+			}, Ctxt, MaxFs0) ->
     MaxFs = trunc(MaxFs0*1.5),  
     %% Overallocate so we don't need new buffers all the time
     GenFi = fun() -> 
@@ -699,12 +674,13 @@ check_temp_buffs(CL=#cli{context=Ctxt,
 			   Ctxt,[read_only],none),
     {Fi,FiSz} = check_temp(Fi0,FiSz0,MaxFs*2*4,
 			   Ctxt,[read_only],GenFi),
+    %% {SN,SNSz} = check_temp(SN0,SNSz0,MaxFs*3*4*4,
+    %% 			   Ctxt,[write_only],none),
 
-    CLI = CL#cli{vab=Vab, vab_sz=VabSz, 
-		 fl=FL,   fl_sz=FLSz, 
-		 fi=Fi,   fi_sz=FiSz},
-    put({?MODULE, cl}, CLI),
-    CLI.
+    CL#cls{vab=Vab, vab_sz=VabSz, 
+	   fl=FL,   fl_sz=FLSz, 
+	   fi=Fi,   fi_sz=FiSz
+	  }.
 
 check_temp(Buff, Current, Req, _, _, _) 
   when Current >= Req ->
@@ -719,7 +695,7 @@ check_temp(Buff0, _, Req, Ctxt, Opt, Data) ->
     cl:release_mem_object(Buff0),
     check_temp(undefined, 0, Req, Ctxt, Opt, Data).
 
-verify_size(#base{fi=Fi, e=Es, v=Vs, level=N}, #cli{device=Device}) ->
+verify_size(#base{fi=Fi, e=Es, v=Vs, level=N}, #cls{cl=CL}) ->
     NoFs = size(Fi) div 8,
     NoEs = size(Es) div ?EDGE_SZ,
     NoVs = size(Vs) div ?VERTEX_SZ,
@@ -727,6 +703,7 @@ verify_size(#base{fi=Fi, e=Es, v=Vs, level=N}, #cli{device=Device}) ->
     Skip = size(Fi) - 8,
     <<_:Skip/binary, NoFs0:?I32, LastFc:?I32>> = Fi,
     NoFs1 = NoFs0+LastFc,
+    Device = wings_cl:get_device(CL),
     {ok, DevTotal} = cl:get_device_info(Device, max_mem_alloc_size),
     case verify_size_1(N-1, N, NoFs1, NoEs*4, NoVs+NoEs+NoFs, DevTotal) of
 	false -> 
@@ -760,11 +737,11 @@ verify_size_1(N, No, Fs, Es, Vs, CardMax) ->
 %% DEBUG
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--ifdef(DO_DEBUG).
-%-ifdef(true).
-cl_vs(Str, N, Vs, Count, #cli{q=Q}, Wait0) ->
+%-ifdef(DO_DEBUG).
+-ifdef(PL_UNITS).
+cl_vs(Str, N, Vs, Count, CL, Wait0) ->
     Wait = if is_list(Wait0) -> Wait0; true -> [Wait0] end,
-    {ok, W1} = cl:enqueue_read_buffer(Q,Vs,0,Count*?VERTEX_SZ,Wait),
+    W1 = wings_cl:read(Vs,Count*?VERTEX_SZ,Wait,CL),
     {ok, VsBin} = cl:wait(W1),
 
     {ok, F} = file:open(Str ++ "_" ++ integer_to_list(N), [write]),
@@ -781,8 +758,27 @@ cl_vs(Str, N, Vs, Count, #cli{q=Q}, Wait0) ->
 	file:close(F)
     end.
 
-cl_face(Str, N, Vs, Count, #cli{q=Q}, Wait) ->
-    {ok, W1} = cl:enqueue_read_buffer(Q,Vs,0,Count*?FACE_SZ,[Wait]),
+cl_es(Str, N, Es, Count, CL, Wait0) ->
+    Wait = if is_list(Wait0) -> Wait0; true -> [Wait0] end,
+    W1 = wings_cl:read(Es,Count*?EDGE_SZ,Wait,CL),
+    {ok, EsBin} = cl:wait(W1),
+
+    {ok, F} = file:open(Str ++ "_" ++ integer_to_list(N), [write]),
+    try 
+	W = fun(<<X:?I32,Y:?I32,Z:?I32,W:?I32>>,E) -> 
+		    ok=io:format(F,"{~w, {~.4w,~.4w,~.4w,~.4w}~n", [E,X,Y,Z,W]),
+		    E+1
+	    end,
+	lists:foldl(W, 0, [D || <<D:?EDGE_SZ/binary>> <= EsBin])
+    catch E:R ->
+	    io:format("Failed ~p:~p ~p~n",[E,R,erlang:get_stacktrace()])
+    after 
+	file:close(F)
+    end.
+
+cl_face(Str, N, Vs, Count, CL, Wait0) ->
+    Wait = if is_list(Wait0) -> Wait0; true -> [Wait0] end,
+    W1 = wings_cl:read(Vs,Count*?FACE_SZ,Wait,CL),
     {ok, FsBin} = cl:wait(W1),
 
     {ok, FD} = file:open(Str ++ "_" ++ integer_to_list(N), [write]),
@@ -803,17 +799,16 @@ cl_face(Str, N, Vs, Count, #cli{q=Q}, Wait) ->
 cl_destroy(Mem) ->
     %% During DEBUGGING REMOVE LATER BUGBUG
     cl_release(Mem, true),
-    #cli{q=Q,kernels=Ks,context=C, 
-	 fl=Fl, fi=Fi,vab=Vab} = get({?MODULE, cl}),
+    #cls{fl=Fl, fi=Fi,vab=Vab} = get({?MODULE, cl}),
 
     cl:release_mem_object(Vab),
     cl:release_mem_object(Fi),
     cl:release_mem_object(Fl),
 
     erase({?MODULE, cl}),
-    cl:release_queue(Q),
-    [cl:release_kernel(K) || #kernel{id=K} <- Ks],
-    cl:release_context(C),
+    %% cl:release_queue(Q),
+    %% [cl:release_kernel(K) || #kernel{id=K} <- Ks],
+    %% cl:release_context(C),
     ok.
 
 print_base(#base{v=Vs,f=Fs,fi=Fi,e=Es,n=N}) ->
