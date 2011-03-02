@@ -14,13 +14,26 @@
 -module(wings_cl).
 -include_lib("cl/include/cl.hrl").
 
--export([setup/0, compile/2, get_context/1, get_device/1,
+-export([is_available/0,
+	 setup/0, compile/2, get_context/1, get_device/1,
 	 cast/5, write/3, read/4,
 	 tcast/5
 	]).
 
 -record(cli, {context, kernels, q, cl, device}).
 -record(kernel, {name, id, wg}).
+
+
+is_available() ->
+    try 
+	true = erlang:system_info(smp_support), 
+	ok = cl:start(),
+	{ok, Ps} = cl:get_platform_ids(),
+	[] /= Ps
+    catch _:{badmatch, _Reason} ->
+	    io:format("OpenCL not available ~n",[])
+    end.
+	      	
 
 %% setup() -> cli().
 setup() ->

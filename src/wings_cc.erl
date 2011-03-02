@@ -24,7 +24,7 @@
 %%%
 
 -module(wings_cc).
--export([init/2, update/2, gen_vab/1, gen_vab/2]).
+-export([init/3, update/2, gen_vab/1, gen_vab/2]).
 
 %% debug 
 -import(lists, [reverse/1, foldl/3]).
@@ -76,8 +76,11 @@
 %%%% API %%%%%%%%%
 
 %% Returns opaque data
-init(Plan, We) ->
-    ?TC(build_data(Plan,3,We,?DEFAULT)).
+init(Plan, Level, We) when is_integer(Level) ->
+    ?TC(build_data(Plan,Level,We,?DEFAULT));
+
+init(Plan, #base{level=Level}, We)  ->
+    ?TC(build_data(Plan,Level,We,?DEFAULT)).
 
 %% Update state with new vertex positions
 update(ChangedVs, Data) ->
@@ -124,7 +127,7 @@ subdiv(_, _) ->
 gen_vab_1(Data0, Base) ->
     try 
 	case ?DEFAULT of
-	    erlang -> ?TC(create_vab(wings_cc_ref:gen_vab(Data0, Base), Base));
+	    erlang -> create_vab(wings_cc_ref:gen_vab(Data0, Base), Base);
 	    opencl -> create_vab(gen_vab_2(Data0, Base), Base)
 	end
     catch
@@ -442,18 +445,18 @@ subdiv_1(N,
 	 Type, CLS=#cls{cl=CL}, Wait0)
   when N > 0 ->
     Args1 = [VsIn, FsIn, FiIn, VsOut, FsOut, NoFs, NoVs],
-    W0 = wings_cl:tcast(gen_faces, Args1, NoFs, Wait0, CL),
+    W0 = wings_cl:cast(gen_faces, Args1, NoFs, Wait0, CL),
     [cl:release_event(Ev) || Ev <- Wait0],
     Args2 = [FsIn, FiIn, VsOut, NoFs, NoVs, NoVsOut],
     W1 = wings_cl:tcast(add_center, Args2, ?PL_UNITS, [W0], CL),
 
     Args3 = [VsIn, FsIn, EsIn, FiIn,VsOut, FsOut, EsOut, NoFs, NoVs, NoEs],
-    W2 = wings_cl:tcast(gen_edges, Args3, NoEs, [W1], CL),
+    W2 = wings_cl:cast(gen_edges, Args3, NoEs, [W1], CL),
     Args4 = [VsIn, VsOut, EsIn, NoEs, NoVsOut],
     W3 = wings_cl:tcast(add_edge_verts, Args4, ?PL_UNITS, [W2], CL),
 
     Args5 = [VsIn,VsOut,NoVs,NoVsOut],
-    W4 = wings_cl:tcast(move_verts, Args5, NoVsOut, [W3], CL),
+    W4 = wings_cl:cast(move_verts, Args5, NoVsOut, [W3], CL),
     Wait = case Type of 
 	       plain -> W4;
 	       color -> 
@@ -549,15 +552,15 @@ gen_smooth_normals(Vab, NoFs,
 		   #cl_mem{f=Fs,e=Es,e_no=NoEs,v=VsNs,v_no=NoVs,as=Out1}, 
 		   #cl_mem{v=Vs,as=Out2}, Wait, CL) ->
     VsOut = NoFs*4,
-    C1 = wings_cl:tcast(clearf, [VsNs,4,NoVs], NoVs, Wait, CL),
-    C2 = wings_cl:tcast(clearf, [Out1,4,VsOut], VsOut, Wait, CL),
-    C3 = wings_cl:tcast(clearf, [Out2,4,VsOut], VsOut, Wait, CL),
+    C1 = wings_cl:cast(clearf, [VsNs,4,NoVs], NoVs, Wait, CL),
+    C2 = wings_cl:cast(clearf, [Out1,4,VsOut], VsOut, Wait, CL),
+    C3 = wings_cl:cast(clearf, [Out2,4,VsOut], VsOut, Wait, CL),
     Args0 = [Fs,Vab,VsNs,NoFs,NoVs],
     Pass0 = wings_cl:tcast(smooth_ns_pass0, Args0, ?PL_UNITS, [C1], CL),
     Args1 = [Es,Fs,Vab,Out1,Out2,NoEs],
-    Pass1 = wings_cl:tcast(smooth_ns_pass1, Args1, NoEs, [C3,C2,Pass0], CL),
+    Pass1 = wings_cl:cast(smooth_ns_pass1, Args1, NoEs, [C3,C2,Pass0], CL),
     Args2 = [Fs,Vs,VsNs,Vab,Out1,Out2,NoFs,NoVs],
-    Pass2 = wings_cl:tcast(smooth_ns, Args2, NoFs, [Pass1], CL),
+    Pass2 = wings_cl:cast(smooth_ns, Args2, NoFs, [Pass1], CL),
 
     WData = wings_cl:read(Out1,VsOut*4*4,[Pass2],CL),
     {ok, OutBin} = cl:wait(WData),
@@ -737,8 +740,8 @@ verify_size_1(N, No, Fs, Es, Vs, CardMax) ->
 %% DEBUG
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%-ifdef(DO_DEBUG).
--ifdef(PL_UNITS).
+-ifdef(DO_DEBUG).
+%-ifdef(PL_UNITS).
 cl_vs(Str, N, Vs, Count, CL, Wait0) ->
     Wait = if is_list(Wait0) -> Wait0; true -> [Wait0] end,
     W1 = wings_cl:read(Vs,Count*?VERTEX_SZ,Wait,CL),

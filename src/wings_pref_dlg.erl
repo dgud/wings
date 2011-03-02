@@ -534,6 +534,16 @@ misc_prefs() ->
 		      not gb_trees:get(autosave, Store);
 		 (_, _) -> void
 	      end,
+    OpenCL = case wings_cl:is_available() of
+		 true -> [{info,?__(40,"A value of 1 will use the standard implementation, " 
+				    "a larger value takes more memory "
+				    "(experimental feature requires good OpenCL drivers)")}];
+		 false ->
+		     [{hook,fun(is_disabled, _) -> true;
+			       (_, _) -> void
+			    end},
+		      {info,?__(41,"OpenCL drivers is required ")}]
+	     end,
     {vframe,
      [{hframe,[{?__(2,"Save automatically every"),autosave},
 	       {text,autosave_time,[{hook,AutoFun},{range,{1,1440}}]},
@@ -555,10 +565,14 @@ misc_prefs() ->
 	{hframe,
 	 [{vframe,
 	   [{label,?__(12,"Stationary Opacity")},
-	    {label,?__(13,"Moving Opacity")}]},
+	    {label,?__(13,"Moving Opacity")},
+	    {label, ?__(42, "OpenCL proxy level")}]},
 	  {vframe,
 	   [{slider,{text,proxy_static_opacity,[{range,{0.0,1.0}}|Flags]}},
-	    {slider,{text,proxy_moving_opacity,[{range,{0.0,1.0}}|Flags]}}]}]}],
+	    {slider,{text,proxy_moving_opacity,[{range,{0.0,1.0}}|Flags]}},
+	    {slider,{text,proxy_opencl_level,[{range,{1,5}}|OpenCL]}}
+	   ]}]}
+       ],
        [{title,?__(14,"Proxy Mode")}]},
       {vframe,
        [{hframe,

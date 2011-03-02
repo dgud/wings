@@ -294,8 +294,12 @@ draw_edges_1(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
     wings_dl:call(ProxyEdges).
 
 proxy_smooth(We0, Pd0, St) ->
-    %% Impl = ?MODULE,
-    Impl = wings_cc,
+    Level = wings_pref:get_value(proxy_opencl_level),
+    if is_integer(Level),Level > 1 -> 
+	    Impl = wings_cc;
+       true ->
+	    Impl = ?MODULE
+    end,
     case proxy_needs_update(We0, Pd0) of
 	{false,_} ->
 	    Pd0;
@@ -306,7 +310,7 @@ proxy_smooth(We0, Pd0, St) ->
 		#sp{type={wings_cc,Data}} when Op =:= update ->
 		    ?TC(update_proxy_cc(We0, Data));
 		_ ->
-		    ?TC(create_proxy_cc(We0, St))
+		    ?TC(create_proxy_cc(We0, Level, St))
 	    end
     end.
 
@@ -344,9 +348,9 @@ update_proxy_cc(We0, Data0) ->
     Vab  = wings_cc:gen_vab(Data),
     #sp{src_we=We0,we=We0,vab=Vab,type={wings_cc,Data}}.
 
-create_proxy_cc(We = #we{fs=Ftab}, St) ->
+create_proxy_cc(We = #we{fs=Ftab}, Level, St) ->
     Plan = wings_draw_setup:prepare(gb_trees:keys(Ftab), We, St),
-    Data = wings_cc:init(Plan, We),
+    Data = wings_cc:init(Plan, Level, We),
     Vab  = wings_cc:gen_vab(Data),
     #sp{src_we=We,we=We,vab=Vab,type={wings_cc,Data}}.
 
@@ -355,8 +359,6 @@ split_proxy(#dlo{proxy=true, src_we=We=#we{fs=Ftab},
 	    DynVs0, St) ->
     Fs0 = gb_trees:keys(Ftab),
     DynFs0 = wings_face:from_vs(DynVs0, We),
-    %% #we{mirror=Mirror,holes=Holes} = SrcWe,
-    %% DynFs = ordsets:subtract(DynFs0, ordsets:union([Mirror], Holes)),
 
     %% Expand once (to get the split drawing faces)
     DynVs1 = wings_face:to_vertices(DynFs0, We),
@@ -369,12 +371,11 @@ split_proxy(#dlo{proxy=true, src_we=We=#we{fs=Ftab},
 		   wings_cc:update(DynVs0, Data0);
 	       {_, _} ->
 		   Plan = wings_draw_setup:prepare(Fs0, We, St),
-		   wings_cc:init(Plan, We)
+		   wings_cc:init(Plan, Data0, We)
 	   end,
     StaticFsSet = gb_sets:subtract(gb_sets:from_ordset(Fs0), 
 				   gb_sets:from_ordset(DynFs)),
     StaticFs = gb_sets:to_list(StaticFsSet),
-    %%io:format("Gen Static ~w~n", [StaticFs]),
     StaticPlan = wings_draw_setup:prepare(StaticFs, We, St),
     StaticVab = wings_cc:gen_vab(StaticPlan, Data),
     StaticDL = wings_draw:draw_flat_faces(StaticVab, St),
@@ -383,9 +384,8 @@ split_proxy(#dlo{proxy=true, src_we=We=#we{fs=Ftab},
     SubdivVs = wings_face:to_vertices(DynFs, We),
     SubdivFs = wings_face:from_vs(SubdivVs, We),
     SubdivPlan = wings_draw_setup:prepare(SubdivFs, We, St),
-    SubdivData = wings_cc:init(SubdivPlan, We),
+    SubdivData = wings_cc:init(SubdivPlan, Data0, We),
     
-    %%io:format("Gen Dynamic ~w~n", [DynFs]),
     DynPlan  = wings_draw_setup:prepare(DynFs, We, St),
     DynVab   = wings_cc:gen_vab(DynPlan, SubdivData),
     DynDL = wings_draw:draw_flat_faces(DynVab, St),
