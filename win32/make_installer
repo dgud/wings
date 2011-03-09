@@ -35,8 +35,8 @@ fi
 ESDL_NAME=`basename $ESDL_PATH`
 
 ERLANG_PATH=`which erl`
-ERLANG_PATH=`dirname $ERLANG_PATH`
-ERLANG_PATH=`dirname $ERLANG_PATH`
+ERLANG_PATH=`dirname "$ERLANG_PATH"`
+ERLANG_PATH=`dirname "$ERLANG_PATH"`
 
 if [ ! -f "$WINGS_VCREDIST" ]; then
     echo "The environment variable WINGS_VCREDIST must point out vcredist_x86.exe. " \
