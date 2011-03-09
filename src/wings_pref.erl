@@ -439,7 +439,7 @@ defaults() ->
      {proxy_shaded_edge_style,some},
      {proxy_static_opacity,1.0},
      {proxy_moving_opacity,1.0},
-     {proxy_opencl_level, 1},
+     {proxy_opencl_level, 0},
 
      %% User interface preferences.
      {interface_icons,bluecube},

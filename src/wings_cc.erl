@@ -116,8 +116,9 @@ subdiv(Base = #base{level=N, n=Total, type=Type}, Impl) when Total > 0 ->
 		wings_cc_ref:subdiv(Base)
 	end
     catch
-	_:Reas ->
-	    io:format("Error ~p:~p ~n", [Reas, erlang:get_stacktrace()])
+	exit:{out_of_resources, Wanted, CardMax} ->
+	    wings_u:error_msg(?__(1,"Too little memory: Wanted ~pMB Available: ~pMB"), 
+			      [Wanted, CardMax])
     end;
 subdiv(_, _) ->
     skip.
@@ -125,27 +126,15 @@ subdiv(_, _) ->
 %% Generates a vab (and updates Data)
 %% Returns Vab
 gen_vab_1(Data0, Base) ->
-    try 
-	case ?DEFAULT of
-	    erlang -> create_vab(wings_cc_ref:gen_vab(Data0, Base), Base);
-	    opencl -> create_vab(gen_vab_2(Data0, Base), Base)
-	end
-    catch
-	_:Reas ->
-	    io:format("Error ~p:~p ~n", [Reas, erlang:get_stacktrace()]),
-	    exit({error,Reas})
+    case ?DEFAULT of
+	erlang -> create_vab(wings_cc_ref:gen_vab(Data0, Base), Base);
+	opencl -> create_vab(gen_vab_2(Data0, Base), Base)
     end.
 
 gen_vab_1(Plan, Data, Base) ->
-    try 
-	case ?DEFAULT of
-	    erlang -> create_vab(wings_cc_ref:gen_vab(Plan, Data, Base), Base);
-	    opencl -> create_vab(gen_vab_2(Plan, Data, Base), Base)
-	end
-    catch
-	_:Reas ->
-	    io:format("Error ~p:~p ~n", [Reas, erlang:get_stacktrace()]),
-	    exit({error,Reas})
+    case ?DEFAULT of
+	erlang -> create_vab(wings_cc_ref:gen_vab(Plan, Data, Base), Base);
+	opencl -> create_vab(gen_vab_2(Plan, Data, Base), Base)
     end.
 
 create_vab({Vs, SNs0, Attrs0, MatInfo}, #base{type=Type}) ->
@@ -448,12 +437,12 @@ subdiv_1(N,
     W0 = wings_cl:cast(gen_faces, Args1, NoFs, Wait0, CL),
     [cl:release_event(Ev) || Ev <- Wait0],
     Args2 = [FsIn, FiIn, VsOut, NoFs, NoVs, NoVsOut],
-    W1 = wings_cl:tcast(add_center, Args2, ?PL_UNITS, [W0], CL),
+    W1 = wings_cl:cast(add_center, Args2, ?PL_UNITS, [W0], CL),
 
     Args3 = [VsIn, FsIn, EsIn, FiIn,VsOut, FsOut, EsOut, NoFs, NoVs, NoEs],
     W2 = wings_cl:cast(gen_edges, Args3, NoEs, [W1], CL),
     Args4 = [VsIn, VsOut, EsIn, NoEs, NoVsOut],
-    W3 = wings_cl:tcast(add_edge_verts, Args4, ?PL_UNITS, [W2], CL),
+    W3 = wings_cl:cast(add_edge_verts, Args4, ?PL_UNITS, [W2], CL),
 
     Args5 = [VsIn,VsOut,NoVs,NoVsOut],
     W4 = wings_cl:cast(move_verts, Args5, NoVsOut, [W3], CL),
@@ -556,7 +545,7 @@ gen_smooth_normals(Vab, NoFs,
     C2 = wings_cl:cast(clearf, [Out1,4,VsOut], VsOut, Wait, CL),
     C3 = wings_cl:cast(clearf, [Out2,4,VsOut], VsOut, Wait, CL),
     Args0 = [Fs,Vab,VsNs,NoFs,NoVs],
-    Pass0 = wings_cl:tcast(smooth_ns_pass0, Args0, ?PL_UNITS, [C1], CL),
+    Pass0 = wings_cl:cast(smooth_ns_pass0, Args0, ?PL_UNITS, [C1], CL),
     Args1 = [Es,Fs,Vab,Out1,Out2,NoEs],
     Pass1 = wings_cl:cast(smooth_ns_pass1, Args1, NoEs, [C3,C2,Pass0], CL),
     Args2 = [Fs,Vs,VsNs,Vab,Out1,Out2,NoFs,NoVs],
@@ -609,28 +598,59 @@ cl_setup_1() ->
 cl_allocate(Base=#base{fi=Fi, type=Type}, CL0=#cls{cl=CLI}) ->
     Ctxt = wings_cl:get_context(CLI),
     {NoFs,NoEs,NoVs, NoFs1, MaxFs,MaxEs,MaxVs} = verify_size(Base, CL0),
-    {ok,FiIn}  = cl:create_buffer(Ctxt, [], byte_size(Fi), Fi),
-    {ok,FsIn}  = cl:create_buffer(Ctxt, [], MaxFs*?FACE_SZ),
-    {ok,EsIn}  = cl:create_buffer(Ctxt, [], MaxEs*?EDGE_SZ),
-    {ok,VsIn}  = cl:create_buffer(Ctxt, [], MaxVs*?VERTEX_SZ*?PL_UNITS),
-    
-    {ok,FsOut} = cl:create_buffer(Ctxt, [], MaxFs*?FACE_SZ),
-    {ok,EsOut} = cl:create_buffer(Ctxt, [], MaxEs*?EDGE_SZ),
-    {ok,VsOut} = cl:create_buffer(Ctxt, [], MaxVs*?VERTEX_SZ*?PL_UNITS),
-    
-    CL = #cls{fi=FiOut} = check_temp_buffs(CL0, Ctxt, MaxFs),
-    put({?MODULE, cl}, CL),
 
     {_, ASz0} = attrs(Type),
     ASz = max(ASz0, 4*4),  %% Also used for smooth normals 
-    {ok,AsIn}  = cl:create_buffer(Ctxt, [], MaxFs*ASz*4),
-    {ok,AsOut} = cl:create_buffer(Ctxt, [], MaxFs*ASz*4),
+
+    Sizes = [Fi, MaxFs*?FACE_SZ, MaxEs*?EDGE_SZ, MaxVs*?VERTEX_SZ*?PL_UNITS,
+	     MaxFs*?FACE_SZ, MaxEs*?EDGE_SZ, MaxVs*?VERTEX_SZ*?PL_UNITS,
+	     MaxFs*ASz*4, MaxFs*ASz*4],
+	     
+    Buffs = create_buffers(Ctxt, Sizes, []),
+    [FiIn,FsIn,EsIn,VsIn,  FsOut,EsOut,VsOut,  AsIn,AsOut] = Buffs,
+    
+    CL = #cls{fi=FiOut} = check_temp_buffs(CL0, Ctxt, MaxFs, Buffs),
+    put({?MODULE, cl}, CL),
+
     
     {#cl_mem{v=VsIn, f=FsIn, e=EsIn, fi=FiIn, fi0=FiIn, as=AsIn,
 	     v_no=NoVs, fs_no=NoFs, e_no=NoEs, max_vs=MaxVs},
      #cl_mem{v=VsOut, f=FsOut, e=EsOut, fi=FiOut, fi0=FiIn, as=AsOut,
 	     v_no=NoVs+NoFs+NoEs, fs_no=NoFs1, e_no=NoEs*4, max_vs=MaxVs},
      CL}.
+
+create_buffers(Ctxt, [Size|Szs], Acc) when is_integer(Size) ->
+    case cl:create_buffer(Ctxt, [], Size) of	
+	{ok,Buffer} ->
+	    create_buffers(Ctxt, Szs, [Buffer|Acc]);
+	{error, out_of_resources} ->
+	    release_buffers(Acc, true)
+    end;
+create_buffers(Ctxt, [Binary|Szs], Acc) ->
+    case cl:create_buffer(Ctxt, [], byte_size(Binary), Binary) of	
+	{ok,Buffer} ->
+	    create_buffers(Ctxt, Szs, [Buffer|Acc]);
+	{error, out_of_resources} ->
+	    release_buffers(Acc, true)
+    end;
+create_buffers(_, [], Buffers) ->
+    lists:reverse(Buffers).
+
+release_buffers(Buffers, true) ->
+    case get({?MODULE, cl}) of
+	undefined ->
+	    ok;
+	#cls{cl=CL, vab=Vab, fl=FL, fi=FI} ->
+	    Vab /= undefined andalso cl:release_mem_object(Vab),
+	    FL /= undefined andalso cl:release_mem_object(FL),
+	    FI /= undefined andalso cl:release_mem_object(FI),
+	    put({?MODULE, cl}, #cls{cl=CL})
+    end,
+    release_buffers(Buffers, false);
+release_buffers(Buffers, false) ->
+    [cl:release_mem_object(Buff) || Buff <- Buffers],
+    exit({out_of_resources, unknown, unknown}).
+
 
 cl_write_input(#base{f=Fs,e=Es,v=Vs, as=As}, 
 	       #cl_mem{v=VsIn,f=FsIn,e=EsIn,as=AsIn,max_vs=MaxVs}, 
@@ -664,21 +684,35 @@ check_temp_buffs(CL=#cls{
 			 fl=FL0, fl_sz=FLSz0, 
 			 fi=Fi0, fi_sz=FiSz0
 			 %%sn = SN0, sn_vz = SNSz0
-			}, Ctxt, MaxFs0) ->
-    MaxFs = trunc(MaxFs0*1.5),  
-    %% Overallocate so we don't need new buffers all the time
+			}, Ctxt, MaxFs0, Buffs) ->
+    MaxFs = MaxFs0,
     GenFi = fun() -> 
 		    << <<(C*4):?I32, 4:?I32>> || 
 			C <- lists:seq(0, MaxFs-1) >> 
 	    end,
-    {Vab,VabSz} = check_temp(Vab0,VabSz0,MaxFs*(3+3)*4*4,
-			     Ctxt,[write_only],none),
-    {FL,FLSz} = check_temp(FL0,FLSz0,MaxFs*3*4,
-			   Ctxt,[read_only],none),
-    {Fi,FiSz} = check_temp(Fi0,FiSz0,MaxFs*2*4,
-			   Ctxt,[read_only],GenFi),
-    %% {SN,SNSz} = check_temp(SN0,SNSz0,MaxFs*3*4*4,
-    %% 			   Ctxt,[write_only],none),
+    {Vab,VabSz} = try 
+		      check_temp(Vab0,VabSz0,MaxFs*(3+3)*4*4,
+				 Ctxt,[write_only],none)
+		  catch error:{badmatch, _} ->
+			  cl:release_mem_object(FL0),
+			  cl:release_mem_object(Fi0),
+			  release_buffers(Buffs, false)
+		  end,
+    {FL,FLSz} = try check_temp(FL0,FLSz0,MaxFs*3*4,
+			       Ctxt,[read_only],none)
+		catch error:{badmatch, _} ->
+			cl:release_mem_object(Vab),
+			cl:release_mem_object(Fi0),
+			release_buffers(Buffs, false)
+		end,
+
+    {Fi,FiSz} = try check_temp(Fi0,FiSz0,MaxFs*2*4,
+			       Ctxt,[read_only],GenFi)
+		catch error:{badmatch, _} ->
+			cl:release_mem_object(Vab),
+			cl:release_mem_object(FL),
+			release_buffers(Buffs, false)
+		end,
 
     CL#cls{vab=Vab, vab_sz=VabSz, 
 	   fl=FL,   fl_sz=FLSz, 
@@ -708,31 +742,21 @@ verify_size(#base{fi=Fi, e=Es, v=Vs, level=N}, #cls{cl=CL}) ->
     NoFs1 = NoFs0+LastFc,
     Device = wings_cl:get_device(CL),
     {ok, DevTotal} = cl:get_device_info(Device, max_mem_alloc_size),
-    case verify_size_1(N-1, N, NoFs1, NoEs*4, NoVs+NoEs+NoFs, DevTotal) of
-	false -> 
-	    io:format("Can not subdivide, out of memory~n",[]),
-	    exit(out_of_memory);
-	{MaxFs, MaxEs, MaxVs} ->
-	    {NoFs, NoEs, NoVs, NoFs1, MaxFs, MaxEs, MaxVs}
-    end.
+    {MaxFs, MaxEs, MaxVs} = verify_size_1(N-1, N, NoFs1, NoEs*4, NoVs+NoEs+NoFs, DevTotal),
+    {NoFs, NoEs, NoVs, NoFs1, MaxFs, MaxEs, MaxVs}.
 
 %% Does this function do anything good?
 verify_size_1(N, No, Fs, Es, Vs, CardMax) ->
     VertexSz = (3+3)*4*4,
-    Total = Fs*VertexSz+2*(Fs*?FACE_SZ+Es*?EDGE_SZ+Vs*?VERTEX_SZ),
+    Temp  = Fs*VertexSz+Fs*3*4+Fs*2*4,
+    Total = Temp+2*(Fs*?FACE_SZ+Es*?EDGE_SZ+Vs*?VERTEX_SZ*?PL_UNITS+Fs*4*4),
     case Total < CardMax of
 	true when N == 0 ->
 	    {Fs,Es,Vs};
 	true -> 
-	    case verify_size_1(N-1, No, Fs*4, Es*4, Vs+Fs+Es, CardMax) of
-		false -> 
-		    io:format("Out of memory, does not meet the number of sub-division"
-			      "levels ~p(~p)~n",[No-N,No]),
-		    {Fs,Es,Vs};
-		Other -> Other
-	    end;
+	    verify_size_1(N-1, No, Fs*4, Es*4, Vs+Fs+Es, CardMax);
 	false ->
-	    false
+	    exit({out_of_resources,Total div 1024, CardMax div 1024})
     end.
 
 

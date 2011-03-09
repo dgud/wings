@@ -295,7 +295,7 @@ draw_edges_1(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
 
 proxy_smooth(We0, Pd0, St) ->
     Level = wings_pref:get_value(proxy_opencl_level),
-    if is_integer(Level),Level > 1 -> 
+    if is_integer(Level),Level > 0 -> 
 	    Impl = wings_cc;
        true ->
 	    Impl = ?MODULE

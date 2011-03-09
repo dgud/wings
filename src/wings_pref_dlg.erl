@@ -535,7 +535,7 @@ misc_prefs() ->
 		 (_, _) -> void
 	      end,
     OpenCL = case wings_cl:is_available() of
-		 true -> [{info,?__(40,"A value of 1 will use the standard implementation, " 
+		 true -> [{info,?__(40,"A value of 0 will use the standard implementation, " 
 				    "a larger value takes more memory "
 				    "(experimental feature requires good OpenCL drivers)")}];
 		 false ->
@@ -570,7 +570,7 @@ misc_prefs() ->
 	  {vframe,
 	   [{slider,{text,proxy_static_opacity,[{range,{0.0,1.0}}|Flags]}},
 	    {slider,{text,proxy_moving_opacity,[{range,{0.0,1.0}}|Flags]}},
-	    {slider,{text,proxy_opencl_level,[{range,{1,5}}|OpenCL]}}
+	    {slider,{text,proxy_opencl_level,[{range,{0,5}}|OpenCL]}}
 	   ]}]}
        ],
        [{title,?__(14,"Proxy Mode")}]},
