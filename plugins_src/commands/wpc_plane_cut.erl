@@ -14,7 +14,7 @@
 %%
 
 -module(wpc_plane_cut).
--export([init/0,menu/2,command/2, plane_cut/3]).  
+-export([init/0,menu/2,command/2, plane_cut/3]).   % Minor export change. Please pardon this comment for test purposes, GGALIENS
 -include("wings.hrl").
 
 
@@ -725,7 +725,7 @@ loop_cut(Axis, Point, St0) ->
         AdjFaces = wings_face:from_edges(Edges, We0),
         case loop_cut_partition(AdjFaces, Edges, We0, []) of
           [_] ->
-            {Sel0,St1}; %% please don't error heer (ggaliens)
+            {Sel0,St1}; % please don't error here. (ggaliens)
           [_|Parts0] ->
             Parts = [gb_sets:to_list(P) || P <- Parts0],
             FirstComplement = ordsets:union(Parts),
