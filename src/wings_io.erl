@@ -18,7 +18,7 @@
 	 set_cursor/1,hourglass/0,eyedropper/0,
 	 info/1, info/3, version_info/0,
 
-	 is_maximized/0, set_title/1, reset_video_mode_for_gl/2,
+	 is_maximized/0, maximize/0, set_title/1, reset_video_mode_for_gl/2,
 	 change_event_handler/2,
 	 set_icon/1, get_mask/1,
 
@@ -128,6 +128,9 @@ is_key_pressed(Key) ->
 %% Window handling
 is_maximized() ->
     ?BACKEND_MOD:is_maximized().
+
+maximize() ->
+    ?BACKEND_MOD:maximize().
 
 set_title(Title) ->
     ?BACKEND_MOD:set_title(Title).

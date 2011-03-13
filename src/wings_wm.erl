@@ -104,6 +104,11 @@ init() ->
     new(message, {0,0,?Z_LOWEST_DYNAMIC-1}, {0,0},
 	{push,fun message_event/1}),
     init_opengl(),
+    case wings_pref:get_value(win32_start_maximized) of
+	true -> wings_io:maximize();
+	false -> ignore
+    end,
+
     dirty_mode(back),
     resize_windows(W, H).
 
