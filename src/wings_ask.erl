@@ -2562,11 +2562,11 @@ col_event(#mousebutton{x=Xm,y=Ym,state=?SDL_RELEASED,button=1},
 	true -> pick_color(var(Key, I), Store);
 	false -> keep
     end;
-col_event({drop,{color,RGB1}}, [#fi{key=Key,index=I,hook=Hook,flags=Flags}|_], Store) ->
+col_event({drop,{color,RGB1}}, [#fi{key=Key,index=I}|_], Store) ->
     K = var(Key, I),
     RGB0 = gb_trees:get(K, Store),
     RGB = replace_rgb(RGB0, RGB1),
-    hook(Hook, update, [K,I,RGB,Store,Flags]);
+    {store,gb_trees:update(K, RGB, Store)};
 col_event(_Ev, _Path, _Store) -> keep.
 
 %% replace_rgb(OldRGBA, NewRGBA) -> RGBA
@@ -2639,7 +2639,7 @@ mktree_panel(Sto, I, Flags) ->
 
 mktree_value(Value, Sto, I, Flags) ->
     Fi = #fi{key=Key} = 
-	mktree_leaf(fun value_event/3, disabled, undefined, 0, 0, I, Flags),
+	mktree_leaf(fun value_event/3, disabled, undefined, 0, 0, I, [no_focus|Flags]),
     mktree_priv(Fi, gb_trees:enter(var(Key, I), Value, Sto), I, #value{}).
 
 value_event(value, [#fi{key=Key,index=I}|_], Store) ->
