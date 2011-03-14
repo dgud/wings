@@ -20,7 +20,7 @@ typedef struct {
     float x;
     float y;
     float z;
-} float3;
+} ccfloat3;
 
 typedef struct {
     float x;
@@ -40,17 +40,17 @@ float4 sum_smooth(uint id, __global float4 *Smooth, const int noVsOut);
 void get_normal(int n, int face, int vertex, 
 		__global float4 *VsIn,
 		__global float4 *Out, __global float4 *Out2, 
-		__global float4 *Smooth, __global float3 *Vab, int noVsOut);
+		__global float4 *Smooth, __global ccfloat3 *Vab, int noVsOut);
 
-inline float3* float4_to_float3(float4 vec, float3* col) {
+inline ccfloat3* float4_to_ccfloat3(float4 vec, ccfloat3* col) {
     col->x = vec.x;
     col->y = vec.y;
     col->z = vec.z;
     return col;
 }
 
-inline float4 float3_to_float4(float3 col) {
-    float4 vec = {col.x, col.y, col.z, 0.0};
+inline float4 ccfloat3_to_float4(ccfloat3 col) {
+    float4 vec = {col.x, col.y, col.z, 0.0f};
     return vec;
 }
 
@@ -71,11 +71,11 @@ inline void div_color_uv(float in, color_uv *out) {
 }
 
 inline void aver_color_uv(color_uv in1, color_uv in2, color_uv *aver) {
-    aver->x = (in1.x + in2.x) / 2.0;
-    aver->y = (in1.y + in2.y) / 2.0;
-    aver->z = (in1.z + in2.z) / 2.0;
-    aver->u = (in1.u + in2.u) / 2.0;
-    aver->v = (in1.v + in2.v) / 2.0;
+    aver->x = (in1.x + in2.x) / 2.0f;
+    aver->y = (in1.y + in2.y) / 2.0f;
+    aver->z = (in1.z + in2.z) / 2.0f;
+    aver->u = (in1.u + in2.u) / 2.0f;
+    aver->v = (in1.v + in2.v) / 2.0f;
 }
 
 __kernel void gen_faces(
@@ -94,19 +94,19 @@ __kernel void gen_faces(
   if (face_id >= noFs)
       return;
   const FaceIndex fi = FiIn[face_id];
-  float4 center = {0.0,0.0,0.0,0.0};
+  float4 center = {0.0f,0.0f,0.0f,0.0f};
   
   for(i=0; i < fi.len; i++) {
       center.xyz += VsIn[FsIn[fi.start+i]].xyz;
   }
 
-  center /= i;
+  center /= (float) i;
   // Create new center vertex
   const uint ov_id = noVs + face_id;
-  center.w = fi.len*4.0;  // Valance = faceVs and hard_edge count = 0 (Valance << 2)
+  center.w = fi.len*4.0f;  // Valance = faceVs and hard_edge count = 0 (Valance << 2)
   VsOut[ov_id] = center;
 
-  center.w = 0.0;
+  center.w = 0.0f;
 
   for(i=0; i < fi.len; i++) {
     int id = fi.start+i;
@@ -134,19 +134,19 @@ __kernel void add_center(
   if (id >= PL_UNITS) return;  // Should only run by PL_UNITS "threads"
 
   FaceIndex fi;
-  uint v_id, ov_id;
+  uint ov_id;
   float4 center;
-  float4 zero = {0.0,0.0,0.0,0.0}; 
+  float4 zero = {0.0f,0.0f,0.0f,0.0f}; 
   uint sect = noVsOut * id;
   uint chunk_sz = ceil((float) noFs / (float) PL_UNITS);
   face_id = id*chunk_sz;
   stop = min(face_id+chunk_sz, noFs);
   
   for(; face_id < stop; face_id++) {
-      FaceIndex fi = FiIn[face_id];
+      fi = FiIn[face_id];
       ov_id = noVsIn + face_id;
       center = VsOut[ov_id];
-      center.w = 0.0;
+      center.w = 0.0f;
       for(i=0; i < fi.len; i++) {
 	  int v_id = FsIn[fi.start+i];
 	  float4 v = VsOut[v_id];
@@ -173,12 +173,12 @@ __kernel void gen_edges(__global float4 *VsIn,
 			const uint noVs,
 			const uint noEs)
 {
-  int i;
   const int edge_id = get_global_id(0);
   if (edge_id >= noEs)
       return;
-  float4 center = {0.0,0.0,0.0,0.0};
+  float4 center = {0.0f,0.0f,0.0f,0.0f};
   int4 edge = EsIn[edge_id];
+  int4 e;
   int hard = 0;
   int ov_id = noVs+noFs+edge_id;
   int hov_id = ov_id;
@@ -202,13 +202,13 @@ __kernel void gen_edges(__global float4 *VsIn,
   center = VsIn[edge.x];  // V0
   center += VsIn[edge.y];  // V1
   if(hard) {
-      center /= 2.0;
-      center.w = 18.0; // Valance 4 and 2 hard edges ((4 << 2) | 2)
+      center /= 2.0f;
+      center.w = 18.0f; // Valance 4 and 2 hard edges ((4 << 2) | 2)
   } else {
       center += VsOut[noVs+edge.z]; // F1 Center
       center += VsOut[noVs+edge.w]; // F2 Center
-      center /= 4.0;
-      center.w = 16.0; // Valance 4 and 0 hard edges ((4 << 2) | 0)
+      center /= 4.0f;
+      center.w = 16.0f; // Valance 4 and 0 hard edges ((4 << 2) | 0)
   }
   
   // New vertex at edge center position
@@ -220,8 +220,8 @@ __kernel void gen_edges(__global float4 *VsIn,
   if(edge.z >= 0) { // Edge is in a hole
       FaceIndex IF1 = FiIn[edge.z];
       find_faces(edge.x,edge.y,IF1,FsIn,&F11,&F12,&CCW1);
-      const int4 e0 = {ov_id,noVs+edge.z,F11,F12};
-      EsOut[oe_id+0] = e0;
+      e.x = ov_id; e.y = noVs+edge.z; e.z = F11; e.w = F12;
+      EsOut[oe_id+0] = e;
       if(CCW1) {
 	  FsOut[F11*4+1] = ov_id;
 	  FsOut[F12*4+3] = ov_id;
@@ -235,8 +235,8 @@ __kernel void gen_edges(__global float4 *VsIn,
   if(edge.w >= 0) { // Edge is in a hole
       FaceIndex IF2 = FiIn[edge.w];
       find_faces(edge.x,edge.y,IF2,FsIn,&F21,&F22,&CCW2);
-      const int4 e1 = {ov_id,noVs+edge.w,F21,F22};
-      EsOut[oe_id+1] = e1;
+      e.x = ov_id; e.y = noVs+edge.w; e.z = F21; e.w = F22;
+      EsOut[oe_id+1] = e;
       if(CCW2) {
 	  FsOut[F21*4+1] = ov_id;
 	  FsOut[F22*4+3] = ov_id;
@@ -247,11 +247,10 @@ __kernel void gen_edges(__global float4 *VsIn,
   } else {
       EsOut[oe_id+1] = hole_edge;
   }
-  // Hmm init only when declaring var on nvidia? 
-  const int4 e2 = {hov_id,edge.x,F11,F21};
-  EsOut[oe_id+2] = e2;
-  const int4 e3 = {hov_id,edge.y,F12,F22};
-  EsOut[oe_id+3] = e3;
+  e.x = hov_id; e.y = edge.x; e.z = F11; e.w = F21;
+  EsOut[oe_id+2] = e;
+  e.x = hov_id; e.y = edge.y; e.z = F12; e.w = F22;
+  EsOut[oe_id+3] = e;
 }
 
 
@@ -281,10 +280,10 @@ __kernel void add_edge_verts(
 	  if(edge.x < 0) { // Hard edge
 	      edge.x = -1-edge.x;
 	      v0 = VsIn[edge.x];
-	      v0.w = 0.0;
+	      v0.w = 0.0f;
 	      VsOut[sect + edge.y] += v0;
 	      v1 = VsIn[edge.y];
-	      v1.w = 0.0;
+	      v1.w = 0.0f;
 	      VsOut[sect + edge.x] += v1;
 	  } else { // Only add soft edges if vertex have <2 hardedges
 	      v0 = VsIn[edge.x];
@@ -295,11 +294,11 @@ __kernel void add_edge_verts(
 	      hard_v0 = hard_v0 % 4;
 	      hard_v1 = hard_v1 % 4;
 	      if(hard_v1 < 2) {
-		  v0.w = 0.0;
+		  v0.w = 0.0f;
 		  VsOut[sect + edge.y] += v0;
 	      }
 	      if(hard_v0 < 2) {
-		  v1.w = 0.0;	  
+		  v1.w = 0.0f;	  
 		  VsOut[sect + edge.x] += v1;
 	      }
 	  }
@@ -330,7 +329,7 @@ __kernel void move_verts(
   v_out = VsOut[v_id];
   for(int i=1; i<PL_UNITS; i++) {
       uint id = noOutVs*i+v_id;
-      v_out.xyz += VsOut[id];
+      v_out.xyz += VsOut[id].xyz;
       VsOut[id] = zero;
   }
 
@@ -340,8 +339,8 @@ __kernel void move_verts(
   hc = hc % 4;
   vc = vc / 4;
   if(hc < 2) {
-    float a = 1.0/(vc*vc);
-    float b = (vc-2.0)/vc;
+    float a = 1.0f/(vc*vc);
+    float b = (vc-2.0f)/vc;
     //  We started with Inpos remove it
     v_out -= v_in;
     v_out *= a;
@@ -350,8 +349,8 @@ __kernel void move_verts(
     VsOut[v_id] = v_out;
     VsIn[v_id] = v_out;
   } else if(hc == 2) {
-    v_out += v_in * 6.0;
-    v_out *= 1.0/8.0;
+    v_out += v_in * 6.0f;
+    v_out *= 1.0f/8.0f;
     v_out.w = v_in.w;
     VsOut[v_id] = v_out;
     VsIn[v_id] = v_out;
@@ -361,9 +360,9 @@ __kernel void move_verts(
 }
 
 __kernel void subd_vcolor(
-			 __global float3 *AsIn,
+			 __global ccfloat3 *AsIn,
 			 __global FaceIndex *FiIn,
-			 __global float3 *AsOut,
+			 __global ccfloat3 *AsOut,
 			 const uint noFs
 			 )
 {
@@ -372,34 +371,34 @@ __kernel void subd_vcolor(
     if (face_id >= noFs)
 	return;
     const FaceIndex fi = FiIn[face_id];
-    float4 aver, prev, curr, next, center = {0.0,0.0,0.0,0.0};
-    float3 col;
+    float4 aver, prev, curr, next, center = {0.0f,0.0f,0.0f,0.0f};
+    ccfloat3 col;
     
     for(i=0; i < fi.len; i++) {
     	col = AsIn[fi.start+i];
-    	center += float3_to_float4(col);
+    	center += ccfloat3_to_float4(col);
     }
 
-    center /= i;
+    center /= (float) i;
 
-    prev = float3_to_float4(col);    
-    curr = float3_to_float4(AsIn[fi.start]);
+    prev = ccfloat3_to_float4(col);    
+    curr = ccfloat3_to_float4(AsIn[fi.start]);
 
     for(i=0; i < fi.len; i++) {
     	int id = (fi.start+i);
-	next = float3_to_float4(AsIn[fi.start+((i+1)%fi.len)]);
+	next = ccfloat3_to_float4(AsIn[fi.start+((i+1)%fi.len)]);
 	
     	// Create face colors
     	id *= 4;
-    	float4_to_float3(curr, &col);
+    	float4_to_ccfloat3(curr, &col);
     	AsOut[id+0] = col;
-    	aver = (curr + next)/2.0;
-    	float4_to_float3(aver, &col);
+    	aver = (curr + next)/2.0f;
+    	float4_to_ccfloat3(aver, &col);
     	AsOut[id+1] = col;
-    	float4_to_float3(center, &col);
+    	float4_to_ccfloat3(center, &col);
     	AsOut[id+2] = col;
-    	aver = (curr + prev)/2.0;
-    	float4_to_float3(aver, &col);
+    	aver = (curr + prev)/2.0f;
+    	float4_to_ccfloat3(aver, &col);
     	AsOut[id+3] = col;
     	prev = curr;
     	curr = next;
@@ -418,14 +417,14 @@ __kernel void subd_uv(
     if (face_id >= noFs)
 	return;
     const FaceIndex fi = FiIn[face_id];
-    float2 aver, prev, curr, next, center = {0.0,0.0};
+    float2 aver, prev, curr, next, center = {0.0f,0.0f};
     
     for(i=0; i < fi.len; i++) {
     	curr = AsIn[fi.start+i];
     	center += curr;
     }
 
-    center /= i;
+    center /= (float) i;
 
     prev = curr;
     curr = AsIn[fi.start];
@@ -437,10 +436,10 @@ __kernel void subd_uv(
     	// Create face uv's
     	id *= 4;
     	AsOut[id+0] = curr;
-    	aver = (curr + next)/2.0;
+    	aver = (curr + next)/2.0f;
     	AsOut[id+1] = aver;
     	AsOut[id+2] = center;
-    	aver = (curr + prev)/2.0;
+    	aver = (curr + prev)/2.0f;
     	AsOut[id+3] = aver;
     	prev = curr;
     	curr = next;
@@ -459,7 +458,7 @@ __kernel void subd_col_uv(
     if (face_id >= noFs)
 	return;
     const FaceIndex fi = FiIn[face_id];
-    color_uv aver, prev, curr, next, center = {0.0,0.0,0.0,0.0,0.0};
+    color_uv aver, prev, curr, next, center = {0.0f,0.0f,0.0f,0.0f,0.0f};
     color_uv col;
     
     for(i=0; i < fi.len; i++) {
@@ -570,8 +569,8 @@ __kernel void create_vab_sel(
 
 __kernel void get_sel_vcolor(
 			    __global VabIndex *FiIn,
-			    __global float3 *AsIn,
-			    __global float3 *AsOut,
+			    __global ccfloat3 *AsIn,
+			    __global ccfloat3 *AsOut,
 			    const int noFs
 			    )
 {
@@ -645,7 +644,7 @@ __kernel void clearf(__global float *mem,
 
 __kernel void smooth_ns_pass0(
 			      __global int4 *FsIn,
-			      __global float3 *Vab,
+			      __global ccfloat3 *Vab,
 			      __global float4 *Smooth,
 			      const uint noFs,
 			      const uint noVsOut
@@ -655,7 +654,7 @@ __kernel void smooth_ns_pass0(
     if(thread >= PL_UNITS) return;
 
     float4 normal;
-    global float3 *temp;
+    global ccfloat3 *temp;
     int4 face_vs;
     uint id, stop, sect = noVsOut * thread;
     uint chunk_sz = ceil((float) noFs / (float) PL_UNITS);
@@ -667,7 +666,7 @@ __kernel void smooth_ns_pass0(
 	normal.x = temp->x;
 	normal.y = temp->y;
 	normal.z = temp->z;
-	normal.w = 0.0;
+	normal.w = 0.0f;
      
 	face_vs = FsIn[id];
 	Smooth[sect+face_vs.x] += normal;
@@ -679,7 +678,7 @@ __kernel void smooth_ns_pass0(
 
 __kernel void smooth_ns_pass1(__global int4 *EsIn,
 			      __global int4 *FsIn,
-			      __global float3 *Vab,
+			      __global ccfloat3 *Vab,
 			      __global float4 *Out1,
 			      __global float4 *Out2,
 			      const int noEs)
@@ -695,14 +694,14 @@ __kernel void smooth_ns_pass1(__global int4 *EsIn,
     if(edge.x >= 0) { // Soft edges
 	if(find_vertices(edge.x, edge.y, FsIn[edge.z], &v1, &v2)) Out = Out1;
 	else Out = Out2;
-	normal = float3_to_float4(Vab[edge.w*4*2+1]);
+	normal = ccfloat3_to_float4(Vab[edge.w*4*2+1]);
 	normal.w = 1.0f;
 	Out[edge.z*4+v1] += normal;
 	Out[edge.z*4+v2] += normal;
 
 	if(find_vertices(edge.x, edge.y, FsIn[edge.w], &v1, &v2))  Out = Out1;
 	else Out = Out2;
-	normal = float3_to_float4(Vab[edge.z*4*2+1]);
+	normal = ccfloat3_to_float4(Vab[edge.z*4*2+1]);
 	normal.w = 1.0f;
 	Out[edge.w*4+v1] += normal;
 	Out[edge.w*4+v2] += normal;
@@ -713,7 +712,7 @@ __kernel void smooth_ns(
 			__global int4 *FsIn,
 			__global float4 *VsIn,
 			__global float4 *Smooth,
-			__global float3 *Vab,
+			__global ccfloat3 *Vab,
 			__global float4 *Out1,
 			__global float4 *Out2,
 			const int noFs,
@@ -724,7 +723,6 @@ __kernel void smooth_ns(
     if(id >= noFs)
 	return;
     int4 face = FsIn[id];
-    float4 normal;
     int vstart = id*4;
     
     get_normal(vstart+0, id, face.x, VsIn, Out1, Out2, Smooth, Vab, noVsOut);
@@ -738,7 +736,7 @@ __kernel void smooth_ns(
 void get_normal(int n, int face, int vertex, 
 		__global float4 *VsIn,
 		__global float4 *Out, __global float4 *Out2, 
-		__global float4 *Smooth, __global float3 *Vab, 
+		__global float4 *Smooth, __global ccfloat3 *Vab, 
 		int noVsOut)
 {
     float4 pos = VsIn[vertex];
@@ -753,7 +751,7 @@ void get_normal(int n, int face, int vertex,
     normal = Out[n];
     normal += Out2[n];
     normal.w = 0.0f;
-    normal = float3_to_float4(Vab[(face*4*2)+1]) + normal;
+    normal = ccfloat3_to_float4(Vab[(face*4*2)+1]) + normal;
     Out[n] = normalize(normal);
 }
 
