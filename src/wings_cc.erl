@@ -77,10 +77,10 @@
 
 %% Returns opaque data
 init(Plan, Level, We) when is_integer(Level) ->
-    ?TC(build_data(Plan,Level,We,?DEFAULT));
+    build_data(Plan,Level,We,?DEFAULT);
 
 init(Plan, #base{level=Level}, We)  ->
-    ?TC(build_data(Plan,Level,We,?DEFAULT)).
+    build_data(Plan,Level,We,?DEFAULT).
 
 %% Update state with new vertex positions
 update(ChangedVs, Data) ->
@@ -91,34 +91,44 @@ update(ChangedVs, Data) ->
 
 %% Generates a subdivided #vab{}
 gen_vab(Base) ->
-    case subdiv(Base, ?DEFAULT) of
-	skip -> create_vab(<<>>, []);
-	Data ->
-	    gen_vab_1(Data, Base)
+    try
+	case subdiv(Base, ?DEFAULT) of
+	    skip -> create_vab(<<>>, []);
+	    Data ->
+		gen_vab_1(Data, Base)
+	end
+    catch
+	exit:{out_of_resources, Wanted, CardMax} ->
+	    io:format(?__(1,"OpenCL subd failed: wanted ~pMB only ~pMB available~n"), 
+		      [Wanted, CardMax]),
+	    DecBase = decrease_level(Base),
+	    gen_vab(DecBase)	   
     end.
 %% Generates a subdivided #vab{} from Material Plan
 gen_vab(Plan, Base) ->
-    case subdiv(Base, ?DEFAULT) of
-	skip -> create_vab(<<>>, []);
-	Data ->
-	    gen_vab_1(Plan, Data, Base)
+    try 
+	case subdiv(Base, ?DEFAULT) of
+	    skip -> create_vab(<<>>, []);
+	    Data ->
+		gen_vab_1(Plan, Data, Base)
+	end
+    catch
+	exit:{out_of_resources, Wanted, CardMax} ->
+	    io:format(?__(1,"OpenCL subd failed: wanted ~pMB only ~pMB available~n"), 
+		      [Wanted, CardMax]),
+	    DecBase = decrease_level(Base),
+	    gen_vab(Plan, DecBase)
     end.
 
 %% Subdivide mesh
 subdiv(Base = #base{level=N, n=Total, type=Type}, Impl) when Total > 0 ->
-    try 
-	case Impl of
-	    opencl ->
-		{In,Out,CL} = cl_allocate(Base, cl_setup()),
-		Wait = cl_write_input(Base, In, Out, CL),
-		subdiv_1(N, In, Out, Type, CL, Wait);
-	    erlang ->
-		wings_cc_ref:subdiv(Base)
-	end
-    catch
-	exit:{out_of_resources, Wanted, CardMax} ->
-	    wings_u:error_msg(?__(1,"Too little memory: Wanted ~pMB Available: ~pMB"), 
-			      [Wanted, CardMax])
+    case Impl of
+	opencl ->
+	    {In,Out,CL} = cl_allocate(Base, cl_setup()),
+	    Wait = cl_write_input(Base, In, Out, CL),
+	    subdiv_1(N, In, Out, Type, CL, Wait);
+	erlang ->		
+	    wings_cc_ref:subdiv(Base)
     end;
 subdiv(_, _) ->
     skip.
@@ -291,11 +301,25 @@ calc_matmap([], Total, _, _, FMap, Acc) ->
     {Total, reverse(Acc), gb_trees:from_orddict(lists:sort(FMap))}.
 
 calc_matmap_1([Id|Fs], [Vs|Ftab], Mul, Count, FMap) ->
-    Size = length(Vs),
-    FInfo = {Id, {Count, Size*Mul}},
-    calc_matmap_1(Fs, Ftab, Mul, Count + Size*Mul, [FInfo|FMap]);
+    VSize = length(Vs),
+    Size = VSize*Mul,
+    FInfo = {Id, {Count, Size}},
+    calc_matmap_1(Fs, Ftab, Mul, Count + Size, [FInfo|FMap]);
 calc_matmap_1([], Ftab, _, Count, FMap) ->
     {Count, Ftab, FMap}.
+
+decrease_level(#base{level=Level}) when Level =< 1 ->
+    throw(to_large);
+decrease_level(Base = #base{n=Total, level=Level, mmap=MatMap0, fmap=Fmap0}) ->
+    io:format(?__(1,"Could not acquire needed memory, " 
+		  "decreasing to subd level ~p~n"), [Level-1]),
+    MatMap = [{Mat, ?GL_QUADS, Start div 4, Stop div 4} || 
+		 {Mat, ?GL_QUADS, Start, Stop} <- MatMap0],
+    Fmap   = gb_trees:map(fun(_, {Count, Size}) -> 
+				  {Count div 4, Size div 4} 
+			  end,
+			  Fmap0),
+    Base#base{n=Total div 4, level=Level-1, mmap=MatMap, fmap=Fmap}.
 
 get_face_info(Orig, Eid, E, {Vs, {Vtab0, Etab0, VMap0}}, FMap, We) ->
     {V, Vtab, VMap1} = setup_vertex(Orig, Vtab0, VMap0, We),
@@ -581,8 +605,14 @@ attrs(plain) ->
 
 cl_setup() ->
     case get({?MODULE, cl}) of 
-	undefined -> 	    
-	    cl_setup_1();
+	undefined -> 
+	    try 
+		cl_setup_1()
+	    catch _:Reason ->
+		    io:format("CL setup error: ~p~n",[Reason]),
+		    wings_pref:set_value(proxy_opencl_level, 0),
+		    wings_u:error_msg(?__(1, "Could not setup OpenCL, disabling proxy smooth."))
+	    end;
 	CL ->
 	    CL
     end.

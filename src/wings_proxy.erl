@@ -304,13 +304,17 @@ proxy_smooth(We0, Pd0, St) ->
 	{false,_} ->
 	    Pd0;
 	{_, _} = Info when Impl =:= ?MODULE ->
-	    ?TC(create_proxy_subdiv(Info, We0, St));
+	    create_proxy_subdiv(Info, We0, St);
 	{Op, _} ->
 	    case Pd0 of
 		#sp{type={wings_cc,Data}} when Op =:= update ->
-		    ?TC(update_proxy_cc(We0, Data));
+		    update_proxy_cc(We0, Data);
 		_ ->
-		    ?TC(create_proxy_cc(We0, Level, St))
+		    try 
+			create_proxy_cc(We0, Level, St)
+		    catch to_large -> %% Fallback if we can't allocate memory
+			    create_proxy_subdiv({smooth,We0}, We0, St)
+		    end
 	    end
     end.
 
