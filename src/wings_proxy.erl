@@ -52,7 +52,7 @@ quick_preview(_St) ->
 	    wings_wm:set_prop(workmode, true)
     end.
 
--spec invalidate('none'|#sp{}, 'vab'|'dl'|'edges'|'maybe') ->
+-spec invalidate('none'|#sp{}, 'vab'|'dl'|'edges'|'maybe'|'all') ->
     'none'|#sp{}.
 
 invalidate(none, _) -> none;
@@ -70,7 +70,9 @@ invalidate(#sp{faces=none}=Pd, maybe) ->
 invalidate(#sp{faces=FL}=Pd, maybe) ->
     Pd#sp{faces=[FL]};
 invalidate(#sp{}=Pd, edges) ->
-    Pd#sp{proxy_edges=none}.
+    Pd#sp{proxy_edges=none};
+invalidate(#sp{}, all) ->
+    none.
 
 smooth_dl(#sp{smooth=Smooth}) when Smooth =/= none -> Smooth;
 smooth_dl(#sp{smooth=none, faces=FL}) when FL =/= none -> {[FL,[]], false};

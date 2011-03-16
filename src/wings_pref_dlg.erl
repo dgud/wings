@@ -636,6 +636,8 @@ smart_set_value_1(Key, Val, St) ->
 		    wings_file:init_autosave();
 		proxy_shaded_edge_style ->
 		    clear_proxy_edges(St);
+		proxy_opencl_level ->
+		    clear_proxy(St);
 		new_system_font ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(1,"The change to the system font will take\neffect the next time Wings 3D is started."));
@@ -700,6 +702,13 @@ clear_vertex_dlist() ->
     wings_dl:map(fun clear_vertex_dlist/2, []).
 
 clear_vertex_dlist(D, _) -> D#dlo{vs=none}.
+
+clear_proxy(St) ->
+    wings_dl:map(fun(D, _) -> clear_proxy(D, St) end, []).
+
+clear_proxy(#dlo{proxy_data=Data}=D, St) ->
+    PD = wings_proxy:invalidate(Data, all),
+    wings_proxy:update(D#dlo{proxy_data=PD}, St).
 
 clear_proxy_edges(St) ->
     wings_dl:map(fun(D, _) -> clear_proxy_edges(D, St) end, []).
