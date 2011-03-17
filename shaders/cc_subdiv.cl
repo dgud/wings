@@ -217,7 +217,7 @@ __kernel void gen_edges(__global float4 *VsIn,
   int F11=-1,F12=-1,F21=-1,F22=-1, CCW1,CCW2;
   const int oe_id = edge_id*4;
   // Be sure to create faces with the correct order   
-  if(edge.z >= 0) { // Edge is in a hole
+  if(edge.z >= 0) { // Edge is not in a hole
       FaceIndex IF1 = FiIn[edge.z];
       find_faces(edge.x,edge.y,IF1,FsIn,&F11,&F12,&CCW1);
       e.x = ov_id; e.y = noVs+edge.z; e.z = F11; e.w = F12;
@@ -232,7 +232,7 @@ __kernel void gen_edges(__global float4 *VsIn,
   } else {
       EsOut[oe_id+0] = hole_edge;
   }
-  if(edge.w >= 0) { // Edge is in a hole
+  if(edge.w >= 0) { // Edge is not in a hole
       FaceIndex IF2 = FiIn[edge.w];
       find_faces(edge.x,edge.y,IF2,FsIn,&F21,&F22,&CCW2);
       e.x = ov_id; e.y = noVs+edge.w; e.z = F21; e.w = F22;
@@ -630,6 +630,51 @@ __kernel void get_sel_col_uv(
     }
 }
 
+// ---------------- Gen Edges ----------------------------
+__kernel void gen_some_edges(__global int4   *EsIn, 
+			     __global float4 *VsIn, 
+			     __global ccfloat3 *VsOut,
+			     uint level,
+			     const uint noEs)
+{
+    const int edge_id = get_global_id(0);
+    if (edge_id >= noEs)
+	return;
+    ccfloat3 v1, v2;
+    float4 temp;
+    int4 edge; 
+    float p;
+    uint in;
+
+    // The edges we want are at 2,3,      6,7,  10,11 ... at level = 1
+    //                   and at 10,11,  14,15,  26,27 ... at level = 2
+    //                   and at 42,43,  46,47,  58,59 ... at level = 3
+    
+    p = edge_id/pown(2.0f, level);
+    in = convert_uint_rtz(p);
+    while(level > 0) {
+	p *= 2.0f;
+	in = in*4 + 2 + (convert_uint_rtz(p) % 2);
+	level--;
+    }
+    edge = EsIn[in];
+    if(edge.y < 0 || edge.w < 0 || edge.z < 0) {  
+	// Indicates hole edge hide it far away
+	v1.x = MAXFLOAT;
+	v1.y = MAXFLOAT;
+	v1.z = MAXFLOAT;
+	v2 = v1;
+    } else {
+	temp = VsIn[edge.x];
+	float4_to_ccfloat3(temp, &v1);
+	temp = VsIn[edge.y];
+	float4_to_ccfloat3(temp, &v2);
+    }
+    VsOut[edge_id*2+0] = v1;
+    VsOut[edge_id*2+1] = v2;
+}
+
+// ---------------- Normal calculation --------------------
 __kernel void clearf(__global float *mem,
 		     const int isz,
 		     const int sz)

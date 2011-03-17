@@ -152,6 +152,26 @@ update_edges(D, Pd) ->
     update_edges_1(D, Pd, wings_pref:get_value(proxy_shaded_edge_style)).
 
 update_edges_1(_, _, cage) -> none;
+update_edges_1(_, #sp{vab=#vab{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}}, all) ->
+    wings_draw_setup:enableVertexPointer(BinVs),
+    wings_draw_setup:enableNormalPointer(Ns),
+    Dl = gl:genLists(1),
+    gl:newList(Dl, ?GL_COMPILE),
+    [{_Mat,_Type,Start,MCount}|_] = MatMap,
+    Count = Start+MCount,
+    gl:drawArrays(?GL_QUADS, 0, Count),
+    gl:endList(),
+    wings_draw_setup:disableVertexPointer(BinVs),
+    wings_draw_setup:disableNormalPointer(Ns),
+    Dl;
+update_edges_1(#dlo{}, #sp{type={wings_cc,_}, vab=#vab{face_es={0,Bin}}}, some) ->
+    Dl = gl:genLists(1),
+    gl:newList(Dl, ?GL_COMPILE),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    wings_draw:drawVertices(?GL_LINES, Bin),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
+    gl:endList(),
+    Dl;
 update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, some) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
@@ -174,18 +194,6 @@ update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, so
     wings_draw:drawVertices(?GL_LINES, Bin),
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
-    Dl;
-update_edges_1(_, #sp{vab=#vab{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}}, all) ->
-    wings_draw_setup:enableVertexPointer(BinVs),
-    wings_draw_setup:enableNormalPointer(Ns),
-    Dl = gl:genLists(1),
-    gl:newList(Dl, ?GL_COMPILE),
-    [{_Mat,_Type,Start,MCount}|_] = MatMap,
-    Count = Start+MCount,
-    gl:drawArrays(?GL_QUADS, 0, Count),
-    gl:endList(),
-    wings_draw_setup:disableVertexPointer(BinVs),
-    wings_draw_setup:disableNormalPointer(Ns),
     Dl.
 
 smooth(D=#dlo{proxy=false},_) -> D;
