@@ -26,14 +26,15 @@
 
 is_available() ->
     try 
-	true = erlang:system_info(smp_support), 
-	ok = cl:start(),
+	true == erlang:system_info(smp_support) orelse throw({error, no_smp_support}),
+	ok == cl:start() orelse throw({error, no_opencl_loaded}),
 	{ok, Ps} = cl:get_platform_ids(),
 	[] /= Ps
-    catch _:{badmatch, _Reason} ->
-	    io:format("OpenCL not available ~n",[])
+    catch _:Reason ->
+	    io:format("OpenCL not available ~p ~n",[Reason]),
+	    false
     end.
-	      	
+
 
 %% setup() -> cli().
 setup() ->

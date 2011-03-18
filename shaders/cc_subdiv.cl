@@ -665,6 +665,9 @@ __kernel void gen_some_edges(__global int4   *EsIn,
 	v1.z = MAXFLOAT;
 	v2 = v1;
     } else {
+	if(edge.x < 0) { // Hard edge
+	    edge.x = -1-edge.x;
+	}
 	temp = VsIn[edge.x];
 	float4_to_ccfloat3(temp, &v1);
 	temp = VsIn[edge.y];
