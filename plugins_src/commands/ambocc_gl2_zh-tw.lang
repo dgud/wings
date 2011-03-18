@@ -1,0 +1,12 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{ambocc_gl2,
+ [
+  {ambient_occlusion,
+   [
+    {1,"OpenGL環境光遮蔽 GL2 時間: ~.1fs (~ts)\n"}
+   ]},
+  {process_obj,
+   [
+    {1,"處理: ~ts\n"}
+   ]}
+ ]}.

@@ -3,333 +3,202 @@
  [
   {area_info,
    [
-    % " Area ~ts"
     {40,"區 ~ts"}
    ]},
   {area_volume_info,
    [
-    % "No objects in scene"
     {1,"在現場沒有對象"},
-    % "Scene Info: Area & Volume"
     {5,"場景介紹：面積與體積"}
    ]},
   {cannot_repeat,
    [
-    % "Can't repeat"
     {1,"不能重複"}
    ]},
   {crash_handler,
    [
-    % "Internal error - log written to"
     {1,"內部錯誤 - 日誌寫入"},
-    % "Click a mouse button to continue working"
     {2,"點擊鼠標按鈕，繼續工作"},
-    % "Continue working"
     {3,"繼續工作"}
    ]},
   {define_command,
    [
-    % "Do you want to define"
     {1,"你要定義"},
-    % "as a default command"
     {2,"作為一個默認的命令"}
    ]},
   {edit_menu,
    [
-    % "Delete undo history to reclaim memory"
     {1,"刪除撤消歷史回收內存"},
-    % "Undo/Redo"
     {3,"撤消/重做"},
-    % "Undo or redo the last command"
     {4,"撤消或重做最後的命令"},
-    % "Redo"
     {5,"重做"},
-    % "Redo the last command that was undone"
     {6,"重做最後被撤消命令"},
-    % "Undo"
     {7,"復原"},
-    % "Undo the last command"
     {8,"撤消上一個命令"},
-    % "Repeat"
     {9,"重複"},
-    % "Repeat Args"
     {10,"重複參數"},
-    % "Repeat Drag"
     {11,"重複拖動"},
-    % "Plug-in Preferences"
     {12,"偏好插件"},
-    % "Purge Undo History"
     {13,"清除撤銷歷史"}
    ]},
   {enhanced_info,
    [
-    % "Edge~ts ~ts"
     {41,"邊緣~ts ~ts"},
-    % "\nDistance ~ts"
     {42,"\n距離 ~ts"},
-    % "Object~ts"
     {43,"對象~ts"},
-    % "Difference ~ts"
     {45,"差異 ~ts"},
-    % "Face~ts"
     {48,"面~ts"}
    ]},
   {geom_title,
    [
-    % "Geometry"
     {1,"幾何"},
-    % "Geometry #"
     {2,"幾何＃"}
    ]},
   {handle_drop_1,
    [
-    % "No Selection"
     {1,"沒有選擇"},
-    % "Cancel drop operation"
     {2,"取消拖放操作"},
-    % "Assign material to selected faces"
     {3,"分配材料選定的面"},
-    % "Assign material \""
     {4,"分配材料\""},
-    % "\" only to selected faces"
     {5,"\"只對選定的面"},
-    % "Assign material to all faces"
     {6,"材料分配給所有的面"},
-    % "Assign material \""
     {7,"分配材料\""},
-    % "\" to all faces in objects having a selection"
     {8,"\"所有面的對象有一個選擇"},
-    % "Assign material to all faces"
     {9,"材料分配給所有的面"},
-    % "Assign material \""
     {10,"分配材料\""},
-    % "\" to all faces in objects having a selection"
     {11,"\"所有面的對象有一個選擇"}
    ]},
   {hole_info,
    [
-    % "hole"
     {1,"孔"},
-    % "holes"
     {2,"孔"}
    ]},
   {info_1,
    [
-    % "Vertex ~p selected"
     {1,"頂點 ~p 選擇"},
-    % "Vertices"
     {2,"頂點"},
-    % "~p vertices selected"
     {3,"~p 選定的頂點"},
-    % "Edge ~p selected"
     {4,"邊 ~p 選擇"},
-    % "Edges"
     {5,"邊"},
-    % "~p edges selected"
     {6,"~p 邊選"},
-    % "Face ~p selected"
     {7,"面 ~p 選擇"},
-    % "Faces"
     {8,"面"},
-    % "~p faces selected"
     {9,"~p 面選擇"},
-    % "~p vertices selected in ~p objects"
     {10,"~p 選定的頂點 ~p 對象"},
-    % "~p edges selected in ~p objects"
     {11,"~p 邊的選擇 ~p 對象"},
-    % "~p faces selected in ~p objects"
     {12,"~p 面的選擇 ~p 對象"}
    ]},
   {info_line,
    [
-    % "Select"
     {1,"選擇"},
-    % "Show menu"
     {2,"顯示菜單"},
-    % "Tweak menu"
     {3,"調整菜單"}
    ]},
   {init_menubar,
    [
-    % "File"
     {1,"文件"},
-    % "Edit"
     {2,"編輯"},
-    % "View"
     {3,"查看"},
-    % "Select"
     {4,"選擇"},
-    % "Tools"
     {5,"工具"},
-    % "Window"
     {6,"窗口"},
-    % "Help"
     {7,"幫助"}
    ]},
   {item_list,
    [
-    % " selected"
     {1,"選擇"}
    ]},
   {measure,
    [
-    % ". Position <~ts  ~ts  ~ts>"
     {1,". 位置<~ts  ~ts  ~ts>"},
-    % ". Midpoint <~ts  ~ts  ~ts>\nLength ~ts"
     {3,". 中點 <~ts  ~ts  ~ts>\n長 ~ts"},
-    % ". Midpoint <~ts  ~ts  ~ts> \nMaterial ~ts."
     {4,". 中點 <~ts  ~ts  ~ts> \n材料 ~ts。"},
-    % ". Distance ~ts  <~ts  ~ts  ~ts>"
     {5,". 距離 ~ts <~ts  ~ts  ~ts>"},
-    % ". Angle ~ts"
     {6,". 角 ~ts"}
    ]},
   {patches,
    [
-    % "Use "
     {1,"使用"}
    ]},
   {purge_undo,
    [
-    % "Undo states: "
     {1,"撤消狀態："},
-    % "Redo states: "
     {2,"重做狀態："},
-    % "Nothing to remove"
     {3,"刪除無關"},
-    % "Remove all states (NOT undoable)?"
     {4,"刪除所有狀態（不能撤消）？"}
    ]},
   {shape_info,
    [
-    % "~p objects, ~p faces, ~p edges, ~p vertices"
     {2,"~p 對象， ~p 面， ~p 邊， ~p 頂點"},
-    % "Object ~p \"~ts\" has ~p polygons, ~p edges, ~p vertices~ts~ts."
     {new_object_info,"對象 ~p \"~ts\"有 ~p 多邊形， ~p 邊， ~p 頂點~ts~ts。"}
    ]},
   {tool_dirs,
    [
-    % "Align two or more objects along the given axis according to their respective selection centers"
     {1,"對齊兩個或多個對象沿著指定的軸按照各自的選擇中心"},
-    % "Center the selected objects along the given axis according to their cumulative selection center"
     {2,"中心選定的對象沿指定軸根據它們的累積甄選中心"}
    ]},
   {tools_menu,
    [
-    % "Align"
     {8,"對齊"},
-    % "Center"
     {9,"中心"},
-    % "Save Bounding Box"
     {10,"保存邊界框"},
-    % "Scale to Saved BB"
     {11,"縮放到保存邊界框"},
-    % "Scale to Saved BB Proportionally"
     {12,"以比例縮放到保存邊界框"},
-    % "Move to Saved BB"
     {13,"移至已保存邊界框"},
-    % "Set Default Axis"
     {14,"設置默認的軸"},
-    % "Define and store axis (with ref. point) for later use with any "
     {15,"定義和存儲軸（與參考點）後使用任何"},
-    % "\"Default Axis\" command (e.g. Scale|Default Axis)"
     {16,"\"默認的軸\"命令（例如 統放|默認軸）"},
-    % "Virtual Mirror"
     {17,"虛擬鏡像"},
-    % "Create"
     {18,"創建"},
-    % "Given a face selection, set up a virtual mirror"
     {19,"給定一個面選擇，建立一個虛擬鏡像"},
-    % "Break"
     {20,"打破"},
-    % "Remove virtual mirrors for all objects"
     {21,"刪除虛擬鏡像的所有對象"},
-    % "Freeze"
     {22,"凍結"},
-    % "Create real geometry from the virtual mirrors"
     {23,"創造真正的幾何從虛擬鏡像"},
-    % "Screenshot"
     {24,"截圖"},
-    % "Grab an image of the window (export it from the outliner)"
     {25,"抓住一個形象的窗口（出口它從大綱）"},
-    % "Scene Info: Area & Volume"
     {26,"場景介紹：面積與體積"},
-    % "Calculate area and volume for each object in the scene"
     {27,"計算面積和體積為在場景中的每個對象"},
-    % "Put on Ground"
     {28,"把地面"},
-    % "Put selected objects on the ground plane"
     {29,"把選定的對象在地平面"},
-    % "Unitize"
     {30,"單獨化"},
-    % "Scale selected objects to fit inside a unit sphere and move to origin"
     {31,"規模選擇的對象到裝進一個單位球和移動到原點"},
-    % "Move BB to Selection"
     {32,"移動邊界框到選擇"},
-    % "Scale BB to Selection"
     {33,"縮放邊界框到選擇"},
-    % "Set Axis and Point"
     {34,"設定軸和點"},
-    % "Set Axis"
     {35,"設置坐標軸"},
-    % "Set Point"
     {36,"設置點"},
-    % "Bounding Box"
     {37,"邊界框"},
-    % "Bounding boxes are useful for scaling or aligning objects"
     {38,"邊界框是有用的縮放或調整對象"},
-    % "Create bounding box around current selection"
     {39,"創建邊界框圍繞當前的選擇"},
-    % "Tweak"
     {40,"調整"},
-    % "Open the Tweak menu"
     {41,"打開此項修改菜單"}
    ]},
   {undo_info,
    [
-    % "there are no undo states"
     {1,"有狀態沒有撤消"},
-    % "there is one undo state"
     {2,"有一個撤消狀態"},
-    % "there are ~p undo states"
     {3,"有 ~p 撤消狀態"},
-    % "; one operation can be redone"
     {4,";一次操作可以重做"},
-    % "; ~p operations can be redone"
     {5,"; ~p 操作可以重做"}
    ]},
   {vtx_attributes,
    [
-    % "vertex attributes"
     {1,"頂點屬性"}
    ]},
   {window_menu,
    [
-    % "Geometry Graph"
     {1,"幾何圖形"},
-    % "Geometry Graph #"
     {2,"幾何圖形＃"},
-    % "Outliner"
     {3,"大綱"},
-    % "Open the outliner window (showing materials and objects)"
     {4,"打開大綱窗口（顯示材料和對象）"},
-    % "Open a Geometry Graph window (showing objects)"
     {5,"打開一個幾何圖形窗口（顯示對象）"},
-    % "Palette"
     {6,"調色板"},
-    % "Open the color palette window"
     {7,"打開窗口的調色板"},
-    % "New Geometry Window"
     {8,"新的幾何窗口"},
-    % "Open a new Geometry window"
     {9,"打開一個新的幾何窗口"},
-    % "Console"
     {10,"控制台"},
-    % "Open a console window for information messages"
     {11,"打開一個控制台窗口的信息消息"},
-    % "Tweak Palette"
     {12,"調整調色板"},
-    % "Open palettes from which tweak tools may be selected or bound to modifier keys"
     {13,"打開調色板調整工具可以從中選擇或修改綁定鍵"}
    ]}
  ]}.
@@ -337,21 +206,16 @@
  [
   {button_label,
    [
-    % "OK"
     {1,"確定"}
    ]},
   {frame_event,
    [
-    % "Expand this frame; collapse other frames"
     {1,"展開這個骨架;折疊其它骨架"},
-    % "Expand this frame"
     {2,"展開這個骨架"},
-    % "Collapse this frame"
     {3,"折疊這個骨架"}
    ]},
   {mktree,
    [
-    % "Browse"
     {1,"瀏覽"}
    ]}
  ]}.
@@ -359,193 +223,122 @@
  [
   {arealight_conv,
    [
-    % "Area Light to Object"
     {1,"區域燈光到對象"},
-    % "Convert selected area lights to objects"
     {2,"選定的區域燈光轉換為對象"},
-    % "Object To Area Light"
     {3,"對象到區域燈光"},
-    % "Convert selected objects to area lights"
     {4,"轉換選擇的對象到區域燈光"}
    ]},
   {auto_smooth,
    [
-    % "Auto Smooth Parameters"
     {1,"自動平滑參數"},
-    % "Crease Angle"
     {2,"抗皺角"}
    ]},
   {clean_isolated_vertices,
    [
-    % "Removed 1 isolated vertex\n"
     {1,"刪除一孤立點\n"},
-    % "Removed ~p isolated vertices\n"
     {2,"刪除 ~p 孤立點\n"}
    ]},
   {cleanup,
    [
-    % "Short Edges"
     {1,"短邊"},
-    % "Length Tolerance"
     {2,"長度公差"},
-    % "Isolated Vertices"
     {3,"孤立點"},
-    % "Cleanup"
     {4,"淨化"}
    ]},
   {cleanup_rep_1,
    [
-    % "Repeated vertex ~p in face ~p\n"
     {1,"重複頂點 ~p 在面 ~p\n"}
    ]},
   {cleanup_waists_1,
    [
-    % "Removed waist vertex: ~p\n"
     {1,"刪除腰部頂點： ~p\n"}
    ]},
   {color_material,
    [
-    % "color_"
     {1,"color_"}
    ]},
   {delete_2edged_faces_1,
    [
-    % "Face"
     {1,"面"},
-    % "has only one edge"
     {2,"只有一個邊"}
    ]},
   {flip_ask,
    [
-    % "Select axis to flip object along"
     {1,"沿着選擇線翻轉對象"},
-    % "Select point along the chosen axis to flip object"
     {2,"選擇點沿軸線翻轉對象"}
    ]},
   {flip_str,
    [
-    % "[Alt]+Click to Duplicate object"
     {1,"[Alt]+點擊 複製對象"}
    ]},
   {menu,
    [
-    % "Move"
     {2,"移動"},
-    % "Flip..."
     {3,"翻轉 ..."},
-    % "Invert"
     {10,"倒置"},
-    % "Flip all normals, turning the object inside out"
     {11,"所有法線翻轉，旋轉物體內而外"},
-    % "Tighten"
     {12,"緊縮"},
-    % "Move vertices towards average midpoint"
     {13,"對移動平均中點頂點"},
-    % "Smooth"
     {14,"順利"},
-    % "Subdivide all faces to give the object a smoother apperance"
     {15,"細分給所有面對象的平滑外觀"},
-    % "Combine"
     {16,"結合"},
-    % "Combine multiple objects into a single object"
     {17,"合併多個對象到一個對象"},
-    % "Separate"
     {18,"分開"},
-    % "Separate a combined objects into its components"
     {19,"合併成一個單獨的物體及其組成部分"},
-    % "Weld"
     {20,"焊接"},
-    % "Merge pair of faces that are nearly coincident"
     {21,"合併對面孔幾乎是一致的"},
-    % "Cleanup"
     {22,"淨化"},
-    % "Remove various defects"
     {23,"消除各種缺陷"},
-    % "Auto-Smooth"
     {24,"自動平滑"},
-    % "Set edges hard or soft depending on the angle between faces"
     {25,"設置邊緣硬或軟取決於面之間的夾角"},
-    % "Duplicate"
     {26,"重複"},
-    % "Delete"
     {27,"刪除"},
-    % "Delete the selected objects"
     {28,"刪除選定的對象"},
-    % "Rename"
     {29,"重命名"},
-    % "Rename selected objects"
     {30,"重命名選定的對象"},
-    % "Show All"
     {31,"顯示所有"},
-    % "Show all faces for this object"
     {32,"顯示該對象的所有面"},
-    % "Vertex Attributes"
     {33,"頂點屬性"},
-    % "Flip the object along ~ts axis"
     {34,"翻轉對象沿 ~ts 軸"},
-    % "Pick point to flip object along the ~ts axis"
     {35,"挑選點翻轉對象沿 ~ts 軸"},
-    % "Flip object along the global ~ts axis"
     {36,"翻轉對象沿總括的 ~ts 軸"},
-    % "Pick"
     {37,"挑選"},
-    % "Pick axis to flip object along"
     {38,"翻轉對象沿挑選軸線"},
-    % "Pick axis and point to flip object along"
     {39,"翻轉對象沿挑選軸和點"},
-    % "Pick global axis to flip object along"
     {40,"翻轉對象沿挑選總括的軸線"},
-    % "Colors to Materials"
     {41,"色彩到材料"},
-    % "Convert vertex colors to materials"
     {42,"頂點顏色轉換材料"},
-    % "Materials to Colors"
     {43,"材料到顏色"},
-    % "Convert materials to vertex colors"
     {44,"轉換材料到頂點顏色"},
-    % "Remove Colors"
     {45,"刪除顏色"},
-    % "Remove all vertex colors"
     {46,"刪除所有頂點的顏色"},
-    % "Remove UV Coordinates"
     {47,"刪除 UV坐標"},
-    % "Remove all UV coordinates"
     {48,"刪除所有UV坐標"},
-    % "Remove All Attributes"
     {49,"刪除所有屬性"},
-    % "Remove all vertex colors and UV coordinates"
     {50,"刪除所有頂點顏色和UV坐標"},
-    % "Add a common prefix to each selected object"
     {51,"一個共同的前綴添加到每個選定的對象"},
     {52,"取消隱藏面"}
    ]},
   {rename_1,
    [
-    % "Rename"
     {1,"重命名"}
    ]},
   {rename_prefix,
    [
-    % "Prefix Selected Objects"
     {1,"前綴選擇的對象"}
    ]},
   {vertex_color_item,
    [
-    % "Vertex Color"
     {1,"頂點顏色"},
-    % "Apply vertex colors to selected objects"
     {3,"申請頂點的顏色到選擇對象"}
    ]},
   {weld,
    [
-    % "Distance Tolerance"
     {1,"距離容忍度"},
-    % "Weld"
     {2,"焊接"}
    ]},
   {weld_objects,
    [
-    % "Found no faces to weld."
     {1,"沒有找到面焊接。"}
    ]}
  ]}.
@@ -553,103 +346,63 @@
  [
   {desc,
    [
-    % "One"
     {1,"一"},
-    % "Two"
     {2,"二"},
-    % "Three"
     {3,"三"}
    ]},
   {help,
    [
-    % "Start camera"
     {1,"啟動相機"}
    ]},
   {info,
    [
-    % "Note: Only the Nendo camera mode can be used with a one-button mouse"
     {1,"注意：只有Nendo相機模式可以使用一鍵鼠標"},
-    % "Note: Only the Nendo and Blender camera modes can be used with a two-button mouse"
     {2,"注意：只有Nendo和Blender相機模式都可以用一個兩鍵鼠標"},
-    % "Note: The "
     {3,"注意："},
-    % " camera mode requires at least 2 mouse buttons"
     {4,"相機模式至少需要2鼠標按鈕"},
-    % "Note: The "
     {5,"注意："},
-    % " camera mode requires 3 mouse buttons"
     {6,"相機模式下需要3個鼠標鍵"}
    ]},
   {message,
    [
-    % "Drag to Dolly"
     {2,"拖動以移動鏡頭"},
-    % "Move mouse to tumble"
     {3,"移動鼠標以翻滾"},
-    % "[Q]"
     {4,"[Q]"},
-    % "Move mouse to track"
     {5,"移動鼠標到軌道"},
-    % "Cancel/restore view"
     {6,"取消/恢復檢視"},
-    % "Restore view"
     {7,"恢復檢視"},
-    % "Drag to Pan"
     {8,"拖動到移動視圖"}
    ]},
   {mode_help,
    [
-    % "Track"
     {1,"軌道"},
-    % "Dolly"
     {2,"移動鏡頭"},
-    % "Tumble"
     {3,"翻滾"},
-    % "Scroll: Dolly"
     {4,"滾動：移動鏡頭"}
    ]},
   {prefs,
    [
-    % "Mouse Buttons"
     {1,"鼠標按鈕"},
-    % "Camera Mode"
     {2,"相機模式"},
-    % "Pan Speed"
     {3,"移動視圖速度"},
-    % "Wheel Zooms"
     {4,"滑鼠滾輪縮放"},
-    % "Forwards Zooms In"
     {5,"滑鼠滾動拉近"},
-    % "Forwards Zooms Out"
     {6,"滑鼠滾動拉遠"},
-    % "Zoom Factor"
     {7,"變焦倍數"},
-    % "Scroll Wheel"
     {9,"滾輪"},
-    % "Alternate Zoom Factor(Alt+Scroll)"
     {10,"交替縮放倍數（Alt +滾輪）"},
-    % "Wheel Pans & Rotates"
     {11,"滑鼠滾輪 移動視圖和旋轉視圖"},
-    % "Pan Speed"
     {12,"移動視圖速度"},
-    % "Rotation Step in Degrees"
     {13,"旋轉步數等級"},
-    % "Unidirectional Camera"
     {15,"單向相機"},
-    % "Arrow Key Pan Speed"
     {16,"方向鍵移動視圖速度"},
-    % "Show Info Line Help String"
     {17,"顯示信息線的幫助字符"},
-    % "Arrow Keys Pan"
     {18,"方向鍵移動視圖"},
-    % "Rotation Speed"
     {19,"轉速"},
-    % "Zooming in aims Camera"
     {20,"放大目標相機"}
    ]},
   {scroll_help,
    [
-    % "  [Ctrl](+[Alt])+Scroll: Pan  [Shift](+[Alt])+Scroll: Rotate"
     {1,"  [Ctrl](+[Alt])+滾動: 移動視圖  [Shift](+[Alt])+滾動：旋轉視圖"}
    ]}
  ]}.
@@ -657,14 +410,11 @@
  [
   {check_consistency,
    [
-    % "Collapsing would cause an inconsistent object structure."
     {1,"折疊會導致不一致的對象結構。"}
    ]},
   {check_vertices_1,
    [
-    % "Non-collapsible vertex"
     {1,"非折疊頂點"},
-    % "would leave waist.\n"
     {2,"會離開腰部。\n"}
    ]}
  ]}.
@@ -672,7 +422,6 @@
  [
   {choose_1,
    [
-    % "Choose Color"
     {1,"選擇顏色"}
    ]}
  ]}.
@@ -680,30 +429,22 @@
  [
   {do_window,
    [
-    % "Console "
     {1,"控制台"},
-    % "x"
     {2,"x"}
    ]},
   {handle_action,
    [
-    % "Write"
     {1,"寫入"},
-    % "Text File"
     {3,"文本文件"},
-    % "Write error: ~w"
     {4,"寫入錯誤： ~w"}
    ]},
   {popup_menu,
    [
-    % "Write to File"
     {1,"寫入文件"},
-    % "Write console contents to a file"
     {2,"控制台的內容寫入到文件"}
    ]},
   {server_loop,
    [
-    % ":~w Received unknown: ~p~n"
     {1,"：~w 收到未知： ~p~n"}
    ]}
  ]}.
@@ -711,76 +452,48 @@
  [
   {check_range,
    [
-    % "Extent along "
     {1,"程度沿著"},
-    % "axis is too short."
     {2,"軸是太短了。"}
    ]},
   {crumple_dirs,
    [
-    % "Random"
     {1,"隨機"},
-    % "a random direction"
     {2,"一個隨機的方向"},
-    % "its normal"
     {4,"這是正常"},
-    % "Move each vertex a random amount along"
     {8,"移動每個頂點沿一個隨機量"}
    ]},
   {dir,
    [
-    % "Twist selected vertices around the "
     {1,"扭曲選擇頂點圍繞到"},
-    % " passing through the center of the selection"
     {2,"穿過中心的選擇"},
-    % " passing through the origin"
     {3,"經過原點"}
    ]},
   {inflate_fun,
    [
-    % "Pick center and radius"
     {1,"挑選中心和半徑"},
-    % "Inflate elements"
     {2,"充氣元素"},
-    % "Pick center point"
     {3,"挑選中心點"},
-    % "Pick point to define radius"
     {4,"挑選點來定義半徑"}
    ]},
   {sub_menu,
    [
-    % "Inflate elements"
     {1,"充氣元素"},
-    % "Pick center and radius"
     {2,"挑選中心和半徑"},
-    % "Crumple"
     {3,"弄皺"},
-    % "Randomly move vertices"
     {4,"隨機移動頂點"},
-    % "Inflate"
     {5,"膨脹"},
-    % "Taper"
     {6,"錐形化"},
-    % "Twist"
     {7,"扭曲"},
-    % "Torque"
     {8,"轉矩"}
    ]},
   {taper_item,
    [
-    % "Taper along "
     {1,"沿錐形"},
-    % " (with effect on "
     {2,"（與影響"},
-    % ")"
     {3,"）"},
-    % "Choose effect axis"
     {4,"選擇影響軸"},
-    % "Pick axis center location"
     {5,"軸中心位置選擇"},
-    % "Pick taper origin"
     {6,"挑選錐形化原點"},
-    % "Effect on "
     {7,"對"}
    ]}
  ]}.
@@ -788,7 +501,6 @@
  [
   {dissolve_1,
    [
-    % "Dissolving would cause an inconsistent object structure."
     {1,"分解會造成不一致的對象結構。"}
    ]}
  ]}.
@@ -796,66 +508,46 @@
  [
   {drag_help,
    [
-    % "Move along Screen Normal"
     {1,"移動沿著屏幕正常"},
-    % "Scale"
     {2,"縮放"},
-    % "Adjust 2nd value"
     {3,"調整第二個值"},
-    % "Rotate"
     {4,"旋轉"},
-    % "Adjust 3rd value"
     {5,"調整第三個值"},
-    % "Adjust 4th value"
     {6,"調整第四個值"}
    ]},
   {help_message,
    [
-    % "Numeric Entry"
     {1,"數字輸入"},
-    % "Switch Constraint Set"
     {2,"開關約束設置"}
    ]},
   {make_query_1,
    [
-    % "A"
     {2,"A"}
    ]},
   {numeric_input,
    [
-    % "Numeric Input"
     {1,"數字輸入"}
    ]},
   {plus_drag_string,
    [
-    % "+Drag: "
     {1,"+拖動："}
    ]},
   {qstr,
    [
-    % "Dx"
     {1,"Dx"},
-    % "Dx"
     {2,"Dx"},
-    % "Dy"
     {3,"Dy"},
-    % "Dz"
     {4,"Dz"},
-    % "R"
     {5,"R"},
-    % "A"
     {6,"A"}
    ]},
   {standard_mode_fun,
    [
-    % "[Shift] and/or [Ctrl] and/or [Alt] Constrain"
     {1,"[Shift] 和/或 [Ctrl] 和/或 [Alt] 約束"},
-    % "[+] or [-] Adjust Radius"
     {2,"[+] 或 [-] 調整半徑"}
    ]},
   {switch,
    [
-    % " (using Alternate Constraints)"
     {1,"（使用備用約束）"}
    ]}
  ]}.
@@ -863,7 +555,6 @@
  [
   {dissolve_edge_2,
    [
-    % "Dissolving would cause a badly formed face."
     {1,"分解會造成不好構成的面。"}
    ]}
  ]}.
@@ -871,112 +562,72 @@
  [
   {command,
    [
-    % "Segments"
     {1,"細分"}
    ]},
   {cut_ask_entry,
    [
-    % "Cut into <N> segments"
     {1,"切成<N>段"},
-    % "Enter Number..."
     {2,"輸入號碼 ..."}
    ]},
   {cut_command,
    [
-    % "Cut"
     {1,"切"}
    ]},
   {cut_entry,
    [
-    % "Cut into "
     {1,"切成"},
-    % " edges of equal length"
     {2,"邊等長"}
    ]},
   {cut_fun,
    [
-    % "Cut into edges of equal length"
     {1,"切成等長的邊"},
-    % "Cut at arbitrary position"
     {2,"在任意位置切"}
    ]},
   {cut_pick_error,
    [
-    % "Only one edge can be cut at an arbitrary position."
     {1,"只有一個邊，可切割任意位置。"}
    ]},
   {loop_cut,
    [
-    % "Edge loop doesn't divide ~p into two (or more) parts."
     {1,"循環沒有分裂的邊 ~p 為兩個（或更多）的組成部分。"}
    ]},
   {menu,
    [
-    % "Move"
     {2,"移動"},
-    % "Slide"
     {3,"滑動"},
-    % "Slide edges along neighbor edges"
     {4,"滑動邊沿鄰邊"},
-    % "Extrude"
     {5,"拉伸"},
-    % "Connect"
     {6,"連接"},
-    % "Create a new edge by connecting midpoints of selected edges"
     {7,"創建一個新的邊通過連接中點選擇的邊"},
-    % "Bevel"
     {8,"斜角"},
-    % "Round off selected edges"
     {9,"以整數計選定的邊"},
-    % "Dissolve"
     {10,"解散"},
-    % "Eliminate selected edges"
     {11,"消除選定的邊"},
-    % "Collapse"
     {12,"崩潰"},
-    % "Delete edges, replacing them with vertices"
     {13,"刪除邊，取代它們的頂點"},
-    % "Hardness"
     {14,"硬度"},
-    % "Soft"
     {15,"軟"},
-    % "Hard"
     {16,"硬"},
-    % "Loop Cut"
     {17,"循環剪切"},
-    % "Cut into two objects along edge loop"
     {18,"切成兩個物體沿環形邊"},
-    % "Vertex Color"
     {19,"頂點顏色"},
-    % "Apply vertex colors to selected edges"
     {20,"應用到選定的邊頂點顏色"},
-    % "Delete edges, replacing them with vertices and remove any newly created isolated vertices"
     {21,"刪除邊緣，取代它們的頂點並刪除任何新創建的孤立點"},
-    % "Crease"
     {22,"防皺"},
-    % "Extrusion commonly used for adding wrinkles to organic models"
     {23,"擠壓通常用於添加皺紋到有機模型"},
-    % "Eliminate selected edges and remove remaining isolated verts"
     {50,"消除選定的邊和消除剩餘的孤立點"}
    ]},
   {plain_cut_menu,
    [
-    % "Cut into edges of equal length"
     {2,"切成等長的邊"}
    ]},
   {slide_help_mode,
    [
-    % "Absolute"
     {1,"絕對"},
-    % "Relative"
     {2,"相對"},
-    % "Freeze direction"
     {3,"凍結方向"},
-    % "Thaw direction"
     {4,"解凍方向"},
-    % "Stop at other edges"
     {5,"停止在其他邊"},
-    % "Continue past other edges"
     {6,"繼續過去的其他邊"}
    ]}
  ]}.
@@ -984,11 +635,8 @@
  [
   {export,
    [
-    % "exporting"
     {1,"導出"},
-    % "preparing"
     {2,"準備"},
-    % "Exporter crashed"
     {4,"導出相撞"}
    ]}
  ]}.
@@ -996,12 +644,10 @@
  [
   {bevel_faces,
    [
-    % "Object is too small to bevel."
     {1,"對象是太小的斜角。"}
    ]},
   {extrude_problem,
    [
-    % "Can't extrude/bevel; two or more vertices are probably too near to each other.\nTry the Cleanup command."
     {1,"無法擠出/斜面;兩個或更多的頂點可能過於接近對方。\n嘗試清理命令。"}
    ]}
  ]}.
@@ -1009,159 +655,105 @@
  [
   {bridge_1,
    [
-    % "Faces must not point in the same direction."
     {2,"面不能指向同一個方向。"},
-    % "Faces must not be neighbors."
     {3,"面不能相鄰。"}
    ]},
   {bridge_error,
    [
-    % "Exactly two face regions must be selected."
     {2,"必要有兩個臉區域必須選擇。"}
    ]},
   {clone_on,
    [
-    % "There must only be one face selected."
     {1,"只能有一個面選擇。"}
    ]},
   {clone_on_selection,
    [
-    % "Select target elements on which to put clones"
     {1,"選擇目標元素上把克隆"}
    ]},
   {create_hole_1,
    [
-    % "A hole cannot comprise all faces in an object."
     {1,"孔不能包括所有面的對象。"}
    ]},
   {intrude,
    [
-    % "Intrude does not work with all faces selected."
     {1,"介入並不適用於所有面選擇。"}
    ]},
   {lift_check_selection,
    [
-    % "Face and edge selections don't match."
     {1,"工作面和邊選擇不匹配。"},
-    % "Face and vertex selections don't match."
     {2,"臉和頂點的選擇不匹配。"}
    ]},
   {lift_fun,
    [
-    % "Lift, rotating face around edge or vertex"
     {1,"上升，旋轉面對周圍邊或頂點"},
-    % "Lift in std. directions"
     {2,"上升在標準。方向"}
    ]},
   {lift_sel_mismatch,
    [
-    % "Face and edge selections don't match."
     {1,"面和邊選擇不匹配。"}
    ]},
   {lift_selection,
    [
-    % "Select edge or vertex to act as hinge"
     {1,"選擇邊或頂點作為轉軸"}
    ]},
   {lift_vtx_sel_mismatch,
    [
-    % "Face and vertex selections don't match."
     {1,"面和頂點的選擇不匹配。"}
    ]},
   {menu,
    [
-    % "Move"
     {2,"移動"},
-    % "Extrude"
     {3,"拉伸"},
-    % "Intrude"
     {8,"侵入"},
-    % "Carve out interior of object, making selected faces holes"
     {9,"能開出內部的對象，使選擇的面洞"},
-    % "Bevel"
     {10,"斜角"},
-    % "Round off edges of selected faces"
     {11,"以整數計邊到選擇的面"},
-    % "Bridge"
     {12,"橋"},
-    % "Create a bridge or tunnel between two faces"
     {13,"創建一個橋樑或隧道之間的兩個面"},
-    % "Bump"
     {14,"凸塊"},
-    % "Create bump of selected faces"
     {15,"創建凹凸的選擇面"},
-    % "Lift"
     {16,"上升"},
-    % "Put On"
     {17,"穿上"},
-    % "Move and rotate object, aligning the selected face to another element"
     {18,"移動和旋轉對象，對準選定的面到另一個元素"},
-    % "Clone object on to one or more elements"
     {19,"克隆對象到一個或多個元素"},
-    % "Mirror"
     {20,"鏡像"},
-    % "Mirror object around selected faces and merge to object"
     {21,"鏡像物件圍繞選定的面和合併對象"},
-    % "Mirror and create separate objects"
     {22,"鏡像與創建單獨的對象"},
-    % "Dissolve"
     {23,"解散"},
-    % "Eliminate all edges between selected faces"
     {24,"消除所有的邊之間選擇的面"},
-    % "Collapse"
     {25,"崩潰"},
-    % "Delete faces, replacing them with vertices"
     {26,"刪除的面，取代它們的頂點"},
-    % "Smooth"
     {27,"圓潤"},
-    % "Subdivide selected faces to smooth them (Catmull-Clark)"
     {28,"細分選擇的面平滑他們(細切法)"},
-    % "Tesselate"
     {29,"细化"},
-    % "Vertex Color"
     {30,"頂點顏色"},
-    % "Apply vertex colors to selected faces"
     {31,"應用面頂點的顏色來選擇"},
-    % "Hide"
     {32,"隱藏"},
-    % "Hide the selected faces"
     {33,"隱藏選定的面"},
-    % "Eliminate selected faces and remove remaining isolated verts"
     {34,"消除選定的面和消除剩餘的孤立點"},
-    % "Extract"
     {35,"提取"},
-    % "Shell Extrude"
     {36,"殼擠壓"},
-    % "Hole"
     {37,"孔"},
-    % "Create hole"
     {38,"創建洞"},
-    % "Remove holes adjacent to selected faces"
     {39,"刪除相鄰的孔到選定的面"},
-    % " or face regions"
     {40,"或面域"},
     {41,"取消隱藏面鄰近的選擇"}
    ]},
   {put_on,
    [
-    % "There must only be one face selected."
     {1,"只能有一個面選擇。"}
    ]},
   {put_on_check_selection,
    [
-    % "Selection must not be in the same object."
     {1,"選擇不能在同一個對象。"},
-    % "Select only one element."
     {2,"選擇只有一個元素。"}
    ]},
   {put_on_selection,
    [
-    % "Select target element on which to put source object"
     {1,"選擇目標元素上安置源對象"}
    ]},
   {smooth,
    [
-    % "smoothing"
     {1,"平滑"}
    ]}
  ]}.
@@ -1169,55 +761,42 @@
  [
   {check_size,
    [
-    % "Object \""
     {1,"對象\""},
-    % "\" cannot be exported "
     {2,"\"不能出口"},
-    % "to Nendo format (too many edges)."
     {3,"到Nendo格式（太多邊）。"}
    ]},
   {clean_bad_edges,
    [
-    % "Bad edge: ~w\n"
     {1,"壞的邊： ~w\n"}
    ]},
   {import,
    [
-    % "Nendo 1.0 files not supported"
     {1,"Nendo 1.0文件不支持"},
-    % "not a Nendo file"
     {2,"不是Nendo文件"}
    ]},
   {import_1,
    [
-    % "~w object(s)\n"
     {1,"~w 對象（s）\n"}
    ]},
   {read_edges,
    [
-    % " edges ~w\n"
     {1,"邊緣 ~w\n"}
    ]},
   {read_object_1,
    [
-    % "~w: ~ts: vis=~p sensitivity=~p\n"
     {1,"~w: ~ts: 可見=~p 靈敏度=~p\n"}
    ]},
   {read_objects,
    [
-    % "  ~w empty object(s)\n"
     {1,"  ~w 空的對象(s)\n"},
-    % "  garbage: ~w\n"
     {2,"  垃圾: ~w\n"}
    ]},
   {read_vertices,
    [
-    % " vertices ~w\n"
     {1,"頂點 ~w\n"}
    ]},
   {skip_faces,
    [
-    % " faces ~w\n"
     {1,"面 ~w\n"}
    ]}
  ]}.
@@ -1225,63 +804,43 @@
  [
   {export,
    [
-    % "saving"
     {1,"保存"},
-    % "lights"
     {2,"燈"},
-    % "renumbering"
     {3,"重編"},
-    % "objects"
     {4,"對象"},
-    % "compressing"
     {5,"壓縮"},
-    % "writing file"
     {6,"寫文件"}
    ]},
   {import,
    [
-    % "opening wings file"
     {1,"打開wings文件"},
-    % "reading file"
     {2,"讀文件"}
    ]},
   {import_1,
    [
-    % "converting binary"
     {1,"轉換成二進制"},
-    % "Pre-0.80 Wings format no longer supported."
     {2,"Pre-0.80 Wings格式不再支持。"},
-    % "Pre-0.92 Wings format no longer supported."
     {3,"Pre-0.92 Wings格式不再支持。"},
-    % "unknown wings format"
     {4,"未知wings格式"},
-    % "corrupt Wings file"
     {5,"損壞的wings文件"},
-    % "not a Wings file (or old Wings format)"
     {6,"沒有wings的文件（或舊wings格式）"}
    ]},
   {import_image,
    [
-    % "unnamed image"
     {1,"無名圖片"},
-    % "Bad image: ~p\n"
     {2,"壞圖像： ~p\n"}
    ]},
   {import_props,
    [
-    % "<Stored Selection>"
     {1,"<儲存選擇>"}
    ]},
   {import_vsn2,
    [
-    % "images and materials"
     {1,"圖像和材料"},
-    % "objects"
     {2,"對象"}
    ]},
   {translate_map_images_2,
    [
-    % "Material ~p, ~p texture: reference to non-existing image ~p\n"
     {1,"材料 ~p, ~p 質地：引用不存在的形象 ~p\n"}
    ]}
  ]}.
@@ -1289,177 +848,117 @@
  [
   {autosave,
    [
-    % "Autosaving \"~ts\" failed: ~ts"
     {1,"自動儲存 \"~ts\" 失敗: ~ts"}
    ]},
   {command,
    [
-    % "Revert failed: "
     {1,"還原失敗: "},
-    % "Export"
     {2,"導出"},
-    % "Export Selected"
     {3,"導出所選"},
-    % "Do you want to save your changes before quitting?"
     {4,"你想在退出前保存更改?"},
-    % "This file has been moved or deleted."
     {5,"此文件已被移動或刪除。"}
    ]},
   {confirmed_open,
    [
-    % "Read failed: "
     {1,"讀取失敗: "}
    ]},
   {confirmed_open_dialog,
    [
-    % "Open"
     {1,"打開"}
    ]},
   {export_filename_1,
    [
-    % "Export"
     {1,"導出"}
    ]},
   {import_filename_1,
    [
-    % "Import"
     {1,"導入"}
    ]},
   {import_image,
    [
-    % "Failed to load \"~ts\": ~ts\n"
     {1,"無法載入\"~ts\"： ~ts\n"},
     {2,"圖像不能被加載.~n檔案: \"~ts\"~n GLU 錯誤: ~p - ~ts~n"}
    ]},
   {import_ndo,
    [
-    % "Import failed: "
     {1,"導入失敗："}
    ]},
   {install_plugin,
    [
-    % "Install Plug-In"
     {1,"安裝插件"},
-    % "GZip Compressed File"
     {2,"GZip壓縮文件"},
-    % "Tar File"
     {3,"Tar文件"},
-    % "Compressed Tar File"
     {4,"壓縮的Tar文件"},
-    % "Beam File"
     {5,"Beam文件"}
    ]},
   {menu,
    [
-    % "New"
     {3,"新建"},
-    % "Create a new, empty scene"
     {4,"創建一個新的空的場景"},
-    % "Open..."
     {5,"打開 ..."},
-    % "Open a previously saved scene"
     {6,"打開一個以前保存的場景"},
-    % "Merge..."
     {7,"合併 ..."},
-    % "Merge a previously saved scene into the current scene"
     {8,"合併以前保存的場景到當前的場景"},
-    % "Save"
     {9,"保存"},
-    % "Save the current scene"
     {10,"保存當前場景"},
-    % "Save As..."
     {11,"另存為 ..."},
-    % "Save the current scene under a new name"
     {12,"保存當前場景下的新名稱"},
-    % "Save Selected..."
     {13,"保存選定 ..."},
-    % "Save only the selected objects or faces"
     {14,"只保存選擇的對象或面"},
-    % "Save Incrementally"
     {15,"另存新檔"},
-    % "Revert"
     {16,"還原"},
-    % "Revert current scene to the saved contents"
     {17,"當前場景恢復到保存的內容"},
-    % "Import"
     {18,"導入"},
-    % "Export"
     {19,"導出"},
-    % "Export Selected"
     {20,"導出所選"},
-    % "Import Image..."
     {21,"導入圖像 ..."},
-    % "Import an image file"
     {22,"導入的圖像文件"},
-    % "Render"
     {23,"給予"},
-    % "Install Plug-In"
     {24,"安裝插件"},
-    % "Exit"
     {25,"退出"},
-    % "Generate new filename and save"
     {26,"生成新的文件名和保存"},
-    % "Install a plug-in"
     {27,"安裝插件"},
-    % "Exit Wings 3D"
     {28,"退出Wings 3D"},
-    % "Save Unused Materials"
     {29,"保存未使用的材料"},
-    % "Include unused materials when saving a .wings file"
     {30,"包括未用的材料時儲存.wings文件"},
-    % "Save Preference Subset..."
     {31,"儲存偏好子集..."},
-    % "Save a preference subset from your current settings"
     {32,"儲存偏好的子集，從當前的設置"},
-    % "Load Preference Subset"
     {33,"負載偏好子集"},
-    % "Load..."
     {35,"載入 ..."},
-    % "Load a previously saved preference subset"
     {36,"加載以前保存的偏好集"}
    ]},
   {merge,
    [
-    % "Merge"
     {1,"合併"},
-    % "Read failed: "
     {2,"讀取失敗："}
    ]},
   {recent_files,
    [
-    % "Open this recently used file"
     {1,"打開最近使用的文件"}
    ]},
   {save_as,
    [
-    % "Save"
     {1,"保存"}
    ]},
   {save_now,
    [
-    % "Save failed: "
     {1,"保存失敗："}
    ]},
   {save_selected,
    [
-    % "This command requires a selection."
     {1,"此命令需要進行選擇。"},
-    % "Save Selected"
     {2,"保存選擇"}
    ]},
   {str_save_changes,
    [
-    % "Do you want to save your changes?"
     {1,"是否要保存更改？"}
    ]},
   {use_autosave_1,
    [
-    % "An autosaved file with a later time stamp exists; do you want to load the autosaved file instead?"
     {1,"自動保存的文件時間標記較後存在，你們要加載自動保存文件代替？"}
    ]},
   {wings_prop,
    [
-    % "Wings File"
     {1,"Wings文件"}
    ]}
  ]}.
@@ -1467,316 +966,180 @@
  [
   {def_commands,
    [
-    % "In the "
     {1,"在"},
-    % " dialog, you can turn on \"Default Commands\"."
     {4,"對話框中，您可以打開\"默認命令\"。"},
-    % "Two default commands can be defined. To save the previous command that was executed, use one of:"
     {5,"兩個默認的命令可以被定義。為了儲存被執行以前的命令，使其一："},
-    % "To use a command that has been defined this way, use one of:"
     {8,"要使用命令已經以這種方式定義，使其一："},
-    % "Note: When using the "
     {11,"注意：當使用"},
-    % " or "
     {13,"或"},
-    % " camera modes, the second default command cannot be used."
     {15,"相機模式，第二個默認的命令不能使用。"}
    ]},
   {def_hotkeys,
    [
-    % "Any command that appears in a menu, can be assigned a keyboard short-cut (hotkey)."
     {1,"出現的任何命令在菜單中，可以指定鍵盤捷徑（熱鍵）。"},
-    % "To assign a hotkey to a command:"
     {4,"要指定一個熱鍵命令："},
-    % "1. Open the menu containing the command and highlight the command."
     {5,"1. 打開菜單裡面包含的命令和突出該命令。"},
-    % "2. Press the [Insert] or [/] key."
     {6,"2. 按[Insert]或[/]鍵。"},
-    % "4. The information line asks you to press the key that the command should be assigned to."
     {8,"4. 該信息行要求你按下鍵指令是否需要被分配給。"},
-    % "To delete a hotkey, similarly highlight the command in a menu, and press the [Del] or [\\] key. A dialog box listing all keys bound to the command will appear. Check all hotkeys you want to delete."
-    {9,"要刪除一個熱鍵，同樣突出一個命令菜單，然後按[Del]或[\\]鍵。\n將會出現一個對話框列出所有連結到命令的鍵。檢查所有要刪除的熱鍵。"},
-    % "3. If the command does different things depending on which mouse button is pressed there will be a message in the information line asking you to press a mouse button to choose which variant of the command to assign to the hotkey. (Note: The mouse cursor must remain inside the menu when you click.)"
-    {10,"3. 如果命令不同的東西取決於哪按下鼠標按鈕就會有一個消息在信息行\n請您按下鼠標左鍵選擇哪個變種命令分配給熱鍵。\n （注：你點擊時鼠標光標必須保持在菜單內部。）"}
+    {9,"要刪除一個熱鍵，同樣突出一個命令菜單，然後按[Del]或[\\]鍵。將會出現一個對話框列出所有連結到命令的鍵。檢查所有要刪除的熱鍵。"},
+    {10,"3. 如果命令不同的東西取決於哪按下鼠標按鈕就會有一個消息在信息行請您按下鼠標左鍵選擇哪個變種命令分配給熱鍵。 (注：你點擊時鼠標光標必須保持在菜單內部.)"}
    ]},
   {edit_prefs,
    [
-    % "Edit"
     {1,"編輯"},
-    % "Preferences"
     {2,"偏好"}
    ]},
   {getting_started,
    [
-    % "When learning Wings, keep an eye on the information line at the bottom of the screen. Generally it shows what the mouse buttons will do at any given moment."
-    {1,"在學習Wings，留意信息行在底部的屏幕。\n一般都會顯示了鼠標按鈕將做規定的關鍵。"},
-    % "The actions for the mouse buttons are given first, labeled "
+    {1,"在學習Wings，留意信息行在底部的屏幕。一般都會顯示了鼠標按鈕將做規定的關鍵。"},
     {2,"這些行動以鼠標按鈕為首位，標記"},
-    % "Generally, L (left mouse button) is used for selecting and accepting, M (middle mouse button) for operating the camera, and R (right mouse button) to access the context-sensitive pop-up menus."
-    {7,"一般來說，L（左鼠標按鈕）用於選擇和接受，\nM （鼠標中鍵）可以操作相機，\n和R（右鼠標按鈕）用來訪問相關的彈出菜單。"},
-    % "Note that different mouse buttons can be used in pop-up menus to choose different variations of a command. Generally, the most common way to execute the command is found on the left mouse buttons, while the more advanced commands are found on the middle and right mouse buttons."
-    {8,"注意不同的鼠標按鈕可用於在彈出的菜單來選擇不同形式的命令。\n一般來說，最常用的方法來執行命令是用鼠標左鍵按鈕，\n而更進階的命令在鼠標中和右按鈕。"},
-    % "left mouse button"
+    {7,"一般來說，L（左鼠標按鈕）用於選擇和接受，M （鼠標中鍵）可以操作相機，和R（右鼠標按鈕）用來訪問相關的彈出菜單。"},
+    {8,"注意不同的鼠標按鈕可用於在彈出的菜單來選擇不同形式的命令。一般來說，最常用的方法來執行命令是用鼠標左鍵按鈕，而更進階的命令在鼠標中和右按鈕。"},
     {left_def,"鼠標左鍵"},
-    % "middle button or scroll wheel"
     {middle_def,"中間鍵或滾輪"},
-    % "right button"
     {right_def,"右鍵"},
-    % "followed by any hotkey actions."
     {two_a,"其次是行動的熱鍵。"}
    ]},
   {header,
    [
-    % "Getting Started"
     {1,"入門"},
-    % "Using a Mouse With One or Two Buttons"
     {2,"使用鼠標與一個或兩個按鈕"},
-    % "French and German Keyboards"
     {3,"法國和德國的鍵盤"},
-    % "Defined Hotkeys"
     {4,"定義熱鍵"},
-    % "How To Define Hotkeys"
     {5,"如何定義熱鍵"},
-    % "Light Basics"
     {6,"燈光的基礎知識"},
-    % "Default Commands"
     {8,"默認命令"},
-    % "Performance Tips"
     {9,"性能提示"},
-    % "OpenGL Info"
     {10,"OpenGL的信息"},
-    % "About Wings 3D"
     {11,"關於Wings 3D"},
-    % "Tweak"
     {12,"調整"}
    ]},
   {help_window,
    [
-    % "No help text"
     {1,"沒有說明文字"}
    ]},
   {international,
    [
-    % "Unfortunately, on French and German keyboards (and possibly others), the Undo/Redo commands will not be bound to the [Z] key. (That might be changed in a future release of Wings.)"
-    {1,"不幸的是，法國和德國的鍵盤（或其他），\n撤消/重做命令不會被綁定到為 [Z]鍵。(這可能是改變未來版本的Wings)"},
-    % "On French keyboards, the Undo/Redo commands are found on the [W] key ([Ctrl]+[W], [Ctrl]+[Alt]+[W] and so on)."
+    {1,"不幸的是，法國和德國的鍵盤（或其他），撤消/重做命令不會被綁定到為 [Z]鍵。(這可能是改變未來版本的Wings)"},
     {2,"關於法國鍵盤，撤消/重做命令設在[W]鍵([Ctrl]+[W], [Ctrl]+[Alt]+[W]等)."},
-    % "On German keyboards, the Undo/Redo commands are found on the [Y] key ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] and so on)."
     {3,"關於德國鍵盤，撤消/重做命令設在[Y]鍵([Ctrl]+[Y], [Ctrl]+[Alt]+[Y]等)."}
    ]},
   {lights,
    [
-    % "1. Create lights using the Light command in the primitives menu (R-click when there is no selection)."
     {1,"1. 創建燈使用光命令在基本菜單（鼠標右擊是沒有選擇）。"},
-    % "2. Select a light by L-clicking on it. When any light is selected, a special Light menu will pop up when you R-click."
-    {2,"2. 要選擇光線鼠標左一擊下就可以了。當任何光線被選中時，\n鼠標右擊點擊特殊的光線菜單就會彈出。"},
-    % "3. To tell Wings to actually use the lights you have created, use the "
+    {2,"2. 要選擇光線鼠標左一擊下就可以了。當任何光線被選中時，鼠標右擊點擊特殊的光線菜單就會彈出。"},
     {3,"3. 要告訴Wings實際使用的燈光，你已經創建，使用"},
-    % "View"
     {4,"查看"},
-    % "Scene Lights"
     {5,"場景燈"},
-    % " command."
     {6,"命令。"}
    ]},
   {message,
    [
-    % "Close help window"
     {1,"關閉幫助窗口"}
    ]},
   {one_or_two,
    [
-    % "Note that only the "
     {1,"請注意，只有"},
-    % " and "
     {2,"和"},
-    % " modes can be used with a two-button mouse. Only the "
     {3,"模式都可以用一個兩鍵鼠標。只有"},
-    % " mode can be used with an one-button mouse."
     {4,"模式可使用一個單按鈕鼠標。"}
    ]},
   {opengl_info,
    [
-    % "Vendor: "
     {1,"供應商："},
-    % "Renderer: "
     {2,"渲染："},
-    % "Version: "
     {3,"版本："},
-    % "Version tuple: "
     {4,"版本元組："},
-    % "Red bits"
     {5,"紅色位"},
-    % "Green bits"
     {6,"綠色位"},
-    % "Blue bits"
     {7,"藍色位"},
-    % "Alpha bits"
     {8,"阿爾法位"},
-    % "Depth bits"
     {9,"深度位"},
-    % "Stencil bits"
     {10,"模板位"},
-    % "Accum. red bits"
     {11,"累積. 紅色位"},
-    % "Accum. green bits"
     {12,"累積. 綠色位"},
-    % "Accum. blue bits"
     {13,"累積. 藍色位"},
-    % "Accum. alpha bits"
     {14,"累積. 阿爾法位"},
-    % "Max number of lights"
     {15,"最大數量的燈"},
-    % "Max clip planes"
     {16,"最大剪輯平面"},
-    % "Max modelview stack depth"
     {17,"最大模型視圖堆疊深度"},
-    % "Max projection stack depth"
     {18,"最大投影堆疊深度"},
-    % "Max texture stack depth"
     {19,"最大紋理堆疊深度"},
-    % "Subpixel bits"
     {20,"亞像素位"},
-    % "Max 3D texture size"
     {21,"最大三維紋理尺寸"},
-    % "Max texture size"
     {22,"最大紋理尺寸"},
-    % "Max pixel map table"
     {23,"最大像素映射表"},
-    % "Max name stack depth"
     {24,"最大的名字堆棧深度"},
-    % "Max display-list call nesting"
     {25,"最大顯示列表的調用嵌套"},
-    % "Max evaluator polynomial order"
     {26,"最大評估多項式階數"},
-    % "Max viewport dimensions"
     {27,"最大檢視尺寸"},
-    % "Max depth of attribute stack"
     {28,"最大深度屬性堆疊"},
-    % "Max depth of client attribute stack"
     {29,"最大深度的附庸屬性堆疊"},
-    % "Number of auxiliary buffers"
     {30,"輔助緩衝區的數目"},
-    % "Color buffers store RGBA"
     {31,"商店的RGBA顏色緩衝區"},
-    % "Color buffers store indices"
     {32,"顏色緩衝儲存指數"},
-    % "Double buffering"
     {33,"雙緩衝"},
-    % "Stereo buffers"
     {34,"立體聲緩衝區"},
-    % "Range of aliased point sizes"
     {35,"平滑點大小範圍"},
-    % "Range of antialised point sizes"
     {36,"反鋸齒點大小範圍"},
-    % "Range of aliased line widths"
     {37,"別名線寬範圍"},
-    % "Range of antialised line widths"
     {38,"反鋸齒線寬範圍"},
-    % "Recommended max number of indices for drawRangeElement()"
     {39,"推薦最大數量指數 drawRangeElement()"},
-    % "Recommended max number of vertices for drawRangeElement()"
     {40,"推薦最大數量頂點 drawRangeElement()"},
-    % "Max number of texturing units"
     {41,"最大數量的紋理單元"},
-    % "Number of compression formats"
     {42,"數壓縮格式"},
-    % "Max number of vertex units"
     {43,"最大數量的頂點單元"},
-    % "OpenGL Extensions"
     {44,"OpenGL擴展"},
-    % "Sample buffers"
     {45,"樣本緩衝區"}
    ]},
   {performance_tips,
    [
-    % "The performance of Wings is dependent on many different things, such as"
     {1,"Wings的性能取決於許多不同的事情，比如"},
-    % "the speed of the CPU"
     {2,"CPU的速度"},
-    % "type and size of the CPU cache"
     {3,"CPU緩存的類型和尺寸"},
-    % "amount and speed of memory"
     {4,"內存的數量和速度"},
-    % "type of graphics card"
     {5,"顯卡類型"},
-    % "amount of video memory"
     {6,"視頻內存量"},
-    % "the phase of the moon"
     {7,"月滿月缺"},
-    % "Therefore, it is difficult to give any firm advice on how to improve Wings performance. The following tips MAY improve performance:"
-    {8,"因此，很難就如何改進Wings性能給出任何確定的意見。\n以下建議可能提高性能："},
-    % "Try different number of colors and different screen resolutions. Especially if the graphics card doesn't have much memory, many colors and/or high resolution may drastically reduce performance. Using a smaller Wings window (not maximized) may also help."
-    {9,"嘗試使用不同的顏色和數量不同的屏幕分辨率。\n特別是如果圖形卡上沒有太多的內存，\n許多顏色和/或高解析度可能大幅降低其性能。\n使用較小的Wings窗口（不是最大化）可能也有幫助。"},
-    % "Close unnecessary windows inside Wings."
+    {8,"因此，很難就如何改進Wings性能給出任何確定的意見。以下建議可能提高性能："},
+    {9,"嘗試使用不同的顏色和數量不同的屏幕分辨率。特別是如果圖形卡上沒有太多的內存，許多顏色和/或高解析度可能大幅降低其性能。使用較小的Wings窗口（不是最大化）可能也有幫助。"},
     {10,"關閉不必要的Wings裡面的窗口。"},
-    % "Make sure that Geometry windows don't overlap."
     {11,"確保幾何窗口不重疊。"},
-    % "Use as few (active) lights as possible. More lights means less speed on most grahics cards."
-    {12,"使用盡可能少的（活動）燈越好。\n更多的燈意味著更少的速度在最大繪圖卡。"},
-    % "If possible, use the "
+    {12,"使用盡可能少的（活動）燈越好。更多的燈意味著更少的速度在最大繪圖卡。"},
     {13,"如果可能的話，請使用"},
-    % "Tools"
     {14,"工具"},
-    % "Virtual Mirror"
     {15,"虛擬鏡像"},
-    % " command."
     {16,"命令."},
-    % "Hide models that you don't work on for the moment."
     {17,"用隱藏模式在你不工作的時刻。"},
-    % "Use the "
     {18,"使用"},
-    % "View"
     {19,"查看"},
-    % "Show Colors"
     {20,"顯示顏色"},
-    % " command to turn off vertex color display if your model has vertex colors."
     {21,"命令關閉頂點顏色顯示，如果你的模型有頂點顏色。"},
-    % "Use the "
     {22,"使用"},
-    % "View"
     {23,"查看"},
-    % "Show Textures"
     {24,"顯示紋理"},
-    % " command to turn off textures while modeling."
     {25,"命令關閉紋理而建模。"},
-    % "Work in wireframe mode."
     {26,"工作線框模式。"},
-    % "Some graphics cards display edges slowly. Turn off edge display using the "
     {27,"某些圖形顯示卡的邊緣緩慢。關閉邊緣顯示使用"},
-    % "View"
     {28,"查看"},
-    % "Show Edges"
     {29,"顯示邊緣"},
-    % " command."
     {30,"命令。"},
-    % "Use fewer Undo levels. Setting to 4 or less (default 32) will let you work on models with almost 8 times the detail. In this case, using a shorter autosave period (default 10mins) may be advisable."
-    {31,"使用較少的撤消級別。設定為 4或更小（默認 32）\n會讓你的工作模式與近8倍的細節。在這種情況下，\n使用較短的自動保存時間（默認 10分鐘），可能是可取的。"}
+    {31,"使用較少的撤消級別。設定為 4或更小（默認 32）會讓你的工作模式與近8倍的細節。在這種情況下，使用較短的自動保存時間（默認 10分鐘），可能是可取的。"}
    ]},
   {splash_contents,
    [
-    % "Wings 3D is a subdivision modeler inspired"
     {1,"Wings 3D是一個細分建模的啟發"},
-    % "by Nendo and Mirai from IZware."
     {2,"由Nendo和Mirai來自IZware。"},
-    % "Wings 3D comes with absolutely no warranty,"
     {3,"Wings 3D來自完全沒有保證，"},
-    % "but is completely free for any kind of use"
     {4,"但完全免費在任何形式的使用"},
-    % "(including commercial)."
     {5,"（包括商業）"},
-    % "Copyright"
     {6,"版權所有"},
-    % "& Others"
     {7,"及其他"},
-    % "JPEG library: Copyright"
     {8,"JPEG庫：版權所有"}
    ]},
   {use_one_or_two,
    [
-    % "To use mice with only one or two buttons, you must inform Wings how many buttons your mouse has in the "
-    {1,"要使用鼠標只有一個或兩個按鈕，\n你必須通知你的Wings許多按鈕在鼠標"},
-    % " dialog."
+    {1,"要使用鼠標只有一個或兩個按鈕，你必須通知你的Wings許多按鈕在鼠標"},
     {2," 對話框."}
    ]}
  ]}.
@@ -1784,86 +1147,50 @@
  [
   {keyname,
    [
-    % "Bksp"
     {1,"Bksp"},
-    % "Tab"
     {2,"Tab"},
-    % "Space"
     {3,"Space"},
-    % "Shift+"
     {4,"Shift+"}
    ]},
   {list_header,
    [
-    % "Hotkeys in all modes"
     {1,"熱鍵在所有模式"},
-    % "Hotkeys in object mode"
     {2,"熱鍵在對象模式"},
-    % "Hotkeys in edge mode"
     {3,"熱鍵在邊模式"},
-    % "Hotkeys in face mode"
     {4,"熱鍵在面模式"},
-    % "Hotkeys for lights"
     {5,"熱鍵的燈"},
-    % "Hotkeys for vertices"
     {6,"熱鍵的頂點"}
    ]},
   {list_keys,
    [
-    % " (user-defined)"
     {1,"（用戶定義）"},
-    % " (plug-in-defined)"
     {2,"（插件定義）"}
    ]},
   {vkeyname,
    [
-    % "Bksp"
     {1,"Bksp"},
-    % "Tab"
     {2,"Tab"},
-    % "Enter"
     {3,"Enter"},
-    % "Pause"
     {4,"Pause"},
-    % "Esc"
     {5,"Esc"},
-    % "Space"
     {6,"Space"},
-    % "Delete"
     {7,"Delete"},
-    % "Del"
     {8,"Del"},
-    % "Div"
     {9,"Div"},
-    % "Mul"
     {10,"Mul"},
-    % "-"
     {11,"-"},
-    % "+"
     {12,"+"},
-    % "Enter"
     {13,"Enter"},
-    % "="
     {14,"="},
-    % "Up"
     {15,"Up"},
-    % "Down"
     {16,"Down"},
-    % "Right"
     {17,"Right"},
-    % "Left"
     {18,"Left"},
-    % "Insert"
     {19,"Insert"},
-    % "Home"
     {20,"Home"},
-    % "End"
     {21,"End"},
-    % "Page Up"
     {22,"Page Up"},
-    % "Page Down"
     {23,"Page Down"},
-    % "UKEY"
     {24,"UKEY"}
    ]}
  ]}.
@@ -1871,56 +1198,38 @@
  [
   {create_default,
    [
-    % "~p Don't know about the type ~p; ignoring\n"
     {1,"~p 不知道有關類型 ~p;忽視\n"}
    ]},
   {create_image,
    [
-    % "Width"
     {1,"寬度"},
-    % "Height"
     {2,"高度"},
-    % "Pattern"
     {3,"模式"},
-    % "Grid"
     {4,"格"},
-    % "Checkerboard"
     {5,"棋盤"},
-    % "Vertical Bars"
     {6,"垂直線條"},
-    % "Horizontal Bars"
     {7,"水平線條"},
-    % "White"
     {8,"白色"},
-    % "Black"
     {9,"黑色"},
-    % "Create Image"
     {10,"創建圖像"}
    ]},
   {event,
    [
-    % "Show menu"
     {1,"顯示菜單"}
    ]},
   {event_1,
    [
-    % "Show in natural size"
     {1,"自然大小顯示"}
    ]},
   {screenshot,
    [
-    % "Screenshot"
     {1,"截圖"},
-    % "Capture viewport only"
     {2,"僅捕獲窗口"},
-    % "Add current view to Saved Views"
     {3,"添加到當前視圖保存的視圖"},
-    % "Name"
     {4,"名稱"}
    ]},
   {window_params,
    [
-    % "Image: ~ts [~wx~wx~w]"
     {1,"圖片: ~ts [~wx~wx~w]"}
    ]}
  ]}.
@@ -1928,21 +1237,16 @@
  [
   {display_actual_mode,
    [
-    % "Actual: RGBA: ~p ~p ~p ~p Depth: ~p Stencil: ~p Accum: ~p ~p ~p ~p\n"
     {1,"實際：RGBA: ~p ~p ~p ~p 深度： ~p 模板: ~p 累積: ~p ~p ~p ~p\n"}
    ]},
   {try_video_modes,
    [
-    % "Trying OpenGL modes\n"
     {1,"OpenGL的模式嘗試\n"}
    ]},
   {video_mode_failure,
    [
-    % "Failed to find any suitable OpenGL mode.\n\n"
     {2,"沒有找到任何合適的OpenGL模式。\n\n"},
-    % "Make sure that OpenGL drivers are installed.\n\n"
     {3,"確保 OpenGL的驅動程序。\n\n"},
-    % "No suitable OpenGL mode found (are OpenGL drivers installed?)"
     {5,"OpenGL模式中發現沒有合適的（是OpenGL驅動安裝了？）"}
    ]}
  ]}.
@@ -1950,174 +1254,112 @@
  [
   {attenuation,
    [
-    % "Not a point light or spotlight."
     {1,"不是一個點光源或聚光燈下。"}
    ]},
   {color,
    [
-    % "Select only one light."
     {1,"僅選擇一盞燈。"}
    ]},
   {edit,
    [
-    % "Select only one light."
     {1,"僅選擇一盞燈。"},
-    % "Ambient Light Properties"
     {2,"環境光性能"},
-    % "Light Properties"
     {3,"光特性"}
    ]},
   {edit_ambient_dialog,
    [
-    % "Ambient"
     {1,"環境"},
-    % "Color"
     {2,"顏色"},
-    % "OK"
     {3,"確定"}
    ]},
   {edit_dialog,
    [
-    % "Diffuse"
     {1,"擴散"},
-    % "Ambient"
     {2,"環境"},
-    % "Specular"
     {3,"鏡面"},
-    % "Colors"
     {4,"顏色"},
-    % "OK"
     {5,"確定"}
    ]},
   {export_camera_lights,
    [
-    % "Ambient"
     {1,"環境"},
-    % "Infinite"
     {2,"無限"},
-    % "Infinite1"
     {3,"無限1"},
-    % "Infinite2"
     {4,"無限2"}
    ]},
   {info,
    [
-    % "Light ~ts"
     {1,"光 ~ts"},
-    % ": Pos ~ts ~ts ~ts"
     {2,"：名次 ~ts ~ts ~ts"}
    ]},
   {info_1,
    [
-    % ". Aim ~ts ~ts ~ts. Dir ~ts ~ts ~ts"
     {1,"。目的 ~ts ~ts ~ts。目錄 ~ts ~ts ~ts"},
-    % ". Angle ~ts~c"
     {2,"。角 ~ts~c"}
    ]},
   {light_types,
    [
-    % "Infinite"
     {1,"無限"},
-    % "Create a far-away, directional light (like the sun)"
     {2,"創建一個遙遠的，方向燈（如太陽）"},
-    % "Point"
     {3,"點"},
-    % "Create a light that radiates light in every direction"
     {4,"創建一盞燈在各個方向放光"},
-    % "Spot"
     {5,"現場"},
-    % "Create a spotlight"
     {6,"創建一個聚光燈"},
-    % "Ambient"
     {7,"環境"},
-    % "Create an ambient light source"
     {8,"創建一個環境光源"},
-    % "Area"
     {9,"區"},
-    % "Create an area that radiates light"
     {10,"創建一個區域放光"}
    ]},
   {menu,
    [
-    % "Move"
     {2,"移動"},
-    % "Position Highlight"
     {3,"突出位置"},
-    % "Position the aim point or location of light"
     {4,"定位瞄準點或位置的光"},
-    % "Color"
     {5,"顏色"},
-    % "Interactively adjust hue, value, and saturation"
     {6,"交互式調整色調，明度和飽和度"},
-    % "Attenuation"
     {7,"衰減"},
-    % "Linear"
     {8,"線性"},
-    % "Interactively adjust how much light weakens as it travels away from its source (linear factor)"
     {9,"交互式調整多少光減弱，因為它遠離它的傳播源（線性係數）"},
-    % "Quadratic"
     {10,"二次"},
-    % "Interactively adjust how much light weakens as it travels away from its source (quadratic factor)"
     {11,"交互式調整多少光減弱，因為它遠離它的傳播源（二次係數）"},
-    % "Spot Angle"
     {12,"聚角"},
-    % "Interactivly adjust the angle of the spotlight cone"
     {13,"Interactivly調整角度的聚光燈錐"},
-    % "Spot Falloff"
     {14,"現貨衰減"},
-    % "Interactivly adjust how much light weakens farther away from the center of the spotlight cone"
     {15,"互動調整多少光減弱遠離聚光燈的中心錐體"},
-    % "Edit Properties..."
     {16,"編輯屬性 ..."},
-    % "Edit light properties"
     {17,"編輯光特性"},
-    % "Duplicate"
     {18,"重複"},
-    % "Duplicate and move selected lights"
     {19,"複製和移動選定的燈"},
-    % "Delete"
     {20,"刪除"},
-    % "Delete seleced lights"
     {21,"刪除 選定的燈"}
    ]},
   {plugin_results,
    [
-    % "Light editor plugin(s) left garbage:~n    ~P~n"
     {1,"光編輯器插件左垃圾:~n    ~P~n"},
-    % "Plugin(s) left garbage"
     {2,"插件（s）左垃圾"}
    ]},
   {qs_att,
    [
-    % "Linear"
     {1,"線性"},
-    % "Quadratic"
     {2,"二次"},
-    % "Attenuation"
     {3,"衰減"}
    ]},
   {qs_specific,
    [
-    % "Angle"
     {1,"角"},
-    % "Falloff"
     {2,"衰減"},
-    % "Spot Parameters"
     {3,"現貨參數"}
    ]},
   {selected_light,
    [
-    % "Select only one light."
     {1,"僅選擇一盞燈。"}
    ]},
   {spot_angle,
    [
-    % "Not a spotlight."
     {1,"不是關注的焦點。"}
    ]},
   {spot_falloff,
    [
-    % "Not a spotlight."
     {1,"不是關注的焦點。"}
    ]}
  ]}.
@@ -2125,51 +1367,37 @@
  [
   {check_radius,
    [
-    % "Too short influence radius."
     {1,"太短影響半徑。"}
    ]},
   {common_dialog,
    [
-    % "Distance Route"
     {4,"遠程航線"}
    ]},
   {dialog,
    [
-    % "Magnet Options"
     {1,"磁鐵選項"},
-    % "Influence Radius"
     {2,"影響半徑"},
-    % "Magnet Options"
     {3,"磁鐵選項"}
    ]},
   {drag_help,
    [
-    % "[+] or [-] Adjust Radius  "
     {1,"[+]或[-]調整半徑"}
    ]},
   {info_string,
    [
-    % "Magnet route:"
     {1,"磁鐵路線："}
    ]},
   {magnet_route,
    [
-    % "Midpoint"
     {midpoint,"中點"},
-    % "Shortest"
     {shortest,"最短"},
-    % "Surface"
     {surface,"表面"}
    ]},
   {magnet_shape_str,
    [
-    % "Bell"
     {bell,"鈴鐺"},
-    % "Dome"
     {dome,"圓頂"},
-    % "Spike"
     {spike,"尖頭"},
-    % "Straight"
     {straight,"直線"}
    ]}
  ]}.
@@ -2177,76 +1405,54 @@
  [
   {edit,
    [
-    % "Material Properties: "
     {1,"材料特性: "}
    ]},
   {edit_dialog,
    [
-    % "Diffuse"
     {1,"漫射"},
-    % "Ambient"
     {2,"環境"},
-    % "Specular"
     {3,"鏡面"},
-    % "Emission"
     {4,"排放"},
-    % "Shininess"
     {5,"光澤"},
-    % "Opacity"
     {6,"不透明度"},
-    % "OK"
     {7,"確定"}
    ]},
   {load_map_1,
    [
-    % "Failed to load"
     {1,"無法載入"}
    ]},
   {material_fun,
    [
-    % "Assign existing material to selection"
     {1,"分配現有材料的選擇"},
-    % "Create and assign new material"
     {2,"創建和分配新材料"}
    ]},
   {material_menu,
    [
-    % "Material"
     {4,"材料"}
    ]},
   {new_1,
    [
-    % "New Material"
     {1,"新材料"},
-    % "Material Name"
     {2,"材料名稱"},
-    % "New Material"
     {3,"新材料"}
    ]},
   {plugin_results,
    [
-    % "Material editor plugin(s) left garbage:~n    ~P~n"
     {1,"材質編輯器插件（s）左垃圾：~n  ~p~n"},
-    % "Plugin(s) left garbage"
     {2,"插件（s）左垃圾"}
    ]},
   {rename,
    [
-    % "Rename"
     {1,"重命名"}
    ]},
   {show_map,
    [
-    % "~p: <image deleted>"
     {1,"~p：<刪除圖像>"},
-    % "~p: ~p [~px~px~p]"
     {2,"~p： ~p [~px~px~p]"},
-    % "Delete"
     {3,"刪除"}
    ]},
   {show_maps,
    [
-    % "Textures"
     {1,"紋理"}
    ]}
  ]}.
@@ -2254,101 +1460,71 @@
  [
   {handle_key_event,
    [
-    % "This key is already bound to the "
     {1,"這鍵是已經綁定到"},
-    % " command. Do you want to re-define it?"
     {2,"命令。你要重新定義它？"}
    ]},
   {help_text_1,
    [
-    % " submenu"
     {1,"子菜單"}
    ]},
   {hotkey_delete_dialog,
    [
-    % "Delete Hotkeys"
     {1,"刪除熱鍵"}
    ]},
   {hotkey_key_message,
    [
-    % "Press the key to bind the \""
     {1,"按下鍵綁定\""},
-    % "\" command to."
     {2,"\"命令。"}
    ]},
   {hotkey_mouse_message,
    [
-    % "Click a mouse button to choose command to bind"
     {1,"點擊鼠標按鈕，選擇命令綁定"}
    ]},
   {magnet_help,
    [
-    % "Click for Magnet"
     {2,"點擊磁鐵"}
    ]},
   {menu_toolbar_help,
    [
-    % "Open the Tools menu"
     {1,"打開工具菜單"},
-    % "Open the Select menu"
     {2,"打開選擇菜單"},
-    % "Recall Stored Selection"
     {3,"調用存儲的選擇"},
-    % "Store Selection"
     {4,"貯存的選擇"},
-    % "Deselect | Select All"
     {5,"取消選中 |全選"},
-    % "Deselect and close menu"
     {6,"取消選擇並關閉菜單"},
-    % "Repeat Drag"
     {7,"重複拖動"},
-    % "Repeat Args"
     {8,"重複參數"},
-    % "Repeat"
     {9,"重複"}
    ]},
   {mk_dialog,
    [
-    % "Check all hotkeys to be deleted."
     {1,"檢查所有熱鍵被刪除。"}
    ]},
   {mmb_menu_toolbar_help,
    [
-    % "Edge Ring"
     {1,"邊環"}
    ]},
   {norm_help_adv,
    [
-    % "Open option dialog"
     {1,"打開選項對話框"}
    ]},
   {normalize_menu,
    [
-    % "More..."
     {1,"更多..."}
    ]},
   {rmb_menu_toolbar_help,
    [
-    % "Edge Loop"
     {1,"循環邊"},
-    % "Edge Loop to Region"
     {2,"循環邊的邊緣"},
-    % "Select edges which have both vertices selected"
     {3,"選擇邊有兩個頂點選擇"}
    ]},
   {scroll_help,
    [
-    % "Repeat Drag | Undo"
     {1,"重複拖動 |撤消"},
-    % "Undo | Redo"
     {2,"撤消|重做"},
-    % "Next/Previous Edge Loop"
     {3,"下一個 /上一個循環邊"},
-    % "Grow/Shrink Edge Loop"
     {4,"放大/縮小循環邊"},
-    % "Grow/Shrink Edge Ring"
     {5,"放大/縮小環形邊"},
-    % "Select More | Select Less"
     {6,"選擇更多|選擇減"}
    ]}
  ]}.
@@ -2356,194 +1532,121 @@
  [
   {adv_scale_1,
    [
-    % "Scale Uniform"
     {1,"統一縮於"},
-    % "Scale Axis"
     {2,"縮於軸"},
-    % "Scale Radial"
     {3,"縮於徑向"}
    ]},
   {dir_help,
    [
-    % "the last axis"
     {3,"最後軸"},
-    % "the default axis"
     {4,"默認的軸"},
-    % "around"
     {7,"圍繞"},
-    % "along its normal"
     {10,"沿著正常"},
-    % "freely in all directions"
     {11,"自由地在各個方向"},
-    % "Scale equally in all directions"
     {12,"同樣縮於在所有方向"}
    ]},
   {dir_help_1,
    [
-    % "Move each element "
     {1,"移動每個元素"},
-    % "Rotate freely"
     {2,"自由旋轉"},
-    % "Rotate around each element's normal"
     {3,"旋轉每個正常的元素"},
-    % "Extrude each element, then move it "
     {4,"擠壓每個元素，然後將其移動"},
-    % "Extrude faces as region, then move faces along the region's normal"
     {5,"擠出面區域，然後將面沿著正常地區"},
-    % "Extrude faces as region, then move faces "
     {6,"擠出面區域，然後將面"},
-    % "Extract faces, then move faces along the region's normal"
     {7,"提取的面，然後將面沿著正常地區"},
-    % "Extract faces, then move faces "
     {8,"提取的面，然後將面"},
-    % "Flatten elements to normal plane"
     {9,"壓扁元素到平面"},
-    % "Lift face along its normal"
     {10,"工作面沿電梯正常"},
-    % "Lift face and move it "
     {11,"電梯臉和移動"},
-    % "Duplicate and move freely "
     {12,"複製和自由移動"},
-    % "Move each element along "
     {13,"隨著移動每個元素"},
-    % "Extrude elements, then move along "
     {14,"擠壓元素，然後沿著"},
-    % "Extrude faces as region, then move along "
     {15,"擠出面臨著區域，然後沿著"},
-    % "Extract faces, then move along "
     {16,"提取的臉，然後沿著"},
-    % "Rotate around "
     {17,"繞"},
-    % "Scale "
     {18,"縮放"},
-    % "Scale along "
     {19,"隨著縮放"},
-    % "Flatten to "
     {20,"壓平"},
-    % "Flatten and move to "
     {21,"壓扁並移動到"},
-    % "Lift face along "
     {22,"工作面沿電梯"},
-    % "Duplicate, then move along "
     {23,"複製，然後沿著"},
-    % "Extract and Extrude faces as region, then move faces along the region's normal"
-    {24,"提取和擠壓面臨著區域，然後將面臨著沿線地區的正常"},
-    % "Extract and Extrude faces as region, then move faces "
-    {25,"提取和擠壓面臨著區域，然後將面"},
-    % "Extract and Extrude faces as region, then move along "
-    {26,"提取和擠壓面臨著區域，然後沿著"}
+    {24,"提取每個元素，然後將它"},
+    {25,"提取元素，然後沿著"},
+    {26,"提取和擠壓面臨著區域，然後沿著"},
+    {27,"提取和擠壓面臨著區域，然後將面臨著沿線地區的正常"},
+    {28,"提取和擠壓面臨著區域，然後將面"}
    ]},
   {dirs,
    [
-    % "Move along std. axis"
     {1,"沿著首軸"},
-    % "Pick axis to move along"
     {2,"挑沿軸"},
-    % "Move along std. axis"
     {3,"沿著首軸"},
-    % "Move along selection's normal"
     {4,"沿著選擇的正常"},
-    % "Pick axis to move along"
     {5,"挑沿軸"},
-    % "Extrude along std. axis"
     {6,"沿擠出首軸"},
-    % "Extrude along selection's normal"
     {7,"沿擠出選擇的正常"},
-    % "Pick axis to extrude along"
     {8,"挑沿擠壓軸"},
-    % "Extract along std. axis"
     {12,"沿提取首軸"},
-    % "Duplicate; move along std. axis"
     {15,"一式兩份;沿著首軸"},
-    % "Duplicate; don't move"
     {16,"重複，不動"},
-    % "Duplicate; pick axis to move along"
     {17,"一式兩份;挑軸沿著"},
-    % "Extract Shell and Extrude along std. axis"
     {22,"殼牌和沿擠出提取首軸"},
-    % "Extract Shell and Extrude along selection's normal"
     {23,"殼牌與擠出提取沿選擇的正常"},
-    % "Pick axis to Extract Shell and Extrude along"
     {24,"選擇軸提取殼牌和沿擠出"}
    ]},
   {dirs_help,
    [
-    % "Pick axis to extrude each face along"
     {18,"選擇軸擠壓每個面沿"},
-    % "Pick axis to extrude each region of faces along"
     {19,"選擇軸擠出每個地區的沿面"},
-    % "Pick axis to extract each face along"
     {20,"選擇軸提取每個工作面沿"},
-    % "Pick axis to extract each region of faces along"
     {21,"選擇軸提取每個區域的沿面"}
    ]},
   {flatten,
    [
-    % "Flatten"
     {1,"弄平"},
-    % "Flatten to std. planes"
     {2,"壓平首位面"},
-    % "Pick plane and ref point on plane"
     {3,"選擇位面，在位面上檔點"},
-    % "Pick plane"
     {4,"選擇位面"}
    ]},
   {flatten_edge_loops,
    [
-    % "Edge Loops"
     {1,"循環邊"},
-    % "Flatten each closed edge loop to its normal"
     {2,"各禁區循環邊拼合到正常"}
    ]},
   {flatten_fun_1,
    [
-    % "Pick point on plane"
     {1,"在位面上挑點"}
    ]},
   {rotate,
    [
-    % "Rotate around std. axis"
     {1,"繞首軸"},
-    % "Pick axis and ref point"
     {2,"選擇軸和參考點"},
-    % "Pick axis to rotate around"
     {3,"選擇左右旋轉軸"}
    ]},
   {rotate_1,
    [
-    % "Rotate"
     {1,"旋轉"}
    ]},
   {rotate_fun,
    [
-    % "Pick point for axis to pass through"
     {1,"挑點軸通過"}
    ]},
   {scale,
    [
-    % "Scale outward from std. axis"
     {1,"縮放向外首軸"},
-    % "Pick axis and point to scale from"
     {2,"選擇軸並指向縮放從"},
-    % "Pick axis to scale out from"
     {3,"選擇軸縮放從"},
-    % "Scale along std. axis"
     {4,"隨著縮放首軸"},
-    % "Pick axis and point to scale from"
     {5,"選擇軸並指向縮放從"},
-    % "Pick axis to scale along"
     {6,"挑沿軸線縮放"}
    ]},
   {scale_fun,
    [
-    % "Pick point to scale from"
     {1,"挑點縮放從"}
    ]},
   {uniform_scale,
    [
-    % "Choose point to scale from"
     {1,"選擇指向縮放從"},
-    % "Scale uniformly from midpoint of selection"
     {2,"尺度均勻地從中點的選擇"}
    ]}
  ]}.
@@ -2551,154 +1654,96 @@
  [
   {command,
    [
-    % "NYI: ~p\n"
     {1,"NYI: ~p\n"}
    ]},
   {common_image_menu,
    [
-    % "Export..."
     {1,"導出..."},
-    % "Export the image"
     {2,"導出圖像"},
-    % "Duplicate"
     {3,"重複"},
-    % "Duplicate selected image"
     {4,"複製選定的圖像"},
-    % "Delete"
     {5,"刪除"},
-    % "Delete selected image"
     {6,"刪除選定的圖像"},
-    % "Rename"
     {7,"重命名"},
-    % "Rename selected image"
     {8,"重命名選定的圖像"},
-    % "Pick up Image"
     {9,"提取圖像"},
-    % "Pick up the Image to it put on a material as a texture"
     {10,"拿起它的圖像放在一個材料作為紋理"}
    ]},
   {delete_image,
    [
-    % "The image is used by a material."
     {1,"該圖像是使用的材料。"},
-    % "Are you sure you want to delete the image (NOT undoable)?"
     {2,"你確定要刪除圖像（不能撤消）？"}
    ]},
   {do_menu,
    [
-    % "Edit Material..."
     {1,"編輯材料..."},
-    % "Edit material properties"
     {2,"編輯材料特性"},
-    % "Assign to Selection"
     {3,"分配到選擇"},
-    % "Assign the material to the selected faces or bodies"
     {4,"分配材料到選定的頭像或團體"},
-    % "Select"
     {5,"選擇"},
-    % "Select all faces that have this material"
     {6,"選擇所有的面有這種材料"},
-    % "Duplicate"
     {7,"重複"},
-    % "Duplicate this material"
     {8,"複製此材料"},
-    % "Delete"
     {9,"刪除"},
-    % "Delete this material"
     {10,"刪除此材料"},
-    % "Rename"
     {11,"重命名"},
-    % "Rename this material"
     {12,"這種材料命名"},
-    % "Duplicate"
     {13,"重複"},
-    % "Duplicate this object"
     {14,"複製此對象"},
-    % "Delete"
     {15,"刪除"},
-    % "Delete this object"
     {16,"刪除此對象"},
-    % "Rename"
     {17,"重命名"},
-    % "Rename this object"
     {18,"重命名該對象"},
-    % "Edit Light..."
     {19,"編輯光..."},
-    % "Edit light properties"
     {20,"編輯光特性"},
-    % "Duplicate"
     {21,"重複"},
-    % "Duplicate this light"
     {22,"複製此燈"},
-    % "Delete"
     {23,"刪除"},
-    % "Delete this light"
     {24,"刪除此燈"},
-    % "Rename"
     {25,"重命名"},
-    % "Rename this light"
     {26,"重命名此燈"},
-    % "Drop picked object"
     {121,"降回升對象"},
-    % "Drop a previously picked object on this material"
     {122,"刪除一個對象之前採摘這種材料"}
    ]},
   {event,
    [
-    % "Select"
     {1,"選擇"},
-    % "Show outliner menu (if selection) or creation menu (if no selection)"
     {2,"顯示大綱菜單（如果選擇）或創建菜單（如果沒有選擇）"}
    ]},
   {handle_drop,
    [
-    % "Texture Type"
     {1,"結構類型"},
-    % "Diffuse"
     {2,"漫射"},
-    % "Gloss"
     {3,"掩飾"},
-    % "Bump (HeightMap)"
     {4,"碰撞（高度圖）"},
-    % "Bump (NormalMap)"
     {5,"碰撞（法線）"}
    ]},
   {image_menu,
    [
-    % "Show"
     {1,"顯示"},
-    % "Show the image in a window"
     {2,"圖像顯示在一個窗口"}
    ]},
   {image_menu_1,
    [
-    % "Make External..."
     {1,"使外部..."},
-    % "Refresh"
     {2,"刷新"},
-    % "Make Internal"
     {3,"進行內部"},
-    % "Update image to the contents of the saved file"
     {11,"更新形象的內容已保存的文件"}
    ]},
   {make_external,
    [
-    % "Make External"
     {1,"使外部"}
    ]},
   {refresh_image,
    [
-    % "Failed to refresh \""
     {1,"無法刷新\""}
    ]},
   {rename_image,
    [
-    % "Rename Image"
     {1,"重命名圖片"}
    ]},
   {title,
    [
-    % "Outliner"
     {1,"大綱"}
    ]}
  ]}.
@@ -2706,72 +1751,43 @@
  [
   {command,
    [
-    % "No start color found."
     {1,"沒有找到啟動的顏色。"},
-    % "No end color found."
     {2,"沒有找到結束顏色。"},
-    % "Export"
     {3,"導出"},
-    % "Wings Palette"
     {5,"翼調色板"},
-    % "Export error: ~w"
     {6,"導出錯誤: ~w"},
-    % "Import"
     {7,"進口"},
-    % "Wings Palette"
     {9,"翼調色板"},
-    % "No palette found"
     {10,"沒有找到調色板"},
-    % "Import error: ~w"
     {11,"導入錯誤: ~w"},
-    % "Import error: ~w"
     {12,"導入錯誤: ~w"}
    ]},
   {do_menu,
    [
-    % "Edit"
     {1,"編輯"},
-    % "Edit color"
     {2,"編輯顏色"},
-    % "Interpolate"
     {3,"插"},
-    % "Interpolate Empty Colors"
     {4,"內插空顏色"},
-    % "Clear All"
     {5,"全部清除"},
-    % "Clear palette"
     {6,"清除調色板"},
-    % "Compact"
     {7,"緊湊"},
-    % "Compact Palette"
     {8,"緊湊型面板"},
-    % "Scan Colors"
     {9,"掃描色彩"},
-    % "Scan colors from selection"
     {10,"從掃描的色彩選擇"},
-    % "Export"
     {11,"導出"},
-    % "Export palette to file"
     {12,"導出到文件調色板"},
-    % "Import"
     {13,"進口"},
-    % "Import palette from file"
     {14,"從文件導入調色板"}
    ]},
   {event,
    [
-    % "Assign color to selection"
     {1,"指定顏色的選擇"},
-    % "Edit color"
     {2,"編輯顏色"},
-    % "Show menu"
     {3,"顯示菜單"},
-    % "Clear color"
     {4,"清晰的彩色"}
    ]},
   {title,
    [
-    % "Palette"
     {1,"調色板"}
    ]}
  ]}.
@@ -2779,7 +1795,6 @@
  [
   {loop,
    [
-    % "done"
     {1,"完成"}
    ]}
  ]}.
@@ -2787,36 +1802,25 @@
  [
   {area_info,
    [
-    % " Area ~ts"
     {40,"區 ~ts"}
    ]},
   {enhanced_hl_info,
    [
-    % ". Position <~ts  ~ts  ~ts>"
     {1,"。位置<~ts  ~ts  ~ts>"},
-    % ". Midpoint <~ts  ~ts  ~ts>\nLength ~ts"
     {3,"。中點 <~ts  ~ts  ~ts>\n長 ~ts"},
-    % ". Midpoint <~ts  ~ts  ~ts> \nMaterial ~ts."
     {4,"。中點 <~ts  ~ts  ~ts> \n材料 ~ts。"}
    ]},
   {handle_hilite_event,
    [
-    % "(in mirror)"
     {2,"（在鏡子）"},
-    % "Object"
     {3,"對象"},
-    % "Vertex"
     {4,"頂點"},
-    % "Edge"
     {5,"邊緣"},
-    % "Face"
     {6,"面"}
    ]},
   {marquee_message,
    [
-    % "Deselect"
     {ctrl_action,"取消選擇"},
-    % "(De)select only elements wholly inside marquee"
     {shift_action,"（德）只選擇帳篷裡面全要素"}
    ]}
  ]}.
@@ -2824,90 +1828,64 @@
  [
   {cat_label,
    [
-    % "Commands"
     {1,"命令"},
-    % "Import/export"
     {2,"導入 /導出"},
-    % "Primitives"
     {3,"基元"},
-    % "Render"
     {4,"給予"},
-    % "Select"
     {5,"選擇"},
-    % "Tools"
     {6,"工具"},
-    % "Unclassified"
     {7,"未分類"}
    ]},
   {def_ui_plugin,
    [
-    % "Reinstall Wings. Missing plugin for ~p."
     {1,"重新安裝翅膀。缺少插件 ~p。"}
    ]},
   {install,
    [
-    % "The plug-in was successfully installed."
     {1,"該插件已成功安裝。"}
    ]},
   {install_beam,
    [
-    % "Install of \"~ts\" failed: ~p"
     {1,"安裝\"~ts\"失敗： ~p"},
-    % "File \"~ts\" is not a Wings plug-in module"
     {2,"文件\"~ts\"是不是Wings插件模塊"}
    ]},
   {install_file_type,
    [
-    % "File \"~ts\": Unknown file type"
     {1,"文件\"~ts\"：未知的文件類型"}
    ]},
   {install_verify_files,
    [
-    % "File \"~ts\" contains a file with an absolute path"
     {1,"文件\"~ts\"包含一個文件的絕對路徑"},
-    % "File \"~ts\" does not contain any Wings plug-in modules"
     {2,"文件\"~ts\"不包含任何Wings插件模塊"}
    ]},
   {manager_command,
    [
-    % "Plug-In Manager"
     {1,"插件管理器"}
    ]},
   {manager_entry,
    [
-    % "Plug-in Manager..."
     {1,"插件管理器..."}
    ]},
   {plugin_dir,
    [
-    % "No \"plugins\" directory found"
     {1,"無\"plugins\"目錄中找到"}
    ]},
   {plugin_menu_info_3,
    [
-    % "(The Plug-In Manager was unable to find more information)"
     {1,"（插件管理器無法找到更多信息）"}
    ]},
   {plugin_modules,
    [
-    % "Enable or disable this plug-in "
     {1,"啟用或禁用此插件"},
-    % "(a disbled plug-in does not show up in menus)"
     {2,"（一已停用插件不顯示在菜單）"}
    ]},
   {plugin_root_menu,
    [
-    % "body: "
     {1,"正文："},
-    % "edge: "
     {2,"優勢："},
-    % "face: "
     {3,"面："},
-    % "vertex: "
     {4,"頂點："},
-    % "Select|"
     {5,"選擇 |"},
-    % "Tools|"
     {6,"工具|"}
    ]}
  ]}.
@@ -2915,38 +1893,22 @@
  [
   {pref,
    [
-    % "Load Preference Subset"
     {1,"負載偏好子集"},
-    % "Save Preference Subset"
     {2,"儲存偏好子集"},
-    % "Graphical Settings"
     {3,"圖形設置"},
-    % "Camera Settings"
     {4,"相機設置"},
-    % "Hotkeys"
     {5,"熱鍵"},
-    % "Window and View Settings"
     {6,"窗口和視圖設置"},
-    % "Constraints"
     {7,"約束"},
-    % "General Settings"
     {8,"常規設置"},
-    % "Merge hotkeys"
     {9,"合併熱鍵"},
-    % "Remove existing hotkeys first"
     {10,"刪除現有的第一個熱鍵"},
-    % "This file has been moved or deleted."
     {11,"此文件已被移動或刪除。"},
-    % "Preference Subset.pref"
-    {12,"偏好Subset.pref"},
-    % "Not a .pref file"
     {13,"不是.pref文件"},
-    % "Select Valid Preference Fields for Current File"
     {14,"選擇有效的優先領域為當前文件"}
    ]},
   {recent_pref_help,
    [
-    % "Load a recent Preference Subset"
     {1,"加載一個子集最近偏好"}
    ]}
  ]}.
@@ -2954,494 +1916,239 @@
  [
   {advanced_prefs,
    [
-    % "Default Commands"
     {1,"默認命令"},
-    % "Allow defining commands that can be invoked by Ctrl+L or Ctrl+M"
     {2,"允許定義命令，可以調用按Ctrl+L 或 Ctrl+M"},
-    % "Use Highlight as Temporary Selection"
-    {3,"作為臨時選擇使用高亮"},
-    % "If there is no selection, "
-    {4,"如果沒有選擇，"},
-    % "allow commands to act on the highlighted element"
-    {5,"允許命令行事的突出顯示的元素"},
-    % "Hide Selection While Dragging"
     {6,"隱藏選區拖動時"},
-    % "Don't show the selection in any interactive command"
-    {7,"選擇不顯示任何交互式命令"},
-    % "Hide Selection While Moving Camera"
-    {8,"隱藏在移動攝像機的選擇"},
-    % "Don't show the selection when the camera is being moved"
-    {9,"選擇不顯示當相機被移動"},
-    % "Power-user temporary selections"
-    {12,"電源用戶臨時的選擇"},
-    % "In the secondary selection mode, RMB-clicking always adds to the selection"
-    {13,"在二次選擇模式，鼠標左中右按鈕點擊總是添加到選擇"},
-    % "Length"
+    {7,"不顯示選擇任何交互式命令"},
+    {8,"隱藏選擇在移動的攝像機"},
+    {9,"不顯示選擇當相機被移動"},
     {14,"長"},
-    % "Length of vector in secondary selections"
     {15,"向量在中等長度的選擇"},
-    % "Width"
     {16,"寬度"},
-    % "Width of vector (in pixels)"
     {17,"向量寬度（像素）"},
-    % "Color"
     {18,"顏色"},
-    % "Color of vector"
     {19,"顏色矢量"},
-    % "Vector Display"
     {20,"矢量顯示"},
-    % "Use Mirror for Selections"
-    {21,"使用鏡像選擇"},
-    % "Default to using the virtual mirror for secondary selections"
-    {22,"默認使用虛擬鏡像二次選擇"},
-    % "Size"
     {23,"尺寸"},
-    % "Size of user-defined clipping indicator"
     {24,"尺寸用戶自定義裁剪指標"},
-    % "Color"
     {25,"顏色"},
-    % "Color of user-defined clipping indicator"
     {26,"顏色的用戶定義剪貼指標"},
-    % "Clipping Plane Indicator"
     {27,"裁剪面指標"},
-    % "Selected Geometry"
-    {28,"選定的幾何圖形"},
-    % "Unselected Geometry"
-    {29,"未選定幾何"},
-    % "Highlight Aim Targets"
-    {30,"突出顯示目標的目標"},
-    % "Customize Drag Response"
     {38,"自定義拖動響應"},
-    % "Customize the drag to mouse motion ratio. Unchecked uses default settings."
     {39,"自定義拖動鼠標移動的比例。未經檢查的使用默認設置。"},
-    % "Factor in Distance from Camera"
-    {40,"因子距離相機"},
-    % "Factor in Distance from Camera"
-    {43,"因子距離相機"},
-    % "Drag Preferences"
     {49,"拖動偏好"},
-    % "Mouse Speed for Dragging"
     {50,"鼠標拖動轉速"},
-    % "Mouse Speed for Scaling"
     {51,"鼠標速度的尺度"},
-    % "Mouse Speed for Rotating"
     {52,"鼠標速度的旋轉"},
-    % "Extend selection via hotkey on temporary highlight"
     {54,"通過熱鍵選擇延長臨時亮點"},
-    % "Affects: Select All, Edge Loop, Edge Ring, Select Similar, Similar Normals, Similar Materials, and Similar Area."
-    {55,"影響：全選，循環邊，環形邊，選擇相似，類似的資料，類似物質，以及類似地區。"},
-    % "Power-user menu abort"
-    {56,"電源中斷用戶菜單"},
-    % "Mouse events such as Selection or Camera events abort menus"
-    {57,"鼠標事件，如事件中止或照相機的選擇菜單"},
-    % "Power-user menu hotkey support"
-    {58,"電源用戶菜單熱鍵支持"},
-    % "Allow hotkeys to be called even when menus are open"
-    {59,"允許熱鍵被稱為是開放的，即使菜單"}
+    {55,"影響：全選，循環邊，環形邊，選擇相似，類似的資料，類似物質，以及類似地區。"}
    ]},
   {command,
    [
-    % "General"
     {1,"一般"},
-    % "Camera"
     {2,"相機"},
-    % "Advanced"
     {3,"進階"},
-    % "User Interface"
     {4,"用戶界面"},
-    % "Misc"
     {5,"雜項"},
-    % "Preferences"
     {6,"偏好"},
-    % "Constraints"
     {31,"約束"}
    ]},
   {constraint_prefs,
    [
-    % "Distance"
     {1,"距離"},
-    % "Rotation"
     {2,"旋轉"},
-    % "Scale"
     {3,"縮放"},
-    % "Default Modifier Keys"
     {4,"默認修改鍵"},
-    % "Distance Constraints"
     {9,"距離的限制"},
-    % "Alternate Distances"
     {10,"備用距離"},
-    % "Save Constraints to..."
     {11,"保存的制約因素..."},
-    % "Constraint bound to ~ts for distance operations."
     {12,"約束的必然 ~ts 遠距離操作。"},
-    % "Constraint bound to ~ts for rotations."
     {13,"約束的必然 ~ts 為旋轉。"},
-    % "Constraint bound to ~ts for scale operations."
     {14,"約束的必然 ~ts 為縮放行動。"},
-    % " Alternate constrains to reciprocal (1.0/Value)."
     {15,"備用約束倒數（1.0/數值）。"},
-    % " Alternate constrains to supplementary (180.0 minus angle)."
     {16,"對補充替代約束（180.0減去角）。"},
-    % "(default 1/~ts)"
     {17,"（默認 1 /~ts）"},
-    % "(default 5/8)"
     {18,"（默認為 5 / 8）"},
-    % "(default 3/64)"
     {19,"（默認 3 / 64）"},
-    % "Distance Constraints"
     {22,"距離的限制"},
-    % "Rotation Constraints"
     {23,"旋轉約束"},
-    % "Scale Factors"
     {25,"規模的因素"},
-    % "Alternate Distances"
     {29,"備用距離"},
-    % "Deleting value or entering '0' resets constraint to Wings default"
     {30,"刪除值或輸入 '0'重置Wings默認約束"},
-    % "Set Constraint Preferences"
     {31,"設定約束偏好"},
-    % "Default Constraint Values"
     {32,"默認約束值"},
-    % "Use Alternate Constraints"
     {33,"使用備用約束"},
-    % "Checked uses alternate distances, reciprocal scale factors, and supplementary angles."
     {34,"檢查使用備用的距離，相互規模因素，補角。"},
-    % " Switch on the fly pressing [Shift]+[Tab] during a drag operation."
     {35,"接通飛按下[Shift]+[Tab]拖動操作過程中。"}
    ]},
   {gen_prefs,
    [
-    % "Unselected Size"
     {1,"未選擇的尺寸"},
-    % "Size in pixels of unselected vertices (0.0 means not shown)"
     {2,"未選擇的大小，像素點（0.0表示不顯示）"},
-    % "Selected Size"
     {3,"選定尺寸"},
-    % "Size in pixels of selected vertices"
     {4,"尺寸以像素為單位選定的頂點"},
-    % "Vertex Display"
     {5,"頂點顯示"},
-    % "Unselected Width"
     {6,"未選定的寬度"},
-    % "Width in pixels of unselected edges"
     {7,"寬度，以像素反選邊"},
-    % "Selected Width"
     {8,"選定的寬度"},
-    % "Width in pixels of selected edges"
     {9,"寬度以像素為單位選定的邊"},
-    % "Soft Edges"
     {10,"軟邊"},
-    % "Color of soft edges"
     {11,"軟邊的顏色"},
-    % "Hard Edges"
     {12,"硬邊"},
-    % "Color of hard edges"
     {13,"硬邊的顏色"},
-    % "Edge Display"
     {14,"邊緣顯示"},
-    % "Vertices"
-    {15,"頂點"},
-    % "Edges"
-    {16,"邊"},
-    % "Faces"
-    {17,"面"},
-    % "Objects"
     {18,"對象"},
-    % "Unselected"
     {19,"未選定"},
-    % "Selected"
     {20,"選擇"},
-    % "Smart Highlighting"
-    {21,"智能高亮"},
-    % "Highlighting"
     {22,"突出"},
-    % "Solid Face Selections"
-    {23,"實體面選擇"},
-    % "Stippled Face Selections"
-    {24,"點畫面選擇"},
-    % "Selection Color"
     {25,"選擇顏色"},
-    % "Selection"
     {26,"選擇"},
-    % "Text"
     {27,"文本"},
-    % "Color of information text"
     {28,"信息文本的顏色"},
-    % "Background"
     {29,"背景"},
-    % "Color of background for information text (including transparency)"
     {30,"背景顏色為信息文本（包括透明度）"},
-    % "Information Text"
     {31,"信息文本"},
-    % "Color"
     {32,"顏色"},
-    % "Force Axis-Aligned Grid"
     {33,"力軸對齊網格"},
-    % "Always show the grid when the view is aligned along one of the major axes"
     {34,"始終顯示在網格對齊視圖時沿著一條主要軸線"},
-    % "Grid"
     {35,"格"},
-    % "Show Axis Letters"
-    {36,"顯示軸快報"},
-    % "+X Color"
     {37,"+X 顏色"},
-    % "+Y Color"
     {38,"+Y 顏色"},
-    % "+Z Color"
     {39,"+Z 顏色"},
-    % "-X Color"
     {40,"-X 顏色"},
-    % "-Y Color"
     {41,"-Y 顏色"},
-    % "-Z Color"
     {42,"-Z 顏色"},
-    % "Axes"
     {43,"軸"},
-    % "Length"
     {44,"長"},
-    % "Length of normals"
     {45,"法線長度"},
-    % "Color"
     {46,"顏色"},
-    % "Color of normals"
     {47,"顏色法線"},
-    % "Normals Display"
     {48,"資料顯示"},
-    % "Constrain Axes to Grid"
     {49,"電網約束軸"},
-    % "Draw Anti-Aliased Edges"
     {50,"畫反走樣邊"},
-    % "Default"
     {51,"默認"},
-    % "Sets the colour of the default material"
     {52,"設置默認的顏色材料"},
-    % "Materials"
     {55,"材料"},
-    % "Show Mini Axis"
     {56,"顯示微型軸"},
-    % "Hard Edge Width"
     {57,"硬邊寬"},
-    % "Width in pixels of hard edges"
     {58,"寬度，以像素的硬邊"},
-    % "Width"
     {59,"寬度"},
-    % "Width of normals"
     {60,"寬度資料"},
-    % "Verbose"
     {61,"詳細"},
-    % "Show additional information about selected elements"
     {62,"顯示所選元素的附加信息"},
-    % "Mouseover"
-    {63,"鼠標懸停"},
-    % "Show additional information for highlighted element on mouseover"
-    {64,"其他信息顯示在鼠標懸停突出顯示的元素"},
-    % "Magnet Mask Vertex Size"
     {65,"磁屏蔽頂點尺寸"},
-    % "Size in pixels of magnet mask vertices"
     {66,"磁鐵的大小，像素頂點面具"},
-    % "Unselected Vertices"
     {67,"未選定的頂點"},
-    % "Color of unselected vertices"
     {68,"未選定的頂點顏色"},
-    % "Magnet Mask"
     {69,"磁屏蔽"},
-    % "Color of magnet mask vertices"
     {70,"磁屏蔽頂點顏色"},
-    % "Conditional Deselection"
     {71,"有條件取消選擇"},
-    % "Deselecting keeps you in the same Selection Mode, unless there is no selection"
     {72,"取消選擇讓你在同一個選擇模式，除非沒有選擇"},
-    % "Force Axis-Aligned Ortho"
     {aa_ortho1,"力軸對齊鄰"},
-    % "Always go into orthogonal mode when the view is aligned along one of the major axes"
     {aa_ortho2,"總是進入正交模式當沿著一個觀點是一致的主要軸線"}
    ]},
   {menu,
    [
-    % "Preferences..."
     {1,"預置 ..."},
-    % "Edit the preferences for Wings"
     {2,"編輯Wings的喜好"}
    ]},
   {misc_prefs,
    [
-    % "Opacity settings not supported using this version of OpenGL"
     {1,"不透明度設置使用此版本不支持OpenGL的"},
-    % "Save automatically every"
     {2,"自動保存每"},
-    % "minutes"
     {3,"分鐘"},
-    % "Undo levels"
     {4,"撤消級別"},
-    % "Angle"
     {5,"角"},
-    % "Delay (ms)"
     {6,"延時（ms）"},
-    % "Auto Rotate"
     {7,"自動旋轉"},
-    % "Cage"
     {8,"籠"},
-    % "Some Edges"
     {9,"一些邊"},
-    % "All Edges"
     {10,"所有邊緣"},
-    % "Shaded Mode Edge Style"
     {11,"陰影模式邊緣風格"},
-    % "Stationary Opacity"
     {12,"固定不透明度"},
-    % "Moving Opacity"
     {13,"移動不透明度"},
-    % "Proxy Mode"
     {14,"代理模式"},
-    % "Text in menus and dialogs disappear"
-    {15,"菜單和對話框中的文字消失"},
-    % "Problem occurs on some Matrox cards"
-    {16,"問題發生在一些主板維修卡"},
-    % "Wings crashes if axes are turned off"
     {17,"Wings崩潰如果軸是關閉"},
-    % "Problem occurs on some Matrox cards"
     {18,"問題發生在一些主板維修卡"},
-    % "Camera moves and interactive commands are jumpy"
     {19,"攝像機移動和交互命令跳動"},
-    % "Problem occurs on Mac OS X 10.3 (Panther)"
     {20,"問題發生在Mac OS X 10.3（Panther）的"},
-    % "Workarounds"
     {21,"因應措施"},
-    % "Edge display problems?"
     {22,"邊顯示問題？"},
-    % "Edge offsets:"
     {23,"邊緣偏移："},
-    % "Show Develop menu"
     {24,"顯示開發菜單"},
-    % "Show a menu with tools for the Wings developers"
     {25,"顯示一個菜單與工具開發為Wings開發商"},
-    % "Camera moves steals focus"
     {26,"攝像機移動搶斷焦點"},
-    % "Problem occurs on linux"
     {27,"問題發生在Linux上"},
-    % "Maximum menu height in pixels"
     {28,"最大菜單的高度以像素為單位"},
-    % "Menus are clipped and continue in 'More...' submenu."
     {29,"菜單被剪切並繼續在'更多...'子菜單。"},
-    % "Less than 1 sets menu clipping to auto."
     {30,"不到1台自動裁剪菜單。"}
    ]},
   {smart_set_value_1,
    [
-    % "The change to the system font will take\neffect the next time Wings 3D is started."
     {1,"這種變化對系統字體將會採取\n在下一次的Wings 3D打開。"},
-    % "The change to the interface icons will take\neffect the next time Wings 3D is started."
     {2,"這種變化對接口的圖標會\n在下一次的Wings 3D打開。"},
-    % "The change to the default material color will take\neffect the next time Wings 3D is started."
     {3,"這一變化為默認材質的顏色會\n在下一次的Wings 3D打開。"},
     {4,"控制台字體更改將生效\n在下次開啟Wings 3D."},
     {5,"語言更改將生效\n在下次開啟Wings 3D."}
    ]},
   {ui_prefs,
    [
-    % "System Font"
     {1,"系統字體"},
-    % "Desktop/Geometry Background"
     {2,"桌面/幾何背景"},
-    % "Menu Text"
     {3,"菜單文本"},
-    % "Menu Highlight"
     {4,"菜單高亮"},
-    % "Menu Highlighted Text"
     {5,"突出顯示的文本菜單"},
-    % "Menu Background"
     {6,"菜單背景"},
-    % "Dialog Text"
     {7,"對話框的文本"},
-    % "Dialog (Disabled) Text"
     {8,"對話框（殘疾人）文本"},
-    % "Dialog Background"
     {9,"對話框的背景"},
-    % "Title Text"
     {10,"標題文字"},
-    % "Title (Passive) Background"
     {11,"標題（被動）背景"},
-    % "Title (Active) Background"
     {12,"標題（活動）背景"},
-    % "Colors"
     {13,"顏色"},
-    % "No Progress Bar"
-    {14,"沒有進度條"},
-    % "Console Font"
     {15,"控制台字體"},
-    % "Width"
     {16,"寬度"},
-    % "Height"
     {17,"高度"},
-    % "Save Lines"
     {18,"保存線"},
-    % "Background"
     {19,"背景"},
-    % "Text"
     {20,"文本"},
-    % "Cursor"
     {21,"光標"},
-    % "Console"
     {22,"控制台"},
-    % "Language"
     {23,"語言"},
-    % "Objects in Outliner"
-    {24,"大綱中的對象"},
-    % "Extended Toolbar Icons"
     {27,"擴展工具欄圖標"},
-    % "Menubar Background"
     {28,"菜單欄的背景"},
-    % "Info Line Background"
     {29,"信息系背景"},
-    % "Info Line Text"
     {30,"信息行文本"},
-    % "Menubar Text"
     {31,"菜單欄文本"},
-    % "Adaptive Icons"
     {32,"自適應圖標"},
-    % "Icons in the Outliner and Geometry Graph that allow for further color theming"
     {33,"圖標在大綱中和幾何圖形，讓色彩主題化進一步"},
-    % "Outliner/Geometry Graph"
     {34,"大綱 /幾何圖"},
-    % "Background"
     {35,"背景"},
-    % "Text"
     {36,"文本"},
-    % "Highlighter"
     {37,"熒光筆"},
-    % "Highlighted Text"
     {38,"突出顯示的文本"},
-    % "Disabled"
     {39,"殘疾人士"},
-    % "Menu Toolbar"
     {40,"菜單工具欄"},
-    % "Adds a mini toolbar to the tops of the right-click menus"
     {41,"增加了一個小型的頂部工具欄的右鍵菜單"},
-    % "View render with external viewer"
     {42,"查看渲染與外部觀眾"},
-    % "Interface Icons"
+    {44,"大圖示"},
+    {45,"小圖示"},
+    {46,"顯示菜單工具欄"},
+    {47,"對齊鼠標"},
     {50,"界面圖標"},
-    % "Classic"
     {51,"經典"},
-    % "Blue Cube"
     {52,"藍立方"},
-    % "Purple Tube"
     {53,"紫管"}
    ]},
   {viewer_prefs,
    [
-    % "Viewer"
     {1,"查看器"},
-    % "Options"
     {2,"選項"},
-    % "..filename.."
     {3,"文件名.. .."}
    ]},
   {workaround_1,
    [
-    % "Problem"
     {1,"問題"},
-    % "Use Workaround?"
     {2,"使用變通方法嗎？"}
    ]}
  ]}.
@@ -3449,12 +2156,10 @@
  [
   {edges_to_vertices,
    [
-    % "Magnet Rotate on multiple edge regions requires an explicit rotate origin."
     {1,"磁鐵旋轉多邊緣地區需要一個明確的旋轉的起源。"}
    ]},
   {faces_to_vertices,
    [
-    % "Magnet Rotate on multiple face regions requires an explicit rotate origin."
     {1,"磁鐵旋轉多面旋轉地區需要一個明確的來源。"}
    ]}
  ]}.
@@ -3462,91 +2167,60 @@
  [
   {accept,
    [
-    % "Accept"
     {1,"接受"}
    ]},
   {camera_mode,
    [
-    % "Blender"
     {blender,"Blender"},
-    % "Maya"
     {maya,"Maya"},
-    % "Motionbuilder"
     {mb,"MotionBuilder"},
-    % "Mirai"
     {mirai,"Mirai"},
-    % "Nendo"
     {nendo,"Nendo"},
-    % "SketchUp"
     {sketchup,"SketchUp"},
-    % "3ds max"
     {tds,"3ds max"},
-    % "Wings 3D"
     {wings_cam,"Wings 3D"}
    ]},
   {cancel,
    [
-    % "Cancel"
     {1,"取消"}
    ]},
   {dir,
    [
-    % "All"
     {all,"所有"},
-    % "default axis"
     {da,"默認的軸"},
-    % "Free"
     {f,"自由"},
-    % "last axis"
     {la,"最後軸"},
-    % "Normal"
     {n,"正常"},
-    % "Radial"
     {r,"徑向"},
-    % "the ~ts axis"
     {the_axis,"的 ~ts 軸"},
-    % "Uniform"
     {u,"統一"},
-    % "X"
     {x,"X"},
-    % "Y"
     {y,"Y"},
-    % "Z"
     {z,"Z"}
    ]},
   {mod,
    [
-    % "Alt"
     {alt,"Alt"},
-    % "Command"
     {command,"命令"},
-    % "Ctrl"
     {ctrl,"Ctrl"},
-    % "Shift"
     {shift,"Shift"}
    ]},
   {mouse_b,
    [
-    % "L"
     {l,"左"},
-    % "M"
     {m,"中"},
-    % "R"
     {r,"右"}
    ]},
   {no,
    [
-    % "No"
     {1,"不"}
    ]},
   {scroll,
    [
-    % "Scroll"
     {scroll,"滾動"}
    ]},
   {yes,
    [
-    % "Yes"
     {1,"是"}
    ]}
  ]}.
@@ -3554,12 +2228,10 @@
  [
   {edges_to_vertices,
    [
-    % "Magnet scale on multiple edge regions requires an explicit scale origin."
     {1,"在多個大型磁鐵邊緣區域，需要一個明確的縮放起源。"}
    ]},
   {faces_to_vertices,
    [
-    % "Magnet scale on multiple face regions requires an explicit scale origin."
     {1,"在多個大型磁鐵需要一個明確的面區域縮放的起源。"}
    ]}
  ]}.
@@ -3567,7 +2239,6 @@
  [
   {ask,
    [
-    % "Select By Id"
     {1,"選擇按標識"}
    ]},
   {faces_with,
@@ -3580,454 +2251,266 @@
    ]},
   {group_mode_string,
    [
-    % "Body selection group"
     {body,"身體的選擇組"},
-    % "Edge selection group"
     {edge,"邊沿選擇組"},
-    % "Face selection group"
     {face,"面對選擇組"},
-    % "Vertex selection group"
     {vertex,"選擇組頂點"}
    ]},
   {group_title,
    [
-    % "vertex: "
     {1,"頂點："},
-    % "edge: "
     {2,"邊："},
-    % "face: "
     {3,"面："},
-    % "body: "
     {4,"正文："}
    ]},
   {groups_menu,
    [
-    % "Delete Group"
     {1,"刪除組"},
-    % "Delete group \""
     {2,"刪除組\""},
-    % "Add to Group"
     {4,"添加到組"},
-    % "Add current selection to group \""
     {5,"當前選擇添加到組\""},
-    % "Subtract from Group"
     {7,"減去組"},
-    % "Subtract current selection from group \""
     {8,"減去當前選擇從組\""},
-    % "Select Group"
     {10,"選擇組"},
-    % "Select group \""
     {11,"選擇組\""},
-    % "Union Group"
     {13,"聯組"},
-    % "Union group \""
     {14,"聯組\""},
-    % "\" with current selection"
     {15,"\"與當前的選擇"},
-    % "Subtract Group"
     {16,"減去組"},
-    % "Subtract group \""
     {17,"減去組\""},
-    % "\" from current selection"
     {18,"\"從當前的選擇"},
-    % "Intersect Group"
     {19,"交叉組"},
-    % "Intersect group \""
     {20,"交叉組\""},
-    % "\" with current selection"
     {21,"\"與當前的選擇"},
-    % "Selection Groups"
     {22,"選擇組"},
-    % "Next Group"
     {24,"下一組"},
-    % "Previous Group"
     {25,"上一組"},
-    % "Cycle In Selection Mode"
     {26,"循環的選擇模式"},
-    % "Cycle Prev/Next only within active selection mode"
     {27,"循環上一頁 /下一頁只有在積極選擇模式"}
    ]},
   {item_by_id,
    [
-    % "Nothing to select."
     {1,"沒有什麼選擇。"},
-    % "Object Id"
     {2,"對象 ID"}
    ]},
   {less_help,
    [
-    % "Deselect all vertices adjacent to an unselected vertex"
     {1,"取消選擇所有的頂點相鄰，未選中的頂點"},
-    % "Deselect all edges adjacent to an unselected edge"
     {2,"取消選擇所有的邊緣相鄰，未選中"},
-    % "Deselect all faces sharing a vertex with an unselected face"
     {3,"取消選擇所有面共用一個頂點與不特定的面"}
    ]},
   {menu,
    [
-    % "Deselect"
     {1,"取消選擇"},
-    % "Clear the selection"
     {2,"清除選擇"},
-    % "More"
     {3,"更多"},
-    % "Less"
     {4,"減"},
-    % "Similar"
     {5,"類似"},
-    % "Edge Loop"
     {6,"循環邊"},
-    % "Edge Loop"
     {7,"循環邊"},
-    % "Expand edge selection to loop; "
     {8,"擴大優勢選擇，以循環;"},
-    % "convert face selection to selected border edges"
     {9,"面對選擇轉換選定的邊框邊緣"},
-    % "Edge Loop to Region"
     {10,"循環邊的邊緣"},
-    % "Select all faces on one side of an edge loop"
     {11,"選擇所有面一邊的循環邊"},
-    % "Edge Ring"
     {12,"環形邊"},
-    % "Expand edge selection to ring"
     {13,"響展開邊沿選擇"},
-    % "Previous Edge Loop"
     {14,"上一個邊環"},
-    % "Select the previous edge loop"
     {15,"選擇上一個邊環"},
-    % "Next Edge Loop"
     {16,"下一步循環邊"},
-    % "Select the next edge loop"
     {17,"選擇下一個循環邊"},
-    % "Grow Edge Loop"
     {18,"成長循環邊"},
-    % "Grow edge selection by one edge in loop directions"
     {19,"邊沿選擇一個成長中的循環方向的邊緣"},
-    % "Shrink Edge Loop"
     {20,"收縮循環邊"},
-    % "Shrink edge selection by one in loop direction"
     {21,"收縮邊選擇了一環方向"},
-    % "Grow Edge Ring"
     {22,"增加環形邊"},
-    % "Grow edge selection by one edge in ring direction"
     {23,"邊沿選擇一個成長中環方向的邊緣"},
-    % "Shrink Edge Ring"
     {24,"收縮環形邊"},
-    % "Shrink edge selection by one edge in ring directions"
     {25,"邊收縮邊選擇了一環方向"},
-    % "Adjacent"
     {26,"相鄰"},
-    % "Vertices"
     {27,"頂點"},
-    % "Edges"
     {28,"邊"},
-    % "Faces"
     {29,"面"},
-    % "Objects"
     {30,"對象"},
-    % "By"
     {31,"通過"},
-    % "Hard Edges"
     {32,"硬邊"},
-    % "Select all hard edges"
     {33,"選擇所有硬邊"},
-    % "Isolated Vertices"
     {34,"孤立點"},
-    % "Select all isolated vertices"
     {35,"選擇所有孤立點"},
-    % "Vertices With"
     {36,"頂點，"},
-    % "2 Edges"
     {37,"2個邊"},
-    % "3 Edges"
     {38,"3邊"},
-    % "4 Edges"
     {39,"4邊"},
-    % "5 Edges"
     {40,"5邊"},
-    % "Faces With"
     {41,"隨著工作面"},
-    % "2 Edges"
     {42,"2個邊"},
-    % "3 Edges"
     {43,"3邊"},
-    % "4 Edges"
     {44,"4邊"},
-    % "5 or More"
     {45,"5個或更多"},
-    % "Random"
     {46,"隨機"},
-    % "Short Edges"
     {56,"短邊"},
-    % "Select (too) short edges"
     {57,"選擇（太）短邊"},
-    % "Material Edges"
     {58,"材料邊緣"},
-    % "Select all edges between different materials"
     {59,"選擇不同的材料之間的所有邊緣"},
-    % "UV-Mapped Faces"
     {60,"UV-映射面"},
-    % "Select all edges that have UV coordinates"
     {61,"選擇所有的邊是UV坐標"},
-    % "Id..."
     {62,"標識 ..."},
-    % "Select by numeric id"
     {63,"選擇用數字編號"},
-    % "Lights"
     {64,"燈"},
-    % "Select all lights"
     {65,"選擇所有的燈"},
-    % "Select all elements"
     {66,"選擇所有元素"},
-    % "Inverse"
     {67,"相反"},
-    % "Invert the selection"
     {68,"反選"},
-    % "Hide Selected"
     {69,"隱藏選定"},
-    % "Hide all (partly or wholly) selected objects"
     {70,"隱藏所有（部分或全部），選擇的對象"},
-    % "Hide Unselected"
     {71,"隱藏未選定"},
-    % "Hide objects that have no selection"
     {72,"隱藏沒有選擇的對象"},
-    % "Lock Unselected"
     {73,"鎖未選定"},
-    % "Lock objects that have no selection"
     {74,"鎖定對象沒有選擇"},
-    % "Show All"
-    {75,"顯示所有"},
-    % "Show all objects that have been hidden"
     {76,"顯示所有的對象都被隱藏"},
-    % "Unlock All"
-    {77,"開啟所有"},
-    % "Unlock all locked objects"
     {78,"解除所有鎖定的對象"},
-    % "Store Selection"
     {79,"貯存的選擇"},
-    % "Store the selection into the selection group named \"StoredSelection\""
     {80,"貯存的選擇到選擇組命名\"StoredSelection\""},
-    % "Recall Selection"
     {81,"記得選擇"},
-    % "Recall the selection from the selection group named \"StoredSelection\""
     {82,"回想一下選擇從選擇組名為\"StoredSelection\""},
-    % "New Group..."
     {83,"新建組 ..."},
-    % "Create a new selection group"
     {84,"創建一個新的選擇組"},
-    % "Non-planar Faces"
     {85,"非平面面"},
-    % "Select all non-planar faces"
     {86,"選擇所有非平面的面"},
-    % "Sharp Edges"
     {87,"鋒利的邊緣"},
-    % "Select sharp edges"
     {88,"選擇鋒利"},
-    % "Fewest Edges Path"
     {89,"最少的邊路徑"},
-    % "Select the path with the fewest edges between two vertices"
     {90,"選擇路徑以最少的兩個頂點之間的邊"},
-    % "Shortest Path (Dijkstra)"
     {91,"最短路徑（Dijkstra算法）"},
-    % "Select the shortest path between two vertices (Dijkstra)"
     {92,"選擇兩個頂點之間的最短路徑（Dijkstra算法）"},
-    % "Shortest Path (A-Star)"
     {93,"最短路徑（一星級）"},
-    % "Select the shortest path between two vertices (A-Star)"
     {94,"選擇兩個頂點之間的最短路徑（一星級）"},
-    % "Vertex Path"
     {95,"頂點路徑"},
-    % "To Complete Loops"
     {96,"要完成循環"},
-    % "Switches to Edge mode and completes loop selection"
     {97,"切換到EDGE模式的選擇，並完成環"},
-    % "; convert consecutive vertices to edges"
     {98,";連續轉換頂點邊"},
-    % " (from selection or all visible objects (if no selection))"
     {99,"（從選擇或所有可見對象（如果沒有選擇））"},
-    % "Every Nth Ring"
     {100,"每隔n個環"},
-    % "Second"
     {101,"二"},
-    % "Third"
     {102,"三"},
-    % "Nth..."
     {103,"第N個 ..."},
     {104,"取消隱藏所有的對象"},
     {105,"解鎖所有的對象"},
-    % "6 or More"
+    {106,"對象"},
     {401,"6個或更多"},
     {402,"指定..."},
-    % "Non Quadrangle Faces"
     {nq0,"非四邊形面"},
-    % "All Non Quadrangle Faces"
     {nq1,"所有非四邊形面"},
-    % "Odd Non Quadrangle Faces"
     {nq2,"不同類的非四邊形面"},
-    % "Even Non Quadrangle Faces"
     {nq3,"平坦的非四邊形面"}
    ]},
   {more_help,
    [
-    % "Select all vertices adjacent to a selected vertex"
     {1,"選擇所有頂點相鄰選定的頂點"},
-    % "Select all edges adjacent to a selected edge"
     {2,"選擇所有的邊緣相鄰選定"},
-    % "Select all faces sharing a vertex with a selected face"
     {3,"選擇所有面共享一個頂點與選定的面"}
    ]},
   {new_group,
    [
-    % "Create New Group"
     {1,"創建新組"},
-    % "Group Name"
     {2,"集團名稱"}
    ]},
   {new_group_name,
    [
-    % "already exists."
     {exists,"已經存在。"}
    ]},
   {nonplanar_faces,
    [
-    % "Distance tolerance"
     {1,"距離公差"},
-    % "Select Non-planar Faces"
     {2,"選擇非平面的面"}
    ]},
   {oriented_faces,
    [
-    % "Angle Tolerance"
     {1,"角度公差"},
-    % "Select Similarly Oriented Faces"
     {2,"面臨同樣的選擇導向"},
-    % "Connected Faces Only"
     {3,"只有相連的面"},
-    % "At least one face must be selected"
     {4,"至少必須選取一個面"},
-    % "Save Angle"
     {5,"保存角"}
    ]},
   {oriented_faces_menu,
    [
-    % "Similar Normals"
     {1,"類似的資料"},
-    % "Select faces with normals similar to those of the already selected faces"
     {2,"面臨選擇與正常人相似，本已選定的頭像"}
    ]},
   {random,
    [
-    % "Select Random"
     {1,"隨機選擇"}
    ]},
   {random_help,
    [
-    % "Select random elements from current selection, or all visible objects (no selection)"
     {1,"選擇隨機元素從當前選擇，或所有可見對象（不選擇）"}
    ]},
   {sel_all_str,
    [
-    % "All Vertices"
     {1,"所有的頂點"},
-    % "All Edges"
     {2,"所有邊"},
-    % "All Faces"
     {3,"所有的面"},
-    % "All Objects"
     {4,"所有的對象"}
    ]},
   {select_nth_ring,
    [
-    % "Interval"
     {1,"區間"},
-    % "Select Every Nth Edge Ring"
     {2,"選擇每隔n個邊環"}
    ]},
   {sharp_edges,
    [
-    % "Max Angle"
     {1,"最大角度"},
-    % "Select Sharp Edges"
     {2,"選擇鋒利的邊緣"},
-    % "Peaks"
     {3,"山峰"},
-    % "Valleys"
     {4,"河谷"},
-    % "Both"
     {5,"兩個"}
    ]},
   {short_edges,
    [
-    % "Length tolerance"
     {1,"長度偏差"},
-    % "Select Short Edges"
     {2,"選擇短邊"}
    ]},
   {shortest_path,
    [
-    % "Exactly two vertices must be\n selected on the same object."
     {1,"恰有兩個頂點必須\n 選定同一個對象。"},
-    % "Exactly two vertices must be selected."
     {2,"恰有兩個頂點必須選擇。"}
    ]},
   {similar_area,
    [
-    % "Area Tolerance"
     {1,"地區性"},
-    % "Select Similar Area"
     {2,"選擇同類地區"},
-    % "Exactly one face must be\n selected on a single object."
     {3,"恰好一個必須面對\n 選定一個單一的對象。"},
-    % "Exactly one face must be selected."
     {4,"整整一個面必須選擇。"}
    ]},
   {similar_area_faces_menu,
    [
-    % "Similar Area"
     {1,"類似地區"},
-    % "Select faces with areas similar to that of the already selected face"
     {2,"選擇面的地區的相似，但已經選定的面"}
    ]},
   {similar_help,
    [
-    % "Select vertices similar to the already selected vertices"
     {1,"選擇類似的頂點已經選定的頂點"},
-    % "Select edges similar to the already selected edges"
     {2,"選擇邊類似於已經選定的邊"},
-    % "Select faces similar to the already selected faces"
     {3,"面臨著類似的選擇已經選定的面"},
-    % "Select objects with the same number of edges, faces, and vertices"
     {4,"選擇對象與相同數量的邊，面和頂點"}
    ]},
   {similar_material,
    [
-    % "Connected Faces Only"
     {2,"相連的面只有"},
-    % "At least one face must be selected"
     {3,"至少必須選取一個面"},
-    % "Select Faces with the same Material"
     {4,"選擇面使用同樣的材料"},
-    % "Materials"
     {5,"材料"},
-    % "Vertex Color"
     {6,"頂點顏色"}
    ]},
   {similar_material_faces,
    [
-    % "Similar Material"
     {1,"相似材料"},
-    % "Select faces with a similar material to those already selected"
     {2,"選擇面臨一個類似的材料與那些已經選定"}
    ]},
   {valid_sel,
    [
-    % "The Object Id "
     {1,"對象 ID"},
-    % " is invalid."
     {2,"是無效的。"},
-    % "The "
     {3,"該"},
-    % " is invalid."
     {4,"是無效的。"}
    ]},
   {vertices_with,
@@ -4043,96 +2526,58 @@
  [
   {create_folder,
    [
-    % "A folder by that name already exists"
     {1,"該名稱的文件夾已經存在"}
    ]},
   {create_folder_dialog,
    [
-    % "Choose Folder Name"
     {1,"選擇文件夾名稱"},
-    % "Create Folder"
     {2,"創建文件夾"}
    ]},
   {do_menu,
    [
-    % "Duplicate"
     {1,"重複"},
-    % "Duplicate selected objects"
     {2,"複製選定的對象"},
-    % "Delete"
     {3,"刪除"},
-    % "Delete selected objects"
     {4,"刪除選定的對象"},
-    % "Rename"
     {5,"重命名"},
-    % "Rename selected objects"
     {6,"重命名選定的對象"},
-    % "Create Folder"
     {7,"創建文件夾"},
-    % "Rename Folder"
     {8,"重命名文件夾"},
-    % "Delete Folder"
     {9,"刪除文件夾"},
-    % "Delete folder and its contents"
     {10,"刪除文件夾及其內容"},
-    % "Move to Folder"
     {11,"移動到文件夾"},
-    % "Move selected objects to this folder"
     {12,"移動選擇的對象到這個文件夾"},
-    % "Empty Folder"
     {13,"空文件夾"},
-    % "Remove From Folder"
     {14,"從文件夾中刪除"},
-    % "Remove Selected From Folders"
     {15,"從文件夾中刪除選定"}
    ]},
   {help,
    [
-    % "Select"
     {1,"選擇"},
-    % "Show menu"
     {2,"顯示菜單"},
-    % "Toggle visibility of active object"
     {3,"切換顯示的活動對象"},
-    % "Toggle visibility of all other objects"
     {4,"切換顯示的所有其他對象"},
-    % "Lock/unlock active object"
     {5,"鎖定 /解鎖活動對象"},
-    % "Lock/unlock all objects"
     {6,"鎖定 /解鎖所有對象"},
-    % "Toggle selection for active object"
     {7,"切換活動對象的選擇"},
-    % "Toggle selection for all other objects"
     {8,"切換選擇的所有其他對象"},
-    % "Toggle shaded/wireframe for active object"
     {9,"切換陰影 /線框的活動對象"},
-    % "Toggle shaded/wireframe for all other objects"
     {10,"切換陰影 /線框的所有其他對象"},
-    % "Toggle folder open/closed"
     {11,"切換文件夾打開 /關閉"},
-    % "Toggle all folders open/closed"
     {12,"切換所有文件夾打開 /關閉"},
-    % "Toggle visibility for objects in folder"
     {13,"切換顯示在文件夾中的對象"},
-    % "Lock/unlock objects in folder"
     {14,"鎖定 /解鎖文件夾中的對象"},
-    % "Toggle shaded/wireframe for objects in folder"
     {15,"切換陰影 /線框在文件夾中的對象"},
-    % "Toggle selection for folder"
     {16,"切換選擇文件夾"}
    ]},
   {rename_folder_dialog,
    [
-    % "Choose Folder Name"
     {1,"選擇文件夾名稱"},
-    % "Rename Folder"
     {2,"重命名文件夾"}
    ]},
   {title,
    [
-    % "Geometry Graph"
     {1,"幾何圖形"},
-    % "Geometry Graph #"
     {2,"幾何圖形＃"}
    ]}
  ]}.
@@ -4140,149 +2585,92 @@
  [
   {cone,
    [
-    % "Sections"
     {1,"第"},
-    % "Height"
     {2,"高度"},
-    % "X Diameter"
     {3,"X直徑"},
-    % "Y Diameter"
     {4,"Y直徑"}
    ]},
   {cube,
    [
-    % "X Edge Lengths"
     {1,"X 邊長"},
-    % "Y Edge Lengths"
     {2,"Y 邊長"},
-    % "Z Edge Lengths"
     {3,"Z 邊長"}
    ]},
   {cylinder,
    [
-    % "Sections"
     {1,"第"},
-    % "Height"
     {2,"高度"},
-    % "Top Face X Diameter"
     {3,"頂面X直徑"},
-    % "Top Face Z Diameter"
     {4,"頂面Z直徑"},
-    % "Bottom Face X Diameter"
     {5,"底面X直徑"},
-    % "Bottom Face Z Diameter"
     {6,"底面Z直徑"}
    ]},
   {dodecahedron,
    [
-    % "Edge Length"
     {1,"邊長"}
    ]},
   {grid,
    [
-    % "Rows/Cols"
     {1,"返回或設置"},
-    % "X Spacing"
     {2,"X間距"},
-    % "Z Spacing"
     {3,"Z間距"},
-    % "Height"
     {4,"高度"}
    ]},
   {icosahedron,
    [
-    % "Edge Length"
     {1,"邊長"}
    ]},
   {prim_help,
    [
-    % "Create a cone"
     {cone,"創建一個圓錐"},
-    % "Create a cube"
     {cube,"創建一個立方體"},
-    % "Create a cylinder"
     {cylinder,"創建一個圓柱體"},
-    % "Create a dodecahedron"
     {dodecahedron,"創建一個十二面體"},
-    % "Create a grid"
     {grid,"創建一個網格"},
-    % "Create an icosahedron"
     {icosahedron,"創建一個二十面體"},
-    % "Create an image..."
     {image,"創建一個圖片 ..."},
-    % "Create a light"
     {light,"創建一個光"},
-    % "Create a material..."
     {material,"創建材料..."},
-    % "Create an octahedron"
     {octahedron,"創建一個八面體"},
-    % "Create an octotoad"
     {octotoad,"創建一個二十六面體"},
-    % "Create a sphere"
     {sphere,"創建一個球體"},
-    % "Create a tetrahedron"
     {tetrahedron,"創建一個四面體"},
-    % "Create a torus"
     {torus,"創建一個圓環"}
    ]},
   {prim_name,
    [
-    % "Cone"
     {cone,"錐體"},
-    % "Cube"
     {cube,"立方體"},
-    % "Cylinder"
     {cylinder,"圓柱體"},
-    % "Dodecahedron"
     {dodecahedron,"十二面體"},
-    % "Grid"
     {grid,"格"},
-    % "Icosahedron"
     {icosahedron,"二十面體"},
-    % "Image..."
     {image,"圖片 ..."},
-    % "Light"
     {light,"光"},
-    % "Material..."
     {material,"材料..."},
-    % "Octahedron"
     {octahedron,"八面體"},
-    % "Octotoad"
     {octotoad,"二十六面體"},
-    % "Sphere"
     {sphere,"球"},
-    % "Tetrahedron"
     {tetrahedron,"四面體"},
-    % "Torus"
     {torus,"圓環體"}
    ]},
   {sphere,
    [
-    % "Sections"
     {1,"第"},
-    % "Slices"
     {2,"快訊"},
-    % "X Radial"
     {3,"X射線"},
-    % "Y Radial"
     {4,"Y徑向"}
    ]},
   {tetrahedron,
    [
-    % "Edge Length"
     {1,"邊長"}
    ]},
   {torus,
    [
-    % "Sections"
     {1,"第"},
-    % "Slices"
     {2,"快訊"},
-    % "Minor Radius"
     {4,"小半徑"},
-    % "Major X Radius"
     {31,"主要X半徑"},
-    % "Major Z Radius"
     {32,"主要Z半徑"}
    ]}
  ]}.
@@ -4290,26 +2678,17 @@
  [
   {face_centers,
    [
-    % "Face "
     {1,"面"},
-    % " has only two edges."
     {2,"只有兩個邊。"}
    ]},
   {smooth,
    [
-    % "smoothing"
     {1,"平滑"},
-    % "calculating face centers"
     {2,"面對中心的計算"},
-    % "cutting edges"
     {3,"切削刃"},
-    % "updating materials"
     {4,"更新材料"},
-    % "creating new faces"
     {5,"創造新的面"},
-    % "moving vertices"
     {6,"移動頂點"},
-    % "finishing"
     {7,"精加工"}
    ]}
  ]}.
@@ -4317,9 +2696,7 @@
  [
   {submenu,
    [
-    % "Triangulate"
     {1,"三角化"},
-    % "Quadrangulate"
     {2,"四邊形化"}
    ]}
  ]}.
@@ -4327,19 +2704,12 @@
  [
   {menu,
    [
-    % "Themes"
     {1,"主題"},
-    % "Classic Green Theme"
     {2,"經典的綠色主題"},
-    % "Change the display colors to the original Wings3D theme with the green titlebars"
     {3,"更改顯示的顏色與原來的Wings3D主題標題欄的綠色"},
-    % "Olive Theme"
     {4,"橄欖主題"},
-    % "Grey Blue Theme"
     {5,"灰藍色的主題"},
-    % "Dark Blue Theme"
     {6,"暗藍色的主題"},
-    % "Change color scheme"
     {7,"更改配色方案"}
    ]}
  ]}.
@@ -4347,60 +2717,37 @@
  [
   {button_help_1,
    [
-    % "Deselect"
     {1,"取消選擇"}
    ]},
   {button_help_2,
    [
-    % "Select adjacent vertices"
     {1,"選擇相鄰的頂點"},
-    % "Change to vertex selection mode"
     {2,"選擇模式切換到頂點"},
-    % "Select adjcacent edges"
     {3,"選擇相鄰邊"},
-    % "Change to edge selection mode"
     {4,"切換到邊選擇模式"},
-    % "Select adjacent faces"
     {5,"選擇相鄰的面"},
-    % "Change to face selection mode"
     {6,"面對選擇模式的變化"},
-    % "Change to body selection mode"
     {7,"切換到身體的選擇模式"}
    ]},
   {button_help_3,
    [
-    % "Undo the last command"
     {1,"撤消上一個命令"},
-    % "Redo the last command that was undone"
     {2,"重做最後被撤消命令"},
-    % "Open a previously saved scene"
     {3,"打開一個以前保存的場景"},
-    % "Save the current scene"
     {4,"保存當前場景"},
-    % "Edit the preferences for Wings"
     {5,"編輯Wings的喜好"}
    ]},
   {messages,
    [
-    % "axes"
     {axes,"軸"},
-    % "Change to"
     {change_to,"更改為"},
-    % "flat shading"
     {flat,"平面陰影"},
-    % "ground plane"
     {groundplane,"地平面"},
-    % "Hide"
     {hide,"隱藏"},
-    % "orthogonal view"
     {orthogonal,"正交視圖"},
-    % "perspective view"
     {perspective,"透視"},
-    % "Show"
     {show,"顯示"},
-    % "Show objects with"
     {show_objects,"顯示物體"},
-    % "smooth shading"
     {smooth,"平滑陰影"}
    ]}
  ]}.
@@ -4408,221 +2755,137 @@
  [
   {axis_string,
    [
-    % "Default Axis"
     {1,"默認的軸"},
-    % "Element Normal"
     {2,"正常元素"},
-    % "Element Normal (edges)"
     {3,"正常元素（邊）"},
-    % "Radial"
     {4,"徑向"},
-    % "From Cursor"
     {5,"從游標"},
-    % "From Element"
     {6,"從元素"},
-    % "From Default Point"
     {7,"從預設點"}
    ]},
   {cam_conflict,
    [
-    % "Key combo was not assigned.\n\n    That key combination would conflict with the Camera buttons"
     {1,"組合鍵是不被分配。\n\n    這種組合鍵有衝突的相機按鈕"}
    ]},
   {camera_msg,
    [
-    % "[C]: Tumble camera  [S]: Pan  [D]: Dolly"
     {1,"[C]: 滾筒相機 [S]:移動視圖 [D]: 移動鏡頭"}
    ]},
   {constraints_menu,
    [
-    % "Locks movement to the selection's Normal."
     {1,"鎖定運動的選擇是正常的。"},
-    % "Locks movement to the Default Axis."
     {2,"鎖定移到默認的軸。"},
-    % "Locks movement to the Radial of the current Tweak Axis."
     {3,"鎖定運動的徑向當前扭軸。"},
-    % "Locks movement to the ~ts axis."
     {5,"鎖定轉移到 ~ts 軸。"},
-    % "Constrained movement to normal of element marked by Tweak Vector."
     {6,"正常的約束運動元素標誌著調整向量。"},
-    % "Scale from mouse cursor."
     {7,"縮放從鼠標光標。"},
-    % "Scale from element marked by Tweak Vector."
     {8,"縮放從元素標誌調整載體。"},
-    % "Scale from Default Point."
     {9,"縮放從默認點。"},
-    % "Clear Constraints"
     {10,"明確約束"},
-    % "Clear all locked axes."
     {11,"清除所有鎖定軸。"}
    ]},
   {extra_msg,
    [
-    % "Slide Collapse"
     {1,"滑動折疊"}
    ]},
   {help_msg_axes,
    [
-    % "--Axis Constraints--"
     {1,"--軸約束--"},
-    % "Axis Constraints only affect Tweak Move and Scale operations."
     {2,"約束只影響扭軸移動和規模經營。"},
-    % "[F1], [F2], and [F3] can be held to constrain movement to the 3 cardinal axes, X, Y, and Z."
     {3,"[F1], [F2], 和 [F3]可以限制移動舉行的3樞軸, X, Y, 和 Z."},
-    % "Click axis constraint hotkeys to toggle them."
     {4,"按熱鍵切換軸約束他們。"},
-    % "Any of the axes can be toggled to stay on via the Tweak Menu or the Tweak Palette."
     {5,"任何軸可留在切換通過菜單或調整調色板。"},
-    % "The From Element and From Point axes activate the Tweak Vector."
     {6,"在從元素與點軸激活這個優化載體。"},
-    % "Axes can be combined."
     {7,"軸可以結合起來。"}
    ]},
   {help_msg_basic,
    [
-    % "--What is Tweak?--"
     {1,"--什麼是調整？--"},
-    % "Tweak lets you edit a model quickly by clicking and dragging geometry."
     {2,"調整可讓您編輯模型快速通過點擊和拖動幾何。"},
-    % "While Tweak is enabled, all the regular Wings commands are still available,"
     {3,"雖然調整啟用，所有的常規Wings命令依然有效，"},
-    % " but certain mouse buttons and modifier keys will activate the Tweak tools."
     {4," 但某些鼠標按鈕和修改鍵將激活這個優化工具。"}
    ]},
   {help_msg_hotkeys,
    [
-    % "--Hotkeyed Tweak Tools--"
     {1,"--熱鍵調整工具--"},
-    % "An alternative to usings Tweak Key combinations is to assign hotkeys to the various Tweak Tools usings the [Insert] method."
     {2,"一種替代的使用調整鍵組合分配到各個熱鍵的使用調整工具的[Insert]的方法。"},
-    % "Pressing the hotkey assigns that Tweak Tool to Lmb."
     {3,"按下熱鍵賦給調整工具分子生物學實驗室。"}
    ]},
   {help_msg_keys,
    [
-    % "--Assigning Tweak Keys--"
     {1,"--分配調整鍵--"},
-    % "Each of the Tweak Tools ~tscan be assigned a modifier key combination (Ctrl, Shift, Alt)."
     {2,"每個調整工具 ~ts能分配一個修改鍵組合 (Ctrl, Shift, Alt)."},
-    % " and "
     {3," 和 "},
-    % "To assign a key combination to a Tweak Tool:"
     {4,"要指定組合鍵來一調整工具:"},
-    % "\t1) Open the Tweak Menu."
     {5,"\t1) 的開啟此項修改菜單。"},
-    % "\t2) Highlight one of the Tweak Tools."
     {6,"\t2) 的亮點之一，此項修改工具。"},
-    % "\t3) Press and hold the modifier key combination and/or press the activating mouse button."
     {7,"\t3) 的修改按住組合鍵和/或按鼠標左鍵激活。"}
    ]},
   {help_msg_magnet,
    [
-    % "--Magnets--"
     {1,"--磁鐵--"},
-    % "Magnets allow for soft selection."
     {2,"磁體允許軟選擇。"},
-    % "There are 3 magnet types: Dome, Straight, and Spike."
     {3,"有3磁鐵類型：圓頂，直，與尖狀物。"},
-    % "Adjust the Magnet's Radius by holding [Alt] and moving the mouse."
     {4,"調整磁鐵的半徑按住[Alt]鍵並移動鼠標。"},
-    % "Commands for switching magnets can be assigned to hotkeys in the Tweak Menu|Magnets."
     {5,"磁鐵開關的命令可分配給在此項修改熱鍵 菜單|磁體。"},
-    % "Magnet options can be set in the Tweak Preferences."
     {6,"磁鐵選項可以設置在此項修改首選項。"}
    ]},
   {help_msg_palette,
    [
-    % "--Tweak Palette (Windows|Tweak Palette)--"
     {1,"--調整調色板 (窗口|調整盤)--"},
-    % "The Tweak Palette is a group of 3 windows that contain the main commands from the Tweak Menu."
     {2,"此項修改調色板是一個組包含3個窗口，從這個優化主要命令菜單。"},
-    % "Use the Tweak Palette to change switch between Tweak Tools, Magnet Types, or Axis Constraints."
     {3,"使用調色板改變調整工具之間切換，磁鐵類型，或軸的約束。"}
    ]},
   {help_msg_using_keys,
    [
-    % "--Using Tweak--"
     {1,"--使用調整--"},
-    % "1) Enabled Tweak."
     {2,"1）啟用調整。"},
-    % "2) Highlight or select one or more elements of geometry."
     {3,"2）選擇或選擇一個或多個元素的幾何形狀。"},
-    % "3) Press the Tweak Key combination and associated mouse button to activate Tweak."
     {4,"3）按這個優化組合鍵和鼠標按鈕激活相關調整。"},
-    % "4) Drag geometry to it new position."
     {5,"4）拖動幾何了新的位置。"},
-    % "5) Release the mouse button to complete the Tweak."
     {6,"5）鬆開鼠標按鈕完成此項修改。"},
-    % "Releasing the Tweak Keys will not end the Tweak event."
     {7,"鬆開調整鍵不會結束此項修改事件。"},
-    % "This allows other hotkeys to be used in mid-tweak to activate another Tweak tool, an axis constraint, aim the camera, or adjust the magnet radius."
-    {8,"這使其他熱鍵用於中期調整來激活另一個調整工具，\n一軸約束，將相機，或調整磁鐵半徑。"},
-    % "Pressing [C] in mid-tweak tumbles the camera."
+    {8,"這使其他熱鍵用於中期調整來激活另一個調整工具，一軸約束，將相機，或調整磁鐵半徑。"},
     {9,"按 [C] 中旬調整跌倒相機。"},
-    % "Pressing [S] or the Arrow Keys in mid-tweak pans the camera."
     {10,"按[S]或箭頭鍵在中期調整鍋相機。"},
-    % "Pressing [D] in mid-tweak dollies the camera."
     {11,"按研究[D]中旬調整推車相機。"},
-    % "Pressing [Spacebar] in mid-tweak switches to the Tweak Tool assigned to the Lmb."
     {12,"按[空格鍵]在中期調整切換到這個優化工具分配到分子生物學實驗室。"},
-    % "Holding [F] while finalizing a Slide operation collapses all newly created short edges."
     {13,"控股[F]中，同時完成幻燈片操作坍塌所有新創建的短邊。"}
    ]},
   {help_window,
    [
-    % "Tweak Help"
     {1,"調整說明"}
    ]},
   {mag_thelp,
    [
-    % "This magnet pulls and pushes geometry with an even and rounded effect."
     {1,"這種磁鐵拉和推幾何與均勻，圓潤的效果。"},
-    % "This magnet pulls and pushes geometry with a straight effect."
     {2,"這種磁鐵拉和推幾何與直的效果。"},
-    % "This magnet pulls and pushes geometry out to a sharp point."
     {3,"這種磁鐵拉出來，並推到尖銳的幾何點。"}
    ]},
   {magnet_type,
    [
-    % "Dome"
     {1,"拱頂"},
-    % "Straight"
     {2,"直"},
-    % "Spike"
     {3,"尖狀物"}
    ]},
   {menu,
    [
-    % "Tweak is a collection of tools for quickly adjusting a mesh."
     {1,"調整是一家集工具，用於快速調整的一個網格。"},
-    % "Enable Tweak"
     {2,"啟用調整"},
-    % "Disable Tweak"
     {3,"禁止調整"},
-    % "Magnets"
     {4,"磁鐵"},
-    % "Axis Constraints"
     {5,"軸約束"},
-    % "Move selection relative to screen, or constrained to an axis."
     {6,"移動選擇相對屏幕，或限制在一個軸。"},
-    % "Move selection along average normal."
     {7,"移動選擇沿平均正常。"},
-    % "Scale selection relative to screen, or constrained to an axis."
     {8,"選擇規模相對屏幕，或限制在一個軸。"},
-    % "Scale elements uniformly from the selection center."
     {9,"從分子尺度均勻甄選中心。"},
-    % "Relax selection toward the average plane of neighbors."
     {10,"放鬆對平均平面選擇的鄰居。"},
-    % "Slide elements along adjacent edges."
     {11,"沿相鄰邊幻燈片元素。"},
-    % "Tweak Preferences"
     {13,"調整偏好"},
-    % "Preferences for Tweak"
     {14,"調整首選項"}
    ]},
   {menu_conflict,
    [
-    % "Key combo was not assigned.\n\n    Those keys would conflict with the right click Tweak menu."
     {1,"組合鍵是不被分配。\n\n    這些鍵會衝突與右擊調整菜單。"}
    ]},
   {mode,
@@ -4636,123 +2899,79 @@
    ]},
   {palette_title,
    [
-    % "Tweak"
     {1,"調整"},
-    % "Tweak Magnet"
     {2,"調整磁鐵"},
-    % "Tweak Axis"
     {3,"調整軸"}
    ]},
   {spacebar_msg,
    [
-    % "[Space]: Switch to Tweak tool assigned to L"
     {1,"[Space]: 切換工具來調整分配到L"}
    ]},
   {toggle_bold,
    [
-    % "Active Point: "
     {1,"活動點: "},
-    % "Active Axis: "
     {2,"主動軸: "}
    ]},
   {tweak_disabled_msg,
    [
-    % "Tweak: Disabled"
     {1,"調整: 已禁用"}
    ]},
   {tweak_info_line,
    [
-    % "L: Click Select"
     {1,"L: 點擊選擇"},
-    % "LL: Paint Select"
     {2,"LL: 油漆選擇"},
-    % "Tweak Menu"
     {3,"調整菜單"},
-    % "Menu"
     {4,"菜單"}
    ]},
   {tweak_magnet_help,
    [
-    % "Magnet: "
     {1,"磁鐵: "},
-    % "Magnet: Off"
     {2,"磁鐵: 關"},
-    % "+Drag: "
     {3,"+拖動: "},
-    % "Adjust Radius"
     {4,"調整半徑"}
    ]},
   {tweak_magnet_menu,
    [
-    % "Disable Magnet"
     {1,"禁用磁鐵"},
-    % "Enable Magnet"
     {2,"啟用磁鐵"},
-    % "Tweak magnets are similar to 'soft selection'."
     {3,"調整磁鐵類似於'軟選擇'。"},
-    % "Radius Adjust Key"
     {5,"半徑調整的關鍵"},
-    % "Press [Insert] to customize hotkey for adjusting the magnet radius. "
     {6,"按 [Insert] 自定義熱鍵調整磁鐵半徑。"},
-    % "Without a hotkey assigned, the magnet radius is adjusted by holding [Alt]."
     {7,"如果沒有一個熱鍵指派，磁鐵半徑調整按住[Alt]鍵。"},
-    % "Reset Radius"
     {8,"復位半徑"},
-    % "Reset the magnet radius to 1.0"
     {9,"重置磁鐵半徑為 1.0"},
-    % "Next Magnet Type"
     {10,"下一步永磁型"},
-    % "Can be hotkeyed to cycle through the magnets."
     {11,"可熱鍵可循環的磁鐵。"}
    ]},
   {tweak_magnet_radius_help,
    [
-    % "Drag right to increase and left to decrease the magnet radius."
     {1,"拖動左右，以增加和減少磁鐵半徑。"},
-    % "Magnet is currently off."
     {2,"磁鐵目前關閉。"}
    ]},
   {tweak_menu_item,
    [
-    % "Binding: "
     {1,"裝訂: "},
-    % "Set: "
     {2,"套裝: "},
-    % "Swap: "
     {3,"交換: "},
-    % "Hold modifiers and/or press any mouse button."
     {4,"持有改性劑和/或按任何鼠標按鈕。"},
-    % "Press another tool's key binding."
     {5,"按另一種工具的關鍵約束力。"},
-    % "Unbind: "
     {6,"取消綁定: "}
    ]},
   {tweak_preferences_dialog,
    [
-    % "Click Speed for Select/Deselect"
     {1,"點擊轉速選擇 /取消選擇"},
-    % "Lower to increase control or raise to increase speed."
     {2,"控制下，增加或提高，以增加速度。"},
-    % "Tweak Speed (Drag Response)"
     {3,"調整速度（拖動響應）"},
-    % "Magnet Radius Adjustment Sensitivity"
     {4,"調整靈敏度磁力半徑"},
-    % "Magnet Radius Display Color"
     {5,"永磁半徑顯示顏色"},
-    % "Length"
     {6,"長"},
-    % "Width"
     {7,"寬度"},
-    % "Color"
     {8,"顏色"},
-    % "Tweak Vector"
     {9,"調整向量"},
-    % "Tweak Preferences"
     {10,"調整偏好"}
    ]},
   {xyzkey_help,
    [
-    % "Active Axis: "
     {1,"主動軸: "}
    ]}
  ]}.
@@ -4760,7 +2979,6 @@
  [
   {caption,
    [
-    % "auto-saved"
     {1,"自動保存"}
    ]}
  ]}.
@@ -4768,583 +2986,294 @@
  [
   {translation_string,
    [
-    % "Vertex"
     {1,"頂點"},
-    % "Edge"
     {2,"邊"},
-    % "Face"
     {3,"面"},
-    % "Body"
     {4,"身體"},
-    % "Light"
     {5,"光"},
-    % "File"
     {6,"文件"},
-    % "Edit"
     {7,"編輯"},
-    % "View"
     {8,"查看"},
-    % "Select"
     {9,"選擇"},
-    % "Tools"
     {10,"工具"},
-    % "Window"
     {11,"窗口"},
-    % "Help"
     {12,"幫助"},
-    % "New"
     {13,"新建"},
-    % "Open"
     {14,"打開"},
-    % "Merge"
     {15,"合併"},
-    % "Save"
     {16,"保存"},
-    % "Save As"
     {17,"另存為"},
-    % "Save Selected"
     {18,"保存選定"},
-    % "Save Incrementally"
     {19,"另存新檔"},
-    % "Revert"
     {20,"還原"},
-    % "Import"
     {21,"導入"},
-    % "Export"
     {22,"導出"},
-    % "Export Selected"
     {23,"導出所選"},
-    % "Import Image"
     {24,"導入圖像"},
-    % "Render"
     {25,"給予"},
-    % "Install Plugin"
     {26,"安裝插件"},
-    % "Exit"
     {27,"退出"},
-    % "Undo/Redo"
     {28,"撤消/重做"},
-    % "Undo"
     {29,"復原"},
-    % "Redo"
     {30,"重做"},
-    % "Repeat"
     {31,"重複"},
-    % "Repeat Args"
     {32,"重複參數"},
-    % "Repeat Drag"
     {33,"重複拖動"},
-    % "Purge Undo"
     {34,"清除撤消"},
-    % "Preferences"
     {35,"偏好"},
-    % "Prefs"
     {36,"臆測"},
-    % "Plugin Manager"
     {37,"插件管理"},
-    % "Show Ground Plane"
     {38,"地平面顯示"},
-    % "Show Axes"
     {39,"顯示軸"},
-    % "Show Info Text"
     {40,"展會信息文本"},
-    % "Workmode"
     {41,"工作模式"},
-    % "Wireframe"
     {42,"線框"},
-    % "Shade"
     {43,"陰"},
-    % "Toggle Wireframe"
     {44,"切換線框"},
-    % "Show Edges"
     {45,"顯示邊緣"},
-    % "Show Wireframe Backfaces"
     {46,"顯示線框背面"},
-    % "Toggle Smooth Proxy"
     {47,"平滑切換代理"},
-    % "Quick Smoothed Preview"
     {48,"快速平滑預覽"},
-    % "Show Bounding Box"
     {49,"顯示邊界框"},
-    % "Clipping Plane"
     {50,"裁剪面"},
-    % "Show Normals"
     {51,"資料顯示"},
-    % "Show Colors"
     {52,"顯示顏色"},
-    % "Show Materials"
     {53,"顯示材料"},
-    % "Show Textures"
     {54,"顯示紋理"},
-    % "Scene Lights"
     {55,"場景燈"},
-    % "Toggle Lights"
     {56,"切換燈"},
-    % "Orthographic View"
     {57,"正投影視圖"},
-    % "Reset View"
     {58,"復位查看"},
-    % "Aim"
     {59,"目的"},
-    % "Highlight Aim"
     {60,"突出目標"},
-    % "Frame"
     {61,"框架"},
-    % "Frame Mode"
     {62,"幀模式"},
-    % "Align to Selection"
     {63,"對齊選擇"},
-    % "Next"
     {64,"下一頁"},
-    % "Prev"
     {65,"上一頁"},
-    % "Current"
     {66,"當前"},
-    % "Jump"
     {67,"跳轉"},
-    % "Along"
     {68,"沿"},
-    % "Rename"
     {69,"重命名"},
-    % "Delete All"
     {70,"全部刪除"},
-    % "Camera Settings"
     {71,"相機設置"},
-    % "Auto Rotate"
     {72,"自動旋轉"},
-    % "Deselect"
     {73,"取消選擇"},
-    % "More"
     {74,"更多"},
-    % "Less"
     {75,"減"},
-    % "Similar"
     {76,"類似"},
-    % "Edge Loop"
     {77,"循環邊"},
-    % "Edge Loop to Region"
     {78,"循環邊的邊緣"},
-    % "Edge Ring"
     {79,"環形邊"},
-    % "Previous Edge Loop"
     {80,"上一個循環邊"},
-    % "Next Edge Loop"
     {81,"下一步循環邊"},
-    % "Edge Link Increase"
     {82,"邊緣的鏈接增加"},
-    % "Edge Link Decrease"
     {83,"邊緣的鏈接減少"},
-    % "Edge Ring Increase"
     {84,"環形邊增加"},
-    % "Edge Ring Decrease"
     {85,"環形邊減少"},
-    % "Adjacent"
     {86,"相鄰"},
-    % "Inverse"
     {87,"相反"},
-    % "Hide Selected"
     {88,"隱藏選定"},
-    % "Hide Unselected"
     {89,"隱藏未選定"},
-    % "Lock Unselected"
     {90,"鎖未選定"},
-    % "Show All"
     {91,"顯示所有"},
-    % "Store Selection"
     {92,"貯存的選擇"},
-    % "Recall Selection"
     {93,"記得選擇"},
-    % "New Group"
     {94,"新組"},
-    % "Similar Normals"
     {95,"類似的資料"},
-    % "Similar Area"
     {96,"類似地區"},
-    % "Delete Group"
     {97,"刪除群組"},
-    % "Add to Group"
     {98,"添加到組"},
-    % "Subtract from Group"
     {99,"減去群組"},
-    % "Select Group"
     {100,"選擇群組"},
-    % "Union Group"
     {101,"聯組"},
-    % "Subtract Group"
     {102,"減去群組"},
-    % "Intersect Group"
     {103,"交叉群組"},
-    % "By"
     {104,"通過"},
-    % "Hard Edges"
     {105,"硬邊"},
-    % "Isolated Vertices"
     {106,"孤立點"},
-    % "Non-Planar Faces"
     {107,"非平面面"},
-    % "Vertices With"
     {108,"頂點，"},
-    % "Faces With"
     {109,"隨著工作面"},
-    % "Non Quadrangle"
     {110,"非四邊形化"},
-    % "Odd"
     {111,"奇怪"},
-    % "Even"
     {112,"即使"},
-    % "Random"
     {113,"隨機"},
-    % "Short Edges"
     {114,"短邊"},
-    % "Sharp Edges"
     {115,"鋒利的邊緣"},
-    % "Vertex Path"
     {116,"頂點路徑"},
-    % "Fewest Edges Path"
     {117,"最少的邊路徑"},
-    % "Shortest Path (Dijkstra)"
     {118,"最短路徑（Dijkstra算法）"},
-    % "Shortest Path (A-Star)"
     {119,"最短路徑（一星級）"},
-    % "Material Edges"
     {120,"材料邊緣"},
-    % "Align"
     {121,"對齊"},
-    % "Save Bounding Box"
     {122,"保存邊界框"},
-    % "Scale to Bounding Box"
     {123,"縮放到邊界框"},
-    % "Scale to Bounding Box Proportionally"
     {124,"以比例縮放到邊界框"},
-    % "Move to Bounding Box"
     {125,"移動到邊界框"},
-    % "Virtual Mirror"
     {126,"虛擬鏡像"},
-    % "Create"
     {127,"創建"},
-    % "Break"
     {128,"打破"},
-    % "Freeze"
     {129,"凍結"},
-    % "Screenshot"
     {130,"截圖"},
-    % "Area Volume Info"
     {131,"區卷信息"},
-    % "Memory Usage"
     {132,"內存使用情況"},
-    % "Put on Ground"
     {133,"把地面"},
-    % "Unitize"
     {134,"單位化"},
-    % "Tweak"
     {135,"調整"},
-    % "Snap Image"
     {136,"對齊圖片"},
-    % "Outliner"
     {137,"大綱"},
-    % "Geometry Graph"
     {138,"幾何圖形"},
-    % "Palette"
     {139,"調色板"},
-    % "Console"
     {140,"控制台"},
-    % "New Geomerty Window"
     {141,"新幾何窗口"},
-    % "UV Editor Window"
     {142,"UV編輯器窗口"},
-    % "Getting Started"
     {143,"入門"},
-    % "Mouse Buttons"
     {144,"鼠標按鈕"},
-    % "International Keyboards"
     {145,"國際鍵盤"},
-    % "Defined Hotkeys"
     {146,"定義熱鍵"},
-    % "Defining Hotkeys"
     {147,"定義熱鍵"},
-    % "Default Commands"
     {149,"默認命令"},
-    % "Performance Tips"
     {150,"性能提示"},
-    % "OpenGL Info"
     {151,"OpenGL的信息"},
-    % "About"
     {152,"關於"},
-    % "Shapes"
     {153,"形狀"},
-    % "Tetrahedron"
     {154,"四面體"},
-    % "Octahedron"
     {155,"八面體"},
-    % "Octotoad"
     {156,"二十六面體"},
-    % "Dodecahedron"
     {157,"十二面體"},
-    % "Icosahedron"
     {158,"二十面體"},
-    % "Cube"
     {159,"立方體"},
-    % "Cylinder"
     {160,"圓柱體"},
-    % "Cone"
     {161,"錐體"},
-    % "Sphere"
     {162,"球形"},
-    % "Torus"
     {163,"圓環形"},
-    % "Grid"
     {164,"格"},
-    % "Material"
     {165,"材料"},
-    % "Image"
     {166,"圖片"},
-    % "Image Plane"
     {167,"圖像平面"},
-    % "Text"
     {168,"文本"},
-    % "Gear"
     {169,"齒輪"},
-    % "Tube"
     {170,"管"},
-    % "Geo Dome"
     {171,"地穹"},
-    % "Torus Knot"
     {172,"環形曲面"},
-    % "N-Cube"
     {173,"N-立方體"},
-    % "N-Gon"
     {174,"N-邊形"},
-    % "Regular Plane"
     {175,"普通平面"},
-    % "Lumpy Plane"
     {176,"結節平面"},
-    % "Wavy Plane"
     {177,"波紋面"},
-    % "Sombrero Plane"
     {178,"松布列羅平面"},
-    % "Spiral"
     {179,"螺旋"},
-    % "Spring"
     {180,"彈簧"},
-    % "UV Torus"
     {181,"紫外環面"},
-    % "Lumpy Torus"
     {182,"結節圓環"},
-    % "Spiral Torus"
     {183,"螺旋環面"},
-    % "Normal"
     {184,"一般"},
-    % "Free"
     {185,"自由"},
-    % "Center"
     {186,"中心"},
-    % "Central Axis"
     {187,"中軸線"},
-    % "X"
     {188,"X"},
-    % "Y"
     {189,"Y"},
-    % "Z"
     {190,"Z"},
-    % "-X"
     {191,"-X"},
-    % "-Y"
     {192,"-Y"},
-    % "-Z"
     {193,"-Z"},
-    % "Last Axis"
     {194,"尾軸"},
-    % "Default Axis"
     {195,"默認的軸"},
-    % "True"
     {196,"真"},
-    % "False"
     {197,"假"},
-    % "All"
     {198,"所有"},
-    % "Pick All"
     {199,"選擇全部"},
-    % "Radial X"
     {200,"徑向 X"},
-    % "Radial Y"
     {201,"徑向 Y"},
-    % "Radial Z"
     {202,"徑向 Z"},
-    % "ASK"
     {203,"ASK"},
-    % "LMB"
     {204,"鼠標左鍵"},
-    % "MMB"
     {205,"鼠標中鍵"},
-    % "RMB"
     {206,"鼠標右鍵"},
-    % "Relative"
     {207,"相對"},
-    % "Absolute"
     {208,"絕對"},
-    % "Move"
     {209,"移動"},
-    % "Rotate"
     {210,"旋轉"},
-    % "Scale"
     {211,"規模"},
-    % "Uniform"
     {212,"制服"},
-    % "Extrude"
     {213,"拉伸"},
-    % "Extract"
     {214,"提取"},
-    % "Dissolve"
     {215,"解散"},
-    % "Collapse"
     {216,"崩潰"},
-    % "Delete"
     {217,"刪除"},
-    % "Flatten"
     {218,"弄平"},
-    % "Smooth"
     {219,"順利"},
-    % "Tighten"
     {220,"緊縮"},
-    % "Bevel"
     {221,"斜角"},
-    % "Weld"
     {222,"焊接"},
-    % "Vertex Color"
     {223,"頂點顏色"},
-    % "Snap"
     {224,"對齊"},
-    % "Snap|Numeric Entry"
     {225,"扣|數字輸入"},
-    % "Scale to Target Size"
     {226,"目標大小規模"},
-    % "Scale|Center"
     {227,"規模 |中心"},
-    % "Intersect"
     {228,"相交"},
-    % "Stay on Line"
     {229,"留在線上"},
-    % "Stay on Plane"
     {230,"留在平面"},
-    % "Connecting Edges"
     {231,"連接邊"},
-    % "Bend"
     {232,"彎曲"},
-    % "Shift"
     {233,"移"},
-    % "Deform"
     {234,"變形"},
-    % "Crumple"
     {235,"弄皺"},
-    % "Taper"
     {236,"錐度"},
-    % "Twist"
     {237,"扭曲"},
-    % "Torque"
     {238,"轉矩"},
-    % "Inflate"
     {239,"膨脹"},
-    % "Inflate Cylindrically"
     {240,"充氣圓柱"},
-    % "Shear"
     {241,"剪"},
-    % "Slide"
     {242,"幻燈片"},
-    % "Clean Dissolve"
     {243,"清潔溶解"},
-    % "Cut"
     {244,"切"},
-    % "Connect"
     {245,"連接"},
-    % "Hardness"
     {246,"硬度"},
-    % "Soft"
     {247,"軟"},
-    % "Hard"
     {248,"硬"},
-    % "Circularise"
     {249,"圓形化"},
-    % "Circularise|Center"
     {250,"圓形化 |中心"},
-    % "Loop Cut"
     {251,"循環剪切"},
-    % "Turn CCW"
     {252,"逆時針轉動"},
-    % "Turn CW"
     {253,"順時針轉動"},
-    % "Turn Optimized"
     {254,"周轉優化"},
-    % "Bridge"
     {255,"橋"},
-    % "Bump"
     {256,"顛簸"},
-    % "Extrude Region"
     {257,"擠壓區"},
-    % "Extract Region"
     {258,"提取區"},
-    % "Sweep Extrude"
     {259,"掃描擠壓"},
-    % "Sweep Region"
     {260,"掃描區域"},
-    % "Sweep Extract"
     {261,"掃描提取"},
-    % "Inset"
     {262,"插頁"},
-    % "Intrude"
     {263,"侵入"},
-    % "Lift"
     {264,"電梯"},
-    % "Put On"
     {265,"把論"},
-    % "Clone On"
     {266,"克隆論"},
-    % "Mirror"
     {267,"鏡像"},
-    % "Mirror Separate"
     {268,"鏡像獨立"},
-    % "Tesselate"
     {269,"細化"},
-    % "Triangulate"
     {270,"三角"},
-    % "Quadrangulate"
     {271,"四角化"},
-    % "Untriangulate"
     {272,"不三角化"},
-    % "Hide"
     {273,"隱藏"},
-    % "AutoUV"
     {274,"自動UV"},
-    % "Segment"
     {275,"段"},
-    % "Segment Old"
     {276,"老段"},
-    % "Force Segment"
     {277,"部隊分部"},
-    % "Flip"
     {278,"翻動"},
-    % "Invert"
     {279,"倒置"},
-    % "Doo Sabin"
     {280,"鬥薩賓"},
-    % "Combine"
     {281,"結合"},
-    % "Separate"
     {282,"分開"},
-    % "Cleanup"
     {283,"淨化"},
-    % "Auto Smooth"
     {284,"自動平滑"},
-    % "Duplicate"
     {285,"重複"},
-    % "Vertex Color Mode"
     {286,"頂點顏色模式"},
-    % "To Area Light"
     {287,"為區域燈光"},
-    % "Materials to Colors"
     {288,"材料顏色"},
-    % "Rotate to Target"
     {289,"旋轉到目標"},
-    % "Move Planar"
     {290,"平面移動"}
    ]}
  ]}.
@@ -5352,126 +3281,79 @@
  [
   {add_help_text,
    [
-    % "Pick axis (and point)"
     {1,"選擇軸（和點）"},
-    % "Pick axis"
     {2,"選擇軸"},
-    % "Pick point"
     {3,"挑點"},
-    % "Pick outer boundary point for magnet influence"
     {4,"選擇外部邊界點磁鐵的影響"}
    ]},
   {add_magnet,
    [
-    % "Pick outer boundary point for magnet influence"
     {1,"選擇外部邊界點磁鐵的影響"}
    ]},
   {check_magnet_point,
    [
-    % "Midpoint of selection saved."
     {1,"中點選擇保存。"}
    ]},
   {check_point,
    [
-    % "Midpoint of selection saved."
     {1,"中點選擇保存。"},
-    % "Disregard virtual mirror in reference point calculation"
     {2,"忽略虛擬鏡像參考點計算"},
-    % "Include virtual mirror in reference point calculation"
     {3,"包括虛擬鏡像參考點計算"}
    ]},
   {common_magnet_message,
    [
-    % "Magnet"
     {1,"磁鐵"}
    ]},
   {common_message,
    [
-    % "Execute"
     {1,"執行"},
-    % "Continue"
     {2,"繼續"}
    ]},
   {exit_menu,
    [
-    % "Cancel current command"
     {2,"取消當前命令"}
    ]},
   {get_vec,
    [
-    % "Edge saved as axis"
     {1,"邊緣保存為軸線"},
-    % "Save edge normal"
     {2,"保存邊緣正常"},
-    % "Edge normal saved as axis"
     {3,"正常保存為軸心的邊緣"},
-    % "Save edge direction"
     {4,"保存邊緣方向"},
-    % "Direction between edges saved as axis."
     {5,"保存為方向軸之間的邊緣。"},
-    % "Edge loop normal saved as axis."
     {6,"邊迴路正常保存為軸心。"},
-    % "Vertex normal saved."
     {8,"頂點正常保存。"},
-    % "Direction between vertices saved as axis."
     {9,"保存為頂點之間的方向軸。"},
-    % "Use average of vertex normals as axis"
     {10,"使用平均頂點法線為軸"},
-    % "Average of vertex normals saved as axis."
     {11,"平均頂點法線保存為軸心。"},
-    % "Use direction between vertices as axis"
     {12,"使用方向為軸頂點之間"},
-    % "3-point perp. normal saved as axis."
     {13,"3點 PERP的。正常保存為軸心。"},
-    % "Vertex loop normal saved as axis."
     {14,"頂點迴路正常保存為軸心。"},
-    % "Multi-vertex selection must form a single closed edge loop."
     {15,"多點選擇必須形成一個封閉的邊環。"},
-    % "Face normal saved as axis."
     {16,"面對正常保存為軸心。"},
-    % "Direction between face centers saved as axis."
     {17,"面對方向之間的保存為中心軸。"},
-    % "Use average of face normals"
     {18,"使用平均面法線"},
-    % "Average of face normals saved as axis."
     {19,"平均面法線保存為軸心。"},
-    % "Use direction between face centers"
     {20,"使用方向之間的臉中心"},
-    % "Edge loop normal for region saved as axis."
     {21,"循環正常的邊緣地區保存為軸心。"},
-    % "Multi-face selection must have a single edge loop."
     {22,"多面選擇必須有一個邊環。"},
-    % "Select vertices, edges, or faces."
     {23,"選擇頂點，邊，或面。"},
-    % "Save cross vector"
     {24,"保存跨載體"},
-    % "Cross product of edges saved as axis"
     {25,"邊跨產品保存為軸線"},
-    % "Save direction between edges"
     {26,"保存方向之間的邊緣"},
-    % "Vertices cannot share coordinates when defining a 3 point plane normal"
     {27,"不能共享頂點的坐標點時，定義了3架飛機正常"},
-    % "Axis between edge loop centers saved as axis."
     {28,"軸之間的邊緣環形中心保存為軸心。"},
-    % "Multi-edge selection must form either a single or two closed edge loops."
     {29,"多邊緣的選擇必須形成單個或兩個封閉的環邊。"}
    ]},
   {guard_string,
    [
-    % "Select parts of one object only"
     {1,"選擇一個對象只有部分"},
-    % ", or select one element in each of two objects"
     {2,", 或選擇一個元素在每兩個對象"},
-    % ", or any three vertices."
     {3,", 或任意三個頂點。"},
-    % ",\nor a single edge loop on each object "
     {4,",\n或一個邊環上每個對象"}
    ]},
   {magnet_message,
    [
-    % "Execute "
     {1,"執行"},
-    % "Magnet options"
     {2,"磁鐵選項"}
    ]}
  ]}.
@@ -5479,37 +3361,21 @@
  [
   {menu,
    [
-    % "Move"
     {2,"移動"},
-    % "Extrude"
     {3,"拉伸"},
-    % "Connect"
     {4,"連接"},
-    % "Create a new edge by connecting selected vertices"
     {5,"創建一個新的邊緣通過連接選擇的頂點"},
-    % "Tighten"
     {6,"緊縮"},
-    % "Move selected vertices towards average midpoint"
     {7,"對選定的頂點移動平均的中點"},
-    % "Bevel"
     {8,"斜角"},
-    % "Create faces of selected vertices"
     {9,"創建面臨選擇的頂點"},
-    % "Dissolve"
     {10,"解散"},
-    % "Delete selected vertices (clearing selection)"
     {11,"刪除選定的頂點（結算選擇）"},
-    % "Collapse"
     {12,"崩潰"},
-    % "Delete selected vertices (creating a face selection)"
     {13,"刪除選定的頂點（創建一個面選擇）"},
-    % "Deform"
     {14,"變形"},
-    % "Vertex Color"
     {15,"頂點顏色"},
-    % "Apply vertex colors to selected vertices"
     {16,"應用到選定的頂點頂點顏色"},
-    % "Connect vertices and return the new edge selected"
     {17,"連接頂點並返回選定新的邊緣"}
    ]}
  ]}.
@@ -5517,353 +3383,203 @@
  [
   {auto_rotate_help,
    [
-    % "Stop rotating"
     {1,"停止旋轉"},
-    % "Increase speed"
     {2,"增長速度"},
-    % "Decrease speed"
     {3,"減速"}
    ]},
   {camera,
    [
-    % "Negative Format"
     {1,"負的格式"},
-    % "Custom"
     {4,"自定義"},
-    % "x"
     {5,"x"},
-    % "Wide-Angle Lens"
     {6,"廣角鏡頭"},
-    % "Moderate Wide-Angle Lens"
     {7,"適度廣角鏡頭"},
-    % "Standard Lens"
     {8,"標準鏡頭"},
-    % "Portrait Telephoto Lens"
     {9,"人像長焦鏡頭"},
-    % "Telephoto Lens"
     {10,"遠攝鏡頭"},
-    % "Custom Lens"
     {11,"自定義鏡頭"},
-    % "Length"
     {12,"長"},
-    % "x Zoom"
     {13,"倍變焦"},
-    % "Lens"
     {14,"鏡頭"},
-    % "Field of View"
     {15,"視野"},
-    % "Near Clipping Plane"
     {16,"近裁剪面"},
-    % "Far Clipping Plane"
     {17,"遠裁剪面"},
-    % "Camera Settings"
     {18,"相機設置"}
    ]},
   {help,
    [
-    % "Camera Settings: Field of View"
     {1,"相機設置：視野"},
-    % "Sets the vertical field of view, i.e. the angle from lower to upper border seen from the camera. "
     {2,"設置垂直視野，即從低到高角度邊界看到照相機。"},
-    % "The Lens controls sets the field of view according to other perhaps more well-known entities, at least for a photographer. The negative size is stored among the user preferences."
-    {3,"鏡頭控制設置視野根據或者其他比較著名的實體，\n至少一名攝影師。負大小存儲在用戶的喜好。"},
-    % "The Lens controls make the height of the picture right for the choosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."
-    {4,"該鏡頭的控制使高度圖右為所選擇的鏡頭，\n所以如果你不具有相同的高寬比為負的大小在鏡頭畫面，\n至於幾何窗口大小，寬度將是錯誤的。"},
-    % "Note: the zoom factor is relative a standard lens length of the negative diagonal, while only the negative height affects the effective lens length."
-    {5,"注：縮放因子是相對的一個標準鏡頭的負面對角線長度，\n高度則只有負面影響的有效鏡頭長度。"}
+    {3,"鏡頭控制設置視野根據或者其他比較著名的實體，至少一名攝影師。負大小存儲在用戶的喜好。"},
+    {4,"該鏡頭的控制使高度圖右為所選擇的鏡頭，所以如果你不具有相同的高寬比為負的大小在鏡頭畫面，至於幾何窗口大小，寬度將是錯誤的。"},
+    {5,"注：縮放因子是相對的一個標準鏡頭的負面對角線長度，高度則只有負面影響的有效鏡頭長度。"}
    ]},
   {menu,
    [
-    % "Ground Plane"
     {1,"地平面"},
-    % "Show the ground plane"
     {2,"地平面顯示"},
-    % "Axes"
     {3,"軸"},
-    % "Show the coordinate axes"
     {4,"顯示坐標軸"},
-    % "Workmode"
     {5,"工作模式"},
-    % "Toggle flat/smooth shading"
     {6,"切換平/平滑陰影"},
-    % "Wireframe"
     {7,"線框"},
-    % "Display selected objects as a wireframe (same for all objects if nothing is selected)"
     {8,"顯示選定的對象作為一個線框（相同的所有對象，如果沒有被選中）"},
-    % "Shade"
     {9,"陰"},
-    % "Display selected objects as shaded (same for all objects if nothing is selected)"
     {10,"顯示選定對象的陰影（相同的所有對象，如果沒有被選中）"},
-    % "Toggle Wireframe"
     {11,"切換線框"},
-    % "Toggle display mode for selected objects (same for all objects if nothing is selected)"
     {12,"切換顯示模式選擇的對象（相同的所有對象，如果沒有被選中）"},
-    % "Toggle Proxy Mode"
     {13,"切換代理模式"},
-    % "Toggle the smooth proxy mode for selected objects"
     {14,"代理模式的順利切換為選定的對象"},
-    % "Quick Smoothed Preview"
     {15,"快速平滑預覽"},
-    % "Toggle the smooth proxy mode for all objects"
     {16,"代理模式的順利切換所有對象"},
-    % "Show Saved BB"
     {17,"顯示已保存邊界框"},
-    % "Display any saved bounding box"
     {18,"顯示任何已保存的邊界框"},
-    % "Show Edges"
     {19,"顯示邊緣"},
-    % "Show edges in workmode"
     {20,"顯示中邊工作模式"},
-    % "Show Wireframe Backfaces"
     {21,"顯示線框背面"},
-    % "Show wireframe backfaces"
     {22,"顯示線框背面"},
-    % "Show Normals"
     {23,"資料顯示"},
-    % "Show normals for selected elements"
     {24,"資料顯示所選元素"},
-    % "Reset View"
     {25,"復位查看"},
-    % "Reset view to the default position"
     {26,"視圖復位為默認位置"},
-    % "Aim"
     {27,"目的"},
-    % "Aim the camera at the selected element"
     {28,"將相機對準在選定的元素"},
-    % "Frame"
     {29,"框架"},
-    % "Dolly to show all selected elements (or all objects if nothing is selected)"
     {30,"多莉顯示所有選中的元素（或所有對象，如果沒有被選中）"},
-    % "Orthographic View"
     {31,"正投影視圖"},
-    % "Toggle between orthographic and perspective views"
     {32,"正交之間切換的意見和觀點"},
-    % "Saved Views: "
     {33,"保存的視圖："},
-    % "Camera Settings..."
     {34,"相機設置 ..."},
-    % "Set field of view, and near and far clipping planes"
     {35,"設置視野，和近及遠裁剪面"},
-    % "Scene Lights"
     {36,"場景燈"},
-    % "Use the lights defined in the scene"
     {37,"使用燈光在場景中定義"},
-    % "Two Lights"
     {38,"兩個燈"},
-    % "One Light"
     {39,"一盞燈"},
-    % "Use two work lights"
     {40,"使用兩個工作燈"},
-    % "Use one work light"
     {41,"使用一個工作燈"},
-    % "Show Colors"
     {42,"顯示顏色"},
-    % "Show vertex colors"
     {43,"顯示點顏色"},
-    % "Show Materials"
     {44,"顯示材料"},
-    % "Show materials"
     {45,"顯示材料"},
-    % "Show Textures"
     {46,"顯示紋理"},
-    % "Show textures"
     {47,"顯示紋理"},
-    % "Show Info Text"
     {48,"展會信息文本"},
-    % "Show an informational text at the top of this Geometry window"
     {49,"顯示一個信息性文本在這個幾何窗口頂部"},
-    % "View Along"
     {50,"查看沿"},
-    % "+X"
     {51,"+X"},
-    % "+Y"
     {52,"+Y"},
-    % "+Z"
     {53,"+Z"},
-    % "-X"
     {54,"-X"},
-    % "-Y"
     {55,"-Y"},
-    % "-Z"
     {56,"-Z"},
-    % "Align to Selection"
     {57,"對齊選擇"},
-    % "Align the view to the normal of the selection"
     {58,"對準以正常的選擇"},
-    % "Auto Rotate"
     {59,"自動旋轉"},
-    % "Spin the view"
     {60,"自旋的看法"},
-    % "Clipping Planes"
     {61,"平面裁剪"},
-    % "Toggle extra clipping planes (use default axis)"
     {62,"額外的裁剪平面切換（使用默認的軸）"},
-    % "Frame Disregards Mirror"
     {65,"無視鏡像框架"},
-    % "Highlight Aim"
     {66,"突出目標"},
-    % "Aim camera at mouseover highlight. (Requires 'Use Highlight as Temporary Selection' enabled, and an assigned hotkey)"
-    {67,"瞄準攝像機在鼠標懸停的亮點。\n （需要'使用凸顯臨時選擇'啟用，和分配的熱鍵）"},
-    % "Show"
+    {67,"瞄準攝像機在鼠標懸停的亮點。 （需要'使用凸顯臨時選擇'啟用，和分配的熱鍵）"},
     {68,"顯示"},
-    % "Show BB Center"
     {69,"顯示邊界框中心"},
-    % "Display the Center of any saved bounding box"
     {70,"顯示任何保存中心邊框"},
-    % "Nearest Axis"
     {71,"最近軸"},
-    % "Show Backfaces"
     {72,"顯示背面"},
-    % "Show backfaces when there is a hole or hiddwn faces in an object"
     {73,"顯示背面當有一孔或隱藏面一個對象"}
    ]},
   {shader_submenu,
    [
-    % "Next"
     {1,"下一頁"},
-    % "Previous"
     {2,"上一頁"},
-    % "Shaders: "
     {3,"著色器："}
    ]},
   {view_legend,
    [
-    % "along +X"
     {2,"沿+X"},
-    % "along +Y"
     {3,"沿+Y"},
-    % "along +Z"
     {4,"沿+Z"},
-    % "along -X"
     {5,"沿-X"},
-    % "along -Y"
     {6,"沿-Y"},
-    % "along -Z"
     {7,"沿-Z"},
-    % "towards Origin"
     {8,"原對象"},
-    % "towards "
     {9,"對"},
-    % "distance"
     {distance,"距離"},
-    % "From"
     {from,"從"}
    ]},
   {views,
    [
-    % "This view is already the current"
     {1,"這種觀點已是當前"},
-    % "No saved views"
     {2,"沒有保存的意見"},
-    % "Rename view"
     {3,"重命名視圖"},
-    % "You have to be at the current view"
     {4,"你必須要在當前視圖"},
-    % "Are you sure you want to delete all saved views?"
     {5,"你確定要刪除所有已保存的意見？"}
    ]},
   {views_jump,
    [
-    % "No such view slot"
     {1,"沒有這樣的看法插槽"}
    ]},
   {views_jumpmenu,
    [
-    % "Jump"
     {1,"跳轉"},
-    % "No saved views!"
     {2,"沒有保存的意見！"},
-    % "Jump to prev["
     {3,"跳轉到上一頁 ["},
-    % "Jump to current["
     {5,"跳轉到當前 ["},
-    % "Jump to next["
     {7,"跳轉到下一個 ["},
-    % "Jump to ["
     {9,"跳轉到["},
-    % "Jump"
     {11,"跳轉"}
    ]},
   {views_move,
    [
-    % "No such view ["
     {1,"沒有這樣的看法["}
    ]},
   {views_movemenu,
    [
-    % "Move Current"
     {1,"當前移動"},
-    % "No saved views!"
     {2,"沒有保存的意見！"},
-    % "Move \""
     {3,"移動\""},
-    % "] to prev["
     {5,"]到上一頁 ["},
-    % "Move \""
     {7,"移動\""},
-    % "] nowhere"
     {9,"]無處"},
-    % "Move \""
     {10,"移動\""},
-    % "] to next["
     {12,"]下一個 ["},
-    % "Move \""
     {14,"移動\""},
-    % "] to ["
     {16,"]到["},
-    % "Move Current"
     {18,"當前移動"}
    ]},
   {views_rename_qs,
    [
-    % "Name"
     {1,"名稱"}
    ]},
   {views_save_dialog,
    [
-    % "Save view as"
     {1,"保存視"}
    ]},
   {views_submenu,
    [
-    % "Next"
     {1,"下一頁"},
-    % "Current"
     {2,"當前"},
-    % "Prev"
     {3,"上一頁"},
-    % "Save"
     {4,"保存"},
-    % "Save this view at "
     {5,"這一觀點在保存"},
-    % "Rename..."
     {7,"重命名..."},
-    % "Delete"
     {8,"刪除"},
-    % "Delete All..."
     {9,"全部刪除 ..."}
    ]},
   {views_submenu_help,
    [
-    % "No saved views!"
     {1,"沒有保存的意見！"},
-    % "Jump to \""
     {2,"跳轉到\""},
-    % "Rename \""
     {5,"重命名\""},
-    % "Delete \""
     {8,"刪除\""},
-    % "Delete all saved views"
     {11,"刪除所有保存的視圖"}
    ]},
   {virtual_mirror,
    [
-    % "Virtual mirror requires a face selection."
     {1,"虛擬鏡像需要選擇一個面。"}
    ]},
   {virtual_mirror_fun,
    [
-    % "Only a single face must be selected per object."
     {1,"只有一個面必須選擇每個對象。"}
    ]}
  ]}.
@@ -5871,23 +3587,17 @@
  [
   {all_soft,
    [
-    % "preparing"
     {1,"準備"},
-    % "collecting"
     {2,"收集"}
    ]},
   {mixed_edges,
    [
-    % "preparing"
     {1,"準備"},
-    % "vertex normals"
     {2,"頂點法線"},
-    % "vertex normals per face"
     {3,"每個面頂點法線"}
    ]},
   {normals_2,
    [
-    % "calculating soft normals"
     {1,"軟計算法線"}
    ]}
  ]}.
@@ -5895,7 +3605,6 @@
  [
   {message_event,
    [
-    % "This is the information line"
     {1,"這是信息行"}
    ]}
  ]}.
@@ -5903,77 +3612,50 @@
  [
   {close_event,
    [
-    % "Close this window"
     {1,"關閉此窗口"}
    ]},
   {ctrl_command,
    [
-    % "Width"
     {1,"寬度"},
-    % "Height"
     {2,"高度"},
-    % "Set Window Size"
     {3,"設置窗口大小"}
    ]},
   {ctrl_menu,
    [
-    % "Fit"
     {1,"適合"},
-    % "Both"
     {2,"兩個"},
-    % "Let window use all available space by expanding in all directions"
     {3,"讓窗口使用所有可用空間，擴大在各個方向"},
-    % "Horizontal"
     {4,"水平"},
-    % "Let window use all available space by expanding it horizontally"
     {5,"讓窗口使用所有可用空間範圍擴大水平"},
-    % "Vertical"
     {6,"垂直"},
-    % "Let window use all available space by expanding it vertically"
     {7,"讓窗口使用所有可用空間，擴大其垂直"},
-    % "Size"
     {8,"尺寸"},
-    % "Set window size numerically"
     {9,"數值設置窗口大小"}
    ]},
   {ctrl_menu_toolbar,
    [
-    % "Hide Toolbar"
     {1,"隱藏工具欄"},
-    % "Hide the toolbar"
     {2,"隱藏工具欄"},
-    % "Show Toolbar"
     {3,"顯示工具欄"},
-    % "Show the toolbar"
     {4,"顯示工具欄"}
    ]},
   {ctrl_message,
    [
-    % "Drag to Move"
     {1,"拖動以移動"},
-    % "Fit"
     {2,"適合"},
-    % "Show menu"
     {3,"顯示菜單"},
-    % "Click to show window"
     {4,"點擊櫥窗"},
-    % "Click to rollup window into titlebar"
     {5,"點擊進入匯總窗口標題欄"},
-    % "Click to bring Geometry Window to Front"
     {6,"點擊窗口接待帶來幾何"},
-    % "Click to send Geometry Window to Back"
     {7,"點擊發送幾何窗口返回"}
    ]},
   {ctrl_resize,
    [
-    % "Too large size specified"
     {1,"過大尺寸規定"}
    ]},
   {resize_event,
    [
-    % "Resize"
     {1,"調整"},
-    % "Resize, keeping current aspect ratio"
     {2,"調整，保持目前的高寬比"}
    ]}
  ]}.
@@ -5981,55 +3663,40 @@
  [
   {dialog_template,
    [
-    % "Swap Y and Z Axes"
     {1,"交換 Y和Z軸"},
-    % "Sub-division Steps"
     {6,"分科步驟"},
-    % "Default texture file type"
     {7,"文件類型的默認紋理"},
-    % "Export vertex colors"
     {color,"導出頂點顏色"},
-    % "Export normals/smoothing groups"
     {norms,"導出資料 /平滑組"},
-    % "Tesselation"
     {tess,"拆嵌"},
-    % "None"
     {tess0,"無"},
-    % "Triangulation"
     {tess3,"三角測量"},
-    % "Quadrangulation"
     {tess4,"四邊形策略"},
-    % "Export UV coordinates"
     {uv,"導出UV坐標"}
    ]},
   {do_import,
    [
-    % "reading file"
     {1,"讀取文件"}
    ]},
   {export_scale_s,
    [
-    % "Export scale"
     {1,"導出縮放"}
    ]},
   {export_selected,
    [
-    % "Select objects or faces."
     {1,"選擇對象或面。"}
    ]},
   {format_error,
    [
-    % "Internal error: ~P\n"
     {1,"內部錯誤： ~p\n"}
    ]},
   {import,
    [
-    % "Import failed: "
     {1,"導入失敗："}
    ]},
   {import_scale_s,
    [
-    % "Import scale"
     {1,"導入縮放"}
    ]}
  ]}.
+ 

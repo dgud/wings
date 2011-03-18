@@ -1,0 +1,70 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_circularise,
+ [
+  {angle_help,
+   [
+    {1,"  [3] Use Obtuse Angle"},
+    {2,"  [3] Use Acute Angle"}
+   ]},
+  {check_selection,
+   [
+    {1,"선택하지 않았습니다."},
+    {2,"버텍스는 원본 엣지 루프에서 해야 합니다."},
+    {4,"하나의 엣지 또는 버텍스만을 선택해야 합니다."}
+   ]},
+  {circ_norm_help,
+   [
+    {1,"  [2] Reverse Plane Normal"},
+    {2,"  [2] Original Plane Normal"}
+   ]},
+  {circ_sel_error,
+   [
+    {3,"선택은 하나 이상 열린 엣지 루프 또는 \n하나의 닫힌 루프로 구성되어야 합니다."}
+   ]},
+  {circ_sel_error_1,
+   [
+    {1,"선택된 엣지 루프는 버텍스를 공유할 수 없습니다."}
+   ]},
+  {circ_sel_error_3,
+   [
+    {2,"하나의 엣지를 포함한 선택은 처리할 수 없습니다."}
+   ]},
+  {circ_sel_error_4,
+   [
+    {2,"선택된 엣지 루프가 교차할 수 없거나, 모두 열렸거나 모두 닫혔습니다."}
+   ]},
+  {circular_arc_menu,
+   [
+    {1,"Circularise"},
+    {2,"선택된 엣지 루프를 평행, 동일, 팽창으로 서큘러(원형) 만들기"},
+    {5,"어느 루프가 평평해질 공통 플레인 선택"},
+    {6,"2 차 선택을 사용할 지정"}
+   ]},
+  {flatten_help,
+   [
+    {1,"[1] Don't Flatten"},
+    {2,"[1] Flatten"}
+   ]},
+  {norm_help,
+   [
+    {1,"  [2] Reverse Arc Normal"},
+    {2,"  [2] Original Arc Normal"}
+   ]},
+  {radius_help,
+   [
+    {1,"  [3] Use Absolute Diameter"},
+    {2,"  [3] Use Relative Diameter"}
+   ]},
+  {secondary_sel_ask,
+   [
+    {1,"중심 포인트에서 안정된 광선에 표시하는 원본 엣지 루프에 있는 하나의 엣지 또는 버텍스 선택"},
+    {2,"중심 포인트 피크(선택)"},
+    {3,"플레인 피크(선택)"}
+   ]},
+  {selection_ask,
+   [
+    {1,"플레인 피크(선택)"},
+    {2,"중심 포인트 피크(선택)"},
+    {3,"선택된 플레인과 엣지 선택의 끝에 대해서 계산될 포인트 중심 피크(선택)"}
+   ]}
+ ]}.

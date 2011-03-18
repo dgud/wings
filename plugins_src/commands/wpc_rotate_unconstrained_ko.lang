@@ -1,0 +1,14 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_rotate_unconstrained,
+ [
+  {orbitrot_menu,
+   [
+    {1,"언컨스트레인드(자유)"},
+    {2,"자유롭게 선택의 주위 회전 "},
+    {3,"회전 중심 피크(선택)"}
+   ]},
+  {selection_ask,
+   [
+    {1,"회전의 중심 피크(선택)"}
+   ]}
+ ]}.
