@@ -380,11 +380,11 @@ by_command({nonplanar_faces,Ask}, St) ->
 by_command({vertices_with,N}, St) ->
     vertices_with(N, St);
 by_command({non_quad,all}, St) ->
-    {save_state,faces_with({non_quad,all}, St)};
+    faces_with({non_quad,all}, St);
 by_command({non_quad,odd}, St) ->
-    {save_state,faces_with({non_quad,odd}, St)};
+    faces_with({non_quad,odd}, St);
 by_command({non_quad,even}, St) ->
-    {save_state,faces_with({non_quad,even}, St)};
+    faces_with({non_quad,even}, St);
 by_command({faces_with,N}, St) ->
     faces_with({faces_with,N}, St);
 by_command(material_edges, St) ->
@@ -1697,14 +1697,14 @@ faces_with(Filter, #st{sel=[]}=St) ->
 faces_with(Filter, #st{selmode=Mode}=St0) ->
     St = if Mode =:= face -> St0; true -> wings_sel_conv:mode(face, St0) end,
     Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
-				Sel1 = gb_sets:to_list(Sel0),
-				Faces = [Face || Face <- Sel1, faces_with(Filter, Face, We)],
-				case Faces of
-				  [] -> Acc;
-				  _ -> [{Id,gb_sets:from_list(Faces)}|Acc]
-				end
-			end, [], St),
-	{save_state,wings_sel:set(face,Sel,St0)}.
+				 Sel1 = gb_sets:to_list(Sel0),
+				 Faces = [Face || Face <- Sel1, faces_with(Filter, Face, We)],
+				 case Faces of
+				     [] -> Acc;
+				     _ -> [{Id,gb_sets:from_list(Faces)}|Acc]
+				 end
+			 end, [], St),
+    {save_state,wings_sel:set(face,Sel,St0)}.
 
 faces_with(Filter, Face, We) ->
     Vs = wings_face:vertices(Face, We),
@@ -1728,3 +1728,4 @@ select_nth_ring(#st{selmode=edge}) ->
 	    {select,{edge_loop,{nth_edge_ring,Res}}}
 	end);
 select_nth_ring(St) -> {save_state,St}.
+
