@@ -1,0 +1,20 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_x,
+ [
+  {do_export,
+   [
+    {1,"DirectX 書き出しオプション"}
+   ]},
+  {export,
+   [
+    {1,"DirectX Error: ~P in ~p~n"}
+   ]},
+  {menu_entry,
+   [
+    {1,"DirectX (.x)..."}
+   ]},
+  {props,
+   [
+    {1,"DirectX File"}
+   ]}
+ ]}.

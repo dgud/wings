@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_obj,
+ [
+  {dialog,
+   [
+    {1,"1つのマテリアルあたり1グループ"},
+    {2,"心理的な回避策"}
+   ]},
+  {do_export,
+   [
+    {1,"Wavefront 書き出しオプション"}
+   ]},
+  {do_import,
+   [
+    {1,"Wavefront  読込みオプション"}
+   ]},
+  {props,
+   [
+    {1,"Wavefront File"}
+   ]}
+ ]}.

@@ -1,0 +1,41 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wp9_dialogs,
+ [
+  {check_filename,
+   [
+    {1," は存在しません"}
+   ]},
+  {dialog_1,
+   [
+    {1,"このフォルダを表示"},
+    {2,"上の階層へ"},
+    {3,"ファイル名"},
+    {4,"ファイル形式"},
+    {5,"Cancel"},
+    {6," が存在します;上書きしますか?"},
+    {7,"はい"},
+    {8,"いいえ"},
+    {9,"UTF-8でエンコードされたファイル名"}
+   ]},
+  {file_filters,
+   [
+    {1,"Wings3D形式"},
+    {2,"すべてのファイル形式 (*)"}
+   ]},
+  {file_list,
+   [
+    {1,"Filename"}
+   ]},
+  {image_formats,
+   [
+    {1,"BMP Bitmap File"},
+    {2,"Tiff Bitmap"},
+    {3,"PNG File"},
+    {4,"Targa File"}
+   ]},
+  {ui,
+   [
+    {1,"Open"},
+    {2,"Save"}
+   ]}
+ ]}.

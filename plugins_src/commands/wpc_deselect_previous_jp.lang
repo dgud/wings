@@ -1,0 +1,9 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_deselect_previous,
+ [
+  {deselect_previous,
+   [
+    {1,"1つ前を解除"},
+    {2,"現在の選択領域から前の選択状態を引き算します"}
+   ]}
+ ]}.

@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_move_planar,
+ [
+  {axis_menu_string,
+   [
+    {1," ~s で定義された平面上だけを移動させます"}
+   ]},
+  {move_planar_menu,
+   [
+    {1,"平面(2軸移動)"},
+    {2,"標準平面上だけを移動させます"},
+    {3,"平面を指定"}
+   ]},
+  {selection_ask,
+   [
+    {1,"移動を固定する平面を指定してください"}
+   ]}
+ ]}.

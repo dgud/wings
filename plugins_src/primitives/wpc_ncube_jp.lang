@@ -1,0 +1,31 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ncube,
+ [
+  {make_ncube,
+   [
+    {1,"N-立方体 オプション"},
+    {2,"N-cube"}
+   ]},
+  {make_ngon,
+   [
+    {1,"N-角形 オプション"},
+    {2,"N-gon"}
+   ]},
+  {ncube_dialog,
+   [
+    {1,"分割数"},
+    {2,"はい"},
+    {3,"いいえ"},
+    {4,"球形化"}
+   ]},
+  {ncube_menu,
+   [
+    {1,"N-立方体"},
+    {2,"N-角形"}
+   ]},
+  {ngon_dialog,
+   [
+    {3,"角の数"},
+    {4,"半径"}
+   ]}
+ ]}.

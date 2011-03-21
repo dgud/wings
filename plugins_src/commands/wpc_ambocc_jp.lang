@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ambocc,
+ [
+  {ambient,
+   [
+    {1,"Ambient"}
+   ]},
+  {ambient_occlusion,
+   [
+    {1,"OpenGL アンビエントオクルージョン 時間: ~.1fs (~s)\n"}
+   ]},
+  {menu,
+   [
+    {1,"アンビエントオクルージョン"},
+    {2,"OpenGLを利用して頂点カラーにアンビエントオクルージョンを追加します"}
+   ]},
+  {process_obj,
+   [
+    {1,"処理中 : ~s\n"}
+   ]}
+ ]}.

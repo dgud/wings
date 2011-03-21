@@ -1,0 +1,654 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+% auto_uv plugin の日本語訳
+{auv_mapping,
+ [
+  {chart_normal,
+   [
+    % "Can not calculate normal for chart."
+    {1,"UVチャートの法線を計算できません."}
+   ]},
+  {find_axes,
+   [
+    % "I currently can't sphere/cylinder map this type of chart/cuts,\nI can't figure out which axes you want as X,Y, and Z,\nplease use unfolding or one of the projection mappings."
+    {1,"私は現在このタイプのチャート/カットを球面/円柱マッピングすることができません,\n 私は必要なX,Y,Z軸を見つけることができませんでした  \n 展開するか,投影マッピングの1つを使ってください."}
+   ]},
+  {get_face_vspos,
+   [
+    % "Error: Face isn't triangulated ~p with ~p vertices"
+    {1,"エラー : 面 ~p (頂点数 ~p 個)は三角ポリゴン化できませんでした."}
+   ]},
+  {map_chart,
+   [
+    % "A closed surface cannot be mapped. (Either divide it into into two or more charts, or cut it along some edges.)"
+    {1,"閉じた曲面をマップすることはできません. (2つ以上のUVチャートに分割するか,いくつかの辺に沿ってカットするかのいずれかを行ってください.)"},
+    % "A cut in a closed surface must consist of at least two edges."
+    {2,"閉じた曲面をカットするには少なくとも2本の辺を指定する必要があります."},
+    % "At least 2 vertices (per chart) must be selected"
+    {3,"UVチャートあたり2個の頂点を指定する必要があります."},
+    % "Error:"
+    {4,"エラー:"},
+    % "Internal Error"
+    {5,"内部エラー"}
+   ]},
+  {map_chart_1,
+   [
+    % "Numeric problem, probably a bad face with an empty area."
+    {1,"数値的な問題が発生しました.おそらくメッシュ上の空白の領域に不正な面があるのかもしれません."},
+    % "Internal error:"
+    {2,"内部エラー:"},
+    % "Error"
+    {3,"エラー"}
+   ]},
+  {stretch_iter,
+   [
+    % "iteration"
+    {1,"反復処理"}
+   ]},
+  {stretch_opt,
+   [
+    % "optimizing"
+    {1,"最適化中"},
+    % "initializing"
+    {2,"初期化中"},
+    % "After Stretch sum (mean) ~p"
+    {3,"ストレッチ後の合計(平均) ~p"}
+   ]},
+  {stretch_setup,
+   [
+    % "Stretch sum (worst) ~p"
+    {1,"ストレッチの合計(最低) ~p"},
+    % "Stretch sum (mean) ~p"
+    {2,"ストレッチの合計(平均) ~p"}
+   ]}
+ ]}.
+{auv_seg_ui,
+ [
+  {mappers,
+   [
+    % "Unfolding"
+    {1,"UV展開する"},
+    % "Projection Normal"
+    {2,"法線で投影"},
+    % "Projection Camera"
+    {3,"カメラ視点で投影"},
+    % "Sphere Map"
+    {4,"球面マップ"},
+    % "Cylindrical Map"
+    {5,"円柱マップ"}
+   ]},
+  {seg_event,
+   [
+    % "Segmenting"
+    {1,"セグメント化"}
+   ]},
+  {seg_event_3,
+   [
+    % "Continue"
+    {1,"続ける"},
+    % "Segment by"
+    {2,"セグメント化する..."},
+    % "Projection"
+    {3,"投影"},
+    % "Feature Detection"
+    {4,"自動セグメント化"}
+   ]},
+  {seg_init_message,
+   [
+    % "Select"
+    {1,"選択"},
+    % "Show menu"
+    {2,"メニューを表示"}
+   ]},
+  {seg_map_charts,
+   [
+    % "preparing mapping"
+    {1,"マッピングの準備中"},
+    % "segmenting"
+    {2,"セグメント化"},
+    % "normalizing"
+    {3,"法線化"},
+    % "cutting"
+    {4,"カット"},
+    % "No mappable faces."
+    {5,"マップ可能な面がありません."},
+    % "mapping"
+    {6,"マッピング"}
+   ]},
+  {seg_map_charts_1,
+   [
+    % "chart"
+    {1,"UVチャート"}
+   ]},
+  {seg_mode_menu,
+   [
+    % "Mark Edges for Cut"
+    {1,"マークを付けた辺でカットします"},
+    % "Unmark Edges"
+    {2,"辺に付けたマークを消します"},
+    % "Select Marked Edges"
+    {3,"選択した辺をマークします"},
+    % "Ignore Faces"
+    {4,"面を無視"},
+    % "Select"
+    {5,"選択"}
+   ]}
+ ]}.
+{auv_texture,
+ [
+  {background,
+   [
+    % "Background"
+    {1,"背景"}
+   ]},
+  {draw_options,
+   [
+    % "Size"
+    {1,"サイズ"},
+    % "Render"
+    {2,"描画"},
+    % "Draw Options"
+    {3,"描画オプション"},
+    % "New Pass"
+    {4,"新規描画パス"},
+    % "Delete Unused Pass"
+    {5,"未使用の描画パスを削除"}
+   ]},
+  {options,
+   [
+    % "Image"
+    {1,"イメージ"},
+    % "Color"
+    {2,"カラー"},
+    % "Draw All Edges"
+    {3,"全ての辺を描画"},
+    % "Draw Border Edges"
+    {4,"全ての輪郭を描画"},
+    % "Edge Color:"
+    {5,"辺の色:"},
+    % "Edge Width:"
+    {6,"辺の幅:"},
+    % "Use vertex colors (on border edges)"
+    {8,"頂点カラーを使用(輪郭線上)"}
+   ]},
+  {render_passes,
+   [
+    % "Background"
+    {1,"背景"},
+    % "Options"
+    {2,"オプション"},
+    % "Options"
+    {3,"オプション"}
+   ]},
+  {renderers,
+   [
+    % "None"
+    {1,"なし"},
+    % "Draw Edges"
+    {2,"辺を描画"},
+    % "Draw Faces"
+    {3,"面を描画"}
+   ]}
+ ]}.
+{wpc_autouv,
+ [
+  {align_error,
+   [
+    % "Select two vertices or one edge"
+    {1,"2個の頂点または1つの辺を選んでください"}
+   ]},
+  {auv_menu,
+   [
+    % "UV Mapping"
+    {1,"UVマッピング"},
+    % "Generate UV mapping or texture"
+    {2,"UVマップまたはテクスチャを生成します"},
+    % "Force to segmenting mode (delete old segments)"
+    {3,"セグメントモードに強制移行(以前のセグメントは削除されます)"},
+    % "Re-segment object(s)"
+    {25,"オブジェクトを再セグメント化"}
+   ]},
+  {command_menu,
+   [
+    % "Move"
+    {2,"移動"},
+    % "Move selected charts"
+    {3,"選択したUVチャートを移動します"},
+    % "Scale"
+    {4,"拡大縮小"},
+    % "Scale selected charts"
+    {5,"選択したUVチャートを拡大縮小します"},
+    % "Rotate"
+    {6,"回転"},
+    % "Rotate selected charts"
+    {7,"選択したUVチャートを回転します"},
+    % "Move to"
+    {8,"移動先..."},
+    % "Center"
+    {9,"中央"},
+    % "Move to Center"
+    {10,"中央へ移動します"},
+    % "Center X"
+    {11,"水平中心(X軸)"},
+    % "Move to horizontal center"
+    {12,"水平方向の中央へ移動します"},
+    % "Center Y"
+    {13,"垂直中心(Y軸)"},
+    % "Move to vertical center"
+    {14,"垂直方向の中央へ移動します"},
+    % "Bottom"
+    {15,"下方"},
+    % "Move to bottom border"
+    {16,"下端へ移動します."},
+    % "Top"
+    {17,"上方"},
+    % "Move to top border"
+    {18,"上端へ移動します."},
+    % "Left"
+    {19,"左"},
+    % "Move to left border"
+    {20,"左端へ移動します."},
+    % "Right"
+    {21,"右"},
+    % "Move to right border"
+    {22,"右端へ移動します."},
+    % "Move charts to position"
+    {23,"UVチャートを指定位置へ移動させます"},
+    % "Flip"
+    {24,"反転..."},
+    % "Horizontal"
+    {25,"水平方向に反転"},
+    % "Flip selection horizontally"
+    {26,"選択部分を水平方向に反転"},
+    % "Vertical"
+    {27,"垂直方向に反転"},
+    % "Flip selection vertically"
+    {28,"選択部分を垂直方向に反転"},
+    % "Flip selected charts"
+    {29,"選択したUVチャートを反転させます"},
+    % "Tighten"
+    {30,"緊縮"},
+    % "Move UV coordinates towards average midpoint"
+    {31,"それぞれのUV座標から平均距離にある点へ移動します"},
+    % "Hide"
+    {32,"隠す"},
+    % "Hide selected charts but keep UV-coordinates"
+    {33,"一時的に見えなくなりますがUV座標は保持されたままです"},
+    % "Delete"
+    {34,"削除"},
+    % "Remove UV-coordinates for the selected charts"
+    {35,"選択したチャートのUV座標を削除します."},
+    % "ReMap UV"
+    {36,"UVを再マッピング"},
+    % "Stretch optimization"
+    {37,"ストレッチ最適化"},
+    % "Optimize the chart stretch"
+    {38,"UVチャートのストレッチを最適化します"},
+    % "Unfold"
+    {39,"UV展開"},
+    % "Unfold the chart"
+    {40,"UVチャートを展開します"},
+    % "Project Normal"
+    {41,"法線で投影"},
+    % "Project UVs from chart normal"
+    {42,"UVチャートからUV座標を投影します"},
+    % "Spherical"
+    {43,"球面マップ"},
+    % "Spherical mapping"
+    {44,"球面マッピングを行います"},
+    % "Calculate new UVs with chosen algorithm"
+    {45,"新規UV座標を選択したアルゴリズムに従って計算します"},
+    % "Move"
+    {47,"移動"},
+    % "Move selected faces"
+    {48,"選択した面を移動します"},
+    % "Scale"
+    {49,"拡大縮小"},
+    % "Scale selected faces"
+    {50,"選択した面を拡大縮小します"},
+    % "Rotate"
+    {51,"回転"},
+    % "Rotate selected faces"
+    {52,"選択した面を回転させます"},
+    % "Free"
+    {53,"自由回転"},
+    % "Rotate selection freely"
+    {54,"選択した面を自由に回転させます"},
+    % "Chart to X"
+    {55,"チャートをX軸に回転"},
+    % "Rotate chart to align selected edge to X-axis"
+    {56,"選択した辺をX軸と同じ向きへ揃えることでUVチャートを回転させます"},
+    % "Chart to Y"
+    {57,"チャートをY軸に回転"},
+    % "Rotate chart to align selected edge to Y-axis"
+    {58,"選択した辺をY軸と同じ向きへ揃えることでUVチャートを回転させます"},
+    % "Move"
+    {60,"移動"},
+    % "Move selected edges"
+    {61,"選択した辺を移動させます"},
+    % "Scale"
+    {62,"拡大縮小"},
+    % "Scale selected edges"
+    {63,"選択した辺を拡大縮小します"},
+    % "Rotate"
+    {64,"回転"},
+    % "Rotate commands"
+    {65,"回転コマンド"},
+    % "Stitch"
+    {66,"スティッチ"},
+    % "Stitch edges/charts"
+    {67,"辺やチャートを接着します"},
+    % "Cut"
+    {68,"カット"},
+    % "Cut selected edges"
+    {69,"選択した辺を分割します"},
+    % "Free"
+    {70,"自由回転"},
+    % "Rotate selection freely"
+    {71,"選択した領域を自由に回転させます"},
+    % "Chart to X"
+    {72,"チャートをX軸に回転"},
+    % "Rotate chart to align (imaginary) edge joining selected verts to X-axis"
+    {73,"選択した2つの頂点を結ぶ(仮想的な)線分をX軸と同じ向きへ揃えることでUVチャートを回転させます"},
+    % "Chart to Y"
+    {74,"チャートをY軸に回転"},
+    % "Rotate chart to align (imaginary) edge joining selected verts to Y-axis"
+    {75,"選択した2つの頂点を結ぶ(仮想的な)線分をY軸と同じ向きへ揃えることでUVチャートを回転させます"},
+    % "Move"
+    {77,"移動"},
+    % "Move selected vertices"
+    {78,"選択した頂点を移動させます"},
+    % "Scale"
+    {79,"拡大縮小"},
+    % "Scale selected vertices"
+    {80,"選択した頂点を拡大縮小します"},
+    % "Rotate"
+    {81,"回転"},
+    % "Rotation commands"
+    {82,"回転コマンド"},
+    % "Flatten"
+    {83,"平均化"},
+    % "Flatten horizontally"
+    {84,"水平方向に平均化"},
+    % "Flatten vertically"
+    {85,"垂直方向に平均化"},
+    % "Flatten selected vertices"
+    {86,"選択した頂点を平均化"},
+    % "Tighten"
+    {87,"緊縮"},
+    % "Move UV coordinates towards average midpoint"
+    {88,"UV座標をそれらから等距離にある中間点へ移動します"},
+    % "Unfold"
+    {89,"UV展開"},
+    % "Unfold the chart (without moving the selected vertices)"
+    {90,"チャートを展開します(選択した頂点を移動させることなしに)"},
+    % "SphereMap"
+    {91,"球面マップ"},
+    % "Create a spherical mapping with selected vertices being North/South pole"
+    {92,"選択した頂点で北頂/南頂のある球面マップを作成します"},
+    % "Normalize Sizes"
+    {411,"サイズの正規化"},
+    % "Normalize Chart Sizes so that eachchart get it's corresponding 2d area"
+    {412,"それぞれのチャートの大きさを2次元領域に収まるように正規化します"},
+    % "Project-Unfold"
+    {521,"UV展開(投影)"},
+    % "Project selected faces from normal and unfold the rest of chart"
+    {522,"選択した面を法線に従って投影し残りの部分に展開します,"},
+    % "Slide"
+    {641,"スライド"},
+    % "Slide along neighbor edges"
+    {642,"隣り合う辺に沿ってスライドします"},
+    % "Distribute"
+    {643,"分布"},
+    % "Distribute horizontally"
+    {644,"水平方向に分布"},
+    % "Distribute vertically"
+    {645,"垂直方向に分布"},
+    % "Distribute vertices evenly"
+    {646,"頂点を平均的に分布"}
+   ]},
+  {create_window,
+   [
+    % "Segmenting"
+    {1,"セグメンティング"}
+   ]},
+  {drag_filter,
+   [
+    % "Drop: Change the texture image"
+    {1,"ドロップ:テクチャイメージを変更"}
+   ]},
+  {handle_event_3,
+   [
+    % "Select"
+    {1,"選択"},
+    % "Show menu"
+    {2,"メニューを表示"}
+   ]},
+  {menu,
+   [
+    % "UV Editor Window"
+    {1,"UV編集ウインドウ"},
+    % "Open a UV Editor window for each selected object"
+    {2,"選択されたオブジェクトごとにUV編集ウインドウを開きます"}
+   ]},
+  {menubar,
+   [
+    % "Edit"
+    {1,"編集"},
+    % "Undo/Redo"
+    {2,"取り消す/やり直す"},
+    % "Undo or redo the last command"
+    {3,"最後に実行したコマンドを取り消す/やり直す"},
+    % "Redo"
+    {4,"やり直し"},
+    % "Redo the last command that was undone"
+    {5,"最後に実行したコマンドをやり直す"},
+    % "Undo"
+    {6,"取り消し"},
+    % "Undo the last command"
+    {7,"最後に実行したコマンドを取り消す"},
+    % "View"
+    {8,"ビュー"},
+    % "Show/Hide Background Image"
+    {9,"背景画像を表示/非表示"},
+    % "Toggle display of the background texture image"
+    {10,"背景テクスチャイメージの表示を切替える"},
+    % "Select"
+    {11,"選択"},
+    % "Repeat"
+    {71,"繰り返し"},
+    % "Repeat the last command"
+    {72,"最後に実行したコマンドを繰り返す"},
+    % "Repeat Args"
+    {74,"繰り返し：入力値を参照"},
+    % "Repeat the last command with same arguments"
+    {75,"最後に実行したコマンドの繰り返しに入力値を反映します"},
+    % "Repeat Drag"
+    {76,"繰り返し：マウスドラッグ量を反映"},
+    % "Repeat the last command with same arguments the same distance"
+    {77,"最後に実行したコマンドの繰り返しにドラッグ入力値を反映します"}
+   ]},
+  {move_directions,
+   [
+    % "Free"
+    {1,"自由移動"},
+    % "Move in both directions"
+    {2,"縦横自由に移動します"},
+    % "Horizontal"
+    {3,"水平移動"},
+    % "Move horizontally (X dir)"
+    {4,"水平に移動 (X軸方向)"},
+    % "Vertical"
+    {5,"垂直移動"},
+    % "Move vertically (Y dir)"
+    {6,"垂直に移動 (Y軸方向)"}
+   ]},
+  {option_menu,
+   [
+    % "Create Texture"
+    {1,"テクスチャを作成"},
+    % "Make and Attach a texture to the model"
+    {2,"テクスチャを作成しモデルに適用します"}
+   ]},
+  {remap,
+   [
+    % "remapping"
+    {1,"リマッピング"},
+    % "chart"
+    {2,"チャート"}
+   ]},
+  {reunfold,
+   [
+    % "Select two vertices, the North and South pole"
+    {1,"北頂と南頂,2個の頂点を選択してください"},
+    % "At least two vertices per chart must be pinned"
+    {2,"チャートごとに少なくとも2個の頂点をピン留めする必要があります"},
+    % "remapping"
+    {3,"リマッピング"},
+    % "chart"
+    {4,"チャート"}
+   ]},
+  {scale_directions,
+   [
+    % "Uniform"
+    {1,"拡大縮小(一様に)"},
+    % "Scale in both directions"
+    {2,"縦横同じ比率で拡大縮小します"},
+    % "Horizontal"
+    {3,"水平"},
+    % "Scale horizontally (X dir)"
+    {4,"水平に拡大縮小 (X軸方向)"},
+    % "Vertical"
+    {5,"垂直"},
+    % "Scale vertically (Y dir)"
+    {6,"垂直に拡大縮小 (Y軸方向)"}
+   ]},
+  {start_uvmap,
+   [
+    % "Nothing selected"
+    {1,"何も選択されていません"}
+   ]},
+  {stitch_charts,
+   [
+    % "Hmm, I can't stitch so many charts at the same time"
+    {1,"う〜ん,私はとても多くのチャートを同時に接着することはできません."}
+   ]},
+  {stretch_directions,
+   [
+    % "Max Uniform"
+    {1,"最大拡張(一様に)"},
+    % "Maximize either horizontally or vertically"
+    {2,"水平,垂直どちらの方向にも限界まで拡大します"},
+    % "Max Horizontal"
+    {3,"水平に最大拡張"},
+    % "Maximize horizontally (X dir)"
+    {4,"水平方向に限界まで拡大します (X軸方向)"},
+    % "Max Vertical"
+    {5,"垂直に最大拡張"},
+    % "Maximize vertically (Y dir)"
+    {6,"垂直方向に限界まで拡大します (Y軸方向)"}
+   ]}
+ ]}.
+{wpc_snap,
+ [
+  {find_a_id,
+   [
+    % "Visible object required."
+    {1,"見えているオブジェクトが必要です."}
+   ]},
+  {menu,
+   [
+    % "Snap Image"
+    {1,"イメージにスナップ"},
+    % "Start snap mode for \"snapping\" UV coordinates onto an image"
+    {2,"\"スナップ\"しているUV座標を画像上にスナップさせるスナップモードを開始します"},
+    % "Exit Snap Mode"
+    {3,"スナップモードを終了"},
+    % "Exit snap mode"
+    {4,"スナップモードを終了します"},
+    % "Snap Image"
+    {5,"スナップイメージ"},
+    % "Put background image on selected faces by assigning UV coordinates to them"
+    {6,"それらへの座標をUVに割り当てることによって,選択された面に背景画像を割り当ててください."}
+   ]},
+  {proportional_scale,
+   [
+    % "...to Current X"
+    {1,"...X方向のサイズに揃える"},
+    % "Scale image's Y value to be proportional to it's current X value"
+    {2,"イメージの縦(Y)方向の値を現在の横(X)方向のサイズに合わせます"},
+    % "...to Current Y"
+    {3,"...Y方向のサイズに揃える"},
+    % "Scale image's X value to be proportional to it's current Y value"
+    {4,"イメージの横(X)方向の値を現在の縦(Y)方向のサイズに合わせます"},
+    % "Actual Size"
+    {5,"実サイズに戻す"},
+    % "Reset image to its actual size"
+    {6,"イメージを実際のサイズに戻します"}
+   ]},
+  {select_image,
+   [
+    % "No images present, import an image first."
+    {1,"現在イメージが何もありません,最初にイメージを読込んでください."},
+    % "Choose Image to snap"
+    {2,"スナップさせるイメージを選んでください"}
+   ]},
+  {snap_menu,
+   [
+    % "Horizontal"
+    {1,"水平方向"},
+    % "Scale the background image horizontally"
+    {2,"背景イメージを水平方向に引き延ばします"},
+    % "Vertical"
+    {3,"垂直方向"},
+    % "Scale the background image vertically"
+    {4,"背景イメージを垂直方向に引き延ばします"},
+    % "Free"
+    {5,"拡大縮小(自由)"},
+    % "Scale the background image freely"
+    {6,"背景イメージを自由な方向に引き延ばします"},
+    % "Uniform"
+    {7,"拡大縮小(一様に)"},
+    % "Scale the background image uniformly"
+    {8,"背景イメージを比率を保った状態で引き延ばします"},
+    % "Move the background image horizontally"
+    {10,"背景イメージを水平方向に移動します"},
+    % "Move the background image vertically"
+    {12,"背景イメージを垂直方向に移動します"},
+    % "Move the background image freely"
+    {14,"背景イメージを自由な方向に移動します"},
+    % "Scale Snap Image"
+    {15,"イメージをスナップして拡大縮小"},
+    % "Scale the background image"
+    {16,"背景イメージを拡大縮小"},
+    % "Move Snap Image"
+    {17,"スナップしたイメージを移動"},
+    % "Move the background image"
+    {18,"背景イメージを移動"},
+    % "Exit Snap Mode"
+    {19,"スナップモードを終了"},
+    % "Exit the snap mode"
+    {20,"スナップモードを終了します"},
+    % "Fit Snap Image"
+    {21,"フィット"},
+    % "Both"
+    {22,"フィット(全体)"},
+    % "Fit image to the dimensions of the viewport"
+    {25,"イメージをビューポートの寸法にフィットさせます"},
+    % "Center X"
+    {26,"中央へ(X方向)"},
+    % "Center the background image horizontally"
+    {27,"背景イメージを水平方向の中央に配置します"},
+    % "Center Y"
+    {28,"中央へ(Y方向)"},
+    % "Center the background image vertically"
+    {29,"背景イメージを垂直方向の中央に配置します"},
+    % "Center"
+    {30,"中央へ"},
+    % "Center the background image to the viewport"
+    {31,"背景イメージをビューポートの中央に配置します"},
+    % "Proportional"
+    {32,"画像を拡大縮小(一様に)"},
+    % "Make image scale proportional"
+    {33,"画像の比率を保ったまま拡大縮小します"}
+   ]}
+ ]}.
