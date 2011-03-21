@@ -1802,7 +1802,7 @@ stretch(Dir,We) ->
     
 reunfold(Method,#st{sel=Sel,selmode=vertex}=St0) ->
     %% Check correct pinning.
-    Ch = fun(Vs, _, _) ->
+    Ch = fun(Vs, #we{vp=Vtab}, _) ->
 		 case gb_sets:size(Vs) of
 		     N when N /= 2, Method == sphere -> 
 			 E = ?__(1,"Select two vertices, the North and South pole"),
@@ -1810,7 +1810,13 @@ reunfold(Method,#st{sel=Sel,selmode=vertex}=St0) ->
 		     N when N < 2 ->
 			 E = ?__(2,"At least two vertices per chart must be pinned"),
 			 wpa:error_msg(E);
-		     _-> ok
+		     N ->
+			 case N < wings_util:array_entries(Vtab) of
+			     true -> ok;
+			     _ -> 
+				 E = ?__(5,"All vertices can not be pinned"),
+				 wpa:error_msg(E)
+			 end
 		 end
 	 end,
     wings_sel:fold(Ch, ok, St0),
