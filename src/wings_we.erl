@@ -34,7 +34,7 @@
 	 visible/1,visible/2,visible_vs/1,visible_vs/2,
 	 visible_edges/1,visible_edges/2,fully_visible_edges/2,
 	 validate_mirror/1,mirror_flatten/2,mirror_projection/1,
-	 create_mirror/2,freeze_mirror/1,break_mirror/1,centroid/1]).
+	 create_mirror/2,freeze_mirror/1,break_mirror/1,centroid/1,volume/1]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
@@ -1206,28 +1206,35 @@ validate_vertex_tab(#we{es=Etab,vc=Vct}) ->
 	    end, array:sparse_to_orddict(Vct)).
 	    
 	    
-%% Geometric center by weighted tetrahedrons
+%%% http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/volume.html	    
+%%% Centroid by vol weighted tetrahedron centroids. Paper only talks about vol
+%%% But for constant mass and tetrahedron shapes, 
+%%% Centroid calculation is a natural fallout (ggaliens)
 centroid( #we{}=_We ) ->
     We = wings_tesselation:triangulate(_We),
     #we{fs=Ftab}=We,
-    MyAcc = fun(Fi, {{ Tx, Ty, Tz }, VTotal } ) ->
-        { _A, Vol, { CX, CY, CZ }  }  = centroid_parts(Fi,We),
-        { { Tx+Vol*CX,  Ty+Vol*CY,  Tz+Vol*CZ },  Vol + VTotal } 
+    MyAcc = fun(Fi, {{Tx,Ty,Tz}, VTotal }) ->
+        {Vol,{CX,CY,CZ}}  = centroid_parts(Fi,We),
+        {{Tx+Vol*CX,Ty+Vol*CY,Tz+Vol*CZ},Vol+VTotal} 
     end,
-    
-    {{ X, Y, Z }, VolumeT }  = lists:foldl(MyAcc, {{ 0.0, 0.0, 0.0 } , 0.0 } , gb_trees:keys(Ftab)  ),
-    { X/VolumeT, Y/VolumeT,  Z/VolumeT }.
-	
+    {{X,Y,Z}, VolumeT }  = lists:foldl(MyAcc, {{0.0,0.0,0.0},0.0} , gb_trees:keys(Ftab)),
+    {X/VolumeT,Y/VolumeT,Z/VolumeT}.
 	
 centroid_parts(Face, We) ->
     [V1,V2,V3] = wings_face:vertex_positions(Face, We),
-    E1 = e3d_vec:sub(V1, V2),
-    E2 = e3d_vec:sub(V3, V2),
-    Cp = e3d_vec:cross(E1, E2),
     Bc = e3d_vec:cross(V2, V3),
-    Area = e3d_vec:len(Cp)/2.0,
     Volume = e3d_vec:dot(V1, Bc)/6.0,
+    Centroid = e3d_vec:average([V1,V2,V3,{0.0,0.0,0.0}]),
+    {Volume,Centroid}.	
     
-    Centroid = e3d_vec:average(   [ V1, V2, V3, {0.0, 0.0, 0.0} ]   ),
     
-    {Area, Volume, Centroid}.	
+volume(#we{}=We0) ->
+    We = wings_tesselation:triangulate(We0),
+    #we{fs=Ftab}=We,
+    VolList = [volume_1(Face, We) || Face <- gb_trees:keys(Ftab)],
+    lists:sum(VolList).
+
+volume_1(Face, We) ->
+    [V1,V2,V3] = wings_face:vertex_positions(Face, We),
+    Bc = e3d_vec:cross(V2, V3),
+    e3d_vec:dot(V1, Bc)/6.0.
