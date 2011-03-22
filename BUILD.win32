@@ -20,10 +20,10 @@ The following software is needed:
   Include the vcredist packaged with Erlang, in your installation.
   (It is easiest to download the pre-built binaries for Windows.)
 
-- ESDL 1.0.1 or later. http://esdl.sf.net
+- ESDL 1.2 or later. http://esdl.sf.net
   It is easiest to download the pre-built binary.
 
-
+- CL 1.1 or later. http://github.com/tonyrog/cl
 
 Optional software
 =================
@@ -50,6 +50,10 @@ A few environment variables need to be set. They can be set
 for Windows globally from "My Computer".
 
 ESDL_PATH needs to be set to the path of the directory where you installed ESDL.
+ERL_LIBS needs to be set to the directory below ESDL and CL, i.e. 
+$ERL_LIBS\esdl-1.2\ebin and $ERL_LIBS\cl-1.1\ebin 
+or if you got the src from github:
+$ERL_LIBS\esdl\ebin and $ERL_LIBS\cl\ebin 
 
 WINGS_VCREDIST needs to be set to point at vcredist.exe in your Erlang
   installation. (c:\erl5.8.1.1\vcredist_x86.exe)
@@ -122,7 +126,7 @@ local settings folder.
 
 Example:
 
-$ werl -smp disable -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-1.0/ebin -run wings_start start_halt -extra "c:/Documents and Settings/bjorng/Application Data"
+$ werl -smp -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-1.0/ebin -run wings_start start_halt -extra "c:/Documents and Settings/bjorng/Application Data"
 $
 
 An Erlang console should appear, followed by the Wings window.
@@ -134,7 +138,7 @@ Instead of writing the command line every time you want to start Wings,
 you can package it in a script like this:
 
 #!/bin/bash
-exec werl -smp disable -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-1.0/ebin -run wings_start start_halt ${1+"$@"}
+exec werl -smp -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-1.0/ebin -run wings_start start_halt ${1+"$@"}
 
 Notes:
 
@@ -144,9 +148,8 @@ Notes:
 [2] The "${1+"$@"}" thing passes along any arguments (or none) to Wings,
     allowing Wings to open up a wings file when it starts.
 
-[3] The "-smp disable" flag is necessary in R12B if you have a multi-core/
-    multi-CPU computer. Wings will only work with the single-thread Erlang
-    emulator.
+[3] The "-smp" flag is necessary if you don't have a multi-core/
+    multi-CPU computer and wants to use OpenCL. 
 
 You could also package the command line into a standard windows shortcut.
 

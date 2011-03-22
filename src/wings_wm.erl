@@ -106,7 +106,7 @@ init() ->
     init_opengl(),
     case wings_pref:get_value(win32_start_maximized) of
 	true -> wings_io:maximize();
-	false -> ignore
+	_ -> ignore
     end,
 
     dirty_mode(back),
