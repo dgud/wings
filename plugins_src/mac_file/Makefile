@@ -13,7 +13,6 @@
 LIBDIR = ../../plugins/mac_file
 WINGS_EBIN = ../../ebin
 WINGS_INTL=../../intl_tools
-UNIVERSAL_FLAGS = -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc
 CFLAGS = $(UNIVERSAL_FLAGS)
 CC = gcc-4.0
 

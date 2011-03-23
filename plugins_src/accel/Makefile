@@ -40,7 +40,6 @@ else
  SO_EXT = so
  GCC = gcc
  ifeq ($(OS),Darwin)
-   UNIVERSAL_FLAGS = -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc
    CFLAGS = $(UNIVERSAL_FLAGS) $(COMMON_CFLAGS)
    LIBS = $(UNIVERSAL_FLAGS) -bundle -flat_namespace -undefined suppress
    GL_LIBS =
