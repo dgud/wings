@@ -49,7 +49,7 @@
     [env setObject:@"Wings3d" forKey:@"PROGNAME"];
     [env setObject:NSHomeDirectory() forKey:@"HOME"];
 
-    args = [NSArray arrayWithObjects: @"-smp", @"disable", @"-run", @"wings_start", @"start_halt", wingsFile, nil];
+    args = [NSArray arrayWithObjects: @"-smp", @"-run", @"wings_start", @"start_halt", wingsFile, nil];
     [aTask setStandardOutput: inPipe];
     [aTask setStandardInput: outPipe];
     [aTask setArguments: args];
