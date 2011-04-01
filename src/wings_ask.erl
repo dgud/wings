@@ -13,7 +13,7 @@
 %%
 
 -module(wings_ask).
--export([init/0,ask/3,ask/4,dialog/3,dialog/4,
+-export([init/0,ask/3,ask/4,dialog/3,dialog/4,dialog_at/4,
 	 hsv_to_rgb/1,hsv_to_rgb/3,rgb_to_hsv/1,rgb_to_hsv/3]).
 
 -define(NEED_OPENGL, 1).
@@ -392,9 +392,13 @@ dialog(false, _Title, Qs, Fun) ->
 dialog(true, Title, Qs, Fun) -> dialog(Title, Qs, Fun).
 
 dialog(Title, Qs, Fun) ->
-    do_dialog(Title, Qs, [make_ref()], Fun).
+	 {_,Xm,Ym} = wings_io:get_mouse_state(),
+    do_dialog_at(Title, Qs, { Xm, Ym}, [make_ref()], Fun).
+    
+dialog_at(Title, {X,Y}, Qs, Fun) ->
+	do_dialog_at(Title, Qs, {X,Y}, [make_ref()], Fun).
 
-do_dialog(Title, Qs, Level, Fun) ->
+do_dialog_at(Title, Qs, {X,Y} , Level, Fun) ->
     GrabWin = wings_wm:release_focus(),
     Owner = wings_wm:this(),
     S0 = #s{w=W,h=H,fi=Fi,store=Store} = setup_dialog(Qs, Fun),
@@ -402,9 +406,7 @@ do_dialog(Title, Qs, Level, Fun) ->
     Name = {dialog,hd(Level)},
     setup_blanket(Name, Fi, Store),
     Op = get_event(S),				%No push - replace crash handler.
-    {_,Xm,Ym} = wings_io:get_mouse_state(),
-    wings_wm:toplevel(Name, Title, {Xm,Ym-?LINE_HEIGHT}, {W,H}, 
-		      [{anchor,n}], Op),
+    wings_wm:toplevel(Name, Title, {X,Y},{W,H},[{anchor,n}], Op),
     wings_wm:set_prop(Name, drag_filter, fun(_) -> yes end),
     ?DEBUG_DISPLAY(other, {W,H}),
     keep.
