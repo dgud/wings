@@ -13,7 +13,7 @@
 %%
 
 -module(wings_ask).
--export([init/0,ask/3,ask/4,dialog/3,dialog/4,dialog_positioned/4,
+-export([init/0,ask/3,ask/4,dialog/3,dialog/4,dialog_centered/4,
 	 hsv_to_rgb/1,hsv_to_rgb/3,rgb_to_hsv/1,rgb_to_hsv/3]).
 
 -define(NEED_OPENGL, 1).
@@ -392,19 +392,9 @@ dialog(false, _Title, Qs, Fun) ->
 dialog(true, Title, Qs, Fun) -> dialog(Title, Qs, Fun).
 
 dialog(Title, Qs, Fun) ->
-	 {_,Xm,Ym} = wings_io:get_mouse_state(),
-    do_dialog_positioned(Title, Qs, {pushpin,{Xm,Ym-?LINE_HEIGHT}}, [make_ref()], Fun).
-        
-%% Establish am API format flexible enough to to more TYPICAL centering schemes.    
-dialog_positioned(Title, {pushpin,{X,Y}}, Qs, Fun) ->
-	do_dialog_positioned(Title, Qs,{pushpin,{X,Y}}, [make_ref()], Fun);
-	
-dialog_positioned(Title, {_,{X,Y}}, Qs, Fun) ->
-	io:format("Only Pushpin centering currently supported.", [ ] ),
-	io:format("Alert: Resorting to pushpin centering.", [ ] ),
-	do_dialog_positioned(Title, Qs,{pushpin,{X,Y}}, [make_ref()], Fun).
+    do_dialog(Title, Qs, [make_ref()], Fun).
 
-do_dialog_positioned(Title, Qs, {pushpin, {X,Y}} , Level, Fun) ->
+do_dialog(Title, Qs, Level, Fun) ->
     GrabWin = wings_wm:release_focus(),
     Owner = wings_wm:this(),
     S0 = #s{w=W,h=H,fi=Fi,store=Store} = setup_dialog(Qs, Fun),
@@ -412,10 +402,34 @@ do_dialog_positioned(Title, Qs, {pushpin, {X,Y}} , Level, Fun) ->
     Name = {dialog,hd(Level)},
     setup_blanket(Name, Fi, Store),
     Op = get_event(S),				%No push - replace crash handler.
-    wings_wm:toplevel(Name, Title, {X,Y},{W,H},[{anchor,n}], Op),
+    {_,Xm,Ym} = wings_io:get_mouse_state(),
+    wings_wm:toplevel(Name, Title, {Xm,Ym-?LINE_HEIGHT}, {W,H}, 
+		      [{anchor,n}], Op),
     wings_wm:set_prop(Name, drag_filter, fun(_) -> yes end),
     ?DEBUG_DISPLAY(other, {W,H}),
     keep.
+
+
+	
+dialog_centered(Title, {DX,DY}, Qs, Fun) ->
+	do_dialog_centered(Title, Qs, {DX,DY}, [make_ref()], Fun).
+	
+do_dialog_centered(Title, Qs, {DX,DY} , Level, Fun) ->
+    GrabWin = wings_wm:release_focus(),
+    Owner = wings_wm:this(),
+    S0 = #s{w=W,h=H,fi=Fi,store=Store} = setup_dialog(Qs, Fun),
+    S = S0#s{level=Level,grab_win=GrabWin,owner=Owner},
+    Name = {dialog,hd(Level)},
+    setup_blanket(Name, Fi, Store),
+    Op = get_event(S),				%No push - replace crash handler.
+    {MaxX,MaxY} = wings_pref:get_value(window_size),
+    Xm=MaxX div 2,
+    Ym=(MaxY-H) div 2,
+    wings_wm:toplevel(Name, Title, {Xm-DX,Ym-DY},{W,H},[{anchor,n}], Op),
+    wings_wm:set_prop(Name, drag_filter, fun(_) -> yes end),
+    ?DEBUG_DISPLAY(other, {W,H}),
+    keep.
+
 
 setup_dialog(Qs, Fun) ->
     {Fi0,Sto,N} = mktree(Qs, gb_trees:empty()),
