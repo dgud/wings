@@ -485,10 +485,10 @@ __kernel void AdvancePaths(
 						directLightPdf = 1.f;
 						break;
 					case MAT_MATTEMIRROR:
-						directLightPdf = 1.f / hitPointMat->param.matteMirror.mattePdf;
+						directLightPdf = hitPointMat->param.matteMirror.mattePdf;
 						break;
 					case MAT_MATTEMETAL:
-						directLightPdf = 1.f / hitPointMat->param.matteMetal.mattePdf;
+						directLightPdf = hitPointMat->param.matteMetal.mattePdf;
 						break;
 					case MAT_ALLOY: {
 						// Schilick's approximation
@@ -498,7 +498,7 @@ __kernel void AdvancePaths(
 
 						const float P = .25f + .5f * Re;
 
-						directLightPdf = (1.f - P) / (1.f - Re);
+						directLightPdf = 1.f - P;
 						break;
 					}
 					default:

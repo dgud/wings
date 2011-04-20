@@ -9,7 +9,6 @@
 -module(pbr_camera).
 
 -include("pbr.hrl").
--include_lib("wings/src/wings.hrl").
 
 -export([init/2,
 	 get_size/1,

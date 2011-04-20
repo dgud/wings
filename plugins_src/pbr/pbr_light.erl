@@ -18,7 +18,6 @@
 
 -include("pbr.hrl").
 -include("pbr_constants.hrl").
--include_lib("wings/src/wings.hrl").
 
 %% List of lights
 %% Light is {type, type_specific_record}
@@ -77,7 +76,7 @@ init_light(infinite, L, WBB) ->
     Pbr  = proplists:get_value(pbr, L, []),
     Turb = proplists:get_value(turbulance, Pbr, 2.2),
     Size = proplists:get_value(size, Pbr, 5.5),
-    Vec = e3d_vec:norm(e3d_vec:sub(Aim,Pos)),
+    Vec = e3d_vec:norm(e3d_vec:sub(Pos,Aim)),
     Sun = new({sunlight, Vec, Turb, Size}, WBB),
     Sky = new({skylight, Vec, Turb}, WBB),
     #sunskylight{sun=Sun,sky=Sky};
@@ -171,8 +170,7 @@ new({sunlight, Vec, Turb, RelSize}, _WBB) ->
 		0.0
 	end,
     {Vx,Vy,Vz} = Vec,   %% Algo assumes that Z is up
-    ThetaS = max(0.0, pbr_mc:spherical_theta({Vx,Vz,Vy})),
-    %%ThetaS = pbr_mc:spherical_phi(Vec),
+    ThetaS = min(1.638555, pbr_mc:spherical_theta({Vx,Vz,Vy})),
     
     Beta = 0.04608365822050 * Turb - 0.04586025928522,
     M = 1.0 / (math:cos(ThetaS) + 0.00094 * 

@@ -18,7 +18,6 @@
 
 -include("pbr.hrl").
 -include("pbr_constants.hrl").
--include_lib("wings/src/wings.hrl").
 
 -record(spd, {n, min, max, delta, invdelta, samples}).
 

@@ -19,7 +19,8 @@
 	 get_context/1, get_device/1,
 	 buff/2, buff/3, write/3, read/4,
 	 cast/4, cast/5, tcast/4, tcast/5, set_args/3,
-	 get_wg_sz/2, set_wg_sz/3
+	 get_wg_sz/2, set_wg_sz/3,
+	 get_lmem_sz/2
 	]).
 
 -record(cli, {context, kernels=[], q, cl, device}).
@@ -121,9 +122,18 @@ get_program_logs(Program) ->
 
 
 kernel_info(K,Device,MaxWGS) ->
-    {ok, WG} = cl:get_kernel_workgroup_info(K, Device, work_group_size),
+    {ok, WG} = cl:get_kernel_workgroup_info(K, Device, work_group_size),    
+    {ok, CWG} = cl:get_kernel_workgroup_info(K, Device, compile_work_group_size),
     {ok, Name} = cl:get_kernel_info(K, function_name),
-    #kernel{name=list_to_atom(Name), wg=min(WG,MaxWGS), id=K}.
+    %% io:format("~s WG sizes ~p ~p~n", [Name, WG, WG1]),
+    case CWG of
+	[0,0,0] -> 
+	    #kernel{name=list_to_atom(Name), wg=min(WG,MaxWGS), id=K};
+	[Max,1,1] ->
+	    #kernel{name=list_to_atom(Name), wg=min(Max,MaxWGS), id=K};
+	MaxD ->
+	    #kernel{name=list_to_atom(Name), wg=MaxD, id=K}
+    end.
 
 get_context(#cli{context=Context}) ->
     Context.
@@ -133,6 +143,11 @@ get_device(#cli{device=Device}) ->
 set_args(Name, Args, #cli{kernels=Ks}) ->
     #kernel{id=K} = lists:keyfind(Name, 2, Ks),
     set_args_1(Name, K, Args).
+
+get_lmem_sz(Name, #cli{kernels=Ks, device=Device}) ->
+    #kernel{id=Kernel} = lists:keyfind(Name, 2, Ks),
+    {ok,Mem} = cl:get_kernel_workgroup_info(Kernel, Device, local_mem_size),
+    Mem.    
 
 get_wg_sz(Name, #cli{kernels=Ks}) ->
     #kernel{wg=Wg} = lists:keyfind(Name, 2, Ks),
@@ -202,13 +217,28 @@ set_args_1(Name, K, Args) ->
     end.
 
 enqueue_kernel(No, Wait, Q, #kernel{id=K, wg=WG0}) ->
-    {GWG,WG} = if  No > WG0  -> 
-		       {(1+(No div WG0))*WG0, WG0};
-		   true -> {No,No}
-	       end,
-    %% io:format("X ~p GWG ~p WG ~p~n", [Name, GWG, WG]),
-    {ok, Event} = cl:enqueue_nd_range_kernel(Q,K,[GWG],[WG],Wait),     
+    {GWG,WG} = calc_wg(No, WG0),
+    {ok, Event} = cl:enqueue_nd_range_kernel(Q,K,GWG,WG,Wait),     
     Event.
+
+calc_wg(No, WG) 
+  when is_integer(No), is_integer(WG), No =< WG ->
+    {[No],[No]};
+calc_wg(No, WG)
+  when is_integer(No), is_integer(WG), (No rem WG) == 0 ->
+    {[No], [WG]};
+calc_wg(No, WG)
+  when is_integer(No), is_integer(WG) ->
+    {[(1+(No div WG))*WG], [WG]};
+calc_wg([WH|WT], [H|T]) ->
+    {[CW], [CS]} = calc_wg(WH,H),
+    {CT, CST} = calc_wg(WT,T),
+    {[CW|CT], [CS|CST]};
+calc_wg([], [1]) ->
+    {[],[]};
+calc_wg([], [H]) ->
+    {[H],[H]}.
+
 
 time_wait(Name, Event) ->
     Before = os:timestamp(),

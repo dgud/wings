@@ -39,14 +39,14 @@
 	  normals,  
 	  triangles,
 	  vertices,
-	  %% Light
+	  %% Light buffers
 	  arealightn, 
 	  arealight,  
 	  inflight,  
 	  inflightmap,
 	  sunlight,   
 	  skylight,   
-	  %% Textures
+	  %% Texture buffers
 	  texmaprgb,
 	  texmapalpha,
 	  texmapdesc,
@@ -54,17 +54,18 @@
 	  meshbumps,
 	  meshbumpsscale,
 	  uvsb,
-	  %% Camera
-	  cam}).	 
+	  %% Camera buffers
+	  cam}).
 
 -define(ifelse(A,B,C), if (A) -> (B); true -> (C) end).
 -define(FSz, 4).
 -define(ISz, 4).
--define(PathStateDLSz, 2*?ISz + 3*?FSz + ?FSz+ ?ISz + ?RAY_SZ + 2*3*?FSz).
 -define(PathStateSz, 2*?ISz + 3*?FSz).
+-define(PathStateDLSz, ?PathStateSz + ?FSz+ ?ISz + ?RAY_SZ + 2*3*?FSz).
 -define(TASKSTAT_SZ, ?ISz).
 
-start(Attrs, SceneS) ->
+start(Attrs, SceneS0) ->
+    SceneS = SceneS0, %% #renderer{force_wg=64},
     ROpt = #ropt{max_path_depth = proplists:get_value(max_path_depth, Attrs, 5),
 		 rr_depth       = proplists:get_value(rr_depth, Attrs, 3),
 		 rr_imp_cap     = proplists:get_value(rr_imp_cap, Attrs, 0.125),
@@ -77,7 +78,6 @@ start(Attrs, SceneS) ->
     io:format("Rendering done ~n",[]),
     Res.
 
-
 start_processes(Ropt, SceneS0) ->
     %% NoThreads = erlang:system_info(schedulers),
     random:seed(now()),
@@ -87,41 +87,46 @@ start_processes(Ropt, SceneS0) ->
 render(SceneS = #renderer{cl=CL}, #ps{framebuffer=FB, rays=RaysB, hits=HitsB}, 
        #ropt{refresh=RI}, IAs) ->
     {X,Y} = pbr_film:resolution(SceneS),
-    W0 = wings_cl:cast('InitFrameBuffer', [FB], X*Y, [], CL),    
-    W1 = wings_cl:cast('Init', IAs, ?MAX_RAYS, [], CL),
+    W0 = wings_cl:tcast('InitFrameBuffer', [FB], X*Y, [], CL),
+    W1 = wings_cl:tcast('Init', IAs, ?TASK_SIZE, [], CL),
     StartTime = os:timestamp(),
     {Qn,Qt,LocalMem} = pbr_scene:intersect_data(SceneS),
     wings_cl:set_args('Intersect', [RaysB, HitsB, Qn, Qt, ?MAX_RAYS, LocalMem], CL),
     render_loop(10, [W0,W1], CL, {StartTime, FB, RI, SceneS}).
 
 render_loop(N, Wait, CL, Data) when N > 0 ->
-    W1 = wings_cl:cast('Sampler', ?MAX_RAYS, Wait, CL),
-    W2 = wings_cl:cast('Intersect', ?MAX_RAYS, [W1], CL),
-    W3 = wings_cl:cast('AdvancePaths', ?MAX_RAYS, [W2], CL),
-    cl:wait(W3),
-    exit(foo),
+    io:format("Sampler", []),
+    W1 = wings_cl:tcast('Sampler', ?TASK_SIZE, Wait, CL),
+    W2 = wings_cl:tcast('Intersect', ?TASK_SIZE, [W1], CL),
+    W3 = wings_cl:tcast('AdvancePaths', ?TASK_SIZE, [W2], CL),
     render_loop(N-1, [W3], CL, Data);
 render_loop(0, Wait, CL, Data = {StartTime, FB, RI, SceneS0}) ->
     receive stop -> 
 	    update_film(Wait, FB, SceneS0, CL),
 	    normal
     after 0 ->
-	    Elapsed = timer:now_diff(StartTime, os:timestamp()) *1000,
+	    Elapsed = timer:now_diff(os:timestamp(), StartTime) *1000,
 	    case Elapsed > RI of
 		true ->
 		    SceneS1 = update_film(Wait, FB, SceneS0, CL),
 		    render_loop(10, [], CL, {os:timestamp(), FB, RI, SceneS1});
-		false ->
-		    render_loop(10, Wait, CL, Data)
+		false -> 
+		    %% Flush queue
+		    io:format("Time Elapsed ~p waiting ~p~n",[Elapsed, RI]),
+		    {ok,_} = cl:wait(hd(Wait)),
+		    render_loop(10, tl(Wait), CL, Data)
 	    end
     end.
 
-update_film(Wait, FB, SceneS, CL) ->
-    {X,Y} = pbr_film:resolution(SceneS),
-    W0 = cl:read(FB, X*Y*?RAYHIT_SZ, Wait, CL),
-    {ok, SampleBuff} = cl:wait(W0),
-    Scene = pbr_film:set_raw(SampleBuff),
+update_film(Wait, FB, SceneS, _CL) ->
+%    W0 = wings_cl:read(FB, X*Y*?PIXEL_SZ, Wait, CL),
+%    {ok, SampleBuff} = cl:wait(W0),
+    {ok,_} = cl:wait(hd(Wait)),
+    io:format("Updates FB~n",[]),
+    Scene = pbr_film:set_sample_frame_buffer(FB, SceneS),
+    io:format("Show FB~n",[]),
     pbr_film:show(Scene),
+    io:format("Got FB~n",[]),
     Scene.
 
 init_render(_Id, Seed, Start, Opts, SceneS0) ->
@@ -129,19 +134,19 @@ init_render(_Id, Seed, Start, Opts, SceneS0) ->
     MeshBuffs = {_, _, Materials} = pbr_scene:mesh2mat(SceneS0),
     PS2 = create_scene_buffs(PS1, MeshBuffs, SceneS0),
     PS3 = create_light_buffs(PS2, SceneS0),
-    PS4 = create_tex_buffs(PS3, SceneS0),    
+    PS4 = create_tex_buffs(PS3, SceneS0),
     CamBin = pbr_camera:pack_camera(Opts#ropt.lens_r, SceneS0), 
     PS5 = PS4#ps{cam=wings_cl:buff(CamBin, SceneS0#renderer.cl)},
     PS  = create_work_buffs(PS5, calc_task_size(PS5, Opts), SceneS0), 
-    io:format("Everything packed~n",[]),    
 
     CompilerParams = create_params(Seed, Start, Materials, Opts, PS, SceneS0),
-    SceneS = compile(SceneS0, CompilerParams),
+    SceneS = compile(SceneS0, CompilerParams, Opts, PS),
     SamplerArgs = sampler_args(PS, Opts, SceneS),
     AdvancePathsArgs = advance_paths_args(PS), 
     wings_cl:set_args('Sampler', SamplerArgs, SceneS#renderer.cl),
+    io:format("~p:~p: MemObjs ~p~n", 
+	      [?MODULE,?LINE, [element(2,cl:get_mem_object_info(E, size)) || E <- AdvancePathsArgs]]),
     wings_cl:set_args('AdvancePaths', AdvancePathsArgs, SceneS#renderer.cl),
-    %% FIXME check kernel workgroup sizes
     {SceneS, PS, SamplerArgs}.
 
 create_work_buffs(PS, TaskSize, SceneS = #renderer{cl=CL}) -> 
@@ -149,12 +154,19 @@ create_work_buffs(PS, TaskSize, SceneS = #renderer{cl=CL}) ->
     %% Work areas
     PS#ps{rays        = wings_cl:buff(?RAYBUFFER_SZ,CL),
 	  hits        = wings_cl:buff(?RAYHIT_SZ*?MAX_RAYS,CL),
-	  framebuffer = wings_cl:buff(?RAYHIT_SZ*X*Y,CL),
-	  task        = wings_cl:buff(TaskSize*?MAX_RAYS,CL),
-	  taskstats   = wings_cl:buff(?TASKSTAT_SZ * ?MAX_RAYS,CL)}.
+	  framebuffer = wings_cl:buff(?PIXEL_SZ*X*Y,CL),
+	  task        = wings_cl:buff(TaskSize*?TASK_SIZE,CL),
+	  taskstats   = wings_cl:buff(?TASKSTAT_SZ * ?TASK_SIZE,CL)}.
 
 create_scene_buffs(PS, {Face2Mesh, Mesh2Mat, Mats}, SceneS = #renderer{cl=CL}) ->
     %% Static Scene buffers
+    io:format("Mesh2Mat    ~p~n", [size(Mesh2Mat) / 4]),
+    io:format("Meshids F2M ~p~n", [size(Face2Mesh) / 4]),
+    io:format("color       ~p~n", [size(pbr_scene:vertex_colors(SceneS)) / 36]),
+    io:format("normals     ~p~n", [size(pbr_scene:normals(SceneS)) / 36]),
+    io:format("vertices    ~p~n", [size(pbr_scene:vertices(SceneS)) / 36]),
+    io:format("triangles   ~p~n", [size(pbr_scene:triangles(SceneS)) / 12]),    
+
     PS#ps{meshids   = wings_cl:buff(Face2Mesh,CL),
 	  mesh2mat  = wings_cl:buff(Mesh2Mat,CL),
 	  mats      = wings_cl:buff(pbr_mat:pack_materials(Mats),CL),
@@ -190,7 +202,7 @@ create_params(Seed, Start, Materials, Opt, PS, SceneS) ->
     {X,Y} = pbr_film:resolution(SceneS),
     StartLine = trunc(Start*Y),
     Ps = [param("PARAM_STARTLINE", StartLine),
-	  param("PARAM_TASK_COUNT", ?MAX_RAYS),
+	  param("PARAM_TASK_COUNT", ?TASK_SIZE),
 	  param("PARAM_IMAGE_WIDTH",  X),
 	  param("PARAM_IMAGE_HEIGHT", Y),
 	  param("PARAM_RAY_EPSILON", ?RAY_EPS),
@@ -211,8 +223,9 @@ create_params(Seed, Start, Materials, Opt, PS, SceneS) ->
     FilterPs = filter_params(Opt#ropt.filter),
     %% PixelAtomics = " -D PARAM_USE_PIXEL_ATOMICS";
     SamplerPs = sampler_params(Opt#ropt.sampler),
-    %% Apple and ATI specific addons fixme
-    lists:flatten([Ps, MatPs, CamPs, LightPs, TexPs, FilterPs, SamplerPs]).
+    %% Host and OpenCL specific addons fixme
+    HostOpts = host_params(SceneS#renderer.cl),
+    lists:flatten([Ps, MatPs, CamPs, LightPs, TexPs, FilterPs, SamplerPs, HostOpts]).
 
 sampler_args(PS=#ps{task=TaskB, taskstats=TaskStatsB, rays=RaysB, cam=CamB},
 	     Opts, #renderer{cl=CL}) ->
@@ -245,7 +258,7 @@ advance_paths_args(#ps{task=TaskB, rays=RaysB, hits=HitsB,
      ColorsB, NormalsB, VerticesB, TrianglesB, CamB 
      | [ Buff || Buff <- Optional, Buff /= false]].
 
-compile(RS=#renderer{cl=CL0}, Params) -> 
+compile(RS=#renderer{cl=CL0, force_wg=ForceWg}, Params, Opts=#ropt{sampler=Sampler}, PS) -> 
     Fs = ["pbr/pathgpu2_kernel_datatypes.cl", 
 	  "pbr/pathgpu2_kernel_core.cl",
 	  "pbr/pathgpu2_kernel_filters.cl",
@@ -253,8 +266,42 @@ compile(RS=#renderer{cl=CL0}, Params) ->
 	  "pbr/pathgpu2_kernel_samplers.cl",
 	  "pbr/pathgpu2_kernels.cl"],
     io:format("Defines: ~p~n",[Params]),
-    CL = wings_cl:compile(Fs, Params, CL0),
+    CL1 = wings_cl:compile(Fs, Params, CL0),
+    Ks = ['Init', 'InitFrameBuffer', 'AdvancePaths', 'Sampler'],
+    CL = if ForceWg > 0 ->
+		 lists:foldl(fun(Kernel, State) ->
+				     wings_cl:set_wg_sz(Kernel, ForceWg, State)
+			     end, CL1, Ks);
+	    true -> 
+		 case Sampler of
+		     #sampler{type=stratified} ->
+			 SSSz  = stratified_sampler_size(Opts, PS),
+			 InitMax = wings_cl:get_lmem_sz('Init', CL1),
+			 InitSz = decrease_wg(wings_cl:get_wg_sz('Init',CL1), SSSz, InitMax),
+			 CL2 = wings_cl:set_wg_sz('Init', InitSz, CL1),
+			 SamplerMax = wings_cl:get_lmem_sz('Sampler', CL2),
+			 SamplerSz = decrease_wg(wings_cl:get_wg_sz('Init',CL1), SSSz, SamplerMax),
+			 wings_cl:set_wg_sz('Sampler', SamplerSz, CL1);
+		     _ -> 
+			 CL1
+		 end
+	 end,
+    io:format("Kernel          Max workgroupsize ~n",[]),
+    [io:format("~-15s ~5w~n", [atom_to_list(Kernel), wings_cl:get_wg_sz(Kernel, CL)]) 
+     || Kernel <- Ks],
     RS#renderer{cl=CL}.
+
+decrease_wg(WG, Size, Max) when WG > 64 ->
+    case WG*Size > Max of
+	true -> decrease_wg(WG div 2, Size, Max);
+	false -> WG
+    end;
+decrease_wg(WG, _, _) when WG >= 64 -> WG;
+decrease_wg(WG, _, _) -> 
+    io:format("Not enough local memory to run," 
+	      "try to reduce stratified xsamples and ysamples values"),
+    io:format("Or set cl_max_workgroup_sz to ~p or lower", [WG]),
+    exit(out_of_local_mem).	    
 
 param(Str, Value) when is_integer(Value) -> 
     io_lib:format(" -D ~s=~p", [Str,Value]);
@@ -278,7 +325,7 @@ light_params(#ps{skylight=SkyLightB, sunlight=SunLightB, arealightn=AreaLightN, 
 	     " -D PARAM_HAS_SUNLIGHT " ++
 		 " -D PARAM_DIRECT_LIGHT_SAMPLING" ++
 		 " -D PARAM_DL_LIGHT_COUNT=0";	     
-	SunLightB ->
+	SunLightB, AreaLightN > 0 ->
 	     " -D PARAM_HAS_SUNLIGHT" ++ 
 		 " -D PARAM_DIRECT_LIGHT_SAMPLING" ++
 		 param("PARAM_DL_LIGHT_COUNT", AreaLightN);
@@ -319,12 +366,34 @@ sampler_params(#sampler{type=stratified, opts=[{X,Y}]}) ->
 	param("PARAM_SAMPLER_STRATIFIED_X_SAMPLES", X) ++
 	param("PARAM_SAMPLER_STRATIFIED_Y_SAMPLES", Y).
 
+host_params(CL) ->
+    HostOpts0 = case os:type() of
+		    {unix, darwin} -> [" -D __APPLE__"];
+		    _ -> []
+		end,
+    ClDev  = wings_cl:get_device(CL),
+    {ok, ClPlat} = cl:get_device_info(ClDev, platform),
+    {ok, Vendor} = cl:get_platform_info(ClPlat, vendor),
+    case Vendor of
+	"NVIDIA" ++ _ -> 
+	    HostOpts0;
+	"Advanced Micro Dev" ++ _ -> 
+	    [" -fno-alias"|HostOpts0];
+	_ ->
+	    HostOpts0
+    end.
+
+
 calc_task_size(PS, Opts) ->
     Seed = 3*?ISz,    
     InDirL = PS#ps.arealightn > 0 orelse PS#ps.sunlight /= false,
     SamplerSz = sampler_size(PS, Opts),
     PathStateSz = ?ifelse(InDirL, ?PathStateDLSz, ?PathStateSz),
-    Seed + SamplerSz + PathStateSz.
+    TaskSize = Seed + SamplerSz + PathStateSz,
+    io:format("TaskSize ~p + ~p + ~p = ~p => ~p*~p = ~p~n",
+	      [Seed,SamplerSz,PathStateSz,TaskSize,
+	       TaskSize,?TASK_SIZE,TaskSize*?TASK_SIZE]),
+    TaskSize.
 
 sampler_size(PS = #ps{arealightn=AN, sunlight=SL, texmapalpha=TMA},
 	     Opts=#ropt{max_path_depth=PathDepth, 
@@ -380,8 +449,10 @@ stratified_sampler_size(_, _) -> 0.
 %% Helpers
 
 get_sampler(Attrs) ->
-    get_sampler(proplists:get_value(sampler, Attrs, metropolis), Attrs).
+    get_sampler(proplists:get_value(sampler, Attrs, inlined_random), Attrs).
 
+get_sampler(inlined_random, _Attrs) ->
+    #sampler{type=inlined_random};
 get_sampler(random, _Attrs) ->
     #sampler{type=random};
 get_sampler(stratified, Attrs) ->

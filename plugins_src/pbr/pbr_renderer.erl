@@ -14,7 +14,8 @@
 
 init(St, Attrs) ->
     CL = wings_cl:setup(),
-    S1 = pbr_camera:init(Attrs, #renderer{cl=CL}),
+    ForceWG = proplists:get_value(cl_max_workgroup_sz, Attrs, 0),
+    S1 = pbr_camera:init(Attrs, #renderer{cl=CL, force_wg=ForceWG}),
     S2 = pbr_scene:init(St, Attrs, S1),
     S3 = pbr_film:init(Attrs, S2),
     Algo = pbr_pathgpu,

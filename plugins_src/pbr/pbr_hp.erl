@@ -101,7 +101,7 @@ fold_surface(Fun, Acc, Hps) ->
     array:sparse_foldl(F1, Acc, Hps).
 
 splat_radiance(TotalPhotons, Renderer, Hp) ->
-    Film0 = pbr_film:get_raw(Renderer),
+    Film0 = pbr_film:get_sample_buffer(Renderer),
     F = fun(Index, HP=#hp{type=Type, rad=R2}, {R0, MaxR2}) ->
 		Radiance = calc_radiance(HP, TotalPhotons),
 		case Type of
@@ -112,7 +112,7 @@ splat_radiance(TotalPhotons, Renderer, Hp) ->
 		end
 	end,
     {Film, MaxR2} = array:foldl(F, {Film0,0.0}, Hp),
-    {pbr_film:set_raw(Film, Renderer), MaxR2}.
+    {pbr_film:splat_sample_buffer(Film, Renderer), MaxR2}.
 
 calc_radiance(#hp{c_const=0, c_surf=0}, _) ->
     {0.0,0.0,0.0};
