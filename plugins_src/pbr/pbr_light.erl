@@ -170,8 +170,8 @@ new({sunlight, Vec, Turb, RelSize}, _WBB) ->
 		%% Sin2ThetaMax = 1.0,
 		0.0
 	end,
-    
-    ThetaS = pbr_mc:spherical_theta(Vec),
+    {Vx,Vy,Vz} = Vec,   %% Algo assumes that Z is up
+    ThetaS = max(0.0, pbr_mc:spherical_theta({Vx,Vz,Vy})),
     %%ThetaS = pbr_mc:spherical_phi(Vec),
     
     Beta = 0.04608365822050 * Turb - 0.04586025928522,
@@ -188,8 +188,10 @@ new({sunlight, Vec, Turb, RelSize}, _WBB) ->
 	      sunColor=Suncolor};
 
 new({skylight, Vec, T}, _WBB) ->
-    ThetaS = pbr_mc:spherical_theta(Vec),    
-    PhiS   = pbr_mc:spherical_phi(Vec),
+    {Vx,Vy,Vz} = Vec,
+    %% Algo assumes that Z is up
+    ThetaS = max(0.0, pbr_mc:spherical_theta({Vx,Vz,Vy})),
+    PhiS   = pbr_mc:spherical_phi({Vx,Vz,Vy}),
     Aconst = 1.0,
     Bconst = 1.0,
     Cconst = 1.0,
