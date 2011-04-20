@@ -70,13 +70,13 @@ typedef struct {
 
 // Using invDir0/invDir1/invDir2 and sign0/sign1/sign2 instead of an
 // array because I dont' trust OpenCL compiler =)
-static int4 QBVHNode_BBoxIntersect(
-				   const float4 bboxes_minX, const float4 bboxes_maxX,
-				   const float4 bboxes_minY, const float4 bboxes_maxY,
-				   const float4 bboxes_minZ, const float4 bboxes_maxZ,
-				   const QuadRay *ray4,
-				   const float4 invDir0, const float4 invDir1, const float4 invDir2,
-				   const int signs0, const int signs1, const int signs2) {
+int4 QBVHNode_BBoxIntersect(
+			    const float4 bboxes_minX, const float4 bboxes_maxX,
+			    const float4 bboxes_minY, const float4 bboxes_maxY,
+			    const float4 bboxes_minZ, const float4 bboxes_maxZ,
+			    const QuadRay *ray4,
+			    const float4 invDir0, const float4 invDir1, const float4 invDir2,
+			    const int signs0, const int signs1, const int signs2) {
     float4 tMin = ray4->mint;
     float4 tMax = ray4->maxt;
 
@@ -96,12 +96,12 @@ static int4 QBVHNode_BBoxIntersect(
     return  (tMax >= tMin);
 }
 
-static void QuadTriangle_Intersect(
-				   const float4 origx, const float4 origy, const float4 origz,
-				   const float4 edge1x, const float4 edge1y, const float4 edge1z,
-				   const float4 edge2x, const float4 edge2y, const float4 edge2z,
-				   const uint4 primitives,
-				   QuadRay *ray4, RayHit *rayHit) {
+void QuadTriangle_Intersect(
+			    const float4 origx, const float4 origy, const float4 origz,
+			    const float4 edge1x, const float4 edge1y, const float4 edge1z,
+			    const float4 edge2x, const float4 edge2y, const float4 edge2z,
+			    const uint4 primitives,
+			    QuadRay *ray4, RayHit *rayHit) {
     //--------------------------------------------------------------------------
     // Calc. b1 coordinate
 
@@ -135,55 +135,47 @@ static void QuadTriangle_Intersect(
 
     const float4 t = ((edge2x * s2x) + (edge2y * s2y) + (edge2z * s2z)) / divisor;
 
-    // The '&&' operator on int4 is still bugged in the ATI compiler
-    // It looks like other logic operators don't work on HD4xxx family too
-
-    uint hit = 4;
     float _b1, _b2;
     float maxt = ray4->maxt.s0;
-    uint index = 0xffffffff;
-    if ((divisor.s0 != 0.f) && (b0.s0 >= 0.f) && (b1.s0 >= 0.f) && 
-	(b2.s0 >= 0.f) && (t.s0 > ray4->mint.s0) && (t.s0 < maxt)) {
-	hit = 0;
-	maxt = t.s0;
-	_b1 = b1.s0;
-	_b2 = b2.s0;
-        index = primitives.s0;
-    }
-    if ((divisor.s1 != 0.f) && (b0.s1 >= 0.f) && (b1.s1 >= 0.f) && 
-	(b2.s1 >= 0.f) && (t.s1 > ray4->mint.s0) && (t.s1 < maxt)) {
-	hit = 1;
-	maxt = t.s1;
-	_b1 = b1.s1;
-	_b2 = b2.s1;
-        index = primitives.s1;
-    }
-    if ((divisor.s2 != 0.f) && (b0.s2 >= 0.f) && (b1.s2 >= 0.f) && 
-	(b2.s2 >= 0.f) && (t.s2 > ray4->mint.s0) && (t.s2 < maxt)) {
-	hit = 2;
-	maxt = t.s2;
-	_b1 = b1.s2;
-	_b2 = b2.s2;
-        index = primitives.s2;
-    }
-    if ((divisor.s3 != 0.f) && (b0.s3 >= 0.f) && (b1.s3 >= 0.f) && 
-	(b2.s3 >= 0.f) && (t.s3 > ray4->mint.s0) && (t.s3 < maxt)) {
-	hit = 3;
-	maxt = t.s3;
-	_b1 = b1.s3;
-	_b2 = b2.s3;
-        index = primitives.s3;
-    }
+    uint index;
 
-    if (hit == 4)
-	return;
+    int4 cond = isnotequal(divisor, (float4)0.f) & isgreaterequal(b0, (float4)0.f) &
+			isgreaterequal(b1, (float4)0.f) & isgreaterequal(b2, (float4)0.f) &
+			isgreater(t, ray4->mint);
 
-    ray4->maxt = (float4)maxt;
+    const int cond0 = cond.s0 && (t.s0 < maxt);
+    maxt = select(maxt, t.s0, cond0);
+    _b1 = select(0.f, b1.s0, cond0);
+    _b2 = select(0.f, b2.s0, cond0);
+    index = select(0xffffffffu, primitives.s0, cond0);
 
-    rayHit->t = maxt;
-    rayHit->b1 = _b1;
-    rayHit->b2 = _b2;
-    rayHit->index = index;
+    const int cond1 = cond.s1 && (t.s1 < maxt);
+    maxt = select(maxt, t.s1, cond1);
+    _b1 = select(_b1, b1.s1, cond1);
+    _b2 = select(_b2, b2.s1, cond1);
+    index = select(index, primitives.s1, cond1);
+
+    const int cond2 = cond.s2 && (t.s2 < maxt);
+    maxt = select(maxt, t.s2, cond2);
+    _b1 = select(_b1, b1.s2, cond2);
+    _b2 = select(_b2, b2.s2, cond2);
+    index = select(index, primitives.s2, cond2);
+
+    const int cond3 = cond.s3 && (t.s3 < maxt);
+    maxt = select(maxt, t.s3, cond3);
+    _b1 = select(_b1, b1.s3, cond3);
+    _b2 = select(_b2, b2.s3, cond3);
+    index = select(index, primitives.s3, cond3);
+
+	if (index == 0xffffffffu)
+		return;
+
+	ray4->maxt = (float4)maxt;
+
+	rayHit->t = maxt;
+	rayHit->b1 = _b1;
+	rayHit->b2 = _b2;
+	rayHit->index = index;
 }
 
 __kernel void Intersect(
@@ -290,7 +282,7 @@ __kernel void Intersect(
 	    const int4 children = node->children;
 #endif
 
-	    // For some reason doing logic operations with int4 are very slow
+	    // For some reason doing logic operations with int4 is very slow
 	    nodeStack[todoNode + 1] = children.s3;
 	    todoNode += (visit.s3 && !QBVHNode_IsEmpty(children.s3)) ? 1 : 0;
 	    nodeStack[todoNode + 1] = children.s2;

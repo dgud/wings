@@ -188,7 +188,6 @@ create_tex_buffs(PS, _SceneS) ->
 
 create_params(Seed, Start, Materials, Opt, PS, SceneS) ->
     {X,Y} = pbr_film:resolution(SceneS),
-    {_WCenter, WRad} = e3d_bv:sphere(pbr_scene:bb(SceneS)),
     StartLine = trunc(Start*Y),
     Ps = [param("PARAM_STARTLINE", StartLine),
 	  param("PARAM_TASK_COUNT", ?MAX_RAYS),
@@ -197,9 +196,8 @@ create_params(Seed, Start, Materials, Opt, PS, SceneS) ->
 	  param("PARAM_RAY_EPSILON", ?RAY_EPS),
 	  param("PARAM_SEED", Seed),
 	  param("PARAM_MAX_PATH_DEPTH", Opt#ropt.max_path_depth),
-	  param("PARAM_RR_DEPTH",  Opt#ropt.rr_depth),
 	  param("PARAM_RR_CAP", Opt#ropt.rr_imp_cap),
-	  param("PARAM_WORLD_RADIUS", WRad*1.01)
+	  param("PARAM_RR_DEPTH",  Opt#ropt.rr_depth)
 	 ],
     MatPs = [mat_param(pbr_mat:type(Mat)) || Mat <- Materials],
     MatPs == [] andalso exit(no_materials),
