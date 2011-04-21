@@ -540,15 +540,19 @@ init_texture(Image0, TxId) ->
             gl:pushAttrib(?GL_TEXTURE_BIT),
             gl:enable(?GL_TEXTURE_2D),
             gl:bindTexture(?GL_TEXTURE_2D, TxId),
+            Ft=case wings_pref:get_value(filter_texture, false) of
+				true -> ?GL_LINEAR;
+				false -> ?GL_NEAREST
+            end,
             case wings_gl:is_ext({1,4},'GL_SGIS_generate_mipmap') of
 		true ->
 		    gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, ?GL_TRUE),
 		    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER,
 				     ?GL_LINEAR_MIPMAP_LINEAR);
 		false ->
-		    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR)
+		    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, Ft)
             end,
-            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, Ft),
             gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
             gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
             Format = texture_format(Image),
