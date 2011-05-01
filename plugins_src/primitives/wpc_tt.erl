@@ -19,8 +19,8 @@
 		mapfoldl/3,foldl/3,sublist/3,map/2,last/1,seq/2,seq/3,
 		flatten/1,sum/1,append/1]).
 
+-include("wings.hrl").
 -include("e3d.hrl").
--include("wings_intl.hrl").
 
 -record(ttfont,
 	{nglyph,			% number of glyphs
@@ -55,8 +55,11 @@ insert_before([]) ->
 menu_entry() ->
     {?__(1,"Text"),text,?__(2,"Convert text to a 3D object"),[option]}.
 
-command({shape,{text,Ask}}, _St) -> make_text(Ask);
+command({shape,{text,Ask}}, _St) -> 
+    make_text(Ask);
+    
 command(_, _) -> next.
+
 
 make_text(Ask) when is_atom(Ask) ->
     FontDir = wpa:pref_get(wpc_tt, fontdir, sysfontdir()),
@@ -119,8 +122,10 @@ trygen(File, Text, Nsubsteps) ->
 		    {ok, TTFpart} ->
 			Ttf = parsett(TTFpart),
 			Pa = getpolyareas(Text, Ttf, Nsubsteps),
-			{Vs,Fs} = polyareas_to_faces(Pa),
-			{new_shape,"text",Fs,Vs};
+			{Vs0,Fs} = polyareas_to_faces(Pa),
+			{CX,CY,CZ} = e3d_vec:average(Vs0),
+			Vs = [{X-CX,Y-CY,Z-CZ} || {X,Y,Z} <- Vs0],
+			{new_shape,"text",Fs,Vs}; % Would be nicer centered by centroid
 		    _ -> {error, ?__(1,"Can't find TrueType section in ") ++ File}
 		end;
 	{error,Reason} ->
