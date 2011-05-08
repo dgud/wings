@@ -89,8 +89,9 @@ get_near_far(#renderer{cam=#cam{near=Near, far=Far}}) ->
 
 pack_camera(LensR, #renderer{cam=#cam{c2w=C2W,r2c=R2C, f_dist=FDist, near=Near, far=Far}}) ->
     Bin0 = <<LensR:?F32, FDist:?F32, Far:?F32, Near:?F32>>,
-    Bin = pack_matrix(e3d_transform:matrix(R2C), Bin0),
-    pack_matrix(e3d_transform:matrix(C2W), Bin).
+    %% The opencl renderer code expects transposed matrixes.
+    Bin = pack_matrix(e3d_mat:transpose(e3d_transform:matrix(R2C)), Bin0),
+    pack_matrix(e3d_mat:transpose(e3d_transform:matrix(C2W)), Bin).
 
 pack_matrix({A,B,C,WX,D,E,F,WY,G,H,I,WZ,Tx,Ty,Tz,WW}, Bin) ->
     <<Bin/binary, 

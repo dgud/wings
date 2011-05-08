@@ -33,7 +33,8 @@
 	 world_bb,
 	 no_fs,
 	 data,
-	 fsmap
+	 fsmap,
+	 qbvh
 	}).
 
 -record(face, {vs,				% Vertices
@@ -81,7 +82,8 @@ init(St = #st{shapes=Shapes,mat=Mtab0}, Opts, R = #renderer{cl=CL0}) ->
     AccelBin = {WBB,_,_,_} = ?TC(e3d_qbvh:init([{Size,GetTri}])),
 
     Scene0 = #scene{info=GetFace, lights=pbr_light:init(Lights, WBB), 
-		    world_bb=WBB, data=Data, no_fs=Size, fsmap=F2M},
+		    world_bb=WBB, data=Data, no_fs=Size, fsmap=F2M,
+		    qbvh=AccelBin},
     {CL, Scene} = init_accel(CL0, AccelBin, Scene0),
     io:format("No of faces ~p => no verts ~p~n", [Size, Size*3]),
     R#renderer{cl=CL, scene=Scene}.
@@ -183,8 +185,9 @@ intersect({NoRays, RaysBin}, #renderer{scene=Scene, cl=CL}) ->
     {Qn, Qt, Rays, Hits, WGSz} = Scene#scene.isect,
     Wait = wings_cl:write(Rays, RaysBin, CL),
     HitSz = NoRays * ?RAYHIT_SZ,
-    Args = [Rays,Hits,Qn,Qt, NoRays, {local,24*WGSz*4}],
-    Run = wings_cl:cast('Intersect', Args, ?MAX_RAYS, [Wait], CL),
+    Args = [Rays, Hits, Qn, Qt, NoRays, {local,24*WGSz*4}],
+    
+    Run = wings_cl:cast('Intersect', Args, NoRays, [Wait], CL),
     Running = wings_cl:read(Hits, HitSz, [Run], CL),
     {ok, <<Result:HitSz/binary, _/binary>>} = cl:wait(Running, 1000),
     {Rays, Result}.
@@ -244,10 +247,32 @@ append_color(N, Diff, Acc) when N > 0 ->
     append_color(N-1, Diff, [Diff|Acc]);
 append_color(_, _, Acc) -> Acc.
 
-init_accel(CL0, {_BB, Qnodes, Qtris, _Map}, Scene) ->
-    CL1 = wings_cl:compile("utils/qbvh_kernel.cl", CL0),
-    QN = wings_cl:buff(Qnodes, CL1),
-    QT = wings_cl:buff(Qtris, CL1),
+init_accel(CL0, {_BB, Qnodes0, Qtris0, _Map}, Scene) ->
+    Defs0 = case wings_cl:get_vendor(CL0) of
+		"NVIDIA" ++ _ -> [];
+		"Advanced Micro Dev" ++ _ -> [" -fno-alias"];
+		_ -> []
+	    end,
+    {QN,QT,Defs} = 
+	try  
+	    wings_cl:have_image_support(CL0) orelse exit(no_image_support),
+	    Dfs = ["-D USE_IMAGE_STORAGE"|Defs0],
+	    Dev = wings_cl:get_device(CL0),
+	    {ok, MaxH} = cl:get_device_info(Dev, image2d_max_height),
+	    {ok, MaxW} = cl:get_device_info(Dev, image2d_max_width),
+	    {NDim, Qnodes, TDim, Qtris} = 
+		e3d_qbvh:convert_to_image2d({MaxW,MaxH}, Qnodes0, Qtris0),
+	    QN0 = wings_cl:image(Qnodes, NDim, {rgba,unsigned_int32}, CL0),
+	    QT0 = wings_cl:image(Qtris,  TDim, {rgba,unsigned_int32}, CL0),
+	    io:format("Image support is used for qbvh_kernel~n"),
+	    {QN0,QT0,Dfs}
+	catch exit:no_image_support ->
+		QN1 = wings_cl:buff(Qnodes0, CL0),
+		QT1 = wings_cl:buff(Qtris0, CL0),
+		{QN1,QT1,Defs0}
+	end,
+
+    CL1 = wings_cl:compile("utils/qbvh_kernel.cl", lists:flatten(Defs), CL0),
     Rays = wings_cl:buff(?RAYBUFFER_SZ, CL1),
     Hits = wings_cl:buff(?RAYHIT_SZ*?MAX_RAYS, CL1),
     %%Device  = wings_cl:get_device(CL),

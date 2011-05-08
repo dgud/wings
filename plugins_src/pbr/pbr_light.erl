@@ -77,9 +77,10 @@ init_light(infinite, L, WBB) ->
     Turb = proplists:get_value(turbulance, Pbr, 2.2),
     Size = proplists:get_value(size, Pbr, 5.5),
     Vec = e3d_vec:norm(e3d_vec:sub(Pos,Aim)),
-    Sun = new({sunlight, Vec, Turb, Size}, WBB),
+%%    Sun = new({sunlight, Vec, Turb, Size}, WBB),
     Sky = new({skylight, Vec, Turb}, WBB),
-    #sunskylight{sun=Sun,sky=Sky};
+    %%#sunskylight{sun=Sun,sky=Sky};
+    Sky;
 init_light(ambient, L, WBB) ->
     new({skylight, L}, WBB);
 init_light(area, L, WBB) ->

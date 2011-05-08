@@ -24,7 +24,8 @@
 %% Sizes in bytes
 -define(RAY_SZ, 32).		                % Binary size of ray structure
 -define(RAYHIT_SZ, 16).				% Binary size of rayhit structure
--define(RAYBUFFER_SZ, 65536).			% Max Buffer size
+%-define(RAYBUFFER_SZ, 65536).			% Max Buffer size
+-define(RAYBUFFER_SZ, 16384).			% Max Buffer size
 -define(MAX_RAYS, ?RAYBUFFER_SZ div ?RAY_SZ).   % Max number of rays
 -define(TASK_SIZE, ?MAX_RAYS).                  % Max number of tasks
 
@@ -45,6 +46,8 @@
 	 d,					% Dir
 	 n=?RAY_EPS,				% Near = mint
 	 f=?RAY_INFINITY}).			% Far  = maxt
+
+-record(hit, {t, b1, b2, f = 16#ffffffff}).
 
 %% SPPM
 -define(PPM_ALPHA, 0.7).

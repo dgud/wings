@@ -16,8 +16,11 @@
 
 -export([is_available/0,
 	 setup/0, compile/2, compile/3, 
-	 get_context/1, get_device/1,
-	 buff/2, buff/3, write/3, read/4,
+	 %% Queries
+	 get_context/1, get_device/1, get_queue/1, get_vendor/1,
+	 have_image_support/1,
+
+	 buff/2, buff/3, image/4, image/5, write/3, read/4,
 	 cast/4, cast/5, tcast/4, tcast/5, set_args/3,
 	 get_wg_sz/2, set_wg_sz/3,
 	 get_lmem_sz/2
@@ -139,6 +142,17 @@ get_context(#cli{context=Context}) ->
     Context.
 get_device(#cli{device=Device}) ->
     Device.
+get_queue(#cli{q=Q}) ->
+    Q.
+
+have_image_support(#cli{device=Dev}) ->
+    {ok, Bool} = cl:get_device_info(Dev, image_support),
+    Bool.
+
+get_vendor(#cli{device=ClDev}) ->
+    {ok, ClPlat} = cl:get_device_info(ClDev, platform),
+    {ok, Vendor} = cl:get_platform_info(ClPlat, vendor),
+    Vendor.
 
 set_args(Name, Args, #cli{kernels=Ks}) ->
     #kernel{id=K} = lists:keyfind(Name, 2, Ks),
@@ -177,7 +191,7 @@ cast(Name, Args, No, Wait, #cli{q=Q, kernels=Ks}) ->
 
 cast(Name, No, Wait, Time, Q, Kernel) ->
     Event = enqueue_kernel(No, Wait, Q, Kernel),
-    Time andalso time_wait(Name, Event),
+    Time andalso time_wait(Name, Q, Event),
     Event.
 
 buff(Sz, CL)
@@ -194,6 +208,13 @@ buff(Sz, Type, #cli{context=Context})
 buff(Bin, Type, #cli{context=Context}) 
   when is_binary(Bin) ->
     {ok, Buff} = cl:create_buffer(Context, Type, byte_size(Bin), Bin),
+    Buff.
+
+image(Bin, Dim, Format, CL) ->
+    image(Bin, Dim, Format, [read_only, copy_host_ptr], CL).
+image(Bin, {W,H}, Format = {_,_}, Alloc, #cli{context=Context}) 
+  when is_binary(Bin) ->
+    {ok, Buff} = cl:create_image2d(Context, Alloc, Format, W, H, 0, Bin),
     Buff.
 
 %% write(CLMem, Bin, cli()) -> Wait
@@ -218,7 +239,8 @@ set_args_1(Name, K, Args) ->
 
 enqueue_kernel(No, Wait, Q, #kernel{id=K, wg=WG0}) ->
     {GWG,WG} = calc_wg(No, WG0),
-    {ok, Event} = cl:enqueue_nd_range_kernel(Q,K,GWG,WG,Wait),     
+%%    io:format("GWG ~w WG ~w~n",[GWG,WG]),
+    {ok, Event} = cl:enqueue_nd_range_kernel(Q,K,GWG,WG,Wait),
     Event.
 
 calc_wg(No, WG) 
@@ -240,7 +262,22 @@ calc_wg([], [H]) ->
     {[H],[H]}.
 
 
-time_wait(Name, Event) ->
+time_wait(Name, Q, Event) ->
     Before = os:timestamp(),
-    {ok,completed} = cl:wait(Event),
-    io:format("CL ~p Time: ~p\n", [Name, timer:now_diff(os:timestamp(),Before)]).
+    %% io:format("Event ~p ~w~n",[Event, cl:get_event_info(Event)]),
+    %% io:format("Finish result ~p~n", [cl:finish(Q)]),
+    %% receive 
+    %% 	Foo -> io:format("Foo ~p~n",[Foo])
+    %% after 100 -> ok 
+    %% end,
+    case cl:wait(Event) of
+	{ok,completed} -> 
+	    io:format("CL ~p Time: ~p\n", [Name, timer:now_diff(os:timestamp(),Before)]);
+	Error ->
+	    receive 
+		EMsg -> io:format("Error ~p~n",[EMsg])
+	    after 100 -> ok end,
+	    exit(Error)
+    end.
+
+

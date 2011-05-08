@@ -17,10 +17,13 @@
 
 -module(e3d_qbvh).
 
--export([init/1, init/2]).
+-export([init/1, init/2,
+	 n_nodes/1, n_quads/1, convert_to_image2d/3
+	]).
 
 -export([ray/2, ray/4, ray_trace/2]). 
 
+%%-define(DEBUG,1).
 -ifdef(DEBUG).
 -export([print_tree/3, print_stack/1, print_split/4]).
 -endif.
@@ -88,6 +91,48 @@ init(FaceData, Opts)  ->
     
     {Tree, {_N, Tris}} = swap_prims(Nodes, PrimIndx, FaceData),
     {WorldBB, array:foldl(fun binary_node/3, <<>>, Tree), Tris, []}.
+
+
+n_nodes(Qnodes) ->
+    0 = byte_size(Qnodes) rem (6*4+4)*4,
+    byte_size(Qnodes) div (6*4+4)*4.
+
+n_quads(Quads) ->
+    0 = byte_size(Quads) rem (9*4+4)*4,    
+    byte_size(Quads) div (9*4+4)*4.
+
+%% Convert the nodes to fit a image
+convert_to_image2d({MaxW,MaxH}, QNs, QQs) ->
+    {NDim={NodeW,NodeH}, LDim={LeafW,LeafH}} = calc_image_sizes(QNs,QQs),
+    MaxH >= NodeH andalso MaxH >= LeafH orelse exit(no_image_support),
+    MaxW >= NodeW andalso MaxW >= LeafW orelse exit(no_image_support),
+
+    IQns = convert_to_image(NodeW, QNs, <<>>),
+    IQqs = <<QQs/binary, 0:(LeafW*LeafH*10*4*8)>>,
+    {NDim, IQns, LDim, IQqs}.
+
+convert_to_image(W, <<BBs:(24*4)/binary, Qns0/binary>>, Acc0) ->
+    Copy = <<Acc0/binary, BBs/binary>>,
+    {Qns, Acc} = convert_children(0, W, Qns0, Copy),
+    convert_to_image(W, Qns, Acc);
+convert_to_image(_, <<>>, Acc) -> Acc.
+
+convert_children(4, _W, Qns, Acc) ->  {Qns, Acc};
+convert_children(J, W, <<16#ffffffff:?I32, Qns/binary>>, Acc) ->  %% EMPTY
+    convert_children(J+1, W, Qns, <<Acc/binary, 16#ffffffff:?I32>>);
+convert_children(J, W, <<C0:?I32, Qns/binary>>, Acc) when C0 < 0 -> %% IS_LEAF
+    Count = first_quad(C0) * 10,
+    X = (Count rem W) div 10, %% "div 10" in order to not waste bits
+    Y = Count div W,
+    C = 16#80000000 bor (((no_quads(C0)-1) band 16#F) bsl 27) bor
+	((X bsl 16) bor Y)  band 16#7ffffff,
+    convert_children(J+1, W, Qns, <<Acc/binary, C:?I32>>);
+convert_children(J, W, <<C0:?I32, Qns/binary>>, Acc) ->
+    Count = C0*7,
+    X = (Count rem W) div 7, %% "/ 7" in order to not waste bits
+    Y = Count div W,
+    C = (X bsl 16) bor Y,
+    convert_children(J+1, W, Qns, <<Acc/binary, C:?I32>>).
 
 %%--------------------------------------------------------------------
 %% @doc Creates a ray
@@ -390,7 +435,8 @@ inv(N) ->
 	    ?E3D_INFINITY
     end.
 
-ray_trace(Ray, [NodeData|Stack], Hit, Swap, Tree, Tris) ->
+ray_trace(Ray, [NodeData|Stack], Hit, Swap, Tree, Tris) 
+  when length(Stack) < 24 ->  %% Hardcoded limit in opencl code
     case is_leaf(NodeData) of
 	false ->
 	    Node = get_node(NodeData, Tree),
@@ -592,6 +638,24 @@ get_qtriangles(Index, Binary) ->
 		[E01y,E11y,E21y,E31y],
 		[E01z,E11z,E21z,E31z]},
 	  f  = [Prim1,Prim2, Prim3, Prim4]}.
+
+calc_image_sizes(Qnodes, Qtris) ->
+    NodePixelsReq = e3d_qbvh:n_nodes(Qnodes) * 7,
+    NodeW = min(roundup(trunc(math:sqrt(NodePixelsReq)), 7), 16#7fff),
+    NH1 = if (NodePixelsReq rem NodeW) == 0 -> 0; true -> 1 end,
+    NodeH = NodePixelsReq div NodeW + NH1,
+    
+    LeafPixelsReq = e3d_qbvh:n_quads(Qtris) * 10,
+    LeafW = min(roundup(trunc(math:sqrt(LeafPixelsReq)), 10), 32760),
+    LH1 = if (LeafPixelsReq rem LeafW) == 0 -> 0; true -> 1 end,
+    LeafH = LeafPixelsReq div LeafW + LH1,
+    {{NodeW, NodeH}, {LeafW,  LeafH}}.
+
+roundup(Size, Div) ->
+    R = Size rem Div,
+    if R == 0 -> Size;
+       true -> Size+Div-R
+    end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 -ifdef(DEBUG).

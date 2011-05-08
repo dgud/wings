@@ -10,6 +10,7 @@
 -export([start/2]).
 
 -include("pbr.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -record(ropt, 
 	{max_path_depth,
@@ -65,15 +66,16 @@
 -define(TASKSTAT_SZ, ?ISz).
 
 start(Attrs, SceneS0) ->
-    SceneS = SceneS0, %% #renderer{force_wg=64},
-    ROpt = #ropt{max_path_depth = proplists:get_value(max_path_depth, Attrs, 5),
-		 rr_depth       = proplists:get_value(rr_depth, Attrs, 3),
-		 rr_imp_cap     = proplists:get_value(rr_imp_cap, Attrs, 0.125),
-		 sampler        = get_sampler(Attrs),
-		 filter         = get_filter(Attrs),
-		 lens_r         = (proplists:get_value(aperture, Attrs, 0.0) / 2.0),
-		 refresh        = (proplists:get_value(refresh_interval, Attrs, 10)) * 1000
-		},
+    SceneS = SceneS0, %#renderer{force_wg=64},
+    ROpt = #ropt{
+      max_path_depth = proplists:get_value(max_path_depth, Attrs, 5),
+      rr_depth       = proplists:get_value(rr_depth, Attrs, 3),
+      rr_imp_cap     = proplists:get_value(rr_imp_cap, Attrs, 0.125),
+      sampler        = get_sampler(Attrs),
+      filter         = get_filter(Attrs),
+      lens_r         = (proplists:get_value(aperture, Attrs, 0.0) / 2.0),
+      refresh        = (proplists:get_value(refresh_interval, Attrs, 10)) * 1000
+     },
     Res = start_processes(ROpt, SceneS),
     io:format("Rendering done ~n",[]),
     Res.
@@ -81,47 +83,134 @@ start(Attrs, SceneS0) ->
 start_processes(Ropt, SceneS0) ->
     %% NoThreads = erlang:system_info(schedulers),
     random:seed(now()),
-    {SceneS, PS, SAs} = init_render(1, random:uniform(1 bsl 32), 0.00, Ropt, SceneS0),
-    render(SceneS, PS, Ropt, SAs).
+    Rays = [pbr_camera:generate_ray(SceneS0, float(I rem 256), 256 - (I / 256)) ||
+    	       I <- lists:seq(1, ?MAX_RAYS-1)],
+    RaysBin = rays2bin(Rays),
+    %% {_rs, Hits} = pbr_scene:intersect({?MAX_RAYS, RaysBin}, SceneS0),
+    %% io:format("Hits ~p~n",[Hits]),
+    Size = 3, 
+    Test = fun(I) when I * Size < (?MAX_RAYS-1) ->
+    		   io:format("Testing ~p ~p~n",[I, Size]),
+		   Skip = Size*I*?RAY_SZ,
+		   <<_:Skip/binary, Bin/binary>> = RaysBin,
+    		   {_rs, Hits} = pbr_scene:intersect({Size, Bin}, SceneS0),
+    		   io:format("Hits ~p~n",[size(Hits)]);
+	      (I) ->
+		   skip
+    	   end,
+    [Test(I) || I <- lists:seq(1, ?MAX_RAYS -1)],
+    ok.
+    %% {SceneS, PS, SAs} = init_render(1, random:uniform(1 bsl 32), 0.00, Ropt, SceneS0),
+    %% render(SceneS, PS, Ropt, SAs).
 
-render(SceneS = #renderer{cl=CL}, #ps{framebuffer=FB, rays=RaysB, hits=HitsB}, 
+render(SceneS = #renderer{cl=CL}, 
+       PS=#ps{framebuffer=FB, rays=RaysB, hits=HitsB}, 
        #ropt{refresh=RI}, IAs) ->
     {X,Y} = pbr_film:resolution(SceneS),
     W0 = wings_cl:tcast('InitFrameBuffer', [FB], X*Y, [], CL),
     W1 = wings_cl:tcast('Init', IAs, ?TASK_SIZE, [], CL),
     StartTime = os:timestamp(),
     {Qn,Qt,LocalMem} = pbr_scene:intersect_data(SceneS),
-    wings_cl:set_args('Intersect', [RaysB, HitsB, Qn, Qt, ?MAX_RAYS, LocalMem], CL),
-    render_loop(10, [W0,W1], CL, {StartTime, FB, RI, SceneS}).
+    IArgs = [RaysB, HitsB, Qn, Qt, ?MAX_RAYS, LocalMem],
+    wings_cl:set_args('Intersect', IArgs, CL),
+    render_loop(10, [W0,W1], CL, {StartTime, FB, RI, PS, SceneS}).
 
 render_loop(N, Wait, CL, Data) when N > 0 ->
-    io:format("Sampler", []),
+    io:format("Loop~n", []),
     W1 = wings_cl:tcast('Sampler', ?TASK_SIZE, Wait, CL),
     W2 = wings_cl:tcast('Intersect', ?TASK_SIZE, [W1], CL),
     W3 = wings_cl:tcast('AdvancePaths', ?TASK_SIZE, [W2], CL),
     render_loop(N-1, [W3], CL, Data);
-render_loop(0, Wait, CL, Data = {StartTime, FB, RI, SceneS0}) ->
+render_loop(0, Wait, CL, Data = {StartTime, FB, RI, _PS, SceneS0}) ->
     receive stop -> 
+	    ok = cl:finish(wings_cl:get_queue(CL)),
 	    update_film(Wait, FB, SceneS0, CL),
 	    normal
     after 0 ->
 	    Elapsed = timer:now_diff(os:timestamp(), StartTime) *1000,
 	    case Elapsed > RI of
 		true ->
+		    ok = cl:flush(wings_cl:get_queue(CL)),
 		    SceneS1 = update_film(Wait, FB, SceneS0, CL),
 		    render_loop(10, [], CL, {os:timestamp(), FB, RI, SceneS1});
 		false -> 
 		    %% Flush queue
+		    ok = cl:flush(wings_cl:get_queue(CL)),
 		    io:format("Time Elapsed ~p waiting ~p~n",[Elapsed, RI]),
-		    {ok,_} = cl:wait(hd(Wait)),
-		    render_loop(10, tl(Wait), CL, Data)
+		    render_loop(10, Wait, CL, Data)
 	    end
     end.
 
-update_film(Wait, FB, SceneS, _CL) ->
-%    W0 = wings_cl:read(FB, X*Y*?PIXEL_SZ, Wait, CL),
-%    {ok, SampleBuff} = cl:wait(W0),
-    {ok,_} = cl:wait(hd(Wait)),
+-record(task, {seed, sample, pathstate}).
+-record(sample, {rad, 
+		 i, 
+		 u, %% inlined_random
+		 rest}).
+-record(paths, {s, d, tp}).
+
+debug_rays({_, _, _, #ps{rays=RaysB, hits=HitsB, task=TaskB}, SceneS0}, Wait, CL) ->
+    W1 = wings_cl:read(RaysB, ?RAYBUFFER_SZ, Wait, CL),
+    {ok, RaysBin} = cl:wait(W1),
+    W2 = wings_cl:read(TaskB, 56*?TASK_SIZE, [], CL),
+    {ok, TaskBin} = cl:wait(W2),
+    Tasks = bin2tasks56(TaskBin),
+%%    [io:format("~s~n", [w_task(T)]) || T <- Tasks],
+    Rays = bin2rays(RaysBin),
+    #renderer{scene=Scene} = SceneS0,
+    QBVH = element(size(Scene), Scene),
+    D = fun(R,N) ->
+		Hit = e3d_qbvh:ray_trace(R, QBVH),
+		Task = #task{sample=#sample{i=I,u=[U1,U2]}}= lists:nth(N,Tasks),
+		io:format("CL ~s: ~s => ~s~n", [w_task(Task), w_ray(R), w_hit(Hit)]),
+		Ray = pbr_camera:generate_ray(SceneS0, float(I rem 256)+U1-0.5, 256 - (I / 256)-1+U2-0.5),
+		Hit2 = e3d_qbvh:ray_trace(Ray, QBVH),
+		io:format("MY ~p(~p,~p): ~s ~s~n", [I, I rem 256, 256-(I div 256)-1, w_ray(Ray), w_hit(Hit2)]),
+		N+1
+	end,
+    {R0,_} = lists:split(10, Rays),
+    lists:foldl(D, 1, R0),
+    exit(foo),
+    ok.
+
+
+w_ray(#ray{o={OX,OY,OZ},d={DX,DY,DZ},n=Min,f=Max}) ->
+    io_lib:format("o{~.2g,~.2g,~.2g} d{~.2g,~.2g,~.2g} n=~.2g f=~.2g",
+		  [OX,OY,OZ,DX,DY,DZ,Min,Max]).
+w_hit(#hit{t=Dist,f=Face}) when Dist < ?E3D_INFINITY ->
+    io_lib:format("=> ~p ~.2g", [Face,Dist]);
+w_hit(#hit{}) ->
+    io_lib:format("=> miss", []).
+
+w_task(#task{sample=#sample{i=I,u=[U1,U2|_]}, pathstate=#paths{s=PS,d=PD}}) ->
+    %%io_lib:format("Task ~p(~p) ~p(~.2g,~.2g)", [PS,PD,I,U1,U2]).
+    io_lib:format("~p(~p,~p)", [I,I rem 256, 256 - (I div 256) -1]).
+    
+bin2tasks56(TasksBin) when is_binary(TasksBin) ->
+    0 = byte_size(TasksBin) rem 56,
+    [#task{seed={S1,S2,S3},
+	   sample=#sample{rad={SR,SG,SB}, i=SI, u=[U1,U2]},
+	   pathstate=#paths{s=PS, d=PD, tp={PR,PG,PB}}}
+     || <<S1:?UI32,S2:?UI32,S3:?UI32,  %% Seed
+	  SR:?F32, SG:?F32, SB:?F32,   %% Sampler data
+	  SI:?UI32, U1:?F32, U2:?F32,
+	  PS:?UI32, PD:?UI32,          %% PathState
+	  PR:?F32, PG:?F32, PB:?F32>> <= TasksBin].
+
+bin2rays(RaysBin) when is_binary(RaysBin) ->
+    0 = byte_size(RaysBin) rem (8*4),
+    [#ray{o={OX,OY,OZ},d={DX,DY,DZ},n=Min,f=Max} ||
+	<<OX:?F32, OY:?F32, OZ:?F32,
+	  DX:?F32, DY:?F32, DZ:?F32,
+	  Min:?F32, Max:?F32>> <= RaysBin].
+
+rays2bin(Rays) ->
+    << << OX:?F32, OY:?F32, OZ:?F32, 
+	  DX:?F32, DY:?F32, DZ:?F32, 
+	  N:?F32,  F:?F32
+       >> || #ray{o={OX,OY,OZ},d={DX,DY,DZ},n=N,f=F} <- Rays >>.
+
+
+update_film(Wait, FB, SceneS, CL) ->
     io:format("Updates FB~n",[]),
     Scene = pbr_film:set_sample_frame_buffer(FB, SceneS),
     io:format("Show FB~n",[]),
@@ -145,7 +234,8 @@ init_render(_Id, Seed, Start, Opts, SceneS0) ->
     AdvancePathsArgs = advance_paths_args(PS), 
     wings_cl:set_args('Sampler', SamplerArgs, SceneS#renderer.cl),
     io:format("~p:~p: MemObjs ~p~n", 
-	      [?MODULE,?LINE, [element(2,cl:get_mem_object_info(E, size)) || E <- AdvancePathsArgs]]),
+	      [?MODULE,?LINE, [element(2,cl:get_mem_object_info(E, size)) || 
+				  E <- AdvancePathsArgs]]),
     wings_cl:set_args('AdvancePaths', AdvancePathsArgs, SceneS#renderer.cl),
     {SceneS, PS, SamplerArgs}.
 
@@ -183,8 +273,8 @@ create_light_buffs(PS0, SceneS = #renderer{cl=CL}) ->
 		arealight   = false,  %% Fixme
 		inflight    = false,
 		inflightmap = false,
-		sunlight    = wings_cl:buff(pbr_light:pack_light(sunlight, Lights),CL),
-		skylight    = wings_cl:buff(pbr_light:pack_light(skylight, Lights),CL)},    
+		sunlight = opt_buff(pbr_light:pack_light(sunlight,Lights),CL),
+		skylight  = opt_buff(pbr_light:pack_light(skylight,Lights),CL)},
     PS#ps.sunlight /= false orelse PS#ps.skylight /= false orelse exit(no_light),
     PS.
 
@@ -197,6 +287,11 @@ create_tex_buffs(PS, _SceneS) ->
 	  meshbumps      = false,
 	  meshbumpsscale = false,
 	  uvsb           = false}.
+
+opt_buff(Buff, CL) when is_binary(Buff) -> 
+    wings_cl:buff(Buff, CL);
+opt_buff(_, _) -> 
+    false.
 
 create_params(Seed, Start, Materials, Opt, PS, SceneS) ->
     {X,Y} = pbr_film:resolution(SceneS),
@@ -225,7 +320,8 @@ create_params(Seed, Start, Materials, Opt, PS, SceneS) ->
     SamplerPs = sampler_params(Opt#ropt.sampler),
     %% Host and OpenCL specific addons fixme
     HostOpts = host_params(SceneS#renderer.cl),
-    lists:flatten([Ps, MatPs, CamPs, LightPs, TexPs, FilterPs, SamplerPs, HostOpts]).
+    lists:flatten([Ps, MatPs, CamPs, LightPs, TexPs, 
+		   FilterPs, SamplerPs, HostOpts]).
 
 sampler_args(PS=#ps{task=TaskB, taskstats=TaskStatsB, rays=RaysB, cam=CamB},
 	     Opts, #renderer{cl=CL}) ->
@@ -238,10 +334,13 @@ sampler_args(PS=#ps{task=TaskB, taskstats=TaskStatsB, rays=RaysB, cam=CamB},
 advance_paths_args(#ps{task=TaskB, rays=RaysB, hits=HitsB,
 		       cam=CamB, framebuffer=FrameBufferB,
 		       mats=MaterialsB, mesh2mat=Mesh2MatB, meshids=MeshIdsB,
-		       colors=ColorsB, normals=NormalsB, vertices=VerticesB, triangles=TrianglesB, 
+		       colors=ColorsB, normals=NormalsB, 
+		       vertices=VerticesB, triangles=TrianglesB, 
 		       %% Optional
 		       inflight=InfLightB, inflightmap=InfLightMapB, 
-		       sunlight=SunLightB, skylight=SkyLightB, arealight=AreaLightB,
+		       sunlight=SunLightB, skylight=SkyLightB, 
+		       arealight=AreaLightB,
+
 		       texmaprgb=TexMapRGBB, texmapalpha=TexMapAlphaB,
 		       texmapdesc=TexMapDescB,  meshtexs=MeshTexsB,
 		       meshbumps=MeshBumpsB,  meshbumpsscale=MeshBumpsScaleB,
@@ -258,7 +357,8 @@ advance_paths_args(#ps{task=TaskB, rays=RaysB, hits=HitsB,
      ColorsB, NormalsB, VerticesB, TrianglesB, CamB 
      | [ Buff || Buff <- Optional, Buff /= false]].
 
-compile(RS=#renderer{cl=CL0, force_wg=ForceWg}, Params, Opts=#ropt{sampler=Sampler}, PS) -> 
+compile(RS=#renderer{cl=CL0, force_wg=ForceWg}, Params, 
+	Opts=#ropt{sampler=Sampler}, PS) -> 
     Fs = ["pbr/pathgpu2_kernel_datatypes.cl", 
 	  "pbr/pathgpu2_kernel_core.cl",
 	  "pbr/pathgpu2_kernel_filters.cl",
@@ -277,18 +377,21 @@ compile(RS=#renderer{cl=CL0, force_wg=ForceWg}, Params, Opts=#ropt{sampler=Sampl
 		     #sampler{type=stratified} ->
 			 SSSz  = stratified_sampler_size(Opts, PS),
 			 InitMax = wings_cl:get_lmem_sz('Init', CL1),
-			 InitSz = decrease_wg(wings_cl:get_wg_sz('Init',CL1), SSSz, InitMax),
+			 InitSz = decrease_wg(wings_cl:get_wg_sz('Init',CL1), 
+					      SSSz, InitMax),
 			 CL2 = wings_cl:set_wg_sz('Init', InitSz, CL1),
 			 SamplerMax = wings_cl:get_lmem_sz('Sampler', CL2),
-			 SamplerSz = decrease_wg(wings_cl:get_wg_sz('Init',CL1), SSSz, SamplerMax),
+			 SamplerSz = decrease_wg(wings_cl:get_wg_sz('Init',CL1), 
+						 SSSz, SamplerMax),
 			 wings_cl:set_wg_sz('Sampler', SamplerSz, CL1);
 		     _ -> 
 			 CL1
 		 end
 	 end,
     io:format("Kernel          Max workgroupsize ~n",[]),
-    [io:format("~-15s ~5w~n", [atom_to_list(Kernel), wings_cl:get_wg_sz(Kernel, CL)]) 
-     || Kernel <- Ks],
+    [io:format("~-15s ~5w~n", [atom_to_list(Kernel), 
+			       wings_cl:get_wg_sz(Kernel, CL)])
+     || Kernel <- ['Intersect'|Ks]],
     RS#renderer{cl=CL}.
 
 decrease_wg(WG, Size, Max) when WG > 64 ->
@@ -318,7 +421,8 @@ mat_param(mattemetal)  -> " -D PARAM_ENABLE_MAT_MATTEMETAL";
 mat_param(alloy)       -> " -D PARAM_ENABLE_MAT_ALLOY";
 mat_param(archglass)   -> " -D PARAM_ENABLE_MAT_ARCHGLASS".
 
-light_params(#ps{skylight=SkyLightB, sunlight=SunLightB, arealightn=AreaLightN, inflight=InfLight}) ->
+light_params(#ps{skylight=SkyLightB, sunlight=SunLightB, 
+		 arealightn=AreaLightN, inflight=InfLight}) ->
     [?ifelse(InfLight /= false, " -D PARAM_HAS_INFINITELIGHT", []),
      ?ifelse(SkyLightB /= false, " -D PARAM_HAS_SKYLIGHT", []),
      if SunLightB /= false, AreaLightN == 0 ->
@@ -329,9 +433,10 @@ light_params(#ps{skylight=SkyLightB, sunlight=SunLightB, arealightn=AreaLightN, 
 	     " -D PARAM_HAS_SUNLIGHT" ++ 
 		 " -D PARAM_DIRECT_LIGHT_SAMPLING" ++
 		 param("PARAM_DL_LIGHT_COUNT", AreaLightN);
-	AreaLightN ->
+	AreaLightN > 0 ->
 	     " -D PARAM_DIRECT_LIGHT_SAMPLING" ++
-		 param("PARAM_DL_LIGHT_COUNT", AreaLightN)
+		 param("PARAM_DL_LIGHT_COUNT", AreaLightN);
+	true -> []
      end].
 
 filter_params(#filter{type=none}) ->
@@ -371,16 +476,10 @@ host_params(CL) ->
 		    {unix, darwin} -> [" -D __APPLE__"];
 		    _ -> []
 		end,
-    ClDev  = wings_cl:get_device(CL),
-    {ok, ClPlat} = cl:get_device_info(ClDev, platform),
-    {ok, Vendor} = cl:get_platform_info(ClPlat, vendor),
-    case Vendor of
-	"NVIDIA" ++ _ -> 
-	    HostOpts0;
-	"Advanced Micro Dev" ++ _ -> 
-	    [" -fno-alias"|HostOpts0];
-	_ ->
-	    HostOpts0
+    case wings_cl:get_vendor(CL) of
+	"NVIDIA" ++ _ ->             HostOpts0;
+	"Advanced Micro Dev" ++ _ -> [" -fno-alias"|HostOpts0];
+	_ ->                 	     HostOpts0
     end.
 
 
@@ -407,23 +506,16 @@ sampler_size(PS = #ps{arealightn=AN, sunlight=SL, texmapalpha=TMA},
 	?ifelse(AN > 0 orelse SL /= false, ?FSz*3, 0) + 
 	%% IDX_RR
 	?FSz,
-    DataSz = 
-	case Type of
-	    inlined_random -> 
-		?FSz*2;
-	    metropolis -> 
-		?FSz*2+?ISz*5+?FSz*3+2*(DataEyePath+DataPerPath*PathDepth);
-	    _ -> 
-		DataEyePath+DataPerPath*PathDepth
-	end,
+    DataSz = case Type of
+		 inlined_random -> ?FSz*2;
+		 metropolis -> ?FSz*2+?ISz*5+?FSz*3+2*
+				   (DataEyePath+DataPerPath*PathDepth);
+		 _ -> DataEyePath+DataPerPath*PathDepth
+	     end,
     case Type of
-	metropolis -> 
-	    DataSz + ?FSz*3;
-	stratified -> 
-	    ?ISz + DataSz + ?FSz*3 + 
-		stratified_sampler_size(Opts, PS);
-	_ -> 
-	    ?ISz + DataSz + ?FSz*3
+	metropolis -> DataSz + ?FSz*3;
+	stratified -> ?ISz + DataSz + ?FSz*3 + stratified_sampler_size(Opts, PS);
+	_ ->          ?ISz + DataSz + ?FSz*3
     end.
 
 stratified_sampler_size(#ropt{sampler=#sampler{type=stratified, opts={X,Y}}, 
