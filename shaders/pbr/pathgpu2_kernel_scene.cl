@@ -843,7 +843,7 @@ void GenerateCameraRay(
 	ray->o = torig;
 	ray->d = tdir;
 	ray->mint = PARAM_RAY_EPSILON;
-	ray->maxt = (camera->yon - hither) / dir.z;
+	ray->maxt = (camera->yon - hither) / -dir.z;  // dgud modified to -Z direction as opengl
 
 	/*printf(\"(%f, %f, %f) (%f, %f, %f) [%f, %f]\\n\",
 		ray->o.x, ray->o.y, ray->o.z, ray->d.x, ray->d.y, ray->d.z,

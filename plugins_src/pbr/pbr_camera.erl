@@ -31,7 +31,7 @@
 
 init(Attr, R=#renderer{}) ->
     CamProps = proplists:get_value(cam, Attr),
-    {XRes, YRes} = proplists:get_value(resolution, Attr, {256,256}),
+    {XRes, YRes} = proplists:get_value(resolution, Attr, {512,256}),
     {Pos,Dir,Up} = proplists:get_value(pos_dir_up, CamProps),
     %% io:format("Pos Dir Up ~p ~p~n", [(Pos), (Dir)]),
     World2Cam = e3d_transform:lookat(Pos, e3d_vec:add(Pos,Dir), Up),
@@ -60,12 +60,8 @@ init(Attr, R=#renderer{}) ->
     AspectScale = e3d_transform:scale(Center, 
     				      {1.0/(Xmax-Xmin),1.0/(Ymax-Ymin),1.0}),
     Screen2Raster = e3d_transform:scale(AspectScale, {XRes,YRes, 1.0}),
-    %% Screen = e3d_transform:scale(e3d_transform:identity(),{XRes,YRes, 1.0}),
-    %% Aspect = e3d_transform:scale(Screen, {1.0/(Xmax-Xmin),1.0/(Ymax-Ymin),1.0}),
-    %% Screen2Raster = e3d_transform:translate(Aspect, {-Xmin, Ymax, 0.0}),
 
     Raster2Screen = e3d_transform:inverse(Screen2Raster),
-    
     Raster2Camera = e3d_transform:mul(Raster2Screen, Screen2Camera),
     
     Cam = #cam{w=XRes, h=YRes,
@@ -87,11 +83,18 @@ get_fdist(#renderer{cam=#cam{f_dist=FDist}}) ->
 get_near_far(#renderer{cam=#cam{near=Near, far=Far}}) ->
     {Near,Far}.
 
-pack_camera(LensR, #renderer{cam=#cam{c2w=C2W,r2c=R2C, f_dist=FDist, near=Near, far=Far}}) ->
+pack_camera(LensR, #renderer{cam=#cam{c2w=C2W,r2c=R2C, 
+				      f_dist=FDist, near=Near, far=Far}}) ->
     Bin0 = <<LensR:?F32, FDist:?F32, Far:?F32, Near:?F32>>,
     %% The opencl renderer code expects transposed matrixes.
-    Bin = pack_matrix(e3d_mat:transpose(e3d_transform:matrix(R2C)), Bin0),
-    pack_matrix(e3d_mat:transpose(e3d_transform:matrix(C2W)), Bin).
+    %% and swap left - right handedness 
+    S = e3d_mat:scale(1.0,1.0,-1.0),
+    Ray2Cam0 = e3d_mat:transpose(e3d_transform:matrix(R2C)),
+    Ray2Cam = e3d_mat:mul(S, e3d_mat:mul(Ray2Cam0, S)),
+    Bin = pack_matrix((Ray2Cam0), Bin0),
+    Cam2W0 = e3d_mat:transpose(e3d_transform:matrix(C2W)),
+    Cam2W = e3d_mat:mul(S, e3d_mat:mul(Cam2W0, S)),
+    pack_matrix((Cam2W0), Bin).
 
 pack_matrix({A,B,C,WX,D,E,F,WY,G,H,I,WZ,Tx,Ty,Tz,WW}, Bin) ->
     <<Bin/binary, 
@@ -109,11 +112,12 @@ generate_ray(#renderer{cam=Cam},X,Y) when is_float(X), is_float(Y) ->
 		  %% Adjust for camera lens
 		  ok;
 	      false ->
-		  Origo
+		  e3d_vec:norm(Origo)
 	  end,
+    {_,_,Z} = Vec,
     C2Wm = e3d_transform:matrix(C2W),
     #ray{o=e3d_mat:mul_point(C2Wm,Origo),
-	 d=e3d_mat:mul_vector(C2Wm,e3d_vec:norm(Vec)),
+	 d=e3d_mat:mul_vector(C2Wm,Vec),
 	 n=?RAY_EPS,
-	 f=Far-Near}.
+	 f=(Far-Near)/-Z}.
 
