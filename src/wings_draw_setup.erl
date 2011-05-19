@@ -58,20 +58,29 @@ we_1(_, _, _, _) ->
 we_2(Dlo0, Opt, St) ->
     Smooth = proplists:get_value(smooth, Opt, false),
     Attrib = proplists:get_value(attribs, Opt, undefined),
-    Dlo1 = case proplists:get_value(subdiv, Opt, 0) of
-	       0 -> 
-		   Dlo0;
-	       N -> 
-		   SubDived = sub_divide(N, Dlo0#dlo.src_we),
-		   wings_draw:changed_we(#dlo{}, #dlo{src_we=SubDived})
-	   end,
-    Dlo = check_attrib(Attrib, Dlo1),
+    Dlo1 = setup_vmirror(proplists:get_value(vmirror, Opt, undefined), Dlo0),
+    Dlo2 = setup_subdiv(proplists:get_value(subdiv, Opt, 0), Dlo1),
+    Dlo = check_attrib(Attrib, Dlo2),
     #dlo{vab=Vab} =
 	case Smooth of
 	    true  -> smooth(Dlo, St, Attrib);
 	    false -> work(Dlo, St, Attrib)
 	end,
     Vab.
+
+setup_vmirror(undefined, Dlo) -> Dlo;
+setup_vmirror(_, Dlo=#dlo{src_we=#we{mirror=none}}) -> Dlo;
+setup_vmirror(_, #dlo{src_we=We}) ->
+    Mirrored = wings_we:freeze_mirror(We),
+    wings_draw:changed_we(#dlo{}, #dlo{src_we=Mirrored}).
+
+setup_subdiv(0, Dlo) -> Dlo;
+setup_subdiv(N, #dlo{src_we=We}) ->
+    SubDived = sub_divide(N, We),
+    wings_draw:changed_we(#dlo{}, #dlo{src_we=SubDived}).
+sub_divide(0, We) -> We;
+sub_divide(N, We) ->
+    sub_divide(N-1, wings_subdiv:smooth(We)).
 
 check_attrib(undefined, Dlo) -> Dlo;     
 check_attrib(_, Dlo = #dlo{vab=none}) -> Dlo;
@@ -80,10 +89,6 @@ check_attrib(color, Dlo = #dlo{vab = #vab{face_vc={_,_}, face_uv=none}}) -> Dlo;
 check_attrib(color_uv, Dlo = #dlo{vab = #vab{face_vc={_,_}, face_uv={_,_}}}) -> Dlo;
 check_attrib(_, D) -> 
     D#dlo{vab=none}. %% Force rebuild
-
-sub_divide(0, We) -> We;
-sub_divide(N, We) -> 
-    sub_divide(N-1, wings_subdiv:smooth(We)).
 
 %%%
 %%% Help functions to activate and disable buffer pointers.
