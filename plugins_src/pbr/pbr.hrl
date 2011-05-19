@@ -31,7 +31,8 @@
 
 -define(SAMPLE_BUFF_SZ,  65536).                % No of Sample in Sample buffer
 -define(SAMPLE_SZ, 5*4).                        % Binary size of sample, {X,Y, Spectrum}
--define(PIXEL_SZ,  4*4).                        % Binary size of pixel,  {Spectrum, W}
+-define(SAMPLE_PIXEL_SZ,  4*4).                 % Binary size of sample pixel,  {Spectrum, W}
+-define(PIXEL_SZ,  3*4).                        % Binary size of pixel  (Spectrum)
 
 -define(RAY_EPS, 0.00001).			% Error margin
 -define(RAY_INFINITY, 3.402823e+38).            % 32 bits float max

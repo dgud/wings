@@ -77,10 +77,10 @@ init_light(infinite, L, WBB) ->
     Turb = proplists:get_value(turbulance, Pbr, 2.2),
     Size = proplists:get_value(size, Pbr, 5.5),
     Vec = e3d_vec:norm(e3d_vec:sub(Pos,Aim)),
-%%    Sun = new({sunlight, Vec, Turb, Size}, WBB),
+    Sun = new({sunlight, Vec, Turb, Size}, WBB),
     Sky = new({skylight, Vec, Turb}, WBB),
-    %%#sunskylight{sun=Sun,sky=Sky};
-    Sky;
+    #sunskylight{sun=Sun,sky=Sky};
+
 init_light(ambient, L, WBB) ->
     new({skylight, L}, WBB);
 init_light(area, L, WBB) ->
@@ -88,7 +88,7 @@ init_light(area, L, WBB) ->
 
 
 get_light(Id, Ls) ->
-    array:get(Id, Ls).
+    array:get(Id, Ls). 
 
 get_infinite_light(Ls) ->
     false.
@@ -170,8 +170,7 @@ new({sunlight, Vec, Turb, RelSize}, _WBB) ->
 		%% Sin2ThetaMax = 1.0,
 		0.0
 	end,
-    {Vx,Vy,Vz} = Vec,   %% Algo assumes that Z is up
-    ThetaS = min(1.638555, pbr_mc:spherical_theta({Vx,Vz,Vy})),
+    ThetaS = min(1.638555, pbr_mc:spherical_theta(Vec)),
     
     Beta = 0.04608365822050 * Turb - 0.04586025928522,
     M = 1.0 / (math:cos(ThetaS) + 0.00094 * 
@@ -187,10 +186,8 @@ new({sunlight, Vec, Turb, RelSize}, _WBB) ->
 	      sunColor=Suncolor};
 
 new({skylight, Vec, T}, _WBB) ->
-    {Vx,Vy,Vz} = Vec,
-    %% Algo assumes that Z is up
-    ThetaS = max(0.0, pbr_mc:spherical_theta({Vx,Vz,Vy})),
-    PhiS   = pbr_mc:spherical_phi({Vx,Vz,Vy}),
+    ThetaS = max(0.0, pbr_mc:spherical_theta(Vec)),
+    PhiS   = pbr_mc:spherical_phi(Vec),
     Aconst = 1.0,
     Bconst = 1.0,
     Cconst = 1.0,

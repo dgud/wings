@@ -189,7 +189,12 @@ __kernel void Intersect(
 			__global QuadTiangle *quadTris,
 #endif
 			const uint rayCount,
-			__local int *nodeStacks) {
+#ifdef USE_LOCAL_MEM
+			__local int *nodeStacks
+#else
+			__global int *nodeStacks
+#endif
+			) {
     // Select the ray to check
     const int gid = get_global_id(0);
     if (gid >= rayCount)
@@ -228,7 +233,12 @@ __kernel void Intersect(
     //------------------------------
     // Main loop
     int todoNode = 0; // the index in the stack
+#ifdef USE_LOCAL_MEM
     __local int *nodeStack = &nodeStacks[24 * get_local_id(0)];
+#else
+    __global int *nodeStack = &nodeStacks[24 * get_local_id(0)];
+#endif
+
     nodeStack[0] = 0; // first node to handle: root node
 
 #ifdef USE_IMAGE_STORAGE

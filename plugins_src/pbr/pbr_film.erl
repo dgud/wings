@@ -101,18 +101,18 @@ show(#renderer{film=#f{type=raw, fb=Raw, gamma_table=GT, res=Res}}) ->
 show(#renderer{cl=CL, film=#f{fb=FB, sfb=SFB, gammab=GB, res=Res={W,H}}}) ->
     SFB /= undefined orelse error(no_sample_buffer),
     WG = wings_cl:get_wg_sz('PixelUpdateFrameBuffer', CL),
-    io:format("PixelUpdateFB ~p~n",[WG]),
     W0 = wings_cl:cast('PixelUpdateFrameBuffer', 
 		       [W,H,SFB,FB,GB], [W,H], [], CL),
     W1 = wings_cl:read(FB, W*H*?PIXEL_SZ, [W0], CL),
     {ok, Buff0} = cl:wait(W1),
-    Buff = << <<(clamp255(255.0*R)):8,(clamp255(255.0*G)):8,(clamp255(255.0*B)):8, 255:8>> 
-	      || <<R:?F32, G:?F32, B:?F32, _:?F32>> <= Buff0>>,
+    Buff = << <<(clamp255(255.0*R)):8,(clamp255(255.0*G)):8,(clamp255(255.0*B)):8>> 
+	      || <<R:?F32, G:?F32, B:?F32>> <= Buff0>>,
     show_image(Buff, Res).
 
 show_image(Pixels, {W,H}) when is_binary(Pixels) ->
     Image = #e3d_image{image=Pixels,width=W,height=H, 
-    		       type=r8g8b8a8, bytes_pp=4},
+		       order=upper_left,
+    		       type=r8g8b8, bytes_pp=4},
     ShowImage = 
     	fun(_) -> 
     		Id = wings_image:new_temp("<<Render>>", Image),
@@ -130,7 +130,7 @@ init_cl(true, Film = #f{gamma_table=GammaT, res={W,H}}, RS=#renderer{cl=CL0}) ->
     GausFB = wings_cl:buff(table_to_bin(gaussion_table()), CL0),
     FB  = wings_cl:buff(W*H*?PIXEL_SZ,CL),
     %% Create this when/if needed
-    %% SFB = wings_cl:buff(W*H*?PIXEL_SZ,CL),
+    %% SFB = wings_cl:buff(W*H*?SAMPLE_PIXEL_SZ,CL),
     %% SQB = wings_cl:buff(?SAMPLE_BUFF_SZ*?SAMPLE_SZ, CL),
     RS#renderer{cl=CL, film=Film#f{fb=FB, %% sfb=SFB, sqb=SB, 
 				   gammab=GammaB, 

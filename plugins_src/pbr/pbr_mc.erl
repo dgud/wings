@@ -62,11 +62,12 @@ sample_triangle(U1,U2) ->
 
 %%% 
 
-spherical_phi({X,Y,_Z}) ->
-    positive(math:atan2(Y,X)).
-
-spherical_theta({_, _, Z}) ->
-    math:acos(clamp(Z, -1.0, 1.0)).
+%% Y is Up in wings 
+spherical_phi({X,_Y,Z}) ->
+    positive(math:atan2(Z,X)).
+%% Y is Up in wings 
+spherical_theta({_, Y, _}) ->
+    math:acos(clamp(Y, -1.0, 1.0)).
 
 positive(P) when P < 0.0 -> 
     P + 2.0 * ?PI;

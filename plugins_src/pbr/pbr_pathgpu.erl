@@ -9,6 +9,7 @@
 -module(pbr_pathgpu).
 -export([start/2]).
 
+-include_lib("wings/src/wings.hrl").
 -include("pbr.hrl").
 -include_lib("wings/e3d/e3d.hrl").
 
@@ -29,7 +30,7 @@
 	  %% Work buffers
 	  rays, 
 	  hits,
-	  framebuffer,
+	  sample_fb,
 	  task,
 	  taskstats,
 	  %% Scene buffers
@@ -74,7 +75,7 @@ start(Attrs, SceneS0) ->
       sampler        = get_sampler(Attrs),
       filter         = get_filter(Attrs),
       lens_r         = (proplists:get_value(aperture, Attrs, 0.0) / 2.0),
-      refresh        = (proplists:get_value(refresh_interval, Attrs, 10)) * 1000
+      refresh        = (proplists:get_value(refresh_interval, Attrs, 5)) * 1000
      },
     Res = start_processes(ROpt, SceneS),
     io:format("Rendering done ~n",[]),
@@ -83,63 +84,55 @@ start(Attrs, SceneS0) ->
 start_processes(Ropt, SceneS0) ->
     %% NoThreads = erlang:system_info(schedulers),
     random:seed(now()),
-    Rays = [pbr_camera:generate_ray(SceneS0, float(I rem 256), 256 - (I / 256)) ||
-    	       I <- lists:seq(1, ?MAX_RAYS-1)],
-    RaysBin = rays2bin(Rays),
-    %% {_rs, Hits} = pbr_scene:intersect({?MAX_RAYS, RaysBin}, SceneS0),
-    %% io:format("Hits ~p~n",[Hits]),
-    Size = 3, 
-    Test = fun(I) when I * Size < (?MAX_RAYS-1) ->
-    		   io:format("Testing ~p ~p~n",[I, Size]),
-		   Skip = Size*I*?RAY_SZ,
-		   <<_:Skip/binary, Bin/binary>> = RaysBin,
-    		   {_rs, Hits} = pbr_scene:intersect({Size, Bin}, SceneS0),
-    		   io:format("Hits ~p~n",[size(Hits)]);
-	      (I) ->
-		   skip
-    	   end,
-    [Test(I) || I <- lists:seq(1, ?MAX_RAYS -1)],
-    ok.
-    %% {SceneS, PS, SAs} = init_render(1, random:uniform(1 bsl 32), 0.00, Ropt, SceneS0),
-    %% render(SceneS, PS, Ropt, SAs).
+    {SceneS, PS, SAs} = init_render(1, random:uniform(1 bsl 32), 0.00, Ropt, SceneS0),
+    render(SceneS, PS, Ropt, SAs).
 
 render(SceneS = #renderer{cl=CL}, 
-       PS=#ps{framebuffer=FB, rays=RaysB, hits=HitsB}, 
+       PS=#ps{sample_fb=FB, rays=RaysB, hits=HitsB}, 
        #ropt{refresh=RI}, IAs) ->
     {X,Y} = pbr_film:resolution(SceneS),
-    W0 = wings_cl:tcast('InitFrameBuffer', [FB], X*Y, [], CL),
-    W1 = wings_cl:tcast('Init', IAs, ?TASK_SIZE, [], CL),
+    W0 = wings_cl:cast('InitFrameBuffer', [FB], X*Y, [], CL),
+    W1 = wings_cl:cast('Init', IAs, ?TASK_SIZE, [], CL),
     StartTime = os:timestamp(),
     {Qn,Qt,LocalMem} = pbr_scene:intersect_data(SceneS),
     IArgs = [RaysB, HitsB, Qn, Qt, ?MAX_RAYS, LocalMem],
     wings_cl:set_args('Intersect', IArgs, CL),
-    render_loop(10, [W0,W1], CL, {StartTime, FB, RI, PS, SceneS}).
+    ?TC(render_loop(10, [W0,W1], CL, {StartTime, FB, RI, PS, SceneS})).
 
 render_loop(N, Wait, CL, Data) when N > 0 ->
-    io:format("Loop~n", []),
-    W1 = wings_cl:tcast('Sampler', ?TASK_SIZE, Wait, CL),
-    W2 = wings_cl:tcast('Intersect', ?TASK_SIZE, [W1], CL),
-    W3 = wings_cl:tcast('AdvancePaths', ?TASK_SIZE, [W2], CL),
+    W1 = wings_cl:cast('Sampler', ?TASK_SIZE, Wait, CL),
+    W2 = wings_cl:cast('Intersect', ?TASK_SIZE, [W1], CL),
+    %% debug_rays(Data, [W2], CL),
+    W3 = wings_cl:cast('AdvancePaths', ?TASK_SIZE, [W2], CL),
     render_loop(N-1, [W3], CL, Data);
 render_loop(0, Wait, CL, Data = {StartTime, FB, RI, _PS, SceneS0}) ->
-    receive stop -> 
+    receive 
+	stop -> 
 	    ok = cl:finish(wings_cl:get_queue(CL)),
-	    update_film(Wait, FB, SceneS0, CL),
-	    normal
+	    update_film(Wait, FB, SceneS0),
+	    normal;
+	Msg ->
+	    io:format("Renderer got Msg ~p~n",[Msg]),
+	    ok = cl:flush(wings_cl:get_queue(CL)),
+	    render_loop(10, Wait, CL, Data)
     after 0 ->
-	    Elapsed = timer:now_diff(os:timestamp(), StartTime) *1000,
+	    %%ok = cl:finish(wings_cl:get_queue(CL)),
+	    cl:wait(hd(Wait)),
+	    Elapsed = timer:now_diff(os:timestamp(), StartTime) div 1000,
 	    case Elapsed > RI of
 		true ->
-		    ok = cl:flush(wings_cl:get_queue(CL)),
-		    SceneS1 = update_film(Wait, FB, SceneS0, CL),
-		    render_loop(10, [], CL, {os:timestamp(), FB, RI, SceneS1});
+		    SceneS1 = update_film(Wait, FB, SceneS0),
+		    render_loop(10, [], CL, {os:timestamp(),FB,RI,_PS,SceneS1});
 		false -> 
-		    %% Flush queue
-		    ok = cl:flush(wings_cl:get_queue(CL)),
-		    io:format("Time Elapsed ~p waiting ~p~n",[Elapsed, RI]),
 		    render_loop(10, Wait, CL, Data)
 	    end
     end.
+
+update_film(Wait, FB, SceneS) ->
+    ?TC(cl:wait(hd(Wait))),
+    Scene = pbr_film:set_sample_frame_buffer(FB, SceneS),
+    ?TC(pbr_film:show(Scene)),
+    Scene.
 
 -record(task, {seed, sample, pathstate}).
 -record(sample, {rad, 
@@ -148,7 +141,7 @@ render_loop(0, Wait, CL, Data = {StartTime, FB, RI, _PS, SceneS0}) ->
 		 rest}).
 -record(paths, {s, d, tp}).
 
-debug_rays({_, _, _, #ps{rays=RaysB, hits=HitsB, task=TaskB}, SceneS0}, Wait, CL) ->
+debug_rays({_,_,_,#ps{rays=RaysB, hits=HitsB, task=TaskB}, SceneS0}, Wait, CL) ->
     W1 = wings_cl:read(RaysB, ?RAYBUFFER_SZ, Wait, CL),
     {ok, RaysBin} = cl:wait(W1),
     W2 = wings_cl:read(TaskB, 56*?TASK_SIZE, [], CL),
@@ -167,8 +160,8 @@ debug_rays({_, _, _, #ps{rays=RaysB, hits=HitsB, task=TaskB}, SceneS0}, Wait, CL
 		io:format("MY ~p(~p,~p): ~s ~s~n", [I, I rem 256, 256-(I div 256)-1, w_ray(Ray), w_hit(Hit2)]),
 		N+1
 	end,
-    {R0,_} = lists:split(10, Rays),
-    lists:foldl(D, 1, R0),
+    %% {R0,_} = lists:split(10, Rays),
+    lists:foldl(D, 1, Rays),
     exit(foo),
     ok.
 
@@ -210,14 +203,6 @@ rays2bin(Rays) ->
        >> || #ray{o={OX,OY,OZ},d={DX,DY,DZ},n=N,f=F} <- Rays >>.
 
 
-update_film(Wait, FB, SceneS, CL) ->
-    io:format("Updates FB~n",[]),
-    Scene = pbr_film:set_sample_frame_buffer(FB, SceneS),
-    io:format("Show FB~n",[]),
-    pbr_film:show(Scene),
-    io:format("Got FB~n",[]),
-    Scene.
-
 init_render(_Id, Seed, Start, Opts, SceneS0) ->
     PS1 = #ps{},
     MeshBuffs = {_, _, Materials} = pbr_scene:mesh2mat(SceneS0),
@@ -244,7 +229,7 @@ create_work_buffs(PS, TaskSize, SceneS = #renderer{cl=CL}) ->
     %% Work areas
     PS#ps{rays        = wings_cl:buff(?RAYBUFFER_SZ,CL),
 	  hits        = wings_cl:buff(?RAYHIT_SZ*?MAX_RAYS,CL),
-	  framebuffer = wings_cl:buff(?PIXEL_SZ*X*Y,CL),
+	  sample_fb   = wings_cl:buff(?SAMPLE_PIXEL_SZ*X*Y,CL),
 	  task        = wings_cl:buff(TaskSize*?TASK_SIZE,CL),
 	  taskstats   = wings_cl:buff(?TASKSTAT_SZ * ?TASK_SIZE,CL)}.
 
@@ -332,7 +317,7 @@ sampler_args(PS=#ps{task=TaskB, taskstats=TaskStatsB, rays=RaysB, cam=CamB},
     end.
 
 advance_paths_args(#ps{task=TaskB, rays=RaysB, hits=HitsB,
-		       cam=CamB, framebuffer=FrameBufferB,
+		       cam=CamB, sample_fb=FrameBufferB,
 		       mats=MaterialsB, mesh2mat=Mesh2MatB, meshids=MeshIdsB,
 		       colors=ColorsB, normals=NormalsB, 
 		       vertices=VerticesB, triangles=TrianglesB, 

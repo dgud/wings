@@ -256,11 +256,11 @@ void CoordinateSystem(const Vector *v1, Vector *v2, Vector *v3) {
 }
 
 float SphericalTheta(const Vector *v) {
-	return acos(clamp(v->z, -1.f, 1.f));
+	return acos(clamp(v->y, -1.f, 1.f));  // dgud Y is up in wings
 }
 
 float SphericalPhi(const Vector *v) {
-	float p = atan2(v->y, v->x);
+	float p = atan2(v->z, v->x);  // dgud Y is up in wings
 	return (p < 0.f) ? p + 2.f * M_PI : p;
 }
 
