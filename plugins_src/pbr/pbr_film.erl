@@ -16,6 +16,7 @@
 	 gamma_table/1, gaussion_table/0
 	]).
 
+-include_lib("wings/src/wings.hrl").
 -include("pbr.hrl").
 -include_lib("wings/e3d/e3d_image.hrl").
 
@@ -100,9 +101,7 @@ show(#renderer{film=#f{type=raw, fb=Raw, gamma_table=GT, res=Res}}) ->
     show_image(Pixels, Res);
 show(#renderer{cl=CL, film=#f{fb=FB, sfb=SFB, gammab=GB, res=Res={W,H}}}) ->
     SFB /= undefined orelse error(no_sample_buffer),
-    WG = wings_cl:get_wg_sz('PixelUpdateFrameBuffer', CL),
-    W0 = wings_cl:cast('PixelUpdateFrameBuffer', 
-		       [W,H,SFB,FB,GB], [W,H], [], CL),
+    W0 = wings_cl:cast('PixelUpdateFrameBuffer', [W,H,SFB,FB,GB], [W,H], [], CL),
     W1 = wings_cl:read(FB, W*H*?PIXEL_SZ, [W0], CL),
     {ok, Buff0} = cl:wait(W1),
     Buff = << <<(clamp255(255.0*R)):8,(clamp255(255.0*G)):8,(clamp255(255.0*B)):8>> 

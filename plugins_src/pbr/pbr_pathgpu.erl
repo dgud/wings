@@ -134,74 +134,7 @@ update_film(Wait, FB, SceneS) ->
     ?TC(pbr_film:show(Scene)),
     Scene.
 
--record(task, {seed, sample, pathstate}).
--record(sample, {rad, 
-		 i, 
-		 u, %% inlined_random
-		 rest}).
--record(paths, {s, d, tp}).
-
-debug_rays({_,_,_,#ps{rays=RaysB, hits=HitsB, task=TaskB}, SceneS0}, Wait, CL) ->
-    W1 = wings_cl:read(RaysB, ?RAYBUFFER_SZ, Wait, CL),
-    {ok, RaysBin} = cl:wait(W1),
-    W2 = wings_cl:read(TaskB, 56*?TASK_SIZE, [], CL),
-    {ok, TaskBin} = cl:wait(W2),
-    Tasks = bin2tasks56(TaskBin),
-%%    [io:format("~s~n", [w_task(T)]) || T <- Tasks],
-    Rays = bin2rays(RaysBin),
-    #renderer{scene=Scene} = SceneS0,
-    QBVH = element(size(Scene), Scene),
-    D = fun(R,N) ->
-		Hit = e3d_qbvh:ray_trace(R, QBVH),
-		Task = #task{sample=#sample{i=I,u=[U1,U2]}}= lists:nth(N,Tasks),
-		io:format("CL ~s: ~s => ~s~n", [w_task(Task), w_ray(R), w_hit(Hit)]),
-		Ray = pbr_camera:generate_ray(SceneS0, float(I rem 256)+U1-0.5, 256 - (I / 256)-1+U2-0.5),
-		Hit2 = e3d_qbvh:ray_trace(Ray, QBVH),
-		io:format("MY ~p(~p,~p): ~s ~s~n", [I, I rem 256, 256-(I div 256)-1, w_ray(Ray), w_hit(Hit2)]),
-		N+1
-	end,
-    %% {R0,_} = lists:split(10, Rays),
-    lists:foldl(D, 1, Rays),
-    exit(foo),
-    ok.
-
-
-w_ray(#ray{o={OX,OY,OZ},d={DX,DY,DZ},n=Min,f=Max}) ->
-    io_lib:format("o{~.2g,~.2g,~.2g} d{~.2g,~.2g,~.2g} n=~.2g f=~.2g",
-		  [OX,OY,OZ,DX,DY,DZ,Min,Max]).
-w_hit(#hit{t=Dist,f=Face}) when Dist < ?E3D_INFINITY ->
-    io_lib:format("=> ~p ~.2g", [Face,Dist]);
-w_hit(#hit{}) ->
-    io_lib:format("=> miss", []).
-
-w_task(#task{sample=#sample{i=I,u=[U1,U2|_]}, pathstate=#paths{s=PS,d=PD}}) ->
-    %%io_lib:format("Task ~p(~p) ~p(~.2g,~.2g)", [PS,PD,I,U1,U2]).
-    io_lib:format("~p(~p,~p)", [I,I rem 256, 256 - (I div 256) -1]).
-    
-bin2tasks56(TasksBin) when is_binary(TasksBin) ->
-    0 = byte_size(TasksBin) rem 56,
-    [#task{seed={S1,S2,S3},
-	   sample=#sample{rad={SR,SG,SB}, i=SI, u=[U1,U2]},
-	   pathstate=#paths{s=PS, d=PD, tp={PR,PG,PB}}}
-     || <<S1:?UI32,S2:?UI32,S3:?UI32,  %% Seed
-	  SR:?F32, SG:?F32, SB:?F32,   %% Sampler data
-	  SI:?UI32, U1:?F32, U2:?F32,
-	  PS:?UI32, PD:?UI32,          %% PathState
-	  PR:?F32, PG:?F32, PB:?F32>> <= TasksBin].
-
-bin2rays(RaysBin) when is_binary(RaysBin) ->
-    0 = byte_size(RaysBin) rem (8*4),
-    [#ray{o={OX,OY,OZ},d={DX,DY,DZ},n=Min,f=Max} ||
-	<<OX:?F32, OY:?F32, OZ:?F32,
-	  DX:?F32, DY:?F32, DZ:?F32,
-	  Min:?F32, Max:?F32>> <= RaysBin].
-
-rays2bin(Rays) ->
-    << << OX:?F32, OY:?F32, OZ:?F32, 
-	  DX:?F32, DY:?F32, DZ:?F32, 
-	  N:?F32,  F:?F32
-       >> || #ray{o={OX,OY,OZ},d={DX,DY,DZ},n=N,f=F} <- Rays >>.
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 init_render(_Id, Seed, Start, Opts, SceneS0) ->
     PS1 = #ps{},
@@ -235,20 +168,27 @@ create_work_buffs(PS, TaskSize, SceneS = #renderer{cl=CL}) ->
 
 create_scene_buffs(PS, {Face2Mesh, Mesh2Mat, Mats}, SceneS = #renderer{cl=CL}) ->
     %% Static Scene buffers
-    io:format("Mesh2Mat    ~p~n", [size(Mesh2Mat) / 4]),
-    io:format("Meshids F2M ~p~n", [size(Face2Mesh) / 4]),
-    io:format("color       ~p~n", [size(pbr_scene:vertex_colors(SceneS)) / 36]),
-    io:format("normals     ~p~n", [size(pbr_scene:normals(SceneS)) / 36]),
-    io:format("vertices    ~p~n", [size(pbr_scene:vertices(SceneS)) / 36]),
-    io:format("triangles   ~p~n", [size(pbr_scene:triangles(SceneS)) / 12]),    
+    MatBuff = pbr_mat:pack_materials(Mats),
+    VCs = pbr_scene:vertex_colors(SceneS),
+    Ns  = pbr_scene:normals(SceneS),
+    Ts = pbr_scene:triangles(SceneS),
+    Vs = pbr_scene:vertices(SceneS),
 
-    PS#ps{meshids   = wings_cl:buff(Face2Mesh,CL),
-	  mesh2mat  = wings_cl:buff(Mesh2Mat,CL),
-	  mats      = wings_cl:buff(pbr_mat:pack_materials(Mats),CL),
-	  colors    = wings_cl:buff(pbr_scene:vertex_colors(SceneS),CL),
-	  normals   = wings_cl:buff(pbr_scene:normals(SceneS),CL),
-	  triangles = wings_cl:buff(pbr_scene:triangles(SceneS),CL),
-	  vertices  = wings_cl:buff(pbr_scene:vertices(SceneS),CL)}.
+    io:format("Materials   ~p~n", [size(MatBuff) div 52]),
+    io:format("Mesh2Mat    ~p~n", [size(Mesh2Mat) div 4]),
+    io:format("Meshids F2M ~p~n", [size(Face2Mesh) div 4]),
+    io:format("color       ~p~n", [size(VCs) div 36]),
+    io:format("normals     ~p~n", [size(Ns)  div 36]),
+    io:format("vertices    ~p~n", [size(Vs)  div 36]),
+    io:format("triangles   ~p~n", [size(Ts)  div 12]),
+    
+    PS#ps{meshids   = wings_cl:buff(Face2Mesh, CL),
+	  mesh2mat  = wings_cl:buff(Mesh2Mat, CL),
+	  mats      = wings_cl:buff(MatBuff, CL),
+	  colors    = wings_cl:buff(VCs, CL),
+	  normals   = wings_cl:buff(Ns, CL),
+	  triangles = wings_cl:buff(Ts, CL),
+	  vertices  = wings_cl:buff(Vs, CL)}.
 
 create_light_buffs(PS0, SceneS = #renderer{cl=CL}) ->    
     %% Lights
@@ -291,7 +231,7 @@ create_params(Seed, Start, Materials, Opt, PS, SceneS) ->
 	  param("PARAM_RR_CAP", Opt#ropt.rr_imp_cap),
 	  param("PARAM_RR_DEPTH",  Opt#ropt.rr_depth)
 	 ],
-    MatPs = [mat_param(pbr_mat:type(Mat)) || Mat <- Materials],
+    MatPs = lists:usort([mat_param(pbr_mat:type(Mat)) || Mat <- Materials]),
     MatPs == [] andalso exit(no_materials),
     CamLens = Opt#ropt.lens_r > 0.0 ,  
     CamPs = if CamLens -> " -D PARAM_CAMERA_HAS_DOF";
@@ -559,3 +499,78 @@ get_filter(mitchell, Attrs) ->
     #filter{type=mitchell, dim=Dim, opts=[{b,B},{c,C}]}.
 
 
+%%%%%%%%%%% Debug
+
+-ifdef(DEBUG).
+
+-record(task, {seed, sample, pathstate}).
+-record(sample, {rad, 
+		 i, 
+		 u, %% inlined_random
+		 rest}).
+-record(paths, {s, d, tp}).
+
+debug_rays({_,_,_,#ps{rays=RaysB, hits=HitsB, task=TaskB}, SceneS0}, Wait, CL) ->
+    W1 = wings_cl:read(RaysB, ?RAYBUFFER_SZ, Wait, CL),
+    {ok, RaysBin} = cl:wait(W1),
+    W2 = wings_cl:read(TaskB, 56*?TASK_SIZE, [], CL),
+    {ok, TaskBin} = cl:wait(W2),
+    Tasks = bin2tasks56(TaskBin),
+%%    [io:format("~s~n", [w_task(T)]) || T <- Tasks],
+    Rays = bin2rays(RaysBin),
+    #renderer{scene=Scene} = SceneS0,
+    QBVH = element(size(Scene), Scene),
+    D = fun(R,N) ->
+		Hit = e3d_qbvh:ray_trace(R, QBVH),
+		Task = #task{sample=#sample{i=I,u=[U1,U2]}}= lists:nth(N,Tasks),
+		io:format("CL ~s: ~s => ~s~n", [w_task(Task), w_ray(R), w_hit(Hit)]),
+		Ray = pbr_camera:generate_ray(SceneS0, float(I rem 256)+U1-0.5, 
+					      256 - (I / 256)-1+U2-0.5),
+		Hit2 = e3d_qbvh:ray_trace(Ray, QBVH),
+		io:format("MY ~p(~p,~p): ~s ~s~n", 
+			  [I, I rem 256, 256-(I div 256)-1, w_ray(Ray), w_hit(Hit2)]),
+		N+1
+	end,
+    %% {R0,_} = lists:split(10, Rays),
+    lists:foldl(D, 1, Rays),
+    exit(foo),
+    ok.
+
+
+w_ray(#ray{o={OX,OY,OZ},d={DX,DY,DZ},n=Min,f=Max}) ->
+    io_lib:format("o{~.2g,~.2g,~.2g} d{~.2g,~.2g,~.2g} n=~.2g f=~.2g",
+		  [OX,OY,OZ,DX,DY,DZ,Min,Max]).
+w_hit(#hit{t=Dist,f=Face}) when Dist < ?E3D_INFINITY ->
+    io_lib:format("=> ~p ~.2g", [Face,Dist]);
+w_hit(#hit{}) ->
+    io_lib:format("=> miss", []).
+
+w_task(#task{sample=#sample{i=I,u=[U1,U2|_]}, pathstate=#paths{s=PS,d=PD}}) ->
+    %%io_lib:format("Task ~p(~p) ~p(~.2g,~.2g)", [PS,PD,I,U1,U2]).
+    io_lib:format("~p(~p,~p)", [I,I rem 256, 256 - (I div 256) -1]).
+    
+bin2tasks56(TasksBin) when is_binary(TasksBin) ->
+    0 = byte_size(TasksBin) rem 56,
+    [#task{seed={S1,S2,S3},
+	   sample=#sample{rad={SR,SG,SB}, i=SI, u=[U1,U2]},
+	   pathstate=#paths{s=PS, d=PD, tp={PR,PG,PB}}}
+     || <<S1:?UI32,S2:?UI32,S3:?UI32,  %% Seed
+	  SR:?F32, SG:?F32, SB:?F32,   %% Sampler data
+	  SI:?UI32, U1:?F32, U2:?F32,
+	  PS:?UI32, PD:?UI32,          %% PathState
+	  PR:?F32, PG:?F32, PB:?F32>> <= TasksBin].
+
+bin2rays(RaysBin) when is_binary(RaysBin) ->
+    0 = byte_size(RaysBin) rem (8*4),
+    [#ray{o={OX,OY,OZ},d={DX,DY,DZ},n=Min,f=Max} ||
+	<<OX:?F32, OY:?F32, OZ:?F32,
+	  DX:?F32, DY:?F32, DZ:?F32,
+	  Min:?F32, Max:?F32>> <= RaysBin].
+
+rays2bin(Rays) ->
+    << << OX:?F32, OY:?F32, OZ:?F32, 
+	  DX:?F32, DY:?F32, DZ:?F32, 
+	  N:?F32,  F:?F32
+       >> || #ray{o={OX,OY,OZ},d={DX,DY,DZ},n=N,f=F} <- Rays >>.
+
+-endif.

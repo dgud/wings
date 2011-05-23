@@ -71,21 +71,23 @@ init_light(spot, L, WBB) ->
     I = 1.0,
     new({point, Pos, {IR*I,IG*I,IB*I}}, WBB);
 init_light(infinite, L, WBB) ->
+    {Dx,Dy,Dz,_} = proplists:get_value(diffuse, L),
+    I = 1.0,
+    Diff = {Dx*I,Dy*I,Dz*I},
     Pos  = proplists:get_value(position, L),
     Aim  = proplists:get_value(aim_point, L),
     Pbr  = proplists:get_value(pbr, L, []),
     Turb = proplists:get_value(turbulance, Pbr, 2.2),
     Size = proplists:get_value(size, Pbr, 5.5),
     Vec = e3d_vec:norm(e3d_vec:sub(Pos,Aim)),
-    Sun = new({sunlight, Vec, Turb, Size}, WBB),
-    Sky = new({skylight, Vec, Turb}, WBB),
+    Sun = new({sunlight, Vec, Turb, Diff, Size}, WBB),
+    Sky = new({skylight, Vec, Turb, Diff}, WBB),
     #sunskylight{sun=Sun,sky=Sky};
 
 init_light(ambient, L, WBB) ->
     new({skylight, L}, WBB);
 init_light(area, L, WBB) ->
     new({arealight, L}, WBB).
-
 
 get_light(Id, Ls) ->
     array:get(Id, Ls). 
@@ -155,7 +157,7 @@ new({spot,Pos,Dir0,Intensity, Width, Falloff}, _WBB) ->
     #spot{pos=Pos, intensity=Intensity, dir=Dir, 
 	  l2wq=e3d_q:rotate_s_to_t({0.0,0.0,1.0}, Dir),
 	  cos_w_max=CosW, cos_fall_start=CosF};
-new({sunlight, Vec, Turb, RelSize}, _WBB) ->
+new({sunlight, Vec, Turb, Diff, RelSize}, _WBB) ->
     {X,Y} = pbr_scene:coord_sys(Vec),
     SunRadius = 695500.0,
     SunMeanDistance = 149600000.0,
@@ -176,16 +178,15 @@ new({sunlight, Vec, Turb, RelSize}, _WBB) ->
     M = 1.0 / (math:cos(ThetaS) + 0.00094 * 
 		   math:pow(1.6386 - ThetaS, -1.253)),
     Spd = calc_sun_spd(M, Beta),
-    Gain = {1.0, 1.0, 1.0},
-    Suncolor = pbr_mat:sdiv(pbr_mat:smul(Gain,pbr_mat:spd_to_rgb(Spd)),
+    Suncolor = pbr_mat:sdiv(pbr_mat:smul(Diff,pbr_mat:spd_to_rgb(Spd)),
 			    (1000000000.0 / (?PI * 100.0 * 100.0))),
-    #sunlight{gain=Gain, dir=Vec,
+    #sunlight{gain=Diff, dir=Vec,
 	      turbidity=Turb, relSize=RelSize,
 	      x=X, y=Y,
 	      cosThetaMax=CosThetaMax,
 	      sunColor=Suncolor};
 
-new({skylight, Vec, T}, _WBB) ->
+new({skylight, Vec, T, Diff}, _WBB) ->
     ThetaS = max(0.0, pbr_mc:spherical_theta(Vec)),
     PhiS   = pbr_mc:spherical_phi(Vec),
     Aconst = 1.0,
@@ -237,7 +238,7 @@ new({skylight, Vec, T}, _WBB) ->
     Zenith_x = Zenith_x1 / perezBase(Perez_x, 0, ThetaS),
     Zenith_y = Zenith_y1 / perezBase(Perez_y, 0, ThetaS),
     
-    #skylight{gain={1.0,1.0,1.0}, 
+    #skylight{gain=Diff, 
 	      thetaS=ThetaS, phiS=PhiS, 
 	      zenith_Y=Zenith_Y, zenith_x=Zenith_x, zenith_y=Zenith_y, 
 	      perez_Y=Perez_Y, perez_x=Perez_x, perez_y=Perez_y

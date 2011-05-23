@@ -75,17 +75,17 @@ to_rgb(Spectrum) ->
 -define(MAT_ARCHGLASS, 8).
 -define(MAT_NULL, 9).
 
--define(MAT_MATTE_SZ, 3*4).
--define(MAT_AREALIGHT_SZ, 3*4).
--define(MAT_MIRROR_SZ, 4*4).
--define(MAT_GLASS_SZ,  11*4).
--define(MAT_MATTEMIRROR_SZ, ?MAT_MATTE_SZ+?MAT_MIRROR_SZ+4*4). % = 11*4
--define(MAT_METAL_SZ, 5*4).
--define(MAT_MATTEMETAL_SZ, ?MAT_MATTE_SZ+?MAT_METAL_SZ+4*4).   % = 12*4
--define(MAT_ALLOY_SZ, 9*4).
--define(MAT_ARCHGLASS_SZ, 10*4+2).
+-define(MAT_MATTE_SZ, (3*4)).
+-define(MAT_AREALIGHT_SZ, (3*4)).
+-define(MAT_MIRROR_SZ, (4*4)).
+-define(MAT_GLASS_SZ,  (11*4)).
+-define(MAT_MATTEMIRROR_SZ, (?MAT_MATTE_SZ+?MAT_MIRROR_SZ+4*4)). % = 11*4
+-define(MAT_METAL_SZ, (5*4)).
+-define(MAT_MATTEMETAL_SZ, (?MAT_MATTE_SZ+?MAT_METAL_SZ+4*4)).   % = 12*4
+-define(MAT_ALLOY_SZ, (9*4)).
+-define(MAT_ARCHGLASS_SZ, (10*4+2*4)).
 
--define(MAT_MAX_SZ, 12*4).
+-define(MAT_MAX_SZ, (12*4)).
 
 %% type(matte) -> ?MAT_MATTE;
 %% type(area_light) -> ?MAT_AREALIGHT;
@@ -183,8 +183,14 @@ create_diffuse(Diff, Maps) ->
     #material{m_info=#matte{kd=Diff, kdOverPi=smul(Diff, ?INV_PI)}, maps=Maps}.
 
 create_glass_mat(A, Diff, OpenGL, Maps) ->
-    {R,G,B,_} = proplists:get_value(specular, OpenGL),
-    #material{m_info=#glass{refl=Diff, refr={R,G,B}, ior=2.0*A, oior=1.0-A},
+    {RR,RG,RB,_} = proplists:get_value(specular, OpenGL),
+    Ior  = 1.0 + A,
+    Oior = 1.0,
+    T = Ior-Oior, B = Ior + Oior,
+    R0 = T*T / (B*B),
+    E  = 1.0,
+    #material{m_info=#glass{refl=Diff, refr={RR*E,RG*E,RB*E}, 
+			    ior=Ior, oior=Oior, r0=R0},
 	      maps=Maps}.
     
 %%%%%%%%%
@@ -248,7 +254,7 @@ pack_material(#archglass{refl={DR,DG,DB}, refr={RR,RG,RB}, rsb=RSB, tsb=TSB,
       DR:?F32, DG:?F32, DB:?F32, 
       RR:?F32, RG:?F32, RB:?F32, 
       MaF:?F32, TF:?F32, MaPdf:?F32, MiPdf:?F32, 
-      RSB:8, TSB:8,
+      RSB:?UI32, TSB:?UI32,
       0:(8*(?MAT_MAX_SZ-?MAT_ARCHGLASS_SZ))>>;
 pack_material(Mat, Bin) -> 
     io:format("Ignoring unknown material ~p~n", [Mat]),

@@ -351,7 +351,7 @@ append_color(N, Diff, Acc) when N > 0 ->
 append_color(_, _, Acc) -> Acc.
 
 init_accel(CL0, {_BB, Qnodes0, Qtris0, _Map}, Scene) ->
-    Defs0 = "-D USE_LOCAL_MEM",  %% BUGBUG only use if local_mem_size /= 0
+    Defs0 = " -D USE_LOCAL_MEM",  %% BUGBUG only use if local_mem_size /= 0
     {Defs1,Local} = case wings_cl:get_vendor(CL0) of
 			"NVIDIA" ++ _ -> 
 			    {[], false};
@@ -364,7 +364,7 @@ init_accel(CL0, {_BB, Qnodes0, Qtris0, _Map}, Scene) ->
 	try  
 	    exit(no_image_support), %% BUGBUG
 	    wings_cl:have_image_support(CL0) orelse exit(no_image_support),
-	    Dfs = ["-D USE_IMAGE_STORAGE"|Defs1],
+	    Dfs = [" -D USE_IMAGE_STORAGE"|Defs1],
 	    Dev = wings_cl:get_device(CL0),
 	    {ok, MaxH} = cl:get_device_info(Dev, image2d_max_height),
 	    {ok, MaxW} = cl:get_device_info(Dev, image2d_max_width),
