@@ -49,13 +49,13 @@
 	  sunlight,   
 	  skylight,   
 	  %% Texture buffers
-	  texmaprgb,
-	  texmapalpha,
-	  texmapdesc,
-	  meshtexs,
-	  meshbumps,
-	  meshbumpsscale,
-	  uvsb,
+	  texmaprgb   = false,
+	  texmapalpha = false,
+	  texmapdesc  = false,
+	  meshtexs    = false,
+	  meshbumps   = false,
+	  meshbumpsscale = false,
+	  uvsb = false,
 	  %% Camera buffers
 	  cam}).
 
@@ -75,11 +75,9 @@ start(Attrs, SceneS0) ->
       sampler        = get_sampler(Attrs),
       filter         = get_filter(Attrs),
       lens_r         = (proplists:get_value(aperture, Attrs, 0.0) / 2.0),
-      refresh        = (proplists:get_value(refresh_interval, Attrs, 5)) * 1000
+      refresh        = (proplists:get_value(refresh_interval, Attrs, 1)) * 1000
      },
-    Res = start_processes(ROpt, SceneS),
-    io:format("Rendering done ~n",[]),
-    Res.
+    start_processes(ROpt, SceneS).
 
 start_processes(Ropt, SceneS0) ->
     %% NoThreads = erlang:system_info(schedulers),
@@ -90,64 +88,75 @@ start_processes(Ropt, SceneS0) ->
 render(SceneS = #renderer{cl=CL}, 
        PS=#ps{sample_fb=FB, rays=RaysB, hits=HitsB}, 
        #ropt{refresh=RI}, IAs) ->
-    {X,Y} = pbr_film:resolution(SceneS),
-    W0 = wings_cl:cast('InitFrameBuffer', [FB], X*Y, [], CL),
+    io:format("Initilizes buffers~n",[]),
+    {X,Y} = pbr_film:resolution(SceneS),    
+    wings_cl:cast('InitFrameBuffer', [FB], X*Y, [], CL),
     W1 = wings_cl:cast('Init', IAs, ?TASK_SIZE, [], CL),
-    StartTime = os:timestamp(),
     {Qn,Qt,LocalMem} = pbr_scene:intersect_data(SceneS),
     IArgs = [RaysB, HitsB, Qn, Qt, ?MAX_RAYS, LocalMem],
     wings_cl:set_args('Intersect', IArgs, CL),
-    ?TC(render_loop(10, [W0,W1], CL, {StartTime, FB, RI, PS, SceneS})).
+    erlang:garbage_collect(),
+    {ok, completed} = cl:wait(W1),
+    io:format("Starting rendering~n",[]),
+    Start = os:timestamp(),
+    Res = render_loop(10, 0, [], CL, {Start, FB, RI, PS, SceneS}),
+    Time = timer:now_diff(os:timestamp(),Start),
+    io:format("Rendered in: ~s #rays:  ~wK/secs ~n",
+	      [format_time(Time), (Res*?TASK_SIZE) div (Time div 1000)]),
+    normal.
 
-render_loop(N, Wait, CL, Data) when N > 0 ->
+render_loop(N, C, Wait, CL, Data) when N > 0 ->
     W1 = wings_cl:cast('Sampler', ?TASK_SIZE, Wait, CL),
     W2 = wings_cl:cast('Intersect', ?TASK_SIZE, [W1], CL),
-    %% debug_rays(Data, [W2], CL),
     W3 = wings_cl:cast('AdvancePaths', ?TASK_SIZE, [W2], CL),
-    render_loop(N-1, [W3], CL, Data);
-render_loop(0, Wait, CL, Data = {StartTime, FB, RI, _PS, SceneS0}) ->
+    render_loop(N-1, C, [W3], CL, Data);
+render_loop(0, C0, Wait, CL, Data = {StartTime, FB, RI, _PS, SceneS0}) ->
+    Count = C0+10,
     receive 
 	stop -> 
 	    ok = cl:finish(wings_cl:get_queue(CL)),
 	    update_film(Wait, FB, SceneS0),
-	    normal;
+	    Count;
 	Msg ->
 	    io:format("Renderer got Msg ~p~n",[Msg]),
 	    ok = cl:flush(wings_cl:get_queue(CL)),
-	    render_loop(10, Wait, CL, Data)
+	    render_loop(10, Count, Wait, CL, Data)
     after 0 ->
-	    %%ok = cl:finish(wings_cl:get_queue(CL)),
-	    cl:wait(hd(Wait)),
+	    erlang:garbage_collect(),
+	    {ok, completed} = cl:wait(hd(Wait)),
 	    Elapsed = timer:now_diff(os:timestamp(), StartTime) div 1000,
 	    case Elapsed > RI of
 		true ->
 		    SceneS1 = update_film(Wait, FB, SceneS0),
-		    render_loop(10, [], CL, {os:timestamp(),FB,RI,_PS,SceneS1});
-		false -> 
-		    render_loop(10, Wait, CL, Data)
+		    render_loop(10, Count, [], CL, {os:timestamp(),FB,RI+500,_PS,SceneS1});
+		false -> 		    
+		    render_loop(10, Count, Wait, CL, Data)
 	    end
     end.
 
 update_film(Wait, FB, SceneS) ->
-    ?TC(cl:wait(hd(Wait))),
+    %% erlang:display(?LINE),
+    cl:wait(hd(Wait)),
     Scene = pbr_film:set_sample_frame_buffer(FB, SceneS),
-    ?TC(pbr_film:show(Scene)),
+    pbr_film:show(Scene),
+    %% erlang:display(?LINE),
     Scene.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 init_render(_Id, Seed, Start, Opts, SceneS0) ->
     PS1 = #ps{},
-    MeshBuffs = {_, _, Materials} = pbr_scene:mesh2mat(SceneS0),
-    PS2 = create_scene_buffs(PS1, MeshBuffs, SceneS0),
+    io:format("Creating data~n",[]),
+    MeshMatBuffs = pbr_scene:mesh2mat(SceneS0),
+    PS2 = create_scene_buffs(PS1, MeshMatBuffs, SceneS0),
     PS3 = create_light_buffs(PS2, SceneS0),
-    PS4 = create_tex_buffs(PS3, SceneS0),
+    PS4 = create_tex_buffs(PS3, MeshMatBuffs, SceneS0),
     CamBin = pbr_camera:pack_camera(Opts#ropt.lens_r, SceneS0), 
     PS5 = PS4#ps{cam=wings_cl:buff(CamBin, SceneS0#renderer.cl)},
     PS  = create_work_buffs(PS5, calc_task_size(PS5, Opts), SceneS0), 
-
-    CompilerParams = create_params(Seed, Start, Materials, Opts, PS, SceneS0),
-    SceneS = compile(SceneS0, CompilerParams, Opts, PS),
+    io:format("Compiling OpenCL code~n",[]),
+    CompilerParams = create_params(Seed, Start, MeshMatBuffs, Opts, PS, SceneS0),
+    SceneS = ?TC(compile(SceneS0, CompilerParams, Opts, PS)),
     SamplerArgs = sampler_args(PS, Opts, SceneS),
     AdvancePathsArgs = advance_paths_args(PS), 
     wings_cl:set_args('Sampler', SamplerArgs, SceneS#renderer.cl),
@@ -166,21 +175,20 @@ create_work_buffs(PS, TaskSize, SceneS = #renderer{cl=CL}) ->
 	  task        = wings_cl:buff(TaskSize*?TASK_SIZE,CL),
 	  taskstats   = wings_cl:buff(?TASKSTAT_SZ * ?TASK_SIZE,CL)}.
 
-create_scene_buffs(PS, {Face2Mesh, Mesh2Mat, Mats}, SceneS = #renderer{cl=CL}) ->
+create_scene_buffs(PS, {Face2Mesh, Mesh2Mat, _, Mats}, SceneS = #renderer{cl=CL}) ->
     %% Static Scene buffers
-    MatBuff = pbr_mat:pack_materials(Mats),
+    MatBuff = pbr_mat:pack_materials(Mats, pbr_scene:get_materials(SceneS)),
     VCs = pbr_scene:vertex_colors(SceneS),
     Ns  = pbr_scene:normals(SceneS),
-    Ts = pbr_scene:triangles(SceneS),
-    Vs = pbr_scene:vertices(SceneS),
-
-    io:format("Materials   ~p~n", [size(MatBuff) div 52]),
-    io:format("Mesh2Mat    ~p~n", [size(Mesh2Mat) div 4]),
-    io:format("Meshids F2M ~p~n", [size(Face2Mesh) div 4]),
-    io:format("color       ~p~n", [size(VCs) div 36]),
-    io:format("normals     ~p~n", [size(Ns)  div 36]),
-    io:format("vertices    ~p~n", [size(Vs)  div 36]),
-    io:format("triangles   ~p~n", [size(Ts)  div 12]),
+    Ts  = pbr_scene:triangles(SceneS),
+    Vs  = pbr_scene:vertices(SceneS),
+    io:format("Materials   ~w ~wb~n", [size(MatBuff) div 52, size(MatBuff) ]),
+    io:format("Mesh2Mat    ~w ~wb~n", [size(Mesh2Mat) div 4, size(Mesh2Mat)]),
+    io:format("Meshids F2M ~w ~wb~n", [size(Face2Mesh) div 4, size(Face2Mesh)]),
+    io:format("color       ~w ~wb~n", [size(VCs) div 36, size(VCs)]),
+    io:format("normals     ~w ~wb~n", [size(Ns)  div 36, size(Ns)]),
+    io:format("vertices    ~w ~wb~n", [size(Vs)  div 36, size(Vs)]),
+    io:format("triangles   ~w ~wb~n", [size(Ts)  div 12, size(Ts)]),
     
     PS#ps{meshids   = wings_cl:buff(Face2Mesh, CL),
 	  mesh2mat  = wings_cl:buff(Mesh2Mat, CL),
@@ -193,32 +201,43 @@ create_scene_buffs(PS, {Face2Mesh, Mesh2Mat, Mats}, SceneS = #renderer{cl=CL}) -
 create_light_buffs(PS0, SceneS = #renderer{cl=CL}) ->    
     %% Lights
     Lights = pbr_scene:get_lights(SceneS),
-    %% AreaLight = StatBuff(pbr_light:pack_area(SceneS)),
-    PS = PS0#ps{arealightn  = 0,      %% Fixme
-		arealight   = false,  %% Fixme
+    {ALN, AreaLight} = pbr_light:pack_arealights(Lights),
+    PS = PS0#ps{arealightn  = ALN,
+		arealight   = opt_buff(AreaLight,CL), 
 		inflight    = false,
 		inflightmap = false,
-		sunlight = opt_buff(pbr_light:pack_light(sunlight,Lights),CL),
-		skylight  = opt_buff(pbr_light:pack_light(skylight,Lights),CL)},
-    PS#ps.sunlight /= false orelse PS#ps.skylight /= false orelse exit(no_light),
+		sunlight    = opt_buff(pbr_light:pack_light(sunlight,Lights),CL),
+		skylight    = opt_buff(pbr_light:pack_light(skylight,Lights),CL)},
+    %% Assert there is some lights
+    PS#ps.sunlight /= false orelse PS#ps.skylight /= false orelse 
+	PS#ps.arealight /= false orelse PS#ps.inflightmap /= false
+	orelse exit(no_light),
+    ALN > 0 andalso io:format("Area lights: ~w (~wb)~n", 
+			      [ALN, byte_size(AreaLight)]),
     PS.
 
-create_tex_buffs(PS, _SceneS) ->
-    %% Textures   Fixme
-    PS#ps{texmaprgb      = false,
-	  texmapalpha    = false,
-	  texmapdesc     = false,
-	  meshtexs       = false,
-	  meshbumps      = false,
-	  meshbumpsscale = false,
-	  uvsb           = false}.
+create_tex_buffs(PS, {_, _, Mesh2Mat, _}, SceneS = #renderer{cl=CL}) ->
+    %% io:format("Mats ~w~n",[Mesh2Mat]),
+    Materials = pbr_scene:get_materials(SceneS),
+    case pbr_mat:mesh2tex(Mesh2Mat, Materials) of
+	{_, _, _, []} -> PS;
+	{M2Tex, M2Bumps, M2BScale, Textures} ->
+	    {TexRGB, TexAlpha, TexDesc} = pbr_mat:pack_textures(Textures),
+	    PS#ps{texmaprgb      = wings_cl:buff(TexRGB, CL),
+		  texmapalpha    = opt_buff(TexAlpha, CL),
+		  texmapdesc     = wings_cl:buff(TexDesc, CL),
+		  meshtexs       = opt_buff(M2Tex, CL),
+		  meshbumps      = opt_buff(M2Bumps, CL),
+		  meshbumpsscale = opt_buff(M2BScale, CL),
+		  uvsb           = wings_cl:buff(pbr_scene:uvs(SceneS), CL)}
+    end.
 
 opt_buff(Buff, CL) when is_binary(Buff) -> 
     wings_cl:buff(Buff, CL);
 opt_buff(_, _) -> 
     false.
 
-create_params(Seed, Start, Materials, Opt, PS, SceneS) ->
+create_params(Seed, Start, {_,_,_,Materials}, Opt, PS, SceneS) ->
     {X,Y} = pbr_film:resolution(SceneS),
     StartLine = trunc(Start*Y),
     Ps = [param("PARAM_STARTLINE", StartLine),
@@ -231,14 +250,15 @@ create_params(Seed, Start, Materials, Opt, PS, SceneS) ->
 	  param("PARAM_RR_CAP", Opt#ropt.rr_imp_cap),
 	  param("PARAM_RR_DEPTH",  Opt#ropt.rr_depth)
 	 ],
-    MatPs = lists:usort([mat_param(pbr_mat:type(Mat)) || Mat <- Materials]),
+    Mats  = pbr_scene:get_materials(SceneS),
+    MatPs = lists:usort([mat_param(pbr_mat:type(Mat,Mats)) || Mat <- Materials]),
     MatPs == [] andalso exit(no_materials),
     CamLens = Opt#ropt.lens_r > 0.0 ,  
     CamPs = if CamLens -> " -D PARAM_CAMERA_HAS_DOF";
 	       true -> []
 	    end,
     LightPs = light_params(PS),
-    TexPs = [],
+    TexPs = tex_params(PS),
     
     FilterPs = filter_params(Opt#ropt.filter),
     %% PixelAtomics = " -D PARAM_USE_PIXEL_ATOMICS";
@@ -250,10 +270,11 @@ create_params(Seed, Start, Materials, Opt, PS, SceneS) ->
 
 sampler_args(PS=#ps{task=TaskB, taskstats=TaskStatsB, rays=RaysB, cam=CamB},
 	     Opts, #renderer{cl=CL}) ->
-    Args0 = stratified_sampler_size(Opts, PS) * wings_cl:get_wg_sz('Sampler',CL),
-    case Args0 of
+    case stratified_sampler_size(Opts, PS) of
 	0 -> [TaskB, TaskStatsB, RaysB, CamB];
-	_ -> [TaskB, TaskStatsB, RaysB, CamB | Args0]
+	SSSz ->
+	    Args0 = [{local, SSSz * wings_cl:get_wg_sz('Sampler',CL)}],
+	    [TaskB, TaskStatsB, RaysB, CamB | Args0]
     end.
 
 advance_paths_args(#ps{task=TaskB, rays=RaysB, hits=HitsB,
@@ -272,9 +293,9 @@ advance_paths_args(#ps{task=TaskB, rays=RaysB, hits=HitsB,
 		       uvsb=UvsB
 		      }) ->
     %% Note order is very important
-    Optional =  [InfLightB, InfLightMapB, SunLightB, SkyLightB, AreaLightB,
-		 TexMapRGBB, TexMapAlphaB, TexMapDescB, MeshTexsB,
-		 MeshBumpsB, MeshBumpsScaleB, UvsB],
+    Optional = [InfLightB, InfLightMapB, SunLightB, SkyLightB, AreaLightB,
+		TexMapRGBB, TexMapAlphaB, TexMapDescB, MeshTexsB,
+		MeshBumpsB, MeshBumpsScaleB, UvsB],
     
     [TaskB, RaysB, HitsB, FrameBufferB, 
      MaterialsB, Mesh2MatB, MeshIdsB,
@@ -293,28 +314,39 @@ compile(RS=#renderer{cl=CL0, force_wg=ForceWg}, Params,
     io:format("Defines: ~p~n",[Params]),
     CL1 = wings_cl:compile(Fs, Params, CL0),
     Ks = ['Init', 'InitFrameBuffer', 'AdvancePaths', 'Sampler'],
-    CL = if ForceWg > 0 ->
-		 lists:foldl(fun(Kernel, State) ->
-				     wings_cl:set_wg_sz(Kernel, ForceWg, State)
-			     end, CL1, Ks);
-	    true -> 
-		 case Sampler of
-		     #sampler{type=stratified} ->
-			 SSSz  = stratified_sampler_size(Opts, PS),
-			 InitMax = wings_cl:get_lmem_sz('Init', CL1),
-			 InitSz = decrease_wg(wings_cl:get_wg_sz('Init',CL1), 
-					      SSSz, InitMax),
-			 CL2 = wings_cl:set_wg_sz('Init', InitSz, CL1),
-			 SamplerMax = wings_cl:get_lmem_sz('Sampler', CL2),
-			 SamplerSz = decrease_wg(wings_cl:get_wg_sz('Init',CL1), 
-						 SSSz, SamplerMax),
-			 wings_cl:set_wg_sz('Sampler', SamplerSz, CL1);
-		     _ -> 
-			 CL1
-		 end
-	 end,
-    io:format("Kernel          Max workgroupsize ~n",[]),
-    [io:format("~-15s ~5w~n", [atom_to_list(Kernel), 
+    CL3 = if ForceWg > 0 ->
+		  lists:foldl(fun(Kernel, State) ->
+				      wings_cl:set_wg_sz(Kernel, ForceWg, State)
+			      end, CL1, Ks);
+	     true -> 
+		  case Sampler of
+		      #sampler{type=stratified} ->
+			  SSSz  = stratified_sampler_size(Opts, PS),
+			  InitMax = wings_cl:get_lmem_sz('Init', CL1),
+			  InitSz = decrease_wg(wings_cl:get_wg_sz('Init',CL1), 
+					       SSSz, InitMax),
+			  CL2 = wings_cl:set_wg_sz('Init', InitSz, CL1),
+			  SamplerMax = wings_cl:get_lmem_sz('Sampler', CL2),
+			  SamplerSz = decrease_wg(wings_cl:get_wg_sz('Init',CL1), 
+						  SSSz, SamplerMax),
+			  wings_cl:set_wg_sz('Sampler', SamplerSz, CL1);
+		      _ -> 
+			  CL1
+		  end
+	  end,
+    %% Can not trust the wg sizes (on at least) Nvidia when TASK_SIZE > 512
+    %% I get: CL_OUT_OF_RESOURCES error waiting for idle on GeForce
+    %% Tweak them:
+    MaxWGs = [ {'Intersect', 256}, 
+	       {'AdvancePaths', 128}, 
+	       {'Sampler', 2048}],
+    CL = lists:foldl(fun({Kernel, MaxWg}, State) ->
+			     Curr = wings_cl:get_wg_sz(Kernel, State),
+			     wings_cl:set_wg_sz(Kernel, min(MaxWg, Curr), State)
+		     end, CL3, MaxWGs),
+    
+    io:format("Kernel:         WorkGroupSize: ~n",[]),
+    [io:format("~-15s ~5w~n", [atom_to_list(Kernel),
 			       wings_cl:get_wg_sz(Kernel, CL)])
      || Kernel <- ['Intersect'|Ks]],
     RS#renderer{cl=CL}.
@@ -325,11 +357,11 @@ decrease_wg(WG, Size, Max) when WG > 64 ->
 	false -> WG
     end;
 decrease_wg(WG, _, _) when WG >= 64 -> WG;
-decrease_wg(WG, _, _) -> 
-    io:format("Not enough local memory to run," 
+decrease_wg(WG, _, _) ->
+    io:format("Not enough local memory to run,"
 	      "try to reduce stratified xsamples and ysamples values"),
     io:format("Or set cl_max_workgroup_sz to ~p or lower", [WG]),
-    exit(out_of_local_mem).	    
+    exit(out_of_local_mem).
 
 param(Str, Value) when is_integer(Value) -> 
     io_lib:format(" -D ~s=~p", [Str,Value]);
@@ -364,6 +396,11 @@ light_params(#ps{skylight=SkyLightB, sunlight=SunLightB,
 	true -> []
      end].
 
+tex_params(#ps{texmaprgb=RGB,texmapalpha=A,meshbumps=Bump}) ->
+    [?ifelse(RGB /= false, " -D PARAM_HAS_TEXTUREMAPS", []),
+     ?ifelse(A /= false, " -D PARAM_HAS_ALPHA_TEXTUREMAPS", []),
+     ?ifelse(Bump /= false, " -D PARAM_HAS_BUMPMAPS", [])].
+    
 filter_params(#filter{type=none}) ->
     " -D PARAM_IMAGE_FILTER_TYPE=0";
 filter_params(#filter{type=box, dim={X,Y}}) ->
@@ -497,6 +534,19 @@ get_filter(mitchell, Attrs) ->
     B = proplists:get_value(filter_b, Attrs, 1/3),
     C = proplists:get_value(filter_c, Attrs, 1/3),
     #filter{type=mitchell, dim=Dim, opts=[{b,B},{c,C}]}.
+
+format_time(Micro) ->
+    Units = [{"us", 1000},{"ms", 1000},{"sec", 60}, {"min", 60}, {"hour", 1000}],
+    format_time(Micro, [], Units).
+
+format_time(T, Acc, [{Unit,Len}|Units]) when T > 0 ->
+    Str = io_lib:format("~p~s ",[T rem Len, Unit]),
+    format_time(T div Len, [Str|Acc], Units);
+format_time(_, [Acc1,Acc2,_,_|_], _) ->
+    [Acc1,Acc2];
+format_time(_, [Acc1|_], _) ->
+    [Acc1];
+format_time(_, [], _) -> "0ms".
 
 
 %%%%%%%%%%% Debug

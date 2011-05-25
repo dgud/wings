@@ -8,9 +8,12 @@
 %%%-------------------------------------------------------------------
 -module(pbr_light).
 
--export([create_lookup/1, lookup_id/2, init/2,
-	 new/2, get_light/2, get_infinite_light/1,
-	 pack_light/2, pack_light/1,
+-export([init/1, init_arealight/4,
+	 %% Get lights
+	 lookup_id/2, get_light/2, get_infinite_light/1,
+	 %% Pack binaries
+	 pack_light/2, pack_light/1, pack_arealights/1,
+	 %% Sample
 	 sample_all_lights/1,
 	 sample_L/1, sample_L/2,
 	 pdf/1, le/2, power/1
@@ -21,6 +24,8 @@
 
 %% List of lights
 %% Light is {type, type_specific_record}
+
+-record(lights, {all, n2id}).
 
 -record(point, {pos, intensity}).
 -record(spot,  {pos, l2wq, intensity, dir, cos_w_max, cos_fall_start}).
@@ -35,7 +40,8 @@
 		   cosThetaMax, 
 		   sunColor}).
 -record(sunskylight, {sun, sky}).
-
+-define(TRI_AREALIGHT_SZ, ((3*3+3+1+3)*4)).
+-record(arealight,   {gain, tris}).  %% tris is <<V1,V2,V2,N,Area,Gain>>
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -43,59 +49,105 @@
 %% @end
 %%--------------------------------------------------------------------
 
-create_lookup(Ls) ->
+init(Ls0) ->
+    Ls = lists:map(fun({Name, LO}) -> 
+			   case proplists:get_value(visible, LO, true) of
+			       true ->
+				   L = proplists:get_value(opengl,LO),
+				   init_light(proplists:get_value(type, L), L, LO);
+			       false ->
+				   io:format("Ignoring disabled light ~p~n",[Name])
+			   end
+		   end, Ls0),
     La = array:from_list(Ls),
-    Lookup = array:foldr(fun(Id, {Light,_}, Acc) ->
-				 [{Light, Id}|Acc]
-			 end, [], La),
-    {La, gb_trees:from_orddict(Lookup)}.
+    {_,Lookup} = lists:foldl(fun({Light,_}, {Id, Acc}) ->
+				     {Id+1, [{Light, Id}|Acc]}
+			     end, {0, []}, Ls0),
+    #lights{all=La, n2id=gb_trees:from_orddict(lists:sort(Lookup))}.
 
-lookup_id(Name, {_, Lookup}) ->
+lookup_id(Name, #lights{n2id=Lookup}) ->
     gb_trees:get(Name, Lookup).
 
-%% Input is returned from create_lookup/1
-init({La, _}, WBB) ->
-    array:map(fun(_, {_Name, LO}) -> 
-		      L = proplists:get_value(opengl,LO),
-		      init_light(proplists:get_value(type, L), L,WBB) 
-	      end, La).
+get_light(Id, #lights{all=Ls}) ->
+    array:get(Id, Ls).
 
-init_light(point, L, WBB) ->
+get_infinite_light(_Ls) ->
+    false.
+
+init_light(point, L, _Orig) ->
     Pos = proplists:get_value(position, L),
     {IR,IG,IB,_} = proplists:get_value(diffuse, L),
     I = 1.0,
-    new({point, Pos, {IR*I,IG*I,IB*I}}, WBB);
-init_light(spot, L, WBB) ->
+    new({point, Pos, {IR*I,IG*I,IB*I}});
+init_light(spot, L, _Orig) ->
     Pos = proplists:get_value(position, L),
     {IR,IG,IB,_} = proplists:get_value(diffuse, L),
     I = 1.0,
-    new({point, Pos, {IR*I,IG*I,IB*I}}, WBB);
-init_light(infinite, L, WBB) ->
+    new({point, Pos, {IR*I,IG*I,IB*I}});
+init_light(infinite, L, Orig) ->
     {Dx,Dy,Dz,_} = proplists:get_value(diffuse, L),
     I = 1.0,
     Diff = {Dx*I,Dy*I,Dz*I},
     Pos  = proplists:get_value(position, L),
     Aim  = proplists:get_value(aim_point, L),
-    Pbr  = proplists:get_value(pbr, L, []),
+    Pbr  = proplists:get_value(pbr, Orig, []),
     Turb = proplists:get_value(turbulance, Pbr, 2.2),
     Size = proplists:get_value(size, Pbr, 5.5),
     Vec = e3d_vec:norm(e3d_vec:sub(Pos,Aim)),
-    Sun = new({sunlight, Vec, Turb, Diff, Size}, WBB),
-    Sky = new({skylight, Vec, Turb, Diff}, WBB),
+    Sun = new({sunlight, Vec, Turb, Diff, Size}),
+    Sky = new({skylight, Vec, Turb, Diff}),
     #sunskylight{sun=Sun,sky=Sky};
 
-init_light(ambient, L, WBB) ->
-    new({skylight, L}, WBB);
-init_light(area, L, WBB) ->
-    new({arealight, L}, WBB).
+init_light(ambient, L, Orig) ->
+    {Dx,Dy,Dz,_} = proplists:get_value(ambient, L),
+    I = 1.0,
+    Diff = {Dx*I,Dy*I,Dz*I},
+    Pos  = proplists:get_value(position, L),
+    Aim  = proplists:get_value(aim_point, L, {0.0,0.0,0.0}),
+    Pbr  = proplists:get_value(pbr, Orig, []),
+    Turb = proplists:get_value(turbulance, Pbr, 2.2),
+    Vec  = e3d_vec:norm(e3d_vec:sub(Pos,Aim)),
+    new({skylight, Vec, Turb, Diff});
+init_light(area, L, Orig) ->
+    {Dx,Dy,Dz,_} = proplists:get_value(diffuse, L),
+    P = proplists:get_value(power, Orig, 1.0),
+    #arealight{gain={P*Dx,P*Dy,P*Dz}}.
 
-get_light(Id, Ls) ->
-    array:get(Id, Ls). 
+init_arealight(Name, N, GetTri, State=#lights{all=Ls0}) ->
+    Id = lookup_id(Name, State),
+    L = #arealight{gain=G} = array:get(Id, Ls0),
+    Tris = make_arealight_bin(0, N, G, GetTri, <<>>),
+    Ls = array:set(Id, L#arealight{tris=Tris}, Ls0),
+    {State#lights{all=Ls}, G}.
 
-get_infinite_light(Ls) ->
-    false.
+make_arealight_bin(I, N, G={Gr,Gg,Gb}, GetTri, Acc) 
+  when I < N ->
+    {V1,V2,V3} = GetTri(I),
+    {Nx,Ny,Nz} = e3d_vec:normal(V1,V2,V3),
+    A = e3d_vec:area(V1,V2,V3),
+    {V1x,V1y,V1z} = V1, {V2x,V2y,V2z} = V2, {V3x,V3y,V3z} = V2,
+    Bin = <<Acc/binary, 
+	    V1x:?F32, V1y:?F32, V1z:?F32,
+	    V2x:?F32, V2y:?F32, V2z:?F32,
+	    V3x:?F32, V3y:?F32, V3z:?F32, 
+	    Nx:?F32,   Ny:?F32,  Nz:?F32,
+	    A:?F32,  
+	    Gr:?F32, Gg:?F32, Gb:?F32>>,
+    make_arealight_bin(I+1, N, G, GetTri, Bin);
+make_arealight_bin(_,_,_,_,Bin) ->
+    Bin.
 
-pack_light(Type, Ls0) ->
+pack_arealights(#lights{all=Ls}) ->
+    Bin = array:foldl(fun(_, #arealight{tris=Tris}, Acc) ->
+			      <<Acc/binary, Tris/binary>>;
+			 (_,_,Acc) -> Acc
+		      end, <<>>, Ls),
+    case Bin of 
+	<<>> -> {0, undefined};
+	_ -> {byte_size(Bin) div ?TRI_AREALIGHT_SZ, Bin}
+    end.
+
+pack_light(Type, #lights{all=Ls0}) ->
     Ls = array:to_list(Ls0),
     case find_light(Type, Ls) of
 	undefined -> undefined;
@@ -148,16 +200,16 @@ find_light(_, []) -> undefined.
 %% @spec new(term) -> light()
 %% @end
 %%--------------------------------------------------------------------
-new({point,Pos,Intensity}, _WBB) ->
+new({point,Pos,Intensity}) ->
     #point{pos=Pos, intensity=Intensity};
-new({spot,Pos,Dir0,Intensity, Width, Falloff}, _WBB) ->
+new({spot,Pos,Dir0,Intensity, Width, Falloff}) ->
     CosW = math:cos(Width*?PI/180.0),
     CosF = math:cos(Falloff*?PI/180.0),
     Dir = e3d_vec:norm(Dir0),
     #spot{pos=Pos, intensity=Intensity, dir=Dir, 
 	  l2wq=e3d_q:rotate_s_to_t({0.0,0.0,1.0}, Dir),
 	  cos_w_max=CosW, cos_fall_start=CosF};
-new({sunlight, Vec, Turb, Diff, RelSize}, _WBB) ->
+new({sunlight, Vec, Turb, Diff, RelSize}) ->
     {X,Y} = pbr_scene:coord_sys(Vec),
     SunRadius = 695500.0,
     SunMeanDistance = 149600000.0,
@@ -186,7 +238,7 @@ new({sunlight, Vec, Turb, Diff, RelSize}, _WBB) ->
 	      cosThetaMax=CosThetaMax,
 	      sunColor=Suncolor};
 
-new({skylight, Vec, T, Diff}, _WBB) ->
+new({skylight, Vec, T, Diff}) ->
     ThetaS = max(0.0, pbr_mc:spherical_theta(Vec)),
     PhiS   = pbr_mc:spherical_phi(Vec),
     Aconst = 1.0,
@@ -244,7 +296,7 @@ new({skylight, Vec, T, Diff}, _WBB) ->
 	      perez_Y=Perez_Y, perez_x=Perez_x, perez_y=Perez_y
 	     };
 
-new(_, _) -> undefined.
+new(_) -> undefined.
 
 
 perezBase(Lam, Theta, Gamma) ->

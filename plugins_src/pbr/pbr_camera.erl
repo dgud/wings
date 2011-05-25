@@ -88,13 +88,10 @@ pack_camera(LensR, #renderer{cam=#cam{c2w=C2W,r2c=R2C,
     Bin0 = <<LensR:?F32, FDist:?F32, Far:?F32, Near:?F32>>,
     %% The opencl renderer code expects transposed matrixes.
     %% and swap left - right handedness 
-    S = e3d_mat:scale(1.0,1.0,-1.0),
-    Ray2Cam0 = e3d_mat:transpose(e3d_transform:matrix(R2C)),
-    Ray2Cam = e3d_mat:mul(S, e3d_mat:mul(Ray2Cam0, S)),
-    Bin = pack_matrix((Ray2Cam0), Bin0),
-    Cam2W0 = e3d_mat:transpose(e3d_transform:matrix(C2W)),
-    Cam2W = e3d_mat:mul(S, e3d_mat:mul(Cam2W0, S)),
-    pack_matrix((Cam2W0), Bin).
+    Ray2Cam = e3d_mat:transpose(e3d_transform:matrix(R2C)),
+    Bin = pack_matrix(Ray2Cam, Bin0),
+    Cam2W = e3d_mat:transpose(e3d_transform:matrix(C2W)),
+    pack_matrix(Cam2W, Bin).
 
 pack_matrix({A,B,C,WX,D,E,F,WY,G,H,I,WZ,Tx,Ty,Tz,WW}, Bin) ->
     <<Bin/binary, 

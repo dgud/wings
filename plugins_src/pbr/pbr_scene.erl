@@ -8,12 +8,14 @@
 
 -module(pbr_scene).
 
+-define(NEED_OPENGL,1).
 -include_lib("wings/src/wings.hrl").
 -include("pbr.hrl").
 
 -export([init/3,
 	 intersect/2, intersect_data/1,	 
 	 get_lights/1,
+	 get_materials/1,
 	 get_infinite_light/1,
 	 get_face_info/6,
 	 vertices/1,
@@ -35,6 +37,7 @@
 	 data,
 	 type, 
 	 fsmap,
+	 mats,
 	 qbvh
 	}).
 
@@ -52,24 +55,21 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 init(St = #st{shapes=Shapes,mat=Mtab0}, Opts, R = #renderer{cl=CL0}) ->
     Lights0 = proplists:get_value(lights, Opts),
-    Lights  = pbr_light:create_lookup(Lights0),
+    Lights  = pbr_light:init(Lights0),
     Mtab    = pbr_mat:init(Mtab0),
-    {Size,Data,F2M} = ?TC(prepare_mesh(gb_trees:values(Shapes),Opts,
-				       Mtab,Lights,St,[],[])),    
+    Scene0  = #scene{lights=Lights, mats=Mtab},
+    Scene1  = ?TC(prepare_mesh(gb_trees:values(Shapes),Opts,St,Scene0,[],[])),
+    GetTri  = make_get_tri_fun(Scene1),
+    GetFace = make_get_face_fun(Scene1),
+    #scene{no_fs=Size} = Scene1,
     io:format("No of faces ~p ~n", [Size]),
-    SubDiv = 0, %% SubDiv = proplists:get_value(subdivisions, Opts, 0),
-    GetTri = make_get_tri_fun(Data, SubDiv),
-    GetFace = make_get_face_fun(Data, F2M, SubDiv),
     AccelBin = {WBB,_,_,_} = ?TC(e3d_qbvh:init([{Size,GetTri}])),
     
-    Type = if SubDiv == 0 -> triangles; true -> quads end,
-    Scene0 = #scene{info=GetFace, lights=pbr_light:init(Lights, WBB), 
-		    world_bb=WBB, data=Data, no_fs=Size, fsmap=F2M,
-		    qbvh=AccelBin, type=Type},
-    {CL, Scene} = init_accel(CL0, AccelBin, Scene0),
+    Scene2 = Scene1#scene{info=GetFace, world_bb=WBB, qbvh=AccelBin},
+    {CL, Scene} = init_accel(CL0, AccelBin, Scene2),
     R#renderer{cl=CL, scene=Scene}.
 
-make_get_tri_fun(Data, 0) -> 
+make_get_tri_fun(#scene{data=Data, type=tris}) -> 
     fun(Face) ->
 	    Skip = Face * ?TRIANGLE_SZ,
 	    <<_:Skip/binary, 
@@ -78,7 +78,7 @@ make_get_tri_fun(Data, 0) ->
 	      V3x:?F32, V3y:?F32, V3z:?F32, _/binary>> = Data,
 	    {{V1x,V1y,V1z}, {V2x,V2y,V2z}, {V3x,V3y,V3z}}
     end;
-make_get_tri_fun(Data, _N) -> 
+make_get_tri_fun(#scene{data=Data, type=quads}) -> 
     fun(Face0) ->
 	    Face = Face0 div 2,	    
 	    Skip = Face * ?QUAD_SZ,
@@ -99,7 +99,7 @@ make_get_tri_fun(Data, _N) ->
 	    end
     end.
        
-make_get_face_fun(Data, F2M, 0) ->
+make_get_face_fun(#scene{data=Data, type=tris, fsmap=F2M}) ->
     fun(Face) -> 
 	    Skip = Face * ?TRIANGLE_SZ,
 	    <<_:Skip/binary, 
@@ -122,7 +122,7 @@ make_get_face_fun(Data, F2M, 0) ->
 		  vcs = {{V1r,V1g,V1b}, {V2r,V2g,V2b}, {V3r,V3g,V3b}},
 		  mat = array:get(Face, F2M)}
     end;
-make_get_face_fun(Data, F2M, _) ->
+make_get_face_fun(#scene{data=Data, type=quads, fsmap=F2M}) ->
     fun(Face0) -> 
 	    Face = Face0 div 2,	    
 	    Skip = Face * ?QUAD_SZ,
@@ -172,7 +172,7 @@ make_get_face_fun(Data, F2M, _) ->
     end.
 
 
-triangles(#renderer{scene=#scene{no_fs=Size, type=triangles}}) ->
+triangles(#renderer{scene=#scene{no_fs=Size, type=tris}}) ->
     triangles_3(<<>>, 0, Size*3);
 triangles(#renderer{scene=#scene{no_fs=Size, type=quads}}) ->
     triangles_4(<<>>, 0, Size*4).
@@ -207,13 +207,14 @@ uvs(#renderer{scene=#scene{data=Data}}) ->
     << <<U1:?F32, V1:?F32>> || 
 	<<_V1x:?F32, _V1y:?F32, _V1z:?F32,
 	  _N1x:?F32, _N1y:?F32, _N1z:?F32,
+	  _V1r:?F32, _V1g:?F32, _V1b:?F32,
 	  U1:?F32, V1:?F32 >> <= Data >>.
 
 vertex_colors(#renderer{scene=#scene{data=Data}}) ->
-    << <<V1r:?F32, V1g:?F32, V1b:?F32>> || 
+    << <<V1r:?F32, V1g:?F32, V1b:?F32>> ||
 	<<_V1x:?F32, _V1y:?F32, _V1z:?F32,
 	  _N1x:?F32, _N1y:?F32, _N1z:?F32,
-	  V1r:?F32, V1g:?F32, V1b:?F32,	  
+	  V1r:?F32, V1g:?F32, V1b:?F32,
 	  _U1:?F32, _V1:?F32 >> <= Data >>.
 
 %% Returns used {<<Face2MeshId:?UI32>>, <<MeshId2MatId:?UI32>>, [Mats]}
@@ -235,8 +236,8 @@ mesh2mat(#renderer{scene=#scene{fsmap=FsMap}}) ->
 		       end
 	       end,
     {_, MatsT, OrderdMats} = lists:foldl(MatOrder, {0, gb_trees:empty(), []}, Mats),
-    Mesh2Mat = << <<(gb_trees:get(MatId, MatsT)):?UI32>> || MatId <- Mats >>,
-    {Face2Mesh, Mesh2Mat, lists:reverse(OrderdMats)}.
+    Mesh2Mat = << << (gb_trees:get(MatId, MatsT)):?UI32 >> || MatId <- Mats >>,
+    {Face2Mesh, Mesh2Mat, Mats, lists:reverse(OrderdMats)}.
 
 %% Returns world bounding box
 bb(#renderer{scene=#scene{world_bb=WBB}}) ->
@@ -248,6 +249,9 @@ get_lights(#renderer{scene=#scene{lights=Ls}}) ->
 
 get_infinite_light(#renderer{scene=#scene{lights=Ls}}) ->
     pbr_light:get_infinite_light(Ls).
+
+get_materials(#renderer{scene=#scene{mats=Ms}}) ->
+    Ms.
 
 %% Given Rayhit info return face info:
 %%  {HitPoint, Material, SurfaceColor, Normal, ShadingNormal} 
@@ -264,7 +268,7 @@ get_face_info(#ray{o=RayO,d=RayD},T,B1,B2,FId,
 	    N = e3d_vec:normal(Vs),
 	    ShadeN0 = i_norm(B0,B1,B2,Ns),
 	    UV = i_uv(B0,B1,B2,UVs),
-	    case pbr_mat:lookup(Mat, UV, texture) of
+	    case pbr_mat:lookup_texture(Mat, UV, texture) of
 		false -> 
 		    ShadeN = check_normal_bumpmap(ShadeN0, Mat, UV),
 		    {Point, Mat, SC0, N, ShadeN};
@@ -296,10 +300,10 @@ intersect_data(#renderer{scene=Scene}) ->
     {Qnodes, Qpoints, WorkBuff}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-prepare_mesh([We = #we{name=_Name}|Wes], Opts, Mtab, Ls, St, AccData, MatList)
+prepare_mesh([We|Wes], Opts, St, S, AccData, MatList)
   when ?IS_VISIBLE(We#we.perm), (not ?IS_ANY_LIGHT(We)) ->
     SubDiv = proplists:get_value(subdivisions, Opts, 0),
-    Options = [{smooth, true}, {subdiv, SubDiv}, 
+    Options = [{smooth, true}, {subdiv, SubDiv},
 	       {attribs, color_uv}, {vmirror, freeze}],
     Vab = wings_draw_setup:we(We, Options, St),
     %% I know something about this implementation :-)
@@ -308,43 +312,71 @@ prepare_mesh([We = #we{name=_Name}|Wes], Opts, Mtab, Ls, St, AccData, MatList)
 	    %% Change Normals
 	    Data = swap_normals(Vs, Ns, <<>>),
 	    MM = lists:reverse(lists:keysort(3, MatMap)),
-	    Mats = fix_matmap(MM, false, true, %% SubDiv == 0, 
-			      Mtab, []), %% This should be a tree?
-	    prepare_mesh(Wes, Opts, Mtab, Ls, St, [Data|AccData], [Mats|MatList])
+	    Type = get_face_type(MatMap, S),
+	    Mats = fix_matmap(MM, Type, S#scene.mats, []), %% This should be a tree?
+	    prepare_mesh(Wes, Opts, St, S#scene{type=Type}, 
+			 [Data|AccData], [Mats|MatList])
     catch _:badmatch ->
 	    erlang:error({?MODULE, vab_internal_format_changed})
     end;
-prepare_mesh([_|Wes], Opts, Mtab, Ls, St, AccData, MatList) ->
-    prepare_mesh(Wes, Opts, Mtab, Ls, St, AccData, MatList);
-prepare_mesh([], Opts, _, _, _, AccData, MatList) ->
+prepare_mesh([We = #we{name=Name}|Wes], Opts, St, S, AccData, MatList)
+  when ?IS_VISIBLE(We#we.perm), ?IS_AREA_LIGHT(We) ->
+    SubDiv = proplists:get_value(subdivisions, Opts, 0),
+    Options = [{attribs, color_uv}, {subdiv, SubDiv}, {vmirror, freeze}],
+    Vab = wings_draw_setup:we(We, Options, St),
+    %% I know something about this implementation :-)
+    try Vab of
+	#vab{face_vs={?VERTEX_SZ,Vs}, mat_map=MatMap0} ->
+	    AreaLMat = Name ++ "_al",
+	    Type = get_face_type(MatMap0, S),
+	    GetTri = make_get_tri_fun(#scene{data=Vs, type=Type}),
+	    Ntris = case Type of 
+			tris ->  byte_size(Vs) div ?TRIANGLE_SZ;
+			quads -> byte_size(Vs) div ?QUAD_SZ
+		    end,
+	    {Ls,Gain} = pbr_light:init_arealight(Name, Ntris, GetTri, S#scene.lights),
+	    Mtab = pbr_mat:create_arealight_mat(AreaLMat, Gain, S#scene.mats),
+	    MatMap = [{AreaLMat, ?GL_TRIANGLES, 0, byte_size(Vs) div ?VERTEX_SZ}],
+	    Mats = fix_matmap(MatMap, Type, Mtab, []), 
+	    prepare_mesh(Wes, Opts, St, S#scene{lights=Ls, type=Type, mats=Mtab}, 
+			 [Vs|AccData], [Mats|MatList])
+    catch _:badmatch ->
+	    erlang:error({?MODULE, vab_internal_format_changed})
+    end;
+prepare_mesh([_|Wes], Opts, St, T, AccData, MatList) ->
+    prepare_mesh(Wes, Opts, St, T, AccData, MatList);
+prepare_mesh([], _, _, S = #scene{type=Type}, AccData, MatList) ->
     Bin = list_to_binary(AccData),
-    FaceSz = case proplists:get_value(subdivisions, Opts, 0) of
-		 0 -> ?TRIANGLE_SZ;
-		 _N -> 2*?TRIANGLE_SZ
-	     end,
-    {byte_size(Bin) div ?TRIANGLE_SZ, %% FaceSz
-     Bin, array:from_list(lists:append(MatList))}.
+    FaceSz = if Type =:= tris ->?TRIANGLE_SZ; true -> ?QUAD_SZ end,
+    S#scene{no_fs=byte_size(Bin) div FaceSz, 
+	    data=Bin, fsmap=array:from_list(lists:append(MatList))}.
     						       
 swap_normals(<<Vs:12/binary, _:12/binary, ColUv:20/binary, NextVs/binary>>, 
 	     <<Ns:12/binary, NextNs/binary>>, Acc) ->
     swap_normals(NextVs, NextNs, <<Acc/binary, Vs/binary, Ns/binary, ColUv/binary>>);
 swap_normals(<<>>,<<>>, Acc) -> Acc.
 
-fix_matmap([_MI={Name, _, _Start, Count}|Mats], false, true, Mtab, Acc0) ->
-    Mat = gb_trees:get(Name, Mtab),
+get_face_type(MatMap, #scene{type=Old}) ->
+    New = if  element(2, hd(MatMap)) == ?GL_TRIANGLES -> tris;
+	      element(2, hd(MatMap)) == ?GL_QUADS -> quads
+	  end,
+    case Old of
+	undefined -> New;
+	New -> New;
+	_ -> %% Assert Failed
+	    io:format("Internal error type mismatch ~p ~p~n",[Old,New]),
+	    error({type, mismatch})
+    end.
+
+fix_matmap([_MI={Name, _, _Start, Count}|Mats], tris, Mtab, Acc0) ->
+    Mat = pbr_mat:lookup_id(Name, Mtab),
     Acc = append_color(Count div 3, Mat, Acc0),
-    fix_matmap(Mats, false, true, Mtab, Acc);
-fix_matmap([_MI={Name, _, _Start, Count}|Mats], false, false, Mtab, Acc0) ->
+    fix_matmap(Mats, tris, Mtab, Acc);
+fix_matmap([_MI={Name, _, _Start, Count}|Mats], quads, Mtab, Acc0) ->
     Mat = gb_trees:get(Name, Mtab),
     Acc = append_color(Count div 4, Mat, Acc0),
-    fix_matmap(Mats, false, false, Mtab, Acc);
-fix_matmap([_MI={_, _, _Start, Count}|Mats], LightId, true, Mtab, Acc0) ->
-    Acc = append_color(Count div 3, LightId, Acc0),
-    fix_matmap(Mats, LightId, true, Mtab, Acc);
-fix_matmap([_MI={_, _, _Start, Count}|Mats], LightId, false, Mtab, Acc0) ->
-    Acc = append_color(Count div 4, LightId, Acc0),
-    fix_matmap(Mats, LightId, false, Mtab, Acc);
-fix_matmap([], _LightId, _Triangles, _Mtab, Acc) -> Acc.
+    fix_matmap(Mats, quads, Mtab, Acc);
+fix_matmap([], _Type, _Mtab, Acc) -> Acc.
 
 append_color(N, Diff, Acc) when N > 0 ->
     append_color(N-1, Diff, [Diff|Acc]);
@@ -385,16 +417,16 @@ init_accel(CL0, {_BB, Qnodes0, Qtris0, _Map}, Scene) ->
     Hits = wings_cl:buff(?RAYHIT_SZ*?MAX_RAYS, CL1),
     
     %%Device  = wings_cl:get_device(CL),
-    LocalWGS = wings_cl:get_wg_sz('Intersect', CL1),
+    %%LocalWGS = wings_cl:get_wg_sz('Intersect', CL1),
     %% {ok,Mem} = cl:get_kernel_workgroup_info(Kernel, Device, local_mem_size),
     %% io:format("Scene: WG ~p LMem ~p~n",[Local,Mem]),
     {CL, WorkMem} = case Local of 
 			true -> 
-			    CL2 = wings_cl:set_wg_sz('Intersect', 64, CL1),
 			    WGSz = 64,
+			    CL2 = wings_cl:set_wg_sz('Intersect', WGSz, CL1),
 			    {CL2, {local,24*WGSz*4}};
 			false ->
-			    WorkBuff = wings_cl:buff(24*LocalWGS*4, CL1),
+			    WorkBuff = wings_cl:buff(24*?MAX_RAYS*4, CL1),
 			    {CL1, WorkBuff}
 		    end,
     {CL, Scene#scene{isect={QN, QT, Rays, Hits, WorkMem}}}.
@@ -426,11 +458,11 @@ i_uv(B0,B1,B2, {{V1x,V1y}, {V2x,V2y}, {V3x,V3y}})
      B0*V1y + B1*V2y + B2*V3y}.
 
 check_normal_bumpmap(Normal = {NX,NY,NZ}, Mat, UV) ->
-    case pbr_mat:lookup(Mat, UV, normal) of
+    case pbr_mat:lookup_texture(Mat, UV, normal) of
 	false -> 
-	    case pbr_mat:lookup(Mat, UV, bump) of
+	    case pbr_mat:lookup_texture(Mat, UV, bump) of
 		false -> Normal;
-		Color ->
+		_Color ->
 		    %% const UV &dudv = map->GetDuDv();
 			
 		    %% UV uvdu(triUV.u + dudv.u, triUV.v);

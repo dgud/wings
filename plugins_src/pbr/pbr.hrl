@@ -24,10 +24,10 @@
 %% Sizes in bytes
 -define(RAY_SZ, 32).		                % Binary size of ray structure
 -define(RAYHIT_SZ, 16).				% Binary size of rayhit structure
-%-define(RAYBUFFER_SZ, 65536).			% Max Buffer size
--define(RAYBUFFER_SZ, 16384).			% Max Buffer size
--define(MAX_RAYS, ?RAYBUFFER_SZ div ?RAY_SZ).   % Max number of rays
+-define(MAX_RAYS,  65536).                      % Max number of rays
+%-define(MAX_RAYS,  512).                      % Max number of rays
 -define(TASK_SIZE, ?MAX_RAYS).                  % Max number of tasks
+-define(RAYBUFFER_SZ, ?MAX_RAYS*?RAY_SZ).	% Max Buffer size
 
 -define(SAMPLE_BUFF_SZ,  65536).                % No of Sample in Sample buffer
 -define(SAMPLE_SZ, 5*4).                        % Binary size of sample, {X,Y, Spectrum}

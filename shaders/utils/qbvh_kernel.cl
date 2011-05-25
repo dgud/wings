@@ -236,7 +236,7 @@ __kernel void Intersect(
 #ifdef USE_LOCAL_MEM
     __local int *nodeStack = &nodeStacks[24 * get_local_id(0)];
 #else
-    __global int *nodeStack = &nodeStacks[24 * get_local_id(0)];
+    __global int *nodeStack = &nodeStacks[24 * gid];
 #endif
 
     nodeStack[0] = 0; // first node to handle: root node

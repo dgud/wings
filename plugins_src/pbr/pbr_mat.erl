@@ -9,15 +9,61 @@
 -module(pbr_mat).
 
 -export([snew/0, sdiv/2, smul/2, sadd/2, sY/1, s_is_black/1, to_rgb/1,
-	 init/1, pack_materials/1, type/1,
-	 sample_f/4, f/4, lookup/3, is_light/1, is_diffuse/1]).
+	 init/1, lookup_id/2,
+	 pack_materials/2, mesh2tex/2, pack_textures/1,
+	 type/2, create_arealight_mat/3,
+	 sample_f/4, f/4, lookup_texture/3, is_light/1, is_diffuse/1]).
 
 -export([spd/3, irregular_spd/2,irregular_spd/3,
 	 sample/2, spd_to_rgb/1
 	]).
 
+-include_lib("wings/e3d/e3d_image.hrl").
 -include("pbr.hrl").
 -include("pbr_constants.hrl").
+
+%%%%%%%%%%%
+-define(MAT_MATTE, 0).	
+-define(MAT_AREALIGHT, 1).
+-define(MAT_MIRROR, 2).
+-define(MAT_GLASS, 3).    
+-define(MAT_MATTEMIRROR, 4).
+-define(MAT_METAL, 5).
+-define(MAT_MATTEMETAL, 6).
+-define(MAT_ALLOY, 7).
+-define(MAT_ARCHGLASS, 8).
+-define(MAT_NULL, 9).
+
+-define(MAT_MATTE_SZ, (3*4)).
+-define(MAT_AREALIGHT_SZ, (3*4)).
+-define(MAT_MIRROR_SZ, (4*4)).
+-define(MAT_GLASS_SZ,  (11*4)).
+-define(MAT_MATTEMIRROR_SZ, (?MAT_MATTE_SZ+?MAT_MIRROR_SZ+4*4)). % = 11*4
+-define(MAT_METAL_SZ, (5*4)).
+-define(MAT_MATTEMETAL_SZ, (?MAT_MATTE_SZ+?MAT_METAL_SZ+4*4)).   % = 12*4
+-define(MAT_ALLOY_SZ, (9*4)).
+-define(MAT_ARCHGLASS_SZ, (10*4+2*4)).
+
+-define(MAT_MAX_SZ, (12*4)).
+
+-record(material, 
+	{label,
+	 m_info,				% Term module specific
+	 map,
+	 bump
+	}).
+
+-record(arealight,  {gain}).
+-record(matte,  {kd, kdOverPi}).
+-record(mirror, {kr, sb=1}).
+-record(mattemirror, {kd, kr, sb=1, mattef, totf, mattepdf, mirrorpdf}).
+-record(metal,  {kr, exp, sb=1}).
+-record(mattemetal,  {kd, kr, exp, sb=1, mattef, totf, mattepdf, metalpdf}).
+-record(alloy,  {kd, kr, exp, r0=0.5, sb=1}).
+-record(glass,  {refl, refr, ior, oior, r0, rsb=1, tsb=1}).
+-record(archglass,  {refl, refr, rsb=1, tsb=1, reflf, totf, reflpdf, transpdf}).
+
+-record(ms, {mats, n2id, maps, bumps}).
 
 -record(spd, {n, min, max, delta, invdelta, samples}).
 
@@ -60,154 +106,119 @@ to_rgb(Spectrum) ->
      e3d_vec:dot(GW, Spectrum),
      e3d_vec:dot(BW, Spectrum)}.
 
-
-
-
-%%%%%%%%%%%
--define(MAT_MATTE, 0).	
--define(MAT_AREALIGHT, 1).
--define(MAT_MIRROR, 2).
--define(MAT_GLASS, 3).    
--define(MAT_MATTEMIRROR, 4).
--define(MAT_METAL, 5).
--define(MAT_MATTEMETAL, 6).
--define(MAT_ALLOY, 7).
--define(MAT_ARCHGLASS, 8).
--define(MAT_NULL, 9).
-
--define(MAT_MATTE_SZ, (3*4)).
--define(MAT_AREALIGHT_SZ, (3*4)).
--define(MAT_MIRROR_SZ, (4*4)).
--define(MAT_GLASS_SZ,  (11*4)).
--define(MAT_MATTEMIRROR_SZ, (?MAT_MATTE_SZ+?MAT_MIRROR_SZ+4*4)). % = 11*4
--define(MAT_METAL_SZ, (5*4)).
--define(MAT_MATTEMETAL_SZ, (?MAT_MATTE_SZ+?MAT_METAL_SZ+4*4)).   % = 12*4
--define(MAT_ALLOY_SZ, (9*4)).
--define(MAT_ARCHGLASS_SZ, (10*4+2*4)).
-
--define(MAT_MAX_SZ, (12*4)).
-
-%% type(matte) -> ?MAT_MATTE;
-%% type(area_light) -> ?MAT_AREALIGHT;
-%% type(mirror) -> ?MAT_MIRROR;
-%% type(glass) -> ?MAT_GLASS;    
-%% type(mattemirror) -> ?MAT_MATTEMIRROR;
-%% type(metal) -> ?MAT_METAL;
-%% type(mattemetal) -> ?MAT_MATTEMETAL;
-%% type(alloy) -> ?MAT_ALLOY;
-%% type(archglass) -> ?MAT_ARCHGLASS;
-
-%% type(?MAT_MATTE) -> matte;
-%% type(?MAT_AREALIGHT) -> area_light;
-%% type(?MAT_MIRROR) -> mirror;
-%% type(?MAT_GLASS) -> glass;    
-%% type(?MAT_MATTEMIRROR) -> mattemirror;
-%% type(?MAT_METAL) -> metal;
-%% type(?MAT_MATTEMETAL) -> mattemetal;
-%% type(?MAT_ALLOY) -> alloy;
-%% type(?MAT_ARCHGLASS) -> archglass.
-
--record(material, 
-	{label,
-	 m_info,				% Term module specific
-	 maps
-	}).
--record(arealight,  {}).
--record(matte,  {kd, kdOverPi}).
--record(mirror, {kr, sb=1}).
--record(mattemirror, {kd, kr, sb=1, mattef, totf, mattepdf, mirrorpdf}).
--record(metal,  {kr, exp, sb=1}).
--record(mattemetal,  {kd, kr, exp, sb=1, mattef, totf, mattepdf, metalpdf}).
--record(alloy,  {kd, kr, exp, r0, sb=1}).
--record(glass,  {refl, refr, ior, oior, r0, rsb=1, tsb=1}).
--record(archglass,  {refl, refr, rsb=1, tsb=1, reflf, totf, reflpdf, transpdf}).
-
 %% Material functions
 init(Mtab) ->
-    Converted = [{Id, (create_mat(WMat))#material{label=Id}} || 
-		    {Id,WMat} <- gb_trees:to_list(Mtab)],
-    gb_trees:from_orddict(Converted).
+    New = array:new(),
+    Ms = #ms{mats=New, n2id=gb_trees:empty(), maps=New, bumps=New},
+    lists:foldl(fun(Mat, Acc) ->
+			create_mat(Mat, Acc)
+		end, Ms, gb_trees:to_list(Mtab)).
 
-create_mat(WM) ->
+create_mat({Name, WM}, Ms=#ms{mats=Mats, n2id=Tree0}) ->
+    Id = array:size(Mats),
+    Tree = gb_trees:insert(Name, Id, Tree0),
+    
     OpenGL = proplists:get_value(opengl, WM),
-    {R,G,B,A}   = proplists:get_value(diffuse, OpenGL),
-    Maps   = proplists:get_value(maps, WM),
-    case A of
-	1.0 -> create_solid_mat({R,G,B}, OpenGL, Maps);
-	_ -> create_glass_mat(A, {R,G,B}, OpenGL, Maps)
-    end.
+    {R,G,B,A} = proplists:get_value(diffuse, OpenGL),
+    Maps = proplists:get_value(maps, WM, []),
+    Map  = proplists:get_value(diffuse, Maps, undefined),
+    Bump = proplists:get_value(bump, Maps, undefined),
+    Info = case A of
+	       1.0 -> create_solid_mat({R,G,B}, OpenGL);
+	       _ -> create_glass_mat(A, {R,G,B}, OpenGL)
+	   end,
+    Material = #material{label=Name, m_info=Info, map=Map, bump=Bump},
+    Ms#ms{mats=array:set(Id,Material,Mats),n2id=Tree}.
 
-create_solid_mat(Diff, OpenGL, Maps) ->
+lookup_id(Name, #ms{n2id=Tree0}) ->
+    gb_trees:get(Name, Tree0).
+
+create_arealight_mat(Name, Gain, Ms=#ms{mats=Mats, n2id=Tree0}) ->
+    Id = array:size(Mats),
+    Tree = gb_trees:insert(Name, Id, Tree0),
+    AreaL = #material{label=Name, m_info=#arealight{gain=Gain}},
+    Ms#ms{mats=array:set(Id,AreaL,Mats),n2id=Tree}.
+
+create_solid_mat(Diff, OpenGL) ->
     Shine    = proplists:get_value(shininess, OpenGL),
     {R,G,B,_} = proplists:get_value(specular, OpenGL),
     Specular = {R,G,B},
     case Shine of
-	1.0 -> create_mirror(Diff, Specular, Maps);
-	_ -> create_solid_mat(Diff, Specular, Shine, Maps)
+	1.0 -> create_mirror(Diff, Specular);
+	_ -> create_solid_mat(Diff, Specular, Shine)
     end.
 
-create_solid_mat(Diff, {0.0,0.0,0.0}, 0.0, Maps) ->
-    create_diffuse(Diff, Maps);
-create_solid_mat(Diff, Spec, Shin, Maps) when Shin < 0.5 ->
-    Exp = 1.0-Shin,
+create_solid_mat(Diff, {0.0,0.0,0.0}, 0.0) ->
+    create_diffuse(Diff);
+create_solid_mat(Diff, Spec, Shin) 
+  when Shin < 0.5 ->
+    Exp = 1.000001-Shin,
     MaF = filter(Diff),
     MiF = filter(Spec),
     TF  = MaF + MiF,
     MaPdf = MaF/TF, 
     MiPdf = MiF/TF,    
-    #material{m_info=#mattemetal{kd=Diff, kr=Spec, exp=Exp,
-				 mattef=MaF, totf=TF, 
-				 mattepdf = MaPdf, metalpdf = MiPdf
-				}, maps=Maps};
-create_solid_mat({1.0,1.0,1.0}, Spec, Shin, Maps) ->
-    Exp = 1.0-Shin,
-    #material{m_info=#metal{kr=Spec, exp=Exp}, maps=Maps};
-create_solid_mat(Diff, Spec, Shin, Maps) when Shin < 0.5 ->
-    Exp = 1.0-Shin,
-    #material{m_info=#alloy{kd=Diff, kr=Spec, exp=Exp}, maps=Maps}.
+    #mattemetal{kd=Diff, kr=Spec, exp=Exp,
+		mattef=MaF, totf=TF, 
+		mattepdf = MaPdf, metalpdf = MiPdf};
+create_solid_mat({1.0,1.0,1.0}, Spec, Shin) ->
+    Exp = 1.000001-Shin,
+    #metal{kr=Spec, exp=Exp};
+create_solid_mat(Diff, Spec, Shin) ->
+    Exp = 1.000001-Shin,
+    #alloy{kd=Diff, kr=Spec, exp=Exp}.
 
-create_mirror({1.0,1.0,1.0}, Spec, Maps) ->
-    #material{m_info=#mirror{kr=Spec}, maps=Maps};
-create_mirror(Diff, Spec, Maps) ->
+create_mirror({1.0,1.0,1.0}, Spec) ->
+    #mirror{kr=Spec};
+create_mirror(Diff, Spec) ->
     MaF = filter(Diff),
     MiF = filter(Spec),
     TF  = MaF + MiF,
     MaPdf = MaF/TF, 
     MiPdf = MiF/TF,
-    #material{m_info=#mattemirror{kd=Diff, kr=Spec, 
-				  mattef=MaF, totf=TF, 
-				  mattepdf = MaPdf, mirrorpdf = MiPdf
-				 }, maps=Maps}.
+    #mattemirror{kd=Diff, kr=Spec, 
+		 mattef=MaF, totf=TF, 
+		 mattepdf = MaPdf, mirrorpdf = MiPdf}.
 
-create_diffuse(Diff, Maps) ->
-    #material{m_info=#matte{kd=Diff, kdOverPi=smul(Diff, ?INV_PI)}, maps=Maps}.
+create_diffuse(Diff) ->
+    #matte{kd=Diff, kdOverPi=smul(Diff, ?INV_PI)}.
 
-create_glass_mat(A, Diff, OpenGL, Maps) ->
+create_glass_mat(A, Diff, OpenGL) ->
     {RR,RG,RB,_} = proplists:get_value(specular, OpenGL),
     Ior  = 1.0 + A,
     Oior = 1.0,
     T = Ior-Oior, B = Ior + Oior,
     R0 = T*T / (B*B),
     E  = 1.0,
-    #material{m_info=#glass{refl=Diff, refr={RR*E,RG*E,RB*E}, 
-			    ior=Ior, oior=Oior, r0=R0},
-	      maps=Maps}.
+    #glass{refl=Diff, refr={RR*E,RG*E,RB*E}, 
+	   ior=Ior, oior=Oior, r0=R0}.
+
+type(Mat, #ms{mats=Mats}) ->
+    #material{m_info=Record} = array:get(Mat,Mats),
+    element(1, Record).
     
 %%%%%%%%%
 
-pack_materials(Mats) ->
-    lists:foldl(fun(#material{m_info=Mat}, Bin) -> 
-			pack_material(Mat, Bin);
-		   (Int, Bin) when is_integer(Int) -> %% Light
-			Bin
+mesh2tex(Mats, #ms{mats=Ms}) ->
+    mesh2tex(Mats, Ms, 0, [], [], array:new(), false, false).
+
+pack_textures(TexIds) ->
+    pack_textures(TexIds, {<<>>, <<>>}, <<>>).
+
+pack_materials(Mats, #ms{mats=Ms}) ->
+    lists:foldl(fun(Id, Bin) -> 
+			#material{m_info=Mat} = array:get(Id,Ms),
+			pack_material(Mat, Bin)
 		end, <<>>, Mats).
 			 
 pack_material(#matte{kd={R,G,B}}, Bin) ->
     <<Bin/binary, ?MAT_MATTE:?UI32, 
       R:?F32, G:?F32, B:?F32, 
       0:(8*(?MAT_MAX_SZ-?MAT_MATTE_SZ))>>;
-pack_material(#arealight{}, Bin) -> 
-    exit(nyi);
+pack_material(#arealight{gain={R,G,B}}, Bin) -> 
+    <<Bin/binary, ?MAT_AREALIGHT:?UI32, 
+      R:?F32, G:?F32, B:?F32, 
+      0:(8*(?MAT_MAX_SZ-?MAT_AREALIGHT_SZ))>>;
 pack_material(#mirror{kr={R,G,B}, sb=SB}, Bin) -> 
     <<Bin/binary, ?MAT_MIRROR:?UI32, 
       R:?F32, G:?F32, B:?F32, SB:?I32,
@@ -233,6 +244,7 @@ pack_material(#metal{kr={R,G,B}, exp=Exp, sb=SB}, Bin) ->
     <<Bin/binary, ?MAT_METAL:?UI32, 
       R:?F32, G:?F32, B:?F32, Exp:?F32, SB:?F32,
       0:(8*(?MAT_MAX_SZ-?MAT_METAL_SZ))>>;
+
 pack_material(#mattemetal{kd={DR,DG,DB}, kr={RR,RG,RB}, exp=Exp, sb=SB,
 			  mattef=MaF, totf=TF, mattepdf=MaPdf, metalpdf=MiPdf
 			 }, Bin) -> 
@@ -250,7 +262,7 @@ pack_material(#alloy{kd={DR,DG,DB}, kr={RR,RG,RB}, exp=Exp, r0=R0, sb=SB}, Bin) 
 pack_material(#archglass{refl={DR,DG,DB}, refr={RR,RG,RB}, rsb=RSB, tsb=TSB,
 			 reflf=MaF, totf=TF, reflpdf=MaPdf, transpdf=MiPdf
 			}, Bin) -> 
-    <<Bin/binary, ?MAT_ALLOY:?UI32, 
+    <<Bin/binary, ?MAT_ARCHGLASS:?UI32, 
       DR:?F32, DG:?F32, DB:?F32, 
       RR:?F32, RG:?F32, RB:?F32, 
       MaF:?F32, TF:?F32, MaPdf:?F32, MiPdf:?F32, 
@@ -260,9 +272,98 @@ pack_material(Mat, Bin) ->
     io:format("Ignoring unknown material ~p~n", [Mat]),
     Bin.
 
+mesh2tex([Mat|Mats], Ms, N0, Tex, Bump, All0, HaveTex, HaveBump) ->
+    No = 16#ffffffff,
+    case array:get(Mat,Ms) of
+	#material{map=undefined, bump=undefined} ->
+	    mesh2tex(Mats, Ms, N0, [No|Tex], [No|Bump], 
+		     All0, HaveTex, HaveBump);
+	#material{map=TId, bump=undefined} ->
+	    {Id, N, All} = texId(TId, N0, All0),
+	    mesh2tex(Mats, Ms, N, [Id|Tex], [No|Bump], 
+		     All, true, HaveBump);
+	#material{map=undefined, bump=TId} ->
+	    {Id, N, All} = texId(TId, N0, All0),
+	    mesh2tex(Mats, Ms, N, [No|Tex], [Id|Bump],
+		     All, HaveTex, true);
+	#material{map=MId0, bump=BId0} ->
+	    {MId, N1, All1} = texId(MId0, N0, All0),
+	    {BId, N, All} = texId(BId0, N1, All1),
+	    mesh2tex(Mats, Ms, N, [MId|Tex], [BId|Bump], 
+		     All, true, true)
+    end;
+mesh2tex([], _, _, Texs, Bumps, All0, HaveTex, HaveBump) -> 
+    BumpScales = HaveBump andalso << <<1.0:?F32>> || _ <- Bumps >>,
+    All = [Orig || {Orig,_} <- lists:keysort(2, array:sparse_to_orddict(All0))],
+    %% io:format("Mesh2Tex ~p: ~w~n~w~n", [HaveTex, Texs,All]),
+    %% io:format("Bumps ~p: ~w~n~w~n", [HaveBump, Bumps, BumpScales]),
+    {mesh2texbin(HaveTex, Texs),
+     mesh2texbin(HaveBump, Bumps),
+     BumpScales,
+     All}.
 
-type(#material{m_info=Record}) ->
-    element(1, Record).
+texId(Id, Next, Texs0) ->
+    case array:get(Id, Texs0) of
+	undefined ->
+	    Texs = array:set(Id, Next, Texs0),
+	    {Next, Next+1, Texs};
+	Tex ->
+	    {Tex, Next, Texs0}
+    end.
+
+mesh2texbin(false, _) -> false;
+mesh2texbin(true, IntList) -> 
+    << <<Int:?UI32>> || Int <- lists:reverse(IntList) >>.
+
+pack_textures([Id|TexIds], Ts={RGB0, A0}, Desc0) ->
+    #e3d_image{width=W,height=H,type=Bpp,image=Bin} = wings_image:info(Id),
+    APos = alpha_offset(Bpp, A0),
+    Pos  = rgb_offset(RGB0),
+    %% io:format("Tex ~p Offset: ~p,~p ~p ~n", [Id, Pos,APos, {W,H}]),
+    Desc = <<Desc0/binary, Pos:?UI32, APos:?UI32, W:?UI32, H:?UI32>>,
+    pack_textures(TexIds, pack_texture(Bpp,Bin,Ts), Desc);
+pack_textures([], {RGB,A}, Desc) ->
+    {RGB /= <<>> andalso RGB,
+     A /= <<>> andalso A,
+     Desc /= <<>> andalso Desc}.
+
+alpha_offset(r8g8b8a8, Bin) ->  byte_size(Bin) div 4;
+alpha_offset(a8, Bin) ->        byte_size(Bin) div 4;
+alpha_offset(_, _) ->           16#FFFFFFFF.
+
+rgb_offset(Bin) ->  byte_size(Bin) div (3*4).
+    
+
+pack_texture(r8g8b8, Bin, {RGB,A}) ->
+    {float_rgb(Bin, RGB), A};
+pack_texture(g8, Bin, {RGB,A}) ->
+    {float_g(Bin, RGB), A};
+pack_texture(r8g8b8a8, Bin, {RGB,A}) ->
+    float_rgba(Bin, RGB, A);
+pack_texture(a8, Bin, {RGB,A}) ->
+    float_a(Bin, RGB, A).
+
+float_rgb(<<R:8,G:8,B:8,Bin/binary>>, RGB) ->
+    S = 1/255,
+    float_rgb(Bin, <<RGB/binary,(R*S):?F32,(G*S):?F32,(B*S):?F32>> );
+float_rgb(<<>>, RGB) -> RGB.
+
+float_g(<<G:8,Bin/binary>>, RGB) ->
+    S = G/255,
+    float_g(Bin, <<RGB/binary,S:?F32,S:?F32,S:?F32>> );
+float_g(<<>>, RGB) -> RGB.
+
+float_rgba(<<R:8,G:8,B:8,A:8,Bin/binary>>, RGB, A) ->
+    S = 1/255,
+    float_rgba(Bin, <<RGB/binary,(R*S):?F32,(G*S):?F32,(B*S):?F32>>,
+	      <<A/binary, (A*S):?F32>>);
+float_rgba(<<>>, RGB, A) -> {RGB,A}.    
+
+float_a(<<A:8,Bin/binary>>, RGB, A) ->
+    S = A/255,
+    float_a(Bin, <<RGB/binary, 1.0:?F32, 1.0:?F32, 1.0:?F32>>,
+	   <<A/binary, S:?F32>>);
+float_a(<<>>, RGB, A) -> {RGB,A}.    
 
 %%%%%
 filter({R,G,B}) -> max(R,max(G,B));
@@ -297,7 +398,7 @@ is_light(Material) ->
     is_integer(Material).
 
 %% Texture functions
-lookup(_Mat, _UV, _Type) ->
+lookup_texture(_Mat, _UV, _Type) ->
     false.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
