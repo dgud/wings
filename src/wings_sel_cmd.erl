@@ -1704,7 +1704,7 @@ faces_with(Filter, #st{selmode=Mode}=St0) ->
 				  _ -> [{Id,gb_sets:from_list(Faces)}|Acc]
 				end
 			end, [], St),
-	{save_state,wings_sel:set(face,Sel,St0)}.
+    wings_sel:set(face,Sel,St0).
 
 faces_with(Filter, Face, We) ->
     Vs = wings_face:vertices(Face, We),
