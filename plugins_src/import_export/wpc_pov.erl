@@ -1,4 +1,3 @@
-%%
 %%  wpc_pov.erl --
 %%
 %%     POV-Ray Plugin User Interface.
@@ -313,10 +312,11 @@ export(Filename, Contents, Attr) ->
 	export_camera(F, Attr, CorrectedFOV, Width, Height),
 	
 	Lights = proplists:get_value(lights, Attr, []),
-	export_lights(F, Lights),
+	export_lights(F, Lights, 0),
 	
 	export_materials(F, Mats, Attr, ExportDir),
 	export_objects(F, Objs, Mats, Attr, 0),
+	export_lights_objects(F, Lights, 0),
 			
 	file:close(F),
 	
@@ -449,14 +449,14 @@ export_camera(F, Attr, CorrectedFOV, Width, Height)->
 	
 	io:put_chars(F, "}\n").
 	
-export_lights(_F, [])->
+export_lights(_F, [], _I)->
 	ok;
-export_lights(F, [Light | Lights])->
+export_lights(F, [Light | Lights],Index)->
 	{Name, Ps} = Light,
-	export_light(F, Name, Ps),
-	export_lights(F, Lights).
+	export_light(F, Name, Ps, Index),
+	export_lights(F, Lights, Index+1).
 	
-export_light(F, Name, Ps) ->
+export_light(F, Name, Ps, Index) ->
     case proplists:get_value(visible, Ps, true) of
 		true ->
 			OpenGL = proplists:get_value(opengl, Ps, []),
@@ -465,7 +465,7 @@ export_light(F, Name, Ps) ->
 			case Type of
 				ambient->ok;
 				_ ->
-					io:put_chars(F, "light_source {\n"),
+                    io:format(F, "#declare ~s = light_source {\n", [clean_name("wl_"++integer_to_list(Index)++"_"++Name)]),
 					export_light_basics(F, OpenGL, PovRay),
 					export_light(F, Name, Type, OpenGL, PovRay),
 					io:put_chars(F, "}\n")
@@ -560,7 +560,19 @@ export_light(F, _Name, infinite, OpenGL, _PovRay)->
 	io:format(F, "\t point_at <~f, ~f, ~f>\n", [Dx, Dy, Dz]);
 export_light(_F, _Name, _Type, _OpenGL, _PovRay)->
 	ok.
-	
+
+export_lights_objects(_F,[],_I) ->
+	ok;
+export_lights_objects(F,[Light|Lights],Index) ->
+	{Name,_} = Light,
+	export_light_def(F, clean_name("wl_"++integer_to_list(Index)++"_"++Name)),
+	export_lights_objects(F,Lights,Index+1).
+
+export_light_def(F,Name) ->
+	io:format(F, "object{ ~s\n", [Name]),
+	io:put_chars(F, "}\n").
+
+
 export_materials(_F, [], _Attr, _ExportDir)->
 	ok;
 export_materials(F, [{Name, Mat} | Mats], Attr, ExportDir)->
@@ -675,15 +687,22 @@ export_finish(F, OpenGL, PovRay)->
 export_maps([], _ED)->
 	[];
 export_maps([{MapID, Map} | Maps], ExportDir) ->
-	#e3d_image{name=ImageName} = Map,
-	MapFile = ImageName++".png",
-	e3d_image:save(Map, filename:join(ExportDir, MapFile)),
+	#e3d_image{name=ImageName,filename=FileName} = Map,
+	case FileName of
+	none ->
+		MapFile = case get_map_type(ImageName) of
+		sys -> ImageName++".png";
+		_ -> ImageName
+		end,
+		e3d_image:save(Map, filename:join(ExportDir, MapFile));
+	_ -> ok
+	end,
 	[{MapID, ImageName} | export_maps(Maps, ExportDir)].
 
 get_map_type(Filepath) ->
 	Ext = filename:extension(Filepath),
 	case Ext of
-		".jpg" -> jpg;
+		".jpg" -> jpeg;
 		".png" -> png;
 		".bmp" -> sys;
 		".gif" -> gif;
@@ -927,7 +946,7 @@ export_normal_entry(_F, [], _M)->
 export_normal_entry(F, [{Mag, Normal} | Entries], NormalMag)->
 	io:format(F, "\t\t\t [~f ~s ~f]\n", [Mag, atom_to_list(Normal), NormalMag]),
 	export_normal_entry(F, Entries, NormalMag).
-	
+
 export_objects(_F, [], _M, _A, _I)->
 	ok;
 export_objects(F, [EObj | Objs], AllMats, Attr, Index)->
@@ -1867,3 +1886,4 @@ hook_or([Expr], I, Store) ->
     hook_eval(Expr, I, Store);
 hook_or([Expr|Exprs], I, Store) ->
     hook_eval(Expr, I, Store) orelse hook_or(Exprs, I, Store).
+
