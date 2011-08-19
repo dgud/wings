@@ -375,7 +375,7 @@ merge(Name, St0) ->
 			  wings_u:error_msg(?__(2,"Read failed: ") ++ Reason);
 		      #st{}=St ->
 			  set_cwd(dirname(Name)),
-			  wings_shape:recreate_folder_system(St)
+			  wings_shape:recreate_folder_system(St#st{saved=false})
 		  end
 	  end,
     use_autosave(Name, Fun).
