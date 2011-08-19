@@ -40,7 +40,7 @@
 %% new(Name, We, St0) -> St.
 %%  Create a new object having the given name,
 %%  converting all unknown materials to default.
-new(Name, We0, #st{shapes=Shapes0,onext=Oid,mat=Mat,pst=StPst}=St) ->
+new(Name, #we{pst=WePst}=We0, #st{shapes=Shapes0,onext=Oid,mat=Mat,pst=StPst}=St) ->
     UsedMat = wings_facemat:used_materials(We0),
     We =
 	case lists:filter(
@@ -53,7 +53,20 @@ new(Name, We0, #st{shapes=Shapes0,onext=Oid,mat=Mat,pst=StPst}=St) ->
 		wings_facemat:assign(default, [F||{F,_}<-FMs], We0)
 	end,
     Shapes = gb_trees:insert(Oid, We#we{name=Name,id=Oid}, Shapes0),
-    {DefaultFolder,_} = gb_trees:get(?FOLDERS, StPst),
+    {DefaultFolder0,FldList} = gb_trees:get(?FOLDERS, StPst),
+
+	DefaultFolder=case gb_trees:is_empty(WePst) of  % check needed for compatibilty (old wings files hasn't this field)
+	false ->
+		WeFolder0 = gb_trees:get(wings_shape, WePst),  % checking for we's folder settings
+		case lists:keymember(WeFolder0,1,FldList) of  % validating the folder
+		true ->
+			WeFolder0;
+		false ->
+			DefaultFolder0
+		end;
+	true ->
+		DefaultFolder0
+    end,
     add_to_folder(DefaultFolder, Oid, St#st{shapes=Shapes,onext=Oid+1}).
 
 %% new(We, Suffix, St0) -> St.
