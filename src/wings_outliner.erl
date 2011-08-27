@@ -202,8 +202,10 @@ do_menu(Act, X, Y, #ost{os=Objs}) ->
 		    {?__(3,"Assign to Selection"),menu_cmd(assign_material, Name),
 		     ?__(4,"Assign the material to the selected faces or bodies")},
 		    separator,
-		    {?__(5,"Select"),menu_cmd(select_material, Name),
-		     ?__(6,"Select all faces that have this material")},
+		    {?__(5,"Select"),select_menu(Name),
+				{?__(6,"Select all elements that have this material"),
+				 ?__(27,"Add all elements that have this material to selection"),
+				 ?__(28,"Remove all elements that have this material from selection")},[]},
 		    separator,
 		    {?__(7,"Duplicate"),menu_cmd(duplicate_material, Name),
 		     ?__(8,"Duplicate this material")},
@@ -242,6 +244,16 @@ do_menu(Act, X, Y, #ost{os=Objs}) ->
 	true -> wings_menu:popup_menu(X, Y, outliner, Menu)
     end.
 
+select_menu(Name) ->
+    fun(1, _Ns) ->
+	    button_menu_cmd(select_material, [Name,select]);
+       (2, _Ns) ->
+	    button_menu_cmd(select_material, [Name,sel_add]);
+       (3, _Ns) ->
+	    button_menu_cmd(select_material, [Name,sel_rem]);
+       (_, _) -> ignore
+    end.
+
 image_menu(Id, Im) ->
     [{?__(1,"Show"),menu_cmd(show_image, Id),
       ?__(2,"Show the image in a window")}|image_menu_1(Id, Im)].
@@ -272,12 +284,15 @@ common_image_menu(Id) ->
 menu_cmd(Cmd, Id) ->
     {'VALUE',{Cmd,Id}}.
 
+button_menu_cmd(Cmd, Id) ->
+    {outliner,{Cmd,Id}}.
+
 command({edit_material,Name}, _Ost) ->
     wings_wm:send(geom, {action,{material,{edit,Name}}});
 command({assign_material,Name}, _Ost) ->
     wings_wm:send(geom, {action,{material,{assign,Name}}});
-command({select_material,Name}, _Ost) ->
-    wings_wm:send(geom, {action,{material,{select,[Name]}}});
+command({select_material,Parameters}, _Ost) ->
+    wings_wm:send(geom, {action,{material,{select,Parameters}}});
 command({duplicate_material,Name}, _Ost) ->
     wings_wm:send(geom, {action,{material,{duplicate,[Name]}}});
 command({delete_material,Name}, _Ost) ->
