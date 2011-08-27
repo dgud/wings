@@ -77,8 +77,8 @@ command({assign,Mat}, St) when is_atom(Mat) ->
     set_material(Mat, St);
 command({assign,Mat}, St) ->
     set_material(list_to_atom(Mat), St);
-command({select,[Mat]}, St) ->
-    select_material(list_to_atom(Mat), St);
+command({select,[Mat,SelAct]}, St) ->
+    {save_state,select_material(list_to_atom(Mat),SelAct, St)};
 command({duplicate,MatList}, St) ->
     duplicate_material(MatList, St);
 command({delete,MatList}, St) ->
@@ -182,24 +182,48 @@ make_fake_selection_1([#we{id=Id,mat=MatTab}|Shs], OldMat) ->
     end;
 make_fake_selection_1([], _) -> [].
 
-select_material(Mat, #st{shapes=Shs}=St) ->
-    Sel = foldl(fun(We, A) ->
-			select_material_1(We, Mat, A)
+select_material(Mat,SelAct,#st{selmode=SelMode,sel=Sel0,shapes=Shs}=St) ->
+    Sel = foldl(fun(#we{id=Id}=We, A) ->
+    		Sel1=lists:keyfind(Id, 1, Sel0),
+			select_material_1(SelMode, Sel1, SelAct, We, Mat, A)
 		end, [], gb_trees:values(Shs)),
     wings_sel:set(Sel, St).
 
-select_material_1(#we{id=Id,fs=Ftab,perm=Perm}=We, Mat, Acc) when ?IS_SELECTABLE(Perm) ->
+select_material_1(SelMode,Sel0,SelAct,#we{id=Id,fs=Ftab,perm=Perm}=We, Mat, Acc) when ?IS_SELECTABLE(Perm) ->
     MatFaces = wings_facemat:mat_faces(gb_trees:to_list(Ftab), We),
     case keyfind(Mat, 1, MatFaces) of
 	false ->
 	    Acc;
 	{Mat,FaceInfoList} ->
-	    Sel = [F || {F,_} <- FaceInfoList, F >= 0],
-	    [{Id,gb_sets:from_ordset(Sel)}|Acc]
+	    Fs = [F || {F,_} <- FaceInfoList, F >= 0],
+		SelItems = case SelMode of
+			vertex -> wings_face:to_vertices(Fs, We);
+			edge -> wings_face:to_edges(Fs, We);
+			_ -> Fs
+			end,		
+		Sel = case Sel0 of
+			false -> % there is no previous selection
+				Lst = case SelAct of
+					sel_rem -> [];
+					_ -> SelItems
+					end,
+				gb_sets:from_ordset(Lst);
+			{_,GbOld} -> 
+				GbNew=gb_sets:from_ordset(SelItems),
+				case SelAct of
+				sel_rem -> gb_sets:subtract(GbOld,GbNew);
+				sel_add -> gb_sets:union(GbOld,GbNew);
+				_ -> GbNew
+				end
+			end,
+		case gb_sets:is_empty(Sel) of
+		true -> Acc;
+		_ -> [{Id,Sel}|Acc]
+		end
     end;
-select_material_1(_, _, Acc) ->
+select_material_1(_,_,_,_,_, Acc) ->
     Acc.
-
+    
 set_material(Mat, #st{selmode=face}=St) ->
     wings_sel:map(fun(Faces, We) ->
 			  wings_facemat:assign(Mat, Faces, We)
