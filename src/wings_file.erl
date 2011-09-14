@@ -56,7 +56,8 @@ import_filename_1(Ps0, Cont) ->
         _Other    -> ?__(1,"Import")
     end,
     Ps = Ps0 ++ [{title,String},{directory,Dir}],
-    Fun = fun(Name) ->
+    Fun = fun(Name0) ->
+    	  Name=test_unc_path(Name0), 
 		  case catch Cont(Name) of
 		      {command_error,Error} ->
 			  wings_u:message(Error);
@@ -84,7 +85,8 @@ export_filename_1(Prop0, Cont) ->
     This = wings_wm:this(),
     Dir = wings_pref:get_value(current_directory),
     Prop = Prop0 ++ [{directory,Dir}],
-    Fun = fun(Name) ->
+    Fun = fun(Name0) ->
+    	  Name=test_unc_path(Name0), 
 		  case catch Cont(Name) of
 		      {command_error,Error} ->
 			  wings_u:message(Error);
@@ -399,7 +401,8 @@ save_as(Next, St) ->
     Ps = [{title,Title}|wings_prop()],
     export_filename(Ps, St, Cont).
 
-save_now(Next, #st{file=Name}=St) ->
+save_now(Next, #st{file=Name0}=St) ->
+    Name=test_unc_path(Name0), 
     Backup = backup_filename(Name),
     file:rename(Name, Backup),
     file:delete(autosave_filename(Name)),
@@ -412,6 +415,13 @@ save_now(Next, #st{file=Name}=St) ->
 	{error,Reason} ->
 	    wings_u:error_msg(?__(1,"Save failed: ") ++ Reason)
     end.
+    
+test_unc_path([H|_]=FileName) when H=:=47 ->
+	case string:str(FileName, "//") of
+		1 -> FileName;
+		_ -> "/"++FileName  % 47 is ascii code for "/"
+	end;
+test_unc_path(FileName) -> FileName.
 
 maybe_send_action(ignore) -> keep;
 maybe_send_action(Action) -> wings_wm:later({action,Action}).
