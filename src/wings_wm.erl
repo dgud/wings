@@ -1269,7 +1269,7 @@ break_line(Msg,W) ->
 	{_,MsgSp2}=lists:foldl(fun(E,{WAcc,Acc}) ->
 			WAcc0 = WAcc+wings_text:width(E)+?CHAR_WIDTH,
 			if WAcc0>W ->
-				{0,Acc++[$\n]++E};
+				{0,Acc++[$\n]++E++[" "]};
 			true -> {WAcc0,Acc++E++[" "]}
 			end
 		end ,{0,[]}, MsgSpl),
