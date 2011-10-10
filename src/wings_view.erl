@@ -1375,8 +1375,13 @@ export_views_1([{View,Name}|Views]) ->
     [{view,Props}|export_views_1(Views)];
 export_views_1([]) -> [].
 
-import_views(Views, #st{views={CurrentView,_}}=St) ->
-    St#st{views={CurrentView,list_to_tuple(import_views_1(Views))}}.
+import_views(Views, #st{views={CurrentView,OldViews}}=St) ->
+	NewViews0=import_views_1(Views),
+	OldViews0 = case OldViews of
+	{} -> [];
+	OldViews1 -> tuple_to_list(OldViews1)
+	end,
+    St#st{views={CurrentView,list_to_tuple(OldViews0++NewViews0)}}.
 
 import_views_1([{view,As}|Views]) ->
     [import_view(As)|import_views_1(Views)];
