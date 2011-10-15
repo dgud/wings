@@ -11,9 +11,7 @@
 
 -module(wpc_sculpt).
 -export([init/0,menu/2,command/2]).
-% micheus - start
 -export([update_dlist/3,draw/4,get_data/3]).
-% micheus - end
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
