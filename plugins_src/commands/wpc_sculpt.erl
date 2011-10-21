@@ -151,10 +151,11 @@ handle_sculpt_event_1(#mousebutton{state=?SDL_RELEASED},
     update_sculpt_handler(Sc#sculpt{id=none,active=false});
 handle_sculpt_event_1(#mousebutton{state=?SDL_RELEASED},
   #sculpt{active=true}=Sc) ->
-  	#sculpt{st=#st{shapes=Shs},wst=St0} =Sc0=clear_influence(Sc),
+    #sculpt{st=#st{shapes=Shs},wst=St0} =Sc0=clear_influence(Sc),
     St = wings_undo:save(St0, St0#st{shapes=Shs}),
-	wings_draw:refresh_dlists(St),
+    wings_draw:refresh_dlists(St),
     wings_wm:current_state(St),
+    wings_wm:dirty(), % it was necessary when I tested in a Intel video card
     update_sculpt_handler(Sc0#sculpt{id=none,st=St,wst=St,active=false});
 handle_sculpt_event_1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
   #sculpt{st=St}=Sc) ->
@@ -860,11 +861,10 @@ remove_influence(#sculpt{id=none,st=#st{shapes=Shs0}=St}=Sc) ->
     Shs1 = lists:map(fun
             (#we{id=Id,pst=none}=We) -> {Id,We};
             (#we{id=Id,pst=Pst}=We) ->
-%  ???          	Pst0=set_Influenced_vs([],Pst),
             	NewPst=gb_trees:delete_any(?MODULE, Pst),
               {Id,We#we{pst=NewPst}}
           end,gb_trees:values(Shs0)),
-          Sc#sculpt{st=St#st{shapes=gb_trees:from_orddict(Shs1)}}.
+    Sc#sculpt{st=St#st{shapes=gb_trees:from_orddict(Shs1)}}.
 
 % It clean any information about the vertices influence from the shapes
 clear_influence(#sculpt{id=none,st=#st{shapes=Shs0}=St}=Sc) ->
@@ -890,6 +890,9 @@ clear_influence_vs(Shs) ->
 % It generate the OpenGl list of colored vertices
 update_dlist({vs_inf,VsInf},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
     Key = ?MODULE,
+    Str=wings_pref:get_value(sculpt_strength),
+    ColFac=Str*10,  % range of 0..1 
+    Col={1.0*ColFac,0.0*ColFac,1.0,0.0},
     Pos = positions(VsInf,Vtab,[]),
     case Pos of
       [] ->
@@ -898,17 +901,17 @@ update_dlist({vs_inf,VsInf},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
         List = gl:genLists(1),
         gl:newList(List,?GL_COMPILE),
         gl:'begin'(?GL_POINTS),
-        pump_vertices(Pos),
+        pump_vertices(Col,Pos),
         gl:'end'(),
         gl:endList(),
         D#dlo{plugins=[{Key,{vs,List}}|Pdl]}
     end.
 
-pump_vertices([{V,Inf}|Vs]) ->
-	gl:color3f(1*Inf,0,0),
+pump_vertices({R,G,B,_}=Col,[{V,Inf}|Vs]) ->
+    gl:color3f(R*Inf,G*Inf,B*Inf),
     gl:vertex3fv(V),
-    pump_vertices(Vs);
-pump_vertices([]) -> ok.
+    pump_vertices(Col,Vs);
+pump_vertices(_,[]) -> ok.
 
 positions([{V,Inf}|Influenced],Vtab,Acc) ->
     Pos = {array:get(V,Vtab),Inf},
@@ -926,13 +929,13 @@ get_data(update_dlist, Data, Acc) ->  % for draw lists
 
 % It'll use the list prepared by 'update_dlist' function and then draw it (for plain or smooth flag)
 draw(_, {vs,List}, _D, Selmode) ->
-	PtSize = wings_pref:get_value(masked_vertex_size),
-	Size = PtSize*0.6,
-	gl:pointSize(vert_display(Size,Selmode)),
-	gl:enable(?GL_BLEND),
-	gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-	wings_dl:call(List),
-	gl:disable(?GL_BLEND);
+    PtSize = wings_pref:get_value(masked_vertex_size),
+    Size = PtSize*0.6,
+    gl:pointSize(vert_display(Size,Selmode)),
+    gl:enable(?GL_BLEND),
+    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+    wings_dl:call(List),
+    gl:disable(?GL_BLEND);
 draw(_,_,_,_) -> ok.
 
 vert_display(Size,vertex) ->
