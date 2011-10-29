@@ -3,7 +3,7 @@
 %%
 %%     Setup and Create data binaries for drawing
 %%
-%%  Copyright (c) 2010-2011 Dan Gudmundsson & Björn Gustavsson
+%%  Copyright (c) 2010-2011 Dan Gudmundsson & BjÃ¶rn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.

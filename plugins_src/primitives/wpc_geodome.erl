@@ -26,15 +26,14 @@ menu(_, Menu) -> Menu.
 geodome_menu() ->
     [{?__(1,"GeoDome"), geodome, [option]}].
 
-command({shape,{geodome, Arg}},_St) -> make_geodome(Arg);
+command({shape,{geodome, Arg}}, St) -> make_geodome(Arg, St);
 command(_, _) -> next.
 
 %%% The rest are local functions.
 
-make_geodome(Arg) when is_atom(Arg) ->
-    wpa:dialog(Arg, ?__(1,"Geodesic Dome Options"), dialog(),
-	fun(Res) -> {shape,{geodome, Res}} end);
-make_geodome(Arg) ->
+make_geodome(Arg, St) when is_atom(Arg) ->
+    wings_ask:dialog_preview({shape,geodome}, Arg, ?__(1,"Geodesic Dome Options"), dialog(), St);
+make_geodome(Arg, _) ->
     %set_pref(Arg), % save preferences
     ArgDict = dict:from_list(Arg),
     BaseFlag = dict:fetch(baseflag, ArgDict),

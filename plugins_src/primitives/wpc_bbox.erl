@@ -43,8 +43,7 @@ command(_, _) -> next.
 create_bbox(#st{bb=BB}=St) ->
     {{Bx,By,Bz},{Cx,Cy,Cz}} = case BB of
         none ->
-            Zero = e3d_vec:zero(),
-            {Zero,Zero};
+            {{2.0,2.0,2.0},{0.0,0.0,0.0}};
         [B1,B2] ->
             {Bx0,By0,Bz0} = e3d_vec:sub(B1,B2),
             Center = e3d_vec:add(B2,e3d_vec:divide({Bx0,By0,Bz0},2)),
@@ -71,16 +70,21 @@ create_bbox(#st{bb=BB}=St) ->
              {hframe,[{label,X},{text,Cx},
                       {label,Y},{text,Cy},
                       {label,Z},{text,Cz}]}],
-    wings_ask:dialog(?__(1,"Create Bounding Box"), Qs,
-      fun(Res) -> save_bbox(Res, St) end).
+    wings_ask:dialog(?__(1,"Create Bounding Box"), {{preview,ungrab},Qs},
+      fun
+        ({dialog_preview,Res}) ->
+            St1 = save_bbox(Res, St),
+            {preview,St1,St1};
+        (cancel) -> St;
+        (Res) ->
+            St1 = save_bbox(Res, St),
+            {commit,St1,St1}
+      end).
 
-save_bbox(Result, St) ->
-    [{Bx,By,Bz}, Center] = result(Result),
+save_bbox([Bx,By,Bz,Cx,Cy,Cz], St) ->
+    Center = {Cx,Cy,Cz},
     Bb = {abs(Bx),abs(By),abs(Bz)},
     HalfB = e3d_vec:divide(Bb,2),
     BBox = [e3d_vec:sub(Center,HalfB), e3d_vec:add(Center,HalfB)],
     St#st{bb=BBox}.
 
-result([X,Y,Z|Result]) ->
-    [{X,Y,Z}|result(Result)];
-result([]) -> [].

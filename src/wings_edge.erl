@@ -867,6 +867,7 @@ patch_edge(Edge, ToEdge, Face, OrigEdge, Etab) ->
     array:set(Edge, New, Etab).
 
 %%%% Select every nth ring
+
 select_nth_ring(N, #st{selmode=edge}=St) ->
     Sel = wings_sel:fold(fun(Edges, #we{id=Id}=We, ObjAcc) ->
                 EdgeRings = nth_ring_1(Edges, {N,N}, We, Edges, gb_sets:new()),

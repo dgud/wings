@@ -14,6 +14,7 @@
 
 -module(wings_ask).
 -export([init/0,ask/3,ask/4,dialog/3,dialog/4,dialog_centered/3,
+	 ask_preview/5,dialog_preview/5,
 	 hsv_to_rgb/1,hsv_to_rgb/3,rgb_to_hsv/1,rgb_to_hsv/3]).
 
 -define(NEED_OPENGL, 1).
@@ -78,14 +79,15 @@
 	 call,
 	 focus,				%Field index
 	 focusable,			%Tuple of field indexes
-	 mouse_focus=false,		%Mouse hit the field
+	 mouse_focus=false,	%Mouse hit the field
 	 fi,				%Static data for all fields.
-	 n,				%Number of fields.
+	 n,					%Number of fields.
 	 coords,			%Coordinates for hit testing.
 	 store,				%Data for all fields.
 	 level,				%Levels of nesting.
 	 owner,				%Where to send result.
-	 grab_win			%Previously grabbed focus window.
+	 grab_win,			%Previously grabbed focus window.
+	 preview			%Does the Dialog support an Preview button? #pv record
 	}).
 
 %% Static data for every field.
@@ -93,7 +95,7 @@
 	{handler,			%Handler fun.
 	 key=0,				%Field key.
 	 index,				%Field index
-	 state=inert,			%inert|disabled|enabled
+	 state=inert,		%inert|disabled|enabled
 	 minimized,			%true|false|undefined
 	 hook,				%Field hook fun/2
 	 flags=[],			%Flags field.
@@ -119,21 +121,59 @@
 	{w,h				%Natural (min) size
 	}).
 
-
+%% Preview Update window data
+-record(pv,
+	{name,
+	 type,
+	 sto,
+	 reset,				%Store original field data in case of Reset
+	 tm
+	}).
 
 init() ->
     init_history(),
     ok.
 
+ask_preview(Cmd, Bool, Title, Qs, St) ->
+    ask(Bool, Title, {{preview,ungrab},Qs}, preview_fun(Cmd, St)).
+
+dialog_preview(Cmd, Bool, Title, Qs, St) ->
+    dialog(Bool, Title, {{preview,ungrab},Qs}, preview_fun(Cmd, St)).
+        
+preview_fun(Cmd, St) ->
+    fun
+        ({dialog_preview,Res}) ->
+            Command = command_name(Cmd, Res),
+            {preview,Command,St};
+        (cancel) -> St;
+        (Res) ->
+            Command = command_name(Cmd, Res),
+            {commit,Command,St}
+    end.
+
+command_name({Menu,Cmd}, Res) ->
+    {Menu,{Cmd,Res}};
+command_name({Menu,SubMenu,Cmd}, Res) ->
+    {Menu,{SubMenu,{Cmd,Res}}}.
+
 ask(Title, Qs, Fun) ->
     ask(true, Title, Qs, Fun).
 
+ask(Bool, Title, {{preview,_}=U,Qs0}, Fun) ->
+%% preview tag adds an Preview button to the dialog box, but you have to account
+%% for the result at the command's origin. wings_drag is done, so any drag
+%% sequence commands are handled automatically.
+    Qs = queries(Qs0),
+    dialog(Bool, Title, {U,Qs}, Fun);
 ask(Bool, Title, Qs0, Fun) ->
-    {Labels,Vals} = ask_unzip(Qs0),
-    Qs = [{hframe,
-	   [{vframe,Labels},
-	    {vframe,Vals}]}],
+    Qs = queries(Qs0),
     dialog(Bool, Title, Qs, Fun).
+
+queries(Qs0) ->
+    {Labels,Vals} = ask_unzip(Qs0),
+    [{hframe,
+	   [{vframe,Labels},
+	    {vframe,Vals}]}].
 
 ask_unzip(Qs) ->
     ask_unzip(Qs, [], []).
@@ -312,7 +352,7 @@ ask_unzip([], Labels, Vals) ->
 %%     MenuFlags = [{info,String}]
 %%
 %% {button[,String],Action[,RegularFlags]}	-- Button
-%%     Action = ok|cancel|done|function(Result)
+%%     Action = ok|preview|cancel|done|function(Result)
 %% Only Action == done returns a value.
 %% If String is omitted and Action is an atom, a String is
 %% constructed by capitalizing the atom's string representation. 
@@ -397,9 +437,9 @@ dialog(Title, Qs, Fun) ->
 do_dialog(Title, Qs, Level, Fun) ->
     GrabWin = wings_wm:release_focus(),
     Owner = wings_wm:this(),
-    S0 = #s{w=W,h=H,fi=Fi,store=Store} = setup_dialog(Qs, Fun),
-    S = S0#s{level=Level,grab_win=GrabWin,owner=Owner},
     Name = {dialog,hd(Level)},
+    S0 = #s{w=W,h=H,fi=Fi,store=Store,preview=P} = setup_dialog(Qs, Fun),
+    S = S0#s{level=Level,grab_win=GrabWin,owner=Owner,preview=P#pv{name=Name}},
     setup_blanket(Name, Fi, Store),
     Op = get_event(S),				%No push - replace crash handler.
     {_,Xm,Ym} = wings_io:get_mouse_state(),
@@ -410,10 +450,9 @@ do_dialog(Title, Qs, Level, Fun) ->
     keep.
 
 
-	
 dialog_centered(Title, Qs, Fun) ->
-	do_dialog_centered(Title, Qs, [make_ref()], Fun).
-	
+    do_dialog_centered(Title, Qs, [make_ref()], Fun).
+
 do_dialog_centered(Title, Qs, Level, Fun) ->
     GrabWin = wings_wm:release_focus(),
     Owner = wings_wm:this(),
@@ -432,14 +471,20 @@ do_dialog_centered(Title, Qs, Level, Fun) ->
 
 
 setup_dialog(Qs, Fun) ->
+    Type = case Qs of
+        {{preview,grab},_} -> grab;
+        {{preview,ungrab},_} -> ungrab;
+        _otherwise -> undefined
+    end,
     {Fi0,Sto,N} = mktree(Qs, gb_trees:empty()),
     Fi = #fi{w=W0,h=H0} = layout(Fi0, Sto),
     Focusable = focusable(Fi),
     W = W0 + 2*?HMARGIN,
     H = H0 + 2*?VMARGIN,
+    Preview = #pv{type=Type,reset=Sto},
     next_focus(1, #s{ox=?HMARGIN,oy=?VMARGIN,w=W,h=H,
 		     call=Fun,focus=N,focusable=Focusable,
-		     fi=Fi,n=N,store=Sto}).
+		     fi=Fi,n=N,store=Sto,preview=Preview}).
 
 setup_blanket(Dialog, Fi, Sto) ->
     EyePicker = case find_eyepicker(Fi, Sto) of
@@ -474,16 +519,23 @@ blanket(#mousebutton{button=1,state=?SDL_RELEASED,x=X0,y=Y0}, Dialog, true) ->
     Col = {R/255,G/255,B/255},
     wings_wm:send(Dialog, {picked_color,Col}),
     keep;
-blanket(_, _, _) -> keep.
+blanket(#mousebutton{x=X0,y=Y0}=Ev, _, _) ->
+    {X,Y} = wings_wm:local2global(X0, Y0),
+    Win = wings_wm:geom_below(X, Y),
+    wings_wm:send(Win, {camera,Ev,keep});
+blanket(_ ,_ , _) -> keep.
 
 get_event(S) ->
     wings_wm:dirty(),
-    {replace,fun(Ev) -> event1(Ev, S) end}.
+    {replace,fun(Ev) ->
+        event1(Ev, S) end}.
 
 event1({crash,Reason}, S) ->
     %% dmptree(S#s.fi),
     wings_u:win_crash(Reason),
     delete(S);
+event1(timer_redraw, S) ->
+    do_preview(S);
 event1(redraw, S) ->
     ?DEBUG_DISPLAY(event, redraw),
     redraw(S);
@@ -599,12 +651,14 @@ escape_pressed(S0=#s{fi=TopFi,store=Sto}) ->
 	    end
     end.
 
-delete(#s{level=[_],grab_win=GrabWin}=S) ->
+delete(#s{level=[_],preview=#pv{type=Type},grab_win=GrabWin}=S) ->
+    if Type=:=grab -> wings_io:grab(); true -> ok end,
     delete_blanket(S),
     wings_wm:grab_focus(GrabWin),
     wings_wm:allow_drag(false),
     delete;
-delete(S) ->
+delete(#s{preview=#pv{type=Type}}=S) ->
+    if Type=:=grab -> wings_io:grab(); true -> ok end,
     delete_blanket(S),
     delete.
 
@@ -746,8 +800,8 @@ field_event(Ev, S=#s{focus=I,mouse_focus=true,fi=Fi}) ->
     field_event(Ev, S, get_fi(I, Fi));
 field_event(_Ev, _S) -> keep.
 
-field_event(Ev, S=#s{focus=_I,fi=TopFi=#fi{w=W0,h=H0},store=Store0}, 
-	    Path=[#fi{handler=Handler}|_]) ->
+field_event(Ev, S=#s{focus=Index,fi=TopFi=#fi{w=W0,h=H0},store=Store0,
+	    preview=#pv{type=Type,reset=Reset}}, Path=[#fi{handler=Handler}|_]) ->
     ?DEBUG_DISPLAY(event, {field_handler,[_I,Ev]}),
     Result = Handler(Ev, Path, Store0),
     ?DEBUG_DISPLAY(event, {field_handler,
@@ -757,11 +811,16 @@ field_event(Ev, S=#s{focus=_I,fi=TopFi=#fi{w=W0,h=H0},store=Store0},
 	ok -> return_result(S);
 	done -> return_result(S);
 	{done,Store} -> return_result(S#s{store=Store});
+	{preview_update,_} -> do_preview(S);
+	{reset,_} -> do_preview(S#s{store=Reset});
+	cancel when Type=:=ungrab -> preview_cancel_result(S);
 	cancel -> delete(S);
 	keep -> keep;
 	{recursive,Return} -> Return;
 	{drag,{_,_}=WH,DropData} -> wings_wm:drag(Ev, WH, DropData);
 	{store,Store} -> get_event(S#s{store=Store});
+	doubleclick_sel ->
+	    get_event(next_focus(1, S#s{focus=Index-1}));
 	{layout,Store} ->
 	    Fi = #fi{w=W,h=H} = layout(TopFi, Store),
 	    ?DMPTREE(tree, Fi),
@@ -806,7 +865,8 @@ maybe_resize_move({W,H0}=Size0) ->
 
 return_result(#s{call=EndFun,owner=Owner,fi=Fi,store=Sto,
 		 level=Level,grab_win=GrabWin}=S0) ->
-    Res = collect_result(Fi, Sto),
+	Res0 = collect_result(Fi, Sto),
+	Res = filter_result_final(Res0),
     ?DEBUG_DISPLAY(other, {return_result,Res}),
     case EndFun(Res) of
 	ignore ->
@@ -819,10 +879,64 @@ return_result(#s{call=EndFun,owner=Owner,fi=Fi,store=Sto,
 	    S = #s{w=W,h=H} = setup_dialog(Qs, Fun),
 	    maybe_resize_move({W,H}),
 	    get_event(S#s{level=Level,grab_win=GrabWin,owner=Owner});
+	{commit,#st{}=St0,#st{}=St}->
+	     wings_wm:send(Owner, {current_state,St0}),
+	     wings_wm:send_after_redraw(Owner, {new_state,St}),
+	     delete(S0);
+	{commit,Action,#st{}=St}->
+	     wings_wm:send(Owner, {current_state,St}),
+	     wings_wm:send_after_redraw(Owner, {action,Action}),
+	     delete(S0);
 	Action when is_tuple(Action); is_atom(Action) ->
 	    ?DEBUG_DISPLAY(other, {return_result,[Owner,{action,Action}]}),
 	    wings_wm:send(Owner, {action,Action}),
 	    delete(S0)
+    end.
+
+preview_result(#s{call=EndFun,owner=Owner,fi=Fi,store=Sto}) ->
+    Res0 = collect_result(Fi, Sto),
+    Res = filter_result(Res0),
+   ?DEBUG_DISPLAY(other, {return_result,Res}),
+    case EndFun({dialog_preview,Res}) of
+	{preview,#st{}=St0,#st{}=St} ->
+	    wings_wm:send_after_redraw(Owner, {update_state,St}),
+	    wings_wm:send(Owner, {current_state,St0});
+	{preview,Action,#st{}=St}->
+	    wings_wm:send_after_redraw(Owner, {action,Action}),
+	    wings_wm:send(Owner, {current_state,St});
+	Action when is_tuple(Action); is_atom(Action) ->
+	    ?DEBUG_DISPLAY(other, {return_result,[Owner,{action,Action}]}),
+	    wings_wm:send(Owner, {action,Action})
+    end.
+
+preview_cancel_result(#s{call=EndFun,owner=Owner}=S) ->
+    #st{}=St = EndFun(cancel),
+    wings_wm:send(Owner, {update_state,St}),
+    delete(S).
+
+filter_result_final(Res0) ->
+    case reverse(Res0) of
+        [auto_preview=P|Res] ->
+            wings_pref:set_value(preview_dialog, P),
+            reverse(Res);
+        [delayed_preview=P|Res] ->
+            wings_pref:set_value(preview_dialog, P),
+            reverse(Res);
+        [manual_preview=P|Res] ->
+            wings_pref:set_value(preview_dialog, P),
+            reverse(Res);
+        _ -> Res0
+    end.
+
+filter_result(Res0) ->
+    case reverse(Res0) of
+        [auto_preview|Res] ->
+            reverse(Res);
+        [delayed_preview|Res] ->
+            reverse(Res);
+        [manual_preview|Res] ->
+            reverse(Res);
+        _ -> Res0
     end.
 
 redraw(S=#s{ox=Ox,oy=Oy,focus=Index,fi=Fi0,store=Sto}) ->
@@ -830,18 +944,63 @@ redraw(S=#s{ox=Ox,oy=Oy,focus=Index,fi=Fi0,store=Sto}) ->
     wings_io:ortho_setup(),
     {W,H} = wings_wm:win_size(),
     blend(fun(Col) ->
-		  wings_io:border(0, 0, W-1, H-1, Col)
-	  end),
+        wings_io:border(0, 0, W-1, H-1, Col)
+    end),
     gl:translated(Ox, Oy, 0),
     case draw_fields(Fi0, Index, Sto) of
-	keep -> 
-	    ?DEBUG_DISPLAY(other, {draw_fields,keep}),
-	    keep;
-	Fi ->
-	    Focusable = focusable(Fi),
-	    ?DEBUG_DISPLAY(other, {new_focusable,Focusable}),
-	    get_event(next_focus(0, S#s{focusable=Focusable,fi=Fi}))
+    keep ->
+        ?DEBUG_DISPLAY(other, {draw_fields,keep}),
+        redraw_preview(S);
+    Fi ->
+        Focusable = focusable(Fi),
+        ?DEBUG_DISPLAY(other, {new_focusable,Focusable}),
+        get_event(next_focus(0, S#s{focusable=Focusable,fi=Fi}))
     end.
+
+redraw_preview(#s{preview=#pv{type=undefined}}) ->
+    keep;
+redraw_preview(#s{store=Sto,preview=#pv{tm=do_preview}=P}=S) ->
+    preview_result(S),
+    get_event(S#s{preview=P#pv{sto=Sto,tm=undefined}});
+redraw_preview(#s{store=Sto,preview=#pv{sto=Sto,tm=undefined}}) ->
+    keep;
+redraw_preview(#s{fi=Fi0,store=Sto,preview=#pv{sto=Sto0,tm=T}=P}=S) ->
+    Res = collect_result(Fi0, Sto),
+    case Res of
+        [] -> keep;
+        _ ->
+            case lists:last(Res) of
+                auto_preview -> %do_preview(S);
+                    case  Sto=/=Sto0 of
+                        true when T=:=undefined ->
+                            Timer = set_timer(10, S),
+                            get_event(S#s{preview=P#pv{sto=Sto,tm=Timer}});
+                        _ ->
+                            keep
+                    end;
+                delayed_preview ->
+                    case  Sto=/=Sto0 of
+                        true ->
+                            Timer = set_timer(500, S),
+                            get_event(S#s{preview=P#pv{sto=Sto,tm=Timer}});
+                        _ ->
+                            keep
+                    end;
+                _ -> keep
+            end
+    end.
+
+set_timer(Time, #s{preview=#pv{name=Win,tm=undefined}}) ->
+    wings_io:set_timer(Time, {wm,{send_to,Win,timer_redraw}});
+set_timer(Time, #s{preview=#pv{name=Win,tm=Timer}}) ->
+    wings_wm:cancel_timer(Timer),
+    wings_io:set_timer(Time, {wm,{send_to,Win,timer_redraw}}).
+
+do_preview(#s{store=Sto,preview=#pv{tm=undefined}=P}=S) ->
+    redraw_preview(S#s{preview=P#pv{sto=Sto,tm=do_preview}});
+do_preview(#s{store=Sto,preview=#pv{tm=Timer}=P}=S) ->
+    wings_wm:cancel_timer(Timer),
+    redraw_preview(S#s{preview=P#pv{sto=Sto,tm=do_preview}}).
 
 %% Binary search a tuple. Cmp should return integer() > 0 | 0 | 0 < integer().
 %% Return {I,I+1} | {I-1,I} if not found, or I if found,
@@ -1097,6 +1256,21 @@ get_fi_1(Index, #fi{extra=#container{fields=Fields}}, Path) ->
 %% Conversion of dialog query into internal tree format
 %%
 
+mktree({{preview,_},Qs0}, Sto0) when is_list(Qs0) ->
+    Preview = wings_pref:get_value(preview_dialog, auto_preview),
+    Qs = {hframe,[{vframe,Qs0},
+		  {vframe,[{button,ok,[ok]},
+			   {button,cancel,[cancel]},
+			   separator,
+		  {vframe,[{vradio,
+			  [{?__(2,"Auto"),auto_preview},
+			   {?__(3,"Delayed"),delayed_preview},
+			   {?__(4,"Manual"),manual_preview}],Preview},
+			   {button,preview_update,[preview_update]}],
+			  [{title,"Preview"}]},
+		  {button,reset,[reset]}]}]},
+    {Fis,Sto,I} = mktree(Qs, Sto0, 1),
+    {Fis,Sto,I-1};
 mktree(Qs0, Sto0) when is_list(Qs0) ->
     Qs = {hframe,[{vframe,Qs0},
 		  {vframe,[{button,ok,[ok]},
@@ -2413,12 +2587,20 @@ mktree_button(Label, Action, Sto, I, Flags) ->
     Fi = #fi{key=Key} = 
 	mktree_leaf(Fun, enabled, undefined, W, ?LINE_HEIGHT+2+2, I, Flags),
     %% Trick to not have to change store for 'ok' or 'cancel'
-    Val = (Action =:= ok) orelse (Action =:= cancel),
+    % Val = (Action =:= ok) orelse (Action =:= cancel),
+    Val = case Action of
+        ok -> true;
+        preview -> true;
+        cancel -> true;
+        _ -> false
+    end,
     But = #but{label=Label,action=Action},
     mktree_priv(Fi, gb_trees:enter(var(Key, I), Val, Sto), I, But).
 
 button_label(ok) -> ?__(1,"OK");
+button_label(preview_update) -> ?__(2,"Update");
 button_label(cancel) -> wings_s:cancel();
+button_label(reset) -> ?__(3,"Reset");
 button_label(Act) -> wings_util:cap(atom_to_list(Act)).
 %%button_label(Act) -> wings_util:cap(wings_lang:get_act(Act)). %BUGBUG
 
@@ -3232,6 +3414,8 @@ gen_text_handler({redraw,Active,DisEnabled},
     draw_text(Fi, gb_trees:get(-I, Store), Val, DisEnabled, Active);
 gen_text_handler(value, [#fi{key=Key,index=I}|_], Store) ->
     {value,gb_trees:get(var(Key, I),Store)};
+gen_text_handler({doubleclick,_,_}, _, _) ->
+    doubleclick_sel;
 gen_text_handler({focus,true}, [#fi{key=Key,index=I}|_], Sto0) ->
     %% Another field may have updated this field (e.g. a Browse button)
     %% while we were out of focus. Therefore, don't trust anything in
@@ -3425,10 +3609,12 @@ get_text(#text{bef=Bef,aft=Aft}) ->
 get_text_r(#text{bef=Bef,aft=Aft}) ->
     reverse(Aft, Bef).
 
-text_event({key,?SDLK_PAGEUP,_,_}, _Fi, Ts=#text{integer=true}) ->
-    increment(Ts, 1);
-text_event({key,?SDLK_PAGEDOWN,_,_}, _Fi, Ts=#text{integer=true}) ->
-    increment(Ts, -1);
+text_event({key,?SDLK_PAGEUP,_,_}, _Fi, Ts=#text{integer=Bool}) ->
+    Incr = if Bool -> 1; true -> 1.0 end,
+    increment(Ts, Incr);
+text_event({key,?SDLK_PAGEDOWN,_,_}, _Fi, Ts=#text{integer=Bool}) ->
+    Incr = if Bool -> -1; true -> -1.0 end,
+    increment(Ts, Incr);
 text_event({key,_,Mod,Unicode}, _Fi, Ts) ->
     key(Unicode ,Mod, Ts);
 text_event({focus,false}, _Fi, Ts0) ->
@@ -3442,6 +3628,20 @@ text_event(#mousebutton{x=X,state=?SDL_RELEASED,button=1}, Fi,
 	   #text{sel=Sel0,aft=Aft0}=Ts0) ->
     #text{aft=Aft} = Ts = text_pos(X, Fi, Ts0),
     Ts#text{sel=Sel0+length(Aft)-length(Aft0)};
+text_event(#mousebutton{state=?SDL_RELEASED,button=4}, _Fi, Ts=#text{integer=Bool}) ->
+    Incr = case constraint_factor() of
+       none -> 1;
+       Other -> Other
+    end,
+    Increment = if Bool -> round(Incr); true -> Incr end,
+    increment(Ts, Increment);
+text_event(#mousebutton{state=?SDL_RELEASED,button=5}, _Fi, Ts=#text{integer=Bool}) ->
+    Incr = case constraint_factor() of
+       none -> 1;
+       Other -> Other
+    end,
+    Increment = if Bool -> round(-Incr); true -> -Incr end,
+    increment(Ts, Increment);
 text_event(#mousemotion{x=X}, Fi, Ts) ->
     text_event(#mousebutton{x=X,state=?SDL_RELEASED,button=1}, Fi, Ts);
 text_event(_Ev, _Fi, Ts) -> Ts.
@@ -3528,12 +3728,19 @@ del_sel(Ts) -> Ts.
 
 increment(Ts0, Incr) ->
     Str0 = get_text(Ts0),
-    case catch list_to_integer(Str0) of
-	{'EXIT',_} -> Ts0;
-	N ->
-	    Str = integer_to_list(N+Incr),
-	    Ts = Ts0#text{bef=reverse(Str),aft=[],sel=-length(Str)},
-	    validate_string(Ts)
+    case catch list_to_float(Str0) of
+      {'EXIT',_} ->
+        case catch list_to_integer(Str0) of
+          {'EXIT',_} -> Ts0;
+          Int ->
+            Str = text_val_to_str(round(field_constraints(Int+Incr))),
+            Ts = Ts0#text{bef=reverse(Str),aft=[],sel=-length(Str)},
+            validate_string(Ts)
+        end;
+      Float ->
+        Str = text_val_to_str(field_constraints(Float+Incr)),
+        Ts = Ts0#text{bef=reverse(Str),aft=[],sel=-length(Str)},
+        validate_string(Ts)
     end.
 
 %%%
@@ -3581,6 +3788,16 @@ slider_event(value, [#fi{flags=Flags,key=Key,index=I}|_], Store) ->
     end;
 slider_event(#mousebutton{x=Xb,state=?SDL_RELEASED,button=1}, [Fi|_], Store) ->
     slider_event_move(Xb, Fi, Store);
+slider_event(#mousebutton{state=?SDL_RELEASED,button=4}, [Fi|_], Store) ->
+    case constraint_factor() of
+       none -> slider_move(1, Fi, Store);
+       Other -> slider_wheel_move(Other, Fi, Store)
+    end;
+slider_event(#mousebutton{state=?SDL_RELEASED,button=5}, [Fi|_], Store) ->
+    case constraint_factor() of
+       none -> slider_move(-1, Fi, Store);
+       Other -> slider_wheel_move(-Other, Fi, Store)
+    end;
 slider_event(#mousemotion{x=Xb,state=Bst}, [Fi|_], Store) 
   when (Bst band ?SDL_BUTTON_LMASK) =/= 0 ->
     slider_event_move(Xb, Fi, Store);
@@ -3608,12 +3825,22 @@ slider_move(D0, #fi{key=Key,index=I,hook=Hook,flags=Flags}, Store) ->
     D = if
 	     is_integer(Min), D0 > 0 -> max(round(D0*0.01*Range), 1);
 	     is_integer(Min), D0 < 0 -> min(round(D0*0.01*Range), -1);
-	     is_float(Min) -> D0*0.01*Range
+	     is_float(Min) -> D0*0.01*round(Range)
 	 end,
     Val = if
 	      is_tuple(Val0) -> slider_color_add(D, Val0);
-	      true -> max(Min, min(Min+Range, Val0+D))
+	      true -> max(Min, field_constraints(min(Min+Range, Val0+D)))
 	  end,
+    slider_update(Hook, Val, Key, I, Store, Flags).
+
+slider_wheel_move(Incr, #fi{key=Key,index=I,hook=Hook,flags=Flags}, Store) ->
+    #sl{min=Min,range=Range} = gb_trees:get(-I, Store),
+    Val0 = gb_trees:get(var(Key, I), Store),
+    Val1 = if
+	      is_tuple(Val0) -> slider_color_add(Incr, Val0);
+	      true -> max(Min, field_constraints(min(Min+Range, Val0+Incr)))
+	  end,
+	Val = if is_integer(Min) -> round(Val1); true -> Val1 end,
     slider_update(Hook, Val, Key, I, Store, Flags).
 
 slider_event_move(Xb, #fi{x=X,key=Key,index=I,hook=Hook,flags=Flags}, Store) ->
@@ -3624,7 +3851,9 @@ slider_event_move(Xb, #fi{x=X,key=Key,index=I,hook=Hook,flags=Flags}, Store) ->
     Val = if
 	      is_integer(Min) -> round(V);
 	      is_tuple(Val0) -> slider_color_move(V, Val0);
-	      true -> V
+	      true ->
+	         ConValue = field_constraints(V),
+	         if ConValue < Min -> Min; true -> ConValue end
 	  end,
     slider_update(Hook, Val, Key, I, Store, Flags).
 
@@ -3939,3 +4168,26 @@ read_hist(Type, Default, Step) ->
 	    [{_,Val}] = ets:lookup(wings_history, {Type,Curr1}),
 	    Val
     end.
+
+field_constraints(V) ->
+    case constraint_factor() of
+        none -> V;
+        Factor ->
+            round(V/Factor)*Factor
+    end.
+
+constraint_factor() ->
+    C = wings_io:is_modkey_pressed(?CTRL_BITS),
+    S = wings_io:is_modkey_pressed(?SHIFT_BITS),
+    A = wings_io:is_modkey_pressed(?ALT_BITS),
+    if
+      C,S,A -> wings_pref:get_value(con_dist_ctrl_shift_alt);
+      S,A -> wings_pref:get_value(con_dist_shift_alt);
+      C,A -> wings_pref:get_value(con_dist_ctrl_alt);
+      C,S -> wings_pref:get_value(con_dist_ctrl_shift);
+      C -> wings_pref:get_value(con_dist_ctrl);
+      S -> wings_pref:get_value(con_dist_shift);
+      A -> wings_pref:get_value(con_dist_alt);
+      true -> none
+    end.
+

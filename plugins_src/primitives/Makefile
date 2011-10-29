@@ -30,14 +30,14 @@ endif
 
 MODULES= \
 	wpc_bbox \
+	wpc_cylinder \
+	wpc_geodome \
 	wpc_image \
 	wpc_knot \
+	wpc_ncube \
+	wpc_plane \
 	wpc_spiral \
 	wpc_torus \
-	wpc_plane \
-	wpc_gear \
-	wpc_ncube \
-	wpc_geodome \
 	wpc_tt
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)

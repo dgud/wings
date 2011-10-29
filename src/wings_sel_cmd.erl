@@ -49,7 +49,7 @@ menu(St) ->
 	{?__(100,"Every Nth Ring"),{nth_edge_ring,
 	    [{?__(101,"Second"),2},
 	     {?__(102,"Third"),3},
-	     {?__(103,"Nth..."),nth}]}},
+	     {?__(103,"Nth..."),true}]}},
 	separator,
 	{?__(14,"Previous Edge Loop"),
 	 prev_edge_loop,?__(15,"Select the previous edge loop")},
@@ -87,14 +87,14 @@ menu(St) ->
 	      {?__(39,"4 Edges"),4,Help},
 	      {?__(40,"5 Edges"),5,Help},
 	      {?__(401,"6 or More"),6,Help},
-	      {?__(402,"Specify..."),specify,Help}]}},
+	      {?__(402,"Specify..."),true,Help}]}},
 	   {?__(41,"Faces With"),
 	    {faces_with,
 	     [{?__(42,"2 Edges"),2,Help},
 	      {?__(43,"3 Edges"),3,Help},
 	      {?__(44,"4 Edges"),4,Help},
 	      {?__(45,"5 or More"),5,Help},
-	      {?__(402,"Specify..."),specify,Help}]}},
+	      {?__(402,"Specify..."),true,Help}]}},
 	   {?__(nq0,"Non Quadrangle Faces"),
 	    {non_quad,
 	     [{?__(nq1,"All Non Quadrangle Faces"),all,Help},
@@ -110,7 +110,7 @@ menu(St) ->
 		     {"70%",70, RHelp},
 		     {"80%",80, RHelp},
 		     {"90%",90, RHelp},
-		     {"__%",pick, RHelp}
+		     {"__%",true, RHelp}
 		     ]}},
 	   {?__(56,"Short Edges"),
 	    short_edges,?__(57,"Select (too) short edges")++Help,[option]},
@@ -273,10 +273,8 @@ command({edge_loop,edge_link_decr}, St) ->
     {save_state,wings_edge_loop:select_link_decr(St)};
 command({edge_loop,edge_link_incr}, St) ->
     {save_state,wings_edge_loop:select_link_incr(St)};
-command({edge_loop,{nth_edge_ring,nth}}, St) ->
-    select_nth_ring(St);
 command({edge_loop,{nth_edge_ring,N}}, St) ->
-    {save_state,wings_edge:select_nth_ring(N,St)};
+    select_nth_ring(N, St);
 command({edge_loop,edge_ring}, St) ->
     {save_state,wings_edge:select_edge_ring(St)};
 command({edge_loop,edge_ring_incr}, St) ->
@@ -309,17 +307,14 @@ command({oriented_faces,Ask}, St) ->
     oriented_faces(Ask, St);
 command({similar_area,Ask}, St) ->
     similar_area(Ask, St);
-	
 command({similar_material,Ask}, St) ->
     similar_material(Ask, St);
-
 command({ssels,{select_group,saved_selections_cycle_by_mode}}, St) ->
     Pref = wings_pref:get_value(saved_selections_cycle_by_mode),
     wings_pref:set_value(saved_selections_cycle_by_mode, not Pref),
     {save_state,St};
 command({ssels,{select_group,Id}}, St) when Id =:= next; Id =:= prev ->
     {save_state,cycle_group(Id, St)};
-	
 command({ssels,{select_group,Id}}, St) ->
     {save_state,select_group(Id, St)};
 command({ssels,{union_group,Id}}, St) ->
@@ -379,12 +374,8 @@ by_command({nonplanar_faces,Ask}, St) ->
     nonplanar_faces(Ask, St);
 by_command({vertices_with,N}, St) ->
     vertices_with(N, St);
-by_command({non_quad,all}, St) ->
-    faces_with({non_quad,all}, St);
-by_command({non_quad,odd}, St) ->
-    faces_with({non_quad,odd}, St);
-by_command({non_quad,even}, St) ->
-    faces_with({non_quad,even}, St);
+by_command({non_quad,Type}, St) ->
+    faces_with({non_quad,Type}, St);
 by_command({faces_with,N}, St) ->
     faces_with({faces_with,N}, St);
 by_command(material_edges, St) ->
@@ -404,9 +395,7 @@ by_command({vertex_path,astar_shortest_path}, St) ->
 by_command(uv_mapped_faces, St) ->
     uv_mapped_faces(St);
 by_command(id, St) ->
-    by_id(St);
-by_command({id,Sel}, St) ->
-    {save_state,sel_by_id(Sel, St)}.
+    by_id(St).
 
 face_region_to_edge_loop(St) ->
     Sel = wings_sel:fold(
@@ -875,16 +864,17 @@ compare(A, B) ->
 %% Select Random.
 %%
 
-random(pick, _) ->
-    Qs = [{hframe,[{slider,{text,wings_pref:get_value(random_select, 25.0),
+random(true, St) ->
+    Qs0 = [{hframe,[{slider,{text,wings_pref:get_value(random_select, 25.0),
             [{range,{0.0,100.0}}]}}]}],
-    wings_ask:dialog(true, ?__(1,"Select Random"),
-    [{vframe,Qs}],
-    fun([Res]) ->
-      wings_pref:set_value(random_select, Res),
-      {select,{by,{random,Res}}} end);
+    Qs = [{vframe,Qs0}],
+    Title =  ?__(1,"Select Random"),
+    Cmd = {select,by,random},
+    wings_ask:dialog_preview(Cmd, true, Title, Qs, St);
+random([Percent], St) -> random(Percent, St);
 random(Percent, #st{selmode=Mode, sel=[]}=St) ->
     P = Percent / 100,
+    wings_pref:set_value(random_select, Percent),
     {save_state, wings_sel:make(fun(_, _) -> random:uniform() < P end, Mode, St)};
 random(Percent, St) ->
     P = Percent / 100,
@@ -896,18 +886,20 @@ random(Percent, St) ->
               _ -> [{Id,gb_sets:from_list(Sel2)}|Acc]
             end
         end,[],St),
+    wings_pref:set_value(random_select, Percent),
     {save_state, wings_sel:set(NewSel, St)}.
 
 %%
 %% Select short edges.
 %%
 
-short_edges(Ask, _St) when is_atom(Ask) ->
-    Qs = [{label,?__(1,"Length tolerance")},
-	  {text,1.0E-3,[{range,{1.0E-5,10.0}}]}],
-    wings_ask:dialog(Ask, ?__(2,"Select Short Edges"),
-		     [{hframe,Qs}],
-		     fun(Res) -> {select,{by,{short_edges,Res}}} end);
+short_edges(Ask, St) when is_atom(Ask) ->
+    Qs0 = [{label,?__(1,"Length tolerance")},
+      {text,1.0E-3,[{range,{1.0E-5,10.0}}]}],
+    Qs = [{hframe,Qs0}],
+    Title = ?__(2,"Select Short Edges"),
+    Cmd = {select,by,short_edges},
+    wings_ask:dialog_preview(Cmd, Ask, Title, Qs, St);
 short_edges([Tolerance], #st{sel=[]}=St0) ->
     St = wings_sel:make(fun(Edge, We) ->
 				short_edge(Tolerance, Edge, We)
@@ -983,11 +975,11 @@ uv_mapped_faces(#st{selmode=Mode}=St0) ->
 %% Select by numerical item id.
 %%
 
-by_id(#st{selmode=body}) ->
+by_id(#st{selmode=body}=St) ->
     ask([{"Object Id",1}],
 	fun([Id]) ->
 		{"",[{Id,gb_sets:singleton(0)}]}
-	end);
+	end, St);
 by_id(#st{selmode=vertex}=St) ->
     item_by_id("Vertex Id", St);
 by_id(#st{selmode=edge}=St) ->
@@ -995,29 +987,27 @@ by_id(#st{selmode=edge}=St) ->
 by_id(#st{selmode=face}=St) ->
     item_by_id("Face Id", St).
 
-item_by_id(Prompt, #st{sel=[{Id,_}]}) ->
+item_by_id(Prompt, #st{sel=[{Id,_}]}=St) ->
     ask([{Prompt,0}],
 	fun([Item]) ->
 		{Prompt,[{Id,gb_sets:singleton(Item)}]}
-	end);
-item_by_id(Prompt, #st{shapes=Shs}) ->
+	end, St);
+item_by_id(Prompt, #st{shapes=Shs}=St) ->
     case gb_trees:to_list(Shs) of
 	[] -> wings_u:error_msg(?__(1,"Nothing to select."));
 	[{Id,_}] ->
 	    ask([{Prompt,0}],
 		fun([Item]) ->
 			{Prompt,[{Id,gb_sets:singleton(Item)}]}
-		end);
+		end, St);
 	[{Id0,_}|_] ->
 	    ask([{?__(2,"Object Id"),Id0},
 		 {Prompt,0}],
 		fun([Id,Item]) ->
 			{Prompt,[{Id,gb_sets:singleton(Item)}]}
-		end)
+		end, St)
     end.
 
-sel_by_id({Prompt,Sel}, St) ->
-    wings_sel:set(valid_sel(Prompt, Sel, St), St).
 
 valid_sel(Prompt, Sel, #st{shapes=Shs,selmode=Mode}=St) ->
     case wings_sel:valid_sel(Sel, Mode, St) of
@@ -1037,12 +1027,20 @@ valid_sel(Prompt, Sel, #st{shapes=Shs,selmode=Mode}=St) ->
 	Sel -> Sel
     end.
 
-ask(Qs, Fun) ->
-    wings_ask:ask(?__(1,"Select By Id"), Qs,
-		  fun(Res) ->
-			  Sel = Fun(Res),
-			  {select,{by,{id,Sel}}}
-		  end).
+ask(Qs, Fun, St) ->
+    wings_ask:ask(?__(1,"Select By Id"), {{preview,ungrab},Qs},
+    fun
+        ({dialog_preview,Res}) ->
+            Sel = Fun(Res),
+            {preview,St,sel_by_id(Sel, St)};
+        (cancel) -> St;
+        (Res) ->
+            Sel = Fun(Res),
+            {commit,St,sel_by_id(Sel, St)}
+    end).
+
+sel_by_id({Prompt,Sel}, St) ->
+    wings_sel:set(valid_sel(Prompt, Sel, St), St).
 
 %%%
 %%% Select lights.
@@ -1100,12 +1098,12 @@ select_isolated_1(#we{id=Id}=We, A) ->
 %%% Select nonplanar faces
 %%%
 
-nonplanar_faces(Ask, _St) when is_atom(Ask) ->
+nonplanar_faces(Ask, St) when is_atom(Ask) ->
     Qs = [{label,?__(1,"Distance tolerance")},
 	  {text,1.0E-3,[{range,{1.0E-5,10.0}}]}],
-    wings_ask:dialog(Ask, ?__(2,"Select Non-planar Faces"),
-		     [{hframe,Qs}],
-		     fun(Res) -> {select,{by,{nonplanar_faces,Res}}} end);
+    Title = ?__(2,"Select Non-planar Faces"),
+    wings_ask:dialog_preview({select,by,nonplanar_faces}, Ask, Title,
+	  [{hframe,Qs}], St);
 nonplanar_faces([Tolerance], #st{sel=[]}=St) ->
     Sel = fun(Face, We) ->
 		  not wings_face:is_planar(Tolerance,Face,We)
@@ -1131,20 +1129,21 @@ nonplanar_faces([Tolerance], #st{selmode=Mode}=St0) ->
 oriented_faces(_, #st{selmode=Mode}) when Mode =/= face ->
     keep;					%Wrong mode (invoked through hotkey).
 
-oriented_faces(Ask, _St) when is_atom(Ask) ->
+oriented_faces(Ask, St) when is_atom(Ask) ->
     Connected = wings_pref:get_value(similar_normals_connected,false),
     {Save,Angle} = case wings_pref:get_value(similar_normals_angle,{false,1.0E-3}) of
         {true,A} -> {true,A};
         {false,_} -> {false,1.0E-3}
     end,
-    Qs = [{vframe,
+    Qs0 = [{vframe,
            [{hframe,[{slider,{text,Angle,[{range,{1.0E-3,180.0}}]}}]}],
            [{title,?__(1,"Angle Tolerance")}]},
           {?__(3,"Connected Faces Only"),Connected},
           {?__(5,"Save Angle"),Save}],
-    wings_ask:dialog(Ask, ?__(2,"Select Similarly Oriented Faces"),
-    [{vframe,Qs}],
-    fun(Res) -> {select,{oriented_faces,Res}} end);
+    Qs = [{vframe,Qs0}],
+    Title = ?__(2,"Select Similarly Oriented Faces"),
+    Cmd = {select,oriented_faces},
+    wings_ask:dialog_preview(Cmd, Ask, Title, Qs, St);
 
 oriented_faces([Tolerance,Connected,Save], #st{selmode=face, sel=[]}) ->
     wings_pref:set_value(similar_normals_connected,Connected),
@@ -1220,16 +1219,17 @@ any_matching_normal(CosTolerance, Norm, [N|T]) ->
 similar_material(_, #st{selmode=Mode}) when Mode =/= face ->
     keep; %Wrong mode (invoked through hotkey).
 
-similar_material(Ask, _St) when is_atom(Ask) ->
+similar_material(Ask, St) when is_atom(Ask) ->
     Connected = wings_pref:get_value(similar_materials_connected, false),
     Mode = wings_pref:get_value(similar_materials, material),
-    Qs = [{?__(2,"Connected Faces Only"),Connected},
+    Qs0 = [{?__(2,"Connected Faces Only"),Connected},
 	  {vradio,[{?__(5,"Materials"),material},
 		   {?__(6,"Vertex Color"),vertex_color}],
 	   Mode}],
-    wings_ask:dialog(Ask, ?__(4,"Select Faces with the same Material"),
-    [{vframe,Qs}],
-    fun(Res) -> {select,{similar_material,Res}} end);
+    Qs = [{vframe,Qs0}],
+    Title = ?__(4,"Select Faces with the same Material"),
+    Cmd = {select,similar_material},
+    wings_ask:dialog_preview(Cmd, Ask, Title, Qs, St);
 
 similar_material([Connected,Mode], #st{selmode=face,sel=[]}) ->
     wings_pref:set_value(similar_materials, Mode),
@@ -1317,17 +1317,14 @@ any_matching_material(Material, [Mat|T]) ->
 %%% Select sharp edges
 %%%
 
-sharp_edges(Ask, _St) when is_atom(Ask) ->
+sharp_edges(Ask, St) when is_atom(Ask) ->
     Qs = [{hframe,[{label,?__(1,"Max Angle")},
       {slider,{text,120.0,[{range,{0.0,180.0}}]}}]},
       {hradio,[{?__(3,"Peaks"),convex},
                {?__(4,"Valleys"),concave},
                {?__(5,"Both"),both}],both}],
-    wings_ask:dialog(Ask,
-    ?__(2,"Select Sharp Edges"), [{vframe,Qs}],
-    fun(Res) ->
-        {select,{by,{sharp_edges,Res}}}
-    end);
+    wings_ask:dialog_preview({select,by,sharp_edges}, Ask,
+      ?__(2,"Select Sharp Edges"), [{vframe,Qs}], St);
 sharp_edges([Tolerance,Type], #st{sel=[]}=St0) ->
     CosTolerance = -math:cos(Tolerance * math:pi() / 180.0),
     St = wings_sel:make(fun(Edge, We) ->
@@ -1564,14 +1561,11 @@ build_digraph(Graph, E, Vtab) ->
 %%% Select faces with similar area
 %%%
 
-similar_area(Ask, _St) when is_atom(Ask) ->
+similar_area(Ask, St) when is_atom(Ask) ->
     Qs = [{label,?__(1,"Area Tolerance")},
 	  {text,0.001,[{range,{0.0,100.0}}]}],
-    wings_ask:dialog(Ask,
-	?__(2,"Select Similar Area"), [{hframe,Qs}],
-	fun(Res) ->
-	    {select,{similar_area,Res}}
-	end);
+    wings_ask:dialog_preview({select,similar_area}, Ask,
+	?__(2,"Select Similar Area"), [{hframe,Qs}], St);
 similar_area([Tolerance], St) ->
     #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
     case (Mode==face) and (length(Sel)==1) of
@@ -1625,18 +1619,15 @@ hard_edges(#st{selmode=Mode}=St0) ->
 	  end,[],St),
     {save_state,wings_sel:set(edge, Sel, St0)}.
 
-vertices_with(specify, _) ->
+vertices_with(true, St) ->
     Qs = [{vframe,
            [{hframe,[{label,?__(1,"Number of Edges")},
              {text,2,[{range,{2,1000}}]}]},
              {hradio,[{?__(3,"More"),more},
                {?__(4,"Less"),less},
                {?__(5,"Exactly"),exactly}],exactly}]}],
-    wings_ask:dialog(true,
-        ?__(2,"Select Vertices"), [{hframe,Qs}],
-        fun(Res) ->
-            {select,{by,{vertices_with,Res}}}
-        end);
+    wings_ask:dialog_preview({select,by,vertices_with}, true,
+        ?__(2,"Select Vertices"), [{hframe,Qs}], St);
 vertices_with(N, #st{sel=[]}=St) ->
     Sel = fun(V, We) ->
 	  vertices_with(N, V, We)
@@ -1677,18 +1668,15 @@ vertices_with([N,Mode], V, We) ->
         exactly -> Cnt =:= N
     end.
 
-faces_with({faces_with,specify}, _) ->
+faces_with({faces_with,true}, St) ->
     Qs = [{vframe,
            [{hframe,[{label,?__(1,"Number of Edges")},
              {text,2,[{range,{2,1000}}]}]},
              {hradio,[{?__(3,"More"),more},
                {?__(4,"Less"),less},
                {?__(5,"Exactly"),exactly}],exactly}]}],
-    wings_ask:dialog(true,
-        ?__(2,"Select Faces"), [{hframe,Qs}],
-        fun(Res) ->
-            {select,{by,{faces_with,Res}}}
-        end);
+    wings_ask:dialog_preview({select,by,faces_with}, true,
+        ?__(2,"Select Faces"), [{hframe,Qs}], St);
 faces_with(Filter, #st{sel=[]}=St) ->
     Sel = fun(Face, We) ->
 		  faces_with(Filter, Face, We)
@@ -1719,13 +1707,14 @@ faces_with(Filter, Face, We) ->
       {faces_with,[N,exactly]} -> Vs =:= N
     end.
 
-select_nth_ring(#st{selmode=edge}) ->
+select_nth_ring(true, #st{selmode=edge}=St) ->
     Qs = [{label,?__(1,"Interval")},
 	  {text,2,[{range,{1,1000}}]}],
-    wings_ask:dialog(true,
-	?__(2,"Select Every Nth Edge Ring"), [{hframe,Qs}],
-	fun([Res]) ->
-	    {select,{edge_loop,{nth_edge_ring,Res}}}
-	end);
-select_nth_ring(St) -> {save_state,St}.
-
+    wings_ask:dialog_preview({select,edge_loop,nth_edge_ring}, true,
+	?__(2,"Select Every Nth Edge Ring"), [{hframe,Qs}], St);
+select_nth_ring([N], #st{selmode=edge}=St) ->
+    {save_state,wings_edge:select_nth_ring(N,St)};
+select_nth_ring(N, #st{selmode=edge}=St) ->
+    {save_state,wings_edge:select_nth_ring(N,St)};
+select_nth_ring(_, St) ->
+    {save_state,St}.

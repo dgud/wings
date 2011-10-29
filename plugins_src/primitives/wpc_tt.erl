@@ -55,19 +55,16 @@ insert_before([]) ->
 menu_entry() ->
     {?__(1,"Text"),text,?__(2,"Convert text to a 3D object"),[option]}.
 
-command({shape,{text,Ask}}, _St) -> 
-    make_text(Ask);
-    
+command({shape,{text,Ask}}, St) -> make_text(Ask, St);
 command(_, _) -> next.
 
-
-make_text(Ask) when is_atom(Ask) ->
+make_text(Ask, St) when is_atom(Ask) ->
     FontDir = wpa:pref_get(wpc_tt, fontdir, sysfontdir()),
     FontName = wpa:pref_get(wpc_tt, fontname, default_font(FontDir)),
     Text = wpa:pref_get(wpc_tt, text, "Wings 3D"),
     Bisect = wpa:pref_get(wpc_tt, bisections, 0),
     FontDirectory = filename:join([FontDir,FontName]),
-    wpa:dialog(Ask, ?__(1,"Create Text"),
+    wings_ask:dialog_preview({shape,text}, Ask, ?__(1,"Create Text"),
         [{vframe,
           [{hframe,
             [{vframe,
@@ -76,14 +73,13 @@ make_text(Ask) when is_atom(Ask) ->
                {label,?__(3,"TrueType font")}]},
             {vframe,
               [{text,Text,[{key,{wpc_tt,text}}]},
-               {text,Bisect,[{key,{wpc_tt,bisections}}]},
+               {slider,{text,Bisect,[{key,{wpc_tt,bisections}},{range, {0, 3}}]}},
                {button,{text,FontDirectory,[{key,{wpc_tt,fontdir}},
                    {props,[{dialog_type,open_dialog},
                    {extensions,[{".ttf",?__(3,"TrueType font")}]}]}]}}]},
-            {vframe,[help_button()]}]}]}],
-    fun(Res) -> {shape,{text,Res}} end);
+            {vframe,[help_button()]}]}]}], St);
 
-make_text([{_,T},{_,N},{_,DirFont}]) ->
+make_text([{_,T},{_,N},{_,DirFont}], _) ->
     F = filename:basename(DirFont),
     D = filename:dirname(DirFont),
     gen(F, D, T, N).
@@ -108,6 +104,8 @@ gen(Font, Dir, Text, Nsubsteps) ->
 	    wpa:pref_set(wpc_tt, text, Text),
 	    wpa:pref_set(wpc_tt, bisections, Nsubsteps),
 	    S;
+	{error,"no such file or directory"} ->
+	    ok;
 	{error,Reason} ->
 	    wpa:error_msg(?__(1,"Text failed: ") ++ Reason);
 	X ->
@@ -206,44 +204,43 @@ sysfontdir() ->
 		     Val -> Val
 		 end,
 	    SR ++ "\\Fonts";
-	{unix,Utype} -> 
+	{unix,Utype} ->
 	    Dir = case Utype of
 		    darwin -> "/Library/Fonts";
-		    _ -> "/usr/lib/X11/fonts/TTF/"
+		    _ -> "/usr/share/fonts/TTF/"
 		  end,
 	    case file:list_dir(Dir) of
-		{error, _} -> 
-		    "/YOUR/PATH/TO/TTF_FONTS/";
+		{error, _} ->
+		    "/~";
 		_ ->
 		    Dir
 	    end;
 	_ ->
-	    "/usr/lib/font"		% guess for rest, likely to be wrong
+	    "/~"		% go to home dir
     end.
 
 default_font(Dir) ->
-    Def = "InsertTTFFontFileHere.ttf",
     case os:type() of
 	{win32,_Wintype} ->
 	    "Arial";
-	{unix,linux} -> 	     
+	{unix,linux} ->
 	    case file:list_dir(Dir) of
 		{error, _} ->
-		    Def;
+		    "";
 		{ok, List} ->
-		    Find = fun(File) -> 
+		    Find = fun(File) ->
 				   Ext = filename:extension(File),
 				   Ext /= ".ttf" andalso Ext /= ".dfont"
 			   end,
 		    case lists:dropwhile(Find, List) of
 			[H|_] ->
 			    H;
-			[] -> 
-			    Def
+			[] ->
+			    ""
 		    end
 	    end;
 	_ ->
-	    Def
+	    ""
     end.
 
 % Return {Vs,Fs} corresponding to list of polyareas,
@@ -252,7 +249,7 @@ default_font(Dir) ->
 polyareas_to_faces(Pas) ->
 	VFpairs = map(fun pa2object/1, Pas),
 	concatvfs(VFpairs).
-	
+
 
 concatvfs(Vfp) -> concatvfs(Vfp, 0, [], []).
 
@@ -417,7 +414,7 @@ findtab(Name, Tabs) ->
 	    false ->
 		throw({error,?__(1,"No ") ++ Name ++ ?__(2," table")})
 	end.
-	
+
 
 % Parse the "maxp" (Maximum Profile) tab of Tabs and return numGlyphs
 parsemaxptab(Tabs) ->

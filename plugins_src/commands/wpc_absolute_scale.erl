@@ -209,11 +209,15 @@ draw_window({{_,{CX,CY,CZ}}, {_, SugCenter}, {_,{SX,SY,SZ}=Size}, {_, {SugX, Sug
                   SugCenter == none -> [];
                   true -> [draw_window1(sugc, true)]
               end,
-    Frame4 = [{vframe, Frame1 ++ Frame2 ++ Frame3}],
+    Frame = [{vframe, Frame1 ++ Frame2 ++ Frame3}],
     Name = draw_window1(name,default),
-    wings_ask:dialog(Name, Frame4,
-       fun(Scale) ->
-           translate(Scale,SugCenter,Size,Sel,St)
+    wings_ask:dialog(Name, {{preview,ungrab},Frame},
+       fun
+           ({dialog_preview,Scale}) ->
+               {preview,St,translate(Scale,SugCenter,Size,Sel,St)};
+           (cancel) -> St;
+           (Scale) ->
+               {commit,St,translate(Scale,SugCenter,Size,Sel,St)}
        end).
 
 draw_window1(name,_) ->

@@ -446,6 +446,18 @@ handle_event_3({adv_menu_abort, Ev}, _St) ->
     wings_wm:send(This,Ev);
 handle_event_3({menu_toolbar,_}=Ev, St) ->
     menu_toolbar_action(Ev, St);
+handle_event_3({camera,Ev,NextEv}, St) ->
+%% used by preview dialogs in wings_ask.erl (blanket event)
+    {_,X,Y} = wings_wm:local_mouse_state(),
+    case wings_camera:event(Ev#mousebutton{x=X,y=Y}, St) of
+      next -> NextEv;
+      Other -> Other
+    end;
+handle_event_3({move_dialog,Position}, _) ->
+%% used by preview dialogs in wings_ask.erl
+    W = wings_wm:windows(),
+    This = lists:keyfind(dialog, 1, W),
+    wings_wm:move(This, Position);
 handle_event_3({hotkey_in_menu,#keyboard{}=Ev,OrigXY}, St0) ->
     case do_hotkey(Ev, St0) of
 	next -> keep;
@@ -841,6 +853,7 @@ command_1({wings_job,Command}, St) ->
 %% Tweak menu
 command_1({tweak, Cmd}, St) ->
     wings_tweak:command(Cmd, St).
+
 
 popup_menu(X, Y, #st{sel=[]}=St) ->
     wings_shapes:menu(X, Y, St);

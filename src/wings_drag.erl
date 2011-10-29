@@ -501,7 +501,9 @@ handle_drag_event(#keyboard{sym=9, mod=Mod},Drag)->
           true ->  wings_pref:set_value(con_alternate,false);
           false -> wings_pref:set_value(con_alternate,true)
         end, get_drag_event(Drag);
-      false -> numeric_input(Drag)
+      false ->
+          ungrab(Drag),
+          numeric_input(Drag)
     end;
 handle_drag_event(#mousebutton{button=2,state=?SDL_RELEASED},
   #drag{lmb_timer=0,mmb_timer=C,rmb_timer=0}=Drag) when C > 2 ->
@@ -607,7 +609,8 @@ handle_drag_event_0(#keyboard{unicode=C}=Ev,
 		   end,
 	    get_drag_event(Drag)
     end;
-handle_drag_event_0(Ev, Drag) -> handle_drag_event_1(Ev, Drag).
+handle_drag_event_0(Ev, Drag) ->
+    handle_drag_event_1(Ev, Drag).
 
 handle_drag_event_1(redraw, Drag) ->
     help_message(Drag),
@@ -615,6 +618,10 @@ handle_drag_event_1(redraw, Drag) ->
     get_drag_event_1(Drag);
 handle_drag_event_1(#mousemotion{}=Ev, Drag0) ->
     Drag = motion(Ev, Drag0),
+    get_drag_event(Drag);
+handle_drag_event_1({numeric_preview,Move}, Drag0) ->
+    Drag1 = possible_falloff_update(Move, Drag0),
+    Drag = ?SLOW(motion_update(Move, Drag1)),
     get_drag_event(Drag);
 handle_drag_event_1({drag_arguments,Move}, Drag0) ->
     ungrab(Drag0),
@@ -628,8 +635,24 @@ handle_drag_event_1({drag_arguments,Move}, Drag0) ->
 
 handle_drag_event_1(view_changed, Drag) ->
     get_drag_event(view_changed(Drag));
+handle_drag_event_1({move_dialog,Position}, Drag) ->
+%% used by preview dialogs in wings_ask.erl
+    W = wings_wm:windows(),
+    This = lists:keyfind(dialog, 1, W),
+    wings_wm:move(This, Position),
+    get_drag_event(Drag);
 handle_drag_event_1({action,{drag_arguments,_}=DragArgs}, _) ->
     wings_wm:later(DragArgs);
+handle_drag_event_1({action,numeric_input}, Drag) ->
+    numeric_input(Drag);
+handle_drag_event_1({action,{numeric_preview,Move}}, _) ->
+    wings_wm:later({numeric_preview,Move});
+handle_drag_event_1({camera,Ev,NextEv}, #drag{st=St}) ->
+    {_,X,Y} = wings_wm:local_mouse_state(),
+    case wings_camera:event(Ev#mousebutton{x=X,y=Y}, St) of
+      next -> NextEv;
+      Other -> Other
+    end;
 handle_drag_event_1(Event, #drag{st=St}=Drag0) ->
     case wings_hotkey:event(Event,St) of
 	next ->
@@ -678,9 +701,12 @@ numeric_input(Drag0) ->
 		Other -> Other
 	end,
     wings_ask:dialog(?__(1,"Numeric Input"),
-		     make_query(Move0, Drag),
-		     fun(Res) ->
-			     {drag_arguments,make_move(Res, Drag)}
+		     {{preview,grab}, make_query(Move0, Drag)},
+		     fun
+		         ({dialog_preview,Res}) ->
+			         {numeric_preview,make_move(Res, Drag)};
+			     (Res) ->
+			         {drag_arguments,make_move(Res, Drag)}
 		     end).
 
 make_query(Move, #drag{unit=Units}) ->
@@ -1028,6 +1054,7 @@ constraint_factor(_, Mod) ->
       Mod band ?ALT_BITS =/= 0 -> {1/DCA,DCA};
       true -> none
     end.
+
 constraint_factor_alt(angle, Mod) ->
     RCRS = filter_angle(wings_pref:get_value(con_rot_shift)),
     RCRC = filter_angle(wings_pref:get_value(con_rot_ctrl)),

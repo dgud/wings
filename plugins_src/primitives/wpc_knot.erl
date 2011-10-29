@@ -27,15 +27,14 @@ menu(_, Menu) -> Menu.
 knot_menu() ->
     [{?__(1,"Torus Knot"), knot, [option]}].
 
-command({shape,{knot, Arg}}, _) -> make_knot(Arg);
+command({shape,{knot, Arg}}, St) -> make_knot(Arg, St);
 command(_, _) -> next.
 
 %%% The rest are local functions.
 
-make_knot(Arg) when is_atom(Arg) ->
-    wpa:dialog(Arg, "Torus Knot Options", dialog(),
-	fun(Res) -> {shape,{knot, Res}} end);
-make_knot(Arg) ->
+make_knot(Arg, St) when is_atom(Arg) ->
+    wings_ask:dialog_preview({shape,knot}, Arg, "Torus Knot Options", dialog(), St);
+make_knot(Arg, _) ->
     ArgDict = dict:from_list(Arg),
     TypeFlag = dict:fetch(typeflag, ArgDict),
     Resolution = dict:fetch(resolution, ArgDict),

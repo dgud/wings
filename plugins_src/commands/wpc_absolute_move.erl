@@ -273,9 +273,13 @@ draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default},{_,Lock}},
             end,
     Frame = [{vframe,Frame5++[separator,draw_window1(reference,Center)]}],
     Name = draw_window1(name,default),
-    wings_ask:dialog(Name, Frame,
-       fun(Move) ->
-           translate(Move,Center,Sel,St)
+    wings_ask:dialog(Name, {{preview,ungrab},Frame},
+       fun
+           ({dialog_preview,Move}) ->
+               {preview,St,translate(Move,Center,Sel,St)};
+           (cancel) -> St;
+           (Move) ->
+               {commit,St,translate(Move,Center,Sel,St)}
        end).
 
 draw_window1(name,_) ->
@@ -299,7 +303,7 @@ draw_window1(duplicate,CheckAll) when is_boolean(CheckAll) ->
         true -> []
     end,
     {hframe,[
-        {text,0,[{key,dupli}]++Label},
+        {text,0,[{key,dupli},{range,{0,infinity}}]++Label},
         {label,?__(5,"Duplicates")}
     ]};
 draw_window1(align,_) ->

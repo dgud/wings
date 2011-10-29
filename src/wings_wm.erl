@@ -20,7 +20,7 @@
 	 later/1,send/2,psend/2,send_after_redraw/2,
 	 set_timer/2,cancel_timer/1,
 	 this/0,offset/3,move/2,move/3,resize/2,pos/1,windows/0,is_window/1,
-	 window_below/2,resize_windows/2,
+	 window_below/2,geom_below/2,resize_windows/2,
 	 update_window/2,clear_background/0,
 	 callback/1,current_state/1,get_current_state/0,notify/1,
 	 local2global/1,local2global/2,global2local/2,local_mouse_state/0,
@@ -974,6 +974,19 @@ window_below_1([#win{x=Wx,y=Wy,w=W,h=H,name=Name,z=Z}|T], X, Y) when Z >= 0 ->
 	_ -> window_below_1(T, X, Y)
     end;
 window_below_1(_, _, _) -> none.
+
+geom_below(X, Y) ->
+    Windows = windows(),
+    Geoms = [geom|[Geom|| {geom,_}=Geom <- Windows]],
+    {Window,_} = foldl(fun(Name, {_,Z0}=Acc) ->
+        #win{x=Wx,y=Wy,w=W,h=H,z=Z} = get_window_data(Name),
+        case {X-Wx,Y-Wy} of
+            {Rx,Ry} when 0 =< Rx, Rx < W,0 =< Ry, Ry < H, Z >= Z0 -> {Name,Z};
+            _ -> Acc
+        end
+    end, {none,0}, Geoms),
+    Window.
+
 
 %%%
 %%% Drag and drop support.

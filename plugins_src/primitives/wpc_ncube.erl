@@ -8,7 +8,6 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id$
 %%
 
 -module(wpc_ncube).
@@ -19,48 +18,55 @@
 init() -> true.
 
 menu({shape}, []) ->
-    ncube_menu();
+    menu();
 menu({shape}, Menu) ->
-    Menu ++ [separator|ncube_menu()];
+    [Cube|Ngon] = menu(),
+    [Cube] ++ Menu ++ [separator|Ngon];
 menu(_, Menu) -> Menu.
 
-ncube_menu() ->
-    [{?__(1,"N-Cube"),ncube,[option]},
+menu() ->
+    [{cube_str(),ncube,?__(1,"Create a cube"),[option]},
      {?__(2,"N-Gon"),ngon,[option]}].
 
-command({shape,{ncube, Arg}},_St) -> make_ncube(Arg);
-command({shape,{ngon, Arg}},_St) -> make_ngon(Arg);
+command({shape,{ncube, Arg}}, St) -> make_ncube(Arg, St);
+command({shape,{ngon, Arg}}, St) -> make_ngon(Arg, St);
 command(_, _) -> next.
+
+cube_str() ->
+    ?__(1,"Cube").
 
 %%% The rest are local functions.
 
 % =============
 % === Ncube ===
 % =============
-make_ncube(Arg) when is_atom(Arg) ->
-    wpa:dialog(Arg, ?__(1,"N-Cube Options"), ncube_dialog(),
-	fun(Res) -> {shape,{ncube,Res}} end);
-make_ncube(Arg) ->
+make_ncube(Arg, St) when is_atom(Arg) ->
+    wings_ask:dialog_preview({shape,ncube}, Arg, ?__(1,"Cube Options"),
+      ncube_dialog(), St);
+make_ncube(Arg, _) ->
     % set_pref(Arg),	% don't save
     ArgDict = dict:from_list(Arg),
     Nres = dict:fetch(nres, ArgDict),
+    X = dict:fetch(xcube, ArgDict)/2,
+    Y = dict:fetch(ycube, ArgDict)/2,
+    Z = dict:fetch(zcube, ArgDict)/2,
     SpherizeFlag = dict:fetch(spherizeflag, ArgDict),
     Verts = ncube_verts(Nres+1),
     Faces = ncube_faces(Nres+1, Nres+1),
-    case SpherizeFlag of
-	true -> Verts2 = lists:map(fun e3d_vec:norm/1, Verts);
-	false ->  Verts2 = Verts
-    end,
-    {Vs, Fs} = clean_indexed_mesh(Verts2, Faces),
-    {new_shape,?__(2,"N-Cube"),Fs,Vs}.
+    {Vs0, Fs} = clean_indexed_mesh(Verts, Faces),
+    Vs = transform_mesh(SpherizeFlag, {X,Y,Z}, Vs0),
+    {new_shape,cube_str(),Fs,Vs}.
 
 ncube_dialog() ->
-    Nres = get_pref(nres, 5),
+    Nres = get_pref(nres, 1),
     SpherizeFlag = get_pref(spherizeflag, false),
-    [{hframe, [{label, ?__(1,"Number of Cuts")},
-	       {slider, {text, Nres,
-	       [{key, nres}, {range, {2, 20}}]}}]},
-     {vradio, [{?__(2,"Yes"), true},
+    [{hframe,
+	       [{slider, {text, Nres,
+	       [{key,nres},{range,{1,20}}]}}],[{title, ?__(1,"Number of Cuts")}]},
+     {hframe,[{label,wings_s:dir(x)},{text,2.0,[{key,xcube},{range,{0.0,infinity}}]}]},
+      {hframe,[{label,wings_s:dir(y)},{text,2.0,[{key,ycube},{range,{0.0,infinity}}]}]},
+      {hframe,[{label,wings_s:dir(z)},{text,2.0,[{key,zcube},{range,{0.0,infinity}}]}]},
+      {vradio,[{?__(2,"Yes"), true},
 	       {?__(3,"No"), false}],
 	      SpherizeFlag,
 	      [{key,spherizeflag}, {title, ?__(4,"Spherize")}]}
@@ -69,14 +75,22 @@ ncube_dialog() ->
 ncube_verts(Nres) ->
     S = 1.0,
     Nverts = plane_verts(Nres),
-    Tverts = [{ X, S, Z} || {X,Z} <- Nverts],
-    Bverts = [{ X,-S,-Z} || {X,Z} <- Nverts],
-    Fverts = [{ X,-Z, S} || {X,Z} <- Nverts],
-    Kverts = [{-X,-Z,-S} || {X,Z} <- Nverts],
-    Rverts = [{ S,-X, Z} || {X,Z} <- Nverts],
-    Lverts = [{-S, X, Z} || {X,Z} <- Nverts],
+    Tverts = [{X, S, Z} || {X,Z} <- Nverts],
+    Bverts = [{X, -S, -Z} || {X,Z} <- Nverts],
+    Fverts = [{X, -Z, S} || {X,Z} <- Nverts],
+    Kverts = [{-X, -Z, -S} || {X,Z} <- Nverts],
+    Rverts = [{ S, -X, Z} || {X,Z} <- Nverts],
+    Lverts = [{-S,  X, Z} || {X,Z} <- Nverts],
     VertsWithDups = Tverts ++ Bverts ++ Fverts ++ Kverts ++ Rverts ++ Lverts,
     VertsWithDups.
+
+transform_mesh(false, Box, Vs) ->
+    [transform(Box,V) || V <- Vs];
+transform_mesh(true, Box, Vs) ->
+    [transform(Box,e3d_vec:norm(V)) || V <- Vs].
+
+transform({Xs,Ys,Zs}, {Xp,Yp,Zp}) ->
+    {Xp*Xs, Yp*Ys, Zp*Zs}.
 
 ncube_faces(Nres, Nres) ->
     Nsq = Nres*Nres,
@@ -110,10 +124,9 @@ dtc_round(Float, Decimals) -> % Accurately rounds decimals - www.digithings.com
 % =============
 % === N-Gon ===
 % =============
-make_ngon(Arg) when is_atom(Arg) ->
-    wpa:dialog(Arg, ?__(1,"N-Gon Options"), ngon_dialog(),
-	fun(Res) -> {shape,{ngon,Res}} end);
-make_ngon(Arg) ->
+make_ngon(Arg, St) when is_atom(Arg) ->
+    wings_ask:dialog_preview({shape,ngon}, Arg, ?__(1,"N-Gon Options"), ngon_dialog(), St);
+make_ngon(Arg, _) ->
     ArgDict = dict:from_list(Arg),
     NumVerts = dict:fetch(numverts, ArgDict),
     Radius = dict:fetch(radius, ArgDict),
@@ -126,7 +139,7 @@ ngon_dialog() ->
     Radius = get_pref(radius, 1.0),
     [{hframe, [{label, ?__(3,"Number of Verts")},
 	       {slider, {text, NumVerts,
-	       [{key, numverts}, {range, {2, 20}}]}}]},
+	       [{key, numverts}, {range, {3, 20}}]}}]},
      {hframe, [{label, ?__(4,"Radius")},
 	       {slider, {text, Radius,
 	       [{key, radius}, {range, {0.1, 20.0}}]}}]}].

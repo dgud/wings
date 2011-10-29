@@ -10,7 +10,6 @@
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id$
 %%
 
 -module(wings_shapes).
@@ -22,18 +21,15 @@
 
 menu(X, Y, _) ->
     Opt = [option],
-    Menu0 = [{tetrahedron,Opt},
+    Menu0 = [
+	     {sphere,Opt},
+	     {cone,Opt},
+	     separator,
+	     {tetrahedron,Opt},
 	     octahedron,
 	     octotoad,
 	     {dodecahedron,Opt},
 	     {icosahedron,Opt},
-	     separator,
-	     {cube,Opt},
-	     separator,
-	     {cylinder,Opt},
-	     {cone,Opt},
-	     {sphere,Opt},
-	     {torus,Opt},
 	     separator,
 	     {grid,Opt},
 	     separator,
@@ -57,11 +53,8 @@ prim_name(octahedron) ->   ?STR(prim_name,octahedron,"Octahedron");
 prim_name(octotoad) ->     ?STR(prim_name,octotoad,"Octotoad");
 prim_name(dodecahedron) -> ?STR(prim_name,dodecahedron,"Dodecahedron");
 prim_name(icosahedron) ->  ?STR(prim_name,icosahedron,"Icosahedron");
-prim_name(cube) ->         ?STR(prim_name,cube,"Cube");
-prim_name(cylinder) ->     ?STR(prim_name,cylinder,"Cylinder");
 prim_name(cone) ->         ?STR(prim_name,cone,"Cone");
 prim_name(sphere) ->       ?STR(prim_name,sphere,"Sphere");
-prim_name(torus) ->        ?STR(prim_name,torus,"Torus");
 prim_name(grid) ->         ?STR(prim_name,grid,"Grid");
 prim_name(light) ->        ?STR(prim_name,light,"Light");
 prim_name(material) ->     ?STR(prim_name,material,"Material...");
@@ -77,16 +70,10 @@ prim_help(dodecahedron) ->
     ?STR(prim_help,dodecahedron,"Create a dodecahedron");
 prim_help(icosahedron) ->
     ?STR(prim_help,icosahedron,"Create an icosahedron");
-prim_help(cube) ->
-    ?STR(prim_help,cube,"Create a cube");
-prim_help(cylinder) ->
-    ?STR(prim_help,cylinder,"Create a cylinder");
 prim_help(cone) ->
     ?STR(prim_help,cone,"Create a cone");
 prim_help(sphere) ->
     ?STR(prim_help,sphere,"Create a sphere");
-prim_help(torus) ->
-    ?STR(prim_help,torus,"Create a torus");
 prim_help(grid) ->
     ?STR(prim_help,grid,"Create a grid");
 prim_help(light) ->
@@ -96,16 +83,14 @@ prim_help(material) ->
 prim_help(image) ->
     ?STR(prim_help,image,"Create an image...").
 
+
 command({tetrahedron,Ask}, St) -> tetrahedron(Ask, St);
 command(octahedron, St) -> octahedron(St);
 command(octotoad, St) -> octotoad(St);
 command({dodecahedron,Ask}, St) -> dodecahedron(Ask, St);
 command({icosahedron,Ask}, St) -> icosahedron(Ask, St);
-command({cube,Ask}, St) -> cube(Ask, St);
-command({cylinder,Ask}, St) -> cylinder(Ask, St);
 command({cone,Ask}, St) -> cone(Ask, St);
 command({sphere,Ask}, St) -> sphere(Ask, St);
-command({torus,Ask}, St) -> torus(Ask, St);
 command({grid,Ask}, St) -> grid(Ask, St);
 command({light,Type}, St) -> wings_light:create(Type, St);
 command(material, St) -> wings_material:new(St);
@@ -115,8 +100,9 @@ build_shape(Prefix, Fs, Vs, #st{onext=Oid}=St) ->
     We = wings_we:build(Fs, Vs),
     Name = Prefix++integer_to_list(Oid),
     wings_shape:new(Name, We, St).
-tetrahedron(Ask, _St) when is_atom(Ask) ->
-  ask(tetrahedron, Ask, [{ ?STR(tetrahedron,1,"Edge Length"),2.0,[{range,{0.0,infinity}}]}]);
+
+tetrahedron(Ask, St) when is_atom(Ask) ->
+  ask(tetrahedron, Ask, [{ ?STR(tetrahedron,1,"Edge Length"),2.0,[{range,{0.0,infinity}}]}], St);
 tetrahedron([L], St) ->
     Xi = L/2.0,
 	Hp = sqrt(3.0),
@@ -164,8 +150,8 @@ octotoad(St) ->
     %% The string below is intentionally not translated.
     build_shape("octotoad", Fs, Vs, St).
 
-dodecahedron(Ask, _St) when is_atom(Ask) ->
-   ask(dodecahedron, Ask, [{ ?STR(dodecahedron,1,"Edge Length"),1.0,[{range,{0.0,infinity}}]}]);
+dodecahedron(Ask, St) when is_atom(Ask) ->
+   ask(dodecahedron, Ask, [{ ?STR(dodecahedron,1,"Edge Length"),1.0,[{range,{0.0,infinity}}]}], St);
 dodecahedron([L],St) ->
 	 Pn = sqrt(5.0),
 	 Phi = (1.0 + Pn)/2.0,
@@ -186,8 +172,8 @@ dodecahedron([L],St) ->
     %% The string below is intentionally not translated.
     build_shape("dodecahedron", Fs, Vs, St).
 
-icosahedron(Ask, _St) when is_atom(Ask) ->
-  ask(icosahedron, Ask, [{  ?STR(icosahedron,1,"Edge Length"),2.0,[{range,{0.0,infinity}}]}]);
+icosahedron(Ask, St) when is_atom(Ask) ->
+  ask(icosahedron, Ask, [{  ?STR(icosahedron,1,"Edge Length"),2.0,[{range,{0.0,infinity}}]}], St);
 icosahedron([S],St) ->
     T2 = pi()/10.0,
     T4 = 2.0 * T2,
@@ -221,20 +207,6 @@ icosahedron([S],St) ->
 	%% The string below is intentionally not translated.
     build_shape("icosahedron", Fs, Vs, St).
 
-cube(Ask, _St) when is_atom(Ask) ->
-   ask(cube, Ask, [{  ?STR(cube,1,"X Edge Lengths"),2.0,[{range,{0.0,infinity}}]},
-          {  ?STR(cube,2,"Y Edge Lengths"),2.0,[{range,{0.0,infinity}}]},
-          {  ?STR(cube,3,"Z Edge Lengths"),2.0,[{range,{0.0,infinity}}]}]);
-cube([X, Y, Z], St) ->
-	 Xi = X/2.0,
-	 Yi = Y/2.0,
-	 Zi = Z/2.0,
-    Fs = [[0,3,2,1],[2,3,7,6],[0,4,7,3],[1,2,6,5],[4,5,6,7],[0,1,5,4]],
-    Vs = [{-Xi,-Yi,Zi},{-Xi,Yi,Zi},{Xi,Yi,Zi},{Xi,-Yi,Zi},
-	  {-Xi,-Yi,-Zi},{-Xi,Yi,-Zi},{Xi,Yi,-Zi},{Xi,-Yi,-Zi}],
-    %% The string below is intentionally not translated.
-    build_shape("cube", Fs, Vs, St).
-
 circle(N, Y, R) ->
     Delta = pi()*2 / N,
     [{R*cos(I*Delta), Y, R*sin(I*Delta)} || I <- lists:seq(0, N-1)].
@@ -243,39 +215,11 @@ ellipse(N, Y, {R1, R2}) ->
     Delta = pi()*2 / N,
     [{R1*cos(I*Delta), Y, R2*sin(I*Delta)} || I <- lists:seq(0, N-1)].
 
-cylinder(Ask, _St) when is_atom(Ask) ->
-    ask(cylinder, Ask, [{  ?STR(cylinder,1,"Sections"),16,[{range,{3,infinity}}]},
-            {  ?STR(cylinder,2,"Height"),2.0,[{range,{0.0,infinity}}]},
-            {  ?STR(cylinder,3,"Top Face X Diameter"),2.0,[{range,{0.0,infinity}}]},
-            {  ?STR(cylinder,4,"Top Face Z Diameter"),2.0,[{range,{0.0,infinity}}]},
-            {  ?STR(cylinder,5,"Bottom Face X Diameter"),2.0,[{range,{0.0,infinity}}]},
-            {  ?STR(cylinder,6,"Bottom Face Z Diameter"),2.0,[{range,{0.0,infinity}}]}]);
-cylinder([Sections,H,Dx,Dz,Bx,Bz], St) ->
-    Fs = cylinder_faces(Sections),
-    Vs = cylinder_vertices(Sections,H,Dx,Dz,Bx,Bz),
-    %% The string below is intentionally not translated.
-    build_shape("cylinder", Fs, Vs, St).
-
-cylinder_faces(N) ->
-    Ns =lists:reverse(lists:seq(0, N-1)),
-    Upper= Ns,
-    Lower= lists:seq(N, N+N-1),
-    Sides= [[I, (I+1) rem N, N + (I+1) rem N, N + I] || I <- Ns],
-    [Upper, Lower | Sides].
-
-cylinder_vertices(N,H,Dx,Dz,Bx,Bz) ->
-    Hi = H/2.0,
-	 Di = Dx/2.0,
-	 Dj = Dz/2.0,
-	 Bi = Bx/2.0,
-	 Bj = Bz/2.0,
-	 ellipse(N, Hi, {Di, Dj}) ++ ellipse(N, -Hi, {Bi, Bj}).
-
-cone(Ask, _St) when is_atom(Ask) ->
+cone(Ask, St) when is_atom(Ask) ->
     ask(cone, Ask, [{ ?STR(cone,1,"Sections"),16,[{range,{3,infinity}}]},
           { ?STR(cone,2,"Height"),2.0,[{range,{0.0,infinity}}]},
           { ?STR(cone,3,"X Diameter"),2.0,[{range,{0.0,infinity}}]},
-          { ?STR(cone,4,"Y Diameter"),2.0,[{range,{0.0,infinity}}]}]);
+          { ?STR(cone,5,"Z Diameter"),2.0,[{range,{0.0,infinity}}]}], St);
 cone([N,H,Dx,Dy], St) ->
     Hi = H/2.0,
 	 Di = Dx/2.0,
@@ -311,11 +255,11 @@ sphere_faces(Ns, Nl) ->
 	      || J <- lists:seq(0, Nl-3)],
     Topf ++ Botf ++ lists:append(Slices).
 
-sphere(Ask, _St) when is_atom(Ask) ->
+sphere(Ask, St) when is_atom(Ask) ->
     ask(sphere, Ask, [{ ?STR(sphere,1,"Sections"),16,[{range,{3,infinity}}]},
         { ?STR(sphere,2,"Slices"),8,[{range,{3,infinity}}]},
         { ?STR(sphere,3,"X Radial"),2.0,[{range,{0.0,infinity}}]},
-        { ?STR(sphere,4,"Y Radial"),2.0,[{range,{0.0,infinity}}]}]);
+        { ?STR(sphere,4,"Y Radial"),2.0,[{range,{0.0,infinity}}]}], St);
 sphere([Ns,Nl,Xr,Yr], St) ->
     Xi = Xr/2.0,
 	 Yi = Yr/2.0,
@@ -323,42 +267,12 @@ sphere([Ns,Nl,Xr,Yr], St) ->
     Vs = sphere_circles(Ns, Nl, Xi, Yi) ++ [{0.0, Xi, 0.0}, {0.0, -Xi, 0.0}],
     %% The string below is intentionally not translated.
     build_shape("sphere", Fs, Vs, St).
-    
-torus(Ask, _St) when is_atom(Ask) ->
-    ask(torus, Ask, [{ ?STR(torus,1,"Sections"),16,[{range,{3,infinity}}]},
-       {?STR(torus,2,"Slices"),8,[{range,{3,infinity}}]},
-		     {?STR(torus,31,"Major X Radius"),math:sqrt(2)},
-			 {?STR(torus,32,"Major Z Radius"),math:sqrt(2)},
-		     {?STR(torus,4,"Minor Radius"),0.25}]);
-torus([Ns,Nl,Major,Xr,Minor], St) ->
-    Vs = torus_vertices(Ns, Nl, Major, Xr, Minor),
-    Fs = torus_faces(Ns, Nl),
-    %% The string below is intentionally not translated.
-    build_shape("torus", Fs, Vs, St).
 
-torus_faces(Ns, Nl) ->
-    Slices = [ [ [(I+1) rem Ns + J*Ns, I + J*Ns,
-		  I+ ((J+1) rem Nl) *Ns, (I+1) rem Ns + ((J+1) rem Nl)*Ns]
-		 || I <- lists:seq(0, Ns - 1)]
-	       || J <- lists:seq(0, Nl - 1)],
-    lists:append(Slices).
-
-torus_vertices(Ns, Nl, Major, Xr, Minor) ->
-    Delta = 2*pi() / Nl,
-    Circles = map(fun(I) ->
-			  A = I*Delta,
-			  Pos = Minor*sin(A),
-			  Rad = Major + Minor*cos(A),
-			  Rad2 = Xr + Minor*cos(A),
-			  ellipse(Ns,Pos,{Rad,Rad2})
-		  end, lists:seq(0, Nl - 1)),
-    lists:append(Circles).
-
-grid(Ask, _) when is_atom(Ask) ->
+grid(Ask, St) when is_atom(Ask) ->
     ask(grid, Ask, [{?STR(grid,1,"Rows/Cols"),10,[{range,{1,infinity}}]},
           {?STR(grid,2,"X Spacing"),0.5,[{range,{0.0,infinity}}]},
           {?STR(grid,3,"Z Spacing"),0.5,[{range,{0.0,infinity}}]},
-          {?STR(grid,4,"Height"),0.1,[{range,{0.0,infinity}}]}]);
+          {?STR(grid,4,"Height"),0.1,[{range,{0.0,infinity}}]}], St);
 grid([Rc,Sp,Zp,Ht], St) ->
     Vs = grid_vertices(Rc,Sp,Zp,Ht),
     Fs = grid_faces(Rc),
@@ -390,6 +304,7 @@ grid_face(I, J, Rsz) ->
     [Rsz*J+I+1,   Rsz*J+I,
      Rsz*(J+1)+I, Rsz*(J+1)+I+1].
 
-ask(Shape, Bool, Qs) ->
+ask(Shape, Bool, Qs, St) ->
     Title = prim_help(Shape),
-    wings_ask:ask(Bool, Title, Qs, fun(Res) -> {shape,{Shape,Res}} end).
+    wings_ask:ask_preview({shape,Shape}, Bool, Title, Qs, St).
+
