@@ -790,7 +790,8 @@ update_dynamic(#dlo{src_we=We0,
     D3 = update_normals(D2),
     D4 = dynamic_faces(D3),
     D5 = dynamic_edges(D4),
-    D  = wings_proxy:update_dynamic(Vtab0, St, D5),
+    D6 = dynamic_influence(D5),
+    D  = wings_proxy:update_dynamic(Vtab0, St, D6),
     dynamic_vs(D).
 
 dynamic_faces(#dlo{work=[Work|_],
@@ -818,6 +819,19 @@ dynamic_vs(#dlo{src_we=#we{vp=Vtab},vs=[Static|_],
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
     D#dlo{vs=[Static,UnselDlist]}.
+
+% added by Micheus
+dynamic_influence(#dlo{src_we=#we{pst=Pst},split=#split{orig_st=St}}=D) ->
+   % it was necessary to leave only the wings_tweak's pst information in 
+   % order to avoid problems when drawing if magnet mask is enabled.
+    case gb_trees:lookup(wings_tweak,Pst) of
+    none -> D;
+    {value, WeakData} ->
+      TmpPst=gb_trees:enter(wings_tweak,WeakData, gb_trees:empty()),
+      Needed = wings_plugin:check_plugins(update_dlist,TmpPst),
+      % plugins=[] will force the wings_tweak:update_dlist function be called 
+      update_fun(D#dlo{plugins=[]},Needed,St)
+    end.
 
 %%%
 %%% Abort a split.

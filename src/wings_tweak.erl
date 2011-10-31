@@ -17,6 +17,7 @@
     tweak_info_line/0,tweak_magnet_help/0,statusbar/0]).
 -export([palette/2,palette/4]).
 -export([toggle_draw/1,point_center/3]).
+-export([update_dlist/3,draw/4,get_data/3]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -720,7 +721,7 @@ begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, SelElem, #st{sel=Sel}=St, 
       [] -> D0;
       _ ->
         Center = wings_vertex:center(Vs0, We),
-        {Vs,Magnet} = begin_magnet(T, Vs0, Center, We),
+        {Vs,Magnet,Influenced} = begin_magnet(T, Vs0, Center, We),
         D = wings_draw:split(D0, Vs, St),
         L = length(Sel) > 1,
         MM = case {We,SelElem} of
@@ -729,7 +730,9 @@ begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, SelElem, #st{sel=Sel}=St, 
              {#we{id=Id},{Id,_,MM0}} -> MM0;
              {_,_} -> original
          end,
-        D#dlo{drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}}
+        #dlo{src_we=#we{pst=Pst}=We0}=D,
+        NewPst = set_Influenced_vs(Influenced,Pst),
+        D#dlo{src_we=We0#we{pst=NewPst},drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}}
     end;
 begin_drag_fun(D, _, _, _) -> D.
 
@@ -754,11 +757,11 @@ end_drag(update, #dlo{src_sel={Mode,Sel}, src_we=#we{id=Id},drag={matrix,_,Matri
     Shs = gb_trees:update(Id, We, Shs0),
     St = St0#st{shapes=Shs},
     {D,St#st{selmode=Mode,sel=[{Id,Sel}]}};
-end_drag(update, #dlo{src_sel={Mode,Sel},src_we=#we{id=Id}}=D0, #st{shapes=Shs0}=St0) ->
+end_drag(update, #dlo{src_sel={Mode,Sel},src_we=#we{id=Id}=WeSrc}=D0, #st{shapes=Shs0}=St0) ->
     #dlo{src_we=We} = wings_draw:join(D0),
     Shs = gb_trees:update(Id, We, Shs0),
     St = St0#st{shapes=Shs},
-    {D0,St#st{selmode=Mode,sel=[{Id,Sel}]}};
+    {D0#dlo{src_we=remove_influence(WeSrc)},St#st{selmode=Mode,sel=[{Id,Sel}]}};
 %% tweak modes
 end_drag(_, #dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
         #st{shapes=Shs0}=St0) ->
@@ -769,7 +772,7 @@ end_drag(_, #dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
     D1 = D#dlo{src_we=We},
     D2 = wings_draw:changed_we(D1, D),
     {D2#dlo{vs=none,sel=none,drag=none},St};
-end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}}=D0, #st{shapes=Shs0}=St0) ->
+end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}=WeSrc}=D0, #st{shapes=Shs0}=St0) ->
     case Mode of
       slide ->
         case wings_io:is_key_pressed(?SDLK_F1) of
@@ -797,7 +800,7 @@ end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}}=D0, #st{shapes=Shs0}=St0) -
         #dlo{src_we=We}=D = wings_draw:join(D0),
         Shs = gb_trees:update(Id, We, Shs0),
         St = St0#st{shapes=Shs},
-        {D#dlo{vs=none,sel=none,drag=none},St}
+        {D#dlo{vs=none,sel=none,drag=none,src_we=remove_influence(WeSrc)},St}
     end;
 end_drag(_, D, St) -> {D, St}.
 
@@ -1377,44 +1380,48 @@ setup_magnet(#tweak{mode=Mode, cx=X, cy=Y}=T) ->
 setup_magnet_fun(#dlo{src_sel={_,_},drag=#drag{vs=Vs0,pos0=Center}=Drag}=Dl0,
   #tweak{st=St}=T) ->
     We = wings_draw:original_we(Dl0),
-    {Vs,Mag} = begin_magnet(T, Vs0, Center, We),
+    {Vs,Mag,Influenced} = begin_magnet(T, Vs0, Center, We),
     Dl = wings_draw:split(Dl0, Vs, St),
-    Dl#dlo{drag=Drag#drag{mag=Mag}};
+    #dlo{src_we=#we{pst=Pst}=We0}=Dl,
+	NewPst = set_Influenced_vs(Influenced,Pst),
+    Dl#dlo{src_we=We0#we{pst=NewPst},drag=Drag#drag{mag=Mag}};
 setup_magnet_fun(Dl, _) -> Dl.
 
 begin_magnet(#tweak{magnet=false}=T, Vs, Center, We) ->
     Mirror = mirror_info(We),
-    Near = near(Center, Vs, [], Mirror, T, We),
+    {_,Near} = near(Center, Vs, [], Mirror, T, We),
     Mag = #mag{orig=Center,vs=Near},
-    {[Va || {Va,_,_,_,_} <- Near],Mag};
+    {[Va || {Va,_,_,_,_} <- Near],Mag,[]};
 begin_magnet(#tweak{magnet=true}=T, Vs, Center, #we{vp=Vtab0}=We) ->
     Mirror = mirror_info(We),
     Vtab1 = sofs:from_external(array:sparse_to_orddict(Vtab0), [{vertex,info}]),
     Vtab2 = sofs:drestriction(Vtab1, sofs:set(Vs, [vertex])),
     Vtab = sofs:to_external(Vtab2),
-    Near = near(Center, Vs, Vtab, Mirror, T, We),
+    {Influenced,Near} = near(Center, Vs, Vtab, Mirror, T, We),
     Mag = #mag{orig=Center,vs=Near},
-    {[Va || {Va,_,_,_,_} <- Near],Mag}.
+    {[Va || {Va,_,_,_,_} <- Near],Mag,Influenced}.
 
 near(Center, Vs, MagVs0, Mirror, #tweak{mag_rad=R,mag_type=Type}, We) ->
     RSqr = R*R,
     MagVs = minus_locked_vs(MagVs0, We),
-    M = foldl(fun({V,Pos}, A) ->
+    {Influenced,M} = foldl(fun({V,Pos}, {Influenced0,A}) ->
               case e3d_vec:dist_sqr(Pos, Center) of
               DSqr when DSqr =< RSqr ->
                   D = math:sqrt(DSqr),
                   Inf = magnet_type_calc(Type, D, R),
+                  Influenced1=[Influenced0|[{V,Inf}]],
                   Matrix = mirror_matrix(V, Mirror),
-                  [{V,Pos,Matrix,D,Inf}|A];
-              _ -> A
+                  {Influenced1,[{V,Pos,Matrix,D,Inf}|A]};
+              _ -> {Influenced0,A}
               end;
-         (_, A) -> A
-          end, [], MagVs),
-    foldl(fun(V, A) ->
+         (_, {Influenced0,A}) -> {Influenced0,A}
+          end, {[],[]}, MagVs),
+    Near=foldl(fun(V, A) ->
           Matrix = mirror_matrix(V, Mirror),
           Pos = wpa:vertex_pos(V, We),
           [{V,Pos,Matrix,0.0,1.0}|A]
-      end, M, Vs).
+      end, M, Vs),
+    {Influenced,Near}.
 
 %%% Magnet Mask
 minus_locked_vs(MagVs, #we{pst=Pst}) ->
@@ -1610,9 +1617,11 @@ update_drag(#dlo{src_sel={Mode,Els},src_we=#we{id=Id},drag=#drag{mm=MM}}=D0,
     St = St0#st{shapes=Shs},
     Vs0 = sel_to_vs(Mode, gb_sets:to_list(Els), We),
     Center = wings_vertex:center(Vs0, We),
-    {Vs,Magnet} = begin_magnet(T#tweak{st=St}, Vs0, Center, We),
+    {Vs,Magnet,Influenced} = begin_magnet(T#tweak{st=St}, Vs0, Center, We),
     D = wings_draw:split(D1, Vs, St),
-    {D#dlo{drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}},St};
+    #dlo{src_we=#we{pst=Pst}=We0}=D,
+	NewPst = set_Influenced_vs(Influenced,Pst),
+    {D#dlo{src_we=We0#we{pst=NewPst},drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}},St};
 update_drag(D,#tweak{st=St}) -> {D,St}.
 
 %%%
@@ -2820,3 +2829,101 @@ cmd_prefix(Cmd) ->
       {tweak,axis_palette} ->
         {axis_constraint, Cmd}
     end.
+
+
+%% ===========================================
+%% Added by Micheus Oct/2011
+%% Support for highlighting the influence on the vertices
+
+%%
+%% Functions of general purpose
+%%
+
+% This function will clean the vertices influence information when the list is empty or
+% it will add the vertices influence information to Pst field of the we#
+set_Influenced_vs([],Pst) ->
+	case gb_trees:lookup(?MODULE, Pst) of
+	  none -> Pst;
+	  {_,Data} ->
+		  NewData = gb_trees:delete_any(vs_inf,Data),
+		  gb_trees:update(?MODULE,NewData,Pst)
+	end;
+set_Influenced_vs(Influenced0,Pst) ->
+	Influenced=lists:flatten(Influenced0),
+    case gb_trees:lookup(?MODULE, Pst) of
+      none ->
+          Data = gb_trees:empty(),
+          NewData = gb_trees:insert(vs_inf,Influenced,Data),
+          gb_trees:insert(?MODULE,NewData,Pst);
+      {_,Data} ->
+          NewData = gb_trees:enter(vs_inf,Influenced,Data),
+          gb_trees:update(?MODULE,NewData,Pst)
+    end.
+
+% It removes the plugin functionality
+remove_influence(#we{pst=none}=We) ->
+    We;
+remove_influence(#we{pst=Pst}=We) ->
+    NewPst=gb_trees:delete_any(?MODULE, Pst),
+    We#we{pst=NewPst}.
+
+%%
+%% Functions to produce the visual effect (inspired on wpc_magnet_mask.erl file)
+%%
+% It generate the OpenGl list of colored vertices
+update_dlist({vs_inf,VsInf},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
+    Key = ?MODULE,
+    Col=wings_pref:get_value(tweak_magnet_color),
+    Pos = positions(VsInf,Vtab,[]),
+    case Pos of
+      [] ->
+        D#dlo{plugins=[{Key,none}|Pdl]};
+      _ ->
+        List = gl:genLists(1),
+        gl:newList(List,?GL_COMPILE),
+        gl:'begin'(?GL_POINTS),
+        pump_vertices(Col,Pos),
+        gl:'end'(),
+        gl:endList(),
+        D#dlo{plugins=[{Key,{vs,List}}|Pdl]}
+    end.
+
+pump_vertices({R,G,B,_}=Col,[{V,Inf}|Vs]) ->
+    gl:color3f(R*Inf,G*Inf,B*Inf),
+    gl:vertex3fv(V),
+    pump_vertices(Col,Vs);
+pump_vertices(_,[]) -> ok.
+
+positions([{V,Inf}|Influenced],Vtab,Acc) ->
+    Pos = {array:get(V,Vtab),Inf},
+    positions(Influenced,Vtab,[Pos|Acc]);
+positions([],_,Acc) -> Acc.
+
+% It'll will provide de vertices data for 'update_dlist' function
+get_data(update_dlist, Data, Acc) ->  % for draw lists
+	case gb_trees:lookup(vs_inf, Data) of
+	none ->
+		{ok, Acc};
+	{_,VsInf} ->
+	    {ok, [{plugin, {?MODULE, {vs_inf, VsInf}}}|Acc]}
+	end.
+
+% It'll use the list prepared by 'update_dlist' function and then draw it (for plain or smooth flag)
+draw(_, {vs,List}, _D, Selmode) ->
+    PtSize = wings_pref:get_value(masked_vertex_size),
+    Size = PtSize*0.6,
+    gl:pointSize(vert_display(Size,Selmode)),
+    gl:enable(?GL_BLEND),
+    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+    wings_dl:call(List),
+    gl:disable(?GL_BLEND);
+draw(_,_,_,_) -> ok.
+
+vert_display(Size,vertex) ->
+    VSize = wings_pref:get_value(selected_vertex_size),
+    case VSize >= Size of
+      true -> VSize + 2;
+      false -> Size
+    end;
+vert_display(Size,_Selmode) -> Size.
+
