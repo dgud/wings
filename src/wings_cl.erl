@@ -76,52 +76,67 @@ compile_1(Files, Defs, CLI = #cli{cl=CL, device=Device, kernels=Kernels0}) ->
     Bins = lists:map(fun(File) ->
 			     AbsFile = filename:join([Dir, File]),
 			     case file:read_file(AbsFile) of
-				 {ok, Bin} -> Bin;
+				 {ok, Bin} -> {AbsFile, Bin};
 				 {error, Reason} ->
 				     error({error,{Reason,AbsFile}})
 			     end
 		     end, Files),
-    case build_source(CL, Bins, Defs) of
-	{error, {Err={error,build_program_failure}, _}} ->
-	    %% io:format("~s", [Str]),
-	    exit(Err);
-	{ok, Program} -> 
-	    {ok, MaxWGS} = cl:get_device_info(Device, max_work_group_size),
-	    {ok, KernelsIds} = cl:create_kernels_in_program(Program),
-	    Kernels = [kernel_info(K,Device, MaxWGS) || K <- KernelsIds],
-	    cl:release_program(Program),
-	    CLI#cli{kernels=Kernels++Kernels0}
-    end.
+    {ok, Program} = build_source(CL, Bins, Defs),
+    {ok, MaxWGS} = cl:get_device_info(Device, max_work_group_size),
+    {ok, KernelsIds} = cl:create_kernels_in_program(Program),
+    Kernels = [kernel_info(K,Device, MaxWGS) || K <- KernelsIds],
+    cl:release_program(Program),
+    CLI#cli{kernels=Kernels++Kernels0}.
 
-build_source(E, Source, Defines) ->
+build_source(E, Sources, Defines) ->
+    Source = [Bin || {_, Bin} <- Sources],
     {ok,Program} = cl:create_program_with_source(E#cl.context,Source),
     case cl:build_program(Program, E#cl.devices, Defines) of
 	ok ->
-	    Status = [cl:get_program_build_info(Program, Dev, status)
+	    Status = [{Dev, cl:get_program_build_info(Program, Dev, status)}
 		      || Dev <- E#cl.devices],
-	    case lists:any(fun({ok, success}) -> true;
-			      (_) -> false end, Status)
+	    case lists:filter(fun({_, {ok, success}}) -> false;
+				 (_) -> true end, Status)
 	    of
-		true ->
+		[] ->
 		    {ok,Program};
-		false ->
-		    Logs = get_program_logs(Program),
-		    io:format("Logs: ~s\n", [Logs]),
-		    {error,{Status,Logs}}
+		Errs ->
+		    ErrDevs = [Dev || {Dev, _} <- Errs],
+		    display_error(?LINE, Program, Sources, Defines, ErrDevs)
 	    end;
-	Error ->
-	    Logs = get_program_logs(Program),
-	    io:format("Logs: ~s\n", [Logs]),
-	    cl:release_program(Program),
-	    {error,{Error,Logs}}
+	_Error ->
+	    display_error(?LINE, Program, Sources, Defines, E#cl.devices)
     end.
 
-get_program_logs(Program) ->
-    {ok,DeviceList} = cl:get_program_info(Program, devices),
+
+
+display_error(Line, Program, Sources, Defines, DeviceList) ->
+    SFs = [S || {S,_} <- Sources],
+    io:format("~n~p:~p: Error in source file(s):~n",[?MODULE, Line]),
+    [io:format(" ~s~n",[Source]) || Source <- SFs],
     lists:map(fun(Device) ->
+		      {ok, DevName} = cl:get_device_info(Device, name),
+		      io:format("Device: ~s~n",[DevName]),
 		      {ok,Log} = cl:get_program_build_info(Program,Device,log),
-		      Log
-	      end, DeviceList).
+		      io:format("~s~n",[Log])
+	      end, DeviceList),
+    io:format("~n",[]),
+    DbgOutDir = filename:dirname(element(1, hd(Sources))),
+    {ok, Fd} = file:open(filename:join(DbgOutDir, "cl_compilation_fail.cl"), [write]),
+    Write = fun({File, Source}) ->
+		    io:format(Fd, "// ****************************~n", []),
+		    io:format(Fd, "// Start ~s~n", [File]),
+		    io:put_chars(Fd, Source),
+		    io:format(Fd, "// End ~s~n", [File]),
+		    io:format(Fd, "// ****************************~n", [])
+	    end,
+    [Write(S) || S <- Sources],
+    file:close(Fd),
+    {ok, Fd1} = file:open(filename:join(DbgOutDir, "cl_compilation_fail.config"), [write]),
+    io:format(Fd1, "~s~n",[Defines]),
+    file:close(Fd1),
+    io:format("Debug written to: ~s ~n", [filename:join(DbgOutDir, "cl_compilation_fail.cl")]),
+    exit({error, build_program_failure}).
 
 
 kernel_info(K,Device,MaxWGS) ->
@@ -240,8 +255,13 @@ set_args_1(Name, K, Args) ->
 enqueue_kernel(No, Wait, Q, #kernel{id=K, wg=WG0}) ->
     {GWG,WG} = calc_wg(No, WG0),
 %%    io:format("GWG ~w WG ~w~n",[GWG,WG]),
-    {ok, Event} = cl:enqueue_nd_range_kernel(Q,K,GWG,WG,Wait),
-    Event.
+    case Wait of
+	nowait ->
+	    ok = cl:nowait_enqueue_nd_range_kernel(Q,K,GWG,WG,[]);
+	    _ ->
+	    {ok, Event} = cl:enqueue_nd_range_kernel(Q,K,GWG,WG,Wait),
+	    Event
+    end.
 
 calc_wg(No, WG)
   when is_integer(No), is_integer(WG), No =< WG ->
@@ -262,7 +282,7 @@ calc_wg([], [H]) ->
     {[H],[H]}.
 
 
-time_wait(Name, Q, Event) ->
+time_wait(Name, _Q, Event) ->
     Before = os:timestamp(),
     %% io:format("Event ~p ~w~n",[Event, cl:get_event_info(Event)]),
     %% io:format("Finish result ~p~n", [cl:finish(Q)]),

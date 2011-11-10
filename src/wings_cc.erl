@@ -650,7 +650,7 @@ cl_setup() ->
 	    try 
 		cl_setup_1()
 	    catch _:Reason ->
-		    io:format("CL setup error: ~p~n",[Reason]),
+		    io:format("CL setup error: ~p ~p~n",[Reason, erlang:get_stacktrace()]),
 		    wings_pref:set_value(proxy_opencl_level, 0),
 		    wings_u:error_msg(?__(1, "Could not setup OpenCL, disabling proxy smooth."))
 	    end;
