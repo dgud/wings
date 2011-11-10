@@ -94,7 +94,7 @@ export_dialog() ->
 		[{vframe, [{label, ?__(28, "Lens diameter (pinhole = 0.0)")},
 			   {label, ?__(29, "Preview Refresh (sec)")}]},
 		 {vframe, [{text,?GET(aperture),[{key,aperture}]},
-			   {text, ?GET(refresh), [{key,refresh}]}]}]}
+			   {text, ?GET(refresh_interval), [{key,refresh_interval}]}]}]}
 	      ],
       [{title,?__(20,"Camera and Film")}]},
      {vframe, [{hframe, 
@@ -108,9 +108,10 @@ export_dialog() ->
       [{title,?__(30,"Render Engine Options")}]},
      {hframe, [{vframe, 
 		[{label, ?__(41, "Sampler Type")},
-		 {menu, [{?__(42, "Random"), inlined_random},
-			 {?__(43, "Stratified"), stratified},
-			 {?__(44, "Metropolis"), metropolis}],
+		 {menu, [{?__(42, "Fastest"), inlined_random},
+			 {?__(43, "Random"),  random},
+			 %%{?__(44, "Stratified"), stratified},
+			 {?__(45, "Metropolis"), metropolis}],
 		  ?GET(sampler), [{key, sampler}]},
 		 {hframe,
 		  [{vframe, [{label, ?__(51, "Samples"), [hook(sampler, stratified)]},
@@ -176,7 +177,7 @@ export_opts() ->
      {height, 256},
      {gamma, 2.2},
      {film_filter, none},  %% [none| preview | gaussian ] see: pbr_film
-     {refresh, 1},         %% Preview refresh rate Secs
+     {refresh_interval, 10},%% Preview refresh rate Secs
      %% Cam extra
      {aperture, 0.0},      %% 
      %% Renderer stuff
@@ -199,7 +200,7 @@ export_opts() ->
 fix_prefs(Attrs0) ->
     Attrs = [fix_pref(Attr) || Attr <- Attrs0],
     [{resolution, {proplists:get_value(width, Attrs),
-		   proplists:get_value(width, Attrs)}} | Attrs].
+		   proplists:get_value(height, Attrs)}} | Attrs].
 
 fix_pref({stratified_samples, X}) when is_integer(X) ->
     {stratified_samples, {X,X}};

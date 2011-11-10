@@ -185,7 +185,7 @@ void SkyLight_ChromaticityToSpectrum(const float Y, const float x, const float y
 void SkyLight_GetSkySpectralRadiance(__global SkyLight *skyLight,
 		const float theta, const float phi, Spectrum *spect) {
 	// add bottom half of hemisphere with horizon colour
-	const float theta_fin = min(theta, (M_PI * 0.5f) - 0.001f);
+    const float theta_fin = min(theta, (const float) ((M_PI * 0.5f) - 0.001f));
 	const float gamma = RiAngleBetween(theta, phi, skyLight->thetaS, skyLight->phiS);
 
 	// Compute xyY values
@@ -255,7 +255,7 @@ float Mesh_Area(__global Point *verts, __global Triangle *triangles,
 	return 0.5f * length(cross(p1 - p0, p2 - p0));
 }
 
-float InstanceMesh_Area(__global float m[4][4], __global Point *verts,
+float InstanceMesh_Area(float m[4][4], __global Point *verts,
 		__global Triangle *triangles, const uint triIndex) {
 	__global Triangle *tri = &triangles[triIndex];
 
@@ -810,7 +810,7 @@ void GenerateCameraRay(
 	// Compute point on plane of focus
 	const float focalDistance = camera->focalDistance;
 	const float dist = focalDistance - hither;
-	const float ft = dist / dir.z;
+	const float ft = dist / -dir.z;  // dgud modified to -Z direction as opengl
 	Point Pfocus;
 	Pfocus.x = orig.x + dir.x * ft;
 	Pfocus.y = orig.y + dir.y * ft;

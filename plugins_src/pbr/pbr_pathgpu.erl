@@ -95,48 +95,44 @@ render(SceneS = #renderer{cl=CL},
     {Qn,Qt,LocalMem} = pbr_scene:intersect_data(SceneS),
     IArgs = [RaysB, HitsB, Qn, Qt, ?MAX_RAYS, LocalMem],
     wings_cl:set_args('Intersect', IArgs, CL),
-    erlang:garbage_collect(),
     {ok, completed} = cl:wait(W1),
     io:format("Starting rendering~n",[]),
     Start = os:timestamp(),
-    Res = render_loop(10, 0, [], CL, {Start, FB, RI, PS, SceneS}),
+    erlang:send_after(RI, self(), refresh),
+    ok = cl:finish(wings_cl:get_queue(CL)),
+    Res = render_loop(10, 0, CL, {FB, RI, PS, SceneS}),
     Time = timer:now_diff(os:timestamp(),Start),
     io:format("Rendered in: ~s #rays:  ~wK/secs ~n",
 	      [format_time(Time), (Res*?TASK_SIZE) div (Time div 1000)]),
     normal.
 
-render_loop(N, C, Wait, CL, Data) when N > 0 ->
-    W1 = wings_cl:cast('Sampler', ?TASK_SIZE, Wait, CL),
-    W2 = wings_cl:cast('Intersect', ?TASK_SIZE, [W1], CL),
-    W3 = wings_cl:cast('AdvancePaths', ?TASK_SIZE, [W2], CL),
-    render_loop(N-1, C, [W3], CL, Data);
-render_loop(0, C0, Wait, CL, Data = {StartTime, FB, RI, _PS, SceneS0}) ->
+render_loop(N, C, CL, Data) when N > 0 ->
+    wings_cl:cast('Sampler', ?TASK_SIZE, nowait, CL),
+    wings_cl:cast('Intersect', ?TASK_SIZE, nowait, CL),
+    wings_cl:cast('AdvancePaths', ?TASK_SIZE, nowait, CL),
+    render_loop(N-1, C, CL, Data);
+render_loop(0, C0, CL, Data = {FB, RI, _PS, SceneS0}) ->
     Count = C0+10,
     receive 
+	refresh ->	    
+	    SceneS1 = update_film(FB, SceneS0),
+	    erlang:send_after(RI, self(), refresh),
+	    render_loop(10, Count, CL, {FB,RI,_PS,SceneS1});
 	stop -> 
 	    ok = cl:finish(wings_cl:get_queue(CL)),
-	    update_film(Wait, FB, SceneS0),
+	    update_film(FB, SceneS0),
 	    Count;
 	Msg ->
 	    io:format("Renderer got Msg ~p~n",[Msg]),
 	    ok = cl:flush(wings_cl:get_queue(CL)),
-	    render_loop(10, Count, Wait, CL, Data)
+	    render_loop(10, Count, CL, Data)
     after 0 ->
-	    erlang:garbage_collect(),
-	    {ok, completed} = cl:wait(hd(Wait)),
-	    Elapsed = timer:now_diff(os:timestamp(), StartTime) div 1000,
-	    case Elapsed > RI of
-		true ->
-		    SceneS1 = update_film(Wait, FB, SceneS0),
-		    render_loop(10, Count, [], CL, {os:timestamp(),FB,RI+500,_PS,SceneS1});
-		false -> 		    
-		    render_loop(10, Count, Wait, CL, Data)
-	    end
+	    ok = cl:finish(wings_cl:get_queue(CL)),
+	    render_loop(10, Count, CL, Data)
     end.
 
-update_film(Wait, FB, SceneS) ->
+update_film(FB, SceneS) ->
     %% erlang:display(?LINE),
-    cl:wait(hd(Wait)),
     Scene = pbr_film:set_sample_frame_buffer(FB, SceneS),
     pbr_film:show(Scene),
     %% erlang:display(?LINE),
@@ -270,11 +266,12 @@ create_params(Seed, Start, {_,_,_,Materials}, Opt, PS, SceneS) ->
 
 sampler_args(PS=#ps{task=TaskB, taskstats=TaskStatsB, rays=RaysB, cam=CamB},
 	     Opts, #renderer{cl=CL}) ->
-    case stratified_sampler_size(Opts, PS) of
-	0 -> [TaskB, TaskStatsB, RaysB, CamB];
-	SSSz ->
+    case (Opts#ropt.sampler)#sampler.type of
+	stratified ->
+	    SSSz = stratified_sampler_size(Opts, PS),
 	    Args0 = [{local, SSSz * wings_cl:get_wg_sz('Sampler',CL)}],
-	    [TaskB, TaskStatsB, RaysB, CamB | Args0]
+	    [TaskB, TaskStatsB, RaysB, CamB | Args0];
+	_ -> [TaskB, TaskStatsB, RaysB, CamB]
     end.
 
 advance_paths_args(#ps{task=TaskB, rays=RaysB, hits=HitsB,
@@ -407,7 +404,7 @@ filter_params(#filter{type=box, dim={X,Y}}) ->
     " -D PARAM_IMAGE_FILTER_TYPE=1" ++
 	param("PARAM_IMAGE_FILTER_WIDTH_X", X) ++
 	param("PARAM_IMAGE_FILTER_WIDTH_Y", Y);
-filter_params(#filter{type=gaussion, dim={X,Y}, opts=[{alpha,GA}]}) ->
+filter_params(#filter{type=gaussian, dim={X,Y}, opts=[{alpha,GA}]}) ->
     " -D PARAM_IMAGE_FILTER_TYPE=2" ++
 	param("PARAM_IMAGE_FILTER_WIDTH_X", X) ++
 	param("PARAM_IMAGE_FILTER_WIDTH_Y", Y) ++
@@ -480,13 +477,13 @@ sampler_size(PS = #ps{arealightn=AN, sunlight=SL, texmapalpha=TMA},
 	_ ->          ?ISz + DataSz + ?FSz*3
     end.
 
-stratified_sampler_size(#ropt{sampler=#sampler{type=stratified, opts={X,Y}}, 
+stratified_sampler_size(#ropt{sampler=_S=#sampler{type=stratified, opts=[{X,Y}]},
 			      lens_r=LensR}, PS) ->
     CamL = LensR > 0.0,
     InDirL = PS#ps.arealightn > 0 orelse PS#ps.sunlight /= false,
     TexA = PS#ps.texmapalpha /= false,
     %% stratifiedScreen2D
-    ?FSz * X * Y * 2 +
+    Size = ?FSz * X * Y * 2 +
 	%% stratifiedDof2D
 	?ifelse(CamL, ?FSz * X * Y * 2, 0) +
 	%% stratifiedAlpha1D
@@ -497,7 +494,8 @@ stratified_sampler_size(#ropt{sampler=#sampler{type=stratified, opts={X,Y}},
 	?FSz * X +
 	%% stratifiedLight2D
 	%% stratifiedLight1D
-	?ifelse(InDirL, ?FSz *X*Y*2 + ?FSz *X, 0);
+	?ifelse(InDirL, ?FSz *X*Y*2 + ?FSz *X, 0),
+    Size;
 stratified_sampler_size(_, _) -> 0.
 
 %% Helpers

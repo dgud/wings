@@ -152,7 +152,7 @@ __kernel __attribute__((reqd_work_group_size(64, 1, 1))) void PixelAddSampleBuff
 		return;
 
 	__global SampleBufferElem *sampleElem = &sampleBuff[index];
-    const float4 sample = (float4)(sampleElem->radiance.r, sampleElem->radiance.g, sampleElem->radiance.b, 1.f);
+	float4 sample = (float4)(sampleElem->radiance.r, sampleElem->radiance.g, sampleElem->radiance.b, 1.f);
 
 	const float dImageX = sampleElem->screenX - 0.5f;
 	const float dImageY = sampleElem->screenY - 0.5f;
@@ -164,7 +164,7 @@ __kernel __attribute__((reqd_work_group_size(64, 1, 1))) void PixelAddSampleBuff
 		return;
 
 	// Loop over filter support and add sample to pixel arrays
-    __local int ifxBuff[FILTER_TABLE_SIZE * 64];
+	__local int ifxBuff[FILTER_TABLE_SIZE * 64];
 	__local int *ifx = &(ifxBuff[FILTER_TABLE_SIZE * get_local_id(0)]);
 	for (int x = x0; x <= x1; ++x) {
 		const float fx = fabs((x - dImageX) *
@@ -172,7 +172,7 @@ __kernel __attribute__((reqd_work_group_size(64, 1, 1))) void PixelAddSampleBuff
 		ifx[x - x0] = min(Floor2Int(fx), (int)FILTER_TABLE_SIZE - 1);
 	}
 
-    __local int ifyBuff[FILTER_TABLE_SIZE * 64];
+	__local int ifyBuff[FILTER_TABLE_SIZE * 64];
 	__local int *ify = &(ifyBuff[FILTER_TABLE_SIZE * get_local_id(0)]);
 	for (int y = y0; y <= y1; ++y) {
 		const float fy = fabs((y - dImageY) *
@@ -194,15 +194,15 @@ __kernel __attribute__((reqd_work_group_size(64, 1, 1))) void PixelAddSampleBuff
 	const int fy0 = max(y0, 0);
 	const int fy1 = min(y1, (int)height - 1);
 
-    for (int y = fy0; y <= fy1; ++y) {
-        const unsigned int offset = y * width;
-
-		for (int x = fx0; x <= fx1; ++x) {
-            const int tabOffset = ify[y - y0] * FILTER_TABLE_SIZE + ifx[x - x0];
-			sample.w = Gaussian2x2_filterTable[tabOffset] * filterNorm;
-
-            AddSample(&sampleFrameBuffer[offset + x], sample);
-        }
+	for (int y = fy0; y <= fy1; ++y) {
+	    const unsigned int offset = y * width;
+	    
+	    for (int x = fx0; x <= fx1; ++x) {
+		const int tabOffset = ify[y - y0] * FILTER_TABLE_SIZE + ifx[x - x0];
+		sample.w = Gaussian2x2_filterTable[tabOffset] * filterNorm;
+		
+		AddSample(&sampleFrameBuffer[offset + x], sample);
+	    }
 	}
 }
 
