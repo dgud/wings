@@ -53,7 +53,11 @@ menu(#st{views={CurrentView,Views}}=St) ->
        crossmark(show_materials)},
       {?__(46,"Show Textures"),show_textures,
        ?__(47,"Show textures"),
-       crossmark(show_textures)}]}},
+       crossmark(show_textures)},
+      separator,
+      {?__(74,"Filter Textures"),filter_texture,
+       ?__(75,"Activates Texture Filtering for all textures. (Disable filtering for accurate display of very low resolution textures)"),
+	   crossmark(filter_texture)}]}},
      separator,
      {?__(7,"Wireframe"),wireframe,?__(8,"Display selected objects as a wireframe (same for all objects if nothing is selected)")},
      {?__(9,"Shade"),shade,?__(10,"Display selected objects as shaded (same for all objects if nothing is selected)")},
@@ -294,6 +298,15 @@ command(orthogonal_view, St) ->
     St;
 command({show,show_textures}, St) ->
     toggle_option(show_textures),
+    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+			 %% Must invalidate vertex buffers.
+			 D#dlo{work=none,smooth=none,vab=none,
+			       proxy_data=wings_proxy:invalidate(PD, vab)};
+		    (D, _) -> D
+		 end, []),
+    St;
+command({show,filter_texture}, St) ->
+    toggle_option(filter_texture),
     wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
 			 %% Must invalidate vertex buffers.
 			 D#dlo{work=none,smooth=none,vab=none,
@@ -857,6 +870,7 @@ init() ->
     wings_pref:set_default(show_colors, true),
     wings_pref:set_default(show_materials, true),
     wings_pref:set_default(show_textures, true),
+	wings_pref:set_default(filter_texture, true),
     wings_pref:set_default(frame_disregards_mirror, false),
     wings_pref:set_default(scene_lights, false).
 
