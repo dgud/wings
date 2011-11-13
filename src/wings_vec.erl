@@ -263,9 +263,14 @@ handle_event_4(_Event, Ss, St) ->
     get_event(Ss, St).
 
 temp_selection(X, Y, St0) ->
-    case wings_pick:do_pick(X, Y, St0) of
-	{add,_,St} -> St;
-	_ -> none
+    case St0 of
+	#st{sel=[{_,_}|_]} -> 
+	    none;
+	_ ->
+	    case wings_pick:do_pick(X, Y, St0) of
+		{add,_,St} -> St;
+		_ -> none
+	    end
     end.
 
 pick_next(Do, Done, #ss{is_axis=true,vec={{_,_,_},{_,_,_}}=Vec}=Ss, St) ->
