@@ -26,8 +26,8 @@ align(Axis, St) ->
     move_to(Center, Cs, Axis, St).
 
 center(_Axis, #st{sel=[]}=St) -> St;
-center(Axis, St) ->
-    Cs0 = wings_sel:bounding_boxes(St),
+center(Axis, #st{shapes=Shapes,sel=SelAny}=St) ->
+    Cs0 = [wings_we:centroid(gb_trees:get(WeID, Shapes)) || {WeID,_} <- SelAny ],
     CommonCenter = e3d_vec:average(Cs0),
     Cs = lists:duplicate(length(Cs0), CommonCenter),
     Center = e3d_vec:zero(),
