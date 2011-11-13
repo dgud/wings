@@ -14,7 +14,7 @@
 %%
 
 -module(wpc_plane_cut).
--export([init/0,menu/2,command/2]).
+-export([init/0,menu/2,command/2, plane_cut/3]).
 -include("wings.hrl").
 
 
@@ -725,7 +725,7 @@ loop_cut(Axis, Point, St0) ->
         AdjFaces = wings_face:from_edges(Edges, We0),
         case loop_cut_partition(AdjFaces, Edges, We0, []) of
           [_] ->
-            wings_u:error_msg(?__(2,"Edge loop doesn't divide mesh into two or more parts."));
+            {Sel0,St1}; 
           [_|Parts0] ->
             Parts = [gb_sets:to_list(P) || P <- Parts0],
             FirstComplement = ordsets:union(Parts),
