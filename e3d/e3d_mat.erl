@@ -19,7 +19,7 @@
 	 rotate/2,rotate_to_z/1,rotate_s_to_t/2,
 	 project_to_plane/1,
 	 transpose/1,invert/1,
-	 mul/2,mul_point/2,mul_vector/2,eigenv3/1]).
+	 mul/2,mul_point/2,mul_vector/2,eigenv3/1,mul_foldl/1]).
 -compile(inline).
 -include("e3d.hrl").
 
@@ -172,6 +172,36 @@ transpose({M1,M2,M3,M4,M5,M6,M7,M8,M9,0.0=Z,0.0,0.0}) ->
      M2,M5,M8,
      M3,M6,M9,
      Z,Z,Z}.
+     
+     
+
+-spec mul_foldl2(M::e3d_matrix(), M::e3d_matrix() ) -> M::e3d_matrix().     
+-spec mul_foldl3(M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix()) -> M::e3d_matrix().
+-spec mul_foldl4(M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix()) -> M::e3d_matrix().
+-spec mul_foldl5(M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix()) -> M::e3d_matrix().
+
+
+mul_foldl([M1,M2,M3,M4,M5]) -> mul_foldl5(M1,M2,M3,M4,M5);
+mul_foldl([M1,M2,M3,M4]) -> mul_foldl4(M1,M2,M3,M4);
+mul_foldl([M1,M2,M3]) -> mul_foldl3(M1,M2,M3);
+mul_foldl([M1,M2]) -> mul_foldl2(M1,M2).
+
+     
+%% Simple short-hand for matrix composition three or four deep or more.  
+mul_foldl2(M1, M2) ->
+    lists:foldl(fun(Mat, AccMat) -> e3d_mat:mul(Mat, AccMat) end, e3d_mat:identity(), [M1,M2]).
+
+mul_foldl3(M1, M2, M3) ->
+    lists:foldl(fun(Mat, AccMat) -> e3d_mat:mul(Mat, AccMat) end, e3d_mat:identity(), [M1,M2,M3]).
+    
+%% Simple short-hand for matrix composition three or four deep or more.  
+mul_foldl4(M1, M2, M3, M4) ->
+    lists:foldl(fun(Mat, AccMat) -> e3d_mat:mul(Mat, AccMat) end, e3d_mat:identity(), [M1,M2,M3,M4]).
+    
+%% Simple short-hand for matrix composition three or four deep or more.  
+mul_foldl5(M1, M2, M3, M4, M5) ->
+    lists:foldl(fun(Mat, AccMat) -> e3d_mat:mul(Mat, AccMat) end, e3d_mat:identity(), [M1,M2,M3,M4,M5]).
+    
 
 -spec mul(M::e3d_matrix(), N::e3d_matrix() | e3d_vector() |
 	  {float(),float(),float(),float()}) ->
