@@ -1,0 +1,17 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_image,
+ [
+  {image_menu,
+   [
+    {1,"平面(イメージ)..."},
+    {2,"イメージを含む平面を作成"}
+   ]},
+  {make_image,
+   [
+    {1,"読込みに失敗しました. \"~s\": ~s\n"}
+   ]},
+  {make_image_1,
+   [
+    {1,"このイメージはテクスチャとして読込むことができません.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"}
+   ]}
+ ]}.

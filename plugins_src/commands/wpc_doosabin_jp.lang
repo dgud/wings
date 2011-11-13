@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_doosabin,
+ [
+  {doo_sabin,
+   [
+    {1,"Doo Sabin Subdivision"},
+    {2,"Smoothing pass1"},
+    {3,"Smoothing pass 2"},
+    {4,"Dissolving pass 1"},
+    {5,"Dissolving pass 2"},
+    {6,"Updating Selection"}
+   ]},
+  {menu_entry,
+   [
+    {1,"スムーズ(Doo Sabin)"},
+    {2,"エッジの面影を残した再分割曲面を生成 (警告 : 但し全てのUV座標は狂います！) これはWasaMonkey氏によるDoo-Sabinアルゴリズムです"}
+   ]}
+ ]}.

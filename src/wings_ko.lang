@@ -187,7 +187,7 @@
   {patches,
    [
     % "Use "
-    {1,"사용"}
+    {1,"사용 "}
    ]},
   {purge_undo,
    [
@@ -219,7 +219,7 @@
     % "Align"
     {8,"정렬"},
     % "Center"
-    {9,"중심"},
+    {9,"센터"},
     % "Save Bounding Box"
     {10,"바운딩 박스 저장"},
     % "Scale to Saved BB"
@@ -231,23 +231,23 @@
     % "Set Default Axis"
     {14,"기본 축 설정"},
     % "Define and store axis (with ref. point) for later use with any "
-    {15,"나중에 모든 것을 사용하기 위해 특징 및 축(참고자료로, 포인트) 저장"},
+    {15,"나중에 모든 "},
     % "\"Default Axis\" command (e.g. Scale|Default Axis)"
-    {16,"\"기본 축\"명령（예: 스케일|기본 축）"},
+    {16,"\"기본 축\" 명령 (예 : 스케일|기본 축) 을 사용할 수 있도록 축 (참고자료, 포인트로) 정의 및 저장"},
     % "Virtual Mirror"
-    {17,"버추얼 미러(가상 대칭)"},
+    {17,"버추얼 미러"},
     % "Create"
-    {18,"만들기"},
+    {18,"크리에이트(만들기)"},
     % "Given a face selection, set up a virtual mirror"
-    {19,"가상 대칭을 설정하려면, 페이스를 선택"},
+    {19,"버추얼 미러(가상 대칭)를 설정하려면, 페이스를 선택해야 합니다."},
     % "Break"
-    {20,"분리"},
+    {20,"브레이크(분리)"},
     % "Remove virtual mirrors for all objects"
-    {21,"모든 오브젝트의 가상 대칭 제거"},
+    {21,"모든 오브젝트의 버추얼 미러 제거"},
     % "Freeze"
-    {22,"고정"},
+    {22,"프리즈(고정)"},
     % "Create real geometry from the virtual mirrors"
-    {23,"가상 대칭으로 실제 지오메트리(형상) 만들기"},
+    {23,"버추얼 미러로 실제 지오메트리(형상) 만들기"},
     % "Screenshot"
     {24,"스크린샷"},
     % "Grab an image of the window (export it from the outliner)"
@@ -257,11 +257,11 @@
     % "Calculate area and volume for each object in the scene"
     {27,"장면의 각 오브젝트에 대한 영역과 용량 계산"},
     % "Put on Ground"
-    {28,"그라운드 위"},
+    {28,"풋 온 그라운드"},
     % "Put selected objects on the ground plane"
     {29,"선택 오브젝트를 그라운드 플레인 위에 위치"},
     % "Unitize"
-    {30,"유니타이즈(기본 크기)"},
+    {30,"유니타이즈"},
     % "Scale selected objects to fit inside a unit sphere and move to origin"
     {31,"선택 오브젝트 스케일을 단위 영역 및 원점으로 이동"},
     % "Move BB to Selection"
@@ -281,7 +281,7 @@
     % "Create bounding box around current selection"
     {39,"현재 선택 주위에 바운딩 박스 만들기"},
     % "Tweak"
-    {40,"트윅(변형)"},
+    {40,"트윅"},
     % "Open the Tweak menu"
     {41,"트윅(변형) 메뉴 열기"}
    ]},
@@ -484,17 +484,17 @@
     % "Flip the object along ~ts axis"
     {34," ~ts 축을 따라 오브젝트 뒤집기"},
     % "Pick point to flip object along the ~ts axis"
-    {35,"피크 지점 ~ts 축을 따라 오브젝트 뒤집기"},
+    {35,"피크(선택) 지점 ~ts 축을 따라 오브젝트 뒤집기"},
     % "Flip object along the global ~ts axis"
     {36,"글로벌 ~ts 축을 따라 오브젝트 뒤집기"},
     % "Pick"
-    {37,"피크"},
+    {37,"피크(선택)"},
     % "Pick axis to flip object along"
-    {38,"피크 축을 따라 오브젝트 뒤집기"},
+    {38,"피크(선택) 축을 따라 오브젝트 뒤집기"},
     % "Pick axis and point to flip object along"
-    {39,"피크 축과 지점을 따라 오브젝트 뒤집기"},
+    {39,"피크(선택) 축과 지점을 따라 오브젝트 뒤집기"},
     % "Pick global axis to flip object along"
-    {40,"피크 글로벌 축을 따라 오브젝트 뒤집기"},
+    {40,"피크(선택) 글로벌 축을 따라 오브젝트 뒤집기"},
     % "Colors to Materials"
     {41,"컬러를 머테리얼로"},
     % "Convert vertex colors to materials"
@@ -664,7 +664,7 @@
   {check_consistency,
    [
     % "Collapsing would cause an inconsistent object structure."
-    {1,"컬랩싱(Collapsing)은 조화되지 않는 오브젝트 구조를 만들 것입니다."}
+    {1,"컬랩싱은 조화되지 않는 오브젝트 구조를 만들 것입니다."}
    ]},
   {check_vertices_1,
    [
@@ -718,9 +718,9 @@
   {check_range,
    [
     % "Extent along "
-    {1,"범위를 따라 "},
+    {1,"이동할 방향 "},
     % "axis is too short."
-    {2,"축이 너무 짧습니다."}
+    {2," 축 범위가 너무 짧습니다."}
    ]},
   {crumple_dirs,
    [
@@ -731,7 +731,7 @@
     % "its normal"
     {4,"노멀"},
     % "Move each vertex a random amount along"
-    {8,"임의의 양에 따라 각 버텍스 이동함."}
+    {8,"임의의 양에 따라 각 버텍스 이동"}
    ]},
   {dir,
    [
@@ -745,20 +745,20 @@
   {inflate_fun,
    [
     % "Pick center and radius"
-    {1,"피크 중심과 반경"},
+    {1,"피크(선택) 중심과 반경"},
     % "Inflate elements"
     {2,"요소 팽창"},
     % "Pick center point"
-    {3,"피크 중심점"},
+    {3,"피크(선택) 중심점"},
     % "Pick point to define radius"
-    {4,"피크 지점 반경 정의"}
+    {4,"피크(선택) 지점 반경 정의"}
    ]},
   {sub_menu,
    [
     % "Inflate elements"
     {1,"요소 팽창"},
     % "Pick center and radius"
-    {2,"피크 중심과 반경"},
+    {2,"피크(선택) 중심과 반경"},
     % "Crumple"
     {3,"크럼플(주름)"},
     % "Randomly move vertices"
@@ -775,17 +775,17 @@
   {taper_item,
    [
     % "Taper along "
-    {1,"테이퍼를 따라"},
+    {1,"테이퍼를 따라 "},
     % " (with effect on "
-    {2,"（효과 "},
+    {2,"（효과로"},
     % ")"
-    {3,"）"},
+    {3,")"},
     % "Choose effect axis"
     {4,"효과 축 선택"},
     % "Pick axis center location"
-    {5,"축 중심 회전 피크"},
+    {5,"회전 축 중심 피크(선택)"},
     % "Pick taper origin"
-    {6,"테이퍼 원점 피크"},
+    {6,"테이퍼 원점 피크(선택)"},
     % "Effect on "
     {7,"효과 "}
    ]}
@@ -795,7 +795,7 @@
   {dissolve_1,
    [
     % "Dissolving would cause an inconsistent object structure."
-    {1,"디졸빙(제거)은 조화되지 않는 오브젝트 구조를 만들 것입니다."}
+    {1,"디졸빙은 조화되지 않는 오브젝트 구조를 만들 것입니다."}
    ]}
  ]}.
 {wings_drag,
@@ -803,7 +803,7 @@
   {drag_help,
    [
     % "Move along Screen Normal"
-    {1,"화면 노멀을 따라 이동"},
+    {1,"화면 노멀 방향 이동"},
     % "Scale"
     {2,"스케일"},
     % "Adjust 2nd value"
@@ -855,7 +855,7 @@
   {standard_mode_fun,
    [
     % "[Shift] and/or [Ctrl] and/or [Alt] Constrain"
-    {1,"[Shift]와/또는 [Ctrl]과/또는 [Alt] 제한"},
+    {1,"[Shift] 및/또는 [Ctrl] 및/또는 [Alt] 제한"},
     % "[+] or [-] Adjust Radius"
     {2,"[+] 또는 [-] 반경 조정"}
    ]},
@@ -870,12 +870,12 @@
   {dissolve_edge_2,
    [
     % "Dissolving would cause a badly formed face."
-    {1,"디졸빙(제거)은 좋지 않은 페이스를 만들 것입니다."}
+    {1,"디졸빙은 좋지 않은 페이스를 만들 것입니다."}
    ]},
   {dissolve_edges,
    [
     % "Dissolving would cause a badly formed face."
-    {1,"디졸빙(제거)은 좋지 않은 페이스를 만들 것입니다."}
+    {1,"디졸빙은 좋지 않은 페이스를 만들 것입니다."}
    ]}
  ]}.
 {wings_edge_cmd,
@@ -900,9 +900,9 @@
   {cut_entry,
    [
     % "Cut into "
-    {1,"자르기 "},
+    {1,"동일 길이의 "},
     % " edges of equal length"
-    {2," 동일 길이의 엣지"}
+    {2," 엣지 자르기"}
    ]},
   {cut_fun,
    [
@@ -919,7 +919,7 @@
   {loop_cut,
    [
     % "Edge loop doesn't divide ~p into two (or more) parts."
-    {1,"~p : 엣지 루프는 2(또는 그 이상)부분으로 분할하지 않습니다."}
+    {1,"~p : 엣지 루프는 2(또는 그 이상) 부분으로 분할되지 않습니다."}
    ]},
   {menu,
    [
@@ -1013,7 +1013,7 @@
   {extrude_problem,
    [
     % "Can't extrude/bevel; two or more vertices are probably too near to each other.\nTry the Cleanup command."
-    {1,"익스트루드(압출)/베벨(빗각) 할 수 없습니다; 2 이상의 버텍스가 너무 가까이 있을 것입니다.\n정리 명령을 시도하십시오."}
+    {1,"익스트루드/베벨 할 수 없습니다; 2 이상의 버텍스가 너무 가까이 있을 것입니다.\n클린업 명령을 시도하십시오."}
    ]}
  ]}.
 {wings_face_cmd,
@@ -1021,9 +1021,9 @@
   {bridge_1,
    [
     % "Faces must not point in the same direction."
-    {2,"페이스는 같은 방향 포인트가 안됩니다."},
+    {2,"페이스는 같은 방향으로 포인트하지 않아야 합니다."},
     % "Faces must not be neighbors."
-    {3,"페이스는 인접이 안됩니다."}
+    {3,"페이스는 인접하지 않아야 합니다."}
    ]},
   {bridge_error,
    [
@@ -1043,12 +1043,12 @@
   {create_hole_1,
    [
     % "A hole cannot comprise all faces in an object."
-    {1,"홀(구멍)이 오브젝트의 모든 페이스로 구성될 수 없습니다."}
+    {1,"홀이 오브젝트의 모든 페이스로 구성할 수 없습니다."}
    ]},
   {intrude,
    [
     % "Intrude does not work with all faces selected."
-    {1,"인트루드(관입)는 모든 페이스 선택에는 작동하지 않습니다."}
+    {1,"인트루드는 모든 페이스의 선택에서는 작동하지 않습니다."}
    ]},
   {lift_check_selection,
    [
@@ -1060,9 +1060,9 @@
   {lift_fun,
    [
     % "Lift, rotating face around edge or vertex"
-    {1,"리프트(회전), 페이스를 엣지 또는 버텍스 주위에 회전"},
+    {1,"리프트, 페이스를 엣지 또는 버텍스 주위에 회전"},
     % "Lift in std. directions"
-    {2,"표준 방향 리프트(회전)"}
+    {2,"표준 방향 리프트"}
    ]},
   {lift_sel_mismatch,
    [
@@ -1072,7 +1072,7 @@
   {lift_selection,
    [
     % "Select edge or vertex to act as hinge"
-    {1,"경첩 역할하는 엣지나 버텍스 선택"}
+    {1,"경첩 역할을 할 엣지 또는 버텍스 선택"}
    ]},
   {lift_vtx_sel_mismatch,
    [
@@ -1088,7 +1088,7 @@
     % "Intrude"
     {8,"인트루드(관입)"},
     % "Carve out interior of object, making selected faces holes"
-    {9,"선택 페이스 구멍 만들면서, 오브젝트의 내부 베어 내기"},
+    {9,"선택 페이스에 구멍 만들면서, 오브젝트의 내부 베어 내기"},
     % "Bevel"
     {10,"베벨(빗각)"},
     % "Round off edges of selected faces"
@@ -1108,7 +1108,7 @@
     % "Move and rotate object, aligning the selected face to another element"
     {18,"다른 요소에 선택된 페이스를 정렬하면서, 오브젝트가 이동 및 회전"},
     % "Clone object on to one or more elements"
-    {19,"1 이상의 요소가 오브젝트 위에 복제"},
+    {19,"1 이상의 요소를 오브젝트 위에 복제"},
     % "Mirror"
     {20,"미러(대칭)"},
     % "Mirror object around selected faces and merge to object"
@@ -1148,9 +1148,9 @@
     % "Create hole"
     {38,"홀(구멍) 만들기"},
     % "Remove holes adjacent to selected faces"
-    {39,"선택 페이스에 인접한 홀(구멍) 제거"},
+    {39,"선택 페이스 또는 페이스 영역에 "},
     % " or face regions"
-    {40," 또는 페이스 영역"},
+    {40," 인접한 홀 제거"},
     % "Unhide faces adjacent to selection"
     {41,"선택에 인접한 숨긴 페이스 보기"}
    ]},
@@ -1164,12 +1164,12 @@
     % "Selection must not be in the same object."
     {1,"동일한 오브젝트에 선택해서는 안됩니다"},
     % "Select only one element."
-    {2,"1 요소만 선택"}
+    {2,"1 요소만 선택해야 합니다."}
    ]},
   {put_on_selection,
    [
     % "Select target element on which to put source object"
-    {1,"소스 오브젝트를 넣으려면 대상 요소 선택"}
+    {1,"소스 오브젝트를 넣으려면 대상 요소를 선택"}
    ]},
   {smooth,
    [
@@ -1184,9 +1184,9 @@
     % "Object \""
     {1,"오브젝트 \""},
     % "\" cannot be exported "
-    {2,"\" 수출될 수 없습니다 "},
+    {2,"\" Nendo 포맷(너무 많은 엣지)을 "},
     % "to Nendo format (too many edges)."
-    {3,"Nendo 포맷(너무 많은 엣지)에."}
+    {3,"수출할 수 없습니다."}
    ]},
   {clean_bad_edges,
    [
@@ -1196,9 +1196,9 @@
   {import,
    [
     % "Nendo 1.0 files not supported"
-    {1,"지원하지 않는 Nendo 1.0 파일"},
+    {1,"Nendo 1.0 파일이 아닌 Nendo 파일은 "},
     % "not a Nendo file"
-    {2,"Nendo 파일 아님"}
+    {2," 지원되지 않습니다."}
    ]},
   {import_1,
    [
@@ -1220,17 +1220,17 @@
     % "  ~w empty object(s)\n"
     {1," ~w 빈 오브젝트\n"},
     % "  garbage: ~w\n"
-    {2,"  garbage(불필요 정보): ~w\n"}
+    {2,"  가비지(불필요 정보): ~w\n"}
    ]},
   {read_vertices,
    [
     % " vertices ~w\n"
-    {1,"버텍스 ~w\n"}
+    {1," 버텍스 ~w\n"}
    ]},
   {skip_faces,
    [
     % " faces ~w\n"
-    {1,"페이스 ~w\n"}
+    {1," 페이스 ~w\n"}
    ]}
  ]}.
 {wings_ff_wings,
@@ -1389,7 +1389,7 @@
     % "Save only the selected objects or faces"
     {14,"선택 오브젝트 또는 페이스만 저장"},
     % "Save Incrementally"
-    {15,"점진적 저장"},
+    {15,"새 이름으로 추가 저장"},
     % "Revert"
     {16,"복귀"},
     % "Revert current scene to the saved contents"
@@ -1411,7 +1411,7 @@
     % "Exit"
     {25,"종료"},
     % "Generate new filename and save"
-    {26,"새 파일명과 저장 만들기"},
+    {26,"새 파일 이름과 저장 만들기"},
     % "Install a plug-in"
     {27,"플러그인 설치"},
     % "Exit Wings 3D"
@@ -1421,15 +1421,15 @@
     % "Include unused materials when saving a .wings file"
     {30,".wings 파일 저장 시 사용하지 않는 머테리얼 포함"},
     % "Save Preference Subset..."
-    {31,"하위 환경 설정 저장..."},
+    {31,"환경 설정 서브세트 저장..."},
     % "Save a preference subset from your current settings"
-    {32,"현재 설정에서 환경 설정의 하위 설정 저장"},
+    {32,"현재 설정에서 환경 설정 서브세트 저장"},
     % "Load Preference Subset"
-    {33,"하위 환경 설정 불러오기"},
+    {33,"환경 설정 서브세트 불러오기"},
     % "Load..."
     {35,"불러오기..."},
     % "Load a previously saved preference subset"
-    {36,"저장된 이전 환경 설정의 하위 설정 불러오기"}
+    {36,"저장된 이전 환경 설정 서브세트 불러오기"}
    ]},
   {merge,
    [
@@ -1588,7 +1588,7 @@
     % "View"
     {4,"뷰"},
     % "Scene Lights"
-    {5,"장면 라이트"},
+    {5,"신 라이트"},
     % " command."
     {6," 명령을 사용합니다."}
    ]},
@@ -1732,7 +1732,7 @@
     % "Tools"
     {14,"도구"},
     % "Virtual Mirror"
-    {15,"버추얼 미러(가상 대칭)"},
+    {15,"버추얼 미러"},
     % " command."
     {16," 명령을 사용합니다."},
     % "Hide models that you don't work on for the moment."
@@ -2007,7 +2007,7 @@
     % "Ambient"
     {1,"앰비언트(주변)"},
     % "Infinite"
-    {2,"인피니트(감소)"},
+    {2,"인피니트(무한)"},
     % "Infinite1"
     {3,"Infinite1"},
     % "Infinite2"
@@ -2030,7 +2030,7 @@
   {light_types,
    [
     % "Infinite"
-    {1,"인피니트(감소)"},
+    {1,"인피니트(무한)"},
     % "Create a far-away, directional light (like the sun)"
     {2,"원거리, 방향 라이트 만들기 (태양처럼)"},
     % "Point"
@@ -2046,9 +2046,9 @@
     % "Create an ambient light source"
     {8,"주변 광원 만들기"},
     % "Area"
-    {9,"에리어(지역)"},
+    {9,"에어리어(영역)"},
     % "Create an area that radiates light"
-    {10,"지역을 비추는 라이트 만들기"}
+    {10,"영역을 비추는 라이트 만들기"}
    ]},
   {menu,
    [
@@ -2075,11 +2075,11 @@
     % "Spot Angle"
     {12,"스포트 앵글(각도)"},
     % "Interactivly adjust the angle of the spotlight cone"
-    {13,"스포트 라이트 콘(원뿔)의 각도를 대화형으로 조정"},
+    {13,"스포트라이트 콘(원뿔)의 각도를 대화형으로 조정"},
     % "Spot Falloff"
     {14,"스포트 폴오프(감소)"},
     % "Interactivly adjust how much light weakens farther away from the center of the spotlight cone"
-    {15,"멀리 떨어진 스포트 라이트 콘(원뿔)의 중심에서 많은 빛의 감소를 대화형으로 조정"},
+    {15,"멀리 떨어진 스포트라이트 콘(원뿔)의 중심에서 많은 빛의 감소를 대화형으로 조정"},
     % "Edit Properties..."
     {16,"속성 편집..."},
     % "Edit light properties"
@@ -2191,7 +2191,7 @@
   {edit,
    [
     % "Material Properties: "
-    {1,"머테리얼 속성: "}
+    {1,"머테리얼(재질) 속성: "}
    ]},
   {edit_dialog,
    [
@@ -2230,7 +2230,7 @@
   {new_1,
    [
     % "New Material"
-    {1,"새 머테리얼"},
+    {1,"새 머테리얼(재질)"},
     % "Material Name"
     {2,"머테리얼 이름"},
     % "New Material"
@@ -2239,9 +2239,9 @@
   {plugin_results,
    [
     % "Material editor plugin(s) left garbage:~n    ~P~n"
-    {1,"왼쪽 불필요 정보 머테리얼 에디터 플러그인:~n    ~P~n"},
+    {1,"좌측 불필요 정보 머테리얼 에디터 플러그인:~n    ~P~n"},
     % "Plugin(s) left garbage"
-    {2,"왼쪽 불필요 정보 플러그인"}
+    {2,"좌측 불필요 정보 플러그인"}
    ]},
   {rename,
    [
@@ -2270,7 +2270,7 @@
     % "This key is already bound to the "
     {1,"이 키는 이미 연결된 "},
     % " command. Do you want to re-define it?"
-    {2," 명령. 다시 정의하시겠습니까?"}
+    {2," 명령입니다. 다시 정의하시겠습니까?"}
    ]},
   {help_text_1,
    [
@@ -2285,9 +2285,9 @@
   {hotkey_key_message,
    [
     % "Press the key to bind the \""
-    {1,"연결할 키 누름. \""},
+    {1,"연결할 \""},
     % "\" command to."
-    {2,"\" 명령."}
+    {2,"\" 명령 키를 누릅니다."}
    ]},
   {hotkey_mouse_message,
    [
@@ -2297,7 +2297,7 @@
   {magnet_help,
    [
     % "Click for Magnet"
-    {2,"마그넷을 보려면 클릭"}
+    {2,"클릭 마그넷 보기"}
    ]},
   {menu_toolbar_help,
    [
@@ -2370,11 +2370,11 @@
   {adv_scale_1,
    [
     % "Scale Uniform"
-    {1,"스케일 유니폼(동일형)"},
+    {1,"스케일 유니폼(동일 크기)"},
     % "Scale Axis"
-    {2,"스케일 엑시스(축)"},
+    {2,"스케일 엑시스(축 방향 크기)"},
     % "Scale Radial"
-    {3,"스케일 레이디얼(방사형)"}
+    {3,"스케일 레이디얼(방사형 크기)"}
    ]},
   {dir_help,
    [
@@ -2385,7 +2385,7 @@
     % "around"
     {7,"주위로"},
     % "along its normal"
-    {10,"노멀을 따라"},
+    {10,"노멀 방향"},
     % "freely in all directions"
     {11,"모든 방향 자유롭게"},
     % "Scale equally in all directions"
@@ -2418,7 +2418,7 @@
     % "Duplicate and move freely "
     {12,"복제 및 자유롭게 이동 "},
     % "Move each element along "
-    {13,"따라 각 요소 이동 "},
+    {13,"각 요소 방향 이동 "},
     % "Extrude elements, then move along "
     {14,"요소를 압출시켜, 그것을 따라 이동 "},
     % "Extrude faces as region, then move along "
@@ -2428,15 +2428,15 @@
     % "Rotate around "
     {17,"주위에 회전 "},
     % "Scale "
-    {18,"스케일"},
+    {18,"스케일 "},
     % "Scale along "
-    {19,"따라 크기 조정 "},
+    {19,"크기 조정 방향 조정 "},
     % "Flatten to "
     {20,"평평하게 "},
     % "Flatten and move to "
     {21,"평평하게 및 이동 "},
     % "Lift face along "
-    {22,"따라 페이스 들어올리기 "},
+    {22,"페이스 방향 들어올리기 "},
     % "Duplicate, then move along "
     {23,"따라 복제 및 이동 "},
     % "Extract each element, then move it "
@@ -2444,20 +2444,20 @@
     % "Extract elements, then move along "
     {25,"요소를 추출시켜, 그것을 따라 이동 "},
     % "Extract and Extrude faces as region, then move along "
-    {26,"영역으로 추출 및 압출시켜, 따라 페이스 이동 "}
+    {26,"영역으로 추출 및 압출시켜, 페이스 방향 이동 "}
    ]},
   {dirs,
    [
     % "Move along std. axis"
-    {1,"표준을 따라 이동. 축"},
+    {1,"표준 방향 이동. 축"},
     % "Pick axis to move along"
-    {2,"따라 이동하는 축 피크"},
+    {2,"이동할 방향 축 피크(선택)"},
     % "Move along std. axis"
-    {3,"표준을 따라 이동. 축"},
+    {3,"표준 방향 이동. 축"},
     % "Move along selection's normal"
-    {4,"선택의 노멀을 따라 이동"},
+    {4,"선택의 노멀 방향 이동"},
     % "Pick axis to move along"
-    {5,"따라 이동하는 축 피크"},
+    {5,"이동할 방향 축 피크(선택)"},
     % "Extrude along std. axis"
     {6,"표준을 따라 압출. 축"},
     % "Extrude along selection's normal"
@@ -2482,24 +2482,24 @@
   {dirs_help,
    [
     % "Pick axis to extrude each face along"
-    {18,"따라 각 페이스를 압출하는 축 피크"},
+    {18,"각 페이스를 압출할 방향 축 피크(선택)"},
     % "Pick axis to extrude each region of faces along"
-    {19,"따라 각 페이스의 영역을 압출하는 축 피크"},
+    {19,"각 페이스의 영역을 압출할 방향 축 피크(선택)"},
     % "Pick axis to extract each face along"
-    {20,"따라 각 페이스를 추출하는 축 피크"},
+    {20,"각 페이스를 추출할 방향 축 피크(선택)"},
     % "Pick axis to extract each region of faces along"
-    {21,"따라 각 페이스의 영역을 추출하는 축 피크"}
+    {21,"각 페이스의 영역을 추출할 방향 축 피크(선택)"}
    ]},
   {flatten,
    [
     % "Flatten"
     {1,"플래튼(평행)"},
     % "Flatten to std. planes"
-    {2,"표준을 따라 평평하게. 플레인"},
+    {2,"표준 방향 평평하게. 플레인"},
     % "Pick plane and ref point on plane"
-    {3,"플레인 위에 플레인 및 참고자료 포인트 피크"},
+    {3,"플레인 위에 플레인 및 참고자료 포인트 피크(선택)"},
     % "Pick plane"
-    {4,"플레인 위에 플레인 및 참고자료 포인트 피크"}
+    {4,"플레인 위에 플레인 및 참고자료 포인트 피크(선택)"}
    ]},
   {flatten_edge_loops,
    [
@@ -2511,16 +2511,16 @@
   {flatten_fun_1,
    [
     % "Pick point on plane"
-    {1,"포인트 및 플레인 피크"}
+    {1,"포인트 및 플레인 피크(선택)"}
    ]},
   {rotate,
    [
     % "Rotate around std. axis"
-    {1,"표준을 따라 회전. 축"},
+    {1,"표준 방향 회전. 축"},
     % "Pick axis and ref point"
-    {2,"축 및 참고자료 포인트 피크"},
+    {2,"축 및 참고자료 포인트 피크(선택)"},
     % "Pick axis to rotate around"
-    {3,"주위에 회전하는 축 피크"}
+    {3,"주위에 회전할 축 피크(선택)"}
    ]},
   {rotate_1,
    [
@@ -2530,32 +2530,32 @@
   {rotate_fun,
    [
     % "Pick point for axis to pass through"
-    {1,"축이 통과하기 위한 포인트 피크"}
+    {1,"축이 통과하기 위한 포인트 피크(선택)"}
    ]},
   {scale,
    [
     % "Scale outward from std. axis"
     {1,"표준에서 외부로 크기 조정. 축"},
     % "Pick axis and point to scale from"
-    {2,"축 및 포인트에서 크기 조정하는 축 피크"},
+    {2,"축 및 포인트에서 크기 조정할 축 피크(선택)"},
     % "Pick axis to scale out from"
-    {3,"외부로 크기 하는 축 피크"},
+    {3,"외부로 크기 조정할 축 피크(선택)"},
     % "Scale along std. axis"
-    {4,"표준을 따라 크기 조정. 축"},
+    {4,"표준 방향 크기 조정. 축"},
     % "Pick axis and point to scale from"
-    {5,"에서 크기 조정하는 축 및 포인트 피크"},
+    {5,"크기 조정할 축 및 포인트 피크(선택)"},
     % "Pick axis to scale along"
-    {6,"따라 크기 조정하는 축 피크"}
+    {6,"크기 조정할 방향 축 피크(선택)"}
    ]},
   {scale_fun,
    [
     % "Pick point to scale from"
-    {1,"에서 크기 조정하는 포인트 피크"}
+    {1,"크기 조정할 포인트 피크(선택)"}
    ]},
   {uniform_scale,
    [
     % "Choose point to scale from"
-    {1,"에서 크기 조정하는 포인트 선택"},
+    {1,"크기 조정할 포인트 선택"},
     % "Scale uniformly from midpoint of selection"
     {2,"선택의 중심점에서 동일하게 크기 조정"}
    ]}
@@ -2588,7 +2588,7 @@
     % "Pick up Image"
     {9,"이미지 추출"},
     % "Pick up the Image to it put on a material as a texture"
-    {10,"머테리얼에 있는 텍스쳐의 이미지 피크"}
+    {10,"머테리얼에 있는 텍스쳐의 이미지 피크(선택)"}
    ]},
   {delete_image,
    [
@@ -2602,7 +2602,7 @@
     % "Edit Material..."
     {1,"머테리얼 편집..."},
     % "Edit material properties"
-    {2,"머테리얼 등록 정보 편집"},
+    {2,"머테리얼(재질) 등록 정보 편집"},
     % "Assign to Selection"
     {3,"선택에 할당"},
     % "Assign the material to the selected faces or bodies"
@@ -2697,7 +2697,7 @@
   {make_external,
    [
     % "Make External"
-    {1,"외부 만들기"}
+    {1,"Make External"}
    ]},
   {refresh_image,
    [
@@ -2724,15 +2724,15 @@
     % "No end color found."
     {2,"끝 컬러를 발견하지 못했습니다."},
     % "Export"
-    {3,"수출"},
+    {3,"Export"},
     % "Wings Palette"
-    {5,"Wings 팔레트"},
+    {5,"Wings Palette"},
     % "Export error: ~w"
     {6,"수출 오류: ~w"},
     % "Import"
-    {7,"수입"},
+    {7,"Import"},
     % "Wings Palette"
-    {9,"Wings 팔레트"},
+    {9,"Wings Palette"},
     % "No palette found"
     {10,"팔레트를 발견하지 못했습니다."},
     % "Import error: ~w"
@@ -2815,7 +2815,7 @@
   {handle_hilite_event,
    [
     % "(in mirror)"
-    {2,"(in mirror)"},
+    {2,"(대칭에서)"},
     % "Object"
     {3,"오브젝트"},
     % "Vertex"
@@ -2929,9 +2929,9 @@
   {pref,
    [
     % "Load Preference Subset"
-    {1,"하위 환경 설정 불러오기"},
+    {1,"환경 설정 서브세트 불러오기"},
     % "Save Preference Subset"
-    {2,"하위 환경 설정 저장"},
+    {2,"환경 설정 서브세트 저장"},
     % "Graphical Settings"
     {3,"그래픽 설정"},
     % "Camera Settings"
@@ -2960,7 +2960,7 @@
   {recent_pref_help,
    [
     % "Load a recent Preference Subset"
-    {1,"최근 환경 설정 하위 설정 불러오기"}
+    {1,"최근 환경 설정 서브세트 불러오기"}
    ]}
  ]}.
 {wings_pref_dlg,
@@ -3006,7 +3006,7 @@
     % "Use Mirror for Selections"
     {21,"선택을 위해 대칭 사용"},
     % "Default to using the virtual mirror for secondary selections"
-    {22,"기본값은 보조 선택의 가상 대칭 사용"},
+    {22,"기본값은 보조 선택의 버추얼 미러 사용"},
     % "Size"
     {23,"크기"},
     % "Size of user-defined clipping indicator"
@@ -3291,7 +3291,7 @@
     % "Delay (ms)"
     {6,"지연(ms)"},
     % "Auto Rotate"
-    {7,"자동 회전"},
+    {7,"오토 로테이트"},
     % "Cage"
     {8,"케이지"},
     % "Some Edges"
@@ -3447,9 +3447,9 @@
     % "Classic"
     {51,"클래식"},
     % "Blue Cube"
-    {52,"청색 큐브"},
+    {52,"블루 큐브"},
     % "Purple Tube"
-    {53,"보라색 튜브"}
+    {53,"퍼플 큐브"}
    ]},
   {viewer_prefs,
    [
@@ -3678,7 +3678,7 @@
   {item_by_id,
    [
     % "Nothing to select."
-    {1,"아무 선택이 없습니다."},
+    {1,"선택이 없습니다."},
     % "Object Id"
     {2,"오브젝트 ID "}
    ]},
@@ -4280,7 +4280,7 @@
     % "Light"
     {light,"라이트"},
     % "Material..."
-    {material,"머테리얼(재질)..."},
+    {material,"머테리얼..."},
     % "Octahedron"
     {octahedron,"옥타헤드론(8면체)"},
     % "Octotoad"
@@ -4344,7 +4344,7 @@
     % "creating new faces"
     {5,"새 페이스 만들기"},
     % "moving vertices"
-    {6,"페이스 이동"},
+    {6,"버텍스 이동"},
     % "finishing"
     {7,"마감"}
    ]}
@@ -4366,15 +4366,15 @@
     % "Themes"
     {1,"테마"},
     % "Classic Green Theme"
-    {2,"클래식 녹색 테마"},
+    {2,"클래식 그린 테마"},
     % "Change the display colors to the original Wings3D theme with the green titlebars"
     {3,"Wings3D의 최초 녹색 제목 표시줄 테마로 컬러 표시 변경"},
     % "Olive Theme"
     {4,"올리브 테마"},
     % "Grey Blue Theme"
-    {5,"회색 청색 테마"},
+    {5,"그레이 블루 테마"},
     % "Dark Blue Theme"
-    {6,"진한 청색 테마"},
+    {6,"다크 블루 테마"},
     % "Change color scheme"
     {7,"컬러 구성표 변경"}
    ]}
@@ -4429,9 +4429,9 @@
     % "Hide"
     {hide,"숨기기"},
     % "orthogonal view"
-    {orthogonal,"직각 뷰"},
+    {orthogonal,"오소거널 뷰(직각 뷰)"},
     % "perspective view"
-    {perspective,"원근 뷰"},
+    {perspective,"퍼스펙티브 뷰(원근 뷰)"},
     % "Show"
     {show,"보기"},
     % "Show objects with"
@@ -4642,7 +4642,7 @@
     % "Move selection relative to screen, or constrained to an axis."
     {6,"화면에 상대적인, 또는 축에 제한적인 선택 이동."},
     % "Move selection along average normal."
-    {7,"노멀을 따라 선택 이동."},
+    {7,"노멀 방향 선택 이동."},
     % "Scale selection relative to screen, or constrained to an axis."
     {8,"화면에 상대적인, 또는 축에 제한적인 선택 스케일."},
     % "Scale elements uniformly from the selection center."
@@ -4847,7 +4847,7 @@
     % "Save Selected"
     {18,"선택 저장"},
     % "Save Incrementally"
-    {19,"점진적 저장"},
+    {19,"새 이름으로 추가 저장"},
     % "Revert"
     {20,"복귀"},
     % "Import"
@@ -4919,17 +4919,17 @@
     % "Show Textures"
     {54,"텍스쳐 보기"},
     % "Scene Lights"
-    {55,"장면 라이트"},
+    {55,"신 라이트"},
     % "Toggle Lights"
     {56,"라이트 전환"},
     % "Orthographic View"
-    {57,"직각 뷰"},
+    {57,"오소그래픽 뷰"},
     % "Reset View"
-    {58,"뷰 재설정"},
+    {58,"리셋 뷰"},
     % "Aim"
-    {59,"에임(조준선)"},
+    {59,"에임"},
     % "Highlight Aim"
-    {60,"하이라이트 에임(조준선)"},
+    {60,"하이라이트 에임"},
     % "Frame"
     {61,"프레임"},
     % "Frame Mode"
@@ -4945,7 +4945,7 @@
     % "Jump"
     {67,"점프"},
     % "Along"
-    {68,"Along"},
+    {68,"방향"},
     % "Rename"
     {69,"이름 바꾸기"},
     % "Delete All"
@@ -4953,7 +4953,7 @@
     % "Camera Settings"
     {71,"카메라 설정"},
     % "Auto Rotate"
-    {72,"자동 회전"},
+    {72,"오토 로테이트"},
     % "Deselect"
     {73,"비선택"},
     % "More"
@@ -5031,9 +5031,9 @@
     % "Non Quadrangle"
     {110,"비4각"},
     % "Odd"
-    {111,"Odd(이상한)"},
+    {111,"오드(이상한)"},
     % "Even"
-    {112,"Even(평평한)"},
+    {112,"이븐(평평한)"},
     % "Random"
     {113,"무작위"},
     % "Short Edges"
@@ -5061,13 +5061,13 @@
     % "Move to Bounding Box"
     {125,"바운딩 박스로 이동"},
     % "Virtual Mirror"
-    {126,"버추얼 미러(가상 대칭)"},
+    {126,"버추얼 미러"},
     % "Create"
-    {127,"만들기"},
+    {127,"크리에이트(만들기)"},
     % "Break"
-    {128,"분리"},
+    {128,"브레이크(분리)"},
     % "Freeze"
-    {129,"고정"},
+    {129,"프리즈(고정)"},
     % "Screenshot"
     {130,"스크린샷"},
     % "Area Volume Info"
@@ -5075,9 +5075,9 @@
     % "Memory Usage"
     {132,"메모리 사용량"},
     % "Put on Ground"
-    {133,"그라운드 위"},
+    {133,"풋 온 그라운드"},
     % "Unitize"
-    {134,"유니타이즈(기본 크기)"},
+    {134,"유니타이즈"},
     % "Tweak"
     {135,"트윅"},
     % "Snap Image"
@@ -5143,9 +5143,9 @@
     % "Image Plane"
     {167,"이미지 플레인"},
     % "Text"
-    {168,"텍스트"},
+    {168,"텍스트(문자)"},
     % "Gear"
-    {169,"기어"},
+    {169,"기어(톱니)"},
     % "Tube"
     {170,"튜브(관형)"},
     % "Geo Dome"
@@ -5167,7 +5167,7 @@
     % "Spiral"
     {179,"스파이럴(나선형)"},
     % "Spring"
-    {180,"스프링"},
+    {180,"스프링(용수철)"},
     % "UV Torus"
     {181,"UV 토러스(UV 원환체)"},
     % "Lumpy Torus"
@@ -5179,7 +5179,7 @@
     % "Free"
     {185,"프리"},
     % "Center"
-    {186,"중심"},
+    {186,"센터"},
     % "Central Axis"
     {187,"중심 축"},
     % "X"
@@ -5205,7 +5205,7 @@
     % "All"
     {198,"모두"},
     % "Pick All"
-    {199,"모두 피크"},
+    {199,"모두 피크(선택)"},
     % "Radial X"
     {200,"방사형 X"},
     % "Radial Y"
@@ -5229,7 +5229,7 @@
     % "Rotate"
     {210,"로테이트(회전)"},
     % "Scale"
-    {211,"스케일"},
+    {211,"스케일(크기)"},
     % "Uniform"
     {212,"유니폼"},
     % "Extrude"
@@ -5255,9 +5255,9 @@
     % "Vertex Color"
     {223,"버텍스 컬러"},
     % "Snap"
-    {224,"스냅(정렬)"},
+    {224,"스냅(밀착)"},
     % "Snap|Numeric Entry"
-    {225,"정렬|숫자 입력"},
+    {225,"스냅|숫자 입력"},
     % "Scale to Target Size"
     {226,"대상 크기의 스케일"},
     % "Scale|Center"
@@ -5287,9 +5287,9 @@
     % "Inflate"
     {239,"인플레이트(팽창)"},
     % "Inflate Cylindrically"
-    {240,"실린더(원통형)으로 팽창"},
+    {240,"인플레이트 실린더리컬(원통형 팽창)"},
     % "Shear"
-    {241,"Shear(전단 응력)"},
+    {241,"쉐어(전단 변형)"},
     % "Slide"
     {242,"슬라이드(이동)"},
     % "Clean Dissolve"
@@ -5321,17 +5321,17 @@
     % "Bump"
     {256,"범프(요철)"},
     % "Extrude Region"
-    {257,"영역 압출"},
+    {257,"익스트루드 레지언(영역 압출)"},
     % "Extract Region"
-    {258,"영역 추출"},
+    {258,"익스트렉트 레지언(영역 추출)"},
     % "Sweep Extrude"
-    {259,"압출 연장"},
+    {259,"스위프 익스트루드(압출 연장)"},
     % "Sweep Region"
-    {260,"영역 연장"},
+    {260,"스위프 레지언(영역 연장)"},
     % "Sweep Extract"
-    {261,"추출 연장"},
+    {261,"스위프 익스트렉트(추출 연장)"},
     % "Inset"
-    {262,"인셋(유입)"},
+    {262,"인셋(평면 연장)"},
     % "Intrude"
     {263,"인트루드(관입)"},
     % "Lift"
@@ -5343,7 +5343,7 @@
     % "Mirror"
     {267,"미러(대칭)"},
     % "Mirror Separate"
-    {268,"Mirror Separate(대칭 분리)"},
+    {268,"미러 세퍼레이트(대칭 분리)"},
     % "Tesselate"
     {269,"테슬레이트(분할)"},
     % "Triangulate"
@@ -5355,13 +5355,13 @@
     % "Hide"
     {273,"숨기기"},
     % "AutoUV"
-    {274,"AutoUV(자동 UV)"},
+    {274,"AutoUV"},
     % "Segment"
-    {275,"Segment(세그먼트)"},
+    {275,"세그먼트(분할)"},
     % "Segment Old"
-    {276,"Segment Old(세그먼트 올드)"},
+    {276,"세그먼트 올드(이전 분할)"},
     % "Force Segment"
-    {277,"Force Segment(강제 세그먼트)"},
+    {277,"포스 세그먼트(강제 분할)"},
     % "Flip"
     {278,"플립(뒤집기)"},
     % "Invert"
@@ -5395,18 +5395,18 @@
   {add_help_text,
    [
     % "Pick axis (and point)"
-    {1,"축(포인트) 피크"},
+    {1,"축 피크(선택)(포인트)"},
     % "Pick axis"
-    {2,"축 피크"},
+    {2,"축 피크(선택)"},
     % "Pick point"
-    {3,"포인트 피크"},
+    {3,"포인트 피크(선택)"},
     % "Pick outer boundary point for magnet influence"
-    {4,"마그넷 영향력에 외부 경계 포인트 피크"}
+    {4,"마그넷 영향력의 외부 경계 포인트 피크(선택)"}
    ]},
   {add_magnet,
    [
     % "Pick outer boundary point for magnet influence"
-    {1,"마그넷 영향력에 외부 경계 포인트 피크"}
+    {1,"마그넷 영향력의 외부 경계 포인트 피크(선택)"}
    ]},
   {check_magnet_point,
    [
@@ -5418,9 +5418,9 @@
     % "Midpoint of selection saved."
     {1,"저장 선택의 중심점"},
     % "Disregard virtual mirror in reference point calculation"
-    {2,"참고자료 포인트 계산에 가상 대칭 무시"},
+    {2,"참고자료 포인트 계산에 버추얼 미러 무시"},
     % "Include virtual mirror in reference point calculation"
-    {3,"참고자료 포인트 계산에 가상 대칭 포함"}
+    {3,"참고자료 포인트 계산에 버추얼 미러 포함"}
    ]},
   {common_magnet_message,
    [
@@ -5593,7 +5593,7 @@
     % "Lens"
     {14,"렌즈"},
     % "Field of View"
-    {15,"시야"},
+    {15,"필드 오브 뷰(시야)"},
     % "Near Clipping Plane"
     {16,"근거리 클리핑 플레인"},
     % "Far Clipping Plane"
@@ -5631,15 +5631,15 @@
     % "Wireframe"
     {7,"와이어프레임"},
     % "Display selected objects as a wireframe (same for all objects if nothing is selected)"
-    {8,"선택 오브젝트를 와이어프레임으로 표시 (아무 선택없으면 모든 오브젝트에 동일)"},
+    {8,"선택 오브젝트를 와이어프레임으로 표시 (선택없으면 모든 오브젝트에 동일)"},
     % "Shade"
     {9,"쉐이드"},
     % "Display selected objects as shaded (same for all objects if nothing is selected)"
-    {10,"선택 오브젝트를 쉐이드(음영)으로 표시 (아무 선택없으면 모든 오브젝트에 동일)"},
+    {10,"선택 오브젝트를 쉐이드(음영)으로 표시 (선택없으면 모든 오브젝트에 동일)"},
     % "Toggle Wireframe"
     {11,"와이어프레임 전환"},
     % "Toggle display mode for selected objects (same for all objects if nothing is selected)"
-    {12,"선택 오브젝트의 표시 모드 전환 (아무 선택없으면 모든 오브젝트에 동일)"},
+    {12,"선택 오브젝트의 표시 모드 전환 (선택없으면 모든 오브젝트에 동일)"},
     % "Toggle Proxy Mode"
     {13,"프록시 모드 전환"},
     % "Toggle the smooth proxy mode for selected objects"
@@ -5665,21 +5665,21 @@
     % "Show normals for selected elements"
     {24,"선택 요소의 노멀 보기"},
     % "Reset View"
-    {25,"뷰 재설정"},
+    {25,"리셋 뷰"},
     % "Reset view to the default position"
     {26,"뷰를 기본 위치로 재설정"},
     % "Aim"
-    {27,"에임(조준선)"},
+    {27,"에임"},
     % "Aim the camera at the selected element"
     {28,"선택 요소에 카메라 조준선"},
     % "Frame"
     {29,"프레임"},
     % "Dolly to show all selected elements (or all objects if nothing is selected)"
-    {30,"모든 선택 요소를 보기 위해 돌리 이동 (또는 아무 선택없는 경우의 모든 오브젝트)"},
+    {30,"모든 선택 요소를 보기 위해 돌리 이동 (또는 선택없는 경우의 모든 오브젝트)"},
     % "Orthographic View"
-    {31,"직각 뷰"},
+    {31,"오소그래픽 뷰"},
     % "Toggle between orthographic and perspective views"
-    {32,"직각 뷰/원근 뷰 전환"},
+    {32,"오소그래픽 뷰(직각 뷰)/퍼스펙티브 뷰(원근 뷰) 전환"},
     % "Saved Views: "
     {33,"저장된 뷰: "},
     % "Camera Settings..."
@@ -5687,7 +5687,7 @@
     % "Set field of view, and near and far clipping planes"
     {35,"뷰, 근거리/원거리 클리핑 플레인의 필드 설정"},
     % "Scene Lights"
-    {36,"장면 라이트"},
+    {36,"신 라이트"},
     % "Use the lights defined in the scene"
     {37,"장면에 정의하는 라이트 사용"},
     % "Two Lights"
@@ -5733,9 +5733,9 @@
     % "Align the view to the normal of the selection"
     {58,"선택의 노멀로 뷰 정렬"},
     % "Auto Rotate"
-    {59,"자동 회전"},
+    {59,"오토 로테이트"},
     % "Spin the view"
-    {60,"뷰 회전"},
+    {60,"뷰 자동 회전"},
     % "Clipping Planes"
     {61,"클리핑 플레인"},
     % "Toggle extra clipping planes (use default axis)"
@@ -5743,7 +5743,7 @@
     % "Frame Disregards Mirror"
     {65,"프레임 대칭 무시"},
     % "Highlight Aim"
-    {66,"하이라이트 에임(조준선)"},
+    {66,"하이라이트 에임"},
     % "Aim camera at mouseover highlight. (Requires 'Use Highlight as Temporary Selection' enabled, and an assigned hotkey)"
     {67,"마우스오버 하이라이트에 카메라 조준선. ('임시 선택으로 하이라이트 사용' 활성 및 할당 단축키 필요)"},
     % "Show"
@@ -5757,7 +5757,7 @@
     % "Show Backfaces"
     {72,"백페이스 보기"},
     % "Show backfaces when there is a hole or hiddwn faces in an object"
-    {73,"홀(구멍) 또는 오브젝트에 숨긴 페이스가 있을 때 백페이스 보기"}
+    {73,"홀 또는 오브젝트에 숨긴 페이스가 있을 때 백페이스 보기"}
    ]},
   {shader_submenu,
    [
@@ -5771,21 +5771,21 @@
   {view_legend,
    [
     % "along +X"
-    {2,"along +X"},
+    {2,"방향 +X"},
     % "along +Y"
-    {3,"along +Y"},
+    {3,"방향 +Y"},
     % "along +Z"
-    {4,"along +Z"},
+    {4,"방향 +Z"},
     % "along -X"
-    {5,"along -X"},
+    {5,"방향 -X"},
     % "along -Y"
-    {6,"along -Y"},
+    {6,"방향 -Y"},
     % "along -Z"
-    {7,"along -Z"},
+    {7,"방향 -Z"},
     % "towards Origin"
-    {8,"원본"},
+    {8,"원본 방향"},
     % "towards "
-    {9,"towards "},
+    {9,"방향 "},
     % "distance"
     {distance,"거리"},
     % "From"
@@ -5794,7 +5794,7 @@
   {views,
    [
     % "This view is already the current"
-    {1,"뷰는 이미 현재입니다."},
+    {1,"이 뷰는 이미 현재입니다."},
     % "No saved views"
     {2,"저장된 뷰가 없습니다."},
     % "Rename view"
@@ -5844,7 +5844,7 @@
     % "Move \""
     {7,"이동 \""},
     % "] nowhere"
-    {9,"] nowhere"},
+    {9,"] 없음"},
     % "Move \""
     {10,"이동 \""},
     % "] to next["
@@ -5901,7 +5901,7 @@
   {virtual_mirror,
    [
     % "Virtual mirror requires a face selection."
-    {1,"가상 대칭은 페이스 선택을 필요로 합니다."}
+    {1,"버추얼 미러는 페이스 선택을 필요로 합니다."}
    ]},
   {virtual_mirror_fun,
    [
@@ -6073,5 +6073,65 @@
    [
     % "Import scale"
     {1,"스케일 수입"}
+   ]}
+ ]}.
+%% [wings_body,menu,31] is not used
+%% [wings_camera,prefs,5] is not used
+%% [wings_camera,prefs,6] is not used
+%% [wings_camera,prefs,18] is not used
+%% [wings_edge,dissolve_edge_2] is not used
+%% [wings_pref,pref,12] is not used
+%% [wings_pref_dlg,advanced_prefs,3] is not used
+%% [wings_pref_dlg,advanced_prefs,4] is not used
+%% [wings_pref_dlg,advanced_prefs,5] is not used
+%% [wings_pref_dlg,advanced_prefs,12] is not used
+%% [wings_pref_dlg,advanced_prefs,13] is not used
+%% [wings_pref_dlg,advanced_prefs,21] is not used
+%% [wings_pref_dlg,advanced_prefs,22] is not used
+%% [wings_pref_dlg,advanced_prefs,28] is not used
+%% [wings_pref_dlg,advanced_prefs,29] is not used
+%% [wings_pref_dlg,advanced_prefs,30] is not used
+%% [wings_pref_dlg,advanced_prefs,40] is not used
+%% [wings_pref_dlg,advanced_prefs,43] is not used
+%% [wings_pref_dlg,advanced_prefs,56] is not used
+%% [wings_pref_dlg,advanced_prefs,57] is not used
+%% [wings_pref_dlg,advanced_prefs,58] is not used
+%% [wings_pref_dlg,advanced_prefs,59] is not used
+%% [wings_pref_dlg,gen_prefs,15] is not used
+%% [wings_pref_dlg,gen_prefs,16] is not used
+%% [wings_pref_dlg,gen_prefs,17] is not used
+%% [wings_pref_dlg,gen_prefs,21] is not used
+%% [wings_pref_dlg,gen_prefs,23] is not used
+%% [wings_pref_dlg,gen_prefs,24] is not used
+%% [wings_pref_dlg,gen_prefs,36] is not used
+%% [wings_pref_dlg,gen_prefs,63] is not used
+%% [wings_pref_dlg,gen_prefs,64] is not used
+%% [wings_pref_dlg,misc_prefs,15] is not used
+%% [wings_pref_dlg,misc_prefs,16] is not used
+%% [wings_pref_dlg,ui_prefs,14] is not used
+%% [wings_pref_dlg,ui_prefs,24] is not used
+%% [wings_sel_cmd,menu,75] is not used
+%% [wings_sel_cmd,menu,77] is not used
+
+%%
+%% The following strings have no translation.
+%%
+
+{wings_menu_util,
+ [
+  {dir_help_1,
+   [
+    % "페이스 영역으로 추출 및 압출, 다음 페이스 이동 "
+	{28,"Extract and Extrude faces as region, then move faces "},
+    % "Extract and Extrude faces as region, then move faces along the region's normal"
+	{27,"페이스 영역으로 추출 및 압출, 다음 영역의 노멀을 따라 페이스 이동"}
+   ]}
+ ]}.
+{wings_sel_cmd,
+ [
+  {menu,
+   [
+    % " Objects"
+	{106," 오브젝트"}
    ]}
  ]}.

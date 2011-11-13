@@ -1,0 +1,13 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wp8_jpeg_image,
+ [
+  {format_error,
+   [
+    {1,"ファイル形式が認識されませんでした"},
+    {2,"不明なエラー"}
+   ]},
+  {image_formats,
+   [
+    {1,"JPEG File"}
+   ]}
+ ]}.

@@ -1,0 +1,35 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wp8_mac_file,
+ [
+  {fileop_1,
+   [
+    % "Open"
+    {1,"Open"},
+    % "Save"
+    {2,"Save"}
+   ]}
+ ]}.
+{wp8_mac_image,
+ [
+  {format_error,
+   [
+    % "Unknown or unsupported format."
+    {1,"不明または未サポートの形式です"}
+   ]},
+  {image_formats,
+   [
+    {1,"PNG File"},
+    {2,"Compuserve GIF"},
+    {3,"JPEG File"}
+   ]}
+ ]}.
+{wpc_mac_misc,
+ [
+  {mac_stuff,
+   [
+    % "Mac OS File Dialog"
+    {1,"MacOSX ダイアログを使う"},
+    % "Choose whether to use the Mac OS standard file dialog or Wings' own file dialog"
+    {2,"MacOSXのネイティブのダイアログを使うか、WIngs3Dのダイアログを使うかどうかを選んでください"}
+   ]}
+ ]}.

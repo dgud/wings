@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_turnedge,
+ [
+  {command_help,
+   [
+    {turn_ccw,"엣지 좌회전"},
+    {turn_cw,"엣지 우회전"},
+    {turn_optimized,"새 엣지(우회전)가 짧을 경우에만 엣지 회전"}
+   ]},
+  {command_name,
+   [
+    {turn,"턴(대각 전환)"}
+   ]},
+  {validate_edges,
+   [
+    {1,"선택된 엣지가 같은 페이스에 있으면 안됩니다."}
+   ]}
+ ]}.

@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_rwx,
+ [
+  {dialog,
+   [
+    {1,"ファセット光源サンプリング"},
+    {2,"ファイルサイズを最適化する?"},
+    {3,"環境光"},
+    {4,"拡散光"},
+    {5,"反射光"},
+    {6,"出力スケール"},
+    {7,"細分化ステップ"}
+   ]},
+  {do_export,
+   [
+    {1,"Renderware 書き出しオプション"}
+   ]},
+  {props,
+   [
+    {1,"Criterion Renderware File"}
+   ]}
+ ]}.

@@ -1,0 +1,19 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ai,
+ [
+  {command,
+   [
+    {1,"AI 読込みオプション"},
+    {2,"辺の分割数"},
+    {3,"Adobe Illustrator File"}
+   ]},
+  {make_ai,
+   [
+    {1,"AI 読み込みが失敗しました"},
+    {2,"AI 読込みで内部エラー発生"}
+   ]},
+  {tryimport,
+   [
+    {1,"Adobe Illustrator形式 (バージョン8以前)ではありません)"}
+   ]}
+ ]}.

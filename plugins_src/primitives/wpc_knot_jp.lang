@@ -1,0 +1,8 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_knot,
+ [
+  {knot_menu,
+   [
+    {1,"トーラス(結び目)"}
+   ]}
+ ]}.

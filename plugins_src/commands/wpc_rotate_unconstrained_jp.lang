@@ -1,0 +1,14 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_rotate_unconstrained,
+ [
+  {orbitrot_menu,
+   [
+    {1,"アンコンストレイント"},
+    {2,"選択領域の周囲を自由に回転させます "},
+    {3,"回転の中心を指定してください"}
+   ]},
+  {selection_ask,
+   [
+    {1,"回転の中心を指定してください"}
+   ]}
+ ]}.

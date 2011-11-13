@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_move_planar,
+ [
+  {axis_menu_string,
+   [
+    {1,"~ts 에 정의한 모든 이동을 플레인으로 제한"}
+   ]},
+  {move_planar_menu,
+   [
+    {1,"플레이너(평면)"},
+    {2,"표준 플레인으로 이동 제한"},
+    {3,"플레인 피크(선택)"}
+   ]},
+  {selection_ask,
+   [
+    {1,"제한된 모든 이동할 플레인 선택"}
+   ]}
+ ]}.

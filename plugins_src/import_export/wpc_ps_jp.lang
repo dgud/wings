@@ -1,0 +1,20 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ps,
+ [
+  {command,
+   [
+    {2,"辺の分割数"},
+    {4,"PS/EPS 読込みオプション"},
+    {5,"PostScript File"},
+    {6,"Encapsulated PostScript File"}
+   ]},
+  {make_ps,
+   [
+    {1,"PS 読込みが失敗しました"},
+    {2,"PS 読込みが失敗しました"}
+   ]},
+  {try_import_ps,
+   [
+    {1,"Adobe PostScript形式のファイルではありません"}
+   ]}
+ ]}.

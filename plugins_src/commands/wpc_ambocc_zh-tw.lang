@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ambocc,
+ [
+  {ambient,
+   [
+    {1,"環境"}
+   ]},
+  {ambient_occlusion,
+   [
+    {1,"OpenGL 環境光遮蔽時間: ~.1fs (~ts)\n"}
+   ]},
+  {menu,
+   [
+    {1,"環境光遮蔽"},
+    {2,"新增環境光遮蔽頂點色通過OpenGL"}
+   ]},
+  {process_obj,
+   [
+    {1,"處理: ~ts\n"}
+   ]}
+ ]}.

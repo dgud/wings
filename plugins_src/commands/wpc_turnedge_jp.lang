@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_turnedge,
+ [
+  {command_help,
+   [
+    {turn_ccw,"辺の方向を反時計周りにひっくり返します"},
+    {turn_cw,"辺の方向を時計周りにひっくり返します"},
+    {turn_optimized,"新しい辺がより短い場合のみ時計回りにひっくり返します"}
+   ]},
+  {command_name,
+   [
+    {turn,"ターン"}
+   ]},
+  {validate_edges,
+   [
+    {1,"選択された辺は同じ面にあってはいけません."}
+   ]}
+ ]}.
