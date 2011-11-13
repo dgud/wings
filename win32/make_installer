@@ -76,14 +76,18 @@ $INSTALL -c -m 644 ebin/* "$dest/ebin"
 $INSTALL -d  "$dest/fonts"
 
 $INSTALL -d "$dest/textures"
-$INSTALL -d "$dest/shaders"
 $INSTALL -c -m 644 textures/* "$dest/textures"
-$INSTALL -c -m 644 shaders/* "$dest/shaders"
+$INSTALL -d "$dest/shaders/utils" "$dest/shaders/pbr"
+$INSTALL -c -m 644 shaders/*.fs "$dest/shaders"
+$INSTALL -c -m 644 shaders/*.vs "$dest/shaders"
+$INSTALL -c -m 644 shaders/*.cl "$dest/shaders"
+$INSTALL -c -m 644 shaders/utils/* "$dest/shaders/utils"
+$INSTALL -c -m 644 shaders/pbr/* "$dest/shaders/pbr"
 
 $INSTALL -d "$dest/plugins/default" "$dest/plugins/accel" \
  "$dest/plugins/import_export" "$dest/plugins/commands" \
  "$dest/plugins/primitives" "$dest/plugins/win32_file" \
- "$dest/plugins/autouv" "$dest/plugins/jpeg"
+ "$dest/plugins/autouv" "$dest/plugins/jpeg" "$dest/plugins/pbr"
 
 $INSTALL -c -m 644 fonts/* "$dest/fonts"
 
@@ -95,6 +99,7 @@ $INSTALL -c -m 644 plugins/primitives/* "$dest/plugins/primitives"
 $INSTALL -c -m 644 plugins/win32_file/* "$dest/plugins/win32_file"
 $INSTALL -c -m 644 plugins/autouv/* "$dest/plugins/autouv"
 $INSTALL -c -m 644 plugins/jpeg/* "$dest/plugins/jpeg"
+$INSTALL -c -m 644 plugins/pbr/* "$dest/plugins/pbr"
 
 # Copy the relevant parts of Erlang/OTP.
 
