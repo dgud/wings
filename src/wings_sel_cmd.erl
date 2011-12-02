@@ -128,7 +128,9 @@ menu(St) ->
 	    ?__(59,"Select all edges between different materials")++Help},
 	   {?__(60,"UV-Mapped Faces"),uv_mapped_faces,
 	    ?__(61,"Select all edges that have UV coordinates")++Help},
-	   {?__(62,"Id..."),id,?__(63,"Select by numeric id")}]}},
+	   {?__(62,"Id..."),id,?__(63,"Select by numeric id")},
+	   {?__(107,"Name..."),
+	    by_name,?__(108,"Select objects by name. *'s may be used as wildcards")}]}},
      {?__(64,"Lights"),lights,?__(65,"Select all lights")},
      separator,
      {sel_all_str(St),all,?__(66,"Select all elements")},
@@ -380,11 +382,11 @@ by_command({nonplanar_faces,Ask}, St) ->
 by_command({vertices_with,N}, St) ->
     vertices_with(N, St);
 by_command({non_quad,all}, St) ->
-    {save_state,faces_with({non_quad,all}, St)};
+    faces_with({non_quad,all}, St);
 by_command({non_quad,odd}, St) ->
-    {save_state,faces_with({non_quad,odd}, St)};
+    faces_with({non_quad,odd}, St);
 by_command({non_quad,even}, St) ->
-    {save_state,faces_with({non_quad,even}, St)};
+    faces_with({non_quad,even}, St);
 by_command({faces_with,N}, St) ->
     faces_with({faces_with,N}, St);
 by_command(material_edges, St) ->
@@ -406,7 +408,11 @@ by_command(uv_mapped_faces, St) ->
 by_command(id, St) ->
     by_id(St);
 by_command({id,Sel}, St) ->
-    {save_state,sel_by_id(Sel, St)}.
+    {save_state,sel_by_id(Sel, St)};
+by_command(by_name, St) ->
+    by_name(St);
+by_command({by_name_with, Name}, St) ->
+    {save_state,by_name_with(Name, St)}.
 
 face_region_to_edge_loop(St) ->
     Sel = wings_sel:fold(
@@ -1018,6 +1024,29 @@ item_by_id(Prompt, #st{shapes=Shs}) ->
 
 sel_by_id({Prompt,Sel}, St) ->
     wings_sel:set(valid_sel(Prompt, Sel, St), St).
+
+by_name(#st{shapes=Shs}) ->
+    case gb_trees:is_empty(Shs) of
+	true -> wings_u:error_msg(?__(1,"Nothing to select."));
+	_ ->
+        wings_ask:ask(?__(2,"Select by name"),
+              [{?__(3,"Name"), ""}],
+              fun([String]) -> {select,{by,{by_name_with,String}}} end)
+    end.
+
+by_name_with(Filter, #st{shapes=Shs}=St) ->
+    Sel = foldl(fun(#we{id=Id,perm=P,name=Name}, A) ->
+            if ?IS_VISIBLE(P)=:=true ->
+                case wings_util:is_name_masked(Name,Filter) of
+                true -> #st{sel=Sel0}=wings_sel:select_object(Id,St),
+                    [A|Sel0];
+                _ -> A
+                end;
+            true -> A
+            end
+		end, [], gb_trees:values(Shs)),
+	Sel1=lists:flatten(Sel),
+    St#st{sel=Sel1}.
 
 valid_sel(Prompt, Sel, #st{shapes=Shs,selmode=Mode}=St) ->
     case wings_sel:valid_sel(Sel, Mode, St) of
@@ -1697,14 +1726,14 @@ faces_with(Filter, #st{sel=[]}=St) ->
 faces_with(Filter, #st{selmode=Mode}=St0) ->
     St = if Mode =:= face -> St0; true -> wings_sel_conv:mode(face, St0) end,
     Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
-				Sel1 = gb_sets:to_list(Sel0),
-				Faces = [Face || Face <- Sel1, faces_with(Filter, Face, We)],
-				case Faces of
-				  [] -> Acc;
-				  _ -> [{Id,gb_sets:from_list(Faces)}|Acc]
-				end
-			end, [], St),
-	{save_state,wings_sel:set(face,Sel,St0)}.
+				 Sel1 = gb_sets:to_list(Sel0),
+				 Faces = [Face || Face <- Sel1, faces_with(Filter, Face, We)],
+				 case Faces of
+				     [] -> Acc;
+				     _ -> [{Id,gb_sets:from_list(Faces)}|Acc]
+				 end
+			 end, [], St),
+    {save_state,wings_sel:set(face,Sel,St0)}.
 
 faces_with(Filter, Face, We) ->
     Vs = wings_face:vertices(Face, We),

@@ -13,7 +13,7 @@
 
 -module(wings_body).
 -export([menu/3,command/2]).
--export([auto_smooth/1]).
+-export([auto_smooth/1,rename_selected/2,rename_filtered/3]).
 
 -include("wings.hrl").
 -include("sdl_keyboard.hrl").
@@ -671,6 +671,49 @@ cos_degrees(Angle) ->
 %%%
 %%% Rename selected objects.
 %%%
+
+% used by wings_shape - Rename option - Selected
+rename_selected(Mask,St) ->
+    {_,Names,Wes} = wings_sel:fold(fun(_, We, {Idx,NAcc,WAcc}) ->
+        Name0=get_masked_name(Mask,Idx),
+        {Idx+1,[Name0|NAcc],[We|WAcc]}
+    end, {1,[],[]}, St),
+    rename_1(Names, Wes, St).
+% used by wings_shape - Rename option - Filtered
+rename_filtered(Filter,Mask,#st{shapes=Shs}=St) ->
+    {_,Names,Wes}=foldl(fun({_,#we{name=Name}=We},{Idx,NAcc,WAcc}=Acc) ->
+        case wings_util:is_name_masked(Name,Filter) of
+        true ->
+            Name0=get_masked_name(Mask,Idx),
+            {Idx+1,[Name0|NAcc],[We|WAcc]};
+        false -> Acc
+        end
+    end,{1,[],[]},gb_trees:to_list(Shs)),
+    rename_1(Names, Wes, St).
+
+get_masked_name(Mask,SeqNum) ->
+    Idx=string:chr(Mask,$%),
+    Mask0 = if Idx=:=0 -> Mask++"%";
+      true -> Mask
+    end,
+    Len=string:len(Mask0),
+    case string:chr(Mask0,$%) of
+      0 -> integer_to_list(SeqNum)++Mask;
+      Len -> string:sub_string(Mask,1,Len-1)++integer_to_list(SeqNum);
+      Idx0 ->
+        Prefix=string:sub_string(Mask,1,Idx0-1),
+        Suffix0=string:sub_string(Mask,Idx0+1),
+        Idx1=string:chr(Suffix0,$%),
+        {SeqNum0,Suffix}= if Idx1=/=0 ->
+            StartNum=string:sub_string(Suffix0,1,Idx1-1),
+            case string:to_integer(StartNum) of
+            {error,_} ->  {SeqNum,Suffix0};
+            {Value,_} ->  {Value+SeqNum-1,string:sub_string(Suffix0,Idx1+1)}
+            end;
+          true -> {SeqNum,Suffix0}
+        end,
+        Prefix++integer_to_list(SeqNum0)++Suffix
+    end.
 
 rename_prefix(St0) ->
     Wes = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St0),
