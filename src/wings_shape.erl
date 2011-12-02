@@ -282,7 +282,7 @@ event({set_knob_pos,Pos}, #ost{first=First0,n=N}=Ost0) ->
 	    get_event(Ost);
 	_ -> keep
     end;
-event({action,Action}, #ost{st=St0}=Ost) ->
+event({action,Action}, #ost{st=#st{sel=Sel}=St0}=Ost) ->
     case Action of
       {objects,{remove_from_folder,Id}} ->
           St = move_to_folder(?NO_FLD, [Id], St0),
@@ -300,6 +300,17 @@ event({action,Action}, #ost{st=St0}=Ost) ->
           St = delete_folder(Folder, St0),
           send_client({new_state,St}),
           get_event(Ost);
+      {objects,{rename_objects,normal}} ->
+		Ids=wings_sel:fold(
+			fun(_,#we{id=Id},Acc) ->
+				Acc++[Id]
+			end, [], St0),
+		if Ids=/=[] -> command({rename_objects,Ids},Ost);
+			true -> get_event(Ost)
+		end;
+      {objects,{rename_objects,masked}} ->
+          rename_filtered_dialog(length(Sel)>1),
+          get_event(Ost);
       {objects,Cmd} ->
           command(Cmd, Ost);
       {create_folder,[Folder]} ->
@@ -308,6 +319,14 @@ event({action,Action}, #ost{st=St0}=Ost) ->
           get_event(Ost);
       {rename_folder,[OldName,NewName]} ->
           St = rename_folder(OldName, NewName, St0),
+          send_client({update_state,St}),
+          get_event(Ost);
+      {rename_selected_objects,[Mask]} ->
+          St=wings_body:rename_selected(Mask,St0),
+          send_client({update_state,St}),
+          get_event(Ost);
+      {rename_filtered_objects,[Filter,Mask]} ->
+          St=wings_body:rename_filtered(Filter,Mask,St0),
           send_client({update_state,St}),
           get_event(Ost)
     end;
@@ -356,6 +375,8 @@ command({duplicate_object,Id}, _) ->
     send_client({action,{body,{duplicate_object,[Id]}}});
 command({rename_object,Id}, _) ->
     send_client({action,{body,{rename,[Id]}}});
+command({rename_objects,Ids}, _) ->
+    send_client({action,{body,{rename,Ids}}});
 command(create_folder, _) ->
     create_folder_dialog();
 command({rename_folder,OldName}, _) ->
@@ -774,8 +795,10 @@ do_menu(Act, X, Y, #ost{os=Objs}) ->
               ?STR(do_menu,2,"Duplicate selected objects")},
              {?STR(do_menu,3,"Delete"),menu_cmd(delete_object, Id),
               ?STR(do_menu,4,"Delete selected objects")},
-             {?STR(do_menu,5,"Rename"),menu_cmd(rename_object, Id),
-              ?STR(do_menu,6,"Rename selected objects")},
+             {?STR(do_menu,5,"Rename"),rename_menu(Id),
+              {?STR(do_menu,6,"Rename selected objects"),
+               ?STR(do_menu,14,"Rename all selected objects"),
+               ?STR(do_menu,15,"Rename objects using Search and Replace")},[]},
               separator,
              {?__(7,"Create Folder"),menu_cmd(create_folder)}]++RF;
         Folder ->
@@ -791,11 +814,27 @@ do_menu(Act, X, Y, #ost{os=Objs}) ->
     end,
     wings_menu:popup_menu(X, Y, objects, Menu).
 
+rename_menu(Id) ->
+    fun(1, _Ns) ->
+      button_menu_cmd(rename_object, Id);
+       (2, _Ns) ->
+      button_menu_cmd(rename_objects, normal);
+       (3, _Ns) ->
+      button_menu_cmd(rename_objects, masked);
+       (_, _) -> ignore
+    end.
+
 menu_cmd(Cmd) ->
     {'VALUE',Cmd}.
 
 menu_cmd(Cmd, Id) ->
     {'VALUE',{Cmd,Id}}.
+
+button_menu_cmd(Cmd) ->
+	{objects,{Cmd}}.
+
+button_menu_cmd(Cmd, Id) ->
+	{objects,{Cmd,Id}}.
 
 %%%
 %%% Draw the Geometry Graph window.
@@ -1804,6 +1843,45 @@ rename_folder_dialog(OldName) ->
            {text,OldName,[]}]}],
     wings_ask:dialog(true, ?__(2,"Rename Folder"), Qs,
            fun(Res) -> {rename_folder,[OldName|Res]} end).
+
+rename_filtered_dialog(ManyObjs) ->
+    ModeHook=fun(Event, Params) ->
+            case Event of
+            update ->
+                {Var,_,Val,Store}=Params,
+                {store,gb_trees:update(Var,Val,Store)};
+            is_minimized ->
+                false;
+            is_disabled ->
+                {Var,_,Store}=Params,
+                case Var of
+                rn_search ->
+                    gb_trees:get(rn_mode,Store)=:=0;
+                rn_mode ->
+                    ManyObjs=:=false;
+                _ ->
+                    false
+                end
+            end
+    end,
+    Qs = [{vframe,
+          [{hradio, [{?__(6,"Selected objects"),0},
+                     {?__(7,"Search"),1}], 1,
+                     [{key,rn_mode},{title, ?__(8,"Apply to")},{hook,ModeHook}]
+                     },
+           {hframe, [{label,?__(1,"Search")},
+                     {text,"",[{info,?__(4,"Matching objects to be renamed. *'s may be used as wildcards")},
+                               {key,rn_search},{hook,ModeHook}]}]},
+           {hframe, [{label,?__(2,"Choose Name")},
+                     {text,"",[{info,[?__(5,"New name. Use % to indicate numbered objects and %number% for the start counter")]},
+                               {key,rn_name}]}]}]}],
+    wings_ask:dialog(true, ?__(3,"Replace"), Qs,
+           fun([{rn_mode,Mode},{rn_search,Filter},{rn_name,Mask}]=_Res) ->
+                case Mode of
+                0 -> {rename_selected_objects,[Mask]};
+                1 -> {rename_filtered_objects,[Filter,Mask]}
+                end
+           end).
 
 merge_st({_,_}=Data, _) ->
     Data;

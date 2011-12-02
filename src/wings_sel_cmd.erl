@@ -128,7 +128,9 @@ menu(St) ->
 	    ?__(59,"Select all edges between different materials")++Help},
 	   {?__(60,"UV-Mapped Faces"),uv_mapped_faces,
 	    ?__(61,"Select all edges that have UV coordinates")++Help},
-	   {?__(62,"Id..."),id,?__(63,"Select by numeric id")}]}},
+	   {?__(62,"Id..."),id,?__(63,"Select by numeric id")},
+	   {?__(107,"Name..."),
+	    by_name,?__(108,"Select objects by name. *'s may be used as wildcards")}]}},
      {?__(64,"Lights"),lights,?__(65,"Select all lights")},
      separator,
      {sel_all_str(St),all,?__(66,"Select all elements")},
@@ -395,7 +397,13 @@ by_command({vertex_path,astar_shortest_path}, St) ->
 by_command(uv_mapped_faces, St) ->
     uv_mapped_faces(St);
 by_command(id, St) ->
-    by_id(St).
+    by_id(St);
+by_command({id,Sel}, St) ->
+    {save_state,sel_by_id(Sel, St)};
+by_command(by_name, St) ->
+    by_name(St);
+by_command({by_name_with, Name}, St) ->
+    {save_state,by_name_with(Name, St)}.
 
 face_region_to_edge_loop(St) ->
     Sel = wings_sel:fold(
@@ -1008,6 +1016,29 @@ item_by_id(Prompt, #st{shapes=Shs}=St) ->
 		end, St)
     end.
 
+
+by_name(#st{shapes=Shs}) ->
+    case gb_trees:is_empty(Shs) of
+	true -> wings_u:error_msg(?__(1,"Nothing to select."));
+	_ ->
+        wings_ask:ask(?__(2,"Select by name"),
+              [{?__(3,"Name"), ""}],
+              fun([String]) -> {select,{by,{by_name_with,String}}} end)
+    end.
+
+by_name_with(Filter, #st{shapes=Shs}=St) ->
+    Sel = foldl(fun(#we{id=Id,perm=P,name=Name}, A) ->
+            if ?IS_VISIBLE(P)=:=true ->
+                case wings_util:is_name_masked(Name,Filter) of
+                true -> #st{sel=Sel0}=wings_sel:select_object(Id,St),
+                    [A|Sel0];
+                _ -> A
+                end;
+            true -> A
+            end
+		end, [], gb_trees:values(Shs)),
+	Sel1=lists:flatten(Sel),
+    St#st{sel=Sel1}.
 
 valid_sel(Prompt, Sel, #st{shapes=Shs,selmode=Mode}=St) ->
     case wings_sel:valid_sel(Sel, Mode, St) of

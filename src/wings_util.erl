@@ -25,6 +25,7 @@
 	 array_is_empty/1,array_entries/1,
 	 nice_float/1,
 	 unique_name/2,
+	 is_name_masked/2,
 	 lib_dir/1,
 	 tc/3,
 	 limit/2]).
@@ -235,6 +236,59 @@ limit(Val, {Min,Max}) when Min < Max, Val < Min -> Min;
 limit(Val, {Min,Max}) when Min < Max, Val > Max -> Max;
 limit(Val, {Min,Max}) when Min < Max -> Val.
 
+%%
+%% Check if name match with the mask.
+%%
+
+is_name_masked(Name,Mask) ->
+    Mask0=string:to_upper(Mask),
+    Name0=string:to_upper(Name),
+    is_name_masked_0(Name0,Mask0,get_mask_pos(Mask0)).
+
+is_name_masked_0(_Name,"*",_MaskPos) -> true;
+is_name_masked_0([],_Mask,_MaskPos) -> false;
+is_name_masked_0(_Name,[],_MaskPos) -> false;
+is_name_masked_0(Name,Name,[]) -> true;
+is_name_masked_0(_Name,_Mask,[]) -> false;
+is_name_masked_0(Name,Mask,[H|[]]=_MaskPos) ->  % *text with only one wildcard
+    Mlen=string:len(Mask),
+    case H of
+    1 ->     % *text value
+        Mask0=string:sub_string(Mask,H+1),
+        MPos=string:rstr(Name,Mask0),
+        (string:len(Name)-MPos+1)=:=(Mlen-1);
+    Mlen ->  % text value*
+        Mask0=string:sub_string(Mask,1,Mlen-1),
+        string:str(Name,Mask0)=:=1;
+    _ ->     % text *value
+        Mask0=string:sub_string(Mask,1,H-1),
+        Mask1=string:sub_string(Mask,H+1),
+        MPos=string:rstr(Name,Mask1),
+        Mlen0=string:len(Mask1),
+        (string:str(Name,Mask0)=:=1) and ((string:len(Name)-MPos)=:=(Mlen0-1))
+    end;
+is_name_masked_0(Name,Mask,[H|[H0|_T0]=_T]=_MaskPos) ->  % *text with more than one wildcard
+    case H of
+    1 ->     % *text value
+        Mask0=string:sub_string(Mask,H+1,H0-1),
+        Mask1=string:sub_string(Mask,H0),
+        case string:str(Name,Mask0) of
+        0 -> false;
+        NPos ->
+            Name0=string:sub_string(Name,NPos+H0-H-1),
+            is_name_masked_0(Name0,Mask1,get_mask_pos(Mask1))
+        end;
+    _ ->     % te*xt value*
+        Mask0=string:sub_string(Mask,1,H-1),
+        Mask1=string:sub_string(Mask,H),
+        case string:str(Name,Mask0) of
+        1 ->
+            Name0=string:sub_string(Name,H),
+            is_name_masked_0(Name0,Mask1,get_mask_pos(Mask1));
+        _ -> false
+        end
+    end.
+
 %%%
 %%% Local functions.
 %%%
@@ -275,6 +329,20 @@ lib_dir(wings) ->
     end;
 lib_dir(Lib) ->
     code:lib_dir(Lib).
+
+get_mask_pos([]) -> [];
+get_mask_pos(Mask) ->
+    get_mask_pos_1(Mask,0,[]).
+
+get_mask_pos_1([],_,Acc) -> Acc;
+get_mask_pos_1(Mask,Offset,Acc) ->
+    case string:str(Mask,"*") of
+    0 -> Acc;
+    Pos ->
+        Pos0=Pos+Offset,
+        get_mask_pos_1(string:sub_string(Mask,Pos+1),Pos0,Acc++[Pos0])
+    end.
+
 
 % % % % % % % % % % % % % % % % % % %
 %% Strings for Translating Hotkeys %%
