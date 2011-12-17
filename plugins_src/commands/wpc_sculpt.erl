@@ -164,9 +164,9 @@ handle_sculpt_event_1(#mousebutton{button=3,mod=Mod,x=X,y=Y,state=?SDL_PRESSED},
   when Mod band ?CTRL_BITS =:= 0 ->
     {GX,GY} = wings_wm:local2global(X, Y),
     adjust_magnet(GX, GY, Sc);
-handle_sculpt_event_1(#mousebutton{button=3,mod=Mod,x=X,y=Y,state=?SDL_RELEASED}, _)
+handle_sculpt_event_1(#mousebutton{button=3,mod=Mod,x=X,y=Y,state=?SDL_RELEASED}, Sc)
   when Mod band ?CTRL_BITS =/= 0 ->
-    sculpt_menu(X, Y);
+    sculpt_menu(X, Y, Sc);
 handle_sculpt_event_1(#keyboard{sym=Sym,state=?SDL_PRESSED}=Ev, Sc) ->
     handle_key(Sym, Ev, Sc);
 handle_sculpt_event_1({action,Action}, Sc) ->
@@ -790,24 +790,25 @@ set_values([]) -> ok.
 %%% Sculpt Menu
 %%%
 
-sculpt_menu(X0, Y0) ->
+sculpt_menu(X0, Y0, Sc) ->
     {X,Y} =  wings_wm:local2global(X0, Y0),
-    Menu = sculpt_menu(),
+    Menu = sculpt_menu(Sc),
     wings_menu:popup_menu(X, Y, sculpt, Menu).
 
-sculpt_menu() ->
-    [{mode(push)++"/"++mode(pull),pull},
-     {mode(pinch)++"/"++mode(inflate),pinch},
-     {mode(smooth),smooth},
+sculpt_menu(#sculpt{mag=Mag,mag_type=MagType,mode=Mode}) ->
+    [{mode(push)++"/"++mode(pull),pull,crossmark(Mode, pull)},
+     {mode(pinch)++"/"++mode(inflate),pinch,crossmark(Mode, pinch)},
+     {mode(smooth),smooth,crossmark(Mode, smooth)},
      separator,
-     {magtype(dome),dome},
-     {magtype(absolute),absolute},
-     {magtype(straight),straight},
-     {magtype(spike),spike},
-     {magtype(bell),bell},
+     {magtype(dome),dome,crossmark(MagType, dome)},
+     {magtype(absolute),absolute,crossmark(MagType, absolute)},
+     {magtype(straight),straight,crossmark(MagType, straight)},
+     {magtype(spike),spike,crossmark(MagType, spike)},
+     {magtype(bell),bell,crossmark(MagType, bell)},
      separator,
-     {?__(1,"Magnet On/Off"),magnet},
-     {?__(2,"Magnet Mask On/Off"),mask_toggle},
+     {?__(1,"Magnet On/Off"),magnet,crossmark(Mag, true)},
+     {?__(2,"Magnet Mask On/Off"),mask_toggle,
+         wings_menu_util:crossmark(magnet_mask_on)},
      separator,
      {?__(3,"Preferences"),prefs},
      separator,
@@ -945,4 +946,9 @@ vert_display(Size,vertex) ->
       false -> Size
     end;
 vert_display(Size,_Selmode) -> Size.
+
+crossmark(Key, Key) ->
+    [crossmark];
+crossmark(_, _) ->
+    [].
 
