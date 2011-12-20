@@ -19,6 +19,12 @@
 #include <windows.h>
 #endif
 
+#if (ERL_DRV_EXTENDED_MAJOR_VERSION < 2)
+/* R14B or earlier types */
+#define ErlDrvSizeT  int
+#define ErlDrvSSizeT int
+#endif
+
 #include <math.h>
 #include <string.h>
 
@@ -57,9 +63,9 @@ double snoise4( double x, double y, double z, double w );
  */
 static ErlDrvData perlin_noise_start(ErlDrvPort port, char *buff);
 static void perlin_noise_stop(ErlDrvData handle);
-static int control(ErlDrvData handle, unsigned int command, 
-                   char* buff, int count, 
-                   char** res, int res_size);
+static ErlDrvSSizeT control(ErlDrvData handle, unsigned int command, 
+			    char* buff, ErlDrvSizeT count, 
+			    char** res, ErlDrvSizeT res_size);
 
 /*
  * Internal routines
@@ -82,7 +88,17 @@ ErlDrvEntry perlin_file_driver_entry = {
    NULL,                  /* void * that is not used (BC) */
    control,               /* F_PTR control, port_control callback */
    NULL,                  /* F_PTR timeout, driver_set_timer callback */
-   NULL                   /* F_PTR outputv, reserved */
+   NULL,                  /* F_PTR outputv, reserved */
+   NULL,                  /* async */
+   NULL,                  /* flush */
+   NULL,                  /* call */
+   NULL,                  /* Event */
+   ERL_DRV_EXTENDED_MARKER,
+   ERL_DRV_EXTENDED_MAJOR_VERSION,
+   ERL_DRV_EXTENDED_MINOR_VERSION,
+   ERL_DRV_FLAG_USE_PORT_LOCKING, /* Port lock */
+   NULL,                  /* Reserved Handle */
+   NULL,                  /* Process Exited */
 };
 
 /*
@@ -114,52 +130,57 @@ static void perlin_noise_stop(ErlDrvData handle)
    
 }
 
-static int control(ErlDrvData handle, unsigned int command,
-		   char* buff, int count, 
-		   char** res, int res_size)
+static ErlDrvSSizeT control(ErlDrvData handle, unsigned int command,
+			    char* buff, ErlDrvSizeT count, 
+			    char** res, ErlDrvSizeT res_size)
 {
    ErlDrvBinary* bin;
 
    switch (command) {
 
    case PNOISE3: {
-      double f[3];
+      double f[3], *ptr;
       memcpy(f, buff, sizeof(double)*3);
       bin = driver_alloc_binary(sizeof(double)); 
-      * (double *) bin->orig_bytes = pnoise(f[0], f[1], f[2]);
+      ptr = (double *) bin->orig_bytes;
+      *ptr = pnoise(f[0], f[1], f[2]);
       *res = (char *) bin;
       return sizeof(double);
    }
 
    case SNOISE1: {
-      double f[1];
+      double f[1], *ptr;
       memcpy(f, buff, sizeof(double)*1);
       bin = driver_alloc_binary(sizeof(double)); 
-      * (double *) bin->orig_bytes = snoise1(f[0]);
+      ptr = (double *) bin->orig_bytes;
+      *ptr = snoise1(f[0]);
       *res = (char *) bin;
       return sizeof(double);
    }
    case SNOISE2: {
-      double f[2];
+      double f[2], *ptr;
       memcpy(f, buff, sizeof(double)*2);
       bin = driver_alloc_binary(sizeof(double)); 
-      * (double *) bin->orig_bytes = snoise2(f[0], f[1]);
+      ptr = (double *) bin->orig_bytes;
+      *ptr = snoise2(f[0], f[1]);
       *res = (char *) bin;
       return sizeof(double);
    }
    case SNOISE3: {
-      double f[3];
+       double f[3], *ptr;
       memcpy(f, buff, sizeof(double)*3);
       bin = driver_alloc_binary(sizeof(double)); 
-      * (double *) bin->orig_bytes = snoise3(f[0], f[1], f[2]);
+      ptr = (double *) bin->orig_bytes;
+      *ptr = snoise3(f[0], f[1], f[2]);
       *res = (char *) bin;
       return sizeof(double);
    }
    case SNOISE4: {
-      double f[4];
+      double f[4], *ptr;
       memcpy(f, buff, sizeof(double)*4);
       bin = driver_alloc_binary(sizeof(double)); 
-      * (double *) bin->orig_bytes = snoise4(f[0], f[1], f[2], f[3]);
+      ptr = (double *) bin->orig_bytes;
+      *ptr = snoise4(f[0], f[1], f[2], f[3]);
       *res = (char *) bin;
       return sizeof(double);
    }
@@ -169,7 +190,7 @@ static int control(ErlDrvData handle, unsigned int command,
       int sz = * ((unsigned int*) buff);
       unsigned char *noise;
       bin = driver_alloc_binary(sz); 
-      noise = bin->orig_bytes;
+      noise = (unsigned char*) bin->orig_bytes;
       for(i=0; i < sz ; i++) {
 	 double iv = (double)i/(sz-1);
 
@@ -187,7 +208,7 @@ static int control(ErlDrvData handle, unsigned int command,
       int i,j;
       unsigned char *noise;
       bin = driver_alloc_binary(sz*sz); 
-      noise = bin->orig_bytes;
+      noise = (unsigned char*) bin->orig_bytes;
       
       for(i=0; i < sz ; i++) {
 	 for(j=0; j < sz ; j++) {
@@ -212,7 +233,7 @@ static int control(ErlDrvData handle, unsigned int command,
       int i,j,k;
       unsigned char *noise;
       bin = driver_alloc_binary(sz*sz*sz); 
-      noise = bin->orig_bytes;
+      noise = (unsigned char*) bin->orig_bytes;
       
       for(i=0; i < sz ; i++) {
 	 for(j=0; j < sz ; j++) {
@@ -237,7 +258,7 @@ static int control(ErlDrvData handle, unsigned int command,
       int sz = * ((unsigned int*) buff);
       unsigned char *noise;
       bin = driver_alloc_binary(sz); 
-      noise = bin->orig_bytes;
+      noise = (unsigned char*) bin->orig_bytes;
       for(i=0; i < sz ; i++) {
 	 double 
 	    iv = (double)i/(sz-1);
@@ -255,7 +276,7 @@ static int control(ErlDrvData handle, unsigned int command,
       int i,j;
       unsigned char *noise;
       bin = driver_alloc_binary(sz*sz*4); 
-      noise = bin->orig_bytes;
+      noise = (unsigned char*) bin->orig_bytes;
       
       for(i=0; i < sz ; i++) {
 	 for(j=0; j < sz ; j++) {
@@ -276,10 +297,10 @@ static int control(ErlDrvData handle, unsigned int command,
    case SNOISE_MAP3: {
       int sz = * ((unsigned int*) buff);
       int i,j,k;
-      unsigned char *noise, * ptr;
+      unsigned char *noise;
 
       bin = driver_alloc_binary(sz*sz*sz*4); 
-      noise = bin->orig_bytes;
+      noise = (unsigned char*) bin->orig_bytes;
       
       for(i=0; i < sz ; i++) {
 	  double iv = (double)i/(sz-1);	  

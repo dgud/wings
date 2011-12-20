@@ -24,14 +24,21 @@
 
 #define PATH_MAX 1024
 
+
+#if (ERL_DRV_EXTENDED_MAJOR_VERSION < 2)
+/* R14B or earlier types */
+#define ErlDrvSizeT  int
+#define ErlDrvSSizeT int
+#endif
+
 /*
 ** Interface routines
 */
 static ErlDrvData mac_wings_file_start(ErlDrvPort port, char *buff);
 static void mac_wings_file_stop(ErlDrvData handle);
-static int mac_wings_file_control(ErlDrvData handle, unsigned int command, 
-			      char* buff, int count, 
-			      char** res, int res_size);
+static ErlDrvSSizeT mac_wings_file_control(ErlDrvData handle, unsigned int command,
+					   char* buff, ErlDrvSizeT count,
+					   char** res, ErlDrvSizeT res_size);
 
 /*
 ** Internal routines
@@ -54,7 +61,17 @@ ErlDrvEntry mac_wings_file_driver_entry = {
     NULL,                  /* void * that is not used (BC) */
     mac_wings_file_control,    /* F_PTR control, port_control callback */
     NULL,                  /* F_PTR timeout, driver_set_timer callback */
-    NULL                   /* F_PTR outputv, reserved */
+    NULL,                  /* F_PTR outputv, reserved */
+    NULL,                  /* async */
+    NULL,                  /* flush */
+    NULL,                  /* call */
+    NULL,                  /* Event */
+    ERL_DRV_EXTENDED_MARKER,
+    ERL_DRV_EXTENDED_MAJOR_VERSION,
+    ERL_DRV_EXTENDED_MINOR_VERSION,
+    ERL_DRV_FLAG_USE_PORT_LOCKING, /* Port lock */
+    NULL,                  /* Reserved Handle */
+    NULL,                  /* Process Exited */
 };
 
 /*
@@ -92,9 +109,9 @@ static void mac_wings_file_stop(ErlDrvData handle)
 ** operations, but as the wings application is single threaded
 ** it doesn't matter.
 */
-static int mac_wings_file_control(ErlDrvData handle, unsigned int command, 
-			      char* buff, int count, 
-			      char** res, int res_size)
+static ErlDrvSSizeT mac_wings_file_control(ErlDrvData handle, unsigned int command,
+					   char* buff, ErlDrvSizeT count,
+					   char** res, ErlDrvSizeT res_size)
 {
   int result;
   char *rbuff = 0;

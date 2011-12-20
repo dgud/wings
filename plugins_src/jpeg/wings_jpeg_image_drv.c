@@ -24,19 +24,25 @@
 #include "jpeglib.h"
 #include "jerror.h"
 
+#if (ERL_DRV_EXTENDED_MAJOR_VERSION < 2)
+/* R14B or earlier types */
+#define ErlDrvSizeT  int
+#define ErlDrvSSizeT int
+#endif
+
 /*
  * Interface routines
  */
 static ErlDrvData jpeg_image_start(ErlDrvPort port, char *buff);
 static void jpeg_image_stop(ErlDrvData handle);
-static int jpeg_image_control(ErlDrvData handle, unsigned int command, 
-			      char* buff, int count, 
-			      char** res, int res_size);
+static ErlDrvSSizeT jpeg_image_control(ErlDrvData handle, unsigned int command,
+				       char* buff, ErlDrvSizeT count,
+				       char** res, ErlDrvSizeT res_size);
 
 /*
  * Internal functions.
  */
-static void jpeg_buffer_src(j_decompress_ptr cinfo, char* buf, int count);
+static void jpeg_buffer_src(j_decompress_ptr cinfo, char* buf, ErlDrvSizeT count);
 static void jpeg_buffer_dest(j_compress_ptr cinfo, ErlDrvBinary* bin);
 static ErlDrvBinary* jpeg_buffer_dest_get_bin(j_compress_ptr cinfo);
 
@@ -58,7 +64,17 @@ ErlDrvEntry jpeg_image_driver_entry = {
     NULL,                  /* void * that is not used (BC) */
     jpeg_image_control,    /* F_PTR control, port_control callback */
     NULL,                  /* F_PTR timeout, driver_set_timer callback */
-    NULL                   /* F_PTR outputv, reserved */
+    NULL,                  /* F_PTR outputv, reserved */
+    NULL,                  /* async */
+    NULL,                  /* flush */
+    NULL,                  /* call */
+    NULL,                  /* Event */
+    ERL_DRV_EXTENDED_MARKER,
+    ERL_DRV_EXTENDED_MAJOR_VERSION,
+    ERL_DRV_EXTENDED_MINOR_VERSION,
+    ERL_DRV_FLAG_USE_PORT_LOCKING, /* Port lock */
+    NULL,                  /* Reserved Handle */
+    NULL,                  /* Process Exited */
 };
 
 /*
@@ -118,10 +134,10 @@ my_error_exit(j_common_ptr cinfo)
   longjmp(myerr->setjmp_buffer, 1);
 }
 
-static int
+static ErlDrvSSizeT
 jpeg_image_control(ErlDrvData handle, unsigned int command, 
-		   char* buf, int count, 
-		   char** res, int res_size)
+		   char* buf, ErlDrvSizeT count, 
+		   char** res, ErlDrvSizeT res_size)
 {
   JSAMPROW row;
   ErlDrvBinary* bin = 0;
@@ -129,7 +145,7 @@ jpeg_image_control(ErlDrvData handle, unsigned int command,
   switch (command) {
   case 0: {			/* Read */
     struct jpeg_decompress_struct cinfo;
-    int row_stride;		/* physical row width in output buffer */
+    ErlDrvSizeT row_stride;		/* physical row width in output buffer */
     int i;
     unsigned char* rbuf;
     struct my_error_mgr jerr;
@@ -203,7 +219,6 @@ jpeg_image_control(ErlDrvData handle, unsigned int command,
     cinfo.in_color_space = JCS_RGB;
     jpeg_set_defaults(&cinfo);
     buf += 12;
-    count -= 12;
 
     jpeg_start_compress(&cinfo, TRUE);
     row_stride = cinfo.input_components * cinfo.image_width;
@@ -286,7 +301,7 @@ term_source (j_decompress_ptr cinfo)
  */
 
 static void
-jpeg_buffer_src(j_decompress_ptr cinfo, char* buf, int count)
+jpeg_buffer_src(j_decompress_ptr cinfo, char* buf, ErlDrvSizeT count)
 {
   MemSourceMgr* src;
 
