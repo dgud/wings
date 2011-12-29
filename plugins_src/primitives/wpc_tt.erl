@@ -123,7 +123,7 @@ trygen(File, Text, Nsubsteps) ->
 			Ttf = parsett(TTFpart),
 			Pa = getpolyareas(Text, Ttf, Nsubsteps),
 			{Vs0,Fs} = polyareas_to_faces(Pa),
-			{CX,CY,CZ} = e3d_vec:average(Vs0),
+			{CX,CY,CZ} = e3d_vec:average(tuple_to_list(e3d_bv:box(Vs0))),
 			Vs = [{X-CX,Y-CY,Z-CZ} || {X,Y,Z} <- Vs0],
 			{new_shape,"text",Fs,Vs}; % Would be nicer centered by centroid
 		    _ -> {error, ?__(1,"Can't find TrueType section in ") ++ File}
