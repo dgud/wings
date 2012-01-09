@@ -413,8 +413,11 @@ gradient_rect_burst(X, Y, W, H, Color) ->
     GradColors = [0.882353, 0.882353, 0.850980, 0.807843, 0.776471, 0.729412,
 		  0.701961, 0.666667, 0.619608, 0.741176, 0.733333, 0.760784,
 		  0.784314, 0.811765, 0.854902, 0.890196, 0.890196],
+	K = if H=<17 -> H;
+ 		true -> H-1
+	end,
     Draw_Line = fun(Idx) ->
-			GreyValue = lists:nth(round((Idx/H)*17)+1, GradColors),
+			GreyValue = lists:nth(trunc((Idx/K)*17)+1, GradColors),
 			LineColor = mul_color(Color, GreyValue),
 			set_color(LineColor),
 			gl:vertex2f(X-0.5+W, Y-0.5+H-Idx),

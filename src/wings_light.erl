@@ -680,7 +680,12 @@ import_fun({Name,Ps}, St) ->
     wings_shape:new(Name, import(Ps), St).
 
 import(Ps) ->
-    OpenGL = proplists:get_value(opengl, Ps, []),
+    Visible = proplists:get_value(visible, Ps, []),
+    Locked = proplists:get_value(locked, Ps, []),
+    Prop1 = proplists:delete(visible, Ps),
+    Prop0 = proplists:delete(locked, Prop1),
+
+    OpenGL = proplists:get_value(opengl, Prop0, []),
     Type = proplists:get_value(type, OpenGL, point),
     Pos = proplists:get_value(position, OpenGL, ?DEF_POS),
     Diff = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
@@ -691,11 +696,13 @@ import(Ps) ->
     QuadAtt = proplists:get_value(quadratic_attenuation, OpenGL, 0.0),
     Angle = proplists:get_value(cone_angle, OpenGL, 30.0),
     SpotExp = proplists:get_value(spot_exponent, OpenGL, 0.0),
-    Prop = proplists:delete(opengl, Ps),
+    
+    Prop = proplists:delete(opengl, Prop0),
     Light = #light{type=Type,diffuse=Diff,ambient=Amb,specular=Spec,
 		   aim=Aim,lin_att=LinAtt,quad_att=QuadAtt,
 		   spot_angle=Angle,spot_exp=SpotExp,prop=Prop},
-    import_we(Light, OpenGL, Pos).
+    We=import_we(Light, OpenGL, Pos),
+    We#we{perm=import_perm(Visible, Locked)}.
 
 import_ambient(ambient, OpenGL) ->
     proplists:get_value(ambient, OpenGL, {0.1,0.1,0.1,1.0});
@@ -729,6 +736,17 @@ import_we(#light{}=Light, OpenGL, {X,Y,Z}) ->
     We = wings_we:build(Fs, Vs),
     Pst = proplists:get_value(pst, OpenGL, gb_trees:empty()),
     We#we{light=Light,pst=Pst}.
+    
+import_perm([]=_Visible,[]=_Locked) ->  % it will match when a new light is added to project  
+    import_perm(true,false);
+import_perm(false,false) ->
+    [];
+import_perm(true,false) ->
+    0;
+import_perm(true,true) ->
+    1;
+import_perm(false,true) ->
+    3.
 
 import_fix_mesh(#e3d_mesh{fs=Fs0}=Mesh0) ->
     Fs = [import_fix_face(F) || F <- Fs0],

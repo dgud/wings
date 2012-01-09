@@ -115,10 +115,12 @@ init() ->
 desktop_event(_) -> keep.
 
 message(Message) ->
-    wings_io:putback_event({wm,{message,get(wm_active),Message}}).
+	MsgData0=get_window_data(message),
+	put_window_data(message,MsgData0#win{z=highest_z()}),
+	wings_io:putback_event({wm,{message,get(wm_active),Message}}).
 
 message_right(Right) ->
-    wings_io:putback_event({wm,{message_right,get(wm_active),Right}}).
+	wings_io:putback_event({wm,{message_right,get(wm_active),Right}}).
 
 message(Message, Right) ->
     message(Message),
@@ -904,10 +906,10 @@ wm_event({message,Name,Msg}) ->
 	none -> ok;
 	#win{stk=[#se{msg=Msg}|_]} -> ok;
 	#win{stk=[Top0|Stk]}=Data0 ->
-	    Top = Top0#se{msg=Msg},
-	    Data = Data0#win{stk=[Top|Stk]},
-	    put_window_data(Name, Data),
-	    dirty()
+		Top = Top0#se{msg=Msg},
+		Data = Data0#win{stk=[Top|Stk]},
+		put_window_data(Name, Data),
+		dirty()
     end;
 wm_event({message_right,Name,Right0}) ->
     Right = lists:flatten(Right0),
@@ -915,10 +917,10 @@ wm_event({message_right,Name,Right0}) ->
 	none -> ok;
 	#win{stk=[#se{msg_right=Right}|_]} -> ok;
 	#win{stk=[Top0|Stk]}=Data0 ->
-	    Top = Top0#se{msg_right=Right},
-	    Data = Data0#win{stk=[Top|Stk]},
-	    put_window_data(Name, Data),
-	    dirty()
+		Top = Top0#se{msg_right=Right},
+		Data = Data0#win{stk=[Top|Stk]},
+		put_window_data(Name, Data),
+		dirty()
     end;
 wm_event({menubar,Name,Menubar}) ->
     case lookup_window_data(Name) of
@@ -1161,8 +1163,9 @@ message_event(redraw) ->
 	undefined -> keep;
 	Active ->
 	    #win{stk=[#se{msg=Msg,msg_right=Right}|_]} = get_window_data(Active),
-	    message_redraw(Msg, Right)
-    end;
+	    Msg0=calculate_win_size(Msg,Right),
+	    message_redraw(Msg0, Right)
+	end;
 message_event({action,_}=Action) ->
     send(geom, Action);
 message_event(got_focus) ->
@@ -1181,6 +1184,7 @@ message_redraw(Msg, Right) ->
 		 {unix,darwin} -> 27;
 		 _ -> 0
 	    end,
+
     case Right of
 	[] -> ok;
 	_ ->
@@ -1188,17 +1192,13 @@ message_redraw(Msg, Right) ->
 	    Cw = ?CHAR_WIDTH,
 	    CH = ?CHAR_HEIGHT,
 	    Lh = ?LINE_HEIGHT,
-	    MsgW = wings_text:width(lists:flatten(Msg)),
+
 	    RightW = wings_text:width(Right),
 	    RMarg = RMarg0 + 2*Cw,
-	    if
-		MsgW+RightW < W - RMarg ->
-		    Pos = W - RightW - RMarg,
-		    wings_io:sunken_rect(Pos-12, -CH, RightW+12, Lh, Col, Col),
-		    wings_io:set_color(wings_pref:get_value(info_line_text)),
-		    wings_io:text_at(Pos-6, -1, Right);
-		true -> ok
-	    end
+		Pos = W - RightW - RMarg,
+		wings_io:sunken_rect(Pos-12, -CH, RightW+12, Lh-1, Col, Col),
+		wings_io:set_color(wings_pref:get_value(info_line_text)),
+		wings_io:text_at(Pos-6, -1, Right)
     end,
     case OsType of
 	{unix,darwin} ->
@@ -1214,8 +1214,84 @@ message_setup() ->
     {W,H} = win_size(),
     wings_io:gradient_rect_burst(0, 0, W, H, wings_pref:get_value(info_line_bg)),
     wings_io:set_color(wings_pref:get_value(info_line_text)),
-    gl:translatef(10, H-5.375, 0),
+    gl:translatef(10, ?LINE_HEIGHT+2, 0),
     {W,H}.
+
+calculate_win_size(Msg,Right) ->
+% this '+24' came from message_redraw() used in 'sunken_rect' function
+    Right_W=wings_text:width(lists:flatten(Right))+24,
+
+    OsType = get(wings_os_type),
+    RMarg0 = case OsType of
+		 {unix,darwin} -> 27;
+		 _ -> 0
+	    end,
+
+	{Msg0,WinSize}=check_text_width(Msg,Right_W+RMarg0),
+	resize_msg_win(WinSize),
+	Msg0.
+
+resize_msg_win({X0,Y0,W0,H0}) ->
+	MsgData0=get_window_data(message),
+	put_window_data(message,MsgData0#win{x=X0,y=Y0,w=W0,h=H0}),
+    OldActive = put(wm_active, message),
+    {_,TopH} = get(wm_top_size),
+    Y = TopH-(Y0+H0),
+    ViewPort = {X0,Y,W0,H0},
+    case put(wm_viewport, ViewPort) of
+	ViewPort -> ok;
+	_ -> gl:viewport(X0,Y,W0,H0)
+    end,
+    case OldActive of
+	undefined -> none;
+	_ -> put(wm_active, OldActive)
+    end.
+
+check_text_width(Msg,RightW) ->
+	{W,H0}=win_size(desktop),
+    MaxW=W-RightW,
+	Msg0=strip_lines(Msg,MaxW),
+	NrLn=count_lines(Msg0),
+	InfoH = case NrLn of
+		1 -> ?LINE_HEIGHT;
+		_ -> round(NrLn*?LINE_HEIGHT)
+	end,
+	H=InfoH+trunc(?LINE_HEIGHT/2)-1,
+	Y = H0-InfoH+?CHAR_HEIGHT+2,
+	{Msg0,{0,Y,W,H}}.
+
+strip_lines(Msg,W) ->
+	Msg0=lists:flatten(Msg),
+	Tw=wings_text:width(Msg0),
+	if Tw=<W -> Msg;
+	true ->
+		break_line(Msg0,W)
+	end.
+
+break_line(Msg,W) ->
+	Msg0=split_msg(Msg,[]),
+	MsgSpl=string:tokens(Msg0," "),
+	{_,MsgSp2}=lists:foldl(fun(E,{WAcc,Acc}) ->
+			WAcc0 = WAcc+wings_text:width(E)+?CHAR_WIDTH,
+			if WAcc0>W ->
+				{0,Acc++[$\n]++E++[" "]};
+			true -> {WAcc0,Acc++E++[" "]}
+			end
+		end ,{0,[]}, MsgSpl),
+	MsgSp2.
+
+split_msg([],Acc) -> Acc;
+split_msg([{_Fmt,_Txt}=H|T],Acc) ->
+	split_msg(T,Acc++[H]);
+split_msg([H|T],Acc) ->
+	split_msg(T,Acc++[H]).
+
+count_lines([]) -> 1;
+count_lines([$\n|S]) ->
+	count_lines(S)+1;
+count_lines([_|S]) ->
+	count_lines(S).
+
 
 %%%
 %%% Toplevel: create a window and a controller window at the same time.

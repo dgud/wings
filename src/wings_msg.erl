@@ -23,7 +23,7 @@
 -include("wings.hrl").
 
 -import(lists, [reverse/1]).
--define(SEP, [$\s,$\s,160]).			%Two and a half.
+-define(SEP, [160,160,160,160,160]).    %Equivalent to two and a half space character width.
 -define(CSEP, 160).				%Short space.
 
 button(LmbMsg) ->

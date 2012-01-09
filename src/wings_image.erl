@@ -103,7 +103,7 @@ from_file(Filename) ->
     Props = [{filename,Filename},{alignment,1}],
     case image_read(Props) of
 	#e3d_image{}=Image ->
-	    Name = filename:rootname(filename:basename(Filename)),
+	    Name = filename:basename(Filename),
 	    req({new,Image#e3d_image{name=Name},false});
 	{error,_}=Error -> Error
     end.

@@ -48,11 +48,15 @@ command(_, _) -> next.
 % ======= Regular Torus =======
 make_uv_torus(Ask) when is_atom(Ask) ->
     wpa:ask(Ask, ?__(1,"UV Torus Options"),
-	    [{?__(2,"U Resolution"),80},
-	     {?__(3,"V Resolution"),16},
+	    [{?__(2,"U Resolution"),80,
+	    	[{range,{0,infinity}},{info,?__(6,"Number of segments along major circumference (U, minimum is 3)")}]},
+	     {?__(3,"V Resolution"),16,
+	     	[{range,{0,infinity}},{info,?__(7,"Number of segments along minor circumference (V, minimum is 3)")}]},
 	     {?__(4,"Major Radius"),1.0},
 	     {?__(5,"Minor Radius"),0.2}],
-	    fun(Res) -> {shape,{uvtorus,Res}} end);
+	    fun(Res) ->
+    		{shape,{uvtorus,Res}}
+	    end);
 make_uv_torus([URES, VRES, MajR, MinR]) ->
     case {URES>0, VRES>0} of
 	{true, true} ->
@@ -63,23 +67,36 @@ make_uv_torus([URES, VRES, MajR, MinR]) ->
 	    Vres = VRES;
 	{true, false} ->
 	    Vres = trunc(URES/(MajR/MinR)),
-	    Ures = URES
+	    Ures = URES;
+	{false, false} ->
+	    Vres = 6,
+	    Ures = trunc(Vres*(MajR/MinR))
     end,
-    Vs = make_verts(Ures, Vres, MajR, MinR, none, none, 1),
-    Fs = make_faces(Ures, Vres),
+	Ures0=min_uv_torus_res(Ures),
+	Vres0=min_uv_torus_res(Vres),
+    Vs = make_verts(Ures0, Vres0, MajR, MinR, none, none, 1),
+    Fs = make_faces(Ures0, Vres0),
     {new_shape,"UV Torus",Fs,Vs}.
+min_uv_torus_res(Res) when Res =< 3 -> 3;
+min_uv_torus_res(Res) -> Res.
 
 % ======= Lumpy Torus =======
 make_lu_torus(Ask) when is_atom(Ask) ->
     wpa:ask(Ask, ?__(1,"Lumpy Torus Options"),
-	    [{?__(2,"U Resolution"),125},
-	     {?__(3,"V Resolution"),25},
+	    [{?__(2,"U Resolution"),125,
+	    	[{range,{0,infinity}},{info,?__(8,"Number of segments along major circumference (U, minimum is 3)")}]},
+	     {?__(3,"V Resolution"),25,
+	     	[{range,{0,infinity}},{info,?__(9,"Number of segments along minor circumference (V, minimum is 3)")}]},
 	     {?__(4,"Major Radius"),1.0},
 	     {?__(5,"Minor Radius"),0.2},
 	     {?__(6,"Lumps"),8},
 	     {?__(7,"Lump Amplitude"),0.5}],
-	    fun(Res) -> {shape,{lutorus,Res}} end);
-make_lu_torus([Ures, Vres, MajR, MinR, Loops, LoopRad]) ->
+	    fun(Res) -> 
+			{shape,{lutorus,Res}}
+		end);
+make_lu_torus([Ures0, Vres0, MajR, MinR, Loops, LoopRad]) ->
+	Ures=min_uv_torus_res(Ures0),
+	Vres=min_uv_torus_res(Vres0),
     Vs = make_verts(Ures, Vres, MajR, MinR, Loops, LoopRad, 2),
     Fs = make_faces(Ures, Vres),
     {new_shape,"Lumpy Torus",Fs,Vs}.
@@ -87,14 +104,20 @@ make_lu_torus([Ures, Vres, MajR, MinR, Loops, LoopRad]) ->
 % ======= Spiral Torus =======
 make_sp_torus(Ask) when is_atom(Ask) ->
     wpa:ask(Ask, ?__(1,"Spiral Torus Options"),
-	    [{?__(2,"U Resolution"),200},
-	     {?__(3,"V Resolution"),20},
+	    [{?__(2,"U Resolution"),200,
+	    	[{range,{0,infinity}},{info,?__(8,"Number of segments along major circumference (U, minimum is 3)")}]},
+	     {?__(3,"V Resolution"),20,
+	     	[{range,{0,infinity}},{info,?__(9,"Number of segments along minor circumference (V, minimum is 3)")}]},
 	     {?__(4,"Major Radius"),1.0},
 	     {?__(5,"Minor Radius"),0.2},
 	     {?__(6,"Loops"),8},
 	     {?__(7,"Loop Radius "),0.2}],
-	    fun(Res) -> {shape,{sptorus,Res}} end);
-make_sp_torus([Ures, Vres, MajR, MinR, Loops, LoopRad]) ->
+	    fun(Res) -> 
+			{shape,{sptorus,Res}}
+		end);
+make_sp_torus([Ures0, Vres0, MajR, MinR, Loops, LoopRad]) ->
+	Ures=min_uv_torus_res(Ures0),
+	Vres=min_uv_torus_res(Vres0),
     Vs = make_verts(Ures, Vres, MajR, MinR, Loops, LoopRad, 3),
     Fs = make_faces(Ures, Vres),
     {new_shape,"Spiral Torus",Fs,Vs}.
