@@ -18,7 +18,7 @@
 	 all/2,edge_attrs/3,edge_attrs/4,set_edge_attrs/4,
 	 set_both_edge_attrs/4,set_edge_uvs/2,set_edge_colors/2,del_edge_attrs/2,
 	 set_edge_color/4,
-	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/2,
+	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/1,average_attrs/2,
 	 set_vtx_face_uvs/4,
 	 remove/2,remove/3,renumber/2,merge/2,gc/1,any_update/2]).
 
@@ -359,6 +359,8 @@ new_attr(Color, UV) -> [Color|UV].
 %%
 average_attrs(AttrA, AttrB) ->
     mix(0.5, AttrA, AttrB).
+average_attrs(List) ->
+    average(List).
 
 %% set_vtx_face_uvs(Vertex, [Face], UV, We0) -> We
 %%  Set the UV coordinates for vertex Vertex in each face

@@ -45,6 +45,9 @@ MODULES= \
 	wings_ask \
 	wings_body \
 	wings_camera \
+	wings_cl \
+	wings_cc \
+	wings_cc_ref \
 	wings_collapse \
 	wings_color \
 	wings_console \

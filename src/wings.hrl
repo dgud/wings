@@ -63,7 +63,9 @@
 -define(NORMAL_LINEWIDTH, 1.0).
 -define(DEGREE, 176).				%Degree character.
 
--define(F32, 32/float-native).
+-define(F32,  32/float-native).
+-define(I32,  32/signed-native).
+-define(UI32, 32/native).
 
 -define(PANE_COLOR, {0.52,0.52,0.52}).
 -define(BEVEL_HIGHLIGHT, {0.9,0.9,0.9}).
@@ -310,6 +312,7 @@
 	  face_sn  = none :: wings_vtx_buffer(), %Face Normals (smooth)
 	  face_uv  = none :: wings_vtx_buffer(), %UV coords
 	  face_vc  = none :: wings_vtx_buffer(), %Vertex Colors coords
+	  face_es  = none :: wings_vtx_buffer(), %Edges 2*Vertex coords
 	  face_map = none,                       %FaceId -> {BinPos,TriCount}
 	  mat_map  = none                        %Face per Material draw info
 	 }).

@@ -222,12 +222,11 @@ unique_name_2(Base, I, Names) ->
     end.
 
 tc(Fun,Mod,Line) ->
-    case timer:tc(erlang, apply, [Fun,[]]) of
-	{_,{'EXIT',Reason}} -> exit(Reason);
-	{T,R} ->
-	    io:format("~p:~p: Time: ~p\n", [Mod, Line, T]),
-	    R
-    end.
+    Before = os:timestamp(),
+    R = Fun(),
+    After = os:timestamp(),
+    io:format("~p:~p: Time: ~p\n", [Mod, Line, timer:now_diff(After,Before)]),
+    R.
 
 limit(Val, {'-infinity',infinity}) -> Val;
 limit(Val, {Min,infinity}) when Val < Min -> Min;

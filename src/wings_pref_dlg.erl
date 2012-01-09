@@ -534,6 +534,16 @@ misc_prefs() ->
 		      not gb_trees:get(autosave, Store);
 		 (_, _) -> void
 	      end,
+    OpenCL = case wings_cl:is_available() of
+		 true -> [{info,?__(40,"A value of 0 will use the standard implementation, " 
+				    "a larger value takes more memory "
+				    "(experimental feature requires good OpenCL drivers)")}];
+		 false ->
+		     [{hook,fun(is_disabled, _) -> true;
+			       (_, _) -> void
+			    end},
+		      {info,?__(41,"OpenCL drivers is required ")}]
+	     end,
     {vframe,
      [{hframe,[{?__(2,"Save automatically every"),autosave},
 	       {text,autosave_time,[{hook,AutoFun},{range,{1,1440}}]},
@@ -555,10 +565,14 @@ misc_prefs() ->
 	{hframe,
 	 [{vframe,
 	   [{label,?__(12,"Stationary Opacity")},
-	    {label,?__(13,"Moving Opacity")}]},
+	    {label,?__(13,"Moving Opacity")},
+	    {label, ?__(42, "OpenCL proxy level")}]},
 	  {vframe,
 	   [{slider,{text,proxy_static_opacity,[{range,{0.0,1.0}}|Flags]}},
-	    {slider,{text,proxy_moving_opacity,[{range,{0.0,1.0}}|Flags]}}]}]}],
+	    {slider,{text,proxy_moving_opacity,[{range,{0.0,1.0}}|Flags]}},
+	    {slider,{text,proxy_opencl_level,[{range,{0,5}}|OpenCL]}}
+	   ]}]}
+       ],
        [{title,?__(14,"Proxy Mode")}]},
       {vframe,
        [{hframe,
@@ -622,6 +636,8 @@ smart_set_value_1(Key, Val, St) ->
 		    wings_file:init_autosave();
 		proxy_shaded_edge_style ->
 		    clear_proxy_edges(St);
+		proxy_opencl_level ->
+		    clear_proxy(St);
 		new_system_font ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(1,"The change to the system font will take\neffect the next time Wings 3D is started."));
@@ -686,6 +702,13 @@ clear_vertex_dlist() ->
     wings_dl:map(fun clear_vertex_dlist/2, []).
 
 clear_vertex_dlist(D, _) -> D#dlo{vs=none}.
+
+clear_proxy(St) ->
+    wings_dl:map(fun(D, _) -> clear_proxy(D, St) end, []).
+
+clear_proxy(#dlo{proxy_data=Data}=D, St) ->
+    PD = wings_proxy:invalidate(Data, all),
+    wings_proxy:update(D#dlo{proxy_data=PD}, St).
 
 clear_proxy_edges(St) ->
     wings_dl:map(fun(D, _) -> clear_proxy_edges(D, St) end, []).

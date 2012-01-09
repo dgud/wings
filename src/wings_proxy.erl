@@ -23,14 +23,15 @@
 
 -record(split,
 	{upd_fs,			        % Update only these faces
-	  dyn,					% Update tables
-	  info					% proxy drag info
-	 }).
+	 dyn,					% Update tables
+	 info					% proxy drag info
+	}).
 
 -record(sp,
 	{src_we=#we{},	     % Previous source we.
 	 we=none,	     % Previous smoothed we.
 	 split,
+	 type = ?MODULE,
 	 %% Display Lists
 	 faces = none,
 	 smooth = none,
@@ -51,7 +52,7 @@ quick_preview(_St) ->
 	    wings_wm:set_prop(workmode, true)
     end.
 
--spec invalidate('none'|#sp{}, 'vab'|'dl'|'edges'|'maybe') ->
+-spec invalidate('none'|#sp{}, 'vab'|'dl'|'edges'|'maybe'|'all') ->
     'none'|#sp{}.
 
 invalidate(none, _) -> none;
@@ -69,7 +70,9 @@ invalidate(#sp{faces=none}=Pd, maybe) ->
 invalidate(#sp{faces=FL}=Pd, maybe) ->
     Pd#sp{faces=[FL]};
 invalidate(#sp{}=Pd, edges) ->
-    Pd#sp{proxy_edges=none}.
+    Pd#sp{proxy_edges=none};
+invalidate(#sp{}, all) ->
+    none.
 
 smooth_dl(#sp{smooth=Smooth}) when Smooth =/= none -> Smooth;
 smooth_dl(#sp{smooth=none, faces=FL}) when FL =/= none -> {[FL,[]], false};
@@ -149,6 +152,26 @@ update_edges(D, Pd) ->
     update_edges_1(D, Pd, wings_pref:get_value(proxy_shaded_edge_style)).
 
 update_edges_1(_, _, cage) -> none;
+update_edges_1(_, #sp{vab=#vab{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}}, all) ->
+    wings_draw_setup:enableVertexPointer(BinVs),
+    wings_draw_setup:enableNormalPointer(Ns),
+    Dl = gl:genLists(1),
+    gl:newList(Dl, ?GL_COMPILE),
+    [{_Mat,_Type,Start,MCount}|_] = MatMap,
+    Count = Start+MCount,
+    gl:drawArrays(?GL_QUADS, 0, Count),
+    gl:endList(),
+    wings_draw_setup:disableVertexPointer(BinVs),
+    wings_draw_setup:disableNormalPointer(Ns),
+    Dl;
+update_edges_1(#dlo{}, #sp{type={wings_cc,_}, vab=#vab{face_es={0,Bin}}}, some) ->
+    Dl = gl:genLists(1),
+    gl:newList(Dl, ?GL_COMPILE),
+    gl:enableClientState(?GL_VERTEX_ARRAY),
+    wings_draw:drawVertices(?GL_LINES, Bin),
+    gl:disableClientState(?GL_VERTEX_ARRAY),
+    gl:endList(),
+    Dl;
 update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, some) ->
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
@@ -171,33 +194,27 @@ update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, so
     wings_draw:drawVertices(?GL_LINES, Bin),
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:endList(),
-    Dl;
-update_edges_1(_, #sp{vab=#vab{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}}, all) ->
-    wings_draw_setup:enableVertexPointer(BinVs),
-    wings_draw_setup:enableNormalPointer(Ns),
-    Dl = gl:genLists(1),
-    gl:newList(Dl, ?GL_COMPILE),
-    [{_Mat,_Type,Start,MCount}|_] = MatMap,
-    Count = Start+MCount,
-    gl:drawArrays(?GL_QUADS, 0, Count),
-    gl:endList(),
-    wings_draw_setup:disableVertexPointer(BinVs),
-    wings_draw_setup:disableNormalPointer(Ns),
     Dl.
 
 smooth(D=#dlo{proxy=false},_) -> D;
 smooth(D=#dlo{drag=Active},_) when Active =/= none -> D;
 smooth(D=#dlo{src_we=We},_) when ?IS_ANY_LIGHT(We) -> D;
-smooth(D=#dlo{proxy_data=#sp{smooth=none,
+smooth(D=#dlo{proxy_data=#sp{smooth=none, 
 			     vab=#vab{face_map=FN}=Vab0,
+			     type=Type,
 			     we=We}=Pd0,
 	      mirror=MM},St) ->
-    PartialNs = lists:sort(FN),
-    Flist = wings_we:normals(PartialNs, We, MM),
-    Ftab  = array:from_orddict(Flist),
-    SN    = setup_smooth_normals(FN, Ftab, <<>>),
-    Vab   = Vab0#vab{face_sn={0,SN}},
-    DL    = wings_draw:draw_smooth_faces(Vab, St),
+    Vab = case Type of 
+	      ?MODULE ->
+		  PartialNs = lists:sort(FN),
+		  Flist = wings_we:normals(PartialNs, We, MM),
+		  Ftab  = array:from_orddict(Flist),
+		  SN    = setup_smooth_normals(FN, Ftab, <<>>),
+		  Vab0#vab{face_sn={0,SN}};
+	      _ ->
+		  Vab0
+	  end,
+    DL  = wings_draw:draw_smooth_faces(Vab, St),
     D#dlo{proxy_data=Pd0#sp{smooth=DL, vab=Vab}};
 smooth(D,_) ->
     D.
@@ -287,27 +304,108 @@ draw_edges_1(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
     wings_dl:call(ProxyEdges).
 
 proxy_smooth(We0, Pd0, St) ->
-    case proxy_smooth_1(We0, Pd0) of
+    Level = wings_pref:get_value(proxy_opencl_level),
+    if is_integer(Level),Level > 0 -> 
+	    Impl = wings_cc;
+       true ->
+	    Impl = ?MODULE
+    end,
+    case proxy_needs_update(We0, Pd0) of
 	{false,_} ->
 	    Pd0;
-	{true,#we{fs=Ftab}=We} ->
-	    %% Could incremental smooth be optimized?
-	    Plan = wings_draw_setup:prepare(gb_trees:to_list(Ftab), We, St),
-	    flat_faces(Plan, #sp{src_we=We0,we=We})
+	{_, _} = Info when Impl =:= ?MODULE ->
+	    create_proxy_subdiv(Info, We0, St);
+	{Op, _} ->
+	    case Pd0 of
+		#sp{type={wings_cc,Data}} when Op =:= update ->
+		    update_proxy_cc(We0, Data);
+		_ ->
+		    try 
+			create_proxy_cc(We0, Level, St)
+		    catch to_large -> %% Fallback if we can't allocate memory
+			    create_proxy_subdiv({smooth,We0}, We0, St)
+		    end
+	    end
     end.
 
-proxy_smooth_1(We, #sp{we=SWe,src_we=We,vab=#vab{face_vs=Bin}})
+proxy_needs_update(We, #sp{we=SWe,src_we=We,vab=#vab{face_vs=Bin}})
   when Bin =/= none ->
     %% Nothing important changed - just recreate the display lists
-    {false,SWe};
-proxy_smooth_1(#we{es=Etab,he=Hard,mat=M,next_id=Next,mirror=Mirror}=We0,
-	       #sp{we=OldWe,src_we=#we{es=Etab,he=Hard,mat=M,next_id=Next,
-				       mirror=Mirror}}) ->
-    {true,wings_subdiv:inc_smooth(We0, OldWe)};
-proxy_smooth_1(We0, #sp{we=SWe}) ->
-    if ?IS_ANY_LIGHT(We0) -> {false,SWe};
-       true -> {true,wings_subdiv:smooth(We0)}
+    {false, SWe};
+proxy_needs_update(#we{es=Etab,he=Hard,mat=M,next_id=Next,
+		       lv=Lv,rv=Rv,mirror=Mirror},
+		   #sp{we=OldWe,src_we=
+			   #we{es=Etab,he=Hard,mat=M,next_id=Next,
+			       lv=Lv,rv=Rv,mirror=Mirror}}) ->
+    {update,OldWe};
+proxy_needs_update(We0, #sp{}) ->
+    if ?IS_ANY_LIGHT(We0) -> 
+	    {false,We0};
+       true ->
+	    {smooth,We0}
     end.
+
+update_proxy_subdiv({false, We}, _) ->
+    We;
+update_proxy_subdiv({update, OldWe}, We0) ->
+    wings_subdiv:inc_smooth(We0, OldWe);
+update_proxy_subdiv({smooth, We}, _) ->
+    wings_subdiv:smooth(We).
+
+create_proxy_subdiv(Info, We0, St) ->
+    We = update_proxy_subdiv(Info, We0),
+    Plan = wings_draw_setup:prepare(gb_trees:to_list(We#we.fs), We, St),
+    flat_faces(Plan, #sp{src_we=We0,we=We}).
+
+update_proxy_cc(We0, Data0) ->
+    Data = wings_cc:update(We0, Data0),
+    Vab  = wings_cc:gen_vab(Data),
+    #sp{src_we=We0,we=We0,vab=Vab,type={wings_cc,Data}}.
+
+create_proxy_cc(We = #we{fs=Ftab}, Level, St) ->
+    Plan = wings_draw_setup:prepare(gb_trees:keys(Ftab), We, St),
+    Data = wings_cc:init(Plan, Level, We),
+    Vab  = wings_cc:gen_vab(Data),
+    #sp{src_we=We,we=We,vab=Vab,type={wings_cc,Data}}.
+
+split_proxy(#dlo{proxy=true, src_we=We=#we{fs=Ftab},
+		 proxy_data=Pd=#sp{type={wings_cc,Data0}}},
+	    DynVs0, St) ->
+    Fs0 = gb_trees:keys(Ftab),
+    DynFs0 = wings_face:from_vs(DynVs0, We),
+
+    %% Expand once (to get the split drawing faces)
+    DynVs1 = wings_face:to_vertices(DynFs0, We),
+    DynFs = wings_face:from_vs(DynVs1, We),
+
+    Data = case proxy_needs_update(We, Pd) of
+	       {false, _} -> 
+		   Data0;
+	       {update, _} ->
+		   wings_cc:update(DynVs0, Data0);
+	       {_, _} ->
+		   Plan = wings_draw_setup:prepare(Fs0, We, St),
+		   wings_cc:init(Plan, Data0, We)
+	   end,
+    StaticFsSet = gb_sets:subtract(gb_sets:from_ordset(Fs0), 
+				   gb_sets:from_ordset(DynFs)),
+    StaticFs = gb_sets:to_list(StaticFsSet),
+    StaticPlan = wings_draw_setup:prepare(StaticFs, We, St),
+    StaticVab = wings_cc:gen_vab(StaticPlan, Data),
+    StaticDL = wings_draw:draw_flat_faces(StaticVab, St),
+    
+    %% To get the subdiv correct we need outer layer of faces during calc
+    SubdivVs = wings_face:to_vertices(DynFs, We),
+    SubdivFs = wings_face:from_vs(SubdivVs, We),
+    SubdivPlan = wings_draw_setup:prepare(SubdivFs, We, St),
+    SubdivData = wings_cc:init(SubdivPlan, Data0, We),
+    
+    DynPlan  = wings_draw_setup:prepare(DynFs, We, St),
+    DynVab   = wings_cc:gen_vab(DynPlan, SubdivData),
+    DynDL = wings_draw:draw_flat_faces(DynVab, St),
+    Split = #split{dyn=DynPlan, info=SubdivData},
+    #sp{we=We,src_we=We,type={wings_cc,Data},
+	faces=[StaticDL,DynDL],split=Split};
 
 split_proxy(#dlo{proxy=true,proxy_data=Pd0,src_we=SrcWe}, DynVs0, St) ->
     DynFs0 = wings_face:from_vs(DynVs0, SrcWe),
@@ -315,7 +413,7 @@ split_proxy(#dlo{proxy=true,proxy_data=Pd0,src_we=SrcWe}, DynVs0, St) ->
     DynFs = ordsets:subtract(DynFs0, ordsets:union([Mirror], Holes)),
 
     DynVs = wings_vertex:from_faces(DynFs, SrcWe),
-    {_,#we{fs=Ftab0}=We0} = proxy_smooth_1(SrcWe, Pd0),
+    #we{fs=Ftab0}=We0 = update_proxy_subdiv(proxy_needs_update(SrcWe, Pd0),SrcWe),
     Fs0 = wings_face:from_vs(DynVs, We0),
     OutEs = wings_face:outer_edges(Fs0, We0),
     UpdateVs0 = gb_sets:from_ordset(wings_face:to_vertices(Fs0, We0)),
@@ -342,7 +440,8 @@ split_proxy(#dlo{proxy=true,proxy_data=Pd0,src_we=SrcWe}, DynVs0, St) ->
 split_proxy(#dlo{proxy_data=PD},_, _St) ->
     PD.
 
-update_dynamic(ChangedVs, St, #dlo{proxy=true,proxy_data=Pd0}=D0) ->
+update_dynamic(ChangedVs, St, 
+	       #dlo{proxy=true,proxy_data=#sp{type=?MODULE}=Pd0}=D0) ->
     #sp{faces=[SDL|_],we=SmoothedWe,split=Split,
 	src_we=SrcWe0=#we{vp=Vtab0}}=Pd0,
     #split{upd_fs=Upd,dyn=DynPlan,info=Info} = Split,
@@ -353,11 +452,18 @@ update_dynamic(ChangedVs, St, #dlo{proxy=true,proxy_data=Pd0}=D0) ->
     Pd1  = flat_faces(DynPlan, Pd0#sp{we=We, src_we=SrcWe}),
     Temp = wings_draw:draw_flat_faces(Pd1#sp.vab, St),
     D0#dlo{proxy_data=Pd1#sp{faces=[SDL,Temp]}};
+update_dynamic(ChangedVs, St, 
+	       D0=#dlo{proxy=true,proxy_data=#sp{type={wings_cc,_}}=Pd0}) ->
+    #sp{faces=[SDL|_],split=SP=#split{dyn=DynPlan, info=Data0}}=Pd0,
+    Data = wings_cc:update(ChangedVs, Data0),
+    Vab  = wings_cc:gen_vab(DynPlan, Data),
+    DL   = wings_draw:draw_flat_faces(Vab, St),
+    D0#dlo{proxy_data=Pd0#sp{faces=[SDL,DL], split=SP#split{info=Data}}};
 update_dynamic(_, _, D) ->
     D.
 
-reset_dynamic(#sp{we=We, src_we=We0}) ->
-    #sp{we=We,src_we=We0};
+reset_dynamic(#sp{we=We, src_we=We0, type=Type}) ->
+    #sp{we=We,src_we=We0,type=Type};
 reset_dynamic(D) ->
     D.
 
