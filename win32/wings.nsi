@@ -332,23 +332,23 @@ Function .onInit
    SectionSetFlags ${SecWingsClutterDesktop} $0
 
    SectionGetFlags 0 $MYTEMP 
-;   MessageBox MB_YESNO "Found $SYSDIR\msvcr80.dll" IDYES FoundLbl
-   IfFileExists $SYSDIR\msvcr80.dll MaybeFoundInSystemLbl
+;   MessageBox MB_YESNO "Found $SYSDIR\msvcr100.dll" IDYES FoundLbl
+   IfFileExists $SYSDIR\msvcr100.dll MaybeFoundInSystemLbl
    SearchSxsLbl:	
         FindFirst $0 $1 $WINDIR\WinSxS\x86*
         LoopLbl:
 	    StrCmp $1 "" NotFoundLbl
-	    IfFileExists $WINDIR\WinSxS\$1\msvcr80.dll MaybeFoundInSxsLbl
+	    IfFileExists $WINDIR\WinSxS\$1\msvcr100.dll MaybeFoundInSxsLbl
 	    FindNext $0 $1
 	    Goto LoopLbl
         MaybeFoundInSxsLbl:
-	    GetDllVersion $WINDIR\WinSxS\$1\msvcr80.dll $R0 $R1
+	    GetDllVersion $WINDIR\WinSxS\$1\msvcr100.dll $R0 $R1
 	    Call DllVersionGoodEnough
 	    FindNext $0 $1
 	    IntCmp 2 $R0 LoopLbl
 	    Goto FoundLbl  
    MaybeFoundInSystemLbl:
-	GetDllVersion $SYSDIR\msvcr80.dll $R0 $R1
+	GetDllVersion $SYSDIR\msvcr100.dll $R0 $R1
 	Call DllVersionGoodEnough
 	IntCmp 2 $R0 SearchSxSLbl  
    FoundLbl:

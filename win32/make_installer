@@ -4,11 +4,11 @@
 #
 
 #
-# The pre-built Erlang/OTP R12B-0 for Windows requires this version
-# of the VC80.CRT. It must be updated if future release of Erlang
+# The pre-built Erlang/OTP R15B for Windows requires this version
+# of the VC100.CRT. It must be updated if future release of Erlang
 # requires a later version.
 #
-WINGS_VCREDIST_VERSION=2.0.50727.4053
+WINGS_VCREDIST_VERSION=10.00.40219.1
 
 OS=`uname -o 2> /dev/null`
 if [ X$OS != XMsys ]; then
