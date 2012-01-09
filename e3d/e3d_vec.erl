@@ -16,7 +16,7 @@
 -export([zero/0,is_zero/1,add/1,add/2,add_prod/3,sub/1,sub/2,norm_sub/2,mul/2,
 	 divide/2,neg/1,dot/2,cross/2,len/1,dist/2,dist_sqr/2,
 	 norm/1,norm/3,normal/3,normal/1,average/1,average/2,average/4,
-	 bounding_box/1,area/3,degrees/2]).
+	 bounding_box/1,area/3,degrees/2,plane/3,plane_side/2,plane_dist/2]).
 
 -include("e3d.hrl").
 
@@ -163,6 +163,23 @@ area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
     N1 = D12*D20-D10*D22,
     N2 = D10*D21-D11*D20,
     math:sqrt(N0*N0+N1*N1+N2*N2)*0.5.
+    
+%% Calculate plane coefficients for a plane on which the triangle lies   
+plane({X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}) ->
+        {A,B,C} = e3d_vec:normal({X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}),
+        {CX,CY,CZ} = e3d_vec:average([{X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}]),
+        D = -A*CX-B*CY-C*CZ,                  
+        {{A,B,C},D}.
+
+%% Helper function used to sort points according to which side of a plane they are on.	
+plane_side({X,Y,Z},{{A,B,C},D}) ->
+    Temp=A*X+B*Y+C*Z+D,
+    if  Temp < 0.0000 -> -1;  true -> 1 end.
+
+%% Using Coeff to calculate signed distance from point to plane.
+plane_dist({X,Y,Z},{{A,B,C},D}) ->
+	(A*X+B*Y+C*Z+D)/math:sqrt(A*A+B*B+C*C).
+        
 
 %% normal([{X,Y,Z}]) ->
 %%  Calculate the averaged normal for the polygon using Newell's method.
