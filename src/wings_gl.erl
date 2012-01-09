@@ -25,7 +25,11 @@
 -export([have_fbo/0, setup_fbo/2, delete_fbo/1]).
 
 %% GL wrappers
--export([callLists/1, project/6, unProject/6, triangulate/2, deleteTextures/1]).
+-export([callLists/1, project/6, unProject/6, 
+	 triangulate/2, deleteTextures/1,
+	 bindFramebuffer/2, 
+	 drawElements/4
+	]).
 
 %% Debugging.
 -export([check_error/2]).
@@ -33,7 +37,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--ifdef(USE_WX).
+-ifdef(USE_WX_OPENGL).
 -define(genFramebuffers,genFramebuffers).
 -define(bindFramebuffer, bindFramebuffer).
 -define(framebufferTexture2D,framebufferTexture2D).
@@ -42,6 +46,7 @@
 -define(renderbufferStorage,renderbufferStorage).
 -define(framebufferRenderbuffer,framebufferRenderbuffer).
 -define(checkFramebufferStatus, checkFramebufferStatus).
+-define(generateMipmap, generateMipmap).
 -else.
 -define(genFramebuffers,genFramebuffersEXT).
 -define(bindFramebuffer, bindFramebufferEXT).
@@ -51,6 +56,7 @@
 -define(renderbufferStorage,renderbufferStorageEXT).
 -define(framebufferRenderbuffer,framebufferRenderbufferEXT).
 -define(checkFramebufferStatus, checkFramebufferStatusEXT).
+-define(generateMipmap, generateMipmapExt).
 -endif.
 
 %%%
@@ -302,7 +308,7 @@ setup_fbo_2({color, Options}, {W,H}, Count) ->
     GEN_MM = proplists:get_value(gen_mipmap, Options, ?GL_FALSE),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, GEN_MM),
     if GEN_MM =:= ?GL_TRUE ->
-	    gl:generateMipmapEXT(?GL_TEXTURE_2D);
+	    gl:?generateMipmap(?GL_TEXTURE_2D);
        true -> ok
     end,
 
@@ -365,7 +371,11 @@ check_fbo_status(FB) ->
 
 %%%%%%%%%%%%% Wrappers for functions that differs between wx and esdl
 
--ifdef(USE_WX).
+bindFramebuffer(W, Fbo) ->
+    gl:?bindFramebuffer(W,Fbo).
+
+
+-ifdef(USE_WX_OPENGL).
 callLists(List) ->  gl:callLists(List).
 
 project(X,Y,Z, Mod, Proj, View) ->
@@ -399,6 +409,13 @@ deleteFramebuffers(List) ->
 shaderSource(Handle, Src) ->
     gl:shaderSource(Handle, Src).
 
+%% This is a bug in wx it should take a list as argument
+drawElements(O,L,T = ?GL_UNSIGNED_INT,What) when is_list(What) ->
+    Bin = << <<Val:32/unsigned-native>> || Val <- What>>,
+    gl:drawElements(O,L,T,Bin);
+drawElements(O,L,T,What) ->
+    gl:drawElements(O,L,T,What).
+
 -else.
 callLists(List) ->  gl:callLists(length(List), ?GL_UNSIGNED_INT, List).
 
@@ -422,5 +439,8 @@ deleteFramebuffers(List) ->
 
 shaderSource(Handle, Src) ->
     ok = gl:shaderSource(Handle, 1, Src, [-1]).
+
+drawElements(O,L,T,What) ->
+    gl:drawElements(O,L,T,What).
 
 -endif.

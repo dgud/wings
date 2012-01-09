@@ -772,7 +772,7 @@ pass({auv_edges, [all_edges,Color,Width,_UseMat]},_) ->
     R=fun(#chart{fs=Fs}) ->
 	      Draw = fun(#fs{vse=Vs}) ->
 			     Patched = vs_lines(Vs,hd(Vs)),
-			     gl:drawElements(?GL_LINES,length(Patched),
+			     wings_gl:drawElements(?GL_LINES,length(Patched),
 					     ?GL_UNSIGNED_INT,Patched)
 			     end,
 	      foreach(Draw,Fs)
@@ -788,7 +788,7 @@ pass({auv_edges, [all_edges,Color,Width,_UseMat]},_) ->
 pass({auv_edges, [border_edges,Color,Width,UseMat]},_) -> 
     R= fun(#chart{oes=Es0}) ->
 	       Es = foldl(fun([A,B,_],Acc) -> [A,B|Acc] end, [], Es0),
-	       gl:drawElements(?GL_LINES,length(Es),?GL_UNSIGNED_INT,Es)
+	       wings_gl:drawElements(?GL_LINES,length(Es),?GL_UNSIGNED_INT,Es)
        end,
     fun(#ts{charts=Charts},_) ->  
 	    gl:color3fv(Color),
@@ -818,7 +818,7 @@ pass({auv_faces,[_]},_) ->
 	    gl:clientActiveTexture(?GL_TEXTURE0),
 	    gl:enableClientState(?GL_COLOR_ARRAY),
 	    R = fun(#fs{vs=Vs}) ->
-			gl:drawElements(?GL_TRIANGLES,length(Vs),
+			wings_gl:drawElements(?GL_TRIANGLES,length(Vs),
 					?GL_UNSIGNED_INT,Vs)
 		end,
 	    gl:disable(?GL_TEXTURE_2D),
@@ -881,7 +881,7 @@ shader_pass({value,#sh{name=_Name, args=Args,tex_units=TexUnits,reqs=Reqs}},
 					PerFaceUniF = sh_uniforms(PerChartUniF,Chart,Conf),
 					R = fun(Face = #fs{vs=Vss}) ->			    
 						    sh_uniforms(PerFaceUniF,Face,Conf),
-						    gl:drawElements(?GL_TRIANGLES,length(Vss),
+						    wings_gl:drawElements(?GL_TRIANGLES,length(Vss),
 								    ?GL_UNSIGNED_INT,Vss)
 					    end,
 					foreach(R,Fas) 

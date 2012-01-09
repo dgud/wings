@@ -10,11 +10,14 @@
 #
 WINGS_VCREDIST_VERSION=2.0.50727.4053
 
-OS=`uname -o`
+OS=`uname -o 2> /dev/null`
 if [ X$OS != XMsys ]; then
-    echo "This script is supposed to be run in the" \
-	 "msys environment on windows only." >&2
-    exit 1
+    OS=`uname -s`
+    if [ X$OS != XMINGW32_NT-6.1 ]; then
+	echo "This script is supposed to be run in the" \
+	    "msys environment on windows only." >&2
+	exit 1
+    fi
 fi
 
 # Configurable stuff.
@@ -28,15 +31,19 @@ fi
 DEST_ROOT="build"
 
 if [ -z "$ESDL_PATH" ]; then
-    echo "The environment variable ESDL_PATH must be set to " \
-	 "the top of the ESDL installation." >&2
-    exit 1
+    `erl -noshell -eval "io:format([126,115,126,110],[code:lib_dir(esdl)])" -s erlang halt`
 fi
 ESDL_NAME=`basename $ESDL_PATH`
+if [ X$ESDL_NAME == Xesdl ]; then
+    echo $ESDL_NAME without version
+    source $ESDL_PATH/vsn.mk
+    ESDL_NAME=$ESDL_VSN
+    echo Install esdl to $ESDL_NAME
+fi
 
 ERLANG_PATH=`which erl`
-ERLANG_PATH=`dirname $ERLANG_PATH`
-ERLANG_PATH=`dirname $ERLANG_PATH`
+ERLANG_PATH=`dirname "$ERLANG_PATH"`
+ERLANG_PATH=`dirname "$ERLANG_PATH"`
 
 if [ ! -f "$WINGS_VCREDIST" ]; then
     echo "The environment variable WINGS_VCREDIST must point out vcredist_x86.exe. " \
@@ -109,7 +116,7 @@ $INSTALL -c -m 644 "$src"/lib/xmerl-*/ebin/* "$dest/lib/$xmerl/ebin"
 
 $INSTALL -c "$erts_src/bin/werl.exe" "$dest/bin"
 $INSTALL -c "$erts_src/bin/erlexec.dll" "$dest/bin"
-$INSTALL -c "$erts_src/bin/beam.dll" "$dest/bin"
+$INSTALL -c "$erts_src/bin/beam.smp.dll" "$dest/bin"
 $INSTALL -c -m 644 "$src/bin/start.boot" "$dest/bin"
 $INSTALL -c "$erts_src/bin/inet_gethost.exe" "$dest/bin/inet_gethost.exe"
 
@@ -121,6 +128,32 @@ $INSTALL -c -m 644  "$ESDL_PATH"/priv/sdl_driver.dll "$dest/priv"
 $INSTALL -c -m 644  "$ESDL_PATH"/priv/SDL.dll "$dest/priv"
 strip --strip-debug --strip-unneeded "$dest/priv/sdl_driver.dll"
 rm -rf "$dest/ebin/sdl_audio.beam" "$dest/ebin/sdl_joystick.beam"
+
+# Copy the relevant parts of wx (we use opengl from it)
+WX_PATH=`erl -noshell -eval "io:format([126,115,126,110],[code:lib_dir(wx)])" -s erlang halt`
+WX_NAME=`basename $WX_PATH`
+dest="$DEST_ROOT/lib/$WX_NAME"
+$INSTALL -d "$dest/ebin" "$dest/priv"
+$INSTALL -c -m 644  "$WX_PATH"/ebin/gl.beam "$dest/ebin"
+$INSTALL -c -m 644  "$WX_PATH"/ebin/glu.beam "$dest/ebin"
+$INSTALL -c -m 644  "$WX_PATH"/priv/erl_gl.dll "$dest/priv"
+#strip --strip-debug --strip-unneeded "$dest/priv/erl_gl.dll"
+
+# OpenCL 
+CL_PATH=`erl -noshell -eval "io:format([126,115,126,110],[code:lib_dir(cl)])" -s erlang halt`
+CL_NAME=`basename $CL_PATH`
+if [ X$CL_NAME == Xcl ]; then
+    echo $CL_NAME without version
+    CL_VSN=`sed -n "/CL_VSN/s/^CL_VSN[^0-9]*//p" $CL_PATH/vsn.mk`
+    CL_NAME="cl-$CL_VSN"
+    echo Install cl to $CL_NAME
+fi
+dest="$DEST_ROOT/lib/$CL_NAME"
+$INSTALL -d "$dest/ebin" "$dest/lib/release/32"
+$INSTALL -c -m 644  "$CL_PATH"/ebin/cl.beam "$dest/ebin"
+$INSTALL -c -m 644  "$CL_PATH"/ebin/clu.beam "$dest/ebin"
+$INSTALL -c -m 644  "$CL_PATH"/lib/release/32/cl_nif.dll "$dest/lib/release/32"
+strip --strip-debug --strip-unneeded "$dest/lib/release/32/cl_nif.dll"
 
 #
 # Remove files from OTP not needed.

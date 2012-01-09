@@ -14,10 +14,12 @@
 -module(wpc_image).
 -export([init/0,menu/2,command/2]).
 
--include_lib("esdl/include/gl.hrl").
+-define(NEED_OPENGL,1).
+-include("wings.hrl").
+
 -include("e3d.hrl").
 -include("e3d_image.hrl").
--include("wings_intl.hrl").
+
 
 -import(lists, [reverse/1]).
 

@@ -17,12 +17,14 @@ run all plug-ins and to build an installation package.
 
 - The Wings source files. http://www.wings3d.com
 
-- Erlang/OTP R14B01 or later. http://www.erlang.org
+- Erlang/OTP R14B01 (R14B02 for MacOSX) or later. http://www.erlang.org
 
 - SDL development library. http://www.libsdl.org.
   (There are pre-built libraries for most platforms.)
 
-- ESDL 1.0.1 or later. http://esdl.sf.net
+- ESDL 1.2 or later. http://esdl.sf.net
+
+- CL 1.1 or later. http://github.com/tonyrog/cl
 
 - A GNU compatible "make" program. Included with most unix-like
   systems; otherwise get it from http://www.gnu.org.
@@ -42,7 +44,8 @@ The following is a quick summary of the build process.
 * Download and install SDL.
 * Install OpenGL header files (if needed).
 * Download and install ESDL.
-* Download and upnpack the Wings source file.
+* Download and build cl.
+* Download and unpack the Wings source file.
 * Run "make".
 
 Installing Erlang/OTP
@@ -112,7 +115,15 @@ sdl-config --libs
 Compile by running "make" from the source directory of ESDL.
 
 Set the environment variable ESDL_PATH to point to top of the
-compiled ESDL installation.
+compiled ESDL installation, or point the ERL_LIBS environment variable
+to the library below.
+
+Installing CL 
+===============
+
+Download cl and unpack it to $ERL_LIBS.
+
+Compile by running "make" from the source directory of cl.
 
 Unpacking the Wings source code
 ===============================
@@ -157,21 +168,21 @@ $
 To run the Wings you have just build, you'll need to write a command line
 similar to this:
 
-	erl -smp disable -pa $ESDL_PATH/ebin -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt
+	erl -smp -pa $ESDL_PATH/ebin -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt
 
 where you should substitute <MY_WINGS_PATH> with the path to the Wings
 source directory.
 
 Example:
 
-$ erl -smp disable -pa $ESDL_PATH/ebin -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt
+$ erl -smp -pa $ESDL_PATH/ebin -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt
 $
 
 Instead of writing the command line every time you want to start Wings,
 you can package it in a script like this:
 
 #!/bin/sh
-exec erl -smp disable -pa $ESDL_PATH/ebin -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt ${1+"$@"}
+exec erl -smp -pa $ESDL_PATH/ebin -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt ${1+"$@"}
 
 Notes:
 
@@ -181,8 +192,8 @@ Notes:
 [2] The "${1+"$@"}" thing passes along any arguments (or none) to Wings,
     allowing Wings to open up a wings file when it starts.
 
-[3] The "-smp disable" flag is necessary if you have a multi-core/multi-CPU
-    computer. Wings will only work with the single-threaded Erlang emulator.
+[3] The "-smp " flag is necessary if you don't have a multi-core/multi-CPU
+    computer and wants to use OpenCL functionality. 
 
 
 Building an installation package for MacOS X

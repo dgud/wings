@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 44;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -138,11 +138,13 @@
 			buildConfigurationList = 4C724754085C300D006ED218 /* Build configuration list for PBXNativeTarget "Wings3d" */;
 			buildPhases = (
 				4C72473E085C300D006ED218 /* Headers */,
-				4C724740085C300D006ED218 /* ShellScript */,
-				4C724741085C300D006ED218 /* ShellScript */,
-				4C724742085C300D006ED218 /* ShellScript */,
-				4C724743085C300D006ED218 /* ShellScript */,
-				4C724744085C300D006ED218 /* ShellScript */,
+				4C724740085C300D006ED218 /* Copy wings code */,
+				4C724741085C300D006ED218 /* Copy erlang code */,
+				4C724742085C300D006ED218 /* Copy esdl */,
+				4C724743085C300D006ED218 /* Copy SDL */,
+				37B64B641338BB9A00632118 /* Copy wx */,
+				37B64B661338BE3F00632118 /* Copy cl */,
+				4C724744085C300D006ED218 /* Strip erlang */,
 				4C724745085C300D006ED218 /* Resources */,
 				4C72474F085C300D006ED218 /* Sources */,
 				4C724752085C300D006ED218 /* Frameworks */,
@@ -163,7 +165,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = 4CA8398B085C2B4300C48A7F /* Build configuration list for PBXProject "Wings3d" */;
-			compatibilityVersion = "Xcode 3.0";
+			compatibilityVersion = "Xcode 3.2";
 			hasScannedForEncodings = 1;
 			mainGroup = 29B97314FDCFA39411CA2CEA /* Wings3d */;
 			projectDirPath = "";
@@ -189,47 +191,86 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		4C724740085C300D006ED218 /* ShellScript */ = {
+		37B64B641338BB9A00632118 /* Copy wx */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			inputPaths = (
+			);
+			name = "Copy wx";
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Copy the Wings application.\n\nINSTALL=/usr/bin/install\nlatest_wings=`(cd ..; pwd)`\n\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources/lib/`basename $latest_wings`\n\n$INSTALL -d $dest $dest/ebin $dest/patches\n\ncd $latest_wings\n\n$INSTALL -c -m 644 README AUTHORS license.terms $dest\n$INSTALL -c -m 644 ebin/* $dest/ebin\nrm -f $dest/ebin/user_default.beam\n\n$INSTALL -d $dest/fonts \\\n $dest/plugins/accel \\\n $dest/plugins/import_export \\\n $dest/plugins/commands \\\n $dest/plugins/primitives $dest/plugins/mac_file \\\n $dest/plugins/autouv \\\n $dest/plugins/default\n\n$INSTALL -d $dest/textures\n$INSTALL -d $dest/shaders\n$INSTALL -c -m 644 textures/* $dest/textures\n$INSTALL -c -m 644 shaders/* $dest/shaders\n\n$INSTALL -c -m 644 fonts/* $dest/fonts\n$INSTALL -c -m 644 plugins/accel/* $dest/plugins/accel\n$INSTALL -c -m 644 plugins/default/* $dest/plugins/default\n$INSTALL -c -m 644 plugins/import_export/* $dest/plugins/import_export\n$INSTALL -c -m 644 plugins/commands/* $dest/plugins/commands\n$INSTALL -c -m 644 plugins/primitives/* $dest/plugins/primitives\n$INSTALL -c -m 644 plugins/mac_file/* $dest/plugins/mac_file\n$INSTALL -c -m 644 plugins/autouv/* $dest/plugins/autouv\n$INSTALL $dest/plugins -name '*.so' | xargs macosx/strip_mac_driver\nfind $dest/plugins -name README | xargs rm\nrm $dest/plugins/default/wpc_test_ask.beam\n";
+			shellScript = "# Copy the relevant parts of WX into the application.\nINSTALL=/usr/bin/install\nWX_PATH=`erl -noshell -eval \"io:format([126,115,126,110],[code:lib_dir(wx)])\" -s erlang halt`\nDEST_ROOT=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources/\nWX_NAME=`basename $WX_PATH`\ndest=\"$DEST_ROOT/lib/$WX_NAME\"\n\nWX_NAME=`basename $WX_PATH`\ndest=\"$DEST_ROOT/lib/$WX_NAME\"\n$INSTALL -d \"$dest/ebin\" \"$dest/priv\"\n$INSTALL -c -m 644  \"$WX_PATH\"/ebin/gl.beam \"$dest/ebin\"\n$INSTALL -c -m 644  \"$WX_PATH\"/ebin/glu.beam \"$dest/ebin\"\n$INSTALL -c -m 644  \"$WX_PATH\"/priv/erl_gl.so \"$dest/priv\"\n./strip_mac_driver $dest/priv/erl_gl.so\n";
+			showEnvVarsInLog = 0;
 		};
-		4C724741085C300D006ED218 /* ShellScript */ = {
+		37B64B661338BE3F00632118 /* Copy cl */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			inputPaths = (
+			);
+			name = "Copy cl";
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Copy the relevant parts of Erlang/OTP\n# into the application.\nINSTALL=/usr/bin/install\nsrc=$ERLANG_PATH\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources\nerts_src=$src/erts-*\nerts=`basename $erts_src`\nstdlib=`basename $src/lib/stdlib-*`\nkernel=`basename $src/lib/kernel-*`\nxmerl=`basename \"$src\"/lib/xmerl-*`\n\n$INSTALL -d \"$dest/bin\" \\\n    \"$dest/lib/$stdlib/ebin\" \\\n    \"$dest/lib/$kernel/ebin\" \\\n    \"$dest/lib/$xmerl/ebin\"\n\n$INSTALL -c -m 644 $src/lib/kernel-*/ebin/* $dest/lib/$kernel/ebin\n$INSTALL -c -m 644 $src/lib/stdlib-*/ebin/* $dest/lib/$stdlib/ebin\n$INSTALL -c -m 644 \"$src\"/lib/xmerl-*/ebin/* \"$dest/lib/$xmerl/ebin\"\n\n../tools/wings_reduce_otp $dest\n\n$INSTALL -c -s $erts_src/bin/erlexec $dest/bin\n$INSTALL -c -s $erts_src/bin/child_setup $dest/bin\n$INSTALL -c $erts_src/bin/beam $dest/bin\n$INSTALL -c $erts_src/bin/inet_gethost $dest/bin/inet_gethost\n$INSTALL -c -m 644 $src/bin/start.boot $dest/bin\n\nstrip -x $dest/bin/beam\nstrip $dest/bin/erlexec\nstrip $dest/bin/child_setup\nstrip $dest/bin/inet_gethost\n";
+			shellScript = "# Copy the relevant parts of cl into the application.\nINSTALL=/usr/bin/install\nCL_PATH=`erl -noshell -eval \"io:format([126,115,126,110],[code:lib_dir(cl)])\" -s erlang halt`\nDEST_ROOT=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources\nCL_NAME=`basename $CL_PATH`\nif [ X$CL_NAME == Xcl ]; then\n    echo $CL_NAME without version\n    CL_VSN=`sed -n \"/CL_VSN/s/^CL_VSN[^0-9]*//p\" $CL_PATH/vsn.mk`\n    CL_NAME=\"cl-$CL_VSN\"\nfi\necho Install cl to $CL_NAME\ndest=\"$DEST_ROOT/lib/$CL_NAME\"\n\n$INSTALL -d \"$dest/ebin\" \"$dest/lib/release/32\"\n$INSTALL -c -m 644  \"$CL_PATH\"/ebin/cl.beam \"$dest/ebin\"\n$INSTALL -c -m 644  \"$CL_PATH\"/ebin/clu.beam \"$dest/ebin\"\n$INSTALL -c -m 644  \"$CL_PATH\"/lib/release/32/cl_nif.so \"$dest/lib/release/32\"\n./strip_mac_driver $dest/lib/release/32/cl_nif.so\n";
+			showEnvVarsInLog = 0;
 		};
-		4C724742085C300D006ED218 /* ShellScript */ = {
+		4C724740085C300D006ED218 /* Copy wings code */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
+			name = "Copy wings code";
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Copy the relevant parts of ESDL into the application.\nINSTALL=/usr/bin/install\nsrc=$ERLANG_PATH\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources/lib/`basename $ESDL_PATH`\n\n$INSTALL -d $dest/ebin $dest/priv\n$INSTALL -c -m 644  $ESDL_PATH/ebin/* $dest/ebin\n$INSTALL -c -m 644  $ESDL_PATH/priv/sdl_driver.so $dest/priv\n./strip_mac_driver $dest/priv/sdl_driver.so\n";
+			shellScript = "# Copy the Wings application.\n\nINSTALL=/usr/bin/install\nlatest_wings=`(cd ..; pwd)`\n\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources/lib/`basename $latest_wings`\n\n$INSTALL -d $dest $dest/ebin $dest/patches\n\ncd $latest_wings\n\n$INSTALL -c -m 644 README AUTHORS license.terms $dest\n$INSTALL -c -m 644 ebin/* $dest/ebin\nrm -f $dest/ebin/user_default.beam\n\n$INSTALL -d $dest/fonts \\\n $dest/plugins/accel \\\n $dest/plugins/import_export \\\n $dest/plugins/commands \\\n $dest/plugins/primitives $dest/plugins/mac_file \\\n $dest/plugins/autouv \\\n $dest/plugins/default\n\n$INSTALL -d $dest/textures\n$INSTALL -d $dest/shaders\n$INSTALL -c -m 644 textures/* $dest/textures\n$INSTALL -c -m 644 shaders/* $dest/shaders\n\n$INSTALL -c -m 644 fonts/* $dest/fonts\n$INSTALL -c -m 644 plugins/accel/* $dest/plugins/accel\n$INSTALL -c -m 644 plugins/default/* $dest/plugins/default\n$INSTALL -c -m 644 plugins/import_export/* $dest/plugins/import_export\n$INSTALL -c -m 644 plugins/commands/* $dest/plugins/commands\n$INSTALL -c -m 644 plugins/primitives/* $dest/plugins/primitives\n$INSTALL -c -m 644 plugins/mac_file/* $dest/plugins/mac_file\n$INSTALL -c -m 644 plugins/autouv/* $dest/plugins/autouv\nfind $dest/plugins -name '*.so' | xargs macosx/strip_mac_driver\nfind $dest/plugins -name README | xargs rm\nrm $dest/plugins/default/wpc_test_ask.beam\n";
+			showEnvVarsInLog = 0;
 		};
-		4C724743085C300D006ED218 /* ShellScript */ = {
+		4C724741085C300D006ED218 /* Copy erlang code */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
+			name = "Copy erlang code";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = "";
+			shellScript = "# Copy the relevant parts of Erlang/OTP\n# into the application.\nINSTALL=/usr/bin/install\nsrc=$ERLANG_PATH\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources\nerts_src=$src/erts-*\nerts=`basename $erts_src`\nstdlib=`basename $src/lib/stdlib-*`\nkernel=`basename $src/lib/kernel-*`\nxmerl=`basename \"$src\"/lib/xmerl-*`\n\n$INSTALL -d \"$dest/bin\" \\\n    \"$dest/lib/$stdlib/ebin\" \\\n    \"$dest/lib/$kernel/ebin\" \\\n    \"$dest/lib/$xmerl/ebin\"\n\n$INSTALL -c -m 644 $src/lib/kernel-*/ebin/* $dest/lib/$kernel/ebin\n$INSTALL -c -m 644 $src/lib/stdlib-*/ebin/* $dest/lib/$stdlib/ebin\n$INSTALL -c -m 644 \"$src\"/lib/xmerl-*/ebin/* \"$dest/lib/$xmerl/ebin\"\n\n../tools/wings_reduce_otp $dest\n\n$INSTALL -c -s $erts_src/bin/erlexec $dest/bin\n$INSTALL -c -s $erts_src/bin/child_setup $dest/bin\n$INSTALL -c $erts_src/bin/beam.smp $dest/bin\n$INSTALL -c $erts_src/bin/inet_gethost $dest/bin/inet_gethost\n$INSTALL -c -m 644 $src/bin/start.boot $dest/bin\n\nstrip -x $dest/bin/beam.smp\nstrip $dest/bin/erlexec\nstrip $dest/bin/child_setup\nstrip $dest/bin/inet_gethost\n";
+			showEnvVarsInLog = 0;
+		};
+		4C724742085C300D006ED218 /* Copy esdl */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "Copy esdl";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Copy the relevant parts of ESDL into the application.\nINSTALL=/usr/bin/install\nsrc=$ERLANG_PATH\nDEST_ROOT=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources/lib/\nESDL_NAME=`basename $ESDL_PATH`\nif [ X$ESDL_NAME == Xesdl ]; then\n    echo $ESDL_NAME without version\n    source $ESDL_PATH/vsn.mk\n    ESDL_NAME=$ESDL_VSN\n    echo Install esdl to $ESDL_NAME\nfi\ndest=\"$DEST_ROOT/$ESDL_NAME\"\n\n$INSTALL -d $dest/ebin $dest/priv\n$INSTALL -c -m 644  $ESDL_PATH/ebin/* $dest/ebin\n$INSTALL -c -m 644  $ESDL_PATH/priv/sdl_driver.so $dest/priv\n./strip_mac_driver $dest/priv/sdl_driver.so\n";
+			showEnvVarsInLog = 0;
+		};
+		4C724743085C300D006ED218 /* Copy SDL */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "Copy SDL";
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# Copy the SDL framework.\nINSTALL=/usr/bin/install\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources/Frameworks\n\n$INSTALL -d $dest\n\nfor i in \"/Library/Frameworks\" \"$HOME/Library/Frameworks\"; do\n    if [ -d $i/SDL.framework ]; then\n        sdl_framework=$i/SDL.framework\n    fi\ndone\nif [ -d $dest/SDL.framework ]; then\n    rm -rf $dest/SDL.framework\nfi\ncp -r $sdl_framework $dest/SDL.framework\nif [ -d $dest/SDL.framework/Headers ]; then\n    rm -rf $dest/SDL.framework/Headers\nfi\nfor i in $dest/SDL.framework/Versions/*; do\n    if [ -d $i/Headers ]; then\n        rm -rf $i/Headers\n    fi\ndone\n\nstrip -x $dest/SDL.framework/SDL\n";
+			showEnvVarsInLog = 0;
 		};
-		4C724744085C300D006ED218 /* ShellScript */ = {
+		4C724744085C300D006ED218 /* Strip erlang */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
+			name = "Strip erlang";
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# Strip debug information from all beam files.\ntemp=$OBJROOT\ndest=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources\n\nerlc -o $temp ../tools/strip.erl\n(cd $dest; erl -noshell -pa $temp -run strip strip)\n";
@@ -355,33 +396,27 @@
 		4CA8398C085C2B4300C48A7F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				MACOSX_DEPLOYMENT_TARGET = 10.4;
-				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.4u.sdk";
+				ARCHS = i386;
+				GCC_VERSION = 4.2;
+				SDKROOT = macosx10.5;
 			};
 			name = Debug;
 		};
 		4CA8398D085C2B4300C48A7F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					ppc,
-					i386,
-				);
-				MACOSX_DEPLOYMENT_TARGET = 10.4;
-				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.4u.sdk";
+				ARCHS = i386;
+				GCC_VERSION = 4.2;
+				SDKROOT = macosx10.5;
 			};
 			name = Release;
 		};
 		4CA8398E085C2B4300C48A7F /* Default */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					ppc,
-					i386,
-				);
-				GCC_VERSION = 4.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.4;
-				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.4u.sdk";
+				ARCHS = i386;
+				GCC_VERSION = 4.2;
+				SDKROOT = macosx10.5;
 			};
 			name = Default;
 		};

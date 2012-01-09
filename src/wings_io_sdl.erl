@@ -18,7 +18,7 @@
 	 set_cursor/1,hourglass/0,eyedropper/0,
 	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
 	 get_buffer/2, read_buffer/3, get_bin/1,
-	 is_maximized/0, set_title/1, set_icon/1,
+	 is_maximized/0, maximize/0, set_title/1, set_icon/1,
 	 get_process_option/0,set_process_option/1]).
 -export([batch/1, foreach/2]).
 -export([change_event_handler/2, read_events/1]).
@@ -41,15 +41,27 @@ init(Icons) ->
 quit() ->
     sdl:quit().
 
-get_process_option() -> [].
+-ifndef(USE_WX_OPENGL).
+get_process_option() ->     
+    [].
 set_process_option(_) ->
     ok.
+-else.
+get_process_option() ->
+    [{opengl_port,get(opengl_port)}].
+set_process_option([{opengl_port,Port}]) ->
+    put(opengl_port, Port),
+    ok.
+-endif.
 
 batch(Fun) ->  Fun().
 foreach(Fun, List) -> lists:foreach(Fun, List).
 
 is_maximized() ->
     sdl_video:wm_isMaximized().
+
+maximize() ->
+    sdl_video:wm_maximize().
 
 reset_video_mode_for_gl(W, H) ->
     {surfacep,_} =

@@ -33,7 +33,7 @@ init(Next) ->
 		ok ->
 		    case catch open_port({spawn,"wings_file_drv"}, []) of
 			Port when is_port(Port) ->
-			    maybe_maximize_window(Port),
+			    %% maybe_maximize_window(Port),
 			    register(wp8_file_port, Port),
 			    fun(What) ->
 				    fileop(What,Next)
