@@ -183,46 +183,75 @@ make_fake_selection_1([#we{id=Id,mat=MatTab}|Shs], OldMat) ->
 make_fake_selection_1([], _) -> [].
 
 select_material(Mat,SelAct,#st{selmode=SelMode,sel=Sel0,shapes=Shs}=St) ->
-    Sel = foldl(fun(#we{id=Id}=We, A) ->
-    		Sel1=lists:keyfind(Id, 1, Sel0),
-			select_material_1(SelMode, Sel1, SelAct, We, Mat, A)
+    Sel = foldl(fun(#we{id=Id,perm=Perm}=We, Acc) when ?IS_SELECTABLE(Perm) andalso not ?IS_ANY_LIGHT(We) ->
+            Sel1=lists:keyfind(Id, 1, Sel0), % check if Id is already in previous selection
+            Sel2=selected_we(SelMode, We, Mat), % get #we selection using Mat
+            select_material_1(SelAct,Sel1,Sel2,Acc);
+        (_, Acc) -> Acc  % process no selectable or light #we
 		end, [], gb_trees:values(Shs)),
     wings_sel:set(Sel, St).
 
-select_material_1(SelMode,Sel0,SelAct,#we{id=Id,fs=Ftab,perm=Perm}=We, Mat, Acc) when ?IS_SELECTABLE(Perm) ->
+%% sel_rem - remove #we's using Mat from any previous selection
+select_material_1(sel_rem,Sel1,Sel2,Acc) ->
+    case Sel1 of
+    false -> Acc; % #we ins't in previous selection - nothing to do
+    _ ->
+        case subtract_sel(Sel1,Sel2) of
+        false -> Acc;
+        {_,GbNew}=Sel3 -> 
+        case gb_sets:is_empty(GbNew) of
+            true -> Acc;
+            _ -> [Sel3|Acc]
+            end
+        end
+    end;
+%% select - select #we's using Mat - the original behavior
+%% sel_add - add #we's using Mat to any previous selection
+select_material_1(SelAct,Sel1,Sel2,Acc) ->
+    case Sel2 of
+    false ->
+        case SelAct of
+        select -> Acc;
+        sel_add -> 
+            case concat_sel(Sel1,false) of
+            [] -> Acc;
+            Sel3 -> [Sel3|Acc]  % preserve previous selection of #we
+            end
+        end;
+    Sel2 ->
+        case SelAct of
+        select -> [Sel2|Acc]; % we are building a new selection 
+        sel_add -> [concat_sel(Sel1,Sel2)|Acc] % if so, we will update the previous selection
+        end
+    end.
+
+%% select the elements (face/edge/vertice) using the Mat
+selected_we(SelMode,#we{id=Id,fs=Ftab,perm=Perm}=We, Mat) ->
     MatFaces = wings_facemat:mat_faces(gb_trees:to_list(Ftab), We),
     case keyfind(Mat, 1, MatFaces) of
 	false ->
-	    Acc;
+	    false;
 	{Mat,FaceInfoList} ->
 	    Fs = [F || {F,_} <- FaceInfoList, F >= 0],
 		SelItems = case SelMode of
 			vertex -> wings_face:to_vertices(Fs, We);
 			edge -> wings_face:to_edges(Fs, We);
 			_ -> Fs
-			end,		
-		Sel = case Sel0 of
-			false -> % there is no previous selection
-				Lst = case SelAct of
-					sel_rem -> [];
-					_ -> SelItems
-					end,
-				gb_sets:from_ordset(Lst);
-			{_,GbOld} -> 
-				GbNew=gb_sets:from_ordset(SelItems),
-				case SelAct of
-				sel_rem -> gb_sets:subtract(GbOld,GbNew);
-				sel_add -> gb_sets:union(GbOld,GbNew);
-				_ -> GbNew
-				end
 			end,
-		case gb_sets:is_empty(Sel) of
-		true -> Acc;
-		_ -> [{Id,Sel}|Acc]
-		end
-    end;
-select_material_1(_,_,_,_,_, Acc) ->
-    Acc.
+		{Id,gb_sets:from_ordset(SelItems)}
+	end.
+
+concat_sel(false,false) -> [];
+concat_sel(false,NewSel) -> NewSel;
+concat_sel(OldSel,false) -> OldSel;
+concat_sel({Id,GbSetOld},{Id,GbSetNew}) ->
+    {Id,gb_sets:union(GbSetOld,GbSetNew)}.
+
+subtract_sel(false,false) -> false;
+subtract_sel(false,_) -> false;
+subtract_sel(OldSel,false) -> OldSel;
+subtract_sel({Id,GbSetOld},{Id,GbSetNew}) ->
+    {Id,gb_sets:subtract(GbSetOld,GbSetNew)}.
     
 set_material(Mat, #st{selmode=face}=St) ->
     wings_sel:map(fun(Faces, We) ->
