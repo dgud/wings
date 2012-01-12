@@ -22,10 +22,12 @@ init(St, Attrs) ->
     spawn(fun() -> 
 		  try 
 		      register(wings_preview, self()),
-		      normal = Algo:start(Attrs, S3) 
+		      normal = Algo:start(Attrs, S3)
 		  catch _:Err ->
 			  io:format("Renderer crashed: ~p~n ~p~n",
 				    [Err, erlang:get_stacktrace()])
+		  after
+ 		      wings_cl:stop(CL)
 		  end
 	  end).
 

@@ -31,12 +31,19 @@ init() ->
 
 %% Attach to menu 
 menu({file,render}, Menu) ->
-    Menu++[{"Wings PBR",?TAG,[option]}];
+    case whereis(wings_preview) of
+	undefined ->
+	    Menu++[{"Wings PBR",?TAG,[option]}];
+	Pid when is_pid(Pid) ->
+	    Menu++[{"STOP Wings PBR",?TAG}]
+    end;
 menu(_, Menu) ->
     Menu.
 
 command({file,{render,{?TAG,A}}}, St) ->
     do_export(A, St);
+command({file,{render,?TAG}}, St) ->
+    do_export([], St);
 command(_Spec, _St) ->
     next.
 
