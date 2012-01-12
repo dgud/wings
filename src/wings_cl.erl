@@ -15,7 +15,7 @@
 -include_lib("cl/include/cl.hrl").
 
 -export([is_available/0,
-	 setup/0, compile/2, compile/3,
+	 setup/0, stop/1, compile/2, compile/3,
 	 %% Queries
 	 get_context/1, get_device/1, get_queue/1, get_vendor/1,
 	 have_image_support/1,
@@ -58,6 +58,10 @@ setup() ->
     [Device|_] = CL#cl.devices,
     {ok,Queue} = cl:create_queue(CL#cl.context,Device,[]),
     #cli{context=CL#cl.context, q=Queue, device=Device, cl=CL}.
+
+stop(#cli{cl=CL}) ->
+    clu:teardown(CL).
+
 
 %% compile(File,cli()) -> cli().
 %%
@@ -190,24 +194,26 @@ set_wg_sz(Name, Wg, CL=#cli{kernels=Ks0}) ->
 %% cast(Kernel, Args, NoInvocations, [Wait], cli()) -> Wait
 tcast(Name, No, Wait, #cli{q=Q, kernels=Ks}) ->
     Kernel = lists:keyfind(Name, 2, Ks),
-    cast(Name, No, Wait, true, Q, Kernel).
+    Event = enqueue_kernel(No, twait(Wait), Q, Kernel),
+    time_wait(Name, Q, Event),
+    Event.
 cast(Name, No, Wait, #cli{q=Q, kernels=Ks}) ->
     Kernel = lists:keyfind(Name, 2, Ks),
-    cast(Name, No, Wait, false, Q, Kernel).
+    enqueue_kernel(No, Wait, Q, Kernel).
 
 tcast(Name, Args, No, Wait, #cli{q=Q, kernels=Ks}) ->
     Kernel = #kernel{id=K} = lists:keyfind(Name, 2, Ks),
     set_args_1(Name, K, Args),
-    cast(Name, No, Wait, true, Q, Kernel).
+    Event = enqueue_kernel(No, twait(Wait), Q, Kernel),
+    time_wait(Name, Q, Event),
+    Event.
 cast(Name, Args, No, Wait, #cli{q=Q, kernels=Ks}) ->
     Kernel = #kernel{id=K} = lists:keyfind(Name, 2, Ks),
     set_args_1(Name, K, Args),
-    cast(Name, No, Wait, false, Q, Kernel).
+    enqueue_kernel(No, Wait, Q, Kernel).
 
-cast(Name, No, Wait, Time, Q, Kernel) ->
-    Event = enqueue_kernel(No, Wait, Q, Kernel),
-    Time andalso time_wait(Name, Q, Event),
-    Event.
+twait(nowait) -> [];
+twait(List) -> List.
 
 buff(Sz, CL)
   when is_integer(Sz) ->
