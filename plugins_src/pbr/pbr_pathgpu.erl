@@ -112,30 +112,30 @@ render_loop(N, C, CL, Data) when N > 0 ->
     wings_cl:cast('AdvancePaths', ?TASK_SIZE, nowait, CL),
     render_loop(N-1, C, CL, Data);
 render_loop(0, C0, CL, Data = {FB, RI, _PS, SceneS0}) ->
+    %% Intel drivers need a sync here for some reason
+    wings_cl:cast('Sampler', ?TASK_SIZE, nowait, CL),
+    wings_cl:cast('Intersect', ?TASK_SIZE, nowait, CL),
+    Wait = wings_cl:cast('AdvancePaths', ?TASK_SIZE, [], CL),
+    cl:wait(Wait),
     Count = C0+10,
     receive 
-	refresh ->	    
+	refresh ->
 	    SceneS1 = update_film(FB, SceneS0),
 	    erlang:send_after(RI, self(), refresh),
 	    render_loop(10, Count, CL, {FB,RI,_PS,SceneS1});
 	stop -> 
-	    ok = cl:finish(wings_cl:get_queue(CL)),
 	    update_film(FB, SceneS0),
 	    Count;
 	Msg ->
 	    io:format("Renderer got Msg ~p~n",[Msg]),
-	    ok = cl:flush(wings_cl:get_queue(CL)),
 	    render_loop(10, Count, CL, Data)
     after 0 ->
-	    ok = cl:finish(wings_cl:get_queue(CL)),
 	    render_loop(10, Count, CL, Data)
     end.
 
 update_film(FB, SceneS) ->
-    %% erlang:display(?LINE),
     Scene = pbr_film:set_sample_frame_buffer(FB, SceneS),
     pbr_film:show(Scene),
-    %% erlang:display(?LINE),
     Scene.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
