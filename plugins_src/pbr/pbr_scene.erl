@@ -55,16 +55,21 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 init(St = #st{shapes=Shapes,mat=Mtab0}, Opts, R = #renderer{cl=CL0}) ->
     Lights0 = proplists:get_value(lights, Opts),
+    wings_pb:start("Setup data"),
+    wings_pb:update(0.01, ?__(1,"setup lights")),
     Lights  = pbr_light:init(Lights0),
+    wings_pb:update(0.05, ?__(2,"setup materials")),
     Mtab    = pbr_mat:init(Mtab0),
     Scene0  = #scene{lights=Lights, mats=Mtab},
-    Scene1  = ?TC(prepare_mesh(gb_trees:values(Shapes),Opts,St,Scene0,[],[])),
+    Scene1  = ?TC(prepare_mesh(gb_trees:values(Shapes),Opts,St,Scene0)),
     GetTri  = make_get_tri_fun(Scene1),
     GetFace = make_get_face_fun(Scene1),
     #scene{no_fs=Size} = Scene1,
     io:format("No of faces ~p ~n", [Size]),
+    wings_pb:update(0.8, ?__(4,"calc accelerated data structures")),
     AccelBin = {WBB,_,_,_} = ?TC(e3d_qbvh:init([{Size,GetTri}])),
-    
+    wings_pb:update(0.95, ?__(5,"compile program")),
+    wings_pb:done(),
     Scene2 = Scene1#scene{info=GetFace, world_bb=WBB, qbvh=AccelBin},
     {CL, Scene} = init_accel(CL0, AccelBin, Scene2),
     R#renderer{cl=CL, scene=Scene}.
@@ -300,7 +305,22 @@ intersect_data(#renderer{scene=Scene}) ->
     {Qnodes, Qpoints, WorkBuff}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-prepare_mesh([We|Wes], Opts, St, S, AccData, MatList)
+
+prepare_mesh(Wes, Opts, St, Scene) ->
+    Part = 0.7*1/length(Wes),
+    {_, {S=#scene{type=Type}, AccData, MatList}} = 
+	lists:foldl(fun(We, {N, {S, AccData, MatList}}) ->
+			    wings_pb:update(0.1+N*Part, ?__(3,"calc object data")),
+			    Res = prepare_mesh(We, Opts, St, S, AccData, MatList),
+			    {N+1, Res}
+		    end, {1, {Scene, [], []}}, Wes),
+    Bin = list_to_binary(AccData),
+    FaceSz = if Type =:= tris ->?TRIANGLE_SZ; true -> ?QUAD_SZ end,
+    S#scene{no_fs=byte_size(Bin) div FaceSz, 
+	    data=Bin, 
+	    fsmap=array:from_list(lists:append(MatList))}.
+
+prepare_mesh(We, Opts, St, S, AccData, MatList)
   when ?IS_VISIBLE(We#we.perm), (not ?IS_ANY_LIGHT(We)) ->
     SubDiv = proplists:get_value(subdivisions, Opts, 0),
     Options = [{smooth, true}, {subdiv, SubDiv},
@@ -314,12 +334,11 @@ prepare_mesh([We|Wes], Opts, St, S, AccData, MatList)
 	    MM = lists:reverse(lists:keysort(3, MatMap)),
 	    Type = get_face_type(MatMap, S),
 	    Mats = fix_matmap(MM, Type, S#scene.mats, []), %% This should be a tree?
-	    prepare_mesh(Wes, Opts, St, S#scene{type=Type}, 
-			 [Data|AccData], [Mats|MatList])
+	    {S#scene{type=Type}, [Data|AccData], [Mats|MatList]}
     catch _:badmatch ->
 	    erlang:error({?MODULE, vab_internal_format_changed})
     end;
-prepare_mesh([We = #we{name=Name}|Wes], Opts, St, S, AccData, MatList)
+prepare_mesh(We = #we{name=Name}, Opts, St, S, AccData, MatList)
   when ?IS_VISIBLE(We#we.perm), ?IS_AREA_LIGHT(We) ->
     SubDiv = proplists:get_value(subdivisions, Opts, 0),
     Options = [{attribs, color_uv}, {subdiv, SubDiv}, {vmirror, freeze}],
@@ -338,18 +357,12 @@ prepare_mesh([We = #we{name=Name}|Wes], Opts, St, S, AccData, MatList)
 	    Mtab = pbr_mat:create_arealight_mat(AreaLMat, Gain, S#scene.mats),
 	    MatMap = [{AreaLMat, ?GL_TRIANGLES, 0, byte_size(Vs) div ?VERTEX_SZ}],
 	    Mats = fix_matmap(MatMap, Type, Mtab, []), 
-	    prepare_mesh(Wes, Opts, St, S#scene{lights=Ls, type=Type, mats=Mtab}, 
-			 [Vs|AccData], [Mats|MatList])
+	    {S#scene{lights=Ls, type=Type, mats=Mtab}, [Vs|AccData], [Mats|MatList]}
     catch _:badmatch ->
 	    erlang:error({?MODULE, vab_internal_format_changed})
     end;
-prepare_mesh([_|Wes], Opts, St, T, AccData, MatList) ->
-    prepare_mesh(Wes, Opts, St, T, AccData, MatList);
-prepare_mesh([], _, _, S = #scene{type=Type}, AccData, MatList) ->
-    Bin = list_to_binary(AccData),
-    FaceSz = if Type =:= tris ->?TRIANGLE_SZ; true -> ?QUAD_SZ end,
-    S#scene{no_fs=byte_size(Bin) div FaceSz, 
-	    data=Bin, fsmap=array:from_list(lists:append(MatList))}.
+prepare_mesh(_, _Opts, _St, S, AccData, MatList) ->
+    {S, AccData, MatList}.
     						       
 swap_normals(<<Vs:12/binary, _:12/binary, ColUv:20/binary, NextVs/binary>>, 
 	     <<Ns:12/binary, NextNs/binary>>, Acc) ->
