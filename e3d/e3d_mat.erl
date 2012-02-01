@@ -24,6 +24,8 @@
 -include("e3d.hrl").
 
 -spec identity() -> e3d_compact_matrix().
+
+-define(EPSILON, 1.0e-06).
     
 identity() ->
     Zero = 0.0,
@@ -45,7 +47,11 @@ is_identity({_,_,_,_,_,_,_,_,_,_,_,_}) -> false.
 -spec compress(e3d_matrix()) -> e3d_compact_matrix().
 
 compress(identity=I) -> I;
-compress({A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0}) ->
+compress({A,B,C,Z1,D,E,F,Z2,G,H,I,Z3,Tx,Ty,Tz,One}) ->
+    case eps(Z1) andalso eps(Z2) andalso eps(Z3) andalso eps(One-1.0) of
+	false -> exit(not_compressable);
+	true -> ok
+    end,
     {A,B,C,D,E,F,G,H,I,Tx,Ty,Tz};
 compress(Mat) 
   when tuple_size(Mat) =:= 12 -> 
@@ -343,7 +349,7 @@ invert({M0, M1,  M2, M3,
     B4 =  M9*M15 - M11*M13,  B5 = M10*M15 - M11*M14,
     
     Det = A0*B5 - A1*B4 + A2*B3 + A3*B2 - A4*B1 + A5*B0,
-    case abs(Det) > 0.00005 of
+    case abs(Det) > ?EPSILON of
 	true ->
 	    InvDet = 1.0/Det,
 	    {(+  M5*B5 -  M6*B4 +  M7*B3) * InvDet,
@@ -396,8 +402,6 @@ print_1(_Mat = {A,B,C,D,E,F,G,H,I,J,K,L,TX,TY,TZ,W}) ->
 %%   This is converted from Dave Eberly's MAGIC library
 %% Returns ordered by least EigenValue first
 %% {Evals={V1,V2,V3},Evects={X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3}}
-
--define(EIG_EPS, 1.0e-06).
 
 eigenv3(Mat0={A,B,C,D,E,F,G,H,I}) 
   when is_float(A), is_float(B), is_float(C), 
@@ -486,7 +490,7 @@ eig_triDiag3({A0,B0,C0,_,D0,E0,_,_,F0})
   when is_float(A0), is_float(B0), is_float(C0), 
        is_float(D0), is_float(E0), is_float(F0) ->
     Di0 = A0,
-    if abs(C0) >= ?EIG_EPS ->
+    if abs(C0) >= ?EPSILON ->
 	    Ell = math:sqrt(B0*B0+C0*C0),
 	    B = B0/Ell,
 	    C = C0/Ell,
@@ -505,6 +509,9 @@ eig_triDiag3({A0,B0,C0,_,D0,E0,_,_,F0})
 		   0.0, 0.0, 1.0},
 	    {Mat,{Di0,D0,F0},{B0,E0,0.0}}
     end.
+
+eps(E) ->
+    abs(E) < ?EPSILON.
 
 -define(S(I),element(I+1,Subd0)).
 -define(D(I),element(I+1,Diag0)).
