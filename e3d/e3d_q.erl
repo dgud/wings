@@ -19,10 +19,11 @@
 -module(e3d_q).
 
 -export([identity/0,inverse/1,norm/1,mul/1,mul/2,
-	 add/2, scale/2,
+	 add/2, scale/2, slerp/3,
 	 magnitude/1, conjugate/1,
 	 to_rotation_matrix/1, from_rotation_matrix/1,
-	 from_angle_axis/2, to_angle_axis/1,
+	 to_angle_axis/1, from_angle_axis/2,
+	 from_vec/1,
 	 rotate_s_to_t/2,
 	 vec_rotate/2]).
 
@@ -59,6 +60,27 @@ add({{X1,Y1,Z1},W1}, {{X2,Y2,Z2},W2})
 scale({{Qx,Qy,Qz},Qw}, S)
   when is_float(Qx),is_float(Qy),is_float(Qz),is_float(Qw), is_float(S) ->
     {{Qx*S,Qy*S,Qz*S},Qw*S}.
+
+slerp(Q0={{X0,Y0,Z0},W0}, {{X1,Y1,Z1},W1}, T)
+  when is_float(X1),is_float(Y1),is_float(Z1),is_float(W1),
+       is_float(X0),is_float(Y0),is_float(Z0),is_float(W0),
+       is_float(T) ->
+    HalfCosTheta = X0*X1+Y0*Y1+Z0*Z1+W0*W1,
+    if abs(HalfCosTheta) >= 0.9999 ->
+	    Q0;
+       true ->
+	    HalfTheta = math:acos(HalfCosTheta),
+	    HalfSinTheta = math:sin(HalfTheta),
+	    if abs(HalfSinTheta) < 0.00001 ->
+		    R0 = 1.0 - T,
+		    R1 = T,
+		    {{X0*R0+X1*R1, Y0*R0+Y1*R1, Z0*R0+Z1*R1},W0*R0+W1*R1};
+	       true ->
+		    R0 = math:sin((1.0 - T)*HalfTheta) / HalfSinTheta,
+		    R1 = math:sin(T*HalfTheta) / HalfSinTheta,
+		    {{X0*R0+X1*R1, Y0*R0+Y1*R1, Z0*R0+Z1*R1},W0*R0+W1*R1}
+	    end
+    end.
 
 mul([H|R]) ->
     mmult(R, H).
@@ -133,8 +155,16 @@ to_angle_axis(Q) ->
     Sin   = if
 		abs(Sin0) < 0.000005 -> 1.0;
 		true -> Sin0
-	    end,    
+	    end,
     {Angle,{Qx/Sin,Qy/Sin,Qz/Sin}}.
+
+%% The Axis must be a unit-length vector.
+from_vec(R={Rx,Ry,Rz}) ->
+    T = 1.0 - (Rx * Rx) - (Ry * Ry) - (Rz * Rz),
+    case T < 0.0 of
+	true  -> {R, 0.0};
+	false -> {R, -math:sqrt(T)}
+    end.
 
 %% vec_rotate(Vec, Q)
 %%  Rotate a vector or point using quaternion Q.

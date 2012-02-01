@@ -13,8 +13,9 @@
 
 -module(e3d_vec).
 
--export([zero/0,is_zero/1,add/1,add/2,add_prod/3,sub/1,sub/2,norm_sub/2,mul/2,
-	 divide/2,neg/1,dot/2,cross/2,len/1,dist/2,dist_sqr/2,
+-export([zero/0,is_zero/1,add/1,add/2,add_prod/3,sub/1,sub/2,lerp/3,
+	 norm_sub/2,mul/2,divide/2,neg/1,dot/2,cross/2,
+	 len/1,dist/2,dist_sqr/2,
 	 norm/1,norm/3,normal/3,normal/1,average/1,average/2,average/4,
 	 bounding_box/1,area/3,degrees/2,plane/3,plane_side/2,plane_dist/2]).
 
@@ -97,6 +98,13 @@ cross({V10,V11,V12}, {V20,V21,V22})
 
 len({X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
     math:sqrt(X*X+Y*Y+Z*Z).
+
+-spec lerp(e3d_vector(), e3d_vector(), float()) -> e3d_vector().
+
+lerp({V10,V11,V12}, {V20,V21,V22}, T)
+  when is_float(V10), is_float(V11), is_float(V12),
+       is_float(V20), is_float(V21), is_float(V22) ->
+    {V10+(V20-V10)*T, V11+(V21-V11)*T, V12+(V22-V12)*T}.
 
 -spec dist(e3d_vector(), e3d_vector()) -> float().
 

@@ -19,7 +19,7 @@
 	 rotate/2,rotate_to_z/1,rotate_s_to_t/2,
 	 project_to_plane/1,
 	 transpose/1,invert/1,
-	 mul/2,mul_point/2,mul_vector/2,eigenv3/1]).
+	 add/2,mul/2,mul_point/2,mul_vector/2,eigenv3/1]).
 -compile(inline).
 -include("e3d.hrl").
 
@@ -179,12 +179,47 @@ transpose({M1,M2,M3,M4,M5,M6,M7,M8,M9,0.0=Z,0.0,0.0}) ->
      M3,M6,M9,
      Z,Z,Z}.
 
--spec mul(M::e3d_matrix(), N::e3d_matrix() | e3d_vector() |
-	  {float(),float(),float(),float()}) ->
-    e3d_matrix() | {float(),float(),float(),float()}.
-    
+-spec add(M::e3d_matrix(), N::e3d_matrix()) -> e3d_matrix().
+add({B_a,B_b,B_c,B_d,B_e,B_f,B_g,B_h,B_i,B_tx,B_ty,B_tz},
+      {A_a,A_b,A_c,A_d,A_e,A_f,A_g,A_h,A_i,A_tx,A_ty,A_tz})
+  when is_float(A_a), is_float(A_b), is_float(A_c), is_float(A_d), is_float(A_e),
+       is_float(A_f), is_float(A_g), is_float(A_h), is_float(A_i), is_float(A_tx),
+       is_float(A_ty), is_float(A_tz),
+       is_float(B_a), is_float(B_b), is_float(B_c), is_float(B_d), is_float(B_e),
+       is_float(B_f), is_float(B_g), is_float(B_h), is_float(B_i), is_float(B_tx),
+       is_float(B_ty), is_float(B_tz) ->
+    {A_a+B_a,   A_b+B_b, A_c+B_c,
+     A_d+B_d,   A_e+B_e, A_f+B_f,
+     A_g+B_g,   A_h+B_h, A_i+B_i,
+     A_tx+B_tx, A_ty+B_ty, A_tz+B_tz};
+add({B_a,B_b,B_c,B_w0,B_d,B_e,B_f,B_w1,B_g,B_h,B_i,B_w2,B_tx,B_ty,B_tz,B_w3},
+    {A_a,A_b,A_c,A_w0,A_d,A_e,A_f,A_w1,A_g,A_h,A_i,A_w2,A_tx,A_ty,A_tz,A_w3})
+  when is_float(A_a), is_float(A_b), is_float(A_c), is_float(A_d), is_float(A_e),
+       is_float(A_f), is_float(A_g), is_float(A_h), is_float(A_i), is_float(A_tx),
+       is_float(A_ty), is_float(A_tz),
+       is_float(A_w0),is_float(A_w1),is_float(A_w2),is_float(A_w3),
+       is_float(B_a), is_float(B_b), is_float(B_c), is_float(B_d), is_float(B_e),
+       is_float(B_f), is_float(B_g), is_float(B_h), is_float(B_i), is_float(B_tx),
+       is_float(B_ty), is_float(B_tz),
+       is_float(B_w0),is_float(B_w1),is_float(B_w2),is_float(B_w3) ->
+    {A_a+B_a,   A_b+B_b, A_c+B_c, A_w0+B_w0,
+     A_d+B_d,   A_e+B_e, A_f+B_f, A_w1+B_w1,
+     A_g+B_g,   A_h+B_h, A_i+B_i, A_w2+B_w2,
+     A_tx+B_tx, A_ty+B_ty, A_tz+B_tz, A_w3+B_w3};
+
+add(M1,M2) when tuple_size(M1) =:= 12; tuple_size(M2) =:= 12 ->
+    add(e3d_mat:expand(M1), e3d_mat:expand(M2)).
+
+
+-spec mul(M::e3d_matrix(), N::e3d_matrix()) ->
+		 e3d_matrix();
+	 (M::e3d_matrix(), number()) ->
+		 e3d_matrix();
+	 (M::e3d_matrix(), {float(),float(),float(),float()}) ->
+		 {float(),float(),float(),float()}.
 mul(M, identity) -> M;
-mul(identity, M) -> M;
+mul(identity, M) when not is_number(M) -> M;
+mul(identity,M2) -> mul(expand(identity), M2);
 mul({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,B_tx,B_ty,B_tz},
     {A_a,A_b,A_c,A_d,A_e,A_f,A_g,A_h,A_i,A_tx,A_ty,A_tz})
   when is_float(A_tx), is_float(A_ty), is_float(A_tz),
@@ -242,7 +277,7 @@ mul({B_a,B_b,B_c,B_d,B_e,B_f,B_g,B_h,B_i,B_j,B_k,B_l,B_tx,B_ty,B_tz,B_w},
      A_tx*B_d + A_ty*B_h + A_tz*B_l + A_w*B_w};
 mul({A,B,C,Q0,D,E,F,Q1,G,H,I,Q2,Tx,Ty,Tz,Q3}, {X,Y,Z,W})
   when is_float(A), is_float(B), is_float(C), is_float(D), is_float(E),
-       is_float(F), is_float(G), is_float(H), is_float(I), 
+       is_float(F), is_float(G), is_float(H), is_float(I),
        is_float(Tx), is_float(Ty), is_float(Tz),
        is_float(Q0), is_float(Q1), is_float(Q2), is_float(Q3),
        is_float(X), is_float(Y), is_float(Z) ->
@@ -250,7 +285,25 @@ mul({A,B,C,Q0,D,E,F,Q1,G,H,I,Q2,Tx,Ty,Tz,Q3}, {X,Y,Z,W})
      X*B + Y*E + Z*H + W*Ty,
      X*C + Y*F + Z*I + W*Tz,
      X*Q0 + Y*Q1 + Z*Q2 + W*Q3};
-mul(M1,M2) 
+mul({A,B,C,Q0,D,E,F,Q1,G,H,I,Q2,Tx,Ty,Tz,Q3}, W)
+  when is_float(A), is_float(B), is_float(C), is_float(D), is_float(E),
+       is_float(F), is_float(G), is_float(H), is_float(I),
+       is_float(Tx), is_float(Ty), is_float(Tz),
+       is_float(Q0), is_float(Q1), is_float(Q2), is_float(Q3),
+       is_number(W) ->
+    {A*W,  B*W, C*W, Q0*W,
+     D*W,  E*W, F*W, Q1*W,
+     G*W,  H*W, I*W, Q2*W,
+     Tx*W,Ty*W,Tz*W, Q3*W};
+mul({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}, W)
+  when is_float(A), is_float(B), is_float(C), is_float(D), is_float(E),
+       is_float(F), is_float(G), is_float(H), is_float(I),
+       is_float(Tx), is_float(Ty), is_float(Tz), is_number(W) ->
+    {A*W,  B*W, C*W,
+     D*W,  E*W, F*W,
+     G*W,  H*W, I*W,
+     Tx*W,Ty*W,Tz*W};
+mul(M1,M2)
   when tuple_size(M1) =:= 12; tuple_size(M2) =:= 12 ->
     mul(expand(M1), expand(M2)).
 
