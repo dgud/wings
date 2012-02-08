@@ -16,7 +16,8 @@
 -export([identity/0,is_identity/1,determinant/1,print/1,
 	 compress/1,expand/1,
 	 translate/1,translate/3,scale/1,scale/3,
-	 rotate/2,rotate_to_z/1,rotate_s_to_t/2,
+	 rotate/2,rotate_from_euler_rad/1, rotate_from_euler_rad/3,
+	 rotate_to_z/1,rotate_s_to_t/2,
 	 project_to_plane/1,
 	 transpose/1,invert/1,
 	 add/2,mul/2,mul_point/2,mul_vector/2,eigenv3/1]).
@@ -117,6 +118,30 @@ rotate(A0, {X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
      U2+NegS*U2+C2, U5+S*(1.0-U5), U8+NegS*U8+C8,
      U3+NegS*U3+C3, U6+NegS*U6+C6, U9+S*(1.0-U9),
      0.0,0.0,0.0}.
+
+%% rotate_from_euler_rad is a shortcut for
+%% Rad2deg = 180/math:pi(),
+%% Mx = e3d_mat:rotate(Rx * Rad2deg, {1.0, 0.0, 0.0}),
+%% My = e3d_mat:rotate(Ry * Rad2deg, {0.0, 1.0, 0.0}),
+%% Mz = e3d_mat:rotate(Rz * Rad2deg, {0.0, 0.0, 1.0}),
+%% Rot = e3d_mat:mul(Mz, e3d_mat:mul(My,Mx)),
+-spec rotate_from_euler_rad(Vector::e3d_vector()) -> e3d_compact_matrix().
+rotate_from_euler_rad({X,Y,Z}) ->
+    rotate_from_euler_rad(X,Y,Z).
+
+-spec rotate_from_euler_rad(X::number(), Y::number(), Z::number()) -> 
+				   e3d_compact_matrix().
+rotate_from_euler_rad(Rx,Ry,Rz) ->
+    Cz = math:cos(Rz), Sz = math:sin(Rz),
+    Cy = math:cos(Ry), Sy = math:sin(Ry),
+    Cx = math:cos(Rx), Sx = math:sin(Rx),
+    Sxsy=Sx*Sy,  Cxsy=Cx*Sy,
+    TZ = 0.0,
+    {Cy*Cz,         Cy*Sz,	   -Sy,
+     Sxsy*Cz-Cx*Sz, Sxsy*Sz+Cx*Cz, Sx*Cy,
+     Cxsy*Cz+Sx*Sz, Cxsy*Sz-Sx*Cz, Cx*Cy,
+     TZ,            TZ,            TZ}.
+
 
 %% Project to plane perpendicular to vector Vec.
 

@@ -22,8 +22,9 @@
 	 add/2, scale/2, slerp/3,
 	 magnitude/1, conjugate/1,
 	 to_rotation_matrix/1, from_rotation_matrix/1,
-	 to_angle_axis/1, from_angle_axis/2,
-	 from_vec/1,
+	 to_angle_axis/1, from_angle_axis/2, from_angle_axis_rad/2,
+	 from_euler_rad/1, from_euler_rad/3, to_euler_rad/1,
+	 from_compact/1, to_compact/1,
 	 rotate_s_to_t/2,
 	 vec_rotate/2]).
 
@@ -35,8 +36,12 @@ identity() ->
 
 magnitude({{Qx,Qy,Qz},Qw})
   when is_float(Qx),is_float(Qy),is_float(Qz),is_float(Qw) ->
-    math:sqrt(Qx*Qx+Qy*Qy+Qz*Qz+Qw*Qw).
-
+    MagSqr = Qx*Qx+Qy*Qy+Qz*Qz+Qw*Qw,
+    if MagSqr > 0.99999, MagSqr < 1.00001 ->
+	    1.0;
+       true ->
+	    math:sqrt(MagSqr)
+    end.
 conjugate({{Qx,Qy,Qz},Qw})
   when is_float(Qx), is_float(Qy), is_float(Qz), is_float(Qw) ->
     {{-Qx,-Qy,-Qz},Qw}.
@@ -47,9 +52,11 @@ inverse(Q) ->
 norm(Q = {{Qx,Qy,Qz},Qw})
   when is_float(Qx),is_float(Qy),is_float(Qz),is_float(Qw) ->
     M = magnitude(Q),
-    case catch {{Qx/M,Qy/M,Qz/M},Qw/M} of
-	{'EXIT', _} -> {{0.0,0.0,0.0},0.0};
-	R -> R
+    if M =:= 1.0 -> Q;
+       M < 0.00001 -> {{0.0,0.0,0.0},0.0};
+       true -> 
+	    IM = 1/M,
+	    {{Qx*IM,Qy*IM,Qz*IM},Qw*IM}
     end.
 
 add({{X1,Y1,Z1},W1}, {{X2,Y2,Z2},W2})
@@ -139,9 +146,59 @@ from_rotation_matrix({M0, M4, M8,
 from_rotation_matrix(M) when size(M) =:= 16 ->
     from_rotation_matrix(e3d_mat:compress(M)).
 
+%% From/to euler 
+%% From http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/index.htm
+%% Note: We rotate X first then Y and last Z as in: 
+%% RX = e3d_q:from_angle_axis_rad(X, ?X),
+%% RY = e3d_q:from_angle_axis_rad(Y, ?Y),
+%% RZ = e3d_q:from_angle_axis_rad(Z, ?Z),
+%% e3d_q:mul(RZ, e3d_q:mul(RY, RX)).
+%% 
+from_euler_rad({X, Y, Z}) ->
+    from_euler_rad(X, Y, Z).
+
+from_euler_rad(RX, RY, RZ) ->
+    RX2 = RX*0.5, RY2 = RY*0.5, RZ2 = RZ*0.5,
+    CX = math:cos(RX2),
+    SX = math:sin(RX2),
+    CY = math:cos(RY2),
+    SY = math:sin(RY2),
+    CZ = math:cos(RZ2),
+    SZ = math:sin(RZ2),
+    CXCY = CX*CY, CXSY = CX*SY,
+    SXSY = SX*SY, SXCY = SX*CY,
+    W = CXCY*CZ + SXSY*SZ,
+    X = SXCY*CZ - CXSY*SZ,
+    Y = CXSY*CZ + SXCY*SZ,
+    Z = CXCY*SZ - SXSY*CZ,
+    {{X,Y,Z},W}.
+
+to_euler_rad({{P1,P2,P3}, P0}) ->
+    P1P1 = P1*P1, P2P2 = P2*P2, P3P3 = P3*P3, P0P0 = P0*P0,
+    Unit = P1P1+P2P2+P3P3+P0P0,
+    Test = P0*P2 - P1*P3,
+    Limit = 0.4999*Unit,
+    if Test > Limit ->  %% singularity at north pole
+	    {math:atan2(P1,P0), math:pi()/2, 0.0};
+       Test < -Limit -> %% singularity at south pole
+	    {math:atan2(P1,P0), -math:pi()/2, 0.0};
+       true ->	    
+	    RX = math:atan2(2.0*(P0*P1+P2*P3), 1.0-2.0*(P1P1+P2P2)),
+	    RY = math:asin(2.0*Test),
+	    RZ = math:atan2(2.0*(P0*P3+P1*P2), 1.0-2.0*(P2P2+P3P3)),
+	    {RX,RY,RZ}
+    end.
+
 %% The Axis must be a unit-length vector.
 from_angle_axis(Angle, Axis) ->
     HalfAngle = Angle*(math:pi()/180.0/2.0),
+    Sin = math:sin(HalfAngle),
+    Cos = math:cos(HalfAngle),
+    {X,Y,Z} = Axis,
+    {{X*Sin,Y*Sin,Z*Sin},Cos}.
+
+from_angle_axis_rad(Angle, Axis) ->
+    HalfAngle = Angle*0.5,
     Sin = math:sin(HalfAngle),
     Cos = math:cos(HalfAngle),
     {X,Y,Z} = Axis,
@@ -159,11 +216,17 @@ to_angle_axis(Q) ->
     {Angle,{Qx/Sin,Qy/Sin,Qz/Sin}}.
 
 %% The Axis must be a unit-length vector.
-from_vec(R={Rx,Ry,Rz}) ->
+from_compact(R={Rx,Ry,Rz}) ->
     T = 1.0 - (Rx * Rx) - (Ry * Ry) - (Rz * Rz),
     case T < 0.0 of
 	true  -> {R, 0.0};
 	false -> {R, -math:sqrt(T)}
+    end.
+
+to_compact(Q) ->
+    case norm(Q) of
+	{Vec, W} when W < 0.0 ->  Vec;
+	{{Rx,Ry,Rz}, _} -> {-Rx,-Ry,-Rz}
     end.
 
 %% vec_rotate(Vec, Q)
