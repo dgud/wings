@@ -100,6 +100,11 @@ menu(St) ->
 	     [{?__(nq1,"All Non Quadrangle Faces"),all,Help},
 	      {?__(nq2,"Odd Non Quadrangle Faces"),odd,Help},
 	      {?__(nq3,"Even Non Quadrangle Faces"),even,Help}]}},
+	   {?__(450,"Marked Faces"),
+	      {faces_marked,
+	      [{?__(451,"Colored"),colored,?__(452,"Select any colored face.")},
+	       {?__(453,"By Color"),by_color,?__(454,"Select same as single selected face.")},
+	       {?__(455,"Un-Colored"),uncolored,?__(456,"Select any face without color or white.")}]}},
 	   {?__(46,"Random"),
 	    {random,[{"10%",10, RHelp},
 		     {"20%",20, RHelp},
@@ -371,6 +376,12 @@ command(recall_selection, #st{selmode=Mode,ssels=Ssels}=St0) ->
 command(Type, St) ->
     set_select_mode(Type, St).
 
+by_command({faces_marked,colored}, St) ->
+   faces_marked(colored, St); 
+by_command({faces_marked,uncolored}, St) ->
+   faces_marked(uncolored, St);  
+by_command({faces_marked,by_color}, St) ->
+   faces_marked(by_color, St);  
 by_command(hard_edges, St) ->
     hard_edges(St);
 by_command(isolated_vertices, St) ->
@@ -451,6 +462,37 @@ vs_to_edges(Vs0, We, Es0) ->
 %%%
 %%% Selection commands.
 %%%
+faces_marked(colored, St0) ->
+   #st{selmode=face}=St=wings_sel_conv:mode(face,St0),
+   St2 = by_command({faces_marked, uncolored}, St),
+   wings_sel_cmd:command(inverse, St2);    
+faces_marked(uncolored, St0) ->
+    #st{selmode=face}=St=wings_sel_conv:mode(face,St0),
+    wings_sel:make(
+        fun(Face, WeI) ->                
+            FaceColors = wings_va:face_attr(color, Face, WeI),
+            MyAcc = fun
+                ({R,G,B} , Acc) ->  Acc + abs(1.0-R) + abs(1.0-G) + abs(1.0-B);
+                (_, Acc) -> Acc
+            end,
+            D = lists:foldl(MyAcc,0.0,FaceColors),
+            (D < 0.1)
+        end, face, St);    
+faces_marked(by_color, #st{shapes=Shapes,sel=[{WeID,SelSet}],selmode=face}=St) ->
+    case (gb_sets:size(SelSet)==1) of
+        true ->  ok;
+        _ -> wings_u:error_msg(?STR(faces_marked,30,"Select exactly 1 Reference face first."))
+    end,
+    [ FaceRef ] = gb_sets:to_list(SelSet),
+    We = gb_trees:get(WeID, Shapes),
+    FaceSourceColors = sets:from_list(wings_va:face_attr(color, FaceRef, We)),
+    wings_sel:make(
+      fun(Face, WeI) ->
+              FaceColors = sets:from_list(wings_va:face_attr(color, Face, WeI)),
+            sets:is_subset(FaceColors,FaceSourceColors) and sets:is_subset(FaceSourceColors, FaceColors)
+      end, face, St);
+faces_marked(by_color, #st{selmode=face}) ->
+    wings_u:error_msg(?STR(faces_marked,40,"Select exactly 1 Reference face first.")).
 
 set_select_mode(Type, St) ->
     {save_state,wings_sel_conv:mode(Type, St)}.
