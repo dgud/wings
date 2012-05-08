@@ -23,8 +23,8 @@
 	 bitmap}).
 
 convert([Out|SrcFonts]) ->
-    G = read_fonts(SrcFonts, orddict:new()),
-    io:format("  Writing ~s (~p glyphs)\n", [Out,orddict:size(G)]),
+    G = read_fonts(SrcFonts, dict:new()),
+    io:format("  Writing ~s (~p glyphs)\n", [Out,length(G)]),
     write_font(G, Out),
     init:stop().
 
@@ -35,8 +35,8 @@ read_fonts([N|Ns], Acc0) ->
     file:close(F),
     read_fonts(Ns, Acc);
 read_fonts([], Acc0) ->
-    Font = orddict:fold(fun(_,CharSet, Acc) ->
-        CharSet ++ Acc
+    Font = dict:fold(fun(_,CharSet, Acc) ->
+        dict:to_list(CharSet) ++ Acc
         end, [], Acc0),
     lists:sort(Font).
 
@@ -47,7 +47,7 @@ read_bdf_font(F, Acc0) ->
 	    {Map,CharSet} = charset(Ps, Acc0),
 	    Acc = read_font_glyphs(F, CharSet),
 	    Set = to_unicode(Acc, Ps),
-	    orddict:store(Map, Set, Acc0);
+	    dict:store(Map, Set, Acc0);
 	Other ->
 	    io:format("~p\n", [Other]),
 	    error_msg(invalid_bdf_file)
@@ -92,8 +92,8 @@ charset(Ps, Sets) ->
     R = proplists:get_value("CHARSET_REGISTRY", Ps),
     E = proplists:get_value("CHARSET_ENCODING", Ps),
     CharMap = R ++ E,
-    case orddict:find(CharMap, Sets) of
-      error -> {CharMap, orddict:new()};
+    case dict:find(CharMap, Sets) of
+      error -> {CharMap, dict:new()};
       {ok,CharSet} -> {CharMap, CharSet}
     end.
 
@@ -130,7 +130,7 @@ read_font_glyphs(F, N, Acc0) ->
     case read_line(F) of
 	["STARTCHAR"|_] ->
 	    #glyph{code=C} = G = read_one_glyph(F, #glyph{}),
-	     Acc = orddict:store(C, G, Acc0),
+	     Acc = dict:store(C, G, Acc0),
 	     read_font_glyphs(F, N-1, Acc);
 	["ENDFONT"] ->
 	    throw({endfont,N})
@@ -190,7 +190,7 @@ to_unicode(Gs, Ps) ->
 
 to_unicode_1(Gs, MapName) ->
     Map = read_map(MapName),
-    orddict:fold(fun
+    dict:fold(fun
         (N, #glyph{code=C0}=G, Acc) ->
             case gb_trees:is_defined(C0, Map) of
               true ->
@@ -199,12 +199,12 @@ to_unicode_1(Gs, MapName) ->
     %%% (ISO-8859-1) range. They are already defined in the ISO-8859-1 font.
                 case C =< 256 of
                   true -> Acc;
-                  false -> orddict:store(N, G#glyph{code=C}, Acc)
+                  false -> dict:store(N, G#glyph{code=C}, Acc)
                 end;
               false ->
                 Acc
             end
-    end, orddict:new(), Gs).
+    end, dict:new(), Gs).
 
 read_map(MapName) ->
     {ok,F} = file:open(MapName, [binary,read,read_ahead,raw]),
