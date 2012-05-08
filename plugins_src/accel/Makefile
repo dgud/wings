@@ -28,7 +28,7 @@ BEAM = 	$(LIBDIR)/wpc_pnoise.beam \
 	$(LIBDIR)/pnoise.beam \
 	$(LIBDIR)/wpc_pick.beam
 
-COMMON_CFLAGS = -Wall -O3 -Werror
+COMMON_CFLAGS = -m32 -Wall -Werror -O3
 
 ifdef USEMINGWGCC
  SO_EXT = dll
