@@ -164,9 +164,16 @@
 /* Begin PBXProject section */
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0430;
+			};
 			buildConfigurationList = 4CA8398B085C2B4300C48A7F /* Build configuration list for PBXProject "Wings3d" */;
 			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
 			hasScannedForEncodings = 1;
+			knownRegions = (
+				en,
+			);
 			mainGroup = 29B97314FDCFA39411CA2CEA /* Wings3d */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -316,10 +323,10 @@
 				ERLANG_PATH = /usr/local/lib/erlang;
 				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_USE_GCC3_PFE_SUPPORT = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GGC_VERSION = 4.x;
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = Wings3d.plist;
@@ -327,7 +334,7 @@
 				JAVA_COMPILER_DEBUGGING_SYMBOLS = NO;
 				LIBRARY_SEARCH_PATHS = "";
 				OTHER_CFLAGS = "";
-				OTHER_LDFLAGS = "-s";
+				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = Wings3d;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = (
@@ -346,8 +353,8 @@
 				COPY_PHASE_STRIP = YES;
 				ERLANG_PATH = /usr/local/lib/erlang;
 				FRAMEWORK_SEARCH_PATHS = "";
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_USE_GCC3_PFE_SUPPORT = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GGC_VERSION = 4.x;
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = Wings3d.plist;
@@ -355,7 +362,7 @@
 				JAVA_COMPILER_DEBUGGING_SYMBOLS = NO;
 				LIBRARY_SEARCH_PATHS = "";
 				OTHER_CFLAGS = "";
-				OTHER_LDFLAGS = "-s";
+				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = Wings3d;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = (
@@ -374,6 +381,7 @@
 				ERLANG_PATH = /usr/local/lib/erlang;
 				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_USE_GCC3_PFE_SUPPORT = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GGC_VERSION = 4.x;
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = Wings3d.plist;
@@ -381,7 +389,7 @@
 				JAVA_COMPILER_DEBUGGING_SYMBOLS = NO;
 				LIBRARY_SEARCH_PATHS = "";
 				OTHER_CFLAGS = "";
-				OTHER_LDFLAGS = "-s";
+				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = Wings3d;
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = (
@@ -398,7 +406,7 @@
 			buildSettings = {
 				ARCHS = i386;
 				GCC_VERSION = 4.2;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -407,7 +415,7 @@
 			buildSettings = {
 				ARCHS = i386;
 				GCC_VERSION = 4.2;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx;
 			};
 			name = Release;
 		};
@@ -416,7 +424,7 @@
 			buildSettings = {
 				ARCHS = i386;
 				GCC_VERSION = 4.2;
-				SDKROOT = macosx10.5;
+				SDKROOT = macosx;
 			};
 			name = Default;
 		};

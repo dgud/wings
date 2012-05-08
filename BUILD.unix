@@ -201,9 +201,7 @@ Building an installation package for MacOS X
 
 To build everything and pack it into a DMG file, you'll need:
 
-- Xcode 3.2 (running on Snow Leopard). Xcode 3.x running on Leopard will
-  probably also work, but I have not tested to build any Wings version after
-  1.1.12 with that configuration.
+- Xcode 4.5.2 on Mountain Lion.
 
 Make sure that your current directory is the directory in which the
 sources were unpacked.
