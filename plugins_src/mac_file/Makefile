@@ -14,7 +14,6 @@ LIBDIR = ../../plugins/mac_file
 WINGS_EBIN = ../../ebin
 WINGS_INTL=../../intl_tools
 CFLAGS = $(UNIVERSAL_FLAGS)
-CC = gcc-4.0
 
 ERL_DIR := $(shell echo 'io:format("~s~n",[code:root_dir()]),halt().' | erl | sed 's,^[0-9]*> *,,g' | tail +2)
 
