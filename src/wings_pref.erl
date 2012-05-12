@@ -624,7 +624,7 @@ pref({load,Request,St}) ->
               wings_pref:set_value(pref_directory, PrefDir),
               pref(load);
           false ->
-              Recent = lists:delete_nth(Recent0, Key),
+              Recent = delete_nth(Recent0, Key),
               wings_pref:set_value(recent_prefs, Recent),
               wings_u:error_msg(?__(11,"This file has been moved or deleted."))
         end
@@ -1033,3 +1033,7 @@ load_pref_category([{Other,true}|Options], List, St) ->
     end,
     load_pref_category(Options, List, St);
 load_pref_category([], _, _) -> ok.
+
+delete_nth([_|T], 1) -> T;
+delete_nth([H|T], N) -> [H|delete_nth(T, N-1)];
+delete_nth([], _) -> [].
