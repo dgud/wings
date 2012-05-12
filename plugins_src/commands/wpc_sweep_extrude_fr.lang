@@ -7,8 +7,7 @@
    ]},
   {axis_menu_string,
    [
-    {1,"Extrusion giratoire libre, relative à l'écran"},
-    {2,"Extrude le long de la normale sans mouvements de côté."},
+    {1,"Extrusion interactive, relative à l'écran"},
     {3,"Si l'axe ~s est perpendiculaire à la normale de l'extrusion, les movements seront contraints à son plan radial. Sinon, cela agit comme un composant désaxé."}
    ]},
   {base_help,
@@ -34,9 +33,9 @@
    ]},
   {menu_title,
    [
-    {1,"Extrusion giratoire"},
-    {2,"Extrusion giratoire par région"},
-    {3,"Extrusion giratoire extraite"}
+    {1,"Extrusion interactive"},
+    {2,"Extrusion interactive par région"},
+    {3,"Extrusion interactive extraite"}
    ]},
   {selection_ask,
    [
@@ -44,12 +43,16 @@
    ]},
   {sweep_error,
    [
-    {2,"L'extrusion giratoire par région ne fonctionera pas pour un objet entièrement sélectionné"}
+    {3,"L'extrusion interactive par région ne fonctionera pas lorsque la normale moyenne est (0,0,0)"}
    ]},
   {sweep_menu,
    [
     {3,"Choisir l'axe"},
     {4,"Choisir l'axe and extruder relatif au percentage du rayon de la sélection"}
+   ]},
+  {sweep_menu_headings,
+   [
+    {1,"Faire une extrusion en onglet qui peut être adapté et tordue de manière interactive"}
    ]},
   {warp_help,
    [

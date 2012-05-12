@@ -19,12 +19,12 @@
     {2,"Une coupure dans une surface fermée doit comporter au moins deux arêtes."},
     {3,"Au moins 2 sommets (par carte) doivent etre sélectionnés"},
     {4,"Erreur :"},
-    {5,"Erreur Interne"}
+    {5,"Erreur interne"}
    ]},
   {map_chart_1,
    [
     {1,"Problème numérique, probablement une mauvaise facette avec une zone vide."},
-    {2,"Erreur Interne:"},
+    {2,"Erreur interne:"},
     {3,"Erreur"}
    ]},
   {stretch_iter,
@@ -88,7 +88,7 @@
     {2,"Enlever la marque"},
     {3,"Sélectionner les arêtes marquées"},
     {4,"Ignorer les facettes"},
-    {5,"Selectionner"}
+    {5,"Sélectionner"}
    ]}
  ]}.
 {auv_texture,
@@ -280,6 +280,15 @@
     {76,"Répéter le glissé"},
     {77,"Répéter la dernière commande avec les mêmes arguments à la même distance"}
    ]},
+  {move_directions,
+   [
+    {1,"Libre"},
+    {2,"Bouge dans les deux directions"},
+    {3,"Horizontal"},
+    {4,"Bouge horizontally (X dir)"},
+    {5,"Vertical"},
+    {6,"Bouge vertically (Y dir)"}
+   ]},
   {option_menu,
    [
     {1,"Créer une texture"},
@@ -295,7 +304,8 @@
     {1,"Sélectionnez deux sommets, le pôle nord et pôle sud"},
     {2,"Au moins deux sommets par carte doivent être épinglés"},
     {3,"remappage"},
-    {4,"carte"}
+    {4,"carte"},
+    {5,"Les sommets ne sont pas tous épinglés"}
    ]},
   {scale_directions,
    [
@@ -339,6 +349,15 @@
     {5,"Épingler l'image"},
     {6,"Mettre l'image d'arrière-plan sur les facettes sélectionnées en leur assignant des coordonnées UV"}
    ]},
+  {proportional_scale,
+   [
+    {1,"...selon X courant"},
+    {2,"Mettre à l'échelle la valeur Y de l'image proportionnellement à sa valeur courante de X."},
+    {3,"...selon Y courant"},
+    {4,"Mettre à l'échelle la valeur X de l'image proportionnellement à sa valeur courante de Y"},
+    {5,"Taille réelle"},
+    {6,"Remet l'image à sa taille réelle"}
+   ]},
   {select_image,
    [
     {1,"Auncune image presente, importez d'abord une image."},
@@ -354,17 +373,25 @@
     {6,"Mettre à l'échelle librement l'image d'arrière-plan"},
     {7,"Uniforme"},
     {8,"Mettre à l'échelle uniformement l'image d'arrière-plan"},
-    {9,"Horizontalement"},
     {10,"Déplacer l'image d'arrière-plan horizontalement"},
-    {11,"Verticalement"},
     {12,"Déplacer l'image d'arrière-plan verticalement"},
-    {13,"Libre"},
     {14,"Déplacer librement l'image d'arrière-plan"},
     {15,"Mise à l'échelle épinglée de l'image"},
     {16,"Mettre a l'echelle l'image d'arrière-plan"},
     {17,"Déplacement épinglé de l'image"},
     {18,"Déplacer l'image d'arrière-plan"},
     {19,"Quitter mode épinglage"},
-    {20,"Quitter le mode épinglage"}
+    {20,"Quitter le mode épinglage"},
+    {21,"Adapter l'épinglage de l'image"},
+    {22,"Les deux"},
+    {25,"Adapte l'image aux dimensions de la fenêtre"},
+    {26,"Centrer sur X"},
+    {27,"Centre l'arrière-plan horizontalement"},
+    {28,"Centrer sur Y"},
+    {29,"Centre l'arrière-plan verticalement"},
+    {30,"Centrer"},
+    {31,"Centre l'arrière-plan à la fenêtre"},
+    {32,"Proportionellement"},
+    {33,"Met à l'échelle l'image proportionellement"}
    ]}
  ]}.
