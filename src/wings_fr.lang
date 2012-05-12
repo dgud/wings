@@ -4,7 +4,8 @@
 %%     French language strings.
 %%
 %%  Copyright (c) 2004 Nicolas Bouillard
-%%  Revised and corrected by Vital Proulx (aka TulipVorlax) in 2007-2009
+%%  Revised and corrected by TulipVorlax in 2007-2012
+%%  Optigon make some corrections from time to time.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -20,9 +21,7 @@
    ]},
   {area_volume_info,
    [
-    {1,"Nom de l'objet"},
-    {2,"Aire"},
-    {3,"Volume"},
+    {1,"Aucun objet dans la scène"},
     {5,"Infos sur la scène : Aire et volume"}
    ]},
   {cannot_repeat,
@@ -31,7 +30,7 @@
    ]},
   {crash_handler,
    [
-    {1,"Erreur interne : informations de débogage enregistrées dans"},
+    {1,"Erreur interne : journal enregistré dans"},
     {2,"Cliquez sur un bouton de la souris pour continuer à travailler"},
     {3,"Continuer à travailler"}
    ]},
@@ -82,11 +81,6 @@
     {10,"Assigner un matériau « "},
     {11," » à toutes les facettes des objets qui ont été sélectionnées"}
    ]},
-  {handle_event_3,
-   [
-    {1,"Sélectionner"},
-    {2,"Montrer le menu"}
-   ]},
   {hole_info,
    [
     {1,"trou"},
@@ -107,6 +101,12 @@
     {11,"~p arêtes sélectionnées ~p objets"},
     {12,"~p facettes sélectionnées ~p objets"}
    ]},
+  {info_line,
+   [
+    {1,"Selectionner"},
+    {2,"Montrer menu"},
+    {3,"Menu Ajuster"}
+   ]},
   {init_menubar,
    [
     {1,"Fichier"},
@@ -126,9 +126,9 @@
     {1,". Position [~s  ~s  ~s]"},
     {3,". Moyenne [~s  ~s  ~s]\nLongueur ~s"},
     {4,". Moyenne [~s  ~s  ~s]\nMatériau ~s"},
-	{5,". Distance ~s [~s  ~s  ~s]"},
-	{6,". Angle ~s"}
-	]},
+    {5,". Distance ~s [~s  ~s  ~s]"},
+    {6,". Angle ~s"}
+    ]},
   {patches,
    [
     {1,"Utiliser "}
@@ -145,6 +145,11 @@
     {2,"~p objets, ~p facettes, ~p arêtes, ~p sommets"},
     {new_object_info,"L'objet ~p « ~s » possède ~p polygones, ~p arêtes, ~p sommets~s~s."}
     ]},
+  {tool_dirs,
+   [
+    {1,"Aligner deux objets ou plus le long de l'axe donné selon leurs centres de sélection respectifs."},
+    {2,"Centrer les objets sélectionnés le long de l'axe donné selon le centre de leurs sélections cumulées."}
+   ]},
   {tools_menu,
    [
     {8,"Aligner"},
@@ -172,7 +177,15 @@
     {30,"Uniformiser"},
     {31,"Mets à l'échelle les objets sélectionnés afin qu'ils tiennent à l'intérieur d'une sphère d'une unité et les déplace à l'origine"},
     {32,"Déplacer la boite englobante à la sélection"},
-    {33,"Mettre à l'échelle la boite englobante à la sélection"}
+    {33,"Mettre à l'échelle la boite englobante à la sélection"},
+    {34,"Définir l'axe et le point"},
+    {35,"Définir l'axe"},
+    {36,"Définir le point"},
+    {37,"Boite englobante"},
+    {38,"La boite englobante est utile pour aligner et mettre à l'échelle les objets"},
+    {39,"Céer une boite englobante autour de la sélection"},
+    {40,"Ajuster"},
+    {41,"Ouvrir le menu Ajuster"}
     ]},
   {undo_info,
    [
@@ -198,7 +211,9 @@
     {8,"Nouvelle fenêtre de géométrie"},
     {9,"Ouvre une nouvelle fenêtre de géométrie"},
     {10,"Console"},
-    {11,"Ouvre une fenêtre de Console pour les messages d'information"}
+    {11,"Ouvre une fenêtre de Console pour les messages d'information"},
+    {12,"Palette Ajuster"},
+    {13,"Ouvre des palettes à partir desquelels les outils Ajuster peuvent être sélectionnés ou assignés à des touches de modification"}
    ]}
  ]}.
 {wings_ask,
@@ -295,7 +310,6 @@
     {28,"Supprime les objets sélectionnés"},
     {29,"Renommer..."},
     {30,"Renomme les objets sélectionnés"},
-    {31,"Tout montrer"},
     {32,"Montre toutes les facettes pour cet objet"},
     {33,"Propriétés de sommet"},
     {34,"Basculer l'objet le long de l'axe ~s"},
@@ -314,11 +328,17 @@
     {47,"Supprimer les coordonnées UV"},
     {48,"Supprime toutes les coordonnées UV"},
     {49,"Supprimer toutes les propriétés"},
-    {50,"Supprime toutes les couleurs de sommet et toutes les coordonnées UV"}
-   ]},
+    {50,"Supprime toutes les couleurs de sommet et toutes les coordonnées UV"},
+    {51,"Ajoute un préfix commun aux objets sélectionnés"},
+    {52,"Décache les facettes"}
+  ]},
   {rename_1,
    [
     {1,"Renommer"}
+   ]},
+  {rename_prefix,
+   [
+    {1,"Préfixer les objets"}
    ]},
   {vertex_color_item,
    [
@@ -330,9 +350,13 @@
     {1,"Tolérance de distance"},
     {2,"Souder"}
    ]},
-  {weld_1,
+  {weld_error,
    [
-    {1,"Aucune facette à souder."}
+    {1,"La soudure n'a pu être accomplie"}
+   ]},
+  {weld_objects,
+   [
+    {1,"Aucune facette à souder n'a été trouvé."}
    ]}
  ]}.
 {wings_camera,
@@ -379,9 +403,7 @@
     {2,"Mode de la caméra"},
     {3,"Vitesse de panoramique"},
     {4,"Zoom avec la molette"},
-    {5,"Vers l'avant : zoome"},
-    {6,"Vers l'avant : dézoome"},
-    {7,"Vitesse du zoom"},
+    {7,"Facteur du zoom"},
     {9,"Molette de la souris"},
     {10,"Vitesse du zoom alternative (Alt+molette)"},
     {11,"La molette : panoramique et rotation"},
@@ -390,12 +412,27 @@
     {15,"Caméra unidirectionelle"},
     {16,"Vitesse de panoramique avec les flèches"},
     {17,"Montrer l'aide de la ligne d'information"},
-    {18,"Les touches fléchées : panoramique"},
-    {19,"Vitesse de rotation"}
+    {19,"Vitesse de rotation"},
+    {20,"Zooming in aims Camera"}
    ]},
   {scroll_help,
    [
     {1,"  [Ctrl](+[Alt])+molette : panoramique  [Maj](+[Alt])+molette : rotation"}
+   ]}
+ ]}.
+{wings_cc,
+ [
+  {cl_setup,
+   [
+    {1,"Impossible de configuer OpenCL, le proxy smooth est désactivé."}
+   ]},
+  {decrease_level,
+   [
+    {1,"Aquisition de la mémoire nécessaire impossible, diminution du niveau de subdivision à ~p~n"}
+   ]},
+  {gen_vab,
+   [
+    {1,"Échec de la subdivision OpenCL: ~p Mio sont nécessaire mais seulement ~p Mio sont disponibles~n"}
    ]}
  ]}.
 {wings_collapse,
@@ -457,8 +494,8 @@
   {dir,
    [
     {1,"Tords les sommets sélectionnés autour de "},
-    {2,"  passant à travers le centre de la sélection"},
-    {3,"  passant à travers l'origine"}
+    {2," passant à travers le centre de la sélection"},
+    {3," passant à travers l'origine"}
    ]},
   {inflate_fun,
    [
@@ -493,17 +530,19 @@
  [
   {dissolve_1,
    [
-    {1,"Réduire risquerait de créer un objet mal structuré."}
+    {1,"Réduire risquerait de créer un objet incohérent."}
    ]}
  ]}.
 {wings_drag,
  [
-  {fpmove_help,
+  {drag_help,
    [
-    {1,"Glisser pour adjuster l'avancement du paramètre"},
-    {2,"Glisser pour adjuster la rotation"},
-    {3,"Glisser pour adjuster la mise à l'échelle"},
-    {4,"Glisser pour adjuster"}
+    {1,"Déplacer le long de la normale de l'écran"},
+    {2,"Mettre à l'échelle"},
+    {3,"Ajuster 2ième valeur"},
+    {4,"Rotation"},
+    {5,"Ajuster 3ième valeur"},
+    {6,"Ajuster 4ième valeur"}
    ]},
   {help_message,
    [
@@ -518,6 +557,10 @@
    [
     {1,"Entrée numérique"}
    ]},
+  {plus_drag_string,
+   [
+    {1,"+Glisser : "}
+   ]},
   {qstr,
    [
     {1,"Dx"},
@@ -529,18 +572,12 @@
    ]},
   {standard_mode_fun,
    [
-    {1,"[Maj] et/ou [Ctrl] et/ou [Alt] Contraindre"},
-    {2,"[+] ou [-] Ajuster le rayon"}
+    {1,"[Maj] et/ou [Ctrl] et/ou [Alt] contraindre"},
+    {2,"[+] ou [-] ajuste le rayon"}
    ]},
   {switch,
    [
     {1," (avec les contraintes alternatives)"}
-   ]},
-  {zmove_help,
-   [
-    {1,"Glisser pour déplacer le long de Z"},
-    {2,"Glisser pour ajuster le troisième paramètre"},
-    {3,"Glisser pour ajuster la mise à l'échelle"}
    ]}
  ]}.
 {wings_edge,
@@ -605,6 +642,8 @@
     {19,"Couleur de sommet"},
     {20,"Assigne une couleur de sommet aux arêtes sélectionnées"},
     {21,"Supprime les arêtes, les remplaçants par des sommets et supprime tout sommet isolé que l'opération a pu engendrer "},
+    {22,"Plisser"},
+    {23,"Extrusion souvent utilisée pour ajouter des rides à des modèles biologiques"},
     {50,"Élimine les arêtes sélectionnées et supprime les sommets isolés restants"}
    ]},
   {plain_cut_menu,
@@ -638,14 +677,13 @@
    ]},
   {extrude_problem,
    [
-    {1,"Impossible de biseauter ou d'extruder; deux ou plusieurs sommets sont probablement trop près les uns des autres.\nEssayez la commande de nettoyage."}
+    {1,"Impossible de biseauter ou d'extruder ; deux ou plusieurs sommets sont probablement trop près les uns des autres.\nEssayez la commande de nettoyage."}
    ]}
  ]}.
 {wings_face_cmd,
  [
   {bridge,
    [
-    {1,"Les facettes doivent avoir le même nombre de sommets."},
     {2,"Les facettes ne doivent pas être orientées dans la même direction."},
     {3,"Les facettes ne doivent pas être voisines."}
    ]},
@@ -726,7 +764,9 @@
     {36,"Extruder coquille"},
     {37,"Trou"},
     {38,"Crée un trou"},
-    {39,"Supprime les trous adjacents aux faces sélectionnées"}
+    {39,"Supprime les trous adjacents aux facettes sélectionnées"},
+    {40," our aux régions de facettes"},
+    {41,"Décache les facettes adjacentes à la sélection"}
    ]},
   {put_on,
    [
@@ -743,7 +783,7 @@
    ]},
   {smooth,
    [
-    {1,"lissage"}
+    {1,"lissage en cours"}
    ]}
  ]}.
  {wings_ff_ndo,
@@ -793,12 +833,12 @@
  [
   {export,
    [
-    {1,"sauvegarde"},
+    {1,"sauvegarde en cours"},
     {2,"lumières"},
-    {3,"renumérotage"},
+    {3,"renumérotage en cours"},
     {4,"objets"},
-    {5,"compression"},
-    {6,"écriture du fichier"}
+    {5,"compression en cours"},
+    {6,"écriture du fichier en cours"}
    ]},
   {import,
    [
@@ -807,12 +847,12 @@
    ]},
   {import_1,
    [
-    {1,"conversion du binaire"},
+    {1,"conversion du binaire en cours"},
     {2,"Le format de Wings 0.80 ou inférieur n'est plus supporté."},
     {3,"Le format de Wings 0.92 ou inférieur n'est plus supporté."},
-    {4,"Format de wings inconnu"},
-    {5,"Fichier wings corrompu"},
-    {6,"n'est pas un fichier wings (ou un ancien fichier wings)"}
+    {4,"Format wings inconnu"},
+    {5,"Fichier Wings corrompu"},
+    {6,"n'est pas un fichier Wings (ou un ancien fichier Wings)"}
     ]},
   {import_image,
    [
@@ -865,7 +905,8 @@
    ]},
   {import_image,
    [
-    {1,"Le chargement de « ~s » a échouée : ~s\n"}
+    {1,"Le chargement de « ~s » a échouée : ~s\n"},
+    {2,"The image cannot be loaded.~nFile: « ~s »~n Erreur GLU : ~p - ~s~n"}
    ]},
   {import_ndo,
    [
@@ -908,7 +949,12 @@
     {27,"Installer un plugiciel"},
     {28,"Quitter Wings 3D"},
     {29,"Enregistrer les matériaux non utilisés"},
-    {30,"Inclure les matériaux non utilisés en sauvegardant un fichier .wings"}
+    {30,"Inclure les matériaux non utilisés en sauvegardant un fichier .wings"},
+    {31,"Enregistrer un sous-ensemble de préférences..."},
+    {32,"Enregistre un sous-ensemble de préférences à partir de vos préférences actuelles"},
+    {33,"Charger un sous-ensemble de préférences"},
+    {35,"Charger..."},
+    {36,"Charge un sous-ensemble de préférences précédemment enregistré"}
    ]},
   {merge,
    [
@@ -959,13 +1005,13 @@
     ]},
   {def_hotkeys,
    [
-    {1,"À chaque commande qui figure dans un menu il est possible d'attribuer une touche de raccourci."},
-    {4,"Pour assigner une touche de raccourcis à une commande :"},
+    {1,"Toute commande qui figure dans un menu peut être assignée à une touche de raccourci."},
+    {4,"Pour assigner une commande à une touche de raccourci :"},
     {5,"1. Affichez le menu contenant la commande et placez le curseur vis-à-vis d'elle de sorte qu'elle soit surlignée."},
     {6,"2. Appuyez sur la touche [Insér.] ou la touche [/]."},
-    {7,"3. Si la commande produit différent résultats selon quel bouton de souris est utilisé pour la sélectionner, la ligne d'information affichera un message vous demandant d'appuyer sur le bouton de souris correspondant à la commande à laquelle vous souhaitez assigner le raccourcis. Le curseur de la souris ne doit pas bouger pendant cette opération afin de rester sur le menu."},
     {8,"4. La ligne d'information demande alors d'appuyer sur la touche du clavier à laquelle vous souhaitez lier la commande."},
-    {9,"Pour effacer un raccourcis, ouvrez le menu et placez le curseur de la souris sur la commande Appuyez sur la touche [Suppr.] ou la touche [\\]. Une fenêtre énumérant toutes les touches déjà assignées à la commande apparaitra afin de vous permettre de choisir quels raccourcis vous souhaitez supprimer. Cochez les cases les cases correspondant aux raccourcis à effacer et validez."}
+    {9,"Pour effacer un raccourcis, ouvrez le menu et placez le curseur de la souris sur la commande Appuyez sur la touche [Suppr.] ou la touche [\\]. Une fenêtre énumérant toutes les touches déjà assignées à la commande apparaitra afin de vous permettre de choisir quels raccourcis vous souhaitez supprimer. Cochez les cases des raccourcis à effacer et validez."},
+    {10,"3. Si la commande produit différent résultats selon quel bouton de souris est utilisé pour la sélectionner, la ligne d'information affichera un message vous demandant d'appuyer sur le bouton de souris correspondant à la commande à laquelle vous souhaitez assigner le raccourcis. Le curseur de la souris ne doit pas bouger pendant cette opération afin de rester sur le menu."}
     ]},
   {edit_prefs,
    [
@@ -994,8 +1040,9 @@
     {8,"Commandes par défaut"},
     {9,"Conseils sur la performance"},
     {10,"Informations OpenGL"},
-    {11,"À propos de Wings 3D..."}
-   ]},
+    {11,"À propos de Wings 3D..."},
+    {12,"Ajuster"}
+  ]},
   {help_window,
    [
     {1,"Aucun texte d'aide"}
@@ -1205,7 +1252,10 @@
    ]},
   {screenshot,
    [
-    {1,"(Capture d'écran)"}
+    {1,"Capture d'écran"},
+    {2,"Capture seulement la vue 3D"},
+    {3,"Ajouter la vue actuelle aux vues enregistrées"},
+    {4,"Nom"}
    ]},
   {window_params,
    [
@@ -1305,8 +1355,8 @@
     {13,"Ajuste interactivement le cone d'ouverture du spot"},
     {14,"Affaiblissement du spot"},
     {15,"Ajuste interactivement combien la lumière s'affaiblie en s'éloignant du centre du cone du spot"},
-    {16,"Modifier les propriétés..."},
-    {17,"Modifier les propriétés de la lumière"},
+    {16,"Ajuster les propriétés..."},
+    {17,"Ajuster les propriétés de la lumière"},
     {18,"Dupliquer"},
     {19,"Dupliquer et déplacer les lumières sélectionnées"},
     {20,"Supprimer"},
@@ -1463,13 +1513,48 @@
    [
     {2,"Cliquez pour l'aimant"}
    ]},
+  {menu_toolbar_help,
+   [
+    {1,"Ouvre le menu Outils"},
+    {2,"Ouvre le menu Sélectionner"},
+    {3,"Rappelle la sélection mémorisée"},
+    {4,"Mémorise la sélection"},
+    {5,"Désélectionner | Sélectionner tout"},
+    {6,"Désélectionner et fermer le menu"},
+    {7,"Répéter déplacement"},
+    {8,"Répéter arguements"},
+    {9,"Répéter"}
+   ]},
   {mk_dialog,
    [
-    {1,"Cochez les cases correspondant aux raccourcis à supprimer."}
+    {1,"Cochez les cases des raccourcis à supprimer."}
    ]},
-  {norm_help_adv,
+   {mmb_menu_toolbar_help,
+   [
+    {1,"Anneau d'arêtes"}
+   ]},
+ {norm_help_adv,
    [
     {1,"Ouvre la fenêtre des paramêtres pour cette commande"}
+   ]},
+  {normalize_menu,
+   [
+    {1,"Plus..."}
+   ]},
+  {rmb_menu_toolbar_help,
+   [
+    {1,"Boucle d'arêtes"},
+    {2,"Boucle d'arêtes en région"},
+    {3,"Sélectionne les arêtes qui ont les deux sommets sélectionnés"}
+   ]},
+  {scroll_help,
+   [
+    {1,"Répéter déplacement | Annuler"},
+    {2,"Annuler | Rétablir"},
+    {3,"Boucle d'arêtes suivante | précédente"},
+    {4,"Prolonger | Raccourcir la boucle d'arêtes"},
+    {5,"Prolonger | Raccourcir l'anneau d'arêtes"},
+    {6,"Sélectionner plus | moins"}
    ]}
  ]}.
 {wings_menu_util,
@@ -1515,10 +1600,10 @@
     {22,"Soulever la facette le long "},
     {23,"Dupliquer, puis déplacer le long "},
     {24,"Extrait chaque élément, puis les déplace "},
-
-    {25,"Extrait chaque élément, puis les déplace le long de "},
-
-    {26,"Extract and Extrude faces as region, then move along "}
+    {25,"Extrait les éléments, puis les déplace le long de "},
+    {26,"Extrait et extrude les facettes comme une région, puis déplacer le long "},
+    {27,"Extrait et extrude les facettes comme une région, puis déplacer les facettes le long de la normale de la région"},
+    {28,"Extrait et extrude les facettes comme une région, puis déplacer les facettes "}
    ]},
   {dirs,
    [
@@ -1551,6 +1636,11 @@
     {2,"Aplanir sur un plan standard"},
     {3,"Choisir le plan et un point de référence sur le plan"},
     {4,"Choisir le plan"}
+   ]},
+  {flatten_edge_loops,
+   [
+    {1,"Boucle d'arêtes"},
+    {2,"Aplanir chaque boucle d'arêtes fermée selon sa normale"}
    ]},
   {flatten_fun_1,
    [
@@ -1615,8 +1705,8 @@
    ]},
   {do_menu,
    [
-    {1,"Modifier le matériau..."},
-    {2,"Modifier les propriétés du matériau"},
+    {1,"Ajuster le matériau..."},
+    {2,"Ajuster les propriétés du matériau"},
     {3,"Assigner à la sélection"},
     {4,"Assigner le matériaux aux facettes ou aux objets sélectionnés"},
     {5,"Sélectionner"},
@@ -1633,7 +1723,7 @@
     {16,"Supprime cet objet"},
     {17,"Renommer"},
     {18,"Renomme cet objet"},
-    {19,"Modifier la lumiere..."},
+    {19,"Ajuster la lumiere..."},
     {20,"Modifie les propriétés de la lumière"},
     {21,"Dupliquer"},
     {22,"Duplique cette lumière"},
@@ -1641,6 +1731,8 @@
     {24,"Supprime cette lumière"},
     {25,"Renommer"},
     {26,"Renomme cette lumière"},
+    {27,"Ajouter à la sélection tous les éléments qui ont ce matériau"},
+    {28,"Retirer de la sélection tous les éléments qui ont ce matériau"},
     {121,"Déposer l'objet"},
     {122,"Déposer un objet précédemment sélectionné sur ce matériel "}
     ]},
@@ -1654,8 +1746,8 @@
     {1,"Type de texture"},
     {2,"Diffuse"},
     {3,"Brillance"},
-    {4,"Relief (HeightMap)"},
-    {5,"Bosselage (NormalMap)"}
+    {4,"Bosselage (Height Map)"},
+    {5,"Relief (Normal Map)"}
    ]},
   {image_menu,
    [
@@ -1666,7 +1758,8 @@
    [
     {1,"Rendre externe..."},
     {2,"Rafraichir"},
-    {3,"Rendre interne"}
+    {3,"Rendre interne"},
+    {11,"Mettre à jour l'image selon le contenu du fichier sauvegardé"}
    ]},
   {make_external,
    [
@@ -1702,8 +1795,8 @@
    ]},
   {do_menu,
    [
-    {1,"Modifier"},
-    {2,"Modifier la couleur"},
+    {1,"Ajuster"},
+    {2,"Ajuster la couleur"},
     {3,"Extrapoler"},
     {4,"Extrapole les couleurs vides"},
     {5,"Tout effacer"},
@@ -1720,7 +1813,7 @@
   {event,
    [
     {1,"Assigner la couleur à la sélection"},
-    {2,"Modifier la couleur"},
+    {2,"Ajuster la couleur"},
     {3,"Montrer le menu"},
     {4,"Effacer la couleur"}
    ]},
@@ -1742,16 +1835,11 @@
    [
     {40," Aire ~s"}
    ]},
-  {clear_hilite_marquee_mode,
-   [
-    {ctrl_action,"Désélectionner"},
-    {shift_action,"(Dé)sélectionner seulement les éléments totalement à l'intérieur de la boîte de sélection"}
-   ]},
   {enhanced_hl_info,
    [
     {1,". Position <~s  ~s  ~s>"},
-    {3,". Centre <~s  ~s  ~s>\nLongueur ~s"},
-    {4,". Centre <~s  ~s  ~s>\nMatériau ~s."}
+    {3,". Point médian <~s  ~s  ~s>\Longueur ~s"},
+    {4,". Point médian <~s  ~s  ~s> \nMatériau ~s."}
    ]},
   {handle_hilite_event,
    [
@@ -1760,6 +1848,11 @@
     {4,"Sommet"},
     {5,"Arête"},
     {6,"Facette"}
+   ]},
+  {marquee_message,
+   [
+    {ctrl_action,"Désélectionner"},
+    {shift_action,"(Dé)sélectionne seulement les éléments entièrement dans la marque"}
    ]}
  ]}.
 {wings_plugin,
@@ -1806,7 +1899,7 @@
    ]},
   {plugin_dir,
    [
-    {1,"Aucun dossier de plugiciels trouvée"}
+    {1,"Aucun dossier de plugiciels trouvé"}
    ]},
   {plugin_menu_info_3,
    [
@@ -1827,21 +1920,39 @@
     {6,"Outils|"}
    ]}
  ]}.
+{wings_pref,
+ [
+  {pref,
+   [
+    {1,"Charger un sous-ensemble de préférences"},
+    {2,"Enregistrer un sous-ensemble de préférences"},
+    {3,"Paramètres graphiques"},
+    {4,"Paramètres de caméra"},
+    {5,"Raccourcis clavier"},
+    {6,"Paramètres des vues et des fenêtres"},
+    {7,"Contraintes"},
+    {8,"Paramètres généraux"},
+    {9,"Fusionner les raccourcis clavier"},
+    {10,"Supprimer les raccourcis clavier avant"},
+    {11,"Ce fichier a été déplacé ou supprimé."},
+    {13,"N'est pas un fichier .pref"},
+    {14,"Sélectionner les champs de référence valides pour le fichier courrant"}
+   ]},
+  {recent_pref_help,
+   [
+    {1,"Charger un sous-ensemble de préférences récent"}
+   ]}
+ ]}.
 {wings_pref_dlg,
  [
   {advanced_prefs,
    [
     {1,"Commandes par défaut"},
     {2,"Autorise la définition de commandes pouvant être invoquée par Ctrl+G ou Ctrl+C (G et C étant des boutons de souris)"},
-    {3,"Utiliser la surbrillance comme sélection temporaire"},
-    {4,"S'il n'y a pas de sélection, "},
-    {5,"permet aux commandes d'agir sur l'élément en surbrillance"},
     {6,"Cacher la sélection lors d'un glissé de la souris"},
     {7,"Ne pas montrer ce qui est sélectionné durant l'usage de commandes interactives"},
     {8,"Cacher la sélection lors des déplacements de la caméra"},
     {9,"Ne pas montrer ce qui est sélectionné lors des déplacements de la caméra"},
-    {12,"Sélections temporaires de l'utilisateur"},
-    {13,"Dans le mode de sélection alternatif, un clic droit ajoute toujours à la sélection"},
     {14,"Longueur"},
     {15,"Longueur des vecteurs dans le mode de sélection alternatif"},
     {16,"Largeur"},
@@ -1849,27 +1960,17 @@
     {18,"Couleur"},
     {19,"Couleur des vecteurs"},
     {20,"Affichage des vecteurs"},
-    {21,"Utiliser le miroir pour les sélections"},
-    {22,"Par défaut utilise le mirroir virtuel pour les sélections secondaires"},
     {23,"Taille"},
     {24,"Taille de l'indicateur de rognure défini par l'utilisateur"},
     {25,"Couleur"},
     {26,"Couleur de l'indicateur de rognure défini par l'utilisateur"},
     {27,"Plan indicateur de rognure"},
-    {28,"Géométrie sélectionnée"},
-    {29,"Géométrie désélectionnée"},
-    {30,"Surbrillance de la cible visée"},
-    {36,"Changer de mode retourne le modèle à sa position"},
-    {37,"Affecte seulement les outils qui utilisent plus d'un glissé tel que Arête|Glisser"},
     {38,"Personnaliser la réponse du glissé"},
     {39,"Personnalise la vitesse du glissé de la souris. Sans le crochet Wings utilise le paramètre par défaut."},
-    {40,"Facteur en distance de la caméra"},
-    {43,"Facteur en distance de la caméra"},
     {49,"Préférences du glissé"},
     {50,"Vitesse du glissé de la souris"},
     {51,"Vitesse de la souris pour la mise à l'échelle"},
     {52,"Vitesse de la souris pour la rotation"},
-    {53,"Démarrer Wings en mode Modifier"},
     {54,"Étend la sélection à l'aide d'un raccourci clavier avec la subrillance temporaire"},
     {55,"Influe sur : Sélectionner tout, Boucle d'arêtes, Anneau d'arête, Sélectionner similaire, Normales identiques, Similar Materials, and Similar Area."}
    ]},
@@ -1882,7 +1983,7 @@
     {5,"Divers"},
     {6,"Préférences"},
     {31,"Contraintes"}
-	]},
+    ]},
   {constraint_prefs,
    [
     {1,"Distance"},
@@ -1908,7 +2009,7 @@
     {31,"Préférences des contraintes "},
     {32,"Valeur par défaut des contraintes"},
     {33,"Utiliser les contraintes alternatives"},
-    {34,"Checked uses alternate distances, reciprocal scale factors, and supplementary angles."},
+    {34,"Coché utilise la distance alternative, le facteur de mise à l'échelle réciproque et les angles supplémentaires."},
     {35," [Maj]+[Tab] permet de changer de contraintes durant un glissé."}
    ]},
   {gen_prefs,
@@ -1927,16 +2028,10 @@
     {12,"Arêtes dures"},
     {13,"Couleur des arêtes dures"},
     {14,"Affichage des arêtes"},
-    {15,"Sommets"},
-    {16,"Arêtes"},
-    {17,"Facettes"},
     {18,"Objets"},
     {19,"Désélectionné"},
     {20,"Sélectionné"},
-    {21,"Surbrillance intelligente"},
     {22,"Surbrillance"},
-    {23,"Facettes sélectionées saturées"},
-    {24,"Facettes sélectionées désaturées"},
     {25,"Couleur de la sélection"},
     {26,"Sélection"},
     {27,"Texte"},
@@ -1948,7 +2043,6 @@
     {33,"Grille alignée sur les axes"},
     {34,"Toujours montrer la grille lorsque la vue est alignée le long d'un des axes majeurs"},
     {35,"Grille"},
-    {36,"Montrer les lettres des axes"},
     {37,"Couleur de +X "},
     {38,"Couleur de +Y"},
     {39,"Couleur de +Z"},
@@ -1973,21 +2067,21 @@
     {60,"Largeur des normales"},
     {61,"Volubile"},
     {62,"Affiche des renseignements additionnel au sujet des éléments sélectionnés"},
-    {63,"Survol"},
-    {64,"Affiche des renseignements additionnel au sujet des éléments que la souris survole"},
     {65,"Taille des sommets du masque d'aimant"},
     {66,"Taille en pixel des sommets du masque d'aimant"},
     {67,"Sommets désélectionnés"},
     {68,"Couleur des sommets non sélectionnés"},
     {69,"Masque d'aimant"},
     {70,"Couleur des sommets du masque d'aimant"},
+    {71,"Désélection conditionnelle"},
+    {72,"Désélectionner conserve le mode de sélection courrant, sauf s'il n'y aucune sélection"},
     {aa_ortho1,"Vue orthogonale sur les axes"},
     {aa_ortho2,"Toujours se mettre en vue orthogonale lorsque la vue est alignée sur l'un des axes majeurs"}
     ]},
   {menu,
    [
     {1,"Préférences..."},
-    {2,"Modifier les préférences de Wings"}
+    {2,"Ajuster les préférences de Wings"}
    ]},
   {misc_prefs,
    [
@@ -2005,8 +2099,6 @@
     {12,"Opacité à l'arrêt"},
     {13,"Opacité en bougeant"},
     {14,"Mode proxy"},
-    {15,"Le texte dans les menus et les dialogues disparait"},
-    {16,"Ce problème provient de certaines cartes graphiques Matrox"},
     {17,"Wings plante lorsque les axes sont désactivés"},
     {18,"Ce problème provient de certaines cartes graphiques Matrox"},
     {19,"Le déplacement de la caméra et les commandes interactives sont instables"},
@@ -2015,13 +2107,23 @@
     {22,"Problème d'affichage des arrêtes ?"},
     {23,"Compensation d'arêtes :"},
     {24,"Montrer le menu Développeur"},
-    {25,"Affiche un menu contenant des outils pour les développeurs de Wings"}
+    {25,"Affiche un menu contenant des outils pour les développeurs de Wings"},
+    {26,"Les mouvements de caméra volent le focus"},
+    {27,"Ce problème est présent sous Linux"},
+    {28,"Hauteur maximale des menus en pixels"},
+    {29,"Les menus sont coupés et continuent dans le sous-menu « Plus... »."},
+    {30,"Moins de 1 passe la gestion des menus en mode automatique."},
+    {40,"Une valeur de 0 retourne au fonctionnement standard, une plus grande valeur nécessite plus de mémoire (fonctionalité expérimentale qui nécessire de bons pilotes OpenCL)"},
+    {41,"Pilotes OpenCL requis "},
+    {42,"Niveau de simulation OpenCL"}
    ]},
   {smart_set_value_1,
    [
     {1,"Le changement de la police prendra effet\nau prochain démarrage de Wings 3D."},
     {2,"Le changement d'icônes d'interface prendra effet\nau prochain démarrage de Wings 3D."},
-    {3,"Le changement de couleur du matériau par défaut prendra effet\nau prochain démarrage de Wings 3D."}
+    {3,"Le changement de couleur du matériau par défaut prendra effet\nau prochain démarrage de Wings 3D."},
+    {4,"Le changement de la police de la console prendra\neffet au prochain démarrage de Wings 3D."},
+    {5,"Le changement du langage prendra effet\nau prochain démarrage de Wings 3D."}
    ]},
   {ui_prefs,
    [
@@ -2038,7 +2140,6 @@
     {11,"Arrière-plan de titre (Passif)"},
     {12,"Arrière-plan de titre (Actif)"},
     {13,"Couleurs"},
-    {14,"Aucune barre de progression"},
     {15,"Police de la console"},
     {16,"Largeur"},
     {17,"Hauteur"},
@@ -2048,14 +2149,26 @@
     {21,"Curseur"},
     {22,"Console"},
     {23,"Langue"},
-    {24,"Objets dans le profil de scène"},
-    {25,"Voir l'image après le rendu"},
-    {26,"Charger les images après le rendu"},
     {27,"Barre d'icône étendue"},
     {28,"Arrière-plan de la barre des menus"},
     {29,"Arrière-plan de la ligne d'information"},
     {30,"Texte de la ligne d'information"},
     {31,"Texte du menu principal"},
+    {32,"Icônes adaptives"},
+    {33,"Les icônes dans les fenêtres « Profil de scène » et « Graphique des géométries » permettent au thème de les personnaliser"},
+    {34,"Profil de scène/Graphique des géométries"},
+    {35,"Arrière-plan"},
+    {36,"Texte"},
+    {37,"Surbrillance"},
+    {38,"Texte en surbrillance"},
+    {39,"Désactivé"},
+    {40,"Barre d'outils du menu"},
+    {41,"Ajoute une minie barre d'outils au sommet du menu contextuel"},
+    {42,"Voir les rendus à l'aide d'un visualisateur externe"},
+    {44,"Icônes larges"},
+    {45,"Petites icônes"},
+    {46,"Montre la barre d'outils du menu"},
+    {47,"Souris collante"},
     {50,"Icônes d'interface"},
     {51,"Classique"},
     {52,"Cube bleu"},
@@ -2136,6 +2249,10 @@
    [
     {1,"Non"}
    ]},
+  {scroll,
+   [
+    {scroll,"Molette"}
+   ]},
   {yes,
    [
     {1,"Oui"}
@@ -2156,7 +2273,15 @@
  [
   {ask,
    [
-    {1,"Sélection par ID"}
+    {1,"Sélection par Id"}
+   ]},
+  {faces_with,
+   [
+    {1,"Nombre d'arêtes"},
+    {2,"Sélectionner les facettes"},
+    {3,"Plus"},
+    {4,"Moins"},
+    {5,"Exactement"}
    ]},
   {group_mode_string,
    [
@@ -2190,7 +2315,12 @@
     {18," » de la sélection courante"},
     {19,"Intersection de groupe"},
     {20,"Intersection du groupe « "},
-    {21," » avec la sélection courante"}
+    {21," » avec la sélection courante"},
+    {22,"Groupe de sélection"},
+    {24,"Groupe suivant"},
+    {25,"Groupe précédent"},
+    {26,"Parcours dans le mode de sélection"},
+    {27,"Parcours Préc./Suiv. seulement dans le mode de sélection actif"}
    ]},
   {item_by_id,
    [
@@ -2210,11 +2340,11 @@
     {3,"Plus"},
     {4,"Moins"},
     {5,"Similaire"},
-    {6,"Boucle d'arête"},
-    {7,"Boucle d'arête"},
-    {8,"Étendre la sélection d'arête à une boucle; "},
+    {6,"Boucle d'arêtes"},
+    {7,"Boucle d'arêtes"},
+    {8,"Étendre la sélection d'arêtes à une boucle; "},
     {9,"converti la sélection de facettes en sélection des arêtes du contour"},
-    {10,"Boucle d'arête en région"},
+    {10,"Boucle d'arêtes en région"},
     {11,"Sélectionne toutes les facettes sur un coté de la boucle d'arêtes "},
     {12,"Anneau d'arêtes"},
     {13,"Étendre la sélection d'arêtes à un anneau"},
@@ -2224,7 +2354,7 @@
     {17,"Sélectionne la boucle d'arêtes suivante"},
     {18,"Prolonger la boucle d'arêtes"},
     {19,"Prolonge la sélection d'arêtes d'une arête sur une boucle d'arêtes"},
-    {20,"Raccourcir la courbe d'arêtes"},
+    {20,"Raccourcir la boucle d'arêtes"},
     {21,"Raccourcis la sélection d'arêtes d'une arête sur une boucle d'arêtes"},
     {22,"Prolonger l'anneau d'arêtes"},
     {23,"Prolonge la sélection d'arêtes d'une arête sur un anneau d'arêtes"},
@@ -2270,9 +2400,7 @@
     {72,"Cacher les objets non sélectionnés"},
     {73,"Verrouiller désélectionés"},
     {74,"Verrouille les objets non sélectionnés"},
-    {75,"Tout afficher"},
     {76,"Affiche tous les objets qui ont été cachés"},
-    {77,"Déverrouiller tout"},
     {78,"Déverrouille tous les objets verrouillés"},
     {79,"Mémoriser la sélection"},
     {80,"Mémorise la sélection à l'intérieur du groupe de sélection nommé « Sélection mémorisée »"},
@@ -2293,7 +2421,17 @@
     {95,"Chemin de sommets"},
     {96,"À la boucle complète"},
     {97,"Change pour le mode arête et complète la sélection en boucle d'arête"},
+    {98," ; converti les somments consécutifs en arêtes"},
+    {99," (parmi la sélection ou tous les objets, s'il n'y a pas de sélection)"},
+    {100,"Chaque énième anneau"},
+    {101,"Deuxième"},
+    {102,"Troisième"},
+    {103,"Énième..."},
+    {104,"Décacher tous les objets"},
+    {105,"Déverrouiller tous les objets"},
+    {106," objets"},
     {401,"6 ou plus"},
+    {402,"Spécifier..."},
     {nq0,"Les facettes non quadrangulaires"},
     {nq1,"Toutes les facettes non quadrangulaires"},
     {nq2,"Les facettes non quadrangulaires impaires"},
@@ -2332,6 +2470,14 @@
     {1,"Normales proches"},
     {2,"Sélectionner les facettes avec des normales proches à celles qui sont déjà sélectionnées"}
    ]},
+  {random,
+   [
+    {1,"Sélectionner aléatoirement"}
+   ]},
+  {random_help,
+   [
+    {1,"Sélectionne des éléments au hasard dans la sélection, ou dans tous les objets visibles (s'il n'y a pas de sélection)"}
+   ]},
   {sel_all_str,
    [
     {1,"Tous les sommets"},
@@ -2339,10 +2485,18 @@
     {3,"Toutes les facettes"},
     {4,"Tous les objets"}
    ]},
+  {select_nth_ring,
+   [
+    {1,"Interval"},
+    {2,"Sélectionne chaque énième anneau d'arêtes"}
+   ]},
   {sharp_edges,
    [
     {1,"Angle maximum"},
-    {2,"Sélectionne les arêtes pointues"}
+    {2,"Sélectionne les arêtes pointues"},
+    {3,"Collines"},
+    {4,"Vallées"},
+    {5,"Les deux"}
    ]},
   {short_edges,
    [
@@ -2388,14 +2542,31 @@
    ]},
   {valid_sel,
    [
-    {1,"L'ID de l'objet "},
+    {1,"L'Id de l'objet "},
     {2," est invalide."},
     {3,"Le "},
     {4," est invalide."}
+   ]},
+  {vertices_with,
+   [
+    {1,"Nombre d'arêtes"},
+    {2,"Sélectionner sommets"},
+    {3,"Plus"},
+    {4,"Moins"},
+    {5,"Exactement"}
    ]}
  ]}.
 {wings_shape,
  [
+  {create_folder,
+   [
+    {1,"Un dossier de ce nom existe déjà"}
+   ]},
+  {create_folder_dialog,
+   [
+    {1,"Choisir le nom du dossier"},
+    {2,"Créer dossier"}
+   ]},
   {do_menu,
    [
     {1,"Dupliquer"},
@@ -2403,20 +2574,40 @@
     {3,"Supprimer"},
     {4,"Supprimer les objets sélectionnés"},
     {5,"Renommer"},
-    {6,"Renommer les objets sélectionnés"}
+    {6,"Renommer les objets sélectionnés"},
+    {7,"Créer dossier"},
+    {8,"Renommer dossier"},
+    {9,"Supprimer dossier"},
+    {10,"Supprimer le dossier et son contenu"},
+    {11,"Placer dans le dossier"},
+    {12,"Déplace les objets sélectionnés dans le dossier"},
+    {13,"Vider le dossier"},
+    {14,"Retirer du dossier"},
+    {15,"Retire les objets sélectionnés du dossier"}
    ]},
   {help,
    [
     {1,"Sélectionner"},
     {2,"Montrer le menu"},
-    {3,"Basculer la visibilite de l'objet"},
-    {4,"Basculer la visibilte de tous les autres objets"},
+    {3,"Basculer la visibilité de l'objet"},
+    {4,"Basculer la visibilté de tous les autres objets"},
     {5,"(Dé)verouiller l'objet actif"},
     {6,"(Dé)verouiller tous les objets"},
-    {7,"Basculer la sélection pour l'objet actif"},
-    {8,"Basculer la sélection pour tous les autres objets"},
-    {9,"Basculer le fil de fer pour l'objet actif"},
-    {10,"Basculer le fil de fer pour tous les autres objets"}
+    {7,"Basculer la sélection de l'objet actif"},
+    {8,"Basculer la sélection de tous les autres objets"},
+    {9,"Basculer le fil de fer de l'objet actif"},
+    {10,"Basculer le fil de fer de tous les autres objets"},
+    {11,"Basculer le dossier ouvert/fermé"},
+    {12,"Basculer tous les dossiers ouverts/fermés"},
+    {13,"Basculer la visibilité des objets du dossier"},
+    {14,"(Dé)verouiller les objets du dossier"},
+    {15,"Basculer le fil de fer des objets du dossier"},
+    {16,"Basculer la sélection des objets du dossier"}
+   ]},
+  {rename_folder_dialog,
+   [
+    {1,"Choisir le nom du dossier"},
+    {2,"Renommer le dossier"}
    ]},
   {title,
    [
@@ -2462,11 +2653,6 @@
   {icosahedron,
    [
     {1,"Longueur d'arête"}
-   ]},
-  {menu,
-   [
-    {15,"Suppléments"},
-    {16,"Plus de primitives"}
    ]},
   {prim_help,
    [
@@ -2548,6 +2734,19 @@
     {2,"Quadriller"}
    ]}
  ]}.
+{wings_theme,
+ [
+  {menu,
+   [
+    {1,"Thèmes"},
+    {2,"Thème vert classic"},
+    {3,"Change les couleurs d'affichage vers les couleurs du thème original de Wings 3D (barres titres vertes)"},
+    {4,"Thème olive"},
+    {5,"Thème bleu gris"},
+    {6,"Thème bleu sombre"},
+    {7,"Change les couleurs de l'interface"}
+   ]}
+ ]}.
 {wings_toolbar,
  [
   {button_help_1,
@@ -2570,7 +2769,7 @@
     {2,"Refaire la dernière commande qui fut annulée"},
     {3,"Ovrir une scène précédemment enregistrée"},
     {4,"Enregistrer la scène courrante"},
-    {5,"Modifier les préférences de Wings"}
+    {5,"Ajuster les préférences de Wings"}
    ]},
   {messages,
    [
@@ -2584,6 +2783,230 @@
     {show,"Choisir"},
     {show_objects,"Choisir les objets avec"},
     {smooth,"Lissage des ombres"}
+   ]}
+ ]}.
+{wings_tweak,
+ [
+  {axis_string,
+   [
+    {1,"Axe par défaut"},
+    {2,"Normale de l'élément"},
+    {3,"Normale de l'élément (arêtes)"},
+    {4,"Radial"},
+    {5,"Du curseur"},
+    {6,"De l'élément"},
+    {7,"Du point par défaut"}
+   ]},
+  {cam_conflict,
+   [
+    {1,"La commande n'a pas été aasignée au raccourci.\n\n    Cette combinaison serait en conflit avec les contrôle de la caméra"}
+   ]},
+  {camera_msg,
+   [
+    {1,"[C]: Culbuter la vue  [S]: Mouvement latéral  [D]: Travelling"}
+   ]},
+  {constraints_menu,
+   [
+    {1,"Verrouille les mouvements sur la normale de la sélection."},
+    {2,"Verrouille les mouvements sur l'axe par défaut."},
+    {3,"Verrouille les mouvements sur le Radial de l'axe « Ajuster » courrant."},
+    {5,"Verrouille les mouvements sur l'axe ~s."},
+    {6,"Contraint les mouvements sur la normale de l'élément marqué par le vecteur Ajuster."},
+    {7,"Mettre à l'échelle à partir du curseur de la souris."},
+    {8,"Mettre à l'échelle à partir d'un élément marqué par le vecteur Ajuster."},
+    {9,"Mettre à l'échelle à partir du point par défaut."},
+    {10,"Effacer les contraintes"},
+    {11,"Effacer le verrouillage des axes."}
+   ]},
+  {extra_msg,
+   [
+    {1,"Glisser réduire"}
+   ]},
+  {help_msg_axes,
+   [
+    {1,"-- Contraintes des axes --"},
+    {2,"La contrainte des axes n'a d'effet que sur les opérations Déplacer et Mise à l'échelle du mode Ajuster."},
+    {3,"Tenir les touches [F1], [F2], ou [F3] contraindre le mouvement à l'un des 3 axes (X, Y, ou Z)."},
+    {4,"Cliquer les raccourcis de contrainte des axes pour les (dé)activer."},
+    {5,"Verrouiller l'état (in)actif d'un axe à l'aide du menu Ajuster ou de la palette Ajuster."},
+    {6,"Les axes « à partir de l'élément » et « à partir du point » activent le vecteur Ajuster."},
+    {7,"Les axes peuvent être combinés."}
+   ]},
+  {help_msg_basic,
+   [
+    {1,"-- Ajuster, c'est quoi ? --"},
+    {2,"Ajuster permet des modifications rapides de la géométrie en cliquant et en glissant."},
+    {3,"Lorsque le mode Ajuster est actif, toutes les opérations normales restent disponibles,"},
+    {4," mais certains boutons de souris et touches de modification activeront les outils Ajuster."}
+   ]},
+  {help_msg_hotkeys,
+   [
+    {1,"-- Des raccourcis pour les outils Ajuster --"},
+    {2,"Une alternative aux combinaison des touches Ajuster est de définir un raccourci claver à l'un des outils du mode Ajuster à l'aide de la touche Insérer."},
+    {3,"Une pression des touches de raccourci assigne au bouton de souris gauche l'outil Ajuster correspondant."}
+   ]},
+  {help_msg_keys,
+   [
+    {1,"-- Attribuer une touche aux outils Ajuster --"},
+    {2,"Chaque outil Ajuster ~s peut se voir assigner une touche de modification (Ctrl, Maj, Alt)."},
+    {3," et "},
+    {4,"Pour assigner une touche à un outils Ajuster :"},
+    {5,"\t1) Ouvrir le menu Ajuster."},
+    {6,"\t2) Mettre l'outil désiré en surbrillance."},
+    {7,"\t3) Appuyez sur les touches de modification et les tenir un moment et/ou appuyez sur l'un des boutons de la souris."}
+   ]},
+  {help_msg_magnet,
+   [
+    {1,"-- Aimants --"},
+    {2,"Les aimants permettent des sélection souples."},
+    {3,"Il y a trois types d'aimants : Dôme, Droit, and Pointe."},
+    {4,"Le rayon de l'aimant s'ajuster en tenant [Alt] et en bougeant la souris."},
+    {5,"Le contrôle du choix de l'aimant peut être assigné à des raccourcis dans le menu Ajuster|Aimants."},
+    {6,"Les paramètres de l'aimant peuvent être réglés dans les préférences de l'outils Ajuster."}
+   ]},
+  {help_msg_palette,
+   [
+    {1,"-- Palette Ajuster (Fenêtre|Palette Ajuster) --"},
+    {2,"La palette Ajuster un groupe de 3 fenêtres contenant les principales commandes du menu Ajuster."},
+    {3,"Utilisez la palette Ajuster pour changer entre les outils Ajuster, les types d'aimants ou les contraintes d'axe."}
+   ]},
+  {help_msg_using_keys,
+   [
+    {1,"-- Utiliser Ajuster --"},
+    {2,"1) Activez Ajuster."},
+    {3,"2) Pointez ou sélectionnez un élément de géométrie ou plus."},
+    {4,"3) Appuyez sur une combinaison de touches Ajuster et le bouton de souris associé pour activer Ajuster."},
+    {5,"4) Faites glisser la géométrie à sa nouvelle position."},
+    {6,"5) Relâcher le bouton de souris pour compléter l'opération Ajuster."},
+    {7,"Relâcher les touches du clavier ne mets pas fin à l'opération en cours."},
+    {8,"Ceci permet aux autres raccourcis clavier d'être utiliser en cours d'opération pour activer un autre outils Ajuster, une contrainte d'axe, pointer la caméra our ajuster le rayon de l'aimant."},
+    {9,"La touche [C] en cours d'opération Ajuster fait culbuter la vue."},
+    {10,"La touche [S] ou les touches flèchées en cours d'opération Ajuster déplace la vue latéralement."},
+    {11,"La touche [D] en cours d'opération Ajuster effectue un travelling."},
+    {12,"La touche [Espace] en cours d'opération Ajuster change pour l'outil Ajuster assigné au bouton gauche de la souris."},
+    {13,"Maintenant la touche [F] en finalisant un glissé de la souris effectura une réduction de toute arête trop courte (fusionne deux sommets)."}
+   ]},
+  {help_window,
+   [
+    {1,"Aide de l'outil Ajuster"}
+   ]},
+  {mag_thelp,
+   [
+    {1,"Cet aimant tire et pousse la géométrie avec un effet arrondi égal."},
+    {2,"Cet aimant tire et pousse la géométrie avec un effet en ligne droite."},
+    {3,"Cet aimant tire et pousse la géométrie dans un angle très aigu."}
+   ]},
+  {magnet_type,
+   [
+    {1,"Dôme"},
+    {2,"Droit"},
+    {3,"Pointe"}
+   ]},
+  {menu,
+   [
+    {1,"Ajuster is a collection of tools for quickly adjusting a mesh."},
+    {2,"Activer Ajuster"},
+    {3,"Déactiver Ajuster"},
+    {4,"Aimants"},
+    {5,"Contraintes d'axe"},
+    {6,"Déplace la sélection par rapport à l'écran ou contraint à un axe."},
+    {7,"Déplace la sélection le long de la normale moyenne."},
+    {8,"Met à l'échelle la sélection par rapport à l'écran ou contraint à un axe."},
+    {9,"Met à l'échelle les éléments uniformément à partir du centre de la sélection."},
+    {10,"Relâche la sélection vers le plan moyen des voisins."},
+    {11,"Glisse les éléments le long des arêtes adjencentes."},
+    {13,"Préférences Ajuster"},
+    {14,"Préférences de l'outil Ajuster"}
+   ]},
+  {menu_conflict,
+   [
+    {1,"La combinaison de touches n'a pas été assignée.\n\n    Ces touches seraient en conflit avec le clic droit du menu Ajuster."}
+   ]},
+  {mode,
+   [
+    {1,"Déplacer"},
+    {2,"Déplacer sur la normale"},
+    {3,"Mettre à l'échelle"},
+    {4,"Mettre à l'échelle uniformément"},
+    {5,"Relâcher"},
+    {6,"Glisser"}
+   ]},
+  {palette_title,
+   [
+    {1,"Ajuster"},
+    {2,"Ajuster Magnet"},
+    {3,"Ajuster Axis"}
+   ]},
+  {spacebar_msg,
+   [
+    {1,"[Espace] : Change pour l'outil Ajuster du bouton G"}
+   ]},
+  {toggle_bold,
+   [
+    {1,"Point actif : "},
+    {2,"Axe actif : "}
+   ]},
+  {tweak_disabled_msg,
+   [
+    {1,"Ajuster : Désactivé"}
+   ]},
+  {tweak_info_line,
+   [
+    {1,"G: Sélection par clic"},
+    {2,"GG: Sélection par glissé"},
+    {3,"Menu Ajuster"},
+    {4,"Menu"}
+   ]},
+  {tweak_magnet_help,
+   [
+    {1,"Aimant : "},
+    {2,"Aimant : Éteint"},
+    {3,"+Glisser : "},
+    {4,"Ajuster le rayon"}
+   ]},
+  {tweak_magnet_menu,
+   [
+    {1,"Désactiver l'aimant"},
+    {2,"Activer l'aimant"},
+    {3,"L'aimant du monde Ajuster est semblable à une sélection douce."},
+    {5,"Touche pour ajuster le rayon"},
+    {6,"Appuyez sur [Insérer] pour personnaliser le raccourci qui ajuste le rayon de l'aimant. "},
+    {7,"Sans raccourci, on ajuste l'aimant en maintenant [Alt]."},
+    {8,"Remise à zéro du rayon"},
+    {9,"Efface le paramètre de rayon actuel pour le remettre à 1.0"},
+    {10,"Type d'aimant suivant"},
+    {11,"Il est possible d'y attribuer un raccourci pour parcourrir les aimants."}
+   ]},
+  {tweak_magnet_radius_help,
+   [
+    {1,"Glisser vers la droite pour augmenter et vers la gauche pour diminuer le rayon de l'aimant."},
+    {2,"L'aimant est éteint."}
+   ]},
+  {tweak_menu_item,
+   [
+    {1,"Associé à : "},
+    {2,"Changer : "},
+    {3,"Échanger : "},
+    {4,"Tenir des touches de modifications et/ou presser un bouton de souris."},
+    {5,"Appuyer sur les touches déjà associées à un autre outil."},
+    {6,"Dissocier : "}
+   ]},
+  {tweak_preferences_dialog,
+   [
+    {1,"Vitesse du clic pour (dé)sélectionner"},
+    {2,"Diminuer pour augmenter le contrôle, augmenter pour augmenter la vitesse."},
+    {3,"Vitesse d'ajustement (réponse du glissé)"},
+    {4,"Sensibilité de l'ajustement du rayon de l'aimant"},
+    {5,"Couleur de la représentation du rayon de l'aimant"},
+    {6,"Longueur"},
+    {7,"Largeur"},
+    {8,"Couleur"},
+    {9,"Vecteur Ajuster"},
+    {10,"Préférences du monde Ajuster"}
+   ]},
+  {xyzkey_help,
+   [
+    {1,"Axes actifs : "}
    ]}
  ]}.
 {wings_u,
@@ -2622,12 +3045,12 @@
     {23,"Exporter la sélection"},
     {24,"Importer une image"},
     {25,"Rendre"},
-    {26,"Install Plugin"},
-    {27,"Exit"},
-    {28,"Undo/Redo"},
-    {29,"Undo"},
-    {30,"Redo"},
-    {31,"Repeat"},
+    {26,"Installer plugiciel"},
+    {27,"Quitter"},
+    {28,"Annuler/Refaire"},
+    {29,"Annuler"},
+    {30,"Refaire"},
+    {31,"Répéter"},
     {32,"Repeat Args"},
     {33,"Repeat Drag"},
     {34,"Purge Undo"},
@@ -3093,8 +3516,13 @@
     {66,"Visée par surbrillance"},
     {67,"Pointe la caméra sur ce que survol la souris. (Nécessite que « Utiliser la surbrillance comme sélection temporaire » soit activé dans les préférences et d'utiliser un raccourci clavier pour invoquer cette commande)"},
     {68,"Montrer"},
-    {69,"Montrer le centre de la boîte"},
-    {70,"Affiche le centre de la boîte englobate enregistrée"}
+    {69,"Montrer le centre de la boîte englobante"},
+    {70,"Affiche le centre de la boîte englobante enregistrée"},
+    {71,"Axe le plus près"},
+    {72,"Montrer les facettes arrières"},
+    {73,"Afficher les facettes arrières lorsqu'il y a un trou ou des facettes cachées dans un objet"},
+    {74,"Traiter les textures"},
+    {75,"Active le traitement des textures pour toutes les textures. (Désactiver pour un affichage précis des textures basse résolution.)"}
    ]},
   {shader_submenu,
    [
@@ -3143,7 +3571,7 @@
    ]},
   {views_movemenu,
    [
-    {1,"Déplacer la courante"},
+    {1,"Déplacer la vue courante"},
     {2,"Aucune vue mémorisée !"},
     {3,"Déplacer « "},
     {5,"] vers la précédente["},
@@ -3220,7 +3648,7 @@
  [
   {close_event,
    [
-    {1,"Fermer cette fenetre"}
+    {1,"Fermer cette fenêtre"}
    ]},
   {ctrl_command,
    [
@@ -3251,7 +3679,11 @@
    [
     {1,"Glisser pour déplacer"},
     {2,"Adapter"},
-    {3,"Montrer le menu"}
+    {3,"Montrer le menu"},
+    {4,"Cliquer pour afficher la fenêtre"},
+    {5,"Cliquer pour enrouler la fenêtre dans sa barre de titre"},
+    {6,"Cliquer pour amener la fenêtre de géométrie au devant"},
+    {7,"Cliquer pour envoyer la fenêtre de géométrie derrière"}
    ]},
   {ctrl_resize,
    [
