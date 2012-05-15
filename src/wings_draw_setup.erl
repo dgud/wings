@@ -25,7 +25,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [reverse/1,any/2,sort/1]).
+-import(lists, [reverse/1,sort/1]).
 
 %%%
 %%% we(We, [Option], St) -> #vab{} See wings.hrl
@@ -164,6 +164,8 @@ flat_faces({plain,MatFaces}, D) ->
     plain_flat_faces(MatFaces, D, 0, <<>>, [], []);
 flat_faces({uv,MatFaces}, D) ->
     uv_flat_faces(MatFaces, D, 0, <<>>, [], []);
+flat_faces({uv_tangent,MatFaces}, D) ->
+    tangent_flat_faces(MatFaces, D, 0, <<>>, [], [], {array:new([{default, e3d_vec:zero()}]), []});
 flat_faces({color,MatFaces}, D) ->
     col_flat_faces(MatFaces, D, 0, <<>>, [], []);
 flat_faces({color_uv,MatFaces}, D) ->
@@ -241,6 +243,54 @@ uv_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) -
     end;
 uv_flat_faces_1([], _, Start, Vs, FaceMap) ->
     {Start,Vs,FaceMap}.
+
+%% Also needs uv's
+tangent_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0, Ts0) ->
+    {Start,Vs,FaceMap,Ts} = tangent_flat_faces_1(Fs, D, Start0, Vs0, Fmap0, Ts0),
+    MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
+    tangent_flat_faces(T, D, Start, Vs, FaceMap, MatInfo, Ts);
+tangent_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
+    FaceMap = array:from_orddict(sort(FaceMap0)),
+    case Vs of
+	<<>> -> Ns = UV = Vs;
+	_ ->
+	    <<_:3/unit:32,Ns/bytes>> = Vs,
+	    <<_:3/unit:32,UV/bytes>> = Ns
+    end,
+    S = 32,
+    VsTs = array:map(fun(_, Tangent) -> e3d_vec:normalize(Tangent) end, VsTs0),
+    Ts = add_tangents(RevF2V, VsTs, <<>>),
+    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV}, face_ts={0, Ts},
+		   face_map=FaceMap,mat_map=MatInfo}}.
+
+tangent_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap, Ts0) ->
+    UVs = wings_va:face_attr(uv, Face, Edge, We),
+    case array:get(Face, Ns) of
+	[Normal|Pos =[_,_,_]] ->
+	    tangent_flat_faces_1(Fs, D, Start+3,
+				 add_tri(Vs, Normal, Pos, UVs),
+				 [{Face,{Start,3}}|FaceMap],
+				 add_ts(Pos, UVs, Normal, 
+					wings_face:vertices_ccw(Face, We), Ts0)
+				);
+	[Normal|Pos] ->
+	    tangent_flat_faces_1(Fs, D, Start+6,
+				 add_quad(Vs, Normal, Pos, UVs),
+				 [{Face,{Start,6}}|FaceMap],
+				 add_ts(Pos, UVs, Normal, 
+					wings_face:vertices_ccw(Face, We), Ts0));
+	Info = {Normal,Faces,VsPos} ->
+	    NoVs  = length(Faces) * 3,
+	    VsBin = add_poly(Vs, Normal, Faces,
+			     list_to_tuple(VsPos), list_to_tuple(UVs)),
+	    tangent_flat_faces_1(Fs, D, NoVs+Start,
+				 VsBin, [{Face,{Start,NoVs}}|FaceMap],
+				 add_ts(Info, UVs, Normal, 
+					wings_face:vertices_ccw(Face, We), Ts0))
+    end;
+tangent_flat_faces_1([], _, Start, Vs, FaceMap, Ts) ->
+    {Start,Vs,FaceMap,Ts}.
+
 
 col_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = col_flat_faces_1(Fs, D, Start0, Vs0, Fmap0),
@@ -693,6 +743,69 @@ dup3(I, Bin0, N={NX,NY,NZ}) ->
 	   NX:?F32,NY:?F32,NZ:?F32 >>,
     dup3(I-3, Bin, N).
 
+add_ts([P0,P1,P2], [{S0,T0},{S1,T1},{S2,T2}], N, Vs, {Ts,F2V}) ->
+    {X1,Y1,Z1} = e3d_vec:sub(P1, P0),
+    {X2,Y2,Z2} = e3d_vec:sub(P2, P0),
+    DS1 = S1-S0, DT1 = T1-T0,
+    DS2 = S2-S0, DT2 = T2-T0,
+    F = 1.0 / (DS1*DT2 - DS2*DT1),
+    Tangent = {F*(DT2*X1-DT1*X2), F*(DT2*Y1-DT1*Y2), F*(DT2*Z1-DT1*Z2)},
+    %% BiTangent = {F*(DS1*X2-DS2*X1), F*(DS1*Y2-DS2*Y1), F*(DS1*Z2-DS2*Z1)},
+    {add_tangent(Vs, Tangent, Ts), [[N|Vs]|F2V]};
+add_ts([P1,P2,P3,P4], [UV1,UV2,UV3,UV4], N, [V1,V2,V3,V4], Ts) ->  % Quads
+    add_ts([P3,P4,P1],[UV3,UV4,UV1], N, [V3,V4,V1],
+	   add_ts([P1,P2,P3],[UV1,UV2,UV3], N, [V1,V2,V3], Ts));
+add_ts({_N,Fs,VsPos}, UVs, N, Vs, Ts) -> %% Polys
+    add_ts2(Fs, list_to_tuple(VsPos), list_to_tuple(UVs), N, list_to_tuple(Vs), Ts);
+add_ts([_,_,_], _, N, Vs, {Ts,F2V}) -> %% Bad UVs ignore
+    {Ts, [[N|Vs]|F2V]}.
+
+add_ts2([{V1,V2,V3}|Fs], VsPos, UVs, N, Vs, Ts0) ->
+    Ts = add_ts([element(V1,VsPos),element(V2,VsPos), element(V3,VsPos)],
+		[uv_element(V1, VsPos, UVs),uv_element(V2, VsPos, UVs),uv_element(V3, VsPos, UVs)],
+		N,
+		[id_element(V1, VsPos, Vs), id_element(V2, VsPos, Vs), id_element(V3, VsPos, Vs)],
+		Ts0),
+    add_ts2(Fs, VsPos, UVs, N, Vs, Ts);
+add_ts2([], _, _, _, _, Ts) -> Ts.
+
+id_element(A, _Vtab, Ids) when A =< tuple_size(Ids) -> element(A, Ids);
+id_element(A, Vtab, Ids) ->
+    find_element(tuple_size(Ids), element(A, Vtab), Vtab, Ids, element(1, Ids)).
+
+add_tangent([V|Vs], Tangent, Ts) ->
+    T0 = array:get(V,Ts),
+    add_tangent(Vs, Tangent, array:set(V, e3d_vec:add(T0, Tangent), Ts));
+add_tangent([], _, Ts) -> Ts.
+
+add_tangents([[N|Face]|Fs], Ts, Bin0) ->
+    Bin = add_tangents1(Face, Ts, N, undefined, Bin0),
+    add_tangents(Fs, Ts, Bin);
+add_tangents([], _, Bin) -> Bin.
+
+add_tangents1([V|Vs], Ts, N, Prev, Bin0) ->
+    Tn = {X,Y,Z} = case array:get(V, Ts) of
+		       {0.0, 0.0, 0.0} ->
+			   if Prev =:= undefined -> cross_axis(N);
+			      true -> Prev
+			   end;
+		       Tan -> Tan
+		   end,
+    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32>>,
+    add_tangents1(Vs, Ts, N, Tn, Bin);
+add_tangents1([], _, _, _, Bin) -> Bin.
+
+cross_axis(N = {NX,NY,NZ}) ->
+    V2 = case abs(NX) > abs(NY) of
+	     true ->
+		 ILen = 1.0 / math:sqrt(NX*NX+NZ*NZ),
+		 {-NZ*ILen, 0.0, NX * ILen};
+	     false ->
+		 ILen = 1.0 / math:sqrt(NY*NY+NZ*NZ),
+		 {0.0, NZ*ILen, -NY * ILen}
+	 end,
+    e3d_vec:cross(N, V2).
+
 %%%
 %%% Collect information about faces.
 %%%
@@ -723,29 +836,32 @@ prepare_1(Ftab, We, St, Attr) ->
 	    {prepare_2(Attr, Attrs),MatFaces}
     end.
 
-prepare_2(Attr, _) 
-  when Attr == plain; Attr == color; 
+prepare_2(Attr, _)
+  when Attr == plain; Attr == color;
        Attr == uv; Attr == color_uv ->
     Attr;
 prepare_2(_, []) ->
     plain;
-prepare_2(_, [color]) ->
+prepare_2(_, Attrs) ->
+    prepare_3(Attrs, plain).
+
+prepare_3([color|Rest], Prev) ->
     case wings_pref:get_value(show_colors) of
-	false -> plain;
-	true -> color
+	true -> prepare_3(Rest, color);
+	false -> prepare_3(Rest, Prev)
     end;
-prepare_2(_, [uv]) ->
+prepare_3([uv, tangent], Prev) ->
+    case wings_pref:get_value(show_normal_maps) of
+	true -> prepare_4(uv_tangent, Prev);
+	false -> prepare_3([uv], Prev)
+    end;
+prepare_3([uv], Prev) ->
     case wings_pref:get_value(show_textures) of
-	true -> uv;
-	false -> plain
+	true -> prepare_4(uv, Prev);
+	false -> Prev
     end;
-prepare_2(_, [color,uv]) ->
-    case wings_pref:get_value(show_colors) of
-	false ->
-	    prepare_2(undefined, [uv]);
-	true ->
-	    case wings_pref:get_value(show_textures) of
-		false -> color;
-		true -> color_uv
-	    end
-    end.
+prepare_3([], Attr) -> Attr.
+
+prepare_4(Attr, plain) -> Attr;
+prepare_4(uv, color) -> color_uv;
+prepare_4(uv_tangent, color) -> color_uv_tangent.

@@ -530,23 +530,25 @@ is_mat_transparent(Mat) ->
     Trans.
 
 %% needed_attributes(We, St) -> [Attr]
-%%     Attr = uv|color
+%%     Attr = color|uv|tangent
 %%  Return a ordered list of the type of attributes that are needed
 %%  according to the materials.
+%%  tanget requires uv since it needs the uv's to calculate tanget space
 needed_attributes(We, #st{mat=Mat}) ->
     Used = wings_facemat:used_materials(We),
-    needed_attributes_1(Used, Mat, false, false).
+    needed_attributes_1(Used, Mat, false, false, false).
 
-needed_attributes_1(_, _, true, true) -> [color,uv];
-needed_attributes_1([M|Ms], MatTab, Col0, UV0) ->
+needed_attributes_1(_, _, true, _, true) -> [color,uv,tangent];
+needed_attributes_1([M|Ms], MatTab, Col0, UV0, TV0) ->
     Mat = gb_trees:get(M, MatTab),
+    TV = TV0 orelse needs_tangents(Mat),
     UV = UV0 orelse needs_uvs(Mat),
     Col = Col0 orelse needs_vertex_colors(Mat),
-    needed_attributes_1(Ms, MatTab, Col, UV);
-needed_attributes_1([], _, Col, UV) ->
-    L = case UV of
-	    true -> [uv];
-	    false -> []
+    needed_attributes_1(Ms, MatTab, Col, UV, TV);
+needed_attributes_1([], _, Col, UV, TV) ->
+    L = if TV -> [uv, tangent];
+	   UV -> [uv];
+	   true -> []
 	end,
     case Col of
 	true -> [color|L];
@@ -568,6 +570,10 @@ needs_uvs(Mat) ->
 	    has_texture(Mat)
     end.
 
+needs_tangents(Mat) ->
+    Maps = prop_get(maps, Mat, []),
+    none =/= prop_get(normal, Maps, none).
+
 -define(PREVIEW_SIZE, 100).
 
 edit(Name, Assign, #st{mat=Mtab}=St) ->
@@ -575,7 +581,7 @@ edit(Name, Assign, #st{mat=Mtab}=St) ->
     {dialog,Qs,Fun} = edit_dialog(Name, Assign, St, Mat),
     wings_ask:dialog(?__(1,"Material Properties: ")++atom_to_list(Name),
 		     Qs, Fun).
-    
+
 
 edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     OpenGL0 = prop_get(opengl, Mat0),

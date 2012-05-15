@@ -54,6 +54,9 @@ menu(#st{views={CurrentView,Views}}=St) ->
       {?__(46,"Show Textures"),show_textures,
        ?__(47,"Show textures"),
        crossmark(show_textures)},
+      {?__(76,"Show Normal Maps"),show_normal_maps,
+       ?__(77,"Use Normal Maps to display rough materials"),
+       crossmark(show_normal_maps)},
       separator,
       {?__(74,"Filter Textures"),filter_texture,
        ?__(75,"Activates Texture Filtering for all textures. (Disable filtering for accurate display of very low resolution textures)"),
@@ -870,7 +873,8 @@ init() ->
     wings_pref:set_default(show_colors, true),
     wings_pref:set_default(show_materials, true),
     wings_pref:set_default(show_textures, true),
-	wings_pref:set_default(filter_texture, true),
+    wings_pref:set_default(show_normal_maps, true),
+    wings_pref:set_default(filter_texture, true),
     wings_pref:set_default(frame_disregards_mirror, false),
     wings_pref:set_default(scene_lights, false).
 
