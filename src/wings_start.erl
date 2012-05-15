@@ -28,7 +28,6 @@ start_halt(Args) ->
     common_start(fun() -> wings:start_halt(Args) end).
 
 common_start(Start) ->
-    load_array_module(),
     case get_patches() of
 	none -> ok;
 	{disabled,_} -> ok;
@@ -65,12 +64,5 @@ disable_patches() ->
 patch_dir() ->
     filename:join(wings_util:lib_dir(wings), "patches").
 
-%% Load the improved array module. To be removed
-%% when R13B03 has been released.
-load_array_module() ->
-    Ebin = filename:dirname(code:which(?MODULE)),
-    Array = filename:join(Ebin, "array"),
-    {module,array} = code:load_abs(Array),
-    ok.
 
 
