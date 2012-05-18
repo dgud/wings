@@ -1808,12 +1808,15 @@ get_object_info(Id, Shapes) ->
     ToString = fun(Item) ->
 	case Item of
 	    Item when is_float(Item) ->
-		lists:concat(hd(io_lib:fwrite("~12f", [Item])));
+%  for some reason concat is returning bad values - it seems a concatenation   
+%  of the ascii values. (micheus)  
+%  		   lists:concat(hd(io_lib:fwrite("~12f", [Item])));
+  		   hd(io_lib:fwrite("~12f", [Item]));
 	    Item when is_integer(Item) ->
-		integer_to_list(Item);
+  		   integer_to_list(Item);
 	    Item when is_list(Item) ->
-		Item
-	end
+  		   Item
+  	end
     end,
     [Id2,Name2,Area2,Volume2] = lists:map(ToString, [Id,Name,Area,Volume]),
     {{Id,Id2},{Name,Name2},{Area,Area2},{Volume,Volume2}}.
