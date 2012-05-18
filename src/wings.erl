@@ -1789,7 +1789,6 @@ area_volume_info(St) ->
         true -> wings_u:error_msg(?__(1,"No objects in scene"));
         false ->
             Rows = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
-            io:format("Rows: ~p\n",[Rows]),
             A = lists:max([length(A) || {{_,A},{_,_},{_,_},{_,_}} <- Rows]) + 2,
             B = lists:max([length(B) || {{_,_},{_,B},{_,_},{_,_}} <- Rows]) + 2,
             C = lists:max([length(C) || {{_,_},{_,_},{_,C},{_,_}} <- Rows]) + 2,
