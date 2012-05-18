@@ -79,7 +79,7 @@ menu(X, Y, Owner, Name, Menu) ->
 popup_menu(X, Y, Name, Menu) ->
     menu_setup(popup, X, Y, Name, Menu, #mi{owner=wings_wm:this()}).
 
-menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0}=Mi0) ->
+menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0,level=Level0}=Mi0) ->
     Menu = case Name of
         more ->
             Names = Names0,
@@ -91,39 +91,48 @@ menu_setup(Type, X0, Y0, Name, Menu0, #mi{ns=Names0}=Mi0) ->
             Toolbar = wings_pref:get_value(menu_toolbar),
             Menu1 = wings_plugin:menu(list_to_tuple(reverse(Names)), Menu0),
             AddToolbar = menu_toolbar_allowed(Toolbar, Type, Names),
-            Menu2 = if AddToolbar -> [menu_toolbar|Menu1]; true -> Menu1 end,
-            Hotkeys = wings_hotkey:matching(Names),
-            normalize_menu(Menu2, Hotkeys, Type =:= popup)
+            case Menu1 of
+                [] -> empty;
+                _ -> 
+                    Menu2 = if AddToolbar -> [menu_toolbar|Menu1]; true -> Menu1 end,
+                    Hotkeys = wings_hotkey:matching(Names),
+                    normalize_menu(Menu2, Hotkeys, Type =:= popup)
+            end
     end,
-    {MwL,MwM,MwR,Hs} = menu_dims(Menu),
-    ToolbarSize = wings_pref:get_value(menu_toolbar_size),
-    Cw = ?CHAR_WIDTH,
-    TotalW = total_width(AddToolbar, MwL + MwM + MwR + 8*Cw, ToolbarSize),
-    Mh = lists:sum(Hs),
-    Margin = 3,
-    InfoLine = ?CHAR_HEIGHT + 14,
-    {X1,Y1} = case Type of
-		  plain ->
-		      {X0,Y0};
-		  popup when ToolbarSize =:= big ->
-		      % snap mouse to space between Repeat and Vertex icon
-		      {(X0-TotalW div 2)+22*3, Y0 - Margin - ?CHAR_HEIGHT};
-		  popup when ToolbarSize =:= small ->
-		      % snap mouse to space between Repeat and Vertex icon
-		      {(X0-TotalW div 2)+15*3, Y0 - Margin - ?CHAR_HEIGHT}
-	      end,
-    {X,Y} = move_if_outside(X1, Y1, TotalW, Mh+2*Margin+InfoLine, Mi0),
-    move_cursor_to_toolbar(AddToolbar, Type, Y),
-    W = TotalW-10,
-    Mi = Mi0#mi{ymarg=Margin,shortcut=MwL+Cw,w=W,h=Mh,hs=Hs,
-		sel=none,ns=Names,menu=Menu,type=Type,orig_xy={X0,Y0}},
-    #mi{level=Level} = Mi,
-    setup_menu_killer(Mi),
-    Op = {seq,push,get_menu_event(Mi)},
-    WinName = {menu,Level},
-    wings_wm:delete({menu,Level}),
-    wings_wm:new(WinName, {X,Y,highest}, {W,Mh+10}, Op),
-    delete_from(Level+1).
+    Level = case Menu of
+    empty -> Level0;
+    _ ->
+        {MwL,MwM,MwR,Hs} = menu_dims(Menu),
+        ToolbarSize = wings_pref:get_value(menu_toolbar_size),
+        Cw = ?CHAR_WIDTH,
+        TotalW = total_width(AddToolbar, MwL + MwM + MwR + 8*Cw, ToolbarSize),
+        Mh = lists:sum(Hs),
+        Margin = 3,
+        InfoLine = ?CHAR_HEIGHT + 14,
+        {X1,Y1} = case Type of
+              plain ->
+                  {X0,Y0};
+              popup when ToolbarSize =:= big ->
+                  % snap mouse to space between Repeat and Vertex icon
+                  {(X0-TotalW div 2)+22*3, Y0 - Margin - ?CHAR_HEIGHT};
+              popup when ToolbarSize =:= small ->
+                  % snap mouse to space between Repeat and Vertex icon
+                  {(X0-TotalW div 2)+15*3, Y0 - Margin - ?CHAR_HEIGHT}
+              end,
+        {X,Y} = move_if_outside(X1, Y1, TotalW, Mh+2*Margin+InfoLine, Mi0),
+        move_cursor_to_toolbar(AddToolbar, Type, Y),
+        W = TotalW-10,
+        Mi = Mi0#mi{ymarg=Margin,shortcut=MwL+Cw,w=W,h=Mh,hs=Hs,
+            sel=none,ns=Names,menu=Menu,type=Type,orig_xy={X0,Y0}},
+        #mi{level=Level1} = Mi,
+        setup_menu_killer(Mi),
+        Op = {seq,push,get_menu_event(Mi)},
+        WinName = {menu,Level1},
+        wings_wm:delete({menu,Level1}),
+        wings_wm:new(WinName, {X,Y,highest}, {W,Mh+10}, Op),
+        Level1+1
+    end,
+    delete_from(Level).
 
 total_width(true, W, Size) ->
     case Size of

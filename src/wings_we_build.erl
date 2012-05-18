@@ -191,7 +191,7 @@ combine_half_edges([], Good, Bad) ->
     {reverse(Good),reverse(Bad)}.
 
 number_edges(Es) ->
-    number_edges(Es, 1, []).
+    number_edges(Es, 0, []).
 
 number_edges([{Name,{_Ldata,_Rdata}=Data}|Es], Edge, Tab0) ->
     Tab = [{Name,{Edge,Data}}|Tab0],
