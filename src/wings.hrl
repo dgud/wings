@@ -90,6 +90,12 @@
 	}).
 
 -define(EVENT_QUEUE, wings_io_event_queue).
+
+-define(DIFFUSE_MAP_UNIT, 0).
+-define(NORMAL_MAP_UNIT,  1).
+-define(ENV_MAP_UNIT,     2).
+-define(TANGENT_ATTR,     5).
+
 %%
 
 -define(SLOW(Cmd), begin wings_io:hourglass(), Cmd end).

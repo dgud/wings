@@ -472,10 +472,15 @@ flat_faces({plain,MatFaces}, Pd) ->
     plain_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
 flat_faces({uv,MatFaces}, Pd) ->
     uv_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
+flat_faces({uv_tangent,MatFaces}, Pd) -> %% Fixme
+    uv_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
 flat_faces({color,MatFaces}, Pd) ->
     col_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
 flat_faces({color_uv,MatFaces}, Pd) ->
+    col_uv_faces(MatFaces, Pd, 0, <<>>, [], []);
+flat_faces({color_uv_tangent,MatFaces}, Pd) -> %% Fixme
     col_uv_faces(MatFaces, Pd, 0, <<>>, [], []).
+
 
 plain_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, We, Start0, Vs0, Fmap0),

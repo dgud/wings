@@ -405,14 +405,6 @@ pack_data(B0=#base{v=Vtab0, e=Etab0, f=Ftab0}, opencl) ->
     B#base{v=Vtab, e=Etab, f=Ftab, fi=FI}.
 
 pack_attrs(B=#base{type=plain}) -> B;
-pack_attrs(B=#base{type=uv, as=AS0}) -> 
-    Pack = fun(FaceUVs, Acc) ->
-		   << Acc/binary, 
-		      (<< <<(uv_bin(UV))/binary>> 
-			  || UV <- FaceUVs >>)/binary >>
-	   end,
-    AS = foldl(Pack, <<>>, AS0),
-    B#base{as=AS};
 pack_attrs(B=#base{type=color, as=AS0}) -> 
     Pack = fun(FaceUVs, Acc) ->
 		   << Acc/binary, 
@@ -421,7 +413,15 @@ pack_attrs(B=#base{type=color, as=AS0}) ->
 	   end,
     AS = foldl(Pack, <<>>, AS0),
     B#base{as=AS};
-pack_attrs(B=#base{type=color_uv, as=AS0}) -> 
+pack_attrs(B=#base{type=Type, as=AS0}) when Type =:= uv; Type =:= uv_tangent -> 
+    Pack = fun(FaceUVs, Acc) ->
+		   << Acc/binary, 
+		      (<< <<(uv_bin(UV))/binary>> 
+			  || UV <- FaceUVs >>)/binary >>
+	   end,
+    AS = foldl(Pack, <<>>, AS0),
+    B#base{as=AS};
+pack_attrs(B=#base{type=Type, as=AS0}) when Type =:= color_uv; Type =:= color_uv_tangent -> 
     Pack = fun(FaceUVs, Acc) ->
 		   << Acc/binary, 
 		      (<< <<(col_uv_bin(ColUV))/binary>> 
@@ -475,10 +475,10 @@ subdiv_1(N,
 	       color -> 
 		   Args6 = [AsIn, FiIn, AsOut, NoFs],
 		   wings_cl:cast(subd_vcolor, Args6, NoFs, [W4], CL);
-	       uv -> 
+	       T when T =:= uv; T=:= uv_tangent -> 
 		   Args6 = [AsIn, FiIn, AsOut, NoFs],
 		   wings_cl:cast(subd_uv, Args6, NoFs, [W4], CL);
-	       color_uv -> 
+	       T when T =:= color_uv; T=:= color_uv_tangent -> 
 		   Args6 = [AsIn, FiIn, AsOut, NoFs],
 		   wings_cl:cast(subd_col_uv, Args6, NoFs, [W4], CL);
 	       _ -> %%  unknown ignore
@@ -610,9 +610,13 @@ gen_sel_attr(Type,[FL,AsIn,AsOut,NoInFs],NoOutFs,Wait,CL) ->
 
 attrs(uv) -> % wings_va type and byte size
     {uv, 2*4};
+attrs(uv_tangent) -> % wings_va type and byte size
+    {uv, 2*4};
 attrs(color) ->
     {color, 3*4};
 attrs(color_uv) ->
+    {[color|uv], 3*4+2*4};
+attrs(color_uv_tangent) ->
     {[color|uv], 3*4+2*4};
 attrs(plain) ->
     {plain, 0}.

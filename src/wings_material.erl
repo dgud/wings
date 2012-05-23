@@ -432,6 +432,7 @@ apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_DIFFUSE, prop_get(diffuse, OpenGL)),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_AMBIENT, prop_get(ambient, OpenGL)),
     apply_texture(prop_get(diffuse, Maps, none)),
+    apply_normal_map(prop_get(normal, Maps, none)),
     DeApply.
 
 apply_texture(none) -> no_texture();
@@ -448,18 +449,25 @@ apply_texture(Image) ->
 	    end
     end.
 
+apply_normal_map(none) -> ok;
+apply_normal_map(TexId) ->
+    Bump = wings_image:bumpid(TexId),
+    gl:activeTexture(?GL_TEXTURE0 + ?NORMAL_MAP_UNIT),
+    gl:bindTexture(?GL_TEXTURE_2D, Bump),
+    gl:activeTexture(?GL_TEXTURE0).
+
 apply_texture_1(Image, TxId) ->
     gl:enable(?GL_TEXTURE_2D),
     gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE),
     gl:bindTexture(?GL_TEXTURE_2D, TxId),
-	Ft=case wings_pref:get_value(filter_texture, false) of
-		true -> ?GL_LINEAR;
-		false -> ?GL_NEAREST
-	end,
+    Ft=case wings_pref:get_value(filter_texture, false) of
+	   true -> ?GL_LINEAR;
+	   false -> ?GL_NEAREST
+       end,
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, Ft),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, Ft),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),    
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
     case wings_gl:is_ext({1,2}) of
 	true ->
 	    %% Calculate specular color correctly on textured models.
@@ -476,7 +484,7 @@ apply_texture_1(Image, TxId) ->
 %	    gl:enable(?GL_BLEND),
 	    gl:enable(?GL_ALPHA_TEST),
 	    gl:alphaFunc(?GL_GREATER, 0.3);
-	_ -> 
+	_ ->
 	    gl:disable(?GL_ALPHA_TEST)
     end,
     true.

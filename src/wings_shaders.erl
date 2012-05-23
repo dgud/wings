@@ -20,17 +20,18 @@
 
 init() ->
     Programs = {{make_hemi(), "Hemispherical Lighting"},
+		{make_prog("hemilight"), "Hemispherical Lighting FS"},
 		{make_prog("gooch"), "Gooch Tone"},
 		{make_prog("toon"), "Toon"},
 		{make_prog("brick"), "Brick"},
 		{make_prog("envmap"), "Environment Mapping"},
-		{make_prog("vertex_color", "Flag", 0), "Vertex Normals Color"},
-		{make_prog("vertex_color", "Flag", 1), "Face Normals Color"},
+		{make_prog("vertex_color", [{"Flag", 0}]), "Vertex Normals Color"},
+		{make_prog("vertex_color", [{"Flag", 1}]), "Face Normals Color"},
 		{make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
 		{make_prog("depth"), "Depth"},
-		{make_prog("harmonics", "Type", 5), "Spherical Harmonics 5"},
-		{make_prog("harmonics", "Type", 8), "Spherical Harmonics 8"},
-		{make_prog("harmonics", "Type", 9), "Spherical Harmonics 9"}},
+		{make_prog("harmonics", [{"Type", 5}]), "Spherical Harmonics 5"},
+		{make_prog("harmonics", [{"Type", 8}]), "Spherical Harmonics 8"},
+		{make_prog("harmonics", [{"Type", 9}]), "Spherical Harmonics 9"}},
     ?CHECK_ERROR(),
     gl:useProgram(0),
     put(light_shaders, Programs),
@@ -55,7 +56,7 @@ read_shader(FileName) ->
 make_prog(Name) ->
     Shv = wings_gl:compile(vertex, read_shader(Name ++ ".vs")),
     Shf = wings_gl:compile(fragment, read_shader(Name ++ ".fs")),
-    Prog = wings_gl:link_prog([Shv,Shf]),
+    Prog = wings_gl:link_prog([Shv,Shf], [{?TANGENT_ATTR, "wings_tangent"}]),
     gl:useProgram(Prog),
     case Name == "envmap" of
 	true ->
@@ -63,7 +64,7 @@ make_prog(Name) ->
 	    EnvImgRec = read_texture(FileName),
 	    #e3d_image{width=ImgW,height=ImgH,image=ImgData} = EnvImgRec,
 	    [TxId] = gl:genTextures(1),
-	    gl:activeTexture(?GL_TEXTURE0 + TxId),
+	    gl:activeTexture(?GL_TEXTURE0 + ?ENV_MAP_UNIT),
 	    gl:bindTexture(?GL_TEXTURE_2D, TxId),
 	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
 	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
@@ -71,26 +72,27 @@ make_prog(Name) ->
 	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
 	    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_RGB, ImgW, ImgH, 0, ?GL_RGB,
 			  ?GL_UNSIGNED_BYTE, ImgData),
-	    wings_gl:set_uloc(Prog, "EnvMap", TxId),
+	    wings_gl:set_uloc(Prog, "EnvMap", ?ENV_MAP_UNIT),
 	    gl:activeTexture(?GL_TEXTURE0);
-	false ->
-	    ok
-	end,
+	false -> ok
+    end,
+    wings_gl:set_uloc(Prog, "DiffuseMap", ?DIFFUSE_MAP_UNIT),
+    wings_gl:set_uloc(Prog, "NormalMap",  ?NORMAL_MAP_UNIT),
     Prog.
 
-make_prog(Name, Var, Val) ->
+make_prog(Name, Vars) ->
     Shv = wings_gl:compile(vertex, read_shader(Name ++ ".vs")),
     Shf = wings_gl:compile(fragment, read_shader(Name ++ ".fs")),
     Prog = wings_gl:link_prog([Shv,Shf]),
     gl:useProgram(Prog),
-    wings_gl:set_uloc(Prog, Var, Val),
+    [wings_gl:set_uloc(Prog, Var, Val) || {Var,Val} <- Vars],
     Prog.
 
 make_hemi() ->
     Sh = wings_gl:compile(vertex, light_shader_src()),
     Prog = wings_gl:link_prog([Sh]),
     gl:useProgram(Prog),
-    wings_pref:set_default(hl_lightpos, {3.0,10.0,1.0}),
+    wings_pref:set_default(hl_lightpos, {3000.0, 10000.0, 1000.0}),
     wings_pref:set_default(hl_skycol, {0.95,0.95,0.90}),
     wings_pref:set_default(hl_groundcol, {0.026,0.024,0.021}),
     wings_gl:set_uloc(Prog, "LightPosition", wings_pref:get_value(hl_lightpos)),

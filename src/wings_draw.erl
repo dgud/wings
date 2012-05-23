@@ -910,13 +910,14 @@ tricky_share({X,Y,Z}, {_,_,Z}=Old) ->
 
 draw_flat_faces(#dlo{vab=Vab}, St) ->
     draw_flat_faces(Vab, St);
-draw_flat_faces(#vab{face_vs=BinVs,face_fn=Ns,face_uv=UV,
+draw_flat_faces(#vab{face_vs=BinVs,face_fn=Ns,face_uv=UV,face_ts=TS,
 		     face_vc=Col,mat_map=MatMap}=D,
 	       #st{mat=Mtab}) ->
     wings_draw_setup:enableVertexPointer(BinVs),
     wings_draw_setup:enableNormalPointer(Ns),
     ActiveColor = wings_draw_setup:enableColorPointer(Col),
     wings_draw_setup:enableTexCoordPointer(UV),
+    wings_draw_setup:enableTangentCoordPointer(TS),
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
     draw_mat_faces(MatMap, Mtab, ActiveColor),
@@ -925,6 +926,7 @@ draw_flat_faces(#vab{face_vs=BinVs,face_fn=Ns,face_uv=UV,
     wings_draw_setup:disableNormalPointer(Ns),
     wings_draw_setup:disableColorPointer(Col),
     wings_draw_setup:disableTexCoordPointer(UV),
+    wings_draw_setup:disableTangentCoordPointer(TS),
     free(D),
     Dl.
 
@@ -935,13 +937,14 @@ draw_flat_faces(#vab{face_vs=BinVs,face_fn=Ns,face_uv=UV,
 draw_smooth_faces(#dlo{vab=Vab},St) ->
     draw_smooth_faces(Vab,St);
 
-draw_smooth_faces(#vab{face_vs=BinVs,face_sn=Ns,face_uv=UV,
+draw_smooth_faces(#vab{face_vs=BinVs,face_sn=Ns,face_uv=UV,face_ts=TS,
 		       face_vc=Col,mat_map=MatMap}=D,
 		  #st{mat=Mtab}) ->
     wings_draw_setup:enableVertexPointer(BinVs),
     wings_draw_setup:enableNormalPointer(Ns),
     ActiveColor = wings_draw_setup:enableColorPointer(Col),
     wings_draw_setup:enableTexCoordPointer(UV),
+    wings_draw_setup:enableTangentCoordPointer(TS),
 
     %% Partition into transparent and solid material face groups.
     {Transparent,Solid} =
@@ -974,6 +977,7 @@ draw_smooth_faces(#vab{face_vs=BinVs,face_sn=Ns,face_uv=UV,
     wings_draw_setup:disableNormalPointer(Ns),
     wings_draw_setup:disableColorPointer(Col),
     wings_draw_setup:disableTexCoordPointer(UV),
+    wings_draw_setup:disableTangentCoordPointer(TS),
     free(D),
     Res.
 
