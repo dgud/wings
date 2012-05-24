@@ -25,11 +25,12 @@ vec4 get_diffuse() {
 
 vec3 get_normal() {
     ivec2 dim = textureSize(NormalMap, 0);
-    if(dim.x <= 1 && dim.y <= 1)
-	return normalize(normal); // No normal-map
+    vec3 T = tangent.xyz;
+    if((dim.x <= 1 && dim.y <= 1) || dot(T,T) < 0.1)
+	return normalize(normal); // No normal-map or Tangents
     // Calc Bumped normal
     vec3 N = normalize(normal);
-    vec3 T = normalize(tangent.xyz);
+    T = normalize(T);
     T = normalize(T - dot(T, N) * N);
     vec3 B = cross(T, N) * tangent.w;
     vec3 BumpMapNormal = texture(NormalMap, gl_TexCoord[0].xy).xyz;
@@ -46,9 +47,7 @@ void main(void)
     vec3  lightVec = normalize(LightPosition - ecPosition);
     float costheta = dot(get_normal(), lightVec);
     float a = 0.5 + 0.5 * costheta;
-
-    vec4 DiffuseColor = vec4(color.rgb * mix(GroundColor, SkyColor, a), color.a);
-    vec4 SampledColor = get_diffuse();
-    gl_FragColor = SampledColor * DiffuseColor;
+    vec3 DiffuseColor = get_diffuse() * color.rgb;
+    gl_FragColor = vec4(DiffuseColor * mix(GroundColor, SkyColor, a), color.a);
     //gl_FragColor = vec4(get_normal() * 0.5 + 0.5, 1.0);
 }

@@ -473,7 +473,9 @@ flat_faces({plain,MatFaces}, Pd) ->
 flat_faces({uv,MatFaces}, Pd) ->
     uv_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
 flat_faces({uv_tangent,MatFaces}, Pd) -> %% Fixme
-    uv_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
+    Z = e3d_vec:zero(),
+    Array = array:new([{default, {Z,Z}}]),
+    tangent_flat_faces(MatFaces, Pd, 0, <<>>, [], [], {Array, []});
 flat_faces({color,MatFaces}, Pd) ->
     col_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
 flat_faces({color_uv,MatFaces}, Pd) ->
@@ -528,6 +530,34 @@ uv_flat_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap) ->
 		    [{Face,Normal}|FaceMap]);
 uv_flat_faces_1([], _, Start, Vs, FaceMap) ->
     {Start,Vs,FaceMap}.
+
+tangent_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0, Ts0) ->
+    {Start,Vs,FaceMap, Ts} = tangent_flat_faces_1(Fs, We, Start0, Vs0, Fmap0, Ts0),
+    MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
+    tangent_flat_faces(T, Pd, Start, Vs, FaceMap, MatInfo, Ts);
+tangent_flat_faces([], Pd, _Start, Vs, FaceMap, MatInfo, {VsTs0, RevF2V}) ->
+    case Vs of
+	<<>> ->
+	    Ns = UV = Vs;
+	_ ->
+	    <<_:3/unit:32,Ns/bytes>> = Vs,
+	    <<_:3/unit:32,UV/bytes>> = Ns
+    end,
+    S = 32,
+    VsTs = array:map(fun(_V, {T, BT}) -> {e3d_vec:norm(T), e3d_vec:norm(BT)} end, VsTs0),
+    Ts = wings_draw_setup:add_tangents(lists:reverse(RevF2V), VsTs, <<>>),
+    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},face_ts={16, Ts},
+		   face_map=reverse(FaceMap),mat_map=MatInfo}}.
+
+tangent_flat_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap, Ts0) ->
+    {VsPos,UV} = wings_va:face_pos_attr(uv, Face, Edge, We),
+    Normal = e3d_vec:normal(VsPos),
+    tangent_flat_faces_1(Fs, We, Start+4,
+			 add_quad_uv(Vs, Normal, VsPos, UV),
+			 [{Face,Normal}|FaceMap],
+			 add_ts(VsPos, UV, Normal,wings_face:vertices_ccw(Face, We), Ts0));
+tangent_flat_faces_1([], _, Start, Vs, FaceMap, Ts) ->
+    {Start,Vs,FaceMap, Ts}.
 
 col_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = col_flat_faces_1(Fs, We, Start0, Vs0, Fmap0),
@@ -660,6 +690,10 @@ add_quad_col_uv(Bin, {NX,NY,NZ},
 add_quad_col_uv(Bin, N, Pos, Attrs0) ->
     Attrs = fix_color_uv(Attrs0),
     add_quad_col_uv(Bin, N, Pos, Attrs).
+
+add_ts([P1,P2,P3,_P4], [UV1,UV2,UV3,_UV4], N, Vs, Ts0) ->  
+    %% Quads, subdivided so rougly the same tangents for both tris.
+    wings_draw_setup:add_ts([P1,P2,P3],[UV1,UV2,UV3], N, Vs, Ts0).
 
 fix_color_uv(Attrs) ->
     case good_uvs(Attrs) of

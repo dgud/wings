@@ -242,8 +242,14 @@ printInfo(ShaderObj,Str) ->
 		    io:format("Info: ~s:~n ~s ~n", [Str,InfoStr]),
 		    case string:str(InfoStr, "oftware") of
 			0 -> ok;
-			_ -> 
-			    throw("Shader disabled would run in Software mode")
+			_ -> throw("Shader disabled would run in Software mode")
+		    end;
+		[] -> ok;
+		InfoStr when is_list(InfoStr) ->
+		    io:format("Info: ~s:~n ~s ~n", [Str,InfoStr]),
+		    case string:str(InfoStr, "oftware") of
+			0 -> ok;
+			_ -> throw("Shader disabled would run in Software mode")
 		    end;
 		Error ->
 		    io:format("Internal error PrintInfo crashed with ~p ~n", 

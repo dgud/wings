@@ -24,6 +24,8 @@
 	 disableTangentCoordPointer/1
 	]).
 -export([face_vertex_count/1]).
+%% Tangent calcs
+-export([add_ts/5, add_tangents/3]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
