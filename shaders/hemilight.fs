@@ -2,24 +2,20 @@
 //
 // Fragment shader for hemispherical lighting
 //
-// Author: Randi Rost
-//
-// Copyright (C) 2005 3Dlabs, Inc.
-//
-// See 3Dlabs-License.txt for license information
+// Author: Dan Gudmundsson
 //
 
-vec3 LightPosition = vec3(3000.0, 10000.0, 1000.0);
-vec3 SkyColor	   = vec3(0.95, 0.95, 0.90);
-vec3 GroundColor   = vec3(0.026, 0.024, 0.021);
+uniform vec3 LightPosition;
+uniform vec3 SkyColor;
+uniform vec3 GroundColor;
+
+uniform sampler2D DiffuseMap;
+uniform sampler2D NormalMap;
 
 varying vec3 normal;
 varying vec3 ecPosition;
 varying vec4 color;
 varying vec4 tangent;
-
-uniform sampler2D DiffuseMap;
-uniform sampler2D NormalMap;
 
 vec4 get_diffuse() {
     ivec2 dim = textureSize(DiffuseMap, 0);

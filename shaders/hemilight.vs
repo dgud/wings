@@ -11,12 +11,6 @@
 
 in vec4 wings_tangent;
 
-/*
-uniform vec3 LightPosition;
-uniform vec3 SkyColor;
-uniform vec3 GroundColor;
-*/
-
 varying vec3 normal;
 varying vec3 ecPosition;
 varying vec4 color;

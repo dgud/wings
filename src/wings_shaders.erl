@@ -19,8 +19,14 @@
 -include("e3d_image.hrl").
 
 init() ->
+    wings_pref:set_default(hl_lightpos, {3000.0, 10000.0, 1000.0}),
+    wings_pref:set_default(hl_skycol, {0.95,0.95,0.90}),
+    wings_pref:set_default(hl_groundcol, {0.026,0.024,0.021}),
+    HL = [{"LightPosition", wings_pref:get_value(hl_lightpos)},
+	  {"SkyColor", wings_pref:get_value(hl_skycol)},
+	  {"GroundColor", wings_pref:get_value(hl_groundcol)}],
     Programs = {{make_hemi(), "Hemispherical Lighting"},
-		{make_prog("hemilight"), "Hemispherical Lighting FS"},
+		{make_prog("hemilight", HL), "Hemispherical Lighting FS"},
 		{make_prog("gooch"), "Gooch Tone"},
 		{make_prog("toon"), "Toon"},
 		{make_prog("brick"), "Brick"},
@@ -54,47 +60,39 @@ read_shader(FileName) ->
     Bin.
 
 make_prog(Name) ->
-    Shv = wings_gl:compile(vertex, read_shader(Name ++ ".vs")),
-    Shf = wings_gl:compile(fragment, read_shader(Name ++ ".fs")),
-    Prog = wings_gl:link_prog([Shv,Shf], [{?TANGENT_ATTR, "wings_tangent"}]),
-    gl:useProgram(Prog),
-    case Name == "envmap" of
-	true ->
-	    FileName = "grandcanyon.png",
-	    EnvImgRec = read_texture(FileName),
-	    #e3d_image{width=ImgW,height=ImgH,image=ImgData} = EnvImgRec,
-	    [TxId] = gl:genTextures(1),
-	    gl:activeTexture(?GL_TEXTURE0 + ?ENV_MAP_UNIT),
-	    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
-	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
-	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
-	    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
-	    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_RGB, ImgW, ImgH, 0, ?GL_RGB,
-			  ?GL_UNSIGNED_BYTE, ImgData),
-	    wings_gl:set_uloc(Prog, "EnvMap", ?ENV_MAP_UNIT),
-	    gl:activeTexture(?GL_TEXTURE0);
-	false -> ok
-    end,
-    wings_gl:set_uloc(Prog, "DiffuseMap", ?DIFFUSE_MAP_UNIT),
-    wings_gl:set_uloc(Prog, "NormalMap",  ?NORMAL_MAP_UNIT),
-    Prog.
-
+    make_prog(Name, []).
 make_prog(Name, Vars) ->
     Shv = wings_gl:compile(vertex, read_shader(Name ++ ".vs")),
     Shf = wings_gl:compile(fragment, read_shader(Name ++ ".fs")),
-    Prog = wings_gl:link_prog([Shv,Shf]),
+    Prog = wings_gl:link_prog([Shv,Shf],[{?TANGENT_ATTR, "wings_tangent"}]),
     gl:useProgram(Prog),
+    envmap(Name, Prog),
+    wings_gl:set_uloc(Prog, "DiffuseMap", ?DIFFUSE_MAP_UNIT),
+    wings_gl:set_uloc(Prog, "NormalMap",  ?NORMAL_MAP_UNIT),
     [wings_gl:set_uloc(Prog, Var, Val) || {Var,Val} <- Vars],
     Prog.
+
+envmap("envmap", Prog) -> 
+    FileName = "grandcanyon.png",
+    EnvImgRec = read_texture(FileName),
+    #e3d_image{width=ImgW,height=ImgH,image=ImgData} = EnvImgRec,
+    [TxId] = gl:genTextures(1),
+    gl:activeTexture(?GL_TEXTURE0 + ?ENV_MAP_UNIT),
+    gl:bindTexture(?GL_TEXTURE_2D, TxId),
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
+    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_RGB, ImgW, ImgH, 0, ?GL_RGB,
+		  ?GL_UNSIGNED_BYTE, ImgData),
+    wings_gl:set_uloc(Prog, "EnvMap", ?ENV_MAP_UNIT),
+    gl:activeTexture(?GL_TEXTURE0);
+envmap(_, _) -> ok.
 
 make_hemi() ->
     Sh = wings_gl:compile(vertex, light_shader_src()),
     Prog = wings_gl:link_prog([Sh]),
     gl:useProgram(Prog),
-    wings_pref:set_default(hl_lightpos, {3000.0, 10000.0, 1000.0}),
-    wings_pref:set_default(hl_skycol, {0.95,0.95,0.90}),
-    wings_pref:set_default(hl_groundcol, {0.026,0.024,0.021}),
     wings_gl:set_uloc(Prog, "LightPosition", wings_pref:get_value(hl_lightpos)),
     wings_gl:set_uloc(Prog, "SkyColor", wings_pref:get_value(hl_skycol)),
     wings_gl:set_uloc(Prog, "GroundColor", wings_pref:get_value(hl_groundcol)),
