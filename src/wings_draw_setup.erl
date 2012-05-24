@@ -111,7 +111,7 @@ enableTexCoordPointer(none) -> false.
 
 enableTangentCoordPointer({Stride,Tan}) ->
     %% Check gl-version 2.0
-    gl:vertexAttribPointer(?TANGENT_ATTR, 3, ?GL_FLOAT, ?GL_FALSE, Stride, Tan),
+    gl:vertexAttribPointer(?TANGENT_ATTR, 4, ?GL_FLOAT, ?GL_FALSE, Stride, Tan),
     gl:enableVertexAttribArray(?TANGENT_ATTR),
     true;
 enableTangentCoordPointer(none) -> false.
@@ -181,7 +181,9 @@ flat_faces({plain,MatFaces}, D) ->
 flat_faces({uv,MatFaces}, D) ->
     uv_flat_faces(MatFaces, D, 0, <<>>, [], []);
 flat_faces({uv_tangent,MatFaces}, D) ->
-    tangent_flat_faces(MatFaces, D, 0, <<>>, [], [], {array:new([{default, e3d_vec:zero()}]), []}); 
+    Z = e3d_vec:zero(),
+    Array = array:new([{default, {Z,Z}}]),
+    tangent_flat_faces(MatFaces, D, 0, <<>>, [], [], {Array, []}); 
 flat_faces({color,MatFaces}, D) ->
     col_flat_faces(MatFaces, D, 0, <<>>, [], []);
 flat_faces({color_uv,MatFaces}, D) ->
@@ -276,9 +278,9 @@ tangent_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
 	    <<_:3/unit:32,UV/bytes>> = Ns
     end,
     S = 32,
-    VsTs = array:map(fun(_V, Tangent) -> e3d_vec:norm(Tangent) end, VsTs0),
+    VsTs = array:map(fun(_V, {T, BT}) -> {e3d_vec:norm(T), e3d_vec:norm(BT)} end, VsTs0),
     Ts = add_tangents(lists:reverse(RevF2V), VsTs, <<>>),
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV}, face_ts={12, Ts},
+    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV}, face_ts={16, Ts},
 		   face_map=FaceMap,mat_map=MatInfo}}.
 
 tangent_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap, Ts0) ->
@@ -770,13 +772,13 @@ add_ts([P0,P1,P2], [{S0,T0},{S1,T1},{S2,T2}], N, Vs, {Ts,F2V}) ->
 	F = 1.0 / (DS1*DT2 - DS2*DT1),
 	Tangent = {F*(DT2*X1-DT1*X2), F*(DT2*Y1-DT1*Y2), F*(DT2*Z1-DT1*Z2)},
 	BiTangent = {F*(DS1*X2-DS2*X1), F*(DS1*Y2-DS2*Y1), F*(DS1*Z2-DS2*Z1)},
-	Tan = case e3d_vec:dot(e3d_vec:cross(N, Tangent), BiTangent) < 0.0 of
-		  true  -> Tangent;
-		  false -> Tangent
-	      end,
-	{add_tangent(Vs, Tan, Ts), [[N|Vs]|F2V]}
+	H = case e3d_vec:dot(e3d_vec:cross(N, Tangent), BiTangent) < 0.0 of
+		true  -> 1;
+		false -> -1
+	    end,
+	{add_tangent(Vs, Tangent, BiTangent, Ts), [{N,H,Vs}|F2V]}
     catch _:badarith ->
-	    {Ts, [[N|Vs]|F2V]}
+	    {Ts, [{N,0,Vs}|F2V]}
     end;
 add_ts([P1,P2,P3,P4], [UV1,UV2,UV3,UV4], N, [V1,V2,V3,V4], Ts) ->  % Quads
     add_ts([P3,P4,P1],[UV3,UV4,UV1], N, [V3,V4,V1],
@@ -799,27 +801,50 @@ id_element(A, _Vtab, Ids) when A =< tuple_size(Ids) -> element(A, Ids);
 id_element(A, Vtab, Ids) ->
     find_element(tuple_size(Ids), element(A, Vtab), Vtab, Ids, element(1, Ids)).
 
-add_tangent([V|Vs], Tangent, Ts) ->
-    T0 = array:get(V,Ts),
-    add_tangent(Vs, Tangent, array:set(V, e3d_vec:add(T0, Tangent), Ts));
-add_tangent([], _, Ts) -> Ts.
+add_tangent([V|Vs], Tangent, BiTangent, Ts) ->
+    {T0, B0} = array:get(V,Ts),
+    add_tangent(Vs, Tangent, BiTangent, 
+		array:set(V, {e3d_vec:add(T0, Tangent), e3d_vec:add(B0, BiTangent)}, Ts));
+add_tangent([], _, _, Ts) -> Ts.
 
-add_tangents([[N|Face]|Fs], Ts, Bin0) ->
-    Bin = add_tangents1(Face, Ts, N, undefined, Bin0),
+add_tangents([{N, H, Face}|Fs], Ts, Bin0) ->
+    Bin = add_tangents1(Face, Ts, H, N, undefined, Bin0),
     add_tangents(Fs, Ts, Bin);
 add_tangents([], _, Bin) -> Bin.
 
-add_tangents1([V|Vs], Ts, N, Prev, Bin0) ->
-    Tn = {X,Y,Z} = case array:get(V, Ts) of
-		       {0.0, 0.0, 0.0} ->
-			   if Prev =:= undefined -> cross_axis(N);
-			      true -> Prev
-			   end;
-		       Tan -> Tan
-		   end,
-    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32>>,
-    add_tangents1(Vs, Ts, N, Tn, Bin);
-add_tangents1([], _, _, _, Bin) -> Bin.
+add_tangents1([V|Vs], Ts, H0, N, Prev, Bin0) ->
+    case array:get(V, Ts) of
+	{{0.0, 0.0, 0.0}, BiT} ->
+	    {Tan = {X,Y,Z}, H} = get_tangent(Prev, BiT, H0, N),
+	    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32, H:?F32>>,
+	    add_tangents1(Vs, Ts, H, N, Tan, Bin);
+	{Tan = {X,Y,Z}, _} when H0 /= 0 ->
+	    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32, H0:?F32>>,
+	    add_tangents1(Vs, Ts, H0, N, Tan, Bin);
+	{Tan = {X,Y,Z}, BiT} ->
+	    H = case e3d_vec:dot(e3d_vec:cross(N, Tan), BiT) < 0.0 of
+		    true  -> 1;
+		    false -> -1
+		end,
+	    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32, H:?F32>>,
+	    add_tangents1(Vs, Ts, H, N, Tan, Bin)
+    end;
+add_tangents1([], _, _, _, _, Bin) -> Bin.
+
+get_tangent(undefined, {0.0,0.0,0.0}, H0, N) ->
+    H = if H0 =:= 0 -> -1; true -> H0 end,
+    {cross_axis(N), H};
+get_tangent(undefined, BiT, 0, N) ->
+    T = e3d_vec:cross(BiT, N),
+    H = case e3d_vec:dot(e3d_vec:cross(N, T), BiT) < 0.0 of
+	    true  -> 1;
+	    false -> -1
+	end,
+    {T, H};
+get_tangent(undefined, BiT, H, N) ->
+    {e3d_vec:cross(BiT, N), H};
+get_tangent(Prev, _, _, _) ->
+    Prev.
 
 cross_axis(N = {NX,NY,NZ}) ->
     try 

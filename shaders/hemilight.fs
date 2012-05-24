@@ -16,7 +16,7 @@ vec3 GroundColor   = vec3(0.026, 0.024, 0.021);
 varying vec3 normal;
 varying vec3 ecPosition;
 varying vec4 color;
-varying vec3 tangent;
+varying vec4 tangent;
 
 uniform sampler2D DiffuseMap;
 uniform sampler2D NormalMap;
@@ -33,9 +33,9 @@ vec3 get_normal() {
 	return normalize(normal); // No normal-map
     // Calc Bumped normal
     vec3 N = normalize(normal);
-    vec3 T = normalize(tangent);
+    vec3 T = normalize(tangent.xyz);
     T = normalize(T - dot(T, N) * N);
-    vec3 B = cross(T, N) * -1.0;
+    vec3 B = cross(T, N) * tangent.w;
     vec3 BumpMapNormal = texture(NormalMap, gl_TexCoord[0].xy).xyz;
     BumpMapNormal = 2.0 * BumpMapNormal - vec3(1.0, 1.0, 1.0);
     vec3 NewNormal;
