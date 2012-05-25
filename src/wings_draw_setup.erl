@@ -765,15 +765,17 @@ dup3(I, Bin0, N={NX,NY,NZ}) ->
 	   NX:?F32,NY:?F32,NZ:?F32 >>,
     dup3(I-3, Bin, N).
 
-add_ts([P0,P1,P2], [{S0,T0},{S1,T1},{S2,T2}], N, Vs, {Ts,F2V}) ->
-    {X1,Y1,Z1} = e3d_vec:sub(P1, P0),
-    {X2,Y2,Z2} = e3d_vec:sub(P2, P0),
-    DS1 = S1-S0, DT1 = T1-T0,
-    DS2 = S2-S0, DT2 = T2-T0,
+add_ts([P1,P2,P3], [{U1,V1},{U2,V2},{U3,V3}], N, Vs, {Ts,F2V}) ->
+    {X1,Y1,Z1} = e3d_vec:sub(P2, P1),
+    {X2,Y2,Z2} = e3d_vec:sub(P3, P1),
+    S1 = U2-U1,
+    S2 = U3-U1,
+    T1 = V2-V1,
+    T2 = V3-V1,
     try 
-	F = 1.0 / (DS1*DT2 - DS2*DT1),
-	Tangent = {F*(DT2*X1-DT1*X2), F*(DT2*Y1-DT1*Y2), F*(DT2*Z1-DT1*Z2)},
-	BiTangent = {F*(DS1*X2-DS2*X1), F*(DS1*Y2-DS2*Y1), F*(DS1*Z2-DS2*Z1)},
+	F = 1.0 / (S1*T2 - S2*T1),
+	Tangent = {F*(T2*X1-T1*X2), F*(T2*Y1-T1*Y2), F*(T2*Z1-T1*Z2)},
+	BiTangent = {F*(S1*X2-S2*X1), F*(S1*Y2-S2*Y1), F*(S1*Z2-S2*Z1)},
 	H = case e3d_vec:dot(e3d_vec:cross(N, Tangent), BiTangent) < 0.0 of
 		true  -> 1;
 		false -> -1
@@ -845,8 +847,8 @@ get_tangent(undefined, BiT, 0, N) ->
     {T, H};
 get_tangent(undefined, BiT, H, N) ->
     {e3d_vec:cross(BiT, N), H};
-get_tangent(Prev, _, _, _) ->
-    Prev.
+get_tangent(Prev, _, H, _) ->
+    {Prev, H}.
 
 cross_axis(N = {NX,NY,NZ}) ->
     try 

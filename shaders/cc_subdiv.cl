@@ -37,6 +37,8 @@ void find_faces(int V0, int V1, FaceIndex Fi, __global int *Fs,
 
 float4 sum_smooth(uint id, __global float4 *Smooth, const int noVsOut);
 
+float4 calc_tan(float4 Tan, float4 Bi, float4 normal);
+
 void get_normal(int n, int face, int vertex, 
 		__global float4 *VsIn,
 		__global float4 *Out, __global float4 *Out2, 
@@ -870,6 +872,85 @@ bool find_vertices(int v1, int v2, int4 face, int *v1pos, int *v2pos)
     *v1pos = 3;
     if(v2 == face.x) {*v2pos = 0; return true;}
     *v2pos = 2; return false;
+}
+
+// gen tangents
+__kernel void gen_tangents_pass0(__global float4 *VsIn,
+				 __global int4   *FsIn,
+				 __global float2 *AsIn,
+				 __global float4 *TanOut,
+				 const uint NoFs,
+				 const uint NoVs)
+{
+    float4 t, b;
+    for(uint i=0; i < NoFs; i++) {
+	int4 face = FsIn[i];
+	float4 v1 = VsIn[face.x];
+	float4 v2 = VsIn[face.y];
+	float4 v3 = VsIn[face.z];
+	// float4 v4 = VsIn[face.w];
+	float2 w1 = AsIn[i*4+0];
+	float2 w2 = AsIn[i*4+1];
+	float2 w3 = AsIn[i*4+2];
+	// float2 w4 = AsIn[i*4+3];
+	float4 d1  = v2-v1;
+	float4 d2  = v3-v1;
+	float2 st1 = w2-w1;
+	float2 st2 = w3-w1;
+	float d = st1.x*st2.y-st2.x*st1.y;
+	if (fabs(d) < 0.0000001) return;
+	float r = 1.0 / d;
+	t.x = r*(st2.y*d1.x-st1.y*d2.x);
+	t.y = r*(st2.y*d1.y-st1.y*d2.y);
+	t.z = r*(st2.y*d1.z-st1.y*d2.z);
+	t.w = 0.0;
+	b.x = r*(st1.x*d2.x-st2.x*d1.x);
+	b.y = r*(st1.x*d2.y-st2.x*d1.y);
+	b.z = r*(st1.x*d2.z-st2.x*d1.z);
+	b.w = 0.0;
+	// Tangent
+	TanOut[face.x] += t;
+	TanOut[face.y] += t;
+	TanOut[face.z] += t;
+	TanOut[face.w] += t;
+	// BiTangent
+	TanOut[NoVs + face.x] += b;
+	TanOut[NoVs + face.y] += b;
+	TanOut[NoVs + face.z] += b;
+	TanOut[NoVs + face.w] += b;
+    }
+}
+
+__kernel void gen_tangents(__global int4   *FsIn,
+			   __global ccfloat3 *Vab,
+			   __global float4 *VTanBi,
+			   __global float4 *Tan,
+			   const uint NoFs,
+			   const uint NoVs
+			   )
+{
+    const int Fid = get_global_id(0);
+    if(Fid >= NoFs) return;
+    
+    int StartBi = NoFs*4;
+    int4 face = FsIn[Fid];
+    int vstart = Fid*4;
+    ccfloat3 normal = Vab[(Fid*4*2)+1]; // Every vertex have the same normal
+    
+    Tan[vstart+0] = calc_tan(VTanBi[face.x], VTanBi[NoVs+face.x], ccfloat3_to_float4(normal));
+    Tan[vstart+1] = calc_tan(VTanBi[face.y], VTanBi[NoVs+face.y], ccfloat3_to_float4(normal));
+    Tan[vstart+2] = calc_tan(VTanBi[face.z], VTanBi[NoVs+face.z], ccfloat3_to_float4(normal));
+    Tan[vstart+3] = calc_tan(VTanBi[face.w], VTanBi[NoVs+face.w], ccfloat3_to_float4(normal));
+}
+
+float4 calc_tan(float4 Tan, float4 Bi, float4 normal)
+{
+    float h = -1.0;
+    if (dot(cross(normal, Tan), Bi) < 0.0)
+	h = 1.0;
+    float4 temp = normalize(Tan);
+    temp.w = h;
+    return temp;
 }
 
 // void lock(int v_id, __global int *locks) {

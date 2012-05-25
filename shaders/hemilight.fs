@@ -28,6 +28,7 @@ vec3 get_normal() {
     vec3 T = tangent.xyz;
     if((dim.x <= 1 && dim.y <= 1) || dot(T,T) < 0.1)
 	return normalize(normal); // No normal-map or Tangents
+    //return normalize(tangent.xyz);
     // Calc Bumped normal
     vec3 N = normalize(normal);
     T = normalize(T);
@@ -47,7 +48,8 @@ void main(void)
     vec3  lightVec = normalize(LightPosition - ecPosition);
     float costheta = dot(get_normal(), lightVec);
     float a = 0.5 + 0.5 * costheta;
-    vec3 DiffuseColor = get_diffuse() * color.rgb;
-    gl_FragColor = vec4(DiffuseColor * mix(GroundColor, SkyColor, a), color.a);
+    vec4 difftex = get_diffuse();
+    vec3 DiffuseColor = difftex.rgb * color.rgb;
+    gl_FragColor = vec4(DiffuseColor * mix(GroundColor, SkyColor, a), difftex.a*color.a);
     //gl_FragColor = vec4(get_normal() * 0.5 + 0.5, 1.0);
 }

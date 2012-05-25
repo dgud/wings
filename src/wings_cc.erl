@@ -88,7 +88,7 @@ update(ChangedVs, Data) ->
 	erlang ->  wings_cc_ref:update(ChangedVs, Data);
 	_ ->       update_1(ChangedVs, Data)
     end.
-
+    
 %% Generates a subdivided #vab{}
 gen_vab(Base) ->
     try
@@ -147,7 +147,7 @@ gen_vab_1(Plan, Data, Base) ->
 	opencl -> create_vab(gen_vab_2(Plan, Data, Base), Base)
     end.
 
-create_vab({Vs, SNs0, Attrs0, Edges, MatInfo}, #base{type=Type}) ->
+create_vab({Vs, SNs0, {Attrs0, Tangents0}, Edges, MatInfo}, #base{type=Type}) ->
     Ns = case Vs of
 	     <<>> -> Vs;
 	     <<_:3/unit:32,NsP/bytes>> ->
@@ -162,21 +162,26 @@ create_vab({Vs, SNs0, Attrs0, Edges, MatInfo}, #base{type=Type}) ->
 		 <<>> -> none;
 		 _ when Type =:= color ->
 		     {3*4, Attrs0};
-		 _ when Type =:= color_uv ->
+		 _ when Type =:= color_uv; Type =:= color_uv_tangent ->
 		     {5*4, Attrs0};
 		 _ -> none		     
 	     end,
     UVs = case Attrs0 of
 	      <<>> -> none;
-	      _ when Type =:= uv ->
+	      _ when Type =:= uv; Type =:= uv_tangent ->
 		  {2*4, Attrs0};
 	      <<_:3/unit:32,UVBin/bytes>> 
-		when Type =:= color_uv ->
+		when Type =:= color_uv; Type =:= color_uv_tangent ->
 		  {5*4, UVBin};
 	      _ -> none
 	  end,
+    Tangents = case Tangents0 of
+		   none -> none;
+		   Ts when is_binary(Ts) ->
+		       {4*4, Tangents0}
+	       end,
     #vab{face_vs={S,Vs},face_fn={S,Ns}, face_es=Edges,
-	 face_sn=SNs, face_vc=Colors, face_uv=UVs,
+	 face_sn=SNs, face_vc=Colors, face_uv=UVs, face_ts=Tangents,
 	 mat_map=MatInfo}.
 
 update_1(ChangedVs0, #base{vmap=VMap, v=VsBin0}=Base)
@@ -213,26 +218,26 @@ build_data({Type, MatFs}, N, We0, Impl) ->
     FMap  = gb_trees:from_orddict(lists:sort(FMap0)),
     Empty = array:new(),
     StartAcc  = {Empty, Empty, {0, Empty}},
-    Get = fun(V,Eid,E,Acc) ->  
+    Get = fun(V,Eid,E,Acc) ->
 		  get_face_info(V,Eid,E,Acc,FMap,We)
 	  end,
     B0 = case Type of
 	     plain -> build_data_plain(FMap0, [], StartAcc, Get, We);
-	     _ ->  
+	     _ ->
 		 {Attrs, _Sz} = attrs(Type),
 		 build_data_attrs(FMap0, [], [], StartAcc, Get, Attrs, We)
 	 end,
     B1 = calc_matmap(MatFs, B0#base{type=Type, level=N}),
     pack_data(B1, Impl).
 
-build_data_plain([{F,_}|Fs], Ftab0, Acc0, Get, We) -> 
+build_data_plain([{F,_}|Fs], Ftab0, Acc0, Get, We) ->
     {Vs, Acc} = wings_face:fold(Get, {[], Acc0}, F, We), %% CCW
     build_data_plain(Fs, [Vs|Ftab0], Acc, Get, We);
 build_data_plain([], Ftab0, {Vtab, Etab, {_,VMap}}, _, _) ->
     Ftab = reverse(Ftab0),
     #base{v=Vtab, e=Etab, f=Ftab, vmap=VMap}.
 
-build_data_attrs([{F,_}|Fs], Ftab0, Attrs, Acc0, Get, Type, We) -> 
+build_data_attrs([{F,_}|Fs], Ftab0, Attrs, Acc0, Get, Type, We) ->
     Attr = wings_va:face_attr(Type, F, We),
     {Vs, Acc} = wings_face:fold(Get, {[], Acc0}, F, We), %% CCW
     build_data_attrs(Fs, [Vs|Ftab0], [Attr|Attrs], Acc, Get, Type, We);
@@ -495,18 +500,19 @@ subdiv_1(_C, ResultBuffs, OutBuffs, _, _, Wait) ->
 gen_vab_2(#cc_cache{mem=Mem,old=Old,wait=Wait}, B=#base{n=NoFs,level=N,type=Type}) ->
     #cls{cl=CL, vab=Vab} = cl_setup(),
     %% Create #vab{}
-    #cl_mem{v=Vs, f=Fs, e=Es, e_no=NoEs, as=As} = Mem,
+    #cl_mem{v=Vs, v_no=NoVs, f=Fs, e=Es, e_no=NoEs, as=As} = Mem,
     WVab = wings_cl:cast(create_vab_all,[Vs,Fs,Vab,NoFs], NoFs, Wait,CL),
     Attrs = gen_attrs(attrs(Type), As, NoFs, Wait, CL),
-    Edges = gen_edges([Es, Vs, As, N, NoEs], Wait, CL),
     WData = wings_cl:read(Vab,NoFs*4*6*4,[WVab],CL),
     {ok, VabBin} = cl:wait(WData),
-    Smooth = gen_smooth_normals(Vab, NoFs, Mem, Old, [WVab], CL),
-
+    Tangents = gen_tangents(Type, Vs, Fs, As, Vab, NoVs, NoFs, Old#cl_mem.as, CL),
+    Edges = gen_edges([Es, Vs, As, N, NoEs], [], CL), %% Writes to As must be after gen_tangents
+    Smooth = gen_smooth_normals(Vab, NoFs, Mem, Old, [], CL),
+    
     [cl:release_event(Ev) || Ev <- [WVab,WData|Wait]],
     cl_release(Mem, true),
     cl_release(Old, false),
-    {VabBin, Smooth, Attrs, Edges, B#base.mmap}.
+    {VabBin, Smooth, {Attrs, Tangents}, Edges, B#base.mmap}.
 
 gen_vab_2({_Type, MatFs}, 
 	  #cc_cache{mem=Mem, wait=Wait0, old=Old}, 
@@ -541,11 +547,11 @@ gen_vab_2({_Type, MatFs},
 	    [cl:release_event(Ev) || Ev <- [WVab,W1|Wait]],
 	    cl_release(Mem, true),
 	    cl_release(Old, false),
-	    {VabBin, <<>>, Attrs, none, MatI};
+	    {VabBin, <<>>, {Attrs, none}, none, MatI};
 	false ->
-	    {<<>>, <<>>, <<>>, none, []}
+	    {<<>>, <<>>, {<<>>, none}, none, []}
     end.
-
+    
 mat_index([{Mat,Fs}|MFs], Fun, Acc0 = [Start|_], MI) ->
     Acc = [Next|_] = foldl(Fun, Acc0, Fs),
     NoVs = (Next-Start)*4,
@@ -574,6 +580,17 @@ gen_edges(some, [Es,Vs,As,N,TotNoEs], Wait, CL) ->
     EWait1 = wings_cl:read(As, NoEs*2*3*4, [EWait0], CL),
     {ok, EsBin} = cl:wait(EWait1),
     {0, EsBin}.
+
+gen_tangents(uv_tangent, Vs, Fs, As, Vab, NoVs, NoFs, Temp, CL) ->
+    C1 = wings_cl:cast(clearf, [Temp,4,NoVs*2], NoVs*2, [], CL),
+    C2 = wings_cl:cast(gen_tangents_pass0, [Vs, Fs, As, Temp, NoFs, NoVs], 1, [C1], CL),
+    Out = As,
+    C3 = wings_cl:cast(gen_tangents, [Fs, Vab, Temp, Out, NoFs, NoVs], NoFs, [C2], CL),
+    C4 = wings_cl:read(Out,NoFs*4*4*4,[C3],CL),
+    {ok, OutBin} = cl:wait(C4),
+    OutBin;
+gen_tangents(_, _, _, _, _, _, _, _, _) ->
+    none.
 
 gen_smooth_normals(Vab, NoFs, 
 		   #cl_mem{f=Fs,e=Es,e_no=NoEs,v=VsNs,v_no=NoVs,as=Out1}, 
