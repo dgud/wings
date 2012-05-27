@@ -432,7 +432,7 @@ apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_DIFFUSE, prop_get(diffuse, OpenGL)),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_AMBIENT, prop_get(ambient, OpenGL)),
     apply_texture(prop_get(diffuse, Maps, none)),
-    apply_normal_map(prop_get(normal, Maps, none)),
+    apply_normal_map(prop_get(normal, Maps0, none)),  %% Combine with vertex colors
     DeApply.
 
 apply_texture(none) -> no_texture();

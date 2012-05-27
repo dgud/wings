@@ -190,8 +190,10 @@ flat_faces({color,MatFaces}, D) ->
     col_flat_faces(MatFaces, D, 0, <<>>, [], []);
 flat_faces({color_uv,MatFaces}, D) ->
     col_uv_faces(MatFaces, D, 0, <<>>, [], []);
-flat_faces({color_uv_tangent,MatFaces}, D) -> %% FIX ME
-    col_uv_faces(MatFaces, D, 0, <<>>, [], []).
+flat_faces({color_uv_tangent,MatFaces}, D) ->
+    Z = e3d_vec:zero(),
+    Array = array:new([{default, {Z,Z}}]),
+    col_tangent_faces(MatFaces, D, 0, <<>>, [], [], {Array, []}).
 
 plain_flat_faces([{Mat,Fs}|T], #dlo{ns=Ns}=D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, Ns, Start0, Vs0, Fmap0),
@@ -391,6 +393,56 @@ col_uv_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
     end;
 col_uv_faces_1([], _, Start, Vs, FaceMap) ->
     {Start,Vs,FaceMap}.
+
+%% Also needs uv's
+col_tangent_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0, Ts0) ->
+    {Start,Vs,FaceMap,Ts} = col_tangent_faces_1(Fs, D, Start0, Vs0, Fmap0, Ts0),
+    MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
+    col_tangent_faces(T, D, Start, Vs, FaceMap, MatInfo, Ts);
+col_tangent_faces([], D, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
+    FaceMap = array:from_orddict(sort(FaceMap0)),
+    case Vs of
+	<<>> ->
+	    Ns = Col = UV = Vs;
+	_ ->
+	    <<_:3/unit:32,Ns/bytes>> = Vs,
+	    <<_:3/unit:32,Col/bytes>> = Ns,
+	    <<_:3/unit:32,UV/bytes>> = Col
+    end,
+    VsTs = array:map(fun(_V, {T, BT}) -> {e3d_vec:norm(T), e3d_vec:norm(BT)} end, VsTs0),
+    Ts = add_tangents(lists:reverse(RevF2V), VsTs, <<>>),
+    S = 44,
+    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},
+		   face_vc={S,Col},face_uv={S,UV},face_ts={16, Ts},
+		   face_map=FaceMap,mat_map=MatInfo}}.
+
+col_tangent_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap, Ts0) ->
+    UVs = wings_va:face_attr([color|uv], Face, Edge, We),
+    case array:get(Face, Ns) of
+	[Normal|Pos =[_,_,_]] ->
+	    col_tangent_faces_1(Fs, D, Start+3,
+				add_col_uv_tri(Vs, Normal, Pos, UVs),
+				[{Face,{Start,3}}|FaceMap],
+				add_ts(Pos, [UV|| [_|UV] <- UVs], Normal,
+				       wings_face:vertices_ccw(Face, We), Ts0));
+	[Normal|Pos] ->
+	    col_tangent_faces_1(Fs, D, Start+6,
+				add_col_uv_quad(Vs, Normal, Pos, UVs),
+				[{Face,{Start,6}}|FaceMap],
+				add_ts(Pos, [UV|| [_|UV] <- UVs], Normal,
+				       wings_face:vertices_ccw(Face, We), Ts0));
+	Info = {Normal,Faces,VsPos} ->
+	    NoVs  = length(Faces) * 3,
+	    VsBin = add_col_uv_poly(Vs, Normal, Faces,
+				    list_to_tuple(VsPos), list_to_tuple(UVs)),
+	    col_tangent_faces_1(Fs, D, NoVs+Start,
+				VsBin, [{Face,{Start,NoVs}}|FaceMap],
+				add_ts(Info, [UV|| [_|UV] <- UVs], Normal,
+				       wings_face:vertices_ccw(Face, We), Ts0))
+    end;
+col_tangent_faces_1([], _, Start, Vs, FaceMap,Ts) ->
+    {Start,Vs,FaceMap,Ts}.
+
 
 %% setup only normals
 setup_flat_normals(D=#dlo{vab=#vab{face_map=Fmap0}=Vab,ns=Ns}) ->

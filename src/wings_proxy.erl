@@ -472,7 +472,7 @@ flat_faces({plain,MatFaces}, Pd) ->
     plain_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
 flat_faces({uv,MatFaces}, Pd) ->
     uv_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
-flat_faces({uv_tangent,MatFaces}, Pd) -> %% Fixme
+flat_faces({uv_tangent,MatFaces}, Pd) ->
     Z = e3d_vec:zero(),
     Array = array:new([{default, {Z,Z}}]),
     tangent_flat_faces(MatFaces, Pd, 0, <<>>, [], [], {Array, []});
@@ -480,9 +480,10 @@ flat_faces({color,MatFaces}, Pd) ->
     col_flat_faces(MatFaces, Pd, 0, <<>>, [], []);
 flat_faces({color_uv,MatFaces}, Pd) ->
     col_uv_faces(MatFaces, Pd, 0, <<>>, [], []);
-flat_faces({color_uv_tangent,MatFaces}, Pd) -> %% Fixme
-    col_uv_faces(MatFaces, Pd, 0, <<>>, [], []).
-
+flat_faces({color_uv_tangent,MatFaces}, Pd) -> 
+    Z = e3d_vec:zero(),
+    Array = array:new([{default, {Z,Z}}]),
+    col_tangent_faces(MatFaces, Pd, 0, <<>>, [], [], {Array, []}).
 
 plain_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, We, Start0, Vs0, Fmap0),
@@ -610,6 +611,37 @@ col_uv_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap) ->
 		   [{Face,Normal}|FaceMap]);
 col_uv_faces_1([], _, Start, Vs, FaceMap) ->
     {Start,Vs,FaceMap}.
+
+col_tangent_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0, Ts0) ->
+    {Start,Vs,FaceMap, Ts} = col_tangent_faces_1(Fs, We, Start0, Vs0, Fmap0, Ts0),
+    MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
+    col_tangent_faces(T, Pd, Start, Vs, FaceMap, MatInfo, Ts);
+col_tangent_faces([], Pd, _Start, Vs, FaceMap, MatInfo, {VsTs0, RevF2V}) ->
+    case Vs of
+	<<>> ->
+	    Ns = Col = UV = Vs;
+	_ ->
+	    <<_:3/unit:32,Ns/bytes>> = Vs,
+	    <<_:3/unit:32,Col/bytes>> = Ns,
+	    <<_:3/unit:32,UV/bytes>> = Col
+    end,
+    S = 44,
+    VsTs = array:map(fun(_V, {T, BT}) -> {e3d_vec:norm(T), e3d_vec:norm(BT)} end, VsTs0),
+    Ts = wings_draw_setup:add_tangents(lists:reverse(RevF2V), VsTs, <<>>),
+    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},
+		   face_vc={S,Col},face_uv={S,UV},face_ts={16, Ts},
+		   face_map=reverse(FaceMap),mat_map=MatInfo}}.
+
+col_tangent_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap, Ts0) ->
+    {VsPos,ColUV} = wings_va:face_pos_attr([color|uv], Face, Edge, We),
+    Normal = e3d_vec:normal(VsPos),
+    col_tangent_faces_1(Fs, We, Start+4,
+			add_quad_col_uv(Vs, Normal, VsPos, ColUV),
+			[{Face,Normal}|FaceMap],
+			add_ts(VsPos, [UV || [_|UV] <- ColUV], Normal,
+			       wings_face:vertices_ccw(Face, We), Ts0));
+col_tangent_faces_1([], _, Start, Vs, FaceMap, Ts) ->
+    {Start,Vs,FaceMap, Ts}.
 
 add_quad(Bin, {NX,NY,NZ},
 	 [{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}]) ->

@@ -581,9 +581,15 @@ gen_edges(some, [Es,Vs,As,N,TotNoEs], Wait, CL) ->
     {ok, EsBin} = cl:wait(EWait1),
     {0, EsBin}.
 
-gen_tangents(uv_tangent, Vs, Fs, As, Vab, NoVs, NoFs, Temp, CL) ->
+gen_tangents(Type, Vs, Fs, As, Vab, NoVs, NoFs, Temp, CL) 
+  when Type =:= uv_tangent; Type =:= color_uv_tangent ->
     C1 = wings_cl:cast(clearf, [Temp,4,NoVs*2], NoVs*2, [], CL),
-    C2 = wings_cl:cast(gen_tangents_pass0, [Vs, Fs, As, Temp, NoFs, NoVs], 1, [C1], CL),
+    C2 = case Type of 
+	     uv_tangent -> 
+		 wings_cl:cast(gen_tangents_uv, [Vs, Fs, As, Temp, NoFs, NoVs], ?PL_UNITS, [C1], CL);
+	     color_uv_tangent ->
+		 wings_cl:cast(gen_tangents_col_uv, [Vs, Fs, As, Temp, NoFs, NoVs], ?PL_UNITS, [C1], CL)
+	 end,
     Out = As,
     C3 = wings_cl:cast(gen_tangents, [Fs, Vab, Temp, Out, NoFs, NoVs], NoFs, [C2], CL),
     C4 = wings_cl:read(Out,NoFs*4*4*4,[C3],CL),
