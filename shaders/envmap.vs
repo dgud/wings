@@ -10,9 +10,12 @@
 // See 3Dlabs-License.txt for license information
 //
 
+in vec4 wings_tangent;
+
 varying vec3  Normal;
 varying vec3  EyeDir;
 varying float LightIntensity;
+varying vec4  tangent;
 
 vec3 LightPos = vec3(0.0, 10.0, 0.0);
 
@@ -25,5 +28,9 @@ void main()
 	Normal		   = normalize(gl_NormalMatrix * gl_Normal);
 	vec4 pos	   = gl_ModelViewMatrix * gl_Vertex;
 	EyeDir		   = pos.xyz;
-	LightIntensity = max(dot(normalize(LightPos - EyeDir), Normal), 0.0);
+	//LightIntensity = max(dot(normalize(LightPos - EyeDir), Normal), 0.0);
+
+	gl_TexCoord[0]	= gl_MultiTexCoord0;
+	tangent.xyz = gl_NormalMatrix * wings_tangent.xyz;
+	tangent.w = wings_tangent.w;
 }
