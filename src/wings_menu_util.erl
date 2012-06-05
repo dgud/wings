@@ -172,19 +172,23 @@ rotate_fun(Dir, Names) ->
     DirString = wings_util:cap(wings_s:dir(Dir)),
     F = magnet_scale_rot_fun(Dir, center),
     Help0 = dir_help(Dir, Names),
-    Help = {Help0,[],?STR(rotate_fun,1,"Pick point for axis to pass through")},
+    Help = {Help0, ?STR(rotate_fun,2,"Through Origin"), ?STR(rotate_fun,1,"Pick point for axis to pass through")},
     Ps = magnet_props(Dir, Names),
     {DirString,F,Help,Ps}.
 
 magnet_scale_rot_fun(Vec, Point) ->
     fun(1, Ns) ->
-	    MagFlags = magnet_props(Vec, Ns),
-	    wings_menu:build_command({'ASK',{[],[Point,Vec],MagFlags}}, Ns);
+            MagFlags = magnet_props(Vec, Ns),
+            wings_menu:build_command({'ASK',{[],[Point,Vec],MagFlags}}, Ns);
        (2, _Ns) ->
-	    ignore;
+            case Vec of 
+                x -> {body,{rotate,{{1.0,0.0,0.0},{0.0,0.0,0.0},none}}};
+                y -> {body,{rotate,{{0.0,1.0,0.0},{0.0,0.0,0.0},none}}};
+                z -> {body,{rotate,{{0.0,0.0,1.0},{0.0,0.0,0.0},none}}}
+            end;
        (3, Ns) ->
-	    MagFlags = magnet_props(Vec, Ns),
-	    wings_menu:build_command({'ASK',{[point],[Vec],MagFlags}}, Ns)
+            MagFlags = magnet_props(Vec, Ns),
+            wings_menu:build_command({'ASK',{[point],[Vec],MagFlags}}, Ns)
     end.
 
 %%%
