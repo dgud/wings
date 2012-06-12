@@ -26,9 +26,9 @@
 	{st,					%Current St.
 	 n,					    %Number of objects.
 	 first,					%First object to show.
-	 sel,					%Current selection.
 	 os,					%All objects.
 	 active,				%Number of active object.
+	 tracking,				%Number of mouse tracked object.
 	 lh					    %Line height.
 	}).
 
@@ -46,6 +46,8 @@ sel_group_menu() ->
 command({window,sel_groups}, St) ->
     window(St),
     keep;
+command({sel_groups,{rename_group, {Key,NewName}}}, St) ->
+    {save_state,rename_group(Key,NewName,St)};
 command(_,_) ->
     next.
 
@@ -55,16 +57,16 @@ window(St) ->
 	    wings_wm:raise(sel_groups),
 	    keep;
 	false ->
-	    {{_,DeskY},{DeskW,DeskH}} = wings_wm:win_rect(desktop),
+	    {{DeskX,DeskY},{DeskW,DeskH}} = wings_wm:win_rect(desktop),
 	    W = 28*?CHAR_WIDTH,
-	    Pos = {DeskW-5,DeskY+55},
-	    Size = {W,DeskH div 2},
+	    Pos = {DeskX+5,DeskY+95},
+	    Size = {W,DeskH div 3},
 	    window(Pos, Size, [], St),
 	    keep
     end.
 
 window(Pos, Size, Ps, St) ->
-    Ost = #ost{first=0,lh=18,n=0,active=-1},
+    Ost = #ost{first=0,lh=18,n=0,active=-1,tracking=-1},
     Current = {current_state,St},
     Op = {seq,push,event(Current, Ost)},
     Props = [{display_lists,geom_display_lists}],
@@ -76,13 +78,12 @@ get_event(Ost) ->
     {replace,fun(Ev) -> event(Ev, Ost) end}.
 
 event(redraw, Ost) ->
-    wings_io:ortho_setup(),
-    {W,H} = wings_wm:win_size(),
-    wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR),
     draw_objects(Ost),
     keep;
 event({action,{sel_groups,Cmd}}, Ost) ->
     case Cmd of
+    {rename_group,Id} ->
+        rename(Id);
     {new_group,_} ->
         wings_wm:send(geom, {action,{select,new_group}});
     _ ->
@@ -95,7 +96,7 @@ event(resized, Ost) ->
 event(close, _) ->
     delete;
 event(lost_focus, Ost) ->
-    get_event(Ost#ost{active=-1});
+    get_event(Ost#ost{active=-1,tracking=-1});
 event(got_focus, _) ->
     Msg = wings_msg:button_format(?__(1,"Select"), [],
 				  ?__(2,"Shows selection groups menu")),
@@ -105,12 +106,15 @@ event({current_state,St}, Ost0) ->
     Ost = update_state(St, Ost0),
     update_scroller(Ost),
     get_event(Ost);
+event(#mousemotion{y=Y}, Ost) ->
+    wings_wm:dirty(),
+    get_event(Ost#ost{tracking=active_object(Y,Ost)});
 event(#mousebutton{button=1,y=Y,state=?SDL_PRESSED}, #ost{active=Act}=Ost)
   when Act >= 0 ->
     case active_object(Y, Ost) of
 	Act ->
 	    wings_wm:grab_focus(),
-	    get_event(Ost);
+	    get_event(Ost#ost{tracking=Act});
 	_ ->
 	    get_event(Ost)
     end;
@@ -159,8 +163,8 @@ do_menu(-1, X, Y, Y0 ,#ost{st=#st{ssels=Ssels,sel=[],selmode=SelMode}}=Ost) ->
 	  	case active_object(Y0, Ost) of % check for item under mouse pointer
 	  	  -1 -> keep;
 	  	  Act0 -> 
-	  	 	Menu=group_del_menu(act_to_key(Objs,Act0)),
-	  	 	wings_menu:popup_menu(X, Y, sel_groups, Menu)
+            Menu=group_del_menu(act_to_key(Objs,Act0)),
+            wings_menu:popup_menu(X, Y, sel_groups, Menu)
 	  	end
 	end;
 % none group selected (-1) and there is a selection in Geo
@@ -168,12 +172,12 @@ do_menu(-1, X, Y, Y0, #ost{st=#st{ssels=Ssels,selmode=SelMode}}=Ost) ->
     Objs=objs_by_mode(SelMode,gb_trees:keys(Ssels)),
     Act0=active_object(Y0, Ost), % check for item under mouse pointer
     Menu1=if
-    	Objs =/= [] -> 
-    	  Id=act_to_key(Objs,Act0),
-    	  group_ins_menu()++group_del_menu(Id)++groups_bool_menu({cur_sel,?__(1,"current selection")},Id);
-    	true -> group_ins_menu()
+      Objs =/= [] ->
+        Id=act_to_key(Objs,Act0),
+        group_ins_menu()++group_del_menu(Id)++group_bool_menu({cur_sel,?__(1,"current selection")},Id);
+      true -> group_ins_menu()
     end,
-    Menu2 = groups_basic_menu(act_to_key(Objs,Act0)),
+    Menu2 = group_basic_menu(act_to_key(Objs,Act0)),
     Menu = Menu1++Menu2, 
 	wings_menu:popup_menu(X, Y, sel_groups, Menu);
 % there is a group selected (Act)
@@ -183,7 +187,7 @@ do_menu(Act, X, Y, Y0, #ost{active=Act0,st=#st{ssels=Ssels,selmode=SelMode}}=Ost
     Menu0 = group_del_menu(Id),
     Menu1 = case active_object(Y0, Ost) of
         Act0 -> [];
-        Act1 -> groups_bool_menu(Id,act_to_key(Objs,Act1))
+        Act1 -> group_bool_menu(Id,act_to_key(Objs,Act1))
 	end,
     Menu = Menu0++Menu1, 
 	wings_menu:popup_menu(X, Y, sel_groups, Menu).
@@ -192,9 +196,10 @@ group_ins_menu() ->
 	[{?__(1,"New Group..."),menu_cmd(new_group,0),?__(2,"Create a new selection group")}].
 group_del_menu(none) -> [];
 group_del_menu({_,SrcName}=SrcId) -> 
-	[{?__(3,"Delete Group"), menu_cmd(delete_group,SrcId), ?__(4,"Delete group \"")++SrcName++"\""}]++group_cleanup_menu().
-groups_basic_menu(none) -> [];
-groups_basic_menu({_,SrcName}=SrcId) ->
+	[{?__(3,"Delete"), menu_cmd(delete_group,SrcId), ?__(4,"Delete group \"")++SrcName++"\""},
+	 {?__(20,"Rename"), menu_cmd(rename_group,SrcId), ?__(21,"Rename group \"")++SrcName++"\""}]++group_cleanup_menu().
+group_basic_menu(none) -> [];
+group_basic_menu({_,SrcName}=SrcId) ->
     [separator,
      {?__(5,"Add to Group"), menu_cmd(add_to_group,SrcId),
           ?__(6,"Add current selection to group \"")++SrcName++"\""},
@@ -204,9 +209,9 @@ group_cleanup_menu() ->
 	[separator,
      {?__(9,"Delete Invalid Groups"), menu_cmd(delete_group,invalid),?__(10,"Delete any invalid group - an empty group")}].
 
-groups_bool_menu(none,_) -> [];
-groups_bool_menu(_,none) -> [];
-groups_bool_menu({_,SrcName},{_,DstName}=DstId) ->
+group_bool_menu(none,_) -> [];
+group_bool_menu(_,none) -> [];
+group_bool_menu({_,SrcName},{_,DstName}=DstId) ->
     [separator,
  	 {?__(11,"Union Group"), menu_cmd(union_group,DstId),
 	     ?__(12,"Union group \"")++SrcName++?__(13,"\" with \"")++DstName++"\""},
@@ -303,6 +308,48 @@ lines(#ost{lh=Lh}) ->
 title() ->
     ?__(1,"Selection Groups").
 
+rename({_,OldName}=Id) ->
+    Qs = [{vframe,
+           [{hframe,[
+              {label,?__(2,"Current name")++": "},
+              {label,OldName}]},
+            {hframe,[
+              {label,?__(3,"New name")++": "},
+              {text,"",[]}]}
+           ]}],
+    wings_ask:dialog(?__(1,"Rename"), Qs,
+    fun([NewName]) ->
+        wings_wm:send(geom, {action,{sel_groups,{rename_group,{Id,NewName}}}})
+    end).
+
+rename_group({Mode,_}=OldKey,NewName,#st{ssels=Ssels0}=St) ->
+    NewKey={Mode,NewName},
+    case gb_trees:is_defined(NewKey, Ssels0) of
+	false -> ok;
+	true ->
+	    %% Careful: don't use io_lib:format/2 here. The group name
+	    %% may contain Unicode characters.
+	    GroupMode = group_mode_string(Mode),
+	    Exists = ?__(exists,"already exists."),
+	    Msg0 = [GroupMode," \"",NewName,"\" ",Exists],
+	    Msg = lists:flatten(Msg0),
+	    wings_u:error_msg(Msg)
+    end,
+    {_,Value}=gb_trees:lookup(OldKey, Ssels0),
+    Ssels1 = gb_trees:delete(OldKey, Ssels0),
+    Ssels = gb_trees:insert(NewKey, Value, Ssels1),
+    St#st{ssels=Ssels}.
+
+%% copied from wings_sel_cmd
+group_mode_string(vertex) ->
+    ?__(vertex, "Vertex selection group");
+group_mode_string(edge) ->
+    ?__(edge, "Edge selection group");
+group_mode_string(face) ->
+    ?__(face, "Face selection group");
+group_mode_string(body) ->
+    ?__(body, "Body selection group").
+
 active_object(Y0, #ost{lh=Lh,first=First,n=N}) ->
     case Y0 - top_of_first_object() of
 	Y when Y < 0 -> -1;
@@ -314,33 +361,48 @@ active_object(Y0, #ost{lh=Lh,first=First,n=N}) ->
 	    end
     end.
 
-draw_objects(#ost{os=Objs0,first=First,lh=Lh,active=Active,n=N0}=Ost) ->
+draw_objects(#ost{os=Objs0,first=First,lh=Lh,active=Active,tracking=Trk,n=N0}=Ost) ->
+    wings_io:ortho_setup(),
+    {W,H} = wings_wm:win_size(),
+    wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR),
+
     Objs = lists:nthtail(First, Objs0),
-    R = right_pos(),
     Lines = lines(Ost),
     N = case N0-First of
 	    N1 when N1 < Lines -> N1;
 	    _ -> Lines
 	end,
-    draw_objects_1(N, Objs, Ost, R, Active-First, Lh-2).
+	Y=Lh-2,
+    draw_objects_1(N, Objs, Ost, W, Active-First, Y),
+    if
+      Trk=/=-1 ->
+        Y0=Y+(Trk*Lh),
+        draw_frame(6,Y0-?CHAR_HEIGHT,W-6,Y0+4);
+      true -> ok
+    end.
 
 draw_objects_1(0, _, _, _, _, _) -> ok;
 draw_objects_1(N, [{SMode,GName}|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
     Name = atom_to_list(SMode)++": "++GName,
     case Active =:= 0 of
 	true ->
-	    gl:color3f(0, 0, 0.5),
-	    gl:recti(6, Y-?CHAR_HEIGHT, R-2, Y+4),
-	    gl:color3f(1, 1, 1);
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
+	    gl:recti(6, Y-?CHAR_HEIGHT, R-6, Y+4),
+	    gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
 	false -> ok
     end,
     wings_io:text_at(8, Y, Name),
     gl:color3b(0, 0, 0),
     draw_objects_1(N-1, Objs, Ost, R, Active-1, Y+Lh).
 
-right_pos() ->
-    {W,_} = wings_wm:win_size(),
-    W-13.
+draw_frame(X1,Y1,X2,Y2) ->
+    gl:'begin'(?GL_LINE_LOOP),
+    gl:vertex2i(X1, Y1+1),
+    gl:vertex2i(X2+1, Y1+1),
+    gl:vertex2i(X2+1, Y2),
+    gl:vertex2i(X1, Y2),
+    gl:vertex2i(X1, Y1), % force x1,y1 corner (dot) be drawn
+    gl:'end'().
 
 top_of_first_object() ->
     0.
