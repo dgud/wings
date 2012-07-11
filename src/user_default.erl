@@ -261,7 +261,7 @@ module_modified(Path, PrevCompileTime, PrevSrc) ->
       CompileOpts =  binary_to_term(CB),
       CompileTime = proplists:get_value(time, CompileOpts),
       Src = proplists:get_value(source, CompileOpts),
-      not (CompileTime == PrevCompileTime) and (Src == PrevSrc)
+      not ((CompileTime == PrevCompileTime) and (Src == PrevSrc))
   end.
 
 find_module_file(Path) ->
