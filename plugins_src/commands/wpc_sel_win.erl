@@ -12,11 +12,12 @@
 %%
 
 -module(wpc_sel_win).
--export([init/0,menu/2,command/2]).
--export([window/1,window/4]).
+-export([init/0,menu/2,command/2,win_data/1]).
+-export([window/1,window/5]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
+-define(WIN_NAME, {plugin,sel_groups}).
 -include("wings.hrl").
 
 %%%
@@ -46,31 +47,37 @@ sel_group_menu() ->
 command({window,sel_groups}, St) ->
     window(St),
     keep;
-command({sel_groups,{rename_group, {Key,NewName}}}, St) ->
-    {save_state,rename_group(Key,NewName,St)};
 command(_,_) ->
-    next.
+	next.
+
+% win_data/1 function allows many plugin windows to be saved.
+% it returns: {Name, {Horiz alignment, Custom_data}}
+% horiz alignment should be either "left" or "right"
+% custom data is used to store windows properties and custom data - it should be parsed in window/5
+win_data(?WIN_NAME=Name) ->
+    {Name, {right,[{rollup, wings_wm:win_rollup(Name)}]}}.
 
 window(St) ->
-    case wings_wm:is_window(sel_groups) of
+    case wings_wm:is_window(?WIN_NAME) of
 	true ->
-	    wings_wm:raise(sel_groups),
+	    wings_wm:raise(?WIN_NAME),
 	    keep;
 	false ->
-	    {{DeskX,DeskY},{DeskW,DeskH}} = wings_wm:win_rect(desktop),
+	    {{DeskX,DeskY},{_DeskW,DeskH}} = wings_wm:win_rect(desktop),
 	    W = 28*?CHAR_WIDTH,
-	    Pos = {DeskX+5,DeskY+95},
+	    Pos = {DeskX+5,DeskY+105},
 	    Size = {W,DeskH div 3},
-	    window(Pos, Size, [], St),
+	    window(?WIN_NAME, Pos, Size, [], St),
 	    keep
     end.
 
-window(Pos, Size, Ps, St) ->
+window(?WIN_NAME, Pos, Size, CtmData, St) ->
+	Ps = CtmData,
     Ost = #ost{first=0,lh=18,n=0,active=-1,tracking=-1},
     Current = {current_state,St},
     Op = {seq,push,event(Current, Ost)},
     Props = [{display_lists,geom_display_lists}],
-    wings_wm:toplevel(sel_groups, title(), Pos, Size,
+    wings_wm:toplevel(?WIN_NAME, title(), Pos, Size,
 		      [{sizeable,?PANE_COLOR},closable,vscroller,{anchor,ne},
 		       {properties,Props}|Ps], Op).
 
@@ -322,34 +329,6 @@ rename({_,OldName}=Id) ->
         wings_wm:send(geom, {action,{sel_groups,{rename_group,{Id,NewName}}}})
     end).
 
-rename_group({Mode,_}=OldKey,NewName,#st{ssels=Ssels0}=St) ->
-    NewKey={Mode,NewName},
-    case gb_trees:is_defined(NewKey, Ssels0) of
-	false -> ok;
-	true ->
-	    %% Careful: don't use io_lib:format/2 here. The group name
-	    %% may contain Unicode characters.
-	    GroupMode = group_mode_string(Mode),
-	    Exists = ?__(exists,"already exists."),
-	    Msg0 = [GroupMode," \"",NewName,"\" ",Exists],
-	    Msg = lists:flatten(Msg0),
-	    wings_u:error_msg(Msg)
-    end,
-    {_,Value}=gb_trees:lookup(OldKey, Ssels0),
-    Ssels1 = gb_trees:delete(OldKey, Ssels0),
-    Ssels = gb_trees:insert(NewKey, Value, Ssels1),
-    St#st{ssels=Ssels}.
-
-%% copied from wings_sel_cmd
-group_mode_string(vertex) ->
-    ?__(vertex, "Vertex selection group");
-group_mode_string(edge) ->
-    ?__(edge, "Edge selection group");
-group_mode_string(face) ->
-    ?__(face, "Face selection group");
-group_mode_string(body) ->
-    ?__(body, "Body selection group").
-
 active_object(Y0, #ost{lh=Lh,first=First,n=N}) ->
     case Y0 - top_of_first_object() of
 	Y when Y < 0 -> -1;
@@ -397,11 +376,11 @@ draw_objects_1(N, [{SMode,GName}|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
 
 draw_frame(X1,Y1,X2,Y2) ->
     gl:'begin'(?GL_LINE_LOOP),
-    gl:vertex2i(X1, Y1+1),
-    gl:vertex2i(X2+1, Y1+1),
-    gl:vertex2i(X2+1, Y2),
+    gl:vertex2i(X1+1, Y1),
+    gl:vertex2i(X2, Y1),
+    gl:vertex2i(X2, Y2),
     gl:vertex2i(X1, Y2),
-    gl:vertex2i(X1, Y1), % force x1,y1 corner (dot) be drawn
+    gl:vertex2i(X1+1, Y1), % force x1,y1 corner (dot) be drawn
     gl:'end'().
 
 top_of_first_object() ->
