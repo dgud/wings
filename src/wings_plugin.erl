@@ -645,9 +645,7 @@ restore_window(M, WinName, Pos, Size, CtmData, St) ->
     case module_found(M,Ps) of
       true ->
       	case catch M:window(WinName, Pos, Size, CtmData, St) of
-      	  {_,_}=Err -> 
-      	  	io:format("Error restoring a plugin window: ~p\n",[Err]),
-      	    keep;
+      	  {_,_}=Err -> keep;
       	  _ -> keep
       	end;
       _ -> keep

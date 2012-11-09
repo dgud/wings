@@ -205,7 +205,7 @@ group_ins_menu() ->
 group_del_menu(none) -> [];
 group_del_menu({_,SrcName}=SrcId) -> 
 	[{?__(3,"Delete"), menu_cmd(delete_group,SrcId), ?__(4,"Delete group \"")++SrcName++"\""},
-	 {?__(20,"Rename"), menu_cmd(rename_group,SrcId), ?__(21,"Rename group \"")++SrcName++"\""}]++group_cleanup_menu().
+	 {?__(20,"Rename"), menu_cmd(rename_group,SrcId), ?__(21,"Rename group \"")++SrcName++"\""}].
 group_basic_menu(none) -> [];
 group_basic_menu({_,SrcName}=SrcId) ->
     [separator,
@@ -213,9 +213,6 @@ group_basic_menu({_,SrcName}=SrcId) ->
           ?__(6,"Add current selection to group \"")++SrcName++"\""},
      {?__(7,"Subtract from Group"), menu_cmd(subtract_from_group,SrcId),
           ?__(8,"Subtract current selection from group \"")++SrcName++"\""}].
-group_cleanup_menu() ->
-	[separator,
-     {?__(9,"Delete Invalid Groups"), menu_cmd(delete_group,invalid),?__(10,"Delete any invalid group - an empty group")}].
 
 group_bool_menu(none,_) -> [];
 group_bool_menu(_,none) -> [];
