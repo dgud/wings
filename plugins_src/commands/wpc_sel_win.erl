@@ -50,10 +50,10 @@ command({window,sel_groups}, St) ->
 command(_,_) ->
 	next.
 
-% win_data/1 function allows many plugin windows to be saved.
-% it returns: {Name, {Horiz alignment, Custom_data}}
-% horiz alignment should be either "left" or "right"
-% custom data is used to store windows properties and custom data - it should be parsed in window/5
+%% win_data/1 function allows many plugin windows to be saved.
+%% it returns: {Name, {Horiz alignment, Custom_data}}
+%% horiz alignment should be either "left" or "right"
+%% custom data is used to store windows properties and custom data - it should be parsed in window/5
 win_data(?WIN_NAME=Name) ->
     {Name, {right,[{rollup, wings_wm:win_rollup(Name)}]}}.
 
@@ -64,7 +64,7 @@ window(St) ->
 	    keep;
 	false ->
 	    {{DeskX,DeskY},{_DeskW,DeskH}} = wings_wm:win_rect(desktop),
-	    W = 28*?CHAR_WIDTH,
+	    W = 18*?CHAR_WIDTH,
 	    Pos = {DeskX+5,DeskY+105},
 	    Size = {W,DeskH div 3},
 	    window(?WIN_NAME, Pos, Size, [], St),
@@ -126,13 +126,13 @@ event(#mousebutton{button=1,y=Y,state=?SDL_PRESSED}, #ost{active=Act}=Ost)
 	    get_event(Ost)
     end;
 event(#mousebutton{button=1,y=Y,state=?SDL_RELEASED}, 
-            #ost{active=Act0,st=#st{selmode=SelMode,ssels=Ssels}}=Ost) ->
+            #ost{active=Act0,st=#st{selmode=SelMode,sh=Sh,ssels=Ssels}}=Ost) ->
     wings_wm:release_focus(),
     case active_object(Y, Ost) of
-	Act0 -> keep;
+	Act0 ->  keep;
 	Act ->
 	  if Act=/=-1 ->
-	      Objs=objs_by_mode(SelMode,gb_trees:keys(Ssels)),
+	      Objs=objs_by_mode(Sh,SelMode,gb_trees:keys(Ssels)),
 	      Id=act_to_key(Objs,Act),
 	      wings_wm:send(geom, {action,{select,{ssels,{select_group,Id}}}});
       true -> ok
@@ -155,28 +155,29 @@ event(scroll_page_down, Ost) ->
     zoom_step(lines(Ost), Ost);
 event(Ev, Ost) ->
     case wings_hotkey:event(Ev) of
-	{select,deselect} ->
+	{select,Cmd}=Act when Cmd=:=deselect; Cmd=:=vertex; Cmd=:=edge; Cmd=:=face ->
+	    wings_wm:send(geom, {action,Act}),
 	    wings_wm:dirty(),
-	    get_event(Ost#ost{active=-1});
+	    get_event(Ost#ost{active=-1,tracking=-1});
 	_ -> keep
     end.
 
-% none group selected (-1) and there isn't any selection in Geo
-do_menu(-1, X, Y, Y0 ,#ost{st=#st{ssels=Ssels,sel=[],selmode=SelMode}}=Ost) -> 
+%% none group selected (-1) and there isn't any selection in Geo
+do_menu(-1, X, Y, Y0 ,#ost{st=#st{sh=Sh,ssels=Ssels,sel=[],selmode=SelMode}}=Ost) -> 
 	case gb_trees:is_empty(Ssels) of
 	  true -> keep;
 	  _ ->
-	  	Objs=objs_by_mode(SelMode,gb_trees:keys(Ssels)),
-	  	case active_object(Y0, Ost) of % check for item under mouse pointer
-	  	  -1 -> keep;
-	  	  Act0 -> 
-            Menu=group_del_menu(act_to_key(Objs,Act0)),
-            wings_menu:popup_menu(X, Y, sel_groups, Menu)
-	  	end
+	    Objs=objs_by_mode(Sh,SelMode,gb_trees:keys(Ssels)),
+	    case active_object(Y0, Ost) of % check for item under mouse pointer
+	      -1 -> keep;
+	      Act0 ->
+	        Menu=group_del_menu(act_to_key(Objs,Act0)),
+	        wings_menu:popup_menu(X, Y, sel_groups, Menu)
+	    end
 	end;
-% none group selected (-1) and there is a selection in Geo
-do_menu(-1, X, Y, Y0, #ost{st=#st{ssels=Ssels,selmode=SelMode}}=Ost) -> 
-    Objs=objs_by_mode(SelMode,gb_trees:keys(Ssels)),
+%% none group selected (-1) and there is a selection in Geo
+do_menu(-1, X, Y, Y0, #ost{st=#st{sh=Sh,ssels=Ssels,selmode=SelMode}}=Ost) -> 
+    Objs=objs_by_mode(Sh,SelMode,gb_trees:keys(Ssels)),
     Act0=active_object(Y0, Ost), % check for item under mouse pointer
     Menu1=if
       Objs =/= [] ->
@@ -187,9 +188,9 @@ do_menu(-1, X, Y, Y0, #ost{st=#st{ssels=Ssels,selmode=SelMode}}=Ost) ->
     Menu2 = group_basic_menu(act_to_key(Objs,Act0)),
     Menu = Menu1++Menu2, 
 	wings_menu:popup_menu(X, Y, sel_groups, Menu);
-% there is a group selected (Act)
-do_menu(Act, X, Y, Y0, #ost{active=Act0,st=#st{ssels=Ssels,selmode=SelMode}}=Ost) ->
-    Objs=objs_by_mode(SelMode,gb_trees:keys(Ssels)),
+%% there is a group selected (Act)
+do_menu(Act, X, Y, Y0, #ost{active=Act0,st=#st{sh=Sh,ssels=Ssels,selmode=SelMode}}=Ost) ->
+    Objs=objs_by_mode(Sh,SelMode,gb_trees:keys(Ssels)),
     Id=act_to_key(Objs,Act),
     Menu0 = group_del_menu(Id),
     Menu1 = case active_object(Y0, Ost) of
@@ -242,7 +243,7 @@ update_state(#st{selmode=SelMode}=St, #ost{st=St0,active=Act0,first=OldFirst}=Os
         SelMode=/=SelMode0 -> -1;
         true -> Act0 
         end;
-      _ -> Act0
+      _ -> Act0  % undefined
     end,
     #ost{first=First0} = Ost = update_state_1(St, Ost0#ost{active=Act}),
     case clamp(First0, Ost) of
@@ -255,8 +256,8 @@ update_state(#st{selmode=SelMode}=St, #ost{st=St0,active=Act0,first=OldFirst}=Os
 update_state_1(St, Ost) ->
     update_state_2(St, Ost).
 
-update_state_2(#st{ssels=SSels,selmode=SelMode}=St, #ost{os=Objs0,active=Act0}=Ost) ->
-    Objs=objs_by_mode(SelMode,gb_trees:keys(SSels)),
+update_state_2(#st{ssels=SSels,sh=Sh,selmode=SelMode}=St, #ost{os=Objs0,active=Act0}=Ost) ->
+    Objs=objs_by_mode(Sh,SelMode,gb_trees:keys(SSels)),
     case Objs of
 	Objs0 -> ok;
 	_ -> wings_wm:dirty()
@@ -276,12 +277,21 @@ update_scroller(#ost{first=First,n=N}=Ost) ->
     Lines = lines(Ost),
     wings_wm:set_knob(Name, First/N, Lines/N).
 
+objs_by_mode(false,SelMode,Keys) ->
+    objs_by_mode(SelMode,Keys);
+objs_by_mode(true,_,Keys) ->
+    Sv=objs_by_mode(vertex,Keys),
+    Se=objs_by_mode(edge,Keys),
+    Sf=objs_by_mode(face,Keys),
+    Sl=lists:append(Sv,lists:append(Se,Sf)),
+    Sl.
+
 objs_by_mode(SelMode,Keys) ->
     Keys0=lists:keysort(1,Keys),
-    Objs=lists:foldl(fun({SM,_}=Item,Acc) when SM=:=SelMode -> [Acc,Item]; 
+    Sel=lists:foldl(fun({SM,_}=Item,Acc) when SM=:=SelMode -> [Acc,Item]; 
                          (_,Acc)-> Acc
                       end, [], Keys0),
-    lists:flatten(Objs).
+    lists:flatten(Sel).
 
 act_to_key(_,-1) -> none;
 act_to_key(Objs,Act) ->
@@ -356,32 +366,52 @@ draw_objects(#ost{os=Objs0,first=First,lh=Lh,active=Active,tracking=Trk,n=N0}=Os
     if
       Trk=/=-1 ->
         Y0=Y+(Trk*Lh),
-        draw_frame(6,Y0-?CHAR_HEIGHT,W-6,Y0+4);
+        draw_frame(18,Y0-?CHAR_HEIGHT,W-2,Y0+4);
       true -> ok
     end.
 
 draw_objects_1(0, _, _, _, _, _) -> ok;
-draw_objects_1(N, [{SMode,GName}|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
-    Name = atom_to_list(SMode)++": "++GName,
-    case Active =:= 0 of
-	true ->
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
-	    gl:recti(6, Y-?CHAR_HEIGHT, R-6, Y+4),
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
-	false -> ok
+draw_objects_1(N, [{SMode,Name}|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
+    Col1 = wings_pref:get_value(menu_text),
+    Col2 = wings_pref:get_value(selected_color),
+    Cube = wings_shape:cube_bitmap(),
+    Icon=case SMode of
+      vertex -> wings_shape:vertex_sel_cube_bitmap();
+      edge -> wings_shape:edge_sel_cube_bitmap();
+      _ -> wings_shape:face_sel_cube_bitmap()
     end,
-    wings_io:text_at(8, Y, Name),
+
+    B = wings_pref:get_value(bitmap_icons),
+    case Active =:= 0 of
+    true when B ->
+      gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
+      gl:recti(18, Y-?CHAR_HEIGHT, R-2, Y+4),
+      gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
+    true ->
+      gl:color3f(0, 0, 0.5),
+      gl:recti(18, Y-?CHAR_HEIGHT, R-2, Y+4),
+      gl:color3f(1, 1, 1);
+    false -> ok
+    end,
+    wings_io:text_at(20, Y, Name),
+    gl:color3fv(e3d_vec:mul(Col1,0.6)),
+	draw_icon(2,Y+2,Cube),
+    gl:color3fv(Col2),
+	draw_icon(2,Y+2,Icon),
     gl:color3b(0, 0, 0),
     draw_objects_1(N-1, Objs, Ost, R, Active-1, Y+Lh).
 
-draw_frame(X1,Y1,X2,Y2) ->
+draw_frame(X1, Y1, X2, Y2) ->
     gl:'begin'(?GL_LINE_LOOP),
-    gl:vertex2i(X1+1, Y1),
+    gl:vertex2i(X1+1, Y1+1),
     gl:vertex2i(X2, Y1),
     gl:vertex2i(X2, Y2),
     gl:vertex2i(X1, Y2),
     gl:vertex2i(X1+1, Y1), % force x1,y1 corner (dot) be drawn
     gl:'end'().
+
+draw_icon(X, Y, Bitmap) ->
+    wings_shape:draw_bitmap_16(X, Y, Bitmap).
 
 top_of_first_object() ->
     0.

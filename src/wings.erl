@@ -1622,21 +1622,21 @@ save_geom_props([_|T], Acc) ->
 save_geom_props([], Acc) -> Acc.
 
 save_plugin_window(Name, Ns) ->
-	case wings_plugin:get_win_data(Name) of
-		{M, {HAlign,CtmData}} when (HAlign==left) orelse (HAlign==right) -> 
-			{MaxX,MaxY} = wings_wm:win_size(desktop),
-			{PosX0,PosY0} = case HAlign of
-				left -> wings_wm:win_ul({controller,Name});
-				right -> wings_wm:win_ur({controller,Name})
-			end,
-			PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
-			PosY = if PosY0 < 0 -> 20; PosY0 > MaxY -> 20; true -> PosY0 end,
-			Size = wings_wm:win_size(Name),
-			WinInfo = {M, {Name, {PosX,PosY}, Size, CtmData}},
-			[WinInfo|save_windows_1(Ns)];
-		_ -> 
-			save_windows_1(Ns)
-	end.
+    case wings_plugin:get_win_data(Name) of
+      {M, {HAlign,CtmData}} when (HAlign=:=left) orelse (HAlign=:=right) ->
+        {MaxX,MaxY} = wings_wm:win_size(desktop),
+        {PosX0,PosY0} = case HAlign of
+            left -> wings_wm:win_ul({controller,Name});
+            right -> wings_wm:win_ur({controller,Name})
+        end,
+        PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
+        PosY = if PosY0 < 0 -> 20; PosY0 > MaxY -> 20; true -> PosY0 end,
+        Size = wings_wm:win_size(Name),
+        WinInfo = {M, {Name, {PosX,PosY}, Size, CtmData}},
+        [WinInfo|save_windows_1(Ns)];
+      _ ->
+        save_windows_1(Ns)
+    end.
 
 restore_windows(St) ->
     %% Sort windows using names as keys to make sure we
@@ -1673,17 +1673,13 @@ restore_windows_1([{{geom,_}=Name,Pos0,Size,Ps0}|Ws], St) ->
 restore_windows_1([{Name,Pos,Size}|Ws0], St) -> % OldFormat
     restore_windows_1([{Name,Pos,Size,[]}|Ws0], St);
 restore_windows_1([{Module,{{plugin,_}=Name,{_,_}=Pos,{_,_}=Size,CtmData}}|Ws], St) ->
-	wings_plugin:restore_window(Module, Name, Pos, Size, CtmData, St),
-%	wings_plugin:restore_window(Module, Name, validate_pos(Pos), Size, CtmData, St),
+	wings_plugin:restore_window(Module, Name, validate_pos(Pos), Size, CtmData, St),
     restore_windows_1(Ws, St);
 restore_windows_1([{{object,_}=Name,{_,_}=Pos,{_,_}=Size,Ps}|Ws], St) ->
     wings_shape:window(Name, validate_pos(Pos), Size, Ps, St),
     restore_windows_1(Ws, St);
 restore_windows_1([{outliner,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
     wings_outliner:window(validate_pos(Pos), Size, Ps, St),
-    restore_windows_1(Ws, St);
-restore_windows_1([{sel_groups,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
-    wpc_sel_win:window(validate_pos(Pos), Size, Ps, St),
     restore_windows_1(Ws, St);
 restore_windows_1([{console,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
     wings_console:window(console, validate_pos(Pos), Size, Ps),
