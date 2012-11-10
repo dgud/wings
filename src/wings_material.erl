@@ -431,8 +431,8 @@ apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
 	end,
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_DIFFUSE, prop_get(diffuse, OpenGL)),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_AMBIENT, prop_get(ambient, OpenGL)),
-    apply_texture(prop_get(diffuse, Maps, none)),
-    apply_normal_map(prop_get(normal, Maps0, none)),  %% Combine with vertex colors
+    apply_texture(prop_get(diffuse, Maps, none)),    
+    apply_normal_map(get_normal_map(Maps0)),  %% Combine with vertex colors
     DeApply.
 
 apply_texture(none) -> no_texture();
@@ -447,6 +447,12 @@ apply_texture(Image) ->
 		TxId ->
 		    apply_texture_1(Image, TxId)
 	    end
+    end.
+
+get_normal_map(Maps) ->
+    case prop_get(normal, Maps, none) of
+	none -> prop_get(bump, Maps, none);
+	Map -> Map
     end.
 
 apply_normal_map(none) -> ok;
@@ -580,7 +586,7 @@ needs_uvs(Mat) ->
 
 needs_tangents(Mat) ->
     Maps = prop_get(maps, Mat, []),
-    none =/= prop_get(normal, Maps, none).
+    none =/= get_normal_map(Maps).
 
 -define(PREVIEW_SIZE, 100).
 
