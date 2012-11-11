@@ -61,7 +61,6 @@ init() ->
     wings_pref:set_default(sculpt_initial, false),
     BrushFile=wings_util:lib_dir(wings)++"/textures/brush.png",
     wings_pref:set_default(sculpt_alpha_brush,BrushFile),
-    wings_pref:set_default(sculpt_use_alpha, true),
     wings_pref:set_default(alpha_brush_weight, 0.5),
     %% Delete old prefs
     wings_pref:delete_value(sculpt_magnet_color),
@@ -123,7 +122,7 @@ prepare_alpha_data(Mode) ->
 unload_alpha_data() ->
     case ets:lookup(alpha_brush,uv_map) of
       [{uv_map,TxId}] ->
-        wings_gl:deleteTextures([TxId]),
+        wings_image:unload_texture(TxId),
         ets:delete(alpha_brush,uv_map);    
       _ -> ok
     end,
@@ -146,18 +145,18 @@ load_alpha_image(Name) ->
             {error,_} -> 
                 wings_u:message(?__(1,"There were an error loading the texture.\nSee the console window for details."));
             TxId ->
-                UseAlpha=wings_pref:get_value(sculpt_use_alpha),
-                case e3d_image:grayscale_image(Image0,UseAlpha) of
-                    {true,Image} -> 
+                case e3d_image:convert(Image0,g8) of
+                    {error, Reason} ->
+                    	wings_image:unload_texture(TxId),
+                        wings_u:message(?__(2,"Error converting image to grayscale.\n")++
+                        io_lib:format(?__(3,"Reason:")++" ~p",[Reason]));
+                    Image -> 
                         ets:insert(alpha_brush,{uv_map,TxId}),    
-                        alpha2weight(Image);
-                    {false,_} ->
-                    	wings_gl:deleteTextures([TxId]),
-                        wings_u:message(?__(2,"Image doesn't contain grayscale or alpha information."))
+                        alpha2weight(Image)
                 end
             end;
         {error,_} -> 
-            wings_u:message(?__(3,"Alpha brush file not found.\nGo to Sculpt Preferences."))
+            wings_u:message(?__(4,"Alpha brush file not found.\nGo to Sculpt Preferences."))
     end.
 
 alpha2weight(#e3d_image{width=W0,height=H0,image=Pixels0}=Image) ->
@@ -170,6 +169,9 @@ alpha2weight(#e3d_image{width=W0,height=H0,image=Pixels0}=Image) ->
     end, [], PixLst),
     ets:insert(alpha_brush,{weight,{W,H,MaxX,MaxY,ZeroOfs,list_to_tuple(AlpInf)}}).
 
+% force the image to have odd number of rows and cols
+% to be used as zero coordenate on the cartesian axis (just for make easy calc/find values)
+% if necessary, zero row or/and col is/are added
 prepare_img2cart({W0,H0,Img0}) ->
     H0h=H0 div 2,
     W0h=W0 div 2,
@@ -1247,17 +1249,15 @@ prefs(#sculpt{str=Str}) ->
          [{title,?__(1,"Strength")}]},
        {vframe,[{button,{text,AlphaFile,[{key,sculpt_alpha_brush},{props,BrowseProps}]}},
                 {hframe,[
-                    {label,?__(4,"Max. Weight")},
+                    {label,?__(2,"Max. Weight")},
                     {text,wings_pref:get_value(alpha_brush_weight),[{key,alpha_brush_weight},{range,{0.001,infinity}}]}
-                ]},
-                {?__(5,"Use alpha channel if present"),
-                 wings_pref:get_value(sculpt_use_alpha),[{key,sculpt_use_alpha}]}],
-         [{title,?__(6,"Alpha settings")}]}
+                ]}],
+         [{title,?__(3,"Alpha settings")}]}
          ]}],
-    C = [separator,{?__(3,"Confine sculpt to initial object"),
+    C = [separator,{?__(4,"Confine sculpt to initial object"),
           Confine,[{key,sculpt_initial}]}],
     PrefQs = [{Lbl, make_query(Ps)} || {Lbl, Ps} <- Menu] ++ C,
-    wings_ask:dialog(?__(10,"Sculpt Preferences"), PrefQs,
+    wings_ask:dialog(?__(5,"Sculpt Preferences"), PrefQs,
     fun(Result) -> set_values(Result) end).
 
 make_query([_|_]=List) ->
@@ -1273,14 +1273,6 @@ set_values([{sculpt_alpha_brush=Key, Value}|Result]) ->
     _-> 
         wings_pref:set_value(Key, Value),
         load_alpha_image(Value)
-    end,
-    set_values(Result);
-set_values([{sculpt_use_alpha=Key, Value}|Result]) ->
-    case wings_pref:get_value(Key) of
-    Value -> ok;
-    _-> 
-        wings_pref:set_value(Key, Value),
-        load_alpha_data()
     end,
     set_values(Result);
 set_values([{alpha_brush_weight=Key, Value}|Result]) ->
@@ -1435,6 +1427,7 @@ update_dlist({hl_info,HlInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
         gl:endList(),
         D#dlo{plugins=[{Key,{vs,List}}|Pdl]}
     end;
+%% It generate the OpenGl list of colored edges
 update_dlist({brush_info,ScptInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D,_) ->
     Key = ?MODULE,
     [Vp,Vo,Size,EdgeLst,VsList]=ScptInfo,
@@ -1552,34 +1545,18 @@ draw_brush_icon(alpha_brush) ->
 	case {ets:lookup(alpha_brush,uv_map),ets:lookup(alpha_brush,image)} of
 		{[{uv_map,TxId}],[{image,Image}]} ->
 			#e3d_image{width=W0,height=H0}=Image,
-			H1=?ALPHA_THUMB_SIZE,
-			Scl=H1/H0,
-			W1=trunc(W0*Scl),
-			draw_image(2,2,W1,H1,TxId);
+			H=?ALPHA_THUMB_SIZE,
+			Scl=H/H0,
+			W=trunc(W0*Scl),
+			draw_thumbnail(2,2,W,H,TxId);
 		{_,_} -> ok
 	end;
 draw_brush_icon(_) -> ok.
 
-draw_image(X, Y, W, H, TxId) ->
-    Ua = 0, Ub = 1,
-    Va = 0, Vb = 1,
-    gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
+draw_thumbnail(X, Y, W, H, TxId) ->
     gl:enable(?GL_TEXTURE_2D),
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
-    gl:'begin'(?GL_QUADS),
-    gl:texCoord2i(Ua, Va),
-    gl:vertex2i(X, Y),
-    gl:texCoord2i(Ua, Vb),
-    gl:vertex2i(X, Y+H),
-    gl:texCoord2i(Ub, Vb),
-    gl:vertex2i(X+W, Y+H),
-    gl:texCoord2i(Ub, Va),
-    gl:vertex2i(X+W, Y),
+	wings_image:draw_image(X, Y+H, W, -H, TxId),
     gl:disable(?GL_TEXTURE_2D),
-    gl:'end'(),
-    gl:popAttrib(),
 
     {Wm,Hm} = wings_wm:win_size(),
     {R,G,B}=?ALPHA_THUMB_COLOUR,

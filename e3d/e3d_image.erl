@@ -32,7 +32,7 @@
 	 noswap1to3/8,noswap1ato4/8,noswap1gto4/8,
 	 noswap3to4/8,noswap4to3/8, 
 	 swap3/8,swap4/8,swap3to4/8,swap4to3/8,
-	 grayscale_image/2]).
+	 noswap3to1/8,noswap4to1/8]).
 
 %% Func: load(FileName[, Options])  
 %% Args: FileName = [Chars], Options = [Tagged Tuple]
@@ -117,7 +117,7 @@ convert(#e3d_image{type=FromType,image=Image,alignment=FromAlm,order=FromOrder}=
     NewPaddLength = pad_len(NewRowLength, ToAlm),
     NewPadd = lists:duplicate(NewPaddLength, 0),
     W = In#e3d_image.width,
-    
+
     case type_conv(FromType, ToType) of
 	{error, _Reason} = Err ->
 	    Err;
@@ -438,6 +438,18 @@ noswap4to3(C, W, <<RGB:3/binary,_:8,R/binary>>, OPL, NP, OC, Row, Acc) when C =/
     noswap4to3(C+1, W, R, OPL, NP, OC, [RGB|Row], Acc);
 noswap4to3(C, W, Bin, OPL, NP, OC, Row, Acc) ->
     swap(noswap4to3, C, W, Bin, OPL, NP, OC, Row, Acc).
+%% RGB or BGR to Grey8
+noswap3to1(C, W, <<C0:8,C1:8,C2:8, R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
+	G0= trunc((C0+C1+C2)/3),  % not so goog as Luminosity method, but it's simple
+    noswap3to1(C+1, W, R, OPL, NP, OC, [G0|Row], Acc);
+noswap3to1(C, W, Bin, OPL, NP, OC, Row, Acc) ->
+    swap(noswap3to1, C, W, Bin, OPL, NP, OC, Row, Acc).
+%% RGBA or BGRA to Grey8
+noswap4to1(C, W, <<C0:8,C1:8,C2:8,A:8,R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
+	G0= trunc((C0+C1+C2)/3) band A,  % not so goog as Luminosity method, but it's simple
+    noswap4to1(C+1, W, R, OPL, NP, OC, [G0|Row], Acc);
+noswap4to1(C, W, Bin, OPL, NP, OC, Row, Acc) ->
+    swap(noswap4to1, C, W, Bin, OPL, NP, OC, Row, Acc).
 
 swap3(0, W, Bin0, OPL, NP, OC, [], Acc) when size(Bin0) >= 3*W ->
     <<Row0:W/binary-unit:24,Bin/binary>> = Bin0,
@@ -483,6 +495,8 @@ type_conv(Type, Type) ->  %% No swap
 	3 -> noswap3;
 	4 -> noswap4
     end;
+type_conv(a8, g8) ->
+    noswap1;
 type_conv(a8, r8g8b8) ->
     noswap1to3;
 type_conv(g8, r8g8b8) ->
@@ -491,6 +505,10 @@ type_conv(a8, r8g8b8a8) ->
     noswap1ato4;
 type_conv(g8, r8g8b8a8) ->
     noswap1gto4;
+type_conv(r8g8b8a8, g8) ->
+    noswap4to1;
+type_conv(b8g8r8a8, g8) ->
+    noswap4to1;
 type_conv(r8g8b8a8, r8g8b8) ->
     noswap4to3;
 type_conv(b8g8r8a8, b8g8r8) ->
@@ -499,6 +517,10 @@ type_conv(r8g8b8, r8g8b8a8) ->
     noswap3to4;
 type_conv(b8g8r8, b8g8r8a8) ->
     noswap3to4;
+type_conv(r8g8b8, g8) ->
+    noswap3to1;
+type_conv(b8g8r8, g8) ->
+    noswap3to1;
 type_conv(FromType, ToType) ->
     case {bytes_pp(FromType), bytes_pp(ToType)} of
 	{3,3} -> swap3;
@@ -526,46 +548,3 @@ order_conv(upper_left,  upper_right) -> {false,true}.
 
 return_error(Reason) ->
     {error, {none, ?MODULE, Reason}}.
-
-% it converts a gray-scale image to a gray-scale image with color scheme 8bit large
-% returns a struct {is_gray,gray_imag_tipe_g8}.
-grayscale_image(#e3d_image{width=W,height=H,type=Type,image=Pixels}=Image,UseAlpha)->
-    Size=W*H,
-    Gsi=extract_gray_value(Type,UseAlpha,Pixels),
-    case byte_size(Gsi) of
-    Size -> 
-        {true,Image#e3d_image{type=g8,bytes_pp=e3d_image:bytes_pp(g8),image=Gsi}};
-    _ ->
-        {false,Image}
-	end.
-
-extract_gray_value(Type,_,Pixels) when Type =:= g8; Type =:= a8 ->
-    Pixels;
-extract_gray_value(Type,_,Pixels) when Type =:= r8g8b8; Type =:= b8g8r8 ->
-    extract_gray(Pixels,<<>>);
-extract_gray_value(Type,UseAlpha,Pixels) when Type =:= r8g8b8a8; Type =:= b8g8r8a8 ->
-    extract_alpha(Pixels,UseAlpha,<<>>);
-extract_gray_value(_,_,_) -> <<>>.
-
-extract_gray(<<>>, Acc) -> Acc;
-extract_gray(<<C1:1/binary,C1:1/binary,C1:1/binary,T/binary>>, Acc) ->
-    extract_gray(T,<<Acc/binary,C1/binary>>);
-extract_gray(<<_:1/binary,_:1/binary,_:1/binary,T/binary>>, Acc) ->
-    extract_gray(T,Acc).
-
-extract_alpha(Img0) ->
-	extract_alpha_0(Img0,<<>>).
-extract_alpha_0(<<_R:1/binary,_G:1/binary,_B:1/binary,A:1/binary>>,Acc) ->
-	<<Acc/binary,A/binary>>;
-extract_alpha_0(<<_R:1/binary,_G:1/binary,_B:1/binary,A:1/binary,T/binary>>,Acc) ->
-	extract_alpha_0(T,<<Acc/binary,A/binary>>).
-
-extract_alpha(<<>>,_,Acc) -> Acc;
-extract_alpha(<<_:1/binary,_:1/binary,_:1/binary,A:1/binary,T/binary>>,true,Acc) ->
-    extract_alpha(T,true,<<Acc/binary,A/binary>>);
-extract_alpha(<<C1:1/binary,C1:1/binary,C1:1/binary,_A:1/binary,T/binary>>,false,Acc) ->
-    extract_alpha(T,false,<<Acc/binary,C1/binary>>);
-extract_alpha(<<_:1/binary,_:1/binary,_:1/binary,_:1/binary,T/binary>>,UseAlpha,Acc) ->
-    extract_alpha(T,UseAlpha,<<Acc>>).
-
-
