@@ -17,9 +17,12 @@
 -define(NEED_ESDL, 1).
 -define(ALPHA_THUMB_SIZE, 64).
 -define(ALPHA_THUMB_COLOUR, {1.0,1.0,0.0}).
+-define(DEGREE2RAD, 0.01745329251994323).
+-define(RAD2DEGREE, 57.2957795130823209).
+
 -include_lib("wings.hrl").
+-include("e3d.hrl").
 -include("e3d_image.hrl").
--include("wpax.hrl").
 
 -import(lists, [foldl/3,sort/1,reverse/1,member/2]).
 
@@ -38,6 +41,17 @@
      alp_info :: tuple(),  % alpha start coord and seg_inf
      wst,			% working state
      ost}).			% original state
+
+-type vtx_location() :: 'none' | e3d_vector().
+-record(vl,
+    {v=none :: vtx_location(),    % vertex location 
+     vn=none :: vtx_location()}). % vertex normal
+
+-type vl() :: 'none' | #vl{}.
+-record(seg_inf,        % segment information
+    {va=none :: vl(),   % begin vertex
+     vb=none :: vl(),   % end vertex
+     vc=none :: vl()}). % current vertex
 
 init() ->
     wings_pref:set_default(sculpt_strength, 0.005),
@@ -108,8 +122,8 @@ prepare_alpha_data(Mode) ->
 
 unload_alpha_data() ->
     case ets:lookup(alpha_brush,uv_map) of
-      [{uv_map,TxId}] -> 
-        wpax:release_texture(TxId),
+      [{uv_map,TxId}] ->
+        wings_gl:deleteTextures([TxId]),
         ets:delete(alpha_brush,uv_map);    
       _ -> ok
     end,
@@ -128,17 +142,17 @@ load_alpha_image(Name) ->
     Props = [{filename,Name}],
     case wpa:image_read(Props) of
         #e3d_image{}=Image0 -> 
-            case wpax:load_texture(Image0) of
+            case wings_image:load_texture(Image0) of
             {error,_} -> 
                 wings_u:message(?__(1,"There were an error loading the texture.\nSee the console window for details."));
             TxId ->
                 UseAlpha=wings_pref:get_value(sculpt_use_alpha),
-                case wpax:grayscale_image(Image0,UseAlpha) of
+                case e3d_image:grayscale_image(Image0,UseAlpha) of
                     {true,Image} -> 
                         ets:insert(alpha_brush,{uv_map,TxId}),    
                         alpha2weight(Image);
                     {false,_} ->
-                        wpax:release_texture(TxId),
+                    	wings_gl:deleteTextures([TxId]),
                         wings_u:message(?__(2,"Image doesn't contain grayscale or alpha information."))
                 end
             end;
@@ -148,13 +162,38 @@ load_alpha_image(Name) ->
 
 alpha2weight(#e3d_image{width=W0,height=H0,image=Pixels0}=Image) ->
     ets:insert(alpha_brush,{image,Image}),    
-    {W,H,MaxX,MaxY,ZeroOfs,Pixels}=wpax:prepare_img2cart({W0,H0,Pixels0}),
+    {W,H,MaxX,MaxY,ZeroOfs,Pixels}=prepare_img2cart({W0,H0,Pixels0}),
     PixLst=binary_to_list(Pixels),
     AlpInf=lists:foldl(fun(Item,Acc) ->
         Weight=Item/255.0,
         [Weight | Acc]
     end, [], PixLst),
     ets:insert(alpha_brush,{weight,{W,H,MaxX,MaxY,ZeroOfs,list_to_tuple(AlpInf)}}).
+
+prepare_img2cart({W0,H0,Img0}) ->
+    H0h=H0 div 2,
+    W0h=W0 div 2,
+    {H,Img1}= if ((H0 rem 2)==0) -> {H0+1,add_row_zero(Img0,W0)};
+    true -> {H0,Img0}
+    end,
+    {W,ImgLst}= if ((W0 rem 2)==0) -> {W0+1,add_col_zero(Img1,W0)};
+    true -> {W0,Img1}
+    end,
+    ZeroOfs=W*(H div 2)+(W div 2)+1,
+    {W,H,W0h,H0h,ZeroOfs,ImgLst}.
+
+add_row_zero(Img,W) ->
+    Nl=list_to_binary(lists:duplicate(W, 0)),
+    <<Img/binary,Nl/binary>>.
+
+add_col_zero(Img,W) ->
+    add_col_zero_0(W,Img,<<>>).
+
+add_col_zero_0(_,<<>>,Acc) -> Acc;
+add_col_zero_0(W,Bin,Acc) ->
+    <<R:W/binary,T/binary>> =Bin,
+    Zero=list_to_binary([0]),
+    add_col_zero_0(W,T,<<Acc/binary,R/binary,Zero/binary>>).
 
 shape_attr(S) ->
     L = foldl(fun
@@ -268,7 +307,7 @@ handle_sculpt_event_1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED}, %% Mich
           sculpt_plain -> {X,{Vtab0,gb_trees:empty()}};
           _ -> {X,none}
         end,
-        {#vl{v=wpax:scr2d_to_pnt3d(X0,Y,Cnt,Fn),vn=Fn},PlainData0};
+        {#vl{v=scr2d_to_pnt3d(X0,Y,Cnt,Fn),vn=Fn},PlainData0};
       _ -> {none,none}
     end,
     do_sculpt(X,Y,Sc#sculpt{wst=St,st=St,active=true,alp_info={X,Y,SctMode,#seg_inf{va=V0},PlainData}});
@@ -531,14 +570,14 @@ sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str,wgt=Wgt,rad=Rad,mag_type=MagType,mode
         {Positions,_} = vpos(Face, We0),
         Cnt=e3d_vec:average(Positions),
         Fn=wings_face:normal(Face,We0),
-        Vc=wpax:scr2d_to_pnt3d(X,Y,Cnt,Fn), % current vertex (cursor pos)
+        Vc=scr2d_to_pnt3d(X,Y,Cnt,Fn), % current vertex (cursor pos)
 		{FN,Vtab,VsDyn,PlainData0}= case Smooth of
 			false ->
 			  calc_sculpt(SctMode,Locked,Str,Wgt,Rad,Vc,Fn,SegInfo0,Mir,We0,PlainData);
 			_ -> 
 			  {gb_trees:empty(),smooth_magnetic(Locked,Str,Rad,Cnt,MagType,Mir,We0),[],PlainData}
 		end,
-		VsPairs= wpax:face2edges_col(gb_trees:keys(FN),VsDyn,Ftab,Etab,Vtab),
+		VsPairs= face2edges_col(gb_trees:keys(FN),VsDyn,Ftab,Etab,Vtab),
 		#seg_inf{va=#vl{v=Va},vb=#vl{v=Vb}}=SegInfo=update_seg_inf(SegInfo0,Vc,Fn),
 		Vo=e3d_vec:norm_sub(Vb,Va), % vertex orientation
 
@@ -558,11 +597,11 @@ sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str,wgt=Wgt,rad=Rad,mode=alpha_brush=Mode
         {Positions,_} = vpos(Face, We0),
         Cnt=e3d_vec:average(Positions),
         Fn=wings_face:normal(Face,We0),
-        Vc=wpax:scr2d_to_pnt3d(X,Y,Cnt,Fn), % current vertex (cursor pos)
+        Vc=scr2d_to_pnt3d(X,Y,Cnt,Fn), % current vertex (cursor pos)
         SegInfo1=update_seg_inf(SegInfo0#seg_inf{vb=#vl{v=Va}=Va0},Vc,Fn),
         
         {FN,Vtab,VsDyn,_}=calc_sculpt(SctMode,Locked,Str*10,Wgt,Rad,Va,Fn,SegInfo1,Mir,We0,none),
-        VsPairs= wpax:face2edges_col(gb_trees:keys(FN),VsDyn,Ftab,Etab,Vtab), %% less use of memory
+        VsPairs= face2edges_col(gb_trees:keys(FN),VsDyn,Ftab,Etab,Vtab), %% less use of memory
         #seg_inf{vb=#vl{v=Vb}}=SegInfo=update_seg_inf(SegInfo0,Vc,Fn),
         #vl{v=Va}=Va0,
         Vo=e3d_vec:norm_sub(Vb,Va), % vertex orientation
@@ -787,7 +826,7 @@ calc_sculpt(SctMode,Locked,Str,Wgt,Rad,Vc,Fn,SegInfo0,Mir,#we{id=Id,vp=Vtab0}=We
       true -> Str*Wgt
     end,
     Lvs = lookup_locked_vs(Id, Locked),
-    Ori=wpax:orient_vec(SegInfo0#seg_inf{vc=#vl{v=Vc,vn=Fn}}),
+    Ori=orient_vec(SegInfo0#seg_inf{vc=#vl{v=Vc,vn=Fn}}),
     [{weight,{_,_,MaxX,MaxY,_,_}}]= AlpWgt= ets:lookup(alpha_brush,weight),
     {RFN,RVtab,RVsDyn} = array:sparse_foldl(fun
         (V, Pos, {FNs0,Vtab1,VsDyn}=Acc) ->
@@ -824,7 +863,7 @@ calc_sculpt(SctMode,Locked,Str,Wgt,Rad,Vc,Fn,SegInfo0,Mir,#we{id=Id,vp=Vtab0}=We
       true -> Str*Wgt
     end,
     Lvs = lookup_locked_vs(Id, Locked),
-    Ori=wpax:orient_vec(SegInfo0#seg_inf{vc=#vl{v=Vc,vn=Fn}}),
+    Ori=orient_vec(SegInfo0#seg_inf{vc=#vl{v=Vc,vn=Fn}}),
     [{weight,{_,_,MaxX,MaxY,_,_}}]= AlpWgt= ets:lookup(alpha_brush,weight),
     {RFN,RVtab,RVsDyn,RVsInf} = array:sparse_foldl(fun
         (V, Pos, {FNs0,Vtab1,VsDyn,VsInf0}=Acc) ->
@@ -1555,4 +1594,84 @@ draw_image(X, Y, W, H, TxId) ->
     gl:vertex2f(X+W+1,Y+(H/2)),
 	gl:'end'(),
 	gl:popMatrix().
+
+
+%% Support functions for AlphaBrush resource
+%%
+%% It computes the 3d position for a point by projecting 2d screen   
+%% coordenate in the plane defined by the vertice (V) and its normal (Vn)
+%% using the current space transformation. (used by Sculpt Brush code)
+scr2d_to_pnt3d(X0,Y0,V,Vn) ->
+    {W,H} = wings_wm:win_size(),
+    Wc=trunc((W+1)/2),
+    Hc=trunc((H+1)/2),
+    X=adjust_offset((X0-Wc)/Wc),
+    Y=adjust_offset(((H-Y0+1)-Hc)/Hc),
+    
+    PMi = get_proj_matrix_inv(),
+    
+    {Xa,Ya,Za,Sa}=e3d_mat:mul(PMi,{X,Y,-1.0,1.0}),
+    PosA=e3d_vec:mul({Xa,Ya,Za},1.0/Sa),
+    {Xb,Yb,Zb,Sb}=e3d_mat:mul(PMi,{X,Y,0.0,1.0}),
+    PosB=e3d_vec:mul({Xb,Yb,Zb},1.0/Sb),
+    
+    Dir=e3d_vec:norm(e3d_vec:sub(PosB,PosA)),
+    
+    case e3d_vec:dot(Dir,Vn) of
+    0.0 ->
+        Intersection = e3d_vec:dot(e3d_vec:sub(V,PosB), Vn),
+        e3d_vec:add(PosB, e3d_vec:mul(Vn, Intersection));
+      Dot ->
+        Intersection = e3d_vec:dot(e3d_vec:sub(V,PosB), Vn) / Dot,
+        e3d_vec:add(PosB, e3d_vec:mul(Dir, Intersection))
+    end.
+
+adjust_offset(N) when N < 0.0 -> N+1.0; 
+adjust_offset(N) -> N. 
+
+%% computes the inverse projection matrix for the current space transformation.
+get_proj_matrix_inv() ->
+    ModelMatrix = list_to_tuple(gl:getDoublev(?GL_MODELVIEW_MATRIX)),
+    ProjMatrix = list_to_tuple(gl:getDoublev(?GL_PROJECTION_MATRIX)),
+    e3d_mat:invert(e3d_mat:mul(ProjMatrix, ModelMatrix)).
+
+%% build the orientation vector
+orient_vec(#seg_inf{va=Vla,vb=none,vc=Vlc}) ->
+    orient_vec_1(Vla,Vlc);
+orient_vec(#seg_inf{va=_,vb=Vlb,vc=Vlc}) ->
+    orient_vec_1(Vlb,Vlc).
+orient_vec_1(#vl{v=Va},#vl{v=Vb}) ->
+    e3d_vec:norm_sub(Vb,Va).
+
+face2edges_col(Faces, VsDyn, Ftab, Etab, Vtab) ->
+    to_edges_raw(Faces, VsDyn, Ftab, Etab, Vtab, []).
+
+to_edges_raw([Face|Faces], VsDyn, Ftab, Etab, Vtab, Acc0) ->
+    Edge = gb_trees:get(Face, Ftab),
+    Acc = to_edges_raw_1(Edge, VsDyn, Etab, Vtab, Acc0, Face, Edge, not_done),
+    to_edges_raw(Faces, VsDyn, Ftab, Etab, Vtab, Acc);
+to_edges_raw([],_ , _, _, _, Acc) -> Acc.
+
+to_edges_raw_1(LastEdge, _, _, _, Acc, _, LastEdge, done) -> Acc;
+to_edges_raw_1(Edge, VsDyn, Etab, Vtab, Acc, Face, LastEdge, _) ->
+    case array:get(Edge, Etab) of
+	#edge{vs=Va0,ve=Vb0,lf=Face,ltsu=NextEdge} ->
+		Cola=get_vs_color(Va0, VsDyn),
+		Colb=get_vs_color(Vb0, VsDyn),
+        VsPair=[{array:get(Va0, Vtab),Cola, array:get(Vb0, Vtab),Colb}],
+	    to_edges_raw_1(NextEdge, VsDyn, Etab, Vtab, VsPair++Acc, Face, LastEdge, done);
+	#edge{vs=Va0,ve=Vb0,rf=Face,rtsu=NextEdge} ->
+		Cola=get_vs_color(Va0, VsDyn),
+		Colb=get_vs_color(Vb0, VsDyn),
+        VsPair=[{array:get(Va0, Vtab),Cola, array:get(Vb0, Vtab),Colb}],
+	    to_edges_raw_1(NextEdge, VsDyn, Etab, Vtab, VsPair++Acc, Face, LastEdge, done)
+    end.
+
+get_vs_color(V, VsDyn) ->
+    case lists:keysearch(V, 1, VsDyn) of
+        false -> {0.0,0.0,0.0};
+        {_, {_,Value}} ->
+        	{1.0*Value,1.0*Value,1.0*Value}
+    end.
+
 

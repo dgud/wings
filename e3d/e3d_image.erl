@@ -31,7 +31,8 @@
 -export([noswap1/8,noswap3/8,noswap4/8,
 	 noswap1to3/8,noswap1ato4/8,noswap1gto4/8,
 	 noswap3to4/8,noswap4to3/8, 
-	 swap3/8,swap4/8,swap3to4/8,swap4to3/8]).
+	 swap3/8,swap4/8,swap3to4/8,swap4to3/8,
+	 grayscale_image/2]).
 
 %% Func: load(FileName[, Options])  
 %% Args: FileName = [Chars], Options = [Tagged Tuple]
@@ -525,3 +526,46 @@ order_conv(upper_left,  upper_right) -> {false,true}.
 
 return_error(Reason) ->
     {error, {none, ?MODULE, Reason}}.
+
+% it converts a gray-scale image to a gray-scale image with color scheme 8bit large
+% returns a struct {is_gray,gray_imag_tipe_g8}.
+grayscale_image(#e3d_image{width=W,height=H,type=Type,image=Pixels}=Image,UseAlpha)->
+    Size=W*H,
+    Gsi=extract_gray_value(Type,UseAlpha,Pixels),
+    case byte_size(Gsi) of
+    Size -> 
+        {true,Image#e3d_image{type=g8,bytes_pp=e3d_image:bytes_pp(g8),image=Gsi}};
+    _ ->
+        {false,Image}
+	end.
+
+extract_gray_value(Type,_,Pixels) when Type =:= g8; Type =:= a8 ->
+    Pixels;
+extract_gray_value(Type,_,Pixels) when Type =:= r8g8b8; Type =:= b8g8r8 ->
+    extract_gray(Pixels,<<>>);
+extract_gray_value(Type,UseAlpha,Pixels) when Type =:= r8g8b8a8; Type =:= b8g8r8a8 ->
+    extract_alpha(Pixels,UseAlpha,<<>>);
+extract_gray_value(_,_,_) -> <<>>.
+
+extract_gray(<<>>, Acc) -> Acc;
+extract_gray(<<C1:1/binary,C1:1/binary,C1:1/binary,T/binary>>, Acc) ->
+    extract_gray(T,<<Acc/binary,C1/binary>>);
+extract_gray(<<_:1/binary,_:1/binary,_:1/binary,T/binary>>, Acc) ->
+    extract_gray(T,Acc).
+
+extract_alpha(Img0) ->
+	extract_alpha_0(Img0,<<>>).
+extract_alpha_0(<<_R:1/binary,_G:1/binary,_B:1/binary,A:1/binary>>,Acc) ->
+	<<Acc/binary,A/binary>>;
+extract_alpha_0(<<_R:1/binary,_G:1/binary,_B:1/binary,A:1/binary,T/binary>>,Acc) ->
+	extract_alpha_0(T,<<Acc/binary,A/binary>>).
+
+extract_alpha(<<>>,_,Acc) -> Acc;
+extract_alpha(<<_:1/binary,_:1/binary,_:1/binary,A:1/binary,T/binary>>,true,Acc) ->
+    extract_alpha(T,true,<<Acc/binary,A/binary>>);
+extract_alpha(<<C1:1/binary,C1:1/binary,C1:1/binary,_A:1/binary,T/binary>>,false,Acc) ->
+    extract_alpha(T,false,<<Acc/binary,C1/binary>>);
+extract_alpha(<<_:1/binary,_:1/binary,_:1/binary,_:1/binary,T/binary>>,UseAlpha,Acc) ->
+    extract_alpha(T,UseAlpha,<<Acc>>).
+
+
