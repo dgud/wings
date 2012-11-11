@@ -279,7 +279,7 @@ init_texture(Image0, TxId) ->
 maybe_scale(#e3d_image{width=W0,height=H0}=Image) ->
 %%  case wings_gl:is_ext({2,0}, 'GL_ARB_texture_non_power_of_two') of
 %%  Aarg ATI doesn't support ARB_NPOT textures, though it report GL_VER >= 2.0
-    case maybe_exceds_opengl_caps(Image) of
+    case wings_image:maybe_exceds_opengl_caps(Image) of
         {error,_}=Error ->
             Error;
         Image1 ->
@@ -302,23 +302,6 @@ maybe_scale(#e3d_image{width=W0,height=H0}=Image) ->
             end
     end.
 
-maybe_exceds_opengl_caps(#e3d_image{width=W0,height=H0}=Image) ->
-    MaxSize = lists:last(gl:getIntegerv(?GL_MAX_TEXTURE_SIZE)),
-    case need_resize_image(W0, H0, MaxSize) of
-        true ->
-            ScaleFactor = case W0 > H0 of
-                true ->
-                    MaxSize/W0;
-                false ->
-                    MaxSize/H0
-            end,
-            W = trunc(W0*ScaleFactor),
-            H = trunc(H0*ScaleFactor),
-            resize_image(Image, W, H);
-        false ->
-            Image
-    end.
-
 resize_image(#e3d_image{width=W0,height=H0,bytes_pp=BytesPerPixel,
   image=Bits0}=Image, W, H) ->
     Out = wings_io:get_buffer(BytesPerPixel*W*H, ?GL_UNSIGNED_BYTE),
@@ -332,11 +315,6 @@ resize_image(#e3d_image{width=W0,height=H0,bytes_pp=BytesPerPixel,
         _ ->
             {error,GlErr}
     end.
-
-need_resize_image(W, H, Max) when W > Max; H > Max ->
-    true;
-need_resize_image(_, _, _) ->
-    false.
 
 release_texture(Id) ->
     wings_gl:deleteTextures([Id]).
