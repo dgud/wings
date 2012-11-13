@@ -25,8 +25,7 @@ init() ->
     HL = [{"LightPosition", wings_pref:get_value(hl_lightpos)},
 	  {"SkyColor", wings_pref:get_value(hl_skycol)},
 	  {"GroundColor", wings_pref:get_value(hl_groundcol)}],
-    Programs = {{make_hemi(), "Hemispherical Lighting"},
-		{make_prog("hemilight", HL), "Hemispherical Lighting FS"},
+    Programs = {{make_prog("hemilight", HL), "Hemispherical Lighting"},
 		{make_prog("gooch"), "Gooch Tone"},
 		{make_prog("toon"), "Toon"},
 		{make_prog("brick"), "Brick"},
@@ -88,37 +87,3 @@ envmap("envmap", Prog) ->
     wings_gl:set_uloc(Prog, "EnvMap", ?ENV_MAP_UNIT),
     gl:activeTexture(?GL_TEXTURE0);
 envmap(_, _) -> ok.
-
-make_hemi() ->
-    Sh = wings_gl:compile(vertex, light_shader_src()),
-    Prog = wings_gl:link_prog([Sh]),
-    gl:useProgram(Prog),
-    wings_gl:set_uloc(Prog, "LightPosition", wings_pref:get_value(hl_lightpos)),
-    wings_gl:set_uloc(Prog, "SkyColor", wings_pref:get_value(hl_skycol)),
-    wings_gl:set_uloc(Prog, "GroundColor", wings_pref:get_value(hl_groundcol)),
-    Prog.
-
-light_shader_src() ->
-    <<"
-       uniform vec3 LightPosition;
-       uniform vec3 SkyColor;
-       uniform vec3 GroundColor;
-
-       void main()
-       {
-	   vec3 ecPosition = vec3(gl_ModelViewMatrix * gl_Vertex);
-	   vec3 tnorm	   = normalize(gl_NormalMatrix * gl_Normal);
-	   vec3 lightVec   = normalize(LightPosition - ecPosition);
-	   float costheta  = dot(tnorm, lightVec);
-	   float a	   = 0.5 + 0.5 * costheta;
-			     // ATI needs this for vcolors to work
-	   vec4 color	   = gl_FrontMaterial.diffuse * gl_Color;
-	   gl_FrontColor   = color * vec4(mix(GroundColor, SkyColor, a), 1.0);
-	   gl_TexCoord[0]  = gl_MultiTexCoord0;
-	   gl_Position	   = ftransform();
-
-	   #ifdef __GLSL_CG_DATA_TYPES // Fix clipping for Nvidia and ATI
-	   gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;
-	   #endif
-       }
-       ">>.
