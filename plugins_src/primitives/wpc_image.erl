@@ -80,13 +80,9 @@ make_image(FileName0,Image,Ask,_St) when is_atom(Ask) ->
             void
         end
     end,
-    Draw_Helper = case load_ip_helper() of
-        #e3d_image{}=IPHelper ->
-            fun(X, Y, W, H, _) ->
-                draw_img_helper(X, Y, W, H, IPHelper),
-                keep
-            end;
-        _ -> fun(_,_,_,_,_) -> keep end 
+    Draw_Helper = fun(X, Y, W, H, _) ->
+        draw_img_helper(X, Y, W, H),
+        keep
     end,
     FileName = filename:rootname(filename:basename(FileName0)),
     Qs = [
@@ -116,12 +112,12 @@ make_image(FileName0,Image,Ask,_St) when is_atom(Ask) ->
             {?__(23,"Lock after create"),false,[{info, ?__(24,"Lock image plane object")},{key,locked}]},  
             {?__(25,"Transparent back face"),false,[{info, ?__(26,"Assign transparent material to back face")},{key,transp}]}  
         ],
+
     wings_ask:dialog(Ask, ?__(2,"Image Plane"), [{vframe,Qs}],
     fun(Res) ->
         [{alignment,Alignment},{usename,UseName},{img_name,ImgName},{fname,FName},
          {offset,Offset},{rotation,Rotation},{locked,Lock},{transp,Transparent}]=Res,
         Params=[Alignment,Offset,Rotation,ImgName,Lock,Transparent,UseName,FName],
-        
         {shape,{image_plane,{params,{FileName0,Image,Params}}}}
     end).
 
@@ -275,69 +271,38 @@ do_new_place_2(VsPos,M1,M2,M3) ->
 		  [Pos|Acc]
 	  end, [], VsPos).
 
-load_ip_helper() ->
-    Name=wings_util:lib_dir(wings)++"/plugins/primitives/ip_helper.png",
-    Props = [{filename,Name}],
-    case wpa:image_read(Props) of
-        #e3d_image{}=Image -> Image;
-        {error,_} -> none  % ignore if ip_helper file is not found
-	end.
-
-draw_img_helper(X,Y,W,H,IPHelper) ->
+draw_img_helper(X,Y,W,H) ->
     Y1=Y+?CHAR_HEIGHT -2,
     H1=H-?CHAR_HEIGHT -1,
 	wings_io:set_color(color4_highlight()),
     wings_io:border_only(X,Y1,W,H1),
-    gl:enable(?GL_TEXTURE_2D),
-    gl:enable(?GL_BLEND),
-	[TxId] = gl:genTextures(1),
-	gl:bindTexture(?GL_TEXTURE_2D, TxId),
-	gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
-    Format = texture_format(IPHelper),
-	#e3d_image{width=W0,height=H0,image=Bits}=IPHelper,
-    gl:texImage2D(?GL_TEXTURE_2D, 0, internal_format(Format),
-                    W0, H0, 0, Format, ?GL_UNSIGNED_BYTE, Bits),
-    Dx=(W-?IP_HELPER_SIZE) div 2,
-    Dy=(H1-?IP_HELPER_SIZE) div 2,
-	draw_image(X+Dx+1,Y1+Dy+1,?IP_HELPER_SIZE,?IP_HELPER_SIZE,TxId),
-    wings_gl:deleteTextures([TxId]).
+    case load_ip_helper() of 
+      none -> ok;
+      TxId ->
+        Dx=(W-?IP_HELPER_SIZE) div 2,
+        Dy=(H1-?IP_HELPER_SIZE) div 2,
+        gl:enable(?GL_TEXTURE_2D),
+        gl:enable(?GL_BLEND),
+        gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+        wings_image:draw_image(X+Dx+1,Y+H-Dy-1,?IP_HELPER_SIZE,-?IP_HELPER_SIZE,TxId),
+        gl:disable(?GL_TEXTURE_2D),
+        wings_image:unload_texture(TxId)
+    end.
+
+load_ip_helper() ->
+    Name=wings_util:lib_dir(wings)++"/plugins/primitives/ip_helper.png",
+    Props = [{filename,Name}],
+    case wpa:image_read(Props) of
+      #e3d_image{}=Image ->
+        case wings_image:load_texture(Image) of
+          {error,_} -> none;
+          TxId -> TxId
+        end;
+      _ -> none
+    end.
 
 color4_highlight() ->
     wings_color:mix(?BEVEL_HIGHLIGHT_MIX, {1,1,1}, wings_pref:get_value(dialog_color)).
-
-draw_image(X, Y, W, H, TxId) ->
-    Ua = 0, Ub = 1,
-    Va = 0, Vb = 1,
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    gl:'begin'(?GL_QUADS),
-    gl:texCoord2i(Ua, Va),
-    gl:vertex2i(X, Y),
-    gl:texCoord2i(Ua, Vb),
-    gl:vertex2i(X, Y+H),
-    gl:texCoord2i(Ub, Vb),
-    gl:vertex2i(X+W, Y+H),
-    gl:texCoord2i(Ub, Va),
-    gl:vertex2i(X+W, Y),
-    gl:'end'().
-
-%% copied from wings_image.erl (consider to export it there in the future)
-texture_format(#e3d_image{type=r8g8b8}) -> ?GL_RGB;
-texture_format(#e3d_image{type=r8g8b8a8}) -> ?GL_RGBA;
-texture_format(#e3d_image{type=b8g8r8}) -> ?GL_BGR;
-texture_format(#e3d_image{type=b8g8r8a8}) -> ?GL_BGRA;
-texture_format(#e3d_image{type=g8}) -> ?GL_LUMINANCE;
-texture_format(#e3d_image{type=a8}) -> ?GL_ALPHA.
-
-%% copied from wings_image.erl (consider to export it there in the future)
-internal_format(?GL_BGR) -> ?GL_RGB;
-internal_format(?GL_BGRA) -> ?GL_RGBA;
-internal_format(Else) -> Else.
-
-%% copied from wings_image.erl (consider to export it there in the future)
-img_type(b8g8r8) -> r8g8b8;
-img_type(b8g8r8a8) -> r8g8b8a8;
-img_type(Type) -> Type.
 
 ratio(D, D) -> {1.0,1.0};
 ratio(W, H) when W < H -> {1.0,H/W};
@@ -389,3 +354,6 @@ nearest_power_two(N) ->
 nearest_power_two(N, B) when N =< B -> B;
 nearest_power_two(N, B) -> nearest_power_two(N, B bsl 1).
 
+img_type(b8g8r8) -> r8g8b8;
+img_type(b8g8r8a8) -> r8g8b8a8;
+img_type(Type) -> Type.
