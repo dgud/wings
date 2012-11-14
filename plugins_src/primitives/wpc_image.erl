@@ -14,10 +14,12 @@
 -module(wpc_image).
 -export([init/0,menu/2,command/2]).
 
+-define(NEED_OPENGL,1).
+-include("wings.hrl").
+
 -include("e3d.hrl").
 -include("e3d_image.hrl").
--define(NEED_OPENGL, 1).
--include("wings.hrl").
+
 
 -import(lists, [reverse/1]).
 
@@ -43,36 +45,70 @@ image_menu() ->
 
 command({shape,{image_plane,Ask}}, _St) when is_atom(Ask) ->
     make_image(Ask);
-command({shape,{image_plane,{Name,Ask}}}, _St) when is_atom(Ask) ->
-    make_image(Name,Ask,_St);
-command({shape,{image_plane,{params,{Name,Image,Params}}}}, St) ->
-    make_image_0(Name,Image,Params,St);
+command({shape,{image_plane,{FileName,Ask}}}, St) when is_atom(Ask) ->
+    make_image(FileName,Ask,St);
+command({shape,{image_plane,{params,{ImData,Arg}}}}, St) ->
+    make_image_0(ImData,Arg,St);
 command(_, _) -> next.
 
 make_image(Ask) ->
     Ps = [{extensions,wpa:image_formats()}],
     wpa:import_filename(Ps, fun(N) -> {shape,{image_plane,{N,Ask}}} end).
 
-make_image(Name,Ask,_St) ->
+make_image(Name,Ask,St) when is_atom(Ask) ->
     Props = [{filename,Name}],
     case wpa:image_read(Props) of
-	#e3d_image{}=Image ->
-	    make_image(Name,Image,Ask,_St);
-	{error,Error} ->
-	    wpa:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
-		      [Name,file:format_error(Error)])
+    #e3d_image{}=Image ->
+        make_image(Name,Image,Ask,St);
+    {error,Error} ->
+        wpa:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
+              [Name,file:format_error(Error)])
     end.
 
-make_image(FileName0,Image,Ask,_St) when is_atom(Ask) ->
+make_image(FileName, Image0, false=Ask, _St) ->
+    case load_img_plane(FileName,Image0) of
+    {error,_} -> ok;
+    ImData ->
+        Id_Img_Helper = load_ip_helper(),
+        Qs = image_dialog(FileName, Id_Img_Helper),
+        wings_ask:dialog(Ask, ?__(2,"Image Plane"), [{vframe,Qs}],
+        fun(Res) ->
+            {shape,{image_plane,{params,{ImData,Res}}}}
+        end)
+    end;
+
+make_image(FileName, Image0, Ask, St) when is_atom(Ask) ->
+    case load_img_plane(FileName,Image0) of
+    {error,_} -> ok;
+    {Id_Img_Plane,_,_}=ImData ->
+        Id_Img_Helper = load_ip_helper(),
+        wings_ask:dialog(?__(2,"Image Plane"), {{preview,ungrab}, image_dialog(FileName, Id_Img_Helper)},
+          fun
+            ({dialog_preview,Res}) ->
+                St1 = make_image_0(ImData,Res,St),
+                {preview,St1,St1};
+            (cancel) ->
+                unload_img_plane(Id_Img_Plane,St),
+                wings_image:delete(Id_Img_Helper),
+                St;
+            (Res) ->
+                St1 = make_image_0(ImData,Res,St),
+                {commit,St1,St1}
+          end)
+    end.
+
+image_dialog(FileName, Tx_helper) ->
+    Owner = wings_wm:this(),
+    FName = filename:rootname(filename:basename(FileName)),
     Disable_Hook = fun(Event, Params) ->
         case Event of
         is_disabled ->
             {Var,_,Store}=Params,
             case Var of
             rotation ->
-                gb_trees:get(alignment,Store)==view;
+                gb_trees:get(alignment,Store)=:=view;
             img_name ->
-                gb_trees:get(usename,Store)==for_mat_obj;
+                gb_trees:get(usename,Store)=:=for_mat_obj;
             _ ->
                 false
             end;
@@ -80,16 +116,11 @@ make_image(FileName0,Image,Ask,_St) when is_atom(Ask) ->
             void
         end
     end,
-    Draw_Helper = case load_ip_helper() of
-        #e3d_image{}=IPHelper ->
-            fun(X, Y, W, H, _) ->
-                draw_img_helper(X, Y, W, H, IPHelper),
-                keep
-            end;
-        _ -> fun(_,_,_,_,_) -> keep end 
+    Draw_Helper = fun(X, Y, W, H, _) ->
+        draw_img_helper(X, Y, W, H, Tx_helper),
+        keep
     end,
-    FileName = filename:rootname(filename:basename(FileName0)),
-    Qs = [
+    [
             {hframe,[
                 {vradio,[{?__(3,"Front"),front},{?__(5,"Right"),right},{?__(7,"Top"),top},
                          {?__(4,"Back"),back},{?__(6,"Left"),left},{?__(8,"Bottom"),bottom},{?__(9,"View"),view}],front,
@@ -102,7 +133,8 @@ make_image(FileName0,Image,Ask,_St) when is_atom(Ask) ->
                 {label,?__(17,"Name")},
                 {text,?DEF_NAME,[{info, ?__(18,"Name for the image plane object")},{width,25},{hook,Disable_Hook},{key,img_name}]}
             ]},
-            {value,FileName,[{key,fname}]},
+            {value,FName,[{key,fname}]},
+            {value,Owner,[{key,owner}]},
             {hframe,[
                 {hframe,[
                     {label,?__(19,"Offset")},
@@ -115,92 +147,70 @@ make_image(FileName0,Image,Ask,_St) when is_atom(Ask) ->
             separator,
             {?__(23,"Lock after create"),false,[{info, ?__(24,"Lock image plane object")},{key,locked}]},  
             {?__(25,"Transparent back face"),false,[{info, ?__(26,"Assign transparent material to back face")},{key,transp}]}  
-        ],
-    wings_ask:dialog(Ask, ?__(2,"Image Plane"), [{vframe,Qs}],
-    fun(Res) ->
-        [{alignment,Alignment},{usename,UseName},{img_name,ImgName},{fname,FName},
-         {offset,Offset},{rotation,Rotation},{locked,Lock},{transp,Transparent}]=Res,
-        Params=[Alignment,Offset,Rotation,ImgName,Lock,Transparent,UseName,FName],
-        
-        {shape,{image_plane,{params,{FileName0,Image,Params}}}}
-    end).
+        ].
 
-make_image_0(Name0, #e3d_image{type=Type}=Image0,[Alignment,Offset,Rotation,ImgName,Lock,Transparent,UseName,FName],#st{mat=Mat0}=St) ->
-    %% Convert to the format that wings_image wants before padding (faster).
-	case wings_image:maybe_exceds_opengl_caps(Image0) of
-    {error,GlErr} ->
-	    wpa:error_msg(?__(1,"The image cannot be loaded as a texture.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"),
-		      [Name0,GlErr, glu:errorString(GlErr)]);
-	Image0i -> 
-		Image1 = e3d_image:convert(Image0i, img_type(Type), 1, lower_left),
-		Name = filename:rootname(filename:basename(Name0)),
-		#e3d_image{width=W0,height=H0} = Image1,
-		Image = case pad_image(Image1) of
-			Image1 ->
-				%% The image was not padded, therefore it is safe
-				%% to keep the image as external.
-				Image0;
-			Image2 ->
-				%% The image has been padded. We must make sure that
-				%% the new image is saved - so force it to be internal.
-				Image2#e3d_image{filename=none}
-			end,
-		#e3d_image{width=W,height=H} = Image,
-		ImageId = wings_image:new(Name, Image),
-	    MaxU = W0/W,
-	    MaxV = H0/H,
+make_image_0({ImageId, {MaxU,MaxV}, {AspX,AspY}}, Arg, #st{mat=Mat0}=St) ->
+    ArgDict = dict:from_list(Arg),
+    Alignment = dict:fetch(alignment,ArgDict),
+    UseName = dict:fetch(usename,ArgDict),
+    ImgName = dict:fetch(img_name,ArgDict),
+    FName = dict:fetch(fname,ArgDict),
+    Offset = dict:fetch(offset,ArgDict),
+    Rotation = dict:fetch(rotation,ArgDict),
+    Owner = dict:fetch(owner,ArgDict),
+    Lock = dict:fetch(locked,ArgDict),
+    Transparent = dict:fetch(transp,ArgDict),
 
-	    MatName = if UseName == for_none -> ?DEF_NAME;
-	        true -> FName end,
-	    MatId = list_to_atom(MatName),
-	    Mt = if Transparent==true -> [transparency_ip];
-	        true -> [] end,
-	    Mi = [MatId],
-	    Fs = [#e3d_face{vs=[0,3,2,1],mat=Mt},
-		  #e3d_face{vs=[2,3,7,6],tx=[6,2,3,7],mat=Mi},
-		  #e3d_face{vs=[0,4,7,3],mat=Mt},
-		  #e3d_face{vs=[1,2,6,5],mat=Mt},
-		  #e3d_face{vs=[4,5,6,7],mat=Mt},
-		  if Transparent==true -> #e3d_face{vs=[0,1,5,4],mat=Mt};
-		  true -> #e3d_face{vs=[0,1,5,4],tx=[4,0,1,5],mat=Mi} end ],
+    MatName = if UseName == for_none -> ?DEF_NAME;
+        true -> FName end,
+    MatId = list_to_atom(MatName),
+    Mt = if Transparent==true -> [transparency_ip];
+        true -> [] end,
+    Mi = [MatId],
+    Fs = [#e3d_face{vs=[0,3,2,1],mat=Mt},
+      #e3d_face{vs=[2,3,7,6],tx=[6,2,3,7],mat=Mi},
+      #e3d_face{vs=[0,4,7,3],mat=Mt},
+      #e3d_face{vs=[1,2,6,5],mat=Mt},
+      #e3d_face{vs=[4,5,6,7],mat=Mt},
+      if Transparent==true -> #e3d_face{vs=[0,1,5,4],mat=Mt};
+      true -> #e3d_face{vs=[0,1,5,4],tx=[4,0,1,5],mat=Mi} end ],
 
-	    UVs = [{0.0,MaxV},{MaxU,MaxV},{0.0,0.0},{MaxU,0.0},
-	           {0.0,0.0},{MaxU,0.0},{0.0,MaxV},{MaxU,MaxV}],
-	    HardEdges = [{0,3},{2,3},{1,2},{0,1},{3,7},{6,7},
-	                 {2,6},{0,4},{4,7},{4,5},{5,6},{1,5}],
-	    {X,Y} = ratio(W0, H0),
-	    D = 1.0e-3/2,
-	    Vs0 = [{-D,-Y,X},{-D,Y,X},{D,Y,X},{D,-Y,X},
-	          {-D,-Y,-X},{-D,Y,-X},{D,Y,-X},{D,-Y,-X}],
+    UVs = [{0.0,MaxV},{MaxU,MaxV},{0.0,0.0},{MaxU,0.0},
+           {0.0,0.0},{MaxU,0.0},{0.0,MaxV},{MaxU,MaxV}],
+    HardEdges = [{0,3},{2,3},{1,2},{0,1},{3,7},{6,7},
+                 {2,6},{0,4},{4,7},{4,5},{5,6},{1,5}],
+    D = 1.0e-3/2,
+    Vs0 = [{-D,-AspY,AspX},{-D,AspY,AspX},{D,AspY,AspX},{D,-AspY,AspX},
+          {-D,-AspY,-AspX},{-D,AspY,-AspX},{D,AspY,-AspX},{D,-AspY,-AspX}],
 
-	    Vs=do_new_place(Alignment, Rotation, Offset, Vs0),
-	    Mesh = #e3d_mesh{type=polygon,fs=Fs,vs=Vs,tx=UVs,he=HardEdges},
-	    Obj = #e3d_object{obj=Mesh},
-	    White = wings_color:white(),
-	    Black = wings_color:white(),
-		WhiteT = if Transparent==true -> {1.0,1.0,1.0,0.999};
-		    true -> White end,
-	    M = [{MatId,
-                [{opengl,[{emission,White},
-                      {diffuse,WhiteT},
-                      {specular,Black},
-                      {ambient,Black}]},
-                 {maps,[{diffuse,ImageId}]}]}],
-		     
-		Mat = if Transparent==true -> lists:flatten(lists:append(M,get_transp_mat(Mat0)));
-		    true -> M end,
+    Vs=do_new_place(Alignment, if Alignment=:=view -> Owner;
+                                true -> Rotation end, Offset, Vs0),
+    Mesh = #e3d_mesh{type=polygon,fs=Fs,vs=Vs,tx=UVs,he=HardEdges},
+    Obj = #e3d_object{obj=Mesh},
+    White = wings_color:white(),
+    Black = wings_color:white(),
+    WhiteT = if Transparent==true -> {1.0,1.0,1.0,0.999};
+        true -> White end,
+    M = [{MatId,
+            [{opengl,[{emission,White},
+                  {diffuse,WhiteT},
+                  {specular,Black},
+                  {ambient,Black}]},
+             {maps,[{diffuse,ImageId}]}]}],
 
-	    ImgName0 = case UseName of
-	        for_mat_obj -> FName;
-	        _ ->
-                if ImgName==?DEF_NAME -> object_name(ImgName, St);
-                true -> ImgName end
-        end,
+    Mat = if Transparent==true -> lists:flatten(lists:append(M,get_transp_mat(Mat0)));
+        true -> M end,
 
-        File = #e3d_file{objs=[Obj#e3d_object{name=ImgName0,mat=Mat}]},
-        #st{shapes=Shapes}=St0=wings_import:import(File, St),
-        St0#st{shapes=lock_image(Lock,ImgName0,Shapes)}
-    end.
+    ImgName0 = case UseName of
+        for_mat_obj -> FName;
+        _ ->
+            if ImgName==?DEF_NAME -> object_name(ImgName, St);
+            true -> ImgName end
+    end,
+
+    File = #e3d_file{objs=[Obj#e3d_object{name=ImgName0,mat=Mat}]},
+    #st{shapes=Shapes}=St0=wings_import:import(File, St),
+    St0#st{shapes=lock_image(Lock,ImgName0,Shapes)}.
 
 object_name(Prefix, #st{onext=Oid}) ->
     Prefix++integer_to_list(Oid).
@@ -234,8 +244,8 @@ get_transp_mat(Mat) ->
         [{transparency_ip,M}]
     end.
 
-do_new_place(view, _, Offset, VsPos) ->
-    #view{azimuth=Az,elevation=El} = wings_view:current(),
+do_new_place(view, Owner, Offset, VsPos) ->
+    #view{azimuth=Az,elevation=El} = wings_wm:get_prop(Owner,current_view),
     Mv0 = e3d_mat:rotate(-Az, {0.0,1.0,0.0}),
     Mv = e3d_mat:mul(Mv0, e3d_mat:rotate(-El, {1.0,0.0,0.0})),
     Vnormal=e3d_vec:norm(e3d_mat:mul_point(Mv, {0.0,0.0,1.0})),
@@ -271,73 +281,75 @@ do_new_place_2(VsPos,M1,M2,M3) ->
     M0 = e3d_mat:mul(M2,M1),
     M = e3d_mat:mul(M3,M0),
     lists:foldr(fun(Pos0, Acc) ->
-		  Pos = e3d_mat:mul_point(M,Pos0),
-		  [Pos|Acc]
-	  end, [], VsPos).
+          Pos = e3d_mat:mul_point(M,Pos0),
+          [Pos|Acc]
+      end, [], VsPos).
+
+draw_img_helper(X, Y, W, H, none) ->
+    draw_img_helper_1(X, Y, W, H);
+draw_img_helper(X, Y, W, H, Id_Img_Helper) ->
+    draw_img_helper_1(X, Y, W, H),
+    Dx=(W-?IP_HELPER_SIZE) div 2,
+    Dy=(H-?IP_HELPER_SIZE) div 2,
+    gl:enable(?GL_TEXTURE_2D),
+    gl:enable(?GL_BLEND),
+    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+    wings_image:draw_preview(X+Dx+1,Y+Dy+1,?IP_HELPER_SIZE,?IP_HELPER_SIZE,Id_Img_Helper),
+    gl:disable(?GL_TEXTURE_2D).
+
+draw_img_helper_1(X, Y, W, H) ->
+    Y1=Y+?CHAR_HEIGHT -2,
+    H1=H-?CHAR_HEIGHT -1,
+    wings_io:set_color(color4_highlight()),
+    wings_io:border_only(X,Y1,W,H1).
 
 load_ip_helper() ->
     Name=wings_util:lib_dir(wings)++"/plugins/primitives/ip_helper.png",
     Props = [{filename,Name}],
     case wpa:image_read(Props) of
-        #e3d_image{}=Image -> Image;
-        {error,_} -> none  % ignore if ip_helper file is not found
-	end.
+      #e3d_image{}=Image ->
+        case wings_image:new_hidden("ip_helper",Image) of
+          {error,_} -> none;
+          Id -> Id
+        end;
+      _ -> none
+    end.
 
-draw_img_helper(X,Y,W,H,IPHelper) ->
-    Y1=Y+?CHAR_HEIGHT -2,
-    H1=H-?CHAR_HEIGHT -1,
-	wings_io:set_color(color4_highlight()),
-    wings_io:border_only(X,Y1,W,H1),
-    gl:enable(?GL_TEXTURE_2D),
-    gl:enable(?GL_BLEND),
-	[TxId] = gl:genTextures(1),
-	gl:bindTexture(?GL_TEXTURE_2D, TxId),
-	gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
-    Format = texture_format(IPHelper),
-	#e3d_image{width=W0,height=H0,image=Bits}=IPHelper,
-    gl:texImage2D(?GL_TEXTURE_2D, 0, internal_format(Format),
-                    W0, H0, 0, Format, ?GL_UNSIGNED_BYTE, Bits),
-    Dx=(W-?IP_HELPER_SIZE) div 2,
-    Dy=(H1-?IP_HELPER_SIZE) div 2,
-	draw_image(X+Dx+1,Y1+Dy+1,?IP_HELPER_SIZE,?IP_HELPER_SIZE,TxId),
-    wings_gl:deleteTextures([TxId]).
+load_img_plane(FileName, #e3d_image{type=Type,width=W,height=H}=Image0) ->
+    %% Convert to the format that wings_image wants before padding (faster).
+    Name = filename:rootname(filename:basename(FileName)),
+    case wings_image:maybe_exceds_opengl_caps(Image0) of
+    {error,GlErr} ->
+        wpa:error_msg(?__(1,"The image cannot be loaded as a texture.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"),
+              [FileName,GlErr, glu:errorString(GlErr)]);
+    Image0i ->
+        Image1 = e3d_image:convert(Image0i, img_type(Type), 1, lower_left),
+        #e3d_image{width=W0,height=H0} = Image1,
+        Image = case pad_image(Image1) of
+            Image1 ->
+                %% The image was not padded, therefore it is safe
+                %% to keep the image as external.
+                Image0;
+            Image2 ->
+                %% The image has been padded. We must make sure that
+                %% the new image is saved - so force it to be internal.
+                Image2#e3d_image{filename=none}
+            end,
+        MaxU = W0/W,
+        MaxV = H0/H,
+        {wings_image:new(Name,Image),{MaxU,MaxV},ratio(W0, H0)}
+    end.
+
+unload_img_plane(Id, St) ->
+    %% remove the image loaded for preview if it was not in use before dialog be opened
+    Used = wings_material:used_images(St),
+    case gb_sets:is_member(Id, Used) of
+      false -> wings_image:delete(Id);
+      _ -> ok
+    end.
 
 color4_highlight() ->
     wings_color:mix(?BEVEL_HIGHLIGHT_MIX, {1,1,1}, wings_pref:get_value(dialog_color)).
-
-draw_image(X, Y, W, H, TxId) ->
-    Ua = 0, Ub = 1,
-    Va = 0, Vb = 1,
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    gl:'begin'(?GL_QUADS),
-    gl:texCoord2i(Ua, Va),
-    gl:vertex2i(X, Y),
-    gl:texCoord2i(Ua, Vb),
-    gl:vertex2i(X, Y+H),
-    gl:texCoord2i(Ub, Vb),
-    gl:vertex2i(X+W, Y+H),
-    gl:texCoord2i(Ub, Va),
-    gl:vertex2i(X+W, Y),
-    gl:'end'().
-
-%% copied from wings_image.erl (consider to export it there in the future)
-texture_format(#e3d_image{type=r8g8b8}) -> ?GL_RGB;
-texture_format(#e3d_image{type=r8g8b8a8}) -> ?GL_RGBA;
-texture_format(#e3d_image{type=b8g8r8}) -> ?GL_BGR;
-texture_format(#e3d_image{type=b8g8r8a8}) -> ?GL_BGRA;
-texture_format(#e3d_image{type=g8}) -> ?GL_LUMINANCE;
-texture_format(#e3d_image{type=a8}) -> ?GL_ALPHA.
-
-%% copied from wings_image.erl (consider to export it there in the future)
-internal_format(?GL_BGR) -> ?GL_RGB;
-internal_format(?GL_BGRA) -> ?GL_RGBA;
-internal_format(Else) -> Else.
-
-%% copied from wings_image.erl (consider to export it there in the future)
-img_type(b8g8r8) -> r8g8b8;
-img_type(b8g8r8a8) -> r8g8b8a8;
-img_type(Type) -> Type.
 
 ratio(D, D) -> {1.0,1.0};
 ratio(W, H) when W < H -> {1.0,H/W};
@@ -345,22 +357,22 @@ ratio(W, H) -> {W/H,1.0}.
     
 pad_image(#e3d_image{width=W0,image=Pixels0,bytes_pp=PP}=Image) ->
     case nearest_power_two(W0) of
-	W0 ->
-	    pad_image_1(Image);
-	W ->
-	    Pad = zeroes(PP*(W-W0)),
-	    Pixels = pad_rows(Pixels0, PP*W0, Pad, []),
-	    pad_image_1(Image#e3d_image{width=W,image=Pixels})
+    W0 ->
+        pad_image_1(Image);
+    W ->
+        Pad = zeroes(PP*(W-W0)),
+        Pixels = pad_rows(Pixels0, PP*W0, Pad, []),
+        pad_image_1(Image#e3d_image{width=W,image=Pixels})
     end.
 
 pad_image_1(#e3d_image{width=W,height=H0,image=Pixels0,bytes_pp=PP}=Image) ->
     case nearest_power_two(H0) of
-	H0 ->
-	    pad_image_2(Image);
-	H ->
-	    Pad = zeroes(PP*W*(H-H0)),
-	    Pixels = [Pixels0|Pad],
-	    pad_image_2(Image#e3d_image{height=H,image=Pixels})
+    H0 ->
+        pad_image_2(Image);
+    H ->
+        Pad = zeroes(PP*W*(H-H0)),
+        Pixels = [Pixels0|Pad],
+        pad_image_2(Image#e3d_image{height=H,image=Pixels})
     end.
 
 pad_image_2(#e3d_image{image=Pixels}=Image) when is_list(Pixels) ->
@@ -369,9 +381,9 @@ pad_image_2(Image) -> Image.
 
 pad_rows(Bin, W, Pad, Acc) ->
     case Bin of
-	<<>> -> reverse(Acc);
-	<<Row:W/binary,T/binary>> ->
-	    pad_rows(T, W, Pad, [[Row|Pad]|Acc])
+    <<>> -> reverse(Acc);
+    <<Row:W/binary,T/binary>> ->
+        pad_rows(T, W, Pad, [[Row|Pad]|Acc])
     end.
 
 zeroes(0) -> [];
@@ -389,3 +401,6 @@ nearest_power_two(N) ->
 nearest_power_two(N, B) when N =< B -> B;
 nearest_power_two(N, B) -> nearest_power_two(N, B bsl 1).
 
+img_type(b8g8r8) -> r8g8b8;
+img_type(b8g8r8a8) -> r8g8b8a8;
+img_type(Type) -> Type.
