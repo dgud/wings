@@ -563,10 +563,17 @@ export_light(_F, _Name, _Type, _OpenGL, _PovRay)->
 
 export_lights_objects(_F,[],_I) ->
 	ok;
-export_lights_objects(F,[Light|Lights],Index) ->
-	{Name,_} = Light,
-	export_light_def(F, clean_name("wl_"++integer_to_list(Index)++"_"++Name)),
-	export_lights_objects(F,Lights,Index+1).
+export_lights_objects(F,[Light|Lights],Index0) ->
+	{Name,Ps} = Light,
+    OpenGL = proplists:get_value(opengl, Ps, []),
+    Index = case proplists:get_value(type, OpenGL, []) of
+        ambient ->
+            Index0;
+        _ ->
+            export_light_def(F, clean_name("wl_"++integer_to_list(Index0)++"_"++Name)),
+            Index0+1
+    end,
+	export_lights_objects(F,Lights,Index).
 
 export_light_def(F,Name) ->
 	io:format(F, "object{ ~s\n", [Name]),
@@ -598,7 +605,7 @@ export_materials(F, [{Name, Mat} | Mats], Attr, ExportDir)->
 		_ -> ok
 	end,
 	io:put_chars(F, "\t pigment{\n"),
-	export_pigment(F, Pigment, PovRay, OpenGL, MapList, Attr),
+	export_pigment(F, Pigment, PovRay, OpenGL, MapList, Attr, ExportDir),
 	case proplists:get_value(pigment_modifiers, PovRay, false) of
 		false ->ok;
 		true ->export_pigment_modifiers(F, Pigment, PovRay)
@@ -628,7 +635,7 @@ export_materials(F, [{Name, Mat} | Mats], Attr, ExportDir)->
 		true -> ok;
 		_ ->
 			io:put_chars(F, "\t normal{\n"),
-			export_normal(F, Normal, PovRay, OpenGL, MapList, Attr),
+			export_normal(F, Normal, PovRay, OpenGL, MapList, Attr, ExportDir),
 			case proplists:get_value(normal_modifiers, PovRay, false) of
 				false ->ok;
 				true ->export_normal_modifiers(F, Normal, PovRay)
@@ -723,7 +730,7 @@ export_pigment_modifiers(F, Type, PovRay)->
 			io:format(F, "\t\t scale ~f\n", [proplists:get_value(pigment_scale, PovRay, 1.0)]),
 			io:format(F, "\t\t frequency ~f\n", [proplists:get_value(pigment_frequency, PovRay, 1.0)])
 	end.
-export_pigment(F, Pigment, PovRay, OpenGL, Maps, Attr) ->
+export_pigment(F, Pigment, PovRay, OpenGL, Maps, Attr, ExportDir) ->
 	case proplists:get_value(finish_transparency, PovRay, filter) of
 		filter -> Filter = "rgbf";
 		_-> Filter = "rgbt"
@@ -769,7 +776,8 @@ export_pigment(F, Pigment, PovRay, OpenGL, Maps, Attr) ->
 		image -> io:put_chars(F, "\t\t image_map {\n"),
 			case PigmentImage of
 				user -> Filepath = proplists:get_value(image_user_file, PovRay, []),
-					io:format(F, "\t\t ~s \"~s\"\n", [atom_to_list(get_map_type(Filepath)), Filepath]);
+					Filepath0=wings_u:relative_path_name(ExportDir, Filepath),
+					io:format(F, "\t\t ~s \"~s\"\n", [atom_to_list(get_map_type(Filepath)), Filepath0]);
 				PI -> io:format(F, "\t\t png \"~s.png\"\n", [proplists:get_value(PI, Maps, [])])
 			end,
 			io:put_chars(F, "\t\t }\n");
@@ -814,7 +822,7 @@ export_normal_modifiers(F, Type, PovRay)->
 			io:format(F, "\t\t scale ~f\n", [proplists:get_value(normal_scale, PovRay, 1.0)]),
 			io:format(F, "\t\t frequency ~f\n", [proplists:get_value(normal_frequency, PovRay, 1.0)])
 	end.
-export_normal(F, Normal, PovRay, _OpenGL, Maps, Attr) ->	
+export_normal(F, Normal, PovRay, _OpenGL, Maps, Attr, ExportDir) ->
 	%retrieve the kind of pigment map, if any
 	case proplists:is_defined(proplists:get_value(n_image_type, PovRay, user), Maps) of
 		true -> NormalImage = proplists:get_value(n_image_type, PovRay, user);
@@ -911,7 +919,8 @@ export_normal(F, Normal, PovRay, _OpenGL, Maps, Attr) ->
 		image -> io:put_chars(F, "\t\t uv_mapping bump_map {\n"),
 			case NormalImage of
 				user -> Filepath = proplists:get_value(n_image_user_file, PovRay, []),
-					io:format(F, "\t\t ~s \"~s\"\n", [atom_to_list(get_map_type(Filepath)), Filepath]);
+					Filepath0=wings_u:relative_path_name(ExportDir, Filepath),
+					io:format(F, "\t\t ~s \"~s\"\n", [atom_to_list(get_map_type(Filepath)), Filepath0]);
 				PI -> io:format(F, "\t\t png \"~s.png\"\n", [proplists:get_value(PI, Maps, [])])
 			end,
 			io:format(F, "\t\t bump_size ~f\n", [Mag]),
