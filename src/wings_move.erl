@@ -167,25 +167,11 @@ average({V,Info}, Acc) ->
     Normal = average_normals(Info),
     [{Normal,[V]}|Acc].
 
-average_normals([{Normal,_,_}]) -> Normal;
-average_normals([{Na,Orig,Da}|[{Nb,_,Db}|_]=T]) ->
-    %% This code is probably obvious. :-)
-    Oa = e3d_vec:add(Orig, Na),
-    Ob = e3d_vec:add(Orig, Nb),
-    Diff = e3d_vec:sub(Oa, Ob),
-    A = e3d_vec:dot(Da, Da),
-    B = -e3d_vec:dot(Da, Db),
-    C = e3d_vec:dot(Db, Db),
-    D = e3d_vec:dot(Da, Diff),
-    Det = A*C-B*D,
-    if
-	Det*Det >= 1.0E-9*abs(A*B) ->
-	    E = -e3d_vec:dot(Db, Diff),
-	    S = (B*E-C*D)/Det,
-	    e3d_vec:add_prod(Na, Da, S);
-	true ->					%Parallel edges
-	    average_normals(T)
-    end.
+average_normals([{Normal,_,_}]) ->
+    Normal;
+average_normals(Info) ->
+    Normals = foldl(fun({N,_,_}, Acc) -> [N|Acc] end, [], Info),
+    e3d_vec:average(Normals).
 
 %%
 %% Conversion of face selections to vertices.
