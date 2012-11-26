@@ -27,12 +27,6 @@
 	 height2normal/3,
 	 buildNormalMipmaps/1]).
 
-%% internal exports
--export([noswap1/8,noswap3/8,noswap4/8,
-	 noswap1to3/8,noswap1ato4/8,noswap1gto4/8,
-	 noswap3to4/8,noswap4to3/8, 
-	 swap3/8,swap4/8,swap3to4/8,swap4to3/8]).
-
 %% Func: load(FileName[, Options])  
 %% Args: FileName = [Chars], Options = [Tagged Tuple]
 %% Rets: #e3d_image | {error, Reason}
@@ -105,29 +99,18 @@ convert(In, ToType) when is_atom(ToType) ->
 convert(In, ToType, NewAlignment) when is_atom(ToType) ->
     convert(In, ToType, NewAlignment, In#e3d_image.order).
 
-convert(#e3d_image{type=Type, alignment=Al,order=O}=In, Type, Al, O) -> In;
-convert(#e3d_image{type=FromType,image=Image,alignment=FromAlm,order=FromOrder}=In,
-	ToType, ToAlm, ToOrder) ->
-
-    OldRowLength  = In#e3d_image.width * In#e3d_image.bytes_pp,
-    NewRowLength  = In#e3d_image.width * bytes_pp(ToType),
-
-    OldPaddLength = pad_len(OldRowLength, FromAlm),
-    NewPaddLength = pad_len(NewRowLength, ToAlm),
-    NewPadd = lists:duplicate(NewPaddLength, 0),
-    W = In#e3d_image.width,
-    
-    case type_conv(FromType, ToType) of
-	{error, _Reason} = Err ->
-	    Err;
-	TypeConv ->
-	    OrderConv = order_conv(FromOrder, ToOrder),
-	    New = ?MODULE:TypeConv(0, W, Image, 
-				   OldPaddLength, NewPadd, 
-				   OrderConv, [], []),
-	    In#e3d_image{image=New,type=ToType,
-			 bytes_pp=bytes_pp(ToType), 
-			 alignment=ToAlm,order=ToOrder}
+convert(#e3d_image{type=Type, alignment=Al,order=O}=In, Type, Al, O) ->
+    In;
+convert(#e3d_image{type=FromType, order=FromOrder}=In, ToType, ToAlm, ToOrder) ->
+    try
+	Convert = col_conv(FromType, ToType),
+	Reverse = order_conv(FromOrder, ToOrder),
+	New = map_rows(In, Convert, Reverse, ToType, ToAlm),
+	In#e3d_image{image=New,type=ToType,
+		     bytes_pp=bytes_pp(ToType),
+		     alignment=ToAlm,order=ToOrder}
+    catch Error ->
+	    Error
     end.
 
 ext_to_type(".tga") -> tga;
@@ -357,155 +340,95 @@ fix_outtype(File, Res = #e3d_image{}, Opts) ->
 fix_outtype(_, Res, _) ->  %% Propagate Error Case
     Res.
 
+map_rows(#e3d_image{image=Bin, alignment=1}, keep, {false,false}, _, 1) ->
+    Bin;
+map_rows(#e3d_image{image=Bin, alignment=1}, Convert, {false,false}, _, 1) ->
+    Convert(Bin); %% No need to handle rows specifically
+map_rows(In=#e3d_image{image=Bin, alignment=Alm, width=W, bytes_pp=BPP}, Convert,
+	 {RRs, RCs}, ToType, ToAlm) ->
+    RowL = W*BPP,
+    FoldRow = row_conv(Convert, bytes_pp(ToType), RCs, make_pad(In, ToType, ToAlm)),
+    map_bin(Bin, RowL, pad_len(RowL, Alm), FoldRow, RRs).
 
-%-define(C3(A,B,C), A,B,C).
-%-define(C4(A,B,C,D), A,B,C,D). 
--define(C3(A,B,C), [A,B,C]).
--define(C4(A,B,C,D), [A,B,C,D]).   %% Seems faster if I make a binary of each row!!
-%-define(C3(A,B,C), <<A:8,B:8,C:8>>).
-%-define(C4(A,B,C,D), <<A:8,B:8,C:8,D:8>>).
-
-swap(Action, W, W, Bin, OPL, NP, {SC,SR}, Row, Acc) ->
-    <<_Skip:OPL/binary, Rest/binary>> = Bin,    
-    NewRow = if 
-		 SR == true ->
-		     list_to_binary([NP|Row]);
-		 SR == false ->
-		     list_to_binary(lists:reverse([NP|Row]))
-	     end,
-    ?MODULE:Action(0, W, Rest, OPL, NP, {SC,SR}, [], [NewRow|Acc]);
-swap(_, _, _, <<>>, _, _, {SC,_SR}, Row, Acc) ->
-    NewImage = 
-	if 
-	    SC == true -> [Row|Acc];
-	    SC == false -> lists:reverse(Acc, [Row])
-	end,
-    list_to_binary(NewImage).
-
-noswap1(0, W, <<>>, OPL,NP,OC,[],Acc) ->
-    swap(noswap1, 0, W, <<>>, OPL,NP,OC,[],Acc);
-noswap1(0, W, Bin, OPL, NP, {_,SR}=OC, [], Acc) ->
-    <<Row:W/binary, R/binary>> = Bin,
-    case SR of 
-	false -> swap(noswap1,W,W,R,OPL, NP, OC, [Row], Acc);
-	true ->
-	    RowList = lists:reverse(binary_to_list(Row)),
-	    swap(noswap1,W,W,R,OPL, NP, OC, RowList, Acc)
-    end.
-%%% RGB or BGR 
-noswap3(0, W, Bin, OPL, NP, {_,false}=OC, RowAcc, Acc) ->
-    case Bin of
-	<<Row:W/binary-unit:24,R/binary>> ->
-	    swap(noswap3, W, W, R, OPL, NP, OC, [Row], Acc);
-	_ ->
-	    noswap3_1(0, W, Bin, OPL, NP, OC, RowAcc, Acc)
-    end;
-noswap3(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    noswap3_1(C, W, Bin, OPL, NP, OC, Row, Acc).
-
-noswap3_1(C, W, <<RGB:3/binary,R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
-    noswap3_1(C+1, W, R, OPL, NP, OC, [RGB|Row], Acc);
-noswap3_1(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    swap(noswap3, C, W, Bin, OPL, NP, OC, Row, Acc).
-%% Alpha8 or Grey8 to RGB
-noswap1to3(C, W, <<G0:8, R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
-    noswap1to3(C+1, W, R, OPL, NP, OC, [?C3(G0,G0,G0)|Row], Acc);
-noswap1to3(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    swap(noswap1to3, C, W, Bin, OPL, NP, OC, Row, Acc).
-%% Alpha8 to RGBA
-noswap1ato4(C, W, <<A0:8, R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
-    noswap1ato4(C+1, W, R, OPL, NP, OC, [?C4(255,255,255,A0)|Row], Acc);
-noswap1ato4(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    swap(noswap1ato4, C, W, Bin, OPL, NP, OC, Row, Acc).
-%% Grey8 to RGB
-noswap1gto4(C, W, <<G0:8, R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
-    noswap1gto4(C+1, W, R, OPL, NP, OC, [?C4(G0,G0,G0, 255)|Row], Acc);
-noswap1gto4(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    swap(noswap1gto4, C, W, Bin, OPL, NP, OC, Row, Acc).
-%% RGB to RGBA 
-noswap3to4(C, W, <<B0:8,G0:8,R0:8, R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
-    noswap3to4(C+1, W, R, OPL, NP, OC, [?C4(B0,G0,R0,255)|Row], Acc);
-noswap3to4(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    swap(noswap3to4, C, W, Bin, OPL, NP, OC, Row, Acc).
-%% RGBA 
-noswap4(C, W, <<Col:4/binary, R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
-    noswap4(C+1, W, R, OPL, NP, OC, [Col|Row], Acc);
-noswap4(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    swap(noswap4, C, W, Bin, OPL, NP, OC, Row, Acc).
-%% RGBA to RGB
-noswap4to3(C, W, <<RGB:3/binary,_:8,R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
-    noswap4to3(C+1, W, R, OPL, NP, OC, [RGB|Row], Acc);
-noswap4to3(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    swap(noswap4to3, C, W, Bin, OPL, NP, OC, Row, Acc).
-
-swap3(0, W, Bin0, OPL, NP, OC, [], Acc) when size(Bin0) >= 3*W ->
-    <<Row0:W/binary-unit:24,Bin/binary>> = Bin0,
-    Row = swap3_row(binary_to_list(Row0), []),
-    swap(swap3, W, W, Bin, OPL, NP, OC, Row, Acc);
-swap3(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    swap(swap3, C, W, Bin, OPL, NP, OC, Row, Acc).
-
-swap3_row([B,G,R|T], Acc) ->
-    swap3_row(T, [[R,G,B]|Acc]);
-swap3_row([], Acc) -> Acc.
-
-swap4(0, W, Bin0, OPL, NP, OC, [], Acc) when size(Bin0) >= 4*W ->
-    <<Row0:W/binary-unit:32,Bin/binary>> = Bin0,
-    Row = swap4_row(binary_to_list(Row0), []),
-    swap(swap4, W, W, Bin, OPL, NP, OC, Row, Acc);
-swap4(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    swap(swap4, C, W, Bin, OPL, NP, OC, Row, Acc).
-
-swap4_row([B,G,R,A|T], Acc) ->
-    swap4_row(T, [[R,G,B,A]|Acc]);
-swap4_row([], Acc) -> Acc.
-
-swap4to3(C, W, <<B0:8,G0:8,R0:8,_:8, R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W->
-    swap4to3(C+1, W, R, OPL, NP, OC, [?C3(R0,G0,B0)|Row],  Acc);
-swap4to3(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    swap(swap4to3, C, W, Bin, OPL, NP, OC, Row, Acc).
-
-swap3to4(C, W, <<B0:8,G0:8,R0:8, R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
-    swap3to4( C+1, W, R, OPL, NP, OC, [?C4(R0,G0,B0,255)|Row], Acc);
-swap3to4(C, W, Bin, OPL, NP, OC, Row, Acc) ->
-    swap(swap3to4, C, W, Bin, OPL, NP, OC, Row, Acc).
-
-%fix_alignment(<<>>, RL, OldP, NewP, Acc) ->
-%    list_to_binary(lists:reverse(Acc));
-%fix_alignment(Image, RL, OldP, NewP, Acc) ->
-%    <<Row:RL/binary, Skip:OldP/binary, Rest/binary>> = Image,
-%    fix_alignment(Rest, RL, OldP, NewP, [NewP, Row | Acc]).
-
-type_conv(Type, Type) ->  %% No swap
+col_conv(Type, Type) -> keep;
+col_conv(g8, Type) ->
     case bytes_pp(Type) of
-	1 -> noswap1;
-	3 -> noswap3;
-	4 -> noswap4
+	1 -> keep;
+	3 -> fun(Bin) -> << <<G:8,G:8,G:8>> || <<G:8>> <= Bin >> end;
+	4 -> fun(Bin) -> << <<G:8,G:8,G:8,255:8>> || <<G:8>>  <= Bin >> end
     end;
-type_conv(a8, r8g8b8) ->
-    noswap1to3;
-type_conv(g8, r8g8b8) ->
-    noswap1to3;
-type_conv(a8, r8g8b8a8) ->
-    noswap1ato4;
-type_conv(g8, r8g8b8a8) ->
-    noswap1gto4;
-type_conv(r8g8b8a8, r8g8b8) ->
-    noswap4to3;
-type_conv(b8g8r8a8, b8g8r8) ->
-    noswap4to3;
-type_conv(r8g8b8, r8g8b8a8) ->
-    noswap3to4;
-type_conv(b8g8r8, b8g8r8a8) ->
-    noswap3to4;
-type_conv(FromType, ToType) ->
-    case {bytes_pp(FromType), bytes_pp(ToType)} of
-	{3,3} -> swap3;
-	{4,4} -> swap4;
-	{3,4} -> swap3to4;
-	{4,3} -> swap4to3;
-	_ -> {error, {not_supported,conversion,FromType,ToType}}
+col_conv(a8, Type) ->
+    case bytes_pp(Type) of
+	1 -> keep;
+	3 -> fun(Bin) -> << <<G:8,G:8,G:8>> || <<G:8>> <= Bin >> end;
+	4 -> fun(Bin) -> << <<255:8,255:8,255:8,A:8>> || <<A:8>> <= Bin >> end
+    end;
+
+col_conv(r8g8b8, r8g8b8a8) -> fun(Bin) -> << <<RGB:24,255:8>> || <<RGB:24>> <= Bin >> end;
+col_conv(r8g8b8a8, r8g8b8) -> fun(Bin) -> << <<RGB:24>> || <<RGB:24,_:8>> <= Bin >> end;
+col_conv(b8g8r8, b8g8r8a8) -> fun(Bin) -> << <<RGB:24,255:8>> || <<RGB:24>> <= Bin >> end;
+col_conv(b8g8r8a8, b8g8r8) -> fun(Bin) -> << <<RGB:24>> || <<RGB:24,_:8>> <= Bin >> end;
+col_conv(r8g8b8, g8)       -> fun(Bin) -> << <<(gray(R,G,B)):8>> || <<R:8,G:8,B:8>> <= Bin >> end;
+col_conv(r8g8b8a8, g8)     -> fun(Bin) -> << <<(gray(R,G,B)):8>> || <<R:8,G:8,B:8,_:8>> <= Bin >> end;
+col_conv(b8g8r8, g8)       -> fun(Bin) -> << <<(gray(R,G,B)):8>> || <<B:8,G:8,R:8>> <= Bin >> end;
+col_conv(b8g8r8a8, g8)     -> fun(Bin) -> << <<(gray(R,G,B)):8>> || <<B:8,G:8,R:8,_:8>> <= Bin >> end;
+
+col_conv(In, Out) ->
+    InSz  = bytes_pp(In),
+    OutSz = bytes_pp(Out),
+    if InSz =:= OutSz, InSz =:= 3 ->
+	    fun(Bin) -> << <<R:8,G:8,B:8>> || <<B:8,G:8,R:8>> <= Bin >> end;
+       InSz =:= OutSz, InSz =:= 4 ->
+	    fun(Bin) -> << <<R:8,G:8,B:8,A:8>> || <<B:8,G:8,R:8,A:8>> <= Bin >> end;
+       InSz =:= 3, OutSz =:= 4 ->
+	    fun(Bin) -> << <<R:8,G:8,B:8,255:8>> || <<B:8,G:8,R:8>> <= Bin >> end;
+       InSz =:= 4, OutSz =:= 3 ->
+	    fun(Bin) -> << <<R:8,G:8,B:8>> || <<B:8,G:8,R:8, _:8>> <= Bin >> end;
+       InSz =:= 4, Out =:= a8  ->
+	    fun(Bin) -> << <<A:8>> || <<_:8,_:8,_:8, A:8>> <= Bin >> end;
+       InSz =:= 3, Out =:= a8 -> col_conv(In, g8);
+       true ->
+	    {error, {not_supported,conversion,In,Out}}
     end.
+
+gray(R,G,B) when B>G,B>R ->
+    (R+G+B) div 3; %% The formula below becomes very dark for "blueish" images
+gray(R,G,B) ->
+    round(0.2126*R + 0.7152*G + 0.0722*B).
+
+%% row_conv(ColorConvert, ReverseColumns, RowPad)
+row_conv(keep, Sz, Reverse, Pad) ->  %% Keep rows add padding
+    fun(Row) ->  reverse_and_pad(Row, Sz, Reverse, Pad) end;
+row_conv(Convert, Sz, Reverse, Pad) when is_function(Convert, 1) ->
+    fun(InRow) ->
+	    reverse_and_pad(Convert(InRow),Sz,Reverse,Pad)
+    end.
+
+reverse_and_pad(Bin, _, false, <<>>) -> Bin;
+reverse_and_pad(Bin, _, false, Pad)  -> <<Bin/binary, Pad/binary>>;
+reverse_and_pad(Bin, 1, true, Pad) -> reverse_and_pad(Bin, 1, false, Pad);
+reverse_and_pad(Bin0, Sz, true, Pad) ->
+    %% Unoptimized but should happen really rare..
+    Bin = bin_reverse(Bin0, Sz, 0, fun(C) -> C end, []),
+    <<Bin/binary, Pad/binary>>.
+
+map_bin(InBin, InSz, InSkip, Convert, Reverse) ->
+    case Reverse of
+	false ->
+	    << <<(Convert(Cut))/binary>> || <<Cut:InSz/binary, _:InSkip/binary>> <= InBin >>;
+	true ->
+	    bin_reverse(InBin, InSz, InSkip, Convert, [])
+    end.
+
+bin_reverse(<<>>, _InSz, _InSkip, _Convert, Acc) -> list_to_binary(Acc);
+bin_reverse(Bin, InSz, InSkip, Convert, Acc) ->
+    <<Col:InSz/binary, _:InSkip/binary, Rest/binary>> = Bin,
+    bin_reverse(Rest, InSz, InSkip, Convert, [Convert(Col)|Acc]).
+
+make_pad(#e3d_image{width=W}, ToType, ToAlm) ->
+    NewRowLength  = W * bytes_pp(ToType),
+    NewPadLength = 8*pad_len(NewRowLength, ToAlm),
+    <<0:NewPadLength>>.
 
 order_conv(Order, Order) -> {false, false};   %% {SwapColumns, SwapRows}
 order_conv(lower_left, upper_right) -> {true,true};
