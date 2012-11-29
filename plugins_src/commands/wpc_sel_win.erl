@@ -163,7 +163,7 @@ event(Ev, Ost) ->
     end.
 
 %% none group selected (-1) and there isn't any selection in Geo
-do_menu(-1, X, Y, Y0 ,#ost{st=#st{sh=Sh,ssels=Ssels,sel=[],selmode=SelMode}}=Ost) -> 
+do_menu(-1, X, Y, Y0 ,#ost{st=#st{sh=Sh,ssels=Ssels,sel=[],selmode=SelMode}}=Ost) ->
 	case gb_trees:is_empty(Ssels) of
 	  true -> keep;
 	  _ ->
@@ -176,7 +176,7 @@ do_menu(-1, X, Y, Y0 ,#ost{st=#st{sh=Sh,ssels=Ssels,sel=[],selmode=SelMode}}=Ost
 	    end
 	end;
 %% none group selected (-1) and there is a selection in Geo
-do_menu(-1, X, Y, Y0, #ost{st=#st{sh=Sh,ssels=Ssels,selmode=SelMode}}=Ost) -> 
+do_menu(-1, X, Y, Y0, #ost{st=#st{sh=Sh,ssels=Ssels,selmode=SelMode}}=Ost) ->
     Objs=objs_by_mode(Sh,SelMode,gb_trees:keys(Ssels)),
     Act0=active_object(Y0, Ost), % check for item under mouse pointer
     Menu1=if
@@ -285,7 +285,7 @@ objs_by_mode(true,_,Keys) ->
 
 objs_by_mode(SelMode,Keys) ->
     Keys0=lists:keysort(1,Keys),
-    Sel=lists:foldl(fun({SM,_}=Item,Acc) when SM=:=SelMode -> [Acc,Item]; 
+    Sel=lists:foldl(fun({SM,_}=Item,Acc) when SM=:=SelMode -> [Acc,Item];
                          (_,Acc)-> Acc
                       end, [], Keys0),
     lists:flatten(Sel).
