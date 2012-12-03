@@ -43,27 +43,32 @@ image_menu() ->
 
 command({shape,{image_plane,Ask}}, _St) when is_atom(Ask) ->
     make_image(Ask);
-command({shape,{image_plane,{Name,Ask}}}, _St) when is_atom(Ask) ->
-    make_image(Name,Ask,_St);
-command({shape,{image_plane,{params,{Name,Image,Params}}}}, St) ->
-    make_image_0(Name,Image,Params,St);
+command({shape,{image_plane,{Name,Ask}}}, St) when is_atom(Ask) ->
+    make_image(Name,Ask,St);
+command({shape,{{image_plane,{params,Image}},Arg}}, St) ->
+    make_image_0(Image,Arg,St);
 command(_, _) -> next.
 
 make_image(Ask) ->
     Ps = [{extensions,wpa:image_formats()}],
     wpa:import_filename(Ps, fun(N) -> {shape,{image_plane,{N,Ask}}} end).
 
-make_image(Name,Ask,_St) ->
+make_image(Name,Ask,St) ->
     Props = [{filename,Name}],
     case wpa:image_read(Props) of
 	#e3d_image{}=Image ->
-	    make_image(Name,Image,Ask,_St);
+	    make_image(Name,Image,Ask,St);
 	{error,Error} ->
 	    wpa:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
 		      [Name,file:format_error(Error)])
     end.
 
-make_image(FileName0,Image,Ask,_St) when is_atom(Ask) ->
+make_image(FileName0, Image, Arg, St) when is_atom(Arg) ->
+    FileName = filename:rootname(filename:basename(FileName0)),
+    wings_ask:dialog_preview({shape,{image_plane,{params,Image}}}, Arg, ?__(2,"Image Plane"),
+      image_dialog(FileName), St).
+
+image_dialog(FileName) ->
     Disable_Hook = fun(Event, Params) ->
         case Event of
         is_disabled ->
@@ -84,8 +89,7 @@ make_image(FileName0,Image,Ask,_St) when is_atom(Ask) ->
         draw_img_helper(X, Y, W, H),
         keep
     end,
-    FileName = filename:rootname(filename:basename(FileName0)),
-    Qs = [
+    [
             {hframe,[
                 {vradio,[{?__(3,"Front"),front},{?__(5,"Right"),right},{?__(7,"Top"),top},
                          {?__(4,"Back"),back},{?__(6,"Left"),left},{?__(8,"Bottom"),bottom},{?__(9,"View"),view}],front,
@@ -111,25 +115,26 @@ make_image(FileName0,Image,Ask,_St) when is_atom(Ask) ->
             separator,
             {?__(23,"Lock after create"),false,[{info, ?__(24,"Lock image plane object")},{key,locked}]},  
             {?__(25,"Transparent back face"),false,[{info, ?__(26,"Assign transparent material to back face")},{key,transp}]}  
-        ],
+        ].
 
-    wings_ask:dialog(Ask, ?__(2,"Image Plane"), [{vframe,Qs}],
-    fun(Res) ->
-        [{alignment,Alignment},{usename,UseName},{img_name,ImgName},{fname,FName},
-         {offset,Offset},{rotation,Rotation},{locked,Lock},{transp,Transparent}]=Res,
-        Params=[Alignment,Offset,Rotation,ImgName,Lock,Transparent,UseName,FName],
-        {shape,{image_plane,{params,{FileName0,Image,Params}}}}
-    end).
-
-make_image_0(Name0, #e3d_image{type=Type}=Image0,[Alignment,Offset,Rotation,ImgName,Lock,Transparent,UseName,FName],#st{mat=Mat0}=St) ->
+make_image_0(#e3d_image{type=Type}=Image0, Arg, #st{mat=Mat0}=St) ->
+    ArgDict = dict:from_list(Arg),
+    Alignment = dict:fetch(alignment,ArgDict),
+    UseName = dict:fetch(usename,ArgDict),
+    ImgName = dict:fetch(img_name,ArgDict),
+    FName = dict:fetch(fname,ArgDict),
+    Offset = dict:fetch(offset,ArgDict),
+    Rotation = dict:fetch(rotation,ArgDict),
+    Lock = dict:fetch(locked,ArgDict),
+    Transparent = dict:fetch(transp,ArgDict),
     %% Convert to the format that wings_image wants before padding (faster).
 	case wings_image:maybe_exceds_opengl_caps(Image0) of
     {error,GlErr} ->
 	    wpa:error_msg(?__(1,"The image cannot be loaded as a texture.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"),
-		      [Name0,GlErr, glu:errorString(GlErr)]);
+		      [FName,GlErr, glu:errorString(GlErr)]);
 	Image0i -> 
 		Image1 = e3d_image:convert(Image0i, img_type(Type), 1, lower_left),
-		Name = filename:rootname(filename:basename(Name0)),
+		Name = filename:rootname(filename:basename(FName)),
 		#e3d_image{width=W0,height=H0} = Image1,
 		Image = case pad_image(Image1) of
 			Image1 ->
@@ -142,6 +147,7 @@ make_image_0(Name0, #e3d_image{type=Type}=Image0,[Alignment,Offset,Rotation,ImgN
 				Image2#e3d_image{filename=none}
 			end,
 		#e3d_image{width=W,height=H} = Image,
+		delete_by_name(Name),
 		ImageId = wings_image:new(Name, Image),
 	    MaxU = W0/W,
 	    MaxV = H0/H,
@@ -197,6 +203,16 @@ make_image_0(Name0, #e3d_image{type=Type}=Image0,[Alignment,Offset,Rotation,ImgN
         #st{shapes=Shapes}=St0=wings_import:import(File, St),
         St0#st{shapes=lock_image(Lock,ImgName0,Shapes)}
     end.
+
+delete_by_name(ImgName) ->
+    Images = wings_image:images(),
+    delete_image(Images, ImgName).
+
+delete_image([], _) -> ok;
+delete_image([{Id,#e3d_image{name=Name}}=_H|_T], Name) ->
+    wings_image:delete(Id);
+delete_image([_H|T], Name) ->
+    delete_image(T, Name).
 
 object_name(Prefix, #st{onext=Oid}) ->
     Prefix++integer_to_list(Oid).
