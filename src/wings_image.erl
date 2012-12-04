@@ -23,7 +23,7 @@
 	 window/1]).
 -export([image_formats/0,image_read/1,image_write/1]).
 -export([loop/1]).
--export([maybe_exceds_opengl_caps/1]).
+-export([load_texture/1,unload_texture/1,draw_image/5,maybe_exceds_opengl_caps/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -507,6 +507,20 @@ init_background_tx() ->
     B = list_to_binary(B0),
     Im = #e3d_image{width=16,height=16,image=B},
     put(background, init_texture(Im)).
+
+%% This will load the texture "silently" - it's not added to image list
+load_texture(#e3d_image{}=Image) ->
+    case init_texture(Image) of
+	{error,_}=Error ->
+	    Error;
+	TxId ->
+	    TxId
+    end.
+
+unload_texture(TxLst) when is_list(TxLst) ->
+	wings_gl:deleteTextures(TxLst);
+unload_texture(TxId) ->
+	wings_gl:deleteTextures([TxId]).
 
 make_texture(Id, Image) ->
     case init_texture(Image) of

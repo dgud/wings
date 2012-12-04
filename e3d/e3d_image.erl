@@ -31,7 +31,8 @@
 -export([noswap1/8,noswap3/8,noswap4/8,
 	 noswap1to3/8,noswap1ato4/8,noswap1gto4/8,
 	 noswap3to4/8,noswap4to3/8, 
-	 swap3/8,swap4/8,swap3to4/8,swap4to3/8]).
+	 swap3/8,swap4/8,swap3to4/8,swap4to3/8,
+	 noswap3to1/8,noswap4to1/8]).
 
 %% Func: load(FileName[, Options])  
 %% Args: FileName = [Chars], Options = [Tagged Tuple]
@@ -116,7 +117,7 @@ convert(#e3d_image{type=FromType,image=Image,alignment=FromAlm,order=FromOrder}=
     NewPaddLength = pad_len(NewRowLength, ToAlm),
     NewPadd = lists:duplicate(NewPaddLength, 0),
     W = In#e3d_image.width,
-    
+
     case type_conv(FromType, ToType) of
 	{error, _Reason} = Err ->
 	    Err;
@@ -437,6 +438,18 @@ noswap4to3(C, W, <<RGB:3/binary,_:8,R/binary>>, OPL, NP, OC, Row, Acc) when C =/
     noswap4to3(C+1, W, R, OPL, NP, OC, [RGB|Row], Acc);
 noswap4to3(C, W, Bin, OPL, NP, OC, Row, Acc) ->
     swap(noswap4to3, C, W, Bin, OPL, NP, OC, Row, Acc).
+%% RGB or BGR to Grey8
+noswap3to1(C, W, <<C0:8,C1:8,C2:8, R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
+	G0= trunc((C0+C1+C2)/3),  % not so goog as Luminosity method, but it's simple
+    noswap3to1(C+1, W, R, OPL, NP, OC, [G0|Row], Acc);
+noswap3to1(C, W, Bin, OPL, NP, OC, Row, Acc) ->
+    swap(noswap3to1, C, W, Bin, OPL, NP, OC, Row, Acc).
+%% RGBA or BGRA to Grey8
+noswap4to1(C, W, <<C0:8,C1:8,C2:8,A:8,R/binary>>, OPL, NP, OC, Row, Acc) when C =/= W ->
+	G0= trunc((C0+C1+C2)/3) band A,  % not so goog as Luminosity method, but it's simple
+    noswap4to1(C+1, W, R, OPL, NP, OC, [G0|Row], Acc);
+noswap4to1(C, W, Bin, OPL, NP, OC, Row, Acc) ->
+    swap(noswap4to1, C, W, Bin, OPL, NP, OC, Row, Acc).
 
 swap3(0, W, Bin0, OPL, NP, OC, [], Acc) when size(Bin0) >= 3*W ->
     <<Row0:W/binary-unit:24,Bin/binary>> = Bin0,
@@ -482,6 +495,8 @@ type_conv(Type, Type) ->  %% No swap
 	3 -> noswap3;
 	4 -> noswap4
     end;
+type_conv(a8, g8) ->
+    noswap1;
 type_conv(a8, r8g8b8) ->
     noswap1to3;
 type_conv(g8, r8g8b8) ->
@@ -490,6 +505,10 @@ type_conv(a8, r8g8b8a8) ->
     noswap1ato4;
 type_conv(g8, r8g8b8a8) ->
     noswap1gto4;
+type_conv(r8g8b8a8, g8) ->
+    noswap4to1;
+type_conv(b8g8r8a8, g8) ->
+    noswap4to1;
 type_conv(r8g8b8a8, r8g8b8) ->
     noswap4to3;
 type_conv(b8g8r8a8, b8g8r8) ->
@@ -498,6 +517,10 @@ type_conv(r8g8b8, r8g8b8a8) ->
     noswap3to4;
 type_conv(b8g8r8, b8g8r8a8) ->
     noswap3to4;
+type_conv(r8g8b8, g8) ->
+    noswap3to1;
+type_conv(b8g8r8, g8) ->
+    noswap3to1;
 type_conv(FromType, ToType) ->
     case {bytes_pp(FromType), bytes_pp(ToType)} of
 	{3,3} -> swap3;

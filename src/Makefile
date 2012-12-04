@@ -127,7 +127,8 @@ MODULES= \
 	wings_we_util \
 	wings_wm \
 	wings_wm_toplevel \
-	wpa
+	wpa \
+	wpax
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
