@@ -197,12 +197,6 @@ tube_faces(Nres) ->
 ring_of_verts(Rings, Delta, YAxis, XAxis, ZAxis) ->
     [{XAxis*cos(I*Delta), YAxis, ZAxis*sin(I*Delta)} || I <- Rings].
 
-get_pref(Key, Def) ->
-    wpa:pref_get(?MODULE, Key, Def).
-
-% set_pref(KeyVals) ->
-%     wpa:pref_set(?MODULE, KeyVals).
-
 zip_lists_2e([], []) -> [];   % Zip two lists together, two elements at a time.
 zip_lists_2e(A, B) ->	      % Both lists must be equal in length
     [HA1,HA2 | TA] = A,       % and must have an even number of elements

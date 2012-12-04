@@ -84,7 +84,6 @@ preview_fun(Qs, OrigView, St) ->
          end).
 
 camera_position({OldView,[CamX,CamY,CamZ, FX,FY,FZ]}, St) ->
-    #view{elevation=El0,azimuth=Az0} = OldView,
     AzF = case CamX of
         0.0 -> 1.0;
         _ -> -CamX/abs(CamX)
