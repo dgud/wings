@@ -13,7 +13,7 @@
 
 -module(wings_image).
 -export([init/1,init_opengl/0,
-	 from_file/1,new/2,new_temp/2,create/1,
+	 from_file/1,new/2,new_temp/2,new_hidden/2, create/1,
 	 rename/2,txid/1,info/1,images/0,
 	 screenshot/2,screenshot/1,viewport_screenshot/1,
 	 bumpid/1, default/1,
@@ -104,15 +104,19 @@ from_file(Filename) ->
     case image_read(Props) of
 	#e3d_image{}=Image ->
 	    Name = filename:basename(Filename),
-	    req({new,Image#e3d_image{name=Name},false});
+	    req({new,Image#e3d_image{name=Name},false, false});
 	{error,_}=Error -> Error
     end.
 
 new(Name, E3DImage) ->
-    req({new,E3DImage#e3d_image{name=Name},false}).
+    req({new,E3DImage#e3d_image{name=Name},false, false}).
 
 new_temp(Name, E3DImage) ->
-    req({new,E3DImage#e3d_image{name=Name},true}).
+    req({new,E3DImage#e3d_image{name=Name},true, false}).
+
+new_hidden(Name, E3DImage) ->
+    req({new,E3DImage#e3d_image{name=Name},true, true}).
+
 
 create(St) ->
     create_image(),
@@ -280,30 +284,34 @@ handle(init_opengl, #ist{images=Images}=S) ->
 	    end, gb_trees:to_list(Images)),
     init_background_tx(),
     S;
-handle({new,#e3d_image{name=Name0}=Im0,false}, #ist{next=Id,images=Images0}=S) ->
+handle({new,#e3d_image{name=Name0}=Im0,false,Hide}, #ist{next=Id,images=Images0}=S) ->
     Name = make_unique(Name0, Images0),
     Im = maybe_convert(Im0#e3d_image{name=Name}),
-    Images = gb_trees:insert(Id, Im, Images0),
+    Images = gb_trees:insert(Id, hide(Im, Hide), Images0),
     case make_texture(Id, Im) of
 	{error,_GlErr}=Err ->
 	    {Err,S};
 	_ ->
 	    {Id,S#ist{next=Id+1,images=Images}}
     end;
-handle({new,#e3d_image{name=Name}=Im,true}, #ist{images=Images}=S0) ->
-    Prev = [Id || {Id,#e3d_image{name=N}} <- gb_trees:to_list(Images), N =:= Name],
-    case Prev of
+handle({new,#e3d_image{name=Name}=Im,true,Hide}, #ist{images=Images}=S0) ->
+    Exist = fun({_, #e3d_image{name=N}}) when N =:= Name -> true;
+	       ({_, {hidden, #e3d_image{name=N}}}) when N =:= Name -> true;
+	       (_) -> false
+	    end,
+    case lists:filter(Exist, gb_trees:to_list(Images)) of
 	[] ->
-	    handle({new,Im,false}, S0);
-	[Id] ->
+	    handle({new,Im,false,Hide}, S0);
+	[{Id,_}] ->
 	    S = handle({delete,Id}, S0),
-	    handle({new,Im,false}, S)
+	    handle({new,Im,false,Hide}, S)
     end;
+    
 handle({rename,Id,Name0}, #ist{images=Images0}=S) ->
     Name = make_unique(Name0, gb_trees:delete(Id, Images0)),
     Im0 = gb_trees:get(Id, Images0),
-    Im = Im0#e3d_image{name=Name},
-    Images = gb_trees:update(Id, Im, Images0),
+    Im = (image_rec(Im0))#e3d_image{name=Name},
+    Images = gb_trees:update(Id, hide(Im, is_hidden(Im0)), Images0),
     {Id,S#ist{images=Images}};
 handle({txid,Id}, S) ->
     {case get(Id) of
@@ -351,11 +359,11 @@ handle({default,Type},S) ->
      end,S};
 handle({info,Id}, #ist{images=Images}=S) ->
     case gb_trees:lookup(Id, Images) of
-	{value,E3D} -> {E3D,S};
+	{value,E3D} -> {image_rec(E3D),S};
 	none -> {none,S}
     end;
 handle(images, #ist{images=Images}=S) ->
-    {gb_trees:to_list(Images),S};
+    {[NotHidden || NotHidden = {_, #e3d_image{}} <- gb_trees:to_list(Images)],S};
 handle(next_id, #ist{next=Id}=S) ->
     {Id,S};
 handle({delete,Id}, S) ->
@@ -368,8 +376,8 @@ handle({update,Id,Image}, S) ->
     do_update(Id, Image, S);
 handle({update_filename,Id,NewName}, #ist{images=Images0}=S) ->
     Im0 = gb_trees:get(Id, Images0),
-    Im = Im0#e3d_image{filename=NewName},
-    Images = gb_trees:update(Id, Im, Images0),
+    Im = (image_rec(Im0))#e3d_image{filename=NewName},
+    Images = gb_trees:update(Id, hide(Im, is_hidden(Im0)), Images0),
     S#ist{images=Images};
 handle({draw_preview,X,Y,W,H,Id}, S) ->
     {case get(Id) of
@@ -380,7 +388,8 @@ handle({draw_preview,X,Y,W,H,Id}, S) ->
 create_bump(Id, BumpId, #ist{images=Images0}) ->
     delete_bump(Id),  %% update case..
     case gb_trees:lookup(Id, Images0) of
-	{value, E3D} -> 
+	{value, E3D0} -> 
+	    E3D = image_rec(E3D0),
 	    gl:pushAttrib(?GL_TEXTURE_BIT),
 	    case get(Id) of
 		BumpId ->
@@ -522,7 +531,7 @@ init_texture(Image) ->
         true -> 0;
         _ ->
             [TxId] = gl:genTextures(1),
-            case init_texture(Image, TxId) of
+            case init_texture(image_rec(Image), TxId) of
                 {error,_}=Error ->
                     wings_gl:deleteTextures([TxId]),
                     Error;
@@ -683,13 +692,14 @@ delete_bump(Id) ->
 
 do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName}, 
 	  #ist{images=Images0}=S) ->
-    Im0 = #e3d_image{filename=File,name=OldName} = gb_trees:get(Id, Images0),
+    Image = gb_trees:get(Id, Images0),
+    Im0 = #e3d_image{filename=File,name=OldName} = image_rec(Image),
     Name = if is_list(NewName), length(NewName) > 2 -> NewName;
 	      true -> OldName
 	   end,
     Im   = maybe_convert(In#e3d_image{filename=File, name=Name}),
     TxId = get(Id),
-    Images = gb_trees:update(Id, Im, Images0),
+    Images = gb_trees:update(Id, hide(Im, is_hidden(Image)), Images0),
     Size = {Im0#e3d_image.width, Im0#e3d_image.height, Im0#e3d_image.type},
     case Size of
 	{W,H,Type} ->
@@ -709,8 +719,17 @@ do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
     end.
 
 make_unique(Name, Images0) ->
-    Images = [N || #e3d_image{name=N} <- gb_trees:values(Images0)],
+    Images = [(image_rec(Image))#e3d_image.name || Image <- gb_trees:values(Images0)],
     wings_util:unique_name(Name, Images).
+
+hide(Im, true) -> {hidden, Im};
+hide(Im, false) -> Im.
+
+image_rec({hidden, Im}) -> Im;
+image_rec(#e3d_image{} = Im) -> Im.
+
+is_hidden({hidden, _}) -> true;
+is_hidden(#e3d_image{}) -> false.
 
 %%%
 %%% Window for image.
