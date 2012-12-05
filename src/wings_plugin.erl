@@ -636,7 +636,7 @@ get_win_data(WinName) ->
 get_win_data_1([M|Ps], WinName) ->
 	case catch M:win_data(WinName) of
 	  {WinName,Data} -> {M,Data};
-	  _ -> get_win_data_1(Ps, WinName) 
+	  _ -> get_win_data_1(Ps, WinName)
 	end;
 get_win_data_1([], _) -> none.
 
@@ -644,10 +644,10 @@ restore_window(M, WinName, Pos, Size, CtmData, St) ->
     Ps = get(wings_plugins),
     case module_found(M,Ps) of
       true ->
-      	case catch M:window(WinName, Pos, Size, CtmData, St) of
-      	  {_,_}=Err -> keep;
-      	  _ -> keep
-      	end;
+        case catch M:window(WinName, Pos, Size, CtmData, St) of
+          {_,_}=Err -> keep;
+          _ -> keep
+        end;
       _ -> keep
     end.
 
