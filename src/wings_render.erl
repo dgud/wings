@@ -426,9 +426,7 @@ draw_plugins(Flag,D,Selmode) ->
 
 ground_and_axes() ->
     Axes = wings_wm:get_prop(show_axes),
-    ?CHECK_ERROR(),
     groundplane(Axes),
-    ?CHECK_ERROR(),
     case wings_pref:get_value(constrain_axes) of
 	true -> Yon = ?GROUND_GRID_SIZE * 10.0;
 	false -> #view{yon=Yon} = wings_view:current()

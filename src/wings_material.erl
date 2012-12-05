@@ -431,7 +431,8 @@ apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
 	end,
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_DIFFUSE, prop_get(diffuse, OpenGL)),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_AMBIENT, prop_get(ambient, OpenGL)),
-    apply_texture(prop_get(diffuse, Maps, none)),
+    apply_texture(prop_get(diffuse, Maps, none)),    
+    apply_normal_map(get_normal_map(Maps0)),  %% Combine with vertex colors
     DeApply.
 
 apply_texture(none) -> no_texture();
@@ -448,18 +449,31 @@ apply_texture(Image) ->
 	    end
     end.
 
+get_normal_map(Maps) ->
+    case prop_get(normal, Maps, none) of
+	none -> prop_get(bump, Maps, none);
+	Map -> Map
+    end.
+
+apply_normal_map(none) -> ok;
+apply_normal_map(TexId) ->
+    Bump = wings_image:bumpid(TexId),
+    gl:activeTexture(?GL_TEXTURE0 + ?NORMAL_MAP_UNIT),
+    gl:bindTexture(?GL_TEXTURE_2D, Bump),
+    gl:activeTexture(?GL_TEXTURE0).
+
 apply_texture_1(Image, TxId) ->
     gl:enable(?GL_TEXTURE_2D),
     gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE),
     gl:bindTexture(?GL_TEXTURE_2D, TxId),
-	Ft=case wings_pref:get_value(filter_texture, false) of
-		true -> ?GL_LINEAR;
-		false -> ?GL_NEAREST
-	end,
+    Ft=case wings_pref:get_value(filter_texture, false) of
+	   true -> ?GL_LINEAR;
+	   false -> ?GL_NEAREST
+       end,
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, Ft),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, Ft),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),    
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
     case wings_gl:is_ext({1,2}) of
 	true ->
 	    %% Calculate specular color correctly on textured models.
@@ -476,7 +490,7 @@ apply_texture_1(Image, TxId) ->
 %	    gl:enable(?GL_BLEND),
 	    gl:enable(?GL_ALPHA_TEST),
 	    gl:alphaFunc(?GL_GREATER, 0.3);
-	_ -> 
+	_ ->
 	    gl:disable(?GL_ALPHA_TEST)
     end,
     true.
@@ -530,23 +544,25 @@ is_mat_transparent(Mat) ->
     Trans.
 
 %% needed_attributes(We, St) -> [Attr]
-%%     Attr = uv|color
+%%     Attr = color|uv|tangent
 %%  Return a ordered list of the type of attributes that are needed
 %%  according to the materials.
+%%  tanget requires uv since it needs the uv's to calculate tanget space
 needed_attributes(We, #st{mat=Mat}) ->
     Used = wings_facemat:used_materials(We),
-    needed_attributes_1(Used, Mat, false, false).
+    needed_attributes_1(Used, Mat, false, false, false).
 
-needed_attributes_1(_, _, true, true) -> [color,uv];
-needed_attributes_1([M|Ms], MatTab, Col0, UV0) ->
+needed_attributes_1(_, _, true, _, true) -> [color,uv,tangent];
+needed_attributes_1([M|Ms], MatTab, Col0, UV0, TV0) ->
     Mat = gb_trees:get(M, MatTab),
+    TV = TV0 orelse needs_tangents(Mat),
     UV = UV0 orelse needs_uvs(Mat),
     Col = Col0 orelse needs_vertex_colors(Mat),
-    needed_attributes_1(Ms, MatTab, Col, UV);
-needed_attributes_1([], _, Col, UV) ->
-    L = case UV of
-	    true -> [uv];
-	    false -> []
+    needed_attributes_1(Ms, MatTab, Col, UV, TV);
+needed_attributes_1([], _, Col, UV, TV) ->
+    L = if TV -> [uv, tangent];
+	   UV -> [uv];
+	   true -> []
 	end,
     case Col of
 	true -> [color|L];
@@ -568,6 +584,10 @@ needs_uvs(Mat) ->
 	    has_texture(Mat)
     end.
 
+needs_tangents(Mat) ->
+    Maps = prop_get(maps, Mat, []),
+    none =/= get_normal_map(Maps).
+
 -define(PREVIEW_SIZE, 100).
 
 edit(Name, Assign, #st{mat=Mtab}=St) ->
@@ -575,7 +595,7 @@ edit(Name, Assign, #st{mat=Mtab}=St) ->
     {dialog,Qs,Fun} = edit_dialog(Name, Assign, St, Mat),
     wings_ask:dialog(?__(1,"Material Properties: ")++atom_to_list(Name),
 		     Qs, Fun).
-    
+
 
 edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     OpenGL0 = prop_get(opengl, Mat0),

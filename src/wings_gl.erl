@@ -19,7 +19,7 @@
 %% GLSL exports
 -export([support_shaders/0,
 	 uloc/2, set_uloc/3,
-	 compile/2,link_prog/1]).
+	 compile/2, link_prog/1, link_prog/2]).
 
 %% FBO exports
 -export([have_fbo/0, setup_fbo/2, delete_fbo/1]).
@@ -172,12 +172,9 @@ support_shaders() ->
 
 uloc(Prog, What) ->
     try gl:getUniformLocation(Prog, What) of
-	-1 -> 
-	    io:format("Warning the uniform variable '~p' is not used~n",[What]),
-	    -1;
-	Where -> 
-	    Where
-    catch _:_ -> 
+	-1 -> -1;
+	Where -> Where
+    catch _:_ ->
 	    ErrStr = "ERROR The uniform variable ~p should be a string~n",
 	    Err = io_lib:format(ErrStr, [What]),
 	    throw(lists:flatten(Err))
@@ -212,10 +209,14 @@ compile2(Type,Str,Src) ->
     check_status(Handle,Str, ?GL_OBJECT_COMPILE_STATUS_ARB),
     Handle.
 
-link_prog(Objs) when is_list(Objs) ->    
+link_prog(Objs) ->
+    link_prog(Objs, []).
+link_prog(Objs, Attribs) when is_list(Objs) ->
     Prog = gl:createProgramObjectARB(),
     [gl:attachObjectARB(Prog,ObjCode) || ObjCode <- Objs],
     [gl:deleteShader(ObjCode) || ObjCode <- Objs],
+    %% Must be bound before link (if any)
+    [gl:bindAttribLocation(Prog, Idx, AttribName) || {Idx, AttribName} <- Attribs],
     gl:linkProgram(Prog),
     check_status(Prog,"Link result", ?GL_OBJECT_LINK_STATUS_ARB),
     Prog.
@@ -241,8 +242,14 @@ printInfo(ShaderObj,Str) ->
 		    io:format("Info: ~s:~n ~s ~n", [Str,InfoStr]),
 		    case string:str(InfoStr, "oftware") of
 			0 -> ok;
-			_ -> 
-			    throw("Shader disabled would run in Software mode")
+			_ -> throw("Shader disabled would run in Software mode")
+		    end;
+		[] -> ok;
+		InfoStr when is_list(InfoStr) ->
+		    io:format("Info: ~s:~n ~s ~n", [Str,InfoStr]),
+		    case string:str(InfoStr, "oftware") of
+			0 -> ok;
+			_ -> throw("Shader disabled would run in Software mode")
 		    end;
 		Error ->
 		    io:format("Internal error PrintInfo crashed with ~p ~n", 

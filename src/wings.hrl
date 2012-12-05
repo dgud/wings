@@ -90,6 +90,12 @@
 	}).
 
 -define(EVENT_QUEUE, wings_io_event_queue).
+
+-define(DIFFUSE_MAP_UNIT, 0).
+-define(NORMAL_MAP_UNIT,  1).
+-define(ENV_MAP_UNIT,     2).
+-define(TANGENT_ATTR,     5).
+
 %%
 
 -define(SLOW(Cmd), begin wings_io:hourglass(), Cmd end).
@@ -311,6 +317,7 @@
 	  face_fn  = none :: wings_vtx_buffer(), %Face Normals (flat but per vertex)
 	  face_sn  = none :: wings_vtx_buffer(), %Face Normals (smooth)
 	  face_uv  = none :: wings_vtx_buffer(), %UV coords
+	  face_ts  = none :: wings_vtx_buffer(), %Tangent vector
 	  face_vc  = none :: wings_vtx_buffer(), %Vertex Colors coords
 	  face_es  = none :: wings_vtx_buffer(), %Edges 2*Vertex coords
 	  face_map = none,                       %FaceId -> {BinPos,TriCount}
