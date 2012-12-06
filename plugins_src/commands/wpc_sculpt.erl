@@ -3,7 +3,7 @@
 %%
 %%     A plugin to add a few basic sculpting tools.
 %%
-%%  Copyright (c) 2010-2011 Richard Jones
+%%  Copyright (c) 2010-2012 Richard Jones
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -20,18 +20,18 @@
 -import(lists, [foldl/3,sort/1,reverse/1,member/2]).
 
 -record(sculpt,
-    {mode,			% pull, pinch, smooth
-     active=false,      	% sculpt active true|false
-     id=none,			% id of initial object
-     mag,			% magnet true|false
-     rad,			% magnet radius
-     mag_type,			% magnet type
-     str,			% strength
-     mir,			% mirror info
-     locked,			% masked vertices
-     st,			% state
-     wst,			% working state
-     ost}).			% original state
+    {mode,          	% pull, pinch, smooth
+     active=false,  	% sculpt active true|false
+     id=none,       	% id of initial object
+     mag,           	% magnet true|false
+     rad,           	% magnet radius
+     mag_type,      	% magnet type
+     str,           	% strength
+     mir,           	% mirror info
+     locked,        	% masked vertices
+     st,            	% state
+     wst,           	% working state
+     ost}).         	% original state
 
 init() ->
     wings_pref:set_default(sculpt_strength, 0.005),
@@ -39,6 +39,7 @@ init() ->
     wings_pref:set_default(sculpt_magnet, {false,1.0}),
     wings_pref:set_default(sculpt_magnet_type, dome),
     wings_pref:set_default(sculpt_initial, false),
+    wings_pref:set_default(sculpt_constraint_axis, none),
     %% Delete old prefs
     wings_pref:delete_value(sculpt_magnet_color),
     true.
@@ -133,7 +134,6 @@ handle_sculpt_event_0({new_state,#st{shapes=Shs}=St1},
     wings_draw:refresh_dlists(St),
     wings_wm:current_state(St),
     update_sculpt_handler(Sc#sculpt{locked=Lv,mir=Mir,st=St,wst=St});
-
 handle_sculpt_event_0(Ev, #sculpt{st=St}=Sc) ->
     case wings_camera:event(Ev, St) of
       next -> handle_sculpt_event_1(Ev, Sc);
@@ -180,6 +180,9 @@ handle_sculpt_event_1(lost_focus, #sculpt{st=#st{shapes=Shs},wst=St0,active=true
     wings_wm:current_state(St),
     wings_wm:send(geom,{update_state,St}),
     update_sculpt_handler(Sc#sculpt{id=none,st=St,wst=St,active=false});
+handle_sculpt_event_1(quit=Ev, Sc) ->
+    wings_wm:later(Ev),
+    exit_sculpt(Sc);
 handle_sculpt_event_1(_,_) ->
     keep.
 
@@ -352,7 +355,7 @@ sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str0,rad=Rad,mag_type=MagType,mode=smooth
 %% Smooth mode with magnet
     case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
       {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
-		Shs0=check_is_same_id(Id,Shs1),
+        Shs0=check_is_same_id(Id,Shs1),
         #we{vp=Vtab0,pst=Pst}=We = gb_trees:get(Id, Shs0),
         {Positions,_} = vpos(Face, We),
         Cnt = {Cx,Cy,Cz} = e3d_vec:average(Positions),
@@ -377,7 +380,7 @@ sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str0,rad=Rad,mag_type=MagType,mode=smooth
                         end
                     end
                end, {[],Vtab0}, Vtab0),
-		NewPst = set_Influenced_vs(Influenced,Pst),
+        NewPst = set_Influenced_vs(Influenced,Pst),
         Shs = gb_trees:update(Id, We#we{vp=Vtab,pst=NewPst}, Shs0),
         {St#st{shapes=Shs},Id};
       _ ->
@@ -398,7 +401,14 @@ sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str,mag=false,mode=pinch,locked=Locked,
                     true -> Vtab1;
                     false ->
                         Pos = array:get(V, Vtab0),
-                        pinch(V, Pos, Cnt, 1, Str, Mir, We, Vtab1)
+                        Vtab2 = pinch(V, Pos, Cnt, 1, Str, Mir, We, Vtab1),
+                        case wings_io:is_modkey_pressed(?SHIFT_BITS) of
+                            false ->
+                              Vtab2;
+                            true ->
+                              NewPos = array:get(V, Vtab2),
+                              smooth(V, NewPos, 1, Str*10, Mir, We, Vtab2)
+                        end
                 end
             end, Vtab0, [Face], We),
         Shs = gb_trees:update(Id, We#we{vp=Vtab}, Shs0),
@@ -411,7 +421,7 @@ sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str,rad=Rad,mag_type=MagType,mode=pinch,
 %% Pinch mode with magnet
     case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
       {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
-		Shs0=check_is_same_id(Id,Shs1),
+        Shs0=check_is_same_id(Id,Shs1),
         #we{vp=Vtab0,pst=Pst}=We = gb_trees:get(Id, Shs0),
         {Positions,_} = vpos(Face, We),
         Cnt = {Cx,Cy,Cz} = e3d_vec:average(Positions),
@@ -428,14 +438,22 @@ sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str,rad=Rad,mag_type=MagType,mode=pinch,
                                     true ->
                                         Inf = magnetic_influence(MagType, Dist, Rad),
                                         Influenced1=[Influenced0|[{V,Inf}]],
-                                        {Influenced1,pinch(V, Pos, Cnt, Inf, Str, Mir, We, Vtab1)};
+                                        Vtab2 = pinch(V, Pos, Cnt, Inf, Str, Mir, We, Vtab1),
+                                        case wings_io:is_modkey_pressed(?SHIFT_BITS) of
+                                          false ->
+                                            {Influenced1,Vtab2};
+                                          true ->
+                                            NewPos = array:get(V, Vtab2),
+                                            Vtab3 = smooth(V, NewPos, Inf, Str*10, Mir, We, Vtab2),
+                                            {Influenced1,Vtab3}
+                                        end;
                                     false -> {Influenced0,Vtab1}
                                 end;
                             false -> {Influenced0,Vtab1}
                         end
                     end
                end, {[],Vtab0}, Vtab0),
-		NewPst = set_Influenced_vs(Influenced,Pst),
+        NewPst = set_Influenced_vs(Influenced,Pst),
         Shs = gb_trees:update(Id, We#we{vp=Vtab,pst=NewPst}, Shs0),
         {St#st{shapes=Shs},Id};
       _ ->
@@ -461,8 +479,14 @@ sculpt(X, Y, #sculpt{id=ID,locked=Locked,mir=Mir,str=Str,mag=false,
                      true -> Vtab1;
                      false ->
                          NewPos0 = e3d_vec:add_prod(Pos, Normal, Str),
-                         NewPos = handle_mirror(Id, V, NewPos0, Mir),
-                         array:set(V, NewPos, Vtab1)
+                         NewPos1 = constraint_check(Pos, NewPos0),
+                         NewPos = handle_mirror(Id, V, NewPos1, Mir),
+                         case wings_io:is_modkey_pressed(?SHIFT_BITS) of
+                           false ->
+                             array:set(V, NewPos, Vtab1);
+                           true ->
+                             smooth(V, NewPos, 1, Str*10, Mir, We, Vtab1)
+                         end
                  end
             end, Vtab0, Vpos),
         Shs = gb_trees:update(Id, We#we{vp=Vtab}, Shs0),
@@ -475,7 +499,7 @@ sculpt(X, Y, #sculpt{id=ID,locked=Locked,mir=Mir,str=Str,rad=Rad,
 %% Push and Pull mode with magnet
     case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
       {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
-		Shs0=check_is_same_id(Id,Shs1),
+        Shs0=check_is_same_id(Id,Shs1),
         #we{vp=Vtab0,pst=Pst}=We = gb_trees:get(Id, Shs0),
         {Positions,_} = vpos(Face, We),
         Cnt = {Cx,Cy,Cz} = e3d_vec:average(Positions),
@@ -500,15 +524,23 @@ sculpt(X, Y, #sculpt{id=ID,locked=Locked,mir=Mir,str=Str,rad=Rad,
                                          true -> e3d_vec:neg(Normal0)
                                        end,
                                        NewPos0 = e3d_vec:add_prod(Pos, Normal, Str*Inf),
-                                       NewPos = handle_mirror(Id, V, NewPos0, Mir),
-                                       {FNs,Influenced1,array:set(V, NewPos, Vtab1)};
-                             		 false -> {FNs0,Influenced0,Vtab1}
+                                       NewPos1 = constraint_check(Pos, NewPos0),
+                                       NewPos = handle_mirror(Id, V, NewPos1, Mir),
+                                       case wings_io:is_modkey_pressed(?SHIFT_BITS) of
+                                         false ->
+                                           Vtab2 = array:set(V, NewPos, Vtab1),
+                                           {FNs,Influenced1,Vtab2};
+                                         true ->
+                                           Vtab2 = smooth(V, NewPos, Inf, Str*10, Mir, We, Vtab1),
+                                           {FNs,Influenced1,Vtab2}
+                                       end;
+                                     false -> {FNs0,Influenced0,Vtab1}
                                  end;
                              false -> {FNs0,Influenced0,Vtab1}
                          end
                      end
                 end, {gb_trees:empty(),[],Vtab0}, Vtab0),
-		NewPst = set_Influenced_vs(Influenced,Pst),
+        NewPst = set_Influenced_vs(Influenced,Pst),
         Shs = gb_trees:update(Id, We#we{vp=Vtab,pst=NewPst}, Shs0),
         {St#st{shapes=Shs},Id};
       _ ->
@@ -582,7 +614,8 @@ smooth(V, Pos, Inf, Str, Mir, #we{id=Id}=We, Vtab) ->
     Avg = e3d_vec:average(Positions),
     Vec = e3d_vec:sub(Avg, Pos),
     NewPos0 = e3d_vec:add_prod(Pos, Vec, Str*Inf),
-    NewPos = handle_mirror(Id, V, NewPos0, Mir),
+    NewPos1 = constraint_check(Pos, NewPos0),
+    NewPos = handle_mirror(Id, V, NewPos1, Mir),
     array:set(V, NewPos, Vtab).
 
 pinch(V, Pos, Cnt, Inf, Str, Mir, #we{id=Id}, Vtab) ->
@@ -591,8 +624,38 @@ pinch(V, Pos, Cnt, Inf, Str, Mir, #we{id=Id}, Vtab) ->
           true -> e3d_vec:sub(Pos, Cnt)
     end,
     NewPos0 = e3d_vec:add_prod(Pos, Vec, Str*Inf),
-    NewPos = handle_mirror(Id, V, NewPos0, Mir),
+    NewPos1 = constraint_check(Pos, NewPos0),
+    NewPos = handle_mirror(Id, V, NewPos1, Mir),
     array:set(V, NewPos, Vtab).
+
+constraint_check({X1,Y1,Z1}=OrigPos, {X2,Y2,Z2}=NewPos) ->
+    Const = wings_pref:get_value(sculpt_constraint_axis),
+    case Const of
+        none -> NewPos;
+        x -> {X2,Y1,Z1};
+        y -> {X1,Y2,Z1};
+        z -> {X1,Y1,Z2};
+        default_axis ->
+            {_,DefaultAxis} = wings_pref:get_value(default_axis),
+            intersect_vec_plane(OrigPos, NewPos, DefaultAxis, DefaultAxis);
+        x_radial -> {X1,Y2,Z2};
+        y_radial -> {X2,Y1,Z2};
+        z_radial -> {X2,Y2,Z1};
+        default_axis_radial ->
+            {_,DefaultAxis} = wings_pref:get_value(default_axis),
+            intersect_vec_plane(NewPos, OrigPos, DefaultAxis, DefaultAxis)
+    end.
+
+intersect_vec_plane(PosA, PosB, Plane, Vec) ->
+%% Return point where Vec through PosA intersects with Plane at PosB
+    case e3d_vec:dot(Vec,Plane) of
+      0.0 ->
+        Intersection = e3d_vec:dot(e3d_vec:sub(PosB, PosA), Plane),
+        e3d_vec:add(PosB, e3d_vec:mul(Plane, Intersection));
+      Dot ->
+        Intersection = e3d_vec:dot(e3d_vec:sub(PosB, PosA), Plane) / Dot,
+        e3d_vec:add(PosA, e3d_vec:mul(Vec, Intersection))
+    end.
 
 %%%
 %%% Mirror Handling
@@ -687,6 +750,22 @@ command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
           prefs(Sc);
       {sculpt,exit_sculpt} ->
           exit_sculpt(Sc);
+      {sculpt,{axis_constraint,Axis}} ->
+          Const0 = wings_pref:get_value(sculpt_constraint_axis),
+          case Axis of
+              Const0 ->
+                  wings_pref:set_value(sculpt_constraint_axis, none),
+                  wings_wm:dirty(),
+                  update_sculpt_handler(Sc);
+              clear_constraints ->
+                  wings_pref:set_value(sculpt_constraint_axis, none),
+                  wings_wm:dirty(),
+                  update_sculpt_handler(Sc);
+              Axis ->
+                  wings_pref:set_value(sculpt_constraint_axis, Axis),
+                  wings_wm:dirty(),
+                  update_sculpt_handler(Sc)
+          end;
       _ -> keep
     end.
 
@@ -711,15 +790,16 @@ exit_sculpt(#sculpt{mag=Mag,mag_type=MagType,str=Str,rad=Rad,mode=Mode,ost=St0}=
 %%%
 
 help(#sculpt{mag=Mag,rad=Rad,mag_type=MagType,str=Str,mode=Mode}) ->
+    AddSmooth = "  "++ ?__(13,"Hold [Shift]: Smooth")++") ",
     ModeMsg =
         case Mode of
             pinch ->
               Pinch = mode(pinch),
-              Pinch++" "++?__(12,"(Hold [Ctrl]: Inflate)");
+              Pinch++" ("++?__(12,"Hold [Ctrl]: Inflate")++AddSmooth;
             smooth -> mode(smooth);
             _ ->
               Pull = mode(pull),
-              Pull++" "++?__(11,"(Hold [Ctrl]: Push)")
+              Pull++" ("++?__(11,"Hold [Ctrl]: Push")++AddSmooth
         end,
     Sculpt = ?__(1,"L: Sculpt"),
     Menu = ?__(2,"[Ctrl]+R: Sculpt Menu"),
@@ -736,7 +816,8 @@ help(#sculpt{mag=Mag,rad=Rad,mag_type=MagType,str=Str,mode=Mode}) ->
                                   true -> ?__(9,"None (Magnet is off)")
                                end]),
     {_,H} = wings_wm:win_size(),
-    LLine = wings_msg:join([?__(10,"Sculpt Mode")++": "++ModeMsg, StatusBar]),
+    Constraint = constraint_info(),
+    LLine = wings_msg:join([?__(10,"Sculpt Mode")++": "++ModeMsg,StatusBar,Constraint]),
     wings_io:info(0, H-?LINE_HEIGHT-3, LLine),
     wings_wm:message(wings_msg:join([Sculpt,Menu,Exit]),
                      wings_msg:join([Radius,Strength])).
@@ -796,24 +877,71 @@ sculpt_menu(X0, Y0, Sc) ->
     wings_menu:popup_menu(X, Y, sculpt, Menu).
 
 sculpt_menu(#sculpt{mag=Mag,mag_type=MagType,mode=Mode}) ->
-    [{mode(push)++"/"++mode(pull),pull,crossmark(Mode, pull)},
-     {mode(pinch)++"/"++mode(inflate),pinch,crossmark(Mode, pinch)},
-     {mode(smooth),smooth,crossmark(Mode, smooth)},
+    [{mode(push)++"/"++mode(pull),pull,?__(4,"Activate the Push/Pull sculpt tool"),crossmark(Mode, pull)},
+     {mode(pinch)++"/"++mode(inflate),pinch,?__(5,"Activate the Pinch/Inflate sculpt tool"),crossmark(Mode, pinch)},
+     {mode(smooth),smooth,?__(6,"Activate the smoothing brush"),crossmark(Mode, smooth)},
      separator,
-     {magtype(dome),dome,crossmark(MagType, dome)},
-     {magtype(absolute),absolute,crossmark(MagType, absolute)},
-     {magtype(straight),straight,crossmark(MagType, straight)},
-     {magtype(spike),spike,crossmark(MagType, spike)},
-     {magtype(bell),bell,crossmark(MagType, bell)},
+     {magtype(dome),dome,?__(7,"Activate the dome magnet"),crossmark(MagType, dome)},
+     {magtype(absolute),absolute,?__(8,"Activate the absolute magnet"),crossmark(MagType, absolute)},
+     {magtype(straight),straight,?__(9,"Activate the straight magnet"),crossmark(MagType, straight)},
+     {magtype(spike),spike,?__(10,"Activate the spike magnet"),crossmark(MagType, spike)},
+     {magtype(bell),bell,?__(11,"Activate the bell magnet"),crossmark(MagType, bell)},
      separator,
-     {?__(1,"Magnet On/Off"),magnet,crossmark(Mag, true)},
+     {?__(1,"Magnet On/Off"),magnet,?__(12,"Toggle the magnet on or off"),crossmark(Mag, true)},
      {?__(2,"Magnet Mask On/Off"),mask_toggle,
+      ?__(13,"Toggle the Magnet Mask. Masking options are found in the Tools menu."),
          wings_menu_util:crossmark(magnet_mask_on)},
      separator,
-     {?__(3,"Preferences"),prefs},
+     {?__(16,"Axis Constraints"),{axis_constraint, constraints_menu()}},
      separator,
-     {exit_string(),exit_sculpt}].
+     {?__(3,"Preferences"),prefs,?__(14,"Sculpt mode preferences")},
+     {exit_string(),exit_sculpt,?__(15,"Exit sculpt mode")}].
 
+constraints_menu() ->
+    Constraint = wings_pref:get_value(sculpt_constraint_axis),
+    X = wings_s:dir(x),
+    Y = wings_s:dir(y),
+    Z = wings_s:dir(z),
+    Rad = ?__(5,"Radial of ~s"),
+    Def = ?__(4,"Default"),
+    Help1 = ?__(1,"Constrain movement to the ~s axis."),
+    Help2 = ?__(7,"Constrain movement to the radial of the ~s axis."),
+    [{X,x,wings_util:format(Help1, [X]),crossmark(x, Constraint)},
+     {Y,y,wings_util:format(Help1, [Y]),crossmark(y, Constraint)},
+     {Z,z,wings_util:format(Help1, [Z]),crossmark(z, Constraint)},
+     {?__(3,"Default Axis"),default_axis,wings_util:format(Help1, [Def]),
+       crossmark(default_axis, Constraint)},
+     separator,
+     {wings_util:format(Rad, [X]),x_radial,wings_util:format(Help2, [X]),crossmark(x_radial, Constraint)},
+     {wings_util:format(Rad, [Y]),y_radial,wings_util:format(Help2, [Y]),crossmark(y_radial, Constraint)},
+     {wings_util:format(Rad, [Z]),z_radial,wings_util:format(Help2, [Z]),crossmark(z_radial, Constraint)},
+     {?__(6,"Radial of Default Axis"),default_axis_radial,wings_util:format(Help2, [Def]),
+       crossmark(default_axis_radial, Constraint)},
+     separator,
+     {?__(8,"Clear Constraints"),clear_constraints}].
+
+constraint_info() ->
+    Constraint = wings_pref:get_value(sculpt_constraint_axis),
+    X = wings_s:dir(x),
+    Y = wings_s:dir(y),
+    Z = wings_s:dir(z),
+    Def = ?__(1,"Default"),
+    Rad = ?__(2,"Radial of ~s"),
+    Str = case Constraint of
+        none -> ?__(3,"None");
+        x -> X;
+        y -> Y;
+        z -> Z;
+        default_axis -> Def;
+        x_radial -> wings_util:format(Rad, [X]);
+        y_radial -> wings_util:format(Rad, [Y]);
+        z_radial -> wings_util:format(Rad, [Z]);
+        default_axis_radial -> wings_util:format(Rad, [Def])
+    end,
+    wings_util:format(?__(4,"Constraint: ~s"), [Str]).
+
+crossmark(Axis, Axis) -> [crossmark];
+crossmark(_, _) -> [].
 
 %% ===========================================
 %% Added by Micheus Oct/2011
@@ -870,7 +998,7 @@ remove_influence(#sculpt{id=none,st=#st{shapes=Shs0}=St}=Sc) ->
 % It clean any information about the vertices influence from the shapes
 clear_influence(#sculpt{id=none,st=#st{shapes=Shs0}=St}=Sc) ->
 	Sc#sculpt{st=St#st{shapes=clear_influence_vs(Shs0)}};
-clear_influence(#sculpt{id=Id,st=#st{shapes=Shs0}=St}=Sc) -> 
+clear_influence(#sculpt{id=Id,st=#st{shapes=Shs0}=St}=Sc) ->
 	#we{pst=Pst}=We= gb_trees:get(Id, Shs0),
 	NewPst=set_Influenced_vs([],Pst),
 	Shs = gb_trees:update(Id, We#we{pst=NewPst}, Shs0),
@@ -892,7 +1020,7 @@ clear_influence_vs(Shs) ->
 update_dlist({vs_inf,VsInf},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
     Key = ?MODULE,
     Str=wings_pref:get_value(sculpt_strength),
-    ColFac=Str*10,  % range of 0..1 
+    ColFac=Str*10,  % range of 0..1
     Col={1.0*ColFac,0.0*ColFac,1.0,0.0},
     Pos = positions(VsInf,Vtab,[]),
     case Pos of
@@ -946,9 +1074,4 @@ vert_display(Size,vertex) ->
       false -> Size
     end;
 vert_display(Size,_Selmode) -> Size.
-
-crossmark(Key, Key) ->
-    [crossmark];
-crossmark(_, _) ->
-    [].
 
