@@ -21,8 +21,9 @@ uniform sampler2D NormalMap;
 
 varying vec3  Normal;
 varying vec3  EyeDir;
-varying float LightIntensity;
 varying vec4 tangent;
+
+vec3 LightPos = vec3(0.0, 10.0, 0.0);
 
 vec3 get_normal() {
     ivec2 dim = textureSize(NormalMap, 0);
@@ -77,9 +78,9 @@ void main()
     vec3 envColor = vec3(texture2D(EnvMap, index));
 
     // Add lighting to base color and mix
-
+    float LightIntensity = max(dot(normalize(LightPos - EyeDir), Normal), 0.0);
     vec3 base = LightIntensity * BaseColor;
-    envColor  = mix(envColor, base, MixRatio);
+    envColor  = mix(envColor, BaseColor, MixRatio);
 
     gl_FragColor = vec4(envColor, 1.0);
 }
