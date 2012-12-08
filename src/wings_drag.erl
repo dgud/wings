@@ -620,7 +620,8 @@ handle_drag_event_1(#mousemotion{}=Ev, Drag0) ->
     Drag = motion(Ev, Drag0),
     get_drag_event(Drag);
 handle_drag_event_1({numeric_preview,Move}, Drag0) ->
-    Drag1 = possible_falloff_update(Move, Drag0),
+    {_,X,Y} = wings_io:get_mouse_state(),
+    Drag1 = possible_falloff_update(Move, Drag0#drag{x=X,y=Y}),
     Drag = ?SLOW(motion_update(Move, Drag1)),
     get_drag_event(Drag);
 handle_drag_event_1({drag_arguments,Move}, Drag0) ->
@@ -723,13 +724,16 @@ make_query_1([U0|Units], [V|Vals]) ->
 	     make_query_1(Units, Vals)];
 	skip ->
 	     make_query_1(Units, Vals);
+	falloff ->
+	    [{hframe,[{label,qstr(falloff)},{text,V,[{range,{1.0E-6,infinity}}]}]}|
+	     make_query_1(Units, Vals)];
 	U ->
 	    [{hframe,[{label,qstr(U)},{text,V,qrange(U0)}]}|
 	     make_query_1(Units, Vals)]
     end;
 make_query_1([], []) -> [].
 
-qstr(distance) -> ?__(1,"Dx");
+qstr(distance) -> ?__(1,"D");
 qstr(dx) -> ?__(2,"Dx");
 qstr(dy) -> ?__(3,"Dy");
 qstr(dz) ->  ?__(4,"Dz");
@@ -828,83 +832,84 @@ mouse_pre_translate(_, #mousemotion{mod=Mod}=Ev,Drag) ->
     {Ev,Mod,Drag}.
 
 mouse_range(#mousemotion{x=X0, y=Y0, state=Mask},
-            #drag{x=OX, y=OY,
-                   xs=Xs0, ys=Ys0, zs=Zs0, p4=P4th0,p5=P5th0,
-                   psum=Psum0,
-                   mode_data=MD,
-                   xt=Xt0, yt=Yt0, mmb_timer=Count0,
-                   unit_sc=UnitScales, unit=Unit, offset=Offset,
-                   last_move=LastMove}=Drag0,
-			Mod) ->
+		#drag{x=OX, y=OY,
+			xs=Xs0, ys=Ys0, zs=Zs0, p4=P4th0,p5=P5th0,
+			psum=Psum0,
+			mode_data=MD,
+			xt=Xt0, yt=Yt0, mmb_timer=Count0,
+			unit_sc=UnitScales, unit=Unit, offset=Offset,
+			last_move=LastMove}=Drag0, Mod) ->
     %%io:format("Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xs0,Ys0}]),
-    [Xp,Yp,Zp,P4thp,P5thp] = case Mod =/= 0 of
-        true -> Psum0;
-        false -> [Xs0,Ys0,Zs0,P4th0,P5th0]
+    [Xp,Yp,Zp,P4thp,P5thp] =
+    case Mod =/= 0 of
+		true -> Psum0;
+		false -> [Xs0,Ys0,Zs0,P4th0,P5th0]
     end,
     {X,Y} = wings_wm:local2global(X0, Y0),
 
     case wings_pref:lowpass(X-OX, Y-OY) of
-    {0,0} ->
-        Drag = Drag0#drag{xt=0,yt=0},
-        {{no_change,LastMove},Drag};
+		{0,0} ->
+			Drag = Drag0#drag{xt=0,yt=0},
+			{{no_change,LastMove},Drag};
 
-    {XD0,YD0} ->
+		{XD0,YD0} ->
+	
+			CS = constraints_scale(Unit,Mod,UnitScales),
+			XD = CS*(XD0 + Xt0),
+			YD = CS*(YD0 + Yt0),
 
-        CS = constraints_scale(Unit,Mod,UnitScales),
-        XD = CS*(XD0 + Xt0),
-        YD = CS*(YD0 + Yt0),
+			ModeData =
+			case MD of
+				{_,MD0} -> MD0;
+				MD0 -> MD0
+			end,
+			ParaNum = length(Unit),
+			case Mask of
+				?SDL_BUTTON_LEFT when ParaNum >= 3 ->
+					Xs = {no_con, Xs0},
+					Ys = {no_con, -Ys0},
+					Zs = {con, - (Zp - XD)},	%Horizontal motion
+					P4th = {no_con, -P4th0},
+					P5th = {no_con, -P5th0},
+					Count = Count0;
+				?SDL_BUTTON_MMASK when ParaNum >= 4 ->
+					Xs = {no_con, Xs0},
+					Ys = {no_con, -Ys0},
+					Zs = {no_con, -Zs0},
+					P4th = {con, - (P4thp + XD)},
+					P5th = {no_con, -P5th0},
+					Count = Count0 + 1;
+				?SDL_BUTTON_RMASK when ParaNum >= 5 ->
+					Xs = {no_con, Xs0},
+					Ys = {no_con, -Ys0},
+					Zs = {no_con, -Zs0},
+					P4th = {no_con, -P4th0},
+					P5th = {con, - (P5thp + XD)},
+					Count = Count0;
+				_ ->
+					Xs = {con, Xp + XD},
+					Ys = {con, - (Yp + YD)},
+					Zs = {no_con, -Zs0},
+					P4th = {no_con, -P4th0},
+					P5th = {no_con, -P5th0},
+					Count = Count0
+			end,
+			wings_io:warp(OX, OY),
 
-        ModeData = case MD of
-          {_,MD0} -> MD0;
-          MD0 -> MD0
-        end,
-        ParaNum = length(Unit),
-        case Mask of
-          ?SDL_BUTTON_LEFT when ParaNum >= 3 ->
-            Xs = {no_con, Xs0},
-            Ys = {no_con, -Ys0},
-            Zs = {con, - (Zp - XD)},	%Horizontal motion
-            P4th = {no_con, -P4th0},
-            P5th = {no_con, -P5th0},
-            Count = Count0;
-          ?SDL_BUTTON_MMASK when ParaNum >= 4 ->
-            Xs = {no_con, Xs0},
-            Ys = {no_con, -Ys0},
-            Zs = {no_con, -Zs0},
-            P4th = {con, - (P4thp + XD)},
-            P5th = {no_con, -P5th0},
-            Count = Count0 + 1;
-          ?SDL_BUTTON_RMASK when ParaNum >= 5 ->
-            Xs = {no_con, Xs0},
-            Ys = {no_con, -Ys0},
-            Zs = {no_con, -Zs0},
-            P4th = {no_con, -P4th0},
-            P5th = {con, - (P5thp + XD)},
-            Count = Count0;
-          _ ->
-            Xs = {con, Xp + XD},
-            Ys = {con, - (Yp + YD)},
-            Zs = {no_con, -Zs0},
-            P4th = {no_con, -P4th0},
-            P5th = {no_con, -P5th0},
-            Count = Count0
-        end,
-        wings_io:warp(OX, OY),
+			% Ds means DragSummary
+			Ds0 = mouse_scale([Xs,Ys,Zs,P4th,P5th], UnitScales),
+			Ds1 = add_offset_to_drag_sum(Ds0, Unit, Offset),
+			Ds = round_to_constraint(Unit, Ds1, Mod, []),
 
-        % Ds means DragSummary
-        Ds0 = mouse_scale([Xs,Ys,Zs,P4th,P5th], UnitScales),
-        Ds1 = add_offset_to_drag_sum(Ds0, Unit, Offset),
-        Ds = round_to_constraint(Unit, Ds1, Mod, []),
+			Psum = [S || {_,S} <- [Xs,Ys,Zs,P4th,P5th]],
+			[Xs2,Ys2,Zs2,P4th2,P5th2] = constrain_2(Unit, Psum, UnitScales, Offset),
 
-        Psum = [S || {_,S} <- [Xs,Ys,Zs,P4th,P5th]],
-        [Xs2,Ys2,Zs2,P4th2,P5th2] = constrain_2(Unit, Psum, UnitScales, Offset),
-
-        [Xs1,Ys1,Zs1,P4th1,P5th1] = scale_mouse_back(Ds, UnitScales, Offset),
-        Move = constrain_1(Unit, Ds, Drag0),
-        Drag = Drag0#drag{xs=Xs1,ys=-Ys1,zs=-Zs1,p4=-P4th1,p5=-P5th1,
-                          psum=[Xs2,-Ys2,-Zs2,-P4th2,-P5th2],
-                          xt=XD0,yt=YD0,mmb_timer=Count,mode_data=ModeData},
-        {Move,Drag}
+			[Xs1,Ys1,Zs1,P4th1,P5th1] = scale_mouse_back(Ds, UnitScales, Offset),
+			Move = constrain_1(Unit, Ds, Drag0),
+			Drag = Drag0#drag{xs=Xs1,ys=-Ys1,zs=-Zs1,p4=-P4th1,p5=-P5th1,
+							  psum=[Xs2,-Ys2,-Zs2,-P4th2,-P5th2],
+							  xt=XD0,yt=YD0,mmb_timer=Count,mode_data=ModeData},
+			{Move,Drag}
     end.
 
 mouse_scale([{Tag,D}|Ds], [S|Ss]) ->
