@@ -1059,7 +1059,7 @@ valid_sel(Prompt, Sel, #st{shapes=Shs,selmode=Mode}=St) ->
     end.
 
 ask(Qs, Fun, St) ->
-    wings_ask:ask(?__(1,"Select By Id"), {{preview,ungrab},Qs},
+    wings_ask:ask(?__(1,"Select By Id"), {preview,Qs},
     fun
         ({dialog_preview,Res}) ->
             Sel = Fun(Res),

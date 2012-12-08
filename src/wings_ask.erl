@@ -135,10 +135,10 @@ init() ->
     ok.
 
 ask_preview(Cmd, Bool, Title, Qs, St) ->
-    ask(Bool, Title, {{preview,ungrab},Qs}, preview_fun(Cmd, St)).
+    ask(Bool, Title, {preview,Qs}, preview_fun(Cmd, St)).
 
 dialog_preview(Cmd, Bool, Title, Qs, St) ->
-    dialog(Bool, Title, {{preview,ungrab},Qs}, preview_fun(Cmd, St)).
+    dialog(Bool, Title, {preview,Qs}, preview_fun(Cmd, St)).
         
 preview_fun(Cmd, St) ->
     fun
@@ -159,12 +159,12 @@ command_name({Menu,SubMenu,Cmd}, Res) ->
 ask(Title, Qs, Fun) ->
     ask(true, Title, Qs, Fun).
 
-ask(Bool, Title, {{preview,_}=U,Qs0}, Fun) ->
+ask(Bool, Title, {P,Qs0}, Fun) when P=:=preview; P=:=drag_preview ->
 %% preview tag adds an Preview button to the dialog box, but you have to account
 %% for the result at the command's origin. wings_drag is done, so any drag
 %% sequence commands are handled automatically.
     Qs = queries(Qs0),
-    dialog(Bool, Title, {U,Qs}, Fun);
+    dialog(Bool, Title, {P,Qs}, Fun);
 ask(Bool, Title, Qs0, Fun) ->
     Qs = queries(Qs0),
     dialog(Bool, Title, Qs, Fun).
@@ -470,11 +470,11 @@ do_dialog_centered(Title, Qs, Level, Fun) ->
     keep.
 
 
-setup_dialog(Qs, Fun) ->
-    Type = case Qs of
-        {{preview,grab},_} -> grab;
-        {{preview,ungrab},_} -> ungrab;
-        _otherwise -> undefined
+setup_dialog(Qs0, Fun) ->
+    {Type,Qs} = case Qs0 of
+        {drag_preview,Qs1} -> {drag_preview,{preview,Qs1}};
+        {preview,Qs1} -> {preview,{preview,Qs1}};
+        _otherwise -> {undefined,Qs0}
     end,
     {Fi0,Sto,N} = mktree(Qs, gb_trees:empty()),
     Fi = #fi{w=W0,h=H0} = layout(Fi0, Sto),
@@ -652,13 +652,13 @@ escape_pressed(S0=#s{fi=TopFi,store=Sto}) ->
     end.
 
 delete(#s{level=[_],preview=#pv{type=Type},grab_win=GrabWin}=S) ->
-    if Type=:=grab -> wings_io:grab(); true -> ok end,
+    if Type=:=drag_preview -> wings_io:grab(); true -> ok end,
     delete_blanket(S),
     wings_wm:grab_focus(GrabWin),
     wings_wm:allow_drag(false),
     delete;
 delete(#s{preview=#pv{type=Type}}=S) ->
-    if Type=:=grab -> wings_io:grab(); true -> ok end,
+    if Type=:=drag_preview -> wings_io:grab(); true -> ok end,
     delete_blanket(S),
     delete.
 
@@ -813,7 +813,7 @@ field_event(Ev, S=#s{focus=Index,fi=TopFi=#fi{w=W0,h=H0},store=Store0,
 	{done,Store} -> return_result(S#s{store=Store});
 	{preview_update,_} -> do_preview(S);
 	{reset,_} -> do_preview(S#s{store=Reset});
-	cancel when Type=:=ungrab -> preview_cancel_result(S);
+	cancel when Type=:=preview -> preview_cancel_result(S);
 	cancel -> delete(S);
 	keep -> keep;
 	{recursive,Return} -> Return;
@@ -1251,25 +1251,28 @@ get_fi_1(Index, #fi{extra=#container{fields=Fields}}, Path) ->
 % get_fi_1(_Index, #fi{extra=#leaf{}}) ->
 %     [].
 
-
+%%
+%% Preview Dialog Panel
+%%
+dialog_preview_panel(Qs) ->
+    Preview = wings_pref:get_value(preview_dialog, auto_preview),
+    {hframe,[{vframe,Qs},
+		{vframe,[{button,ok,[ok]},
+		   {button,cancel,[cancel]},
+		   separator,
+		{vframe,[{vradio,
+		  [{?__(2,"Auto"),auto_preview},
+		   {?__(3,"Delayed"),delayed_preview},
+		   {?__(4,"Manual"),manual_preview}],Preview},
+		   {button,preview_update,[preview_update]}],
+		  [{title,?__(1,"Preview")}]},
+		{button,reset,[reset]}]}]}.
 
 %%
 %% Conversion of dialog query into internal tree format
 %%
-
-mktree({{preview,_},Qs0}, Sto0) when is_list(Qs0) ->
-    Preview = wings_pref:get_value(preview_dialog, auto_preview),
-    Qs = {hframe,[{vframe,Qs0},
-		  {vframe,[{button,ok,[ok]},
-			   {button,cancel,[cancel]},
-			   separator,
-		  {vframe,[{vradio,
-			  [{?__(2,"Auto"),auto_preview},
-			   {?__(3,"Delayed"),delayed_preview},
-			   {?__(4,"Manual"),manual_preview}],Preview},
-			   {button,preview_update,[preview_update]}],
-			  [{title,"Preview"}]},
-		  {button,reset,[reset]}]}]},
+mktree({preview,Qs0}, Sto0) when is_list(Qs0) ->
+    Qs = dialog_preview_panel(Qs0),
     {Fis,Sto,I} = mktree(Qs, Sto0, 1),
     {Fis,Sto,I-1};
 mktree(Qs0, Sto0) when is_list(Qs0) ->

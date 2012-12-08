@@ -70,7 +70,7 @@ create_bbox(#st{bb=BB}=St) ->
              {hframe,[{label,X},{text,Cx},
                       {label,Y},{text,Cy},
                       {label,Z},{text,Cz}]}],
-    wings_ask:dialog(?__(1,"Create Bounding Box"), {{preview,ungrab},Qs},
+    wings_ask:dialog(?__(1,"Create Bounding Box"), {preview,Qs},
       fun
         ({dialog_preview,Res}) ->
             St1 = save_bbox(Res, St),

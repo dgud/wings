@@ -211,7 +211,7 @@ draw_window({{_,{CX,CY,CZ}}, {_, SugCenter}, {_,{SX,SY,SZ}=Size}, {_, {SugX, Sug
               end,
     Frame = [{vframe, Frame1 ++ Frame2 ++ Frame3}],
     Name = draw_window1(name,default),
-    wings_ask:dialog(Name, {{preview,ungrab},Frame},
+    wings_ask:dialog(Name, {preview,Frame},
        fun
            ({dialog_preview,Scale}) ->
                {preview,St,translate(Scale,SugCenter,Size,Sel,St)};

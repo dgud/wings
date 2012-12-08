@@ -71,7 +71,7 @@ set_camera_position(Res,St) ->
 preview_fun(Qs, OrigView, St) ->
     Window = wings_wm:this(),
     Title = ?__(1,"Position Camera Numerically"),
-    Dialog = {{preview,ungrab},Qs},
+    Dialog = {preview,Qs},
     wings_ask:dialog(Title, Dialog,
         fun
              ({dialog_preview,Res}) ->
