@@ -1789,34 +1789,48 @@ area_volume_info(St) ->
         true -> wings_u:error_msg(?__(1,"No objects in scene"));
         false ->
             Rows = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
-            A = lists:max([length(A) || {{_,A},{_,_},{_,_},{_,_}} <- Rows]) + 2,
-            B = lists:max([length(B) || {{_,_},{_,B},{_,_},{_,_}} <- Rows]) + 2,
-            C = lists:max([length(C) || {{_,_},{_,_},{_,C},{_,_}} <- Rows]) + 2,
-            D = lists:max([length(D) || {{_,_},{_,_},{_,_},{_,D}} <- Rows]) + 4,
-            Qs = [{table,[{" #"," Name"," Area"," Volume"}|Rows],[{col_widths,{A,B,C,D}}]}],
+            A = lists:max([length(A) || {{_,A},{_,_},{_,_},{_,_},{_,_}} <- Rows]) + 8,
+            B = lists:max([length(B) || {{_,_},{_,B},{_,_},{_,_},{_,_}} <- Rows]) + 8,
+            C = lists:max([length(C) || {{_,_},{_,_},{_,C},{_,_},{_,_}} <- Rows]) + 8,
+            D = lists:max([length(D) || {{_,_},{_,_},{_,_},{_,D},{_,_}} <- Rows]) + 8,
+            E = lists:max([length(E) || {{_,_},{_,_},{_,_},{_,_},{_,E}} <- Rows]) + 8,
+            Qs = [{table,[{" #"," Name"," Area","Perimeter", "Volume"}|Rows],[{col_widths,{A,B,C,D,E}}]}],
             Ask = fun(_Res) -> ignore end,
             wings_ask:dialog(?__(5,"Scene Info: Area & Volume"), Qs, Ask)
     end.
 
 get_object_info(Id, Shapes) ->
-    We0 = gb_trees:get(Id, Shapes),
+    #we{es=Etab0,fs=Ftab0,vp=VPos0} = We0 = gb_trees:get(Id, Shapes),
     We = wings_tesselation:triangulate(We0),
     #we{id=Id,name=Name,fs=Ftab} = We,
     Both = [area_volume(Face, We) || Face <- gb_trees:keys(Ftab)],
+    FacePerimeter = fun(Face) ->
+        Es = wings_face:to_edges([Face],We0),
+        [ begin 
+            #edge{vs=VS, ve=VE} = array:get(Ei,Etab0),
+            e3d_vec:dist(array:get(VS,VPos0), array:get(VE,VPos0))
+          end
+          || Ei <- Es]
+    end,
+    
+    PerimeterList0 = [ FacePerimeter(Face) || Face <- gb_trees:keys(Ftab0) ],
+
+    %% don't count each edge two times !
+    Perimeter = lists:sum(lists:flatten(PerimeterList0)) / 2.0,
     Area =  lists:sum([A || {A,_} <- Both]),
     Volume =lists:sum([V || {_,V} <- Both]),
     ToString = fun(Item) ->
 	case Item of
 	    Item when is_float(Item) ->
-		lists:concat(hd(io_lib:fwrite("~12f", [Item])));
+		lists:flatten(hd(io_lib:format("~.5f", [Item])));
 	    Item when is_integer(Item) ->
 		integer_to_list(Item);
 	    Item when is_list(Item) ->
 		Item
 	end
     end,
-    [Id2,Name2,Area2,Volume2] = lists:map(ToString, [Id,Name,Area,Volume]),
-    {{Id,Id2},{Name,Name2},{Area,Area2},{Volume,Volume2}}.
+    [Id2,Name2,Area2,Perimeter2,Volume2] = lists:map(ToString, [Id,Name,Area,Perimeter,Volume]),
+    {{Id,Id2},{Name,Name2},{Area,Area2},{Perimeter,Perimeter2},{Volume,Volume2}}.
 
 area_volume(Face, We) ->
     [V1,V2,V3] = wings_face:vertex_positions(Face, We),
