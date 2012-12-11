@@ -803,11 +803,10 @@ draw_mini_axis() ->
 user_clipping_planes(on) ->
     case wings_wm:get_prop(clip_plane) of
 	true ->
-	    {_Position,Direction} = wings_pref:get_value(last_axis),
-	    Expand = fun(V) -> {X,Y,Z}=V, [X,Y,Z,0.0] end,
-	    Plane0 = Expand(Direction),
+	    {_Position,Direction = {X,Y,Z}} = wings_pref:get_value(last_axis),
+	    Expand = fun({X1,Y1,Z1}) -> [X1,Y1,Z1,0.0] end,
 	    draw_clip_disk(Direction, Expand),
-	    gl:clipPlane(?GL_CLIP_PLANE0, Plane0),
+	    gl:clipPlane(?GL_CLIP_PLANE0, {X,Y,Z,0.0}),
 	    gl:enable(?GL_CLIP_PLANE0),
 	    gl:disable(?GL_CULL_FACE);
 	false ->
@@ -825,7 +824,7 @@ draw_clip_disk(Direction, Expand) ->
     Ny = Expand(NY),
     Nz = Expand(NZ),
     Nw = [0.0,0.0,0.0,1.0],
-    M = lists:append([Nx,Ny,Nz,Nw]),
+    M  = list_to_tuple(lists:append([Nx,Ny,Nz,Nw])),
     Obj = glu:newQuadric(),
     glu:quadricDrawStyle(Obj, ?GLU_SILHOUETTE),
     gl:pushMatrix(),
