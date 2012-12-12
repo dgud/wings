@@ -901,26 +901,27 @@ random(Percent, St) ->
 %% Select short edges.
 %%
 
-short_edges(Ask, _St) when is_atom(Ask) ->
+short_edges(Ask,St) when is_atom(Ask) ->
     Qs = [ {vframe, [
        {label,?__(1,"Length Limits")},
        separator,
        {hframe,[{label,?__(4,"Minimum")},{text,0.0,   [{key,edgemin},{width,15},{range,{0.0,10.0   }}]}]},
 	   {hframe,[{label,?__(3,"Maximum")},{text,1.0E-3,[{key,edgemax},{width,15},{range,{1.0E-5,10.0}}]}]}
 	  ]}],
-    wings_ask:dialog(Ask, ?__(2,"Select Short Edges"),
-		     [{hframe,Qs}],
-		     fun(Res) -> 
-		         {edgemin,MinTolerance} = lists:keyfind(edgemin,1,Res),
-		         {edgemax,Tolerance}    = lists:keyfind(edgemax,1,Res),
-		         {select,{by,{short_edges,[Tolerance,MinTolerance]}}} 
-		     end);
-short_edges([Tolerance,MinTolerance], #st{sel=[]}=St0) ->
+	  
+	 Title = ?__(2,"Select Short Edges"),
+     Cmd = {select,by,short_edges},
+    wings_ask:dialog_preview(Cmd, Ask, Title, Qs, St);
+short_edges(Res, #st{sel=[]}=St0) ->
+    {edgemin,MinTolerance} = lists:keyfind(edgemin,1,Res),
+    {edgemax,Tolerance}    = lists:keyfind(edgemax,1,Res),
     St = wings_sel:make(fun(Edge, We) ->
 				short_edge({Tolerance,MinTolerance}, Edge, We)
 			end, edge, St0),
     {save_state,St#st{selmode=edge}};
-short_edges([Tolerance,MinTolerance], #st{selmode=Mode}=St0) ->
+short_edges(Res, #st{selmode=Mode}=St0) ->
+    {edgemin,MinTolerance} = lists:keyfind(edgemin,1,Res),
+    {edgemax,Tolerance}    = lists:keyfind(edgemax,1,Res),
     St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
     Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
 				Sel1 = gb_sets:to_list(Sel0),
