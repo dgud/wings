@@ -28,7 +28,7 @@
 	 %% Get the actual matrices
 	 matrix/1, inv_matrix/1,
 	 %% Transform the matrices
-	 inverse/1, translate/2, rotate/2, rotate/3, scale/2, mul/2
+	 inverse/1, translate/2, rotate/2, rotate/3, scale/2, mul/2, mul_foldl/1
 	]).
 
 
@@ -174,5 +174,42 @@ perspective(Fov, Near, Far) ->
 			{T,T,1.0}).
 
 %%%-------------------------------------------------------------------
+
+
+
+-spec mul_foldl2(M::e3d_matrix(), M::e3d_matrix() ) -> M::e3d_matrix().     
+-spec mul_foldl3(M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix()) -> M::e3d_matrix().
+-spec mul_foldl4(M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix()) -> M::e3d_matrix().
+-spec mul_foldl5(M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix()) -> M::e3d_matrix().
+-spec mul_foldl6(M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix()) -> M::e3d_matrix().
+-spec mul_foldl7(M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix(), M::e3d_matrix()) -> M::e3d_matrix().
+
+
+mul_foldl([M1,M2,M3,M4,M5,M6,M7]) -> mul_foldl7(M1,M2,M3,M4,M5,M6,M7);
+mul_foldl([M1,M2,M3,M4,M5,M6]) -> mul_foldl6(M1,M2,M3,M4,M5,M6);
+mul_foldl([M1,M2,M3,M4,M5]) -> mul_foldl5(M1,M2,M3,M4,M5);
+mul_foldl([M1,M2,M3,M4]) -> mul_foldl4(M1,M2,M3,M4);
+mul_foldl([M1,M2,M3]) -> mul_foldl3(M1,M2,M3);
+mul_foldl([M1,M2]) -> mul_foldl2(M1,M2).
+
+     
+%% Simple short-hand for matrix composition three or four deep or more.  
+mul_foldl2(M1, M2) ->
+    lists:foldl(fun(Mat, AccMat) -> e3d_mat:mul(Mat, AccMat) end, e3d_mat:identity(), [M1,M2]).
+
+mul_foldl3(M1, M2, M3) ->
+    lists:foldl(fun(Mat, AccMat) -> e3d_mat:mul(Mat, AccMat) end, e3d_mat:identity(), [M1,M2,M3]).
+    
+mul_foldl4(M1, M2, M3, M4) ->
+    lists:foldl(fun(Mat, AccMat) -> e3d_mat:mul(Mat, AccMat) end, e3d_mat:identity(), [M1,M2,M3,M4]).
+    
+mul_foldl5(M1, M2, M3, M4, M5) ->
+    lists:foldl(fun(Mat, AccMat) -> e3d_mat:mul(Mat, AccMat) end, e3d_mat:identity(), [M1,M2,M3,M4,M5]).
+    
+mul_foldl6(M1, M2, M3, M4, M5, M6) ->
+    lists:foldl(fun(Mat, AccMat) -> e3d_mat:mul(Mat, AccMat) end, e3d_mat:identity(), [M1,M2,M3,M4,M5,M6]).
+    
+mul_foldl7(M1, M2, M3, M4, M5, M6, M7) ->
+    lists:foldl(fun(Mat, AccMat) -> e3d_mat:mul(Mat, AccMat) end, e3d_mat:identity(), [M1,M2,M3,M4,M5,M6,M7]).
 
 
