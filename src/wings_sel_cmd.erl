@@ -901,23 +901,30 @@ random(Percent, St) ->
 %% Select short edges.
 %%
 
-short_edges(Ask, St) when is_atom(Ask) ->
-    Qs0 = [{label,?__(1,"Length tolerance")},
-      {text,1.0E-3,[{range,{1.0E-5,10.0}}]}],
-    Qs = [{hframe,Qs0}],
-    Title = ?__(2,"Select Short Edges"),
-    Cmd = {select,by,short_edges},
-    wings_ask:dialog_preview(Cmd, Ask, Title, Qs, St);
-short_edges([Tolerance], #st{sel=[]}=St0) ->
+short_edges(Ask, _St) when is_atom(Ask) ->
+    Qs = [ {vframe, [
+       {label,?__(1,"Length Limits")},
+       separator,
+       {hframe,[{label,?__(4,"Minimum")},{text,0.0,   [{key,edgemin},{width,15},{range,{0.0,10.0   }}]}]},
+	   {hframe,[{label,?__(3,"Maximum")},{text,1.0E-3,[{key,edgemax},{width,15},{range,{1.0E-5,10.0}}]}]}
+	  ]}],
+    wings_ask:dialog(Ask, ?__(2,"Select Short Edges"),
+		     [{hframe,Qs}],
+		     fun(Res) -> 
+		         {edgemin,MinTolerance} = lists:keyfind(edgemin,1,Res),
+		         {edgemax,Tolerance}    = lists:keyfind(edgemax,1,Res),
+		         {select,{by,{short_edges,[Tolerance,MinTolerance]}}} 
+		     end);
+short_edges([Tolerance,MinTolerance], #st{sel=[]}=St0) ->
     St = wings_sel:make(fun(Edge, We) ->
-				short_edge(Tolerance, Edge, We)
+				short_edge({Tolerance,MinTolerance}, Edge, We)
 			end, edge, St0),
     {save_state,St#st{selmode=edge}};
-short_edges([Tolerance], #st{selmode=Mode}=St0) ->
+short_edges([Tolerance,MinTolerance], #st{selmode=Mode}=St0) ->
     St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
     Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
 				Sel1 = gb_sets:to_list(Sel0),
-				ShortEdges = [Edge || Edge <- Sel1, short_edge(Tolerance, Edge, We)],
+				ShortEdges = [Edge || Edge <- Sel1, short_edge({Tolerance,MinTolerance}, Edge, We)],
 				case ShortEdges of
 				  [] -> Acc;
 				  _ -> [{Id,gb_sets:from_list(ShortEdges)}|Acc]
@@ -925,11 +932,12 @@ short_edges([Tolerance], #st{selmode=Mode}=St0) ->
 			end, [], St),
     {save_state,wings_sel:set(edge,Sel,St0)}.
 
-short_edge(Tolerance, Edge, #we{es=Etab,vp=Vtab}) ->
+short_edge({Tolerance,MinTolerance}, Edge, #we{es=Etab,vp=Vtab}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     VaPos = array:get(Va, Vtab),
     VbPos = array:get(Vb, Vtab),
-    abs(e3d_vec:dist(VaPos, VbPos)) < Tolerance.
+    Dist0 = e3d_vec:dist(VaPos, VbPos),
+    (abs(Dist0) =< Tolerance) andalso (abs(Dist0) >= MinTolerance).
 
 %%
 %% Select all edges between materials.
