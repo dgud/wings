@@ -45,6 +45,7 @@ MODULES= \
 	wpc_doosabin \
 	wpc_explode \
 	wpc_flow_connect \
+	wpc_grid_snap \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
 	wpc_magnet_mask \
@@ -54,14 +55,13 @@ MODULES= \
 	wpc_region \
 	wpc_rotate_unconstrained \
 	wpc_sculpt \
+	wpc_sel_win \
 	wpc_shear \
 	wpc_shift \
 	wpc_sweep_extrude \
 	wpc_turnedge \
 	wpc_untriangulate \
-	wpc_grid_snap \
-	wpc_weld \
-	wpc_sel_win
+	wpc_weld
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
