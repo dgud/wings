@@ -226,7 +226,7 @@ select_material_1(SelAct,Sel1,Sel2,Acc) ->
     end.
 
 %% select the elements (face/edge/vertice) using the Mat
-selected_we(SelMode,#we{id=Id,fs=Ftab,perm=Perm}=We, Mat) ->
+selected_we(SelMode,#we{id=Id,fs=Ftab}=We, Mat) ->
     MatFaces = wings_facemat:mat_faces(gb_trees:to_list(Ftab), We),
     case keyfind(Mat, 1, MatFaces) of
 	false ->
