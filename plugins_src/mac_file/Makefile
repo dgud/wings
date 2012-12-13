@@ -24,7 +24,7 @@ BEAM = $(LIBDIR)/wp8_mac_file.beam \
 ERLC = erlc
 ERLC_FLAGS = -Werror +debug_info -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH) -pa $(WINGS_EBIN) -pa $(WINGS_INTL) -I $(WINGS_INTL)
 
-DRV = $(LIBDIR)/mac_wings_file_drv.so $(LIBDIR)/mac_wings_image_drv.so
+DRV = $(LIBDIR)/mac_wings_image_drv.so
 
 opt: $(DRV) $(BEAM)
 
@@ -38,13 +38,6 @@ lang: template
 $(LIBDIR)/%.beam: %.erl
 	install -d $(LIBDIR)
 	$(ERLC) $(ERLC_FLAGS) $<
-
-$(LIBDIR)/mac_wings_file_drv.so: mac_wings_file_drv.c
-	install -d $(LIBDIR)
-	$(CC) -Werror -ObjC -I $(ERL_DIR)/usr/include \
-	   -bundle -flat_namespace -undefined suppress \
-          -framework Cocoa -o $(LIBDIR)/mac_wings_file_drv.so $(UNIVERSAL_FLAGS) \
-	  mac_wings_file_drv.c
 
 $(LIBDIR)/mac_wings_image_drv.so: mac_wings_image_drv.m
 	install -d $(LIBDIR)

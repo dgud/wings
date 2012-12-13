@@ -27,20 +27,8 @@
 init(Next) ->
     case os:type() of
 	{unix,darwin} ->
-	    Dir = filename:dirname(code:which(?MODULE)),
-	    case erl_ddll:load_driver(Dir, "mac_wings_file_drv") of
-		ok ->
-		    case catch open_port({spawn,"mac_wings_file_drv"},[]) of
-			Port when is_port(Port) ->
-			    register(wp8_file_port, Port),
-			    fun(What) ->
-				    fileop(What, Next)
-			    end;
-			_Other ->
-			    Next
-		    end;
-		_Else ->
-		    Next
+	    fun(What) ->
+		    fileop(What, Next)
 	    end;
 	_ ->
 	    Next
@@ -55,14 +43,14 @@ fileop(What, Next) ->
 fileop_1({file,open_dialog,Prop,Cont}, _Next) ->
     Title = proplists:get_value(title, Prop, ?__(1,"Open")),
     Dir = proplists:get_value(directory, Prop),
-    case file_dialog(?OP_READ, Dir, Prop, Title) of
+    case file_dialog(open, Dir, Prop, Title) of
 	aborted -> keep;
 	Res -> Cont(Res)
     end;
 fileop_1({file,save_dialog,Prop,Cont}, _Next) ->
     Title = proplists:get_value(title, Prop, ?__(2,"Save")),
     Dir = proplists:get_value(directory, Prop),
-    case file_dialog(?OP_WRITE, Dir, Prop, Title) of
+    case file_dialog(save, Dir, Prop, Title) of
 	aborted -> keep;
 	Res -> Cont(Res)
     end;
@@ -73,16 +61,17 @@ file_dialog(Type, Dir, Prop, Title) ->
     wait_for_modifiers_up(),
     DefName = proplists:get_value(default_filename, Prop, ""),
     Filters = file_filters(Prop),
-    Data = [Dir,0,Title,0,DefName,0|Filters],
     
     %% Disabling the key repeat here and then enable it again
     %% seems to get rid of the annoying problem with repeating
     %% dialog boxes.
     sdl_keyboard:enableKeyRepeat(0, 0),
-    Res = case erlang:port_control(wp8_file_port, Type, Data) of
+    DlgProps = [{operation,Type},{title,Title},{directory,Dir},
+		{default_filename,DefName},{filters,Filters}],
+    Res = case sdl_video:wm_mac_file_dialog(DlgProps) of
 	      [] -> aborted;
-	      Else -> filename:absname(Else)
-    end,
+	      Other -> filename:absname(Other)
+	  end,
     sdl_keyboard:enableKeyRepeat(?SDL_DEFAULT_REPEAT_DELAY,
 				 ?SDL_DEFAULT_REPEAT_INTERVAL),
     sdl_keyboard:setModState(0),
@@ -91,16 +80,10 @@ file_dialog(Type, Dir, Prop, Title) ->
 file_filters(Prop) ->
     case proplists:get_value(extensions, Prop, none) of
 	none ->
-	    [$.|Ext] = proplists:get_value(ext, Prop, ".wings"),
-	    [Ext,0,0];
+	    [proplists:get_value(ext, Prop, ".wings")];
 	Exts ->
-	    file_filters_1(Exts, [])
+	    [Ext || {Ext,_Desc} <- Exts]
     end.
-
-file_filters_1([{[$.|Ext],_Desc}|T], Acc0) ->
-    Acc = [Acc0,Ext,0],
-    file_filters_1(T, Acc);
-file_filters_1([], Acc) -> [Acc,0].
 
 wait_for_modifiers_up() ->
     case sdl_keyboard:getModState() == 0 andalso no_key_pressed() of
