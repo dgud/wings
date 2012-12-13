@@ -23,7 +23,7 @@
 	 window/1]).
 -export([image_formats/0,image_read/1,image_write/1]).
 -export([loop/1]).
--export([load_texture/1,unload_texture/1,draw_image/5,maybe_exceds_opengl_caps/1]).
+-export([draw_image/5,maybe_exceds_opengl_caps/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -306,7 +306,7 @@ handle({new,#e3d_image{name=Name}=Im,true,Hide}, #ist{images=Images}=S0) ->
 	    S = handle({delete,Id}, S0),
 	    handle({new,Im,false,Hide}, S)
     end;
-    
+
 handle({rename,Id,Name0}, #ist{images=Images0}=S) ->
     Name = make_unique(Name0, gb_trees:delete(Id, Images0)),
     Im0 = gb_trees:get(Id, Images0),
@@ -388,7 +388,7 @@ handle({draw_preview,X,Y,W,H,Id}, S) ->
 create_bump(Id, BumpId, #ist{images=Images0}) ->
     delete_bump(Id),  %% update case..
     case gb_trees:lookup(Id, Images0) of
-	{value, E3D0} -> 
+	{value, E3D0} ->
 	    E3D = image_rec(E3D0),
 	    gl:pushAttrib(?GL_TEXTURE_BIT),
 	    case get(Id) of
@@ -516,20 +516,6 @@ init_background_tx() ->
     B = list_to_binary(B0),
     Im = #e3d_image{width=16,height=16,image=B},
     put(background, init_texture(Im)).
-
-%% This will load the texture "silently" - it's not added to image list
-load_texture(#e3d_image{}=Image) ->
-    case init_texture(Image) of
-	{error,_}=Error ->
-	    Error;
-	TxId ->
-	    TxId
-    end.
-
-unload_texture(TxLst) when is_list(TxLst) ->
-	wings_gl:deleteTextures(TxLst);
-unload_texture(TxId) ->
-	wings_gl:deleteTextures([TxId]).
 
 make_texture(Id, Image) ->
     case init_texture(Image) of
