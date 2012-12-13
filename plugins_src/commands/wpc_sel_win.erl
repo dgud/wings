@@ -47,6 +47,10 @@ sel_group_menu() ->
 command({window,sel_groups}, St) ->
     window(St),
     keep;
+command({select, {ssels, {rename_group, {Id, Name}}}}, St) ->
+    {save_state,rename_group(Id, Name, St)};
+command({select, {ssels, {delete_all_groups}}}, St) ->
+    {save_state,delete_all_groups(St)};
 command(_,_) ->
 	next.
 
@@ -91,6 +95,8 @@ event({action,{sel_groups,Cmd}}, Ost) ->
     case Cmd of
     {rename_group,Id} ->
         rename(Id);
+    {delete_groups,Mode} ->
+        delete_groups(Mode);
     {new_group,_} ->
         wings_wm:send(geom, {action,{select,new_group}});
     _ ->
@@ -204,8 +210,11 @@ group_ins_menu() ->
 	[{?__(1,"New Group..."),menu_cmd(new_group,0),?__(2,"Create a new selection group")}].
 group_del_menu(none) -> [];
 group_del_menu({_,SrcName}=SrcId) -> 
-	[{?__(3,"Delete"), menu_cmd(delete_group,SrcId), ?__(4,"Delete group \"")++SrcName++"\""},
-	 {?__(20,"Rename"), menu_cmd(rename_group,SrcId), ?__(21,"Rename group \"")++SrcName++"\""}].
+	[{?__(20,"Rename"), menu_cmd(rename_group,SrcId), ?__(21,"Rename group \"")++SrcName++"\""},
+	 {?__(3,"Delete Group"), menu_cmd(delete_group,SrcId), ?__(4,"Delete group \"")++SrcName++"\""},
+	 separator,
+	 {?__(22,"Delete All"), menu_cmd(delete_groups,all), ?__(23,"Delete all groups")},
+	 {?__(24,"Remove Invalid Groups"), menu_cmd(delete_groups,invalid), ?__(25,"Removes all invalid groups")}].
 group_basic_menu(none) -> [];
 group_basic_menu({_,SrcName}=SrcId) ->
     [separator,
@@ -333,8 +342,31 @@ rename({_,OldName}=Id) ->
            ]}],
     wings_ask:dialog(?__(1,"Rename"), Qs,
     fun([NewName]) ->
-        wings_wm:send(geom, {action,{sel_groups,{rename_group,{Id,NewName}}}})
+        wings_wm:send(geom, {action,{select,{ssels,{rename_group,{Id,NewName}}}}})
     end).
+
+rename_group({Mode,_}=Key, Name, #st{ssels=Ssels0}=St) ->
+    Ssel = gb_trees:get(Key, Ssels0),
+    Ssels = gb_trees:insert({Mode,Name}, Ssel, Ssels0),   
+    St#st{ssels=gb_trees:delete(Key,Ssels)}.
+
+delete_groups(all) ->
+    wings_u:yes_no(
+      ?__(1,"Are you sure you want to delete all selection groups?"),
+      fun() ->
+          wings_wm:send(geom,{action,{select,{ssels,{delete_all_groups}}}}),
+	      ignore
+      end);
+delete_groups(invalid) ->
+    wings_u:yes_no(
+      ?__(2,"Are you sure you want to remove invalid groups?"),
+      fun() ->
+          wings_wm:send(geom,{action,{select,{ssels,{delete_group,invalid}}}}),
+	      ignore
+      end).
+
+delete_all_groups(#st{}=St) ->
+    St#st{ssels=gb_trees:empty()}.
 
 active_object(Y0, #ost{lh=Lh,first=First,n=N}) ->
     case Y0 - top_of_first_object() of
