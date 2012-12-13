@@ -142,7 +142,7 @@ get_ctrl_event(Cs) ->
     {replace,fun(Ev) -> ctrl_event(Ev, Cs) end}.
 		     
 ctrl_event(redraw, Cs) ->
-%    ctrl_message(),
+    ctrl_message(),
     ctrl_redraw(Cs);
 ctrl_event(#mousebutton{button=1,state=?SDL_PRESSED},
 	   #ctrl{state=moving,prev_focus=Focus}=Cs) ->

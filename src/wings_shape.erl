@@ -830,9 +830,6 @@ menu_cmd(Cmd) ->
 menu_cmd(Cmd, Id) ->
     {'VALUE',{Cmd,Id}}.
 
-button_menu_cmd(Cmd) ->
-	{objects,{Cmd}}.
-
 button_menu_cmd(Cmd, Id) ->
 	{objects,{Cmd,Id}}.
 
