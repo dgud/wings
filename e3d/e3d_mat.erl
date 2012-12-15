@@ -20,7 +20,7 @@
 	 rotate_to_z/1,rotate_s_to_t/2,
 	 project_to_plane/1,
 	 transpose/1,invert/1,
-	 add/2,mul/2,mul_point/2,mul_vector/2,eigenv3/1]).
+	 add/2,mul/1,mul/2,mul_point/2,mul_vector/2,eigenv3/1]).
 -compile(inline).
 -include("e3d.hrl").
 
@@ -331,6 +331,16 @@ mul({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}, W)
 mul(M1,M2)
   when tuple_size(M1) =:= 12; tuple_size(M2) =:= 12 ->
     mul(expand(M1), expand(M2)).
+%%--------------------------------------------------------------------------------------------------
+%% if you want to translate to origin, scale, rotate, and then translate back to original position 
+%% insert these matrices into list from left to right respectively.
+%%
+%% This left to right order is not based on text book matrix notation, but is a plain old temporal 
+%% ordering from left to right.
+%%--------------------------------------------------------------------------------------------------
+-spec mul([e3d_matrix]) -> e3d_matrix().
+mul([A]) -> A;
+mul([A, B | T ]) -> mul([mul(B,A) | T]).
 
 -spec mul_point(Matrix::e3d_matrix(), Point::e3d_vector()) -> e3d_vector().
     
