@@ -331,16 +331,13 @@ mul({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}, W)
 mul(M1,M2)
   when tuple_size(M1) =:= 12; tuple_size(M2) =:= 12 ->
     mul(expand(M1), expand(M2)).
-%%--------------------------------------------------------------------------------------------------
-%% if you want to translate to origin, scale, rotate, and then translate back to original position 
-%% insert these matrices into list from left to right respectively.
-%%
-%% This left to right order is not based on text book matrix notation, but is a plain old temporal 
-%% ordering from left to right.
-%%--------------------------------------------------------------------------------------------------
+%%--------------------------------------------------------------
+%% mul([Rx,Ry,Rz]) = mul([mul(Ry,Rx),Rz])
+%%--------------------------------------------------------------
 -spec mul([e3d_matrix]) -> e3d_matrix().
-mul([A]) -> A;
-mul([A, B | T ]) -> mul([mul(B,A) | T]).
+mul([A, B | T ]) -> mul([mul(B,A) | T]);
+mul([A]) -> A.
+
 
 -spec mul_point(Matrix::e3d_matrix(), Point::e3d_vector()) -> e3d_vector().
     
