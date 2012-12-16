@@ -114,14 +114,14 @@ scale(#e3d_transf{mat=M,inv=I}, {X,Y,Z}) ->
     #e3d_transf{mat = e3d_mat:mul(e3d_mat:scale(X,Y,Z), M),
 		inv = e3d_mat:mul(I, e3d_mat:scale(1/X,1/Y,1/Z))}.
 
-%%--------------------------------------------------------------------
-%% @doc  Multiplies the current matrix with Mat
+%%----------------------------------------------------------------------
+%% @doc  Multiplies the current matrix (at right) with new Mat (at left)
 %%       Trans(Vec) = Mat(Current(Vec))
 %% @end
-%%--------------------------------------------------------------------
+%%----------------------------------------------------------------------
 -spec mul(e3d_transform(), e3d_transform()) -> e3d_transform().
 mul(#e3d_transf{mat=M1,inv=I1}, #e3d_transf{mat=M2,inv=I2}) ->
-    #e3d_transf{mat = e3d_mat:mul(M2, M1), inv = e3d_mat:mul(I1, I2)}.
+    #e3d_transf{mat = e3d_mat:mul(M1, M2), inv = e3d_mat:mul(I2, I1)}.
 
 %%%-------------------------------------------------------------------
 
@@ -141,7 +141,7 @@ lookat(Pos, Look, Up) ->
     CamToWorld = list_to_tuple(lists:flatten(AsList)),
     WorldToCam = e3d_mat:invert(CamToWorld),
     Translate = translate(identity(), e3d_vec:neg(Pos)),
-    mul(Translate, #e3d_transf{mat=WorldToCam,inv=CamToWorld}).
+    mul(#e3d_transf{mat=WorldToCam,inv=CamToWorld}, Translate).
 
 %%--------------------------------------------------------------------
 %% @doc  Generates a ortho transformation
