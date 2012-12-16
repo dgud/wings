@@ -40,7 +40,7 @@ menu({window}, Menu) ->
 menu(_,Menu) -> 
 	Menu.
 
-camera_menu() ->	
+camera_menu() ->
 	 {?__(1,"Saved Views"), saved_views,
 	  ?__(2,"Shows all saved views")}.
 
@@ -89,8 +89,8 @@ event(redraw, Ost) ->
     keep;
 event({action,{saved_views,Cmd}}, #ost{st=#st{views={_,Views0}}=St0}=Ost) ->
     case Cmd of
-        {save,_} ->
-            wings_wm:send(geom, {action, {view, {views, {save,true}}}});
+        {save,Geom} ->
+            wings_wm:send(Geom, {action, {view, {views, {save,true}}}});
         {rename,_} ->
             wings_wm:send(geom, {action, {view, {views, rename}}});
         {replace,Idx} ->
@@ -133,13 +133,14 @@ event(#mousebutton{button=1,y=Y,state=?SDL_PRESSED}, #ost{active=Act}=Ost)
 	    ok
     end,
     get_event(Ost);
-event(#mousebutton{button=1,y=Y,state=?SDL_RELEASED}, #ost{active=Act0}=Ost) ->
+event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #ost{active=Act0}=Ost) ->
     wings_wm:release_focus(),
     case active_object(Y, Ost) of
 	Act0 ->  keep;
 	Act ->
 	  if Act=/=-1 ->
-	      wings_wm:send(geom, {action, {view, {views, {jump,Act+1}}}}),
+          {X0,Y0} = wings_wm:local2global(X, Y),
+	      wings_wm:send(geom_focused(X0,Y0), {action, {view, {views, {jump,Act+1}}}}),
           wings_wm:dirty(),
           get_event(Ost#ost{active=Act});
       true -> keep
@@ -169,12 +170,12 @@ event(Ev, Ost) ->
 
 %% there are no views
 do_menu(X, Y ,#ost{st=#st{views={_,{}}}}=_Ost) ->
-    Menu=views_menu({1,new}),
+    Menu=views_menu({1,{new,geom_focused(X,Y)}}),
     wings_menu:popup_menu(X, Y, saved_views, Menu);
 do_menu(X, Y, #ost{active=Act,st=#st{views={_,Views}},tracking=Trk}=_Ost) ->
     Objs = objs_from_view(Views),
     Id = act_to_key(Objs,Act),
-    Menu0 = views_menu({length(Objs)+1,new}),  % Save option
+    Menu0 = views_menu({length(Objs)+1,{new,geom_focused(X,Y)}}),  % Save option
     Menu1 = case Trk of
         Act -> Menu0++views_menu(Id);  % Rename and Delete option
         _ -> Menu0
@@ -189,8 +190,8 @@ do_menu(X, Y, #ost{active=Act,st=#st{views={_,Views}},tracking=Trk}=_Ost) ->
     end,
 	wings_menu:popup_menu(X, Y, saved_views, Menu).
 
-views_menu({Idx, new}) ->
-	[{?__(1,"Save..."),menu_cmd(save,none), ?__(2,"Save this view at ") ++"["++integer_to_list(Idx)++"]"}];
+views_menu({Idx, {new,Geom}}) ->
+	[{?__(1,"Save..."),menu_cmd(save,Geom), ?__(2,"Save this view at ") ++"["++integer_to_list(Idx)++"]"}];
 views_menu({_, delete}) ->
 	[separator,
 	 {?__(9,"Delete All..."), menu_cmd(delete_all,all), ?__(10,"Delete all saved views")}];
@@ -204,6 +205,11 @@ views_menu({Idx, Legend}) ->
 menu_cmd(Cmd, Id) ->
     {'VALUE',{Cmd,Id}}.
 
+geom_focused(X, Y) ->
+    case wings_wm:geom_below(X, Y) of
+        none -> geom;
+        Geom -> Geom
+    end.
 
 %%%
 %%% Updating the state.
