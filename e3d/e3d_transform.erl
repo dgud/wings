@@ -28,7 +28,7 @@
 	 %% Get the actual matrices
 	 matrix/1, inv_matrix/1,
 	 %% Transform the matrices
-	 inverse/1, translate/2, rotate/2, rotate/3, scale/2, mul/2
+	 inverse/1, translate/2, rotate/2, rotate/3, scale/2, mul/1, mul/2
 	]).
 
 
@@ -122,6 +122,20 @@ scale(#e3d_transf{mat=M,inv=I}, {X,Y,Z}) ->
 -spec mul(e3d_transform(), e3d_transform()) -> e3d_transform().
 mul(#e3d_transf{mat=M1,inv=I1}, #e3d_transf{mat=M2,inv=I2}) ->
     #e3d_transf{mat = e3d_mat:mul(M1, M2), inv = e3d_mat:mul(I2, I1)}.
+    
+    
+%%--------------------------------------------------------------
+%% mul([Rx,Ry,Rz]) = mul([mul(Ry,Rx),Rz])
+%%--------------------------------------------------------------
+-spec mul([e3d_transform()]) -> e3d_transform().
+mul([#e3d_transf{}=A,#e3d_transf{}=B | T ]) -> mul([mul(B,A) | T]);
+mul([#e3d_transf{}=A]) -> A.
+    
+    
+    
+    
+    
+    
 
 %%%-------------------------------------------------------------------
 
@@ -173,6 +187,7 @@ perspective(Fov, Near, Far) ->
     e3d_transform:scale(#e3d_transf{mat=Persp, inv=InvPersp},
 			{T,T,1.0}).
 
-%%%-------------------------------------------------------------------
+			
+
 
 
