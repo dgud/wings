@@ -1807,13 +1807,18 @@ get_object_info(Id, Shapes) ->
     Volume =lists:sum([V || {_,V} <- Both]),
     ToString = fun(Item) ->
 	case Item of
+	    Item when is_float(Item), Item < 1.0 ->
+		Decimals = 1 - round(math:log10(Item)-0.5),
+		if Decimals > 8 -> "0.00000";
+		   true -> lists:flatten(io_lib:format("~10.*f", [Decimals, Item]))
+		end;
 	    Item when is_float(Item) ->
-		lists:concat(hd(io_lib:fwrite("~12f", [Item])));
+		lists:flatten(io_lib:format("~10.2f", [Item]));
 	    Item when is_integer(Item) ->
-		integer_to_list(Item);
+  		   integer_to_list(Item);
 	    Item when is_list(Item) ->
-		Item
-	end
+  		   Item
+  	end
     end,
     [Id2,Name2,Area2,Volume2] = lists:map(ToString, [Id,Name,Area,Volume]),
     {{Id,Id2},{Name,Name2},{Area,Area2},{Volume,Volume2}}.
