@@ -1049,11 +1049,9 @@ find_eyepicker(Fi, Sto) ->
 
 field_type(I, Store) ->
     case gb_trees:lookup(-I, Store) of
-	{value,F} ->
-		% avoid wings crash with the values: vframe|hframe|oframe
-		if is_tuple(F) -> element(1, F);
-		true -> undefined end;
-	none -> undefined
+	{value,F} when is_tuple(F) -> 
+	    element(1, F);
+	_ -> undefined
     end.
 
 %% Search tree to find field matching a predicate using reverse linear scan.
