@@ -299,50 +299,26 @@ command(quick_preview, St) ->
 command(orthogonal_view, St) ->
     toggle_option(orthogonal_view),
     St;
-command({show,show_textures}, St) ->
-    toggle_option(show_textures),
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 %% Must invalidate vertex buffers.
-			 D#dlo{work=none,smooth=none,vab=none,
-			       proxy_data=wings_proxy:invalidate(PD, vab)};
-		    (D, _) -> D
-		 end, []),
+command({show,What}, St) ->
+    Prev = toggle_option(What),
+    if 
+	What =:= show_normals ->
+	    Prev andalso wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []);
+	What =:= show_materials; What =:= filter_texture ->
+	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+				 %% We only need to invalidate display lists.
+				 D#dlo{work=none,smooth=none,
+				       proxy_data=wings_proxy:invalidate(PD, dl)}
+			 end, []);
+       true -> %% show_textures, show_normal_maps, show_colors
+	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+				 %% Must invalidate vertex buffers.
+				 D#dlo{work=none,smooth=none,vab=none,
+				       proxy_data=wings_proxy:invalidate(PD, vab)};
+			    (D, _) -> D
+			 end, [])
+    end,
     St;
-command({show,filter_texture}, St) ->
-    toggle_option(filter_texture),
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 %% Must invalidate vertex buffers.
-			 D#dlo{work=none,smooth=none,vab=none,
-			       proxy_data=wings_proxy:invalidate(PD, vab)};
-		    (D, _) -> D
-		 end, []),
-    St;
-command({show,show_materials}, St) ->
-    toggle_option(show_materials),
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 %% We only need to invalidate display lists.
-			 D#dlo{work=none,smooth=none,
-			       proxy_data=wings_proxy:invalidate(PD, dl)}
-		 end, []),
-    St;
-command({show,show_colors}, St) ->
-    toggle_option(show_colors),
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 %% Must invalidate vertex buffers.
-			 D#dlo{work=none,smooth=none,vab=none,
-			       proxy_data=wings_proxy:invalidate(PD, vab)};
-		    (D, _) -> D
-		 end, []),
-    St;
-command({show,show_normals}, St) ->
-    Bool = wings_pref:get_value(show_normals),
-    wings_pref:set_value(show_normals, not Bool),
-    case Bool of
-	false -> St;
-	true ->
-	    wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []),
-	    St
-    end;
 command(show_edges, St) ->
     Bool = wings_pref:get_value(show_edges),
     wings_pref:set_value(show_edges, not Bool),
@@ -850,9 +826,12 @@ toggle_option({show,Key}) ->
 toggle_option(Key) ->
     case wings_wm:lookup_prop(Key) of
 	none ->
-	    wings_pref:set_value(Key, not wings_pref:get_value(Key, false));
+	    Prev = wings_pref:get_value(Key, false),
+	    wings_pref:set_value(Key, not Prev),
+	    Prev;
 	{value,Bool} ->
-	    wings_wm:set_prop(Key, not Bool)
+	    wings_wm:set_prop(Key, not Bool),
+	    Bool
     end.
 
 current() ->
