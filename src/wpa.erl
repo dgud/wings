@@ -238,8 +238,15 @@ dialog_template(Mod, tesselation) ->
 		      {?__(tess3,"Triangulation"),triangulate},
 		      {?__(tess4,"Quadrangulation"),quadrangulate}],
 	      pref_get(Mod,tesselation,none), [{key,tesselation}]}],
-     [{title,?__(tess,"Tesselation")}]}.
+     [{title,?__(tess,"Tesselation")}]};
 
+dialog_template(Mod, units) ->
+    {vframe,[{vradio,[{?__(units0,"Centimeter"),centimeter},
+    		      {?__(units1,"Decimeter"),decimeter},
+		      {?__(units2,"Meter"),meter}],
+	      pref_get(Mod,units,centimeter), [{key,units}]}],
+     [{title,?__(units,"Units")}]}.
+           
 %% dialog_template(Module, Type, ExcludeKeys) -> Template
 %%  Return a template for a standard dialog. The flags argument makes
 %%  it possible to exclude certain keys.
