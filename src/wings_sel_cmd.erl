@@ -112,8 +112,8 @@ menu(St) ->
 		     {"90%",90, RHelp},
 		     {"__%",true, RHelp}
 		     ]}},
-	   {?__(56,"Short Edges"),
-	    short_edges,?__(57,"Select (too) short edges")++Help,[option]},
+	   {?__(56,"Size Constrained"),
+	    size_constrained,?__(57,"Select very small items or use the dialog to filter items by an upper and lower limit.")++Help,[option]},
 	   {?__(87,"Sharp Edges"),
 	    sharp_edges,?__(88,"Select sharp edges")++Help,[option]},
 	   {?__(95,"Vertex Path"),
@@ -384,8 +384,8 @@ by_command(material_edges, St) ->
     material_edges(St);
 by_command({random, Percent}, St) ->
     random(Percent, St);
-by_command({short_edges,Ask}, St) ->
-    short_edges(Ask, St);
+by_command({size_constrained,Ask}, St) ->
+    size_constrained(Ask, St);
 by_command({sharp_edges,Ask}, St) ->
     sharp_edges(Ask, St);
 by_command({vertex_path,fewest_edges_path}, St) ->
@@ -898,38 +898,55 @@ random(Percent, St) ->
     {save_state, wings_sel:set(NewSel, St)}.
 
 %%
-%% Select short edges.
+%% Select size constrainted edges, faces, body.
 %%
 
-short_edges(Ask, St) when is_atom(Ask) ->
-    Qs0 = [{label,?__(1,"Length tolerance")},
-      {text,1.0E-3,[{range,{1.0E-5,10.0}}]}],
-    Qs = [{hframe,Qs0}],
-    Title = ?__(2,"Select Short Edges"),
-    Cmd = {select,by,short_edges},
+size_constrained(Ask,St) when is_atom(Ask) ->
+    Qs = [ {vframe, [
+       {hframe,[{label,?STR(size_constrained,4,"Minimum")},{text,0.0,   [{key,sizemin},{width,15},{range,{0.0,10.0   }}]}]},
+	   {hframe,[{label,?STR(size_constrained,3,"Maximum")},{text,1.0E-3,[{key,sizemax},{width,15},{range,{1.0E-5,10.0}}]}]}
+	  ], [{title,"Size Limits"}] }],
+	  
+	 Title = ?STR(size_constrained, 2,"Select Small Items"),
+     Cmd = {select,by,size_constrained},
     wings_ask:dialog_preview(Cmd, Ask, Title, Qs, St);
-short_edges([Tolerance], #st{sel=[]}=St0) ->
+size_constrained(Res, #st{selmode=Mode,sel=[]}=St0) ->
+    {sizemin,MinTolerance} = lists:keyfind(sizemin,1,Res),
+    {sizemax,Tolerance}    = lists:keyfind(sizemax,1,Res),
     St = wings_sel:make(fun(Edge, We) ->
-				short_edge(Tolerance, Edge, We)
-			end, edge, St0),
-    {save_state,St#st{selmode=edge}};
-short_edges([Tolerance], #st{selmode=Mode}=St0) ->
-    St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
+				sized_item({Tolerance,MinTolerance}, Edge, Mode, We)
+			end, Mode, St0),
+    {save_state,St#st{}};
+size_constrained(Res, #st{selmode=Mode0}=St0) ->
+    {sizemin,MinTolerance} = lists:keyfind(sizemin,1,Res),
+    {sizemax,Tolerance}    = lists:keyfind(sizemax,1,Res),
+    #st{selmode=Mode} = St = if (Mode0 =:= edge orelse Mode0 =:= face orelse Mode0 =:= body )-> St0; true -> wings_sel_conv:mode(edge, St0) end,
     Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
 				Sel1 = gb_sets:to_list(Sel0),
-				ShortEdges = [Edge || Edge <- Sel1, short_edge(Tolerance, Edge, We)],
-				case ShortEdges of
+				SzItems = [Edge || Edge <- Sel1, sized_item({Tolerance,MinTolerance}, Edge, Mode, We)],
+				case SzItems of
 				  [] -> Acc;
-				  _ -> [{Id,gb_sets:from_list(ShortEdges)}|Acc]
+				  _ -> [{Id,gb_sets:from_list(SzItems)}|Acc]
 				end
 			end, [], St),
-    {save_state,wings_sel:set(edge,Sel,St0)}.
+    {save_state,wings_sel:set(Mode,Sel,St0)}.
 
-short_edge(Tolerance, Edge, #we{es=Etab,vp=Vtab}) ->
+
+sized_item({Tolerance,MinTolerance}, Edge, edge, #we{es=Etab,vp=Vtab}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     VaPos = array:get(Va, Vtab),
     VbPos = array:get(Vb, Vtab),
-    abs(e3d_vec:dist(VaPos, VbPos)) < Tolerance.
+    Dist0 = e3d_vec:dist(VaPos, VbPos),
+    (abs(Dist0) =< Tolerance) andalso (abs(Dist0) >= MinTolerance);
+sized_item({Tolerance,MinTolerance}, Face, face, #we{}=We) ->
+    Area0 = wings_face:area(Face,We),
+    (abs(Area0) =< Tolerance) andalso (abs(Area0) >= MinTolerance);
+sized_item({Tolerance,MinTolerance}, _WeID, body, #we{}=We) ->
+    Volume0 = wings_we:volume(We),
+    (abs(Volume0) =< Tolerance) andalso (abs(Volume0) >= MinTolerance);
+sized_item({_,_}, _Vert, vertex, #we{}) ->
+    false.
+    
 
 %%
 %% Select all edges between materials.
