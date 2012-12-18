@@ -923,10 +923,16 @@ size_constrained(Res, #st{selmode=Mode0}=St0) ->
     #st{selmode=Mode} = St = if (Mode0 =:= edge orelse Mode0 =:= face orelse Mode0 =:= body )-> St0; true -> wings_sel_conv:mode(edge, St0) end,
     Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
 				Sel1 = gb_sets:to_list(Sel0),
-				SzItems = [Edge || Edge <- Sel1, sized_item({Tolerance,MinTolerance}, Edge, Mode, We)],
+				SzItems = [Item || Item <- Sel1, sized_item({Tolerance,MinTolerance}, Item, Mode, We)],
 				case SzItems of
 				  [] -> Acc;
-				  _ -> [{Id,gb_sets:from_list(SzItems)}|Acc]
+				  _ -> 
+				      case Mode of 
+				          body ->
+				              [{Id,gb_sets:singleton(0)}|Acc];
+				          _ ->
+				              [{Id,gb_sets:from_list(SzItems)}|Acc]
+				      end
 				end
 			end, [], St),
     {save_state,wings_sel:set(Mode,Sel,St0)}.
