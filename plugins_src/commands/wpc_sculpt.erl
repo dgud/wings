@@ -894,7 +894,7 @@ sculpt_menu(X0, Y0, Sc) ->
     wings_menu:popup_menu(X, Y, sculpt, Menu).
 
 sculpt_menu(#sculpt{mag=Mag,mag_type=MagType,mode=Mode}) ->
-    [{mode(push)++"/"++mode(pull),pull,?__(4,"Activate the Push/Pull sculpt tool"),crossmark(Mode, pull)},
+    [{mode(pull)++"/"++mode(push),pull,?__(4,"Activate the Pull/Push sculpt tool"),crossmark(Mode, pull)},
      {mode(pinch)++"/"++mode(inflate),pinch,?__(5,"Activate the Pinch/Inflate sculpt tool"),crossmark(Mode, pinch)},
      {mode(smooth),smooth,?__(6,"Activate the smoothing brush"),crossmark(Mode, smooth)},
      separator,
