@@ -773,7 +773,7 @@ end_drag(_, #dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
     D1 = D#dlo{src_we=We},
     D2 = wings_draw:changed_we(D1, D),
     {D2#dlo{vs=none,sel=none,drag=none},St};
-end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id,pst=Pst}}=D0, #st{shapes=Shs0}=St0) ->
+end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}}=D0, #st{shapes=Shs0}=St0) ->
     case Mode of
       slide ->
         case wings_io:is_key_pressed(?SDLK_F1) of
@@ -798,10 +798,11 @@ end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id,pst=Pst}}=D0, #st{shapes=Shs0
             {D#dlo{vs=none,sel=none,drag=none},St}
         end;
       _ ->
-        #dlo{src_we=We}=D = wings_draw:join(D0),
-        Shs = gb_trees:update(Id, We, Shs0),
+        #dlo{src_we=#we{pst=Pst}=We}=D = wings_draw:join(D0),
+        We0=We#we{pst=remove_pst(Pst)},
+        Shs = gb_trees:update(Id, We0, Shs0),
         St = St0#st{shapes=Shs},
-        {D#dlo{vs=none,sel=none,drag=none,src_we=#we{pst=remove_pst(Pst)}},St}
+        {D#dlo{plugins=[],vs=none,sel=none,drag=none,src_we=We0},St}
     end;
 end_drag(_, D, St) -> {D, St}.
 
@@ -2862,13 +2863,9 @@ add_pst(InfData,Pst) ->
     end.
 
 %% It removes the plugin functionality
+remove_pst(none) -> none;
 remove_pst(Pst) ->
-    case gb_trees:lookup(?MODULE, Pst) of
-    none -> Pst;
-    {_,Data} ->
-        NewData = gb_trees:delete_any(edge_info,Data),
-        gb_trees:update(?MODULE,NewData,Pst)
-    end.
+    gb_trees:delete_any(?MODULE,Pst).
 
 %%%
 %%% Functions of general purpose
