@@ -20,18 +20,18 @@
 -import(lists, [foldl/3,sort/1,reverse/1,member/2]).
 
 -record(sculpt,
-    {mode,          	% pull, pinch, smooth
-     active=false,  	% sculpt active true|false
-     id=none,       	% id of initial object
-     mag,           	% magnet true|false
-     rad,           	% magnet radius
-     mag_type,      	% magnet type
-     str,           	% strength
-     mir,           	% mirror info
-     locked,        	% masked vertices
-     st,            	% state
-     wst,           	% working state
-     ost}).         	% original state
+    {mode,             % pull, pinch, smooth
+     active=false,     % sculpt active true|false
+     id=none,          % id of initial object
+     mag,              % magnet true|false
+     rad,              % magnet radius
+     mag_type,         % magnet type
+     str,              % strength
+     mir,              % mirror info
+     locked,           % masked vertices
+     st,               % state
+     wst,              % working state
+     ost}).            % original state
 
 init() ->
     wings_pref:set_default(sculpt_strength, 0.005),
@@ -40,6 +40,7 @@ init() ->
     wings_pref:set_default(sculpt_magnet_type, dome),
     wings_pref:set_default(sculpt_initial, false),
     wings_pref:set_default(sculpt_constraint_axis, none),
+    wings_pref:set_default(sculpt_magnet_influence, true),
     %% Delete old prefs
     wings_pref:delete_value(sculpt_magnet_color),
     true.
@@ -160,15 +161,18 @@ handle_sculpt_event_1(#mousebutton{state=?SDL_RELEASED},
 handle_sculpt_event_1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
   #sculpt{st=St}=Sc) ->
     do_sculpt(X, Y, Sc#sculpt{wst=St,active=true});
-handle_sculpt_event_1(#mousebutton{button=3,mod=Mod,x=X,y=Y,state=?SDL_PRESSED}, Sc)
-  when Mod band ?CTRL_BITS =:= 0 ->
-    {GX,GY} = wings_wm:local2global(X, Y),
-    adjust_magnet(GX, GY, Sc);
 handle_sculpt_event_1(#mousebutton{button=3,mod=Mod,x=X,y=Y,state=?SDL_RELEASED}, Sc)
   when Mod band ?CTRL_BITS =/= 0 ->
     sculpt_menu(X, Y, Sc);
-handle_sculpt_event_1(#keyboard{sym=Sym,state=?SDL_PRESSED}=Ev, Sc) ->
-    handle_key(Sym, Ev, Sc);
+handle_sculpt_event_1(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev, Sc) ->
+    case is_altkey_magnet_event(Sym,Mod) of
+      true ->
+        {_,X,Y} = wings_wm:local_mouse_state(),
+        {GX,GY} = wings_wm:local2global(X, Y),
+        adjust_magnet(GX, GY, Sc);
+      _ ->
+        handle_key(Sym, Ev, Sc)
+    end;
 handle_sculpt_event_1({action,Action}, Sc) ->
     command_handling(Action, Sc);
 handle_sculpt_event_1(got_focus, #sculpt{st=St}=Sc) ->
@@ -192,6 +196,7 @@ handle_sculpt_event_1(_,_) ->
 
 adjust_magnet(X, Y, Sc) ->
     wings_io:grab(),
+    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_ENABLE),
     update_magnet_handler(X, Y, Sc).
 
 update_magnet_handler(X, Y, Sc) ->
@@ -211,24 +216,27 @@ handle_magnet_event(#mousemotion{x=X, y=Y}, X0, Y0, Sc0) ->
     wings_io:warp(X0,Y0),
     Sc = adjust_magnet_radius(DX, Sc0),
     update_magnet_handler(X0, Y0, Sc);
-handle_magnet_event(#mousebutton{button=3,state=?SDL_RELEASED}, X, Y, #sculpt{str=Str}=Sc) ->
-    wings_pref:set_value(sculpt_strength, Str),
-    wings_io:ungrab(X, Y),
-    wings_wm:dirty(),
-    update_sculpt_handler(Sc);
 handle_magnet_event(#mousebutton{button=4,state=?SDL_RELEASED}, X, Y, Sc0) ->
-    Sc = adjust_strength(1, Sc0),
-    update_magnet_handler(X, Y, Sc);
+    update_magnet_handler(X, Y, adjust_strength(1, Sc0));
 handle_magnet_event(#mousebutton{button=5,state=?SDL_RELEASED}, X, Y, Sc0) ->
-    Sc = adjust_strength(-1, Sc0),
+    update_magnet_handler(X, Y, adjust_strength(-1, Sc0));
+handle_magnet_event(#mousebutton{button=Button}, X, Y, Sc)
+  when Button =:= 4; Button =:= 5 ->
     update_magnet_handler(X, Y, Sc);
-handle_magnet_event(lost_focus, X, Y, #sculpt{str=Str}=Sc) ->
+handle_magnet_event(#keyboard{sym=Sym,state=?SDL_RELEASED}, X, Y, Sc)
+  when Sym =:= ?SDLK_LALT; Sym =:= ?SDLK_RALT ->
+    end_magnet_event(X, Y, Sc);
+handle_magnet_event(#keyboard{}, X, Y, Sc) ->
+    update_magnet_handler(X, Y, Sc);
+handle_magnet_event(_, X, Y, Sc) ->
+    end_magnet_event(X, Y, Sc).
+
+end_magnet_event(X, Y, #sculpt{str=Str}=Sc) ->
+    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_IGNORE),
     wings_pref:set_value(sculpt_strength, Str),
     wings_io:ungrab(X, Y),
     wings_wm:dirty(),
-    update_sculpt_handler(Sc);
-handle_magnet_event(_, X, Y, Sc) ->
-    update_magnet_handler(X, Y, Sc).
+    update_sculpt_handler(Sc).
 
 %%%
 %%% Adjust Radius
@@ -356,31 +364,11 @@ sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str0,rad=Rad,mag_type=MagType,mode=smooth
     case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
       {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
         Shs0=check_is_same_id(Id,Shs1),
-        #we{vp=Vtab0,pst=Pst}=We = gb_trees:get(Id, Shs0),
+        We = gb_trees:get(Id, Shs1),
         {Positions,_} = vpos(Face, We),
-        Cnt = {Cx,Cy,Cz} = e3d_vec:average(Positions),
-        Lvs = lookup_locked_vs(Id, Locked),
-        Str = Str0*10,
-        {Influenced,Vtab} = array:sparse_foldl(fun
-            (V, Pos={Px,Py,Pz}, {Influenced0,Vtab1}) ->
-                case ordsets:is_element(V, Lvs) of
-                    true -> {Influenced0,Vtab1};
-                    false ->
-                        case in_dist_boundaries([Cx,Cy,Cz], [Px,Py,Pz], Rad) of
-                            true ->
-                                Dist = e3d_vec:dist(Pos, Cnt),
-                                case Dist =< Rad of
-                                    true ->
-                                        Inf = magnetic_influence(MagType, Dist, Rad),
-                                        Influenced1=[Influenced0|[{V,Inf}]],
-                                        {Influenced1,smooth(V, Pos, Inf, Str, Mir, We, Vtab1)};
-                                    false -> {Influenced0,Vtab1}
-                                end;
-                            false -> {Influenced0,Vtab1}
-                        end
-                    end
-               end, {[],Vtab0}, Vtab0),
-        NewPst = set_Influenced_vs(Influenced,Pst),
+        Cnt = e3d_vec:average(Positions),
+        {VsDyn,Vtab} = smooth_magnetic(Locked,Str0,Rad,Cnt,MagType,Mir,We),
+        NewPst = set_edge_influence(VsDyn,We#we{vp=Vtab}),
         Shs = gb_trees:update(Id, We#we{vp=Vtab,pst=NewPst}, Shs0),
         {St#st{shapes=Shs},Id};
       _ ->
@@ -421,15 +409,20 @@ sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str,rad=Rad,mag_type=MagType,mode=pinch,
 %% Pinch mode with magnet
     case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
       {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
+        Smooth=wings_io:is_modkey_pressed(?SHIFT_BITS),
         Shs0=check_is_same_id(Id,Shs1),
-        #we{vp=Vtab0,pst=Pst}=We = gb_trees:get(Id, Shs0),
+        #we{vp=Vtab0}=We = gb_trees:get(Id, Shs0),
         {Positions,_} = vpos(Face, We),
         Cnt = {Cx,Cy,Cz} = e3d_vec:average(Positions),
         Lvs = lookup_locked_vs(Id, Locked),
-        {Influenced,Vtab} = array:sparse_foldl(fun
-            (V, Pos={Px,Py,Pz}, {Influenced0,Vtab1}) ->
+        {VsDyn,Vtab} = case Smooth of
+          true ->
+            smooth_magnetic(Locked,Str,Rad,Cnt,MagType,Mir,We);
+          _ ->
+            array:sparse_foldl(fun
+            (V, Pos={Px,Py,Pz}, {VsDyn0,Vtab1}) ->
                 case ordsets:is_element(V, Lvs) of
-                    true -> {Influenced0,Vtab1};
+                    true -> {VsDyn0,Vtab1};
                     false ->
                         case in_dist_boundaries([Cx,Cy,Cz], [Px,Py,Pz], Rad) of
                             true ->
@@ -437,23 +430,16 @@ sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str,rad=Rad,mag_type=MagType,mode=pinch,
                                 case Dist =< Rad of
                                     true ->
                                         Inf = magnetic_influence(MagType, Dist, Rad),
-                                        Influenced1=[Influenced0|[{V,Inf}]],
-                                        Vtab2 = pinch(V, Pos, Cnt, Inf, Str, Mir, We, Vtab1),
-                                        case wings_io:is_modkey_pressed(?SHIFT_BITS) of
-                                          false ->
-                                            {Influenced1,Vtab2};
-                                          true ->
-                                            NewPos = array:get(V, Vtab2),
-                                            Vtab3 = smooth(V, NewPos, Inf, Str*10, Mir, We, Vtab2),
-                                            {Influenced1,Vtab3}
-                                        end;
-                                    false -> {Influenced0,Vtab1}
+                                        VsDyn1=VsDyn0++[{V,Inf}],
+                                        {VsDyn1,pinch(V, Pos, Cnt, Inf, Str, Mir, We, Vtab1)};
+                                    false -> {VsDyn0,Vtab1}
                                 end;
-                            false -> {Influenced0,Vtab1}
+                            false -> {VsDyn0,Vtab1}
                         end
-                    end
-               end, {[],Vtab0}, Vtab0),
-        NewPst = set_Influenced_vs(Influenced,Pst),
+                end
+            end, {[],Vtab0}, Vtab0)
+        end,
+        NewPst = set_edge_influence(VsDyn,We),
         Shs = gb_trees:update(Id, We#we{vp=Vtab,pst=NewPst}, Shs0),
         {St#st{shapes=Shs},Id};
       _ ->
@@ -499,15 +485,21 @@ sculpt(X, Y, #sculpt{id=ID,locked=Locked,mir=Mir,str=Str,rad=Rad,
 %% Push and Pull mode with magnet
     case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
       {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
+        Smooth=wings_io:is_modkey_pressed(?SHIFT_BITS),
         Shs0=check_is_same_id(Id,Shs1),
-        #we{vp=Vtab0,pst=Pst}=We = gb_trees:get(Id, Shs0),
+        #we{vp=Vtab0}=We = gb_trees:get(Id, Shs0),
         {Positions,_} = vpos(Face, We),
         Cnt = {Cx,Cy,Cz} = e3d_vec:average(Positions),
         Lvs = lookup_locked_vs(Id, Locked),
-        {_,Influenced,Vtab} = array:sparse_foldl(fun
-            (V, Pos={Px,Py,Pz}, {FNs0,Influenced0,Vtab1}) ->
+        {_,VsDyn,Vtab} = case Smooth of
+          true ->
+            {VsDyn0,Vtab1}=smooth_magnetic(Locked,Str,Rad,Cnt,MagType,Mir,We),
+            {none,VsDyn0,Vtab1};
+          _ ->
+            array:sparse_foldl(fun
+            (V, Pos={Px,Py,Pz}, {FNs0,VsDyn0,Vtab1}) ->
                  case ordsets:is_element(V, Lvs) of
-                     true -> {FNs0,Influenced0,Vtab1};
+                     true -> {FNs0,VsDyn0,Vtab1};
                      false ->
                          case in_dist_boundaries([Cx,Cy,Cz], [Px,Py,Pz], Rad) of
                              true ->
@@ -515,9 +507,7 @@ sculpt(X, Y, #sculpt{id=ID,locked=Locked,mir=Mir,str=Str,rad=Rad,
                                  case Dist =< Rad of
                                      true ->
                                        Inf = magnetic_influence(MagType, Dist, Rad),
-% micheus
-                                       Influenced1=[Influenced0|[{V,Inf}]],
-%
+                                       VsDyn1=VsDyn0++[{V,Inf}],
                                        {FNs,Normal0} = vertex_normal(V, We, FNs0),
                                        Normal = case wings_io:is_modkey_pressed(?CTRL_BITS) of
                                          false -> Normal0;
@@ -526,26 +516,44 @@ sculpt(X, Y, #sculpt{id=ID,locked=Locked,mir=Mir,str=Str,rad=Rad,
                                        NewPos0 = e3d_vec:add_prod(Pos, Normal, Str*Inf),
                                        NewPos1 = constraint_check(Pos, NewPos0),
                                        NewPos = handle_mirror(Id, V, NewPos1, Mir),
-                                       case wings_io:is_modkey_pressed(?SHIFT_BITS) of
-                                         false ->
-                                           Vtab2 = array:set(V, NewPos, Vtab1),
-                                           {FNs,Influenced1,Vtab2};
-                                         true ->
-                                           Vtab2 = smooth(V, NewPos, Inf, Str*10, Mir, We, Vtab1),
-                                           {FNs,Influenced1,Vtab2}
-                                       end;
-                                     false -> {FNs0,Influenced0,Vtab1}
+                                       {FNs,VsDyn1,array:set(V, NewPos, Vtab1)};
+                                     false -> {FNs0,VsDyn0,Vtab1}
                                  end;
-                             false -> {FNs0,Influenced0,Vtab1}
+                             false -> {FNs0,VsDyn0,Vtab1}
                          end
-                     end
-                end, {gb_trees:empty(),[],Vtab0}, Vtab0),
-        NewPst = set_Influenced_vs(Influenced,Pst),
+                 end
+            end, {gb_trees:empty(),[],Vtab0}, Vtab0)
+        end,
+        NewPst = set_edge_influence(VsDyn,We#we{vp=Vtab}),
         Shs = gb_trees:update(Id, We#we{vp=Vtab,pst=NewPst}, Shs0),
         {St#st{shapes=Shs},Id};
       _ ->
         keep
     end.
+
+smooth_magnetic(Locked,Str0,Rad,{Cx,Cy,Cz}=Cnt,MagType,Mir,We) ->
+    Str = Str0*10,
+    #we{id=Id,vp=Vtab0}=We,
+    Lvs = lookup_locked_vs(Id, Locked),
+    array:sparse_foldl(fun
+        (V, Pos={Px,Py,Pz}, {VsDyn0,Vtab1}) ->
+            case ordsets:is_element(V, Lvs) of
+                true ->  {VsDyn0,Vtab1};
+                false ->
+                    case in_dist_boundaries([Cx,Cy,Cz], [Px,Py,Pz], Rad) of
+                        true ->
+                            Dist = e3d_vec:dist(Pos, Cnt),
+                            case Dist =< Rad of
+                                true ->
+                                    Inf = magnetic_influence(MagType, Dist, Rad),
+                                    VsDyn1=VsDyn0++[{V,Inf}],
+                                    {VsDyn1,smooth(V, Pos, Inf, Str, Mir, We, Vtab1)};
+                                false -> {VsDyn0,Vtab1}
+                            end;
+                        false ->  {VsDyn0,Vtab1}
+                    end
+                end
+           end, {[],Vtab0}, Vtab0).
 
 in_dist_boundaries([], [], _) -> true;
 in_dist_boundaries([H|T], [P|R], Rad) ->
@@ -604,7 +612,7 @@ magnetic_influence(straight, Dist, Rad) -> (Rad-Dist)/Rad;
 magnetic_influence(spike, Dist, Rad) ->
     D = (Rad-Dist)/Rad,
     D*D;
-magnetic_influence(absolute, _, _) -> 1.
+magnetic_influence(absolute, _, _) -> 1.0.
 
 smooth(V, Pos, Inf, Str, Mir, #we{id=Id}=We, Vtab) ->
     Positions = wings_vertex:fold(fun(_, _, E, Acc) ->
@@ -701,6 +709,13 @@ handle_key(Sym, Ev, Sc) ->
         end
     end.
 
+is_altkey_magnet_event(Sym,Mod) ->
+    case Sym of
+      ?SDLK_LALT -> Mod band (?SHIFT_BITS bor ?CTRL_BITS) =:= 0;
+      ?SDLK_RALT -> Mod band (?SHIFT_BITS bor ?CTRL_BITS) =:= 0;
+      _ -> false
+    end.
+
 command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
     case Action of
       {view,highlight_aim} ->
@@ -773,7 +788,6 @@ command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
 %%% Exit Sculpt
 %%%
 
-%exit_sculpt(#sculpt{mag=Mag,mag_type=MagType,str=Str,rad=Rad,mode=Mode,st=#st{shapes=Shs},ost=St0}=Sc) ->
 exit_sculpt(#sculpt{mag=Mag,mag_type=MagType,str=Str,rad=Rad,mode=Mode,ost=St0}=Sc) ->
     wings_pref:set_value(sculpt_mode, Mode),
     wings_pref:set_value(sculpt_magnet, {Mag,Rad}),
@@ -804,8 +818,8 @@ help(#sculpt{mag=Mag,rad=Rad,mag_type=MagType,str=Str,mode=Mode}) ->
     Sculpt = ?__(1,"L: Sculpt"),
     Menu = ?__(2,"[Ctrl]+R: Sculpt Menu"),
     MagnetType = io_lib:format(?__(3,"Magnet: ~s"),[magtype(MagType)]),
-    Radius = ?__(4,"R+Drag: Adjust Radius"),
-    Strength = ?__(5,"R+Scroll(+[Shift]): ")  ++ ?__(6,"Adjust Strength"),
+    Radius = ?__(4,"Alt+Drag: Adjust Radius"),
+    Strength = ?__(5,"Alt+Scroll(+[Shift]): ")  ++ ?__(6,"Adjust Strength"),
     Exit = "[Esc]: " ++ exit_string(),
     StatusBar = io_lib:format(?__(7,"Strength: ~p")++"  "++
                               ?__(8,"Radius: ~s"),
@@ -843,11 +857,14 @@ exit_string() -> ?__(1,"Exit").
 prefs(#sculpt{str=Str}) ->
     Strength = trunc(Str/0.001),
     Confine = wings_pref:get_value(sculpt_initial),
+    ShowInfluence = wings_pref:get_value(sculpt_magnet_influence),
     Menu = [{vframe,
       [{hframe,[{slider,{text,Strength,[{key,sculpt_strength},{range,{1,100}}]}}],
          [{title,?__(1,"Strength")}]}]}],
     C = [separator,{?__(3,"Confine sculpt to initial object"),
-          Confine,[{key,sculpt_initial}]}],
+          Confine,[{key,sculpt_initial}]},
+         {?__(4,"Show Magnet influence"),
+          ShowInfluence,[{key,sculpt_magnet_influence}]}],
     PrefQs = [{Lbl, make_query(Ps)} || {Lbl, Ps} <- Menu] ++ C,
     wings_ask:dialog(?__(10,"Sculpt Preferences"), PrefQs,
     fun(Result) -> set_values(Result) end).
@@ -943,135 +960,168 @@ constraint_info() ->
 crossmark(Axis, Axis) -> [crossmark];
 crossmark(_, _) -> [].
 
-%% ===========================================
-%% Added by Micheus Oct/2011
-%% Support for highlighting the influence on the vertices
+%%%
+%%% Support for highlighting the magnet influence
+%%%
 
-%%
-%% Functions of general purpose
-%%
-
-% This function will clean the vertices influence information when the list is empty or
-% it will add the vertices influence information to Pst field of the we#
-set_Influenced_vs([],Pst) ->
-	case gb_trees:lookup(?MODULE, Pst) of
-	  none -> Pst;
-	  {_,Data} ->
-		  NewData = gb_trees:delete_any(vs_inf,Data),
-		  gb_trees:update(?MODULE,NewData,Pst)
-	end;
-set_Influenced_vs(Influenced0,Pst) ->
-	Influenced=lists:flatten(Influenced0),
-    case gb_trees:lookup(?MODULE, Pst) of
-      none ->
-          Data = gb_trees:empty(),
-          NewData = gb_trees:insert(vs_inf,Influenced,Data),
-          gb_trees:insert(?MODULE,NewData,Pst);
-      {_,Data} ->
-          NewData = gb_trees:enter(vs_inf,Influenced,Data),
-          gb_trees:update(?MODULE,NewData,Pst)
+%% This function will clean the vertices influence information when the list is empty or
+%% it will add the vertices influence information to Pst field of the we#
+set_edge_influence([],#we{pst=Pst}) ->
+    remove_pst(Pst);
+set_edge_influence(VsDyn,#we{pst=Pst,es=Etab,vp=Vtab}=We) ->
+    case wings_pref:get_value(sculpt_magnet_influence) of
+    true ->
+        Vs = [V || {V,_} <- VsDyn],
+        Edges = wings_edge:from_vs(Vs,We),
+        EdDyn=to_edges_raw(Edges,VsDyn,Etab,Vtab),
+        add_pst(EdDyn,Pst);
+    _ ->
+        Pst
     end.
 
-% It's used to reset the highlighting when a new we# got the focus
-check_is_same_id(IdNew,Shs0) ->
-	OldId=wings_pref:get_value(sculpt_current_id),
-	wings_pref:set_value(sculpt_current_id,IdNew),
-	case OldId of
-	none -> Shs0;
-	IdNew -> Shs0;
-	ID ->
-		#we{pst=Pst0}=We0 = gb_trees:get(ID, Shs0),
-		gb_trees:update(ID,We0#we{pst=set_Influenced_vs([],Pst0)},Shs0)
-	end.
+%% It adds the plugin functionality
+add_pst(InfData,Pst) ->
+    case gb_trees:lookup(?MODULE, Pst) of
+    none ->
+        Data = gb_trees:empty(),
+        NewData = gb_trees:insert(edge_info,InfData,Data),
+        gb_trees:insert(?MODULE,NewData,Pst);
+    {_,Data} ->
+        NewData = gb_trees:enter(edge_info,InfData,Data),
+        gb_trees:update(?MODULE,NewData,Pst)
+    end.
 
-% It removes the plugin functionality
+%% It removes the plugin functionality
+remove_pst(Pst) ->
+    case gb_trees:lookup(?MODULE, Pst) of
+    none -> Pst;
+    {_,Data} ->
+        NewData = gb_trees:delete_any(edge_info,Data),
+        gb_trees:update(?MODULE,NewData,Pst)
+    end.
+
+%% It removes the plugin functionality
 remove_influence(#sculpt{id=none,st=#st{shapes=Shs0}=St}=Sc) ->
-	wings_pref:delete_value(sculpt_current_id),
+    wings_pref:delete_value(sculpt_current_id),
     Shs1 = lists:map(fun
             (#we{id=Id,pst=none}=We) -> {Id,We};
             (#we{id=Id,pst=Pst}=We) ->
-            	NewPst=gb_trees:delete_any(?MODULE, Pst),
+                NewPst=gb_trees:delete_any(?MODULE, Pst),
               {Id,We#we{pst=NewPst}}
           end,gb_trees:values(Shs0)),
     Sc#sculpt{st=St#st{shapes=gb_trees:from_orddict(Shs1)}}.
 
-% It clean any information about the vertices influence from the shapes
+%% It clean any information about the vertices influence from the shapes
 clear_influence(#sculpt{id=none,st=#st{shapes=Shs0}=St}=Sc) ->
-	Sc#sculpt{st=St#st{shapes=clear_influence_vs(Shs0)}};
+    Sc#sculpt{st=St#st{shapes=clear_influence_vs(Shs0)}};
 clear_influence(#sculpt{id=Id,st=#st{shapes=Shs0}=St}=Sc) ->
-	#we{pst=Pst}=We= gb_trees:get(Id, Shs0),
-	NewPst=set_Influenced_vs([],Pst),
-	Shs = gb_trees:update(Id, We#we{pst=NewPst}, Shs0),
-	Sc#sculpt{st=St#st{shapes=Shs}}.
+    #we{pst=Pst}=We= gb_trees:get(Id, Shs0),
+    Shs = gb_trees:update(Id, We#we{pst=remove_pst(Pst)}, Shs0),
+    Sc#sculpt{st=St#st{shapes=Shs}}.
 
 clear_influence_vs(Shs) ->
     Shs1 = lists:map(fun
             (#we{id=Id,pst=none}=We) -> {Id,We};
             (#we{id=Id,pst=Pst}=We) ->
-            	NewPst=set_Influenced_vs([],Pst),
+                NewPst=remove_pst(Pst),
               {Id,We#we{pst=NewPst}}
           end,gb_trees:values(Shs)),
     gb_trees:from_orddict(Shs1).
 
-%%
-%% Functions to produce the visual effect (inspired on wpc_magnet_mask.erl file)
-%%
-% It generate the OpenGl list of colored vertices
-update_dlist({vs_inf,VsInf},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
-    Key = ?MODULE,
-    Str=wings_pref:get_value(sculpt_strength),
-    ColFac=Str*10,  % range of 0..1
-    Col={1.0*ColFac,0.0*ColFac,1.0,0.0},
-    Pos = positions(VsInf,Vtab,[]),
-    case Pos of
-      [] ->
-        D#dlo{plugins=[{Key,none}|Pdl]};
-      _ ->
-        List = gl:genLists(1),
-        gl:newList(List,?GL_COMPILE),
-        gl:'begin'(?GL_POINTS),
-        pump_vertices(Col,Pos),
-        gl:'end'(),
-        gl:endList(),
-        D#dlo{plugins=[{Key,{vs,List}}|Pdl]}
+%% It's used to reset the highlighting when a new we# got the focus
+check_is_same_id(IdNew,Shs0) ->
+    OldId=wings_pref:get_value(sculpt_current_id),
+    wings_pref:set_value(sculpt_current_id,IdNew),
+    case OldId of
+    none -> Shs0;
+    IdNew -> Shs0;
+    ID ->
+        #we{pst=Pst0}=We0 = gb_trees:get(ID, Shs0),
+        gb_trees:update(ID,We0#we{pst=remove_pst(Pst0)},Shs0)
     end.
 
-pump_vertices({R,G,B,_}=Col,[{V,Inf}|Vs]) ->
-    gl:color3f(R*Inf,G*Inf,B*Inf),
-    gl:vertex3fv(V),
-    pump_vertices(Col,Vs);
-pump_vertices(_,[]) -> ok.
+%%%
+%%% Functions of general purpose
+%%%
+to_edges_raw([],_ , _, _) -> [];
+to_edges_raw(_, [] , _, _) -> [];
+to_edges_raw(Edges, VsDyn, Etab, Vtab) ->
+    to_edges_raw_1(Edges, VsDyn, Etab, Vtab, []).
 
-positions([{V,Inf}|Influenced],Vtab,Acc) ->
-    Pos = {array:get(V,Vtab),Inf},
-    positions(Influenced,Vtab,[Pos|Acc]);
-positions([],_,Acc) -> Acc.
+to_edges_raw_1([], _, _, _, Acc) -> Acc;
+to_edges_raw_1([Edge|Edges], VsDyn, Etab, Vtab, Acc) ->
+    #edge{vs=Va0,ve=Vb0} = array:get(Edge, Etab),
+    Cola=get_vs_influence(Va0, VsDyn),
+    Colb=get_vs_influence(Vb0, VsDyn),
+    VsPair=[{Va0,Cola, Vb0,Colb}],
+    to_edges_raw_1(Edges, VsDyn, Etab, Vtab, VsPair++Acc).
 
-% It'll will provide de vertices data for 'update_dlist' function
+get_vs_influence(V, VsDyn) ->
+    case lists:keysearch(V, 1, VsDyn) of
+    false -> 0.0;
+    {_, {_,Value}} -> Value
+    end.
+
+%%%
+%%% Functions to produce the visual effect (inspired on wpc_magnet_mask.erl file)
+%%%
+
+%% It generate the OpenGl list of colored vertices
+update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
+    Key = ?MODULE,
+    case EdgeInfo of
+    [] ->
+        D#dlo{plugins=[{Key,none}|Pdl]};
+    _ ->
+        Str=wings_pref:get_value(sculpt_strength),
+        ColFac=Str*10,  % it makes range of 0..1 
+        ColFrom=col_to_vec(wings_pref:get_value(edge_color)),
+        ColTo={1.0*ColFac,0.0*ColFac,1.0},  % this color is a fixed value from blue to magenta
+        ColRange=e3d_vec:sub(ColTo,ColFrom),
+        EdgeList = gl:genLists(1),
+        gl:newList(EdgeList,?GL_COMPILE),
+        gl:'begin'(?GL_LINES),
+        pump_edges(EdgeInfo,Vtab,ColFrom,ColRange),
+        gl:'end'(),
+        gl:endList(),
+        D#dlo{plugins=[{Key,{edge,EdgeList}}|Pdl]}
+    end.
+
+%% pumping Lines
+pump_edges([],_,_,_) -> ok;
+pump_edges([{Id1,Inf1,Id2,Inf2}|SegInf],Vtab,Col,Range) ->
+    {R1,G1,B1}=color_gradient(Col,Range,Inf1),
+    {R2,G2,B2}=color_gradient(Col,Range,Inf2),
+    V1=array:get(Id1, Vtab),
+    V2=array:get(Id2, Vtab),
+    gl:color3f(R1,G1,B1),
+    gl:vertex3fv(V1),
+    gl:color3f(R2,G2,B2),
+    gl:vertex3fv(V2),
+    pump_edges(SegInf,Vtab,Col,Range).
+
+%% It'll will provide de vertices data for 'update_dlist' function
 get_data(update_dlist, Data, Acc) ->  % for draw lists
-	case gb_trees:lookup(vs_inf, Data) of
-	none ->
-		{ok, Acc};
-	{_,VsInf} ->
-	    {ok, [{plugin, {?MODULE, {vs_inf, VsInf}}}|Acc]}
-	end.
+    case gb_trees:lookup(edge_info, Data) of
+    none ->
+        {ok, Acc};
+    {_,EdgeInfo} ->
+        {ok, [{plugin, {?MODULE, {edge_info, EdgeInfo}}}|Acc]}
+    end.
 
-% It'll use the list prepared by 'update_dlist' function and then draw it (for plain or smooth flag)
-draw(_, {vs,List}, _D, Selmode) ->
-    PtSize = wings_pref:get_value(masked_vertex_size),
-    Size = PtSize*0.6,
-    gl:pointSize(vert_display(Size,Selmode)),
-    gl:enable(?GL_BLEND),
-    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-    wings_dl:call(List),
-    gl:disable(?GL_BLEND);
+%% It'll use the list prepared by 'update_dlist' function and then draw it (only for plain draw)
+draw(plain, {edge,EdgeList}, _D, SelMode) ->
+    gl:lineWidth(edge_width(SelMode)),
+    wings_dl:call(EdgeList);
 draw(_,_,_,_) -> ok.
 
-vert_display(Size,vertex) ->
-    VSize = wings_pref:get_value(selected_vertex_size),
-    case VSize >= Size of
-      true -> VSize + 2;
-      false -> Size
-    end;
-vert_display(Size,_Selmode) -> Size.
+edge_width(edge) -> wings_pref:get_value(edge_width);
+edge_width(_) -> 1.
 
+col_to_vec({R,G,B}) when is_integer(R) -> {R/255.0,G/255.0,B/255.0};
+col_to_vec({_,_,_}=Col) -> Col;
+col_to_vec({R,G,B,_}) when is_integer(R) -> col_to_vec({R,G,B});
+col_to_vec({R,G,B,_}) -> col_to_vec({R,G,B}).
+
+color_gradient(Cb, Cr, Perc) ->
+    e3d_vec:add(Cb,e3d_vec:mul(Cr,Perc)).

@@ -35,30 +35,30 @@
 %%%
 
 -record(tweak,
-    {mode,		% current tweak tool
-     magnet,		% true|false
-     mag_type,		% magnet type: Type
-     mag_rad,		% magnet influence radius
-     id,		% {Id,Elem} mouse was over when tweak began
-     sym,		% current magnet radius adjustment hotkey
-     ox,oy,		% original X,Y
-     cx,cy,		% current X,Y
-     clk=none,		% click selection/deselection
-     st}).		% wings st record (working)
+    {mode,      % current tweak tool
+     magnet,    % true|false
+     mag_type,  % magnet type: Type
+     mag_rad,   % magnet influence radius
+     id,        % {Id,Elem} mouse was over when tweak began
+     sym,       % current magnet radius adjustment hotkey
+     ox,oy,     % original X,Y
+     cx,cy,     % current X,Y
+     clk=none,  % click selection/deselection
+     st}).      % wings st record (working)
 
 -record(drag,
     {vs,
-     pos0,		% Original position.
-     pos,		% Current position.
-     pst=none,		% Any data that a specific tweak tool needs stored
-			% temporarily
-     mag,		% mag record
-     mm}).		% original|mirror
+     pos0,      % Original position.
+     pos,       % Current position.
+     pst=none,  % Any data that a specific tweak tool needs stored
+                % temporarily
+     mag,       % mag record
+     mm}).      % original|mirror
 
 -record(mag,
-    {orig,		% Orig centre of the selection being moved
-     vs,		% [{V,Pos,Distance,Influence}]
-     vtab=[]}).		% [{V,Pos}] (latest)
+    {orig,      % Orig centre of the selection being moved
+     vs,        % [{V,Pos,Distance,Influence}]
+     vtab=[]}). % [{V,Pos}] (latest)
 
 
 %%%
@@ -83,6 +83,7 @@ init() ->
     wings_pref:set_default(tweak_vector_color, {1.0,0.5,0.0}),
     wings_pref:set_default(tweak_speed, 0.5), %% control vs speed setting
     wings_pref:set_default(tweak_axis_toggle, []),
+    wings_pref:set_default(tweak_magnet_influence, true),
 
     %% Delete Old Prefs
     wings_pref:delete_value(tweak_draw),
@@ -721,8 +722,9 @@ begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, SelElem, #st{sel=Sel}=St, 
       [] -> D0;
       _ ->
         Center = wings_vertex:center(Vs0, We),
-        {Vs,Magnet,Influenced} = begin_magnet(T, Vs0, Center, We),
-        D = wings_draw:split(D0, Vs, St),
+        {Vs,Magnet,VsDyn} = begin_magnet(T, Vs0, Center, We),
+        #dlo{src_we=We0}= D = wings_draw:split(D0, Vs, St),
+
         L = length(Sel) > 1,
         MM = case {We,SelElem} of
              {#we{id=Id},{Id,_,_}} when L -> original; %% so at least the shapes
@@ -730,8 +732,7 @@ begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, SelElem, #st{sel=Sel}=St, 
              {#we{id=Id},{Id,_,MM0}} -> MM0;
              {_,_} -> original
          end,
-        #dlo{src_we=#we{pst=Pst}=We0}=D,
-        NewPst = set_Influenced_vs(Influenced,Pst),
+        NewPst = set_edge_influence(Vs,VsDyn,We0),
         D#dlo{src_we=We0#we{pst=NewPst},drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}}
     end;
 begin_drag_fun(D, _, _, _) -> D.
@@ -757,11 +758,11 @@ end_drag(update, #dlo{src_sel={Mode,Sel}, src_we=#we{id=Id},drag={matrix,_,Matri
     Shs = gb_trees:update(Id, We, Shs0),
     St = St0#st{shapes=Shs},
     {D,St#st{selmode=Mode,sel=[{Id,Sel}]}};
-end_drag(update, #dlo{src_sel={Mode,Sel},src_we=#we{id=Id}=WeSrc}=D0, #st{shapes=Shs0}=St0) ->
+end_drag(update, #dlo{src_sel={Mode,Sel},src_we=#we{id=Id}}=D0, #st{shapes=Shs0}=St0) ->
     #dlo{src_we=We} = wings_draw:join(D0),
     Shs = gb_trees:update(Id, We, Shs0),
     St = St0#st{shapes=Shs},
-    {D0#dlo{src_we=remove_influence(WeSrc)},St#st{selmode=Mode,sel=[{Id,Sel}]}};
+    {D0,St#st{selmode=Mode,sel=[{Id,Sel}]}};
 %% tweak modes
 end_drag(_, #dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
         #st{shapes=Shs0}=St0) ->
@@ -772,7 +773,7 @@ end_drag(_, #dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
     D1 = D#dlo{src_we=We},
     D2 = wings_draw:changed_we(D1, D),
     {D2#dlo{vs=none,sel=none,drag=none},St};
-end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}=WeSrc}=D0, #st{shapes=Shs0}=St0) ->
+end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id,pst=Pst}}=D0, #st{shapes=Shs0}=St0) ->
     case Mode of
       slide ->
         case wings_io:is_key_pressed(?SDLK_F1) of
@@ -800,7 +801,7 @@ end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}=WeSrc}=D0, #st{shapes=Shs0}=
         #dlo{src_we=We}=D = wings_draw:join(D0),
         Shs = gb_trees:update(Id, We, Shs0),
         St = St0#st{shapes=Shs},
-        {D#dlo{vs=none,sel=none,drag=none,src_we=remove_influence(WeSrc)},St}
+        {D#dlo{vs=none,sel=none,drag=none,src_we=#we{pst=remove_pst(Pst)}},St}
     end;
 end_drag(_, D, St) -> {D, St}.
 
@@ -1380,10 +1381,9 @@ setup_magnet(#tweak{mode=Mode, cx=X, cy=Y}=T) ->
 setup_magnet_fun(#dlo{src_sel={_,_},drag=#drag{vs=Vs0,pos0=Center}=Drag}=Dl0,
   #tweak{st=St}=T) ->
     We = wings_draw:original_we(Dl0),
-    {Vs,Mag,Influenced} = begin_magnet(T, Vs0, Center, We),
-    Dl = wings_draw:split(Dl0, Vs, St),
-    #dlo{src_we=#we{pst=Pst}=We0}=Dl,
-	NewPst = set_Influenced_vs(Influenced,Pst),
+    {Vs,Mag,VsDyn} = begin_magnet(T, Vs0, Center, We),
+    #dlo{src_we=We0} = Dl = wings_draw:split(Dl0, Vs, St),
+    NewPst = set_edge_influence(Vs,VsDyn,We0),
     Dl#dlo{src_we=We0#we{pst=NewPst},drag=Drag#drag{mag=Mag}};
 setup_magnet_fun(Dl, _) -> Dl.
 
@@ -1409,7 +1409,7 @@ near(Center, Vs, MagVs0, Mirror, #tweak{mag_rad=R,mag_type=Type}, We) ->
               DSqr when DSqr =< RSqr ->
                   D = math:sqrt(DSqr),
                   Inf = magnet_type_calc(Type, D, R),
-                  Influenced1=[Influenced0|[{V,Inf}]],
+                  Influenced1=Influenced0++[{V,Inf}],
                   Matrix = mirror_matrix(V, Mirror),
                   {Influenced1,[{V,Pos,Matrix,D,Inf}|A]};
               _ -> {Influenced0,A}
@@ -1617,10 +1617,9 @@ update_drag(#dlo{src_sel={Mode,Els},src_we=#we{id=Id},drag=#drag{mm=MM}}=D0,
     St = St0#st{shapes=Shs},
     Vs0 = sel_to_vs(Mode, gb_sets:to_list(Els), We),
     Center = wings_vertex:center(Vs0, We),
-    {Vs,Magnet,Influenced} = begin_magnet(T#tweak{st=St}, Vs0, Center, We),
-    D = wings_draw:split(D1, Vs, St),
-    #dlo{src_we=#we{pst=Pst}=We0}=D,
-	NewPst = set_Influenced_vs(Influenced,Pst),
+    {Vs,Magnet,VsDyn} = begin_magnet(T#tweak{st=St}, Vs0, Center, We),
+    #dlo{src_we=We0}= D = wings_draw:split(D1, Vs, St),
+    NewPst = set_edge_influence(Vs,VsDyn,We0),
     {D#dlo{src_we=We0#we{pst=NewPst},drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}},St};
 update_drag(D,#tweak{st=St}) -> {D,St}.
 
@@ -2110,6 +2109,7 @@ tweak_preferences_dialog(St) ->
        [{title,?__(4,"Magnet Radius Adjustment Sensitivity")}]},
 
        {label_column,[{color,?__(5,"Magnet Radius Display Color"),tweak_magnet_color}]},
+       {?__(11,"Show Magnet influence"),tweak_magnet_influence},
        {hframe,
         [{vframe,[{label,?__(6,"Length")},
                   {label,?__(7,"Width")},
@@ -2123,7 +2123,7 @@ tweak_preferences_dialog(St) ->
     wings_ask:dialog(?__(10,"Tweak Preferences"), PrefQs,
     fun(Result) -> set_values(Result), St end).
 
-make_query([_|_]=List)	->
+make_query([_|_]=List)  ->
     [make_query(El) || El <- List];
 make_query({[_|_]=Str,Key}) ->
     case wings_pref:get_value(Key) of
@@ -2437,9 +2437,9 @@ bl() -> bullet.
 %%%
 
 -record(twk_help,
-    {text,			% Text in the help panel
-     lines,			% number of lines at current dimensions
-     knob=0}).			% scroll
+    {text,          % Text in the help panel
+     lines,         % number of lines at current dimensions
+     knob=0}).          % scroll
 
 help_window() ->
     case wings_wm:is_window(tweak_help) of
@@ -2518,12 +2518,12 @@ update_scroller(Knob, Lines) ->
 %%%
 
 -record(tw,
-    {n,						% number of menu Items.
-     menu,					% menu items.
-     w,						% Menu width in pixels
-     h,						% Menu height in pixels
-     current,				% currently hilighted menu item.
-     mode,					% tool assigned to lmb
+    {n,                     % number of menu Items.
+     menu,                  % menu items.
+     w,                     % Menu width in pixels
+     h,                     % Menu height in pixels
+     current,               % currently hilighted menu item.
+     mode,                  % tool assigned to lmb
                             % also current magnet or axis (depending on menu).
      st
     }).
@@ -2831,99 +2831,125 @@ cmd_prefix(Cmd) ->
     end.
 
 
-%% ===========================================
-%% Added by Micheus Oct/2011
-%% Support for highlighting the influence on the vertices
+%%%
+%%% Support for highlighting the magnet influence
+%%%
 
-%%
-%% Functions of general purpose
-%%
-
-% This function will clean the vertices influence information when the list is empty or
-% it will add the vertices influence information to Pst field of the we#
-set_Influenced_vs([],Pst) ->
-	case gb_trees:lookup(?MODULE, Pst) of
-	  none -> Pst;
-	  {_,Data} ->
-		  NewData = gb_trees:delete_any(vs_inf,Data),
-		  gb_trees:update(?MODULE,NewData,Pst)
-	end;
-set_Influenced_vs(Influenced0,Pst) ->
-	Influenced=lists:flatten(Influenced0),
-    case gb_trees:lookup(?MODULE, Pst) of
-      none ->
-          Data = gb_trees:empty(),
-          NewData = gb_trees:insert(vs_inf,Influenced,Data),
-          gb_trees:insert(?MODULE,NewData,Pst);
-      {_,Data} ->
-          NewData = gb_trees:enter(vs_inf,Influenced,Data),
-          gb_trees:update(?MODULE,NewData,Pst)
+%% This function will clean the vertices influence information when the list is empty or
+%% it will add the vertices influence information to Pst field of the we#
+set_edge_influence([],_,#we{pst=Pst}) ->
+    remove_pst(Pst);
+set_edge_influence(Vs,VsDyn,#we{pst=Pst,es=Etab,vp=Vtab}=We) ->
+    case wings_pref:get_value(tweak_magnet_influence) of
+    true ->
+        Edges = wings_edge:from_vs(Vs,We),
+        EdDyn=to_edges_raw(Edges,VsDyn,Etab,Vtab),
+        add_pst(EdDyn,Pst);
+    _ ->
+        Pst
     end.
 
-% It removes the plugin functionality
-remove_influence(#we{pst=none}=We) ->
-    We;
-remove_influence(#we{pst=Pst}=We) ->
-    NewPst=gb_trees:delete_any(?MODULE, Pst),
-    We#we{pst=NewPst}.
+%% It adds the plugin functionality
+add_pst(InfData,Pst) ->
+    case gb_trees:lookup(?MODULE, Pst) of
+    none ->
+        Data = gb_trees:empty(),
+        NewData = gb_trees:insert(edge_info,InfData,Data),
+        gb_trees:insert(?MODULE,NewData,Pst);
+    {_,Data} ->
+        NewData = gb_trees:enter(edge_info,InfData,Data),
+        gb_trees:update(?MODULE,NewData,Pst)
+    end.
 
-%%
-%% Functions to produce the visual effect (inspired on wpc_magnet_mask.erl file)
-%%
-% It generate the OpenGl list of colored vertices
-update_dlist({vs_inf,VsInf},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
+%% It removes the plugin functionality
+remove_pst(Pst) ->
+    case gb_trees:lookup(?MODULE, Pst) of
+    none -> Pst;
+    {_,Data} ->
+        NewData = gb_trees:delete_any(edge_info,Data),
+        gb_trees:update(?MODULE,NewData,Pst)
+    end.
+
+%%%
+%%% Functions of general purpose
+%%%
+to_edges_raw([],_ , _, _) -> [];
+to_edges_raw(_, [] , _, _) -> [];
+to_edges_raw(Edges, VsDyn, Etab, Vtab) ->
+    to_edges_raw_1(Edges, VsDyn, Etab, Vtab, []).
+
+to_edges_raw_1([], _, _, _, Acc) -> Acc;
+to_edges_raw_1([Edge|Edges], VsDyn, Etab, Vtab, Acc) ->
+    #edge{vs=Va0,ve=Vb0} = array:get(Edge, Etab),
+    Cola=get_vs_influence(Va0, VsDyn),
+    Colb=get_vs_influence(Vb0, VsDyn),
+    VsPair=[{Va0,Cola, Vb0,Colb}],
+    to_edges_raw_1(Edges, VsDyn, Etab, Vtab, VsPair++Acc).
+
+get_vs_influence(V, VsDyn) ->
+    case lists:keysearch(V, 1, VsDyn) of
+    false -> 0.0;
+    {_, {_,Value}} -> Value
+    end.
+
+%%%
+%%% Functions to produce the visual effect (inspired on wpc_magnet_mask.erl file)
+%%%
+
+%% It generate the OpenGl list of colored vertices
+update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
     Key = ?MODULE,
-    Col=wings_pref:get_value(tweak_magnet_color),
-    Pos = positions(VsInf,Vtab,[]),
-    case Pos of
-      [] ->
+    case EdgeInfo of
+    [] ->
         D#dlo{plugins=[{Key,none}|Pdl]};
-      _ ->
-        List = gl:genLists(1),
-        gl:newList(List,?GL_COMPILE),
-        gl:'begin'(?GL_POINTS),
-        pump_vertices(Col,Pos),
+    _ ->
+        ColFrom=col_to_vec(wings_pref:get_value(edge_color)),
+        ColTo=col_to_vec(wings_pref:get_value(tweak_magnet_color)),
+        ColRange=e3d_vec:sub(ColTo,ColFrom),
+        EdgeList = gl:genLists(1),
+        gl:newList(EdgeList,?GL_COMPILE),
+        gl:'begin'(?GL_LINES),
+        pump_edges(EdgeInfo,Vtab,ColFrom,ColRange),
         gl:'end'(),
         gl:endList(),
-        D#dlo{plugins=[{Key,{vs,List}}|Pdl]}
+        D#dlo{plugins=[{Key,{edge,EdgeList}}|Pdl]}
     end.
 
-pump_vertices({R,G,B,_}=Col,[{V,Inf}|Vs]) ->
-    gl:color3f(R*Inf,G*Inf,B*Inf),
-    gl:vertex3fv(V),
-    pump_vertices(Col,Vs);
-pump_vertices(_,[]) -> ok.
+%% pumping Lines
+pump_edges([],_,_,_) -> ok;
+pump_edges([{Id1,Inf1,Id2,Inf2}|SegInf],Vtab,Col,Range) ->
+    {R1,G1,B1}=color_gradient(Col,Range,Inf1),
+    {R2,G2,B2}=color_gradient(Col,Range,Inf2),
+    V1=array:get(Id1, Vtab),
+    V2=array:get(Id2, Vtab),
+    gl:color3f(R1,G1,B1),
+    gl:vertex3fv(V1),
+    gl:color3f(R2,G2,B2),
+    gl:vertex3fv(V2),
+    pump_edges(SegInf,Vtab,Col,Range).
 
-positions([{V,Inf}|Influenced],Vtab,Acc) ->
-    Pos = {array:get(V,Vtab),Inf},
-    positions(Influenced,Vtab,[Pos|Acc]);
-positions([],_,Acc) -> Acc.
-
-% It'll will provide de vertices data for 'update_dlist' function
+%% It'll will provide de vertices data for 'update_dlist' function
 get_data(update_dlist, Data, Acc) ->  % for draw lists
-	case gb_trees:lookup(vs_inf, Data) of
-	none ->
-		{ok, Acc};
-	{_,VsInf} ->
-	    {ok, [{plugin, {?MODULE, {vs_inf, VsInf}}}|Acc]}
-	end.
+    case gb_trees:lookup(edge_info, Data) of
+    none ->
+        {ok, Acc};
+    {_,EdgeInfo} ->
+        {ok, [{plugin, {?MODULE, {edge_info, EdgeInfo}}}|Acc]}
+    end.
 
-% It'll use the list prepared by 'update_dlist' function and then draw it (for plain or smooth flag)
-draw(_, {vs,List}, _D, Selmode) ->
-    PtSize = wings_pref:get_value(masked_vertex_size),
-    Size = PtSize*0.6,
-    gl:pointSize(vert_display(Size,Selmode)),
-    gl:enable(?GL_BLEND),
-    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-    wings_dl:call(List),
-    gl:disable(?GL_BLEND);
+%% It'll use the list prepared by 'update_dlist' function and then draw it (only for plain draw)
+draw(plain, {edge,EdgeList}, _D, SelMode) ->
+    gl:lineWidth(edge_width(SelMode)),
+    wings_dl:call(EdgeList);
 draw(_,_,_,_) -> ok.
 
-vert_display(Size,vertex) ->
-    VSize = wings_pref:get_value(selected_vertex_size),
-    case VSize >= Size of
-      true -> VSize + 2;
-      false -> Size
-    end;
-vert_display(Size,_Selmode) -> Size.
+edge_width(edge) -> wings_pref:get_value(edge_width);
+edge_width(_) -> 1.
 
+col_to_vec({R,G,B}) when is_integer(R) -> {R/255.0,G/255.0,B/255.0};
+col_to_vec({_,_,_}=Col) -> Col;
+col_to_vec({R,G,B,_}) when is_integer(R) -> col_to_vec({R,G,B});
+col_to_vec({R,G,B,_}) -> col_to_vec({R,G,B}).
+
+color_gradient(Cb, Cr, Perc) ->
+    e3d_vec:add(Cb,e3d_vec:mul(Cr,Perc)).
