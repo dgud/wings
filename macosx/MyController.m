@@ -34,14 +34,6 @@
     NSString *execFile = [erlangDir stringByAppendingString:@"/bin/erlexec"];
     NSString *binDir = [erlangDir stringByAppendingString:@"/bin"];
     NSArray *args;
-    UInt32 version;
-
-    Gestalt(gestaltSystemVersion, (SInt32 *) &version);
-    if (version < 0x1040) {
-      NSRunCriticalAlertPanel(@"Wings requires Mac OS 10.4 or later",
-			      @"Sorry for the inconvenience.", @"OK", nil, nil);
-      exit(0);
-    }
 
     [env setObject:erlangDir forKey:@"ROOTDIR"];
     [env setObject:binDir forKey:@"BINDIR"];
@@ -75,7 +67,7 @@
     if ([data length]) {
         NSString *string = [[NSString alloc] initWithData:data
                                                  encoding:NSUTF8StringEncoding];
-        NSLog(string);
+        NSLog(@"%@", string);
         [string release];
         [readHandle readInBackgroundAndNotify]; // This isn't persistent - re-trigger
     } else {
