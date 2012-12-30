@@ -14,7 +14,7 @@
 -module(wings_plugin).
 -export([init/0,menu/2,dialog/2,dialog_result/2,command/2,call_ui/1]).
 -export([install/1]).
--export([draw/3,check_plugins/2]).
+-export([draw/3,check_plugins/2,get_win_data/1,restore_window/6]).
 -include("wings.hrl").
 -include("e3d.hrl").
 -import(lists, [sort/1,reverse/1,member/2]).
@@ -621,3 +621,36 @@ check_plugin_against_flag(Flag, PData, Plugin, Acc) ->
       {ok, Result} -> Result;
       _otherwise -> Acc
     end.
+
+
+%%%
+%%% Plugin Save/Restore Windows Utilities
+%%%
+
+% It allows wings.erl module get/set the plugin window/s information (if there is/are any)
+% See wpc_sel_win.erl as an example.
+get_win_data(WinName) ->
+    Ps = get(wings_plugins),
+    get_win_data_1(Ps, WinName).
+
+get_win_data_1([M|Ps], WinName) ->
+	case catch M:win_data(WinName) of
+	  {WinName,Data} -> {M,Data};
+	  _ -> get_win_data_1(Ps, WinName) 
+	end;
+get_win_data_1([], _) -> none.
+
+restore_window(M, WinName, Pos, Size, CtmData, St) ->
+    Ps = get(wings_plugins),
+    case module_found(M,Ps) of
+      true ->
+      	case catch M:window(WinName, Pos, Size, CtmData, St) of
+      	  {_,_}=Err -> keep;
+      	  _ -> keep
+      	end;
+      _ -> keep
+    end.
+
+module_found(M,[M|_]) -> true;
+module_found(M,[_|T]) -> module_found(M,T);
+module_found(_,[]) -> false.
