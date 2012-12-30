@@ -231,6 +231,20 @@ When everything is done, there should be a file named like
 in the current directory.
 
 
+Code-signing the Wings3D application on Mac OS X
+================================================
+
+If you are a member of Apple's Mac developer program and have
+obtained a Developer ID certificate, you can sign the code for
+Wings3D so that Gatekeeper will accept it. Do like this:
+
+$ export WINGS_CODE_SIGN=yes
+$ make macosx
+
+You will be prompted for your login keychain password if the login
+keychain is locked.
+
+
 Building an installation package for Linux (and other Unix systems)
 ===================================================================
 

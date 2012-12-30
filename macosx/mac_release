@@ -1,0 +1,10 @@
+#!/bin/sh
+function developer_code_sign () {
+   if [ "x$WINGS_CODE_SIGN" != "x" ]; then
+	codesign -s "Developer ID" $1
+   fi
+}
+
+xcodebuild &&
+developer_code_sign build/Default/Wings3d.app &&
+./make_dmg $1

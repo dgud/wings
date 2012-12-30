@@ -66,7 +66,7 @@ win32: all lang
 macosx: all lang
 	(cd plugins_src/mac_file; $(MAKE))
 	(cd plugins_src/mac_file; $(MAKE) lang)
-	(cd macosx; xcodebuild; ./make_dmg $(WINGS_VSN))
+	(cd macosx; ./mac_release $(WINGS_VSN))
 
 #
 # Build package for Unix.

@@ -23,10 +23,14 @@
 	<string>Wings3d</string>
 	<key>CFBundleIconFile</key>
 	<string>wings3d.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.wings3d.wings3d</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.5</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>

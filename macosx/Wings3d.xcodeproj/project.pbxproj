@@ -165,7 +165,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0430;
+				LastUpgradeCheck = 0450;
 			};
 			buildConfigurationList = 4CA8398B085C2B4300C48A7F /* Build configuration list for PBXProject "Wings3d" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -319,6 +319,7 @@
 		4C724755085C300D006ED218 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				ERLANG_PATH = /usr/local/lib/erlang;
 				FRAMEWORK_SEARCH_PATHS = "";
@@ -333,6 +334,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				JAVA_COMPILER_DEBUGGING_SYMBOLS = NO;
 				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = Wings3d;
@@ -350,6 +352,7 @@
 		4C724756085C300D006ED218 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				ERLANG_PATH = /usr/local/lib/erlang;
 				FRAMEWORK_SEARCH_PATHS = "";
@@ -361,6 +364,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				JAVA_COMPILER_DEBUGGING_SYMBOLS = NO;
 				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = Wings3d;
@@ -378,6 +382,7 @@
 		4C724757085C300D006ED218 /* Default */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				ERLANG_PATH = /usr/local/lib/erlang;
 				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_USE_GCC3_PFE_SUPPORT = NO;
@@ -388,6 +393,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				JAVA_COMPILER_DEBUGGING_SYMBOLS = NO;
 				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = Wings3d;
