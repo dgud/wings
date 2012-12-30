@@ -107,7 +107,8 @@ static ErlDrvSSizeT mac_image_control(ErlDrvData handle, unsigned int command,
 
   switch (command) {
   case 0: {			// Read
-    NSString* name = [NSString stringWithCString:buff];
+    NSString* name = [NSString stringWithCString:buff
+			       encoding:NSUTF8StringEncoding];
     NSBitmapImageRep* bitmap = [NSBitmapImageRep imageRepWithContentsOfFile:name];
 
     if (bitmap == nil) {
