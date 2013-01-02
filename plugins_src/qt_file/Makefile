@@ -32,7 +32,8 @@ DLLS = $(LIBDIR)/qt_wings_file_drv.so
 
 BEAM = $(LIBDIR)/wp8_qt_file.beam
 ERLC = erlc
-ERLC_FLAGS = -o $(LIBDIR)
+ERLC_FLAGS = -Werror -o $(LIBDIR)
+
 #
 # Targets
 #

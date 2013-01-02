@@ -3,7 +3,7 @@
 #
 #     Makefile for building file JPEG image plug-in.
 #
-#  Copyright (c) 2004-2011 Bjorn Gustavsson
+#  Copyright (c) 2004-2013 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -29,7 +29,7 @@ LIBS = -shared
 
 ERLC = erlc
 ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH)
-ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS) -pa $(WINGS_INTL) -I $(WINGS_INTL) +debug_info
+ERL_COMPILE_FLAGS += -Werror $(TYPE_FLAGS) -pa $(WINGS_INTL) -I $(WINGS_INTL) +debug_info
 
 ifdef WINDOWS
 SO_EXT = dll

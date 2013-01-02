@@ -3,7 +3,7 @@
 #
 #     Makefile for fonts.
 #
-#  Copyright (c) 2001-2011 Bjorn Gustavsson
+#  Copyright (c) 2001-2013 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -50,7 +50,7 @@ TARGET_FILES=  $(MODULES:%=$(EBIN)/%.beam) $(FONT_FILES)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -W $(TYPE_FLAGS) +debug_info '-Dwings_version="$(WINGS_VSN)"'
+ERL_COMPILE_FLAGS += -Werror $(TYPE_FLAGS) +debug_info '-Dwings_version="$(WINGS_VSN)"'
 
 # ----------------------------------------------------
 # Targets

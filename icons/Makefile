@@ -3,7 +3,7 @@
 #
 #     Makefile for building icons for Wings 3D.
 #
-#  Copyright (c) 2001-2011 Bjorn Gustavsson
+#  Copyright (c) 2001-2013 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -27,7 +27,7 @@ ICONSETS= \
 # FLAGS
 # ----------------------------------------------------
 ERL_FLAGS += 
-ERL_COMPILE_FLAGS += -W +debug_info
+ERL_COMPILE_FLAGS += -Werror +debug_info
 
 # ----------------------------------------------------
 # Targets

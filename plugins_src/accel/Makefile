@@ -3,7 +3,7 @@
 #
 #     Makefile for building Wings "accelerator" helpers.
 #
-#  Copyright (c) 2004-2011 Bjorn Gustavsson
+#  Copyright (c) 2004-2013 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -28,7 +28,7 @@ BEAM = 	$(LIBDIR)/wpc_pnoise.beam \
 	$(LIBDIR)/pnoise.beam \
 	$(LIBDIR)/wpc_pick.beam
 
-COMMON_CFLAGS = -Wall -O3
+COMMON_CFLAGS = -Wall -O3 -Werror
 
 ifdef USEMINGWGCC
  SO_EXT = dll
@@ -51,7 +51,7 @@ else
 endif
 
 ERLC = erlc
-ERLC_FLAGS = -o $(LIBDIR) +debug_info
+ERLC_FLAGS = -Werror -o $(LIBDIR) +debug_info
 
 DRV = $(LIBDIR)/perlin_noise_drv.$(SO_EXT) \
       $(LIBDIR)/wings_pick_drv.$(SO_EXT)
