@@ -996,6 +996,17 @@ draw_mat_faces(MatGroups, Mtab, ActiveColor) ->
 	    DeApply(),
 	    gl:popAttrib();
 	true ->
+	    %% Setup shader for materials 
+	    Progs = get(light_shaders),
+	    case get(light_shaders) of
+	    	undefined -> ignore;
+	    	_ -> 
+	    	    NumShaders = wings_pref:get_value(active_shader),
+	    	    {Prog,_Name} = element(NumShaders, Progs),
+	    	    put(active_shader, Prog),
+	    	    %%gl:useProgram(Prog),
+		    ok
+	    end,
 	    %% Show materials.
 	    foreach(
 	      fun({Mat,Type,Start,NumElements}) ->
@@ -1005,7 +1016,10 @@ draw_mat_faces(MatGroups, Mtab, ActiveColor) ->
 		      gl:drawArrays(Type, Start, NumElements),
 		      DeApply(),
 		      gl:popAttrib()
-	      end, MatGroups)
+	      end, MatGroups),
+	    put(active_shader, 0),
+	    %% gl:useProgram(0),
+	    ok
     end.
 
 %%

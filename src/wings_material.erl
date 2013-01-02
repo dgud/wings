@@ -464,6 +464,20 @@ apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
     apply_normal_map(get_normal_map(Maps0)),  %% Combine with vertex colors
     DeApply.
 
+enable(true)  -> 1;
+enable(false) -> 0.
+
+texture_var(diffuse) -> "UseDiffuseMap";
+texture_var(normal) ->  "UseNormalMap".
+
+shader_texture(What, Enable) ->
+    case get(active_shader) of
+       Prog when is_integer(Prog), Prog > 0 ->
+	    wings_gl:set_uloc(Prog, texture_var(What), enable(Enable));
+	_ ->
+	    ok
+    end.
+
 apply_texture(none) -> no_texture();
 apply_texture(Image) ->
     case wings_pref:get_value(show_textures) of
@@ -484,14 +498,18 @@ get_normal_map(Maps) ->
 	Map -> Map
     end.
 
-apply_normal_map(none) -> ok;
+apply_normal_map(none) -> 
+    shader_texture(normal, false),
+    ok;
 apply_normal_map(TexId) ->
+    shader_texture(normal, true),
     Bump = wings_image:bumpid(TexId),
     gl:activeTexture(?GL_TEXTURE0 + ?NORMAL_MAP_UNIT),
     gl:bindTexture(?GL_TEXTURE_2D, Bump),
     gl:activeTexture(?GL_TEXTURE0).
 
 apply_texture_1(Image, TxId) ->
+    shader_texture(diffuse, true),
     gl:enable(?GL_TEXTURE_2D),
     gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE),
     gl:bindTexture(?GL_TEXTURE_2D, TxId),
@@ -531,6 +549,7 @@ no_texture() ->
 	false -> 
 	    ok
     end,
+    shader_texture(diffuse, false),
     gl:disable(?GL_TEXTURE_2D),
     gl:disable(?GL_ALPHA_TEST),
     false.

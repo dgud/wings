@@ -16,6 +16,9 @@ const vec3 Yunitvec = vec3(0.0, 1.0, 0.0);
 vec3  BaseColor = vec3(1.0, 1.0, 1.0);
 float MixRatio = 0.3;
 
+uniform int UseDiffuseMap;
+uniform int UseNormalMap;
+
 uniform sampler2D EnvMap;
 uniform sampler2D NormalMap;
 
@@ -26,9 +29,8 @@ varying vec4 tangent;
 vec3 LightPos = vec3(0.0, 10.0, 0.0);
 
 vec3 get_normal() {
-    ivec2 dim = textureSize(NormalMap, 0);
     vec3 T = tangent.xyz;
-    if((dim.x <= 1 && dim.y <= 1) || dot(T,T) < 0.1)
+    if(UseNormalMap == 0 || dot(T,T) < 0.1)
 	return normalize(Normal); // No normal-map or Tangents
     //return normalize(tangent.xyz);
     // Calc Bumped normal
@@ -36,7 +38,7 @@ vec3 get_normal() {
     T = normalize(T);
     T = normalize(T - dot(T, N) * N);
     vec3 B = cross(T, N) * tangent.w;
-    vec3 BumpMapNormal = texture(NormalMap, gl_TexCoord[0].xy).xyz;
+    vec3 BumpMapNormal = texture2D(NormalMap, gl_TexCoord[0].xy).xyz;
     BumpMapNormal = 2.0 * BumpMapNormal - vec3(1.0, 1.0, 1.0);
     vec3 NewNormal;
     mat3 TBN = mat3(T, B, N);
@@ -48,8 +50,8 @@ vec3 get_normal() {
 void main()
 {
     // Compute reflection vector
-
-    vec3 reflectDir = reflect(EyeDir, get_normal());
+    vec3 normal = get_normal();
+    vec3 reflectDir = reflect(EyeDir, normal);
 
     // Compute altitude and azimuth angles
 
@@ -78,7 +80,7 @@ void main()
     vec3 envColor = vec3(texture2D(EnvMap, index));
 
     // Add lighting to base color and mix
-    float LightIntensity = max(dot(normalize(LightPos - EyeDir), Normal), 0.0);
+    float LightIntensity = max(dot(normalize(LightPos - EyeDir), normal), 0.0);
     vec3 base = LightIntensity * BaseColor;
     envColor  = mix(envColor, BaseColor, MixRatio);
 

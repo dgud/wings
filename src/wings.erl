@@ -1037,12 +1037,12 @@ info(#st{sel=[]}) ->
     [],
     Progs = get(light_shaders),
     NumLights = wings_pref:get_value(number_of_lights),
-    NumShaders = wings_pref:get_value(number_of_shaders),
+    ActiveSh = wings_pref:get_value(active_shader),
     UseProg = (Progs /= undefined) and (NumLights == 2),
     case UseProg of
      true ->
-	 {_Prog,Name} = element(NumShaders, Progs),
-	 io_lib:format("Shader ~p of ~p: ~s ",[NumShaders,tuple_size(Progs),Name]);
+	 {_Prog,Name} = element(ActiveSh, Progs),
+	 io_lib:format("Shader ~p of ~p: ~s ",[ActiveSh,tuple_size(Progs),Name]);
      false ->
 	 []
     end;

@@ -845,7 +845,7 @@ init() ->
     wings_pref:set_default(show_edges, true),
     wings_pref:set_default(show_backfaces, true),
     wings_pref:set_default(number_of_lights, 1),
-    wings_pref:set_default(number_of_shaders, 1),
+    wings_pref:set_default(active_shader, 1),
     wings_pref:set_default(show_normals, false),
     wings_pref:set_default(show_bb, true),
     wings_pref:set_default(show_bb_center, true),
@@ -1195,21 +1195,27 @@ toggle_lights() ->
 shader_set(N) ->
     case wings_gl:support_shaders() of
 	true ->
-	    NumShaders = wings_pref:get_value(number_of_shaders),
+	    NumShaders = wings_pref:get_value(active_shader),
 	    NumProgs = tuple_size(get(light_shaders)),
-	    case N of
-		next -> Shaders = case NumShaders of
-				       NumProgs -> 1;
-				       _ -> NumShaders+1
-				  end;
-		prev -> Shaders = case NumShaders of
-				       1 -> NumProgs;
-				       _ -> NumShaders-1
-				  end;
-		_ -> Shaders = N
-	    end,
+	    Shader = case N of
+			 next -> case NumShaders of
+				     NumProgs -> 1;
+				     _ -> NumShaders+1
+				 end;
+			 prev -> case NumShaders of
+				     1 -> NumProgs;
+				     _ -> NumShaders-1
+				 end;
+			 _ -> N
+		     end,
+	    %% Invalidate displaylists so that shader data get set correctly
+	    %% for materials
+	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+				 D#dlo{work=none,smooth=none,
+				       proxy_data=wings_proxy:invalidate(PD, dl)}
+			 end, []),
 	    wings_pref:set_value(number_of_lights, 2),
-	    wings_pref:set_value(number_of_shaders, Shaders);
+	    wings_shaders:set_active(Shader);
 	false ->
 	    toggle_lights()
     end.
@@ -1234,7 +1240,7 @@ shader_index() ->
     case wings_pref:get_value(number_of_lights) of
 	2 ->
 	    Progs = get(light_shaders),
-	    NumShaders = wings_pref:get_value(number_of_shaders),
+	    NumShaders = wings_pref:get_value(active_shader),
 	    {_Prog,Name} = element(NumShaders, Progs),
 	    Name;
 	_ ->
