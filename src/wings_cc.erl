@@ -147,42 +147,57 @@ gen_vab_1(Plan, Data, Base) ->
 	opencl -> create_vab(gen_vab_2(Plan, Data, Base), Base)
     end.
 
-create_vab({Vs, SNs0, {Attrs0, Tangents0}, Edges, MatInfo}, #base{type=Type}) ->
+create_vab({Vs,SNs,{Attrs,Tangents},Edges,MatInfo}, #base{type=Type}) ->
+    L = [{vs,Vs},
+	 {sns,SNs},
+	 {Type,Attrs},
+	 {ts,Tangents}],
+    Data0 = [D || D <- [Vs,SNs,Attrs,Tangents], is_binary(D)],
+    Data = iolist_to_binary(Data0),
+    [Vbo] = gl:genBuffers(1),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
+    gl:bufferData(?GL_ARRAY_BUFFER, byte_size(Data), Data, ?GL_STATIC_DRAW),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+    Vab = #vab{id=Vbo,face_es=Edges,mat_map=MatInfo},
+    create_vab_1(L, 0, Vab).
+
+create_vab_1([{_,Data}=H|T], Offset0, Vab0) ->
+    Vab = create_vab_2(H, Offset0, Vab0),
+    Offset = case is_binary(Data) of
+		 false -> Offset0;
+		 true -> Offset0 + byte_size(Data)
+	     end,
+    create_vab_1(T, Offset, Vab);
+create_vab_1([], _, Vab) -> Vab.
+
+create_vab_2({vs,Vs}, Offset, Vab) ->
     Ns = case Vs of
-	     <<>> -> Vs;
-	     <<_:3/unit:32,NsP/bytes>> ->
-		 NsP
+	     <<>> -> Offset;
+	     _ -> Offset + 3 * 4
 	 end,
     S = 3*4+3*4,
+    Vab#vab{face_vs={S,Offset},face_fn={S,Ns}};
+create_vab_2({sns,SNs0}, Offset, Vab=#vab{face_fn=FaceNs}) ->
     SNs = case SNs0 of
-	      <<>> -> {S, Ns};
-	      _ -> {4*4, SNs0}  %% Special case easier cl code
+	      <<>> -> FaceNs;
+	      _ -> {4*4, Offset}
 	  end,
-    Colors = case Attrs0 of 
-		 <<>> -> none;
-		 _ when Type =:= color ->
-		     {3*4, Attrs0};
-		 _ when Type =:= color_uv; Type =:= color_uv_tangent ->
-		     {5*4, Attrs0};
-		 _ -> none		     
-	     end,
-    UVs = case Attrs0 of
-	      <<>> -> none;
-	      _ when Type =:= uv; Type =:= uv_tangent ->
-		  {2*4, Attrs0};
-	      <<_:3/unit:32,UVBin/bytes>> 
-		when Type =:= color_uv; Type =:= color_uv_tangent ->
-		  {5*4, UVBin};
-	      _ -> none
-	  end,
-    Tangents = case Tangents0 of
-		   none -> none;
-		   Ts when is_binary(Ts) ->
-		       {4*4, Tangents0}
-	       end,
-    #vab{face_vs={S,Vs},face_fn={S,Ns}, face_es=Edges,
-	 face_sn=SNs, face_vc=Colors, face_uv=UVs, face_ts=Tangents,
-	 mat_map=MatInfo}.
+    Vab#vab{face_sn=SNs};
+create_vab_2({VCs,Data}, Offset, Vab)
+  when (VCs =:= color orelse VCs =:= color_tangent), Data =/= <<>> ->
+    Vab#vab{face_vc={3*4,Offset}};
+create_vab_2({UV,Data}, Offset, Vab)
+  when (UV =:= uv orelse UV =:= uv_tangent), Data =/= <<>> ->
+    Vab#vab{face_uv={2*4,Offset}};
+create_vab_2({CUV,Data}, Offset, Vab)
+  when (CUV =:= color_uv orelse CUV =:= color_uv_tangent), Data =/= <<>> ->
+    Vab#vab{face_vc={5*4,Offset}, face_uv={5*4,Offset+3*4}};
+create_vab_2({ts,Data}, Offset, Vab)
+  when Data =/= <<>> ->
+    Vab#vab{face_ts={4*4,Offset}};
+create_vab_2({_Type, _Data}, _, Vab) ->
+    %% io:format("Ignore ~p ~p~n",[_Type, size(_Data)]),
+    Vab.
 
 update_1(ChangedVs0, #base{vmap=VMap, v=VsBin0}=Base)
   when is_list(ChangedVs0) ->
