@@ -150,6 +150,7 @@ call({call_in_this_win,Win,Dl}) ->
     end;
 call([H|T]) -> call(H), call(T);
 call([]) -> ok;
+call(Draw) when is_function(Draw, 0) -> Draw();
 call(Dl) when is_integer(Dl) -> gl:callList(Dl).
 
 %% mirror_matrix(Id)
