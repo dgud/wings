@@ -152,17 +152,16 @@ update_edges(D, Pd) ->
     update_edges_1(D, Pd, wings_pref:get_value(proxy_shaded_edge_style)).
 
 update_edges_1(_, _, cage) -> none;
-update_edges_1(_, #sp{vab=#vab{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}}, all) ->
-    wings_draw_setup:enableVertexPointer(BinVs),
-    wings_draw_setup:enableNormalPointer(Ns),
+update_edges_1(_, #sp{vab=#vab{mat_map=MatMap}=Vab}, all) ->
+    Extra = [face_normals],
+    wings_draw_setup:enable_pointers(Vab, Extra),
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
     [{_Mat,_Type,Start,MCount}|_] = MatMap,
     Count = Start+MCount,
     gl:drawArrays(?GL_QUADS, 0, Count),
     gl:endList(),
-    wings_draw_setup:disableVertexPointer(BinVs),
-    wings_draw_setup:disableNormalPointer(Ns),
+    wings_draw_setup:disable_pointers(Vab, Extra),
     Dl;
 update_edges_1(#dlo{}, #sp{type={wings_cc,_}, vab=#vab{face_es={0,Bin}}}, some) ->
     Dl = gl:genLists(1),

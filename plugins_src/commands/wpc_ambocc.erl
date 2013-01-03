@@ -102,11 +102,11 @@ draw_we(We, _) when ?IS_NOT_VISIBLE(We#we.perm) -> ok;
 draw_we(We, _) when ?IS_NOT_SELECTABLE(We#we.perm) -> ok;
 draw_we(We, _) when ?IS_ANY_LIGHT(We) -> ok;
 draw_we(We, St) ->
-    Vab = #vab{face_vs=Vs} = wings_draw_setup:we(We, [], St),
-    wings_draw_setup:enableVertexPointer(Vs),
+    Vab = wings_draw_setup:we(We, [], St),
+    wings_draw_setup:enable_pointers(Vab, []),
     Count = wings_draw_setup:face_vertex_count(Vab),
     gl:drawArrays(?GL_TRIANGLES, 0, Count),
-    wings_draw_setup:disableVertexPointer(Vs),
+    wings_draw_setup:disable_pointers(Vab, []),
     ok.
 
 get_ao_factor(Buffer) ->

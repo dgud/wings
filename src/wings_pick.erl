@@ -348,21 +348,21 @@ hilit_draw_sel(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
     gl:vertex3fv(array:get(Va, Vtab)),
     gl:vertex3fv(array:get(Vb, Vtab)),
     gl:'end'();
-hilit_draw_sel(face, Face, #dlo{vab=#vab{face_map=Map, face_vs=Vs}}) ->
+hilit_draw_sel(face, Face, #dlo{vab=#vab{face_map=Map}=Vab}) ->
     gl:enable(?GL_POLYGON_STIPPLE),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    wings_draw_setup:enableVertexPointer(Vs),
+    wings_draw_setup:enable_pointers(Vab, []),
     {Start,NoElements} = array:get(Face, Map),
     gl:drawArrays(?GL_TRIANGLES, Start, NoElements),
-    wings_draw_setup:disableVertexPointer(Vs),
+    wings_draw_setup:disable_pointers(Vab, []),
     gl:disable(?GL_POLYGON_STIPPLE);
-hilit_draw_sel(body, _, #dlo{vab=#vab{face_vs=Vs}}=D) ->
+hilit_draw_sel(body, _, #dlo{vab=#vab{}=Vab}=D) ->
     gl:enable(?GL_POLYGON_STIPPLE),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    wings_draw_setup:enableVertexPointer(Vs),
+    wings_draw_setup:enable_pointers(Vab, []),
     Count = wings_draw_setup:face_vertex_count(D),
     gl:drawArrays(?GL_TRIANGLES, 0, Count),
-    wings_draw_setup:disableVertexPointer(Vs),
+    wings_draw_setup:disable_pointers(Vab, []),
     gl:disable(?GL_POLYGON_STIPPLE).
 
 enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tuple(Prev) ->
