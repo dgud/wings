@@ -17,6 +17,7 @@
 
 -export([work/2,smooth/2,prepare/3,prepare/4,flat_faces/2]).
 -export([enable_pointers/2,disable_pointers/2]).
+-export([delete_vab/1]).
 -export([face_vertex_count/1,has_active_color/1]).
 %% Tangent calcs
 -export([add_ts/5, add_tangents/3]).
@@ -168,6 +169,9 @@ face_vertex_count(#dlo{vab=#vab{mat_map=[{_Mat,_Type,Start,Count}|_]}}) ->
     Start+Count;
 face_vertex_count(#vab{mat_map=[{_Mat,_Type,Start,Count}|_]}) ->
     Start+Count.
+
+delete_vab(#vab{}) ->
+    ok.
 
 %% Setup face_vs and face_fn and additional uv coords or vertex colors
 work(Dlo, St) ->
