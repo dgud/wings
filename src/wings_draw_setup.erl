@@ -24,7 +24,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [reverse/1,sort/1]).
+-import(lists, [reverse/1,sort/1,foldl/3]).
 
 %%%
 %%% we(We, [Option], St) -> #vab{} See wings.hrl
@@ -227,15 +227,8 @@ plain_flat_faces([{Mat,Fs}|T], #dlo{ns=Ns}=D, Start0, Vs0, Fmap0, MatInfo0) ->
     plain_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 plain_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> ->
-	    Ns = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs
-    end,
-    S = 24,
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv=none,
-		   face_map=FaceMap,mat_map=MatInfo}}.
+    Vab = create_vab([vertices,face_normals], Vs, FaceMap, MatInfo),
+    D#dlo{vab=Vab}.
 
 flat_faces_1([{Face,_}|Fs], Ns, Start, Vs, FaceMap) ->
     case array:get(Face, Ns) of
@@ -262,16 +255,8 @@ uv_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     uv_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 uv_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> ->
-	    Ns = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,UV/bytes>> = Ns
-    end,
-    S = 32,
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},
-		   face_map=FaceMap,mat_map=MatInfo}}.
+    Vab = create_vab([vertices,face_normals,uvs], Vs, FaceMap, MatInfo),
+    D#dlo{vab=Vab}.
 
 uv_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
     UVs = wings_va:face_attr(uv, Face, Edge, We),
@@ -301,17 +286,11 @@ tangent_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0, Ts0) ->
     tangent_flat_faces(T, D, Start, Vs, FaceMap, MatInfo, Ts);
 tangent_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> -> Ns = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,UV/bytes>> = Ns
-    end,
-    S = 32,
+    Vab0 = create_vab([vertices,face_normals,uvs], Vs, FaceMap, MatInfo),
     VsTs = array:map(fun(_V, {T, BT}) -> {e3d_vec:norm(T), e3d_vec:norm(BT)} end, VsTs0),
     Ts = add_tangents(lists:reverse(RevF2V), VsTs, <<>>),
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV}, face_ts={16, Ts},
-		   face_map=FaceMap,mat_map=MatInfo}}.
+    Vab = Vab0#vab{face_ts={16, Ts}},
+    D#dlo{vab=Vab}.
 
 tangent_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap, Ts0) ->
     UVs = wings_va:face_attr(uv, Face, Edge, We),
@@ -348,16 +327,8 @@ col_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     col_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 col_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> ->
-	    Ns = Col = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,Col/bytes>> = Ns
-    end,
-    S = 36,
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_vc={S,Col},
-		   face_uv=none,face_map=FaceMap,mat_map=MatInfo}}.
+    Vab = create_vab([vertices,face_normals,colors], Vs, FaceMap, MatInfo),
+    D#dlo{vab=Vab}.
 
 col_flat_faces_1([{Face,Edge}|T], #dlo{ns=Ns,src_we=We}=D, Start, Vs0, Fmap0) ->
     Cols = wings_va:face_attr(color, Face, Edge, We),
@@ -386,18 +357,9 @@ col_uv_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     col_uv_faces(T, D, Start, Vs, FaceMap, MatInfo);
 col_uv_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> ->
-	    Ns = Col = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,Col/bytes>> = Ns,
-	    <<_:3/unit:32,UV/bytes>> = Col
-    end,
-    S = 44,
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},
-		   face_vc={S,Col},face_uv={S,UV},
-		   face_map=FaceMap,mat_map=MatInfo}}.
+    Vab = create_vab([vertices,face_normals,colors,uvs],
+		     Vs, FaceMap, MatInfo),
+    D#dlo{vab=Vab}.
 
 col_uv_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
     UVs = wings_va:face_attr([color|uv], Face, Edge, We),
@@ -427,20 +389,12 @@ col_tangent_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0, Ts0) ->
     col_tangent_faces(T, D, Start, Vs, FaceMap, MatInfo, Ts);
 col_tangent_faces([], D, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> ->
-	    Ns = Col = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,Col/bytes>> = Ns,
-	    <<_:3/unit:32,UV/bytes>> = Col
-    end,
     VsTs = array:map(fun(_V, {T, BT}) -> {e3d_vec:norm(T), e3d_vec:norm(BT)} end, VsTs0),
     Ts = add_tangents(lists:reverse(RevF2V), VsTs, <<>>),
-    S = 44,
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},
-		   face_vc={S,Col},face_uv={S,UV},face_ts={16, Ts},
-		   face_map=FaceMap,mat_map=MatInfo}}.
+    Vab0 = create_vab([vertices,face_normals,colors,uvs],
+		      Vs, FaceMap, MatInfo),
+    Vab = Vab0#vab{face_ts={16,Ts}},
+    D#dlo{vab=Vab}.
 
 col_tangent_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap, Ts0) ->
     UVs = wings_va:face_attr([color|uv], Face, Edge, We),
@@ -1010,3 +964,43 @@ mat_faces(Ftab, We) ->
 	true ->
 	    wings_facemat:mat_faces(Ftab, We)
     end.
+
+%%%
+%%% Create a #vab{} record.
+%%%
+
+create_vab(What, <<>>, FaceMap, MatInfo) ->
+    Vab = #vab{face_map=FaceMap,mat_map=MatInfo},
+    foldl(fun(E, Vab0) ->
+		  set_vab_item(E, {0,<<>>}, Vab0)
+	  end, Vab, What);
+create_vab(What, Data, FaceMap, MatInfo) ->
+    Stride = lists:foldl(fun(Item, Sum) ->
+				 Sum + width(Item)
+			 end, 0, What),
+    Vab = #vab{face_map=FaceMap,mat_map=MatInfo},
+    create_vab_1(What, 0, Stride, Data, Vab).
+
+create_vab_1([H|T], Pos, Stride, Data0, Vab0) ->
+    <<_:Pos/bytes,Data/binary>> = Data0,
+    Item = {Stride,Data},
+    Vab = set_vab_item(H, Item, Vab0),
+    create_vab_1(T, Pos+width(H), Stride, Data0, Vab);
+create_vab_1([], _, _, _, Vab) -> Vab.
+
+set_vab_item(vertices, Item, Vab) ->
+    Vab#vab{face_vs=Item};
+set_vab_item(face_normals, Item, Vab) ->
+    Vab#vab{face_fn=Item};
+set_vab_item(vertex_normals, Item, Vab) ->
+    Vab#vab{face_sn=Item};
+set_vab_item(colors, Item, Vab) ->
+    Vab#vab{face_vc=Item};
+set_vab_item(uvs, Item, Vab) ->
+    Vab#vab{face_uv=Item}.
+
+width(vertices) -> 3*4;
+width(face_normals) -> 3*4;
+width(vertex_normals) -> 3*4;
+width(uvs) -> 2*4;
+width(colors) -> 3*4.
