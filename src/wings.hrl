@@ -299,6 +299,8 @@
 %% Vertex array buffers
 -record(vab, 
 	{
+	  id = make_ref(),	 %Unique identifier for this instance.
+
 	  %% Vertex buffers. Each vertex buffer looks like
 	  %% {Stride,Binary}, where Stride is the stride to be
 	  %% used when setting up the vertex buffer.

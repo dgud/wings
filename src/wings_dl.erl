@@ -58,7 +58,7 @@ init() ->
 	     undefined -> [];
 	     #du{dl=Dl0,used=Used} ->
 		 ?CHECK_ERROR(),
-		 foreach(fun(DL) -> gl:deleteLists(DL, 1) end, Used),
+		 delete_lists(Used),
 		 gl:getError(),			%Clear error.
 		 clear_old_dl(Dl0)
 	 end,
@@ -167,7 +167,7 @@ mirror_matrix(_, Acc) -> Acc.
 delete_dlists() ->
     case erase(wings_wm:get_prop(display_lists)) of
 	#du{used=Used} ->
-	    foreach(fun(DL) -> gl:deleteLists(DL, 1) end, Used),
+	    delete_lists(Used),
 	    gl:getError();			%Clear error.
 	_ ->
 	    ok
@@ -233,17 +233,19 @@ map_1(_Fun, [], Data, Seen, Acc) ->
 
 update_last(Data, Seen, Acc) ->
     #du{used=Used0} = Du = get_dl_data(),
-    Used = ordsets:from_list(Seen),
-    put_dl_data(Du#du{used=Used,dl=reverse(Acc)}),
-    NotUsed = ordsets:subtract(Used0, Used),
-    delete_lists(NotUsed),
+    Used1 = sofs:relation(Used0),
+    SeenKeys = sofs:domain(sofs:relation(Seen)),
+    Unused0 = sofs:drestriction(Used1, SeenKeys),
+    Unused = sofs:to_external(Unused0),
+    put_dl_data(Du#du{used=Seen,dl=reverse(Acc)}),
+    delete_lists(Unused),
     Data.
 
 delete_lists([]) -> ok;
-delete_lists([D1,D2|Dls]) when D1+1 =:= D2 ->
-    gl:deleteLists(D1, 2),
+delete_lists([{{vab,_},Vab}|Dls]) ->
+    wings_draw_setup:delete_vab(Vab),
     delete_lists(Dls);
-delete_lists([Dl|Dls]) ->
+delete_lists([{{dl,Dl},Dl}|Dls]) ->
     gl:deleteLists(Dl, 1),
     delete_lists(Dls).
     
@@ -264,8 +266,10 @@ update_seen_1({call,Dl1,Dl2}, Seen) ->
     update_seen_1(Dl1, update_seen_1(Dl2, Seen));
 update_seen_1({matrix,_,Dl}, Seen) ->
     update_seen_1(Dl, Seen);
+update_seen_1(#vab{id=Id}=Vab, Seen) ->
+    [{{vab,Id},Vab}|Seen];
 update_seen_1(Dl, Seen) when is_integer(Dl) ->
-    [Dl|Seen];
+    [{{dl,Dl},Dl}|Seen];
 update_seen_1(Dl, Seen) when is_tuple(Dl), element(1, Dl) =:= sp ->
     %% Proxy DL's
     update_seen_0(tuple_size(Dl), Dl, Seen);
