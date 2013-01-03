@@ -500,31 +500,31 @@ update_sel(#dlo{sel=none,src_sel={vertex,Vs}}=D) ->
 update_sel(#dlo{}=D) -> D.
 
 %% Select all faces.
-update_sel_all(#dlo{vab=#vab{face_vs=Vs}}=D) when Vs =/= none ->
+update_sel_all(#dlo{vab=#vab{face_vs=Vs}=Vab}=D) when Vs =/= none ->
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
-    wings_draw_setup:enableVertexPointer(Vs),
+    wings_draw_setup:enable_pointers(Vab, []),
     Count = wings_draw_setup:face_vertex_count(D),
     gl:drawArrays(?GL_TRIANGLES, 0, Count),
-    wings_draw_setup:disableVertexPointer(Vs),
+    wings_draw_setup:disable_pointers(Vab, []),
     gl:endList(),
     D#dlo{sel=List};
 update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
     %% No vertex arrays to re-use. Rebuild from scratch.
     update_face_sel(gb_trees:keys(Ftab), D).
 
-update_face_sel(Fs0, #dlo{src_we=We,vab=#vab{face_vs=Vs,face_map=Map}}=D)
+update_face_sel(Fs0, #dlo{src_we=We,vab=#vab{face_vs=Vs,face_map=Map}=Vab}=D)
   when Vs =/= none ->
     Fs = wings_we:visible(Fs0, We),
     List = gl:genLists(1),
     gl:newList(List, ?GL_COMPILE),
-    wings_draw_setup:enableVertexPointer(Vs),
+    wings_draw_setup:enable_pointers(Vab, []),
     Draw = fun(Face) ->
 		   {Start,NoElements} = array:get(Face, Map),
 		   gl:drawArrays(?GL_TRIANGLES, Start, NoElements)
 	   end,
     [Draw(Face) || Face <- Fs],
-    wings_draw_setup:disableVertexPointer(Vs),
+    wings_draw_setup:disable_pointers(Vab, []),
     gl:endList(),
     D#dlo{sel=List};
 update_face_sel(Fs0, #dlo{src_we=We}=D) ->
@@ -910,24 +910,15 @@ tricky_share({X,Y,Z}, {_,_,Z}=Old) ->
 
 draw_flat_faces(#dlo{vab=Vab}, St) ->
     draw_flat_faces(Vab, St);
-draw_flat_faces(#vab{face_vs=BinVs,face_fn=Ns,face_uv=UV,face_ts=TS,
-		     face_vc=Col,mat_map=MatMap}=D,
-	       #st{mat=Mtab}) ->
-    wings_draw_setup:enableVertexPointer(BinVs),
-    wings_draw_setup:enableNormalPointer(Ns),
-    ActiveColor = wings_draw_setup:enableColorPointer(Col),
-    wings_draw_setup:enableTexCoordPointer(UV),
-    wings_draw_setup:enableTangentCoordPointer(TS),
+draw_flat_faces(#vab{mat_map=MatMap}=D, #st{mat=Mtab}) ->
+    Extra = [colors,face_normals,uvs,tangents],
+    ActiveColor = wings_draw_setup:has_active_color(D),
+    wings_draw_setup:enable_pointers(D, Extra),
     Dl = gl:genLists(1),
     gl:newList(Dl, ?GL_COMPILE),
     draw_mat_faces(MatMap, Mtab, ActiveColor),
     gl:endList(),
-    wings_draw_setup:disableVertexPointer(BinVs),
-    wings_draw_setup:disableNormalPointer(Ns),
-    wings_draw_setup:disableColorPointer(Col),
-    wings_draw_setup:disableTexCoordPointer(UV),
-    wings_draw_setup:disableTangentCoordPointer(TS),
-    wings:keep(D),
+    wings_draw_setup:disable_pointers(D, Extra),
     Dl.
 
 %%%
@@ -937,14 +928,10 @@ draw_flat_faces(#vab{face_vs=BinVs,face_fn=Ns,face_uv=UV,face_ts=TS,
 draw_smooth_faces(#dlo{vab=Vab},St) ->
     draw_smooth_faces(Vab,St);
 
-draw_smooth_faces(#vab{face_vs=BinVs,face_sn=Ns,face_uv=UV,face_ts=TS,
-		       face_vc=Col,mat_map=MatMap}=D,
-		  #st{mat=Mtab}) ->
-    wings_draw_setup:enableVertexPointer(BinVs),
-    wings_draw_setup:enableNormalPointer(Ns),
-    ActiveColor = wings_draw_setup:enableColorPointer(Col),
-    wings_draw_setup:enableTexCoordPointer(UV),
-    wings_draw_setup:enableTangentCoordPointer(TS),
+draw_smooth_faces(#vab{mat_map=MatMap}=D, #st{mat=Mtab}) ->
+    Extra = [colors,vertex_normals,uvs,tangents],
+    ActiveColor = wings_draw_setup:has_active_color(D),
+    wings_draw_setup:enable_pointers(D, Extra),
 
     %% Partition into transparent and solid material face groups.
     {Transparent,Solid} =
@@ -973,12 +960,7 @@ draw_smooth_faces(#vab{face_vs=BinVs,face_sn=Ns,face_uv=UV,face_ts=TS,
 		  {[ListOp,ListTr],true}
 	  end,
 
-    wings_draw_setup:disableVertexPointer(BinVs),
-    wings_draw_setup:disableNormalPointer(Ns),
-    wings_draw_setup:disableColorPointer(Col),
-    wings_draw_setup:disableTexCoordPointer(UV),
-    wings_draw_setup:disableTangentCoordPointer(TS),
-    wings:keep(D),
+    wings_draw_setup:disable_pointers(D, Extra),
     Res.
 
 draw_mat_faces(MatGroups, Mtab, ActiveColor) ->

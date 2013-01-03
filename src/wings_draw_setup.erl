@@ -16,14 +16,8 @@
 -export([we/3]).  %% For plugins
 
 -export([work/2,smooth/2,prepare/3,prepare/4,flat_faces/2]).
--export([enableVertexPointer/1,enableNormalPointer/1,
-	 enableColorPointer/1,enableTexCoordPointer/1,
-	 enableTangentCoordPointer/1,
-	 disableVertexPointer/1,disableNormalPointer/1,
-	 disableColorPointer/1,disableTexCoordPointer/1,
-	 disableTangentCoordPointer/1
-	]).
--export([face_vertex_count/1]).
+-export([enable_pointers/2,disable_pointers/2]).
+-export([face_vertex_count/1,has_active_color/1]).
 %% Tangent calcs
 -export([add_ts/5, add_tangents/3]).
 
@@ -94,54 +88,81 @@ check_attrib(_, D) ->
 %%% Help functions to activate and disable buffer pointers.
 %%%
 
-enableVertexPointer({Stride,BinVs}) ->
+has_active_color(#vab{face_vc=Color}) ->
+    Color =/= none.
+
+%% enable_pointers(#vab{}, [ExtraPointer]) ->
+%%    ExtraPointer = face_normals | vertex_normals | colors | uvs | tangents
+%%  Enable the vertex buffer pointer, and optionally other pointers.
+
+enable_pointers(#vab{face_vs={Stride,BinVs}}=Vab, Extra) ->
     gl:vertexPointer(3, ?GL_FLOAT, Stride, BinVs),
     gl:enableClientState(?GL_VERTEX_ARRAY),
-    true.
+    [enable_pointer(What, Vab) || What <- Extra],
+    ok.
 
-enableNormalPointer({Stride,Ns}) ->
+%% disable_pointers(#vab{}, [ExtraPointer])
+%%    ExtraPointer = face_normals | vertex_normals | colors | uvs | tangents
+%%  Disable the vertex buffer pointer, and optionally other pointers.
+
+disable_pointers(#vab{}=Vab, Extra) ->
+    gl:disableClientState(?GL_VERTEX_ARRAY),
+    [disable_pointer(What, Vab) || What <- Extra],
+    ok.
+
+enable_pointer(face_normals, #vab{face_fn=Ns}) ->
+    enable_normal_pointer(Ns);
+enable_pointer(vertex_normals, #vab{face_sn=Ns}) ->
+    enable_normal_pointer(Ns);
+enable_pointer(colors, #vab{face_vc=FaceCol}) ->
+    case FaceCol of
+	none ->
+	    ok;
+	{Stride,Color} ->
+	    gl:colorPointer(3, ?GL_FLOAT, Stride, Color),
+	    gl:enableClientState(?GL_COLOR_ARRAY)
+    end;
+enable_pointer(uvs, #vab{face_uv=FaceUV}) ->
+    case FaceUV of
+	none ->
+	    ok;
+	{Stride,UV} ->
+	    gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV),
+	    gl:enableClientState(?GL_TEXTURE_COORD_ARRAY)
+    end;
+enable_pointer(tangents, #vab{face_ts=FaceTs}) ->
+    case FaceTs of
+	none ->
+	    ok;
+	{Stride,Ts} ->
+	    gl:vertexAttribPointer(?TANGENT_ATTR, 4, ?GL_FLOAT,
+				   ?GL_FALSE, Stride, Ts),
+	    gl:enableVertexAttribArray(?TANGENT_ATTR)
+    end.
+
+enable_normal_pointer({Stride,Ns}) ->
     gl:normalPointer(?GL_FLOAT, Stride, Ns),
-    gl:enableClientState(?GL_NORMAL_ARRAY),
-    true.
+    gl:enableClientState(?GL_NORMAL_ARRAY).
 
-enableColorPointer({Stride,Color}) ->
-    gl:colorPointer(3, ?GL_FLOAT, Stride, Color),
-    gl:enableClientState(?GL_COLOR_ARRAY),
-    true;
-enableColorPointer(none) -> false.
-
-enableTexCoordPointer({Stride,UV}) ->
-    gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV),
-    gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),
-    true;
-enableTexCoordPointer(none) -> false.
-
-enableTangentCoordPointer({Stride,Tan}) ->
-    %% Check gl-version 2.0
-    gl:vertexAttribPointer(?TANGENT_ATTR, 4, ?GL_FLOAT, ?GL_FALSE, Stride, Tan),
-    gl:enableVertexAttribArray(?TANGENT_ATTR),
-    true;
-enableTangentCoordPointer(none) -> false.
-
-disableVertexPointer({_Stride,_BinVs}) ->
-    gl:disableClientState(?GL_VERTEX_ARRAY).
-
-disableNormalPointer({_Stride,_Ns}) ->
-    gl:disableClientState(?GL_NORMAL_ARRAY).
-
-disableColorPointer({_Stride,_Color}) ->
-    gl:disableClientState(?GL_COLOR_ARRAY);
-disableColorPointer(none) -> ok.
-
-disableTexCoordPointer({_Stride,_UV}) ->
-    gl:disableClientState(?GL_TEXTURE_COORD_ARRAY),
-    ok;
-disableTexCoordPointer(none) -> ok.
-
-disableTangentCoordPointer({_Stride,_UV}) ->
-    %% Check version
-    gl:disableVertexAttribArray(?TANGENT_ATTR);
-disableTangentCoordPointer(none) -> ok.
+disable_pointer(face_normals, _) ->
+    gl:disableClientState(?GL_NORMAL_ARRAY);
+disable_pointer(vertex_normals, _) ->
+    gl:disableClientState(?GL_NORMAL_ARRAY);
+disable_pointer(colors, #vab{face_vc=FaceVc}) ->
+    case FaceVc of
+	none -> ok;
+	{_,_} -> gl:disableClientState(?GL_COLOR_ARRAY)
+    end;
+disable_pointer(uvs, #vab{face_uv=FaceUV}) ->
+    case FaceUV of
+	none -> ok;
+	{_,_} -> gl:disableClientState(?GL_TEXTURE_COORD_ARRAY)
+    end;
+disable_pointer(tangents, #vab{face_ts=FaceTs}) ->
+    case FaceTs of
+	none -> ok;
+	{_,_} -> gl:disableVertexAttribArray(?TANGENT_ATTR)
+    end.
 
 face_vertex_count(#dlo{vab=#vab{mat_map=[{_Mat,_Type,Start,Count}|_]}}) ->
     Start+Count;
