@@ -643,12 +643,10 @@ get_win_data_1([], _) -> none.
 restore_window(M, WinName, Pos, Size, CtmData, St) ->
     Ps = get(wings_plugins),
     case module_found(M,Ps) of
-      true ->
-        case catch M:window(WinName, Pos, Size, CtmData, St) of
-          {_,_}=Err -> keep;
-          _ -> keep
-        end;
-      _ -> keep
+	true ->
+	    catch M:window(WinName, Pos, Size, CtmData, St),
+	    keep;
+	_ -> keep
     end.
 
 module_found(M,[M|_]) -> true;
