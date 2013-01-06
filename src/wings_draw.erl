@@ -982,47 +982,32 @@ draw_smooth_faces(#vab{face_vs=BinVs,face_sn=Ns,face_uv=UV,face_ts=TS,
     Res.
 
 draw_mat_faces(MatGroups, Mtab, ActiveColor) ->
-    case wings_pref:get_value(show_materials) of
-	false ->
-	    %% Showing of materials has been turned off. Use
-	    %% the 'default' material for all faces.
-	    gl:pushAttrib(?GL_TEXTURE_BIT),
-	    DeApply = wings_material:apply_material(default, Mtab,
-						    ActiveColor),
-	    foreach(
-	      fun({_,Type,Start,NumElements}) ->
-		      gl:drawArrays(Type, Start, NumElements)
-	      end, MatGroups),
-	    DeApply(),
-	    gl:popAttrib();
-	true ->
-	    %% Setup shader for materials 
-	    Progs = get(light_shaders),
-	    UseSceneLights = wings_pref:get_value(scene_lights) andalso
-		wings_light:any_enabled_lights(),
-	    UseShaders = Progs =/= undefined andalso not UseSceneLights 
-		andalso wings_pref:get_value(number_of_lights) =:= 2,
-	    case UseShaders of
-	    	false -> ignore;
-	    	_ -> 
-	    	    NumShaders = wings_pref:get_value(active_shader),
-	    	    {Prog,_Name} = element(NumShaders, Progs),
-	    	    put(active_shader, Prog),
-		    ok
-	    end,
-	    %% Show materials.
-	    foreach(
-	      fun({Mat,Type,Start,NumElements}) ->
-		      gl:pushAttrib(?GL_TEXTURE_BIT),
-		      DeApply = wings_material:apply_material(Mat, Mtab,
-							      ActiveColor),
-		      gl:drawArrays(Type, Start, NumElements),
-		      DeApply(),
-		      gl:popAttrib()
-	      end, MatGroups),
-	    put(active_shader, 0),
+    %% Setup shader for materials
+    Progs = get(light_shaders),
+    UseSceneLights = wings_pref:get_value(scene_lights) andalso
+	wings_light:any_enabled_lights(),
+    UseShaders = Progs =/= undefined andalso not UseSceneLights
+	andalso wings_pref:get_value(number_of_lights) =:= 2,
+    case UseShaders of
+	false -> ignore;
+	_ ->
+	    NumShaders = wings_pref:get_value(active_shader),
+	    {Prog,_Name} = element(NumShaders, Progs),
+	    put(active_shader, Prog),
 	    ok
-    end.
+    end,
+    %% Show materials.
+    foreach(
+      fun({Mat,Type,Start,NumElements}) ->
+	      gl:pushAttrib(?GL_TEXTURE_BIT),
+	      DeApply = wings_material:apply_material(Mat, Mtab,
+						      ActiveColor),
+	      gl:drawArrays(Type, Start, NumElements),
+	      DeApply(),
+	      gl:popAttrib()
+      end, MatGroups),
+    put(active_shader, 0),
+    ok.
 
 %%
 %% Draw normals for the selected elements.
