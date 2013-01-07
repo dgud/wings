@@ -211,7 +211,7 @@ new(Name, {X,Y,Z0}, {W,H}, Op) when is_integer(X), is_integer(Y),
 				    is_integer(W), is_integer(H) ->
     Z = new_resolve_z(Z0),
     Stk = handle_response(Op, dummy_event, default_stack(Name)),
-    Props = gb_trees:from_orddict([{font,wings_pref:get_value(new_system_font)}]),
+    Props = gb_trees:from_orddict([{font,system_font}]),
     Win = #win{x=X,y=Y,z=Z,w=W,h=H,name=Name,stk=Stk,props=Props},
     put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
     dirty().

@@ -171,9 +171,9 @@ do_window(Name) ->
     Height0 = wings_pref:get_value(console_height),
     wings_wm:delete(Name),
     {X1,_,W1,H1} = wings_wm:viewport(desktop),
-    Font = wings_pref:get_value(new_console_font),
-    CwLh = wings_io:use_font(Font, fun() -> {?CHAR_WIDTH,?LINE_HEIGHT} end),
-    {Cw,Lh} = CwLh,
+    Font = console_font,
+    {Cw,Lh} = CwLh = wings_text:font_cw_lh(Font),
+    io:format("w h: ~p ~p\n", [Cw,Lh]),
     Sw = wings_wm:vscroller_width(),
     Th = wings_wm:title_height(),
     %%
@@ -184,8 +184,8 @@ do_window(Name) ->
     do_window(Name, Font, CwLh, PosUR, Size, []).
 
 do_window(Name, Pos, Size, Ps) ->
-    Font = wings_pref:get_value(new_console_font),
-    CwLh = wings_io:use_font(Font, fun() -> {?CHAR_WIDTH,?LINE_HEIGHT} end),
+    Font = console_font,
+    CwLh = wings_text:font_cw_lh(Font),
     do_window(Name, Font, CwLh, Pos, Size, Ps).
 
 do_window(Name, Font, {Cw,Lh}, {X,Y}, {W,H}=Size, Ps) -> % {X,Y} is upper right

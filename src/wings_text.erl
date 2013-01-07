@@ -3,7 +3,7 @@
 %%
 %%     Text and font support.
 %%
-%%  Copyright (c) 2001-2011 Bjorn Gustavsson
+%%  Copyright (c) 2001-2013 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,9 +13,9 @@
 
 -module(wings_text).
 -export([init/0,resize/0,width/0,width/1,height/0,draw/1,char/1,bold/1]).
+-export([font_cw_lh/1]).
 -export([break_lines/2]).
 -export([fonts/0]).
--export([current_font/0]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
@@ -25,12 +25,15 @@
 -import(lists, [reverse/1,foreach/2]).
 
 init() ->
-    wings_pref:set_default(new_system_font, '7x14'),
-    wings_pref:set_default(new_console_font, 'fixed7x14'),
+    set_font_default(new_system_font),
+    set_font_default(new_console_font),
     ets:new(system_font, [named_table,ordered_set,public]),
     ets:new(console_font, [named_table,ordered_set,public]),
     ets:new(wings_fonts, [named_table,ordered_set,public]),
     load_fonts().
+
+set_font_default(PrefKey) ->
+    wings_pref:set_default(PrefKey, get_font_default(PrefKey)).
 
 resize() ->
     %% Force rebuild of display lists next time each font
@@ -64,31 +67,23 @@ width_1([C|Cs], W) ->
 width_1([], W) -> W.
 
 bold_string_width([C|S], W) ->
-    BCW = case wings_font_table:bold_char_width(C) of
-        undefined -> (current_font()):bold_char_width(C);
-        Other -> Other
-    end,
+    BCW = glyph_width(glyph_info(C)) + 1,
     bold_string_width(S, BCW+W);
 bold_string_width([], W) ->
     W.
 
 char_width(C) ->
-    case wings_font_table:char_width(C) of
-        undefined -> (current_font()):char_width(C);
-        Other -> Other
-    end.
+    glyph_width(glyph_info(C)).
 
 width() ->
-    case wings_font_table:char(char_width) of
-        undefined -> (current_font()):width();
-        Other -> Other
-    end.
+    glyph_info(char_width).
 
 height() ->
-    case wings_font_table:char(char_height) of
-        undefined -> (current_font()):height();
-        Other -> Other
-    end.
+    glyph_info(char_height).
+
+font_cw_lh(Font) ->
+    {glyph_info(Font, char_width),
+     glyph_info(Font, char_height)}.
 
 draw([{bold,S}|Cs]) ->
     bold(S),
@@ -109,41 +104,27 @@ draw([C|Cs]) ->
 draw([]) -> ok.
 
 char(C) when is_atom(C) -> special(C);
-char(C) ->
-    case wings_font_table:char(C) of
-        undefined -> (current_font()):char(C);
-        Other -> Other
-    end.
+char(C) -> draw_glyph(glyph_info(C)).
 
 bold([C|S]) ->
-    case wings_font_table:bold_char(C) of
-        undefined -> (current_font()):bold_char(C);
-        Other -> Other
-    end,
+    Glyph = glyph_info(C),
+    draw_glyph(Glyph),
+    Cw = glyph_width(Glyph),
+    gl:bitmap(1, 1, 0, 0, -Cw+1, 0, <<0>>),
+    draw_glyph(Glyph),
     bold(S);
 bold([]) -> ok.
-
-%% Table of characters already seen.
-%% Because the CJK fonts are HUGE (+30000 glyphs), I wrote a character
-%% accumulator. The reason for this is due to the nature of the ets, which when
-%% accessed, copies the requested data to the memory of the local process. With
-%% the smaller font libraries, this wasn't a problem, but with the CJK font for
-%% supporting Chinese, Japanese, and Korean - this became an issue.
 
 current_font() ->
     case wings_wm:this() of
 	none ->
-	    FontKey = wings_pref:get_value(new_system_font),
-	    ets:lookup_element(wings_fonts, FontKey, 2);
+	    system_font;
 	This ->
-	    FontKey = wings_wm:get_prop(This, font),
-	    ets:lookup_element(wings_fonts, FontKey, 2)
+	    wings_wm:get_prop(This, font)
     end.
-
+	    
 fonts() ->
-    MatchSpec = ets:fun2ms(fun({Key,_Font,Desc}) -> {Desc,Key} end),
-    ets:select(wings_fonts, MatchSpec).
-
+    [{Desc,Key} || {Key,Desc} <- ets:tab2list(wings_fonts)].
 
 %% Formats strings to fit the width of a line length given in PIXELS
 
@@ -226,6 +207,39 @@ string_to_text_box(#tb{text=[],line=Line,res=Res0}=Tb) ->
 %% Avoid single item list reverse error.
 reverse_list(A) when length(A) < 2 -> A;
 reverse_list(A) -> reverse(A).
+
+draw_glyph({W,H,Xorig,Yorig,Xmove,B}) -> 
+    gl:bitmap(W, H, Xorig, Yorig, Xmove, 0, B).
+
+glyph_width({_,_,_,_,Xmove,_}) -> Xmove.
+
+glyph_info(C) ->
+    glyph_info(current_font(), C).
+
+glyph_info(Font, C) ->
+    case ets:lookup(Font, C) of
+	[] when is_integer(C), C > 0 ->
+	    %% Undefined character. Return a filled box.
+	    [{char_width,Width}] = ets:lookup(Font, char_width),
+	    [{char_height,Height}] = ets:lookup(Font, char_height),
+	    NumBytes = ((Width+7) div 8) * Height,
+	    B = <<(-1):NumBytes/unit:8>>,
+	    {Width,Height,0,0,Width+1,B};
+	[{C,Bitmap}] ->
+	    %% Bitmap ready for display.
+	    Bitmap;
+	[{C,W,H,Xorig,Yorig,Xmove,Offset}] ->
+	    %% Raw valid character. We will need to extract a sub-binary
+	    %% from the binary of all fonts, and write back the result
+	    %% to the ets table to speed up the next access to this
+	    %% character.
+	    [{bitmap,Bitmaps}] = ets:lookup(Font, bitmap),
+	    NumBytes = ((W+7) div 8)*H,
+	    <<_:Offset/binary,B:NumBytes/binary,_/binary>> = Bitmaps,
+	    Bitmap = {W,H,Xorig,Yorig,Xmove,B},
+	    ets:insert(Font, {C,Bitmap}),
+	    Bitmap
+    end.
 
 %%%
 %%% Special characters.
@@ -466,52 +480,40 @@ caret() ->
 %%%
 
 load_fonts() ->
-    SystemFont = wings_pref:get_value(new_system_font),
-    ConsoleFont = wings_pref:get_value(new_console_font),
+    Wc = font_file("*"),
+    Fonts = [begin
+		 FontNameStr = filename:basename(F, ".wingsfont"),
+		 FontNameAtom = list_to_atom(FontNameStr),
+		 {FontNameAtom,FontNameStr}
+	     end || F <- filelib:wildcard(Wc)],
+    ets:insert(wings_fonts, Fonts),
+    load_font(system_font),
+    load_font(console_font).
+
+load_font(FontTab) ->
+    PrefKey = list_to_atom(lists:concat(["new_",FontTab])),
+    FontName = wings_pref:get_value(PrefKey),
+    FontFile0 = font_file(FontName),
+    FontFile = case filelib:is_file(FontFile0) of
+		   true ->
+		       FontFile0;
+		   false ->
+		       DefFont = get_font_default(PrefKey),
+		       wings_pref:set_value(PrefKey, DefFont),
+		       font_file(DefFont)
+	       end,
+    {ok,Bin} = file:read_file(FontFile),
+    {wings_font,?wings_version,Font} = binary_to_term(Bin),
+    {_Key,_Desc,Width,Height,GlyphInfo,Bitmaps} = Font,
+    ets:insert(FontTab, GlyphInfo),
+    ets:insert(FontTab, [{char_width,Width},
+			 {char_height,Height},
+			 {bitmap,Bitmaps}|GlyphInfo]).
+
+font_file(FontName) ->
     WingsDir = wings_util:lib_dir(wings),
-    WF = ".wingsfont",
-    SFont = filename:join([WingsDir,"fonts",atom_to_list(SystemFont)++WF]),
-    CFont = filename:join([WingsDir,"fonts",atom_to_list(ConsoleFont)++WF]),
-    %% Make sure font is available, otherwise load default font
-    System = case filelib:is_file(SFont) of
-        true -> SystemFont;
-        false ->
-            wings_pref:set_value(new_system_font, '7x14'),
-            '7x14'
-    end,
-    Console = case filelib:is_file(CFont) of
-        true -> ConsoleFont;
-        false ->
-            wings_pref:set_value(new_console_font, 'fixed7x14'),
-            'fixed7x14'
-    end,
-    Wc = filename:join([WingsDir,"fonts","*.wingsfont"]),
-    Fonts = filelib:wildcard(Wc),
-    foreach(fun(F) ->
-        load_font(System, Console, F)
-    end, Fonts).
+    FontFileBase = lists:concat([FontName,".wingsfont"]),
+    filename:join([WingsDir,"fonts",FontFileBase]).
 
-load_font(SystemFont, ConsoleFont, FontDir) ->
-    FontNameStr = filename:basename(FontDir, ".wingsfont"),
-    FontNameAtom = list_to_atom(FontNameStr),
-    case FontNameAtom of
-        SystemFont -> load_font_0(FontDir);
-        ConsoleFont -> load_font_0(FontDir);
-        _other -> ets:insert(wings_fonts, {FontNameAtom,ok,FontNameStr})
-    end.
-
-load_font_0(FontDir) ->
-    {ok,Bin} = file:read_file(FontDir),
-    Font = binary_to_term(Bin),
-    Mod = load_font_1(Font),
-    Key = Mod:key(),
-    Desc = Mod:desc(),
-    ets:insert(wings_fonts, {Key,Mod,Desc}).
-
-load_font_1({wings_font,?wings_version,Font}) ->
-    load_font_2(Font).
-
-load_font_2({Key,Desc,Width,Height,GlyphInfo,Bitmaps}) ->
-    T = ets:new(font, [set,public]),
-    ets:insert(T, GlyphInfo),
-    wings__font:new(Key, Desc, Width, Height, T, Bitmaps).
+get_font_default(new_system_font) -> '7x14';
+get_font_default(new_console_font) -> 'fixed7x14'.

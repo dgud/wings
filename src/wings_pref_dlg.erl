@@ -666,8 +666,6 @@ smart_set_value_1(Key, Val, St) ->
 		          delayed_set_value(Key, OldVal, Val),
 		          wings_u:message(?__(5,"The language change will take effect\nthe next time Wings 3D is started."));
 		      _ ->
-		          ets:delete_all_objects(system_font),
-		          ets:delete_all_objects(console_font),
 		          wings_lang:load_language(Val)
 		    end;
 		polygon_offset_f ->

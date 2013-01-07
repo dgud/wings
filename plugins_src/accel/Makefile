@@ -28,7 +28,7 @@ BEAM = 	$(LIBDIR)/wpc_pnoise.beam \
 	$(LIBDIR)/pnoise.beam \
 	$(LIBDIR)/wpc_pick.beam
 
-UNIVERSAL_FLAGS = -m32
+UNIVERSAL_FLAGS =
 COMMON_CFLAGS = -Wall -Werror -O3
 
 ifdef USEMINGWGCC

@@ -3,7 +3,7 @@
 %%
 %%     This module is a wrapper for the different backends
 %%
-%%  Copyright (c) 2001-2011 Bjorn Gustavsson
+%%  Copyright (c) 2001-2013 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -36,7 +36,7 @@
 	 sunken_gradient/7,
 	 raised_rect/4,raised_rect/5,raised_rect/6,
 	 gradient_rect/5,gradient_rect_burst/5,
-	 use_font/2,text_at/2,text_at/3,unclipped_text/3,
+	 text_at/2,text_at/3,unclipped_text/3,
 	 draw_icons/1,draw_icon/3,draw_char/1,
 	 set_color/1]).
 -export([putback_event/1,putback_event_once/1,get_event/0,get_matching_events/1,
@@ -439,22 +439,6 @@ gradient_rect(X, Y, W, H, Color) ->
     gl:vertex2f(X+W, Y),
     gl:'end'(),
     gl:shadeModel(?GL_FLAT).
-
-use_font(Font, Fun) ->
-    case wings_wm:this() of
-	none ->
-	    OldFont = wings_pref:get_value(new_system_font),
-	    wings_pref:set_value(new_system_font, Font),
-	    Res = Fun(),
-	    wings_pref:set_value(new_system_font, OldFont),
-	    Res;
-	This ->
-	    OldFont = wings_wm:get_prop(This, font),
-	    wings_wm:set_prop(This, font, Font),
-	    Res = Fun(),
-	    wings_wm:set_prop(This, font, OldFont),
-	    Res
-    end.
 
 text_at(X, S) ->
     text_at(X, 0, S).
