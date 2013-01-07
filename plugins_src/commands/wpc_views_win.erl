@@ -24,31 +24,31 @@
 %%% Saved Views window.
 %%%
 -record(ost,
-	{st,					%Current St.
-	 n,					    %Number of objects.
-	 first,					%First object to show.
-	 os,					%All objects.
-	 active,				%Number of active object.
-	 tracking,				%Number of mouse tracked object.
-	 lh					    %Line height.
-	}).
+    {st,                    %Current St.
+     n,                     %Number of objects.
+     first,                 %First object to show.
+     os,                    %All objects.
+     active,                %Number of active object.
+     tracking,              %Number of mouse tracked object.
+     lh                     %Line height.
+    }).
 
 init() -> true.
 
 menu({window}, Menu) ->
     Menu++[camera_menu()];
-menu(_,Menu) -> 
-	Menu.
+menu(_,Menu) ->
+    Menu.
 
 camera_menu() ->
-	 {?__(1,"Saved Views"), saved_views,
-	  ?__(2,"Shows all saved views")}.
+     {?__(1,"Saved Views"), saved_views,
+      ?__(2,"Shows all saved views")}.
 
 command({window,saved_views}, St) ->
     window(St),
     keep;
 command(_,_) ->
-	next.
+    next.
 
 %% win_data/1 function allows many plugin windows to be saved.
 %% it returns: {Name, {Horiz alignment, Custom_data}}
@@ -59,27 +59,27 @@ win_data(?WIN_NAME=Name) ->
 
 window(St) ->
     case wings_wm:is_window(?WIN_NAME) of
-	true ->
-	    wings_wm:raise(?WIN_NAME),
-	    keep;
-	false ->
-	    {{DeskX,DeskY},{_DeskW,DeskH}} = wings_wm:win_rect(desktop),
-	    W = 18*?CHAR_WIDTH,
-	    Pos = {DeskX+5,DeskY+105},
-	    Size = {W,DeskH div 3},
-	    window(?WIN_NAME, Pos, Size, [], St),
-	    keep
+    true ->
+        wings_wm:raise(?WIN_NAME),
+        keep;
+    false ->
+        {{DeskX,DeskY},{_DeskW,DeskH}} = wings_wm:win_rect(desktop),
+        W = 18*?CHAR_WIDTH,
+        Pos = {DeskX+5,DeskY+105},
+        Size = {W,DeskH div 3},
+        window(?WIN_NAME, Pos, Size, [], St),
+        keep
     end.
 
 window(?WIN_NAME, Pos, Size, CtmData, St) ->
-	Ps = CtmData,
+    Ps = CtmData,
     Ost = #ost{first=0,lh=18,n=0,active=-1,tracking=-1},
     Current = {current_state,St},
     Op = {seq,push,event(Current, Ost)},
     Props = [{display_lists,geom_display_lists}],
     wings_wm:toplevel(?WIN_NAME, title(), Pos, Size,
-		      [{sizeable,?PANE_COLOR},closable,vscroller,{anchor,ne},
-		       {properties,Props}|Ps], Op).
+                     [{sizeable,?PANE_COLOR},closable,vscroller,{anchor,ne},
+                      {properties,Props}|Ps], Op).
 
 get_event(Ost) ->
     {replace,fun(Ev) -> event(Ev, Ost) end}.
@@ -87,9 +87,16 @@ get_event(Ost) ->
 event(redraw, Ost) ->
     draw_objects(Ost),
     keep;
+event({action,{saved_views,{select,{Win,Idx}}}}, Ost) ->
+    wings_wm:send(Win, {action, {view, {views, {jump,Idx+1}}}}),
+    get_event(Ost#ost{active=Idx});
 event({action,{saved_views,Cmd}}, #ost{st=#st{views={_,Views0}}=St0}=Ost) ->
     case Cmd of
-        {save,Geom} ->
+        {save,Geom0} ->
+            Geom=case Geom0 of
+                {save, Win} -> Win;
+                _ -> geom
+            end,
             wings_wm:send(Geom, {action, {view, {views, {save,true}}}});
         {rename,_} ->
             wings_wm:send(geom, {action, {view, {views, rename}}});
@@ -113,7 +120,7 @@ event(lost_focus, Ost) ->
     get_event(Ost#ost{tracking=-1});
 event(got_focus, _) ->
     Msg = wings_msg:button_format(?__(1,"Select"), [],
-				  ?__(2,"Shows saved views menu")),
+                  ?__(2,"Shows saved views menu")),
     wings_wm:message(Msg),
     keep;
 event({current_state,St}, Ost0) ->
@@ -126,25 +133,24 @@ event(#mousemotion{y=Y}, #ost{}=Ost) ->
 event(#mousebutton{button=1,y=Y,state=?SDL_PRESSED}, #ost{active=Act}=Ost)
   when Act >= 0 ->
     case active_object(Y, Ost) of
-	Act ->
-	    wings_wm:grab_focus(),
-	    get_event(Ost#ost{tracking=-1});
-	_ ->
-	    ok
+        Act ->
+            wings_wm:grab_focus(),
+            get_event(Ost#ost{tracking=-1});
+        _ ->
+            ok
     end,
     get_event(Ost);
-event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #ost{active=Act0}=Ost) ->
+event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #ost{active=Act0,st=#st{views={_,Views}}}=Ost) ->
     wings_wm:release_focus(),
     case active_object(Y, Ost) of
-	Act0 ->  keep;
-	Act ->
-	  if Act=/=-1 ->
-          {X0,Y0} = wings_wm:local2global(X, Y),
-	      wings_wm:send(geom_focused(X0,Y0), {action, {view, {views, {jump,Act+1}}}}),
-          wings_wm:dirty(),
-          get_event(Ost#ost{active=Act});
-      true -> keep
-	  end
+        Act0 ->  keep;
+        Act ->
+          if Act=/=-1 ->
+            {X0,Y0} = wings_wm:local2global(X, Y),
+            do_sel_menu(X0, Y0, Views, Act),
+            keep;
+          true -> keep
+          end
     end;
 event(#mousebutton{button=4,state=?SDL_RELEASED}, Ost) ->
     zoom_step(-1*lines(Ost) div 4, Ost);
@@ -152,8 +158,8 @@ event(#mousebutton{button=5,state=?SDL_RELEASED}, Ost) ->
     zoom_step(lines(Ost) div 4, Ost);
 event(#mousebutton{}=Ev, Ost) ->
     case wings_menu:is_popup_event(Ev) of
-	no -> keep;
-	{yes,X,Y,_} -> do_menu(X, Y, Ost)
+        no -> keep;
+        {yes,X,Y,_} -> do_menu(X, Y, Ost)
     end;
 event(scroll_page_up, Ost) ->
     zoom_step(-lines(Ost), Ost);
@@ -161,21 +167,21 @@ event(scroll_page_down, Ost) ->
     zoom_step(lines(Ost), Ost);
 event(Ev, Ost) ->
     case wings_hotkey:event(Ev) of
-	{_,_}=Act ->
-	    wings_wm:send(geom, {action,Act}),
-	    wings_wm:dirty(),
-	    get_event(Ost);
-	_ -> keep
+        {_,_}=Act ->
+            wings_wm:send(geom, {action,Act}),
+            wings_wm:dirty(),
+            get_event(Ost);
+        _ -> keep
     end.
 
 %% there are no views
 do_menu(X, Y ,#ost{st=#st{views={_,{}}}}=_Ost) ->
-    Menu=views_menu({1,{new,geom_focused(X,Y)}}),
+    Menu=views_menu({1,new}),
     wings_menu:popup_menu(X, Y, saved_views, Menu);
 do_menu(X, Y, #ost{active=Act,st=#st{views={_,Views}},tracking=Trk}=_Ost) ->
     Objs = objs_from_view(Views),
     Id = act_to_key(Objs,Act),
-    Menu0 = views_menu({length(Objs)+1,{new,geom_focused(X,Y)}}),  % Save option
+    Menu0 = views_menu({length(Objs)+1,new}),  % Save option
     Menu1 = case Trk of
         Act -> Menu0++views_menu(Id);  % Rename and Delete option
         _ -> Menu0
@@ -188,28 +194,58 @@ do_menu(X, Y, #ost{active=Act,st=#st{views={_,Views}},tracking=Trk}=_Ost) ->
       true ->
         Menu2
     end,
-	wings_menu:popup_menu(X, Y, saved_views, Menu).
+    wings_menu:popup_menu(X, Y, saved_views, Menu).
 
-views_menu({Idx, {new,Geom}}) ->
-	[{?__(1,"Save..."),menu_cmd(save,Geom), ?__(2,"Save this view at ") ++"["++integer_to_list(Idx)++"]"}];
+views_menu({Idx, new}) ->
+    build_save_menu(Idx);
 views_menu({_, delete}) ->
-	[separator,
-	 {?__(9,"Delete All..."), menu_cmd(delete_all,all), ?__(10,"Delete all saved views")}];
+    [separator,
+     {?__(9,"Delete All..."), menu_cmd(delete_all,all), ?__(10,"Delete all saved views")}];
 views_menu({_, {Idx,Legend}}) ->
-	[{?__(3,"Replace "),menu_cmd(replace,Idx), ?__(4,"Replaces \"")++Legend++"\"["++integer_to_list(Idx)++"]\" settings with the current viewing ones"}];
+    [{?__(3,"Replace "),menu_cmd(replace,Idx), ?__(4,"Replaces \"")++Legend++"\"["++integer_to_list(Idx)++"]\" settings with the current viewing ones"}];
 views_menu({Idx, Legend}) ->
-	[separator,
-	 {?__(5,"Rename..."), menu_cmd(rename,none), ?__(6,"Rename \"")++Legend++"\"["++integer_to_list(Idx)++"]\""},
-	 {?__(7,"Delete"), menu_cmd(delete,none), ?__(8,"Delete \"")++Legend++"\"["++integer_to_list(Idx)++"]\""}].
+    [separator,
+     {?__(5,"Rename..."), menu_cmd(rename,none), ?__(6,"Rename \"")++Legend++"\"["++integer_to_list(Idx)++"]\""},
+     {?__(7,"Delete"), menu_cmd(delete,none), ?__(8,"Delete \"")++Legend++"\"["++integer_to_list(Idx)++"]\""}].
+
+do_sel_menu(X, Y, Views, Act) ->
+    Objs = objs_from_view(Views),
+    {_,Legend} = act_to_key(Objs,Act),
+    case get_opened_geom() of
+    [{geom,_}] ->
+        wings_wm:send(wings_wm:this(),{action,{saved_views,{select,{geom,Act}}}});
+    Geoms ->
+        HelpStr=?__(1,"Applay saved view ~s to ~s"),
+        Menu=[{Title, menu_cmd(select,{Win,Act}),
+            io_lib:format(HelpStr,[Legend, Title])} || {Win,Title} <- Geoms],
+        wings_menu:popup_menu(X, Y, saved_views, Menu)
+    end.
 
 menu_cmd(Cmd, Id) ->
     {'VALUE',{Cmd,Id}}.
 
-geom_focused(X, Y) ->
-    case wings_wm:geom_below(X, Y) of
-        none -> geom;
-        Geom -> Geom
-    end.
+build_save_menu(Idx) ->
+    HelpStr0=?__(2,"Save ~s view at"),
+    {Action,HelpStr}=case get_opened_geom() of
+        [{geom,_}] ->
+            {menu_cmd(save,geom),
+                io_lib:format(HelpStr0,["this"])};
+        Geoms ->
+            {{save, build_options(HelpStr0,Geoms,Idx)},
+                ?__(3,"Select the window to be saved at ")}
+    end,
+    [{?__(1,"Save")++"...",Action, HelpStr++" ["++integer_to_list(Idx)++"]"}].
+
+build_options(HelpStr, Geoms, Idx) ->
+    [{Title, menu_cmd(save,Win),
+        io_lib:format(HelpStr,[Title]) ++" ["++integer_to_list(Idx)++"]"} || {Win,Title} <- Geoms].
+
+get_opened_geom() ->
+    Windows = wings_wm:windows(),
+    Geoms = [geom|[Geom|| {geom,_}=Geom <- Windows]],
+    lists:foldl(fun(Name, Acc) ->
+        Acc++[{Name, wings:geom_title(Name)}]
+    end, [], Geoms).
 
 %%%
 %%% Updating the state.
@@ -217,15 +253,15 @@ geom_focused(X, Y) ->
 
 update_state(#st{views={_,Views}}=St, #ost{active=Act0,first=OldFirst}=Ost0) ->
     Act=case Views of
-      {} -> -1;
-      _ -> Act0  % undefined
+        {} -> -1;
+        _ -> Act0  % undefined
     end,
     #ost{first=First0} = Ost = update_state_1(St, Ost0#ost{active=Act}),
     case clamp(First0, Ost) of
-	  OldFirst -> Ost;
-	  First ->
-	    wings_wm:dirty(),
-	    Ost#ost{first=First}
+        OldFirst -> Ost;
+        First ->
+            wings_wm:dirty(),
+            Ost#ost{first=First}
     end.
 
 update_state_1(St, Ost) ->
@@ -234,8 +270,8 @@ update_state_1(St, Ost) ->
 update_state_2(#st{views={CurrentView,Views}}=St, #ost{os=Objs0}=Ost) ->
     Objs = objs_from_view(Views),
     case Objs of
-	Objs0 -> ok;
-	_ -> wings_wm:dirty()
+        Objs0 -> ok;
+        _ -> wings_wm:dirty()
     end,
     N = length(Objs),
     Act = CurrentView-1,
@@ -262,25 +298,25 @@ act_to_key(Objs,Act) ->
 
 zoom_step(Step, #ost{first=First0}=Ost0) ->
     case clamp(First0+Step, Ost0) of
-	First0 -> keep;
-	First ->
-	    wings_wm:dirty(),
-	    Ost = Ost0#ost{first=First},
-	    update_scroller(Ost),
-	    get_event(Ost)
+        First0 -> keep;
+        First ->
+            wings_wm:dirty(),
+            Ost = Ost0#ost{first=First},
+            update_scroller(Ost),
+            get_event(Ost)
     end.
 
 clamp(F, #ost{n=N}=Ost) ->
     Max = case N-lines(Ost) of
-	      Neg when Neg < 0 -> 0;
-	      Other -> Other
-	  end,
+        Neg when Neg < 0 -> 0;
+        Other -> Other
+    end,
     if
-	F < 0 -> 0;
-	F > Max -> Max;
-	true -> F
+      F < 0 -> 0;
+      F > Max -> Max;
+      true -> F
     end.
-    
+
 lines(#ost{lh=Lh}) ->
     {_,_,_,H} = wings_wm:viewport(),
     H div Lh.
@@ -290,13 +326,13 @@ title() ->
 
 active_object(Y0, #ost{lh=Lh,first=First,n=N}) ->
     case Y0 - top_of_first_object() of
-	Y when Y < 0 -> -1;
-	Y1 ->
-	    case Y1 div Lh of
-		Y when First+Y < N ->
-		    First+Y;
-		_ -> -1
-	    end
+        Y when Y < 0 -> -1;
+        Y1 ->
+            case Y1 div Lh of
+                Y when First+Y < N ->
+                    First+Y;
+                _ -> -1
+            end
     end.
 
 draw_objects(#ost{os=Objs0,first=First,lh=Lh,active=Active,tracking=Trk,n=N0}=Ost) ->
@@ -307,10 +343,10 @@ draw_objects(#ost{os=Objs0,first=First,lh=Lh,active=Active,tracking=Trk,n=N0}=Os
     Objs = lists:nthtail(First, Objs0),
     Lines = lines(Ost),
     N = case N0-First of
-	    N1 when N1 < Lines -> N1;
-	    _ -> Lines
-	end,
-	Y=Lh-2,
+        N1 when N1 < Lines -> N1;
+        _ -> Lines
+    end,
+    Y=Lh-2,
     draw_objects_1(N, Objs, Ost, W, Active-First, Y),
     if
       Trk=/=-1 ->
@@ -323,15 +359,15 @@ draw_objects_1(0, _, _, _, _, _) -> ok;
 draw_objects_1(N, [{_,Name}|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
     B = wings_pref:get_value(bitmap_icons),
     case Active =:= 0 of
-    true when B ->
-      gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
-      gl:recti(2, Y-?CHAR_HEIGHT, R-2, Y+4),
-      gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
-    true ->
-      gl:color3f(0, 0, 0.5),
-      gl:recti(2, Y-?CHAR_HEIGHT, R-2, Y+4),
-      gl:color3f(1, 1, 1);
-    false -> ok
+        true when B ->
+            gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
+            gl:recti(2, Y-?CHAR_HEIGHT, R-2, Y+4),
+            gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
+        true ->
+            gl:color3f(0, 0, 0.5),
+            gl:recti(2, Y-?CHAR_HEIGHT, R-2, Y+4),
+            gl:color3f(1, 1, 1);
+        false -> ok
     end,
     wings_io:text_at(4, Y, Name),
     gl:color3b(0, 0, 0),

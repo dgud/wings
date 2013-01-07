@@ -21,7 +21,7 @@
 -export([init_menubar/0]).
 -export([highlight_aim_setup/1]).
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).
--export([info_line/0]).
+-export([info_line/0,geom_title/1]).
 
 -export([new_st/0]).
 
