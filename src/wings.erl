@@ -1720,6 +1720,9 @@ move_windows([{Name,Pos,_}|Windows]) ->
 move_windows([{Name,Pos,_,_}|Windows]) ->
     move_windows_1(Name, Pos),
     move_windows(Windows);
+move_windows([{_,{{plugin,_}=Name,Pos,_,_}}|Windows]) ->
+    move_windows_1(Name, Pos),
+    move_windows(Windows);
 move_windows([]) -> ok.
 
 move_windows_1(geom,Pos) ->
