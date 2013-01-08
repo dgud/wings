@@ -603,7 +603,7 @@ export_light_1(F, looks_like, OpenGL, PovRay) ->
             end,
             io:put_chars(F, "} \n")
     end,
-    
+
     Am=ambient_multiplier(),
     io:format(F, "\t\t texture_list { 1, texture {\n", []),
     io:put_chars(F, "\t\t\t pigment{\n\t\t"),
@@ -627,12 +627,23 @@ export_light_1(F, looks_like, OpenGL, PovRay) ->
         true->  export_faces(F, Fs0, MatList, [], 0);
         false-> export_faces(F, Fs0, MatList, [])
     end,
+
+    case get_pref(export_normals, true) of
+        false ->ok;
+        true ->
+            io:format(F, "}\n\t\t normal_indices { ~p", [length(Fs0)]),
+            case LimitVertex of
+                true-> export_normal_indices(F, Fs0, 0);
+                false-> export_normal_indices(F, Fs0)
+            end
+    end,
+
     io:format(F, "\n\t\t //#local average_center = <~f, ~f, ~f>;\n\t\t }\n", [Sx / VLen, Sy / VLen, Sz / VLen]),
     io:put_chars(F, "\t } }\n").
 
 %% try to find out the ambient light multiplier in order to make the object glowing like we see in Wings3d.
-%% By experiments, the multiplier should have the integer part with the same length for the minor 
-%% value present at one of the components of RGB color (from global ambient color) shifted right. 
+%% By experiments, the multiplier should have the integer part with the same length for the minor
+%% value present at one of the components of RGB color (from global ambient color) shifted right.
 %% e.g. 0.001 requires a multiplier 1000; 0.01 requires 100
 ambient_multiplier() ->
     {Ar, Ag, Ab} = get_pref(ambient, {0.0, 0.0, 0.0}),
@@ -653,9 +664,9 @@ ambient_multiplier() ->
 
 export_transform_vs(Vs,To) ->
     lists:foldl(fun(Pos, A) ->
-		A++[export_transform_pos(e3d_vec:sub(Pos, To))]
-	end, [], Vs).
-    
+        A++[export_transform_pos(e3d_vec:sub(Pos, To))]
+    end, [], Vs).
+
 
 get_light_pos(OpenGL) ->
     #e3d_mesh{vs=Vs}=Mesh = proplists:get_value(mesh, OpenGL, #e3d_mesh{}),
@@ -704,64 +715,64 @@ export_materials(F, [{Name, Mat} | Mats], Attr, ExportDir)->
         true->ok;
         false->
 
-    io:format(F, "#declare ~s = texture{\n", [clean_name("wm_"++atom_to_list(Name))]),
+            io:format(F, "#declare ~s = texture{\n", [clean_name("wm_"++atom_to_list(Name))]),
 
-    %export system image maps
-    MapList = export_maps(Maps, ExportDir),
+            %export system image maps
+            MapList = export_maps(Maps, ExportDir),
 
-    %pigment
-    Pigment = proplists:get_value(pigment_pattern, PovRay, color),
-    case Pigment of
-        image -> io:put_chars(F, "\t uv_mapping\n");
-        _ -> ok
-    end,
-    io:put_chars(F, "\t pigment{\n"),
-    export_pigment(F, Pigment, PovRay, OpenGL, MapList, Attr, ExportDir),
-    case proplists:get_value(pigment_modifiers, PovRay, false) of
-        false ->ok;
-        true ->export_pigment_modifiers(F, Pigment, PovRay)
-    end,
-    case proplists:get_value(pigment_colormap, PovRay, false) of
-        false ->ok;
-        true -> export_colormap(F, Pigment, PovRay)
-    end,
-    io:put_chars(F, "\t }\n"),
-
-    %normal
-    Normal = proplists:get_value(normal_pattern, PovRay, none),
-    case Normal of
-        none-> Skip=true;
-        average->
-            case proplists:get_value(normal_normalmap, PovRay, false) of
-                false->Skip=true;
-                true->
-                    case proplists:get_value(normalmap_list, PovRay, []) of
-                        []->Skip=true;
-                        _ ->Skip=false
-                    end
-            end;
-        _ ->Skip=false
-    end,
-    case Skip of
-        true -> ok;
-        _ ->
-            io:put_chars(F, "\t normal{\n"),
-            export_normal(F, Normal, PovRay, OpenGL, MapList, Attr, ExportDir),
-            case proplists:get_value(normal_modifiers, PovRay, false) of
-                false ->ok;
-                true ->export_normal_modifiers(F, Normal, PovRay)
+            %pigment
+            Pigment = proplists:get_value(pigment_pattern, PovRay, color),
+            case Pigment of
+                image -> io:put_chars(F, "\t uv_mapping\n");
+                _ -> ok
             end,
-            case proplists:get_value(normal_normalmap, PovRay, false) of
+            io:put_chars(F, "\t pigment{\n"),
+            export_pigment(F, Pigment, PovRay, OpenGL, MapList, Attr, ExportDir),
+            case proplists:get_value(pigment_modifiers, PovRay, false) of
                 false ->ok;
-                true -> export_normalmap(F, Normal, PovRay)
+                true ->export_pigment_modifiers(F, Pigment, PovRay)
             end,
-            io:put_chars(F, "\t }\n")
-    end,
-    io:put_chars(F, "\t finish {\n"),
-    export_finish(F, OpenGL, PovRay),
-    io:put_chars(F, "\t }\n"),
-    %io:put_chars(F, "#end\n"),
-    io:put_chars(F, "}\n")
+            case proplists:get_value(pigment_colormap, PovRay, false) of
+                false ->ok;
+                true -> export_colormap(F, Pigment, PovRay)
+            end,
+            io:put_chars(F, "\t }\n"),
+
+            %normal
+            Normal = proplists:get_value(normal_pattern, PovRay, none),
+            case Normal of
+                none-> Skip=true;
+                average->
+                    case proplists:get_value(normal_normalmap, PovRay, false) of
+                        false->Skip=true;
+                        true->
+                            case proplists:get_value(normalmap_list, PovRay, []) of
+                                []->Skip=true;
+                                _ ->Skip=false
+                            end
+                    end;
+                _ ->Skip=false
+            end,
+            case Skip of
+                true -> ok;
+                _ ->
+                    io:put_chars(F, "\t normal{\n"),
+                    export_normal(F, Normal, PovRay, OpenGL, MapList, Attr, ExportDir),
+                    case proplists:get_value(normal_modifiers, PovRay, false) of
+                        false ->ok;
+                        true ->export_normal_modifiers(F, Normal, PovRay)
+                    end,
+                    case proplists:get_value(normal_normalmap, PovRay, false) of
+                        false ->ok;
+                        true -> export_normalmap(F, Normal, PovRay)
+                    end,
+                    io:put_chars(F, "\t }\n")
+            end,
+            io:put_chars(F, "\t finish {\n"),
+            export_finish(F, OpenGL, PovRay),
+            io:put_chars(F, "\t }\n"),
+            %io:put_chars(F, "#end\n"),
+            io:put_chars(F, "}\n")
 
     end,
 
