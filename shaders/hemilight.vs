@@ -9,7 +9,7 @@
 // See 3Dlabs-License.txt for license information
 //
 
-in vec4 wings_tangent;
+attribute vec4 wings_tangent;
 
 varying vec3 normal;
 varying vec3 ecPosition;

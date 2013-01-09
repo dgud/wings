@@ -842,7 +842,7 @@ add_ts([P1,P2,P3,P4], [UV1,UV2,UV3,UV4], N, [V1,V2,V3,V4], Ts) ->  % Quads
 add_ts({_N,Fs,VsPos}, UVs, N, Vs, Ts) -> %% Polys
     add_ts2(Fs, list_to_tuple(VsPos), list_to_tuple(UVs), N, list_to_tuple(Vs), Ts);
 add_ts([_,_,_], _, N, Vs, {Ts,F2V}) -> %% Bad UVs ignore
-    {Ts, [[N|Vs]|F2V]}.
+    {Ts, [{N,1,Vs}|F2V]}.
 
 add_ts2([{V1,V2,V3}|Fs], VsPos, UVs, N, Vs, Ts0) ->
     Ts = add_ts([element(V1,VsPos),element(V2,VsPos), element(V3,VsPos)],

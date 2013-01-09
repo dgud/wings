@@ -299,50 +299,26 @@ command(quick_preview, St) ->
 command(orthogonal_view, St) ->
     toggle_option(orthogonal_view),
     St;
-command({show,show_textures}, St) ->
-    toggle_option(show_textures),
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 %% Must invalidate vertex buffers.
-			 D#dlo{work=none,smooth=none,vab=none,
-			       proxy_data=wings_proxy:invalidate(PD, vab)};
-		    (D, _) -> D
-		 end, []),
+command({show,What}, St) ->
+    Prev = toggle_option(What),
+    if 
+	What =:= show_normals ->
+	    Prev andalso wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []);
+	What =:= show_materials; What =:= filter_texture ->
+	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+				 %% We only need to invalidate display lists.
+				 D#dlo{work=none,smooth=none,
+				       proxy_data=wings_proxy:invalidate(PD, dl)}
+			 end, []);
+       true -> %% show_textures, show_normal_maps, show_colors
+	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+				 %% Must invalidate vertex buffers.
+				 D#dlo{work=none,smooth=none,vab=none,
+				       proxy_data=wings_proxy:invalidate(PD, vab)};
+			    (D, _) -> D
+			 end, [])
+    end,
     St;
-command({show,filter_texture}, St) ->
-    toggle_option(filter_texture),
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 %% Must invalidate vertex buffers.
-			 D#dlo{work=none,smooth=none,vab=none,
-			       proxy_data=wings_proxy:invalidate(PD, vab)};
-		    (D, _) -> D
-		 end, []),
-    St;
-command({show,show_materials}, St) ->
-    toggle_option(show_materials),
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 %% We only need to invalidate display lists.
-			 D#dlo{work=none,smooth=none,
-			       proxy_data=wings_proxy:invalidate(PD, dl)}
-		 end, []),
-    St;
-command({show,show_colors}, St) ->
-    toggle_option(show_colors),
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 %% Must invalidate vertex buffers.
-			 D#dlo{work=none,smooth=none,vab=none,
-			       proxy_data=wings_proxy:invalidate(PD, vab)};
-		    (D, _) -> D
-		 end, []),
-    St;
-command({show,show_normals}, St) ->
-    Bool = wings_pref:get_value(show_normals),
-    wings_pref:set_value(show_normals, not Bool),
-    case Bool of
-	false -> St;
-	true ->
-	    wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []),
-	    St
-    end;
 command(show_edges, St) ->
     Bool = wings_pref:get_value(show_edges),
     wings_pref:set_value(show_edges, not Bool),
@@ -389,6 +365,15 @@ command(align_to_selection, St) ->
     align_to_selection(St);
 command(toggle_lights, St) ->
     toggle_lights(),
+    St;
+command(scene_lights, St) ->
+    toggle_option(scene_lights),
+    %% Invalidate displaylists so that shader data get set correctly
+    %% for materials
+    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+			 D#dlo{work=none,smooth=none,
+			       proxy_data=wings_proxy:invalidate(PD, dl)}
+		 end, []),
     St;
 command({shader_set,N}, St) ->
     shader_set(N),
@@ -850,9 +835,12 @@ toggle_option({show,Key}) ->
 toggle_option(Key) ->
     case wings_wm:lookup_prop(Key) of
 	none ->
-	    wings_pref:set_value(Key, not wings_pref:get_value(Key, false));
+	    Prev = wings_pref:get_value(Key, false),
+	    wings_pref:set_value(Key, not Prev),
+	    Prev;
 	{value,Bool} ->
-	    wings_wm:set_prop(Key, not Bool)
+	    wings_wm:set_prop(Key, not Bool),
+	    Bool
     end.
 
 current() ->
@@ -866,7 +854,7 @@ init() ->
     wings_pref:set_default(show_edges, true),
     wings_pref:set_default(show_backfaces, true),
     wings_pref:set_default(number_of_lights, 1),
-    wings_pref:set_default(number_of_shaders, 1),
+    wings_pref:set_default(active_shader, 1),
     wings_pref:set_default(show_normals, false),
     wings_pref:set_default(show_bb, true),
     wings_pref:set_default(show_bb_center, true),
@@ -1207,6 +1195,12 @@ views_move(J, St, CurrentView, Views) ->
     end.
 
 toggle_lights() ->
+    %% Invalidate displaylists so that shader data get set correctly
+    %% for materials
+    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+			 D#dlo{work=none,smooth=none,
+			       proxy_data=wings_proxy:invalidate(PD, dl)}
+		 end, []),
     Lights = case wings_pref:get_value(number_of_lights) of
 		 1 -> 2;
 		 2 -> 1
@@ -1216,21 +1210,27 @@ toggle_lights() ->
 shader_set(N) ->
     case wings_gl:support_shaders() of
 	true ->
-	    NumShaders = wings_pref:get_value(number_of_shaders),
+	    NumShaders = wings_pref:get_value(active_shader),
 	    NumProgs = tuple_size(get(light_shaders)),
-	    case N of
-		next -> Shaders = case NumShaders of
-				       NumProgs -> 1;
-				       _ -> NumShaders+1
-				  end;
-		prev -> Shaders = case NumShaders of
-				       1 -> NumProgs;
-				       _ -> NumShaders-1
-				  end;
-		_ -> Shaders = N
-	    end,
+	    Shader = case N of
+			 next -> case NumShaders of
+				     NumProgs -> 1;
+				     _ -> NumShaders+1
+				 end;
+			 prev -> case NumShaders of
+				     1 -> NumProgs;
+				     _ -> NumShaders-1
+				 end;
+			 _ -> N
+		     end,
+	    %% Invalidate displaylists so that shader data get set correctly
+	    %% for materials
+	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+				 D#dlo{work=none,smooth=none,
+				       proxy_data=wings_proxy:invalidate(PD, dl)}
+			 end, []),
 	    wings_pref:set_value(number_of_lights, 2),
-	    wings_pref:set_value(number_of_shaders, Shaders);
+	    wings_shaders:set_active(Shader);
 	false ->
 	    toggle_lights()
     end.
@@ -1255,7 +1255,7 @@ shader_index() ->
     case wings_pref:get_value(number_of_lights) of
 	2 ->
 	    Progs = get(light_shaders),
-	    NumShaders = wings_pref:get_value(number_of_shaders),
+	    NumShaders = wings_pref:get_value(active_shader),
 	    {_Prog,Name} = element(NumShaders, Progs),
 	    Name;
 	_ ->

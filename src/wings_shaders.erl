@@ -12,7 +12,7 @@
 %%
 
 -module(wings_shaders).
--export([init/0, read_texture/1]).
+-export([init/0, read_texture/1, set_active/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -40,11 +40,15 @@ init() ->
     ?CHECK_ERROR(),
     gl:useProgram(0),
     put(light_shaders, Programs),
-    case wings_pref:get_value(number_of_shaders) > tuple_size(Programs) of
-	true -> wings_pref:set_value(number_of_shaders, 1);
+    case wings_pref:get_value(active_shader) > tuple_size(Programs) of
+	true -> set_active(1);
 	false -> ok
     end,
     io:format("Using GPU shaders.\n").
+
+set_active(Id) ->
+    wings_pref:set_value(active_shader, Id),
+    ok.
 
 read_texture(FileName) ->
     Path = filename:join(wings_util:lib_dir(wings), "textures"),

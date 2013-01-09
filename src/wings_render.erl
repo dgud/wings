@@ -675,9 +675,8 @@ enable_lighting(SceneLights) ->
 	false ->
 	    gl:enable(?GL_LIGHTING);
 	true ->
-	    NumShaders = wings_pref:get_value(number_of_shaders),
+	    NumShaders = wings_pref:get_value(active_shader),
 	    {Prog,_Name} = element(NumShaders, Progs),
-
 	    %% Reset color. Needed by some drivers.
 	    %% We put it here and not in apply_material, because we
 	    %% can't use some optimizations (e.g. reuse display lists)
