@@ -420,13 +420,14 @@ subtract_mirror_edges(Es, #we{mirror=Face}=We) ->
     Es -- wings_face:to_edges([Face], We).
 
 vs_to_edge_loop(St) ->
-    Sel = wings_sel:fold(
+    Sel0 = wings_sel:fold(
       fun(Vs, #we{id=Id}=We, Acc) ->
         Es0 = vs_to_edges(Vs, We, []),
         Es1 = subtract_mirror_edges(Es0, We),
         Es = gb_sets:from_list(Es1),
         [{Id,Es}|Acc]
       end, [], St),
+    Sel = wings_sel:valid_sel(Sel0, edge, St),
     wings_sel:set(edge, Sel, St).
 
 vs_to_edges(Vs0, We, Es0) ->
