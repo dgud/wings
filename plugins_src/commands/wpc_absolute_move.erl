@@ -273,7 +273,7 @@ draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default},{_,Lock}},
             end,
     Frame = [{vframe,Frame5++[separator,draw_window1(reference,Center)]}],
     Name = draw_window1(name,default),
-    wings_ask:dialog(Name, {{preview,ungrab},Frame},
+    wings_ask:dialog(Name, {preview,Frame},
        fun
            ({dialog_preview,Move}) ->
                {preview,St,translate(Move,Center,Sel,St)};

@@ -702,7 +702,7 @@ numeric_input(Drag0) ->
 		Other -> Other
 	end,
     wings_ask:dialog(?__(1,"Numeric Input"),
-		     {{preview,grab}, make_query(Move0, Drag)},
+		     {drag_preview, make_query(Move0, Drag)},
 		     fun
 		         ({dialog_preview,Res}) ->
 			         {numeric_preview,make_move(Res, Drag)};
