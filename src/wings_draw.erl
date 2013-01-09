@@ -998,13 +998,16 @@ draw_mat_faces(MatGroups, Mtab, ActiveColor) ->
 	true ->
 	    %% Setup shader for materials 
 	    Progs = get(light_shaders),
-	    case get(light_shaders) of
-	    	undefined -> ignore;
+	    UseSceneLights = wings_pref:get_value(scene_lights) andalso
+		wings_light:any_enabled_lights(),
+	    UseShaders = Progs =/= undefined andalso not UseSceneLights 
+		andalso wings_pref:get_value(number_of_lights) =:= 2,
+	    case UseShaders of
+	    	false -> ignore;
 	    	_ -> 
 	    	    NumShaders = wings_pref:get_value(active_shader),
 	    	    {Prog,_Name} = element(NumShaders, Progs),
 	    	    put(active_shader, Prog),
-	    	    %%gl:useProgram(Prog),
 		    ok
 	    end,
 	    %% Show materials.
@@ -1018,7 +1021,6 @@ draw_mat_faces(MatGroups, Mtab, ActiveColor) ->
 		      gl:popAttrib()
 	      end, MatGroups),
 	    put(active_shader, 0),
-	    %% gl:useProgram(0),
 	    ok
     end.
 

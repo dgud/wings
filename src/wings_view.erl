@@ -366,6 +366,15 @@ command(align_to_selection, St) ->
 command(toggle_lights, St) ->
     toggle_lights(),
     St;
+command(scene_lights, St) ->
+    toggle_option(scene_lights),
+    %% Invalidate displaylists so that shader data get set correctly
+    %% for materials
+    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+			 D#dlo{work=none,smooth=none,
+			       proxy_data=wings_proxy:invalidate(PD, dl)}
+		 end, []),
+    St;
 command({shader_set,N}, St) ->
     shader_set(N),
     St;
@@ -1186,6 +1195,12 @@ views_move(J, St, CurrentView, Views) ->
     end.
 
 toggle_lights() ->
+    %% Invalidate displaylists so that shader data get set correctly
+    %% for materials
+    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
+			 D#dlo{work=none,smooth=none,
+			       proxy_data=wings_proxy:invalidate(PD, dl)}
+		 end, []),
     Lights = case wings_pref:get_value(number_of_lights) of
 		 1 -> 2;
 		 2 -> 1
