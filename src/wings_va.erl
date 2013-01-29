@@ -25,6 +25,7 @@
 -include("wings.hrl").
 
 -import(lists, [any/2,member/2,sort/1,reverse/1]).
+-export_type([all_attributes/0]).
 
 -opaque all_attributes() :: {float(),float(),float()} | {float(),float()} | 'none'.
 -type side() :: 'left'|'right'|face_num().

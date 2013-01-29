@@ -43,7 +43,7 @@
 -type object()  :: {point(), term()}.
 
 %% Internal 
--opaque tree() ::  [object()] |
+-type tree() ::  [object()] |
 		   {Med   :: float(), 
 		    Axis  :: integer(),
 		    Left  :: tree(), 
