@@ -23,6 +23,8 @@ ICONSETS= \
 	bluecube \
 	purpletube
 
+TARGET_FILES = $(ICONSETS:%=$(EBIN)/wings_icon_%.bundle)
+
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
@@ -33,14 +35,16 @@ ERL_COMPILE_FLAGS += -Werror +debug_info
 # Targets
 # ----------------------------------------------------
 
-debug opt: collect_bmp.erl *.bmp */*.bmp */*.tga
-	$(ERLC) $(ERL_COMPILE_FLAGS) collect_bmp.erl
-	@for ICONSET in $(ICONSETS); do \
-		erl $(ERL_FLAGS) -noinput -run collect_bmp start . $(ESRC)/$$ICONSET $(EBIN)/wings_icon_$$ICONSET.bundle -s erlang halt; \
-	done
+opt debug: $(TARGET_FILES)
+
+$(EBIN)/wings_icon_%.bundle: %/*.bmp %/*.tga collect_bmp.beam about_wings.bmp
+	erl $(ERL_FLAGS) -noinput -run collect_bmp start . $(ESRC)/$* $@ -s erlang halt; 
 
 clean:
-	@for ICONSET in $(ICONSETS); do \
+	for ICONSET in $(ICONSETS); do \
 		rm -f $(EBIN)/wings_icon_$$ICONSET.bundle; \
 	done
 	rm -f collect_bmp.beam
+
+%.beam: $(ESRC)/%.erl
+	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
