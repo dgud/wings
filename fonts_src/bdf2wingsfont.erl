@@ -3,7 +3,7 @@
 %%
 %%     Conversion of BDF fonts to Wings' own font format.
 %%
-%%  Copyright (c) 2005-2011 Bjorn Gustavsson
+%%  Copyright (c) 2005-2013 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,6 +13,7 @@
 
 -module(bdf2wingsfont).
 -export([convert/1]).
+-include("font_version.hrl").
 
 -import(lists, [reverse/1,sort/1,foldl/3]).
 
@@ -285,7 +286,7 @@ write_font(G, Out) ->
     Key = list_to_atom(filename:rootname(filename:basename(Out))),
     Desc = atom_to_list(Key),
     Font = {Key,Desc,W,H,Gl,Bit},
-    Term = {wings_font,?wings_version,Font},
+    Term = {wings_font,?FONT_VERSION,Font},
     Bin = term_to_binary(Term, [compressed]),
     file:write_file(Out, Bin).
 

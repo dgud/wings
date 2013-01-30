@@ -50,7 +50,7 @@ TARGET_FILES=  $(MODULES:%=$(EBIN)/%.beam) $(FONT_FILES)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -Werror $(TYPE_FLAGS) +debug_info '-Dwings_version="$(WINGS_VSN)"'
+ERL_COMPILE_FLAGS += -Werror $(TYPE_FLAGS) +debug_info
 
 # ----------------------------------------------------
 # Targets
@@ -100,7 +100,7 @@ $(FONT_DIR)/CJK-16.wingsfont: wenquanyi_12pt_cjk.bdf wenquanyi_12pt_cjk_char0.bd
 
 $(FONT_FILES): bdf2wingsfont.beam
 
-bdf2wingsfont.beam: ../vsn.mk
+bdf2wingsfont.beam: font_version.hrl
 
 clean:
 	rm -f $(TARGET_FILES)

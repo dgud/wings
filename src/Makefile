@@ -158,13 +158,18 @@ clean:
 $(EBIN)/wings_u.beam: $(ESRC)/wings_u.erl
 	$(ERLC) '-Dwings_branch="$(WINGS_BRANCH)"' $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
 
+$(EBIN)/wings_text.beam: $(ESRC)/wings_text.erl
+	$(ERLC) -I../fonts_src $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
+
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
 
 # ----------------------------------------------------
 # Dependencies
 # ----------------------------------------------------
-$(EBIN)/wings_export.beam $(EBIN)/wings_file.beam $(EBIN)/wings_help.beam $(EBIN)/wings_text.beam $(EBIN)/wings_pref.beam $(EBIN)/wings_u.beam $(EBIN)/wpa.beam: ../vsn.mk
+$(EBIN)/wings_export.beam $(EBIN)/wings_file.beam $(EBIN)/wings_help.beam $(EBIN)/wings_pref.beam $(EBIN)/wings_u.beam $(EBIN)/wpa.beam: ../vsn.mk
+
+$(EBIN)/wings_text.beam: ../fonts_src/font_version.hrl
 
 $(TARGET_FILES): $(EBIN)/wings_lang.beam wings.hrl
 

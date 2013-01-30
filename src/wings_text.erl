@@ -20,6 +20,7 @@
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
+-include("font_version.hrl").
 -compile({parse_transform,ms_transform}).
 
 -import(lists, [reverse/1,foreach/2]).
@@ -503,7 +504,7 @@ load_font(FontTab) ->
 		       font_file(DefFont)
 	       end,
     {ok,Bin} = file:read_file(FontFile),
-    {wings_font,?wings_version,Font} = binary_to_term(Bin),
+    {wings_font,?FONT_VERSION,Font} = binary_to_term(Bin),
     {_Key,_Desc,Width,Height,GlyphInfo,Bitmaps} = Font,
     ets:insert(FontTab, GlyphInfo),
     ets:insert(FontTab, [{char_width,Width},
