@@ -35,10 +35,10 @@ ERL_COMPILE_FLAGS += -Werror +debug_info
 # Targets
 # ----------------------------------------------------
 
-opt debug: $(TARGET_FILES)
+opt debug: collect_bmp.beam $(TARGET_FILES)
 
-$(EBIN)/wings_icon_%.bundle: %/*.bmp %/*.tga collect_bmp.beam about_wings.bmp
-	erl $(ERL_FLAGS) -noinput -run collect_bmp start . $(ESRC)/$* $@ -s erlang halt; 
+$(EBIN)/wings_icon_%.bundle: ${wildcard %/*.bmp} ${wildcard %/*.tga} collect_bmp.beam about_wings.bmp
+	erl $(ERL_FLAGS) -noinput -run collect_bmp start . $(ESRC)/$* $@ -s erlang halt
 
 clean:
 	for ICONSET in $(ICONSETS); do \
@@ -47,4 +47,4 @@ clean:
 	rm -f collect_bmp.beam
 
 %.beam: $(ESRC)/%.erl
-	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
+	$(ERLC) $(ERL_COMPILE_FLAGS) -o. $<
