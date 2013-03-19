@@ -1067,7 +1067,7 @@ fake_sel_1(St0) ->
 
 add_faces(NewFs,St0=#st{bb=ASt=#uvstate{id=Id,mode=Mode,st=GeomSt=#st{shapes=Shs0}}}) ->
     case {NewFs,Mode} of
-	{_,object} -> St0;
+	{_,object} -> wings_shape:show_all(St0);
 	{object,_} -> %% Force a chart rebuild, we are switching object mode
 	    We = gb_trees:get(Id,Shs0),
 	    Shs = gb_trees:update(Id, We#we{fs=undefined,es=array:new()}, Shs0),

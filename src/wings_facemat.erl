@@ -146,7 +146,7 @@ hide_faces(#we{mat=L0,fs=Ftab}=We) ->
 %%  in the list Faces.
 show_faces(_, #we{mat=M}=We) when is_atom(M) -> We;
 show_faces(Faces, #we{mat=L0}=We) ->
-    L = show_faces_1(Faces, L0, []),
+    L = show_faces_1(gb_sets:to_list(Faces), L0, []),
     We#we{mat=L}.
 
 %% renumber(MaterialMapping, FaceOldToNew) -> MaterialMapping.
@@ -236,7 +236,7 @@ mat_merge([], Fos, Acc) ->
     rev_compress(Acc, Fos);
 mat_merge(Fns, [], Acc) ->
     rev_compress(Acc, Fns).
-    
+
 make_tab(Fs, M) ->
     make_tab_1(Fs, M, []).
 
@@ -290,7 +290,7 @@ compress(L) when is_list(L) ->
 	[] -> L;
 	M -> M
     end.
-    
+
 same_mat([]) -> [];
 same_mat([{_,M}|T]) -> same_mat_1(T, M).
 
