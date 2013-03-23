@@ -52,6 +52,7 @@ load() ->
 		{ok,List0} ->
 		    List = clean(List0),
 		    catch ets:insert(wings_state, List),
+		    check_user_keys(List),
 		    check_legacy_colors(List),
 		    win32_window_layout(),
 		    no_more_basic_menus();
@@ -574,6 +575,22 @@ bad_command(_) -> false.
 
 build_command(Name, Names) ->
     foldl(fun(N, A) -> {N,A} end, Name, Names).
+
+%% check for default keys replaced by user defined ones and remove them
+check_user_keys(List0) ->
+    List=lists:foldl(fun({{bindkey,_},_,user}=Hk, Acc) ->
+            Acc++[Hk];
+        ({{bindkey,_,_},_,user}=Hk, Acc) ->
+            Acc++[Hk];
+        (_, Acc) -> Acc
+    end,[],List0),
+    lists:foreach(fun({_,Cmd,user}) ->
+        Clst=wings_hotkey:hotkeys_by_commands([Cmd]),
+        lists:foreach(fun({Key,_,_,default}) ->
+                delete_value(Key);
+            (_) -> ok
+        end,Clst)
+    end,List).
 
 %% Check for legacy colors so as not to overwrite older prefs with new defaults
 check_legacy_colors(List) ->
