@@ -14,7 +14,9 @@
 
 -module(wings_ask).
 -export([init/0,ask/3,ask/4,dialog/3,dialog/4,dialog_centered/3,
-	 ask_preview/5,dialog_preview/5,
+	 ask_preview/5,dialog_preview/5,mktree_control/8,var/2,
+	 color3/0,color3/1,color3_high/0,color3_text/0,color3_disabled/0,
+	 color4/0,color4_highlight/0,color4_lowlight/0,color5/0,color6/0,
 	 hsv_to_rgb/1,hsv_to_rgb/3,rgb_to_hsv/1,rgb_to_hsv/3]).
 
 -define(NEED_OPENGL, 1).
@@ -1409,7 +1411,13 @@ mktree({text,Def,Flags}, Sto, I) ->
 mktree({Prompt,Def}, Sto, I) when Def==false; Def == true ->
     mktree_checkbox(Prompt, Def, Sto, I, []);
 mktree({Prompt,Def,Flags}, Sto, I) when Def==false; Def == true ->
-    mktree_checkbox(Prompt, Def, Sto, I, Flags).
+    mktree_checkbox(Prompt, Def, Sto, I, Flags);
+%% look for user defined controls
+mktree(Ctrl_Defs, Sto, I) ->
+    case wings_plugin:call_uc({Ctrl_Defs, Sto, I}) of
+        ctrl_fail -> erlang:error(function_clause,[Ctrl_Defs]);
+        Res -> Res
+    end.
 
 radio(FrameType, Qs0, Def, Flags) ->
     Qs = 
@@ -3986,6 +3994,11 @@ get_col_range({v, {V,H,S}}) ->
     V1 = hsv_to_rgb(H,S,1.0),
     {V,[V0,V1]}.
 
+- spec mktree_control(fun(), fun(), boolean(), boolean(), integer(), integer(), integer(), list()) -> tuple(). 
+mktree_control(Handler, InitSto, State, Minimized, W, H, I, Flags) ->
+    #fi{key=Key} = Fi = mktree_leaf(Handler, State, Minimized, W, H, I, Flags),
+    {Sto,PrivData} = InitSto(Key),
+    mktree_priv(Fi, Sto, I, PrivData).
 
 %% Common data storage key. Integer key uses relative field index as
 %% storage key, non-integer uses itself.
