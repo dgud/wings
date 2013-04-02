@@ -12,8 +12,7 @@
 %%
 -module(wpc_collada).
 -export([init/0,menu/2,command/2]).
--import(lists, [map/2,foldl/3,keydelete/3,keyreplace/4,sort/1,keyfind/3,
-		mapfoldl/3,flatten/1,foreach/2]).
+-import(lists, [map/2,foldl/3,keyfind/3, mapfoldl/3,flatten/1]).
 
 -define(DEF_IMAGE_TYPE, ".bmp").
 
@@ -77,10 +76,11 @@ do_export(Attr, _Op, Exporter, _St) when is_list(Attr) ->
     set_pref(Attr),
     SubDivs = proplists:get_value(subdivisions, Attr, 0),
     Uvs = proplists:get_bool(include_uvs, Attr),
+    Units = proplists:get_value(units, Attr),    
     %% If smoothing groups are not wanted, we'll turn off
     %% export of hard edges. That will create only one smoothing group.
     HardEdges = proplists:get_bool(include_normals, Attr),
-    Ps = [{include_uvs,Uvs},{include_hard_edges,HardEdges},
+    Ps = [{include_uvs,Uvs},{units,Units},{include_hard_edges,HardEdges},
 	  {subdivisions,SubDivs},{include_hard_edges,HardEdges}|props()],
     Exporter(Ps, export_fun(Attr)).
 
@@ -105,7 +105,7 @@ export_1(Filename, Contents0, Attr) ->
 				 end,
 			 ExportState0,Objs),
     LibraryGeometryNode = {library_geometries,ExportState1#c_exp.geoms},
-    Asset = make_asset(),
+    Asset = make_asset(Attr),
     LibraryVisualSceneNode = make_library_visual_scene(ExportState1),
     LibraryEffectsNode = make_library_effects(ExportState1),
     LibraryImagesNode = make_library_images(ExportState1),
@@ -113,16 +113,16 @@ export_1(Filename, Contents0, Attr) ->
     %%Lights = proplists:get_value(lights, Attr, []),
     LibraryMaterialsNode = make_library_materials(ExportState1),
     SceneNode = make_scene(),
-    ColladaNodes = [Asset,LibraryEffectsNode,
-		    LibraryImagesNode,LibraryMaterialsNode,
-		    LibraryGeometryNode,LibraryVisualSceneNode,SceneNode],
+    ColladaNodes = ["\n",Asset,"\n",LibraryEffectsNode,"\n",
+		    LibraryImagesNode,"\n",LibraryMaterialsNode,"\n",
+		    LibraryGeometryNode,"\n",LibraryVisualSceneNode,"\n",SceneNode,"\n"],
     ColladaAtts = [#xmlAttribute{name='version',value='1.4.0'},
 		   #xmlAttribute{name='xmlns',
 		   value='http://www.collada.org/2005/11/COLLADASchema'}],
     Collada = #xmlElement{name='COLLADA',content=ColladaNodes,
 			  attributes=ColladaAtts},
-    FileContents = xmerl:export_simple([Collada], xmerl_xml),
-    ok = file:write_file(Filename, [FileContents,"\n"]).
+    FileContents = xmerl:export_simple(["\n",Collada],xmerl_xml),
+    ok = file:write_file(Filename, [FileContents]).
 
 make_library_materials(#c_exp{matl_defs=MatlDefs}) ->
     Matls = map(fun (Matl) ->
@@ -156,7 +156,8 @@ export_transform(Contents, Attr) ->
     e3d_file:transform(Contents, Mat).
 
 dialog(Type) ->
-    [wpa:dialog_template(?MODULE, Type, [include_colors])].
+    [wpa:dialog_template(?MODULE, units), panel, 
+     wpa:dialog_template(?MODULE, Type, [include_colors])].
 
 props() ->
     [{ext,".dae"},{ext_desc,?__(1,"Collada file")}].
@@ -209,7 +210,7 @@ make_scene_node(ObjName, ObjMats) ->
     RotateX = {rotate,[{sid,"rotateX"}],["1 0 0 0.00000"]},
     Scale   = {scale,[{sid,"scale"}],["1.0000 1.0000 1.0000"]},
     {node,[{layer,"L1"},{id,ObjName},{name,ObjName}],
-     [Translate,RotateZ,RotateY,RotateX,Scale,IG]}.
+     [Translate,"/n",RotateZ,RotateY,RotateX,Scale,IG]}.
 
 make_geometry1([], _, _, Acc, _) ->
     Acc;
@@ -245,12 +246,13 @@ make_geometry1([Mesh | Meshes], Prefix, Counter,
 
 use_material(Name, MatDefs, #c_exp{matl_defs=ExpMatlDefs}=ExportState) ->
    case gb_trees:is_defined(Name, ExpMatlDefs) of
-           false -> define_material(Name, MatDefs, ExportState);
+           false -> define_material(Name, lookup(Name, MatDefs), ExportState);
            true -> ExportState
        end.
 
-define_material(Name, MatDefs, #c_exp{matl_defs=ExpMatlDefs}=ExportState) ->
-    ThisMat = lookup(Name, MatDefs),
+define_material(_, undefined, ExportState) -> 
+    ExportState;
+define_material(Name, ThisMat, #c_exp{matl_defs=ExpMatlDefs}=ExportState) ->
     OpenGLMat = lookup(opengl, ThisMat),
     {Ar,Ag,Ab,O} = lookup(ambient, OpenGLMat),
     {Dr,Dg,Db,_} = lookup(diffuse, OpenGLMat),
@@ -321,8 +323,7 @@ make_color(R, G, B, A) ->
 
 %% from wpc_wrl.erl
 lookup(K, L) ->
-    {_,Val} = lists:keyfind(K, 1, L),
-    Val.
+    proplists:get_value(K, L).
 
 make_mesh_source_pos(Name, Mesh) ->
     Verts0 = Mesh#e3d_mesh.vs,
@@ -460,8 +461,10 @@ make_source_accessor(Source, TotalVertCount) ->
     {accessor,
      [{count,num_to_text(FaceCount)},{source,"#" ++ Source},{stride,"3"}],
      [X,Y,Z]}.
+  
+make_asset(Attr) when is_list(Attr) ->
+    Units = proplists:get_value(units, Attr, centimeter),     
 
-make_asset() ->
     Author = {author,["Wings3D Collada Exporter"]},
     AuthoringTool = {authoring_tool,
 		     ["Wings3D " ++ wpa:version() ++ " Collada Exporter"]},
@@ -469,13 +472,21 @@ make_asset() ->
     Copyright= {copyright,[]},
     Sourcedata = {source_data,[]},
     Contributor = {contributor,[],
-		   [Author,AuthoringTool,Comments,Copyright,Sourcedata]},
-    Unit = {unit,[{meter,'0.01'},{name,'centimeter'}],[]},
+		   ["\n",Author,"\n",AuthoringTool,"\n",Comments,"\n",Copyright,"\n",Sourcedata,"\n"]},
+
+    UnitsXml =  case Units of
+		    centimeter -> {unit,[{meter,'0.01'},{name,'centimeter'}],[]};
+		    decimeter -> {unit,[{meter,'0.1'},{name,'decimeter'}],[]};    
+		    meter -> {unit,[{meter,'1.0'},{name,'meter'}],[]};
+		    _ ->
+			" "
+		end,	
+
     UpAxis = {up_axis,["Y_UP"]},
     CurrentDateTime = now_as_xml_dateTime(),
     {asset,[],
-     [Contributor,{created,[CurrentDateTime]},
-      {modified,[CurrentDateTime]},Unit,UpAxis]}.
+     ["\n",Contributor,"\n",{created,[CurrentDateTime]},"\n",
+      {modified,[CurrentDateTime]},"\n",UnitsXml,"\n",UpAxis,"\n"]}.
 
 make_scene() ->
     {scene,[{instance_visual_scene,[{url,"#Scene"}],[]}]}.
