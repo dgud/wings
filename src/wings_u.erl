@@ -16,7 +16,7 @@
 	 geom_windows/0,menu_restriction/2,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
 	 export_we/2,win_crash/1,crash_log/2,crash_log/3,
-	 pretty_filename/1,caption/1,win32_special_folder/2]).
+	 pretty_filename/1,relative_path_name/2,caption/1,win32_special_folder/2]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -167,6 +167,31 @@ pretty_filename(Name0) ->
 		_ -> Name0
 	    end
     end.
+
+%% it returns a new file name using relative path
+%% Dst: it's the relative folder (used to be the project directory) 
+%% Src: file name (with full path) to be referenced
+%% it was implemented to be used in the exporters (see wpc_pov.erl)
+relative_path_name(Dst,Src) ->
+    Fn=filename:basename(Src),
+    Dir0=filename:split(get_dir(Dst)),
+    Dir1=filename:split(get_dir(Src)),
+	case get_rel_path(Dir0,Dir1,[]) of
+		[] -> Fn;
+		Dir3 -> filename:join(Dir3,[Fn])
+	end.
+
+get_dir(Dir) ->
+	case filelib:is_dir(Dir) of
+		true -> Dir;
+		_ -> filename:dirname(Dir)
+	end.
+
+get_rel_path([]=_Dst, []=_Src, Acc) -> Acc;  % export and image dir are the same
+get_rel_path([_|T], [], Acc) -> get_rel_path(T,[],["../"]++Acc);  % image is in some up level directory
+get_rel_path([], [H|T], Acc) -> get_rel_path([],T,[H]++Acc);  % image is in some down level directory
+get_rel_path([H|T0], [H|T1], Acc) -> get_rel_path(T0,T1, Acc);  % continue checking in next dir level
+get_rel_path(_, Dst, _) -> Dst.  % image is in an other disk
 
 
 wings() ->
