@@ -273,9 +273,9 @@ make_default(Color, Opacity) ->
 
 make_default({R,G,B}, Opacity, More) ->
     Color = {R,G,B,Opacity},
-    White = {1.0,1.0,1.0,1.0},
-    Mat = [{opengl,[{diffuse,Color},{ambient,Color},{specular,White},
-		    {emission,{0.0,0.0,0.0,0.0}},{shininess,1.0}|More]},
+    Dark = {0.0,0.0,0.0,1.0},
+    Mat = [{opengl,[{diffuse,Color},{ambient,Color},{specular,Dark},
+		    {emission,Dark},{shininess,0.0}|More]},
 	   {maps,[]}],
     sort([{K,sort(L)} || {K,L} <- Mat]).
 
