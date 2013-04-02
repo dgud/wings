@@ -114,7 +114,7 @@ build_source(E, Sources, Defines) ->
 
 
 
-display_error(Line, Program, Sources, Defines, DeviceList) ->
+display_error(Line, Program, Sources, _Defines, DeviceList) ->
     SFs = [S || {S,_} <- Sources],
     io:format("~n~p:~p: Error in source file(s):~n",[?MODULE, Line]),
     [io:format(" ~s~n",[Source]) || Source <- SFs],
@@ -125,21 +125,21 @@ display_error(Line, Program, Sources, Defines, DeviceList) ->
 		      io:format("~s~n",[Log])
 	      end, DeviceList),
     io:format("~n",[]),
-    DbgOutDir = filename:dirname(element(1, hd(Sources))),
-    {ok, Fd} = file:open(filename:join(DbgOutDir, "cl_compilation_fail.cl"), [write]),
-    Write = fun({File, Source}) ->
-		    io:format(Fd, "// ****************************~n", []),
-		    io:format(Fd, "// Start ~s~n", [File]),
-		    io:put_chars(Fd, Source),
-		    io:format(Fd, "// End ~s~n", [File]),
-		    io:format(Fd, "// ****************************~n", [])
-	    end,
-    [Write(S) || S <- Sources],
-    file:close(Fd),
-    {ok, Fd1} = file:open(filename:join(DbgOutDir, "cl_compilation_fail.config"), [write]),
-    io:format(Fd1, "~s~n",[Defines]),
-    file:close(Fd1),
-    io:format("Debug written to: ~s ~n", [filename:join(DbgOutDir, "cl_compilation_fail.cl")]),
+    %% DbgOutDir = filename:dirname(element(1, hd(Sources))),
+    %% {ok, Fd} = file:open(filename:join(DbgOutDir, "cl_compilation_fail.cl"), [write]),
+    %% Write = fun({File, Source}) ->
+    %% 		    io:format(Fd, "// ****************************~n", []),
+    %% 		    io:format(Fd, "// Start ~s~n", [File]),
+    %% 		    io:put_chars(Fd, Source),
+    %% 		    io:format(Fd, "// End ~s~n", [File]),
+    %% 		    io:format(Fd, "// ****************************~n", [])
+    %% 	    end,
+    %% [Write(S) || S <- Sources],
+    %% file:close(Fd),
+    %% {ok, Fd1} = file:open(filename:join(DbgOutDir, "cl_compilation_fail.config"), [write]),
+    %% io:format(Fd1, "~s~n",[_Defines]),
+    %% file:close(Fd1),
+    %% io:format("Debug written to: ~s ~n", [filename:join(DbgOutDir, "cl_compilation_fail.cl")]),
     exit({error, build_program_failure}).
 
 
