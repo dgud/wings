@@ -28,7 +28,7 @@
 	 %% Get the actual matrices
 	 matrix/1, inv_matrix/1,
 	 %% Transform the matrices
-	 inverse/1, translate/2, rotate/2, rotate/3, scale/2, mul/2
+	 inverse/1, translate/2, rotate/2, rotate/3, scale/2, mul/1, mul/2
 	]).
 
 
@@ -114,14 +114,28 @@ scale(#e3d_transf{mat=M,inv=I}, {X,Y,Z}) ->
     #e3d_transf{mat = e3d_mat:mul(e3d_mat:scale(X,Y,Z), M),
 		inv = e3d_mat:mul(I, e3d_mat:scale(1/X,1/Y,1/Z))}.
 
-%%--------------------------------------------------------------------
-%% @doc  Multiplies the current matrix with Mat
+%%----------------------------------------------------------------------
+%% @doc  Multiplies the current matrix (at right) with new Mat (at left)
 %%       Trans(Vec) = Mat(Current(Vec))
 %% @end
-%%--------------------------------------------------------------------
+%%----------------------------------------------------------------------
 -spec mul(e3d_transform(), e3d_transform()) -> e3d_transform().
 mul(#e3d_transf{mat=M1,inv=I1}, #e3d_transf{mat=M2,inv=I2}) ->
-    #e3d_transf{mat = e3d_mat:mul(M2, M1), inv = e3d_mat:mul(I1, I2)}.
+    #e3d_transf{mat = e3d_mat:mul(M1, M2), inv = e3d_mat:mul(I2, I1)}.
+    
+    
+%%--------------------------------------------------------------
+%% mul([Rx,Ry,Rz]) = mul([mul(Ry,Rx),Rz])
+%%--------------------------------------------------------------
+-spec mul([e3d_transform()]) -> e3d_transform().
+mul([#e3d_transf{}=A,#e3d_transf{}=B | T ]) -> mul([mul(B,A) | T]);
+mul([#e3d_transf{}=A]) -> A.
+    
+    
+    
+    
+    
+    
 
 %%%-------------------------------------------------------------------
 
@@ -141,7 +155,7 @@ lookat(Pos, Look, Up) ->
     CamToWorld = list_to_tuple(lists:flatten(AsList)),
     WorldToCam = e3d_mat:invert(CamToWorld),
     Translate = translate(identity(), e3d_vec:neg(Pos)),
-    mul(Translate, #e3d_transf{mat=WorldToCam,inv=CamToWorld}).
+    mul(#e3d_transf{mat=WorldToCam,inv=CamToWorld}, Translate).
 
 %%--------------------------------------------------------------------
 %% @doc  Generates a ortho transformation
@@ -173,6 +187,7 @@ perspective(Fov, Near, Far) ->
     e3d_transform:scale(#e3d_transf{mat=Persp, inv=InvPersp},
 			{T,T,1.0}).
 
-%%%-------------------------------------------------------------------
+			
+
 
 
