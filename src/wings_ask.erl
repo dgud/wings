@@ -864,7 +864,7 @@ maybe_resize_move({W,H0}=Size0) ->
 
 
 return_result(#s{call=EndFun,owner=Owner,fi=Fi,store=Sto,
-		 level=Level,grab_win=GrabWin}=S0) ->
+		 level=Level,grab_win=GrabWin,preview=P}=S0) ->
 	Res0 = collect_result(Fi, Sto),
 	Res = filter_result_final(Res0),
     ?DEBUG_DISPLAY(other, {return_result,Res}),
@@ -878,7 +878,7 @@ return_result(#s{call=EndFun,owner=Owner,fi=Fi,store=Sto,
 	{dialog,Qs,Fun} ->
 	    S = #s{w=W,h=H} = setup_dialog(Qs, Fun),
 	    maybe_resize_move({W,H}),
-	    get_event(S#s{level=Level,grab_win=GrabWin,owner=Owner});
+	    get_event(S#s{level=Level,grab_win=GrabWin,owner=Owner,preview=P});
 	{commit,#st{}=St0,#st{}=St}->
 	     wings_wm:send(Owner, {current_state,St0}),
 	     wings_wm:send_after_redraw(Owner, {new_state,St}),
