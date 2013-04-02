@@ -93,7 +93,7 @@ mul([H|R]) ->
     mmult(R, H).
 
 mmult([H|R], A) ->
-    mmult(R, mul(A,H));
+    mmult(R, mul(H,A));
 mmult([], A) -> A.
 
 mul({{X1,Y1,Z1},W1}, {{X2,Y2,Z2},W2})
