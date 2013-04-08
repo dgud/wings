@@ -37,9 +37,15 @@ init(Next) ->
 			    fun(What) ->
 				    fileop(What,Next)
 			    end;
-			_ -> Next
+			{error, Reason} -> 
+			    io:format("Ignoring could not spawn"
+				      "wings_file_drv.dll: ~p~n", [Reason]),
+			    Next
 		    end;
-		_ -> Next
+		{error,Reason} ->
+		    io:format("Ignoring could not load wings_file_drv.dll: ~p~n", 
+			      [erl_ddll:format_error(Reason)]),
+		    Next
 	    end;
 	_ -> Next
     end.

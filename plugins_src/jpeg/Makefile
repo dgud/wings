@@ -13,10 +13,12 @@
 
 ifeq ($(findstring CYGWIN,$(shell uname -s)),CYGWIN)
   WINDOWS := true
+  DEF_CC = mingw32-gcc
 endif
 
 ifeq ($(findstring MINGW32,$(shell uname -s)),MINGW32)
   WINDOWS := true
+  DEF_CC = gcc
 endif
 
 WINGS_INTL=../../intl_tools
@@ -32,9 +34,14 @@ ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa 
 ERL_COMPILE_FLAGS += -Werror $(TYPE_FLAGS) -pa $(WINGS_INTL) -I $(WINGS_INTL) +debug_info
 
 ifdef WINDOWS
-SO_EXT = dll
+  SO_EXT = dll
 else
-SO_EXT = so
+  SO_EXT = so
+  DEF_CC = $(CC)
+endif
+
+ifeq ($(GCC),)
+     GCC = $(DEF_CC)
 endif
 
 DRV = $(LIBDIR)/wings_jpeg_image_drv.$(SO_EXT)
@@ -58,7 +65,7 @@ JPEG_DIR = /usr/local
 
 $(LIBDIR)/wings_jpeg_image_drv.dll: wings_jpeg_image_drv.c
 	install -d $(LIBDIR)
-	mingw32-gcc -I$(ERL_INC) -o $(LIBDIR)/wings_jpeg_image_drv.dll \
+	$(GCC) -I$(ERL_INC) -o $(LIBDIR)/wings_jpeg_image_drv.dll \
 		-I$(JPEG_DIR)/include \
 		wings_jpeg_image_drv.c $(LIBS) $(JPEG_DIR)/lib/libjpeg.a
 
@@ -66,7 +73,7 @@ else
 
 $(LIBDIR)/wings_jpeg_image_drv.so: wings_jpeg_image_drv.c
 	install -d $(LIBDIR)
-	gcc -fPIC -o $(LIBDIR)/wings_jpeg_image_drv.so -I$(ERL_INC) \
+	$(GCC) -fPIC -o $(LIBDIR)/wings_jpeg_image_drv.so -I$(ERL_INC) \
 	-I/usr/local/include -L/usr/local/lib \
   wings_jpeg_image_drv.c $(LIBS) -ljpeg
 

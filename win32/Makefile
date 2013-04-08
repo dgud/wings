@@ -14,23 +14,15 @@
 
 LIBS = -lkernel32 -luser32 -ladvapi32
 
+ifeq ($(findstring CYGWIN,$(shell uname -s)),CYGWIN)
+  GCC = mingw32-gcc
+else
+  GCC = gcc
+endif
+
+
 Wings3D.exe: wings3d.c wings3d_res.o
-	mingw32-gcc -o Wings3D.exe wings3d.c wings3d_res.o $(LIBS)
+	$(GCC) -o Wings3D.exe wings3d.c wings3d_res.o $(LIBS)
 
-wings3d_res.o: wings3d.res
-	res2coff -i wings3d.res -o wings3d_res.o
-
-#
-# The wings3d.res file is included in the source tar file.
-#
-# To rebuild it, you'll need a resource compiler, such as
-# LRC included in the LCC compiler: http://www.cs.virginia.edu/~lcc-win32.
-#
-# Uncomment the lines below if you have a resource compiler and
-# want to rebuild wings3d.res.
-#
-
-# RC = lrc
-
-# wings3d.res: wings3d.rc wings.ico wings_doc.ico
-# 	$(RC) wings3d.rc
+wings3d_res.o: wings3d.rc
+	windres -i wings3d.rc -o wings3d_res.o
