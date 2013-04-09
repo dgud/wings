@@ -82,7 +82,7 @@ make_image(FileName, Image0, Ask, St) when is_atom(Ask) ->
     {error,_} -> ok;
     {Id_Img_Plane,_,_}=ImData ->
         Id_Img_Helper = load_ip_helper(),
-        wings_ask:dialog(?__(2,"Image Plane"), {{preview,ungrab}, image_dialog(FileName, Id_Img_Helper)},
+        wings_ask:dialog(?__(2,"Image Plane"), {preview,image_dialog(FileName, Id_Img_Helper)},
           fun
             ({dialog_preview,Res}) ->
                 St1 = make_image_0(ImData,Res,St),
@@ -304,7 +304,7 @@ draw_img_helper_1(X, Y, W, H) ->
     wings_io:border_only(X,Y1,W,H1).
 
 load_ip_helper() ->
-    Name=wings_util:lib_dir(wings)++"/plugins/primitives/ip_helper.png",
+    Name=wings_util:lib_dir(wings)++"/textures/ip_helper.png",
     Props = [{filename,Name}],
     case wpa:image_read(Props) of
       #e3d_image{}=Image ->
