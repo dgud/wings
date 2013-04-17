@@ -152,30 +152,59 @@ init() ->
     TopSize = wings_pref:get_value(window_size),
     Frame = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
 
+    MB = wxMenuBar:new(),
+    wxFrame:setMenuBar(Frame, MB),
+
     GLAttrs = [?WX_GL_RGBA,
 	       ?WX_GL_MIN_RED,8,?WX_GL_MIN_GREEN,8,?WX_GL_MIN_BLUE,8,
 	       ?WX_GL_DEPTH_SIZE, 24, ?WX_GL_STENCIL_SIZE, 8,
 	       ?WX_GL_DOUBLEBUFFER,0],
-    Canvas = wxGLCanvas:new(Frame, [{attribList, GLAttrs}]),
+    Canvas = wxGLCanvas:new(Frame, [{attribList, GLAttrs},
+				    {style,
+				     %% Let us handle redrawing (GTK)
+				     ?wxTRANSPARENT_WINDOW bor
+					 ?wxFULL_REPAINT_ON_RESIZE}
+				   ]),
+
+    %% Manager = wxAuiManager:new([{managed_wnd, Frame}]),
+    %% Pane = wxAuiPaneInfo:new(),
+    %% wxAuiPaneInfo:centrePane(Pane),
+    %% wxAuiPaneInfo:paneBorder(Pane, [{visible, false}]),
+    %% wxAuiManager:addPane(Manager, Canvas, Pane),
+    %% %% Test
+    %% TextCtrl = wxTextCtrl:new(Frame, ?wxID_ANY,
+    %% 			      [{size, {300,200}},
+    %% 			       {value, "An empty pane"},
+    %% 			       {style, ?wxDEFAULT bor ?wxTE_MULTILINE}]),
+
+    %% wxAuiManager:addPane(Manager, TextCtrl,
+    %% 			 wxAuiPaneInfo:caption(
+    %% 			   wxAuiPaneInfo:right(
+    %% 			     wxAuiPaneInfo:new()), "One")),
+    %% wxAuiManager:update(Manager),
 
     put(top_frame, Frame),
     put(gl_canvas, Canvas),
 
     Redraw = fun(Ev,_) ->
-		     wings ! Ev,
+		     wxGLCanvas:setCurrent(Canvas),
 		     DC = wxPaintDC:new(Canvas),
-		     wxPaintDC:destroy(DC)
+		     wxPaintDC:destroy(DC),
+		     wings ! Ev
+		     %%, io:format("Refresh (~p)~n", [wxWindow:getSize(Canvas)])
 	     end,
 
     wxWindow:connect(Frame, close_window),
+    wxWindow:connect(Frame, command_menu_selected),
     wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
-    wxWindow:connect(Canvas, size),
+    wxWindow:connect(Canvas, size,  []),
+    %% wxWindow:connect(Canvas, erase_background),
     wxWindow:connect(Canvas, enter_window,
 		     [{callback, fun(_, _) ->
 					 wxWindow:setFocus(Canvas)
 				 end}]),
 
-    wxWindow:connect(Canvas, motion),
+    wxWindow:connect(Canvas, motion, [{skip, true}]),
     wxWindow:connect(Canvas, left_up),
     wxWindow:connect(Canvas, left_down),
     wxWindow:connect(Canvas, middle_up),
@@ -186,7 +215,9 @@ init() ->
     wxWindow:connect(Canvas, key_down),
     set_icon(),
     wxWindow:setFocus(Canvas), %% Get keyboard focus
-    wxWindow:show(Frame),   %% Must show to initilize context.
+    wxWindow:connect(Frame, show),
+    wxWindow:show(Frame),   %% Must be shown to initilize context.
+    receive #wx{obj=Frame, event=#wxShow{}} -> ok end,
     wxGLCanvas:setCurrent(Canvas),
 
     wings_gl:init_extensions(),
