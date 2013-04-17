@@ -147,6 +147,7 @@ init(File) ->
                menubar,{properties,Props}],
               Op),
     wings_wm:menubar(geom, get(wings_menu_template)),
+    wings_menu:wx_menubar(get(wings_menu_template)),
     set_drag_filter(geom),
 
     open_file(File),
