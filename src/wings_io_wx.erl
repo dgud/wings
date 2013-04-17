@@ -306,6 +306,8 @@ wx_translate_1(#wx{event=#wxClose{}}) ->
     quit;
 wx_translate_1(#wx{event=#wxSize{size={W,H}}}) ->
     #resize{w=W,h=H};
+wx_translate_1(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}) ->
+    wings_menu:wx_command_event(Id);
 wx_translate_1(Ev) ->
     io:format("~p: Bug Ignored Event~p~n",[?MODULE, Ev]),
     redraw.

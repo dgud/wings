@@ -15,6 +15,8 @@
 -export([is_popup_event/1,menu/5,popup_menu/4,build_command/2,
 	 kill_menus/0]).
 
+-export([wx_menubar/1, wx_command_event/1]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -51,6 +53,8 @@
 	 flags=[] :: list(),			%Flags (magnet/dialog).
 	 orig_xy				%Originally input global X and Y
 	}).
+
+-record(menu_entry, {wxid, name}).
 
 %%%
 %%% Inside this module, each entry in a menu is kept in the following
@@ -1794,3 +1798,103 @@ mk_dialog([]) ->
 
 mk_key_item(Key, Keyname, Cmd, _Src) ->
     {Keyname ++ ": " ++ Cmd,false,[{key,Key}]}.
+
+wx_command_event(Id) ->
+    case ets:lookup(wings_menus, Id) of
+	[#menu_entry{name=Name}] -> {action, Name};
+	[] ->
+	    io:format("~p:~p: Unmatched event Id ~p~n",[?MODULE,?LINE,Id]),
+	    ignore
+    end.
+
+wx_menubar(Menus) ->
+    ets:new(wings_menus, [named_table, {keypos,2}]),
+    WinName = {menubar, geom},
+    put(wm_active, WinName),
+    MB = wxFrame:getMenuBar(get(top_frame)),
+    Enter = fun({Str, Name, Fun}, Id) ->
+		    {Menu, NextId} = setup_menu([Name], Id, Fun),
+		    wxMenuBar:append(MB, Menu, Str),
+		    NextId
+	    end,
+    try
+	lists:foldl(Enter,100, Menus),
+	%% Let wings handle the accelerators by itself
+	Accel = wxAcceleratorTable:new(),
+	wxWindow:setAcceleratorTable(get(top_frame), Accel),
+	ok
+    catch _ : Reason ->
+	    io:format("CRASH ~p ~p~n",[Reason, erlang:get_stacktrace()]),
+	    error(Reason)
+    end,
+    erase(wm_active),
+    ok.
+
+setup_menu(Names, Id, Menus0) ->
+    Menu = wxMenu:new(),
+    Menus1 = if is_function(Menus0) -> Menus0(#st{});
+		is_list(Menus0) -> Menus0
+	     end,
+    Menus2  = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus1),
+    Hotkeys = wings_hotkey:matching(Names),
+    Menus = lists:foldr(fun(Entry, Acc) ->
+				normalize_menu(Entry, Acc)
+			end, [], Menus2),
+    Next = create_menu(Menus, Id, Names, Hotkeys, Menu),
+    {Menu, Next}.
+
+normalize_menu(separator, Acc) ->
+    [separator|Acc];
+normalize_menu({S,Name,Help,Ps}, Acc) ->
+    [{S,Name,Help,Ps}|Acc];
+normalize_menu({S, {Name, SubMenu}}, Acc0) ->
+    [{submenu, S, {Name, SubMenu}}|Acc0];
+normalize_menu({S,Name}, Acc) ->
+    [{S,Name,[],[]}|Acc];
+normalize_menu({S,Name,[C|_]=Help}, Acc)
+  when is_integer(C) ->
+    [{S,Name,Help,[]}|Acc];
+normalize_menu({S,Name,Ps}, Acc) ->
+    [{S,Name,[],Ps}|Acc].
+
+create_menu([separator|Rest], Id, Names, HotKeys, Menu) ->
+    wxMenu:appendSeparator(Menu),
+    create_menu(Rest, Id, Names, HotKeys, Menu);
+create_menu([{submenu, Desc, {Name, SubMenu0}}|Rest], Id, Names, HotKeys, Menu)
+  when is_list(SubMenu0) ->
+    {SMenu, NextId} = setup_menu([Name|Names], Id, SubMenu0),
+    wxMenu:append(Menu, ?wxID_ANY, Desc, SMenu),
+    create_menu(Rest, NextId, Names, HotKeys, Menu);
+create_menu([MenuEntry|Rest], Id, Names, HotKeys, Menu) ->
+    MenuItem = menu_item(MenuEntry, Id, Names, HotKeys),
+    wxMenu:append(Menu, MenuItem),
+    create_menu(Rest, Id+1, Names, HotKeys, Menu);
+create_menu([], NextId, _, _, _) ->
+    NextId.
+
+menu_item({Desc0, Name, Help, Props}, Id, Names, HotKeys) ->
+    Desc = case match_hotkey(Name, HotKeys, have_option_box(Props)) of
+	       [] -> Desc0;
+	       KeyStr -> Desc0 ++ "\t" ++ KeyStr
+	   end,
+    MenuId = case predefined_item(Name) of
+		 false -> Id;
+		 PId  -> PId
+	     end,
+    true = ets:insert(wings_menus, #menu_entry{name=build_command(Name, Names), wxid=MenuId}),
+    wxMenuItem:new([{id,MenuId}, {text,Desc}, {help,Help}]).
+
+%% We want to use the prefdefined id where they exist (mac) needs for it's
+%% specialized menus but we want our shortcuts hmm.
+%% We also get little predefined icons for OS's that have that.
+predefined_item(about)   -> ?wxID_ABOUT;
+predefined_item(help)    -> ?wxID_HELP;
+predefined_item(quit)    -> ?wxID_EXIT;
+predefined_item(new)     -> ?wxID_NEW;
+predefined_item(open)    -> ?wxID_OPEN;
+predefined_item(save)    -> ?wxID_SAVE;
+predefined_item(save_as) -> ?wxID_SAVEAS;
+predefined_item(revert)  -> ?wxID_REVERT;
+predefined_item(undo)    -> ?wxID_UNDO;
+predefined_item(redo)    -> ?wxID_REDO;
+predefined_item(_) ->  false.
