@@ -28,13 +28,13 @@ init() ->
 menu(_) ->
     [{"Time Commands",time_commands,
       "Print each command's execution time to the console",
-      crossmark(develop_time_commands)},
+      wings_menu_util:crossmark(develop_time_commands)},
      {"Undo Stat",undo_stat,
       "Show statistics for how much memory each Undo state consumes",
-      crossmark(develop_undo_stat)},
+      wings_menu_util:crossmark(develop_undo_stat)},
      {"OpenGL Errors",opengl_errors,
       "Print information about OpenGL errors to the console",
-      crossmark(develop_gl_errors)},
+      wings_menu_util:crossmark(develop_gl_errors)},
      separator,
      {"Print Scene Size",print_scene_size,
       "Print the scene size to the console"},
@@ -117,12 +117,6 @@ gl_error_check_1(Cmd0) ->
 		     true -> wings_util:stringify(Cmd0)
 		  end,
 	    io:format("~s caused OpenGL error ~s\n", [Cmd,Error])
-    end.
-
-crossmark(Key) ->
-    case wings_pref:get_value(Key) of
-	false -> [];
-	true -> [crossmark]
     end.
 
 toggle(Key) ->

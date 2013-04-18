@@ -127,9 +127,9 @@ command(slide, St) ->
 command(cut_pick, St) ->
     cut_pick(St);
 command({cut,ask}, St) ->
-    wings_ask:ask(cut_command(),
-		  [{?__(1,"Segments"), 2}],
-		  fun([Ret]) -> cut(Ret, St) end);
+    wings_dialog:ask(cut_command(),
+		     [{?__(1,"Segments"), 2, []}],
+		     fun([Ret]) -> cut(Ret, St) end);
 command({cut,Num}, St) ->
     {save_state,cut(Num, St)};
 command(connect, St) ->

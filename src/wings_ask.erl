@@ -13,9 +13,12 @@
 %%
 
 -module(wings_ask).
--export([init/0,ask/3,ask/4,dialog/3,dialog/4,dialog_centered/3,
+-export([ask/3,ask/4,dialog/3,dialog/4,dialog_centered/3,
 	 ask_preview/5,dialog_preview/5,
 	 hsv_to_rgb/1,hsv_to_rgb/3,rgb_to_hsv/1,rgb_to_hsv/3]).
+
+%% export to wings_dialog
+-export([eval_integer/1, eval_float/1]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -129,10 +132,6 @@
 	 reset,				%Store original field data in case of Reset
 	 tm
 	}).
-
-init() ->
-    init_history(),
-    ok.
 
 ask_preview(Cmd, Bool, Title, Qs, St) ->
     ask(Bool, Title, {preview,Qs}, preview_fun(Cmd, St)).
@@ -4135,12 +4134,6 @@ hook(Hook, menu_disabled, [Var,I,Store]) ->
 type(Val) when is_integer(Val) -> int;
 type(Val) when is_float(Val) -> float;
 type(Val) when is_list(Val) -> string.
-
-init_history() ->
-    ets:new(wings_history, [named_table]),
-    ets:insert(wings_history, {{string, next}, 0}),
-    ets:insert(wings_history, {{float, next}, 0}),
-    ets:insert(wings_history, {{int, next}, 0}).
 
 add_history(_Type, []) ->  %% No empty strings in history..
     true;

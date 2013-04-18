@@ -57,16 +57,7 @@ view_menu_entry() ->
       ?__(2,"Show the magnet mask"),crossmark(show_magnet_mask)}].
 
 crossmark(Key) ->
-    Val = case wings_pref:get_value(Key) of
-          undefined ->
-            {_,Client} = wings_wm:this(),
-            wings_wm:get_prop(Client, Key);
-          Other -> Other
-      end,
-    case Val of
-      false -> [];
-      true -> [crossmark]
-    end.
+    wings_menu_util:crossmark(Key).
 
 command({tools,{magnet_mask,magnet_mask_on}},St) ->
     Bool = wings_pref:get_value(magnet_mask_on),
