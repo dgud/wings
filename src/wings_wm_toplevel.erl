@@ -365,11 +365,11 @@ ctrl_command(size, _) ->
     {W0,H0} = wings_wm:win_size(Client),
     Qs = [{?__(1,"Width"),W0},
 	  {?__(2,"Height"),H0}],
-	   wings_ask:ask(?__(3,"Set Window Size"), Qs,
-		  fun([W,H]) ->
-			  ctrl_resize(Client, W, H),
-			  ignore
-		  end).
+    wings_dialog:ask(?__(3,"Set Window Size"), Qs,
+		     fun([W,H]) ->
+			     ctrl_resize(Client, W, H),
+			     ignore
+		     end).
 
 ctrl_resize(Client, W, H) ->
     {TopW,TopH} = wings_wm:top_size(),

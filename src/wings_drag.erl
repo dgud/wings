@@ -701,14 +701,14 @@ numeric_input(Drag0) ->
 	    {{_,M},D} -> {M,D};
 		Other -> Other
 	end,
-    wings_ask:dialog(?__(1,"Numeric Input"),
-		     {drag_preview, make_query(Move0, Drag)},
-		     fun
-		         ({dialog_preview,Res}) ->
-			         {numeric_preview,make_move(Res, Drag)};
-			     (Res) ->
-			         {drag_arguments,make_move(Res, Drag)}
-		     end).
+    wings_dialog:dialog(?__(1,"Numeric Input"),
+			{drag_preview, make_query(Move0, Drag)},
+			fun
+			    ({dialog_preview,Res}) ->
+				{numeric_preview,make_move(Res, Drag)};
+			    (Res) ->
+				{drag_arguments,make_move(Res, Drag)}
+			end).
 
 make_query(Move, #drag{unit=Units}) ->
     make_query_1(Units, Move).

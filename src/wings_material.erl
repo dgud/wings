@@ -56,14 +56,13 @@ new(_) ->
     new_1(new).
 
 new_1(Act) ->
-    wings_ask:ask(?__(1,"New Material"),
-		  [{?__(2,"Material Name"),
-		    ?__(3,"New Material")}],
-		  fun([Name]) ->
-			  Action = {action,{material,{Act,Name}}},
-			  wings_wm:send_after_redraw(geom, Action),
-			  ignore
-		  end).
+    wings_dialog:ask(?__(1,"New Material"),
+		     [{?__(2,"Material Name"),?__(3,"New Material")}],
+		     fun([Name]) ->
+			     Action = {action,{material,{Act,Name}}},
+			     wings_wm:send_after_redraw(geom, Action),
+			     ignore
+		     end).
 
 command(new, _) ->
     new_1(assign_new);
@@ -128,10 +127,10 @@ delete_material([], St) ->
 
 rename(Mats, St) ->
     Qs = rename_qs(Mats),
-    wings_ask:dialog(?__(1,"Rename"), Qs,
-		     fun(NewNames) ->
-			     rename_1(NewNames, St, [])
-		     end).
+    wings_dialog:dialog(?__(1,"Rename"), Qs,
+			fun(NewNames) ->
+				rename_1(NewNames, St, [])
+			end).
 
 rename_1([{Old,New}|Ms], #st{mat=Mat0}=St, Acc) ->
     MatPs = gb_trees:get(Old, Mat0),

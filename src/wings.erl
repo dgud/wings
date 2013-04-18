@@ -124,7 +124,7 @@ init(File) ->
     wings_file:init_autosave(),
     init_menubar(),
     wings_pb:init(),
-    wings_ask:init(),
+    wings_dialog:init(),
     wings_job:init(),
     wings_develop:init(),
     wings_tweak:init(),
@@ -612,6 +612,7 @@ execute_command(Cmd, Ev, St) ->
     %% we know may be from an ancient version Wings or for a
     %% plug-in that has been disabled.
     try
+	wings_menu:check_item(Cmd),
 	command(Cmd, St)
     catch
 	error:_ ->
@@ -974,7 +975,7 @@ tools_menu(_) ->
     {?__(22,"Freeze"),freeze,
      ?__(23,"Create real geometry from the virtual mirrors")}]}},
      separator,
-     {?__(24,"Screenshot"), screenshot,
+     {?__(24,"Screenshot..."), screenshot,
       ?__(25,"Grab an image of the window (export it from the outliner)"),[option]},
      separator,
      {?__(26,"Scene Info: Area & Volume"), area_volume_info,
@@ -1020,11 +1021,11 @@ tool_dirs(Tool) ->
 
 patches() ->
     case wings_start:get_patches() of
-    none -> [];
-    {enabled,Desc} ->
-        [separator,{?__(1,"Use ")++Desc,disable_patches,[crossmark]}];
-    {disabled,Desc} ->
-        [separator,{?__(1,"Use ")++Desc,enable_patches}]
+	none -> [];
+	{enabled,Desc} ->
+	    [separator,{?__(1,"Use ")++Desc,disable_patches,[{crossmark, true}]}];
+	{disabled,Desc} ->
+	    [separator,{?__(1,"Use ")++Desc,enable_patches,[{crossmark, false}]}]
     end.
 
 set_temp_sel(#st{sh=Sh,selmode=Mode}, St) ->
@@ -1036,26 +1037,12 @@ clear_temp_sel(#st{temp_sel={Mode,Sh}}=St) ->
 
 
 purge_undo(St) ->
-    This = wings_wm:this(),
     {Un,Rn} = wings_undo:info(St),
-    Qs = {vframe,
-         [{label,?__(1,"Undo states: ") ++ integer_to_list(Un)},
-          {label,?__(2,"Redo states: ")  ++ integer_to_list(Rn)},
-       separator|
-       if
-           Un+Rn =:= 0 ->
-           [{label,?__(3,"Nothing to remove")},
-            {hframe,[{button,ok}]}];
-           true ->
-           [{label,?__(4,"Remove all states (NOT undoable)?")},
-            {hframe,[{button,wings_s:yes(),
-                  fun(_) ->
-                      Action = {action,{edit,confirmed_purge_undo}},
-                      wings_wm:send(This, Action)
-                  end},
-                 {button,wings_s:no(),cancel,[cancel]}]}]
-       end]},
-    wings_ask:dialog("", Qs, fun(_) -> ignore end).
+    Qs = [{vframe,
+	   [{label,?__(1,"Undo states: ") ++ integer_to_list(Un)},
+	    {label,?__(2,"Redo states: ")  ++ integer_to_list(Rn)}]}],
+    wings_dialog:dialog("Purge Undo", Qs,
+			fun(_) -> {edit,confirmed_purge_undo} end).
 
 info(#st{sel=[]}) ->
     [],
@@ -1840,7 +1827,7 @@ area_volume_info(St) ->
             D = lists:max([length(D) || {{_,_},{_,_},{_,_},{_,D}} <- Rows]) + 4,
             Qs = [{table,[{" #"," Name"," Area"," Volume"}|Rows],[{col_widths,{A,B,C,D}}]}],
             Ask = fun(_Res) -> ignore end,
-            wings_ask:dialog(?__(5,"Scene Info: Area & Volume"), Qs, Ask)
+            wings_dialog:dialog(?__(5,"Scene Info: Area & Volume"), Qs, Ask)
     end.
 
 get_object_info(Id, Shapes) ->

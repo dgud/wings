@@ -243,10 +243,10 @@ cleanup(Ask, _) when is_atom(Ask) ->
 	    {text,1.0E-3,[{range,{1.0E-5,10.0}}]}]},
 	  {?__(3,"Isolated Vertices"),true,
 	   [{key,isolated_vs}]}],
-    wings_ask:dialog(Ask,
-		     ?__(4,"Cleanup"),
-		     [{vframe,Qs}],
-		     fun(Res) -> {body,{cleanup,Res}} end);
+    wings_dialog:dialog(Ask,
+			?__(4,"Cleanup"),
+			[{vframe,Qs}],
+			fun(Res) -> {body,{cleanup,Res}} end);
 cleanup(Opts, St0) ->
     St = wings_sel:map(fun(_, We0) ->
 			       We1 = cleanup_repeated_vtxs(We0),
@@ -634,9 +634,9 @@ auto_smooth(St) ->
     do_auto_smooth(60, St).
 
 auto_smooth(Ask, _) when is_atom(Ask) ->
-    wings_ask:ask(Ask,?__(1,"Auto Smooth Parameters"),
-		  [{?__(2,"Crease Angle"),60,[{range,{0,180}}]}],
-		  fun(Res) -> {body,{auto_smooth,Res}} end);
+    wings_dialog:ask(Ask,?__(1,"Auto Smooth Parameters"),
+		     [{?__(2,"Crease Angle"),60,[{range,{0,180}}]}],
+		     fun(Res) -> {body,{auto_smooth,Res}} end);
 auto_smooth([Angle], St) ->
     {save_state,do_auto_smooth(Angle, St)}.
 
@@ -717,15 +717,15 @@ get_masked_name(Mask,SeqNum) ->
 
 rename_prefix(St0) ->
     Wes = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St0),
-    Q = [{hframe,[{text,"Enter Prefix"}]}],
-    wings_ask:dialog(?__(1,"Prefix Selected Objects"), Q,
-        fun([Prefix]) ->
-            foldl(fun(#we{id=Id,name=Name}=We, #st{shapes=Shs0}=St) ->
-                NewName = Prefix++Name,
-                Shs = gb_trees:update(Id, We#we{name=NewName}, Shs0),
-                St#st{shapes=Shs}
-            end, St0, Wes)
-        end).
+    Q = [{hframe,[{text,"Enter Prefix", []}]}],
+    wings_dialog:dialog(?__(1,"Prefix Selected Objects"), Q,
+			fun([Prefix]) ->
+				foldl(fun(#we{id=Id,name=Name}=We, #st{shapes=Shs0}=St) ->
+					      NewName = Prefix++Name,
+					      Shs = gb_trees:update(Id, We#we{name=NewName}, Shs0),
+					      St#st{shapes=Shs}
+				      end, St0, Wes)
+			end).
 
 rename(St) ->
     Wes = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St),
@@ -737,10 +737,10 @@ rename(Objects, #st{shapes=Shs}=St) ->
 
 rename_1(Wes, St) ->
     Qs = rename_qs(Wes),
-	wings_ask:dialog(?__(1,"Rename"), Qs,
-			 fun(NewNames) ->
-				 rename_1(NewNames, Wes, St)
-			 end).
+    wings_dialog:dialog(?__(1,"Rename"), Qs,
+			fun(NewNames) ->
+				rename_1(NewNames, Wes, St)
+			end).
 
 rename_1(Names, Wes, #st{shapes=Shs}=St) ->
     rename_2(Names, Wes, Shs, St).
@@ -875,8 +875,8 @@ weld(Ask, _) when is_atom(Ask) ->
     Qs = [{hframe,
 	   [{label,?__(1,"Distance Tolerance")},
 	    {text,1.0E-3,[{range,{1.0E-5,10.0}}]}]}],
-    wings_ask:dialog(Ask, ?__(2,"Weld"), Qs,
-		     fun(Res) -> {body,{weld,Res}} end);
+    wings_dialog:dialog(Ask, ?__(2,"Weld"), Qs,
+			fun(Res) -> {body,{weld,Res}} end);
 weld([Tolerance], #st{shapes=Shs0,sel=Sel0}=St0) ->
     Unselected = gb_trees:keys(Shs0) -- [ Id || {Id,_} <- Sel0 ],
     #st{shapes=Shs}=St1 = separate(St0),

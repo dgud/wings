@@ -31,8 +31,7 @@ parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 
 bb_menu() ->
-    [{?__(1,"Bounding Box..."),bbox,
-      ?__(2,"Create Bounding Box")}].
+    {?__(1,"Bounding Box..."),bbox, ?__(2,"Create Bounding Box")}.
 
 command({shape, bbox}, St) ->
     create_bbox(St);

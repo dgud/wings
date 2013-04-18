@@ -13,6 +13,10 @@
 
 -include("../intl_tools/wings_intl.hrl").
 
+-ifndef(USE_WX).     %% We require wx in this branch
+-define(USE_WX, 1).
+-endif.
+
 -ifdef(NEED_ESDL).
 -include_lib("esdl/include/sdl.hrl").
 -include_lib("esdl/include/sdl_events.hrl").
