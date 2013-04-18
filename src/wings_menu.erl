@@ -15,7 +15,7 @@
 -export([is_popup_event/1,menu/5,popup_menu/4,build_command/2,
 	 kill_menus/0]).
 
--export([wx_menubar/1, wx_command_event/1]).
+-export([wx_menubar/1, wx_command_event/1, check_item/1]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -54,7 +54,7 @@
 	 orig_xy				%Originally input global X and Y
 	}).
 
--record(menu_entry, {wxid, name}).
+-record(menu_entry, {wxid, name, object, type}).
 
 %%%
 %%% Inside this module, each entry in a menu is kept in the following
@@ -920,7 +920,9 @@ is_submenu(I, #mi{type=plain,menu=Menu}) when is_integer(I) ->
 is_submenu(_, _) -> false.
 
 build_command(Name, Names) ->
-    foldl(fun(N, A) -> {N,A} end, Name, Names).
+    foldl(fun(N, Use={N, _}) -> Use;
+	     (N, A) -> {N,A} end,
+	  Name, Names).
 
 menu_draw(_X, _Y, _Shortcut, _Mw, _I, [], _Mi) -> ok;
 menu_draw(X, Y, Shortcut, Mw, I, [H|Hs], #mi{sel_side=Side,menu=Menu,type=Type}=Mi) ->
@@ -1023,18 +1025,18 @@ draw_hotkey(_, _, _, []) -> ok;
 draw_hotkey(X, Y, Pos, Hotkey) -> wings_io:text_at(X+Pos, Y, Hotkey).
 
 draw_menu_text(X, Y, Text, Props) ->
-    case proplists:is_defined(crossmark, Props) of
+    case proplists:get_value(crossmark, Props) of
+	undefined ->
+	    wings_io:unclipped_text(X, Y, Text);
+	false ->
+	    wings_io:unclipped_text(X, Y, Text);
 	true ->
 	    wings_io:unclipped_text(X-2*?CHAR_WIDTH, Y, [crossmark,$\s|Text]);
-	false ->
-	    case proplists:is_defined(grey_crossmark, Props) of
-		false -> ok;
-		true ->
-		    gl:pushAttrib(?GL_CURRENT_BIT),
-		    gl:color3f(0.25, 0.25, 0.25),
-		    wings_io:unclipped_text(X-2*?CHAR_WIDTH, Y, [crossmark]),
-		    gl:popAttrib()
-	    end,
+	grey ->
+	    gl:pushAttrib(?GL_CURRENT_BIT),
+	    gl:color3f(0.25, 0.25, 0.25),
+	    wings_io:unclipped_text(X-2*?CHAR_WIDTH, Y, [crossmark]),
+	    gl:popAttrib(),
 	    wings_io:unclipped_text(X, Y, Text)
     end.
 
@@ -1790,7 +1792,7 @@ hotkey_delete_dialog(Hotkeys) ->
 		  ignore
 	  end,
     Dialog = mk_dialog(Hotkeys),
-    wings_ask:dialog(?__(1,"Delete Hotkeys"), Dialog, Fun).
+    wings_dialog:dialog(?__(1,"Delete Hotkeys"), Dialog, Fun).
 
 mk_dialog([{Key,Keyname,Cmd,Src}|T]) ->
     [mk_key_item(Key, Keyname, Cmd, Src)|mk_dialog(T)];
@@ -1802,10 +1804,18 @@ mk_key_item(Key, Keyname, Cmd, _Src) ->
 
 wx_command_event(Id) ->
     case ets:lookup(wings_menus, Id) of
-	[#menu_entry{name=Name}] -> {action, Name};
+	[#menu_entry{name=Name}] -> {menubar, {action, Name}};
 	[] ->
 	    io:format("~p:~p: Unmatched event Id ~p~n",[?MODULE,?LINE,Id]),
 	    ignore
+    end.
+
+check_item(Name) ->
+    case ets:match_object(wings_menus, #menu_entry{name=Name, type=?wxITEM_CHECK, _ = '_'}) of
+	[] -> ok;
+	[#menu_entry{object=MenuItem}] -> %% Toggle checkmark
+	    Checked = wxMenuItem:isChecked(MenuItem),
+	    wxMenuItem:check(MenuItem, [{check, not Checked}])
     end.
 
 wx_menubar(Menus) ->
@@ -1838,64 +1848,83 @@ setup_menu(Names, Id, Menus0) ->
 	     end,
     Menus2  = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus1),
     Hotkeys = wings_hotkey:matching(Names),
-    Menus = lists:foldr(fun(Entry, Acc) ->
-				normalize_menu(Entry, Acc)
-			end, [], Menus2),
+    Menus = [normalize_menu(Entry) || Entry <- Menus2],
     Next = create_menu(Menus, Id, Names, Hotkeys, Menu),
     {Menu, Next}.
 
-normalize_menu(separator, Acc) ->
-    [separator|Acc];
-normalize_menu({S,Name,Help,Ps}, Acc) ->
-    [{S,Name,Help,Ps}|Acc];
-normalize_menu({S, {Name, SubMenu}}, Acc0) ->
-    [{submenu, S, {Name, SubMenu}}|Acc0];
-normalize_menu({S,Name}, Acc) ->
-    [{S,Name,[],[]}|Acc];
-normalize_menu({S,Name,[C|_]=Help}, Acc)
+normalize_menu(separator) -> separator;
+normalize_menu({S,Fun,Help,Ps}) when is_function(Fun) ->
+    Name = Fun(1, []),
+    {S,Name,Help,Ps};
+normalize_menu({S,Name,Help,Ps}) ->
+    {S,Name,Help,Ps};
+normalize_menu({S, {Name, SubMenu}}) ->
+    {submenu, S, {Name, SubMenu}, []};
+normalize_menu({S, {Name, SubMenu}, Help}) ->
+    {submenu, S, {Name, SubMenu}, Help};
+normalize_menu({S,Name}) ->
+    {S,Name,[],[]};
+normalize_menu({S,Name,[C|_]=Help})
   when is_integer(C) ->
-    [{S,Name,Help,[]}|Acc];
-normalize_menu({S,Name,Ps}, Acc) ->
-    [{S,Name,[],Ps}|Acc].
+    {S,Name,Help,[]};
+normalize_menu({S,Name,Ps}) ->
+    {S,Name,[],Ps}.
 
 create_menu([separator|Rest], Id, Names, HotKeys, Menu) ->
     wxMenu:appendSeparator(Menu),
     create_menu(Rest, Id, Names, HotKeys, Menu);
-create_menu([{submenu, Desc, {Name, SubMenu0}}|Rest], Id, Names, HotKeys, Menu)
+create_menu([{submenu, Desc, {Name, SubMenu0}, Help}|Rest], Id, Names, HotKeys, Menu)
   when is_list(SubMenu0) ->
     {SMenu, NextId} = setup_menu([Name|Names], Id, SubMenu0),
-    wxMenu:append(Menu, ?wxID_ANY, Desc, SMenu),
+    wxMenu:append(Menu, ?wxID_ANY, Desc, SMenu, [{help, Help}]),
     create_menu(Rest, NextId, Names, HotKeys, Menu);
 create_menu([MenuEntry|Rest], Id, Names, HotKeys, Menu) ->
-    MenuItem = menu_item(MenuEntry, Id, Names, HotKeys),
+    {MenuItem, Check} = menu_item(MenuEntry, Menu, Id, Names, HotKeys),
     wxMenu:append(Menu, MenuItem),
+    Check andalso wxMenuItem:check(MenuItem), %% Can not check until appended to menu..
     create_menu(Rest, Id+1, Names, HotKeys, Menu);
 create_menu([], NextId, _, _, _) ->
     NextId.
 
-menu_item({Desc0, Name, Help, Props}, Id, Names, HotKeys) ->
+menu_item({Desc0, Name, Help, Props}, Parent, Id, Names, HotKeys) ->
     Desc = case match_hotkey(Name, HotKeys, have_option_box(Props)) of
 	       [] -> Desc0;
-	       KeyStr -> Desc0 ++ "\t" ++ KeyStr
+	       KeyStr -> Desc0 ++ "\t' " ++ KeyStr ++ " '"
+	       %%KeyStr -> Desc0 ++ "\t" ++ KeyStr
 	   end,
-    MenuId = case predefined_item(Name) of
+    MenuId = case predefined_item(hd(Names),Name) of
 		 false -> Id;
 		 PId  -> PId
 	     end,
-    true = ets:insert(wings_menus, #menu_entry{name=build_command(Name, Names), wxid=MenuId}),
-    wxMenuItem:new([{id,MenuId}, {text,Desc}, {help,Help}]).
+    Command = case have_option_box(Props) of
+		  true ->
+		      io:format("Menu still have option box ~p ~s~n",[Name, Desc0]),
+		      {Name, true};
+		  false ->
+		      Name
+	      end,
+    {Type,Check} = case proplists:get_value(crossmark, Props) of
+		       undefined -> {?wxITEM_NORMAL, false};
+		       false -> {?wxITEM_CHECK, false};
+		       _ -> {?wxITEM_CHECK, true} %% grey or true
+		   end,
+    MI = wxMenuItem:new([{parentMenu, Parent}, {id,MenuId},
+			 {text,Desc}, {kind, Type}, {help,Help}]),
+    true = ets:insert(wings_menus, #menu_entry{name=build_command(Command, Names),
+					       object=MI, wxid=MenuId, type=Type}),
+    {MI, Check}.
 
 %% We want to use the prefdefined id where they exist (mac) needs for it's
 %% specialized menus but we want our shortcuts hmm.
 %% We also get little predefined icons for OS's that have that.
-predefined_item(about)   -> ?wxID_ABOUT;
-predefined_item(help)    -> ?wxID_HELP;
-predefined_item(quit)    -> ?wxID_EXIT;
-predefined_item(new)     -> ?wxID_NEW;
-predefined_item(open)    -> ?wxID_OPEN;
-predefined_item(save)    -> ?wxID_SAVE;
-predefined_item(save_as) -> ?wxID_SAVEAS;
-predefined_item(revert)  -> ?wxID_REVERT;
-predefined_item(undo)    -> ?wxID_UNDO;
-predefined_item(redo)    -> ?wxID_REDO;
-predefined_item(_) ->  false.
+predefined_item(help, about)   -> ?wxID_ABOUT;
+predefined_item(help, help)    -> ?wxID_HELP;
+predefined_item(file, quit)    -> ?wxID_EXIT;
+predefined_item(file, new)     -> ?wxID_NEW;
+predefined_item(file, open)    -> ?wxID_OPEN;
+predefined_item(file, save)    -> ?wxID_SAVE;
+predefined_item(file, save_as) -> ?wxID_SAVEAS;
+predefined_item(file, revert)  -> ?wxID_REVERT;
+predefined_item(edit, undo)    -> ?wxID_UNDO;
+predefined_item(edit, redo)    -> ?wxID_REDO;
+predefined_item(_, _) ->  false.

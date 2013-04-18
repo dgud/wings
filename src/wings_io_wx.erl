@@ -13,6 +13,11 @@
 
 -module(wings_io_wx).
 
+-define(NEED_OPENGL, 1).
+-define(NEED_ESDL, 1).  %% Keyboard and mouse mappings
+
+-include("wings.hrl").
+
 -ifdef(USE_WX).
 -export([init/1, quit/0, version_info/0,
 	 set_cursor/1,hourglass/0,eyedropper/0,
@@ -26,10 +31,6 @@
 -export([reset_grab/0,grab/0,ungrab/2,is_grabbed/0,warp/2]).
 -export([reset_video_mode_for_gl/2, swapBuffers/0]).
 
--define(NEED_OPENGL, 1).
--define(NEED_ESDL, 1).  %% Keyboard and mouse mappings
-
--include("wings.hrl").
 -import(lists, [flatmap/2,member/2,reverse/1,reverse/2]).
 
 -import(wings_io, [put_state/1, get_state/0]).
@@ -89,11 +90,11 @@ version_info() ->
 build_cursors() ->
     [
      {stop,      wxCursor:new(?wxCURSOR_NO_ENTRY)},
-     {pointing_hand, wxCursor:new(?wxCURSOR_POINT_LEFT)},
-     {closed_hand, wxCursor:new(?wxCURSOR_HAND)},
+     {pointing_hand, wxCursor:new(?wxCURSOR_HAND)},
+     {closed_hand, wxCursor:new(?wxCURSOR_BULLSEYE)},
      {arrow, wxCursor:new(?wxCURSOR_ARROW)},
      {hourglass, wxCursor:new(?wxCURSOR_WAIT)},
-     {eyedropper, wxCursor:new(?wxCURSOR_QUESTION_ARROW)}, %% :-/  Fix me
+     {eyedropper, wxCursor:new(?wxCURSOR_MAGNIFIER)}, %% :-/  Fix me
      {blank, blank(wxCursor:new(?wxCURSOR_BLANK))}
     ].
 
@@ -301,7 +302,9 @@ wx_translate_1(#wx{event=#wxPaint{}}) ->
 wx_translate_1(#wx{event=Ev=#wxMouse{}}) ->
     sdl_mouse(Ev);
 wx_translate_1(#wx{event=Ev=#wxKey{}}) ->
-    sdl_key(Ev);
+    R = sdl_key(Ev),
+%%    erlang:display(R),
+    R;
 wx_translate_1(#wx{event=#wxClose{}}) ->
     quit;
 wx_translate_1(#wx{event=#wxSize{size={W,H}}}) ->

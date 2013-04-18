@@ -183,7 +183,7 @@ listing() ->
     listing_1(Keys, []).
 
 listing_1([{Mode,Keys}|T], Acc0) ->
-    Acc = [list_keys(Keys),list_header(Mode)|Acc0],
+    Acc = [{table, 2, list_header(Mode), list_keys(Keys)}|Acc0],
     listing_1(T, Acc);
 listing_1([], Acc) -> reverse(Acc).
 
@@ -202,8 +202,7 @@ list_keys([{Key,Cmd,Src}|T]) ->
 		 user -> ?STR(list_keys,1," (user-defined)");
 		 plugin -> ?STR(list_keys,2," (plug-in-defined)")
 	     end,
-    KeyStr ++ ": " ++ wings_util:stringify(Cmd) ++ SrcStr ++ 
-	"\n" ++ list_keys(T);
+    [[KeyStr,wings_util:stringify(Cmd) ++ SrcStr]|list_keys(T)];
 list_keys([]) -> [].
 
 
@@ -226,17 +225,19 @@ handle_error(Ev, Cmd) ->
     Msg5 = [bullet,$\s|"A bug in the command itself. Try executing the command\n"
 	    "from the menu directly (i.e. not through a hotkey) -\n"
 	    "if it crashes it IS a bug. (Please report it.)"],
-    Qs = {vframe,
+    Msg6 = "Delete Hotkey: " ++ KeyName ++ " or press cancel to avoid any changes",
+    Qs = {vframe_dialog,
 	  [{label,Msg1},{panel,[]},
 	   {label,Msg2},
 	   {label,Msg3},
 	   {label,Msg4},
 	   {label,Msg5},{panel,[]},
-	   {hframe,[{button,"Ignore",fun(_) -> ignore end,
-		     [{info,"Do nothing"}]},
-		    {button,"Delete Hotkey",fun(_) -> unbind(Key) end,
-		     [{info,"Delete the hotkey "++KeyName}]}]}]},
-    wings_ask:dialog("", Qs, fun(_) -> ignore end).
+	   {label,Msg6}],
+	  [{buttons, [ok, cancel], {key, result}}]},
+    wings_dialog:dialog("Delete HotKey", Qs,
+			fun([{result, ok}]) -> unbind(Key);
+			   (_) -> ignore
+			end).
 
 %%%
 %%% Local functions.

@@ -41,8 +41,8 @@ mac_stuff(Menu) ->
     [{?__(1,"Mac OS File Dialog"),native_file_dialog,
       ?__(2,"Choose whether to use the Mac OS standard file dialog or Wings' own file dialog"),
       case wpa:pref_get(?MODULE, native_file_dialog) of
-	  false -> [];
-	  true -> [crossmark]
+	  false -> [{crossmark, false}];
+	  true -> [{crossmark, true}]
       end}|Menu].
 
 command({file,native_file_dialog}, St) ->

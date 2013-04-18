@@ -44,7 +44,7 @@ file_dialog(Type, Prop, Title, Cont) ->
     Frame = get(top_frame),
     DefDir = proplists:get_value(directory, Prop),
     DefName = proplists:get_value(default_filename, Prop, ""),
-    Filters = file_filters(Prop),
+    Filters = wings_file:file_filters(Prop),
     Dlg = wxFileDialog:new(Frame,
 			   [{message, Title}, 
 			    {defaultDir, DefDir}, 
@@ -62,37 +62,4 @@ file_dialog(Type, Prop, Title, Cont) ->
 	    keep
     end.
 
-file_filters(Prop) ->
-    Exts = case proplists:get_value(extensions, Prop, none) of
-	       none ->
-		   Ext = proplists:get_value(ext, Prop, ".wings"),
-		   ExtDesc = proplists:get_value(ext_desc, Prop,
-						 ?__(1,"Wings File")),
-		   [{Ext,ExtDesc}];
-	       Other -> Other
-	   end,
-    lists:flatten([file_add_all(Exts),
-		   file_filters_0(Exts++[{".*", ?__(2,"All Files")}])]).
-
-file_filters_0(Exts) ->
-    file_filters_1(lists:reverse(Exts),[]).
-
-file_filters_1([{Ext,Desc}|T], Acc) ->
-    Wildcard = "*" ++ Ext,
-    ExtString = [Desc," (",Wildcard,")","|",Wildcard|Acc],
-    case T of
-	[] -> ExtString;
-	_  ->
-	    file_filters_1(T, ["|"|ExtString])
-    end.
-    
-file_add_all([_]) -> [];
-file_add_all(Exts) ->
-    All0 = ["*"++E || {E,_} <- Exts],
-    All = file_add_semicolons(All0),
-    [?__(1,"All Formats")++" (",All,")", "|", All].
-
-file_add_semicolons([E1|[_|_]=T]) ->
-    [E1,";"|file_add_semicolons(T)];
-file_add_semicolons(Other) -> Other.
 
