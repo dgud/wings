@@ -34,10 +34,10 @@ error_msg(Format, Arg) ->
     error_msg(lists:flatten(io_lib:format(Format, Arg))).
 
 message(Message) ->
-    Qs = {vframe,
-	  [{label,Message},
-	   {hframe,[{button,ok,[ok]}]}]},
-    wings_ask:dialog("", Qs, fun(_) -> ignore end).
+    Qs = {vframe_dialog,
+	  [{label,Message}],
+	  [{buttons,[ok]}]},
+    wings_dialog:dialog("", Qs, fun(_) -> ignore end).
 
 menu_restriction(Win, Allowed) ->
     case wings_wm:get_menubar(Win) of
@@ -67,20 +67,18 @@ yes_no(Question, Yes) ->
     yes_no(Question, Yes, ignore).
 
 yes_no(Question, Yes, No) ->
-    Qs = {vframe,
-	  [{label,Question,[{break,45*?CHAR_WIDTH}]},
-	   {hframe,[{button,wings_s:yes(),yes_no_fun(Yes)},
-		    {button,wings_s:no(),yes_no_fun(No),[cancel]}]}]},
-    wings_ask:dialog("", Qs, fun(_) -> ignore end).
+    Qs = {vframe_dialog,
+	  [{label,Question,[{break,45*?CHAR_WIDTH}]}],
+	  [{buttons, [yes, no], {key, result}}]
+	 },
+    wings_dialog:dialog("", Qs, fun([{result,Res}]) -> yes_no_cancel(Res, Yes, No, ignore) end).
 
 yes_no_cancel(Question, Yes, No) ->
-    Qs = {vframe,
-	  [{label,Question,[{break,45*?CHAR_WIDTH}]},
-	   {hframe,[{button,wings_s:yes(),yes_no_fun(Yes)},
-		    {button,wings_s:no(),yes_no_fun(No)},
-		    {button,wings_s:cancel(),
-		     yes_no_fun(ignore),[cancel]}]}]},
-    wings_ask:dialog("", Qs, fun(_) -> ignore end).
+    Qs = {vframe_dialog,
+	  [{label,Question,[{break,45*?CHAR_WIDTH}]}],
+	  [{buttons, [yes, no, cancel]}, {key, result}]
+	 },
+    wings_dialog:dialog("", Qs, fun([{result,Res}]) -> yes_no_cancel(Res, Yes, No, ignore) end).
 
 %% export_we(Filename, State)
 %%  Dump the winged-edge structure in a textual format.
@@ -221,15 +219,22 @@ win32_special_folder(R, FolderType) ->
 %%% Local functions.
 %%%
 
-yes_no_fun(ignore) -> fun(_) -> ignore end;
-yes_no_fun(Fun) ->
-    This = wings_wm:this(),
-    fun(_) ->
-	    case Fun() of
-		ignore -> ignore;
-		Action -> wings_wm:send(This, {action,Action})
-	    end
-    end.
+yes_no_cancel(ok,  Yes, _, _) -> invoke(Yes);
+yes_no_cancel(yes, Yes, _, _) -> invoke(Yes);
+yes_no_cancel(no, _, No, _)   -> invoke(No);
+yes_no_cancel(cancel, _, _, Cancel)   -> invoke(Cancel).
+
+invoke(Fun) when is_function(Fun) -> Fun();
+invoke(ignore) -> ignore.
+
+%% yes_no_fun(Fun) ->
+%%     This = wings_wm:this(),
+%%     fun(_) ->
+%% 	    case Fun() of
+%% 		ignore -> ignore;
+%% 		Action -> wings_wm:send(This, {action,Action})
+%% 	    end
+%%     end.
 
 geom_windows_1([geom|T]) ->
     [geom|geom_windows_1(T)];

@@ -630,66 +630,62 @@ colors(ColorPrefs, List) ->
 %% Command is initiated in wings_file.erl
 pref({load,Request,St}) ->
     case Request of
-      custom_theme ->
-        pref(load);
-      olive_theme ->
-        LegacyColors = wings_theme:legacy_colors(),
-        Defaults = defaults(),
-        Colors = colors(LegacyColors, Defaults),
-        load_pref_category([{graphical,true}],[{graphical,Colors}],St),
-        init_opengl(),
-        keep;
-      Theme when is_atom(Theme) ->
-        Colors = wings_theme:Theme(),
-        load_pref_category([{graphical,true}],[{graphical,Colors}],St),
-        init_opengl(),
-        keep;
-      Key when is_integer(Key) ->
-        Recent0 = get_value(recent_prefs),
-        PrefDir = lists:nth(Key, Recent0),
-        case filelib:is_file(PrefDir) of
-          true ->
-              wings_pref:set_value(pref_directory, PrefDir),
-              pref(load);
-          false ->
-              Recent = delete_nth(Recent0, Key),
-              wings_pref:set_value(recent_prefs, Recent),
-              wings_u:error_msg(?__(11,"This file has been moved or deleted."))
-        end
+	custom_theme ->
+	    pref(load);
+	olive_theme ->
+	    LegacyColors = wings_theme:legacy_colors(),
+	    Defaults = defaults(),
+	    Colors = colors(LegacyColors, Defaults),
+	    load_pref_category([{graphical,true}],[{graphical,Colors}],St),
+	    init_opengl(),
+	    keep;
+	Theme when is_atom(Theme) ->
+	    Colors = wings_theme:Theme(),
+	    load_pref_category([{graphical,true}],[{graphical,Colors}],St),
+	    init_opengl(),
+	    keep;
+	Key when is_integer(Key) ->
+	    Recent0 = get_value(recent_prefs),
+	    PrefDir = lists:nth(Key, Recent0),
+	    case filelib:is_file(PrefDir) of
+		true ->
+		    wings_pref:set_value(pref_directory, PrefDir),
+		    pref(load);
+		false ->
+		    Recent = delete_nth(Recent0, Key),
+		    wings_pref:set_value(recent_prefs, Recent),
+		    wings_u:error_msg(?__(11,"This file has been moved or deleted."))
+	    end
     end;
 
 pref(Action) -> %% load|save dialog
+    FileName = "Preference Subset.pref",
+    Directory = case get_value(pref_directory) of
+		    undefined -> get_pref_directory(FileName);
+		    Dir -> Dir
+		end,
+
+    Keys = case file:consult(Directory) of
+	       {ok,List} when Action =:= load -> orddict:fetch_keys(List);
+	       _ -> []
+	   end,
     Disable = fun (is_disabled, {_Var,_I, Store}) ->
-              not gb_trees:get(hotkeys,Store);
-              (_, _) -> void
+		      not gb_trees:get(hotkeys,Store);
+		  (_, _) -> void
               end,
     case Action of
         load ->
-          Title = ?__(1,"Load Preference Subset"),
-          Button = [{button,
-                     ?__(14,"Select Valid Preference Fields for Current File"),
-                     done,[{key,update}]},separator],
-          Dialog = open_dialog,
-          Options =
-           [separator,
-            {hframe,[{vradio,[{?__(9,"Merge hotkeys"),merge},
-                              {?__(10,"Remove existing hotkeys first"),remove}],
-                               merge}],[{hook,Disable}]},panel];
+	    Title = ?__(1,"Load Preference Subset"),
+	    Dialog = open_dialog,
+	    Options =
+		[separator,
+		 {hframe,[{vradio,[{?__(9,"Merge hotkeys"),merge},
+				   {?__(10,"Remove existing hotkeys first"),remove}],
+			   merge}],[{hook,Disable}]},panel];
         save ->
-          Title = ?__(2,"Save Preference Subset"),
-          Button = [],
-          Dialog = save_dialog,
-          Options = [panel]
-    end,
-    FileName = "Preference Subset.pref",
-    Directory = case get_value(pref_directory) of
-      undefined -> get_pref_directory(FileName);
-      Dir -> Dir
-    end,
-
-    Keys = case file:consult(Directory) of
-      {ok,List} when Action =:= load -> orddict:fetch_keys(List);
-      _ -> []
+	    Title = ?__(2,"Save Preference Subset"),
+	    Dialog = save_dialog,
+	    Options = [panel]
     end,
     PrefFeilds =
         [{hframe,
@@ -701,25 +697,26 @@ pref(Action) -> %% load|save dialog
             [{?__(6,"Window and View Settings"),member(windows,Keys),[{key,windows}]},
              {?__(7,"Constraints"),member(constraints,Keys),[{key,constraints}]},
              {?__(8,"General Settings"),member(settings,Keys),[{key,settings}]}]}
-         ]}],
+	  ]}],
     FileBrowser =
-        [{button, {text, Directory, [{key, pref_directory},
-            {props, [{dialog_type, Dialog},
-            {extensions, [{".pref", "Preference Subset"}]}]}]}}],
-    Qs = Button ++ PrefFeilds ++ Options ++ FileBrowser,
-    wings_ask:dialog(true, Title, Qs,
-        fun(Res) ->
-            case lists:keyfind(update, 1, Res) of
-              {_,true} ->
-                  {_,PrefDir} = lists:keyfind(pref_directory, 1, Res),
-                  case filelib:is_file(PrefDir) of
-                    true -> wings_pref:set_value(pref_directory, PrefDir);
-                    false -> ok
-                  end,
-                  {file,{load_pref,custom_theme}};
-              _ -> {file,{pref,{Action,Res}}}
-            end
-        end).
+        [{button, {text, Directory,
+		   [{key, pref_directory},
+		    {props, [{dialog_type, Dialog},
+			     {extensions, [{".pref", "Preference Subset"}]}]}]}}],
+    Qs = PrefFeilds ++ Options ++ FileBrowser,
+    Do = fun(Res) ->
+		 case lists:keyfind(update, 1, Res) of
+		     {_,true} ->
+			 {_,PrefDir} = lists:keyfind(pref_directory, 1, Res),
+			 case filelib:is_file(PrefDir) of
+			     true -> wings_pref:set_value(pref_directory, PrefDir);
+			     false -> ok
+			 end,
+			 {file,{load_pref,custom_theme}};
+		     _ -> {file,{pref,{Action,Res}}}
+		 end
+	 end,
+    wings_dialog:dialog(Title, Qs, Do).
 
 pref({save, Res}, St) -> %save a .pref
     DelayedPrefs = ets:tab2list(wings_delayed_update),

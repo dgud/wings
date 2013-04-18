@@ -218,6 +218,7 @@ button_was_hit_1(X, [{Pos,Name}|_]) when Pos =< X, X < Pos+?BUTTON_WIDTH ->
 		 Other -> {select,Other}
 	     end,
     {toolbar,Client} = wings_wm:this(),
+    wings_menu:check_item(Action),
     wings_wm:send(Client, {action,Action});
 button_was_hit_1(X, [_|Is]) ->
     button_was_hit_1(X, Is);

@@ -645,6 +645,8 @@ dispatch_event({wm,WmEvent}) ->
     wm_event(WmEvent);
 dispatch_event(Ev = {external,_}) ->
     send(geom,Ev);
+dispatch_event({menubar,Ev}) ->
+    send(geom,Ev);
 dispatch_event(Event) ->
     case find_active(Event) of
 	none ->

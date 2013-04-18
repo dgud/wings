@@ -383,7 +383,4 @@ crossmark(Key) ->
 		  wings_wm:get_prop(Client, Key);
 	      Other -> Other
 	  end,
-    case Val of
-	false -> [];
-	true -> [crossmark]
-    end.
+    [{crossmark, Val}].

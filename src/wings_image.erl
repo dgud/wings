@@ -134,11 +134,9 @@ screenshot(Ask, _) when is_atom(Ask) ->
     Qs = [{?__(2,"Capture viewport only"),ViewPortOnly},
           {?__(3,"Add current view to Saved Views"),SaveView},
           {hframe,[{label,?__(4,"Name")},
-                    {text,?__(1,"Screenshot"),[]}]}],
-    wings_ask:dialog(Ask, ?__(1,"Screenshot"), [{vframe,Qs}],
-    fun(Res) ->
-        {tools,{screenshot,Res}}
-    end);
+		   {text,?__(1,"Screenshot"),[]}]}],
+    wings_dialog:dialog(Ask, ?__(1,"Screenshot"), [{vframe,Qs}],
+			fun(Res) -> {tools,{screenshot,Res}} end);
 screenshot([ViewPortOnly,SaveView,Name], St) ->
     wings_pref:set_value(screenshot_viewport_only, ViewPortOnly),
     wings_pref:set_value(screenshot_save_current_view, SaveView),
@@ -921,21 +919,23 @@ draw_image(X, Y, W, H, TxId) ->
 %%%
 
 create_image() ->
-    Qs = [{?__(1,"Width"),256,[{range,{8,1024}}]},
-	  {?__(2,"Height"),256,[{range,{8,1024}}]},
-	  {?__(3,"Pattern"),
-	   {menu,[{?__(4,"Grid"),grid},
-		  {?__(5,"Checkerboard"),checkerboard},
-		  {?__(6,"Vertical Bars"),vbars},
-		  {?__(7,"Horizontal Bars"),hbars},
-		  {?__(8,"White"),white},
-		  {?__(9,"Black"),black}],
-	    grid}}],
-    wings_ask:ask(?__(10,"Create Image"), Qs,
-		  fun([W,H,Pattern]) ->
-			  create_image_1(Pattern, W, H),
-			  ignore
-		  end).
+    Qs = [{hframe, [{vframe,[{label, ?__(1,"Width")},
+			     {label, ?__(2,"Height")}]},
+		    {vframe,[{text, 256,[{range,{8,1024}}]},
+			     {text, 256,[{range,{8,1024}}]}]}]},
+	  {vradio,
+	   [{?__(4,"Grid"),grid},
+	    {?__(5,"Checkerboard"),checkerboard},
+	    {?__(6,"Vertical Bars"),vbars},
+	    {?__(7,"Horizontal Bars"),hbars},
+	    {?__(8,"White"),white},
+	    {?__(9,"Black"),black}],
+	   grid, [{title, ?__(3,"Pattern")}]}],
+    wings_dialog:dialog(?__(10,"Create Image"), Qs,
+			fun([W,H,Pattern]) ->
+				create_image_1(Pattern, W, H),
+				ignore
+			end).
 
 create_image_1(Pattern, W, H) ->
     Pixels = pattern(Pattern, W, H),

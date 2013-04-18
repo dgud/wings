@@ -53,6 +53,7 @@ MODULES= \
 	wings_console \
 	wings_deform \
 	wings_develop \
+	wings_dialog \
 	wings_dissolve \
 	wings_dl \
 	wings_drag \

@@ -1873,11 +1873,11 @@ cycle_magnet() ->
       spike -> off
     end.
 
-crossmark({MagType, MagType}) -> [crossmark];
-crossmark({_, MagType}) when is_atom(MagType)-> [];
-crossmark("none") -> [];
-crossmark(false) -> [];
-crossmark(_) -> [crossmark].
+crossmark({MagType, MagType}) -> [{crossmark, true}];
+crossmark({_, MagType}) when is_atom(MagType)-> [{crossmark, false}];
+crossmark("none") -> [{crossmark, false}];
+crossmark(false) -> [{crossmark, false}];
+crossmark(_) -> [{crossmark, true}].
 
 
 %%%
@@ -2633,7 +2633,7 @@ draw_tweak_menu_items([{Name,{_,{Mode,_}},Help,Bound}|Menu], Y, #tw{w=W, current
     draw_menu_item(gradient_rect, Name, Bound, Help, Menu, Y, W, Tw);
 draw_tweak_menu_items([{Name,{_,{Mode,_}},_,_}|Menu], Y, #tw{w=W, mode=Mode}=Tw) ->
     draw_menu_item(gradient_border, Name, [], [], Menu, Y, W, Tw);
-draw_tweak_menu_items([{Name,{_,{_,_}},_,[crossmark]=B}|Menu], Y, #tw{w=W}=Tw) ->
+draw_tweak_menu_items([{Name,{_,{_,_}},_,[{crossmark, true}]=B}|Menu], Y, #tw{w=W}=Tw) ->
     draw_menu_item(border, Name, B, [], Menu, Y, W, Tw);
 draw_tweak_menu_items([{Name,{_,{_,_}},_,_}|Menu], Y, Tw) ->
     wings_io:set_color(wings_pref:get_value(menu_text)),
@@ -2662,7 +2662,7 @@ draw_tweak_menu_items([{Name,Cmd,Help,_}|Menu], Y, #tw{w=W, current={_,Cmd}}=Tw)
 
 draw_tweak_menu_items([{Name,Cmd,_,_}|Menu], Y, #tw{w=W, mode={_,Cmd,_}}=Tw) ->
     draw_menu_item(gradient_border, Name, [], [], Menu, Y, W, Tw);
-draw_tweak_menu_items([{Name,_,_,[crossmark]=B}|Menu], Y, #tw{w=W}=Tw) ->
+draw_tweak_menu_items([{Name,_,_,[{crossmark, true}]=B}|Menu], Y, #tw{w=W}=Tw) ->
     draw_menu_item(border, Name, B, [], Menu, Y, W, Tw);
 draw_tweak_menu_items([{Name,_,_,_}|Menu], Y, Tw) ->
     wings_io:set_color(wings_pref:get_value(menu_text)),
@@ -2732,7 +2732,7 @@ draw_menu_item(Style, Name, Bound, Help, Menu, Y, W, Tw) ->
     draw_tweak_menu_items(Menu, Ly, Tw).
 
 % Bound tools are in bold print
-text_style([crossmark],Name) ->
+text_style([{crossmark, true}],Name) ->
     [bullet," ",Name];
 text_style([],Name) ->
     ["  ",Name].
