@@ -14,10 +14,12 @@ OS := $(shell uname -s)
 
 ifeq ($(findstring CYGWIN,$(OS)),CYGWIN)
   USEMINGWGCC := true
+  DEF_CC = mingw32-gcc
 endif
 
 ifeq ($(MSYSTEM),MINGW32)
   USEMINGWGCC := true
+  DEF_CC = gcc
 endif
 
 LIBDIR = ../../plugins/accel
@@ -35,11 +37,10 @@ ifdef USEMINGWGCC
  SO_EXT = dll
  LIBS = -shared
  GL_LIBS = -lopengl32 -lglu32
- GCC = mingw32-gcc
  CFLAGS = $(COMMON_CFLAGS)
 else
  SO_EXT = so
- GCC = gcc
+ DEF_CC = $(CC)
  ifeq ($(OS),Darwin)
    CFLAGS = $(UNIVERSAL_FLAGS) $(COMMON_CFLAGS)
    LIBS = $(UNIVERSAL_FLAGS) -bundle -flat_namespace -undefined suppress
@@ -49,6 +50,10 @@ else
    GL_LIBS = -L/usr/local/lib -lGLU -lGL
    CFLAGS = $(COMMON_CFLAGS)
  endif
+endif
+
+ifeq ($(GCC),)
+    GCC = $(DEF_CC)
 endif
 
 ERLC = erlc

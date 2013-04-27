@@ -302,7 +302,17 @@ install_beam(Name) ->
 install_tar(Name) ->
     {ok,Files} = erl_tar:table(Name, [compressed]),
     install_verify_files(Files, Name),
-    erl_tar:extract(Name, [compressed,{cwd,plugin_dir()}]).
+    case erl_tar:extract(Name, [compressed,{cwd,plugin_dir()}]) of
+	ok -> ok;
+	{error, {_File, Reason}} -> 
+	    wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
+			      [filename:basename(Name),
+			       file:format_error(Reason)]);
+	{error, Reason} ->
+	    wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
+			      [filename:basename(Name),
+			       file:format_error(Reason)])
+    end.
 
 install_verify_files(["/"++_|_], Name) ->
     wings_u:error_msg(?__(1,"File \"~s\" contains a file with an absolute path"),

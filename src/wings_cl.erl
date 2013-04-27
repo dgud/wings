@@ -50,9 +50,12 @@ setup() ->
 		 case clu:setup(Other) of
 		     {error, R} -> 
 			 exit({no_opencl_device, R});
-		     Cpu -> Cpu
+		     Cpu -> 
+		     	 io:format("Using OpenCL via ~p~n",[Other]),
+		     	 Cpu
 		 end;
 	     Gpu ->
+		 io:format("Using OpenCL via ~p~n",[Prefered]),
 		 Gpu
 	 end,
     [Device|_] = CL#cl.devices,

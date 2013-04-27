@@ -24,6 +24,16 @@ ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa 
 
 DRV = $(LIBDIR)/wings_file_drv.dll
 
+ifeq ($(findstring CYGWIN,$(shell uname -s)),CYGWIN)
+  DEF_CC = mingw32-gcc
+else
+  DEF_CC = gcc
+endif
+
+ifeq ($(GCC),)
+    GCC = $(DEF_CC)
+endif
+
 opt: $(BEAM) $(DRV)
 
 template: opt
@@ -39,4 +49,4 @@ $(LIBDIR)/%.beam: %.erl
 
 $(LIBDIR)/wings_file_drv.dll: wings_file_drv.c
 	install -d $(LIBDIR)
-	mingw32-gcc -I$(ERL_INC) -o $(LIBDIR)/wings_file_drv.dll wings_file_drv.c $(LIBS)
+	$(GCC) -I$(ERL_INC) -o $(LIBDIR)/wings_file_drv.dll wings_file_drv.c $(LIBS)

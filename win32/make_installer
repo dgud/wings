@@ -9,6 +9,7 @@
 # requires a later version.
 #
 WINGS_VCREDIST_VERSION=10.00.40219.1
+WINGS_VCREDIST64_VERSION=10.00.30319.1
 
 OS=`uname -o 2> /dev/null`
 if [ X$OS != XMsys ]; then
@@ -31,8 +32,9 @@ fi
 DEST_ROOT="build"
 
 if [ -z "$ESDL_PATH" ]; then
-    `erl -noshell -eval "io:format([126,115,126,110],[code:lib_dir(esdl)])" -s erlang halt`
+    ESDL_PATH=`erl -noshell -eval "io:format([126,115,126,110],[code:lib_dir(esdl)])" -s erlang halt`
 fi
+
 ESDL_NAME=`basename $ESDL_PATH`
 if [ X$ESDL_NAME == Xesdl ]; then
     echo $ESDL_NAME without version
@@ -45,11 +47,22 @@ ERLANG_PATH=`which erl`
 ERLANG_PATH=`dirname "$ERLANG_PATH"`
 ERLANG_PATH=`dirname "$ERLANG_PATH"`
 
+WIN_X86=`erl -noshell -eval "io:format([126,115,126,110],[erlang:system_info(wordsize)==4])" -s erlang halt`
+
 if [ ! -f "$WINGS_VCREDIST" ]; then
     echo "The environment variable WINGS_VCREDIST must point out vcredist_x86.exe. " \
-	 "If you have Visual Studio 2005 installed, try 'find "/cygdrive/c/Program Files" -name vcredist_x86.exe'." \
+	 "If you have Visual Studio 2005 installed, try 'find "/c/Program Files" -name vcredist_x86.exe'." \
 	 "Otherwise, you can download it from Microsoft (try googling 'vcredist_x86.exe')." >&2
     exit 1
+fi
+
+if [ X$WIN_X86 == Xfalse ]; then
+    WINGS_VCREDIST=`dirname "$WINGS_VCREDIST"`
+    WINGS_VCREDIST="$WINGS_VCREDIST"/vcredist_x64.exe
+    WINGS_VCREDIST_VERSION=$WINGS_VCREDIST64_VERSION
+    NSI_FILE=wings64.nsi
+else
+    NSI_FILE=wings.nsi
 fi
 
 # Copy the Wings application.
@@ -63,7 +76,7 @@ dest="$DEST_ROOT"
 $INSTALL -d "$dest"
 $INSTALL -c -m 644 "$WINGS_VCREDIST" "$dest"
 $INSTALL -c -m 644 README AUTHORS license.terms vsn.mk "$dest"
-$INSTALL -c -m 644 win32/wings.nsi "$dest"
+$INSTALL -c -m 644 win32/$NSI_FILE "$dest"
 $INSTALL -c -m 644 win32/Wings3D.exe "$dest"
 $INSTALL -c -m 644 win32/wings.ico "$dest"
 $INSTALL -c -m 644 win32/install.ico "$dest"
@@ -126,7 +139,8 @@ $INSTALL -d "$dest/ebin" "$dest/priv"
 $INSTALL -c -m 644  "$ESDL_PATH"/ebin/* "$dest/ebin"
 $INSTALL -c -m 644  "$ESDL_PATH"/priv/sdl_driver.dll "$dest/priv"
 $INSTALL -c -m 644  "$ESDL_PATH"/priv/SDL.dll "$dest/priv"
-strip --strip-debug --strip-unneeded "$dest/priv/sdl_driver.dll"
+# May be built with microsofts tools don't strip
+#strip --strip-debug --strip-unneeded "$dest/priv/sdl_driver.dll"
 rm -rf "$dest/ebin/sdl_audio.beam" "$dest/ebin/sdl_joystick.beam"
 
 # Copy the relevant parts of wx (we use opengl from it)
@@ -137,9 +151,10 @@ $INSTALL -d "$dest/ebin" "$dest/priv"
 $INSTALL -c -m 644  "$WX_PATH"/ebin/gl.beam "$dest/ebin"
 $INSTALL -c -m 644  "$WX_PATH"/ebin/glu.beam "$dest/ebin"
 $INSTALL -c -m 644  "$WX_PATH"/priv/erl_gl.dll "$dest/priv"
+# Built with microsofts tools don't strip
 #strip --strip-debug --strip-unneeded "$dest/priv/erl_gl.dll"
 
-# OpenCL 
+# OpenCL (currently requires the dev branch, which contains win64 fixes)
 CL_PATH=`erl -noshell -eval "io:format([126,115,126,110],[code:lib_dir(cl)])" -s erlang halt`
 CL_NAME=`basename $CL_PATH`
 if [ X$CL_NAME == Xcl ]; then
@@ -149,11 +164,13 @@ if [ X$CL_NAME == Xcl ]; then
     echo Install cl to $CL_NAME
 fi
 dest="$DEST_ROOT/lib/$CL_NAME"
-$INSTALL -d "$dest/ebin" "$dest/lib/release/32"
+$INSTALL -d "$dest/ebin" "$dest/priv"
 $INSTALL -c -m 644  "$CL_PATH"/ebin/cl.beam "$dest/ebin"
+$INSTALL -c -m 644  "$CL_PATH"/ebin/cl1?.beam "$dest/ebin"
 $INSTALL -c -m 644  "$CL_PATH"/ebin/clu.beam "$dest/ebin"
-$INSTALL -c -m 644  "$CL_PATH"/lib/release/32/cl_nif.dll "$dest/lib/release/32"
-strip --strip-debug --strip-unneeded "$dest/lib/release/32/cl_nif.dll"
+$INSTALL -c -m 644  "$CL_PATH"/priv/cl_nif.dll "$dest/priv"
+# May be built with microsofts tools don't strip
+#strip --strip-debug --strip-unneeded "$dest/priv/cl_nif.dll"
 
 #
 # Remove files from OTP not needed.
@@ -167,7 +184,7 @@ cd "$DEST_ROOT"
 erl -noshell -pa $TEMPDIR -run strip strip
 
 # Run NSIS
-"$NSIS" //DREDIST_DLL_VERSION=$WINGS_VCREDIST_VERSION //DWINGS_VERSION=$WINGS_VSN wings.nsi
+"$NSIS" //DREDIST_DLL_VERSION=$WINGS_VCREDIST_VERSION //DWINGS_VERSION=$WINGS_VSN $NSI_FILE
 
 cd "$WINGS_DIR"
 cp wings*.exe ..

@@ -31,9 +31,6 @@ Optional software
 - libjpeg for build the jpeg plug-in.
   http://www.ijg.org
 
-- res2coff. Can be found in the mingw-utils package
-  http://sourceforge.net/project/showfiles.php?group_id=2435&package_id=61599
-
 - NSIS 2.02 or higher, an installer/uninstaller maker.
   http://nsis.sf.net.
 
@@ -51,9 +48,13 @@ for Windows globally from "My Computer".
 
 ESDL_PATH needs to be set to the path of the directory where you installed ESDL.
 ERL_LIBS needs to be set to the directory below ESDL and CL, i.e. 
-$ERL_LIBS\esdl-1.2\ebin and $ERL_LIBS\cl-1.1\ebin 
-or if you got the src from github:
-$ERL_LIBS\esdl\ebin and $ERL_LIBS\cl\ebin 
+> cd c:/src/
+> ls
+esdl cl wings
+> export ERL_LIBS=c:/src
+
+such that the following dirs exists $ERL_LIBS/esdl/ebin and $ERL_LIBS/cl/ebin
+the application dirs may contain version numbers such esdl-1.2.
 
 WINGS_VCREDIST needs to be set to point at vcredist.exe in your Erlang
   installation. (c:\erl5.8.1.1\vcredist_x86.exe)
@@ -63,7 +64,8 @@ are runnable from an Msys (bash) shell.
 
   erlc.exe     (Erlang/OTP)
 
-  mingw32-gcc  (MinGW)
+  gcc  (MinGW)
+  export GCC=x86_64-w64-mingw32-gcc (for 64bits build)
 
   makensis.exe (NSIS)
 
@@ -118,15 +120,16 @@ Running Wings
 To run the Wings you have just build, you'll need to write a command line
 similar to this:
 
-	werl -smp disable -pa $ESDL_PATH/ebin -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt -extra <MY_APP_DATA_DIRECTORY>
+	werl -run wings_start start_halt -extra <MY_APP_DATA_DIRECTORY>
 
-where you should substitute <MY_WINGS_PATH> with the path to the Wings
-source directory and <MY_APP_DATA_DIRECTORY> with the path to the
+where you should substitute <MY_APP_DATA_DIRECTORY> with the path to the
 local settings folder.
+
+This provided that ERL_LIBS environment variable is setup as described above.
 
 Example:
 
-$ werl -smp -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-1.0/ebin -run wings_start start_halt -extra "c:/Documents and Settings/bjorng/Application Data"
+$ werl -smp -run wings_start start_halt -extra "c:/Documents and Settings/bjorng/Application Data"
 $
 
 An Erlang console should appear, followed by the Wings window.
@@ -138,7 +141,7 @@ Instead of writing the command line every time you want to start Wings,
 you can package it in a script like this:
 
 #!/bin/bash
-exec werl -smp -pa $ESDL_PATH/ebin -pa c:/cygwin/home/bjorng/wings-1.0/ebin -run wings_start start_halt ${1+"$@"}
+exec werl -smp -run wings_start start_halt ${1+"$@"}
 
 Notes:
 

@@ -25,7 +25,7 @@ strip() ->
     end.
 
 strip_dir(Dir) ->
-    io:format("Entering ~p\n", [Dir]),
+    io:format("Stripping (beam) files in ~p\n", [Dir]),
     {ok,Cwd} = file:get_cwd(),
     file:set_cwd(Dir),
     {ok,Files} = file:list_dir("."),
@@ -39,10 +39,10 @@ strip_files([F|Fs]) ->
         false ->
             case filename:extension(F) of
                 ".beam" ->
-                    io:format("Stripping ~p\n", [F]),
+                    %% io:format("Stripping ~p\n", [F]),
                     {ok,{_,F}} = beam_lib:strip(F);
                 _ ->
-                    io:format("Ignoring ~p\n", [F]),
+                    %% io:format("Ignoring ~p\n", [F]),
                     ok
             end
     end,
