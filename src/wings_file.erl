@@ -14,6 +14,7 @@
 -module(wings_file).
 -export([init/0,init_autosave/0,menu/1,command/2]).
 -export([import_filename/2,export_filename/2,export_filename/3]).
+-export([unsaved_filename/0,autosave_filename/1]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
@@ -24,6 +25,7 @@
 -import(filename, [dirname/1]).
 
 -define(WINGS, ".wings").
+-define(UNSAVED_NAME, "unsaved" ++ ?WINGS).
 
 %% export_filename([Prop], St, Continuation).
 %%   The St will only be used to setup the default filename.
@@ -34,7 +36,7 @@ export_filename(Prop0, #st{file=File}, Cont) ->
     Prop = case proplists:get_value(ext, Prop0) of
 	       undefined -> Prop0;
 	       Ext ->
-		   Def = filename:rootname(filename:basename(File), ".wings") ++ Ext,
+		   Def = filename:rootname(filename:basename(File), ?WINGS) ++ Ext,
 		   [{default_filename,Def}|Prop0]
 	   end,
     export_filename(Prop, Cont).
@@ -104,6 +106,10 @@ export_filename_1(Prop0, Cont) ->
 		 _Other    -> ?__(1,"Export")
 	     end,
     wings_plugin:call_ui({file,save_dialog,Prop++[{title,String}],Fun}).
+
+unsaved_filename() ->
+	Dir = filename:dirname(wings_pref:get_value(pref_directory)),
+	filename:join(Dir, ?UNSAVED_NAME).
 
 init() ->
     wings_pref:set_default(save_unused_materials,false),
@@ -404,6 +410,13 @@ save_as(Next, St) ->
 save_now(Next, #st{file=Name0}=St) ->
     Name=test_unc_path(Name0), 
     Backup = backup_filename(Name),
+    case wings_pref:get_value(file_recovered, false) of
+        true ->
+            USFile = autosave_filename(unsaved_filename()),
+            file:delete(USFile),
+            wings_pref:set_value(file_recovered, false);
+        _ -> ok
+    end,
     file:rename(Name, Backup),
     file:delete(autosave_filename(Name)),
     case ?SLOW(wings_ff_wings:export(Name, St)) of
@@ -461,7 +474,7 @@ increment_name(Name0) ->
     Name1 = reverse(filename:rootname(Name0)),
     Name = case find_digits(Name1)  of
 	       {[],Base} ->
-		   Base ++ "_01.wings";
+		   Base ++ "_01" ++ ?WINGS;
 	       {Digits0,Base} ->
 		   Number = list_to_integer(Digits0),
 		   Digits = integer_to_list(Number+1),
@@ -469,7 +482,7 @@ increment_name(Name0) ->
 			    Neg when Neg =< 0 -> [];
 			    Nzs -> lists:duplicate(Nzs, $0)
 			end,
-		   Base ++ Zs ++ Digits ++ ".wings"
+		   Base ++ Zs ++ Digits ++ ?WINGS
 	   end,
     update_recent(Name0, Name),
     Name.
@@ -566,7 +579,8 @@ autosave_event({current_state,St}, Timer, _) ->
     get_autosave_event(Timer, St);
 autosave_event(_, _, _) -> keep.
 
-autosave(#st{file=undefined} = St) -> St;
+autosave(#st{file=undefined} = St) ->
+	autosave(St#st{file=unsaved_filename()});
 autosave(#st{saved=true} = St) -> St;
 autosave(#st{saved=auto} = St) -> St;
 autosave(#st{file=Name}=St) ->
