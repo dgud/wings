@@ -107,10 +107,6 @@ export_filename_1(Prop0, Cont) ->
 	     end,
     wings_plugin:call_ui({file,save_dialog,Prop++[{title,String}],Fun}).
 
-unsaved_filename() ->
-	Dir = filename:dirname(wings_pref:get_value(pref_directory)),
-	filename:join(Dir, ?UNSAVED_NAME).
-
 init() ->
     wings_pref:set_default(save_unused_materials,false),
     case wings_pref:get_value(current_directory) of
@@ -601,6 +597,10 @@ autosave_filename(File) ->
     Base = filename:basename(File),
     Dir = filename:dirname(File),
     filename:join(Dir, "#" ++ Base ++ "#").
+
+unsaved_filename() ->
+	Dir = filename:dirname(wings_pref:get_value(pref_directory)),
+	filename:join(Dir, ?UNSAVED_NAME).
 
 backup_filename(File) ->
     File ++ "~".
