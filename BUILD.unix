@@ -17,14 +17,16 @@ run all plug-ins and to build an installation package.
 
 - The Wings source files. http://www.wings3d.com
 
-- Erlang/OTP R14B01 (R14B02 for MacOSX) or later. http://www.erlang.org
+- Erlang/OTP R16B01 or later. http://www.erlang.org
 
 - SDL development library. http://www.libsdl.org.
   (There are pre-built libraries for most platforms.)
 
-- ESDL 1.2 or later. http://esdl.sf.net
+- ESDL. http://github.com/dgud/esdl
 
-- CL 1.1 or later. http://github.com/tonyrog/cl
+- CL. http://github.com/tonyrog/cl
+
+- rebar (needed for building ESDL and CL).
 
 - A GNU compatible "make" program. Included with most unix-like
   systems; otherwise get it from http://www.gnu.org.
@@ -43,6 +45,7 @@ The following is a quick summary of the build process.
 * Download and install Erlang/OTP.
 * Download and install SDL.
 * Install OpenGL header files (if needed).
+* Install rebar.
 * Setup $ERL_LIBS.
 * Download and install ESDL.
 * Download and build cl.
@@ -101,6 +104,17 @@ ESDL.
 
 For instance, in openSuse you'll need to install the "mesa-devel" package.
 
+Installing rebar
+================
+
+Download and build rebar like this:
+
+   git clone https://github.com/rebar/rebar.git
+   cd rebar
+   make
+
+Read and follow the instructions that are printed.
+
 Setup $ERL_LIBS
 ===============
 
@@ -114,23 +128,30 @@ Example:
 Installing ESDL
 ===============
 
-Download ESDL and unpack it in $ERL_LIBS.
-
 Make sure that the "sdl-config" program can be found in PATH.
 Verify like this:
 
-which sdl-config
+   which sdl-config
+   sdl-config --libs
 
-sdl-config --libs
+Download and build like this:
 
-Compile by running "make" from the source directory of ESDL.
+   cd $ERL_LIBS
+   git clone https://github.com/dgud/esdl.git
+   cd esdl
+   rebar compile
+
 
 Installing CL 
 ===============
 
-Download cl and unpack it to $ERL_LIBS.
+Download and build like this:
 
-Compile by running "make" from the source directory of cl.
+   cd $ERL_LIBS
+   git clone https://github.com/tonyrog/cl.git
+   cd cl
+   rebar compile
+
 
 Unpacking the Wings source code
 ===============================
@@ -199,16 +220,13 @@ Notes:
 [2] The "${1+"$@"}" thing passes along any arguments (or none) to Wings,
     allowing Wings to open up a wings file when it starts.
 
-[3] The "-smp " flag is necessary if you don't have a multi-core/multi-CPU
-    computer and wants to use OpenCL functionality. 
-
 
 Building an installation package for MacOS X
 ============================================
 
 To build everything and pack it into a DMG file, you'll need:
 
-- Xcode 4.5.2 on Mountain Lion.
+- Xcode 4.6.3 or later on Mountain Lion.
 
 Make sure that your current directory is the directory in which the
 sources were unpacked.
