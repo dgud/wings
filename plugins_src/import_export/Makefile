@@ -21,7 +21,6 @@ ERLC=erlc
 WINGS_SRC=../../src
 WINGS_EBIN=../../ebin
 WINGS_E3D=../../e3d
-ESDL=$(ESDL_PATH)
 
 ifeq ($(TYPE),debug)
 TYPE_FLAGS=-DDEBUG
@@ -54,8 +53,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 ERL_COMPILE_FLAGS += -Werror \
   -pa $(WINGS_EBIN) -pa $(WINGS_INTL) -I $(WINGS_INTL) \
-  -I $(WINGS_SRC) -I $(WINGS_E3D) -I $(ESDL_PATH)/include \
-  $(TYPE_FLAGS) -pa $(ESDL_PATH)/ebin +debug_info
+  -I $(WINGS_SRC) -I $(WINGS_E3D) $(TYPE_FLAGS) +debug_info
 
 # ----------------------------------------------------
 # Targets

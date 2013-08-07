@@ -16,7 +16,7 @@
 -export([auto_smooth/1,rename_selected/2,rename_filtered/3]).
 
 -include("wings.hrl").
--include("sdl_keyboard.hrl").
+-include_lib("esdl/include/sdl_keyboard.hrl").
 -import(lists, [foldl/3,reverse/1,sort/1,seq/2]).
 
 menu(X, Y, St) ->

@@ -3,7 +3,7 @@
 %%
 %%     Native file dialog boxes for Mac OS X.
 %%
-%%  Copyright (c) 2001-2011 Patrik Nyblom, Bjorn Gustavsson.
+%%  Copyright (c) 2001-2013 Patrik Nyblom, Bjorn Gustavsson.
 %%
 %%  Changes for OSX by Sean Hinde : 2002/2/18
 %%

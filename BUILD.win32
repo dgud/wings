@@ -46,7 +46,6 @@ Setting up the environment
 A few environment variables need to be set. They can be set
 for Windows globally from "My Computer".
 
-ESDL_PATH needs to be set to the path of the directory where you installed ESDL.
 ERL_LIBS needs to be set to the directory below ESDL and CL, i.e. 
 > cd c:/src/
 > ls

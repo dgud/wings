@@ -6,11 +6,7 @@
 # Configurable stuff.
 INSTALL=`which install`
 MAKESELF=`which makeself makeself.sh 2> /dev/null | head -1`
-if [ -z "$ESDL_PATH" ]; then
-    echo "The environment variable ESDL_PATH must be set to " \
-	 "the top of the ESDL installation." >&2
-    exit 1
-fi
+ESDL_PATH=`erl -noshell -eval "io:put_chars(code:lib_dir(esdl))" -run erlang halt`
 ESDL_NAME=`basename $ESDL_PATH`
 
 if [ X$ESDL_NAME == Xesdl ]; then

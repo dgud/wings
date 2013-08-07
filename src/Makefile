@@ -132,8 +132,8 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -Werror -pa $(ESDL_PATH)/ebin  -I $(ESDL_PATH)/include \
- -I ../e3d $(TYPE_FLAGS) '-Dwings_version="$(WINGS_VSN)"' -pa $(WINGS_INTL) $(USE_WX)
+ERL_COMPILE_FLAGS += -Werror -I ../e3d $(TYPE_FLAGS) \
+'-Dwings_version="$(WINGS_VSN)"' -pa $(WINGS_INTL) $(USE_WX)
 
 # ----------------------------------------------------
 # Targets

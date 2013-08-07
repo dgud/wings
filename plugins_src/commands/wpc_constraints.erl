@@ -3,7 +3,7 @@
 %%
 %%    Plugin for setting default constraints directly from a model
 %%
-%%  Copyright (c) 2008-2011 Richard Jones.
+%%  Copyright (c) 2008-2013 Richard Jones.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -15,7 +15,7 @@
 -export([init/0,menu/2,command/2]).
 -include("wings.hrl").
 -include("e3d.hrl").
--include("sdl_keyboard.hrl").
+-include_lib("esdl/include/sdl_keyboard.hrl").
 -define(NONZERO, 1.0e-6).
 
 init() ->

@@ -31,9 +31,7 @@ fi
 
 DEST_ROOT="build"
 
-if [ -z "$ESDL_PATH" ]; then
-    ESDL_PATH=`erl -noshell -eval "io:format([126,115,126,110],[code:lib_dir(esdl)])" -s erlang halt`
-fi
+ESDL_PATH=`erl -noshell -eval "io:put_chars(code:lib_dir(esdl))" -run erlang halt`
 
 ESDL_NAME=`basename $ESDL_PATH`
 if [ X$ESDL_NAME == Xesdl ]; then

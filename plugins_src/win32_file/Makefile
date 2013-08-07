@@ -20,7 +20,7 @@ BEAM = $(LIBDIR)/wp8_file.beam
 LIBS = -shared -lcomdlg32
 
 ERLC = erlc
-ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH) -Werror +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
+ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src -Werror +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
 
 DRV = $(LIBDIR)/wings_file_drv.dll
 

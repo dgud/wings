@@ -22,7 +22,7 @@ BEAM = $(LIBDIR)/wp8_mac_file.beam \
        $(LIBDIR)/wpc_mac_misc.beam
 
 ERLC = erlc
-ERLC_FLAGS = -Werror +debug_info -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH) -pa $(WINGS_EBIN) -pa $(WINGS_INTL) -I $(WINGS_INTL)
+ERLC_FLAGS = -Werror +debug_info -o $(LIBDIR) -I ../../e3d -I ../../src -pa $(WINGS_EBIN) -pa $(WINGS_INTL) -I $(WINGS_INTL)
 
 DRV = $(LIBDIR)/mac_wings_image_drv.so
 

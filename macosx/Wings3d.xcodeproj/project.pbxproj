@@ -258,7 +258,7 @@
 			name = "Copy esdl";
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Copy the relevant parts of ESDL into the application.\nINSTALL=/usr/bin/install\nsrc=$ERLANG_PATH\nDEST_ROOT=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources/lib/\nESDL_NAME=`basename $ESDL_PATH`\nif [ X$ESDL_NAME == Xesdl ]; then\n    echo $ESDL_NAME without version\n    source $ESDL_PATH/vsn.mk\n    ESDL_NAME=$ESDL_VSN\n    echo Install esdl to $ESDL_NAME\nfi\ndest=\"$DEST_ROOT/$ESDL_NAME\"\n\n$INSTALL -d $dest/ebin $dest/priv\n$INSTALL -c -m 644  $ESDL_PATH/ebin/* $dest/ebin\n$INSTALL -c -m 644  $ESDL_PATH/priv/sdl_driver.so $dest/priv\n./strip_mac_driver $dest/priv/sdl_driver.so\n";
+			shellScript = "# Copy the relevant parts of ESDL into the application.\nESDL_PATH=$(erl -noshell -eval \"io:put_chars(code:lib_dir(esdl))\" -run erlang halt)\nINSTALL=/usr/bin/install\nsrc=$ERLANG_PATH\nDEST_ROOT=$TARGET_BUILD_DIR/$TARGETNAME.app/Contents/Resources/lib/\nESDL_NAME=`basename $ESDL_PATH`\nif [ X$ESDL_NAME == Xesdl ]; then\n    echo $ESDL_NAME without version\n    source $ESDL_PATH/vsn.mk\n    ESDL_NAME=$ESDL_VSN\n    echo Install esdl to $ESDL_NAME\nfi\ndest=\"$DEST_ROOT/$ESDL_NAME\"\n\n$INSTALL -d $dest/ebin $dest/priv\n$INSTALL -c -m 644  $ESDL_PATH/ebin/* $dest/ebin\n$INSTALL -c -m 644  $ESDL_PATH/priv/sdl_driver.so $dest/priv\n./strip_mac_driver $dest/priv/sdl_driver.so\n";
 			showEnvVarsInLog = 0;
 		};
 		4C724743085C300D006ED218 /* Copy SDL */ = {

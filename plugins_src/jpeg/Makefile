@@ -30,7 +30,7 @@ BEAM = $(LIBDIR)/wp8_jpeg_image.beam
 LIBS = -shared 
 
 ERLC = erlc
-ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src -I $(ESDL_PATH)/include -pa $(ESDL_PATH)
+ERLC_FLAGS = -o $(LIBDIR) -I ../../e3d -I ../../src
 ERL_COMPILE_FLAGS += -Werror $(TYPE_FLAGS) -pa $(WINGS_INTL) -I $(WINGS_INTL) +debug_info
 
 ifdef WINDOWS

@@ -43,6 +43,7 @@ The following is a quick summary of the build process.
 * Download and install Erlang/OTP.
 * Download and install SDL.
 * Install OpenGL header files (if needed).
+* Setup $ERL_LIBS.
 * Download and install ESDL.
 * Download and build cl.
 * Download and unpack the Wings source file.
@@ -100,10 +101,20 @@ ESDL.
 
 For instance, in openSuse you'll need to install the "mesa-devel" package.
 
+Setup $ERL_LIBS
+===============
+
+Create a directory to hold Erlang applications and set the
+environment variable ERL_LIBS to its path.
+
+Example:
+
+   export ERL_LIBS=/Users/bjorng/src
+
 Installing ESDL
 ===============
 
-Download ESDL and unpack it.
+Download ESDL and unpack it in $ERL_LIBS.
 
 Make sure that the "sdl-config" program can be found in PATH.
 Verify like this:
@@ -113,10 +124,6 @@ which sdl-config
 sdl-config --libs
 
 Compile by running "make" from the source directory of ESDL.
-
-Set the environment variable ESDL_PATH to point to top of the
-compiled ESDL installation, or point the ERL_LIBS environment variable
-to the library below.
 
 Installing CL 
 ===============
@@ -168,21 +175,21 @@ $
 To run the Wings you have just build, you'll need to write a command line
 similar to this:
 
-	erl -smp -pa $ESDL_PATH/ebin -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt
+	erl -smp -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt
 
 where you should substitute <MY_WINGS_PATH> with the path to the Wings
 source directory.
 
 Example:
 
-$ erl -smp -pa $ESDL_PATH/ebin -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt
+$ erl -smp -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt
 $
 
 Instead of writing the command line every time you want to start Wings,
 you can package it in a script like this:
 
 #!/bin/sh
-exec erl -smp -pa $ESDL_PATH/ebin -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt ${1+"$@"}
+exec erl -smp -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt ${1+"$@"}
 
 Notes:
 
