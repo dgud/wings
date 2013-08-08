@@ -145,6 +145,9 @@ hide_faces(#we{mat=L0,fs=Ftab}=We) ->
 %%  Update the material name mapping in the We for all faces
 %%  in the list Faces.
 show_faces(_, #we{mat=M}=We) when is_atom(M) -> We;
+show_faces(Faces, #we{mat=L0}=We) when is_list(Faces) ->
+    L = show_faces_1(Faces, L0, []),
+    We#we{mat=L};
 show_faces(Faces, #we{mat=L0}=We) ->
     L = show_faces_1(gb_sets:to_list(Faces), L0, []),
     We#we{mat=L}.
