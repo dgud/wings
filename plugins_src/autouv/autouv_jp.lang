@@ -10,7 +10,7 @@
   {find_axes,
    [
     % "I currently can't sphere/cylinder map this type of chart/cuts,\nI can't figure out which axes you want as X,Y, and Z,\nplease use unfolding or one of the projection mappings."
-    {1,"私は現在このタイプのチャート/カットを球面/円柱マッピングすることができません,\n 私は必要なX,Y,Z軸を見つけることができませんでした  \n 展開するか,投影マッピングの1つを使ってください."}
+    {1,"現在このタイプのチャート/カットを球面/円柱マッピングすることができません,\n 必要なX,Y,Z軸を見つけることができませんでした  \n 展開するか,投影マッピングの1つを使ってください."}
    ]},
   {get_face_vspos,
    [
@@ -505,12 +505,14 @@
     % "remapping"
     {3,"リマッピング"},
     % "chart"
-    {4,"チャート"}
+    {4,"チャート"},
+    % "All vertices can not be pinned"
+    {5,"すべての頂点をピン留めすることはできません"}
    ]},
   {scale_directions,
    [
     % "Uniform"
-    {1,"拡大縮小(一様に)"},
+    {1,"拡大縮小(全方向)"},
     % "Scale in both directions"
     {2,"縦横同じ比率で拡大縮小します"},
     % "Horizontal"
@@ -535,7 +537,7 @@
   {stretch_directions,
    [
     % "Max Uniform"
-    {1,"最大拡張(一様に)"},
+    {1,"最大拡張(全方向)"},
     % "Maximize either horizontally or vertically"
     {2,"水平,垂直どちらの方向にも限界まで拡大します"},
     % "Max Horizontal"
@@ -607,7 +609,7 @@
     % "Scale the background image freely"
     {6,"背景イメージを自由な方向に引き延ばします"},
     % "Uniform"
-    {7,"拡大縮小(一様に)"},
+    {7,"拡大縮小(全方向)"},
     % "Scale the background image uniformly"
     {8,"背景イメージを比率を保った状態で引き延ばします"},
     % "Move the background image horizontally"
@@ -647,7 +649,7 @@
     % "Center the background image to the viewport"
     {31,"背景イメージをビューポートの中央に配置します"},
     % "Proportional"
-    {32,"画像を拡大縮小(一様に)"},
+    {32,"画像を拡大縮小(全方向)"},
     % "Make image scale proportional"
     {33,"画像の比率を保ったまま拡大縮小します"}
    ]}
