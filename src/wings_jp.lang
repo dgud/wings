@@ -148,7 +148,7 @@
     % "Show menu"
     {2,"メニューを表示"},
     % "Tweak menu"
-    {3,"自在変形メニュー"}
+    {3,"Tweakメニュー"}
    ]},
   {init_menubar,
    [
@@ -258,9 +258,9 @@
     % "Calculate area and volume for each object in the scene"
     {27,"シーン内の各オブジェクトのエリアとボリュームを計算します"},
     % "Put on Ground"
-    {28,"地面に接地"},
+    {28,"地平面に着地"},
     % "Put selected objects on the ground plane"
-    {29,"選択オブジェクトを地面に着地させます"},
+    {29,"選択オブジェクトを地平面に着地させます"},
     % "Unitize"
     {30,"ユニタイズ"},
     % "Scale selected objects to fit inside a unit sphere and move to origin"
@@ -282,9 +282,9 @@
     % "Create bounding box around current selection"
     {39,"現在の選択領域を包括するバウンディングボックスを作成"},
     % "Tweak"
-    {40,"自在変形"},
+    {40,"Tweak"},
     % "Open the Tweak menu"
-    {41,"自在変形メニューを開く"}
+    {41,"Tweakメニューを開く"}
    ]},
   {undo_info,
    [
@@ -327,11 +327,11 @@
     % "Console"
     {10,"コンソール"},
     % "Open a console window for information messages"
-    {11,"情報メッセージのためのコンソールウインドウを開きます"},
+    {11,"情報メッセージを表示するコンソールウインドウを開きます"},
     % "Tweak Palette"
-    {12,"自在変形パレット"},
+    {12,"Tweakパレット"},
     % "Open palettes from which tweak tools may be selected or bound to modifier keys"
-    {13,"選択されたツールや、修飾キーに対応する自在変形ツールパレットを開きます"}
+    {13,"選択されたツールや、修飾キーに対応するTweakツールパレットを開きます"}
    ]}
  ]}.
 {wings_ask,
@@ -457,11 +457,11 @@
     % "Weld"
     {20,"接合"},
     % "Merge pair of faces that are nearly coincident"
-    {21,"ぼぼぴったり一致した2つの面同士を接合します"},
+    {21,"ほぼぴったり一致した2つの面同士を接合します"},
     % "Cleanup"
     {22,"クリーンナップ"},
     % "Remove various defects"
-    {23,"データ上の様々な欠陥を取り除きます"},
+    {23,"重複頂点や孤立点など様々な問題を解決します"},
     % "Auto-Smooth"
     {24,"自動スムージング(Auto-Smooth)"},
     % "Set edges hard or soft depending on the angle between faces"
@@ -908,7 +908,7 @@
   {loop_cut,
    [
     % "Edge loop doesn't divide ~p into two (or more) parts."
-    {1,"輪状の辺は ~p を2つ(以上)の部分に分割することができません"}
+    {1,"リング状の辺は ~p を2つ(以上)の部分に分割することができません"}
    ]},
   {menu,
    [
@@ -917,7 +917,7 @@
     % "Slide"
     {3,"スライド"},
     % "Slide edges along neighbor edges"
-    {4,"辺を隣リの辺の向きに追随して移動させます"},
+    {4,"辺を近隣の辺の方向に追随して移動させます"},
     % "Extrude"
     {5,"押し出し"},
     % "Connect"
@@ -945,19 +945,19 @@
     % "Loop Cut"
     {17,"輪切り"},
     % "Cut into two objects along edge loop"
-    {18,"輪状に繋がった辺に従い、オブジェクトを2つに分割します"},
+    {18,"リング状に選択した辺でオブジェクトを2つに分割します"},
     % "Vertex Color"
     {19,"頂点カラー"},
     % "Apply vertex colors to selected edges"
     {20,"選択された頂点に頂点カラーを適用します"},
     % "Delete edges, replacing them with vertices and remove any newly created isolated vertices"
-    {21,"辺を削除した所へ周囲の頂点が崩れ込み、その際作成されたあらゆる孤立点も削除されます"},
+    {21,"辺を削除した所へ周囲の頂点が崩れ込み、その際作成されたあらゆる孤立点も削除します"},
     % "Crease"
     {22,"折り目"},
     % "Extrusion commonly used for adding wrinkles to organic models"
-    {23,"一般的な押し出し効果は、有機的なモデルに対してしわを寄らせます"},
+    {23,"押し出し効果は普通、有機的なモデルに対してしわを寄らせるのに使われます"},
     % "Eliminate selected edges and remove remaining isolated verts"
-    {50,"選択された辺を削除し、その際生成された孤立点も削除されます"}
+    {50,"選択された辺を削除し、その際生成された孤立点も削除します"}
    ]},
   {plain_cut_menu,
    [
@@ -1085,17 +1085,17 @@
     % "Bridge"
     {12,"ブリッジ"},
     % "Create a bridge or tunnel between two faces"
-    {13,"選択された2つの面の間を橋またはトンネルのようにつなげます"},
+    {13,"選択された2つの面または領域間を橋またはトンネルのようにつなげます"},
     % "Bump"
-    {14,"でこぼこ"},
+    {14,"バンプ"},
     % "Create bump of selected faces"
     {15,"選択された面に凹凸をつけます"},
     % "Lift"
     {16,"リフト"},
     % "Put On"
-    {17,"対象面に乗せる"},
+    {17,"選択面に接置"},
     % "Move and rotate object, aligning the selected face to another element"
-    {18,"オブジェクトを移動又は回転させて別の要素の選択面に配置します"},
+    {18,"オブジェクトを移動又は回転させて指定要素の上に設置します"},
     % "Clone object on to one or more elements"
     {19,"1つまたは複数の要素を複製します"},
     % "Mirror"
@@ -1103,7 +1103,7 @@
     % "Mirror object around selected faces and merge to object"
     {21,"選択した面の周りに鏡対称のオブジェクトを作成しひとつのオブジェクトに合体します"},
     % "Mirror and create separate objects"
-    {22,"ミラーリングしオブジェクトを分割されたオブジェクトを作成します"},
+    {22,"ミラーリングし、分割されたオブジェクトを作成します"},
     % "Dissolve"
     {23,"削除"},
     % "Eliminate all edges between selected faces"
@@ -1129,7 +1129,7 @@
     % "Eliminate selected faces and remove remaining isolated verts"
     {34,"選択された面を削除し、その際作成されたあらゆる孤立点も削除されます"},
     % "Extract"
-    {35,"面を剥がす"},
+    {35,"面を採取"},
     % "Shell Extrude"
     {36,"押し出し(造殻型)"},
     % "Hole"
@@ -1137,9 +1137,9 @@
     % "Create hole"
     {38,"穴を作成します"},
     % "Remove holes adjacent to selected faces"
-    {39,"選択された面または面の領域に隣接して"},
+    {39,"選択された面または面の領域に隣接して穴を削除します"},
     % " or face regions"
-    {40,"穴を削除してください"}
+    {40," "}
    ]},
   {put_on,
    [
@@ -1156,7 +1156,7 @@
   {put_on_selection,
    [
     % "Select target element on which to put source object"
-    {1,"このオブジェクトを,どの場所へ乗せるかを対象となる要素で選択してください"}
+    {1,"このオブジェクトを,どの場所へ配置するかを対象となる要素で選択してください"}
    ]},
   {smooth,
    [
@@ -1171,7 +1171,7 @@
     % "Object \""
     {1,"オブジェクト\""},
     % "\" cannot be exported "
-    {2,"\"をNend形式で書き出すことができませんでした"},
+    {2,"\"をNendo形式で書き出すことができませんでした"},
     % "to Nendo format (too many edges)."
     {3," (辺が多すぎます)"}
    ]},
@@ -1358,9 +1358,9 @@
     % "Open a previously saved scene"
     {6,"以前に保存したシーンを開く"},
     % "Merge..."
-    {7,"合流..."},
+    {7,"合成..."},
     % "Merge a previously saved scene into the current scene"
-    {8,"以前に保存したシーンを現在のシーンに合流させます"},
+    {8,"現在開いている内容に、過去に保存した別のwingsファイルの内容を読み込んで合成します"},
     % "Save"
     {9,"保存"},
     % "Save the current scene"
@@ -1546,7 +1546,7 @@
     % "About Wings 3D"
     {11,"Wings 3D について"},
     % "Tweak"
-    {12,"自在変形機能について"}
+    {12,"Tweak機能について"}
    ]},
   {help_window,
    [
@@ -2355,7 +2355,7 @@
   {adv_scale_1,
    [
     % "Scale Uniform"
-    {1,"拡大縮小(一様に)"},
+    {1,"拡大縮小(全方向)"},
     % "Scale Axis"
     {2,"拡大縮小(軸方向)"},
     % "Scale Radial"
@@ -2374,7 +2374,7 @@
     % "freely in all directions"
     {11,"すべての方向へ自由自在に"},
     % "Scale equally in all directions"
-    {12,"すべての方向に等しく拡大縮小します"}
+    {12,"全方向に均等に拡大縮小します"}
    ]},
   {dir_help_1,
    [
@@ -2387,29 +2387,29 @@
     % "Extrude each element, then move it "
     {4,"各要素を押し出して移動させます"},
     % "Extrude faces as region, then move faces along the region's normal"
-    {5,"選択領域を押し出して,その法線に沿って面を移動させます"},
+    {5,"選択領域を押し出します,その結果領域の法線に沿って面が移動します"},
     % "Extrude faces as region, then move faces "
     {6,"選択領域を押し出して,面を移動させます"},
     % "Extract faces, then move faces along the region's normal"
-    {7,"面を剥がして,その法線に沿って面を移動させます"},
+    {7,"面を採取します,領域の法線に沿って面が移動します"},
     % "Extract faces, then move faces "
-    {8,"面を剥がして,面を移動させます"},
+    {8,"面を採取します,その結果面は移動します"},
     % "Flatten elements to normal plane"
     {9,"法線の平面に平均化します"},
     % "Lift face along its normal"
     {10,"面を法線に従って引き上げます"},
     % "Lift face and move it "
-    {11,"面を引き上げて移動させます"},
+    {11,"面を引き上げて移動します"},
     % "Duplicate and move freely "
-    {12,"複製して自由に移動させます"},
+    {12,"複製して自由に移動します"},
     % "Move each element along "
     {13,"各要素に従って移動します"},
     % "Extrude elements, then move along "
-    {14,"各要素を押し出して,移動させます"},
+    {14,"各要素を押し出して,移動します"},
     % "Extrude faces as region, then move along "
     {15,"面を領域として押し出し,移動させます"},
     % "Extract faces, then move along "
-    {16,"面を剥がして,移動させます"},
+    {16,"面を採取して,移動させます"},
     % "Rotate around "
     {17,"周囲を回転する"},
     % "Scale "
@@ -2425,11 +2425,11 @@
     % "Duplicate, then move along "
     {23,"複製して、先に進みます"},
     % "Extract and Extrude faces as region, then move faces along the region's normal"
-    {24,"領域を押し出して剥がし、面をその法線に従って移動させます"},
+    {24,"領域を押し出して採取し、面をその法線に従って移動させます"},
     % "Extract and Extrude faces as region, then move faces "
-    {25,"領域を押し出して剥がし、面を移動させます"},
+    {25,"領域を押し出して採取し、面を移動させます"},
     % "Extract and Extrude faces as region, then move along "
-    {26,"領域を押し出して剥がし、移動させます"}
+    {26,"領域を押し出して採取し、移動させます"}
    ]},
   {dirs,
    [
@@ -2450,7 +2450,7 @@
     % "Pick axis to extrude along"
     {8,"押し出す軸を選択してください"},
     % "Extract along std. axis"
-    {12,"基準軸に沿って面を剥がします"},
+    {12,"基準軸に沿って面を採取します"},
     % "Duplicate; move along std. axis"
     {15,"複製；基準軸に沿って移動します"},
     % "Duplicate; don't move"
@@ -2458,22 +2458,22 @@
     % "Duplicate; pick axis to move along"
     {17,"複製；移動のための軸を選択してください"},
     % "Extract Shell and Extrude along std. axis"
-    {22,"基準軸に沿って造殻と押し出しを行います"},
+    {22,"基準軸に沿って押し出された部分は、殻をかぶるように独立します"},
     % "Extract Shell and Extrude along selection's normal"
-    {23,"選択領域の法線に沿って造殻と押し出しを行います"},
+    {23,"選択領域の法線に沿って押し出された部分は、殻をかぶるように独立します"},
     % "Pick axis to Extract Shell and Extrude along"
     {24,"造殻と押し出しのための軸を選択してください"}
    ]},
   {dirs_help,
    [
     % "Pick axis to extrude each face along"
-    {18,"それぞれの面を押し出す方向を基準軸で選択してください"},
+    {18,"各々の面を押し出す方向を軸で指定してください(面ごとに分かれます)"},
     % "Pick axis to extrude each region of faces along"
-    {19,"それぞれの面の領域に押し出す方向を基準軸で選択してください"},
+    {19,"各々の面の領域に押し出す方向を軸で指定してください"},
     % "Pick axis to extract each face along"
-    {20,"それぞれの面を押し出す方向を基準軸で選択してください"},
+    {20,"採取された各々の面を移動を軸で指定してください(面ごとにバラバラ)"},
     % "Pick axis to extract each region of faces along"
-    {21,"それぞれの面の領域に押し出す方向を基準軸で選択してください"}
+    {21,"採取された領域が移動する方向を、軸で指定してください"}
    ]},
   {flatten,
    [
@@ -2491,7 +2491,7 @@
     % "Edge Loops"
     {1,"辺のループ選択"},
     % "Flatten each closed edge loop to its normal"
-    {2,"閉じた辺のループのそれぞれの法線をもとに平均化します"}
+    {2,"閉じた辺のループの各法線をもとに平均化します"}
    ]},
   {flatten_fun_1,
    [
@@ -2501,7 +2501,7 @@
   {rotate,
    [
     % "Rotate around std. axis"
-    {1,"基準軸の周りを回転します"},
+    {1,"基準軸の周囲を回転します"},
     % "Pick axis and ref point"
     {2,"平面と参照点を選択してください"},
     % "Pick axis to rotate around"
@@ -2522,27 +2522,27 @@
     % "Scale outward from std. axis"
     {1,"基準軸から外側へ拡大縮小"},
     % "Pick axis and point to scale from"
-    {2,"拡大縮小のために基準軸と点を指定してください"},
+    {2,"拡大縮小のために基準軸と中心点を指定してください"},
     % "Pick axis to scale out from"
     {3,"選択域をはみ出すような基準軸を選んでください"},
     % "Scale along std. axis"
     {4,"基準軸に沿って拡大縮小"},
     % "Pick axis and point to scale from"
-    {5,"拡大縮小のために基準軸と点を指定してください"},
+    {5,"拡大縮小のために基準軸と中心点を指定してください"},
     % "Pick axis to scale along"
     {6,"拡大縮小のための基準軸を選択してください"}
    ]},
   {scale_fun,
    [
     % "Pick point to scale from"
-    {1,"拡大縮小するための基準点を選択してください"}
+    {1,"拡大縮小するための中心点を選択してください"}
    ]},
   {uniform_scale,
    [
     % "Choose point to scale from"
-    {1,"拡大縮小するための基準点を選択してください"},
+    {1,"拡大縮小するための中心点を選択してください"},
     % "Scale uniformly from midpoint of selection"
-    {2,"選択領域の中間点から比率を保持したまま拡大縮小します"}
+    {2,"選択領域の中心点から比率を保持したまま拡大縮小します"}
    ]}
  ]}.
 {wings_outliner,
@@ -4366,7 +4366,7 @@
     % "flat shading"
     {flat,"フラットシェーディング"},
     % "ground plane"
-    {groundplane,"地面"},
+    {groundplane,"地平面"},
     % "Hide"
     {hide,"隠す："},
     % "orthogonal view"
@@ -4403,12 +4403,12 @@
   {cam_conflict,
    [
     % "Key combo was not assigned.\n\n    That key combination would conflict with the Camera buttons"
-    {1,"キーの組合せは割り当てられませんでした.\n\n そのキーの組合せはカメラのボタンと重複してしまうでしょう."}
+    {1,"キーの組合せが割り当てられません.\n\n そのキーの組合せはカメラのボタンと重複してしまうでしょう."}
    ]},
   {camera_msg,
    [
     % "[C]: Tumble camera  [S]: Pan  [D]: Dolly"
-    {1,"[C]: カメラをタンブル  [S]: パン  [D]: ドリー"}
+    {1,"[C]: カメラを回転  [S]: 移動  [D]: 遠ざけ/近づける"}
    ]},
   {constraints_menu,
    [
@@ -4443,13 +4443,13 @@
     % "--Axis Constraints--"
     {1,"- 軸のコンストレイント - "},
     % "Axis Constraints only affect Tweak Move and Scale operations."
-    {2,"軸のコンストレイントは自在移動と拡大縮小処理においてのみ効果があります"},
+    {2,"軸のコンストレイントはTweak移動と拡大縮小処理においてのみ効果があります"},
     % "[F1], [F2], and [F3] can be held to constrain movement to the 3 cardinal axes, X, Y, and Z."
-    {3,"[F1],[F2],[F3]キーはそれぞれ,X,Y,Zの軸方向へ移動を固定させる働きがあります."},
+    {3,"[F1],[F2],[F3]キーはそれぞれ,X,Y,Zの軸方向へ固定した移動を行うことができます."},
     % "Click axis constraint hotkeys to toggle them."
     {4,"軸のコンストレイントのホットキーをクリックすることでそれらを切替えられます."},
     % "Any of the axes can be toggled to stay on via the Tweak Menu or the Tweak Palette."
-    {5,"どんな軸であっても自在変形メニューや自在変形パレットによって軸を切替えたままにすることができます"},
+    {5,"どんな軸であってもTweakメニューやTweakパレットによって軸を切替えたままにすることができます"},
     % "The From Element and From Point axes activate the Tweak Vector."
     {6," From Element と From Point axes は アクティブ化した 変形ベクトルです."},
     % "Axes can be combined."
@@ -4458,106 +4458,106 @@
   {help_msg_basic,
    [
     % "--What is Tweak?--"
-    {1,"- 自在変形機能とは？ - "},
+    {1,"- Tweak機能とは？ - "},
     % "Tweak lets you edit a model quickly by clicking and dragging geometry."
-    {2,"「自在変形(Tweak)」は幾何学形状をクリックやドラッグすることで素早くモデルを編集できるようにする機能です."},
+    {2,"Tweakには「微調整」「ひねる」という意味があります。これを使うとクリックやドラッグして迅速にモデルを編集できます."},
     % "While Tweak is enabled, all the regular Wings commands are still available,"
-    {3,"自在変形モードが有効になっている間であっても,正規のWingsコマンドはそのまま利用可能です,"},
+    {3,"Tweakモードが有効になっている間であっても,正規のWingsコマンドはそのまま利用可能です,"},
     % " but certain mouse buttons and modifier keys will activate the Tweak tools."
-    {4,"しかし特定のマウスボタンと修飾キーで自在変形ツールを実行することができるでしょう"}
+    {4,"しかし特定のマウスボタンと修飾キーは専用ホットキーとして登録してあるTweakツールを実行してしまうこともあるでしょう."}
    ]},
   {help_msg_hotkeys,
    [
     % "--Hotkeyed Tweak Tools--"
-    {1,"- ホットキー登録済みの自在変形ツール - "},
+    {1,"- Tweakツールに専用ホットキーを割り当てる - "},
     % "An alternative to usings Tweak Key combinations is to assign hotkeys to the various Tweak Tools usings the [Insert] method."
-    {2,"自在変形機能の代替キーの組合わせは [Insert]を使ことで,様々な自在変形ツールにホットキーを割り当てます."},
+    {2,"Tweakツールを呼び出す他の手段として [Insert]を使ことで,様々なTweakツールにホットキーを割り当てできます."},
     % "Pressing the hotkey assigns that Tweak Tool to Lmb."
-    {3,"割り当てられたホットキーを押すことで、左マウスボタンに割り当てます."}
+    {3,"割り当てられたホットキーを押すことで、L:左マウスボタンに割り当てます."}
    ]},
   {help_msg_keys,
    [
     % "--Assigning Tweak Keys--"
-    {1,"- 自在変形キーの割り当て- "},
+    {1,"- Tweak専用ホットキーの割り当て- "},
     % "Each of the Tweak Tools ~tscan be assigned a modifier key combination (Ctrl, Shift, Alt)."
-    {2,"自在変形ツールごとに ~ts が修飾キーの組合せとして割り当てられます(Ctrl,Shift,Alt)."},
+    {2,"Tweakツール ~ts それぞれに修飾キーの組合せを登録できます(Ctrl,Shift,Alt)."},
     % " and "
     {3,"と"},
     % "To assign a key combination to a Tweak Tool:"
-    {4,"キーの組合せを自在変形ツールに割り当てる方法："},
+    {4,"キーの組合せをTweakツールに登録する方法："},
     % "\t1) Open the Tweak Menu."
-    {5,"\t1）自在変形メニューを開く."},
+    {5,"\t1）Tweakメニューを開く."},
     % "\t2) Highlight one of the Tweak Tools."
-    {6,"\t2）自在変形ツールの一つを選択し強調表示にする."},
+    {6,"\t2）Tweakツール項目を1つ選択しハイライト表示にする."},
     % "\t3) Press and hold the modifier key combination and/or press the activating mouse button."
-    {7,"\t3）修飾キーを押したり押したままにするか、かつ/またはマウスボタンを押して有効にします."}
+    {7,"\t3）修飾キーを押したままで、さらにマウスボタンを押せば、その組み合わせが、専用ホットキーとして登録可能です."}
    ]},
   {help_msg_magnet,
    [
     % "--Magnets--"
     {1,"- マグネット - "},
     % "Magnets allow for soft selection."
-    {2,"マグネット効果はソフト属性(この属性は辺に元々付いている)に対して有効です"},
+    {2,"マグネット効果はハードエッジが設定されていない通常の領域に対して有効です"},
     % "There are 3 magnet types: Dome, Straight, and Spike."
-    {3,"その範囲形状から3タイプに分類されます : ドーム , ストレート , スパイク"},
+    {3,"マグネットには3タイプの種類があります : ドーム , ストレート , スパイク"},
     % "Adjust the Magnet's Radius by holding [Alt] and moving the mouse."
     {4,"マグネット効果の範囲を変更するには[Alt]キーを押しながらマウスを動かしてください."},
     % "Commands for switching magnets can be assigned to hotkeys in the Tweak Menu|Magnets."
-    {5,"「自在変形メニュー＞マグネット」からマグネットを切替えるためのコマンドをホットキーに割り当てることができます."},
+    {5,"「Tweakメニュー＞マグネット」からマグネットを切替えるためのコマンドをホットキーに割り当てることができます."},
     % "Magnet options can be set in the Tweak Preferences."
-    {6,"マグネットのオプションは自在変形の初期設定で設定可能です."}
+    {6,"マグネットのオプションはTweakの初期設定で設定可能です."}
    ]},
   {help_msg_palette,
    [
     % "--Tweak Palette (Windows|Tweak Palette)--"
-    {1,"- 自在変形パレット(ウインドウ|自在変形パレット) - "},
+    {1,"- Tweakパレット(ウインドウ|Tweakパレット) - "},
     % "The Tweak Palette is a group of 3 windows that contain the main commands from the Tweak Menu."
-    {2,"この自在変形パレットは,自在変形メニュー由来のメインコマンドを含む 3つのウインドウのグループで構成されています."},
+    {2,"このTweakパレットは,Tweakメニュー由来のメインコマンドを含む 3つのウインドウのグループで構成されています."},
     % "Use the Tweak Palette to change switch between Tweak Tools, Magnet Types, or Axis Constraints."
-    {3,"これら「自在変形ツール」「マグネットタイプ」「軸のコンストレイント」パレットを切替えて使います."}
+    {3,"これら「Tweak」「マグネット」「軸と方向の設定」パレットを切替えて使います."}
    ]},
   {help_msg_using_keys,
    [
     % "--Using Tweak--"
-    {1,"- 自在変形の使い方 - "},
+    {1,"- Tweakの使い方 - "},
     % "1) Enabled Tweak."
-    {2,"1）自在変形モードを有効にします "},
+    {2,"1）Tweakモードを有効にします "},
     % "2) Highlight or select one or more elements of geometry."
-    {3,"2）幾何形状の要素を1つ以上選択するか強調表示させます."},
+    {3,"2）オブジェクトの面や辺などの要素を1つ以上選択するかハイライト表示させます."},
     % "3) Press the Tweak Key combination and associated mouse button to activate Tweak."
-    {4,"3）自在変形のために,キーとマウスボタンの組合せを押してを自在に変形させてください."},
+    {4,"3）Tweakパレットの項目上でキーとマウスボタンの組合せを押すことで、Tweak機能を専用ホットキーに割り当てます."},
     % "4) Drag geometry to it new position."
-    {5,"4）幾何学形状をドラッグして別の位置にもっていきましょう."},
+    {5,"4）「移動」がハイライトされている場合、オブジェクトの選択領域をドラッグしたまま別の位置にひっぱりましょう."},
     % "5) Release the mouse button to complete the Tweak."
-    {6,"5）マウスボタンを離して変形処理を完了しましょう."},
+    {6,"5）マウスボタンを離すことでTweak処理が確定するでしょう."},
     % "Releasing the Tweak Keys will not end the Tweak event."
-    {7,"キーを離しているだけでは変形処理を完了しないでしょう."},
+    {7,"キーを離しているだけではTweak処理は確定されません."},
     % "This allows other hotkeys to be used in mid-tweak to activate another Tweak tool, an axis constraint, aim the camera, or adjust the magnet radius."
-    {8,"他のホットキーで別の自在変形機能を動かすための影響要素には,軸のコンストレイント,カメラの注視,マグネット効果半径の調整があります."},
+    {8,"他のホットキーで別のTweak機能を動かすための影響要素には,軸のコンストレイント,カメラの注視,マグネット効果半径の調整があります."},
     % "Pressing [C] in mid-tweak tumbles the camera."
-    {9,"マウスをドラッグして自在変形している時に[C]キーも押すとカメラをタンブルします."},
+    {9,"マウスをドラッグしてTweakしている時に[C]キーも押すとカメラが回転します."},
     % "Pressing [S] or the Arrow Keys in mid-tweak pans the camera."
-    {10,"マウスをドラッグして自在変形している時に[S]キーも押すとカメラをパンします."},
+    {10,"マウスをドラッグしてTweakしている時に[S]キーも押すとカメラが移動します."},
     % "Pressing [D] in mid-tweak dollies the camera."
-    {11,"マウスをドラッグして自在変形している時に[D]キーも押すとカメラをドリーします."},
+    {11,"マウスをドラッグしてTweakしている時に[D]キーも押すとカメラを近づけたり遠ざけます."},
     % "Pressing [Spacebar] in mid-tweak switches to the Tweak Tool assigned to the Lmb."
-    {12,"マウスをドラッグして自在変形している時に[スペース]キーも押すにマウス左ボタンに割り当てられた自在変形ツールを切替えます."},
+    {12,"マウスをドラッグしてTweakしている時に[スペース]キーも押せばマウス左ボタンに割り当ててあるTweakツールに切替えます."},
     % "Holding [F] while finalizing a Slide operation collapses all newly created short edges."
-    {13,"スライド変形中に[F1]キーも押していると,変形中に生まれたすべての短辺を崩壊させます."}
+    {13,"スライド変形中に[F]キーも押していると,変形中に生じたあらゆる短い辺をまとめることができます."}
    ]},
   {help_window,
    [
     % "Tweak Help"
-    {1,"自在変形について"}
+    {1,"Tweakについて"}
    ]},
   {mag_thelp,
    [
     % "This magnet pulls and pushes geometry with an even and rounded effect."
-    {1,"このマグネット効果はモデル形状を押したり引いたりすることで均等にランダムに効果を与えます."},
+    {1,"このマグネット効果はモデル形状を押したり引いたりして均等に丸みを帯びた効果を与えます."},
     % "This magnet pulls and pushes geometry with a straight effect."
-    {2,"このマグネット効果はモデル形状を押したり引いたりすることで真っすぐな効果を与えます."},
+    {2,"このマグネット効果はモデル形状を押したり引いたりして真っすぐな効果を与えます."},
     % "This magnet pulls and pushes geometry out to a sharp point."
-    {3,"このマグネット効果はモデル形状を押したり引いたりすることで先端を尖らせる効果を与えます."}
+    {3,"このマグネット効果はモデル形状を押したり引いたりして先端を尖らせる効果を与えます."}
    ]},
   {magnet_type,
    [
@@ -4571,56 +4571,56 @@
   {menu,
    [
     % "Tweak is a collection of tools for quickly adjusting a mesh."
-    {1,"Tweak機能は直感的にメッシュを編集するためのツールパレットです."},
+    {1,"Tweakは素早く編集する為の機能です.  選択中の項目がハイライトされます.  専用ホットキー登録済みは先頭に「●」が付きます."},
     % "Enable Tweak"
-    {2,"ツールを有効に"},
+    {2," 有効 |【無効】"},
     % "Disable Tweak"
-    {3,"【有効】: 無効に"},
+    {3,"【有効】| 無効"},
     % "Magnets"
     {4,"マグネット"},
     % "Axis Constraints"
     {5,"軸を固定する"},
     % "Move selection relative to screen, or constrained to an axis."
-    {6,"画面に比例して選択領域を移動させるか,または移動方向を軸方向に固定します"},
+    {6,"画面上を移動させる,軸方向指定も可能."},
     % "Move selection along average normal."
-    {7,"法線の平均に従って選択領域を移動します."},
+    {7,"選択領域の法線の向きへ移動."},
     % "Scale selection relative to screen, or constrained to an axis."
-    {8,"画面に比例して選択領域を拡大縮小するか,または軸の方向に固定します"},
+    {8,"画面上で拡大縮小,伸縮方向の指定も可能."},
     % "Scale elements uniformly from the selection center."
-    {9,"画面の中心から同じ比率で要素を拡大縮小します."},
+    {9,"要素を画面中心から全方向に拡大縮小."},
     % "Relax selection toward the average plane of neighbors."
-    {10,"選択領域に対して隣接する平面に向かって平均的に弛緩させます."},
+    {10,"滅茶苦茶にもつれた表面をゆるめます."},
     % "Slide elements along adjacent edges."
-    {11,"周囲の辺の方向に従って要素をスライドさせます."},
+    {11,"周囲の辺の方向に従って要素をスライド."},
     % "Tweak Preferences"
     {13,"ツール環境設定..."},
     % "Preferences for Tweak"
-    {14,"これらツールの環境設定"}
+    {14,"Tweakツールの環境設定"}
    ]},
   {menu_conflict,
    [
     % "Key combo was not assigned.\n\n    Those keys would conflict with the right click Tweak menu."
-    {1,"キーの組合せは割り当てられませんでした.\n\n これらのキーは右クリックメニューと衝突するでしょう."}
+    {1,"キーの組合せを割り当てできません.\n\n これらのキーは右クリックメニューと衝突します."}
    ]},
   {mode,
    [
     % "Move"
     {1,"移動"},
     % "Move Normal"
-    {2,"移動(法線方向)"},
+    {2,"法線方向へ移動"},
     % "Scale"
-    {3,"拡大縮小"},
+    {3,"拡大縮小(画面/軸)"},
     % "Scale Uniform"
-    {4,"拡大縮小(一様に)"},
+    {4,"拡大縮小(全方向)"},
     % "Relax"
-    {5,"緩める"},
+    {5,"リラックス"},
     % "Slide"
     {6,"スライド"}
    ]},
   {palette_title,
    [
     % "Tweak"
-    {1,"自在変形"},
+    {1,"Tweak"},
     % "Tweak Magnet"
     {2,"マグネット"},
     % "Tweak Axis"
@@ -4629,7 +4629,7 @@
   {spacebar_msg,
    [
     % "[Space]: Switch to Tweak tool assigned to L"
-    {1,"[Space]：L に割り当てられた自在変形ツールを切替"}
+    {1,"[Space]：L に割り当てられたTweakツールを切替"}
    ]},
   {toggle_bold,
    [
@@ -4641,7 +4641,7 @@
   {tweak_disabled_msg,
    [
     % "Tweak: Disabled"
-    {1,"自在変形 : 無効"}
+    {1,"Tweak : 無効"}
    ]},
   {tweak_info_line,
    [
@@ -4668,17 +4668,17 @@
   {tweak_magnet_menu,
    [
     % "Disable Magnet"
-    {1,"【有効】: 無効に"},
+    {1,"【有効】| 無効"},
     % "Enable Magnet"
-    {2,"ツールを有効に"},
+    {2," 有効 |【無効】"},
     % "Tweak magnets are similar to 'soft selection'."
-    {3,"調整メニューのマグネット効果は'soft selecton'と似ています"},
+    {3,"Tweakメニューのマグネット効果は'soft selecton'と似ています"},
     % "Radius Adjust Key"
     {5,"半径調整キー設定"},
     % "Press [Insert] to customize hotkey for adjusting the magnet radius. "
     {6,"[Insert]キーを押し、マグネット半径を調整するためのホットキーをカスタマイズしてください."},
     % "Without a hotkey assigned, the magnet radius is adjusted by holding [Alt]."
-    {7,"[Alt]キーも一緒に押すと,ホットキーの割り当て無しで,マグネットの半径を調節できます."},
+    {7,"[Alt]キーを同時に押すと,ホットキーを割り当てずに,マグネット半径を調節できます."},
     % "Reset Radius"
     {8,"半径をリセット   "},
     % "Reset the magnet radius to 1.0"
@@ -4686,29 +4686,29 @@
     % "Next Magnet Type"
     {10,"次のマグネットタイプ"},
     % "Can be hotkeyed to cycle through the magnets."
-    {11,"マグネット効果を通してホットキーをローテーションさせることができます."}
+    {11,"ホットキーを使ってマグネット効果の指定を順繰りさせます."}
    ]},
   {tweak_magnet_radius_help,
    [
     % "Drag right to increase and left to decrease the magnet radius."
-    {1,"マグネット効果の及ぶ半径は右方向へドラッグすると値が増え、左方向にドラッグすると減ります。"},
+    {1,"マグネット効果半径は右方向ドラッグで拡張、左方向ドラッグで縮小します."},
     % "Magnet is currently off."
     {2,"マグネット効果は現在OFFです"}
    ]},
   {tweak_menu_item,
    [
     % "Binding: "
-    {1,"関連づけ："},
+    {1,"登録済："},
     % "Set: "
-    {2,"設定："},
+    {2,"登録："},
     % "Swap: "
     {3,"交換："},
     % "Hold modifiers and/or press any mouse button."
-    {4,"修飾キーを押したままで(または)マウスボタンのいずれかを押してください."},
+    {4,"修飾キーとマウスボタンの組合せを押す"},
     % "Press another tool's key binding."
-    {5,"別のツールのキーの組合せを押してください."},
+    {5,"別のTweakツールに割当てたものを押す"},
     % "Unbind: "
-    {6,"関連を取消し："}
+    {6,"登録抹消："}
    ]},
   {tweak_preferences_dialog,
    [
@@ -4717,7 +4717,7 @@
     % "Lower to increase control or raise to increase speed."
     {2,"増減値の制御を下げるか,加速スピードを上げます"},
     % "Tweak Speed (Drag Response)"
-    {3,"自在変形時のスピード(ドラッグの反応度)"},
+    {3,"Tweak時のスピード(ドラッグの反応度)"},
     % "Magnet Radius Adjustment Sensitivity"
     {4,"マグネット半径の調節に関する感受性"},
     % "Magnet Radius Display Color"
@@ -4729,9 +4729,9 @@
     % "Color"
     {8,"カラー"},
     % "Tweak Vector"
-    {9,"変形ベクトルの色"},
+    {9,"Tweakベクトルの色"},
     % "Tweak Preferences"
-    {10,"自在変形の環境設定"}
+    {10,"Tweakの環境設定"}
    ]},
   {xyzkey_help,
    [
@@ -4826,7 +4826,7 @@
     % "Plugin Manager"
     {37,"プラグイン管理"},
     % "Show Ground Plane"
-    {38,"地面を表示する"},
+    {38,"地平面を表示する"},
     % "Show Axes"
     {39,"軸を表示する"},
     % "Show Info Text"
@@ -5016,11 +5016,11 @@
     % "Memory Usage"
     {132,"メモリ使用状況"},
     % "Put on Ground"
-    {133,"地面に乗せる"},
+    {133,"地平面に着地"},
     % "Unitize"
     {134,"ユニタイズ"},
     % "Tweak"
-    {135,"自在変形"},
+    {135,"Tweak"},
     % "Snap Image"
     {136,"イメージにスナップ"},
     % "Outliner"
@@ -5172,11 +5172,11 @@
     % "Scale"
     {211,"拡大縮小"},
     % "Uniform"
-    {212,"拡大縮小(一様に)"},
+    {212,"拡大縮小(全方向)"},
     % "Extrude"
     {213,"押し出し"},
     % "Extract"
-    {214,"面を剥がす"},
+    {214,"面を採取"},
     % "Dissolve"
     {215,"削除"},
     % "Collapse"
@@ -5260,27 +5260,27 @@
     % "Bridge"
     {255,"ブリッジ"},
     % "Bump"
-    {256,"でこぼこ"},
+    {256,"バンプ"},
     % "Extrude Region"
     {257,"領域を押し出し"},
     % "Extract Region"
-    {258,"領域を剥がす"},
+    {258,"領域を採取"},
     % "Sweep Extrude"
     {259,"旋回(押し出し)"},
     % "Sweep Region"
     {260,"旋回(領域)"},
     % "Sweep Extract"
-    {261,"旋回(剥がす)"},
+    {261,"旋回(採取)"},
     % "Inset"
-    {262,"面内外に幅寄せ"},
+    {262,"インセット"},
     % "Intrude"
     {263,"くり抜き"},
     % "Lift"
     {264,"リフト"},
     % "Put On"
-    {265,"対象面に乗せる"},
+    {265,"選択面に接置"},
     % "Clone On"
-    {266,"複製を乗せる"},
+    {266,"複製を接置"},
     % "Mirror"
     {267,"ミラー"},
     % "Mirror Separate"
@@ -5558,9 +5558,9 @@
   {menu,
    [
     % "Ground Plane"
-    {1,"地面"},
+    {1,"地平面"},
     % "Show the ground plane"
-    {2,"地面を表示する"},
+    {2,"地平面を表示する"},
     % "Axes"
     {3,"軸"},
     % "Show the coordinate axes"
