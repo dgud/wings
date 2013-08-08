@@ -84,7 +84,7 @@ $INSTALL -c "$erts_src/bin/beam.smp" "$dest/bin/beam.smp"
 $INSTALL -c "$erts_src/bin/child_setup" "$dest/bin/child_setup"
 $INSTALL -c "$erts_src/bin/inet_gethost" "$dest/bin/inet_gethost"
 strip --strip-debug "$dest/bin/erlexec"
-strip --strip-debug "$dest/bin/beam"
+strip --strip-debug "$dest/bin/beam.smp"
 strip --strip-debug "$dest/bin/child_setup"
 strip --strip-debug "$dest/bin/inet_gethost"
 $INSTALL -c -m 644 "$src/bin/start.boot" "$dest/bin"
@@ -131,11 +131,12 @@ if [ X$CL_NAME == Xcl ]; then
     echo Install cl to $CL_NAME
 fi
 dest="$DEST_ROOT/lib/$CL_NAME"
-$INSTALL -d "$dest/ebin" "$dest/lib/release/32"
+$INSTALL -d "$dest/ebin" "$dest/priv"
 $INSTALL -c -m 644  "$CL_PATH"/ebin/cl.beam "$dest/ebin"
+$INSTALL -c -m 644  "$CL_PATH"/ebin/cl1?.beam "$dest/ebin"
 $INSTALL -c -m 644  "$CL_PATH"/ebin/clu.beam "$dest/ebin"
-$INSTALL -c -m 644  "$CL_PATH"/lib/release/32/cl_nif.so "$dest/lib/release/32"
-strip --strip-debug --strip-unneeded "$dest/lib/release/32/cl_nif.so"
+$INSTALL -c -m 644  "$CL_PATH"/priv/cl_nif.so "$dest/priv"
+strip --strip-debug --strip-unneeded "$dest/priv/cl_nif.so"
 
 #
 # Remove files from OTP not needed.
