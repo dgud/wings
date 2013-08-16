@@ -889,41 +889,42 @@ __kernel void gen_tangents_uv(__global float4 *VsIn,
     uint face_id = id*chunk_sz;
     uint stop = min(face_id+chunk_sz, NoFs);
     
-    for(uint i = face_id; i < stop; i++) {
-	int4 face = FsIn[i];
-	float4 v1 = VsIn[face.x];
-	float4 v2 = VsIn[face.y];
-	float4 v3 = VsIn[face.z];
-	// float4 v4 = VsIn[face.w];
-	float2 w1 = AsIn[i*4+0];
-	float2 w2 = AsIn[i*4+1];
-	float2 w3 = AsIn[i*4+2];
-	// float2 w4 = AsIn[i*4+3];
-	float4 d1  = v2-v1;
-	float4 d2  = v3-v1;
-	float2 st1 = w2-w1;
-	float2 st2 = w3-w1;
-	float d = st1.x*st2.y-st2.x*st1.y;
-	if (fabs(d) < 0.0000001) return;
-	float r = 1.0 / d;
-	t.x = r*(st2.y*d1.x-st1.y*d2.x);
-	t.y = r*(st2.y*d1.y-st1.y*d2.y);
-	t.z = r*(st2.y*d1.z-st1.y*d2.z);
-	t.w = 0.0;
-	b.x = r*(st1.x*d2.x-st2.x*d1.x);
-	b.y = r*(st1.x*d2.y-st2.x*d1.y);
-	b.z = r*(st1.x*d2.z-st2.x*d1.z);
-	b.w = 0.0;
-	// Tangent
-	TanOut[face.x] += t;
-	TanOut[face.y] += t;
-	TanOut[face.z] += t;
-	TanOut[face.w] += t;
-	// BiTangent
-	TanOut[NoVs + face.x] += b;
-	TanOut[NoVs + face.y] += b;
-	TanOut[NoVs + face.z] += b;
-	TanOut[NoVs + face.w] += b;
+    for(int i = face_id; i < stop; i++) {
+       int4 face = FsIn[i];
+       float4 v1 = VsIn[face.x];
+       float4 v2 = VsIn[face.y];
+       float4 v3 = VsIn[face.z];
+       // float4 v4 = VsIn[face.w];
+       float2 w1 = AsIn[i*4+0];
+       float2 w2 = AsIn[i*4+1];
+       float2 w3 = AsIn[i*4+2];
+       // float2 w4 = AsIn[i*4+3];
+       float4 d1  = v2-v1;
+       float4 d2  = v3-v1;
+       float2 st1 = w2-w1;
+       float2 st2 = w3-w1;
+       float d = st1.x*st2.y-st2.x*st1.y;
+       if (fabs(d) > 0.0000001F) {
+	 float r = 1.0F / d;
+	 t.x = r*(st2.y*d1.x-st1.y*d2.x);
+	 t.y = r*(st2.y*d1.y-st1.y*d2.y);
+	 t.z = r*(st2.y*d1.z-st1.y*d2.z);
+	 t.w = 0.0F;
+	 b.x = r*(st1.x*d2.x-st2.x*d1.x);
+	 b.y = r*(st1.x*d2.y-st2.x*d1.y);
+	 b.z = r*(st1.x*d2.z-st2.x*d1.z);
+	 b.w = 0.0F;
+	 // Tangent
+	 TanOut[face.x] += t;
+	 TanOut[face.y] += t;
+	 TanOut[face.z] += t;
+	 TanOut[face.w] += t;
+	 // BiTangent
+	 TanOut[NoVs + face.x] += b;
+	 TanOut[NoVs + face.y] += b;
+	 TanOut[NoVs + face.z] += b;
+	 TanOut[NoVs + face.w] += b;
+       }
     }
 }
 
@@ -961,26 +962,27 @@ __kernel void gen_tangents_col_uv(__global float4 *VsIn,
 	float2 st1 = w2-w1;
 	float2 st2 = w3-w1;
 	float d = st1.x*st2.y-st2.x*st1.y;
-	if (fabs(d) < 0.0000001) return;
-	float r = 1.0 / d;
-	t.x = r*(st2.y*d1.x-st1.y*d2.x);
-	t.y = r*(st2.y*d1.y-st1.y*d2.y);
-	t.z = r*(st2.y*d1.z-st1.y*d2.z);
-	t.w = 0.0;
-	b.x = r*(st1.x*d2.x-st2.x*d1.x);
-	b.y = r*(st1.x*d2.y-st2.x*d1.y);
-	b.z = r*(st1.x*d2.z-st2.x*d1.z);
-	b.w = 0.0;
-	// Tangent
-	TanOut[face.x] += t;
-	TanOut[face.y] += t;
-	TanOut[face.z] += t;
-	TanOut[face.w] += t;
-	// BiTangent
-	TanOut[NoVs + face.x] += b;
-	TanOut[NoVs + face.y] += b;
-	TanOut[NoVs + face.z] += b;
-	TanOut[NoVs + face.w] += b;
+	if (fabs(d) > 0.0000001F) {
+	  float r = 1.0F / d;
+	  t.x = r*(st2.y*d1.x-st1.y*d2.x);
+	  t.y = r*(st2.y*d1.y-st1.y*d2.y);
+	  t.z = r*(st2.y*d1.z-st1.y*d2.z);
+	  t.w = 0.0F;
+	  b.x = r*(st1.x*d2.x-st2.x*d1.x);
+	  b.y = r*(st1.x*d2.y-st2.x*d1.y);
+	  b.z = r*(st1.x*d2.z-st2.x*d1.z);
+	  b.w = 0.0F;
+	  // Tangent
+	  TanOut[face.x] += t;
+	  TanOut[face.y] += t;
+	  TanOut[face.z] += t;
+	  TanOut[face.w] += t;
+	  // BiTangent
+	  TanOut[NoVs + face.x] += b;
+	  TanOut[NoVs + face.y] += b;
+	  TanOut[NoVs + face.z] += b;
+	  TanOut[NoVs + face.w] += b;
+	}
     }
 }
 
