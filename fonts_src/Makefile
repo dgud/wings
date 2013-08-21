@@ -38,7 +38,10 @@ FONTS=       \
 	Terminus16 \
 	Terminus22 \
 	CJK-12 \
-	CJK-16
+	CJK-16 \
+	CJK-efontB14 \
+	CJK-efontB16 \
+	CJK-efontB24
 
 
 MODULES= \
@@ -97,6 +100,16 @@ $(FONT_DIR)/Terminus22.wingsfont: ter-u22b.bdf
 #
 $(FONT_DIR)/CJK-12.wingsfont: gulim12.bdf wenquanyi_10pt_cjk.bdf wenquanyi_10pt_cjk_char0.bdf
 $(FONT_DIR)/CJK-16.wingsfont: wenquanyi_12pt_cjk.bdf wenquanyi_12pt_cjk_char0.bdf
+
+# efont_b???.bdf sourced from efont-unicode-bdf-0.4.2.tar.bz2
+# downloaded from http://openlab.jp/efont/unicode/index.html.en
+# 
+#
+$(FONT_DIR)/CJK-efontB14.wingsfont: efont_b14.bdf efont_16pt_cjk_char0.bdf
+$(FONT_DIR)/CJK-efontB16.wingsfont: efont_b16.bdf efont_16pt_cjk_char0.bdf
+$(FONT_DIR)/CJK-efontB24.wingsfont: efont_b24.bdf efont_24pt_cjk_char0.bdf
+
+
 
 $(FONT_FILES): bdf2wingsfont.beam
 
