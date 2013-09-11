@@ -633,7 +633,7 @@
     % "Pan Speed"
     {12,"パンスピード"},
     % "Rotation Step in Degrees"
-    {13,"回転角度のレベル(度)"},
+    {13,"回転角度の段階(度)"},
     % "Unidirectional Camera"
     {15,"単一指向性カメラ"},
     % "Arrow Key Pan Speed"
@@ -762,7 +762,7 @@
     % "Taper"
     {6,"テーパ"},
     % "Twist"
-    {7,"途中をひねる"},
+    {7,"中央をひねる"},
     % "Torque"
     {8,"ねじる"}
    ]},
@@ -797,7 +797,7 @@
   {drag_help,
    [
     % "Move along Screen Normal"
-    {1,"スクリーンの法線に追随して移動"},
+    {1,"画面上を自由に移動"},
     % "Scale"
     {2,"拡大縮小"},
     % "Adjust 2nd value"
@@ -864,7 +864,7 @@
   {dissolve_edge_2,
    [
     % "Dissolving would cause a badly formed face."
-    {1,"削除コマンドの使用で誤った形の面が発生するでしょう"}
+    {1,"削除コマンドの使用で面が誤った形の面が発生するでしょう"}
    ]}
  ]}.
 {wings_edge_cmd,
@@ -884,31 +884,31 @@
   {cut_command,
    [
     % "Cut"
-    {1,"分割"}
+    {1,"カット"}
    ]},
   {cut_entry,
    [
     % "Cut into "
-    {1,"分割"},
+    {1,"辺を"},
     % " edges of equal length"
-    {2,"辺を等分に分割"}
+    {2,"等分に分割します (頂点数=分割数-1)"}
    ]},
   {cut_fun,
    [
     % "Cut into edges of equal length"
-    {1,"辺を等分に分割します"},
+    {1,"指定した辺を等分割します"},
     % "Cut at arbitrary position"
-    {2,"任意の位置で分割します"}
+    {2,"指定した辺を任意の位置で分割します"}
    ]},
   {cut_pick_error,
    [
     % "Only one edge can be cut at an arbitrary position."
-    {1,"任意の位置では1つの辺しか分割することができません"}
+    {1,"その指定位置では1つの辺しか分割することができません"}
    ]},
   {loop_cut,
    [
     % "Edge loop doesn't divide ~p into two (or more) parts."
-    {1,"リング状の辺は ~p を2つ(以上)の部分に分割することができません"}
+    {1,"指定した輪状の辺では ~p を2つ(以上)の部分に分割することができません"}
    ]},
   {menu,
    [
@@ -917,13 +917,13 @@
     % "Slide"
     {3,"スライド"},
     % "Slide edges along neighbor edges"
-    {4,"辺を近隣の辺の方向に追随して移動させます"},
+    {4,"選択した辺を、できるだけ周囲の形状を崩さずに移動させます"},
     % "Extrude"
     {5,"押し出し"},
     % "Connect"
-    {6,"接続"},
+    {6,"辺の接続"},
     % "Create a new edge by connecting midpoints of selected edges"
-    {7,"選択された辺同士の中間点を接続する辺を作成します"},
+    {7,"選択された辺同士の中間を結ぶような辺を新たに作成します"},
     % "Bevel"
     {8,"ベベル"},
     % "Round off selected edges"
@@ -943,26 +943,26 @@
     % "Hard"
     {16,"ハード属性"},
     % "Loop Cut"
-    {17,"輪切り"},
+    {17,"ループカット"},
     % "Cut into two objects along edge loop"
-    {18,"リング状に選択した辺でオブジェクトを2つに分割します"},
+    {18,"オブジェクトをループ状に指定した辺で切断し2つのオブジェクトに分離します"},
     % "Vertex Color"
     {19,"頂点カラー"},
     % "Apply vertex colors to selected edges"
     {20,"選択された頂点に頂点カラーを適用します"},
     % "Delete edges, replacing them with vertices and remove any newly created isolated vertices"
-    {21,"辺を削除した所へ周囲の頂点が崩れ込み、その際作成されたあらゆる孤立点も削除します"},
+    {21,"辺を削除した所へ周囲の頂点が崩れ込み、その際作成されたあらゆる孤立点も削除されます"},
     % "Crease"
     {22,"折り目"},
     % "Extrusion commonly used for adding wrinkles to organic models"
-    {23,"押し出し効果は普通、有機的なモデルに対してしわを寄らせるのに使われます"},
+    {23,"有機的なモデル対して、しわ状のものを押し出しすためによく使われます"},
     % "Eliminate selected edges and remove remaining isolated verts"
-    {50,"選択された辺を削除し、その際生成された孤立点も削除します"}
+    {50,"選択された辺を削除し、その際生成された孤立点も削除されます"}
    ]},
   {plain_cut_menu,
    [
     % "Cut into edges of equal length"
-    {2,"辺を等分します"}
+    {2,"辺を等分割します"}
    ]},
   {slide_help_mode,
    [
@@ -1002,7 +1002,7 @@
   {extrude_problem,
    [
     % "Can't extrude/bevel; two or more vertices are probably too near to each other.\nTry the Cleanup command."
-    {1,"押し出し/ベベル効果を実行できません。2つ以上の頂点があまりにも近すぎます。\n クリーンナップコマンドを試してみてください。"}
+    {1,"押し出し/ベベル効果を実行できません。2つ以上の頂点があまりにも近すぎます。\n クリーンナップコマンドを試し頂点の重複を解決してみてください。"}
    ]}
  ]}.
 {wings_face_cmd,
@@ -1049,9 +1049,9 @@
   {lift_fun,
    [
     % "Lift, rotating face around edge or vertex"
-    {1,"リフト。選択した要素を引き上げて、辺や面の周りを回転させます"},
+    {1,"リフト。選択した要素を引き上げて、辺や面の周りに回転体を生成"},
     % "Lift in std. directions"
-    {2,"基準にした方向へ要素を引き上げます"}
+    {2,"指定した方向へ要素を引き上げます"}
    ]},
   {lift_sel_mismatch,
    [
@@ -1061,12 +1061,12 @@
   {lift_selection,
    [
     % "Select edge or vertex to act as hinge"
-    {1,"ヒンジ(蝶番)として機能させる辺または頂点を選択してください"}
+    {1,"ヒンジ(蝶番)として機能させる辺または頂点を指定してください"}
    ]},
   {lift_vtx_sel_mismatch,
    [
     % "Face and vertex selections don't match."
-    {1,"選択された面と頂点が一致していません"}
+    {1,"指定した面と頂点が一致していません"}
    ]},
   {menu,
    [
@@ -1085,7 +1085,7 @@
     % "Bridge"
     {12,"ブリッジ"},
     % "Create a bridge or tunnel between two faces"
-    {13,"選択された2つの面または領域間を橋またはトンネルのようにつなげます"},
+    {13,"向かい合った2つの面/領域間を橋またはトンネルのように接続します"},
     % "Bump"
     {14,"バンプ"},
     % "Create bump of selected faces"
@@ -1093,21 +1093,21 @@
     % "Lift"
     {16,"リフト"},
     % "Put On"
-    {17,"選択面に接置"},
+    {17,"選択要素に接置"},
     % "Move and rotate object, aligning the selected face to another element"
-    {18,"オブジェクトを移動又は回転させて指定要素の上に設置します"},
+    {18,"オブジェクトを別のオブジェクト上の場所(面/頂点/辺)に接するように配置します"},
     % "Clone object on to one or more elements"
-    {19,"1つまたは複数の要素を複製します"},
+    {19,"1箇所または複数の場所にオブジェクトを複製します"},
     % "Mirror"
     {20,"ミラー"},
     % "Mirror object around selected faces and merge to object"
-    {21,"選択した面の周りに鏡対称のオブジェクトを作成しひとつのオブジェクトに合体します"},
+    {21,"指定面と鏡対称のオブジェクトを作成し、1つのオブジェクトにします"},
     % "Mirror and create separate objects"
-    {22,"ミラーリングし、分割されたオブジェクトを作成します"},
+    {22,"鏡対称の独立したオブジェクトが作成されます"},
     % "Dissolve"
     {23,"削除"},
     % "Eliminate all edges between selected faces"
-    {24,"選択さたれた面と、それに関連するすべての辺を削除します"},
+    {24,"選択した面と、それに関連するすべての辺を削除します"},
     % "Collapse"
     {25,"削除(コラプス)"},
     % "Delete faces, replacing them with vertices"
@@ -1115,7 +1115,7 @@
     % "Smooth"
     {27,"スムーズ(Catmull-Clark)"},
     % "Subdivide selected faces to smooth them (Catmull-Clark)"
-    {28,"選択された面を細分割して滑らかにします(再分割曲面：Catmull-Clarkアルゴリズム)"},
+    {28,"選択した面を細分割して滑らかにします(再分割曲面：Catmull-Clarkアルゴリズム)"},
     % "Tesselate"
     {29,"テッセレート"},
     % "Vertex Color"
@@ -1131,15 +1131,17 @@
     % "Extract"
     {35,"面を採取"},
     % "Shell Extrude"
-    {36,"押し出し(造殻型)"},
+    {36,"押し出し(造殻)"},
     % "Hole"
     {37,"穴を開ける"},
     % "Create hole"
     {38,"穴を作成します"},
     % "Remove holes adjacent to selected faces"
-    {39,"選択された面または面の領域に隣接して穴を削除します"},
+    {39,"選択した面に隣接した穴が存在する場合、その穴を取り除きます"},
     % " or face regions"
-    {40," "}
+    {40," "},
+    % "Unhide faces adjacent to selection"
+    {41,"選択領域に隣接した面が隠されている場合、それを再表示します"}
    ]},
   {put_on,
    [
@@ -1156,7 +1158,7 @@
   {put_on_selection,
    [
     % "Select target element on which to put source object"
-    {1,"このオブジェクトを,どの場所へ配置するかを対象となる要素で選択してください"}
+    {1,"このオブジェクトを配置したい場所(別のオブジェクトの要素)を指定してください"}
    ]},
   {smooth,
    [
@@ -1466,13 +1468,13 @@
   {def_commands,
    [
     % "In the "
-    {1,"ダイアログで\"デフォルトコマンド\"という"},
+    {1," \"デフォルトコマンド\"というチェック項目が"},
     % " dialog, you can turn on \"Default Commands\"."
-    {4,"チェック項目を有効/無効にすると、よく使うコマンドを登録して呼び出すことができます."},
+    {4,"ダイアログの、高度な設定タブの中にあります.これを有効にすると、よく使うコマンドを登録して呼び出すことができます."},
     % "Two default commands can be defined. To save the previous command that was executed, use one of:"
-    {5,"デフォルトコマンドは2つ登録することができます。直前に実行したコマンドを登録するにはそれぞれ以下のショートカットキーを実行してください："},
+    {5,"デフォルトコマンドには直前に実行したコマンドを2種類登録することができます。コマンド実行直後にそれぞれ以下のショートカットキーを押すと登録されます："},
     % "To use a command that has been defined this way, use one of:"
-    {8,"登録したコマンドは次の方法で呼び出すことができます、コマンドを呼び出すにはそれぞれ以下のショートカットキーを実行してください："},
+    {8,"登録したコマンドは次の方法で呼び出すことができます、コマンドを呼び出すにはそれぞれ以下のショートカットキーを押してください："},
     % "Note: When using the "
     {11,"注意："},
     % " or "
@@ -1487,15 +1489,15 @@
     % "To assign a hotkey to a command:"
     {4,"ホットキーにコマンドを割り当てる方法："},
     % "1. Open the menu containing the command and highlight the command."
-    {5,"1.コマンドが含まれるメニューを開いて,コマンド項目名を強調表示します."},
+    {5,"1.コマンドが含まれるメニューを開いて,コマンド項目名をハイライトさせます."},
     % "2. Press the [Insert] or [/] key."
     {6,"2.[Insert]キーまたは[/]キーを押してください."},
     % "4. The information line asks you to press the key that the command should be assigned to."
     {8,"4.情報行には、コマンドを割り当てるために押すべきキーを表示します."},
     % "To delete a hotkey, similarly highlight the command in a menu, and press the [Del] or [\\] key. A dialog box listing all keys bound to the command will appear. Check all hotkeys you want to delete."
-    {9,"ホットキーを削除するには,同じようにメニュー内のコマンド名を強調表示させてから[Del]キーまたは[\ \]キーを押してください.すべてのキー対応表がリストされたダイアロボックスが出現するでしょう. そこで削除したいすべてのホットキーを選択してください."},
+    {9,"ホットキーを削除するには,同じようにメニュー内のコマンド名を強調表示させてから[Del]キーまたは[＼]キーを押してください.すべてのキー対応表がリストされたダイアロボックスが出現するでしょう. そこで削除したいすべてのホットキーを選択してください."},
     % "3. If the command does different things depending on which mouse button is pressed there will be a message in the information line asking you to press a mouse button to choose which variant of the command to assign to the hotkey. (Note: The mouse cursor must remain inside the menu when you click.)"
-    {10,"3.もし,そのコマンドがマウスボタンが押されるかどうかでコマンドの別バリエーションに切り替わるタイプであれば,それらコマンドのどれにキーを割り当てるかを選択する際に,情報行にマウスボタンの押下を要求するメッセージが表示されることがあります.(注意：項目をクリックするときはマウスカーソルはメニュー内に残さなければいけません) "}
+    {10,"3.コマンドが,押されたマウスボタンに応じて別バリエーションに切替わるタイプでも登録可能です. \n その場合はキーを割り当てるかを選択する際に,情報行にマウスボタンの押下を要求するメッセージが表示されることがあります. \n (注意：項目をクリックするときはマウスカーソルはメニュー内に残さなければいけません) "}
    ]},
   {edit_prefs,
    [
@@ -1507,13 +1509,13 @@
   {getting_started,
    [
     % "When learning Wings, keep an eye on the information line at the bottom of the screen. Generally it shows what the mouse buttons will do at any given moment."
-    {1,"Wings3Dを学ぼうとする時は,ウインドウ最下部にある情報行に書かれている内容に関心を寄せてください. 普通はマウスのボタンの種類とそれを押した時に対応する機能を表示しています"},
+    {1,"Wings3Dを学ぼうとする時は,まずウインドウ最下部にある情報行に書かれている内容に関心を寄せてください. \n 起動直後はマウスの各ボタンとそれに対応する可能な操作について表示されています."},
     % "The actions for the mouse buttons are given first, labeled "
-    {2,"例えば環境設定ダイアログで、カメラ操作モードを「Wings3D」、ボタンの数を「3」にしている場合は、ボタンの種類は次の通り表示されます"},
+    {2,"例えば、あなたが3ボタンマウスを使っている場合.  (Wings3Dの環境設定のデフォルト設定ではカメラ操作モード「Wings3D」、マウスボタンの数「3」になっている)、この時に情報行に表示されているボタンの意味は次の通りです."},
     % "Generally, L (left mouse button) is used for selecting and accepting, M (middle mouse button) for operating the camera, and R (right mouse button) to access the context-sensitive pop-up menus."
-    {7,"L (マウス左ボタン)は選択や了解に用いられ, M(マウス中ボタン)はカメラ操作用, R(マウス右ボタン) はコンテキストメニューをポップアップさせるために用いられます. と表示されます."},
+    {7,"Wings3Dでは一般的に、 L (マウス左ボタン)は選択や了解に用いられ, M(マウス中ボタン)はカメラ操作用, R(マウス右ボタン) はコンテキストメニューをポップアップさせるために用いられます."},
     % "Note that different mouse buttons can be used in pop-up menus to choose different variations of a command. Generally, the most common way to execute the command is found on the left mouse buttons, while the more advanced commands are found on the middle and right mouse buttons."
-    {8,"コンテキストメニューのコマンドを選択する際に, マウスのどのボタンを押すかによって、コマンドの別バリエーションを実行できることに注意してください. 一般的に同じコマンドでも通常機能はマウス左ボタンで選択,より高度なオプションが伴う場合はマウス中ボタンや右ボタンで選択してください."},
+    {8,"コンテキストメニューにある様々なコマンド項目を実行する際に, それを押したときのマウスボタン(右/中/左)によって、そのコマンドの別バリエーションを実行できることに注意してください. \n  そのようなコマンドは、通常機能はマウス左ボタンで選択,より高度なオプションが伴う場合はマウス中ボタンや右ボタンで選択するように設計されていることが多いです."},
     % "left mouse button"
     {left_def,"マウス左ボタン"},
     % "middle button or scroll wheel"
@@ -1521,7 +1523,7 @@
     % "right button"
     {right_def,"マウス右ボタン"},
     % "followed by any hotkey actions."
-    {two_a,"Wings3Dではあらゆるホットキーに従ってこのように表記されます."}
+    {two_a,"また情報行では、いくつかのホットキー(Altキー等)の操作への言及や、メニュー選択中のコマンドに関するヘルプ文字列を表示することもあります."}
    ]},
   {header,
    [
@@ -1556,7 +1558,7 @@
   {international,
    [
     % "Unfortunately, on French and German keyboards (and possibly others), the Undo/Redo commands will not be bound to the [Z] key. (That might be changed in a future release of Wings.)"
-    {1,"残念なことに,フランス語とドイツ語キーボード(たぶん他のものも)においては、取り消し/やり直しコマンドを[Z]キーに割り当てることができないでしょう。(この問題は将来リリースされるWings3Dでは変わるかもしれません)"},
+    {1,"残念なことに,フランス語とドイツ語キーボード(たぶん他のものも)においては、取り消し/やり直しコマンドを[Z]キーに割り当てることができないでしょう。(この問題は将来リリースされるWings3Dでは改善するかもしれません)"},
     % "On French keyboards, the Undo/Redo commands are found on the [W] key ([Ctrl]+[W], [Ctrl]+[Alt]+[W] and so on)."
     {2,"フランス語キーボードでは取り消し/やり直しコマンドは[W]キー ([Ctrl]+[W], [Ctrl]+[Alt]+[W] など)で代用されます."},
     % "On German keyboards, the Undo/Redo commands are found on the [Y] key ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] and so on)."
@@ -1565,17 +1567,17 @@
   {lights,
    [
     % "1. Create lights using the Light command in the primitives menu (R-click when there is no selection)."
-    {1,"1.光源を作成するにはプリミティブメニュー(何もオブジェクト等が選択されてない時に右ボタンクリックで現われるメニュー)内にある「光源」コマンドを実行してください."},
+    {1,"1.光源を作成するにはプリミティブメニュー(無選択時に右ボタンクリックで現われるメニューで様々なオブジェクトの新規作成ができます)内にある「光源」という項目を実行してください."},
     % "2. Select a light by L-clicking on it. When any light is selected, a special Light menu will pop up when you R-click."
     {2,"2.左ボタンクリックでそれを選択し,サブメニューから作成する光源の種類を指定してください. また,作成済み光源が選択されている場合,右ボタンクリックすると関連する特殊メニューが現れます."},
     % "3. To tell Wings to actually use the lights you have created, use the "
     {3,"実際に作成した光源をWings3Dで有効にするためには、メニューから"},
     % "View"
-    {4,"ビュー"},
+    {4,"表示"},
     % "Scene Lights"
     {5,"シーン光源"},
     % " command."
-    {6,"コマンドを実行してください"}
+    {6,"コマンドを実行してください."}
    ]},
   {message,
    [
@@ -1703,15 +1705,15 @@
     % "the phase of the moon"
     {7,"月の満ち欠け"},
     % "Therefore, it is difficult to give any firm advice on how to improve Wings performance. The following tips MAY improve performance:"
-    {8,"従って,Wings3Dの性能を向上するどんなやり方でも,確実なアドバイスをすることは難しいです: "},
+    {8,"従って,Wings3Dの性能を向上するいかなる方法に関して,的確なアドバイスをすることは難しいです: "},
     % "Try different number of colors and different screen resolutions. Especially if the graphics card doesn't have much memory, many colors and/or high resolution may drastically reduce performance. Using a smaller Wings window (not maximized) may also help."
-    {9,"まずは別の色数や画面解像度を試してください. 特に多くのメモリを積んでいなグラフィックカードでは,色数が多かったりまたは 高解像度では根本的に動作が重くなるかもしれません. また,Wings3Dのウインドウを(最大サイズより)小さくすることも動作向上の助けになるかもしれません."},
+    {9,"画面の発色数や解像度を別のもので試してみてください. 特に搭載メモリ量が少ないグラフィックカードでは,高解像度や色数が多いと根本的に動作が重くなるでしょう. \n  また,Wings3Dアプリケーションのウインドウを(最大サイズより)小さくすることも動作向上の助けになるかもしれません."},
     % "Close unnecessary windows inside Wings."
-    {10,"Wings3D内部のウインドウで不必要なものがあれば閉じてください."},
+    {10,"Wings3D内部のウインドウで不必要なものがあれば閉じましょう."},
     % "Make sure that Geometry windows don't overlap."
-    {11,"ジオメトリウインドウに別のウインドウを重ねたりしないようにしてください"},
+    {11,"ジオメトリウインドウに別のウインドウを重ねるのは避けましょう."},
     % "Use as few (active) lights as possible. More lights means less speed on most grahics cards."
-    {12,"可能ならば使用する(アクティブな)光源を少しにしてください.多くの光源を配置するほどグラフィックカードのスビードが遅くなります"},
+    {12,"可能ならば(アクティブな)光源の使用を最低限にします. 多くの光源を配置するほどグラフィックカードの動作スピードが遅くなります"},
     % "If possible, use the "
     {13,"もし可能ならば"},
     % "Tools"
@@ -1723,21 +1725,21 @@
     % "Hide models that you don't work on for the moment."
     {17,"当面使わないモデルは隠しておきましょう(「隠す」コマンドの使用)"},
     % "Use the "
-    {18,"もしも頂点カラーを使用したモデルがあれば"},
+    {18," "},
     % "View"
     {19,"ビュー"},
     % "Show Colors"
     {20,"カラーを表示"},
     % " command to turn off vertex color display if your model has vertex colors."
-    {21,"コマンドを使い,頂点カラー表示をオフにしてください."},
+    {21," コマンドを使い、頂点カラーを使用したモデルがあれば頂点カラー表示をオフにしてください."},
     % "Use the "
-    {22,"もしも"},
+    {22," "},
     % "View"
     {23,"ビュー"},
     % "Show Textures"
     {24,"テクスチャを表示"},
     % " command to turn off textures while modeling."
-    {25,"コマンドを使って,モデリング中はテクスチャ表示をオフにしてください."},
+    {25," コマンドを使って、モデリング中はテクスチャ表示をオフに切り替えてください."},
     % "Work in wireframe mode."
     {26,"ワイヤーフレームモードで制作してください."},
     % "Some graphics cards display edges slowly. Turn off edge display using the "
@@ -1747,9 +1749,9 @@
     % "Show Edges"
     {29,"辺を表示"},
     % " command."
-    {30,"コマンドを使用することで辺の表示をオフに切替えてください."},
+    {30," コマンドを使用することで辺の表示をオフに切替えてください."},
     % "Use fewer Undo levels. Setting to 4 or less (default 32) will let you work on models with almost 8 times the detail. In this case, using a shorter autosave period (default 10mins) may be advisable."
-    {31,"「やり直し」コマンドの適用レベルを少なくします. 4またはそれ未満(デフォルトは32)に設定するとおよそディテールを8倍でモデルを作成させるでしょう. やり直し回数が少なくなるので,この場合,自動保存の間隔(デフォルトは10分)を短くすることが賢明かもしれません."}
+    {31,"「やり直し(Undo)」コマンドの適用レベルを少なくします. 4またはそれ未満(デフォルトは32)に設定すると、およそ8倍精密な3Dモデルを操作できるでしょう. \n しかし、やり直し可能な回数が少なくなるため,ミスを防ぐためにも自動保存の間隔(デフォルトは10分)を短くすることが賢明かもしれません."}
    ]},
   {splash_contents,
    [
@@ -1773,9 +1775,9 @@
   {use_one_or_two,
    [
     % "To use mice with only one or two buttons, you must inform Wings how many buttons your mouse has in the "
-    {1,"1ボタンまたは2ボタンマウスで使うためには, あなたが持っているマウスにはいくつのボタンがあるのかを"},
+    {1,"もし1ボタンまたは2ボタンマウスを使いたい場合は, あなたが使用しているマウスのボタンの数を"},
     % " dialog."
-    {2,"ダイアログを通じてWings3Dに教える必要があります."}
+    {2,"ダイアログを通じてWings3Dに伝える必要があります."}
    ]}
  ]}.
 {wings_hotkey,
@@ -1794,17 +1796,17 @@
   {list_header,
    [
     % "Hotkeys in all modes"
-    {1,"全モード対応のホットキー"},
+    {1,"全モード対応ホットキー"},
     % "Hotkeys in object mode"
-    {2,"全体選択モード対応のホットキー"},
+    {2,"全体選択モード対応ホットキー"},
     % "Hotkeys in edge mode"
-    {3,"辺モード対応のホットキー"},
+    {3,"辺モード対応ホットキー"},
     % "Hotkeys in face mode"
-    {4,"面選択モード対応のホットキー"},
+    {4,"面選択モード対応ホットキー"},
     % "Hotkeys for lights"
-    {5,"光源編集用のホットキー"},
+    {5,"光源編集用ホットキー"},
     % "Hotkeys for vertices"
-    {6,"頂点選択モード対応のホットキー"}
+    {6,"頂点選択モード対応ホットキー"}
    ]},
   {list_keys,
    [
@@ -2052,11 +2054,11 @@
     % "Linear"
     {8,"リニア減衰"},
     % "Interactively adjust how much light weakens as it travels away from its source (linear factor)"
-    {9,"光源から光が届くまでどのくらい弱まるかをリアルタイムに調整します(距離に比例したリニア減衰)"},
+    {9,"光源からの光の減衰度をリアルタイムに調整します(距離に比例したリニア減衰)"},
     % "Quadratic"
     {10,"二次減衰"},
     % "Interactively adjust how much light weakens as it travels away from its source (quadratic factor)"
-    {11,"光源から光が届くまでどのくらいの弱まるかをリアルタイムに調整します(距離の2乗で減衰,実際の光に近い)"},
+    {11,"光源からの光の減衰度をリアルタイムに調整します(距離の2乗で減衰,実際の光に近い挙動)"},
     % "Spot Angle"
     {12,"スポット角度"},
     % "Interactivly adjust the angle of the spotlight cone"
@@ -2064,7 +2066,7 @@
     % "Spot Falloff"
     {14,"スポット減衰"},
     % "Interactivly adjust how much light weakens farther away from the center of the spotlight cone"
-    {15,"スポット光源の中心から縁まで,光がどのくらい弱まるのかをリアルタイムに調整します"},
+    {15,"スポット光源の中心から縁までの光の減衰度をリアルタイムに調整します"},
     % "Edit Properties..."
     {16,"プロパティ編集..."},
     % "Edit light properties"
@@ -2313,7 +2315,7 @@
   {mmb_menu_toolbar_help,
    [
     % "Edge Ring"
-    {1,"辺のリング選択"}
+    {1,"辺リング選択"}
    ]},
   {norm_help_adv,
    [
@@ -2328,9 +2330,9 @@
   {rmb_menu_toolbar_help,
    [
     % "Edge Loop"
-    {1,"辺のループ選択"},
+    {1,"辺ループ選択"},
     % "Edge Loop to Region"
-    {2,"辺のループ選択を領域にする"},
+    {2,"辺ループ選択を領域にする"},
     % "Select edges which have both vertices selected"
     {3,"選択した頂点を両方とも持つような辺を選択します"}
    ]},
@@ -2341,11 +2343,11 @@
     % "Undo | Redo"
     {2,"取り消し | やり直し"},
     % "Next/Previous Edge Loop"
-    {3,"次/前の辺のループ"},
+    {3,"次/前の辺ループ"},
     % "Grow/Shrink Edge Loop"
-    {4,"辺のループ選択を拡張/縮小"},
+    {4,"辺ループ選択を拡張/縮小"},
     % "Grow/Shrink Edge Ring"
-    {5,"辺のリング選択を拡張/縮小"},
+    {5,"辺リング選択を拡張/縮小"},
     % "Select More | Select Less"
     {6,"選択を拡張 | 選択を縮小"}
    ]}
@@ -2359,128 +2361,128 @@
     % "Scale Axis"
     {2,"拡大縮小(軸方向)"},
     % "Scale Radial"
-    {3,"拡大縮小(放射状に)"}
+    {3,"拡大縮小(放射状)"}
    ]},
   {dir_help,
    [
     % "the last axis"
-    {3,"最後に使用した軸"},
+    {3,"(最後に使用した軸)"},
     % "the default axis"
-    {4,"デフォルト軸"},
+    {4,"(デフォルト軸)"},
     % "around"
     {7,"周囲"},
     % "along its normal"
-    {10,"法線の周囲"},
+    {10,"(法線方向)"},
     % "freely in all directions"
-    {11,"すべての方向へ自由自在に"},
+    {11,"(画面上を自由に)"},
     % "Scale equally in all directions"
-    {12,"全方向に均等に拡大縮小します"}
+    {12,"(全方向に等しく拡大縮小)"}
    ]},
   {dir_help_1,
    [
     % "Move each element "
     {1,"各要素を移動させます"},
     % "Rotate freely"
-    {2,"自由回転"},
+    {2,"画面上を回転"},
     % "Rotate around each element's normal"
-    {3,"各要素の法線の周囲を回転させます"},
+    {3,"選択要素をそれぞれ回転"},
     % "Extrude each element, then move it "
-    {4,"各要素を押し出して移動させます"},
+    {4,"各要素を押し出すことで移動させます"},
     % "Extrude faces as region, then move faces along the region's normal"
-    {5,"選択領域を押し出します,その結果領域の法線に沿って面が移動します"},
+    {5,"領域ごと法線方向へ押し出します"},
     % "Extrude faces as region, then move faces "
-    {6,"選択領域を押し出して,面を移動させます"},
+    {6,"領域ごと押し出して,面を移動させます"},
     % "Extract faces, then move faces along the region's normal"
-    {7,"面を採取します,領域の法線に沿って面が移動します"},
+    {7,"面を採取します,採取領域の法線方向へ移動します"},
     % "Extract faces, then move faces "
-    {8,"面を採取します,その結果面は移動します"},
+    {8,"面を採取します,採取した面は移動します"},
     % "Flatten elements to normal plane"
     {9,"法線の平面に平均化します"},
     % "Lift face along its normal"
-    {10,"面を法線に従って引き上げます"},
+    {10,"面を法線方向へ引き上げます"},
     % "Lift face and move it "
-    {11,"面を引き上げて移動します"},
+    {11,"面を引き上げて移動させます"},
     % "Duplicate and move freely "
-    {12,"複製して自由に移動します"},
+    {12,"複製したものを画面上下左右に移動"},
     % "Move each element along "
-    {13,"各要素に従って移動します"},
+    {13,"各要素の方向へ移動させます"},
     % "Extrude elements, then move along "
-    {14,"各要素を押し出して,移動します"},
+    {14,"各要素を押し出して,ばらばらに移動させます"},
     % "Extrude faces as region, then move along "
-    {15,"面を領域として押し出し,移動させます"},
+    {15,"面を領域ごと押し出します"},
     % "Extract faces, then move along "
-    {16,"面を採取して,移動させます"},
+    {16,"面を採取したものを移動させます"},
     % "Rotate around "
-    {17,"周囲を回転する"},
+    {17,"回転軸指定"},
     % "Scale "
     {18,"拡大縮小"},
     % "Scale along "
-    {19,"拡大縮小(追従)"},
+    {19,"伸縮方向"},
     % "Flatten to "
     {20,"平均化"},
     % "Flatten and move to "
     {21,"平均化して移動"},
     % "Lift face along "
-    {22,"面に沿って引き上げる"},
+    {22,"面に従って引き上げる"},
     % "Duplicate, then move along "
-    {23,"複製して、先に進みます"},
+    {23,"複製したものを指定方向へ移動させます"},
     % "Extract and Extrude faces as region, then move faces along the region's normal"
-    {24,"領域を押し出して採取し、面をその法線に従って移動させます"},
+    {24,"面領域を押し出して採取し、その領域の法線方向へ移動させます"},
     % "Extract and Extrude faces as region, then move faces "
-    {25,"領域を押し出して採取し、面を移動させます"},
+    {25,"面領域を押し出して採取し、移動させます"},
     % "Extract and Extrude faces as region, then move along "
     {26,"領域を押し出して採取し、移動させます"}
    ]},
   {dirs,
    [
     % "Move along std. axis"
-    {1,"基準軸に沿って移動させます"},
+    {1,"指定方向へ移動させます"},
     % "Pick axis to move along"
     {2,"軸を選択してください"},
     % "Move along std. axis"
-    {3,"基準軸に沿って移動させます"},
+    {3,"指定方向へ移動させます"},
     % "Move along selection's normal"
-    {4,"選択領域の法線に沿って移動させます"},
+    {4,"選択領域の法線方向へ移動させます"},
     % "Pick axis to move along"
-    {5,"軸を選択してください"},
+    {5,"移動軸を指定してください"},
     % "Extrude along std. axis"
-    {6,"基準軸に沿って押し出します"},
+    {6,"指定方向へ押し出します"},
     % "Extrude along selection's normal"
-    {7,"基準軸の法線に沿って押し出します"},
+    {7,"指定軸の法線方向へ押し出します"},
     % "Pick axis to extrude along"
-    {8,"押し出す軸を選択してください"},
+    {8,"押し出す方向を選択してください"},
     % "Extract along std. axis"
-    {12,"基準軸に沿って面を採取します"},
+    {12,"指定方向へ面を採取します"},
     % "Duplicate; move along std. axis"
-    {15,"複製；基準軸に沿って移動します"},
+    {15,"複製；指定方向へ移動します"},
     % "Duplicate; don't move"
-    {16,"複製；移動できません"},
+    {16,"その場で複製；移動しません"},
     % "Duplicate; pick axis to move along"
-    {17,"複製；移動のための軸を選択してください"},
+    {17,"複製；移動方向を選択してください"},
     % "Extract Shell and Extrude along std. axis"
-    {22,"基準軸に沿って押し出された部分は、殻をかぶるように独立します"},
+    {22,"押し出された部分は、殻をかぶるように独立します"},
     % "Extract Shell and Extrude along selection's normal"
-    {23,"選択領域の法線に沿って押し出された部分は、殻をかぶるように独立します"},
+    {23,"選択部分の法線で押し出された部分は、殻をかぶるように独立します"},
     % "Pick axis to Extract Shell and Extrude along"
-    {24,"造殻と押し出しのための軸を選択してください"}
+    {24,"造殻と押し出しのための方向を指定してください"}
    ]},
   {dirs_help,
    [
     % "Pick axis to extrude each face along"
-    {18,"各々の面を押し出す方向を軸で指定してください(面ごとに分かれます)"},
+    {18,"各々の面を押し出す方向を指定してください(面ごとばらばら)"},
     % "Pick axis to extrude each region of faces along"
-    {19,"各々の面の領域に押し出す方向を軸で指定してください"},
+    {19,"各々の面の領域に押し出す方向を指定してください"},
     % "Pick axis to extract each face along"
-    {20,"採取された各々の面を移動を軸で指定してください(面ごとにバラバラ)"},
+    {20,"採取された面を移動させる方向を指定してください(面ごとばらばら)"},
     % "Pick axis to extract each region of faces along"
-    {21,"採取された領域が移動する方向を、軸で指定してください"}
+    {21,"採取された領域を移動させる方向指定してください"}
    ]},
   {flatten,
    [
     % "Flatten"
     {1,"平均化"},
     % "Flatten to std. planes"
-    {2,"基準の平面に平均化します"},
+    {2,"要素を基準面に平均になるよう揃えます"},
     % "Pick plane and ref point on plane"
     {3,"平面と参照点を選択してください"},
     % "Pick plane"
@@ -2489,9 +2491,9 @@
   {flatten_edge_loops,
    [
     % "Edge Loops"
-    {1,"辺のループ選択"},
+    {1,"辺ループ選択"},
     % "Flatten each closed edge loop to its normal"
-    {2,"閉じた辺のループの各法線をもとに平均化します"}
+    {2,"閉じた辺ループの法線を基に平均化します"}
    ]},
   {flatten_fun_1,
    [
@@ -2501,11 +2503,11 @@
   {rotate,
    [
     % "Rotate around std. axis"
-    {1,"基準軸の周囲を回転します"},
+    {1,"指定軸を中心に回転させます"},
     % "Pick axis and ref point"
     {2,"平面と参照点を選択してください"},
     % "Pick axis to rotate around"
-    {3,"選択した軸の周囲を回転します"}
+    {3,"回転軸を指定してください"}
    ]},
   {rotate_1,
    [
@@ -2520,17 +2522,17 @@
   {scale,
    [
     % "Scale outward from std. axis"
-    {1,"基準軸から外側へ拡大縮小"},
+    {1,"指定軸から放射状に拡大縮小"},
     % "Pick axis and point to scale from"
     {2,"拡大縮小のために基準軸と中心点を指定してください"},
     % "Pick axis to scale out from"
-    {3,"選択域をはみ出すような基準軸を選んでください"},
+    {3,"拡大縮小の起点となる軸を選んでください"},
     % "Scale along std. axis"
-    {4,"基準軸に沿って拡大縮小"},
+    {4,"指定した方向へ拡大縮小します"},
     % "Pick axis and point to scale from"
     {5,"拡大縮小のために基準軸と中心点を指定してください"},
     % "Pick axis to scale along"
-    {6,"拡大縮小のための基準軸を選択してください"}
+    {6,"拡大縮小する方向を指定してください"}
    ]},
   {scale_fun,
    [
@@ -2542,7 +2544,7 @@
     % "Choose point to scale from"
     {1,"拡大縮小するための中心点を選択してください"},
     % "Scale uniformly from midpoint of selection"
-    {2,"選択領域の中心点から比率を保持したまま拡大縮小します"}
+    {2,"選択領域の中心点から等しく拡大縮小します"}
    ]}
  ]}.
 {wings_outliner,
@@ -2653,9 +2655,9 @@
     % "Texture Type"
     {1,"テクスチャタイプ"},
     % "Diffuse"
-    {2,"拡散光"},
+    {2,"ディフューズ"},
     % "Gloss"
-    {3,"光沢"},
+    {3,"グロス"},
     % "Bump (HeightMap)"
     {4,"バンプマップ(高さマップ)"},
     % "Bump (NormalMap)"
@@ -3027,7 +3029,7 @@
     % "Extend selection via hotkey on temporary highlight"
     {54,"ホットキーで,強調表示された臨時領域を拡張選択する"},
     % "Affects: Select All, Edge Loop, Edge Ring, Select Similar, Similar Normals, Similar Materials, and Similar Area."
-    {55,"適用効果：すべて選択,辺のループ,辺のリング,類似した選択領域,類似した法線,類似したマテリアル,類似した領域"},
+    {55,"適用効果：すべて選択,辺ループ,辺リング,類似した選択領域,類似した法線,類似したマテリアル,類似した領域"},
     % "Power-user menu abort"
     {56,"パワーユーザー用メニュー中断"},
     % "Mouse events such as Selection or Camera events abort menus"
@@ -3488,21 +3490,21 @@
   {dir,
    [
     % "All"
-    {all,"すべて"},
+    {all,"全方向"},
     % "default axis"
     {da,"デフォルト軸"},
     % "Free"
-    {f,"自由方向"},
+    {f,"画面上"},
     % "last axis"
-    {la,"最後に参照した軸"},
+    {la,"最後に使用した軸"},
     % "Normal"
-    {n,"法線方向へ"},
+    {n,"法線方向"},
     % "Radial"
-    {r,"半径"},
+    {r,"放射の中心軸:"},
     % "the ~ts axis"
-    {the_axis,"の ~ts 軸"},
+    {the_axis,"( ~ts 軸)"},
     % "Uniform"
-    {u,"比率を保持"},
+    {u,"等しく拡大縮小"},
     % "X"
     {x,"X"},
     % "Y"
@@ -3666,43 +3668,43 @@
     % "Edge Loop"
     {6,"辺をループ/リング状に選択"},
     % "Edge Loop"
-    {7,"辺のループ"},
+    {7,"辺ループ"},
     % "Expand edge selection to loop; "
-    {8,"辺のループ選択を拡張"},
+    {8,"辺ループ選択を拡張"},
     % "convert face selection to selected border edges"
     {9,"面の選択領域から輪郭の辺を選択済みにします"},
     % "Edge Loop to Region"
-    {10,"辺のループを領域に"},
+    {10,"辺ループを領域に"},
     % "Select all faces on one side of an edge loop"
-    {11,"辺のループの一方にある面を全て選択します"},
+    {11,"辺ループの一方にある面を全て選択します"},
     % "Edge Ring"
     {12,"辺をリング状に選択"},
     % "Expand edge selection to ring"
     {13,"辺の選択領域をリングに拡張"},
     % "Previous Edge Loop"
-    {14,"前の辺のループ"},
+    {14,"前の辺ループ"},
     % "Select the previous edge loop"
-    {15,"前の辺のループを選択"},
+    {15,"前の辺ループを選択"},
     % "Next Edge Loop"
-    {16,"次の辺のループ"},
+    {16,"次の辺ループ"},
     % "Select the next edge loop"
-    {17,"次の辺のループを選択"},
+    {17,"次の辺ループを選択"},
     % "Grow Edge Loop"
-    {18,"辺のループを拡張"},
+    {18,"辺ループを拡張"},
     % "Grow edge selection by one edge in loop directions"
     {19,"ループ方向にある1つの辺を領域に取り込んで選択領域を増やします"},
     % "Shrink Edge Loop"
-    {20,"辺のループを縮小"},
+    {20,"辺ループを縮小"},
     % "Shrink edge selection by one in loop direction"
-    {21,"辺のループから1段階選択領域を縮小します"},
+    {21,"辺ループから1段階選択領域を縮小します"},
     % "Grow Edge Ring"
-    {22,"辺のリングを拡張"},
+    {22,"辺リングを拡張"},
     % "Grow edge selection by one edge in ring direction"
     {23,"リング方向にある1つの辺を領域に取り込んで選択領域を増やします"},
     % "Shrink Edge Ring"
-    {24,"辺のリングを縮小"},
+    {24,"辺リングを縮小"},
     % "Shrink edge selection by one edge in ring directions"
-    {25,"辺のリングから1段階選択領域を縮小します"},
+    {25,"辺リングから1段階選択領域を縮小します"},
     % "Adjacent"
     {26,"選択モード切替"},
     % "Vertices"
@@ -3734,7 +3736,7 @@
     % "5 Edges"
     {40,"5辺で"},
     % "Faces With"
-    {41,"面を取り囲む辺の数"},
+    {41,"面を構成する辺の数"},
     % "2 Edges"
     {42,"2辺で"},
     % "3 Edges"
@@ -3841,6 +3843,10 @@
     {102,"3番目"},
     % "Nth..."
     {103,"N番目..."},
+    % "Unhide All Objects""
+    {104,"隠れたオブジェクトを再表示"},
+    % "Unlock All Objects"
+    {105,"全オブジェクトをアンロック"}, 
     % "6 or More"
     {401,"6番目以上"},
     % "Non Quadrangle Faces"
@@ -3926,7 +3932,7 @@
     % "Interval"
     {1,"間隔"},
     % "Select Every Nth Edge Ring"
-    {2,"N番目毎に辺のリングを選択"}
+    {2,"N番目毎に辺リングを選択"}
    ]},
   {sharp_edges,
    [
@@ -4334,7 +4340,7 @@
     % "Change to vertex selection mode"
     {2,"頂点選択モードに変更"},
     % "Select adjcacent edges"
-    {3,"隣接する編を選択"},
+    {3,"隣接する辺を選択"},
     % "Change to edge selection mode"
     {4,"辺選択モードに変更"},
     % "Select adjacent faces"
@@ -4441,35 +4447,35 @@
   {help_msg_axes,
    [
     % "--Axis Constraints--"
-    {1,"- 軸のコンストレイント - "},
+    {1,"██▋▌▍▎▏ 　軸拘束　　　  ▏▎▍▋▊███████████████████"},
     % "Axis Constraints only affect Tweak Move and Scale operations."
-    {2,"軸のコンストレイントはTweak移動と拡大縮小処理においてのみ効果があります"},
+    {2,"軸の拘束はTweakモードの移動と拡大縮小処理のみ効果があります"},
     % "[F1], [F2], and [F3] can be held to constrain movement to the 3 cardinal axes, X, Y, and Z."
-    {3,"[F1],[F2],[F3]キーはそれぞれ,X,Y,Zの軸方向へ固定した移動を行うことができます."},
+    {3,"[F1][F2][F3]キーのどれかを押しながらドラッグすると、選択要素をXYZ軸の各方向へ動かせます."},
     % "Click axis constraint hotkeys to toggle them."
-    {4,"軸のコンストレイントのホットキーをクリックすることでそれらを切替えられます."},
+    {4,"これらの軸拘束はオンオフにできます.オンのままなら項目先頭に●が付きます"},
     % "Any of the axes can be toggled to stay on via the Tweak Menu or the Tweak Palette."
-    {5,"どんな軸であってもTweakメニューやTweakパレットによって軸を切替えたままにすることができます"},
+    {5,"あらゆる軸指定は、Tweakメニュー/パレットによってオン/オフ軸に切替えできます."},
     % "The From Element and From Point axes activate the Tweak Vector."
-    {6," From Element と From Point axes は アクティブ化した 変形ベクトルです."},
+    {6," 伸縮効果の起点を要素の法線を基準(要素から)にしたり、マウスドラッグした方向に限定(カーソルから)したりできます"},
     % "Axes can be combined."
-    {7,"これらの軸は合体できます"}
+    {7,"これらの軸の拘束は組合せも可能です(例：XとY軸の合成、[F1][F2]同時に押しながらドラッグ)."}
    ]},
   {help_msg_basic,
    [
     % "--What is Tweak?--"
-    {1,"- Tweak機能とは？ - "},
+    {1,"██▋▌▍▎▏ Tweak機能とは？　  ▏▎▍▋▊█████████████████"},
     % "Tweak lets you edit a model quickly by clicking and dragging geometry."
-    {2,"Tweakには「微調整」「ひねる」という意味があります。これを使うとクリックやドラッグして迅速にモデルを編集できます."},
+    {2,"Tweakとは「微調整,ひねる」という意味で、クリックやドラッグで迅速にモデルを編集するモードです."},
     % "While Tweak is enabled, all the regular Wings commands are still available,"
-    {3,"Tweakモードが有効になっている間であっても,正規のWingsコマンドはそのまま利用可能です,"},
+    {3,"Tweakモードが有効な間であっても,通常のWingsコマンドも全て併用可能です. \n "},
     % " but certain mouse buttons and modifier keys will activate the Tweak tools."
-    {4,"しかし特定のマウスボタンと修飾キーは専用ホットキーとして登録してあるTweakツールを実行してしまうこともあるでしょう."}
+    {4,"しかし特定のマウスボタンと修飾キーはそのTweakツールと衝突する場合もあります."}
    ]},
   {help_msg_hotkeys,
    [
     % "--Hotkeyed Tweak Tools--"
-    {1,"- Tweakツールに専用ホットキーを割り当てる - "},
+    {1,"██▋▌▍▎▏ Tweakツールに専用ホットキーを割り当てる  ▏▎▍▋▊█████████████████"},
     % "An alternative to usings Tweak Key combinations is to assign hotkeys to the various Tweak Tools usings the [Insert] method."
     {2,"Tweakツールを呼び出す他の手段として [Insert]を使ことで,様々なTweakツールにホットキーを割り当てできます."},
     % "Pressing the hotkey assigns that Tweak Tool to Lmb."
@@ -4478,11 +4484,11 @@
   {help_msg_keys,
    [
     % "--Assigning Tweak Keys--"
-    {1,"- Tweak専用ホットキーの割り当て- "},
+    {1,"██▋▌▍▎▏ Tweak専用ホットキーの割り当て ▏▎▍▋▊██████"},
     % "Each of the Tweak Tools ~tscan be assigned a modifier key combination (Ctrl, Shift, Alt)."
-    {2,"Tweakツール ~ts それぞれに修飾キーの組合せを登録できます(Ctrl,Shift,Alt)."},
+    {2,"Tweakツール ~ts それぞれに修飾キーの組合せを登録できます (Ctrl,Shift,Alt)xLMB/MMB."},
     % " and "
-    {3,"と"},
+    {3," "},
     % "To assign a key combination to a Tweak Tool:"
     {4,"キーの組合せをTweakツールに登録する方法："},
     % "\t1) Open the Tweak Menu."
@@ -4490,27 +4496,27 @@
     % "\t2) Highlight one of the Tweak Tools."
     {6,"\t2）Tweakツール項目を1つ選択しハイライト表示にする."},
     % "\t3) Press and hold the modifier key combination and/or press the activating mouse button."
-    {7,"\t3）修飾キーを押したままで、さらにマウスボタンを押せば、その組み合わせが、専用ホットキーとして登録可能です."}
+    {7,"\t3）修飾キーを押したままで、さらにマウスボタンを押せば、その組み合わせが専用ホットキーとして登録可能です."}
    ]},
   {help_msg_magnet,
    [
     % "--Magnets--"
-    {1,"- マグネット - "},
+    {1,"██▋▌▍▎▏ マグネット　　  ▏▎▍▋▊███████████████████"},
     % "Magnets allow for soft selection."
     {2,"マグネット効果はハードエッジが設定されていない通常の領域に対して有効です"},
     % "There are 3 magnet types: Dome, Straight, and Spike."
-    {3,"マグネットには3タイプの種類があります : ドーム , ストレート , スパイク"},
+    {3,"マグネット効果の種類は3タイプありその形状を表します : ドーム , ストレート , スパイク"},
     % "Adjust the Magnet's Radius by holding [Alt] and moving the mouse."
-    {4,"マグネット効果の範囲を変更するには[Alt]キーを押しながらマウスを動かしてください."},
+    {4,"その効果の影響範囲を変更するには[Alt]キーを押しながらマウスを動かしてください(青い円が表示)."},
     % "Commands for switching magnets can be assigned to hotkeys in the Tweak Menu|Magnets."
-    {5,"「Tweakメニュー＞マグネット」からマグネットを切替えるためのコマンドをホットキーに割り当てることができます."},
+    {5,"「Tweakメニュー＞マグネット」内項目にホットキーを割当て、タイプ切替えする事も可能です."},
     % "Magnet options can be set in the Tweak Preferences."
-    {6,"マグネットのオプションはTweakの初期設定で設定可能です."}
+    {6,"マグネット効果の詳細設定はTweakパレットの「ツール環境設定」にあります."}
    ]},
   {help_msg_palette,
    [
     % "--Tweak Palette (Windows|Tweak Palette)--"
-    {1,"- Tweakパレット(ウインドウ|Tweakパレット) - "},
+    {1,"██▋▌▍▎▏ Tweakパレット(ウインドウ|Tweakパレット)  ▏▎▍▋▊█████████████████"},
     % "The Tweak Palette is a group of 3 windows that contain the main commands from the Tweak Menu."
     {2,"このTweakパレットは,Tweakメニュー由来のメインコマンドを含む 3つのウインドウのグループで構成されています."},
     % "Use the Tweak Palette to change switch between Tweak Tools, Magnet Types, or Axis Constraints."
@@ -4519,13 +4525,13 @@
   {help_msg_using_keys,
    [
     % "--Using Tweak--"
-    {1,"- Tweakの使い方 - "},
+    {1,"██▋▌▍▎▏ Tweakの使い方  ▏▎▍▋▊███████████████████"},
     % "1) Enabled Tweak."
-    {2,"1）Tweakモードを有効にします "},
+    {2,"1）まずTweakモードを有効にします "},
     % "2) Highlight or select one or more elements of geometry."
-    {3,"2）オブジェクトの面や辺などの要素を1つ以上選択するかハイライト表示させます."},
+    {3,"2）次に、画面内の3Dオブジェクトで効果を及ぼしたい部分(頂点/辺/面/オブジェクト全体)を選択してください."},
     % "3) Press the Tweak Key combination and associated mouse button to activate Tweak."
-    {4,"3）Tweakパレットの項目上でキーとマウスボタンの組合せを押すことで、Tweak機能を専用ホットキーに割り当てます."},
+    {4,"3）Tweakパレット項目上でキーとマウスボタンの組合せを押し、その機能を専用ホットキーに登録します.\n 先頭に●が付いた項目には、既になんらかの専用ホットキーが登録されている事を意味します. \n 登録の簡単な例として「左クリック」だけでもOKです. "},
     % "4) Drag geometry to it new position."
     {5,"4）「移動」がハイライトされている場合、オブジェクトの選択領域をドラッグしたまま別の位置にひっぱりましょう."},
     % "5) Release the mouse button to complete the Tweak."
@@ -4533,15 +4539,15 @@
     % "Releasing the Tweak Keys will not end the Tweak event."
     {7,"キーを離しているだけではTweak処理は確定されません."},
     % "This allows other hotkeys to be used in mid-tweak to activate another Tweak tool, an axis constraint, aim the camera, or adjust the magnet radius."
-    {8,"他のホットキーで別のTweak機能を動かすための影響要素には,軸のコンストレイント,カメラの注視,マグネット効果半径の調整があります."},
+    {8," \n 他のホットキーで別のTweak機能を動かすための影響要素には,軸のコンストレイント,カメラの注視,マグネット効果半径の調整があります. \n "},
     % "Pressing [C] in mid-tweak tumbles the camera."
-    {9,"マウスをドラッグしてTweakしている時に[C]キーも押すとカメラが回転します."},
+    {9,"Tweakモードでマウスをドラッグ中に[C]キーも押すとカメラが回転します."},
     % "Pressing [S] or the Arrow Keys in mid-tweak pans the camera."
-    {10,"マウスをドラッグしてTweakしている時に[S]キーも押すとカメラが移動します."},
+    {10,"Tweakモードでマウスをドラッグ中に[S]キーも押すとカメラが移動します."},
     % "Pressing [D] in mid-tweak dollies the camera."
-    {11,"マウスをドラッグしてTweakしている時に[D]キーも押すとカメラを近づけたり遠ざけます."},
+    {11,"Tweakモードでマウスをドラッグ中に[D]キーも押すとカメラを近づけたり遠ざけます."},
     % "Pressing [Spacebar] in mid-tweak switches to the Tweak Tool assigned to the Lmb."
-    {12,"マウスをドラッグしてTweakしている時に[スペース]キーも押せばマウス左ボタンに割り当ててあるTweakツールに切替えます."},
+    {12,"Tweakモードでマウスをドラッグ中に[スペース]キーも押すとマウス左ボタンに割当てたツールに切替えます."},
     % "Holding [F] while finalizing a Slide operation collapses all newly created short edges."
     {13,"スライド変形中に[F]キーも押していると,変形中に生じたあらゆる短い辺をまとめることができます."}
    ]},
@@ -4589,7 +4595,7 @@
     % "Scale elements uniformly from the selection center."
     {9,"要素を画面中心から全方向に拡大縮小."},
     % "Relax selection toward the average plane of neighbors."
-    {10,"滅茶苦茶にもつれた表面をゆるめます."},
+    {10,"もつれてめちゃくちゃになった表面を緩めます."},
     % "Slide elements along adjacent edges."
     {11,"周囲の辺の方向に従って要素をスライド."},
     % "Tweak Preferences"
@@ -4680,7 +4686,7 @@
     % "Without a hotkey assigned, the magnet radius is adjusted by holding [Alt]."
     {7,"[Alt]キーを同時に押すと,ホットキーを割り当てずに,マグネット半径を調節できます."},
     % "Reset Radius"
-    {8,"半径をリセット   "},
+    {8,"半径をリセット "},
     % "Reset the magnet radius to 1.0"
     {9,"マグネット効果の及ぶ半径を1.0にリセットします"},
     % "Next Magnet Type"
@@ -4904,23 +4910,23 @@
     % "Similar"
     {76,"同様"},
     % "Edge Loop"
-    {77,"辺のループ"},
+    {77,"辺ループ"},
     % "Edge Loop to Region"
-    {78,"辺のループを領域にします"},
+    {78,"辺ループを面の選択領域に変換"},
     % "Edge Ring"
-    {79,"辺のリング"},
+    {79,"辺リング"},
     % "Previous Edge Loop"
-    {80,"1つ前の辺のループ"},
+    {80,"1つ前の辺ループ"},
     % "Next Edge Loop"
-    {81,"1つ後の辺のループ"},
+    {81,"1つ後の辺ループ"},
     % "Edge Link Increase"
-    {82,"辺のリンクを拡張"},
+    {82,"辺リンクを拡張"},
     % "Edge Link Decrease"
-    {83,"辺のリンクを縮小"},
+    {83,"辺リンクを縮小"},
     % "Edge Ring Increase"
-    {84,"辺のリング選択を拡張"},
+    {84,"辺リング選択を拡張"},
     % "Edge Ring Decrease"
-    {85,"辺のリング選択を縮小"},
+    {85,"辺リング選択を縮小"},
     % "Adjacent"
     {86,"調節"},
     % "Inverse"
@@ -5040,7 +5046,7 @@
     % "Mouse Buttons"
     {144,"マウスボタン"},
     % "International Keyboards"
-    {145,"他言語キーボード配列"},
+    {145,"多言語キーボード配列"},
     % "Defined Hotkeys"
     {146,"登録済みのホットキー"},
     % "Defining Hotkeys"
@@ -5052,7 +5058,7 @@
     % "OpenGL Info"
     {151,"OpenGL情報"},
     % "About"
-    {152,"アバウト"},
+    {152,"Wings3Dについて"},
     % "Shapes"
     {153,"形状"},
     % "Tetrahedron"
@@ -5118,7 +5124,7 @@
     % "Normal"
     {184,"法線方向へ"},
     % "Free"
-    {185,"自由"},
+    {185,"画面上"},
     % "Center"
     {186,"中心"},
     % "Central Axis"
@@ -5324,11 +5330,11 @@
     % "To Area Light"
     {287,"エリア光源に変換"},
     % "Materials to Colors"
-    {288,"マテリアルをカラーにする"},
+    {288,"マテリアルをカラーに変換"},
     % "Rotate to Target"
     {289,"対象を回転"},
     % "Move Planar"
-    {290,"平面的に移動"}
+    {290,"平面を移動"}
    ]}
  ]}.
 {wings_vec,
@@ -5393,17 +5399,17 @@
     % "Direction between edges saved as axis."
     {5,"複数の辺の方向が軸として保存されました."},
     % "Edge loop normal saved as axis."
-    {6,"辺のループの法線が軸として保存されました."},
+    {6,"辺ループの法線が軸として保存されました."},
     % "Vertex normal saved."
     {8,"頂点の法線が保存されました"},
     % "Direction between vertices saved as axis."
     {9,"複数の頂点の法線を軸として保存されました."},
     % "Use average of vertex normals as axis"
-    {10,"複数の頂点から等距離にある法線を軸に用います"},
+    {10,"複数の頂点から等距離な法線を軸として用います"},
     % "Average of vertex normals saved as axis."
-    {11,"複数の頂点から等距離にある法線が軸として保存されました."},
+    {11,"複数の頂点から等距離な法線を軸として保存しました."},
     % "Use direction between vertices as axis"
-    {12,"複数の頂点間の方向を軸に用います"},
+    {12,"複数の頂点間を通る線を軸として用います"},
     % "3-point perp. normal saved as axis."
     {13,"3点を用意してその法線が軸として保存されました"},
     % "Vertex loop normal saved as axis."
@@ -5421,7 +5427,7 @@
     % "Use direction between face centers"
     {20,"複数の面の中心方向を用います"},
     % "Edge loop normal for region saved as axis."
-    {21,"領域のための辺のループの法線は軸として保存されました"},
+    {21,"領域のための辺ループの法線は軸として保存されました"},
     % "Multi-face selection must have a single edge loop."
     {22,"複数の面の選択領域は,その輪郭の辺が単一ループ状でなければいけません."},
     % "Select vertices, edges, or faces."
@@ -5435,9 +5441,9 @@
     % "Vertices cannot share coordinates when defining a 3 point plane normal"
     {27,"3地点による基準平面を定義するとき,頂点は座標を共有できません"},
     % "Axis between edge loop centers saved as axis."
-    {28,"辺のループの中心軸が軸として保存されました."},
+    {28,"辺ループの中心軸が軸として保存されました."},
     % "Multi-edge selection must form either a single or two closed edge loops."
-    {29,"複数の辺の選択領域はそれぞれ1つまたは2つの閉じた辺のループでなければいけません."}
+    {29,"複数の辺の選択領域はそれぞれ1つまたは2つの閉じた辺ループでなければいけません."}
    ]},
   {guard_string,
    [
@@ -5467,13 +5473,13 @@
     % "Extrude"
     {3,"押し出し"},
     % "Connect"
-    {4,"接続"},
+    {4,"頂点を接続"},
     % "Create a new edge by connecting selected vertices"
-    {5,"選択された複数の頂点を接続することで新しい辺を作ります"},
+    {5,"選択された複数の頂点同士を辺で接続します"},
     % "Tighten"
     {6,"緊縮"},
     % "Move selected vertices towards average midpoint"
-    {7,"選択された頂点を平均距離に向かって移動させます"},
+    {7,"選択された頂点群に対して角を際立たせる/風化させる等の効果を与えます"},
     % "Bevel"
     {8,"ベベル"},
     % "Create faces of selected vertices"
@@ -6013,6 +6019,6 @@
   {import_scale_s,
    [
     % "Import scale"
-    {1,"読込みの大きさ"}
+    {1,"読込み時のスケール"}
    ]}
  ]}.
