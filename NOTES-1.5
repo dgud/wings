@@ -1,0 +1,202 @@
+- Several levels of subdivision in smooth proxy can be drawn
+  This feature can be enabled in Preferences/Misc if OpenCL drivers can be found. [dgud]
+
+- Added the possibility to view normal/bump maps in the model window,
+  for uv-mapped surfaces. [dgud]
+
+- Added a Japanese translation provided by Tsukubado(tkbd), thank you. [dgud]
+
+- Korea3d and Szzz have updated the Korean and Chinese translations. [dgud]
+
+- Fixed secondary (always add temporary) selection, to only create temporary selection
+  if nothing was selected. Reported by Siber. [dgud]
+
+- Fixed selection bug where 'Select By Non Quadrangle Faces' did not work if anything was
+  selected. Reported by Deerwood. [dgud]
+
+- Fixed crash in autouv if every vertex was selected before unfold, reported by Deerwood [dgud]
+
+- Images loaded by "Import Image" now preserve its file extension
+  in its name shown in the Outline window as already is done by using
+  "Make External". (Thanks to FranOnTheEdge that reported this issue)
+  [Micheus]
+
+- Fixed the wrong placement of object in a folder after the project
+  has been loaded/reloaded. (Thanks to deerwood that reported this
+  bug) [Micheus]
+
+- Fixed merge cameras.
+  Now, any existing cameras in both files are maintained.
+  (Thanks to deerwood that reported this bug) [Micheus]
+
+- Visible and Locked states of lights were not restored after the
+  project has been loaded, despite they have been saved.
+  (Thanks to deerwood and ggaliens that reported this bug) [Micheus]
+
+- Multiple mouse buttons options in the context menu of Outliner window.
+  The option Select by material in the Outliner window doesn't
+  select the right elements if the selection mode isn't Face or
+  Body. It was fixed and added new parameters
+  that enable us to add support for "add to selection" and "remove from
+  selection" in context menu.
+  (Thanks to deerwood that reported the bug
+  and suggested the new options) [Micheus]
+
+- Fix unc paths on windows
+  (Thanks to jentzenm.unofficialsony that reported this bug) [Micheus]
+
+  When trying to saving a wings scene file to a path on the network
+  using unc path, an error occurs (Save failed: no such file or
+  directory) and the file was not saved. For some reason the first
+  slash is removed from the path name when Save dialog returns the
+  file name in the function wings_file:export_filename_1/2(after
+  executed wings_plugin:call_ui()). The same occurs with Open dialog
+  too. It seems to be a Erlang issue (I'm not sure). I did a
+  workaround, then I could Save/Export/Import using an "unc" path
+  without any problem. (Thanks to jentzenm.unofficialsony that
+  reported this bug) [Micheus]
+
+- Improvements to Information line management made it auto-sizable
+  when the message is longest than window width. [Micheus]
+
+- Fixed UV Torus crash
+  If a zero value has been inputted it will be overwritten with 3;
+  - added information for the fields U and V on Torus dialogs;
+  - Deutsch translation of 'lang' file by deerwood;
+  (Thanks to deerwood that reported this bug) [Micheus]
+
+- Text Primitives should be centered according to bounding box
+  that surrounds the text primitive being created. [Mark Whittemore]
+
+- Dialogs can now support model previews.
+  - Camera remains usable while dialog is active.
+  - Preview has 3 modes: Auto, Delayed, and Manual.
+  - Many existing dialogs have been updated to support
+    the new changes.(Shapes, Drag Args, Absolute Cmds,
+    Numeric Camera, and Selection tools).
+  - Combined primitives into single dialogs to save menu space.
+  - Values for Sliders and Text Entry Boxes with numeric
+    data can be increasd/decreased with the Scroll wheel.
+  - Constraints [Shift, Ctrl, Alt] work when changing
+    values using the scroll wheel within dialogs.
+    [optigon]
+
+- Move edges along normal fix. [optigon]
+
+- Added constraints to Sculpt mode menu. [optigon]
+
+- Fixed the wrong selection of elements when using the option
+  Material->Select in the Outline window if selection mode isn't Face
+  or Body. Also, its context menu supports multiple options and it was
+  added two new options: "Add to selection" and "Remove from
+  selection". (Thanks to deerwood that reported the bug and suggested
+  the new options) [Micheus]
+
+- Added a new option to Windows menu ("Selection Groups") that implements the selection commands in a window as follow:
+  LMB
+  - Select the group itens in the Geo win;
+  RMB
+  - With a group selected:
+  - above it self or in empty area: Delete/ Delete Invalid Groups;
+  - above another group: Delete/ Delete Invalid Groups/ Union/ Subtract/ Intersect;
+  - Without a group selected and none selection in Geo win:
+  - above a group: Delete/ Delete Invalid Groups;
+  - Without a group selected but with an selection in Geo win:
+  - above a group: New Group/ Delete/ Delete Invalid Groups/ Union/ Subtract/ Intersect/ Add to/ Subtract from;
+  - in an empty area: New Group;
+
+  It was suggested by Fonte Boa. [Micheus]
+
+- Added a new option to Windows menu ("Selection Groups") that implements the selection commands in a window as follow:
+  LMB
+  - Select the group itens in the Geo win;
+  RMB
+  - With a group selected:
+  - above it self or in empty area: Delete/ Delete Invalid Groups;
+  - above another group: Delete/ Delete Invalid Groups/ Union/ Subtract/ Intersect;
+  - Without a group selected and none selection in Geo win:
+  - above a group: Delete/ Delete Invalid Groups;
+  - Without a group selected but with an selection in Geo win:
+  - above a group: New Group/ Delete/ Delete Invalid Groups/ Union/ Subtract/ Intersect/ Add to/ Subtract from;
+  - in an empty area: New Group;
+
+  It was suggested by Fonte Boa. [Micheus]
+
+-  Added a new option "Rename" group; suggested by Fonte Boa
+   Improved visual feedback by adding mouse tracking - the group name under mouse pointer is framed;
+   Changed the default window position to up/left side of the window desktop. [micheus]
+
+-  Wings core (wings.erl and wings_plugin.erl) was changed in order
+   to make possible all windows used in a plugin be saved/restored
+   automaticly; updated wpc_sel_win.erl in order to use the new
+   resource, saving and restoring its placement on Wings
+   desktop. [Micheus]
+
+-  Wings core (wings.erl and wings_plugin.erl) was changed in order
+   to make possible all windows used in a plugin be saved/restored
+   automaticly; updated wpc_sel_win.erl in order to use the new
+   resource, saving and restoring its placement on Wings
+   desktop. [Micheus]
+
+- - Wings core (wings.erl and wings_plugin.erl) was changed in order
+  - to make possible all windows used in a plugin be saved/restored
+  - automaticly; [Micheus] updated wpc_sel_win.erl in order to use the
+  - new resource, saving and restoring its placement on Wings desktop;
+  - removed the option "Remove Invalid Groups" that was maintained by
+  - accident. [Micheus]
+
+- Added constraints to Sculpt mode menu. [optigon]
+
+- Fixed the wrong selection of elements when using the option
+  Material->Select in the Outline window if selection mode isn't Face
+  or Body. Also, its context menu supports multiple options and it was
+  added two new options: "Add to selection" and "Remove from
+  selection". (Thanks to deerwood that reported the bug and suggested
+  the new options) [Micheus]
+
+- Added Select|By|Name option in which selections using a matching name can be made by combining the "*" wildcard.
+  Added new options for Renaming objects in the Geometry Graph window:
+   LMB -> "Rename selected objects" (the current option)
+   MMB -> "Rename all selected objects" (the option already enabled in Body mode)
+   RMB -> "Rename objects filtered using a mask for name" (new option)
+
+  Now, Rename objects can be applied to several object at once, by
+  using a selection or a search mask (like *box*). Also, the new name
+  has a sequential number appended to it or placed in a defined
+  position by using the "%" wildcard. It's possible to define the
+  starter number by puting it between two "%" character (like:
+  Cube%100%). [Micheus]
+
+- Added two new options: Remove Invalid groups and Delete All groups.[Micheus]
+
+- It was improved the Image Plane resource by adding a dialog box for
+  enter options like: location, rotation around origin, lock it after
+  created and assign a transparent material for its back face (this make
+  possible to see trough the image plane in proxy mode). Thanks oort by the
+  idea and support as well to Ran13. [Micheus]
+
+- Added two new options: Remove Invalid groups and Delete All groups.[Micheus]
+
+- Move edges along normal fix. [optigon]
+
+- Fixed View ClipPlane bug [dgud]
+
+- Improved the Image Plane resource by adding a dialog box for
+  enter options like: location, rotation around origin, lock it after
+  created and assign a transparent material for its back face (this make
+  possible to see trough the image plane in proxy mode). Thanks oort by the
+  idea and support as well to Ran13. [Micheus]
+
+- Fixed crash caused by user hit ENTER in a dialog and the focus is in the expand/collapt button; (thanks to oort)
+  Fixed hard crash caused when a dynamic sub-menu (like Render) doesn't have any item; (thanks to oort)
+  Fixed the start value to Edge component. Different of the others it was starting from 1 - now it starts from 0;
+	(suggested by Caverman)
+  Fixed the bad display of values for the columns Volume and Area in the Tools->Scene Info. (thanks to ggaliens)
+  [Micheus]
+
+- Fixed the crash when exporting an object converted to light
+  (Object as area light). Thanks to sandman for report. [Micheus]
+
+- Fixed a bug when exporting an object converted to area light and that has hard edges. Thanks oort. [Micheus]
+
+- Added the ip_helper image to the projectsources. [Micheus]
