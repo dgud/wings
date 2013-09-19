@@ -19,8 +19,8 @@ elif test -d .git -o -f .git &&
 	v[0-9]*)
 		git update-index -q --refresh
 		test -z "$(git diff-index --name-only HEAD --)" ||
-		VN="$VN-dirty"
-		WINGS_BRANCH=$(git symbolic-ref HEAD | sed 's/.*\///') ;;
+		(VN="$VN-dirty"
+		WINGS_BRANCH=$(git symbolic-ref HEAD | sed 's/.*\///')) ;;
 	esac
 then
         VN=$(echo "$VN" | sed -e 's/-/./g');
