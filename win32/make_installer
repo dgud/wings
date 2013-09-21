@@ -125,6 +125,7 @@ $INSTALL -c -m 644 "$src"/lib/kernel-*/ebin/* "$dest/lib/$kernel/ebin"
 $INSTALL -c -m 644 "$src"/lib/stdlib-*/ebin/* "$dest/lib/$stdlib/ebin"
 $INSTALL -c -m 644 "$src"/lib/xmerl-*/ebin/* "$dest/lib/$xmerl/ebin"
 
+$INSTALL -c "$erts_src/bin/erl.exe" "$dest/bin"
 $INSTALL -c "$erts_src/bin/werl.exe" "$dest/bin"
 $INSTALL -c "$erts_src/bin/erlexec.dll" "$dest/bin"
 $INSTALL -c "$erts_src/bin/beam.smp.dll" "$dest/bin"

@@ -60,7 +60,7 @@ WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
 
   pref_dir[0] = '\0';
   SHGetFolderPath(NULL,	CSIDL_APPDATA|CSIDL_FLAG_CREATE, NULL, 0, pref_dir);
-  sprintf(cmd_line, "\"%s\\bin\\werl.exe\" -smp enable -run wings_start start_halt",
+  sprintf(cmd_line, "\"%s\\bin\\werl.exe\" -smp enable -detached -run wings_start start_halt",
           install_dir);
   if (argc > 1) {
     sprintf(cmd_line+strlen(cmd_line), " \"%s\"", argv[1]);
