@@ -1,3 +1,7 @@
+--- 1.5.1 ----------------------------------------------------------------------
+- Remove the erlang window and make Wings appear more as a native application
+
+--- 1.5 ----------------------------------------------------------------------
 - Several levels of subdivision in smooth proxy can be drawn
   This feature can be enabled in Preferences/Misc if OpenCL drivers can be found. [dgud]
 
@@ -107,21 +111,6 @@
 
   It was suggested by Fonte Boa. [Micheus]
 
-- Added a new option to Windows menu ("Selection Groups") that implements the selection commands in a window as follow:
-  LMB
-  - Select the group itens in the Geo win;
-  RMB
-  - With a group selected:
-  - above it self or in empty area: Delete/ Delete Invalid Groups;
-  - above another group: Delete/ Delete Invalid Groups/ Union/ Subtract/ Intersect;
-  - Without a group selected and none selection in Geo win:
-  - above a group: Delete/ Delete Invalid Groups;
-  - Without a group selected but with an selection in Geo win:
-  - above a group: New Group/ Delete/ Delete Invalid Groups/ Union/ Subtract/ Intersect/ Add to/ Subtract from;
-  - in an empty area: New Group;
-
-  It was suggested by Fonte Boa. [Micheus]
-
 -  Added a new option "Rename" group; suggested by Fonte Boa
    Improved visual feedback by adding mouse tracking - the group name under mouse pointer is framed;
    Changed the default window position to up/left side of the window desktop. [micheus]
@@ -131,19 +120,6 @@
    automaticly; updated wpc_sel_win.erl in order to use the new
    resource, saving and restoring its placement on Wings
    desktop. [Micheus]
-
--  Wings core (wings.erl and wings_plugin.erl) was changed in order
-   to make possible all windows used in a plugin be saved/restored
-   automaticly; updated wpc_sel_win.erl in order to use the new
-   resource, saving and restoring its placement on Wings
-   desktop. [Micheus]
-
-- - Wings core (wings.erl and wings_plugin.erl) was changed in order
-  - to make possible all windows used in a plugin be saved/restored
-  - automaticly; [Micheus] updated wpc_sel_win.erl in order to use the
-  - new resource, saving and restoring its placement on Wings desktop;
-  - removed the option "Remove Invalid Groups" that was maintained by
-  - accident. [Micheus]
 
 - Added constraints to Sculpt mode menu. [optigon]
 
@@ -180,12 +156,6 @@
 - Move edges along normal fix. [optigon]
 
 - Fixed View ClipPlane bug [dgud]
-
-- Improved the Image Plane resource by adding a dialog box for
-  enter options like: location, rotation around origin, lock it after
-  created and assign a transparent material for its back face (this make
-  possible to see trough the image plane in proxy mode). Thanks oort by the
-  idea and support as well to Ran13. [Micheus]
 
 - Fixed crash caused by user hit ENTER in a dialog and the focus is in the expand/collapt button; (thanks to oort)
   Fixed hard crash caused when a dynamic sub-menu (like Render) doesn't have any item; (thanks to oort)
