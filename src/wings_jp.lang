@@ -5028,7 +5028,7 @@
     % "Tweak"
     {135,"Tweak"},
     % "Snap Image"
-    {136,"イメージにスナップ"},
+    {136,"投影マッピング"},
     % "Outliner"
     {137,"アウトライナー"},
     % "Geometry Graph"
@@ -5676,9 +5676,9 @@
     % "-Z"
     {56,"-Z(←XY↑平面)"},
     % "Align to Selection"
-    {57,"選択領域の法線方向をビューに設定"},
+    {57,"選択領域を垂直視"},
     % "Align the view to the normal of the selection"
-    {58,"選択領域の法線と同じ方向に視点を変更します"},
+    {58,"ビューを選択領域の法線方向に合わせます。"},
     % "Auto Rotate"
     {59,"自動回転"},
     % "Spin the view"
@@ -5741,7 +5741,7 @@
   {views,
    [
     % "This view is already the current"
-    {1,"このビューは既にカレント状態です"},
+    {1,"このビューは既にカレントビューとして指定されています"},
     % "No saved views"
     {2,"記憶済みのビューがありません"},
     % "Rename view"
