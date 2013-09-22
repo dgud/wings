@@ -560,17 +560,17 @@
   {menu,
    [
     % "Snap Image"
-    {1,"イメージにスナップ"},
+    {1,"スナップ投影モード"},
     % "Start snap mode for \"snapping\" UV coordinates onto an image"
-    {2,"\"スナップ\"しているUV座標を画像上にスナップさせるスナップモードを開始します"},
+    {2,"オブジェクトの選択部分にテクスチャを平面投影します.モード実行中はツール群が右クリックメニューに追加されます; 《手順》【1】オブジェクトの向きや画像サイズを調整【2】張り付ける面を選択【3】面選択モード「※選択領域に画像をスナップ」で確定;【4】スナップモードを終了"},
     % "Exit Snap Mode"
-    {3,"スナップモードを終了"},
+    {3,"※スナップ投影モードを終了"},
     % "Exit snap mode"
     {4,"スナップモードを終了します"},
     % "Snap Image"
-    {5,"スナップイメージ"},
+    {5,"※イメージを選択領域にスナップ"},
     % "Put background image on selected faces by assigning UV coordinates to them"
-    {6,"それらへの座標をUVに割り当てることによって,選択された面に背景画像を割り当ててください."}
+    {6,"投影中の画像をオブジェクトの選択領域へ張り付けます。(マテリアルやUV座標は自動作成されます)."}
    ]},
   {proportional_scale,
    [
@@ -583,73 +583,73 @@
     % "Scale image's X value to be proportional to it's current Y value"
     {4,"イメージの横(X)方向の値を現在の縦(Y)方向のサイズに合わせます"},
     % "Actual Size"
-    {5,"実サイズに戻す"},
+    {5,"サイズを元に戻す"},
     % "Reset image to its actual size"
-    {6,"イメージを実際のサイズに戻します"}
+    {6,"イメージを画像の元のサイズに戻します"}
    ]},
   {select_image,
    [
     % "No images present, import an image first."
-    {1,"現在イメージが何もありません,最初にイメージを読込んでください."},
+    {1,"使用可能なテクスチャ画像がありません. \n まず「ファイル＞イメージの読み込み」を使って\n画像を読み込んでください."},
     % "Choose Image to snap"
-    {2,"スナップさせるイメージを選んでください"}
+    {2,"投影イメージを選択"}
    ]},
   {snap_menu,
    [
     % "Horizontal"
-    {1,"水平方向"},
+    {1,"※水平"},
     % "Scale the background image horizontally"
-    {2,"背景イメージを水平方向に引き延ばします"},
+    {2,"イメージを水平方向に伸縮 (マウス移動 左:伸張/右:縮小)"},
     % "Vertical"
-    {3,"垂直方向"},
+    {3,"※垂直"},
     % "Scale the background image vertically"
-    {4,"背景イメージを垂直方向に引き延ばします"},
+    {4,"イメージを垂直方向に伸縮 (マウス移動 前:伸張/奥:縮小)"},
     % "Free"
-    {5,"拡大縮小(自由)"},
+    {5,"※自由方向"},
     % "Scale the background image freely"
-    {6,"背景イメージを自由な方向に引き延ばします"},
+    {6,"イメージを自由な方向に伸縮 (マウス移動 左前:伸張/右奥:縮小)"},
     % "Uniform"
-    {7,"拡大縮小(全方向)"},
+    {7,"※全方向"},
     % "Scale the background image uniformly"
-    {8,"背景イメージを比率を保った状態で引き延ばします"},
+    {8,"イメージを比率保持したまま拡大縮小します"},
     % "Move the background image horizontally"
-    {10,"背景イメージを水平方向に移動します"},
+    {10,"イメージを左右方向に移動します"},
     % "Move the background image vertically"
-    {12,"背景イメージを垂直方向に移動します"},
+    {12,"イメージを上下方向に移動します"},
     % "Move the background image freely"
-    {14,"背景イメージを自由な方向に移動します"},
+    {14,"イメージを自由な方向に移動します"},
     % "Scale Snap Image"
-    {15,"イメージをスナップして拡大縮小"},
+    {15,"※拡大縮小"},
     % "Scale the background image"
-    {16,"背景イメージを拡大縮小"},
+    {16,"イメージを拡大縮小"},
     % "Move Snap Image"
-    {17,"スナップしたイメージを移動"},
+    {17,"※移動"},
     % "Move the background image"
-    {18,"背景イメージを移動"},
+    {18,"イメージを移動します"},
     % "Exit Snap Mode"
-    {19,"スナップモードを終了"},
+    {19,"※スナップモードを終了"},
     % "Exit the snap mode"
     {20,"スナップモードを終了します"},
     % "Fit Snap Image"
-    {21,"フィット"},
+    {21,"※フィット"},
     % "Both"
-    {22,"フィット(全体)"},
+    {22,"※フィット(全体)"},
     % "Fit image to the dimensions of the viewport"
-    {25,"イメージをビューポートの寸法にフィットさせます"},
+    {25,"イメージをビューポートのサイズに合わせます."},
     % "Center X"
-    {26,"中央へ(X方向)"},
+    {26,"※中央(X方向)"},
     % "Center the background image horizontally"
-    {27,"背景イメージを水平方向の中央に配置します"},
+    {27,"イメージを水平方向の中央に配置します"},
     % "Center Y"
-    {28,"中央へ(Y方向)"},
+    {28,"※中央(Y方向)"},
     % "Center the background image vertically"
-    {29,"背景イメージを垂直方向の中央に配置します"},
+    {29,"イメージを垂直方向の中央に配置します"},
     % "Center"
-    {30,"中央へ"},
+    {30,"※中央配置"},
     % "Center the background image to the viewport"
-    {31,"背景イメージをビューポートの中央に配置します"},
+    {31,"イメージをビューポートの中央に配置します"},
     % "Proportional"
-    {32,"画像を拡大縮小(全方向)"},
+    {32,"※プロポーショナル"},
     % "Make image scale proportional"
     {33,"画像の比率を保ったまま拡大縮小します"}
    ]}
