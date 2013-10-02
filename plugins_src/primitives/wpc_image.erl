@@ -315,7 +315,7 @@ load_ip_helper() ->
       _ -> none
     end.
 
-load_img_plane(FileName, #e3d_image{type=Type,width=W,height=H}=Image0) ->
+load_img_plane(FileName, #e3d_image{type=Type}=Image0) ->
     %% Convert to the format that wings_image wants before padding (faster).
     Name = filename:rootname(filename:basename(FileName)),
     case wings_image:maybe_exceds_opengl_caps(Image0) of
@@ -335,9 +335,11 @@ load_img_plane(FileName, #e3d_image{type=Type,width=W,height=H}=Image0) ->
                 %% the new image is saved - so force it to be internal.
                 Image2#e3d_image{filename=none}
             end,
+        Id=wings_image:new(Name,Image),
+        #e3d_image{width=W,height=H}=wings_image:info(Id),
         MaxU = W0/W,
         MaxV = H0/H,
-        {wings_image:new(Name,Image),{MaxU,MaxV},ratio(W0, H0)}
+        {Id,{MaxU,MaxV},ratio(W0, H0)}
     end.
 
 unload_img_plane(Id, St) ->
