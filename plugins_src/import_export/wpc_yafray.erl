@@ -404,12 +404,12 @@ command_file(Op, Ask, _St) when is_atom(Ask) ->
 
 -record(camera_info, {pos,dir,up,fov}).
 
-do_export(Op, Props0, Attr0, St0) ->
+do_export(Op, Props0, Attr0, St) ->
     SubDiv = proplists:get_value(subdivisions, Attr0, ?DEF_SUBDIVISIONS),
     Props = [{subdivisions,SubDiv}|Props0],
     [{Pos,Dir,Up},Fov] = wpa:camera_info([pos_dir_up,fov]),
     CameraInfo = #camera_info{pos=Pos,dir=Dir,up=Up,fov=Fov},
-    Attr = [CameraInfo,{lights,wpa:lights(St0)}|Attr0],
+    Attr = [CameraInfo,{lights,wpa:lights(St)}|Attr0],
     ExportFun = 
 	fun (Filename, Contents) ->
 		case catch export(Attr, Filename, Contents) of
@@ -420,10 +420,6 @@ do_export(Op, Props0, Attr0, St0) ->
 			{error,?__(2,"Failed to export")}
 		end
 	end,
-    %% Freeze virtual mirrors.
-    Shapes0 = gb_trees:to_list(St0#st.shapes),
-    Shapes = [{Id,wpa:vm_freeze(We)} || {Id,We} <- Shapes0],
-    St = St0#st{shapes=gb_trees:from_orddict(Shapes)},
     wpa:Op(Props, ExportFun, St).
 
 props(render, Attr) ->

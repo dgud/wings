@@ -19,8 +19,8 @@
 -include("e3d_image.hrl").
 -import(lists, [foldl/3,keydelete/3,reverse/1,last/1]).
 
-export(Exporter, Name, Ps, #st{shapes=Shs}=St0) ->
-    St = wings_view:freeze_mirror(St0),
+export(Exporter, Name, Ps, St0) ->
+	#st{shapes=Shs} = St = wings_view:freeze_mirror(St0),
     Objs = foldl(fun(W, A) ->
 			 export_1(W, Ps, A)
 		 end, [], gb_trees:values(Shs)),
