@@ -132,15 +132,51 @@ menu(_, Menu) ->
 povray_menu(Menu) ->
     Menu ++ [{?__(1,"POV-Ray (.pov)"),?TAG,[option]}].
 
+pov_output_exts() ->
+    wings_job:render_formats(),
+    OSDep = case os:type() of
+        {win32,_} -> {bmp,"+FS"};
+        {unix,darwin} -> {pic,"+FS"};
+        _ -> {ppm,"+FP"}
+    end,
+    [OSDep,{png,"+FN"},{tga,"+FT"}].
+
+get_ext_info([]) -> {"",""};
+get_ext_info(ExtInfo) ->
+    Exts=pov_output_exts(),
+    lists:foldl(fun({Key,Ext,Dsc}, Acc) ->
+        case lists:keysearch(Key,1,Exts) of
+            {value,_} -> Acc++[{Ext,Dsc}];
+            _ -> Acc
+        end
+    end, [], ExtInfo).
+
+get_output_param(Filename) ->
+    ExtsInfo=wings_job:render_formats(),
+    PovExts=pov_output_exts(),
+    {value, {_,DefParam}}=lists:keysearch(?DEF_RENDER_FORMAT,1,PovExts),
+    Ext=filename:extension(Filename),
+    case lists:keysearch(Ext, 2, ExtsInfo) of
+        {value, {RenderFormat, _, _}} ->
+            case lists:keysearch(RenderFormat,1,PovExts) of
+                {value, {_,Param}} -> Param;
+                _ -> DefParam
+            end;
+        _ -> DefParam
+    end.
+
 %dialog and file type properties
+% POV-Ray output file formats: http://www.povray.org/documentation/view/3.6.0/219/
 props(render, Attr) ->
     RenderFormat = proplists:get_value(render_format, Attr, ?DEF_RENDER_FORMAT),
-    {value, {RenderFormat, Ext, Desc}} = lists:keysearch(RenderFormat, 1, wings_job:render_formats()),
+    ExtsInfo=wings_job:render_formats(),
+    {value, {RenderFormat, Ext, Desc}} = lists:keysearch(RenderFormat, 1, ExtsInfo),
     Title = case os:type() of
         {win32,_} -> "Render";
         _Other    -> ?__(1,"Render")
     end,
-    [{title,Title}, {ext,Ext}, {ext_desc,Desc}];
+    Exts=get_ext_info(ExtsInfo),
+    [{title,Title}, {ext,Ext}, {ext_desc,Desc}, {extensions,Exts}];
 props(export, _Attr) ->
     {Title,File} = case os:type() of
         {win32,_} -> {"Export","POV-Ray File"};
@@ -224,6 +260,7 @@ pref_dialog(St) ->
             {?__(8,"Limit number of vertices, indices per line"), LimitVertices, [{key, limit_vertices}]}
         ]}],
     wpa:dialog(?__(9,"POV-Ray Options"), Dialog, fun (Attr) -> pref_result(Attr,St) end).
+
 pref_result(Attr, St) ->
     set_user_prefs(Attr),
     init_pref(),
@@ -332,7 +369,8 @@ export(Filename, Contents, Attr) ->
         {Renderer, true} ->
             ArgStr = wings_job:quote(filename:basename(ExportFile))++" +W"++wings_job:quote(integer_to_list(Width))++
                 " +H"++wings_job:quote(integer_to_list(Height))++
-                " +FN +o"++wings_job:quote(filename:basename(Filename))++
+                " "++get_output_param(Filename) ++
+                " +o"++wings_job:quote(filename:basename(Filename))++
                 case proplists:get_value(antialias, Attr, false) of
                     false->[];
                     true->" +A"++ wings_util:nice_float(proplists:get_value(aa_threshold, Attr, 0.3))++
