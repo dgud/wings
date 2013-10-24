@@ -70,7 +70,7 @@ init() ->
     set_var(rendering, false),
     true.
 
-%retrieve plugin preferences from prefernce file and store as global variables
+%retrieve plugin preferences from preference file and store as global variables
 init_pref() ->
     case is_windows() of
         true-> LocalRenderer = ?DEF_RENDERER;
@@ -102,6 +102,7 @@ init_pref() ->
         true-> LocalArgs = ?DEF_RENDERARGS;
         false-> LocalArgs = ?DEF_LINUX_RENDERARGS
     end,
+    set_var(render_format, get_pref(render_format, ?DEF_RENDER_FORMAT)),
     set_var(renderargs, get_pref(renderargs, LocalArgs)),
     set_var(limit_vertices, get_pref(limit_vertices, true)),
     set_var(use_model_dim, get_pref(use_model_dim, false)),
@@ -132,43 +133,10 @@ menu(_, Menu) ->
 povray_menu(Menu) ->
     Menu ++ [{?__(1,"POV-Ray (.pov)"),?TAG,[option]}].
 
-pov_output_exts() ->
-    wings_job:render_formats(),
-    OSDep = case os:type() of
-        {win32,_} -> {bmp,"+FS"};
-        {unix,darwin} -> {pic,"+FS"};
-        _ -> {ppm,"+FP"}
-    end,
-    [OSDep,{png,"+FN"},{tga,"+FT"}].
-
-get_ext_info([]) -> {"",""};
-get_ext_info(ExtInfo) ->
-    Exts=pov_output_exts(),
-    lists:foldl(fun({Key,Ext,Dsc}, Acc) ->
-        case lists:keysearch(Key,1,Exts) of
-            {value,_} -> Acc++[{Ext,Dsc}];
-            _ -> Acc
-        end
-    end, [], ExtInfo).
-
-get_output_param(Filename) ->
-    ExtsInfo=wings_job:render_formats(),
-    PovExts=pov_output_exts(),
-    {value, {_,DefParam}}=lists:keysearch(?DEF_RENDER_FORMAT,1,PovExts),
-    Ext=filename:extension(Filename),
-    case lists:keysearch(Ext, 2, ExtsInfo) of
-        {value, {RenderFormat, _, _}} ->
-            case lists:keysearch(RenderFormat,1,PovExts) of
-                {value, {_,Param}} -> Param;
-                _ -> DefParam
-            end;
-        _ -> DefParam
-    end.
-
 %dialog and file type properties
 % POV-Ray output file formats: http://www.povray.org/documentation/view/3.6.0/219/
-props(render, Attr) ->
-    RenderFormat = proplists:get_value(render_format, Attr, ?DEF_RENDER_FORMAT),
+props(render, _Attr) ->
+    RenderFormat = get_var(render_format),
     ExtsInfo=wings_job:render_formats(),
     {value, {RenderFormat, Ext, Desc}} = lists:keysearch(RenderFormat, 1, ExtsInfo),
     Title = case os:type() of
@@ -307,7 +275,7 @@ export(Filename, Contents, Attr) ->
     wpa:popup_console(),
     ExportTS = erlang:now(),
     Render = proplists:get_value(?TAG_RENDER, Attr, false),
-    RenderFormat = proplists:get_value(render_format, Attr, ?DEF_RENDER_FORMAT),
+    RenderFormat = get_var(render_format),
     ExportDir = filename:dirname(Filename),
 
     ContentsXForm = export_transform(Contents),
@@ -367,9 +335,12 @@ export(Filename, Contents, Attr) ->
             wings_job:export_done(ExportTS),
             io:nl();
         {Renderer, true} ->
+            {RenderFormatId, RenderFormatStr}=get_output_param(Filename),
+            set_var(render_format, RenderFormatId),
+            set_user_prefs([{render_format, RenderFormatId}]),  % it ensures global preference is updated
             ArgStr = wings_job:quote(filename:basename(ExportFile))++" +W"++wings_job:quote(integer_to_list(Width))++
                 " +H"++wings_job:quote(integer_to_list(Height))++
-                " "++get_output_param(Filename) ++
+                " "++RenderFormatStr ++
                 " +o"++wings_job:quote(filename:basename(Filename))++
                 case proplists:get_value(antialias, Attr, false) of
                     false->[];
@@ -1936,6 +1907,45 @@ clean_name([L | Name])->
                             end
                     end
             end
+    end.
+
+%%%
+%%% functions to manage the output file type
+%%%
+%% returns a list of {atom, param string} for the output file type supported by POV-Ray
+pov_output_exts() ->
+    wings_job:render_formats(),
+    OSDep = case os:type() of
+        {win32,_} -> {bmp,"+FS"};
+        {unix,darwin} -> {pic,"+FS"};
+        _ -> {ppm,"+FP"}
+    end,
+    [OSDep,{png,"+FN"},{tga,"+FT"}].
+
+%% returns the file extension and description of the file type
+get_ext_info([]) -> {"",""};
+get_ext_info(ExtInfo) ->
+    Exts=pov_output_exts(),
+    lists:foldl(fun({Key,Ext,Dsc}, Acc) ->
+        case lists:keysearch(Key,1,Exts) of
+            {value,_} -> Acc++[{Ext,Dsc}];
+            _ -> Acc
+        end
+    end, [], ExtInfo).
+
+%% ensure to return a valid pair {atom, param string} for output file supported by POV-Ray
+get_output_param(Filename) ->
+    ExtsInfo=wings_job:render_formats(),
+    PovExts=pov_output_exts(),
+    {value, {_,DefParam}}=lists:keysearch(?DEF_RENDER_FORMAT,1,PovExts),
+    Ext=filename:extension(Filename),
+    case lists:keysearch(Ext, 2, ExtsInfo) of
+        {value, {RenderFormat, _, _}} ->
+            case lists:keysearch(RenderFormat,1,PovExts) of
+                {value, {_,Param}} -> {RenderFormat,Param};
+                _ -> {?DEF_RENDER_FORMAT,DefParam}
+            end;
+        _ -> {?DEF_RENDER_FORMAT,DefParam}
     end.
 
 %pulls out all the values stored as {{KeyTag, SubKey}, Value}
