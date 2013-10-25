@@ -15,7 +15,8 @@
 -export([init/1]).
 -import(lists, [sort/1]).
 
--include("wings_intl.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 
 init(Next) ->
     wpa:pref_set_default(?MODULE, utf8, true),
@@ -37,18 +38,50 @@ ui(What, Next) -> Next(What).
 
 read_image(Prop) ->
     Name = proplists:get_value(filename, Prop),
-    e3d_image:load(Name, Prop).
+    case wxImage:loadFile(Image=wxImage:new(), Name) of
+	true ->
+	    E3d0 = #e3d_image{image=wxImage:getData(Image),
+			      width=wxImage:getWidth(Image),
+			      height=wxImage:getHeight(Image),
+			      order = upper_left
+			     },
+	    E3d = case wxImage:hasAlpha(Image) of
+		      true -> e3d_image:add_alpha(E3d0, wxImage:getAlpha(Image));
+		      false -> E3d0
+		  end,
+	    e3d_image:fix_outtype(Name, E3d, Prop);
+	false ->
+	    {error, ignore}
+    end.
 
 write_image(Prop) ->
     Name  = proplists:get_value(filename, Prop),
-    Image = proplists:get_value(image, Prop),
-    e3d_image:save(Image, Name, Prop).
+    Image0 = proplists:get_value(image, Prop),
+    Wx = case Image0 of
+	     #e3d_image{bytes_pp=4, width=W, height=H} ->
+		 #e3d_image{image=RGB} = e3d_image:convert(Image0, r8g8b8, 1, upper_left),
+		 #e3d_image{image=Alpha} = e3d_image:convert(Image0, a8, 1, upper_left),
+		 wxImage:new(W,H,RGB,Alpha);
+	     #e3d_image{bytes_pp=3, width=W, height=H} ->
+		 #e3d_image{image=RGB} = e3d_image:convert(Image0, r8g8b8, 1, upper_left),
+		 wxImage:new(W,H,RGB);
+	     #e3d_image{bytes_pp=1, width=W, height=H} ->
+		 #e3d_image{image=RGB} = e3d_image:convert(Image0, r8g8b8, 1, upper_left),
+		 wxImage:new(W,H,RGB)
+	 end,
+    case wxImage:saveFile(Wx, Name) of
+	true -> ok;
+	false -> {error, ignore}
+    end.
 
 image_formats(Fs0) ->
     Fs1 = [{".bmp",?__(1,"BMP Bitmap File")},
-	   {".tif",?__(2,"Tiff Bitmap")},
+	   {".gif",?__(6,"Compuserve GIF")},  %% only support 8pp
+	   {".jpg",?__(5, "JPEG File")},
 	   {".png",?__(3,"PNG File")},
-	   {".tga",?__(4,"Targa File")}|Fs0],
+	   {".tif",?__(2,"Tiff Bitmap")},
+	   {".tga",?__(4,"Targa File")}
+	   |Fs0],
     Fs2 = sofs:relation(Fs1),
     Fs3 = sofs:relation_to_family(Fs2),
     Fs = sofs:to_external(Fs3),
