@@ -15,7 +15,6 @@
 -module(wp8_file).
 
 -export([menus/0, init/1]).
--export([file_filters/1]).
 
 -include_lib("wx/include/wx.hrl").  %% includes wx headers
 -include("wings_intl.hrl").
@@ -41,7 +40,7 @@ fileop({file,save_dialog,Prop,Cont}, _Next) ->
 fileop(What, Next) ->
     Next(What).
 
-file_dialog(Type, Prop, Title, Cont) ->    
+file_dialog(Type, Prop, Title, Cont) ->
     Frame = get(top_frame),
     DefDir = proplists:get_value(directory, Prop),
     DefName = proplists:get_value(default_filename, Prop, ""),
@@ -56,9 +55,10 @@ file_dialog(Type, Prop, Title, Cont) ->
 	?wxID_OK ->
 	    Dir = wxFileDialog:getDirectory(Dlg),
 	    File = wxFileDialog:getFilename(Dlg),
+	    wxDialog:destroy(Dlg),
 	    Cont(filename:join(Dir, File));
 	_Cancel -> 
-	    io:format("Cancel ~p~n",[_Cancel]),
+	    wxDialog:destroy(Dlg),
 	    keep
     end.
 

@@ -12,7 +12,7 @@
 #
 
 WINGS_INTL=../../intl_tools
-LIBDIR = ../../plugins/win32_file
+LIBDIR = ../../plugins/wx_file
 
 BEAM = $(LIBDIR)/wp8_file.beam
 
