@@ -138,7 +138,7 @@ povray_menu(Menu) ->
 props(render, _Attr) ->
     RenderFormat = get_var(render_format),
     ExtsInfo=wings_job:render_formats(),
-    {value, {RenderFormat, Ext, Desc}} = lists:keysearch(RenderFormat, 1, ExtsInfo),
+    {value, {_, Ext, Desc}} = lists:keysearch(RenderFormat, 1, ExtsInfo),
     Title = case os:type() of
         {win32,_} -> "Render";
         _Other    -> ?__(1,"Render")
