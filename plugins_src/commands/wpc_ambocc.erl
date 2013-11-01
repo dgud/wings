@@ -93,7 +93,8 @@ make_disp_list(St) ->
     DrawAll = fun(We) -> draw_we(We,St) end,
     DispList = gl:genLists(1),
     gl:newList(DispList, ?GL_COMPILE),
-    lists:foreach(DrawAll, gb_trees:values(Shapes)),
+    Vabs = lists:map(DrawAll, gb_trees:values(Shapes)),
+    wings:keep(Vabs),
     gl:endList(),
     DispList.
 

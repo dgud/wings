@@ -717,6 +717,7 @@ redraw_all() ->
 			     do_dispatch(Name, redraw)
 		     end, Windows),
     wings_io:swapBuffers(),
+    wings:release_all(),
     clean(),
     wings_io:set_cursor(get(wm_cursor)),
     event_loop().
