@@ -4,6 +4,7 @@
  *     Wrapper to start Wings3D on Windows.
  *
  *  Copyright (c) 2002-2011 Bjorn Gustavsson
+ *  Copyright (c) 2013 Dan Gudmundsson
  *
  *  See the file "license.terms" for information on usage and redistribution
  *  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -26,12 +27,12 @@ int
 WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
 {
   PROCESS_INFORMATION piProcInfo;
-  STARTUPINFO siStartInfo = {0};
-  int argc = __argc;
-  char** argv = __argv;
-  char install_dir[MAX_PATH];
-  char cmd_line[3*MAX_PATH];
-  TCHAR pref_dir[MAX_PATH];
+  STARTUPINFOW siStartInfo = {0};
+  int argc;
+  wchar_t** argv;
+  wchar_t install_dir[MAX_PATH];
+  wchar_t cmd_line[3*MAX_PATH];
+  wchar_t pref_dir[MAX_PATH];
   char message[40];
   int i;
   int ok;
@@ -40,7 +41,9 @@ WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
   DWORD type;
   HANDLE module = GetModuleHandle(NULL);
 
-  if (argc > 1 && strcmp(argv[1], "--install") == 0) {
+  argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+
+  if (argc > 1 && wcscmp(argv[1], L"--install") == 0) {
     install();
   }
 
@@ -48,39 +51,40 @@ WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
     MessageBox(NULL, "Fatal: Failed to get module handle", NULL, MB_OK);
     exit(1);
   }
-  if (GetModuleFileName(module, install_dir, MAX_PATH) == 0) {
+  if (GetModuleFileNameW(module, install_dir, MAX_PATH) == 0) {
     MessageBox(NULL, "Fatal: Failed to get module file name", NULL, MB_OK);
     exit(1);
   }
-  i = strlen(install_dir) - 1;
-  while (i >= 0 && install_dir[i] != '\\') {
+  i = wcslen(install_dir) - 1;
+  while (i >= 0 && install_dir[i] != L'\\') {
     --i;
   }
-  install_dir[i] = '\0';
+  install_dir[i] = L'\0';
 
-  pref_dir[0] = '\0';
-  SHGetFolderPath(NULL,	CSIDL_APPDATA|CSIDL_FLAG_CREATE, NULL, 0, pref_dir);
-  sprintf(cmd_line, "\"%s\\bin\\werl.exe\" -smp enable -detached -run wings_start start_halt",
-          install_dir);
+  pref_dir[0] = L'\0';
+  SHGetFolderPathW(NULL,	CSIDL_APPDATA|CSIDL_FLAG_CREATE, NULL, 0, pref_dir);
+  _snwprintf(cmd_line, 3*MAX_PATH,
+	   L"\"%s\\bin\\werl.exe\" -smp enable -detached -run wings_start start_halt",
+	   install_dir);
   if (argc > 1) {
-    sprintf(cmd_line+strlen(cmd_line), " \"%s\"", argv[1]);
+      _snwprintf(cmd_line+wcslen(cmd_line), 3*MAX_PATH, L" \"%s\"", argv[1]);
   }
-  sprintf(cmd_line+strlen(cmd_line),  " -extra \"%s\"", pref_dir);
+  _snwprintf(cmd_line+wcslen(cmd_line), 3*MAX_PATH, L" -extra \"%s\"", pref_dir);
 
   siStartInfo.cb = sizeof(STARTUPINFO); 
   siStartInfo.wShowWindow = SW_MINIMIZE;
   siStartInfo.dwFlags = STARTF_USESHOWWINDOW;
 
-  ok = CreateProcess(NULL, 
-                     cmd_line, 
-                     NULL, 
-                     NULL, 
-                     FALSE,
-                     0,
-                     NULL,
-                     NULL,
-                     &siStartInfo,
-                     &piProcInfo);
+  ok = CreateProcessW(NULL, 
+		      cmd_line, 
+		      NULL, 
+		      NULL, 
+		      FALSE,
+		      0,
+		      NULL,
+		      NULL,
+		      &siStartInfo,
+		      &piProcInfo);
   if (!ok) {
     sprintf(message, "Failed to start Wings 3D: %u", GetLastError());
     MessageBox(NULL, message, NULL, MB_OK);
