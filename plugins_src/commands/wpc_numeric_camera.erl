@@ -88,7 +88,10 @@ camera_position({OldView,[CamX,CamY,CamZ, FX,FY,FZ]}, St) ->
         0.0 -> 1.0;
         _ -> -CamX/abs(CamX)
     end,
-    Y2 = e3d_vec:sub({CamX,0.0,CamZ}, {FX,0.0,FZ}),
+    Y2 = case {CamX,CamZ} of
+        {0.0,0.0} -> {0.0,0.0,1.0};
+        _ -> e3d_vec:sub({CamX,0.0,CamZ}, {FX,0.0,FZ})
+    end,
     Az =  AzF * e3d_vec:degrees(Y2, {0.0,0.0,1.0}),
     ElF = case CamY of
         0.0 -> 1.0;
