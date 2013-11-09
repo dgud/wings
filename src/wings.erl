@@ -1629,16 +1629,9 @@ save_geom_props([], Acc) -> Acc.
 
 save_plugin_window(Name, Ns) ->
     case wings_plugin:get_win_data(Name) of
-      {M, {HAlign,CtmData}} when (HAlign=:=left) orelse (HAlign=:=right) ->
-        {MaxX,MaxY} = wings_wm:win_size(desktop),
-        {PosX0,PosY0} = case HAlign of
-            left -> wings_wm:win_ul({controller,Name});
-            right -> wings_wm:win_ur({controller,Name})
-        end,
-        PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
-        PosY = if PosY0 < 0 -> 20; PosY0 > MaxY -> 20; true -> PosY0 end,
-        Size = wings_wm:win_size(Name),
-        WinInfo = {M, {Name, {PosX,PosY}, Size, CtmData}},
+      {M, {_,CtmData}} ->
+        {Pos,Size} = wings_wm:win_rect(Name),
+        WinInfo = {M, {Name, Pos, Size, CtmData}},
         [WinInfo|save_windows_1(Ns)];
       _ ->
         save_windows_1(Ns)
@@ -1679,7 +1672,8 @@ restore_windows_1([{{geom,_}=Name,Pos0,Size,Ps0}|Ws], St) ->
 restore_windows_1([{Name,Pos,Size}|Ws0], St) -> % OldFormat
     restore_windows_1([{Name,Pos,Size,[]}|Ws0], St);
 restore_windows_1([{Module,{{plugin,_}=Name,{_,_}=Pos,{_,_}=Size,CtmData}}|Ws], St) ->
-	wings_plugin:restore_window(Module, Name, validate_pos(Pos), Size, CtmData, St),
+	wings_plugin:restore_window(Module, Name, Pos, Size, CtmData, St),
+    wings_wm:move(Name, Pos, Size),  % ensure the window be placed in the right position *
     restore_windows_1(Ws, St);
 restore_windows_1([{{object,_}=Name,{_,_}=Pos,{_,_}=Size,Ps}|Ws], St) ->
     wings_shape:window(Name, validate_pos(Pos), Size, Ps, St),
@@ -1726,6 +1720,9 @@ move_windows([{Name,Pos,_}|Windows]) ->
 move_windows([{Name,Pos,_,_}|Windows]) ->
     move_windows_1(Name, Pos),
     move_windows(Windows);
+move_windows([{_Module,{{plugin,_}=Name,Pos,_,_}}|Windows]) ->
+    move_windows_1(Name, Pos),
+    move_windows(Windows);
 move_windows([]) -> ok.
 
 move_windows_1(geom,Pos) ->
@@ -1733,6 +1730,8 @@ move_windows_1(geom,Pos) ->
 move_windows_1({geom,_}=Name,Pos) ->
     wings_wm:move(Name,Pos);
 move_windows_1({tweak, _}=Name,Pos) ->
+    wings_wm:move(Name,Pos);
+move_windows_1({plugin,_}=Name,Pos) ->
     wings_wm:move(Name,Pos);
 move_windows_1(Name,{X,Y}) ->
     case wings_wm:is_window(Name) of
