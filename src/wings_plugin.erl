@@ -643,6 +643,8 @@ get_win_data(WinName) ->
     Ps = get(wings_plugins),
     get_win_data_1(Ps, WinName).
 
+%% win_data/1 function allows many plugin's windows to be saved.
+%% it should returns: {Name, {Horiz alignment, Custom_data}}
 get_win_data_1([M|Ps], WinName) ->
 	case catch M:win_data(WinName) of
 	  {WinName,Data} -> {M,Data};
