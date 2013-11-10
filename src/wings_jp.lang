@@ -5,14 +5,14 @@
   {area_info,
    [
     % " Area ~ts"
-    {40,"エリア ~ts"}
+    {40," (面積 ~ts)"}
    ]},
   {area_volume_info,
    [
     % "No objects in scene"
-    {1,"シーンにオブジェクトがひとつもありません"},
+    {1,"シーン内にオブジェクトがひとつもありません"},
     % "Scene Info: Area & Volume"
-    {5,"シーン情報：エリアとボリューム"}
+    {5,"シーン情報：面積(Area) & 体積(Volume)"}
    ]},
   {cannot_repeat,
    [
@@ -69,7 +69,7 @@
      % "\nDistance ~ts"
     {42,"\n距離 ~ts"},
     % "Object~ts"
-    {43,"オブジェクト ~ts"},
+    {43,"オブジェクト#~ts"},
     % "Difference ~ts"
     {45,"差分 ~ts"},
     % "Face~ts"
@@ -179,7 +179,7 @@
     % ". Midpoint <~ts  ~ts  ~ts>\nLength ~ts"
     {3,".中間点<~ts  ~ts  ~ts>\n長さ ~ts"},
     % ". Midpoint <~ts  ~ts  ~ts> \nMaterial ~ts."
-    {4,".中間点<~ts  ~ts  ~ts> \nマテリアル ~ts。"},
+    {4,".中間点<~ts  ~ts  ~ts> \nマテリアル ~ts."},
     % ". Distance ~ts  <~ts  ~ts  ~ts>"
     {5,".距離 ~ts <~ts  ~ts  ~ts>"},
     % ". Angle ~ts"
@@ -254,9 +254,9 @@
     % "Grab an image of the window (export it from the outliner)"
     {25,"ウインドウの内容を画像として取込みます(アウトライナーへ出力されます)"},
     % "Scene Info: Area & Volume"
-    {26,"シーン情報：エリアとボリューム"},
+    {26,"シーン情報：面積 & 体積"},
     % "Calculate area and volume for each object in the scene"
-    {27,"シーン内の各オブジェクトのエリアとボリュームを計算します"},
+    {27,"シーン内の各オブジェクトの面積(Area)と体積(Volume)を計算します"},
     % "Put on Ground"
     {28,"地平面に着地"},
     % "Put selected objects on the ground plane"
@@ -282,9 +282,9 @@
     % "Create bounding box around current selection"
     {39,"現在の選択領域を包括するバウンディングボックスを作成"},
     % "Tweak"
-    {40,"Tweak"},
+    {40,"Tweakメニュー"},
     % "Open the Tweak menu"
-    {41,"Tweakメニューを開く"}
+    {41,"Tweakメニューを開く;これはTweakパレットと同じ構成の右クリックメニューですが、通常のホットキーを設定することができます。"}
    ]},
   {undo_info,
    [
@@ -340,6 +340,18 @@
    [
     % "OK"
     {1,"OK"}
+   ]},
+  {dialog_preview_panel,
+   [
+    {1,"プレビュー"},
+    {2,"自動更新"},
+    {3,"値入力後"},
+    {4,"手動更新"}
+   ]},
+  {button_label,
+   [
+    {3,"リセット"},
+    {2,"更新する"}
    ]},
   {frame_event,
    [
@@ -476,8 +488,6 @@
     {29,"リネーム"},
     % "Rename selected objects"
     {30,"選択済みのオブジェクトの名称を変更します"},
-    % "Show All"
-    {31,"全てを表示"},
     % "Show all faces for this object"
     {32,"このオブジェクトの全ての面を表示します"},
     % "Vertex Attributes"
@@ -517,7 +527,9 @@
     % "Remove all vertex colors and UV coordinates"
     {50,"全ての頂点カラーとUV座標を削除"},
     % "Add a common prefix to each selected object"
-    {51,"選択された各オブジェクト名に共通の接頭辞を追加"}
+    {51,"選択された各オブジェクト名に共通の接頭辞を追加"},
+    % "Unhide Faces"
+    {52,"面を再表示"}
    ]},
   {rename_1,
    [
@@ -547,6 +559,11 @@
    [
     % "Found no faces to weld."
     {1,"接合するための面が見つかりません"}
+   ]},
+  {weld_error,
+   [
+    % "Found no faces to weld."
+    {1,"接合コマンドは解決することができませんでした"}
    ]}
  ]}.
 {wings_camera,
@@ -618,10 +635,6 @@
     {3,"パンスピード"},
     % "Wheel Zooms"
     {4,"ホイールズーム"},
-    % "Forwards Zooms In"
-    {5,"前方ズームイン"},
-    % "Forwards Zooms Out"
-    {6,"前方ズームアウト"},
     % "Zoom Factor"
     {7,"ズーム率"},
     % "Scroll Wheel"
@@ -640,8 +653,6 @@
     {16,"矢印キーによるパンスピード"},
     % "Show Info Line Help String"
     {17,"ヘルプ文字列を表示する"},
-    % "Arrow Keys Pan"
-    {18,"矢印キーによるパン"},
     % "Rotation Speed"
     {19,"回転スピード"},
     % "Zooming in aims Camera"
@@ -861,10 +872,10 @@
  ]}.
 {wings_edge,
  [
-  {dissolve_edge_2,
+  {dissolve_edges,
    [
     % "Dissolving would cause a badly formed face."
-    {1,"削除コマンドの使用で面が誤った形の面が発生するでしょう"}
+    {1,"削除コマンドを使用すると不正な形の面が発生します."}
    ]}
  ]}.
 {wings_edge_cmd,
@@ -1129,7 +1140,7 @@
     % "Eliminate selected faces and remove remaining isolated verts"
     {34,"選択された面を削除し、その際作成されたあらゆる孤立点も削除されます"},
     % "Extract"
-    {35,"面を採取"},
+    {35,"押し出し(採取)"},
     % "Shell Extrude"
     {36,"押し出し(造殻)"},
     % "Hole"
@@ -1244,7 +1255,7 @@
     % "opening wings file"
     {1,"wings形式のファイルを開く"},
     % "reading file"
-    {2,"ファイル読込み"}
+    {2,"ファイル読み込み"}
    ]},
   {import_1,
    [
@@ -1309,7 +1320,7 @@
   {confirmed_open,
    [
     % "Read failed: "
-    {1,"読込み失敗："}
+    {1,"読み込み失敗："}
    ]},
   {confirmed_open_dialog,
    [
@@ -1329,12 +1340,14 @@
   {import_image,
    [
     % "Failed to load \"~ts\": ~ts\n"
-    {1,"読込みの失敗\"~ts\"： ~ts\n"}
+    {1,"読み込みの失敗\"~ts\"： ~ts\n"},
+    % "The image cannot be loaded.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"
+    {2,"その画像はロードできませんでした.~nFile: \"~s\"~n GLU エラー: ~p - ~s~n"}
    ]},
   {import_ndo,
    [
     % "Import failed: "
-    {1,"読込みの失敗："}
+    {1,"読み込みの失敗："}
    ]},
   {install_plugin,
    [
@@ -1382,7 +1395,7 @@
     % "Revert current scene to the saved contents"
     {17,"現在のシーンを保存時の内容に戻します"},
     % "Import"
-    {18,"読込み"},
+    {18,"読み込み"},
     % "Export"
     {19,"書き出し"},
     % "Export Selected"
@@ -1390,7 +1403,7 @@
     % "Import Image..."
     {21,"イメージの読み込み..."},
     % "Import an image file"
-    {22,"画像ファイルを指定して読込みます(読込んだテクスチャはアウトライナーへ追加されます)"},
+    {22,"画像ファイルを指定して読み込みます(読込んだテクスチャはアウトライナーへ追加されます)"},
     % "Render"
     {23,"レンダリング"},
     % "Install Plug-In"
@@ -1398,7 +1411,7 @@
     % "Exit"
     {25,"終了"},
     % "Generate new filename and save"
-    {26,"新規ファイルを作成して保存します"},
+    {26,"データを連番ファイル名で保存します/未保存の場合は新規ファイルで保存"},
     % "Install a plug-in"
     {27,"プラグインをインストールします"},
     % "Exit Wings 3D"
@@ -1406,24 +1419,24 @@
     % "Save Unused Materials"
     {29,"未使用マテリアルを保持"},
     % "Include unused materials when saving a .wings file"
-    {30,".wingsファイルを保存する時に未使用のマテリアルデータを含めます"},
+    {30,"チェックを付けると.wingsファイルを保存する時に未使用のマテリアルデータを含めます"},
     % "Save Preference Subset..."
     {31,"環境設定の一部を保存..."},
     % "Save a preference subset from your current settings"
     {32,"現在カスタマイズされた環境設定で保存可能な項目を保存します"},
     % "Load Preference Subset"
-    {33,"環境設定の一部を読込み"},
+    {33,"環境設定の一部を読み込み"},
     % "Load..."
-    {35,"読込み..."},
+    {35,"読み込み..."},
     % "Load a previously saved preference subset"
-    {36,"以前に保存した環境設定の一部を読込みます"}
+    {36,"以前に保存した環境設定の一部を読み込みます"}
    ]},
   {merge,
    [
     % "★Merge"
     {1,"Merge"},
     % "Read failed: "
-    {2,"読込み失敗："}
+    {2,"読み込み失敗："}
    ]},
   {recent_files,
    [
@@ -1455,7 +1468,7 @@
   {use_autosave_1,
    [
     % "An autosaved file with a later time stamp exists; do you want to load the autosaved file instead?"
-    {1,"自動保存された新しいファイルが存在します;代わりに自動保存されたファイルを読込みますか？"}
+    {1,"自動保存された新しいファイルが存在します;代わりに自動保存されたファイルを読み込みますか？"}
    ]},
   {wings_prop,
    [
@@ -1912,9 +1925,9 @@
     % "Screenshot  (★This text is use for  bar text and  name ,  MUST BE Latain Strings)"
     {1,"Screenshot"},
     % "Capture viewport only"
-    {2,"ビューポートのみ取得"},
+    {2,"3D画面のみキャプチャする(未チェックの場合は全てキャプチャされる)"},
     % "Add current view to Saved Views"
-    {3,"現在のビューを保存ビューへ追加"},
+    {3,"現在のビューを記憶. これは「表示＞記憶済のビュー」から呼出せます."},
     % "Name"
     {4,"名前"}
    ]},
@@ -1934,7 +1947,7 @@
   {try_video_modes,
    [
     % "Trying OpenGL modes\n"
-    {1,"OpenGLモードを試しています\n"}
+    {1,"OpenGLモードを試みています\n"}
    ]},
   {video_mode_failure,
    [
@@ -2170,7 +2183,7 @@
     % "Spike"
     {spike,"スパイク型"},
     % "Straight"
-    {straight,"針型"}
+    {straight,"尖りドーム型"}
    ]}
  ]}.
 {wings_material,
@@ -2200,7 +2213,7 @@
   {load_map_1,
    [
     % "Failed to load"
-    {1,"読込みが失敗しました."}
+    {1,"読み込みが失敗しました."}
    ]},
   {material_fun,
    [
@@ -2427,11 +2440,15 @@
     % "Duplicate, then move along "
     {23,"複製したものを指定方向へ移動させます"},
     % "Extract and Extrude faces as region, then move faces along the region's normal"
-    {24,"面領域を押し出して採取し、その領域の法線方向へ移動させます"},
+    {24,"面領域を押し出して採取し、その領域の法線方向に従って移動させます"},
     % "Extract and Extrude faces as region, then move faces "
     {25,"面領域を押し出して採取し、移動させます"},
     % "Extract and Extrude faces as region, then move along "
-    {26,"領域を押し出して採取し、移動させます"}
+    {26,"領域を押し出して採取し、その法線方向に従って移動させます"},
+    % "Extract and Extrude faces as region, then move faces"
+    {28,"領域を押し出して採取し、面を移動させます"},
+    % "Extract and Extrude faces as region, then move faces along the region's normal"
+    {27,"領域を押し出して採取し、その領域の法線に方向に従って移動させます"}
    ]},
   {dirs,
    [
@@ -2460,7 +2477,7 @@
     % "Duplicate; pick axis to move along"
     {17,"複製；移動方向を選択してください"},
     % "Extract Shell and Extrude along std. axis"
-    {22,"押し出された部分は、殻をかぶるように独立します"},
+    {22,"押し出された部分は、殻(シェル)をかぶるように独立します"},
     % "Extract Shell and Extrude along selection's normal"
     {23,"選択部分の法線で押し出された部分は、殻をかぶるように独立します"},
     % "Pick axis to Extract Shell and Extrude along"
@@ -2517,7 +2534,9 @@
   {rotate_fun,
    [
     % "Pick point for axis to pass through"
-    {1,"軸が通る地点を選択してください"}
+    {1,"回転軸が通る地点を選択してください"},
+    % "Through Origin"
+    {2,"原点を中心に回転させる"}
    ]},
   {scale,
    [
@@ -2580,9 +2599,9 @@
   {delete_image,
    [
     % "The image is used by a material."
-    {1,"そのイメージはマテリアルによって使用されています."},
+    {1,"そのイメージはマテリアルにより使用中です.\n削除するにはマテリアルから関連づけを切って下さい."},
     % "Are you sure you want to delete the image (NOT undoable)?"
-    {2,"本当にそのイメージを削除しますか(やり直しはできません)？"}
+    {2,"本当にそのイメージを削除しますか?\n(やり直しはできません)"}
    ]},
   {do_menu,
    [
@@ -2638,6 +2657,10 @@
     {25,"リネーム"},
     % "Rename this light"
     {26,"この光源の名称を変更します"},
+    % "Remove all elements that have this material from selection"
+    {28,",このマテリアルが設定された全ての領域を,選択領域から除外します."},
+    % "Add all elements that have this material to selection"
+    {27,"このマテリアルが設定された全ての領域を,選択領域に追加します"},
     % "Drop picked object"
     {121,"ピックアップ項目をドロップ"},
     % "Drop a previously picked object on this material"
@@ -2723,9 +2746,9 @@
     % "No palette found"
     {10,"パレットが見つかりません"},
     % "Import error: ~w"
-    {11,"読込みエラー： ~w"},
+    {11,"読み込みエラー： ~w"},
     % "Import error: ~w"
-    {12,"読込みエラー： ~w"}
+    {12,"読み込みエラー： ~w"}
    ]},
   {do_menu,
    [
@@ -2754,9 +2777,9 @@
     % "Export palette to file"
     {12,"パレット情報をファイルに書き出します"},
     % "Import"
-    {13,"パレット読込み..."},
+    {13,"パレット読み込み..."},
     % "Import palette from file"
-    {14,"パレット情報ファイルを読込みます"}
+    {14,"パレット情報ファイルを読み込みます"}
    ]},
   {event,
    [
@@ -2815,7 +2838,7 @@
   {marquee_message,
    [
     % "Deselect"
-    {ctrl_action,"取消し選択"},
+    {ctrl_action,"選択領域を解除"},
     % "(De)select only elements wholly inside marquee"
     {shift_action,"内部マーキーを完全に選択(または解除)してください"}
    ]}
@@ -2827,7 +2850,7 @@
     % "Commands"
     {1,"コマンド"},
     % "Import/export"
-    {2,"読込み/書き出し"},
+    {2,"読み込み/書き出し"},
     % "Primitives"
     {3,"プリミティブ"},
     % "Render"
@@ -2867,6 +2890,11 @@
     {1,"ファイル\"~ts\"は絶対パスを含むファイルです"},
     % "File \"~ts\" does not contain any Wings plug-in modules"
     {2,"ファイル\"~ts\"はWings3Dのプラグインモジュールを含んでいません"}
+   ]},
+  {install_tar,
+   [
+    % "Install of \"~s\" failed: ~p"
+    {1," \"~s\" のインストールに失敗しました: ~p"}
    ]},
   {manager_command,
    [
@@ -2916,7 +2944,7 @@
   {pref,
    [
     % "Load Preference Subset"
-    {1,"環境設定のサブセットを読込み"},
+    {1,"環境設定のサブセットを読み込み"},
     % "Save Preference Subset"
     {2,"環境設定のサブセットを保存"},
     % "Graphical Settings"
@@ -2937,8 +2965,6 @@
     {10,"1番目に存在するホットキーを削除"},
     % "This file has been moved or deleted."
     {11,"このファイルは既に移動または削除されています"},
-    % "Preference Subset.pref"
-    {12,"Preference Subset.pref"},
     % "Not a .pref file"
     {13,".prefファイルではありません"},
     % "Select Valid Preference Fields for Current File"
@@ -2947,7 +2973,7 @@
   {recent_pref_help,
    [
     % "Load a recent Preference Subset"
-    {1,"最近使用した環境設定の一部を読込みます"}
+    {1,"最近使用した環境設定の一部を読み込みます"}
    ]}
  ]}.
 {wings_pref_dlg,
@@ -2955,7 +2981,7 @@
   {advanced_prefs,
    [
     % "Default Commands"
-    {1,"デフォルトコマンド"},
+    {1,"デフォルトコマンド機能を有効にする"},
     % "Allow defining commands that can be invoked by Ctrl+L or Ctrl+M"
     {2," Ctrl+L または Ctrl+M キーで呼び出し可能なコマンドを定義できるようにします."},
     % "Use Highlight as Temporary Selection"
@@ -2972,10 +2998,6 @@
     {8,"カメラを操作中は選択領域を隠す"},
     % "Don't show the selection when the camera is being moved"
     {9,"カメラが動いている間は選択領域を表示しません"},
-    % "Power-user temporary selections"
-    {12,"パワーユーザー用の臨時選択領域"},
-    % "In the secondary selection mode, RMB-clicking always adds to the selection"
-    {13,"2ndary Selectionモードで,常に右マウスボタンクリックで選択領域を追加する"},
     % "Length"
     {14,"長さ"},
     % "Length of vector in secondary selections"
@@ -2990,10 +3012,6 @@
     {19,"ベクトルのカラー"},
     % "Vector Display"
     {20,"ベクトルの表示"},
-    % "Use Mirror for Selections"
-    {21,"選択領域をミラーにも使う"},
-    % "Default to using the virtual mirror for secondary selections"
-    {22,"デフォルトで2ndary Selectionモードではバーチャルミラーを使用する"},
     % "Size"
     {23,"サイズ"},
     % "Size of user-defined clipping indicator"
@@ -3004,20 +3022,10 @@
     {26,"ユーザー定義されたクリッピング表示色"},
     % "Clipping Plane Indicator"
     {27,"クリッピング平面の表示"},
-    % "Selected Geometry"
-    {28,"選択されたオメトリ"},
-    % "Unselected Geometry"
-    {29,"未選択のジオメトリ"},
-    % "Highlight Aim Targets"
-    {30,"注視されたターゲットを強調表示"},
     % "Customize Drag Response"
     {38,"ドラッグ中の反応をカスタマイズ"},
     % "Customize the drag to mouse motion ratio. Unchecked uses default settings."
     {39,"マウスの移動比のためにドラッグをカスタマイズします.未チェック時は初期設定となります."},
-    % "Factor in Distance from Camera"
-    {40,"カメラからの距離比率"},
-    % "Factor in Distance from Camera"
-    {43,"カメラからの距離比率"},
     % "Drag Preferences"
     {49,"ドラッグ環境設定"},
     % "Mouse Speed for Dragging"
@@ -3029,15 +3037,7 @@
     % "Extend selection via hotkey on temporary highlight"
     {54,"ホットキーで,強調表示された臨時領域を拡張選択する"},
     % "Affects: Select All, Edge Loop, Edge Ring, Select Similar, Similar Normals, Similar Materials, and Similar Area."
-    {55,"適用効果：すべて選択,辺ループ,辺リング,類似した選択領域,類似した法線,類似したマテリアル,類似した領域"},
-    % "Power-user menu abort"
-    {56,"パワーユーザー用メニュー中断"},
-    % "Mouse events such as Selection or Camera events abort menus"
-    {57,"カメライベントや選択のようなマウスイベントをやめる"},
-    % "Power-user menu hotkey support"
-    {58,"パワーユーザー用メニューホットキーのサポート"},
-    % "Allow hotkeys to be called even when menus are open"
-    {59,"メニューを開くときにもホットキーを使用することを許可"}
+    {55,"適用効果：すべて選択,辺ループ,辺リング,類似した選択領域,類似法線,類似マテリアル,類似面積"}
    ]},
   {command,
    [
@@ -3164,15 +3164,15 @@
     % "Selection"
     {26,"選択"},
     % "Text"
-    {27,"テキスト"},
+    {27,"文字色"},
     % "Color of information text"
-    {28,"情報行の文字色"},
+    {28,"情報テキストの文字色(アイコンバーの下に表示され、選択中の要素の関連情報を表示)"},
     % "Background"
     {29,"背景色"},
     % "Color of background for information text (including transparency)"
-    {30,"情報行の背景色(透明度含む)"},
+    {30,"情報テキストの背景色(透明度含む)"},
     % "Information Text"
-    {31,"情報行の設定"},
+    {31,"情報テキスト"},
     % "Color"
     {32,"カラー"},
     % "Force Axis-Aligned Grid"
@@ -3228,9 +3228,9 @@
     % "Width of normals"
     {60,"法線の線幅"},
     % "Verbose"
-    {61,"詳細"},
+    {61,"詳細表示"},
     % "Show additional information about selected elements"
-    {62,"選択した要素に関する追加情報を表示します"},
+    {62,"選択した要素に関する追加情報(距離、角度、面積等)を表示します"},
     % "Mouseover"
     {63,"マウスオーバー"},
     % "Show additional information for highlighted element on mouseover"
@@ -3292,7 +3292,7 @@
     % "Moving Opacity"
     {13,"移動時の透明度"},
     % "Proxy Mode"
-    {14,"代替表示モード"},
+    {14,"Proxyモード時の設定"},
     % "Text in menus and dialogs disappear"
     {15,"メニューとダイアログ内の文章が消失しています"},
     % "Problem occurs on some Matrox cards"
@@ -3324,7 +3324,13 @@
     % "Menus are clipped and continue in 'More...' submenu."
     {29,"メニュー項目数がウインドウをはみ出すほどあるので,残りの項目はサブメニュー'続く...'にまとめられました."},
     % "Less than 1 sets menu clipping to auto."
-    {30,"少なくとも1セットのメニューが自動でまとめられます."}
+    {30,"少なくとも1セットのメニューが自動でまとめられます."},
+    % "OpenCL proxy level"
+    {42,"OpenCLプロキシレベル"},
+    % "OpenCL drivers is required"
+    {41,"OpenCLドライバが必要です"},
+    % "A value of 0 will use the standard implementation, a larger value takes more memory (experimental feature requires good OpenCL drivers)"
+    {40,"値が0の場合一般的な実装を使用します,値を大きくすると多くのメモリが必要になります (高品質OpenCLドライバ向けの実験的機能)"}
    ]},
   {smart_set_value_1,
    [
@@ -3333,7 +3339,11 @@
     % "The change to the interface icons will take\neffect the next time Wings 3D is started."
     {2,"インターフェースアイコンの変更は\n次にWings 3Dを起動した時に反映されます."},
     % "The change to the default material color will take\neffect the next time Wings 3D is started."
-    {3,"デフォルトのマテリアルカラーの変更は\n次にWings 3Dを起動した時に反映されます."}
+    {3,"デフォルトのマテリアルカラーの変更は\n次にWings 3Dを起動した時に反映されます."},
+    % "The language change will take effect\nthe next time Wings 3D is started."
+    {5,"言語の切替えによるインターフェースの変更は\n次にWings 3Dを起動した時に反映されます."},
+    % "The change to the console font will take\neffect the next time Wings 3D is started."
+    {4,"コンソールフォントの変更は\n次にWings 3Dを起動した時に反映されます"}
    ]},
   {ui_prefs,
    [
@@ -3412,13 +3422,21 @@
     % "Disabled"
     {39,"無効項目の文字色"},
     % "Menu Toolbar"
-    {40,"メニューツールバー"},
+    {40,"右クリックメニュー"},
     % "Adds a mini toolbar to the tops of the right-click menus"
     {41,"ミニツールバーを右クリックメニューの上部に追加する"},
     % "View render with external viewer"
     {42,"外部ビューアでレンダリング結果を表示"},
+    % "Snap mouse"
+    {47,"マウスカーソルを先端に"},
+    % "Show Menu Toolbar"
+    {46,"ミニツールバー追加"},
+    % "Small Icons"
+    {45,"小さいアイコン"},
+    % "Large Icons"
+    {44,"大きいアイコン"},
     % "Interface Icons"
-    {50,"アイコン外観の変更"},
+    {50,"アイコンのデザイン"},
     % "Classic"
     {51,"クラッシック"},
     % "Blue Cube"
@@ -3595,52 +3613,87 @@
     % "Delete Group"
     {1,"グループを削除"},
     % "Delete group \""
-    {2,"グループを削除します\""},
+    {2,"指定した選択グループを記憶リストから削除します\""},
     % "Add to Group"
-    {4,"グループを追加"},
+    {4,"選択中の領域をグループに追加"},
     % "Add current selection to group \""
-    {5,"現在の選択領域をグループに追加します\""},
+    {5,"選択中の領域を指定したグループに追加します\""},
     % "Subtract from Group"
-    {7,"グループから削減"},
+    {7,"選択中の領域をグループから除外"},
     % "Subtract current selection from group \""
-    {8,"グループから現在の選択領域を削減します\""},
+    {8,"選択中の領域を指定したグループから除外します\""},
     % "Select Group"
-    {10,"グループを選択"},
+    {10,"選択グループの呼出"},
     % "Select group \""
     {11,"グループを選択します\""},
     % "Union Group"
-    {13,"グループを統合"},
+    {13,"統合：選択中の領域 + グループ"},
     % "Union group \""
     {14,"グループ\""},
     % "\" with current selection"
     {15,"\"と現在の選択領域を統合します"},
     % "Subtract Group"
-    {16,"グループ削減"},
+    {16,"除外：選択中の領域 − グループ"},
     % "Subtract group \""
     {17,"現在の選択領域から,グループ\""},
     % "\" from current selection"
-    {18,"\"を削減します."},
+    {18,"\"を除外します."},
     % "Intersect Group"
-    {19,"グループ交差"},
+    {19,"交差：選択中の領域 × グループ"},
     % "Intersect group \""
     {20,"グループ\""},
     % "\" with current selection"
     {21,"\"と現在の領域の交差部分を作成"},
     % "Selection Groups"
-    {22,"グループを選択"},
+    {22,"選択領域グループ"},
     % "Next Group"
     {24,"次のグループ"},
     % "Previous Group"
     {25,"前のグループ"},
     % "Cycle In Selection Mode"
-    {26,"Cycle In Selection Mode"},
+    {26,"選択モードを順繰り"},
     % "Cycle Prev/Next only within active selection mode"
-    {27,"Cycle Prev/Next only within active selection mode"}
+    {27," 次の/前の アクティブな選択モードを順繰りして切替えます."}
+   ]},
+  {vertices_with,
+   [
+    % "詳細指定ダイアログ Number of Edges"
+    {1,"頂点に接続する辺の数"},
+    % "Select Vertices"
+    {2,"該当する条件で頂点を絞り込み"},
+    % "More"
+    {3,"超える"},
+    % "Less"
+    {4,"未満"},
+    % "Exactly"
+    {5,"一致"}
+   ]},
+  {faces_with,
+   [
+   % "詳細指定ダイアログ Number of Edges"
+    {1,"面を取り囲む辺の数"},
+    % "Select Faces"
+    {2,"該当する条件で面を絞り込み"},
+    % "More"
+    {3,"超える"},
+    % "Less"
+    {4,"未満"},
+    % "Exactly"
+    {5,"一致"}
+   ]},
+  {by_name,
+   [
+    % "Nothing to select."
+    {1,"何もオブジェクトが選択されていません."},
+    % "Select by name"
+    {2,"名前で選択"},
+    % "Name"
+    {3,"オブジェクト名"}
    ]},
   {item_by_id,
    [
     % "Nothing to select."
-    {1,"なにもオブジェクトが選択されていません."},
+    {1,"何もオブジェクトが選択されていません."},
     % "Object Id"
     {2,"オブジェクトId"}
    ]},
@@ -3651,20 +3704,20 @@
     % "Deselect all edges adjacent to an unselected edge"
     {2,"隣接するすべての辺を選択解除して,未選択にします"},
     % "Deselect all faces sharing a vertex with an unselected face"
-    {3,"頂点を共有しているすべて面を選択解除して,未選択にします"}
+    {3,"頂点を共有しているすべての面を選択解除して,未選択にします"}
    ]},
   {menu,
    [
     % "Deselect"
-    {1,"取消し選択"},
+    {1,"選択領域を解除"},
     % "Clear the selection"
-    {2,"選択を解除"},
+    {2,"選択中の領域を解除します."},
     % "More"
-    {3,"領域を拡張"},
+    {3,"選択領域を拡張"},
     % "Less"
-    {4,"領域を縮小"},
+    {4,"選択領域を縮小"},
     % "Similar"
-    {5,"類似した要素を選択"},
+    {5,"類似要素を選択"},
     % "Edge Loop"
     {6,"辺をループ/リング状に選択"},
     % "Edge Loop"
@@ -3674,7 +3727,7 @@
     % "convert face selection to selected border edges"
     {9,"面の選択領域から輪郭の辺を選択済みにします"},
     % "Edge Loop to Region"
-    {10,"辺ループを領域に"},
+    {10,"辺ループを領域に変換"},
     % "Select all faces on one side of an edge loop"
     {11,"辺ループの一方にある面を全て選択します"},
     % "Edge Ring"
@@ -3692,7 +3745,7 @@
     % "Grow Edge Loop"
     {18,"辺ループを拡張"},
     % "Grow edge selection by one edge in loop directions"
-    {19,"ループ方向にある1つの辺を領域に取り込んで選択領域を増やします"},
+    {19,"ループ方向にある1つ先の辺を領域に取り込み選択領域を増やします"},
     % "Shrink Edge Loop"
     {20,"辺ループを縮小"},
     % "Shrink edge selection by one in loop direction"
@@ -3700,7 +3753,7 @@
     % "Grow Edge Ring"
     {22,"辺リングを拡張"},
     % "Grow edge selection by one edge in ring direction"
-    {23,"リング方向にある1つの辺を領域に取り込んで選択領域を増やします"},
+    {23,"リング方向にある1つ先の辺を領域に取り込み選択領域を増やします"},
     % "Shrink Edge Ring"
     {24,"辺リングを縮小"},
     % "Shrink edge selection by one edge in ring directions"
@@ -3716,7 +3769,7 @@
     % "Objects"
     {30,"オブジェクト"},
     % "By"
-    {31,"共通の特徴で抽出"},
+    {31,"条件で選択"},
     % "Hard Edges"
     {32,"ハードエッジ"},
     % "Select all hard edges"
@@ -3726,7 +3779,7 @@
     % "Select all isolated vertices"
     {35,"全ての孤立点を選択します"},
     % "Vertices With"
-    {36,"頂点に繋がる辺の数"},
+    {36,"頂点(接続する辺の数)"},
     % "2 Edges"
     {37,"2辺で"},
     % "3 Edges"
@@ -3736,7 +3789,7 @@
     % "5 Edges"
     {40,"5辺で"},
     % "Faces With"
-    {41,"面を構成する辺の数"},
+    {41,"面　(取り囲む辺の数)"},
     % "2 Edges"
     {42,"2辺で"},
     % "3 Edges"
@@ -3764,9 +3817,9 @@
     % "Select by numeric id"
     {63,"数値IDで選択"},
     % "Lights"
-    {64,"光源"},
+    {64,"全ての光源を選択"},
     % "Select all lights"
-    {65,"全ての光源を選択"},
+    {65,"全ての光源オブジェクトを選択"},
     % "Select all elements"
     {66,"全ての要素を選択"},
     % "Inverse"
@@ -3785,26 +3838,22 @@
     {73,"未選択領域をロック"},
     % "Lock objects that have no selection"
     {74,"未選択領域をロックします"},
-    % "Show All"
-    {75,"すべてを表示"},
     % "Show all objects that have been hidden"
     {76,"隠されていたオブジェクトをすべて表示します"},
-    % "Unlock All"
-    {77,"すべてをロック解除"},
     % "Unlock all locked objects"
     {78,"すべてのオブジェクトのロックを解除します"},
     % "Store Selection"
     {79,"選択領域の記憶"},
     % "Store the selection into the selection group named \"StoredSelection\""
-    {80,"選択領域を\"StoredSelection\"という特殊グループ名で記憶します"},
+    {80,"選択領域を\"StoredSelection\"という特別なグループ名で記憶します"},
     % "Recall Selection"
     {81,"選択領域の呼出"},
     % "Recall the selection from the selection group named \"StoredSelection\""
-    {82,"選択領域が記憶された,特殊グループ名\"StoredSelection\"を呼び出します"},
+    {82,"グループ名\"StoredSelection\"で記憶された選択領域を呼び出します"},
     % "New Group..."
-    {83,"新規グループ作成..."},
+    {83,"選択領域グループ作成..."},
     % "Create a new selection group"
-    {84,"選択領域のグループを新規作成します"},
+    {84,"現在選択中の領域をグループとして記憶しておくことで後で呼出して再利用できます;Selection Groupsウインドウからも呼び出せます;また記憶した領域へは追加/削除/統合/除外も可能です"},
     % "Non-planar Faces"
     {85,"非平面の面を選択"},
     % "Select all non-planar faces"
@@ -3830,11 +3879,11 @@
     % "To Complete Loops"
     {96,"完全なループにする"},
     % "Switches to Edge mode and completes loop selection"
-    {97,"完全なループを作るために辺選択モードに切替えて、選択をループ状にします"},
+    {97,"完全なループを作るために辺選択モードに切替えて、選択領域をループ状にします"},
     % "; convert consecutive vertices to edges"
-    {98,";(選択領域または(もし選択領域が存在しなければ)表示されているすべてのオブジェクトから)"},
+    {98,"; 選択領域から条件に合致する頂点/面だけを残します "},
     % " (from selection or all visible objects (if no selection))"
-    {99,"選択領域から条件に合致する頂点/面だけを残します"},
+    {99,"(選択領域または(もし選択領域が存在しなければ)表示されているすべてのオブジェクトから)"},
     % "Every Nth Ring"
     {100,"N番目毎にリング選択"},
     % "Second"
@@ -3844,19 +3893,27 @@
     % "Nth..."
     {103,"N番目..."},
     % "Unhide All Objects""
-    {104,"隠れたオブジェクトを再表示"},
+    {104,"隠したオブジェクトを再表示"},
     % "Unlock All Objects"
     {105,"全オブジェクトをアンロック"}, 
+    % "Specify..."
+    {402,"詳細指定..."},
+    % "Select objects by name. *'s may be used as wildcards"
+    {108,"名前でオブジェクトを選択します「*」はワイルドカードとして使えます"},
+    % "Name..."
+    {107,"名前..."},
+    % " Objects",
+    {106," "},
     % "6 or More"
-    {401,"6番目以上"},
+    {401,"6辺以上"},
     % "Non Quadrangle Faces"
-    {nq0,"非四角ポリゴン"},
+    {nq0,"非四辺形ポリゴン面"},
     % "All Non Quadrangle Faces"
-    {nq1,"すべての非四辺形(正方形,長方形,菱形等)の面"},
+    {nq1,"四辺形以外のポリゴンを選択"},
     % "Odd Non Quadrangle Faces"
-    {nq2,"Odd Non Quadrangle Faces"},
+    {nq2,"奇数辺ポリゴンを選択"},
     % "Even Non Quadrangle Faces"
-    {nq3,"Even Non Quadrangle Faces"}
+    {nq3,"偶数辺ポリゴンを選択"}
    ]},
   {more_help,
    [
@@ -3870,9 +3927,9 @@
   {new_group,
    [
     % "Create New Group"
-    {1,"新規グループ作成"},
+    {1,"選択領域グループ新規作成"},
     % "Group Name"
-    {2,"グループ名称"}
+    {2,"グループ名"}
    ]},
   {new_group_name,
    [
@@ -3902,9 +3959,9 @@
   {oriented_faces_menu,
    [
     % "Similar Normals"
-    {1,"類似した法線"},
+    {1,"類似法線"},
     % "Select faces with normals similar to those of the already selected faces"
-    {2,"既に選択された面と類似した法線を持つ面を選択します"}
+    {2,"選択済の面と類似した法線を持つ面を選択します"}
    ]},
   {random,
    [
@@ -3964,9 +4021,9 @@
   {similar_area,
    [
     % "Area Tolerance"
-    {1,"エリアの公差 ±"},
+    {1,"面積の許容誤差 ±"},
     % "Select Similar Area"
-    {2,"類似したエリアを選択します"},
+    {2,"類似した面積を持つ面を選択"},
     % "Exactly one face must be\n selected on a single object."
     {3,"1つのオブジェクト上にある\n 1つの面を正確に選択してください."},
     % "Exactly one face must be selected."
@@ -3975,9 +4032,9 @@
   {similar_area_faces_menu,
    [
     % "Similar Area"
-    {1,"類似したエリア"},
+    {1,"類似面積"},
     % "Select faces with areas similar to that of the already selected face"
-    {2,"選択エリアと類似した面を選択し，選択済みの面にします"}
+    {2,"選択中の面と類似した面積を持つ面がすべて選択されます"}
    ]},
   {similar_help,
    [
@@ -3997,7 +4054,7 @@
     % "At least one face must be selected"
     {3,"少なくとも1つの面を選択してください"},
     % "Select Faces with the same Material"
-    {4,"同一マテリアルが適用された面を選択"},
+    {4,"同じマテリアルが適用された面を選択"},
     % "Materials"
     {5,"マテリアル"},
     % "Vertex Color"
@@ -4006,14 +4063,14 @@
   {similar_material_faces,
    [
     % "Similar Material"
-    {1,"類似したマテリアル"},
+    {1,"類似マテリアル"},
     % "Select faces with a similar material to those already selected"
     {2,"選択面と類似したマテリアルを持つ複数の面を選択します"}
    ]},
   {valid_sel,
    [
     % "The Object Id "
-    {1,"オブジェクトID"},
+    {1,"オブジェクトId"},
     % " is invalid."
     {2,"が不正です"},
     % "The "
@@ -4035,6 +4092,25 @@
     {1,"フォルダ名称"},
     % "Create Folder"
     {2,"新規フォルダを作成"}
+   ]},
+  {rename_filtered_dialog,
+   [
+    % "Search" 
+    {1,"検索文字列"},
+    % "Choose Name" 
+    {2,"置換文字列"},
+    % "Replace" 
+    {3,"オブジェクト名を置換"},
+    % "Matching objects to be renamed. *'s may be used as wildcards"
+    {4,"マッチしたオブジェクトがリネームされます。「*」はワイルドカードとして使えます"},
+    % "New name. Use % to indicate numbered objects and %number% for the start counter"
+    {5,"置換後の名前をここに書きます、 % を使用すると連番オブジェクト名に、 %number% は開始番号を指定できます"},
+    % "Selected objects"
+    {6,"選択中のオブジェクトから"},
+    % "Search"
+    {7,"検索"},
+    %"Apply to"
+    {8,"適用対象:"}
    ]},
   {do_menu,
    [
@@ -4064,10 +4140,10 @@
     {12,"ジオメトリで選択中(アクティブ状態)のオブジェクトをこのフォルダへ移動します"},
     % "Empty Folder"
     {13,"オブジェクト全てを出す"},
-    % "Remove From Folder"
-    {14,"選択オブジェクトを出す"},
-    % "Remove Selected From Folders"
-    {15,"フォルダから出す"}
+    % "Rename all selected objects"
+    {14,"全ての選択オブジェクトをリネーム"},
+    % "Rename objects using Search and Replace"
+    {15,"検索と置換を使ってオブジェクト名をリネーム"}
    ]},
   {help,
    [
@@ -4129,32 +4205,8 @@
     {2,"高さ"},
     % "X Diameter"
     {3,"直径(X方向)"},
-    % "Y Diameter"
-    {4,"直径(Y方向)"}
-   ]},
-  {cube,
-   [
-    % "X Edge Lengths"
-    {1,"辺の長さ(X 方向)"},
-    % "Y Edge Lengths"
-    {2,"辺の長さ(Y 方向)"},
-    % "Z Edge Lengths"
-    {3,"辺の長さ(Z 方向)"}
-   ]},
-  {cylinder,
-   [
-    % "Sections"
-    {1,"経線分割数"},
-    % "Height"
-    {2,"高さ"},
-    % "Top Face X Diameter"
-    {3,"上面の直径(X方向)"},
-    % "Top Face Z Diameter"
-    {4,"上面の直径(Z方向)"},
-    % "Bottom Face X Diameter"
-    {5,"底面の直径(X方向)"},
-    % "Bottom Face Z Diameter"
-    {6,"底面の直径(Z方向)"}
+    % "Z Diameter"
+    {5,"直径(Z方向)"}
    ]},
   {dodecahedron,
    [
@@ -4181,10 +4233,6 @@
    [
     % "Create a cone"
     {cone,"錐体を作成します"},
-    % "Create a cube"
-    {cube,"立方体を作成します"},
-    % "Create a cylinder"
-    {cylinder,"円柱を作成します"},
     % "Create a dodecahedron"
     {dodecahedron,"正十二面体を作成します"},
     % "Create a grid"
@@ -4204,18 +4252,12 @@
     % "Create a sphere"
     {sphere,"球体を作成します"},
     % "Create a tetrahedron"
-    {tetrahedron,"正四面体を作成します"},
-    % "Create a torus"
-    {torus,"トーラスを作成します"}
+    {tetrahedron,"正四面体を作成します"}
    ]},
   {prim_name,
    [
     % "Cone"
     {cone,"錐体"},
-    % "Cube"
-    {cube,"立方体"},
-    % "Cylinder"
-    {cylinder,"円柱"},
     % "Dodecahedron"
     {dodecahedron,"正十二面体"},
     % "Grid"
@@ -4235,9 +4277,7 @@
     % "Sphere"
     {sphere,"球"},
     % "Tetrahedron"
-    {tetrahedron,"正四面体"},
-    % "Torus"
-    {torus,"トーラス"}
+    {tetrahedron,"正四面体"}
    ]},
   {sphere,
    [
@@ -4254,19 +4294,6 @@
    [
     % "Edge Length"
     {1,"辺の長さ"}
-   ]},
-  {torus,
-   [
-    % "Sections"
-    {1,"経線分割数"},
-    % "Slices"
-    {2,"横分割数"},
-    % "Minor Radius"
-    {4,"小半径(回転断面)"},
-    % "Major X Radius"
-    {31,"大半径(X方向)"},
-    % "Major Z Radius"
-    {32,"大半径(Z方向)"}
    ]}
  ]}.
 {wings_subdiv,
@@ -4423,7 +4450,7 @@
     % "Locks movement to the Default Axis."
     {2,"移動方向をデフォルト軸の向きに固定します."},
     % "Locks movement to the Radial of the current Tweak Axis."
-    {3,"移動方向を現在の固定軸から放射状に固定します."},
+    {3,"移動方向を現在の軸拘束から放射状に固定します."},
     % "Locks movement to the ~ts axis."
     {5,"移動方向を ~ts 軸に固定します."},
     % "Constrained movement to normal of element marked by Tweak Vector."
@@ -4435,7 +4462,7 @@
     % "Scale from Default Point."
     {9,"デフォルト基準点から拡大縮小されます."},
     % "Clear Constraints"
-    {10,"固定軸をクリア"},
+    {10,"軸拘束をクリア"},
     % "Clear all locked axes."
     {11,"固定されたすべての軸線をクリアします."}
    ]},
@@ -4447,7 +4474,7 @@
   {help_msg_axes,
    [
     % "--Axis Constraints--"
-    {1,"██▋▌▍▎▏ 　軸拘束　　　  ▏▎▍▋▊███████████████████"},
+    {1,"██▋▌▍▎▏  軸拘束     ▏▎▍▋▊███████████████████"},
     % "Axis Constraints only affect Tweak Move and Scale operations."
     {2,"軸の拘束はTweakモードの移動と拡大縮小処理のみ効果があります"},
     % "[F1], [F2], and [F3] can be held to constrain movement to the 3 cardinal axes, X, Y, and Z."
@@ -4464,29 +4491,29 @@
   {help_msg_basic,
    [
     % "--What is Tweak?--"
-    {1,"██▋▌▍▎▏ Tweak機能とは？　  ▏▎▍▋▊█████████████████"},
+    {1,"██▋▌▍▎▏ Tweak機能とは？   ▏▎▍▋▊█████████████████"},
     % "Tweak lets you edit a model quickly by clicking and dragging geometry."
-    {2,"Tweakとは「微調整,ひねる」という意味で、クリックやドラッグで迅速にモデルを編集するモードです."},
+    {2,"Tweakという言葉には「微調整,ひねる,いじくる」という意味があり、クリックやドラッグですばやくモデルを編集するモードです.ウインドウ＞Tweakパレットで 3つのパレットが出現します"},
     % "While Tweak is enabled, all the regular Wings commands are still available,"
-    {3,"Tweakモードが有効な間であっても,通常のWingsコマンドも全て併用可能です. \n "},
+    {3,"Tweakモードでの移動と通常の移動コマンドなど併用可能です。しかし特定のマウスと修飾キーはTweakツールを優先するでしょう. \n "},
     % " but certain mouse buttons and modifier keys will activate the Tweak tools."
-    {4,"しかし特定のマウスボタンと修飾キーはそのTweakツールと衝突する場合もあります."}
+    {4,"Tweakコマンド群へ素早くアクセスする手段は2つあり、後述するTweakキー(マウスボタン+修飾キーの登録)とホットキー(キーの登録)です."}
    ]},
   {help_msg_hotkeys,
    [
     % "--Hotkeyed Tweak Tools--"
-    {1,"██▋▌▍▎▏ Tweakツールに専用ホットキーを割り当てる  ▏▎▍▋▊█████████████████"},
+    {1,"██▋▌▍▎▏ ホットキーの登録(マグネット/軸拘束)  ▏▎▍▋▊█████████████████"},
     % "An alternative to usings Tweak Key combinations is to assign hotkeys to the various Tweak Tools usings the [Insert] method."
-    {2,"Tweakツールを呼び出す他の手段として [Insert]を使ことで,様々なTweakツールにホットキーを割り当てできます."},
+    {2,"「マグネット」「軸拘束」パレットの効果コマンド切替にホットキーを登録することができます。通常のコマンドに設定するのと同じで[Insert]キーを使う方法です."},
     % "Pressing the hotkey assigns that Tweak Tool to Lmb."
-    {3,"割り当てられたホットキーを押すことで、L:左マウスボタンに割り当てます."}
+    {3,"ツール＞Tweakメニューを開き、マグネットまたは軸拘束をクリックして、コマンドを選んで下さい。そこでメニュー項目上にマウスカーソルがある状態で\n[Insert]または[/]を押し、登録したいキーを押してから、マウス左ボタンを押して完了です."}
    ]},
   {help_msg_keys,
    [
     % "--Assigning Tweak Keys--"
-    {1,"██▋▌▍▎▏ Tweak専用ホットキーの割り当て ▏▎▍▋▊██████"},
+    {1,"██▋▌▍▎▏ Tweakキーの登録(Tweakツール) ▏▎▍▋▊██████"},
     % "Each of the Tweak Tools ~tscan be assigned a modifier key combination (Ctrl, Shift, Alt)."
-    {2,"Tweakツール ~ts それぞれに修飾キーの組合せを登録できます (Ctrl,Shift,Alt)xLMB/MMB."},
+    {2,"Tweakキーとはマウスボタン(右/中)+修飾キー(Ctrl/Shift/Alt)の組み合わせを登録して、ボタン一つで素早くアクセスする手段です.\n 登録可能な対象は Tweakパレットにあるツール ~ts 限定です."},
     % " and "
     {3," "},
     % "To assign a key combination to a Tweak Tool:"
@@ -4496,20 +4523,20 @@
     % "\t2) Highlight one of the Tweak Tools."
     {6,"\t2）Tweakツール項目を1つ選択しハイライト表示にする."},
     % "\t3) Press and hold the modifier key combination and/or press the activating mouse button."
-    {7,"\t3）修飾キーを押したままで、さらにマウスボタンを押せば、その組み合わせが専用ホットキーとして登録可能です."}
+    {7,"\t3）修飾キーを押したままで、さらにマウスボタンを押せば、その組み合わせがTweakキーとして登録されます.Tweakキー登録済の項目の先頭には●マークがつきます."}
    ]},
   {help_msg_magnet,
    [
     % "--Magnets--"
-    {1,"██▋▌▍▎▏ マグネット　　  ▏▎▍▋▊███████████████████"},
+    {1,"██▋▌▍▎▏ マグネット    ▏▎▍▋▊███████████████████"},
     % "Magnets allow for soft selection."
-    {2,"マグネット効果はハードエッジが設定されていない通常の領域に対して有効です"},
+    {2,"有効にすると、選択領域を動かした時にその周囲の要素も磁石のように引っ張る効果を生みます.(非ハードエッジの領域に有効)"},
     % "There are 3 magnet types: Dome, Straight, and Spike."
-    {3,"マグネット効果の種類は3タイプありその形状を表します : ドーム , ストレート , スパイク"},
+    {3,"マグネット効果の種類は,その形状から3タイプあります:ドーム(丸い),ストレート(尖ったドーム),スパイク(鋭い針先)"},
     % "Adjust the Magnet's Radius by holding [Alt] and moving the mouse."
-    {4,"その効果の影響範囲を変更するには[Alt]キーを押しながらマウスを動かしてください(青い円が表示)."},
+    {4,"マグネット効果の影響範囲を変更するには[Alt]キーを押しながらマウスを動かしてください(青い円が影響範囲です)."},
     % "Commands for switching magnets can be assigned to hotkeys in the Tweak Menu|Magnets."
-    {5,"「Tweakメニュー＞マグネット」内項目にホットキーを割当て、タイプ切替えする事も可能です."},
+    {5,"「Tweakメニュー＞マグネット」内項目にホットキーを割当て、マグネットの形状を切替えすることもできます."},
     % "Magnet options can be set in the Tweak Preferences."
     {6,"マグネット効果の詳細設定はTweakパレットの「ツール環境設定」にあります."}
    ]},
@@ -4518,38 +4545,38 @@
     % "--Tweak Palette (Windows|Tweak Palette)--"
     {1,"██▋▌▍▎▏ Tweakパレット(ウインドウ|Tweakパレット)  ▏▎▍▋▊█████████████████"},
     % "The Tweak Palette is a group of 3 windows that contain the main commands from the Tweak Menu."
-    {2,"このTweakパレットは,Tweakメニュー由来のメインコマンドを含む 3つのウインドウのグループで構成されています."},
+    {2,"このTweakパレットは,ツール＞Tweakメニューを含む 3つのパレット群で構成されています."},
     % "Use the Tweak Palette to change switch between Tweak Tools, Magnet Types, or Axis Constraints."
-    {3,"これら「Tweak」「マグネット」「軸と方向の設定」パレットを切替えて使います."}
+    {3,"これら「Tweak」「マグネット」「軸拘束」パレットを切替えて使います."}
    ]},
   {help_msg_using_keys,
    [
     % "--Using Tweak--"
     {1,"██▋▌▍▎▏ Tweakの使い方  ▏▎▍▋▊███████████████████"},
     % "1) Enabled Tweak."
-    {2,"1）まずTweakモードを有効にします "},
+    {2,"1）Tweakパレットを開き、Tweakモードを有効にしてください "},
     % "2) Highlight or select one or more elements of geometry."
     {3,"2）次に、画面内の3Dオブジェクトで効果を及ぼしたい部分(頂点/辺/面/オブジェクト全体)を選択してください."},
     % "3) Press the Tweak Key combination and associated mouse button to activate Tweak."
-    {4,"3）Tweakパレット項目上でキーとマウスボタンの組合せを押し、その機能を専用ホットキーに登録します.\n 先頭に●が付いた項目には、既になんらかの専用ホットキーが登録されている事を意味します. \n 登録の簡単な例として「左クリック」だけでもOKです. "},
+    {4,"3）初めてならTweakパレットの「移動」ツール項目上で左クリックして下さい(これでTweakキーとして「左クリック」が「移動ツール」に登録されました). \n 中級者ならここで任意のツールに「マウス左/中ボタン」と「修飾キー」の同時押しをすることで、好きにTweakキーを登録することもできます.先頭に●が付いたTweakツールには、既になんらかのTweakキーが登録されている事を意味します. \n  "},
     % "4) Drag geometry to it new position."
-    {5,"4）「移動」がハイライトされている場合、オブジェクトの選択領域をドラッグしたまま別の位置にひっぱりましょう."},
+    {5,"4）Tweakツール「移動」がハイライトされているはずなので、ジオメトリ内の3Dオブジェクトの面を1つ選択して、それをドラッグしたまま別の位置にひっぱりましょう."},
     % "5) Release the mouse button to complete the Tweak."
-    {6,"5）マウスボタンを離すことでTweak処理が確定するでしょう."},
+    {6,"5）ひっぱった先でマウスボタンを離すことでTweak処理が確定するでしょう."},
     % "Releasing the Tweak Keys will not end the Tweak event."
-    {7,"キーを離しているだけではTweak処理は確定されません."},
+    {7,"(中級者向けのヒント：Tweakキーを離しているだけではTweak処理は確定されません.)"},
     % "This allows other hotkeys to be used in mid-tweak to activate another Tweak tool, an axis constraint, aim the camera, or adjust the magnet radius."
-    {8," \n 他のホットキーで別のTweak機能を動かすための影響要素には,軸のコンストレイント,カメラの注視,マグネット効果半径の調整があります. \n "},
+    {8," \n Tweakツールの効果に影響を与えるコマンドとして、効果の方向を固定する「軸拘束」や「マグネット範囲の調整」があり、それらにはホットキーを設定することもできます. \n またTweakの最中にカメラの注視点を切り替える事も可能です.操作方法は次の通りです."},
     % "Pressing [C] in mid-tweak tumbles the camera."
     {9,"Tweakモードでマウスをドラッグ中に[C]キーも押すとカメラが回転します."},
     % "Pressing [S] or the Arrow Keys in mid-tweak pans the camera."
     {10,"Tweakモードでマウスをドラッグ中に[S]キーも押すとカメラが移動します."},
     % "Pressing [D] in mid-tweak dollies the camera."
-    {11,"Tweakモードでマウスをドラッグ中に[D]キーも押すとカメラを近づけたり遠ざけます."},
+    {11,"Tweakモードでマウスをドラッグ中に[D]キーも押すとカメラを近づけたり遠ざけたりします."},
     % "Pressing [Spacebar] in mid-tweak switches to the Tweak Tool assigned to the Lmb."
     {12,"Tweakモードでマウスをドラッグ中に[スペース]キーも押すとマウス左ボタンに割当てたツールに切替えます."},
     % "Holding [F] while finalizing a Slide operation collapses all newly created short edges."
-    {13,"スライド変形中に[F]キーも押していると,変形中に生じたあらゆる短い辺をまとめることができます."}
+    {13,"スライド変形中に[F]キーも押していると,変形中に生じたあらゆる短辺をまとめることができます."}
    ]},
   {help_window,
    [
@@ -4559,11 +4586,11 @@
   {mag_thelp,
    [
     % "This magnet pulls and pushes geometry with an even and rounded effect."
-    {1,"このマグネット効果はモデル形状を押したり引いたりして均等に丸みを帯びた効果を与えます."},
+    {1,"このマグネット効果はモデル形状を押したり引いたりして均等に丸みを帯びたドーム効果を与えます."},
     % "This magnet pulls and pushes geometry with a straight effect."
-    {2,"このマグネット効果はモデル形状を押したり引いたりして真っすぐな効果を与えます."},
+    {2,"このマグネット効果はモデル形状を押したり引いたりして先の尖ったドーム状の効果を与えます."},
     % "This magnet pulls and pushes geometry out to a sharp point."
-    {3,"このマグネット効果はモデル形状を押したり引いたりして先端を尖らせる効果を与えます."}
+    {3,"このマグネット効果はモデル形状を押したり引いたりして先が鋭く尖った効果を与えます."}
    ]},
   {magnet_type,
    [
@@ -4577,15 +4604,15 @@
   {menu,
    [
     % "Tweak is a collection of tools for quickly adjusting a mesh."
-    {1,"Tweakは素早く編集する為の機能です.  選択中の項目がハイライトされます.  専用ホットキー登録済みは先頭に「●」が付きます."},
+    {1,"Tweakは素早く編集する為の機能です.  選択中の項目がハイライトされます.  Tweakキー登録済みは先頭に「●」が付きます."},
     % "Enable Tweak"
     {2," 有効 |【無効】"},
     % "Disable Tweak"
     {3,"【有効】| 無効"},
     % "Magnets"
-    {4,"マグネット"},
+    {4,"マグネットメニュー"},
     % "Axis Constraints"
-    {5,"軸を固定する"},
+    {5,"軸拘束メニュー"},
     % "Move selection relative to screen, or constrained to an axis."
     {6,"画面上を移動させる,軸方向指定も可能."},
     % "Move selection along average normal."
@@ -4606,7 +4633,7 @@
   {menu_conflict,
    [
     % "Key combo was not assigned.\n\n    Those keys would conflict with the right click Tweak menu."
-    {1,"キーの組合せを割り当てできません.\n\n これらのキーは右クリックメニューと衝突します."}
+    {1,"キーの組合せを登録できません.\n\n これらのキーは右クリックメニューと衝突します."}
    ]},
   {mode,
    [
@@ -4630,12 +4657,12 @@
     % "Tweak Magnet"
     {2,"マグネット"},
     % "Tweak Axis"
-    {3,"固定軸"}
+    {3,"軸拘束"}
    ]},
   {spacebar_msg,
    [
     % "[Space]: Switch to Tweak tool assigned to L"
-    {1,"[Space]：L に割り当てられたTweakツールを切替"}
+    {1,"[Space]：L に登録されたTweakツールを切替"}
    ]},
   {toggle_bold,
    [
@@ -4684,7 +4711,7 @@
     % "Press [Insert] to customize hotkey for adjusting the magnet radius. "
     {6,"[Insert]キーを押し、マグネット半径を調整するためのホットキーをカスタマイズしてください."},
     % "Without a hotkey assigned, the magnet radius is adjusted by holding [Alt]."
-    {7,"[Alt]キーを同時に押すと,ホットキーを割り当てずに,マグネット半径を調節できます."},
+    {7,"[Alt]キーを同時に押すと,ホットキーを登録せずに,マグネット半径を調節できます."},
     % "Reset Radius"
     {8,"半径をリセット "},
     % "Reset the magnet radius to 1.0"
@@ -4737,7 +4764,9 @@
     % "Tweak Vector"
     {9,"Tweakベクトルの色"},
     % "Tweak Preferences"
-    {10,"Tweakの環境設定"}
+    {10,"Tweakの環境設定"},
+    % "Show Magnet influence"
+    {11,"マグネット効果の影響部分を表示"}
    ]},
   {xyzkey_help,
    [
@@ -4798,7 +4827,7 @@
     % "Revert"
     {20,"復帰"},
     % "Import"
-    {21,"読込み"},
+    {21,"読み込み"},
     % "Export"
     {22,"書き出し"},
     % "Export Selected"
@@ -4946,9 +4975,9 @@
     % "New Group"
     {94,"新規グループ作成"},
     % "Similar Normals"
-    {95,"類似した法線"},
+    {95,"類似法線"},
     % "Similar Area"
-    {96,"類似した領域"},
+    {96,"類似面積"},
     % "Delete Group"
     {97,"グループを削除"},
     % "Add to Group"
@@ -5182,7 +5211,7 @@
     % "Extrude"
     {213,"押し出し"},
     % "Extract"
-    {214,"面を採取"},
+    {214,"押し出し(採取)"},
     % "Dissolve"
     {215,"削除"},
     % "Collapse"
@@ -5704,7 +5733,15 @@
     % "Show Backfaces"
     {72,"面の裏側を表示"},
     % "Show backfaces when there is a hole or hiddwn faces in an object"
-    {73,"オブジェクトの面を隠したり穴がある場合にその裏側を表示します"}
+    {73,"オブジェクトの面を隠したり穴がある場合にその裏側を表示します"},
+    % "Use Normal Maps to display rough materials"
+    {77,"ざらざらしたマテリアルを表示するために法線マップを使用します."},
+    % "Show Normal Maps"
+    {76,"法線マップを表示"},
+    % "Activates Texture Filtering for all textures. (Disable filtering for accurate display of very low resolution textures)"
+    {75,"フィルタを有効にするとテクスチャのピクセルのジャギーが軽減されます.(超低解像度テクスチャを正確に表示したい場合はこのフィルタリングを無効にしてください)"},
+    % "Filter Textures"
+    {74,"フィルターテクスチャ"}
    ]},
   {shader_submenu,
    [
@@ -5973,13 +6010,13 @@
     % "Swap Y and Z Axes"
     {1,"Y軸とZ軸を交換する"},
     % "Sub-division Steps"
-    {6,"再分割平面のステップ"},
+    {6,"細分割ステップ"},
     % "Default texture file type"
     {7,"デフォルトのテクスチャファイル形式"},
     % "Export vertex colors"
     {color,"頂点カラーの書き出し"},
     % "Export normals/smoothing groups"
-    {norms,"法線/スムージンググループを書き出します"},
+    {norms,"法線/スムージンググループを書き出す"},
     % "Tesselation"
     {tess,"テッセレーション"},
     % "None"
@@ -5989,7 +6026,15 @@
     % "Quadrangulation"
     {tess4,"四角ポリゴン化"},
     % "Export UV coordinates"
-    {uv,"UV座標を書き出す"}
+    {uv,"UV座標を書き出す"},
+    % "Meter"
+    {units2,"メートル(m)"},
+    % "Decimeter"
+    {units1,"デシメートル(dm) 1dm = 10cm"},
+    % "Centimeter"
+    {units0,"センチメートル(cm)"},
+    % "Units"
+    {units,"単位"}
    ]},
   {do_import,
    [
@@ -5999,7 +6044,7 @@
   {export_scale_s,
    [
     % "Export scale"
-    {1,"書き出し時の大きさ"}
+    {1,"書出し時のスケール"}
    ]},
   {export_selected,
    [
@@ -6014,11 +6059,29 @@
   {import,
    [
     % "Import failed: "
-    {1,"読込みが失敗しました :"}
+    {1,"読み込みが失敗しました :"}
    ]},
   {import_scale_s,
    [
     % "Import scale"
-    {1,"読込み時のスケール"}
+    {1,"読み込み時のスケール"}
+   ]}
+ ]}.
+{wings_cc,
+ [
+  {cl_setup,
+   [
+    % "Could not setup OpenCL, disabling proxy smooth."
+    {1,"プロキシスムーズ表示が無効,OpenCLをセットアップできませんでした."}
+   ]},
+  {decrease_level,
+   [
+    % "Could not acquire needed memory, decreasing to subd level ~p~n"
+    {1,"必要なメモリを確保できなかったので,サブディビジョンレベルを ~p~n に引き下げました."}
+   ]},
+  {gen_vab,
+   [
+    % "OpenCL subd failed: wanted ~pMB only ~pMB available~n"
+    {1,"OpenCL サブディビジョンに失敗: メモリが ~pMB 必要です. 現在利用できるのは ~pMB です ~n"}
    ]}
  ]}.
