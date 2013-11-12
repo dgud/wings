@@ -851,6 +851,7 @@ handle_response(Res, Event, Stk0) ->
 	next -> next_handler(Event, Stk0);
 	pop -> pop(Stk0);
 	delete -> delete;
+	defer -> defer_to_next_handler(Event, Stk0);
 	push ->
 	    [OldTop|_] = Stk0,
 	    [OldTop#se{h=dummy}|Stk0];
@@ -884,6 +885,10 @@ replace_handler(Handler, [Top|Stk]) -> [Top#se{h=Handler}|Stk].
 
 next_handler(Event, [_|[Next|_]=Stk]) ->
     handle_event(Next, Event, Stk).
+
+defer_to_next_handler(Event, [Top|[Next|_]=Stk]) ->
+    [Top|handle_event(Next, Event, Stk)].
+
 
 default_stack(Name) ->
     Handler = fun({crash,Crash}) ->
