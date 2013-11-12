@@ -32,7 +32,7 @@ parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 
 plane_menu() ->
-    [{?__(1,"Various Planes"),plane,{?__(7,"Create a plane")},[option]}].
+    {?__(1,"Various Planes"),plane,{?__(7,"Create a plane")},[option]}.
 
 command({shape,{plane,Ask}}, St) -> make_plane(Ask, St);
 command(_, _) -> next.
