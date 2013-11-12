@@ -199,10 +199,10 @@ init() ->
     wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
     wxWindow:connect(Canvas, size,  []),
     %% wxWindow:connect(Canvas, erase_background),
-    wxWindow:connect(Canvas, enter_window,
-		     [{callback, fun(_, _) ->
-					 wxWindow:setFocus(Canvas)
-				 end}]),
+    %% wxWindow:connect(Canvas, enter_window,
+    %% 		     [{callback, fun(_, _) ->
+    %% 					 wxWindow:setFocus(Canvas)
+    %% 				 end}]),
 
     wxWindow:connect(Canvas, motion, [{skip, true}]),
     wxWindow:connect(Canvas, left_up),

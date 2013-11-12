@@ -315,13 +315,13 @@ wx_translate_1(Ev) ->
     io:format("~p: Bug Ignored Event~p~n",[?MODULE, Ev]),
     redraw.
 
-sdl_mouse(#wxMouse{type=Type,
-		   x = X, y = Y,
-		   leftDown=Left, middleDown=Middle, rightDown=Right,
-		   controlDown = Ctrl, shiftDown = Shift,
+sdl_mouse(M=#wxMouse{type=Type,
+		     x = X, y = Y,
+		     leftDown=Left, middleDown=Middle, rightDown=Right,
+		     controlDown = Ctrl, shiftDown = Shift,
 		   altDown = Alt,      metaDown = Meta,
-		   wheelRotation=Wheel
-		  }) ->
+		     wheelRotation=Wheel
+		    }) ->
     Mods = [{Ctrl, ?KMOD_CTRL}, {Shift, ?KMOD_SHIFT},
 	    {Alt, ?KMOD_ALT}, {Meta, ?KMOD_META}],
     ModState = gui_state(Mods, 0),
@@ -357,7 +357,9 @@ sdl_mouse(#wxMouse{type=Type,
 		       false -> ?SDL_BUTTON_X2
 		   end,
 	    #mousebutton{button=Butt, state=?SDL_RELEASED,
-			 which=0, mod=ModState, x=X,y=Y}
+			 which=0, mod=ModState, x=X,y=Y};
+	enter_window -> M;
+	leave_window -> M
     end.
 
 sdl_key(#wxKey{type=Type,controlDown = Ctrl, shiftDown = Shift,
