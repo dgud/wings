@@ -43,9 +43,7 @@ render_formats() ->
      {png,".png","Portable Network Graphics"},
      {jpg,".jpg","JPeg compressed bitmap"},
      {hdr,".hdr","High Dynamic Range image"},
-     {exr,".exr","OpenEXR"},
-     {pic,".pict","Picture"},
-     {ppm,".ppm","Portable Pixmap"}].
+     {exr,".exr","OpenEXR"}].
 %% Formats that internal image loader can handle
 %%
 -define(LOAD_IMAGE_FORMATS, [tga,bmp,png,jpg]).

@@ -1916,11 +1916,10 @@ clean_name([L | Name])->
 pov_output_exts() ->
     wings_job:render_formats(),
     OSDep = case os:type() of
-        {win32,_} -> {bmp,"+FS"};
-        {unix,darwin} -> {pic,"+FS"};
-        _ -> {ppm,"+FP"}
+        {win32,_} -> [{bmp,"+FS"}];
+        _ -> []
     end,
-    [OSDep,{png,"+FN"},{tga,"+FT"}].
+    OSDep++[{png,"+FN"},{tga,"+FT"}].
 
 %% returns the file extension and description of the file type
 get_ext_info([]) -> {"",""};
