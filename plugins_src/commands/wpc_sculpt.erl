@@ -1092,12 +1092,15 @@ pump_edges([],_,_,_) -> ok;
 pump_edges([{Id1,Inf1,Id2,Inf2}|SegInf],Vtab,Col,Range) ->
     {R1,G1,B1}=color_gradient(Col,Range,Inf1),
     {R2,G2,B2}=color_gradient(Col,Range,Inf2),
-    V1=array:get(Id1, Vtab),
-    V2=array:get(Id2, Vtab),
-    gl:color3f(R1,G1,B1),
-    gl:vertex3fv(V1),
-    gl:color3f(R2,G2,B2),
-    gl:vertex3fv(V2),
+    case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
+        {undefined,_} -> ok;
+        {_,undefined} -> ok;
+        {V1,V2} ->
+            gl:color3f(R1,G1,B1),
+            gl:vertex3fv(V1),
+            gl:color3f(R2,G2,B2),
+            gl:vertex3fv(V2)
+    end,
     pump_edges(SegInf,Vtab,Col,Range).
 
 %% It'll will provide de vertices data for 'update_dlist' function

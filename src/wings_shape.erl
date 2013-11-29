@@ -781,7 +781,7 @@ toggle_wire_folder(#we{id=Id0,pst=WePst}, #ost{st=#st{pst=Pst0}=St}) ->
 do_menu(-1, X, Y, _) ->
     Menu =
         [{?__(7,"Create Folder"),menu_cmd(create_folder)},
-         {?__(15,"Remove Selected From Folders"),
+         {?__(16,"Remove Selected From Folders"),
              menu_cmd(move_to_folder, ?NO_FLD)}],
     wings_menu:popup_menu(X, Y, objects, Menu);
 do_menu(Act, X, Y, #ost{os=Objs}) ->
@@ -789,7 +789,7 @@ do_menu(Act, X, Y, #ost{os=Objs}) ->
         {_,#we{id=Id,pst=Pst}} ->
             RF = case gb_trees:get(?FOLDERS, Pst) of
                 ?NO_FLD -> [];
-                _ -> [{?__(14,"Remove From Folder"),menu_cmd(remove_from_folder, Id)}]
+                _ -> [{?__(17,"Remove From Folder"),menu_cmd(remove_from_folder, Id)}]
             end,
             [{?STR(do_menu,1,"Duplicate"),menu_cmd(duplicate_object, Id),
               ?STR(do_menu,2,"Duplicate selected objects")},
