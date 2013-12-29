@@ -5,7 +5,7 @@
 %%
 %%  Copyright (c) 2004 Nicolas Bouillard
 %%  Revised and corrected by TulipVorlax in 2007-2012
-%%  Optigon make some corrections from time to time.
+%%  Optigon do some corrections from time to time.
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -105,7 +105,7 @@
    [
     {1,"Selectionner"},
     {2,"Montrer menu"},
-    {3,"Menu Ajuster"}
+    {3,"Menu Peaufiner"}
    ]},
   {init_menubar,
    [
@@ -184,8 +184,8 @@
     {37,"Boite englobante"},
     {38,"La boite englobante est utile pour aligner et mettre à l'échelle les objets"},
     {39,"Céer une boite englobante autour de la sélection"},
-    {40,"Ajuster"},
-    {41,"Ouvrir le menu Ajuster"}
+    {40,"Peaufiner"},
+    {41,"Ouvrir le menu Peaufiner"}
     ]},
   {undo_info,
    [
@@ -220,7 +220,16 @@
  [
   {button_label,
    [
-    {1,"OK"}
+    {1,"OK"},
+    {2,"Mettre à jour"},
+    {3,"Réinitialiser"}
+   ]},
+  {dialog_preview_panel,
+   [
+    {1,"Prévisualisation"},
+    {2,"Automatique"},
+    {3,"Différée"},
+    {4,"Manuelle"}
    ]},
   {frame_event,
    [
@@ -308,7 +317,7 @@
     {26,"Dupliquer"},
     {27,"Supprimer"},
     {28,"Supprime les objets sélectionnés"},
-    {29,"Renommer..."},
+    {29,"Renommer"},
     {30,"Renomme les objets sélectionnés"},
     {32,"Montre toutes les facettes pour cet objet"},
     {33,"Propriétés de sommet"},
@@ -432,7 +441,7 @@
    ]},
   {gen_vab,
    [
-    {1,"Échec de la subdivision OpenCL: ~p Mio sont nécessaire mais seulement ~p Mio sont disponibles~n"}
+    {1,"Échec de la subdivision OpenCL : ~p Mio sont nécessaire mais seulement ~p Mio sont disponibles~n"}
    ]}
  ]}.
 {wings_collapse,
@@ -488,7 +497,7 @@
    [
     {1,"Aléatoire"},
     {2,"une direction aléatoire"},
-    {4,"c'est normal"},
+    {4,"sa normale"},
     {8,"Déplace chaque sommet d'une distance aléatoire le long de"}
    ]},
   {dir,
@@ -563,7 +572,7 @@
    ]},
   {qstr,
    [
-    {1,"Dx"},
+    {1,"D"},
     {2,"Dx"},
     {3,"Dy"},
     {4,"Dz"},
@@ -572,17 +581,17 @@
    ]},
   {standard_mode_fun,
    [
-    {1,"[Maj] et/ou [Ctrl] et/ou [Alt] contraindre"},
-    {2,"[+] ou [-] ajuste le rayon"}
+    {1,"[Maj] et/ou [Ctrl] et/ou [Alt] pour contraindre"},
+    {2,"[+] ou [-] ajuster le rayon"}
    ]},
   {switch,
    [
-    {1," (avec les contraintes alternatives)"}
+    {1," (contraintes alternatives activées)"}
    ]}
  ]}.
 {wings_edge,
  [
-  {dissolve_edge_2,
+  {dissolve_edge,
    [
     {1,"Réduire risque de créer une facette mal formée."}
    ]}
@@ -754,7 +763,7 @@
     {26,"Supprime les facettes et les remplace par des sommets"},
     {27,"Subdiviser"},
     {28,"Subdivise les facettes sélectionnées pour les lisser (méthode Catmull-Clark)"},
-    {29,"Polygoniser"},
+    {29,"Tesselation"},
     {30,"Couleur de sommet"},
     {31,"Assigne une couleur de sommet aux facettes sélectionnées"},
     {32,"Cacher"},
@@ -765,7 +774,7 @@
     {37,"Trou"},
     {38,"Crée un trou"},
     {39,"Supprime les trous adjacents aux facettes sélectionnées"},
-    {40," our aux régions de facettes"},
+    {40," ou aux régions de facettes"},
     {41,"Décache les facettes adjacentes à la sélection"}
    ]},
   {put_on,
@@ -895,11 +904,11 @@
    [
     {1,"Ouvrir"}
    ]},
-  {export_filename,
+  {export_filename_1,
    [
     {1,"Exporter"}
    ]},
-  {import_filename,
+  {import_filename_1,
    [
     {1,"Importer"}
    ]},
@@ -1041,7 +1050,7 @@
     {9,"Conseils sur la performance"},
     {10,"Informations OpenGL"},
     {11,"À propos de Wings 3D..."},
-    {12,"Ajuster"}
+    {12,"Peaufiner"}
   ]},
   {help_window,
    [
@@ -1070,7 +1079,7 @@
    [
     {1,"Notez que seulement les modes de caméra de"},
     {2," et de "},
-    {3,"  peuvent être utilisés avec une souris à 2 boutons. Seulement le mode de "},
+    {3," peuvent être utilisés avec une souris à 2 boutons. Seulement le mode de "},
     {4," peut être utilisé avec une souris à 1 bouton."}
    ]},
   {opengl_info,
@@ -1079,11 +1088,11 @@
     {2,"Système de rendu : "},
     {3,"Version : "},
     {4,"Ce que la version couvre : "},
-    {5,"Red bits"},
-    {6,"Green bits"},
-    {7,"Blue bits"},
-    {8,"Alpha bits"},
-    {9,"Depth bits"},
+    {5,"Bits rouges"},
+    {6,"Bits verts"},
+    {7,"Bits bleus"},
+    {8,"Bits d'alpha"},
+    {9,"Bits de profondeur"},
     {10,"Stencil bits"},
     {11,"Accum. red bits"},
     {12,"Accum. green bits"},
@@ -1107,8 +1116,8 @@
     {30,"Number of auxiliary buffers"},
     {31,"Color buffers store RGBA"},
     {32,"Color buffers store indices"},
-    {33,"Double buffering"},
-    {34,"Stereo buffers"},
+    {33,"Double tampon"},
+    {34,"Tampon stereo"},
     {35,"Range of aliased point sizes"},
     {36,"Range of antialised point sizes"},
     {37,"Range of aliased line widths"},
@@ -1119,7 +1128,7 @@
     {42,"Number of compression formats"},
     {43,"Max number of vertex units"},
     {44,"OpenGL Extensions"},
-    {45,"Sample buffers"}
+    {45,"Tampon d'échantillon"}
    ]},
   {performance_tips,
    [
@@ -1193,7 +1202,7 @@
   {list_keys,
    [
     {1," (défini par l'utilisateur)"},
-    {2," (défini par un plugiciel)"}
+    {2," (défini par un module complémentaire)"}
    ]},
   {vkeyname,
    [
@@ -1203,7 +1212,7 @@
     {4,"Pause"},
     {5,"Échap"},
     {6,"Espace"},
-    {7,"Suppr."},
+    {7,"Supprimer"},
     {8,"Suppr."},
     {9,"/"},
     {10,"*"},
@@ -1220,7 +1229,7 @@
     {21,"Fin"},
     {22,"Page préc."},
     {23,"Page suiv."},
-    {24,"touche U"}
+    {24,"UKEY"}
    ]}
  ]}.
 {wings_image,
@@ -1364,8 +1373,8 @@
    ]},
   {plugin_results,
    [
-    {1,"Le plugiciel de modification de lumière a laissé des déchets :~n    ~P~n"},
-    {2,"Le plugiciel a laissé des déchets"}
+    {1,"L'éditeur de lumière a laissé des déchets :~n    ~P~n"},
+    {2,"Le module complémentaire a laissé des déchets"}
    ]},
   {qs_att,
    [
@@ -1467,8 +1476,8 @@
    ]},
   {plugin_results,
    [
-    {1,"Le plugiciel de modification de matériau a laissé des déchets :~n    ~P~n"},
-    {2,"Le plugiciel a laissé des déchets"}
+    {1,"L'éditeur de matériau a laissé des déchets :~n    ~P~n"},
+    {2,"Le module complémentaire a laissé des déchets"}
    ]},
   {rename,
    [
@@ -1658,7 +1667,8 @@
    ]},
   {rotate_fun,
    [
-    {1,"Choisissez un point pour que l'axe passe à travers"}
+    {1,"Choisissez un point pour que l'axe passe à travers"},
+    {2,"À travers l'origine"}
    ]},
   {scale,
    [
@@ -1705,8 +1715,8 @@
    ]},
   {do_menu,
    [
-    {1,"Ajuster le matériau..."},
-    {2,"Ajuster les propriétés du matériau"},
+    {1,"Modifier le matériau..."},
+    {2,"Modifier les propriétés du matériau"},
     {3,"Assigner à la sélection"},
     {4,"Assigner le matériaux aux facettes ou aux objets sélectionnés"},
     {5,"Sélectionner"},
@@ -1723,7 +1733,7 @@
     {16,"Supprime cet objet"},
     {17,"Renommer"},
     {18,"Renomme cet objet"},
-    {19,"Ajuster la lumiere..."},
+    {19,"Modifier la lumière..."},
     {20,"Modifie les propriétés de la lumière"},
     {21,"Dupliquer"},
     {22,"Duplique cette lumière"},
@@ -1795,8 +1805,8 @@
    ]},
   {do_menu,
    [
-    {1,"Ajuster"},
-    {2,"Ajuster la couleur"},
+    {1,"Modifier"},
+    {2,"Modifier la couleur"},
     {3,"Extrapoler"},
     {4,"Extrapole les couleurs vides"},
     {5,"Tout effacer"},
@@ -1884,6 +1894,10 @@
    [
     {1,"Le fichier « ~s » est d'un type inconnu"}
    ]},
+  {install_tar,
+   [
+    {1,"L'installation de « ~s » a échouée : ~p"}
+	]},
   {install_verify_files,
    [
     {1,"Le fichier « ~s » contient un fichier avec un chemin absolu"},
@@ -1891,24 +1905,24 @@
    ]},
   {manager_command,
    [
-    {1,"Gestionnaire de plugiciels"}
+    {1,"Gestionnaire de modules complémentaires"}
    ]},
   {manager_entry,
    [
-    {1,"Gestionnaire de plugiciels..."}
+    {1,"Gestionnaire de modules complémentaires..."}
    ]},
   {plugin_dir,
    [
-    {1,"Aucun dossier de plugiciels trouvé"}
+    {1,"Aucun dossier de modules complémentaires trouvé"}
    ]},
   {plugin_menu_info_3,
    [
-    {1,"(Le gestionnaire de plugiciels n'a pas trouvé plus amples renseignements)"}
+    {1,"(Le gestionnaire de modules complémentaires n'a pas trouvé plus amples renseignements)"}
    ]},
   {plugin_modules,
    [
-    {1,"Activer ou désactiver ce plugiciel "},
-    {2,"(un plugiciel désactivé n'apparait pas dans les menus)"}
+    {1,"Activer ou désactiver ce module complémentaire "},
+    {2,"(un module complémentaire désactivé n'apparait pas dans les menus)"}
    ]},
   {plugin_root_menu,
    [
@@ -2275,6 +2289,12 @@
    [
     {1,"Sélection par Id"}
    ]},
+  {by_name,
+   [
+    {1,"Rien ne peut être sélectionné."},
+    {2,"Sélection par nom"},
+    {3,"Nom"}
+   ]},
   {faces_with,
    [
     {1,"Nombre d'arêtes"},
@@ -2426,10 +2446,12 @@
     {100,"Chaque énième anneau"},
     {101,"Deuxième"},
     {102,"Troisième"},
-    {103,"Énième..."},
+    {103,"Nième..."},
     {104,"Décacher tous les objets"},
     {105,"Déverrouiller tous les objets"},
     {106," objets"},
+    {107,"Nom..."},
+    {108,"Sélectionne les objets par leur nom. L'astérisque peut être utilisé comme joker."},
     {401,"6 ou plus"},
     {402,"Spécifier..."},
     {nq0,"Les facettes non quadrangulaires"},
@@ -2488,7 +2510,7 @@
   {select_nth_ring,
    [
     {1,"Interval"},
-    {2,"Sélectionne chaque énième anneau d'arêtes"}
+    {2,"Sélectionne chaque nième anneau d'arêtes"}
    ]},
   {sharp_edges,
    [
@@ -2583,7 +2605,9 @@
     {12,"Déplace les objets sélectionnés dans le dossier"},
     {13,"Vider le dossier"},
     {14,"Retirer du dossier"},
-    {15,"Retire les objets sélectionnés du dossier"}
+    {14,"Renomme tous les objets sélectionnés"},
+    {15,"Retire les objets sélectionnés du dossier"},
+    {15,"Renommer les objets à l'aide de la recherche"}
    ]},
   {help,
    [
@@ -2603,6 +2627,17 @@
     {14,"(Dé)verouiller les objets du dossier"},
     {15,"Basculer le fil de fer des objets du dossier"},
     {16,"Basculer la sélection des objets du dossier"}
+   ]},
+  {rename_filtered_dialog,
+   [
+    {1,"Rechercher"},
+    {2,"Choisir le nom"},
+    {3,"Remplacer"},
+    {4,"Objets à renommer correspondants. L'astérisque peut servir de joker."},
+    {5,"Nouveau nom. Utilisez % pour indiquer un objet numéroté et %number% pour le début du compteur"},
+    {6,"Objets sélectionnés"},
+    {7,"Recherche"},
+    {8,"Appliquer à"}
    ]},
   {rename_folder_dialog,
    [
@@ -2624,21 +2659,6 @@
     {3,"Diamètre X"},
     {4,"Diamètre Y"}
    ]},
-  {cube,
-   [
-    {1,"Longueur d'arête X"},
-    {2,"Longueur d'arête Y"},
-    {3,"Longueur d'arête Z"}
-   ]},
-  {cylinder,
-   [
-    {1,"Sections"},
-    {2,"Hauteur"},
-    {3,"Facette supérieure : diamètre X"},
-    {4,"Facette supérieure : diamètre Z"},
-    {5,"Facette inférieure : diamètre X"},
-    {6,"Facette inférieure : diamètre Z"}
-   ]},
   {dodecahedron,
    [
     {1,"Longueur d'arête"}
@@ -2657,8 +2677,6 @@
   {prim_help,
    [
     {cone,"Créer un cône"},
-    {cube,"Créer un cube"},
-    {cylinder,"Créer un cylindre"},
     {dodecahedron,"Créer un dodécaèdre"},
     {grid,"Créer une Grille"},
     {icosahedron,"Créer un icosaèdre"},
@@ -2668,14 +2686,11 @@
     {octahedron,"Créer un octaèdre"},
     {octotoad,"Créer un rhombicuboctaèdre"},
     {sphere,"Créer une sphère"},
-    {tetrahedron,"Créer un tétraèdre"},
-    {torus,"Créer un tore"}
+    {tetrahedron,"Créer un tétraèdre"}
    ]},
   {prim_name,
    [
     {cone,"Cône"},
-    {cube,"Cube"},
-    {cylinder,"Cylindre"},
     {dodecahedron,"Dodécaèdre"},
     {grid,"Grille"},
     {icosahedron,"Icosaèdre"},
@@ -2685,8 +2700,7 @@
     {octahedron,"Octaèdre"},
     {octotoad,"Rhombicuboctaèdre"},
     {sphere,"Sphère"},
-    {tetrahedron,"Tétraèdre"},
-    {torus,"Tore"}
+    {tetrahedron,"Tétraèdre"}
    ]},
   {sphere,
    [
@@ -2698,14 +2712,6 @@
   {tetrahedron,
    [
     {1,"Longueur d'arête"}
-   ]},
-  {torus,
-   [
-    {1,"Sections"},
-    {2,"Tranches"},
-    {4,"Petit rayon"},
-    {31,"Grand rayon X"},
-    {32,"Grand rayon Z"}
    ]}
   ]}.
 {wings_subdiv,
@@ -2803,17 +2809,17 @@
    ]},
   {camera_msg,
    [
-    {1,"[C]: Culbuter la vue  [S]: Mouvement latéral  [D]: Travelling"}
+    {1,"[C]: Culbuter la vue  [S]: Mouvement latéral  [D]: Zoom"}
    ]},
   {constraints_menu,
    [
     {1,"Verrouille les mouvements sur la normale de la sélection."},
     {2,"Verrouille les mouvements sur l'axe par défaut."},
-    {3,"Verrouille les mouvements sur le Radial de l'axe « Ajuster » courrant."},
+    {3,"Verrouille les mouvements sur le Radial de l'axe « Peaufiner » courrant."},
     {5,"Verrouille les mouvements sur l'axe ~s."},
-    {6,"Contraint les mouvements sur la normale de l'élément marqué par le vecteur Ajuster."},
+    {6,"Contraint les mouvements sur la normale de l'élément marqué par le vecteur Peaufiner."},
     {7,"Mettre à l'échelle à partir du curseur de la souris."},
-    {8,"Mettre à l'échelle à partir d'un élément marqué par le vecteur Ajuster."},
+    {8,"Mettre à l'échelle à partir d'un élément marqué par le vecteur Peaufiner."},
     {9,"Mettre à l'échelle à partir du point par défaut."},
     {10,"Effacer les contraintes"},
     {11,"Effacer le verrouillage des axes."}
@@ -2825,33 +2831,33 @@
   {help_msg_axes,
    [
     {1,"-- Contraintes des axes --"},
-    {2,"La contrainte des axes n'a d'effet que sur les opérations Déplacer et Mise à l'échelle du mode Ajuster."},
+    {2,"La contrainte des axes n'a d'effet que sur les opérations Déplacer et Mise à l'échelle du mode Peaufiner."},
     {3,"Tenir les touches [F1], [F2], ou [F3] contraindre le mouvement à l'un des 3 axes (X, Y, ou Z)."},
     {4,"Cliquer les raccourcis de contrainte des axes pour les (dé)activer."},
-    {5,"Verrouiller l'état (in)actif d'un axe à l'aide du menu Ajuster ou de la palette Ajuster."},
-    {6,"Les axes « à partir de l'élément » et « à partir du point » activent le vecteur Ajuster."},
+    {5,"Verrouiller l'état (in)actif d'un axe à l'aide du menu Peaufiner ou de la palette Peaufiner."},
+    {6,"Les axes « à partir de l'élément » et « à partir du point » activent le vecteur Peaufiner."},
     {7,"Les axes peuvent être combinés."}
    ]},
   {help_msg_basic,
    [
-    {1,"-- Ajuster, c'est quoi ? --"},
-    {2,"Ajuster permet des modifications rapides de la géométrie en cliquant et en glissant."},
-    {3,"Lorsque le mode Ajuster est actif, toutes les opérations normales restent disponibles,"},
-    {4," mais certains boutons de souris et touches de modification activeront les outils Ajuster."}
+    {1,"-- Peaufiner, c'est quoi ? --"},
+    {2,"Peaufiner permet des modifications rapides de la géométrie en cliquant et en glissant."},
+    {3,"Lorsque le mode Peaufiner est actif, toutes les opérations normales restent disponibles,"},
+    {4," mais certains boutons de souris et touches de modification activeront les outils Peaufiner."}
    ]},
   {help_msg_hotkeys,
    [
-    {1,"-- Des raccourcis pour les outils Ajuster --"},
-    {2,"Une alternative aux combinaison des touches Ajuster est de définir un raccourci claver à l'un des outils du mode Ajuster à l'aide de la touche Insérer."},
-    {3,"Une pression des touches de raccourci assigne au bouton de souris gauche l'outil Ajuster correspondant."}
+    {1,"-- Des raccourcis pour les outils Peaufiner --"},
+    {2,"Une alternative aux combinaison des touches Peaufiner est de définir un raccourci claver à l'un des outils du mode Peaufiner à l'aide de la touche Insérer."},
+    {3,"Une pression des touches de raccourci assigne au bouton de souris gauche l'outil Peaufiner correspondant."}
    ]},
   {help_msg_keys,
    [
-    {1,"-- Attribuer une touche aux outils Ajuster --"},
-    {2,"Chaque outil Ajuster ~s peut se voir assigner une touche de modification (Ctrl, Maj, Alt)."},
+    {1,"-- Attribuer une touche aux outils Peaufiner --"},
+    {2,"Chaque outil Peaufiner ~s peut se voir assigner une touche de modification (Ctrl, Maj, Alt)."},
     {3," et "},
-    {4,"Pour assigner une touche à un outils Ajuster :"},
-    {5,"\t1) Ouvrir le menu Ajuster."},
+    {4,"Pour assigner une touche à un outils Peaufiner :"},
+    {5,"\t1) Ouvrir le menu Peaufiner."},
     {6,"\t2) Mettre l'outil désiré en surbrillance."},
     {7,"\t3) Appuyez sur les touches de modification et les tenir un moment et/ou appuyez sur l'un des boutons de la souris."}
    ]},
@@ -2860,35 +2866,35 @@
     {1,"-- Aimants --"},
     {2,"Les aimants permettent des sélection souples."},
     {3,"Il y a trois types d'aimants : Dôme, Droit, and Pointe."},
-    {4,"Le rayon de l'aimant s'ajuster en tenant [Alt] et en bougeant la souris."},
-    {5,"Le contrôle du choix de l'aimant peut être assigné à des raccourcis dans le menu Ajuster|Aimants."},
-    {6,"Les paramètres de l'aimant peuvent être réglés dans les préférences de l'outils Ajuster."}
+    {4,"Le rayon de l'aimant s'ajuste en tenant [Alt] et en bougeant la souris."},
+    {5,"Le contrôle du choix de l'aimant peut être assigné à des raccourcis dans le menu Peaufiner|Aimants."},
+    {6,"Les paramètres de l'aimant peuvent être réglés dans les préférences de l'outils Peaufiner."}
    ]},
   {help_msg_palette,
    [
-    {1,"-- Palette Ajuster (Fenêtre|Palette Ajuster) --"},
-    {2,"La palette Ajuster un groupe de 3 fenêtres contenant les principales commandes du menu Ajuster."},
-    {3,"Utilisez la palette Ajuster pour changer entre les outils Ajuster, les types d'aimants ou les contraintes d'axe."}
+    {1,"-- Palette Peaufiner (Fenêtre|Palette Peaufiner) --"},
+    {2,"La palette Peaufiner un groupe de 3 fenêtres contenant les principales commandes du menu Peaufiner."},
+    {3,"Utilisez la palette Peaufiner pour changer entre les outils Peaufiner, les types d'aimants ou les contraintes d'axe."}
    ]},
   {help_msg_using_keys,
    [
-    {1,"-- Utiliser Ajuster --"},
-    {2,"1) Activez Ajuster."},
+    {1,"-- Utiliser Peaufiner --"},
+    {2,"1) Activez Peaufiner."},
     {3,"2) Pointez ou sélectionnez un élément de géométrie ou plus."},
-    {4,"3) Appuyez sur une combinaison de touches Ajuster et le bouton de souris associé pour activer Ajuster."},
+    {4,"3) Appuyez sur une combinaison de touches Peaufiner et le bouton de souris associé pour activer Peaufiner."},
     {5,"4) Faites glisser la géométrie à sa nouvelle position."},
-    {6,"5) Relâcher le bouton de souris pour compléter l'opération Ajuster."},
+    {6,"5) Relâcher le bouton de souris pour compléter l'opération Peaufiner."},
     {7,"Relâcher les touches du clavier ne mets pas fin à l'opération en cours."},
-    {8,"Ceci permet aux autres raccourcis clavier d'être utiliser en cours d'opération pour activer un autre outils Ajuster, une contrainte d'axe, pointer la caméra our ajuster le rayon de l'aimant."},
-    {9,"La touche [C] en cours d'opération Ajuster fait culbuter la vue."},
-    {10,"La touche [S] ou les touches flèchées en cours d'opération Ajuster déplace la vue latéralement."},
-    {11,"La touche [D] en cours d'opération Ajuster effectue un travelling."},
-    {12,"La touche [Espace] en cours d'opération Ajuster change pour l'outil Ajuster assigné au bouton gauche de la souris."},
+    {8,"Ceci permet aux autres raccourcis clavier d'être utiliser en cours d'opération pour activer un autre outils Peaufiner, une contrainte d'axe, pointer la caméra pour ajuster le rayon de l'aimant."},
+    {9,"La touche [C] en cours d'opération Peaufiner fait culbuter la vue."},
+    {10,"La touche [S] ou les touches flèchées en cours d'opération Peaufiner déplace la vue latéralement."},
+    {11,"La touche [D] en cours d'opération Peaufiner effectue un travelling."},
+    {12,"La touche [Espace] en cours d'opération Peaufiner change pour l'outil Peaufiner assigné au bouton gauche de la souris."},
     {13,"Maintenant la touche [F] en finalisant un glissé de la souris effectura une réduction de toute arête trop courte (fusionne deux sommets)."}
    ]},
   {help_window,
    [
-    {1,"Aide de l'outil Ajuster"}
+    {1,"Aide de l'outil Peaufiner"}
    ]},
   {mag_thelp,
    [
@@ -2904,9 +2910,9 @@
    ]},
   {menu,
    [
-    {1,"Ajuster is a collection of tools for quickly adjusting a mesh."},
-    {2,"Activer Ajuster"},
-    {3,"Déactiver Ajuster"},
+    {1,"Peaufiner est une collection d'outils pour effectuer des ajustement rapides à un maillage."},
+    {2,"Activer Peaufiner"},
+    {3,"Déactiver Peaufiner"},
     {4,"Aimants"},
     {5,"Contraintes d'axe"},
     {6,"Déplace la sélection par rapport à l'écran ou contraint à un axe."},
@@ -2915,12 +2921,12 @@
     {9,"Met à l'échelle les éléments uniformément à partir du centre de la sélection."},
     {10,"Relâche la sélection vers le plan moyen des voisins."},
     {11,"Glisse les éléments le long des arêtes adjencentes."},
-    {13,"Préférences Ajuster"},
-    {14,"Préférences de l'outil Ajuster"}
+    {13,"Préférences de Peaufiner"},
+    {14,"Préférences de l'outil Peaufiner"}
    ]},
   {menu_conflict,
    [
-    {1,"La combinaison de touches n'a pas été assignée.\n\n    Ces touches seraient en conflit avec le clic droit du menu Ajuster."}
+    {1,"La combinaison de touches n'a pas été assignée.\n\n    Ces touches seraient en conflit avec le clic droit du menu Peaufiner."}
    ]},
   {mode,
    [
@@ -2933,13 +2939,13 @@
    ]},
   {palette_title,
    [
-    {1,"Ajuster"},
-    {2,"Ajuster Magnet"},
-    {3,"Ajuster Axis"}
+    {1,"Peaufiner"},
+    {2,"Aimant de Peaufiner"},
+    {3,"Axe de Peaufiner"}
    ]},
   {spacebar_msg,
    [
-    {1,"[Espace] : Change pour l'outil Ajuster du bouton G"}
+    {1,"[Espace] : Change pour l'outil Peaufiner du bouton G"}
    ]},
   {toggle_bold,
    [
@@ -2948,13 +2954,13 @@
    ]},
   {tweak_disabled_msg,
    [
-    {1,"Ajuster : Désactivé"}
+    {1,"Peaufiner : Désactivé"}
    ]},
   {tweak_info_line,
    [
     {1,"G: Sélection par clic"},
     {2,"GG: Sélection par glissé"},
-    {3,"Menu Ajuster"},
+    {3,"Menu Peaufiner"},
     {4,"Menu"}
    ]},
   {tweak_magnet_help,
@@ -2968,7 +2974,7 @@
    [
     {1,"Désactiver l'aimant"},
     {2,"Activer l'aimant"},
-    {3,"L'aimant du monde Ajuster est semblable à une sélection douce."},
+    {3,"L'aimant du monde Peaufiner est semblable à une sélection douce."},
     {5,"Touche pour ajuster le rayon"},
     {6,"Appuyez sur [Insérer] pour personnaliser le raccourci qui ajuste le rayon de l'aimant. "},
     {7,"Sans raccourci, on ajuste l'aimant en maintenant [Alt]."},
@@ -3001,8 +3007,9 @@
     {6,"Longueur"},
     {7,"Largeur"},
     {8,"Couleur"},
-    {9,"Vecteur Ajuster"},
-    {10,"Préférences du monde Ajuster"}
+    {9,"Vecteur Peaufiner"},
+    {10,"Préférences du mode Peaufiner"},
+    {11,"Montrer l'influence de l'aimant"}
    ]},
   {xyzkey_help,
    [
@@ -3054,9 +3061,9 @@
     {32,"Repeat Args"},
     {33,"Repeat Drag"},
     {34,"Purge Undo"},
-    {35,"Preferences"},
+    {35,"Préférences"},
     {36,"Prefs"},
-    {37,"Plugin Manager"},
+    {37,"Gestionnaire de modules complémentaires"},
     {38,"Show Ground Plane"},
     {39,"Show Axes"},
     {40,"Show Info Text"},
@@ -3083,8 +3090,8 @@
     {61,"Frame"},
     {62,"Frame Mode"},
     {63,"Align to Selection"},
-    {64,"Next"},
-    {65,"Prev"},
+    {64,"Suivant"},
+    {65,"Précédent"},
     {66,"Current"},
     {67,"Jump"},
     {68,"Along"},
@@ -3178,33 +3185,33 @@
     {157,"Dodecahedron"},
     {158,"Icosahedron"},
     {159,"Cube"},
-    {160,"Cylinder"},
-    {161,"Cone"},
-    {162,"Sphere"},
-    {163,"Torus"},
-    {164,"Grid"},
-    {165,"Material"},
+    {160,"Cylindre"},
+    {161,"Cône"},
+    {162,"Sphère"},
+    {163,"Tore"},
+    {164,"Grille"},
+    {165,"Matériel"},
     {166,"Image"},
     {167,"Image Plane"},
-    {168,"Text"},
-    {169,"Gear"},
+    {168,"Texte"},
+    {169,"Roue dentée"},
     {170,"Tube"},
     {171,"Geo Dome"},
-    {172,"Torus Knot"},
+    {172,"Noeud celtique"},
     {173,"N-Cube"},
     {174,"N-Gon"},
     {175,"Regular Plane"},
     {176,"Lumpy Plane"},
     {177,"Wavy Plane"},
     {178,"Sombrero Plane"},
-    {179,"Spiral"},
-    {180,"Spring"},
-    {181,"UV Torus"},
+    {179,"Spirale"},
+    {180,"Ressort"},
+    {181,"Tore UV"},
     {182,"Lumpy Torus"},
     {183,"Spiral Torus"},
-    {184,"Normal"},
-    {185,"Free"},
-    {186,"Center"},
+    {184,"Normale"},
+    {185,"Libre"},
+    {186,"Centre"},
     {187,"Central Axis"},
     {188,"X"},
     {189,"Y"},
@@ -3214,10 +3221,10 @@
     {193,"-Z"},
     {194,"Last Axis"},
     {195,"Default Axis"},
-    {196,"True"},
-    {197,"False"},
-    {198,"All"},
-    {199,"Pick All"},
+    {196,"Vrai"},
+    {197,"Faux"},
+    {198,"Tout"},
+    {199,"Tout choisir"},
     {200,"Radial X"},
     {201,"Radial Y"},
     {202,"Radial Z"},
@@ -3225,24 +3232,24 @@
     {204,"LMB"},
     {205,"MMB"},
     {206,"RMB"},
-    {207,"Relative"},
-    {208,"Absolute"},
-    {209,"Move"},
-    {210,"Rotate"},
-    {211,"Scale"},
-    {212,"Uniform"},
-    {213,"Extrude"},
-    {214,"Extract"},
-    {215,"Dissolve"},
+    {207,"Relatif"},
+    {208,"Absolu"},
+    {209,"Déplacer"},
+    {210,"Tourner"},
+    {211,"Mettre à l'échelle"},
+    {212,"Uniforme"},
+    {213,"Extruder"},
+    {214,"Extraire"},
+    {215,"Dissoudre"},
     {216,"Collapse"},
-    {217,"Delete"},
-    {218,"Flatten"},
-    {219,"Smooth"},
-    {220,"Tighten"},
-    {221,"Bevel"},
-    {222,"Weld"},
-    {223,"Vertex Color"},
-    {224,"Snap"},
+    {217,"Supprimer"},
+    {218,"Aplatir"},
+    {219,"Adoucir"},
+    {220,"Reserrer"},
+    {221,"Bisauter"},
+    {222,"Souder"},
+    {223,"Couleur de sommet"},
+    {224,"Épingler"},
     {225,"Snap|Numeric Entry"},
     {226,"Scale to Target Size"},
     {227,"Scale|Center"},
@@ -3250,9 +3257,9 @@
     {229,"Stay on Line"},
     {230,"Stay on Plane"},
     {231,"Connecting Edges"},
-    {232,"Bend"},
-    {233,"Shift"},
-    {234,"Deform"},
+    {232,"Plier"},
+    {233,"Décaller"},
+    {234,"Déformer"},
     {235,"Crumple"},
     {236,"Taper"},
     {237,"Twist"},
@@ -3260,13 +3267,13 @@
     {239,"Inflate"},
     {240,"Inflate Cylindrically"},
     {241,"Shear"},
-    {242,"Slide"},
+    {242,"Glisser"},
     {243,"Clean Dissolve"},
-    {244,"Cut"},
-    {245,"Connect"},
-    {246,"Hardness"},
-    {247,"Soft"},
-    {248,"Hard"},
+    {244,"Couper"},
+    {245,"Connecter"},
+    {246,"Dureté"},
+    {247,"Doux"},
+    {248,"Dur"},
     {249,"Circularise"},
     {250,"Circularise|Center"},
     {251,"Loop Cut"},
@@ -3522,7 +3529,9 @@
     {72,"Montrer les facettes arrières"},
     {73,"Afficher les facettes arrières lorsqu'il y a un trou ou des facettes cachées dans un objet"},
     {74,"Traiter les textures"},
-    {75,"Active le traitement des textures pour toutes les textures. (Désactiver pour un affichage précis des textures basse résolution.)"}
+    {75,"Active le traitement des textures pour toutes les textures. (Désactiver pour un affichage précis des textures basse résolution.)"},
+    {76,"Montrer le mappage des normales"},
+    {77,"Utiliser le mappage des normales pour afficher les matériels bruts"}
    ]},
   {shader_submenu,
    [
@@ -3708,6 +3717,10 @@
     {tess0,"Aucune"},
     {tess3,"Triangulation"},
     {tess4,"Quadriller"},
+	{units,"Unités"},
+    {units0,"Centimètres"},
+    {units1,"Décimètres"},
+    {units2,"Mètres"},
     {uv,"Exporter les coordonnées UV"}
    ]},
   {do_import,
