@@ -1,0 +1,37 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_cylinder,
+ [
+  {cylinder,
+   [
+    {1,"Cylindre"}
+   ]},
+  {cylinder_dialog,
+   [
+    {1,"Sections"},
+    {2,"Hauteur"},
+    {3,"Facette supérieure : diamètre X"},
+    {4,"Facette supérieure : diamètre Z"},
+    {5,"Facette inférieure : diamètre X"},
+    {6,"Facette inférieure : diamètre Z"},
+    {8,"Tube"},
+    {9,"Engrenage"},
+    {10,"Type de cylindre"},
+    {11,"Épaisseur"}
+   ]},
+  {make_cylinder,
+   [
+    {1,"Paramètres du cylindre"}
+   ]},
+  {make_gear,
+   [
+    {1,"Engrenage"}
+   ]},
+  {make_tube,
+   [
+    {1,"Tube"}
+   ]},
+  {menu,
+   [
+    {2,"Crée un cylindre"}
+   ]}
+ ]}.
