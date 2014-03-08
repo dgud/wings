@@ -264,20 +264,32 @@ set_material(Mat, #st{selmode=body}=St) ->
 set_material(_, St) -> St.
 
 default() ->
-    Dm = wings_pref:get_value(material_default),
-    M = [{default,make_default(Dm, 1.0, [{vertex_colors,set}])}],
+    M = case wings_pref:get_value(material_default_full) of
+        undefined ->
+            Dm = wings_pref:get_value(material_default),
+            [{default,make_default(Dm, 1.0, [{vertex_colors,set}])}];
+        DefaultInfo ->
+            [{default,make_default(DefaultInfo)}]
+    end,
     gb_trees:from_orddict(sort(M)).
+
+make_default(OpenGL) ->
+    Mat = [{opengl,OpenGL}, {maps,[]}],
+    sort([{K,sort(L)} || {K,L} <- Mat]).
 
 make_default(Color, Opacity) ->
     make_default(Color, Opacity, []).
 
-make_default({R,G,B}, Opacity, More) ->
-    Color = {R,G,B,Opacity},
-    Dark = {0.0,0.0,0.0,1.0},
-    Mat = [{opengl,[{diffuse,Color},{ambient,Color},{specular,Dark},
-		    {emission,Dark},{shininess,0.0}|More]},
+make_default(Color, Opacity, More) ->
+    Mat = [make_opengl_mat(Color, Opacity, More),
 	   {maps,[]}],
     sort([{K,sort(L)} || {K,L} <- Mat]).
+
+make_opengl_mat({R,G,B}, Opacity, More) ->
+    Color = {R,G,B,Opacity},
+    Dark = {0.0,0.0,0.0,1.0},
+    {opengl,[{diffuse,Color},{ambient,Color},{specular,Dark},
+		    {emission,Dark},{shininess,0.0} | More]}.
 
 update_image(MatName, MapType, Image, #st{mat=Mtab}) ->
     Mat = gb_trees:get(MatName, Mtab),
@@ -395,9 +407,21 @@ add(Name, Mat0, #st{mat=MatTab}=St) ->
 	none ->
 	    St#st{mat=gb_trees:insert(Name, Mat, MatTab)};
 	{value,Mat} -> St;
-	{value,_} ->
-	    NewName = new_name(atom_to_list(Name), MatTab),
-	    {add(NewName, Mat, St),NewName}
+	{value,Mat1} ->
+        NewMat=fun() -> NewName = new_name(atom_to_list(Name), MatTab),
+                {add(NewName, Mat, St),NewName}
+            end,
+	    case Name of
+	        default ->
+	           %% any default materials read from any project file will be replaced by the
+	           %% current default settings just if the OpenGL settings are the only difference
+	            Mat_0 = proplists:delete(opengl, Mat),
+	            Mat1_0 = proplists:delete(opengl, Mat1),
+                if Mat_0 == Mat1_0 -> St;
+                true -> NewMat()
+                end;
+            _ -> NewMat()
+	    end
     end.
 
 update(Name, Mat0, #st{mat=MatTab}=St) ->
@@ -693,9 +717,17 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 	     }|Maps0]
 	   }],
     Qs2 = wings_plugin:dialog({material_editor_setup,Name,Mat0}, Qs1),
+    DefButtons=if Name==default ->
+       [separator,
+        {button,?__(8,"Save"),done,[{key,material_default_save}]},
+        {button,?__(9,"Restore"),done,[{key,material_default_restore}]}];
+    true -> % dummy fields
+       [{value, false,[{key,material_default_save}]},
+        {value, false,[{key,material_default_restore}]}]
+    end,
     Qs = {hframe,[{vframe,Qs2},
 		  {vframe,[{button,?__(7,"OK"),done,[ok,{key,material_editor_ok}]},
-			   {button,wings_s:cancel(),cancel,[cancel]}]}]},
+			   {button,wings_s:cancel(),cancel,[cancel]}]++DefButtons}]},
     Ask = fun([{diffuse,Diff},
 	       {ambient,Amb},
 	       {specular,Spec},
@@ -741,9 +773,20 @@ maybe_assign(true, Name, St) -> set_material(Name, St).
 
 plugin_results(Name, Mat0, Res0) ->
     case wings_plugin:dialog_result({material_editor_result,Name,Mat0}, Res0) of
-	{Mat,[{material_editor_ok,true}]} ->
+	{Mat,[{material_editor_ok,true},{material_default_save,_},{material_default_restore,_}]} ->
 	    {ok,Mat};
-	{Mat,[{material_editor_ok,false}]} ->
+	{Mat1,[{material_editor_ok,false},{material_default_save,Save},{material_default_restore,Restore}]} ->
+	    Mat = case true of
+            Save ->
+                OpenGL=prop_get(opengl, Mat1, []),
+                wings_pref:set_value(material_default_full,OpenGL),
+                Mat1;
+            Restore ->
+                Dm = wings_pref:get_value(material_default),
+                OpenGL=make_opengl_mat(Dm, 1.0, [{vertex_colors,set}]),
+                keyreplace(opengl, 1, Mat1, OpenGL);
+            _ -> Mat1
+	    end,
 	    {again,Mat};
 	{_,Res} ->
 	    io:format(?__(1,"Material editor plugin(s) left garbage:~n    ~P~n"), 
