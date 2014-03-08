@@ -107,6 +107,7 @@ MODULES= \
 	wings_shape \
 	wings_shapes \
 	wings_start \
+	wings_status \
 	wings_subdiv \
 	wings_theme \
 	wings_toolbar \

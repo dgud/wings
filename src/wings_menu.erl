@@ -14,7 +14,7 @@
 -module(wings_menu).
 -export([is_popup_event/1,menu/5,popup_menu/4,build_command/2,
 	 kill_menus/0]).
--export([wx_menubar/1, wx_command_event/1, check_item/1]).
+-export([wx_menubar/1, wx_command_event/1, check_item/1, str_clean/1]).
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -1955,7 +1955,7 @@ popup_event_handler({submenu, {What, MagnetClick}, Names, Opts, Menus}, Owner) -
 	    wx_popup_menu(X,Y,Names,Menus,MagnetClick,Owner)
     end;
 popup_event_handler({message, Msg}, _Owner) ->
-    wings_wm:message(Msg),
+    wings_wm:message(Msg, ""),
     keep;
 popup_event_handler(redraw,_) ->
     defer;

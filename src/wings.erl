@@ -123,7 +123,7 @@ init(File) ->
     wings_wm:init(),
     wings_file:init_autosave(),
     init_menubar(),
-    wings_pb:init(),
+    wings_pb:start_link(get(top_frame)),
     wings_dialog:init(),
     wings_job:init(),
     wings_develop:init(),

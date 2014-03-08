@@ -159,12 +159,17 @@ init() ->
 	       ?WX_GL_MIN_RED,8,?WX_GL_MIN_GREEN,8,?WX_GL_MIN_BLUE,8,
 	       ?WX_GL_DEPTH_SIZE, 24, ?WX_GL_STENCIL_SIZE, 8,
 	       ?WX_GL_DOUBLEBUFFER,0],
-    Canvas = wxGLCanvas:new(Frame, [{attribList, GLAttrs},
+    Canvas = wxGLCanvas:new(Frame, [
+				    {attribList, GLAttrs},
 				    {style,
 				     %% Let us handle redrawing (GTK)
 				     ?wxTRANSPARENT_WINDOW bor
 					 ?wxFULL_REPAINT_ON_RESIZE}
 				   ]),
+    Sizer = wxBoxSizer:new(?wxVERTICAL),
+    wxSizer:add(Sizer, Canvas, [{proportion, 1}, {flag, ?wxEXPAND}]),
+    wxSizer:setSizeHints(Sizer, Canvas),
+    wxFrame:setSizer(Frame, Sizer),
 
     %% Manager = wxAuiManager:new([{managed_wnd, Frame}]),
     %% Pane = wxAuiPaneInfo:new(),
@@ -216,7 +221,9 @@ init() ->
     set_icon(),
     wxWindow:setFocus(Canvas), %% Get keyboard focus
     wxWindow:connect(Frame, show),
+
     wxWindow:show(Frame),   %% Must be shown to initilize context.
+
     receive #wx{obj=Frame, event=#wxShow{}} -> ok end,
     wxGLCanvas:setCurrent(Canvas),
 
