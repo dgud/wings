@@ -779,11 +779,12 @@ plugin_results(Name, Mat0, Res0) ->
 	    Mat = case true of
             Save ->
                 OpenGL=prop_get(opengl, Mat1, []),
-                wings_pref:set_value(material_default_full,OpenGL),
+                wings_pref:set_value(material_default_full, OpenGL),
                 Mat1;
             Restore ->
                 Dm = wings_pref:get_value(material_default),
-                OpenGL=make_opengl_mat(Dm, 1.0, [{vertex_colors,set}]),
+                {_,OpenGL0}=OpenGL=make_opengl_mat(Dm, 1.0, [{vertex_colors,set}]),
+                wings_pref:set_value(material_default_full, OpenGL0),
                 keyreplace(opengl, 1, Mat1, OpenGL);
             _ -> Mat1
 	    end,
