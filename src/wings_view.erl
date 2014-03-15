@@ -21,13 +21,15 @@
 	 eye_point/0,export_views/1,import_views/2,camera_info/2,
 	 freeze_mirror/1]).
 
+-export([views_submenu/2]).
+
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
 -import(lists, [foldl/3,zip/2]).
 
-menu(#st{views={CurrentView,Views}}=St) ->
+menu(#st{views={_CurrentView,_Views}}=St) ->
     L = wings_pref:get_value(number_of_lights),
     [{?__(68,"Show"),{show,
      [{?__(1,"Ground Plane"),show_groundplane,?__(2,"Show the ground plane"),
@@ -99,8 +101,10 @@ menu(#st{views={CurrentView,Views}}=St) ->
       {?__(57,"Align to Selection"),align_to_selection,
        ?__(58,"Align the view to the normal of the selection")},
       separator,
-      {?__(33,"Saved Views: ")++integer_to_list(tuple_size(Views)),
-       {views,views_submenu(CurrentView, Views)}},
+      {?__(33,"Saved Views "),
+       {views, 	%% views_submenu(CurrentView, Views)}},
+	saved_views}},
+
       {?__(50,"View Along"),{along,[{?__(51,"+X"),x},
 				    {?__(52,"+Y"),y},
 				    {?__(53,"+Z"),z},
