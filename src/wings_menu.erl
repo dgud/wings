@@ -15,6 +15,8 @@
 -export([is_popup_event/1,menu/5,popup_menu/4,build_command/2,
 	 kill_menus/0]).
 -export([wx_menubar/1, wx_command_event/1, check_item/1, str_clean/1]).
+-export([update_menu/3, update_menu/4]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -52,6 +54,10 @@
 	 flags=[] :: list(),			%Flags (magnet/dialog).
 	 orig_xy				%Originally input global X and Y
 	}).
+
+-define(REPEAT, 99).
+-define(REPEAT_ARGS, 98).
+-define(REPEAT_DRAG, 97).
 
 -record(menu_entry, {wxid, name, object, type}).
 
@@ -2130,6 +2136,28 @@ check_item(Name) ->
 	    wxMenuItem:check(MenuItem, [{check, not Checked}])
     end.
 
+update_menu(Menu, Item, Cmd) ->
+    update_menu(Menu, Item, Cmd, undefined).
+update_menu(Menu, Item, Cmd, Help) ->
+    Id = predefined_item(Menu, Item),
+    MI = case ets:lookup(wings_menus, Id) of
+	     [#menu_entry{object=MO}] ->
+		 MO;
+	     [] when Menu =:= file, element(1, Item) =:= recent_file ->
+		 FileId = predefined_item(menu, Menu),
+		 [#menu_entry{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),
+		 N = wxMenu:getMenuItemCount(File),
+		 MO=wxMenu:insert(File, N-2, Id),
+		 ME=#menu_entry{name=build_command(Item,[file]), object=MO,
+				wxid=Id, type=?wxITEM_NORMAL},
+		 true = ets:insert(wings_menus, ME),
+		 Id =:= ?wxID_FILE1 andalso wxMenu:insertSeparator(File, N-2),
+		 MO
+	 end,
+    wxMenuItem:setText(MI, Cmd),
+    is_list(Help) andalso wxMenuItem:setHelp(MI, Help).
+
+
 wx_menubar(Menus) ->
     ets:new(wings_menus, [named_table, {keypos,2}]),
     WinName = {menubar, geom},
@@ -2138,10 +2166,13 @@ wx_menubar(Menus) ->
     Enter = fun({Str, Name, Fun}, Id) ->
 		    {Menu, NextId} = setup_menu([Name], Id, Fun),
 		    wxMenuBar:append(MB, Menu, Str),
-		    NextId
+		    MenuId = predefined_item(menu, Name, NextId),
+		    ME=#menu_entry{name=[Name], object=Menu, wxid=MenuId, type=submenu},
+		    true = ets:insert(wings_menus, ME),
+		    NextId+1
 	    end,
     try
-	lists:foldl(Enter,100, Menus),
+	lists:foldl(Enter, 200, Menus),
 	%% Let wings handle the accelerators by itself
 	Accel = wxAcceleratorTable:new(),
 	wxWindow:setAcceleratorTable(get(top_frame), Accel),
@@ -2207,7 +2238,9 @@ create_menu([{submenu, Desc, {Name, SubMenu0}, Help, _Ps, _HK}|Rest], Id, Names,
   when is_list(SubMenu0) ->
     {SMenu, NextId} = setup_menu([Name|Names], Id, SubMenu0),
     wxMenu:append(Menu, ?wxID_ANY, Desc, SMenu, [{help, Help}]),
-    create_menu(Rest, NextId, Names, Menu);
+    ME=#menu_entry{name=[Name|Names], object=SMenu, wxid=NextId, type=submenu},
+    true = ets:insert(wings_menus, ME),
+    create_menu(Rest, NextId+1, Names, Menu);
 create_menu([MenuEntry|Rest], Id, Names, Menu) ->
     {MenuItem, Check} = menu_item(MenuEntry, Menu, Id, Names),
     wxMenu:append(Menu, MenuItem),
@@ -2222,10 +2255,7 @@ menu_item({Desc0, Name, Help, Props, HotKey}, Parent, Id, Names) ->
 	       KeyStr -> Desc0 ++ "\t' " ++ KeyStr ++ " '"
 	       %%KeyStr -> Desc0 ++ "\t" ++ KeyStr
 	   end,
-    MenuId = case predefined_item(hd(Names),Name) of
-		 false -> Id;
-		 PId  -> PId
-	     end,
+    MenuId = predefined_item(hd(Names),Name, Id),
     Command = case have_option_box(Props) of
 		  true ->
 		      case lists:reverse(Desc0) of
@@ -2252,16 +2282,29 @@ menu_item({Desc0, Name, Help, Props, HotKey}, Parent, Id, Names) ->
 %% We want to use the prefdefined id where they exist (mac) needs for it's
 %% specialized menus but we want our shortcuts hmm.
 %% We also get little predefined icons for OS's that have that.
+predefined_item(Menu, Item, DefId) ->
+    case predefined_item(Menu,Item) of
+	false -> DefId;
+	PId  -> PId
+    end.
+
 predefined_item(help, about)   -> ?wxID_ABOUT;
 predefined_item(help, help)    -> ?wxID_HELP;
+predefined_item(menu, file)    -> ?wxID_FILE;
 predefined_item(file, quit)    -> ?wxID_EXIT;
 predefined_item(file, new)     -> ?wxID_NEW;
 predefined_item(file, open)    -> ?wxID_OPEN;
 predefined_item(file, save)    -> ?wxID_SAVE;
 predefined_item(file, save_as) -> ?wxID_SAVEAS;
 predefined_item(file, revert)  -> ?wxID_REVERT;
+predefined_item(file, {recent_file,N}) -> ?wxID_FILE + N; %% Zero numbered
+predefined_item(menu, edit)    -> ?wxID_EDIT;
 predefined_item(edit, undo)    -> ?wxID_UNDO;
 predefined_item(edit, redo)    -> ?wxID_REDO;
+%% Make it easy to find repeat
+predefined_item(edit, repeat)  -> ?REPEAT;
+predefined_item(edit, repeat_args) -> ?REPEAT_ARGS;
+predefined_item(edit, repeat_drag) -> ?REPEAT_DRAG;
 predefined_item(_, _) ->  false.
 
 colorB({R,G,B,A}) -> {trunc(R*255),trunc(G*255),trunc(B*255),trunc(A*255)};
