@@ -140,12 +140,12 @@ init(File) ->
     Props = initial_properties(),
     {{X,Y},{W,H}} = wings_wm:win_rect(desktop),
     wings_wm:toplevel(geom, geom_title(geom),
-              {X,Y,highest}, {W,H-80},
-              [resizable,{anchor,nw},
-               {toolbar,
-            fun(A, B, C) -> wings_toolbar:create(A, B, C) end},
-               menubar,{properties,Props}],
-              Op),
+		      {X,Y,highest}, {W,H-80},
+		      [resizable,{anchor,nw},
+		       {toolbar,fun(A, B, C) -> wings_toolbar:create(A, B, C) end},
+		       %%menubar,
+		       {properties,Props}],
+		      Op),
     wings_wm:menubar(geom, get(wings_menu_template)),
     wings_menu:wx_menubar(get(wings_menu_template)),
     set_drag_filter(geom),
@@ -1759,11 +1759,12 @@ geom_pos({X,Y}=Pos) ->
              Upper0+ToolbarH
          end,
     {_,TitleH} = wings_wm:win_size({controller,geom}),
-    {_,MenuBarH} = wings_wm:win_size({menubar,geom}),
-    case Upper1 + TitleH + MenuBarH of
-    Upper when Y < Upper -> 
-      {X,Upper};
-    _ -> Pos
+    %% {_,MenuBarH} = wings_wm:win_size({menubar,geom}),
+    %%case Upper1 + TitleH + MenuBarH of
+    case Upper1 + TitleH of
+	Upper when Y < Upper ->
+	    {X,Upper};
+	_ -> Pos
     end.
 
 geom_props(B) when B == false; B == true ->
