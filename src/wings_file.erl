@@ -268,15 +268,21 @@ command(quit, _) ->
 command(confirmed_quit, _) ->
     del_unsaved_file(),
     quit;
-command(Key, St) when is_integer(Key), 1 =< Key ->
+command({recent_file,Key}, St) when is_integer(Key), 1 =< Key ->
     Recent0 = wings_pref:get_value(recent_files, []),
     {_,File} = lists:nth(Key, Recent0),
     case filelib:is_file(File) of
 	true ->
 	    named_open(File, St);
 	false ->
+	    Last = length(Recent0),
 	    Recent = delete_nth(Recent0, Key),
 	    wings_pref:set_value(recent_files, Recent),
+	    wings_menu:update_menu(file, {recent_file, Last}, delete, []),
+	    lists:foreach(fun({Str, RKey, Help}) ->
+				  wings_menu:update_menu(file, RKey, Str, Help);
+			     (separator) -> ok
+			  end, recent_files(Recent, [])),
 	    wings_u:error_msg(?__(5,"This file has been moved or deleted."))
     end.
 
@@ -635,21 +641,29 @@ update_recent(Old, New) ->
     Recent = add_recent(NewFile, Recent1),
     wings_pref:set_value(recent_files, Recent).
 
-add_recent(File, [A,B,C,D,E|_]) -> [File,A,B,C,D,E];
-add_recent(File, Recent) -> [File|Recent].
+add_recent(NewFile, Present) ->
+    Recent = add_recent_1(NewFile, Present),
+    lists:foreach(fun({Str, Key, Help}) ->
+			  wings_menu:update_menu(file, Key, Str, Help);
+		     (separator) -> ok
+		  end, recent_files(Recent, [])),
+    Recent.
+
+add_recent_1(File, [A,B,C,D,E|_]) -> [File,A,B,C,D,E];
+add_recent_1(File, Recent) -> [File|Recent].
 
 recent_files(Tail) ->
-    case wings_pref:get_value(recent_files, []) of
-	[] -> Tail;
-	Files ->
-	    Help = ?__(1,"Open this recently used file"),
-	    recent_files_1(Files, 1, Help, [separator|Tail])
-    end.
+    recent_files(wings_pref:get_value(recent_files, []), Tail).
+
+recent_files([], Tail) -> Tail;
+recent_files(Files, Tail) ->
+    Help = ?__(1,"Open this recently used file"),
+    recent_files_1(Files, 1, Help, [separator|Tail]).
 
 recent_files_1([{Base0,Base1}|T], I, Help0, Tail) ->
     Base = wings_u:pretty_filename(Base0),
     Help = lists:flatten([Help0," -- "|wings_u:pretty_filename(Base1)]),
-    [{Base,I,Help}|recent_files_1(T, I+1, Help0, Tail)];
+    [{Base,{recent_file,I},Help}|recent_files_1(T, I+1, Help0, Tail)];
 recent_files_1([], _, _, Tail) -> Tail.
 
 %%

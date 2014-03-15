@@ -288,6 +288,9 @@ save_state(St0, St1) ->
          #st{saved=false} -> St2;
          _Other -> wings_u:caption(St2#st{saved=false})
      end,
+    wings_menu:update_menu(edit, repeat, command_name(?__(1,"Repeat"), St)),
+    wings_menu:update_menu(edit, repeat_args, command_name(?__(2,"Repeat Args"), St)),
+    wings_menu:update_menu(edit, repeat_drag, command_name(?__(3,"Repeat Drag"), St)),
     main_loop(clear_temp_sel(St)).
 
 ask(Ask, St, Cb) ->
