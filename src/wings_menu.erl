@@ -2204,7 +2204,9 @@ wx_menubar(Menus) ->
 
 setup_menu(Names, Id, Menus0) ->
     Menu   = wxMenu:new(),
-    Menus1 = if is_function(Menus0) -> Menus0(#st{});
+    Menus1 = if is_function(Menus0) ->
+		     io:format("Menus0 ~p~n", [Menus0]),
+		     Menus0(#st{});
 		is_list(Menus0) -> Menus0
 	     end,
     Menus2  = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus1),
@@ -2293,8 +2295,12 @@ menu_item({Desc0, Name, Help, Props, HotKey}, Parent, Id, Names) ->
 		   end,
     MI = wxMenuItem:new([{parentMenu, Parent}, {id,MenuId},
 			 {text,Desc}, {kind, Type}, {help,Help}]),
-    true = ets:insert(wings_menus, #menu_entry{name=build_command(Command, Names),
-					       object=MI, wxid=MenuId, type=Type}),
+    Cmd = case is_function(Command) of
+	      true -> Command(1, #st{});
+	      false -> build_command(Command, Names)
+	  end,
+    true = ets:insert(wings_menus,
+		      #menu_entry{name=Cmd,object=MI, wxid=MenuId, type=Type}),
     {MI, Check}.
 
 %% We want to use the prefdefined id where they exist (mac) needs for it's

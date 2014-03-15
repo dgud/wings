@@ -20,8 +20,6 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--import(lists, [foldl/3]).
-
 menu(_) ->
     L = [getting_started,
 	 one_or_two,
