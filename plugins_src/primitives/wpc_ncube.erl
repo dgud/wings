@@ -13,7 +13,7 @@
 -module(wpc_ncube).
 -export([init/0,menu/2,command/2]).
 -import(math, [cos/1,sin/1,pi/0]).
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 init() -> true.
 
@@ -41,8 +41,8 @@ cube_str() ->
 % === Ncube ===
 % =============
 make_ncube(Arg, St) when is_atom(Arg) ->
-    wings_ask:dialog_preview({shape,ncube}, Arg, ?__(1,"Cube Options"),
-      ncube_dialog(), St);
+    wings_dialog:dialog_preview({shape,ncube}, Arg, ?__(1,"Cube Options"),
+				ncube_dialog(), St);
 make_ncube(Arg, _) ->
     % set_pref(Arg),	% don't save
     ArgDict = dict:from_list(Arg),
@@ -61,15 +61,15 @@ ncube_dialog() ->
     Nres = get_pref(nres, 1),
     SpherizeFlag = get_pref(spherizeflag, false),
     [{hframe,
-	       [{slider, {text, Nres,
-	       [{key,nres},{range,{1,20}}]}}],[{title, ?__(1,"Number of Cuts")}]},
+      [{slider, {text, Nres,
+		 [{key,nres},{range,{1,20}}]}}],[{title, ?__(1,"Number of Cuts")}]},
      {hframe,[{label,wings_s:dir(x)},{text,2.0,[{key,xcube},{range,{0.0,infinity}}]}]},
-      {hframe,[{label,wings_s:dir(y)},{text,2.0,[{key,ycube},{range,{0.0,infinity}}]}]},
-      {hframe,[{label,wings_s:dir(z)},{text,2.0,[{key,zcube},{range,{0.0,infinity}}]}]},
-      {vradio,[{?__(2,"Yes"), true},
-	       {?__(3,"No"), false}],
-	      SpherizeFlag,
-	      [{key,spherizeflag}, {title, ?__(4,"Spherize")}]}
+     {hframe,[{label,wings_s:dir(y)},{text,2.0,[{key,ycube},{range,{0.0,infinity}}]}]},
+     {hframe,[{label,wings_s:dir(z)},{text,2.0,[{key,zcube},{range,{0.0,infinity}}]}]},
+     {vradio,[{?__(2,"Yes"), true},
+	      {?__(3,"No"), false}],
+      SpherizeFlag,
+      [{key,spherizeflag}, {title, ?__(4,"Spherize")}]}
     ].
 
 ncube_verts(Nres) ->
@@ -125,7 +125,7 @@ dtc_round(Float, Decimals) -> % Accurately rounds decimals - www.digithings.com
 % === N-Gon ===
 % =============
 make_ngon(Arg, St) when is_atom(Arg) ->
-    wings_ask:dialog_preview({shape,ngon}, Arg, ?__(1,"N-Gon Options"), ngon_dialog(), St);
+    wings_dialog:dialog_preview({shape,ngon}, Arg, ?__(1,"N-Gon Options"), ngon_dialog(), St);
 make_ngon(Arg, _) ->
     ArgDict = dict:from_list(Arg),
     NumVerts = dict:fetch(numverts, ArgDict),

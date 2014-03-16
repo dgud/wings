@@ -23,7 +23,7 @@
 -export([init/0,menu/2,command/2]).
 
 -import(math, [cos/1,sin/1,pi/0]).
--include("wings_intl.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 init() -> true.
 
@@ -72,7 +72,7 @@ torus_dialog() ->
 
 make_torus(Ask, St) when is_atom(Ask) ->
     Qs = torus_dialog(),
-    wings_ask:dialog_preview({shape,torus}, Ask, ?__(1,"Torus Options"), Qs, St);
+    wings_dialog:dialog_preview({shape,torus}, Ask, ?__(1,"Torus Options"), Qs, St);
 make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,smooth},_,_], _) ->
     Ures0=min_uv_torus_res(Ures),
     Vres0=min_uv_torus_res(Vres),

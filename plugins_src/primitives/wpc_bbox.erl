@@ -13,7 +13,7 @@
 
 -module(wpc_bbox).
 -export([init/0,menu/2,command/2]).
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 init() -> true.
 
@@ -52,7 +52,7 @@ create_bbox(#st{bb=BB}=St) ->
     Y = wings_s:dir(y),
     Z = wings_s:dir(z),
     Qs =
-      [{hframe,[{label,[{bold,?__(2,"BB Dimensions:")}]},
+      [{hframe,[{label,[?__(2,"BB Dimensions:")]},
                       {label,io_lib:format("{~s ~s ~s}",
                        [wings_util:nice_float(Bx),
                         wings_util:nice_float(By),
@@ -61,7 +61,7 @@ create_bbox(#st{bb=BB}=St) ->
                       {label,Y},{text,By},
                       {label,Z},{text,Bz}]},
             separator,
-             {hframe,[{label,[{bold,?__(3,"BB Center:")}]},
+             {hframe,[{label,[?__(3,"BB Center:")]},
                       {label,io_lib:format("{~s ~s ~s}",
                        [wings_util:nice_float(Cx),
                         wings_util:nice_float(Cy),
@@ -69,7 +69,7 @@ create_bbox(#st{bb=BB}=St) ->
              {hframe,[{label,X},{text,Cx},
                       {label,Y},{text,Cy},
                       {label,Z},{text,Cz}]}],
-    wings_ask:dialog(?__(1,"Create Bounding Box"), {preview,Qs},
+    wings_dialog:dialog(?__(1,"Create Bounding Box"), {preview,Qs},
       fun
         ({dialog_preview,Res}) ->
             St1 = save_bbox(Res, St),

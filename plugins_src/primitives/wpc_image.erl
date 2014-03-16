@@ -15,7 +15,7 @@
 -export([init/0,menu/2,command/2]).
 
 -define(NEED_OPENGL,1).
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 -include("e3d.hrl").
 -include("e3d_image.hrl").
@@ -67,14 +67,14 @@ make_image(Name,Ask,St) when is_atom(Ask) ->
 
 make_image(FileName, Image0, false=Ask, _St) ->
     case load_img_plane(FileName,Image0) of
-    {error,_} -> ok;
-    ImData ->
-        Id_Img_Helper = load_ip_helper(),
-        Qs = image_dialog(FileName, Id_Img_Helper),
-        wings_ask:dialog(Ask, ?__(2,"Image Plane"), [{vframe,Qs}],
-        fun(Res) ->
-            {shape,{image_plane,{params,{ImData,Res}}}}
-        end)
+	{error,_} -> ok;
+	ImData ->
+	    Id_Img_Helper = load_ip_helper(),
+	    Qs = image_dialog(FileName, Id_Img_Helper),
+	    wings_ask:dialog(Ask, ?__(2,"Image Plane"), [{vframe,Qs}],
+			     fun(Res) ->
+				     {shape,{image_plane,{params,{ImData,Res}}}}
+			     end)
     end;
 
 make_image(FileName, Image0, Ask, St) when is_atom(Ask) ->
@@ -82,7 +82,7 @@ make_image(FileName, Image0, Ask, St) when is_atom(Ask) ->
     {error,_} -> ok;
     {Id_Img_Plane,_,_}=ImData ->
         Id_Img_Helper = load_ip_helper(),
-        wings_ask:dialog(?__(2,"Image Plane"), {preview,image_dialog(FileName, Id_Img_Helper)},
+        wings_dialog:dialog(?__(2,"Image Plane"), {preview,image_dialog(FileName, Id_Img_Helper)},
           fun
             ({dialog_preview,Res}) ->
                 St1 = make_image_0(ImData,Res,St),
@@ -121,33 +121,33 @@ image_dialog(FileName, Tx_helper) ->
         keep
     end,
     [
-            {hframe,[
-                {vradio,[{?__(3,"Front"),front},{?__(5,"Right"),right},{?__(7,"Top"),top},
-                         {?__(4,"Back"),back},{?__(6,"Left"),left},{?__(8,"Bottom"),bottom},{?__(9,"View"),view}],front,
-                    [{title,?__(10,"Aligned with...")},{info, ?__(11,"Location in accord with placement helper (image on the right)")},{key,alignment}]},
-                {custom,?IP_HELPER_SIZE+?CHAR_HEIGHT+2,?IP_HELPER_SIZE+2,Draw_Helper}
-            ]},
-            {hradio,[{?__(12,"Material "),for_mat},{?__(13,"Material and Object "),for_mat_obj},{?__(14,"None "),for_none}],for_none,
-                [{title,?__(15,"Use image name for...")},{info, ?__(16,"To allow the image name be used for the image plane material and/or object")},{key,usename}]},
-            {hframe,[
-                {label,?__(17,"Name")},
-                {text,?DEF_NAME,[{info, ?__(18,"Name for the image plane object")},{width,25},{hook,Disable_Hook},{key,img_name}]}
-            ]},
+     {hframe,[
+	      {vradio,[{?__(3,"Front"),front},{?__(5,"Right"),right},{?__(7,"Top"),top},
+		       {?__(4,"Back"),back},{?__(6,"Left"),left},{?__(8,"Bottom"),bottom},{?__(9,"View"),view}],front,
+	       [{title,?__(10,"Aligned with...")},{info, ?__(11,"Location in accord with placement helper (image on the right)")},{key,alignment}]},
+	      {custom,?IP_HELPER_SIZE+?CHAR_HEIGHT+2,?IP_HELPER_SIZE+2,Draw_Helper}
+	     ]},
+     {hradio,[{?__(12,"Material "),for_mat},{?__(13,"Material and Object "),for_mat_obj},{?__(14,"None "),for_none}],for_none,
+      [{title,?__(15,"Use image name for...")},{info, ?__(16,"To allow the image name be used for the image plane material and/or object")},{key,usename}]},
+     {hframe,[
+	      {label,?__(17,"Name")},
+	      {text,?DEF_NAME,[{info, ?__(18,"Name for the image plane object")},{width,25},{hook,Disable_Hook},{key,img_name}]}
+	     ]},
             {value,FName,[{key,fname}]},
-            {value,Owner,[{key,owner}]},
-            {hframe,[
-                {hframe,[
-                    {label,?__(19,"Offset")},
-                    {text,0.0,[{info, ?__(20,"Offset from origin (positive values only)")},{range,{0.0,infinity}},{key,offset},{width,7}]},
-                    {label," "}]},
-                {hframe,[
-                    {label,?__(21,"Rotation")}]},
-                    {text,0.0,[{info, ?__(22,"Rotation around the origin (positive is counterclockwise)")},{hook,Disable_Hook},{key,rotation},{width,7}]}
-            ]},
+     {value,Owner,[{key,owner}]},
+     {hframe,[
+	      {hframe,[
+		       {label,?__(19,"Offset")},
+		       {text,0.0,[{info, ?__(20,"Offset from origin (positive values only)")},{range,{0.0,infinity}},{key,offset},{width,7}]},
+		       {label," "}]},
+	      {hframe,[
+		       {label,?__(21,"Rotation")}]},
+	      {text,0.0,[{info, ?__(22,"Rotation around the origin (positive is counterclockwise)")},{hook,Disable_Hook},{key,rotation},{width,7}]}
+	     ]},
             separator,
-            {?__(23,"Lock after create"),false,[{info, ?__(24,"Lock image plane object")},{key,locked}]},  
-            {?__(25,"Transparent back face"),false,[{info, ?__(26,"Assign transparent material to back face")},{key,transp}]}  
-        ].
+     {?__(23,"Lock after create"),false,[{info, ?__(24,"Lock image plane object")},{key,locked}]},
+     {?__(25,"Transparent back face"),false,[{info, ?__(26,"Assign transparent material to back face")},{key,transp}]}
+    ].
 
 make_image_0({ImageId, {MaxU,MaxV}, {AspX,AspY}}, Arg, #st{mat=Mat0}=St) ->
     ArgDict = dict:from_list(Arg),
