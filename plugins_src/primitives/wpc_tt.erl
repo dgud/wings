@@ -19,8 +19,8 @@
 		mapfoldl/3,foldl/3,sublist/3,map/2,last/1,seq/2,seq/3,
 		flatten/1,sum/1,append/1]).
 
--include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/src/wings.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -record(ttfont,
 	{nglyph,			% number of glyphs
@@ -64,7 +64,7 @@ make_text(Ask, St) when is_atom(Ask) ->
     Text = wpa:pref_get(wpc_tt, text, "Wings 3D"),
     Bisect = wpa:pref_get(wpc_tt, bisections, 0),
     FontDirectory = filename:join([FontDir,FontName]),
-    wings_ask:dialog_preview({shape,text}, Ask, ?__(1,"Create Text"),
+    wings_dialog:dialog_preview({shape,text}, Ask, ?__(1,"Create Text"),
         [{vframe,
           [{hframe,
             [{vframe,

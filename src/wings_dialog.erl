@@ -95,7 +95,8 @@ preview_fun(Cmd, St) ->
     fun({dialog_preview,Res}) ->
 	    Command = command_name(Cmd, Res),
 	    {preview,Command,St};
-       (cancel) -> St;
+       (cancel) ->
+	    St;
        (Res) ->
 	    Command = command_name(Cmd, Res),
 	    {commit,Command,St}
@@ -123,12 +124,16 @@ enter_dialog(true, no_preview, Dialog, Fields, Fun) -> %% No preview cmd / modal
 	    return_result(Fun, Values, wings_wm:this())
     end;
 enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
+    State = #eh{dialog=Dialog, fs=Fields, apply=Fun,
+		owner=wings_wm:this(), type=PreviewType},
+    Op = {push,fun(Ev) -> event_handler(Ev, State) end},
+    {TopW,TopH} = wings_wm:top_size(),
+    wings_wm:new(dialog_blanket, {0,0,highest}, {TopW,TopH}, Op),
     Env = wx:get_env(),
     spawn_link(fun() ->
 		       wx:set_env(Env),
 		       Me = self(),
 		       Forward = fun(Event, _) ->
-					 %% io:format("Send event ~p to wings~n", [Event]),
 					 wxDialog:show(Dialog, [{show,false}]),
 					 wings_wm:psend(dialog_blanket, Event),
 					 Me ! closed
@@ -139,13 +144,9 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
 					 {lastId, ?wxID_NO},
 					 {callback,Forward}]),
 		       wxDialog:show(Dialog),
+		       wings_wm:psend(dialog_blanket, preview),
 		       receive closed -> ok end
 	       end),
-    State = #eh{dialog=Dialog, fs=Fields, apply=Fun,
-		owner=wings_wm:this(), type=PreviewType},
-    Op = {push,fun(Ev) -> event_handler(Ev, State) end},
-    {TopW,TopH} = wings_wm:top_size(),
-    wings_wm:new(dialog_blanket, {0,0,highest}, {TopW,TopH}, Op),
     keep.
 
 notify_event_handler(false, _Msg) -> fun() -> ignore end;
@@ -153,7 +154,7 @@ notify_event_handler(no_preview, _) -> fun() -> ignore end;
 notify_event_handler(_, Msg) -> fun() -> wings_wm:psend(dialog_blanket, Msg) end.
 
 event_handler(#wx{id=?wxID_CANCEL},
-	      #eh{dialog=Dialog, apply=Fun, owner=Owner, type=preview_cmd}) ->
+	      #eh{dialog=Dialog, apply=Fun, owner=Owner}) ->
     wxDialog:destroy(Dialog),
     #st{}=St = Fun(cancel),
     wings_wm:send(Owner, {update_state,St}),
@@ -322,13 +323,13 @@ build(Ask, {hframe, Qs, Flags}, Parent, Sizer, In) ->
     build_box(Ask, ?wxHORIZONTAL, Qs, Flags, Parent, Sizer, In);
 
 build(Ask, {vradio, Alternatives, Def}, Parent, Sizer, In) ->
-    build(Ask, {vradio, "", Alternatives, Def}, Parent, Sizer, In);
-build(Ask, {vradio, Name, Alternatives, Def}, Parent, Sizer, In) ->
-    build_radio(Ask, Name, Def, ?wxRA_SPECIFY_COLS, Alternatives, Parent, Sizer, In);
+    build(Ask, {vradio, Alternatives, Def, []}, Parent, Sizer, In);
+build(Ask, {vradio, Alternatives, Def, Flags}, Parent, Sizer, In) ->
+    build_radio(Ask, Def, ?wxRA_SPECIFY_COLS, Alternatives, Flags, Parent, Sizer, In);
 build(Ask, {hradio, Alternatives, Def}, Parent, Sizer, In) ->
-    build(Ask, {hradio, "", Alternatives, Def}, Parent, Sizer, In);
-build(Ask, {hradio, Name, Alternatives, Def}, Parent, Sizer, In) ->
-    build_radio(Ask, Name, Def, ?wxRA_SPECIFY_ROWS, Alternatives, Parent, Sizer, In);
+    build(Ask, {hradio, Alternatives, Def, []}, Parent, Sizer, In);
+build(Ask, {hradio, Alternatives, Def, Flags}, Parent, Sizer, In) ->
+    build_radio(Ask, Def, ?wxRA_SPECIFY_ROWS, Alternatives, Flags, Parent, Sizer, In);
 
 build(Ask, {label, Label}, Parent, Sizer, In) ->
     build(Ask, {label, Label, []}, Parent, Sizer, In);
@@ -531,7 +532,8 @@ build_box(Ask, Type, Qs, Flags, Parent, Top, In0) ->
     add_sizer({box, Type}, Top, Sizer),
     Input.
 
-build_radio(Ask, Name, Def, Direction, Alternatives, Parent, Sizer, In) ->
+build_radio(Ask, Def, Direction, Alternatives, Flags, Parent, Sizer, In) ->
+    Name = proplists:get_value(title, Flags, ""),
     {Strs,Keys} = lists:unzip(Alternatives),
     true = lists:member(Def, Keys),
     Create = fun() ->
@@ -539,10 +541,15 @@ build_radio(Ask, Name, Def, Direction, Alternatives, Parent, Sizer, In) ->
 					   ?wxDefaultPosition, ?wxDefaultSize,
 					   Strs, [{majorDim, 1}, {style, Direction}]),
 		     add_sizer({radiobox, Direction}, Sizer, Ctrl),
-		     wxRadioBox:enable(Ctrl, pos(Def, Keys)),
+		     wxRadioBox:setSelection(Ctrl, pos(Def, Keys)),
+		     Preview = fun(_, _) -> (notify_event_handler(Ask, preview))() end,
+		     wxRadioBox:connect(Ctrl, command_radiobox_selected,
+					[{callback, Preview}]),
 		     Ctrl
 	     end,
-    [#in{def=Def, type=radiobox, wx=create(Ask, Create), data=Keys}|In].
+    [#in{key=proplists:get_value(key,Flags),
+	 def=Def, type=radiobox, wx=create(Ask, Create),
+	 data=Keys}|In].
 
 create_slider(Ask, Def, Flags, Validator, Parent, TopSizer) when is_number(Def) ->
     Range = proplists:get_value(range, Flags),
