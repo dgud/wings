@@ -15,7 +15,7 @@
 -export([init/0,menu/2,command/2]).
 
 -import(math, [cos/1,sin/1,pi/0]).
--include("wings_intl.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 init() ->
     true.
@@ -40,7 +40,7 @@ make_spiral(Ask, St) when is_atom(Ask) ->
     Qs = [{?__(2,"Loops"),2,[{range,{1,32}}]},
           {?__(3,"Segments"),16,[{range,{3,128}}]},
           {?__(4,"Sections"),8,[{range,{2,64}}]}],
-    wings_ask:ask_preview({shape,spiral}, Ask, ?__(1,"Create Spiral"), Qs, St);
+    wings_dialog:ask_preview({shape,spiral}, Ask, ?__(1,"Create Spiral"), Qs, St);
 make_spiral([L,Ns,Nl], _) ->
     Vs = spiral_vertices(Ns, Nl, L),
     Fs = spiral_faces(Ns, Nl, L),
@@ -50,7 +50,7 @@ make_spring(Ask, St) when is_atom(Ask) ->
     Qs = [{?__(2,"Loops"),2,[{range,{1,32}}]},
           {?__(3,"Segments"),16,[{range,{3,128}}]},
           {?__(4,"Sections"),8,[{range,{2,64}}]}],
-    wings_ask:ask_preview({shape,spring}, Ask, ?__(1,"Create Spring"), Qs, St);
+    wings_dialog:ask_preview({shape,spring}, Ask, ?__(1,"Create Spring"), Qs, St);
 make_spring([L,Ns,Nl], _) ->
     Vs = spiral_vertices2(Ns, Nl, L),
     Fs = spiral_faces(Ns, Nl, L),
