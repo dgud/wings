@@ -14,7 +14,7 @@
 
 -module(wpc_cylinder).
 -export([init/0,menu/2,command/2]).
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 -import(math, [cos/1,sin/1,pi/0]).
 
 init() -> true.
@@ -73,7 +73,7 @@ cylinder_dialog() ->
 make_cylinder(Arg, St) when is_atom(Arg) ->
     Qs = cylinder_dialog(),
     Label = ?__(1,"Cylinder Options"),
-    wings_ask:dialog_preview({shape,cylinder}, Arg, Label, Qs, St);
+    wings_dialog:dialog_preview({shape,cylinder}, Arg, Label, Qs, St);
 make_cylinder(Arg, _St) ->
     ArgDict = dict:from_list(Arg),
     Sections = dict:fetch(sections, ArgDict),
