@@ -205,6 +205,9 @@ get_output1(_, In=#in{type=radiobox, wx=Ctrl, data=Keys}) ->
     with_key(In, lists:nth(ZeroIndex+1, Keys));
 get_output1(_, In=#in{type=filepicker, wx=Ctrl}) ->
     with_key(In,wxFilePickerCtrl:getPath(Ctrl));
+get_output1(_, In=#in{type=color, wx=Ctrl, def=Def}) ->
+    Col = wxColourPickerCtrl:getColour(Ctrl),
+    with_key(In, rgb(Col, Def));
 get_output1(_, In=#in{type=slider, wx=Ctrl, data={Convert,_}}) ->
     with_key(In,Convert(wxSlider:getValue(Ctrl)));
 get_output1(_, In=#in{type=choice, wx=Ctrl}) ->
@@ -313,6 +316,21 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
     [#in{key=proplists:get_value(key,Flags), def=Def, data=proplists:get_value(key,Flags,ignore),
 	 type=dialog_buttons, wx=Create}|In];
 
+build(Ask, {oframe, Tabs, 1, Flags}, Parent, WinSizer, In0)
+  when Ask =/= false ->
+    buttons =:= proplists:get_value(style, Flags, buttons) orelse error(Flags),
+    NB = wxNotebook:new(Parent, ?wxID_ANY, []),
+    AddPage = fun({Title, Data}, In) ->
+		      Panel = wxPanel:new(NB, []),
+		      Sizer  = wxBoxSizer:new(?wxVERTICAL),
+		      Out = build(Ask, Data, Panel, Sizer, In),
+		      wxPanel:setSizerAndFit(Panel, Sizer),
+		      wxNotebook:addPage(NB, Panel, Title),
+		      Out
+	      end,
+    In = lists:foldl(AddPage, In0, Tabs),
+    wxSizer:add(WinSizer, NB, [{proportion, 1},{flag, ?wxEXPAND}]),
+    In;
 build(Ask, {vframe, Qs}, Parent, Sizer, In) ->
     build(Ask, {vframe, Qs, []}, Parent, Sizer, In);
 build(Ask, {vframe, Qs, Flags}, Parent, Sizer, In) ->
@@ -342,7 +360,23 @@ build(Ask, {label, Label, Flags}, Parent, Sizer, In)
 			end, [], Lines0),
     Text = wxStaticText:new(Parent, ?wxID_ANY, Lines),
     add_sizer(label, Sizer, Text),
+    wxSizer:setItemMinSize(Sizer, Text, proplists:get_value(min_wsz, Flags, -1), -1),
     In;
+build(Ask, {label_column, Rows}, Parent, Sizer, In) ->
+    MinSize =
+	if Ask =:= false -> -1;
+	   true ->
+		ST = wxStaticText:new(Parent, ?wxID_ANY, ""),
+		lists:foldl(fun({Str,_}, Max) ->
+				    {W, _, _, _} = wxWindow:getTextExtent(ST, Str),
+				    max(W+5, Max)
+			    end, -1, Rows)
+	end,
+    Translate = fun({String, Field}) ->
+			{hframe, [{label, String, [{min_wsz, MinSize}]}, Field]}
+		end,
+    build(Ask, {vframe, lists:map(Translate, Rows)}, Parent, Sizer, In);
+
 build(Ask, panel, _Parent, Sizer, In)
   when Ask =/= false ->
     wxSizer:addSpacer(Sizer, 20),
@@ -369,15 +403,15 @@ build(Ask, {text, Def, Flags}, Parent, Sizer, In) ->
 				   end,
 		     UseHistory = fun(Ev, Obj) ->
 					  case use_history(Ev, Type, Ctrl) of
-					      {true, Prev}  ->
-						  add_history(Type, Prev),
+					      {true, _Prev}  ->
 						  PreviewFun();
 					      false ->
 						  wxEvent:skip(Obj)
 					  end
 				  end,
-		     AddHistory = fun(_,_) ->
+		     AddHistory = fun(_,Obj) ->
 					  Str = wxTextCtrl:getValue(Ctrl),
+					  wxEvent:skip(Obj),
 					  case Validator(Str) of
 					      {true, _} -> add_history(Type, Str);
 					      false -> ignore
@@ -412,6 +446,15 @@ build(Ask, {slider, Flags}, Parent, Sizer, In) ->
     [#in{key=proplists:get_value(key,Flags), def=Def, data={ToText, ToSlider},
 	 type=slider, wx=create(Ask,Create)}|In];
 
+build(Ask, {color, Def, Flags}, Parent, Sizer, In) ->
+    Create = fun() ->
+		     Ctrl = wxColourPickerCtrl:new(Parent, ?wxID_ANY, [{col, rgb256(Def)}]),
+		     add_sizer(button, Sizer, Ctrl),
+		     Ctrl
+	     end,
+    [#in{key=proplists:get_value(key,Flags), def=Def,
+	 type=color, wx=create(Ask,Create)}|In];
+
 build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
     Create = fun() ->
 		     Props = proplists:get_value(props, Flags, []),
@@ -435,6 +478,12 @@ build(Ask, {menu, Entries, Def, Flags}, Parent, Sizer, In) ->
 	fun() ->
 		Ctrl = wxChoice:new(Parent, ?wxID_ANY),
 		lists:foldl(fun({Str, Tag}, N) ->
+				    wxChoice:append(Ctrl, Str, Tag),
+				    Def =:= Tag andalso wxChoice:setSelection(Ctrl, N),
+				    N + 1;
+			       ({Str, Tag, Fs}, N) ->
+				    TT = proplists:get_value(info, Fs, ""),
+				    wxWindow:setToolTip(Ctrl, wxToolTip:new(TT)),
 				    wxChoice:append(Ctrl, Str, Tag),
 				    Def =:= Tag andalso wxChoice:setSelection(Ctrl, N),
 				    N + 1
@@ -513,8 +562,8 @@ build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
 build(false, _Q, _Parent, _Sizer, In) ->
     In;
 build(Ask, Q, _Parent, _Sizer, In) ->
-    io:format("~p:~p: Unhandled ask=~p, ~p~n  From: ~p",
-	      [?MODULE,?LINE,Ask,Q, erlang:process_info(self(), current_stacktrace)]),
+    io:format("~p:~p: Unhandled ask=~p, ~P~n  From: ~p~n",
+	      [?MODULE,?LINE,Ask,Q,10, erlang:process_info(self(), current_stacktrace)]),
     In.
 
 build_box(false, _Type, Qs, _, Parent, _Top, In0) ->
@@ -557,7 +606,7 @@ create_slider(Ask, Def, Flags, Validator, Parent, TopSizer) when is_number(Def) 
     {Min, Value, Max, Style, ToText, ToSlider} = slider_style(Def, Range),
     Slider = wxSlider:new(Parent, ?wxID_ANY, Value, Min, Max, [{style, Style}]),
     Text = wxTextCtrl:new(Parent, ?wxID_ANY, [{value, to_str(Def)}]),
-    wxSizer:add(Sizer, Slider, [{proportion,3}, {flag, ?wxEXPAND}]),
+    wxSizer:add(Sizer, Slider, [{proportion,2}, {flag, ?wxEXPAND}]),
     wxSizer:add(Sizer, Text,   [{proportion,1}]),
     add_sizer(slider, TopSizer, Sizer),
     PreviewFun = notify_event_handler(Ask, preview),
@@ -595,22 +644,22 @@ slider_style(Def, {Min, Max})
     {0, ToSlider(Def), 100, ?wxSL_HORIZONTAL, ToText, ToSlider}.
 
 add_sizer(What, Sizer, Ctrl) ->
-    {Propportion, Border, Flags} = sizer_flags(What, wxBoxSizer:getOrientation(Sizer)),
-    wxSizer:add(Sizer, Ctrl, [{proportion, Propportion}, {border, Border}, {flag, Flags}]).
+    {Proportion, Border, Flags} = sizer_flags(What, wxBoxSizer:getOrientation(Sizer)),
+    wxSizer:add(Sizer, Ctrl, [{proportion, Proportion}, {border, Border}, {flag, Flags}]).
 
 sizer_flags(label, ?wxHORIZONTAL)     -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(label, ?wxVERTICAL)       -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(separator, ?wxHORIZONTAL) -> {1, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(separator, ?wxVERTICAL)   -> {0, 5, ?wxALL bor ?wxEXPAND};
 sizer_flags(text, ?wxHORIZONTAL)      -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(slider, ?wxHORIZONTAL)    -> {3, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(button, ?wxHORIZONTAL)    -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(choice, ?wxHORIZONTAL)    -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(checkbox, ?wxHORIZONTAL)  -> {1, 0 ,?wxALIGN_CENTER_VERTICAL};
+sizer_flags(slider, ?wxHORIZONTAL)    -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(button, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(choice, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(checkbox, ?wxHORIZONTAL)  -> {0, 0 ,?wxALIGN_CENTER_VERTICAL};
 sizer_flags(table,  _)                -> {4, 0, ?wxEXPAND};
 sizer_flags({radiobox, Dir}, Dir)     -> {5, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags({radiobox, _}, _)         -> {0, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({box, Dir}, Dir)          -> {1, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags({box, Dir}, Dir)          -> {0, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags({box, _}, _)              -> {0, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(_, ?wxHORIZONTAL)         -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(_, ?wxVERTICAL)           -> {0, 0, ?wxEXPAND}.
@@ -625,6 +674,12 @@ to_str(Float) when is_float(Float) ->
 to_str(List = [C|_]) when is_integer(C) ->
     List;
 to_str([]) -> [].
+
+rgb256({R,G,B}) -> {round(R*255),round(G*255),round(B*255)};
+rgb256({R,G,B,_A}) -> {round(R*255),round(G*255),round(B*255)}.
+
+rgb({R,G,B,A}, {_, _, _, _}) -> {R/255, G/255, B/255, A/255};
+rgb({R,G,B,_A}, {_, _, _}) -> {R/255, G/255, B/255}.
 
 
 pos(C, S) -> pos(C, S, 0).
