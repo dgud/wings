@@ -169,23 +169,6 @@
     {11,"Otevřít ovládací panel se zprávami"}
    ]}
  ]}.
-{wings_ask,
- [
-  {button_label,
-   [
-    {1,"OK"}
-   ]},
-  {frame_event,
-   [
-    {1,"Roztáhnout tento rám; zavřít ostatní rámy"},
-    {2,"Roztáhnout tento rám"},
-    {3,"Zavřít tento rám"}
-   ]},
-  {mktree,
-   [
-    {1,"Prohledat"}
-   ]}
- ]}.
 {wings_body,
  [
   {arealight_conv,

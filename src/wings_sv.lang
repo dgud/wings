@@ -139,16 +139,6 @@
     {10,"Konsol"},
     {11,"Öppna konsolfönster för informationsmeddelanden"}
    ]}]}.
-{wings_ask,
- [
-  {button_label,
-   [{1,"OK"}]},
-  {frame_event,
-   [{1,"Expandera den här rutan; kollapsa andra rutor"},
-    {2,"Expandera den här rutan"},
-    {3,"Kollapsa den här rutan"}]},
-  {mktree,
-   [{1,"Utforska"}]}]}.
 {wings_body,
  [
   {arealight_conv,

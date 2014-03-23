@@ -123,8 +123,8 @@ select_image(_St) ->
     case Images of
 	[] ->
 	    wpa:error_msg(?__(1,"No images present, import an image first."));
-	_ ->
-	    Qs = [{vframe, Images}],
+	[{_, Def}|_] ->
+	    Qs = [{vradio, Images, Def}],
 	    Select = fun([Reply]) ->
 			     TId = wings_image:txid(Reply),
 			     Draw = fun(St) -> draw_image(TId,St) end,
@@ -135,18 +135,15 @@ select_image(_St) ->
 			     put(?MODULE,#s{reply=Reply,name=Name,w=W,h=H}),
 			     ignore
 		     end,
-	    wings_ask:dialog(?__(2,"Choose Image to snap"),Qs,Select)
+	    wings_dialog:dialog(?__(2,"Choose Image to snap"),Qs,Select)
     end.
 
 find_images() ->
     case wings_image:images() of
 	[] -> [];
-	Imgs = [{Def,_}|_] -> find_images_1(Imgs, Def, 0)
+	Imgs ->
+	    [{Name, Id} || {Id,#e3d_image{name=Name}} <- Imgs]
     end.
-
-find_images_1([{Id,#e3d_image{name=Name}}|Tail], Def, Key) ->
-    [{key_alt,{Key,Def},Name,Id}|find_images_1(Tail, Def, Key-1)];
-find_images_1([], _Def, _Key) -> [].
 
 scale({auv_snap_prop,Proportional}, St) ->
     State = #s{sx=Ix,sy=Iy} = get(?MODULE),

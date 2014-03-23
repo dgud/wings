@@ -136,15 +136,6 @@
     {11,"Apre una finestra di terminale per i messaggi di informazione"}]}
   ]}.
 
-{wings_ask,
- [{button_label,
-   [{1,"Si'"}]},
-  {frame_event,
-   [{1,"Espande questa cornice; collassa le altre"},
-    {2,"Espandi questa cornice"},
-    {3,"Collassa questa cornice"}]},
-  {mktree,
-   [{1,"Sfoglia"}]}]}.
 {wings_body,
  [{arealight_conv,
    [{2,"Converte la luce d'Area in un oggetto"},

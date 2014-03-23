@@ -132,11 +132,11 @@ axis_menu(_, face, Axis) ->
     {AxisStr,{plane_cut,Fun}}.
 
 slices_dialog(Mode,Cmd) ->
-    wings_ask:dialog(?__(1,"Slice into Equal Parts"),
-      [{vframe,[{hframe,[{slider,{text,2,[{range,{2,100}}]}}]}]}],
-      fun([Parts]) ->
-        {Mode,{slice,{Parts,Cmd}}}
-      end).
+    wings_dialog:dialog(?__(1,"Slice into Equal Parts"),
+			[{vframe,[{hframe,[{slider,{text,2,[{range,{2,100}}]}}]}]}],
+			fun([Parts]) ->
+				{Mode,{slice,{Parts,Cmd}}}
+			end).
 
 %%%
 %%% Commands
