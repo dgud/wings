@@ -867,15 +867,15 @@ prefs(#sculpt{str=Str}) ->
     Confine = wings_pref:get_value(sculpt_initial),
     ShowInfluence = wings_pref:get_value(sculpt_magnet_influence),
     Menu = [{vframe,
-      [{hframe,[{slider,{text,Strength,[{key,sculpt_strength},{range,{1,100}}]}}],
-         [{title,?__(1,"Strength")}]}]}],
+	     [{hframe,[{slider,{text,Strength,[{key,sculpt_strength},{range,{1,100}}]}}],
+	       [{title,?__(1,"Strength")}]}]}],
     C = [separator,{?__(3,"Confine sculpt to initial object"),
-          Confine,[{key,sculpt_initial}]},
+		    Confine,[{key,sculpt_initial}]},
          {?__(4,"Show Magnet influence"),
           ShowInfluence,[{key,sculpt_magnet_influence}]}],
     PrefQs = [{Lbl, make_query(Ps)} || {Lbl, Ps} <- Menu] ++ C,
-    wings_ask:dialog(?__(10,"Sculpt Preferences"), PrefQs,
-    fun(Result) -> set_values(Result) end).
+    wings_dialog:dialog(?__(10,"Sculpt Preferences"), PrefQs,
+			fun(Result) -> set_values(Result) end).
 
 make_query([_|_]=List) ->
     [make_query(El) || El <- List];

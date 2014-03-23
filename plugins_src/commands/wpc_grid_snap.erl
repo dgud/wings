@@ -74,7 +74,7 @@ command({vertex,{grid_snap,{Axis,dialog}}}, _St) ->
     Xs = wings_s:dir(x),
     Ys = wings_s:dir(y),
     Zs = wings_s:dir(z),
-    wings_ask:dialog(?__(1,"Origin of Virtual Grid"),
+    wings_dialog:dialog(?__(1,"Origin of Virtual Grid"),
       [{hframe,[{label,Xs},{text,0.0},
                 {label,Ys},{text,0.0},
                 {label,Zs},{text,0.0}]}],

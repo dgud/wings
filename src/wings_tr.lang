@@ -181,23 +181,6 @@
     {11,"Bilgi mesajlarını görmek için konsol penceresini aç"}
    ]}
  ]}.
-{wings_ask,
- [
-  {button_label,
-   [
-    {1,"Tamam"}
-   ]},
-  {frame_event,
-   [
-    {1,"Bu çerçeveyi genişlet; diğer çerçeveleri yık"},
-    {2,"Bu çerçeveyi genişlet"},
-    {3,"Bu çerçeveyi yık"}
-   ]},
-  {mktree,
-   [
-    {1,"Göz At"}
-   ]}
- ]}.
 {wings_body,
  [
   {arealight_conv,

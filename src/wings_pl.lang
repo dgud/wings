@@ -186,23 +186,6 @@
     {11,"Otwiera okno konsoli w którym wyświetlane są komunikaty"}
    ]}
  ]}.
-{wings_ask,
- [
-  {button_label,
-   [
-    {1,"Zatwierdź"}
-   ]},
-  {frame_event,
-   [
-    {1,"Rozwiń tę ramkę; zwiń pozostałe"},
-    {2,"Rozwiń tę ramkę"},
-    {3,"Zwiń tę ramkę"}
-   ]},
-  {mktree,
-   [
-    {1,"Przeglądaj"}
-   ]}
- ]}.
 {wings_body,
  [
   {arealight_conv,

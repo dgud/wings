@@ -623,10 +623,10 @@ export_light_1(F, looks_like, OpenGL, PovRay) ->
     {Vr, Vg, Vb, _} = proplists:get_value(ambient, OpenGL, {1.0, 1.0, 1.0, 1.0}),
     io:format(F, "\t\t\t\t ambient rgb <~f, ~f, ~f>  *~f\n", [Vr, Vg, Vb, Am]),
     {Dr, Dg, Db, _} =proplists:get_value(diffuse, OpenGL, {1.0, 1.0, 1.0, 1.0}),
-    {_Hd,_Sd,Vd} = wings_ask:rgb_to_hsv({Dr, Dg, Db}),
+    {_Hd,_Sd,Vd} = wings_color:rgb_to_hsv({Dr, Dg, Db}),
     io:format(F, "\t\t\t\t diffuse ~f\n", [Vd]),
     {Sr, Sg, Sb, _} =proplists:get_value(specular, OpenGL, {1.0, 1.0, 1.0, 1.0}),
-    {_Hs,_Ss,Vs} = wings_ask:rgb_to_hsv({Sr, Sg, Sb}),
+    {_Hs,_Ss,Vs} = wings_color:rgb_to_hsv({Sr, Sg, Sb}),
     io:format(F, "\t\t\t\t specular ~f\n", [Vs]),
     io:format(F, "\t\t\t }\n\t\t } }\n", []),
 
@@ -800,7 +800,7 @@ export_finish(F, OpenGL, PovRay)->
     io:format(F, "\t\t brilliance ~f\n", [proplists:get_value(finish_brilliance, PovRay, 1.0)]),
     io:format(F, "\t\t metallic ~f\n", [proplists:get_value(finish_metallic, PovRay, 0.0)]),
     {Sr, Sg, Sb, _} = proplists:get_value(specular, OpenGL, 1.0),
-    {_H,_S,V} = wings_ask:rgb_to_hsv({Sr, Sg, Sb}),
+    {_H,_S,V} = wings_color:rgb_to_hsv({Sr, Sg, Sb}),
     io:format(F, "\t\t specular ~f\n", [V]),
     io:format(F, "\t\t roughness ~f\n", [1.01 - proplists:get_value(shininess, OpenGL, 1.0)]),
     case proplists:get_value(reflection_enabled, PovRay, false) of

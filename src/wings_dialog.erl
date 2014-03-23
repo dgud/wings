@@ -22,6 +22,219 @@
 -record(in, {key, type, def, wx, validator, data}).
 -record(eh, {dialog, fs, apply, owner, type}).
 
+%%
+%% Syntax of Qs.
+%% See also wpc_test_ask.erl for examples.
+%%
+%% Common types:
+%%     String = string()
+%%     Boolean = true | false
+%%     Fields = [Field]
+%%     Field  -- Any field tuple described below
+%%     Key = term()
+%%         Note: An integer() Key is a relative field address,
+%%             any other term is an absolute storage identifier.
+%%             Since an integer() Key mean something it is a bad idea
+%%             to use a float() as Key. It should work, but the slightest
+%%             programming mistake in this module may lead to a mismatch.
+%%               Field common data (common for all field types, used for
+%%             dialog tree traversing, etc) is stored in the dialog tree,
+%%             consisting of nested #fi{} records.
+%%               Field private data (special to a given field type), and
+%%             field values are all stored in the same gb_trees store.
+%%               All fields have a field index in the dialog tree, which
+%%             is an integer from 1 and up assigned in tree traversal
+%%             order (depth first - same as Qs order).
+%%               Field private data is stored with negative field index as
+%%             key in the gb_trees store and is different record types
+%%             depending on field type. Field values is stored in the
+%%             gb_trees store with the field index as key (the default),
+%%             or if using an integer key, the field shares value with
+%%             another field and the key is a relative field index
+%%             offset. If the key is any other term it is the actual
+%%             key used in the store.
+%%               All fields that have a non-integer key will return
+%%             {Key,Value} as the field result of the dialog. The
+%%             others just returns Value. Most fields return values,
+%%             except when noted below.
+%%     Hook = function()
+%%         Hook should have arity 2 and return 'void' for any
+%%         unknown arguments, like this:
+%%         fun (is_disabled, {Var,I,Store}) -> Bool;
+%%                 %% Called at redraw time for all fields.
+%%                 %% For container fields the contained fields are
+%%                 %% disabled but not the container field.
+%%             (is_minimized, {Var,I,Store}) -> Bool;
+%%                 %% Called at layout time for all fields
+%%                 %% except Overlay frames.
+%%             (update, {Var,I,Val,Store}) ->
+%%                 keep|{store,NewStore}|done|{done,NewStore}|{layout,NewStore}
+%%                 %% Should make sure Val gets stored in NewStore.
+%%                 %% done|{done,_} finishes the dialog (may get restarted).
+%%                 %% {layout,_} forces a layout pass.
+%%                 %% Called when a field changes value.
+%%             (menu_disabled, {Var,I,Store}) -> [Disabled];
+%%                 %% Disabled = Val|{Val,MenuFlags}
+%%                 %% Val = menu value
+%%                 %% MenuFlags = menu flags prepended to other menu flags
+%%                 %% Only called for menu fields.
+%%             (_, _) -> void
+%%         end
+%%
+%% Qs is either one field below (preferably containing more fields,
+%% or a list of fields, in which case the list is enclosed in a
+%% {hframe,...} containing two {vframe,...}s, the first containing
+%% Qs and the second containing an Ok and a Cancel button.
+%%
+%%
+%%
+%% Container fields (dialog tree nodes):
+%%
+%% {hframe,Fields[,Flags]}			-- Horizontal frame
+%% {vframe,Fields[,Flags]}			-- Vertical frame
+%%     Flags = [Flag]
+%%     Flag = {title,String}|{minimized,Boolean}|{key,Key}|{hook,Hook}|layout|
+%%            checkbox|invert
+%% Only frames with both 'title' and 'minimized' flags return a value.
+%% The 'checkbox' flag changes style of the frame to have a checkbox
+%% field in the header indicating the minimized state. The 'invert'
+%% flag makes the checkbox value and the return value of the field to
+%% be the inverted minimized state (the maximized state ;-).
+%%
+%% {oframe,Fields[,Flags]}			-- Overlay frame
+%%     Flags = [Flag]
+%%     Flag = {title,String}|{style,Style}|{key,Key}|{hook,Hook}|layout
+%%     Style = menu|buttons  -- menu is default
+%%
+%%
+%%
+%% Composite fields (consisting of other fields)
+%%
+%% {vradio,Alts,DefaultValue[,Flags]}		-- Radio buttons vertically
+%% {hradio,Alts,DefaultValue[,Flags]}		-- Radio buttons horizontally
+%%     Alts = [{PromptString,Value}]
+%%     Flags = [Flag]
+%%     Flag = {key,Key}|{title,String}|{hook,Hook}
+%% Example: see wpc_am.erl. These are {key,...} or {key_alt,...} fields
+%% in a {hframe,...} or {vframe,...}.
+%%
+%% {label_column,Rows}				-- Column of labeled fields
+%%     Rows = [Row]
+%%     Row = {String,Field}
+%% This is a {hframe,...} containing one {vframe,...} with {label,String}
+%% fields and one {vframe,Fields} containing the fields.
+%%
+%% {slider,{text,Def,Flags}}			-- Slider on text field
+%% {slider,{color,Col,Flags}}			-- Slider on color box
+%% See slider regular field below. This is a {hframe,...} containing
+%% two fields.
+%%
+%% {button,{text,Def,Flags}}                    -- Text field with a
+%%                                                 Browse button
+%%    Flags = [Flag]
+%%    Flag = {props,DialogBoxProperties}|{dialog_type,DialogType}|
+%%           {drop_flags,DropFlags}|RegularFlags
+%%    DialogType = open_dialog|save_dialog
+%%    DropFlags = [{index,Index}|{key,Key}|{hook,Hook}]
+%%                %% Specifies field where any data dropped on the
+%%                %% button will be stored
+%%    Index = integer() relative field index to drop target
+%%    Key = drop target field key
+%%    Hook = drop target field hook
+%%
+%% Regular fields (dialog tree leafs).
+%% Additional types:
+%%     RegularFlags = [RegularFlag]
+%%     RegularFlag = {key,Key}|{hook,Hook}|{info,String}|
+%%                   {stretch,Stretch}|layout
+%% Note: the 'layout' flag forces a layout pass if the field changes value.
+%%       Default Stretch is 0 and defines how much of horizontal padding
+%%       when contained in a hframe that the field will use. The horizontal
+%%       padding is distributed evenly over the stretch factors.
+%%
+%% panel					-- Blank filler, stretch 1
+%% {panel,RegularFlags}
+%% Does not return a value.
+%%
+%% {value,Value}				-- Invisible value holder
+%% {value,Value,RegularFlags}
+%%
+%% {label,String}				-- Textual label
+%% Does not return a value.
+%%
+%% separator					-- Horizontal separator line
+%% Does not return a value.
+%%
+%% {color,Col[,RegularFlags]}			-- Color box with sub-dialog
+%%     Col = {R,G,B}|{R,G,B,A}
+%%     R = G = B = A = X, 0.0 =< X, X =< 1.0
+%%
+%% {alt,Def,String,Val[,RegularFlags]}		-- Radiobutton
+%%     Def = term()  -- Start value for radiobutton group.
+%%                      One radiobutton in group must have this value.
+%%     Val = term()  -- This button's value.
+%%
+%% {key_alt,{Key,Def},String,Val[,Flags]}	-- Radiobutton
+%%    -> {alt,Def,String,Val,[{key,Key}|Flags]}
+%%
+%% {menu,Alts,Def[,RegularFlags]}		-- Pop-up menu
+%%     Def = term()        -- Start value for menu.
+%%                            One menu alternative must have this value.
+%%     Alts = [Alt]
+%%     Alt = {String,Val}|{String,Val,MenuFlags} -- Menu alt desc and value.
+%%     Val = term()
+%%     MenuFlags = [{info,String}]
+%%
+%% {button[,String],Action[,RegularFlags]}	-- Button
+%%     Action = ok|preview|cancel|done|function(Result)
+%% Only Action == done returns a value.
+%% If String is omitted and Action is an atom, a String is
+%% constructed by capitalizing the atom's string representation.
+%% If Action is not an atom, String is mandatory.
+%%
+%% {custom,W,H,DrawFun[,RegularFlags]}		-- Custom look viewer
+%%     W = H = integer()  -- Field size
+%%     DrawFun = function(X, Y, W, H, Store)
+%%         %% Should draw field and probably return 'keep'.
+%%         %% Other return values are possible - read the source.
+%%
+%% {slider,{text,Def,Flags}}			-- Slider on text field
+%% {slider,{color,Col,Flags}}			-- Slider on color box
+%% {slider,Flags}				-- Solo slider
+%%     Flags = [Flag]
+%%     Flag = {range,{Min,Max}}|{color,true}|{color,ColKeySpec}|
+%%            value|RegularFlag
+%%     ColKeySpec = {r,KeyG,KeyB}|{g,KeyR,KeyB}|{b,KeyR,KeyG}|
+%%                  {h,KeyS,KeyV}|{s,KeyH,KeyV}|{v,KeyH,KeyS}
+%% The 'range' flag is mandatory.
+%% Do not use other ranges than 0.0 through 1.0 for R,G,B,H,S color sliders,
+%% nor other than 0.0 through 360.0 for a V color slider.
+%% The Key* keys are used to read in the other color properties for the
+%% slider to draw a sensible background color.
+%% The same Flags are passed on to the {text,_,_} or {color,_,_} fields.
+%% Returns a value only if the 'value' flag is used.
+%%
+%% {text,Def[,Flags]}				-- Numerical or text field
+%%     Def = integer()|float()|String  -- Start value
+%%     Flags = {range,{Min,Max}}|{width,CharW}|{password,Bool}|
+%%             {charset,Charset}|RegularFlag
+%%     CharW = integer() >= 1
+%%         %% Min and Max should be of same type as Def and is not
+%%         %% allowed with a String field.
+%%         %% Min can also be '-infinity' and Max 'infinity'.
+%%         %% CharW is in characters. Default width is 30 for
+%%         %% String fields, 8 for integer() and 12 for float().
+%%         %% Charset is latin1 or unicode; default is latin1.
+%%
+%% {String,Bool[,RegularFlags]}			-- Checkbox
+%%
+%% {help,Title,HelpLines}                       -- Help button
+%%     Title = String
+%%     HelpLines = [HelpLine] | fun() -> [HelpLine]
+%%     HelpLine = String
+%%
+%%
+
 init() ->
     init_history().
 
@@ -182,7 +395,7 @@ event_handler(preview, #eh{fs=Fields, apply=Fun, owner=Owner}) ->
 	Action = {numeric_preview, _} ->
 	    wings_wm:send(Owner, {action,Action});
 	Action when is_tuple(Action); is_atom(Action) ->
-	    io:format("~p:~p: ~p~n",[?MODULE,?LINE,{preview,[Owner,{action,Action}]}]),
+	    %%io:format("~p:~p: ~p~n",[?MODULE,?LINE,{preview,[Owner,{action,Action}]}]),
 	    wings_wm:send(Owner, {action,Action})
     end;
 event_handler(#mousebutton{x=X0,y=Y0}=Ev, _) ->
@@ -655,6 +868,7 @@ sizer_flags(text, ?wxHORIZONTAL)      -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(slider, ?wxHORIZONTAL)    -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(button, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(choice, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(checkbox, ?wxVERTICAL)    -> {1, 0 ,?wxALIGN_CENTER_VERTICAL};
 sizer_flags(checkbox, ?wxHORIZONTAL)  -> {0, 0 ,?wxALIGN_CENTER_VERTICAL};
 sizer_flags(table,  _)                -> {4, 0, ?wxEXPAND};
 sizer_flags({radiobox, Dir}, Dir)     -> {5, 0, ?wxALIGN_CENTER_VERTICAL};
@@ -773,7 +987,7 @@ float_validator(Flags) ->
 
 integer_range(Min, Max, Default) ->
     fun(Str) ->
-	    case wings_ask:eval_integer(Str) of
+	    case eval_integer(Str) of
 		error -> false;
 		Int when Min =/= '-infinity', Int < Min ->
 		    {true, Default};
@@ -785,7 +999,7 @@ integer_range(Min, Max, Default) ->
 
 integer_range(Min, Max) ->
     fun(Str) ->
-	    case wings_ask:eval_integer(Str) of
+	    case eval_integer(Str) of
 		error -> false;
 		Int when Min =/= '-infinity', Int < Min ->
 		    {true, Min};
@@ -797,7 +1011,7 @@ integer_range(Min, Max) ->
 
 float_range(Min, Max, Default) ->
     fun(Str) ->
-	    case wings_ask:eval_float(Str) of
+	    case eval_float(Str) of
 		error -> false;
 		Float when Min =/= '-infinity', Float < Min ->
 		    {true, Default};
@@ -809,7 +1023,7 @@ float_range(Min, Max, Default) ->
 
 float_range(Min, Max) ->
     fun(Str) ->
-	    case wings_ask:eval_float(Str) of
+	    case eval_float(Str) of
 		error -> false;
 		Float when Min =/= '-infinity', Float < Min ->
 		    {true, Min};
@@ -821,14 +1035,14 @@ float_range(Min, Max) ->
 
 accept_all_fun(integer) ->
     fun(Str) ->
-	    case wings_ask:eval_integer(Str) of
+	    case eval_integer(Str) of
 		error -> false;
 		Number -> {true, Number}
 	    end
     end;
 accept_all_fun(float) ->
     fun(Str) ->
-	    case wings_ask:eval_float(Str) of
+	    case eval_float(Str) of
 		error -> false;
 		Number -> {true, Number}
 	    end
@@ -897,3 +1111,84 @@ read_hist(Type, Step, Ctrl) ->
 	    wxTextCtrl:setValue(Ctrl, Val),
 	    {true, Prev}
     end.
+
+%%%%%%%%%%%%%%%%%%%%%
+
+eval_integer(Str) ->
+    eval_integer(Str,error).
+eval_integer(Str, Default) ->
+    case eval(Str) of
+	X when is_float(X) -> round(X);
+	X when is_integer(X) -> X;
+	_ -> Default
+    end.
+eval_float(Str) ->
+    eval_float(Str, error).
+eval_float(Str, Default) ->
+    case eval(Str) of
+	X when is_float(X) -> X;
+	X when is_integer(X) -> float(X);
+	_ -> Default
+    end.
+
+eval(Str0) ->
+    Str = fix_expr(Str0, []),
+    try
+	{ok,Tokens,_} = erl_scan:string(Str),
+	{ok,Forms} = erl_parse:parse_exprs(Tokens),
+	Bindings = erl_eval:new_bindings(),
+	Eval = fun(Form0, {_,Bs0}) ->
+		       Form = check_form(Form0),
+		       {value,Res,Bs} = erl_eval:expr(Form, Bs0),
+		       {Res,Bs}
+	       end,
+	{Res,_} = lists:foldl(Eval, {error,Bindings}, Forms),
+	Res
+    catch
+	error:_ -> error
+    end.
+
+check_form({call,_Line,{remote,_Line2,{atom,_Line3,erlang},{atom,_Line4,_}},_As0}) ->
+    exit({forbidden, erlang});
+check_form({call,_Line,{remote,_Line2,{atom,_Line3,wings},{atom,_Line4,_}},_As0}) ->
+    exit({forbidden, wings});
+check_form({call,_Line,{remote,_Line2,{atom,_Line3,esdl},{atom,_Line4,_}},_As0}) ->
+    exit({forbidden, esdl});
+check_form(Call = {call,Line, {atom,Line3, Func},As0}) ->
+    case erlang:is_builtin(math,Func,length(As0)) of
+	true -> % Fix math funcs
+	    {call,Line,{remote,Line,{atom,Line,math},{atom,Line3,Func}},
+	     check_form(As0)};
+	false ->
+	    Call
+    end;
+check_form(T) when is_tuple(T) ->
+    list_to_tuple(check_form_list(tuple_to_list(T)));
+check_form(L) when is_list(L) ->
+    check_form_list(L);
+check_form(AnyOther) ->
+    AnyOther.
+
+check_form_list([H|T]) ->
+    [check_form(H)|check_form_list(T)];
+check_form_list([]) ->
+    [].
+
+fix_expr([], Acc)   -> lists:reverse(Acc, ".");
+fix_expr([$.],Acc) -> lists:reverse(Acc, ".");
+fix_expr([$.|T], [X|_]=Acc) when X >= $0, X =< $9 ->
+    fix_expr(T, [$.|Acc]);
+fix_expr([$.|T], Acc)  ->
+    fix_expr(T, [$.,$0|Acc]);
+%% Some math simplifications.
+fix_expr("math:" ++ T, Acc) ->
+    fix_expr(T, Acc);
+fix_expr("pi" ++ T, Acc) ->
+    fix_expr(T, lists:reverse("math:pi()", Acc));
+%% Some extra functions.
+fix_expr("deg2rad" ++ T, Acc) ->
+    fix_expr(T, lists:reverse("(math:pi()/180)*", Acc));
+fix_expr("rad2deg" ++ T, Acc) ->
+    fix_expr(T, lists:reverse("(180/math:pi())*", Acc));
+fix_expr([H|T],Acc) ->
+    fix_expr(T, [H|Acc]).

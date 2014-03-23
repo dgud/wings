@@ -50,7 +50,6 @@ subdirs:
 	(cd import_export; $(MAKE))
 	(cd primitives; $(MAKE))
 	(cd commands; $(MAKE))
-	(cd wx_file; $(MAKE))
 	(cd autouv; $(MAKE))
 
 template: opt

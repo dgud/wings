@@ -72,16 +72,16 @@ preview_fun(Qs, OrigView, St) ->
     Window = wings_wm:this(),
     Title = ?__(1,"Position Camera Numerically"),
     Dialog = {preview,Qs},
-    wings_ask:dialog(Title, Dialog,
-        fun
-             ({dialog_preview,Res}) ->
-                 {view,{camera_position,{OrigView,Res}}};
-             (cancel) ->
-                 wings_wm:set_prop(Window,current_view,OrigView),
-                 St;
-             (Res) ->
-                 {view,{camera_position,{OrigView,Res}}}
-         end).
+    wings_dialog:dialog(Title, Dialog,
+			fun
+			    ({dialog_preview,Res}) ->
+			       {view,{camera_position,{OrigView,Res}}};
+			    (cancel) ->
+			       wings_wm:set_prop(Window,current_view,OrigView),
+			       St;
+			    (Res) ->
+			       {view,{camera_position,{OrigView,Res}}}
+		       end).
 
 camera_position({OldView,[CamX,CamY,CamZ, FX,FY,FZ]}, St) ->
     AzF = case CamX of
