@@ -350,7 +350,7 @@ rename({_,OldName}=Id) ->
               {label,?__(3,"New name")++": "},
               {text,"",[]}]}
            ]}],
-    wings_ask:dialog(?__(1,"Rename"), Qs,
+    wings_dialog:dialog(?__(1,"Rename"), Qs,
     fun([NewName]) ->
         wings_wm:send(geom, {action,{select,{ssels,{rename_group,{Id,NewName}}}}})
     end).

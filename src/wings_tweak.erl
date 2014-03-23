@@ -2099,30 +2099,30 @@ tweak_preferences_dialog(St) ->
     VecWidth = wings_pref:get_value(tweak_vector_width),
     TweakSpeed = wings_pref:get_value(tweak_speed),
     Menu = [{vframe,
-      [{hframe,[{slider,{text,ClkSpd,[{key,tweak_click_speed},{range,{1.0,5.0}}]}}],
-       [{title,?__(1,"Click Speed for Select/Deselect")}]},
+	     [{hframe,[{slider,{text,ClkSpd,[{key,tweak_click_speed},{range,{1.0,5.0}}]}}],
+	       [{title,?__(1,"Click Speed for Select/Deselect")}]},
 
-       {vframe,[{hframe,[{slider,{text,TweakSpeed,[{key,tweak_speed},{range,{0.01,1.0}}]}}]},
-       {label,?__(2,"Lower to increase control or raise to increase speed.")}],
-       [{title,?__(3,"Tweak Speed (Drag Response)")}]},
+	      {vframe,[{hframe,[{slider,{text,TweakSpeed,[{key,tweak_speed},{range,{0.01,1.0}}]}}]},
+		       {label,?__(2,"Lower to increase control or raise to increase speed.")}],
+	       [{title,?__(3,"Tweak Speed (Drag Response)")}]},
 
-       {hframe,[{slider,{text,MagAdj,[{key,tweak_mag_adj_sensitivity},{range,{0.1,2.0}}]}}],
-       [{title,?__(4,"Magnet Radius Adjustment Sensitivity")}]},
+	      {hframe,[{slider,{text,MagAdj,[{key,tweak_mag_adj_sensitivity},{range,{0.1,2.0}}]}}],
+	       [{title,?__(4,"Magnet Radius Adjustment Sensitivity")}]},
 
-       {label_column,[{color,?__(5,"Magnet Radius Display Color"),tweak_magnet_color}]},
-       {?__(11,"Show Magnet influence"),tweak_magnet_influence},
-       {hframe,
-        [{vframe,[{label,?__(6,"Length")},
-                  {label,?__(7,"Width")},
-                  {label,?__(8,"Color")}]},
-         {vframe,[{text,VecSize,[{key,tweak_vector_size},{range,{0.1,10.0}}]},
-                  {text,VecWidth,[{key,tweak_vector_width},{range,{1.0,10.0}}]},
-                  {color,tweak_vector_color}]}],
-        [{title,?__(9,"Tweak Vector")}]}
-      ]}],
+	      {label_column,[{color,?__(5,"Magnet Radius Display Color"),tweak_magnet_color}]},
+	      {?__(11,"Show Magnet influence"),tweak_magnet_influence},
+	      {hframe,
+	       [{vframe,[{label,?__(6,"Length")},
+			 {label,?__(7,"Width")},
+			 {label,?__(8,"Color")}]},
+		{vframe,[{text,VecSize,[{key,tweak_vector_size},{range,{0.1,10.0}}]},
+			 {text,VecWidth,[{key,tweak_vector_width},{range,{1.0,10.0}}]},
+			 {color,tweak_vector_color}]}],
+	       [{title,?__(9,"Tweak Vector")}]}
+	     ]}],
     PrefQs = [{Lbl, make_query(Ps)} || {Lbl, Ps} <- Menu],
-    wings_ask:dialog(?__(10,"Tweak Preferences"), PrefQs,
-    fun(Result) -> set_values(Result), St end).
+    wings_dialog:dialog(?__(10,"Tweak Preferences"), PrefQs,
+			fun(Result) -> set_values(Result), St end).
 
 make_query([_|_]=List)  ->
     [make_query(El) || El <- List];

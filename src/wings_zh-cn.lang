@@ -333,28 +333,6 @@
     {13,"开放的调整工具可以选择或修改键绑定调色板"}
    ]}
  ]}.
-{wings_ask,
- [
-  {button_label,
-   [
-    % "OK"
-    {1,"确定"}
-   ]},
-  {frame_event,
-   [
-    % "Expand this frame; collapse other frames"
-    {1,"展开这个框架;崩溃的帧"},
-    % "Expand this frame"
-    {2,"这个框架展开"},
-    % "Collapse this frame"
-    {3,"折叠此框架"}
-   ]},
-  {mktree,
-   [
-    % "Browse"
-    {1,"浏览"}
-   ]}
- ]}.
 {wings_body,
  [
   {arealight_conv,

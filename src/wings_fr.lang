@@ -216,23 +216,6 @@
     {13,"Ouvre des palettes à partir desquelels les outils Ajuster peuvent être sélectionnés ou assignés à des touches de modification"}
    ]}
  ]}.
-{wings_ask,
- [
-  {button_label,
-   [
-    {1,"OK"}
-   ]},
-  {frame_event,
-   [
-    {1,"Agrandir ce cadre ; réduire les autres cadres"},
-    {2,"Agrandir ce cadre"},
-    {3,"Réduire ce cadre"}
-   ]},
-  {mktree,
-   [
-    {1,"Parcourir"}
-   ]}
- ]}.
 {wings_body,
  [
   {arealight_conv,

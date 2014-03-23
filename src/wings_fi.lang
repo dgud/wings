@@ -133,16 +133,6 @@
     {10,"Konsoli"},
     {11,"Avaa Konsoli viestejä varten"}
    ]}]}.
-{wings_ask,
- [
-  {button_label,
-   [{1,"OK"}]},
-  {frame_event,
-   [{1,"Maksimoi tämä ruutu; minimoi muut ruudut"},
-    {2,"Maksimoi tämä ruutu"},
-    {3,"Minimoi tämä ruutu"}]},
-  {mktree,
-   [{1,"Selaa"}]}]}.
 {wings_body,
  [
   {arealight_conv,

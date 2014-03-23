@@ -91,17 +91,17 @@ draw_options() ->
 	  {hframe,[{button,?__(4,"New Pass"),done,[{key,add_shader}]},
 		   {button,?__(5,"Delete Unused Pass"),done,[{key,del_shader}]}]}
 	 ],
-    
-    wings_ask:dialog(?__(3,"Draw Options"), Qs,
-		     fun(Options) ->
-			     {{changed,New},Opt} = list_to_prefs(Options),
-			     set_pref([{tx_prefs,pref_to_list(Opt)}]),
-			     if New -> 
-				     {auv,{draw_options,restart}};
-				true  ->
-				     {auv,{draw_options,{Opt,Shaders}}}
-			     end
-		     end).
+
+    wings_dialog:dialog(?__(3,"Draw Options"), Qs,
+			fun(Options) ->
+				{{changed,New},Opt} = list_to_prefs(Options),
+				set_pref([{tx_prefs,pref_to_list(Opt)}]),
+				if New ->
+					{auv,{draw_options,restart}};
+				   true  ->
+					{auv,{draw_options,{Opt,Shaders}}}
+				end
+			end).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Menu handling
