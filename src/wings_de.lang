@@ -188,23 +188,6 @@
     {11,"Öffnet ein Konsolenfenster für Informationsmeldungen"}
    ]}
  ]}.
-{wings_ask,
- [
-  {button_label,
-   [
-    {1,"OK"}
-   ]},
-  {frame_event,
-   [
-    {1,"Diesen Rahmen aufklappen; anderen Rahmen zuklappen"},
-    {2,"Rahmen aufklappen"},
-    {3,"Diesen Rahmen zuklappen"}
-   ]},
-  {mktree,
-   [
-    {1,"Durchsuchen"}
-   ]}
- ]}.
 {wings_body,
  [
   {arealight_conv,

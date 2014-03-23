@@ -2623,23 +2623,6 @@
     {1,"Não foram encontradas faces para soldar."}
    ]}
  ]}.
-{wings_ask,
- [
-  {button_label,
-   [
-    {1,"OK"}
-   ]},
-  {frame_event,
-   [
-    {1,"Expand this frame; collapse other frames"},
-    {2,"Expand this frame"},
-    {3,"Collapse this frame"}
-   ]},
-  {mktree,
-   [
-    {1,"Organizar"}
-   ]}
- ]}.
 {wings,
  [
   {cannot_repeat,

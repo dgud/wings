@@ -1829,17 +1829,17 @@ toggle_folder_all(Folder, #ost{st=#st{pst=Pst0}=St0}=Ost) ->
 
 create_folder_dialog() ->
     Qs = [{hframe,
-          [{label,?__(1,"Choose Folder Name")},
-           {text,?NEW_FLD,[]}]}],
-    wings_ask:dialog(true, ?__(2,"Create Folder"), Qs,
-           fun(Res) -> {create_folder,Res} end).
+	   [{label,?__(1,"Choose Folder Name")},
+	    {text,?NEW_FLD,[]}]}],
+    wings_dialog:dialog(true, ?__(2,"Create Folder"), Qs,
+			fun(Res) -> {create_folder,Res} end).
 
 rename_folder_dialog(OldName) ->
     Qs = [{hframe,
           [{label,?__(1,"Choose Folder Name")},
            {text,OldName,[]}]}],
-    wings_ask:dialog(true, ?__(2,"Rename Folder"), Qs,
-           fun(Res) -> {rename_folder,[OldName|Res]} end).
+    wings_dialog:dialog(true, ?__(2,"Rename Folder"), Qs,
+			fun(Res) -> {rename_folder,[OldName|Res]} end).
 
 rename_filtered_dialog(ManyObjs) ->
     ModeHook=fun(Event, Params) ->
@@ -1862,23 +1862,23 @@ rename_filtered_dialog(ManyObjs) ->
             end
     end,
     Qs = [{vframe,
-          [{hradio, [{?__(6,"Selected objects"),0},
-                     {?__(7,"Search"),1}], 1,
-                     [{key,rn_mode},{title, ?__(8,"Apply to")},{hook,ModeHook}]
-                     },
-           {hframe, [{label,?__(1,"Search")},
-                     {text,"",[{info,?__(4,"Matching objects to be renamed. *'s may be used as wildcards")},
-                               {key,rn_search},{hook,ModeHook}]}]},
-           {hframe, [{label,?__(2,"Choose Name")},
-                     {text,"",[{info,[?__(5,"New name. Use % to indicate numbered objects and %number% for the start counter")]},
-                               {key,rn_name}]}]}]}],
-    wings_ask:dialog(true, ?__(3,"Replace"), Qs,
-           fun([{rn_mode,Mode},{rn_search,Filter},{rn_name,Mask}]=_Res) ->
-                case Mode of
-                0 -> {rename_selected_objects,[Mask]};
-                1 -> {rename_filtered_objects,[Filter,Mask]}
-                end
-           end).
+	   [{hradio, [{?__(6,"Selected objects"),0},
+		      {?__(7,"Search"),1}], 1,
+	     [{key,rn_mode},{title, ?__(8,"Apply to")},{hook,ModeHook}]
+	    },
+	    {hframe, [{label,?__(1,"Search")},
+		      {text,"",[{info,?__(4,"Matching objects to be renamed. *'s may be used as wildcards")},
+				{key,rn_search},{hook,ModeHook}]}]},
+	    {hframe, [{label,?__(2,"Choose Name")},
+		      {text,"",[{info,[?__(5,"New name. Use % to indicate numbered objects and %number% for the start counter")]},
+				{key,rn_name}]}]}]}],
+    wings_dialog:dialog(true, ?__(3,"Replace"), Qs,
+			fun([{rn_mode,Mode},{rn_search,Filter},{rn_name,Mask}]=_Res) ->
+				case Mode of
+				    0 -> {rename_selected_objects,[Mask]};
+				    1 -> {rename_filtered_objects,[Filter,Mask]}
+				end
+			end).
 
 merge_st({_,_}=Data, _) ->
     Data;

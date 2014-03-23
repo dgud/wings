@@ -380,7 +380,7 @@ manager_command({edit,plugin_manager}, St) ->
 		  update_disabled(Disabled, St)
 	  end,
     Dialog = mk_dialog(Cps, false),
-    wings_ask:dialog(?__(1,"Plug-In Manager"), Dialog, Fun);
+    wings_dialog:dialog(?__(1,"Plug-In Manager"), Dialog, Fun);
 manager_command(_, _) -> next.
 
 update_disabled(Disabled, St) ->

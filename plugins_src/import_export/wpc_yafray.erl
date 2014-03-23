@@ -1266,7 +1266,7 @@ bs_hsv(#bs_export{ps=Ps,dest=F,name=Name}=Op0) ->
     Op2 = #bs_export{name=InputS} = bs_prop(Op1, {input_s,Ps}),
     Op = #bs_export{name=InputV} = bs_prop(Op2, {input_v,Ps}),
     Color = proplists:get_value(color, Ps, ?DEF_DIFFUSE),
-    {H,S,V} = wings_ask:rgb_to_hsv(Color),
+    {H,S,V} = wings_color:rgb_to_hsv(Color),
     println(F, "<shader type=\"HSV\" name=\"~s\"", [Name]),
     if InputH =:= undefined, InputS =:= undefined, InputV =:= undefined ->
 	    ok;

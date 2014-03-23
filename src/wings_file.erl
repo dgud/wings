@@ -734,21 +734,21 @@ do_export_ndo(Name, St) ->
 
 install_plugin() ->
     Props = case os:type() of
-        {win32,_} ->
+		{win32,_} ->
 		    [{title,"Install Plug-In"},
-             {extensions,
-             [{".gz", "GZip Compressed File"},
-              {".tar", "Tar File"},
-              {".tgz", "Compressed Tar File"},
-              {".beam", "Beam File"}]}];
-        _Other    ->
-            [{title,?__(1,"Install Plug-In")},
-             {extensions,
-             [{".gz",?__(2,"GZip Compressed File")},
-              {".tar",?__(3,"Tar File")},
-              {".tgz",?__(4,"Compressed Tar File")},
-              {".beam",?__(5,"Beam File")}]}]
-    end,
+		     {extensions,
+		      [{".gz", "GZip Compressed File"},
+		       {".tar", "Tar File"},
+		       {".tgz", "Compressed Tar File"},
+		       {".beam", "Beam File"}]}];
+		_Other    ->
+		    [{title,?__(1,"Install Plug-In")},
+		     {extensions,
+		      [{".gz",?__(2,"GZip Compressed File")},
+		       {".tar",?__(3,"Tar File")},
+		       {".tgz",?__(4,"Compressed Tar File")},
+		       {".beam",?__(5,"Beam File")}]}]
+	    end,
     Cont = fun(Name) -> {file,{install_plugin,Name}} end,
     import_filename(Props, Cont).
 
@@ -780,7 +780,7 @@ file_add_all([_]) -> [];
 file_add_all(Exts) ->
     All0 = ["*"++E || {E,_} <- Exts],
     All = file_add_semicolons(All0),
-    [?__(1,"All Formats")++" (",All,")", "|", All].
+    [?__(1,"All Formats")++" (",All,")", "|", All, "|"].
 
 file_add_semicolons([E1|[_|_]=T]) ->
     [E1,";"|file_add_semicolons(T)];

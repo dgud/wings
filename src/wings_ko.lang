@@ -333,28 +333,7 @@
     {13,"트윅 도구를 선택하거나 제한 수정자 키 팔레트 열기"}
    ]}
  ]}.
-{wings_ask,
- [
-  {button_label,
-   [
-    % "OK"
-    {1,"확인"}
-   ]},
-  {frame_event,
-   [
-    % "Expand this frame; collapse other frames"
-    {1,"이 프레임 확장; 다른 프레임 축소"},
-    % "Expand this frame"
-    {2,"이 프레임 확장"},
-    % "Collapse this frame"
-    {3,"이 프레임 축소"}
-   ]},
-  {mktree,
-   [
-    % "Browse"
-    {1,"찾아보기"}
-   ]}
- ]}.
+
 {wings_body,
  [
   {arealight_conv,

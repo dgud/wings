@@ -637,7 +637,7 @@ handle_drag_event_1({drag_arguments,Move}, Drag0) ->
 handle_drag_event_1(view_changed, Drag) ->
     get_drag_event(view_changed(Drag));
 handle_drag_event_1({move_dialog,Position}, Drag) ->
-%% used by preview dialogs in wings_ask.erl
+    %% used by preview dialogs
     W = wings_wm:windows(),
     This = lists:keyfind(dialog, 1, W),
     wings_wm:move(This, Position),

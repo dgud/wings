@@ -63,16 +63,16 @@ format_error({crash,Term}) ->
 %%%
 
 ask(Title, Qs, Fun) ->
-    wings_ask:ask(Title, Qs, Fun).
+    wings_dialog:ask(Title, Qs, Fun).
 
 ask(Bool, Title, Qs, Fun) ->
-    wings_ask:ask(Bool, Title, Qs, Fun).
+    wings_dialog:ask(Bool, Title, Qs, Fun).
 
 dialog(Title, Qs, Fun) ->
-    wings_ask:dialog(Title, Qs, Fun).
+    wings_dialog:dialog(Title, Qs, Fun).
 
 dialog(Bool, Title, Qs, Fun) ->
-    wings_ask:dialog(Bool, Title, Qs, Fun).
+    wings_dialog:dialog(Bool, Title, Qs, Fun).
 
 %% Show String in a dialog box.
 error_msg(String) ->

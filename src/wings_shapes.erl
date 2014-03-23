@@ -306,5 +306,5 @@ grid_face(I, J, Rsz) ->
 
 ask(Shape, Bool, Qs, St) ->
     Title = prim_help(Shape),
-    wings_ask:ask_preview({shape,Shape}, Bool, Title, Qs, St).
+    wings_dialog:ask_preview({shape,Shape}, Bool, Title, Qs, St).
 

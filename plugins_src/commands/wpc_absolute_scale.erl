@@ -198,27 +198,27 @@ selection_ask([target|Rest],Ask) ->
 
 draw_window({{_,{CX,CY,CZ}}, {_, SugCenter}, {_,{SX,SY,SZ}=Size}, {_, {SugX, SugY, SugZ}}, {_,Whole}, {_,Single}}, Sel, St) ->
     Frame1 = [{hframe,
-                 [draw_window1(size, {{SX,SY,SZ},{SugX,SugY,SugZ}}),
-                  draw_window1(aspect, {SX,SY,SZ}),
-                  draw_window1(center, {CX,CY,CZ})]}],
+	       [draw_window1(size, {{SX,SY,SZ},{SugX,SugY,SugZ}}),
+		draw_window1(aspect, {SX,SY,SZ}),
+		draw_window1(center, {CX,CY,CZ})]}],
     Frame2 = if
-                  Whole == ask -> [draw_window1(whole, Single)];
-                  true -> []
-              end,
+		 Whole == ask -> [draw_window1(whole, Single)];
+		 true -> []
+	     end,
     Frame3 = if
-                  SugCenter == none -> [];
-                  true -> [draw_window1(sugc, true)]
-              end,
+		 SugCenter == none -> [];
+		 true -> [draw_window1(sugc, true)]
+	     end,
     Frame = [{vframe, Frame1 ++ Frame2 ++ Frame3}],
     Name = draw_window1(name,default),
-    wings_ask:dialog(Name, {preview,Frame},
-       fun
-           ({dialog_preview,Scale}) ->
-               {preview,St,translate(Scale,SugCenter,Size,Sel,St)};
-           (cancel) -> St;
-           (Scale) ->
-               {commit,St,translate(Scale,SugCenter,Size,Sel,St)}
-       end).
+    wings_dialog:dialog(Name, {preview,Frame},
+			fun
+			    ({dialog_preview,Scale}) ->
+			       {preview,St,translate(Scale,SugCenter,Size,Sel,St)};
+			    (cancel) -> St;
+			    (Scale) ->
+			       {commit,St,translate(Scale,SugCenter,Size,Sel,St)}
+		       end).
 
 draw_window1(name,_) ->
     ?__(1,"Absolute scale options");
