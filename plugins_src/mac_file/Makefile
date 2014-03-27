@@ -41,7 +41,7 @@ $(LIBDIR)/%.beam: %.erl
 
 $(LIBDIR)/mac_wings_image_drv.so: mac_wings_image_drv.m
 	install -d $(LIBDIR)
-	$(CC) -Werror -m32 -I $(ERL_DIR)/usr/include \
+	$(CC) -Werror -I $(ERL_DIR)/usr/include \
 	  -bundle -flat_namespace -undefined suppress \
           -framework Cocoa -o $(LIBDIR)/mac_wings_image_drv.so $(UNIVERSAL_FLAGS) \
 	  mac_wings_image_drv.m
