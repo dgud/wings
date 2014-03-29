@@ -56,7 +56,7 @@ halt_loop(Wings) ->
     receive
 	{'EXIT',Wings,normal} ->
 	    %% Normal termination.
-	    halt();
+	    init:stop();
 	{'EXIT',Wings,{window_crash,Name,Reason,StkTrace}} ->
 	    %% Crash in a window with an error reason and stack trace.
 	    Log = wings_u:crash_log(Name, Reason, StkTrace),
