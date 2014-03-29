@@ -17,7 +17,8 @@
 	 reinit_opengl/0,
 	 new/2, new/3, new/4,delete/1,raise/1,rollup/2,
 	 link/2,hide/1,show/1,is_hidden/1,
-	 later/1,send/2,psend/2,send_after_redraw/2,
+	 later/1,send/2,psend/2, psend/3,send_after_redraw/2,
+	 send_once_after_redraw/2,
 	 set_timer/2,cancel_timer/1,
 	 this/0,offset/3,move/2,move/3,resize/2,pos/1,windows/0,is_window/1,
 	 window_below/2,geom_below/2,resize_windows/2,
@@ -145,7 +146,10 @@ send(Name, Ev) ->
 
 %% Send from another erlang process than the main wings process
 psend(Name, Ev) ->
-    wings ! {timeout,make_ref(),{event,{wm,{send_to,Name,Ev}}}},
+    psend(send_to, Name, Ev).
+psend(Type, Name, Ev)
+  when Type =:= send_to; Type =:= send_once; Type =:= send_after_redraw ->
+    wings ! {timeout,make_ref(),{event,{wm,{Type,Name,Ev}}}},
     keep.
 
 send_once(Name, Ev) ->
@@ -154,6 +158,10 @@ send_once(Name, Ev) ->
 
 send_after_redraw(Name, Ev) ->
     wings_io:putback_event({wm,{send_after_redraw,Name,Ev}}).
+
+send_once_after_redraw(Name, Ev) ->
+    wings_io:putback_event_once({wm,{send_after_redraw,Name,Ev}}),
+    keep.
 
 current_state(St) ->
     DispLists = get_prop(this(), display_lists),
@@ -968,6 +976,9 @@ wm_event({send_after_redraw,Name,Ev}) ->
 	false -> ok;
 	true -> do_dispatch(Name, Ev)
     end;
+wm_event({send_once, Name, Ev}) ->
+    wings_io:putback_event_once({wm,{send_to,Name,Ev}}),
+    ok;
 wm_event({callback,Cb}) ->
     Cb();
 wm_event(init_opengl) ->

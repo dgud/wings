@@ -65,54 +65,56 @@ prefs() ->
     WhRotate = wings_pref:get_value(wh_rot_spd, 7.5),
     ZoomAim = wings_pref:get_value(highlight_zoom_aim),
 
-    Hook = fun (is_disabled, {_Var,_I,Sto}) ->
-            not gb_trees:get(wheel_zooms, Sto);
-             (_, _) -> void
-           end,
-    WHook = fun (is_disabled, {_Var,_I,Sto}) ->
-             not ((gb_trees:get(wheel_adds, Sto)) andalso (gb_trees:get(wheel_zooms, Sto)));
-             (_, _) -> void
-            end,
+    AddHook = fun(wheel_adds, Enable0, Sto) ->
+		      Keys = [wh_scroll_info, wh_pan_spd, wh_rot_spd],
+		      Enable = Enable0 andalso wings_dialog:get_value(wheel_zooms, Sto),
+		      wings_dialog:enable(Keys, Enable, Sto)
+	      end,
+    WheelHook = fun(wheel_zooms, Enable, Sto) ->
+			Keys = [wheel_zoom_factor,wheel_zoom_factor_alt,wheel_adds],
+			wings_dialog:enable(Keys, Enable, Sto),
+			Keys2 = [wh_scroll_info, wh_pan_spd, wh_rot_spd],
+			Enable2 = Enable andalso wings_dialog:get_value(wheel_adds, Sto),
+			wings_dialog:enable(Keys2, Enable2, Sto)
+		end,
+
     {hframe,
-    [{vframe,
-     [{vframe,[mouse_buttons()],[{title,?__(1,"Mouse Buttons")}]},
-      {vframe,[camera_modes()],[{title,?__(2,"Camera Mode")}]},
+     [{vframe,
+       [{vframe,[mouse_buttons()],[{title,?__(1,"Mouse Buttons")}]},
+	{vframe,[camera_modes()],[{title,?__(2,"Camera Mode")}]},
+	{vframe,
+	 [{hframe,[{slider,{text,CamRotSpeed,[{key,cam_rotation_speed},{range,{1,100}}]}}]}],
+	 [{title,?__(19,"Rotation Speed")}]},
+	{vframe,
+	 [{hframe,[{slider,{text,PanSpeed0,[{key,pan_speed},{range,{1,100}}]}}]}],
+	 [{title,?__(3,"Pan Speed")}]},
+	{vframe,
+	 [{hframe,[{slider,{text,ArrowPanSpeed,[{key,pan_speed_arrow_keys},{range,{1,100}}]}}]}],
+	 [{title,?__(16,"Arrow Key Pan Speed")}]}]},
       {vframe,
-       [{hframe,[{slider,{text,CamRotSpeed,[{key,cam_rotation_speed},{range,{1,100}}]}}]}],
-       [{title,?__(19,"Rotation Speed")}]},
-      {vframe,
-       [{hframe,[{slider,{text,PanSpeed0,[{key,pan_speed},{range,{1,100}}]}}]}],
-       [{title,?__(3,"Pan Speed")}]},
-      {vframe,
-       [{hframe,[{slider,{text,ArrowPanSpeed,[{key,pan_speed_arrow_keys},{range,{1,100}}]}}]}],
-       [{title,?__(16,"Arrow Key Pan Speed")}]}]},
-    {vframe,
-      [{vframe,
-       [{hframe,[{?__(4,"Wheel Zooms"),ZoomFlag0,[{key,wheel_zooms}]},
-                 {?__(20,"Zooming in aims Camera"),ZoomAim,[{key,highlight_zoom_aim}]}]},
-    {hframe,
-     [{label,?__(7,"Zoom Factor"),[{hook,Hook}]},
-      {text,ZoomFactor0,
-       [{key,wheel_zoom_factor},
-     {range,{1,50}},{hook,Hook}]},
-      {label,"%",[{hook,Hook}]}]},
-     {hframe,
-      [{label,?__(10,"Alternate Zoom Factor(Alt+Scroll)"),[{hook,Hook}]},
-       {text,ZoomFactorAlt,
-        [{key,wheel_zoom_factor_alt},
-      {range,{1,50}},{hook,Hook}]},
-     {label,"%",[{hook,Hook}]}]} ],[{title,?__(9,"Scroll Wheel")}]},
-    {vframe,
-      [{?__(11,"Wheel Pans & Rotates"),WheelAdds,[{key,wheel_adds},{hook,Hook}]},
-       {?__(17,"Show Info Line Help String"),WhScrollInfo,[{key,wh_scroll_info},{hook,WHook}]}, 
-      {vframe,
-       [{hframe,
-        [{slider,{text,WhPanSpd,[{key, wh_pan_spd},{range,{1,100}}]}}],
-      [{title,?__(12,"Pan Speed")},{hook,WHook}]},
-      {hframe,
-       [{slider,{text,WhRotate,[{key, wh_rot_spd},{range,{?NEARZERO,180.0}}]}}],
-       [{title,?__(13,"Rotation Step in Degrees")},{hook,WHook}]}]}],
-    [{title,?__(15,"Unidirectional Camera")}]}]}]}.
+       [{vframe,
+	 [{hframe,[{?__(4,"Wheel Zooms"),ZoomFlag0,[{key,wheel_zooms}, {hook, WheelHook}]},
+		   {?__(20,"Zooming in aims Camera"),ZoomAim,[{key,highlight_zoom_aim}]}]},
+	  {hframe,
+	   [{label,?__(7,"Zoom Factor")},
+	    {text,ZoomFactor0, [{key,wheel_zoom_factor},{range,{1,50}}]},
+	    {label,"%"}]},
+	  {hframe,
+	   [{label,?__(10,"Alternate Zoom Factor(Alt+Scroll)")},
+	    {text,ZoomFactorAlt, [{key,wheel_zoom_factor_alt},{range,{1,50}}]},
+	    {label,"%"}]}
+	 ],[{title,?__(9,"Scroll Wheel")}]},
+	{vframe,
+	 [{?__(11,"Wheel Pans & Rotates"),WheelAdds,[{key,wheel_adds}, {hook, AddHook}]},
+	  {?__(17,"Show Info Line Help String"),WhScrollInfo,[{key,wh_scroll_info}]},
+	  {vframe,
+	   [{hframe,
+	     [{slider,{text,WhPanSpd,[{key, wh_pan_spd},{range,{1,100}}]}}],
+	     [{title,?__(12,"Pan Speed")}]},
+	    {hframe,
+	     [{slider,{text,WhRotate,[{key, wh_rot_spd},{range,{?NEARZERO,180.0}}]}}],
+	     [{title,?__(13,"Rotation Step in Degrees")}]}]}],
+	 [{title,?__(15,"Unidirectional Camera")}]}]}]}.
 
 mouse_buttons() ->
     {menu,[{desc(1),1,[{info,info(1)}]},
@@ -120,32 +122,29 @@ mouse_buttons() ->
            {desc(3),3,[{info,info(3)}]}],
      wings_pref:get_value(num_buttons),
      [{key,num_buttons},
-      {hook,fun (update, {Var,_I,Val,Sto0}) ->
-		    Sto = gb_trees:update(Var, Val, Sto0),
-		    Mode0 = gb_trees:get(camera_mode, Sto),
-		    Mode = case {Val,Mode0} of
-			       {1,_} -> nendo;
-			       {2,blender} -> blender;
-			       {2,_} -> nendo;
-			       {3,_} -> Mode0
-			   end,
-		    {store,gb_trees:update(camera_mode, Mode, Sto)};
-		(_, _) -> void
+      {hook,fun (_,Val,Sto) ->
+		    Mode0 = wings_dialog:get_value(camera_mode, Sto),
+		    Mode  = case {Val,Mode0} of
+				{1,_} -> nendo;
+				{2,blender} -> blender;
+				{2,_} -> nendo;
+				{3,_} -> Mode0
+			    end,
+		    wings_dialog:set_value(camera_mode, {Mode, camera_modes(Val)}, Sto)
 	    end}]}.
 
 camera_modes() ->
-    Modes = [wings_cam,mirai,nendo,maya,tds,blender,mb,sketchup],
-    {menu,[{desc(Mode),Mode,[{info,info(Mode)}]} || Mode <- Modes],
+    {menu,camera_modes(wings_pref:get_value(num_buttons)),
      wings_pref:get_value(camera_mode),
-     [{key,camera_mode},
-      {hook,fun (menu_disabled, {_Var,_I,Sto}) ->
-		    case gb_trees:get(num_buttons, Sto) of
-			1 -> [mirai,maya,tds,blender,mb,sketchup,wings_cam];
-			2 -> [mirai,maya,tds,mb,sketchup,wings_cam];
-			3 -> []
-		    end;
-		(_, _) -> void
-	    end}]}.
+     [{key,camera_mode}]}.
+
+camera_modes(NumButtons) ->
+    All = [wings_cam,mirai,nendo,maya,tds,blender,mb,sketchup],
+    [{desc(Mode),Mode,[{info,info(Mode)}]} || Mode <- All -- disabled(NumButtons)].
+
+disabled(1) -> [mirai,maya,tds,blender,mb,sketchup,wings_cam];
+disabled(2) -> [mirai,maya,tds,mb,sketchup,wings_cam];
+disabled(3) -> [].
 
 desc(1) -> ?__(1,"One");
 desc(2) -> ?__(2,"Two");
