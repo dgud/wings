@@ -669,9 +669,9 @@ pref(Action) -> %% load|save dialog
 	       {ok,List} when Action =:= load -> orddict:fetch_keys(List);
 	       _ -> []
 	   end,
-    Disable = fun (is_disabled, {_Var,_I, Store}) ->
-		      not gb_trees:get(hotkeys,Store);
-		  (_, _) -> void
+    Disable = fun (_Var, Enable, Store) ->
+		      Action =:= load andalso
+			  wings_dialog:enable(hotkey_radio, Enable, Store)
               end,
     case Action of
         load ->
@@ -679,9 +679,10 @@ pref(Action) -> %% load|save dialog
 	    Dialog = open_dialog,
 	    Options =
 		[separator,
-		 {hframe,[{vradio,[{?__(9,"Merge hotkeys"),merge},
-				   {?__(10,"Remove existing hotkeys first"),remove}],
-			   merge}],[{hook,Disable}]},panel];
+		 {vradio,[{?__(9,"Merge hotkeys"),merge},
+			  {?__(10,"Remove existing hotkeys first"),remove}],
+		  merge, [{key, hotkey_radio}]},
+		 panel];
         save ->
 	    Title = ?__(2,"Save Preference Subset"),
 	    Dialog = save_dialog,
@@ -692,7 +693,7 @@ pref(Action) -> %% load|save dialog
           [{vframe,
             [{?__(3,"Graphical Settings"),member(graphical,Keys),[{key,graphical}]},
              {?__(4,"Camera Settings"),member(camera,Keys),[{key,camera}]},
-             {?__(5,"Hotkeys"),member(hotkeys,Keys),[{key,hotkeys}]}]},
+             {?__(5,"Hotkeys"),member(hotkeys,Keys),[{key,hotkeys}, {hook, Disable}]}]},
            {vframe,
             [{?__(6,"Window and View Settings"),member(windows,Keys),[{key,windows}]},
              {?__(7,"Constraints"),member(constraints,Keys),[{key,constraints}]},

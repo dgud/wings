@@ -500,11 +500,15 @@ camera() ->
     LensLength = pget(lens_length, Props),
     Zoom = pget(zoom, Props),
     ZoomSlider = pget(zoom_slider, Props),
-    FovHook =
-	fun (update, {Var,_I,Val,Sto}) ->
-		{store,camera_update_1(Var, Val, Sto)};
-	    (_, _) -> void
-	end,
+    FovHook = fun(Var,Val,Sto) ->
+		      camera_update_1(Var, Val, Sto)
+	      end,
+    Disable = fun(Var, What, Sto) ->
+		      Keys = [negative_height, negative_width],
+		      wings_dialog:enable(Keys, What =/= custom, Sto),
+		      FovHook(Var, What, Sto)
+	      end,
+    FovHook2 = fun(Var,Val,Sto) -> camera_update_2(Var, Val, Sto) end,
     LensFrame =
 	{vframe,
 	 [{hframe,
@@ -512,37 +516,13 @@ camera() ->
 	    {menu,
 	     [{"24x36",{24,36}},{"60x60",{60,60}},{?__(4,"Custom"),custom}],
 	     NegativeFormat,
-	     [{key,negative_format},layout,
-	      {hook,
-	       fun (update, {Var,_I,Val,Sto}) ->
-		       {store,camera_update_1(Var, Val, Sto)};
-		   (_, _)  -> void
-	       end}]},
+	     [{key,negative_format},layout, {hook, Disable}]},
 	    {hframe,
-	     [{text,
-	       NegH,
-	       [{key,negative_height},{range,?RANGE_NEGATIVE_SIZE},
-		{hook,
-		 fun (update, {Var,_I,Val,Sto}) ->
-			 {store,camera_update_1(Var, Val, Sto)};
-		     (_, _)  -> void
-		 end}]},
+	     [{text, NegH, [{key,negative_height},{range,?RANGE_NEGATIVE_SIZE},
+			    {hook,FovHook}]},
 	      {label,?__(5,"x")},
-	      {text,
-	       NegW,
-	       [{key,negative_width},{range,?RANGE_NEGATIVE_SIZE},
-		{hook,
-		 fun (update, {Var,_I,Val,Sto}) ->
-			 {store,camera_update_1(Var, Val, Sto)};
-		     (_, _)  -> void
-		 end}]}],
-	     [{hook,
-	       fun (is_disabled, {_Var,_I,Sto}) ->
-		       gbget(negative_format, Sto) =/= custom;
-		   (update, {Var,_I,Val,Sto}) ->
-		       {store,camera_update_2(Var, Val, Sto)};
-		   (_, _) -> void
-	       end}]}]},
+	      {text, NegW, [{key,negative_width},{range,?RANGE_NEGATIVE_SIZE},
+			    {hook,FovHook}]}]}]},
 	  {hframe,
 	   [{menu,
 	     [{?__(6,"Wide-Angle Lens"),wide_angle},
@@ -552,41 +532,15 @@ camera() ->
 	      {?__(10,"Telephoto Lens"),tele},
 	      {?__(11,"Custom Lens"),custom}],
 	     LensType,
-	     [{key,lens_type},
-	      {hook,
-	       fun (is_minimized, {_Var,_I,Sto}) ->
-		       gbget(negative_format, Sto) =:= custom;
-		   (update, {Var,_I,Val,Sto}) ->
-		       {store,camera_update_2(Var, Val, Sto)};
-		   (_, _) -> void
-	       end}]},
+	     [{key,lens_type}, {hook,FovHook2}]},
 	    panel,
 	    {label,?__(12,"Length")},
-	    {text,
-	     LensLength,
-	     [{key,lens_length},
-	      {hook,
-	       fun (update, {Var,_I,Val,Sto}) ->
-		       {store,camera_update_2(Var, Val, Sto)};
-		   (_, _) -> void
-	       end}]}]},
+	    {text,LensLength,[{key,lens_length}, {hook,FovHook2}]}]},
 	  {hframe,
 	   [{slider,
 	     [{key,zoom_slider},{range,?RANGE_ZOOM_SLIDER},
-	      {value,ZoomSlider},
-	      {hook,
-	       fun (update, {Var,_I,Val,Sto}) ->
-		       {store,camera_update_2(Var, Val, Sto)};
-		   (_, _) -> void
-	       end}]},
-	    {text,
-	     Zoom,
-	     [{key,zoom},
-	      {hook,
-	       fun (update, {Var,_I,Val,Sto}) ->
-		       {store,camera_update_2(Var, Val, Sto)};
-		   (_, _) -> void
-	       end}]},
+	      {value,ZoomSlider}, {hook,FovHook2}]},
+	    {text, Zoom,[{key,zoom}, {hook,FovHook2}]},
 	    {label,?__(13,"x Zoom")}]}],
 	 [{title,?__(14,"Lens")},{minimized,true}]},
     Qs =
@@ -601,7 +555,7 @@ camera() ->
 	   {vframe,[help_button(camera_settings_fov),
 		    panel,
 		    panel]}]}],
-    Apply = fun([ {negative_format,_},
+    Apply = fun([{negative_format,_},
 		 {negative_height,_},{negative_width,_},
 		 {lens_type,_},{lens_length,_},
 		 {zoom_slider,_},{zoom,_},
@@ -733,13 +687,11 @@ camera_lens_length({60,60}, LensType) ->
 	  end);
 camera_lens_length(_, _) -> undefined.
 
-
-
 gbget([], _Sto) -> [];
-gbget([Key|Keys], Sto) -> [{Key,gb_trees:get(Key, Sto)}|gbget(Keys, Sto)];
-gbget(Key, Sto) -> gb_trees:get(Key, Sto).
+gbget([Key|Keys], Sto) -> [{Key,wings_dialog:get_value(Key, Sto)}|gbget(Keys, Sto)];
+gbget(Key, Sto) -> wings_dialog:get_value(Key, Sto).
 
-gbupdate(Key, Val, Sto) -> gb_trees:update(Key, Val, Sto).
+gbupdate(Key, Val, Sto) -> wings_dialog:set_value(Key, Val, Sto).
 
 gbupdate([], Sto) -> Sto;
 gbupdate([{Key,Val}|KVs], Sto) ->
