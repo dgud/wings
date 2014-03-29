@@ -1868,7 +1868,7 @@ setup_dialog(Parent, Entries0, Magnet, Pos) ->
     %% wxPanel:setBackgroundStyle(Panel, ?wxBG_STYLE_TRANSPARENT),
     wxPanel:setBackgroundColour(Panel, colorB(wings_pref:get_value(menu_color))),
     Sizer = wxBoxSizer:new(?wxVERTICAL),
-    MinHSzs = calc_min_sizes(Entries0, Panel, 0, 0),
+    MinHSzs = calc_min_sizes(Entries0, Panel, 5, 5),
     Entries = setup_popup(Entries0, 500, Sizer, MinHSzs, Panel, Magnet, []),
     Main = wxBoxSizer:new(?wxHORIZONTAL),
     wxSizer:add(Main, Sizer, [{proportion, 1},{border, 5},
@@ -1877,6 +1877,7 @@ setup_dialog(Parent, Entries0, Magnet, Pos) ->
     wxSizer:setSizeHints(Main, Dialog),
     wxPanel:setFocusIgnoringChildren(Panel),
     wxPanel:connect(Panel, kill_focus),
+    wxPanel:connect(Panel, char_hook),
     wxFrame:show(Dialog),
     {Dialog, Panel, Entries}.
 
@@ -1893,13 +1894,16 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 	#wx{event=#wxFocus{type=kill_focus}} ->
 	    wxFrame:destroy(Dialog),
 	    wings_wm:psend(Owner, cancel);
+	#wx{event=#wxKey{keyCode=?WXK_ESCAPE}} ->
+	    wxFrame:destroy(Dialog),
+	    wings_wm:psend(Owner, cancel);
 	#wx{id=Id, event=Ev=#wxMouse{type=What}}
 	  when What =:= left_up; What =:= right_up; What =:= middle_up ->
 	    wxFrame:destroy(Dialog),
 	    MagnetClick = Magnet orelse magnet_pressed(wings_msg:free_rmb_modifier(), Ev),
 	    popup_result(lists:keyfind(Id, 2, Entries), {What, MagnetClick}, Ns, Owner);
-	Ev = #wx{} ->
-	    io:format("Got Ev ~p ~n", [Ev]),
+	_Ev = #wx{} ->
+	    %% io:format("Got Ev ~p ~n", [_Ev]),
 	    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner)
     end.
 
@@ -1974,11 +1978,11 @@ calc_min_sizes([separator|Es], Win, C1, C2) ->
     calc_min_sizes(Es, Win, C1, C2);
 calc_min_sizes([{submenu, Desc, _, _, _, _}|Es], Win, C1, C2) ->
     {W, _, _, _} = wxWindow:getTextExtent(Win, Desc),
-    calc_min_sizes(Es, Win, max(W, C1), C2);
+    calc_min_sizes(Es, Win, max(W+5, C1), C2);
 calc_min_sizes([{Desc, _, _, _, HK}|Es], Win, C1, C2) ->
     {WStr, _, _, _} = wxWindow:getTextExtent(Win, Desc),
     {WHK, _, _, _} = wxWindow:getTextExtent(Win, HK),
-    calc_min_sizes(Es, Win, max(WStr, C1), max(WHK, C2));
+    calc_min_sizes(Es, Win, max(WStr+5, C1), max(WHK+5, C2));
 calc_min_sizes([], _, C1, C2) ->
     {C1, C2}.
 
@@ -2121,11 +2125,10 @@ submenu_help(Help, _, _) ->
     Help.
 
 wx_command_event(Id) ->
-    case ets:lookup(wings_menus, Id) of
-	[#menu_entry{name=Name}] -> {menubar, {action, Name}};
-	[] ->
-	    io:format("~p:~p: Unmatched event Id ~p~n",[?MODULE,?LINE,Id]),
-	    ignore
+    [#menu_entry{name=Name}] = ets:lookup(wings_menus, Id),
+    case ets:match(wings_state, {{bindkey,'$1'}, Name, '_'}) of
+	[] -> {menubar, {action, Name}};
+	[[KeyComb]] -> wings_io_wx:make_key_event(KeyComb)
     end.
 
 check_item(Name) ->
@@ -2162,7 +2165,7 @@ wx_menubar(Menus) ->
     ets:new(wings_menus, [named_table, {keypos,2}]),
     WinName = {menubar, geom},
     put(wm_active, WinName),
-    MB = wxFrame:getMenuBar(get(top_frame)),
+    MB = wxMenuBar:new(),
     Enter = fun({Str, Name, Fun}, Id) ->
 		    {Menu, NextId} = setup_menu([Name], Id, Fun),
 		    wxMenuBar:append(MB, Menu, Str),
@@ -2173,9 +2176,7 @@ wx_menubar(Menus) ->
 	    end,
     try
 	lists:foldl(Enter, 200, Menus),
-	%% Let wings handle the accelerators by itself
-	Accel = wxAcceleratorTable:new(),
-	wxWindow:setAcceleratorTable(get(top_frame), Accel),
+	wxFrame:setMenuBar(get(top_frame), MB),
 	ok
     catch _ : Reason ->
 	    io:format("CRASH ~p ~p~n",[Reason, erlang:get_stacktrace()]),
@@ -2254,8 +2255,12 @@ create_menu([], NextId, _, _) ->
 menu_item({Desc0, Name, Help, Props, HotKey}, Parent, Id, Names) ->
     Desc = case HotKey of
 	       [] -> Desc0;
-	       KeyStr -> Desc0 ++ "\t' " ++ KeyStr ++ " '"
-	       %%KeyStr -> Desc0 ++ "\t" ++ KeyStr
+	       KeyStr ->
+		   %% Quote to avoid windows stealing keys
+		   case os:type() of
+		       {win32, _} -> Desc0 ++ "\t'" ++ KeyStr ++ "'";
+		       _ -> Desc0 ++ "\t" ++ KeyStr
+		   end
 	   end,
     MenuId = predefined_item(hd(Names),Name, Id),
     Command = case have_option_box(Props) of
@@ -2307,11 +2312,15 @@ predefined_item(file, {recent_file,N}) -> ?wxID_FILE + N; %% Zero numbered
 predefined_item(menu, edit)    -> ?wxID_EDIT;
 predefined_item(edit, undo)    -> ?wxID_UNDO;
 predefined_item(edit, redo)    -> ?wxID_REDO;
+predefined_item(edit, preferences) -> ?wxID_PREFERENCES;
+predefined_item(edit, Fun) when is_function(Fun) -> ?wxID_PREFERENCES;
 %% Make it easy to find repeat
 predefined_item(edit, repeat)  -> ?REPEAT;
 predefined_item(edit, repeat_args) -> ?REPEAT_ARGS;
 predefined_item(edit, repeat_drag) -> ?REPEAT_DRAG;
-predefined_item(_, _) ->  false.
+predefined_item(_M, _C) ->
+    %% io:format("Ignore ~p ~p~n",[_M,_C]),
+    false.
 
 colorB({R,G,B,A}) -> {trunc(R*255),trunc(G*255),trunc(B*255),trunc(A*255)};
 colorB({R,G,B}) -> {trunc(R*255),trunc(G*255),trunc(B*255),255};
