@@ -1842,36 +1842,23 @@ rename_folder_dialog(OldName) ->
 			fun(Res) -> {rename_folder,[OldName|Res]} end).
 
 rename_filtered_dialog(ManyObjs) ->
-    ModeHook=fun(Event, Params) ->
-            case Event of
-            update ->
-                {Var,_,Val,Store}=Params,
-                {store,gb_trees:update(Var,Val,Store)};
-            is_minimized ->
-                false;
-            is_disabled ->
-                {Var,_,Store}=Params,
-                case Var of
-                rn_search ->
-                    gb_trees:get(rn_mode,Store)=:=0;
-                rn_mode ->
-                    ManyObjs=:=false;
-                _ ->
-                    false
-                end
-            end
-    end,
+    ModeHook=fun(Me, What, Sto) ->
+		     case ManyObjs =:= false of
+			 true ->
+			     wings_dialog:enable(Me, false, Sto),
+			     wings_dialog:enable(rn_search, false, Sto);
+			 false ->
+			     wings_dialog:enable(rn_search, What =:= 1, Sto)
+		     end
+	     end,
+    I4 = {info,?__(4,"Matching objects to be renamed. *'s may be used as wildcards")},
+    I5 = {info,?__(5,"New name. Use % to indicate numbered objects and %number% for the start counter")},
     Qs = [{vframe,
 	   [{hradio, [{?__(6,"Selected objects"),0},
 		      {?__(7,"Search"),1}], 1,
-	     [{key,rn_mode},{title, ?__(8,"Apply to")},{hook,ModeHook}]
-	    },
-	    {hframe, [{label,?__(1,"Search")},
-		      {text,"",[{info,?__(4,"Matching objects to be renamed. *'s may be used as wildcards")},
-				{key,rn_search},{hook,ModeHook}]}]},
-	    {hframe, [{label,?__(2,"Choose Name")},
-		      {text,"",[{info,[?__(5,"New name. Use % to indicate numbered objects and %number% for the start counter")]},
-				{key,rn_name}]}]}]}],
+	     [{key,rn_mode},{title, ?__(8,"Apply to")}, {hook, ModeHook}]},
+	    {label_column, [{?__(1,"Search"), {text,"",[I4,{key,rn_search}]}},
+			    {?__(2,"Choose Name"), {text,"",[I5,{key,rn_name}]}}]}]}],
     wings_dialog:dialog(true, ?__(3,"Replace"), Qs,
 			fun([{rn_mode,Mode},{rn_search,Filter},{rn_name,Mask}]=_Res) ->
 				case Mode of

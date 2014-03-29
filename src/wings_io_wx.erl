@@ -374,6 +374,7 @@ sdl_key(#wxKey{type=Type,controlDown = Ctrl, shiftDown = Shift,
 		  key_up -> ?SDL_RELEASED;
 		  key_down -> ?SDL_PRESSED
 	      end,
+    %% io:format("EV ~p: ~p ~p ~p ~p ~p ~p~n", [Type, Ctrl, Shift, Alt, Meta, Code, Uni]),
     #keyboard{which=0, state=Pressed, scancode=Raw, unicode=lower(Shift, Uni),
 	      mod=ModState, sym=wx_key_map(lower(Shift, Code))}.
 
