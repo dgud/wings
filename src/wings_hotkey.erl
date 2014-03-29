@@ -227,11 +227,10 @@ handle_error(Ev, Cmd) ->
 	    "if it crashes it IS a bug. (Please report it.)"],
     Msg6 = "Delete Hotkey: " ++ KeyName ++ " or press cancel to avoid any changes",
     Qs = {vframe_dialog,
-	  [{label,Msg1},{panel,[]},
-	   {label,Msg2},
-	   {label,Msg3},
+	  [{label,Msg1}, panel,
+	   {label,Msg2}, {label,Msg3},
 	   {label,Msg4},
-	   {label,Msg5},{panel,[]},
+	   {label,Msg5},  panel,
 	   {label,Msg6}],
 	  [{buttons, [ok, cancel], {key, result}}]},
     wings_dialog:dialog("Delete HotKey", Qs,
@@ -276,7 +275,7 @@ keyname($\s) -> ?STR(keyname,3,"Space");
 keyname(C) when $a =< C, C =< $z -> [C-32];
 keyname(C) when $A =< C, C =< $Z ->
     case get(wings_os_type) of
-	{unix,darwin} -> [shift,C];
+%%	{unix,darwin} -> [shift,C];
 	_ -> ?STR(keyname,4,"Shift+")++ [C]
     end;
 keyname(C) when is_integer(C), C < 256 -> [C];
@@ -286,7 +285,7 @@ keyname(C) -> [$<|integer_to_list(C)++">"].
 
 modname(Mods) ->
     case get(wings_os_type) of
-	{unix,darwin} -> mac_modname(Mods, []);
+	{unix,darwin} -> mac_modname(Mods);
 	_ -> modname_1(Mods)
     end.
 
@@ -294,11 +293,10 @@ modname_1([command|T]) -> "Meta+" ++modname_1(T);
 modname_1([Mod|T]) -> wings_s:modkey(Mod) ++ "+" ++modname_1(T);
 modname_1([]) -> [].
 
-mac_modname([ctrl|T], Acc) -> [$^|mac_modname(T, Acc)];
-mac_modname([shift|T], Acc) -> mac_modname(T, [shift|Acc]);
-mac_modname([alt|T], Acc) -> mac_modname(T, [option|Acc]);
-mac_modname([command|T], Acc) -> mac_modname(T, Acc++[command]);
-mac_modname([], Acc) -> Acc.
+mac_modname([ctrl|T]) -> "rawctrl+" ++ mac_modname(T);
+mac_modname([command|T]) -> "Ctrl+" ++ mac_modname(T);
+mac_modname([Mod|T]) -> wings_s:modkey(Mod) ++ "+" ++ mac_modname(T);
+mac_modname([]) -> [].
 
 vkeyname(?SDLK_BACKSPACE) -> ?STR(vkeyname,1,"Bksp");
 vkeyname(?SDLK_TAB) -> ?STR(vkeyname,2,"Tab");

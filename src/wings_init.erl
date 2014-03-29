@@ -18,130 +18,10 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--ifndef(USE_WX).
-init() ->
-    macosx_workaround(),
-    os:putenv("SDL_HAS3BUTTONMOUSE", "true"),
-
-    wings_pref:set_default(window_size, {780,570}),
-    TopSize = wings_pref:get_value(window_size),
-    sdl:init(?SDL_INIT_VIDEO bor ?SDL_INIT_NOPARACHUTE),
-    set_icon(),
-    sdl_video:gl_setAttribute(?SDL_GL_DOUBLEBUFFER, 1),
-
-    %% Make sure that some video mode works. Otherwise crash early.
-    %% From best to worst.
-    try
-	sdl_video:gl_setAttribute(?SDL_GL_MULTISAMPLEBUFFERS, 1),
-	sdl_video:gl_setAttribute(?SDL_GL_MULTISAMPLESAMPLES, 4),
-	try_video_modes(opengl_modes(), TopSize)
-    catch
-	error:_ ->
-	io:fwrite("\nRetrying with multisampling disabled.\n"),
-	sdl_video:gl_setAttribute(?SDL_GL_MULTISAMPLEBUFFERS, 0),
-	sdl_video:gl_setAttribute(?SDL_GL_MULTISAMPLESAMPLES, 0),
-	try_video_modes(opengl_modes(), TopSize)
-    end,
-    wings_gl:init_extensions(),
-    wings_gl:init_restrictions(),
-
-    %% Initialize event handling and other stuff.
-    sdl_events:eventState(?SDL_ALLEVENTS,?SDL_IGNORE),
-    sdl_events:eventState(?SDL_MOUSEMOTION, ?SDL_ENABLE),
-    sdl_events:eventState(?SDL_MOUSEBUTTONDOWN, ?SDL_ENABLE),
-    sdl_events:eventState(?SDL_MOUSEBUTTONUP, ?SDL_ENABLE),
-    sdl_events:eventState(?SDL_KEYDOWN, ?SDL_ENABLE),
-    sdl_events:eventState(?SDL_QUIT, ?SDL_ENABLE),
-    sdl_events:eventState(?SDL_VIDEORESIZE, ?SDL_ENABLE),
-    sdl_events:eventState(?SDL_VIDEOEXPOSE, ?SDL_ENABLE),
-    sdl_keyboard:enableUNICODE(true),
-    sdl_keyboard:enableKeyRepeat(?SDL_DEFAULT_REPEAT_DELAY,
-				 ?SDL_DEFAULT_REPEAT_INTERVAL),
-    ok.
-
-opengl_modes() ->
-    [[{buffer_size,32},{depth_size,32},{stencil_size,8},{accum_size,16}],
-     [{buffer_size,24},{depth_size,32},{stencil_size,8},{accum_size,16}],
-     [{buffer_size,24},{depth_size,24},{stencil_size,8},{accum_size,16}],
-     [{buffer_size,24},{depth_size,24},{stencil_size,0},{accum_size,16}],
-     [{buffer_size,16},{depth_size,24},{stencil_size,8},{accum_size,16}],
-     [{buffer_size,16},{depth_size,16},{stencil_size,8},{accum_size,16}],
-     [{buffer_size,16},{depth_size,16},{stencil_size,0},{accum_size,16}],
-     [{buffer_size,16},{depth_size,16},{stencil_size,0},{accum_size,0}],
-     [{buffer_size,15},{depth_size,16},{stencil_size,8},{accum_size,16}],
-     [{buffer_size,15},{depth_size,16},{stencil_size,0},{accum_size,16}],
-     [{buffer_size,15},{depth_size,16},{stencil_size,0},{accum_size,0}],
-
-     %% Fallback - use default for all.
-     [{buffer_size,0},{depth_size,0},{stencil_size,0},{accum_size,0}]].
-
-try_video_modes(Modes, TopSize) ->
-    io:put_chars(?__(1,"Trying OpenGL modes\n")),
-    case try_video_modes_1(Modes, TopSize) of
-	ok -> ok;
-	error -> video_mode_failure()
-    end.
-
-video_mode_failure() ->
-    io:format("\n###########################################\n\n"),
-    io:format(?__(2,"Failed to find any suitable OpenGL mode.\n\n")),
-    io:format(?__(3,"Make sure that OpenGL drivers are installed.\n\n")),
-    io:format("\n###########################################\n\n"),
-    error(?__(5,"No suitable OpenGL mode found (are OpenGL drivers installed?)")).
-
-try_video_modes_1([Mode|Modes], TopSize) ->
-    io:format("  ~p\n", [Mode]),
-    case try_video_mode(Mode, TopSize) of
-	ok -> ok;
-	error -> try_video_modes_1(Modes, TopSize)
-    end;
-try_video_modes_1([], _) -> error.
-
-try_video_mode(Ps, {W,H}) ->
-    set_video_props(Ps),
-    case catch set_video_mode(W, H) of
-	ok ->
-	    display_actual_mode(),
-	    ok;
-	_ -> error
-    end.
-
-set_video_props([{Prop,Val}|Ps]) ->
-    set_video_prop(Prop, Val),
-    set_video_props(Ps);
-set_video_props([]) -> ok.
-
-set_video_prop(buffer_size, Bits) ->
-    sdl_video:gl_setAttribute(?SDL_GL_BUFFER_SIZE, Bits);
-set_video_prop(depth_size, Depth) ->
-    sdl_video:gl_setAttribute(?SDL_GL_DEPTH_SIZE, Depth);
-set_video_prop(stencil_size, Bits) ->
-    sdl_video:gl_setAttribute(?SDL_GL_STENCIL_SIZE, Bits);
-set_video_prop(accum_size, Bits) ->
-    sdl_video:gl_setAttribute(?SDL_GL_ACCUM_RED_SIZE, Bits),
-    sdl_video:gl_setAttribute(?SDL_GL_ACCUM_GREEN_SIZE, Bits),
-    sdl_video:gl_setAttribute(?SDL_GL_ACCUM_BLUE_SIZE, Bits),
-    sdl_video:gl_setAttribute(?SDL_GL_ACCUM_ALPHA_SIZE, Bits).
-
-display_actual_mode() ->
-    Attrs = [?GL_RED_BITS,
-	     ?GL_GREEN_BITS,
-	     ?GL_BLUE_BITS,
-	     ?GL_ALPHA_BITS,
-	     ?GL_DEPTH_BITS,
-	     ?GL_STENCIL_BITS,
-	     ?GL_ACCUM_RED_BITS,
-	     ?GL_ACCUM_GREEN_BITS,
-	     ?GL_ACCUM_BLUE_BITS,
-	     ?GL_ACCUM_ALPHA_BITS],
-    io:format(?__(1,"Actual: RGBA: ~p ~p ~p ~p Depth: ~p Stencil: ~p Accum: ~p ~p ~p ~p\n"),
-	      [hd(gl:getIntegerv(A)) || A <- Attrs]).
-
-set_video_mode(W, H) ->
-    {surfacep,_} = sdl_video:setVideoMode(W, H, 0, ?SDL_OPENGL bor ?SDL_RESIZABLE),
-    ok.
-
--else.
+-ifndef(WX_GL_SAMPLE_BUFFERS).     %% New in wxWidgets-3.0
+-define(WX_GL_SAMPLE_BUFFERS,17).  %% 1 for multisampling support (antialiasing)
+-define(WX_GL_SAMPLES,18).         %% 4 for 2x2 antialiasing supersampling on most graphics cards
+-endif.
 
 init() ->
     wx:new(),
@@ -152,13 +32,13 @@ init() ->
     TopSize = wings_pref:get_value(window_size),
     Frame = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
 
-    MB = wxMenuBar:new(),
-    wxFrame:setMenuBar(Frame, MB),
-
     GLAttrs = [?WX_GL_RGBA,
 	       ?WX_GL_MIN_RED,8,?WX_GL_MIN_GREEN,8,?WX_GL_MIN_BLUE,8,
 	       ?WX_GL_DEPTH_SIZE, 24, ?WX_GL_STENCIL_SIZE, 8,
-	       ?WX_GL_DOUBLEBUFFER,0],
+	       ?WX_GL_DOUBLEBUFFER,
+	       ?WX_GL_SAMPLE_BUFFERS,1,
+	       ?WX_GL_SAMPLES, 4,
+	       0],
     Canvas = wxGLCanvas:new(Frame, [
 				    {attribList, GLAttrs},
 				    {style,
@@ -200,7 +80,15 @@ init() ->
 	     end,
 
     wxWindow:connect(Frame, close_window),
-    wxWindow:connect(Frame, command_menu_selected),
+    wxWindow:connect(Frame, command_menu_selected, [skip]),
+    %% MenuCB = fun(Ev,Obj) ->
+    %% 		     io:format("Menu ~p~n", [Ev]),
+    %% 		     wxEvent:skip(Obj)
+    %% 	     end,
+    %% wxWindow:connect(Frame, menu_open, [{callback, MenuCB}]),
+    %% wxWindow:connect(Frame, menu_highlight, [{callback, MenuCB}]),
+    %% wxWindow:connect(Frame, menu_close, [{callback, MenuCB}]),
+
     wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
     wxWindow:connect(Canvas, size,  []),
     %% wxWindow:connect(Canvas, erase_background),
@@ -217,6 +105,7 @@ init() ->
     wxWindow:connect(Canvas, right_up),
     wxWindow:connect(Canvas, right_down),
     wxWindow:connect(Canvas, mousewheel),
+    wxWindow:connect(Canvas, char_hook, []),
     wxWindow:connect(Canvas, key_down),
     set_icon(),
     wxWindow:setFocus(Canvas), %% Get keyboard focus
@@ -230,8 +119,13 @@ init() ->
     wings_gl:init_extensions(),
     wings_gl:init_restrictions(),
 
+    try
+	Msgs0 = wxe_master:fetch_msgs(),
+	Msgs = lists:flatten([io_lib:format("~p~n",[Msg]) || Msg <- Msgs0]),
+	Msgs == [] orelse wxMessageDialog:showModal(wxMessageDialog:new(Frame, Msgs, [{caption, "OpenMsgs"}]))
+    catch error:undef -> ok %% Req new wx
+    end,
     ok.
--endif.
 
 set_icon() ->
     Ebin = filename:dirname(code:which(?MODULE)),
