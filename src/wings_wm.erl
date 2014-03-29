@@ -672,8 +672,10 @@ dispatch_event({menubar,Ev}) ->
     send(geom,Ev);
 dispatch_event(Event) ->
     case find_active(Event) of
+	none when Event#keyboard.which =:= menubar ->
+	    send(geom,Event);
 	none ->
-%	    io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Event]),
+	    %% io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Event]),
 	    update_focus(none);
 	Active ->
 	    update_focus(Active),

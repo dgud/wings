@@ -31,6 +31,8 @@
 -export([reset_grab/0,grab/0,ungrab/2,is_grabbed/0,warp/2]).
 -export([reset_video_mode_for_gl/2, swapBuffers/0]).
 
+-export([make_key_event/1]).
+
 -import(lists, [flatmap/2,member/2,reverse/1,reverse/2]).
 
 -import(wings_io, [put_state/1, get_state/0]).
@@ -40,6 +42,8 @@ init(Icons) ->
     put_state(#io{raw_icons=Icons,cursors=Cursors}).
 
 quit() ->
+    Frame = get(top_frame),
+    wxFrame:destroy(Frame),
     wx:destroy().
 
 get_process_option() ->
@@ -241,16 +245,6 @@ read_events(Eq0) ->
 
 read_events(Eq, Wait) ->
     receive
-	Ev = #wx{event=#wxKey{keyCode=Code}} ->
-	    case Code of
-		%% We don't want modifiers as keypresses,
-		%% we get it on windows
-		?WXK_ALT     -> read_events(Eq, Wait);
-		?WXK_SHIFT   -> read_events(Eq, Wait);
-		?WXK_CONTROL -> read_events(Eq, Wait);
-		_ ->
-		    read_events(queue:in(Ev, Eq))
-	    end;
 	Ev = #wx{} ->
 	    read_events(queue:in(Ev, Eq));
 	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
@@ -303,14 +297,16 @@ wx_translate_1(#wx{event=Ev=#wxMouse{}}) ->
     sdl_mouse(Ev);
 wx_translate_1(#wx{event=Ev=#wxKey{}}) ->
     R = sdl_key(Ev),
-%%    erlang:display(R),
+    %% erlang:display({sdlkey, R}),
     R;
 wx_translate_1(#wx{event=#wxClose{}}) ->
     quit;
 wx_translate_1(#wx{event=#wxSize{size={W,H}}}) ->
     #resize{w=W,h=H};
 wx_translate_1(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}) ->
-    wings_menu:wx_command_event(Id);
+    ME = wings_menu:wx_command_event(Id),
+    %% io:format("ME ~p~n",[ME]),
+    ME;
 wx_translate_1(Ev) ->
     io:format("~p: Bug Ignored Event~p~n",[?MODULE, Ev]),
     redraw.
@@ -319,7 +315,7 @@ sdl_mouse(M=#wxMouse{type=Type,
 		     x = X, y = Y,
 		     leftDown=Left, middleDown=Middle, rightDown=Right,
 		     controlDown = Ctrl, shiftDown = Shift,
-		   altDown = Alt,      metaDown = Meta,
+		     altDown = Alt,      metaDown = Meta,
 		     wheelRotation=Wheel
 		    }) ->
     Mods = [{Ctrl, ?KMOD_CTRL}, {Shift, ?KMOD_SHIFT},
@@ -371,17 +367,33 @@ sdl_key(#wxKey{type=Type,controlDown = Ctrl, shiftDown = Shift,
     %% maybe we should use (the translated) char events instead?
     ModState = gui_state(Mods, 0),
     Pressed = case Type of
-		  key_up -> ?SDL_RELEASED;
-		  key_down -> ?SDL_PRESSED
+		  char_hook -> ?SDL_PRESSED;
+		  key_up    -> ?SDL_RELEASED;
+		  key_down  -> ?SDL_PRESSED
 	      end,
     %% io:format("EV ~p: ~p ~p ~p ~p ~p ~p~n", [Type, Ctrl, Shift, Alt, Meta, Code, Uni]),
     #keyboard{which=0, state=Pressed, scancode=Raw, unicode=lower(Shift, Uni),
 	      mod=ModState, sym=wx_key_map(lower(Shift, Code))}.
 
+make_key_event({Key, Mods}) ->
+    Map = fun(ctrl) -> {true, ?KMOD_CTRL};
+	     (alt)  -> {true, ?KMOD_ALT};
+	     (meta) -> {true, ?KMOD_META};
+	     (shift) -> {true, ?KMOD_SHIFT};
+	     (command) -> {true, ?KMOD_META}
+	  end,
+    ModState = gui_state([Map(Mod) || Mod <- Mods], 0),
+    %% io:format("make key {~p, ~p} => ~p ~n",[Key, Mods, ModState]),
+    #keyboard{which=menubar, state=true, unicode=Key, mod=ModState, sym=Key};
+make_key_event(Key) when is_integer(Key) ->
+    make_key_event({Key, []}).
+
 lower(false, Char) -> string:to_lower(Char);
 lower(_, Char) -> Char.
 
-wx_key_map(?WXK_ALT) -> ?KMOD_ALT;
+wx_key_map(?WXK_SHIFT) -> ?SDLK_LSHIFT;
+wx_key_map(?WXK_ALT) -> ?SDLK_LALT;
+wx_key_map(?WXK_CONTROL) -> ?SDLK_LCTRL;
 wx_key_map(?WXK_F1) -> ?SDLK_F1;
 wx_key_map(?WXK_F2) -> ?SDLK_F2;
 wx_key_map(?WXK_F3) -> ?SDLK_F3;
@@ -432,7 +444,10 @@ wx_key_map(?WXK_WINDOWS_RIGHT) -> ?SDLK_RSUPER;
 %%wx_key_map(?) -> ?;
 wx_key_map(Code) -> Code.
 
-sdl_key_map(?KMOD_ALT) ->  ?WXK_ALT;
+sdl_key_map(?SDLK_LSHIFT) -> ?WXK_SHIFT;
+sdl_key_map(?SDLK_LALT) -> ?WXK_ALT;
+sdl_key_map(?SDLK_LCTRL) -> ?WXK_CONTROL;
+
 sdl_key_map(?SDLK_F1)  ->  ?WXK_F1;
 sdl_key_map(?SDLK_F2)  ->  ?WXK_F2;
 sdl_key_map(?SDLK_F3)  ->  ?WXK_F3;
