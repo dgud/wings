@@ -14,7 +14,7 @@
 -module(wings_view).
 -export([menu/1,command/2,
 	 virtual_mirror/2,
-	 init/0,initial_properties/0,delete_all/1,
+	 init/0,initial_properties/0,delete_all/1,reset/0,
 	 current/0,set_current/1,
 	 load_matrices/1,projection/0,
 	 modelview/0,align_view_to_normal/1,
@@ -301,7 +301,7 @@ command(orthogonal_view, St) ->
     St;
 command({show,What}, St) ->
     Prev = toggle_option(What),
-    if 
+    if
 	What =:= show_normals ->
 	    Prev andalso wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []);
 	What =:= show_materials; What =:= filter_texture ->
@@ -1054,7 +1054,7 @@ frame(St0) ->
     St = case wings_pref:get_value(frame_disregards_mirror) of
 	true ->
       kill_mirror(St0);
-	false -> 
+	false ->
 	  St0
 	end,
     frame_1(wings_sel:bounding_box(St)).
@@ -1384,8 +1384,18 @@ one_of(false,_, S) -> S.
 %%% Export and import of views.
 %%%
 
-export_views(#st{views={_,Views}}) ->
-    export_views_1(tuple_to_list(Views)).
+export_views(#st{views={_,Views0}}) ->
+    Views1 = tuple_to_list(Views0),
+    CurrentView = current(),
+    Views = case get_view_index(CurrentView,Views1) of
+        undefined ->
+            [{CurrentView,"current_view"}]++Views1;
+        Idx ->
+            View = element(Idx,Views0),
+            Views2 = Views1 -- [View],  % tuple index starts from 1 and lists from 0
+            [View]++Views2
+    end,
+    export_views_1(Views).
 
 export_views_1([{View,Name}|Views]) ->
     Tags = [aim,distance_to_aim,azimuth,elevation,tracking,fov,hither,yon],
@@ -1393,13 +1403,27 @@ export_views_1([{View,Name}|Views]) ->
     [{view,Props}|export_views_1(Views)];
 export_views_1([]) -> [].
 
-import_views(Views, #st{views={CurrentView,OldViews}}=St) ->
-	NewViews0=import_views_1(Views),
-	OldViews0 = case OldViews of
-	{} -> [];
-	OldViews1 -> tuple_to_list(OldViews1)
-	end,
-    St#st{views={CurrentView,list_to_tuple(OldViews0++NewViews0)}}.
+import_views(Views, #st{views={CurrentView0,{}}}=St) -> % loading a project
+    NewViews0 = import_views_1(Views),
+    NewViews = case NewViews0 of
+        [] ->
+            reset(),
+            CurrentView = CurrentView0,
+            NewViews0;
+        _ ->
+            {{View,_},NewViews1} = remove_cur_view(NewViews0),
+            set_current(View),
+            CurrentView = case get_view_index(View,NewViews1) of
+                undefined -> CurrentView0;
+                Idx -> Idx
+            end,
+            NewViews1
+    end,
+    St#st{views={CurrentView,list_to_tuple(NewViews)}};
+import_views(Views, #st{views={CurrentView,OldViews}}=St) -> % merging a project
+    NewViews0 = import_views_1(Views),
+    NewViews = tuple_to_list(OldViews)++remove_cur_view(NewViews0),
+    St#st{views={CurrentView,list_to_tuple(NewViews)}}.
 
 import_views_1([{view,As}|Views]) ->
     [import_view(As)|import_views_1(Views)];
@@ -1430,6 +1454,29 @@ import_view([], #view{azimuth=Az,elevation=El}=View, undefined) ->
     {View#view{along_axis=along(Az, El)},view_legend(View)};
 import_view([], #view{azimuth=Az,elevation=El}=View, Name) ->
     {View#view{along_axis=along(Az, El)},Name}.
+
+
+%%%
+%%% import/export utilities
+%%%
+
+get_view_index(#view{}=View, Views) when is_tuple(Views) ->
+    get_view_index(View, tuple_to_list(Views));
+get_view_index(#view{}=View, Views) ->
+    get_view_index_1(View, Views, 0).
+get_view_index_1(#view{}, [], _) -> undefined;
+get_view_index_1(#view{}=View, [{View,_Name}|_], Acc) -> Acc+1;
+get_view_index_1(#view{}=View, [_|Views], Acc) ->
+    get_view_index_1(View,Views,Acc+1).
+
+remove_cur_view([View|_]=Views0) ->
+    Views = case View of
+        {_, "current_view"} ->
+            Views0 -- [View];
+        _ ->
+            Views0
+    end,
+    {View,Views}.
 
 %%%
 %%% Camera info.
