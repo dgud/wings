@@ -237,7 +237,7 @@ selection_ask([target|Rest],Ask) ->
 %%  and calls do_move(ProcessedOptions,Selection,State)
 %%
 
-draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default},{_,Lock}},Sel,St) ->
+draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default},{_,Lock}},Sel,#st{selmode=SelMode}=St) ->
     Frame1 = [{vframe,
                  [draw_window1(center,Default)] ++
                  [draw_window1(object,MoveObj)]}],
@@ -265,13 +265,17 @@ draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default},{_,Lock}},
                  true ->
                      []
              end,
+    Frame45 = if % Lock is true only for Snap and this extra check box must be used only with it
+                 Lock and (SelMode == body) -> [draw_window1(dup_rt,default)];
+                 true -> []
+             end,
     Frame5 = if
                 Frame2 =/= [] orelse Frame3 =/= [] orelse Frame35 =/= [] -> 
                     [{hframe,Frame1++[{vframe,[{hframe,Frame2++Frame3++Frame35}]++Frame4}]}];
                 true ->
                     [{vframe,Frame1++Frame4}]
             end,
-    Frame = [{vframe,Frame5++[separator,draw_window1(reference,Center)]}],
+    Frame = [{vframe,Frame5++Frame45++[separator,draw_window1(reference,Center)]}],
     Name = draw_window1(name,default),
     wings_ask:dialog(Name, {preview,Frame},
        fun
@@ -305,6 +309,13 @@ draw_window1(duplicate,CheckAll) when is_boolean(CheckAll) ->
     {hframe,[
         {text,0,[{key,dupli},{range,{0,infinity}}]++Label},
         {label,?__(5,"Duplicates")}
+    ]};
+draw_window1(dup_rt,_) ->
+    {vframe,[
+      {hframe,[
+        {hframe,[{label,?__(10,"Between reference and target")++":"}]},
+        {hframe,[{"",false,[{key,dup_rt},disable(dup_rt)]}]}
+      ]}
     ]};
 draw_window1(align,_) ->
     {vframe,[
@@ -344,6 +355,12 @@ disable(dupli) ->
                   not ((gb_trees:is_defined(all,Store)) andalso (not gb_trees:get(all, Store)));
               (_, _) -> void
           end};
+disable(dup_rt) ->
+    {hook,fun (is_disabled, {_Var,_I,Store}) ->
+                  (gb_trees:get(dupli, Store) < 1) and
+                  not ((gb_trees:is_defined(all,Store)) andalso (not gb_trees:get(all, Store)));
+              (_, _) -> void
+          end};
 disable(Other) ->
     {hook,fun (is_disabled, {_Var,_I,Store}) ->
                   gb_trees:is_defined(Other,Store) andalso gb_trees:get(Other, Store);
@@ -377,13 +394,14 @@ translate(Options,{CX,CY,CZ}=Center,Sel,St) ->
               N when Obj -> N;
               _ -> 0
            end,
+   Dup_rt = lookup(dup_rt,Options,false),
    Ax = lookup(ax,Options,false) and (Dupli>0),
    Ay = lookup(ay,Options,false) and (Dupli>0),
    Az = lookup(az,Options,false) and (Dupli>0),
    Fx = lookup(fx,Options,false),
    Fy = lookup(fy,Options,false),
    Fz = lookup(fz,Options,false),
-   do_move([Center,{NX,NY,NZ},Obj,{Ax,Ay,Az},{Fx,Fy,Fz},Dupli],Sel,St).
+   do_move([Center,{NX,NY,NZ},Obj,{Ax,Ay,Az},{Fx,Fy,Fz},Dupli,Dup_rt],Sel,St).
 
 %%
 %% do_move(Options,Selection,State)
@@ -392,11 +410,14 @@ translate(Options,{CX,CY,CZ}=Center,Sel,St) ->
 %%
 
 do_move([_,XYZ,_,_,_,Dupli]=Move,Sel,St) ->
-    do_move1(XYZ,Dupli,Move,Sel,St).
+    do_move1(XYZ,Dupli,false,Move,Sel,St);
+do_move([_,XYZ,_,_,_,Dupli,Dup_rt]=Move0,Sel,St) ->
+    {Move,_}=lists:split(length(Move0) -1, Move0),
+    do_move1(XYZ,Dupli,Dup_rt,Move,Sel,St).
 
-do_move1(_,_,_,[],St) ->
+do_move1(_,_,_,_,[],St) ->
     St;
-do_move1({XO,YO,ZO},DuOrg,[{Cx,Cy,Cz},{X,Y,Z},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du],[{Obj0,Vset}|Rest]=Sel,#st{shapes=Shapes0}=St0) ->
+do_move1({XO,YO,ZO},DuOrg,Dup_rt,[{Cx,Cy,Cz},{X,Y,Z},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du],[{Obj0,Vset}|Rest]=Sel,#st{shapes=Shapes0}=St0) ->
     We0 = gb_trees:get(Obj0, Shapes0),
     #st{shapes=Shapes1,onext=Oid} = St1 = if
                                               Du > 0 ->
@@ -414,27 +435,37 @@ do_move1({XO,YO,ZO},DuOrg,[{Cx,Cy,Cz},{X,Y,Z},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du],[{Obj
     end,
     Vtab = We1#we.vp,
     {Ox,Oy,Oz} = get_center([{Obj1,Vset}],Shapes1),
-    Dx = if
-             Ax -> X - Ox;
-             true -> X - Cx
-         end,
-    Dy = if
-             Ay -> Y - Oy;
-             true -> Y - Cy
-         end,
-    Dz = if
-             Az -> Z - Oz;
-             true -> Z - Cz
-         end,
+    if (DuOrg > 0) and Dup_rt ->
+        Dx = ((X - Cx)/DuOrg)*Du,
+        Dy = ((Y - Cy)/DuOrg)*Du,
+        Dz = ((Z - Cz)/DuOrg)*Du;
+    true ->
+        Dx = if
+                 Ax -> X - Ox;
+                 true -> X - Cx
+             end,
+        Dy = if
+                 Ay -> Y - Oy;
+                 true -> Y - Cy
+             end,
+        Dz = if
+                 Az -> Z - Oz;
+                 true -> Z - Cz
+             end
+    end,
     NewVtab = execute_move({Dx,Dy,Dz},{X,Y,Z},{Fx,Fy,Fz},Wo or ?IS_LIGHT(We1),Vset,Vtab),
     NewWe = We1#we{vp=NewVtab},
     NewShapes = gb_trees:update(Obj1,NewWe,Shapes1),
     NewSt = St1#st{shapes=NewShapes},
     if
         Du > 1 ->
-            do_move1({XO,YO,ZO},DuOrg,[{Cx,Cy,Cz},{XO+Dx,YO+Dy,ZO+Dz},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du-1],Sel,NewSt);
+            if Dup_rt ->
+                do_move1({XO,YO,ZO},DuOrg,Dup_rt,[{Cx,Cy,Cz},{X,Y,Z},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du-1],Sel,NewSt);
+            true ->
+                do_move1({XO,YO,ZO},DuOrg,Dup_rt,[{Cx,Cy,Cz},{XO+Dx,YO+Dy,ZO+Dz},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du-1],Sel,NewSt)
+            end;
         true ->
-            do_move1({XO,YO,ZO},DuOrg,[{Cx,Cy,Cz},{XO,YO,ZO},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},DuOrg],Rest,NewSt)
+            do_move1({XO,YO,ZO},DuOrg,Dup_rt,[{Cx,Cy,Cz},{XO,YO,ZO},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},DuOrg],Rest,NewSt)
     end.
 
 execute_move(D,N,F,Wo,Vset,Vtab) ->
