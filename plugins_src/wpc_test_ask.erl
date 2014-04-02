@@ -14,6 +14,9 @@
 -module(wpc_test_ask).
 
 -include_lib("kernel/include/file.hrl").
+%-define(NEED_OPENGL, 1).
+%-define(NEED_ESDL, 1).
+-include("../src/wings.hrl").
 
 -export([enable/0,disable/0]).
 -export([load/1]).
@@ -173,8 +176,11 @@ minimal_dialog(_St) ->
 		      _ -> ok
 		  end, ignore
 	  end,
+    Cr=wp7_color_ramp:def_color_key(),
     Dialog =
-	[{hframe,[{label,"Label"},{"Checkbox",false,[{key,a}]}],
+	[
+    {color_ramp,Cr,[{key,db}]},
+	{hframe,[{label,"Label"},{"Checkbox",false,[{key,a}]}],
 	 [{title,"Hframe"}]}],
     wings_ask:dialog("Test Ask Minimal", Dialog, Fun).
 
@@ -241,6 +247,7 @@ overlay_result(St) ->
     end.
 
 large_dialog_l(MinimizedL, MinimizedC) ->
+    Cr=wp7_color_ramp:def_color_key(),
     PaneColor = wings_pref:get_value(dialog_color),
     {vframe,
      [{label,"Label"},
@@ -274,6 +281,11 @@ large_dialog_l(MinimizedL, MinimizedC) ->
 						     Col)
 					   end)
 		    end},
+      separator,
+      {vframe,[
+          {color_ramp,Cr,[{key,db},{hook,disable_hook(c)}]}
+       ]},
+      separator,
       {hframe,
        [{vframe,[{label,"R"},{label,"G"},{label,"B"},
 		 {label,"H"},{label,"S"},{label,"V"}]},
@@ -341,7 +353,7 @@ large_dialog_r(MinimizedR) ->
 	{key,minimized_r},{hook,disable_hook(c)}]}.
 
 info(c) -> "Requires \"Checkbox key\" checked".
-    
+
 
 color_update(T, {K1,K2}, {Ka,Kb,Kc}) ->
     fun (update, {Var,_I,Val,Store0}) ->

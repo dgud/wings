@@ -12,7 +12,7 @@
 %%     $Id$
 %%
 -module(wings_plugin).
--export([init/0,menu/2,dialog/2,dialog_result/2,command/2,call_ui/1]).
+-export([init/0,menu/2,dialog/2,dialog_result/2,command/2,call_ui/1,call_uc/1]).
 -export([install/1]).
 -export([draw/3,check_plugins/2,get_win_data/1,restore_window/6]).
 -include("wings.hrl").
@@ -43,6 +43,7 @@ init() ->
     ets:new(wings_seen_plugins, [named_table,public,ordered_set]),
     put(wings_plugins, []),
     put(wings_ui, def_ui_plugin()),
+    put(wings_uc, def_uc_plugin()),
     case try_dir(wings_util:lib_dir(wings), "plugins") of
 	none -> ok;
 	PluginDir -> init_dir(PluginDir)
@@ -56,6 +57,10 @@ init() ->
 call_ui(What) ->
     Ui = get(wings_ui),
     Ui(What).
+
+call_uc(What) ->
+    Uc = get(wings_uc),
+    Uc(What).
 
 menu(Name, Menu0) ->
     Menu = manager_menu(Name, Menu0),
@@ -160,6 +165,14 @@ init_plugin(user_interface, M) ->
 	Other ->
 	    io:format("~w:init/1 bad return value: ~P\n", [M,Other,20])
     end;
+init_plugin(user_controls, M) ->
+    Uc0 = get(wings_uc),
+    case catch M:init(Uc0) of
+	Uc when is_function(Uc) ->
+	    put(wings_uc, Uc);
+	Other ->
+	    io:format("~w:init/1 bad return value: ~P\n", [M,Other,20])
+    end;
 init_plugin(_, M) ->
     case catch M:init() of
 	true ->
@@ -176,6 +189,11 @@ def_ui_plugin() ->
 				[Missing]),
 	    wings_wm:message(lists:flatten(Msg)),
 	    aborted
+    end.
+
+def_uc_plugin() ->
+    fun(_) ->
+        ctrl_fail
     end.
 
 try_dir(Base, Dir0) ->
@@ -227,6 +245,7 @@ list_dir_1([N|Ns], Dir0, Dirs, Beams) ->
 list_dir_1([], _Dir, Dirs, Beams) -> {Dirs,Beams}.
     
 convert_type($c) -> command;
+convert_type($7) -> user_controls;
 convert_type($8) -> user_interface;
 convert_type($9) -> user_interface;
 convert_type(_) -> undefined.
