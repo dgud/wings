@@ -214,7 +214,17 @@ free_viewer_num(N) ->
 	true -> free_viewer_num(N+1)
     end.
 
-open_file(none) -> ok;
+open_file(none) ->
+    USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
+    Recovered = filelib:is_file(USFile),
+    wings_pref:set_value(file_recovered, Recovered),
+    case Recovered of
+        true ->
+            open_file(USFile),
+            wings_u:message(?__(1,"Wings3D has recovered an unsaved file."));
+        _ -> ok
+    end;
+
 open_file(Name) -> wings_wm:send(geom, {open_file,Name}).
 
 init_opengl(St) ->
@@ -299,9 +309,16 @@ handle_event({crash_in_other_window,LogName}, St) ->
 handle_event({open_file,Name}, St0) ->
     case catch ?SLOW(wings_ff_wings:import(Name, St0)) of
     #st{}=St1 ->
-        wings_pref:set_value(current_directory, filename:dirname(Name)),
-        St = wings_shape:recreate_folder_system(St1),
-        main_loop(wings_u:caption(St#st{saved=true,file=Name}));
+        St2 = wings_shape:recreate_folder_system(St1),
+        USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
+        St = case USFile of
+            Name ->
+                St2#st{saved=auto,file=undefined};
+            _ ->
+                wings_pref:set_value(current_directory, filename:dirname(Name)),
+                St2#st{saved=true,file=Name}
+        end,
+        main_loop(wings_u:caption(St));
     {error,_} ->
         main_loop(St0)
     end;
