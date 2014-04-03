@@ -301,7 +301,7 @@ command(orthogonal_view, St) ->
     St;
 command({show,What}, St) ->
     Prev = toggle_option(What),
-    if 
+    if
 	What =:= show_normals ->
 	    Prev andalso wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []);
 	What =:= show_materials; What =:= filter_texture ->
@@ -885,16 +885,18 @@ reset() ->
     reset(current()).
 
 reset(View) ->
+    Distance=wings_pref:get_value(ground_grid_amount)*0.5, %  80% of the grid size
     set_current(View#view{origin={0.0,0.0,0.0},
 			  azimuth=-45.0,elevation=25.0,
-			  distance=?CAMERA_DIST,
+			  distance=max(Distance,8.0),
 			  pan_x=0.0,pan_y=0.0,
 			  along_axis=none}).
 
 default_view() ->
+    Distance=wings_pref:get_value(ground_grid_amount)*0.5, %  80% of the grid size
     #view{origin={0.0,0.0,0.0},
 	  azimuth=-45.0,elevation=25.0,
-	  distance=?CAMERA_DIST,
+	  distance=max(Distance,8.0),
 	  pan_x=0.0,pan_y=0.0,
 	  along_axis=none,
 	  fov=45.0,
@@ -1054,7 +1056,7 @@ frame(St0) ->
     St = case wings_pref:get_value(frame_disregards_mirror) of
 	true ->
       kill_mirror(St0);
-	false -> 
+	false ->
 	  St0
 	end,
     frame_1(wings_sel:bounding_box(St)).
