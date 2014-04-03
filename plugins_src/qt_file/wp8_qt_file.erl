@@ -57,7 +57,7 @@ fileop({file,open_dialog,Prop}, _Next) ->
     Title = proplists:get_value(title, Prop, "Open"),
     file_dialog(?OP_READ, Prop, Title);
 fileop({file,font_dialog,Prop}, Next) ->
-    fileop({file,font_dialog,Prop}, Next);  % foward the call to open dialog
+    fileop({file,open_dialog,Prop}, Next);  % foward the call to open dialog
 fileop({file,save_dialog,Prop}, _Next) ->
     Title = proplists:get_value(title, Prop, "Save"),
     file_dialog(?OP_WRITE, Prop, Title);
