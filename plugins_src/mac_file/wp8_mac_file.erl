@@ -47,6 +47,8 @@ fileop_1({file,open_dialog,Prop,Cont}, _Next) ->
 	aborted -> keep;
 	Res -> Cont(Res)
     end;
+fileop_1({file,font_dialog,Prop,Cont}, Next) ->
+    fileop_1({file,open_dialog,Prop,Cont}, Next);  % foward the call to open dialog
 fileop_1({file,save_dialog,Prop,Cont}, _Next) ->
     Title = proplists:get_value(title, Prop, ?__(2,"Save")),
     Dir = proplists:get_value(directory, Prop),
