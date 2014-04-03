@@ -144,12 +144,17 @@ make_library_effects(#c_exp{matl_defs=MatlDefs}) ->
 
 make_library_images(#c_exp{matl_defs=MatlDefs}) ->
     Materials = gb_trees:values(MatlDefs),
-    Images=map(fun (#c_matl{txfilename=Filename}) ->
+    Images=foldl(fun (#c_matl{txfilename=[]}, Acc) ->
+                 Acc;
+              (#c_matl{txfilename=Filename}, Acc) ->
 			     InitFrom = {init_from,[],[Filename]},
 			     Id = filename_to_id(Filename) ++ "-img",
-			     {image,[{id,Id},{name,Id}],[InitFrom]}
-		     end,Materials),
-    {library_images,[],Images}.
+			     Acc ++[{image,[{id,Id},{name,Id}],[InitFrom]}]
+		     end,[],Materials),
+    case Images of
+        [] -> "";
+        _ -> {library_images,[],Images}
+    end.
 
 export_transform(Contents, Attr) ->
     Mat = wpa:export_matrix(Attr),
@@ -209,8 +214,8 @@ make_scene_node(ObjName, ObjMats) ->
     RotateY = {rotate,[{sid,"rotateY"}],["0 1 0 0.00000"]},
     RotateX = {rotate,[{sid,"rotateX"}],["1 0 0 0.00000"]},
     Scale   = {scale,[{sid,"scale"}],["1.0000 1.0000 1.0000"]},
-    {node,[{layer,"L1"},{id,ObjName},{name,ObjName}],
-     [Translate,"/n",RotateZ,RotateY,RotateX,Scale,IG]}.
+    {node,[{layer,"L1"},{id,ObjName++"L1"},{name,ObjName}],
+     [Translate,"\n",RotateZ,RotateY,RotateX,Scale,IG]}.
 
 make_geometry1([], _, _, Acc, _) ->
     Acc;
@@ -283,8 +288,8 @@ define_material(Name, ThisMat, #c_exp{matl_defs=ExpMatlDefs}=ExportState) ->
 	    end;
 	_ -> ColladaMatl0
     end,
-    Children = [Emission,Ambient,Specular,Shininess,
-		ColladaMatl1#c_matl.diffnode],
+    Children = [Emission,Ambient,
+		ColladaMatl1#c_matl.diffnode,Specular,Shininess],
     Phong = {phong,[],Children},
     Technique = {technique,[{sid,"wings3d"}],[Phong]},
     ProfileChildren = [ColladaMatl1#c_matl.surface,
