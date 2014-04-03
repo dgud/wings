@@ -169,7 +169,7 @@ pretty_filename(Name0) ->
     end.
 
 %% it returns a new file name using relative path
-%% Dst: it's the relative folder (used to be the project directory) 
+%% Dst: it's the relative folder (used to be the project directory)
 %% Src: file name (with full path) to be referenced
 %% it was implemented to be used in the exporters (see wpc_pov.erl)
 relative_path_name(Dst,Src) ->
@@ -178,7 +178,7 @@ relative_path_name(Dst,Src) ->
     Dir1=filename:split(get_dir(Src)),
 	case get_rel_path(Dir0,Dir1,[]) of
 		[] -> Fn;
-		Dir3 -> filename:join(Dir3,[Fn])
+		Dir3 -> filename:join(Dir3++[Fn])
 	end.
 
 get_dir(Dir) ->
@@ -257,7 +257,7 @@ log_file_dir({win32,_}) ->
 	  end,
     ok = win32reg:close(R),
     Res.
-	
+
 open_log_file(Name) ->
     {ok,F} = file:open(Name, [write]),
     {{Y,Mo,D},{H,Mi,_}} = erlang:localtime(),
@@ -307,7 +307,7 @@ dump_we(F, #we{name=Name,id=Id,es=Etab,fs=Ftab,
     io:format(F, "   next_id=~p\n", [Next]),
     dump_faces(F, gb_trees:to_list(Ftab)),
     dump_edges(F, array:sparse_to_orddict(Etab)).
-    
+
 dump_edges(F, Es) ->
     io:put_chars(F, "\n"),
     io:format(F, "Edge table\n", []),
@@ -323,7 +323,7 @@ dump_faces(F, Fs) ->
 
 %%
 %% Dumping of data structures.
-%% 
+%%
 
 show_edge(F, Edge, #edge{vs=Vs,ve=Ve,lf=Lf,rf=Rf,ltpr=Lpred,ltsu=Lsucc,
 			 rtpr=Rpred,rtsu=Rsucc}) ->

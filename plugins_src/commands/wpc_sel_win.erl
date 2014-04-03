@@ -89,6 +89,16 @@ get_event(Ost) ->
     {replace,fun(Ev) -> event(Ev, Ost) end}.
 
 event(redraw, Ost) ->
+    wings_io:ortho_setup(),
+    {W,H} = wings_wm:win_size(),
+    case wings_pref:get_value(bitmap_icons) of
+        false -> wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR);
+        true ->
+          wings_io:blend(wings_pref:get_value(outliner_geograph_bg),
+            fun(Color) ->
+              wings_io:border(0, 0, W-1, H-1, Color)
+            end)
+    end,
     draw_objects(Ost),
     keep;
 event({action,{sel_groups,Cmd}}, Ost) ->
@@ -380,10 +390,7 @@ active_object(Y0, #ost{lh=Lh,first=First,n=N}) ->
     end.
 
 draw_objects(#ost{os=Objs0,first=First,lh=Lh,active=Active,tracking=Trk,n=N0}=Ost) ->
-    wings_io:ortho_setup(),
-    {W,H} = wings_wm:win_size(),
-    wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR),
-
+    {W,_H} = wings_wm:win_size(),
     Objs = lists:nthtail(First, Objs0),
     Lines = lines(Ost),
     N = case N0-First of

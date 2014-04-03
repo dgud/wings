@@ -1,3 +1,4 @@
+%%
 %%  wpc_pov.erl --
 %%
 %%     POV-Ray Plugin User Interface.
@@ -827,15 +828,21 @@ export_maps([], _ED)->
 export_maps([{MapID, Map} | Maps], ExportDir) ->
     #e3d_image{name=ImageName,filename=FileName} = Map,
     case FileName of
-    none ->
+    none ->  % Internal image
         MapFile = case get_map_type(ImageName) of
         sys -> ImageName++".png";
         _ -> ImageName
         end,
-        e3d_image:save(Map, filename:join(ExportDir, MapFile));
-    _ -> ok
+        Filepath0 = filename:join(ExportDir, MapFile),
+        case e3d_image:save(Map, Filepath0) of
+        {error, _} -> % file type not supported by Wings3d
+            Filepath = filename:join(ExportDir, ImageName++".png"),
+            e3d_image:save(Map, Filepath);
+        _ -> Filepath = Filepath0
+        end;
+    _ -> Filepath=FileName
     end,
-    [{MapID, ImageName} | export_maps(Maps, ExportDir)].
+    [{MapID, Filepath} | export_maps(Maps, ExportDir)].
 
 get_map_type(Filepath) ->
     Ext = filename:extension(Filepath),
@@ -906,10 +913,14 @@ export_pigment(F, Pigment, PovRay, OpenGL, Maps, Attr, ExportDir) ->
             io:format(F, "\t\t slope {<~f, ~f, ~f>, 0.5, 1.0}\n", [Dx, Dy, Dz]);
         image -> io:put_chars(F, "\t\t image_map {\n"),
             case PigmentImage of
-                user -> Filepath = proplists:get_value(image_user_file, PovRay, []),
-                    Filepath0=wings_u:relative_path_name(ExportDir, Filepath),
+                user ->
+                    Filepath = proplists:get_value(image_user_file, PovRay, []),
+                    Filepath0 = wings_u:relative_path_name(ExportDir, Filepath),
                     io:format(F, "\t\t ~s \"~s\"\n", [atom_to_list(get_map_type(Filepath)), Filepath0]);
-                PI -> io:format(F, "\t\t png \"~s.png\"\n", [proplists:get_value(PI, Maps, [])])
+                PI ->
+                    Filepath = proplists:get_value(PI, Maps, []),
+                    Filepath0 = wings_u:relative_path_name(ExportDir, Filepath),
+                    io:format(F, "\t\t ~s \"~s\"\n", [atom_to_list(get_map_type(Filepath0)),Filepath0])
             end,
             io:put_chars(F, "\t\t }\n");
         Pattern -> io:format(F, "\t\t ~s\n", [Pattern])
