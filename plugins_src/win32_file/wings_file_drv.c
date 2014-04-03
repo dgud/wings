@@ -133,6 +133,16 @@ static void fill_ofn(OPENFILENAME *pofn)
 }
 
 /*
+** That is a dummy dialog hook.
+** It is used only to enable the old style dialog and make
+** possible see and select by name the Fonts files under >= Windows7
+*/
+static CALLBACK UINT_PTR OFNHookProc(HWND hdlg, UINT uiMsg, WPARAM wParam, LPARAM lParam)
+{
+    return FALSE;
+}
+
+/*
 ** Control message from erlang, syncronous operations which hang the
 ** emulator. This is not a place where you normally do blocking
 ** operations, but as the wings application is single threaded
@@ -157,6 +167,7 @@ static ErlDrvSSizeT wings_file_control(ErlDrvData handle, unsigned int command,
     switch (command) {
     case 1: /* Open (or import) file */
     case 2: /* Save (or export) file */
+    case 4: /* Select Font file */
         defdir = buff; /* Default directory */
 	title = defdir + strlen(defdir) + 1;  /* Title of dialog */
 	defname = title + strlen(title) + 1; /* Default name for file */
@@ -170,8 +181,13 @@ static ErlDrvSSizeT wings_file_control(ErlDrvData handle, unsigned int command,
 	ofn.lpstrInitialDir = strlen(defdir) ? defdir : NULL; 
 	ofn.lpstrTitle = title; 
 	ofn.lpstrDefExt = strlen(filter) ? filter+1 : NULL; 
-	if (command == 1) {
-	  ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY; 
+	if (command == 1 || command == 4) {
+	  if (command == 1) {
+	    ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+	  } else {
+	    ofn.lpfnHook = &OFNHookProc;
+	    ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_ENABLEHOOK;
+	  }
 	  ret = GetOpenFileName(&ofn);
 	} else {
 	  ofn.Flags = OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT;

@@ -22,6 +22,7 @@
 -define(OP_READ, 1).
 -define(OP_WRITE, 2).
 -define(OP_MAXIMIZE, 3).
+-define(OP_FONT, 4).
 
 menus() -> [].
 
@@ -53,6 +54,9 @@ init(Next) ->
 fileop({file,open_dialog,Prop,Cont}, _Next) ->
     Title = proplists:get_value(title, Prop, ?__(1,"Open")),
     file_dialog(?OP_READ, Prop, Title, Cont);
+fileop({file,font_dialog,Prop,Cont}, _Next) ->
+    Title = proplists:get_value(title, Prop, ?__(3,"Font Selection")),
+    file_dialog(?OP_FONT, Prop, Title, Cont);
 fileop({file,save_dialog,Prop,Cont}, _Next) ->
     Title = proplists:get_value(title, Prop, ?__(2,"Save")),
     file_dialog(?OP_WRITE, Prop, Title, Cont);
