@@ -33,6 +33,8 @@ init(Next) ->
 fileop({file,open_dialog,Prop,Cont}, _Next) ->
     Title = proplists:get_value(title, Prop, ?__(1,"Open")),
     file_dialog(?wxFD_OPEN, Prop, Title, Cont);
+fileop({file,font_dialog,Prop,Cont}, Next) ->
+    fileop({file,open_dialog,Prop,Cont}, Next);  % foward the call to open dialog
 fileop({file,save_dialog,Prop,Cont}, _Next) ->
     Title = proplists:get_value(title, Prop, ?__(2,"Save")),
     file_dialog(?wxFD_SAVE, Prop, Title, Cont);
