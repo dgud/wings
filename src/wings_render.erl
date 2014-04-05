@@ -45,6 +45,7 @@ render(#st{selmode=Mode}=St) ->
 	undefined -> ok
     end,
     SceneLights = wings_view:load_matrices(true),
+    init_grid_size(),
     ground_and_axes(),
     mini_axis_icon(),
     show_saved_bb(St),
@@ -59,6 +60,7 @@ render(#st{selmode=Mode}=St) ->
     {W,H} = wings_wm:win_size(),
     gl:rectf(W-0.5, 0.5, 0.5, H-0.5),
     gl:popAttrib(),
+    release_grid_size(),
     wings_develop:gl_error_check("Rendering scene").
 
 polygonOffset(M) ->
@@ -371,7 +373,7 @@ draw_vertices(#dlo{src_we=#we{perm=P},vs=VsDlist}, vertex) when ?IS_SELECTABLE(P
     wings_dl:call(VsDlist);
 draw_vertices(_, _) -> ok.
 
-draw_hilite(#dlo{hilite=DL}) -> 
+draw_hilite(#dlo{hilite=DL}) ->
     wings_dl:call(DL).
 
 draw_orig_sel(#dlo{orig_sel=none}) -> ok;
@@ -408,7 +410,7 @@ draw_hard_edges(#dlo{hard=Hard}, SelMode) ->
     gl:lineWidth(hard_edge_width(SelMode)),
     gl:color3fv(wings_pref:get_value(hard_edge_color)),
     wings_dl:call(Hard).
-	
+
 draw_normals(#dlo{normals=none}) -> ok;
 draw_normals(#dlo{normals=Ns}) ->
     gl:color3f(0, 0, 1),
@@ -428,7 +430,9 @@ ground_and_axes() ->
     Axes = wings_wm:get_prop(show_axes),
     groundplane(Axes),
     case wings_pref:get_value(constrain_axes) of
-	true -> Yon = ?GROUND_GRID_SIZE * 10.0;
+	true ->
+		GridAmount=wings_pref:get_value(ground_grid_amount),
+		Yon = ?GROUND_GRID_SIZE * float(GridAmount);
 	false -> #view{yon=Yon} = wings_view:current()
     end,
     case Axes of
@@ -503,7 +507,9 @@ axis_letters() ->
 	    gl:loadIdentity(),
 
 	    case wings_pref:get_value(constrain_axes) of
-		true -> Yon = ?GROUND_GRID_SIZE * 11.0;
+		true ->
+			GridAmount=wings_pref:get_value(ground_grid_amount),
+			Yon = ?GROUND_GRID_SIZE * (float(GridAmount) +1.0);
 		false -> #view{yon=Yon} = wings_view:current()
 	    end,
 	    axis_letter_1(1, Yon, axisx, x_color, Info),
@@ -575,6 +581,17 @@ sub({X1,Y1}, {X2,Y2}) ->
 add_prod({X1,Y1}, {X2,Y2}, S) when is_float(S) ->
     {S*X2+X1,S*Y2+Y1}.
 
+init_grid_size() ->
+%    {_,_,W0,H0} = wings_wm:viewport(desktop),
+    {MM,PM,{_,_,W0,H0}=Viewport} = wings_u:get_matrices(0, original),
+    W1=max(W0,H0)/2.0,
+    {S,T,U} = wings_gl:unProject(W1, 0.0, 0.0, MM, PM, Viewport),
+    GridAmount=max(round(max(max(abs(S),abs(T)),abs(U))),10.0),
+    wings_pref:set_value(ground_grid_amount,GridAmount).
+
+release_grid_size() ->
+    wings_pref:delete_value(ground_grid_amount).
+
 groundplane(Axes) ->
     case (wings_wm:get_prop(show_groundplane) orelse
 	  (wings_pref:get_value(force_show_along_grid) andalso
@@ -595,7 +612,8 @@ groundplane_1(Axes) ->
 	_ -> gl:rotatef(90, 1, 0, 0)
     end,
     gl:'begin'(?GL_LINES),
-    Sz = ?GROUND_GRID_SIZE * 10,
+	GridAmount=wings_pref:get_value(ground_grid_amount),
+    Sz = ?GROUND_GRID_SIZE * GridAmount,
     groundplane_2(-Sz, Sz, Sz, Axes),
     gl:'end'(),
     gl:popMatrix(),
@@ -681,7 +699,7 @@ enable_lighting(SceneLights) ->
 	    %% We put it here and not in apply_material, because we
 	    %% can't use some optimizations (e.g. reuse display lists)
 	    %% when drawing selected objects.
-	    gl:color4ub(255, 255, 255, 255), 
+	    gl:color4ub(255, 255, 255, 255),
 	    gl:useProgram(Prog)
     end.
 
@@ -693,7 +711,7 @@ disable_lighting() ->
     end.
 
 mini_axis_icon() ->
-    case wings_pref:get_value(mini_axis) of 
+    case wings_pref:get_value(mini_axis) of
     false -> ok;
     true ->
       gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
