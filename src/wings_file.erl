@@ -290,6 +290,8 @@ confirmed_new(#st{file=File}=St) ->
 
 new(#st{saved=true}=St0) ->
     St1 = clean_st(St0#st{file=undefined}),
+    %% clean_st/1 will remove all saved view, but will not reset the view. For a new project we should reset it. 
+    wings_view:reset(),
     St2 = clean_images(wings_undo:init(St1)),
     St = wings_shape:create_folder_system(St2),
     wings_u:caption(St),
