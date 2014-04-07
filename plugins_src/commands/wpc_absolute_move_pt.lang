@@ -1,35 +1,35 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_absolute_move,
  [
   {draw,
    [
     {1,"Comandos Absolutos"},
     {2,"Mover"},
-    {3,"Move para uma posição exata, em coordenadas absolutas."},
+    {3,"Move para uma posiÃ§Ã£o exata, em coordenadas absolutas."},
     {4,"Snap"},
-    {5,"Move para uma seleção secundária."},
-    {6,"Move usando o centro como referência."},
-    {7,"Move e mostra a janela de entrada numérica."}
+    {5,"Move para uma seleÃ§Ã£o secundÃ¡ria."},
+    {6,"Move usando o centro como referÃªncia."},
+    {7,"Move e mostra a janela de entrada numÃ©rica."}
    ]},
   {draw_window1,
    [
-    {1,"Opções do comando Mover Absoluto"},
-    {2,"Posição"},
+    {1,"OpÃ§Ãµes do comando Mover Absoluto"},
+    {2,"PosiÃ§Ã£o"},
     {3,"Move o objeto"},
     {4,"Move os objetos"},
-    {5,"Cópias"},
+    {5,"CÃ³pias"},
     {6,"Alinhar"},
     {7,"Achatar"},
-    {8,"O ponto de referência é"},
+    {8,"O ponto de referÃªncia Ã©"},
     {9,"Trancar"}
    ]},
   {mirror_error,
    [
-    {1,"Você não pode mover vértices do plano de espelhamento"}
+    {1,"VocÃª nÃ£o pode mover vÃ©rtices do plano de espelhamento"}
    ]},
   {selection_ask,
    [
-    {1,"Selecione o ponto de referência para a operação de snap"},
-    {2,"Seleciona o ponto alvo da operação de snap"}
+    {1,"Selecione o ponto de referÃªncia para a operaÃ§Ã£o de snap"},
+    {2,"Seleciona o ponto alvo da operaÃ§Ã£o de snap"}
    ]}
  ]}.

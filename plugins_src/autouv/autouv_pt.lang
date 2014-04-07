@@ -1,46 +1,46 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {auv_mapping,
  [
   {chart_normal,
    [
-    {1,"Não foi possível calcular a normal para o mapa."}
+    {1,"NÃ£o foi possÃ­vel calcular a normal para o mapa."}
    ]},
   {find_axes,
    [
-    {1,"No momento, não é possível fazer o mapeamento esférico/cilíndrico desse tipo de mapa ou cortes,\nNão é possível determinar quais eixos você deseja como X, Y e Z,\npor favor use Abrir ou um dos mapeamentos por projeção."}
+    {1,"No momento, nÃ£o Ã© possÃ­vel fazer o mapeamento esfÃ©rico/cilÃ­ndrico desse tipo de mapa ou cortes,\nNÃ£o Ã© possÃ­vel determinar quais eixos vocÃª deseja como X, Y e Z,\npor favor use Abrir ou um dos mapeamentos por projeÃ§Ã£o."}
    ]},
   {get_face_vspos,
    [
-    {1,"Erro: a Face não está triangulada -p com -p vértices"}
+    {1,"Erro: a Face nÃ£o estÃ¡ triangulada -p com -p vÃ©rtices"}
    ]},
   {map_chart,
    [
-    {1,"Um superfície fechada não pode ser mapeada. (Ou divida-a em dois ou mais mapas, ou corte-a ao longo de algumas arestas.)"},
-    {2,"Um corte em uma superfície fechada deve consistir em pelo menos duas arestas."},
-    {3,"Pelo menos 2 vértices (por mapa) devem ser selecionados."},
+    {1,"Um superfÃ­cie fechada nÃ£o pode ser mapeada. (Ou divida-a em dois ou mais mapas, ou corte-a ao longo de algumas arestas.)"},
+    {2,"Um corte em uma superfÃ­cie fechada deve consistir em pelo menos duas arestas."},
+    {3,"Pelo menos 2 vÃ©rtices (por mapa) devem ser selecionados."},
     {4,"Erro:"},
     {5,"Erro interno"}
    ]},
   {map_chart_1,
    [
-    {1,"Problema numérico, provavelmente uma face ruim com área vazia."},
+    {1,"Problema numÃ©rico, provavelmente uma face ruim com Ã¡rea vazia."},
     {2,"Erro interno:"},
     {3,"Erro"}
    ]},
   {stretch_iter,
    [
-    {1,"interação"}
+    {1,"interaÃ§Ã£o"}
    ]},
   {stretch_opt,
    [
     {1,"otimizando"},
     {2,"inicializando"},
-    {3,"Após Esticar soma (média) ~p"}
+    {3,"ApÃ³s Esticar soma (mÃ©dia) ~p"}
    ]},
   {stretch_setup,
    [
     {1,"Soma ao Esticar (pior) ~p"},
-    {2,"Soma ao Esticar (média) ~p"}
+    {2,"Soma ao Esticar (mÃ©dia) ~p"}
    ]}
  ]}.
 {auv_seg_ui,
@@ -48,10 +48,10 @@
   {mappers,
    [
     {1,"Abrir"},
-    {2,"Projeção Perpendicular"},
-    {3,"Projeção pela Câmera"},
-    {4,"Mapeamento Esférico"},
-    {5,"Mapeamento Cilíndrico"}
+    {2,"ProjeÃ§Ã£o Perpendicular"},
+    {3,"ProjeÃ§Ã£o pela CÃ¢mera"},
+    {4,"Mapeamento EsfÃ©rico"},
+    {5,"Mapeamento CilÃ­ndrico"}
    ]},
   {seg_event,
    [
@@ -61,8 +61,8 @@
    [
     {1,"Continuar"},
     {2,"Segmentar por"},
-    {3,"Projeção"},
-    {4,"Detecção Automática"}
+    {3,"ProjeÃ§Ã£o"},
+    {4,"DetecÃ§Ã£o AutomÃ¡tica"}
    ]},
   {seg_init_message,
    [
@@ -101,9 +101,9 @@
    [
     {1,"Tamanho"},
     {2,"Render"},
-    {3,"Opções de Desenho"},
+    {3,"OpÃ§Ãµes de Desenho"},
     {4,"Novo Passe"},
-    {5,"Apagar Passes não Usados"}
+    {5,"Apagar Passes nÃ£o Usados"}
    ]},
   {options,
    [
@@ -115,14 +115,14 @@
     {6,"Largura da Aresta:"},
     {7,"Usar material da face (nas arestas da borda)"},
     {8,"Usar cores do Material"},
-    {9,"Usar cores (prévias) da Textura ou do Vértice"},
+    {9,"Usar cores (prÃ©vias) da Textura ou do VÃ©rtice"},
     {10,"Sem luzes:"}
    ]},
   {render_passes,
    [
     {1,"Fundo"},
-    {2,"Opções"},
-    {3,"Opções"}
+    {2,"OpÃ§Ãµes"},
+    {3,"OpÃ§Ãµes"}
    ]},
   {renderers,
    [
@@ -135,24 +135,24 @@
  [
   {align_error,
    [
-    {1,"Selecione dois vértices ou uma aresta"}
+    {1,"Selecione dois vÃ©rtices ou uma aresta"}
    ]},
   {auv_menu,
    [
     {1,"Mapeamento UV"},
     {2,"Gerar mapeamento UV ou textura"},
-    {3,"Forçar modo de segmentação (apaga antigos segmentos)"},
+    {3,"ForÃ§ar modo de segmentaÃ§Ã£o (apaga antigos segmentos)"},
     {4,"Direto"},
-    {5,"Abrir janela UV diretamente se a seleção já contém coordenadas uv"},
-    {6,"Força a Segmentar (apaga anterior)"},
-    {7,"Apaga antigas coordenadas UV e recomeça a segmentar"},
-    {8,"Força a Segmentar (mantém anterior)"},
+    {5,"Abrir janela UV diretamente se a seleÃ§Ã£o jÃ¡ contÃ©m coordenadas uv"},
+    {6,"ForÃ§a a Segmentar (apaga anterior)"},
+    {7,"Apaga antigas coordenadas UV e recomeÃ§a a segmentar"},
+    {8,"ForÃ§a a Segmentar (mantÃ©m anterior)"},
     {9,"Re-segmenta com as antigas coordenadas UV"},
     {25,"Resegmentar objeto(s)"}
    ]},
   {command_menu,
    [
-    {1,"Operação com o Mapa"},
+    {1,"OperaÃ§Ã£o com o Mapa"},
     {2,"Mover"},
     {3,"Move mapas selecionados"},
     {4,"Alterar Escala"},
@@ -174,15 +174,15 @@
     {20,"Move para a borda da esquerda"},
     {21,"Direita"},
     {22,"Move para a borda da direita"},
-    {23,"Move os mapas para certa posição"},
+    {23,"Move os mapas para certa posiÃ§Ã£o"},
     {24,"Inverter"},
     {25,"Horizontal"},
-    {26,"Inverte a seleção horizontalmente"},
+    {26,"Inverte a seleÃ§Ã£o horizontalmente"},
     {27,"Vertical"},
-    {28,"Inverte a seleção verticalmente"},
+    {28,"Inverte a seleÃ§Ã£o verticalmente"},
     {29,"Inverte os mapas selecionados"},
     {30,"Apertar/Afrouxar"},
-    {31,"Move as coordenadas UV em relação ao ponto central médio"},
+    {31,"Move as coordenadas UV em relaÃ§Ã£o ao ponto central mÃ©dio"},
     {32,"Esconder"},
     {33,"Esconde os mapas selecionados mas conserva as coordenadas UV"},
     {34,"Apagar"},
@@ -194,10 +194,10 @@
     {40,"Abre o mapa"},
     {41,"Projetar Perpendicular"},
     {42,"Projeta as coordenadas UV a partir da perpendicular do mapa"},
-    {43,"Esférico"},
-    {44,"Mapeamento esférico"},
+    {43,"EsfÃ©rico"},
+    {44,"Mapeamento esfÃ©rico"},
     {45,"Calcula novas coordenadas UV com o algoritmo escolhido"},
-    {46,"Operações com Faces"},
+    {46,"OperaÃ§Ãµes com Faces"},
     {47,"Mover"},
     {48,"Move as faces selecionadas"},
     {49,"Alterar Escala"},
@@ -205,47 +205,47 @@
     {51,"Girar"},
     {52,"Gira as faces selecionadas"},
     {53,"Livre"},
-    {54,"Gira a seleção livremente"},
+    {54,"Gira a seleÃ§Ã£o livremente"},
     {55,"Mapa em X"},
     {56,"Gira o mapa para alinhar a aresta selecionada no eixo X"},
     {57,"Mapa em Y"},
     {58,"Gira o mapa para alinhar a aresta selecionada no eixo Y"},
-    {59,"Operações com Arestas"},
+    {59,"OperaÃ§Ãµes com Arestas"},
     {60,"Mover"},
     {61,"Move as arestas selecionadas"},
     {62,"Alterar Escala"},
     {63,"Alterar a Escala das arestas selecionadas"},
     {64,"Girar"},
-    {65,"Comandos de Rotação"},
+    {65,"Comandos de RotaÃ§Ã£o"},
     {66,"Costurar"},
     {67,"Costura Arestas/Mapas"},
     {68,"Cortar"},
     {69,"Corta as arestas selecionadas"},
     {70,"Livre"},
-    {71,"Gira a seleção livremente"},
+    {71,"Gira a seleÃ§Ã£o livremente"},
     {72,"Mapear em X"},
-    {73,"Gira o mapa para alinhar uma aresta (imaginária) juntando os vértices selecionados no eixo X"},
+    {73,"Gira o mapa para alinhar uma aresta (imaginÃ¡ria) juntando os vÃ©rtices selecionados no eixo X"},
     {74,"Mapear em Y"},
-    {75,"Gira o mapa para alinhar uma aresta (imaginária) juntando os vértices selecionados no eixo X"},
-    {76,"Operações com Vértices"},
+    {75,"Gira o mapa para alinhar uma aresta (imaginÃ¡ria) juntando os vÃ©rtices selecionados no eixo X"},
+    {76,"OperaÃ§Ãµes com VÃ©rtices"},
     {77,"Mover"},
-    {78,"Move os vértices selecionados"},
+    {78,"Move os vÃ©rtices selecionados"},
     {79,"Alterar Escala"},
-    {80,"Altera a Escala dos vértices selecionados"},
+    {80,"Altera a Escala dos vÃ©rtices selecionados"},
     {81,"Girar"},
-    {82,"Comandos de Rotação"},
+    {82,"Comandos de RotaÃ§Ã£o"},
     {83,"Achatar"},
     {84,"Achatar horizontalmente"},
     {85,"Achatar verticalmente"},
-    {86,"Achatar vértices selecionados"},
+    {86,"Achatar vÃ©rtices selecionados"},
     {87,"Apertar/Afrouxar"},
-    {88,"Move as coordenadas UV em relação ao ponto central médio"},
+    {88,"Move as coordenadas UV em relaÃ§Ã£o ao ponto central mÃ©dio"},
     {89,"Abrir"},
-    {90,"Abrir o mapa (sem mover os vértices selecionados)"},
-    {91,"Mapeamento Esférico"},
-    {92,"Cria um mapeamento esférico com os vértices selecionados que estiverem entre o um pólo Norte/Sul"},
+    {90,"Abrir o mapa (sem mover os vÃ©rtices selecionados)"},
+    {91,"Mapeamento EsfÃ©rico"},
+    {92,"Cria um mapeamento esfÃ©rico com os vÃ©rtices selecionados que estiverem entre o um pÃ³lo Norte/Sul"},
     {411,"Normalizar Tamanhos"},
-    {412,"Normaliza os Tamanhos do Mapa para que cada mapa tenha sua correspondente segunda área"},
+    {412,"Normaliza os Tamanhos do Mapa para que cada mapa tenha sua correspondente segunda Ã¡rea"},
     {521,"Projetar-Abrir"},
     {522,"Projeta as faces selecionadas a partir da perpendicular e abre o restante do mapa"},
     {641,"Deslizar"},
@@ -253,7 +253,7 @@
     {643,"Distribuir"},
     {644,"Distribui horizontalmente"},
     {645,"Distribui verticalmente"},
-    {646,"Distribui vértices igualmente"}
+    {646,"Distribui vÃ©rtices igualmente"}
    ]},
   {create_window,
    [
@@ -270,28 +270,28 @@
    ]},
   {menu,
    [
-    {1,"Janela de Edição das Coordenadas UV"},
-    {2,"Abre a Janela de Edição das Coordenadas UV para cada objeto selecionado"}
+    {1,"Janela de EdiÃ§Ã£o das Coordenadas UV"},
+    {2,"Abre a Janela de EdiÃ§Ã£o das Coordenadas UV para cada objeto selecionado"}
    ]},
   {menubar,
    [
     {1,"Editar"},
     {2,"Desfazer/Repetir"},
-    {3,"Desfaz ou repete o último comando"},
+    {3,"Desfaz ou repete o Ãºltimo comando"},
     {4,"Repetir"},
-    {5,"Repete o último comando que foi desfeito"},
+    {5,"Repete o Ãºltimo comando que foi desfeito"},
     {6,"Desfazer"},
-    {7,"Desfaz o último comando"},
+    {7,"Desfaz o Ãºltimo comando"},
     {8,"Visualizar"},
     {9,"Exibe/Esconde a Imagem de Fundo"},
-    {10,"Alterna a visualização da imagem de textura de fundo"},
+    {10,"Alterna a visualizaÃ§Ã£o da imagem de textura de fundo"},
     {11,"Selecionar"},
     {71,"Repetir"},
-    {72,"Repete o último comando"},
-    {74,"Repetir com as mesmas variáveis"},
-    {75,"Repete o último comando com as mesmas variáveis"},
-    {76,"Repetir com a mesma distância"},
-    {77,"Repete o último comando com as mesmas variáveis e na mesma distância"}
+    {72,"Repete o Ãºltimo comando"},
+    {74,"Repetir com as mesmas variÃ¡veis"},
+    {75,"Repete o Ãºltimo comando com as mesmas variÃ¡veis"},
+    {76,"Repetir com a mesma distÃ¢ncia"},
+    {77,"Repete o Ãºltimo comando com as mesmas variÃ¡veis e na mesma distÃ¢ncia"}
    ]},
   {option_menu,
    [
@@ -305,15 +305,15 @@
    ]},
   {reunfold,
    [
-    {1,"Selecione dois vértices, o pólo Norte e o pólo Sul"},
-    {2,"Ao menos dois vértices por mapa devem ter sido definidos"},
+    {1,"Selecione dois vÃ©rtices, o pÃ³lo Norte e o pÃ³lo Sul"},
+    {2,"Ao menos dois vÃ©rtices por mapa devem ter sido definidos"},
     {3,"remapeando"},
     {4,"mapa"}
    ]},
   {scale_directions,
    [
     {1,"Uniforme"},
-    {2,"Altera a Escala em ambas as direções"},
+    {2,"Altera a Escala em ambas as direÃ§Ãµes"},
     {3,"Horizontal"},
     {4,"Altera a Escala horizontalmente (X)"},
     {5,"Vertical"},
@@ -325,7 +325,7 @@
    ]},
   {stitch_charts,
    [
-    {1,"Não é possível costurar tantos mapas ao mesmo tempo"}
+    {1,"NÃ£o Ã© possÃ­vel costurar tantos mapas ao mesmo tempo"}
    ]},
   {stretch_directions,
    [
@@ -342,9 +342,9 @@
   {menu,
    [
     {1,"Aplicar Imagem"},
-    {2,"Inicia o modo de aplicação de imagem para \"aplicando\" coordenadas UV sobre uma imagem"},
-    {3,"Sair do Modo de Aplicação de Imagem"},
-    {4,"Sai do Modo de Aplicação de Imagem"},
+    {2,"Inicia o modo de aplicaÃ§Ã£o de imagem para \"aplicando\" coordenadas UV sobre uma imagem"},
+    {3,"Sair do Modo de AplicaÃ§Ã£o de Imagem"},
+    {4,"Sai do Modo de AplicaÃ§Ã£o de Imagem"},
     {5,"Aplica a Imagem"},
     {6,"Coloca a imagem de fundo nas faces selecionadas atribuindo coordenadas UV a elas"}
    ]},
@@ -355,7 +355,7 @@
    ]},
   {set_materials,
    [
-    {1,"Não é possível usar uma imagem quando o objeto tem vértices coloridos"}
+    {1,"NÃ£o Ã© possÃ­vel usar uma imagem quando o objeto tem vÃ©rtices coloridos"}
    ]},
   {snap_menu,
    [
@@ -377,7 +377,7 @@
     {16,"Altera a Escala da imagem de fundo"},
     {17,"Mover a imagem de fundo"},
     {18,"Move a imagem de fundo"},
-    {19,"Sair do modo de aplicação de imagem"},
-    {20,"Sai do modo de aplicação de imagem"}
+    {19,"Sair do modo de aplicaÃ§Ã£o de imagem"},
+    {20,"Sai do modo de aplicaÃ§Ã£o de imagem"}
    ]}
  ]}.

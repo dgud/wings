@@ -1,35 +1,35 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_bend,
  [
   {adv_submenu_clamped,
    [
-    {1,"Curva Pl·stica ancorada"},
-    {2,"Curva com PivÙ ancorada"},
+    {1,"Curva Pl√°stica ancorada"},
+    {2,"Curva com Piv√¥ ancorada"},
     {3,"Curva TopRad ancorada"}
    ]},
   {adv_submenu_noclamp,
    [
-    {1,"Curva Pl·stica"},
-    {2,"Curva com PivÙ"},
+    {1,"Curva Pl√°stica"},
+    {2,"Curva com Piv√¥"},
     {3,"Curva TopRad"}
    ]},
   {bend_vertex,
    [
-    {1,"¬ngulo"}
+    {1,"√Çngulo"}
    ]},
   {bend_verts,
    [
-    {1,"Esta configuraÁ„o n„o resulta em curvatura"}
+    {1,"Esta configura√ß√£o n√£o resulta em curvatura"}
    ]},
   {menu,
    [
     {1,"Curvar"},
-    {2,"Curvar (com ‚ncora)"}
+    {2,"Curvar (com √¢ncora)"}
    ]},
   {submenu_clamp,
    [
-    {1,"Escolha o ponto superior da ‚ncora"},
-    {2,"Escolha o ponto inferior da ‚ncora"}
+    {1,"Escolha o ponto superior da √¢ncora"},
+    {2,"Escolha o ponto inferior da √¢ncora"}
    ]},
   {submenu_items,
    [
@@ -38,8 +38,8 @@
     {3,"Escolha a perpendicular para curvar"},
     {4,"Escolha o centro da haste"},
     {5,"Escolha o topo da haste"},
-    {6,"Escolha o eixo do pivÙ"},
-    {7,"Escolha a localizaÁ„o do pivÙ"},
+    {6,"Escolha o eixo do piv√¥"},
+    {7,"Escolha a localiza√ß√£o do piv√¥"},
     {8,"Escolha o centro da haste"},
     {9,"Escolha o topo da haste"},
     {10,"Escolha a perpendicular para curvar"}

@@ -1,11 +1,11 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_intersect_vertex,
  [
   {adv_submenu,
    [
     {1,"Auf Gerade bleiben, zum Schnittpunkt mit Ebene verschieben"},
     {2,"In Ebene bleiben, zum Schnittpunkt mit Gerade verschieben"},
-    {3,"Gerade und Ebene w‰hlen"}
+    {3,"Gerade und Ebene w√§hlen"}
    ]},
   {intersect,
    [
@@ -17,13 +17,13 @@
    ]},
   {submenu_items,
    [
-    {1,"Richtung der Geraden festlegen - Gerade geht durch den/die ausgew‰hlten Knoten"},
-    {2,"Zu schneidende Ebene w‰hlen"},
-    {3,"Normale der Ebene w‰hlen - Ebene geht durch den/die ausgew‰hlten Knoten"},
-    {4,"Zu schneidende Gerade w‰hlen"},
-    {5,"Richtung der Geraden w‰hlen"},
-    {6,"Punkt durch den die Gerade gehen soll w‰hlen"},
-    {7,"Normale der Ebene w‰hlen"},
-    {8,"Punkt durch den die Ebene gehen soll w‰hlen"}
+    {1,"Richtung der Geraden festlegen - Gerade geht durch den/die ausgew√§hlten Knoten"},
+    {2,"Zu schneidende Ebene w√§hlen"},
+    {3,"Normale der Ebene w√§hlen - Ebene geht durch den/die ausgew√§hlten Knoten"},
+    {4,"Zu schneidende Gerade w√§hlen"},
+    {5,"Richtung der Geraden w√§hlen"},
+    {6,"Punkt durch den die Gerade gehen soll w√§hlen"},
+    {7,"Normale der Ebene w√§hlen"},
+    {8,"Punkt durch den die Ebene gehen soll w√§hlen"}
    ]}
  ]}.

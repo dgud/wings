@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_numeric_camera,
  [
   {handle_event,
@@ -7,8 +7,8 @@
    ]},
   {help,
    [
-    {1,"Zurück zum Dialog \"Kameraposition numerisch festlegen\""},
-    {2,"Aktuelle Kameraposition übernehmen und beenden"},
+    {1,"ZurÃ¼ck zum Dialog \"Kameraposition numerisch festlegen\""},
+    {2,"Aktuelle Kameraposition Ã¼bernehmen und beenden"},
     {3,"Zwischen alter und neuer Kameraposition umschalten"}
    ]},
   {menu_entry,
@@ -34,6 +34,6 @@
     {14,"Rauf"},
     {15,"Runter"},
     {16,"Bildschirmbezogen schwenken:"},
-    {17,"Neue Kameraposition nach drücken von <OK> im Vorschaumodus zeigen"}
+    {17,"Neue Kameraposition nach drÃ¼cken von <OK> im Vorschaumodus zeigen"}
    ]}
  ]}.

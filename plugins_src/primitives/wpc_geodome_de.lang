@@ -1,28 +1,28 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_geodome,
  [
   {dialog,
    [
-    {1,"Auflˆsung"},
+    {1,"Aufl√∂sung"},
     {2,"Frequenz (Kanten-Schnitt Unterteilung)"},
     {3,"Tiefe (Rekursive Unterteilung)"},
-    {4,"Algorithmus/Methode f¸r Unterteilung"},
+    {4,"Algorithmus/Methode f√ºr Unterteilung"},
     {5,"Ikosaeder"},
     {6,"Oktaeder"},
     {7,"Tetraeder"},
     {8,"Basis-Typ"},
     {9,"Ja"},
     {10,"Nein"},
-    {11,"Sph‰risch"},
+    {11,"Sph√§risch"},
     {12,"Generiere halbe Kuppel"}
    ]},
   {geodome_menu,
    [
-    {1,"Geod‰t. Kuppel"}
+    {1,"Geod√§t. Kuppel"}
    ]},
   {make_geodome,
    [
-    {1,"Geod‰tische Kuppel Optionen"},
-    {2,":Geod‰t. Kuppel"}
+    {1,"Geod√§tische Kuppel Optionen"},
+    {2,":Geod√§t. Kuppel"}
    ]}
  ]}.

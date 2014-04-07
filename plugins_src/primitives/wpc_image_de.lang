@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_image,
  [
   {image_menu,
@@ -12,6 +12,6 @@
    ]},
   {make_image_1,
    [
-    {1,"Bild kann nicht als Textur geladen werden (es ist eventuell zu groﬂ)."}
+    {1,"Bild kann nicht als Textur geladen werden (es ist eventuell zu gro√ü)."}
    ]}
  ]}.

@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_bend,
  [
   {adv_submenu_clamped,
@@ -15,7 +15,7 @@
    ]},
   {bend_verts,
    [
-    {1,"Biegen mit dieser Konfiguration nicht mˆglich"}
+    {1,"Biegen mit dieser Konfiguration nicht m√∂glich"}
    ]},
   {menu,
    [
@@ -24,20 +24,20 @@
    ]},
   {submenu_clamp,
    [
-    {1,"Oberen Fixpunkt w‰hlen"},
-    {2,"Unteren Fixpunkt w‰hlen"}
+    {1,"Oberen Fixpunkt w√§hlen"},
+    {2,"Unteren Fixpunkt w√§hlen"}
    ]},
   {submenu_items,
    [
-    {1,"Stabmitte w‰hlen"},
-    {2,"Stabende w‰hlen"},
-    {3,"Biegenormale w‰hlen"},
-    {4,"Stabmitte w‰hlen"},
-    {5,"Stabende w‰hlen"},
-    {6,"Pivot-Achse w‰hlen"},
-    {7,"Pivot-Punkt w‰hlen"},
-    {8,"Stabmitte w‰hlen"},
-    {9,"Stabende w‰hlen"},
-    {10,"Biegenormale w‰hlen"}
+    {1,"Stabmitte w√§hlen"},
+    {2,"Stabende w√§hlen"},
+    {3,"Biegenormale w√§hlen"},
+    {4,"Stabmitte w√§hlen"},
+    {5,"Stabende w√§hlen"},
+    {6,"Pivot-Achse w√§hlen"},
+    {7,"Pivot-Punkt w√§hlen"},
+    {8,"Stabmitte w√§hlen"},
+    {9,"Stabende w√§hlen"},
+    {10,"Biegenormale w√§hlen"}
    ]}
  ]}.

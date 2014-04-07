@@ -1,9 +1,9 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wp8_mac_file,
  [
   {fileop_1,
    [
-    {1,"Öffnen"},
+    {1,"Ã–ffnen"},
     {2,"Speichern"}
    ]}
  ]}.
@@ -11,7 +11,7 @@
  [
   {format_error,
    [
-    {1,"Unbekanntes oder nicht unterstütztes Format."}
+    {1,"Unbekanntes oder nicht unterstÃ¼tztes Format."}
    ]},
   {image_formats,
    [

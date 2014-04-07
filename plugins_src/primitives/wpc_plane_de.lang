@@ -1,43 +1,43 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_plane,
  [
   {make_lumpy_plane,
    [
     {1,"Klumpige Ebene erzeugen"},
-    {2,"Auflösung"},
-    {3,"Größe"},
+    {2,"AuflÃ¶sung"},
+    {3,"GrÃ¶ÃŸe"},
     {4,"Klumpen"},
     {5,"Dicke"}
    ]},
   {make_regular_plane,
    [
-    {1,"Regelmäßige Ebene erzeugen"},
-    {2,"Auflösung"},
-    {3,"Größe"},
+    {1,"RegelmÃ¤ÃŸige Ebene erzeugen"},
+    {2,"AuflÃ¶sung"},
+    {3,"GrÃ¶ÃŸe"},
     {4,"Dicke"}
    ]},
   {make_sombrero_plane,
    [
     {1,"Sombrero Ebene erzeugen"},
-    {2,"Auflösung"},
-    {3,"Größe"},
+    {2,"AuflÃ¶sung"},
+    {3,"GrÃ¶ÃŸe"},
     {4,"Wellen"},
     {5,"Abnahme"},
-    {6,"Höhe"},
+    {6,"HÃ¶he"},
     {7,"Dicke"}
    ]},
   {make_wavy_plane,
    [
     {1,"Gewellte Ebene erzeugen"},
-    {2,"Auflösung"},
-    {3,"Größe"},
+    {2,"AuflÃ¶sung"},
+    {3,"GrÃ¶ÃŸe"},
     {4,"Wellen"},
-    {5,"Höhe"},
+    {5,"HÃ¶he"},
     {6,"Dicke"}
    ]},
   {plane_menu,
    [
-    {1,"Regelmäßige Ebene"},
+    {1,"RegelmÃ¤ÃŸige Ebene"},
     {2,"Klumpige Ebene"},
     {3,"Gewellte Ebene"},
     {4,"Sombrero Ebene"}

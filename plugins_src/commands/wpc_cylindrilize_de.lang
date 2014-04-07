@@ -1,22 +1,22 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_cylindrilize,
  [
   {axis_menu,
    [
     {1,"Knoten zylindrisch um Mittelachse ~s aufblasen"},
-    {2,"Mittelpunkt und Radius ausw‰hlen"}
+    {2,"Mittelpunkt und Radius ausw√§hlen"}
    ]},
   {cylindrilize_menu,
    [
     {1,"Zylindrisch aufblasen"},
     {2,"Knoten zylindrisch um XYZ aufblasen"},
-    {3,"Zentrale Achse ausw‰hlen"},
-    {4,"Zentrale Achse, Mittelpunkt und Radius ausw‰hlen"}
+    {3,"Zentrale Achse ausw√§hlen"},
+    {4,"Zentrale Achse, Mittelpunkt und Radius ausw√§hlen"}
    ]},
   {selection_ask,
    [
-    {1,"Zentrale Achse ausw‰hlen"},
-    {2,"Zentralen Punkt ausw‰hlen"},
-    {3,"Radius ausw‰hlen"}
+    {1,"Zentrale Achse ausw√§hlen"},
+    {2,"Zentralen Punkt ausw√§hlen"},
+    {3,"Radius ausw√§hlen"}
    ]}
  ]}.

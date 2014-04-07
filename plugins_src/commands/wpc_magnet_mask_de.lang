@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_magnet_mask,
  [
   {mask_on_off,
@@ -13,13 +13,13 @@
     {2,"Sperren"},
     {3,"Entsperren"},
     {4,"Umkehren"},
-    {6,"Auswahl gegen Einfluß von Magneten sperren"},
+    {6,"Auswahl gegen EinfluÃŸ von Magneten sperren"},
     {7,"Alle gesperrten Elemente der Auswahl entsperren"},
     {8,"Gesperrte und entsperrte Elemente umkehren"},
-    {9,"Abwählen"},
+    {9,"AbwÃ¤hlen"},
     {10,"Gesperrte Element aus aktueller Auswahl entfernen"},
-    {11,"Auswählen"},
-    {12,"Gesperrte Elemente zur aktuellen Auswahl hinzufügen"}
+    {11,"AuswÃ¤hlen"},
+    {12,"Gesperrte Elemente zur aktuellen Auswahl hinzufÃ¼gen"}
    ]},
   {view_menu_entry,
    [

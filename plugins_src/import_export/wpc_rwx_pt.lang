@@ -1,19 +1,19 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_rwx,
  [
   {dialog,
    [
-    {1,"Aspecto facetado à luz"},
+    {1,"Aspecto facetado Ã  luz"},
     {2,"Otimizar tamanho do arquivo?"},
     {3,"Ambiente"},
     {4,"Difusa"},
     {5,"Especular"},
-    {6,"Escala de Exportação"},
-    {7,"Etapas de subdivisão"}
+    {6,"Escala de ExportaÃ§Ã£o"},
+    {7,"Etapas de subdivisÃ£o"}
    ]},
   {do_export,
    [
-    {1,"Opções de exportação de Renderware"}
+    {1,"OpÃ§Ãµes de exportaÃ§Ã£o de Renderware"}
    ]},
   {props,
    [

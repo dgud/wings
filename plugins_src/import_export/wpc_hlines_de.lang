@@ -1,11 +1,11 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_hlines,
  [
   {dialog,
    [
     {1,"pt"},
     {2,"Breite"},
-    {3,"Höhe"},
+    {3,"HÃ¶he"},
     {4,"3D-Rahmen"},
     {5,"Unterteilungsschritte"},
     {6,"Vor-rendern"},
@@ -18,14 +18,14 @@
     {13,"Hart"},
     {14,"Knitter"},
     {15,"Material"},
-    {16,"Regulär"},
+    {16,"RegulÃ¤r"},
     {17,"Alle"},
     {18,"Kantenbreite"},
     {19,"stumpf"},
     {20,"rund"},
     {21,"quadratisch"},
     {22,"Linienenden"},
-    {23,"Zusammenführen"},
+    {23,"ZusammenfÃ¼hren"},
     {24,"Winkel"},
     {25,"Abstand"},
     {26,"Kollineare Linien (experimentell)"}

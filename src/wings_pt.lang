@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 %%
 %%  wings_pt.lang --
 %%
@@ -17,15 +17,15 @@
   {dialog_template,
    [
     {1,"Inverte os eixos Y e Z"},
-    {6,"NÌveis de subdivis„o"},
-    {7,"Arquivo padr„o de textura"},
+    {6,"N√≠veis de subdivis√£o"},
+    {7,"Arquivo padr√£o de textura"},
     {uv,"Exportar coordenadas UV"},
     {tess4,"Transformar em faces quadrangulares"},
-    {tess3,"Transformar em tri‚ngulos"},
+    {tess3,"Transformar em tri√¢ngulos"},
     {tess0,"Nenhum"},
     {tess,"Tecelagem"},
-    {norms,"Exportar perpendiculares e grupos de suavizaÁ„o"},
-    {color,"Exportar cores de vÈrtices"} 
+    {norms,"Exportar perpendiculares e grupos de suaviza√ß√£o"},
+    {color,"Exportar cores de v√©rtices"} 
   ]},
   {do_import,
    [
@@ -68,11 +68,11 @@
    [
     {1,"Encaixar"},
     {2,"Ambos"},
-    {3,"Permite ‡ janela usar todo o espaÁo disponÌvel, expandindo-se em todas as direÁıes"},
+    {3,"Permite √† janela usar todo o espa√ßo dispon√≠vel, expandindo-se em todas as dire√ß√µes"},
     {4,"Horizontal"},
-    {5,"Permite ‡ janela usar todo o espaÁo disponÌvel, expandindo-se horizontalmente"},
+    {5,"Permite √† janela usar todo o espa√ßo dispon√≠vel, expandindo-se horizontalmente"},
     {6,"Vertical"},
-    {7,"Permite ‡ janela usar todo o espaÁo disponÌvel, expandindo-se verticalmente"},
+    {7,"Permite √† janela usar todo o espa√ßo dispon√≠vel, expandindo-se verticalmente"},
     {8,"Tamanho"},
     {9,"Define o tamanho da janela numericamente"}
    ]},
@@ -96,14 +96,14 @@
   {resize_event,
    [
     {1,"Redimensionar"},
-    {2,"Redimensiona, mantendo a atual proporÁ„o"}
+    {2,"Redimensiona, mantendo a atual propor√ß√£o"}
    ]}
  ]}.
 {wings_wm,
  [
   {message_event,
    [
-    {1,"Essa È linha de informaÁ„o"}
+    {1,"Essa √© linha de informa√ß√£o"}
    ]}
  ]}.
 {wings_we,
@@ -116,8 +116,8 @@
   {mixed_edges,
    [
     {1,"preparando"},
-    {2,"eixo perpendicular do vÈrtice"},
-    {3,"eixo perpendicular do vÈrtice por face"}
+    {2,"eixo perpendicular do v√©rtice"},
+    {3,"eixo perpendicular do v√©rtice por face"}
    ]},
   {normals_2,
    [
@@ -128,7 +128,7 @@
  [
   {auto_rotate_help,
    [
-    {1,"P·ra a rotaÁ„o"},
+    {1,"P√°ra a rota√ß√£o"},
     {2,"Aumenta a velocidade"},
     {3,"Diminui a velocidade"}
    ]},
@@ -146,15 +146,15 @@
     {12,"Length"},
     {13,"x Zoom"},
     {14,"Lente"},
-    {15,"Campo de vis„o"},
-    {16,"Plano de Corte PrÛximo"},
+    {15,"Campo de vis√£o"},
+    {16,"Plano de Corte Pr√≥ximo"},
     {17,"Plano de Corte Distante"},
-    {18,"Par‚metros da C‚mera"}
+    {18,"Par√¢metros da C√¢mera"}
    ]},
   {help,
    [
-    {1,"Par‚metros da C‚mera: Campo de Vis„o"},
-    {2,"Estabelece o campo de vis„o vertical, ou seja, o ‚ngulo entre a borda mais baixa e a mais alta visto da c‚mera. "},
+    {1,"Par√¢metros da C√¢mera: Campo de Vis√£o"},
+    {2,"Estabelece o campo de vis√£o vertical, ou seja, o √¢ngulo entre a borda mais baixa e a mais alta visto da c√¢mera. "},
     {3,"The Lens controls sets the field of view according to other perhaps more well-known entities, at least for a photographer. The negative size is stored among the user preferences."},
     {4,"The Lens controls make the height of the picture right for the choosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."},
     {5,"Note: the zoom factor is relative a standard lens length of the negative diagonal, while only the negative height affects the effective lens length."}
@@ -172,30 +172,30 @@
     {9,"Sombreado"},
     {10,"Exibe os objetos selecionados sombreados (o mesmo para todos os objetos se nada estiver selecionado)"},
     {11,"Alternar para aramado"},
-    {12,"Alterna os modos de exibiÁ„o entre os objetos selecionados (o mesmo para todos objetos se nada estiver selecionado)"},
-    {13,"Trocar as visualizaÁıes"},
-    {14,"Alterna os modos de sombreamento/subdivis„o entre os objetos selecionados"},
-    {15,"PrevisualizaÁ„o r·pida do objeto subdividido"},
-    {16,"Alterna os modos de sombreamento/subdivis„o entre todos os objetos"},
+    {12,"Alterna os modos de exibi√ß√£o entre os objetos selecionados (o mesmo para todos objetos se nada estiver selecionado)"},
+    {13,"Trocar as visualiza√ß√µes"},
+    {14,"Alterna os modos de sombreamento/subdivis√£o entre os objetos selecionados"},
+    {15,"Previsualiza√ß√£o r√°pida do objeto subdividido"},
+    {16,"Alterna os modos de sombreamento/subdivis√£o entre todos os objetos"},
     {17,"Exibir a Caixa-Limite salva"},
     {18,"Exibe qualquer Caixa-Limite salva"},
     {19,"Exibir Arestas"},
     {20,"Exibe as arestas no modo de trabalho"},
-    {21,"Exibir o Lado de Tr·s do Aramado"},
-    {22,"Exibe o lado de tr·s do aramado"},
+    {21,"Exibir o Lado de Tr√°s do Aramado"},
+    {22,"Exibe o lado de tr√°s do aramado"},
     {23,"Exibir as perpendiculares"},
     {24,"Exibe as perpendiculares dos elementos selecionados"},
     {25,"Resetar a vista"},
-    {26,"Reseta a vista ‡ sua posiÁ„o padr„o"},
+    {26,"Reseta a vista √† sua posi√ß√£o padr√£o"},
     {27,"Mirar"},
-    {28,"Mira a c‚mera no elemento selecionado"},
+    {28,"Mira a c√¢mera no elemento selecionado"},
     {29,"Enquadrar"},
     {30,"Aproxima/afasta para exibir todos os elementos selecionados (ou todos os objetos se nada estiver selecionado)"},
-    {31,"Vista Ortogr·fica"},
-    {32,"Alterna entre as vistas ortogr·fica e em perspectiva"},
+    {31,"Vista Ortogr√°fica"},
+    {32,"Alterna entre as vistas ortogr√°fica e em perspectiva"},
     {33,"Vistas salvas: "},
-    {34,"Par‚metros da C‚mera..."},
-    {35,"Estebelece o campo de vis„o e os planos de corte prÛximo e distante"},
+    {34,"Par√¢metros da C√¢mera..."},
+    {35,"Estebelece o campo de vis√£o e os planos de corte pr√≥ximo e distante"},
     {36,"Luzes da Cena"},
     {37,"Usa as luzes definidas na cena"},
     {38,"Duas Luzes"},
@@ -203,12 +203,12 @@
     {40,"Usa duas luzes de trabalho"},
     {41,"Usa uma luz de trabalho"},
     {42,"Exibir Cores"},
-    {43,"Exibe as cores de vÈrtice nos objetos no modo \"vertex\" "},
+    {43,"Exibe as cores de v√©rtice nos objetos no modo \"vertex\" "},
     {44,"Exibir Materiais"},
     {45,"Exibe os materiais nos objetos no modo \"material\" "},
     {46,"Exibir Texturas"},
     {47,"Exibe a textura nos objetos no modo \"material\" "},
-    {48,"Exibir Texto de InformaÁ„o"},
+    {48,"Exibir Texto de Informa√ß√£o"},
     {49,"Exibe um texto informativo no topo dessa janela de Geometria"},
     {50,"Visualizar ao longo"},
     {51,"+X"},
@@ -217,13 +217,13 @@
     {54,"-X"},
     {55,"-Y"},
     {56,"-Z"},
-    {57,"Alinhar ‡ SeleÁ„o"},
-    {58,"Alinha a vista ‡ perpendicular da seleÁ„o"},
+    {57,"Alinhar √† Sele√ß√£o"},
+    {58,"Alinha a vista √† perpendicular da sele√ß√£o"},
     {59,"Auto Rotacionar"},
     {60,"Gira a vista"},
     {61,"Planos de Corte"},
-    {62,"Alterna com os planos de corte extras (usa o eixo padr„o)"},
-    {63,"AAtiva o PrÛximo Sombreado"},
+    {62,"Alterna com os planos de corte extras (usa o eixo padr√£o)"},
+    {63,"AAtiva o Pr√≥ximo Sombreado"},
     {64,"Alterna em ciclos todos os estilos de sombreamento"}
    ]},
   {view_legend,
@@ -241,11 +241,11 @@
    ]},
   {views,
    [
-    {1,"Esta vista j· È a atual"},
+    {1,"Esta vista j√° √© a atual"},
     {2,"Nenhum vista salva"},
     {3,"Renomear a vista"},
-    {4,"VocÍ deve estar na vista atual"},
-    {5,"VocÍ est· certo de que deseja apagar todas as vistas salvas?"}
+    {4,"Voc√™ deve estar na vista atual"},
+    {5,"Voc√™ est√° certo de que deseja apagar todas as vistas salvas?"}
    ]},
   {views_jump,
    [
@@ -257,13 +257,13 @@
     {2,"Nenhum vista salva!"},
     {3,"Vai para a vista anterior["},
     {5,"Vai para a vista atual["},
-    {7,"Pular para a prÛxima vista["},
+    {7,"Pular para a pr√≥xima vista["},
     {9,"Pular para ["},
     {11,"Pular"}
    ]},
   {views_move,
    [
-    {1,"N„o existe a vista ["}
+    {1,"N√£o existe a vista ["}
    ]},
   {views_movemenu,
    [
@@ -274,7 +274,7 @@
     {7,"Vai da vista \""},
     {9,"] para a atual"},
     {10,"Vai da vista \""},
-    {12,"] para a prÛxima["},
+    {12,"] para a pr√≥xima["},
     {14,"Vai da vista \""},
     {16,"] para ["},
     {18,"Muda a vista atual"}
@@ -289,7 +289,7 @@
    ]},
   {views_submenu,
    [
-    {1,"PrÛxima"},
+    {1,"Pr√≥xima"},
     {2,"Atual"},
     {3,"Anterior"},
     {4,"Salvar"},
@@ -308,7 +308,7 @@
    ]},
   {virtual_mirror,
    [
-    {1,"Espelhamento exige a seleÁ„o de uma face."}
+    {1,"Espelhamento exige a sele√ß√£o de uma face."}
    ]},
   {virtual_mirror_fun,
    [
@@ -319,22 +319,22 @@
  [
   {menu,
    [
-    {1,"OperaÁıes com vÈrtices"},
-    {2,"PosiÁ„o"},
+    {1,"Opera√ß√µes com v√©rtices"},
+    {2,"Posi√ß√£o"},
     {3,"Projetar"},
     {4,"Conectar"},
-    {5,"Cria uma nova aresta conectando os vÈrtices selecionados"},
+    {5,"Cria uma nova aresta conectando os v√©rtices selecionados"},
     {6,"Apertar/Afrouxar"},
-    {7,"Move os vÈrtices selecionados em relaÁ„o a seu ponto mediano"},
+    {7,"Move os v√©rtices selecionados em rela√ß√£o a seu ponto mediano"},
     {8,"Chanfrar"},
-    {9,"Cria faces a partir dos vÈrtices selecionados"},
+    {9,"Cria faces a partir dos v√©rtices selecionados"},
     {10,"Dissolver"},
-    {11,"Apaga os vÈrtices selecionados (desfazendo a seleÁ„o)"},
+    {11,"Apaga os v√©rtices selecionados (desfazendo a sele√ß√£o)"},
     {12,"Colapsar"},
-    {13,"Apaga os vÈrtices selecionados (criando uma seleÁ„o de faces)"},
+    {13,"Apaga os v√©rtices selecionados (criando uma sele√ß√£o de faces)"},
     {14,"Deformar"},
-    {15,"Cor de vÈrtice"},
-    {16,"Transforma os vÈrtices selecionados em vÈrtices coloridos"}
+    {15,"Cor de v√©rtice"},
+    {16,"Transforma os v√©rtices selecionados em v√©rtices coloridos"}
    ]}
  ]}.
 {wings_u,
@@ -351,21 +351,21 @@
     {1,"Escolha um eixo (e um ponto)"},
     {2,"Escolha um eixo"},
     {3,"Escolha um ponto"},
-    {4,"Escolha o ponto de limite externo para a influÍncia do magneto"}
+    {4,"Escolha o ponto de limite externo para a influ√™ncia do magneto"}
    ]},
   {add_magnet,
    [
-    {1,"Escolha o ponto de limite externo para a influÍncia do magneto"}
+    {1,"Escolha o ponto de limite externo para a influ√™ncia do magneto"}
    ]},
   {check_magnet_point,
    [
-    {1,"Ponto central da seleÁ„o salvo."}
+    {1,"Ponto central da sele√ß√£o salvo."}
    ]},
   {check_point,
    [
-    {1,"Ponto central da seleÁ„o salvo."},
-    {2,"Despreza o espelhamento no c·lculo do ponto de referÍncia"},
-    {3,"Inclui o espelhamento no c·lculo do ponto de referÍncia"}
+    {1,"Ponto central da sele√ß√£o salvo."},
+    {2,"Despreza o espelhamento no c√°lculo do ponto de refer√™ncia"},
+    {3,"Inclui o espelhamento no c√°lculo do ponto de refer√™ncia"}
    ]},
   {check_vector,
    [
@@ -389,31 +389,31 @@
     {1,"Aresta salva como eixo"},
     {2,"Salvar a perpendicular da aresta"},
     {3,"Perpendicular da aresta salva como eixo"},
-    {4,"Salvar direÁ„o da aresta"},
-    {5,"DireÁ„o entre arestas salva como eixo."},
-    {6,"Perpendicular da seq¸Íncia de arestas salva como eixo."},
-    {7,"A seleÁ„o de v·rias arestas deve formar uma ˙nica seq¸Íncia de arestas fechada."},
-    {8,"Perpendicular do vÈrtice salva."},
-    {9,"DireÁ„o entre vÈrtices salva como eixo."},
-    {10,"Usar a perpendicular mÈdia dos vÈrtices como eixo"},
-    {11,"Perpendicular mÈdia dos vÈrtices salva como eixo."},
-    {12,"Usar a direÁ„o entre os vÈrtices como eixo"},
+    {4,"Salvar dire√ß√£o da aresta"},
+    {5,"Dire√ß√£o entre arestas salva como eixo."},
+    {6,"Perpendicular da seq√º√™ncia de arestas salva como eixo."},
+    {7,"A sele√ß√£o de v√°rias arestas deve formar uma √∫nica seq√º√™ncia de arestas fechada."},
+    {8,"Perpendicular do v√©rtice salva."},
+    {9,"Dire√ß√£o entre v√©rtices salva como eixo."},
+    {10,"Usar a perpendicular m√©dia dos v√©rtices como eixo"},
+    {11,"Perpendicular m√©dia dos v√©rtices salva como eixo."},
+    {12,"Usar a dire√ß√£o entre os v√©rtices como eixo"},
     {13,"Perpendicular baseada em 3 pontos salva como eixo."},
-    {14,"Perpendicular da seq¸Íncia de vÈrtices salva como eixo."},
-    {15,"A seleÁ„o de v·rios vÈrtices deve formar ua ˙nica seq¸Íncia de arestas fechada."},
+    {14,"Perpendicular da seq√º√™ncia de v√©rtices salva como eixo."},
+    {15,"A sele√ß√£o de v√°rios v√©rtices deve formar ua √∫nica seq√º√™ncia de arestas fechada."},
     {16,"Perpendicular da face salva como eixo."},
-    {17,"DireÁ„o entre os centros das faces salva como eixo."},
-    {18,"Usar a perpendicular mÈdia das faces"},
-    {19,"Perpendicular mÈdia das faces salva como eixo."},
-    {20,"Usar a direÁ„o entre os centros das faces"},
-    {21,"Perpendicular da regi„o formada por uma seq¸Íncia de arestas salva como eixo."},
-    {22,"A seleÁ„o de v·rias faces deve ter uma ˙nica seq¸Íncia de arestas."},
-    {23,"Selecionar vÈrtices, arestas, ou faces."}
+    {17,"Dire√ß√£o entre os centros das faces salva como eixo."},
+    {18,"Usar a perpendicular m√©dia das faces"},
+    {19,"Perpendicular m√©dia das faces salva como eixo."},
+    {20,"Usar a dire√ß√£o entre os centros das faces"},
+    {21,"Perpendicular da regi√£o formada por uma seq√º√™ncia de arestas salva como eixo."},
+    {22,"A sele√ß√£o de v√°rias faces deve ter uma √∫nica seq√º√™ncia de arestas."},
+    {23,"Selecionar v√©rtices, arestas, ou faces."}
    ]},
   {magnet_message,
    [
     {1,"Executar "},
-    {2,"OpÁıes de Magneto"}
+    {2,"Op√ß√µes de Magneto"}
    ]}
  ]}.
 {wings_toolbar,
@@ -424,21 +424,21 @@
    ]},
   {button_help_2,
    [
-    {1,"Selecionar vÈrtices adjacentes"},
-    {2,"Alterna para o modo de seleÁ„o de vÈrtices"},
+    {1,"Selecionar v√©rtices adjacentes"},
+    {2,"Alterna para o modo de sele√ß√£o de v√©rtices"},
     {3,"Selecionar arestas adjacentes"},
-    {4,"Muda para o modo de seleÁ„o de arestas"},
+    {4,"Muda para o modo de sele√ß√£o de arestas"},
     {5,"Seleciona as faces adjacentes"},
-    {6,"Muda para o modo de seleÁ„o de faces"},
-    {7,"Muda para o modo de seleÁ„o de objetos"}
+    {6,"Muda para o modo de sele√ß√£o de faces"},
+    {7,"Muda para o modo de sele√ß√£o de objetos"}
    ]},
   {button_help_3,
    [
-    {1,"Desfaz o ˙ltimo comando"},
-    {2,"Repete o ˙ltimo comando que n„o foi desfeito"},
+    {1,"Desfaz o √∫ltimo comando"},
+    {2,"Repete o √∫ltimo comando que n√£o foi desfeito"},
     {3,"Abre uma cena salva previamente"},
     {4,"Sava a cena atual"},
-    {5,"Edita as preferÍncias para Wings"}
+    {5,"Edita as prefer√™ncias para Wings"}
    ]},
   {messages,
    [
@@ -458,7 +458,7 @@
  [
   {submenu,
    [
-    {1,"Transformar em tri‚ngulos"},
+    {1,"Transformar em tri√¢ngulos"},
     {2,"Transformar em faces quadrangulares"}
    ]}
  ]}.
@@ -476,7 +476,7 @@
     {3,"cortando arestas"},
     {4,"atualizando materiais"},
     {5,"criando novas faces"},
-    {6,"movendo vÈrtices"},
+    {6,"movendo v√©rtices"},
     {7,"finalizando"}
    ]}
  ]}.
@@ -498,25 +498,25 @@
    ]},
   {cone,
    [
-    {1,"SeÁıes"},
+    {1,"Se√ß√µes"},
     {2,"Altura"},
-    {3,"Di‚metro em X"},
-    {4,"Di‚metro em Y"}
+    {3,"Di√¢metro em X"},
+    {4,"Di√¢metro em Y"}
    ]},
   {cylinder,
    [
-    {1,"SeÁıes"},
+    {1,"Se√ß√µes"},
     {2,"Altura"},
-    {3,"Di‚metro em X da Face Superior"},
-    {4,"Di‚metro em Z da Face Superior"},
-    {5,"Di‚metro em X da Face Inferior"},
-    {6,"Di‚metro em Z da Face Inferior"}
+    {3,"Di√¢metro em X da Face Superior"},
+    {4,"Di√¢metro em Z da Face Superior"},
+    {5,"Di√¢metro em X da Face Inferior"},
+    {6,"Di√¢metro em Z da Face Inferior"}
    ]},
   {grid,
    [
     {1,"Linhas/colunas"},
-    {2,"EspaÁamento em X"},
-    {3,"EspaÁamento em Z"},
+    {2,"Espa√ßamento em X"},
+    {3,"Espa√ßamento em Z"},
     {4,"Altura"}
    ]},
   {menu,
@@ -539,7 +539,7 @@
     {octotoad,"Create an octotoad"},
     {sphere,"Cria uma esfera"},
     {tetrahedron,"Cria um tetraedro"},
-    {torus,"Cria um torÛide"}
+    {torus,"Cria um tor√≥ide"}
    ]},
   {prim_name,
    [
@@ -556,18 +556,18 @@
     {octotoad,"Octotoad"},
     {sphere,"Esfera"},
     {tetrahedron,"Tetraedro"},
-    {torus,"TorÛide"}
+    {torus,"Tor√≥ide"}
    ]},
   {sphere,
    [
-    {1,"SeÁıes"},
+    {1,"Se√ß√µes"},
     {2,"Fatias"},
     {3,"X Radial"},
     {4,"Y Radial"}
    ]},
   {torus,
    [
-    {1,"SeÁıes"},
+    {1,"Se√ß√µes"},
     {2,"Fatias"},
     {4,"Raio Menor"},
     {31,"Maior Raio em X"},
@@ -595,13 +595,13 @@
     {6,"Trava/Destrava todos os objetos"},
     {7,"Seleciona/Deseleciona o objeto ativo"},
     {8,"Seleciona/Deseleciona todos os outros objetos"},
-    {9,"Alterna a visualizaÁ„o do objeto ativo entre sombreado e aramado"},
-    {10,"Alterna entre sombreado e aramado a visualizaÁ„o de todos os outros objetos"}
+    {9,"Alterna a visualiza√ß√£o do objeto ativo entre sombreado e aramado"},
+    {10,"Alterna entre sombreado e aramado a visualiza√ß√£o de todos os outros objetos"}
    ]},
   {title,
    [
-    {1,"Õndice das Geometrias e Luzes"},
-    {2,"Õndice das Geometrias e Luzes #"}
+    {1,"√çndice das Geometrias e Luzes"},
+    {2,"√çndice das Geometrias e Luzes #"}
    ]}
  ]}.
 {wings_sel_cmd,
@@ -612,44 +612,44 @@
    ]},
   {similar_area_faces_menu,
    [
-    {1,"¡rea Similar"},
-    {2,"Seleciona faces com ·reas similares ‡quela da face selecionada"}
+    {1,"√Årea Similar"},
+    {2,"Seleciona faces com √°reas similares √†quela da face selecionada"}
    ]},
   {similar_area,
    [
-    {1,"Toler‚ncia de ¡rea"},
-    {2,"Seleciona ¡rea Similar"},
-    {3,"Exatamente uma face deve ser\n selecionada em um ˙nico objeto."},
+    {1,"Toler√¢ncia de √Årea"},
+    {2,"Seleciona √Årea Similar"},
+    {3,"Exatamente uma face deve ser\n selecionada em um √∫nico objeto."},
     {4,"Exatamente uma face deve ser selecionada."}
    ]},
   {shortest_path,
    [
-    {1,"Extamente dois vÈrtices devem ser\n selecionados no mesmo objeto."},
-    {2,"Extamente dois vÈrtices deve ser selecionados."}
+    {1,"Extamente dois v√©rtices devem ser\n selecionados no mesmo objeto."},
+    {2,"Extamente dois v√©rtices deve ser selecionados."}
    ]},
   {sharp_edges,
    [
-    {1,"√ngulo M·ximo"},
+    {1,"√Éngulo M√°ximo"},
     {2,"Selecionar Arestas Agudas"}
    ]},
   {oriented_faces_menu,
    [
     {1,"Perpendiculares Similares"},
-    {2,"Seleciona faces com perpendiculares similares ‡quelas das faces j· selecionadas"}
+    {2,"Seleciona faces com perpendiculares similares √†quelas das faces j√° selecionadas"}
    ]},
   {oriented_faces,
    [
-    {1,"¬ngulo de toler‚ncia"},
+    {1,"√Çngulo de toler√¢ncia"},
     {2,"Selecionar Faces Orientadas Similarmente"}
    ]},
   {nonplanar_faces,
    [
-    {1,"Toler‚ncia de Dist‚ncia"},
-    {2,"Slecionar Faces N„o-Planas"}
+    {1,"Toler√¢ncia de Dist√¢ncia"},
+    {2,"Slecionar Faces N√£o-Planas"}
    ]},
   {group_title,
    [
-    {1,"vÈrtice: "},
+    {1,"v√©rtice: "},
     {2,"aresta: "},
     {3,"face: "},
     {4,"objeto: "}
@@ -659,20 +659,20 @@
     {1,"Apagar Grupo"},
     {2,"Apaga o grupo \""},
     {4,"Acrescentar ao Grupo"},
-    {5,"Acrescenta a atual seleÁ„o ao grupo \""},
+    {5,"Acrescenta a atual sele√ß√£o ao grupo \""},
     {7,"Subtrair do Grupo"},
-    {8,"Subtrai a atual seleÁ„o do grupo \""},
+    {8,"Subtrai a atual sele√ß√£o do grupo \""},
     {10,"Selecionar Grupo"},
     {11,"Seleciona grupo \""},
-    {13,"Uni„o de Grupos"},
+    {13,"Uni√£o de Grupos"},
     {14,"Une o grupo \""},
-    {15,"\" com a atual seleÁ„o"},
-    {16,"SubtraÁ„o de Grupos"},
+    {15,"\" com a atual sele√ß√£o"},
+    {16,"Subtra√ß√£o de Grupos"},
     {17,"Subtrai o grupo \""},
-    {18,"\" da atual seleÁ„o"},
-    {19,"InterseÁ„o de Grupos"},
+    {18,"\" da atual sele√ß√£o"},
+    {19,"Interse√ß√£o de Grupos"},
     {20,"Intersecciona o grupo \""},
-    {21,"\" com a atual seleÁ„o"}
+    {21,"\" com a atual sele√ß√£o"}
    ]},
   {item_by_id,
    [
@@ -681,48 +681,48 @@
    ]},
   {less_help,
    [
-    {1,"Deseleciona todos os vÈrtices adjacentes a um vÈrtice selecionado"},
+    {1,"Deseleciona todos os v√©rtices adjacentes a um v√©rtice selecionado"},
     {2,"Deseleciona todos as arestas adjacentes a uma aresta selecionada"},
-    {3,"Deseleciona todas as faces que compartilham um vÈrtice com uma face selecionada"}
+    {3,"Deseleciona todas as faces que compartilham um v√©rtice com uma face selecionada"}
    ]},
   {menu,
    [
-    {1,"Desmarcar a seleÁ„o"},
-    {2,"Limpa a seleÁ„o"},
+    {1,"Desmarcar a sele√ß√£o"},
+    {2,"Limpa a sele√ß√£o"},
     {3,"Mais"},
     {4,"Menos"},
     {5,"Similar"},
-    {6,"Seq¸Íncia de Arestas"},
-    {7,"Seq¸Íncia de Arestas"},
-    {8,"Expande a seleÁ„o de arestas para uma seq¸Íncia; "},
-    {9,"converte a seleÁ„o de faces em seleÁ„o das arestas que formam sua borda"},
-    {10,"Seq¸Íncia de Arestas para Regi„o"},
-    {11,"Seleciona todas as faces internas de uma seq¸Íncia de arestas"},
+    {6,"Seq√º√™ncia de Arestas"},
+    {7,"Seq√º√™ncia de Arestas"},
+    {8,"Expande a sele√ß√£o de arestas para uma seq√º√™ncia; "},
+    {9,"converte a sele√ß√£o de faces em sele√ß√£o das arestas que formam sua borda"},
+    {10,"Seq√º√™ncia de Arestas para Regi√£o"},
+    {11,"Seleciona todas as faces internas de uma seq√º√™ncia de arestas"},
     {12,"Anel de arestas"},
-    {13,"Expande a seleÁ„o de arestas para um anel"},
-    {14,"Seq¸Íncia de Arestas anterior"},
-    {15,"Seleciona a seq¸Íncia de arestas anterior"},
-    {16,"Seq¸Íncia de Arestas posterior"},
-    {17,"Seleciona a seq¸Íncia de arestas posterior"},
-    {18,"Expandir a Seq¸Íncia de Arestas"},
-    {19,"Expande uma aresta na seleÁ„o de arestas em ambas as direÁıes da seq¸Íncia"},
-    {20,"Contrair a Seq¸Íncia de Arestas"},
-    {21,"Contrai uma aresta na seleÁ„o de arestas na direÁ„o da seq¸Íncia"},
+    {13,"Expande a sele√ß√£o de arestas para um anel"},
+    {14,"Seq√º√™ncia de Arestas anterior"},
+    {15,"Seleciona a seq√º√™ncia de arestas anterior"},
+    {16,"Seq√º√™ncia de Arestas posterior"},
+    {17,"Seleciona a seq√º√™ncia de arestas posterior"},
+    {18,"Expandir a Seq√º√™ncia de Arestas"},
+    {19,"Expande uma aresta na sele√ß√£o de arestas em ambas as dire√ß√µes da seq√º√™ncia"},
+    {20,"Contrair a Seq√º√™ncia de Arestas"},
+    {21,"Contrai uma aresta na sele√ß√£o de arestas na dire√ß√£o da seq√º√™ncia"},
     {22,"Expandir o Anel de Arestas"},
-    {23,"Expande uma aresta na seleÁ„o de arestas na direÁ„o do anel"},
+    {23,"Expande uma aresta na sele√ß√£o de arestas na dire√ß√£o do anel"},
     {24,"Contrair o Anel de Arestas"},
-    {25,"Contrai uma aresta na seleÁ„o de arestas na direÁ„o do anel"},
+    {25,"Contrai uma aresta na sele√ß√£o de arestas na dire√ß√£o do anel"},
     {26,"Adjacente"},
-    {27,"VÈrtices"},
+    {27,"V√©rtices"},
     {28,"Arestas"},
     {29,"Faces"},
     {30,"Objetos"},
     {31,"Por"},
-    {32,"Arestas RÌgidas"},
+    {32,"Arestas R√≠gidas"},
     {33,"Seleciona todas as arestas duras"},
-    {34,"VÈrtices isolados"},
-    {35,"Seleciona todos os vÈrtices isolados"},
-    {36,"VÈrtices Com"},
+    {34,"V√©rtices isolados"},
+    {35,"Seleciona todos os v√©rtices isolados"},
+    {36,"V√©rtices Com"},
     {37,"2 Arestas"},
     {38,"3 Arestas"},
     {39,"4 Arestas"},
@@ -732,57 +732,57 @@
     {43,"3 Arestas"},
     {44,"4 Arestas"},
     {45,"5 ou mais"},
-    {46,"AleatÛrio"},
+    {46,"Aleat√≥rio"},
     {56,"Arestas Curtas"},
-    {57,"Seleciona (tambÈm) as arestas curtas"},
+    {57,"Seleciona (tamb√©m) as arestas curtas"},
     {58,"Arestas que dividem materiais"},
     {59,"Seleciona todas as arestas entre materiais diferentes"},
     {60,"Faces UV-Mapeadas"},
     {61,"Seleciona todas as arestas que tem coordenadas UV"},
     {62,"Id..."},
-    {63,"Seleciona por ID numÈrico"},
+    {63,"Seleciona por ID num√©rico"},
     {64,"Luzes"},
     {65,"Selecionar todas as luzes"},
     {66,"Seleciona todos os elementos"},
     {67,"Inverter"},
-    {68,"Inverte a seleÁ„o"},
+    {68,"Inverte a sele√ß√£o"},
     {69,"Ocultar Selecionado"},
     {70,"Oculta todos (parcial ou inteiramente) os objetos selecionados"},
-    {71,"Ocultar o n„o-selecionado"},
-    {72,"Oculta os objetos que n„o estiverem selecionados"},
-    {73,"Travar o n„o-selecionado"},
-    {74,"Trava os objetos que n„o estiverem selecionados"},
+    {71,"Ocultar o n√£o-selecionado"},
+    {72,"Oculta os objetos que n√£o estiverem selecionados"},
+    {73,"Travar o n√£o-selecionado"},
+    {74,"Trava os objetos que n√£o estiverem selecionados"},
     {75,"Exibir Tudo"},
     {76,"Exibe todos os objetos que foram ocultados"},
     {77,"Destravar Tudo"},
     {78,"Destrava todos os objetos travados"},
-    {79,"Armazenar SeleÁ„o"},
-    {80,"Armazena a seleÁ„o em um grupo de seleÁ„o chamado \"StoredSelection\""},
-    {81,"Restaurar a SeleÁ„o"},
-    {82,"Restaura a seleÁ„o a partir de um grupo de seleÁ„o chamado \"StoredSelection\""},
+    {79,"Armazenar Sele√ß√£o"},
+    {80,"Armazena a sele√ß√£o em um grupo de sele√ß√£o chamado \"StoredSelection\""},
+    {81,"Restaurar a Sele√ß√£o"},
+    {82,"Restaura a sele√ß√£o a partir de um grupo de sele√ß√£o chamado \"StoredSelection\""},
     {83,"Novo Grupo..."},
-    {84,"Cria um novo grupo de seleÁ„o"},
-    {85,"Faces n„o-planas"},
-    {86,"Selecionar todas as faces n„o planas"},
+    {84,"Cria um novo grupo de sele√ß√£o"},
+    {85,"Faces n√£o-planas"},
+    {86,"Selecionar todas as faces n√£o planas"},
     {87,"Selecionar arestas agudas"},
     {88,"Seleciona arestas agudas"},
     {89,"Caminho com menos arestas"},
-    {90,"Seleciona o caminho entre dois vÈrtices com o menor n˙mero de arestas"},
+    {90,"Seleciona o caminho entre dois v√©rtices com o menor n√∫mero de arestas"},
     {91,"Menor Caminho (Dijkstra)"},
-    {92,"Seleciona o menor caminho entre dois vÈrtices (Dijkstra)"},
-    {93,"Menor Caminho (N„o-Estrela)"},
-    {94,"Seleciona o menor caminho entre dois vÈrtices (N„o-Estrela)"},
+    {92,"Seleciona o menor caminho entre dois v√©rtices (Dijkstra)"},
+    {93,"Menor Caminho (N√£o-Estrela)"},
+    {94,"Seleciona o menor caminho entre dois v√©rtices (N√£o-Estrela)"},
     {401,"6 ou Mais"},
-    {nq0,"Faces N„o Quadrangulares"},
+    {nq0,"Faces N√£o Quadrangulares"},
     {nq1,"Todas as Faces Quadrangulares"},
-    {nq2,"Faces n„o Quadrangulares Õmpares"},
-    {nq3,"Faces n„o Quadrangulares Pares"}
+    {nq2,"Faces n√£o Quadrangulares √çmpares"},
+    {nq3,"Faces n√£o Quadrangulares Pares"}
    ]},
   {more_help,
    [
-    {1,"Seleciona todos os vÈrtices adjacentes a um vÈrtice selecionado"},
+    {1,"Seleciona todos os v√©rtices adjacentes a um v√©rtice selecionado"},
     {2,"Seleciona todas as arestas adjacentes ao uma aresta selecionada"},
-    {3,"Seleciona todas as faces que compartilham um vÈrtice com uma face selecionada"}
+    {3,"Seleciona todas as faces que compartilham um v√©rtice com uma face selecionada"}
    ]},
   {new_group,
    [
@@ -791,51 +791,51 @@
    ]},
   {new_group_name,
    [
-    {exists,"j· existe."}
+    {exists,"j√° existe."}
    ]},
   {sel_all_str,
    [
-    {1,"Todos os VÈrtices"},
+    {1,"Todos os V√©rtices"},
     {2,"Todas as Arestas"},
     {3,"Todas as Faces"},
     {4,"Todos os Objetos"}
    ]},
   {short_edges,
    [
-    {1,"Toler‚ncia de comprimento"},
+    {1,"Toler√¢ncia de comprimento"},
     {2,"Selecionar Arestas Curtas"}
    ]},
   {similar_help,
    [
-    {1,"Selecionar vÈrtices similares aos vÈrtices j· selecionados"},
-    {2,"Seleciona as arestas similares ‡s arestas j· selecionadas"},
-    {3,"Seleciona as faces similares ‡s faces j· selecionadas"},
-    {4,"Seleciona os objetos com o mesmo n˙mero de arestas, faces e vÈrtices"}
+    {1,"Selecionar v√©rtices similares aos v√©rtices j√° selecionados"},
+    {2,"Seleciona as arestas similares √†s arestas j√° selecionadas"},
+    {3,"Seleciona as faces similares √†s faces j√° selecionadas"},
+    {4,"Seleciona os objetos com o mesmo n√∫mero de arestas, faces e v√©rtices"}
    ]},
   {valid_sel,
    [
     {1,"O Objeto com o ID "},
-    {2," È inv·lido."},
+    {2," √© inv√°lido."},
     {3,"A "},
-    {4," È inv·lida."}
+    {4," √© inv√°lida."}
    ]},
   {group_mode_string,
    [
-    {body,"Grupo de seleÁ„o de Objeto"},
-    {edge,"Grupo de seleÁ„o de Aresta"},
-    {face,"Grupo de seleÁ„o de Face"},
-    {vertex,"Grupo de seleÁ„o de VÈrtice"}
+    {body,"Grupo de sele√ß√£o de Objeto"},
+    {edge,"Grupo de sele√ß√£o de Aresta"},
+    {face,"Grupo de sele√ß√£o de Face"},
+    {vertex,"Grupo de sele√ß√£o de V√©rtice"}
    ]}
  ]}.
 {wings_scale,
  [
   {edges_to_vertices,
    [
-    {1,"Uma operaÁ„o de escala com magneto em m˙ltiplas regiıes de arestas exige uma origem explÌcita da escala."}
+    {1,"Uma opera√ß√£o de escala com magneto em m√∫ltiplas regi√µes de arestas exige uma origem expl√≠cita da escala."}
    ]},
   {faces_to_vertices,
    [
-    {1,"Uma operaÁ„o de escala com magneto em m˙ltiplas regiıes de faces exige uma origem explÌcita da escala."}
+    {1,"Uma opera√ß√£o de escala com magneto em m√∫ltiplas regi√µes de faces exige uma origem expl√≠cita da escala."}
    ]},
   {inset_face,
    [
@@ -864,9 +864,9 @@
   {dir,
    [
     {all,"Tudo"},
-    {da,"eixo padr„o"},
+    {da,"eixo padr√£o"},
     {f,"Livre"},
-    {la,"⁄ltimo eixo"},
+    {la,"√öltimo eixo"},
     {n,"Perpendicular"},
     {r,"Radial"},
     {the_axis,"eixo ~s"},
@@ -890,7 +890,7 @@
    ]},
   {no,
    [
-    {1,"N„o"}
+    {1,"N√£o"}
    ]},
   {yes,
    [
@@ -901,11 +901,11 @@
  [
   {edges_to_vertices,
    [
-    {1,"Uma operaÁ„o de rotaÁ„o com Magneto sobre m˙ltiplas regiıes de arestas exige uma origem explÌcita para para a rotaÁ„o."}
+    {1,"Uma opera√ß√£o de rota√ß√£o com Magneto sobre m√∫ltiplas regi√µes de arestas exige uma origem expl√≠cita para para a rota√ß√£o."}
    ]},
   {faces_to_vertices,
    [
-    {1,"Uma operaÁ„o de rotaÁ„o com Magneto sobre m˙ltiplas regiıes de faces exige uma origem explÌcita para para a rotaÁ„o."}
+    {1,"Uma opera√ß√£o de rota√ß√£o com Magneto sobre m√∫ltiplas regi√µes de faces exige uma origem expl√≠cita para para a rota√ß√£o."}
    ]}
  ]}.
 {wings_pref_dlg,
@@ -913,58 +913,58 @@
   {viewer_prefs,
    [
     {1,"Visualizador"},
-    {2,"OpÁıes"},
+    {2,"Op√ß√µes"},
     {3,"..nome do arquivo.."}
    ]},
   {advanced_prefs,
    [
-    {1,"Comandos padr„o"},
-    {2,"Permite definir comandos que podem ser acionados atravÈs de Ctrl+Bot„o Esquerdo ou Ctrl+Bot„o do Meio"},
-    {3,"Usar o realce como seleÁ„o tempor·ria"},
-    {4,"Se n„o houver nada selecionado, "},
-    {5,"permite que comandos atuem sobre um elemento realÁado"},
-    {6,"Esconder a seleÁ„o enquanto se arrasta um elemento"},
-    {7,"N„o exibe a seleÁ„o em um comando interativo"},
-    {8,"Esconder a seleÁ„o enquanto se move a C‚mera"},
-    {9,"N„o exibe a seleÁ„o quando a c‚mera estiver sendo movida"},
-    {10,"Menus AvanÁados"},
-    {11,"Mais comandos e opÁıes, como os magnetos"},
-    {12,"SeleÁıes tempor·rias forÁadas pelo usu·rio"},
-    {13,"No modo de seleÁ„o secund·rio, o Bot„o Direito do Mouse sempre acrescenta ‡ seleÁ„o"},
+    {1,"Comandos padr√£o"},
+    {2,"Permite definir comandos que podem ser acionados atrav√©s de Ctrl+Bot√£o Esquerdo ou Ctrl+Bot√£o do Meio"},
+    {3,"Usar o realce como sele√ß√£o tempor√°ria"},
+    {4,"Se n√£o houver nada selecionado, "},
+    {5,"permite que comandos atuem sobre um elemento real√ßado"},
+    {6,"Esconder a sele√ß√£o enquanto se arrasta um elemento"},
+    {7,"N√£o exibe a sele√ß√£o em um comando interativo"},
+    {8,"Esconder a sele√ß√£o enquanto se move a C√¢mera"},
+    {9,"N√£o exibe a sele√ß√£o quando a c√¢mera estiver sendo movida"},
+    {10,"Menus Avan√ßados"},
+    {11,"Mais comandos e op√ß√µes, como os magnetos"},
+    {12,"Sele√ß√µes tempor√°rias for√ßadas pelo usu√°rio"},
+    {13,"No modo de sele√ß√£o secund√°rio, o Bot√£o Direito do Mouse sempre acrescenta √† sele√ß√£o"},
     {14,"Comprimendo"},
-    {15,"Comprimento de um vetor em uma seleÁ„o secund·ria"},
+    {15,"Comprimento de um vetor em uma sele√ß√£o secund√°ria"},
     {16,"Largura"},
     {17,"Largura do vetor (em pixels)"},
     {18,"Cor"},
     {19,"Cor do vetor"},
     {20,"Aspecto do vetor"},
-    {21,"Usa Espelhamento Virtual para SeleÁıes"},
-    {22,"Padr„o para o uso de seleÁıes secund·ria no espelhamento virtual"},
+    {21,"Usa Espelhamento Virtual para Sele√ß√µes"},
+    {22,"Padr√£o para o uso de sele√ß√µes secund√°ria no espelhamento virtual"},
     {23,"Tamanho"},
-    {24,"Tamanho do indicador de plano de corte definido pelo usu·rio"},
+    {24,"Tamanho do indicador de plano de corte definido pelo usu√°rio"},
     {25,"Cor"},
-    {26,"Cor do indicador de plano de corte definido pelo usu·rio"},
+    {26,"Cor do indicador de plano de corte definido pelo usu√°rio"},
     {27,"Indicador do Plano de Corte"}
    ]},
   {command,
    [
     {1,"Geral"},
-    {2,"C‚mera"},
-    {3,"AvanÁado"},
-    {4,"Interface do Usu·rio"},
-    {5,"Miscel‚nea"},
-    {6,"PreferÍncias"},
+    {2,"C√¢mera"},
+    {3,"Avan√ßado"},
+    {4,"Interface do Usu√°rio"},
+    {5,"Miscel√¢nea"},
+    {6,"Prefer√™ncias"},
     {31,"Limitadores"}
    ]},
   {gen_prefs,
    [
-    {1,"Tamanho do n„o-Selecionado"},
-    {2,"Tamanho em pixels dos vÈrtices n„o-selecionados (0.0 significa que n„o ser„o exibidos)"},
+    {1,"Tamanho do n√£o-Selecionado"},
+    {2,"Tamanho em pixels dos v√©rtices n√£o-selecionados (0.0 significa que n√£o ser√£o exibidos)"},
     {3,"Tamanho do Selecionado"},
-    {4,"Tamanho em pixels dos vÈrtices selecionados"},
+    {4,"Tamanho em pixels dos v√©rtices selecionados"},
     {5,"Aspecto do Vertice"},
-    {6,"Largura da n„o-Selecionada"},
-    {7,"Largura em pixels das arestas n„o-selecionadas"},
+    {6,"Largura da n√£o-Selecionada"},
+    {7,"Largura em pixels das arestas n√£o-selecionadas"},
     {8,"Largura da Selecionada"},
     {9,"Largura em pixels das arestas selecionadas"},
     {10,"Arestas Suaves"},
@@ -972,26 +972,26 @@
     {12,"Arestas Duras"},
     {13,"Cor das arestas duras"},
     {14,"Aspecto da Aresta"},
-    {15,"VÈrtices"},
+    {15,"V√©rtices"},
     {16,"Arestas"},
     {17,"Faces"},
     {18,"Objetos"},
-    {19,"N„o-Selecionado"},
+    {19,"N√£o-Selecionado"},
     {20,"Selecionado"},
     {21,"Realce Inteligente"},
     {22,"Realce"},
-    {23,"SeleÁ„o sÛlida de faces"},
-    {24,"SeleÁ„o sombreada de faces"},
-    {25,"Cor da SeleÁ„o"},
-    {26,"SeleÁ„o"},
+    {23,"Sele√ß√£o s√≥lida de faces"},
+    {24,"Sele√ß√£o sombreada de faces"},
+    {25,"Cor da Sele√ß√£o"},
+    {26,"Sele√ß√£o"},
     {27,"Texto"},
-    {28,"Cor do texto de informaÁ„o"},
+    {28,"Cor do texto de informa√ß√£o"},
     {29,"Fundo"},
-    {30,"Cor do fundo para texto de informaÁ„o (inclusive transparÍncia)"},
-    {31,"Texto de InformaÁ„o"},
+    {30,"Cor do fundo para texto de informa√ß√£o (inclusive transpar√™ncia)"},
+    {31,"Texto de Informa√ß√£o"},
     {32,"Cor"},
-    {33,"Eixo alinhado ‡ Grade"},
-    {34,"Sempre exibe a Grade quando a vista est· alinhada ao longo de um dos eixos principais"},
+    {33,"Eixo alinhado √† Grade"},
+    {34,"Sempre exibe a Grade quando a vista est√° alinhada ao longo de um dos eixos principais"},
     {35,"Grade"},
     {36,"Exibir Letras dos Eixos"},
     {37,"+X Cor"},
@@ -1002,77 +1002,77 @@
     {42,"-Z Cor"},
     {43,"Eixos"},
     {aa_ortho1,"Eixo alinhado ortograficamente"},
-    {aa_ortho2,"Sempre vai para o modo ortogonal quando a vista est· alinhada ao longo de um dos eixos principais"},
+    {aa_ortho2,"Sempre vai para o modo ortogonal quando a vista est√° alinhada ao longo de um dos eixos principais"},
     {44,"Comprimento"},
     {45,"Comprimento das perpendiculares"},
     {46,"Cor"},
     {47,"Cor das perpendiculares"},
     {48,"Exibe as Perpedinculares"},
-    {49,"Limita os eixos ‡ grade"},
+    {49,"Limita os eixos √† grade"},
     {50,"Exibe Arestas sem serrilhamento"}
    ]},
   {menu,
    [
-    {1,"PreferÍncias..."},
-    {2,"Edite as preferÍncias para o Wings"}
+    {1,"Prefer√™ncias..."},
+    {2,"Edite as prefer√™ncias para o Wings"}
    ]},
   {misc_prefs,
    [
-    {1,"DefiniÁıes de transparÍncia n„o suportadas nessa vers„o do OpenGL"},
+    {1,"Defini√ß√µes de transpar√™ncia n√£o suportadas nessa vers√£o do OpenGL"},
     {2,"Salvar automaticamente a cada"},
     {3,"minutos"},
-    {4,"NÌveis de Desfazer"},
-    {5,"¬ngulo"},
+    {4,"N√≠veis de Desfazer"},
+    {5,"√Çngulo"},
     {6,"Atraso (ms)"},
     {7,"Auto rotacionar"},
     {8,"Gaiola"},
     {9,"Algumas Arestas"},
     {10,"Todas as Arestas"},
     {11,"Estilo de Sombreamento das Arestas"},
-    {12,"TransparÍncia quando imÛvel"},
-    {13,"TransparÍncia ao mover"},
+    {12,"Transpar√™ncia quando im√≥vel"},
+    {13,"Transpar√™ncia ao mover"},
     {14,"Proxy Mode"},
-    {15,"Texto nos menus e janelas de di·logo desaparecem"},
+    {15,"Texto nos menus e janelas de di√°logo desaparecem"},
     {16,"Problema acontece com algumas placas Matrox"},
-    {17,"Wings finaliza se os eixos n„o desligados"},
+    {17,"Wings finaliza se os eixos n√£o desligados"},
     {18,"Problema acontece com algumas placas Matrox"},
     {19,"Camera moves and interactive commands are jumpy"},
     {20,"Problema acontece no Mac OS X 10.3 (Panther)"},
-    {21,"SoluÁıes provisÛrias"},
-    {22,"Problemas na visualizaÁ„o das arestas?"},
+    {21,"Solu√ß√µes provis√≥rias"},
+    {22,"Problemas na visualiza√ß√£o das arestas?"},
     {23,"Offsets da Aresta:"}
    ]},
   {smart_set_value_1,
    [
-    {1,"A mudanÁa da fonte de sistema sÛ ter· efeito na prÛxima vez que o Wings 3D for iniciado."},
-    {2,"A mudanÁa nos Ìcones da interface ter· efeito na prÛxima vez que o Wings 3D for iniciado."}
+    {1,"A mudan√ßa da fonte de sistema s√≥ ter√° efeito na pr√≥xima vez que o Wings 3D for iniciado."},
+    {2,"A mudan√ßa nos √≠cones da interface ter√° efeito na pr√≥xima vez que o Wings 3D for iniciado."}
    ]},
   {constraint_prefs,
    [
-    {1,"Dist‚ncia"},
-    {2,"RotaÁ„o"},
-    {4,"Estabelece Limitador Padr„o"},
-    {12,"Limita a ~s para operaÁıes de dist‚ncia."},
-    {13,"Limita a ~s para rotaÁıes."},
-    {14,"Limita a ~s para operaÁıes de escala."},
-    {22,"Limitadores de Dist‚ncia"},
-    {23,"Limitadores de RotaÁ„o"},
+    {1,"Dist√¢ncia"},
+    {2,"Rota√ß√£o"},
+    {4,"Estabelece Limitador Padr√£o"},
+    {12,"Limita a ~s para opera√ß√µes de dist√¢ncia."},
+    {13,"Limita a ~s para rota√ß√µes."},
+    {14,"Limita a ~s para opera√ß√µes de escala."},
+    {22,"Limitadores de Dist√¢ncia"},
+    {23,"Limitadores de Rota√ß√£o"},
     {24,"Limitadores de Escala"}
    ]},
   {ui_prefs,
    [
     {1,"Fonte de Sistema"},
-    {2,"¡rea de Trabalho/Janela de Geometria"},
+    {2,"√Årea de Trabalho/Janela de Geometria"},
     {3,"Texto do Menu"},
-    {4,"Menu RealÁado"},
-    {5,"Texto de Menu RealÁado"},
+    {4,"Menu Real√ßado"},
+    {5,"Texto de Menu Real√ßado"},
     {6,"Menu de Fundo"},
-    {7,"Texto de Janela de Di·logo"},
-    {8,"Texto de Janela de Di·logo Desabilitado"},
-    {9,"Janela de Di·logo de Fundo"},
-    {10,"Texto de TÌtulo"},
-    {11,"TÌtulo de Fundo Passivo"},
-    {12,"TÌtulo de Fundo Ativo"},
+    {7,"Texto de Janela de Di√°logo"},
+    {8,"Texto de Janela de Di√°logo Desabilitado"},
+    {9,"Janela de Di√°logo de Fundo"},
+    {10,"Texto de T√≠tulo"},
+    {11,"T√≠tulo de Fundo Passivo"},
+    {12,"T√≠tulo de Fundo Ativo"},
     {13,"Cores"},
     {14,"Sem Barra de Progresso"},
     {15,"Fonte do Console"},
@@ -1084,16 +1084,16 @@
     {21,"Cursor"},
     {22,"Console"},
     {23,"Linguagem"},
-    {24,"Objetos na Janela Õndice Geral"},
-    {25,"Ver imagem apÛs renderizar"},
-    {26,"Abre a imagem apÛs renderizar"},
-    {27,"Õcones Extendidos da Barra de Ferramentas"},
-    {50,"Õcones da Interface"}
+    {24,"Objetos na Janela √çndice Geral"},
+    {25,"Ver imagem ap√≥s renderizar"},
+    {26,"Abre a imagem ap√≥s renderizar"},
+    {27,"√çcones Extendidos da Barra de Ferramentas"},
+    {50,"√çcones da Interface"}
    ]},
   {workaround_1,
    [
     {1,"Problema"},
-    {2,"Usar soluÁ„o provisÛria?"}
+    {2,"Usar solu√ß√£o provis√≥ria?"}
    ]}
  ]}.
 {wings_plugin,
@@ -1108,8 +1108,8 @@
    ]},
   {install_beam,
    [
-    {1,"Falha na instalaÁ„o de \"~s\"  : ~p"},
-    {2,"O arquivo \"~s\" n„o È um mÛdulo de plugin para Wings."}
+    {1,"Falha na instala√ß√£o de \"~s\"  : ~p"},
+    {2,"O arquivo \"~s\" n√£o √© um m√≥dulo de plugin para Wings."}
    ]},
   {install_file_type,
    [
@@ -1118,19 +1118,19 @@
   {install_verify_files,
    [
     {1,"O arquivo \"~s\" tem um caminho absoluto"},
-    {2,"O arquivo \"~s\" N„o contÈm nenhum mÛdulo de plugin para Wings"}
+    {2,"O arquivo \"~s\" N√£o cont√©m nenhum m√≥dulo de plugin para Wings"}
    ]},
   {plugin_dir,
    [
-    {1,"DiretÛrio \"plugins\" n„o encontrado"}
+    {1,"Diret√≥rio \"plugins\" n√£o encontrado"}
    ]}
  ]}.
 {wings_pick,
  [
   {clear_hilite_marquee_mode,
    [
-    {ctrl_action,"Desmarcar a seleÁ„o"},
-    {shift_action,"(De)seleciona somente os elementos inteiramente dentro da janela de seleÁ„o"}
+    {ctrl_action,"Desmarcar a sele√ß√£o"},
+    {shift_action,"(De)seleciona somente os elementos inteiramente dentro da janela de sele√ß√£o"}
    ]},
   {handle_hilite_event,
    [
@@ -1141,15 +1141,15 @@
  [
   {loop,
    [
-    {1,"concluÌdo"}
+    {1,"conclu√≠do"}
    ]}
  ]}.
 {wings_palette,
  [
   {command,
    [
-    {1,"Cor inicial n„o encontrada."},
-    {2,"Cor final n„o encontrada."},
+    {1,"Cor inicial n√£o encontrada."},
+    {2,"Cor final n√£o encontrada."},
     {3,"Exportar"},
     {5,"Palheta do Wings"},
     {6,"Erro ao exportar: ~w"},
@@ -1164,7 +1164,7 @@
     {1,"Editar"},
     {2,"Edita a cor"},
     {3,"Interpolar"},
-    {4,"Interpola cores ainda n„o-definidas"},
+    {4,"Interpola cores ainda n√£o-definidas"},
     {5,"Apagar tudo"},
     {6,"Apaga a Palheta"},
     {7,"Compactar"},
@@ -1178,7 +1178,7 @@
    ]},
   {event,
    [
-    {1,"Aplicar cor ‡ seleÁ„o"},
+    {1,"Aplicar cor √† sele√ß√£o"},
     {2,"Editar cor"},
     {3,"Exibir menu"},
     {4,"Apagar a cor"}
@@ -1213,17 +1213,17 @@
    ]},
   {delete_image,
    [
-    {1,"A imagem est· sendo usada por um material."},
-    {2,"VocÍ est· certo de que deseja apagar a imagem (N√O ser· possÌvel desfazer)?"}
+    {1,"A imagem est√° sendo usada por um material."},
+    {2,"Voc√™ est√° certo de que deseja apagar a imagem (N√ÉO ser√° poss√≠vel desfazer)?"}
    ]},
   {do_menu,
    [
     {1,"Editar Material..."},
     {2,"Edita as propriedades do material"},
-    {3,"Aplcar ‡ seleÁ„o"},
-    {4,"Aplica o material ‡s faces ou objetos selecionados"},
+    {3,"Aplcar √† sele√ß√£o"},
+    {4,"Aplica o material √†s faces ou objetos selecionados"},
     {5,"Selecionar"},
-    {6,"Seleciona todas as faces que tÍm esse material"},
+    {6,"Seleciona todas as faces que t√™m esse material"},
     {7,"Duplicar"},
     {8,"Duplica esse material"},
     {9,"Apagar"},
@@ -1250,7 +1250,7 @@
   {event,
    [
     {1,"Selecionar"},
-    {2,"Exibe o menu do Õndice Geral (se houver seleÁ„o) ou o menu de criaÁ„o (se n„o houver seleÁ„o)"}
+    {2,"Exibe o menu do √çndice Geral (se houver sele√ß√£o) ou o menu de cria√ß√£o (se n√£o houver sele√ß√£o)"}
    ]},
   {handle_drop,
    [
@@ -1284,7 +1284,7 @@
    ]},
   {title,
    [
-    {1,"Õndice Geral"}
+    {1,"√çndice Geral"}
    ]}
  ]}.
 {wings_menu_util,
@@ -1301,56 +1301,56 @@
    ]},
   {dir_help,
    [
-    {3,"o ˙ltimo eixo"},
-    {4,"o eixo padr„o"},
+    {3,"o √∫ltimo eixo"},
+    {4,"o eixo padr√£o"},
     {7,"em torno"},
     {10,"ao longo de sua perpendicular"},
-    {11,"livremente em todas as direÁıes"},
-    {12,"Altera a escala igualmente em todas as direÁıes"}
+    {11,"livremente em todas as dire√ß√µes"},
+    {12,"Altera a escala igualmente em todas as dire√ß√µes"}
    ]},
   {dir_help_1,
    [
     {1,"Move cada elemento "},
     {2,"Gira livremente"},
     {3,"Gira ao redor da perpendicular de cada elemento"},
-    {4,"Projeta cada elemento e ent„o o move "},
-    {5,"Projeta faces como uma regi„o e ent„o move estas faces ao longo da perpendicular da regi„o"},
-    {6,"Projeta faces como uma regi„o e ent„o move as faces "},
-    {7,"Extrai faces e ent„o move estas faces ao longo da perpendicular da regi„o"},
-    {8,"Extrai faces e ent„o move estas faces "},
+    {4,"Projeta cada elemento e ent√£o o move "},
+    {5,"Projeta faces como uma regi√£o e ent√£o move estas faces ao longo da perpendicular da regi√£o"},
+    {6,"Projeta faces como uma regi√£o e ent√£o move as faces "},
+    {7,"Extrai faces e ent√£o move estas faces ao longo da perpendicular da regi√£o"},
+    {8,"Extrai faces e ent√£o move estas faces "},
     {9,"Achata os elementos num plano perpendicular"},
-    {10,"AlÁa uma face ao longo de sua perpendicular"},
-    {11,"AlÁa uma face e a move "},
+    {10,"Al√ßa uma face ao longo de sua perpendicular"},
+    {11,"Al√ßa uma face e a move "},
     {12,"Duplica e move livremente "},
     {13,"Move cada elemento ao longo "},
-    {14,"Projeta elementos e ent„o os move ao longo "},
-    {15,"Projeta faces como uma regi„o e ent„o as move ao longo "},
-    {16,"Extrai faces e ent„o as move ao longo "},
+    {14,"Projeta elementos e ent√£o os move ao longo "},
+    {15,"Projeta faces como uma regi√£o e ent√£o as move ao longo "},
+    {16,"Extrai faces e ent√£o as move ao longo "},
     {17,"Gira ao redor "},
     {18,"Alterar escala "},
     {19,"Altera a escala ao longo de "},
     {20,"Achatar no "},
-    {21,"Achata e ent„o move para "},
-    {22,"AlÁa face ao longo "},
-    {23,"Duplica e ent„o move ao longo "}
+    {21,"Achata e ent√£o move para "},
+    {22,"Al√ßa face ao longo "},
+    {23,"Duplica e ent√£o move ao longo "}
    ]},
   {dirs,
    [
-    {1,"Move ao longo do eixo padr„o"},
+    {1,"Move ao longo do eixo padr√£o"},
     {2,"Escolha o eixo ao longo do qual mover"},
-    {3,"Move ao longo do eixo padr„o"},
-    {4,"Move ao longo da perpendicular da seleÁ„o"},
+    {3,"Move ao longo do eixo padr√£o"},
+    {4,"Move ao longo da perpendicular da sele√ß√£o"},
     {5,"Escolha o eixo ao longo do qual mover"},
-    {6,"Projeta ao longo do eixo padr„o"},
-    {7,"Projeta ao longo da perpendicular da seleÁ„o"},
+    {6,"Projeta ao longo do eixo padr√£o"},
+    {7,"Projeta ao longo da perpendicular da sele√ß√£o"},
     {8,"Escolha o eixo ao longo do qual projetar"},
-    {9,"Projeta ao longo do eixo padr„o"},
-    {10,"Projeta ao longo da perpendicular da seleÁ„o"},
+    {9,"Projeta ao longo do eixo padr√£o"},
+    {10,"Projeta ao longo da perpendicular da sele√ß√£o"},
     {11,"Escolha o eixo ao longo do qual projetar"},
-    {12,"Extrai ao longo do eixo padr„o"},
-    {13,"Extrai ao longo da perpendicular da seleÁ„o"},
+    {12,"Extrai ao longo do eixo padr√£o"},
+    {13,"Extrai ao longo da perpendicular da sele√ß√£o"},
     {14,"Escolha o eixo ao longo do qual extrair"},
-    {15,"Duplica, movendo ao longo do eixo padr„o"},
+    {15,"Duplica, movendo ao longo do eixo padr√£o"},
     {16,"Duplica, sem mover"},
     {17,"Duplica, permitindo escolher o eixo ao longo do qual mover"}
    ]},
@@ -1358,7 +1358,7 @@
    [
     {1,"Achatar"},
     {2,"Achata nos planos standard"},
-    {3,"Escolha um plano e um ponto de referÍncia no plano"},
+    {3,"Escolha um plano e um ponto de refer√™ncia no plano"},
     {4,"Escolha um plano"}
    ]},
   {flatten_fun_1,
@@ -1367,8 +1367,8 @@
    ]},
   {rotate,
    [
-    {1,"Gira em torno do eixo padr„o"},
-    {2,"Escolha um eixo e um ponto de referÍncia"},
+    {1,"Gira em torno do eixo padr√£o"},
+    {2,"Escolha um eixo e um ponto de refer√™ncia"},
     {3,"Escolha um eixo em torno do qual girar"}
    ]},
   {rotate_1,
@@ -1377,11 +1377,11 @@
    ]},
   {rotate_fun,
    [
-    {1,"Escolha o ponto por onde o eixo passar·"}
+    {1,"Escolha o ponto por onde o eixo passar√°"}
    ]},
   {scale,
    [
-    {1,"Altera a Escala em relaÁ„o ao eixo standard"},
+    {1,"Altera a Escala em rela√ß√£o ao eixo standard"},
     {2,"Escolha um eixo e um ponto a partir do qual alterar a escala"},
     {3,"Escolha um eixo a partir do qual alterar a escala"},
     {4,"Altera a escala ao longo do eixo standard"},
@@ -1395,19 +1395,19 @@
   {uniform_scale,
    [
     {1,"Escolha o ponto a partir do qual alterar a escala"},
-    {2,"Altera a escala uniformemente a partir do ponto central da seleÁ„o"}
+    {2,"Altera a escala uniformemente a partir do ponto central da sele√ß√£o"}
    ]}
  ]}.
 {wings_menu,
  [
   {get_hotkey,
    [
-    {1,"Pressione a tecla ‡ qual associar o comando."}
+    {1,"Pressione a tecla √† qual associar o comando."}
    ]},
   {handle_key_event,
    [
-    {1,"Essa tecla j· est· atribuÌda ao comando "},
-    {2," . VocÍ quer redefini-la?"}
+    {1,"Essa tecla j√° est√° atribu√≠da ao comando "},
+    {2," . Voc√™ quer redefini-la?"}
    ]},
   {help_text_1,
    [
@@ -1419,7 +1419,7 @@
    ]},
   {norm_help_adv,
    [
-    {1,"Abre janela de di·logo"}
+    {1,"Abre janela de di√°logo"}
    ]}
  ]}.
 {wings_material,
@@ -1433,9 +1433,9 @@
     {1,"Difusa"},
     {2,"Ambiente"},
     {3,"Especular"},
-    {4,"Emiss„o"},
+    {4,"Emiss√£o"},
     {5,"Brilho"},
-    {6,"TransparÍncia"},
+    {6,"Transpar√™ncia"},
     {7,"OK"}
    ]},
   {load_map_1,
@@ -1444,14 +1444,14 @@
    ]},
   {material_fun,
    [
-    {1,"Aplica o material existente ‡ seleÁ„o"},
+    {1,"Aplica o material existente √† sele√ß√£o"},
     {2,"Cria e aplica um novo material"}
    ]},
   {material_menu,
    [
     {1,"Material"},
     {2,"Novo..."},
-    {3,"Criar um novo material e atribuÌ-lo ‡s faces selecionadas
+    {3,"Criar um novo material e atribu√≠-lo √†s faces selecionadas
 "},
     {4,"Material"}
    ]},
@@ -1492,16 +1492,16 @@
    ]},
   {check_radius,
    [
-    {1,"Raio de influÍncia muito curto."}
+    {1,"Raio de influ√™ncia muito curto."}
    ]},
   {common_dialog,
-   [{4,"TrajetÛria"}
+   [{4,"Trajet√≥ria"}
    ]},
   {dialog,
    [
-    {1,"OpÁıes do Magneto"},
-    {2,"Raio de InfluÍncia"},
-    {3,"OpÁıes do Magneto"}
+    {1,"Op√ß√µes do Magneto"},
+    {2,"Raio de Influ√™ncia"},
+    {3,"Op√ß√µes do Magneto"}
    ]},
   {drag_help,
    [
@@ -1509,18 +1509,18 @@
    ]},
   {info_string,
    [
-    {1,"TrajetÛria do Magneto:"}
+    {1,"Trajet√≥ria do Magneto:"}
    ]},
   {magnet_route,
-   [{shortest,"Mais prÛximo"},
+   [{shortest,"Mais pr√≥ximo"},
     {midpoint,"Ponto central"},
-    {surface,"SuperfÌcie"}]}
+    {surface,"Superf√≠cie"}]}
  ]}.
 {wings_light,
  [
   {attenuation,
    [
-    {1,"N„o se trata de uma Luz Puntual ou de um Holofote."}
+    {1,"N√£o se trata de uma Luz Puntual ou de um Holofote."}
    ]},
   {color,
    [
@@ -1561,36 +1561,36 @@
   {info_1,
    [
     {1,". Aim ~s ~s ~s. Dir ~s ~s ~s"},
-    {2,". ¬ngulo ~s~c"}
+    {2,". √Çngulo ~s~c"}
    ]},
   {light_types,
    [
     {1,"Infinita"},
     {2,"Cria uma luz distante e direcional (como o sol)"},
     {3,"Puntual"},
-    {4,"Cria uma luz que irradia em todas as direÁıes"},
+    {4,"Cria uma luz que irradia em todas as dire√ß√µes"},
     {5,"Holofote"},
     {6,"Cria um holofote"},
     {7,"Ambiente"},
     {8,"Cria uma fonte de luz ambiente"},
-    {9,"¡rea"},
-    {10,"Cria uma ·rea que irradia luz"}
+    {9,"√Årea"},
+    {10,"Cria uma √°rea que irradia luz"}
    ]},
   {menu,
    [
-    {1,"OperaÁıes com Luz"},
-    {2,"PosiÁ„o"},
+    {1,"Opera√ß√µes com Luz"},
+    {2,"Posi√ß√£o"},
     {3,"Posicionar o ponto de brilho"},
-    {4,"Posiciona o alvo ou a localizaÁ„o da luz"},
+    {4,"Posiciona o alvo ou a localiza√ß√£o da luz"},
     {5,"Cor"},
-    {6,"Ajusta interativamente tonalidade, valor e saturaÁ„o"},
-    {7,"AtenuaÁ„o"},
+    {6,"Ajusta interativamente tonalidade, valor e satura√ß√£o"},
+    {7,"Atenua√ß√£o"},
     {8,"Linear"},
     {9,"Ajusta interativamente o quanto uma luz enfraquece a partir de sua origem (fator linear)"},
-    {10,"Quadr·tico"},
-    {11,"Ajusta interativamente o quanto uma luz enfraquece a partir de sua origem (fator quadr·tico)"},
-    {12,"¬ngulo do holofote"},
-    {13,"Ajusta interativamente o ‚ngulo do cone do holofote"},
+    {10,"Quadr√°tico"},
+    {11,"Ajusta interativamente o quanto uma luz enfraquece a partir de sua origem (fator quadr√°tico)"},
+    {12,"√Çngulo do holofote"},
+    {13,"Ajusta interativamente o √¢ngulo do cone do holofote"},
     {14,"Esmaecimento das bordas"},
     {15,"Ajusta interativamente o quanto uma luz enfraquece ao se afastar do centro do cone do holofote"},
     {16,"Editar propriedades..."},
@@ -1608,14 +1608,14 @@
   {qs_att,
    [
     {1,"Linear"},
-    {2,"Quadr·tico"},
-    {3,"AtenuaÁ„o"}
+    {2,"Quadr√°tico"},
+    {3,"Atenua√ß√£o"}
    ]},
   {qs_specific,
    [
-    {1,"¬ngulo"},
+    {1,"√Çngulo"},
     {2,"Esmaecimento"},
-    {3,"Par‚metros do holofote"}
+    {3,"Par√¢metros do holofote"}
    ]},
   {selected_light,
    [
@@ -1623,11 +1623,11 @@
    ]},
   {spot_angle,
    [
-    {1,"N„o È um holofote."}
+    {1,"N√£o √© um holofote."}
    ]},
   {spot_falloff,
    [
-    {1,"N„o È um holofote."}
+    {1,"N√£o √© um holofote."}
    ]}
  ]}.
 {wings_init,
@@ -1642,9 +1642,9 @@
    ]},
   {video_mode_failure,
    [
-    {2,"Falha em encontrar qualquer modo OpenGL adeq¸ado..\n\n"},
-    {3,"Verifique se os drivers OpenGL est„o instalados..\n\n"},
-    {5,"Nenhum modo OpenGL adequado foi encontrado (os drivers OpenGL est„o instalados?)"}
+    {2,"Falha em encontrar qualquer modo OpenGL adeq√ºado..\n\n"},
+    {3,"Verifique se os drivers OpenGL est√£o instalados..\n\n"},
+    {5,"Nenhum modo OpenGL adequado foi encontrado (os drivers OpenGL est√£o instalados?)"}
    ]}
  ]}.
 {wings_image,
@@ -1699,11 +1699,11 @@
     {3,"Atalhos para o modo aresta"},
     {4,"Atalhos para o modo face"},
     {5,"Atalhos para luzes"},
-    {6,"Atalhos para o modo vÈrtice"}
+    {6,"Atalhos para o modo v√©rtice"}
    ]},
   {list_keys,
    [
-    {1," (definidos pelo usu·rio)"},
+    {1," (definidos pelo usu√°rio)"},
     {2," (definido por plugin)"}
    ]},
   {vkeyname,
@@ -1738,82 +1738,82 @@
  [
   {advanced_menus,
    [
-    {1,"Na caixa de di·logo "},
-    {4,", h· uma opÁ„o para acessar os \"Menus AvanÁados\"."},
-    {5,"Ativar os menus avanÁados acrescenta as seguintes ferramentas adiconais:"},
+    {1,"Na caixa de di√°logo "},
+    {4,", h√° uma op√ß√£o para acessar os \"Menus Avan√ßados\"."},
+    {5,"Ativar os menus avan√ßados acrescenta as seguintes ferramentas adiconais:"},
     {6,"Novos comandos: "},
     {7,"Face"},
     {8,"Encostar"},
     {9," e "},
     {10,"Face"},
-    {11,"Levantar/AlÁar"},
-    {12,"OperaÁıes baseadas em vetor: significa especificar um eixo (ou vetor) e ser capaz de relocaliz·-lo para que ele passe por um novo ponto."},
-    {13,"OperaÁıes com magneto: Uma facilidade que permite conseguir modificaÁıes/transiÁıes suaves na geometria vizinha durante a operaÁ„o de qualquer ferramenta v·lida. O tipo de magneto e raio de influÍncia permitem opÁıes adicionais de controle."},
-    {14,"OperaÁıes de vetor e magneto podem ser combinadas."},
-    {15,"Com os menus avanÁados ligados, muitos comandos fazem coisas diferentes dependendo de qual bot„o do mouse vocÍ usar para cham·-los."},
-    {16,"Por exemplo, um clique do Bot„o Direito no comando Girar permite que vocÍ especifique um eixo (ou vetor) em torno do qual girar sua seleÁ„o, enquando que um clique do Bot„o do Meio permite que vocÍ defina um eixo - e um novo ponto atravÈs do qual aquele eixo passar·. (Um vetor n„o tem que ser paralelo a um eixo x, y ou z.)"},
-    {17,"Ler os item na linha de informaÁ„o embaixo da janela do Wings È recomend·vel quando estiver usando menus avanÁados."}
+    {11,"Levantar/Al√ßar"},
+    {12,"Opera√ß√µes baseadas em vetor: significa especificar um eixo (ou vetor) e ser capaz de relocaliz√°-lo para que ele passe por um novo ponto."},
+    {13,"Opera√ß√µes com magneto: Uma facilidade que permite conseguir modifica√ß√µes/transi√ß√µes suaves na geometria vizinha durante a opera√ß√£o de qualquer ferramenta v√°lida. O tipo de magneto e raio de influ√™ncia permitem op√ß√µes adicionais de controle."},
+    {14,"Opera√ß√µes de vetor e magneto podem ser combinadas."},
+    {15,"Com os menus avan√ßados ligados, muitos comandos fazem coisas diferentes dependendo de qual bot√£o do mouse voc√™ usar para cham√°-los."},
+    {16,"Por exemplo, um clique do Bot√£o Direito no comando Girar permite que voc√™ especifique um eixo (ou vetor) em torno do qual girar sua sele√ß√£o, enquando que um clique do Bot√£o do Meio permite que voc√™ defina um eixo - e um novo ponto atrav√©s do qual aquele eixo passar√°. (Um vetor n√£o tem que ser paralelo a um eixo x, y ou z.)"},
+    {17,"Ler os item na linha de informa√ß√£o embaixo da janela do Wings √© recomend√°vel quando estiver usando menus avan√ßados."}
    ]},
   {def_commands,
    [
-    {1,"Na caixa de di·logo "},
-    {4," , vocÍ pode ativar \"Comandos Padr„o\"."},
-    {5,"Dois comandos padr„o podem ser definidos. Para savar o ˙ltimo comando executado, use um desses procedimentos:"},
+    {1,"Na caixa de di√°logo "},
+    {4," , voc√™ pode ativar \"Comandos Padr√£o\"."},
+    {5,"Dois comandos padr√£o podem ser definidos. Para savar o √∫ltimo comando executado, use um desses procedimentos:"},
     {8,"Para usar um comando que foi definido dessa maneira, use um desses procedimentos:"},
-    {11,"Nota: Quando usar o modo de c‚mera "},
+    {11,"Nota: Quando usar o modo de c√¢mera "},
     {13," ou "},
-    {15," , o segundo comando padr„o n„o pode ser usado."}
+    {15," , o segundo comando padr√£o n√£o pode ser usado."}
    ]},
   {def_hotkeys,
    [
-    {1,"Qualquer comando que apareÁa em um menu pode ser atribuÌdo a um atalho de teclado."},
-    {2,"Para atribuir um atalho a um comando, abra o menu contendo o comando. Com o comando realÁado, tecle [Insert] ou a tecla [/], e ent„o pressione a tecla ‡ qual vocÍ deseja atribuir o comando."},
+    {1,"Qualquer comando que apare√ßa em um menu pode ser atribu√≠do a um atalho de teclado."},
+    {2,"Para atribuir um atalho a um comando, abra o menu contendo o comando. Com o comando real√ßado, tecle [Insert] ou a tecla [/], e ent√£o pressione a tecla √† qual voc√™ deseja atribuir o comando."},
     {3,"Para apagar um atalho, do mesmo modo realce o comando em um menu, e pressione a tecla [Del} ou {\\}."}
    ]},
   {edit_prefs,
    [
     {1,"Editar"},
-    {2,"PreferÍncias"}
+    {2,"Prefer√™ncias"}
    ]},
   {getting_started,
    [
-    {1,"Enquanto vocÍ aprende Wings, mantenha um olho na linha de informaÁ„o embaixo da tela. Geralmente ela mostra o que os botıes do mouse podem fazer naquele momento especÌfico."},
-    {2,"As aÁıes para os botıes do mouse s„o denominadas: "},
-    {7,"Geralmente, o Bot„o Esquerdo È usado para seleÁ„o e confirmaÁ„o, o Bot„o do Meio para operar a c‚mera, e o Bot„o Direito para acessar os menus pop-up sensÌveis ao contexto."},
-    {left_def,"Bot„o Esquerdo"},
-    {middle_def,"Bot„o do Meio ou Bot„o de Rolagem"},
-    {right_def,"Bot„o Direito"},
+    {1,"Enquanto voc√™ aprende Wings, mantenha um olho na linha de informa√ß√£o embaixo da tela. Geralmente ela mostra o que os bot√µes do mouse podem fazer naquele momento espec√≠fico."},
+    {2,"As a√ß√µes para os bot√µes do mouse s√£o denominadas: "},
+    {7,"Geralmente, o Bot√£o Esquerdo √© usado para sele√ß√£o e confirma√ß√£o, o Bot√£o do Meio para operar a c√¢mera, e o Bot√£o Direito para acessar os menus pop-up sens√≠veis ao contexto."},
+    {left_def,"Bot√£o Esquerdo"},
+    {middle_def,"Bot√£o do Meio ou Bot√£o de Rolagem"},
+    {right_def,"Bot√£o Direito"},
     {two_a,"seguido por qualquer tecla de atalho."}
    ]},
   {header,
    [
-    {1,"ComeÁando"},
-    {2,"Usando um Mouse com Um ou Dois Botıes"},
-    {3,"Teclados FrancÍs e Alem„o"},
+    {1,"Come√ßando"},
+    {2,"Usando um Mouse com Um ou Dois Bot√µes"},
+    {3,"Teclados Franc√™s e Alem√£o"},
     {4,"Atalhos Definidos"},
     {5,"Como Definir Atalhos"},
-    {6,"Luz: o B·sico"},
-    {7,"Menus AvanÁados"},
-    {8,"Comandos Padr„o"},
+    {6,"Luz: o B√°sico"},
+    {7,"Menus Avan√ßados"},
+    {8,"Comandos Padr√£o"},
     {9,"Dicas de Performance"},
-    {10,"InformaÁ„o sobre OpenGL"},
+    {10,"Informa√ß√£o sobre OpenGL"},
     {11,"Sobre o Wings 3D"}
    ]},
   {help_window,
    [
-    {1,"N„o h· texto de ajuda"}
+    {1,"N√£o h√° texto de ajuda"}
    ]},
   {international,
    [
-    {1,"Infelizmente, nos teclados FrancÍs e Alem„o (e possivelmente outros), os comandos Desfazer/Repetir n„o ser„o definidos pela tecla [Z]. (Isso poder· ser alterado em uma futura vers„o do Wings.)"},
-    {2,"No teclado francÍs, os comandos Desfazer/Repetir est„o associados ‡ tecla [W] ([Ctrl]+[W], [Ctrl]+[Alt]+[W] etc)."},
-    {3,"No teclado alem„o, os comandos Desfazer/Repetir est„o associados ‡ tecla [Y] ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] etc)."}
+    {1,"Infelizmente, nos teclados Franc√™s e Alem√£o (e possivelmente outros), os comandos Desfazer/Repetir n√£o ser√£o definidos pela tecla [Z]. (Isso poder√° ser alterado em uma futura vers√£o do Wings.)"},
+    {2,"No teclado franc√™s, os comandos Desfazer/Repetir est√£o associados √† tecla [W] ([Ctrl]+[W], [Ctrl]+[Alt]+[W] etc)."},
+    {3,"No teclado alem√£o, os comandos Desfazer/Repetir est√£o associados √† tecla [Y] ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] etc)."}
    ]},
   {lights,
    [
-    {1,"1. Crie luzes usando o comando Luz no menu de elementos b·sicos (Bot„o Direito quando nada estiver selecionado)."},
-    {2,"2. Selecione uma luz clicando nela com o Bot„o Esquerdo. Quando uma luz estiver selecionada, um menu especial de Luz pode ser aberto com o Bot„o Direito."},
-    {3,"3. Para instruir ao Wings a exibir a cena sob as luzes que vocÍ criou, use o comando "},
+    {1,"1. Crie luzes usando o comando Luz no menu de elementos b√°sicos (Bot√£o Direito quando nada estiver selecionado)."},
+    {2,"2. Selecione uma luz clicando nela com o Bot√£o Esquerdo. Quando uma luz estiver selecionada, um menu especial de Luz pode ser aberto com o Bot√£o Direito."},
+    {3,"3. Para instruir ao Wings a exibir a cena sob as luzes que voc√™ criou, use o comando "},
     {4,"Visualizar"},
     {5,"Luzes da Cena"},
     {6,"."}
@@ -1826,8 +1826,8 @@
    [
     {1,"Observe que somente os modos "},
     {2," e "},
-    {3," podem ser usados com um mouse de dois botıes. Somente o modo "},
-    {4," pode ser usado com um mouse de um bot„o."}
+    {3," podem ser usados com um mouse de dois bot√µes. Somente o modo "},
+    {4," pode ser usado com um mouse de um bot√£o."}
    ]},
   {opengl_info,
    [
@@ -1878,43 +1878,43 @@
    ]},
   {performance_tips,
    [
-    {1,"O desempenho do Wings depende de v·rias coisas diferentes, como"},
+    {1,"O desempenho do Wings depende de v√°rias coisas diferentes, como"},
     {2,"a velocidade da CPU"},
     {3,"tipo e tamanho do cache da CPU"},
-    {4,"quantidade e velocidade da memÛria"},
-    {5,"tipo de placa de vÌdeo"},
-    {6,"quantidade de memÛria de vÌdeo"},
+    {4,"quantidade e velocidade da mem√≥ria"},
+    {5,"tipo de placa de v√≠deo"},
+    {6,"quantidade de mem√≥ria de v√≠deo"},
     {7,"a fase da lua"},
-    {8,"Entretanto, È difÌcil dar algum conselho sobre como aumentar o desempenho do Wings. As dicas seguintes PODEM TALVEZ melhorar o desempenho:"},
-    {9,"Tente diferentes n˙meros de cores e diferentes resoluÁıes de tela. Especialmente se a plca de vÌdeo n„o tem muita memÛria, muitas cores e/ou altas resoluÁıes podem reduzir drasticamente o desempenho. Usando um janela menor do Wings (n„o maximizada) pode tambÈm ajudar."},
-    {10,"Feche janelas desnecess·rias dentro do Wings."},
-    {11,"Assegure-se de que Janelas de Geometria n„o ir„o se superpor."},
-    {12,"Use o menor n˙mero possÌvel de luzes ativas. Mais luzes significa menos velocidade na maioria das placas gr·ficas."},
-    {13,"Se possÌvel, use o comando "},
+    {8,"Entretanto, √© dif√≠cil dar algum conselho sobre como aumentar o desempenho do Wings. As dicas seguintes PODEM TALVEZ melhorar o desempenho:"},
+    {9,"Tente diferentes n√∫meros de cores e diferentes resolu√ß√µes de tela. Especialmente se a plca de v√≠deo n√£o tem muita mem√≥ria, muitas cores e/ou altas resolu√ß√µes podem reduzir drasticamente o desempenho. Usando um janela menor do Wings (n√£o maximizada) pode tamb√©m ajudar."},
+    {10,"Feche janelas desnecess√°rias dentro do Wings."},
+    {11,"Assegure-se de que Janelas de Geometria n√£o ir√£o se superpor."},
+    {12,"Use o menor n√∫mero poss√≠vel de luzes ativas. Mais luzes significa menos velocidade na maioria das placas gr√°ficas."},
+    {13,"Se poss√≠vel, use o comando "},
     {14,"Ferramentas"},
     {15,"Espelhamento"},
     {16,"."},
-    {17,"Esconda os modelos com os quais vocÍ n„o estiver trabalhando no momento."},
+    {17,"Esconda os modelos com os quais voc√™ n√£o estiver trabalhando no momento."},
     {18,"Use o comando "},
     {19,"Visualizar"},
     {20,"Exibir Cores"},
-    {21," para desligar a visualizaÁ„o dos vÈrtices coloridos se seu modelo usa esse recurso."},
+    {21," para desligar a visualiza√ß√£o dos v√©rtices coloridos se seu modelo usa esse recurso."},
     {22,"Use o comando "},
     {23,"Visualizar"},
     {24,"Exibir Texturas"},
     {25," para desligar as textura durante a modelagem."},
     {26,"Trabalhe no modo aramado."},
-    {27,"Algumas placas gr·ficas exibemm as arestas com lentid„o. Desligue a visualizaÁ„o das arestas usando o comando "},
+    {27,"Algumas placas gr√°ficas exibemm as arestas com lentid√£o. Desligue a visualiza√ß√£o das arestas usando o comando "},
     {28,"Visualizar"},
     {29,"Exibir Arestas"},
     {30,"."}
    ]},
   {splash_contents,
    [
-    {1,"Wings 3D È um modelador por subdivis„o inspirado"},
+    {1,"Wings 3D √© um modelador por subdivis√£o inspirado"},
     {2,"pelo Nendo e Mirai da IZware."},
     {3,"Wings 3D vem com absolutamente nenhuma garantia,"},
-    {4,"mas È completamente livre para qualquer tipo de uso"},
+    {4,"mas √© completamente livre para qualquer tipo de uso"},
     {5,"(inclusive comercial)."},
     {6,"Copyright"},
     {7,"& Outros"},
@@ -1922,7 +1922,7 @@
    ]},
   {use_one_or_two,
    [
-    {1,"Para usar mouses com somente um ou dois botıes, vocÍ deve informar ao Wings quantos botıes o seu mouse tem na caixa de di·logo "},
+    {1,"Para usar mouses com somente um ou dois bot√µes, voc√™ deve informar ao Wings quantos bot√µes o seu mouse tem na caixa de di√°logo "},
     {2," ."}
    ]}
  ]}.
@@ -1936,8 +1936,8 @@
    [
     {1,"Falha ao reverter: "},
     {2,"Exportar"},
-    {3,"Exporta a seleÁ„o"},
-    {4,"VocÍ quer salvar suas alteraÁıes antes de sair?"},
+    {3,"Exporta a sele√ß√£o"},
+    {4,"Voc√™ quer salvar suas altera√ß√µes antes de sair?"},
     {5,"Esse arquivo foi movido ou apagado."}
    ]},
   {confirmed_open,
@@ -2020,16 +2020,16 @@
    ]},
   {save_selected,
    [
-    {1,"Esse comando exige uma seleÁ„o."},
+    {1,"Esse comando exige uma sele√ß√£o."},
     {2,"Salvar o selecionado"}
    ]},
   {str_save_changes,
    [
-    {1,"VocÍ deseja salvar as alteraÁıes feitas?"}
+    {1,"Voc√™ deseja salvar as altera√ß√µes feitas?"}
    ]},
   {use_autosave_1,
    [
-    {1,"Existe um arquivo gerado por auto-salvamento um pouco mais recente; deseja carreg·-lo ao invÈs do arquivo salvo?"}
+    {1,"Existe um arquivo gerado por auto-salvamento um pouco mais recente; deseja carreg√°-lo ao inv√©s do arquivo salvo?"}
    ]},
   {wings_prop,
    [
@@ -2054,12 +2054,12 @@
    ]},
   {import_1,
    [
-    {1,"convertendo bin·rio"},
-    {2,"Formato Wings Pre-0.80 n„o È mais suportado."},
-    {3,"Formato Wings Pre-0.92 n„o È mais suportado."},
+    {1,"convertendo bin√°rio"},
+    {2,"Formato Wings Pre-0.80 n√£o √© mais suportado."},
+    {3,"Formato Wings Pre-0.92 n√£o √© mais suportado."},
     {4,"Formato desconhecido do wings"},
     {5,"Arquivo Wings corrompido"},
-    {6,"n„o È um arquivo Wings (ou È um formato antigo do Wings)"}
+    {6,"n√£o √© um arquivo Wings (ou √© um formato antigo do Wings)"}
    ]},
   {import_image,
    [
@@ -2072,7 +2072,7 @@
    ]},
   {import_props,
    [
-    {1,"<SeleÁ„o armazenada>"}
+    {1,"<Sele√ß√£o armazenada>"}
    ]},
   {import_vsn2,
    [
@@ -2081,7 +2081,7 @@
    ]},
   {translate_map_images_2,
    [
-    {1,"Material ~p, ~p textura: referÍncia a uma imagem inexistente ~p\n"}
+    {1,"Material ~p, ~p textura: refer√™ncia a uma imagem inexistente ~p\n"}
    ]}
  ]}.
 {wings_ff_ndo,
@@ -2089,7 +2089,7 @@
   {check_size,
    [
     {1,"Objeto \""},
-    {2,"\" n„o pode ser exportado "},
+    {2,"\" n√£o pode ser exportado "},
     {3,"para o formato Nendo (muitas arestas)."}
    ]},
   {clean_bad_edges,
@@ -2098,8 +2098,8 @@
    ]},
   {import,
    [
-    {1,"Arquivos Nendo 1.0 n„o s„o suportados"},
-    {2,"n„o È um arquivo Nendo"}
+    {1,"Arquivos Nendo 1.0 n√£o s√£o suportados"},
+    {2,"n√£o √© um arquivo Nendo"}
    ]},
   {import_1,
    [
@@ -2120,7 +2120,7 @@
    ]},
   {read_vertices,
    [
-    {1," vÈrtices ~w\n"}
+    {1," v√©rtices ~w\n"}
    ]},
   {skip_faces,
    [
@@ -2131,9 +2131,9 @@
  [
   {bridge,
    [
-    {1,"As faces devem ter o mesmo n˙mero de vÈrtices."},
-    {2,"As faces n„o podem estar apontadas para a mesma direÁ„o."},
-    {3,"As faces n„o podem ser vizinhas."}
+    {1,"As faces devem ter o mesmo n√∫mero de v√©rtices."},
+    {2,"As faces n√£o podem estar apontadas para a mesma dire√ß√£o."},
+    {3,"As faces n√£o podem ser vizinhas."}
    ]},
   {bridge_error,
    [
@@ -2145,37 +2145,37 @@
    ]},
   {clone_on_selection,
    [
-    {1,"Selecione os elementos-alvo onde dever„o ser colocados os clones"}
+    {1,"Selecione os elementos-alvo onde dever√£o ser colocados os clones"}
    ]},
   {lift_check_selection,
    [
-    {1,"As seleÁıes de face e aresta n„o correspondem."},
-    {2,"As seleÁıes de face e vÈrtice n„o correspondem."}
+    {1,"As sele√ß√µes de face e aresta n√£o correspondem."},
+    {2,"As sele√ß√µes de face e v√©rtice n√£o correspondem."}
    ]},
   {lift_fun,
    [
-    {1,"AlÁar, girando uma face ao redor de uma aresta ou vÈrtice"},
-    {2,"AlÁar nas direÁıes padr„o"}
+    {1,"Al√ßar, girando uma face ao redor de uma aresta ou v√©rtice"},
+    {2,"Al√ßar nas dire√ß√µes padr√£o"}
    ]},
   {lift_sel_mismatch,
    [
-    {1,"As seleÁıes de face e aresta n„o correspondem."}
+    {1,"As sele√ß√µes de face e aresta n√£o correspondem."}
    ]},
   {lift_selection,
    [
-    {1,"Selecione a aresta ou vÈrtice para funcionar como dobradiÁa"}
+    {1,"Selecione a aresta ou v√©rtice para funcionar como dobradi√ßa"}
    ]},
   {lift_vtx_sel_mismatch,
    [
-    {1,"As seleÁıes de face e vÈrtice n„o correspondem."}
+    {1,"As sele√ß√µes de face e v√©rtice n√£o correspondem."}
    ]},
   {menu,
    [
-    {1,"OperaÁıes com faces"},
-    {2,"PosiÁ„o"},
+    {1,"Opera√ß√µes com faces"},
+    {2,"Posi√ß√£o"},
     {3,"Projetar"},
-    {4,"Projetar uma Regi„o"},
-    {5,"Extrair Regi„o"},
+    {4,"Projetar uma Regi√£o"},
+    {5,"Extrair Regi√£o"},
     {6,"Inserir"},
     {7,"Insere uma face no lado de dentro da face selecionada"},
     {8,"Furar"},
@@ -2183,10 +2183,10 @@
     {10,"Chanfrar/abaular"},
     {11,"Arredonda as arestas das faces selecionadas"},
     {12,"Ligar"},
-    {13,"Cria uma ponte ou t˙nel entre duas faces"},
+    {13,"Cria uma ponte ou t√∫nel entre duas faces"},
     {14,"Amassar/Estufar"},
-    {15,"Cria uma protuber‚ncia com as faces selecionadas"},
-    {16,"Levantar/AlÁar"},
+    {15,"Cria uma protuber√¢ncia com as faces selecionadas"},
+    {16,"Levantar/Al√ßar"},
     {17,"Encostar"},
     {18,"Move e roda o objeto, alinhando a face selecionada com outro elemento"},
     {19,"Clona um objeto em um ou mais elementos"},
@@ -2196,12 +2196,12 @@
     {23,"Dissolver"},
     {24,"Elimina todas as arestas entre as faces selecionadas"},
     {25,"Colapsar"},
-    {26,"Apaga as faces, substituindo-as com vÈrtices"},
+    {26,"Apaga as faces, substituindo-as com v√©rtices"},
     {27,"Subdividir"},
-    {28,"Subdivide as faces selecionadas para suaviz·-las (Catmull-Clark)"},
+    {28,"Subdivide as faces selecionadas para suaviz√°-las (Catmull-Clark)"},
     {29,"Tecer"},
-    {30,"Cor de vÈrtice"},
-    {31,"Aplica cores de vÈrtice ‡s faces selecionadas"},
+    {30,"Cor de v√©rtice"},
+    {31,"Aplica cores de v√©rtice √†s faces selecionadas"},
     {32,"Esconder"},
     {33,"Esconde as faces selecionadas"}
    ]},
@@ -2211,7 +2211,7 @@
    ]},
   {put_on_check_selection,
    [
-    {1,"A seleÁ„o n„o deve ser no mesmo objeto."},
+    {1,"A sele√ß√£o n√£o deve ser no mesmo objeto."},
     {2,"Selecione somente um elemento."}
    ]},
   {put_on_selection,
@@ -2224,7 +2224,7 @@
    ]},
   {unify_modes,
    [
-    {1,"Um objeto com vÈrtices coloridos n„o pode ser ligado a um objeto com materiais."}
+    {1,"Um objeto com v√©rtices coloridos n√£o pode ser ligado a um objeto com materiais."}
    ]}
  ]}.
 {wings_extrude_edge,
@@ -2235,7 +2235,7 @@
    ]},
   {extrude_problem,
    [
-    {1,"ImpossÌvel Projetar/Chanfrar; dois ou mais vÈrtices est„o provavelmente muito prÛximos um do outro.\Tente o comando Limpar."}
+    {1,"Imposs√≠vel Projetar/Chanfrar; dois ou mais v√©rtices est√£o provavelmente muito pr√≥ximos um do outro.\Tente o comando Limpar."}
    ]}
  ]}.
 {wings_export,
@@ -2268,20 +2268,20 @@
   {cut_fun,
    [
     {1,"Corta em arestas do mesmo comprimento"},
-    {2,"Corta numa posiÁ„o arbitr·ria"}
+    {2,"Corta numa posi√ß√£o arbitr√°ria"}
    ]},
   {cut_pick_error,
    [
-    {1,"Somente uma aresta pode ser cortada numa posiÁ„o arbitr·ria."}
+    {1,"Somente uma aresta pode ser cortada numa posi√ß√£o arbitr√°ria."}
    ]},
   {loop_cut,
    [
-    {1,"A seq¸Íncia de arestas n„o divide ~p  em duas (ou mais) partes."}
+    {1,"A seq√º√™ncia de arestas n√£o divide ~p  em duas (ou mais) partes."}
    ]},
   {menu,
    [
-    {1,"OperaÁ„o com arestas"},
-    {2,"PosiÁ„o"},
+    {1,"Opera√ß√£o com arestas"},
+    {2,"Posi√ß√£o"},
     {3,"Deslizar"},
     {4,"Desliza arestas ao longo das arestas vizinhas"},
     {5,"Projetar"},
@@ -2292,16 +2292,16 @@
     {10,"Dissolver"},
     {11,"Elimina as arestas selecionadas"},
     {12,"Colapsar"},
-    {13,"Apaga arestas, substituindo-as por vÈrtices"},
+    {13,"Apaga arestas, substituindo-as por v√©rtices"},
     {14,"Aspecto da aresta"},
     {15,"Suave"},
-    {16,"RÌgida"},
-    {17,"Cortar ao longo da seq¸Íncia"},
-    {18,"Corta um objeto em dois usando uma seq¸Íncia de arestas"},
-    {19,"VÈrtice colorido"},
-    {20,"Aplica cores de vÈrtice ‡s arestas selecionadas"},
-    {50,"Elimina as arestas selecionadas e remove os vÈrtices isolados remanescentes"},
-    {23,"Estabelece um limitador padr„o de dist‚ncia/rotaÁ„o para as teclas de modificaÁ„o pressionadas."},
+    {16,"R√≠gida"},
+    {17,"Cortar ao longo da seq√º√™ncia"},
+    {18,"Corta um objeto em dois usando uma seq√º√™ncia de arestas"},
+    {19,"V√©rtice colorido"},
+    {20,"Aplica cores de v√©rtice √†s arestas selecionadas"},
+    {50,"Elimina as arestas selecionadas e remove os v√©rtices isolados remanescentes"},
+    {23,"Estabelece um limitador padr√£o de dist√¢ncia/rota√ß√£o para as teclas de modifica√ß√£o pressionadas."},
     {22,"Cria um limitador"}
    ]},
   {set_edge_constraint,
@@ -2316,7 +2316,7 @@
   {cut_ask_entry,
    [
     {1,"Divide em <N> segmentos"},
-    {2,"Digite um n˙mero..."}
+    {2,"Digite um n√∫mero..."}
    ]},
   {command,
    [
@@ -2326,10 +2326,10 @@
    [
     {1,"Absoluto"},
     {2,"Relativo"},
-    {3,"Congela a direÁ„o"},
-    {4,"Descongela a direÁ„o"},
-    {5,"P·ra nas outras arestas"},
-    {6,"Continua alÈm das outras arestas"}
+    {3,"Congela a dire√ß√£o"},
+    {4,"Descongela a dire√ß√£o"},
+    {5,"P√°ra nas outras arestas"},
+    {6,"Continua al√©m das outras arestas"}
    ]}
  ]}.
 {wings_dissolve,
@@ -2343,7 +2343,7 @@
  [
   {help_message,
    [
-    {1,"Entrada numÈrica"}
+    {1,"Entrada num√©rica"}
    ]},
   {make_query_1,
    [
@@ -2351,7 +2351,7 @@
    ]},
   {numeric_input,
    [
-    {1,"Entrada de n˙meros"}
+    {1,"Entrada de n√∫meros"}
    ]},
   {qstr,
    [
@@ -2370,7 +2370,7 @@
   {zmove_help,
    [
     {1,"Arraste o mouse para mover ao longo do eixo Z"},
-    {2,"Arraste o mouse para ajustar o terceiro par‚metro"}
+    {2,"Arraste o mouse para ajustar o terceiro par√¢metro"}
    ]}
  ]}.
 {wings_deform,
@@ -2378,20 +2378,20 @@
   {check_range,
    [
     {1,"Estende ao longo "},
-    {2,"eixo È muito curto."}
+    {2,"eixo √© muito curto."}
    ]},
   {crumple_dirs,
    [
-    {1,"AleatÛrio"},
-    {2,"uma direÁ„o aleatÛria"},
+    {1,"Aleat√≥rio"},
+    {2,"uma dire√ß√£o aleat√≥ria"},
     {4,"sua perpendicular"},
-    {8,"Move cada vÈrtice aleatoriamente ao longo de"}
+    {8,"Move cada v√©rtice aleatoriamente ao longo de"}
    ]},
   {dir,
    [
-    {1,"Torce os vÈrtices selecionados ao redor do eixo "},
-    {2," passando atravÈs do centro da seleÁ„o"},
-    {3," passando atravÈs da origem"}
+    {1,"Torce os v√©rtices selecionados ao redor do eixo "},
+    {2," passando atrav√©s do centro da sele√ß√£o"},
+    {3," passando atrav√©s da origem"}
    ]},
   {inflate_fun,
    [
@@ -2405,7 +2405,7 @@
     {1,"Inflar elementos"},
     {2,"Escolha o centro e o raio"},
     {3,"Amarrotar"},
-    {4,"Move os vÈrtices aleatoriamente"},
+    {4,"Move os v√©rtices aleatoriamente"},
     {5,"Inflar"},
     {6,"Afinar"},
     {7,"Torcer"},
@@ -2417,8 +2417,8 @@
     {2," (com efeito sobre "},
     {3,")"},
     {4,"Escolha o eixo para o efeito"},
-    {5,"Escolha a localizaÁ„o do centro do eixo"},
-    {6,"Escolha a origem da operaÁ„o de afinar"},
+    {5,"Escolha a localiza√ß√£o do centro do eixo"},
+    {6,"Escolha a origem da opera√ß√£o de afinar"},
     {7,"Efeito sobre "}
    ]}
  ]}.
@@ -2460,7 +2460,7 @@
    ]},
   {check_vertices_1,
    [
-    {1,"Este vÈrtice n„o pode ser colapsado"},
+    {1,"Este v√©rtice n√£o pode ser colapsado"},
     {2,"would leave waist.\n"}
    ]}
  ]}.
@@ -2470,7 +2470,7 @@
    [
     {1,"Um"},
     {2,"Dois"},
-    {3,"TrÍs"}
+    {3,"Tr√™s"}
    ]},
   {help,
    [
@@ -2478,12 +2478,12 @@
    ]},
   {info,
    [
-    {1,"Nota: Somente o modo de c‚mera Nendo pode ser usado com um mouse de um bot„o"},
-    {2,"Nota: Somento os modos de c‚mera Nendo e Blender podem ser usados com um mouse de 2 botıes"},
-    {3,"Nota: O modo de c‚mera "},
-    {4," exige pelo menos um mouse de dois botıes"},
-    {5,"Nota: o modo de c‚mera "},
-    {6," exige 3 botıes de mouse"}
+    {1,"Nota: Somente o modo de c√¢mera Nendo pode ser usado com um mouse de um bot√£o"},
+    {2,"Nota: Somento os modos de c√¢mera Nendo e Blender podem ser usados com um mouse de 2 bot√µes"},
+    {3,"Nota: O modo de c√¢mera "},
+    {4," exige pelo menos um mouse de dois bot√µes"},
+    {5,"Nota: o modo de c√¢mera "},
+    {6," exige 3 bot√µes de mouse"}
    ]},
   {message,
    [
@@ -2502,14 +2502,14 @@
    ]},
   {prefs,
    [
-    {1,"Botıes de Mouse"},
-    {2,"Modo da C‚mera"},
+    {1,"Bot√µes de Mouse"},
+    {2,"Modo da C√¢mera"},
     {3,"Velocidade da Pan"},
-    {4,"Bot„o de aproximaÁ„o/afastamento"},
+    {4,"Bot√£o de aproxima√ß√£o/afastamento"},
     {5,"Rolar para frente aproxima"},
     {6,"Rolar para frente afasta"},
-    {7,"Fator de AproximaÁ„o"},
-    {9,"Bot„o de Rolagem"},
+    {7,"Fator de Aproxima√ß√£o"},
+    {9,"Bot√£o de Rolagem"},
     {10,"Alterna o Fator de Zoom(Alt+Scroll)"}
    ]}
  ]}.
@@ -2517,35 +2517,35 @@
  [
   {arealight_conv,
    [
-    {1,"¡rea de Luz para Objeto"},
-    {2,"Converte as ·reas de luz selecionadas em objetos"},
-    {3,"Objeto para ¡rea de Luz"},
-    {4,"Converte os objetos selecionados em ·reas de luz"}
+    {1,"√Årea de Luz para Objeto"},
+    {2,"Converte as √°reas de luz selecionadas em objetos"},
+    {3,"Objeto para √Årea de Luz"},
+    {4,"Converte os objetos selecionados em √°reas de luz"}
    ]},
   {auto_smooth,
    [
-    {1,"Par‚metros de auto-suavizaÁ„o"},
-    {2,"¬ngulo agudo"}
+    {1,"Par√¢metros de auto-suaviza√ß√£o"},
+    {2,"√Çngulo agudo"}
    ]},
   {clean_isolated_vertices,
    [
-    {1,"Removido um vÈrtice isolado\n"},
-    {2,"Removidos ~p vÈrtices isolados\n"}
+    {1,"Removido um v√©rtice isolado\n"},
+    {2,"Removidos ~p v√©rtices isolados\n"}
    ]},
   {cleanup,
    [
     {1,"Arestas curtas"},
-    {2,"Toler‚ncia de comprimento"},
-    {3,"VÈrtices isolados"},
+    {2,"Toler√¢ncia de comprimento"},
+    {3,"V√©rtices isolados"},
     {4,"Limpar"}
    ]},
   {cleanup_rep_1,
    [
-    {1,"VÈrtice ~p repetido na face ~p\n"}
+    {1,"V√©rtice ~p repetido na face ~p\n"}
    ]},
   {cleanup_waists_1,
    [
-    {1,"Removido vÈrtice perdido: ~p\n"}
+    {1,"Removido v√©rtice perdido: ~p\n"}
    ]},
   {color_material,
    [
@@ -2559,32 +2559,32 @@
   {mat_col_conv,
    [
     {1,"Cores para Materiais"},
-    {2,"Converte vÈrtices coloridos em materiais"},
+    {2,"Converte v√©rtices coloridos em materiais"},
     {3,"Materiais para Cores"},
-    {4,"Converte materiais em vÈrtices coloridos"}
+    {4,"Converte materiais em v√©rtices coloridos"}
    ]},
   {menu,
    [
-    {1,"OperaÁıes com Objeto"},
-    {2,"PosiÁ„o"},
+    {1,"Opera√ß√µes com Objeto"},
+    {2,"Posi√ß√£o"},
     {3,"Virar"},
     {5,"Gira um objeto em um sentido"},
     {10,"Inverter"},
     {11,"Inverte todas as perpendiculares, virando o objeto pelo avesso"},
     {12,"Apertar/Afrouxar"},
-    {13,"Move os vÈrtices selecionados em relaÁ„o ao seu ponto mediano"},
+    {13,"Move os v√©rtices selecionados em rela√ß√£o ao seu ponto mediano"},
     {14,"Subdividir"},
-    {15,"Subdivide todas as faces para dar ao objeto uma aparÍncia suavizada"},
+    {15,"Subdivide todas as faces para dar ao objeto uma apar√™ncia suavizada"},
     {16,"Combinar"},
-    {17,"Combina v·rios objetos em um ˙nico objeto"},
+    {17,"Combina v√°rios objetos em um √∫nico objeto"},
     {18,"Separar"},
     {19,"Separa objetos combinados em seus componentes"},
     {20,"Soldar"},
-    {21,"Funde um par de faces que est„o quase coincidentes"},
+    {21,"Funde um par de faces que est√£o quase coincidentes"},
     {22,"Limpar"},
-    {23,"Remove os vÈrtices isolados e/ou as arestas muito pequenas"},
+    {23,"Remove os v√©rtices isolados e/ou as arestas muito pequenas"},
     {24,"Auto-Suavizar"},
-    {25,"Estabelece arestas rÌgidas ou suaves dependendo do ‚ngulo entre as faces"},
+    {25,"Estabelece arestas r√≠gidas ou suaves dependendo do √¢ngulo entre as faces"},
     {26,"Duplicar"},
     {27,"Apagar"},
     {28,"Apaga os objetos selecionados"},
@@ -2595,10 +2595,10 @@
    ]},
   {mode_conv,
    [
-    {1,"Modo Cor de VÈrtice"},
-    {2,"Muda do Modo Objeto para o Modo Cor de VÈrtice (os materiais ser„o mantidos, mas n„o mostrados)"},
+    {1,"Modo Cor de V√©rtice"},
+    {2,"Muda do Modo Objeto para o Modo Cor de V√©rtice (os materiais ser√£o mantidos, mas n√£o mostrados)"},
     {3,"Modo Material"},
-    {4,"Muda do Modo Objeto para o Modo Material (vÈrtices coloridos ser„o mantidos, mas n„o mostrados)"}
+    {4,"Muda do Modo Objeto para o Modo Material (v√©rtices coloridos ser√£o mantidos, mas n√£o mostrados)"}
    ]},
   {rename_1,
    [
@@ -2606,21 +2606,21 @@
    ]},
   {unify_modes,
    [
-    {1,"Objetos com vÈrtices coloridos n„o podem ser combinados com objetos com materiais."}
+    {1,"Objetos com v√©rtices coloridos n√£o podem ser combinados com objetos com materiais."}
    ]},
   {vertex_color_item,
    [
-    {1,"Cor de vÈrtice"},
-    {2,"Aplica cores aos vÈrtices dos objetos selecionados (mudando primeiro para o modo Cor de vÈrtice, se necess·rio)"}
+    {1,"Cor de v√©rtice"},
+    {2,"Aplica cores aos v√©rtices dos objetos selecionados (mudando primeiro para o modo Cor de v√©rtice, se necess√°rio)"}
    ]},
   {weld,
    [
-    {1,"Toler‚ncia de dist‚ncia"},
+    {1,"Toler√¢ncia de dist√¢ncia"},
     {2,"Soldar"}
    ]},
   {weld_1,
    [
-    {1,"N„o foram encontradas faces para soldar."}
+    {1,"N√£o foram encontradas faces para soldar."}
    ]}
  ]}.
 {wings_ask,
@@ -2644,33 +2644,33 @@
  [
   {cannot_repeat,
    [
-    {1,"ImpossÌvel repetir"}
+    {1,"Imposs√≠vel repetir"}
    ]},
   {crash_handler,
    [
     {1,"Erro interno - arquivo de log foi escrito"},
-    {2,"Clique um bot„o do mouse para continuar trabalhando"},
+    {2,"Clique um bot√£o do mouse para continuar trabalhando"},
     {3,"Continue trabalhando"}
    ]},
   {define_command,
    [
-    {1,"VocÍ deseja definir"},
-    {2,"como um comando padr„o"}
+    {1,"Voc√™ deseja definir"},
+    {2,"como um comando padr√£o"}
    ]},
   {edit_menu,
    [
-    {1,"Apaga o histÛrico de desfazer para recuperar memÛria"},
+    {1,"Apaga o hist√≥rico de desfazer para recuperar mem√≥ria"},
     {3,"Desfazer/Refazer"},
-    {4,"Desfaz ou refaz o ˙ltimo comando"},
+    {4,"Desfaz ou refaz o √∫ltimo comando"},
     {5,"Refazer"},
-    {6,"Refaz o ˙ltimo comando que foi desfeito"},
+    {6,"Refaz o √∫ltimo comando que foi desfeito"},
     {7,"Desfazer"},
-    {8,"Desfaz o ˙ltimo comando"},
+    {8,"Desfaz o √∫ltimo comando"},
     {9,"Repetir"},
     {10,"Repete Args"},
     {11,"Repete Drag"},
-    {12,"PreferÍncias de Plugin"},
-    {13,"Limpar o HistÛrico de Desfazer"}
+    {12,"Prefer√™ncias de Plugin"},
+    {13,"Limpar o Hist√≥rico de Desfazer"}
    ]},
   {geom_title,
    [
@@ -2685,7 +2685,7 @@
    ]},
   {handle_drop_1,
    [
-    {1,"Nada est· selecionado"},
+    {1,"Nada est√° selecionado"},
     {2,"Cancel drop operation"},
     {3,"Aplicar material nas faces selecionadas"},
     {4,"Aplica o material \""},
@@ -2704,16 +2704,16 @@
    ]},
   {info_1,
    [
-    {1,"VÈrtice ~p selecionado"},
-    {2,"VÈrtices"},
-    {3,"~p vÈrtices selecionados"},
+    {1,"V√©rtice ~p selecionado"},
+    {2,"V√©rtices"},
+    {3,"~p v√©rtices selecionados"},
     {4,"Aresta ~p selecionada"},
     {5,"Arestas"},
     {6,"~p arestas selecionadas"},
     {7,"Face ~p selecionada"},
     {8,"Faces"},
     {9,"~p faces selecionadas"},
-    {10,"~p vÈrtices selecionados em ~p objetos"},
+    {10,"~p v√©rtices selecionados em ~p objetos"},
     {11,"~p arestas selecionadas em ~p objetos"},
     {12,"~p faces selecionadas em ~p objetos"}
    ]},
@@ -2733,10 +2733,10 @@
    ]},
   {measure,
    [
-    {1,". PosiÁ„o ~s ~s ~s"},
-    {2,". Dist‚ncia ~s"},
-    {3,". Ponto MÈdio ~s ~s ~s. Comprimento ~s"},
-    {4,". Ponto MÈdio ~s ~s ~s.\nMaterial ~s"}
+    {1,". Posi√ß√£o ~s ~s ~s"},
+    {2,". Dist√¢ncia ~s"},
+    {3,". Ponto M√©dio ~s ~s ~s. Comprimento ~s"},
+    {4,". Ponto M√©dio ~s ~s ~s.\nMaterial ~s"}
    ]},
   {patches,
    [
@@ -2747,13 +2747,13 @@
     {1,"Estados de desfazer: "},
     {2,"Estados de refazer: "},
     {3,"Nada a ser removido"},
-    {4,"Remove todos os estados (n„o È possÌvel desfazer)?"}
+    {4,"Remove todos os estados (n√£o √© poss√≠vel desfazer)?"}
    ]},
   {shape_info,
    [
     {object_info,
-     "Objeto ~p \"~s\" tem ~p polÌgonos, ~p arestas, ~p vÈrtices.\nModo È ~s"},
-    {2,"~p objetos, ~p faces, ~p arestas, ~p vÈrtices"}
+     "Objeto ~p \"~s\" tem ~p pol√≠gonos, ~p arestas, ~p v√©rtices.\nModo √© ~s"},
+    {2,"~p objetos, ~p faces, ~p arestas, ~p v√©rtices"}
    ]},
   {tools_menu,
    [
@@ -2763,57 +2763,57 @@
     {11,"Alterar a Escala para a Caixa-Limite salva"},
     {12,"Alterar a Escala para a Caixa-Limite salva Proporcionalmente"},
     {13,"Mover para a Caixa-Limite Salva"},
-    {14,"Definir Eixo Padr„o"},
-    {15,"Definir e armazenar eixo (com ponto de referÍncia) para uso posterior no "},
-    {16,"comando \"Eixo Padr„o\" (por exemplo, Alterar Escala|eixo padr„o)"},
+    {14,"Definir Eixo Padr√£o"},
+    {15,"Definir e armazenar eixo (com ponto de refer√™ncia) para uso posterior no "},
+    {16,"comando \"Eixo Padr√£o\" (por exemplo, Alterar Escala|eixo padr√£o)"},
     {17,"Espelhamento"},
     {18,"Criar"},
-    {19,"A partir da seleÁ„o de uma face, estabelece um espelhamento do objeto"},
+    {19,"A partir da sele√ß√£o de uma face, estabelece um espelhamento do objeto"},
     {20,"Quebrar"},
     {21,"Remove o Espelhamento de todos os objetos"},
     {22,"Congelar"},
     {23,"Cria uma geometria real a partir do Espelhamento"},
     {24,"Imagem da tela"},
-    {25,"Captura uma imagem da janela (exporta para o Õndice Geral)"},
-    {26,"InformaÁıes da Cena: ¡rea & Volume"},
-    {27,"Calcula a ·rea e volume de cada objeto na cena"},
+    {25,"Captura uma imagem da janela (exporta para o √çndice Geral)"},
+    {26,"Informa√ß√µes da Cena: √Årea & Volume"},
+    {27,"Calcula a √°rea e volume de cada objeto na cena"},
     {28,"Colocar no Solo"},
     {29,"Coloca os objetos selecionados no plano do solo"},
-    {30,"Tornar unit·rio"},
+    {30,"Tornar unit√°rio"},
     {31,"Altera a escala dos objetos selecionados para que caibam dentro de uma esfera de uma unidade e os movem para a origem"}
    ]},
   {object_mode,
    [
     {material,"material"},
-    {vertex,"cor do vÈrtice"}
+    {vertex,"cor do v√©rtice"}
    ]},
   {measure,
    [
-    {40," ¡rea ~s"},
-    {6,". ¬ngulo ~s"},
-    {5,". Dist‚ncia ~s  <~s, ~s, ~s>"}
+    {40," √Årea ~s"},
+    {6,". √Çngulo ~s"},
+    {5,". Dist√¢ncia ~s  <~s, ~s, ~s>"}
    ]},
   {undo_info,
    [
-    {1,"n„o estados de desfazer"},
-    {2,"h· um estado de desfazer"},
-    {3,"h· ~p estados de desfazer"},
-    {4,"; uma operaÁ„o pode ser repetida"},
-    {5,"; ~p operaÁıes podem ser repetidas"}
+    {1,"n√£o estados de desfazer"},
+    {2,"h√° um estado de desfazer"},
+    {3,"h√° ~p estados de desfazer"},
+    {4,"; uma opera√ß√£o pode ser repetida"},
+    {5,"; ~p opera√ß√µes podem ser repetidas"}
    ]},
   {window_menu,
    [
-    {1,"Õndice das Geometrias e Luzes"},
-    {2,"Õndice das Geometrias e Luzes #"},
-    {3,"Õndice Geral"},
-    {4,"Abre a janela do Õndice Geral (mostrando materiais e objetos)"},
-    {5,"Abre uma janela do Õndice das Geometrias e Luzes (mostrando objetos e luzes)"},
+    {1,"√çndice das Geometrias e Luzes"},
+    {2,"√çndice das Geometrias e Luzes #"},
+    {3,"√çndice Geral"},
+    {4,"Abre a janela do √çndice Geral (mostrando materiais e objetos)"},
+    {5,"Abre uma janela do √çndice das Geometrias e Luzes (mostrando objetos e luzes)"},
     {6,"Palheta"},
     {7,"Abre uma janela com a palheta de cores"},
     {8,"Nova Janela de Geometria"},
     {9,"Abre uma nova janela de Geometria"},
     {10,"Console"},
-    {11,"Abre uma janela de console para mensagens de informaÁ„o"}
+    {11,"Abre uma janela de console para mensagens de informa√ß√£o"}
    ]}
  ]}.
 

@@ -1,10 +1,10 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_ncube,
  [
   {make_ncube,
    [
-    {1,"Hyperwürfel Optionen"},
-    {2,"Hyperwürfel"}
+    {1,"HyperwÃ¼rfel Optionen"},
+    {2,"HyperwÃ¼rfel"}
    ]},
   {make_ngon,
    [
@@ -16,11 +16,11 @@
     {1,"Anzahl Schnitte"},
     {2,"Ja"},
     {3,"Nein"},
-    {4,"Sphärisch"}
+    {4,"SphÃ¤risch"}
    ]},
   {ncube_menu,
    [
-    {1,"Hyperwürfel"},
+    {1,"HyperwÃ¼rfel"},
     {2,"Polygon"}
    ]},
   {ngon_dialog,
