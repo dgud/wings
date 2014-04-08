@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_tt,
  [
   {findtab,
@@ -22,7 +22,7 @@
    ]},
   {gettabs,
    [
-    {1,"Tabellenversatz/-grössen falsch"}
+    {1,"Tabellenversatz/-grÃ¶ssen falsch"}
    ]},
   {help_button,
    [
@@ -30,10 +30,10 @@
    ]},
   {help,
    [
-    {1,"Unter Windows können Schriftarten im Verzeichnis 'WINDOWS/Fonts' über die Schaltfläche 'Durchsuchen' nicht ausgewählt werden, da es sich um ein Systemverzeichnis handelt."},
-    {3,"Um trotzdem TrueType Schriftarten zu verwenden, können Sie das Verzeichnis 'WINDOWS/Fonts' kopieren und außerhalb der Systemverzeichnisse ablegen."},
-    {4,"Sie können dann die Kopie des Schriftarten Verzeichnisses über die Schaltfläche 'Durchsuchen' aufrufen und eine Schriftart auswählen."},
-    {5,"Nach der Erzeugung eines 3D Text Objekts aus dem neuen Verzeichnis speichert Wings das Verzeichnis für den nächsten Aufruf."}
+    {1,"Unter Windows kÃ¶nnen Schriftarten im Verzeichnis 'WINDOWS/Fonts' Ã¼ber die SchaltflÃ¤che 'Durchsuchen' nicht ausgewÃ¤hlt werden, da es sich um ein Systemverzeichnis handelt."},
+    {3,"Um trotzdem TrueType Schriftarten zu verwenden, kÃ¶nnen Sie das Verzeichnis 'WINDOWS/Fonts' kopieren und auÃŸerhalb der Systemverzeichnisse ablegen."},
+    {4,"Sie kÃ¶nnen dann die Kopie des Schriftarten Verzeichnisses Ã¼ber die SchaltflÃ¤che 'Durchsuchen' aufrufen und eine Schriftart auswÃ¤hlen."},
+    {5,"Nach der Erzeugung eines 3D Text Objekts aus dem neuen Verzeichnis speichert Wings das Verzeichnis fÃ¼r den nÃ¤chsten Aufruf."}
    ]},
   {make_text,
    [

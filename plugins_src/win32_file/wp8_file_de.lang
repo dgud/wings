@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wp8_file,
  [
   {file_add_all,
@@ -12,7 +12,7 @@
    ]},
   {fileop,
    [
-    {1,"Öffnen"},
+    {1,"Ã–ffnen"},
     {2,"Speichern"}
    ]}
  ]}.

@@ -1,18 +1,18 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_obj,
  [
   {dialog,
    [
     {1,"Um grupo por material"},
-    {2,"Solução provisória para Vue d'Esprit"}
+    {2,"SoluÃ§Ã£o provisÃ³ria para Vue d'Esprit"}
    ]},
   {do_export,
    [
-    {1,"Opções de Exportação de Wavefront"}
+    {1,"OpÃ§Ãµes de ExportaÃ§Ã£o de Wavefront"}
    ]},
   {do_import,
    [
-    {1,"Opções de Importação de Wavefront"}
+    {1,"OpÃ§Ãµes de ImportaÃ§Ã£o de Wavefront"}
    ]},
   {props,
    [

@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_sweep_extrude,
  [
   {axis_menu,
@@ -8,8 +8,8 @@
   {axis_menu_string,
    [
     {1,"Relativ zum Bildschirm frei ausziehen"},
-    {2,"Ohne seitw‰rts Bewegung entlang der Normalen ausziehen "},
-    {3,"Wenn die ~s Achse senkrecht zur Auszieh-Normalen ist, werden alle Bewegungen auf deren radiale Ebene beschr‰nkt. Andernfalls verh‰lt sie sich wie eine off-axis Komponente."}
+    {2,"Ohne seitw√§rts Bewegung entlang der Normalen ausziehen "},
+    {3,"Wenn die ~s Achse senkrecht zur Auszieh-Normalen ist, werden alle Bewegungen auf deren radiale Ebene beschr√§nkt. Andernfalls verh√§lt sie sich wie eine off-axis Komponente."}
    ]},
   {base_help,
    [
@@ -40,16 +40,16 @@
    ]},
   {selection_ask,
    [
-    {1,"Die Wahl einer Achse senkrecht zur Normalen der Extraktion, beschr‰nkt alle Bewegungen auf deren radiale Ebene. Andernfalls verh‰lt sie sich wie eine off-axis Komponente."}
+    {1,"Die Wahl einer Achse senkrecht zur Normalen der Extraktion, beschr√§nkt alle Bewegungen auf deren radiale Ebene. Andernfalls verh√§lt sie sich wie eine off-axis Komponente."}
    ]},
   {sweep_error,
    [
-    {2,"Region ausziehen f¸r vollst‰ndig ausgew‰hlte Objekte nicht mˆglich"}
+    {2,"Region ausziehen f√ºr vollst√§ndig ausgew√§hlte Objekte nicht m√∂glich"}
    ]},
   {sweep_menu,
    [
-    {3,"Achse ausw‰hlen"},
-    {4,"Achse w‰hlen und relativ zum Anteil am Auswahlradius ausziehen"}
+    {3,"Achse ausw√§hlen"},
+    {4,"Achse w√§hlen und relativ zum Anteil am Auswahlradius ausziehen"}
    ]},
   {warp_help,
    [

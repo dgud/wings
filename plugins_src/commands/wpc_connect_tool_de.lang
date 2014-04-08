@@ -1,11 +1,11 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_connect_tool,
  [
   {help,
    [
-    {1,"Knoten auswählen oder Kante schneiden (Maustaste drücken zum gleiten)"},
+    {1,"Knoten auswÃ¤hlen oder Kante schneiden (Maustaste drÃ¼cken zum gleiten)"},
     {2,"Verbinden abbrechen"},
-    {3,"Kanten/Knoten verbinden (zum Beenden letzten Knoten erneut auswählen)"},
+    {3,"Kanten/Knoten verbinden (zum Beenden letzten Knoten erneut auswÃ¤hlen)"},
     {4,"Verbinden abbrechen"}
    ]},
   {lc_help,

@@ -1,10 +1,10 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_rwx,
  [
   {dialog,
    [
     {1,"facettierte Lichtberechnung"},
-    {2,"Dateigröße optimieren?"},
+    {2,"DateigrÃ¶ÃŸe optimieren?"},
     {3,"Umgebung"},
     {4,"Diffus"},
     {5,"Spiegelnd"},

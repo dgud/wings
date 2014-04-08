@@ -1,28 +1,28 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_weld,
  [
   {draw_menu,
    [
     {1,"Verschmelzen"},
-    {2,"Ausgewählte Knoten miteinander verschmelzen (an gemeinsamer Kante)"}
+    {2,"AusgewÃ¤hlte Knoten miteinander verschmelzen (an gemeinsamer Kante)"}
    ]},
   {weld,
    [
-    {1,"Sie können nicht auf der Spiegelfläche verschmelzen"},
+    {1,"Sie kÃ¶nnen nicht auf der SpiegelflÃ¤che verschmelzen"},
     {2,"Objekt muss mindesten 4 Knoten haben"},
-    {3,"Sie können nur einen Knoten verschmelzen"}
+    {3,"Sie kÃ¶nnen nur einen Knoten verschmelzen"}
    ]},
   {weld_check_selection,
    [
     {1,"Ein Knoten kann nicht mit sich selbst verschmolzen werden"},
-    {2,"Zu verschmelzende Knoten müssen eine gemeinsame Kante haben"},
-    {3,"Sie können nur auf einen Punkt verschmelzen"},
+    {2,"Zu verschmelzende Knoten mÃ¼ssen eine gemeinsame Kante haben"},
+    {3,"Sie kÃ¶nnen nur auf einen Punkt verschmelzen"},
     {4,"Keine Auswahl"},
-    {5,"Sie können nur innerhalb des selben Objekts verschmelzen"},
-    {6,"Verschmelzen würde Zwischenstück übrig lassen"}
+    {5,"Sie kÃ¶nnen nur innerhalb des selben Objekts verschmelzen"},
+    {6,"Verschmelzen wÃ¼rde ZwischenstÃ¼ck Ã¼brig lassen"}
    ]},
   {weld_select,
    [
-    {1,"Ziel-Knoten für Verschmelzung auswählen (Knoten müssen eine gemeinsame Kante haben) "}
+    {1,"Ziel-Knoten fÃ¼r Verschmelzung auswÃ¤hlen (Knoten mÃ¼ssen eine gemeinsame Kante haben) "}
    ]}
  ]}.

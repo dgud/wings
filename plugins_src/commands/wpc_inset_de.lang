@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_inset,
  [
   {abs_rel_help,
@@ -8,44 +8,44 @@
    ]},
   {extrude_norm_help1,
    [
-    {1,"Ausbeulen: Flächennormale"},
+    {1,"Ausbeulen: FlÃ¤chennormale"},
     {2,"Ausbeulen: Normale der Region"}
    ]},
   {lmb_help,
    [
-    {1,"Fläche in jede ausgewählte Fläche einsetzen"}
+    {1,"FlÃ¤che in jede ausgewÃ¤hlte FlÃ¤che einsetzen"}
    ]},
   {loop_error_1,
    [
-    {1,"Region einsetzen/versetzen für vollständig ausgewählte Objekte nicht möglich"}
+    {1,"Region einsetzen/versetzen fÃ¼r vollstÃ¤ndig ausgewÃ¤hlte Objekte nicht mÃ¶glich"}
    ]},
   {loop_error_2,
    [
-    {1,"Region versetzen bedingt, das benachbarte Flächen\nmindestens eine gemeinsame Kante haben"}
+    {1,"Region versetzen bedingt, das benachbarte FlÃ¤chen\nmindestens eine gemeinsame Kante haben"}
    ]},
   {mmb_help,
    [
-    {1,"Region versetzen durch erzeugen neuer Kanten um jede Flächengruppenauswahl"}
+    {1,"Region versetzen durch erzeugen neuer Kanten um jede FlÃ¤chengruppenauswahl"}
    ]},
   {mode_help,
    [
-    {1,"Skalieren mit kürzestem Vektor um: "}
+    {1,"Skalieren mit kÃ¼rzestem Vektor um: "}
    ]},
   {rmb_help,
    [
-    {1,"Region einsetzen durch erzeugen neuer Kanten in jeder Flächengruppenauswahl"}
+    {1,"Region einsetzen durch erzeugen neuer Kanten in jeder FlÃ¤chengruppenauswahl"}
    ]},
   {stop_edge_help,
    [
     {1,"Stop am Kantenende"},
-    {2,"Fortsetzen über Kantenende"}
+    {2,"Fortsetzen Ã¼ber Kantenende"}
    ]},
   {string,
    [
     {2,"Entlang der Kanten"},
     {3,"Durchschnitt"},
-    {4,"Körper"},
-    {5,"Fläche"},
+    {4,"KÃ¶rper"},
+    {5,"FlÃ¤che"},
     {6,"Mittelwert entlang Kanten"}
    ]},
   {title,

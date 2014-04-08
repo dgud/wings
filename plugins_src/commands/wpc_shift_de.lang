@@ -1,10 +1,10 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_shift,
  [
   {adv_submenu,
    [
     {1,"Planar versetzen"},
-    {2,"Sph‰risch versetzen"},
+    {2,"Sph√§risch versetzen"},
     {3,"Zylindrisch versetzen"}
    ]},
   {menu_heading,
@@ -13,10 +13,10 @@
    ]},
   {submenu_items,
    [
-    {1,"Achse ausw‰hlen"},
-    {2,"Punkt ausw‰hlen"},
-    {3,"Zentrum ausw‰hlen"},
-    {4,"Achse ausw‰hlen"},
-    {5,"Punkt ausw‰hlen"}
+    {1,"Achse ausw√§hlen"},
+    {2,"Punkt ausw√§hlen"},
+    {3,"Zentrum ausw√§hlen"},
+    {4,"Achse ausw√§hlen"},
+    {5,"Punkt ausw√§hlen"}
    ]}
  ]}.

@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_ai,
  [
   {command,
@@ -14,6 +14,6 @@
    ]},
   {tryimport,
    [
-    {1,"Dies ist keine Adobe Illustrator Datei (Version 8 oder früher)"}
+    {1,"Dies ist keine Adobe Illustrator Datei (Version 8 oder frÃ¼her)"}
    ]}
  ]}.

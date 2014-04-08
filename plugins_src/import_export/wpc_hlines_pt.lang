@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_hlines,
  [
   {dialog,
@@ -7,15 +7,15 @@
     {2,"Largura"},
     {3,"Altura"},
     {4,"Caixa-Limite"},
-    {5,"Níveis de subdividão"},
-    {6,"Pré-renderização"},
+    {5,"NÃ­veis de subdividÃ£o"},
+    {6,"PrÃ©-renderizaÃ§Ã£o"},
     {7,"Tudo"},
-    {8,"Rígido"},
+    {8,"RÃ­gido"},
     {9,"Nenhum"},
     {10,"Mostrar arestas"},
-    {11,"Ângulo agudo"},
+    {11,"Ã‚ngulo agudo"},
     {12,"Linha externa"},
-    {13,"Rígido"},
+    {13,"RÃ­gido"},
     {14,"Agudo"},
     {15,"Material"},
     {16,"Regular"},
@@ -26,8 +26,8 @@
     {21,"Quadrado"},
     {22,"Extremidades das linhas"},
     {23,"Mesclar"},
-    {24,"Ângulo"},
-    {25,"Distância"},
+    {24,"Ã‚ngulo"},
+    {25,"DistÃ¢ncia"},
     {26,"Linhas colineares (experimental)"}
    ]},
   {do_export,
@@ -42,7 +42,7 @@
    ]},
   {export,
    [
-    {1,"Opções de renderização de Cartoon Edge"},
+    {1,"OpÃ§Ãµes de renderizaÃ§Ã£o de Cartoon Edge"},
     {2,"Exportar"},
     {3,"Arquivo Encapsulated Postscript (EPS)"}
    ]}

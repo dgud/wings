@@ -125,44 +125,12 @@ load_language_file(File) ->
     end.
 
 load_file([utf8|Trans]) ->
-    load_file_1(utf8, Trans);
-load_file([latin1|Trans]) ->
-    load_file_1(latin1, Trans);
-load_file(['iso-8859-1'|Trans]) ->
-    load_file_1(latin1, Trans);
-load_file([Atom|Trans]) when is_atom(Atom) ->
-    io:format("Ignoring: ~p\n", [Atom]),
-    load_file_1(default, Trans);
-load_file(Trans) -> load_file_1(default, Trans).
-
-load_file_1(latin1, Trans) ->
-    %% ISO-8859-1/Latin 1: Just load the file without any transformation.
-    io:format("  encoding: latin1\n"),
     load_file_2(Trans);
-load_file_1(utf8, Trans0) ->
-    %% UTF8: Transform the file; abort loading if any failures.
-    case expand_utf8(Trans0) of
-	Trans when is_list(Trans) ->
-	    io:format("  encoding: utf8\n"),
-	    load_file_2(Trans);
-	{error,{Mod,Name,Key}} ->
-	    %% Abort loading.
-	    io:format("Bad UTF-8 string for module=~p, function=~p, key=~p\n",
-		      [Mod,Name,Key])
-    end;
-load_file_1(default, Trans0) ->
-    %% Default: Try UTF8 transformation first, fall back to no transformation
-    %% if it fails.
-    case expand_utf8(Trans0) of
-	Trans when is_list(Trans) ->
-	    io:format("  encoding: utf8 or plain US-ASCII\n"),
-	    load_file_2(Trans);
-	{error,_} ->
-	    %% Just load it.
-	    io:format("  encoding: probably latin1\n"),
-	    load_file_2(Trans0)
-    end.
-    
+load_file([latin1|Trans]) ->
+    load_file_2(Trans);
+load_file(Trans) ->
+    load_file_2(Trans).
+
 load_file_2(Trans) ->
     Add = fun(Level, Str0) -> 
 		  Key = list_to_tuple(reverse(Level)),
@@ -197,32 +165,3 @@ available_languages() ->
 		      end
 	      end,
     lists:usort([?DEF_LANG_STR|lists:foldl(Extract, [], Files)]).
-
-%%%
-%%% Character transformation support.
-%%%
-
-expand_utf8(ModFs) ->
-    try
-	expand_utf8_0(ModFs)
-    catch
-	throw:{error,_}=E ->
-	    E
-    end.
-
-expand_utf8_0([{Mod,Fs}|ModFs]) ->
-    [{Mod,expand_utf8_1(Fs, Mod)}|expand_utf8_0(ModFs)];
-expand_utf8_0([]) -> [].
-
-expand_utf8_1([{Name,Ss}|T], Mod) ->
-    [{Name,expand_utf8_2(Ss, Mod, Name)}|expand_utf8_1(T, Mod)];
-expand_utf8_1([], _) -> [].
-
-expand_utf8_2([{Key,Str0}|T], Mod, Name) ->
-    case unicode:characters_to_list(list_to_binary(Str0)) of
-	{error,_,_} ->
-	    throw({error,{Mod,Name,Key}});
-	Str when is_list(Str) ->
-	    [{Key,Str}|expand_utf8_2(T, Mod, Name)]
-    end;
-expand_utf8_2([], _, _) -> [].

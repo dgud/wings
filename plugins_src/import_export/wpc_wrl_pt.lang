@@ -1,9 +1,9 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_wrl,
  [
   {do_export,
    [
-    {1,"Opções de Exportação de VRML"}
+    {1,"OpÃ§Ãµes de ExportaÃ§Ã£o de VRML"}
    ]},
   {export,
    [

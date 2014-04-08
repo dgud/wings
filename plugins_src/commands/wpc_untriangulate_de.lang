@@ -1,20 +1,20 @@
-% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_untriangulate,
  [
   {get_ask_list,
    [
-    {1,"Algorithmus-Stärke"},
-    {2,"Größere Algorithmus-Stärken sind langsamer, können aber bessere Ergebnisse produzieren"},
+    {1,"Algorithmus-StÃ¤rke"},
+    {2,"GrÃ¶ÃŸere Algorithmus-StÃ¤rken sind langsamer, kÃ¶nnen aber bessere Ergebnisse produzieren"},
     {3,"Max. Kanten-Winkel"},
-    {4,"Maximaler Winkel zwischen Kanten die aufgelöst werden"},
-    {5,"Materialien prüfen"},
-    {6,"Kanten entlang Material-Grenzen nicht auflösen"},
-    {7,"UV Koordinaten prüfen"},
-    {8,"Kanten entlang Grenzen disjunkter Texturkoordinaten nicht auflösen"},
+    {4,"Maximaler Winkel zwischen Kanten die aufgelÃ¶st werden"},
+    {5,"Materialien prÃ¼fen"},
+    {6,"Kanten entlang Material-Grenzen nicht auflÃ¶sen"},
+    {7,"UV Koordinaten prÃ¼fen"},
+    {8,"Kanten entlang Grenzen disjunkter Texturkoordinaten nicht auflÃ¶sen"},
     {9,"Harte Kanten beachten"},
-    {10,"Harte Kanten nicht auflösen"},
-    {11,"Wölbung prüfen"},
-    {12,"Gewölbte Polygone vermeiden"}
+    {10,"Harte Kanten nicht auflÃ¶sen"},
+    {11,"WÃ¶lbung prÃ¼fen"},
+    {12,"GewÃ¶lbte Polygone vermeiden"}
    ]},
   {menu,
    [
@@ -29,7 +29,7 @@
   {process_edges,
    [
     {1,"De-triangulieren"},
-    {2,"Zielkanten wählen"},
+    {2,"Zielkanten wÃ¤hlen"},
     {3,"Bilde Auswahlbaum"}
    ]},
   {untriangulate,
