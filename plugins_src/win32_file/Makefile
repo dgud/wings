@@ -15,7 +15,7 @@ WINGS_INTL=../../intl_tools
 LIBDIR = ../../plugins/win32_file
 
 ERL_DIR := $(shell echo 'io:format("~s~n",[code:root_dir()]),init:stop().' | erl | sed -n '/^1>/s/^1> //p')
-ERL_INC = $(ERL_DIR)/usr/include
+ERL_INC = "$(ERL_DIR)/usr/include"
 BEAM = $(LIBDIR)/wp8_file.beam
 LIBS = -shared -lcomdlg32
 
