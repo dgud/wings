@@ -885,16 +885,18 @@ reset() ->
     reset(current()).
 
 reset(View) ->
+    Distance=wings_pref:get_value(ground_grid_amount)*0.5, %  80% of the grid size
     set_current(View#view{origin={0.0,0.0,0.0},
 			  azimuth=-45.0,elevation=25.0,
-			  distance=?CAMERA_DIST,
+			  distance=max(Distance,8.0),
 			  pan_x=0.0,pan_y=0.0,
 			  along_axis=none}).
 
 default_view() ->
+    Distance=wings_pref:get_value(ground_grid_amount)*0.5, %  80% of the grid size
     #view{origin={0.0,0.0,0.0},
 	  azimuth=-45.0,elevation=25.0,
-	  distance=?CAMERA_DIST,
+	  distance=max(Distance,8.0),
 	  pan_x=0.0,pan_y=0.0,
 	  along_axis=none,
 	  fov=45.0,
