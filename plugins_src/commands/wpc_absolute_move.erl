@@ -44,12 +44,21 @@ parse([Elem|Rest], Mode, NewMenu, Found) ->
 draw(all, Mode) ->
     {?__(1, "Absolute Commands"), {absolute, draw(menu, Mode)}};
 draw(menu, Mode) ->
-    [{?__(2,"Move"),move,
-      ?__(3,"Move to exact position in absolute coordinates.")},
+    [{?__(2,"Move"), move_fun(Mode),
+      {?__(3,"Move to exact position in absolute coordinates."),
+       ?__(8,"Move using a secondary selection as reference.")},[]},
      {?__(4,"Snap"), snap_fun(Mode), 
       {?__(5,"Move to secondary selection."),
        ?__(6,"Move using center as reference."),
        ?__(7,"Move and display numeric entry.")},[]}].
+
+move_fun(Mode) ->
+    fun(1, _Ns) ->
+	    {Mode,{absolute,move}};
+       (2, _Ns) ->
+	    {Mode,{absolute,rmove}};
+       (_, _) -> ignore
+    end.
 
 snap_fun(Mode) ->
     fun(1, _Ns) ->
@@ -61,7 +70,7 @@ snap_fun(Mode) ->
        (_, _) -> ignore
     end.
 
-command({_,{absolute,Mode}},St) when Mode == move; Mode == snap; Mode == csnap; Mode == nsnap ->
+command({_,{absolute,Mode}},St) when Mode == move; Mode == rmove; Mode == snap; Mode == csnap; Mode == nsnap ->
     Mirror = check_mirror(St),
     if
         Mirror -> 
@@ -70,6 +79,7 @@ command({_,{absolute,Mode}},St) when Mode == move; Mode == snap; Mode == csnap; 
         true ->
             case Mode of
                 move -> move(St);
+                rmove -> wings:ask(selection_ask([reference]), St, fun rmove/2);
                 snap -> wings:ask(selection_ask([reference,target]), St, fun snap/2);
                 csnap -> wings:ask(selection_ask([target]), St, fun csnap/2);
                 nsnap -> wings:ask(selection_ask([reference,target]), St, fun nsnap/2)
@@ -81,9 +91,18 @@ command(_,_) -> next.
 %%% absolute move
 %%%
 
-move(#st{shapes=Shapes}=St) ->
+move(St) ->
+    move(center, St).
+
+rmove(Reference, St) ->
+    move(Reference, St).
+
+move(Reference0, #st{shapes=Shapes}=St) ->
     Sel = get_selection(St),
     {Center,Lights} = get_center_and_lights(Sel,Shapes),
+    Reference = if Reference0 =:= center -> Center;
+        true -> Reference0
+    end,
     OneObject = check_single_obj(Sel),
     SinglePoints = check_single_vert(Sel),
     WholeObjects = if
@@ -102,7 +121,7 @@ move(#st{shapes=Shapes}=St) ->
                   true -> true
               end,
     Align = not OneObject,
-    draw_window({{move_obj,MoveObj},{flatten,Flatten},{align,Align},{from,Center},{to,Center},{lock,false}},Sel,St).
+    draw_window({{move_obj,MoveObj},{flatten,Flatten},{align,Align},{from,Reference},{to,Reference},{lock,false}},Sel,St).
 
 %%%
 %%% absolute snap
