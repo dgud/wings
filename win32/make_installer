@@ -144,7 +144,7 @@ rm -rf "$dest/ebin/sdl_audio.beam" "$dest/ebin/sdl_joystick.beam"
 
 # Copy the relevant parts of wx (we use opengl from it)
 WX_PATH=`erl -noshell -eval "io:format([126,115,126,110],[code:lib_dir(wx)])" -s erlang halt`
-WX_NAME=`basename $WX_PATH`
+WX_NAME=`basename "$WX_PATH"`
 dest="$DEST_ROOT/lib/$WX_NAME"
 $INSTALL -d "$dest/ebin" "$dest/priv"
 $INSTALL -c -m 644  "$WX_PATH"/ebin/gl.beam "$dest/ebin"
