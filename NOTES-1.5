@@ -1,3 +1,47 @@
+--- 1.5.3 ----------------------------------------------------------------------
+
+- Use (and require) OTP 17.0 which hopefully fixes unicode issues on
+  win32 [dgud]
+
+- Fix OpenCL so that it works on nvidia cards even though it's built
+  with a 1.2 framework [dgud]
+
+- JPG import now works on the Mac. [Björn Gustavsson]
+
+- Added a new option to Snap[RMB] (in Body mode) that enable the user
+  duplicate the object between reference and target. Thanks to Optigon
+  for suggest it. [Micheus]
+
+- Added a new option to auto save an unsaved project. [Micheus]
+
+- Fixed an issue related to font selection under Windows 7 - fonts'
+  name aren't displayed. [Micheus]
+
+- Fixed an issue related to edges highlight in Tweak and Sculpt that
+  was crashing wings when the object have hidden faces or
+  holes. Thanks to Extrudeface for the report. [Micheus]
+
+- Fixed a issue related to Select Group and Saved Camera windows not
+  be drawn using the alpha settings as defined in the
+  preferences. Thanks to Justanother1 for the report. [Micheus]
+
+- Fixed the duplicated IDs in the language file for "Rename"
+  operations available in the "Geometry Graph" window. Thanks to
+  TulipVorlax. [Micheus]
+
+- Fixed some issues related to images of materials exported by POV-Ray
+  plugin. Thanks to RyMopar that reported it. [Micheus]
+
+- Fixed an error in the "wings_u:relative_path_name" routine that was
+  rebuilding the full path in a wrong way. [Micheus]
+
+- Added support to save and restore the last view settings of a project. [Micheus]
+
+- Added option to customize the grid size. [Micheus]
+
+- Added a new option to Absolute-Move command (MMB) that enable the
+  user set the reference point. [Micheus]
+
 --- 1.5.2 ----------------------------------------------------------------------
 - Fix various crashes and instabilites. [dgud]
 
