@@ -586,6 +586,11 @@ autosave(#st{file=Name}=St) ->
     %% Maybe this should be spawned to another process
     %% to let the autosaving be done in the background.
     %% But I don't want to copy a really big model either.
+
+    %% Set the current view export views read it..
+    %% Fix this later
+    View = wings_wm:get_prop(geom, current_view),
+    wings_view:set_current(View),
     case ?SLOW(wings_ff_wings:export(Auto, St)) of
 	ok ->
 	    wings_u:caption(St#st{saved=auto});
