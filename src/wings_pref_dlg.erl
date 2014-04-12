@@ -636,6 +636,8 @@ smart_set_value_1(Key, Val, St) ->
 		background_color ->
 		    {R,G,B} = Val,
 		    gl:clearColor(R, G, B, 1.0);
+		autosave ->
+		    wings_file:init_autosave();
 		autosave_time ->
 		    wings_file:init_autosave();
 		proxy_shaded_edge_style ->

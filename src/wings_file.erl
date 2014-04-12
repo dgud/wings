@@ -606,8 +606,8 @@ autosave_filename(File) ->
     filename:join(Dir, "#" ++ Base ++ "#").
 
 unsaved_filename() ->
-	Dir = filename:dirname(wings_pref:get_value(pref_directory)),
-	filename:join(Dir, ?UNSAVED_NAME).
+    Dir = wings_pref:get_dir(),
+    filename:join(Dir, ?UNSAVED_NAME).
 
 backup_filename(File) ->
     File ++ "~".

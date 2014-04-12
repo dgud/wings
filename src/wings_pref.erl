@@ -12,7 +12,7 @@
 %%
 
 -module(wings_pref).
--export([init/0,finish/0,load/0,
+-export([init/0,finish/0,load/0, get_dir/0,
 	 lowpass/2,
 	 get_value/1,get_value/2,set_value/2,set_default/2,
 	 delete_value/1,
@@ -60,6 +60,17 @@ load() ->
 		    ok
 	    end
     end.
+
+get_dir() ->
+    PFile = case get_value(pref_directory) of
+		undefined -> 
+		    File = get_pref_directory("backup_prefs.txt"),
+		    set_value(pref_directory,File),
+		    File;
+		File -> File
+	    end,
+    filename:dirname(PFile).
+
 
 %%%% Restore window layout on MS Windows
 win32_window_layout() ->

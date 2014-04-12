@@ -436,13 +436,14 @@ dialog(Title, Qs, Fun) ->
 
 do_dialog(Title, Qs, Level, Fun) ->
     GrabWin = wings_wm:release_focus(),
+    {_,Xm,Ym} = wings_io:get_mouse_state(),
+    GrabWin =/= undefined andalso wings_io:ungrab(Xm,Ym),
     Owner = wings_wm:this(),
     Name = {dialog,hd(Level)},
     S0 = #s{w=W,h=H,fi=Fi,store=Store,preview=P} = setup_dialog(Qs, Fun),
     S = S0#s{level=Level,grab_win=GrabWin,owner=Owner,preview=P#pv{name=Name}},
     setup_blanket(Name, Fi, Store),
     Op = get_event(S),				%No push - replace crash handler.
-    {_,Xm,Ym} = wings_io:get_mouse_state(),
     wings_wm:toplevel(Name, Title, {Xm,Ym-?LINE_HEIGHT}, {W,H}, 
 		      [{anchor,n}], Op),
     wings_wm:set_prop(Name, drag_filter, fun(_) -> yes end),
@@ -464,6 +465,7 @@ do_dialog_centered(Title, Qs, Level, Fun) ->
     {DW,DH} = wings_wm:win_size(desktop),
     Xm=DW div 2,
     Ym=(DH-H) div 2,
+    GrabWin =/= undefined andalso wings_io:ungrab(Xm,Ym),
     wings_wm:toplevel(Name, Title, {Xm,Ym},{W,H},[{anchor,n}], Op),
     wings_wm:set_prop(Name, drag_filter, fun(_) -> yes end),
     ?DEBUG_DISPLAY(other, {W,H}),
@@ -651,14 +653,24 @@ escape_pressed(S0=#s{fi=TopFi,store=Sto}) ->
 	    end
     end.
 
-delete(#s{level=[_],preview=#pv{type=Type},grab_win=GrabWin}=S) ->
-    if Type=:=drag_preview -> wings_io:grab(); true -> ok end,
+delete(#s{level=[_],grab_win=GrabWin}=S) ->
     delete_blanket(S),
-    wings_wm:grab_focus(GrabWin),
+    case GrabWin of
+	undefined -> ok;
+	_ -> 
+	    wings_wm:grab_focus(GrabWin),
+	    wings_io:grab()
+    end,
     wings_wm:allow_drag(false),
     delete;
-delete(#s{preview=#pv{type=Type}}=S) ->
+delete(#s{preview=#pv{type=Type},grab_win=GrabWin}=S) ->
     if Type=:=drag_preview -> wings_io:grab(); true -> ok end,
+    case GrabWin of
+	undefined -> ok;
+	_ -> 
+	    wings_wm:grab_focus(GrabWin),
+	    wings_io:grab()
+    end,
     delete_blanket(S),
     delete.
 
