@@ -1388,15 +1388,20 @@ one_of(false,_, S) -> S.
 
 export_views(#st{views={_,Views0}}) ->
     Views1 = tuple_to_list(Views0),
-    CurrentView = current(),
-    Views = case get_view_index(CurrentView,Views1) of
-        undefined ->
-            [{CurrentView,"current_view"}]++Views1;
-        Idx ->
-            View = element(Idx,Views0),
-            Views2 = Views1 -- [View],  % tuple index starts from 1 and lists from 0
-            [View]++Views2
-    end,
+    Views = case get(wings_not_running) of
+		undefined ->
+		    CurrentView = current(),
+		    case get_view_index(CurrentView,Views1) of
+			undefined ->
+			    [{CurrentView,"current_view"}]++Views1;
+			Idx ->
+			    View = element(Idx,Views0),
+			    Views2 = Views1 -- [View],  % tuple index starts from 1 and lists from 0
+			    [View]++Views2
+		    end;
+		_ ->
+		    Views1
+	    end,
     export_views_1(Views).
 
 export_views_1([{View,Name}|Views]) ->
@@ -1408,19 +1413,19 @@ export_views_1([]) -> [].
 import_views(Views, #st{views={CurrentView0,{}}}=St) -> % loading a project
     NewViews0 = import_views_1(Views),
     NewViews = case NewViews0 of
-        [] ->
-            reset(),
-            CurrentView = CurrentView0,
-            NewViews0;
-        _ ->
-            {{View,_},NewViews1} = remove_cur_view(NewViews0),
-            set_current(View),
-            CurrentView = case get_view_index(View,NewViews1) of
-                undefined -> CurrentView0;
-                Idx -> Idx
-            end,
-            NewViews1
-    end,
+		   [] ->
+		       reset(),
+		       CurrentView = CurrentView0,
+		       NewViews0;
+		   _ ->
+		       {{View,_},NewViews1} = remove_cur_view(NewViews0),
+		       (get(wings_not_running) == undefined) andalso set_current(View),
+		       CurrentView = case get_view_index(View,NewViews1) of
+					 undefined -> CurrentView0;
+					 Idx -> Idx
+				     end,
+		       NewViews1
+	       end,
     St#st{views={CurrentView,list_to_tuple(NewViews)}};
 import_views(Views, #st{views={CurrentView,OldViews}}=St) -> % merging a project
     NewViews0 = import_views_1(Views),
