@@ -51,36 +51,9 @@ init() ->
     wxSizer:setSizeHints(Sizer, Canvas),
     wxFrame:setSizer(Frame, Sizer),
 
-    %% Manager = wxAuiManager:new([{managed_wnd, Frame}]),
-    %% Pane = wxAuiPaneInfo:new(),
-    %% wxAuiPaneInfo:centrePane(Pane),
-    %% wxAuiPaneInfo:paneBorder(Pane, [{visible, false}]),
-    %% wxAuiManager:addPane(Manager, Canvas, Pane),
-    %% %% Test
-    %% TextCtrl = wxTextCtrl:new(Frame, ?wxID_ANY,
-    %% 			      [{size, {300,200}},
-    %% 			       {value, "An empty pane"},
-    %% 			       {style, ?wxDEFAULT bor ?wxTE_MULTILINE}]),
-
-    %% wxAuiManager:addPane(Manager, TextCtrl,
-    %% 			 wxAuiPaneInfo:caption(
-    %% 			   wxAuiPaneInfo:right(
-    %% 			     wxAuiPaneInfo:new()), "One")),
-    %% wxAuiManager:update(Manager),
-
     put(top_frame, Frame),
     put(gl_canvas, Canvas),
 
-    Redraw = fun(Ev,_) ->
-		     wxGLCanvas:setCurrent(Canvas),
-		     DC = wxPaintDC:new(Canvas),
-		     wxPaintDC:destroy(DC),
-		     wings ! Ev
-		     %%, io:format("Refresh (~p)~n", [wxWindow:getSize(Canvas)])
-	     end,
-
-    wxWindow:connect(Frame, close_window),
-    wxWindow:connect(Frame, command_menu_selected, [skip]),
     %% MenuCB = fun(Ev,Obj) ->
     %% 		     io:format("Menu ~p~n", [Ev]),
     %% 		     wxEvent:skip(Obj)
@@ -89,30 +62,22 @@ init() ->
     %% wxWindow:connect(Frame, menu_highlight, [{callback, MenuCB}]),
     %% wxWindow:connect(Frame, menu_close, [{callback, MenuCB}]),
 
-    wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
-    wxWindow:connect(Canvas, size,  []),
-    %% wxWindow:connect(Canvas, erase_background),
-    %% wxWindow:connect(Canvas, enter_window,
-    %% 		     [{callback, fun(_, _) ->
-    %% 					 wxWindow:setFocus(Canvas)
-    %% 				 end}]),
+    case os:type() of
+	{unix, _} ->  wxWindow:connect(Canvas, paint, [skip]);
+	{win32, _} -> wxWindow:connect(Canvas, paint, [{callback, fun redraw/2}])
+    end,
 
-    wxWindow:connect(Canvas, motion, [{skip, true}]),
-    wxWindow:connect(Canvas, left_up),
-    wxWindow:connect(Canvas, left_down),
-    wxWindow:connect(Canvas, middle_up),
-    wxWindow:connect(Canvas, middle_down),
-    wxWindow:connect(Canvas, right_up),
-    wxWindow:connect(Canvas, right_down),
-    wxWindow:connect(Canvas, mousewheel),
-    wxWindow:connect(Canvas, char_hook, []),
-    wxWindow:connect(Canvas, key_down),
+    wxWindow:connect(Canvas, size,  []),
+    wxWindow:connect(Frame, close_window),
+    wxWindow:connect(Frame, command_menu_selected, [skip]),
+
+    setup_std_events(Canvas),
     set_icon(),
     wxWindow:setFocus(Canvas), %% Get keyboard focus
     wxWindow:connect(Frame, show),
 
-    wxWindow:show(Frame),   %% Must be shown to initilize context.
-
+    %% Must be shown to initilize OpenGL context.
+    wxWindow:show(Frame),
     receive #wx{obj=Frame, event=#wxShow{}} -> ok end,
     wxGLCanvas:setCurrent(Canvas),
 
@@ -126,6 +91,38 @@ init() ->
     catch error:undef -> ok %% Req new wx
     end,
     ok.
+
+redraw(Ev = #wx{obj=Canvas},_) ->
+    %% Must do a PaintDC and destroy it
+    DC = wxPaintDC:new(Canvas),
+    wxPaintDC:destroy(DC),
+    wings ! Ev.
+
+setup_std_events(Canvas) ->
+    wxWindow:connect(Canvas, motion, [{skip, true}]),
+    wxWindow:connect(Canvas, left_up),
+    wxWindow:connect(Canvas, left_down),
+    wxWindow:connect(Canvas, middle_up),
+    wxWindow:connect(Canvas, middle_down),
+    wxWindow:connect(Canvas, right_up),
+    wxWindow:connect(Canvas, right_down),
+    wxWindow:connect(Canvas, mousewheel),
+    %% wxWindow:connect(Canvas, char_hook, []),
+    wxWindow:connect(Canvas, key_down, [{callback, fun key_callback/2}]),
+    wxWindow:connect(Canvas, char).
+
+key_callback(Ev = #wx{event=Key},Obj) ->
+    %% io:format("Ev ~p~n",[Ev]),
+    case forward_key(Key) of
+	true -> wings ! Ev;
+	false -> wxEvent:skip(Obj)
+    end.
+
+forward_key(#wxKey{controlDown=true}) -> true;
+forward_key(#wxKey{altDown=true}) -> true;
+forward_key(#wxKey{metaDown=true}) -> true;
+forward_key(#wxKey{shiftDown=true, keyCode=?WXK_SHIFT}) -> true;
+forward_key(_) -> false.
 
 set_icon() ->
     Ebin = filename:dirname(code:which(?MODULE)),
@@ -145,3 +142,20 @@ macosx_workaround() ->
 zero() ->
     0.0.
 
+%% setup_aui(Frame) ->
+    %% Manager = wxAuiManager:new([{managed_wnd, Frame}]),
+    %% Pane = wxAuiPaneInfo:new(),
+    %% wxAuiPaneInfo:centrePane(Pane),
+    %% wxAuiPaneInfo:paneBorder(Pane, [{visible, false}]),
+    %% wxAuiManager:addPane(Manager, Canvas, Pane),
+    %% %% Test
+    %% TextCtrl = wxTextCtrl:new(Frame, ?wxID_ANY,
+    %% 			      [{size, {300,200}},
+    %% 			       {value, "An empty pane"},
+    %% 			       {style, ?wxDEFAULT bor ?wxTE_MULTILINE}]),
+
+    %% wxAuiManager:addPane(Manager, TextCtrl,
+    %% 			 wxAuiPaneInfo:caption(
+    %% 			   wxAuiPaneInfo:right(
+    %% 			     wxAuiPaneInfo:new()), "One")),
+    %% wxAuiManager:update(Manager),
