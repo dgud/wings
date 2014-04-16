@@ -360,20 +360,31 @@ sdl_mouse(M=#wxMouse{type=Type,
 
 sdl_key(#wxKey{type=Type,controlDown = Ctrl, shiftDown = Shift,
 	       altDown = Alt, metaDown = Meta,
-	       keyCode = Code, uniChar = Uni, rawCode = Raw}) ->
-    Mods = [{Ctrl, ?KMOD_CTRL}, {Shift, ?KMOD_SHIFT},
+	       keyCode = Code, uniChar = Uni0, rawCode = Raw}) ->
+    Mods = [{Shift, ?KMOD_SHIFT},{Ctrl, ?KMOD_CTRL},
 	    {Alt, ?KMOD_ALT}, {Meta, ?KMOD_META}],
     %% key_down events are always uppercase
     %% maybe we should use (the translated) char events instead?
     ModState = gui_state(Mods, 0),
     Pressed = case Type of
+		  char -> ?SDL_PRESSED;
 		  char_hook -> ?SDL_PRESSED;
 		  key_up    -> ?SDL_RELEASED;
 		  key_down  -> ?SDL_PRESSED
 	      end,
-    %% io:format("EV ~p: ~p ~p ~p ~p ~p ~p~n", [Type, Ctrl, Shift, Alt, Meta, Code, Uni]),
-    #keyboard{which=0, state=Pressed, scancode=Raw, unicode=lower(Shift, Uni),
-	      mod=ModState, sym=wx_key_map(lower(Shift, Code))}.
+    {Uni, Sym} = case wx_key_map(Code) of
+		     undefined -> {lower(ModState, Uni0), lower(ModState, Code)};
+		     Sym0 -> {0, lower(ModState, Sym0)}
+		 end,
+    %% io:format("EV ~p: ~p ~p ~p ~p ~p ~p => ~p ~p ~n",
+    %% 	      [Type, Ctrl, Shift, Alt, Meta, Code, Uni0, Sym, Uni]),
+    #keyboard{which=0, state=Pressed, scancode=Raw, unicode=Uni,
+	      mod=ModState, sym=Sym}.
+
+lower([], Char) -> Char;
+lower(?KMOD_SHIFT, Char) -> Char;
+lower(_, Char) ->
+    string:to_lower(Char).
 
 make_key_event({Key, Mods}) ->
     Map = fun(ctrl) -> {true, ?KMOD_CTRL};
@@ -387,9 +398,6 @@ make_key_event({Key, Mods}) ->
     #keyboard{which=menubar, state=true, unicode=Key, mod=ModState, sym=Key};
 make_key_event(Key) when is_integer(Key) ->
     make_key_event({Key, []}).
-
-lower(false, Char) -> string:to_lower(Char);
-lower(_, Char) -> Char.
 
 wx_key_map(?WXK_SHIFT) -> ?SDLK_LSHIFT;
 wx_key_map(?WXK_ALT) -> ?SDLK_LALT;
@@ -415,7 +423,7 @@ wx_key_map(?WXK_LEFT)  -> ?SDLK_LEFT;
 wx_key_map(?WXK_DOWN)  -> ?SDLK_DOWN;
 wx_key_map(?WXK_RIGHT) -> ?SDLK_RIGHT;
 
-%%wx_key_map(?WXK_DELETE) -> ?SDLK_DELETE; same
+wx_key_map(?WXK_DELETE) -> ?SDLK_DELETE; %% same
 wx_key_map(?WXK_INSERT) -> ?SDLK_INSERT;
 wx_key_map(?WXK_END) -> ?SDLK_END;
 wx_key_map(?WXK_HOME) -> ?SDLK_HOME;
@@ -442,7 +450,7 @@ wx_key_map(?WXK_NUMPAD_ENTER)    -> ?SDLK_KP_ENTER;
 wx_key_map(?WXK_WINDOWS_LEFT)  -> ?SDLK_LSUPER;
 wx_key_map(?WXK_WINDOWS_RIGHT) -> ?SDLK_RSUPER;
 %%wx_key_map(?) -> ?;
-wx_key_map(Code) -> Code.
+wx_key_map(_) -> undefined.
 
 sdl_key_map(?SDLK_LSHIFT) -> ?WXK_SHIFT;
 sdl_key_map(?SDLK_LALT) -> ?WXK_ALT;
@@ -469,7 +477,7 @@ sdl_key_map(?SDLK_LEFT)  -> ?WXK_LEFT;
 sdl_key_map(?SDLK_DOWN)  -> ?WXK_DOWN;
 sdl_key_map(?SDLK_RIGHT) -> ?WXK_RIGHT;
 
-%%sdl_key_map(?SDLK_DELETE) -> ?WXK_DELETE; same
+sdl_key_map(?SDLK_DELETE) -> ?WXK_DELETE; %% same
 sdl_key_map(?SDLK_INSERT) -> ?WXK_INSERT;
 sdl_key_map(?SDLK_END) -> ?WXK_END;
 sdl_key_map(?SDLK_HOME) -> ?WXK_HOME;
