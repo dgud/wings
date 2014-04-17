@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: install_wings.src,v 1.2 2003/10/13 18:40:32 bjorng Exp $
+# $Id$
 #
 WINGS_VSN="%WINGS_VSN%"
 INSTALL_DIR="$HOME/wings-$WINGS_VSN"
@@ -14,17 +14,12 @@ sed <<'EOF' -e "s^%ROOTDIR%^$INSTALL_DIR^" > $INSTALL_DIR/wings
 #!/bin/sh
 ROOTDIR=%ROOTDIR%
 BINDIR=$ROOTDIR/bin
-ESDL_DIR=$ROOTDIR/lib/%ESDL_NAME%
 EMU=beam
 PROGNAME=`echo $0 | sed 's/.*\///'`
 export EMU
 export ROOTDIR
 export BINDIR
 export PROGNAME
-export LD_LIBRARY_PATH
-export LD_PRELOAD
-LD_LIBRARY_PATH=$ESDL_DIR/priv
-LD_PRELOAD=$ESDL_DIR/priv/%LIB_SDL_NAME%
 exec $BINDIR/erlexec -noinput -smp -run wings_start start_halt ${1+"$@"}
 EOF
 

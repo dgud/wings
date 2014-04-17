@@ -20,7 +20,7 @@
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
-	<string>Wings3d</string>
+	<string>Wings3D</string>
 	<key>CFBundleIconFile</key>
 	<string>wings3d.icns</string>
 	<key>CFBundleIdentifier</key>
@@ -37,9 +37,5 @@
 	<string>0.1</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.graphics-design</string>
-	<key>NSMainNibFile</key>
-	<string>Erlang</string>
-	<key>NSPrincipalClass</key>
-	<string>NSApplication</string>
 </dict>
 </plist>
