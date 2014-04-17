@@ -304,7 +304,11 @@ wx_translate_1(#wx{event=#wxClose{}}) ->
 wx_translate_1(#wx{event=#wxSize{size={W,H}}}) ->
     #resize{w=W,h=H};
 wx_translate_1(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}) ->
-    ME = wings_menu:wx_command_event(Id),
+    Name = wings_menu:id_to_name(Id),
+    ME = case ets:match(wings_state, {{bindkey,'$1'}, Name, '_'}) of
+	     [] -> {menubar, {action, Name}};
+	     [[KeyComb]|_] -> make_key_event(KeyComb)
+	 end,
     %% io:format("ME ~p~n",[ME]),
     ME;
 wx_translate_1(Ev) ->

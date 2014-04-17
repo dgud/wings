@@ -198,21 +198,20 @@ ctrl_event(#mousemotion{x=X0,y=Y0}, #ctrl{state=moving,local={LocX,LocY}}) ->
     keep;
 ctrl_event(#mousebutton{}=Ev, _) ->
     case is_resizeable() of
-	false -> ok;
+	false -> keep;
 	true ->
 	    {_, Client} = wings_wm:this(),
 	    case Client of
 		geom -> ok;
 		_ ->
-	      wings_wm:rollup(rolldown,Client),
-	      wings_wm:raise(Client)
+		    wings_wm:rollup(rolldown,Client),
+		    wings_wm:raise(Client)
 	    end,
 	    case wings_menu:is_popup_event(Ev) of
 		{yes,X,Y,_} -> ctrl_menu(X, Y);
-		no -> ok
+		no -> keep
 	    end
-    end,
-    keep;
+    end;
 ctrl_event(#keyboard{}=Ev, _) ->
     {_,Client} = wings_wm:this(),
     wings_wm:send(Client, Ev);
@@ -228,7 +227,8 @@ ctrl_event({action,{titlebar,Action}}, Cs) ->
     ctrl_command(Action, Cs);
 ctrl_event({title,Title}, Cs) ->
     get_ctrl_event(Cs#ctrl{title=Title});
-ctrl_event(_, _) -> keep.
+ctrl_event(_What, _Cs) ->
+    keep.
 
 ctrl_message() ->
     {_,Client} = wings_wm:this(),
