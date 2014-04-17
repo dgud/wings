@@ -13,14 +13,16 @@
 #
 
 temp_dmg="wings-macosx.$$.dmg"
-dmg="../wings-$1-macosx.dmg"
-mnt=`pwd`/mount
+dmg="$1"
+src="$2"
+dst="$3"
+mnt=$(pwd)/mount
 
 rm -f $temp_dmg $dmg
 hdiutil create -quiet -megabytes 100 -volname "Wings3D" -fs HFS+ -layout NONE $temp_dmg
 hdiutil attach -private -mountpoint $mnt $temp_dmg
-ditto build/Default/Wings3d.app "$mnt/Wings3D $1.app"
+base=$(basename "$src")
+ditto "$src" "$mnt/$dst"
 hdiutil detach $mnt
 hdiutil convert "$temp_dmg" -format UDZO -o $dmg -imagekey zlib-level=9
-hdiutil internet-enable -yes "$dmg"
 rm $temp_dmg
