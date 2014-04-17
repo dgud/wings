@@ -62,16 +62,14 @@ win32: all lang
 #
 .PHONY: macosx
 macosx: all lang
-	(cd plugins_src/mac_file; $(MAKE))
-	(cd plugins_src/mac_file; $(MAKE) lang)
-	(cd macosx; ./mac_release $(WINGS_VSN))
+	escript tools/release
 
 #
 # Build package for Unix.
 #
 .PHONY: unix
 unix: all lang
-	unix/make_installer
+	escript tools/release
 
 #
 # Build the source distribution.
