@@ -785,20 +785,20 @@ write_pref(Dir, ColorPref) ->
     set_value(pref_directory,Dir).
 
 treat_hotkeys(Res) ->
-    case lists:member(merge,Res) of
-      true ->
-        lists:delete(merge,Res);
-      false ->
-        case lists:member(remove,Res) of
-          true ->
-            List = ets:tab2list(wings_state),
-            lists:foreach(fun({Hotkey,_,_}) ->
-                      ets:delete(wings_state,Hotkey);
-                            (_) -> ok
-                    end, List),
-            lists:delete(remove,Res);
-          false -> Res
-        end
+    case proplists:get_value(hotkeys, Res, false) of
+	false -> Res;
+	true ->
+	    case proplists:get_value(hotkey_radio, Res) of
+		merge -> Res;
+		remove ->
+		    List = ets:tab2list(wings_state),
+		    lists:foreach(fun({Hotkey,_,_})
+					when element(1, Hotkey) =:= bindkey ->
+					  ets:delete(wings_state,Hotkey);
+				     (_) -> ok
+				  end, List),
+		    Res
+	    end
     end.
 
 init_opengl() ->
@@ -1057,6 +1057,8 @@ load_pref_category([{Other,true}|Options], List, St) ->
           end, clean(Prefs));
         false -> ok
     end,
+    load_pref_category(Options, List, St);
+load_pref_category([{hotkey_radio, _}|Options], List, St) ->
     load_pref_category(Options, List, St);
 load_pref_category([], _, _) -> ok.
 
