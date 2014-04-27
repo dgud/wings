@@ -13,7 +13,7 @@
 
 -module(wpc_lwo).
 -export([init/0, menu/2, command/2, export/1]).
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 init() ->
     true.
@@ -58,7 +58,9 @@ export(FileName, Contents) ->
     LWO = make_lwo(Contents),
     file:write_file(FileName, LWO).
 
-make_lwo(Contents) ->
+make_lwo(Contents0) ->
+    FlipX = e3d_mat:scale(-1.0, 1.0, 1.0),
+    Contents = e3d_file:transform(Contents0, FlipX),
     #e3d_file{objs=Objs,mat=Mats,creator=Creator} = Contents,
     Tags = make_tags(Mats),
     Surfs = make_surfaces(Mats),
@@ -163,10 +165,11 @@ make_bbox(Verts) ->
 
 make_pols(E3dFaces) ->
     FaceToBinary = fun(E3dFace) ->
-	#e3d_face{vs=FaceVs} = E3dFace,
-	NumFaceVerts = <<(length(FaceVs)):16>>,
-	FaceIndices = [generate_vx(Idx) || Idx <- FaceVs],
-	[NumFaceVerts | FaceIndices] end,
+			   #e3d_face{vs=FaceVs} = E3dFace,
+			   NumFaceVerts = <<(length(FaceVs)):16>>,
+			   FaceIndices = [generate_vx(Idx) || Idx <- lists:reverse(FaceVs)],
+			   [NumFaceVerts | FaceIndices] 
+		   end,
     PolygonType = <<"FACE">>,
     Polygons = lists:map(FaceToBinary, E3dFaces),
     FacesChunk = list_to_binary([PolygonType|Polygons]),
@@ -431,7 +434,7 @@ make_e3ds(Tags, Objs) ->
     GetMatName = fun(Idx) -> lists:nth(Idx+1, Tags) end,
     Ms = lists:map(GetMatName, MaterialIdxs),
     FsMs = lists:zip(Fs,Ms),
-    Efs = [#e3d_face{vs=Face,mat=[Mat]} || {Face,Mat} <- FsMs],
+    Efs = [#e3d_face{vs=lists:reverse(Face),mat=[Mat]} || {Face,Mat} <- FsMs],
     Mesh = #e3d_mesh{type=polygon,vs=Vs,fs=Efs},
     Obj = #e3d_object{name=Name,obj=Mesh},
     [Obj | make_e3ds(Tags, Rest)].
@@ -472,18 +475,20 @@ import(Data) ->
     Mats = [Chunk || Chunk<-Chunks, is_tuple(Chunk)], %% get Surfs
     Eobjs = make_e3ds(Objs),
     Emats = make_mats(Mats),
-    {ok, #e3d_file{objs=Eobjs, mat=Emats, creator="LWO Import Plugin"}}.
+    #e3d_file{objs=Eobjs, mat=Emats, creator="LWO Import Plugin"}.
 
 lwo_import(Name) ->
     case file:read_file(Name) of
-    {ok,Bin} ->
-	ps(""),
-	print_boxed(Name),
-	Res = import(Bin),
-	ps("EOF"),
-	Res;
-    {error,Reason} ->
-	{error,file:format_error(Reason)}
+	{ok,Bin} ->
+	    ps(""),
+	    print_boxed(Name),
+	    Contents = import(Bin),
+	    ps("EOF"),
+	    FlipX = e3d_mat:scale(-1.0, 1.0, 1.0),
+	    Res = e3d_file:transform(Contents, FlipX),
+	    {ok, Res};
+	{error,Reason} ->
+	    {error,file:format_error(Reason)}
     end.
 
 %%% ============
