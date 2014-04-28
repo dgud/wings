@@ -54,8 +54,6 @@ lang: all
 .PHONY: win32
 win32: all lang
 	(cd plugins_src/win32_file; $(MAKE))
-	(cd plugins_src/jpeg; $(MAKE))
-	(cd plugins_src/jpeg; $(MAKE) lang)
 	(cd win32; $(MAKE))
 	win32/make_installer
 
@@ -73,8 +71,6 @@ macosx: all lang
 #
 .PHONY: unix
 unix: all lang
-	(cd plugins_src/jpeg; $(MAKE))
-	(cd plugins_src/jpeg; $(MAKE) lang)
 	unix/make_installer
 
 #
