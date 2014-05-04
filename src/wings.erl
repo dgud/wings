@@ -196,11 +196,11 @@ new_viewer(Name, {X,Y}, Size, Props, ToolbarHidden, St) ->
 		       {toolbar,fun(A, B, C) ->
 					wings_toolbar:create(A, B, C)
 				end},
-		       menubar,
+		       %% menubar,
 		       {properties,Props}],
 		      Op),
-    wings_wm:menubar(Name, get(wings_menu_template)),
-    wings_wm:send({menubar,Name}, {current_state,St}),
+    %% wings_wm:menubar(Name, get(wings_menu_template)),
+    %% wings_wm:send({menubar,Name}, {current_state,St}),
     wings_wm:send({toolbar,Name}, {current_state,St}),
     set_drag_filter(Name),
     if
