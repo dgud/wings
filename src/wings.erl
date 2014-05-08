@@ -91,7 +91,7 @@ do_spawn(File, Flags) ->
     spawn_opt(erlang, apply, [Fun,[]],
           [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags]).
 
-init(File) ->
+init(File0) ->
     register(wings, self()),
     
     OsType = os:type(),
@@ -102,7 +102,10 @@ init(File) ->
     wings_lang:init(),
     
     group_leader(wings_console:start(), self()),
-    wings_init:init(),
+    File = case wings_init:init() of
+	       none -> File0;
+	       File1 -> File1
+	   end,
     wings_text:init(),
     wings_image:init(wings_io:get_process_option()),
     wings_plugin:init(),
