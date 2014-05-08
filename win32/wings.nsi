@@ -99,7 +99,7 @@ Section "Base" SecWingsBase
 SectionIn 1 2 3 RO
 
   	SetOutPath "$INSTDIR"
-  	File /r AUTHORS license.terms Wings3D.exe
+  	File /r Wings3D.exe
   	SetOutPath "$INSTDIR\lib"
   	File /r lib\*.*
   	SetOutPath "$INSTDIR\bin"

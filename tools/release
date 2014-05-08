@@ -13,6 +13,10 @@
 -mode(compile).
 -include_lib("kernel/include/file.hrl").
 
+%% Change these when compiler version is changed on windows
+-define(WIN32_VCREDIST_VERSION, "10.00.40219.1").
+-define(WIN64_VCREDIST_VERSION, "10.00.30319.1").
+
 main(_) ->
     try
 	release(),
@@ -43,7 +47,9 @@ release() ->
 	{unix,darwin} ->
 	    mac_release(Build, WingsVsn);
 	{unix,_} ->
-	    unix_release(Build, WingsVsn)
+	    unix_release(Build, WingsVsn);
+	{win32,nt} ->
+	    win_release(Build, WingsVsn)
     end.
 
 mac_release(BuildRoot, WingsVsn) ->
@@ -84,6 +90,38 @@ unix_release(BuildRoot, WingsVsn) ->
     run(MakeSelf, ["--bzip2",Root,Name++".bzip2.run","Wings3D",Installer,WingsVsn]),
     ok.
 
+win_release(Root, WingsVsn) ->
+    release_otp(Root),
+    BitSize = erlang:system_info(wordsize)*8,
+    VcVersion = setup_vcredist(BitSize, Root),
+    WinDir = filename:join(code:lib_dir(wings), "win32"),
+    ok = file:set_cwd(WinDir),
+    WinFiles = [nsi_file(BitSize), "Wings3D.exe", "wings.ico",
+		"install.ico", "uninstall.ico"],
+    [copy(File, Root) || File <- WinFiles],
+    ok = file:set_cwd(Root),
+    run(makensis, ["/DREDIST_DLL_VERSION="++VcVersion,
+		   "/DWINGS_VERSION="++WingsVsn,
+		   nsi_file(BitSize)]),
+    ok.
+
+setup_vcredist(BitSize, Root) ->
+    VCRedist = os:getenv("WINGS_VCREDIST"),
+    (VCRedist == false) andalso fatal("No WINGS_VCREDIST in env", []),
+    (ok == file:set_cwd(filename:dirname(VCRedist))) orelse
+	fatal("dirname(WINGS_VCREDIST) failed: ~ts~n",[VCRedist]),
+    case BitSize of
+	32 ->
+	    copy("vcredist_x86.exe", Root),
+	    ?WIN32_VCREDIST_VERSION;
+	64 ->
+	    copy("vcredist_x64.exe", Root),
+	    ?WIN64_VCREDIST_VERSION
+    end.
+
+nsi_file(32) -> "wings.nsi";
+nsi_file(64) -> "wings64.nsi".
+
 release_otp(TargetDir0) ->
     TargetDir = filename:absname(TargetDir0),
     Lib = filename:join(TargetDir, "lib"),
@@ -92,18 +130,20 @@ release_otp(TargetDir0) ->
     ok.
 
 copy_erts(TargetDir) ->
-    case os:type() of
-	{unix,_} ->
-	    copy_erts_unix(TargetDir)
-    end.
+    Files = case os:type() of
+		{unix,_} ->
+		    ["beam.smp","child_setup","erlexec","inet_gethost"];
+		{win32,nt} ->
+		    ["erl.exe", "werl.exe", "erlexec.dll", "beam.smp.dll",
+		     "inet_gethost.exe"]
+	    end,
+    copy_erts(TargetDir, Files).
 
-copy_erts_unix(TargetDir) ->
+copy_erts(TargetDir, ExecFiles) ->
     Bin = filename:join(TargetDir, "bin"),
-    ErtsBin = filelib:wildcard(filename:join([code:root_dir(),
-					      "erts-*",
-					      "bin"])),
+    ErtsPath = filename:join([code:root_dir(),"erts-*","bin"]),
+    ErtsBin = filelib:wildcard(ErtsPath),
     ok = file:set_cwd(ErtsBin),
-    ExecFiles = ["beam.smp","child_setup","erlexec","inet_gethost"],
     [copy(File, Bin) || File <- ExecFiles],
     ok = file:set_cwd(filename:join(code:root_dir(), "bin")),
     copy("start.boot", Bin),
@@ -134,27 +174,31 @@ copy_app(App0, Lib) ->
 copy(Source, Target0) ->
     Target = filename:join(Target0, Source),
     ok = filelib:ensure_dir(Target),
-    case filename:extension(Source) of
-	".beam" ->
-	    {ok,Beam} = file:read_file(Source),
-	    {ok,{_,Stripped}} = beam_lib:strip(Beam),
-	    ok = file:write_file(Target, Stripped),
-	    %% Only allow read access.
-	    ok = file:write_file_info(Target, #file_info{mode=8#444});
-	_ ->
-	    %% Could be an executable file. Make sure that we preserve
-	    %% the execution bit. Always turn off the write bit.
-	    {ok,_} = file:copy(Source, Target),
-	    {ok,#file_info{mode=Mode}=Info0} = file:read_file_info(Source),
-	    Info = Info0#file_info{mode=Mode band 8#555},
-	    ok = file:write_file_info(Target, Info),
-	    case Mode band 8#111 of
-		0 ->
-		    ok;
-		_ ->
-		    %% Strip all executable files.
-		    strip(Target)
-	    end
+    try
+	case filename:extension(Source) of
+	    ".beam" ->
+		{ok,Beam} = file:read_file(Source),
+		{ok,{_,Stripped}} = beam_lib:strip(Beam),
+		ok = file:write_file(Target, Stripped),
+		%% Only allow read access.
+		ok = file:write_file_info(Target, #file_info{mode=8#444});
+	    _ ->
+		%% Could be an executable file. Make sure that we preserve
+		%% the execution bit. Always turn off the write bit.
+		{ok,_} = file:copy(Source, Target),
+		{ok,#file_info{mode=Mode}=Info0} = file:read_file_info(Source),
+		Info = Info0#file_info{mode=Mode band 8#555},
+		ok = file:write_file_info(Target, Info),
+		case Mode band 8#111 of
+		    0 ->
+			ok;
+		    _ ->
+			%% Strip all executable files.
+			strip(Target)
+		end
+	end
+    catch error:Reason ->
+	    fatal("failed: copy ~ts ~ts~n\t with: ~p~n",[Source, Target, Reason])
     end,
     ok.
 
@@ -190,7 +234,7 @@ get_vsn(VsnFile, VsnVar) ->
 run(Prog0, Args) ->
     Prog = case os:find_executable(Prog0) of
 	       false ->
-		   fatal("~s not found", [Prog0]);
+		   fatal("~s not found (or not in $path)", [Prog0]);
 	       Path ->
 		   Path
 	   end,
