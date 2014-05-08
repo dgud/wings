@@ -84,13 +84,14 @@ init() ->
     wings_gl:init_extensions(),
     wings_gl:init_restrictions(),
 
-    try
-	Msgs0 = wxe_master:fetch_msgs(),
-	Msgs = lists:flatten([io_lib:format("~p~n",[Msg]) || Msg <- Msgs0]),
-	Msgs == [] orelse wxMessageDialog:showModal(wxMessageDialog:new(Frame, Msgs, [{caption, "OpenMsgs"}]))
-    catch error:undef -> ok %% Req new wx
-    end,
-    ok.
+    %% On the Mac, if Wings was started by clicking on a .wings file,
+    %% we must retrieve the name of the file here.
+    Msgs0 = wxe_master:fetch_msgs(),
+    Msgs = [F || F <- Msgs0, filelib:is_regular(F)],
+    case Msgs of
+	[F|_] -> F;
+	[] -> none
+    end.
 
 redraw(Ev = #wx{obj=Canvas},_) ->
     %% Must do a PaintDC and destroy it
