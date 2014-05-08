@@ -53,9 +53,8 @@ lang: all
 #
 .PHONY: win32
 win32: all lang
-	(cd plugins_src/win32_file; $(MAKE))
 	(cd win32; $(MAKE))
-	win32/make_installer
+	escript tools/release
 
 #
 # Build a package for MacOS X.
@@ -77,7 +76,8 @@ unix: all lang
 
 .PHONY: .FORCE-WINGS-VERSION-FILE
 vsn.mk: .FORCE-WINGS-VERSION-FILE
-	@/bin/sh ./WINGS-VERSION-GEN
+	@./WINGS-VERSION-GEN
+
 -include vsn.mk
 
 WINGS_TARNAME=wings-$(WINGS_VSN)
