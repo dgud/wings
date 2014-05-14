@@ -19,7 +19,10 @@
 	 ask_preview/5, dialog_preview/5
 	]).
 
--export([enable/3, get_value/2, set_value/3]).
+%% Hook callbacks
+-export([enable/3,
+	 get_value/2, set_value/3,
+	 get_widget/2]).
 
 %%-compile(export_all).
 
@@ -305,6 +308,10 @@ enable(Key, Bool, Store) ->
     #in{wx=Ctrl} = gb_trees:get(Key, Store),
     wxWindow:enable(Ctrl, [{enable,Bool}]).
 
+get_widget(Key, Store) ->
+    #in{wx=Wx} = gb_trees:get(Key, Store),
+    Wx.
+
 get_value(Key, Store) ->
     In = gb_trees:get(Key, Store),
     case get_output(dummy, In) of
@@ -329,7 +336,7 @@ set_value_impl(#in{wx=Ctrl, type=choice}, Def) ->
 	     end,
     true = lists:any(SetDef, lists:seq(0, Count-1));
 set_value_impl(#in{wx=Ctrl, type=text}, Val) ->
-    wxTextCtrl:setValue(Ctrl, to_str(Val));
+    wxTextCtrl:changeValue(Ctrl, to_str(Val));
 set_value_impl(#in{wx=Ctrl, type=slider, data={_, ToSlider}}, Val) ->
     wxSlider:setValue(Ctrl, ToSlider(Val)).
 
@@ -372,7 +379,7 @@ enter_dialog(false, _, _, Fields, Fun) -> % No dialog return def values
     return_result(Fun, Values, wings_wm:this());
 enter_dialog(true, no_preview, Dialog, Fields, Fun) -> %% No preview cmd / modal dialog
     case wxDialog:showModal(Dialog) of
-	?wxID_CANCEL -> 
+	?wxID_CANCEL ->
 	    wxDialog:destroy(Dialog),
 	    keep;
 	Result ->
@@ -470,12 +477,12 @@ get_output1(_, In=#in{type=radiobox, wx=Ctrl, data=Keys}) ->
     with_key(In, lists:nth(ZeroIndex+1, Keys));
 get_output1(_, In=#in{type=filepicker, wx=Ctrl}) ->
     with_key(In,wxFilePickerCtrl:getPath(Ctrl));
-get_output1(_, In=#in{type=color, wx=Ctrl, def=Def}) ->
-    Col = wxColourPickerCtrl:getColour(Ctrl),
-    %% Col = wx_color_button:getColour(Ctrl),
-    with_key(In, rgb(Col, Def));
+get_output1(_, In=#in{type=color, wx=Ctrl}) ->
+    with_key(In, ww_color_ctrl:getColor(Ctrl));
 get_output1(_, In=#in{type=slider, wx=Ctrl, data={Convert,_}}) ->
     with_key(In,Convert(wxSlider:getValue(Ctrl)));
+%% get_output1(_, In=#in{type=col_slider, wx=Ctrl}) ->
+%%     with_key(In,ww_color_slider:getColor(Ctrl));
 get_output1(_, In=#in{type=choice, wx=Ctrl}) ->
     with_key(In,wxChoice:getClientData(Ctrl,wxChoice:getSelection(Ctrl)));
 get_output1(_, In=#in{type=text, def=Def, wx=Ctrl, validator=Validate}) ->
@@ -532,11 +539,41 @@ setup_hook({Key, #in{wx=Ctrl, type=text, hook=UserHook, def=Def, validator=Valid
 		     [{callback, fun(#wx{event=#wxCommand{cmdString=Str}}, Obj) ->
 					 wxEvent:skip(Obj),
 					 Val = validate(Validate, Str, Def),
-					 io:format("Ev: ~p~n",[Val]),
 					 UserHook(Key, Val, Fields),
 					 ok
 				 end}]),
     UserHook(Key,validate(Validate, wxTextCtrl:getValue(Ctrl), Def),Fields);
+setup_hook({Key, #in{wx=Ctrl, type=color, hook=UserHook}}, Fields) ->
+    ww_color_ctrl:connect(Ctrl, col_changed,
+			  [{callback, fun({col_changed, Col}) ->
+					      UserHook(Key, Col, Fields)
+				      end}]),
+    ok;
+
+%% Kind of special
+setup_hook({_Key, #in{wx=Canvas, type=custom_gl, hook={paint, CustomRedraw}}}, Fields) ->
+    Env = wx:get_env(),
+    Custom = fun() ->
+		     wxGLCanvas:setCurrent(Canvas),
+		     CustomRedraw(Canvas, Fields),
+		     wxGLCanvas:swapBuffers(Canvas)
+	     end,
+    Redraw = fun(#wx{}, _) ->
+		     case os:type() of
+			 {win32, _} -> 
+			     DC = wxPaintDC:new(Canvas),
+			     wxPaintDC:destroy(DC);
+			 _ -> ok
+		     end,
+		     spawn(fun() ->
+				   wx:set_env(Env),
+				   wx:batch(Custom)
+			   end),
+		     ok
+	     end,
+    wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
+    wxWindow:connect(Canvas, erase_background, [{callback, fun(_,_) -> ok end}]), %% WIN32 only?
+    ok;
 
 setup_hook(_What, _) ->
     io:format("Unknown hook for ~p~n",[_What]),
@@ -633,6 +670,12 @@ build(Ask, {oframe, Tabs, 1, Flags}, Parent, WinSizer, In0)
     NB = wxNotebook:new(Parent, ?wxID_ANY, []),
     AddPage = fun({Title, Data}, In) ->
 		      Panel = wxPanel:new(NB, []),
+		      case os:type() of
+			  {win32,_} ->
+			      BG = wxNotebook:getThemeBackgroundColour(NB),
+			      wxPanel:setBackgroundColour(Panel, BG);
+			  _ -> ignore
+		      end,
 		      Sizer  = wxBoxSizer:new(?wxVERTICAL),
 		      Out = build(Ask, Data, Panel, Sizer, In),
 		      wxPanel:setSizerAndFit(Panel, Sizer),
@@ -748,7 +791,38 @@ build(Ask, {slider, {text, Def, Flags}}, Parent, Sizer, In) ->
     {_Max0,Validator} = validator(Def, Flags),
     Create = fun() -> create_slider(Ask, Def, Flags, Validator, Parent, Sizer) end,
     [#in{key=proplists:get_value(key,Flags), def=Def,
+	 hook=proplists:get_value(hook, Flags),
 	 type=text, wx=create(Ask,Create), validator=Validator}|In];
+
+build(Ask, {slider, {color, Def, Flags}}, Parent, Sizer, In) ->
+    Create = fun() ->
+		     SS = wxBoxSizer:new(?wxHORIZONTAL),
+		     SliderCtrl = ww_color_slider:new(Parent, ?wxID_ANY, Def),
+		     ColCtrl = ww_color_ctrl:new(Parent, ?wxID_ANY, [{col, Def}]),
+
+		     wxSizer:add(SS, SliderCtrl, [{proportion,2}, {flag, ?wxEXPAND}]),
+		     wxSizer:add(SS, ColCtrl, [{proportion,0}]),
+		     tooltip(SliderCtrl, Flags),
+		     tooltip(ColCtrl, Flags),
+		     add_sizer(slider, Sizer, SS),
+		     UpdateSlider =
+			 fun({col_changed, Col}) ->
+				 ww_color_slider:setColor(SliderCtrl, Col)
+			 end,
+		     UpdateCtrl =
+			 fun({col_changed, Col}) ->
+				 ww_color_ctrl:setColor(ColCtrl, Col)
+			 end,
+		     ok = ww_color_ctrl:connect(ColCtrl, col_user_set,
+						[{callback, UpdateSlider}]),
+		     ok = ww_color_slider:connect(SliderCtrl, col_changed,
+						  [{callback, UpdateCtrl}]),
+		     ColCtrl
+	     end,
+    [#in{key=proplists:get_value(key,Flags), def=Def,
+	 hook=proplists:get_value(hook, Flags),
+	 type=color, wx=create(Ask,Create)}|In];
+
 
 build(Ask, {slider, Flags}, Parent, Sizer, In) ->
     Def = proplists:get_value(value, Flags),
@@ -763,12 +837,12 @@ build(Ask, {slider, Flags}, Parent, Sizer, In) ->
 		     Ctrl
 	     end,
     [#in{key=proplists:get_value(key,Flags), def=Def, data={ToText, ToSlider},
+	 hook=proplists:get_value(hook, Flags),
 	 type=slider, wx=create(Ask,Create)}|In];
 
 build(Ask, {color, Def, Flags}, Parent, Sizer, In) ->
     Create = fun() ->
-		     Ctrl = wxColourPickerCtrl:new(Parent, ?wxID_ANY, [{col, rgb256(Def)}]),
-		     %% Ctrl = wx_color_button:new(Parent, ?wxID_ANY, [{col, rgb256(Def)}]),
+		     Ctrl = ww_color_ctrl:new(Parent, ?wxID_ANY, [{col, Def}]),
 		     tooltip(Ctrl, Flags),
 		     add_sizer(button, Sizer, Ctrl),
 		     Ctrl
@@ -872,6 +946,21 @@ build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
 	     end,
     create(Ask,Create),
     In;
+
+build(Ask, {custom_gl, CW, CH, Fun}, Parent, Sizer, In) ->
+    build(Ask, {custom_gl, CW, CH, Fun, []}, Parent, Sizer, In);
+build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
+    Context = wxGLCanvas:getContext(get(gl_canvas)),
+    Create = fun() ->
+		     Canvas = wxGLCanvas:new(Parent, Context,
+					     [{size, {CW,CH}},
+					      {attribList, wings_init:gl_attributes()}
+					     ]),
+		     add_sizer(custom, Sizer, Canvas),
+		     Canvas
+	     end,
+    [#in{key=proplists:get_value(key,Flags),
+	 type=custom_gl, data=ignore, hook={paint, Fun}, wx=create(Ask, Create)}|In];
 
 build(false, _Q, _Parent, _Sizer, In) ->
     In;
@@ -988,6 +1077,7 @@ sizer_flags(separator, ?wxHORIZONTAL) -> {1, 5, ?wxALL bor ?wxALIGN_CENTER_VERTI
 sizer_flags(separator, ?wxVERTICAL)   -> {0, 5, ?wxALL bor ?wxEXPAND};
 sizer_flags(text, ?wxHORIZONTAL)      -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(slider, ?wxHORIZONTAL)    -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(slider, ?wxVERTICAL)      -> {0, 0, ?wxEXPAND};
 sizer_flags(button, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(choice, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(checkbox, ?wxVERTICAL)    -> {1, 0 ,?wxALIGN_CENTER_VERTICAL};
@@ -995,8 +1085,9 @@ sizer_flags(checkbox, ?wxHORIZONTAL)  -> {0, 0 ,?wxALIGN_CENTER_VERTICAL};
 sizer_flags(table,  _)                -> {4, 0, ?wxEXPAND};
 sizer_flags({radiobox, Dir}, Dir)     -> {5, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags({radiobox, _}, _)         -> {0, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({box, Dir}, Dir)          -> {0, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({box, _}, _)              -> {0, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags({box, Dir}, Dir)          -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags({box, _}, _)              -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(custom, _)                -> {0, 5, ?wxALL};
 sizer_flags(_, ?wxHORIZONTAL)         -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(_, ?wxVERTICAL)           -> {0, 0, ?wxEXPAND}.
 
@@ -1016,13 +1107,6 @@ to_str(Float) when is_float(Float) ->
 to_str(List = [C|_]) when is_integer(C) ->
     List;
 to_str([]) -> [].
-
-rgb256({R,G,B}) -> {round(R*255),round(G*255),round(B*255)};
-rgb256({R,G,B,_A}) -> {round(R*255),round(G*255),round(B*255)}.
-
-rgb({R,G,B,A}, {_, _, _, _}) -> {R/255, G/255, B/255, A/255};
-rgb({R,G,B,_A}, {_, _, _}) -> {R/255, G/255, B/255}.
-
 
 pos(C, S) -> pos(C, S, 0).
 pos(C, [C|_Cs], I) -> I;

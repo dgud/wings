@@ -320,10 +320,10 @@ edit(Id, #st{shapes=Shs}=St) ->
     case Type of
 	ambient ->
 	    {dialog,Qs,Fun} = edit_ambient_dialog(Name, Prop, We, Shs, St),
-	    wings_ask:dialog(?__(2,"Ambient Light Properties"), Qs, Fun);
+	    wings_dialog:dialog(?__(2,"Ambient Light Properties"), Qs, Fun);
 	_ ->
 	    {dialog,Qs,Fun} = edit_dialog(Name, Prop, We, Shs, St),
-	    wings_ask:dialog(?__(3,"Light Properties"), Qs, Fun)
+	    wings_dialog:dialog(?__(3,"Light Properties"), Qs, Fun)
     end.
 
 edit_ambient_dialog(Name, Prop0, 
@@ -333,10 +333,7 @@ edit_ambient_dialog(Name, Prop0,
 	     {vframe,[{color,Amb0}]}],
 	    [{title,?__(2,"Color")}]}|qs_specific(L0)],
     Qs1 = wings_plugin:dialog({light_editor_setup,Name,Prop0}, Qs0),
-    Qs = {hframe,[{vframe,Qs1},
-		  {vframe,[{button,?__(3,"OK"),done,
-			    [ok,{key,light_editor_ok}]},
-			   {button,wings_s:cancel(),cancel,[cancel]}]}]},
+    Qs = {vframe_dialog, Qs1, [{buttons, [ok, cancel]}, {key, result}]},
     Fun = fun([Amb|Res]) ->
 		  case plugin_results(Name, Prop0, Res) of
 		      {ok,Prop} ->
@@ -362,27 +359,23 @@ edit_dialog(Name, Prop0, #we{id=Id,light=L0}=We0, Shs, St) ->
 	       {color,Spec0}]}],
 	    [{title,?__(4,"Colors")}]}|qs_specific(L0)],
     Qs1 = wings_plugin:dialog({light_editor_setup,Name,Prop0}, Qs0),
-    Qs = {hframe,[{vframe,Qs1},
-		  {vframe,[{button,?__(5,"OK"),done,[ok,{key,light_editor_ok}]},
-			   {button,wings_s:cancel(),cancel,[cancel]}]}]},
+    Qs = {vframe_dialog, Qs1, [{buttons, [ok, cancel]}, {key, result}]},
     Fun = fun([Diff,Amb,Spec|More0]) ->
 		  L1 = L0#light{diffuse=Diff,ambient=Amb,specular=Spec},
 		  {L,More} = edit_specific(More0, L1),
 		  case plugin_results(Name, Prop0, More) of
 		      {ok,Prop} ->
 			  We = We0#we{light=L#light{prop=Prop}},
-			  St#st{shapes=gb_trees:update(Id, We, Shs)};
-		      {again,Prop} -> edit_dialog(Name, Prop, We0, Shs, St)
+			  St#st{shapes=gb_trees:update(Id, We, Shs)}
+		      %%{again,Prop} -> edit_dialog(Name, Prop, We0, Shs, St)
 		  end
 	  end,
     {dialog,Qs,Fun}.
 
 plugin_results(Name, Prop0, Res0) ->
     case wings_plugin:dialog_result({light_editor_result,Name,Prop0}, Res0) of
-	{Prop,[{light_editor_ok,true}]} ->
+	{Prop,[{result, ok}]} ->
 	    {ok,keydelete(opengl, 1, Prop)};
-	{Prop,[{light_editor_ok,false}]} ->
-	    {again,Prop};
 	{_,Res} ->
 	  io:format(?__(1,
 			"Light editor plugin(s) left garbage:~n    ~P~n"), 

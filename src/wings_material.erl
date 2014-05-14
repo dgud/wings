@@ -640,8 +640,8 @@ needs_tangents(Mat) ->
 edit(Name, Assign, #st{mat=Mtab}=St) ->
     Mat = gb_trees:get(Name, Mtab),
     {dialog,Qs,Fun} = edit_dialog(Name, Assign, St, Mat),
-    wings_ask:dialog(?__(1,"Material Properties: ")++atom_to_list(Name),
-		     Qs, Fun).
+    wings_dialog:dialog(?__(1,"Material Properties: ")++atom_to_list(Name),
+			Qs, Fun).
 
 
 edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
@@ -653,48 +653,40 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     Shine0 = prop_get(shininess, OpenGL0),
     {Emiss0,_} = ask_prop_get(emission, OpenGL0),
     Maps0 = show_maps(Mat0),
-    Preview = fun(A,S,D,F,G) ->
-		      mat_preview(A,S,D,F,G,prop_get(maps,Mat0))
+    Preview = fun(GLCanvas, Fields) ->
+		      mat_preview(GLCanvas,Fields,prop_get(maps,Mat0))
 	      end,
-    Hook = {hook,fun(is_disabled, {_Var,_I,Sto}) ->
-			 gb_trees:get(vertex_colors, Sto) =/= ignore;
-		    (_, _) -> void
-		 end},
+    Refresh = fun(_Key, _Value, Fields) ->
+		      GLCanvas = wings_dialog:get_widget(preview, Fields),
+		      wxWindow:refresh(GLCanvas)
+	      end,
+    RHook = {hook, Refresh},
+    %% Hook = {hook,fun(is_disabled, {_Var,_I,Sto}) ->
+    %% 			 gb_trees:get(vertex_colors, Sto) == set;
+    %% 		    (_, _) -> void
+    %% 		 end},
     AnyTexture = has_texture(Mat0),
     VtxColMenu = vertex_color_menu(AnyTexture, VertexColors0),
     Qs1 = [{vframe,
 	    [
-	     {hframe, 
-	      [{custom,?PREVIEW_SIZE,?PREVIEW_SIZE+5,Preview},
-	       {vframe,
-		[{label,?__(1,"Diffuse")},
-		 {label,?__(2,"Ambient")},
-		 {label,?__(3,"Specular")},
-		 {label,?__(4,"Emission")},
-		 {label,"Vertex Colors"}
-		]
-	       },
-	       {vframe,
-		[{slider,{color,Diff0,
-			  [{key,diffuse},Hook]}},
-		 {slider,{color,Amb0,[{key,ambient}]}},
-		 {slider,{color,Spec0,[{key,specular}]}},
-		 {slider,{color,Emiss0,[{key,emission}]}},
-		 VtxColMenu]}]},
-	     {hframe, [{vframe, [{label,?__(5,"Shininess")},
-				 {label,?__(6,"Opacity")}]},
-		       {vframe, [{slider,{text,Shine0,
-					  [{range,{0.0,1.0}},
-					   {key,shininess}]}},
-				 {slider,{text,Opacity0,
-					  [{range,{0.0,1.0}},
-					   {key,opacity}]}}]}]
-	     }|Maps0]
+	     {hframe,
+	      [{custom_gl,?PREVIEW_SIZE,?PREVIEW_SIZE+5,Preview, [{key, preview}]},
+	       {label_column,
+		[{?__(1,"Diffuse"), {slider,{color,Diff0, [{key,diffuse},RHook]}}},
+		 {?__(2,"Ambient"), {slider,{color,Amb0,[{key,ambient}, RHook]}}},
+		 {?__(3,"Specular"),{slider,{color,Spec0,[{key,specular}, RHook]}}},
+		 {?__(4,"Emission"),{slider,{color,Emiss0,[{key,emission}, RHook]}}}
+		]}]},
+	     {label_column,
+	      [{"Vertex Colors", VtxColMenu},
+	       {?__(5,"Shininess"),
+		{slider,{text,Shine0, [{range,{0.0,1.0}}, {key,shininess}, RHook]}}},
+	       {?__(6,"Opacity"),
+		{slider,{text,Opacity0, [{range,{0.0,1.0}}, {key,opacity}, RHook]}}}
+	      ]}|Maps0]
 	   }],
     Qs2 = wings_plugin:dialog({material_editor_setup,Name,Mat0}, Qs1),
-    Qs = {hframe,[{vframe,Qs2},
-		  {vframe,[{button,?__(7,"OK"),done,[ok,{key,material_editor_ok}]},
-			   {button,wings_s:cancel(),cancel,[cancel]}]}]},
+    Qs = {vframe_dialog, Qs2, [{buttons, [ok, cancel]}, {key, result}]},
     Ask = fun([{diffuse,Diff},
 	       {ambient,Amb},
 	       {specular,Spec},
@@ -740,10 +732,7 @@ maybe_assign(true, Name, St) -> set_material(Name, St).
 
 plugin_results(Name, Mat0, Res0) ->
     case wings_plugin:dialog_result({material_editor_result,Name,Mat0}, Res0) of
-	{Mat,[{material_editor_ok,true}]} ->
-	    {ok,Mat};
-	{Mat,[{material_editor_ok,false}]} ->
-	    {again,Mat};
+	{Mat,[{result,ok}]} -> {ok,Mat};
 	{_,Res} ->
 	    io:format(?__(1,"Material editor plugin(s) left garbage:~n    ~P~n"), 
 		      [Res,20]),
@@ -790,15 +779,15 @@ ask_prop_put(specular=Key, {R,G,B}, _) ->
     {Key,{R,G,B,1.0}};
 ask_prop_put(Key, {R,G,B}, Opacity) ->
     {Key,{R,G,B,Opacity}}.
-    
-mat_preview(X, Y, _W, _H, Common, Maps) ->
-    wings_io:border(X, Y, ?PREVIEW_SIZE, ?PREVIEW_SIZE, ?PANE_COLOR),
-    MM = gl:getDoublev(?GL_MODELVIEW_MATRIX),
-    PM = gl:getDoublev(?GL_PROJECTION_MATRIX),
-    ViewPort = wings_wm:viewport(),
-    {Ox,Oy,_} = wings_gl:project(X, Y+?PREVIEW_SIZE, 0, MM, PM, ViewPort),
+
+mat_preview(Canvas, Common, Maps) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-    gl:viewport(trunc(Ox), trunc(Oy), ?PREVIEW_SIZE, ?PREVIEW_SIZE),
+    gl:viewport(0, 0, ?PREVIEW_SIZE, ?PREVIEW_SIZE),
+    {BR,BG,BB, _} = wxWindow:getBackgroundColour(wxWindow:getParent(Canvas)),
+    %% wxSystemSettings:getColour(?wxSYS_COLOUR_BACKGROUND),
+    BGC = fun(Col) -> (Col-15) / 255 end,
+    gl:clearColor(BGC(BR),BGC(BG),BGC(BB),1.0),
+    gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
     gl:matrixMode(?GL_PROJECTION),
     gl:pushMatrix(),
     gl:loadIdentity(),
@@ -809,11 +798,11 @@ mat_preview(X, Y, _W, _H, Common, Maps) ->
     gl:translatef(0.0, 0.0, -2.0),
     wings_light:camera_lights(mat_preview),
     gl:shadeModel(?GL_SMOOTH),
-    Alpha = gb_trees:get(opacity, Common),
-    Amb = preview_mat(ambient, Common, Alpha),
-    Diff = preview_mat(diffuse, Common, Alpha),
-    Spec = preview_mat(specular, Common, Alpha),
-    Shine = gb_trees:get(shininess, Common),
+    Alpha = wings_dialog:get_value(opacity, Common),
+    Amb   = preview_mat(ambient, Common, Alpha),
+    Diff  = preview_mat(diffuse, Common, Alpha),
+    Spec  = preview_mat(specular, Common, Alpha),
+    Shine = wings_dialog:get_value(shininess, Common),
     gl:materialf(?GL_FRONT, ?GL_SHININESS, Shine*128.0),
     gl:materialfv(?GL_FRONT, ?GL_AMBIENT, Amb),
     gl:materialfv(?GL_FRONT, ?GL_DIFFUSE, Diff),
@@ -821,15 +810,16 @@ mat_preview(X, Y, _W, _H, Common, Maps) ->
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     gl:enable(?GL_LIGHTING),
     gl:enable(?GL_BLEND),
+    gl:enable(?GL_DEPTH_TEST),
     gl:enable(?GL_CULL_FACE),
     gl:rotatef(-90,1,0,0),
     Obj = glu:newQuadric(),
     glu:quadricDrawStyle(Obj, ?GLU_FILL),
     glu:quadricNormals(Obj, ?GLU_SMOOTH),
     case apply_texture(prop_get(diffuse, Maps, none)) of
-	true -> 
+	true ->
 	    glu:quadricTexture(Obj, ?GLU_TRUE);
-	false -> 
+	false ->
 	    ignore
     end,
     glu:sphere(Obj, 0.9, 50, 50),
@@ -845,9 +835,9 @@ mat_preview(X, Y, _W, _H, Common, Maps) ->
     gl:popAttrib().
 
 preview_mat(Key, Colors, Alpha) ->
-    {R,G,B} = gb_trees:get(Key, Colors),
+    {R,G,B} = wings_dialog:get_value(Key, Colors),
     {R,G,B,Alpha}.
-    
+
 %%% Return color in texture for the given UV coordinates.
 
 color(Face, UV, We, #st{mat=Mtab}) ->
