@@ -651,6 +651,10 @@
     % "Proportional"
     {32,"※プロポーショナル"},
     % "Make image scale proportional"
-    {33,"画像の比率を保ったまま拡大縮小します"}
+    {33,"画像の比率を保ったまま拡大縮小します"},
+    % "Rotate Snap Image"
+    {34,"※回転"},
+    % "Rotate the background image"
+    {35,"イメージを回転させます"}
    ]}
  ]}.
