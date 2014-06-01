@@ -248,7 +248,9 @@ update_state_2(#st{views={CurrentView,Views}}=St, #ost{os=Objs0}=Ost) ->
 	_ -> wings_wm:dirty()
     end,
     N = length(Objs),
-    Act = CurrentView-1,
+    Act = if CurrentView > 0 -> CurrentView-1;
+      true -> CurrentView
+    end,
     Ost#ost{st=St,os=Objs,n=N,active=Act}.
 
 update_scroller(#ost{n=0}) ->
