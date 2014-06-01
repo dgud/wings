@@ -22,12 +22,12 @@
 
 init() -> true.
 
-menu({Mode},Menu) when Mode == vertex; Mode == edge; Mode == face; Mode == body; Mode == light -> 
+menu({Mode},Menu) when Mode == vertex; Mode == edge; Mode == face; Mode == body; Mode == light ->
     parse(Menu, Mode);
-menu(_,Menu) -> 
+menu(_,Menu) ->
     Menu.
 
-parse(Menu, Mode) -> 
+parse(Menu, Mode) ->
     lists:reverse(parse(Menu, Mode, [], false)).
 
 parse([], _, NewMenu, true) ->
@@ -46,8 +46,9 @@ draw(all, Mode) ->
 draw(menu, Mode) ->
     [{?__(2,"Move"), move_fun(Mode),
       {?__(3,"Move to exact position in absolute coordinates."),
-       ?__(8,"Move using a secondary selection as reference.")},[]},
-     {?__(4,"Snap"), snap_fun(Mode), 
+       ?__(8,"Move using a secondary selection as reference."),
+       ?__(9,"Move using a secondary selection and orientation as reference.")},[]},
+     {?__(4,"Snap"), snap_fun(Mode),
       {?__(5,"Move to secondary selection."),
        ?__(6,"Move using center as reference."),
        ?__(7,"Move and display numeric entry.")},[]}].
@@ -57,6 +58,8 @@ move_fun(Mode) ->
 	    {Mode,{absolute,move}};
        (2, _Ns) ->
 	    {Mode,{absolute,rmove}};
+       (3, _Ns) ->
+	    {Mode,{absolute,omove}};
        (_, _) -> ignore
     end.
 
@@ -70,16 +73,17 @@ snap_fun(Mode) ->
        (_, _) -> ignore
     end.
 
-command({_,{absolute,Mode}},St) when Mode == move; Mode == rmove; Mode == snap; Mode == csnap; Mode == nsnap ->
+command({_,{absolute,Mode}},St) when Mode == move; Mode == rmove; Mode == omove; Mode == snap; Mode == csnap; Mode == nsnap ->
     Mirror = check_mirror(St),
     if
-        Mirror -> 
+        Mirror ->
             mirror_error(),
             St;
         true ->
             case Mode of
                 move -> move(St);
                 rmove -> wings:ask(selection_ask([reference]), St, fun rmove/2);
+                omove -> wings:ask(selection_ask([reference,axis,axis_point]), St, fun omove/2);
                 snap -> wings:ask(selection_ask([reference,target]), St, fun snap/2);
                 csnap -> wings:ask(selection_ask([target]), St, fun csnap/2);
                 nsnap -> wings:ask(selection_ask([reference,target]), St, fun nsnap/2)
@@ -96,6 +100,34 @@ move(St) ->
 
 rmove(Reference, St) ->
     move(Reference, St).
+
+omove({From, LineDir0, PlaneNorm0, PlanePoint}, St) ->
+    Sel = get_selection(St),
+
+    PlaneNorm = e3d_vec:norm(PlaneNorm0),
+    LineDir = e3d_vec:norm(LineDir0),
+    DotProd = e3d_vec:dot(LineDir, PlaneNorm),
+
+    if
+	abs(DotProd) > 0.001 ->
+        X = e3d_vec:dot(e3d_vec:sub(PlanePoint, From),PlaneNorm)/DotProd,
+        Offset= e3d_vec:mul(LineDir, X),
+        #st{shapes=Shps0}=St,
+        Shps=lists:foldr(fun({Obj0,Vset}, ShpsAcc) ->
+            #we{vp=Vtab0}=We=gb_trees:get(Obj0, ShpsAcc),
+            Vtab=lists:foldl(fun(V, VtabAcc) ->
+                Vs0=array:get(V,VtabAcc),
+                Vs=e3d_vec:add(Vs0, Offset),
+                array:set(V,Vs,VtabAcc)
+            end, Vtab0, gb_sets:to_list(Vset)),
+            gb_trees:update(Obj0, We#we{vp=Vtab}, ShpsAcc)
+        end, Shps0, Sel),
+        {save_state,St#st{shapes=Shps}};
+	true ->
+	    wpa:error_msg(?__(1,"Line and plane are nearly parallel:\n"
+		      "can't find intersection.")),
+	    keep
+    end.
 
 move(Reference0, #st{shapes=Shapes}=St) ->
     Sel = get_selection(St),
@@ -181,7 +213,7 @@ check_mirror([{Obj,VSet}|Rest],Shs) ->
     We = gb_trees:get(Obj, Shs),
     Mirror = We#we.mirror,
     case Mirror of
-        none -> 
+        none ->
             check_mirror(Rest,Shs);
         _ ->
             MirrorVerts = wings_face:vertices_cw(Mirror,We),
@@ -243,7 +275,13 @@ selection_ask([reference|Rest],Ask) ->
     selection_ask(Rest,[{point,Desc}|Ask]);
 selection_ask([target|Rest],Ask) ->
     Desc = ?__(2,"Select target point for snap operation"),
-    selection_ask(Rest,[{point,Desc}|Ask]).
+    selection_ask(Rest,[{point,Desc}|Ask]);
+selection_ask([axis|Rest],Ask) ->
+    Desc = ?__(3,"Select reference axis for orientation"),
+    selection_ask(Rest,[{axis,Desc}|Ask]);
+selection_ask([axis_point|Rest],Ask) ->
+    Desc = ?__(4,"Pick axis perpendicular to plane (plane will pass through axis's base)"),
+    selection_ask(Rest,[{axis_point,Desc}|Ask]).
 
 %%%
 %%% Core functions
@@ -279,7 +317,7 @@ draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default},{_,Lock}},
                      []
               end,
     Frame4 = if
-                 MoveObj =/= duplionly -> 
+                 MoveObj =/= duplionly ->
                      [draw_window1(duplicate,true)];
                  true ->
                      []
@@ -289,7 +327,7 @@ draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default},{_,Lock}},
                  true -> []
              end,
     Frame5 = if
-                Frame2 =/= [] orelse Frame3 =/= [] orelse Frame35 =/= [] -> 
+                Frame2 =/= [] orelse Frame3 =/= [] orelse Frame35 =/= [] ->
                     [{hframe,Frame1++[{vframe,[{hframe,Frame2++Frame3++Frame35}]++Frame4}]}];
                 true ->
                     [{vframe,Frame1++Frame4}]
@@ -370,7 +408,7 @@ disable(all) ->
           end};
 disable(dupli) ->
     {hook,fun (is_disabled, {_Var,_I,Store}) ->
-                  (gb_trees:get(dupli, Store) > 1) and 
+                  (gb_trees:get(dupli, Store) > 1) and
                   not ((gb_trees:is_defined(all,Store)) andalso (not gb_trees:get(all, Store)));
               (_, _) -> void
           end};
