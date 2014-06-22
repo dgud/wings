@@ -45,6 +45,7 @@ render(#st{selmode=Mode}=St) ->
 	undefined -> ok
     end,
     SceneLights = wings_view:load_matrices(true),
+    init_grid_size(),
     ground_and_axes(),
     mini_axis_icon(),
     show_saved_bb(St),
@@ -59,6 +60,7 @@ render(#st{selmode=Mode}=St) ->
     {W,H} = wings_wm:win_size(),
     gl:rectf(W-0.5, 0.5, 0.5, H-0.5),
     gl:popAttrib(),
+    release_grid_size(),
     wings_develop:gl_error_check("Rendering scene").
 
 polygonOffset(M) ->
@@ -578,6 +580,17 @@ sub({X1,Y1}, {X2,Y2}) ->
 
 add_prod({X1,Y1}, {X2,Y2}, S) when is_float(S) ->
     {S*X2+X1,S*Y2+Y1}.
+
+init_grid_size() ->
+%    {_,_,W0,H0} = wings_wm:viewport(desktop),
+    {MM,PM,{_,_,W0,H0}=Viewport} = wings_u:get_matrices(0, original),
+    W1=max(W0,H0)/2.0,
+    {S,T,U} = wings_gl:unProject(W1, 0.0, 0.0, MM, PM, Viewport),
+    GridAmount=max(round(max(max(abs(S),abs(T)),abs(U))),10.0),
+    wings_pref:set_value(ground_grid_amount,GridAmount).
+
+release_grid_size() ->
+    wings_pref:delete_value(ground_grid_amount).
 
 groundplane(Axes) ->
     case (wings_wm:get_prop(show_groundplane) orelse
