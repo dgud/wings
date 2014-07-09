@@ -32,14 +32,25 @@ getColor(Ctrl) ->
 setColor(Ctrl, RGB) ->
     wx_object:cast(Ctrl, {set_color, RGB}).
 
+connect(Ctrl, Msg) ->
+    connect(Ctrl, Msg, []).
+
+connect(Ctrl, col_changed, Opts) ->
+    wx_object:call(Ctrl, {connect, Opts});
+connect(Ctrl, What, Opts) ->
+    wxPanel:connect(Ctrl, What, Opts).
+
+
 %% Callbacks
 
 -include_lib("wx/include/wx.hrl").
 
--record(state, {self, this, pos,
-		c1, c2,
+-record(state, {self, this, h, s, v,
+		c1, c2, 
 		bmp, bgb,
-		focus=false, fpen}).
+		focus=false, fpen,
+		handlers=[] %% Listeners or callbacks
+	       }).
 -define(PANEL_MIN_SIZE, {100, 20}).
 -define(SLIDER_MIN_HEIGHT, 10).
 -define(SLIDER_OFFSET, {8, 5}).
@@ -71,7 +82,7 @@ init([Parent, Id, {R,G,B}, Opts0]) ->
     FPen = wxPen:new(wxSystemSettings:getColour(?wxSYS_COLOUR_HIGHLIGHT)),
 
     {Panel, #state{self=self(), this=Panel,
-		   pos=V,
+		   h=Hue,s=S,v=V,
 		   c1=SCol, c2=ECol,
 		   bmp=Bmp, bgb=Brush,
 		   fpen=FPen}}.
@@ -79,7 +90,7 @@ init([Parent, Id, {R,G,B}, Opts0]) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Redraw the control
 handle_sync_event(#wx{obj=Panel, event=#wxPaint{}}, _,
-		  #state{this=Panel, pos=X,
+		  #state{this=Panel, v=X,
 			 c1=C1, c2=C2,
 			 bmp=Bmp, bgb=BGB,
 			 focus=Focus, fpen=FPen
@@ -87,7 +98,6 @@ handle_sync_event(#wx{obj=Panel, event=#wxPaint{}}, _,
     DC = case os:type() of
 	     {win32, _} -> %% Flicker on windows
 		 BDC = wx:typeCast(wxBufferedPaintDC:new(Panel), wxPaintDC),
-		 %%BDC = wxPaintDC:new(Panel),
 		 wxDC:setBackground(BDC, BGB),
 		 wxDC:clear(BDC),
 		 BDC;
@@ -103,17 +113,19 @@ handle_sync_event(#wx{obj=Panel, event=#wxPaint{}}, _,
        true -> ignore
     end,
     %% Draw background
-    {X0,Y0} = ?SLIDER_OFFSET,
-    wxDC:gradientFillLinear(DC, {X0, Y0, W0-2*X0, ?SLIDER_MIN_HEIGHT},
+    {XOFF,YOFF} = ?SLIDER_OFFSET,
+    {_, HMIN} = ?PANEL_MIN_SIZE,
+    Y0 = (H0 - HMIN) div 2,
+    wxDC:gradientFillLinear(DC, {XOFF, Y0+YOFF, W0-2*XOFF, ?SLIDER_MIN_HEIGHT},
 			    rgb256(C1), rgb256(C2), [{nDirection, ?wxRIGHT}]),
     %% Draw selector
-    Pos = X0 + (W0-2*X0)*X,
-    wxDC:drawBitmap(DC, Bmp, {trunc(Pos-7),0}),
+    Pos = XOFF + (W0-2*XOFF)*X,
+    wxDC:drawBitmap(DC, Bmp, {trunc(Pos-7),Y0}),
     wxPaintDC:destroy(DC),
     ok;
 
 %%% Key events must be handled sync'ed so we can call skip for TAB traversal
-handle_sync_event(#wx{event=#wxKey{keyCode=Key}}, Event, #state{self=Self, pos=Prev}) ->
+handle_sync_event(#wx{event=#wxKey{keyCode=Key}}, Event, #state{self=Self, v=Prev}) ->
     Move = case Key of
 	       ?WXK_LEFT     -> -0.01;
 	       ?WXK_RIGHT    ->  0.01;
@@ -138,15 +150,17 @@ handle_sync_event(#wx{event=#wxKey{keyCode=Key}}, Event, #state{self=Self, pos=P
 
 %% Other events
 handle_event(#wx{event=#wxMouse{type=motion, x=X}},
-	     #state{this=This} = State) ->
-    {noreply, State#state{pos=slider_pos(This, X)}};
+	     #state{this=This} = State0) ->
+    State = State0#state{v=slider_pos(This, X)},
+    [apply_callback(H, hsv_to_rgb(State)) || H <- State#state.handlers],
+    {noreply, State};
 
 handle_event(#wx{event=#wxMouse{type=left_down, x=X}},
 	     #state{this=This} = State) ->
     wxPanel:setFocus(This),
     wxPanel:captureMouse(This),
     wxPanel:connect(This, motion),
-    {noreply, State#state{pos=slider_pos(This, X)}};
+    {noreply, State#state{v=slider_pos(This, X)}};
 handle_event(#wx{event=#wxMouse{type=left_up}},
 	     #state{this=This} = State) ->
     wxPanel:disconnect(This, motion),
@@ -160,16 +174,25 @@ handle_event(#wx{event=#wxErase{}}, State) ->
     %% io:format("Skip Ev ~p~n",[Ev]),
     {noreply, State}.
 
-handle_call(get_color, _From, #state{c1={H,S,_}, pos=V} = State) ->
-    Color = hsv_to_rgb(H,S,V),
-    {reply, Color, State}.
+handle_call({connect, Opts}, From, #state{handlers=Curr} = State) ->
+    case proplists:get_value(callback, Opts) of
+	undefined -> 
+	    {reply, ok, State#state{handlers=[From|Curr]}};
+	CB when is_function(CB) ->
+	    {reply, ok, State#state{handlers=[CB|Curr]}};
+	Bad ->
+	    {reply, {error, {badarg, Bad}}, State}
+    end;
+
+handle_call(get_color, _From, State) ->
+    {reply, hsv_to_rgb(State), State}.
 
 handle_cast({set_color, {R,G,B}}, State = #state{this=This}) ->
     {Hue,S,V} = rgb_to_hsv(R, G, B),
     SCol = hsv_to_rgb(Hue, S, 0.0),
     ECol = hsv_to_rgb(Hue, S, 1.0),
     wxWindow:refresh(This),
-    {noreply, State#state{pos=V, c1=SCol, c2=ECol}}.
+    {noreply, State#state{h=Hue,s=S,v=V, c1=SCol, c2=ECol}}.
 
 terminate(_Reason, #state{this=_This, bmp=Bmp, bgb=BGB, fpen=Fpen}) ->
     wxBrush:destroy(BGB),
@@ -178,9 +201,11 @@ terminate(_Reason, #state{this=_This, bmp=Bmp, bgb=BGB, fpen=Fpen}) ->
     %% wxPanel:destroy(This), %% Is destroyed by the owner
     ok.
 
-handle_info({move,Move}, State = #state{this=This, pos=Prev}) ->
+handle_info({move,Move}, State0 = #state{this=This, v=Prev}) ->
     wxWindow:refresh(This),
-    {noreply, State#state{pos=max(0.0, min(1.0, Prev+Move))}};
+    State = State0#state{v=max(0.0, min(1.0, Prev+Move))},
+    [apply_callback(H, hsv_to_rgb(State)) || H <- State#state.handlers],
+    {noreply, State};
 handle_info(_, State) -> State.
 
 code_change(_, _, State) -> State.
@@ -202,6 +227,8 @@ rgb_to_hsv(R,G,B) ->
     {H,S,V} = wings_color:rgb_to_hsv(R,G,B),
     {round(H),S,V}.
 
+hsv_to_rgb(#state{h=H,s=S,v=V}) ->
+    hsv_to_rgb(H, S, V);
 hsv_to_rgb({H,S,V}) ->
     hsv_to_rgb(H, S, V).
 
@@ -210,6 +237,11 @@ hsv_to_rgb(H, S, V) ->
 
 rgb256({R,G,B}) -> {round(R*255),round(G*255),round(B*255)};
 rgb256({R,G,B,_A}) -> {round(R*255),round(G*255),round(B*255)}.
+
+apply_callback(Pid, Col) when is_pid(Pid) ->
+    Pid ! {col_changed, Col};
+apply_callback(CB, Col) when is_function(CB) ->
+    CB({col_changed, Col}).
 
 %% Image / icon data
 
@@ -246,6 +278,7 @@ run_test() ->
     wxSizer:add(Sz, new(Panel, -1, RGB(?wxSYS_COLOUR_MENUHILIGHT), []), [{flag, ?wxEXPAND}]),
     wxSizer:add(Sz, new(Panel, -1, RGB(?wxSYS_COLOUR_ACTIVEBORDER), []), [{flag, ?wxEXPAND}]),
     wxSizer:add(Sz, new(Panel, -1, RGB(?wxSYS_COLOUR_BTNHILIGHT), []), [{flag, ?wxEXPAND}]),
+    wxSizer:add(Sz, new(Panel, -1, RGB(?wxSYS_COLOUR_BACKGROUND), []), [{flag, ?wxEXPAND}]),
     wxSizer:add(Sz, wxButton:new(Panel, 44, [{label, "B button"}])),
     wxPanel:setSizerAndFit(Panel, Sz),
     wxSizer:setSizeHints(Sz, Frame),
@@ -253,3 +286,4 @@ run_test() ->
     exit(ok).
 
 rgb({R,G,B,_}) -> {R/255, G/255, B/255}.
+
