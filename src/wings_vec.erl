@@ -518,7 +518,7 @@ get_vec(vertex,plane,Positions) ->
         [Vp1,Vp2,Vp3] ->
             Vec0 = e3d_vec:sub(Vp1,Vp2),
             Vec1 = e3d_vec:sub(Vp1,Vp3),
-            Vec = e3d_vec:cross(Vec0,Vec1),
+            Vec = e3d_vec:norm(e3d_vec:cross(Vec0,Vec1)),
             Center = e3d_vec:average(Positions),
             [{{Center,Vec},?__(13,"3-point perp. normal saved as axis.")}];
         _ -> {none,?__(27,"Vertices cannot share coordinates when defining a 3 point plane normal")}

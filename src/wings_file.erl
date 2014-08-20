@@ -59,7 +59,7 @@ import_filename_1(Ps0, Cont) ->
     end,
     Ps = Ps0 ++ [{title,String},{directory,Dir}],
     Fun = fun(Name0) ->
-    	  Name=test_unc_path(Name0), 
+          Name=test_unc_path(Name0),
 		  case catch Cont(Name) of
 		      {command_error,Error} ->
 			  wings_u:message(Error);
@@ -77,18 +77,18 @@ import_filename_1(Ps0, Cont) ->
 %%   The Continuation fun will be called like this: Continuation(Filename).
 export_filename(Prop, Cont) ->
     case get(wings_not_running) of
-	undefined -> 
+	undefined ->
 	    export_filename_1(Prop, Cont);
 	{export, FileName} ->
 	    Cont(FileName)
     end.
-			 
+
 export_filename_1(Prop0, Cont) ->
     This = wings_wm:this(),
     Dir = wings_pref:get_value(current_directory),
     Prop = Prop0 ++ [{directory,Dir}],
     Fun = fun(Name0) ->
-    	  Name=test_unc_path(Name0), 
+          Name=test_unc_path(Name0),
 		  case catch Cont(Name) of
 		      {command_error,Error} ->
 			  wings_u:message(Error);
@@ -180,12 +180,14 @@ save_unused_mats() ->
 command(new, St) ->
     new(St);
 command(confirmed_new, St) ->
+    del_unsaved_file(),
     confirmed_new(St);
 command(open, St) ->
     open(St);
 command(confirmed_open_dialog, _) ->
     confirmed_open_dialog();
 command({confirmed_open,Filename}, St) ->
+    del_unsaved_file(),
     confirmed_open(Filename, St);
 command({confirmed_open,Next,Filename}, _) ->
     Next(Filename);
@@ -205,7 +207,7 @@ command(save_selected, St) ->
     save_selected(St);
 command({save_selected,Filename}, St) ->
     save_selected(Filename, St);
-command(save_incr, St) -> 
+command(save_incr, St) ->
     save_incr(St);
 command(revert, St0) ->
     case revert(St0) of
@@ -266,6 +268,7 @@ command(quit, _) ->
 			  fun() -> {file,{save,{file,quit}}} end,
 			  fun() -> {file,confirmed_quit} end);
 command(confirmed_quit, _) ->
+    del_unsaved_file(),
     quit;
 command(Key, St) when is_integer(Key), 1 =< Key ->
     Recent0 = wings_pref:get_value(recent_files, []),
@@ -290,14 +293,14 @@ confirmed_new(#st{file=File}=St) ->
 
 new(#st{saved=true}=St0) ->
     St1 = clean_st(St0#st{file=undefined}),
-    %% clean_st/1 will remove all saved view, but will not reset the view. For a new project we should reset it. 
+    %% clean_st/1 will remove all saved view, but will not reset the view. For a new project we should reset it.
     wings_view:reset(),
     St2 = clean_images(wings_undo:init(St1)),
     St = wings_shape:create_folder_system(St2),
     wings_u:caption(St),
     {new,St#st{saved=true}};
 new(#st{}=St0) ->		      %File is not saved or autosaved.
-    wings_u:caption(St0#st{saved=false}), 
+    wings_u:caption(St0#st{saved=false}),
     wings_u:yes_no_cancel(str_save_changes(),
 			  fun() -> {file,{save,{file,new}}} end,
 			  fun() -> {file,confirmed_new} end).
@@ -406,13 +409,10 @@ save_as(Next, St) ->
     export_filename(Ps, St, Cont).
 
 save_now(Next, #st{file=Name0}=St) ->
-    Name=test_unc_path(Name0), 
+    Name=test_unc_path(Name0),
     Backup = backup_filename(Name),
     case wings_pref:get_value(file_recovered, false) of
-        true ->
-            USFile = autosave_filename(unsaved_filename()),
-            file:delete(USFile),
-            wings_pref:set_value(file_recovered, false);
+        true -> del_unsaved_file();
         _ -> ok
     end,
     file:rename(Name, Backup),
@@ -426,7 +426,12 @@ save_now(Next, #st{file=Name0}=St) ->
 	{error,Reason} ->
 	    wings_u:error_msg(?__(1,"Save failed: ") ++ Reason)
     end.
-    
+
+del_unsaved_file() ->
+    File = autosave_filename(unsaved_filename()),
+    catch file:delete(File),
+    wings_pref:set_value(file_recovered, false).
+
 test_unc_path([H|_]=FileName) when H=:=47 ->
 	case string:str(FileName, "//") of
 		1 -> FileName;
@@ -436,7 +441,7 @@ test_unc_path(FileName) -> FileName.
 
 maybe_send_action(ignore) -> keep;
 maybe_send_action(Action) -> wings_wm:later({action,Action}).
-    
+
 save_selected(#st{sel=[]}) ->
     wings_u:error_msg(?__(1,"This command requires a selection."));
 save_selected(St) ->
@@ -464,7 +469,7 @@ save_selected(Name, #st{shapes=Shs0,sel=Sel}=St0) ->
 save_incr(#st{saved=true}=St) -> St;
 save_incr(#st{file=undefined}=St0) ->
     save_as(ignore, St0);
-save_incr(#st{file=Name0}=St) -> 
+save_incr(#st{file=Name0}=St) ->
     Name = increment_name(Name0),
     save_now(ignore, St#st{file=Name}).
 
@@ -485,7 +490,7 @@ increment_name(Name0) ->
     update_recent(Name0, Name),
     Name.
 
-find_digits(List) -> 
+find_digits(List) ->
     find_digits1(List, []).
 
 find_digits1([H|T], Digits) when $0 =< H, H =< $9 ->
@@ -510,7 +515,7 @@ use_autosave(File, Body) ->
     case file:read_file_info(File) of
 	{ok,SaveInfo} ->
 	    use_autosave_1(SaveInfo, File, Body);
-	{error, _} ->			     % use autosaved file if it exists 
+	{error, _} ->			     % use autosaved file if it exists
 	    Auto = autosave_filename(File),
 	    Body(case filelib:is_file(Auto) of
 		     true -> Auto;
@@ -556,7 +561,7 @@ init_autosave() ->
 
 get_autosave_event(Ref, St) ->
     {replace,fun(Ev) -> autosave_event(Ev, Ref, St) end}.
-    
+
 autosave_event(start_timer, OldTimer, St) ->
     wings_wm:cancel_timer(OldTimer),
     case {wings_pref:get_value(autosave),wings_pref:get_value(autosave_time)} of
@@ -741,7 +746,7 @@ install_plugin() ->
     Cont = fun(Name) -> {file,{install_plugin,Name}} end,
     import_filename(Props, Cont).
 
-%%%    
+%%%
 %%% Utilities.
 %%%
 

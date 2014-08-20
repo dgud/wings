@@ -159,8 +159,8 @@ bounding_box_1(Vs0, #we{vp=Vtab}=We, BB) ->
 
 do_bounding_box(Vs, #we{mirror=none}, BB) ->
     do_bounding_box_1(Vs, BB);
-do_bounding_box(Vs0, #we{id=Id}, BB) ->
-    Mtx = wings_dl:mirror_matrix(Id),
+do_bounding_box(Vs0, #we{}=We, BB) ->
+    Mtx = wings_we:mirror_projection(We),
     Vs = foldl(fun(P0, A) -> 
 		       P = e3d_mat:mul_point(Mtx, P0),
 		       [P,P0|A]
