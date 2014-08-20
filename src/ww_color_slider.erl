@@ -53,7 +53,7 @@ connect(Ctrl, What, Opts) ->
 		fpen,
 		handlers=[] %% Listeners or callbacks
 	       }).
--define(PANEL_MIN_SIZE, {100, 20}).
+-define(PANEL_MIN_SIZE, {150, 20}).
 -define(SLIDER_MIN_HEIGHT, 10).
 -define(SLIDER_OFFSET, {8, 5}).
 

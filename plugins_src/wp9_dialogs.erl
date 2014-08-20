@@ -63,15 +63,8 @@ read_image(Prop) ->
     Name = proplists:get_value(filename, Prop),
     case wxImage:loadFile(Image=wxImage:new(), Name) of
 	true ->
-	    E3d0 = #e3d_image{image=wxImage:getData(Image),
-			      width=wxImage:getWidth(Image),
-			      height=wxImage:getHeight(Image),
-			      order = upper_left
-			     },
-	    E3d = case wxImage:hasAlpha(Image) of
-		      true -> e3d_image:add_alpha(E3d0, wxImage:getAlpha(Image));
-		      false -> E3d0
-		  end,
+	    E3d = wings_image:wxImage_to_e3d(Image),
+	    wxImage:destroy(Image),
 	    e3d_image:fix_outtype(Name, E3d, Prop);
 	false ->
 	    {error, ignore}
@@ -79,22 +72,10 @@ read_image(Prop) ->
 
 write_image(Prop) ->
     Name  = proplists:get_value(filename, Prop),
-    Image0 = proplists:get_value(image, Prop),
-    Wx = case Image0 of
-	     #e3d_image{bytes_pp=4, width=W, height=H} ->
-		 #e3d_image{image=RGB} = e3d_image:convert(Image0, r8g8b8, 1, upper_left),
-		 #e3d_image{image=Alpha} = e3d_image:convert(Image0, a8, 1, upper_left),
-		 wxImage:new(W,H,RGB,Alpha);
-	     #e3d_image{bytes_pp=3, width=W, height=H} ->
-		 #e3d_image{image=RGB} = e3d_image:convert(Image0, r8g8b8, 1, upper_left),
-		 wxImage:new(W,H,RGB);
-	     #e3d_image{bytes_pp=1, width=W, height=H} ->
-		 #e3d_image{image=RGB} = e3d_image:convert(Image0, r8g8b8, 1, upper_left),
-		 wxImage:new(W,H,RGB)
-	 end,
-    case wxImage:saveFile(Wx, Name) of
-	true -> ok;
-	false -> {error, ignore}
+    Image = proplists:get_value(image, Prop),
+    case wxImage:saveFile(Wx = wings_image:e3d_to_wxImage(Image), Name) of
+	true -> wxImage:destroy(Wx), ok;
+	false -> wxImage:destroy(Wx), {error, ignore}
     end.
 
 image_formats(Fs0) ->
