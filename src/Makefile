@@ -75,6 +75,7 @@ MODULES= \
 	wings_help \
 	wings_hotkey \
 	wings_image \
+	wings_image_viewer \
 	wings_import \
 	wings_init \
 	wings_io \
