@@ -1459,7 +1459,8 @@ draw_magnet(#tweak{magnet=true, mag_rad=R}) ->
         gl:enable(?GL_BLEND),
         gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
         wings_view:load_matrices(false),
-        wings_io:set_color(wings_pref:get_value(tweak_magnet_color)),
+        {CR,CG,CB,_}=wings_pref:get_value(tweak_magnet_color),
+        wings_io:set_color({CR,CG,CB,0.06}),
         draw_magnet_1(D, R),
         gl:popAttrib()
     end, []);
@@ -1934,10 +1935,9 @@ command({axis_constraint, Axis}, St) ->
     wings_wm:send({tweak,axis_palette},update_palette),
     St;
 command({Mode,B}, St) when B =< 3->
-    Mod = sdl_keyboard:getModState(),
-    Ctrl = Mod band ?CTRL_BITS =/= 0,
-    Shift = Mod band ?SHIFT_BITS =/= 0,
-    Alt = Mod band ?ALT_BITS =/= 0,
+    Ctrl = wx_misc:getKeyState(?WXK_CONTROL),
+    Shift = wx_misc:getKeyState(?WXK_SHIFT),
+    Alt = wx_misc:getKeyState(?WXK_ALT),
     set_tweak_pref(Mode, B, {Ctrl, Shift, Alt}),
     wings_wm:send({tweak,tweak_palette},update_palette),
     St;
