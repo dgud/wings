@@ -48,7 +48,7 @@ command({shape,{image_plane,Ask}}, _St) when is_atom(Ask) ->
 command({shape,{image_plane,{FileName,Ask}}}, St) when is_atom(Ask) ->
     make_image(FileName,Ask,St);
 command({shape,{image_plane,{params,{ImData,Arg}}}}, St) ->
-    make_image_0(ImData,Arg,St);
+    make_image_0(ImData,Arg,wings_wm:this(),St);
 command(_, _) -> next.
 
 make_image(Ask) ->
@@ -65,76 +65,56 @@ make_image(Name,Ask,St) when is_atom(Ask) ->
               [Name,file:format_error(Error)])
     end.
 
-make_image(FileName, Image0, false=Ask, _St) ->
-    case load_img_plane(FileName,Image0) of
-	{error,_} -> ok;
-	ImData ->
-	    Id_Img_Helper = load_ip_helper(),
-	    Qs = image_dialog(FileName, Id_Img_Helper),
-	    wings_ask:dialog(Ask, ?__(2,"Image Plane"), [{vframe,Qs}],
-			     fun(Res) ->
-				     {shape,{image_plane,{params,{ImData,Res}}}}
-			     end)
-    end;
 
 make_image(FileName, Image0, Ask, St) when is_atom(Ask) ->
     case load_img_plane(FileName,Image0) of
     {error,_} -> ok;
     {Id_Img_Plane,_,_}=ImData ->
-        Id_Img_Helper = load_ip_helper(),
-        wings_dialog:dialog(?__(2,"Image Plane"), {preview,image_dialog(FileName, Id_Img_Helper)},
+        Img_Helper = load_ip_helper(),
+	Owner = wings_wm:this(),
+        wings_dialog:dialog(Ask, ?__(2,"Image Plane"), {preview,image_dialog(FileName, Img_Helper)},
           fun
             ({dialog_preview,Res}) ->
-                St1 = make_image_0(ImData,Res,St),
+                St1 = make_image_0(ImData,Res,Owner,St),
                 {preview,St1,St1};
             (cancel) ->
                 unload_img_plane(Id_Img_Plane,St),
-                wings_image:delete(Id_Img_Helper),
                 St;
             (Res) ->
-                St1 = make_image_0(ImData,Res,St),
+                St1 = make_image_0(ImData,Res,Owner,St),
                 {commit,St1,St1}
           end)
     end.
 
-image_dialog(FileName, Tx_helper) ->
-    Owner = wings_wm:this(),
+image_dialog(FileName, Helper) ->
     FName = filename:rootname(filename:basename(FileName)),
-    Disable_Hook = fun(Event, Params) ->
-        case Event of
-        is_disabled ->
-            {Var,_,Store}=Params,
-            case Var of
-            rotation ->
-                gb_trees:get(alignment,Store)=:=view;
-            img_name ->
-                gb_trees:get(usename,Store)=:=for_mat_obj;
-            _ ->
-                false
-            end;
-        _ ->
-            void
-        end
-    end,
-    Draw_Helper = fun(X, Y, W, H, _) ->
-        draw_img_helper(X, Y, W, H, Tx_helper),
-        keep
-    end,
+    Disable_Hook = fun(Key, Value, Store) ->
+            case Key of
+                alignment ->
+                    wings_dialog:enable(rotation, Value=/=view, Store);
+                usename ->
+                    wings_dialog:enable(img_name, Value=/=for_mat_obj, Store);
+                _ ->
+                    ok
+            end
+        end,
     [
      {hframe,[
 	      {vradio,[{?__(3,"Front"),front},{?__(5,"Right"),right},{?__(7,"Top"),top},
 		       {?__(4,"Back"),back},{?__(6,"Left"),left},{?__(8,"Bottom"),bottom},{?__(9,"View"),view}],front,
-	       [{title,?__(10,"Aligned with...")},{info, ?__(11,"Location in accord with placement helper (image on the right)")},{key,alignment}]},
-	      {custom,?IP_HELPER_SIZE+?CHAR_HEIGHT+2,?IP_HELPER_SIZE+2,Draw_Helper}
+	       [{title,?__(10,"Aligned with...")},{info, ?__(11,"Location in accord with placement helper (image on the right)")},{key,alignment},{hook,Disable_Hook}]},
+	      {image, Helper}
 	     ]},
-     {hradio,[{?__(12,"Material "),for_mat},{?__(13,"Material and Object "),for_mat_obj},{?__(14,"None "),for_none}],for_none,
-      [{title,?__(15,"Use image name for...")},{info, ?__(16,"To allow the image name be used for the image plane material and/or object")},{key,usename}]},
-     {hframe,[
-	      {label,?__(17,"Name")},
-	      {text,?DEF_NAME,[{info, ?__(18,"Name for the image plane object")},{width,25},{hook,Disable_Hook},{key,img_name}]}
-	     ]},
-            {value,FName,[{key,fname}]},
-     {value,Owner,[{key,owner}]},
+     {hframe, [{text,FName,[{key,fname},{hook,fun(Key,_,Store)-> wings_dialog:enable(Key, false, Store) end}]}]},
+     {hradio,[{?__(12,"Material "),for_mat},{?__(13,"Material and Object "),for_mat_obj},
+	      {?__(14,"None "),for_none}],for_none,
+      [{title,?__(15,"Use image name for...")},
+       {info, ?__(16,"To allow the image name be used for the image plane material and/or object")},
+       {key,usename},{hook,Disable_Hook}]},
+     {hframe,[{label,?__(17,"Name")},
+	      {text,?DEF_NAME,
+	       [{info, ?__(18,"Name for the image plane object")},
+		{width,35},{key,img_name}]}]},
      {hframe,[
 	      {hframe,[
 		       {label,?__(19,"Offset")},
@@ -149,7 +129,7 @@ image_dialog(FileName, Tx_helper) ->
      {?__(25,"Transparent back face"),false,[{info, ?__(26,"Assign transparent material to back face")},{key,transp}]}
     ].
 
-make_image_0({ImageId, {MaxU,MaxV}, {AspX,AspY}}, Arg, #st{mat=Mat0}=St) ->
+make_image_0({ImageId, {MaxU,MaxV}, {AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St) ->
     ArgDict = dict:from_list(Arg),
     Alignment = dict:fetch(alignment,ArgDict),
     UseName = dict:fetch(usename,ArgDict),
@@ -157,7 +137,6 @@ make_image_0({ImageId, {MaxU,MaxV}, {AspX,AspY}}, Arg, #st{mat=Mat0}=St) ->
     FName = dict:fetch(fname,ArgDict),
     Offset = dict:fetch(offset,ArgDict),
     Rotation = dict:fetch(rotation,ArgDict),
-    Owner = dict:fetch(owner,ArgDict),
     Lock = dict:fetch(locked,ArgDict),
     Transparent = dict:fetch(transp,ArgDict),
 
@@ -240,7 +219,7 @@ get_transp_mat(Mat) ->
             (Prop, Acc) ->
                 [Prop | Acc]
         end, [],M)}];
-    {_,M} -> 
+    {_,M} ->
         [{transparency_ip,M}]
     end.
 
@@ -249,9 +228,9 @@ do_new_place(view, Owner, Offset, VsPos) ->
     Mv0 = e3d_mat:rotate(-Az, {0.0,1.0,0.0}),
     Mv = e3d_mat:mul(Mv0, e3d_mat:rotate(-El, {1.0,0.0,0.0})),
     Vnormal=e3d_vec:norm(e3d_mat:mul_point(Mv, {0.0,0.0,1.0})),
-    
+
     Me = e3d_mat:rotate(-El, {0.0,0.0,1.0}),
-   % this will make the mapped face point to origin 
+   % this will make the mapped face point to origin
     Mr = e3d_mat:mul(Me,e3d_mat:rotate(180.0, {0.0,1.0,0.0})),
     Ma = e3d_mat:rotate(-Az+90, {0.0,1.0,0.0}),
 
@@ -285,35 +264,8 @@ do_new_place_2(VsPos,M1,M2,M3) ->
           [Pos|Acc]
       end, [], VsPos).
 
-draw_img_helper(X, Y, W, H, none) ->
-    draw_img_helper_1(X, Y, W, H);
-draw_img_helper(X, Y, W, H, Id_Img_Helper) ->
-    draw_img_helper_1(X, Y, W, H),
-    Dx=(W-?IP_HELPER_SIZE) div 2,
-    Dy=(H-?IP_HELPER_SIZE) div 2,
-    gl:enable(?GL_TEXTURE_2D),
-    gl:enable(?GL_BLEND),
-    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-    wings_image:draw_preview(X+Dx+1,Y+Dy+1,?IP_HELPER_SIZE,?IP_HELPER_SIZE,Id_Img_Helper),
-    gl:disable(?GL_TEXTURE_2D).
-
-draw_img_helper_1(X, Y, W, H) ->
-    Y1=Y+?CHAR_HEIGHT -2,
-    H1=H-?CHAR_HEIGHT -1,
-    wings_io:set_color(color4_highlight()),
-    wings_io:border_only(X,Y1,W,H1).
-
 load_ip_helper() ->
-    Name=wings_util:lib_dir(wings)++"/textures/ip_helper.png",
-    Props = [{filename,Name}],
-    case wpa:image_read(Props) of
-      #e3d_image{}=Image ->
-        case wings_image:new_hidden("ip_helper",Image) of
-          {error,_} -> none;
-          Id -> Id
-        end;
-      _ -> none
-    end.
+    wings_util:lib_dir(wings)++"/textures/ip_helper.png".
 
 load_img_plane(FileName, #e3d_image{type=Type}=Image0) ->
     %% Convert to the format that wings_image wants before padding (faster).
@@ -350,13 +302,10 @@ unload_img_plane(Id, St) ->
       _ -> ok
     end.
 
-color4_highlight() ->
-    wings_color:mix(?BEVEL_HIGHLIGHT_MIX, {1,1,1}, wings_pref:get_value(dialog_color)).
-
 ratio(D, D) -> {1.0,1.0};
 ratio(W, H) when W < H -> {1.0,H/W};
 ratio(W, H) -> {W/H,1.0}.
-    
+
 pad_image(#e3d_image{width=W0,image=Pixels0,bytes_pp=PP}=Image) ->
     case nearest_power_two(W0) of
     W0 ->
