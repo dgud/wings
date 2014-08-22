@@ -18,43 +18,21 @@
 -endif.
 
 -ifdef(NEED_ESDL).
--include_lib("esdl/include/sdl.hrl").
--include_lib("esdl/include/sdl_events.hrl").
--include_lib("esdl/include/sdl_video.hrl").
--include_lib("esdl/include/sdl_keyboard.hrl").
--include_lib("esdl/include/sdl_mouse.hrl").
--include_lib("esdl/src/sdl_util.hrl").
+-include("sdl_events.hrl").
+-include("sdl_keyboard.hrl").
+-include("sdl_mouse.hrl").
 -define(CTRL_BITS, ?KMOD_CTRL).
 -define(ALT_BITS, ?KMOD_ALT).
 -define(SHIFT_BITS, ?KMOD_SHIFT).
 -define(META_BITS, ?KMOD_META).
 -endif.
 
-%% Some macros used when we change esdl version
-%% should be cleaned up, removed when everything 
-%% works.  (See also wings_gl)
-
 -ifdef(NEED_OPENGL).
--ifndef(NEED_ESDL).
--include_lib("esdl/include/sdl.hrl"). %% We need SDL_USES_WX_GL
--endif.
-
--ifdef(SDL_USES_WX_GL).
--define(USE_WX_OPENGL, 1).
--endif.
-
--ifndef(USE_WX_OPENGL).
--include_lib("esdl/include/gl.hrl").
--include_lib("esdl/include/glu.hrl").
--else.
 -include_lib("wx/include/gl.hrl").
 -include_lib("wx/include/glu.hrl").
 -endif.
--endif.
 
--ifdef(USE_WX).
 -include_lib("wx/include/wx.hrl").
--endif.
 
 -define(WINGS_VERSION, ?wings_version).
 
