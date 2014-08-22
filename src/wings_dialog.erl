@@ -12,6 +12,8 @@
 -module(wings_dialog).
 -define(NEED_ESDL, 1). %% Needs to send mouseevents to camera
 -include("wings.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
+
 -export([init/0,
 	 info/3,
 	 ask/3, ask/4, ask/5,
@@ -560,7 +562,7 @@ setup_hook({_Key, #in{wx=Canvas, type=custom_gl, hook={paint, CustomRedraw}}}, F
 	     end,
     Redraw = fun(#wx{}, _) ->
 		     case os:type() of
-			 {win32, _} -> 
+			 {win32, _} ->
 			     DC = wxPaintDC:new(Canvas),
 			     wxPaintDC:destroy(DC);
 			 _ -> ok
@@ -691,11 +693,13 @@ build(Ask, {hframe, Qs, Flags}, Parent, Sizer, In) ->
 build(Ask, {vradio, Alternatives, Def}, Parent, Sizer, In) ->
     build(Ask, {vradio, Alternatives, Def, []}, Parent, Sizer, In);
 build(Ask, {vradio, Alternatives, Def, Flags}, Parent, Sizer, In) ->
-    build_radio(Ask, Def, ?wxRA_SPECIFY_COLS, Alternatives, Flags, Parent, Sizer, In);
+    build_radio(Ask, Def, {?wxVERTICAL, ?wxRA_SPECIFY_COLS},
+		Alternatives, Flags, Parent, Sizer, In);
 build(Ask, {hradio, Alternatives, Def}, Parent, Sizer, In) ->
     build(Ask, {hradio, Alternatives, Def, []}, Parent, Sizer, In);
 build(Ask, {hradio, Alternatives, Def, Flags}, Parent, Sizer, In) ->
-    build_radio(Ask, Def, ?wxRA_SPECIFY_ROWS, Alternatives, Flags, Parent, Sizer, In);
+    build_radio(Ask, Def, {?wxHORIZONTAL, ?wxRA_SPECIFY_ROWS},
+		Alternatives, Flags, Parent, Sizer, In);
 
 build(Ask, {label, Label}, Parent, Sizer, In) ->
     build(Ask, {label, Label, []}, Parent, Sizer, In);
@@ -913,19 +917,16 @@ build(Ask, {table, [Header|Rows], Flags}, Parent, Sizer, In) ->
     %% 	 type=table, wx=create(Ask,Create)}|In];
     In;
 
-build(Ask, {Label, Def}, Parent, Sizer, In) ->
-    build(Ask, {Label, Def, []}, Parent, Sizer, In);
-build(Ask, {Label, Def, Flags}, Parent, Sizer, In)
-  when is_boolean(Def) ->
+build(Ask, {image, ImageOrFile}, Parent, Sizer, In) ->
     Create = fun() ->
-		     Ctrl = wxCheckBox:new(Parent, ?wxID_ANY, Label),
-		     tooltip(Ctrl, Flags),
-		     wxCheckBox:setValue(Ctrl, Def),
-		     add_sizer(checkbox, Sizer, Ctrl),
-		     Ctrl
+		     Bitmap = image_to_bitmap(ImageOrFile),
+		     SBMap = wxStaticBitmap:new(Parent, ?wxID_ANY, Bitmap),
+		     add_sizer(image, Sizer, SBMap),
+		     wxBitmap:destroy(Bitmap),
+		     SBMap
 	     end,
-    [#in{key=proplists:get_value(key,Flags), hook=proplists:get_value(hook, Flags),
-	 def=Def, type=checkbox, wx=create(Ask, Create)}|In];
+    create(Ask, Create),
+    In;
 
 build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
     TopFrame = get(top_frame),
@@ -956,6 +957,20 @@ build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
     [#in{key=proplists:get_value(key,Flags),
 	 type=custom_gl, data=ignore, hook={paint, Fun}, wx=create(Ask, Create)}|In];
 
+build(Ask, {Label, Def}, Parent, Sizer, In) ->
+    build(Ask, {Label, Def, []}, Parent, Sizer, In);
+build(Ask, {Label, Def, Flags}, Parent, Sizer, In)
+  when is_boolean(Def) ->
+    Create = fun() ->
+		     Ctrl = wxCheckBox:new(Parent, ?wxID_ANY, Label),
+		     tooltip(Ctrl, Flags),
+		     wxCheckBox:setValue(Ctrl, Def),
+		     add_sizer(checkbox, Sizer, Ctrl),
+		     Ctrl
+	     end,
+    [#in{key=proplists:get_value(key,Flags), hook=proplists:get_value(hook, Flags),
+	 def=Def, type=checkbox, wx=create(Ask, Create)}|In];
+
 build(false, _Q, _Parent, _Sizer, In) ->
     In;
 build(Ask, Q, _Parent, _Sizer, In) ->
@@ -978,15 +993,15 @@ build_box(Ask, Type, Qs, Flags, Parent, Top, In0) ->
     add_sizer({box, Type}, Top, Sizer),
     Input.
 
-build_radio(Ask, Def, Direction, Alternatives, Flags, Parent, Sizer, In) ->
+build_radio(Ask, Def, {Dir, Style}, Alternatives, Flags, Parent, Sizer, In) ->
     Name = proplists:get_value(title, Flags, ""),
     {Strs,Keys} = lists:unzip(Alternatives),
     true = lists:member(Def, Keys),
     Create = fun() ->
 		     Ctrl = wxRadioBox:new(Parent, 1, Name,
 					   ?wxDefaultPosition, ?wxDefaultSize,
-					   Strs, [{majorDim, 1}, {style, Direction}]),
-		     add_sizer({radiobox, Direction}, Sizer, Ctrl),
+					   Strs, [{majorDim, 1}, {style, Style}]),
+		     add_sizer({radiobox, Dir}, Sizer, Ctrl),
 		     tooltip(Ctrl, Flags),
 		     wxRadioBox:setSelection(Ctrl, pos(Def, Keys)),
 		     Preview = fun(_, _) -> (notify_event_handler(Ask, preview))() end,
@@ -1063,6 +1078,7 @@ slider_style(Def, {Min, Max})
 
 add_sizer(What, Sizer, Ctrl) ->
     {Proportion, Border, Flags} = sizer_flags(What, wxBoxSizer:getOrientation(Sizer)),
+    %% io:format("What ~p ~p => ~p ~n",[What, wxBoxSizer:getOrientation(Sizer), {Proportion, Border, Flags}]),
     wxSizer:add(Sizer, Ctrl, [{proportion, Proportion}, {border, Border}, {flag, Flags}]).
 
 sizer_flags(label, ?wxHORIZONTAL)     -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
@@ -1073,12 +1089,13 @@ sizer_flags(text, ?wxHORIZONTAL)      -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(slider, ?wxHORIZONTAL)    -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(slider, ?wxVERTICAL)      -> {0, 0, ?wxEXPAND};
 sizer_flags(button, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(image, _)                 -> {0, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(choice, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(checkbox, ?wxVERTICAL)    -> {1, 0 ,?wxALIGN_CENTER_VERTICAL};
-sizer_flags(checkbox, ?wxHORIZONTAL)  -> {0, 0 ,?wxALIGN_CENTER_VERTICAL};
+sizer_flags(checkbox, ?wxVERTICAL)    -> {0, 3, ?wxTOP bor ?wxBOTTOM bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(checkbox, ?wxHORIZONTAL)  -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(table,  _)                -> {4, 0, ?wxEXPAND};
-sizer_flags({radiobox, Dir}, Dir)     -> {5, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({radiobox, _}, _)         -> {0, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags({radiobox, Dir}, Dir)     -> {5, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags({radiobox, _}, _)         -> {1, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags({box, Dir}, Dir)          -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags({box, _}, _)              -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(custom, _)                -> {0, 5, ?wxALL};
@@ -1106,6 +1123,21 @@ pos(C, S) -> pos(C, S, 0).
 pos(C, [C|_Cs], I) -> I;
 pos(C, [_|Cs], I) -> pos(C, Cs, I+1);
 pos(_, [], _I) -> 0.
+
+image_to_bitmap(ImageOrFile) ->
+    Img = case ImageOrFile of
+	      File when is_list(File) ->
+		  wxImage:new(File);
+	      #e3d_image{} = E3D ->
+		  wings_image:e3d_to_wxImage(E3D);
+	      WxImage ->
+		  wxImage = wx:getObjectType(WxImage), %% Assert
+		  WxImage
+	  end,
+    BM = wxBitmap:new(Img),
+    Img =:= ImageOrFile orelse wxImage:destroy(Img),
+    BM.
+
 
 text_to_html(Paragraphs) ->
     Header = ["<html>"],
