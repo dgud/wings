@@ -9,7 +9,7 @@
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
 %%     $Id$
-%% 
+%%
 
 -module(user_default).
 
@@ -37,7 +37,7 @@ wh() ->
     p("diana()   -- show the result of the latest analysis again\n"),
     p("** Xref for Wings modules **\n"),
     p("wx()       -- collect xref information\n"),
-    p("wxe()      -- add xref information for ESDL\n"),
+    p("wxe()      -- add xref information for wx\n"),
     p("wxunref()  -- print unused functions\n"),
     p("wxundef()  -- print calls to undefined functions\n"),
     p("wxu(M)     -- print uses of module M\n"),
@@ -65,7 +65,7 @@ wx() ->
     xref:set_library_path(s, code:get_path() -- [WingsEbin]),
     {ok,Ms} = xref:add_directory(s, WingsEbin),
     Dirs = get_plugin_dirs(),
-    N = foldl(fun(D, N) -> 
+    N = foldl(fun(D, N) ->
 		      {ok,PMs} = xref:add_directory(s, D),
 		      N+length(PMs)
 	      end, length(Ms), Dirs),
@@ -168,15 +168,15 @@ dialyze() ->
     dialyze([core,plugins]).
 
 dialyze(all) ->
-    dialyze([core,esdl,plugins]);
+    dialyze([core,wx,plugins]);
 dialyze(Atom) when is_atom(Atom) ->
     dialyze([Atom]);
 dialyze(Dirs0) when is_list(Dirs0) ->
     Dirs = flatmap(fun(core) ->
 			   WingsLib = code:lib_dir(wings),
 			   [filename:join(WingsLib, "ebin")];
-		      (esdl) ->
-			   [filename:dirname(code:which(gl))];
+		      (wx) ->
+			   [filename:dirname(code:which(wx))];
 		      (plugins) ->
 			   get_plugin_dirs()
 		   end, Dirs0),

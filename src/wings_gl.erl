@@ -37,7 +37,6 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--ifdef(USE_WX_OPENGL).
 -define(genFramebuffers,genFramebuffers).
 -define(bindFramebuffer, bindFramebuffer).
 -define(framebufferTexture2D,framebufferTexture2D).
@@ -47,17 +46,6 @@
 -define(framebufferRenderbuffer,framebufferRenderbuffer).
 -define(checkFramebufferStatus, checkFramebufferStatus).
 -define(generateMipmap, generateMipmap).
--else.
--define(genFramebuffers,genFramebuffersEXT).
--define(bindFramebuffer, bindFramebufferEXT).
--define(framebufferTexture2D,framebufferTexture2DEXT).
--define(genRenderbuffers, genRenderbuffersEXT).
--define(bindRenderbuffer,bindRenderbufferEXT).
--define(renderbufferStorage,renderbufferStorageEXT).
--define(framebufferRenderbuffer,framebufferRenderbufferEXT).
--define(checkFramebufferStatus, checkFramebufferStatusEXT).
--define(generateMipmap, generateMipmapExt).
--endif.
 
 %%%
 %%% OpenGL extensions.
@@ -382,7 +370,6 @@ bindFramebuffer(W, Fbo) ->
     gl:?bindFramebuffer(W,Fbo).
 
 
--ifdef(USE_WX_OPENGL).
 callLists(List) ->  gl:callLists(List).
 
 project(X,Y,Z, Mod, Proj, View) ->
@@ -423,31 +410,3 @@ drawElements(O,L,T = ?GL_UNSIGNED_INT,What) when is_list(What) ->
 drawElements(O,L,T,What) ->
     gl:drawElements(O,L,T,What).
 
--else.
-callLists(List) ->  gl:callLists(length(List), ?GL_UNSIGNED_INT, List).
-
-project(X,Y,Z, Mod, Proj, View) ->
-    glu:project(X,Y,Z, Mod, Proj, View).
-
-unProject(X,Y,Z, Mod, Proj, View) ->
-    glu:unProject(X,Y,Z, Mod, Proj, View).
-
-triangulate(Normal, Pos) ->
-    glu:triangulate(Normal,Pos).
-
-deleteTextures(List) ->
-    gl:deleteTextures(length(List), List).
-
-deleteRenderbuffers(List) ->
-    gl:deleteRenderbuffersEXT(length(List),List).
-
-deleteFramebuffers(List) ->
-    gl:deleteFramebuffersEXT(length(List),List).
-
-shaderSource(Handle, Src) ->
-    ok = gl:shaderSource(Handle, 1, Src, [-1]).
-
-drawElements(O,L,T,What) ->
-    gl:drawElements(O,L,T,What).
-
--endif.

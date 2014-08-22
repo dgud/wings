@@ -13,9 +13,9 @@
 
 -module(wpc_constraints).
 -export([init/0,menu/2,command/2]).
--include("wings.hrl").
+-define(NEED_ESDL, 1).
+-include_lib("wings/src/wings.hrl").
 -include("e3d.hrl").
--include_lib("esdl/include/sdl_keyboard.hrl").
 -define(NONZERO, 1.0e-6).
 
 init() ->
