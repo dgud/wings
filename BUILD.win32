@@ -20,9 +20,6 @@ The following software is needed:
   Include the vcredist packaged with Erlang, in your installation.
   (It is easiest to download the pre-built binaries for Windows.)
 
-- ESDL 1.2 or later. http://esdl.sf.net
-  It is easiest to download the pre-built binary.
-
 - CL 1.1 or later. http://github.com/tonyrog/cl
 
 Optional software
@@ -46,14 +43,14 @@ Setting up the environment
 A few environment variables need to be set. They can be set
 for Windows globally from "My Computer".
 
-ERL_LIBS needs to be set to the directory below ESDL and CL, i.e. 
+ERL_LIBS needs to be set to the directory and CL, i.e.
 > cd c:/src/
 > ls
-esdl cl wings
+cl wings
 > export ERL_LIBS=c:/src
 
-such that the following dirs exists $ERL_LIBS/esdl/ebin and $ERL_LIBS/cl/ebin
-the application dirs may contain version numbers such esdl-1.2.
+such that the following dirs exists $ERL_LIBS/cl/ebin
+the application dirs may contain version numbers such cl-1.2.
 
 WINGS_VCREDIST needs to be set to point at vcredist.exe in your Erlang
   installation. (c:\erl5.8.1.1\vcredist_x86.exe)
@@ -154,17 +151,6 @@ Notes:
     multi-CPU computer and wants to use OpenCL. 
 
 You could also package the command line into a standard windows shortcut.
-
-Building the file dialog plug-in
-================================
-
-To get native Windows file dialog boxes, you'll need to compile
-the file dialog plug-in the "plugins_src/win32_file" directory.
-
-$ cd plugins_src/win32_file
-$ make
-<Some output>
-$
 
 Building all
 ============
