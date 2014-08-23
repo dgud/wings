@@ -124,7 +124,7 @@ unit_scales(Units) ->
     case wings_pref:get_value(drag_custom) of
       false ->
         default_drag(Units);
-      true ->
+      true -> 
         custom_drag(Units)
     end.
 
@@ -521,7 +521,7 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
   #drag{rmb_timer=StartTime}=Drag) when StartTime =/= 0 ->
 %% When Rmb is released we subtract the StartTime (when the Rmb was pressed)
 %% from the Stop time (relased) and if the result is less than 500000 ms, then
-%% we cancel the drag. If not we continue the drag using the
+%% we cancel the drag. If not we continue the drag using the 
     Stop = now(),
     Time = timer:now_diff(Stop, StartTime),
     % io:format("Time ~p\n",[Time]),
@@ -771,8 +771,7 @@ make_move_1([], []) -> [].
 
 magnet_radius(_Sign, #drag{falloff=none}=Drag) -> Drag;
 magnet_radius(Sign, #drag{falloff=Falloff0}=Drag0) ->
-    GridAmount=wings_pref:get_value(ground_grid_amount),
-    case Falloff0+Sign*?GROUND_GRID_SIZE/float(GridAmount) of
+    case Falloff0+Sign*?GROUND_GRID_SIZE/10 of
 	Falloff when Falloff > 0 ->
 	    Drag = Drag0#drag{falloff=Falloff},
 	    parameter_update(new_falloff, Falloff, Drag);
@@ -854,7 +853,7 @@ mouse_range(#mousemotion{x=X0, y=Y0, state=Mask},
 			{{no_change,LastMove},Drag};
 
 		{XD0,YD0} ->
-
+	
 			CS = constraints_scale(Unit,Mod,UnitScales),
 			XD = CS*(XD0 + Xt0),
 			YD = CS*(YD0 + Yt0),

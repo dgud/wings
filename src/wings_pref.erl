@@ -378,7 +378,6 @@ defaults() ->
      {constrain_axes,true},
      {mini_axis,true},
      {force_show_along_grid,false},
-     {ground_grid_amount, ?GROUND_GRID_AMOUNT},
      {force_ortho_along_axis,false},
      {body_hilite,true},
      {auto_rotate_angle,1.0},

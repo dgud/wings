@@ -371,7 +371,7 @@ draw_vertices(#dlo{src_we=#we{perm=P},vs=VsDlist}, vertex) when ?IS_SELECTABLE(P
     wings_dl:call(VsDlist);
 draw_vertices(_, _) -> ok.
 
-draw_hilite(#dlo{hilite=DL}) ->
+draw_hilite(#dlo{hilite=DL}) -> 
     wings_dl:call(DL).
 
 draw_orig_sel(#dlo{orig_sel=none}) -> ok;
@@ -408,7 +408,7 @@ draw_hard_edges(#dlo{hard=Hard}, SelMode) ->
     gl:lineWidth(hard_edge_width(SelMode)),
     gl:color3fv(wings_pref:get_value(hard_edge_color)),
     wings_dl:call(Hard).
-
+	
 draw_normals(#dlo{normals=none}) -> ok;
 draw_normals(#dlo{normals=Ns}) ->
     gl:color3f(0, 0, 1),
@@ -428,9 +428,7 @@ ground_and_axes() ->
     Axes = wings_wm:get_prop(show_axes),
     groundplane(Axes),
     case wings_pref:get_value(constrain_axes) of
-	true ->
-		GridAmount=wings_pref:get_value(ground_grid_amount),
-		Yon = ?GROUND_GRID_SIZE * float(GridAmount);
+	true -> Yon = ?GROUND_GRID_SIZE * 10.0;
 	false -> #view{yon=Yon} = wings_view:current()
     end,
     case Axes of
@@ -505,9 +503,7 @@ axis_letters() ->
 	    gl:loadIdentity(),
 
 	    case wings_pref:get_value(constrain_axes) of
-		true ->
-			GridAmount=wings_pref:get_value(ground_grid_amount),
-			Yon = ?GROUND_GRID_SIZE * (float(GridAmount) +1.0);
+		true -> Yon = ?GROUND_GRID_SIZE * 11.0;
 		false -> #view{yon=Yon} = wings_view:current()
 	    end,
 	    axis_letter_1(1, Yon, axisx, x_color, Info),
@@ -599,8 +595,7 @@ groundplane_1(Axes) ->
 	_ -> gl:rotatef(90, 1, 0, 0)
     end,
     gl:'begin'(?GL_LINES),
-	GridAmount=wings_pref:get_value(ground_grid_amount),
-    Sz = ?GROUND_GRID_SIZE * GridAmount,
+    Sz = ?GROUND_GRID_SIZE * 10,
     groundplane_2(-Sz, Sz, Sz, Axes),
     gl:'end'(),
     gl:popMatrix(),
@@ -686,7 +681,7 @@ enable_lighting(SceneLights) ->
 	    %% We put it here and not in apply_material, because we
 	    %% can't use some optimizations (e.g. reuse display lists)
 	    %% when drawing selected objects.
-	    gl:color4ub(255, 255, 255, 255),
+	    gl:color4ub(255, 255, 255, 255), 
 	    gl:useProgram(Prog)
     end.
 
@@ -698,7 +693,7 @@ disable_lighting() ->
     end.
 
 mini_axis_icon() ->
-    case wings_pref:get_value(mini_axis) of
+    case wings_pref:get_value(mini_axis) of 
     false -> ok;
     true ->
       gl:pushAttrib(?GL_ALL_ATTRIB_BITS),

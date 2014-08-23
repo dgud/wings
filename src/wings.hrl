@@ -59,7 +59,7 @@
 
 -define(LINE_HEIGHT, (?CHAR_HEIGHT+2)).
 -define(GROUND_GRID_SIZE, 1).
--define(GROUND_GRID_AMOUNT, 10).
+-define(CAMERA_DIST, (8.0*?GROUND_GRID_SIZE)).
 -define(NORMAL_LINEWIDTH, 1.0).
 -define(DEGREE, 176).				%Degree character.
 
@@ -95,6 +95,7 @@
 -define(NORMAL_MAP_UNIT,  1).
 -define(ENV_MAP_UNIT,     2).
 -define(TANGENT_ATTR,     5).
+
 %%
 
 -define(SLOW(Cmd), begin wings_io:hourglass(), Cmd end).

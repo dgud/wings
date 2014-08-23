@@ -135,18 +135,14 @@ gen_prefs() ->
 	      {color,?__(42,"-Z Color"),neg_z_color}]}]}],
    [{title,?__(43,"Axes")}]},
 
-   {hframe,
-     [{vframe,
-       [{hframe,
-         [{label_column, [{color,?__(32,"Color"),grid_color}]},
-          {?__(33,"Force Axis-Aligned Grid"),force_show_along_grid,
-            [{info,?__(34,"Always show the grid when the view is aligned along one of the major axes")}]},
-          {?__(aa_ortho1,"Force Axis-Aligned Ortho"),force_ortho_along_axis,
-            [{info, ?__(aa_ortho2,"Always go into orthogonal mode when the view is aligned along one of the major axes")}]}]},
-        {hframe,
-         [{label,?__(73,"Grid size")},
-          {slider,{text,ground_grid_amount,[{info, ?__(74,"Defines the grid size in Wings3d unit")},{range,{10,200}}]}}]}]
-   }],[{title,?__(35,"Grid")}]}|multisampling()]}.
+  {hframe,
+	 [{label_column,
+	   [{color,?__(32,"Color"),grid_color}]},
+	    {?__(33,"Force Axis-Aligned Grid"),force_show_along_grid,
+	   [{info,?__(34,"Always show the grid when the view is aligned along one of the major axes")}]},
+	    {?__(aa_ortho1,"Force Axis-Aligned Ortho"),force_ortho_along_axis,
+	   [{info, ?__(aa_ortho2,"Always go into orthogonal mode when the view is aligned along one of the major axes")}]}],
+     [{title,?__(35,"Grid")}]}|multisampling()]}.
      
 multisampling() ->
     case wings_pref:get_value(multisample) of
