@@ -45,14 +45,14 @@ render(#st{selmode=Mode}=St) ->
 	undefined -> ok
     end,
     SceneLights = wings_view:load_matrices(true),
-    ground_and_axes(),
+    Yon = ground_and_axes(),
     mini_axis_icon(),
     show_saved_bb(St),
     show_bb_center(St),
     user_clipping_planes(on),
     render_objects(Mode, SceneLights),
     user_clipping_planes(off),
-    axis_letters(),
+    axis_letters(Yon),
     gl:lineWidth(1),
     wings_io:ortho_setup(),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
@@ -426,18 +426,19 @@ draw_plugins(Flag,D,Selmode) ->
 
 ground_and_axes() ->
     Axes = wings_wm:get_prop(show_axes),
-    groundplane(Axes),
-    case wings_pref:get_value(constrain_axes) of
-	true -> Yon = ?GROUND_GRID_SIZE * 10.0;
-	false -> #view{yon=Yon} = wings_view:current()
-    end,
+    GridSize = groundplane(Axes),
+    Yon = case wings_pref:get_value(constrain_axes) of
+	      true  -> GridSize;
+	      false -> (wings_view:current())#view.yon
+	  end,
     case Axes of
 	true ->
 	    axis(1, Yon, get_pref(x_color), get_pref(neg_x_color)),
 	    axis(2, Yon, get_pref(y_color), get_pref(neg_y_color)),
 	    axis(3, Yon, get_pref(z_color), get_pref(neg_z_color));
 	false -> ok
-    end.
+    end,
+    Yon.
 
 get_pref(Key) ->
     wings_pref:get_value(Key).
@@ -480,7 +481,7 @@ dummy_axis_letter(_, _, {_,_,W,H}) ->
     gl:popMatrix(),
     gl:matrixMode(?GL_MODELVIEW).
 
-axis_letters() ->
+axis_letters(Yon0) ->
     case wings_wm:get_prop(show_axes) of
 	false ->
 	    case wings_pref:get_value(dummy_axis_letter) of
@@ -501,11 +502,7 @@ axis_letters() ->
 	    glu:ortho2D(0, W, 0, H),
 	    gl:matrixMode(?GL_MODELVIEW),
 	    gl:loadIdentity(),
-
-	    case wings_pref:get_value(constrain_axes) of
-		true -> Yon = ?GROUND_GRID_SIZE * 11.0;
-		false -> #view{yon=Yon} = wings_view:current()
-	    end,
+	    Yon = Yon0 + ?GROUND_GRID_SIZE,
 	    axis_letter_1(1, Yon, axisx, x_color, Info),
 	    axis_letter_1(2, Yon, axisy, y_color, Info),
 	    axis_letter_1(3, Yon, axisz, z_color, Info)
@@ -575,15 +572,23 @@ sub({X1,Y1}, {X2,Y2}) ->
 add_prod({X1,Y1}, {X2,Y2}, S) when is_float(S) ->
     {S*X2+X1,S*Y2+Y1}.
 
+calc_grid_size() ->
+    {MM,PM,{_,_,W0,H0}=Viewport} = wings_u:get_matrices(0, original),
+    W1=max(W0,H0)/2.0,
+    {S,T,U} = wings_gl:unProject(W1, 0.0, 0.0, MM, PM, Viewport),
+    ?GROUND_GRID_SIZE*max(round(max(max(abs(S),abs(T)),abs(U))),10.0).
+
 groundplane(Axes) ->
+    GridSize = calc_grid_size(),
     case (wings_wm:get_prop(show_groundplane) orelse
 	  (wings_pref:get_value(force_show_along_grid) andalso
 	   (wings_view:current())#view.along_axis =/= none)) of
-	true -> groundplane_1(Axes);
+	true -> groundplane_1(Axes, GridSize);
 	false -> ok
-    end.
+    end,
+    float(GridSize).
 
-groundplane_1(Axes) ->
+groundplane_1(Axes, Sz) ->
     #view{along_axis=Along} = wings_view:current(),
     gl:color3fv(wings_pref:get_value(grid_color)),
     gl:lineWidth(1),
@@ -595,7 +600,6 @@ groundplane_1(Axes) ->
 	_ -> gl:rotatef(90, 1, 0, 0)
     end,
     gl:'begin'(?GL_LINES),
-    Sz = ?GROUND_GRID_SIZE * 10,
     groundplane_2(-Sz, Sz, Sz, Axes),
     gl:'end'(),
     gl:popMatrix(),
