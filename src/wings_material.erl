@@ -667,26 +667,28 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     %% 		 end},
     AnyTexture = has_texture(Mat0),
     VtxColMenu = vertex_color_menu(AnyTexture, VertexColors0),
-    Qs1 = [{vframe,
-	    [
-	     {hframe,
-	      [{custom_gl,?PREVIEW_SIZE,?PREVIEW_SIZE+5,Preview, [{key, preview}]},
-	       {label_column,
-		[{?__(1,"Diffuse"), {slider,{color,Diff0, [{key,diffuse},RHook]}}},
-		 {?__(2,"Ambient"), {slider,{color,Amb0,[{key,ambient}, RHook]}}},
-		 {?__(3,"Specular"),{slider,{color,Spec0,[{key,specular}, RHook]}}},
-		 {?__(4,"Emission"),{slider,{color,Emiss0,[{key,emission}, RHook]}}}
-		]}]},
-	     {label_column,
-	      [{"Vertex Colors", VtxColMenu},
-	       {?__(5,"Shininess"),
-		{slider,{text,Shine0, [{range,{0.0,1.0}}, {key,shininess}, RHook]}}},
-	       {?__(6,"Opacity"),
-		{slider,{text,Opacity0, [{range,{0.0,1.0}}, {key,opacity}, RHook]}}}
-	      ]}|Maps0]
-	   }],
-    Qs2 = wings_plugin:dialog({material_editor_setup,Name,Mat0}, Qs1),
-    Qs = {vframe_dialog, Qs2, [{buttons, [ok, cancel]}, {key, result}]},
+    Qs1 = {vframe,
+	   [
+	    {hframe,
+	     [{custom_gl,?PREVIEW_SIZE,?PREVIEW_SIZE+5,Preview, [{key, preview}]},
+	      {label_column,
+	       [{?__(1,"Diffuse"), {slider,{color,Diff0, [{key,diffuse},RHook]}}},
+		{?__(2,"Ambient"), {slider,{color,Amb0,[{key,ambient}, RHook]}}},
+		{?__(3,"Specular"),{slider,{color,Spec0,[{key,specular}, RHook]}}},
+		{?__(4,"Emission"),{slider,{color,Emiss0,[{key,emission}, RHook]}}}
+	       ]}]},
+	    {label_column,
+	     [{"Vertex Colors", VtxColMenu},
+	      {?__(5,"Shininess"),
+	       {slider,{text,Shine0, [{range,{0.0,1.0}}, {key,shininess}, RHook]}}},
+	      {?__(6,"Opacity"),
+	       {slider,{text,Opacity0, [{range,{0.0,1.0}}, {key,opacity}, RHook]}}}
+	     ]}|Maps0]
+	  },
+    Qs2 = wings_plugin:dialog({material_editor_setup,Name,Mat0}, [{"Wings 3D", Qs1}]),
+    Qs = {vframe_dialog,
+	  [{oframe, Qs2, 1, [{style, buttons}]}],
+	  [{buttons, [ok, cancel]}, {key, result}]},
     Ask = fun([{diffuse,Diff},
 	       {ambient,Amb},
 	       {specular,Spec},
