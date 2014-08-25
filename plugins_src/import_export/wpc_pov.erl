@@ -178,7 +178,7 @@ command(_Spec, _St) ->
 dialog({material_editor_setup, Name, Mat}, Dialog) ->
     case get_var(dialogs) of
         false-> Dialog;
-        _ -> Dialog++material_dialog(Name, Mat)
+        _ -> Dialog++[{"POV-Ray", material_dialog(Name, Mat)}]
     end;
 dialog({material_editor_result, Name, Mat}, Res) ->
     case get_var(dialogs) of
@@ -188,7 +188,7 @@ dialog({material_editor_result, Name, Mat}, Res) ->
 dialog({light_editor_setup, Name, Ps}, Dialog) ->
     case get_var(dialogs) of
         false-> Dialog;
-        _ -> Dialog++light_dialog(Name, Ps)
+        _ -> Dialog++[{"POV-Ray", light_dialog(Name, Ps)}]
     end;
 dialog({light_editor_result, Name, Ps}, Res) ->
     case get_var(dialogs) of
@@ -1514,7 +1514,7 @@ material_dialog(_Name, Mat)->
         _ -> NormalImage = user
     end,
 
-    [{vframe, [
+    {vframe, [
 
         {?__(1,"Exclude Material Definition (requires external definition)"), proplists:get_value(ghost_material, PovRay, false), [key(ghost_material), layout]},
         {vframe, [
@@ -1753,8 +1753,7 @@ material_dialog(_Name, Mat)->
             ], [{title, ?__(97,"Texture")}, {minimized, proplists:get_value(texture_minimized, PovRay, true)}, key(texture_minimized)]}
         ], [hook(open, [member, ?KEY(ghost_material), false])]}
 
-        ], [{title, ?__(98,"POV-Ray Options")}, {minimized, proplists:get_value(minimized, PovRay, true)}, key(minimized)]}
-    ].
+        ], [{title, ?__(98,"POV-Ray Options")}, {minimized, proplists:get_value(minimized, PovRay, true)}, key(minimized)]}.
 
 enumerate_image_maps([])->
     [];
@@ -1836,9 +1835,9 @@ light_dialog(Name, Light)->
     Type = proplists:get_value(type, OpenGL, []),
 
     case Type of
-        ambient ->[];
+        ambient -> [];
         _ ->
-            [
+            
                 {vframe, [
                     {hframe, [{label, ?__(1,"Power")}, {text, proplists:get_value(light_power, PovRay, 1.0), [key(light_power)]},
                         {?__(2,"Shadows"), proplists:get_value(shadows, PovRay, true), [key(shadows)]}]},
@@ -1854,7 +1853,6 @@ light_dialog(Name, Light)->
                     separator,
                     {vframe, light_dialog(Name, Type, PovRay) }
                 ], [{title, ?__(10,"POV-Ray Options")}, {minimized, proplists:get_value(minimized, PovRay, true)}, key(minimized)]}
-            ]
     end.
 light_dialog(_Name, spot, PovRay)->
     [

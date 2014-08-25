@@ -328,12 +328,15 @@ edit(Id, #st{shapes=Shs}=St) ->
 
 edit_ambient_dialog(Name, Prop0, 
 		    We0=#we{id=Id,light=#light{ambient=Amb0}=L0}, Shs, St) ->
-    Qs0 = [{hframe,
-	    [{vframe,[{label,?__(1,"Ambient")}]},
-	     {vframe,[{color,Amb0}]}],
-	    [{title,?__(2,"Color")}]}|qs_specific(L0)],
-    Qs1 = wings_plugin:dialog({light_editor_setup,Name,Prop0}, Qs0),
-    Qs = {vframe_dialog, Qs1, [{buttons, [ok, cancel]}, {key, result}]},
+    Qs0 = {vframe,
+	   [{hframe,
+	     [{vframe,[{label,?__(1,"Ambient")}]},
+	      {vframe,[{color,Amb0}]}],
+	     [{title,?__(2,"Color")}]}|qs_specific(L0)]},
+    Qs1 = wings_plugin:dialog({light_editor_setup,Name,Prop0}, [{"Wings 3D", Qs0}]),
+    Qs = {vframe_dialog,
+	  [{oframe, Qs1, 1, [{style, buttons}]}],
+	  [{buttons, [ok, cancel]}, {key, result}]},
     Fun = fun([Amb|Res]) ->
 		  case plugin_results(Name, Prop0, Res) of
 		      {ok,Prop} ->
@@ -348,18 +351,21 @@ edit_ambient_dialog(Name, Prop0,
 
 edit_dialog(Name, Prop0, #we{id=Id,light=L0}=We0, Shs, St) ->
     #light{diffuse=Diff0,ambient=Amb0,specular=Spec0} = L0,
-    Qs0 = [{hframe,
-	    [{vframe,
-	      [{label,?__(1,"Diffuse")},
-	       {label,?__(2,"Ambient")},
-	       {label,?__(3,"Specular")}]},
-	     {vframe,
-	      [{color,Diff0},
-	       {color,Amb0},
-	       {color,Spec0}]}],
-	    [{title,?__(4,"Colors")}]}|qs_specific(L0)],
-    Qs1 = wings_plugin:dialog({light_editor_setup,Name,Prop0}, Qs0),
-    Qs = {vframe_dialog, Qs1, [{buttons, [ok, cancel]}, {key, result}]},
+    Qs0 = {vframe,
+	   [{hframe,
+	     [{vframe,
+	       [{label,?__(1,"Diffuse")},
+		{label,?__(2,"Ambient")},
+		{label,?__(3,"Specular")}]},
+	      {vframe,
+	       [{color,Diff0},
+		{color,Amb0},
+		{color,Spec0}]}],
+	     [{title,?__(4,"Colors")}]}|qs_specific(L0)]},
+    Qs1 = wings_plugin:dialog({light_editor_setup,Name,Prop0}, [{"Wings 3D", Qs0}]),
+    Qs = {vframe_dialog,
+ 	  [{oframe, Qs1, 1, [{style, buttons}]}],
+	  [{buttons, [ok, cancel]}, {key, result}]},
     Fun = fun([Diff,Amb,Spec|More0]) ->
 		  L1 = L0#light{diffuse=Diff,ambient=Amb,specular=Spec},
 		  {L,More} = edit_specific(More0, L1),
@@ -367,7 +373,7 @@ edit_dialog(Name, Prop0, #we{id=Id,light=L0}=We0, Shs, St) ->
 		      {ok,Prop} ->
 			  We = We0#we{light=L#light{prop=Prop}},
 			  St#st{shapes=gb_trees:update(Id, We, Shs)}
-		      %%{again,Prop} -> edit_dialog(Name, Prop, We0, Shs, St)
+			  %%{again,Prop} -> edit_dialog(Name, Prop, We0, Shs, St)
 		  end
 	  end,
     {dialog,Qs,Fun}.
