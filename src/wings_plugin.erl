@@ -83,13 +83,25 @@ dialog_1(Dialog, Ps, [M|Tail]) ->
 	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
 	    wings_u:error_msg("~w:dialog/2: crashed", [M]);
 	NewPs when is_list(NewPs) ->
-	    dialog_1(Dialog, NewPs, Tail);
+	    Checked = check_dialog(NewPs, M),
+	    dialog_1(Dialog, Checked, Tail);
 	Other ->
 	    io:format("~w:dialog/2: bad return value: ~P\n", [M,Other,20]),
 	    wings_u:error_msg("~w:dialog/2: bad return value", [M])
     end;
 dialog_1(_Dialog, Ps, []) -> 
     Ps.
+
+% Check (and fix) plugin dialogs results (new format)
+check_dialog([Ok = {Name, Tuple}|Rest], Mod)
+  when is_list(Name), is_tuple(Tuple) ->
+    [Ok|check_dialog(Rest, Mod)];
+check_dialog([[PPs]|Rest], Mod) ->
+    [{atom_to_list(Mod), PPs}|check_dialog(Rest, Mod)];
+check_dialog([{Name, []}|Rest], Mod)
+  when is_list(Name) ->
+    [check_dialog(Rest, Mod)];
+check_dialog([], _) -> [].
 
 dialog_result(Dialog, Ps) when is_tuple(Dialog), is_list(Ps) ->
     dialog_result1(Dialog, Ps, get(wings_plugins)).
