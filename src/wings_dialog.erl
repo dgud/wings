@@ -28,7 +28,7 @@
 
 %%-compile(export_all).
 
--record(in, {key, type, def, wx, validator, data, hook}).
+-record(in, {key, type, def, wx, validator, data, hook, output=true}).
 -record(eh, {fs, apply, owner, type, pid}).
 
 %%
@@ -307,28 +307,26 @@ dialog(Ask, Title, PreviewCmd, Qs, Fun) when not is_list(Qs) ->
 enable(Keys = [_|_], Bool, Store) ->
     [enable(Key, Bool, Store) || Key <- Keys];
 enable(Key, Bool, Store) ->
-    #in{wx=Ctrl} = gb_trees:get(Key, Store),
+    [#in{wx=Ctrl}] = ets:lookup(Store, Key),
     wxWindow:enable(Ctrl, [{enable,Bool}]).
 
 get_widget(Key, Store) ->
-    #in{wx=Wx} = gb_trees:get(Key, Store),
+    [#in{wx=Wx}] = ets:lookup(Store, Key),
     Wx.
 
 get_value(Key, Store) ->
-    In = gb_trees:get(Key, Store),
-    case get_output(dummy, In) of
-	{_, Value} -> Value;
-	Value -> Value
-    end.
+    [In] = ets:lookup(Store, Key),
+    get_curr_value(In).
 
 set_value(Key, Value, Store) ->
-    set_value_impl(gb_trees:get(Key, Store),Value),
+    [In] = ets:lookup(Store, Key),
+    _ = set_value_impl(In, Value, Store),
     Store.
 
-set_value_impl(#in{wx=Ctrl, type=choice}, {Def, Entries}) when is_list(Entries) ->
+set_value_impl(#in{wx=Ctrl, type=choice}, {Def, Entries}, _) when is_list(Entries) ->
     wxChoice:clear(Ctrl),
     lists:foldl(fun(Choice,N) -> setup_choices(Choice, Ctrl, Def, N) end, 0, Entries);
-set_value_impl(#in{wx=Ctrl, type=choice}, Def) ->
+set_value_impl(#in{wx=Ctrl, type=choice}, Def, _) ->
     Count = wxChoice:getCount(Ctrl),
     SetDef = fun(N) ->
 		     case wxChoice:getClientData(Ctrl, N) of
@@ -337,9 +335,9 @@ set_value_impl(#in{wx=Ctrl, type=choice}, Def) ->
 		     end
 	     end,
     true = lists:any(SetDef, lists:seq(0, Count-1));
-set_value_impl(#in{wx=Ctrl, type=text}, Val) ->
+set_value_impl(#in{wx=Ctrl, type=text}, Val, _) ->
     wxTextCtrl:changeValue(Ctrl, to_str(Val));
-set_value_impl(#in{wx=Ctrl, type=slider, data={_, ToSlider}}, Val) ->
+set_value_impl(#in{wx=Ctrl, type=slider, data={_, ToSlider}}, Val, _) ->
     wxSlider:setValue(Ctrl, ToSlider(Val)).
 
 
@@ -375,19 +373,18 @@ queries(Qs0) ->
        {vframe,Vals}]}].
 
 enter_dialog(false, _, _, Fields, Fun) -> % No dialog return def values
-    Values = [with_key(Field, Def) ||
-		 Field = #in{data=Data, def=Def} <- Fields,
-		 Data =/= ignore],
+    Values = get_output(default, Fields),
+    true = ets:delete(element(1, Fields)),
     return_result(Fun, Values, wings_wm:this());
 enter_dialog(true, no_preview, Dialog, Fields, Fun) -> %% No preview cmd / modal dialog
     case wxDialog:showModal(Dialog) of
 	?wxID_CANCEL ->
+	    true = ets:delete(element(1, Fields)),
 	    wxDialog:destroy(Dialog),
 	    keep;
 	Result ->
-	    Values = [get_output(Result, Field) ||
-			 Field = #in{data=Data} <- Fields,
-			 Data =/= ignore],
+	    Values = get_output(Result, Fields),
+	    true = ets:delete(element(1, Fields)),
 	    wxDialog:destroy(Dialog),
 	    return_result(Fun, Values, wings_wm:this())
     end;
@@ -407,7 +404,9 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
 			     wxDialog:show(Dialog),
 			     wings_wm:psend(send_after_redraw, dialog_blanket, preview),
 			     receive
-				 closed -> wxDialog:destroy(Dialog)
+				 closed ->
+				     true = ets:delete(element(1, Fields)),
+				     wxDialog:destroy(Dialog)
 			     end
 		     end),
     State = #eh{fs=Fields, apply=Fun, owner=wings_wm:this(),
@@ -435,16 +434,12 @@ event_handler(#wx{id=?wxID_CANCEL},
 event_handler(#wx{id=Result}=_Ev,
 	      #eh{fs=Fields, apply=Fun, owner=Owner, pid=Pid}) ->
     %%io:format("Ev closing ~p~n  ~p~n",[_Ev, Fields]),
-    Values = [get_output(Result, Field) ||
-		 Field = #in{data=Data} <- Fields,
-		 Data =/= ignore],
-    Pid ! closed,
+    Values = get_output(Result, Fields),
     return_result(Fun, Values, Owner),
+    Pid ! closed,
     delete;
 event_handler(preview, #eh{fs=Fields, apply=Fun, owner=Owner}) ->
-    Values = [get_output(preview, Field) ||
-		 Field = #in{data=Data} <- Fields,
-		 Data =/= ignore],
+    Values = get_output(preview, Fields),
     case Fun({dialog_preview,Values}) of
 	{preview,#st{}=St0,#st{}=St} ->
 	    wings_wm:send_after_redraw(Owner, {update_state,St}),
@@ -468,50 +463,54 @@ event_handler(_Ev, _) ->
     %% io:format("unhandled Ev ~p~n",[_Ev]),
     keep.
 
+get_output(Result, {Table, Order}) ->
+    Get = fun(Key, Acc) ->
+		  case ets:lookup(Table, Key) of
+		      [#in{output=false}] ->
+			  Acc;
+		      [#in{type=dialog_buttons} = In] ->
+			  [with_key(In, result_atom(Result))|Acc];
+		      [#in{def=Def} = In] when Result =:= default ->
+			  [with_key(In, Def)|Acc];
+		      [In] ->
+			  [with_key(In, get_curr_value(In))|Acc]
+		  end
+	  end,
+    lists:reverse(lists:foldl(Get, [], Order)).
 
-get_output(Result, In) ->
-    get_output1(Result, In).
-
-get_output1(_, In=#in{type=checkbox, wx=Ctrl}) ->
-    with_key(In,wxCheckBox:getValue(Ctrl));
-get_output1(_, In=#in{type=radiobox, wx=Ctrl, data=Keys}) ->
+get_curr_value(#in{type=checkbox, wx=Ctrl}) ->
+    wxCheckBox:getValue(Ctrl);
+get_curr_value(#in{type=radiobox, wx=Ctrl, data=Keys}) ->
     ZeroIndex = wxRadioBox:getSelection(Ctrl),
-    with_key(In, lists:nth(ZeroIndex+1, Keys));
-get_output1(_, In=#in{type=filepicker, wx=Ctrl}) ->
-    with_key(In,wxFilePickerCtrl:getPath(Ctrl));
-get_output1(_, In=#in{type=color, wx=Ctrl}) ->
-    with_key(In, ww_color_ctrl:getColor(Ctrl));
-get_output1(_, In=#in{type=slider, wx=Ctrl, data={Convert,_}}) ->
-    with_key(In,Convert(wxSlider:getValue(Ctrl)));
-%% get_output1(_, In=#in{type=col_slider, wx=Ctrl}) ->
-%%     with_key(In,ww_color_slider:getColor(Ctrl));
-get_output1(_, In=#in{type=choice, wx=Ctrl}) ->
-    with_key(In,wxChoice:getClientData(Ctrl,wxChoice:getSelection(Ctrl)));
-get_output1(_, In=#in{type=text, def=Def, wx=Ctrl, validator=Validate}) ->
+    lists:nth(ZeroIndex+1, Keys);
+get_curr_value(#in{type=filepicker, wx=Ctrl}) ->
+    wxFilePickerCtrl:getPath(Ctrl);
+get_curr_value(#in{type=color, wx=Ctrl}) ->
+    ww_color_ctrl:getColor(Ctrl);
+get_curr_value(#in{type=slider, wx=Ctrl, data={Convert,_}}) ->
+    Convert(wxSlider:getValue(Ctrl));
+%% get_curr_value(In=#in{type=col_slider, wx=Ctrl}) ->
+%%     ww_color_slider:getColor(Ctrl);
+get_curr_value(#in{type=choice, wx=Ctrl}) ->
+    wxChoice:getClientData(Ctrl,wxChoice:getSelection(Ctrl));
+get_curr_value(#in{type=text, def=Def, wx=Ctrl, validator=Validate}) ->
     Str = wxTextCtrl:getValue(Ctrl),
-    Res = validate(Validate, Str, Def),
-    with_key(In, Res);
-get_output1(Result, In=#in{type=dialog_buttons}) ->
-    Atom = case Result of
-	       ?wxID_OK -> ok;
-	       ?wxID_CANCEL -> cancel;
-	       ?wxID_YES -> yes;
-	       ?wxID_NO -> no
-	   end,
-    with_key(In, Atom).
+    validate(Validate, Str, Def).
 
-with_key(#in{key=undefined}, Value) -> Value;
+result_atom(?wxID_OK) -> ok;
+result_atom(?wxID_CANCEL) -> cancel;
+result_atom(?wxID_YES) -> yes;
+result_atom(?wxID_NO) -> no.
+
+with_key(#in{key=Integer}, Value) when is_integer(Integer) -> Value;
 with_key(#in{key=Key}, Value) ->  {Key, Value}.
 
-setup_hooks(Fields) ->
-    {Fs, _} = lists:mapfoldl(fun(In=#in{key=undefined},N) -> {{N, In}, N+1};
-				(In=#in{key=Key}, N) -> {{Key, In}, N+1}
-			     end, 1,Fields),
-    Tree = gb_trees:from_orddict(lists:sort(Fs)),
-    [setup_hook(Field, Tree) || Field <- Fs].
+setup_hooks({Table, Keys}) ->
+    _ = [setup_hook(hd(ets:lookup(Table, Key)), Table) || Key <- Keys],
+    ok.
 
-setup_hook({_, #in{hook=undefined}}, _) -> ok;
-setup_hook({Key, #in{wx=Ctrl, type=checkbox, hook=UserHook}}, Fields) ->
+setup_hook(#in{hook=undefined}, _) -> ok;
+setup_hook(#in{key=Key, wx=Ctrl, type=checkbox, hook=UserHook}, Fields) ->
     %% Setup callback
     wxWindow:connect(Ctrl, command_checkbox_clicked,
 		     [{callback, fun(#wx{event=#wxCommand{commandInt=Int}}, Obj) ->
@@ -520,7 +519,7 @@ setup_hook({Key, #in{wx=Ctrl, type=checkbox, hook=UserHook}}, Fields) ->
 				 end}]),
     %% And initiate
     UserHook(Key, wxCheckBox:getValue(Ctrl), Fields);
-setup_hook({Key, #in{wx=Ctrl, type=choice, hook=UserHook}}, Fields) ->
+setup_hook(#in{key=Key, wx=Ctrl, type=choice, hook=UserHook}, Fields) ->
     wxWindow:connect(Ctrl, command_choice_selected,
 		     [{callback, fun(#wx{event=#wxCommand{commandInt=Int}}, Obj) ->
 					 wxEvent:skip(Obj),
@@ -528,7 +527,7 @@ setup_hook({Key, #in{wx=Ctrl, type=choice, hook=UserHook}}, Fields) ->
 					 UserHook(Key, Sel, Fields)
 				 end}]),
     UserHook(Key, wxChoice:getClientData(Ctrl,wxChoice:getSelection(Ctrl)), Fields);
-setup_hook({Key, #in{wx=Ctrl, type=radiobox, hook=UserHook, data=Keys}}, Fields) ->
+setup_hook(#in{key=Key, wx=Ctrl, type=radiobox, hook=UserHook, data=Keys}, Fields) ->
     wxWindow:connect(Ctrl, command_radiobox_selected,
 		     [{callback, fun(#wx{event=#wxCommand{commandInt=ZeroIndex}}, Obj) ->
 					 wxEvent:skip(Obj),
@@ -536,7 +535,7 @@ setup_hook({Key, #in{wx=Ctrl, type=radiobox, hook=UserHook, data=Keys}}, Fields)
 					 UserHook(Key, Sel, Fields)
 				 end}]),
     UserHook(Key, lists:nth(1+wxRadioBox:getSelection(Ctrl),Keys),Fields);
-setup_hook({Key, #in{wx=Ctrl, type=text, hook=UserHook, def=Def, validator=Validate}}, Fields) ->
+setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, def=Def, validator=Validate}, Fields) ->
     wxWindow:connect(Ctrl, command_text_updated,
 		     [{callback, fun(#wx{event=#wxCommand{cmdString=Str}}, Obj) ->
 					 wxEvent:skip(Obj),
@@ -553,7 +552,7 @@ setup_hook({Key, #in{wx=Ctrl, type=color, hook=UserHook}}, Fields) ->
     ok;
 
 %% Kind of special
-setup_hook({_Key, #in{wx=Canvas, type=custom_gl, hook={paint, CustomRedraw}}}, Fields) ->
+setup_hook(#in{wx=Canvas, type=custom_gl, hook=CustomRedraw}, Fields) ->
     Env = wx:get_env(),
     Custom = fun() ->
 		     wxGLCanvas:setCurrent(Canvas),
@@ -612,8 +611,8 @@ ask_unzip([], Labels, Vals) ->
     {lists:reverse(Labels),lists:reverse(Vals)}.
 
 build_dialog(false, _Title, Qs) ->
-    Fs = build(false, Qs, undefined, undefined, []),
-    {undefined, lists:reverse(Fs)};
+    DialogData = build(false, Qs, undefined, undefined),
+    {undefined, DialogData};
 build_dialog(AskType, Title, Qs) ->
     wx:batch(fun() ->
 		     Parent = get(top_frame),
@@ -622,20 +621,35 @@ build_dialog(AskType, Title, Qs) ->
 		     Panel  = wxPanel:new(Dialog, []),
 		     Top    = wxBoxSizer:new(?wxVERTICAL),
 		     Sizer  = wxBoxSizer:new(?wxVERTICAL),
-		     Fields0 = build(AskType, Qs, Panel, Sizer, []),
+		     DialogData = build(AskType, Qs, Panel, Sizer),
 		     wxWindow:setSizer(Panel, Sizer),
 		     wxSizer:add(Top, Panel, [{proportion, 1}, {flag, ?wxEXPAND bor ?wxALL}, {border, 5}]),
-		     Fields = setup_buttons(Dialog, Top, Fields0),
+		     setup_buttons(Dialog, Top, DialogData),
 		     wxWindow:setSizerAndFit(Dialog, Top),
-		     setup_hooks(Fields),
-		     {Dialog, Fields}
+		     setup_hooks(DialogData),
+		     {Dialog, DialogData}
 	     end).
 
-setup_buttons(Dialog, Top, [DB=#in{type=dialog_buttons, wx=Fun}|In]) ->
-    Object = Fun(Dialog, Top),
-    lists:reverse([DB#in{wx=Object}|In]);
-setup_buttons(_, _, Fields) ->
-    lists:reverse(Fields).
+setup_buttons(Dialog, Top, {Table, Fields}) ->
+    %% The dialog buttons are (should be) always last if present
+    case ets:lookup(Table, lists:last(Fields)) of
+	[DBs = #in{type=dialog_buttons, wx=Fun}] ->
+	    Object = Fun(Dialog, Top),
+	    true = ets:insert(Table, DBs#in{wx=Object}),
+	    ok;
+	_ ->
+	    ok
+    end.
+
+build(Ask, Qs, Parent, Sizer) ->
+    Fields = build(Ask, Qs, Parent, Sizer, []),
+    {Fs, _} = lists:mapfoldl(fun(In=#in{key=undefined},N) -> {In#in{key=N}, N+1};
+				(In=#in{}, N) -> {In, N+1}
+			     end, 1,Fields),
+    Table = ets:new(?MODULE, [{keypos, #in.key}]),
+    true = ets:insert(Table, Fs),
+    {Table, lists:reverse([Key || #in{key=Key} <- Fs])}.
+
 
 build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
     Def = proplists:get_value(value, Flags, ?wxID_OK),
@@ -663,7 +677,8 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 		     Ok
 	     end,
     In = build(Ask, {vframe, Qs}, Parent, Sizer, []),
-    [#in{key=proplists:get_value(key,Flags), def=Def, data=proplists:get_value(key,Flags,ignore),
+    [#in{key=proplists:get_value(key,Flags), def=Def,
+	 output= undefined =/= proplists:get_value(key,Flags),
 	 type=dialog_buttons, wx=Create}|In];
 
 build(Ask, {oframe, Tabs, 1, Flags}, Parent, WinSizer, In0)
@@ -960,8 +975,8 @@ build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
 		     add_sizer(custom, Sizer, Canvas),
 		     Canvas
 	     end,
-    [#in{key=proplists:get_value(key,Flags),
-	 type=custom_gl, data=ignore, hook={paint, Fun}, wx=create(Ask, Create)}|In];
+    [#in{key=proplists:get_value(key,Flags), type=custom_gl,
+	 output=false, hook=Fun, wx=create(Ask, Create)}|In];
 
 build(Ask, {Label, Def}, Parent, Sizer, In) ->
     build(Ask, {Label, Def, []}, Parent, Sizer, In);
