@@ -338,9 +338,9 @@ set_value_impl(#in{wx=Ctrl, type=choice}, Def, _) ->
 set_value_impl(#in{wx=Ctrl, type=text}, Val, _) ->
     wxTextCtrl:changeValue(Ctrl, to_str(Val));
 set_value_impl(#in{wx=Ctrl, type=slider, data={_, ToSlider}}, Val, _) ->
-    wxSlider:setValue(Ctrl, ToSlider(Val)).
-
-
+    wxSlider:setValue(Ctrl, ToSlider(Val));
+set_value_impl(In=#in{type=button}, Val, Store) ->
+    true = ets:insert(Store, In#in{data=Val}).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -495,7 +495,10 @@ get_curr_value(#in{type=choice, wx=Ctrl}) ->
     wxChoice:getClientData(Ctrl,wxChoice:getSelection(Ctrl));
 get_curr_value(#in{type=text, def=Def, wx=Ctrl, validator=Validate}) ->
     Str = wxTextCtrl:getValue(Ctrl),
-    validate(Validate, Str, Def).
+    validate(Validate, Str, Def);
+get_curr_value(#in{type=button, data=Data}) ->
+    Data.
+
 
 result_atom(?wxID_OK) -> ok;
 result_atom(?wxID_CANCEL) -> cancel;
@@ -544,7 +547,14 @@ setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, def=Def, validator=Va
 					 ok
 				 end}]),
     UserHook(Key,validate(Validate, wxTextCtrl:getValue(Ctrl), Def),Fields);
-setup_hook({Key, #in{wx=Ctrl, type=color, hook=UserHook}}, Fields) ->
+setup_hook(#in{key=Key, wx=Ctrl, type=button, hook=UserHook}, Fields) ->
+    wxButton:connect(Ctrl, command_button_clicked,
+		     [{callback, fun(_, _) ->
+					 UserHook(Key, button_pressed, Fields)
+				 end}]),
+    ok;
+
+setup_hook(#in{key=Key, wx=Ctrl, type=color, hook=UserHook}, Fields) ->
     ww_color_ctrl:connect(Ctrl, col_changed,
 			  [{callback, fun({col_changed, Col}) ->
 					      UserHook(Key, Col, Fields)
@@ -646,7 +656,7 @@ build(Ask, Qs, Parent, Sizer) ->
     {Fs, _} = lists:mapfoldl(fun(In=#in{key=undefined},N) -> {In#in{key=N}, N+1};
 				(In=#in{}, N) -> {In, N+1}
 			     end, 1,Fields),
-    Table = ets:new(?MODULE, [{keypos, #in.key}]),
+    Table = ets:new(?MODULE, [{keypos, #in.key}, public]),
     true = ets:insert(Table, Fs),
     {Table, lists:reverse([Key || #in{key=Key} <- Fs])}.
 
@@ -681,8 +691,9 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 	 output= undefined =/= proplists:get_value(key,Flags),
 	 type=dialog_buttons, wx=Create}|In];
 
-build(Ask, {oframe, Tabs, 1, Flags}, Parent, WinSizer, In0)
+build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
   when Ask =/= false ->
+    1 =:= Def orelse error({default, 1}),
     buttons =:= proplists:get_value(style, Flags, buttons) orelse error(Flags),
     NB = wxNotebook:new(Parent, ?wxID_ANY, []),
     AddPage = fun({Title, Data}, In) ->
@@ -887,6 +898,35 @@ build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
 	     end,
     [#in{key=proplists:get_value(key,Flags), def=Def,
 	 type=filepicker, wx=create(Ask,Create)}|In];
+
+build(Ask, {button, Action}, Parent, Sizer, In)
+  when is_atom(Action) ->
+    build(Ask, {button, Action, wings_util:cap(atom_to_list(Action)), []},
+	  Parent, Sizer, In);
+build(Ask, {button, Action, Flags}, Parent, Sizer, In)
+  when is_atom(Action) ->
+    build(Ask, {button, Action, wings_util:cap(atom_to_list(Action)), Flags},
+	  Parent, Sizer, In);
+build(Ask, {button, Label, Action}, Parent, Sizer, In) ->
+    build(Ask, {button, Action, Label, []},  Parent, Sizer, In);
+build(Ask, {button, Action, Label, Flags}, Parent, Sizer, In) ->
+    Create = fun() ->
+		     Ctrl = wxButton:new(Parent, ?wxID_ANY, [{label, Label}]),
+		     tooltip(Ctrl, Flags),
+		     add_sizer(button, Sizer, Ctrl),
+		     Ctrl
+	     end,
+    Hook = case Action of
+	       done ->
+		   fun(Key, button_pressed, Store) ->
+			   wings_dialog:set_value(Key, true, Store)
+		   end;
+	       _ ->
+		   proplists:get_value(hook, Flags)
+	   end,
+    [#in{key=proplists:get_value(key,Flags), def=false,
+	 hook=Hook, data=false, output=Action=:=done,
+	 type=button, wx=create(Ask,Create)}|In];
 
 build(Ask, {menu, Entries, Def, Flags}, Parent, Sizer, In) ->
     Create =
