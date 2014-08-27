@@ -158,10 +158,11 @@ wx_popup_menu(X0,Y0,Names,Menus0,Magnet,Owner) ->
     keep.
 
 setup_dialog(Parent, Entries0, Magnet, Pos) ->
-    Dialog = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_NONE}]),
+    Dialog = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_THEME}]),
     Panel = wxPanel:new(Dialog),
     %% wxPanel:setBackgroundStyle(Panel, ?wxBG_STYLE_TRANSPARENT),
-    wxPanel:setBackgroundColour(Panel, colorB(wings_pref:get_value(menu_color))),
+    wxWindow:setBackgroundColour(Panel, colorB(wings_pref:get_value(menu_color))),
+    wxWindow:setBackgroundColour(Dialog, colorB(wings_pref:get_value(menu_color))),
     Main = wxBoxSizer:new(?wxHORIZONTAL),
     Sizer = wxBoxSizer:new(?wxVERTICAL),
     MinHSzs = calc_min_sizes(Entries0, Panel, 5, 5),
@@ -173,6 +174,7 @@ setup_dialog(Parent, Entries0, Magnet, Pos) ->
     wxPopupTransientWindow:setClientSize(Dialog, wxWindow:getSize(Panel)),
     wxPopupTransientWindow:connect(Dialog, show),
     wxPopupTransientWindow:position(Dialog, Pos, {0,0}),
+    wxPopupTransientWindow:connect(Dialog, key_down, [skip]),
     wxPopupTransientWindow:popup(Dialog),
     {Dialog, Panel, Entries}.
 
@@ -197,6 +199,13 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 		    wxWindow:destroy(Dialog),
 		    wings_wm:psend(Owner, cancel);
 		true ->
+		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner)
+	    end;
+	#wx{event=#wxKey{keyCode=Key}} ->
+	    if Key =:= ?WXK_ESCAPE ->
+		    wxWindow:destroy(Dialog),
+		    wings_wm:psend(Owner, cancel);
+	       true ->
 		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner)
 	    end;
 	_Ev ->
@@ -268,7 +277,7 @@ popup_event_handler(redraw,_) ->
     defer;
 popup_event_handler(#mousemotion{},_) -> defer;
 popup_event_handler(_Ev,_) ->
-    io:format("Hmm ~p ~n",[_Ev]),
+    %% io:format("Hmm ~p ~n",[_Ev]),
     keep.
 
 calc_min_sizes([separator|Es], Win, C1, C2) ->
