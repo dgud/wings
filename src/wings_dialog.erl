@@ -485,6 +485,8 @@ get_curr_value(#in{type=radiobox, wx=Ctrl, data=Keys}) ->
     lists:nth(ZeroIndex+1, Keys);
 get_curr_value(#in{type=filepicker, wx=Ctrl}) ->
     wxFilePickerCtrl:getPath(Ctrl);
+get_curr_value(#in{type=fontpicker, wx=Ctrl}) ->
+    wxFontPickerCtrl:getSelectedFont(Ctrl);
 get_curr_value(#in{type=color, wx=Ctrl}) ->
     ww_color_ctrl:getColor(Ctrl);
 get_curr_value(#in{type=slider, wx=Ctrl, data={Convert,_}}) ->
@@ -560,6 +562,14 @@ setup_hook(#in{key=Key, wx=Ctrl, type=color, hook=UserHook}, Fields) ->
 					      UserHook(Key, Col, Fields)
 				      end}]),
     ok;
+setup_hook({Key, #in{wx=Ctrl, type=fontpicker, hook=UserHook}}, Fields) ->
+    wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed,
+              [{callback, fun(_, Obj) ->
+					      wxEvent:skip(Obj),
+                          Font = wxFontPickerCtrl:getSelectedFont(Ctrl),
+                          UserHook(Key, Font, Fields)
+                      end}]),
+    UserHook(Key, wxFontPickerCtrl:getSelectedFont(Ctrl), Fields);
 
 %% Kind of special
 setup_hook(#in{wx=Canvas, type=custom_gl, hook=CustomRedraw}, Fields) ->
@@ -875,23 +885,41 @@ build(Ask, {color, Def, Flags}, Parent, Sizer, In) ->
 	 type=color, wx=create(Ask,Create)}|In];
 
 build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
+    Props = proplists:get_value(props, Flags, []),
+    DlgType = proplists:get_value(dialog_type, Props, open_dialog),
     Create = fun() ->
-		     Props = proplists:get_value(props, Flags, []),
-		     What = case proplists:get_value(dialog_type, Props, open_dialog) of
+		     What = case DlgType of
 				open_dialog -> ?wxFLP_OPEN;
-				save_dialog -> ?wxFLP_SAVE
+				save_dialog -> ?wxFLP_SAVE;
+				_ -> undefined
 			    end,
 		     Filter = wings_file:file_filters(Props),
-		     Ctrl = wxFilePickerCtrl:new(Parent, ?wxID_ANY,
-						 [{style, What bor ?wxFLP_USE_TEXTCTRL},
-						  {path, Def},
-						  {wildcard, Filter}]),
+		     case DlgType of
+		        font_dialog ->
+		             PreviewFun = notify_event_handler(Ask, preview),
+                     FontUpdated = fun(#wx{},_) ->
+                                PreviewFun()
+                           end,
+                     Font = wxFont:new(Def),  % by now, it is doing nothing - maybe an wx module issue
+                     Ctrl = wxFontPickerCtrl:new(Parent, ?wxID_ANY,
+                                 [{initial, Font},
+                                  {style, ?wxFNTP_DEFAULT_STYLE}]),
+                     wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed, [{callback, FontUpdated}]);
+		        _ ->
+                     Ctrl = wxFilePickerCtrl:new(Parent, ?wxID_ANY,
+                                 [{style, What bor ?wxFLP_USE_TEXTCTRL},
+                                  {path, Def},
+                                  {wildcard, Filter}])
+             end,
 		     tooltip(Ctrl, Flags),
 		     add_sizer(button, Sizer, Ctrl),
 		     Ctrl
 	     end,
-    [#in{key=proplists:get_value(key,Flags), def=Def,
-	 type=filepicker, wx=create(Ask,Create)}|In];
+	Type = if DlgType =:= font_dialog -> fontpicker;
+    	true -> filepicker
+	end,
+    [#in{key=proplists:get_value(key,Flags), def=Def, hook=proplists:get_value(hook, Flags),
+	 type=Type, wx=create(Ask,Create)}|In];
 
 build(Ask, {button, Action}, Parent, Sizer, In)
   when is_atom(Action) ->
