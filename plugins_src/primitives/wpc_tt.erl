@@ -39,6 +39,9 @@
 -record(cedge,
 	{vs,cp1=nil,cp2=nil,ve}).	%all are {x,y} pairs
 
+-define (fsITALIC, 2#00000001).
+-define (fsBOLD,   2#00100000).
+
 init() -> true.
 
 menu({shape}, Menu) ->
@@ -64,20 +67,33 @@ make_text(Ask, St) when is_atom(Ask) ->
     Text = wpa:pref_get(wpc_tt, text, "Wings 3D"),
     Bisect = wpa:pref_get(wpc_tt, bisections, 0),
     FontDirectory = filename:join([FontDir,FontName]),
-    wings_dialog:dialog_preview({shape,text}, Ask, ?__(1,"Create Text"),
-        [{vframe,
-          [{hframe,
-            [{vframe,
-              [{label,?__(2,"Text")},
-               {label,?__(5,"Number of edge bisections")},
-               {label,?__(3,"TrueType font")}]},
-            {vframe,
-              [{text,Text,[{key,{wpc_tt,text}}]},
-               {slider,{text,Bisect,[{key,{wpc_tt,bisections}},{range, {0, 3}}]}},
-               {button,{text,FontDirectory,[{key,{wpc_tt,fontdir}},
-                   {props,[{dialog_type,font_dialog},
-                   {extensions,[{".ttf",?__(3,"TrueType font")}]}]}]}}]},
-            {vframe,[help_button()]}]}]}], St);
+    GbtFonts = process_ttfs(FontDir),
+%    io:format("FontList: ~p\n\n",[gb_trees:to_list(GbtFonts)]),
+    Dlg = [{vframe,
+              [{hframe,
+                [{vframe,
+                  [{label,?__(2,"Text")},
+                   {label,?__(5,"Number of edge bisections")},
+                   {label,?__(3,"TrueType font")}]},
+                {vframe,
+                  [{text,Text,[{key,{wpc_tt,text}}]},
+                   {slider,{text,Bisect,[{key,{wpc_tt,bisections}},{range, {0, 3}}]}},
+                   {button,{text,FontDirectory,[{key,{wpc_tt,fontdir}},
+                       {props,[{dialog_type,font_dialog},
+                       {extensions,[{".ttf",?__(3,"TrueType font")}]}]}]}}]},
+                {vframe,[help_button()]}]}]}],
+    wings_dialog:dialog(Ask,?__(1,"Create Text"), {preview, Dlg},
+        fun({dialog_preview,[T,N,{_,Ctrl}]=_Res}) ->
+                FPath = get_font_file(GbtFonts,Ctrl,FontDirectory),
+                {preview,{shape,{text,[T,N,{fontdir,FPath}]}},St};
+            (cancel) ->
+                St;
+            ([T,N,{_,Ctrl}]=_Res) when is_tuple(Ctrl) ->
+                FPath = get_font_file(GbtFonts,Ctrl,FontDirectory),
+                {commit,{shape,{text,[T,N,{fontdir,FPath}]}},St};
+            (Res) ->
+                {commit,{shape,{text,Res}},St}
+        end);
 
 make_text([{_,T},{_,N},{_,DirFont}], _) ->
     F = filename:basename(DirFont),
@@ -112,6 +128,106 @@ gen(Font, Dir, Text, Nsubsteps) ->
 	    io:format(?__(2,"caught error: ") ++"~p~n", [X]),
 	    wpa:error_msg(?__(3,"Text failed: internal error"))
     end.
+
+process_ttfs(Dir) ->
+    filelib:fold_files(Dir, ".ttf", true, fun(FileName, Acc) ->
+        case read_ttf_name(FileName) of
+            {FName,FStyle,FWeight} -> gb_trees:enter({FName,FStyle,FWeight},FileName,Acc);
+            _ -> Acc
+        end
+    end, gb_trees:empty()).
+
+read_ttf_name(File) ->
+    case file:read_file(File) of
+	{ok,Filecontents} ->
+		case ttfpart(Filecontents) of
+		    {ok, TTFpart} ->
+			    parsett_header(TTFpart);
+			_ ->
+			    error
+		end;
+	{error,_Reason} ->
+	    error
+    end.
+
+%% The Font dialog can show options for styles which we are not able to find a file like the "Italic"
+%% and "Italic Bold" for "Comic Sans MS" - there are no files for these styles (only Regular and
+%% Bold). Here, we'll try to get the font with a most close appearance of that selected by the user.
+get_font_file(GbtFonts,Ctrl,DefDir) ->
+    FName=wxFont:getFaceName(Ctrl),
+    FStyle=wxFont:getStyle(Ctrl),
+    FWeight=wxFont:getWeight(Ctrl),
+    case get_font_file(0,GbtFonts,FName,FStyle,FWeight) of
+        undefined -> DefDir;
+        FPath -> FPath
+    end.
+
+get_font_file(0=Try,GbtFonts,FName,FStyle,FWeight) ->  % try to get the right fount
+    case gb_trees:lookup({FName,FStyle,FWeight},GbtFonts) of
+         {value,FPath} -> FPath;
+        _ -> get_font_file(Try+1,GbtFonts,FName,?wxFONTSTYLE_NORMAL,FWeight)
+    end;
+get_font_file(1=Try,GbtFonts,FName,FStyle,FWeight) ->  % try to get the right fount
+    case gb_trees:lookup({FName,FStyle,FWeight},GbtFonts) of
+         {value,FPath} -> FPath;
+        _ -> get_font_file(Try+1,GbtFonts,FName,FStyle,?wxFONTWEIGHT_NORMAL)
+    end;
+get_font_file(2,GbtFonts,FName,FStyle,FWeight) ->  % try to get the right fount
+    case gb_trees:lookup({FName,FStyle,FWeight},GbtFonts) of
+        {value,FPath} -> FPath;
+        _ -> win_font_substitutes(FName,GbtFonts)
+    end.
+
+parsett_header(<<_C1,_C2,_C3,_C4,Ntabs:16/unsigned,_Srchrng:16/unsigned,
+	  _Esel:16/unsigned,_Rngshift:16/unsigned,B/binary>> =Buf) ->
+	{Dirs,B1} = getdirs(Ntabs,B),
+	Dirs1 = sort(fun({X,_,_},{Y,_,_}) -> X < Y end, Dirs),
+	Offset = 12 + (Ntabs*16),
+	Tabs = gettabs(Dirs1, B1, Offset),
+	{Doff,_,"name"} = lists:keyfind("name",3,Dirs1),
+	{Noff,Nlen} = parsenametab(Tabs),
+	FsSel = parseos2tab(Tabs),
+	FStyle = if (FsSel band ?fsITALIC) =:= ?fsITALIC ->
+	    ?wxFONTSTYLE_ITALIC;
+	true ->
+	    ?wxFONTSTYLE_NORMAL
+	end,
+	FWeight = if (FsSel band ?fsBOLD) =:= ?fsBOLD ->
+	    ?wxFONTWEIGHT_BOLD;
+	true ->
+	    ?wxFONTWEIGHT_NORMAL
+	end,
+	NameOff = Doff+Noff,
+	<<_:NameOff/binary,Name:Nlen/binary,_/binary>>=Buf,
+	{utf16_to_latin(binary_to_list(Name)),FStyle,FWeight}.
+
+utf16_to_latin([0|_]=Str) ->
+    utf16_to_latin_0(Str,[]);
+utf16_to_latin(Str) -> Str.
+
+utf16_to_latin_0([], Acc) -> Acc;
+utf16_to_latin_0([0|T0], Acc) ->
+    [C|T]=T0,
+    utf16_to_latin_0(T, Acc++[C]).
+
+parsenametab(Tabs) ->
+    Tab = findtab("name", Tabs),
+	<<0:16,Ncount:16,StrOff:16,T1/binary>> = Tab,
+	{Noff,Nlen} = getnameinfo(1,Ncount,T1), %  1 = Font Name
+	{StrOff+Noff,Nlen}.
+
+getnameinfo(Match,_,<<_Pid:16,_Eid:16,_Lid:16,Nid:16,Len:16,Off:16,_T1/binary>>) when Nid =:= Match ->
+    {Off,Len};
+getnameinfo(_,0,<<_:16,_:16,_:16,_:16,_:16,_:16,_T1/binary>>) ->
+	throw({error,?__(1,"Bad dir format")});
+getnameinfo(Match,Ncount,<<_:16,_:16,_:16,_:16,_:16,_:16,T1/binary>>) ->
+    getnameinfo(Match,Ncount-1,T1).
+
+parseos2tab(Tabs) ->
+    Tab = findtab("OS/2", Tabs),
+	<<_Ver:16,_Pad:30/binary,_Panose:10/binary,_ChrRng:16/binary,_VenId:4/binary,FsSel:16,_T1/binary>> = Tab,
+    FsSel.
+
 
 trygen(File, Text, Nsubsteps) ->
     case file:read_file(File) of
@@ -190,6 +306,20 @@ winregval(K, Name) ->
 	_ ->
 	    none
     end.
+
+win_font_substitutes(FName,GbtFonts) ->
+    case os:type() of
+	{win32,_} ->
+        case winregval(?__(1,"FontSubstitutes"),FName) of
+            none -> undefined;
+            FSName ->
+                case gb_trees:lookup({FSName,?wxFONTSTYLE_NORMAL,?wxFONTWEIGHT_NORMAL},GbtFonts) of
+                    {value, FPath} -> FPath;
+                    _ -> undefined
+                end
+        end;
+   _ -> undefined
+   end.
 
 % Try to find default system directory for fonts
 sysfontdir() ->
