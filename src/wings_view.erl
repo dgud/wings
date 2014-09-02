@@ -1427,7 +1427,8 @@ import_views(Views, #st{views={CurrentView0,{}}}=St) -> % loading a project
     St#st{views={CurrentView,list_to_tuple(NewViews)}};
 import_views(Views, #st{views={CurrentView,OldViews}}=St) -> % merging a project
     NewViews0 = import_views_1(Views),
-    NewViews = tuple_to_list(OldViews)++remove_cur_view(NewViews0),
+    {{_,_},NewViews1} = remove_cur_view(NewViews0),
+    NewViews = tuple_to_list(OldViews)++NewViews1,
     St#st{views={CurrentView,list_to_tuple(NewViews)}}.
 
 import_views_1([{view,As}|Views]) ->
