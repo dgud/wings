@@ -42,6 +42,12 @@
 -define (fsITALIC, 2#00000001).
 -define (fsBOLD,   2#00100000).
 
+-define(S16, 16/signed).
+-define(U16, 16/unsigned).
+-define(S32, 32/signed).
+-define(U32, 32/unsigned).
+-define(SKIP, _/binary).
+
 init() -> true.
 
 menu({shape}, Menu) ->
@@ -62,13 +68,20 @@ command({shape,{text,Ask}}, St) -> make_text(Ask, St);
 command(_, _) -> next.
 
 make_text(Ask, St) when is_atom(Ask) ->
-    FontDir = wpa:pref_get(wpc_tt, fontdir, sysfontdir()),
-    FontName = wpa:pref_get(wpc_tt, fontname, default_font(FontDir)),
+    FontDir  = sysfontdir(),
+    DefFont = default_font(),
+    {Name,Style,Weight} =
+	case wpa:pref_get(wpc_tt, fontname, DefFont) of
+	    FI = {_, _, _} -> FI;
+	    FaceName when is_list(FaceName) ->
+		{FaceName, ?wxFONTSTYLE_NORMAL, ?wxFONTWEIGHT_NORMAL};
+	    WFont = {wx_ref,_,wxFont,_} -> {WFont, undefined, undefined}
+	end,
+
     Text = wpa:pref_get(wpc_tt, text, "Wings 3D"),
     Bisect = wpa:pref_get(wpc_tt, bisections, 0),
-    FontDirectory = filename:join([FontDir,FontName]),
     GbtFonts = process_ttfs(FontDir),
-    %%    io:format("FontList: ~p\n\n",[gb_trees:to_list(GbtFonts)]),
+    %% io:format("FontList: ~p\n\n",[gb_trees:to_list(GbtFonts)]),
     Dlg = [{vframe,
 	    [{hframe,
 	      [{vframe,
@@ -77,22 +90,23 @@ make_text(Ask, St) when is_atom(Ask) ->
 		 {label,?__(3,"TrueType font")}]},
 	       {vframe,
 		[{text,Text,[{key,{wpc_tt,text}}]},
-		 {slider,{text,Bisect,[{key,{wpc_tt,bisections}},{range, {0, 3}}]}},
-		 {button,{text,FontDirectory,[{key,{wpc_tt,fontdir}},
-					      {props,[{dialog_type,font_dialog},
-						      {extensions,[{".ttf",?__(3,"TrueType font")}]}]}]}}]},
+		 {slider,{text,Bisect,[{key,{wpc_tt,bisections}},
+				       {range, {0, 3}}]}},
+		 {fontpicker,Name,[{key,{wpc_tt,font}},
+				   {style, Style},{weight, Weight}]}]},
 	       {vframe,[help_button()]}]}]}],
     wings_dialog:dialog(Ask,?__(1,"Create Text"), {preview, Dlg},
 			fun({dialog_preview,[T,N,{_,Ctrl}]=_Res}) ->
-				FPath = get_font_file(GbtFonts,Ctrl,FontDirectory),
+				{_, FPath} = get_font_file(GbtFonts,Ctrl),
 				{preview,{shape,{text,[T,N,{fontdir,FPath}]}},St};
 			   (cancel) ->
 				St;
 			   ([T,N,{_,Ctrl}]=_Res) when is_tuple(Ctrl) ->
-				FPath = get_font_file(GbtFonts,Ctrl,FontDirectory),
-				{commit,{shape,{text,[T,N,{fontdir,FPath}]}},St};
-			   (Res) ->
-				{commit,{shape,{text,Res}},St}
+				{Font, FPath} = get_font_file(GbtFonts,Ctrl),
+				wpa:pref_set(wpc_tt, fontname, Font),
+				wpa:pref_set(wpc_tt, text, element(2,T)),
+				wpa:pref_set(wpc_tt, bisections, element(2,N)),
+				{commit,{shape,{text,[T,N,{fontdir,FPath}]}},St}
 			end);
 
 make_text([{_,T},{_,N},{_,DirFont}], _) ->
@@ -106,22 +120,15 @@ help_button() ->
     {help,Title,TextFun}.
 
 help() ->
-    [?__(1,"For some reason on Windows, fonts in the WINDOWS/Fonts directory are unselectable via the Browse button due to the fact that they are in the WINDOWS system folder."),
-     ?__(3,"So to make use of these TrueType fonts, you may have to copy the WINDOWS/Fonts folder and paste it outside of the system folder."),
-     ?__(4,"You can then navigate to the copy of the Fonts folder using the Browse button and choose a font."),
-     ?__(5,"After creating a 3D text object from the new directory, Wings will save its location for the next time.")].
+    [?__(1,"Only TrueType fonts can be used and they must be"
+	 "installed in standard operating system directory for fonts.")].
 
 gen(Font, Dir, Text, Nsubsteps) ->
     File = font_file(Font, Dir),
     case catch trygen(File, Text, Nsubsteps) of
-	S = {new_shape,_,_,_} ->
-	    wpa:pref_set(wpc_tt, fontname, Font),
-	    wpa:pref_set(wpc_tt, fontdir, Dir),
-	    wpa:pref_set(wpc_tt, text, Text),
-	    wpa:pref_set(wpc_tt, bisections, Nsubsteps),
-	    S;
+	S = {new_shape,_,_,_} -> S;
 	{error,"no such file or directory"} ->
-	    ok;
+	    wpa:error_msg(?__(4,"Text failed: failed to locate the TTF file for the selected font"));
 	{error,Reason} ->
 	    wpa:error_msg(?__(1,"Text failed: ") ++ Reason);
 	X ->
@@ -130,21 +137,24 @@ gen(Font, Dir, Text, Nsubsteps) ->
     end.
 
 process_ttfs(Dir) ->
-    filelib:fold_files(Dir, ".ttf", true,
-		       fun(FileName, Acc) ->
-			       case read_ttf_name(FileName) of
-				   {FName,FStyle,FWeight} -> gb_trees:enter({FName,FStyle,FWeight},FileName,Acc);
-				   _ -> Acc
-			       end
-		       end, gb_trees:empty()).
+    Add = fun(FileName, Acc) ->
+		  case read_ttf_name(FileName) of
+		      {FName,FStyle,FWeight} ->
+			  gb_trees:enter({FName,FStyle,FWeight},FileName,Acc);
+		      _ -> Acc
+		  end
+	  end,
+    filelib:fold_files(Dir, ".ttf", true, Add, gb_trees:empty()).
 
 read_ttf_name(File) ->
     case file:read_file(File) of
 	{ok,Filecontents} ->
-	    case ttfpart(Filecontents) of
-		{ok, TTFpart} ->
-		    parsett_header(TTFpart);
-		_ ->
+	    try
+		{ok, TTFpart} = ttfpart(Filecontents),
+		(TTFpart =:= Filecontents) orelse erlang:display({changed, File}),
+		parsett_header(Filecontents)
+	    catch _ET:_Error ->
+		    io:format("ERROR: ~s:~P ~p~n",[File,_Error, 10, erlang:get_stacktrace()]),
 		    error
 	    end;
 	{error,_Reason} ->
@@ -154,13 +164,13 @@ read_ttf_name(File) ->
 %% The Font dialog can show options for styles which we are not able to find a file like the "Italic"
 %% and "Italic Bold" for "Comic Sans MS" - there are no files for these styles (only Regular and
 %% Bold). Here, we'll try to get the font with a most close appearance of that selected by the user.
-get_font_file(GbtFonts,Ctrl,DefDir) ->
+get_font_file(GbtFonts,Ctrl) ->
     FName=wxFont:getFaceName(Ctrl),
     FStyle=wxFont:getStyle(Ctrl),
     FWeight=wxFont:getWeight(Ctrl),
     case get_font_file(0,GbtFonts,FName,FStyle,FWeight) of
-        undefined -> DefDir;
-        FPath -> FPath
+        undefined -> {{FName,FStyle,FWeight}, "unknown"};
+        FPath -> {{FName,FStyle,FWeight}, FPath}
     end.
 
 get_font_file(0=Try,GbtFonts,FName,FStyle,FWeight) ->  % try to get the right fount
@@ -179,56 +189,183 @@ get_font_file(2,GbtFonts,FName,FStyle,FWeight) ->  % try to get the right fount
         _ -> win_font_substitutes(FName,GbtFonts)
     end.
 
-parsett_header(<<_C1,_C2,_C3,_C4,Ntabs:16/unsigned,_Srchrng:16/unsigned,
-		 _Esel:16/unsigned,_Rngshift:16/unsigned,B/binary>> =Buf) ->
-    {Dirs,B1} = getdirs(Ntabs,B),
-    Dirs1 = sort(fun({X,_,_},{Y,_,_}) -> X < Y end, Dirs),
-    Offset = 12 + (Ntabs*16),
-    Tabs = gettabs(Dirs1, B1, Offset),
-    {Doff,_,"name"} = lists:keyfind("name",3,Dirs1),
-    {Noff,Nlen} = parsenametab(Tabs),
-    FsSel = parseos2tab(Tabs),
-    FStyle = if (FsSel band ?fsITALIC) =:= ?fsITALIC ->
-		     ?wxFONTSTYLE_ITALIC;
-		true ->
-		     ?wxFONTSTYLE_NORMAL
-	     end,
-    FWeight = if (FsSel band ?fsBOLD) =:= ?fsBOLD ->
-		      ?wxFONTWEIGHT_BOLD;
-		 true ->
-		      ?wxFONTWEIGHT_NORMAL
-	      end,
-    NameOff = Doff+Noff,
-    <<_:NameOff/binary,Name:Nlen/binary,_/binary>>=Buf,
-    {utf16_to_latin(binary_to_list(Name)),FStyle,FWeight}.
+parsett_header(Bin) ->
+    FontInfo = font_info(Bin),
+    Family = proplists:get_value(family, FontInfo, undefined),
+    {Style, Weight} = font_styles(Bin),
+    {Family,Style,Weight}.
 
-utf16_to_latin([0|_]=Str) ->
-    utf16_to_latin_0(Str,[]);
-utf16_to_latin(Str) -> Str.
+%% Return the requested string from font
+%% By default font family and subfamily (if not regular)
+font_info(Font) ->
+    StdInfoItems = [info(1),info(2),info(3),info(4),info(16),info(17)],
+    Try = [{StdInfoItems, microsoft, unicode, english},
+	   {StdInfoItems, unicode, unicode, 0},
+	   {StdInfoItems, mac, roman, english}
+	  ],
+    font_info_2(Font, Try).
 
-utf16_to_latin_0([], Acc) -> Acc;
-utf16_to_latin_0([0|T0], Acc) ->
-    [C|T]=T0,
-    utf16_to_latin_0(T, Acc++[C]).
+font_info_2(Font, [{Id,Platform,Enc,Lang}|Rest]) ->
+    case font_info(Font, Id, Platform, Enc, Lang) of
+	[] -> font_info_2(Font, Rest);
+	Info -> Info
+    end;
+font_info_2(_, []) -> [].
 
-parsenametab(Tabs) ->
-    Tab = findtab("name", Tabs),
-    <<0:16,Ncount:16,StrOff:16,T1/binary>> = Tab,
-    {Noff,Nlen} = getnameinfo(1,Ncount,T1), %  1 = Font Name
-    {StrOff+Noff,Nlen}.
 
-getnameinfo(Match,_,<<_Pid:16,_Eid:16,_Lid:16,Nid:16,Len:16,Off:16,_T1/binary>>) when Nid =:= Match ->
-    {Off,Len};
-getnameinfo(_,0,<<_:16,_:16,_:16,_:16,_:16,_:16,_T1/binary>>) ->
-    throw({error,?__(1,"Bad dir format")});
-getnameinfo(Match,Ncount,<<_:16,_:16,_:16,_:16,_:16,_:16,T1/binary>>) ->
-    getnameinfo(Match,Ncount-1,T1).
+%% Return the requested string from font
+%% Info Items: 1,2,3,4,16,17 may be interesting
+%% Returns a list if the encoding is known otherwise a binary.
+%% Return the empty list is no info that could be matched is found.
+font_info(Bin, Id, Platform, Encoding, Language) ->
+    case find_table(Bin, <<"name">>) of
+	false -> [];
+	Name ->
+	    <<_:Name/binary, _:16, Count:?U16, StringOffset:?U16, FI/binary>> = Bin,
+	    <<_:Name/binary, _:StringOffset/binary, Strings/binary>> = Bin,
+	    get_font_info(Count, FI, Strings, Id, Platform, Encoding, Language)
+    end.
 
-parseos2tab(Tabs) ->
-    Tab = findtab("OS/2", Tabs),
-    <<_Ver:16,_Pad:30/binary,_Panose:10/binary,_ChrRng:16/binary,_VenId:4/binary,FsSel:16,_T1/binary>> = Tab,
-    FsSel.
+get_font_info(0, _, _, _, _, _, _) -> [];
+get_font_info(N, <<PId:?U16, EId:?U16, LId:?U16, NId:?U16,
+		   Length:?U16, StrOffset:?U16, Rest/binary>>, Strings,
+	      WIds, WPlatform, WEnc, WLang) ->
+    <<_:StrOffset/binary, String:Length/binary, ?SKIP>> = Strings,
+    Platform = platform(PId),
+    Encoding = encoding(EId, Platform),
+    Lang = language(LId, Platform),
+    Enc = check_enc(Encoding, WEnc),
+    case lists:member(info(NId), WIds) of
+	true when Platform =:= WPlatform, Enc, Lang =:= WLang ->
+	    %% io:format("Encoding ~p Platform ~p Eid ~p~n",[Encoding, Platform, EId]),
+	    [{info(NId), string(String, Encoding)}|
+	     get_font_info(N-1, Rest, Strings, WIds, WPlatform, WEnc, WLang)];
+	_ ->
+	    get_font_info(N-1, Rest, Strings, WIds, WPlatform, WEnc, WLang)
+    end.
 
+check_enc(A, A) -> true;
+check_enc({unicode,_}, unicode) -> true;
+check_enc({unicode,_,_}, unicode) -> true;
+check_enc(_, _) -> false.
+
+find_table(<<_:32, NumTables:?U16, _SR:16, _ES:16, _RS:16, Tables/binary>>, Tag) ->
+    find_table(NumTables, Tag, Tables).
+
+find_table(0, _, _) -> false;
+find_table(_, Tag, <<Tag:4/binary, _CheckSum:32, Offset:?U32, _Len:32, ?SKIP>>) ->
+    Offset;
+find_table(Num, Tag, <<_Tag:4/binary, _CheckSum:32, _Offset:32, _Len:32, Next/binary>>) ->
+    find_table(Num-1, Tag, Next).
+
+platform(0) -> unicode;
+platform(1) -> mac;
+platform(2) -> iso;
+platform(3) -> microsoft;
+platform(Id) -> Id.
+
+encoding(0, unicode) -> {unicode, {1,0}};
+encoding(1, unicode) -> {unicode, {1,1}};
+encoding(2, unicode) -> iso_10646;
+encoding(3, unicode) -> {unicode, bmp, {2,0}};
+encoding(4, unicode) -> {unicode, full,{2,0}};
+
+encoding(0, microsoft)  -> symbol;
+encoding(1, microsoft)  -> {unicode, bmp};
+encoding(2, microsoft)  -> shiftjis;
+encoding(10, microsoft) -> {unicode, bmp};
+
+encoding(0, mac) ->  roman        ;
+encoding(1, mac) ->  japanese     ;
+encoding(2, mac) ->  chinese_trad ;
+encoding(3, mac) ->  korean       ;
+encoding(4, mac) ->  arabic       ;
+encoding(5, mac) ->  hebrew       ;
+encoding(6, mac) ->  greek        ;
+encoding(7, mac) ->  russian      ;
+
+encoding(Id, _) -> Id.
+
+language(16#0409, microsoft) -> english ;
+language(16#0804, microsoft) -> chinese ;
+language(16#0413, microsoft) -> dutch   ;
+language(16#040c, microsoft) -> french  ;
+language(16#0407, microsoft) -> german  ;
+language(16#040d, microsoft) -> hebrew  ;
+language(16#0410, microsoft) -> italian ;
+language(16#0411, microsoft) -> japanese;
+language(16#0412, microsoft) -> korean  ;
+language(16#0419, microsoft) -> russian ;
+%%language(16#0409, microsoft) -> spanish ;
+language(16#041d, microsoft) -> swedish ;
+
+language(0 , mac) -> english ;
+language(12, mac) -> arabic  ;
+language(4 , mac) -> dutch   ;
+language(1 , mac) -> french  ;
+language(2 , mac) -> german  ;
+language(10, mac) -> hebrew  ;
+language(3 , mac) -> italian ;
+language(11, mac) -> japanese;
+language(23, mac) -> korean  ;
+language(32, mac) -> russian ;
+language(6 , mac) -> spanish ;
+language(5 , mac) -> swedish ;
+language(33, mac) -> chinese_simplified ;
+language(19, mac) -> chinese ;
+
+language(Id, _) -> Id.
+
+info(0) -> copyright;
+info(1) -> family;
+info(2) -> subfamily;
+info(3) -> unique_subfamily;
+info(4) -> fullname;
+info(5) -> version;
+info(6) -> postscript_name;
+info(7) -> trademark_notice;
+info(8) -> manufacturer_name;
+info(9) -> designer;
+info(10) -> description;
+info(11) -> url_vendor;
+info(12) -> url_designer;
+info(13) -> license_descr;
+info(14) -> url_license;
+%%info(15) -> reserved;
+info(16) -> preferred_family;
+info(17) -> preferred_subfamily;
+%%info(18) -> compatible_full; %% Mac only
+info(19) -> sample_text;
+info(Id) -> Id.
+
+string(String, roman) ->
+    unicode:characters_to_list(String, latin1);
+string(String, {unicode, _}) ->
+    unicode:characters_to_list(String, utf16);
+string(String, {unicode, bmp, _}) ->
+    unicode:characters_to_list(String, utf16);
+string(String, {unicode, full, _}) ->
+    unicode:characters_to_list(String, utf32);
+string(String, _) ->
+    String.
+
+font_styles(Bin) ->
+    TabOffset = find_table(Bin, <<"OS/2">>),
+    case is_integer(TabOffset) of
+	true ->
+	    <<_:TabOffset/binary,_Ver:16,_Pad:30/binary,_Panose:10/binary,_ChrRng:16/binary,
+	      _VenId:4/binary,FsSel:16,_T1/binary>> = Bin,
+
+	    FStyle = if (FsSel band ?fsITALIC) =:= ?fsITALIC -> ?wxFONTSTYLE_ITALIC;
+			true -> ?wxFONTSTYLE_NORMAL
+		     end,
+	    FWeight = if (FsSel band ?fsBOLD) =:= ?fsBOLD -> ?wxFONTWEIGHT_BOLD;
+			 true -> ?wxFONTWEIGHT_NORMAL
+		      end,
+	    {FStyle, FWeight};
+	false ->
+	    {?wxFONTSTYLE_NORMAL, ?wxFONTWEIGHT_NORMAL}
+    end.
 
 trygen(File, Text, Nsubsteps) ->
     case file:read_file(File) of
@@ -338,7 +475,7 @@ sysfontdir() ->
 	{unix,Utype} ->
 	    Dir = case Utype of
 		      darwin -> "/Library/Fonts";
-		      _ -> "/usr/share/fonts/TTF/"
+		      _ -> "/usr/share/fonts/"
 		  end,
 	    case file:list_dir(Dir) of
 		{error, _} ->
@@ -350,29 +487,9 @@ sysfontdir() ->
 	    "/~"		% go to home dir
     end.
 
-default_font(Dir) ->
-    case os:type() of
-	{win32,_Wintype} ->
-	    "Arial";
-	{unix,linux} ->
-	    case file:list_dir(Dir) of
-		{error, _} ->
-		    "";
-		{ok, List} ->
-		    Find = fun(File) ->
-				   Ext = filename:extension(File),
-				   Ext /= ".ttf" andalso Ext /= ".dfont"
-			   end,
-		    case lists:dropwhile(Find, List) of
-			[H|_] ->
-			    H;
-			[] ->
-			    ""
-		    end
-	    end;
-	_ ->
-	    ""
-    end.
+default_font() ->
+    wxSystemSettings:getFont(?wxSYS_DEFAULT_GUI_FONT).
+
 
 %% Return {Vs,Fs} corresponding to list of polyareas,
 %% where Vs is list of coords and Fs is list of list of
@@ -398,10 +515,11 @@ concatvfs([{Vs,Fs}|Rest], Offset, Vsacc, Fsacc) ->
 %% http://www.microsoft.com/typography/otspec/
 
 ttfpart(Filecontents) ->
-    case is_ttf(Filecontents) of
+    case is_ttf(Filecontents, false) of
 	true ->
 	    {ok,Filecontents};
 	_ ->
+	    io:format("Not a ttf file", []),
 	    case parse_dfont(Filecontents) of
 		<<>> ->
 		    case parse_embedded_ttf(Filecontents) of
@@ -419,15 +537,15 @@ ttfpart(Filecontents) ->
 %%  uint16 - entry selector: log2(maximum power of 2 <= numTables)
 %%  uint16 - range shift: numTables*16-searchRange
 
-is_ttf(<<0,1,0,0,R/binary>>) -> is_ttf_fin(R);
-is_ttf(<<"true",R/binary>>) -> is_ttf_fin(R);
-is_ttf(<<"OTTO",R/binary>>) -> is_ttf_fin(R);
-is_ttf(_) -> false.
+is_ttf(<<0,1,0,0,R/binary>>, V) -> not V orelse is_ttf_fin(R);
+is_ttf(<<"true",R/binary>>, V)  -> not V orelse is_ttf_fin(R);
+%is_ttf(<<"typ1",R/binary>>, V)  -> not V orelse is_ttf_fin(R);
+is_ttf(<<"OTTO",R/binary>>, V)  -> not V orelse is_ttf_fin(R);
+is_ttf(<<1,0,0,0,R/binary>>, V) -> not V orelse is_ttf_fin(R);
+is_ttf(_,_) -> false.
 
-is_ttf_fin(<<NumTabs:16, SrchRng:16, _EntSel:16, Rsh:16, B/binary>>) ->
-    (size(B) > NumTabs*16)
-	andalso
-	  (Rsh == NumTabs*16 - SrchRng).
+is_ttf_fin(<<NumTabs:?U16, SrchRng:?U16, _EntSel:?U16, Rsh:?U16, B/binary>>) ->
+    NumTabs > 0 andalso (size(B) > NumTabs*16) andalso (Rsh == NumTabs*16 - SrchRng).
 
 %% An Apple "dfont" has many resources
 %% in a merged resource fork/data fork.
@@ -452,7 +570,7 @@ findttfres(<<Reslen:32, B/binary>>, Rlenleft) ->
     if
 	(size(B) >= Reslen) ->
 	    <<Res:Reslen/binary, B2/binary>> = B,
-	    case is_ttf(Res) of
+	    case is_ttf(Res, true) of
 		true -> Res;
 		_ -> findttfres(B2, Rlenleft - Reslen - 4)
 	    end;
@@ -465,7 +583,7 @@ findttfres(_, _) -> {nil, << 0 >> }.
 %% (some old Mac files are like this).
 %% Just go byte-by-byte, looking for the start of a valid ttf section.
 parse_embedded_ttf(B) ->
-    case is_ttf(B) of
+    case is_ttf(B, true) of
 	true -> B;
 	_ ->
 	    case B of
