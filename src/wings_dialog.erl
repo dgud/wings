@@ -420,6 +420,10 @@ notify_event_handler(false, _Msg) -> fun() -> ignore end;
 notify_event_handler(no_preview, _) -> fun() -> ignore end;
 notify_event_handler(_, Msg) -> fun() -> wings_wm:psend(send_once, dialog_blanket, Msg) end.
 
+notify_event_handler_cb(false, _) -> fun(_,_) -> ignore end;
+notify_event_handler_cb(no_preview, _) -> fun(_,_) -> ignore end;
+notify_event_handler_cb(_, Msg) -> fun(_,_) -> wings_wm:psend(send_once, dialog_blanket, Msg) end.
+
 event_handler(#wx{id=?wxID_CANCEL},
 	      #eh{apply=Fun, owner=Owner, type=Preview, pid=Pid}) ->
     case Preview of
@@ -565,10 +569,10 @@ setup_hook(#in{key=Key, wx=Ctrl, type=color, hook=UserHook}, Fields) ->
 setup_hook({Key, #in{wx=Ctrl, type=fontpicker, hook=UserHook}}, Fields) ->
     wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed,
               [{callback, fun(_, Obj) ->
-					      wxEvent:skip(Obj),
-                          Font = wxFontPickerCtrl:getSelectedFont(Ctrl),
-                          UserHook(Key, Font, Fields)
-                      end}]),
+				  wxEvent:skip(Obj),
+				  Font = wxFontPickerCtrl:getSelectedFont(Ctrl),
+				  UserHook(Key, Font, Fields)
+			  end}]),
     UserHook(Key, wxFontPickerCtrl:getSelectedFont(Ctrl), Fields);
 
 %% Kind of special
@@ -894,32 +898,16 @@ build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
 				_ -> undefined
 			    end,
 		     Filter = wings_file:file_filters(Props),
-		     case DlgType of
-		        font_dialog ->
-		             PreviewFun = notify_event_handler(Ask, preview),
-                     FontUpdated = fun(#wx{},_) ->
-                                PreviewFun()
-                           end,
-                     Font = wxFont:new(Def),  % by now, it is doing nothing - maybe an wx module issue
-                     Ctrl = wxFontPickerCtrl:new(Parent, ?wxID_ANY,
-                                 [{initial, Font},
-                                  {style, ?wxFNTP_DEFAULT_STYLE}]),
-                     wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed, [{callback, FontUpdated}]);
-		        _ ->
                      Ctrl = wxFilePickerCtrl:new(Parent, ?wxID_ANY,
-                                 [{style, What bor ?wxFLP_USE_TEXTCTRL},
-                                  {path, Def},
-                                  {wildcard, Filter}])
-             end,
+						 [{style, What bor ?wxFLP_USE_TEXTCTRL},
+						  {path, Def},
+						  {wildcard, Filter}]),
 		     tooltip(Ctrl, Flags),
-		     add_sizer(button, Sizer, Ctrl),
+		     add_sizer(filepicker, Sizer, Ctrl),
 		     Ctrl
 	     end,
-	Type = if DlgType =:= font_dialog -> fontpicker;
-    	true -> filepicker
-	end,
     [#in{key=proplists:get_value(key,Flags), def=Def, hook=proplists:get_value(hook, Flags),
-	 type=Type, wx=create(Ask,Create)}|In];
+	 type=filepicker, wx=create(Ask,Create)}|In];
 
 build(Ask, {button, Action}, Parent, Sizer, In)
   when is_atom(Action) ->
@@ -949,6 +937,34 @@ build(Ask, {button, Action, Label, Flags}, Parent, Sizer, In) ->
     [#in{key=proplists:get_value(key,Flags), def=false,
 	 hook=Hook, data=false, output=Action=:=done,
 	 type=button, wx=create(Ask,Create)}|In];
+
+
+build(Ask, {fontpicker, DefFont, Flags}, Parent, Sizer, In) ->
+    Def = case {(catch wx:getObjectType(DefFont) =:= wxFont), DefFont} of
+	      {true,_}  -> DefFont;
+	      {_, default} -> wxSystemSettings:getFont(?wxSYS_DEFAULT_GUI_FONT);
+	      {_, FaceName} when is_list(FaceName) ->
+		  Size   = proplists:get_value(size, Flags, 12),
+		  Family = proplists:get_value(family, Flags, ?wxFONTFAMILY_DEFAULT),
+		  Style  = proplists:get_value(style, Flags, ?wxFONTSTYLE_NORMAL),
+		  Weight = proplists:get_value(weight, Flags, ?wxFONTWEIGHT_NORMAL),
+		  wxFont:new(Size, Family, Style, Weight, [{face, FaceName}])
+	  end,
+    %% io:format("DefFont ~p: ~p~n",[DefFont, wxFont:getFaceName(Def)]),
+    Create = fun() ->
+		     PreviewFun = notify_event_handler_cb(Ask, preview),
+		     Ctrl = wxFontPickerCtrl:new(Parent, ?wxID_ANY,
+						 [{initial, Def},
+						  {style, ?wxFNTP_DEFAULT_STYLE}]),
+                     wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed,
+					      [{callback, PreviewFun}]),
+		     tooltip(Ctrl, Flags),
+		     add_sizer(fontpicker, Sizer, Ctrl),
+		     Ctrl
+	     end,
+    [#in{key=proplists:get_value(key,Flags), def=Def,
+	 hook=proplists:get_value(hook, Flags),
+	 type=fontpicker, wx=create(Ask,Create)}|In];
 
 build(Ask, {menu, Entries, Def, Flags}, Parent, Sizer, In) ->
     Create =
@@ -1087,7 +1103,7 @@ build_radio(Ask, Def, {Dir, Style}, Alternatives, Flags, Parent, Sizer, In) ->
 		     add_sizer({radiobox, Dir}, Sizer, Ctrl),
 		     tooltip(Ctrl, Flags),
 		     wxRadioBox:setSelection(Ctrl, pos(Def, Keys)),
-		     Preview = fun(_, _) -> (notify_event_handler(Ask, preview))() end,
+		     Preview = notify_event_handler_cb(Ask, preview),
 		     wxRadioBox:connect(Ctrl, command_radiobox_selected,
 					[{callback, Preview}]),
 		     Ctrl
@@ -1181,6 +1197,10 @@ sizer_flags({radiobox, Dir}, Dir)     -> {5, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VE
 sizer_flags({radiobox, _}, _)         -> {1, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags({box, Dir}, Dir)          -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags({box, _}, _)              -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(fontpicker, ?wxHORIZONTAL)    -> {2, 2, ?wxRIGHT};
+sizer_flags(fontpicker, ?wxVERTICAL)      -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
+sizer_flags(filepicker, ?wxHORIZONTAL)    -> {2, 2, ?wxRIGHT};
+sizer_flags(filepicker, ?wxVERTICAL)      -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
 sizer_flags(custom, _)                -> {0, 5, ?wxALL};
 sizer_flags(_, ?wxHORIZONTAL)         -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(_, ?wxVERTICAL)           -> {0, 0, ?wxEXPAND}.
