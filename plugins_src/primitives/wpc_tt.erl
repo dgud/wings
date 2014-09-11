@@ -123,10 +123,15 @@ help() ->
     [?__(1,"Only TrueType fonts can be used and they must be"
 	 "installed in standard operating system directory for fonts.")].
 
+gen(_Font, _Dir, "", _Nsubsteps) ->
+    keep;
 gen(Font, Dir, Text, Nsubsteps) ->
     File = font_file(Font, Dir),
     case catch trygen(File, Text, Nsubsteps) of
-	S = {new_shape,_,_,_} -> S;
+	{new_shape,Name,Fs0,Vs,He} ->
+	    Fs = [#e3d_face{vs=Vsidx} || Vsidx <- Fs0],
+	    Mesh = #e3d_mesh{type=polygon, vs=Vs, fs=Fs, he=He},
+	    {new_shape, Name, #e3d_object{obj=Mesh}, []};
 	{error,"no such file or directory"} ->
 	    wpa:error_msg(?__(4,"Text failed: failed to locate the TTF file for the selected font"));
 	{error,Reason} ->
@@ -374,10 +379,10 @@ trygen(File, Text, Nsubsteps) ->
 		{ok, TTFpart} ->
 		    Ttf = parsett(TTFpart),
 		    Pa = getpolyareas(Text, Ttf, Nsubsteps),
-		    {Vs0,Fs} = polyareas_to_faces(Pa),
+		    {Vs0,Fs,He} = polyareas_to_faces(Pa),
 		    {CX,CY,CZ} = e3d_vec:average(tuple_to_list(e3d_bv:box(Vs0))),
 		    Vs = [{X-CX,Y-CY,Z-CZ} || {X,Y,Z} <- Vs0],
-		    {new_shape,"text",Fs,Vs}; % Would be nicer centered by centroid
+		    {new_shape,"text",Fs,Vs,He}; % Would be nicer centered by centroid
 		_ -> {error, ?__(1,"Can't find TrueType section in ") ++ File}
 	    end;
 	{error,Reason} ->
@@ -498,16 +503,27 @@ polyareas_to_faces(Pas) ->
     VFpairs = map(fun pa2object/1, Pas),
     concatvfs(VFpairs).
 
+concatvfs(Vfp) -> concatvfs(Vfp, 0, [], [], []).
 
-concatvfs(Vfp) -> concatvfs(Vfp, 0, [], []).
-
-concatvfs([], _Offset, Vsacc, Fsacc) ->
-    {flatten(reverse(Vsacc)),Fsacc};
-concatvfs([{Vs,Fs}|Rest], Offset, Vsacc, Fsacc) ->
+concatvfs([{Vs,Fs,HardEdges}|Rest], Offset, Vsacc, Fsacc, Hdacc) ->
     Fs1 = offsetfaces(Fs, Offset),
+    He1 = offsetfaces(HardEdges, Offset),
     Off1 = Offset + length(Vs),
-    concatvfs(Rest, Off1,
-	      [Vs|Vsacc], Fsacc ++ Fs1).
+    concatvfs(Rest, Off1, [Vs|Vsacc], Fsacc ++ Fs1, He1 ++ Hdacc);
+concatvfs([], _Offset, Vsacc, Fsacc, Hdacc) ->
+    He = build_hard_edges(Hdacc, []),
+    {flatten(reverse(Vsacc)),Fsacc, He}.
+
+build_hard_edges([[First|_]=Loop|Rest], All) ->
+    New = build_hard_edges(Loop, First, All),
+    build_hard_edges(Rest, New);
+build_hard_edges([], All) -> All.
+
+build_hard_edges([A|[B|_]=Rest], First, All) ->
+    build_hard_edges(Rest, First, [{A,B}|All]);
+build_hard_edges([Last], First, All) ->
+    [{Last, First}|All].
+
 
 %% For TrueType format, see
 %% http://developer.apple.com/fonts/TTRefMan/index.html
@@ -1400,15 +1416,15 @@ pa2object(#polyarea{boundary=B,islands=Isls}) ->
     Vs = Vtop ++ Vbot,
     Nlist = [length(B) | map(fun (L) -> length(L) end, Isls)],
     Ntot = sum(Nlist),
-    [FBtop | Holestop] = faces(Nlist,0,top),
-    [FBbot | Holesbot] = faces(Nlist,Ntot,bot),
+    Fs1 = [FBtop | Holestop] = faces(Nlist,0,top),
+    Fs2 = [FBbot | Holesbot] = faces(Nlist,Ntot,bot),
     Fsides = sidefaces(Nlist, Ntot),
     FtopQ = e3d__tri_quad:quadrangulate_face_with_holes(FBtop, Holestop, Vs),
     FbotQ = e3d__tri_quad:quadrangulate_face_with_holes(FBbot, Holesbot, Vs),
     Ft = [ F#e3d_face.vs || F <- FtopQ ],
     Fb = [ F#e3d_face.vs || F <- FbotQ ],
     Fs = Ft ++ Fb ++ Fsides,
-    {Vs,Fs}.
+    {Vs,Fs, [ F#e3d_face.vs || F <- Fs1 ++ Fs2]}.
 
 cel2vec(Cel, Z) -> map(fun (#cedge{vs={X,Y}}) -> {X,Y,Z} end, Cel).
 
