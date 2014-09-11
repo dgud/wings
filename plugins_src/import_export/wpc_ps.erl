@@ -82,12 +82,12 @@ try_import_ps(Name, Nsubsteps) ->
         Cntrs = getcontours(Closedpaths),
         Pas = wpc_tt:findpolyareas(Cntrs),
         Pas1 = wpc_tt:subdivide_pas(Pas,Nsubsteps),
-        {Vs0,Fs} = wpc_tt:polyareas_to_faces(Pas1),
+        {Vs0,Fs,HEs} = wpc_tt:polyareas_to_faces(Pas1),
         Center = e3d_vec:average(e3d_vec:bounding_box(Vs0)),
         Vec = e3d_vec:sub(e3d_vec:zero(),Center),
         Vs = reverse(center_object(Vec,Vs0)),
         Efs = [ #e3d_face{vs=X} || X <- Fs],
-        Mesh = #e3d_mesh{type=polygon,vs=Vs,fs=Efs},
+        Mesh = #e3d_mesh{type=polygon,vs=Vs,fs=Efs,he=HEs},
         Obj = #e3d_object{name=Name,obj=Mesh},
         {ok, #e3d_file{objs=[Obj]}};
     {ok,_} ->
