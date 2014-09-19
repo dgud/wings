@@ -129,7 +129,8 @@ blank(PreDef) ->
 set_cursor(CursorId) ->
     #io{cursors=Cursors} = get_state(),
     Cursor = proplists:get_value(CursorId, Cursors),
-    wxWindow:setCursor(get(gl_canvas),Cursor),
+    wx_misc:setCursor(Cursor),
+    put(active_cursor, CursorId),
     ok.
 
 get_mouse_state() ->
@@ -246,11 +247,11 @@ read_events(Eq0) ->
 read_events(Eq, Wait) ->
     receive
 	Ev = #wx{} ->
-	    read_events(queue:in(Ev, Eq));
+	    read_events(queue:in(Ev, Eq), 0);
 	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
 	    {Event,Eq};
 	External = {external, _} ->
-	    read_events(queue:in(External, Eq))
+	    read_events(queue:in(External, Eq), 0)
     after Wait ->
 	    R = read_out(Eq),
 	    R
