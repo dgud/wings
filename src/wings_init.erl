@@ -98,7 +98,7 @@ redraw(Ev = #wx{obj=Canvas},_) ->
     wings ! Ev.
 
 setup_std_events(Canvas) ->
-    wxWindow:connect(Canvas, motion, [{skip, true}]),
+    wxWindow:connect(Canvas, motion),
     wxWindow:connect(Canvas, left_up),
     wxWindow:connect(Canvas, left_down),
     wxWindow:connect(Canvas, middle_up),
