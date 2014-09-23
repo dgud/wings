@@ -1079,6 +1079,8 @@ build(Ask, {Label, Def, Flags}, Parent, Sizer, In)
     Create = fun() ->
 		     Ctrl = wxCheckBox:new(Parent, ?wxID_ANY, Label),
 		     tooltip(Ctrl, Flags),
+		     Callback = {callback, notify_event_handler_cb(Ask, preview)},
+		     wxCheckBox:connect(Ctrl, command_checkbox_clicked, [Callback]),
 		     wxCheckBox:setValue(Ctrl, Def),
 		     add_sizer(checkbox, Sizer, Ctrl),
 		     Ctrl

@@ -310,38 +310,35 @@ draw_window1(name,_) ->
 draw_window1(center,{XC,YC,ZC}) ->
     {vframe,[
         {hframe,[{label,?__(2,"Set position")++":"}]},
-        {hframe,[{label,"X:"},{text,XC,[{key,x},disable(lx)]}]},
-        {hframe,[{label,"Y:"},{text,YC,[{key,y},disable(ly)]}]},
-        {hframe,[{label,"Z:"},{text,ZC,[{key,z},disable(lz)]}]}
+        {hframe,[{label,"X:"},{text,XC,[{key,x}]}]},
+        {hframe,[{label,"Y:"},{text,YC,[{key,y}]}]},
+        {hframe,[{label,"Z:"},{text,ZC,[{key,z}]}]}
     ]};
 draw_window1(object,one) ->
-    {?__(3,"Move object"),false,[{key,all}]};
+    {?__(3,"Move object"),false,[{key,all}, {hook, fun disable/3}]};
 draw_window1(object,many) ->
-    {?__(4,"Move objects"),false,[{key,all}]};
+    {?__(4,"Move objects"),false,[{key,all},{hook, fun disable/3}]};
 draw_window1(object,duplionly) ->
     draw_window1(duplicate,false);
 draw_window1(duplicate,CheckAll) when is_boolean(CheckAll) ->
-    Label = if
-        CheckAll -> [disable(all)];
-        true -> []
-    end,
     {hframe,[
-        {text,0,[{key,dupli},{range,{0,infinity}}]++Label},
-        {label,?__(5,"Duplicates")}
-    ]};
+	     {value, CheckAll, [{key, dupli_check}]},
+	     {text,0,[{key,dupli},{range,{0,infinity}}]},
+	     {label,?__(5,"Duplicates")}
+	    ]};
 draw_window1(dup_rt,_) ->
     {vframe,[
       {hframe,[
         {hframe,[{label,?__(10,"Between reference and target")++":"}]},
-        {hframe,[{"",false,[{key,dup_rt},disable(dup_rt)]}]}
+        {hframe,[{"",false,[{key,dup_rt}]}]}
       ]}
     ]};
 draw_window1(align,_) ->
     {vframe,[
         {hframe,[{label,?__(6,"Align")++":"}]},
-        {hframe,[{"",false,[{key,ax},disable(dupli)]}]},
-        {hframe,[{"",false,[{key,ay},disable(dupli)]}]},
-        {hframe,[{"",false,[{key,az},disable(dupli)]}]}
+        {hframe,[{"",false,[{key,ax}]}]},
+        {hframe,[{"",false,[{key,ay}]}]},
+        {hframe,[{"",false,[{key,az}]}]}
     ]};
 draw_window1(flatten,_) ->
     {vframe,[
@@ -353,9 +350,9 @@ draw_window1(flatten,_) ->
 draw_window1(lock, _) ->
     {vframe,[
         {hframe,[{label,?__(9,"Lock")++":"}]},
-        {hframe,[{"",false,[{key,lx}]}]},
-        {hframe,[{"",false,[{key,ly}]}]},
-        {hframe,[{"",false,[{key,lz}]}]}
+        {hframe,[{"",false,[{key,lx},{hook, fun disable/3}]}]},
+        {hframe,[{"",false,[{key,ly},{hook, fun disable/3}]}]},
+        {hframe,[{"",false,[{key,lz},{hook, fun disable/3}]}]}
     ]};
 draw_window1(reference,{X,Y,Z}) ->
     {label,?__(8,"Reference point is") ++ ": (" ++
@@ -363,28 +360,28 @@ draw_window1(reference,{X,Y,Z}) ->
     wings_util:nice_float(Y)++", "++
     wings_util:nice_float(Z)++")"}.
 
-disable(all) ->
-    {hook,fun (is_disabled, {_Var,_I,Store}) ->
-                  not gb_trees:get(all, Store);
-              (_, _) -> void
-          end};
-disable(dupli) ->
-    {hook,fun (is_disabled, {_Var,_I,Store}) ->
-                  (gb_trees:get(dupli, Store) > 1) and 
-                  not ((gb_trees:is_defined(all,Store)) andalso (not gb_trees:get(all, Store)));
-              (_, _) -> void
-          end};
-disable(dup_rt) ->
-    {hook,fun (is_disabled, {_Var,_I,Store}) ->
-                  (gb_trees:get(dupli, Store) < 1) and
-                  not ((gb_trees:is_defined(all,Store)) andalso (not gb_trees:get(all, Store)));
-              (_, _) -> void
-          end};
-disable(Other) ->
-    {hook,fun (is_disabled, {_Var,_I,Store}) ->
-                  gb_trees:is_defined(Other,Store) andalso gb_trees:get(Other, Store);
-              (_, _) -> void
-          end}.
+disable(all, Bool, Store) ->
+    try
+	Use = wings_dialog:get_value(dupli_check, Store),
+	wings_dialog:enable(dupli, Bool andalso Use, Store)
+    catch _:_ -> ignore end,
+    try
+	Dupli = wings_dialog:get_value(dupli, Store),
+	try
+	    wings_dialog:enable(ax, Bool andalso Dupli > 1, Store),
+	    wings_dialog:enable(ay, Bool andalso Dupli > 1, Store),
+	    wings_dialog:enable(az, Bool andalso Dupli > 1, Store)
+	catch _:_ -> ignore end,
+	wings_dialog:enable(dup_rt, Bool andalso Dupli < 1, Store)
+    catch _:_ -> ignore end;
+disable(What, Bool, Store) ->
+    try
+	wings_dialog:enable(depend(What), Bool, Store)
+    catch _:_ -> ignore end.
+
+depend(lx) -> x;
+depend(ly) -> y;
+depend(lz) -> z.
 
 lookup(Key, List, Default) ->
    case lists:keysearch(Key, 1, List) of
