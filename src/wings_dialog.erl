@@ -340,6 +340,8 @@ set_value_impl(#in{wx=Ctrl, type=text}, Val, _) ->
 set_value_impl(#in{wx=Ctrl, type=slider, data={_, ToSlider}}, Val, _) ->
     wxSlider:setValue(Ctrl, ToSlider(Val));
 set_value_impl(In=#in{type=button}, Val, Store) ->
+    true = ets:insert(Store, In#in{data=Val});
+set_value_impl(In=#in{type=value}, Val, Store) ->
     true = ets:insert(Store, In#in{data=Val}).
 
 
@@ -502,8 +504,8 @@ get_curr_value(#in{type=choice, wx=Ctrl}) ->
 get_curr_value(#in{type=text, def=Def, wx=Ctrl, validator=Validate}) ->
     Str = wxTextCtrl:getValue(Ctrl),
     validate(Validate, Str, Def);
-get_curr_value(#in{type=button, data=Data}) ->
-    Data.
+get_curr_value(#in{type=button, data=Data}) -> Data;
+get_curr_value(#in{type=value, data=Data})  -> Data.
 
 
 result_atom(?wxID_OK) -> ok;
@@ -917,21 +919,23 @@ build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
 
 build(Ask, {button, Action}, Parent, Sizer, In)
   when is_atom(Action) ->
-    build(Ask, {button, Action, wings_util:cap(atom_to_list(Action)), []},
+    build(Ask, {button, wings_util:cap(atom_to_list(Action)), Action, []},
 	  Parent, Sizer, In);
 build(Ask, {button, Action, Flags}, Parent, Sizer, In)
   when is_atom(Action) ->
-    build(Ask, {button, Action, wings_util:cap(atom_to_list(Action)), Flags},
+    build(Ask,
+	  {button, wings_util:cap(atom_to_list(Action)), Action, Flags},
 	  Parent, Sizer, In);
 build(Ask, {button, Label, Action}, Parent, Sizer, In) ->
-    build(Ask, {button, Action, Label, []},  Parent, Sizer, In);
-build(Ask, {button, Action, Label, Flags}, Parent, Sizer, In) ->
+    build(Ask, {button, Label, Action, []},  Parent, Sizer, In);
+build(Ask, {button, Label, Action, Flags}, Parent, Sizer, In) ->
     Create = fun() ->
 		     Ctrl = wxButton:new(Parent, ?wxID_ANY, [{label, Label}]),
 		     tooltip(Ctrl, Flags),
 		     add_sizer(button, Sizer, Ctrl),
 		     Ctrl
 	     end,
+
     Hook = case Action of
 	       done ->
 		   fun(Key, button_pressed, Store) ->
@@ -1061,6 +1065,12 @@ build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
 	     end,
     [#in{key=proplists:get_value(key,Flags), type=custom_gl,
 	 output=false, hook=Fun, wx=create(Ask, Create)}|In];
+
+build(_Ask, {value, Def, Flags}, _Parent, _Sizer, In) ->
+    [#in{type=value,
+	 def=Def, data=Def,
+	 key=proplists:get_value(key,Flags),
+	 hook=proplists:get_value(hook, Flags)}|In];
 
 build(Ask, {Label, Def}, Parent, Sizer, In) ->
     build(Ask, {Label, Def, []}, Parent, Sizer, In);
