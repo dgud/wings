@@ -673,7 +673,7 @@ raw_pick(X0, Y0, St) ->
     X = float(X0),
     Y = H-float(Y0),
     S = 5,
-    set_pick_matrix(X, Y, S, S, W, H),
+    Ms = set_pick_matrix(X, Y, S, S, W, H),
     case wings_wm:lookup_prop(select_backface) of
 	{value,true} ->
 	    %% Only in AutoUV windows.
@@ -681,23 +681,27 @@ raw_pick(X0, Y0, St) ->
 	_ ->
 	    wpc_pick:cull(true)
     end,
-    case dlo_pick(St, true) of
+    case dlo_pick(St, true, Ms) of
 	[] -> none;
 	[{Id,Face}] -> convert_hit(Id, Face, X, Y, St)
     end.
 
 set_pick_matrix(X, Y, Xs, Ys, W, H) ->
-    gl:matrixMode(?GL_PROJECTION),
-    gl:loadIdentity(),
-    wpc_pick:pick_matrix(X, Y, Xs, Ys, {0,0,W,H}),
-    wings_view:projection(),
-    wings_view:modelview(),
-    set_pick_matrix().
+    Pick = wpc_pick:pick_matrix(X, Y, Xs, Ys, {0,0,W,H}),
+    ProjMatrix = wings_view:projection(Pick),
+    {_, ModelMatrix} = wings_view:modelview(),
+    set_pick_matrix_1(e3d_transform:matrix(ProjMatrix),
+		      e3d_transform:matrix(ModelMatrix)).
 
-set_pick_matrix() ->
-    ModelMatrix = gl:getDoublev(?GL_MODELVIEW_MATRIX),
-    ProjMatrix = gl:getDoublev(?GL_PROJECTION_MATRIX),
-    wpc_pick:matrix(ModelMatrix, ProjMatrix).
+set_pick_matrix({PM, MM}) ->
+    set_pick_matrix_1(PM, MM).
+
+set_pick_matrix({PM, MM}, PostModel) ->
+    set_pick_matrix_1(PM, e3d_mat:mul(MM, PostModel)).
+
+set_pick_matrix_1(ProjMatrix, ModelMatrix) ->
+    wpc_pick:matrix(ModelMatrix, ProjMatrix),
+    {ProjMatrix, ModelMatrix}.
 
 %% update_selection({Mode,MM,{Id,Item}}, St0) ->
 %%                 {add|delete,{Id,Item,MM},St0}.
@@ -878,17 +882,17 @@ pick_all(_DrawFaces, _X, _Y, W, H, St) when W < 1.0; H < 1.0 ->
 pick_all(DrawFaces, X, Y0, W, H, St) ->
     {Ww,Wh} = wings_wm:win_size(),
     Y = Wh-Y0,
-    set_pick_matrix(X, Y, W, H, Ww, Wh),
+    Ms = set_pick_matrix(X, Y, W, H, Ww, Wh),
     case DrawFaces of
 	true ->
 	    wpc_pick:cull(true),
-	    {dlo_pick(St, false),St};
+	    {dlo_pick(St, false, Ms),St};
 	false ->
 	    wpc_pick:cull(false),
-	    {marquee_pick(St),St}
+	    {marquee_pick(St, Ms),St}
     end.
 
-marquee_pick(#st{selmode=edge}) ->
+marquee_pick(#st{selmode=edge}, Ms) ->
     PickFun = fun(#we{es=Etab,vp=Vtab,id=Id}=We, Acc) ->
 		      Vis = gb_sets:from_ordset(wings_we:visible(We)),
 		      EsPos = visible_edges(array:sparse_to_orddict(Etab),
@@ -899,8 +903,8 @@ marquee_pick(#st{selmode=edge}) ->
 			  Picked -> [{Id,E} || E <- Picked] ++ Acc
 		      end
 	      end,
-    setup_pick_context(PickFun);
-marquee_pick(#st{selmode=vertex}) ->
+    setup_pick_context(PickFun, Ms);
+marquee_pick(#st{selmode=vertex}, Ms) ->
     PickFun = fun(#we{vp=Vtab,id=Id}=We, Acc) ->
 		      VsPos = case wings_we:is_open(We) of
 				  false ->
@@ -916,8 +920,8 @@ marquee_pick(#st{selmode=vertex}) ->
 			      [{Id,V} || V <- Picked] ++ Acc
 		      end
 	      end,
-    setup_pick_context(PickFun);
-marquee_pick(St) -> dlo_pick(St, false).
+    setup_pick_context(PickFun, Ms);
+marquee_pick(St, Ms) -> dlo_pick(St, false, Ms).
 
 visible_edges([{Edge,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}|Es], Vtab, Vis, Acc) ->
     case gb_sets:is_member(Lf, Vis) orelse gb_sets:is_member(Rf, Vis) of
@@ -929,36 +933,33 @@ visible_edges([{Edge,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}|Es], Vtab, Vis, Acc) ->
     end;
 visible_edges([], _, _, Acc) -> Acc.
 
-setup_pick_context(PickFun) ->
+setup_pick_context(PickFun, Ms) ->
     Res = wings_dl:fold(fun(D, Acc) ->
-				setup_pick_context_fun(D, PickFun, Acc)
+				setup_pick_context_fun(D, PickFun, Ms, Acc)
 			end, []),
     sort(Res).
 
-setup_pick_context_fun(#dlo{src_we=#we{perm=Perm}}, _PickFun, Acc)
+setup_pick_context_fun(#dlo{src_we=#we{perm=Perm}}, _PickFun, _, Acc)
   when ?IS_NOT_SELECTABLE(Perm) ->
     Acc;
-setup_pick_context_fun(#dlo{mirror=none,src_we=We}, PickFun, Acc) ->
+setup_pick_context_fun(#dlo{mirror=none,src_we=We}, PickFun, _, Acc) ->
     PickFun(We, Acc);
-setup_pick_context_fun(#dlo{mirror=Matrix,src_we=We}, PickFun, Acc0) ->
+setup_pick_context_fun(#dlo{mirror=Mirror,src_we=We}, PickFun, Ms, Acc0) ->
     Acc1 = PickFun(We, Acc0),
-    gl:pushMatrix(),
-    gl:multMatrixf(Matrix),
-    set_pick_matrix(),
+    set_pick_matrix(Ms, Mirror),
     wpc_pick:front_face(cw),
     Acc = PickFun(We, Acc1),
     wpc_pick:front_face(ccw),
-    gl:popMatrix(),
-    set_pick_matrix(),
+    set_pick_matrix(Ms),
     Acc.
 
 %%
 %% Draw for the purpose of picking the items that the user clicked on.
 %%
 
-dlo_pick(St, OneHit) ->
+dlo_pick(St, OneHit, Matrices) ->
     Hits0 = wings_dl:map(fun(D, Acc) ->
-				 do_dlo_pick(D, St, OneHit, Acc)
+				 do_dlo_pick(D, St, OneHit, Matrices, Acc)
 			 end, []),
     case Hits0 of
 	{_,Hits} ->
@@ -969,26 +970,26 @@ dlo_pick(St, OneHit) ->
 	    usort(Hits0)
     end.
 
-do_dlo_pick(#dlo{src_we=#we{perm=Perm}}=D, _St, _OneHit, Acc)
+do_dlo_pick(#dlo{src_we=#we{perm=Perm}}=D, _St, _OneHit, _Ms, Acc)
   when ?IS_NOT_SELECTABLE(Perm) ->
     {D,Acc};
-do_dlo_pick(D=#dlo{vab=none}, St, OneHit, Acc) ->
-    do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Acc);
-do_dlo_pick(D=#dlo{vab=#vab{face_vs=none}}, St, OneHit, Acc) ->
-    do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Acc);
-do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}=We}=D, _, OneHit, Acc)
+do_dlo_pick(D=#dlo{vab=none}, St, OneHit, Ms, Acc) ->
+    do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Ms, Acc);
+do_dlo_pick(D=#dlo{vab=#vab{face_vs=none}}, St, OneHit, Ms, Acc) ->
+    do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Ms, Acc);
+do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}=We}=D, _, OneHit, _Ms, Acc)
   when ?IS_AREA_LIGHT(We) ->
     wpc_pick:cull(false),
     Res = do_dlo_pick_0(Id, D, OneHit, Acc),
     wpc_pick:cull(true),
     Res;
-do_dlo_pick(#dlo{mirror=none,open=Open,src_we=#we{id=Id}}=D, _, OneHit, Acc) ->
+do_dlo_pick(#dlo{mirror=none,open=Open,src_we=#we{id=Id}}=D, _, OneHit, _Ms, Acc) ->
     case wings_pref:get_value(show_backfaces) of
         true when Open -> wpc_pick:front_face(cw);
         _ -> wpc_pick:front_face(ccw)
     end,
     do_dlo_pick_0(Id, D, OneHit, Acc);
-do_dlo_pick(#dlo{mirror=Matrix,open=Open,src_we=#we{id=Id}}=D0, _, OneHit, Acc0) ->
+do_dlo_pick(#dlo{mirror=Matrix,open=Open,src_we=#we{id=Id}}=D0, _, OneHit, Ms, Acc0) ->
     case wings_pref:get_value(show_backfaces) of
         true when Open ->
             wpc_pick:front_face(cw),
@@ -997,13 +998,10 @@ do_dlo_pick(#dlo{mirror=Matrix,open=Open,src_we=#we{id=Id}}=D0, _, OneHit, Acc0)
             {D1,Acc1} = do_dlo_pick_0(Id, D0, OneHit, Acc0),
             wpc_pick:front_face(cw)
     end,
-    gl:pushMatrix(),
-    gl:multMatrixf(Matrix),
-    set_pick_matrix(),
+    set_pick_matrix(Ms, Matrix),
     {D,Acc} = do_dlo_pick_0(-Id, D1, OneHit, Acc1),
     wpc_pick:front_face(ccw),
-    gl:popMatrix(),
-    set_pick_matrix(),
+    set_pick_matrix(Ms),
     {D,Acc}.
 
 do_dlo_pick_0(Id, #dlo{vab=#vab{face_vs=Vs,face_map=Map0}}=D0, OneHit, Acc0) ->
