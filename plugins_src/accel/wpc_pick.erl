@@ -75,16 +75,11 @@ init() ->
 %%  but with a diffrent viewing volume (the cube (0...1)^3
 %%  instead of (-1...1)^3).
 %%
-%%  Typical use:
-%%
-%%    gl:loadIdentity(),
-%%    wpc_pick:pick_matrix(...),
-%%    glu:perspective(...).
-%%
 pick_matrix(X, Y, Xs, Ys, ViewPort) ->
-    gl:translatef(0.5, 0.5, 0.5),
-    gl:scalef(0.5, 0.5, 0.5),
-    glu:pickMatrix(X, Y, Xs, Ys, ViewPort).
+    M0 = e3d_transform:translate(e3d_transform:identity(), {0.5, 0.5, 0.5}),
+    M1 = e3d_transform:scale(M0, {0.5,0.5,0.5}),
+    Pick = e3d_transform:pick(X, Y, Xs, Ys, ViewPort),
+    e3d_transform:mul(M1, Pick).
 
 %% matrix(ModelViewMatrix, ProjectionMatrix)
 %%  Set the matrix to use for picking by combining the model
