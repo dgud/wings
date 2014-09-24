@@ -23,8 +23,8 @@
 -module(e3d_transform).
 
 -export([%% Initilizes matrices
-	 identity/0, init/1,      
-	 lookat/3, ortho/2, ortho/6, perspective/3, perspective/4,
+	 identity/0, init/1,
+	 lookat/3, ortho/2, ortho/6, perspective/3, perspective/4, pick/5,
 	 %% Get the actual matrices
 	 matrix/1, inv_matrix/1,
 	 %% Transform the matrices
@@ -198,4 +198,23 @@ perspective(Fov, Aspect, Near, Far) ->
     scale(#e3d_transf{mat=Persp, inv=InvPersp}, {T,T,1.0}).
 
 
-
+%%--------------------------------------------------------------------
+%% @doc  Generates a pick matrix transformation
+%%       Equiv to glu:pickMatrix/5
+%% @end
+%%--------------------------------------------------------------------
+-spec pick(X::float(), Y::float(),
+	   Width::float(), Height::float(),
+	   Viewport::{integer(),integer(),integer(),integer()}
+	  ) -> e3d_transform().
+pick(X, Y, W, H, {X0,Y0,X1,Y1}) ->
+    Sx = X1 / W,
+    Sy = Y1 / H,
+    Tx = (X1+2.0*(X0-X)) / W,
+    Ty = (Y1+2.0*(Y0-Y)) / H,
+    I = 1.0, O = 0.0,
+    Pick = {Sx, O, O, O,
+	    O, Sy, O, O,
+	    O,  O, I, O,
+	    Tx,Ty, O, I},
+    init(Pick).

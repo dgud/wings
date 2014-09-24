@@ -55,11 +55,11 @@ get_matrices(Id, MM) ->
     TMV = case MM of
 	      mirror ->
 		  Matrix = wings_dl:mirror_matrix(Id),
-		  e3d_transform:mul(TMV0,Matrix);
-	      original -> TMV0
+		  e3d_mat:mul(e3d_transform:matrix(TMV0),Matrix);
+	      original -> e3d_transform:matrix(TMV0)
 	  end,
     {_,_,W,H} =  wings_wm:viewport(),
-    {e3d_transform:matrix(TMV),e3d_transform:matrix(TPM),{0,0,W,H}}.
+    {TMV,e3d_transform:matrix(TPM),{0,0,W,H}}.
 
 yes_no(Question, Yes) ->
     yes_no(Question, Yes, ignore).
