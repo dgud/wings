@@ -859,11 +859,15 @@ default_view() ->
 
 load_matrices(IncludeLights) ->
     gl:matrixMode(?GL_PROJECTION),
-    gl:loadIdentity(),
-    projection(),
-    modelview(IncludeLights).
+    TPM = projection(e3d_transform:identity()),
+    {UseSceneLights, TMM} = modelview(IncludeLights),
+    {TPM,TMM, UseSceneLights}.
 
 projection() ->
+    OP0 = gl:getDoublev(?GL_PROJECTION_MATRIX),
+    projection(e3d_transform:init(list_to_tuple(OP0))).
+
+projection(In) ->
     {W,H} = wings_wm:win_size(),
     Aspect = W/H,
     #view{distance=D,fov=Fov,hither=Hither,yon=Yon,along_axis=AA} =
@@ -871,13 +875,16 @@ projection() ->
     Ortho = wings_wm:get_prop(orthogonal_view)
 	orelse ((AA =/= none) andalso
 		wings_pref:get_value(force_ortho_along_axis)),
-    case Ortho of
-	false ->
-	    glu:perspective(Fov, Aspect, Hither, Yon);
-	true ->
-	    Sz = D*math:tan(Fov*math:pi()/180/2),
-	    gl:ortho(-Sz*Aspect, Sz*Aspect, -Sz, Sz, Hither, Yon)
-    end.
+    TP = case Ortho of
+	     false ->
+		 e3d_transform:perspective(Fov, Aspect, Hither, Yon);
+	     true ->
+		 Sz = D*math:tan(Fov*math:pi()/180/2),
+		 e3d_transform:ortho(-Sz*Aspect, Sz*Aspect, -Sz, Sz, Hither, Yon)
+	 end,
+    TPM = e3d_transform:mul(In, TP),
+    gl:loadMatrixd(e3d_transform:matrix(TPM)),
+    TPM.
 
 modelview() ->
     modelview(false).
@@ -900,17 +907,18 @@ modelview(IncludeLights) ->
 	    UseSceneLights = false
     end,
 
-    gl:translatef(PanX, PanY, -Dist),
-    gl:rotatef(El, 1, 0, 0),
-    gl:rotatef(Az, 0, 1, 0),
-    {OX,OY,OZ} = Origin,
-    gl:translatef(OX, OY, OZ),
+    TM0 = e3d_transform:translate(e3d_transform:identity(), {PanX, PanY, -Dist}),
+    TM1 = e3d_transform:rotate(TM0, El, {1.0,0.0,0.0}),
+    TM2 = e3d_transform:rotate(TM1, Az, {0.0,1.0,0.0}),
+    TMM = e3d_transform:translate(TM2, Origin),
+
+    gl:loadMatrixd(e3d_transform:matrix(TMM)),
 
     case UseSceneLights of
 	false -> ok;
 	true -> wings_light:global_lights()
     end,
-    UseSceneLights.
+    {UseSceneLights, TMM}.
 
 %% Calculate the location of the viewer in 3D space.
 %% (The (0,0,0) point multiplied by the inverse model transformation matrix.)

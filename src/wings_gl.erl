@@ -373,12 +373,16 @@ bindFramebuffer(W, Fbo) ->
 callLists(List) ->  gl:callLists(List).
 
 project(X,Y,Z, Mod, Proj, View) ->
-    {_, RX,RY,RZ} = glu:project(X,Y,Z, list_to_tuple(Mod), list_to_tuple(Proj), View),
+    {_, RX,RY,RZ} = glu:project(X,Y,Z, mat(Mod), mat(Proj), View),
     {RX,RY,RZ}.
 
 unProject(X,Y,Z, Mod, Proj, View) ->
-    {_, RX,RY,RZ} = glu:unProject(X,Y,Z, list_to_tuple(Mod), list_to_tuple(Proj), View),
+    {_, RX,RY,RZ} = glu:unProject(X,Y,Z, mat(Mod), mat(Proj), View),
     {RX,RY,RZ}.
+
+mat(Mat) when tuple_size(Mat) =:= 16 ->  Mat;
+mat(Mat) when is_tuple(Mat) -> e3d_mat:expand(Mat);
+mat(List) when is_list(List) ->  mat(list_to_tuple(List)).
 
 triangulate(Normal, Pos0) ->
     {Tris0, BinPos} = glu:tesselate(Normal, Pos0),

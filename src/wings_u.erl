@@ -51,17 +51,15 @@ geom_windows() ->
     geom_windows_1(wings_wm:windows()).
 
 get_matrices(Id, MM) ->
-    wings_view:load_matrices(false),
-    case MM of
-	mirror ->
-	    Matrix = wings_dl:mirror_matrix(Id),
-	    gl:multMatrixf(Matrix);
-	original -> ok
-    end,
+    {TPM, TMV0, _} = wings_view:load_matrices(false),
+    TMV = case MM of
+	      mirror ->
+		  Matrix = wings_dl:mirror_matrix(Id),
+		  e3d_transform:mul(TMV0,Matrix);
+	      original -> TMV0
+	  end,
     {_,_,W,H} =  wings_wm:viewport(),
-    ModelMatrix = gl:getDoublev(?GL_MODELVIEW_MATRIX),
-    ProjMatrix = gl:getDoublev(?GL_PROJECTION_MATRIX),
-    {ModelMatrix,ProjMatrix,{0,0,W,H}}.
+    {e3d_transform:matrix(TMV),e3d_transform:matrix(TPM),{0,0,W,H}}.
 
 yes_no(Question, Yes) ->
     yes_no(Question, Yes, ignore).
