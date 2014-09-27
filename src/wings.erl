@@ -1826,46 +1826,91 @@ get_mode_restriction() ->
     none -> [edge,vertex,face,body];
     {value,Other} -> Other
     end.
+lhsKey() -> {wings,{tools,area_volume_info,leftdigits}}.
+rhsKey() -> {wings,{tools,area_volume_info,rightdigits}}.
+leftJust(X,Total,Char) -> 
+     FStr = "~" ++ integer_to_list(Total) ++ "s",
+     Str = io_lib:format(FStr,[X]),
+     lists:flatten(re:replace(Str,"[\s]",Char,[global,{return,list}])).
 
 area_volume_info(St) ->
     #st{shapes=Shapes} = St,
+    KEY1 = lhsKey(),
+    KEY2 = rhsKey(),
+    case wings_pref:get_value(KEY1) of 
+       undefined -> 
+            wings_pref:set_value(KEY1,{10," "}),
+            wings_pref:finish();
+       _ -> 
+            ok
+    end,
+    case wings_pref:get_value(KEY2) of 
+       undefined -> 
+            wings_pref:set_value(KEY2,4),
+            wings_pref:finish();
+       _ -> 
+            ok
+    end,
+    {LHS,Pad0} = wings_pref:get_value(KEY1),
+    RHS = wings_pref:get_value(KEY2),
+    %% make sure there is a min width and add that onto the user specified justifying values to be SAFE !
+    MinWidth = 8, 
+    Total = LHS + RHS + 1,
+    HRow = {"#","Name",leftJust("Area",Total,Pad0),leftJust("Perimeter",Total,Pad0),leftJust("Volume",Total,Pad0)}, 
     case gb_trees:is_empty(Shapes) of
         true -> wings_u:error_msg(?__(1,"No objects in scene"));
         false ->
             Rows = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
-            A = lists:max([length(A) || {{_,A},{_,_},{_,_},{_,_}} <- Rows]) + 2,
-            B = lists:max([length(B) || {{_,_},{_,B},{_,_},{_,_}} <- Rows]) + 2,
-            C = lists:max([length(C) || {{_,_},{_,_},{_,C},{_,_}} <- Rows]) + 2,
-            D = lists:max([length(D) || {{_,_},{_,_},{_,_},{_,D}} <- Rows]) + 4,
-            Qs = [{table,[{" #"," Name"," Area"," Volume"}|Rows],[{col_widths,{A,B,C,D}}]}],
-            Ask = fun(_Res) -> ignore end,
+            A = lists:max([length(A) || {{_,A},{_,_},{_,_},{_,_},{_,_}} <- Rows]) + MinWidth,
+            B = lists:max([length(B) || {{_,_},{_,B},{_,_},{_,_},{_,_}} <- Rows]) + MinWidth,
+            Qs = [{table,[HRow|Rows],[{col_widths,{A,B,Total+MinWidth,Total+MinWidth,Total+MinWidth}}]},
+                separator, 
+                {hframe, [
+                  {label, " (Preferences.txt) " },
+                  {label, "Left of decimal: "++ integer_to_list(LHS) },
+                  {label, "Right of decimal: " ++ integer_to_list(RHS) },
+                  {label, "Pad Character : " ++ Pad0 }
+                  ]}  ],
+            Ask = fun(_Res) -> ignore end, 
             wings_ask:dialog(?__(5,"Scene Info: Area & Volume"), Qs, Ask)
     end.
 
 get_object_info(Id, Shapes) ->
-    We0 = gb_trees:get(Id, Shapes),
+    #we{es=Etab0,fs=Ftab0,vp=VPos0} = We0 = gb_trees:get(Id, Shapes),
     We = wings_tesselation:triangulate(We0),
     #we{id=Id,name=Name,fs=Ftab} = We,
     Both = [area_volume(Face, We) || Face <- gb_trees:keys(Ftab)],
+    FacePerimeter = fun(Face) ->
+        Es = wings_face:to_edges([Face],We0),
+        [ begin 
+            #edge{vs=VS, ve=VE} = array:get(Ei,Etab0),
+            e3d_vec:dist(array:get(VS,VPos0), array:get(VE,VPos0))
+          end
+          || Ei <- Es]
+    end,
+    PerimeterList0 = [ FacePerimeter(Face) || Face <- gb_trees:keys(Ftab0) ],
+    KEY1 = lhsKey(),
+    KEY2 = rhsKey(),
+    {LHS0,Pad0} = wings_pref:get_value(KEY1),
+    RHS = wings_pref:get_value(KEY2),
+    Total = LHS0 + RHS + 1,
+    %% don't count each edge two times !
+    Perimeter = lists:sum(lists:flatten(PerimeterList0)) / 2.0,
     Area =  lists:sum([A || {A,_} <- Both]),
     Volume =lists:sum([V || {_,V} <- Both]),
     ToString = fun(Item) ->
-	case Item of
-	    Item when is_float(Item), Item < 1.0 ->
-		Decimals = 1 - round(math:log10(Item)-0.5),
-		if Decimals > 8 -> "0.00000";
-		   true -> lists:flatten(io_lib:format("~10.*f", [Decimals, Item]))
-		end;
-	    Item when is_float(Item) ->
-		lists:flatten(io_lib:format("~10.2f", [Item]));
-	    Item when is_integer(Item) ->
-  		   integer_to_list(Item);
-	    Item when is_list(Item) ->
-  		   Item
-  	end
+        case Item of
+            Item when is_float(Item) -> 
+                FmtStr0 = "~." ++  integer_to_list(RHS) ++ "f",
+                leftJust(io_lib:format(FmtStr0, [Item]), Total, Pad0);
+            Item when is_integer(Item) ->
+                integer_to_list(Item);
+            Item when is_list(Item) ->
+                Item
+        end
     end,
-    [Id2,Name2,Area2,Volume2] = lists:map(ToString, [Id,Name,Area,Volume]),
-    {{Id,Id2},{Name,Name2},{Area,Area2},{Volume,Volume2}}.
+    [Id2,Name2,Area2,Perimeter2,Volume2] = lists:map(ToString, [Id,Name,Area,Perimeter,Volume]),
+    {{Id,Id2},{Name,Name2},{Area,Area2},{Perimeter,Perimeter2},{Volume,Volume2}}.
 
 area_volume(Face, We) ->
     [V1,V2,V3] = wings_face:vertex_positions(Face, We),
