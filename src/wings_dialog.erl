@@ -808,6 +808,21 @@ build(Ask, {text, Def, Flags}, Parent, Sizer, In) ->
 					       false -> ignore
 					   end
 				   end,
+		     if Type =/= string ->
+			 UpdateTextWheel = fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, _) ->
+			     Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
+			     case Validator(Str) of
+				 {true, Val} ->
+				     PreviewFun(),
+				     wxTextCtrl:setValue(Ctrl, to_str(Val));
+				 _ ->
+				     ignore
+			     end
+			 end,
+			 wxTextCtrl:connect(Ctrl, mousewheel, [{callback, UpdateTextWheel}]);
+			 true ->
+			     ignore
+		     end,
 		     UseHistory = fun(Ev, Obj) ->
 					  case use_history(Ev, Type, Ctrl) of
 					      {true, _Prev}  ->
@@ -1165,6 +1180,17 @@ create_slider(Ask, Def, Flags, Validator, Parent, TopSizer) when is_number(Def) 
 			 wxTextCtrl:setValue(Text, to_str(ToText(Where)))
 		 end,
     wxSlider:connect(Slider, command_slider_updated, [{callback, UpdateText}]),
+    UpdateTextWheel = fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, _) ->
+			  Str = text_wheel_move(Def,wxTextCtrl:getValue(Text),EvMouse),
+			  case Validator(Str) of
+			      {true, Val} ->
+				  PreviewFun(),
+				  wxTextCtrl:setValue(Text, to_str(Val));
+			      _ ->
+				  ignore
+			  end
+                      end,
+    wxTextCtrl:connect(Text, mousewheel, [{callback, UpdateTextWheel}]),
     UpdateSlider = fun(#wx{event=#wxCommand{cmdString=Str}}, _) ->
 			   case Validator(Str) of
 			       {true,Float} ->
@@ -1555,3 +1581,53 @@ fix_expr("rad2deg" ++ T, Acc) ->
     fix_expr(T, lists:reverse("(180/math:pi())*", Acc));
 fix_expr([H|T],Acc) ->
     fix_expr(T, [H|Acc]).
+
+constraint_factor(#wxMouse{altDown=A,shiftDown=S,metaDown=M,controlDown=R}) ->
+    C = M or R,
+    if
+        C,S,A -> wings_pref:get_value(con_dist_ctrl_shift_alt);
+        S,A -> wings_pref:get_value(con_dist_shift_alt);
+        C,A -> wings_pref:get_value(con_dist_ctrl_alt);
+        C,S -> wings_pref:get_value(con_dist_ctrl_shift);
+        C -> wings_pref:get_value(con_dist_ctrl);
+        S -> wings_pref:get_value(con_dist_shift);
+        A -> wings_pref:get_value(con_dist_alt);
+        true -> none
+    end.
+
+text_wheel_move(Def, Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMouse) ->
+    Incr = case constraint_factor(EvMouse) of
+<<<<<<< HEAD
+               none -> 1;
+               Other -> Other
+           end,
+    case is_integer(Def) of
+        true ->
+            CurValue = list_to_integer(Value),
+            Increment = round(Incr),
+            integer_to_list(CurValue +round((Count/Delta)*Increment));
+        _ ->
+            CurValue = list_to_float(Value),
+            Increment = Incr,
+            float_to_list(CurValue +((Count/Delta)*Increment))
+=======
+	       none -> 1;
+	       Other -> Other
+	   end,
+    try 
+	case is_integer(Def) of
+	    true ->
+		CurValue = list_to_integer(Value),
+		Increment = round(Incr),
+		integer_to_list(CurValue +round((Count/Delta)*Increment));
+	    _ ->
+		CurValue = try list_to_float(Value)
+			   catch _:_ -> float(list_to_integer(Value))
+			   end,
+		Increment = Incr,
+		float_to_list(CurValue +((Count/Delta)*Increment))
+	end
+    catch _:_ ->
+	    Value
+>>>>>>> 8694519... fixup! Added mouse wheel action to text controls that manage numbers
+    end.
