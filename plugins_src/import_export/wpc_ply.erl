@@ -139,10 +139,16 @@ import_2(Fd0, _Dir) ->
     {Spec, Fd1} = read_header(Fd0),
 %%    io:format("Spec ~p~n", [Spec]),
     Data = read(Spec, Fd1, []),
-    Vs = convert_vs(Data),
+    Vs0 = convert_vs(Data),
+    MyAcc = fun
+        ({X,Y,Z,R,G,B}, {Vs1,Vc1}) -> 
+            {[{X,Y,Z}|Vs1],[{R/255.0,G/255.0,B/255.0}|Vc1]};
+        ({X,Y,Z},{Vs1,Vc1}) ->{[{X,Y,Z}|Vs1],Vc1}
+    end, 
+    {Vs,VC} = lists:foldr(MyAcc,{[],[]},Vs0),
     {Fs,OnlyTris} = convert_fs(Data),
     Type = if OnlyTris -> triangle; true -> polygon end,
-    Mesh = #e3d_mesh{type = Type, vs = Vs, fs = Fs},
+    Mesh = #e3d_mesh{type = Type, vs = Vs, fs = Fs, vc=VC},
     #e3d_file{objs = [#e3d_object{obj=Mesh}]}.
 
 convert_vs([{vertex, _No, Vars, _Ts, Data}|_]) -> 
@@ -150,8 +156,21 @@ convert_vs([{vertex, _No, Vars, _Ts, Data}|_]) ->
 convert_vs([_|T]) -> 
     convert_vs(T).
 
-convert_vs([x,y,z|_],Vars,[[X,Y,Z|_]|T],Acc) ->
-    convert_vs(Vars,Vars,T,[{X,Y,Z}|Acc]);
+    
+%% element properties probably don't need to be any order ... likely x,y,z would be first
+%% but not wanting to make any assumptions about what fields come next.
+convert_vs([x,y,z|_]=Keys,Vars,[[X,Y,Z|_]=Values|T],Acc)  ->
+    IsRGB =  lists:member(red,Keys) andalso lists:member(green,Keys) andalso lists:member(blue,Keys),
+    if 
+        IsRGB =:= true ->  
+            Zipped    = lists:zip(Keys, Values),
+            {red,R}   = lists:keyfind(red,1,Zipped),
+            {green,G} = lists:keyfind(green,1,Zipped),
+            {blue,B}  = lists:keyfind(blue,1,Zipped),
+            convert_vs(Vars,Vars,T,[{X,Y,Z,R,G,B}|Acc]);
+        true -> 
+            convert_vs(Vars,Vars,T,[{X,Y,Z}|Acc])
+    end;
 convert_vs([_|V1], Vs, [[_|T0]|T1], Acc) ->
     convert_vs(V1,Vs, [T0|T1],Acc);
 convert_vs(_,_,[],Acc) -> 
@@ -212,10 +231,10 @@ parseHead([{Type, Num}|Rest], Acc) ->
 parseHead([], Acc) ->
     reverse(Acc).
     
-parseProps([{Var, Type}|Rest], V0, T0) when atom(Type), atom(Var) ->
+parseProps([{Var, Type}|Rest], V0, T0) when is_atom(Type), is_atom(Var) ->
     parseProps(Rest, [Var|V0], [Type|T0]);
 parseProps([{ListType, Var, Type}|Rest], V0, T0) 
-  when atom(Type),atom(Var) ->
+  when is_atom(Type),is_atom(Var) ->
     parseProps(Rest, [Var|V0], [{ListType,Type}|T0]);
 parseProps(Rest,V0,T0) ->
     {reverse(V0),reverse(T0),Rest}.
