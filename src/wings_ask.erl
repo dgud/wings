@@ -813,11 +813,7 @@ field_event(_Ev, _S) -> keep.
 
 field_event(Ev, S=#s{focus=Index,fi=TopFi=#fi{w=W0,h=H0},store=Store0,
 	    preview=#pv{type=Type,reset=Reset}}, Path=[#fi{handler=Handler}|_]) ->
-    ?DEBUG_DISPLAY(event, {field_handler,[_I,Ev]}),
     Result = Handler(Ev, Path, Store0),
-    ?DEBUG_DISPLAY(event, {field_handler,
-			   if is_tuple(Result) -> {element(1, Result)};
-			      true -> Result end}),
     case Result of
 	ok -> return_result(S);
 	done -> return_result(S);
