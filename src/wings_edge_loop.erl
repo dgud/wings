@@ -18,7 +18,7 @@
 	 select_link_decr/1,select_link_incr/1]).
 
 %% Utilities.
--export([edge_loop_vertices/2,edge_links/2,partition_edges/2]).
+-export([edge_loop_vertices/2,edge_links/2,partition_edges/2,is_closed_loop/2,edge_links_unzipped/2]).
 
 -include("wings.hrl").
 -import(lists, [append/1,reverse/1,foldl/3,usort/1,member/2,any/2]).
@@ -91,9 +91,31 @@ edge_links(Edges, We) when is_list(Edges) ->
 edge_links(Edges, We) ->
     edge_links(Edges, We, []).
 
+
+%% return a list like [{{v0,v1,v2,v3},{e0,e1,e2}}|_] 
+%% where the vertices are ordered and the edges are also ordered 
+%% similarly and correspondingly but have been segregated out of the 
+%% data  returned by edge_links.
+edge_links_unzipped(Set, #we{}=We) when not(is_list(Set)) -> 
+    LinkLists = wings_edge_loop:edge_links(Set, We),
+    MyIter = fun(EString) -> 
+        Es = [ Ei || {Ei,_,_}<-EString],
+        IsClosed = is_closed_loop(Es, We),
+        Vss = [Vi || {_,_,Vi} <- EString],
+        if 
+            not(IsClosed) ->
+                {_,Ve,_} = lists:last(EString),
+                {Vss ++ [Ve],EString};
+            true -> 
+                {Vss,EString}
+        end
+    end,
+    [ MyIter(EString) || EString <- LinkLists].
+
+
+
 %% partition_edges(EdgeSet, WingedEdge) -> [[EdgeSet']]
 %%  Given a set of edges, partition the edges into connected groups.
-
 partition_edges(Edges, We) when is_list(Edges) ->
     partition_edges(gb_sets:from_list(Edges), We, []);
 partition_edges(Edges, We) ->
