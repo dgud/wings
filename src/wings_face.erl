@@ -26,6 +26,7 @@
 	 vertex_positions/2,vertex_positions/3,
 	 extend_border/2,
 	 inner_edges/2,outer_edges/2,inner_outer_edges/2,
+     neighbor_faces/2,strict_neighbor_faces/2,
 	 fold/4,fold/5,fold_faces/4,
 	 iterator/2,skip_to_edge/2,skip_to_cw/2,skip_to_ccw/2,
 	 next_cw/1,next_ccw/1,
@@ -37,6 +38,21 @@
 -include("wings.hrl").
 -include("e3d.hrl").
 -import(lists, [reverse/1,sort/1]).
+
+
+%% Convert Fs gb_set to neighbor faces (buffer zone) gb_set 
+%% around origonal selection
+neighbor_faces(Fs, #we{}=We) when not(is_list(Fs)) -> 
+    List = wings_face:to_edges(Fs,We),
+    gb_sets:subtract(from_edges(List,We),Fs).
+
+%% Convert Fs gb_set to strict neighbor  faces (buffer zone) gb_set 
+%% around origonal selection
+strict_neighbor_faces(Fs, #we{}=We) when not(is_list(Fs)) -> 
+    List = wings_face:to_vertices(Fs,We),
+    Frm = from_vs(List,We),
+    gb_sets:subtract(gb_sets:from_list(Frm),Fs).
+
 
 from_edges(Es, #we{es=Etab}) when is_list(Es) ->
     from_edges_1(Es, Etab, []);
