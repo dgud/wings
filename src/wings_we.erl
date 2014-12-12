@@ -49,14 +49,26 @@ map(Fun, St = #st{shapes=Shs0}) ->
     Objs0 = lists:map(Fun, gb_trees:values(Shs0)),
     Shs = gb_trees:from_orddict([{We#we.id, We} || We <- Objs0]),
     St#st{shapes=Shs}.
-
+    
+    
 %% build() -> We'
 %% Create a we from faces and vertices or a mesh.
-build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He}) when is_atom(Mode) ->
+build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He,vc=[]}) when is_atom(Mode) ->
     Fs = translate_faces(Fs0, list_to_tuple(Tx), []),
-    wings_we_build:we(Fs, Vs, He);
+    #we{} = We = wings_we_build:we(Fs, Vs, He),
+    wings_we:renumber(We,0);
+build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He,vc=[{_R,_G,_B}|_]=Vc}) when is_atom(Mode) ->
+    Fs = translate_faces(Fs0, list_to_tuple(Tx), []),
+    #we{vp=VPos} = We = wings_we_build:we(Fs, Vs, He),
+    Dict = lists:zip(lists:seq(0,length(Vc)-1), Vc),
+    Tree = gb_trees:from_orddict(Dict),
+    MyAcc = fun(Vi,_VAL, Acc) -> 
+         wings_va:set_vertex_color(gb_sets:singleton(Vi),gb_trees:get(Vi,Tree), Acc)
+    end,
+    We1 = array:foldl(MyAcc, We, VPos),
+    wings_we:renumber(We1,0); 
 build(Fs, Vs) ->
-    wings_we_build:we(Fs, Vs, []).
+    wings_we:renumber(wings_we_build:we(Fs, Vs, []),0).
 
 %% rebuild(We) -> We'
 %%  Rebuild any missing 'vc' and 'fs' tables. Also remove any
