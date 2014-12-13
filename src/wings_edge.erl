@@ -972,3 +972,21 @@ nth_ring_5(_,_,Edges0,stop,_,Edges1,OrigEs) ->
       true -> Edges0;
       false -> Edges1
     end.
+
+%%%
+%%% dehedral Angle formed by an edge and its faces on 
+%%% a surface of a mesh. It is oriented / signed.
+%%%
+dihedral(Ei, #we{es=Etab, vp=VTree}=We) ->
+    #edge{lf=LF,rf=RF,vs=VS,ve=VE} = array:get(Ei,Etab),
+    VSP = array:get(VS, VTree),
+    VEP = array:get(VE, VTree),
+    N1 = wings_face:normal(LF, We),
+    N2 = wings_face:normal(RF, We),
+    Sign = fun(X) -> if (X < 0.0) -> -1.0; true -> 1.0 end end,
+    %% An oriented angle !
+    OAngle = fun(X ,Y, Z) ->
+        C = e3d_vec:cross(Y,Z),
+        Sign(e3d_vec:dot(X,C))*math:atan2(e3d_vec:len(C), e3d_vec:dot(Y,Z))
+    end,
+    OAngle(e3d_vec:sub(VSP,VEP),N2,N1)*360.0/(2.0*math:pi()).
