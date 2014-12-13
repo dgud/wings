@@ -15,7 +15,7 @@
 
 -module(wings_we).
 -export([map/2, 
-	 build/2,rebuild/1,fast_rebuild/1,
+	 build/2,rebuild/1,fast_rebuild/1,hull_enclosing_pts/1,
 	 new_wrap_range/3,id/2,bump_id/1,
 	 new_id/1,new_ids/2,
 	 invert_normals/1,
@@ -50,6 +50,21 @@ map(Fun, St = #st{shapes=Shs0}) ->
     Shs = gb_trees:from_orddict([{We#we.id, We} || We <- Objs0]),
     St#st{shapes=Shs}.
 
+
+hull_enclosing_pts([{_,_,_},{_,_,_},{_,_,_},{_,_,_}|_]=Points0) ->
+    Points1 = e3d_bv:quickhull(Points0),
+    Points = lists:flatten(Points1),
+    MyAcc = fun(I, Acc) -> 
+       N = 3*I,
+       [[N,N+1,N+2]|Acc]
+    end,
+    Fs = lists:reverse( lists:foldl(MyAcc, [], lists:seq(0,length(Points1)-1)) ),
+    Dict = lists:zip(lists:seq(0,length(Points)-1),Points),
+    VPos1 = array:from_orddict(Dict),
+    {Fs1,_,Points3} = ml_rebuild_we:packAndRenumber(Fs, [], VPos1, 0.0000001),
+    wings_we:build( [{default,Vs} ||Vs<-Fs1],Points3).
+    
+    
 %% build() -> We'
 %% Create a we from faces and vertices or a mesh.
 build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He}) when is_atom(Mode) ->
