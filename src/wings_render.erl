@@ -462,7 +462,7 @@ dummy_axis_letter() ->
     PM = list_to_tuple(gl:getDoublev(?GL_PROJECTION_MATRIX)),
     %% Since this is a workaround, we will do a real fetching
     %% of the viewport (rather than wings_wm:viewport/0).
-    [X,Y,W,H] = gl:getIntegerv(?GL_VIEWPORT),
+    [X,Y,W,H|_] = gl:getIntegerv(?GL_VIEWPORT),
     Viewport = {X,Y,W,H},
     dummy_axis_letter(MM, PM, Viewport).
 
