@@ -15,7 +15,7 @@
 -export([start/4]).
 
 -define(NEED_ESDL, 1).
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 -include("auv.hrl").
 
 -import(lists, [sort/1,map/2,member/2,foldl/3,reverse/1]).
@@ -38,7 +38,7 @@ start(Op, #we{id=Id}=We0, OrigWe, St0) ->
     wings:mode_restriction(Modes),
     This = wings_wm:this(),
     Allowed = [view,select],
-    Menu  = [Item || {_,Name,_}=Item <- get(wings_menu_template),
+    Menu  = [Item || {_,Name,_}=Item <- wings:init_menubar(),
 		     member(Name, Allowed)],
     wings_wm:menubar(This, Menu),
     wings_pref:set_value(scene_lights, false), %% ugly hack 

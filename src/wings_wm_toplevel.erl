@@ -833,8 +833,10 @@ menubar_event({window_updated,Client}, _) ->
     keep;
 menubar_event(_, _) -> keep.
 
-menu_open(Xrel, Name, Fun, #mb{st=St}=Mb) ->
-    Menu = Fun(St),
+menu_open(Xrel, Name, Menu0, #mb{st=St}=Mb) ->
+    Menu = if is_function(Menu0) -> Menu0(St);
+	      is_list(Menu0) -> Menu0
+	   end,
     {menubar,Client} = Self = wings_wm:this(),
     {X,Y} = wings_wm:win_ll(Self),
     wings_menu:menu(X+Xrel, Y-1, Client, Name, Menu),

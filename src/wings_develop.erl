@@ -13,7 +13,7 @@
 %%
 
 -module(wings_develop).
--export([init/0,menu/1,command/2,
+-export([init/0,menu/0,command/2,
 	 time_command/2,gl_error_check/1]).
 
 -include("wings.hrl").
@@ -25,7 +25,7 @@ init() ->
 		develop_gl_errors]],
     ok.
 
-menu(_) ->
+menu() ->
     [{"Time Commands",time_commands,
       "Print each command's execution time to the console",
       wings_menu_util:crossmark(develop_time_commands)},
