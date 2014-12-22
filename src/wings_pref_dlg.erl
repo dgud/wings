@@ -636,7 +636,7 @@ smart_set_value_1(Key, Val, St) ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(3,"The change to the default material color will take\neffect the next time Wings 3D is started."));
 		show_develop_menu ->
-		    wings:init_menubar(),
+		    wings:init_menubar(St),
 		    foreach(fun(W) ->
 				    wings_wm:send(W, language_changed) end,
 			    wings_wm:windows());
