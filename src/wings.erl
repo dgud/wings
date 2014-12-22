@@ -18,7 +18,7 @@
 -export([ask/3]).
 -export([save_windows/0,save_windows_1/1,restore_windows_1/2,set_geom_props/2]).
 -export([handle_drop/3]).
--export([init_menubar/0]).
+-export([init_menubar/1]).
 -export([highlight_aim_setup/1]).
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).
 -export([info_line/0]).
@@ -125,7 +125,6 @@ init(File0) ->
     wings_u:caption(St),
     wings_wm:init(),
     wings_file:init_autosave(),
-    init_menubar(),
     wings_pb:start_link(get(top_frame)),
     wings_dialog:init(),
     wings_job:init(),
@@ -149,6 +148,9 @@ init(File0) ->
 		       %%menubar,
 		       {properties,Props}],
 		      Op),
+    put(wm_active, {menubar, geom}),
+    init_menubar(St),
+    erase(wm_active),
     wings_wm:menubar(geom, get(wings_menu_template)),
     wings_menu:wx_menubar(get(wings_menu_template)),
     set_drag_filter(geom),
@@ -900,20 +902,21 @@ popup_menu(X, Y, #st{selmode=Mode}=St) ->
         end
     end.
 
-init_menubar() ->
-    Tail0 = [{?__(7,"Help"),help,fun wings_help:menu/1}],
+init_menubar(St) ->
+    Tail0 = [{?__(7,"Help"),help,wings_help:menu()}],
     Tail = case wings_pref:get_value(show_develop_menu) of
 	       true ->
-		   [{"Develop",develop,fun wings_develop:menu/1}|Tail0];
+		   [{"Develop",develop,wings_develop:menu()}|Tail0];
 	       false ->
 		   Tail0
 	   end,
-    Menus = [{?__(1,"File"),file,fun wings_file:menu/1},
-	     {?__(2,"Edit"),edit,fun edit_menu/1},
-	     {?__(3,"View"),view,fun wings_view:menu/1},
-	     {?__(4,"Select"),select,fun wings_sel_cmd:menu/1},
-	     {?__(5,"Tools"),tools,fun tools_menu/1},
-	     {?__(6,"Window"),window,fun window_menu/1}|Tail],
+    Menus = [{?__(1,"File"),file,wings_file:menu(St)},
+	     {?__(2,"Edit"),edit,edit_menu(St)},
+	     {?__(3,"View"),view,wings_view:menu(St)},
+
+	     {?__(4,"Select"),select,wings_sel_cmd:menu(St)},
+	     {?__(5,"Tools"),tools,tools_menu(St)},
+	     {?__(6,"Window"),window,window_menu(St)}|Tail],
     put(wings_menu_template, Menus).
 
 edit_menu(St) ->

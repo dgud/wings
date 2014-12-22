@@ -466,8 +466,8 @@ wx_menubar(Menus) ->
     WinName = {menubar, geom},
     put(wm_active, WinName),
     MB = wxMenuBar:new(),
-    Enter = fun({Str, Name, Fun}, Id) ->
-		    {Menu, NextId} = setup_menu([Name], Id, Fun),
+    Enter = fun({Str, Name, List}, Id) ->
+		    {Menu, NextId} = setup_menu([Name], Id, List),
 		    wxMenuBar:append(MB, Menu, Str),
 		    MenuId = predefined_item(menu, Name, NextId),
 		    ME=#menu_entry{name=[Name], object=Menu, wxid=MenuId, type=submenu},
@@ -489,13 +489,8 @@ id_to_name(Id) ->
     [#menu_entry{name=Name}] = ets:lookup(wings_menus, Id),
     Name.
 
-setup_menu(Names, Id, Menus0) ->
+setup_menu(Names, Id, Menus1) when is_list(Menus1) ->
     Menu   = wxMenu:new(),
-    Menus1 = if is_function(Menus0) ->
-		     io:format("Menus0 ~p~n", [Menus0]),
-		     Menus0(#st{});
-		is_list(Menus0) -> Menus0
-	     end,
     Menus2  = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus1),
     HotKeys = wings_hotkey:matching(Names),
     Menus = [normalize_menu_wx(Entry, HotKeys, Names) || Entry <- Menus2],

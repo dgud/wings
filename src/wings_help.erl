@@ -12,7 +12,7 @@
 %%
 
 -module(wings_help).
--export([menu/1,command/2]).
+-export([menu/0,command/2]).
 -export([cmd/1,help_window/2,no_more_basic_menus/0,
 	 not_possible_to_save_prefs/0]).
 
@@ -20,7 +20,7 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
-menu(_) ->
+menu() ->
     L = [getting_started,
 	 one_or_two,
 	 international,
