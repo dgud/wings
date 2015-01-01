@@ -78,8 +78,8 @@ menu(St) ->
 	    hard_edges,?__(33,"Select all hard edges")++Help},
 	   {?__(34,"Isolated Vertices"),
 	    isolated_vertices,?__(35,"Select all isolated vertices")++Help},
-	   {?__(85,"Non-planar Faces"),
-	    nonplanar_faces,?__(86,"Select all non-planar faces")++Help,[option]},
+	   {?__(85,"Non-planar Faces..."),
+	    nonplanar_faces,?__(86,"Select all non-planar faces")++Help},
 	   {?__(36,"Vertices With"),
 	    {vertices_with,
 	     [{?__(37,"2 Edges"),2,Help},
@@ -112,10 +112,10 @@ menu(St) ->
 		     {"90%",90, RHelp},
 		     {"__%",true, RHelp}
 		     ]}},
-	   {?__(56,"Short Edges"),
-	    short_edges,?__(57,"Select (too) short edges")++Help,[option]},
-	   {?__(87,"Sharp Edges"),
-	    sharp_edges,?__(88,"Select sharp edges")++Help,[option]},
+	   {?__(56,"Short Edges..."),
+	    short_edges,?__(57,"Select (too) short edges")++Help},
+	   {?__(87,"Sharp Edges..."),
+	    sharp_edges,?__(88,"Select sharp edges")++Help},
 	   {?__(95,"Vertex Path"),
 	    {vertex_path,
 	     [{?__(89,"Fewest Edges Path"),
@@ -166,20 +166,20 @@ sel_all_str(#st{selmode=face}) -> ?__(3,"All Faces");
 sel_all_str(#st{selmode=body}) -> ?__(4,"All Objects").
 
 oriented_faces_menu(#st{selmode=face}) ->
-  [{?__(1,"Similar Normals"), oriented_faces,
-    ?__(2,"Select faces with normals similar to those of the already selected faces"),[option]}];
+  [{?__(1,"Similar Normals..."), oriented_faces,
+    ?__(2,"Select faces with normals similar to those of the already selected faces")}];
 oriented_faces_menu(_) ->
   [].
 
 similar_area_faces_menu(#st{selmode=face}) ->
   [{?__(1,"Similar Area"), similar_area,
-    ?__(2,"Select faces with areas similar to that of the already selected face"),[option]}];
+    ?__(2,"Select faces with areas similar to that of the already selected face")}];
 similar_area_faces_menu(_) ->
   [].
 
 similar_material_faces(#st{selmode=face}) ->
-    [{?__(1,"Similar Material"),similar_material,
-      ?__(2,"Select faces with a similar material to those already selected"),[option]}];
+    [{?__(1,"Similar Material..."),similar_material,
+      ?__(2,"Select faces with a similar material to those already selected")}];
 similar_material_faces(_) ->
     [].
 
@@ -305,10 +305,16 @@ command({by,Command}, St) ->
     by_command(Command, St);
 command(similar, St) ->
     {save_state,similar(St)};
+command(oriented_faces, St) ->
+    oriented_faces(true, St);
 command({oriented_faces,Ask}, St) ->
     oriented_faces(Ask, St);
+command(similar_area, St) ->
+    similar_area(true, St);
 command({similar_area,Ask}, St) ->
     similar_area(Ask, St);
+command(similar_material, St) ->
+    similar_material(true, St);
 command({similar_material,Ask}, St) ->
     similar_material(Ask, St);
 command({ssels,{select_group,saved_selections_cycle_by_mode}}, St) ->
@@ -372,6 +378,8 @@ by_command(hard_edges, St) ->
     hard_edges(St);
 by_command(isolated_vertices, St) ->
     {save_state,select_isolated(St)};
+by_command(nonplanar_faces, St) ->
+    nonplanar_faces(true, St);
 by_command({nonplanar_faces,Ask}, St) ->
     nonplanar_faces(Ask, St);
 by_command({vertices_with,N}, St) ->
@@ -384,8 +392,12 @@ by_command(material_edges, St) ->
     material_edges(St);
 by_command({random, Percent}, St) ->
     random(Percent, St);
+by_command(short_edges, St) ->
+    short_edges(true, St);
 by_command({short_edges,Ask}, St) ->
     short_edges(Ask, St);
+by_command(sharp_edges, St) ->
+    sharp_edges(true, St);
 by_command({sharp_edges,Ask}, St) ->
     sharp_edges(Ask, St);
 by_command({vertex_path,fewest_edges_path}, St) ->
