@@ -231,8 +231,9 @@
 %%         %% Min and Max should be of same type as Def and is not
 %%         %% allowed with a String field.
 %%         %% Min can also be '-infinity' and Max 'infinity'.
-%%         %% CharW is in characters. Default width is 30 for
-%%         %% String fields, 8 for integer() and 12 for float().
+%%         %% CharW is in characters. Default max-width is 300 for
+%%         %% String fields, 10 for integer() and 10 for float()
+%%         %% and the size is handled by the sizers.
 %%         %% Charset is latin1 or unicode; default is latin1.
 %%
 %% {String,Bool[,RegularFlags]}                 -- Checkbox
@@ -828,61 +829,15 @@ build(Ask, separator, Parent, Sizer, In)
 build(Ask, {text, Def}, Parent, Sizer, In) ->
     build(Ask, {text, Def, []}, Parent, Sizer, In);
 build(Ask, {text, Def, Flags}, Parent, Sizer, In) ->
-    {_Max0,Validator} = validator(Def, Flags),
-    Create = fun() ->
-		     PreviewFun = notify_event_handler(Ask, preview),
-		     Ctrl = wxTextCtrl:new(Parent, ?wxID_ANY, [{value, to_str(Def)}]),
-		     tooltip(Ctrl, Flags),
-		     Type = type(Def),
-		     TextUpdated = fun(#wx{event=#wxCommand{cmdString=Str}},_) ->
-					   case Validator(Str) of
-					       {true, _} -> PreviewFun();
-					       false -> ignore
-					   end
-				   end,
-		     if Type =/= string ->
-			     UpdateTextWheel = fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, _) ->
-						       Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
-						       case Validator(Str) of
-							   {true, Val} ->
-							       PreviewFun(),
-							       wxTextCtrl:setValue(Ctrl, to_str(Val));
-							   _ ->
-							       ignore
-						       end
-					       end,
-			     wxTextCtrl:connect(Ctrl, mousewheel, [{callback, UpdateTextWheel}]);
-			true ->
-			     ignore
-		     end,
-		     UseHistory = fun(Ev, Obj) ->
-					  case use_history(Ev, Type, Ctrl) of
-					      {true, _Prev}  ->
-						  PreviewFun();
-					      false ->
-						  wxEvent:skip(Obj)
-					  end
-				  end,
-		     AddHistory = fun(_,Obj) ->
-					  Str = wxTextCtrl:getValue(Ctrl),
-					  wxEvent:skip(Obj),
-					  case Validator(Str) of
-					      {true, _} -> add_history(Type, Str);
-					      false -> ignore
-					  end
-				  end,
-		     wxTextCtrl:connect(Ctrl, key_up, [{callback, UseHistory}]),
-		     wxTextCtrl:connect(Ctrl, command_text_updated, [{callback, TextUpdated}]),
-		     wxTextCtrl:connect(Ctrl, kill_focus, [{callback, AddHistory}]),
-		     add_sizer(text, Sizer, Ctrl),
-		     Ctrl
-	     end,
-    [#in{key=proplists:get_value(key,Flags), def=Def, hook=proplists:get_value(hook, Flags),
-	 type=text, wx=create(Ask,Create), validator=Validator}|In];
+    SizeVal = {_,Validator} = validator(Def, Flags),
+    Create = fun() -> build_textctrl(Ask, Def, Flags, SizeVal, Parent, Sizer) end,
+    [#in{key=proplists:get_value(key,Flags), def=Def,
+	 hook=proplists:get_value(hook, Flags), type=text,
+	 wx=create(Ask,Create), validator=Validator}|In];
 
 build(Ask, {slider, {text, Def, Flags}}, Parent, Sizer, In) ->
-    {_Max0,Validator} = validator(Def, Flags),
-    Create = fun() -> create_slider(Ask, Def, Flags, Validator, Parent, Sizer) end,
+    SizeVal = {_,Validator} = validator(Def, Flags),
+    Create = fun() -> create_slider(Ask, Def, Flags, SizeVal, Parent, Sizer) end,
     {Ctrl,CtrlExt} = case create(Ask,Create) of
 			 undefined -> {undefined, []};
 			 Ctrls -> Ctrls
@@ -1219,6 +1174,65 @@ build_radio(Ask, Def, {Dir, Style}, Alternatives, Flags, Parent, Sizer, In) ->
 	 def=Def, type=radiobox, wx=create(Ask, Create),
 	 data=Keys}|In].
 
+build_textctrl(Ask, Def, Flags, {MaxSize, Validator}, Parent, Sizer) ->
+    PreviewFun = notify_event_handler(Ask, preview),
+    Ctrl = wxTextCtrl:new(Parent, ?wxID_ANY, [{value, to_str(Def)}]),
+    {CharWidth,_,_,_} = wxWindow:getTextExtent(Ctrl, "W"),
+    case proplists:get_value(width, Flags, default) of
+	default ->
+	    wxTextCtrl:setMaxSize(Ctrl, {MaxSize*CharWidth, -1});
+	Width when is_integer(Width) ->
+	    wxTextCtrl:setMaxSize(Ctrl, {CharWidth*(Width+1), -1}),
+	    wxTextCtrl:setMaxSize(Ctrl, {CharWidth*Width, -1});
+	undefined -> %% Let the sizer handle the max and min sizes
+	    ok
+    end,
+    tooltip(Ctrl, Flags),
+    Type = type(Def),
+    TextUpdated = fun(#wx{event=#wxCommand{cmdString=Str}},_) ->
+			  case Validator(Str) of
+			      {true, _} -> PreviewFun();
+			      false -> ignore
+			  end
+		  end,
+    case Type of
+	string ->
+	    UpdateTextWheel =
+		fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, _) ->
+			Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
+			case Validator(Str) of
+			    {true, Val} ->
+				PreviewFun(),
+				wxTextCtrl:setValue(Ctrl, to_str(Val));
+			    _ ->
+				ignore
+			end
+		end,
+	    wxTextCtrl:connect(Ctrl, mousewheel, [{callback, UpdateTextWheel}]);
+	_ ->
+	    ignore
+    end,
+    UseHistory = fun(Ev, Obj) ->
+			 case use_history(Ev, Type, Ctrl) of
+			     {true, _Prev}  ->
+				 PreviewFun();
+			     false ->
+				 wxEvent:skip(Obj)
+			 end
+		 end,
+    AddHistory = fun(_,Obj) ->
+			 Str = wxTextCtrl:getValue(Ctrl),
+			 wxEvent:skip(Obj),
+			 case Validator(Str) of
+			     {true, _} -> add_history(Type, Str);
+			     false -> ignore
+			 end
+		 end,
+    wxTextCtrl:connect(Ctrl, key_up, [{callback, UseHistory}]),
+    wxTextCtrl:connect(Ctrl, command_text_updated, [{callback, TextUpdated}]),
+    wxTextCtrl:connect(Ctrl, kill_focus, [{callback, AddHistory}]),
+    add_sizer(text, Sizer, Ctrl),
+    Ctrl.
 
 setup_choices({Str, Tag}, Ctrl, Def, N) ->
     wxChoice:append(Ctrl, Str, Tag),
@@ -1232,12 +1246,14 @@ setup_choices({Str, Tag, Fs}, Ctrl, Def, N) ->
     N + 1.
 
 
-create_slider(Ask, Def, Flags, Validator, Parent, TopSizer) when is_number(Def) ->
+create_slider(Ask, Def, Flags, {MaxSize,Validator}, Parent, TopSizer) when is_number(Def) ->
     Range = proplists:get_value(range, Flags),
     Sizer = wxBoxSizer:new(?wxHORIZONTAL),
     {Min, Value, Max, Style, ToText, ToSlider} = slider_style(Def, Range),
     Slider = wxSlider:new(Parent, ?wxID_ANY, Value, Min, Max, [{style, Style}]),
     Text = wxTextCtrl:new(Parent, ?wxID_ANY, [{value, to_str(Def)}]),
+    {CharWidth,_,_,_} = wxWindow:getTextExtent(Text, "W"),
+    wxTextCtrl:setMaxSize(Text, {MaxSize*CharWidth, -1}),
     wxSizer:add(Sizer, Slider, [{proportion,2}, {flag, ?wxEXPAND}]),
     wxSizer:add(Sizer, Text,   [{proportion,1}]),
     add_sizer(slider, TopSizer, Sizer),
@@ -1413,39 +1429,39 @@ validator(Val, Flags) when is_integer(Val) ->
 validator(Val, Flags) when is_float(Val) ->
     float_validator(Flags);
 validator(Val, _Flags) when is_list(Val) ->
-    {30, fun(Str) -> {true, Str} end}.
+    {300, fun(Str) -> {true, Str} end}.
 
 integer_validator(Flags) ->
     case proplists:get_value(range, Flags) of
-	undefined -> {8,accept_all_fun(integer)};
-	{'-infinity',infinity} -> {8,accept_all_fun(integer)};
+	undefined -> {10,accept_all_fun(integer)};
+	{'-infinity',infinity} -> {10,accept_all_fun(integer)};
 	{Min,infinity} when is_integer(Min) ->
-	    {8,integer_range(Min, infinity)};
+	    {10,integer_range(Min, infinity)};
 	{'-infinity',Max} when is_integer(Max) ->
-	    {8,integer_range('-infinity', Max)};
+	    {10,integer_range('-infinity', Max)};
 	{Min,Max,Default} when is_integer(Min), is_integer(Max), is_integer(Default),
 			       Min =< Default, Default =< Max ->
-	    Digits = trunc(math:log(Max-Min+1)/math:log(10))+2,
+	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+2,10),
 	    {Digits,integer_range(Min, Max, Default)};
 	{Min,Max} when is_integer(Min), is_integer(Max), Min =< Max ->
-	    Digits = trunc(math:log(Max-Min+1)/math:log(10))+2,
+	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+2,10),
 	    {Digits,integer_range(Min, Max)}
     end.
 
 float_validator(Flags) ->
     case proplists:get_value(range, Flags) of
-	undefined -> {12,accept_all_fun(float)};
-	{'-infinity',infinity} -> {12,accept_all_fun(float)};
+	undefined -> {10,accept_all_fun(float)};
+	{'-infinity',infinity} -> {10,accept_all_fun(float)};
 	{Min,infinity} when is_float(Min) ->
-	    {12,float_range(Min, infinity)};
+	    {10,float_range(Min, infinity)};
 	{'-infinity',Max} when is_float(Max) ->
-	    {12,float_range('-infinity', Max)};
+	    {10,float_range('-infinity', Max)};
 	{Min,Max,Default} when is_float(Min), is_float(Max), is_float(Default),
 			       Min =< Default, Default =< Max ->
-	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 20),
+	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 10),
 	    {Digits,float_range(Min, Max, Default)};
 	{Min,Max} when is_float(Min), is_float(Max), Min =< Max ->
-	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 20),
+	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 10),
 	    {Digits,float_range(Min, Max)}
     end.
 
