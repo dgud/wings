@@ -725,7 +725,9 @@ make_query_1([U0|Units], [V|Vals]) ->
 	skip ->
 	     make_query_1(Units, Vals);
 	falloff ->
-	    [{hframe,[{label,qstr(falloff)},{text,V,[{range,{1.0E-6,infinity}}]}]}|
+	    [{hframe,[{label,qstr(falloff)},
+		      {text,V,[{range,{1.0E-6,infinity}},
+			       {width, undefined}]}]}|
 	     make_query_1(Units, Vals)];
 	U ->
 	    [{hframe,[{label,qstr(U)},{text,V,qrange(U0)}]}|
@@ -741,12 +743,12 @@ qstr(falloff) ->  ?__(5,"R");
 qstr(angle) ->	?__(6,"A");
 qstr(Atom) -> wings_util:stringify(Atom).
 
-qrange({_,{_,_}=Range}) -> [{range,Range}];
-qrange(_) -> [].
+qrange({_,{_,_}=Range}) -> [{range,Range}, {width, undefined}];
+qrange(_) -> [{width, undefined}].
 
 percent_qrange({_,{Min,Max}}) ->
-    [{range,{safe_mul_100(Min),safe_mul_100(Max)}}];
-percent_qrange(_) -> [].
+    [{range,{safe_mul_100(Min),safe_mul_100(Max)}}, {width, undefined}];
+percent_qrange(_) -> [{width, undefined}].
 
 safe_mul_100(A) ->
     case catch 100*A of
