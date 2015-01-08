@@ -17,7 +17,7 @@
 -export([mode_restriction/1,clear_mode_restriction/0,get_mode_restriction/0]).
 -export([ask/3]).
 -export([save_windows/0,save_windows_1/1,restore_windows_1/2,set_geom_props/2]).
--export([handle_drop/3]).
+-export([handle_drop/3, popup_menu/3]).
 -export([init_menubar/1]).
 -export([highlight_aim_setup/1]).
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).
@@ -885,7 +885,11 @@ command_1({wings_job,Command}, St) ->
 
 %% Tweak menu
 command_1({tweak, Cmd}, St) ->
-    wings_tweak:command(Cmd, St).
+    wings_tweak:command(Cmd, St);
+
+%% Hotkey setup or delete
+command_1({hotkey, Cmd}, St) ->
+    wings_hotkey:command(Cmd, St).
 
 
 popup_menu(X, Y, #st{sel=[]}=St) ->
