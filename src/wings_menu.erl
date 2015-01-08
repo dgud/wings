@@ -16,7 +16,7 @@
 -export([is_popup_event/1,menu/5,popup_menu/4,build_command/2,
 	 kill_menus/0]).
 -export([wx_menubar/1, id_to_name/1, check_item/1, str_clean/1]).
--export([update_menu/3, update_menu/4]).
+-export([update_menu/3, update_menu/4, update_menu_hotkey/2]).
 
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -478,6 +478,17 @@ menu_item_id(Menu, Item) ->
 	    case ets:match_object(wings_menus, #menu_entry{name={Menu,Item}, _='_'}) of
 		[#menu_entry{wxid=Id}] -> Id;
 		[] -> false
+	    end
+    end.
+
+update_menu_hotkey(Action, HotKeyStr) ->
+    case ets:match_object(wings_menus, #menu_entry{name=Action, _='_'}) of
+	[] -> ok; %% Ignore it is a popupmenu entry
+	[#menu_entry{object=MI}] ->
+	    Label = wxMenuItem:getLabel(MI),
+	    case HotKeyStr of
+		"" -> wxMenuItem:setText(MI, Label);
+		_ -> wxMenuItem:setText(MI, Label ++ "\t" ++ HotKeyStr)
 	    end
     end.
 
