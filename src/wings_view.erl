@@ -97,7 +97,7 @@ menu(#st{views={_CurrentView,_Views}}=St) ->
       {?__(66,"Highlight Aim"),highlight_aim,
        ?__(67,"Aim camera at mouseover highlight. (Requires 'Use Highlight as Temporary Selection' enabled, and an assigned hotkey)")},
       {?__(29,"Frame"),frame,?__(30,"Dolly to show all selected elements (or all objects if nothing is selected)")},
-      {?__(65,"Frame Disregards Mirror"),frame_mode,crossmark(frame_disregards_mirror)},
+      {?__(65,"Frame Disregards Mirror"),frame_disregards_mirror,crossmark(frame_disregards_mirror)},
       {?__(57,"Align to Selection"),align_to_selection,
        ?__(58,"Align the view to the normal of the selection")},
       separator,
@@ -303,9 +303,9 @@ command(quick_preview, St) ->
 command(orthogonal_view, St) ->
     toggle_option(orthogonal_view),
     St;
-command({show,What}, St) ->
-    Prev = toggle_option(What),
-    if 
+command(Option={show,What}, St) ->
+    Prev = toggle_option(Option),
+    if
 	What =:= show_normals ->
 	    Prev andalso wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []);
 	What =:= show_materials; What =:= filter_texture ->
@@ -324,8 +324,7 @@ command({show,What}, St) ->
     end,
     St;
 command(show_edges, St) ->
-    Bool = wings_pref:get_value(show_edges),
-    wings_pref:set_value(show_edges, not Bool),
+    Bool = toggle_option(show_edges),
     case Bool of
 	false -> St;
 	true ->
@@ -333,8 +332,7 @@ command(show_edges, St) ->
 	    St
     end;
 command(show_backfaces, St) ->
-    Bool = wings_pref:get_value(show_backfaces),
-    wings_pref:set_value(show_backfaces, not Bool),
+    toggle_option(show_backfaces),
     St;
 command({highlight_aim,{Type,{Selmode,Sel,MM}}}, St) ->
     highlight_aim(Type, Selmode, Sel, MM, St),
@@ -347,10 +345,6 @@ command(aim, St) ->
     St;
 command(frame, St) ->
     frame(St),
-    St;
-command(frame_mode, St) ->
-    Bool = wings_pref:get_value(frame_disregards_mirror),
-    wings_pref:set_value(frame_disregards_mirror, not Bool),
     St;
 command({views,Views}, St) ->
     views(Views, St);
@@ -785,17 +779,20 @@ get_event(Tim) ->
 %%% Other stuff.
 %%%
 
-toggle_option({show,Key}) ->
-%% process Show menu items
-    toggle_option(Key);
-toggle_option(Key) ->
+toggle_option(Key0) ->
+    Key = case Key0 of
+	      {show, K} -> K;
+	      _ -> Key0
+	  end,
     case wings_wm:lookup_prop(Key) of
 	none ->
 	    Prev = wings_pref:get_value(Key, false),
 	    wings_pref:set_value(Key, not Prev),
+	    wings_menu:update_menu_enabled(view, Key0, not Prev),
 	    Prev;
 	{value,Bool} ->
 	    wings_wm:set_prop(Key, not Bool),
+	    wings_menu:update_menu_enabled(view, Key0, not Bool),
 	    Bool
     end.
 
@@ -1168,6 +1165,13 @@ toggle_lights() ->
 		 1 -> 2;
 		 2 -> 1
 	     end,
+    wings_menu:update_menu(view, toggle_lights, 
+			   one_of(Lights == 1, 
+				  ?__(2,"Two Lights"),
+				  ?__(1,"One Light")),
+			   one_of(Lights == 1, 
+				  ?__(4,"Use two work lights"),
+				  ?__(3,"Use one work light"))),
     wings_pref:set_value(number_of_lights, Lights).
 
 shader_set(N) ->
