@@ -40,12 +40,22 @@ menu(X, Y, St) ->
 	     ?STR(menu,11,"Delete selected vertices (clearing selection)")},
 	    {?STR(menu,12,"Collapse"),collapse,
 	     ?STR(menu,13,"Delete selected vertices (creating a face selection)")},
+        {?STR(menu,18,"Bounding Hull Body"),hull_menu(),
+         {?STR(menu,19,"Create a bounding hull around points."),"",
+         ?STR(menu,20,"Create a bounding oriented box around points.")},[]},
 	    separator,
 	    {?STR(menu,14,"Deform"),wings_deform:sub_menu(St)},
 	    separator,
 	    {?STR(menu,15,"Vertex Color"),vertex_color,
 	     ?STR(menu,16,"Apply vertex colors to selected vertices")}],
     wings_menu:popup_menu(X, Y, vertex, Menu).
+
+hull_menu() ->
+fun
+      (1, _Ns) -> {vertex,bounding_hull};
+      (3, _Ns) -> {vertex,bounding_obox};
+      (_, _) -> ignore
+end.
 
 connect_menu() ->
     fun
@@ -55,6 +65,10 @@ connect_menu() ->
     end.
 
 %% Vertex menu.
+command(bounding_obox,St) -> 
+    {save_state,bounding_obox(St)};
+command(bounding_hull,St) -> 
+    {save_state,bounding_hull(St)}; 
 command({flatten,Plane}, St) ->
     flatten(Plane, St);
 command(connect, St) ->
@@ -89,7 +103,43 @@ command(vertex_color, St) ->
 		       end);
 command({'ASK',Ask}, St) ->
     wings:ask(Ask, St, fun command/2).
-    
+
+
+
+
+
+%%%
+%%% Bounding Hull ... make an convex enclosing minimal hull around a 
+%%% given set of points.
+%%%
+bounding_hull(#st{shapes=Shapes,sel=[{_,_}|_]=SelAny}=St) ->
+    MyPts = fun({WeID,Set}, Acc) -> 
+        We = gb_trees:get(WeID,Shapes),
+        Ps = [wings_vertex:pos(Vi,We)||Vi<-gb_sets:to_list(Set)], 
+        lists:append(Ps,Acc)
+    end,
+    Pts = lists:foldl(MyPts,[],SelAny),
+    #we{} = WeNew = wings_we:hull_enclosing_pts(Pts),
+    St2 = wings_shape:new("hull",WeNew,St),
+    St2#st{selmode=body,sel=[]}; 
+bounding_hull(#st{sel=[]}=St) ->
+    St.
+
+bounding_obox(#st{shapes=Shapes,sel=[{_,_}|_]=SelAny}=St) ->
+    MyPts = fun({WeID,Set}, Acc) -> 
+        We = gb_trees:get(WeID,Shapes),
+        Ps = [wings_vertex:pos(Vi,We)||Vi<-gb_sets:to_list(Set)], 
+        lists:append(Ps,Acc)
+    end,
+    Pts = lists:foldl(MyPts,[],SelAny),
+    Pts8 = e3d_bv:oriented_box(Pts),
+    #we{} = WeNew = wings_we:hull_enclosing_pts(Pts8),
+    St2 = wings_shape:new("hull",WeNew,St),
+    St2#st{selmode=body,sel=[]}; 
+bounding_obox(#st{sel=[]}=St) -> St.
+
+
+
 %%%
 %%% The Flatten command.
 %%%
