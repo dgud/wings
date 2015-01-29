@@ -11,13 +11,15 @@
 %%     $Id$
 %%
 
+
 -module(e3d_vec).
 
 -export([zero/0,is_zero/1,add/1,add/2,add_prod/3,sub/1,sub/2,lerp/3,
 	 norm_sub/2,mul/2,divide/2,neg/1,dot/2,cross/2,
 	 len/1,dist/2,dist_sqr/2,
 	 norm/1,norm/3,normal/3,normal/1,average/1,average/2,average/4,
-	 bounding_box/1,area/3,degrees/2,plane/3,plane_side/2,plane_dist/2]).
+	 bounding_box/1,area/3,area_flat_polygon/2,interior_angles/2,
+   degrees/2,plane/3,plane/1,plane/2,plane_side/2,plane_dist/2]).
 
 -include("e3d.hrl").
 
@@ -171,10 +173,89 @@ area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
     N1 = D12*D20-D10*D22,
     N2 = D10*D21-D11*D20,
     math:sqrt(N0*N0+N1*N1+N2*N2)*0.5.
+
+
+
+    
+%%  http://geomalgorithms.com/a01-_area.html
+%%  Signed area : polygon should not be bent ... you are on honor system. 
+%%    case area is negative means counter clockwise order was given.
+%%    case area is positive means clockwise order was given.
+%%----------------------------------------------------------------------
+%% Test:
+%% e3d_vec:area_flat_polygon([{0.0,0.0,0.0},{1.0,0.0,0.0},{1.0,1.0,0.0},{0.0,1.0,0.0}],{0.0,0.0,1.0}).
+%% N : outside normal to polygon/face
+area_flat_polygon([{V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32}|_]=Polygon,{_,_,_}=N)
+  when is_float(V10), is_float(V11), is_float(V12),
+       is_float(V20), is_float(V21), is_float(V22),
+       is_float(V30), is_float(V31), is_float(V32) ->
+  Len = length(Polygon),
+  MyCross = fun(Vi, Acc) -> 
+      Pt1 = lists:nth(Vi+1, Polygon),
+      Vi_1 = (Vi + 1) rem Len,
+      Pt2 = lists:nth(Vi_1+1, Polygon),
+      Val = e3d_vec:cross(Pt1,Pt2),
+      [Val|Acc]
+  end,
+  List = lists:foldr(MyCross, [],lists:seq(0,Len-1)),
+  Sum = e3d_vec:add(List),
+  Dot = e3d_vec:dot(N,Sum),
+  Dot/2.0.
+
+
+%% Polygon ... listed in clockwise or counter clockwise order 
+%% {_,_,_} = N ... normal to the face pointing towards viewer.
+%% N ... the normal can be used to make sure clock vs counterclock
+%% does not matter. See SIGNED companion function, area_flat_polygon
+%% Note:  Don't use this on a crazy bent ... not-flat poly.
+interior_angles([{V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32}|_]=Polygon,{_,_,_}=N)
+  when is_float(V10), is_float(V11), is_float(V12),
+       is_float(V20), is_float(V21), is_float(V22),
+       is_float(V30), is_float(V31), is_float(V32) ->
+    Test = area_flat_polygon(Polygon, N) < 0.0,
+    Pts =
+    case Test of 
+      true -> lists:reverse(Polygon);
+      false -> Polygon
+    end, 
+    Len = length(Pts),
+    MyAcc = fun(Index, Acc) -> 
+        Idx0 = Index rem Len,
+        Idx1 = (Index+1) rem Len,
+        Idx2 = (Index+2) rem Len,
+        Pt0 = lists:nth(Idx0+1,Pts),
+        Pt1 = lists:nth(Idx1+1,Pts),
+        Pt2 = lists:nth(Idx2+1,Pts),
+        D1 = e3d_vec:sub(Pt0,Pt1),
+        D2 = e3d_vec:sub(Pt2,Pt1),
+        Nxx = e3d_vec:cross(D1,D2),
+        AngNs = abs(e3d_vec:degrees(Nxx,N)),
+        %% should effectively capture left or right turn as we walk.
+        LeftTurn = AngNs > 45.0,  
+        Ang = abs(e3d_vec:degrees(D1,D2)),
+        if (LeftTurn) -> [{Pt1,Ang}|Acc];
+             true -> [{Pt1,360-Ang}|Acc]
+        end
+    end,
+    lists:foldl(MyAcc,[], lists:seq(0,length(Pts))).
+      
+    
+%% Point normal form !    
+plane({CX,CY,CZ},{A,B,C}) 
+    when is_float(CX), is_float(CY), is_float(CZ),
+         is_float(A),  is_float(A),  is_float(A) ->
+     D = -A*CX-B*CY-C*CZ,                  
+     {{A,B,C},D}.
     
 %% Calculate plane coefficients for a plane on which the triangle lies   
 plane({X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}) ->
         {A,B,C} = e3d_vec:normal({X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}),
+        {CX,CY,CZ} = e3d_vec:average([{X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}]),
+        D = -A*CX-B*CY-C*CZ,                  
+        {{A,B,C},D}.
+%% For applicaion at the face level.
+plane([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}|T]) ->
+        {A,B,C} = e3d_vec:normal([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}|T]),
         {CX,CY,CZ} = e3d_vec:average([{X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}]),
         D = -A*CX-B*CY-C*CZ,                  
         {{A,B,C},D}.
