@@ -77,7 +77,7 @@ menu(St) ->
       {by,[{?__(32,"Hard Edges"),
 	    hard_edges,?__(33,"Select all hard edges")++Help},
 	   {?__(34,"Isolated Vertices"),
-	    isolated_vertices,?__(35,"Select all isolated vertices")++Help},
+	    isolated_vertices,?__(35,"Select all isolated vertices")++Help,[option]},
 	   {?__(85,"Non-planar Faces"),
 	    nonplanar_faces,?__(86,"Select all non-planar faces")++Help,[option]},
 	   {?__(36,"Vertices With"),
@@ -370,8 +370,8 @@ command(Type, St) ->
 
 by_command(hard_edges, St) ->
     hard_edges(St);
-by_command(isolated_vertices, St) ->
-    {save_state,select_isolated(St)};
+by_command({isolated_vertices,Ask}, St) ->
+    isolated_vertices(Ask,St);
 by_command({nonplanar_faces,Ask}, St) ->
     nonplanar_faces(Ask, St);
 by_command({vertices_with,N}, St) ->
@@ -1101,29 +1101,41 @@ select_lights_1([], _) -> [].
 %%% Select isolated vertices.
 %%%
 
-select_isolated(#st{shapes=Shs, sel=[]}=St) ->
+isolated_vertices(Ask, #st{}=St0) when is_atom(Ask) ->
+    Qs = [{label,?__(1,"Angle tolerance")},
+    {text,180.0,[{range,{0.0,180.0}}]}],
+    Title = ?__(2,"Select Edge Bisecting Vertices (isolated)"),
+    wings_ask:dialog_preview({select,by,isolated_vertices}, Ask, Title,
+    [{hframe,Qs}], St0);
+isolated_vertices([_]=Ask, #st{selmode=Mode}=St0) when Mode /= vertex -> 
+    St1 = wings_sel_conv:mode(vertex, St0),
+    isolated_vertices(Ask, St1);
+isolated_vertices([Tolerance],#st{shapes=Shs, sel=Sel0}=St) ->
     Sel = foldl(fun(#we{perm=Perm}=We, A) when ?IS_SELECTABLE(Perm) ->
-			select_isolated_1(We, A);
+			isolated_vertices_1([Tolerance], We, A);
 		   (_, A) -> A
 		end, [], gb_trees:values(Shs)),
-    wings_sel:set(vertex, Sel, St);
-select_isolated(#st{selmode=Mode}=St0) ->
-    St = if Mode =:= vertex -> St0; true -> wings_sel_conv:mode(vertex, St0) end,
-    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, A) ->
-			Isolated0 = gb_sets:from_list(wings_vertex:isolated(We)),
-			Isolated = gb_sets:intersection(Sel0, Isolated0),
-			case gb_sets:is_empty(Isolated) of
-			  true -> A;
-			  false -> [{Id,Isolated}|A]
-			end
-		end, [], St),
-    wings_sel:set(vertex, Sel, St).
-
-select_isolated_1(#we{id=Id}=We, A) ->
-    Isolated = gb_sets:from_list(wings_vertex:isolated(We)),
+    Sel2 = case Sel0 of 
+      [ ] ->  Sel;
+      _   ->  intersection(Sel0,Sel)
+    end,
+    {save_state, wings_sel:set(vertex, Sel2, St)}.
+isolated_vertices_1([Tolerance], #we{id=Id}=We, A) ->
+    Isolated0 = two_edged_vertices(We),
+    AngTest = fun(Vi, Acc0) ->
+        [E0,E1] = wings_edge:from_vs([Vi],We),
+        Edge0 = array:get(E0,We#we.es),
+        Edge1 = array:get(E1,We#we.es),
+        Dir0 = e3d_vec:sub(wings_vertex:pos(wings_vertex:other(Vi,Edge0),We), wings_vertex:pos(Vi,We)),
+        Dir1 = e3d_vec:sub(wings_vertex:pos(wings_vertex:other(Vi,Edge1),We), wings_vertex:pos(Vi,We)),
+        Angle = abs(e3d_vec:degrees(Dir0,Dir1)),
+        Test = abs(180.0 - Angle) < Tolerance,
+        if (Test) -> gb_sets:add(Vi,Acc0); true -> Acc0 end
+    end,
+    Isolated = gb_sets:fold(AngTest,gb_sets:empty(),Isolated0),
     case gb_sets:is_empty(Isolated) of
-	true -> A;
-	false -> [{Id,Isolated}|A]
+      true -> A;
+      false -> [{Id,Isolated}|A]
     end.
 
 %%%
@@ -1750,3 +1762,15 @@ select_nth_ring(N, #st{selmode=edge}=St) ->
     {save_state,wings_edge:select_nth_ring(N,St)};
 select_nth_ring(_, St) ->
     {save_state,St}.
+%% Isolated vertices in wings_vertex is not as simple as this routine.
+%% -- "two_edges_vertices" should return a gb_sets of two edged vertices,
+%% given a #we{} to interogate.
+two_edged_vertices(#we{vp=Vtab}=We) ->
+    MyAcc = fun({Vi, _}, Acc) -> 
+        Es = wings_edge:from_vs([Vi], We),
+        case Es of 
+          [_,_] -> gb_sets:add(Vi,Acc);
+           _ -> Acc
+        end
+    end,
+    lists:foldl(MyAcc,gb_sets:empty(), array:sparse_to_orddict(Vtab)).
