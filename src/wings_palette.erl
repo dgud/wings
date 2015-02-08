@@ -31,6 +31,9 @@
 
 -record(pst, {st, sel=none, cols, w=?COLS_W, h=?COLS_H, knob=0}).
 
+granular_color({R,G,B}) -> 
+    Tol = 10000.0,
+    {round(R*Tol),round(G*Tol),round(B*Tol)}.
 window(St) ->
     case wings_wm:is_window(palette) of
 	true ->
@@ -308,10 +311,77 @@ do_menu(Id,X,Y,#pst{cols=Cols}) ->
 	    {?__(5,"Clear All"), clear_all,?__(6,"Clear palette")},
 	    {?__(7,"Compact"), compact,?__(8,"Compact Palette")},
 	    {?__(9,"Scan Colors"), scan_all, ?__(10,"Scan colors from selection")},
+        {?__(15,"Select ... "), 
+             {selectors, [
+                {?__(16,"By Exact Color"),  {'VALUE',{color,Id}}, ?__(17,"Select Color (hue with luma)")},
+                {?__(18,"By Palette Hue"),  {'VALUE',{hues,Id}},  ?__(19,"Select Hue (luminosity ignored)")},
+                {?__(20,"By Palette Hues"), {'VALUE',{hues,all}}, ?__(21,"Select Hues (luminosity ignored)")}
+             ]}}, 
+        {?__(22,"Arrange by difference"), {'VALUE',{arrange_diff,Id}}, ?__(23,"Arrange by difference")},
 	    separator,
 	    {?__(11,"Export"), export,?__(12,"Export palette to file")},
 	    {?__(13,"Import"), import,?__(14,"Import palette from file")}],
     wings_menu:popup_menu(X,Y,palette,Menu ++ Smooth ++ Rest).
+command({arrange_diff,Id}, Pst=#pst{cols=Cols0}) ->
+    Col0 = lists:nth(Id+1,Cols0),
+    MyAcc = fun
+        (none,Acc) -> [{1000.0*1000.0*1000.0,none}|Acc];
+        ({_,_,_}=Col,Acc) -> 
+            [{abs(e3d_vec:dist(Col0,Col)),Col}|Acc]
+    end,
+    if (Col0 == none) -> 
+            Cols2 = Cols0; 
+        true -> 
+            Cols1 = lists:sort(lists:foldl(MyAcc,[],Cols0)),
+            Cols2 = [ Col ||  {_D,Col}<-Cols1]
+    end,
+    get_event(update(Cols2,Pst#pst{sel=none}));
+
+
+command({selectors,{Type,Id}}, Pst=#pst{cols=Cols,st=#st{selmode=Mode}=St}) 
+    when (Mode == face orelse Mode == body) ->
+    ColSet =
+    case {Type, Id} of 
+        {hues,all} -> 
+            Col0 = [
+            case Col of 
+            {_R,_G,_B} -> granular_color(e3d_vec:norm(Col));
+            _ -> []
+            end ||Col<-Cols],
+            gb_sets:from_list(lists:flatten(Col0));
+        {hues,Id} when is_integer(Id)  -> 
+            case lists:nth(Id+1,Cols) of 
+                {_,_,_}=Col ->
+                    {_R,_G,_B} = granular_color(e3d_vec:norm(Col)),
+                    gb_sets:singleton({_R,_G,_B});
+                none -> gb_sets:empty()
+            end;
+        {color,Id} when is_integer(Id) -> 
+            case lists:nth(Id+1,Cols) of 
+                {_,_,_}=Col -> gb_sets:singleton(granular_color(Col));
+                none -> gb_sets:empty()
+            end
+    end,
+    SelFun = fun(Fi, #we{fs=Ftab}=We) -> 
+         case Mode of 
+            body -> {Fx,_} = gb_trees:smallest(Ftab);
+            face -> Fx = Fi
+         end,
+         case {wings_va:face_attr(color,Fx,We),Type}  of
+            {[{R,G,B}|_],hues}  ->
+                Hue1 = e3d_vec:norm({R,G,B}),
+                gb_sets:is_member(granular_color(Hue1),ColSet);
+            {[{R,G,B}|_],color} ->
+                gb_sets:is_member(granular_color({R,G,B}),ColSet);
+            _OTHER      -> false
+         end
+    end,
+    St2 = wings_sel:make(SelFun, Mode, St),
+    wings_wm:send(geom, {new_state,St2}),
+    get_event(Pst#pst{sel=none});
+command({selectors,{Type,Id}}, Pst=#pst{st=#st{selmode=Mode}=St}) when Mode /= face andalso Mode /= body -> 
+    St2 = wings_sel_conv:mode(face,St),
+     command({selectors,{Type,Id}}, Pst#pst{st=St2});
 
 command(clear_all, Pst = #pst{w=W,h=H}) ->
     get_event(update(lists:duplicate(W*H, none),Pst#pst{sel=none}));
