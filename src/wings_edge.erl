@@ -18,7 +18,7 @@
 	 select_region/1,
 	 select_edge_ring/1,select_edge_ring_incr/1,select_edge_ring_decr/1,
 	 cut/3,fast_cut/3,screaming_cut/3,
-	 dissolve_edges/2,dissolve_edge/2,
+	 dissolve_edges/2,dissolve_edge/2,dissolve_weak_creases/2,dihedral/2,
 	 hardness/3,
 	 patch_edge/4,patch_edge/5,
 	 select_nth_ring/2]).
@@ -160,6 +160,13 @@ screaming_cut(Edge, NewVPos, We0) ->
 %%% Dissolve.
 %%%
 
+dissolve_weak_creases(Tol, #we{es=Etab}=We) when is_float(Tol) -> 
+    EList2 = lists:filter(fun(Ei) ->
+        Angle = abs(dihedral(Ei, We)),
+        Angle < Tol
+    end, [Ei||{Ei,_}<-array:sparse_to_orddict(Etab)] ),    
+    dissolve_edges(EList2, We).
+
 dissolve_edge(Edge, We) ->
     dissolve_edges([Edge], We).
 
@@ -212,6 +219,7 @@ internal_dissolve_edge(Edge, #we{es=Etab}=We0) ->
 		throw:hole -> We0
 	    end
     end.
+
 
 %% dissolve_edge_1(Edge, EdgeRecord, We) -> We
 %%  Remove an edge and a face. If one of the faces is degenerated
@@ -972,3 +980,21 @@ nth_ring_5(_,_,Edges0,stop,_,Edges1,OrigEs) ->
       true -> Edges0;
       false -> Edges1
     end.
+
+%%%
+%%% dehedral Angle formed by an edge and its faces on 
+%%% a surface of a mesh. It is oriented / signed.
+%%%
+dihedral(Ei, #we{es=Etab, vp=VTree}=We)  ->
+    #edge{lf=LF,rf=RF,vs=VS,ve=VE} = array:get(Ei,Etab),
+    VSP = array:get(VS, VTree),
+    VEP = array:get(VE, VTree),
+    N1 = wings_face:normal(LF, We),
+    N2 = wings_face:normal(RF, We),
+    Sign = fun(X) -> if (X < 0.0) -> -1.0; true -> 1.0 end end,
+    %% An oriented angle !
+    OAngle = fun(X ,Y, Z) ->
+        C = e3d_vec:cross(Y,Z),
+        Sign(e3d_vec:dot(X,C))*math:atan2(e3d_vec:len(C), e3d_vec:dot(Y,Z))
+    end,
+    OAngle(e3d_vec:sub(VSP,VEP),N2,N1)*360.0/(2.0*math:pi()).
