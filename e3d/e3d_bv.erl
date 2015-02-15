@@ -20,10 +20,11 @@
 	 center/1,max_extent/1,
 	 surface_area/1,volume/1,
 	 sphere/1,
-	 inside/2]).
+	 inside/2,
+	 oriented_box/1]).
 
 %% Other Stuff
--export([eigen_vecs/1,quickhull/1,covariance_matrix/1]).
+-export([eigen_vecs/1,quickhull/1,covariance_matrix/1,fast_ball/1]).
 -import(e3d_vec, [dot/2,add/2,average/1,average/2,dist_sqr/2,normal/1]).
 -import(lists, [foldl/3]).
 
@@ -298,6 +299,34 @@ eigen_vecs(Vs) ->
 	   {X2,Y2,Z2},
 	   {X3,Y3,Z3}}}.
 
+
+%% supposed to be a fairly tight enclosing sphere.  
+%% Adapted from source of 
+%% http://geomalgorithms.com/a08-_containers.html
+%% This is not a minimal bounding sphere but may be good enough to 
+%% have fun with ! 
+%%%%%%%%%%%%%%%%% FASTBALL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fast_ball([{_,_,_},{_,_,_},{_,_,_}|_] = Pts) ->
+    List = [{abs(e3d_vec:dist(P1,P2)), P1, P2}  ||  P1<-Pts, P2<-Pts ], 
+    [{_,P1,P2}|_] = lists:reverse(lists:sort(List)),
+    Center = e3d_vec:average([P1,P2]),  %% Two points far apart to start.
+    Radius = abs(e3d_vec:dist(P1,P2)*0.5),
+    fast_ball1(Pts -- [{P1,P2}], {Center,Radius}).
+fast_ball1([], {Center,Radius}) when  is_float(Radius)  -> 
+    {Center,Radius};
+fast_ball1([{X,Y,Z}|T], {Center,Radius}) when  is_float(Radius) -> 
+    Dir = e3d_vec:sub({X,Y,Z}, Center),
+    Len = abs(e3d_vec:len(Dir)),
+    if 
+        (Len < Radius) ->  fast_ball1(T,{Center,Radius});
+        true ->
+            {Nx,Ny,Nz} = e3d_vec:norm(Dir),
+            {Fx,Fy,Fz} = e3d_vec:sub(Center,{Nx*Radius,Ny*Radius,Nz*Radius}),
+            Center2 = e3d_vec:average([{X,Y,Z},{Fx,Fy,Fz}]),
+            Len2 = abs(e3d_vec:len(e3d_vec:sub({X,Y,Z},Center2))),
+            fast_ball1(T,{Center2,Len2})
+    end.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%% QHULL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 -record(hull, {f,p,os}).
 %% Splits a point soup in a convex-triangle-hull.
@@ -443,7 +472,7 @@ covariance_matrix(Faces) ->
     N = length(Faces),
     C0 = foldl(fun(Vs,Acc) -> add(average(Vs),Acc) end, 
 	       {0.0,0.0,0.0}, Faces),
-    {Cx,Cy,Cz} = e3d_vec:mul(C0,1/N),
+    {Cx,Cy,Cz} = e3d_vec:mul(C0,1.0/N),
     M0 = foldl(fun([{X00,Y00,Z00},{X10,Y10,Z10},{X20,Y20,Z20}],
 		   {M11,M12,M13,M22,M23,M33}) ->
 		       X0=X00-Cx,X1=X10-Cx,X2=X20-Cx,
@@ -462,3 +491,33 @@ covariance_matrix(Faces) ->
      M21/D, M22/D, M23/D,
      M31/D, M32/D, M33/D}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% Oriented Bounding Box 
+%% Minimal 
+oriented_box([{_,_,_},{_,_,_},{_,_,_}|_]=Pts) ->
+    {_,{E1a,E2a,E3a}} = e3d_bv:eigen_vecs(Pts),
+    M1 = e3d_mat:rotate_s_to_t(E3a,{1.0,0.0,0.0}),
+    E2aa = e3d_mat:mul_point(M1,E2a),
+    M2 = e3d_mat:rotate_s_to_t(E2aa,{0.0,0.0,1.0}),
+    M3 = e3d_mat:mul([M1,M2]),
+    NewPts = [e3d_mat:mul_point(M3,Pt) || Pt <- Pts],
+    {Cx0,Cy0,Cz0} = e3d_bv:center(e3d_bv:box(NewPts)),
+    List = [M1,M2,e3d_mat:translate({-Cx0,-Cy0,-Cz0})],
+    Inverted = e3d_mat:mul([e3d_mat:invert(M0)||M0 <- lists:reverse(List)]),
+    Cb = e3d_mat:mul_point(Inverted, {0.0,0.0,0.0}),
+    {Min,Max} = e3d_bv:box(NewPts),
+    [L1,L2,L3] = lists:sort(tuple_to_list(e3d_vec:sub(Max,Min))),
+    E1 = e3d_vec:mul(e3d_vec:norm(E1a),L1*0.5),
+    E2 = e3d_vec:mul(e3d_vec:norm(E2a),L2*0.5),
+    E3 = e3d_vec:mul(e3d_vec:norm(E3a),L3*0.5),
+    [
+    e3d_vec:add([Cb,e3d_vec:mul(E1,-1.0),e3d_vec:mul(E2,-1.0),e3d_vec:mul(E3,-1.0)]),
+    e3d_vec:add([Cb,e3d_vec:mul(E1, 1.0),e3d_vec:mul(E2,-1.0),e3d_vec:mul(E3,-1.0)]),
+    e3d_vec:add([Cb,e3d_vec:mul(E1, 1.0),e3d_vec:mul(E2, 1.0),e3d_vec:mul(E3,-1.0)]),
+    e3d_vec:add([Cb,e3d_vec:mul(E1,-1.0),e3d_vec:mul(E2, 1.0),e3d_vec:mul(E3,-1.0)]),
+    e3d_vec:add([Cb,e3d_vec:mul(E1,-1.0),e3d_vec:mul(E2,-1.0),e3d_vec:mul(E3,1.0)]),
+    e3d_vec:add([Cb,e3d_vec:mul(E1, 1.0),e3d_vec:mul(E2,-1.0),e3d_vec:mul(E3,1.0)]),
+    e3d_vec:add([Cb,e3d_vec:mul(E1, 1.0),e3d_vec:mul(E2, 1.0),e3d_vec:mul(E3,1.0)]),
+    e3d_vec:add([Cb,e3d_vec:mul(E1,-1.0),e3d_vec:mul(E2, 1.0),e3d_vec:mul(E3,1.0)])
+    ].
