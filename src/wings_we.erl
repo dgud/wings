@@ -15,7 +15,7 @@
 
 -module(wings_we).
 -export([map/2, 
-	 build/2,rebuild/1,fast_rebuild/1,
+	 build/2,rebuild/1,fast_rebuild/1,hull_enclosing_pts/1,
 	 new_wrap_range/3,id/2,bump_id/1,
 	 new_id/1,new_ids/2,
 	 invert_normals/1,
@@ -50,6 +50,30 @@ map(Fun, St = #st{shapes=Shs0}) ->
     Shs = gb_trees:from_orddict([{We#we.id, We} || We <- Objs0]),
     St#st{shapes=Shs}.
 
+
+hull_enclosing_pts([{_,_,_},{_,_,_},{_,_,_}|_]=PointsOriginal) ->
+    %% Somehow jiggling avoids a problem with quickhull and vertex packing.
+    Eps = 0.000001, 
+    Points0 =[{X+random:uniform()*Eps,Y+random:uniform()*Eps,Z+random:uniform()*Eps}
+          || {X,Y,Z}<-PointsOriginal ],
+    Faces = e3d_bv:quickhull(Points0),
+    Points1 = lists:flatten(Faces),
+    %% Pack Points down man !
+    PointSet = gb_sets:from_list(Points1),
+    Points = gb_sets:to_list(PointSet),
+    PointsDict = lists:zip(Points,lists:seq(0,length(Points)-1)),
+    MyAcc = fun(I, Acc) -> 
+       N = 3*I,
+       Pt1 = lists:nth(N+1,Points1),
+       Pt2 = lists:nth(N+2,Points1),
+       Pt3 = lists:nth(N+3,Points1),
+       {_,K1} =   lists:keyfind(Pt1,1,PointsDict),
+       {_,K2} =   lists:keyfind(Pt2,1,PointsDict),
+       {_,K3} =   lists:keyfind(Pt3,1,PointsDict),
+       [[K1,K2,K3]|Acc]
+    end,
+    Fs = lists:foldr(MyAcc, [], lists:seq(0,length(Faces)-1)),
+    wings_we:build( [{default,Vs} ||Vs<-Fs],Points).
 %% build() -> We'
 %% Create a we from faces and vertices or a mesh.
 build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He}) when is_atom(Mode) ->

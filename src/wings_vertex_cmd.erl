@@ -40,12 +40,20 @@ menu(X, Y, St) ->
 	     ?STR(menu,11,"Delete selected vertices (clearing selection)")},
 	    {?STR(menu,12,"Collapse"),collapse,
 	     ?STR(menu,13,"Delete selected vertices (creating a face selection)")},
+        {?STR(menu,18,"Bounding Hull Body"), {hull, [
+          {?STR(menu,19,"Convex Hull."), bounding_hull, ""}, 
+          {?STR(menu,20,"Enclosing Sphere."), bounding_fastball, ""},
+          {?STR(menu,21,"Oriented Box."), bounding_obox, ""},
+          {?STR(menu,22,"Bounding Polygon."), bounding_polygon, ""},
+          {?STR(menu,22,"Bounding Isosceles Triangle."), bounding_isosceles, ""}
+          ]}},
 	    separator,
 	    {?STR(menu,14,"Deform"),wings_deform:sub_menu(St)},
 	    separator,
 	    {?STR(menu,15,"Vertex Color"),vertex_color,
 	     ?STR(menu,16,"Apply vertex colors to selected vertices")}],
     wings_menu:popup_menu(X, Y, vertex, Menu).
+
 
 connect_menu() ->
     fun
@@ -55,6 +63,16 @@ connect_menu() ->
     end.
 
 %% Vertex menu.
+command({hull,bounding_obox},St) -> 
+    {save_state,bounding_obox(St)};
+command({hull,bounding_hull},St) -> 
+    {save_state,bounding_hull(St)};
+command({hull,bounding_polygon},St) -> 
+    {save_state,bounding_polygon(St)}; 
+command({hull,bounding_isosceles},St) -> 
+    {save_state,bounding_isosceles(St)};
+command({hull,bounding_fastball},St) -> 
+    {save_state,bounding_fastball(St)}; 
 command({flatten,Plane}, St) ->
     flatten(Plane, St);
 command(connect, St) ->
@@ -89,7 +107,96 @@ command(vertex_color, St) ->
 		       end);
 command({'ASK',Ask}, St) ->
     wings:ask(Ask, St, fun command/2).
-    
+
+
+
+%%%
+%%% Bounding Hulls ... make minimal hulls around a 
+%%% given set of points. Various techniques.
+%%%
+bounding_hull(#st{sel=[{_,_}|_]}=St) ->
+    Pts = select_points(St),
+    #we{} = WeNew0 = wings_we:hull_enclosing_pts(Pts),
+    WeNew = wings_edge:dissolve_weak_creases(0.3,WeNew0),  %% HACKY 
+    St2 = wings_shape:new("hull",WeNew,St),
+    St2#st{selmode=body,sel=[]}; 
+bounding_hull(#st{sel=[]}=St) ->
+    St.
+
+%% create a bounding polygon around a somewhat flat point cloud
+bounding_polygon(#st{sel=[{_,_}]}=St) ->
+    Pts0 = select_points(St),
+    {_,{E1,_E2,_E3}} = e3d_bv:eigen_vecs(Pts0),
+    {_,St1} = flatten(e3d_vec:norm(E1), St),
+    Pts1 = select_points(St1),
+    #we{} = WeNew0 = wings_we:hull_enclosing_pts(Pts1),
+    WeNew1 = wings_edge:dissolve_weak_creases(0.3,WeNew0),  %% HACKY 
+    Fx = largest_face(WeNew1), % avoid thin faces from hulling
+    Pts2 = wings_face:vertex_positions(Fx,WeNew1),
+    Vs = lists:seq(0,length(Pts2)-1),
+    WeNew = wings_we:build([{default,lists:reverse(Vs)},{default,Vs}],Pts2),
+    St2 = wings_shape:new("hull_polygon",WeNew,St),
+    St2#st{selmode=body,sel=[]}; 
+bounding_polygon(#st{sel=[]}=St) ->
+    St.
+
+%% create a bounding isosceles triangle around a somewhat flat point cloud
+bounding_isosceles(#st{sel=[{_,_}]}=St) ->
+    Pts0 = select_points(St),
+    {_,{E1,_E2,_E3}} = e3d_bv:eigen_vecs(Pts0),
+    {_,St1} = flatten(e3d_vec:norm(E1), St),
+    Pts1 = select_points(St1),
+    #we{} = WeNew0 = wings_we:hull_enclosing_pts(Pts1),
+    %% This dissolve should speed up minimal_isosceles
+    #we{} = WePoly = wings_edge:dissolve_weak_creases(0.3,WeNew0), 
+    Fx = largest_face(WePoly), % avoid thin faces from hulling
+    Pts2 = wings_face:vertex_positions(Fx,WePoly),
+    {I,II,III} = e3d_vec:minimal_isosceles(Pts2),
+    WeTriangle =  wings_we:build([{default,[0,1,2]},{default,[2,1,0]}],[I,II,III]),
+    St2 = wings_shape:new("minimal_isosceles",WeTriangle, St),
+    St2#st{selmode=body,sel=[]}; 
+bounding_isosceles(#st{sel=[]}=St) ->
+    St.
+
+%% create a spheroid primative around a point cloud.    
+bounding_fastball(#st{sel=[{_,_}|_]}=St) ->
+    Pts = select_points(St),
+    {Center1,Radius1} = e3d_bv:fast_ball(Pts),
+    #st{shapes=Shapes2} = St2 = wings_plugin:command(
+       {shape,{geodome,[{resolution,4},{algorithmflag,frequency},
+       {baseflag,icosahedron},{spherizeflag,true},{domeflag,false}]}}, St), 
+    WeID2 = St#st.onext,
+    #we{} = We2 = gb_trees:get(WeID2,Shapes2),
+    Mat = e3d_mat:mul([e3d_mat:scale(Radius1),e3d_mat:translate(Center1)]),
+    We3 = wings_we:transform_vs(Mat, We2),
+    St3 = wings_shape:replace(WeID2, We3, St2),
+    wings_shape:recreate_folder_system(St3);
+bounding_fastball(#st{sel=[]}=St) -> St.
+
+%% create a bounding box best fit to a point cloud.
+bounding_obox(#st{sel=[{_,_}|_]}=St) ->
+    Pts = select_points(St),
+    Pts8 = e3d_bv:oriented_box(Pts),
+    #we{} = WeNew = wings_we:hull_enclosing_pts(Pts8),
+    St2 = wings_shape:new("hull",WeNew,St),
+    St2#st{selmode=body,sel=[]}; 
+bounding_obox(#st{sel=[]}=St) -> St.
+
+%% utility function for bounding operations. 
+select_points(#st{shapes=Shapes0,sel=Sel0}) ->
+    MyPts2 = fun({WeID,Set}, Acc) -> 
+        We = gb_trees:get(WeID,Shapes0),
+        Ps = [wings_vertex:pos(Vi,We)||Vi<-gb_sets:to_list(Set)], 
+        lists:append(Ps,Acc)
+    end,
+    lists:foldl(MyPts2,[],Sel0).
+
+largest_face(#we{fs=Ftab}=We) -> 
+    Temp = [ {wings_face:area(Fi,We), Fi}  || Fi<-gb_trees:keys(Ftab) ],
+    [{_,Fx}|_] = lists:reverse(lists:sort(Temp)),
+    Fx.
+
+
 %%%
 %%% The Flatten command.
 %%%
@@ -527,3 +634,4 @@ set_color(Color, St) ->
     wings_sel:map(fun(Vs, We) ->
 			  wings_va:set_vertex_color(Vs, Color, We)
 		  end, St).
+
