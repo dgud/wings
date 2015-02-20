@@ -19,7 +19,7 @@
 -export([init/0,select_all/1]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldl/3,reverse/1,keymember/3,keyfind/3,usort/1]).
+-import(lists, [map/2,foldl/3,reverse/1,keymember/3,keyfind/3,usort/1,nth/2]).
 
 init() ->
     wings_pref:set_default(saved_selections_cycle_by_mode,false).
@@ -95,6 +95,7 @@ menu(St) ->
 	      {?__(44,"4 Edges"),4,Help},
 	      {?__(45,"5 or More"),5,Help},
 	      {?__(402,"Specify..."),true,Help}]}},
+     {?__(403,"Concave Faces"),concave_faces, ?__(404,"Concave F aces")},
 	   {?__(nq0,"Non Quadrangle Faces"),
 	    {non_quad,
 	     [{?__(nq1,"All Non Quadrangle Faces"),all,Help},
@@ -367,7 +368,8 @@ command(recall_selection, #st{selmode=Mode,ssels=Ssels}=St0) ->
     end;
 command(Type, St) ->
     set_select_mode(Type, St).
-
+by_command(concave_faces, St) ->
+    concave_faces(St);
 by_command(hard_edges, St) ->
     hard_edges(St);
 by_command(isolated_vertices, St) ->
@@ -1700,6 +1702,37 @@ vertices_with([N,Mode], V, We) ->
         exactly -> Cnt =:= N
     end.
 
+%% Cross product of adjactent edges should be in direction of N0
+%% ... otherwise is concave.
+concave_faces(#st{sel=Sel0}=St) -> 
+    Sel = fun(Face, We) ->
+        Vs = wings_face:vertices_cw(Face, We),
+        Pts = [wings_vertex:pos(Vi,We)||Vi<-Vs],
+        Len = length(Pts),
+        N0 = wings_face:normal(Face, We), 
+        MyAny = fun(I) -> 
+            P1 = nth(((I-1) rem Len)+1, Pts),
+            P2 = nth(((I+0) rem Len)+1, Pts),
+            P3 = nth(((I+1) rem Len)+1, Pts),
+            V1 = e3d_vec:sub(P3, P2), 
+            V0 = e3d_vec:sub(P2, P1),
+            Ang = e3d_vec:degrees(V1, V0),
+            case Ang < 1.0 of 
+              true -> false; % to close to call. Default to convex.
+              false -> 
+                  Cross = e3d_vec:cross(V1, V0),
+                  e3d_vec:degrees(Cross,N0) > 90.0 % 90.0 somewhat arbitrary
+            end
+        end,
+        lists:any(MyAny, lists:seq(1, length(Pts)))
+    end,
+    #st{sel=Sel2} = St2 = wings_sel:make(Sel, face, St),
+    case Sel0 of 
+        [] -> St2;
+        _OTHER -> 
+            Sel3 = intersection(Sel0, Sel2),
+            St#st{sel=Sel3}
+    end.
 faces_with({faces_with,true}, St) ->
     Qs = [{vframe,
            [{hframe,[{label,?__(1,"Number of Edges")},
