@@ -1018,28 +1018,48 @@ item_by_id(Prompt, #st{shapes=Shs}=St) ->
     end.
 
 
-by_name(#st{shapes=Shs}) ->
+by_name(#st{shapes=Shs}=St) ->
     case gb_trees:is_empty(Shs) of
-	true -> wings_u:error_msg(?__(1,"Nothing to select."));
-	_ ->
-        wings_ask:ask(?__(2,"Select by name"),
-              [{?__(3,"Name"), ""}],
-              fun([String]) -> {select,{by,{by_name_with,String}}} end)
+        true -> St;
+	      _ ->
+          Qs = [{label,?__(1,"Enter text pattern below to control matches.")},
+          {text, "", [{width,20},{key,pattern}]},
+          {vradio,[  {?__(2,"Begins With"),begins},
+                     {?__(3,"Contains"),contains},
+                     {?__(4,"Ends With"),ends},
+                     {?__(5,"Any/All"), all} ],
+                    contains, [{key,where},{title,?__(6,"Where Match ...")}]}
+          ],
+          wings_ask:dialog(?__(7,"Select By Name"), Qs,
+                fun(Res) -> {select,{by,{by_name_with,Res}}} end)
     end.
 
-by_name_with(Filter, #st{shapes=Shs}=St) ->
-    Sel = foldl(fun(#we{id=Id,perm=P,name=Name}, A) ->
-            if ?IS_VISIBLE(P)=:=true ->
-                case wings_util:is_name_masked(Name,Filter) of
-                true -> #st{sel=Sel0}=wings_sel:select_object(Id,St),
-                    [A|Sel0];
-                _ -> A
-                end;
-            true -> A
-            end
-		end, [], gb_trees:values(Shs)),
-	Sel1=lists:flatten(Sel),
-    St#st{sel=Sel1}.
+by_name_with(Ask, #st{selmode=MODE}=St) when MODE /= body -> 
+    St2 = wings_sel_conv:mode(body,St),
+    by_name_with(Ask,St2);
+by_name_with(Ask, #st{sel=Sel0}=St) ->
+    {pattern,PatPart} = lists:keyfind(pattern,1,Ask),
+    {where,Where} = lists:keyfind(where,1,Ask),
+    Prefix = 
+    case Where of 
+        'ends' ->  PatPart ++ "$";
+        'begins' -> "^" ++ PatPart;
+        'contains' -> PatPart;
+        'all' -> "(.)+"
+    end,
+    SelFun = fun(_,#we{perm=P,name=Name}) ->
+        case re:run(Name,Prefix) of 
+          {match, _} -> ?IS_VISIBLE(P);
+          _OTHER -> false
+        end
+		end,
+    #st{sel=Sel2} = wings_sel:make(SelFun, body, St),
+    Sel3 =
+    case Sel0 of 
+      [ ] -> Sel2;
+      _   -> intersection(Sel0,Sel2)
+    end,
+    St#st{sel=Sel3}.
 
 valid_sel(Prompt, Sel, #st{shapes=Shs,selmode=Mode}=St) ->
     case wings_sel:valid_sel(Sel, Mode, St) of

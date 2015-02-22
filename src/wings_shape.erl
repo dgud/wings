@@ -284,6 +284,12 @@ event({set_knob_pos,Pos}, #ost{first=First0,n=N}=Ost0) ->
     end;
 event({action,Action}, #ost{st=#st{sel=Sel}=St0}=Ost) ->
     case Action of
+      {select,{by,{by_name_with,PATTERN}}} -> 
+          {save_state,St2} = wings_sel_cmd:command({by,{by_name_with,PATTERN}}, St0),
+          send_client({new_state,St2}),
+          get_event(Ost);
+      {objects,by_name} -> 
+          wings_sel_cmd:command({by,by_name}, St0); 
       {objects,{remove_from_folder,Id}} ->
           St = move_to_folder(?NO_FLD, [Id], St0),
           send_client({update_state,St}),
@@ -782,7 +788,9 @@ do_menu(-1, X, Y, _) ->
     Menu =
         [{?__(7,"Create Folder"),menu_cmd(create_folder)},
          {?__(16,"Remove Selected From Folders"),
-             menu_cmd(move_to_folder, ?NO_FLD)}],
+             menu_cmd(move_to_folder, ?NO_FLD)},
+         {?__(18,"Select Named ..."),by_name,?__(19,"User Prompted with by name dialog.")}
+             ],
     wings_menu:popup_menu(X, Y, objects, Menu);
 do_menu(Act, X, Y, #ost{os=Objs}) ->
     Menu = case lists:nth(Act+1, Objs) of
@@ -800,7 +808,9 @@ do_menu(Act, X, Y, #ost{os=Objs}) ->
                ?STR(do_menu,14,"Rename all selected objects"),
                ?STR(do_menu,15,"Rename objects using Search and Replace")},[]},
               separator,
-             {?__(7,"Create Folder"),menu_cmd(create_folder)}]++RF;
+             {?__(7,"Create Folder"),menu_cmd(create_folder)},
+             {?__(18,"Select Named ..."),by_name,?__(19,"User Prompted with by name dialog.")}
+             ]++RF;
         Folder ->
             [{?__(11,"Move to Folder"),menu_cmd(move_to_folder, Folder),
               ?__(12,"Move selected objects to this folder")},
