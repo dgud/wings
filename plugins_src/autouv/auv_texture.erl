@@ -17,10 +17,10 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -define(ERROR, error_msg(?LINE)).
--include("wings.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/src/wings.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 -include("auv.hrl").
--include("e3d.hrl").
 
 -import(lists, [foreach/2,reverse/1,sort/1,foldl/3,member/2]).
 -import(auv_segment, [map_vertex/2]).
@@ -80,27 +80,20 @@
 
 draw_options() ->
     [MaxTxs0|_] = gl:getIntegerv(?GL_MAX_TEXTURE_SIZE),
-    MaxTxs = max(min(4096, MaxTxs0), 256),
+    MaxTxs = max(min(8192, MaxTxs0), 256),
     Prefs = get_pref(tx_prefs, pref_to_list(#opt{})),
     TexSz = proplists:get_value(texsz, Prefs, 512),
     Shaders = shaders(),
-    Qs = [{hframe,[{menu,gen_tx_sizes(MaxTxs, []),TexSz,
-		    [{key,texsz}]}],
-	   [{title,?__(1,"Size")}]},
-	  {vframe,render_passes(Prefs, Shaders), [{title,?__(2,"Render")}]},
-	  {hframe,[{button,?__(4,"New Pass"),done,[{key,add_shader}]},
-		   {button,?__(5,"Delete Unused Pass"),done,[{key,del_shader}]}]}
+    Qs = [{hframe,[{menu, gen_tx_sizes(MaxTxs, []),TexSz,
+		    [{key,texsz}]}],[{title,?__(1,"Size")}]},
+	  {vframe, render_passes(Prefs, Shaders), [{title,?__(2,"Render")}]}
 	 ],
 
     wings_dialog:dialog(?__(3,"Draw Options"), Qs,
 			fun(Options) ->
-				{{changed,New},Opt} = list_to_prefs(Options),
+				Opt = list_to_prefs(Options),
 				set_pref([{tx_prefs,pref_to_list(Opt)}]),
-				if New ->
-					{auv,{draw_options,restart}};
-				   true  ->
-					{auv,{draw_options,{Opt,Shaders}}}
-				end
+				{auv,{draw_options,{Opt,Shaders}}}
 			end).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -108,25 +101,23 @@ draw_options() ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 render_passes(Prefs, Shaders) ->
-    %% Ugly count of shaders
-    NoOfPasses = max(length([ok || {{auv_pass,_},_} <- Prefs])-1, 1),
+    NoOfPasses = 7,
     Menu = renderers(Shaders),
-    Background = 
-	{hframe, 
-	 [{label, integer_to_list(0) ++ ": "},
-	  {menu,[{?__(1,"Background"), auv_background}],auv_background,
-	   [{key,{auv_pass,0}},layout]}, 
-	  {value,get_def(Prefs,auv_opt,0), store_opt(0)},
-	  {button,?__(2,"Options"),keep,[option_hook(0,background(),[]),
-					 drop_flags(0)]}],[]},
-    Other = [{hframe, 
-	      [{label, integer_to_list(Id) ++ ": "},
-	       {menu,Menu,default_menu(Id, Prefs),
-		[{key,{auv_pass,Id}},layout,pass_hook(Id)]}, 
-	       {value,get_def(Prefs, auv_opt, Id),store_opt(Id)},
+    Background =
+	{hframe,
+	 [{menu,[{?__(1,"Background"), auv_background}],auv_background,
+	   [{key,{auv_pass,0}}, enable_opt()]},
+	  {value, get_def(Prefs,auv_opt,0), [{key,{auv_opt,0}}]},
+	  {button,?__(2,"Options"),keep,
+	   [{key, {opt_butt, 0}}, option_hook(0,background(),[])]}],
+	 []},
+    Other = [{hframe,
+	      [{menu,Menu,default_menu(Id, Prefs),
+		[{key,{auv_pass,Id}}, enable_opt()]},
+	       {value,get_def(Prefs, auv_opt, Id),[{key,{auv_opt,Id}}]},
 	       {button,?__(3,"Options"),keep,
-		[option_hook(Id, Menu, Shaders),
-		 drop_flags(Id)]}],
+		[{key, {opt_butt, Id}}, option_hook(Id, Menu, Shaders)]}
+	      ],
 	      []} || Id <- lists:seq(1, NoOfPasses)],
     [Background|Other].
 
@@ -155,18 +146,38 @@ renderers(Shaders) ->
      {?__(2,"Draw Edges"),auv_edges},
      {?__(3,"Draw Faces"),auv_faces}|Menu0].
 
+option_dialog(Id, Fields, Renderers, Shaders) ->
+    try
+	Name = wings_dialog:get_value({auv_pass, Id}, Fields),
+	Opts = wings_dialog:get_value({auv_opt, Id}, Fields),
+	{StrName, Name} = renderer(Name,Renderers),
+	SetValue = fun(Res) ->
+			   wings_dialog:set_value({auv_opt, Id}, Res, Fields),
+			   %% We just change the values ignore result
+			   ignore
+		   end,
+	wings_dialog:dialog(StrName,options(Name,Opts,Shaders),SetValue)
+    catch _:Crash ->
+	    io:format("EXIT: ~p ~p~n",[Crash, erlang:get_stacktrace()])
+    end.
+
 options(auv_background, [{type_sel,Type},{Image,_},Color],_) ->
+    Enable = fun(_, What, Fields) ->
+		     IsImage = image == What,
+		     wings_dialog:enable(image_sel, IsImage, Fields),
+		     wings_dialog:enable(col_sel,  not IsImage, Fields)
+	     end,
     [{hradio,[{?__(1,"Image"),image},{?__(2,"Color"),color}],
-      Type,[{key,type_sel},layout]},
+      Type,[{key,type_sel},{hook, Enable}]},
      {hframe,[{label,?__(1,"Image")},image_selector(Image)],
-      [is_enabled(image)]},
+      [{key, image_sel}]},
      {hframe,[{label,?__(2,"Color")},{color,fix(Color,wings_gl:have_fbo())}],
-      [is_enabled(color)]}];
-options(auv_background, _Bad,Sh) ->  
+      [{key, col_sel}]}];
+options(auv_background, _Bad,Sh) ->
     options(auv_background, ?OPT_BG,Sh);
 options(auv_edges,[Type,Color,Size,UseVtxColors],_) ->
     [{vradio,[{?__(3,"Draw All Edges"),all_edges},
-	      {?__(4,"Draw Border Edges"), border_edges}], 
+	      {?__(4,"Draw Border Edges"), border_edges}],
       Type, []},
      {hframe,[{label,?__(5,"Edge Color:")},{color,Color}]},
      {hframe,[{label,?__(6,"Edge Width:")},{text,Size,[{range,{0.0,100.0}}]}]},
@@ -246,55 +257,29 @@ image_selector(Default) ->
     end,
     {menu,Menu,Def,[layout]}.
 
-is_enabled(Type) ->
-    {hook, fun(is_minimized, {_Var,_I,Store}) -> 
-		   case gb_trees:get(type_sel, Store) of
-		       Type ->   false;
-		       _Other -> true
-		   end;
-	      (_,_) -> void
-	   end}.
+enable_opt() ->
+    {hook,
+     fun(Key={_, Id}, Pass, Fields) ->
+	     Disable = Pass =:= ignore orelse Pass =:= auv_faces,
+	     wings_dialog:enable({opt_butt, Id},  not Disable, Fields),
+	     Changed = wings_dialog:get_value(Key, Fields) =/= Pass,
+	     Changed andalso wings_dialog:set_value({auv_opt, Id}, [], Fields)
+     end}.
 
 option_hook(Id,Renderers,Shaders) ->
-    {hook, fun(is_disabled,{_Var,_I,Sto}) ->
-		   Pass = gb_trees:get({auv_pass,Id}, Sto),
-		   Pass =:= ignore orelse Pass =:= auv_faces;
-	      (is_minimized, _) ->
-		   false;
-	      (update,{_Var,_I,_B,Sto}) ->
-		   Name = gb_trees:get({auv_pass,Id},Sto),
-		   render_option_dialog(Id,renderer(Name,Renderers),
-					Shaders,Sto);
-	      (_,_) -> void
-	   end}.
-
-pass_hook(Id) ->
-    {hook, fun(update,{Var,_I,B,Sto0}) ->
-		   VarE = {auv_opt,Id},
-		   Sto1 = gb_trees:enter(VarE,[],Sto0),
-		   {store, gb_trees:enter(Var,B,Sto1)};
-	      (_,_) -> void
-	   end}.
+    {hook,
+     fun(_Key, button_pressed, Fields) ->
+	     Env = wx:get_env(),
+	     spawn(fun() ->
+			   %% Neeed open dialog in dialog from another process
+			   wx:set_env(Env),
+			   option_dialog(Id, Fields, Renderers, Shaders)
+		   end)
+     end
+    }.
 
 renderer(Id,[Renderer={_,Id}|_R]) ->  Renderer;
 renderer(Id,[_|R]) ->  renderer(Id,R).
-
-render_option_dialog(Id,{StrName,Name},Shaders,Sto) ->
-    Fun = render_option_fun(wings_wm:this()),
-    Opt = gb_trees:get({auv_opt,Id},Sto),
-    wings_ask:dialog(StrName,options(Name,Opt,Shaders),Fun).
-
-render_option_fun(Parent) ->
-    fun(What) -> wpa:drop(Parent, {render_opt, What}) end.
-
-store_opt(Id) ->
-    [{key,{auv_opt,Id}},
-     {hook, fun(update,{Var,_I,_B={render_opt,Opt},Sto}) -> 
-		    {store, gb_trees:enter(Var,Opt,Sto)};
-	       (_,_) -> void
-	    end}].
-drop_flags(Id) ->
-    {drop_flags, [{index,-1}|store_opt(Id)]}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Texture creation
@@ -501,28 +486,15 @@ r2list([], Id, Max) when Id < Max ->
     [{{auv_pass,Id}, ignore},{{auv_opt,Id},[]}|r2list([],Id+1,Max)];
 r2list([], _Id, _Max)  -> [].
 
-list_to_prefs([{texsz, TexSz}|Rest]) ->    
-    case reverse(Rest) of
-	[{del_shader, true},{add_shader,_}|ROpts] -> 
-	    LR = listOfRenders(reverse(ROpts),delete,[]),
-	    Changed = true;
-	[{del_shader, false},{add_shader, true}|ROpts] -> 
-	    LR = listOfRenders(reverse(ROpts),keep,[]) ++ [{ignore, none}],
-	    Changed = true;
-	[{del_shader, false},{add_shader, false}|ROpts] ->
-	    LR = listOfRenders(reverse(ROpts),keep,[]),
-	    Changed = false
-    end,
-    {{changed, Changed},
-     #opt{texsz={TexSz,TexSz},no_renderers=length(LR),renderers=LR}}.
+list_to_prefs([{texsz, TexSz}|Rest]) ->
+    LR = listOfRenders(Rest,[]),
+    #opt{texsz={TexSz,TexSz},no_renderers=length(LR),renderers=LR}.
 
-listOfRenders([{{auv_pass,_},ignore},_|Rest],delete,Acc) ->
-    listOfRenders(Rest,delete,Acc);
-listOfRenders([{{auv_pass,_},ignore},_|Rest],keep,Acc) ->
-    listOfRenders(Rest,keep,[{ignore,[]}|Acc]);
-listOfRenders([{{auv_pass,_},Type},{{auv_opt,_},Opts}|Rest],Op,Acc) ->
-    listOfRenders(Rest,Op,[{Type,Opts}|Acc]);
-listOfRenders([],_,Acc) -> reverse(Acc).
+listOfRenders([{{auv_pass,_},ignore},_|Rest],Acc) ->
+    listOfRenders(Rest,[{ignore,[]}|Acc]);
+listOfRenders([{{auv_pass,_},Type},{{auv_opt,_},Opts}|Rest],Acc) ->
+    listOfRenders(Rest,[{Type,Opts}|Acc]);
+listOfRenders([],Acc) -> reverse(Acc).
     
 gen_tx_sizes(Sz, Acc) when Sz < 128 -> Acc;
 gen_tx_sizes(Sz, Acc) ->
