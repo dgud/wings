@@ -653,7 +653,10 @@ build_dialog(false, _Title, Qs) ->
     {undefined, DialogData};
 build_dialog(AskType, Title, Qs) ->
     wx:batch(fun() ->
-		     Parent = get(top_frame),
+		     Parent = case get(top_frame) of
+				  undefined -> wx:null(); %% Invoked from another process
+				  TopF -> TopF
+			      end,
 		     Style  = {style, ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER},
 		     Dialog = wxDialog:new(Parent, ?wxID_ANY, Title, [Style]),
 		     Panel  = wxPanel:new(Dialog, []),
@@ -661,7 +664,9 @@ build_dialog(AskType, Title, Qs) ->
 		     Sizer  = wxBoxSizer:new(?wxVERTICAL),
 		     DialogData = build(AskType, Qs, Panel, Sizer),
 		     wxWindow:setSizer(Panel, Sizer),
-		     wxSizer:add(Top, Panel, [{proportion, 1}, {flag, ?wxEXPAND bor ?wxALL}, {border, 5}]),
+		     wxSizer:add(Top, Panel, [{proportion, 1},
+					      {flag, ?wxEXPAND bor ?wxALL},
+					      {border, 5}]),
 		     setup_buttons(Dialog, Top, DialogData),
 		     wxWindow:setSizerAndFit(Dialog, Top),
 		     setup_hooks(DialogData),
