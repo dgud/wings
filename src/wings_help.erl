@@ -61,7 +61,7 @@ header(default_commands) ->
 header(performance_tips) ->
     ?__(9,"Performance Tips");
 header(opengl_info) ->
-    ?__(10,"OpenGL Info");
+    ?__(10,"Software/OpenGL Info");
 header(about) ->
     ?__(11,"About Wings 3D");
 header(tweak_help) ->

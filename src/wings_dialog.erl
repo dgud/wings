@@ -251,18 +251,16 @@ init() ->
 %% Display a text window (Info converted to html)
 info(Title, Info, Options) ->
     Parent = proplists:get_value(top_frame, Options, get(top_frame)),
-    Style  = {style, ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER},
     Size   = {size, {500, 400}},
-    Dialog = wxDialog:new(Parent, ?wxID_ANY, Title,
-			  [Style, Size]),
-    Panel  = wxHtmlWindow:new(Dialog, []),
+    Frame  = wxFrame:new(Parent, ?wxID_ANY, Title, [Size]),
+    Panel  = wxHtmlWindow:new(Frame, []),
     Sizer  = wxBoxSizer:new(?wxVERTICAL),
     Html = text_to_html(Info),
     wxHtmlWindow:appendToPage(Panel, Html),
     wxSizer:add(Sizer, Panel, [{proportion, 1}, {flag, ?wxEXPAND}]),
-    wxWindow:setSizer(Dialog, Sizer),
-    wxDialog:showModal(Dialog),
-    wxDialog:destroy(Dialog),
+    wxSizer:setSizeHints(Sizer, Panel),
+    wxWindow:setSizer(Frame, Sizer),
+    wxFrame:show(Frame),
     keep.
 
 
