@@ -138,8 +138,7 @@ fonts() ->
      res=[]}).	% output string with line breaks
 
 break_lines(InputText, infinite) ->
-    {W,_} = wings_wm:top_size(),
-    break_lines(InputText, W-40);
+    {1, InputText};
 break_lines(InputText, W) ->
 %% Returns Text formatted with line breaks to max width of W and height in Rows
     CW = ?CHAR_WIDTH,
