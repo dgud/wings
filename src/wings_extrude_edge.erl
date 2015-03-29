@@ -13,7 +13,7 @@
 %%
 
 -module(wings_extrude_edge).
--export([bump/1,bevel/1,bevel_faces/1,extrude/2,crease/1]).
+-export([bump/1,bevel/1,bevel_faces/1,extrude/2,crease/1,extrude_edges/3]).
 
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1]).
