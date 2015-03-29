@@ -55,6 +55,15 @@ map(Fun, St = #st{shapes=Shs0}) ->
 build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He}) when is_atom(Mode) ->
     Fs = translate_faces(Fs0, list_to_tuple(Tx), []),
     wings_we_build:we(Fs, Vs, He);
+build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He,vc=[{_R,_G,_B}|_]=Vc}) when is_atom(Mode) ->
+    Fs = translate_faces(Fs0, list_to_tuple(Tx), []),
+    #we{vp=VPos} = We = wings_we_build:we(Fs, Vs, He),
+    Dict = lists:zip(lists:seq(0,length(Vc)-1), Vc),
+    Tree = gb_trees:from_orddict(Dict),
+    MyAcc = fun(Vi,_VAL, Acc) -> 
+         wings_va:set_vertex_color(gb_sets:singleton(Vi),gb_trees:get(Vi,Tree), Acc)
+    end,
+    array:foldl(MyAcc, We, VPos);
 build(Fs, Vs) ->
     wings_we_build:we(Fs, Vs, []).
 
