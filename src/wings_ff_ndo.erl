@@ -67,8 +67,6 @@ read_object_1(<<L:16,T0/binary>>) ->
 	bad -> bad;
 	{Name,T1} ->
 	    <<Vis:8,Sensivity:8,_:8,_:8,_:72/binary,T2/binary>> = T1,
-	    io:format(?__(1,"~w: ~s: vis=~p sensitivity=~p\n"),
-		      [L,Name,Vis,Sensivity]),
 	    Perm = case {Vis,Sensivity} of
 		       {1,1} -> 0;		%Visible, unlocked
 		       {1,0} -> 1;		%Visible, locked
@@ -120,7 +118,6 @@ skip_texture(N, <<Pixels:8,_RGB:24,T/binary>>) when N > 0 ->
     skip_texture(N-Pixels, T).
 
 read_edges(<<NumEdges:16,T/binary>>) ->
-    io:format(?__(1," edges ~w\n"), [NumEdges]),
     read_edges(0, NumEdges, T, [], [], []).
     
 read_edges(N, N, T, Eacc, Hacc, ColAcc) ->
@@ -142,13 +139,11 @@ read_edges(Edge, N, <<EdgeRec0:25/binary,T/binary>>, Eacc, Hacc0, ColAcc) ->
     read_edges(Edge+1, N, T, [EdgeRec|Eacc], Hacc, [ColInfo|ColAcc]).
 
 skip_faces(<<NumFaces:16,T0/binary>>) ->
-    io:format(?__(1," faces ~w\n"), [NumFaces]),
     Skip = 2*NumFaces,
     <<_:Skip/binary,T/binary>> = T0,
     T.
 
 read_vertices(<<NumVertices:16,T/binary>>) ->
-    io:format(?__(1," vertices ~w\n"), [NumVertices]),
     read_vertices(0, NumVertices, T, []).
     
 read_vertices(N, N, T, Acc) ->
