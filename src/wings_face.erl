@@ -26,6 +26,7 @@
 	 vertex_positions/2,vertex_positions/3,
 	 extend_border/2,
 	 inner_edges/2,outer_edges/2,inner_outer_edges/2,
+     neighbors_by_edges/2,neighbors_by_vertices/2,
 	 fold/4,fold/5,fold_faces/4,
 	 iterator/2,skip_to_edge/2,skip_to_cw/2,skip_to_ccw/2,
 	 next_cw/1,next_ccw/1,
@@ -37,6 +38,36 @@
 -include("wings.hrl").
 -include("e3d.hrl").
 -import(lists, [reverse/1,sort/1]).
+%% Convert Fs gb_set to neighbor faces (buffer zone) gb_set 
+%% around origonal selection ... by edge tangency
+neighbors_by_edges(Fs, #we{es=Etab}=We) when not(is_list(Fs)) -> 
+    OE = wings_face:outer_edges(Fs,We),
+    MyAcc = fun(Ei,Acc) ->
+        #edge{lf=LF,rf=RF} = array:get(Ei,Etab),
+        case {gb_sets:is_member(LF,Fs), gb_sets:is_member(RF,Fs)}  of 
+            {true,false} -> gb_sets:add(RF,Acc);
+            {false,true} -> gb_sets:add(LF,Acc);
+            {_,_}        -> Acc   %% should not happen
+        end
+    end, 
+    lists:foldl(MyAcc,gb_sets:empty(),OE).
+
+
+%% Convert Fs gb_set to strict neighbor  faces (buffer zone) gb_set 
+%% around origonal selection ... by vertex tangency
+neighbors_by_vertices(Fs, #we{es=Etab}=We) when not(is_list(Fs)) -> 
+    OE = wings_face:outer_edges(Fs,We),
+    MyAcc = fun(Ei,Acc) ->
+        #edge{lf=LF,rf=RF} = array:get(Ei,Etab),
+        case {gb_sets:is_member(LF,Fs), gb_sets:is_member(RF,Fs)}  of 
+            {true,false} -> gb_sets:add(LF,Acc);
+            {false,true} -> gb_sets:add(RF,Acc);
+            {_,_}        -> Acc   %% should not happen
+        end
+    end, 
+    InnerFaces = lists:foldl(MyAcc,gb_sets:empty(),OE), % Just inside enclosing loop
+    List = wings_edge:from_vs(wings_edge:to_vertices(OE,We),We),
+    gb_sets:subtract(from_edges(List,We),InnerFaces).
 
 from_edges(Es, #we{es=Etab}) when is_list(Es) ->
     from_edges_1(Es, Etab, []);
