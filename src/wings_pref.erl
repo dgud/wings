@@ -39,27 +39,43 @@ init() ->
 
 load() ->
     case old_pref_file() of
-	none ->
-	    %% No preference file found. We must turn
-	    %% on the advanced menus.
-	    set_value(advanced_menus, true),
-	    set_value(legacy_colors_checked, true),
-	    ok;
-	PrefFile ->
-	    io:format("wings-~s\nReading preferences from: ~s\n",
-		    [?WINGS_VERSION, PrefFile]),
-	    case file:consult(PrefFile) of
-		{ok,List0} ->
-		    List = clean(List0),
-		    catch ets:insert(wings_state, List),
-		    check_user_keys(List),
-		    check_legacy_colors(List),
-		    win32_window_layout(),
-		    no_more_basic_menus();
-		{error,_Reason} ->
-		    ok
-	    end
+        none ->
+            %% No preference file found. We must turn
+            %% on the advanced menus.
+            set_value(advanced_menus, true),
+            set_value(legacy_colors_checked, true),
+            ok;
+        PrefFile ->
+            io:format("wings-~s\nReading preferences from: ~s\n",
+                [?WINGS_VERSION, PrefFile]),
+            case local_consult(PrefFile) of
+                {ok,List0} ->
+                    List = clean(List0),
+                    catch ets:insert(wings_state, List),
+                    check_user_keys(List),
+                    check_legacy_colors(List),
+                    win32_window_layout(),
+                    no_more_basic_menus();
+                {error,_Reason} ->
+                    ok
+            end
     end.
+
+%%% The function tries to load the preferences files without getting an error if it isn't unicode
+%%% It's applied to the Preferences.txt and Preference Subset.pref files
+local_consult(PrefFile) ->
+    case file:consult(PrefFile) of
+         {error,{_,file_io_server,invalid_unicode}} ->
+             latin1_file_to_unicode(PrefFile),
+             file:consult(PrefFile);
+         Res -> Res
+    end.
+
+%%% convert file from latin1 to unicode
+latin1_file_to_unicode(PrefFile) ->
+    {ok, Latin1} = file:read_file(PrefFile),
+    Utf8 = unicode:characters_to_binary(Latin1, latin1, utf8),
+    ok = file:write_file(PrefFile, Utf8).
 
 get_dir() ->
     PFile = case get_value(pref_directory) of
@@ -137,7 +153,8 @@ finish_save_prefs(PrefFile) ->
 	       (Else) -> PostProcess(io_lib:format(Format, [Else]))
 	    end,
     Str = lists:map(Write, List),
-    catch file:write_file(PrefFile, Str),
+    Bin = unicode:characters_to_binary(io_lib:format("~ts",[Str])),
+    catch file:write_file(PrefFile, Bin),
     ok.
 
 lowpass(X, Y) ->
@@ -736,12 +753,12 @@ pref({load, Res0}, St) -> %% load a .pref
     {_,Dir} = lists:keyfind(pref_directory,1,Res),
     case lists:suffix(".pref",Dir) of
       true ->
-        case file:consult(Dir) of
+        case local_consult(Dir) of
           {ok,List} ->
             load_pref_category(sort(Res),List,St),
             init_opengl();
           {error,Reason} ->
-          io:format(Reason),
+            io:format(".pref loading error: ~p\n",[Reason]),
             ok
         end;
       false ->
