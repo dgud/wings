@@ -288,6 +288,14 @@ event({action,Action}, #ost{st=#st{sel=Sel}=St0}=Ost) ->
           St = move_to_folder(?NO_FLD, [Id], St0),
           send_client({update_state,St}),
           get_event(Ost);
+      {objects,{select_folder_items,Folder}} ->
+          St2 = select_folder_items(Folder, St0),
+          send_client({update_state,St2}),
+          get_event(Ost);
+      {objects,{deselect_folder_items,Folder}} ->
+          St2 = deselect_folder_items(Folder, St0),
+          send_client({update_state,St2}),
+          get_event(Ost);
       {objects,{empty_folder,Folder}} ->
           St = empty_folder(Folder, St0),
           send_client({update_state,St}),
@@ -806,6 +814,12 @@ do_menu(Act, X, Y, #ost{os=Objs}) ->
               ?__(12,"Move selected objects to this folder")},
              {?__(13,"Empty Folder"),menu_cmd(empty_folder, Folder)},
              {?__(8,"Rename Folder"),menu_cmd(rename_folder, Folder)},
+             {?__(20,"Select Folders Items"),
+                  fun(1, _Ns) -> {objects,{select_folder_items,Folder}};
+                     (3, _Ns) -> {objects,{deselect_folder_items,Folder}};
+                      (_, _) -> ignore
+                  end,
+                   { ?__(21,"Select"), [], ?__(22,"Deselect") }, [] },
              separator,
              {?__(7,"Create Folder"),menu_cmd(create_folder)},
              {?__(9,"Delete Folder"),menu_cmd(delete_folder, Folder),
@@ -1679,6 +1693,21 @@ delete_folder(Folder, #st{shapes=Shs0,pst=Pst0}=St) ->
     Pst = gb_trees:update(?FOLDERS, {DefaultFld,Fld}, Pst0),
     wings_sel:valid_sel(St#st{shapes=Shapes,pst=Pst}).
 
+select_folder_items(Folder, #st{pst=Pst0,sel=Sel0}=St) -> 
+    {_,Fld}  = gb_trees:get(?FOLDERS,Pst0),
+    {_,Ids} = orddict:fetch(Folder, Fld),
+    IdsOld = gb_sets:from_list([WeID|| {WeID,_}<- Sel0]),
+    NewSet = gb_sets:union(Ids,IdsOld),
+    SEL = [{Id,gb_sets:singleton(0)} || Id<-gb_sets:to_list(NewSet)],
+    St#st{selmode=body,sel=SEL}.
+
+deselect_folder_items(Folder, #st{pst=Pst0,sel=Sel0}=St) -> 
+    {_,Fld}  = gb_trees:get(?FOLDERS,Pst0),
+    {_,Ids} = orddict:fetch(Folder, Fld),
+    IdsOld = gb_sets:from_list([WeID|| {WeID,_}<- Sel0]),
+    NewSet = gb_sets:subtract(IdsOld,Ids),
+    SEL = [{Id,gb_sets:singleton(0)} || Id<-gb_sets:to_list(NewSet)],
+    St#st{selmode=body,sel=SEL}.
 move_to_folder(Folder, #st{sel=Sel}=St) ->
     Ids = orddict:fetch_keys(Sel),
     move_to_folder(Folder, Ids, St).
