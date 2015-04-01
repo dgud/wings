@@ -164,12 +164,17 @@ handle_sculpt_event_1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
 handle_sculpt_event_1(#mousebutton{button=3,mod=Mod,x=X,y=Y,state=?SDL_RELEASED}, Sc)
   when Mod band ?CTRL_BITS =/= 0 ->
     sculpt_menu(X, Y, Sc);
-handle_sculpt_event_1(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev, Sc) ->
+handle_sculpt_event_1(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev, #sculpt{st=St}=Sc) ->
     case is_altkey_magnet_event(Sym,Mod) of
       true ->
         {_,X,Y} = wings_wm:local_mouse_state(),
-        {GX,GY} = wings_wm:local2global(X, Y),
-        adjust_magnet(GX, GY, Sc);
+        case wings_pick:do_pick(X,Y,St) of
+          {_, _, _} ->
+              {GX,GY} = wings_wm:local2global(X, Y),
+              adjust_magnet(GX, GY, Sc);
+          none ->
+              keep
+        end;
       _ ->
         handle_key(Sym, Ev, Sc)
     end;
@@ -223,6 +228,9 @@ handle_magnet_event(#mousebutton{button=5,state=?SDL_RELEASED}, X, Y, Sc0) ->
 handle_magnet_event(#mousebutton{button=Button}, X, Y, Sc)
   when Button =:= 4; Button =:= 5 ->
     update_magnet_handler(X, Y, Sc);
+handle_magnet_event(#mousebutton{}=Ev, X, Y, Sc) ->
+    wings_wm:later(Ev),
+    end_magnet_event(X, Y, Sc);
 handle_magnet_event(#keyboard{sym=Sym,state=?SDL_RELEASED}, X, Y, Sc)
   when Sym =:= ?SDLK_LALT; Sym =:= ?SDLK_RALT ->
     end_magnet_event(X, Y, Sc);
