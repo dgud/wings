@@ -31,6 +31,7 @@ endif
 MODULES= \
 	wpc_absolute_move \
 	wpc_absolute_scale \
+	wpc_absolute_rotate \
 	wpc_ambocc \
 	ambocc_gl2 \
 	wpc_arc_intersect \

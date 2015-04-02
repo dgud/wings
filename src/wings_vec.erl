@@ -17,6 +17,7 @@
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
+-define(SEP, [160,160,160,160,160]).    %Equivalent to two and a half space character width.
 -include("wings.hrl").
 
 -import(lists, [reverse/1,member/2,last/1]).
@@ -194,18 +195,22 @@ handle_event_3(Ev, Ss, St) -> handle_event_4(Ev, Ss, St).
 
 handle_event_4({new_state,St}, #ss{f=Check}=Ss, _St0) ->
     case Check(check, St) of
-	{Vec,Msg} -> 
+	{Vec,Msg} ->
 	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);
-	[{Vec,Msg}] -> 
+	[{Vec,{Msg,SwMsg}}] ->
+	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=SwMsg}, St);
+	[{Vec,Msg}] ->
 	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);
 	[{Vec,{Msg,SwMsg}},{AltVec,_}] ->
 	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=AltVec,sw_msg=SwMsg}, St)
     end;
 handle_event_4({update_state,St}, #ss{f=Check}=Ss, _St0) ->
     case Check(check, St) of
-	{Vec,Msg} -> 
+	{Vec,Msg} ->
 	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);
-	[{Vec,Msg}] -> 
+	[{Vec,{Msg,SwMsg}}] ->
+	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=SwMsg}, St);
+	[{Vec,Msg}] ->
 	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);
 	[{Vec,{Msg,SwMsg}},{AltVec,_}] ->
 	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=AltVec,sw_msg=SwMsg}, St)
@@ -264,7 +269,7 @@ handle_event_4(_Event, Ss, St) ->
 
 temp_selection(X, Y, St0) ->
     case St0 of
-	#st{sel=[{_,_}|_]} -> 
+	#st{sel=[{_,_}|_]} ->
 	    none;
 	_ ->
 	    case wings_pick:do_pick(X, Y, St0) of
@@ -344,9 +349,13 @@ redraw(#ss{info=Info,f=Message,vec=Vec}=Ss, St) ->
     gl:popAttrib(),
     wings_wm:current_state(St).
 
-right_message(#ss{alt_vec=none}) -> [];
+right_message(#ss{alt_vec=none,sw_msg=none}) -> [];
+right_message(#ss{alt_vec=none,sw_msg=Msg}) -> Msg;
 right_message(#ss{sw_msg=Msg}) ->
     "[1] " ++ Msg.
+
+invert_message() ->
+    "[2] " ++ ?__(1,"Invert orientation").
 
 filter_sel_command(#ss{selmodes=Modes}=Ss, #st{selmode=Mode}=St) ->
     case member(Mode, Modes) of
@@ -359,13 +368,21 @@ handle_key(#keyboard{sym=$1}, #ss{vec=Vec,alt_vec=Vec}, St) ->
     keep;
 handle_key(#keyboard{sym=$1}, #ss{f=Check}=Ss, St) ->
     case Check(check, St) of
-	{Vec,Msg} -> 
+	{Vec,Msg} ->
 	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);
-	[{Vec,Msg}] -> 
+	[{Vec,Msg}] ->
+	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);
+	[{Vec,{Msg,SwMsg}}] ->
+	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=SwMsg}, St);
+	[{Vec,Msg}] ->
 	    get_event(Ss#ss{info=Msg,vec=Vec,alt_vec=none,sw_msg=none}, St);
 	[_,{AltVec,{Msg,SwMsg}}] ->
 	    get_event(Ss#ss{info=Msg,vec=AltVec,alt_vec=AltVec,sw_msg=SwMsg}, St)
     end;
+handle_key(#keyboard{sym=$2}, #ss{vec={Center,Vec},alt_vec=none}=Ss, St) ->
+	get_event(Ss#ss{vec={Center,e3d_vec:neg(Vec)}}, St);
+handle_key(#keyboard{sym=$2}, #ss{vec={Center,Vec},alt_vec={Center,AltVec}}=Ss, St) ->
+	get_event(Ss#ss{vec={Center,e3d_vec:neg(Vec)},alt_vec={Center,e3d_vec:neg(AltVec)}}, St);
 handle_key(#keyboard{sym=27}, _, _) ->		%Escape
     wings_wm:later({action,{secondary_selection,abort}});
 handle_key(_, _, _) -> next.
@@ -429,7 +446,20 @@ build_result_1(Res, Cb, St0) ->
 
 check_vector(#st{sel=[]}) -> {none,""};
 
-check_vector(#st{selmode=vertex,sel=[{_Ob1,Sel1},{_Ob2,Sel2},{_Ob3,Sel3}]}=St) ->
+check_vector(St) ->
+    case check_vector_0(St) of
+	[{none,_}]=Res ->
+	    Res;
+	[{Vec,Msg}] ->
+	    [{Vec,{Msg,invert_message()}}];
+	[{Vec,{InfMsg,SwMsg}},{AltVec,{InfMsg0,SwMsg0}}] ->
+	    [{Vec,{InfMsg,SwMsg++?SEP++invert_message()}},
+	     {AltVec,{InfMsg0,SwMsg0++?SEP++invert_message()}}];
+    Res ->
+        Res
+	end.
+
+check_vector_0(#st{selmode=vertex,sel=[{_Ob1,Sel1},{_Ob2,Sel2},{_Ob3,Sel3}]}=St) ->
     VertNum = gb_sets:size(Sel1) + gb_sets:size(Sel2) + gb_sets:size(Sel3),
     case VertNum of
       3 ->
@@ -444,7 +474,7 @@ check_vector(#st{selmode=vertex,sel=[{_Ob1,Sel1},{_Ob2,Sel2},{_Ob3,Sel3}]}=St) -
         {none,Str}
     end;
 
-check_vector(#st{selmode=vertex,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}=St) ->
+check_vector_0(#st{selmode=vertex,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}=St) ->
     SelSize = gb_sets:size(Sel0) + gb_sets:size(Sel1),
     case SelSize of
       2 ->
@@ -460,12 +490,11 @@ check_vector(#st{selmode=vertex,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}=St) ->
                         end,[],St),
         Positions = lists:merge(PosList),
         get_vec(vertex,plane,Positions);
-
       _ ->
         Str = guard_string(),
         {none,Str}
     end;
-check_vector(#st{selmode=edge,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
+check_vector_0(#st{selmode=edge,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
         We0 = gb_trees:get(Id0,Shs),
         We1 = gb_trees:get(Id1,Shs),
         EL0 = gb_sets:to_list(Sel0),
@@ -475,7 +504,7 @@ check_vector(#st{selmode=edge,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
           _ -> get_vec(edge, [{EL0}, {EL1}], [We0, We1])
         end;
 
-check_vector(#st{selmode=Mode,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
+check_vector_0(#st{selmode=Mode,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
     SelSize = gb_sets:size(Sel0) + gb_sets:size(Sel1),
     case SelSize of
       2 ->
@@ -489,12 +518,12 @@ check_vector(#st{selmode=Mode,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
         {none,Str}
     end;
 
-check_vector(#st{selmode=Mode,sel=[{Id,Elems0}],shapes=Shs}) ->
+check_vector_0(#st{selmode=Mode,sel=[{Id,Elems0}],shapes=Shs}) ->
     We = gb_trees:get(Id, Shs),
     Elems = gb_sets:to_list(Elems0),
     get_vec(Mode, Elems, We);
 
-check_vector(_) ->
+check_vector_0(_) ->
     Str = guard_string(),
     {none,Str}.
 
@@ -549,7 +578,7 @@ get_vec(edge, [{Edges1},{Edges2}], [We1,We2]) ->
         LoopCenter2 = wings_vertex:center(Vs2, We2),
         Center = e3d_vec:average(LoopCenter1, LoopCenter2),
         Vec = e3d_vec:norm_sub(LoopCenter1, LoopCenter2),
-        [{{Center,Vec},?__(28,"Axis between edge loop centers saved as axis.")}];		
+        [{{Center,Vec},?__(28,"Axis between edge loop centers saved as axis.")}];
     _Other ->
         [{none,guard_string()}]
     end;
@@ -640,7 +669,7 @@ get_vec(edge, [Edge1,Edge2], #we{es=Etab,vp=Vtab}) ->
 %% Use edge-loop normal.
 get_vec(edge, Edges, #we{vp=Vtab}=We) ->
     case wings_edge_loop:edge_loop_vertices(Edges, We) of
-	[Vs] -> 
+	[Vs] ->
 	    Center = wings_vertex:center(Vs, We),
 	    Vec = wings_face:face_normal_ccw(Vs, Vtab),
 	    [{{Center,Vec},?__(6,"Edge loop normal saved as axis.")}];
@@ -649,7 +678,7 @@ get_vec(edge, Edges, #we{vp=Vtab}=We) ->
 	    LoopCenter2 = wings_vertex:center(Vs2, We),
 		Center = e3d_vec:average(LoopCenter1, LoopCenter2),
 	    Vec = e3d_vec:norm_sub(LoopCenter1, LoopCenter2),
-	    [{{Center,Vec},?__(28,"Axis between edge loop centers saved as axis.")}];		
+	    [{{Center,Vec},?__(28,"Axis between edge loop centers saved as axis.")}];
 	_Other ->
 	    [{none,?__(29,"Multi-edge selection must form either a single or two closed edge loops.")}]
     end;
@@ -683,7 +712,7 @@ get_vec(vertex, [_,_,_]=Vs, #we{vp=Vtab}=We) ->
 get_vec(vertex, Vs0, #we{vp=Vtab}=We) ->
     Edges = find_edges(Vs0, We),
     case wings_edge_loop:edge_loop_vertices(Edges, We) of
-	[Vs] -> 
+	[Vs] ->
 	    Center = wings_vertex:center(Vs, We),
 	    Vec = wings_face:face_normal_cw(Vs, Vtab),
 	    [{{Center,Vec},?__(14,"Vertex loop normal saved as axis.")}];
