@@ -179,7 +179,7 @@ tweak_event_handler(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev,St) ->
           true -> keep;
           false ->
             ReturnAxis = toggle_data(Axis),
-            wings_pref:set_value(tweak_axis_toggle,[{Sym,ReturnAxis,now()}|Pressed]),
+            wings_pref:set_value(tweak_axis_toggle,[{Sym,ReturnAxis,os:timestamp()}|Pressed]),
             wings_io:change_event_handler(?SDL_KEYUP, ?SDL_ENABLE),
             toggle_axis(Axis),
             wings_wm:dirty(),
@@ -204,7 +204,7 @@ tweak_event_handler(#keyboard{sym=Sym,state=?SDL_RELEASED},_St) ->
     case lists:keytake(Sym,1,Pressed0) of
       {value,{Sym,Axis,PressTime},Pressed} ->
         ClickSpeed = wings_pref:get_value(tweak_click_speed),
-        case timer:now_diff(now(), PressTime) > ClickSpeed of
+        case timer:now_diff(os:timestamp(), PressTime) > ClickSpeed of
           true ->
             toggle_axis(Axis),
             wings_wm:dirty(),
@@ -299,10 +299,10 @@ handle_initial_event(#mousebutton{button=1,state=?SDL_RELEASED}, What, #st{shape
     end,
     wings_wm:send({object,wings_wm:this()}, {current_state,St}),
     wings_wm:dirty(),
-    initiate_tweak_handler(What, St, T#tweak{clk={one,now()}});
+    initiate_tweak_handler(What, St, T#tweak{clk={one,os:timestamp()}});
 handle_initial_event(#mousebutton{button=1,x=X0,y=Y0,state=?SDL_PRESSED}=Ev,
   _What, St, #tweak{clk={one,Clk},ox=X,oy=Y,st=TweakSt}) ->
-    case timer:now_diff(now(),Clk) < wings_pref:get_value(tweak_click_speed) of
+    case timer:now_diff(os:timestamp(),Clk) < wings_pref:get_value(tweak_click_speed) of
       true ->
         wings_pick:paint_pick(X0, Y0, TweakSt);
       false ->
@@ -438,7 +438,7 @@ handle_tweak_drag_event_0(#keyboard{sym=Sym,state=?SDL_RELEASED},T) ->
     case lists:keytake(Sym,1,Pressed0) of
       {value,{Sym,Axis,PressTime},Pressed} ->
         ClickSpeed = wings_pref:get_value(tweak_click_speed),
-        case timer:now_diff(now(), PressTime) > ClickSpeed of
+        case timer:now_diff(os:timestamp(), PressTime) > ClickSpeed of
           true ->
             toggle_axis(Axis),
             wings_wm:send({tweak,axis_palette}, update_palette);
@@ -1531,7 +1531,7 @@ is_tweak_hotkey({tweak,Cmd}, #tweak{magnet=Magnet,sym=Sym,st=St0}=T0) ->
           case lists:keymember(Sym, 1, Pressed) of
             true -> keep;
             false ->
-              Data = [{Sym,ReturnAxis,now()}|Pressed],
+              Data = [{Sym,ReturnAxis,os:timestamp()}|Pressed],
               wings_pref:set_value(tweak_axis_toggle, Data),
               toggle_axis(Axis),
               wings_wm:send({tweak,axis_palette}, update_palette),

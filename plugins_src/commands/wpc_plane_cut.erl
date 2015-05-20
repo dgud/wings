@@ -213,7 +213,7 @@ sel_fun() ->
 %%%
 
 plane_cut(Cut, {Axis0,N}, #st{selmode=SelMode}=St0) when is_integer(N) ->
-    T1 = now(),
+    T1 = os:timestamp(),
     Axis = axis_conv(Axis0),
     Points = slice_points(Axis, N, St0),
 
@@ -222,7 +222,7 @@ plane_cut(Cut, {Axis0,N}, #st{selmode=SelMode}=St0) when is_integer(N) ->
         wings_sel:mapfold(fun(Faces, #we{id=Id}=We0, Acc) ->
             {NewEdges,_,_,We} = foldl(fun
               (Point,{Es,Fs0,Seen0,We1}) ->
-                T2 = timer:now_diff(now(), T1),
+                T2 = timer:now_diff(os:timestamp(), T1),
                 if T2 > 20000000 -> planecut_error();
                   true ->
                     {NewEs,We2} = intersects(Fs0, Axis, Point, We1),
@@ -238,7 +238,7 @@ plane_cut(Cut, {Axis0,N}, #st{selmode=SelMode}=St0) when is_integer(N) ->
       body ->
         wings_sel:mapfold(fun(_, #we{id=Id}=We0, Acc) ->
             {NewEdges,_,We} = foldl(fun(Point,{Es,Seen0,We1}) ->
-                T2 = timer:now_diff(now(), T1),
+                T2 = timer:now_diff(os:timestamp(), T1),
                 if T2 > 20000000 -> planecut_error();
                   true ->
                     EdgePos2Cut = intersects(Axis, Point, We1),
@@ -272,7 +272,7 @@ plane_cut(_, {Axis0,Point}, #st{selmode=face}=St0) ->
 plane_cut(_, {Axis0,#st{selmode=SelMode}=StA},
   #st{selmode=vertex,repeatable=R,drag_args=Da}=StB) ->
     Axis = axis_conv(Axis0),
-    T1 = now(),
+    T1 = os:timestamp(),
     Points = wings_sel:fold(fun(Vs0,#we{vp=Vtab},Acc0) ->
             Vs = gb_sets:to_list(Vs0),
             foldl(fun(V, Acc1) ->
@@ -284,7 +284,7 @@ plane_cut(_, {Axis0,#st{selmode=SelMode}=StA},
         wings_sel:mapfold(fun(Faces, #we{id=Id}=We0, Acc) ->
             {NewEdges,_,_,We} = foldl(fun
               ({V,Point},{Es,Fs0,Seen0,We1}=A) ->
-                T2 = timer:now_diff(now(), T1),
+                T2 = timer:now_diff(os:timestamp(), T1),
                 if T2 > 20000000 -> planecut_error();
                 true ->
                   case ordsets:is_element(V,Seen0) of
@@ -304,7 +304,7 @@ plane_cut(_, {Axis0,#st{selmode=SelMode}=StA},
       body ->
         wings_sel:mapfold(fun(_, #we{id=Id}=We0, Acc) ->
             {NewEdges,_,We} = foldl(fun({V,Point},{Es,Seen0,We1}=A) ->
-                T2 = timer:now_diff(now(), T1),
+                T2 = timer:now_diff(os:timestamp(), T1),
                 if T2 > 20000000 -> planecut_error();
                 true ->
                   case ordsets:is_element(V,Seen0) of

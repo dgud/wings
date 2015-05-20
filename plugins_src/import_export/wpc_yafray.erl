@@ -2533,7 +2533,7 @@ hook_or([Expr|Exprs], I, Store) ->
 
 export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     wpa:popup_console(),
-    ExportTS = erlang:now(),
+    ExportTS = os:timestamp(),
     Render = proplists:get_value(?TAG_RENDER, Attr, false),
     KeepXML = proplists:get_value(keep_xml, Attr, ?DEF_KEEP_XML),
     RenderFormat = 

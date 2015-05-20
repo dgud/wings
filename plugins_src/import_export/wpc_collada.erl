@@ -506,7 +506,7 @@ floatlist_to_string(List) ->
 			    List), " ")).
 
 now_as_xml_dateTime() ->
-    Now = erlang:now(),
+    Now = os:timestamp(),
     {{Year,Month,Day},{Hour,Minutes,Seconds}} =
 	calendar:now_to_universal_time(Now),
     io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0B",

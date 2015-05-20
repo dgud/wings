@@ -124,7 +124,7 @@ loop(#state{refresh=After,level=Level,msg=Msg0}=S0) ->
 	    loop(#state{});
 	{?PB,{start,Msg,_Data,{X,Y,W,H}}} when Level =:= 0 ->
 	    S = #state{refresh=?REFRESH_T,level=1,
-		       msg=["",Msg],t0=now()},
+		       msg=["",Msg],t0=os:timestamp()},
 	    put(wm_viewport, {X,Y,W-17,H}),
 	    loop(draw_position(S));
 	{?PB,{update,Msg,Time}} when Level =:= 1 ->
@@ -167,7 +167,7 @@ loop(#state{refresh=After,level=Level,msg=Msg0}=S0) ->
     end.
 
 update(Msg, Percent, #state{msg=[_|Msg0],stats=Stats0,t0=Time0}=S) ->
-    NowDiff = timer:now_diff(now(), Time0),
+    NowDiff = timer:now_diff(os:timestamp(), Time0),
     Stats = [Percent,NowDiff|Stats0],
     S#state{msg=[Msg|Msg0],next_pos=Percent,stats=Stats}.
 
@@ -181,7 +181,7 @@ calc_position(S) ->
     S.
 
 print_stats(#state{t0=Time0,stats=[_|Stats0]}) ->
-    Total = timer:now_diff(now(), Time0),
+    Total = timer:now_diff(os:timestamp(), Time0),
     [_|Stats] = lists:reverse(Stats0),
     io:nl(),
     print_stats_1(Stats, Total).
@@ -195,7 +195,7 @@ print_stats_1([], _) -> ok.
 %% Draw Progress Bar 
 
 draw_position(#state{t0=T0}=S) ->
-    case timer:now_diff(now(), T0) of
+    case timer:now_diff(os:timestamp(), T0) of
 	Diff when Diff < 500000 -> ok;
 	_Diff -> draw_position_1(S)
     end,

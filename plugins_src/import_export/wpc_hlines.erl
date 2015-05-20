@@ -213,7 +213,7 @@ fun_export(Props) ->
     fun (File_name, Scene) -> do_export(Props, File_name, Scene) end.
 
 do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
-    Start_time = now(),
+    Start_time = os:timestamp(),
 
     [Aim, Distance, Azimuth, Elevation, {TrackX, TrackY}, Fov, Hither, Yonder] =
         proplists:get_value(camera_info, Props),
@@ -393,7 +393,7 @@ io:format(?__(5,"Exporting")),
     ok = file:close(F),
 wings_pb:update(1.0, ?__(6,"done")),
 wings_pb:done(),
-io:format(" "++?__(7,"done in ~.1f sec")++"~n", [timer:now_diff(now(), Start_time) / 1.0e6]).
+io:format(" "++?__(7,"done in ~.1f sec")++"~n", [timer:now_diff(os:timestamp(), Start_time) / 1.0e6]).
 
 edge_sets(Hard_edges, Faces, Edge_mode, Incr) when Edge_mode == all_edges ->
     {gb_sets:from_list(incr(Hard_edges, Incr)),

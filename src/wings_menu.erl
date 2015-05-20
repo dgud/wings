@@ -43,7 +43,7 @@
 	 sel=none :: 'none'|pos_integer(),	%Selected item (1..tuple_size(Menu))
 	 sel_side=left :: 'left'|'right',	%Selection on left or right.
 	 ns=[],					%Name stack.
-	 menu :: tuple(menu_item()),		%Normalized menu.
+	 menu :: menu_item(),		        %Normalized menu.
 	 timer=make_ref(),			%Active submenu timer.
 	 level=?INITIAL_LEVEL,			%Menu level.
 	 type :: 'plain'|'popup',	        %Type of menu.

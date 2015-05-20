@@ -128,7 +128,7 @@ crumple(Dir, St) ->
     wings_drag:setup(Tvs, [{percent,{-20.0,20.0}}], St).
 
 crumple(normal, Vs0, #we{id=Id}=We, Acc) ->
-    {Sa,Sb,Sc} = now(),
+    {Sa,Sb,Sc} = os:timestamp(),
     Vs = gb_sets:to_list(Vs0),
     VsPos0 = wings_util:add_vpos(Vs, We),
     VsPos = [{V,Pos,wings_vertex:normal(V, We)} || {V,Pos} <- VsPos0],
@@ -143,7 +143,7 @@ crumple(normal, Vs0, #we{id=Id}=We, Acc) ->
     [{Id,{Vs,Fun}}|Acc];
 crumple(Dir, Vs0, #we{id=Id}=We, Acc) ->
     {Xmask,Ymask,Zmask} = crumple_mask(Dir),
-    {Sa,Sb,Sc} = now(),
+    {Sa,Sb,Sc} = os:timestamp(),
     Vs = gb_sets:to_list(Vs0),
     VsPos = wings_util:add_vpos(Vs, We),
     Fun = fun([Dx], A) ->

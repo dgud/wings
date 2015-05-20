@@ -488,11 +488,11 @@ get_drag_event_1(Drag) ->
 %% handled as an intention to cancel the command.
 handle_drag_event(#mousebutton{button=3,state=?SDL_PRESSED}=Ev,
   #drag{rmb_timer=0}=Drag) ->
-    StartTimer = now(),
+    StartTimer = os:timestamp(),
     handle_drag_event(Ev, Drag#drag{rmb_timer=StartTimer});
 handle_drag_event(#mousebutton{button=1,state=?SDL_PRESSED}=Ev,
   #drag{lmb_timer=0}=Drag) ->
-    StartTimer = now(),
+    StartTimer = os:timestamp(),
     handle_drag_event(Ev, Drag#drag{lmb_timer=StartTimer});
 handle_drag_event(#keyboard{sym=9, mod=Mod},Drag)->
     case Mod band ?SHIFT_BITS =/= 0 of
@@ -522,7 +522,7 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
 %% When Rmb is released we subtract the StartTime (when the Rmb was pressed)
 %% from the Stop time (relased) and if the result is less than 500000 ms, then
 %% we cancel the drag. If not we continue the drag using the 
-    Stop = now(),
+    Stop = os:timestamp(),
     Time = timer:now_diff(Stop, StartTime),
     % io:format("Time ~p\n",[Time]),
     case Time < 500000 of
@@ -540,7 +540,7 @@ handle_drag_event(#mousebutton{button=1,x=X,y=Y,mod=Mod,state=?SDL_RELEASED},
   #drag{lmb_timer=StartTime}=Drag0) when StartTime =/= 0 ->
 %% When Lmb timer is less than 500000 ms, we Accept and finish the drag, if
 %% not, then we continue using the lmb parameter.
-    Stop = now(),
+    Stop = os:timestamp(),
     Time = timer:now_diff(Stop, StartTime),
     % io:format("Time ~p\n",[Time]),
     case Time < 500000 of

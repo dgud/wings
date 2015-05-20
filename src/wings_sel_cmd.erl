@@ -1428,30 +1428,30 @@ shortest_path(Method, St) ->
 find_path_verts(Method, Graph, Pa, Pb) ->
     case Method of
 	fewest_edges ->
-	    StartTime = now(),
+	    StartTime = os:timestamp(),
 	    PathVs = digraph:get_short_path(Graph, Pa, Pb),
-	    EndTime = now(),
+	    EndTime = os:timestamp(),
 	    io:fwrite("\nLength: ~p",[path_len(PathVs)]),
 	    io:fwrite(" (~.2f seconds",[timer:now_diff(EndTime,StartTime)/1.0e6]),
 	    io:fwrite(" Digraph)"),
 	    ok;
 	astar ->
-	    StartTime = now(),
+	    StartTime = os:timestamp(),
 	    {Gcosts,PrevNodes,Closed,Open} = astar_init(Graph, Pa),
 	    {Pm,Gm} = astar_loop(Open, Closed, Gcosts, PrevNodes, Graph, Pb, false),
 	    PathVs = get_path(Pb, Pm),
-	    EndTime = now(),
+	    EndTime = os:timestamp(),
 	    io:fwrite("\nLength: ~p",[dict:fetch(Pb,Gm)]),
 	    io:fwrite(" (~.2f seconds",[timer:now_diff(EndTime,StartTime)/1.0e6]),
 	    io:fwrite(" Astar)"),
 	    %io:fwrite(" Len: ~p",[path_len(PathVs)]),
 	    ok;
 	dijkstra ->
-	    StartTime = now(),
+	    StartTime = os:timestamp(),
 	    {Gcosts,PrevNodes,Open} = dijkstra_init(Graph, Pa),
 	    {Pm,Gm} = dijkstra_loop(Open, Gcosts, PrevNodes, Graph, Pb, false),
 	    PathVs = get_path(Pb, Pm),
-	    EndTime = now(),
+	    EndTime = os:timestamp(),
 	    io:fwrite("\nLength: ~p",[dict:fetch(Pb,Gm)]),
 	    io:fwrite(" (~.2f seconds",[timer:now_diff(EndTime,StartTime)/1.0e6]),
 	    io:fwrite(" Dijkstra)"),

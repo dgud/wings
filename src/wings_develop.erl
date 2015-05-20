@@ -82,9 +82,9 @@ time_command(CmdFun, Cmd) ->
 	    gl_error_check(Cmd),
 	    Res;
 	true ->
-	    Before = erlang:now(),
+	    Before = os:timestamp(),
 	    Res = CmdFun(),
-	    After = erlang:now(),
+	    After = os:timestamp(),
 	    Time = timer:now_diff(After, Before),
 	    Str = format_time(Time),
 	    case Res of

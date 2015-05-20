@@ -153,7 +153,7 @@ ctrl_event(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED}, Cs) ->
     {_,Client} = Self = wings_wm:this(),
     Rollup = wings_wm:win_rollup(Client),
     Time = if Rollup ->  wings_wm:rollup(rolldown,Client), undefined;
-                true -> now()
+                true -> os:timestamp()
            end,
     wings_wm:raise(Client),
     Focus = wings_wm:grabbed_focus_window(),
@@ -162,7 +162,7 @@ ctrl_event(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED}, Cs) ->
 
 ctrl_event(#mousebutton{button=1,state=?SDL_RELEASED}, #ctrl{prev_focus=Focus,rollup=Time}=Cs) ->
     {_, Client} = wings_wm:this(),
-    T = if Time =:= undefined -> 300000; true -> timer:now_diff(now(),Time) end,
+    T = if Time =:= undefined -> 300000; true -> timer:now_diff(os:timestamp(),Time) end,
     Rollup = wings_wm:win_rollup(Client),
     case  Rollup of
       true when T < 300000 ->

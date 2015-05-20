@@ -45,7 +45,7 @@ command({tools,ambient_occlusion}, St0) ->
 command(_Cmd, _) -> next.
 
 ambient_occlusion(St) ->
-    StartTime = now(),
+    StartTime = os:timestamp(),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     setup_gl(),
     DispList = make_disp_list(St),
@@ -55,7 +55,7 @@ ambient_occlusion(St) ->
     St2 = St#st{shapes=Shapes2},
     gl:deleteLists(DispList,1),
     gl:popAttrib(),
-    EndTime = now(),
+    EndTime = os:timestamp(),
     Seconds = timer:now_diff(EndTime,StartTime)/1.0e6,
     VidCard = gl:getString(?GL_RENDERER),
     io:fwrite(?__(1,"OpenGL AmbOcc time: ~.1fs (~s)\n"), [Seconds,VidCard]),

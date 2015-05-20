@@ -1027,7 +1027,7 @@ stretch_opt(We0, OVs) ->
     wings_pb:start(?__(1,"optimizing")),
     wings_pb:update(0.01, ?__(2,"initializing")),
 
-    {_,R1,R2} = now(),
+    {_,R1,R2} = os:timestamp(),
     random:seed(R2, R1, 128731),
 
     %% {FaceToStretchMean, FaceToStretchWorst,FaceToVerts,VertToFaces,VertToUvs}

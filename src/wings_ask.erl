@@ -680,10 +680,10 @@ maybe_doubleclick(#mousebutton{button=1,state=?SDL_RELEASED}=Ev) ->
 maybe_doubleclick(_) -> ok.
 
 maybe_doubleclick_1(#mousebutton{x=X,y=Y}, undefined) ->
-    {X,Y,now()};
+    {X,Y,os:timestamp()};
 maybe_doubleclick_1(#mousebutton{x=X,y=Y}, {X0,Y0,Now0}) ->
     Dx = X-X0, Dy = Y-Y0,
-    Now = now(),
+    Now = os:timestamp(),
     case math:sqrt(Dx*Dx+Dy*Dy) of
 	Dist when Dist < 5 ->
 	    case timediff(Now, Now0) of

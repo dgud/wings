@@ -23,7 +23,7 @@
 -define(NUM_SAMPLES, (?TEX_SZ div ?SAMPLE_SZ)).
 
 ambient_occlusion(St) ->
-    StartTime = now(),
+    StartTime = os:timestamp(),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     setup_gl(),
     AO_0 = setup_shaders(),
@@ -35,7 +35,7 @@ ambient_occlusion(St) ->
     St2 = St#st{shapes=Shapes2},
     cleanup(AO),
     gl:popAttrib(),
-    EndTime = now(),
+    EndTime = os:timestamp(),
     Seconds = timer:now_diff(EndTime,StartTime)/1.0e6,
     VidCard = gl:getString(?GL_RENDERER),
     io:fwrite(?__(1,"OpenGL AmbOcc GL2 time: ~.1fs (~s)\n"), [Seconds,VidCard]),

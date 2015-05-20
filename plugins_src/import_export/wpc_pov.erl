@@ -274,7 +274,7 @@ export_fun(Attr) ->
 %Open files, do the actual export, check for render operation and launch render if necessary
 export(Filename, Contents, Attr) ->
     wpa:popup_console(),
-    ExportTS = erlang:now(),
+    ExportTS = os:timestamp(),
     Render = proplists:get_value(?TAG_RENDER, Attr, false),
     RenderFormat = get_var(render_format),
     ExportDir = filename:dirname(Filename),
