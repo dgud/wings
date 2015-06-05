@@ -2032,7 +2032,7 @@ keeper(Kept) ->
 	release_all ->
 	    %% Do a sync call to gui thread when it returns
 	    %% we know all previous calls have been done
-	    [_|_] = gl:getIntegerv(?GL_RED_BITS),
+	    _ = wings_io:is_key_pressed($\s),
 	    keeper([])
     end.
 	    
