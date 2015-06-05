@@ -752,10 +752,40 @@ redraw_all() ->
 			     do_dispatch(Name, redraw)
 		     end, Windows),
     wings_io:swapBuffers(),
+    calc_stats(),
     wings:release_all(),
     clean(),
     wings_io:set_cursor(get(wm_cursor)),
     event_loop().
+
+-ifndef(DEBUG).
+calc_stats() -> ok.
+-else.
+calc_stats() ->
+    Curr = erlang:monotonic_time(),
+    case put(time_stamp, Curr) of
+	undefined ->
+	    put(time_stat, {0, 0, 0, 999999999999999, -1}),
+	    ok;
+	Prev ->
+	    calc_stats(erlang:convert_time_unit(Curr-Prev, native, micro_seconds))
+    end.
+
+calc_stats(Diff) when Diff < 80000 ->
+    {N, Sum, SumSq, Min, Max} = get(time_stat),
+    case N rem 100 of
+	0 when N > 50 ->
+	    Mean = Sum / N,
+	    StdDev = math:sqrt((SumSq - (Sum*Sum/N))/(N - 1)),
+	    put(time_stat, {N+1, Sum+Diff, SumSq+Diff*Diff, 999999999999, -1}),
+	    io:format("~w ~.1f ~.3f ~w ~w~n", [N, Mean, StdDev, Min, Max]);
+	_ ->
+	    put(time_stat, {N+1, Sum+Diff, SumSq+Diff*Diff, min(Diff, Min), max(Diff, Max)}),
+	    ok
+    end;
+calc_stats(_) -> %% Do not add user wait times
+    ok.
+-endif.
 
 clear_background() ->
     Name = this(),
