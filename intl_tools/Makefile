@@ -26,9 +26,15 @@ else
 TYPE_FLAGS=+debug_info
 endif
 
-MODULES= tools
+MODULES=tools
 
-TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
+GEN_HEADER=wings_chars.hrl
+
+TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam) $(GEN_HEADER)
+
+# Exclude generated wings_en.lang files
+LANG_FILES= $(wildcard ../src/*[!en].lang)
+#	$(wildcard ../plugins_src/*/*.lang)  takes to long...
 
 # ----------------------------------------------------
 # FLAGS
@@ -51,3 +57,6 @@ clean:
 
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_FLAGS) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
+
+$(GEN_HEADER): gen_char_hrl $(LANG_FILES)
+	escript gen_char_hrl

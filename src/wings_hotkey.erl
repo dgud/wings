@@ -374,10 +374,12 @@ keyname($\t) -> ?STR(keyname,2,"Tab");
 keyname($\s) -> ?STR(keyname,3,"Space");
 keyname(C) when $a =< C, C =< $z -> [C-32];
 keyname(C) when $A =< C, C =< $Z ->
-    case get(wings_os_type) of
-%%	{unix,darwin} -> [shift,C];
-	_ -> ?STR(keyname,4,"Shift+")++ [C]
-    end;
+    ?STR(keyname,4,"Shift+")++ [C];
+    %% case get(wings_os_type) of
+    %% 	%%	{unix,darwin} -> [shift,C];
+    %% 	_ -> 
+
+    %% end;
 keyname(C) when is_integer(C), C < 256 -> [C];
 keyname(C) when is_integer(C), 63236 =< C, C =< 63247 ->
     [$F|integer_to_list(C-63235)];

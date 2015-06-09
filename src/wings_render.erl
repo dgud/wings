@@ -499,10 +499,11 @@ axis_letters(TPM,TMM,Yon0) ->
 	    gl:matrixMode(?GL_PROJECTION),
 	    gl:loadIdentity(),
 	    {_,_,W,H} = ViewPort,
-	    glu:ortho2D(0, W, 0, H),
+	    glu:ortho2D(0, W, H, 0),
 	    gl:matrixMode(?GL_MODELVIEW),
 	    gl:loadIdentity(),
 	    Yon = Yon0 + ?GROUND_GRID_SIZE,
+	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
 	    axis_letter_1(1, Yon, axisx, x_color, Info),
 	    axis_letter_1(2, Yon, axisy, y_color, Info),
 	    axis_letter_1(3, Yon, axisz, z_color, Info)
@@ -551,12 +552,11 @@ clip_1(_, [], _W) -> none.
 
 show_letter(X0, Y0, W, Char, {_,_,Vw,Vh}) ->
     X = trunc((0.5*X0/W+0.5)*(Vw-20) + 10),
-    Y = trunc((0.5*Y0/W+0.5)*(Vh-16) + 7),
+    Y = Vh - trunc((0.5*Y0/W+0.5)*(Vh-16) + 7),
     axis_text(X, Y, Char).
 
 axis_text(X, Y, C) ->
-    gl:rasterPos2i(X, Y),
-    wings_text:char(C).
+    wings_io:unclipped_text(X, Y, [C]).
 
 proj({X0,Y0,Z0}, MM, PM) ->
     e3d_mat:mul(PM, e3d_mat:mul(MM, {X0,Y0,Z0,1.0})).
