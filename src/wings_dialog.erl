@@ -939,19 +939,15 @@ build(Ask, {fontpicker, DefFont, Flags}, Parent, Sizer, In) ->
     Def = case {(catch wx:getObjectType(DefFont) =:= wxFont), DefFont} of
 	      {true,_}  -> DefFont;
 	      {_, default} -> wxSystemSettings:getFont(?wxSYS_DEFAULT_GUI_FONT);
-	      {_, FaceName} when is_list(FaceName) ->
-		  Size   = proplists:get_value(size, Flags, 12),
-		  Family = proplists:get_value(family, Flags, ?wxFONTFAMILY_DEFAULT),
-		  Style  = proplists:get_value(style, Flags, ?wxFONTSTYLE_NORMAL),
-		  Weight = proplists:get_value(weight, Flags, ?wxFONTWEIGHT_NORMAL),
-		  wxFont:new(Size, Family, Style, Weight, [{face, FaceName}])
+	      {_, FontInfo} when is_map(FontInfo) ->
+		  wings_text:make_wxfont(FontInfo)
 	  end,
     %% io:format("DefFont ~p: ~p~n",[DefFont, wxFont:getFaceName(Def)]),
     Create = fun() ->
 		     PreviewFun = notify_event_handler_cb(Ask, preview),
 		     Ctrl = wxFontPickerCtrl:new(Parent, ?wxID_ANY,
 						 [{initial, Def},
-						  {style, ?wxFNTP_DEFAULT_STYLE}]),
+						  {style, ?wxFNTP_FONTDESC_AS_LABEL}]),
 		     wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed,
 					      [{callback, PreviewFun}]),
 		     tooltip(Ctrl, Flags),

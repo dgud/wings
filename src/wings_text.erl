@@ -12,120 +12,177 @@
 %%
 
 -module(wings_text).
--export([init/0,resize/0,width/0,width/1,height/0,draw/1,char/1,bold/1]).
+-export([init/0,resize/0,width/0,width/1,height/0,render/3]).
 -export([font_cw_lh/1]).
 -export([break_lines/2]).
--export([fonts/0]).
+-export([make_wxfont/1, get_font_info/1]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
--include("font_version.hrl").
+-include_lib("wings/intl_tools/wings_chars.hrl").
 -compile({parse_transform,ms_transform}).
 
--import(lists, [reverse/1,foreach/2]).
+-import(lists, [reverse/1]).
 
 init() ->
-    set_font_default(new_system_font),
-    set_font_default(new_console_font),
-    ets:new(system_font, [named_table,ordered_set,public]),
-    ets:new(console_font, [named_table,ordered_set,public]),
-    ets:new(wings_fonts, [named_table,ordered_set,public]),
-    load_fonts().
+    set_font_default(system_font),
+    set_font_default(console_font),
+
+    Ranges = char_ranges(wings_pref:get_value(language)),
+
+    WxSys = make_wxfont(wings_pref:get_value(system_font)),
+    {ok, Sys} = wings_glfont:load_font(WxSys, [{range, Ranges}]),
+    WxCon = make_wxfont(wings_pref:get_value(console_font)),
+    {ok, Console} = wings_glfont:load_font(WxCon, [{range, Ranges}]),
+
+    put(system_font, Sys),
+    put(console_font, Console),
+    ok.
 
 set_font_default(PrefKey) ->
-    wings_pref:set_default(PrefKey, get_font_default(PrefKey)).
+    case is_atom(wings_pref:get_value(PrefKey)) of
+	true -> 
+	    wings_pref:set_value(PrefKey, get_font_default(PrefKey));
+	false ->
+	    wings_pref:set_default(PrefKey, get_font_default(PrefKey))
+    end.
 
-resize() ->
-    %% Force rebuild of display lists next time each font
-    %% is needed.
-    MatchSpec = ets:fun2ms(fun({_Key,Font,_Desc}) -> Font end),
-    foreach(fun(Font) -> erase(Font) end,
-	    ets:select(wings_fonts, MatchSpec)).
+get_font_default(system_font) ->
+    get_font_info(?wxNORMAL_FONT);
+get_font_default(console_font) ->
+    get_font_info(?wxSWISS_FONT).
+
+make_wxfont(#{type:=font, face:=FaceName, size:=Size,
+	      style:=Style0, weight:=Weight0}) ->
+    Style = wxfont_style(Style0), 
+    Weight = wxfont_weight(Weight0),
+    Font = wxFont:new(Size, ?wxDEFAULT, Style, Weight, [{face, FaceName}]),
+    case wxFont:ok(Font) of
+	true  -> Font;
+	false -> wxFont:new(Size, ?wxDEFAULT, Style, Weight)
+    end.
+
+get_font_info(DefFont) ->
+    case {(catch wx:getObjectType(DefFont) =:= wxFont), DefFont} of
+	{true, _} -> get_font_info_1(DefFont);
+	{_, Info = #{type:=font}} ->
+	    Info
+    end.
+
+get_font_info_1(Font) ->
+    Name  = wxFont:getFaceName(Font),
+    Style = wxFont:getStyle(Font),
+    Weight= wxFont:getWeight(Font),
+    Size = wxFont:getPointSize(Font),
+    #{type=>font, face=>Name, size=>Size,
+      style=>font_style(Style), weight=>font_weight(Weight)}.
+
+font_style(?wxFONTSTYLE_NORMAL) -> normal;
+font_style(?wxFONTSTYLE_ITALIC) -> italic;
+font_style(?wxFONTSTYLE_SLANT) ->  slant.
+
+wxfont_style(normal) -> ?wxFONTSTYLE_NORMAL;
+wxfont_style(italic) -> ?wxFONTSTYLE_ITALIC;
+wxfont_style(slant)  -> ?wxFONTSTYLE_SLANT.
+
+font_weight(?wxFONTWEIGHT_NORMAL) -> normal;
+font_weight(?wxFONTWEIGHT_LIGHT) -> light;
+font_weight(?wxFONTWEIGHT_BOLD) ->  bold.
+
+wxfont_weight(normal) -> ?wxFONTWEIGHT_NORMAL;
+wxfont_weight(bold) -> ?wxFONTWEIGHT_BOLD;
+wxfont_weight(light)  -> ?wxFONTWEIGHT_LIGHT.
+
+char_ranges("jp") -> ?WINGS_CHARS_JP;
+char_ranges("ko") -> ?WINGS_CHARS_KO;
+char_ranges("zh-cn") -> ?WINGS_CHARS_ZH_CN;
+char_ranges("zh-tw") -> ?WINGS_CHARS_ZH_TW;
+char_ranges(_) -> ?WINGS_CHARS_EURO.
+
+resize() ->  ok.
 
 width(S) when is_list(S)->
-    width_1(S, 0).
+    width_1(S, [], 0).
 
-width_1([{bold,S}|Cs], W) ->
-    BSW = bold_string_width(S, 0),
-    width_1(Cs, BSW+W);
-width_1([{ul,S}|Cs], W) ->
-    SW = width_1(S, 0),
-    width_1(Cs, SW+W);
-width_1([C|Cs], W) when is_atom(C) ->
-    CW = case ?CHAR_WIDTH < 7 of
-       true -> cw_small(C);
-       false -> cw_large(C)
-    end,
-    width_1(Cs, CW+W);
-width_1([[C|R]|Cs], W0) ->
-    CW = char_width(C),
-    W = width_1(R, CW+W0),
-    width_1(Cs, W);
-width_1([C|Cs], W) ->
-    CW = char_width(C),
-    width_1(Cs, CW+W);
-width_1([], W) -> W.
+width_1([{bold,S}|Cs], Acc, W) ->
+    BSW = bold_string_width(S),
+    width_1(Cs, Acc, BSW+W);
+width_1([{ul,S}|Cs], Acc, W) ->
+    width_1(Cs, [S, Acc], W);
+width_1([C0|Cs], Acc, W) when is_atom(C0) ->
+    case special(C0) of
+	C when is_integer(C) ->
+	    width_1([C|Cs], Acc, W);
+	_ ->
+	    width_1(Cs, Acc, W)
+    end;
+width_1([[C|R]|Cs], Acc, W0) ->
+    W = width_1(R, [C|Acc], W0),
+    width_1(Cs, [], W);
+width_1([C|Cs], Acc, W) ->
+    width_1(Cs, [C|Acc], W);
+width_1([], [], W) -> W;
+width_1([], RS, W) ->
+    {W1,_} = wings_glfont:text_size(current_font(), reverse(RS)),
+    W1 + W.
 
-bold_string_width([C|S], W) ->
-    BCW = glyph_width(glyph_info(C)) + 1,
-    bold_string_width(S, BCW+W);
-bold_string_width([], W) ->
-    W.
-
-char_width(C) ->
-    glyph_width(glyph_info(C)).
+bold_string_width(String) ->
+    {W,_} = wings_glfont:text_size(current_font(), String),
+    W+2.
 
 width() ->
-    glyph_info(char_width).
+    glyph_info(width).
 
 height() ->
-    glyph_info(char_height).
+    glyph_info(height).
 
 font_cw_lh(Font) ->
-    {glyph_info(Font, char_width),
-     glyph_info(Font, char_height)}.
+    {glyph_info(Font, width), glyph_info(Font, height)}.
 
-draw([{bold,S}|Cs]) ->
-    bold(S),
-    draw(Cs);
-draw([{ul,S}|Cs]) ->
-    draw(S),
-    draw(Cs);
-draw([C|Cs]) when is_atom(C) ->
-    special(C),
-    draw(Cs);
-draw([[C|R]|Cs]) ->
-    char(C),
-    draw(R),
-    draw(Cs);
-draw([C|Cs]) ->
-    char(C),
-    draw(Cs);
-draw([]) -> ok.
+render(X, Y, S) ->
+    Res = render_1(S, Font=current_font(), {X, Y, <<>>}),
+    gl:pushAttrib(?GL_TEXTURE_BIT bor ?GL_ENABLE_BIT),
+    gl:enable(?GL_BLEND),
+    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+    gl:enable(?GL_TEXTURE_2D),
+    gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE),
+    wings_glfont:render(Font, Res),
+    gl:popAttrib(),
+    ok.
 
-char(C) when is_atom(C) -> special(C);
-char(C) -> draw_glyph(glyph_info(C)).
+render_1([{bold, S}|Rest], Font, {X0, Y0, _} = Acc0) ->
+    {_, _, Bin} = wings_glfont:render_to_binary(Font, S, Acc0),
+    Acc = wings_glfont:render_to_binary(Font, S, {X0+1, Y0, Bin}),
+    render_1(Rest, Font, Acc);
+render_1([{ul,S}|Cs], Font, Acc0) -> %% ignore for now
+    Acc = wings_glfont:render_to_binary(Font, S, Acc0),
+    render_1(Cs, Font, Acc);
+render_1([List|Cs], Font, Acc0) when is_list(List) ->
+    Acc = render_1(List, Font, Acc0),
+    render_1(Cs, Font, Acc);
+render_1([C|Cs], Font, Acc) ->
+    render_1(Cs, Font, char(C, Font, Acc));
+render_1([], _, Acc) -> Acc.
 
-bold([C|S]) ->
-    Glyph = glyph_info(C),
-    draw_glyph(Glyph),
-    Cw = glyph_width(Glyph),
-    gl:bitmap(1, 1, 0, 0, -Cw+1, 0, <<0>>),
-    draw_glyph(Glyph),
-    bold(S);
-bold([]) -> ok.
+char(C, Font, Acc) when is_integer(C) -> 
+    wings_glfont:render_to_binary(Font, [C], Acc);
+char(C, Font, Acc) when is_atom(C) ->
+    case special(C) of
+	Int when is_integer(Int) ->
+	    char(Int, Font, Acc);
+	false ->
+	    io:format("Special missing ~p ~n",[C]),
+	    Acc
+    end.
 
 current_font() ->
     case wings_wm:this() of
 	none ->
-	    system_font;
+	    get(system_font);
 	This ->
-	    wings_wm:get_prop(This, font)
+            get(wings_wm:get_prop(This, font))
     end.
-	    
-fonts() ->
-    [{Desc,Key} || {Key,Desc} <- ets:tab2list(wings_fonts)].
 
 %% Formats strings to fit the width of a line length given in PIXELS
 
@@ -208,312 +265,31 @@ string_to_text_box(#tb{text=[],line=Line,res=Res0}=Tb) ->
 reverse_list(A) when length(A) < 2 -> A;
 reverse_list(A) -> reverse(A).
 
-draw_glyph({W,H,Xorig,Yorig,Xmove,B}) -> 
-    gl:bitmap(W, H, Xorig, Yorig, Xmove, 0, B).
-
-glyph_width({_,_,_,_,Xmove,_}) -> Xmove.
-
 glyph_info(C) ->
-    glyph_info(current_font(), C).
+    glyph_info_1(current_font(), C).
 
 glyph_info(Font, C) ->
-    case ets:lookup(Font, C) of
-	[] when is_integer(C), C > 0 ->
-	    %% Undefined character. Return a filled box.
-	    [{char_width,Width}] = ets:lookup(Font, char_width),
-	    [{char_height,Height}] = ets:lookup(Font, char_height),
-	    NumBytes = ((Width+7) div 8) * Height,
-	    B = <<(-1):NumBytes/unit:8>>,
-	    {Width,Height,0,0,Width+1,B};
-	[{C,Bitmap}] ->
-	    %% Bitmap ready for display.
-	    Bitmap;
-	[{C,W,H,Xorig,Yorig,Xmove,Offset}] ->
-	    %% Raw valid character. We will need to extract a sub-binary
-	    %% from the binary of all fonts, and write back the result
-	    %% to the ets table to speed up the next access to this
-	    %% character.
-	    [{bitmap,Bitmaps}] = ets:lookup(Font, bitmap),
-	    NumBytes = ((W+7) div 8)*H,
-	    <<_:Offset/binary,B:NumBytes/binary,_/binary>> = Bitmaps,
-	    Bitmap = {W,H,Xorig,Yorig,Xmove,B},
-	    ets:insert(Font, {C,Bitmap}),
-	    Bitmap
-    end.
+    wings_glfont:C(get(Font)).
+
+glyph_info_1(Font, C) ->
+    wings_glfont:C(Font).
 
 %%%
 %%% Special characters.
 %%%
 
-cw_small(bullet) -> 5;
-cw_small(option_box) -> 6;
-cw_small(command) -> 8;
-cw_small(folder) -> 12;
-cw_small(option) -> 12;
-cw_small(shift) -> 13;
-cw_small(caret) -> 2;
-cw_small(crossmark) -> 8.
+%% cw_large(bullet) -> 6;
+%% cw_large(option_box) -> 7;
+%% cw_large(command) -> 8;
+%% cw_large(folder) -> 14;
+%% cw_large(option) -> 14;
+%% cw_large(shift) -> 14;
+%% cw_large(caret) -> 2;
+%% cw_large(crossmark) -> 8.
 
-cw_large(bullet) -> 6;
-cw_large(option_box) -> 7;
-cw_large(command) -> 8;
-cw_large(folder) -> 14;
-cw_large(option) -> 14;
-cw_large(shift) -> 14;
-cw_large(caret) -> 2;
-cw_large(crossmark) -> 8.
+special(axisx) -> $X;
+special(axisy) -> $Y;
+special(axisz) -> $Z;
+special(caret) -> $¦;
+special(_C) -> false.
 
-special(C) ->
-    case width() of
-	W when W < 7 ->
-	    special_small(C);
-	_ ->
-	    special_large(C)
-    end.
-
-special_small(bullet) ->
-    B = <<
-	 2#01100000,
-	 2#11110000,
-	 2#01100000
-	 >>,
-    gl:bitmap(4, 3, 0, -2, 5, 0, B);
-special_small(option_box) ->
-    B = <<
-	 2#11111100,
-	 2#10000100,
-	 2#10000100,
-	 2#10000100,
-	 2#10000100,
-	 2#10000100,
-	 2#11111100,
-	 2#11111100
-	 >>,
-    gl:bitmap(6, 8, 0, 3, 6, 0, B);
-
-special_small(command) ->
-    B = <<
-       	 2#01000100,
-       	 2#10101010,
-       	 2#10101010,
-	 2#01111100,
-	 2#00101000,
-	 2#01111100,
-       	 2#10101010,
-       	 2#10101010,
-       	 2#01000100>>,
-    gl:bitmap(7, 9, 0, 0, 8, 0, B);
-
-special_small(option) ->
-    B = <<
-	 2#00000000111000000:16,
-	 2#00000001000000000:16,
-	 2#00000010000000000:16,
-       	 2#00000100000000000:16,
-       	 2#00001000000000000:16,
-       	 2#11110001111000000:16>>,
-    gl:bitmap(11, 6, 0, 0, 12, 0, B);
-
-special_small(shift) ->
-    B = <<
-	 2#0000111110000000:16,
-	 2#0000100010000000:16,
-	 2#0000100010000000:16,
-	 2#0011100011100000:16,
-	 2#0001100011000000:16,
-       	 2#0000110110000000:16,
-       	 2#0000011100000000:16,
-       	 2#0000001000000000:16>>,
-    gl:bitmap(12, 8, 0, 0, 13, 0, B);
-
-special_small(caret) ->
-    caret();
-
-special_small(crossmark) ->
-    B = <<
-	 2#00100000,
-	 2#01110000,
-	 2#11111000,
-	 2#11011100,
-	 2#10001110,
-	 2#00000110,
-	 2#00000010
-	 >>,
-    gl:bitmap(7, 7, 0, 0, 8, 0, B);
-
-special_small(axisx) ->
-    B = <<16#63,16#63,16#36,16#3e,16#1c,16#3e,16#36,16#63,16#63>>,
-    gl:bitmap(8, 9, 0, 0, 8, 0, B);
-
-special_small(axisy) ->
-    B = <<16#18,16#18,16#18,16#18,16#3c,16#3c,16#66,16#e7,16#c3>>,
-    gl:bitmap(8, 9, 0, 0, 8, 0, B);
-
-special_small(axisz) ->
-    B = <<16#7f,16#60,16#70,16#38,16#1c,16#0e,16#07,16#03,16#7f>>,
-    gl:bitmap(8, 9, 0, 0, 8, 0, B);
-
-special_small(folder) ->
-    B = <<
-       	 2#0111111111000000:16,
-	 2#0100000001000000:16,
-	 2#0100000001000000:16,
-       	 2#0100000001000000:16,
-	 2#0100000001000000:16,
-	 2#0111111111000000:16,
-       	 2#0010001000000000:16,
-       	 2#0001110000000000:16,
-       	 2#0000000000000000:16>>,
-    gl:bitmap(11, 9, 0, 0, 12, 0, B).
-
-special_large(bullet) ->
-    B = <<
-	 2#01110000,
-	 2#11111000,
-	 2#11111000,
-	 2#01110000
-	 >>,
-    gl:bitmap(5, 4, 0, -2, 6, 0, B);
-special_large(option_box) ->
-    B = <<
-	 2#11111100,
-	 2#10000100,
-	 2#10000100,
-	 2#10000100,
-	 2#10000100,
-	 2#10000100,
-	 2#10000100,
-	 2#10000100,
-	 2#11111100,
-	 2#11111100
-	 >>,
-    gl:bitmap(6, 10, 0, 4, 7, 0, B);
-
-special_large(command) ->
-    B = <<
-       	 2#01000100,
-       	 2#10101010,
-       	 2#10101010,
-	 2#01111100,
-	 2#00101000,
-	 2#01111100,
-       	 2#10101010,
-       	 2#10101010,
-       	 2#01000100>>,
-    gl:bitmap(7, 9, 0, 0, 8, 0, B);
-
-special_large(option) ->
-    B = <<
-	 2#0000000001111000:16,
-	 2#0000000010000000:16,
-	 2#0000000100000000:16,
-	 2#0000001000000000:16,
-       	 2#0000010000000000:16,
-       	 2#0000100000000000:16,
-       	 2#1111000111111000:16>>,
-    gl:bitmap(13, 7, 0, 0, 14, 0, B);
-
-special_large(shift) ->
-    B = <<
-	 2#0000111110000000:16,
-	 2#0000100010000000:16,
-	 2#0000100010000000:16,
-	 2#0000100010000000:16,
-       	 2#0111100011110000:16,
-	 2#0011000001100000:16,
-	 2#0001100011000000:16,
-       	 2#0000110110000000:16,
-       	 2#0000011100000000:16,
-       	 2#0000001000000000:16>>,
-    gl:bitmap(13, 10, 0, 0, 14, 0, B);
-
-special_large(caret) ->
-    caret();
-
-special_large(crossmark) ->
-    B = <<
-	 2#00100000,
-	 2#01110000,
-	 2#11111000,
-	 2#11011100,
-	 2#10001110,
-	 2#00000110,
-	 2#00000010
-	 >>,
-    gl:bitmap(7, 7, 0, 0, 8, 0, B);
-
-special_large(axisx) ->
-    B = <<16#63,16#63,16#36,16#3e,16#1c,16#3e,16#36,16#63,16#63>>,
-    gl:bitmap(8, 9, 0, 0, 8, 0, B);
-
-special_large(axisy) ->
-    B = <<16#18,16#18,16#18,16#18,16#3c,16#3c,16#66,16#e7,16#c3>>,
-    gl:bitmap(8, 9, 0, 0, 8, 0, B);
-
-special_large(axisz) ->
-    B = <<16#7f,16#60,16#70,16#38,16#1c,16#0e,16#07,16#03,16#7f>>,
-    gl:bitmap(8, 9, 0, 0, 8, 0, B);
-
-special_large(folder) ->
-    B = <<
-       	 2#0111111111110000:16,
-	 2#0100000000010000:16,
-	 2#0100000000010000:16,
-	 2#0100000000010000:16,
-       	 2#0100000000010000:16,
-	 2#0100000000010000:16,
-	 2#0111111111110000:16,
-       	 2#0010000100000000:16,
-       	 2#0001111000000000:16,
-       	 2#0000000000000000:16>>,
-    gl:bitmap(13, 10, 0, 0, 14, 0, B).
-
-caret() ->
-    H = height(),
-    B = list_to_binary([2#11011000,
-			lists:duplicate(H-2, 2#00100000),
-			2#11011000]),
-    gl:bitmap(5, H, 2, 2, 2, 0, B).
-
-%%%
-%%% Load a Wings font.
-%%%
-
-load_fonts() ->
-    Wc = font_file("*"),
-    Fonts = [begin
-		 FontNameStr = filename:basename(F, ".wingsfont"),
-		 FontNameAtom = list_to_atom(FontNameStr),
-		 {FontNameAtom,FontNameStr}
-	     end || F <- filelib:wildcard(Wc)],
-    ets:insert(wings_fonts, Fonts),
-    load_font(system_font),
-    load_font(console_font).
-
-load_font(FontTab) ->
-    PrefKey = list_to_atom(lists:concat(["new_",FontTab])),
-    FontName = wings_pref:get_value(PrefKey),
-    FontFile0 = font_file(FontName),
-    FontFile = case filelib:is_file(FontFile0) of
-		   true ->
-		       FontFile0;
-		   false ->
-		       DefFont = get_font_default(PrefKey),
-		       wings_pref:set_value(PrefKey, DefFont),
-		       font_file(DefFont)
-	       end,
-    {ok,Bin} = file:read_file(FontFile),
-    {wings_font,?FONT_VERSION,Font} = binary_to_term(Bin),
-    {_Key,_Desc,Width,Height,GlyphInfo,Bitmaps} = Font,
-    ets:insert(FontTab, GlyphInfo),
-    ets:insert(FontTab, [{char_width,Width},
-			 {char_height,Height},
-			 {bitmap,Bitmaps}|GlyphInfo]).
-
-font_file(FontName) ->
-    WingsDir = wings_util:lib_dir(wings),
-    FontFileBase = lists:concat([FontName,".wingsfont"]),
-    filename:join([WingsDir,"fonts",FontFileBase]).
-
-get_font_default(new_system_font) -> '7x14';
-get_font_default(new_console_font) -> 'fixed7x14'.

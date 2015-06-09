@@ -37,9 +37,9 @@
 -define(WINGS_VERSION, ?wings_version).
 
 -define(CHAR_HEIGHT, wings_text:height()).
--define(CHAR_WIDTH, wings_text:height() div 2). %% because of double wide Chinese fonts
+-define(CHAR_WIDTH, wings_text:width()).
 
--define(LINE_HEIGHT, (?CHAR_HEIGHT+2)).
+-define(LINE_HEIGHT, (?CHAR_HEIGHT)).
 -define(GROUND_GRID_SIZE, 1).
 -define(CAMERA_DIST, (8.0*?GROUND_GRID_SIZE)).
 -define(NORMAL_LINEWIDTH, 1.0).

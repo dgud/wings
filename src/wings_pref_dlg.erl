@@ -358,7 +358,6 @@ constraint_prefs() ->
        [{title,?__(31,"Set Constraint Preferences")}]}]}.
 
 ui_prefs() ->
-    Fonts = wings_text:fonts(),
     Langs0 = wings_lang:available_languages(),
     InterfaceIcons = [{?__(51,"Classic"), classic},
 		      {?__(52,"Blue Cube"), bluecube},
@@ -399,13 +398,13 @@ ui_prefs() ->
        [{hframe,
 	 [{vframe,
 	   [{vframe,
-	     [{menu,Fonts,new_system_font}],
+	     [{fontpicker,system_font}],
 	     [{title,?__(1,"System Font")}]},
 	    {vframe,
 	     [{menu,Langs,language}],
 	     [{title,?__(23,"Language")}]},
 	    {vframe,
-	     [{menu,Fonts,new_console_font}],
+	     [{fontpicker,console_font}],
 	     [{title,?__(15,"Console Font")}]},
 	   {label_column,
 	    [{?__(16,"Width"),     {text,console_width,[{range,{12,120}}]}},
@@ -571,6 +570,9 @@ workaround_1([], A, B) ->
     [{vframe,[{label,?__(1,"Problem")},separator|reverse(A)]},
      {vframe,[{label,?__(2,"Use Workaround?")},separator|reverse(B)]}].
 
+smart_set_value(Font, Val0, St) when Font =:= system_font; Font =:= console_font ->
+    Val = wings_text:get_font_info(Val0),
+    smart_set_value_1(Font, Val, St);
 smart_set_value(Key, Val, St) ->
     smart_set_value_1(Key, Val, St).
 
@@ -594,7 +596,7 @@ smart_set_value_1(Key, Val, St) ->
 		    clear_proxy_edges(St);
 		proxy_opencl_level ->
 		    clear_proxy(St);
-		new_system_font ->
+		system_font ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(1,"The change to the system font will take\neffect the next time Wings 3D is started."));
 		interface_icons ->
@@ -603,7 +605,7 @@ smart_set_value_1(Key, Val, St) ->
 		extended_toolbar ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(2,"The change to the interface icons will take\neffect the next time Wings 3D is started."));
-		new_console_font ->
+		console_font ->
 		    delayed_set_value(Key, OldVal, Val),
 		    wings_u:message(?__(4,"The change to the console font will take\neffect the next time Wings 3D is started."));
 		console_color ->
@@ -704,6 +706,9 @@ make_query({alt,Key,Label,Val}) ->
 make_query({menu,List,Key}) ->
     Def = get_value(Key),
     {menu,List,Def,[{key,Key}]};
+make_query({fontpicker,Key}) ->
+    Def = get_value(Key),
+    {fontpicker,Def,[{key,Key}]};
 make_query({vradio,List,Key}) ->
     Def = get_value(Key),
     {vradio,List,Def,[{key,Key}]};
