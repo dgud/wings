@@ -69,14 +69,11 @@ command(_, _) -> next.
 
 make_text(Ask, St) when is_atom(Ask) ->
     FontDir  = sysfontdir(),
-    DefFont = default_font(),
-    {Name,Style,Weight} =
-	case wpa:pref_get(wpc_tt, fontname, DefFont) of
-	    FI = {_, _, _} -> FI;
-	    FaceName when is_list(FaceName) ->
-		{FaceName, ?wxFONTSTYLE_NORMAL, ?wxFONTWEIGHT_NORMAL};
-	    WFont = {wx_ref,_,wxFont,_} -> {WFont, undefined, undefined}
-	end,
+    DefFont  = default_font(),
+    FontInfo = case wpa:pref_get(wpc_tt, fontname, DefFont) of
+		   FI = #{type := font} -> FI;
+		   _ -> DefFont
+	       end,
 
     Text = wpa:pref_get(wpc_tt, text, "Wings 3D"),
     Bisect = wpa:pref_get(wpc_tt, bisections, 0),
@@ -92,8 +89,7 @@ make_text(Ask, St) when is_atom(Ask) ->
 		[{text,Text,[{key,{wpc_tt,text}}]},
 		 {slider,{text,Bisect,[{key,{wpc_tt,bisections}},
 				       {range, {0, 3}}]}},
-		 {fontpicker,Name,[{key,{wpc_tt,font}},
-				   {style, Style},{weight, Weight}]}]},
+		 {fontpicker,FontInfo,[{key,{wpc_tt,font}}]}]},
 	       {vframe,[help_button()]}]}]}],
     wings_dialog:dialog(Ask,?__(1,"Create Text"), {preview, Dlg},
 			fun({dialog_preview,[T,N,{_,Ctrl}]=_Res}) ->
@@ -101,9 +97,9 @@ make_text(Ask, St) when is_atom(Ask) ->
 				{preview,{shape,{text,[T,N,{fontdir,FPath}]}},St};
 			   (cancel) ->
 				St;
-			   ([T,N,{_,Ctrl}]=_Res) when is_tuple(Ctrl) ->
-				{Font, FPath} = get_font_file(GbtFonts,Ctrl),
-				wpa:pref_set(wpc_tt, fontname, Font),
+			   ([T,N,{_,WxFont}]=_Res) when is_tuple(WxFont) ->
+				{NewFontI, FPath} = get_font_file(GbtFonts,WxFont),
+				wpa:pref_set(wpc_tt, fontname, NewFontI),
 				wpa:pref_set(wpc_tt, text, element(2,T)),
 				wpa:pref_set(wpc_tt, bisections, element(2,N)),
 				{commit,{shape,{text,[T,N,{fontdir,FPath}]}},St}
@@ -149,7 +145,7 @@ process_ttfs(Dir) ->
 		      _ -> Acc
 		  end
 	  end,
-    filelib:fold_files(Dir, ".ttf", true, Add, gb_trees:empty()).
+    filelib:fold_files(Dir, ".ttf|.TTF", true, Add, gb_trees:empty()).
 
 read_ttf_name(File) ->
     case file:read_file(File) of
@@ -157,7 +153,7 @@ read_ttf_name(File) ->
 	    try
 		{ok, TTFpart} = ttfpart(Filecontents),
 		(TTFpart =:= Filecontents) orelse erlang:display({changed, File}),
-		parsett_header(Filecontents)
+		parsett_header(File, Filecontents)
 	    catch _ET:_Error ->
 		    io:format("ERROR: ~s:~P ~p~n",[File,_Error, 10, erlang:get_stacktrace()]),
 		    error
@@ -169,24 +165,23 @@ read_ttf_name(File) ->
 %% The Font dialog can show options for styles which we are not able to find a file like the "Italic"
 %% and "Italic Bold" for "Comic Sans MS" - there are no files for these styles (only Regular and
 %% Bold). Here, we'll try to get the font with a most close appearance of that selected by the user.
-get_font_file(GbtFonts,Ctrl) ->
-    FName=wxFont:getFaceName(Ctrl),
-    FStyle=wxFont:getStyle(Ctrl),
-    FWeight=wxFont:getWeight(Ctrl),
+get_font_file(GbtFonts, WxFont) ->
+    FontInfo = wings_text:get_font_info(WxFont),
+    #{face:=FName, style:=FStyle, weight:=FWeight} = FontInfo,
     case get_font_file(0,GbtFonts,FName,FStyle,FWeight) of
-        undefined -> {{FName,FStyle,FWeight}, "unknown"};
-        FPath -> {{FName,FStyle,FWeight}, FPath}
+        undefined -> {FontInfo, "unknown"};
+        FPath -> {FontInfo, FPath}
     end.
 
 get_font_file(0=Try,GbtFonts,FName,FStyle,FWeight) ->  % try to get the right fount
     case gb_trees:lookup({FName,FStyle,FWeight},GbtFonts) of
 	{value,FPath} -> FPath;
-        _ -> get_font_file(Try+1,GbtFonts,FName,?wxFONTSTYLE_NORMAL,FWeight)
+        _ -> get_font_file(Try+1,GbtFonts,FName,normal,FWeight)
     end;
 get_font_file(1=Try,GbtFonts,FName,FStyle,FWeight) ->  % try to get the right fount
     case gb_trees:lookup({FName,FStyle,FWeight},GbtFonts) of
 	{value,FPath} -> FPath;
-        _ -> get_font_file(Try+1,GbtFonts,FName,FStyle,?wxFONTWEIGHT_NORMAL)
+        _ -> get_font_file(Try+1,GbtFonts,FName,FStyle,normal)
     end;
 get_font_file(2,GbtFonts,FName,FStyle,FWeight) ->  % try to get the right fount
     case gb_trees:lookup({FName,FStyle,FWeight},GbtFonts) of
@@ -194,10 +189,11 @@ get_font_file(2,GbtFonts,FName,FStyle,FWeight) ->  % try to get the right fount
         _ -> win_font_substitutes(FName,GbtFonts)
     end.
 
-parsett_header(Bin) ->
+parsett_header(_File, Bin) ->
     FontInfo = font_info(Bin),
     Family = proplists:get_value(family, FontInfo, undefined),
     {Style, Weight} = font_styles(Bin),
+    %% io:format("File: ~p ~p ~p ~p~n", [_File,Family, Style, Weight]),
     {Family,Style,Weight}.
 
 %% Return the requested string from font
@@ -361,15 +357,15 @@ font_styles(Bin) ->
 	    <<_:TabOffset/binary,_Ver:16,_Pad:30/binary,_Panose:10/binary,_ChrRng:16/binary,
 	      _VenId:4/binary,FsSel:16,_T1/binary>> = Bin,
 
-	    FStyle = if (FsSel band ?fsITALIC) =:= ?fsITALIC -> ?wxFONTSTYLE_ITALIC;
-			true -> ?wxFONTSTYLE_NORMAL
+	    FStyle = if (FsSel band ?fsITALIC) =:= ?fsITALIC -> italic;
+			true -> normal
 		     end,
-	    FWeight = if (FsSel band ?fsBOLD) =:= ?fsBOLD -> ?wxFONTWEIGHT_BOLD;
-			 true -> ?wxFONTWEIGHT_NORMAL
+	    FWeight = if (FsSel band ?fsBOLD) =:= ?fsBOLD -> bold;
+			 true -> normal
 		      end,
 	    {FStyle, FWeight};
 	false ->
-	    {?wxFONTSTYLE_NORMAL, ?wxFONTWEIGHT_NORMAL}
+	    {normal, normal}
     end.
 
 trygen(File, Text, Nsubsteps) ->
@@ -456,7 +452,7 @@ win_font_substitutes(FName,GbtFonts) ->
 	    case winregval(?__(1,"FontSubstitutes"),FName) of
 		none -> undefined;
 		FSName ->
-		    case gb_trees:lookup({FSName,?wxFONTSTYLE_NORMAL,?wxFONTWEIGHT_NORMAL},GbtFonts) of
+		    case gb_trees:lookup({FSName,normal,normal},GbtFonts) of
 			{value, FPath} -> FPath;
 			_ -> undefined
 		    end
@@ -471,12 +467,12 @@ sysfontdir() ->
 	    SR = case winregval("", "SystemRoot") of
 		     none ->
 			 case Wintype of
-			     nt -> "C:\\winnt";
-			     _ -> "C:\\windows"
+			     nt -> "C:/winnt";
+			     _ -> "C:/windows"
 			 end;
 		     Val -> Val
 		 end,
-	    SR ++ "\\Fonts";
+	    SR ++ "/Fonts";
 	{unix,Utype} ->
 	    Dir = case Utype of
 		      darwin -> "/Library/Fonts";
@@ -493,7 +489,7 @@ sysfontdir() ->
     end.
 
 default_font() ->
-    wxSystemSettings:getFont(?wxSYS_DEFAULT_GUI_FONT).
+    wings_text:get_font_info(wxSystemSettings:getFont(?wxSYS_DEFAULT_GUI_FONT)).
 
 
 %% Return {Vs,Fs} corresponding to list of polyareas,

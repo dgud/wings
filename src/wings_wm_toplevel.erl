@@ -274,11 +274,11 @@ ctrl_redraw(#ctrl{title=Title}) ->
 			   wings_io:gradient_border_burst(0, 0, W-1, TitleBarH-1, C)
 		   end),
     wings_io:set_color(wings_pref:get_value(title_text_color)),
-    wings_io:text_at(10, TitleBarH-5, Title),
+    wings_io:text_at(10, TitleBarH-2, Title),
     keep.
 
 title_height() ->
-    ?LINE_HEIGHT+3.
+    ?LINE_HEIGHT+4.
 
 ctrl_constrain_move(Client, Dx0, Dy0) ->
     {{DeskX,DeskY},{DeskW,DeskH}} = wings_wm:win_rect(desktop),

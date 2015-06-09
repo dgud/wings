@@ -50,7 +50,7 @@ window(St) ->
     end.
 
 window(Pos, Size, Ps, St) ->
-    Ost = #ost{first=0,lh=18,active=-1},
+    Ost = #ost{first=0,lh=max(18,?LINE_HEIGHT),active=-1},
     Current = {current_state,St},
     Op = {seq,push,event(Current, Ost)},
     Props = [{display_lists,geom_display_lists}],
@@ -565,9 +565,10 @@ draw_objects_1(0, _, _, _, _, _, _) -> ok;
 draw_objects_1(N, B, [O|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
     case O of
 	{material,Name,Color,TextColor} ->
-	    wings_io:border(4, Y-11, 12, 12, Color),
+	    Center = (Lh-10) div 2-4,
+	    wings_io:border(4, Y-Center-12, 12, 12, Color),
 	    gl:color3fv(TextColor),
-	    gl:rasterPos2f(7.5, Y-1),
+	    gl:rasterPos2f(7.5, Y-Center-1),
 	    wings_io:draw_char(m_bitmap()),
 	    gl:color3b(0, 0, 0);
 	{image,_,#e3d_image{name=Name}} -> ok;
@@ -578,39 +579,41 @@ draw_objects_1(N, B, [O|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
     case Active =:= 0 of
 	true when B ->
 	    gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
-	    gl:recti(name_pos()-2, Y-?CHAR_HEIGHT, R-2, Y+4),
+	    gl:recti(name_pos()-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
 	    gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
 	true ->
 	    gl:color3f(0, 0, 0.5),
-	    gl:recti(name_pos()-2, Y-?CHAR_HEIGHT, R-2, Y+4),
+	    gl:recti(name_pos()-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
 	    gl:color3f(1, 1, 1);
 	false when B ->
 	    gl:color3fv(wings_pref:get_value(outliner_geograph_text));
 	false -> ok
     end,
-    wings_io:text_at(name_pos(), Y, Name),
+    wings_io:text_at(name_pos(), Y+2, Name),
     gl:color3b(0, 0, 0),
     draw_objects_1(N-1, B, Objs, Ost, R, Active-1, Y+Lh).
 
-draw_icons(N, B, Objs, Ost, Y) ->
+draw_icons(N, B, Objs, #ost{lh=_Lh}=Ost, Y) ->
     case B of
-      false ->
-        wings_io:draw_icons(fun() -> draw_icons_1(N, Objs, Ost, Y-14) end);
-      true ->
-        wings_io:draw_icons(fun() -> draw_bitmap_icons(N, Objs, Ost, Y) end)
+	false ->
+	    wings_io:draw_icons(fun() -> draw_icons_1(N, Objs, Ost, Y) end);
+	true ->
+	    wings_io:draw_icons(fun() -> draw_bitmap_icons(N, Objs, Ost, Y) end)
     end,
     gl:enable(?GL_TEXTURE_2D),
     gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE),
-    draw_previews(N, Objs, Ost, Y-14),
+    draw_previews(N, Objs, Ost, Y-?CHAR_HEIGHT+4),
     gl:bindTexture(?GL_TEXTURE_2D, 0),
     gl:disable(?GL_TEXTURE_2D).
 
 draw_icons_1(0, _, _, _) -> ok;
 draw_icons_1(N, [ignore|Objs], #ost{lh=Lh}=Ost, Y) ->
     draw_icons_1(N-1, Objs, Ost, Y+Lh);
-draw_icons_1(N, [O|Objs], #ost{lh=Lh}=Ost, Y) ->
-    X = 2,
+draw_icons_1(N, [O|Objs], #ost{lh=Lh}=Ost, Y0) ->
+    X = 4,
     Type = element(1, O),
+    Center = (Lh-16+2) div 2-4,
+    Y = Y0-Center-16, %% 16 Is height of icon
     case Type of
 	object ->
 	    wings_io:draw_icon(X, Y, small_object);
@@ -626,14 +629,15 @@ draw_icons_1(N, [O|Objs], #ost{lh=Lh}=Ost, Y) ->
 	image_preview -> ok;
 	material -> ok
     end,
-    draw_icons_1(N-1, Objs, Ost, Y+Lh).
+    draw_icons_1(N-1, Objs, Ost, Y0+Lh).
 
 draw_bitmap_icons(0, _, _, _) -> ok;
 draw_bitmap_icons(N, [ignore|Objs], #ost{lh=Lh}=Ost, Y) ->
     draw_bitmap_icons(N-1, Objs, Ost, Y+Lh);
 draw_bitmap_icons(N, [O|Objs], #ost{lh=Lh}=Ost, Y0) ->
-    X = 2,
-    Y = Y0+2,
+    X = 4,
+    Center = (Lh-16+2) div 2-4, %% 16 Is height of icon
+    Y = Y0-Center,
     Type = element(1, O),
     case Type of
 	object ->

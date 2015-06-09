@@ -23,6 +23,9 @@
 /ebin/*.bundle
 /ebin/*.lang
 
+# /intl_tools/
+/intl_tools/wings_chars.hrl
+
 # /fonts/
 /fonts/*.wingsfont
 

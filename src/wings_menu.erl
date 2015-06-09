@@ -597,7 +597,7 @@ menu_item({Desc0, Name, Help, Props, HotKey}, Parent, Id, Names) ->
 		      case lists:reverse(Desc0) of
 			  "..." ++ _ -> ok;
 			  _ ->
-			      io:format("Menu have option box ~p ~s~n",[Name, Desc0]),
+			      io:format("Menu have option box ~p ~ts~n",[Name, Desc0]),
 			      io:format("  it should be marked with ...~n",[])
 		      end,
 		      {Name, true};

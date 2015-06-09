@@ -72,6 +72,7 @@ MODULES= \
 	wings_ff_ndo \
 	wings_ff_wings \
 	wings_gl \
+	wings_glfont \
 	wings_help \
 	wings_hotkey \
 	wings_image \
@@ -193,3 +194,7 @@ DEPENDENT_OF_E3D_HRL = \
 	wpa
 
 $(DEPENDENT_OF_E3D_HRL:%=$(EBIN)/%.beam): ../e3d/e3d.hrl
+
+DEPENDENT_OF_INTL_HRL = wings_text
+
+$(DEPENDENT_OF_INTL_HRL:%=$(EBIN)/%.beam): ../intl_tools/wings_chars.hrl
