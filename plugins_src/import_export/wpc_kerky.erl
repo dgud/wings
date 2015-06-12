@@ -278,7 +278,7 @@ unique_filename(Name, Names, Count) ->
 %%% Open files, do the actual export, check for render operation and launch render if necessary
 export(Filename, Contents, Attr) ->
     wpa:popup_console(),
-    ExportTS = os:timestamp(),
+    ExportTS = erlang:now(),
     Render = proplists:get_value(?TAG_RENDER, Attr, false),
     RenderFormat = proplists:get_value(render_format, Attr, ?DEF_RENDER_FORMAT),
     ExportDir = filename:dirname(Filename),

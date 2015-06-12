@@ -292,7 +292,7 @@ export_fun(Attr) ->
 %%% Open files, do the actual export, check for render operation and launch render if necessary
 export(Filename, Contents, Attr) ->
     wpa:popup_console(),
-    ExportTS = os:timestamp(),
+    ExportTS = erlang:now(),
     Render = proplists:get_value(?TAG_RENDER, Attr, false),
     RenderFormat = get_var(render_format),
     ExportDir = filename:dirname(Filename),
@@ -2410,6 +2410,7 @@ material_result(_Name, Mat, Res) ->
         fun() -> [{0.0, agate}] end),
 
     FoundCM = [{colormap_list, ColorMapNC}, {normalmap_list, NormalMapNC} | RemainingND],
+    io:format("FoundCM: ~p\n",[FoundCM]),
 
     NewMat = [{?TAG, FoundCM} | lists:keydelete(?TAG, 1, Mat)],
     {NewMat, Remaining}.
