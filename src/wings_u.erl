@@ -172,22 +172,26 @@ relative_path_name(Dst,Src) ->
     Fn=filename:basename(Src),
     Dir0=filename:split(get_dir(Dst)),
     Dir1=filename:split(get_dir(Src)),
-	case get_rel_path(Dir0,Dir1,[]) of
-		[] -> Fn;
-		Dir3 -> filename:join(Dir3++[Fn])
-	end.
+    case get_rel_path(Dir0,Dir1) of
+        [] -> Fn;
+        Dir3 -> filename:join(Dir3++[Fn])
+    end.
 
 get_dir(Dir) ->
-	case filelib:is_dir(Dir) of
-		true -> Dir;
-		_ -> filename:dirname(Dir)
-	end.
+    case filelib:is_dir(Dir) of
+        true -> Dir;
+        _ -> filename:dirname(Dir)
+    end.
 
-get_rel_path([]=_Dst, []=_Src, Acc) -> Acc;  % export and image dir are the same
-get_rel_path([_|T], [], Acc) -> get_rel_path(T,[],["../"]++Acc);  % image is in some up level directory
-get_rel_path([], [H|T], Acc) -> get_rel_path([],T,[H]++Acc);  % image is in some down level directory
-get_rel_path([H|T0], [H|T1], Acc) -> get_rel_path(T0,T1, Acc);  % continue checking in next dir level
-get_rel_path(_, Dst, _) -> Dst.  % image is in an other disk
+get_rel_path([D|_]=Dst,[D|_]=Src) ->    % paths are in the same drive - check relative path
+    get_rel_path(Dst,Src,[]);
+get_rel_path(_,Src) -> Src.   % paths are in a different Drive - ignore routine
+
+get_rel_path([]=_Dst, []=_Src, Acc) -> Acc;     % export and file dir are the same
+get_rel_path([_|T], [], Acc) -> get_rel_path(T,[],["../"]++Acc);    % file is in some dir level in the Dst
+get_rel_path([], [H|T], Acc) -> get_rel_path([],T,[H]++Acc);    % all previous dir match - file is in uppper dir level
+get_rel_path([H|T0], [H|T1], Acc) -> get_rel_path(T0,T1,["../"]++Acc);      % continue checking in next dir level
+get_rel_path(_, Dist, Acc) -> Acc++Dist.    % no more compatible subdir and file is in some down dir level
 
 
 wings() ->

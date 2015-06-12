@@ -4,7 +4,7 @@
 %%     Kerkythea Plugin User Interface.
 %%
 %%  Copyright (c) 2007-2011 Chris Hegarty
-%%                2014 Micheus (porting to use wx dialogs)
+%%                2015 Micheus (porting to use wx dialogs)
 %%
 %%     $Id$
 %%
@@ -44,7 +44,7 @@ is_windows()->
     lists:member(win32, L).
 
 export_matrix()->
-%%% e3d_mat:scale(-1.0, 1.0, 1.0).
+    %% e3d_mat:scale(-1.0, 1.0, 1.0).
     AxisXForm = {-1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
     Rotate = e3d_mat:rotate(180.0, {0.0, 1.0, 0.0}),
     e3d_mat:mul(AxisXForm, Rotate).
@@ -107,29 +107,36 @@ init_pref() ->
     set_var(overwrite_exportfile, get_pref(overwrite_exportfile, true)),
     ok.
 
+maybe_append(Condition, Menu, PluginMenu) ->
+    case {is_plugin_active(Condition),Menu} of
+        {_,[plugin_manager_category]} -> Menu++PluginMenu;
+        {false,_} -> Menu;
+        {_,_} -> Menu++PluginMenu
+    end.
+
+is_plugin_active(Condition) ->
+    case Condition of
+        export -> get_var(dialogs);
+        edit -> get_var(dialogs);
+        render -> get_var(renderer)
+    end.
+
 %%% insert menu items into export, export selected, render, and plugin preferences
 menu({file,export}, Menu) ->
-    case get_var(dialogs) of
-        false -> Menu;
-        _ -> kkt_menu(Menu)
-    end;
+    maybe_append(export, Menu, menu_entry(export));
 menu({file,export_selected}, Menu) ->
-    case get_var(dialogs) of
-        false -> Menu;
-        _ -> kkt_menu(Menu)
-    end;
+    maybe_append(export, Menu, menu_entry(export));
 menu({file,render}, Menu) ->
-    case get_var(renderer) of
-        false -> Menu;
-        _ -> Menu++[{?__(1,"Kerkythea")++"...",?TAG}]
-    end;
+    maybe_append(render, Menu, menu_entry(render));
 menu({edit, plugin_preferences}, Menu) ->
-    Menu++[{?__(1,"Kerkythea")++"...",?TAG}];
+    Menu++menu_entry(pref);
 menu(_, Menu) ->
     Menu.
 
-kkt_menu(Menu) ->
-    Menu ++ [{?__(1,"Kerkythea")++" (.xml)...",?TAG}].
+menu_entry(export) ->
+    [{?__(1,"Kerkythea")++" (.xml)...",?TAG}];
+menu_entry(_) ->
+    [{?__(1,"Kerkythea")++"...",?TAG}].
 
 %%% dialog and file type properties
 props(render, _Attr) ->
@@ -199,11 +206,11 @@ pref_dialog(St) ->
     Dialog =
         [{vframe, [
 	    {hframe, [
-		{menu,[
+		{menu, [
 		    {?__(1, "Disabled Dialogs"), disabled},
 		    {?__(2, "Automatic Dialogs"), auto},
 		    {?__(3, "Enabled Dialogs"), enabled}
-		], Dialogs, [{key, dialogs}]}
+		], Dialogs, [{key,dialogs}]}
 	    ]},
 	    {hframe,[
 		{label, ?__(4, "Executable")},
@@ -271,7 +278,7 @@ unique_filename(Name, Names, Count) ->
 %%% Open files, do the actual export, check for render operation and launch render if necessary
 export(Filename, Contents, Attr) ->
     wpa:popup_console(),
-    ExportTS = os:timestamp(),
+    ExportTS = erlang:now(),
     Render = proplists:get_value(?TAG_RENDER, Attr, false),
     RenderFormat = proplists:get_value(render_format, Attr, ?DEF_RENDER_FORMAT),
     ExportDir = filename:dirname(Filename),
@@ -1620,7 +1627,7 @@ export_maps([{MapID, Map} | Maps], ExportDir) ->
 
 %%% Construct dialog with export options, use get_pref to load options
 export_dialog(_Op)->
-    EnableHook = fun(Key, Value, Store) ->
+    Hook_Enable = fun(Key, Value, Store) ->
 	case Key of
 	    render_preset ->
 		wings_dialog:enable(pnl_render_props, not is_member(Value,[pt_bpt,mlt,mlt_bpt]), Store),
@@ -1643,6 +1650,7 @@ export_dialog(_Op)->
 		{vframe, [
 		    {hframe, [
 			{?__(2, "Export UVs"), get_pref(include_uvs, true), [exkey(include_uvs)]},
+                        panel,
 			{?__(3, "Export Normals"), get_pref(export_normals, true), [exkey(export_normals)]}
 		    ]},
 		    {hframe, [
@@ -1657,33 +1665,50 @@ export_dialog(_Op)->
 		{vframe, [
 		    {hframe, [
 			{label, ?__(6, "Render")},
-			{menu, [{?__(7, "Ray Tracing"), raytrace}, {?__(8, "Ray Tracing High"), raytrace_high},
-				{?__(9, "Photon Map Quick"), pm_quick}, {?__(10, "Photon Map Medium"), pm_medium},
-				{?__(11, "Photon Map High"), pm_high}, {?__(12, "Path Trace Quick"), pt_quick},
-				{?__(13, "Path Trace Medium"), pt_medium}, {?__(14, "Path Trace High"), pt_high},
-				{?__(15, "Progressive Path Trace"), pt_progressive},
-				{?__(16, "Bidirectional Path Trace"), pt_bpt},
-				{?__(17, "MLT"), mlt}, {?__(18, "MLT BPT"), mlt_bpt}], get_pref(render_preset, pm_medium), [exkey(render_preset), {hook,EnableHook}] }
+			{menu, [
+                            {?__(7, "Ray Tracing"), raytrace},
+                            {?__(8, "Ray Tracing High"), raytrace_high},
+                            {?__(9, "Photon Map Quick"), pm_quick},
+                            {?__(10, "Photon Map Medium"), pm_medium},
+                            {?__(11, "Photon Map High"), pm_high},
+                            {?__(12, "Path Trace Quick"), pt_quick},
+                            {?__(13, "Path Trace Medium"), pt_medium},
+                            {?__(14, "Path Trace High"), pt_high},
+                            {?__(15, "Progressive Path Trace"), pt_progressive},
+                            {?__(16, "Bidirectional Path Trace"), pt_bpt},
+                            {?__(17, "MLT"), mlt},
+                            {?__(18, "MLT BPT"), mlt_bpt}
+                        ], get_pref(render_preset, pm_medium), [exkey(render_preset),{hook,Hook_Enable}]}
 		    ]},
 		    {hframe, [
 			{hframe, [
 			    {label, ?__(19, "Translucencies")},
-			    {menu, [{?__(20, "None"), none}, {?__(21, "Pseudo"), pseudo}, {?__(22, "Normal"), normal}], get_pref(translucence, normal),
-				    [exkey(translucence)] }
+			    {menu, [
+                                {?__(20, "None"), none},
+                                {?__(21, "Pseudo"), pseudo},
+                                {?__(22, "Normal"), normal}
+                            ], get_pref(translucence, normal), [exkey(translucence)]}
 			]},
+                        panel,
 			{hframe, [
 			    {label, "Caustics"},
-			    {menu, [{?__(20, "None"), none}, {?__(21, "Pseudo"), pseudo}, {?__(22, "Normal"), normal}], get_pref(caustics_type, none),
-				    [exkey(caustics_type)] }
+			    {menu, [
+                                {?__(20, "None"), none},
+                                {?__(21, "Pseudo"), pseudo},
+                                {?__(22, "Normal"), normal}
+                            ], get_pref(caustics_type, none), [exkey(caustics_type)]}
 			]}
 		    ], [exkey(pnl_render_props), {margin,false}]},
 		    {hframe, [
 			{vframe, [
 			    {hframe, [
 				{label, ?__(23, "AntiAlias")},
-				{menu, [{?__(20, "None"), none}, {?__(24, "Extra Pass"), pass}, {?__(25, "Iterative"), iterative},
-					{?__(26, "Production"), production}], get_pref(antialias_type, none),
-				 	[exkey(antialias_type), {hook,EnableHook}] }
+				{menu, [
+                                    {?__(20, "None"), none},
+                                    {?__(24, "Extra Pass"), pass},
+                                    {?__(25, "Iterative"), iterative},
+                                    {?__(26, "Production"), production}
+                                ], get_pref(antialias_type, none), [exkey(antialias_type),{hook,Hook_Enable}] }
 			    ]},
 			    {hframe, [
 				{label, ?__(27, "AA Threshold")},
@@ -1703,7 +1728,7 @@ export_dialog(_Op)->
     Camera =
 	{?__(30, "Camera"),
 	    {vframe, [
-		{?__(31, "Fix camera dimensions to model view dimensions"), get_pref(fix_win_dim, false), [exkey(fix_win_dim), {hook,EnableHook}]},
+		{?__(31, "Fix camera dimensions to model view dimensions"), get_pref(fix_win_dim, false), [exkey(fix_win_dim), {hook,Hook_Enable}]},
 		{hframe, [
 		    {hframe, [
 			{label, ?__(32, "Width")},
@@ -1716,16 +1741,26 @@ export_dialog(_Op)->
 		], [exkey(pnl_dim),{margin,false}]},
 		{hframe, [
 		    {label, ?__(30, "Camera")},
-		    {menu, [{?__(34, "Perspective"), perspective}, {?__(35, "Cylindrical"), cylindrical},
-			    {?__(36, "Spherical"), spherical}, {?__(37, "Parallel"), parallel}], get_pref(camera_type, perspective), [exkey(camera_type)] }
+		    {menu, [
+                        {?__(34, "Perspective"), perspective},
+                        {?__(35, "Cylindrical"), cylindrical},
+                        {?__(36, "Spherical"), spherical},
+                        {?__(37, "Parallel"), parallel}
+                    ], get_pref(camera_type, perspective), [exkey(camera_type)]}
 		]},
 		%% KT 2008 f-stop
 		{hframe, [
 		    {hframe, [
 			{label, ?__(38, "F-Number")},
-			{menu, [{?__(39, "Pinhole"), "Pinhole"}, {"1", "1"}, {"1.4", "1.4"},
-				{"2", "2"}, {"2.8", "2.8"}], get_pref(fnumber, "Pinhole"), [exkey(fnumber),{hook,EnableHook}]}
+			{menu, [
+                            {?__(39, "Pinhole"), "Pinhole"},
+                            {"1", "1"},
+                            {"1.4", "1.4"},
+                            {"2", "2"},
+                            {"2.8", "2.8"}
+                        ], get_pref(fnumber, "Pinhole"), [exkey(fnumber),{hook,Hook_Enable}]}
 		    ]},
+                    panel,
 		    {hframe, [
 			{label, ?__(40, "Lens Samples")},
 			{text, get_pref(blur_samples, 3), [range({1, 50}), exkey(blur_samples)]}
@@ -1753,7 +1788,7 @@ light_dialog(_Name, Light)->
 
     case Type of
         ambient ->
-	    EnableHook = fun(Key, Value, Store) ->
+	    Hook_Enable = fun(Key, Value, Store) ->
 		case Key of
 		    ?KEY(sky) ->
 			wings_dialog:enable(?KEY(pnl_turbidity), Value =:= physical, Store),
@@ -1769,10 +1804,16 @@ light_dialog(_Name, Light)->
 		    {label, ?__(4, "Image")}
 	       	]},
 		{vframe, [
-		    {menu, [{?__(5, "Background Color"), background_color}, {?__(6, "Sky Color"), sky_color},
-			    {?__(7, "Centered Image"), centered_image}, {?__(8, "Tiled Image"), tiled_image},
-			    {?__(9, "Fit Image"), fit_image}, {?__(10,"Hemisphere Image"), hemisphere},
-			    {?__(11, "Spherical"), spherical}, {?__(12, "Physical"), physical}], proplists:get_value(sky, KT, background_color), [key(sky), {hook,EnableHook}]},
+		    {menu, [
+                        {?__(5, "Background Color"), background_color},
+                        {?__(6, "Sky Color"), sky_color},
+                        {?__(7, "Centered Image"), centered_image},
+                        {?__(8, "Tiled Image"), tiled_image},
+                        {?__(9, "Fit Image"), fit_image},
+                        {?__(10,"Hemisphere Image"), hemisphere},
+                        {?__(11, "Spherical"), spherical},
+                        {?__(12, "Physical"), physical}
+                    ], proplists:get_value(sky, KT, background_color), [key(sky),{hook,Hook_Enable}]},
 		    {slider, {text, proplists:get_value(sky_intensity, KT, 1.0), [range({0.0, 10.0}), key(sky_intensity)]}},
 		    {hframe, [
 			{slider, {text, proplists:get_value(sky_turbidity, KT, 2.0), [range({0.0, 50.0}), key(sky_turbidity)]}}
@@ -1803,8 +1844,11 @@ light_dialog(_Name, Light)->
 			{slider, {text, proplists:get_value(light_power, KT, 1.0), [range({0.0, 100.0}), key(light_power)]}},
 			{slider, {text, proplists:get_value(light_radius, KT, 0.2), [range({0.0, 100.0}), key(light_radius)]}},
 			{slider, {color, proplists:get_value(shadowcolor, KT, {0.0, 0.0, 0.0}), [key(shadowcolor)]}},
-			{menu, [{?__(18, "None"), none}, {?__(19, "Inverse"), inverse}, {?__(20, "Inverse Square"), inverse_square}],
-				proplists:get_value(attenuation, KT, none), [key(attenuation)]}
+			{menu, [
+                            {?__(18, "None"), none},
+                            {?__(19, "Inverse"), inverse},
+                            {?__(20, "Inverse Square"), inverse_square}
+                        ], proplists:get_value(attenuation,KT,none), [key(attenuation)]}
 		    ]}
 		]},
 		{hframe, [
@@ -1820,11 +1864,12 @@ light_result(_Name, Light, Res)->
     NewLight = [{?TAG, Found} | lists:keydelete(?TAG, 1, Light)],
     {NewLight, Remaining}.
 
-%% construct material dialog
+%%% construct material dialog
 material_dialog(_Name, Mat)->
     KT = proplists:get_value(?TAG, Mat, []),
     MatType = proplists:get_value(material_type, KT, matte),
-    HookShow = fun(Key, Value, Store) ->
+
+    Hook_Show = fun(Key, Value, Store) ->
 	case Key of
 	    ?KEY(material_type) ->
 		wings_dialog:show(?KEY(pnl_matte), Value =:= matte, Store),
@@ -1836,61 +1881,74 @@ material_dialog(_Name, Mat)->
 		wings_dialog:show(?KEY(pnl_mat_metal), Value =:= matte_metal, Store),
 		wings_dialog:show(?KEY(pnl_ash_metal), Value =:= ashikhmin_metal, Store),
 		wings_dialog:show(?KEY(pnl_sss), Value =:= sss, Store),
-		wings_dialog:show(?KEY(pnl_sss_props), Value =:= sss, Store);
-	    _ -> ok
+		wings_dialog:show(?KEY(pnl_sss_props), Value =:= sss, Store),
+		wings_dialog:update(?KEY(pnl_help), Store)
 	end
     end,
+
     {vframe, [
 	{hframe, [
 	    {label, ?__(1, "IOR")},
-	    {slider, {text, proplists:get_value(ior, KT, 1.0), [range({0.0, 3.0}), key(ior)]}}
+            {hframe, [
+	        {slider, {text, proplists:get_value(ior, KT, 1.0), [range({0.0, 3.0}), key(ior)]}}
+            ],[{margin,false}]}
 	]},
 	{hframe, [
 	    {label, ?__(2, "Type")},
-	    {menu, [{?__(3, "Matte"), matte}, {?__(4, "Plastic"), plastic}, {?__(5, "Dielectric Glass"), di_glass},
-		    {?__(6, "Fresnel Glass"), fresnel_glass}, {?__(7, "Frosted Glass"), frosted_glass}, {?__(8, "Thin Glass"), thin_glass},
-		    {?__(9, "Matte Metal"), matte_metal}, {?__(10, "Ashikhmin Metal"), ashikhmin_metal}, {?__(11,"SSS"), sss}],
-		     MatType, [key(material_type), {hook,HookShow}]},
+	    {menu, [
+                {?__(3, "Matte"), matte},
+                {?__(4, "Plastic"), plastic},
+                {?__(5, "Dielectric Glass"), di_glass},
+                {?__(6, "Fresnel Glass"), fresnel_glass},
+                {?__(7, "Frosted Glass"), frosted_glass},
+                {?__(8, "Thin Glass"), thin_glass},
+                {?__(9, "Matte Metal"), matte_metal},
+                {?__(10,"Ashikhmin Metal"), ashikhmin_metal},
+                {?__(11,"SSS"), sss}
+            ], MatType, [key(material_type),{hook,Hook_Show}]},
 	    panel,
-	    {hframe, [
-		help_button({material_dialog, matte})
-	    ], [key(pnl_matte), {show, MatType=:=matte}]},
-	    {hframe, [
-		help_button({material_dialog, plastic})
-	    ], [key(pnl_plastic), {show, MatType=:=plastic}]},
-	    {hframe, [
-		help_button({material_dialog, di_glass})
-	    ], [key(pnl_di_glass), {show, MatType=:=di_glass}]},
-	    {hframe, [
-		help_button({material_dialog, fresnel_glass})
-	    ], [key(pnl_fre_glass), {show, MatType=:=fresnel_glass}]},
-	    {hframe, [
-		help_button({material_dialog, frosted_glass})
-	    ], [key(pnl_fro_glass), {show, MatType=:=frosted_glass}]},
-	    {hframe, [
-		help_button({material_dialog, thin_glass})
-	    ], [key(pnl_thi_glass), {show, MatType=:=thin_glass}]},
-	    {hframe, [
-		help_button({material_dialog, matte_metal})
-	    ], [key(pnl_mat_metal), {show, MatType=:=matte_metal}]},
-	    {hframe, [
-		help_button({material_dialog, ashikhmin_metal})
-	    ], [key(pnl_ash_metal), {show, MatType=:=ashikhmin_metal}]},
-	    {hframe, [
-		 help_button({material_dialog, sss})
-	    ], [key(pnl_sss), {show, MatType=:=sss}]}
-	]},
+            {hframe, [
+                {hframe, [
+                    help_button({material_dialog, matte})
+                ], [key(pnl_matte), {show, MatType=:=matte},{margin,false}]},
+                {hframe, [
+                    help_button({material_dialog, plastic})
+                ], [key(pnl_plastic), {show, MatType=:=plastic},{margin,false}]},
+                {hframe, [
+                    help_button({material_dialog, di_glass})
+                ], [key(pnl_di_glass), {show, MatType=:=di_glass},{margin,false}]},
+                {hframe, [
+                    help_button({material_dialog, fresnel_glass})
+                ], [key(pnl_fre_glass), {show, MatType=:=fresnel_glass},{margin,false}]},
+                {hframe, [
+                    help_button({material_dialog, frosted_glass})
+                ], [key(pnl_fro_glass), {show, MatType=:=frosted_glass},{margin,false}]},
+                {hframe, [
+                    help_button({material_dialog, thin_glass})
+                ], [key(pnl_thi_glass), {show, MatType=:=thin_glass},{margin,false}]},
+                {hframe, [
+                    help_button({material_dialog, matte_metal})
+                ], [key(pnl_mat_metal), {show, MatType=:=matte_metal},{margin,false}]},
+                {hframe, [
+                    help_button({material_dialog, ashikhmin_metal})
+                ], [key(pnl_ash_metal), {show, MatType=:=ashikhmin_metal},{margin,false}]},
+                {hframe, [
+                     help_button({material_dialog, sss})
+                ], [key(pnl_sss), {show, MatType=:=sss},{margin,false}]}
+            ],[key(pnl_help)]}
+        ]},
 	{hframe, [
 	    {vframe, [
 		{label, ?__(12, "Translucency")},
 		{label, ?__(13, "Absorption")},
-		{label, ?__(14, "Scatter")}]},
+		{label, ?__(14, "Scatter")}
+            ]},
 	    {vframe, [
 		{slider, {color, proplists:get_value(translucence, KT, {0.0, 0.0, 0.0}), [key(translucence)]}},
 		{slider, {color, proplists:get_value(absorption_color, KT, {0.0, 0.0, 0.0}), [key(absorption_color)]}},
 		{slider, {color, proplists:get_value(scatter_color, KT, {0.0, 0.0, 0.0}), [key(scatter_color)]}}
 	    ]}
-	], [key(pnl_sss_props)]}
+	],[key(pnl_sss_props),[{margin,false}]]}
     ]}.
 
 material_result(_Name, Mat, Res)->
@@ -1910,9 +1968,9 @@ all_zero([InVal | InList]) when is_list(InList)->
         _ -> false
     end.
 
-%% pulls out all the values stored as {{KeyTag, SubKey}, Value}
-%% returns {ListOfFound, ListRemaining}
-%% ListOfFound is a list of {SubKey, Value}
+%%% pulls out all the values stored as {{KeyTag, SubKey}, Value}
+%%% returns {ListOfFound, ListRemaining}
+%%% ListOfFound is a list of {SubKey, Value}
 rip_all(KeyTag, List)->
     Keys = proplists:get_keys(List),
     rip_all(KeyTag, Keys, List).
@@ -2028,7 +2086,7 @@ help(title, {material_dialog, matte}) ->
     ?__(1,"Kerkythea Material Properties");
 help(text, {material_dialog, matte}) ->
     help_header() ++
-    [?__(10, "Matte"),
+    [wings_help:cmd([?__(10, "Matte")]),
      ?__(11, "   This is the most basic setting.  It is NOT a photorealistic setting, but still has uses."),
      ?__(12, "    KT Diffuse    -> diffuse * opacity"),
      ?__(13, "    KT Specular   -> specular"),
@@ -2043,7 +2101,7 @@ help(title, {material_dialog, plastic}) ->
     ?__(2, "Kerkythea Material Properties");
 help(text, {material_dialog, plastic}) ->
     help_header() ++
-    [?__(20, "Plastic"),
+    [wings_help:cmd([?__(20, "Plastic")]),
      ?__(21, "   This is the most useful setting.  It is a layered material using the fresnel procedural to provide reflection based on IOR."),
      ?__(12, "    KT Diffuse    -> diffuse * opacity"),
      ?__(22, "    KT Specular   -> specular; Intensity (V in HSV) should ALWAYS be 1.0"),
@@ -2059,7 +2117,7 @@ help(title, {material_dialog, di_glass}) ->
     ?__(3, "Kerkythea Material Properties");
 help(text, {material_dialog, di_glass}) ->
     help_header() ++
-    [?__(30, "Dielectric Glass"),
+    [wings_help:cmd([?__(30, "Dielectric Glass")]),
      ?__(31, "   This is a simple glass setting.  It is a single layer material."),
      ?__(32, "    KT Reflection   -> specular"),
      ?__(14, "    KT Refraction -> diffuse * (1 - opacity)"),
@@ -2073,7 +2131,7 @@ help(title, {material_dialog, fresnel_glass}) ->
     ?__(4, "Kerkythea Material Properties");
 help(text, {material_dialog, fresnel_glass}) ->
     help_header() ++
-    [?__(40, "Fresnel Glass"),
+    [wings_help:cmd([?__(40, "Fresnel Glass")]),
      ?__(41, "   This is similar to plastic and frosted glass.  Fresnel procedurals govern the balance between refractive and reflective layers."),
      ?__(22, "    KT Specular   -> specular; Intensity (V in HSV) should ALWAYS be 1.0"),
      ?__(14, "    KT Refraction -> diffuse * (1 - opacity)"),
@@ -2087,7 +2145,7 @@ help(title, {material_dialog, frosted_glass}) ->
     ?__(5, "Kerkythea Material Properties");
 help(text, {material_dialog, frosted_glass}) ->
     help_header() ++
-    [?__(50, "Frosted Glass"),
+    [wings_help:cmd([?__(50, "Frosted Glass")]),
      ?__(51, "   This is similar to plastic and fresnel glass.  Fresnel procedurals govern the balance between transmitted and reflective layers."),
      ?__(52, "    KT Reflection   -> specular; Intensity (V in HSV) should ALWAYS be 1.0"),
      ?__(53, "    KT Transmission -> diffuse * (1 - opacity)"),
@@ -2102,7 +2160,7 @@ help(title, {material_dialog, thin_glass}) ->
     ?__(6, "Kerkythea Material Properties");
 help(text, {material_dialog, thin_glass}) ->
     help_header() ++
-    [?__(60, "Thin Glass"),
+    [wings_help:cmd([?__(60, "Thin Glass")]),
      ?__(61, "   This is a simple glass imitating a thin glass layer."),
      ?__(14, "    KT Refraction -> diffuse * (1 - opacity)"),
      ?__(17, "    KT IOR        -> IOR"),
@@ -2116,7 +2174,7 @@ help(title, {material_dialog, matte_metal}) ->
     ?__(7, "Kerkythea Material Properties");
 help(text, {material_dialog, matte_metal}) ->
     help_header() ++
-    [?__(70, "Matte Metal"),
+    [wings_help:cmd([?__(70, "Matte Metal")]),
      ?__(71, "   This is a simple single layer material for reflective metal."),
      ?__(72, "    KT Diffuse   -> always black"),
      ?__(73, "    KT Specular   -> always white"),
@@ -2134,7 +2192,7 @@ help(title, {material_dialog, ashikhmin_metal}) ->
     ?__(8, "Kerkythea Material Properties");
 help(text, {material_dialog, ashikhmin_metal}) ->
     help_header() ++
-    [?__(80, "Ashikhmin Metal"),
+    [wings_help:cmd([?__(80, "Ashikhmin Metal")]),
      ?__(81, "   This is a simple single layer material using Ashikhmin for reflective metal."),
      ?__(72, "    KT Diffuse   -> always black"),
      ?__(73, "    KT Specular   -> always white"),
@@ -2152,7 +2210,7 @@ help(title, {material_dialog, sss}) ->
     ?__(9, "Kerkythea Material Properties");
 help(text, {material_dialog, sss}) ->
     help_header() ++
-    [?__(90, "SubSurface Scattering"),
+    [wings_help:cmd([?__(90, "SubSurface Scattering")]),
      ?__(91, "   Essentially Plastic, SSS adds translucency and absorption to show light scattering within the depth of the material."),
      ?__(92, "   For an accurate SSS effect, opacity should be 1, and for dark diffuse colors, use a light translucency of a similar hue, and vice versa"),
      ?__(93, "   Volume Lighting MUST be enabled in the render / export dialog."),

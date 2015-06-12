@@ -22,7 +22,7 @@
 	]).
 
 %% Hook callbacks
--export([enable/3, show/3,
+-export([enable/3, show/3, update/2,
 	 get_value/2, set_value/3,
 	 get_widget/2]).
 
@@ -309,15 +309,24 @@ enable(Key, Bool, Store) ->
     [#in{wx=Ctrl, wx_ext=CtrlExt}] = ets:lookup(Store, Key),
     [wxWindow:enable(CtrlExt0,[{enable,Bool}]) || CtrlExt0 <- CtrlExt],
     wxWindow:enable(Ctrl, [{enable,Bool}]).
+
 show(Key, Bool, Store) ->
     case ets:lookup(Store, Key) of
-	[#in{wx=Ctrl, wx_ext=CtrlExt}] ->
-	    Parent = wxWindow:getParent(Ctrl),
-	    PSizer = wxWindow:getSizer(Parent),
-	    [wxWindow:show(CtrlExt0,[{show,Bool}]) || CtrlExt0 <- CtrlExt],
-	    wxWindow:show(Ctrl,[{show,Bool}]),
-	    wxSizer:setSizeHints(PSizer,Parent);
-	_ -> ok
+        [#in{wx=Ctrl, wx_ext=CtrlExt}] ->
+            [wxWindow:show(CtrlExt0,[{show,Bool}]) || CtrlExt0 <- CtrlExt],
+            wxWindow:show(Ctrl,[{show,Bool}]);
+        _ -> ok
+    end.
+
+update(Key, Store) ->
+    case ets:lookup(Store, Key) of
+        [#in{wx=Ctrl}] ->
+            PSizer = wxWindow:getSizer(Ctrl),
+            case PSizer of
+                {wx_ref,0,wxSizer,[]} -> ok;
+                _ -> wxSizer:setSizeHints(PSizer,Ctrl)
+            end;
+        _ -> ok
     end.
 
 get_widget(Key, Store) ->
