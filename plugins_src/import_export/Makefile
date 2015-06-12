@@ -43,7 +43,8 @@ MODULES= \
 	wpc_stl \
 	wpc_svg_path \
 	wpc_wrl \
-	wpc_x
+	wpc_x \
+	wpc_yafaray
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 

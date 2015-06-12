@@ -214,7 +214,7 @@ pref_dialog(St) ->
 	    ]},
 	    {hframe,[
 		{label, ?__(4, "Executable")},
-		{button, {text, Renderer, [{key,renderer}, wings_job:browse_props()]}}
+		{button, {text, Renderer, [{key,renderer}, {width,35}, wings_job:browse_props()]}}
 	    ]},
 	    {hframe, [
 		{label, ?__(5, "Arguments")},
@@ -1819,7 +1819,7 @@ light_dialog(_Name, Light)->
 			{slider, {text, proplists:get_value(sky_turbidity, KT, 2.0), [range({0.0, 50.0}), key(sky_turbidity)]}}
 		    ], [key(pnl_turbidity), {margin, false}]},
 		    {hframe, [
-			{button, {text, proplists:get_value(sky_file, KT, []), [key(sky_file), {props, BrowseProps}]}}
+			{button, {text, proplists:get_value(sky_file, KT, []), [key(sky_file), {width,35}, {props, BrowseProps}]}}
 		    ], [key(pnl_sky_file),{margin, false}]}
 		]}
 	    ]};
