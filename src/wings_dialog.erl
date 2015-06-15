@@ -310,6 +310,8 @@ enable(Key, Bool, Store) ->
     [wxWindow:enable(CtrlExt0,[{enable,Bool}]) || CtrlExt0 <- CtrlExt],
     wxWindow:enable(Ctrl, [{enable,Bool}]).
 
+%%% Show/Hide a control. It's used for enable dynamics dialogs.
+%%% After all controls has been shown/hidden we must call update/2
 show(Key, Bool, Store) ->
     case ets:lookup(Store, Key) of
         [#in{wx=Ctrl, wx_ext=CtrlExt}] ->
@@ -318,15 +320,25 @@ show(Key, Bool, Store) ->
         _ -> ok
     end.
 
+%%% Updates a control's sizer and all its children.
+%%% For optimization purpose, it must be called after all calls to show/3 has been done.
+%%% OBS: that is required due wxWidgets not to be propagating the updates (bug?!)
 update(Key, Store) ->
     case ets:lookup(Store, Key) of
-        [#in{wx=Ctrl}] ->
-            PSizer = wxWindow:getSizer(Ctrl),
-            case PSizer of
-                {wx_ref,0,wxSizer,[]} -> ok;
-                _ -> wxSizer:setSizeHints(PSizer,Ctrl)
-            end;
+        [#in{wx=Ctrl}] -> update_children(Ctrl);
         _ -> ok
+    end.
+update_children([]) -> ok;
+update_children([Ctrl|T]) ->
+    update_children(T),
+    update_children(Ctrl);
+update_children(Ctrl) ->
+    PSizer = wxWindow:getSizer(Ctrl),
+    case PSizer of
+        {wx_ref,0,wxSizer,[]} -> ok;
+        _ ->
+            update_children(wxWindow:getChildren(Ctrl)),
+            wxSizer:setSizeHints(PSizer,Ctrl)
     end.
 
 get_widget(Key, Store) ->
