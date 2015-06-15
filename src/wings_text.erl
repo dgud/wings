@@ -17,7 +17,6 @@
 -export([break_lines/2]).
 -export([make_wxfont/1, reload_font/2, get_font_info/1]).
 
--define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 -include_lib("wings/intl_tools/wings_chars.hrl").
