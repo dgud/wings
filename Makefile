@@ -13,15 +13,6 @@
 all:
 	(cd intl_tools; $(MAKE))
 	(cd src; $(MAKE))
-	(cd fonts_src; $(MAKE))
-	(cd e3d; $(MAKE))
-	(cd plugins_src; $(MAKE))
-	(cd icons; $(MAKE))
-
-wx:
-	(cd intl_tools; $(MAKE))
-	(cd src; $(MAKE) wx)
-	(cd fonts_src; $(MAKE))
 	(cd e3d; $(MAKE))
 	(cd plugins_src; $(MAKE))
 	(cd icons; $(MAKE))
@@ -29,7 +20,6 @@ wx:
 debug:
 	(cd intl_tools; $(MAKE) debug)
 	(cd src; $(MAKE) debug)
-	(cd fonts_src; $(MAKE) debug)
 	(cd e3d; $(MAKE) debug)
 	(cd plugins_src; $(MAKE) debug)
 	(cd icons; $(MAKE) debug)
@@ -37,7 +27,6 @@ debug:
 clean:
 	(cd intl_tools; $(MAKE) clean)
 	(cd src; $(MAKE) clean)
-	(cd fonts_src; $(MAKE) clean)
 	(cd e3d; $(MAKE) clean)
 	(cd plugins_src; $(MAKE) clean)
 	(cd icons; $(MAKE) clean)
