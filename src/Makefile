@@ -175,7 +175,7 @@ $(EBIN)/%.beam: $(ESRC)/%.erl
 # ----------------------------------------------------
 $(EBIN)/wings_export.beam $(EBIN)/wings_file.beam $(EBIN)/wings_help.beam $(EBIN)/wings_pref.beam $(EBIN)/wings_u.beam $(EBIN)/wpa.beam: ../vsn.mk
 
-$(EBIN)/wings_text.beam: ../fonts_src/font_version.hrl
+$(EBIN)/wings_text.beam: ../intl_tools/wings_chars.hrl
 
 $(TARGET_FILES): $(EBIN)/wings_lang.beam wings.hrl
 
@@ -194,7 +194,3 @@ DEPENDENT_OF_E3D_HRL = \
 	wpa
 
 $(DEPENDENT_OF_E3D_HRL:%=$(EBIN)/%.beam): ../e3d/e3d.hrl
-
-DEPENDENT_OF_INTL_HRL = wings_text
-
-$(DEPENDENT_OF_INTL_HRL:%=$(EBIN)/%.beam): ../intl_tools/wings_chars.hrl

@@ -155,7 +155,6 @@ copy_app(App0, Lib) ->
     ok = file:set_cwd(".."),
     App = list_to_atom(filename:basename(AppDir)),
     Wcs = [["ebin","*.{beam,bundle,bmp,wbm,lang}"],
-	   ["fonts","*.wingsfont"],
 	   ["plugins","**","*.{beam,so,dll,lang}"],
 	   ["plugins","autouv","*.{auv,fs}"],
 	   ["priv","*.{so,dll}"],
