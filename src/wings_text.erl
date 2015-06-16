@@ -15,7 +15,7 @@
 -export([init/0,resize/0,width/0,width/1,height/0,render/3]).
 -export([font_cw_lh/1]).
 -export([break_lines/2]).
--export([make_wxfont/1, get_font_info/1]).
+-export([make_wxfont/1, reload_font/2, get_font_info/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -39,9 +39,15 @@ init() ->
     put(console_font, Console),
     ok.
 
+reload_font(PrefKey, FontInfo) ->
+    Ranges = char_ranges(wings_pref:get_value(language)),
+    WxFont = make_wxfont(FontInfo),
+    {ok, GLFont} = wings_glfont:load_font(WxFont, [{range, Ranges}]),
+    put(PrefKey, GLFont).
+
 set_font_default(PrefKey) ->
     case is_atom(wings_pref:get_value(PrefKey)) of
-	true -> 
+	true ->
 	    wings_pref:set_value(PrefKey, get_font_default(PrefKey));
 	false ->
 	    wings_pref:set_default(PrefKey, get_font_default(PrefKey))
@@ -54,7 +60,7 @@ get_font_default(console_font) ->
 
 make_wxfont(#{type:=font, face:=FaceName, size:=Size,
 	      style:=Style0, weight:=Weight0}) ->
-    Style = wxfont_style(Style0), 
+    Style  = wxfont_style(Style0),
     Weight = wxfont_weight(Weight0),
     Font = wxFont:new(Size, ?wxDEFAULT, Style, Weight, [{face, FaceName}]),
     case wxFont:ok(Font) of
@@ -290,5 +296,6 @@ special(axisx) -> $X;
 special(axisy) -> $Y;
 special(axisz) -> $Z;
 special(caret) -> $¦;
+special(crossmark) -> $✓;
 special(_C) -> false.
 

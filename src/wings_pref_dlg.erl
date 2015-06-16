@@ -598,16 +598,26 @@ smart_set_value_1(Key, Val, St) ->
 		    clear_proxy(St);
 		system_font ->
 		    delayed_set_value(Key, OldVal, Val),
-		    wings_u:message(?__(1,"The change to the system font will take\neffect the next time Wings 3D is started."));
+		    wings_text:reload_font(Key, Val),
+		    Str = ?__(1,"The change to the system font will take\n"
+			      "effect the next time Wings 3D is started."),
+		    wings_u:message(Str);
 		interface_icons ->
 		    delayed_set_value(Key, OldVal, Val),
-		    wings_u:message(?__(2,"The change to the interface icons will take\neffect the next time Wings 3D is started."));
+		    Str=?__(2,"The change to the interface icons will take\n"
+			    "effect the next time Wings 3D is started."),
+		    wings_u:message(Str);
 		extended_toolbar ->
 		    delayed_set_value(Key, OldVal, Val),
-		    wings_u:message(?__(2,"The change to the interface icons will take\neffect the next time Wings 3D is started."));
+		    Str = ?__(2,"The change to the interface icons will take\n"
+			      "effect the next time Wings 3D is started."),
+		    wings_u:message(Str);
 		console_font ->
+		    wings_text:reload_font(Key, Val),
 		    delayed_set_value(Key, OldVal, Val),
-		    wings_u:message(?__(4,"The change to the console font will take\neffect the next time Wings 3D is started."));
+		    Str = ?__(4,"The change to the console font will take\n"
+			      "effect the next time Wings 3D is started."),
+		    wings_u:message(Str);
 		console_color ->
 		    set_console();
 		console_text_color ->
@@ -620,9 +630,11 @@ smart_set_value_1(Key, Val, St) ->
 		    wings_wm:translation_change();
 		language ->
 		    case Val of
-		      V when V =:= "zh-cn"; V =:= "zh-tw"; V =:= "ko" ->
-		          delayed_set_value(Key, OldVal, Val),
-		          wings_u:message(?__(5,"The language change will take effect\nthe next time Wings 3D is started."));
+			V when V =:= "zh-cn"; V =:= "zh-tw"; V =:= "ko" ->
+			    delayed_set_value(Key, OldVal, Val),
+			    Str = ?__(5,"The language change will take effect\n"
+				      "the next time Wings 3D is started."),
+		          wings_u:message(Str);
 		      _ ->
 		          wings_lang:load_language(Val)
 		    end;
@@ -636,7 +648,9 @@ smart_set_value_1(Key, Val, St) ->
 		    update_normal_dlist(St);
 		material_default ->
 		    delayed_set_value(Key, OldVal, Val),
-		    wings_u:message(?__(3,"The change to the default material color will take\neffect the next time Wings 3D is started."));
+		    Str = ?__(3,"The change to the default material color will take\n"
+			      "effect the next time Wings 3D is started."),
+		    wings_u:message(Str);
 		show_develop_menu ->
 		    wings:init_menubar(St),
 		    foreach(fun(W) ->

@@ -220,7 +220,7 @@ window(St) ->
 
 window({_,Client}=Name, Pos, Size, Ps, St) ->
     Title = title(Client),
-    Ost = #ost{first=0,lh=18,active=-1},
+    Ost = #ost{first=0,lh=max(18, ?LINE_HEIGHT),active=-1},
     Current = {current_state,St},
     Op = {seq,push,event(Current, Ost)},
     Props = [{display_lists,geom_display_lists}],
@@ -861,11 +861,11 @@ draw_objects_1(N, [{_,#we{name=Name,pst=Pst}}|Wes], #ost{lh=Lh}=Ost, R, Active, 
     if
     Active =:= 0 ->
       gl:color3f(0, 0, 0.5),
-      gl:recti(NamePos-2, Y-?CHAR_HEIGHT, R-2, Y+4),
+      gl:recti(NamePos-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
       gl:color3f(1, 1, 1);
     true -> ok
     end,
-    wings_io:text_at(NamePos, Y, Name),
+    wings_io:text_at(NamePos, Y+2, Name),
     gl:color3b(0, 0, 0),
     draw_objects_1(N-1, Wes, Ost, R, Active-1, Y+Lh);
 draw_objects_1(N, [Folder|Wes], #ost{st=St,lh=Lh}=Ost, R, Active, Y) ->
@@ -873,12 +873,12 @@ draw_objects_1(N, [Folder|Wes], #ost{st=St,lh=Lh}=Ost, R, Active, Y) ->
     if
     Active =:= 0 ->
       gl:color3f(0, 0, 0.5),
-      gl:recti(NamePos-2, Y-?CHAR_HEIGHT, R-2, Y+4),
+      gl:recti(NamePos-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
       gl:color3f(1, 1, 1);
     true -> ok
     end,
     FolderInfo = folder_info(Folder, St),
-    wings_io:text_at(NamePos, Y, Folder++FolderInfo),
+    wings_io:text_at(NamePos, Y+2, Folder++FolderInfo),
     gl:color3b(0, 0, 0),
     draw_objects_1(N-1, Wes, Ost, R, Active-1, Y+Lh).
 
@@ -889,12 +889,12 @@ draw_bitmap_objects_1(N, [{_,#we{name=Name,pst=Pst}}|Wes], #ost{lh=Lh}=Ost, R, A
     if
     Active =:= 0 ->
       gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
-      gl:recti(NamePos-2, Y-?CHAR_HEIGHT, R-2, Y+4),
+      gl:recti(NamePos-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
       gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
     true ->
       gl:color3fv(wings_pref:get_value(outliner_geograph_text))
     end,
-    wings_io:text_at(NamePos, Y, Name),
+    wings_io:text_at(NamePos, Y+2, Name),
     gl:color3b(0, 0, 0),
     draw_bitmap_objects_1(N-1, Wes, Ost, R, Active-1, Y+Lh);
 draw_bitmap_objects_1(N, [Folder|Wes], #ost{st=St,lh=Lh}=Ost, R, Active, Y) ->
@@ -902,13 +902,13 @@ draw_bitmap_objects_1(N, [Folder|Wes], #ost{st=St,lh=Lh}=Ost, R, Active, Y) ->
     if
     Active =:= 0 ->
       gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
-      gl:recti(NamePos-2, Y-?CHAR_HEIGHT, R-2, Y+4),
+      gl:recti(NamePos-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
       gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
     true ->
       gl:color3fv(wings_pref:get_value(outliner_geograph_text))
     end,
     FolderInfo = folder_info(Folder, St),
-    wings_io:text_at(NamePos, Y, Folder++FolderInfo),
+    wings_io:text_at(NamePos, Y+2, Folder++FolderInfo),
     gl:color3b(0, 0, 0),
     draw_bitmap_objects_1(N-1, Wes, Ost, R, Active-1, Y+Lh).
 
@@ -937,7 +937,8 @@ draw_icons_1({_,#we{id=Id,perm=Perm,pst=Pst}=We},{N,#ost{sel=Sel,lh=Lh}=Ost,
     LockPos = lock_pos(),
     SelPos = sel_pos(Folder),
     WirePos = wire_pos(),
-    IconY = Y - 14,
+    Center = (Lh-16) div 2 + 4,
+    IconY = Y - Center - 8,
     Wire = gb_sets:is_member(Id, Wires),
     if
       Perm =:= 1; Perm =:= 3 ->
@@ -971,7 +972,8 @@ draw_icons_1({_,#we{id=Id,perm=Perm,pst=Pst}=We},{N,#ost{sel=Sel,lh=Lh}=Ost,
 draw_icons_1(Folder, {N,#ost{st=#st{sel=Sel,pst=Pst}=St,lh=Lh}=Ost,
   R,Active,Y,Wires}) when is_list(Folder)->
     FolderPos = folder_pos(),
-    IconY = Y - 13,
+    Center = (Lh-16) div 2 + 4,
+    IconY = Y - Center - 8,
     {_,Fld} = gb_trees:get(?FOLDERS, Pst),
     {_,Ids} = orddict:fetch(Folder, Fld),
     SelIds = gb_sets:from_list(orddict:fetch_keys(Sel)),
@@ -995,7 +997,8 @@ draw_bitmap_icons(_, done) -> done;
 draw_bitmap_icons(_, {0,_,_,_,_,_}) -> done;
 draw_bitmap_icons({_,#we{id=Id,perm=Perm,pst=Pst}=We}, {N,#ost{sel=Sel,lh=Lh}=Ost,
   R,Active,Y0,Wires}) ->
-    Y = Y0+2,
+    Center = (Lh-16) div 2-4,
+    Y = Y0-Center,
     Folder = gb_trees:get(?FOLDERS, Pst),
     EyePos = eye_pos(),
     LockPos = lock_pos(),
@@ -1065,7 +1068,8 @@ draw_bitmap_icons({_,#we{id=Id,perm=Perm,pst=Pst}=We}, {N,#ost{sel=Sel,lh=Lh}=Os
 draw_bitmap_icons(Folder, {N,#ost{st=St,lh=Lh}=Ost,
   R,Active,Y0,Wires}) when is_list(Folder)->
     FolderPos = folder_pos(),
-    Y = Y0+2,
+    Center = (Lh-16) div 2-4,
+    Y = Y0-Center,
     FolderIcon = case folder_status(Folder, St) of
       empty ->
         empty_folder_bitmap();

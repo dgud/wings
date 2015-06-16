@@ -9,7 +9,7 @@ main([]) ->
 	Dir = filename:dirname(Dir0),
 
 	%% Include special chars used in wings
-	Special = lists:sort([$¦]),
+	Special = lists:sort([$¦, $✓]),
 	Start = array:from_orddict([{S,1} || S <- Special], 0),
 
 	Latin1 = ["en","de","es","fi","sv","it","pt"],

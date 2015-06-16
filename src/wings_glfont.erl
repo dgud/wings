@@ -296,7 +296,7 @@ gen_texture(TW,TH,Bin,HaveAlpha,Options) ->
     GEN_MM = proplists:get_value(tex_gen_mipmap, Options, ?GL_FALSE),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, GEN_MM),
     if GEN_MM == ?GL_TRUE ->
-	    gl:generateMipmapEXT(?GL_TEXTURE_2D);
+	    gl:generateMipmap(?GL_TEXTURE_2D);
        true -> ignore
     end,
 

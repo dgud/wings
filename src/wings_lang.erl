@@ -54,7 +54,7 @@ init() ->
 
 load_language(Lang) when is_list(Lang) ->
     load_language_only(Lang),
-    wings:init_menubar(),
+    %% wings:init_menubar(),
     foreach(fun(W) -> wings_wm:send(W, language_changed) end,
 	    wings_wm:windows()).
 

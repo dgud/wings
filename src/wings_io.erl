@@ -457,7 +457,7 @@ text_at(X, Y, S) ->
     end.
 
 unclipped_text(X, Y, S) ->
-    wings_text:render(X, Y+2, S).
+    wings_text:render(X, Y, S).
 
 ortho_setup() ->
     gl:color3b(0, 0, 0),
