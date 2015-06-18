@@ -916,7 +916,7 @@ init_menubar(St) ->
 	   end,
     Menus = [{?__(1,"File"),file,wings_file:menu(St)},
 	     {?__(2,"Edit"),edit,edit_menu(St)},
-	     {?__(3,"View"),view,wings_view:menu(St)},
+	     {?__(3,"View"),view,wings_view:menu()},
 
 	     {?__(4,"Select"),select,wings_sel_cmd:menu(St)},
 	     {?__(5,"Tools"),tools,tools_menu(St)},
