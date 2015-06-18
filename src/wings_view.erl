@@ -12,7 +12,7 @@
 %%
 
 -module(wings_view).
--export([menu/1,command/2,
+-export([menu/0,command/2,
 	 virtual_mirror/2,
 	 init/0,initial_properties/0,delete_all/1,reset/0,
 	 current/0,set_current/1,
@@ -21,15 +21,13 @@
 	 eye_point/0,export_views/1,import_views/2,camera_info/2,
 	 freeze_mirror/1]).
 
--export([views_submenu/2]).
-
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
 -import(lists, [foldl/3,zip/2]).
 
-menu(#st{views={_CurrentView,_Views}}=St) ->
+menu() ->
     L = wings_pref:get_value(number_of_lights),
     [{?__(68,"Show"),{show,
      [{?__(1,"Ground Plane"),show_groundplane,?__(2,"Show the ground plane"),
@@ -67,7 +65,7 @@ menu(#st{views={_CurrentView,_Views}}=St) ->
      {?__(7,"Wireframe"),wireframe,?__(8,"Display selected objects as a wireframe (same for all objects if nothing is selected)")},
      {?__(9,"Shade"),shade,?__(10,"Display selected objects as shaded (same for all objects if nothing is selected)")},
      {?__(11,"Toggle Wireframe"),toggle_wireframe,
-      ?__(12,"Toggle display mode for selected objects (same for all objects if nothing is selected)"),wireframe_crossmark(St)},
+      ?__(12,"Toggle display mode for selected objects (same for all objects if nothing is selected)")},
      {?__(19,"Show Edges"),show_edges,?__(20,"Show edges in workmode"),crossmark(show_edges)},
      {?__(72,"Show Backfaces"),show_backfaces,
       ?__(73,"Show backfaces when there is a hole or hiddwn faces in an object"),crossmark(show_backfaces)},
@@ -102,8 +100,7 @@ menu(#st{views={_CurrentView,_Views}}=St) ->
        ?__(58,"Align the view to the normal of the selection")},
       separator,
       {?__(33,"Saved Views "),
-       {views, 	%% views_submenu(CurrentView, Views)}},
-	saved_views}},
+       {views, 	views_submenu()}},
 
       {?__(50,"View Along"),{along,[{?__(51,"+X"),x},
 				    {?__(52,"+Y"),y},
@@ -121,153 +118,18 @@ menu(#st{views={_CurrentView,_Views}}=St) ->
 crossmark(Key) ->
     wings_menu_util:crossmark(Key).
 
-wireframe_crossmark(#st{sel=[],shapes=Shs}) ->
-    {menubar,Client} = wings_wm:this(),
-    Wire = wings_wm:get_prop(Client, wireframed_objects),
-    case {gb_sets:size(Wire),gb_trees:size(Shs)} of
-	{0,_} -> [{crossmark, false}];
-	{Same,Same} -> [{crossmark, true}];
-	{_,_} -> [{crossmark, grey}]
-    end;
-wireframe_crossmark(#st{sel=Sel0}) ->
-    {menubar,Client} = wings_wm:this(),
-    Wire0 = wings_wm:get_prop(Client, wireframed_objects),
-    Sel = gb_sets:from_list([Id || {Id,_} <- Sel0]),
-    Wire = gb_sets:intersection(Sel, Wire0),
-    case {gb_sets:size(Wire),gb_sets:size(Sel)} of
-	{0,_} -> [{crossmark, false}];
-	{Same,Same} -> [{crossmark, true}];
-	{_,_} -> [{crossmark, grey}]
-    end.
+views_submenu() ->
+    [{?__(1,"Next"),next, ?__(11, "Move camera to next view")},
+     {?__(2,"Current"),current, ?__(12, "Move camera to current view")},
+     {?__(3,"Prev"),prev, ?__(13, "Move camera to current view")},
+     {?__(4,"Save..."),save, ?__(14,"Save this view"), [option]},
+     {?__(8,"Delete"),delete, ?__(18, "Delete the current view")}].
 
-views_submenu(CurrentView, Views) ->
-    {_,_,_,H} = wings_wm:viewport(desktop),
-    Lines = max((H div ?LINE_HEIGHT) - 3, 4),
-    S = tuple_size(Views),
-    C = if S > 0 -> view_index(CurrentView, S); true -> 0 end,
-    [{?__(1,"Next"),next,views_submenu_help(CurrentView, Views, next)},
-     {?__(2,"Current"),current,views_submenu_help(CurrentView, Views, current)},
-     {?__(3,"Prev"),prev,views_submenu_help(CurrentView, Views, prev)},
-     views_jumpmenu(CurrentView, Views, Lines),
-     {?__(4,"Save"),save,
-      ?__(5,"Save this view at ") ++"["++integer_to_list(C+1)++"]",[option]},
-     views_movemenu(CurrentView, Views, Lines),
-     {?__(7,"Rename..."),rename,views_submenu_help(CurrentView, Views, rename)},
-     {?__(8,"Delete"),delete,views_submenu_help(CurrentView, Views, delete)},
-     {?__(9,"Delete All..."),delete_all,
-      views_submenu_help(CurrentView, Views, delete_all)}].
-
-views_submenu_help(_CurrentView, {}, _Action) ->
-    ?__(1,"No saved views!");
-views_submenu_help(CurrentView, Views, Action) ->
-    S = tuple_size(Views),
-    case Action of
-	next ->
-	    N = view_index(CurrentView+1, S),
-	    {_,Legend} = element(N, Views),
-	    ?__(2,"Jump to \"")++Legend++"\"["++integer_to_list(N)++"]";
-	current ->
-	    C = view_index(CurrentView, S),
-	    {_,Legend} = element(C, Views),
-	    ?__(2,"Jump to \"")++Legend++"\"["++integer_to_list(C)++"]";
-	prev ->
-	    P = view_index(CurrentView-1, S),
-	    {_,Legend} = element(P, Views),
-	    ?__(2,"Jump to \"")++Legend++"\"["++integer_to_list(P)++"]";
-	rename ->
-	    C = view_index(CurrentView, S),
-	    {_,Legend} = element(C, Views),
-	    ?__(5,"Rename \"")++Legend++"\"["++integer_to_list(C)++"]";
-	delete ->
-	    C = view_index(CurrentView, S),
-	    {_,Legend} = element(view_index(CurrentView, S), Views),
-	    ?__(8,"Delete \"")++Legend++"\"["++integer_to_list(C)++"]";
-	delete_all ->
-	    ?__(11,"Delete all saved views")
-    end.
 
 view_index(I, N) when is_integer(I), is_integer(N), N > 0 ->
     J = (I-1) rem N,
     if J < 0 -> J + 1 + N;
        true -> J + 1
-    end.
-
-views_jumpmenu(_CurrentView, {}, _Lines) ->
-    {?__(1,"Jump"),current,?__(2,"No saved views!")};
-views_jumpmenu(CurrentView, Views, Lines) ->
-    S = tuple_size(Views),
-    P = view_index(CurrentView-1, S),
-    C = view_index(CurrentView, S),
-    N = view_index(CurrentView+1, S),
-    F = fun (I) ->
-		{_,Legend} = element(I, Views),
-		Help =
-		    case I of
-			P -> ?__(3,"Jump to prev[")++integer_to_list(I)++"]";
-			C -> ?__(5,"Jump to current[")++integer_to_list(I)++"]";
-			N -> ?__(7,"Jump to next[")++integer_to_list(I)++"]";
-			_ -> ?__(9,"Jump to [")++integer_to_list(I)++"]"
-		    end,
-		{Legend,I,Help}
-	end,
-    {?__(11,"Jump"),{jump,viewmenu(F, S, C, Lines)}}.
-
-views_movemenu(_CurrentView, {}, _Lines) ->
-    {?__(1,"Move Current"),current,?__(2,"No saved views!")};
-views_movemenu(CurrentView, Views, Lines) ->
-    S = tuple_size(Views),
-    P = view_index(CurrentView-1, S),
-    C = view_index(CurrentView, S),
-    N = view_index(CurrentView+1, S),
-    Lc = integer_to_list(C),
-    {_,CL} = element(C, Views),
-    F = fun (I) ->
-		{_,Legend} = element(I, Views),
-		Li = integer_to_list(I),
-		Help =
-		    case I of
-			P -> ?__( 3,"Move \"")++CL++"\"["++Lc++?__(5,"] to prev[")++Li++"]";
-			C -> ?__( 7,"Move \"")++CL++"\"["++Lc++?__(9,"] nowhere");
-			N -> ?__(10,"Move \"")++CL++"\"["++Lc++?__(12,"] to next[")++Li++"]";
-			_ -> ?__(14,"Move \"")++CL++"\"["++Lc++?__(16,"] to [")++Li++"]"
-		    end,
-		{Legend,I,Help}
-	end,
-    {?__(18,"Move Current"),{move,viewmenu(F, S, C, Lines)}}.
-
-%% Build a list of F(I) values for all view_index(I, S) starting from C
-%% half of them after C and half before, no more than Lines If the
-%% list has to be limited by Lines - insert an element 'separator'
-%% between the after and before elements, otherwise all view
-%% indexes from 1 upto S will be represented in the result with
-%% C last in the list.
-%%
-%% Like this when Lines == 4, S > 4 ->
-%%   [F(view_index(C+1, S)), F(view_index(C+2, S)), separator,
-%%    F(view_index(C-1, S)), F(view_index(C, S))].
-%%
-viewmenu(F, S, C, Lines) ->
-    N = view_index(C+1, S),
-    viewmenu_2(F, S, N, C, Lines, [], []).
-
-viewmenu_1(F, _S, N, N, _Lines, Next, Prev) ->
-    lists:reverse(Next, [F(N)|Prev]);
-viewmenu_1(F, S, N, P, Lines, Next, Prev) ->
-    Cnt = view_index(N-P, S),
-    if Cnt >= Lines ->
-	    lists:reverse(Next, [F(N),separator|Prev]);
-       true ->
-	    viewmenu_2(F, S, view_index(N+1, S), P, Lines, [F(N)|Next], Prev)
-    end.
-
-viewmenu_2(F, _S, P, P, _Lines, Next, Prev) ->
-    lists:reverse(Next, [F(P)|Prev]);
-viewmenu_2(F, S, N, P, Lines, Next, Prev) ->
-    Cnt = view_index(N-P, S),
-    if Cnt >= Lines ->
-	    lists:reverse(Next, [separator,F(P)|Prev]);
-       true ->
-	    viewmenu_1(F, S, N, view_index(P-1, S), Lines, Next, [F(P)|Prev])
     end.
 
 command(reset, St) ->
