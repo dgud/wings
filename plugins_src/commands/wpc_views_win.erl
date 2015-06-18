@@ -37,14 +37,23 @@ init() -> true.
 
 menu({window}, Menu) ->
     Menu++[camera_menu()];
+menu({view}, Menu) ->
+    PatchMenu = fun({String, {views, List}}) ->
+			{String, {views, List++[separator, camera_menu()]}};
+		   (Entry) -> Entry
+		end,
+    [PatchMenu(Entry) || Entry <- Menu];
 menu(_,Menu) -> 
 	Menu.
 
 camera_menu() ->
-	 {?__(1,"Saved Views"), saved_views,
+	 {?__(1,"Manage Saved Views"), saved_views,
 	  ?__(2,"Shows all saved views")}.
 
 command({window,saved_views}, St) ->
+    window(St),
+    keep;
+command({view,{views, saved_views}}, St) ->
     window(St),
     keep;
 command(_,_) ->
@@ -143,18 +152,15 @@ event(#mousebutton{button=1,y=Y,state=?SDL_PRESSED}, #ost{active=Act}=Ost)
 	    ok
     end,
     get_event(Ost);
-event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #ost{active=Act0}=Ost) ->
+event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #ost{}=Ost) ->
     wings_wm:release_focus(),
     case active_object(Y, Ost) of
-	Act0 ->  keep;
-	Act ->
-	  if Act=/=-1 ->
-          {X0,Y0} = wings_wm:local2global(X, Y),
-	      wings_wm:send(geom_focused(X0,Y0), {action, {view, {views, {jump,Act+1}}}}),
-          wings_wm:dirty(),
-          get_event(Ost#ost{active=Act});
-      true -> keep
-	  end
+	Act when Act =/= -1 ->
+	    {X0,Y0} = wings_wm:local2global(X, Y),
+	    wings_wm:send(geom_focused(X0,Y0), {action, {view, {views, {jump,Act+1}}}}),
+	    wings_wm:dirty(),
+	    get_event(Ost#ost{active=Act});
+	_ -> keep
     end;
 event(#mousebutton{button=4,state=?SDL_RELEASED}, Ost) ->
     zoom_step(-1*lines(Ost) div 4, Ost);
