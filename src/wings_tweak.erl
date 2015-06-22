@@ -2637,7 +2637,7 @@ draw_tweak_menu_items([{Name,{_,{_,_}},_,[{crossmark, true}]=B}|Menu], Y, #tw{w=
     draw_menu_item(border, Name, B, [], Menu, Y, W, Tw);
 draw_tweak_menu_items([{Name,{_,{_,_}},_,_}|Menu], Y, Tw) ->
     wings_io:set_color(wings_pref:get_value(menu_text)),
-    wings_io:text_at(?CHAR_WIDTH, Y - 2, ["  ",Name]),
+    wings_io:text_at(?CHAR_WIDTH, Y, ["  ",Name]),
     Ly = Y + ?LINE_HEIGHT,
     draw_tweak_menu_items(Menu, Ly, Tw);
 draw_tweak_menu_items([{Name,Cmd,Help}|Menu], Y, #tw{w=W, current={_,{_,Cmd}}}=Tw) ->
@@ -2646,7 +2646,7 @@ draw_tweak_menu_items([{Name,Cmd,Help}|Menu], Y, #tw{w=W, current={_,Cmd}}=Tw) -
     draw_menu_item(gradient_rect, Name, [], Help, Menu, Y, W, Tw);
 draw_tweak_menu_items([{Name,_,_}|Menu], Y, Tw) ->
     wings_io:set_color(wings_pref:get_value(menu_text)),
-    wings_io:text_at(?CHAR_WIDTH, Y - 2, ["  ",Name]),
+    wings_io:text_at(?CHAR_WIDTH, Y, ["  ",Name]),
     Ly = Y + ?LINE_HEIGHT,
     draw_tweak_menu_items(Menu, Ly, Tw);
 
@@ -2666,7 +2666,7 @@ draw_tweak_menu_items([{Name,_,_,[{crossmark, true}]=B}|Menu], Y, #tw{w=W}=Tw) -
     draw_menu_item(border, Name, B, [], Menu, Y, W, Tw);
 draw_tweak_menu_items([{Name,_,_,_}|Menu], Y, Tw) ->
     wings_io:set_color(wings_pref:get_value(menu_text)),
-    wings_io:text_at(?CHAR_WIDTH, Y - 2, ["  ",Name]),
+    wings_io:text_at(?CHAR_WIDTH, Y, ["  ",Name]),
     Ly = Y + ?LINE_HEIGHT,
     draw_tweak_menu_items(Menu, Ly, Tw);
 
@@ -2706,35 +2706,35 @@ draw_menu_item(Style, Name, Bound, Help, Menu, Y, W, Tw) ->
                 case Mag of
                   true ->
                     TextCol = wings_pref:get_value(menu_hilited_text),
-                    wings_io:gradient_border(X1-1, Y1, X2-X1, Y2-Y1, MenuHl, TextCol, false),
+                    wings_io:gradient_border(X1-1, Y1-1, X2-X1, Y2-Y1, MenuHl, TextCol, false),
                     wings_io:set_color(TextCol);
                   false ->
                     MenuCol = wings_pref:get_value(menu_color),
                     MenuText = wings_pref:get_value(menu_text),
-                    wings_io:border(X1-1, Y1, X2-X1, Y2-Y1, MenuCol, MenuHl),
+                    wings_io:border(X1-1, Y1-1, X2-X1, Y2-Y1, MenuCol, MenuHl),
                     wings_io:set_color(MenuText)
                 end;
               _ ->
                 TextCol = wings_pref:get_value(menu_hilited_text),
-                wings_io:gradient_border(X1-1, Y1, X2-X1, Y2-Y1, MenuHl, TextCol, false),
+                wings_io:gradient_border(X1-1, Y1-1, X2-X1, Y2-Y1, MenuHl, TextCol, false),
                 wings_io:set_color(TextCol)
             end;
           false ->
             MenuCol = wings_pref:get_value(menu_color),
             MenuText = wings_pref:get_value(menu_text),
-            wings_io:border(X1-1, Y1, X2-X1, Y2-Y1, MenuCol, MenuHl),
+            wings_io:border(X1-1, Y1-1, X2-X1, Y2-Y1, MenuCol, MenuHl),
             wings_io:set_color(MenuText)
         end
     end,
-    wings_io:text_at(?CHAR_WIDTH, Y - 2, text_style(Bound, Name)),
+    wings_io:text_at(?CHAR_WIDTH, Y, text_style(Bound, Name)),
     Ly = Y + ?LINE_HEIGHT,
     if Help =:= [] -> ok; true -> wings_wm:message(Help) end,
     draw_tweak_menu_items(Menu, Ly, Tw).
 
-% Bound tools are in bold print
+%% Bound tools are in bold print
 text_style([{crossmark, true}],Name) ->
-    [bullet," ",Name];
-text_style([],Name) ->
+    [crossmark," ",Name];
+text_style(_,Name) ->
     ["  ",Name].
 
 %%%

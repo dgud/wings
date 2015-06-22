@@ -889,7 +889,10 @@ command_1({tweak, Cmd}, St) ->
 
 %% Hotkey setup or delete
 command_1({hotkey, Cmd}, St) ->
-    wings_hotkey:command(Cmd, St).
+    wings_hotkey:command(Cmd, St);
+
+%% Ignored command for the context menu like MMB without action
+command_1(ignore, _) -> keep.
 
 
 popup_menu(X, Y, #st{sel=[]}=St) ->

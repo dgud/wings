@@ -1033,6 +1033,9 @@ toggle_lights() ->
 		 1 -> 2;
 		 2 -> 1
 	     end,
+    WxMi = wings_menu:get_menu_item({view,toggle_lights}),
+    wxMenuItem:setText(WxMi, one_of(Lights == 1, ?__(2,"Two Lights"),?__(1,"One Light"))),
+    wxMenuItem:setHelp(WxMi, one_of(Lights == 1, ?__(4,"Use two work lights"),?__(3,"Use one work light"))),
     wings_pref:set_value(number_of_lights, Lights).
 
 shader_set(N) ->
