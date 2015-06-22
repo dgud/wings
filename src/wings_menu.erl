@@ -465,7 +465,10 @@ update_menu_enabled(Menu, Item, Enabled)
   when is_boolean(Enabled) ->
     Id = menu_item_id(Menu, Item),
     [#menu_entry{object=MI}] = ets:lookup(wings_menus, Id),
-    wxMenuItem:isCheckable(MI) andalso wxMenuItem:check(MI, [{check,Enabled}]).
+    case wxMenuItem:isCheckable(MI) of 
+	true  -> wxMenuItem:check(MI, [{check,Enabled}]);
+	false -> wxMenuItem:enable(MI, [{enable, Enabled}])
+    end.
 
 update_menu_hotkey(Action, HotKeyStr) ->
     case ets:match_object(wings_menus, #menu_entry{name=Action, _='_'}) of

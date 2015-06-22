@@ -145,7 +145,6 @@ init(File0) ->
 		      {X,Y,highest}, {W,H-80},
 		      [resizable,{anchor,nw},
 		       {toolbar,fun(A, B, C) -> wings_toolbar:create(A, B, C) end},
-		       %%menubar,
 		       {properties,Props}],
 		      Op),
     put(wm_active, {menubar, geom}),
@@ -158,10 +157,10 @@ init(File0) ->
     open_file(File),
     restore_windows(St),
     case catch wings_wm:enter_event_loop() of
-    {'EXIT',normal} ->
+	{'EXIT',normal} ->
 	    wings_pref:finish(),
 	    wings_io:quit();
-    {'EXIT',Reason} ->
+	{'EXIT',Reason} ->
 	    io:format("~P\n", [Reason,20]),
 	    wings_io:quit(),
 	    exit(Reason)
@@ -293,10 +292,14 @@ save_state(St0, St1) ->
          #st{saved=false} -> St2;
          _Other -> wings_u:caption(St2#st{saved=false})
      end,
+    update_menus(St),
+    main_loop(clear_temp_sel(St)).
+
+update_menus(St) ->
     wings_menu:update_menu(edit, repeat, command_name(?__(1,"Repeat"), St)),
     wings_menu:update_menu(edit, repeat_args, command_name(?__(2,"Repeat Args"), St)),
     wings_menu:update_menu(edit, repeat_drag, command_name(?__(3,"Repeat Drag"), St)),
-    main_loop(clear_temp_sel(St)).
+    wings_sel_cmd:update_menu(St).
 
 ask(Ask, St, Cb) ->
     wings_vec:do_ask(Ask, St, Cb).
@@ -317,19 +320,20 @@ handle_event({crash_in_other_window,LogName}, St) ->
     get_crash_event(LogName, St);
 handle_event({open_file,Name}, St0) ->
     case catch ?SLOW(wings_ff_wings:import(Name, St0)) of
-    #st{}=St1 ->
-        St2 = wings_shape:recreate_folder_system(St1),
-        USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
-        St = case USFile of
-            Name ->
-                St2#st{saved=auto,file=undefined};
-            _ ->
-                wings_pref:set_value(current_directory, filename:dirname(Name)),
-                St2#st{saved=true,file=Name}
-        end,
-        main_loop(wings_u:caption(St));
-    {error,_} ->
-        main_loop(St0)
+	#st{}=St1 ->
+	    St2 = wings_shape:recreate_folder_system(St1),
+	    USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
+	    St = case USFile of
+		     Name ->
+			 St2#st{saved=auto,file=undefined};
+		     _ ->
+			 wings_pref:set_value(current_directory, filename:dirname(Name)),
+			 St2#st{saved=true,file=Name}
+		 end,
+	    update_menus(St),
+	    main_loop(wings_u:caption(St));
+	{error,_} ->
+	    main_loop(St0)
     end;
 handle_event(Ev, St) ->
     case wings_camera:event(Ev, St) of
