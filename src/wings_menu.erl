@@ -252,7 +252,7 @@ popup_event_handler(cancel, _) ->
     wxPanel:setFocus(get(gl_canvas)),
     pop;
 popup_event_handler({activate, Cmd}, Owner) ->
-    wings_wm:send_after_redraw(Owner, {action,Cmd}),
+    Cmd =:= ignore orelse wings_wm:send_after_redraw(Owner, {action,Cmd}),
     wxPanel:setFocus(get(gl_canvas)),
     pop;
 popup_event_handler({submenu, {What, MagnetClick}, Names, Opts, Menus}, Owner) ->
