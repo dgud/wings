@@ -13,7 +13,7 @@
 
 -module(wings_sel_cmd).
 
--export([menu/1,command/2]).
+-export([menu/1,update_menu/1,command/2]).
 
 %% Utilities.
 -export([init/0,select_all/1]).
@@ -24,17 +24,20 @@
 init() ->
     wings_pref:set_default(saved_selections_cycle_by_mode,false).
 
+update_menu(#st{selmode=Mode}) ->
+    FaceMode = Mode =:= face,
+    [wings_menu:update_menu_enabled(select, Cmd, FaceMode)
+     || {_, Cmd, _} <- faces_menu()].
+
 menu(St) ->
     Help = ?__(99," (from selection or all visible objects (if no selection))"),
     RHelp = random_help(),
     Objects = ?__(106," Objects"),
     [{?__(1,"Deselect"),deselect,?__(2,"Clear the selection")},
      separator,
-     {?__(3,"More"),more,more_help(St)},
-     {?__(4,"Less"),less,less_help(St)},
-     {?__(5,"Similar"),similar,similar_help(St)}]
-    ++ oriented_faces_menu(St) ++ similar_area_faces_menu(St)
-    ++ similar_material_faces(St) ++
+     {?__(3,"More"),more,more_help()},
+     {?__(4,"Less"),less,less_help()},
+     {?__(5,"Similar"),similar,similar_help()} | faces_menu()] ++
     [separator,
      {?__(6,"Edge Loop"),
       {edge_loop,
@@ -133,7 +136,7 @@ menu(St) ->
 	    by_name,?__(108,"Select objects by name. *'s may be used as wildcards")}]}},
      {?__(64,"Lights"),lights,?__(65,"Select all lights")},
      separator,
-     {sel_all_str(St),all,?__(66,"Select all elements")},
+     {?__(661, "All"), all,?__(66,"Select all elements")},
      separator,
      {?__(67,"Inverse"),inverse,?__(68,"Invert the selection")},
      separator,
@@ -160,28 +163,13 @@ menu(St) ->
 random_help() ->
     ?__(1,"Select random elements from current selection, or all visible objects (no selection)").
 
-sel_all_str(#st{selmode=vertex}) -> ?__(1,"All Vertices");
-sel_all_str(#st{selmode=edge}) -> ?__(2,"All Edges");
-sel_all_str(#st{selmode=face}) -> ?__(3,"All Faces");
-sel_all_str(#st{selmode=body}) -> ?__(4,"All Objects").
-
-oriented_faces_menu(#st{selmode=face}) ->
+faces_menu() ->
   [{?__(1,"Similar Normals..."), oriented_faces,
-    ?__(2,"Select faces with normals similar to those of the already selected faces")}];
-oriented_faces_menu(_) ->
-  [].
-
-similar_area_faces_menu(#st{selmode=face}) ->
-  [{?__(1,"Similar Area"), similar_area,
-    ?__(2,"Select faces with areas similar to that of the already selected face")}];
-similar_area_faces_menu(_) ->
-  [].
-
-similar_material_faces(#st{selmode=face}) ->
-    [{?__(1,"Similar Material..."),similar_material,
-      ?__(2,"Select faces with a similar material to those already selected")}];
-similar_material_faces(_) ->
-    [].
+    ?__(11,"Select faces with normals similar to those of the already selected faces")},
+   {?__(2,"Similar Area"), similar_area,
+    ?__(21,"Select faces with areas similar to that of the already selected face")},
+   {?__(3,"Similar Material..."),similar_material,
+    ?__(31,"Select faces with a similar material to those already selected")}].
 
 groups_menu(#st{ssels=Ssels}=St) ->
     case gb_trees:is_empty(Ssels) of
@@ -240,30 +228,14 @@ group_title(Name, edge) -> ?__(2,"edge: ")++Name;
 group_title(Name, face) -> ?__(3,"face: ")++Name;
 group_title(Name, body) -> ?__(4,"body: ")++Name.
 
-more_help(#st{selmode=vertex}) ->
-    ?__(1,"Select all vertices adjacent to a selected vertex");
-more_help(#st{selmode=edge}) ->
-     ?__(2,"Select all edges adjacent to a selected edge");
-more_help(#st{selmode=face}) ->
-     ?__(3,"Select all faces sharing a vertex with a selected face");
-more_help(_) -> "".
+more_help() ->
+    ?__(1,"Select all elements adjacent to the selected elements").
 
-less_help(#st{selmode=vertex}) ->
-     ?__(1,"Deselect all vertices adjacent to an unselected vertex");
-less_help(#st{selmode=edge}) ->
-    ?__(2,"Deselect all edges adjacent to an unselected edge");
-less_help(#st{selmode=face}) ->
-    ?__(3,"Deselect all faces sharing a vertex with an unselected face");
-less_help(_) -> "".
+less_help() ->
+    ?__(1,"Deselect all elements adjacent to the unselected elements").
 
-similar_help(#st{selmode=vertex}) ->
-    ?__(1,"Select vertices similar to the already selected vertices");
-similar_help(#st{selmode=edge}) ->
-    ?__(2,"Select edges similar to the already selected edges");
-similar_help(#st{selmode=face}) ->
-    ?__(3,"Select faces similar to the already selected faces");
-similar_help(#st{selmode=body}) ->
-    ?__(4,"Select objects with the same number of edges, faces, and vertices").
+similar_help() ->
+    ?__(1,"Select elements similar to the already selected elements").
 
 command({edge_loop,edge_loop}, #st{selmode=vertex}=St) ->
     {save_state,vs_to_edge_loop(St)};
@@ -1170,8 +1142,9 @@ nonplanar_faces([Tolerance], #st{selmode=Mode}=St0) ->
 %%% Select similarly oriented faces.
 %%%
 
-oriented_faces(_, #st{selmode=Mode}) when Mode =/= face ->
-    keep;					%Wrong mode (invoked through hotkey).
+oriented_faces(_, #st{selmode=Mode, sel=Sel}) when Mode =/= face; Sel =:= [] ->
+    wings_u:error_msg(?__(4,"At least one face must be selected")),
+    keep;
 
 oriented_faces(Ask, St) when is_atom(Ask) ->
     Connected = wings_pref:get_value(similar_normals_connected,false),
@@ -1260,7 +1233,8 @@ any_matching_normal(CosTolerance, Norm, [N|T]) ->
 %%%
 %%% Select faces of the same material.
 %%%
-similar_material(_, #st{selmode=Mode}) when Mode =/= face ->
+similar_material(_, #st{selmode=Mode, sel=Sel}) when Mode =/= face; Sel =:= [] ->
+    wings_u:error_msg(?__(3,"At least one face must be selected")),
     keep; %Wrong mode (invoked through hotkey).
 
 similar_material(Ask, St) when is_atom(Ask) ->
@@ -1605,6 +1579,9 @@ build_digraph(Graph, E, Vtab) ->
 %%% Select faces with similar area
 %%%
 
+similar_area(_, #st{selmode=Mode, sel=Sel}) when Mode =/= face; Sel =:= [] ->
+    wings_u:error_msg(?__(10,"Exactly one face must be selected")),
+    keep;
 similar_area(Ask, St) when is_atom(Ask) ->
     Qs = [{label,?__(1,"Area Tolerance")},
 	  {text,0.001,[{range,{0.0,100.0}}]}],
