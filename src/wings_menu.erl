@@ -16,6 +16,7 @@
 -export([is_popup_event/1,menu/5,popup_menu/4,build_command/2,
 	 kill_menus/0]).
 -export([wx_menubar/1, id_to_name/1, check_item/1, str_clean/1]).
+-export([get_menu/1, get_menu_item/1]).
 -export([update_menu/3, update_menu/4,
 	 update_menu_enabled/3, update_menu_hotkey/2]).
 
@@ -655,3 +656,27 @@ colorB({R,G,B,A}) -> {trunc(R*255),trunc(G*255),trunc(B*255),trunc(A*255)};
 colorB({R,G,B}) -> {trunc(R*255),trunc(G*255),trunc(B*255),255};
 colorB(Pref) when is_atom(Pref) ->
     colorB(wings_pref:get_value(Pref)).
+
+%%%
+%%% Functions to help make menu items description dynamic.
+
+%%% For items of a menu which has sub-menus the key is stored as a reverse list.
+%%% So, to be coder friend, a key passed as a tuple in the same way it is stored
+%%% for items of a menu must be converted to the apropriated list.
+get_menu(Key) when is_tuple(Key) ->
+    Key0 = tuple_to_list(Key),
+    get_menu(lists:reverse(Key0));
+get_menu(Key) when is_list(Key) ->
+    ML = ets:tab2list(wings_menus),
+    case lists:keyfind(Key,3,ML) of
+        {menu_entry,_,Key,ME,submenu} -> ME;
+        _ -> undefined
+    end;
+get_menu(_)  -> undefined.
+
+get_menu_item(Key) ->
+    ML = ets:tab2list(wings_menus),
+    case lists:keyfind(Key,3,ML) of
+        {menu_entry,_,Key,ME,_} -> ME;
+        _ -> undefined
+    end.
