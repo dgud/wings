@@ -573,9 +573,14 @@ auto_rotate(St) ->
     Delay = wings_pref:get_value(auto_rotate_delay),
     Tim = #tim{delay=Delay,st=St},
     Active = wings_wm:this(),
+    {{X0,Y0},{W,H}} = wings_wm:win_rect(Active),
+    X = X0 + W div 2, Y = Y0 + H div 2,
+    wings_io:warp(X,Y),
     wings_wm:callback(fun() -> wings_u:menu_restriction(Active, []) end),
     {seq,push,set_auto_rotate_timer(Tim)}.
 
+auto_rotate_event({action, Cmd={view, rotate_left}}, Tim) ->
+    auto_rotate_event_1(Cmd, Tim);
 auto_rotate_event(Event, #tim{timer=Timer,st=St}=Tim) ->
     case wings_camera:event(Event, St) of
 	next -> auto_rotate_event_1(Event, Tim);
@@ -592,6 +597,7 @@ auto_rotate_event_1(redraw, Tim) ->
     auto_rotate_redraw(Tim),
     keep;
 auto_rotate_event_1(#mousemotion{}, _) -> keep;
+auto_rotate_event_1(got_focus, _) -> keep;
 auto_rotate_event_1(#mousebutton{state=?SDL_PRESSED}, _) -> keep;
 auto_rotate_event_1(#keyboard{}=Kb, #tim{delay=Delay}=Tim) ->
     case wings_hotkey:event(Kb) of
@@ -630,7 +636,7 @@ auto_rotate_help() ->
 set_auto_rotate_timer(#tim{delay=Delay}=Tim) when Delay < 0 ->
     set_auto_rotate_timer(Tim#tim{delay=0});
 set_auto_rotate_timer(#tim{delay=Delay}=Tim0) ->
-    Timer = wings_io:set_timer(Delay, {view,rotate_left}),
+    Timer = wings_io:set_timer(Delay, {action, {view,rotate_left}}),
     Tim = Tim0#tim{timer=Timer},
     get_event(Tim).
 
