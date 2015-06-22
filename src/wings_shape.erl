@@ -1849,8 +1849,7 @@ rename_filtered_dialog(ManyObjs) ->
     ModeHook=fun(Me, What, Sto) ->
 		     case ManyObjs =:= false of
 			 true ->
-			     wings_dialog:enable(Me, false, Sto),
-			     wings_dialog:enable(rn_search, false, Sto);
+			     wings_dialog:enable(Me, false, Sto);
 			 false ->
 			     wings_dialog:enable(rn_search, What =:= 1, Sto)
 		     end
