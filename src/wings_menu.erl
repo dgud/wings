@@ -452,8 +452,8 @@ update_menu(Menu, Item, Cmd, Help) ->
 	     [] when Menu =:= file, element(1, Item) =:= recent_file ->
 		 FileId = predefined_item(menu, Menu),
 		 [#menu_entry{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),
-		 N = wxMenu:getMenuItemCount(File),
-		 MO=wxMenu:insert(File, N-2, Id),
+		 N  = wxMenu:getMenuItemCount(File),
+		 MO = wxMenu:insert(File, N-2, Id, [{text, Cmd}, {help, Help}]),
 		 ME=#menu_entry{name=build_command(Item,[file]), object=MO,
 				wxid=Id, type=?wxITEM_NORMAL},
 		 true = ets:insert(wings_menus, ME),
