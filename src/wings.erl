@@ -1857,8 +1857,8 @@ get_object_info(Id, Shapes) ->
     Volume =lists:sum([V || {_,V} <- Both]),
     ToString = fun(Item) ->
 	case Item of
-	    Item when is_float(Item), Item < 1.0 ->
-		Decimals = 1 - round(math:log10(Item)-0.5),
+	    Item when is_float(Item), Item < 1.0, Item =/= 0.0 ->
+		Decimals = 1 - round(math:log10(abs(Item))-0.5),
 		if Decimals > 8 -> "0.00000";
 		   true -> lists:flatten(io_lib:format("~10.*f", [Decimals, Item]))
 		end;
