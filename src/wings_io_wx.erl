@@ -72,12 +72,8 @@ set_title(Title) ->
     wxTopLevelWindow:setTitle(get(top_frame), Title).
 
 set_icon(IconBase) ->
-    %% Use PNG instead!!
-    Bmp = wxImage:new(IconBase ++ ".bmp"),
-%%     Mask = wings_io:get_mask(IconBase ++ ".wbm"),
-%%     wxImage:setAlpha(Bmp, Mask),
+    Bmp = wxImage:new(IconBase ++ ".png"),
     Bitmap = wxBitmap:new(Bmp),
-
     Icon = wxIcon:new(),
     wxIcon:copyFromBitmap(Icon, Bitmap),
     wxFrame:setIcon(get(top_frame), Icon).

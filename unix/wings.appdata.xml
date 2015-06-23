@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2014 Chris Roberts <croberts@croberts.org -->
+
+<!-- HOUSEKEEPING, REMOVE THIS COMMENT WHEN THIS GOES UPSTREAM
+BugReportURL: http://www.wings3d.com/forum/showthread.php?tid=727
+SentUpstream: 2014-09-18
+-->
+
+<application>
+  <id type="desktop">wings.desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <summary>An advanced subdivision modeler</summary>
+  <description>
+  <p>
+    Wings 3D is an advanced subdivision modeler that is both powerful and easy to use.
+    Wings has a simple interface.
+    Right-click menus give you easy access to common commands.
+    These menus are context sensitive, so depending on your selection, a
+    different menu pops up.
+  </p>
+  <p>
+    Wings has a many standard mesh modeling and selection tools such as Move,
+    Scale, Rotate, Extrude, Bevel, Bridge, Cut, and Weld.
+    Wings also features advance modelling tools such as: Sweep, Plane Cut,
+    Circularise, Intersect, Bend, Shear, and Inset, Magnets and Magnet Masking,
+    Virtual Mirror for symmetrical modeling, Tweak and Sculpt, Edge Loop and
+    Edge Ring selection and navigation tools and Smooth Preview.
+  </p>
+  </description>
+  <url type="homepage">http://www.wings3d.com</url>
+  <screenshots>
+    <screenshot type="default">http://www.wings3d.com/wp-content/uploads/SS04.png</screenshot>
+  </screenshots>
+</application>

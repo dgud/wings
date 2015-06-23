@@ -127,8 +127,8 @@ set_icon() ->
     Ebin = filename:dirname(code:which(?MODULE)),
     IconFile = filename:join(Ebin,
 			     case os:type() of
-				 {unix,darwin} -> "wings_icon_big";
-				 _ -> "wings_icon_small"
+				 {unix,darwin} -> "wings_icon_379x379";
+				 _ -> "wings_icon_379x379"
 			     end),
     wings_io:set_icon(IconFile).
 

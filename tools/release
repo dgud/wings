@@ -80,6 +80,9 @@ unix_release(BuildRoot, WingsVsn) ->
     Name = "wings-" ++ WingsVsn ++ "-" ++ atom_to_list(Flavor),
     Root = filename:join(BuildRoot, Name),
     release_otp(Root),
+    ok = file:set_cwd(UnixDir),
+    copy("wings.appdata.xml", Root),
+
     {ok,Install0} = file:read_file(filename:join(UnixDir, "install_wings.src")),
     Install = re:replace(Install0, "%WINGS_VSN%", WingsVsn, [global]),
     Installer = filename:join(Root, "install_wings"),
@@ -154,7 +157,7 @@ copy_app(App0, Lib) ->
     ok = file:set_cwd(AppDir),
     ok = file:set_cwd(".."),
     App = list_to_atom(filename:basename(AppDir)),
-    Wcs = [["ebin","*.{beam,bundle,bmp,wbm,lang}"],
+    Wcs = [["ebin","*.{beam,bundle,png,lang}"],
 	   ["plugins","**","*.{beam,so,dll,lang}"],
 	   ["plugins","autouv","*.{auv,fs}"],
 	   ["priv","*.{so,dll}"],
