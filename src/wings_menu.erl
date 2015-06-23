@@ -139,7 +139,7 @@ wx_popup_menu_init(X0,Y0,Names,Menus0) ->
 
 wx_popup_menu(X0,Y0,Names,Menus0,Magnet,Owner) ->
     Parent = get(top_frame),
-    Pos = wxWindow:clientToScreen(get(gl_canvas), X0-10,Y0-10),
+    Pos = wxWindow:clientToScreen(get(gl_canvas), X0-20,Y0-10),
     HotKeys = wings_hotkey:matching(Names),
     is_list(Menus0) orelse erlang:error(Menus0),
     Menus1  = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus0),
@@ -159,7 +159,7 @@ wx_popup_menu(X0,Y0,Names,Menus0,Magnet,Owner) ->
     keep.
 
 setup_dialog(Parent, Entries0, Magnet, Pos) ->
-    Dialog = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_THEME}]),
+    Dialog = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_SIMPLE}]),
     Panel = wxPanel:new(Dialog),
     %% wxPanel:setBackgroundStyle(Panel, ?wxBG_STYLE_TRANSPARENT),
     wxWindow:setBackgroundColour(Panel, colorB(wings_pref:get_value(menu_color))),
@@ -169,7 +169,9 @@ setup_dialog(Parent, Entries0, Magnet, Pos) ->
     MinHSzs = calc_min_sizes(Entries0, Panel, 5, 5),
     Entries = setup_popup(Entries0, 500, Sizer, MinHSzs, Panel, Magnet, []),
     wxSizer:setMinSize(Sizer, 150, -1),
+    wxSizer:addSpacer(Main, 5),
     wxSizer:add(Main, Sizer, [{proportion, 1}, {border, 5}, {flag, ?wxEXPAND bor ?wxALL}]),
+    wxSizer:addSpacer(Main, 5),
     wxPanel:setSizer(Panel, Main),
     wxSizer:fit(Main, Panel),
     wxPopupTransientWindow:setClientSize(Dialog, wxWindow:getSize(Panel)),
@@ -294,11 +296,10 @@ calc_min_sizes([], _, C1, C2) ->
     {C1, C2}.
 
 setup_popup([separator|Es], Id, Sizer, Sz, Parent, Magnet, Acc) ->
-    Line = wxStaticLine:new(Parent),
+    Line = wxStaticLine:new(Parent, [{size,{-1,2}}]),
     wxSizer:addSpacer(Sizer, 4),
-    wxSizer:add(Sizer, Line,
-		[{border, 10}, {proportion, 0},
-		 {flag, ?wxEXPAND bor ?wxLEFT bor ?wxRIGHT}]),
+    wxSizer:add(Sizer, Line, [{border, 10}, {proportion, 0}, 
+			      {flag, ?wxEXPAND bor ?wxLEFT bor ?wxRIGHT}]),
     wxSizer:addSpacer(Sizer, 4),
     setup_popup(Es, Id, Sizer, Sz, Parent, Magnet, Acc);
 setup_popup([{submenu, Desc, Name, Help0, Ps, _HK}|Es], Id, Sizer, Sz, Parent, Magnet, Acc) ->
@@ -306,7 +307,8 @@ setup_popup([{submenu, Desc, Name, Help0, Ps, _HK}|Es], Id, Sizer, Sz, Parent, M
     setup_colors([Panel], colorB(menu_color), colorB(menu_text)),
     Line = wxBoxSizer:new(?wxHORIZONTAL),
     wxSizer:addSpacer(Line, 3),
-    wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc),[{proportion, 1},{flag, ?wxALIGN_CENTER}]),
+    wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc),
+		[{proportion, 1},{flag, ?wxALIGN_CENTER}]),
     wxPanel:setSizerAndFit(Panel, Line),
     wxSizer:add(Sizer, Panel, [{flag, ?wxEXPAND},{proportion, 1}]),
     Help = if Help0 =:= [] -> Desc ++ ?__(1," submenu");
