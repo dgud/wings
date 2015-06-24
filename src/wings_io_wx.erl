@@ -66,6 +66,8 @@ maximize() ->
     wxTopLevelWindow:maximize(get(top_frame)).
 
 reset_video_mode_for_gl(_W, _H) ->
+    %% Needed on mac for some reason
+    wxGLCanvas:setCurrent(get(gl_canvas)),
     ok.
 
 set_title(Title) ->
