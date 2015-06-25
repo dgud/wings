@@ -22,7 +22,7 @@ endif
 
 
 Wings3D.exe: wings3d.c wings3d_res.o
-	$(GCC) -o Wings3D.exe wings3d.c wings3d_res.o $(LIBS)
+	$(GCC) -o Wings3D.exe wings3d.c wings3d_res.o -mwindows $(LIBS)
 
 wings3d_res.o: wings3d.rc
 	windres -i wings3d.rc -o wings3d_res.o
