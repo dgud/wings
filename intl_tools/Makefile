@@ -32,7 +32,8 @@ GEN_HEADER=wings_chars.hrl
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam) $(GEN_HEADER)
 
-LANG_FILES= $(wildcard ../src/*.lang)
+# Exclude generated wings_en.lang files
+LANG_FILES= $(wildcard ../src/*[!en].lang)
 #	$(wildcard ../plugins_src/*/*.lang)  takes to long...
 
 # ----------------------------------------------------
