@@ -1206,7 +1206,8 @@ build_textctrl(Ask, Def, Flags, {MaxSize, Validator}, Parent, Sizer) ->
 			  end
 		  end,
     case Type of
-	string ->
+	string -> ignore;
+        _ ->
 	    UpdateTextWheel =
 		fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, _) ->
 			Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
@@ -1218,9 +1219,7 @@ build_textctrl(Ask, Def, Flags, {MaxSize, Validator}, Parent, Sizer) ->
 				ignore
 			end
 		end,
-	    wxTextCtrl:connect(Ctrl, mousewheel, [{callback, UpdateTextWheel}]);
-	_ ->
-	    ignore
+	    wxTextCtrl:connect(Ctrl, mousewheel, [{callback, UpdateTextWheel}])
     end,
     UseHistory = fun(Ev, Obj) ->
 			 case use_history(Ev, Type, Ctrl) of
