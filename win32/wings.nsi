@@ -108,9 +108,6 @@ SectionIn 1 2 3 RO
 
   	WriteRegStr HKLM "SOFTWARE\Wings 3D\${WINGS_VERSION}" "" $INSTDIR
 
-; Install Erlang/OTP.
-  	ExecWait "$INSTDIR\Wings3D.exe --install"
-
 ; Create uninstaller before shortcuts
   	WriteUninstaller "$INSTDIR\Uninstall.exe"
 	

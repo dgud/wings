@@ -14,7 +14,7 @@
 -include_lib("kernel/include/file.hrl").
 
 %% Change these when compiler version is changed on windows
--define(WIN32_VCREDIST_VERSION, "10.00.40219.1").
+-define(WIN32_VCREDIST_VERSION, "10.00.30319.1").
 -define(WIN64_VCREDIST_VERSION, "10.00.30319.1").
 
 main(_) ->
@@ -135,21 +135,31 @@ release_otp(TargetDir0) ->
 copy_erts(TargetDir) ->
     Files = case os:type() of
 		{unix,_} ->
-		    ["beam.smp","child_setup","erlexec","inet_gethost"];
+		    %% Do not copy to erts-VSN/bin, then the start scripts must find
+		    %% erts-VSN in start script
+		    {["beam.smp","child_setup","erlexec","inet_gethost"], []};
 		{win32,nt} ->
-		    ["erl.exe", "werl.exe", "erlexec.dll", "beam.smp.dll",
-		     "inet_gethost.exe"]
+		    %% To get Windows working without install, erts-VSN must exist
+		    {["erl.exe", "werl.exe"],
+		     ["erlexec.dll", "beam.smp.dll","inet_gethost.exe"]}
 	    end,
     copy_erts(TargetDir, Files).
 
-copy_erts(TargetDir, ExecFiles) ->
-    Bin = filename:join(TargetDir, "bin"),
-    ErtsPath = filename:join([code:root_dir(),"erts-*","bin"]),
-    ErtsBin = filelib:wildcard(ErtsPath),
-    ok = file:set_cwd(ErtsBin),
-    [copy(File, Bin) || File <- ExecFiles],
+copy_erts(TargetDir, {BinExecFiles, ErtsExecFiles}) ->
+    ErtsPath0 = filename:join([code:root_dir(),"erts-*"]),
+    ErtsPath  = filelib:wildcard(ErtsPath0),
+    ErtsVsn = filename:basename(ErtsPath),
+
+    TargetBin = filename:join(TargetDir, "bin"),
+    TargetErts = filename:join([TargetDir, ErtsVsn, "bin"]),
+
+    ok = file:set_cwd(filename:join(ErtsPath, "bin")),
+    %% To WINGS/erts-VSN/bin
+    [copy(File, TargetErts) || File <- ErtsExecFiles],
+    %% To WINGS/bin
+    [copy(File, TargetBin) || File <- BinExecFiles],
     ok = file:set_cwd(filename:join(code:root_dir(), "bin")),
-    copy("start.boot", Bin),
+    copy("start.boot", TargetBin),
     ok.
 
 copy_app(App0, Lib) ->
