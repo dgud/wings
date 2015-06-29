@@ -1924,8 +1924,8 @@ menu_toolbar_action({menu_toolbar, {B, OrigXY, Side}}, #st{selmode=Mode}=St)
       {history,4} -> {edit,redo};
       {history,5} -> {edit,undo};
       {edge,B} when Mode =:= edge ->
-          C = wings_io:is_modkey_pressed(?KMOD_CTRL),
-          A = wings_io:is_modkey_pressed(?KMOD_ALT),
+          C = wings_io:is_modkey_pressed(?CTRL_BITS),
+          A = wings_io:is_modkey_pressed(?ALT_BITS),
           case B of
             4 when C -> {select,{edge_loop,edge_link_incr}};
             4 when A -> {select,{edge_loop,edge_ring_incr}};
