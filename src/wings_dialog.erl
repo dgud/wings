@@ -536,6 +536,16 @@ get_curr_value(#in{type=text, def=Def, wx=Ctrl, validator=Validate}) ->
     Str = wxTextCtrl:getValue(Ctrl),
     validate(Validate, Str, Def);
 get_curr_value(#in{type=button, data=Data}) -> Data;
+get_curr_value(#in{type=table, def=Def, wx=Ctrl}) ->
+    Count = wxListCtrl:getItemCount(Ctrl),
+    IsSelected = 
+	fun(N, Acc) ->
+		case wxListCtrl:getItemState(Ctrl, N, ?wxLIST_STATE_SELECTED) of 
+		    ?wxLIST_STATE_SELECTED -> [N|Acc];
+		    true -> Acc
+		end
+	end,
+    {lists:foldr(IsSelected, [], lists:seq(0, Count-1)), Def};
 get_curr_value(#in{type=value, data=Data})  -> Data.
 
 
@@ -1000,24 +1010,27 @@ build(Ask, {menu, Entries, Def, Flags}, Parent, Sizer, In) ->
 build(Ask, {table, [Header|Rows], Flags}, Parent, Sizer, In) ->
     Create =
 	fun() ->
-		Options = [{style, ?wxLC_REPORT},
-			   {size, {min(tuple_size(Header)*80, 500),
-				   min((2+length(Rows))*25, 800)}}],
+		Height = case proplists:get_value(max_rows, Flags) of
+		             undefined -> -1;
+		             MaxR -> max(MaxR+1, 5)*20
+		         end,
+		Widths = tuple_to_list(proplists:get_value(col_widths, Flags, {})),
+		Width  = case Widths of
+			     [] -> -1;
+			     _ -> lists:sum([W*8 || W <- Widths]) + 50
+			 end,
+		Options = [{style, ?wxLC_REPORT}, {size, {Width, Height}}],
 		Ctrl = wxListCtrl:new(Parent, Options),
 		AddHeader = fun(HeadStr, Column) ->
 				    wxListCtrl:insertColumn(Ctrl, Column, HeadStr, []),
 				    Column + 1
 			    end,
 		lists:foldl(AddHeader, 0, tuple_to_list(Header)),
-		case proplists:get_value(col_widths, Flags) of
-		    undefined -> ok;
-		    Widths ->
-			SetWidth = fun(Width, Column) ->
-					   wxListCtrl:setColumnWidth(Ctrl, Column, Width*8),
-					   Column + 1
-				   end,
-			lists:foldl(SetWidth, 0, tuple_to_list(Widths))
-		end,
+		SetWidth = fun(W, Column) ->
+				   wxListCtrl:setColumnWidth(Ctrl, Column, W*8),
+				   Column + 1
+			   end,
+		lists:foldl(SetWidth, 0, Widths),
 		Add = fun({_, Str}, {Row, Column}) ->
 			      wxListCtrl:setItem(Ctrl, Row, Column, Str),
 			      {Row, Column+1}
@@ -1030,10 +1043,8 @@ build(Ask, {table, [Header|Rows], Flags}, Parent, Sizer, In) ->
 		add_sizer(table, Sizer, Ctrl),
 		Ctrl
 	end,
-    create(Ask,Create),
-    %% [#in{key=proplists:get_value(key,Flags), def=Rows,
-    %% 	 type=table, wx=create(Ask,Create)}|In];
-    In;
+    [#in{key=proplists:get_value(key,Flags), def=Rows,
+     	 type=table, wx=create(Ask,Create)}|In];
 
 build(Ask, {image, ImageOrFile}, Parent, Sizer, In) ->
     Create = fun() ->
