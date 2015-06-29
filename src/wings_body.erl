@@ -116,7 +116,7 @@ flip_fun(Axis) ->
 	end.
 dup(Type) ->
 %% Return {dup,Type} if Alt is pressed during Flip command, otherwise Type.
-    case wings_io:is_modkey_pressed(?KMOD_ALT) of
+    case wings_io:is_modkey_pressed(?ALT_BITS) of
         true -> {dup,Type};
         false -> Type
     end.

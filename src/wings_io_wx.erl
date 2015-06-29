@@ -151,8 +151,16 @@ gui_state([_|Rest],Acc) ->
     gui_state(Rest,Acc);
 gui_state([],Acc) -> Acc.
 
-is_modkey_pressed(Key) ->
-    wx_misc:getKeyState(sdl_key_map(Key)).
+is_modkey_pressed(Key) when (Key band ?KMOD_LCTRL) > 0 ->
+    wx_misc:getKeyState(?WXK_CONTROL);
+is_modkey_pressed(Key) when (Key band ?KMOD_LALT)  > 0 ->
+    wx_misc:getKeyState(?WXK_ALT);
+is_modkey_pressed(Key) when (Key band ?KMOD_LSHIFT) > 0 ->
+    wx_misc:getKeyState(?WXK_SHIFT);
+is_modkey_pressed(Key) when (Key band ?KMOD_META) > 0 ->
+    wx_misc:getKeyState(?WXK_WINDOWS_LEFT) orelse
+	wx_misc:getKeyState(?WXK_WINDOWS_RIGHT).
+
 
 is_key_pressed(Key) ->
     wx_misc:getKeyState(sdl_key_map(Key)).
