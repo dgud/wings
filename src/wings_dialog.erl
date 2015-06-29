@@ -536,6 +536,15 @@ get_curr_value(#in{type=text, def=Def, wx=Ctrl, validator=Validate}) ->
     Str = wxTextCtrl:getValue(Ctrl),
     validate(Validate, Str, Def);
 get_curr_value(#in{type=button, data=Data}) -> Data;
+get_curr_value(#in{type=table, def=Def, wx=Ctrl}) ->
+    Count = wxListCtrl:getItemCount(Ctrl),
+    {lists:foldl(
+        fun(N, Acc) ->
+            State = wxListCtrl:getItemState(Ctrl,N,?wxLIST_STATE_SELECTED),
+            if (State == ?wxLIST_STATE_SELECTED) -> Acc++[N];
+                true -> Acc
+            end
+        end,[],lists:seq(0,Count-1)), Def};
 get_curr_value(#in{type=value, data=Data})  -> Data.
 
 
@@ -1000,9 +1009,12 @@ build(Ask, {menu, Entries, Def, Flags}, Parent, Sizer, In) ->
 build(Ask, {table, [Header|Rows], Flags}, Parent, Sizer, In) ->
     Create =
 	fun() ->
+		Height = case proplists:get_value(max_rows, Flags) of
+		             undefined -> min((2+length(Rows))*25, 800);
+		             MaxR -> max(MaxR+1,5)*20
+		         end,
 		Options = [{style, ?wxLC_REPORT},
-			   {size, {min(tuple_size(Header)*80, 500),
-				   min((2+length(Rows))*25, 800)}}],
+			   {size, {min(tuple_size(Header)*80, 500), Height}}],
 		Ctrl = wxListCtrl:new(Parent, Options),
 		AddHeader = fun(HeadStr, Column) ->
 				    wxListCtrl:insertColumn(Ctrl, Column, HeadStr, []),
@@ -1030,10 +1042,10 @@ build(Ask, {table, [Header|Rows], Flags}, Parent, Sizer, In) ->
 		add_sizer(table, Sizer, Ctrl),
 		Ctrl
 	end,
-    create(Ask,Create),
-    %% [#in{key=proplists:get_value(key,Flags), def=Rows,
-    %% 	 type=table, wx=create(Ask,Create)}|In];
-    In;
+    %% create(Ask,Create),
+    [#in{key=proplists:get_value(key,Flags), def=Rows,
+     	 type=table, wx=create(Ask,Create)}|In];
+    %% In;
 
 build(Ask, {image, ImageOrFile}, Parent, Sizer, In) ->
     Create = fun() ->
