@@ -18,7 +18,7 @@
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 
--include_lib("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 %% State info
 -record(cs, {v=[],  %% Connected vertices
@@ -455,7 +455,7 @@ select_way(Cuts,We,NMM = {Mode,_}) ->
 check_normal(Face,{Way,MM},We = #we{id=Id}) ->
     {MVM,_PM,_} = wings_u:get_matrices(Id, MM),
     Normal0 = wings_face:normal(Face,We),
-    {_,_,Z} = e3d_mat:mul_vector(list_to_tuple(MVM),Normal0),
+    {_,_,Z} = e3d_mat:mul_vector(MVM, Normal0),
     if 
 	Way == normal, Z > 0.1 -> true;
 	Way == inverted, Z < -0.1 -> true;
