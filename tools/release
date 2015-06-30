@@ -148,13 +148,14 @@ copy_erts(TargetDir) ->
 copy_erts(TargetDir, {BinExecFiles, ErtsExecFiles}) ->
     ErtsPath0 = filename:join([code:root_dir(),"erts-*"]),
     ErtsPath  = filelib:wildcard(ErtsPath0),
-    ErtsVsn = filename:basename(ErtsPath),
 
+    %% Hard code erts version 0 so that we do not need to figure 
+    %% that out in installer package
     TargetBin = filename:join(TargetDir, "bin"),
-    TargetErts = filename:join([TargetDir, ErtsVsn, "bin"]),
+    TargetErts = filename:join([TargetDir, "erts-0", "bin"]),
 
     ok = file:set_cwd(filename:join(ErtsPath, "bin")),
-    %% To WINGS/erts-VSN/bin
+    %% To WINGS/erts-0/bin
     [copy(File, TargetErts) || File <- ErtsExecFiles],
     %% To WINGS/bin
     [copy(File, TargetBin) || File <- BinExecFiles],
@@ -222,7 +223,13 @@ fix_app_version(App0, Lib) ->
 	    VsnVar = string:to_upper(App) ++ "_VSN",
 	    Vsn = get_vsn(filename:join(AppDir, "vsn.mk"), VsnVar),
 	    ok = file:set_cwd(Lib),
-	    ok = file:rename(App, App++"-"++Vsn);
+	    case file:rename(App, App++"-"++Vsn) of
+		ok -> ok;
+		Error ->
+		    io:format("ERROR: cd ~p~n  ~p => ~p ~n", 
+			      [Lib, App, App++"-"++Vsn]),
+		    error(Error)
+	    end;
 	_ ->
 	    ok
     end.

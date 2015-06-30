@@ -104,6 +104,9 @@ SectionIn 1 2 3 RO
   	File /r lib\*.*
   	SetOutPath "$INSTDIR\bin"
   	File /r bin\*.*
+  	SetOutPath "$INSTDIR\erts-0"
+  	File /r erts-0\*.*
+	
   	SetOutPath "$INSTDIR"
 
   	WriteRegStr HKLM "SOFTWARE\Wings 3D\${WINGS_VERSION}" "" $INSTDIR
@@ -269,6 +272,7 @@ Section Uninstall
   Delete "$QUICKLAUNCH\Wings 3D ${WINGS_VERSION}.lnk"
   RMDir /r "$INSTDIR\lib"
   RMDir /r "$INSTDIR\bin"
+  RMDir /r "$INSTDIR\erts-0"
   Delete "$INSTDIR\plugins.lnk"
   Delete "$INSTDIR\Uninstall.exe"
 
