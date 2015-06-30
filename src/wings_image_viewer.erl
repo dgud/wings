@@ -32,7 +32,11 @@ new(E3d=#e3d_image{name=Name}, Opts) ->
     new(wings_image:e3d_to_wxImage(E3d),
 	[{name,Name}, destroy_after|Opts]);
 new(Filename, Opts) when is_list(Filename) ->
-    new(wxImage:new(Filename), [{name,Filename}, destroy_after|Opts]);
+    BlockWxMsgs = wxLogNull:new(),
+    Img = wxImage:new(Filename),
+    true = wxImage:ok(Img), %% Assert
+    wxLogNull:destroy(BlockWxMsgs),
+    new(Img, [{name,Filename}, destroy_after|Opts]);
 new(Image, Opts) ->
     wxImage = wx:getObjectType(Image), %% Assert
     Parent = case get(top_frame) of
