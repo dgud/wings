@@ -158,7 +158,7 @@ wx_popup_menu(X0,Y0,Names,Menus0,Magnet,Owner) ->
 	       end),
     keep.
 
-setup_dialog(Parent, Entries0, Magnet, Pos) ->
+setup_dialog(Parent, Entries0, Magnet, {X,Y0}=_Pos) ->
     Dialog = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_SIMPLE}]),
     Panel = wxPanel:new(Dialog),
     %% wxPanel:setBackgroundStyle(Panel, ?wxBG_STYLE_TRANSPARENT),
@@ -176,7 +176,12 @@ setup_dialog(Parent, Entries0, Magnet, Pos) ->
     wxSizer:fit(Main, Panel),
     wxPopupTransientWindow:setClientSize(Dialog, wxWindow:getSize(Panel)),
     wxPopupTransientWindow:connect(Dialog, show),
-    wxPopupTransientWindow:position(Dialog, Pos, {0,0}),
+    {_, MaxH} = wx_misc:displaySize(),
+    {_,H} = wxPopupTransientWindow:getSize(Dialog),
+    Y = if ((Y0+H) > MaxH) -> max(0, (MaxH-H-5));
+            true -> Y0
+        end,
+    wxPopupTransientWindow:position(Dialog, {X,Y}, {0,0}),
     wxPopupTransientWindow:connect(Dialog, key_down, [skip]),
     wxPopupTransientWindow:popup(Dialog),
     {Dialog, Panel, Entries}.
