@@ -61,12 +61,15 @@ file_dialog(Type, Prop, Title, Cont) ->
 
 read_image(Prop) ->
     Name = proplists:get_value(filename, Prop),
+    BlockWxMsgs = wxLogNull:new(),
     case wxImage:loadFile(Image=wxImage:new(), Name) of
 	true ->
 	    E3d = wings_image:wxImage_to_e3d(Image),
 	    wxImage:destroy(Image),
+	    wxLogNull:destroy(BlockWxMsgs),
 	    e3d_image:fix_outtype(Name, E3d, Prop);
 	false ->
+	    wxLogNull:destroy(BlockWxMsgs),
 	    {error, ignore}
     end.
 

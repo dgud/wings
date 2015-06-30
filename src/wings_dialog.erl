@@ -1374,7 +1374,11 @@ pos(_, [], _I) -> 0.
 image_to_bitmap(ImageOrFile) ->
     Img = case ImageOrFile of
 	      File when is_list(File) ->
-		  wxImage:new(File);
+		  BlockWxMsgs = wxLogNull:new(),
+		  Img0 = wxImage:new(File),
+		  true = wxImage:ok(Img0), %% Assert
+		  wxLogNull:destroy(BlockWxMsgs),
+		  Img0;
 	      #e3d_image{} = E3D ->
 		  wings_image:e3d_to_wxImage(E3D);
 	      WxImage ->
