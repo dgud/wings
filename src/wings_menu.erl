@@ -444,6 +444,13 @@ check_item(Name) ->
 
 update_menu(Menu, Item, Cmd) ->
     update_menu(Menu, Item, Cmd, undefined).
+
+update_menu(file, Item = {recent_file, _}, delete, _) ->
+    Id = menu_item_id(file, Item),
+    FileId = predefined_item(menu, file),
+    [#menu_entry{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),
+    true = wxMenu:delete(File, Id),
+    ok;
 update_menu(Menu, Item, Cmd, Help) ->
     Id = menu_item_id(Menu, Item),
     MI = case ets:lookup(wings_menus, Id) of
@@ -453,7 +460,7 @@ update_menu(Menu, Item, Cmd, Help) ->
 		 FileId = predefined_item(menu, Menu),
 		 [#menu_entry{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),
 		 N  = wxMenu:getMenuItemCount(File),
-		 MO = wxMenu:insert(File, N-2, Id, [{text, Cmd}, {help, Help}]),
+		 MO = wxMenu:insert(File, N-2, Id, [{text, Cmd}]),
 		 ME=#menu_entry{name=build_command(Item,[file]), object=MO,
 				wxid=Id, type=?wxITEM_NORMAL},
 		 true = ets:insert(wings_menus, ME),

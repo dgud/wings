@@ -275,8 +275,14 @@ command({recent_file,Key}, St) when is_integer(Key), 1 =< Key ->
 	true ->
 	    named_open(File, St);
 	false ->
+	    Last = length(Recent0),
 	    Recent = delete_nth(Recent0, Key),
 	    wings_pref:set_value(recent_files, Recent),
+	    wings_menu:update_menu(file, {recent_file, Last}, delete, []),
+	    lists:foreach(fun({Str, RKey, Help}) ->
+				  wings_menu:update_menu(file, RKey, Str, Help);
+			     (separator) -> ok
+			  end, recent_files(Recent, [])),
 	    wings_u:error_msg(?__(5,"This file has been moved or deleted."))
     end.
 
