@@ -1603,6 +1603,7 @@ is_tweak_combo(#tweak{mode=Mode,st=St0}=T) ->
     {_,TweakKeys} = wings_pref:get_value(tweak_prefs),
     case orddict:find({B,{Ctrl,Shift,Alt}},TweakKeys) of
         {ok, Mode} -> keep;
+        {ok, NewMode} when element(1,Mode) =:= NewMode -> keep;
         {ok, NewMode} ->
             St = wings_dl:map(fun (D, _) ->
                       update_drag(D,T)  % used to find mid tweak model data
