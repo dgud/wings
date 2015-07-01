@@ -542,7 +542,7 @@ get_curr_value(#in{type=table, def=Def, wx=Ctrl}) ->
 	fun(N, Acc) ->
 		case wxListCtrl:getItemState(Ctrl, N, ?wxLIST_STATE_SELECTED) of 
 		    ?wxLIST_STATE_SELECTED -> [N|Acc];
-		    true -> Acc
+		    _ -> Acc
 		end
 	end,
     {lists:foldr(IsSelected, [], lists:seq(0, Count-1)), Def};
