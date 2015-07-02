@@ -709,7 +709,7 @@ setup_buttons(Dialog, Top, {Table, Fields}) ->
 	    Object = Fun(Dialog, Top),
 	    true = ets:insert(Table, DBs#in{wx=Object}),
 	    ok;
-	[] ->
+	_ ->
 	    ok
     end.
 
