@@ -265,12 +265,11 @@ menubar() ->
 	      ]
       end},
      {?__(8,"View"),view,
-      fun(St) ->
-	      Menu0 = wings_view:menu(St),
+      fun(_St) ->
+	      Menu0 = wings_view:menu(),
 	      ShwBgImg = {?__(9,"Show/Hide Background Image"),toggle_background,
 	                  ?__(10,"Toggle display of the background texture image")},
-	      Menu = [I || I <- Menu0,
-			   keep_view_item(I)],
+	      Menu = [I || I <- Menu0, keep_view_item(I)],
 	      [ShwBgImg|redundant_separators(Menu)]
       end},
      {?__(11,"Select"),select,
