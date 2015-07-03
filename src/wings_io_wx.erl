@@ -318,6 +318,10 @@ wx_translate_1(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}) ->
 	 end,
     %% io:format("ME ~p~n",[ME]),
     ME;
+wx_translate_1(#wx{event={wxMouseCaptureLost, _}}) ->
+    #io{} = Io = get_state(),
+    put_state(Io#io{grab_count=0}),
+    grab_lost;
 wx_translate_1(Ev) ->
     io:format("~p: Bug Ignored Event~p~n",[?MODULE, Ev]),
     redraw.

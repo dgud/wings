@@ -517,6 +517,12 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
 	    handle_drag_event_0(Ev,Drag#drag{lmb_timer=0,rmb_timer=0})
     end;
 
+handle_drag_event(grab_lost, #drag{}) ->
+    wings_dl:map(fun invalidate_fun/2, []),
+    wings_tweak:toggle_draw(true),
+    wings_wm:later(revert_state),
+    pop;
+
 handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
   #drag{rmb_timer=StartTime}=Drag) when StartTime =/= 0 ->
 %% When Rmb is released we subtract the StartTime (when the Rmb was pressed)
