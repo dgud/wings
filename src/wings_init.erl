@@ -52,14 +52,6 @@ init() ->
     put(top_frame, Frame),
     put(gl_canvas, Canvas),
 
-    %% MenuCB = fun(Ev,Obj) ->
-    %% 		     io:format("Menu ~p~n", [Ev]),
-    %% 		     wxEvent:skip(Obj)
-    %% 	     end,
-    %% wxWindow:connect(Frame, menu_open, [{callback, MenuCB}]),
-    %% wxWindow:connect(Frame, menu_highlight, [{callback, MenuCB}]),
-    %% wxWindow:connect(Frame, menu_close, [{callback, MenuCB}]),
-
     case os:type() of
 	{unix, _} ->  wxWindow:connect(Canvas, paint, [skip]);
 	{win32, _} -> wxWindow:connect(Canvas, paint, [{callback, fun redraw/2}])
@@ -68,6 +60,8 @@ init() ->
     wxWindow:connect(Canvas, size,  []),
     wxWindow:connect(Frame, close_window),
     wxWindow:connect(Frame, command_menu_selected, [skip]),
+    try wxWindow:connect(Canvas, mouse_capture_lost)
+    catch _:_ -> ok end, %% Not available in all wx versions yet.
 
     setup_std_events(Canvas),
     set_icon(),
