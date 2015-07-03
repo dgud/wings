@@ -137,9 +137,9 @@ wx_popup_menu_init(X0,Y0,Names,Menus0) ->
     wx_popup_menu(X0,Y0,Names,Menus0,false,Owner),
     {push, fun(Ev) -> popup_event_handler(Ev, Owner) end}.
 
-wx_popup_menu(X0,Y0,Names,Menus0,Magnet,Owner) ->
+wx_popup_menu(X,Y,Names,Menus0,Magnet,Owner) ->
     Parent = get(top_frame),
-    Pos = wxWindow:clientToScreen(get(gl_canvas), X0-20,Y0-10),
+    Pos = wxWindow:clientToScreen(get(gl_canvas), X,Y),
     HotKeys = wings_hotkey:matching(Names),
     is_list(Menus0) orelse erlang:error(Menus0),
     Menus1  = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus0),
@@ -158,7 +158,9 @@ wx_popup_menu(X0,Y0,Names,Menus0,Magnet,Owner) ->
 	       end),
     keep.
 
-setup_dialog(Parent, Entries0, Magnet, {X,Y0}=_Pos) ->
+setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
+    X  = X0-20,
+    Y1 = Y0-10,
     Dialog = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_SIMPLE}]),
     Panel = wxPanel:new(Dialog),
     %% wxPanel:setBackgroundStyle(Panel, ?wxBG_STYLE_TRANSPARENT),
@@ -168,7 +170,7 @@ setup_dialog(Parent, Entries0, Magnet, {X,Y0}=_Pos) ->
     Sizer = wxBoxSizer:new(?wxVERTICAL),
     MinHSzs = calc_min_sizes(Entries0, Panel, 5, 5),
     Entries = setup_popup(Entries0, 500, Sizer, MinHSzs, Panel, Magnet, []),
-    wxSizer:setMinSize(Sizer, 150, -1),
+    wxSizer:setMinSize(Sizer, 225, -1),
     wxSizer:addSpacer(Main, 5),
     wxSizer:add(Main, Sizer, [{proportion, 1}, {border, 5}, {flag, ?wxEXPAND bor ?wxALL}]),
     wxSizer:addSpacer(Main, 5),
@@ -178,29 +180,76 @@ setup_dialog(Parent, Entries0, Magnet, {X,Y0}=_Pos) ->
     wxPopupTransientWindow:connect(Dialog, show),
     {_, MaxH} = wx_misc:displaySize(),
     {_,H} = wxPopupTransientWindow:getSize(Dialog),
-    Y = if ((Y0+H) > MaxH) -> max(0, (MaxH-H-5));
-            true -> Y0
+    Y = if ((Y1+H) > MaxH) -> max(0, (MaxH-H-5));
+            true -> Y1
         end,
+    menu_connect([Panel], [left_up, middle_up, right_up]),
     wxPopupTransientWindow:position(Dialog, {X,Y}, {0,0}),
     wxPopupTransientWindow:connect(Dialog, key_down, [skip]),
     wxPopupTransientWindow:popup(Dialog),
+    %% Color active menuitem
+    {_, MouseY} = wxWindow:screenToClient(Panel, ScreenPos),
+    case find_active_panel(Panel, MouseY) of
+	false -> ignore;
+	{ActId, ActPanel} ->
+	    self() ! #wx{id=ActId, obj= ActPanel, event=#wxMouse{type=enter_window}}
+    end,
     {Dialog, Panel, Entries}.
+
+%% If the mouse is not moved after popping up the menu, the meny entry
+%% is not active, find_active_panel finds the active row.
+find_active_panel(Panel, MouseY) ->
+    MainSizer = wxWindow:getSizer(Panel),
+    [_,SizerItem,_] = wxSizer:getChildren(MainSizer),
+    Sizer = wxSizerItem:getSizer(SizerItem),
+    Children = wxSizer:getChildren(Sizer),
+    Active = fun(SItem) ->
+		     {_, SY, _, SH} = wxSizerItem:getRect(SItem),
+		     case MouseY > (SY) andalso MouseY < (SY+SH) of 
+			 false -> false;
+			 true ->
+			     Active = wxSizerItem:getWindow(SItem),
+			     case wx:is_null(Active) orelse wxWindow:getId(Active) of
+				    true -> false;
+				 Id when Id < 0 -> false;
+				 Id -> throw({Id, wx:typeCast(Active,wxPanel)})
+			     end
+		     end
+	     end,
+    try 
+	lists:foreach(Active, Children),
+	false
+    catch Found -> 
+	    Found
+    end.
 
 popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
     receive
 	#wx{id=Id, obj=Obj, event=#wxMouse{type=enter_window}} ->
-	    Line = wx:batch(fun() ->
-				    setup_colors(Previous, colorB(menu_color), colorB(menu_text)),
-				    setup_colors(Obj, colorB(menu_hilite),colorB(menu_hilited_text))
-			    end),
+	    Set = fun() ->
+			  setup_colors(Previous, colorB(menu_color), colorB(menu_text)),
+			  setup_colors(Obj, colorB(menu_hilite),colorB(menu_hilited_text))
+		  end,
+	    Line = wx:batch(Set),
 	    #menu_pop{msg=Msg} = lists:keyfind(Id, 2, Entries),
 	    wings_wm:psend(Owner, {message, Msg}),
 	    popup_events(Dialog, Panel, Entries, Magnet, Line, Ns, Owner);
-	#wx{id=Id, event=Ev=#wxMouse{type=What}}
-	  when What =:= left_up; What =:= right_up; What =:= middle_up ->
-	    wxWindow:destroy(Dialog),
-	    MagnetClick = Magnet orelse magnet_pressed(wings_msg:free_rmb_modifier(), Ev),
-	    popup_result(lists:keyfind(Id, 2, Entries), {What, MagnetClick}, Ns, Owner);
+	#wx{id=Id0, event=Ev=#wxMouse{type=What, y=Y}} ->
+	    Id = case Id0 > 0 orelse find_active_panel(Panel, Y) of
+		     true -> Id0;
+		     false -> false;
+		     {AId, _} -> AId
+		 end,
+	    case Id of
+		false ->
+		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner);
+		_Integer ->
+		    wxWindow:destroy(Dialog),
+		    MagnetClick = Magnet orelse 
+			magnet_pressed(wings_msg:free_rmb_modifier(), Ev),
+		    popup_result(lists:keyfind(Id, 2, Entries), 
+				 {What, MagnetClick}, Ns, Owner)
+	    end;
 	#wx{event=#wxShow{}} ->
 	    case wxTopLevelWindow:isShown(Dialog) of
 		false ->
