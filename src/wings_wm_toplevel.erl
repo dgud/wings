@@ -781,7 +781,7 @@ close_event(_) -> keep.
 
 -define(MENU_MARGIN, ?CHAR_WIDTH).
 -define(MENU_ITEM_SPACING, ?CHAR_HEIGHT+8).
--define(MENU_HEIGHT, (?CHAR_HEIGHT+?CHAR_WIDTH)).
+-define(MENU_HEIGHT, (?LINE_HEIGHT+4)).
 
 -record(mb,
 	{sel=none,
