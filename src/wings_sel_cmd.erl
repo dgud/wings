@@ -13,10 +13,12 @@
 
 -module(wings_sel_cmd).
 
--export([menu/1,update_menu/1,command/2]).
+-export([menu/0,update_menu/1,command/2]).
 
 %% Utilities.
 -export([init/0,select_all/1]).
+
+-export([groups_menu/1]). %% Temp workaround fix groups menu
 
 -include("wings.hrl").
 -import(lists, [map/2,foldl/3,reverse/1,keymember/3,keyfind/3,usort/1]).
@@ -29,7 +31,7 @@ update_menu(#st{selmode=Mode}) ->
     [wings_menu:update_menu_enabled(select, Cmd, FaceMode)
      || {_, Cmd, _} <- faces_menu()].
 
-menu(St) ->
+menu() ->
     Help = ?__(99," (from selection or all visible objects (if no selection))"),
     RHelp = random_help(),
     Objects = ?__(106," Objects"),
@@ -158,7 +160,7 @@ menu(St) ->
      {?__(81,"Recall Selection"),recall_selection,
       ?__(82,"Recall the selection from the selection group named \"StoredSelection\"")},
      separator,
-     {?__(83,"New Group..."),new_group,?__(84,"Create a new selection group")}|groups_menu(St)].
+     {?__(83,"New Group..."),new_group,?__(84,"Create a new selection group")}].
 
 random_help() ->
     ?__(1,"Select random elements from current selection, or all visible objects (no selection)").
