@@ -163,6 +163,7 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     Y1 = Y0-10,
     Dialog = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_SIMPLE}]),
     Panel = wxPanel:new(Dialog),
+    wxPanel:setFont(Panel, ?GET(system_font_wx)),
     %% wxPanel:setBackgroundStyle(Panel, ?wxBG_STYLE_TRANSPARENT),
     wxWindow:setBackgroundColour(Panel, colorB(wings_pref:get_value(menu_color))),
     wxWindow:setBackgroundColour(Dialog, colorB(wings_pref:get_value(menu_color))),

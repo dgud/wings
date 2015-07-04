@@ -97,6 +97,11 @@
 -define(CHECK_ERROR(), ok).
 -endif.
 
+%% Use for non saved global gui resources, avoids the dictionary
+%% Example: runtime fonts
+-define(GET(Key), wings_pref:get_value({temp, Key})).
+-define(SET(Key,Value), wings_pref:set_value({temp, Key}, Value)).
+
 %%
 %% Types.
 %%
