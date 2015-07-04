@@ -16,8 +16,8 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 
--include("wings.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/src/wings.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 -include("auv.hrl").
  
 -export([init/0,menu/2,command/2,redraw/1]).
@@ -273,8 +273,8 @@ menubar() ->
 	      [ShwBgImg|redundant_separators(Menu)]
       end},
      {?__(11,"Select"),select,
-      fun(St) ->
-	      Menu0 = wings_sel_cmd:menu(St),
+      fun(_St) ->
+	      Menu0 = wings_sel_cmd:menu(),
 	      Menu = [I || I <- Menu0,
 			   keep_sel_item(I)],
 	      redundant_separators(Menu)
