@@ -67,6 +67,7 @@
 -record(io,
 	{tex=[],				%Textures.
 	 grab_count=0,				%Number of grabs.
+	 key_up=false,                          %Subscribed to key_up
 	 cursors,				%Mouse cursors.
 	 raw_icons				%Raw icon bundle.
 	}).
