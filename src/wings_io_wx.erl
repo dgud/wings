@@ -169,12 +169,15 @@ is_key_pressed(Key) ->
 %%% Mouse grabbing.
 %%%
 reset_grab() ->
+    reset_grab(true).
+
+reset_grab(Release) ->
     Io = get_state(),
     put_state(Io#io{grab_count=0}),
     %%sdl_mouse:showCursor(true),
     put(wm_cursor, arrow),
     set_cursor(arrow),
-    wxWindow:releaseMouse(get(gl_canvas)).
+    Release andalso wxWindow:releaseMouse(get(gl_canvas)).
 
 grab() ->
     %%io:format("Grab mouse~n", []),
@@ -243,9 +246,19 @@ get_bin(Buff) ->
 %%%
 
 change_event_handler(?SDL_KEYUP, ?SDL_ENABLE) ->
-    wxWindow:connect(get(gl_canvas), key_up);
+    case get_state() of
+	#io{key_up=true} -> false;
+	Io ->
+	    put_state(Io#io{key_up=true}),
+	    wxWindow:connect(get(gl_canvas), key_up)
+    end;
 change_event_handler(?SDL_KEYUP, ?SDL_IGNORE) ->
-    wxWindow:disconnect(get(gl_canvas), key_up).
+    case get_state() of
+	#io{key_up=false} -> false;
+	Io ->
+	    put_state(Io#io{key_up=false}),
+	    wxWindow:disconnect(get(gl_canvas), key_up)
+    end.
 
 read_events(Eq0) ->
     read_events(Eq0, 0).
@@ -319,8 +332,7 @@ wx_translate_1(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}) ->
     %% io:format("ME ~p~n",[ME]),
     ME;
 wx_translate_1(#wx{event={wxMouseCaptureLost, _}}) ->
-    #io{} = Io = get_state(),
-    put_state(Io#io{grab_count=0}),
+    reset_grab(false),
     grab_lost;
 wx_translate_1(Ev) ->
     io:format("~p: Bug Ignored Event~p~n",[?MODULE, Ev]),
