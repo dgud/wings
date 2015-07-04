@@ -84,7 +84,7 @@
 	 h}).   %%	 New height 
 
 -record(expose,    %%SDL_ExposeEvent The "screen redraw" event
-	{}).  %%   	  
+	{active}). %% true or false
 
 -record(quit, {}). %%SDL_QuitEvent
 

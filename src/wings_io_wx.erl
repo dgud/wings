@@ -312,7 +312,7 @@ wx_translate(Event) ->
     R.
 
 wx_translate_1(#wx{event=#wxPaint{}}) ->
-    redraw;
+    #expose{active=true};
 wx_translate_1(#wx{event=Ev=#wxMouse{}}) ->
     sdl_mouse(Ev);
 wx_translate_1(#wx{event=Ev=#wxKey{}}) ->
@@ -334,6 +334,9 @@ wx_translate_1(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}) ->
 wx_translate_1(#wx{event={wxMouseCaptureLost, _}}) ->
     reset_grab(false),
     grab_lost;
+wx_translate_1(#wx{event=#wxActivate{active=Active}}) ->
+    Active == true andalso wxWindow:setFocus(get(gl_canvas)),
+    #expose{active=Active};
 wx_translate_1(Ev) ->
     io:format("~p: Bug Ignored Event~p~n",[?MODULE, Ev]),
     redraw.
