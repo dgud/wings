@@ -35,16 +35,24 @@
 
 init() -> true.
 
-menu({window}, Menu) ->
-    Menu++[sel_group_menu()];
+menu({window}, Menu) -> Menu++[sel_group_menu()];
+menu({select}, Menu) -> 
+    PatchMenu = fun({String, {ssels, List}}) ->
+			{String, {ssels, List++[separator, sel_group_menu()]}};
+		   (Entry) -> Entry
+		end,
+    [PatchMenu(Entry) || Entry <- Menu];
 menu(_,Menu) -> 
-	Menu.
+    Menu.
 
 sel_group_menu() ->	
-	 {?__(1,"Selection Groups"), sel_groups,
+	 {?__(1,"Manage Selection Groups"), sel_groups_win,
 	  ?__(2,"Shows the selection groups window")}.
 
-command({window,sel_groups}, St) ->
+command({window,sel_groups_win}, St) ->
+    window(St),
+    keep;
+command({select, {ssels,sel_groups_win}}, St) ->
     window(St),
     keep;
 command({select, {ssels, {rename_group, {Id, Name}}}}, St) ->
