@@ -41,8 +41,9 @@ init() ->
     TopSize = wings_pref:get_value(window_size),
     Frame = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
 
+    Style = ?wxFULL_REPAINT_ON_RESIZE,
     Canvas = wxGLCanvas:new(Frame, [{attribList, gl_attributes()},
-				    {style, ?wxFULL_REPAINT_ON_RESIZE}]),
+				    {style, Style}]),
 
     Sizer = wxBoxSizer:new(?wxVERTICAL),
     wxSizer:add(Sizer, Canvas, [{proportion, 1}, {flag, ?wxEXPAND}]),
@@ -54,12 +55,15 @@ init() ->
 
     case os:type() of
 	{unix, _} ->  wxWindow:connect(Canvas, paint, [skip]);
-	{win32, _} -> wxWindow:connect(Canvas, paint, [{callback, fun redraw/2}])
+	{win32, _} -> 
+	    wxWindow:connect(Canvas, paint, [{callback, fun redraw/2}]),
+	    wxWindow:connect(Frame, erase_background, [{callback, fun redraw/2}])
     end,
 
-    wxWindow:connect(Canvas, size,  []),
+    wxWindow:connect(Canvas, size),
     wxWindow:connect(Frame, close_window),
     wxWindow:connect(Frame, command_menu_selected, [skip]),
+    wxWindow:connect(Frame, activate, [skip]),
     try wxWindow:connect(Canvas, mouse_capture_lost)
     catch _:_ -> ok end, %% Not available in all wx versions yet.
 
@@ -85,11 +89,13 @@ init() ->
 	[] -> none
     end.
 
-redraw(Ev = #wx{obj=Canvas},_) ->
+redraw(#wx{obj=Canvas, event=#wxPaint{}},_) ->
     %% Must do a PaintDC and destroy it
     DC = wxPaintDC:new(Canvas),
     wxPaintDC:destroy(DC),
-    wings ! Ev.
+    wings ! #wx{event=#wxPaint{}};
+redraw(_, _) ->  %% For erase background events
+    wings ! #wx{event=#wxPaint{}}.
 
 setup_std_events(Canvas) ->
     wxWindow:connect(Canvas, motion),
