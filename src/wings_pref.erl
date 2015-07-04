@@ -139,8 +139,8 @@ finish() ->
     end.
 
 finish_save_prefs(PrefFile) ->
-    List0 = ets:tab2list(wings_state),
-    List = prune_defaults(List0),
+    List0 = prune_temp(ets:tab2list(wings_state)),
+    List  = prune_defaults(List0),
     Format = "~p. \n",
     PostProcess = case os:type() of
 		      {win32,_} -> fun insert_crs/1;
@@ -181,6 +181,12 @@ insert_crs(C) when is_integer(C) -> C.
 
 prune_defaults(List) ->
     List -- defaults().
+
+prune_temp([{{temp,_}, _}|List]) ->
+    prune_temp(List);
+prune_temp([First|Rest]) ->
+    [First | prune_temp(Rest)];
+prune_temp([]) -> [].
 
 win32_save_maximized() ->
     case os:type() of
@@ -738,7 +744,7 @@ pref(Action) -> %% load|save dialog
 
 pref({save, Res}, St) -> %save a .pref
     DelayedPrefs = ets:tab2list(wings_delayed_update),
-    Prefs0 = ets:tab2list(wings_state),
+    Prefs0 = prune_temp(ets:tab2list(wings_state)),
     List = foldl(fun({Key, _}=Pref, Acc) ->
             lists:keystore(Key, 1, Acc, Pref)
         end, Prefs0, DelayedPrefs),
@@ -808,7 +814,7 @@ treat_hotkeys(Res) ->
 	    case proplists:get_value(hotkey_radio, Res) of
 		merge -> Res;
 		remove ->
-		    List = ets:tab2list(wings_state),
+		    List = prune_temp(ets:tab2list(wings_state)),
 		    lists:foreach(fun({Hotkey,_,_})
 					when element(1, Hotkey) =:= bindkey ->
 					  ets:delete(wings_state,Hotkey);

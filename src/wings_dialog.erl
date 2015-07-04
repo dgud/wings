@@ -689,6 +689,7 @@ build_dialog(AskType, Title, Qs) ->
 		     Style  = {style, ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER},
 		     Dialog = wxDialog:new(Parent, ?wxID_ANY, Title, [Style]),
 		     Panel  = wxPanel:new(Dialog, []),
+		     wxPanel:setFont(Panel, ?GET(system_font_wx)),
 		     Top    = wxBoxSizer:new(?wxVERTICAL),
 		     Sizer  = wxBoxSizer:new(?wxVERTICAL),
 		     DialogData = build(AskType, Qs, Panel, Sizer),
