@@ -18,8 +18,6 @@
 %% Utilities.
 -export([init/0,select_all/1]).
 
--export([groups_menu/1]). %% Temp workaround fix groups menu
-
 -include("wings.hrl").
 -import(lists, [map/2,foldl/3,reverse/1,keymember/3,keyfind/3,usort/1]).
 
@@ -154,13 +152,7 @@ menu() ->
       show_all,?__(76,"Show all objects that have been hidden")},
      {?__(105,"Unlock All Objects"),
       unlock_all,?__(78,"Unlock all locked objects")},
-     separator,
-     {?__(79,"Store Selection"),store_selection,
-      ?__(80,"Store the selection into the selection group named \"StoredSelection\"")},
-     {?__(81,"Recall Selection"),recall_selection,
-      ?__(82,"Recall the selection from the selection group named \"StoredSelection\"")},
-     separator,
-     {?__(83,"New Group..."),new_group,?__(84,"Create a new selection group")}].
+     separator | groups_menu()].
 
 random_help() ->
     ?__(1,"Select random elements from current selection, or all visible objects (no selection)").
@@ -173,62 +165,21 @@ faces_menu() ->
    {?__(3,"Similar Material..."),similar_material,
     ?__(31,"Select faces with a similar material to those already selected")}].
 
-groups_menu(#st{ssels=Ssels}=St) ->
-    case gb_trees:is_empty(Ssels) of
-        true -> [];
-        false ->
-          [{?__(22,"Selection Groups"),
-            {ssels,
-             [{?__(1,"Delete Group"),
-               {delete_group,
-                groups_and_help(?__(2,"Delete group \""), "\"", St)}},
-               separator,
-               {?__(4,"Add to Group"),
-                {add_to_group,
-                 groups_and_help(?__(5,"Add current selection to group \""),
-                   "\"", St)}},
-               {?__(7,"Subtract from Group"),
-                {subtract_from_group,
-                 groups_and_help(?__(8,"Subtract current selection from group \""),
-                   "\"", St)}},
-               separator,
-               {?__(10,"Select Group"),
-                {select_group,
-                 groups_and_help(?__(11,"Select group \""), "\"", St)++
-                 [separator,
-                 {?__(24,"Next Group"),next},
-                 {?__(25,"Previous Group"),prev},
-                 {?__(26,"Cycle In Selection Mode"),saved_selections_cycle_by_mode,
-                  ?__(27,"Cycle Prev/Next only within active selection mode"),
-                  wings_menu_util:crossmark(saved_selections_cycle_by_mode)}]}},
-               separator,
-               {?__(13,"Union Group"),
-                {union_group,
-                 groups_and_help(?__(14,"Union group \""),
-                   ?__(15,"\" with current selection"), St)}},
-               {?__(16,"Subtract Group"),
-                {subtract_group,
-                 groups_and_help(?__(17,"Subtract group \""),
-                   ?__(18,"\" from current selection"), St)}},
-               {?__(19,"Intersect Group"),
-                {intersect_group,
-                 groups_and_help(?__(20,"Intersect group \""),
-                   ?__(21,"\" with current selection"), St)}}]}}]
-    end.
-
-groups_and_help(Help0, Help1, #st{ssels=Ssels}) ->
-    map(fun({Mode,Name}=Key) ->
-		Title = group_title(Name, Mode),
-		{Title,fun(help, _) -> {Help0++Name++Help1};
-			  (_, Ns) -> wings_menu:build_command(Key, Ns)
-		       end,Help0++Name++Help1}
-	end,
-	gb_trees:keys(Ssels)).
-
-group_title(Name, vertex) -> ?__(1,"vertex: ")++Name;
-group_title(Name, edge) -> ?__(2,"edge: ")++Name;
-group_title(Name, face) -> ?__(3,"face: ")++Name;
-group_title(Name, body) -> ?__(4,"body: ")++Name.
+groups_menu() ->
+    [{?__(22,"Selection Groups"),
+      {ssels,
+       [{?__(79,"Store Selection"),store_selection,
+	 ?__(80,"Store the selection into the selection group named \"StoredSelection\"")},
+	{?__(81,"Recall Selection"),recall_selection,
+	 ?__(82,"Recall the selection from the selection group named \"StoredSelection\"")},
+	separator,
+	{?__(83,"New Group..."),new_group,?__(84,"Create a new selection group")},
+	separator,
+	{?__(24,"Next Group"),next_group},
+	{?__(25,"Previous Group"),prev_group},
+	{?__(26,"Cycle In Selection Mode"),saved_selections_cycle_by_mode,
+	 ?__(27,"Cycle Prev/Next only within active selection mode"),
+	 wings_menu_util:crossmark(saved_selections_cycle_by_mode)}]}}].
 
 more_help() ->
     ?__(1,"Select all elements adjacent to the selected elements").
@@ -291,34 +242,6 @@ command(similar_material, St) ->
     similar_material(true, St);
 command({similar_material,Ask}, St) ->
     similar_material(Ask, St);
-command({ssels,{select_group,saved_selections_cycle_by_mode}}, St) ->
-    Pref = wings_pref:get_value(saved_selections_cycle_by_mode),
-    wings_pref:set_value(saved_selections_cycle_by_mode, not Pref),
-    {save_state,St};
-command({ssels,{select_group,Id}}, St) when Id =:= next; Id =:= prev ->
-    {save_state,cycle_group(Id, St)};
-command({ssels,{select_group,Id}}, St) ->
-    {save_state,select_group(Id, St)};
-command({ssels,{union_group,Id}}, St) ->
-    {save_state,union_group(Id, St)};
-command({ssels,{subtract_group,Id}}, St) ->
-    {save_state,subtract_group(Id, St)};
-command({ssels,{intersect_group,Id}}, St) ->
-    {save_state,intersect_group(Id, St)};
-command({ssels,{add_to_group,Id}}, St) ->
-    {save_state,add_to_group(Id, St)};
-command({ssels,{subtract_from_group,Id}}, St) ->
-    {save_state,subtract_from_group(Id, St)};
-command({new_group_name, Name}, St) ->
-    {save_state,new_group_name(Name, St)};
-command(new_group, St) ->
-    new_group(St);
-command({ssels,{delete_group,invalid}}, St) ->
-    {save_state,delete_invalid_groups(St)};
-command({ssels,{delete_group,all}}, St) ->
-    {save_state,St#st{ssels=gb_trees:empty()}};
-command({ssels,{delete_group,Id}}, #st{ssels=Ssels}=St) ->
-    {save_state,St#st{ssels=gb_trees:delete(Id, Ssels)}};
 command(inverse, St) ->
     {save_state,inverse(St)};
 command(hide_selected, St) ->
@@ -333,11 +256,11 @@ command(unlock_all, St) ->
     {save_state,wings_shape:unlock_all(St)};
 command({adjacent,Type}, St) ->
     set_select_mode(Type, St);
-command(store_selection, #st{ssels=Ssels0,selmode=Mode,sel=Sel}=St) ->
+command({ssels, store_selection}, #st{ssels=Ssels0,selmode=Mode,sel=Sel}=St) ->
     Key = {Mode,"StoredSelection"},
     Ssels = gb_trees:enter(Key, Sel, Ssels0),
     {save_state,St#st{ssels=Ssels}};
-command(recall_selection, #st{selmode=Mode,ssels=Ssels}=St0) ->
+command({ssels, recall_selection}, #st{selmode=Mode,ssels=Ssels}=St0) ->
     Key = {Mode, "StoredSelection"},
     case gb_trees:is_defined(Key, Ssels) of
 	false -> St0;
@@ -345,6 +268,36 @@ command(recall_selection, #st{selmode=Mode,ssels=Ssels}=St0) ->
 	    St = select_group(Key, St0),
 	    {save_state,St}
     end;
+command({ssels,{select_group,saved_selections_cycle_by_mode}}, St) ->
+    Pref = wings_pref:get_value(saved_selections_cycle_by_mode),
+    wings_pref:set_value(saved_selections_cycle_by_mode, not Pref),
+    {save_state,St};
+command({ssels,next_group}, St) ->
+    {save_state,cycle_group(next_group, St)};
+command({ssels,prev_group}, St) ->
+    {save_state,cycle_group(prev_group, St)};
+command({ssels,{select_group,Id}}, St) ->
+    {save_state,select_group(Id, St)};
+command({ssels,{union_group,Id}}, St) ->
+    {save_state,union_group(Id, St)};
+command({ssels,{subtract_group,Id}}, St) ->
+    {save_state,subtract_group(Id, St)};
+command({ssels,{intersect_group,Id}}, St) ->
+    {save_state,intersect_group(Id, St)};
+command({ssels,{add_to_group,Id}}, St) ->
+    {save_state,add_to_group(Id, St)};
+command({ssels,{subtract_from_group,Id}}, St) ->
+    {save_state,subtract_from_group(Id, St)};
+command({new_group_name, Name}, St) ->
+    {save_state,new_group_name(Name, St)};
+command({ssels, new_group}, St) ->
+    new_group(St);
+command({ssels,{delete_group,invalid}}, St) ->
+    {save_state,delete_invalid_groups(St)};
+command({ssels,{delete_group,all}}, St) ->
+    {save_state,St#st{ssels=gb_trees:empty()}};
+command({ssels,{delete_group,Id}}, #st{ssels=Ssels}=St) ->
+    {save_state,St#st{ssels=gb_trees:delete(Id, Ssels)}};
 command(Type, St) ->
     set_select_mode(Type, St).
 
@@ -666,19 +619,19 @@ group_mode_string(body) ->
 %%%% Cycle Through Save Selections
 cycle_group(Dir, #st{selmode=SelMode,ssels=Ssels,sh=Sh}=St) ->
     case gb_trees:is_empty(Ssels) of
-      true -> St;
-      false ->
-        Keys0 = gb_trees:keys(Ssels),
-        Keys1 = case wings_pref:get_value(saved_selections_cycle_by_mode) of
-          true when Sh -> Keys0;
-          true -> [Key || {Mode,_}=Key <- Keys0, Mode =:= SelMode];
-          false -> Keys0
-        end,
-        Keys = case Dir of
-          next -> Keys1;
-          prev -> lists:reverse(Keys1)
-        end,
-        cycle_ss_keys(Keys,St)
+	true -> St;
+	false ->
+	    Keys0 = gb_trees:keys(Ssels),
+	    Keys1 = case wings_pref:get_value(saved_selections_cycle_by_mode) of
+			true when Sh -> Keys0;
+			true -> [Key || {Mode,_}=Key <- Keys0, Mode =:= SelMode];
+			false -> Keys0
+		    end,
+	    Keys = case Dir of
+		       next_group -> Keys1;
+		       prev_group -> lists:reverse(Keys1)
+		   end,
+	    cycle_ss_keys(Keys,St)
     end.
 
 cycle_ss_keys([],St) -> St;
