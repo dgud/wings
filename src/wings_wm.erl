@@ -670,6 +670,8 @@ dispatch_event(Ev = {external,_}) ->
     send(geom,Ev);
 dispatch_event({menubar,Ev}) ->
     menubar_event(Ev);
+dispatch_event(#expose{active=Active}) ->
+    Active andalso dirty();
 dispatch_event(Event) ->
     case find_active(Event) of
 	_ when Event#keyboard.which =:= menubar ->
@@ -844,9 +846,6 @@ init_opengl() ->
 		    do_dispatch(Name, init_opengl)
 	    end, gb_trees:keys(get(wm_windows))).
 
-send_event(Win, {expose}) ->
-    dirty(),
-    Win;
 send_event(#win{z=Z}=Win, redraw) when Z < 0 ->
     Win;
 send_event(#win{name=Name,stk=[Se|_]=Stk0,obj=Obj}, Ev)

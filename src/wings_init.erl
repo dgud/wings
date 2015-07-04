@@ -60,9 +60,10 @@ init() ->
 	    wxWindow:connect(Frame, erase_background, [{callback, fun redraw/2}])
     end,
 
-    wxWindow:connect(Canvas, size,  []),
+    wxWindow:connect(Canvas, size),
     wxWindow:connect(Frame, close_window),
     wxWindow:connect(Frame, command_menu_selected, [skip]),
+    wxWindow:connect(Frame, activate, [skip]),
     try wxWindow:connect(Canvas, mouse_capture_lost)
     catch _:_ -> ok end, %% Not available in all wx versions yet.
 
@@ -90,7 +91,6 @@ init() ->
 
 redraw(#wx{obj=Canvas, event=#wxPaint{}},_) ->
     %% Must do a PaintDC and destroy it
-    io:format("Paint~n", []),
     DC = wxPaintDC:new(Canvas),
     wxPaintDC:destroy(DC),
     wings ! #wx{event=#wxPaint{}};
