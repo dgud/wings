@@ -35,15 +35,17 @@ init() ->
     WxCon = make_wxfont(wings_pref:get_value(console_font)),
     {ok, Console} = wings_glfont:load_font(WxCon, [{range, Ranges}]),
 
-    put(system_font, Sys),
-    put(console_font, Console),
+    ?SET(system_font, Sys),
+    ?SET(console_font, Console),
+    ?SET(system_font_wx, WxSys),
     ok.
 
 reload_font(PrefKey, FontInfo) ->
     Ranges = char_ranges(wings_pref:get_value(language)),
     WxFont = make_wxfont(FontInfo),
     {ok, GLFont} = wings_glfont:load_font(WxFont, [{range, Ranges}]),
-    put(PrefKey, GLFont).
+    PrefKey =:= system_font andalso ?SET(system_font_wx, WxFont),
+    ?SET(PrefKey, GLFont).
 
 set_font_default(PrefKey) ->
     case is_atom(wings_pref:get_value(PrefKey)) of
@@ -54,6 +56,8 @@ set_font_default(PrefKey) ->
     end.
 
 get_font_default(system_font) ->
+    get_font_info(?wxNORMAL_FONT);
+get_font_default(menu_font) ->
     get_font_info(?wxNORMAL_FONT);
 get_font_default(console_font) ->
     get_font_info(?wxSWISS_FONT).
@@ -184,9 +188,9 @@ char(C, Font, Acc) when is_atom(C) ->
 current_font() ->
     case wings_wm:this() of
 	none ->
-	    get(system_font);
+	    ?GET(system_font);
 	This ->
-            get(wings_wm:get_prop(This, font))
+            ?GET(wings_wm:get_prop(This, font))
     end.
 
 %% Formats strings to fit the width of a line length given in PIXELS
@@ -274,7 +278,7 @@ glyph_info(C) ->
     glyph_info_1(current_font(), C).
 
 glyph_info(Font, C) ->
-    wings_glfont:C(get(Font)).
+    wings_glfont:C(?GET(Font)).
 
 glyph_info_1(Font, C) ->
     wings_glfont:C(Font).
