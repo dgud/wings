@@ -12,7 +12,7 @@
 %%
 
 -module(wings_pref_dlg).
--export([menu/1,command/2]).
+-export([menu/0,command/2]).
 -export([set_values/2]).
 
 -include("wings.hrl").
@@ -21,7 +21,7 @@
 -import(lists, [reverse/1,foreach/2]).
 -define(NONZERO,1.0e-6).
 
-menu(_St) ->
+menu() ->
     {?__(1,"Preferences..."),
      fun(_, _) ->
 	     {edit,{preferences,prefs}}
@@ -652,7 +652,7 @@ smart_set_value_1(Key, Val, St) ->
 			      "effect the next time Wings 3D is started."),
 		    wings_u:message(Str);
 		show_develop_menu ->
-		    wings:init_menubar(St),
+		    wings:init_menubar(),
 		    foreach(fun(W) ->
 				    wings_wm:send(W, language_changed) end,
 			    wings_wm:windows());

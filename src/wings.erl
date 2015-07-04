@@ -18,7 +18,7 @@
 -export([ask/3]).
 -export([save_windows/0,save_windows_1/1,restore_windows_1/2,set_geom_props/2]).
 -export([handle_drop/3, popup_menu/3]).
--export([init_menubar/1]).
+-export([init_menubar/0]).
 -export([highlight_aim_setup/1]).
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).
 -export([info_line/0]).
@@ -148,10 +148,10 @@ init(File0) ->
 		       {properties,Props}],
 		      Op),
     put(wm_active, {menubar, geom}),
-    init_menubar(St),
+    Menus = init_menubar(),
     erase(wm_active),
-    wings_wm:menubar(geom, get(wings_menu_template)),
-    wings_menu:wx_menubar(get(wings_menu_template)),
+    %% wings_wm:menubar(geom, Menus),
+    wings_menu:wx_menubar(Menus),
     set_drag_filter(geom),
 
     open_file(File),
@@ -460,7 +460,6 @@ handle_event_3({drop,Pos,DropData}, St) ->
 handle_event_3(language_changed, _) ->
     This = wings_wm:this(),
     wings_wm:toplevel_title(This, geom_title(This)),
-    wings_wm:menubar(This, get(wings_menu_template)),
     keep;
 handle_event_3({external,no_more_basic_menus}, _St) ->
     wings_help:no_more_basic_menus();
@@ -910,7 +909,7 @@ popup_menu(X, Y, #st{selmode=Mode}=St) ->
         end
     end.
 
-init_menubar(St) ->
+init_menubar() ->
     Tail0 = [{?__(7,"Help"),help,wings_help:menu()}],
     Tail = case wings_pref:get_value(show_develop_menu) of
 	       true ->
@@ -918,19 +917,17 @@ init_menubar(St) ->
 	       false ->
 		   Tail0
 	   end,
-    Menus = [{?__(1,"File"),file,wings_file:menu(St)},
-	     {?__(2,"Edit"),edit,edit_menu(St)},
-	     {?__(3,"View"),view,wings_view:menu()},
+    [{?__(1,"File"),file,wings_file:menu()},
+     {?__(2,"Edit"),edit,edit_menu()},
+     {?__(3,"View"),view,wings_view:menu()},
+     
+     {?__(4,"Select"),select,wings_sel_cmd:menu()},
+     {?__(5,"Tools"), tools, tools_menu()},
+     {?__(6,"Window"),window,window_menu()}|Tail].
 
-	     {?__(4,"Select"),select,wings_sel_cmd:menu(St)},
-	     {?__(5,"Tools"),tools,tools_menu(St)},
-	     {?__(6,"Window"),window,window_menu(St)}|Tail],
-    put(wings_menu_template, Menus).
-
-edit_menu(St) ->
-    UndoInfo = lists:flatten([?__(1,
-                   "Delete undo history to reclaim memory"),
-                  " (",undo_info(St),")"]),
+edit_menu() ->
+    St = #st{},
+    UndoInfo = ?__(1,"Delete undo history to reclaim memory"),
     [{?__(3,"Undo/Redo"),undo_toggle,
       ?__(4,"Undo or redo the last command")},
      {?__(5,"Redo"),redo,
@@ -942,26 +939,13 @@ edit_menu(St) ->
      {command_name(?__(10,"Repeat Args"), St),repeat_args},
      {command_name(?__(11,"Repeat Drag"), St),repeat_drag},
      separator,
-     wings_pref_dlg:menu(St),
+     wings_pref_dlg:menu(),
      {?__(12,"Plug-in Preferences"),{plugin_preferences,[]}},
      wings_theme:menu(),
      separator,
      {?__(13,"Purge Undo History"),purge_undo,UndoInfo}|patches()].
 
-undo_info(St) ->
-    {Un,Rn} = wings_undo:info(St),
-    Undo = case Un of
-           0 -> ?__(1,"there are no undo states");
-           1 -> ?__(2,"there is one undo state");
-           _ -> io_lib:format(?__(3,"there are ~p undo states"), [Un])
-       end,
-    case Rn of
-    0 -> Undo;
-    1 -> [Undo|?__(4,"; one operation can be redone")];
-    _ -> [Undo|io_lib:format(?__(5,"; ~p operations can be redone"), [Rn])]
-    end.
-
-tools_menu(_) ->
+tools_menu() ->
     [{?__(8,"Align"),{align,tool_dirs(align)}},
      {?__(9,"Center"),{center,tool_dirs(center)}},
      separator,
@@ -1004,7 +988,7 @@ tools_menu(_) ->
      separator,
      {?__(40,"Tweak"),tweak_menu,?__(41,"Open the Tweak menu")}].
 
-window_menu(_) ->
+window_menu() ->
     Name = case wings_wm:this() of
            {_,geom} ->
            ?__(1,"Geometry Graph");
@@ -1539,7 +1523,6 @@ crash_handler(redraw, Log, _St) ->
     keep;
 crash_handler(#mousebutton{}, _, St) ->
     wings_wm:message(""),
-    wings_wm:menubar(wings_wm:this(), get(wings_menu_template)),
     main_loop(St);
 crash_handler(_, Log, St) ->
     get_crash_event(Log, St).
@@ -1943,14 +1926,6 @@ menu_toolbar_action({menu_toolbar, {B, OrigXY, Side}}, #st{selmode=Mode}=St)
         wings_wm:send_after_redraw(geom, {menu_toolbar,OrigXY}),
         do_command(Cmd, none, St#st{temp_sel=none})
     end;
-menu_toolbar_action({menu_toolbar,{{X,_},Cmd,St}}, _St) ->
-    Menu =  case Cmd of
-        select -> wings_sel_cmd:menu(St#st{temp_sel=none});
-        tools -> tools_menu(St#st{temp_sel=none})
-    end,
-    {_,X0,Y0} = wings_wm:local_mouse_state(),
-    {_,Y} = wings_wm:local2global(X0, Y0),
-    wings_menu:popup_menu(X, Y + ?LINE_HEIGHT div 2, Cmd, Menu);
 menu_toolbar_action({menu_toolbar,{new_mode,1,OrigXY,Side}}, #st{selmode=Side}=St) ->
     menu_toolbar_action({menu_toolbar,OrigXY}, St);
 menu_toolbar_action({menu_toolbar,{new_mode,B,OrigXY,Side}}, St) ->

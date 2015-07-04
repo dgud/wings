@@ -12,7 +12,7 @@
 %%
 
 -module(wings_file).
--export([init/0,init_autosave/0,menu/1,command/2]).
+-export([init/0,init_autosave/0,menu/0,command/2]).
 -export([import_filename/2,export_filename/2,export_filename/3]).
 -export([unsaved_filename/0,autosave_filename/1]).
 -export([file_filters/1]).
@@ -125,7 +125,7 @@ init() ->
 	    end
     end.
 
-menu(_) ->
+menu() ->
     ImpFormats = [{"Nendo (.ndo)...",ndo}],
     ExpFormats = [{"Nendo (.ndo)...",ndo}],
     Tail = [{?__(25,"Exit"),quit,?__(28,"Exit Wings 3D")}],
