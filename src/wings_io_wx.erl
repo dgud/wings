@@ -248,20 +248,18 @@ get_bin(Buff) ->
 change_event_handler(?SDL_KEYUP, ?SDL_ENABLE) ->
     case get_state() of
 	#io{key_up=true} -> false;
-	Io ->
-	    put_state(Io#io{key_up=true}),
-	    wxWindow:connect(get(gl_canvas), key_up)
+	Io -> put_state(Io#io{key_up=true})
     end;
 change_event_handler(?SDL_KEYUP, ?SDL_IGNORE) ->
     case get_state() of
 	#io{key_up=false} -> false;
-	Io ->
-	    put_state(Io#io{key_up=false}),
-	    wxWindow:disconnect(get(gl_canvas), key_up)
+	Io -> put_state(Io#io{key_up=false})
     end.
 
 read_events(Eq0) ->
-    read_events(Eq0, 0).
+    R = read_events(Eq0, 0),
+    R.
+
 
 read_events(Eq, Wait) ->
     receive
@@ -272,18 +270,32 @@ read_events(Eq, Wait) ->
 	External = {external, _} ->
 	    read_events(queue:in(External, Eq), 0)
     after Wait ->
-	    R = read_out(Eq),
-	    R
+	    read_out(Eq)
     end.
 
 read_out(Eq0) ->
     case queue:out(Eq0) of
-	{{value,#wx{event=#wxMouse{}}=Event},Eq} ->
-	    read_out(Event, Eq);
+	{{value,#wx{event=ME=#wxMouse{type=motion}}=Event},Eq} ->
+	    case put(prev_mouse, ME) of
+		ME -> read_out(Eq);
+		_ -> read_out(Event, Eq)
+	    end;
 	{{value,#wx{event=#wxPaint{}}=Event},Eq} ->
 	    read_out(Event, Eq);
 	{{value,#wx{event=#wxSize{}}=Event},Eq} ->
 	    read_out(Event, Eq);
+	{{value,#wx{event=#wxKey{type=key_up}}=Event},Eq} ->
+	    erase(prev_key),
+	    case get_state() of
+		#io{key_up=true} -> {wx_translate(Event), Eq};
+		_ -> read_out(Eq)
+	    end;
+	{{value,#wx{event=#wxKey{}=Key}=Event},Eq} ->
+	    %% Avoid Keyboard repeat
+	    case put(prev_key, Key) of
+		Key -> read_out(Eq);
+		_ ->   read_out(Event, Eq)
+	    end;
 	{{value,#wx{} = Event},Eq} ->
 	    {wx_translate(Event),Eq};
 	{{value,Event},Eq} ->

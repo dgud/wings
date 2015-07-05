@@ -108,6 +108,7 @@ setup_std_events(Canvas) ->
     wxWindow:connect(Canvas, mousewheel),
     %% wxWindow:connect(Canvas, char_hook, []),
     wxWindow:connect(Canvas, key_down, [{callback, fun key_callback/2}]),
+    wxWindow:connect(Canvas, key_up), %% Normally suppressed
     wxWindow:connect(Canvas, char).
 
 key_callback(Ev = #wx{event=Key},Obj) ->
