@@ -683,16 +683,16 @@ begin_magnet_adjustment_fun(D, _) -> D.
 
 adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0,st=St}=T0) ->
     case Falloff0 + MouseMovement * wings_pref:get_value(tweak_mag_adj_sensitivity) of
-    Falloff when Falloff > 0 ->
-        T0#tweak{mag_rad=Falloff,st=St};
-    _otherwise -> T0#tweak{st=St}
+        Falloff when Falloff > 0 ->
+            T0#tweak{mag_rad=Falloff,st=St};
+        _otherwise -> T0#tweak{st=St}
     end.
 
 in_drag_adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0}=T) ->
     case Falloff0 + MouseMovement * wings_pref:get_value(tweak_mag_adj_sensitivity) of
-    Falloff when Falloff > 0 ->
-        setup_magnet(T#tweak{mag_rad=Falloff});
-    _otherwise -> T
+        Falloff when Falloff > 0 ->
+            setup_magnet(T#tweak{mag_rad=Falloff});
+        _otherwise -> T
     end.
 
 end_magnet_adjust({OrigId,El}) ->
@@ -1390,7 +1390,7 @@ setup_magnet_fun(Dl, _) -> Dl.
 
 begin_magnet(#tweak{magnet=false}=T, Vs, Center, We) ->
     Mirror = mirror_info(We),
-    {_,Near} = near(Center, Vs, [], Mirror, T, We),
+    Near = near(Center, Vs, [], Mirror, T, We),
     Mag = #mag{orig=Center,vs=Near},
     {[Va || {Va,_,_,_,_} <- Near],Mag,[]};
 begin_magnet(#tweak{magnet=true}=T, Vs, Center, #we{vp=Vtab0}=We) ->
@@ -1398,31 +1398,29 @@ begin_magnet(#tweak{magnet=true}=T, Vs, Center, #we{vp=Vtab0}=We) ->
     Vtab1 = sofs:from_external(array:sparse_to_orddict(Vtab0), [{vertex,info}]),
     Vtab2 = sofs:drestriction(Vtab1, sofs:set(Vs, [vertex])),
     Vtab = sofs:to_external(Vtab2),
-    {Influenced,Near} = near(Center, Vs, Vtab, Mirror, T, We),
+    Near = near(Center, Vs, Vtab, Mirror, T, We),
     Mag = #mag{orig=Center,vs=Near},
-    {[Va || {Va,_,_,_,_} <- Near],Mag,Influenced}.
+    {[Va || {Va,_,_,_,_} <- Near],Mag,[{Va,Inf} || {Va,_,_,_,Inf} <- Near]}.
 
 near(Center, Vs, MagVs0, Mirror, #tweak{mag_rad=R,mag_type=Type}, We) ->
     RSqr = R*R,
     MagVs = minus_locked_vs(MagVs0, We),
-    {Influenced,M} = foldl(fun({V,Pos}, {Influenced0,A}) ->
+    M = foldl(fun({V,Pos}, A) ->
               case e3d_vec:dist_sqr(Pos, Center) of
               DSqr when DSqr =< RSqr ->
                   D = math:sqrt(DSqr),
                   Inf = magnet_type_calc(Type, D, R),
-                  Influenced1=Influenced0++[{V,Inf}],
                   Matrix = mirror_matrix(V, Mirror),
-                  {Influenced1,[{V,Pos,Matrix,D,Inf}|A]};
-              _ -> {Influenced0,A}
+                  [{V,Pos,Matrix,D,Inf}|A];
+              _ -> A
               end;
-         (_, {Influenced0,A}) -> {Influenced0,A}
-          end, {[],[]}, MagVs),
-    Near=foldl(fun(V, A) ->
-          Matrix = mirror_matrix(V, Mirror),
-          Pos = wpa:vertex_pos(V, We),
-          [{V,Pos,Matrix,0.0,1.0}|A]
-      end, M, Vs),
-    {Influenced,Near}.
+         (_, A) -> A
+          end, [], MagVs),
+    foldl(fun(V, A) ->
+              Matrix = mirror_matrix(V, Mirror),
+              Pos = wpa:vertex_pos(V, We),
+              [{V,Pos,Matrix,0.0,1.0}|A]
+          end, M, Vs).
 
 %%% Magnet Mask
 minus_locked_vs(MagVs, #we{pst=Pst}) ->
@@ -2844,11 +2842,13 @@ cmd_prefix(Cmd) ->
 %% it will add the vertices influence information to Pst field of the we#
 set_edge_influence([],_,#we{pst=Pst}) ->
     remove_pst(Pst);
-set_edge_influence(Vs,VsDyn,#we{pst=Pst,es=Etab,vp=Vtab}=We) ->
+set_edge_influence(Vs,VsDyn,#we{pst=Pst,es=Etab}=We) ->
     case wings_pref:get_value(tweak_magnet_influence) of
     true ->
+        ColFrom = col_to_vec(wings_pref:get_value(edge_color)),
+        ColTo = col_to_vec(wings_pref:get_value(tweak_magnet_color)),
         Edges = wings_edge:from_vs(Vs,We),
-        EdDyn=to_edges_raw(Edges,VsDyn,Etab,Vtab),
+        EdDyn = to_edges_raw({ColFrom,ColTo},Edges,VsDyn,Etab),
         add_pst(EdDyn,Pst);
     _ ->
         Pst
@@ -2874,23 +2874,27 @@ remove_pst(Pst) ->
 %%%
 %%% Functions of general purpose
 %%%
-to_edges_raw([],_ , _, _) -> [];
-to_edges_raw(_, [] , _, _) -> [];
-to_edges_raw(Edges, VsDyn, Etab, Vtab) ->
-    to_edges_raw_1(Edges, VsDyn, Etab, Vtab, []).
+to_edges_raw(_, [], _ , _) -> {[],<<>>};
+to_edges_raw(_, _, [] , _) -> {[],<<>>};
+to_edges_raw({ColFrom,ColTo}, Edges, VsDyn, Etab) ->
+    ColRange=e3d_vec:sub(ColTo,ColFrom),
+    to_edges_raw_1(Edges, ColFrom, ColRange, VsDyn, Etab, {[],<<>>}).
 
-to_edges_raw_1([], _, _, _, Acc) -> Acc;
-to_edges_raw_1([Edge|Edges], VsDyn, Etab, Vtab, Acc) ->
+to_edges_raw_1([], _, _, _, _, Acc) -> Acc;
+to_edges_raw_1([Edge|Edges], Col, Range, VsDyn, Etab, {VAcc,ClBin0}) ->
     #edge{vs=Va0,ve=Vb0} = array:get(Edge, Etab),
-    Cola=get_vs_influence(Va0, VsDyn),
-    Colb=get_vs_influence(Vb0, VsDyn),
-    VsPair=[{Va0,Cola, Vb0,Colb}],
-    to_edges_raw_1(Edges, VsDyn, Etab, Vtab, VsPair++Acc).
+    Infa = get_vs_influence(Va0,VsDyn),
+    Infb = get_vs_influence(Vb0,VsDyn),
+    {R1,G1,B1} = color_gradient(Col,Range,Infa),
+    {R2,G2,B2} = color_gradient(Col,Range,Infb),
+    ClBin = <<R1:?F32,G1:?F32,B1:?F32,R2:?F32,G2:?F32,B2:?F32,ClBin0/binary>>,
+    VsPair={Va0,Vb0},
+    to_edges_raw_1(Edges, Col, Range, VsDyn, Etab, {[VsPair|VAcc],ClBin}).
 
 get_vs_influence(V, VsDyn) ->
     case lists:keysearch(V, 1, VsDyn) of
-    false -> 0.0;
-    {_, {_,Value}} -> Value
+        false -> 0.0;
+        {_, {_,Value}} -> Value
     end.
 
 %%%
@@ -2898,47 +2902,47 @@ get_vs_influence(V, VsDyn) ->
 %%%
 
 %% It generate the OpenGl list of colored vertices
-update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
+update_dlist({edge_info,{EdList,ClBin}},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
     Key = ?MODULE,
-    case EdgeInfo of
+    case EdList of
     [] ->
         D#dlo{plugins=[{Key,none}|Pdl]};
     _ ->
-        ColFrom=col_to_vec(wings_pref:get_value(edge_color)),
-        ColTo=col_to_vec(wings_pref:get_value(tweak_magnet_color)),
-        ColRange=e3d_vec:sub(ColTo,ColFrom),
-        EdgeList = gl:genLists(1),
-        gl:newList(EdgeList,?GL_COMPILE),
-        gl:'begin'(?GL_LINES),
-        pump_edges(EdgeInfo,Vtab,ColFrom,ColRange),
-        gl:'end'(),
-        gl:endList(),
-        D#dlo{plugins=[{Key,{edge,EdgeList}}|Pdl]}
+	    wx:batch(fun() ->
+			     EdBin = pump_edges(EdList,Vtab),
+			     EdgeList = gl:genLists(1),
+			     gl:newList(EdgeList,?GL_COMPILE),
+			     wings_draw_setup:enableColorPointer({0,ClBin}),
+			     wings_draw_setup:enableVertexPointer({0,EdBin}),
+			     gl:drawArrays(?GL_LINES, 0, byte_size(EdBin) div 12),
+			     gl:disableClientState(?GL_VERTEX_ARRAY),
+			     gl:disableClientState(?GL_COLOR_ARRAY),
+			     gl:endList(),
+			     D#dlo{plugins=[{Key,{edge,EdgeList}}|Pdl]}
+		     end)
     end.
 
 %% pumping Lines
-pump_edges([],_,_,_) -> ok;
-pump_edges([{Id1,Inf1,Id2,Inf2}|SegInf],Vtab,Col,Range) ->
-    {R1,G1,B1}=color_gradient(Col,Range,Inf1),
-    {R2,G2,B2}=color_gradient(Col,Range,Inf2),
-    case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
-        {undefined,_} -> ok;
-        {_,undefined} -> ok;
-        {V1,V2} ->
-            gl:color3f(R1,G1,B1),
-            gl:vertex3fv(V1),
-            gl:color3f(R2,G2,B2),
-            gl:vertex3fv(V2)
-    end,
-    pump_edges(SegInf,Vtab,Col,Range).
+pump_edges(EdList, Vtab) ->
+    pump_edges_1(EdList, Vtab, <<>>).
+pump_edges_1([], _,Bin) -> Bin;
+pump_edges_1([{Id1,Id2}|SegInf], Vtab, VsBin0) ->
+    VsBin =
+        case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
+            {undefined,_} -> VsBin0;
+            {_,undefined} -> VsBin0;
+            {{X1,Y1,Z1},{X2,Y2,Z2}} ->
+                <<VsBin0/binary,X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>
+        end,
+    pump_edges_1(SegInf,Vtab,VsBin).
 
 %% It'll will provide de vertices data for 'update_dlist' function
 get_data(update_dlist, Data, Acc) ->  % for draw lists
     case gb_trees:lookup(edge_info, Data) of
-    none ->
-        {ok, Acc};
-    {_,EdgeInfo} ->
-        {ok, [{plugin, {?MODULE, {edge_info, EdgeInfo}}}|Acc]}
+        none ->
+            {ok, Acc};
+        {_,EdgeInfo} ->
+            {ok, [{plugin, {?MODULE, {edge_info, EdgeInfo}}}|Acc]}
     end.
 
 %% It'll use the list prepared by 'update_dlist' function and then draw it (only for plain draw)
