@@ -258,64 +258,65 @@ change_event_handler(?SDL_KEYUP, ?SDL_IGNORE) ->
 
 read_events(Eq0) ->
     R = read_events(Eq0, 0),
+    %% Eq0 =:= {[],[]} orelse io:format("Q ~P~n",[Eq0, 10]),
+    %% case R of
+    %% 	{{wm,{_,console,_}}, _} -> ok;
+    %% 	{#mousemotion{state=0},_} -> ok;
+    %% 	{Ev, _} -> io:format("Ev: ~p ~P~n", [erlang:system_time(), Ev, 30]);
+    %% 	_ -> ok
+    %% end,
     R.
 
-
-read_events(Eq, Wait) ->
+read_events(Eq0, Wait) ->
     receive
-	Ev = #wx{} ->
-	    read_events(queue:in(Ev, Eq), 0);
+	#wx{} = Ev ->
+	    read_events(queue:in(Ev, Eq0), 0);
 	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
-	    {Event,Eq};
+	    {Event,Eq0};
 	External = {external, _} ->
-	    read_events(queue:in(External, Eq), 0)
+	    read_events(queue:in(External, Eq0), 0)
     after Wait ->
-	    read_out(Eq)
+	    case read_one(Eq0) of
+		{Ev = #wxMouse{type=motion}, Eq} -> 
+		    get_motion(Ev, Eq); % Throw old motions
+		{empty, Eq} ->
+		    read_events(Eq, infinity);
+		{Ev, Eq} ->
+		    {wx_translate(Ev), Eq}
+	    end
     end.
 
-read_out(Eq0) ->
+read_one(Eq0) ->
     case queue:out(Eq0) of
-	{{value,#wx{event=ME=#wxMouse{type=motion}}=Event},Eq} ->
-	    case put(prev_mouse, ME) of
-		ME -> read_out(Eq);
-		_ -> read_out(Event, Eq)
+	{{value,#wx{event=#wxMouse{type=motion}=Event}},Eq} ->
+	    case put(prev_mouse, Event) of
+		Event -> read_one(Eq);
+		_ -> {Event, Eq}
 	    end;
-	{{value,#wx{event=#wxPaint{}}=Event},Eq} ->
-	    read_out(Event, Eq);
-	{{value,#wx{event=#wxSize{}}=Event},Eq} ->
-	    read_out(Event, Eq);
-	{{value,#wx{event=#wxKey{type=key_up}}=Event},Eq} ->
+	{{value,#wx{event=#wxKey{type=key_up}=Event}},Eq} ->
 	    erase(prev_key),
 	    case get_state() of
-		#io{key_up=true} -> {wx_translate(Event), Eq};
-		_ -> read_out(Eq)
+		#io{key_up=true} -> {Event, Eq};
+		_ -> read_one(Eq)
 	    end;
-	{{value,#wx{event=#wxKey{}=Key}=Event},Eq} ->
+	{{value,#wx{event=#wxKey{}=Event}},Eq} ->
 	    %% Avoid Keyboard repeat
-	    case put(prev_key, Key) of
-		Key -> read_out(Eq);
-		_ ->   read_out(Event, Eq)
+	    case put(prev_key, Event) of
+		Event -> read_one(Eq);
+		_ -> {Event, Eq}
 	    end;
-	{{value,#wx{} = Event},Eq} ->
-	    {wx_translate(Event),Eq};
 	{{value,Event},Eq} ->
 	    {Event,Eq};
-	{empty,Eq} ->
-	    read_events(Eq, infinity)
+	Empty = {empty,_} ->
+	    Empty
     end.
 
-read_out(Event=#wx{event=Rec1}, Eq0) ->
-    case queue:out(Eq0) of
-	{{value,New=#wx{event=Rec2}},Eq}
-	  when element(2,Rec1) =:= element(2,Rec2) ->
-	    read_out(New, Eq);
-	{{value,#wx{event=Rec2}},Eq}
-	  when element(2,Rec1) =:= size,
-	       element(2,Rec2) =:= paint ->
-	    %% wx sends along a paint with each size event.
-	    read_out(Event, Eq);
+get_motion(Motion, Eq0) ->
+    case read_one(Eq0) of
+	{New=#wxMouse{type=motion},Eq} ->
+	    get_motion(New, Eq);
 	_Other ->
-	    {wx_translate(Event),Eq0}
+	    {wx_translate(Motion),Eq0}
     end.
 
 wx_translate(Event) ->
@@ -323,16 +324,16 @@ wx_translate(Event) ->
     %%erlang:display(R),
     R.
 
-wx_translate_1(#wx{event=#wxPaint{}}) ->
-    #expose{active=true};
+wx_translate_1(Ev=#wxMouse{}) ->
+    sdl_mouse(Ev); % Motion
 wx_translate_1(#wx{event=Ev=#wxMouse{}}) ->
-    sdl_mouse(Ev);
-wx_translate_1(#wx{event=Ev=#wxKey{}}) ->
+    sdl_mouse(Ev); % Mouse Buttons
+wx_translate_1(Ev=#wxKey{}) ->
     R = sdl_key(Ev),
     %% erlang:display({sdlkey, R}),
     R;
-wx_translate_1(#wx{event=#wxClose{}}) ->
-    quit;
+wx_translate_1(#wx{event=#wxPaint{}}) ->
+    #expose{active=true};
 wx_translate_1(#wx{event=#wxSize{size={W,H}}}) ->
     #resize{w=W,h=H};
 wx_translate_1(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}) ->
@@ -350,8 +351,7 @@ wx_translate_1(#wx{event=#wxActivate{active=Active}}) ->
     Active == true andalso wxWindow:setFocus(get(gl_canvas)),
     #expose{active=Active};
 wx_translate_1(Ev) ->
-    io:format("~p: Bug Ignored Event~p~n",[?MODULE, Ev]),
-    redraw.
+    Ev.
 
 sdl_mouse(M=#wxMouse{type=Type,
 		     x = X, y = Y,
