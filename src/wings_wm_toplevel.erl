@@ -140,14 +140,14 @@ ctrl_anchor_1(sw, Client, Th) ->
 
 get_ctrl_event(Cs) ->
     {replace,fun(Ev) -> ctrl_event(Ev, Cs) end}.
-		     
-ctrl_event(redraw, Cs) ->
-    ctrl_message(),
+
+ctrl_event(redraw, #ctrl{state=State}=Cs) ->
+    State =:= active andalso ctrl_message(),
     ctrl_redraw(Cs);
 ctrl_event(#mousebutton{button=1,state=?SDL_PRESSED},
 	   #ctrl{state=moving,prev_focus=Focus}=Cs) ->
     wings_wm:grab_focus(Focus),
-    get_ctrl_event(Cs#ctrl{state=idle});
+    get_ctrl_event(Cs#ctrl{state=active});
 
 ctrl_event(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED}, Cs) ->
     {_,Client} = Self = wings_wm:this(),
@@ -173,7 +173,7 @@ ctrl_event(#mousebutton{button=1,state=?SDL_RELEASED}, #ctrl{prev_focus=Focus,ro
       _ -> no_change
     end,
     wings_wm:grab_focus(Focus),
-    get_ctrl_event(Cs#ctrl{state=idle});
+    get_ctrl_event(Cs#ctrl{state=active});
 ctrl_event(#mousebutton{button=2,state=?SDL_RELEASED}, Cs) ->
     case is_resizeable() of
 	false -> keep;
@@ -184,7 +184,7 @@ ctrl_event(#mousebutton{button=2,state=?SDL_RELEASED}, Cs) ->
 ctrl_event(#mousemotion{state=0},
 	   #ctrl{state=moving,prev_focus=Focus}=Cs) ->
     wings_wm:grab_focus(Focus),
-    get_ctrl_event(Cs#ctrl{state=idle});
+    get_ctrl_event(Cs#ctrl{state=active});
 ctrl_event(#mousemotion{x=X0,y=Y0}, #ctrl{state=moving,local={LocX,LocY}}) ->
     {X1,Y1} = wings_wm:local2global(X0, Y0),
     X = X1 - LocX,
@@ -227,6 +227,10 @@ ctrl_event({action,{titlebar,Action}}, Cs) ->
     ctrl_command(Action, Cs);
 ctrl_event({title,Title}, Cs) ->
     get_ctrl_event(Cs#ctrl{title=Title});
+ctrl_event(got_focus, Cs) ->
+    get_ctrl_event(Cs#ctrl{state=active});
+ctrl_event(lost_focus, Cs) ->
+    get_ctrl_event(Cs#ctrl{state=idle});
 ctrl_event(_What, _Cs) ->
     keep.
 
@@ -252,8 +256,7 @@ ctrl_message() ->
 					 ?__(3,"Show menu"))
 	 end,
     M = wings_msg:join([Rollup, M0, M1]),
-    wings_wm:message(M),
-    wings_wm:dirty().
+    wings_wm:message(M).
 
 ctrl_redraw(#ctrl{title=Title}) ->
     wings_io:ortho_setup(none),

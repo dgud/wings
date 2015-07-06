@@ -2584,17 +2584,20 @@ event(redraw, #tw{w=W,h=H}=Tw) ->
     draw_tweak_palette(Tw),
     keep;
 event(update_palette, Tw0) ->
-    #tw{menu=Menu}=Tw = update_tweak_palette(Tw0),
-    Cw = ?CHAR_WIDTH,
-    Win = wings_wm:this(),
-    N = length(Menu),
-    W = max_width(Menu, 0, Win),
-    Height = ?LINE_HEIGHT * N + 4,
-    Width = W + (Cw*4),
-    Size = {Width, Height},
-    wings_wm:resize(Win, Size),
-    wings_wm:dirty(),
-    get_event(Tw#tw{h=Height, w=Width, n=N});
+    case update_tweak_palette(Tw0) of
+	Tw0 -> keep;
+	#tw{menu=Menu}=Tw ->
+	    Cw = ?CHAR_WIDTH,
+	    Win = wings_wm:this(),
+	    N = length(Menu),
+	    W = max_width(Menu, 0, Win),
+	    Height = ?LINE_HEIGHT * N + 4,
+	    Width = W + (Cw*4),
+	    Size = {Width, Height},
+	    wings_wm:resize(Win, Size),
+	    wings_wm:dirty(),
+	    get_event(Tw#tw{h=Height, w=Width, n=N})
+    end;
 event(close, _) ->
     delete;
 event(#mousemotion{x=X,y=Y}, Tw) ->
