@@ -2877,15 +2877,20 @@ remove_pst(Pst) ->
 to_edges_raw([],_ , _, _) -> [];
 to_edges_raw(_, [] , _, _) -> [];
 to_edges_raw(Edges, VsDyn, Etab, Vtab) ->
-    to_edges_raw_1(Edges, VsDyn, Etab, Vtab, []).
+    ColFrom=col_to_vec(wings_pref:get_value(edge_color)),
+    ColTo=col_to_vec(wings_pref:get_value(tweak_magnet_color)),
+    ColRange=e3d_vec:sub(ColTo,ColFrom),
+    to_edges_raw_1(Edges, ColFrom, ColRange, VsDyn, Etab, Vtab, []).
 
-to_edges_raw_1([], _, _, _, Acc) -> Acc;
-to_edges_raw_1([Edge|Edges], VsDyn, Etab, Vtab, Acc) ->
+to_edges_raw_1([Edge|Edges], Col, Range, VsDyn, Etab, Vtab, Acc) ->
     #edge{vs=Va0,ve=Vb0} = array:get(Edge, Etab),
-    Cola=get_vs_influence(Va0, VsDyn),
-    Colb=get_vs_influence(Vb0, VsDyn),
-    VsPair=[{Va0,Cola, Vb0,Colb}],
-    to_edges_raw_1(Edges, VsDyn, Etab, Vtab, VsPair++Acc).
+    Cola0=get_vs_influence(Va0, VsDyn),
+    Colb0=get_vs_influence(Vb0, VsDyn),
+    Cola=color_gradient(Col,Range,Cola0),
+    Colb=color_gradient(Col,Range,Colb0),
+    VsPair={Va0,Cola, Vb0,Colb},
+    to_edges_raw_1(Edges, Col, Range, VsDyn, Etab, Vtab, [VsPair|Acc]);
+to_edges_raw_1([], _, _, _, _, _, Acc) -> Acc.
 
 get_vs_influence(V, VsDyn) ->
     case lists:keysearch(V, 1, VsDyn) of
@@ -2904,33 +2909,28 @@ update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
     [] ->
         D#dlo{plugins=[{Key,none}|Pdl]};
     _ ->
-        ColFrom=col_to_vec(wings_pref:get_value(edge_color)),
-        ColTo=col_to_vec(wings_pref:get_value(tweak_magnet_color)),
-        ColRange=e3d_vec:sub(ColTo,ColFrom),
         EdgeList = gl:genLists(1),
         gl:newList(EdgeList,?GL_COMPILE),
         gl:'begin'(?GL_LINES),
-        pump_edges(EdgeInfo,Vtab,ColFrom,ColRange),
+        pump_edges(EdgeInfo,Vtab),
         gl:'end'(),
         gl:endList(),
         D#dlo{plugins=[{Key,{edge,EdgeList}}|Pdl]}
     end.
 
 %% pumping Lines
-pump_edges([],_,_,_) -> ok;
-pump_edges([{Id1,Inf1,Id2,Inf2}|SegInf],Vtab,Col,Range) ->
-    {R1,G1,B1}=color_gradient(Col,Range,Inf1),
-    {R2,G2,B2}=color_gradient(Col,Range,Inf2),
+pump_edges([],_) -> ok;
+pump_edges([{Id1,Col1,Id2,Col2}|SegInf],Vtab) ->
     case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
         {undefined,_} -> ok;
         {_,undefined} -> ok;
         {V1,V2} ->
-            gl:color3f(R1,G1,B1),
+            gl:color3fv(Col1),
             gl:vertex3fv(V1),
-            gl:color3f(R2,G2,B2),
+            gl:color3fv(Col2),
             gl:vertex3fv(V2)
     end,
-    pump_edges(SegInf,Vtab,Col,Range).
+    pump_edges(SegInf,Vtab).
 
 %% It'll will provide de vertices data for 'update_dlist' function
 get_data(update_dlist, Data, Acc) ->  % for draw lists
