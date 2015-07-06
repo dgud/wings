@@ -293,17 +293,10 @@ read_one(Eq0) ->
 		Event -> read_one(Eq);
 		_ -> {Event, Eq}
 	    end;
-	{{value,#wx{event=#wxKey{type=key_up}=Event}},Eq} ->
-	    erase(prev_key),
+	{{value,#wx{event=#wxKey{type=key_up}}=Event},Eq} ->
 	    case get_state() of
 		#io{key_up=true} -> {Event, Eq};
 		_ -> read_one(Eq)
-	    end;
-	{{value,#wx{event=#wxKey{}=Event}},Eq} ->
-	    %% Avoid Keyboard repeat
-	    case put(prev_key, Event) of
-		Event -> read_one(Eq);
-		_ -> {Event, Eq}
 	    end;
 	{{value,Event},Eq} ->
 	    {Event,Eq};
@@ -328,7 +321,7 @@ wx_translate_1(Ev=#wxMouse{}) ->
     sdl_mouse(Ev); % Motion
 wx_translate_1(#wx{event=Ev=#wxMouse{}}) ->
     sdl_mouse(Ev); % Mouse Buttons
-wx_translate_1(Ev=#wxKey{}) ->
+wx_translate_1(#wx{event=Ev=#wxKey{}}) ->
     R = sdl_key(Ev),
     %% erlang:display({sdlkey, R}),
     R;
@@ -350,6 +343,8 @@ wx_translate_1(#wx{event={wxMouseCaptureLost, _}}) ->
 wx_translate_1(#wx{event=#wxActivate{active=Active}}) ->
     Active == true andalso wxWindow:setFocus(get(gl_canvas)),
     #expose{active=Active};
+wx_translate_1(#wx{event=#wxClose{}}) ->
+    {quit};
 wx_translate_1(Ev) ->
     Ev.
 
