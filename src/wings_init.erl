@@ -112,6 +112,8 @@ setup_std_events(Canvas) ->
     wxWindow:connect(Canvas, char).
 
 key_callback_win32(Ev = #wx{event=Key=#wxKey{rawFlags=Raw}},Obj) ->
+    %% See WM_SYSKEYDOWN message in msdn
+    %% https://msdn.microsoft.com/en-us/library/windows/desktop/ms646286(v=vs.85).aspx
     Repeat = (Raw band (1 bsl 30)) > 1,
     %% AltGr  = (Raw band (1 bsl 24)) > 1,
     %% Repeat orelse io:format("Ev ~p~n   ~.2B => Repeat ~p AltGr ~p~n",
