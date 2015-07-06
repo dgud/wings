@@ -54,8 +54,10 @@ init() ->
     put(gl_canvas, Canvas),
 
     case os:type() of
-	{unix, _} ->  wxWindow:connect(Canvas, paint, [skip]);
-	{win32, _} -> 
+	{unix, _} ->
+	    %% wxWindow:connect(Canvas, paint, [skip]); No need active does this
+	    ok;
+	{win32, _} ->
 	    wxWindow:connect(Canvas, paint, [{callback, fun redraw/2}]),
 	    wxWindow:connect(Frame, erase_background, [{callback, fun redraw/2}])
     end,
@@ -93,7 +95,8 @@ redraw(#wx{obj=Canvas, event=#wxPaint{}},_) ->
     %% Must do a PaintDC and destroy it
     DC = wxPaintDC:new(Canvas),
     wxPaintDC:destroy(DC),
-    wings ! #wx{event=#wxPaint{}};
+    %% wings ! #wx{event=#wxPaint{}}; No need activate handle this
+    ok;
 redraw(_, _) ->  %% For erase background events
     wings ! #wx{event=#wxPaint{}}.
 
@@ -117,7 +120,7 @@ key_callback_win32(Ev = #wx{event=Key=#wxKey{rawFlags=Raw}},Obj) ->
     Repeat = (Raw band (1 bsl 30)) > 1,
     %% AltGr  = (Raw band (1 bsl 24)) > 1,
     %% Repeat orelse io:format("Ev ~p~n   ~.2B => Repeat ~p AltGr ~p~n",
-    %% 			    [Key, Raw, Repeat, AltGr]),
+    %%  			    [Key, Raw, Repeat, AltGr]),
     case forward_key(Key) of
 	true when Repeat -> ignore;
 	%% true when AltGr -> ignore;
