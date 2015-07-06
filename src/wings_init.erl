@@ -107,13 +107,18 @@ setup_std_events(Canvas) ->
     wxWindow:connect(Canvas, right_down),
     wxWindow:connect(Canvas, mousewheel),
     %% wxWindow:connect(Canvas, char_hook, []),
-    wxWindow:connect(Canvas, key_down, [{callback, fun key_callback/2}]),
+    wxWindow:connect(Canvas, key_down, [{callback, fun key_callback_win32/2}]),
     wxWindow:connect(Canvas, key_up), %% Normally suppressed
     wxWindow:connect(Canvas, char).
 
-key_callback(Ev = #wx{event=Key},Obj) ->
-    %% io:format("Ev ~p~n",[Ev]),
+key_callback_win32(Ev = #wx{event=Key=#wxKey{rawFlags=Raw}},Obj) ->
+    Repeat = (Raw band (1 bsl 30)) > 1,
+    %% AltGr  = (Raw band (1 bsl 24)) > 1,
+    %% Repeat orelse io:format("Ev ~p~n   ~.2B => Repeat ~p AltGr ~p~n",
+    %% 			    [Key, Raw, Repeat, AltGr]),
     case forward_key(Key) of
+	true when Repeat -> ignore;
+	%% true when AltGr -> ignore;
 	true -> wings ! Ev;
 	false -> wxEvent:skip(Obj)
     end.
