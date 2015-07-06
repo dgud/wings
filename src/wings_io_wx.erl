@@ -257,7 +257,7 @@ change_event_handler(?SDL_KEYUP, ?SDL_IGNORE) ->
     end.
 
 read_events(Eq0) ->
-    R = read_events(Eq0, 0),
+    R = read_events(Eq0, undefined, 0),
     %% Eq0 =:= {[],[]} orelse io:format("Q ~P~n",[Eq0, 10]),
     %% case R of
     %% 	{{wm,{_,console,_}}, _} -> ok;
@@ -267,28 +267,33 @@ read_events(Eq0) ->
     %% end,
     R.
 
-read_events(Eq0, Wait) ->
+read_events(Eq0, Prev, Wait) ->
     receive
+	#wx{event=#wxMouse{type=motion} = Ev} ->
+	    read_events(Eq0, Ev, 0);
 	#wx{} = Ev ->
-	    read_events(queue:in(Ev, Eq0), 0);
+	    read_events(q_in(Ev, q_in(Prev, Eq0)), undefined, 0);
 	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
-	    {Event,Eq0};
-	External = {external, _} ->
-	    read_events(queue:in(External, Eq0), 0)
+	    {Event, q_in(Prev, Eq0)};
+	External ->
+	    read_events(q_in(External, q_in(Prev, Eq0)), undefined, 0)
     after Wait ->
-	    case read_one(Eq0) of
+	    case read_one(q_in(Prev, Eq0)) of
 		{Ev = #wxMouse{type=motion}, Eq} -> 
 		    get_motion(Ev, Eq); % Throw old motions
 		{empty, Eq} ->
-		    read_events(Eq, infinity);
+		    read_events(Eq, undefined, infinity);
 		{Ev, Eq} ->
 		    {wx_translate(Ev), Eq}
 	    end
     end.
 
+q_in(undefined, Eq) -> Eq;
+q_in(Ev, Eq) -> queue:in(Ev,Eq).
+
 read_one(Eq0) ->
     case queue:out(Eq0) of
-	{{value,#wx{event=#wxMouse{type=motion}=Event}},Eq} ->
+	{{value,#wxMouse{type=motion}=Event},Eq} ->
 	    case put(prev_mouse, Event) of
 		Event -> read_one(Eq);
 		_ -> {Event, Eq}
