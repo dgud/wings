@@ -657,7 +657,6 @@ dispatch_event(#resize{w=W,h=H}) ->
 	true -> ok
     end,
     put(wm_top_size, {W,H}),
-    init_opengl(),
     resize_windows(W, H),
     dirty();
 dispatch_event(quit) ->
