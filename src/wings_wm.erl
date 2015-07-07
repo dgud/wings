@@ -669,13 +669,13 @@ dispatch_event({wm,WmEvent}) ->
 dispatch_event(Ev = {external,_}) ->
     send(geom,Ev);
 dispatch_event({menubar,Ev}) ->
-    menubar_event(Ev);
+    menubar_event(geom, Ev);
 dispatch_event(#expose{active=Active}) ->
     Active andalso dirty();
 dispatch_event(Event) ->
     case find_active(Event) of
-	_ when Event#keyboard.which =:= menubar ->
-	    menubar_event(Event);
+	Active when Event#keyboard.which =:= menubar ->
+	    menubar_event(Active, Event);
 	none ->
 	    %% io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Event]),
 	    update_focus(none);
@@ -684,10 +684,15 @@ dispatch_event(Event) ->
 	    do_dispatch(Active, Event)
     end.
 
-menubar_event(Event) ->
+menubar_event(Window, Event) ->
     case get(mb_focus) of
-	undefined -> send(geom,Event);
-	Active    -> send(Active,Event)
+	undefined -> 
+	    menubar_focus(Window),
+	    menubar_event(Window, Event);
+	ignore -> 
+	    send(geom, Event);
+	Active ->
+	    send(Active,Event)
     end.
 
 menubar_focus(Window) -> 
@@ -696,10 +701,11 @@ menubar_focus(Window) ->
 	     {_, Geom={geom,_}} -> Geom;
 	     geom -> geom;
 	     Geom={geom,_} -> Geom;
+	     dialog_blanket -> dialog_blanket;
 	     _ -> ignore
 	 end,
-    %%MB =/= ignore andalso io:format("Set mb focus ~p ~p~n", [Window, MB]),
-    MB =/= ignore andalso put(mb_focus, MB).
+    %% MB == ignore andalso io:format("Set mb focus ~p ~p~n", [Window, MB]),
+    put(mb_focus, MB).
 
 update_focus(none) ->
     case erase(wm_focus) of

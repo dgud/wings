@@ -686,7 +686,7 @@ build_dialog(AskType, Title, Qs) ->
 				  undefined -> wx:null(); %% Invoked from another process
 				  TopF -> TopF
 			      end,
-		     Style  = {style, ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER},
+		     Style  = {style, ?wxSTAY_ON_TOP bor ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER},
 		     Dialog = wxDialog:new(Parent, ?wxID_ANY, Title, [Style]),
 		     Panel  = wxPanel:new(Dialog, []),
 		     wxPanel:setFont(Panel, ?GET(system_font_wx)),
