@@ -2910,29 +2910,33 @@ update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
         D#dlo{plugins=[{Key,none}|Pdl]};
     _ ->
 	    wx:batch(fun() ->
+			     {Vs,Col} = pump_edges(EdgeInfo,Vtab),
 			     EdgeList = gl:genLists(1),
 			     gl:newList(EdgeList,?GL_COMPILE),
-			     gl:'begin'(?GL_LINES),
-			     pump_edges(EdgeInfo,Vtab),
-			     gl:'end'(),
+			     wings_draw_setup:enableColorPointer({0,Col}),
+			     wings_draw_setup:enableVertexPointer({0,Vs}),
+			     gl:drawArrays(?GL_LINES, 0, byte_size(Vs) div 12),
+			     gl:disableClientState(?GL_VERTEX_ARRAY),
+			     gl:disableClientState(?GL_COLOR_ARRAY),
 			     gl:endList(),
 			     D#dlo{plugins=[{Key,{edge,EdgeList}}|Pdl]}
 		     end)
     end.
 
 %% pumping Lines
-pump_edges([],_) -> ok;
-pump_edges([{Id1,Col1,Id2,Col2}|SegInf],Vtab) ->
-    case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
-        {undefined,_} -> ok;
-        {_,undefined} -> ok;
-        {V1,V2} ->
-            gl:color3fv(Col1),
-            gl:vertex3fv(V1),
-            gl:color3fv(Col2),
-            gl:vertex3fv(V2)
-    end,
-    pump_edges(SegInf,Vtab).
+pump_edges(EdList, Vtab) ->
+    pump_edges_1(EdList, Vtab, {<<>>,<<>>}).
+pump_edges_1([], _,Bin) -> Bin;
+pump_edges_1([{Id1,{R1,G1,B1}=_Col1,Id2,{R2,G2,B2}=_Col2}|SegInf], Vtab, {VsBin0,ClBin0}=Bin0) ->
+    Bin =
+        case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
+            {undefined,_} -> Bin0;
+            {_,undefined} -> Bin0;
+            {{X1,Y1,Z1},{X2,Y2,Z2}} ->
+                {<<VsBin0/binary,X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>,
+                 <<ClBin0/binary,R1:?F32,G1:?F32,B1:?F32,R2:?F32,G2:?F32,B2:?F32>>}
+        end,
+    pump_edges_1(SegInf,Vtab,Bin).
 
 %% It'll will provide de vertices data for 'update_dlist' function
 get_data(update_dlist, Data, Acc) ->  % for draw lists
