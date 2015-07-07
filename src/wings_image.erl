@@ -36,8 +36,7 @@
 init(Opt) ->
     spawn_opt(fun() -> server(Opt) end, [link,{fullsweep_after,0}]).
 
-init_opengl() ->
-    req(init_opengl).
+init_opengl() -> ok.
 
 %%%
 %%% Interface against plug-ins.
@@ -273,11 +272,12 @@ req(Req, Notify) ->
 
 server(Opt) ->
     register(wings_image, self()),
-    case Opt of 
+    case Opt of
 	wings_not_running ->
 	    put(wings_not_running, true);
 	_ ->
-	    wings_io:set_process_option(Opt)
+	    wings_io:set_process_option(Opt),
+	    init_background_tx()
     end,
     loop(#ist{images=gb_trees:empty()}).
 
@@ -299,14 +299,6 @@ loop(S0) ->
 	    exit({bad_message_to_wings_image,Other})
     end.
 
-handle(init_opengl, #ist{images=Images}=S) ->
-    %%erase(), %% Forget all textures!
-    [erase(Tex) || Tex <- get(), is_integer(Tex)],
-    foreach(fun({Id,Image}) ->
-		    make_texture(Id, Image)
-	    end, gb_trees:to_list(Images)),
-    init_background_tx(),
-    S;
 handle({new,#e3d_image{name=Name0}=Im0,false,Hide}, #ist{next=Id,images=Images0}=S) ->
     Name = make_unique(Name0, Images0),
     Im = maybe_convert(Im0#e3d_image{name=Name}),

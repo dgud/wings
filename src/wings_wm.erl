@@ -650,6 +650,7 @@ dispatch_event(#resize{w=W,h=H}) ->
     %% If the window has become maximized, we don't want
     %% to save the window size, but will keep the previous
     %% size.
+    wings_io:reset_video_mode_for_gl(W, H),
     case wings_io:is_maximized() of
 	false ->
 	    {TW,TH} = wxWindow:getSize(get(top_frame)),
@@ -657,7 +658,6 @@ dispatch_event(#resize{w=W,h=H}) ->
 	true -> ok
     end,
     put(wm_top_size, {W,H}),
-    init_opengl(),
     resize_windows(W, H),
     dirty();
 dispatch_event(quit) ->
