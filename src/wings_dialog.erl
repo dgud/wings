@@ -400,10 +400,8 @@ preview_fun(Cmd, St) ->
     end.
 
 queries(Qs0) ->
-    {Labels,Vals} = ask_unzip(Qs0),
-    [{hframe,
-      [{vframe,Labels},
-       {vframe,Vals}]}].
+    Rows = to_label_column(Qs0),
+    [{label_column, Rows}].
 
 enter_dialog(false, _, _, Fields, Fun) -> % No dialog return def values
     Values = get_output(default, Fields),
@@ -664,30 +662,22 @@ return_result(Fun, Values, Owner) ->
     end,
     keep.
 
-ask_unzip(Qs) ->
-    ask_unzip(Qs, [], []).
-ask_unzip([{Label,{menu,_,_}=Menu}|T], AccA, AccB) ->
-    ask_unzip(T, [{label,Label}|AccA], [Menu|AccB]);
-ask_unzip([{Label,{menu,_,_,_}=Menu}|T], AccA, AccB) ->
-    ask_unzip(T, [{label,Label}|AccA], [Menu|AccB]);
-ask_unzip([{Label,Def}|T], AccA, AccB) ->
-    ask_unzip(T, [{label,Label}|AccA], [{text,Def}|AccB]);
-ask_unzip([{Label,Def,Flags}|T], AccA, AccB) ->
-    ask_unzip(T, [{label,Label}|AccA], [{text,Def,Flags}|AccB]);
-ask_unzip([], Labels, Vals) ->
-    {lists:reverse(Labels),lists:reverse(Vals)}.
+
+to_label_column(Qs) ->
+    lists:map(fun label_col/1, Qs).
+label_col({_Label,{menu,_,_}}=Entry) -> Entry;
+label_col({_Label,{menu,_,_,_}}=Entry) -> Entry;
+label_col({Label,Def}) -> {Label, {text,Def}};
+label_col({Label,Def,Flags}) -> {Label, {text,Def, Flags}}.
 
 build_dialog(false, _Title, Qs) ->
     DialogData = build(false, Qs, undefined, undefined),
     {undefined, DialogData};
 build_dialog(AskType, Title, Qs) ->
     wx:batch(fun() ->
-		     Parent = case get(top_frame) of
-				  undefined -> wx:null(); %% Invoked from another process
-				  TopF -> TopF
-			      end,
-		     Style  = {style, ?wxSTAY_ON_TOP bor ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER},
-		     Dialog = wxDialog:new(Parent, ?wxID_ANY, Title, [Style]),
+		     Parent = ?GET(top_frame),
+		     Style  = ?wxFRAME_FLOAT_ON_PARENT bor ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER,
+		     Dialog = wxDialog:new(Parent, ?wxID_ANY, Title, [{style, Style}]),
 		     Panel  = wxPanel:new(Dialog, []),
 		     wxPanel:setFont(Panel, ?GET(system_font_wx)),
 		     Top    = wxBoxSizer:new(?wxVERTICAL),
