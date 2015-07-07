@@ -262,7 +262,10 @@ read_events(Eq0) ->
     %% case R of
     %% 	{{wm,{_,console,_}}, _} -> ok;
     %% 	{#mousemotion{state=0},_} -> ok;
-    %% 	{Ev, _} -> io:format("Ev: ~p ~P~n", [erlang:system_time(), Ev, 30]);
+    %% 	{Ev, Eq} ->
+    %% 	    io:format("Ev: ~p ~P~n", [erlang:system_time(), Ev, 30]),
+    %% 	    io:format("Eq ~P~n", [queue:to_list(Eq), 20]),
+    %% 	    ok;
     %% 	_ -> ok
     %% end,
     R.
@@ -279,17 +282,17 @@ read_events(Eq0, Prev, Wait) ->
 	    read_events(q_in(External, q_in(Prev, Eq0)), undefined, 0)
     after Wait ->
 	    case read_one(q_in(Prev, Eq0)) of
-		{Ev = #wxMouse{type=motion}, Eq} -> 
+		{#wxMouse{type=motion} = Ev, Eq} ->
 		    get_motion(Ev, Eq); % Throw old motions
 		{empty, Eq} ->
 		    read_events(Eq, undefined, infinity);
 		{Ev, Eq} ->
-		    {wx_translate(Ev), Eq}
+		    filter_resize(Ev, Eq)
 	    end
     end.
 
 q_in(undefined, Eq) -> Eq;
-q_in(Ev, Eq) -> queue:in(Ev,Eq).
+q_in(Ev, Eq) -> queue:in(Ev, Eq).
 
 read_one(Eq0) ->
     case queue:out(Eq0) of
@@ -305,7 +308,7 @@ read_one(Eq0) ->
 	    end;
 	{{value,Event},Eq} ->
 	    {Event,Eq};
-	Empty = {empty,_} ->
+	{empty,_} = Empty ->
 	    Empty
     end.
 
@@ -316,6 +319,45 @@ get_motion(Motion, Eq0) ->
 	_Other ->
 	    {wx_translate(Motion),Eq0}
     end.
+
+% Resize window causes all strange of events and order
+% on different platforms
+filter_resize(#wx{event=#wxSize{}}=Ev0, Eq0) ->
+    case queue:out(Eq0) of
+	{{value, #wx{event=#wxPaint{}}}, Eq} ->
+	    filter_resize(Ev0, Eq);
+	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
+	    filter_resize(Ev, Eq);
+	{{value, #wx{event=#wxActivate{}}}, Eq} ->
+	    filter_resize(Ev0, Eq);
+	_ ->
+	    {wx_translate(Ev0), Eq0}
+    end;
+filter_resize(#wx{event=#wxPaint{}}=Ev0, Eq0) ->
+    case queue:out(Eq0) of
+	{{value, #wx{event=#wxPaint{}}},Eq} ->
+	    filter_resize(Ev0, Eq);
+	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
+	    filter_resize(Ev, Eq);
+	{{value, #wx{event=#wxActivate{}}}, Eq} ->
+	    filter_resize(Ev0, Eq);
+	_ ->
+	    {wx_translate(Ev0), Eq0}
+
+    end;
+filter_resize(#wx{event=#wxActivate{}}=Ev0, Eq0) ->
+    case queue:out(Eq0) of
+	{{value, #wx{event=#wxPaint{}}}, Eq} ->
+	    filter_resize(Ev0, Eq);
+	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
+	    filter_resize(Ev, Eq);
+	{{value, #wx{event=#wxActivate{}}=Ev}, Eq} ->
+	    filter_resize(Ev, Eq);
+	_ ->
+	    {wx_translate(Ev0), Eq0}
+    end;
+filter_resize(Event, Eq) ->
+    {wx_translate(Event), Eq}.
 
 wx_translate(Event) ->
     R = wx_translate_1(Event),
