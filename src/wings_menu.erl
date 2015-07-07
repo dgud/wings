@@ -184,47 +184,73 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     Y = if ((Y1+H) > MaxH) -> max(0, (MaxH-H-5));
             true -> Y1
         end,
+    menu_connect([Panel], [left_up, middle_up, right_up]),
     wxPopupTransientWindow:position(Dialog, {X,Y}, {0,0}),
     wxPopupTransientWindow:connect(Dialog, key_down, [skip]),
     wxPopupTransientWindow:popup(Dialog),
     %% Color active menuitem
-    Children = wxSizer:getChildren(Sizer),
     {_, MouseY} = wxWindow:screenToClient(Panel, ScreenPos),
-    SetActive = fun(SItem) ->
-			{_, SY, _, SH} = wxSizerItem:getRect(SItem),
-			case MouseY > (SY) andalso MouseY < (SY+SH) of 
-			    false -> false;
-			    true ->
-				Active = wxSizerItem:getWindow(SItem),
-				case wx:is_null(Active) orelse wxWindow:getId(Active) of
-				    true -> false;
-				    Id when Id < 0 -> false;
-				    Id ->
-					self() ! #wx{id=Id, 
-						     obj=wx:typeCast(Active,wxPanel),
-						     event=#wxMouse{type=enter_window}},
-					true
-				end
-			end
-		end,
-    lists:any(SetActive, Children),
+    case find_active_panel(Panel, MouseY) of
+	false -> ignore;
+	{ActId, ActPanel} ->
+	    self() ! #wx{id=ActId, obj= ActPanel, event=#wxMouse{type=enter_window}}
+    end,
     {Dialog, Panel, Entries}.
+
+%% If the mouse is not moved after popping up the menu, the meny entry
+%% is not active, find_active_panel finds the active row.
+find_active_panel(Panel, MouseY) ->
+    MainSizer = wxWindow:getSizer(Panel),
+    [_,SizerItem,_] = wxSizer:getChildren(MainSizer),
+    Sizer = wxSizerItem:getSizer(SizerItem),
+    Children = wxSizer:getChildren(Sizer),
+    Active = fun(SItem) ->
+		     {_, SY, _, SH} = wxSizerItem:getRect(SItem),
+		     case MouseY > (SY) andalso MouseY < (SY+SH) of 
+			 false -> false;
+			 true ->
+			     Active = wxSizerItem:getWindow(SItem),
+			     case wx:is_null(Active) orelse wxWindow:getId(Active) of
+				    true -> false;
+				 Id when Id < 0 -> false;
+				 Id -> throw({Id, wx:typeCast(Active,wxPanel)})
+			     end
+		     end
+	     end,
+    try 
+	lists:foreach(Active, Children),
+	false
+    catch Found -> 
+	    Found
+    end.
 
 popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
     receive
 	#wx{id=Id, obj=Obj, event=#wxMouse{type=enter_window}} ->
-	    Line = wx:batch(fun() ->
-				    setup_colors(Previous, colorB(menu_color), colorB(menu_text)),
-				    setup_colors(Obj, colorB(menu_hilite),colorB(menu_hilited_text))
-			    end),
+	    Set = fun() ->
+			  setup_colors(Previous, colorB(menu_color), colorB(menu_text)),
+			  setup_colors(Obj, colorB(menu_hilite),colorB(menu_hilited_text))
+		  end,
+	    Line = wx:batch(Set),
 	    #menu_pop{msg=Msg} = lists:keyfind(Id, 2, Entries),
 	    wings_wm:psend(Owner, {message, Msg}),
 	    popup_events(Dialog, Panel, Entries, Magnet, Line, Ns, Owner);
-	#wx{id=Id, event=Ev=#wxMouse{type=What}}
-	  when What =:= left_up; What =:= right_up; What =:= middle_up ->
-	    wxWindow:destroy(Dialog),
-	    MagnetClick = Magnet orelse magnet_pressed(wings_msg:free_rmb_modifier(), Ev),
-	    popup_result(lists:keyfind(Id, 2, Entries), {What, MagnetClick}, Ns, Owner);
+	#wx{id=Id0, event=Ev=#wxMouse{type=What, y=Y}} ->
+	    Id = case Id0 > 0 orelse find_active_panel(Panel, Y) of
+		     true -> Id0;
+		     false -> false;
+		     {AId, _} -> AId
+		 end,
+	    case Id of
+		false ->
+		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner);
+		_Integer ->
+		    wxWindow:destroy(Dialog),
+		    MagnetClick = Magnet orelse 
+			magnet_pressed(wings_msg:free_rmb_modifier(), Ev),
+		    popup_result(lists:keyfind(Id, 2, Entries), 
+				 {What, MagnetClick}, Ns, Owner)
+	    end;
 	#wx{event=#wxShow{}} ->
 	    case wxTopLevelWindow:isShown(Dialog) of
 		false ->
