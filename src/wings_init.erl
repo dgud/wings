@@ -50,6 +50,8 @@ init() ->
     wxSizer:setSizeHints(Sizer, Canvas),
     wxFrame:setSizer(Frame, Sizer),
 
+    ?SET(top_frame, Frame),
+    ?SET(gl_canvas, Canvas),
     put(top_frame, Frame),
     put(gl_canvas, Canvas),
 
