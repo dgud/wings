@@ -2432,7 +2432,7 @@ help_msg_palette() ->
      bl(),$\s,?__(3,"Use the Tweak Palette to switch between Tweak Tools, Magnet Types, or Axis Constraints.")].
 
 cr() -> "\n\n".
-bl() -> bullet.
+bl() -> crossmark.
 
 %%%
 %%% Help Window Events
