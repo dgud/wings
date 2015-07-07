@@ -413,7 +413,6 @@ handle_event_3(#mousemotion{}, _St) -> keep;
 handle_event_3(init_opengl, St) ->
     wings_wm:current_state(St),
     init_opengl(St),
-    wings_draw:refresh_dlists(St),
     keep;
 handle_event_3(#expose{}, St) ->
     io:format("Should not happen ~n",[]),
