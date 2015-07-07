@@ -2909,13 +2909,15 @@ update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
     [] ->
         D#dlo{plugins=[{Key,none}|Pdl]};
     _ ->
-        EdgeList = gl:genLists(1),
-        gl:newList(EdgeList,?GL_COMPILE),
-        gl:'begin'(?GL_LINES),
-        pump_edges(EdgeInfo,Vtab),
-        gl:'end'(),
-        gl:endList(),
-        D#dlo{plugins=[{Key,{edge,EdgeList}}|Pdl]}
+	    wx:batch(fun() ->
+			     EdgeList = gl:genLists(1),
+			     gl:newList(EdgeList,?GL_COMPILE),
+			     gl:'begin'(?GL_LINES),
+			     pump_edges(EdgeInfo,Vtab),
+			     gl:'end'(),
+			     gl:endList(),
+			     D#dlo{plugins=[{Key,{edge,EdgeList}}|Pdl]}
+		     end)
     end.
 
 %% pumping Lines
