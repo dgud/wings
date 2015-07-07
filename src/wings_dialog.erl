@@ -1695,13 +1695,19 @@ text_wheel_move(Def, Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMou
 	       none -> 1;
 	       Other -> Other
 	   end,
-    case is_integer(Def) of
-	true ->
-	    CurValue = list_to_integer(Value),
-	    Increment = round(Incr),
-	    integer_to_list(CurValue +round((Count/Delta)*Increment));
-	_ ->
-	    CurValue = list_to_float(Value),
-	    Increment = Incr,
-	    float_to_list(CurValue +((Count/Delta)*Increment))
+    try 
+	case is_integer(Def) of
+	    true ->
+		CurValue = list_to_integer(Value),
+		Increment = round(Incr),
+		integer_to_list(CurValue +round((Count/Delta)*Increment));
+	    _ ->
+		CurValue = try list_to_float(Value)
+			   catch _:_ -> float(list_to_integer(Value))
+			   end,
+		Increment = Incr,
+		float_to_list(CurValue +((Count/Delta)*Increment))
+	end
+    catch _:_ ->
+	    Value
     end.
