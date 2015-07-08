@@ -2844,11 +2844,13 @@ cmd_prefix(Cmd) ->
 %% it will add the vertices influence information to Pst field of the we#
 set_edge_influence([],_,#we{pst=Pst}) ->
     remove_pst(Pst);
-set_edge_influence(Vs,VsDyn,#we{pst=Pst,es=Etab,vp=Vtab}=We) ->
+set_edge_influence(Vs,VsDyn,#we{pst=Pst,es=Etab}=We) ->
     case wings_pref:get_value(tweak_magnet_influence) of
     true ->
+        ColFrom = col_to_vec(wings_pref:get_value(edge_color)),
+        ColTo = col_to_vec(wings_pref:get_value(tweak_magnet_color)),
         Edges = wings_edge:from_vs(Vs,We),
-        EdDyn=to_edges_raw(Edges,VsDyn,Etab,Vtab),
+        EdDyn = to_edges_raw({ColFrom,ColTo},Edges,VsDyn,Etab),
         add_pst(EdDyn,Pst);
     _ ->
         Pst
@@ -2874,23 +2876,22 @@ remove_pst(Pst) ->
 %%%
 %%% Functions of general purpose
 %%%
-to_edges_raw([],_ , _, _) -> [];
-to_edges_raw(_, [] , _, _) -> [];
-to_edges_raw(Edges, VsDyn, Etab, Vtab) ->
-    ColFrom=col_to_vec(wings_pref:get_value(edge_color)),
-    ColTo=col_to_vec(wings_pref:get_value(tweak_magnet_color)),
+to_edges_raw(_, [], _ , _) -> {[],<<>>};
+to_edges_raw(_, _, [] , _) -> {[],<<>>};
+to_edges_raw({ColFrom,ColTo}, Edges, VsDyn, Etab) ->
     ColRange=e3d_vec:sub(ColTo,ColFrom),
-    to_edges_raw_1(Edges, ColFrom, ColRange, VsDyn, Etab, Vtab, []).
+    to_edges_raw_1(Edges, ColFrom, ColRange, VsDyn, Etab, {[],<<>>}).
 
-to_edges_raw_1([Edge|Edges], Col, Range, VsDyn, Etab, Vtab, Acc) ->
+to_edges_raw_1([], _, _, _, _, Acc) -> Acc;
+to_edges_raw_1([Edge|Edges], Col, Range, VsDyn, Etab, {VAcc,ClBin0}) ->
     #edge{vs=Va0,ve=Vb0} = array:get(Edge, Etab),
-    Cola0=get_vs_influence(Va0, VsDyn),
-    Colb0=get_vs_influence(Vb0, VsDyn),
-    Cola=color_gradient(Col,Range,Cola0),
-    Colb=color_gradient(Col,Range,Colb0),
-    VsPair={Va0,Cola, Vb0,Colb},
-    to_edges_raw_1(Edges, Col, Range, VsDyn, Etab, Vtab, [VsPair|Acc]);
-to_edges_raw_1([], _, _, _, _, _, Acc) -> Acc.
+    Cola0 = get_vs_influence(Va0, VsDyn),
+    Colb0 = get_vs_influence(Vb0, VsDyn),
+    {R1,G1,B1} = color_gradient(Col,Range,Cola0),
+    {R2,G2,B2} = color_gradient(Col,Range,Colb0),
+    ClBin = <<R1:?F32,G1:?F32,B1:?F32,R2:?F32,G2:?F32,B2:?F32,ClBin0/binary>>,
+    VsPair={Va0,Vb0},
+    to_edges_raw_1(Edges, Col, Range, VsDyn, Etab, {[VsPair|VAcc],ClBin}).
 
 get_vs_influence(V, VsDyn) ->
     case lists:keysearch(V, 1, VsDyn) of
@@ -2903,19 +2904,19 @@ get_vs_influence(V, VsDyn) ->
 %%%
 
 %% It generate the OpenGl list of colored vertices
-update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
+update_dlist({edge_info,{EdList,ClBin}},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
     Key = ?MODULE,
-    case EdgeInfo of
+    case EdList of
     [] ->
         D#dlo{plugins=[{Key,none}|Pdl]};
     _ ->
 	    wx:batch(fun() ->
-			     {Vs,Col} = pump_edges(EdgeInfo,Vtab),
+			     EdBin = pump_edges(EdList,Vtab),
 			     EdgeList = gl:genLists(1),
 			     gl:newList(EdgeList,?GL_COMPILE),
-			     wings_draw_setup:enableColorPointer({0,Col}),
-			     wings_draw_setup:enableVertexPointer({0,Vs}),
-			     gl:drawArrays(?GL_LINES, 0, byte_size(Vs) div 12),
+			     wings_draw_setup:enableColorPointer({0,ClBin}),
+			     wings_draw_setup:enableVertexPointer({0,EdBin}),
+			     gl:drawArrays(?GL_LINES, 0, byte_size(EdBin) div 12),
 			     gl:disableClientState(?GL_VERTEX_ARRAY),
 			     gl:disableClientState(?GL_COLOR_ARRAY),
 			     gl:endList(),
@@ -2925,18 +2926,17 @@ update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
 
 %% pumping Lines
 pump_edges(EdList, Vtab) ->
-    pump_edges_1(EdList, Vtab, {<<>>,<<>>}).
+    pump_edges_1(EdList, Vtab, <<>>).
 pump_edges_1([], _,Bin) -> Bin;
-pump_edges_1([{Id1,{R1,G1,B1}=_Col1,Id2,{R2,G2,B2}=_Col2}|SegInf], Vtab, {VsBin0,ClBin0}=Bin0) ->
-    Bin =
+pump_edges_1([{Id1,Id2}|SegInf], Vtab, VsBin0) ->
+    VsBin =
         case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
-            {undefined,_} -> Bin0;
-            {_,undefined} -> Bin0;
+            {undefined,_} -> VsBin0;
+            {_,undefined} -> VsBin0;
             {{X1,Y1,Z1},{X2,Y2,Z2}} ->
-                {<<VsBin0/binary,X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>,
-                 <<ClBin0/binary,R1:?F32,G1:?F32,B1:?F32,R2:?F32,G2:?F32,B2:?F32>>}
+                <<VsBin0/binary,X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>
         end,
-    pump_edges_1(SegInf,Vtab,Bin).
+    pump_edges_1(SegInf,Vtab,VsBin).
 
 %% It'll will provide de vertices data for 'update_dlist' function
 get_data(update_dlist, Data, Acc) ->  % for draw lists
