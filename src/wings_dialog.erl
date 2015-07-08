@@ -676,7 +676,11 @@ build_dialog(false, _Title, Qs) ->
 build_dialog(AskType, Title, Qs) ->
     wx:batch(fun() ->
 		     Parent = ?GET(top_frame),
-		     Style  = ?wxFRAME_FLOAT_ON_PARENT bor ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER,
+		     Style0 = case os:type() of
+				  {unix, darwin} -> ?wxSTAY_ON_TOP;
+				  _ -> ?wxFRAME_FLOAT_ON_PARENT
+			      end,
+		     Style  =  Style0 bor ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER,
 		     Dialog = wxDialog:new(Parent, ?wxID_ANY, Title, [{style, Style}]),
 		     Panel  = wxPanel:new(Dialog, []),
 		     wxPanel:setFont(Panel, ?GET(system_font_wx)),
