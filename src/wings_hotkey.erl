@@ -484,11 +484,11 @@ default_keybindings() ->
      {{?SDLK_TAB,[shift]},  {view,quick_preview}},
 
      {{?SDLK_INSERT,[ctrl]}, {hotkey, bind}},
-     {{$(, [ctrl, shift]},   {hotkey, bind}},  %% Swedish keyboards
-     {{$(, [ctrl]},          {hotkey, bind}},
+     {{$8, [ctrl, alt]},     {hotkey, bind}},   %% Swedish keyboards
+     {{$8, [ctrl]},          {hotkey, bind}},
      {{?SDLK_DELETE,[ctrl]}, {hotkey, unbind}},
-     {{$), [ctrl, shift]},   {hotkey, unbind}},  %% Swedish keyboards
-     {{$), [ctrl]},          {hotkey, unbind}},
+     {{$9, [ctrl, alt]},     {hotkey, unbind}}, %% Swedish keyboards
+     {{$9, [ctrl]},          {hotkey, unbind}},
 
      {$\s,              {select,deselect}},
      {$a,               {view,highlight_aim}},

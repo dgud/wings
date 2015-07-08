@@ -251,12 +251,12 @@ hotkeys(Head) ->
 def_hotkeys(Head) ->
     Help = [?__(1,"Any command that appears in a menu, can be assigned a keyboard short-cut (hotkey)."),
 	    ?__(4,"To assign a hotkey to a command:"),
-	    ?__(6,"1. Press [Ctrl-Insert] or [Ctrl-(] key."),
+	    ?__(6,"1. Press [Ctrl-Insert] or [Ctrl-Alt-8] key."),
 	    ?__(5,"2. Select (with the correct mouse button) the menu item of the command"),
 	    ?__(8,"3. The information line asks you to press the key that the command "
 		"should be assigned to."),
 
-	    ?__(9,"To delete a hotkey, similarly press the [Ctrl-Delete] or [Ctrl-)] key and "
+	    ?__(9,"To delete a hotkey, similarly press the [Ctrl-Delete] or [Ctrl-Alt-9] key and "
 		"select the command in a menu. A dialog box listing all keys "
 		"bound to the command will appear. "
 		"Check all hotkeys you want to delete.")],
