@@ -150,7 +150,8 @@ wx_popup_menu(X,Y,Names,Menus0,Magnet,Owner) ->
 		       try
 			   wx:set_env(Env),
 			   {Dialog, Panel, Entries} = wx:batch(CreateMenu),
-			   popup_events(Dialog, Panel, Entries, Magnet, undefined, Names, Owner)
+			   popup_events(Dialog, Panel, Entries, Magnet, undefined, Names, Owner),
+			   wxPopupTransientWindow:destroy(Dialog)
 		       catch _:Reason ->
 			       io:format("CRASH ~p ~p~n",[Reason, erlang:get_stacktrace()])
 		       end,
@@ -186,8 +187,9 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
         end,
     menu_connect([Panel], [left_up, middle_up, right_up]),
     wxPopupTransientWindow:position(Dialog, {X,Y}, {0,0}),
-    wxPopupTransientWindow:connect(Dialog, key_down, [skip]),
+    wxPopupTransientWindow:connect(Panel, key_down, [skip]),
     wxPopupTransientWindow:popup(Dialog),
+    wxPopupTransientWindow:setFocus(Panel),
     %% Color active menuitem
     {_, MouseY} = wxWindow:screenToClient(Panel, ScreenPos),
     case find_active_panel(Panel, MouseY) of
@@ -245,7 +247,7 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 		false ->
 		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner);
 		_Integer ->
-		    wxWindow:destroy(Dialog),
+		    wxPopupTransientWindow:dismiss(Dialog),
 		    MagnetClick = Magnet orelse 
 			magnet_pressed(wings_msg:free_rmb_modifier(), Ev),
 		    popup_result(lists:keyfind(Id, 2, Entries), 
@@ -254,14 +256,13 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 	#wx{event=#wxShow{}} ->
 	    case wxTopLevelWindow:isShown(Dialog) of
 		false ->
-		    wxWindow:destroy(Dialog),
 		    wings_wm:psend(Owner, cancel);
 		true ->
 		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner)
 	    end;
 	#wx{event=#wxKey{keyCode=Key}} ->
 	    if Key =:= ?WXK_ESCAPE ->
-		    wxWindow:destroy(Dialog),
+		    wxPopupTransientWindow:dismiss(Dialog),
 		    wings_wm:psend(Owner, cancel);
 	       true ->
 		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner)
