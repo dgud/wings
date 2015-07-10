@@ -683,16 +683,16 @@ begin_magnet_adjustment_fun(D, _) -> D.
 
 adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0,st=St}=T0) ->
     case Falloff0 + MouseMovement * wings_pref:get_value(tweak_mag_adj_sensitivity) of
-    Falloff when Falloff > 0 ->
-        T0#tweak{mag_rad=Falloff,st=St};
-    _otherwise -> T0#tweak{st=St}
+        Falloff when Falloff > 0 ->
+            T0#tweak{mag_rad=Falloff,st=St};
+        _otherwise -> T0#tweak{st=St}
     end.
 
 in_drag_adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0}=T) ->
     case Falloff0 + MouseMovement * wings_pref:get_value(tweak_mag_adj_sensitivity) of
-    Falloff when Falloff > 0 ->
-        setup_magnet(T#tweak{mag_rad=Falloff});
-    _otherwise -> T
+        Falloff when Falloff > 0 ->
+            setup_magnet(T#tweak{mag_rad=Falloff});
+        _otherwise -> T
     end.
 
 end_magnet_adjust({OrigId,El}) ->
@@ -1390,7 +1390,7 @@ setup_magnet_fun(Dl, _) -> Dl.
 
 begin_magnet(#tweak{magnet=false}=T, Vs, Center, We) ->
     Mirror = mirror_info(We),
-    {_,Near} = near(Center, Vs, [], Mirror, T, We),
+    Near = near(Center, Vs, [], Mirror, T, We),
     Mag = #mag{orig=Center,vs=Near},
     {[Va || {Va,_,_,_,_} <- Near],Mag,[]};
 begin_magnet(#tweak{magnet=true}=T, Vs, Center, #we{vp=Vtab0}=We) ->
@@ -1398,31 +1398,29 @@ begin_magnet(#tweak{magnet=true}=T, Vs, Center, #we{vp=Vtab0}=We) ->
     Vtab1 = sofs:from_external(array:sparse_to_orddict(Vtab0), [{vertex,info}]),
     Vtab2 = sofs:drestriction(Vtab1, sofs:set(Vs, [vertex])),
     Vtab = sofs:to_external(Vtab2),
-    {Influenced,Near} = near(Center, Vs, Vtab, Mirror, T, We),
+    Near = near(Center, Vs, Vtab, Mirror, T, We),
     Mag = #mag{orig=Center,vs=Near},
-    {[Va || {Va,_,_,_,_} <- Near],Mag,Influenced}.
+    {[Va || {Va,_,_,_,_} <- Near],Mag,[{Va,Inf} || {Va,_,_,_,Inf} <- Near]}.
 
 near(Center, Vs, MagVs0, Mirror, #tweak{mag_rad=R,mag_type=Type}, We) ->
     RSqr = R*R,
     MagVs = minus_locked_vs(MagVs0, We),
-    {Influenced,M} = foldl(fun({V,Pos}, {Influenced0,A}) ->
+    M = foldl(fun({V,Pos}, A) ->
               case e3d_vec:dist_sqr(Pos, Center) of
               DSqr when DSqr =< RSqr ->
                   D = math:sqrt(DSqr),
                   Inf = magnet_type_calc(Type, D, R),
-                  Influenced1=Influenced0++[{V,Inf}],
                   Matrix = mirror_matrix(V, Mirror),
-                  {Influenced1,[{V,Pos,Matrix,D,Inf}|A]};
-              _ -> {Influenced0,A}
+                  [{V,Pos,Matrix,D,Inf}|A];
+              _ -> A
               end;
-         (_, {Influenced0,A}) -> {Influenced0,A}
-          end, {[],[]}, MagVs),
-    Near=foldl(fun(V, A) ->
-          Matrix = mirror_matrix(V, Mirror),
-          Pos = wpa:vertex_pos(V, We),
-          [{V,Pos,Matrix,0.0,1.0}|A]
-      end, M, Vs),
-    {Influenced,Near}.
+         (_, A) -> A
+          end, [], MagVs),
+    foldl(fun(V, A) ->
+              Matrix = mirror_matrix(V, Mirror),
+              Pos = wpa:vertex_pos(V, We),
+              [{V,Pos,Matrix,0.0,1.0}|A]
+          end, M, Vs).
 
 %%% Magnet Mask
 minus_locked_vs(MagVs, #we{pst=Pst}) ->
@@ -2885,18 +2883,18 @@ to_edges_raw({ColFrom,ColTo}, Edges, VsDyn, Etab) ->
 to_edges_raw_1([], _, _, _, _, Acc) -> Acc;
 to_edges_raw_1([Edge|Edges], Col, Range, VsDyn, Etab, {VAcc,ClBin0}) ->
     #edge{vs=Va0,ve=Vb0} = array:get(Edge, Etab),
-    Cola0 = get_vs_influence(Va0, VsDyn),
-    Colb0 = get_vs_influence(Vb0, VsDyn),
-    {R1,G1,B1} = color_gradient(Col,Range,Cola0),
-    {R2,G2,B2} = color_gradient(Col,Range,Colb0),
+    Infa = get_vs_influence(Va0,VsDyn),
+    Infb = get_vs_influence(Vb0,VsDyn),
+    {R1,G1,B1} = color_gradient(Col,Range,Infa),
+    {R2,G2,B2} = color_gradient(Col,Range,Infb),
     ClBin = <<R1:?F32,G1:?F32,B1:?F32,R2:?F32,G2:?F32,B2:?F32,ClBin0/binary>>,
     VsPair={Va0,Vb0},
     to_edges_raw_1(Edges, Col, Range, VsDyn, Etab, {[VsPair|VAcc],ClBin}).
 
 get_vs_influence(V, VsDyn) ->
     case lists:keysearch(V, 1, VsDyn) of
-    false -> 0.0;
-    {_, {_,Value}} -> Value
+        false -> 0.0;
+        {_, {_,Value}} -> Value
     end.
 
 %%%
@@ -2941,10 +2939,10 @@ pump_edges_1([{Id1,Id2}|SegInf], Vtab, VsBin0) ->
 %% It'll will provide de vertices data for 'update_dlist' function
 get_data(update_dlist, Data, Acc) ->  % for draw lists
     case gb_trees:lookup(edge_info, Data) of
-    none ->
-        {ok, Acc};
-    {_,EdgeInfo} ->
-        {ok, [{plugin, {?MODULE, {edge_info, EdgeInfo}}}|Acc]}
+        none ->
+            {ok, Acc};
+        {_,EdgeInfo} ->
+            {ok, [{plugin, {?MODULE, {edge_info, EdgeInfo}}}|Acc]}
     end.
 
 %% It'll use the list prepared by 'update_dlist' function and then draw it (only for plain draw)
