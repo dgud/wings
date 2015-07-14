@@ -247,22 +247,23 @@ insert_hilite_dl_1(#dlo{src_we=We}=D, _, _, _) when ?IS_LIGHT(We) -> D;
 insert_hilite_dl_1(#dlo{open=Open,src_we=#we{id=Id}=We}=D,
 		   {Mode,_,{Id,Item}=Hit}, Extra, St) ->
     DrawExtra = Extra(We),
-    List = gl:genLists(1),
-    gl:newList(List, ?GL_COMPILE),
-    hilite_color(Hit, St),
-    Pref = wings_pref:get_value(show_backfaces),
-    case wings_wm:lookup_prop(select_backface) of
-	Value when Value=:={value,true}; Pref andalso Open ->
-	    gl:disable(?GL_CULL_FACE),
-	    hilit_draw_sel(Mode, Item, D),
-	    wings_dl:call(DrawExtra),
-	    gl:enable(?GL_CULL_FACE);
-	_ ->
-	    hilit_draw_sel(Mode, Item, D),
-	    wings_dl:call(DrawExtra)
-    end,
-    gl:endList(),
-    D#dlo{hilite=List};
+    HiliteColor = hilite_color(Hit, St),
+    DrawHilite = hilite_draw_sel_fun(Mode, Item, D),
+    Draw0 = [fun() -> gl:color3fv(HiliteColor) end,
+	     DrawHilite,DrawExtra],
+    ShowBack = wings_pref:get_value(show_backfaces),
+    SelBack = wings_wm:lookup_prop(select_backface) =:= {value,true},
+    Draw = if
+	       SelBack; ShowBack andalso Open ->
+		   fun() ->
+			   gl:disable(?GL_CULL_FACE),
+			   Draw0(),
+			   gl:enable(?GL_CULL_FACE)
+		   end;
+	       true ->
+		   Draw0
+	   end,
+    D#dlo{hilite=Draw};
 insert_hilite_dl_1(#dlo{hilite=none}=D, _, _, _) -> D;
 insert_hilite_dl_1(D, _, _, _) -> D#dlo{hilite=none}.
 
@@ -309,7 +310,7 @@ hilite_color({Id,Item}, #st{sel=Sel}) ->
 		      true -> selected_hlite
 		  end
 	  end,
-    gl:color3fv(wings_pref:get_value(Key)).
+    wings_pref:get_value(Key).
 
 draw_tweak_vector_fun(Center, Normal) ->
     Length = wings_pref:get_value(tweak_vector_size),
@@ -326,34 +327,43 @@ draw_tweak_vector_fun(Center, Normal) ->
 	end,
     wings_vbo:new(D, Data).
 
-hilit_draw_sel(vertex, V, #dlo{src_we=#we{vp=Vtab}}) ->
-    gl:pointSize(wings_pref:get_value(selected_vertex_size)),
-    gl:'begin'(?GL_POINTS),
-    gl:vertex3fv(array:get(V, Vtab)),
-    gl:'end'();
-hilit_draw_sel(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
+hilite_draw_sel_fun(vertex, V, #dlo{src_we=#we{vp=Vtab}}) ->
+    PointSize = wings_pref:get_value(selected_vertex_size),
+    Data = [array:get(V, Vtab)],
+    D = fun() ->
+		gl:pointSize(PointSize),
+		gl:drawArrays(?GL_POINTS, 0, 1)
+	end,
+    wings_vbo:new(D, Data);
+hilite_draw_sel_fun(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-    gl:lineWidth(wings_pref:get_value(selected_edge_width)),
-    gl:'begin'(?GL_LINES),
-    gl:vertex3fv(array:get(Va, Vtab)),
-    gl:vertex3fv(array:get(Vb, Vtab)),
-    gl:'end'();
-hilit_draw_sel(face, Face, #dlo{vab=#vab{face_map=Map}=Vab}) ->
-    gl:enable(?GL_POLYGON_STIPPLE),
-    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    wings_draw_setup:enable_pointers(Vab, []),
+    LineWidth = wings_pref:get_value(selected_edge_width),
+    Data = [array:get(Va, Vtab),array:get(Vb, Vtab)],
+    D = fun() ->
+		gl:lineWidth(LineWidth),
+		gl:drawArrays(?GL_LINES, 0, 2)
+	end,
+    wings_vbo:new(D, Data);
+hilite_draw_sel_fun(face, Face, #dlo{vab=#vab{face_map=Map}=Vab}) ->
     {Start,NoElements} = array:get(Face, Map),
-    gl:drawArrays(?GL_TRIANGLES, Start, NoElements),
-    wings_draw_setup:disable_pointers(Vab, []),
-    gl:disable(?GL_POLYGON_STIPPLE);
-hilit_draw_sel(body, _, #dlo{vab=#vab{}=Vab}=D) ->
-    gl:enable(?GL_POLYGON_STIPPLE),
-    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    wings_draw_setup:enable_pointers(Vab, []),
-    Count = wings_draw_setup:face_vertex_count(D),
-    gl:drawArrays(?GL_TRIANGLES, 0, Count),
-    wings_draw_setup:disable_pointers(Vab, []),
-    gl:disable(?GL_POLYGON_STIPPLE).
+    fun() ->
+	    gl:enable(?GL_POLYGON_STIPPLE),
+	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
+	    wings_draw_setup:enable_pointers(Vab, []),
+	    gl:drawArrays(?GL_TRIANGLES, Start, NoElements),
+	    wings_draw_setup:disable_pointers(Vab, []),
+	    gl:disable(?GL_POLYGON_STIPPLE)
+    end;
+hilite_draw_sel_fun(body, _, #dlo{vab=#vab{}=Vab}=D) ->
+    fun() ->
+	    gl:enable(?GL_POLYGON_STIPPLE),
+	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
+	    wings_draw_setup:enable_pointers(Vab, []),
+	    Count = wings_draw_setup:face_vertex_count(D),
+	    gl:drawArrays(?GL_TRIANGLES, 0, Count),
+	    wings_draw_setup:disable_pointers(Vab, []),
+	    gl:disable(?GL_POLYGON_STIPPLE)
+    end.
 
 enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tuple(Prev) ->
     case Prev of
