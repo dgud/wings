@@ -34,12 +34,6 @@
 						%command execution.
 	    }).
 
-%% Keep the display for the current vector.
--record(vec,
-	{vec,					%Display list for vector.
-	 src_vec=undefined			%Source for vector.
-	}).
-
 init() ->
     DefAxis = {{0.0,0.0,0.0},{1.0,0.0,0.0}},
     wings_pref:set_default(last_axis, DefAxis),
@@ -814,34 +808,17 @@ find_edges([], _VsSet, _We, Acc) -> Acc.
 %%%
 
 erase_vector() ->
-    case erase(wings_current_vector) of
-	undefined -> ok;
-	#vec{vec=VecDl} -> catch gl:deleteLists(VecDl, 1)
-    end.
+    draw_vec(none).
 
-draw_vec(none) ->
-    erase_vector();
 draw_vec(Vec) ->
-    case get(wings_current_vector) of
-	#vec{src_vec=Vec,vec=VecDl} -> ok;
-	_ ->
-	    erase_vector(),
-	    VecDl = make_vec_dlist(Vec),
-	    put(wings_current_vector, #vec{vec=VecDl,src_vec=Vec}),
-	    VecDl
-    end,
+    VecDl = wings_dl:extra(current_vector, Vec, fun make_vec_fun/1),
     wings_dl:call(VecDl).
 
-make_vec_dlist(Vec) ->
-    Dlist = gl:genLists(1),
-    gl:newList(Dlist, ?GL_COMPILE),
-    make_vec_dlist_1(Vec),
-    gl:endList(),
-    Dlist.
-
-make_vec_dlist_1({Center,Vec0}) ->
+make_vec_fun(none) ->
+    none;
+make_vec_fun({Center,Vec0}) ->
     Vec = e3d_vec:mul(Vec0, wings_pref:get_value(active_vector_size)),
-    End = e3d_vec:add(Center,Vec),
+    End = e3d_vec:add(Center, Vec),
     HeadVec = e3d_vec:mul(Vec, -0.2),
     HeadPt = e3d_vec:add(End, HeadVec),
     case HeadVec of
@@ -852,25 +829,28 @@ make_vec_dlist_1({Center,Vec0}) ->
 	    PosHead0 = e3d_vec:cross(HeadVec, {0.25,0.25,0.25}),
 	    PosHead1 = e3d_vec:cross(HeadVec, {-0.25,-0.25,-0.25})
     end,
+    Arrow1 = e3d_vec:sub(HeadPt, PosHead0),
+    Arrow2 = e3d_vec:sub(HeadPt, PosHead1),
     Width = wings_pref:get_value(active_vector_width),
-    gl:color3fv(wings_pref:get_value(active_vector_color)),
-    gl:pointSize(Width*3.5),
-    gl:lineWidth(Width),
-    gl:'begin'(?GL_LINES),
-    gl:vertex3fv(Center),
-    gl:vertex3fv(End),
-    gl:vertex3fv(End),
-    gl:vertex3fv(e3d_vec:sub(HeadPt, PosHead0)),
-    gl:vertex3fv(End),
-    gl:vertex3fv(e3d_vec:sub(HeadPt, PosHead1)),
-    gl:'end'();
-make_vec_dlist_1(Center) ->
+    Color = wings_pref:get_value(active_vector_color),
+    Data = [Center,End, End,Arrow1, End,Arrow2],
+    N = length(Data),
+    D = fun() ->
+		gl:color3fv(Color),
+		gl:pointSize(Width*3.5),
+		gl:lineWidth(Width),
+		gl:drawArrays(?GL_LINES, 0, N)
+	end,
+    wings_vbo:new(D, Data);
+make_vec_fun({_,_,_}=Vec) ->
+    Color = wings_pref:get_value(active_vector_color),
     Width = wings_pref:get_value(active_vector_width),
-    gl:color3fv(wings_pref:get_value(active_vector_color)),
-    gl:pointSize(Width*3.5),
-    gl:'begin'(?GL_POINTS),
-    gl:vertex3fv(Center),
-    gl:'end'().
+    D = fun() ->
+		gl:color3fv(Color),
+		gl:pointSize(Width*3.5),
+		gl:drawArrays(?GL_POINTS, 0, 1)
+	end,
+    wings_vbo:new(D, [Vec]).
 
 vertex_no_mirror_norm(V, #we{mirror=Mir}=We) ->
     {Mn,Ns} = wings_vertex:fold(fun(_, Face, _, {M,A}) when Face =/= Mir ->
