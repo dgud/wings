@@ -468,63 +468,63 @@ update(#dlo{sel=none,src_we=#we{light=#light{}}=We}=D) ->
 update(D) -> D.
 
 update_1(#we{light=#light{type=Type}}=We, #dlo{src_sel=SrcSel}) ->
-    Selected = (SrcSel =/= none),
-    List = gl:genLists(1),
-    gl:newList(List, ?GL_COMPILE),
-    update_2(Type, Selected, We),
-    gl:endList(),
-    List.
+    SelColor = case SrcSel of
+		   none -> {0,0,1};
+		   _ -> wings_pref:get_value(selected_color)
+	       end,
+    update_fun(Type, SelColor, We).
 
-update_2(infinite, Selected, #we{light=#light{aim=Aim}}=We) ->
-    gl:lineWidth(1),
-    set_light_col(We),
-    gl:pushMatrix(),
-    {X,Y,Z} = Pos = light_pos(We),
-    gl:translatef(X, Y, Z),
-    Obj = glu:newQuadric(),
-    glu:quadricDrawStyle(Obj, ?GLU_FILL),
-    glu:quadricNormals(Obj, ?GLU_SMOOTH),
-    glu:sphere(Obj, 0.08, 25, 25),
-    glu:deleteQuadric(Obj),
-    Vec = e3d_vec:norm_sub(Aim, Pos),
-    set_sel_color(Selected),
-    gl:'begin'(?GL_LINES),
-    gl:vertex3fv(e3d_vec:mul(Vec, 0.2)),
-    gl:vertex3fv(e3d_vec:mul(Vec, 0.6)),
-    gl:'end'(),
-    gl:popMatrix();
-update_2(point, Selected, We) ->
-    gl:lineWidth(1),
-    set_light_col(We),
-    gl:pushMatrix(),
-    {X,Y,Z} = light_pos(We),
-    gl:translatef(X, Y, Z),
-    Obj = glu:newQuadric(),
-    glu:quadricDrawStyle(Obj, ?GLU_FILL),
-    glu:quadricNormals(Obj, ?GLU_FLAT),
-    glu:sphere(Obj, 0.08, 25, 25),
-    glu:deleteQuadric(Obj),
-    set_sel_color(Selected),
-    gl:'begin'(?GL_LINES),
-    lines({1.0,0.0,0.0}),
-    lines({0.0,1.0,0.0}),
-    lines({0.0,0.0,1.0}),
-    lines({0.71,0.71,0.0}),
-    lines({0.71,0.0,0.71}),
-    lines({0.0,0.71,0.71}),
-    gl:'end'(),
-    gl:popMatrix();
-update_2(spot, Selected, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
-    gl:lineWidth(1),
-    set_light_col(We),
-    gl:pushMatrix(),
-    Obj = glu:newQuadric(),
-    {Tx,Ty,Tz} = Top = light_pos(We),
-    gl:translatef(Tx, Ty, Tz),
-    glu:quadricDrawStyle(Obj, ?GLU_FILL),
-    glu:quadricNormals(Obj, ?GLU_SMOOTH),
-    glu:sphere(Obj, 0.08, 25, 25),
-    set_sel_color(Selected),
+update_fun(infinite, SelColor, #we{light=#light{aim=Aim}}=We) ->
+    LightPos = light_pos(We),
+    LightCol = get_light_col(We),
+    Vec = e3d_vec:norm_sub(Aim, LightPos),
+    Data = [e3d_vec:mul(Vec, 0.2),e3d_vec:mul(Vec, 0.6)],
+    D = fun() ->
+		gl:lineWidth(1),
+		gl:color4fv(LightCol),
+		gl:pushMatrix(),
+		{X,Y,Z} = LightPos,
+		gl:translatef(X, Y, Z),
+		Obj = glu:newQuadric(),
+		glu:quadricDrawStyle(Obj, ?GLU_FILL),
+		glu:quadricNormals(Obj, ?GLU_SMOOTH),
+		glu:sphere(Obj, 0.08, 25, 25),
+		glu:deleteQuadric(Obj),
+		gl:color3fv(SelColor),
+		gl:drawArrays(?GL_LINES, 0, 2),
+		gl:popMatrix()
+	end,
+    wings_vbo:new(D, Data);
+update_fun(point, SelColor, We) ->
+    LightPos = light_pos(We),
+    LightCol = get_light_col(We),
+    Data0 = [{1.0,0.0,0.0},
+	     {0.0,1.0,0.0},
+	     {0.0,0.0,1.0},
+	     {0.71,0.71,0.0},
+	     {0.71,0.0,0.71},
+	     {0.0,0.71,0.71}],
+    N = length(Data0) * 4,
+    Data = lines(Data0),
+    D = fun() ->
+		gl:lineWidth(1),
+		gl:color4fv(LightCol),
+		gl:pushMatrix(),
+		{X,Y,Z} = LightPos,
+		gl:translatef(X, Y, Z),
+		Obj = glu:newQuadric(),
+		glu:quadricDrawStyle(Obj, ?GLU_FILL),
+		glu:quadricNormals(Obj, ?GLU_FLAT),
+		glu:sphere(Obj, 0.08, 25, 25),
+		glu:deleteQuadric(Obj),
+		gl:color3fv(SelColor),
+		gl:drawArrays(?GL_LINES, 0, N),
+		gl:popMatrix()
+	end,
+    wings_vbo:new(D, Data);
+update_fun(spot, SelColor, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
+    Top = light_pos(We),
+    LightCol = get_light_col(We),
     SpotDir0 = e3d_vec:norm_sub(Aim, Top),
     SpotDir = case e3d_vec:is_zero(SpotDir0) of
 		  false -> SpotDir0;
@@ -533,28 +533,40 @@ update_2(spot, Selected, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
     Rad = Angle*math:pi()/180,
     R = math:sin(Rad),
     H = math:cos(Rad),
-    {Dx,Dy,Dz} = e3d_vec:mul(SpotDir, H),
-    gl:translatef(Dx, Dy, Dz),
+    Translate = e3d_vec:mul(SpotDir, H),
     Rot = e3d_mat:rotate_s_to_t({0.0,0.0,1.0}, e3d_vec:neg(SpotDir)),
-    gl:multMatrixd(Rot),
-    glu:quadricDrawStyle(Obj, ?GLU_LINE),
-    glu:cylinder(Obj, R, 0.08, H, 12, 1),
-    glu:deleteQuadric(Obj),
-    gl:popMatrix();
-update_2(ambient, _, _) -> ok.
+    fun() ->
+	    gl:lineWidth(1),
+	    gl:color4fv(LightCol),
+	    gl:pushMatrix(),
+	    Obj = glu:newQuadric(),
+	    {Tx,Ty,Tz} = Top,
+	    gl:translatef(Tx, Ty, Tz),
+	    glu:quadricDrawStyle(Obj, ?GLU_FILL),
+	    glu:quadricNormals(Obj, ?GLU_SMOOTH),
+	    glu:sphere(Obj, 0.08, 25, 25),
+	    gl:color3fv(SelColor),
+	    {Dx,Dy,Dz} = Translate,
+	    gl:translatef(Dx, Dy, Dz),
+	    gl:multMatrixd(Rot),
+	    glu:quadricDrawStyle(Obj, ?GLU_LINE),
+	    glu:cylinder(Obj, R, 0.08, H, 12, 1),
+	    glu:deleteQuadric(Obj),
+	    gl:popMatrix()
+    end;
+update_fun(ambient, _, _) ->
+    fun() -> ok end.
 
-lines(Vec) ->
-    gl:vertex3fv(e3d_vec:mul(Vec, 0.2)),
-    gl:vertex3fv(e3d_vec:mul(Vec, 0.6)),
-    gl:vertex3fv(e3d_vec:mul(Vec, -0.2)),
-    gl:vertex3fv(e3d_vec:mul(Vec, -0.6)).
+lines([Vec|Vecs]) ->
+    [e3d_vec:mul(Vec, 0.2),
+     e3d_vec:mul(Vec, 0.6),
+     e3d_vec:mul(Vec, -0.2),
+     e3d_vec:mul(Vec, -0.6)|lines(Vecs)];
+lines([]) -> [].
 
-set_light_col(#we{light=#light{diffuse=Diff}}) ->
-    gl:color4fv(Diff).
+get_light_col(#we{light=#light{diffuse=Diff}}) ->
+    Diff.
 
-set_sel_color(false) -> gl:color3f(0, 0, 1);
-set_sel_color(true) -> gl:color3fv(wings_pref:get_value(selected_color)).
-    
 render(#dlo{work=Light}) ->
     wings_dl:call(Light).
 
