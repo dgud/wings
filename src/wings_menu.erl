@@ -666,6 +666,7 @@ is_ascii_clean(T) when is_tuple(T) ->
     is_tuple_ascii_clean(1, tuple_size(T), T);
 is_ascii_clean(Num) when is_number(Num) -> true;
 is_ascii_clean(Atom) when is_atom(Atom) -> true;
+is_ascii_clean(Fun) when is_function(Fun) -> true;
 is_ascii_clean(_) -> false.
 
 is_tuple_ascii_clean(I, N, T) when I =< N ->
