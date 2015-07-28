@@ -278,13 +278,13 @@ seg_command(select_hard_edges, #seg{st=St0}=Ss) ->
 	#st{}=St -> get_seg_event(Ss#seg{st=St})
     end;
 seg_command({select,Mat}, #seg{st=St0}=Ss) ->
-    St = wings_material:command({select,[atom_to_list(Mat)]}, St0),
+    {save_state,St} = wings_material:command({select,[atom_to_list(Mat),select]}, St0),
     get_seg_event(Ss#seg{st=St});
 seg_command({segment,Type}, #seg{st=St0}=Ss) ->
     St = segment(Type, St0),
     get_seg_event(Ss#seg{st=St});
 seg_command({debug,Cmd}, Ss) ->
-    seg_command_debug(Cmd, Ss);
+    seg_command_debug({debug,Cmd}, Ss);
 seg_command(ignore_faces,#seg{st=St0,fs=Mode0}=Ss) ->    
     HiddenFs = wpa:sel_fold(fun(Fs,_,Acc) -> gb_sets:union(Fs,Acc) end,
 			    gb_sets:empty(), St0),
