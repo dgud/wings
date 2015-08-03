@@ -240,6 +240,7 @@ get_center(Sel,Shapes) ->
 
 get_lights(Sel,Shapes) ->
     {_,Lights} = get_center_and_lights(Sel,Shapes,[],false),
+    {_,Lights} = get_center_and_lights(Sel,Shapes,[],false),
     Lights.
 
 get_center_and_lights(Sel,Shapes) ->
