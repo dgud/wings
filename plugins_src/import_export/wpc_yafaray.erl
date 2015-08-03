@@ -38,6 +38,7 @@ key(Key) -> {key,?KEY(Key)}.
 %%% Default values
 -define(DEF_DIALOGS, auto).
 -define(DEF_RENDERER, "yafaray-xml").
+-define(DEF_PLUGINS_PATH, "c:/thebounty/bin/plugins").
 -define(DEF_OPTIONS, "").
 -define(DEF_THREADS_AUTO, true).
 -define(DEF_THREADS_NUMBER, 1).
@@ -284,10 +285,10 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_MOD_SIZE_Y, 1.0).
 -define(DEF_MOD_SIZE_Z, 1.0).
 -define(DEF_MOD_OPACITY, 1.0).
--define(DEF_MOD_DIFFUSE, 0.0).
--define(DEF_MOD_SPECULAR, 0.0).
--define(DEF_MOD_AMBIENT, 0.0).
--define(DEF_MOD_SHININESS, 0.0).
+-define(DEF_MOD_DIFFUSE, 1.0).
+%%-define(DEF_MOD_SPECULAR, 0.0).
+%%-define(DEF_MOD_AMBIENT, 0.0).
+-define(DEF_MOD_SHININESS, 1.0).
 -define(DEF_MOD_NORMAL, 0.0).
 -define(DEF_MOD_TYPE, image).
 -define(DEF_MOD_FILENAME, "").
@@ -321,6 +322,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_MOD_DISTORTION_INTENSITY, 10.0).
 -define(DEF_MOD_DISTORTION_NOISESIZE, 1.0).
 -define(DEF_MOD_ALPHA_INTENSITY, off).
+-define(DEF_TEXTURE_TYPE, diffusetexture).
 
 range(T) -> {range,range_1(T)}.
 
@@ -451,7 +453,7 @@ range_1(caustic_radius)         -> {0.0,1.0};
 range_1(ao_distance)            -> {1.0,100.0};
 range_1(ao_samples)             -> {1.0,128.0};
 range_1(volintegr_stepsize)     -> {0.0,100.0};
-range_1(subdivisions)           -> {0,10};
+range_1(subdivisions)		-> {0,infinity};
 range_1(threads_number)         -> {1,100};
 range_1(aa_pixelwidth)          -> {1.0,2.0};
 range_1(aa_passes)              -> {0,infinity};
@@ -1333,11 +1335,12 @@ modulator_dialogs([Modulator|Modulators], Maps, M) ->
 modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     {Enabled,Mode,Type} = mod_enabled_mode_type(Ps, Maps),
     AlphaIntensity = proplists:get_value(alpha_intensity, Ps, ?DEF_MOD_ALPHA_INTENSITY),
+    TextureType = proplists:get_value(texture_type, Ps, ?DEF_TEXTURE_TYPE),
     SizeX = proplists:get_value(size_x, Ps, ?DEF_MOD_SIZE_X),
     SizeY = proplists:get_value(size_y, Ps, ?DEF_MOD_SIZE_Y),
     SizeZ = proplists:get_value(size_z, Ps, ?DEF_MOD_SIZE_Z),
     Diffuse = proplists:get_value(diffuse, Ps, ?DEF_MOD_DIFFUSE),
-    Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
+%%    Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
     Shininess = proplists:get_value(shininess, Ps, ?DEF_MOD_SHININESS),
     Normal = proplists:get_value(normal, Ps, ?DEF_MOD_NORMAL),
     Filename = proplists:get_value(filename, Ps, ?DEF_MOD_FILENAME),
@@ -1428,7 +1431,17 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     {?__(118,"Alpha Translucency"),translucency},
                     {?__(119,"Specularity"),specularity},
                     {?__(120,"Stencil"),stencil}
-                ],AlphaIntensity,[]}
+                ],AlphaIntensity,[]},
+                {menu,[
+                    {?__(121,"Diffuse (Shiny Diffuse, Glossy, SSS)"),diffusetexture},
+                    {?__(122,"Mirror Color (Shiny Diffuse, Glass)"),mirrorcolortexture},
+                    {?__(123,"Mirror (Shiny Diffuse)"),mirrortexture},
+                    {?__(124,"Glossy (Glossy)"),glossytexture},
+                    {?__(125,"Glossy Reflect (Glossy)"),glossyreflecttexture},
+                    {?__(126,"Transparency (Shiny Diffuse)"),transparencytexture},
+                    {?__(127,"Translucency (Shiny Diffuse)"),translucencytexture},
+                    {?__(128,"Bump (All)"),bumptexture}
+                ],TextureType,[]}
             ]},
             {vframe, [
                 {hframe,[
@@ -1445,13 +1458,13 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 {hframe,[
                     {vframe,[
                         {label,?__(13,"Diffuse")},
-                        {label,?__(14,"Specular")},
+%                        {label,?__(14,"Specular")},
                         {label,?__(16,"Shininess")},
                         {label,?__(17,"Normal")}
                     ]},
                     {vframe,[
                         {slider,{text,Diffuse,[range(modulation)]}},
-                        {slider,{text,Specular,[range(modulation)]}},
+%                        {slider,{text,Specular,[range(modulation)]}},
                         {slider,{text,Shininess,[range(modulation)]}},
                         {slider,{text,Normal,[range(modulation)]}}
                     ]}
@@ -1725,7 +1738,7 @@ modulator(Res0, M) ->
     {EnabledTag,Enabled} = lists:keyfind(EnabledTag, 1, Res1),
     {TypeTag,Type} = lists:keyfind(TypeTag, 1, Res1),
     Res2 = lists:keydelete(EnabledTag, 1, lists:keydelete(TypeTag, 1, Res1)),
-    [Mode,AlphaIntensity,SizeX,SizeY,SizeZ,
+    [Mode,AlphaIntensity,TextureType,SizeX,SizeY,SizeZ,
      Diffuse,Specular,Shininess,Normal,
      Filename,
      Color1,Color2,Hard,NoiseBasis,NoiseSize,Depth,
@@ -1739,6 +1752,7 @@ modulator(Res0, M) ->
             Rest -> Rest
         end,
     Ps = [{enabled,Enabled},{mode,Mode},{alpha_intensity,AlphaIntensity},
+          {texture_type,TextureType},
           {size_x,SizeX},{size_y,SizeY},{size_z,SizeZ},
           {diffuse,Diffuse},{specular,Specular},
           {shininess,Shininess},{normal,Normal},
@@ -1774,7 +1788,7 @@ modulator_init(Mode) ->
         {size_y,?DEF_MOD_SIZE_Y},
         {size_z,?DEF_MOD_SIZE_Z},
         {diffuse,?DEF_MOD_DIFFUSE},
-        {specular,?DEF_MOD_SPECULAR},
+%        {specular,?DEF_MOD_SPECULAR},
         {shininess,?DEF_MOD_SHININESS},
         {normal,?DEF_MOD_NORMAL},
         {type,?DEF_MOD_TYPE},
@@ -2244,7 +2258,7 @@ light_result(Ps) ->
 
 
 pref_dialog(St) ->
-    [{dialogs,Dialogs},{renderer,Renderer},
+    [{dialogs,Dialogs},{renderer,Renderer},{pluginspath,PluginsPath},
      {options,Options},{shader_type,ShaderType}] = get_user_prefs([{dialogs,?DEF_DIALOGS},{renderer,?DEF_RENDERER},
                                                                    {options,?DEF_OPTIONS},{shader_type,?DEF_SHADER_TYPE}]),
 
@@ -2262,11 +2276,13 @@ pref_dialog(St) ->
             {hframe, [
                 {vframe, [
                     {label,?__(4,"Executable")},
+                    {label,?__(7,"Plugins Path")},
                     {label,?__(5,"Options")},
                     {label,"Default Shader"}
                 ]},
                 {vframe, [
                     {button,{text,Renderer,[{key,renderer}, wings_job:browse_props()]}},
+                    {text,PluginsPath,[{key,pluginspath}]},
                     {text,Options,[{key,options}]},
                     {menu, [
                         {"Shiny Diffuse",shinydiffuse},
@@ -3022,7 +3038,7 @@ is_member(Value, Members) ->
 
 export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     wpa:popup_console(),
-    ExportTS = erlang:now(),
+    ExportTS = os:timestamp(),
     Render = proplists:get_value(?TAG_RENDER, Attr, false),
     KeepXML = proplists:get_value(keep_xml, Attr, ?DEF_KEEP_XML),
     RenderFormat =
@@ -3127,6 +3143,8 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     %%
     [{options,Options}] =
         get_user_prefs([{options,?DEF_OPTIONS}]),
+    [{pluginspath,PluginsPath}] =
+	get_user_prefs([{pluginspath,?DEF_PLUGINS_PATH}]),
     case {get_var(renderer),Render} of
         {_,false} ->
             wings_job:export_done(ExportTS),
@@ -3163,7 +3181,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                 end,
             file:delete(RenderFile),
             set_var(rendering, true),
-            wings_job:render(ExportTS, Renderer,AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+	    wings_job:render(ExportTS, Renderer,"-pp "++format(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
 warn_multiple_backgrounds([]) ->
@@ -3467,7 +3485,7 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
                   N % Ignore old modulators
           end, 1, Modulators),
     println(F, "<material name=\"~s\">~n"++
-                "<type sval=\"coatedglossy\"/>", [Name]),
+	       "<type sval=\"coated_glossy\"/>", [Name]),
     DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
 
     Specular = alpha(proplists:get_value(specular, OpenGL)),
@@ -4244,7 +4262,7 @@ export_texture(F, Name, Type, Ps) ->
 
 
 
-export_modulator(F, Texname, Maps, {modulator,Ps}, Opacity) when is_list(Ps) ->
+export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
     case mod_enabled_mode_type(Ps, Maps) of
         {false,_,_} ->
             off;
@@ -4257,7 +4275,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Opacity) when is_list(Ps) ->
             UpperLayerName =
                 case AlphaIntensity of
                     stencil -> re:replace(Texname,"_2","_1",[global]);
-                    _ -> re:replace(Texname,"_1","_2",[global])
+                    _-> re:replace(Texname,"_1","_2",[global])
                 end,
 
 %%% End Change Number from Texname for UpperLayer
@@ -4267,7 +4285,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Opacity) when is_list(Ps) ->
             StencilInputName =
                 case AlphaIntensity of
                     stencil -> re:replace(Texname,"_2","_3",[global]);
-                    _ -> ""
+                    _-> ""
                 end,
 
 %%% End Change Number from Texname for Stencil Input
@@ -4277,7 +4295,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Opacity) when is_list(Ps) ->
             StencilUpperLayerName2 =
                 case AlphaIntensity of
                     stencil -> re:replace(Texname,"_1","_2",[global]);
-                    _ -> ""
+                    _-> ""
                 end,
 
 %%% End Change Number from Texname for Stencil UpperLayer Name 2
@@ -4286,15 +4304,16 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Opacity) when is_list(Ps) ->
             _SizeX = proplists:get_value(size_x, Ps, ?DEF_MOD_SIZE_X),
             _SizeY = proplists:get_value(size_y, Ps, ?DEF_MOD_SIZE_Y),
             _SizeZ = proplists:get_value(size_z, Ps, ?DEF_MOD_SIZE_Z),
+            TextureType = proplists:get_value(texture_type, Ps, ?DEF_TEXTURE_TYPE),
             Diffuse = proplists:get_value(diffuse, Ps, ?DEF_MOD_DIFFUSE),
-            _Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
-            Ambient = proplists:get_value(ambient, Ps, ?DEF_MOD_AMBIENT),
+%%	    _Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
+%%	    Ambient = proplists:get_value(ambient, Ps, ?DEF_MOD_AMBIENT),
             Shininess = proplists:get_value(shininess, Ps, ?DEF_MOD_SHININESS),
             Normal = proplists:get_value(normal, Ps, ?DEF_MOD_NORMAL),
-            _Color = Diffuse * Opacity,
+%%            _Color = Diffuse * Opacity,
             _HardValue = Shininess,
-            _Transmission = Diffuse * (1.0 - Opacity),
-            _Reflection = Ambient,
+%%            _Transmission = Diffuse * (1.0 - Opacity),
+%%	    _Reflection = Ambient,
             TexCo =
                 case Type of
                     image -> "<texco sval=\"uv\"/>";
@@ -4320,7 +4339,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Opacity) when is_list(Ps) ->
                     _ -> ""
                 end,
 
-            %% Start Identify Modulator # (w_default_Name_1 or w_default_Name_2)
+%% Start Identify Modulator # (w_default_Name_1 or w_default_Name_2)
             Split=re:split(Texname,"_",[{return, list}]),
             Num=lists:last(Split),
             UpperLayer =
@@ -4330,7 +4349,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Opacity) when is_list(Ps) ->
                     {"2",_,stencil} ->  "<upper_layer sval=\""++UpperLayerName++"\"/>";
                     _ -> ""
                 end,
-            %% End Identify Modulator #
+%% End Identify Modulator #
 
             UpperColor =
                 case Num of
@@ -4351,91 +4370,118 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Opacity) when is_list(Ps) ->
 
 
 
-            ShaderType =
-                case {Normal,AlphaIntensity} of
-                    {0.0,off} -> "<diffuse_shader";
-                    {0.0,transparency} -> "<transparency_shader";
-                    {0.0,diffusealphatransparency} -> "<diffuse_shader";
-                    {0.0,translucency} -> "<translucency_shader";
-                    {0.0,specularity} -> "<glossy_reflect_shader";
-                    {0.0,stencil} -> "<diffuse_shader";
+            TextureShaderType =
+                case {Normal,TextureType,AlphaIntensity} of
+                    {0.0,diffusetexture,off} -> "<diffuse_shader";
+                    {0.0,mirrorcolortexture,off} -> "<mirror_color_shader";
+                    {0.0,mirrortexture,off} -> "<mirror_shader";
+                    {0.0,glossytexture,off} -> "<glossy_shader";
+                    {0.0,glossyreflecttexture,off} -> "<diffuse_reflect_shader";
+                    {0.0,transparencytexture,off} -> "<transparency_shader";
+                    {0.0,translucencytexture,off} -> "<translucency_shader";
+                    {0.0,bumptexture,off} -> "<bump_shader";
+
+                    {0.0,diffusetexture,transparency} -> "<transparency_shader";
+                    {0.0,mirrorcolortexture,transparency} -> "<transparency_shader";
+                    {0.0,mirrortexture,transparency} -> "<transparency_shader";
+                    {0.0,glossytexture,transparency} -> "<transparency_shader";
+                    {0.0,glossyreflecttexture,transparency} -> "<transparency_shader";
+                    {0.0,transparencytexture,transparency} -> "<transparency_shader";
+
+                    {0.0,diffusetexture,diffusealphatransparency} -> "<diffuse_shader";
+                    {0.0,transparencytexture,diffusealphatransparency} -> "<diffuse_shader";
+
+                    {0.0,diffusetexture,translucency} -> "<translucency_shader";
+                    {0.0,glossytexture,translucency} -> "<translucency_shader";
+                    {0.0,translucencytexture,translucency} -> "<translucency_shader";
+
+                    {0.0,diffusetexture,specularity} -> "<mirror_shader";
+                    {0.0,mirrorcolortexture,specularity} -> "<mirror_shader";
+                    {0.0,mirrortexture,specularity} -> "<mirror_shader";
+                    {0.0,glossytexture,specularity} -> "<mirror_shader";
+                    {0.0,glossyreflecttexture,specularity} -> "<mirror_shader";
+
+                    {0.0,diffusetexture,stencil} -> "<diffuse_shader";
                     _ -> "<bump_shader"
                 end,
 
             ShaderName =
                 case {Num,Mode} of
-                    {"1",_} ->   "  "++ShaderType++" sval=\""++Texname++"\"/>";
-                    {_,mix} ->   "  "++ShaderType++" sval=\""++Texname++"\"/>";
+                    {"1",_} ->   "  "++TextureShaderType++" sval=\""++Texname++"\"/>";
+                    {_,mix} ->   "  "++TextureShaderType++" sval=\""++Texname++"\"/>";
                     _ -> ""
                 end,
 
 
             case AlphaIntensity of
                 stencil ->
-                    %%Stencil Export Start
+%%Stencil Export Start
                     println(F, " <!--Start Stencil Section Here-->
 
-                                <list_element>
-                                <element sval=\"shader_node\"/>
-                                <name sval=\"~s\"/>
-                                <input sval=\"~s_mod\"/>
+		 		<list_element>
+		 		<element sval=\"shader_node\"/>
+		 		<name sval=\"~s\"/>
+		 		<input sval=\"~s_mod\"/>
 
-                                <noRGB bval=\"true\"/>
-                                <stencil bval=\"true\"/>
-                                "++UpperLayer++"
+		 		<noRGB bval=\"true\"/>
+		 		<stencil bval=\"true\"/>
+		 		"++UpperLayer++"
 
-                            <type sval=\"layer\"/>
-                                <mode ival=\""++ModeNumber++"\"/>
-                                </list_element>
+		 		<type sval=\"layer\"/>
+		 		<mode ival=\""++ModeNumber++"\"/>
+		 		</list_element>
 
-                                <list_element>
-                                <element sval=\"shader_node\"/>
-                                <name sval=\"~s_mod\"/>
-                                "++TexCo++"
-                            <mapping sval=\"plain\"/>
-                                <texture sval=\"~s\"/>
-                                <type sval=\"texture_mapper\"/>
-                                <bump_strength fval=\"~.3f\"/>
-                                </list_element>
+		 		<list_element>
+		 		<element sval=\"shader_node\"/>
+		 		<name sval=\"~s_mod\"/>
+		 		"++TexCo++"
+		 		<mapping sval=\"plain\"/>
+		 		<texture sval=\"~s\"/>
+		 		<type sval=\"texture_mapper\"/>
+		 		<bump_strength fval=\"~.3f\"/>
+		 		</list_element>
 
-                                <diffuse_shader sval=\"diff_layer2\"/>
+		 		<diffuse_shader sval=\"diff_layer2\"/>
                                 <list_element>
                                 <element sval=\"shader_node\"/>
                                 <name sval=\"diff_layer2\"/>
-                                <input sval=\""++StencilInputName++"_mod\"/>
-                                <upper_layer sval=\""++StencilUpperLayerName2++"\"/>
+		 		<input sval=\""++StencilInputName++"_mod\"/>
+		 		<upper_layer sval=\""++StencilUpperLayerName2++"\"/>
                                 <type sval=\"layer\"/>
-                                <mode ival=\""++ModeNumber++"\"/>
+		 		<mode ival=\""++ModeNumber++"\"/>
                                 </list_element>
 
-                                <!--End Stencil Section Here-->",
-                                [Texname,Texname,Texname,Texname,Normal
-                                ]);
-                %%Stencil Export End
+	<!--End Stencil Section Here-->",
+                        [Texname,Texname,Texname,Texname,Normal
+                        ]);
+%%Stencil Export End
                 _ ->
 
                     println(F, "  "++ShaderName++"
-                                <list_element>
-                                <element sval=\"shader_node\"/>
-                                <name sval=\"~s\"/>
-                                <input sval=\"~s_mod\"/>
+		 		<list_element>
+		 		<element sval=\"shader_node\"/>
+		 		<name sval=\"~s\"/>
+		 		<input sval=\"~s_mod\"/>
                                 "++UpperLayer++"
-                            "++UpperColor++"
-                            "++UseAlpha++"
-                            <type sval=\"layer\"/>
-                                <mode ival=\""++ModeNumber++"\"/>
-                                </list_element>
-                                <list_element>
-                                <element sval=\"shader_node\"/>
-                                <name sval=\"~s_mod\"/>
-                                "++TexCo++"
-                            <mapping sval=\"plain\"/>
-                                <texture sval=\"~s\"/>
-                                <type sval=\"texture_mapper\"/>
-                                <bump_strength fval=\"~.3f\"/>
-                                </list_element>",
-                                [Texname,Texname,Texname,Texname,Normal
-                                ])
+				"++UpperColor++"
+				"++UseAlpha++"
+		 		<type sval=\"layer\"/>
+		 		<mode ival=\""++ModeNumber++"\"/>
+				<colfac fval=\"~.3f\"/>
+				<valfac fval=\"~.3f\"/>
+		 		</list_element>
+		 		<list_element>
+		 		<element sval=\"shader_node\"/>
+		 		<name sval=\"~s_mod\"/>
+		 		"++TexCo++"
+		 		<mapping sval=\"plain\"/>
+		 		<texture sval=\"~s\"/>
+		 		<type sval=\"texture_mapper\"/>
+
+		 		<bump_strength fval=\"~.3f\"/>
+		 		</list_element>",
+                        [Texname,Texname,Diffuse,Shininess,Texname,Texname,Normal
+                        ])
 
             end
 
@@ -5768,8 +5814,8 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         case RenderFormat of
             exr ->
                 [if ExrFlagFloat -> "float "; true -> "" end,
-                    if ExrFlagZbuf -> "zbuf "; true -> "" end,
-                    format(ExrFlagCompression)];
+		 if ExrFlagZbuf -> "zbuf "; true -> "" end,
+		 format(ExrFlagCompression)];
             _ -> ""
         end,
     println(F, "<render> <camera_name sval=\"~s\"/> "
@@ -6086,39 +6132,39 @@ help(title, {material_dialog,object}) ->
     ?__(6,"YafaRay Material Properties: Object Parameters");
 help(text, {material_dialog,object}) ->
     [?__(7,"Object Parameters are applied to whole objects, namely those "
-         "that have this material on a majority of their faces."),
+      "that have this material on a majority of their faces."),
      ?__(8,"Mapping to YafaRay object parameters:"),
      ?__(9,"Cast Shadow -> 'shadow'."),
      ?__(10,"Emit Rad -> 'emit_rad' -> Emit Radiosity."),
      ?__(11,"Recv Rad -> 'recv_rad' -> Receive Radiosity."),
      ?__(12,"Use Edge Hardness -> Emulate hard edges by "
-         "slitting the object mesh along hard edges."),
+      "slitting the object mesh along hard edges."),
      ?__(13,"Autosmooth Angle -> 'autosmooth'."),
      ?__(14,"A Photon Light must be present for Emit Rad and Recv Rad "
-         "to have an affect. Set Fresnel Parameters to add Caustics.")];
+     "to have an affect. Set Fresnel Parameters to add Caustics.")];
 help(title, {material_dialog,fresnel}) ->
     ?__(15,"YafaRay Material Properties: Fresnel Parameters");
 help(text, {material_dialog,fresnel}) ->
     [?__(16,"Fresnel Parameters affect how rays reflect off and refract in "
-         "glass-like materials. This is a different light model than the "
-         "OpenGL (Diffuse,Specular,Shininess) model and they do not often "
-         "go well together. "
-         "A Photon Light must be present to produce Caustics."),
+      "glass-like materials. This is a different light model than the "
+      "OpenGL (Diffuse,Specular,Shininess) model and they do not often "
+      "go well together. "
+      "A Photon Light must be present to produce Caustics."),
      ?__(17,"Mapping to YafaRay shader parameters:"),
      ?__(18,"Index Of Refraction -> 'ior' -> 1.5 for Glass/Caustics."),
      ?__(19,"Total Internal Reflection -> 'tir' -> Enable for Glass."),
      ?__(20,"Minimum Reflection -> 'min_refle' -> 1.0 for Metal."),
      ?__(21,"Reflected -> 'reflected' -> Reflective Caustics."),
      ?__(22,"Transmitted -> 'transmitted' -> Glass/Refractive Caustics."),
-     ?__(23,"Set Default -> Sets 'transmitted' to Diffuse * (1 - Opacity). "
-         "This makes a semi-transparent object in OpenGL look the same in "
-         "YafaRay provided that Index Of Refraction is 1.1 minimum."),
+     ?__(23,"Use Default -> Sets 'transmitted' to Diffuse * (1 - Opacity). "
+      "This makes a semi-transparent object in OpenGL look the same in "
+      "YafaRay provided that Index Of Refraction is 1.1 minimum."),
      ?__(24,"Grazing Angle Colors -> Use the secondary Reflected and Transmitted "
-         "colors following that show from grazing angles of the material. "
-         "For a glass with green edges set Transmitted to white and "
-         "Grazing Angle Transmitted to green."),
+      "colors following that show from grazing angles of the material. "
+      "For a glass with green edges set Transmitted to white and "
+      "Grazing Angle Transmitted to green."),
      ?__(25,"Absorption -> Sets the desired color for white light travelling "
-         "the given distance through the material.")];
+      "the given distance through the material.")];
 %%
 help(title, light_dialog) ->
     ?__(26,"YafaRay Light Properties");
@@ -6126,16 +6172,16 @@ help(text, light_dialog) ->
     [?__(27,"OpenGL properties that map to YafaRay light parameters are:"),
      ?__(28,"Diffuse -> 'color'"),
      ?__(29,"All other OpenGl properties are ignored, particulary the "
-         "Attenuation properties."),
+      "Attenuation properties."),
      ?__(30,"Spotlight set to Photonlight is used to produce Caustics or Radiosity. "
-         "Photonlight set to Caustic for Caustics. "
-         "Photonlight set to Diffuse for Radiosity. "),
+      "Photonlight set to Caustic for Caustics. "
+      "Photonlight set to Diffuse for Radiosity. "),
      ?__(31,"The Enlight checkbox in a Hemilight with an image background "
-         "activates the background image as ambient light source instead of "
-         "the defined ambient color by excluding the 'color' tag "
-         "from the Hemilight."),
+      "activates the background image as ambient light source instead of "
+      "the defined ambient color by excluding the 'color' tag "
+      "from the Hemilight."),
      ?__(32,"Note: For a YafaRay Global Photon Light (one of the Ambient lights) - "
-         "the Power parameter is ignored")];
+      "the Power parameter is ignored")];
 help(title, pref_dialog) ->
     ?__(33,"YafaRay Options");
 help(text, pref_dialog) ->
@@ -6144,30 +6190,31 @@ help(text, pref_dialog) ->
      ++wings_help:cmd([?__(36,"File"),?__(37,"Export"),?__(38,"YafaRay")])++", "
      ++wings_help:cmd([?__(39,"File"),?__(40,"Export Selected"),?__(41,"YafaRay")])++" "++?__(42,"and")++" "
      ++wings_help:cmd([?__(43,"File"),?__(44,"Render"),?__(45,"YafaRay")])++" "++
-         ?__(46,"are enabled if the rendering executable is found (in the path), "
-             "or if the rendering executable is specified with an absolute path."),
+     ?__(46,"are enabled if the rendering executable is found (in the path), "
+     "or if the rendering executable is specified with an absolute path."),
      %%
      ?__(47,"Disabled Dialogs:")++" "
      ++wings_help:cmd([?__(48,"File"),?__(49,"Export"),?__(50,"YafaRay")])++", "
      ++wings_help:cmd([?__(51,"File"),?__(52,"Export Selected"),?__(53,"YafaRay")])++" "++?__(54,"and")++" "
      ++wings_help:cmd([?__(55,"File"),?__(56,"Render"),?__(57,"YafaRay")])++" "++
-         ?__(58,"are disabled."),
+     ?__(58,"are disabled."),
      %%
      ?__(59,"Enabled Dialogs:")++" "
      ++wings_help:cmd([?__(60,"File"),?__(61,"Export"),?__(62,"YafaRay")])++" "++?__(63,"and")++" "
      ++wings_help:cmd([?__(64,"File"),?__(65,"Export Selected"),?__(66,"YafaRay")])++" "++
-         ?__(67,"are always enabled, but")++" "
+     ?__(67,"are always enabled, but")++" "
      ++wings_help:cmd([?__(68,"File"),?__(69,"Render"),?__(70,"YafaRay")])++" "++
-         ?__(71,"is still as for \"Automatic Dialogs\"."),
+     ?__(71,"is the same as for \"Automatic Dialogs\"."),
      %%
      ?__(72,"Executable: The rendering command for the YafaRay raytrace "
-         "renderer ('c:/yafaray/bin/yafaray-xml.exe') that is supposed to "
-         "be found in the executables search path; or, the absolute path of "
-         "that executable. You may have to add YafaRay to your computer's "
-         "Path Settings. My Computer > Properties > Advanced Tab > "
-         "Environment Variables > User Variables > Path > Edit > Variable "
-         "Value > add 'c:/yafaray', without ' '. Notice that each added item "
-         "has a semicolon (;) before and after it."),
-     ?__(73,"Options: Rendering command line options to be inserted between the "
-         "executable and the .xml filename. -dp (add render settings badge) "
-         "-vl (verbosity level) -pp (plugins path)'c:/yafaray/bin/plugins'. ")].
+      "renderer ('c:/yafaray/bin/yafaray-xml.exe') that is supposed to "
+      "be found in the executables search path; or, the absolute path of "
+      "that executable."),
+     %%
+     ?__(73,"Plugins Path: The path to the YafaRay plugins folder "
+      "('c:/yafaray/bin/plugins'). YafaRay will not work without this."),
+     %%
+     ?__(74,"Options: Rendering command line options to be inserted between the "
+      "executable and the .xml filename, -dp (add render settings badge) "
+      "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All)."
+      "The YafaRay Fork Build, TheBounty by Povmaniac, IS REQUIRED FOR SUBSURFACE SCATTERING." )].
