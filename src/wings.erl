@@ -990,21 +990,25 @@ tools_menu() ->
 
 window_menu() ->
     Name = case wings_wm:this() of
-           {_,geom} ->
-           ?__(1,"Geometry Graph");
-           {_,{geom,N}} ->
-           ?__(2,"Geometry Graph #") ++ integer_to_list(N)
-       end,
-    [{?__(3,"Outliner"),outliner,
-      ?__(4,"Open the outliner window (showing materials and objects)")},
-     {Name,object,
-      ?__(5,"Open a Geometry Graph window (showing objects)")},
-     {?__(6,"Palette"), palette,?__(7,"Open the color palette window")},
-     {?__(12,"Tweak Palette"), tweak_palette,
-      ?__(13,"Open palettes from which tweak tools may be selected or bound to modifier keys")},
-     separator,
-     {?__(8,"New Geometry Window"),geom_viewer, ?__(9,"Open a new Geometry window")},
-     {?__(10,"Console"),console,?__(11,"Open a console window for information messages")}].
+	       {_,geom} ->
+		   ?__(1,"Geometry Graph");
+	       {_,{geom,N}} ->
+		   ?__(2,"Geometry Graph #") ++ integer_to_list(N);
+	       _ -> ignore
+	   end,
+    if Name =:= ignore -> [];
+       true ->
+	    [{?__(3,"Outliner"),outliner,
+	      ?__(4,"Open the outliner window (showing materials and objects)")},
+	     {Name,object,
+	      ?__(5,"Open a Geometry Graph window (showing objects)")},
+	     {?__(6,"Palette"), palette,?__(7,"Open the color palette window")},
+	     {?__(12,"Tweak Palette"), tweak_palette,
+	      ?__(13,"Open palettes from which tweak tools may be selected or bound to modifier keys")},
+	     separator,
+	     {?__(8,"New Geometry Window"),geom_viewer, ?__(9,"Open a new Geometry window")},
+	     {?__(10,"Console"),console,?__(11,"Open a console window for information messages")}]
+    end.
 
 tool_dirs(Tool) ->
     Help = case Tool of
