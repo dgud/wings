@@ -48,12 +48,11 @@ ambient_occlusion(St) ->
     StartTime = os:timestamp(),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     setup_gl(),
-    {Vabs,DispList} = make_disp_list(St),
+    {Vabs,DrawFun} = make_disp_list(St),
     #st{shapes=Shapes} = St,
-    ProcessObject = fun(_,We) -> process_obj(We,DispList) end,
+    ProcessObject = fun(_, We) -> process_obj(We, DrawFun) end,
     Shapes2 = ?SLOW(gb_trees:map(ProcessObject, Shapes)),
     St2 = St#st{shapes=Shapes2},
-    gl:deleteLists(DispList,1),
     _ = [wings_draw_setup:delete_vab(Vab) || Vab <- Vabs],
     gl:popAttrib(),
     EndTime = os:timestamp(),
@@ -71,14 +70,14 @@ process_obj(We, _) when ?IS_ANY_LIGHT(We) ->
 	true -> We#we{perm=[]};
 	false -> We
     end;
-process_obj(We0, DispList) ->
+process_obj(We0, DrawFun) ->
     #we{es=Etab,vp=Vtab,name=Name} = We0,
     io:fwrite(?__(1,"Processing: ~s\n"), [Name]),
     GetColor =
 	fun(Key,_Val) ->
-		Eye = wings_vertex:pos(Key,We0) ,
-		LookAt = wings_vertex:normal(Key,We0),
-		get_ao_color(Eye,LookAt,DispList)
+		Eye = wings_vertex:pos(Key, We0) ,
+		LookAt = wings_vertex:normal(Key, We0),
+		get_ao_color(Eye, LookAt, DrawFun)
 	end,
     VertexColors = array:sparse_map(GetColor, Vtab),
     SetColor =
@@ -94,11 +93,11 @@ make_disp_list(St) ->
     Wes = gb_trees:values(Shapes),
     Vabs = [wings_draw_setup:we(We, [], St) ||
 	       We <- Wes, is_plain_geometry(We)],
-    DispList = gl:genLists(1),
-    gl:newList(DispList, ?GL_COMPILE),
-    _ = [draw_vab(Vab) || Vab <- Vabs],
-    gl:endList(),
-    {Vabs,DispList}.
+    Draw = fun() ->
+		   _ = [draw_vab(Vab) || Vab <- Vabs],
+		   ok
+	   end,
+    {Vabs,Draw}.
 
 is_plain_geometry(#we{perm=P}=We) ->
     not (?IS_NOT_VISIBLE(P) orelse
@@ -140,9 +139,9 @@ setup_gl() ->
     gl:disable(?GL_LIGHTING),
     gl:disable(?GL_CULL_FACE).
 
-get_ao_color(Eye, Lookat, DispList) ->
+get_ao_color(Eye, Lookat, DrawFun) ->
     gl:clear(?GL_COLOR_BUFFER_BIT),
-    render_hemicube(0, 0, Eye, Lookat, DispList),
+    render_hemicube(0, 0, Eye, Lookat, DrawFun),
     Factor = read_frame(),
     {Factor,Factor,Factor}.
 
@@ -158,7 +157,7 @@ up({X,Y,Z})
 up(_) ->
     {0.0,1.0,0.0}.
 
-render_hemicube(SX, SY, Eye, Lookat, DL) ->
+render_hemicube(SX, SY, Eye, Lookat, DF) ->
     {Up,Right} = get_up_right(Lookat),
     Hemirez = 64, % Must be even and/or power-of-two
     P1 = trunc(Hemirez * 0.00),
@@ -172,13 +171,13 @@ render_hemicube(SX, SY, Eye, Lookat, DL) ->
     EmU = e3d_vec:sub(Eye, Up),
     EpU = e3d_vec:add(Eye, Up),
     LookatN = e3d_vec:neg(Lookat),
-    render_view(Eye, EpL, Up,      [-1,1,-1,1], [SX+P2,SY+P2,W,W], DL), % Center
-    render_view(Eye, EpR, Up,      [ 0,1,-1,1], [SX+P1,SY+P2,H,W], DL), % Right
-    render_view(Eye, EmR, Up,      [-1,0,-1,1], [SX+P4,SY+P2,H,W], DL), % Left
-    render_view(Eye, EmU, Lookat,  [-1,1, 0,1], [SX+P2,SY+P1,W,H], DL), % Down
-    render_view(Eye, EpU, LookatN, [-1,1,-1,0], [SX+P2,SY+P4,W,H], DL). % Up
+    render_view(Eye, EpL, Up,      [-1,1,-1,1], [SX+P2,SY+P2,W,W], DF), % Center
+    render_view(Eye, EpR, Up,      [ 0,1,-1,1], [SX+P1,SY+P2,H,W], DF), % Right
+    render_view(Eye, EmR, Up,      [-1,0,-1,1], [SX+P4,SY+P2,H,W], DF), % Left
+    render_view(Eye, EmU, Lookat,  [-1,1, 0,1], [SX+P2,SY+P1,W,H], DF), % Down
+    render_view(Eye, EpU, LookatN, [-1,1,-1,0], [SX+P2,SY+P4,W,H], DF). % Up
 
-render_view(Eye, Lookat, Up, Frustum, Viewport, DispList) ->
+render_view(Eye, Lookat, Up, Frustum, Viewport, DrawFun) ->
     Near = 0.01,
     Far = 100.0,
     {Ex,Ey,Ez} = Eye,
@@ -193,7 +192,7 @@ render_view(Eye, Lookat, Up, Frustum, Viewport, DispList) ->
     gl:loadIdentity(),
     glu:lookAt(Ex,Ey,Ez, Dx,Dy,Dz, Ux,Uy,Uz),
     gl:viewport(X,Y, W,H),
-    gl:callList(DispList).
+    DrawFun().
 
 create_ambient_light(St) ->
     wings_pref:set_value(scene_lights, true),

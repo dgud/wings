@@ -17,7 +17,7 @@
 -include_lib("wings.hrl").
 -include("e3d_image.hrl").
 
--record(ao, {dl, vabs, fbo, tex, cleanup_fbo, buf}).
+-record(ao, {df, vabs, fbo, tex, cleanup_fbo, buf}).
 -define(TEX_SZ, 1024).
 -define(SAMPLE_SZ, 64).
 -define(NUM_SAMPLES, (?TEX_SZ div ?SAMPLE_SZ)).
@@ -27,8 +27,8 @@ ambient_occlusion(St) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     setup_gl(),
     AO_0 = setup_shaders(),
-    {Vabs,DispList} = wpc_ambocc:make_disp_list(St),
-    AO = AO_0#ao{dl=DispList,vabs=Vabs},
+    {Vabs,DrawFun} = wpc_ambocc:make_disp_list(St),
+    AO = AO_0#ao{df=DrawFun,vabs=Vabs},
     #st{shapes=Shapes} = St,
     ProcessObject = fun(_,We) -> process_obj(We,AO) end,
     Shapes2 = ?SLOW(gb_trees:map(ProcessObject, Shapes)),
@@ -60,8 +60,7 @@ setup_shaders() ->
     #ao{fbo=Fbo, tex=Tex, cleanup_fbo=Buffers,
 	buf = wings_io:get_buffer(?TEX_SZ*?TEX_SZ, ?GL_UNSIGNED_BYTE)}.
 
-cleanup(#ao{dl=DispList, vabs=Vabs, cleanup_fbo=Fbo}) ->
-    gl:deleteLists(DispList,1),
+cleanup(#ao{vabs=Vabs, cleanup_fbo=Fbo}) ->
     _ = [wings_draw_setup:delete_vab(Vab) || Vab <- Vabs],
     wings_gl:delete_fbo(Fbo).
 
@@ -99,11 +98,11 @@ calc_ao(VList, We, AO, Vc0) ->
     Vc = (get_ao_factors(Batch, Bin, Vc0)),
     calc_ao(Rest, We, AO, Vc).
 
-render_hemisphere(X,Y,[{Vertex,Eye}|Rest], We, AO = #ao{dl=DispList})
+render_hemisphere(X, Y, [{Vertex,Eye}|Rest], We, #ao{df=DrawFun}=AO)
   when X < ?NUM_SAMPLES ->
     LookAt = wings_vertex:normal(Vertex,We),
-    wpc_ambocc:render_hemicube(X*?SAMPLE_SZ,Y*?SAMPLE_SZ,
-			       Eye,LookAt,DispList),
+    wpc_ambocc:render_hemicube(X*?SAMPLE_SZ, Y*?SAMPLE_SZ,
+			       Eye, LookAt, DrawFun),
     render_hemisphere(X+1,Y, Rest, We, AO);
 render_hemisphere(_,_,[], _, _) -> ok;
 render_hemisphere(_,Y,Vs,We,AO) ->
