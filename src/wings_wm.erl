@@ -787,7 +787,6 @@ redraw_all() ->
 		     end, Windows),
     wings_io:swapBuffers(),
     calc_stats(),
-    wings:release_all(),
     clean(),
     wings_io:set_cursor(get(wm_cursor)),
     event_loop().

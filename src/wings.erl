@@ -22,7 +22,6 @@
 -export([highlight_aim_setup/1]).
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).
 -export([info_line/0]).
--export([keep/1, release_all/0]).
 
 -export([new_st/0]).
 
@@ -130,12 +129,6 @@ init(File0) ->
     wings_job:init(),
     wings_develop:init(),
     wings_tweak:init(),
-    Env = wings_io:get_process_option(),
-    Keeper = spawn_link(fun() -> 
-				wings_io:set_process_option(Env),
-				keeper([]) 
-			end),
-    register(wings_keeper, Keeper),
     Op = main_loop_noredraw(St),		%Replace crash handler
 						%with this handler.
     
@@ -2050,33 +2043,3 @@ menu_toolbar_action({menu_toolbar,{X,_}}, St) ->
         {_,Y} = wings_wm:local2global(X0, Y0),
         popup_menu(X, Y + ?LINE_HEIGHT div 2, St)
     end.
-
-%% Garbage collection works too good sometimes and data
-%% sent to opengl can be garbage collected before it is 
-%% used in consecutiv calls.
-%% Specially now that a multithreaded emulator is used,
-%% and the calls to the driver are buffered until the 
-%% gui thread is scheduled in.
-%% To be able keep the data alive we send it to another process,
-%% instead of keeping the transient data in some datastructures.
-%% Invoke release_all after each frame is drawn so we can release the data.
-
-keep(Data) ->
-    wings_keeper ! {keep, Data},
-    ok.
-
-release_all() ->
-    wings_keeper ! release_all,
-    ok.
-
-keeper(Kept) ->
-    receive 
-	{keep, Data} ->
-	    keeper([Data|Kept]);
-	release_all ->
-	    %% Do a sync call to gui thread when it returns
-	    %% we know all previous calls have been done
-	    _ = wings_io:is_key_pressed($\s),
-	    keeper([])
-    end.
-	    
