@@ -17,7 +17,7 @@
 -include_lib("wings.hrl").
 -include("e3d_image.hrl").
 
--record(ao, {dl, fbo, tex, cleanup_fbo, buf}).
+-record(ao, {dl, vabs, fbo, tex, cleanup_fbo, buf}).
 -define(TEX_SZ, 1024).
 -define(SAMPLE_SZ, 64).
 -define(NUM_SAMPLES, (?TEX_SZ div ?SAMPLE_SZ)).
@@ -27,8 +27,8 @@ ambient_occlusion(St) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     setup_gl(),
     AO_0 = setup_shaders(),
-    DispList = wpc_ambocc:make_disp_list(St),
-    AO = AO_0#ao{dl=DispList},
+    {Vabs,DispList} = wpc_ambocc:make_disp_list(St),
+    AO = AO_0#ao{dl=DispList,vabs=Vabs},
     #st{shapes=Shapes} = St,
     ProcessObject = fun(_,We) -> process_obj(We,AO) end,
     Shapes2 = ?SLOW(gb_trees:map(ProcessObject, Shapes)),
@@ -60,8 +60,9 @@ setup_shaders() ->
     #ao{fbo=Fbo, tex=Tex, cleanup_fbo=Buffers,
 	buf = wings_io:get_buffer(?TEX_SZ*?TEX_SZ, ?GL_UNSIGNED_BYTE)}.
 
-cleanup(#ao{dl=DispList, cleanup_fbo=Fbo}) ->
+cleanup(#ao{dl=DispList, vabs=Vabs, cleanup_fbo=Fbo}) ->
     gl:deleteLists(DispList,1),
+    _ = [wings_draw_setup:delete_vab(Vab) || Vab <- Vabs],
     wings_gl:delete_fbo(Fbo).
 
 process_obj(We, _) when ?IS_NOT_VISIBLE(We#we.perm) ->

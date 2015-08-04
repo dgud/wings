@@ -48,12 +48,13 @@ ambient_occlusion(St) ->
     StartTime = os:timestamp(),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     setup_gl(),
-    DispList = make_disp_list(St),
+    {Vabs,DispList} = make_disp_list(St),
     #st{shapes=Shapes} = St,
     ProcessObject = fun(_,We) -> process_obj(We,DispList) end,
     Shapes2 = ?SLOW(gb_trees:map(ProcessObject, Shapes)),
     St2 = St#st{shapes=Shapes2},
     gl:deleteLists(DispList,1),
+    _ = [wings_draw_setup:delete_vab(Vab) || Vab <- Vabs],
     gl:popAttrib(),
     EndTime = os:timestamp(),
     Seconds = timer:now_diff(EndTime,StartTime)/1.0e6,
@@ -90,24 +91,25 @@ process_obj(We0, DispList) ->
 
 make_disp_list(St) ->
     #st{shapes=Shapes} = St,
-    DrawAll = fun(We) -> draw_we(We,St) end,
+    Wes = gb_trees:values(Shapes),
+    Vabs = [wings_draw_setup:we(We, [], St) ||
+	       We <- Wes, is_plain_geometry(We)],
     DispList = gl:genLists(1),
     gl:newList(DispList, ?GL_COMPILE),
-    Vabs = lists:map(DrawAll, gb_trees:values(Shapes)),
-    wings:keep(Vabs),
+    _ = [draw_vab(Vab) || Vab <- Vabs],
     gl:endList(),
-    DispList.
+    {Vabs,DispList}.
 
-draw_we(We, _) when ?IS_NOT_VISIBLE(We#we.perm) -> ok;
-draw_we(We, _) when ?IS_NOT_SELECTABLE(We#we.perm) -> ok;
-draw_we(We, _) when ?IS_ANY_LIGHT(We) -> ok;
-draw_we(We, St) ->
-    Vab = wings_draw_setup:we(We, [], St),
+is_plain_geometry(#we{perm=P}=We) ->
+    not (?IS_NOT_VISIBLE(P) orelse
+	 ?IS_NOT_SELECTABLE(P) orelse
+	 ?IS_ANY_LIGHT(We)).
+
+draw_vab(Vab) ->
     wings_draw_setup:enable_pointers(Vab, []),
     Count = wings_draw_setup:face_vertex_count(Vab),
     gl:drawArrays(?GL_TRIANGLES, 0, Count),
-    wings_draw_setup:disable_pointers(Vab, []),
-    ok.
+    wings_draw_setup:disable_pointers(Vab, []).
 
 get_ao_factor(Buffer) ->
     NumWhitePixels = num_white(Buffer, 0),
