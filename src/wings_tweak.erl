@@ -1120,7 +1120,7 @@ relax_vec(V, We) ->
         %% so we default to the position of the vertex itself.
         wings_vertex:pos(V, We);
     Cs0 ->
-        Cs = [C || C <- Cs0, C =/= undefined],
+        Cs = [C || C = Cs0, C =/= undefined],
         if Cs =:= [] -> wings_vertex:pos(V, We);
           true -> e3d_vec:average([wings_vertex:pos(V, We)|Cs])
         end
@@ -2902,7 +2902,7 @@ get_vs_influence(V, VsDyn) ->
 %%%
 
 %% It generate the OpenGl list of colored vertices
-update_dlist({edge_info,{EdList,ClBin}},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
+update_dlist({edge_info,{EdList,ClBin}}, #dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
     Key = ?MODULE,
     case EdList of
     [] ->
