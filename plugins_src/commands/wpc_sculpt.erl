@@ -1078,40 +1078,50 @@ get_vs_influence(V, VsDyn) ->
 update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
     Key = ?MODULE,
     case EdgeInfo of
-    [] ->
-        D#dlo{plugins=[{Key,none}|Pdl]};
-    _ ->
-        Str=wings_pref:get_value(sculpt_strength),
-        ColFac=Str*10,  % it makes range of 0..1 
-        ColFrom=col_to_vec(wings_pref:get_value(edge_color)),
-        ColTo={1.0*ColFac,0.0*ColFac,1.0},  % this color is a fixed value from blue to magenta
-        ColRange=e3d_vec:sub(ColTo,ColFrom),
-        EdgeList = gl:genLists(1),
-        gl:newList(EdgeList,?GL_COMPILE),
-        gl:'begin'(?GL_LINES),
-        pump_edges(EdgeInfo,Vtab,ColFrom,ColRange),
-        gl:'end'(),
-        gl:endList(),
-        D#dlo{plugins=[{Key,EdgeList}|Pdl]}
+	[] ->
+	    D#dlo{plugins=[{Key,none}|Pdl]};
+	_ ->
+	    Str = wings_pref:get_value(sculpt_strength),
+	    ColFac = Str*10,		     % the range of 0..1
+	    ColFrom = col_to_vec(wings_pref:get_value(edge_color)),
+	    ColTo = {1.0*ColFac,0.0*ColFac,1.0}, % from blue to magenta
+	    ColRange = e3d_vec:sub(ColTo, ColFrom),
+	    Lines = prepare_edge_pump(EdgeInfo, Vtab, ColFrom,
+				      ColRange, <<>>),
+	    Draw = draw_fun(Lines),
+	    D#dlo{plugins=[{Key,Draw}|Pdl]}
     end.
 
-%% pumping Lines
-pump_edges([],_,_,_) -> ok;
-pump_edges([{Id1,Inf1,Id2,Inf2}|SegInf],Vtab,Col,Range) ->
-    {R1,G1,B1}=color_gradient(Col,Range,Inf1),
-    {R2,G2,B2}=color_gradient(Col,Range,Inf2),
-    case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
-        {undefined,_} -> ok;
-        {_,undefined} -> ok;
-        {V1,V2} ->
-            gl:color3f(R1,G1,B1),
-            gl:vertex3fv(V1),
-            gl:color3f(R2,G2,B2),
-            gl:vertex3fv(V2)
-    end,
-    pump_edges(SegInf,Vtab,Col,Range).
+draw_fun(Data) ->
+    N = byte_size(Data) div (4*3*4),
+    F = fun() ->
+		gl:drawArrays(?GL_LINES, 0, N)
+	end,
+    wings_vbo:new(F, Data, [vertex,color]).
 
-%% It'll will provide de vertices data for 'update_dlist' function
+prepare_edge_pump([{Id1,Inf1,Id2,Inf2}|SegInf], Vtab, Col, Range, Acc0) ->
+    case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
+        {undefined,_} ->
+	    prepare_edge_pump(SegInf, Vtab, Col, Range, Acc0);
+        {_,undefined} ->
+	    prepare_edge_pump(SegInf, Vtab, Col, Range, Acc0);
+        {V1,V2} ->
+	    Col1 = color_gradient(Col, Range, Inf1),
+	    Col2 = color_gradient(Col, Range, Inf2),
+	    {R1,G1,B1} = Col1,
+	    {R2,G2,B2} = Col2,
+	    {X1,Y1,Z1} = V1,
+	    {X2,Y2,Z2} = V2,
+	    Acc = <<Acc0/binary,
+		    X1:?F32,Y1:?F32,Z1:?F32,
+		    R1:?F32,G1:?F32,B1:?F32,
+		    X2:?F32,Y2:?F32,Z2:?F32,
+		    R2:?F32,G2:?F32,B2:?F32>>,
+	    prepare_edge_pump(SegInf, Vtab, Col, Range, Acc)
+    end;
+prepare_edge_pump([], _, _, _, Acc) -> Acc.
+
+%% It'll provide the vertice data for 'update_dlist' function
 get_data(update_dlist, Data, Acc) ->  % for draw lists
     case gb_trees:lookup(edge_info, Data) of
     none ->
@@ -1120,10 +1130,11 @@ get_data(update_dlist, Data, Acc) ->  % for draw lists
         {ok, [{plugin, {?MODULE, {edge_info, EdgeInfo}}}|Acc]}
     end.
 
-%% It'll use the list prepared by 'update_dlist' function and then draw it (only for plain draw)
-draw(plain, EdgeList, _D, SelMode) ->
+%% It'll use the list prepared by 'update_dlist' function and then
+%% draw it (only for plain draw).
+draw(plain, DrawEdges, _D, SelMode) ->
     gl:lineWidth(edge_width(SelMode)),
-    wings_dl:call(EdgeList);
+    wings_dl:call(DrawEdges);
 draw(_,_,_,_) -> ok.
 
 edge_width(edge) -> wings_pref:get_value(edge_width);
@@ -1135,4 +1146,4 @@ col_to_vec({R,G,B,_}) when is_integer(R) -> col_to_vec({R,G,B});
 col_to_vec({R,G,B,_}) -> col_to_vec({R,G,B}).
 
 color_gradient(Cb, Cr, Perc) ->
-    e3d_vec:add(Cb,e3d_vec:mul(Cr,Perc)).
+    e3d_vec:add_prod(Cb, Cr, Perc).
