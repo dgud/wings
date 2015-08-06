@@ -15,6 +15,7 @@
 
 -module(wings_util).
 -export([share/1,share/3,make_vector/1,
+	 col3bv/1, col4bv/1, col3fv/1, col4fv/1,
 	 rel2fam/1,
 	 format/2,
 	 key_format/2,
@@ -77,6 +78,20 @@ make_vector({region,normal}) -> normal;
 make_vector(Axis) when Axis == last_axis; Axis == default_axis ->
     {_,Vec} = wings_pref:get_value(Axis),
     Vec.
+
+
+col3bv({R,G,B}) -> {round(R*255),round(G*255),round(B*255)};
+col3bv({R,G,B,_}) -> {round(R*255),round(G*255),round(B*255)}.
+
+col4bv({R,G,B}) -> {round(R*255),round(G*255), round(B*255), 255};
+col4bv({R,G,B,A}) -> {round(R*255),round(G*255),round(B*255), round(A*255)}.
+
+col3fv({R,G,B}) -> {R/255,G/255,B/255};
+col3fv({R,G,B,_}) -> {R/255,G/255,B/255}.
+
+col4fv({R,G,B}) -> {R/255,G/255,B/255, 1.0};
+col4fv({R,G,B,A}) -> {R/255,G/255,B/255,A/255}.
+
 
 key_format(Key, Msg) ->
     [Key,160,Msg].

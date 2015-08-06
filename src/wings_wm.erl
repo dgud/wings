@@ -20,7 +20,7 @@
 	 later/1,send/2,psend/2, psend/3,send_after_redraw/2,
 	 send_once_after_redraw/2,
 	 set_timer/2,cancel_timer/1,
-	 this/0,offset/3,move/2,move/3,resize/2,pos/1,windows/0,is_window/1,
+	 this/0,offset/3,move/2,move/3,resize/2,pos/1,windows/0,is_window/1, is_wxwindow/1,
 	 window_below/2,geom_below/2,resize_windows/2,
 	 update_window/2,clear_background/0,
 	 callback/1,current_state/1,get_current_state/0,notify/1,
@@ -372,9 +372,17 @@ hide(Name) ->
 
 show(Name) ->
     case get_window_data(Name) of
+	#win{obj=Obj} when Obj =/= undefined -> show_wx(Obj);
 	#win{z=Z} when Z > 0 -> ok;
 	#win{z=Z}=Win -> put_window_data(Name, Win#win{z=-Z})
     end.
+
+show_wx(Frame) ->
+    case wxFrame:isIconized(Frame) of
+	true -> wxFrame:iconize(Frame, [{iconize, false}]);
+	false -> ok
+    end,
+    wxFrame:raise(Frame).
 
 is_hidden(Name) ->
     case get_window_data(Name) of
@@ -400,6 +408,15 @@ windows() ->
 
 is_window(Name) ->
     gb_trees:is_defined(Name, get(wm_windows)).
+
+is_wxwindow(Name) ->
+    case gb_trees:is_defined(Name, get(wm_windows)) of
+	true ->
+	    #win{obj=Obj} = get_window_data(Name),
+	    Obj =/= undefined;
+	false ->
+	    false
+    end.
 
 offset(Name, Xoffs, Yoffs) ->
     update_window(Name, [{dx,Xoffs},{dy,Yoffs}]).
@@ -525,12 +542,18 @@ win_rect() ->
     win_rect(this()).
 
 win_size(Name) ->
-    #win{w=W,h=H} = get_window_data(Name),
-    {W,H}.
+    #win{w=W,h=H,obj=Wx} = get_window_data(Name),
+    case Wx of
+	undefined -> {W,H};
+	_ -> wxWindow:getSize(Wx)
+    end.
 
 win_ul(Name) ->
-    #win{x=X,y=Y} = get_window_data(Name),
-    {X,Y}.
+    #win{x=X,y=Y,obj=Wx} = get_window_data(Name),
+    case Wx of
+	undefined -> {X,Y};
+	_ -> wxWindow:getScreenPosition(Wx)
+    end.
 
 win_ur(Name) ->
     #win{x=X,y=Y,w=W} = get_window_data(Name),
@@ -554,8 +577,11 @@ win_rect(Name) ->
 
 win_rollup({dialog,_}) -> no;
 win_rollup(Name) ->
-    #win{rollup=Rollup} = get_window_data(Name),
-    Rollup.
+    #win{rollup=Rollup, obj=Obj} = get_window_data(Name),
+    case Obj =:= undefined of
+	true -> Rollup;
+	false -> no
+    end.
 
 local2global(#mousebutton{x=X0,y=Y0}=Ev) ->
     {X,Y} = local2global(X0, Y0),

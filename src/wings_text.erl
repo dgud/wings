@@ -33,11 +33,12 @@ init() ->
     WxSys = make_wxfont(wings_pref:get_value(system_font)),
     {ok, Sys} = wings_glfont:load_font(WxSys, [{range, Ranges}]),
     WxCon = make_wxfont(wings_pref:get_value(console_font)),
-    {ok, Console} = wings_glfont:load_font(WxCon, [{range, Ranges}]),
+    %% {ok, Console} = wings_glfont:load_font(WxCon, [{range, Ranges}]),
 
     ?SET(system_font, Sys),
-    ?SET(console_font, Console),
     ?SET(system_font_wx, WxSys),
+    %% ?SET(console_font, Console),
+    ?SET(console_font_wx, WxCon),
     ok.
 
 reload_font(PrefKey, FontInfo) ->

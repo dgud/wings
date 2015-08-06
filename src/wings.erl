@@ -1007,7 +1007,7 @@ window_menu() ->
 	      ?__(13,"Open palettes from which tweak tools may be selected or bound to modifier keys")},
 	     separator,
 	     {?__(8,"New Geometry Window"),geom_viewer, ?__(9,"Open a new Geometry window")},
-	     {?__(10,"Console"),console,?__(11,"Open a console window for information messages")}]
+	     {?__(10,"Log Window"),console,?__(11,"Open a log window for information messages")}]
     end.
 
 tool_dirs(Tool) ->
@@ -1602,18 +1602,22 @@ save_windows_1([]) -> [].
 
 save_window(Name, Ns) ->
     {MaxX,MaxY} = wings_wm:win_size(desktop),
-    {PosX0,PosY0} = case Name of
-      {tweak, Palette} ->
-        wings_wm:win_ul({tweak, Palette});
-      _ ->
-        wings_wm:win_ur({controller,Name})
-    end,
-    PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
-    PosY = if PosY0 < 0 -> 20; PosY0 > MaxY -> 20; true -> PosY0 end,
+    Pos = case wings_wm:is_wxwindow(Name) of
+	      true  -> wings_wm:win_ul(Name);
+	      false ->
+		  {PosX0,PosY0} = case Name of
+				      {tweak, Palette} ->
+					  wings_wm:win_ul({tweak, Palette});
+				      _ ->
+					  wings_wm:win_ur({controller,Name})
+				  end,
+		  PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
+		  PosY = if PosY0 < 0 -> 20; PosY0 > MaxY -> 20; true -> PosY0 end,
+		  {PosX,PosY}
+	  end,
     Size = wings_wm:win_size(Name),
     Rollup = {rollup, wings_wm:win_rollup(Name)},
-    W = {Name, {PosX,PosY}, Size, [Rollup]},
-    [W|save_windows_1(Ns)].
+    [{Name, Pos, Size, [Rollup]}|save_windows_1(Ns)].
 
 save_geom_window(Name, Ns) ->
     {Pos,Size} = wings_wm:win_rect(Name),
