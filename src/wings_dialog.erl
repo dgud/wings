@@ -320,6 +320,8 @@ show(Key, Bool, Store) ->
         _ -> ok
     end.
 
+%%%
+
 %%% Updates a control's sizer and all its children.
 %%% For optimization purpose, it must be called after all calls to show/3 has been done.
 %%% OBS: that is required due wxWidgets not to be propagating the updates (bug?!)
@@ -373,9 +375,20 @@ set_value_impl(#in{wx=Ctrl, type=slider, data={_, ToSlider}}, Val, _) ->
 set_value_impl(In=#in{type=button}, Val, Store) ->
     true = ets:insert(Store, In#in{data=Val});
 set_value_impl(In=#in{type=value}, Val, Store) ->
-    true = ets:insert(Store, In#in{data=Val}).
+    true = ets:insert(Store, In#in{data=Val});
+set_value_impl(#in{wx=Ctrl, type=radiobox, data=Keys}, Val, _) ->
+    Idx = get_list_index(Val,Keys),
+    wxRadioBox:setSelection(Ctrl, Idx);
+set_value_impl(#in{wx=Ctrl, type=checkbox}, Val, _) ->
+    wxCheckBox:setValue(Ctrl, Val).
 
+get_list_index(Val, List) ->
+    get_list_index_0(Val, List, -1).
 
+get_list_index_0(_, [], Idx) -> Idx;
+get_list_index_0(Val, [Val|_], Idx) -> Idx+1;
+get_list_index_0(Val, [_|T], Idx) ->
+    get_list_index_0(Val, T, Idx+1).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Helpers
 
@@ -615,6 +628,12 @@ setup_hook({Key, #in{wx=Ctrl, type=fontpicker, hook=UserHook}}, Fields) ->
 						 UserHook(Key, Font, Fields)
 					 end}]),
     UserHook(Key, wxFontPickerCtrl:getSelectedFont(Ctrl), Fields);
+setup_hook(#in{key=Key, wx=Ctrl, type=table, hook=UserHook}, Fields) ->
+    wxListCtrl:connect(Ctrl, command_list_item_focused,
+        [{callback, fun(_, _) ->
+            UserHook(Key, Ctrl, Fields)
+        end}]),
+    ok;
 
 %% Kind of special
 setup_hook(#in{wx=Canvas, type=custom_gl, hook=CustomRedraw}, Fields) ->
@@ -1014,7 +1033,11 @@ build(Ask, {table, [Header|Rows], Flags}, Parent, Sizer, In) ->
 			     [] -> -1;
 			     _ -> lists:sum([W*8 || W <- Widths]) + 50
 			 end,
-		Options = [{style, ?wxLC_REPORT}, {size, {Width, Height}}],
+		Style  = case proplists:get_value(sel_style, Flags) of
+			     single -> ?wxLC_SINGLE_SEL bor ?wxLC_REPORT;
+			     _ -> ?wxLC_REPORT
+			 end,
+		Options = [{style, Style}, {size, {Width, Height}}],
 		Ctrl = wxListCtrl:new(Parent, Options),
 		AddHeader = fun(HeadStr, Column) ->
 				    wxListCtrl:insertColumn(Ctrl, Column, HeadStr, []),
@@ -1038,7 +1061,7 @@ build(Ask, {table, [Header|Rows], Flags}, Parent, Sizer, In) ->
 		add_sizer(table, Sizer, Ctrl),
 		Ctrl
 	end,
-    [#in{key=proplists:get_value(key,Flags), def=Rows,
+    [#in{key=proplists:get_value(key,Flags), def=Rows, hook=proplists:get_value(hook, Flags),
      	 type=table, wx=create(Ask,Create)}|In];
 
 build(Ask, {image, ImageOrFile}, Parent, Sizer, In) ->
