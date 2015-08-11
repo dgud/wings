@@ -520,6 +520,8 @@ get_curr_value(#in{type=radiobox, wx=Ctrl, data=Keys}) ->
     lists:nth(ZeroIndex+1, Keys);
 get_curr_value(#in{type=filepicker, wx=Ctrl}) ->
     wxFilePickerCtrl:getPath(Ctrl);
+get_curr_value(#in{type=dirpicker, wx=Ctrl}) ->
+    wxDirPickerCtrl:getPath(Ctrl);
 get_curr_value(#in{type=fontpicker, wx=Ctrl}) ->
     wxFontPickerCtrl:getSelectedFont(Ctrl);
 get_curr_value(#in{type=color, wx=Ctrl}) ->
@@ -536,9 +538,9 @@ get_curr_value(#in{type=text, def=Def, wx=Ctrl, validator=Validate}) ->
 get_curr_value(#in{type=button, data=Data}) -> Data;
 get_curr_value(#in{type=table, def=Def, wx=Ctrl}) ->
     Count = wxListCtrl:getItemCount(Ctrl),
-    IsSelected = 
+    IsSelected =
 	fun(N, Acc) ->
-		case wxListCtrl:getItemState(Ctrl, N, ?wxLIST_STATE_SELECTED) of 
+		case wxListCtrl:getItemState(Ctrl, N, ?wxLIST_STATE_SELECTED) of
 		    ?wxLIST_STATE_SELECTED -> [N|Acc];
 		    _ -> Acc
 		end
@@ -917,23 +919,43 @@ build(Ask, {color, Def, Flags}, Parent, Sizer, In) ->
 build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
     Props = proplists:get_value(props, Flags, []),
     DlgType = proplists:get_value(dialog_type, Props, open_dialog),
-    Create = fun() ->
-		     What = case DlgType of
-				open_dialog -> ?wxFLP_OPEN;
-				save_dialog -> ?wxFLP_SAVE;
-				_ -> undefined
-			    end,
-		     Filter = wings_file:file_filters(Props),
-		     Ctrl = wxFilePickerCtrl:new(Parent, ?wxID_ANY,
-						 [{style, What bor ?wxFLP_USE_TEXTCTRL},
-						  {path, Def},
-						  {wildcard, Filter}]),
-		     tooltip(Ctrl, Flags),
-		     add_sizer(filepicker, Sizer, Ctrl),
-		     Ctrl
-	     end,
+    CharWidth = wings_text:width("W"),
+    case proplists:get_value(width, Flags, default) of
+        Width when is_integer(Width), Width > 0 ->
+            StyleEx = [{size, {CharWidth*(Width+1), -1}}];
+        _ ->
+            StyleEx = []
+    end,
+
+    if DlgType =/= dir_dialog ->
+            Type = filepicker,
+            Create = fun() ->
+		            What = case DlgType of
+		                       open_dialog -> ?wxFLP_OPEN;
+		                       save_dialog -> ?wxFLP_SAVE;
+		                       _ -> undefined
+		                   end,
+		            Filter = wings_file:file_filters(Props),
+		            Ctrl = wxFilePickerCtrl:new(Parent, ?wxID_ANY,
+		                [{style, What bor ?wxFLP_USE_TEXTCTRL},
+		                    {path, Def},
+		                    {wildcard, Filter}]++StyleEx),
+		            tooltip(Ctrl, Flags),
+		            add_sizer(filepicker, Sizer, Ctrl),
+		            Ctrl
+		     end;
+        true ->
+            Type = dirpicker,
+            Create = fun() ->
+		            Ctrl = wxDirPickerCtrl:new(Parent, ?wxID_ANY,
+		                [{style, ?wxDIRP_DEFAULT_STYLE bor ?wxDIRP_USE_TEXTCTRL}, {path, Def}]++StyleEx),
+		            tooltip(Ctrl, Flags),
+		            add_sizer(filepicker, Sizer, Ctrl),
+		            Ctrl
+		     end
+    end,
     [#in{key=proplists:get_value(key,Flags), def=Def, hook=proplists:get_value(hook, Flags),
-	 type=filepicker, wx=create(Ask,Create)}|In];
+	 type=Type, wx=create(Ask,Create)}|In];
 
 build(Ask, {button, Action}, Parent, Sizer, In)
   when is_atom(Action) ->

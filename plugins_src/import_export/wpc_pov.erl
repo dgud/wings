@@ -238,7 +238,7 @@ pref_dialog(St) ->
             ]},
             {hframe, [
                 {label, ?__(4, "Executable")},
-                {button, {text, Renderer, [{key, renderer}, wings_job:browse_props()]}}]},
+                {button, {text, Renderer, [{key, renderer}, {width,35}, wings_job:browse_props()]}}]},
             {hframe, [
                 {label, ?__(5, "Arguments")},
                 {text, RenderArgs, [{key, renderargs}]}]},
@@ -2051,7 +2051,7 @@ material_dialog(_Name, Mat) ->
                             ], PigmentImage, [key(image_type),{hook,Hook_Enable}]}]},
                         {hframe, [
                             {label, ?__(89, "Filename")},
-                            {button, {text, proplists:get_value(image_user_file, PovRay, []), [key(image_user_file), {props, BrowseProps}]}}
+                            {button, {text, proplists:get_value(image_user_file, PovRay, []), [key(image_user_file), {width,35}, {props, BrowseProps}]}}
                         ], [key(pnl_pigment_file)]}
                     ], [key(pnl_image),{show, true},{margin,false}]},
                     %% colormap
@@ -2276,7 +2276,7 @@ material_dialog(_Name, Mat) ->
                             ], NormalImage, [key(n_image_type),{hook,Hook_Enable}]}]},
                         {hframe, [
                             {label, ?__(89, "Filename")},
-                            {button, {text, proplists:get_value(n_image_user_file, PovRay, []), [key(n_image_user_file), {props, BrowseProps}]}}
+                            {button, {text, proplists:get_value(n_image_user_file, PovRay, []), [key(n_image_user_file), {width,35}, {props, BrowseProps}]}}
                         ], [key(pnl_normal_file)]}
                     ], [key(pnl_n_image),{margin,false}]},
                     %% normalmap
@@ -2410,7 +2410,6 @@ material_result(_Name, Mat, Res) ->
         fun() -> [{0.0, agate}] end),
 
     FoundCM = [{colormap_list, ColorMapNC}, {normalmap_list, NormalMapNC} | RemainingND],
-    io:format("FoundCM: ~p\n",[FoundCM]),
 
     NewMat = [{?TAG, FoundCM} | lists:keydelete(?TAG, 1, Mat)],
     {NewMat, Remaining}.

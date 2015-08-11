@@ -453,7 +453,7 @@ range_1(caustic_radius)         -> {0.0,1.0};
 range_1(ao_distance)            -> {1.0,100.0};
 range_1(ao_samples)             -> {1.0,128.0};
 range_1(volintegr_stepsize)     -> {0.0,100.0};
-range_1(subdivisions)		-> {0,infinity};
+range_1(subdivisions)		-> {0,10};
 range_1(threads_number)         -> {1,100};
 range_1(aa_pixelwidth)          -> {1.0,2.0};
 range_1(aa_passes)              -> {0,infinity};
@@ -1739,7 +1739,7 @@ modulator(Res0, M) ->
     {TypeTag,Type} = lists:keyfind(TypeTag, 1, Res1),
     Res2 = lists:keydelete(EnabledTag, 1, lists:keydelete(TypeTag, 1, Res1)),
     [Mode,AlphaIntensity,TextureType,SizeX,SizeY,SizeZ,
-     Diffuse,Specular,Shininess,Normal,
+     Diffuse,Shininess,Normal,
      Filename,
      Color1,Color2,Hard,NoiseBasis,NoiseSize,Depth,
      Sharpness,Turbulence,Shape,
@@ -1754,7 +1754,7 @@ modulator(Res0, M) ->
     Ps = [{enabled,Enabled},{mode,Mode},{alpha_intensity,AlphaIntensity},
           {texture_type,TextureType},
           {size_x,SizeX},{size_y,SizeY},{size_z,SizeZ},
-          {diffuse,Diffuse},{specular,Specular},
+          {diffuse,Diffuse},
           {shininess,Shininess},{normal,Normal},
           {type,Type},
           {filename,Filename},{color1,Color1},{color2,Color2},{hard,Hard},
@@ -2260,6 +2260,7 @@ light_result(Ps) ->
 pref_dialog(St) ->
     [{dialogs,Dialogs},{renderer,Renderer},{pluginspath,PluginsPath},
      {options,Options},{shader_type,ShaderType}] = get_user_prefs([{dialogs,?DEF_DIALOGS},{renderer,?DEF_RENDERER},
+                                                                   {pluginspath,?DEF_PLUGINS_PATH},
                                                                    {options,?DEF_OPTIONS},{shader_type,?DEF_SHADER_TYPE}]),
 
     Dialog = [
@@ -2281,8 +2282,8 @@ pref_dialog(St) ->
                     {label,"Default Shader"}
                 ]},
                 {vframe, [
-                    {button,{text,Renderer,[{key,renderer}, wings_job:browse_props()]}},
-                    {text,PluginsPath,[{key,pluginspath}]},
+                    {button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}},
+                    {button,{text,PluginsPath,[{key,pluginspath},{width,35},{props,[{dialog_type,dir_dialog}]}]}},
                     {text,Options,[{key,options}]},
                     {menu, [
                         {"Shiny Diffuse",shinydiffuse},
@@ -2499,7 +2500,7 @@ export_dialog_qs(Op, Attr) ->
                     {hframe, [
                         {hframe, [
                             {label, ?__(1, "Subdivisions")},
-                            {slider, {text, get_pref(subdivisions,Attr), [range(subdivisions),{key,subdivisions}]}}
+                            {slider, {text, get_pref(subdivisions,Attr), [{key,subdivisions}, range(subdivisions)]}}
                         ]}
                     ],[{margin,false}]},
                     {hframe, [
@@ -3181,7 +3182,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                 end,
             file:delete(RenderFile),
             set_var(rendering, true),
-	    wings_job:render(ExportTS, Renderer,"-pp "++format(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+	    wings_job:render(ExportTS, Renderer,"-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
 warn_multiple_backgrounds([]) ->
