@@ -27,7 +27,7 @@
 %% API
 -export([load_font/1, load_font/2,
 	 text_size/2, width/1, height/1, tex_id/1,
-	 render/2, render_to_list/2,
+	 render/2,
 	 render_to_binary/2, render_to_binary/3]).
 
 -compile(export_all).
@@ -122,16 +122,6 @@ render(#font{tex=TexId, height=H}, {X,Y, Bin0}) ->
     gl:disableClientState(?GL_TEXTURE_COORD_ARRAY),
     wx:release_memory(Bin),
     {X,abs(Y-H)}.
-
-
-%% @spec(font_info(), unicode:charlist()) -> {Size::size(), DisplayList::integer()}.
-%% @desc Renders the string.
-render_to_list(#font{} = Font, String) ->
-    List = gl:genLists(1),
-    gl:newList(List, ?GL_COMPILE),
-    Res = render_text(Font, String),
-    gl:endList(),
-    {Res, List}.
 
 %% @spec(Font::font_info(), unicode:charlist()) ->
 %%       {W::integer(), H::integer(), binary()}.
