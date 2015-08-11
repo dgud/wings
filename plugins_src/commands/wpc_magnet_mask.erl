@@ -231,7 +231,7 @@ update_dlist({vs,LockedVs},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}=We}=D, _) ->
         pump_vertices(Pos),
         gl:'end'(),
         gl:endList(),
-        D#dlo{plugins=[{Key,{vs,List}}|Pdl]}
+        D#dlo{plugins=[{Key,List}|Pdl]}
     end.
 
 pump_vertices([A|Vs]) ->
@@ -275,7 +275,7 @@ get_data_2(Data, Acc) ->
     LockedVs = gb_trees:get(vs,Data),
     {ok, [{plugin, {?MODULE, {vs, LockedVs}}}|Acc]}.
 
-draw(plain, {vs,List}, _D, Selmode) ->
+draw(plain, List, _D, Selmode) ->
     case wings_pref:get_value(show_magnet_mask) of
       true ->
         {R0,G0,B0,A} = wings_pref:get_value(masked_vertex_color),

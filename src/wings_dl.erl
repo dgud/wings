@@ -247,7 +247,8 @@ delete_lists([Dl|Dls]) ->
     gl:deleteLists(Dl, 1),
     delete_lists(Dls).
     
-update_seen(D, Seen) ->
+update_seen(#dlo{plugins=Plugins}=D, Seen0) ->
+    Seen = update_seen_1([V || {_,V} <- Plugins], Seen0),
     update_seen_0(tuple_size(D), D, Seen).
 
 update_seen_0(0, _, Seen) -> Seen;

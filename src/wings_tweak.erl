@@ -2918,7 +2918,7 @@ update_dlist({edge_info,{EdList,ClBin}},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D,
 			     gl:disableClientState(?GL_VERTEX_ARRAY),
 			     gl:disableClientState(?GL_COLOR_ARRAY),
 			     gl:endList(),
-			     D#dlo{plugins=[{Key,{edge,EdgeList}}|Pdl]}
+			     D#dlo{plugins=[{Key,EdgeList}|Pdl]}
 		     end)
     end.
 
@@ -2946,7 +2946,7 @@ get_data(update_dlist, Data, Acc) ->  % for draw lists
     end.
 
 %% It'll use the list prepared by 'update_dlist' function and then draw it (only for plain draw)
-draw(plain, {edge,EdgeList}, _D, SelMode) ->
+draw(plain, EdgeList, _D, SelMode) ->
     gl:lineWidth(edge_width(SelMode)),
     wings_dl:call(EdgeList);
 draw(_,_,_,_) -> ok.
