@@ -21,15 +21,13 @@
 	 call/1,mirror_matrix/1,extra/3]).
 
 %%% This module manages Vertex Buffer Objects (VBOs, represented by
-%%% #vab{} records) and display lists for all objects in a Geometry or
-%%% AutoUV window.
+%%% #vab{} records) for all objects in a Geometry or AutoUV window.
 %%%
 %%% The major data structure of this module is a list of #dlo{}
 %%% records. There is one #dlo{} record for each visible object
 %%% (hidden objects have no #dlo{} record in the list). The #dlo{}
-%%% record holds several different type of display lists for
-%%% the corresponding object (e.g. a work display list for faces
-%%% in smooth mode), and also other needed information (e.g. the
+%%% record holds #vab{} records for rendering different aspects of the
+%%% corresponding object, and also other needed information (e.g. the
 %%% #we{} record for the object).
 %%%
 %%% The update/2 and map/2 functions are used for updating #dlo{}
@@ -38,9 +36,8 @@
 %%% new records (for newly added objects), while the map/2 function
 %%% only allows modification of already existing #dlo{} records.
 %%%
-%%% Both functions automatically deletes VBOs and display lists that
-%%% are no longer referenced by any #dlo{} record ("garbage
-%%% collection").
+%%% Both functions automatically deletes VBOs that are no longer
+%%% referenced by any #dlo{} record ("garbage collection").
 %%%
 %%% The fold/2 function can be used for folding over all #dlo{}
 %%% records to collect information. The callback fun called by fold/2
@@ -62,7 +59,7 @@ init() ->
 	     undefined -> [];
 	     #du{dl=Dl0,used=Used} ->
 		 ?CHECK_ERROR(),
-		 delete_lists(Used),
+		 gl:deleteBuffers(Used),
 		 gl:getError(),			%Clear error.
 		 clear_old_dl(Dl0)
 	 end,
@@ -141,9 +138,9 @@ fold(Fun, Acc) ->
     #du{dl=Dlists} = get_dl_data(),
     foldl(Fun, Acc, Dlists).
 
-%% call(DisplayListTerm)
-%%  Call the OpenGL display list using gl:callList/1 for
-%%  the display lists embedded in the display list term.
+%% call(Term)
+%%  Call OpenGL to render the geometry using the VBOs embedded in
+%%  the term.
 
 call(none) -> none;
 call({call,Dl,_}) -> call(Dl);
@@ -154,8 +151,7 @@ call({call_in_this_win,Win,Dl}) ->
     end;
 call([H|T]) -> call(H), call(T);
 call([]) -> ok;
-call(Draw) when is_function(Draw, 0) -> Draw();
-call(Dl) when is_integer(Dl) -> gl:callList(Dl).
+call(Draw) when is_function(Draw, 0) -> Draw().
 
 %% mirror_matrix(Id)
 %%  Return the mirror matrix for the object having id Id.
@@ -191,7 +187,7 @@ extra(Category, Key, Update)
 delete_dlists() ->
     case erase(wings_wm:get_prop(display_lists)) of
 	#du{used=Used} ->
-	    delete_lists(Used),
+	    gl:deleteBuffers(Used),
 	    gl:getError();			%Clear error.
 	_ ->
 	    ok
@@ -259,24 +255,15 @@ update_last(Data, Seen0, Acc) ->
     #du{used=Used0,extra=Extra} = Du = get_dl_data(),
     InExtra = [E || {_,{_,E}} <- maps:to_list(Extra)],
     Seen = update_seen_1(InExtra, Seen0),
-    Used1 = sofs:relation(Used0),
-    SeenKeys = sofs:domain(sofs:relation(Seen)),
-    Unused0 = sofs:drestriction(Used1, SeenKeys),
-    Unused = sofs:to_external(Unused0),
-    put_dl_data(Du#du{used=Seen,dl=reverse(Acc)}),
-    delete_lists(Unused),
+    Used = ordsets:from_list(Seen),
+    put_dl_data(Du#du{used=Used,dl=reverse(Acc)}),
+    case ordsets:subtract(Used0, Used) of
+	[] ->
+	    ok;
+	[_|_]=NotUsed ->
+	    gl:deleteBuffers(NotUsed)
+    end,
     Data.
-
-delete_lists([]) -> ok;
-delete_lists([{{vab,_},Vab}|Dls]) ->
-    wings_draw_setup:delete_vab(Vab),
-    delete_lists(Dls);
-delete_lists([{{vbo,Id},Id}|Dls]) ->
-    gl:deleteBuffers([Id]),
-    delete_lists(Dls);
-delete_lists([{{dl,Dl},Dl}|Dls]) ->
-    gl:deleteLists(Dl, 1),
-    delete_lists(Dls).
     
 update_seen(#dlo{plugins=Plugins}=D, Seen0) ->
     Seen = update_seen_1([V || {_,V} <- Plugins], Seen0),
@@ -295,14 +282,12 @@ update_seen_1({call,Dl1,Dl2}, Seen) ->
     update_seen_1(Dl1, update_seen_1(Dl2, Seen));
 update_seen_1({matrix,_,Dl}, Seen) ->
     update_seen_1(Dl, Seen);
-update_seen_1(#vab{id=Id,face_sn={vbo,VboId}=Vbo}=Vab, Seen) ->
-    [{Vbo,VboId},{{vab,Id},Vab}|Seen];
-update_seen_1(#vab{id=Id}=Vab, Seen) ->
-    [{{vab,Id},Vab}|Seen];
+update_seen_1(#vab{id=Id,face_sn={vbo,_}=Vbo}, Seen) ->
+    update_seen_1(Vbo, [Id|Seen]);
+update_seen_1(#vab{id=Id}, Seen) ->
+    [Id|Seen];
 update_seen_1({vbo,Id}, Seen) ->
-    [{{vbo,Id},Id}|Seen];
-update_seen_1(Dl, Seen) when is_integer(Dl) ->
-    [{{dl,Dl},Dl}|Seen];
+    [Id|Seen];
 update_seen_1(Dl, Seen) when is_tuple(Dl), element(1, Dl) =:= sp ->
     %% Proxy DL's
     update_seen_0(tuple_size(Dl), Dl, Seen);
