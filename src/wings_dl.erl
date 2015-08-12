@@ -268,5 +268,5 @@ update_seen_1(Dl, Seen) when is_integer(Dl) ->
     [Dl|Seen];
 update_seen_1(Dl, Seen) when is_tuple(Dl), element(1, Dl) =:= sp ->
     %% Proxy DL's
-    update_seen(Dl, Seen);
+    update_seen_0(tuple_size(Dl), Dl, Seen);
 update_seen_1(_, Seen) -> Seen.
