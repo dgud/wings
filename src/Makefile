@@ -118,6 +118,7 @@ MODULES= \
 	wings_undo \
 	wings_util \
 	wings_va \
+	wings_vbo \
 	wings_vec \
 	wings_vertex \
 	wings_vertex_cmd \
