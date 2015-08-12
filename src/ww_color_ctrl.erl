@@ -26,10 +26,7 @@
 	 getColor/1, setColor/2,
 	 connect/2, connect/3
 	]).
-%%
-%% Option palette = {InitPalette = fun() -> [Col0,,Col16] end,
-%%                   UpdatePalette = fun([Col0,,Col16]) -> ... end}
-%%
+
 new(Parent, Id, Opts) ->
     wx_object:start(?MODULE, [Parent, Id, Opts], []).
 
@@ -54,10 +51,9 @@ connect(Ctrl, What, Opts) ->
 -include_lib("wx/include/wx.hrl").
 
 -record(state,
-	{this, bitmap, brush,
-	 current, def,
+	{this, bitmap, brush, static,
+	 current, def, dialog,
 	 bg,
-	 init_palette, update_palette,
 	 handlers=[]  %% Listeners or callbacks
 	}).
 
@@ -65,40 +61,26 @@ init([Parent, Id, O0]) ->
     Bitmap = wxBitmap:new(60,13),
     {Style, O1} = default(style, ?wxCLRP_DEFAULT_STYLE, O0),
     {DefColor, O2} = default(col, {0.0,0.0,0.0,1.0}, O1),
-    {{GetPalette, SetPalette}, Opts} = default(palette, {undefined, undefined}, O2),
-
+    {Static, O3} = default(static, false, O2),
+    {Dialog, Opts} = default(native_dialog, wings_pref:get_value(color_dialog_native), O3),
     Button = wxBitmapButton:new(Parent, Id, Bitmap,
 				[{style, ?wxBU_AUTODRAW bor Style}|Opts]),
     wxBitmapButton:connect(Button, command_button_clicked),
 
-    State = #state{this=Button, bitmap=Bitmap,
-		   brush=wxBrush:new(rgb256(DefColor)),
-		   def = DefColor, current = DefColor,
-		   init_palette=GetPalette, update_palette=SetPalette},
+    State = #state{this=Button, bitmap=Bitmap, dialog=Dialog,
+		   brush=wxBrush:new(wings_color:rgb3bv(DefColor)),
+		   def=DefColor, current=DefColor, static=Static},
     update_color(State),
     {Button, State}.
 
 handle_event(#wx{event=#wxCommand{type=command_button_clicked}},
-	     #state{this=This, brush=Brush, init_palette=Set} = State) ->
-    Data = wxColourData:new(),
-    wxColourData:setColour(Data, wxBrush:getColour(Brush)),
-    wxColourData:setChooseFull(Data, true),
-    set_palette(Set, Data),
-    Dlg = wxColourDialog:new(This, [{data, Data}]),
-    wxColourData:destroy(Data),
-    case wxDialog:showModal(Dlg) of
-	?wxID_CANCEL ->
-	    wxColourDialog:destroy(Dlg),
-	    {noreply, State};
-	?wxID_OK ->
-	    NewData = wxColourDialog:getColourData(Dlg),
-	    Updated = update_state(NewData, State),
-	    update_color(Updated),
-	    wxColourDialog:destroy(Dlg),
-	    #state{current=Col, handlers=Handlers} = Updated,
-	    [apply_callback(H, Col, true) || H <- Handlers],
-	    {noreply, Updated}
-    end.
+	     #state{static=true} = State) ->
+    {noreply, State};
+handle_event(#wx{event=#wxCommand{type=command_button_clicked}},
+	     #state{current=Current, dialog=Dialog} = State) ->
+    Res = fun(Res) -> self() ! {color_changed, Res}, ignore end,
+    wings_color:choose(Current, Res, Dialog),
+    {noreply, State}.
 
 handle_call(get_color, _From, #state{current=Curr} = State) ->
     {reply, Curr, State};
@@ -113,15 +95,22 @@ handle_call({connect, Opts}, From, #state{handlers=Curr} = State) ->
 	    {reply, {error, {badarg, Bad}}, State}
     end.
 
-handle_cast({set_color, Col}, State0 = #state{brush=Old, handlers=Handlers}) ->
+handle_cast({set_color, Col}, State0 = #state{brush=Old}) ->
     wxBrush:destroy(Old),
-    Brush = wxBrush:new(rgb256(Col)),
+    Brush = wxBrush:new(wings_color:rgb3bv(Col)),
     State = State0#state{current=Col, brush=Brush},
     update_color(State),
-    [apply_callback(H, Col, false) || H <- Handlers],
     {noreply, State};
 
 handle_cast(_, State) -> State.
+
+handle_info({color_changed, RGB}, State) ->
+    Updated = update_state(RGB, State),
+    update_color(Updated),
+    #state{current=Col, handlers=Handlers} = Updated,
+    [apply_callback(H, Col, true) || H <- Handlers],
+    {noreply, Updated};
+
 handle_info(_, State) -> State.
 
 terminate(_Reason, #state{this=_This, brush=Brush}) ->
@@ -134,18 +123,10 @@ code_change(_, _, State) -> State.
 default(Key, Def, Opts) ->
     {proplists:get_value(Key, Opts, Def),
      proplists:delete(Key,Opts)}.
-update_state(Data, #state{brush=Old, update_palette=Update, def=Def} = State) ->
-    Col = wxColourData:getColour(Data),
-    Palette = get_palette(Data, 0),
+
+update_state(RGB, #state{brush=Old} = State) ->
     wxBrush:destroy(Old),
-    case Update of
-	undefined ->
-	    State#state{brush=wxBrush:new(Col), current=rgb(Col, Def),
-			init_palette=fun() -> Palette end};
-	_Fun when is_function(Update) ->
-	    Update(Palette),
-	    State#state{current=rgb(Col, Def), brush=wxBrush:new(Col)}
-    end.
+    State#state{brush=wxBrush:new(wings_color:rgb3bv(RGB)), current=RGB}.
 
 update_color(#state{this=This, brush=FG, bitmap=BM}) ->
     DC = wxMemoryDC:new(BM),
@@ -156,28 +137,6 @@ update_color(#state{this=This, brush=FG, bitmap=BM}) ->
     wxMemoryDC:destroy(DC),
     wxBitmapButton:setBitmapLabel(This, BM),
     ok.
-
-
-set_palette(undefined, Data) ->
-    DefPalette = [{G,G,G} || G <- lists:seq(0, 255, 255 div 15)],
-    set_palette(DefPalette, Data, 0);
-set_palette(Get, Data) when is_function(Get) ->
-    set_palette(Get(), Data, 0).
-
-set_palette([Col|Pal], Data, I) when I < 16 ->
-    wxColourData:setCustomColour(Data, I, rgb256(Col)),
-    set_palette(Pal, Data, I+1);
-set_palette(_, _, _) -> ok.
-
-get_palette(Data, I) when I < 16 ->
-    [rgb(wxColourData:getCustomColour(Data,I), {r,g,b})|get_palette(Data, I+1)];
-get_palette(_, _) -> [].
-
-rgb256({R,G,B}) -> {round(R*255),round(G*255),round(B*255)};
-rgb256({R,G,B,_A}) -> {round(R*255),round(G*255),round(B*255)}.
-
-rgb({R,G,B,A}, {_, _, _, _}) -> {R/255, G/255, B/255, A/255};
-rgb({R,G,B,_A}, {_, _, _}) -> {R/255, G/255, B/255}.
 
 apply_callback({Pid, Changed}, Col, UserSet)
   when is_pid(Pid), UserSet orelse Changed ->

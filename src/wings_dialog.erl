@@ -26,14 +26,17 @@
 	 get_value/2, set_value/3,
 	 get_widget/2]).
 
+%% Internal dialogs
+-export([return_result/3,
+	 get_dialog_parent/0, set_dialog_parent/1, reset_dialog_parent/1]).
+
 %%-compile(export_all).
 
 -record(in, {key, type, def, wx, wx_ext=[], validator, data, hook, output=true}).
--record(eh, {fs, apply, owner, type, pid}).
+-record(eh, {fs, apply, prev_parent, owner, type, pid}).
 
 %%
 %% Syntax of Qs.
-%% See also wpc_test_ask.erl for examples.
 %%
 %% Common types:
 %%     String = string()
@@ -41,61 +44,15 @@
 %%     Fields = [Field]
 %%     Field  -- Any field tuple described below
 %%     Key = term()
-%%         Note: An integer() Key is a relative field address,
-%%             any other term is an absolute storage identifier.
-%%             Since an integer() Key mean something it is a bad idea
-%%             to use a float() as Key. It should work, but the slightest
-%%             programming mistake in this module may lead to a mismatch.
-%%               Field common data (common for all field types, used for
-%%             dialog tree traversing, etc) is stored in the dialog tree,
-%%             consisting of nested #fi{} records.
-%%               Field private data (special to a given field type), and
-%%             field values are all stored in the same gb_trees store.
-%%               All fields have a field index in the dialog tree, which
-%%             is an integer from 1 and up assigned in tree traversal
-%%             order (depth first - same as Qs order).
-%%               Field private data is stored with negative field index as
-%%             key in the gb_trees store and is different record types
-%%             depending on field type. Field values is stored in the
-%%             gb_trees store with the field index as key (the default),
-%%             or if using an integer key, the field shares value with
-%%             another field and the key is a relative field index
-%%             offset. If the key is any other term it is the actual
-%%             key used in the store.
-%%               All fields that have a non-integer key will return
-%%             {Key,Value} as the field result of the dialog. The
-%%             others just returns Value. Most fields return values,
-%%             except when noted below.
 %%     Hook = function()
-%%         Hook should have arity 2 and return 'void' for any
-%%         unknown arguments, like this:
-%%         fun (is_disabled, {Var,I,Store}) -> Bool;
-%%                 %% Called at redraw time for all fields.
-%%                 %% For container fields the contained fields are
-%%                 %% disabled but not the container field.
-%%             (is_minimized, {Var,I,Store}) -> Bool;
-%%                 %% Called at layout time for all fields
-%%                 %% except Overlay frames.
-%%             (update, {Var,I,Val,Store}) ->
-%%                 keep|{store,NewStore}|done|{done,NewStore}|{layout,NewStore}
-%%                 %% Should make sure Val gets stored in NewStore.
-%%                 %% done|{done,_} finishes the dialog (may get restarted).
-%%                 %% {layout,_} forces a layout pass.
-%%                 %% Called when a field changes value.
-%%             (menu_disabled, {Var,I,Store}) -> [Disabled];
-%%                 %% Disabled = Val|{Val,MenuFlags}
-%%                 %% Val = menu value
-%%                 %% MenuFlags = menu flags prepended to other menu flags
-%%                 %% Only called for menu fields.
-%%             (_, _) -> void
+%%         Hook should have arity 3 and is invoked when something changes:
+%%         fun (Key, Value, Fields) -> ok;
 %%         end
 %%
 %% Qs is either one field below (preferably containing more fields,
 %% or a list of fields, in which case the list is enclosed in a
 %% {hframe,...} containing two {vframe,...}s, the first containing
 %% Qs and the second containing an Ok and a Cancel button.
-%%
-%%
 %%
 %% Container fields (dialog tree nodes):
 %%
@@ -370,6 +327,10 @@ set_value_impl(#in{wx=Ctrl, type=text}, Val, _) ->
     wxTextCtrl:changeValue(Ctrl, to_str(Val));
 set_value_impl(#in{wx=Ctrl, type=slider, data={_, ToSlider}}, Val, _) ->
     wxSlider:setValue(Ctrl, ToSlider(Val));
+set_value_impl(#in{wx=Ctrl, type=col_slider}, Val, _) ->
+    ww_color_slider:setColor(Ctrl, Val);
+set_value_impl(#in{wx=Ctrl, type=color}, Val, _) ->
+    ww_color_ctrl:setColor(Ctrl, Val);
 set_value_impl(In=#in{type=button}, Val, Store) ->
     true = ets:insert(Store, In#in{data=Val});
 set_value_impl(In=#in{type=value}, Val, Store) ->
@@ -403,19 +364,41 @@ queries(Qs0) ->
     Rows = to_label_column(Qs0),
     [{label_column, Rows}].
 
+%% ----------------------------------
+%% We can only have one active dialog at the time but
+%% they can open other dialog, i.e. color chooser from
+%% preferences
+
+get_dialog_parent() ->
+    case ?GET(dialog_parent) of
+	undefined -> ?GET(top_frame);
+	Tuple when element(1, Tuple) =:= wx_ref ->
+	    Tuple
+    end.
+
+set_dialog_parent(Dialog) ->
+    ?SET(dialog_parent, Dialog).
+
+reset_dialog_parent(Dialog) ->
+    Parent = wxWindow:getParent(Dialog),
+    ?SET(dialog_parent, Parent).
+
 enter_dialog(false, _, _, Fields, Fun) -> % No dialog return def values
     Values = get_output(default, Fields),
     true = ets:delete(element(1, Fields)),
     return_result(Fun, Values, wings_wm:this());
 enter_dialog(true, no_preview, Dialog, Fields, Fun) -> %% No preview cmd / modal dialog
+    set_dialog_parent(Dialog),
     case wxDialog:showModal(Dialog) of
 	?wxID_CANCEL ->
 	    true = ets:delete(element(1, Fields)),
+	    reset_dialog_parent(Dialog),
 	    wxDialog:destroy(Dialog),
 	    keep;
 	Result ->
 	    Values = get_output(Result, Fields),
 	    true = ets:delete(element(1, Fields)),
+	    reset_dialog_parent(Dialog),
 	    wxDialog:destroy(Dialog),
 	    return_result(Fun, Values, wings_wm:this())
     end;
@@ -432,11 +415,13 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
 					      [{id, ?wxID_OK},
 					       {lastId, ?wxID_NO},
 					       {callback,Forward}]),
+			     set_dialog_parent(Dialog),
 			     wxDialog:show(Dialog),
 			     wings_wm:psend(send_after_redraw, dialog_blanket, preview),
 			     receive
 				 closed ->
 				     true = ets:delete(element(1, Fields)),
+				     reset_dialog_parent(Dialog),
 				     wxDialog:destroy(Dialog)
 			     end
 		     end),
@@ -526,8 +511,8 @@ get_curr_value(#in{type=color, wx=Ctrl}) ->
     ww_color_ctrl:getColor(Ctrl);
 get_curr_value(#in{type=slider, wx=Ctrl, data={Convert,_}}) ->
     Convert(wxSlider:getValue(Ctrl));
-%% get_curr_value(In=#in{type=col_slider, wx=Ctrl}) ->
-%%     ww_color_slider:getColor(Ctrl);
+get_curr_value(#in{type=col_slider, wx=Ctrl}) ->
+    ww_color_slider:getColor(Ctrl);
 get_curr_value(#in{type=choice, wx=Ctrl}) ->
     wxChoice:getClientData(Ctrl,wxChoice:getSelection(Ctrl));
 get_curr_value(#in{type=text, def=Def, wx=Ctrl, validator=Validate}) ->
@@ -607,6 +592,13 @@ setup_hook(#in{key=Key, wx=Ctrl, type=color, hook=UserHook}, Fields) ->
 					      UserHook(Key, Col, Fields)
 				      end}]),
     ok;
+setup_hook(#in{key=Key, wx=Ctrl, type=col_slider, hook=UserHook}, Fields) ->
+    ww_color_slider:connect(Ctrl, col_changed,
+			    [{callback, fun({col_changed, Col}) ->
+						UserHook(Key, Col, Fields)
+					end}]),
+    ok;
+
 setup_hook({Key, #in{wx=Ctrl, type=fontpicker, hook=UserHook}}, Fields) ->
     wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed,
 			     [{callback, fun(_, Obj) ->
@@ -662,7 +654,6 @@ return_result(Fun, Values, Owner) ->
     end,
     keep.
 
-
 to_label_column(Qs) ->
     lists:map(fun label_col/1, Qs).
 label_col({_Label,{menu,_,_}}=Entry) -> Entry;
@@ -675,7 +666,7 @@ build_dialog(false, _Title, Qs) ->
     {undefined, DialogData};
 build_dialog(AskType, Title, Qs) ->
     wx:batch(fun() ->
-		     Parent = ?GET(top_frame),
+		     Parent = get_dialog_parent(),
 		     Style0 = case os:type() of
 				  {unix, darwin} -> ?wxSTAY_ON_TOP;
 				  _ -> ?wxFRAME_FLOAT_ON_PARENT
@@ -801,7 +792,17 @@ build(Ask, {label, Label, Flags}, Parent, Sizer, In)
 			end, [], Lines0),
     Text = wxStaticText:new(Parent, ?wxID_ANY, Lines),
     add_sizer(label, Sizer, Text),
-    wxSizer:setItemMinSize(Sizer, Text, proplists:get_value(min_wsz, Flags, -1), -1),
+    MinSize = case proplists:get_value(min_wsz, Flags, -1) of
+		  Sz when Sz > 0 -> Sz;
+		  Sz ->
+		      case proplists:get_value(width, Flags) of
+			  undefined -> Sz;
+			  Chars ->
+			      {W, _, _, _} = wxWindow:getTextExtent(Parent, "W"),
+			      Chars*W
+		      end
+	      end,
+    wxSizer:setItemMinSize(Sizer, Text, MinSize, -1),
     In;
 build(Ask, {label_column, Rows}, Parent, Sizer, In) ->
     build(Ask, {label_column, Rows, []}, Parent, Sizer, In);
@@ -809,9 +810,8 @@ build(Ask, {label_column, Rows, Flags}, Parent, Sizer, In) ->
     MinSize =
 	if Ask =:= false -> -1;
 	   true ->
-		ST = wxStaticText:new(Parent, ?wxID_ANY, ""),
 		lists:foldl(fun({Str = [_|_],_}, Max) ->
-				    {W, _, _, _} = wxWindow:getTextExtent(ST, Str),
+				    {W, _, _, _} = wxWindow:getTextExtent(Parent, Str),
 				    max(W+5, Max);
 			       (separator, Max)  ->
 				    Max
@@ -890,28 +890,50 @@ build(Ask, {slider, {color, Def, Flags}}, Parent, Sizer, In) ->
 
 build(Ask, {slider, Flags}, Parent, Sizer, In) ->
     Def = proplists:get_value(value, Flags),
-    Range = proplists:get_value(range, Flags),
     false = undefined == Def,
-    false = undefined == Range,
-    {Min, Value, Max, Style, ToText, ToSlider} = slider_style(Def, Range),
-    Create = fun() ->
-		     Ctrl = wxSlider:new(Parent, ?wxID_ANY, Value, Min, Max, [{style, Style}]),
-		     tooltip(Ctrl, Flags),
-		     add_sizer(slider, Sizer, Ctrl),
-		     Ctrl
-	     end,
-    [#in{key=proplists:get_value(key,Flags), def=Def, data={ToText, ToSlider},
+    case proplists:get_value(color, Flags, false) of
+	false ->
+	    Type = slider,
+	    Range = proplists:get_value(range, Flags),
+	    false = undefined == Range,
+	    {Min, Value, Max, Style, ToText, ToSlider} = slider_style(Def, Range),
+	    Data = {ToText, ToSlider},
+	    Create = fun() ->
+			     Ctrl = wxSlider:new(Parent, ?wxID_ANY, Value, Min, Max, [{style, Style}]),
+			     tooltip(Ctrl, Flags),
+			     add_sizer(slider, Sizer, Ctrl),
+			     Ctrl
+		     end;
+	Color ->
+	    true = lists:member(Color, [rgb, red, green, blue, hue, sat, val]), %% Assert
+	    Type = col_slider,
+	    Data = undefined,
+	    Create = fun() ->
+			     Ctrl = ww_color_slider:new(Parent, ?wxID_ANY, Def, [{color, Color}]),
+			     tooltip(Ctrl, Flags),
+			     add_sizer(slider, Sizer, Ctrl),
+			     Ctrl
+		     end
+    end,
+    [#in{key=proplists:get_value(key,Flags), def=Def, data=Data,
 	 hook=proplists:get_value(hook, Flags),
-	 type=slider, wx=create(Ask,Create)}|In];
+	 type=Type, wx=create(Ask,Create)}|In];
 
 build(Ask, {color, Def, Flags}, Parent, Sizer, In) ->
     Create = fun() ->
-		     Ctrl = ww_color_ctrl:new(Parent, ?wxID_ANY, [{col, Def}]),
+		     Static = proplists:get_value(static, Flags, false),
+		     Dialog = proplists:get_value(native_dialog, Flags,
+						  wings_pref:get_value(color_dialog_native)),
+		     Ctrl = ww_color_ctrl:new(Parent, ?wxID_ANY,
+					      [{col, Def},
+					       {static, Static},
+					       {native_dialog, Dialog}]),
 		     tooltip(Ctrl, Flags),
 		     add_sizer(button, Sizer, Ctrl),
 		     Ctrl
 	     end,
     [#in{key=proplists:get_value(key,Flags), def=Def,
+	 hook=proplists:get_value(hook, Flags),
 	 type=color, wx=create(Ask,Create)}|In];
 
 build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
@@ -1130,7 +1152,7 @@ build_box(Ask, Type, Qs, Flags, Parent, Top, In0) ->
 	    Input = lists:foldl(fun(Q, Input) ->
 					build(Ask, Q, Parent, Sizer, Input)
 				end, In0, Qs),
-	    add_sizer(Type0, Top, Sizer),
+	    add_sizer(Type0, Top, Sizer, Flags),
 	    Input;
 	_ ->
 	    Ctrl = wxPanel:new(Parent, [{style, ?wxNO_BORDER}]),
@@ -1314,9 +1336,17 @@ slider_style(Def, {Min, Max})
     {0, ToSlider(Def), 100, ?wxSL_HORIZONTAL, ToText, ToSlider}.
 
 add_sizer(What, Sizer, Ctrl) ->
-    {Proportion, Border, Flags} = sizer_flags(What, wxBoxSizer:getOrientation(Sizer)),
+    add_sizer(What, Sizer, Ctrl, []).
+
+add_sizer(What, Sizer, Ctrl, Opts) ->
+    {Proportion0, Border0, Flags0} =
+	sizer_flags(What, wxBoxSizer:getOrientation(Sizer)),
     %% io:format("What ~p ~p => ~p ~n",[What, wxBoxSizer:getOrientation(Sizer), {Proportion, Border, Flags}]),
-    wxSizer:add(Sizer, Ctrl, [{proportion, Proportion}, {border, Border}, {flag, Flags}]).
+    Proportion = proplists:get_value(proportion, Opts, Proportion0),
+    Border = proplists:get_value(border, Opts, Border0),
+    Flags  = proplists:get_value(flag, Opts, Flags0),
+    wxSizer:add(Sizer, Ctrl,
+		[{proportion, Proportion},{border, Border},{flag, Flags}]).
 
 sizer_flags(label, ?wxHORIZONTAL)     -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(label, ?wxVERTICAL)       -> {1, 0, ?wxALIGN_CENTER_VERTICAL};

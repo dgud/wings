@@ -363,8 +363,8 @@ wc_open_window(#state{lines=Lines}=State, Opts) ->
     Ctrl = wxTextCtrl:new(Win, ?wxID_ANY, [{style, Style}]),
 
     wxWindow:setFont(Ctrl, Font),
-    wxWindow:setBackgroundColour(Ctrl, wings_util:col4bv(wings_pref:get_value(console_color))),
-    wxWindow:setForegroundColour(Ctrl, wings_util:col4bv(wings_pref:get_value(console_text_color))),
+    wxWindow:setBackgroundColour(Ctrl, wings_color:rgb4bv(wings_pref:get_value(console_color))),
+    wxWindow:setForegroundColour(Ctrl, wings_color:rgb4bv(wings_pref:get_value(console_text_color))),
     wxTextCtrl:appendText(Ctrl, [[Line,$\n] || Line <- queue:to_list(Lines)]),
     wxFrame:show(Win),
     wxFrame:connect(Win, close_window, [{skip, true}]),
