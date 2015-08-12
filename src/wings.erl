@@ -626,7 +626,8 @@ execute_command(Cmd, Ev, St) ->
 	wings_menu:check_item(Cmd),
 	command(Cmd, St)
     catch
-	error:_ ->
+	error:Reason ->
+	    io:format("~p:~p: Error: ~p ~p~n", [?MODULE, ?LINE, Reason, erlang:get_stacktrace()]),
 	    wings_hotkey:handle_error(Ev, Cmd),
 	    St#st{repeatable=ignore}
     end.
