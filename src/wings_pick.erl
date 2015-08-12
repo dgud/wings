@@ -571,19 +571,30 @@ is_inside_rect({Px,Py,Pz}, {MM,PM,ViewPort,X1,Y1,X2,Y2}) ->
     X1 < Sx andalso Sx < X2 andalso
 	Y1 < Sy andalso Sy < Y2.
 
-draw_marquee(undefined, undefined, _) -> ok;
-draw_marquee(X, Y, #marquee{ox=Ox,oy=Oy}) ->
-    gl:color3f(1.0, 1.0, 1.0),
-    gl:enable(?GL_COLOR_LOGIC_OP),
-    gl:logicOp(?GL_XOR),
-    gl:'begin'(?GL_LINE_LOOP),
-    gl:vertex2i(X, Oy),
-    gl:vertex2i(X, Y),
-    gl:vertex2i(Ox, Y),
-    gl:vertex2i(Ox, Oy),
-    gl:'end'(),
-    gl:flush(),
-    gl:disable(?GL_COLOR_LOGIC_OP).
+draw_marquee(X, Y, M) ->
+    Key = marquee_key(X, Y, M),
+    Update = fun update_marquee/1,
+    wings_dl:draw(pick_marquee, Key, Update).
+
+marquee_key(undefined, undefined, _) ->
+    none;
+marquee_key(X, Y, #marquee{ox=Ox,oy=Oy}) ->
+    {X,Y,Ox,Oy}.
+
+update_marquee({X,Y,Ox,Oy}) ->
+    Data = [{X,Oy,0},
+	    {X,Y,0},
+	    {Ox,Y,0},
+	    {Ox,Oy,0}],
+    D = fun() ->
+		gl:color3f(1.0, 1.0, 1.0),
+		gl:enable(?GL_COLOR_LOGIC_OP),
+		gl:logicOp(?GL_XOR),
+		gl:drawArrays(?GL_LINE_LOOP, 0, 4),
+		gl:flush(),
+		gl:disable(?GL_COLOR_LOGIC_OP)
+	end,
+    wings_vbo:new(D, Data).
 
 marquee_update_sel(Op, Hits0, #st{selmode=body}=St) ->
     Hits1 = sofs:relation(Hits0, [{id,data}]),
