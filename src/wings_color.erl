@@ -14,7 +14,7 @@
 -module(wings_color).
 -export([init/0,choose/1,choose/2,choose/3,
 	 share/1,store/1,average/1,average/2,mix/3,white/0,
-	 rgb_to_hsv/3,hsv_to_rgb/3,
+	 rgb_to_hsv/1,rgb_to_hsv/3,hsv_to_rgb/1,hsv_to_rgb/3,
 	 rgb3bv/1, rgb4bv/1, rgb3fv/1, rgb4fv/1,
 	 def_palette/0
 	]).

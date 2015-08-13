@@ -377,7 +377,7 @@ delete_scene_value(Key) ->
 
 
 defaults() ->
-    wings_theme:olive_theme()++
+    wings_theme:native_theme()++
     [
      %% Put any non-constant preferences here.
      {jumpy_camera,os:type() =:= {unix,darwin}},

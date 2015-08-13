@@ -272,10 +272,11 @@ ctrl_redraw(#ctrl{title=Title}) ->
 	           title_active_color;
 	       {_,_} -> title_passive_color
 	   end,
-    wings_io:blend(wings_pref:get_value(Pref),
-		   fun(C) ->
-			   wings_io:gradient_border_burst(0, 0, W-1, TitleBarH-1, C)
-		   end),
+    Draw = case wings_pref:get_value(flat_color_panels, true) of
+	       true -> fun(C) -> wings_io:gradient_border(0, 0, W-1, TitleBarH-1, C) end;
+	       false -> fun(C) -> wings_io:gradient_border_burst(0, 0, W-1, TitleBarH-1, C) end
+	   end,
+    wings_io:blend(wings_pref:get_value(Pref), Draw),
     wings_io:set_color(wings_pref:get_value(title_text_color)),
     wings_io:text_at(10, TitleBarH-2, Title),
     keep.
