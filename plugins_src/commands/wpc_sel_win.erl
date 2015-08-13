@@ -116,7 +116,7 @@ event({action,{sel_groups,Cmd}}, Ost) ->
     {delete_groups,Mode} ->
         delete_groups(Mode);
     {new_group,_} ->
-        wings_wm:send(geom, {action,{select,new_group}});
+        wings_wm:send(geom, {action,{select,{ssels,new_group}}});
     _ ->
         wings_wm:send(geom, {action,{select,{ssels,Cmd}}})
     end,
