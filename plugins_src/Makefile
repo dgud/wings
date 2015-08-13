@@ -26,7 +26,6 @@ TYPE_FLAGS=
 endif
 
 MODULES= \
-	wpc_test_ask \
 	wp9_dialogs
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)

@@ -42,7 +42,6 @@ MODULES= \
 	user_default \
 	wings \
 	wings_align \
-	wings_ask \
 	wings_body \
 	wings_camera \
 	wings_cl \
