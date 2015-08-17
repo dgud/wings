@@ -331,7 +331,11 @@ set_value_impl(#in{wx=Ctrl, type=slider, data={_, ToSlider}}, Val, _) ->
     wxSlider:setValue(Ctrl, ToSlider(Val));
 set_value_impl(#in{wx=Ctrl, type=col_slider}, Val, _) ->
     ww_color_slider:setColor(Ctrl, Val);
-set_value_impl(#in{wx=Ctrl, type=color}, Val, _) ->
+set_value_impl(#in{wx=Ctrl, type=color, wx_ext=Ext}, Val, _) ->
+    case Ext of
+	[Slider] -> ww_color_slider:setColor(Slider, Val);
+	_ -> ignore
+    end,
     ww_color_ctrl:setColor(Ctrl, Val);
 set_value_impl(In=#in{type=button}, Val, Store) ->
     true = ets:insert(Store, In#in{data=Val});
@@ -601,11 +605,15 @@ setup_hook(#in{key=Key, wx=Ctrl, type=button, hook=UserHook}, Fields) ->
 				 end}]),
     ok;
 
-setup_hook(#in{key=Key, wx=Ctrl, type=color, hook=UserHook}, Fields) ->
-    ww_color_ctrl:connect(Ctrl, col_changed,
-			  [{callback, fun({col_changed, Col}) ->
-					      UserHook(Key, Col, Fields)
-				      end}]),
+setup_hook(#in{key=Key, wx=Ctrl, type=color, wx_ext=Ext, hook=UserHook}, Fields) ->
+    CB = fun({col_changed, Col}) ->
+		 UserHook(Key, Col, Fields)
+	 end,
+    ww_color_ctrl:connect(Ctrl, col_changed, [{callback, CB}]),
+    case Ext of
+	[Slider] -> ww_color_slider:connect(Slider, col_changed, [{callback, CB}]);
+	_ -> ignore
+    end,
     ok;
 setup_hook(#in{key=Key, wx=Ctrl, type=col_slider, hook=UserHook}, Fields) ->
     ww_color_slider:connect(Ctrl, col_changed,
