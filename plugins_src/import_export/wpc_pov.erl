@@ -16,9 +16,9 @@
 
 -export([init/0, menu/2, command/2, dialog/2]).
 
--include("wings.hrl").
--include("e3d.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/src/wings.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 
 -define(TAG, povray36).
 -define(KEY(K), {?TAG, (K)}).
@@ -1689,11 +1689,11 @@ export_dialog(Op) ->
 %%% Construct material dialog, return list of controls
 material_dialog(_Name, Mat) ->
     Maps = proplists:get_value(maps, Mat, []),
-    %OpenGL = proplists:get_value(opengl, Mat),
+						%OpenGL = proplists:get_value(opengl, Mat),
     PovRay = proplists:get_value(?TAG, Mat, []),
 
     BrowseProps = [{dialog_type, open_dialog},
-        {extensions, [{".jpg", "JPEG"}, {".png", "PNG"}, {".bmp", "Bitmap"}, {".gif", "GIF"}, {".iff", "IFF"}, {".tiff", "TIFF"}]}],
+		   {extensions, [{".jpg", "JPEG"}, {".png", "PNG"}, {".bmp", "Bitmap"}, {".gif", "GIF"}, {".iff", "IFF"}, {".tiff", "TIFF"}]}],
 
     case proplists:is_defined(proplists:get_value(image_type, PovRay, user), Maps) of
         true -> PigmentImage = proplists:get_value(image_type, PovRay, user);
@@ -1706,646 +1706,639 @@ material_dialog(_Name, Mat) ->
     end,
 
     Hook_Enable = fun(Key, Value, Store) ->
-        case Key of
-            %% Texture->Pigment fields
-            ?KEY(reflection_enabled) ->
-                wings_dialog:enable(?KEY(reflection_variable), Value =:= true, Store),
-                wings_dialog:enable(?KEY(reflection_fresnel), Value =:= true, Store),
-                wings_dialog:enable(?KEY(pnl_reflection), Value =:= true, Store),
-                Value0 = wings_dialog:get_value(?KEY(reflection_variable),Store),
-                wings_dialog:enable(?KEY(reflection_maximum), Value0 =:= true, Store);
-            ?KEY(reflection_variable) ->
-                wings_dialog:enable(?KEY(pnl_refl_max_l), Value =:= true, Store);
-            ?KEY(interior_extended) ->
-                wings_dialog:enable(?KEY(interior_caustic), Value =:= true, Store),
-                wings_dialog:enable(?KEY(interior_dispersion), Value =:= true, Store),
-                wings_dialog:enable(?KEY(interior_dispersion_samples), Value =:= true, Store),
-                wings_dialog:enable(?KEY(interior_fade_distance), Value =:= true, Store),
-                wings_dialog:enable(?KEY(interior_fade_power), Value =:= true, Store),
-                wings_dialog:enable(?KEY(interior_fade_color), Value =:= true, Store);
-            ?KEY(photons_enabled) ->
-                wings_dialog:enable(?KEY(pnl_photons), Value =:= true, Store);
-            ?KEY(pigment_colormap) ->
-                wings_dialog:enable(?KEY(new_colormap), Value =:= true, Store),
-                wings_dialog:enable(?KEY(pnl_colormap), Value =:= true, Store);
-            ?KEY(image_type) ->
-                wings_dialog:enable(?KEY(pnl_pigment_file), Value =:= user, Store);
-            ?KEY(pigment_modifiers) ->
-                wings_dialog:enable(?KEY(pnl_modif_props), Value =:= true, Store);
-            %% Texture->Normal fields
-            ?KEY(normal_normalmap) ->
-                wings_dialog:enable(?KEY(new_normalmap), Value =:= true, Store);
-            ?KEY(normal_components) ->
-                wings_dialog:enable(?KEY(pnl_n_checker), Value =:= true, Store),
-                wings_dialog:enable(?KEY(pnl_n_hexagon), Value =:= true, Store),
-                wings_dialog:enable(?KEY(pnl_n_brick_props), Value =:= true, Store);
-            ?KEY(n_image_type) ->
-                wings_dialog:enable(?KEY(pnl_normal_file), Value =:= user, Store);
-            ?KEY(normal_modifiers) ->
-                wings_dialog:enable(?KEY(pnl_n_modif_props), Value =:= true, Store);
-            _ -> ok
-        end
-    end,
+			  case Key of
+			      %% Texture->Pigment fields
+			      ?KEY(reflection_enabled) ->
+				  wings_dialog:enable(?KEY(reflection_variable), Value =:= true, Store),
+				  wings_dialog:enable(?KEY(reflection_fresnel), Value =:= true, Store),
+				  wings_dialog:enable(?KEY(pnl_reflection), Value =:= true, Store),
+				  Value0 = wings_dialog:get_value(?KEY(reflection_variable),Store),
+				  wings_dialog:enable(?KEY(refl_max_row), Value0 =:= true, Store);
+			      ?KEY(reflection_variable) ->
+				  wings_dialog:enable(?KEY(refl_max_row), Value =:= true, Store);
+			      ?KEY(interior_extended) ->
+				  wings_dialog:enable(?KEY(interior_caustic), Value =:= true, Store),
+				  wings_dialog:enable(?KEY(interior_dispersion), Value =:= true, Store),
+				  wings_dialog:enable(?KEY(interior_dispersion_samples), Value =:= true, Store),
+				  wings_dialog:enable(?KEY(interior_fade_distance), Value =:= true, Store),
+				  wings_dialog:enable(?KEY(interior_fade_power), Value =:= true, Store),
+				  wings_dialog:enable(?KEY(interior_fade_color), Value =:= true, Store);
+			      ?KEY(photons_enabled) ->
+				  wings_dialog:enable(?KEY(pnl_photons), Value =:= true, Store);
+			      ?KEY(pigment_colormap) ->
+				  wings_dialog:enable(?KEY(new_colormap), Value =:= true, Store),
+				  wings_dialog:enable(?KEY(pnl_colormap), Value =:= true, Store);
+			      ?KEY(image_type) ->
+				  wings_dialog:enable(?KEY(pnl_pigment_file), Value =:= user, Store);
+			      ?KEY(pigment_modifiers) ->
+				  wings_dialog:enable(?KEY(pnl_modif_props), Value =:= true, Store);
+			      %% Texture->Normal fields
+			      ?KEY(normal_normalmap) ->
+				  wings_dialog:enable(?KEY(new_normalmap), Value =:= true, Store);
+			      ?KEY(normal_components) ->
+				  wings_dialog:enable(?KEY(pnl_n_checker), Value =:= true, Store),
+				  wings_dialog:enable(?KEY(pnl_n_hexagon), Value =:= true, Store),
+				  wings_dialog:enable(?KEY(pnl_n_brick_props), Value =:= true, Store);
+			      ?KEY(n_image_type) ->
+				  wings_dialog:enable(?KEY(pnl_normal_file), Value =:= user, Store);
+			      ?KEY(normal_modifiers) ->
+				  wings_dialog:enable(?KEY(pnl_n_modif_props), Value =:= true, Store);
+			      _ -> ok
+			  end
+		  end,
     Hook_Show = fun(Key, Value, Store) ->
-        case Key of
-            ?KEY(ghost_material) ->
-                wings_dialog:show(?KEY(pnl_material), Value =:= false, Store);
-            ?KEY(reflection_variable) ->
-                wings_dialog:show(?KEY(pnl_refl_max_l), Value =:= true, Store),
-                wings_dialog:show(?KEY(pnl_refl_max_v), Value =:= true, Store),
-                wings_dialog:update(?KEY(pnl_reflection), Store);
-            ?KEY(pigment_pattern) ->
-                InGroup0 = is_member(Value, [color, image]),
-                InGroup1 = is_member(Value, [color, image, brick, checker, hexagon]),
-                wings_dialog:show(?KEY(pnl_modifiers), not InGroup0, Store),
-                Hook_Enable(?KEY(pigment_modifiers), wings_dialog:get_value(?KEY(pigment_modifiers),Store), Store),
-                wings_dialog:show(?KEY(pnl_agate), Value =:= agate, Store),
-                wings_dialog:show(?KEY(pnl_brick), Value =:= brick, Store),
-                wings_dialog:show(?KEY(pnl_checker), Value =:= checker, Store),
-                wings_dialog:show(?KEY(pnl_crackle), Value =:= crackle, Store),
-                wings_dialog:show(?KEY(pnl_gradient), Value =:= gradient, Store),
-                wings_dialog:show(?KEY(pnl_hexagon), Value =:= hexagon, Store),
-                wings_dialog:show(?KEY(pnl_quilted), Value =:= quilted, Store),
-                wings_dialog:show(?KEY(pnl_spiral), is_member(Value, [spiral1,spiral2]), Store),
-                wings_dialog:show(?KEY(pnl_image), Value =:= image, Store),
-                wings_dialog:show(?KEY(pnl_colormap), not InGroup1, Store),
-                wings_dialog:update(?KEY(pnl_tex_pigment), Store);
-            ?KEY(normal_pattern) ->
-                InGroup0 = is_member(Value, [none, image, hexagon, checker, brick, facets]),
-                InGroup1 = is_member(Value, [hexagon, checker, brick]),
-                Hook_Enable(?KEY(normal_normalmap), wings_dialog:get_value(?KEY(normal_normalmap),Store), Store),
-                wings_dialog:show(?KEY(normal_components), InGroup1, Store),
-                wings_dialog:show(?KEY(pnl_normal_comp), InGroup1, Store),
-                wings_dialog:show(?KEY(pnl_magnitude), Value =/= none, Store),
-                wings_dialog:show(?KEY(pnl_n_modifiers), not is_member(Value, [none, image]), Store),
-                Hook_Enable(?KEY(normal_modifiers), wings_dialog:get_value(?KEY(normal_modifiers),Store), Store),
-                wings_dialog:show(?KEY(pnl_n_agate), Value =:= agate, Store),
-                wings_dialog:show(?KEY(pnl_n_brick), Value =:= brick, Store),
-                wings_dialog:show(?KEY(pnl_n_checker), Value =:= checker, Store),
-                wings_dialog:show(?KEY(pnl_n_crackle), Value =:= crackle, Store),
-                wings_dialog:show(?KEY(pnl_n_gradient), Value =:= gradient, Store),
-                wings_dialog:show(?KEY(pnl_n_hexagon), Value =:= hexagon, Store),
-                wings_dialog:show(?KEY(pnl_n_quilted), Value =:= quilted, Store),
-                wings_dialog:show(?KEY(pnl_n_spiral), is_member(Value, [spiral1,spiral2]), Store),
-                wings_dialog:show(?KEY(pnl_n_image), Value =:= image, Store),
-                wings_dialog:show(?KEY(pnl_n_colormap), not InGroup0, Store),
-                wings_dialog:update(?KEY(pnl_tex_normal), Store)
-        end
-    end,
+			case Key of
+			    ?KEY(ghost_material) ->
+				wings_dialog:show(?KEY(pnl_material), Value =:= false, Store);
+			    ?KEY(pigment_pattern) ->
+				InGroup0 = is_member(Value, [color, image]),
+				InGroup1 = is_member(Value, [color, image, brick, checker, hexagon]),
+				wings_dialog:show(?KEY(pnl_modifiers), not InGroup0, Store),
+				Hook_Enable(?KEY(pigment_modifiers), wings_dialog:get_value(?KEY(pigment_modifiers),Store), Store),
+				wings_dialog:show(?KEY(pnl_agate), Value =:= agate, Store),
+				wings_dialog:show(?KEY(pnl_brick), Value =:= brick, Store),
+				wings_dialog:show(?KEY(pnl_checker), Value =:= checker, Store),
+				wings_dialog:show(?KEY(pnl_crackle), Value =:= crackle, Store),
+				wings_dialog:show(?KEY(pnl_gradient), Value =:= gradient, Store),
+				wings_dialog:show(?KEY(pnl_hexagon), Value =:= hexagon, Store),
+				wings_dialog:show(?KEY(pnl_quilted), Value =:= quilted, Store),
+				wings_dialog:show(?KEY(pnl_spiral), is_member(Value, [spiral1,spiral2]), Store),
+				wings_dialog:show(?KEY(pnl_image), Value =:= image, Store),
+				wings_dialog:show(?KEY(pnl_colormap), not InGroup1, Store),
+				wings_dialog:update(?KEY(pnl_tex_pigment), Store);
+			    ?KEY(normal_pattern) ->
+				InGroup0 = is_member(Value, [none, image, hexagon, checker, brick, facets]),
+				InGroup1 = is_member(Value, [hexagon, checker, brick]),
+				Hook_Enable(?KEY(normal_normalmap), wings_dialog:get_value(?KEY(normal_normalmap),Store), Store),
+				wings_dialog:show(?KEY(normal_components), InGroup1, Store),
+				wings_dialog:show(?KEY(pnl_normal_comp), InGroup1, Store),
+				wings_dialog:show(?KEY(pnl_magnitude), Value =/= none, Store),
+				wings_dialog:show(?KEY(pnl_n_modifiers), not is_member(Value, [none, image]), Store),
+				Hook_Enable(?KEY(normal_modifiers), wings_dialog:get_value(?KEY(normal_modifiers),Store), Store),
+				wings_dialog:show(?KEY(pnl_n_agate), Value =:= agate, Store),
+				wings_dialog:show(?KEY(pnl_n_brick), Value =:= brick, Store),
+				wings_dialog:show(?KEY(pnl_n_checker), Value =:= checker, Store),
+				wings_dialog:show(?KEY(pnl_n_crackle), Value =:= crackle, Store),
+				wings_dialog:show(?KEY(pnl_n_gradient), Value =:= gradient, Store),
+				wings_dialog:show(?KEY(pnl_n_hexagon), Value =:= hexagon, Store),
+				wings_dialog:show(?KEY(pnl_n_quilted), Value =:= quilted, Store),
+				wings_dialog:show(?KEY(pnl_n_spiral), is_member(Value, [spiral1,spiral2]), Store),
+				wings_dialog:show(?KEY(pnl_n_image), Value =:= image, Store),
+				wings_dialog:show(?KEY(pnl_n_colormap), not InGroup0, Store),
+				wings_dialog:update(?KEY(pnl_tex_normal), Store)
+			end
+		end,
 
     QsFinish =
         {?__(8, "Finish"),
-            {vframe, [
-                {hframe, [
-                    {vframe, [
-                        {label, ?__(2, "Diffuse")},
-                        {label, ?__(3, "Brilliance")},
-                        {label, ?__(4, "Metallic")},
-                        {label, ?__(5, "Transparency")}
-                    ]},
-                    {vframe, [
-                        {slider, {text, proplists:get_value(finish_diffuse, PovRay, 0.7), [range({0.0, 1.0}), key(finish_diffuse)]}},
-                        {slider, {text, proplists:get_value(finish_brilliance, PovRay, 1.0), [range({0.0, 10.0}), key(finish_brilliance)]}},
-                        {slider, {text, proplists:get_value(finish_metallic, PovRay, 0.0), [range({0.0, 10.0}), key(finish_metallic)]}},
-                        {hradio, [
-                            {?__(6, "Transmit"), transmit},
-                            {?__(7, "Filter"), filter}
-                        ], proplists:get_value(finish_transparency, PovRay, filter), [key(finish_transparency)]}
-                    ]}
-                ]}
-            ], [{key,pnl_finished}]}
+	 {vframe, [
+		   {label_column,
+		    [{?__(2, "Diffuse"),
+		      {slider, {text, proplists:get_value(finish_diffuse, PovRay, 0.7),
+				[range({0.0, 1.0}), key(finish_diffuse)]}}},
+		     {?__(3, "Brilliance"),
+		      {slider, {text, proplists:get_value(finish_brilliance, PovRay, 1.0),
+				[range({0.0, 10.0}), key(finish_brilliance)]}}},
+		     {?__(4, "Metallic"),
+		      {slider, {text, proplists:get_value(finish_metallic, PovRay, 0.0),
+				[range({0.0, 10.0}), key(finish_metallic)]}}},
+		     {?__(5, "Transparency"),
+		      {hradio, [{?__(6, "Transmit"), transmit},
+				{?__(7, "Filter"), filter}],
+		       proplists:get_value(finish_transparency, PovRay, filter),
+		       [key(finish_transparency)]}}
+		    ]}], [{key,pnl_finished}]}
         },
     QsReflection =
         {?__(16, "Reflection"),
-            {vframe, [
-                {hframe, [
-                    {?__(9, "Enabled"), proplists:get_value(reflection_enabled, PovRay, false), [key(reflection_enabled), {hook, Hook_Enable}]},
-                    panel,
-                    {?__(10, "Variable"), proplists:get_value(reflection_variable, PovRay, false), [key(reflection_variable), {hook, Hook_Enable}]},
-                    panel,
-                    {?__(11, "Fresnel"), proplists:get_value(reflection_fresnel, PovRay, false), [key(reflection_fresnel)]}
-                ]},
-                {hframe, [
-                    {vframe, [
-                        {label, ?__(12, "Minimum")},
-                        {vframe, [
-                            {label, ?__(13, "Maximum")},
-                            {label, ""}  % used to force the currect label alignment
-                        ],[key(pnl_refl_max_l),{margin,false}]},
-                        {label, ?__(14, "Falloff")},
-                        {label, ?__(15, "Exponent")},
-                        {label, ?__(4, "Metallic")}
-                    ],[{margin,false}]},
-                    {vframe, [
-                        {slider, {color, proplists:get_value(reflection_minimum, PovRay, {0.0, 0.0, 0.0}), [key(reflection_minimum)]}},
-                        {vframe, [
-                            {slider, {color, proplists:get_value(reflection_maximum, PovRay, {0.0, 0.0, 0.0}), [key(reflection_maximum)]}}
-                        ],[key(pnl_refl_max_v),{margin,false}]},
-                        {slider, {text, proplists:get_value(reflection_falloff, PovRay, 1.0), [range({0.0, 10.0}), key(reflection_falloff)]}},
-                        {slider, {text, proplists:get_value(reflection_exponent, PovRay, 1.0), [range({0.0, 10.0}), key(reflection_exponent)]}},
-                        {slider, {text, proplists:get_value(reflection_metallic, PovRay, 0.0), [range({0.0, 10.0}), key(reflection_metallic)]}}
-                    ],[{margin,false}]}
-                ],[key(pnl_reflection),{margin,false}]}
-            ]}
+	 {vframe, [{hframe,
+		    [{?__(9, "Enabled"), proplists:get_value(reflection_enabled, PovRay, false),
+		      [key(reflection_enabled), {hook, Hook_Enable}]},
+		     panel,
+		     {?__(10, "Variable"), proplists:get_value(reflection_variable, PovRay, false),
+		      [key(reflection_variable), {hook, Hook_Enable}]},
+		     panel,
+		     {?__(11, "Fresnel"), proplists:get_value(reflection_fresnel, PovRay, false),
+		      [key(reflection_fresnel)]}]},
+		   {label_column,
+		    [{?__(12, "Minimum"),
+		      {slider, {color, proplists:get_value(reflection_minimum, PovRay, {0.0, 0.0, 0.0}),
+				[key(reflection_minimum)]}}},
+		     {?__(13, "Maximum"),
+		      {slider, {color, proplists:get_value(reflection_maximum, PovRay, {0.0, 0.0, 0.0}),
+				[key(reflection_maximum)]}}, [key(refl_max_row)]},
+		     {?__(14, "Falloff"),
+		      {slider, {text, proplists:get_value(reflection_falloff, PovRay, 1.0),
+				[range({0.0, 10.0}), key(reflection_falloff)]}}},
+		     {?__(15, "Exponent"),
+		      {slider, {text, proplists:get_value(reflection_exponent, PovRay, 1.0),
+				[range({0.0, 10.0}), key(reflection_exponent)]}}},
+		     {?__(4, "Metallic"),
+		      {slider, {text, proplists:get_value(reflection_metallic, PovRay, 0.0),
+				[range({0.0, 10.0}), key(reflection_metallic)]}}}
+		    ],[key(pnl_reflection)]}
+		  ]}
         },
 
     QsInterior =
         {?__(25, "Interior"),
-            {hframe, [
-                {vframe, [
-                    {label, ?__(17, "IOR")},
-                    {label, ?__(18, "Fake Caustics")},
-                    {label, ?__(19, "Dispersion")},
-                    {label, ?__(20, "Disp. Samples")},
-                    {label, ?__(21, "Fade Dist.")},
-                    {label, ?__(22, "Fade Power")},
-                    {label, ?__(23, "Fade Color")}]},
-                {vframe, [
-                    {slider, {text, proplists:get_value(interior_ior, PovRay, 1.0), [range({0.0, 3.0}), key(interior_ior)]}},
-                    {vframe, [
-                        {slider, {text, proplists:get_value(interior_caustic, PovRay, 0.0), [range({0.0, 1.0}), key(interior_caustic)]}},
-                        {slider, {text, proplists:get_value(interior_dispersion, PovRay, 1.0), [range({0.0, 2.0}), key(interior_dispersion)]}},
-                        {slider, {text, proplists:get_value(interior_dispersion_samples, PovRay, 7), [range({0, 50}), key(interior_dispersion_samples)]}},
-                        {slider, {text, proplists:get_value(interior_fade_distance, PovRay, 0.0), [range({0.0, 10.0}), key(interior_fade_distance)]}},
-                        {slider, {text, proplists:get_value(interior_fade_power, PovRay, 0.0), [range({0.0, 10.0}), key(interior_fade_power)]}},
-                        {slider, {color, proplists:get_value(interior_fade_color, PovRay, {0.0, 0.0, 0.0}), [key(interior_fade_color)]}}
-                    ],[{margin,false}]}
-                ]},
-                {vframe, [
-                    {?__(24, "Extended Interior"), proplists:get_value(interior_extended, PovRay, false), [key(interior_extended),{hook,Hook_Enable}]}
-                ]}
-            ]}
-        },
+	 {vframe,
+	  [{?__(24, "Extended Interior"), proplists:get_value(interior_extended, PovRay, false),
+	    [key(interior_extended),{hook,Hook_Enable}]},
+	   {label_column,
+	    [{?__(17, "IOR"),
+	      {slider, {text, proplists:get_value(interior_ior, PovRay, 1.0),
+			[range({0.0, 3.0}), key(interior_ior)]}}},
+	     {?__(18, "Fake Caustics"),
+	      {slider, {text, proplists:get_value(interior_caustic, PovRay, 0.0),
+			[range({0.0, 1.0}), key(interior_caustic)]}}},
+	     {?__(19, "Dispersion"),
+	      {slider, {text, proplists:get_value(interior_dispersion, PovRay, 1.0),
+			[range({0.0, 2.0}), key(interior_dispersion)]}}},
+	     {?__(20, "Disp. Samples"),
+	      {slider, {text, proplists:get_value(interior_dispersion_samples, PovRay, 7),
+			[range({0, 50}), key(interior_dispersion_samples)]}}},
+	     {?__(21, "Fade Dist."),
+	      {slider, {text, proplists:get_value(interior_fade_distance, PovRay, 0.0),
+			[range({0.0, 10.0}), key(interior_fade_distance)]}}},
+	     {?__(22, "Fade Power"),
+	      {slider, {text, proplists:get_value(interior_fade_power, PovRay, 0.0),
+			[range({0.0, 10.0}), key(interior_fade_power)]}}},
+	     {?__(23, "Fade Color"),
+	      {slider, {color, proplists:get_value(interior_fade_color, PovRay, {0.0, 0.0, 0.0}),
+			[key(interior_fade_color)]}}
+	     }]}
+	  ]}},
 
     QsPhotons =
         {?__(30, "Photons"),
-            {hframe, [
-                {?__(9, "Enabled"), proplists:get_value(photons_enabled, PovRay, false), [key(photons_enabled), {hook,Hook_Enable}]},
-                {hframe, [
-                    panel,
-                    {?__(26, "Target"), proplists:get_value(photons_target, PovRay, true), [key(photons_target)]},
-                    panel,
-                    {?__(27, "Collect"), proplists:get_value(photons_collect, PovRay, true), [key(photons_collect)]},
-                    panel,
-                    {?__(28, "Reflect"), proplists:get_value(photons_reflect, PovRay, true), [key(photons_reflect)]},
-                    panel,
-                    {?__(29, "Refract"), proplists:get_value(photons_refract, PovRay, true), [key(photons_refract)]}
-                ],[key(pnl_photons)]}
-            ]}
+	 {hframe, [
+		   {?__(9, "Enabled"), proplists:get_value(photons_enabled, PovRay, false), [key(photons_enabled), {hook,Hook_Enable}]},
+		   {hframe, [
+			     panel,
+			     {?__(26, "Target"), proplists:get_value(photons_target, PovRay, true), [key(photons_target)]},
+			     panel,
+			     {?__(27, "Collect"), proplists:get_value(photons_collect, PovRay, true), [key(photons_collect)]},
+			     panel,
+			     {?__(28, "Reflect"), proplists:get_value(photons_reflect, PovRay, true), [key(photons_reflect)]},
+			     panel,
+			     {?__(29, "Refract"), proplists:get_value(photons_refract, PovRay, true), [key(photons_refract)]}
+			    ],[key(pnl_photons)]}
+		  ]}
         },
 
     TxtPigment =
         {?__(90, "Pigment"),
-            {vframe, [
-                {vframe, [
-                    {hframe, [
-                        {label, ?__(31, "Pattern")},
-                        {menu, [
-                            {?__(32, "Color"), color},
-                            {?__(33, "Image"), image},
-                            {?__(34, "Agate"), agate},
-                            {?__(35, "Boxed"), boxed},
-                            {?__(36, "Bozo"), bozo},
-                            {?__(37, "Brick"), brick},
-                            {?__(38, "Bumps"), bumps},
-                            {?__(39, "Cells"), cells},
-                            {?__(40, "Checker"), checker},
-                            {?__(41, "Crackle"), crackle},
-                            {?__(42, "Cylindrical"), cylindrical},
-                            {?__(43, "Dents"), dents},
-                            {?__(44, "Gradient"), gradient},
-                            {?__(45, "Granite"), granite},
-                            {?__(46, "Hexagon"), hexagon},
-                            {?__(47, "Leopard"), leopard},
-                            {?__(48, "Marble"), marble},
-                            {?__(49, "Onion"), onion},
-                            {?__(50, "Planar"), planar},
-                            {?__(51, "Quilted"), quilted},
-                            {?__(52, "Radial"), radial},
-                            {?__(53, "Ripples"), ripples},
-                            {?__(54, "Slope"), slope},
-                            {?__(55, "Spherical"), spherical},
-                            {?__(56, "Spiral1"), spiral1},
-                            {?__(57, "Spiral2"), spiral2},
-                            {?__(58, "Waves"), waves},
-                            {?__(59, "Wood"), wood},
-                            {?__(60, "Wrinkles"), wrinkles}
-                        ], proplists:get_value(pigment_pattern, PovRay, color), [key(pigment_pattern),{hook,Hook_Show}]},
-                        panel,
-                        {hframe, [
-                            {?__(61, "Color Map"), proplists:get_value(pigment_colormap, PovRay, false), [key(pigment_colormap), {hook, Hook_Enable}]},
-                            {button, ?__(62, "New Entry"), done, [key(new_colormap)]}
-                        ],[key(pnl_color_map),{show,false},{margin,false}]}
-%%     % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
-%%                        ],[key(pnl_color_map),{margin,false}]}
-                    ]},
+	 {vframe, [
+		   {vframe, [
+			     {hframe, [
+				       {label, ?__(31, "Pattern")},
+				       {menu, [
+					       {?__(32, "Color"), color},
+					       {?__(33, "Image"), image},
+					       {?__(34, "Agate"), agate},
+					       {?__(35, "Boxed"), boxed},
+					       {?__(36, "Bozo"), bozo},
+					       {?__(37, "Brick"), brick},
+					       {?__(38, "Bumps"), bumps},
+					       {?__(39, "Cells"), cells},
+					       {?__(40, "Checker"), checker},
+					       {?__(41, "Crackle"), crackle},
+					       {?__(42, "Cylindrical"), cylindrical},
+					       {?__(43, "Dents"), dents},
+					       {?__(44, "Gradient"), gradient},
+					       {?__(45, "Granite"), granite},
+					       {?__(46, "Hexagon"), hexagon},
+					       {?__(47, "Leopard"), leopard},
+					       {?__(48, "Marble"), marble},
+					       {?__(49, "Onion"), onion},
+					       {?__(50, "Planar"), planar},
+					       {?__(51, "Quilted"), quilted},
+					       {?__(52, "Radial"), radial},
+					       {?__(53, "Ripples"), ripples},
+					       {?__(54, "Slope"), slope},
+					       {?__(55, "Spherical"), spherical},
+					       {?__(56, "Spiral1"), spiral1},
+					       {?__(57, "Spiral2"), spiral2},
+					       {?__(58, "Waves"), waves},
+					       {?__(59, "Wood"), wood},
+					       {?__(60, "Wrinkles"), wrinkles}
+					      ], proplists:get_value(pigment_pattern, PovRay, color), [key(pigment_pattern),{hook,Hook_Show}]},
+				       panel,
+				       {hframe, [
+						 {?__(61, "Color Map"), proplists:get_value(pigment_colormap, PovRay, false), [key(pigment_colormap), {hook, Hook_Enable}]},
+						 {button, ?__(62, "New Entry"), done, [key(new_colormap)]}
+						],[key(pnl_color_map),{show,false},{margin,false}]}
+				       %%     % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
+				       %%                        ],[key(pnl_color_map),{margin,false}]}
+				      ]},
 
-                    %% pattern specific values
-                    %% agate
-                    {hframe, [
-                        {hframe, [
-                            {label, ?__(71, "Agate Turbulence")},
-                            {text, proplists:get_value(agate_turbulence, PovRay, 1.0), [key(agate_turbulence)]}
-                        ]}
-                    ], [key(pnl_agate),{show, false},{margin,false}]},
-                    %% brick
-                    {hframe, [
-                        {vframe, [
-                            {label, ?__(37, "Brick")},
-                            {label, ?__(72, "Mortar")}
-                        ]},
-                        {vframe, [
-                            {color, proplists:get_value(brick_color, PovRay, {1.0, 0.0, 0.0, 1.0}), [key(brick_color)]},
-                            {color, proplists:get_value(mortar_color, PovRay, {1.0, 1.0, 1.0, 1.0}), [key(mortar_color)]}
-                        ]},
-                        {vframe, [
-                            {label, ?__(73, "Size X")},
-                            {label, ?__(74, "Size")}
-                        ]},
-                        {vframe, [
-                            {text, proplists:get_value(brick_size_x, PovRay, 7.5), [key(brick_size_x)]},
-                            {text, proplists:get_value(mortar_size, PovRay, 0.5), [key(mortar_size)]}]},
-                        {vframe, [
-                            {label, ?__(67, "Y")}
-                        ]},
-                        {vframe, [
-                            {text, proplists:get_value(brick_size_y, PovRay, 2.5), [key(brick_size_y)]}
-                        ]},
-                        {vframe, [
-                            {label, ?__(69, "Z")}
-                        ]},
-                        {vframe, [
-                            {text, proplists:get_value(brick_size_z, PovRay, 4.0), [key(brick_size_z)]}
-                        ]}
-                    ], [key(pnl_brick),{show, false},{margin,false}]},
-                    %% checker
-                    {hframe, [
-                        {label, ?__(75, "Checker 1")},
-                        {color, proplists:get_value(checker_color1, PovRay, {1.0, 1.0, 1.0, 1.0}), [key(checker_color1)]},
-                        panel,
-                        {label, ?__(76, "Checker 2")},
-                        {color, proplists:get_value(checker_color2, PovRay, {0.0, 1.0, 0.0, 1.0}), [key(checker_color2)]}
-                    ], [key(pnl_checker),{show, false},{margin,false}]},
-                    %% crackle
-                    {hframe, [
-                        {vframe, [
-                            {hframe, [
-                                {vframe, [
-                                    {label, ?__(77, "Crackle Metric")},
-                                    {label, ?__(78, "Crackle Offset")}
-                                ]},
-                                {vframe, [
-                                    {slider, {text, proplists:get_value(crackle_metric, PovRay, 2), [range({0, 10}), key(crackle_metric)]}},
-                                    {slider, {text, proplists:get_value(crackle_offset, PovRay, 0.0), [range({0.0, 10.0}), key(crackle_offset)]}}
-                                ]}
-                            ], [{margin,false}]},
-                            {hframe, [
-                                {?__(79, "Crackle Solid"), proplists:get_value(crackle_solid, PovRay, false), [key(crackle_solid)]}
-                            ]}
-                        ], [{margin,false}]}
-                    ], [key(pnl_crackle),{show, false},{margin,false}]},
-                    %% gradient
-                    {hframe, [
-                        {label, ?__(80, "Gradient Axis")},
-                        {menu, [
-                            {?__(81, "X"), x},
-                            {?__(67, "Y"), y},
-                            {?__(69, "Z"), z}
-                        ], proplists:get_value(gradient_axis, PovRay, x), [key(gradient_axis)]}
-                    ], [key(pnl_gradient),{show, false}]},
-                    %% hexagon
-                    {hframe, [
-                        {label, ?__(82, "Hex. 1")},
-                        {color, proplists:get_value(hexagon_color1, PovRay, {0.0, 0.0, 1.0, 1.0}), [key(hexagon_color1)]},
-                        panel,
-                        {label, ?__(83, "Hex. 2")},
-                        {color, proplists:get_value(hexagon_color2, PovRay, {0.0, 1.0, 0.0, 1.0}), [key(hexagon_color2)]},
-                        panel,
-                        {label, ?__(84, "Hex. 3")},
-                        {color, proplists:get_value(hexagon_color3, PovRay, {1.0, 0.0, 0.0, 1.0}), [key(hexagon_color3)]}
-                    ], [key(pnl_hexagon),{show, false}]},
-                    %% quilted
-                    {hframe, [
-                        {hframe, [
-                            {label, ?__(85, "Quilted 1")},
-                            {text, proplists:get_value(quilted_value1, PovRay, 1.0), [key(quilted_value1)]}
-                        ]},
-                        panel,
-                        {hframe, [
-                            {label, ?__(86, "Quilted 2")},
-                            {text, proplists:get_value(quilted_value2, PovRay, 1.0), [key(quilted_value2)]}
-                        ]}
-                    ], [key(pnl_quilted),{show, false},{margin,false}]},
-                    %% Spiral
-                    {hframe, [
-                        {hframe, [
-                            {label, ?__(87, "Spiral Arms")},
-                            {text, proplists:get_value(spiral_arms, PovRay, 5), [key(spiral_arms)]}
-                        ]}
-                    ], [key(pnl_spiral),{show, false},{margin,false}]},
-                    %% Image
-                    {vframe, [
-                        {hframe, [
-                            {hradio, [
-                                {?__(88, "user"), user} | enumerate_image_maps(Maps)
-                            ], PigmentImage, [key(image_type),{hook,Hook_Enable}]}]},
-                        {hframe, [
-                            {label, ?__(89, "Filename")},
-                            {button, {text, proplists:get_value(image_user_file, PovRay, []), [key(image_user_file), {width,35}, {props, BrowseProps}]}}
-                        ], [key(pnl_pigment_file)]}
-                    ], [key(pnl_image),{show, true},{margin,false}]},
-                    %% colormap
-                    {vframe,
-                        enumerate_colormap_controls(proplists:get_value(colormap_list, PovRay, []), 0),
-                        [key(pnl_colormap), {show, false}]
-                    },
-                    %% Modifiers
-                    {vframe, [
-                        {?__(63, "Modifiers"), proplists:get_value(pigment_modifiers, PovRay, false), [key(pigment_modifiers), {hook, Hook_Enable}]},
-                        {hframe, [
-                            {vframe, [
-                                {label, ?__(64, "Offset X")},
-                                {label, ?__(65, "Rotate X")},
-                                {label, ?__(66, "Turbulence")}]},
-                            {vframe, [
-                                {text, proplists:get_value(pigment_off_x, PovRay, 0.0), [key(pigment_off_x)]},
-                                {text, proplists:get_value(pigment_rot_x, PovRay, 0.0), [key(pigment_rot_x)]},
-                                {text, proplists:get_value(pigment_turbulence, PovRay, 0.0), [key(pigment_turbulence)]}]},
-                            {vframe, [
-                                {label, ?__(67, "Y")},
-                                {label, ?__(67, "Y")},
-                                {label, ?__(68, "Freq.")}]},
-                            {vframe, [
-                                {text, proplists:get_value(pigment_off_y, PovRay, 0.0), [key(pigment_off_y)]},
-                                {text, proplists:get_value(pigment_rot_y, PovRay, 0.0), [key(pigment_rot_y)]},
-                                {text, proplists:get_value(pigment_frequency, PovRay, 1.0), [key(pigment_frequency)]}]},
-                            {vframe, [
-                                {label, ?__(69, "Z")},
-                                {label, ?__(69, "Z")},
-                                {label, ?__(70, "Scale")}]},
-                            {vframe, [
-                                {text, proplists:get_value(pigment_off_z, PovRay, 0.0), [key(pigment_off_z)]},
-                                {text, proplists:get_value(pigment_rot_z, PovRay, 0.0), [key(pigment_rot_z)]},
-                                {text, proplists:get_value(pigment_scale, PovRay, 1.0), [key(pigment_scale)]}]}
-                        ], [key(pnl_modif_props),{margin,false}]}
-                    ], [key(pnl_modifiers)]}
-                ], [key(pnl_tex_pigment)]}
-            ]}
+			     %% pattern specific values
+			     %% agate
+			     {hframe, [
+				       {hframe, [
+						 {label, ?__(71, "Agate Turbulence")},
+						 {text, proplists:get_value(agate_turbulence, PovRay, 1.0), [key(agate_turbulence)]}
+						]}
+				      ], [key(pnl_agate),{show, false},{margin,false}]},
+			     %% brick
+			     {hframe, [
+				       {vframe, [
+						 {label, ?__(37, "Brick")},
+						 {label, ?__(72, "Mortar")}
+						]},
+				       {vframe, [
+						 {color, proplists:get_value(brick_color, PovRay, {1.0, 0.0, 0.0, 1.0}), [key(brick_color)]},
+						 {color, proplists:get_value(mortar_color, PovRay, {1.0, 1.0, 1.0, 1.0}), [key(mortar_color)]}
+						]},
+				       {vframe, [
+						 {label, ?__(73, "Size X")},
+						 {label, ?__(74, "Size")}
+						]},
+				       {vframe, [
+						 {text, proplists:get_value(brick_size_x, PovRay, 7.5), [key(brick_size_x)]},
+						 {text, proplists:get_value(mortar_size, PovRay, 0.5), [key(mortar_size)]}]},
+				       {vframe, [
+						 {label, ?__(67, "Y")}
+						]},
+				       {vframe, [
+						 {text, proplists:get_value(brick_size_y, PovRay, 2.5), [key(brick_size_y)]}
+						]},
+				       {vframe, [
+						 {label, ?__(69, "Z")}
+						]},
+				       {vframe, [
+						 {text, proplists:get_value(brick_size_z, PovRay, 4.0), [key(brick_size_z)]}
+						]}
+				      ], [key(pnl_brick),{show, false},{margin,false}]},
+			     %% checker
+			     {hframe, [
+				       {label, ?__(75, "Checker 1")},
+				       {color, proplists:get_value(checker_color1, PovRay, {1.0, 1.0, 1.0, 1.0}), [key(checker_color1)]},
+				       panel,
+				       {label, ?__(76, "Checker 2")},
+				       {color, proplists:get_value(checker_color2, PovRay, {0.0, 1.0, 0.0, 1.0}), [key(checker_color2)]}
+				      ], [key(pnl_checker),{show, false},{margin,false}]},
+			     %% crackle
+			     {hframe, [
+				       {vframe, [
+						 {hframe, [
+							   {vframe, [
+								     {label, ?__(77, "Crackle Metric")},
+								     {label, ?__(78, "Crackle Offset")}
+								    ]},
+							   {vframe, [
+								     {slider, {text, proplists:get_value(crackle_metric, PovRay, 2), [range({0, 10}), key(crackle_metric)]}},
+								     {slider, {text, proplists:get_value(crackle_offset, PovRay, 0.0), [range({0.0, 10.0}), key(crackle_offset)]}}
+								    ]}
+							  ], [{margin,false}]},
+						 {hframe, [
+							   {?__(79, "Crackle Solid"), proplists:get_value(crackle_solid, PovRay, false), [key(crackle_solid)]}
+							  ]}
+						], [{margin,false}]}
+				      ], [key(pnl_crackle),{show, false},{margin,false}]},
+			     %% gradient
+			     {hframe, [
+				       {label, ?__(80, "Gradient Axis")},
+				       {menu, [
+					       {?__(81, "X"), x},
+					       {?__(67, "Y"), y},
+					       {?__(69, "Z"), z}
+					      ], proplists:get_value(gradient_axis, PovRay, x), [key(gradient_axis)]}
+				      ], [key(pnl_gradient),{show, false}]},
+			     %% hexagon
+			     {hframe, [
+				       {label, ?__(82, "Hex. 1")},
+				       {color, proplists:get_value(hexagon_color1, PovRay, {0.0, 0.0, 1.0, 1.0}), [key(hexagon_color1)]},
+				       panel,
+				       {label, ?__(83, "Hex. 2")},
+				       {color, proplists:get_value(hexagon_color2, PovRay, {0.0, 1.0, 0.0, 1.0}), [key(hexagon_color2)]},
+				       panel,
+				       {label, ?__(84, "Hex. 3")},
+				       {color, proplists:get_value(hexagon_color3, PovRay, {1.0, 0.0, 0.0, 1.0}), [key(hexagon_color3)]}
+				      ], [key(pnl_hexagon),{show, false}]},
+			     %% quilted
+			     {hframe, [
+				       {hframe, [
+						 {label, ?__(85, "Quilted 1")},
+						 {text, proplists:get_value(quilted_value1, PovRay, 1.0), [key(quilted_value1)]}
+						]},
+				       panel,
+				       {hframe, [
+						 {label, ?__(86, "Quilted 2")},
+						 {text, proplists:get_value(quilted_value2, PovRay, 1.0), [key(quilted_value2)]}
+						]}
+				      ], [key(pnl_quilted),{show, false},{margin,false}]},
+			     %% Spiral
+			     {hframe, [
+				       {hframe, [
+						 {label, ?__(87, "Spiral Arms")},
+						 {text, proplists:get_value(spiral_arms, PovRay, 5), [key(spiral_arms)]}
+						]}
+				      ], [key(pnl_spiral),{show, false},{margin,false}]},
+			     %% Image
+			     {vframe, [
+				       {hframe, [
+						 {hradio, [
+							   {?__(88, "user"), user} | enumerate_image_maps(Maps)
+							  ], PigmentImage, [key(image_type),{hook,Hook_Enable}]}]},
+				       {hframe, [
+						 {label, ?__(89, "Filename")},
+						 {button, {text, proplists:get_value(image_user_file, PovRay, []), [key(image_user_file), {width,35}, {props, BrowseProps}]}}
+						], [key(pnl_pigment_file)]}
+				      ], [key(pnl_image),{show, true},{margin,false}]},
+			     %% colormap
+			     {vframe,
+			      enumerate_colormap_controls(proplists:get_value(colormap_list, PovRay, []), 0),
+			      [key(pnl_colormap), {show, false}]
+			     },
+			     %% Modifiers
+			     {vframe, [
+				       {?__(63, "Modifiers"), proplists:get_value(pigment_modifiers, PovRay, false), [key(pigment_modifiers), {hook, Hook_Enable}]},
+				       {hframe, [
+						 {vframe, [
+							   {label, ?__(64, "Offset X")},
+							   {label, ?__(65, "Rotate X")},
+							   {label, ?__(66, "Turbulence")}]},
+						 {vframe, [
+							   {text, proplists:get_value(pigment_off_x, PovRay, 0.0), [key(pigment_off_x)]},
+							   {text, proplists:get_value(pigment_rot_x, PovRay, 0.0), [key(pigment_rot_x)]},
+							   {text, proplists:get_value(pigment_turbulence, PovRay, 0.0), [key(pigment_turbulence)]}]},
+						 {vframe, [
+							   {label, ?__(67, "Y")},
+							   {label, ?__(67, "Y")},
+							   {label, ?__(68, "Freq.")}]},
+						 {vframe, [
+							   {text, proplists:get_value(pigment_off_y, PovRay, 0.0), [key(pigment_off_y)]},
+							   {text, proplists:get_value(pigment_rot_y, PovRay, 0.0), [key(pigment_rot_y)]},
+							   {text, proplists:get_value(pigment_frequency, PovRay, 1.0), [key(pigment_frequency)]}]},
+						 {vframe, [
+							   {label, ?__(69, "Z")},
+							   {label, ?__(69, "Z")},
+							   {label, ?__(70, "Scale")}]},
+						 {vframe, [
+							   {text, proplists:get_value(pigment_off_z, PovRay, 0.0), [key(pigment_off_z)]},
+							   {text, proplists:get_value(pigment_rot_z, PovRay, 0.0), [key(pigment_rot_z)]},
+							   {text, proplists:get_value(pigment_scale, PovRay, 1.0), [key(pigment_scale)]}]}
+						], [key(pnl_modif_props),{margin,false}]}
+				      ], [key(pnl_modifiers)]}
+			    ], [key(pnl_tex_pigment)]}
+		  ]}
         },
 
     TxtNormal =
         {?__(96, "Normal"),
-            {vframe, [
-                {vframe, [
-                    {hframe, [
-                        {label, ?__(31, "Pattern")},
-                        {menu, [
-                            {?__(91, "None"), none},
-                            {?__(33, "Image"), image},
-                            {?__(34, "Agate"), agate},
-                            {?__(35, "Boxed"), boxed},
-                            {?__(36, "Bozo"), bozo},
-                            {?__(37, "Brick"), brick},
-                            {?__(38, "Bumps"), bumps},
-                            {?__(39, "Cells"), cells},
-                            {?__(40, "Checker"), checker},
-                            {?__(41, "Crackle"), crackle},
-                            {?__(42, "Cylindrical"), cylindrical},
-                            {?__(43, "Dents"), dents},
-                            {?__(44, "Gradient"), gradient},
-                            {?__(45, "Granite"), granite},
-                            {?__(46, "Hexagon"), hexagon},
-                            {?__(47, "Leopard"), leopard},
-                            {?__(48, "Marble"), marble},
-                            {?__(49, "Onion"), onion},
-                            {?__(50, "Planar"), planar},
-                            {?__(51, "Quilted"), quilted},
-                            {?__(52, "Radial"), radial},
-                            {?__(53, "Ripples"), ripples},
-                            {?__(54, "Slope"), slope},
-                            {?__(55, "Spherical"), spherical},
-                            {?__(56, "Spiral1"), spiral1},
-                            {?__(57, "Spiral2"), spiral2},
-                            {?__(58, "Waves"), waves},
-                            {?__(59, "Wood"), wood},
-                            {?__(60, "Wrinkles"), wrinkles}
-                        ], proplists:get_value(normal_pattern, PovRay, none), [key(normal_pattern),{hook,Hook_Show}]},
-                        panel,
-                        {hframe, [
-                            {?__(92, "Normal Map"), proplists:get_value(normal_normalmap, PovRay, false), [key(normal_normalmap), {hook, Hook_Enable}]},
-                            {button, ?__(93, "New Entry"), done, [key(new_normalmap)]}
-                        ], [key(pnl_normal_map),{show,false},{margin,false}]},
-%%     % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
-%%                        ], [key(pnl_normal_map),{margin,false}]},
-                        {hframe, [
-                            {?__(94, "Normal Components"), proplists:get_value(normal_components, PovRay, false), [key(normal_components), {hook, Hook_Enable}]}
-                        ], [key(pnl_normal_comp),{margin,false}]}
-                    ]},
-                    {hframe, [
-                        {hframe, [
-                            {label, ?__(95, "Magnitude")},
-                            {text, proplists:get_value(normal_magnitude, PovRay, 0.5), [key(normal_magnitude)]}
-                        ], [key(pnl_magnitude),{margin,false}]}
-                    ]},
+	 {vframe, [
+		   {vframe, [
+			     {hframe, [
+				       {label, ?__(31, "Pattern")},
+				       {menu, [
+					       {?__(91, "None"), none},
+					       {?__(33, "Image"), image},
+					       {?__(34, "Agate"), agate},
+					       {?__(35, "Boxed"), boxed},
+					       {?__(36, "Bozo"), bozo},
+					       {?__(37, "Brick"), brick},
+					       {?__(38, "Bumps"), bumps},
+					       {?__(39, "Cells"), cells},
+					       {?__(40, "Checker"), checker},
+					       {?__(41, "Crackle"), crackle},
+					       {?__(42, "Cylindrical"), cylindrical},
+					       {?__(43, "Dents"), dents},
+					       {?__(44, "Gradient"), gradient},
+					       {?__(45, "Granite"), granite},
+					       {?__(46, "Hexagon"), hexagon},
+					       {?__(47, "Leopard"), leopard},
+					       {?__(48, "Marble"), marble},
+					       {?__(49, "Onion"), onion},
+					       {?__(50, "Planar"), planar},
+					       {?__(51, "Quilted"), quilted},
+					       {?__(52, "Radial"), radial},
+					       {?__(53, "Ripples"), ripples},
+					       {?__(54, "Slope"), slope},
+					       {?__(55, "Spherical"), spherical},
+					       {?__(56, "Spiral1"), spiral1},
+					       {?__(57, "Spiral2"), spiral2},
+					       {?__(58, "Waves"), waves},
+					       {?__(59, "Wood"), wood},
+					       {?__(60, "Wrinkles"), wrinkles}
+					      ], proplists:get_value(normal_pattern, PovRay, none), [key(normal_pattern),{hook,Hook_Show}]},
+				       panel,
+				       {hframe, [
+						 {?__(92, "Normal Map"), proplists:get_value(normal_normalmap, PovRay, false), [key(normal_normalmap), {hook, Hook_Enable}]},
+						 {button, ?__(93, "New Entry"), done, [key(new_normalmap)]}
+						], [key(pnl_normal_map),{show,false},{margin,false}]},
+				       %%     % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
+				       %%                        ], [key(pnl_normal_map),{margin,false}]},
+				       {hframe, [
+						 {?__(94, "Normal Components"), proplists:get_value(normal_components, PovRay, false), [key(normal_components), {hook, Hook_Enable}]}
+						], [key(pnl_normal_comp),{margin,false}]}
+				      ]},
+			     {hframe, [
+				       {hframe, [
+						 {label, ?__(95, "Magnitude")},
+						 {text, proplists:get_value(normal_magnitude, PovRay, 0.5), [key(normal_magnitude)]}
+						], [key(pnl_magnitude),{margin,false}]}
+				      ]},
 
-                    %% pattern specific values
-                    %% agate
-                    {hframe, [
-                        {hframe, [
-                            {label, ?__(71, "Agate Turbulence")},
-                            {text, proplists:get_value(n_agate_turbulence, PovRay, 1.0), [key(n_agate_turbulence)]}
-                        ]}
-                    ], [key(pnl_n_agate), {show, false},{margin,false}]},
-                    %% brick
-                    {hframe, [
-                        {vframe, [
-                            {label, ?__(37, "Brick")},
-                            {label, ?__(72, "Mortar")}
-                        ]},
-                        {vframe, [
-                            {menu,
-                                normalmap_menu(),
-                                proplists:get_value(brick_normal, PovRay, agate), [key(brick_normal)]},
-                            {menu,
-                                normalmap_menu(),
-                                proplists:get_value(mortar_normal, PovRay, agate), [key(mortar_normal)]}
-                        ], [key(pnl_n_brick_props)]},
-                        {vframe, [
-                            {label, ?__(73, "Size X")},
-                            {label, ?__(74, "Size")}
-                        ]},
-                        {vframe, [
-                            {text, proplists:get_value(n_brick_size_x, PovRay, 7.5), [key(n_brick_size_x)]},
-                            {text, proplists:get_value(n_mortar_size, PovRay, 0.5), [key(n_mortar_size)]}
-                        ]},
-                        {vframe, [
-                            {label, "Y"}
-                        ]},
-                        {vframe, [
-                            {text, proplists:get_value(n_brick_size_y, PovRay, 2.5), [key(n_brick_size_y)]}
-                        ]},
-                        {vframe, [
-                            {label, "Z"}
-                        ]},
-                        {vframe, [
-                            {text, proplists:get_value(n_brick_size_z, PovRay, 4.0), [key(n_brick_size_z)]}
-                        ]}
-                    ], [key(pnl_n_brick), {show, false},{margin,false}]},
-                    %% checker
-                    {hframe, [
-                        {hframe, [
-                            {label, ?__(75, "Checker 1")},
-                            {menu, normalmap_menu(), proplists:get_value(checker_normal1, PovRay, agate), [key(checker_normal1)]}
-                        ]},
-                        {hframe, [
-                            {label, ?__(76, "Checker 2")},
-                            {menu, normalmap_menu(), proplists:get_value(checker_normal2, PovRay, agate), [key(checker_normal2)]}
-                        ]}
-                    ], [key(pnl_n_checker), {show, false}]},
-                    %% crackle
-                    {hframe, [
-                        {vframe, [
-                            {hframe, [
-                                {vframe, [
-                                    {label, ?__(77, "Crackle Metric")},
-                                    {label, ?__(78, "Crackle Offset")}
-                                ]},
-                                {vframe, [
-                                    {slider, {text, proplists:get_value(n_crackle_metric, PovRay, 2), [range({0, 10}), key(n_crackle_metric)]}},
-                                    {slider, {text, proplists:get_value(n_crackle_offset, PovRay, 0.0), [range({0.0, 10.0}), key(n_crackle_offset)]}}
-                                ]}
-                            ],[{margin,false}]},
-                            {hframe, [
-                                {?__(79, "Crackle Solid"), proplists:get_value(n_crackle_solid, PovRay, false), [key(n_crackle_solid)]}
-                            ]}
-                        ]}
-                    ], [key(pnl_n_crackle),{show, false},{margin,false}]},
-                    %% gradient
-                    {hframe, [
-                        {label, ?__(80, "Gradient Axis")},
-                        {menu, [
-                            {?__(81, "X"), x},
-                            {?__(67, "Y"), y},
-                            {?__(69, "Z"), z}
-                        ], proplists:get_value(n_gradient_axis, PovRay, x), [key(n_gradient_axis)]}
-                    ], [key(pnl_n_gradient),{show, false},{margin,false}]},
-                    %% hexagon
-                    {hframe, [
-                        {hframe, [
-                            {label, ?__(82, "Hex. 1")},
-                            {menu,
-                                normalmap_menu(),
-                                proplists:get_value(hexagon_normal1, PovRay, agate), [key(hexagon_normal1)]}
-                        ]},
-                        {hframe, [
-                            {label, ?__(83, "Hex. 2")},
-                            {menu,
-                                normalmap_menu(),
-                                proplists:get_value(hexagon_normal2, PovRay, agate), [key(hexagon_normal2)]}
-                        ]},
-                        {hframe, [
-                            {label, ?__(84, "Hex. 3")},
-                            {menu,
-                                normalmap_menu(),
-                                proplists:get_value(hexagon_normal3, PovRay, agate), [key(hexagon_normal3)]}
-                        ]}
-                    ], [key(pnl_n_hexagon),{show, false},{margin,false}]},
-                    %% quilted
-                    {hframe, [
-                        {hframe, [
-                            {label, ?__(85, "Quilted 1")},
-                            {text, proplists:get_value(n_quilted_value1, PovRay, 1.0), [key(n_quilted_value1)]}
-                        ]},
-                        {hframe, [
-                            {label, ?__(86, "Quilted 2")},
-                            {text, proplists:get_value(n_quilted_value2, PovRay, 1.0), [key(n_quilted_value2)]}
-                        ]}
-                    ], [key(pnl_n_quilted), {show, false},{margin,false}]},
-                    %% Spiral
-                    {hframe, [
-                        {hframe, [
-                            {label, ?__(87, "Spiral Arms")},
-                            {text, proplists:get_value(n_spiral_arms, PovRay, 5), [key(n_spiral_arms)]}
-                        ]}
-                    ], [key(pnl_n_spiral), {show, false},{margin,false}]},
-                    %% Image
-                    {vframe, [
-                        {hframe, [
-                            {hradio, [
-                                {?__(88, "user"), user} | enumerate_image_maps(Maps)
-                            ], NormalImage, [key(n_image_type),{hook,Hook_Enable}]}]},
-                        {hframe, [
-                            {label, ?__(89, "Filename")},
-                            {button, {text, proplists:get_value(n_image_user_file, PovRay, []), [key(n_image_user_file), {width,35}, {props, BrowseProps}]}}
-                        ], [key(pnl_normal_file)]}
-                    ], [key(pnl_n_image),{margin,false}]},
-                    %% normalmap
-                    {vframe,
-                        enumerate_normalmap_controls(proplists:get_value(normalmap_list, PovRay, []), 0),
-                        [key(pnl_n_colormap), {show, false}]
-                    },
+			     %% pattern specific values
+			     %% agate
+			     {hframe, [
+				       {hframe, [
+						 {label, ?__(71, "Agate Turbulence")},
+						 {text, proplists:get_value(n_agate_turbulence, PovRay, 1.0), [key(n_agate_turbulence)]}
+						]}
+				      ], [key(pnl_n_agate), {show, false},{margin,false}]},
+			     %% brick
+			     {hframe, [
+				       {vframe, [
+						 {label, ?__(37, "Brick")},
+						 {label, ?__(72, "Mortar")}
+						]},
+				       {vframe, [
+						 {menu,
+						  normalmap_menu(),
+						  proplists:get_value(brick_normal, PovRay, agate), [key(brick_normal)]},
+						 {menu,
+						  normalmap_menu(),
+						  proplists:get_value(mortar_normal, PovRay, agate), [key(mortar_normal)]}
+						], [key(pnl_n_brick_props)]},
+				       {vframe, [
+						 {label, ?__(73, "Size X")},
+						 {label, ?__(74, "Size")}
+						]},
+				       {vframe, [
+						 {text, proplists:get_value(n_brick_size_x, PovRay, 7.5), [key(n_brick_size_x)]},
+						 {text, proplists:get_value(n_mortar_size, PovRay, 0.5), [key(n_mortar_size)]}
+						]},
+				       {vframe, [
+						 {label, "Y"}
+						]},
+				       {vframe, [
+						 {text, proplists:get_value(n_brick_size_y, PovRay, 2.5), [key(n_brick_size_y)]}
+						]},
+				       {vframe, [
+						 {label, "Z"}
+						]},
+				       {vframe, [
+						 {text, proplists:get_value(n_brick_size_z, PovRay, 4.0), [key(n_brick_size_z)]}
+						]}
+				      ], [key(pnl_n_brick), {show, false},{margin,false}]},
+			     %% checker
+			     {hframe, [
+				       {hframe, [
+						 {label, ?__(75, "Checker 1")},
+						 {menu, normalmap_menu(), proplists:get_value(checker_normal1, PovRay, agate), [key(checker_normal1)]}
+						]},
+				       {hframe, [
+						 {label, ?__(76, "Checker 2")},
+						 {menu, normalmap_menu(), proplists:get_value(checker_normal2, PovRay, agate), [key(checker_normal2)]}
+						]}
+				      ], [key(pnl_n_checker), {show, false}]},
+			     %% crackle
+			     {hframe, [
+				       {vframe, [
+						 {hframe, [
+							   {vframe, [
+								     {label, ?__(77, "Crackle Metric")},
+								     {label, ?__(78, "Crackle Offset")}
+								    ]},
+							   {vframe, [
+								     {slider, {text, proplists:get_value(n_crackle_metric, PovRay, 2), [range({0, 10}), key(n_crackle_metric)]}},
+								     {slider, {text, proplists:get_value(n_crackle_offset, PovRay, 0.0), [range({0.0, 10.0}), key(n_crackle_offset)]}}
+								    ]}
+							  ],[{margin,false}]},
+						 {hframe, [
+							   {?__(79, "Crackle Solid"), proplists:get_value(n_crackle_solid, PovRay, false), [key(n_crackle_solid)]}
+							  ]}
+						]}
+				      ], [key(pnl_n_crackle),{show, false},{margin,false}]},
+			     %% gradient
+			     {hframe, [
+				       {label, ?__(80, "Gradient Axis")},
+				       {menu, [
+					       {?__(81, "X"), x},
+					       {?__(67, "Y"), y},
+					       {?__(69, "Z"), z}
+					      ], proplists:get_value(n_gradient_axis, PovRay, x), [key(n_gradient_axis)]}
+				      ], [key(pnl_n_gradient),{show, false},{margin,false}]},
+			     %% hexagon
+			     {hframe, [
+				       {hframe, [
+						 {label, ?__(82, "Hex. 1")},
+						 {menu,
+						  normalmap_menu(),
+						  proplists:get_value(hexagon_normal1, PovRay, agate), [key(hexagon_normal1)]}
+						]},
+				       {hframe, [
+						 {label, ?__(83, "Hex. 2")},
+						 {menu,
+						  normalmap_menu(),
+						  proplists:get_value(hexagon_normal2, PovRay, agate), [key(hexagon_normal2)]}
+						]},
+				       {hframe, [
+						 {label, ?__(84, "Hex. 3")},
+						 {menu,
+						  normalmap_menu(),
+						  proplists:get_value(hexagon_normal3, PovRay, agate), [key(hexagon_normal3)]}
+						]}
+				      ], [key(pnl_n_hexagon),{show, false},{margin,false}]},
+			     %% quilted
+			     {hframe, [
+				       {hframe, [
+						 {label, ?__(85, "Quilted 1")},
+						 {text, proplists:get_value(n_quilted_value1, PovRay, 1.0), [key(n_quilted_value1)]}
+						]},
+				       {hframe, [
+						 {label, ?__(86, "Quilted 2")},
+						 {text, proplists:get_value(n_quilted_value2, PovRay, 1.0), [key(n_quilted_value2)]}
+						]}
+				      ], [key(pnl_n_quilted), {show, false},{margin,false}]},
+			     %% Spiral
+			     {hframe, [
+				       {hframe, [
+						 {label, ?__(87, "Spiral Arms")},
+						 {text, proplists:get_value(n_spiral_arms, PovRay, 5), [key(n_spiral_arms)]}
+						]}
+				      ], [key(pnl_n_spiral), {show, false},{margin,false}]},
+			     %% Image
+			     {vframe, [
+				       {hframe, [
+						 {hradio, [
+							   {?__(88, "user"), user} | enumerate_image_maps(Maps)
+							  ], NormalImage, [key(n_image_type),{hook,Hook_Enable}]}]},
+				       {hframe, [
+						 {label, ?__(89, "Filename")},
+						 {button, {text, proplists:get_value(n_image_user_file, PovRay, []), [key(n_image_user_file), {width,35}, {props, BrowseProps}]}}
+						], [key(pnl_normal_file)]}
+				      ], [key(pnl_n_image),{margin,false}]},
+			     %% normalmap
+			     {vframe,
+			      enumerate_normalmap_controls(proplists:get_value(normalmap_list, PovRay, []), 0),
+			      [key(pnl_n_colormap), {show, false}]
+			     },
 
-                    %% Modifiers
-                    {vframe, [
-                        {?__(63, "Modifiers"), proplists:get_value(normal_modifiers, PovRay, false), [key(normal_modifiers), {hook, Hook_Enable}]},
-                        {hframe, [
-                            {vframe, [
-                                {label, ?__(64, "Offset X")},
-                                {label, ?__(65, "Rotate X")},
-                                {label, ?__(66, "Turbulence")}
-                            ]},
-                            {vframe, [
-                                {text, proplists:get_value(normal_off_x, PovRay, 0.0), [key(normal_off_x)]},
-                                {text, proplists:get_value(normal_rot_x, PovRay, 0.0), [key(normal_rot_x)]},
-                                {text, proplists:get_value(normal_turbulence, PovRay, 0.0), [key(normal_turbulence)]}
-                            ]},
-                            {vframe, [
-                                {label, ?__(67, "Y")},
-                                {label, ?__(67, "Y")},
-                                {label, ?__(68, "Freq.")}
-                            ]},
-                            {vframe, [
-                                {text, proplists:get_value(normal_off_y, PovRay, 0.0), [key(normal_off_y)]},
-                                {text, proplists:get_value(normal_rot_y, PovRay, 0.0), [key(normal_rot_y)]},
-                                {text, proplists:get_value(normal_frequency, PovRay, 1.0), [key(normal_frequency)]}
-                            ]},
-                            {vframe, [
-                                {label, ?__(69, "Z")},
-                                {label, ?__(69, "Z")},
-                                {label, ?__(70, "Scale")}
-                            ]},
-                            {vframe, [
-                                {text, proplists:get_value(normal_off_z, PovRay, 0.0), [key(normal_off_z)]},
-                                {text, proplists:get_value(normal_rot_z, PovRay, 0.0), [key(normal_rot_z)]},
-                                {text, proplists:get_value(normal_scale, PovRay, 1.0), [key(normal_scale)]}
-                            ]}
-                        ], [key(pnl_n_modif_props),{margin,false}]}
-                    ], [key(pnl_n_modifiers),{margin,false}]}
-                ], [key(pnl_tex_normal)]}
-            ],[{margin,false}]}
+			     %% Modifiers
+			     {vframe, [
+				       {?__(63, "Modifiers"), proplists:get_value(normal_modifiers, PovRay, false), [key(normal_modifiers), {hook, Hook_Enable}]},
+				       {hframe, [
+						 {vframe, [
+							   {label, ?__(64, "Offset X")},
+							   {label, ?__(65, "Rotate X")},
+							   {label, ?__(66, "Turbulence")}
+							  ]},
+						 {vframe, [
+							   {text, proplists:get_value(normal_off_x, PovRay, 0.0), [key(normal_off_x)]},
+							   {text, proplists:get_value(normal_rot_x, PovRay, 0.0), [key(normal_rot_x)]},
+							   {text, proplists:get_value(normal_turbulence, PovRay, 0.0), [key(normal_turbulence)]}
+							  ]},
+						 {vframe, [
+							   {label, ?__(67, "Y")},
+							   {label, ?__(67, "Y")},
+							   {label, ?__(68, "Freq.")}
+							  ]},
+						 {vframe, [
+							   {text, proplists:get_value(normal_off_y, PovRay, 0.0), [key(normal_off_y)]},
+							   {text, proplists:get_value(normal_rot_y, PovRay, 0.0), [key(normal_rot_y)]},
+							   {text, proplists:get_value(normal_frequency, PovRay, 1.0), [key(normal_frequency)]}
+							  ]},
+						 {vframe, [
+							   {label, ?__(69, "Z")},
+							   {label, ?__(69, "Z")},
+							   {label, ?__(70, "Scale")}
+							  ]},
+						 {vframe, [
+							   {text, proplists:get_value(normal_off_z, PovRay, 0.0), [key(normal_off_z)]},
+							   {text, proplists:get_value(normal_rot_z, PovRay, 0.0), [key(normal_rot_z)]},
+							   {text, proplists:get_value(normal_scale, PovRay, 1.0), [key(normal_scale)]}
+							  ]}
+						], [key(pnl_n_modif_props),{margin,false}]}
+				      ], [key(pnl_n_modifiers),{margin,false}]}
+			    ], [key(pnl_tex_normal)]}
+		  ],[{margin,false}]}
         },
 
     %% Texture
     QsTexture =
         {?__(97, "Texture"),
-            {vframe, [
-                {oframe, [
-                    TxtPigment,
-                    TxtNormal], 1, [{style, buttons}]}
-            ], [{title, ?__(97, "Texture")},key(texture_minimized)]}
+	 {vframe, [
+		   {oframe, [
+			     TxtPigment,
+			     TxtNormal], 1, [{style, buttons}]}
+		  ], [{title, ?__(97, "Texture")},key(texture_minimized)]}
         },
     {vframe, [
-        {?__(1, "Exclude Material Definition (requires external definition)"),
-            proplists:get_value(ghost_material, PovRay, false), [key(ghost_material),{hook,Hook_Show}]},
-        {vframe, [
-            {oframe, [
-                QsFinish,
-                QsReflection,
-                QsInterior,
-                QsPhotons,
-                QsTexture], 1, [{style, buttons}]}
-        ], [{title, ?__(98, "POV-Ray Options")}, key(pnl_material), {show,true}]}
-    ]}.
+	      {?__(1, "Exclude Material Definition (requires external definition)"),
+	       proplists:get_value(ghost_material, PovRay, false), [key(ghost_material),{hook,Hook_Show}]},
+	      {vframe, [
+			{oframe, [
+				  QsFinish,
+				  QsReflection,
+				  QsInterior,
+				  QsPhotons,
+				  QsTexture], 1, [{style, buttons}]}
+		       ], [{title, ?__(98, "POV-Ray Options")}, key(pnl_material), {show,true}]}
+	     ]}.
 
 enumerate_image_maps([]) ->
     [];

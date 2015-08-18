@@ -839,19 +839,28 @@ build(Ask, {label_column, Rows, Flags}, Parent, Sizer, In) ->
     MinSize =
 	if Ask =:= false -> -1;
 	   true ->
-		lists:foldl(fun({Str = [_|_],_}, Max) ->
-				    {W, _, _, _} = wxWindow:getTextExtent(Parent, Str),
+		lists:foldl(fun(Tuple, Max) when is_tuple(Tuple) ->
+				    String = [_|_] = element(1, Tuple),
+				    {W, _, _, _} = wxWindow:getTextExtent(Parent, String),
 				    max(W+5, Max);
 			       (separator, Max)  ->
 				    Max
 			    end, -1, Rows)
 	end,
-    Translate = fun({String, Field}) ->
-			{hframe, [{label, String, [{min_wsz, MinSize}]}, Field]};
+    Fs = [{proportion, 0}],
+    Translate = fun({String, Fields}) when is_list(Fields) ->
+			{hframe, [{label, String, [{min_wsz, MinSize}]} | Fields], Fs};
+		   ({String, Fields, LCFlags}) when is_list(Fields) ->
+			{hframe, [{label, String, [{min_wsz, MinSize}]} | Fields], Fs ++ LCFlags};
+		   ({String, Field}) ->
+			{hframe, [{label, String, [{min_wsz, MinSize}]}, Field], Fs};
+		   ({String, Field, LCFlags}) ->
+			{hframe, [{label, String, [{min_wsz, MinSize}]}, Field], Fs ++ LCFlags};
 		   (separator) ->
 			separator
 		end,
-    build(Ask, {vframe, lists:map(Translate, Rows), Flags}, Parent, Sizer, In);
+    build(Ask, {vframe, lists:map(Translate, Rows), Flags},
+	  Parent, Sizer, In);
 
 build(Ask, panel, _Parent, Sizer, In)
   when Ask =/= false ->
