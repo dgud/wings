@@ -217,7 +217,7 @@ ctrl_event(#keyboard{}=Ev, _) ->
     wings_wm:send(Client, Ev);
 ctrl_event({window_updated,Client}, _) ->
     W = controller_width(Client),
-    H = ?LINE_HEIGHT+3,
+    H = title_height(),
     Pos = controller_pos(Client),
     Updates = [{pos,Pos},{w,W},{h,H}],
     Self = {controller,Client},

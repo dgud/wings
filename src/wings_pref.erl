@@ -113,7 +113,7 @@ no_more_basic_menus() ->
 	    %% Either this is the first launch and the user used
 	    %% the basic menus, or (s)he has still not turned off
 	    %% the informational dialog.
-	    set_value(no_basic_menu_info, false),
+	    set_value(no_basic_menu_info, true),
 	    self() ! {external,no_more_basic_menus},
 	    ok
     end,
@@ -827,8 +827,7 @@ treat_hotkeys(Res) ->
 init_opengl() ->
     case wings_io:is_maximized() of
       false ->
-        {W, H} = TopSize = get_value(window_size),
-        put(wm_top_size, TopSize),
+        {W, H} = wings_wm:top_size(),
         wings_wm:reinit_opengl(),
         wings_wm:resize_windows(W, H),
         wings_wm:dirty();

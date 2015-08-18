@@ -420,8 +420,8 @@ gradient_rect_burst(X, Y, W, H, Color) ->
 			GreyValue = lists:nth(trunc((Idx/K)*17)+1, GradColors),
 			LineColor = mul_color(Color, GreyValue),
 			set_color(LineColor),
-			gl:vertex2f(X-0.5+W, Y-0.5+H-Idx),
-			gl:vertex2f(X-0.5,   Y-0.5+H-Idx)
+			gl:vertex2f(X+W, Y-0.5+H-Idx),
+			gl:vertex2f(X,   Y-0.5+H-Idx)
 		end,
     gl:lineWidth(1),
     gl:'begin'(?GL_LINES),
