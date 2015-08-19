@@ -16,7 +16,7 @@ The following software is needed:
 - MinGW, http://www.mingw.org, including MSYS, http://www.mingw.org/wiki/msys,
   to compile the source code.
 
-- Erlang/Opt R14B01 or later. http://www.erlang.org
+- Erlang/Otp 18.1 or later. http://www.erlang.org
   Include the vcredist packaged with Erlang, in your installation.
   (It is easiest to download the pre-built binaries for Windows.)
 
@@ -25,9 +25,6 @@ The following software is needed:
 Optional software
 =================
 
-- libjpeg for build the jpeg plug-in.
-  http://www.ijg.org
-
 - NSIS 2.02 or higher, an installer/uninstaller maker.
   http://nsis.sf.net.
 
@@ -35,7 +32,6 @@ Installing the software
 =======================
 
 In general, you should follow the instructions for each package.
-
 
 Setting up the environment
 ==========================
@@ -148,7 +144,7 @@ Notes:
     allowing Wings to open up a wings file when it starts.
 
 [3] The "-smp" flag is necessary if you don't have a multi-core/
-    multi-CPU computer and wants to use OpenCL. 
+    multi-CPU computer.
 
 You could also package the command line into a standard windows shortcut.
 

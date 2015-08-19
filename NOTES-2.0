@@ -3,12 +3,14 @@
 - Rewrote to use wx as backend for graphics
   It allows us to use more (native) widgets in the future and
   copy-paste in text widgets, native fonts and so on.
+  Much have been rewritten so much can be broken,
+  please report bugs in the forum.
   [dgud] and [Micheus]
 
 - Removed/Changed some features that was hard to port to wx
--- Setting/removing keyboard shortcuts have change, see help.
--- Preview rendering is always on.
--- Right Click menu icons have been removed.
+   Setting/removing keyboard shortcuts have change, see help.
+   Preview rendering is always on.
+   Right Click menu icons have been removed.
 
 - Changed the installer for all OS'es, to behave more like native apps.
 -- Linux: includes desktop shortcuts with icons.
@@ -17,4 +19,7 @@
 
 - Added edge/hardness/invert command [Mark Whittemore]
 
+- Removed YafRay plugin and added a new YafaRay plugin [oort]
+  Ported all render plugins to use the new gui. [Micheus]
 
+- Added a file merge dialog so the user can choose what to import. [micheus]

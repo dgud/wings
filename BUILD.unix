@@ -17,7 +17,8 @@ run all plug-ins and to build an installation package.
 
 - The Wings source files. http://www.wings3d.com
 
-- Erlang/OTP R16B01 or later. http://www.erlang.org
+- Erlang/OTP 18.1 or later. http://www.erlang.org
+-- Preferably compiled against wxWidgets-3.0.2 or later.
 
 - CL. http://github.com/tonyrog/cl
 
@@ -222,11 +223,6 @@ you'll need the following additional software:
 
 - makeself.sh for building the installation package
   (a self-extractable bzip2 archive). http://megastep.org/makeself
-
-- libjpeg for build the jpeg plug-in. libjpeg is pre-installed in most Linux
-  distributions. You'll probably need to install header files, though, by
-  installing the package libjpg-devel. Otherwise, get the sources from:
-  http://www.ijg.org
 
 Make sure that your current directory is the directory in which the
 sources were unpacked.
