@@ -700,7 +700,7 @@ import_ndo(Name, St0) ->
     end.
 
 import_image() ->
-    Ps = [{extensions,wings_image:image_formats()}],
+    Ps = [{extensions,wings_image:image_formats()},{multiple,true}],
     Cont = fun(Name) -> {file,{import_image,Name}} end,
     import_filename(Ps, Cont).
 
