@@ -69,6 +69,11 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_VOLUME_MINMAX_X, 2.0).
 -define(DEF_VOLUME_MINMAX_Y, 2.0).
 -define(DEF_VOLUME_MINMAX_Z, 2.0).
+-define(DEF_LIGHTPORTAL_POWER, 2.0).
+-define(DEF_LIGHTPORTAL_SAMPLES, 24).
+-define(DEF_LIGHTPORTAL_DIFFUSEPHOTONS, false).
+-define(DEF_LIGHTPORTAL_CAUSTICPHOTONS, false).
+-define(DEF_LIGHTPORTAL_PHOTON_ONLY, true).
 -define(DEF_MESHLIGHT_POWER, 5.0).
 -define(DEF_MESHLIGHT_SAMPLES, 16).
 -define(DEF_MESHLIGHT_COLOR, {1.0,1.0,1.0}).
@@ -338,6 +343,8 @@ range_1(volume_density)         -> {0.0,1.0};
 range_1(volume_minmax_x)        -> {1.0,1000.0};
 range_1(volume_minmax_y)        -> {1.0,1000.0};
 range_1(volume_minmax_z)        -> {1.0,1000.0};
+range_1(lightportal_power)	-> {0.0,10000.0};
+range_1(lightportal_samples)	-> {0,512};
 range_1(meshlight_power)        -> {0.0,10000.0};
 range_1(meshlight_samples)      -> {0,512};
 range_1(autosmooth_angle)       -> {0.0,180.0};
@@ -469,7 +476,15 @@ range_1(aperture)               -> {0.0,infinity};
 range_1(bokeh_rotation)         -> {-180.0,180.0};
 range_1(dof_distance)           -> {0.0,250.0}.
 
-
+%% used to fix old data that now can be out of range and crash Wings3d
+fit_range(Value,Id) ->
+    {Low,High}=range_1(Id),
+    if Value < Low -> Low;
+        true ->
+            if Value > High -> High;
+                true -> Value
+            end
+    end.
 
 
 %% Exported plugin callback functions
@@ -675,6 +690,11 @@ material_dialog(_Name, Mat) ->
     Volume_Minmax_X = proplists:get_value(volume_minmax_x, YafaRay, ?DEF_VOLUME_MINMAX_X),
     Volume_Minmax_Y = proplists:get_value(volume_minmax_y, YafaRay, ?DEF_VOLUME_MINMAX_Y),
     Volume_Minmax_Z = proplists:get_value(volume_minmax_z, YafaRay, ?DEF_VOLUME_MINMAX_Z),
+    Lightportal_Power = proplists:get_value(lightportal_power, YafaRay, ?DEF_LIGHTPORTAL_POWER),
+    Lightportal_Samples = proplists:get_value(lightportal_samples, YafaRay, ?DEF_LIGHTPORTAL_SAMPLES),
+    Lightportal_Diffusephotons = proplists:get_value(lightportal_diffusephotons, YafaRay, ?DEF_LIGHTPORTAL_DIFFUSEPHOTONS),
+    Lightportal_Causticphotons = proplists:get_value(lightportal_causticphotons, YafaRay, ?DEF_LIGHTPORTAL_CAUSTICPHOTONS),
+    Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, YafaRay, ?DEF_LIGHTPORTAL_PHOTON_ONLY),
     Meshlight_Power = proplists:get_value(meshlight_power, YafaRay, ?DEF_MESHLIGHT_POWER),
     Meshlight_Samples = proplists:get_value(meshlight_samples, YafaRay, ?DEF_MESHLIGHT_SAMPLES),
     Meshlight_Color = proplists:get_value(meshlight_color, YafaRay, ?DEF_MESHLIGHT_COLOR),
@@ -697,6 +717,7 @@ material_dialog(_Name, Mat) ->
 
     %% Glass Properties
     %%
+    AbsorptionColor = proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
     AbsorptionDist = proplists:get_value(absorption_dist, YafaRay, ?DEF_ABSORPTION_DIST),
     DispersionPower = proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
     DispersionSamples = proplists:get_value(dispersion_samples, YafaRay, ?DEF_DISPERSION_SAMPLES),
@@ -714,15 +735,11 @@ material_dialog(_Name, Mat) ->
 
     %% Translucency (SSS) Properties
     %%
-    AbsorptionColor = proplists:get_value(absorption_color, YafaRay,
-                                        if ShaderType == translucent -> ?DEF_SSS_ABSORPTION_COLOR;
-                                            true -> DefAbsorptionColor end),
+    SSS_AbsorptionColor = proplists:get_value(sss_absorption_color, YafaRay, ?DEF_SSS_ABSORPTION_COLOR),
     ScatterColor = proplists:get_value(scatter_color, YafaRay, ?DEF_SCATTER_COLOR),
     SigmaSfactor = proplists:get_value(sigmas_factor, YafaRay, ?DEF_SIGMAS_FACTOR),
-    Translucency = proplists:get_value(translucency, YafaRay,
-                                        if ShaderType == translucent -> ?DEF_SSS_TRANSLUCENCY;
-                                            true -> ?DEF_TRANSLUCENCY end),
-    Specular_Color = proplists:get_value(sss_specular_color, YafaRay, ?DEF_SSS_SPECULAR_COLOR),
+    SSS_Translucency = proplists:get_value(sss_translucency, YafaRay, ?DEF_SSS_TRANSLUCENCY),
+    SSS_Specular_Color = proplists:get_value(sss_specular_color, YafaRay, ?DEF_SSS_SPECULAR_COLOR),
 
     %% Shiny Diffuse, Glossy, Coated Glossy Properties
     %%
@@ -758,8 +775,7 @@ material_dialog(_Name, Mat) ->
             ?KEY(anisotropic) ->
                 wings_dialog:enable(?KEY(pnl_exp_coated), Value =/= ?DEF_ANISOTROPIC, Store);
             ?KEY(dispersion_power) ->
-                wings_dialog:enable(?KEY(pnl_dsp_sam_l), Value > 0.0, Store),
-                wings_dialog:enable(?KEY(pnl_dsp_sam_v), Value > 0.0, Store)
+                wings_dialog:enable(?KEY(pnl_dsp_sam), Value > 0.0, Store)
 	end
     end,
     Hook_Show =
@@ -769,8 +785,10 @@ material_dialog(_Name, Mat) ->
                     Value0 = wings_dialog:get_value(?KEY(volume_type),Store),
                     wings_dialog:show(?KEY(pnl_desnity_volume), Value0 =:= expdensityvolume, Store),
                     wings_dialog:show(?KEY(pnl_noise_volume), Value0 =:= noisevolume, Store),
+
                     wings_dialog:show(?KEY(pnl_volume), Value =:= volume, Store),
                     wings_dialog:show(?KEY(pnl_mesh_light), Value =:= meshlight, Store),
+                    wings_dialog:show(?KEY(pnl_lightportal), Value =:= lightportal, Store),
                     wings_dialog:update(?KEY(pnl_obj_params), Store);
                 ?KEY(volume_type) ->
                     wings_dialog:show(?KEY(pnl_desnity_volume), Value =:= expdensityvolume, Store),
@@ -778,71 +796,61 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:update(?KEY(pnl_volume_type), Store);
                 ?KEY(shader_type) ->
 		    %% IOR
-		    wings_dialog:show(?KEY(pnl_ior_l), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
-		    wings_dialog:show(?KEY(pnl_ior_v), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
+		    wings_dialog:show(?KEY(pnl_ior), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
 		    %% Internal Reflection
-		    wings_dialog:show(?KEY(pnl_ir_l), Value =:= glass, Store),
-		    wings_dialog:show(?KEY(pnl_ir_v), Value =:= glass, Store),
-		    %% Reflected Color
-		    wings_dialog:show(?KEY(pnl_rc_l), Value =:= shinydiffuse, Store),
-		    %% Reflected Light
-		    wings_dialog:show(?KEY(pnl_rl_l), is_member(Value, [glass,rough_glass]), Store),
-		    %% Glossy Color
-		    wings_dialog:show(?KEY(pnl_gc_l), is_member(Value, [glossy,coatedglossy,translucent]), Store),
-                    wings_dialog:show(?KEY(pnl_rf_v), is_member(Value, [shinydiffuse,glass,rough_glass,glossy,coatedglossy,translucent]), Store),
+		    wings_dialog:show(?KEY(pnl_ir), Value =:= glass, Store),
+                    %% Glossy Color
+                    Gc = is_member(Value, [glossy,coatedglossy,translucent]),
+                    Rl = is_member(Value, [glass,rough_glass]),
+                    Rc = Value =:= shinydiffuse,
+                    wings_dialog:show(?KEY(pnl_gc), Gc, Store),
+                    %% Reflected Light
+                    wings_dialog:show(?KEY(pnl_rl), Rl, Store),
+                    %% Reflected Color
+                    wings_dialog:show(?KEY(pnl_rc), Rc, Store),
+                    wings_dialog:show(?KEY(pnl_rf), is_member(Value, [shinydiffuse,glass,rough_glass,glossy,coatedglossy,translucent]), Store),
 		    %% Diffuse Color
 		    wings_dialog:show(?KEY(pnl_dc_l), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
 		    %% Filtered Light
 		    wings_dialog:show(?KEY(pnl_fl_l), is_member(Value, [glass,rough_glass]), Store),
-                    wings_dialog:show(?KEY(pnl_fl_v), is_member(Value, [shinydiffuse,glass,rough_glass,glossy,coatedglossy,translucent]), Store),
+                    wings_dialog:show(?KEY(pnl_fl), is_member(Value, [shinydiffuse,glass,rough_glass,glossy,coatedglossy,translucent]), Store),
 		    %% Transparency
-		    wings_dialog:show(?KEY(pnl_transp_l), Value =:= shinydiffuse, Store),
-		    wings_dialog:show(?KEY(pnl_transp_v), Value =:= shinydiffuse, Store),
+		    wings_dialog:show(?KEY(pnl_transp), Value =:= shinydiffuse, Store),
 		    %% Specular Color
-		    wings_dialog:show(?KEY(pnl_sc_l), Value =:= translucent, Store),
-		    wings_dialog:show(?KEY(pnl_sc_v), Value =:= translucent, Store),
+		    wings_dialog:show(?KEY(pnl_sc), Value =:= translucent, Store),
 		    %% Absorption Color & Absorption Distance
-		    wings_dialog:show(?KEY(pnl_abs_l), is_member(Value, [glass,rough_glass,translucent]), Store),
-		    wings_dialog:show(?KEY(pnl_abs_v), is_member(Value, [glass,rough_glass,translucent]), Store),
+                    wings_dialog:show(?KEY(pnl_abs_reg), is_member(Value, [glass,rough_glass]), Store),
+                    wings_dialog:show(?KEY(pnl_abs_sss), Value =:= translucent, Store),
+                    wings_dialog:show(?KEY(pnl_abs), is_member(Value, [glass,rough_glass,translucent]), Store),
 		    %% Transmit Filter
-		    wings_dialog:show(?KEY(pnl_tf_l), is_member(Value, [shinydiffuse,glass,rough_glass]), Store),
-		    wings_dialog:show(?KEY(pnl_tf_v), is_member(Value, [shinydiffuse,glass,rough_glass]), Store),
+		    wings_dialog:show(?KEY(pnl_tf), is_member(Value, [shinydiffuse,glass,rough_glass]), Store),
 		    %% Translucency
-		    wings_dialog:show(?KEY(pnl_transl_l), is_member(Value, [shinydiffuse,translucent]), Store),
-		    wings_dialog:show(?KEY(pnl_transl_v), is_member(Value, [shinydiffuse,translucent]), Store),
+		    wings_dialog:show(?KEY(pnl_transl), is_member(Value, [shinydiffuse,translucent]), Store),
+                    wings_dialog:show(?KEY(pnl_transl_sss), Value =:= translucent, Store),
 		    %% Scatter Color & SigmaS Factor
-		    wings_dialog:show(?KEY(pnl_sct_l), Value =:= translucent, Store),
-		    wings_dialog:show(?KEY(pnl_sct_v), Value =:= translucent, Store),
+		    wings_dialog:show(?KEY(pnl_sct), Value =:= translucent, Store),
 		    %% Diffuse Reflection
-		    wings_dialog:show(?KEY(pnl_dr_l), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
-		    wings_dialog:show(?KEY(pnl_dr_v), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
+		    wings_dialog:show(?KEY(pnl_dr), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
 		    %% Mirror Reflection & Emit Light
-		    wings_dialog:show(?KEY(pnl_mr_l), Value =:= shinydiffuse, Store),
-		    wings_dialog:show(?KEY(pnl_mr_v), Value =:= shinydiffuse, Store),
+		    wings_dialog:show(?KEY(pnl_mr), Value =:= shinydiffuse, Store),
 		    %% Glossy Reflection & Exponent
-		    wings_dialog:show(?KEY(pnl_gr_l), is_member(Value, [glossy,coatedglossy,translucent]), Store),
-		    wings_dialog:show(?KEY(pnl_gr_v), is_member(Value, [glossy,coatedglossy,translucent]), Store),
+		    wings_dialog:show(?KEY(pnl_gr), is_member(Value, [glossy,coatedglossy,translucent]), Store),
 		    %% Anisotropic
-		    wings_dialog:show(?KEY(pnl_an_l), Value =:= coatedglossy, Store),
-		    wings_dialog:show(?KEY(pnl_an_v), Value =:= coatedglossy, Store),
+		    wings_dialog:show(?KEY(pnl_an), Value =:= coatedglossy, Store),
 		    %% Roughness
-		    wings_dialog:show(?KEY(pnl_rg_l), Value =:= rough_glass, Store),
-		    wings_dialog:show(?KEY(pnl_rg_v), Value =:= rough_glass, Store),
+		    wings_dialog:show(?KEY(pnl_rg), Value =:= rough_glass, Store),
 		    %% Dispersion Power & Dispersion Samples
-		    wings_dialog:show(?KEY(pnl_dsp_l), is_member(Value, [glass,rough_glass]), Store),
-		    wings_dialog:show(?KEY(pnl_dsp_v), is_member(Value, [glass,rough_glass]), Store),
+		    wings_dialog:show(?KEY(pnl_dsp), is_member(Value, [glass,rough_glass]), Store),
                     %% nayar
-                    wings_dialog:show(?KEY(pnl_on_l), is_member(Value, [shinydiffuse,glossy,coatedglossy]), Store),
-                    wings_dialog:show(?KEY(pnl_on_v), is_member(Value, [shinydiffuse,glossy,coatedglossy]), Store),
+                    wings_dialog:show(?KEY(pnl_on), is_member(Value, [shinydiffuse,glossy,coatedglossy]), Store),
 		    %% Fresnel Effect
-		    wings_dialog:show(?KEY(pnl_fe_l), Value =:= shinydiffuse, Store),
+		    wings_dialog:show(?KEY(pnl_fe), Value =:= shinydiffuse, Store),
 		    %% Ligth Material: Color & Power
-		    wings_dialog:show(?KEY(pnl_lm_l), Value =:= lightmat, Store),
-		    wings_dialog:show(?KEY(pnl_lm_v), Value =:= lightmat, Store),
+		    wings_dialog:show(?KEY(pnl_lm), Value =:= lightmat, Store),
 		    %% Blend: Material 1, Material 2 & Blend Mix
-		    wings_dialog:show(?KEY(pnl_bl_l), Value =:= blend_mat, Store),
-		    wings_dialog:show(?KEY(pnl_bl_v), Value =:= blend_mat, Store),
+		    wings_dialog:show(?KEY(pnl_bl), Value =:= blend_mat, Store),
 %                    wings_dialog:update(?KEY(pnl_shader_l), Store),
+
                     wings_dialog:update(?KEY(pnl_shader), Store);
                 _ -> ok
             end
@@ -870,95 +878,77 @@ material_dialog(_Name, Mat) ->
                     {menu,[
                         {?__(31,"Mesh"),mesh},
                         {?__(32,"Volume"),volume},
-                        {?__(33,"Mesh Light"),meshlight}
+                        {?__(33,"Mesh Light"),meshlight},
+                        {?__(34,"Light Portal"),lightportal}
                     ],Object_Type,[key(object_type),{hook,Hook_Show}]}
                 ]},
                 {hframe, [
-                    {vframe, [
-                        {menu,[
-                            {?__(82,"Uniform"),uniformvolume},
-                            {?__(83,"ExpDensity"),expdensityvolume},
-                            {?__(126,"Noise"),noisevolume}
-                        ],Volume_Type,[key(volume_type),{hook,Hook_Show}]},
-                        panel,
-                        panel
-                    ],[{margin,false}]},
                     {hframe, [
-                        {hframe, [
-                            {vframe, [
-                                {label,?__(84,"Absorption")},
-                                {label,?__(85,"Scatter")},
-                                {label,?__(86,"AttgridScale")}
-                            ]},
-                            {vframe, [
-                                {text,Volume_Sigma_a,[range(volume_sigma_a),key(volume_sigma_a)]},
-                                {text,Volume_Sigma_s,[range(volume_sigma_s),key(volume_sigma_s)]},
-                                {text,Volume_Attgridscale,[range(volume_attgridscale),key(volume_attgridscale)]}
-                            ]}
+                        {vframe, [
+                            {menu,[
+                                {?__(82,"Uniform"),uniformvolume},
+                                {?__(83,"ExpDensity"),expdensityvolume},
+                                {?__(126,"Noise"),noisevolume}
+                            ],Volume_Type,[key(volume_type),{hook,Hook_Show}]},
+                            panel,
+                            panel
                         ],[{margin,false}]},
-                        %% Start ExpDensity Volume - ONLY
                         {hframe, [
-                            {vframe, [
-                                {label,?__(90,"Height")},
-                                {label,?__(91,"Steepness")},
-                                panel
-                            ]},
-                            {vframe, [
-                                {text,Volume_Height,[range(volume_height),key(volume_height)]},
-                                {text,Volume_Steepness,[range(volume_steepness),key(volume_steepness)]},
-                                panel
-                            ]}
-                        ], [key(pnl_desnity_volume),{show,false},{margin,false}]},
-                        %% End ExpDensity Volume - ONLY
+                            {label_column, [
+                                {?__(84,"Absorption"), {text,Volume_Sigma_a,[range(volume_sigma_a),key(volume_sigma_a)]}},
+                                {?__(85,"Scatter"), {text,Volume_Sigma_s,[range(volume_sigma_s),key(volume_sigma_s)]}},
+                                {?__(86,"AttgridScale"), {text,Volume_Attgridscale,[range(volume_attgridscale),key(volume_attgridscale)]}}
+                            ],[{margin,false}]},
+                            %% Start ExpDensity Volume - ONLY
+                            {label_column, [
+                                {?__(90,"Height"), {text,Volume_Height,[range(volume_height),key(volume_height)]}},
+                                {?__(91,"Steepness"), {text,Volume_Steepness,[range(volume_steepness),key(volume_steepness)]}},
+                                {" ", panel}
+                            ], [key(pnl_desnity_volume),{show,false},{margin,false}]},
+                            %% End ExpDensity Volume - ONLY
 
-                        %% Start Noise Volume - ONLY
-                        {hframe, [
-                            {vframe, [
-                                {label,?__(130,"Sharpness")},
-                                {label,?__(131,"Cover")},
-                                {label,?__(132,"Density")}
-                            ]},
-                            {vframe, [
-                                {text,Volume_Sharpness,[range(volume_sharpness),key(volume_sharpness)]},
-                                {text,Volume_Cover,[range(volume_cover),key(volume_cover)]},
-                                {text,Volume_Density,[range(volume_density),key(volume_density)]}
-                            ]}
-                        ], [key(pnl_noise_volume),{show,true},{margin,false}]},
-                        %% End Noise Volume - ONLY
-                        {hframe, [
-                            {vframe, [
-                                {label,?__(133,"Min/Max X")},
-                                {label,?__(134,"Min/Max Y")},
-                                {label,?__(135,"Min/Max Z")}
-                            ]},
-                            {vframe, [
-                                {text,Volume_Minmax_X,[range(volume_minmax_x),key(volume_minmax_x)]},
-                                {text,Volume_Minmax_Y,[range(volume_minmax_y),key(volume_minmax_y)]},
-                                {text,Volume_Minmax_Z,[range(volume_minmax_z),key(volume_minmax_z)]}
-                            ]}
-                        ],[{margin,false}]}
-                    ],[key(pnl_volume_type), {margin,false}]}
-                ], [{title,"params"},key(pnl_volume), {margin,false}]},
+                            %% Start Noise Volume - ONLY
+                            {label_column, [
+                                {?__(130,"Sharpness"), {text,Volume_Sharpness,[range(volume_sharpness),key(volume_sharpness)]}},
+                                {?__(131,"Cover"), {text,Volume_Cover,[range(volume_cover),key(volume_cover)]}},
+                                {?__(132,"Density"), {text,Volume_Density,[range(volume_density),key(volume_density)]}}
+                            ], [key(pnl_noise_volume),{margin,false}]},
+                            %% End Noise Volume - ONLY
+                            {label_column, [
+                                {?__(133,"Min/Max X"), {text,Volume_Minmax_X,[range(volume_minmax_x),key(volume_minmax_x)]}},
+                                {?__(134,"Min/Max Y"), {text,Volume_Minmax_Y,[range(volume_minmax_y),key(volume_minmax_y)]}},
+                                {?__(135,"Min/Max Z"), {text,Volume_Minmax_Z,[range(volume_minmax_z),key(volume_minmax_z)]}}
+                            ],[{margin,false}]}
+                        ],[key(pnl_volume_type),{margin,false}]}
+                    ], [{title,"params"},key(pnl_volume),{margin,false}]},
 
-                {hframe, [
-                    {vframe, [
-                        {label,?__(121,"Power")},
-                        {label,?__(122,"Samples")}
-                    ]},
-                    {vframe, [
-                        {text,Meshlight_Power,[range(meshlight_power),key(meshlight_power)]},
-                        {text,Meshlight_Samples,[range(meshlight_samples),key(meshlight_samples)]}
-                    ]},
-                    {vframe, [
-                        {label,?__(123,"Color")}
-                    ]},
-                    {vframe, [
-                        {slider, {color, Meshlight_Color, [key(meshlight_color)]}}
-                    ]},
-                    {vframe, [
-                        {?__(124,"Double Sided"),Meshlight_Double_Sided,[key(meshlight_double_sided)]}
-                    ]}
-                ], [key(pnl_mesh_light), {show,false}]}
+                    {hframe, [
+                        {label_column, [
+                            {?__(121,"Power"), {text,Meshlight_Power,[range(meshlight_power),key(meshlight_power)]}},
+                            {?__(122,"Samples"), {text,Meshlight_Samples,[range(meshlight_samples),key(meshlight_samples)]}}
+                        ]},
+                        {label_column, [
+                            {?__(123,"Color"), {slider, {color, Meshlight_Color, [key(meshlight_color)]}}},
+                            {" ", panel}
+                        ]},
+                        {vframe, [
+                            {?__(124,"Double Sided"),Meshlight_Double_Sided,[key(meshlight_double_sided)]},
+                            panel
+                        ]}
+                    ], [key(pnl_mesh_light),{show,false}]},
+                    {hframe, [
+                        {label_column, [
+                            {?__(121,"Power"), {text,Lightportal_Power,[key(lightportal_power),range(lightportal_power)]}},
+                            {?__(122,"Samples"), {text,Lightportal_Samples,[key(lightportal_samples),range(lightportal_samples)]}},
+                            {" ", panel}
+                        ]},
+                        {vframe, [
+                            {?__(142,"Diffuse Photons"),Lightportal_Diffusephotons,[key(lightportal_diffusephotons)]},
+                            {?__(143,"Caustic Photons"),Lightportal_Causticphotons,[key(lightportal_causticphotons)]},
+                            {?__(144,"Photon Only"),Lightportal_Photon_Only,[key(lightportal_photon_only)]}
+                        ]}
+                    ], [key(pnl_lightportal),{show,false}]}
+                ],[{margin,false}]}
             ], [key(pnl_obj_params)]}
         %% End Object Type Menu
         ]},
@@ -978,270 +968,144 @@ material_dialog(_Name, Mat) ->
                 {"Blend",blend_mat}
             ],ShaderType,[key(shader_type),{hook,Hook_Show}]},
 
-	    {hframe, [
-		%% label column
-		{vframe, [
-		    %% 1st row
-		    {hframe, [
-			{label, "IOR"}, panel
-		    ],[key(pnl_ior_l)]},
-		    %% 2nd row
-		    {hframe, [
-			{label, "Internal Reflection"}, panel
-		    ],[key(pnl_ir_l),{show,false}]},
-		    %% 3rd row
+            %% label column
+            {vframe, [
+                %% 1st row
+                {label_column, [
+                    {"IOR", {slider, {text,IOR,[range(ior),key(ior)]}}}
+                ],[key(pnl_ior),{margin,false}]},
+                %% 2nd row
+                {label_column, [
+                    {"Internal Reflection", {slider, {text,Glass_IR_Depth,[range(glass_ir_depth),key(glass_ir_depth)]}}}
+                ],[key(pnl_ir),{show,false},{margin,false}]},
+                %% 3rd row
+                {hframe, [
+                    {hframe, [
+                        {label, "Reflected Color"}
+                    ],[key(pnl_rc),{show,false},{margin,false}]},
+                    {hframe, [
+                        {label, "Reflected Light"}
+                    ],[key(pnl_rl),{show,false},{margin,false}]},
+                    {hframe, [
+                        {label, "Glossy Color"}
+                    ],[key(pnl_gc),{margin,false}]},
+                    {hframe, [
+                        {slider, {color,Reflected,[key(reflected)]}}
+                    ],[{margin,false}]}
+                ],[key(pnl_rf)]},
+                %% 4th row
+                {hframe, [
                     {vframe, [
-                        {hframe, [
-                            {label, "Reflected Color"}, panel
-                        ],[key(pnl_rc_l),{show,false}]},
-                        {hframe, [
-                            {label, "Reflected Light"}, panel
-                        ],[key(pnl_rl_l),{show,false}]},
-                        {hframe, [
-                            {label, "Glossy Color"}, panel
-                        ],[key(pnl_gc_l)]}
+                        {label, "Diffuse Color"}
+                    ],[key(pnl_dc_l),{margin,false}]},
+                    {vframe, [
+                        {label, "Filtered Light"}
+                    ],[key(pnl_fl_l),{show,false},{margin,false}]},
+                    {vframe, [
+                        {slider, {color,Transmitted,[key(transmitted)]}}
+                    ],[{margin,false}]}
+                ],[key(pnl_fl)]},
+                %% 5th row
+                {label_column, [
+                    {"Transparency", {slider, {text,Transparency,[range(transparency),key(transparency)]}}}
+                ],[key(pnl_transp),{show,false},{margin,false}]},
+                %% 6th row
+                {label_column, [
+                    {"Specular Color", {slider, {color,SSS_Specular_Color, [key(sss_specular_color)]}}}
+                ],[key(pnl_sc),{margin,false}]},
+                %% 7th row
+                {vframe, [
+                    {label_column, [
+                        {"Absorption Color", {slider, {color,SSS_AbsorptionColor,[key(sss_absorption_color)]}}}
+                    ],[key(pnl_abs_sss),{margin,false},{show,false}]},
+                    {label_column, [
+                        {"Absorption Color", {slider, {color,AbsorptionColor,[key(absorption_color)]}}}
+                    ],[key(pnl_abs_reg),{margin,false}]},
+                    {label_column, [
+                        {"Absorption Distance", {slider, {text,AbsorptionDist,[range(absorption_dist),key(absorption_dist)]}}}
+                    ],[key(pnl_abs_v),{margin,false}]}
+                ],[key(pnl_abs),{margin,false}]},
+                %% 8th row
+                {label_column, [
+                    {"Transmit Filter", {slider, {text,TransmitFilter,[range(transmit_filter),key(transmit_filter)]}}}
+                ],[key(pnl_tf),{show,false},{margin,false}]},
+                %% 9th row
+                {label_column, [
+                    {"Translucency", {slider, {text,Translucency,[range(translucency),key(translucency)]}}}
+                ],[key(pnl_transl),{margin,false},{show,false}]},
+                {label_column, [
+                    {"Translucency", {slider, {text,SSS_Translucency,[range(sss_translucency),key(sss_translucency)]}}}
+                ],[key(pnl_transl_sss),{margin,false}]},
+                %% 10th row
+                {label_column, [
+                    {"Scatter Color", {slider, {color,ScatterColor,[key(scatter_color)]}}},
+                    {"SigmaS Factor", {slider, {text,SigmaSfactor,[range(sigmas_factor),key(sigmas_factor)]}}}
+                ],[key(pnl_sct),{margin,false}]},
+                %% 11th row
+                {label_column, [
+                    {"Diffuse Reflection", {slider, {text,DiffuseReflect,[range(diffuse_reflect),key(diffuse_reflect)]}}}
+                ],[key(pnl_dr),{margin,false}]},
+                %% 12th row
+                {label_column, [
+                    {"Mirror Reflection", {slider, {text,SpecularReflect,[range(specular_reflect),key(specular_reflect)]}}},
+                    {"Emit Light", {slider, {text,Emit,[range(emit),key(emit)]}}}
+                ],[key(pnl_mr),{show,false},{margin,false}]},
+                %% 13th row
+                {label_column, [
+                    {"Glossy Reflection", {slider, {text,GlossyReflect,[range(glossy_reflect),key(glossy_reflect)]}}},
+                    {"Exponent", {slider, {text,Exponent,[range(exponent),key(exponent)]}}}
+                ],[key(pnl_gr),{margin,false}]},
+                %% 14th row
+                {hframe, [
+                    {hframe, [
+                        {"Anisotropic",Anisotropic,[key(anisotropic),{hook,Hook_Enable}]}
                     ],[{margin,false}]},
-		    %% 4th row
-                    {vframe, [
-                        {hframe, [
-                            {label, "Diffuse Color"}, panel
-                        ],[key(pnl_dc_l)]},
-                        {hframe, [
-                            {label, "Filtered Light"}, panel
-                        ],[key(pnl_fl_l),{show,false}]}
-                    ],[{margin,false}]},
-		    %% 5th row
-		    {hframe, [
-			{label, "Transparency"}, panel
-		    ],[key(pnl_transp_l),{show,false}]},
-		    %% 6th row
-		    {hframe, [
-			{label, "Specular Color"}, panel
-		    ],[key(pnl_sc_l)]},
-		    %% 7th row
-		    {vframe, [
-                        {hframe, [
-                            {label, "Absorption Color"}, panel
-                        ]},
-                        {hframe, [
-                            {label, "Absorption Distance"}, panel
-                        ]}
-		    ],[key(pnl_abs_l),{margin,false}]},
-		    %% 8th row
-		    {hframe, [
-			{label, "Transmit Filter"}, panel
-		    ],[key(pnl_tf_l),{show,false}]},
-		    %% 9th row
-		    {hframe, [
-			{label, "Translucency"}, panel
-		    ],[key(pnl_transl_l)]},
-		    %% 10th row
-                    {vframe, [
-                        {hframe, [
-                            {label, "Scatter Color"}, panel
-                        ]},
-                        {hframe, [
-                            {label, "SigmaS Factor"}, panel
-                        ]}
-		    ],[key(pnl_sct_l),{margin,false}]},
-		    %% 11th row
-		    {hframe, [
-			{label, "Diffuse Reflection"}, panel
-		    ],[key(pnl_dr_l)]},
-		    %% 12th row
-                    {vframe, [
-                        {hframe, [
-                            {label, "Mirror Reflection"}, panel
-                        ]},
-                        {hframe, [
-                            {label, "Emit Light"}, panel
-                        ]}
-		    ],[key(pnl_mr_l),{margin,false},{show,false}]},
-		    %% 13th row
-		    {vframe, [
-                        {hframe, [
-                            {label, "Glossy Reflection"}, panel
-                        ]},
-                        {hframe, [
-                            {label, "Exponent"}, panel
-                        ]}
-		    ],[key(pnl_gr_l),{margin,false}]},
-		    %% 14th row
-		    {hframe, [
-			{"Anisotropic",Anisotropic,[key(anisotropic),{hook,Hook_Enable}]}, panel
-		    ],[key(pnl_an_l),{show,false}]},
-		    %% 15th row
-		    {hframe, [
-			{label, "Roughness"}, panel
-		    ],[key(pnl_rg_l),{show,false}]},
-		    %% 16th row
-		    {vframe, [
-                        {hframe, [
-                            {label, "Dispersion Power"}, panel
-                        ]},
-                        {hframe, [
-                            {label, "Dispersion Samples"}, panel
-                        ],[key(pnl_dsp_sam_l)]},
-                        {hframe, [
-                            {"Fake Shadows",FakeShadows,[key(fake_shadows)]}, panel
-                        ]}
-		    ],[key(pnl_dsp_l),{margin,false},{show,false}]},
-		    %% 17th row
-		    {hframe, [
-			{"Oren-Nayar",OrenNayar,[key(oren_nayar),{hook,Hook_Enable}]}, panel
-		    ],[key(pnl_on_l),{show,false}]},
-		    %% 18th row
-		    {hframe, [
-			{"Fresnel Effect",TIR,[key(tir)]}, panel
-		    ],[key(pnl_fe_l),{show,false}]},
-		    %% 19th row
-		    {vframe, [
-                        {hframe, [
-                            {label, "Color"}, panel
-                        ],[{margin,false}]},
-                        {hframe, [
-                            {label, "Power"}, panel
-                        ],[{margin,false}]}
-		    ],[key(pnl_lm_l),{show,false}]},
-		    %% 20th row
-		    {vframe, [
-                        {hframe, [
-                            {label, "Material 1"}, panel
-                        ],[{margin,false}]},
-                        {hframe, [
-                            {label, "Material 2"}, panel
-                        ],[{margin,false}]},
-                        {hframe, [
-                            {label, "Blend Mix"}, panel
-                        ],[{margin,false}]}
-		    ],[key(pnl_bl_l),{show,false}]}
-		],[key(pnl_shader_l),{margin,false}]},
+                    {hframe,[
+                        {label, "Exp U"},
+                        {text,Anisotropic_U,[range(anisotropic_u),key(anisotropic_u) ]},
+                        panel,
+                        {label, "Exp V"},
+                        {text,Anisotropic_V,[range(anisotropic_v),key(anisotropic_v) ]}
+                    ],[key(pnl_exp_coated),{margin,false}]}
+                ],[key(pnl_an),{show,false},{margin,false}]},
+                %% 15th row
+                {label_column, [
+                    {"Roughness", {slider, {text,Roughness,[range(roughness),key(roughness)]}}}
+                ],[key(pnl_rg),{show,false},{margin,false}]},
+                %% 16th row
+                {vframe, [
+                    {label_column, [
+                        {"Dispersion Power", {slider, {text,DispersionPower,[range(dispersion_power),key(dispersion_power),{hook,Hook_Enable}]}}}
+                    ]},
+                    {label_column, [
+                        {"Dispersion Samples", {slider, {text, DispersionSamples,[range(dispersion_samples),key(dispersion_samples)]}}}
+                    ],[key(pnl_dsp_sam),{margin,false}]},
+                    {"Fake Shadows",FakeShadows,[key(fake_shadows)]}
+                ],[key(pnl_dsp),{show,false},{margin,false}]},
+                %% 17th row
+                {hframe, [
+                    {"Oren-Nayar",OrenNayar,[key(oren_nayar),{hook,Hook_Enable}]},
+                    {label_column,[
+                        {"Sigma", {text,OrenNayar_Sigma,[range(oren_nayar_sigma),key(oren_nayar_sigma)]}}
+                    ],[key(pnl_sigma_shiny),{margin,false}]}
+                ],[key(pnl_on),{show,false},{margin,false}]},
+                %% 18th row
+                {hframe, [
+                    {"Fresnel Effect",TIR,[key(tir)]}
+                ],[key(pnl_fe),{show,false},{margin,false}]},
+                %% 19th row
+                {label_column, [
+                    {"Color", {slider, {color,Lightmat_Color,[key(lightmat_color)]}}},
+                    {"Power", {slider, {text,Lightmat_Power,[range(lightmat_power),key(lightmat_power)]}}}
+                ],[key(pnl_lm),{show,false},{margin,false}]},
+                %% 20th row
+                {label_column, [
+                    {"Material 1", {text,Blend_Mat1,[key(blend_mat1)]}},
+                    {"Material 2", {text,Blend_Mat2,[key(blend_mat2)]}},
+                    {"Blend Mix", {slider, {text,Blend_Value,[range(blend_value),key(blend_value)]}}}
+                ],[key(pnl_bl),{show,false},{margin,false}]}
 
-		%% value column (text/slider)
-		{vframe, [
-		    %% 1st row
-		    {vframe, [
-			{slider, {text,IOR,[range(ior),key(ior)]}}
-		    ],[key(pnl_ior_v),{margin,false}]},
-		    %% 2nd row
-		    {vframe, [
-			{slider, {text,Glass_IR_Depth,[range(glass_ir_depth),key(glass_ir_depth)]}}
-		    ],[key(pnl_ir_v),{margin,false},{show,false}]},
-		    %% 3rd row
-		    {vframe, [
-			{slider, {color,Reflected,[key(reflected)]}}
-		    ],[key(pnl_rf_v)]},
-		    %% 4th row
-		    {vframe, [
-			{slider, {color,Transmitted,[key(transmitted)]}}
-		    ],[key(pnl_fl_v)]},
-		    %% 5th row
-		    {vframe, [
-			{slider, {text,Transparency,[range(transparency),key(transparency)]}}
-		    ],[key(pnl_transp_v),{margin,false},{show,false}]},
-		    %% 6th row
-		    {vframe, [
-			{slider, {color,Specular_Color, [key(sss_specular_color)]}}
-		    ],[key(pnl_sc_v)]},
-		    %% 7th row
-		    {vframe, [
-                        {hframe, [
-			    {slider, {color,AbsorptionColor,[key(absorption_color)]}}
-                        ]},
-                        {hframe, [
-			    {slider, {text,AbsorptionDist,[range(absorption_dist),key(absorption_dist)]}}
-                        ],[{margin,false}]}
-		    ],[key(pnl_abs_v),{margin,false}]},
-		    %% 8th row
-		    {vframe, [
-			{slider, {text,TransmitFilter,[range(transmit_filter),key(transmit_filter)]}}
-		    ],[key(pnl_tf_v),{show,false},{margin,false}]},
-		    %% 9th row
-		    {vframe, [
-			{slider, {text,Translucency,[range(translucency),key(translucency)]}}
-		    ],[key(pnl_transl_v),{margin,false}]},
-		    %% 10th row
-		    {vframe, [
-                        {hframe, [
-			    {slider, {color,ScatterColor,[key(scatter_color)]}}
-                        ]},
-                        {hframe, [
-			    {slider, {text,SigmaSfactor,[range(sigmas_factor),key(sigmas_factor)]}}
-                        ],[{margin,false}]}
-		    ],[key(pnl_sct_v),{margin,false}]},
-		    %% 11th row
-		    {vframe, [
-			{slider, {text,DiffuseReflect,[range(diffuse_reflect),key(diffuse_reflect)]}}
-		    ],[key(pnl_dr_v),{margin,false}]},
-		    %% 12th row
-		    {vframe, [
-                        {hframe, [
-			    {slider, {text,SpecularReflect,[range(specular_reflect),key(specular_reflect)]}}
-                        ],[{margin,false}]},
-                        {hframe, [
-			    {slider, {text,Emit,[range(emit),key(emit)]}}
-                        ],[{margin,false}]}
-		    ],[key(pnl_mr_v),{margin,false},{show,false}]},
-		    %% 13th row
-		    {vframe, [
-                        {hframe, [
-			    {slider, {text,GlossyReflect,[range(glossy_reflect),key(glossy_reflect)]}}
-                        ],[{margin,false}]},
-                        {hframe, [
-			    {slider, {text,Exponent,[range(exponent),key(exponent)]}}
-                        ],[{margin,false}]}
-		    ],[key(pnl_gr_v),{margin,false}]},
-		    %% 14th row
-		    {vframe, [
-			{hframe,[
-			    {label, "Exp U"},
-			    {text,Anisotropic_U,[range(anisotropic_u),key(anisotropic_u) ]},
-			    panel,
-			    {label, "Exp V"},
-			    {text,Anisotropic_V,[range(anisotropic_v),key(anisotropic_v) ]}
-			],[key(pnl_exp_coated)]}
-		    ],[key(pnl_an_v),{margin,false},{show,false}]},
-		    %% 15th row
-		    {vframe, [
-			{slider, {text,Roughness,[range(roughness),key(roughness)]}}
-		    ],[key(pnl_rg_v),{show,false},{margin,false}]},
-		    %% 16th row
-		    {vframe, [
-                        {hframe, [
-			    {slider, {text,DispersionPower,[range(dispersion_power),key(dispersion_power),{hook,Hook_Enable}]}}
-                        ],[{margin,false}]},
-                        {hframe, [
-			    {slider, {text, DispersionSamples,[range(dispersion_samples),key(dispersion_samples) ]}}
-                        ],[key(pnl_dsp_sam_v),{margin,false}]},
-                        panel
-		    ],[key(pnl_dsp_v),{margin,false},{show,false}]},
-		    %% 17th row
-		    {vframe, [
-			{hframe,[
-			    {label, "Sigma"},
-                            {hframe,[
-			        {text,OrenNayar_Sigma,[range(oren_nayar_sigma),key(oren_nayar_sigma) ]}
-                            ]}
-			],[key(pnl_sigma_shiny),{margin,false}]}
-		    ],[key(pnl_on_v),{margin,false},{show,false}]},
-		    %% 19th row
-		    {vframe, [
-                        {hframe, [
-                            {slider, {color,Lightmat_Color,[key(lightmat_color)]}}
-                        ],[{margin,false}]},
-                        {hframe, [
-                            {slider, {text,Lightmat_Power,[range(lightmat_power),key(lightmat_power)]}}
-                        ],[{margin,false}]}
-		    ],[key(pnl_lm_v),{margin,false},{show,false}]},
-		    %% 20th row
-		    {vframe, [
-			{text,Blend_Mat1,[key(blend_mat1)]},
-			{text,Blend_Mat2,[key(blend_mat2)]},
-			{slider, {text,Blend_Value,[range(blend_value),key(blend_value)]}}
-		    ],[key(pnl_bl_v),{margin,false},{show,false}]}
-
-		],[key(pnl_shader_v),{margin,false}]}
-	    ],[key(pnl_shader),{margin,false}]}
+	    ],[key(pnl_shader), {margin,false}]}
         ]},
     %% End of Material Dialogs
 
@@ -1381,7 +1245,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
 
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
-            ?KEY({enabled,M}) ->
+            {?TAG,enabled,M} ->
                 wings_dialog:enable(?KEY({pnl_mode,M}), Value =:= true, Store),
                 wings_dialog:enable(?KEY({pnl_mod,M}), Value =:= true, Store);
             _ -> ok
@@ -1401,7 +1265,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 wings_dialog:show(?KEY({pnl_voronoi,M}), Value =:= voronoi, Store),
                 wings_dialog:show(?KEY({pnl_musgrave,M}), Value =:= musgrave, Store),
                 wings_dialog:show(?KEY({pnl_dist_noise,M}), Value =:= distorted_noise, Store),
-                wings_dialog:update(?KEY({pnl_type,M}), Store)
+                wings_dialog:update(?KEY({pnl_mod,M}), Store)
         end
     end,
 
@@ -1421,27 +1285,28 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {?__(112,"Dif"),dif},
                         {?__(113,"Dar"),dar},
                         {?__(114,"Lig"),lig}
-                    ],Mode,[]}
-                ],[key({pnl_mode,M}),{hook,Hook_Enable}]},
-                panel,
-                {menu,[
-                    {?__(115,"Alpha Off"),off},
-                    {?__(116,"Alpha Transparency"),transparency},
-                    {?__(117,"Diffuse+Alpha Transparency"),diffusealphatransparency},
-                    {?__(118,"Alpha Translucency"),translucency},
-                    {?__(119,"Specularity"),specularity},
-                    {?__(120,"Stencil"),stencil}
-                ],AlphaIntensity,[]},
-                {menu,[
-                    {?__(121,"Diffuse (Shiny Diffuse, Glossy, SSS)"),diffusetexture},
-                    {?__(122,"Mirror Color (Shiny Diffuse, Glass)"),mirrorcolortexture},
-                    {?__(123,"Mirror (Shiny Diffuse)"),mirrortexture},
-                    {?__(124,"Glossy (Glossy)"),glossytexture},
-                    {?__(125,"Glossy Reflect (Glossy)"),glossyreflecttexture},
-                    {?__(126,"Transparency (Shiny Diffuse)"),transparencytexture},
-                    {?__(127,"Translucency (Shiny Diffuse)"),translucencytexture},
-                    {?__(128,"Bump (All)"),bumptexture}
-                ],TextureType,[]}
+                    ],Mode,[]},
+                    panel,
+                    {menu,[
+                        {?__(115,"Alpha Off"),off},
+                        {?__(116,"Alpha Transparency"),transparency},
+                        {?__(117,"Diffuse+Alpha Transparency"),diffusealphatransparency},
+                        {?__(118,"Alpha Translucency"),translucency},
+                        {?__(119,"Specularity"),specularity},
+                        {?__(120,"Stencil"),stencil}
+                    ],AlphaIntensity,[]},
+                    panel,
+                    {menu,[
+                        {?__(121,"Diffuse (Shiny Diffuse, Glossy, SSS)"),diffusetexture},
+                        {?__(122,"Mirror Color (Shiny Diffuse, Glass)"),mirrorcolortexture},
+                        {?__(123,"Mirror (Shiny Diffuse)"),mirrortexture},
+                        {?__(124,"Glossy (Glossy)"),glossytexture},
+                        {?__(125,"Glossy Reflect (Glossy)"),glossyreflecttexture},
+                        {?__(126,"Transparency (Shiny Diffuse)"),transparencytexture},
+                        {?__(127,"Translucency (Shiny Diffuse)"),translucencytexture},
+                        {?__(128,"Bump (All)"),bumptexture}
+                    ],TextureType,[]}
+                ],[key({pnl_mode,M}),{margin,false},{hook,Hook_Show}]}
             ]},
             {vframe, [
                 {hframe,[
@@ -1457,14 +1322,12 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 ],[{margin,false}]},
                 {hframe,[
                     {vframe,[
-                        {label,?__(13,"Diffuse")},
-%                        {label,?__(14,"Specular")},
-                        {label,?__(16,"Shininess")},
+                        {label,?__(13,"Color Factor")},
+                        {label,?__(16,"Value Factor")},
                         {label,?__(17,"Normal")}
                     ]},
                     {vframe,[
-                        {slider,{text,Diffuse,[range(modulation)]}},
-%                        {slider,{text,Specular,[range(modulation)]}},
+                        {slider,{text,fit_range(Diffuse,modulation),[range(modulation)]}},
                         {slider,{text,Shininess,[range(modulation)]}},
                         {slider,{text,Normal,[range(modulation)]}}
                     ]}
@@ -1481,7 +1344,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 {vframe, [
                     {hframe, [
                         {label,?__(22,"Filename")},
-                        {button,{text,Filename,[{props,BrowseProps}]}}
+                        {button,{text,Filename,[{width,35},{props,BrowseProps}]}}
                     ],[key({pnl_image,M}), {show,false}]},
                     %% Clouds,Marble,Wood Specific Procedurals Line 1
                     {hframe, [
@@ -1917,7 +1780,7 @@ light_dialog(_Name, spot, Ps) ->
         {vframe, [
 	    {hframe, [
 		{label,?__(100,"Filename")},
-		{button,{text,SpotIESFilename,[key(spot_ies_filename),{props,BrowsePropsIES}]}}
+		{button,{text,SpotIESFilename,[key(spot_ies_filename),{width,35},{props,BrowsePropsIES}]}}
 	    ],[key(pnl_ies)]},
             {hframe, [
 		{hframe, [
@@ -2168,10 +2031,10 @@ light_dialog(_Name, ambient, Ps) ->
                         {label,?__(83,"Filename")},
                         {vframe, [
                             {hframe, [
-                                {button,{text,BgFnameImage,[key(background_filename_image),{props,BrowsePropsImage}]}}
+                                {button,{text,BgFnameImage,[key(background_filename_image),{width,35},{props,BrowsePropsImage}]}}
                             ],[key(pnl_img_bkg),{margin,false},{show,false}]},
                             {hframe, [
-                                {button,{text,BgFnameHDRI,[key(background_filename_HDRI),{props,BrowsePropsHDRI}]}},
+                                {button,{text,BgFnameHDRI,[key(background_filename_HDRI),{width,35},{props,BrowsePropsHDRI}]}},
                                 {menu, [
                                     {?__(86,"Light Probe"),probe},
                                     {?__(87,"Spherical"),spherical}
@@ -2277,7 +2140,7 @@ pref_dialog(St) ->
             {hframe, [
                 {vframe, [
                     {label,?__(4,"Executable")},
-                    {label,?__(7,"Plugins Path")},
+                    {label,?__(7,"Yafaray Plugins Path")},
                     {label,?__(5,"Options")},
                     {label,"Default Shader"}
                 ]},
@@ -3112,7 +2975,6 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                         println(F),
                         case Bg of
                             undefined -> Bgs;
-			    false -> Bgs; 	% infinite light - no sunsky
                             _ -> [Light|Bgs]
                         end
                 end, [], Lights)),
@@ -3286,8 +3148,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OrenNayar = proplists:get_value(oren_nayar, YafaRay, ?DEF_OREN_NAYAR),
     DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
 
-    AbsorptionColor =
-        proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
+    AbsorptionColor = proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
 
 
     case AbsorptionColor of
@@ -3300,35 +3161,26 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
                                        -math:log(max(AbsG, ?NONZERO))/AbsD,
                                        -math:log(max(AbsB, ?NONZERO))/AbsD})
     end,
-    DispersionPower =
-        proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
+    DispersionPower = proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
     case DispersionPower of
         0.0 -> ok;
         _   ->
-            DispersionSamples =
-                proplists:get_value(dispersion_samples, YafaRay,
-                                    ?DEF_DISPERSION_SAMPLES),
-            DispersionJitter =
-                proplists:get_value(dispersion_jitter, YafaRay,
-                                    ?DEF_DISPERSION_JITTER),
+            DispersionSamples = proplists:get_value(dispersion_samples, YafaRay, ?DEF_DISPERSION_SAMPLES),
+            DispersionJitter = proplists:get_value(dispersion_jitter, YafaRay, ?DEF_DISPERSION_JITTER),
             println(F, "       "
                     "        <dispersion_samples ival=\"~w\"/>~n"
                     "        <dispersion_jitter bval=\"~s\"/>",
-                    [DispersionSamples,
-                     format(DispersionJitter)])
+                    [DispersionSamples,format(DispersionJitter)])
     end,
 
     case OrenNayar of
         false -> ok;
         _ ->
-            OrenNayarSigma = proplists:get_value(oren_nayar_sigma, YafaRay,
-                                                 ?DEF_OREN_NAYAR_SIGMA),
-
+            OrenNayarSigma = proplists:get_value(oren_nayar_sigma, YafaRay, ?DEF_OREN_NAYAR_SIGMA),
             println(F, "        <diffuse_brdf sval=\"oren_nayar\"/>~n"
                     "        <sigma fval=\"~.10f\"/>",
                     [OrenNayarSigma])
     end,
-
 
     println(F, "        <IOR fval=\"~.10f\"/>~n"
             "        <fresnel_effect bval=\"~s\"/>~n"
@@ -3617,15 +3469,15 @@ export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
     DefTransmitted = def_transmitted(DiffuseA),
 
 
-    AbsorptionColor =
-        proplists:get_value(absorption_color, YafaRay, ?DEF_SSS_ABSORPTION_COLOR),
+    SSS_AbsorptionColor =
+        proplists:get_value(sss_absorption_color, YafaRay, ?DEF_SSS_ABSORPTION_COLOR),
 
 
 
     ScatterColor =
         proplists:get_value(scatter_color, YafaRay, ?DEF_SCATTER_COLOR),
 
-    Specular_Color =
+    SSS_Specular_Color =
         proplists:get_value(sss_specular_color, YafaRay, ?DEF_SSS_SPECULAR_COLOR),
 
     %% XXX Wings scaling of shininess is weird. Commonly this value
@@ -3639,11 +3491,11 @@ export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
                proplists:get_value(transmitted, YafaRay, DefTransmitted)),
 
     export_rgb(F, specular_color,
-               proplists:get_value(sss_specular_color, YafaRay, Specular_Color)),
+               proplists:get_value(sss_specular_color, YafaRay, SSS_Specular_Color)),
 
 
 
-    case AbsorptionColor of
+    case SSS_AbsorptionColor of
         [ ] -> ok;
         {AbsR,AbsG,AbsB} ->
             AbsD =
@@ -4302,9 +4154,9 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
 %%% End Change Number from Texname for Stencil UpperLayer Name 2
 
 
-            _SizeX = proplists:get_value(size_x, Ps, ?DEF_MOD_SIZE_X),
-            _SizeY = proplists:get_value(size_y, Ps, ?DEF_MOD_SIZE_Y),
-            _SizeZ = proplists:get_value(size_z, Ps, ?DEF_MOD_SIZE_Z),
+%            _SizeX = proplists:get_value(size_x, Ps, ?DEF_MOD_SIZE_X),
+%            _SizeY = proplists:get_value(size_y, Ps, ?DEF_MOD_SIZE_Y),
+%            _SizeZ = proplists:get_value(size_z, Ps, ?DEF_MOD_SIZE_Z),
             TextureType = proplists:get_value(texture_type, Ps, ?DEF_TEXTURE_TYPE),
             Diffuse = proplists:get_value(diffuse, Ps, ?DEF_MOD_DIFFUSE),
 %%	    _Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
@@ -4312,7 +4164,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             Shininess = proplists:get_value(shininess, Ps, ?DEF_MOD_SHININESS),
             Normal = proplists:get_value(normal, Ps, ?DEF_MOD_NORMAL),
 %%            _Color = Diffuse * Opacity,
-            _HardValue = Shininess,
+%%            _HardValue = Shininess,
 %%            _Transmission = Diffuse * (1.0 - Opacity),
 %%	    _Reflection = Ambient,
             TexCo =
@@ -4543,6 +4395,11 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     Volume_Minmax_X = proplists:get_value(volume_minmax_x, YafaRay, ?DEF_VOLUME_MINMAX_X),
     Volume_Minmax_Y = proplists:get_value(volume_minmax_y, YafaRay, ?DEF_VOLUME_MINMAX_Y),
     Volume_Minmax_Z = proplists:get_value(volume_minmax_z, YafaRay, ?DEF_VOLUME_MINMAX_Z),
+    Lightportal_Power = proplists:get_value(lightportal_power, YafaRay, ?DEF_LIGHTPORTAL_POWER),
+    Lightportal_Samples = proplists:get_value(lightportal_samples, YafaRay, ?DEF_LIGHTPORTAL_SAMPLES),
+    Lightportal_Diffusephotons = proplists:get_value(lightportal_diffusephotons, YafaRay, ?DEF_LIGHTPORTAL_DIFFUSEPHOTONS),
+    Lightportal_Causticphotons = proplists:get_value(lightportal_causticphotons, YafaRay, ?DEF_LIGHTPORTAL_CAUSTICPHOTONS),
+    Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, YafaRay, ?DEF_LIGHTPORTAL_PHOTON_ONLY),
     Meshlight_Power = proplists:get_value(meshlight_power, YafaRay, ?DEF_MESHLIGHT_POWER),
     Meshlight_Samples = proplists:get_value(meshlight_samples, YafaRay, ?DEF_MESHLIGHT_SAMPLES),
     Meshlight_Color = proplists:get_value(meshlight_color, YafaRay, ?DEF_MESHLIGHT_COLOR),
@@ -4638,10 +4495,8 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F," "),
             println(F, "<light name=\"~s\">",[NameStr]),
 
-            export_rgb(F, color,
-                       proplists:get_value(meshlight_color, YafaRay, Meshlight_Color)),
+            export_rgb(F, color, proplists:get_value(meshlight_color, YafaRay, Meshlight_Color)),
 
-            %%
             println(F, "<object ival= \"~w\"/>",[Id]),
             println(F, "<power fval=\"~.10f\"/>",[Meshlight_Power]),
             println(F, "<samples ival=\"~w\"/>",[Meshlight_Samples]),
@@ -4650,6 +4505,18 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F, "</light>"),
             println(F," "),
             println(F, "<mesh id=\"~w\" type=\"0\">",[Id]),
+            println(F," ");
+
+        lightportal ->
+            println(F," "),
+            println(F, "<light name=\"~s\">",[NameStr]),
+            println(F, "<type sval=\"bgPortalLight\"/>"),
+            println(F, "<power fval=\"~.10f\"/>",[Lightportal_Power]),
+            println(F, "<samples ival=\"~w\"/>",[Lightportal_Samples]),
+            println(F, "<object ival= \"~w\"/>",[Id]),
+            println(F, "<with_diffuse bval=\"~s\"/>",[Lightportal_Diffusephotons]),
+            println(F, "<with_caustic bval=\"~s\"/>",[Lightportal_Causticphotons]),
+            println(F, "<photon_only bval=\"~s\"/>",[Lightportal_Photon_Only]),
             println(F," ")
 
     end,
@@ -4664,12 +4531,9 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
                   println(F, "        "),
                   export_vectors2D(F, Tx)
     end,
-
     %% Add Export UV_Vectors Part 1 End
 
-
     export_faces(F, Fs, DefaultMaterial, list_to_tuple(Tx), list_to_tuple(Vc)),
-
 
     case Object_Type of
         mesh ->
@@ -4685,16 +4549,13 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
         meshlight ->
             println(F," "),
             println(F, "</mesh>"),
+            println(F," ");
+
+        lightportal ->
+            println(F," "),
+            println(F, "</light>"),
             println(F," ")
-
-
-
-
     end,
-
-
-
-
 
     case Autosmooth of
         false ->
@@ -6212,7 +6073,7 @@ help(text, pref_dialog) ->
       "be found in the executables search path; or, the absolute path of "
       "that executable."),
      %%
-     ?__(73,"Plugins Path: The path to the YafaRay plugins folder "
+     ?__(73,"Yafaray Plugins Path: The path to the YafaRay plugins folder "
       "('c:/yafaray/bin/plugins'). YafaRay will not work without this."),
      %%
      ?__(74,"Options: Rendering command line options to be inserted between the "

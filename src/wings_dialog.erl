@@ -297,7 +297,8 @@ update_children(Ctrl) ->
         true -> ok;
         false ->
             update_children(wxWindow:getChildren(Ctrl)),
-            wxSizer:setSizeHints(PSizer,Ctrl)
+            wxSizer:layout(PSizer),
+            wxWindow:fitInside(Ctrl)
     end.
 
 get_widget(Key, Store) ->
