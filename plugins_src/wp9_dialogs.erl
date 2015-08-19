@@ -42,53 +42,66 @@ file_dialog(Type, Prop, Title, Cont) ->
     DefDir = proplists:get_value(directory, Prop),
     DefName = proplists:get_value(default_filename, Prop, ""),
     Filters = wings_file:file_filters(Prop),
+    Multiple = proplists:get_value(multiple, Prop, false),
+    Type0 = if Multiple =:= true -> Type bor ?wxFD_MULTIPLE;
+               true -> Type
+            end,
     Dlg = wxFileDialog:new(Frame,
-			   [{message, Title},
-			    {defaultDir, DefDir},
-			    {defaultFile, DefName},
-			    {wildCard, Filters},
-			    {style, Type}]),
+                           [{message, Title},
+                            {defaultDir, DefDir},
+                            {defaultFile, DefName},
+                            {wildCard, Filters},
+                            {style, Type0}]),
     case wxFileDialog:showModal(Dlg) of
-	?wxID_OK ->
-	    Dir = wxFileDialog:getDirectory(Dlg),
-	    File = wxFileDialog:getFilename(Dlg),
-	    wxDialog:destroy(Dlg),
-	    Cont(filename:join(Dir, File));
-	_Cancel ->
-	    wxDialog:destroy(Dlg),
-	    keep
+        ?wxID_OK ->
+            Dir = wxFileDialog:getDirectory(Dlg),
+            File = if Multiple =:= true ->
+                           wxFileDialog:getFilenames(Dlg);
+                      true ->
+                           wxFileDialog:getFilename(Dlg)
+                   end,
+            wxDialog:destroy(Dlg),
+            if Multiple =:= true ->
+                    [wings_wm:psend(Cont(filename:join(Dir, File0)),wings_wm:get_current_state()) || File0 <- File],
+                    keep;
+               true ->
+                    Cont(filename:join(Dir, File))
+            end;
+        _Cancel ->
+            wxDialog:destroy(Dlg),
+            keep
     end.
 
 read_image(Prop) ->
     Name = proplists:get_value(filename, Prop),
     BlockWxMsgs = wxLogNull:new(),
     case wxImage:loadFile(Image=wxImage:new(), Name) of
-	true ->
-	    E3d = wings_image:wxImage_to_e3d(Image),
-	    wxImage:destroy(Image),
-	    wxLogNull:destroy(BlockWxMsgs),
-	    e3d_image:fix_outtype(Name, E3d, Prop);
-	false ->
-	    wxLogNull:destroy(BlockWxMsgs),
-	    {error, ignore}
+        true ->
+            E3d = wings_image:wxImage_to_e3d(Image),
+            wxImage:destroy(Image),
+            wxLogNull:destroy(BlockWxMsgs),
+            e3d_image:fix_outtype(Name, E3d, Prop);
+        false ->
+            wxLogNull:destroy(BlockWxMsgs),
+            {error, ignore}
     end.
 
 write_image(Prop) ->
     Name  = proplists:get_value(filename, Prop),
     Image = proplists:get_value(image, Prop),
     case wxImage:saveFile(Wx = wings_image:e3d_to_wxImage(Image), Name) of
-	true -> wxImage:destroy(Wx), ok;
-	false -> wxImage:destroy(Wx), {error, ignore}
+        true -> wxImage:destroy(Wx), ok;
+        false -> wxImage:destroy(Wx), {error, ignore}
     end.
 
 image_formats(Fs0) ->
     Fs1 = [{".bmp",?__(1,"BMP Bitmap File")},
-	   {".gif",?__(6,"Compuserve GIF")},  %% only support 8pp
-	   {".jpg",?__(5, "JPEG File")},
-	   {".png",?__(3,"PNG File")},
-	   {".tif",?__(2,"Tiff Bitmap")},
-	   {".tga",?__(4,"Targa File")}
-	   |Fs0],
+           {".gif",?__(6,"Compuserve GIF")},  %% only support 8pp
+           {".jpg",?__(5, "JPEG File")},
+           {".png",?__(3,"PNG File")},
+           {".tif",?__(2,"Tiff Bitmap")},
+           {".tga",?__(4,"Targa File")}
+           |Fs0],
     Fs2 = sofs:relation(Fs1),
     Fs3 = sofs:relation_to_family(Fs2),
     Fs = sofs:to_external(Fs3),
