@@ -90,7 +90,8 @@ unix_release(BuildRoot, WingsVsn) ->
     ok = file:write_file_info(Installer, #file_info{mode=8#555}),
     MakeSelf = filename:join(UnixDir, "makeself.sh"),
     ok = file:set_cwd(code:lib_dir(wings)),
-    run(MakeSelf, ["--bzip2",Root,Name++".bzip2.run","Wings3D",Installer,WingsVsn]),
+    run(MakeSelf, ["--bzip2",Root,Name++".bzip2.run","Wings3D",
+		   "./install_wings",WingsVsn]),
     ok.
 
 win_release(Root, WingsVsn) ->
