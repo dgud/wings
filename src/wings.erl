@@ -1748,7 +1748,7 @@ move_windows_1({tweak, _}=Name,Pos) ->
 move_windows_1({plugin,_}=Name,Pos) ->
     wings_wm:move(Name,Pos);
 move_windows_1(Name,{X,Y}) ->
-    case wings_wm:is_window(Name) of
+    case wings_wm:is_window(Name) andalso not wings_wm:is_wxwindow(Name) of
       true ->
         {W,H} = wings_wm:win_size({controller,Name}),
         wings_wm:move(Name,{X-W,Y+H});

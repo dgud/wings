@@ -278,7 +278,7 @@ io_request_loop([Request|Requests], {State,_,ok}) ->
     io_request_loop(Requests, io_request(State, Request)).
 
 put_chars(#state{ctrl=Ctrl} = State, Chars) when is_binary(Chars) ->
-    is_tuple(Ctrl) andalso wxTextCtrl:appendText(Ctrl, Chars),
+    is_tuple(Ctrl) andalso wxTextCtrl:appendText(Ctrl, [Chars]),
     put_chars_1(State, Chars);
 put_chars(#state{ctrl=Ctrl} = State, Chars) when is_list(Chars) ->
     is_tuple(Ctrl) andalso wxTextCtrl:appendText(Ctrl, Chars),
