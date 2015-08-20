@@ -37,7 +37,7 @@ command(prefs, St) ->
     PrefQs = [{Lbl,make_query(Ps)} || {Lbl,Ps} <- PrefQs0],
     Qs = [{oframe,PrefQs,1,[{style,buttons}]}],
     wings_dialog:dialog(?__(6,"Preferences"), Qs,
-			fun([_|Res]) ->
+			fun(Res) ->
 				Dl = wings_wm:get_prop(geom, display_lists),
 				wings_wm:set_prop(wings_wm:this(), display_lists, Dl),
 				set_values(Res, St)
