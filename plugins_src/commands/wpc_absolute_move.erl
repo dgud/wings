@@ -348,9 +348,11 @@ draw_window1(name,_) ->
 draw_window1(center,{XC,YC,ZC}) ->
     {vframe,[
         {hframe,[{label,?__(2,"Set position")++":"}]},
-        {hframe,[{label,"X:"},{text,XC,[{key,x}]}]},
-        {hframe,[{label,"Y:"},{text,YC,[{key,y}]}]},
-        {hframe,[{label,"Z:"},{text,ZC,[{key,z}]}]}
+        {label_column,[
+            {"X:",{text,XC,[{key,x}]}},
+            {"Y:",{text,YC,[{key,y}]}},
+            {"Z:",{text,ZC,[{key,z}]}}
+        ]}
     ]};
 draw_window1(object,one) ->
     {?__(3,"Move object"),false,[{key,all}, {hook, fun disable/3}]};
@@ -361,36 +363,41 @@ draw_window1(object,duplionly) ->
 draw_window1(duplicate,CheckAll) when is_boolean(CheckAll) ->
     {hframe,[
 	     {value, CheckAll, [{key, dupli_check}]},
-	     {text,0,[{key,dupli},{range,{0,infinity}}]},
-	     {label,?__(5,"Duplicates")}
+	     {text,0,[{key,dupli},{range,{0,infinity}},{width,6}]},
+             {label," "++?__(5,"Duplicates")}
 	    ]};
 draw_window1(dup_rt,_) ->
-    {vframe,[
-      {hframe,[
-        {hframe,[{label,?__(10,"Between reference and target")++":"}]},
-        {hframe,[{"",false,[{key,dup_rt}]}]}
-      ]}
+%    {vframe,[
+        {label_column,[
+            {?__(10,"Between reference and target")++":",{hframe,[{"",false,[{key,dup_rt}]}]}}
+%        ]}
     ]};
 draw_window1(align,_) ->
     {vframe,[
-        {hframe,[{label,?__(6,"Align")++":"}]},
-        {hframe,[{"",false,[{key,ax}]}]},
-        {hframe,[{"",false,[{key,ay}]}]},
-        {hframe,[{"",false,[{key,az}]}]}
+        {label,?__(6,"Align")++":"},
+        {label_column,[
+            {" ",{hframe,[{"",false,[{key,ax}]}],[{border, 3}]}},
+            {" ",{hframe,[{"",false,[{key,ay}]}],[{border, 3}]}},
+            {" ",{hframe,[{"",false,[{key,az}]}],[{border, 3}]}}
+        ]}
     ]};
 draw_window1(flatten,_) ->
     {vframe,[
         {hframe,[{label,?__(7,"Flatten")++":"}]},
-        {hframe,[{"",false,[{key,fx}]}]},
-        {hframe,[{"",false,[{key,fy}]}]},
-        {hframe,[{"",false,[{key,fz}]}]}
+        {label_column,[
+            {" ",{hframe,[{"",false,[{key,fx}]}],[{border, 3}]}},
+            {" ",{hframe,[{"",false,[{key,fy}]}],[{border, 3}]}},
+            {" ",{hframe,[{"",false,[{key,fz}]}],[{border, 3}]}}
+        ]}
     ]};
 draw_window1(lock, _) ->
     {vframe,[
         {hframe,[{label,?__(9,"Lock")++":"}]},
-        {hframe,[{"",false,[{key,lx},{hook, fun disable/3}]}]},
-        {hframe,[{"",false,[{key,ly},{hook, fun disable/3}]}]},
-        {hframe,[{"",false,[{key,lz},{hook, fun disable/3}]}]}
+        {label_column,[
+            {" ",{hframe,[{"",false,[{key,lx},{hook, fun disable/3}]}],[{border, 3}]}},
+            {" ",{hframe,[{"",false,[{key,ly},{hook, fun disable/3}]}],[{border, 3}]}},
+            {" ",{hframe,[{"",false,[{key,lz},{hook, fun disable/3}]}],[{border, 3}]}}
+        ]}
     ]};
 draw_window1(reference,{X,Y,Z}) ->
     {label,?__(8,"Reference point is") ++ ": (" ++
