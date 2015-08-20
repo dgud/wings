@@ -225,23 +225,29 @@ draw_window1(name,_) ->
 draw_window1(size, {{X,Y,Z},{SugX,SugY,SugZ}}) ->
     {vframe,[
         {hframe,[{label,?__(2,"Set new size")++":"}]},
-        {hframe,[{label,"X:"},{text,SugX,[{key,sx},disable(X==0.0)]}]},
-        {hframe,[{label,"Y:"},{text,SugY,[{key,sy},disable(Y==0.0)]}]},
-        {hframe,[{label,"Z:"},{text,SugZ,[{key,sz},disable(Z==0.0)]}]}
+        {label_column,[
+            {"X:",{text,SugX,[{key,sx},disable(X==0.0)]}},
+            {"Y:",{text,SugY,[{key,sy},disable(Y==0.0)]}},
+            {"Z:",{text,SugZ,[{key,sz},disable(Z==0.0)]}}
+        ]}
     ]};
 draw_window1(center,{X,Y,Z}) ->
     {vframe,[
-	     {hframe,[{label,?__(3,"Set scale center")++":"}]},
-	     {hframe,[{label,"X:"},{text,X,[{key,cx}]}]},
-	     {hframe,[{label,"Y:"},{text,Y,[{key,cy}]}]},
-	     {hframe,[{label,"Z:"},{text,Z,[{key,cz}]}]}
-	    ]};
+        {hframe,[{label,?__(3,"Set scale center")++":"}]},
+        {label_column,[
+             {"X:",{text,X,[{key,cx}]}},
+             {"Y:",{text,Y,[{key,cy}]}},
+             {"Z:",{text,Z,[{key,cz}]}}
+        ]}
+    ]};
 draw_window1(aspect,{X,Y,Z}) ->
     {vframe,[
-        {hframe,[{label,?__(6,"Link")++":"}]},
-        {hframe,[{"",false,[{key,ax},disable(X==0.0)]}]},
-        {hframe,[{"",false,[{key,ay},disable(Y==0.0)]}]},
-        {hframe,[{"",false,[{key,az},disable(Z==0.0)]}]}
+        {hframe,[{label,"   " ++ ?__(6,"Link")++":"}]},
+        {label_column,[
+            {" ",{hframe,[{"",false,[{key,ax},disable(X==0.0)]}],[{border, 3}]}},
+            {" ",{hframe,[{"",false,[{key,ay},disable(Y==0.0)]}],[{border, 3}]}},
+            {" ",{hframe,[{"",false,[{key,az},disable(Z==0.0)]}],[{border, 3}]}}
+        ]}
     ]};
 draw_window1(whole,true) ->
     {?__(4,"Scale whole object"),false,[{key,whole}]};
