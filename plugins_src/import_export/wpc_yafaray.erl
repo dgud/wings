@@ -202,9 +202,10 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_SPOT_TYPE, spotlight).
 -define(DEF_CONE_ANGLE, 45.0).
 -define(DEF_SPOT_EXPONENT, 2.0).
--define(DEF_BLEND, 0.5).
+-define(DEF_SPOT_BLEND, 0.5).
 -define(DEF_SPOT_PHOTON_ONLY, false).
 -define(DEF_SPOT_SOFT_SHADOWS, false).
+-define(DEF_SPOT_FUZZYNESS, 1.0).
 
 %% IESlight
 -define(DEF_SPOT_IES_FILENAME, "").
@@ -227,7 +228,8 @@ key(Key) -> {key,?KEY(Key)}.
 
 %% Sunlight
 -define(DEF_POWER, 1.0).
--define(DEF_BACKGROUND, undefined).
+-define(DEF_BACKGROUND_INFINITE, undefined).
+-define(DEF_BACKGROUND_AMBIENT, constant).
 -define(DEF_BACKGROUND_COLOR, {0.0,0.0,0.0}).
 -define(DEF_CONSTANT_BACK_POWER, 1.0).
 -define(DEF_HORIZON_COLOR, {1.0,1.0,1.0}).
@@ -401,7 +403,8 @@ range_1(samples)                -> {1,infinity};
 range_1(spot_ies_samples)       -> {1,512};
 range_1(glow_intensity)         -> {0.0,1.0};
 range_1(glow_offset)            -> {0.0,infinity};
-range_1(blend)                  -> {0.0,1.0};
+range_1(spot_blend)		-> {0.0,1.0};
+range_1(spot_fuzzyness)		-> {0.0,1.0};
 range_1(photons)                -> {0,infinity};
 range_1(depth)                  -> {0,infinity};
 range_1(fixedradius)            -> {0.0,infinity};
@@ -825,7 +828,7 @@ material_dialog(_Name, Mat) ->
 		    %% Transmit Filter
 		    wings_dialog:show(?KEY(pnl_tf), is_member(Value, [shinydiffuse,glass,rough_glass]), Store),
 		    %% Translucency
-		    wings_dialog:show(?KEY(pnl_transl), is_member(Value, [shinydiffuse,translucent]), Store),
+		    wings_dialog:show(?KEY(pnl_transl), Value =:= shinydiffuse, Store),
                     wings_dialog:show(?KEY(pnl_transl_sss), Value =:= translucent, Store),
 		    %% Scatter Color & SigmaS Factor
 		    wings_dialog:show(?KEY(pnl_sct), Value =:= translucent, Store),
@@ -957,16 +960,7 @@ material_dialog(_Name, Mat) ->
     %%
     ShaderFrame =
         {vframe, [
-            {menu, [
-                {?__(9,"Shiny Diffuse"),shinydiffuse},
-                {?__(29,"Glass"),glass},
-                {"Rough Glass",rough_glass},
-                {"Glossy",glossy},
-                {"Coated Glossy",coatedglossy},
-                {"Translucent (SSS)",translucent},
-                {"Light Material",lightmat},
-                {"Blend",blend_mat}
-            ],ShaderType,[key(shader_type),{hook,Hook_Show}]},
+            {menu,menu_shader(),ShaderType,[key(shader_type),{hook,Hook_Show}]},
 
             %% label column
             {vframe, [
@@ -1076,7 +1070,7 @@ material_dialog(_Name, Mat) ->
                 {vframe, [
                     {label_column, [
                         {"Dispersion Power", {slider, {text,DispersionPower,[range(dispersion_power),key(dispersion_power),{hook,Hook_Enable}]}}}
-                    ]},
+                    ],[{margin,false}]},
                     {label_column, [
                         {"Dispersion Samples", {slider, {text, DispersionSamples,[range(dispersion_samples),key(dispersion_samples)]}}}
                     ],[key(pnl_dsp_sam),{margin,false}]},
@@ -1278,13 +1272,13 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     {menu,[
                         {?__(6,"Mix"),mix},
                         {?__(7,"Add"),add},
-                        {?__(8,"Mul"),mul},
-                        {?__(109,"Sub"),sub},
-                        {?__(110,"Scr"),scr},
-                        {?__(111,"Div"),divide},
-                        {?__(112,"Dif"),dif},
-                        {?__(113,"Dar"),dar},
-                        {?__(114,"Lig"),lig}
+                        {?__(8,"Multiply"),mul},
+                        {?__(109,"Subtract"),sub},
+                        {?__(110,"Screen"),scr},
+                        {?__(111,"Divide"),divide},
+                        {?__(112,"Difference"),dif},
+                        {?__(113,"Darken"),dar},
+                        {?__(114,"Lighten"),lig}
                     ],Mode,[]},
                     panel,
                     {menu,[
@@ -1709,8 +1703,8 @@ light_dialog(Name, Ps) ->
                 {text,Power,[range(power),key(power)]}
             ]},
             panel,
-            help_button(light_dialog)
-        ],[{margin,false}]}],
+            help_button({light_dialog,Type})
+        ]}],
     {vframe, PowerStr ++ light_dialog(Name, Type, YafaRay)}.
 
 %%% Point Light Dialog
@@ -1750,6 +1744,8 @@ light_dialog(_Name, spot, Ps) ->
     Type = proplists:get_value(type, Ps, ?DEF_SPOT_TYPE),
     SpotPhotonOnly = proplists:get_value(spot_photon_only, Ps, ?DEF_SPOT_PHOTON_ONLY),
     SpotSoftShadows = proplists:get_value(spot_soft_shadows, Ps, ?DEF_SPOT_SOFT_SHADOWS),
+    SpotBlend = proplists:get_value(spot_blend, Ps, ?DEF_SPOT_BLEND),
+    SpotFuzzyness = proplists:get_value(spot_fuzzyness, Ps, ?DEF_SPOT_FUZZYNESS),
     SpotIESFilename = proplists:get_value(spot_ies_filename, Ps, ?DEF_SPOT_IES_FILENAME),
     SpotIESSamples = proplists:get_value(spot_ies_samples, Ps, ?DEF_SPOT_IES_SAMPLES),
     BrowsePropsIES = [{dialog_type,open_dialog},{extensions,[{".ies",?__(30,"IES")}]}],
@@ -1758,7 +1754,8 @@ light_dialog(_Name, spot, Ps) ->
         fun(Key, Value, Store) ->
             case Key of
                 ?KEY(spot_soft_shadows) ->
-                    wings_dialog:enable(?KEY(spot_ies_samples), Value=:=true, Store)
+                    wings_dialog:enable(?KEY(spot_ies_samples), Value=/=?DEF_SPOT_SOFT_SHADOWS, Store),
+                    wings_dialog:enable(?KEY(spot_fuzzyness), Value=/=?DEF_SPOT_SOFT_SHADOWS, Store)
             end
         end,
 
@@ -1782,8 +1779,11 @@ light_dialog(_Name, spot, Ps) ->
 		{label,?__(100,"Filename")},
 		{button,{text,SpotIESFilename,[key(spot_ies_filename),{width,35},{props,BrowsePropsIES}]}}
 	    ],[key(pnl_ies)]},
-            {hframe, [
+            {vframe, [
 		{hframe, [
+                    {label,?__(101,"Blend")},
+                    {text,SpotBlend,[key(spot_blend),range(spot_blend)]},
+                    panel,
 		    {?__(97,"Photon Only"),SpotPhotonOnly,[key(spot_photon_only)]},
                     panel
 		],[key(pnl_spt_photon)]},
@@ -1791,7 +1791,10 @@ light_dialog(_Name, spot, Ps) ->
 		    {?__(38,"Soft Shadows"),SpotSoftShadows,[key(spot_soft_shadows),{hook,Hook_Enabled}]},
 		    panel,
 		    {label,?__(35,"Samples")},
-		    {text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]}
+		    {text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]},
+                    panel,
+                    {label,?__(102,"Fuzzyness")},
+                    {text,SpotFuzzyness,[range(spot_fuzzyness),key(spot_fuzzyness)]}
 		]}
             ],[{margin,false}]}
         ],[key(pnl_spot_light),[{margin,false}]]}
@@ -1807,7 +1810,7 @@ light_dialog(_Name, infinite, Ps) ->
     SkyBackgroundSamples = proplists:get_value(sky_background_samples, Ps, ?DEF_SKY_BACKGROUND_SAMPLES),
     InfiniteTrue = proplists:get_value(infinite_true, Ps, ?DEF_INFINITE_TRUE),
     InfiniteRadius = proplists:get_value(infinite_radius, Ps, ?DEF_INFINITE_RADIUS),
-    Bg = proplists:get_value(background, Ps, ?DEF_BACKGROUND),
+    Bg = proplists:get_value(background, Ps, ?DEF_BACKGROUND_INFINITE),
     %%
     Turbidity = proplists:get_value(turbidity, Ps, ?DEF_TURBIDITY),
     A_var = proplists:get_value(a_var, Ps, ?DEF_SUNSKY_VAR),
@@ -1828,7 +1831,7 @@ light_dialog(_Name, infinite, Ps) ->
 	fun(Key, Value, Store) ->
 	    case Key of
                 ?KEY(infinite_true) ->
-                    wings_dialog:enable(?KEY(pnl_inf_radius), Value, Store);
+                    wings_dialog:enable(?KEY(pnl_inf_radius), Value =:= false, Store);
                 ?KEY(sun_real) ->
                     wings_dialog:enable(?KEY(pnl_sun_real), Value =/= ?DEF_SUN_REAL, Store);
 		?KEY(sky_background_light) ->
@@ -1860,12 +1863,12 @@ light_dialog(_Name, infinite, Ps) ->
                 %% Sunlight Settings Start
                 {hframe, [
                     {hframe, [
-                        {label,?__(114,"Samples")},
+                        {label,?__(114,"Samples")++" "},
                         {text,SunSamples,[key(sun_samples),range(sun_samples)]}
                     ]},
                     panel,
                     {hframe, [
-                        {label,?__(115,"Angle")},
+                        {label,?__(115,"Angle")++" "},
                         {text,SunAngle,[key(sun_angle),range(sun_angle)]}
                     ]}
                 ],[key(pnl_sunlight), {margin,false}]},
@@ -1893,23 +1896,15 @@ light_dialog(_Name, infinite, Ps) ->
                 ],Bg,[key(background),{hook,Hook_Show}]},
                 {vframe, [
                     {hframe, [
-			{hframe, [
-			    {vframe, [
-				{label,?__(47,"Turbidity")},
-				{label,"a: "++?__(48,"Horizon Brightness")},
-				{label,"b: "++?__(49,"Horizon Spread")},
-				{label,"c: "++?__(50,"Sun Brightness")},
-				{label,"d: "++?__(51,"Sun Distance")},
-				{label,"e: "++?__(52,"Sun Backscattered Light")}
-			    ]},
-			    {vframe, [
-				{text,Turbidity,[range(turbidity),key(turbidity)]},
-				{text,A_var,[key(a_var)]},
-				{text,B_var,[key(b_var)]},
-				{text,C_var,[key(c_var)]},
-				{text,D_var,[key(d_var)]},
-				{text,E_var,[key(e_var)]}
-			    ]}
+			{label_column, [
+			    {?__(47,"Turbidity"),{text,Turbidity,[range(turbidity),key(turbidity)]}},
+                            {"a: "++?__(48,"Horizon Brightness"),{text,A_var,[key(a_var)]}},
+                            {"b: "++?__(49,"Horizon Spread"),{text,B_var,[key(b_var)]}}
+                        ],[{margin,false}]},
+                        {label_column, [
+                            {"c: "++?__(50,"Sun Brightness"),{text,C_var,[key(c_var)]}},
+                            {"d: "++?__(51,"Sun Distance"),{text,D_var,[key(d_var)]}},
+                            {"e: "++?__(52,"Backscattered Light"),{text,E_var,[key(e_var)]}}
 			],[{margin,false}]}
                     ],[{margin,false}]},
 
@@ -1928,7 +1923,7 @@ light_dialog(_Name, infinite, Ps) ->
                             {label,?__(121,"Sun Power")},
                             {text,SunRealPower,[range(sun_real_power),key(sun_real_power)]}
                         ],[key(pnl_sun_real),{margin,false}]}
-                    ],[{margin,false}]},
+                    ]},
 
                     %% Start Skylight Settings
                     {vframe,[
@@ -1936,24 +1931,22 @@ light_dialog(_Name, infinite, Ps) ->
                             {?__(116,"Skylight"),SkyBackgroundLight,[key(sky_background_light),{hook,Hook_Enabled}]},
                             panel,
                             {hframe, [
-                                {hframe, [
-                                    {label,?__(117,"Power")},
-                                    {text,SkyBackgroundPower,[range(sky_background_power),key(sky_background_power)]}
-                                ]},
+                                {label,?__(117,"Power")},
+                                {text,SkyBackgroundPower,[range(sky_background_power),key(sky_background_power)]},
                                 panel,
-                                {hframe, [
-                                    {label,?__(118,"Samples")},
-                                    {text,SkyBackgroundSamples,[range(sky_background_samples),key(sky_background_samples)]}
-                                ]}
+                                {label,?__(118,"Samples")},
+                                {text,SkyBackgroundSamples,[range(sky_background_samples),key(sky_background_samples)]}
                             ], [key(pnl_bkg_power),{margin,false}]}
-                        ],[{margin,false}]},
+                        ]},
                         {hframe, [
                             {?__(123,"Diffuse Photons"),DarkskyDiffusePhotons,[key(darksky_diffusephotons)]},
                             panel,
                             {?__(124,"Caustic Photons"),DarkskyCausticPhotons,[key(darksky_causticphotons)]}
-                        ],[key(pnl_bkg_photons),{margin,false}]}
+                        ],[key(pnl_bkg_photons)]}
                     ],[{margin,false}]},
-                    {?__(119,"Night"),DarkskyNight,[key(darksky_night)]}
+                    {vframe,[
+                        {?__(119,"Night"),DarkskyNight,[key(darksky_night)]}
+                    ]}
                 %% End Skylight Settings
                 ],[key(pnl_sky),{margin,false}]}
             ],[{title,?__(53,"Sky")},key(pnl_base2),{margin,false}]}
@@ -1962,7 +1955,7 @@ light_dialog(_Name, infinite, Ps) ->
 
 %%% Ambient Light Dialog
 light_dialog(_Name, ambient, Ps) ->
-    Bg = proplists:get_value(background, Ps, ?DEF_BACKGROUND),
+    Bg = proplists:get_value(background, Ps, ?DEF_BACKGROUND_AMBIENT),
     BgColor = proplists:get_value(background_color, Ps, ?DEF_BACKGROUND_COLOR),
     %%
     HorizonColor = proplists:get_value(horizon_color, Ps, ?DEF_HORIZON_COLOR),
@@ -2020,35 +2013,31 @@ light_dialog(_Name, ambient, Ps) ->
 		    {?__(80,"Image"),image},
 		    {?__(81,"Constant"),constant},
 		    {?__(105,"Gradient"),gradientback},
-		    {?__(82,"None"), undefined}
+                    {?__(82,"None"), undefined}
                 ], Bg, [key(background),{hook,Hook_Show}]}
 	    ]},
 
             {vframe, [
                 %% HDRI Background
                 {vframe, [
-                    {hframe, [
-                        {label,?__(83,"Filename")},
-                        {vframe, [
-                            {hframe, [
-                                {button,{text,BgFnameImage,[key(background_filename_image),{width,35},{props,BrowsePropsImage}]}}
-                            ],[key(pnl_img_bkg),{margin,false},{show,false}]},
-                            {hframe, [
-                                {button,{text,BgFnameHDRI,[key(background_filename_HDRI),{width,35},{props,BrowsePropsHDRI}]}},
-                                {menu, [
-                                    {?__(86,"Light Probe"),probe},
-                                    {?__(87,"Spherical"),spherical}
-                                ], BgMapping, [key(background_mapping)]}
-                            ],[key(pnl_img_hdri),{margin,false}]}
-                        ],[{margin,false}]}
-                    ],[{margin,false}]},
-                    {hframe,[
-                        {label,?__(108,"Rotation")},
-                        {hframe,[
-                            {text,BgRotation,[range(background_rotation),key(background_rotation)]}
-                        ],[{margin,false}]}
+                    {label_column, [
+                        {?__(83,"Filename"),
+                            {vframe, [
+                                {hframe, [
+                                    {button,{text,BgFnameImage,[key(background_filename_image),{width,35},{props,BrowsePropsImage}]}}
+                                ],[key(pnl_img_bkg),{margin,false},{show,false}]},
+                                {hframe, [
+                                    {button,{text,BgFnameHDRI,[key(background_filename_HDRI),{width,35},{props,BrowsePropsHDRI}]}},
+                                    {menu, [
+                                        {?__(86,"Light Probe"),probe},
+                                        {?__(87,"Spherical"),spherical}
+                                    ], BgMapping, [key(background_mapping)]}
+                                ],[key(pnl_img_hdri),{margin,false}]}
+                            ],[{margin,false}]}},
+                        {?__(108,"Rotation"),
+                                {text,BgRotation,[range(background_rotation),key(background_rotation)]}}
                     ],[{margin,false}]}
-                ],[key(pnl_file)]},
+                ],[key(pnl_file),{margin,false}]},
                 %% Constant Background
                 {hframe, [
                     {label,?__(90,"Color")},
@@ -2065,7 +2054,9 @@ light_dialog(_Name, ambient, Ps) ->
                 %% Common parameters
                 {vframe,[
                     {hframe,[
-                        {?__(89,"Enlight"),BgEnlight,[key(background_enlight),{hook,Hook_Enabled}]},
+                        {hframe,[
+                            {?__(89,"Enlight"),BgEnlight,[key(background_enlight),{hook,Hook_Enabled}]}
+                        ]},
                         panel,
                         {hframe,[
                             {label,?__(60,"Samples")},
@@ -2076,10 +2067,20 @@ light_dialog(_Name, ambient, Ps) ->
                         {?__(94,"Diffuse Photons"),AmbientDiffusePhotons,[key(ambient_diffusephotons)]},
                         panel,
                         {?__(96,"Caustic Photons"),AmbientCausticPhotons,[key(ambient_causticphotons)]}
-                    ],[key(pnl_enlight_photons),{margin,false}]}
-                ],[{margin,false}]}
+                    ],[key(pnl_enlight_photons)]}
+                ]}
             ],[key(pnl_background),{margin,false}]}
         ]}];
+
+%%% Area Light Dialog
+light_dialog(_Name, area, Ps) ->
+    ArealightSamples = proplists:get_value(arealight_samples, Ps, ?DEF_AREALIGHT_SAMPLES),
+
+    [
+        {label_column,[
+            {?__(93,"Samples"), {text,ArealightSamples,[range(samples),key(arealight_samples)]}}
+        ]}
+    ];
 
 light_dialog(_Name, _Type, _Ps) ->
 %%    erlang:display({?MODULE,?LINE,{_Name,_Type,_Ps}}),
@@ -2099,17 +2100,17 @@ light_result([{?KEY(type),spherelight}|_]=Ps) ->
     split_list(Ps, 3);
 %%% Spot
 light_result([{?KEY(type),spotlight}|_]=Ps) ->
-    split_list(Ps, 5);
+    split_list(Ps, 7);
 light_result([{?KEY(type),spot_ies}|_]=Ps) ->
-    split_list(Ps, 5);
+    split_list(Ps, 7);
 %%% Infinite
 light_result([{?KEY(type),sunlight}|_]=Ps) ->
     split_list(Ps, 21);
 light_result([{?KEY(type),directional}|_]=Ps) ->
     split_list(Ps, 21);
 %%% Area
-light_result([_,{?KEY(arealight_samples),_}|_]=Ps) ->
-    split_list(Ps, 2);
+light_result([{?KEY(arealight_samples),_}|_]=Ps) ->
+    split_list(Ps, 1);
 %%% Ambient
 light_result([{?KEY(background),_}|_]=Ps) ->
     split_list(Ps, 10);
@@ -2137,28 +2138,11 @@ pref_dialog(St) ->
                 panel,
                 help_button(pref_dialog)
             ]},
-            {hframe, [
-                {vframe, [
-                    {label,?__(4,"Executable")},
-                    {label,?__(7,"Yafaray Plugins Path")},
-                    {label,?__(5,"Options")},
-                    {label,"Default Shader"}
-                ]},
-                {vframe, [
-                    {button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}},
-                    {button,{text,PluginsPath,[{key,pluginspath},{width,35},{props,[{dialog_type,dir_dialog}]}]}},
-                    {text,Options,[{key,options}]},
-                    {menu, [
-                        {"Shiny Diffuse",shinydiffuse},
-                        {"Glass",glass},
-                        {"Rough Glass",rough_glass},
-                        {"Glossy",glossy},
-                        {"Coated Glossy",coatedglossy},
-                        {"Translucent (SSS)",translucent},
-                        {"Light Material",lightmat}
-                    ], ShaderType, [{key,shader_type}]}
-
-                ]}
+            {label_column, [
+                {?__(4,"Executable"),{button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}}},
+                {?__(7,"Yafaray Plugins Path"),{button,{text,PluginsPath,[{key,pluginspath},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},
+                {?__(5,"Options"),{text,Options,[{key,options}]}},
+                {?__(8,"Default Shader"),{menu,menu_shader(), ShaderType, [{key,shader_type}]}}
             ]}
         ], [{title,""}]}],
     wpa:dialog(?__(6,"YafaRay Options"), Dialog, fun (Attr) -> pref_result(Attr,St) end).
@@ -2259,31 +2243,68 @@ export_prefs() ->
         {bokeh_rotation,?DEF_BOKEH_ROTATION},
         {dof_distance,?DEF_DOF_DISTANCE}].
 
+f_stop_str(Value) when is_float(Value) ->
+    %% we must use the same number of decimals used in the aperture edit box
+    float_to_list(Value,[{decimals,6}]);
+f_stop_str(Value) -> Value.
+
+f_stop_find(Value,List) ->
+    case lists:keyfind(f_stop_str(Value),2,List) of
+        false -> {f_stop_str(-1.0),-1.0};
+        {_,Idx,Val} -> {Idx,Val}
+    end.
+
 export_dialog_qs(Op, Attr) ->
+    Aperture = get_pref(aperture,Attr),
+    Custom = f_stop_str(-1.0),
+    ApertureList = [
+        {F, f_stop_str(math:sqrt(A)),math:sqrt(A)}
+        || {F, A} <- [{"1.0", 1 / 1},
+                        {"1.4", 1 / 2},
+                        {"2", 1 / 4},
+                        {"2.8", 1 / 8},
+                        {"4", 1 / 16},
+                        {"5.6", 1 / 32},
+                        {"8", 1 / 64},
+                        {"11", 1 / 128},
+                        {"16", 1 / 256},
+                        {"22", 1 / 512},
+                        {"32", 1 / 1024},
+                        {?__(47, "pinhole"), 0.0}]],
+    {ApertureIdx,_} = f_stop_find(f_stop_str(Aperture),ApertureList),
+
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
             threads_auto ->
                 wings_dialog:enable(?KEY(pnl_threads), Value =:= false, Store);
             use_caustics ->
-                wings_dialog:enable(?KEY(pnl_caustics), Value =:= true, Store);
+                wings_dialog:enable(?KEY(pnl_dl1), Value =:= true, Store);
             do_ao ->
                 wings_dialog:enable(?KEY(pnl_use_ao), Value =:= true, Store);
             pm_use_fg ->
                 wings_dialog:enable(?KEY(pnl_use_fg), Value =:= true, Store);
             use_sss ->
-                wings_dialog:enable(?KEY(pnl_subsurface), Value =:= true, Store);
+                wings_dialog:enable(?KEY(pnl_sss_opt), Value =:= true, Store);
             transparent_shadows ->
                 wings_dialog:enable(?KEY(pnl_transp_shadow), Value =:= true, Store);
             render_format ->
                 wings_dialog:enable(?KEY(pnl_exr_option), Value =:= exr, Store);
-            lens_angular_circular ->
-                wings_dialog:enable(?KEY(pnl_cam_circ), Value =:= true, Store);
-            lens_angular_mirrored ->
-                wings_dialog:enable(?KEY(pnl_cam_mirr), Value =:= true, Store);
             aperture ->
+                {Value0,_} = f_stop_find(Value,ApertureList),
+                wings_dialog:set_value(aperture_idx, Value0, Store),
                 wings_dialog:enable(bokeh_use_QMC, Value =/= 0.0, Store),
                 wings_dialog:enable(?KEY(pnl_dof_type), Value =/= 0.0, Store),
                 wings_dialog:enable(?KEY(pnl_dof_sliders), Value =/= 0.0, Store);
+            aperture_idx ->
+                if ((Value =/= "") and (Value =/= Custom)) ->
+                        {_,Value0} = f_stop_find(Value,ApertureList),
+                        wings_dialog:set_value(aperture, Value0, Store);
+                    true -> ok
+                end,
+                Enabled = wings_dialog:get_value(aperture, Store) =/= 0.0,
+                wings_dialog:enable(bokeh_use_QMC, Enabled, Store),
+                wings_dialog:enable(?KEY(pnl_dof_type), Enabled, Store),
+                wings_dialog:enable(?KEY(pnl_dof_sliders), Enabled, Store);
             _ -> ok
         end
     end,
@@ -2291,58 +2312,40 @@ export_dialog_qs(Op, Attr) ->
         case Key of
             lighting_method ->
                 %% 1st collumn of panels
-                %% Caustics
-                wings_dialog:enable(?KEY(pnl_caustics), Value =/= directlighting, Store),
-                wings_dialog:show(use_caustics, Value =:= directlighting, Store),
-                %% Photons - label
-                wings_dialog:show(?KEY(pnl_ph_l), Value =/= bidirectional, Store),
-                %% Direct Light -> Depth and Mix - labels & values
-                wings_dialog:show(?KEY(pnl_dl_l), Value =:= directlighting, Store),
-                wings_dialog:show(?KEY(pnl_dl_v), Value =:= directlighting, Store),
-                %% Bounces - label
-                wings_dialog:show(?KEY(pnl_b_l), not is_member(Value,[directlighting,bidirectional]), Store),
-                %% Search - label
-                wings_dialog:show(?KEY(pnl_s_l), is_member(Value,[photonmapping,sppm]), Store),
-                %% Diffuse Radius - label
-                wings_dialog:show(?KEY(pnl_dr_l), Value =:= photonmapping, Store),
-                %% Radius - label & values
-                wings_dialog:show(?KEY(pnl_r_l), is_member(Value,[directlighting,sppm]), Store),
-                %% Path Tracing -> Photons and Bounces - values
-                wings_dialog:show(?KEY(pnl_pt_v), Value =:= pathtracing, Store),
-                %% Photon Mapping -> Photons, Bounces, Search and Diffuse Radius - values
-                wings_dialog:show(?KEY(pnl_pm_v), Value =:= photonmapping, Store),
-                %% SPPM -> Photons, Bounces, Search and Radius - values
-                wings_dialog:show(?KEY(pnl_sppm1_v), Value =:= sppm, Store),
-                wings_dialog:show(sppm_ire, Value =:= sppm, Store),
+                %% Direct Light
+                wings_dialog:enable(?KEY(pnl_dl1), wings_dialog:get_value(use_caustics, Store) =:= true, Store),
+                wings_dialog:show(?KEY(pnl_caustics), Value =:= directlighting, Store),
+                %% Photon Mapping
+                wings_dialog:show(?KEY(pnl_pm1), Value =:= photonmapping, Store),
+                %% Path Tracing - GI
+                wings_dialog:show(?KEY(pnl_pt1), Value =:= pathtracing, Store),
+                %% SPPM - GI
+                wings_dialog:show(?KEY(pnl_sppm1), Value =:= sppm, Store),
 
                 %% 2rd collumn of panels
-                %% Ambient Occlusion
+                %% Direct Light
+                wings_dialog:enable(?KEY(pnl_use_ao), wings_dialog:get_value(do_ao, Store) =:= true, Store),
                 wings_dialog:show(?KEY(pnl_ao), Value =:= directlighting, Store),
-                %% Caustics
-                wings_dialog:show(?KEY(pnl_caustic), is_member(Value,[photonmapping,pathtracing]), Store),
-                %% Caustic Type - label & values
-                wings_dialog:show(?KEY(pnl_pt2_l), Value =:= pathtracing, Store),
-                wings_dialog:show(?KEY(pnl_pt2_v), Value =:= pathtracing, Store),
-                %% Caustic Radius - label
-                wings_dialog:show(?KEY(pnl_cr_l), is_member(Value,[photonmapping,pathtracing]), Store),
-                %% Caustic Mix - label
-                wings_dialog:show(?KEY(pnl_cm_l), is_member(Value,[photonmapping,pathtracing]), Store),
-                %% Caustic Depth - label
-                wings_dialog:show(?KEY(pnl_pt3_l), Value =:= pathtracing, Store),
-                %% Photon Mapping -> Caustic Photons - label & values
-                wings_dialog:show(?KEY(pnl_pm2_l), Value =:= photonmapping, Store),
-                wings_dialog:show(?KEY(pnl_pm2_v), Value =:= photonmapping, Store),
-                %% SPPM -> labels & values
-                wings_dialog:show(?KEY(pnl_sppm2_l), Value =:= sppm, Store),
-                wings_dialog:show(?KEY(pnl_sppm2_v), Value =:= sppm, Store),
+                %% Photon Mapping
+                wings_dialog:show(?KEY(pnl_pm2), Value =:= photonmapping, Store),
+                %% Path Tracing - GI
+                wings_dialog:show(?KEY(pnl_pt2), Value =:= pathtracing, Store),
+                %% SPPM - GI
+                wings_dialog:show(?KEY(pnl_sppm2), Value =:= sppm, Store),
 
                 %% 3rd collumn of panels
-                wings_dialog:show(?KEY(pnl_ps), Value =:= pathtracing, Store),
-                wings_dialog:show(?KEY(pnl_fg), Value =:= photonmapping, Store),
+                %% Photon Mapping
+                wings_dialog:enable(?KEY(pnl_use_fg), wings_dialog:get_value(pm_use_fg, Store) =:= true, Store),
+                wings_dialog:show(?KEY(pnl_pm3), Value =:= photonmapping, Store),
+                %% Path Tracing - GI
+                wings_dialog:show(?KEY(pnl_pt3), Value =:= pathtracing, Store),
+
+                wings_dialog:enable(?KEY(pnl_sss), is_member(Value,[directlighting,photonmapping,pathtracing]), Store),
+                wings_dialog:enable(?KEY(pnl_sss_opt), wings_dialog:get_value(use_sss, Store) =:= true, Store),
 
                 wings_dialog:update(?KEY(pnl_light), Store);
             volintegr_type ->
-                wings_dialog:show(?KEY(pnl_volumetric), Value =:= singlescatterintegrator, Store);
+                wings_dialog:enable(?KEY(pnl_volumetric), Value =:= singlescatterintegrator, Store);
             lens_type ->
                 wings_dialog:show(?KEY(pnl_lens_scale), Value =:= orthographic, Store),
                 wings_dialog:show(?KEY(pnl_lens_angle), Value =:= angular, Store),
@@ -2359,334 +2362,75 @@ export_dialog_qs(Op, Attr) ->
     GeneralOpt =
         {?__(0, "General options"),
             {vframe, [
+                %% Pre-Render group
                 {vframe, [
                     {hframe, [
-                        {hframe, [
-                            {label, ?__(1, "Subdivisions")},
-                            {slider, {text, get_pref(subdivisions,Attr), [{key,subdivisions}, range(subdivisions)]}}
-                        ]}
-                    ],[{margin,false}]},
+                        {label, ?__(1, "Subdivisions")++" "},
+                        {slider, {text, get_pref(subdivisions,Attr),[{key,subdivisions}, range(subdivisions)]}}
+                    ]},
                     {hframe, [
                         case Op of
                             render ->
-                                {?__(2, "Write .xml file"), get_pref(keep_xml,Attr), [{key,keep_xml}]};
+                                {hframe,[
+                                    {?__(2, "Write .xml file"), get_pref(keep_xml,Attr),[{key,keep_xml}]},
+                                    panel
+                                ]};
                             _ ->
                                 {value, get_pref(keep_xml,Attr), [{key,keep_xml}]}
                         end,
-                        %% Start Threads setting
                         {hframe, [
-                            panel,
-                            {label, "Threads"},
+                            {label, "Threads"++" "},
                             {text, get_pref(threads_number,Attr), [range(threads_number),{key,threads_number}]}
                         ],[key(pnl_threads)]},
-                        {" "++ ?__(160, "Auto"), get_pref(threads_auto,Attr), [{key,threads_auto},{hook,Hook_Enable}]}
-                    ],[{margin,false}]}
-                ],[{title, ?__(3, "Pre-rendering")}]},
-
-                %% Lighting group
-                {hframe, [
-                    {vframe, [
-                        {menu, [
-                            {?__(114, "Direct Light"), directlighting},
-                            {?__(115, "Photon Mapping - Global Illumination"), photonmapping},
-                            {?__(140, "Path Tracing - Global Illumination"), pathtracing},
-                            {?__(116, "Bidirectional Path Tracing - Global Illumination"), bidirectional},
-                            {?__(157, "SPPM - Global Illumination"),sppm}
-                        ], get_pref(lighting_method,Attr), [{key,lighting_method}, {hook,Hook_Show}]},
-                        %% Start Direct Lighting Menu Section
                         {hframe,[
-                            %% 1st collunm of panels
-                            {vframe, [
-                                {?__(82, "Caustics"), get_pref(use_caustics,Attr),
-                                    [{key,use_caustics},{hook,Hook_Enable},{show,false}]},
-                                {hframe, [
-                                    {vframe, [
-                                        {vframe, [
-                                            {hframe, [
-                                                {label, ?__(84, "Photons")},
-                                                panel
-                                            ],[{margin,false}]}
-                                        ],[key(pnl_ph_l),{margin,false}]},
-                                        {vframe, [
-                                            {hframe, [
-                                                {label, ?__(85, "Depth")},
-                                                panel
-                                            ],[{margin,false}]},
-                                            {hframe, [
-                                                {label, ?__(86, "Mix")},
-                                                panel
-                                            ],[{margin,false}]}
-                                        ], [key(pnl_dl_l),{margin,false},{show,false}]},
-                                        {vframe, [
-                                            {hframe, [
-                                                {label, ?__(122, "Bounces")},
-                                                panel
-                                            ],[{margin,false}]}
-                                        ], [key(pnl_b_l),{margin,false}]},
-                                        {vframe, [
-                                            {hframe, [
-                                                {label, ?__(123, "Search")},
-                                                panel
-                                            ],[{margin,false}]}
-                                        ], [key(pnl_s_l),{margin,false}]},
-                                        {vframe, [
-                                            {hframe, [
-                                                {label, ?__(124, "Diffuse Radius")},
-                                                panel
-                                            ],[{margin,false}]}
-                                        ], [key(pnl_dr_l),{margin,false}]},
-                                        {vframe, [
-                                            {hframe, [
-                                                {label, ?__(87, "Radius")},
-                                                panel
-                                            ],[{margin,false}]}
-                                        ], [key(pnl_r_l),{margin,false},{show,false}]}
-                                    ],[{key(pnl_ligth_c1_l)}]},
-                                    {vframe, [
-                                        {vframe, [
-                                            {text, get_pref(caustic_photons,Attr), [range(caustic_photons),{key,caustic_photons}]},
-                                            {text, get_pref(caustic_depth,Attr), [range(caustic_depth),{key,caustic_depth}]},
-                                            {text, get_pref(caustic_mix,Attr), [range(caustic_mix),{key,caustic_mix}]},
-                                            {text, get_pref(caustic_radius,Attr), [range(caustic_radius),{key,caustic_radius}]}
-                                        ], [key(pnl_dl_v),{show,false}]},
-                                        {vframe, [
-                                            {text, get_pref(pm_diffuse_photons,Attr), [range(pm_diffuse_photons),{key,pm_diffuse_photons}]},
-                                            {text, get_pref(pm_bounces,Attr), [range(pm_bounces),{key,pm_bounces}]},
-                                            {text, get_pref(pm_search,Attr), [range(pm_search),{key,pm_search}]},
-                                            {text, get_pref(pm_diffuse_radius,Attr), [range(pm_diffuse_radius),{key,pm_diffuse_radius}]}
-                                        ], [key(pnl_pm_v)]},
-                                        {vframe, [
-                                            {text, get_pref(pt_diffuse_photons,Attr), [range(pt_diffuse_photons),{key,pt_diffuse_photons}]},
-                                            {text, get_pref(pt_bounces,Attr), [range(pt_bounces),{key,pt_bounces}]}
-                                        ], [key(pnl_pt_v),{show,false}]},
-                                        {vframe, [
-                                            {text,get_pref(sppm_photons,Attr),[range(sppm_photons),{key,sppm_photons}]},
-                                            {text,get_pref(sppm_bounces,Attr),[range(sppm_bounces),{key,sppm_bounces}]},
-                                            {text,get_pref(sppm_search,Attr),[range(sppm_search),{key,sppm_search}]},
-                                            {text,get_pref(sppm_radius,Attr),[range(sppm_radius),{key,sppm_radius}]}
-                                        ], [key(pnl_sppm1_v),{show,false}]}
-                                    ], [key(pnl_ligth_c1_v),{margin,false}]}
-                                ], [key(pnl_caustics),{magin,false}]}
-                            ], [{margin,false}]},
-                            %% 2nd collumn of panels
-                            {vframe, [
-                                {vframe, [
-                                    {?__(95, "Ambient Occlusion"), get_pref(do_ao,Attr),
-                                        [{key,do_ao},{hook,Hook_Enable}]},
-                                    {hframe,[
-                                        {vframe, [
-                                            {label, ?__(97, "AO Distance")},
-                                            {label, ?__(98, "AO Samples")},
-                                            {label, ?__(99, "AO Color")}
-                                        ]},
-                                        {vframe, [
-                                            {text, get_pref(ao_distance,Attr), [range(ao_distance),{key,ao_distance}]},
-                                            {text, get_pref(ao_samples,Attr), [range(ao_samples),{key,ao_samples}]},
-                                            {color, get_pref(ao_color,Attr), [{key,ao_color}]}
-                                        ]}
-                                    ], [key(pnl_use_ao),{magin,false}]}
-                                ], [key(pnl_ao),{show,false}]},
-
-                                {vframe,[
-                                    {hframe,[
-                                        {vframe, [
-                                            {vframe, [
-                                                {hframe, [
-                                                    {label, ?__(145, "Caustic Type")},
-                                                    panel
-                                                ],[{margin,false}]}
-                                            ],[key(pnl_pt2_l),{margin,false},{show,false}]},
-                                            {vframe, [
-                                                {hframe, [
-                                                    {label, ?__(125, "Caustic Photons")},
-                                                    panel
-                                                ],[{margin,false}]}
-                                            ],[key(pnl_pm2_l),{margin,false}]},
-                                            {vframe, [
-                                                {hframe, [
-                                                    {label, ?__(126, "Caustic Radius")},
-                                                    panel
-                                                ],[{margin,false}]}
-                                            ],[key(pnl_cr_l),{margin,false}]},
-                                            {vframe, [
-                                                {hframe, [
-                                                    {label, ?__(127, "Caustic Mix")},
-                                                    panel
-                                                ],[{margin,false}]}
-                                            ],[key(pnl_cm_l),{margin,false}]},
-                                            {vframe, [
-                                                {hframe, [
-                                                    {label, ?__(148, "Caustic Depth")},
-                                                    panel
-                                                ],[key(pnl_pt3_l),{margin,false},{show,false}]}
-                                            ],[{margin,false}]},
-                                            {vframe, [
-                                                {hframe, [
-                                                    {label, ?__(146, "Times")},
-                                                    panel
-                                                ],[{margin,false}]},
-                                                {hframe, [
-                                                    {label, ?__(147, "Passes")},
-                                                    panel
-                                                ],[{margin,false}]}
-                                            ],[key(pnl_sppm2_l),{margin,false},{show,false}]}
-                                        ]},
-                                        {vframe, [
-                                            {vframe, [
-                                                {menu, [
-                                                    {?__(153, "path"), path},
-                                                    {?__(154, "photons"), photons},
-                                                    {?__(155, "both"), both},
-                                                    {?__(156, "none"), none}
-                                                ], get_pref(pt_caustic_type,Attr), [{key,pt_caustic_type},{show,false}]},
-                                                {text, get_pref(pt_caustic_radius,Attr), [range(pt_caustic_radius),{key,pt_caustic_radius}]},
-                                                {text, get_pref(pt_caustic_mix,Attr), [range(pt_caustic_mix),{key,pt_caustic_mix}]},
-                                                {text, get_pref(pt_caustic_depth,Attr), [range(pt_caustic_depth),{key,pt_caustic_depth}]}
-                                            ],[key(pnl_pt2_v),{show,false}]},
-                                            {vframe, [
-                                                {text, get_pref(pm_caustic_photons,Attr), [range(pm_caustic_photons),{key,pm_caustic_photons}]},
-                                                {text, get_pref(pm_caustic_radius,Attr), [range(pm_caustic_radius),{key,pm_caustic_radius}]},
-                                                {text, get_pref(pm_caustic_mix,Attr), [range(pm_caustic_mix),{key,pm_caustic_mix}]}
-                                            ],[key(pnl_pm2_v)]},
-                                            {vframe, [
-                                                {text,get_pref(sppm_times,Attr),[range(sppm_times),{key,sppm_times}]},
-                                                {text,get_pref(sppm_passes,Attr),[range(sppm_passes),{key,sppm_passes}]}
-                                            ],[key(pnl_sppm2_v),{show,false}]}
-                                        ],[{margin,false}]}
-                                    ],[{margin,false}]},
-                                    {?__(166,"IRE"),get_pref(sppm_ire,Attr),[{key,sppm_ire}]}
-                                ], [key(pnl_caustics)]}
-                            ], [{margin,false}]},
-                            %% 3rd collumn of panels
-                            {vframe, [
-                                {vframe, [
-                                    {hframe, [
-                                        {vframe, [
-                                            {label, ?__(152, "Path Samples")}
-                                        ]},
-                                        {vframe, [
-                                            {text, get_pref(pt_samples,Attr), [range(pt_samples),{key,pt_samples}]}
-                                        ]}
-                                    ], [{margin,false}]},
-                                    panel,
-                                    panel,
-                                    panel
-                                ], [key(pnl_ps),{show,false}]},
-                                {vframe, [
-                                    {vframe, [
-                                        {?__(128, "Final Gather"), get_pref(pm_use_fg,Attr),
-                                            [{key,pm_use_fg},{hook,Hook_Enable}]}
-                                    ]},
-                                    {vframe, [
-                                        {hframe, [
-                                            {vframe, [
-                                                {label, ?__(130, "FG Bounces")},
-                                                {label, ?__(131, "FG Samples")}
-                                            ]},
-                                            {vframe, [
-                                                {text, get_pref(pm_fg_bounces,Attr), [range(pm_fg_bounces),{key,pm_fg_bounces}]},
-                                                {text, get_pref(pm_fg_samples,Attr), [range(pm_fg_samples),{key,pm_fg_samples}]}
-                                            ], [{margin,false}]}
-                                        ], [{margin,false}]},
-                                        {vframe, [
-                                            {?__(132, "Show Map"), get_pref(pm_fg_show_map,Attr), [{key,pm_fg_show_map}]}
-                                        ], [{margin,false}]}
-                                    ], [key(pnl_use_fg),{show,true}]}
-                                ], [key(pnl_fg),{margin,false}]}
-                            ], [{margin,false}]}
-                        ],[key(pnl_light)]}
-                    ],[{margin,false}]}
-                ],[{title, ?__(113, "Lighting")}]},
-
-                %% Volumetrics group
-                {hframe, [
-                    {menu, [
-                        {?__(89, "None"), none},
-                        {?__(90, "SingleScatter"), singlescatterintegrator}
-                    ], get_pref(volintegr_type,Attr), [{key,volintegr_type},{hook,Hook_Show}]},
-                    {hframe, [
-                        panel,
-                        {?__(91, "Adaptive"), get_pref(volintegr_adaptive,Attr), [{key,volintegr_adaptive}]},
-                        panel,
-                        {label, ?__(93, "StepSize")},
-                        {text, get_pref(volintegr_stepsize,Attr), [range(volintegr_stepsize),{key,volintegr_stepsize}]},
-                        panel,
-                        {?__(92, "Optimize"), get_pref(volintegr_optimize,Attr),[{key,volintegr_optimize}]}
-                    ], [key(pnl_volumetric)]}
-                ],[{title, ?__(88, "Volumetrics")}]},
-
-                {hframe, [
-                    {vframe, [
-                        {?__(76, "Enabled"), get_pref(use_sss,Attr), [{key,use_sss},{hook,Hook_Enable}]},
-                        panel
-                    ],[{margin,false}]},
-                    panel,
-                    {hframe, [
-                        {vframe, [
-                            {label, ?__(77, "Photons")},
-                            {label, ?__(78, "Depth")}
-                        ]},
-                        {vframe, [
-                            {text, get_pref(sss_photons,Attr), [range(sss_photons),{key,sss_photons}]},
-                            {text, get_pref(sss_depth,Attr), [range(sss_depth),{key,sss_depth}]}
-                        ]},
-                        {vframe, [
-                            {label, ?__(79, "Scale")},
-                            {label, ?__(80, "SingleScatter Samples")}
-                        ]},
-                        {vframe, [
-                            {text, get_pref(sss_scale,Attr), [range(sss_scale),{key,sss_scale}]},
-                            {text, get_pref(sss_singlescatter_samples,Attr), [range(sss_singlescatter_samples),{key,sss_singlescatter_samples}]}
+                            {?__(160, "Auto"), get_pref(threads_auto,Attr),
+                                                    [{key,threads_auto},{hook,Hook_Enable}]}
                         ]}
-                    ],[key(pnl_subsurface), {margin,false}]}
-                ],[{title, ?__(74, "SubSurface Scattering - Direct Light, Photon Mapping, Path Tracing")}]},
+                    ],[{margin,false}]}
+                ],[{title, ?__(3, "Pre-rendering")},{margin,false}]},
+
+                %% Render group
                 {hframe, [
-                    {vframe, [
-                        {label, ?__(4, "Raydepth")},
-                        {label, ?__(5, "Gamma")}
+                    {label_column, [
+                        {?__(4, "Raydepth"),{text, get_pref(raydepth,Attr), [range(raydepth),{key,raydepth}]}},
+                        {?__(5, "Gamma"),{text, get_pref(gamma,Attr), [range(gamma),{key,gamma}]}}
+                    ]},
+                    {label_column, [
+                        {?__(6, "Bias"),{text, get_pref(bias,Attr), [range(bias),{key,bias}]}},
+                        {?__(7, "Exposure"),{text, get_pref(exposure,Attr), [range(exposure),{key,exposure}]}}
                     ]},
                     {vframe, [
-                        {text, get_pref(raydepth,Attr), [range(raydepth),{key,raydepth}]},
-                        {text, get_pref(gamma,Attr), [range(gamma),{key,gamma}]}
-                    ]},
-                    {vframe, [
-                        {label, ?__(6, "Bias")},
-                        {label, ?__(7, "Exposure")}
-                    ]},
-                    {vframe, [
-                        {text, get_pref(bias,Attr), [range(bias),{key,bias}]},
-                        {text, get_pref(exposure,Attr), [range(exposure),{key,exposure}]}
-                    ]},
-                    {vframe, [
-                        {menu, [
-                            {?__(133, "Transp Shadows Off"), false},
-                            {?__(134, "Transp Shadows On"), true}
-                        ], get_pref(transparent_shadows,Attr), [{key,transparent_shadows},{hook,Hook_Enable}]},
+                        {vframe, [
+                            {menu, [
+                                {?__(133, "Transp Shadows Off"), false},
+                                {?__(134, "Transp Shadows On"), true}
+                            ], get_pref(transparent_shadows,Attr), [{key,transparent_shadows},{hook,Hook_Enable}]}
+                        ]},
                         {hframe, [
-                            {vframe, [
-                                {label, ?__(135, "Depth")}
-                            ]},
-                            {vframe, [
-                                {text, get_pref(shadow_depth,Attr), [range(shadow_depth),{key,shadow_depth}]}
-                            ]}
+                            {label, ?__(135, "Depth")},
+                            {text, get_pref(shadow_depth,Attr), [range(shadow_depth),{key,shadow_depth}]}
                         ], [key(pnl_transp_shadow), {enabled,false},{margin,false}]}
                     ]}
-                ],[{title, ?__(8, "Render")}]},
+                ],[{title, ?__(8, "Render")},{margin,false}]},
+
+                %% Output group
                 {hframe, [
-                    {label, ?__(13, "Output")++" "},
-                    {menu, [
-                        {Ext ++ " (" ++ Desc ++ ")", Format}
-                        || {Format, Ext, Desc} <- wings_job:render_formats(),
-                        (Format == tga) or (Format == tif) or (Format == png) or
-                        (Format == hdr) or (Format == exr)
-                    ], get_pref(render_format,Attr), [{key,render_format},{hook,Hook_Enable}]},
                     {hframe, [
-                        panel,
+                        {label, ?__(13, "Output")++" "},
+                        {menu, [
+                            {Ext ++ " (" ++ Desc ++ ")", Format}
+                            || {Format, Ext, Desc} <- wings_job:render_formats(),
+                            (Format == tga) or (Format == tif) or (Format == png) or
+                            (Format == hdr) or (Format == exr)
+                        ], get_pref(render_format,Attr), [{key,render_format},{hook,Hook_Enable}]}
+                    ]},
+                    panel,
+                    {hframe, [
                         {?__(9, "Float"), get_pref(exr_flag_float,Attr), [{key,exr_flag_float}]},
                         panel,
                         {?__(10, "Zbuf"), get_pref(exr_flag_zbuf,Attr), [{key,exr_flag_zbuf}]},
                         panel,
-                        {label, " " ++ ?__(11, "Compression")},
+                        {label, ?__(11, "Compression")++" "},
                         {menu, [
                             {?__(12, "none"), compression_none},
                             {"piz", compression_piz},
@@ -2695,54 +2439,50 @@ export_dialog_qs(Op, Attr) ->
                             {"zip", compression_zip}
                         ], get_pref(exr_flag_compression,Attr), [{key,exr_flag_compression}]}
                     ], [key(pnl_exr_option),{enabled,false},{margin,false}]}
-                ]},
+                ],[{margin,false}]},
 
+                %% Antialising group
                 {hframe, [
                     {vframe, [
-                        {hframe,[
-                            {vframe, [
-                                {label, ?__(14, "Passes")},
-                                {label, ?__(15, "Min Samples")}
+                        {hframe, [
+                            {label, ?__(165, "Method")++" "},
+                            {menu, [
+                                {?__(136, "Box Filter"), box},
+                                {?__(137, "Gaussian Filter"), gauss},
+                                {?__(138, "Mitchell-Netravali Filter"), mitchell},
+                                {?__(139, "Lanczos Filter"), lanczos}
+                            ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]},
+                            panel,
+                            {hframe, [
+                                {?__(16, "Jitter First"), get_pref(aa_jitterfirst,Attr),[{key,aa_jitterfirst}]}
                             ]},
-                            {vframe, [
-                                {text, get_pref(aa_passes,Attr), [range(aa_passes),{key,aa_passes}]},
-                                {text, get_pref(aa_minsamples,Attr), [range(aa_minsamples),{key,aa_minsamples}]}
+                            panel,
+                            {hframe, [
+                                {?__(19, "Clamp RGB"), get_pref(clamp_rgb,Attr),[{key,clamp_rgb}]}
                             ]}
                         ],[{margin,false}]},
                         {hframe, [
-                            {?__(16, "Jitter First"), get_pref(aa_jitterfirst,Attr), [{key,aa_jitterfirst}]}
-                        ]}
-                    ],[{margin,false}]},
-                    {vframe, [
-                        {hframe, [
-                            {vframe, [
-                                {label, ?__(17, "Threshold")},
-                                {label, ?__(18, "Pixelwidth")}
+                            {label_column, [
+                                {?__(14, "Passes"),{text, get_pref(aa_passes,Attr),
+                                                        [range(aa_passes),{key,aa_passes}]}},
+                                {?__(15, "Min Samples"),{text, get_pref(aa_minsamples,Attr),
+                                                        [range(aa_minsamples),{key,aa_minsamples}]}}
                             ]},
-                            {vframe, [
-                                {text, get_pref(aa_threshold,Attr), [range(aa_threshold),{key,aa_threshold}]},
-                                {text, get_pref(aa_pixelwidth,Attr), [range(aa_pixelwidth),{key,aa_pixelwidth}]}
+                            {label_column, [
+                                {?__(17, "Threshold"),{text, get_pref(aa_threshold,Attr),
+                                    [range(aa_threshold),{key,aa_threshold}]}},
+                                {?__(18, "Pixelwidth"),{text, get_pref(aa_pixelwidth,Attr),
+                                    [range(aa_pixelwidth),{key,aa_pixelwidth}]}}
                             ]}
-                        ],[{margin,false}]},
-                        {hframe, [
-                            {?__(19, "Clamp RGB"), get_pref(clamp_rgb,Attr), [{key,clamp_rgb}]}
-                        ]}
-                    ],[{margin,false}]},
-                    {vframe, [
-                        {menu, [
-                            {?__(136, "Box Filter"), box},
-                            {?__(137, "Gaussian Filter"), gauss},
-                            {?__(138, "Mitchell-Netravali Filter"), mitchell},
-                            {?__(139, "Lanczos Filter"), lanczos}
-                        ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]}
-                    ]}
-                ],[{title, ?__(20, "Anti-Aliasing")}]},
+                        ],[{margin,false}]}
+                    ],[{margin,false}]}
+                ],[{title, ?__(20, "Anti-Aliasing")},{margin,false}]},
 
                 {hframe, [
-                    {label, ?__(21, "Default Color")},
+                    {label, ?__(21, "Default Color")++" "},
                     {color, get_pref(background_color,Attr), [{key,background_color}]},
                     panel,
-                    {label, ?__(22, "Alpha Channel")},
+                    {label, ?__(22, "Alpha Channel")++" "},
                     {menu, [
                         {?__(23, "Off"), false},
                         {?__(61, "On"), true},
@@ -2750,8 +2490,9 @@ export_dialog_qs(Op, Attr) ->
                         {?__(25, "Backgroundmask"), backgroundmask}
                     ], get_pref(save_alpha,Attr), [{key,save_alpha}]},
                     panel,
-                    {?__(159, "Transp Refraction"), get_pref(background_transp_refract,Attr), [{key,background_transp_refract}]}
-                ],[{title, ?__(26, "Background")}]}
+                    {?__(159, "Transp Refraction"),get_pref(background_transp_refract,Attr),
+                                                    [{key,background_transp_refract}]}
+                ],[{title, ?__(26, "Background")},{margin,false}]}
 
 %%                 % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
 %%                 {hframe, [
@@ -2762,103 +2503,251 @@ export_dialog_qs(Op, Attr) ->
             ]}
         },
 
+    %% Lighting group
+    Lighting =
+        {?__(113, "Lighting"),
+            {vframe, [
+                {vframe, [
+                    {hframe,[
+                        {menu, [
+                            {?__(114, "Direct Light"), directlighting},
+                            {?__(115, "Photon Mapping - Global Illumination"), photonmapping},
+                            {?__(140, "Path Tracing - Global Illumination"), pathtracing},
+                            {?__(116, "Bidirectional Path Tracing - Global Illumination"), bidirectional},
+                            {?__(157, "SPPM - Global Illumination"),sppm}
+                        ], get_pref(lighting_method,Attr), [{key,lighting_method}, {hook,Hook_Show}]}
+                    ]},
+                    %% Start Direct Lighting Menu Section
+                    {hframe,[
+                        %% 1st collunm of panels
+                        {vframe, [
+                            {hframe,[
+                                {?__(82, "Caustics"), get_pref(use_caustics,Attr), [{key,use_caustics},{hook,Hook_Enable},{show,false}]}
+                            ]},
+                            {label_column, [
+                                {?__(84, "Photons"),{text, get_pref(caustic_photons,Attr), [range(caustic_photons),{key,caustic_photons}]}},
+                                {?__(85, "Depth"),{text, get_pref(caustic_depth,Attr), [range(caustic_depth),{key,caustic_depth}]}},
+                                {?__(86, "Mix"),{text, get_pref(caustic_mix,Attr), [range(caustic_mix),{key,caustic_mix}]}},
+                                {?__(87, "Radius"),{text, get_pref(caustic_radius,Attr), [range(caustic_radius),{key,caustic_radius}]}}
+                            ], [key(pnl_dl1)]}
+                        ], [key(pnl_caustics),{show,false},{magin,false}]},
+                        {label_column, [
+                            {?__( 84, "Photons"),{text, get_pref(pm_diffuse_photons,Attr), [range(pm_diffuse_photons),{key,pm_diffuse_photons}]}},
+                            {?__(122, "Bounces"),{text, get_pref(pm_bounces,Attr), [range(pm_bounces),{key,pm_bounces}]}},
+                            {?__(123, "Search"),{text, get_pref(pm_search,Attr), [range(pm_search),{key,pm_search}]}},
+                            {?__(124, "Diffuse Radius"),{text, get_pref(pm_diffuse_radius,Attr), [range(pm_diffuse_radius),{key,pm_diffuse_radius}]}}
+                        ], [key(pnl_pm1)]},
+                        {label_column, [
+                            {?__( 84, "Photons"),{text, get_pref(pt_diffuse_photons,Attr), [range(pt_diffuse_photons),{key,pt_diffuse_photons}]}},
+                            {?__(122, "Bounces"),{text, get_pref(pt_bounces,Attr), [range(pt_bounces),{key,pt_bounces}]}}
+                        ], [key(pnl_pt1),{show,false}]},
+                        {label_column, [
+                            {?__( 84, "Photons"),{text,get_pref(sppm_photons,Attr),[range(sppm_photons),{key,sppm_photons}]}},
+                            {?__(122, "Bounces"),{text,get_pref(sppm_bounces,Attr),[range(sppm_bounces),{key,sppm_bounces}]}},
+                            {?__(123, "Search"),{text,get_pref(sppm_search,Attr),[range(sppm_search),{key,sppm_search}]}},
+                            {?__( 87, "Radius"),{text,get_pref(sppm_radius,Attr),[range(sppm_radius),{key,sppm_radius}]}}
+                        ], [key(pnl_sppm1),{show,false}]},
+
+                        %% 2nd collumn of panels
+%                        {vframe, [
+                            {vframe, [
+                                {hframe, [
+                                    {?__(95, "Ambient Occlusion"), get_pref(do_ao,Attr), [{key,do_ao},{hook,Hook_Enable}]}
+                                ]},
+                                {label_column, [
+                                    {?__(97, "AO Distance"),{text, get_pref(ao_distance,Attr), [range(ao_distance),{key,ao_distance}]}},
+                                    {?__(98, "AO Samples"),{text, get_pref(ao_samples,Attr), [range(ao_samples),{key,ao_samples}]}},
+                                    {?__(99, "AO Color"),{color, get_pref(ao_color,Attr), [{key,ao_color}]}}
+                                ], [key(pnl_use_ao)]}
+                            ], [key(pnl_ao),{show,false},{magin,false}]},
+                            {label_column, [
+                                {?__(125, "Caustic Photons"),{text, get_pref(pm_caustic_photons,Attr), [range(pm_caustic_photons),{key,pm_caustic_photons}]}},
+                                {?__(126, "Caustic Radius"),{text, get_pref(pm_caustic_radius,Attr), [range(pm_caustic_radius),{key,pm_caustic_radius}]}},
+                                {?__(127, "Caustic Mix"),{text, get_pref(pm_caustic_mix,Attr), [range(pm_caustic_mix),{key,pm_caustic_mix}]}}
+                            ],[key(pnl_pm2)]},
+                            {vframe,[
+                                {hframe,[
+                                    {label, ?__(145, "Caustic Type")++" "},
+                                    {menu, [
+                                        {?__(153, "path"), path},
+                                        {?__(154, "photons"), photons},
+                                        {?__(155, "both"), both},
+                                        {?__(156, "none"), none}
+                                    ], get_pref(pt_caustic_type,Attr), [{key,pt_caustic_type}]}
+                                ]},
+                                {label_column, [
+                                    {?__(126, "Caustic Radius"),{text, get_pref(pt_caustic_radius,Attr), [{key,pt_caustic_radius},range(pt_caustic_radius)]}},
+                                    {?__(127, "Caustic Mix"),{text, get_pref(pt_caustic_mix,Attr), [{key,pt_caustic_mix},range(pt_caustic_mix)]}},
+                                    {?__(148, "Caustic Depth"),{text, get_pref(pt_caustic_depth,Attr), [{key,pt_caustic_depth},range(pt_caustic_depth)]}}
+                                ],[{margin,false}]}
+                            ],[key(pnl_pt2),{show,false}]},
+                            {vframe,[
+                                {label_column, [
+                                    {?__(146, "Times"),{text,get_pref(sppm_times,Attr),[{key,sppm_times},range(sppm_times)]}},
+                                    {?__(147, "Passes"),{text,get_pref(sppm_passes,Attr),[{key,sppm_passes}, range(sppm_passes)]}}
+                                ]},
+                                {hframe,[
+                                    {?__(166,"IRE"),get_pref(sppm_ire,Attr),[{key,sppm_ire}]}
+                                ]}
+                            ],[key(pnl_sppm2),{show,false},{margin,false}]},
+%                        ], [{margin,false}]},
+
+                        %% 3rd collumn of panels
+                        {vframe, [
+                            {vframe, [
+                                {vframe,[
+                                    {?__(128, "Final Gather"), get_pref(pm_use_fg,Attr), [{key,pm_use_fg},{hook,Hook_Enable}]}
+                                ],[{border,1}]},
+                                {vframe, [
+                                    {label_column, [
+                                        {?__(130, "FG Bounces"),{text, get_pref(pm_fg_bounces,Attr), [{key,pm_fg_bounces},range(pm_fg_bounces)]}},
+                                        {?__(131, "FG Samples"),{text, get_pref(pm_fg_samples,Attr), [{key,pm_fg_samples},range(pm_fg_samples)]}}
+                                    ],[{margin,false}]},
+                                    {vframe,[
+                                        {?__(132, "Show Map"), get_pref(pm_fg_show_map,Attr), [{key,pm_fg_show_map}]}
+                                    ],[{border,1}]}
+                                ], [key(pnl_use_fg),[{margin,false}]]}
+                            ], [key(pnl_pm3)]},
+                            {label_column, [
+                                {?__(152, "Path Samples"),{text, get_pref(pt_samples,Attr), [{key,pt_samples},range(pt_samples)]}}
+                            ], [key(pnl_pt3)]}
+                        ], [{margin,false}]}
+                    ],[key(pnl_light)]},
+
+                    {vframe, [
+                        {vframe, [
+                            {hframe,[
+                                {?__(76, "Enabled"), get_pref(use_sss,Attr), [{key,use_sss},{hook,Hook_Enable}]}
+                            ]},
+                            {hframe, [
+                                {label_column, [
+                                    {?__(77, "Photons"),{text, get_pref(sss_photons,Attr), [{key,sss_photons},range(sss_photons)]}},
+                                    {?__(78, "Depth"),{text, get_pref(sss_depth,Attr), [{key,sss_depth},range(sss_depth)]}}
+                                ]},
+                                {label_column, [
+                                    {?__(79, "Scale"),{text, get_pref(sss_scale,Attr), [{key,sss_scale},range(sss_scale)]}},
+                                    {?__(80, "SingleScatter Samples"),{text, get_pref(sss_singlescatter_samples,Attr), [{key,sss_singlescatter_samples},range(sss_singlescatter_samples)]}}
+                                ]}
+                            ],[key(pnl_sss_opt), {margin,false}]}
+                        ],[{title, ?__(74, "SubSurface Scattering")},{margin,false}]}
+                    ],[key(pnl_sss)]}
+                ],[{title, ""}]},
+
+                %% Volumetrics group
+                {hframe, [
+                    {menu, [
+                        {?__(89, "None"), none},
+                        {?__(90, "SingleScatter"), singlescatterintegrator}
+                    ], get_pref(volintegr_type,Attr), [{key,volintegr_type},{hook,Hook_Show}]},
+                    panel,
+                    {hframe, [
+                        {?__(91, "Adaptive"), get_pref(volintegr_adaptive,Attr), [{key,volintegr_adaptive}]},
+                        panel,
+                        {label, ?__(93, "StepSize")},
+                        panel,
+                        {text, get_pref(volintegr_stepsize,Attr), [{key,volintegr_stepsize},range(volintegr_stepsize)]},
+                        panel,
+                        {?__(92, "Optimize"), get_pref(volintegr_optimize,Attr),[{key,volintegr_optimize}]}
+                    ], [key(pnl_volumetric)]}
+                ],[{title, ?__(88, "Volumetrics")}]}
+            ],[{margin,false}]}
+        },
+
+
     Camera =
         {?__(51, "Camera"),
             {vframe, [
-                {hframe, [
+                {vframe, [
                     {menu, [
                         {?__(102, "Perspective"), perspective},
                         {?__(103, "Orthographic"), orthographic},
                         {?__(104, "Architect"), architect},
                         {?__(105, "Fish Eye (Angular)"), angular}
                     ], get_pref(lens_type,Attr), [{key,lens_type},{hook,Hook_Show}]},
-                    panel,
                     {hframe, [
-                        {label, ?__(33, "Width")},
-                        {text, get_pref(width,Attr), [range(pixels),{key,width}]}
-                    ]},
-                    panel,
-                    {hframe, [
-                        {label, ?__(44, "Height")},
-                        {text, get_pref(height,Attr), [range(pixels),{key,height}]}
-                    ]},
-                    panel,
-                    {hframe, [
-                        {label, ?__(108, "Scale")},
-                        {text, get_pref(lens_ortho_scale,Attr), [range(lens_ortho_scale),{key,lens_ortho_scale}]}
-                    ],[key(pnl_lens_scale)]}
-                ],[{margin,false}]},
-                {hframe, [
-                    {?__(109, "Circular"), get_pref(lens_angular_circular,Attr),
-                        [{key,lens_angular_circular},{hook,Hook_Enable}]},
-                    panel,
-                    {hframe, [
-                        {label, ?__(111, "Circle/Max Angle")},
-                        {text, get_pref(lens_angular_max_angle,Attr), [range(lens_angular_max_angle),{key,lens_angular_max_angle}]}
-                    ],[key(pnl_cam_circ)]},
-                    panel,
-                    {?__(110, "Mirrored"), get_pref(lens_angular_mirrored,Attr),
-                        [{key,lens_angular_mirrored},{hook,Hook_Enable}]},
-                    panel,
-                    {hframe, [
-                        {label, ?__(112, "Frame/Angle")},
-                        {text, get_pref(lens_angular_angle,Attr), [range(lens_angular_angle),{key,lens_angular_angle}]}
-                    ],[key(pnl_cam_mirr)]}
-                ],[key(pnl_lens_angle),{margin,false}]},
-
-                {hframe, [
-                    {hframe, [
-                        {label, ?__(34, "Aperture")},
-                        {text, get_pref(aperture,Attr), [range(aperture),{key,aperture},{hook,Hook_Enable}]}
-                    ]},
-                    panel,
-                    {label, ?__(45, "f-stop")},
-                    {menu, [
-                        {F, math:sqrt(A)}
-                        || {F, A} <- [{"1.0", 1 / 1}, {"1.4", 1 / 2}, {"2", 1 / 4},
-                        {"2.8", 1 / 8}, {"4", 1 / 16}, {"5.6", 1 / 32},
-                        {"8", 1 / 64}, {"11", 1 / 128}, {"16", 1 / 256},
-                        {"22", 1 / 512}, {"32", 1 / 1024},
-                        {?__(47, "pinhole"), 0.0}]
-                    ], get_pref(aperture,Attr), [{key,aperture},{hook,Hook_Enable}]},
-                    panel,
-                    {?__(32, "Use QMC"), get_pref(bokeh_use_QMC,Attr),[{key,bokeh_use_QMC}]}
-                ],[{margin,false}]},
-
-                {hframe, [
-                    {label, ?__(35, "DOF Type")},
-                    {menu, [
-                        {?__(37, "Disk1"), disk1}, {?__(38, "Disk2"), disk2},
-                        {?__(39, "Triangle"), triangle},
-                        {?__(40, "Square"), square}, {?__(41, "Pentagon"), pentagon},
-                        {?__(42, "Hexagon"), hexagon}, {?__(43, "Ring"), ring}
-                    ], get_pref(bokeh_type,Attr), [{key,bokeh_type}]},
-                    panel,
-                    {label, ?__(46, "Bias")},
-                    {menu, [
-                        {?__(48, "Uniform"), uniform},
-                        {?__(49, "Center"), center},
-                        {?__(50, "Edge"), edge}
-                    ], get_pref(bokeh_bias,Attr), [{key,bokeh_bias}]}
-                ],[key(pnl_dof_type)]},
-                {hframe, [
+                        {hframe, [
+                            {label, ?__(33, "Width")++" "},
+                            {text, get_pref(width,Attr), [range(pixels),{key,width}]}
+                        ]},
+                        panel,
+                        {hframe, [
+                            {label, ?__(44, "Height")++" "},
+                            {text, get_pref(height,Attr), [range(pixels),{key,height}]}
+                        ]},
+                        panel,
+                        {hframe, [
+                            {label, ?__(108, "Scale")++" "},
+                            {text, get_pref(lens_ortho_scale,Attr), [range(lens_ortho_scale),{key,lens_ortho_scale}]}
+                        ],[key(pnl_lens_scale)]}
+                    ],[{margin,false}]},
                     {vframe, [
                         {hframe, [
-                            {label, ?__(36, "DOF Rotation")},
+                            {?__(109, "Circular"), get_pref(lens_angular_circular,Attr),
+                                        [{key,lens_angular_circular},{hook,Hook_Enable}]},
+                            panel,
+                            {label_column, [
+                                {?__(111, "Circle/Max Angle"), {text, get_pref(lens_angular_max_angle,Attr),
+                                            [range(lens_angular_max_angle),{key,lens_angular_max_angle}]}}
+                            ],[{margin,false}]}
+                        ],[{margin,false}]},
+                        {hframe, [
+                            {?__(110, "Mirrored"), get_pref(lens_angular_mirrored,Attr),
+                                        [{key,lens_angular_mirrored},{hook,Hook_Enable}]},
+                            panel,
+                            {label_column, [
+                                {?__(112, "Frame/Angle"), {text, get_pref(lens_angular_angle,Attr),
+                                            [range(lens_angular_angle),{key,lens_angular_angle}]}}
+                            ],[{margin,false}]}
+                        ],[{margin,false}]}
+                    ],[key(pnl_lens_angle),{margin,false}]},
+
+                    {hframe, [
+                        {hframe, [
+                            {label, ?__(34, "Aperture")++" "},
+                            {text, Aperture, [range(aperture),{key,aperture},{hook,Hook_Enable}]}
+                        ]},
+                        panel,
+                        {label, ?__(45, "f-stop")++" "},
+                        {menu, [{F,A} || {F,A,_} <- ApertureList]++[{"Custom",Custom}],
+                            ApertureIdx, [{key,aperture_idx},{hook,Hook_Enable}]},
+                        panel,
+                        {?__(32, "Use QMC"), get_pref(bokeh_use_QMC,Attr),[{key,bokeh_use_QMC}]}
+                    ],[{margin,false}]},
+
+                    {hframe, [
+                        {label, ?__(35, "DOF Type")++" "},
+                        {menu, [
+                            {?__(37, "Disk1"), disk1}, {?__(38, "Disk2"), disk2},
+                            {?__(39, "Triangle"), triangle},
+                            {?__(40, "Square"), square}, {?__(41, "Pentagon"), pentagon},
+                            {?__(42, "Hexagon"), hexagon}, {?__(43, "Ring"), ring}
+                        ], get_pref(bokeh_type,Attr), [{key,bokeh_type}]},
+                        panel,
+                        {label, ?__(46, "Bias")++" "},
+                        {menu, [
+                            {?__(48, "Uniform"), uniform},
+                            {?__(49, "Center"), center},
+                            {?__(50, "Edge"), edge}
+                        ], get_pref(bokeh_bias,Attr), [{key,bokeh_bias}]}
+                    ],[key(pnl_dof_type)]},
+                    {vframe, [
+                        {hframe, [
+                            {label, ?__(36, "DOF Rotation")++" "},
                             {slider, {text, get_pref(bokeh_rotation,Attr), [range(bokeh_rotation),{key,bokeh_rotation}]}}
                         ]},
                         {hframe, [
-                            {label, ?__(100, "DOF Distance")},
+                            {label, ?__(100, "DOF Distance")++" "},
                             {slider, {text, get_pref(dof_distance,Attr), [range(dof_distance),{key,dof_distance}]}}
                         ]}
-                    ],[{margin,false}]}
-                ],[key(pnl_dof_sliders),{margin,false}]}
-            ],[key(pnl_camera)]}
+                    ],[key(pnl_dof_sliders),{margin,false}]}
+                ],[key(pnl_camera)]}
+            ],[{title,""}]}
         },
 
     [
         {oframe, [
             GeneralOpt,
+            Lighting,
             Camera
         ], 1, [{style, buttons}]}
     ].
@@ -3520,7 +3409,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
 
     GlossyReflect = proplists:get_value(glossy_reflect, YafaRay, ?DEF_GLOSSY_REFLECT),
 
-    Translucency = proplists:get_value(translucency, YafaRay, ?DEF_SSS_TRANSLUCENCY),
+    SSS_Translucency = proplists:get_value(sss_translucency, YafaRay, ?DEF_SSS_TRANSLUCENCY),
 
     Exponent = proplists:get_value(exponent, YafaRay, ?DEF_EXPONENT),
 
@@ -3549,7 +3438,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
             "        <glossy_reflect fval=\"~.10f\"/>~n"
             "        <sss_transmit fval=\"~.10f\"/>~n"
             "        <exponent fval=\"~.10f\"/>~n",
-            [IOR,SigmaSfactor,DiffuseReflect,GlossyReflect,Translucency,Exponent]),
+            [IOR,SigmaSfactor,DiffuseReflect,GlossyReflect,SSS_Translucency,Exponent]),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of
@@ -4705,7 +4594,7 @@ export_light(F, Name, point, OpenGL, YafaRay) ->
 
 %%% Export Infinite Light Sun and Directional
 export_light(F, Name, infinite, OpenGL, YafaRay) ->
-    Bg = proplists:get_value(background, YafaRay, ?DEF_BACKGROUND),
+    Bg = proplists:get_value(background, YafaRay, ?DEF_BACKGROUND_INFINITE),
     Type = proplists:get_value(type, YafaRay, ?DEF_INFINITE_TYPE),
     InfiniteTrue = proplists:get_value(infinite_true, YafaRay, ?DEF_INFINITE_TRUE),
     Power = proplists:get_value(power, YafaRay, ?DEF_POWER),
@@ -4787,10 +4676,11 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
                 proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
             SpotExponent =
                 proplists:get_value(spot_exponent, OpenGL, ?DEF_SPOT_EXPONENT),
-            Blend = proplists:get_value(blend, YafaRay, ?DEF_BLEND),
-            print(F, "<type sval=\"spotlight\"/> <cast_shadows bval=\"~s\"/> <photon_only bval=\"~s\"/> <size ival=\"~.3f\"/>~n"++
-                      "       <beam_falloff fval=\"~.10f\"/> <blend fval=\"~.3f\"/> <soft_shadows bval=\"~s\"/> <samples ival=\"~w\"/>",
-                  [format(CastShadows), SpotPhotonOnly, ConeAngle, SpotExponent, Blend,SpotSoftShadows,SpotIESSamples]);
+            SpotBlend = proplists:get_value(spot_blend, YafaRay, ?DEF_SPOT_BLEND),
+            SpotFuzzyness = proplists:get_value(spot_fuzzyness, YafaRay, ?DEF_SPOT_FUZZYNESS),
+            print(F, "<type sval=\"spotlight\"/> <cast_shadows bval=\"~s\"/> <photon_only bval=\"~s\"/> <cone_angle fval=\"~.3f\"/>~n"++
+            "       <beam_falloff fval=\"~.10f\"/> <blend fval=\"~.3f\"/> <soft_shadows bval=\"~s\"/> <shadowFuzzyness fval=\"~.3f\"/> <samples ival=\"~w\"/>",
+                [format(CastShadows), SpotPhotonOnly, ConeAngle, SpotExponent, SpotBlend,SpotSoftShadows,SpotFuzzyness,SpotIESSamples]);
 
         spot_ies ->
 
@@ -4804,7 +4694,7 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
             SpotIESSamples = proplists:get_value(spot_ies_samples, YafaRay,
                                                  ?DEF_SPOT_IES_SAMPLES),
 
-            println(F, "<type sval=\"ieslight\"/> <angle fval=\"~.3f\"/> <soft_shadows bval=\"~s\"/> <samples ival=\"~w\"/>~n"++
+	    println(F, "<type sval=\"ieslight\"/> <cone_angle fval=\"~.3f\"/> <soft_shadows bval=\"~s\"/> <samples ival=\"~w\"/>~n"++
                         "       <file sval=\"~s\"/>",
                     [ConeAngle,SpotSoftShadows,SpotIESSamples,SpotIESFilename])
     end,
@@ -4819,7 +4709,7 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
 export_light(F, Name, ambient, _OpenGL, YafaRay) ->
     Type = proplists:get_value(type, YafaRay, ?DEF_AMBIENT_TYPE),
     Power = proplists:get_value(power, YafaRay, ?DEF_POWER),
-    Bg = proplists:get_value(background, YafaRay, ?DEF_BACKGROUND),
+    Bg = proplists:get_value(background, YafaRay, ?DEF_BACKGROUND_AMBIENT),
     case Type of
         hemilight when Power > 0.0 ->
             println(F,"",
@@ -5093,7 +4983,7 @@ limit_fov(Fov) -> Fov.
 export_background(F, Name, Ps) ->
     OpenGL = proplists:get_value(opengl, Ps, []),
     YafaRay = proplists:get_value(?TAG, Ps, []),
-    Bg = proplists:get_value(background, YafaRay, ?DEF_BACKGROUND),
+    Bg = proplists:get_value(background, YafaRay, ?DEF_BACKGROUND_AMBIENT),
     case Bg of
 %% Constant Background Export
         constant ->
@@ -5929,7 +5819,15 @@ get_var(Name) ->
 erase_var(Name) ->
     erase({?MODULE,Name}).
 
-
+menu_shader() ->
+    [{?__(1,"Shiny Diffuse"),shinydiffuse},
+        {?__(2,"Glass"),glass},
+        {?__(3,"Rough Glass"),rough_glass},
+        {?__(4,"Glossy"),glossy},
+        {?__(5,"Coated Glossy"),coatedglossy},
+        {?__(6,"Translucent (SSS)"),translucent},
+        {?__(7,"Light Material"),lightmat},
+        {?__(8,"Blend"),blend_mat}].
 
 %% Split a list into a list of length Pos, and the tail
 %%
@@ -5995,15 +5893,20 @@ help(title, {material_dialog,object}) ->
 help(text, {material_dialog,object}) ->
     [?__(7,"Object Parameters are applied to whole objects, namely those "
       "that have this material on a majority of their faces."),
-     ?__(8,"Mapping to YafaRay object parameters:"),
-     ?__(9,"Cast Shadow -> 'shadow'."),
-     ?__(10,"Emit Rad -> 'emit_rad' -> Emit Radiosity."),
-     ?__(11,"Recv Rad -> 'recv_rad' -> Receive Radiosity."),
-     ?__(12,"Use Edge Hardness -> Emulate hard edges by "
-      "slitting the object mesh along hard edges."),
-     ?__(13,"Autosmooth Angle -> 'autosmooth'."),
-     ?__(14,"A Photon Light must be present for Emit Rad and Recv Rad "
-     "to have an affect. Set Fresnel Parameters to add Caustics.")];
+    ?__(8,"Mesh: Standard 3D mesh."),
+    ?__(9,"Volume: Defines an area for Volumetrics. The material name must be TEmytex. "
+      "Control simulated size by adjusting Min/Max settings. "
+      "When using the Noise option, a Texture must also be defined in the Material "
+      "Properties. Volumetrics must also be enabled under YafaRay Render Options."),
+    ?__(10,"Mesh Light: Use for Neon lights or other glowing meshes. "
+      "Limit the number of mesh lights in your scene, since render times are longer. "
+      "Mesh Lights provide faster rendering than converting meshes to area lights "
+      "with Object to Area Light."),
+    ?__(11,"Light Portal: Controls light and photons coming through a window in a closed room. "
+      "Apply to a flat plane. Light Portals are used to reduce render times."),
+    ?__(12,"Autosmooth Angle: Controls YafaRay simulated smoothing of a mesh. "
+      "For best results, adjust the Subdivisions setting under YafaRay Render "
+      "Options to control real mesh smoothing.")];
 help(title, {material_dialog,fresnel}) ->
     ?__(15,"YafaRay Material Properties: Fresnel Parameters");
 help(text, {material_dialog,fresnel}) ->
@@ -6028,22 +5931,48 @@ help(text, {material_dialog,fresnel}) ->
      ?__(25,"Absorption -> Sets the desired color for white light travelling "
       "the given distance through the material.")];
 %%
-help(title, light_dialog) ->
+help(title, {light_dialog,_}) ->
     ?__(26,"YafaRay Light Properties");
-help(text, light_dialog) ->
-    [?__(27,"OpenGL properties that map to YafaRay light parameters are:"),
-     ?__(28,"Diffuse -> 'color'"),
-     ?__(29,"All other OpenGl properties are ignored, particulary the "
-      "Attenuation properties."),
-     ?__(30,"Spotlight set to Photonlight is used to produce Caustics or Radiosity. "
-      "Photonlight set to Caustic for Caustics. "
-      "Photonlight set to Diffuse for Radiosity. "),
-     ?__(31,"The Enlight checkbox in a Hemilight with an image background "
-      "activates the background image as ambient light source instead of "
-      "the defined ambient color by excluding the 'color' tag "
-      "from the Hemilight."),
-     ?__(32,"Note: For a YafaRay Global Photon Light (one of the Ambient lights) - "
-      "the Power parameter is ignored")];
+help(text, {light_dialog,Type}) ->
+    [?__(27,"Diffuse Color and Spot Light Angle are the only OpenGL properties "
+        " that map to the YafaRay light settings.")]++
+    help(text,{light,Type});
+help(text,{light,point}) ->
+    [[{bold,?__(28,"Point Light")}],
+        ?__(29,"A light with rays pointing in every direction. Use for a candle flame, "
+        "gas light, or light bulb. Choose either Point Light or Sphere Light, which has "
+        "the added options of setting the Radius and Samples.")];
+help(text,{light,spot}) ->
+    [[{bold,?__(30,"Spot Light")}],
+     ?__(31,"A light with rays focused on a certain area.\n"
+        "Choose either Spotlight or IES. The Photon Only option is good for enhancing "
+        "refractive and reflective caustic patterns. The IES option enables the use of "
+        "IES files to simulate real world lights, which produce uniquely shaped lighting.")];
+help(text,{light,infinite}) ->
+    [[{bold,?__(75,"Infinite Light")}],
+        ?__(76,"A distant light with rays pointing in a certain direction. Typically used "
+        "for Sunlight.\n"
+        "Choose either Sunlight or Directional. Combine with the included Sunsky or Darktide "
+        "Sunsky to simulate a sky background. Enable Skylight to emit light from the sky "
+        "background. Enable Real Sun to show a sun disc. The camera must be facing into the "
+        "rays of the infinite light in order to see the sun disc. With Darktide Sunsky, "
+        "enable the Night option to simulate moon light.")];
+help(text,{light,ambient}) ->
+    [[{bold,?__(77,"Ambient Light")}],
+        ?__(78,"A light with rays pointing in every direction and emitting from all "
+        "directions, with no shadows.\n"
+        "Choose between the various Background Light/Environment options to control "
+        "the appearance of the background and lighting. Disable the Enlight option if "
+        "no lighting is wanted. The HDRI option enables the use of real world environments "
+        "to reflect onto reflective surfaces. HDRI also produces realistic lighting "
+        "when Enlight is enabled.")];
+help(text,{light,area}) ->
+    [[{bold,?__(79,"Area Light")}],
+        ?__(80,"A rectangular light with rays emitting from the entire surface. Use for "
+        "light coming through a window or florescent ceiling lights.\n"
+        "Wings3D objects can be converted to Area Lights with the Object to Area Light "
+        "command. Expect longer render times when using Area Lights.")];
+
 help(title, pref_dialog) ->
     ?__(33,"YafaRay Options");
 help(text, pref_dialog) ->

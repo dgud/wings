@@ -12,7 +12,7 @@
 %%
 -module(wpc_absolute_move).
 
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 -export([init/0,menu/2,command/2]).
 
@@ -294,47 +294,45 @@ selection_ask([axis_point|Rest],Ask) ->
 %%  and calls do_move(ProcessedOptions,Selection,State)
 %%
 
-draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default},{_,Lock}},Sel,#st{selmode=SelMode}=St) ->
-    Frame1 = [{vframe,
-                 [draw_window1(center,Default)] ++
-                 [draw_window1(object,MoveObj)]}],
-    Frame2 = if
-                 Align ->
-                     [draw_window1(align,default)];
-                 true ->
-                     []
+draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,{CX,CY,CZ}=Center},{_,Default},{_,Lock}},
+	    Sel,#st{selmode=SelMode}=St) ->
+    MoveD =  case MoveObj of
+		 one ->
+		     {hframe,
+		      [{?__(3,"Move object"),false,[{key,all}, {hook, fun disable/3}]},
+		       panel | duplicate(true)]};
+		 many ->
+		     {hframe,
+		      [{?__(4,"Move objects"),false,[{key,all}, {hook, fun disable/3}]},
+		       panel | duplicate(true)]};
+		 duplionly ->
+		     {hframe, duplicate(false)}
              end,
-    Frame3 = if
-                 Flatten ->
-                     [draw_window1(flatten,default)];
-                 true ->
-                     []
-             end,
-    Frame35 = if
-                 Lock ->
-                     [draw_window1(lock,default)];
-                 true ->
-                     []
-              end,
-    Frame4 = if
-                 MoveObj =/= duplionly ->
-                     [draw_window1(duplicate,true)];
-                 true ->
-                     []
-             end,
-    Frame45 = if % Lock is true only for Snap and this extra check box must be used only with it
-                 Lock and (SelMode == body) -> [draw_window1(dup_rt,default)];
+
+    {Headers, RX,RY,RZ} = lists:foldl(fun draw_window1/2, {[],[],[],[]},
+				      [{center, Default},  {align,Align},
+				       {flatten, Flatten}, {lock, Lock}]),
+
+    Frame1 = {label_column,[{" ", lists:reverse(Headers)},
+			    {"X:", lists:reverse(RX)},
+			    {"Y:", lists:reverse(RY)},
+			    {"Y:", lists:reverse(RZ)}]},
+
+    Frame6 = if % Lock is true only for Snap and this extra check box must be used only with it
+		 Lock and (SelMode == body) ->
+		     [{label_column,
+		       [{?__(10,"Between reference and target")++":",
+			 {hframe,[{"",false,[{key,dup_rt}]}]}}
+		       ]}];
                  true -> []
              end,
-    Frame5 = if
-                Frame2 =/= [] orelse Frame3 =/= [] orelse Frame35 =/= [] ->
-                    [{hframe,Frame1++[{vframe,[{hframe,Frame2++Frame3++Frame35}]++Frame4}]}];
-                true ->
-                    [{vframe,Frame1++Frame4}]
-            end,
-    Frame = [{vframe,Frame5++Frame45++[separator,draw_window1(reference,Center)]}],
-    Name = draw_window1(name,default),
-    wings_dialog:dialog(Name, {preview,Frame},
+    Reference = {label,?__(8,"Reference point is") ++ ": (" ++
+		     wings_util:nice_float(CX)++", "++
+		     wings_util:nice_float(CY)++", "++
+		     wings_util:nice_float(CZ)++")"},
+
+    Frame = [{vframe,[Frame1, MoveD|Frame6++[separator,Reference]]}],
+    wings_dialog:dialog(?__(1,"Absolute move options"), {preview,Frame},
        fun
            ({dialog_preview,Move}) ->
                {preview,St,translate(Move,Center,Sel,St)};
@@ -343,67 +341,36 @@ draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default},{_,Lock}},
                {commit,St,translate(Move,Center,Sel,St)}
        end).
 
-draw_window1(name,_) ->
-    ?__(1,"Absolute move options");
-draw_window1(center,{XC,YC,ZC}) ->
-    {vframe,[
-        {hframe,[{label,?__(2,"Set position")++":"}]},
-        {label_column,[
-            {"X:",{text,XC,[{key,x}]}},
-            {"Y:",{text,YC,[{key,y}]}},
-            {"Z:",{text,ZC,[{key,z}]}}
-        ]}
-    ]};
-draw_window1(object,one) ->
-    {?__(3,"Move object"),false,[{key,all}, {hook, fun disable/3}]};
-draw_window1(object,many) ->
-    {?__(4,"Move objects"),false,[{key,all},{hook, fun disable/3}]};
-draw_window1(object,duplionly) ->
-    draw_window1(duplicate,false);
-draw_window1(duplicate,CheckAll) when is_boolean(CheckAll) ->
-    {hframe,[
+duplicate(CheckAll) when is_boolean(CheckAll) ->
+    [
 	     {value, CheckAll, [{key, dupli_check}]},
 	     {text,0,[{key,dupli},{range,{0,infinity}},{width,6}]},
              {label," "++?__(5,"Duplicates")}
-	    ]};
-draw_window1(dup_rt,_) ->
-%    {vframe,[
-        {label_column,[
-            {?__(10,"Between reference and target")++":",{hframe,[{"",false,[{key,dup_rt}]}]}}
-%        ]}
-    ]};
-draw_window1(align,_) ->
-    {vframe,[
-        {label,?__(6,"Align")++":"},
-        {label_column,[
-            {" ",{hframe,[{"",false,[{key,ax}]}],[{border, 3}]}},
-            {" ",{hframe,[{"",false,[{key,ay}]}],[{border, 3}]}},
-            {" ",{hframe,[{"",false,[{key,az}]}],[{border, 3}]}}
-        ]}
-    ]};
-draw_window1(flatten,_) ->
-    {vframe,[
-        {hframe,[{label,?__(7,"Flatten")++":"}]},
-        {label_column,[
-            {" ",{hframe,[{"",false,[{key,fx}]}],[{border, 3}]}},
-            {" ",{hframe,[{"",false,[{key,fy}]}],[{border, 3}]}},
-            {" ",{hframe,[{"",false,[{key,fz}]}],[{border, 3}]}}
-        ]}
-    ]};
-draw_window1(lock, _) ->
-    {vframe,[
-        {hframe,[{label,?__(9,"Lock")++":"}]},
-        {label_column,[
-            {" ",{hframe,[{"",false,[{key,lx},{hook, fun disable/3}]}],[{border, 3}]}},
-            {" ",{hframe,[{"",false,[{key,ly},{hook, fun disable/3}]}],[{border, 3}]}},
-            {" ",{hframe,[{"",false,[{key,lz},{hook, fun disable/3}]}],[{border, 3}]}}
-        ]}
-    ]};
-draw_window1(reference,{X,Y,Z}) ->
-    {label,?__(8,"Reference point is") ++ ": (" ++
-    wings_util:nice_float(X)++", "++
-    wings_util:nice_float(Y)++", "++
-    wings_util:nice_float(Z)++")"}.
+    ].
+
+draw_window1({center,{XC,YC,ZC}}, {Header, X,Y,Z}) ->
+    {[{label,?__(2,"Set position")++":", [{proportion, 2}]}|Header],
+     [{text,XC,[{key,x},{proportion,2}]}|X],
+     [{text,YC,[{key,y},{proportion,2}]}|Y],
+     [{text,ZC,[{key,z},{proportion,2}]}|Z]};
+draw_window1({align, true}, {Header, X,Y,Z}) ->
+    {[{label,?__(6,"Align")++":", [{proportion, 1}]}|Header],
+     [{"",false,[{key,ax},{proportion,1}]}|X],
+     [{"",false,[{key,ay},{proportion,1}]}|Y],
+     [{"",false,[{key,az},{proportion,1}]}|Z]};
+draw_window1({flatten,true}, {Header, X,Y,Z}) ->
+    {[{label,?__(7,"Flatten")++":", [{proportion, 1}]}|Header],
+     [{"",false,[{key,fx},{proportion,1}]}|X],
+     [{"",false,[{key,fy},{proportion,1}]}|Y],
+     [{"",false,[{key,fz},{proportion,1}]}|Z]};
+draw_window1({lock,true},  {Header, X,Y,Z}) ->
+    {[{label,?__(9,"Lock")++":", [{proportion, 1}]}|Header],
+     [{"",false,[{key,lx},{proportion,1},{hook, fun disable/3}]}|X],
+     [{"",false,[{key,ly},{proportion,1},{hook, fun disable/3}]}|Y],
+     [{"",false,[{key,lz},{proportion,1},{hook, fun disable/3}]}|Z]};
+draw_window1({_, false}, Acc) ->
+    Acc.
+
 
 disable(all, Bool, Store) ->
     try
