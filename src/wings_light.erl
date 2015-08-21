@@ -330,8 +330,8 @@ edit_ambient_dialog(Name, Prop0,
 		    We0=#we{id=Id,light=#light{ambient=Amb0}=L0}, Shs, St) ->
     Qs0 = {vframe,
 	   [{hframe,
-	     [{vframe,[{label,?__(1,"Ambient")}]},
-	      {vframe,[{color,Amb0}]}],
+	     [{label_column,
+	       [{?__(1,"Ambient"),{color,Amb0}}]}],
 	     [{title,?__(2,"Color")}]}|qs_specific(L0)]},
     Qs1 = wings_plugin:dialog({light_editor_setup,Name,Prop0}, [{"Wings 3D", Qs0}]),
     Qs = {vframe_dialog,
@@ -353,14 +353,10 @@ edit_dialog(Name, Prop0, #we{id=Id,light=L0}=We0, Shs, St) ->
     #light{diffuse=Diff0,ambient=Amb0,specular=Spec0} = L0,
     Qs0 = {vframe,
 	   [{hframe,
-	     [{vframe,
-	       [{label,?__(1,"Diffuse")},
-		{label,?__(2,"Ambient")},
-		{label,?__(3,"Specular")}]},
-	      {vframe,
-	       [{color,Diff0},
-		{color,Amb0},
-		{color,Spec0}]}],
+	     [{label_column,
+	       [{?__(1,"Diffuse"),{color,Diff0}},
+		{?__(2,"Ambient"),{color,Amb0}},
+		{?__(3,"Specular"),{color,Spec0}}]}],
 	     [{title,?__(4,"Colors")}]}|qs_specific(L0)]},
     Qs1 = wings_plugin:dialog({light_editor_setup,Name,Prop0}, [{"Wings 3D", Qs0}]),
     Qs = {vframe_dialog,
@@ -390,10 +386,11 @@ plugin_results(Name, Prop0, Res0) ->
     end.
 
 qs_specific(#light{type=spot,spot_angle=Angle,spot_exp=SpotExp}=L) ->
-    Spot = [{vframe,[{label,?__(1,"Angle")},
-		     {slider,{text,Angle,[{range,{0.0,89.9}}]}},
-		     {label,?__(2,"Falloff")},
-		     {slider,{text,SpotExp,[{range,{0.0,128.0}}]}}],
+    Spot = [{vframe,
+		[{label_column,
+		    [{?__(1, "Angle"), {slider, {text, Angle, [{range, {0.0, 89.9}}]}}},
+		     {?__(2, "Falloff"), {slider, {text, SpotExp, [{range, {0.0, 128.0}}]}}}]
+		}],
 	     [{title,?__(3,"Spot Parameters")}]}],
     qs_att(L, Spot);
 qs_specific(#light{type=point}=L) -> qs_att(L, []);
@@ -401,10 +398,11 @@ qs_specific(#light{type=area}=L) -> qs_att(L, []);
 qs_specific(_) -> [].
 
 qs_att(#light{lin_att=Lin,quad_att=Quad}, Tail) ->
-    [{vframe,[{label,?__(1,"Linear")},
-	      {slider,{text,Lin,[{range,{0.0,1.0}}]}},
-	      {label,?__(2,"Quadratic")},
-	      {slider,{text,Quad,[{range,{0.0,0.5}}]}}],
+    [{vframe,
+	[{label_column,
+	    [{?__(1,"Linear"),{slider,{text,Lin,[{range,{0.0,1.0}}]}}},
+	     {?__(2,"Quadratic"),{slider,{text,Quad,[{range,{0.0,0.5}}]}}}]
+	}],
       [{title,?__(3,"Attenuation")}]}|Tail].
     
 edit_specific([LinAtt,QuadAtt,Angle,SpotExp|More], #light{type=spot}=L) ->

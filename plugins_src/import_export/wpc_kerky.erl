@@ -212,13 +212,9 @@ pref_dialog(St) ->
 		    {?__(3, "Enabled Dialogs"), enabled}
 		], Dialogs, [{key,dialogs}]}
 	    ]},
-	    {hframe,[
-		{label, ?__(4, "Executable")},
-		{button, {text, Renderer, [{key,renderer}, {width,35}, wings_job:browse_props()]}}
-	    ]},
-	    {hframe, [
-		{label, ?__(5, "Arguments")},
-		{text, RenderArgs, [{key, renderargs}]}
+	    {label_column,[
+		{?__(4, "Executable"),{button, {text, Renderer, [{key,renderer}, {width,35}, wings_job:browse_props()]}}},
+		{?__(5, "Arguments"),{text, RenderArgs, [{key, renderargs}]}}
 	    ]},
 	    {hframe, [
 		{?__(6,"Overwrite Export File on Render"), OverwriteExport, [{key, overwrite_exportfile}]}
@@ -1734,37 +1730,36 @@ export_dialog(_Op)->
 			{label, ?__(32, "Width")},
 			{text, get_pref(width, 320), [exkey(width)]}
 		    ]},
+                    panel,
 		    {hframe, [
 			{label, ?__(33, "Height")},
 			{text, get_pref(height, 240), [exkey(height)]}
 		    ]}
 		], [exkey(pnl_dim),{margin,false}]},
-		{hframe, [
-		    {label, ?__(30, "Camera")},
-		    {menu, [
+		{label_column, [
+		    {?__(30, "Camera"),{menu, [
                         {?__(34, "Perspective"), perspective},
                         {?__(35, "Cylindrical"), cylindrical},
                         {?__(36, "Spherical"), spherical},
                         {?__(37, "Parallel"), parallel}
-                    ], get_pref(camera_type, perspective), [exkey(camera_type)]}
-		]},
+                    ], get_pref(camera_type, perspective), [exkey(camera_type)]}},
 		%% KT 2008 f-stop
-		{hframe, [
-		    {hframe, [
-			{label, ?__(38, "F-Number")},
-			{menu, [
-                            {?__(39, "Pinhole"), "Pinhole"},
-                            {"1", "1"},
-                            {"1.4", "1.4"},
-                            {"2", "2"},
-                            {"2.8", "2.8"}
-                        ], get_pref(fnumber, "Pinhole"), [exkey(fnumber),{hook,Hook_Enable}]}
-		    ]},
-                    panel,
-		    {hframe, [
-			{label, ?__(40, "Lens Samples")},
-			{text, get_pref(blur_samples, 3), [range({1, 50}), exkey(blur_samples)]}
-		    ], [exkey(pnl_lens_sample)]}
+                    {?__(38, "F-Number"),
+                        {hframe, [
+                            {menu, [
+                                {?__(39, "Pinhole"), "Pinhole"},
+                                {"1", "1"},
+                                {"1.4", "1.4"},
+                                {"2", "2"},
+                                {"2.8", "2.8"}
+                            ], get_pref(fnumber, "Pinhole"), [exkey(fnumber),{hook,Hook_Enable}]},
+                            panel,
+                            {hframe, [
+                                {label, ?__(40, "Lens Samples")},
+                                {text, get_pref(blur_samples, 3), [range({1, 50}), exkey(blur_samples)]}
+                            ], [exkey(pnl_lens_sample)]}
+                        ],[{margin,false}]}
+                    }
 		], [{margin,false}]}
 
 	    ]}
@@ -1788,23 +1783,19 @@ light_dialog(_Name, Light)->
 
     case Type of
         ambient ->
-	    Hook_Enable = fun(Key, Value, Store) ->
+	    Hook_Show = fun(Key, Value, Store) ->
 		case Key of
 		    ?KEY(sky) ->
-			wings_dialog:enable(?KEY(pnl_turbidity), Value =:= physical, Store),
-		    	wings_dialog:enable(?KEY(pnl_sky_file), is_member(Value,[centered_image, tiled_image, fit_image, hemisphere, spherical]), Store);
+			wings_dialog:show(?KEY(pnl_turbidity), Value =:= physical, Store),
+		    	wings_dialog:show(?KEY(pnl_sky_file), is_member(Value,[centered_image, tiled_image, fit_image, hemisphere, spherical]), Store),
+                        wings_dialog:update(?KEY(pnl_sky_params), Store);
 		    _ -> ok
 		end
 	    end,
-            {hframe, [
-		{vframe, [
-		    {label, ?__(1, "Sky")},
-		    {label, ?__(2, "Intensity")},
-		    {label, ?__(3, "Turbidity")},
-		    {label, ?__(4, "Image")}
-	       	]},
-		{vframe, [
-		    {menu, [
+            {vframe, [
+                {hframe, [
+                    {label, ?__(1, "Sky")},
+                    {menu, [
                         {?__(5, "Background Color"), background_color},
                         {?__(6, "Sky Color"), sky_color},
                         {?__(7, "Centered Image"), centered_image},
@@ -1813,15 +1804,22 @@ light_dialog(_Name, Light)->
                         {?__(10,"Hemisphere Image"), hemisphere},
                         {?__(11, "Spherical"), spherical},
                         {?__(12, "Physical"), physical}
-                    ], proplists:get_value(sky, KT, background_color), [key(sky),{hook,Hook_Enable}]},
-		    {slider, {text, proplists:get_value(sky_intensity, KT, 1.0), [range({0.0, 10.0}), key(sky_intensity)]}},
-		    {hframe, [
-			{slider, {text, proplists:get_value(sky_turbidity, KT, 2.0), [range({0.0, 50.0}), key(sky_turbidity)]}}
-		    ], [key(pnl_turbidity), {margin, false}]},
-		    {hframe, [
-			{button, {text, proplists:get_value(sky_file, KT, []), [key(sky_file), {width,35}, {props, BrowseProps}]}}
-		    ], [key(pnl_sky_file),{margin, false}]}
-		]}
+                    ], proplists:get_value(sky, KT, background_color), [key(sky),{hook,Hook_Show}]}
+                ]},
+                {hframe, [
+                    {label, ?__(2, "Intensity")},
+                    {slider, {text, proplists:get_value(sky_intensity, KT, 1.0), [range({0.0, 10.0}), key(sky_intensity)]}}
+                ]},
+                {vframe,[
+                    {hframe, [
+                        {label, ?__(3, "Turbidity")},
+                        {slider, {text, proplists:get_value(sky_turbidity, KT, 2.0), [range({0.0, 50.0}), key(sky_turbidity)]}}
+                    ], [key(pnl_turbidity),{show,false}]},
+                    {hframe, [
+                        {label, ?__(4, "Image")},
+                        {button, {text, proplists:get_value(sky_file, KT, []), [key(sky_file), {width,35}, {props, BrowseProps}]}}
+                    ], [key(pnl_sky_file)]}
+                ],[key(pnl_sky_params),{margin,false}]}
 	    ]};
         area ->
             {vframe, [
@@ -1833,27 +1831,21 @@ light_dialog(_Name, Light)->
 	    ]};
         _ ->
             {vframe, [
-		{hframe, [
-		    {vframe, [
-			{label, ?__(13, "Power")},
-			{label, ?__(15, "Light Radius")},
-			{label, ?__(16, "Shadow Color")},
-			{label, ?__(17, "Attenuation")}
-		    ]},
-		    {vframe, [
-			{slider, {text, proplists:get_value(light_power, KT, 1.0), [range({0.0, 100.0}), key(light_power)]}},
-			{slider, {text, proplists:get_value(light_radius, KT, 0.2), [range({0.0, 100.0}), key(light_radius)]}},
-			{slider, {color, proplists:get_value(shadowcolor, KT, {0.0, 0.0, 0.0}), [key(shadowcolor)]}},
-			{menu, [
-                            {?__(18, "None"), none},
-                            {?__(19, "Inverse"), inverse},
-                            {?__(20, "Inverse Square"), inverse_square}
-                        ], proplists:get_value(attenuation,KT,none), [key(attenuation)]}
-		    ]}
+                {label_column, [
+                    {?__(13, "Power"),{slider, {text, proplists:get_value(light_power, KT, 1.0), [range({0.0, 100.0}), key(light_power)]}}},
+                    {?__(15, "Light Radius"),{slider, {text, proplists:get_value(light_radius, KT, 0.2), [range({0.0, 100.0}), key(light_radius)]}}},
+                    {?__(16, "Shadow Color"),{slider, {color, proplists:get_value(shadowcolor, KT, {0.0, 0.0, 0.0}), [key(shadowcolor)]}}},
+                    {?__(17, "Attenuation"),{menu, [
+                                                {?__(18, "None"), none},
+                                                {?__(19, "Inverse"), inverse},
+                                                {?__(20, "Inverse Square"), inverse_square}
+                                            ], proplists:get_value(attenuation,KT,none), [key(attenuation)]}}
 		]},
 		{hframe, [
 		    {?__(21, "Shadows"), proplists:get_value(shadows, KT, true), [key(shadows)]},
+                    panel,
 		    {?__(22, "Soft Shadows"), proplists:get_value(soft_shadows, KT, false), [key(soft_shadows)]},
+                    panel,
 		    {?__(23, "Negative Light"), proplists:get_value(neg_light, KT, false), [key(neg_light)]}
 		]}
 	    ]}
