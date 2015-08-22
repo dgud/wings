@@ -154,6 +154,8 @@ init(File0) ->
     wings_menu:wx_menubar(Menus),
     set_drag_filter(geom),
 
+    check_requirements(),
+
     open_file(File),
     restore_windows(St),
     case catch wings_wm:enter_event_loop() of
@@ -166,6 +168,41 @@ init(File0) ->
 	    exit(Reason)
     end.
 
+%% Check minimum system requirements.
+check_requirements() ->
+    minor_gl_version(),
+    have_fbo().
+
+minor_gl_version() ->
+    Major = 2,
+    Minor = 1,
+    Req = {Major,Minor,0},
+    case ets:lookup(wings_gl_ext, version) of
+	[{_,VerTuple}] when VerTuple < Req ->
+	    fatal("Wings3D requires OpenGL ~p.~p or higher.",
+		  [Minor,Major]);
+	_ ->
+	    ok
+    end.
+
+have_fbo() ->
+    case wings_gl:have_fbo() of
+	true ->
+	    ok;
+	false ->
+	    fatal("Wings3D requires the OpenGL frame buffer "
+		  "object extension.")
+    end.
+
+fatal(Format, Args) ->
+    fatal(io_lib:format(Format, Args)).
+
+fatal(Str) ->
+    Parent = get(top_frame),
+    Dialog = wxMessageDialog:new(Parent, Str, [{caption,"Fatal Error"}]),
+    wxMessageDialog:showModal(Dialog),
+    wings_io:quit(),
+    exit(normal).
 
 new_st() ->
     Empty = gb_trees:empty(),
