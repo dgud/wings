@@ -821,7 +821,7 @@ build(Ask, {label, Label, Flags}, Parent, Sizer, In)
 			   (Row, Acc) -> ["\n", Row|Acc]
 			end, [], Lines0),
     Text = wxStaticText:new(Parent, ?wxID_ANY, Lines),
-    add_sizer(label, Sizer, Text),
+    add_sizer(label, Sizer, Text, Flags),
     MinSize = case proplists:get_value(min_wsz, Flags, -1) of
 		  Sz when Sz > 0 -> Sz;
 		  Sz ->
@@ -852,11 +852,11 @@ build(Ask, {label_column, Rows, Flags}, Parent, Sizer, In) ->
     Translate = fun({String, Fields}) when is_list(Fields) ->
 			{hframe, [{label, String, [{min_wsz, MinSize}]} | Fields], Fs};
 		   ({String, Fields, LCFlags}) when is_list(Fields) ->
-			{hframe, [{label, String, [{min_wsz, MinSize}]} | Fields], Fs ++ LCFlags};
+			{hframe, [{label, String, [{min_wsz, MinSize}]} | Fields], LCFlags ++ Fs};
 		   ({String, Field}) ->
 			{hframe, [{label, String, [{min_wsz, MinSize}]}, Field], Fs};
 		   ({String, Field, LCFlags}) ->
-			{hframe, [{label, String, [{min_wsz, MinSize}]}, Field], Fs ++ LCFlags};
+			{hframe, [{label, String, [{min_wsz, MinSize}]}, Field], LCFlags ++ Fs};
 		   (separator) ->
 			separator
 		end,
@@ -870,7 +870,7 @@ build(Ask, panel, _Parent, Sizer, In)
 build(Ask, separator, Parent, Sizer, In)
   when Ask =/= false ->
     Separator = wxStaticLine:new(Parent),
-    add_sizer(separator, Sizer, Separator),
+    add_sizer(separator, Sizer, Separator, []),
     In;
 
 build(Ask, {text, Def}, Parent, Sizer, In) ->
@@ -903,7 +903,7 @@ build(Ask, {slider, {color, Def, Flags}}, Parent, Sizer, In) ->
 		     wxSizer:add(SS, ColCtrl, [{proportion,0}]),
 		     tooltip(SliderCtrl, Flags),
 		     tooltip(ColCtrl, Flags),
-		     add_sizer(slider, Sizer, SS),
+		     add_sizer(slider, Sizer, SS, Flags),
 		     UpdateSlider =
 			 fun({col_changed, Col}) ->
 				 ww_color_slider:setColor(SliderCtrl, Col)
@@ -940,7 +940,7 @@ build(Ask, {slider, Flags}, Parent, Sizer, In) ->
 	    Create = fun() ->
 			     Ctrl = wxSlider:new(Parent, ?wxID_ANY, Value, Min, Max, [{style, Style}]),
 			     tooltip(Ctrl, Flags),
-			     add_sizer(slider, Sizer, Ctrl),
+			     add_sizer(slider, Sizer, Ctrl, Flags),
 			     Ctrl
 		     end;
 	Color ->
@@ -950,7 +950,7 @@ build(Ask, {slider, Flags}, Parent, Sizer, In) ->
 	    Create = fun() ->
 			     Ctrl = ww_color_slider:new(Parent, ?wxID_ANY, Def, [{color, Color}]),
 			     tooltip(Ctrl, Flags),
-			     add_sizer(slider, Sizer, Ctrl),
+			     add_sizer(slider, Sizer, Ctrl, Flags),
 			     Ctrl
 		     end
     end,
@@ -968,7 +968,7 @@ build(Ask, {color, Def, Flags}, Parent, Sizer, In) ->
 					       {static, Static},
 					       {native_dialog, Dialog}]),
 		     tooltip(Ctrl, Flags),
-		     add_sizer(button, Sizer, Ctrl),
+		     add_sizer(button, Sizer, Ctrl, Flags),
 		     Ctrl
 	     end,
     [#in{key=proplists:get_value(key,Flags), def=Def,
@@ -1000,7 +1000,7 @@ build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
 		                    {path, Def},
 		                    {wildcard, Filter}]++StyleEx),
 		            tooltip(Ctrl, Flags),
-		            add_sizer(filepicker, Sizer, Ctrl),
+		            add_sizer(filepicker, Sizer, Ctrl, Flags),
 		            Ctrl
 		     end;
         true ->
@@ -1009,7 +1009,7 @@ build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
 		            Ctrl = wxDirPickerCtrl:new(Parent, ?wxID_ANY,
 		                [{style, ?wxDIRP_DEFAULT_STYLE bor ?wxDIRP_USE_TEXTCTRL}, {path, Def}]++StyleEx),
 		            tooltip(Ctrl, Flags),
-		            add_sizer(filepicker, Sizer, Ctrl),
+		            add_sizer(filepicker, Sizer, Ctrl, Flags),
 		            Ctrl
 		     end
     end,
@@ -1031,7 +1031,7 @@ build(Ask, {button, Label, Action, Flags}, Parent, Sizer, In) ->
     Create = fun() ->
 		     Ctrl = wxButton:new(Parent, ?wxID_ANY, [{label, Label}]),
 		     tooltip(Ctrl, Flags),
-		     add_sizer(button, Sizer, Ctrl),
+		     add_sizer(button, Sizer, Ctrl, Flags),
 		     Ctrl
 	     end,
 
@@ -1064,7 +1064,7 @@ build(Ask, {fontpicker, DefFont, Flags}, Parent, Sizer, In) ->
 		     wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed,
 					      [{callback, PreviewFun}]),
 		     tooltip(Ctrl, Flags),
-		     add_sizer(fontpicker, Sizer, Ctrl),
+		     add_sizer(fontpicker, Sizer, Ctrl, Flags),
 		     Ctrl
 	     end,
     [#in{key=proplists:get_value(key,Flags), def=Def,
@@ -1077,7 +1077,7 @@ build(Ask, {menu, Entries, Def, Flags}, Parent, Sizer, In) ->
 		Ctrl = wxChoice:new(Parent, ?wxID_ANY),
 		lists:foldl(fun(Choice,N) -> setup_choices(Choice, Ctrl, Def, N) end, 0, Entries),
 		tooltip(Ctrl, Flags),
-		add_sizer(choice, Sizer, Ctrl),
+		add_sizer(choice, Sizer, Ctrl, Flags),
 		Ctrl
 	end,
     [#in{key=proplists:get_value(key,Flags), def=Def, hook=proplists:get_value(hook, Flags),
@@ -1120,7 +1120,7 @@ build(Ask, {table, [Header|Rows], Flags}, Parent, Sizer, In) ->
 				    lists:foldl(Add, {N, 0}, tuple_to_list(Row)),
 				    N + 1
 			    end, 0, Rows),
-		add_sizer(table, Sizer, Ctrl),
+		add_sizer(table, Sizer, Ctrl, Flags),
 		Ctrl
 	end,
     [#in{key=proplists:get_value(key,Flags), def=Rows, hook=proplists:get_value(hook, Flags),
@@ -1130,7 +1130,7 @@ build(Ask, {image, ImageOrFile}, Parent, Sizer, In) ->
     Create = fun() ->
 		     Bitmap = image_to_bitmap(ImageOrFile),
 		     SBMap = wxStaticBitmap:new(Parent, ?wxID_ANY, Bitmap),
-		     add_sizer(image, Sizer, SBMap),
+		     add_sizer(image, Sizer, SBMap, []),
 		     wxBitmap:destroy(Bitmap),
 		     SBMap
 	     end,
@@ -1145,7 +1145,7 @@ build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
     Create = fun() ->
 		     Button = wxButton:new(Parent, ?wxID_HELP),
 		     wxButton:connect(Button, command_button_clicked, [{callback, Display}]),
-		     add_sizer(button, Sizer, Button),
+		     add_sizer(button, Sizer, Button, []),
 		     Button
 	     end,
     create(Ask,Create),
@@ -1160,7 +1160,7 @@ build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
 					     [{size, {CW,CH}},
 					      {attribList, wings_init:gl_attributes()}
 					     ]),
-		     add_sizer(custom, Sizer, Canvas),
+		     add_sizer(custom, Sizer, Canvas, Flags),
 		     Canvas
 	     end,
     [#in{key=proplists:get_value(key,Flags), type=custom_gl,
@@ -1182,7 +1182,7 @@ build(Ask, {Label, Def, Flags}, Parent, Sizer, In)
 		     Callback = {callback, notify_event_handler_cb(Ask, preview)},
 		     wxCheckBox:connect(Ctrl, command_checkbox_clicked, [Callback]),
 		     wxCheckBox:setValue(Ctrl, Def),
-		     add_sizer(checkbox, Sizer, Ctrl),
+		     add_sizer(checkbox, Sizer, Ctrl, Flags),
 		     Ctrl
 	     end,
     [#in{key=proplists:get_value(key,Flags), hook=proplists:get_value(hook, Flags),
@@ -1240,7 +1240,7 @@ build_box(Ask, Type, Qs, Flags, Parent, Top, In0) ->
 	       true -> ok
 	    end,
 	    wxWindow:setSizerAndFit(Ctrl,CSizer),
-	    add_sizer(Type0, Top, Ctrl),
+	    add_sizer(Type0, Top, Ctrl, Flags),
 	    [#in{key=Key, type=panel, wx=Ctrl, output=false}|In]
     end.
 
@@ -1252,7 +1252,7 @@ build_radio(Ask, Def, {Dir, Style}, Alternatives, Flags, Parent, Sizer, In) ->
 		     Ctrl = wxRadioBox:new(Parent, 1, Name,
 					   ?wxDefaultPosition, ?wxDefaultSize,
 					   Strs, [{majorDim, 1}, {style, Style}]),
-		     add_sizer({radiobox, Dir}, Sizer, Ctrl),
+		     add_sizer({radiobox, Dir}, Sizer, Ctrl, Flags),
 		     tooltip(Ctrl, Flags),
 		     wxRadioBox:setSelection(Ctrl, pos(Def, Keys)),
 		     Preview = notify_event_handler_cb(Ask, preview),
@@ -1268,7 +1268,11 @@ build_textctrl(Ask, Def, Flags, {MaxSize, Validator}, Parent, Sizer) ->
     PreviewFun = notify_event_handler(Ask, preview),
     Ctrl = wxTextCtrl:new(Parent, ?wxID_ANY, [{value, to_str(Def)}]),
     {CharWidth,_,_,_} = wxWindow:getTextExtent(Ctrl, "W"),
-    case proplists:get_value(width, Flags, default) of
+    DefWidth = case proplists:get_value(proportion, Flags) of
+		   undefined -> default;
+		   _ -> undefined
+	       end,
+    case proplists:get_value(width, Flags, DefWidth) of
 	default ->
 	    wxTextCtrl:setMaxSize(Ctrl, {MaxSize*CharWidth, -1});
 	Width when is_integer(Width) ->
@@ -1320,7 +1324,7 @@ build_textctrl(Ask, Def, Flags, {MaxSize, Validator}, Parent, Sizer) ->
     wxTextCtrl:connect(Ctrl, key_up, [{callback, UseHistory}]),
     wxTextCtrl:connect(Ctrl, command_text_updated, [{callback, TextUpdated}]),
     wxTextCtrl:connect(Ctrl, kill_focus, [{callback, AddHistory}]),
-    add_sizer(text, Sizer, Ctrl),
+    add_sizer(text, Sizer, Ctrl, Flags),
     Ctrl.
 
 setup_choices({Str, Tag}, Ctrl, Def, N) ->
@@ -1345,7 +1349,7 @@ create_slider(Ask, Def, Flags, {MaxSize,Validator}, Parent, TopSizer) when is_nu
     wxTextCtrl:setMaxSize(Text, {MaxSize*CharWidth, -1}),
     wxSizer:add(Sizer, Slider, [{proportion,2}, {flag, ?wxEXPAND}]),
     wxSizer:add(Sizer, Text,   [{proportion,1}]),
-    add_sizer(slider, TopSizer, Sizer),
+    add_sizer(slider, TopSizer, Sizer, Flags),
     tooltip(Slider, Flags),
     tooltip(Text, Flags),
     case proplists:get_value(disable, Flags, false) of
@@ -1398,9 +1402,6 @@ slider_style(Def, {Min, Max})
 	     end,
     {0, ToSlider(Def), 100, ?wxSL_HORIZONTAL, ToText, ToSlider}.
 
-add_sizer(What, Sizer, Ctrl) ->
-    add_sizer(What, Sizer, Ctrl, []).
-
 add_sizer(What, Sizer, Ctrl, Opts) ->
     {Proportion0, Border0, Flags0} =
 	sizer_flags(What, wxBoxSizer:getOrientation(Sizer)),
@@ -1411,11 +1412,11 @@ add_sizer(What, Sizer, Ctrl, Opts) ->
     wxSizer:add(Sizer, Ctrl,
 		[{proportion, Proportion},{border, Border},{flag, Flags}]).
 
-sizer_flags(label, ?wxHORIZONTAL)     -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(label, ?wxVERTICAL)       -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(label, ?wxHORIZONTAL)     -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(label, ?wxVERTICAL)       -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(separator, ?wxHORIZONTAL) -> {1, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(separator, ?wxVERTICAL)   -> {0, 5, ?wxALL bor ?wxEXPAND};
-sizer_flags(text, ?wxHORIZONTAL)      -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(text, ?wxHORIZONTAL)      -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(slider, ?wxHORIZONTAL)    -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(slider, ?wxVERTICAL)      -> {0, 0, ?wxEXPAND};
 sizer_flags(button, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
