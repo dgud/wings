@@ -409,30 +409,35 @@ ground_and_axes(PM,MM) ->
 	      true  -> GridSize;
 	      false -> (wings_view:current())#view.yon
 	  end,
-    case Axes of
-	true ->
-	    axis(1, Yon, get_pref(x_color), get_pref(neg_x_color)),
-	    axis(2, Yon, get_pref(y_color), get_pref(neg_y_color)),
-	    axis(3, Yon, get_pref(z_color), get_pref(neg_z_color));
-	false -> ok
-    end,
+    Key = case Axes of
+	      true ->
+		  axis_data([{1,x_color,neg_x_color},
+			     {2,y_color,neg_y_color},
+			     {3,z_color,neg_z_color}],
+			    Yon);
+	      false ->
+		  none
+	  end,
+    Update = fun(Data) ->
+		     D = fun() ->
+				 gl:drawArrays(?GL_LINES, 0, 3*4)
+			 end,
+		     wings_vbo:new(D, Data, [color,vertex])
+	     end,
+    wings_dl:draw(axes, Key, Update),
     Yon.
 
 get_pref(Key) ->
     wings_pref:get_value(Key).
 
-axis(I, Yon, Pos, Neg) ->
+axis_data([{I,PosKey,NegKey}|T], Yon) ->
+    Pos = get_pref(PosKey),
+    Neg = get_pref(NegKey),
     A0 = {0.0,0.0,0.0},
     A = setelement(I, A0, Yon),
     B = setelement(I, A0, -Yon),
-    gl:'begin'(?GL_LINES),
-    gl:color3fv(Pos),
-    gl:vertex3fv(A0),
-    gl:vertex3fv(A),
-    gl:color3fv(Neg),
-    gl:vertex3fv(A0),
-    gl:vertex3fv(B),
-    gl:'end'().
+    [Pos,A0,Pos,A,Neg,A0,Neg,B|axis_data(T, Yon)];
+axis_data([], _) -> [].
 
 axis_letters(TPM, TMM, Yon0) ->
     case wings_wm:get_prop(show_axes) of
@@ -531,97 +536,124 @@ calc_grid_size(PM,MM) ->
 				 Viewport),
     ?GROUND_GRID_SIZE*max(round(max(max(abs(S),abs(T)),abs(U))),10.0).
 
-groundplane(Axes,PM,MM) ->
-    GridSize = calc_grid_size(PM,MM),
-    case (wings_wm:get_prop(show_groundplane) orelse
+groundplane(Axes, PM, MM) ->
+    GridSize = calc_grid_size(PM, MM),
+    Show = wings_wm:get_prop(show_groundplane) orelse
 	  (wings_pref:get_value(force_show_along_grid) andalso
-	   (wings_view:current())#view.along_axis =/= none)) of
-	true -> groundplane_1(Axes, GridSize);
-	false -> ok
-    end,
+	   (wings_view:current())#view.along_axis =/= none),
+    Key = case Show of
+	      true ->
+		  #view{along_axis=Along} = wings_view:current(),
+		  Color = wings_pref:get_value(grid_color),
+		  {Along,GridSize,Axes,Color};
+	      false ->
+		  none
+	  end,
+    wings_dl:draw(groundplane, Key, fun update_groundplane/1),
     float(GridSize).
 
-groundplane_1(Axes, Sz) ->
-    #view{along_axis=Along} = wings_view:current(),
-    gl:color3fv(wings_pref:get_value(grid_color)),
-    gl:lineWidth(1.0),
-    gl:matrixMode(?GL_MODELVIEW),
-    gl:pushMatrix(),
-    case Along of
-	x -> gl:rotatef(90.0, 0.0, 1.0, 0.0);
-	z -> ok;
-	_ -> gl:rotatef(90.0, 1.0, 0.0, 0.0)
-    end,
-    gl:'begin'(?GL_LINES),
-    groundplane_2(-Sz, Sz, Sz, Axes),
-    gl:'end'(),
-    gl:popMatrix(),
-    ?CHECK_ERROR().
+update_groundplane({Along,Sz,Axes,Color}) ->
+    Data = groundplane_2(-Sz, Sz, Sz, Axes),
+    N = length(Data),
+    Draw = fun() ->
+		   gl:color3fv(Color),
+		   gl:lineWidth(1.0),
+		   gl:matrixMode(?GL_MODELVIEW),
+		   gl:pushMatrix(),
+		   case Along of
+		       x -> gl:rotatef(90.0, 0.0, 1.0, 0.0);
+		       z -> ok;
+		       _ -> gl:rotatef(90.0, 1.0, 0.0, 0.0)
+		   end,
+		   gl:drawArrays(?GL_LINES, 0, N),
+		   gl:popMatrix(),
+		   ?CHECK_ERROR()
+	   end,
+    wings_vbo:new(Draw, Data).
 
-groundplane_2(X, Last, _Sz, _Axes) when X > Last -> ok;
-groundplane_2(X, Last, Sz, true) when X == 0 ->
+groundplane_2(X, Last, _Sz, _Axes) when X > Last ->
+    [];
+groundplane_2(X, Last, Sz, true) when X == 0->
+    %% Skip ground plane where the axes go.
     groundplane_2(?GROUND_GRID_SIZE, Last, Sz, true);
 groundplane_2(X, Last, Sz, Axes) ->
-    gl:vertex2f(X, -Sz),
-    gl:vertex2f(X, Sz),
-    gl:vertex2f(-Sz, X),
-    gl:vertex2f(Sz, X),
-    groundplane_2(X+?GROUND_GRID_SIZE, Last, Sz, Axes).
+    NegSz = -Sz,
+    [{X,NegSz,0},{X,Sz,0},{NegSz,X,0},{Sz,X,0}|
+     groundplane_2(X+?GROUND_GRID_SIZE, Last, Sz, Axes)].
 
-show_saved_bb(#st{bb=[{X1,Y1,Z1},{X2,Y2,Z2}]}) ->
-    case wings_pref:get_value(show_bb) of
-	false -> ok;
-	true ->
-	    gl:enable(?GL_LINE_STIPPLE),
-	    gl:lineStipple(4, 2#1110111011101110),
-	    gl:color3fv(wings_pref:get_value(active_vector_color)),
-	    gl:'begin'(?GL_LINE_STRIP),
-	    gl:vertex3f(X1, Y1, Z1),
-	    gl:vertex3f(X2, Y1, Z1),
-	    gl:vertex3f(X2, Y2, Z1),
-	    gl:vertex3f(X1, Y2, Z1),
-	    gl:vertex3f(X1, Y1, Z1),
-	    gl:vertex3f(X1, Y1, Z2),
-	    gl:vertex3f(X2, Y1, Z2),
-	    gl:vertex3f(X2, Y2, Z2),
-	    gl:vertex3f(X1, Y2, Z2),
-	    gl:vertex3f(X1, Y1, Z2),
-	    gl:'end'(),
-	    gl:'begin'(?GL_LINES),
-	    gl:vertex3f(X1, Y2, Z1),
-	    gl:vertex3f(X1, Y2, Z2),
-	    gl:vertex3f(X2, Y2, Z1),
-	    gl:vertex3f(X2, Y2, Z2),
-	    gl:vertex3f(X2, Y1, Z1),
-	    gl:vertex3f(X2, Y1, Z2),
-	    gl:'end'(),
-	    gl:disable(?GL_LINE_STIPPLE)
-    end;
-show_saved_bb(_) -> ok.
+show_saved_bb(St) ->
+    Key = get_saved_bb_key(St),
+    Update = fun update_saved_bb/1,
+    wings_dl:draw(saved_bb, Key, Update).
 
-show_bb_center(#st{bb=[_,_]=BB}) ->
-    case wings_pref:get_value(show_bb_center) of
-      false -> ok;
-      true ->
-        {Cx,Cy,Cz} = Center = e3d_vec:average(BB),
-        Colour = gl:color3fv(wings_pref:get_value(active_vector_color)),
-        Colour,
-        gl:pointSize(8.0),
-        gl:'begin'(?GL_POINTS),
-        gl:vertex3fv(Center),
-        gl:'end'(),
-        gl:'begin'(?GL_LINES),
-        Colour,
-        gl:vertex3fv({Cx,Cy+0.2,Cz}),
-        gl:vertex3fv({Cx,Cy-0.2,Cz}),
-        gl:vertex3fv({Cx+0.2,Cy,Cz}),
-        gl:vertex3fv({Cx-0.2,Cy,Cz}),
-        gl:vertex3fv({Cx,Cy,Cz+0.2}),
-        gl:vertex3fv({Cx,Cy,Cz-0.2}),
-        gl:'end'()
+get_saved_bb_key(#st{bb=BB}) ->
+    case {wings_pref:get_value(show_bb),BB} of
+	{true,[A,B]} ->
+	    Color = wings_pref:get_value(active_vector_color),
+	    {A,B,Color};
+	{_,_} ->
+	    none
+    end.
 
-    end;
-show_bb_center(_) -> ok.
+update_saved_bb({{X1,Y1,Z1},{X2,Y2,Z2},Color}) ->
+    %% 10 vertices in a line strip.
+    Data = [{X1,Y1,Z1},
+	    {X2,Y1,Z1},
+	    {X2,Y2,Z1},
+	    {X1,Y2,Z1},
+	    {X1,Y1,Z1},
+	    {X1,Y1,Z2},
+	    {X2,Y1,Z2},
+	    {X2,Y2,Z2},
+	    {X1,Y2,Z2},
+	    {X1,Y1,Z2},
+	    %% 6 vertices / 3 lines
+	    {X1,Y2,Z1},
+	    {X1,Y2,Z2},
+	    {X2,Y2,Z1},
+	    {X2,Y2,Z2},
+	    {X2,Y1,Z1},
+	    {X2,Y1,Z2}],
+    D = fun() ->
+		gl:enable(?GL_LINE_STIPPLE),
+		gl:lineStipple(4, 2#1110111011101110),
+		gl:color3fv(Color),
+		gl:drawArrays(?GL_LINE_STRIP, 0, 10),
+		gl:drawArrays(?GL_LINES, 10, 6),
+		gl:disable(?GL_LINE_STIPPLE)
+	end,
+    wings_vbo:new(D, Data).
+
+show_bb_center(St) ->
+    Key = get_bb_center_key(St),
+    Update = fun update_bb_center/1,
+    wings_dl:draw(saved_bb_center, Key, Update).
+
+get_bb_center_key(#st{bb=BB}) ->
+    case {wings_pref:get_value(show_bb_center),BB} of
+	{true,[_,_]} ->
+	    Center = e3d_vec:average(BB),
+	    Color = wings_pref:get_value(active_vector_color),
+	    {Center,Color};
+	{_,_} ->
+	    none
+    end.
+
+update_bb_center({{Cx,Cy,Cz}=Center,Color}) ->
+    Data = [Center,
+	    {Cx,Cy+0.2,Cz},
+	    {Cx,Cy-0.2,Cz},
+	    {Cx+0.2,Cy,Cz},
+	    {Cx-0.2,Cy,Cz},
+	    {Cx,Cy,Cz+0.2},
+	    {Cx,Cy,Cz-0.2}],
+    D = fun() ->
+		gl:color3fv(Color),
+		gl:pointSize(8.0),
+		gl:drawArrays(?GL_POINTS, 0, 1),
+		gl:drawArrays(?GL_LINES, 1, 6)
+	end,
+    wings_vbo:new(D, Data).
 
 enable_lighting(SceneLights) ->
     Progs = get(light_shaders),
@@ -650,111 +682,119 @@ disable_lighting() ->
     end.
 
 mini_axis_icon(MM) ->
-    case wings_pref:get_value(mini_axis) of 
-    false -> ok;
-    true ->
-      gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-      {W,H} = wings_wm:win_size(),
-      Matrix1 = e3d_transform:matrix(MM),
-      Matrix2 = setelement(13, Matrix1, -W/H+0.11),
-      Matrix3 = setelement(14, Matrix2, -1.0+0.11),
-      Matrix4 = setelement(15, Matrix3, 0.0),
-      gl:matrixMode(?GL_PROJECTION),
-      gl:pushMatrix(),
-      gl:loadIdentity(),
-      gl:ortho(-W/H, W/H, -1.0, 1.0, 0.00001, 10000000.0),
-      gl:matrixMode(?GL_MODELVIEW),
-      gl:pushMatrix(),
-      gl:loadIdentity(),
-      gl:loadMatrixd(Matrix4),
-      draw_mini_axis(),
-      gl:popMatrix(),
-      gl:matrixMode(?GL_PROJECTION),
-      gl:popMatrix(),
-      gl:matrixMode(?GL_MODELVIEW),
-      gl:popAttrib()
+    case mini_axis_icon_key() of
+	none -> ok;
+	Key -> draw_mini_axis_icon(Key, MM)
     end.
 
-draw_mini_axis() ->
-    {PA,PB} = {0.08,0.01},
-    X = wings_pref:get_value(x_color),
-    Y = wings_pref:get_value(y_color),
-    Z = wings_pref:get_value(z_color),
-    gl:'begin'(?GL_LINES),
-    %% X Axis
-    gl:color3fv(X),
-    gl:vertex3f(0.0,0.0,0.0),
-    gl:vertex3f(0.1,0.0,0.0),
-    %% Y Axis
-    gl:color3fv(Y),
-    gl:vertex3f(0.0,0.0,0.0),
-    gl:vertex3f(0.0,0.1,0.0),
-    %% Z Axis
-    gl:color3fv(Z),
-    gl:vertex3f(0.0,0.0,0.0),
-    gl:vertex3f(0.0,0.0,0.1),
-    View = wings_view:current(),
-    case View#view.along_axis of
+draw_mini_axis_icon(Key, MM) ->
+    {W,H} = wings_wm:win_size(),
+    Ratio = W/H,
+    Matrix0 = e3d_transform:matrix(MM),
+    Matrix1 = setelement(15, Matrix0, 0.0),
+    Matrix2 = setelement(14, Matrix1, -1.0+0.11),
+    Matrix  = setelement(13, Matrix2, 0.11-Ratio),
+    gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
+    gl:matrixMode(?GL_PROJECTION),
+    gl:pushMatrix(),
+    gl:loadIdentity(),
+    gl:ortho(-Ratio, Ratio, -1.0, 1.0, 0.00001, 10000000.0),
+    gl:matrixMode(?GL_MODELVIEW),
+    gl:pushMatrix(),
+    gl:loadMatrixd(Matrix),
+
+    Update = fun update_mini_axis_icon/1,
+    wings_dl:draw(mini_axis_icon, Key, Update),
+
+    gl:popMatrix(),
+    gl:matrixMode(?GL_PROJECTION),
+    gl:popMatrix(),
+    gl:matrixMode(?GL_MODELVIEW),
+    gl:popAttrib().
+
+mini_axis_icon_key() ->
+    case wings_pref:get_value(mini_axis) of
+	false ->
+	    none;
+	true ->
+	    #view{along_axis=Along} = wings_view:current(),
+	    X = wings_pref:get_value(x_color),
+	    Y = wings_pref:get_value(y_color),
+	    Z = wings_pref:get_value(z_color),
+	    {Along,{X,Y,Z}}
+    end.
+
+update_mini_axis_icon({Along,{X,Y,Z}}) ->
+    Arrows = mini_axis_arrows(Along, X, Y, Z),
+    Data = [X,{0.0,0.0,0.0},			%X Axis
+	    X,{0.1,0.0,0.0},
+	    Y,{0.0,0.0,0.0},			%Y Axis
+	    Y,{0.0,0.1,0.0},
+	    Z,{0.0,0.0,0.0},			%Z Axis
+	    Z,{0.0,0.0,0.1}|Arrows],
+    N = case Along of
+	    none -> 3*4 + 3*4;
+	    _ -> 3*4 + 2*4
+	end,
+    D = fun() ->
+		gl:drawArrays(?GL_LINES, 0, N)
+	end,
+    wings_vbo:new(D, Data, [color,vertex]).
+
+mini_axis_arrows(Along, X, Y, Z) ->
+    PA = 0.08,
+    PB = 0.01,
+    case Along of
 	none ->
 	    %% X Arrows
-	    gl:color3fv(X),
-	    gl:vertex3f(PA,0.0,-PB),
-	    gl:vertex3f(0.1,0.0,0.0),
-	    gl:vertex3f(PA,0.0,PB),
-	    gl:vertex3f(0.1,0.0,0.0),
-	    %% Y Arrows
-	    gl:color3fv(Y),
-	    gl:vertex3f(-PB,PA,0.0),
-	    gl:vertex3f(0.0,0.1,0.0),
-	    gl:vertex3f(PB,PA,0.0),
-	    gl:vertex3f(0.0,0.1,0.0),
-	    %% Z Arrows
-	    gl:color3fv(Z),
-	    gl:vertex3f(-PB,0.0,PA),
-	    gl:vertex3f(0.0,0.0,0.1),
-	    gl:vertex3f(PB,0.0,PA),
-	    gl:vertex3f(0.0,0.0,0.1);
+	    [X,{PA,0.0,-PB},
+	     X,{0.1,0.0,0.0},
+	     X,{PA,0.0,PB},
+	     X,{0.1,0.0,0.0},
+	     %% Y Arrows
+	     Y,{-PB,PA,0.0},
+	     Y,{0.0,0.1,0.0},
+	     Y,{PB,PA,0.0},
+	     Y,{0.0,0.1,0.0},
+	     %% Z Arrows
+	     Z,{-PB,0.0,PA},
+	     Z,{0.0,0.0,0.1},
+	     Z,{PB,0.0,PA},
+	     Z,{0.0,0.0,0.1}];
 	x ->
 	    %% Y Arrows
-	    gl:color3fv(Y),
-	    gl:vertex3f(0.0,PA,-PB),
-	    gl:vertex3f(0.0,0.1,0.0),
-	    gl:vertex3f(0.0,PA,PB),
-	    gl:vertex3f(0.0,0.1,0.0),
-	    %% Z Arrows
-	    gl:color3fv(Z),
-	    gl:vertex3f(0.0,-PB,PA),
-	    gl:vertex3f(0.0,0.0,0.1),
-	    gl:vertex3f(0.0,PB,PA),
-	    gl:vertex3f(0.0,0.0,0.1);
+	    [Y,{0.0,PA,-PB},
+	     Y,{0.0,0.1,0.0},
+	     Y,{0.0,PA,PB},
+	     Y,{0.0,0.1,0.0},
+	     %% Z Arrows
+	     Z,{0.0,-PB,PA},
+	     Z,{0.0,0.0,0.1},
+	     Z,{0.0,PB,PA},
+	     Z,{0.0,0.0,0.1}];
 	y ->
 	    %% X Arrows
-	    gl:color3fv(X),
-	    gl:vertex3f(PA,0.0,-PB),
-	    gl:vertex3f(0.1,0.0,0.0),
-	    gl:vertex3f(PA,0.0,PB),
-	    gl:vertex3f(0.1,0.0,0.0),
-	    %% Z Arrows
-	    gl:color3fv(Z),
-	    gl:vertex3f(-PB,0.0,PA),
-	    gl:vertex3f(0.0,0.0,0.1),
-	    gl:vertex3f(PB,0.0,PA),
-	    gl:vertex3f(0.0,0.0,0.1);
+	    [X,{PA,0.0,-PB},
+	     X,{0.1,0.0,0.0},
+	     X,{PA,0.0,PB},
+	     X,{0.1,0.0,0.0},
+	     %% Z Arrows
+	     Z,{-PB,0.0,PA},
+	     Z,{0.0,0.0,0.1},
+	     Z,{PB,0.0,PA},
+	     Z,{0.0,0.0,0.1}];
 	z ->
 	    %% X Arrows
-	    gl:color3fv(X),
-	    gl:vertex3f(PA,-PB,0.0),
-	    gl:vertex3f(0.1,0.0,0.0),
-	    gl:vertex3f(PA,PB,0.0),
-	    gl:vertex3f(0.1,0.0,0.0),
-	    %% Y Arrows
-	    gl:color3fv(Y),
-	    gl:vertex3f(-PB,PA,0.0),
-	    gl:vertex3f(0.0,0.1,0.0),
-	    gl:vertex3f(PB,PA,0.0),
-	    gl:vertex3f(0.0,0.1,0.0)
-    end,
-    gl:'end'().
+	    [X,{PA,-PB,0.0},
+	     X,{0.1,0.0,0.0},
+	     X,{PA,PB,0.0},
+	     X,{0.1,0.0,0.0},
+	     %% Y Arrows
+	     Y,{-PB,PA,0.0},
+	     Y,{0.0,0.1,0.0},
+	     Y,{PB,PA,0.0},
+	     Y,{0.0,0.1,0.0}]
+    end.
 
 user_clipping_planes(on) ->
     case wings_wm:get_prop(clip_plane) of
