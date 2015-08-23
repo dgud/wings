@@ -529,9 +529,6 @@ misc_prefs() ->
       {vframe,
        [{hframe,
 	 workaround([
-		     {dummy_axis_letter,
-		      ?__(17,"Wings crashes if axes are turned off"),
-		      ?__(18,"Problem occurs on some Matrox cards")},
 		     {jumpy_camera,
 		      ?__(19,"Camera moves and interactive commands are jumpy"),
 		      ?__(20,"Problem occurs on Mac OS X 10.3 (Panther)")},

@@ -434,38 +434,10 @@ axis(I, Yon, Pos, Neg) ->
     gl:vertex3fv(B),
     gl:'end'().
 
-dummy_axis_letter() ->
-    %% Attempt to work around a crash occurring with Matrox cards.
-    MM = list_to_tuple(gl:getDoublev(?GL_MODELVIEW_MATRIX)),
-    PM = list_to_tuple(gl:getDoublev(?GL_PROJECTION_MATRIX)),
-    %% Since this is a workaround, we will do a real fetching
-    %% of the viewport (rather than wings_wm:viewport/0).
-    [X,Y,W,H|_] = gl:getIntegerv(?GL_VIEWPORT),
-    Viewport = {X,Y,W,H},
-    dummy_axis_letter(MM, PM, Viewport).
-
-dummy_axis_letter(_, _, {_,_,W,H}) ->
-    gl:matrixMode(?GL_PROJECTION),
-    gl:pushMatrix(),
-    gl:loadIdentity(),
-    glu:ortho2D(0.0, float(W), 0.0, float(H)),
-    gl:matrixMode(?GL_MODELVIEW),
-    gl:pushMatrix(),
-    gl:loadIdentity(),
-    wings_io:set_color(wings_pref:get_value(background_color)),
-    axis_text(10, 90, axisx),
-    gl:popMatrix(),
-    gl:matrixMode(?GL_PROJECTION),
-    gl:popMatrix(),
-    gl:matrixMode(?GL_MODELVIEW).
-
-axis_letters(TPM,TMM,Yon0) ->
+axis_letters(TPM, TMM, Yon0) ->
     case wings_wm:get_prop(show_axes) of
 	false ->
-	    case wings_pref:get_value(dummy_axis_letter) of
-		false -> ok;
-		true -> dummy_axis_letter()
-	    end;
+	    ok;
 	true ->
 	    PM = e3d_transform:matrix(TPM),
 	    MM = e3d_transform:matrix(TMM),
