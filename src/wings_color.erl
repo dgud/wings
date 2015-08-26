@@ -54,10 +54,13 @@ choose(Done0) ->
     choose(Color0, Done).
 
 choose(Color, Done) ->
-    choose(Color, Done, wings_pref:get_value(color_dialog_native)).
+    UseNative = wings_pref:get_value(color_dialog_native)
+	andalso tuple_size(Color) =:= 3,
+    choose(Color, Done, UseNative).
 
 choose(Color, Done, UseNative) ->
-    choose_1(Color, Done, UseNative).
+    NoOverride = tuple_size(Color) =/= 4,
+    choose_1(Color, Done, UseNative andalso NoOverride).
 
 share({Same,Same}) -> {Same,Same};
 share({_,_}=UV) -> UV;
