@@ -707,16 +707,23 @@ build_dialog(AskType, Title, Qs) ->
 		     wxPanel:setFont(Panel, ?GET(system_font_wx)),
 		     Top    = wxBoxSizer:new(?wxVERTICAL),
 		     Sizer  = wxBoxSizer:new(?wxVERTICAL),
-		     {DialogData, Fs} = build(AskType, Qs, Panel, Sizer),
-		     set_keyboard_focus(Dialog, Fs),
-		     wxWindow:setSizer(Panel, Sizer),
-		     wxSizer:add(Top, Panel, [{proportion, 1},
-					      {flag, ?wxEXPAND bor ?wxALL},
-					      {border, 5}]),
-		     setup_buttons(Dialog, Top, DialogData),
-		     wxWindow:setSizerAndFit(Dialog, Top),
-		     setup_hooks(DialogData),
-		     {Dialog, DialogData}
+		     try build(AskType, Qs, Panel, Sizer) of
+			 {DialogData, Fs} ->
+			     set_keyboard_focus(Dialog, Fs),
+			     wxWindow:setSizer(Panel, Sizer),
+			     wxSizer:add(Top, Panel, [{proportion, 1},
+						      {flag, ?wxEXPAND bor ?wxALL},
+						      {border, 5}]),
+			     setup_buttons(Dialog, Top, DialogData),
+			     wxWindow:setSizerAndFit(Dialog, Top),
+			     setup_hooks(DialogData),
+			     {Dialog, DialogData}
+		     catch Class:Reason ->
+			     %% Try to clean up
+			     reset_dialog_parent(Dialog),
+			     wxDialog:destroy(Dialog),
+			     erlang:raise(Class, Reason, erlang:get_stacktrace())
+		     end
 	     end).
 
 setup_buttons(Dialog, Top, {Table, Fields}) ->

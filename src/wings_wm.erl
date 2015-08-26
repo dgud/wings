@@ -1000,14 +1000,11 @@ default_object_event(Object) ->
 
 default_stack(Name) ->
     Handler = fun({crash,Crash}) ->
-		      StkTrace = erlang:get_stacktrace(),
-		      io:format("Window ~p crashed:\n~P\n~P\n",
-				[Name,Crash,20,StkTrace,40]),
-		      exit({window_crash,Name,Crash,StkTrace});
+		      wings_u:win_crash(Crash);
 		 (Other) ->
 		      io:format("Window ~p's crash handler got:\n~p\n",
 				[Name,Other]),
-		      exit({unexpected,Name,Other})
+		      delete
 	      end,
     [#se{h=Handler}].
 

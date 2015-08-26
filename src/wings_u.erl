@@ -102,9 +102,10 @@ crash_log(WinName, Reason, StackTrace) ->
     LogFileDir = log_file_dir(),
     LogName = filename:absname("wings_crash.dump", LogFileDir),
     F = open_log_file(LogName),
-    io:format(F, "Version: ~s\n", [?WINGS_VERSION]),
-    io:format(F, "Window: ~p\n", [WinName]),
-    io:format(F, "Reason: ~p\n\n", [Reason]),
+    io:format("Internal Error~n",[]),
+    [io:format(Fd, "Version: ~s\n", [?WINGS_VERSION]) || Fd <- [F, group_leader()]],
+    [io:format(Fd, "Window: ~p\n", [WinName])  || Fd <- [F, group_leader()]],
+    [io:format(Fd, "Reason: ~p\n\n", [Reason]) || Fd <- [F, group_leader()]],
     report_stacktrace(F, StackTrace),
     analyse(F, StackTrace),
     file:close(F),
@@ -115,6 +116,7 @@ report_stacktrace(F, [_|_]=StackTrace) ->
 				is_list(A) -> length(A);
 				true -> A
 			    end} || {M,N,A} <- StackTrace],
+    io:format("Stack trace:\n~P\n\n", [StackTrace, 20]),
     case ShortStackTrace =:= StackTrace of
 	false ->
 	    io:format(F, "Short stack trace:\n~p\n\n", [ShortStackTrace]),

@@ -315,9 +315,11 @@ main_loop_noredraw(St) ->
     {replace,fun(Event) -> handle_event(Event, St) end}.
 
 handle_event({crash,Crash}, St) ->
-    crash_logger(Crash, St);
+    crash_logger(Crash),
+    main_loop(St);
 handle_event({crash_in_other_window,LogName}, St) ->
-    get_crash_event(LogName, St);
+    crash_dialog(LogName),
+    main_loop(St);
 handle_event({open_file,Name}, St0) ->
     case catch ?SLOW(wings_ff_wings:import(Name, St0)) of
 	#st{}=St1 ->
@@ -1506,31 +1508,16 @@ do_use_command(#mousebutton{x=X,y=Y}, Cmd0, #st{sel=[]}=St0) ->
     end;
 do_use_command(_, Cmd, _) -> wings_wm:later({action,Cmd}).
 
-crash_logger(Crash, St) ->
+crash_logger(Crash) ->
     LogName = wings_u:crash_log(geom, Crash),
-    get_crash_event(LogName, St).
+    crash_dialog(LogName).
 
-get_crash_event(Log, St) ->
-    wings_wm:dirty(),
-    {replace,fun(Ev) -> crash_handler(Ev, Log, St) end}.
-
-crash_handler(redraw, Log, _St) ->
-    wings_wm:clear_background(),
-    wings_io:ortho_setup(),
-    wings_io:text_at(10, 2*?LINE_HEIGHT,
-             ?__(1,
-              "Internal error - log written to") ++
-             " " ++ Log),
-    wings_io:text_at(10, 4*?LINE_HEIGHT,
-             ?__(2,
-              "Click a mouse button to continue working")),
-    wings_msg:button(?__(3,"Continue working")),
-    keep;
-crash_handler(#mousebutton{}, _, St) ->
-    wings_wm:message(""),
-    main_loop(St);
-crash_handler(_, Log, St) ->
-    get_crash_event(Log, St).
+crash_dialog(LogName) ->
+    Parent = wings_dialog:get_dialog_parent(),
+    Str = ?__(1, "Internal error - log written to") ++ " " ++ LogName,
+    Dialog = wxMessageDialog:new(Parent, Str, [{caption,"Internal Error"}]),
+    wxMessageDialog:showModal(Dialog),
+    wings_dialog:reset_dialog_parent(Dialog).
 
 %%%
 %%% Drag & Drop.
