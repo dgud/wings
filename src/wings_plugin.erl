@@ -414,12 +414,20 @@ mk_dialog_1([{C,Ms}|Cs]) ->
 mk_dialog_1([]) -> [].
 
 plugin_modules(C, Ms) ->
-    {hframe,[{vframe,[{atom_to_list(M),member(M, get(wings_plugins)),
-		       [{key,M},
-			{info,?__(1,"Enable or disable this plug-in ")++
-			 ?__(2,"(a disbled plug-in does not show up in menus)")}]} ||
-			 M <- Ms]},
-	     {vframe,[plugin_info(C, M) || M <- Ms]}]}.
+    Ps = [{info,?__(1,"Enable or disable this plug-in ")++
+	       ?__(2,"(a disbled plug-in does not show up in menus)")},
+	  {proportion, 1}],
+    {vframe,
+     [{hframe, [{atom_to_list(M), member(M, get(wings_plugins)), [{key,M}|Ps]},
+		plugin_info(C,M)]}
+      || M <- Ms]}.
+
+plugin_info(C, M) ->
+    case plugin_info_1(C, M) of
+	panel -> panel;
+	{label, Str} -> {label, Str, [{proportion, 2}]}
+    end.
+
 
 cat_label(command) -> ?__(1,"Commands");
 cat_label(export_import) -> ?__(2,"Import/export");
@@ -474,22 +482,22 @@ try_menu([N|Ns], M, Category) ->
     end;
 try_menu([], _, _) -> next.
 
-plugin_info(export_import, M) -> export_import_info(M);
-plugin_info(render, M) -> export_import_info(M);
-plugin_info(command, M) ->
+plugin_info_1(export_import, M) -> export_import_info(M);
+plugin_info_1(render, M) -> export_import_info(M);
+plugin_info_1(command, M) ->
     Names = command_menus(),
     Menus = collect_menus(Names, M),
     plugin_menu_info(Menus);
-plugin_info(primitive, M) ->
+plugin_info_1(primitive, M) ->
     Menus = collect_menus([{shape},{shape}], M),
     plugin_menu_info(Menus);
-plugin_info(select, M) ->
+plugin_info_1(select, M) ->
     Menus = collect_menus([{select}], M),
     plugin_menu_info(Menus);
-plugin_info(tool, M) ->
+plugin_info_1(tool, M) ->
     Menus = collect_menus([{tools}], M),
     plugin_menu_info(Menus);
-plugin_info(_, _) -> panel.
+plugin_info_1(_, _) -> panel.
 
 export_import_info(M) ->
     case collect_menus([{file,import},{file,export},{file,render}], M) of
