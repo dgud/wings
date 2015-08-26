@@ -692,7 +692,7 @@ label_col({Label,Def}) -> {Label, {text,Def}};
 label_col({Label,Def,Flags}) -> {Label, {text,Def, Flags}}.
 
 build_dialog(false, _Title, Qs) ->
-    DialogData = build(false, Qs, undefined, undefined),
+    {DialogData,_} = build(false, Qs, undefined, undefined),
     {undefined, DialogData};
 build_dialog(AskType, Title, Qs) ->
     wx:batch(fun() ->
@@ -707,7 +707,8 @@ build_dialog(AskType, Title, Qs) ->
 		     wxPanel:setFont(Panel, ?GET(system_font_wx)),
 		     Top    = wxBoxSizer:new(?wxVERTICAL),
 		     Sizer  = wxBoxSizer:new(?wxVERTICAL),
-		     DialogData = build(AskType, Qs, Panel, Sizer),
+		     {DialogData, Fs} = build(AskType, Qs, Panel, Sizer),
+		     set_keyboard_focus(Dialog, Fs),
 		     wxWindow:setSizer(Panel, Sizer),
 		     wxSizer:add(Top, Panel, [{proportion, 1},
 					      {flag, ?wxEXPAND bor ?wxALL},
@@ -729,14 +730,24 @@ setup_buttons(Dialog, Top, {Table, Fields}) ->
 	    ok
     end.
 
+set_keyboard_focus(Dialog, Fields) ->
+    case lists:keyfind(text, #in.type, Fields) of
+	#in{wx=Ctrl} ->
+	    CB = fun(_, _) -> wxTextCtrl:setFocus(Ctrl) end,
+	    wxDialog:connect(Dialog, show, [{callback, CB}]),
+	    ok;
+	false ->
+	    ok
+    end.
+
 build(Ask, Qs, Parent, Sizer) ->
     Fields = build(Ask, Qs, Parent, Sizer, []),
     {Fs, _} = lists:mapfoldl(fun(In=#in{key=undefined},N) -> {In#in{key=N}, N+1};
 				(In=#in{}, N) -> {In, N+1}
-			     end, 1,Fields),
+			     end, 1, lists:reverse(Fields)),
     Table = ets:new(?MODULE, [{keypos, #in.key}, public]),
     true = ets:insert(Table, Fs),
-    {Table, lists:reverse([Key || #in{key=Key} <- Fs])}.
+    {{Table, [Key || #in{key=Key} <- Fs]}, Fs}.
 
 
 build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
