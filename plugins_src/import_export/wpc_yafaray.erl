@@ -593,20 +593,20 @@ menu_entry(_) ->
     [{?__(1,"YafaRay")++"...",?TAG}].
 
 command_file(render=Op, _St) ->
-    export_dialog(Op, ?__(2,"YafaRay Render Options"));
+    case get_var(rendering) of
+        false ->
+            export_dialog(Op, ?__(2,"YafaRay Render Options"));
+        true ->
+            wpa:error_msg(?__(1,"Already rendering."))
+    end;
 command_file(Op, _St) ->
     export_dialog(Op, ?__(3,"YafaRay Export Options")).
 
 command_file(render, Attr, St) when is_list(Attr) ->
     set_prefs(Attr),
-    case get_var(rendering) of
-        false ->
-            do_export(export,
-                      props(render, Attr),
-                      [{?TAG_RENDER,true}|Attr], St);
-        true ->
-            wpa:error(?__(1,"Already rendering."))
-    end;
+    do_export(export,
+              props(render, Attr),
+              [{?TAG_RENDER,true}|Attr], St);
 command_file(Op, Attr, St) when is_list(Attr) ->
     %% when Op =:= export; Op =:= export_selected
     set_prefs(Attr),
