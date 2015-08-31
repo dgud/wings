@@ -124,6 +124,9 @@ build_command(Name, Names, false) ->
 have_option_box(Ps) ->
     proplists:is_defined(option, Ps).
 
+have_color(Ps) ->
+    proplists:is_defined(color, Ps).
+
 have_magnet(Ps) ->
     proplists:is_defined(magnet, Ps).
 
@@ -387,13 +390,18 @@ setup_popup([{Desc, Name, Help, Props, HK}|Es], Id, Sizer, Sz = {Sz1,Sz2}, Paren
     wxSizer:add(Line, T2 = wxStaticText:new(Panel, Id, HK),  [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
     wxSizer:setItemMinSize(Line, T2, Sz2, -1),
     wxSizer:addSpacer(Line, 10),
-    BM = case OpBox = have_option_box(Props) of
-	     true ->
+    BM = case {OpBox = have_option_box(Props),have_color(Props)} of
+	     {true,_} ->
 		 Bitmap = wxArtProvider:getBitmap("wxART_LIST_VIEW",[{client, "wxART_MENU"}]),
-		 wxSizer:add(Line, SBM = wxStaticBitmap:new(Panel, Id+1, Bitmap),
-			     [{flag, ?wxALIGN_CENTER}]),
+		 SBM = wxStaticBitmap:new(Panel, Id+1, Bitmap),
+		 wxSizer:add(Line, SBM, [{flag, ?wxALIGN_CENTER}]),
 		 [SBM];
-	     false ->
+	     {false, true} ->
+		 {_,H} = wxWindow:getSize(T1),
+		 SBM = create_color_box(Id, Panel, H, Props),
+		 wxSizer:add(Line, SBM, [{flag, ?wxALIGN_CENTER}]),
+		 [SBM];
+	     {false, false} ->
 		 wxSizer:add(Line, 16, 16),
 		 []
 	 end,
@@ -408,6 +416,19 @@ setup_popup([{Desc, Name, Help, Props, HK}|Es], Id, Sizer, Sz = {Sz1,Sz2}, Paren
     Pop = #menu_pop{wxid=Id, type=menu, name=Name, opts=Props, msg=CmdMsg},
     setup_popup(Es, Id+2, Sizer, Sz, Parent,Magnet,[Pop#menu_pop{wxid=Id+1, type=opt},Pop|Acc]);
 setup_popup([], _, _, _, _, _, Acc) -> lists:reverse(Acc).
+
+create_color_box(Id, Panel, H, Props) ->
+    {R,G,B} = case wings_color:rgb3bv(proplists:get_value(color, Props)) of
+		  {R0,G0,B0} -> {R0,G0,B0};
+		  {R0,G0,B0,_} -> {R0,G0,B0}
+	      end,
+    Image = wxImage:new(1,1,<<R,G,B>>),
+    wxImage:rescale(Image,10,H-2),
+    Bitmap = wxBitmap:new(Image),
+    SBM = wxStaticBitmap:new(Panel, Id+1, Bitmap),
+    wxImage:destroy(Image),
+    wxBitmap:destroy(Bitmap),
+    SBM.
 
 menu_connect(Windows, Evs) ->
     [ [wxWindow:connect(Win, Ev) || Ev <- Evs] || Win <- Windows].
