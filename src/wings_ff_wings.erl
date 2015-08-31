@@ -80,7 +80,7 @@ import_vsn2(Shapes, Materials0, Props, Dir, St0) ->
     wings_pb:update(1.0,?__(2,"objects")),
     import_objects(Shapes, NameMap, St).
 
-import_vsn2_dlg(Shapes0, Materials0, Props4, Dir,
+import_vsn2_dlg(Shapes0, Materials0, Props5, Dir,
                 #st{selmode=Mode0,sel=Sel0,shapes=Shps0,mat=Mat0,ssels=Ssels0,views={_,Views0}}=St0) ->
     %% Current elements names
     {OldShpNames,OldLgtNames} = lists:foldr(
@@ -108,19 +108,19 @@ import_vsn2_dlg(Shapes0, Materials0, Props4, Dir,
                                 end, {0,0}, ObjInfo),
 
     %% getting Lights name
-    PrpLights = proplists:get_value(lights,Props4,[]),
+    PrpLights = proplists:get_value(lights,Props5,[]),
     LgtNames = [Name || {Name,_} <- PrpLights],
 
     %% getting Materials name
     MtlNames = [Name || {Name,_} <- Materials0]--[default],
 
     %% getting Views name
-    PrpViews1 = proplists:get_value(views,Props4,[]),
+    PrpViews1 = proplists:get_value(views,Props5,[]),
     VwsNames0 = [proplists:get_value(name,Fields) || {view, Fields} <- PrpViews1],
     VwsNames = VwsNames0 --["current_view"],
 
     %% getting Images name
-    PrpImages = proplists:get_value(images,Props4,[]),
+    PrpImages = proplists:get_value(images,Props5,[]),
     ImgNames = lists:foldr(fun({_Id,ImgProps}, Acc)->
                                  Status=case proplists:get_value(filename, ImgProps) of
                                             undefined -> "";
@@ -130,16 +130,19 @@ import_vsn2_dlg(Shapes0, Materials0, Props4, Dir,
                          end, [], PrpImages),
 
     %% getting Selection Groups names and ID
-    PrpSelGrp = get_sel_groups(Props4,[]),
+    PrpSelGrp = get_sel_groups(Props5,[]),
     SelGrNames = [{{{Mode,Name},Name ++" (" ++ atom_to_list(Mode) ++ ")"}} || {{_,Name},{Mode,_}} <- PrpSelGrp],
 
     %% getting Palettes
-    PrpPalette = proplists:get_value(palette,Props4,[]),
+    PrpPalette = proplists:get_value(palette,Props5,[]),
     %% getting Selections
-    PrpSel = proplists:get_value(selection,Props4,[]),
+    PrpSel = proplists:get_value(selection,Props5,[]),
+    %% getting Scene options for render plugins
+    PrpScenes = proplists:get_value(scene_prefs,Props5,[]),
 
     %% preparing the dialog
-    Qs = make_merge_dlg(ShpNames,LgtNames,MtlNames,ImgNames,SelGrNames,VwsNames,PrpPalette=/=[],PrpSel=/=[],Locked=/=0,Hidden=/=0),
+    Qs = make_merge_dlg(ShpNames,LgtNames,MtlNames,ImgNames,SelGrNames,VwsNames,
+                        PrpPalette=/=[],PrpSel=/=[],PrpScenes=/=[],Locked=/=0,Hidden=/=0),
     Fun=fun(Result) ->
                 wings_pb:start(?__(1,"processing merge options...")),
                 MrgObj=proplists:get_value({objects,mrg},Result),    % all/selected/none
@@ -149,6 +152,7 @@ import_vsn2_dlg(Shapes0, Materials0, Props4, Dir,
                 MrgSgr=proplists:get_value({selgroups,mrg},Result),  % used/none
                 MrgVws=proplists:get_value({views,mrg},Result),      % all/selected/none
                 MrgPlt=proplists:get_value(palette,Result),          % false/true
+                MrgScn=proplists:get_value(scene_pref,Result),       % false/true
                 NewSel=proplists:get_value(new_sel,Result),          % false/true
                 ObjOpt=proplists:get_value({objects,opt},Result),    % keep/delete
                 LgtOpt=proplists:get_value({lights,opt},Result),     % keep/delete
@@ -202,10 +206,10 @@ import_vsn2_dlg(Shapes0, Materials0, Props4, Dir,
 
                 Mtls = gb_trees:from_orddict(Mtls0),
                 Objs = replace_materials(RMtls,Unlock,Unhide,Objs1),
-                Props3 = proplists:delete(lights, Props4)++[{lights,Lgts}],
+                Props4 = proplists:delete(lights, Props5)++[{lights,Lgts}],
 
                 %% processing Images lists in accord with the user choice
-                Props2 =
+                Props3 =
                     case MrgImg of
                         used ->
                             UsedImg0=
@@ -221,13 +225,13 @@ import_vsn2_dlg(Shapes0, Materials0, Props4, Dir,
                                 gb_sets:fold(fun(Id, Acc) ->
                                                      Acc++[{Id,proplists:get_value(Id,PrpImages)}]
                                              end, [], UsedImg0),
-                            proplists:delete(images, Props3)++[{images,Images}];
+                            proplists:delete(images, Props4)++[{images,Images}];
                         _ ->
-                            merge_prop({images,MrgImg}, Props3)
+                            merge_prop({images,MrgImg}, Props4)
                     end,
 
                 %% processing Views lists in accord with the user choice
-                Props1 =
+                Props2 =
                     if MrgVws=/=none ->
                         %% we need to remove the current_view from the elements list here,
                         %% since it was not present in the names table for selection
@@ -243,26 +247,35 @@ import_vsn2_dlg(Shapes0, Materials0, Props4, Dir,
                             lists:foldl(fun process_view/2,
                                         {{MrgVws,VwsOpt},[],Views,VwsChkNames,[]}, tuple_to_list(Views0)),
                         Vws = list_to_tuple(Vws0),
-                        proplists:delete(views,Props2)++[{views,NVws}];
+                        proplists:delete(views,Props3)++[{views,NVws}];
                     true ->
                         Vws = Views0,
-                        proplists:delete(views,Props2)
+                        proplists:delete(views,Props3)
                     end,
 
                 %% processing Selection Groups lists in accord with the user choice
-                Props0 =
+                Props1 =
                     if MrgSgr=/=none ->
                             PrpSelGrp0 = used_selgroup_list(Result,PrpSelGrp,Shapes0),
                             {SelGrp,SgrChkNames}=prepare_items_list(selgroups,Result,PrpSelGrp0,OldSelGroups),
                             {_,_,NSgr,_,_RSgr}=
                                 lists:foldr(fun process_selgroup/2,
                                             {MrgSgr,[],SelGrp,SgrChkNames,[]},SelGrp),
-                            remove_selgroups(Props1)++NSgr;
+                            remove_selgroups(Props2)++NSgr;
                         true ->
-                            remove_selgroups(Props1)
+                            remove_selgroups(Props2)
                     end,
 
-                Props = merge_prop({palette,MrgPlt}, Props0),
+                Props0 =
+                    if MrgPlt=:=false ->
+                            proplists:delete(palette,Props1);
+                        true -> Props1
+                    end,
+                Props =
+                    if MrgScn=:=false ->
+                            proplists:delete(scene_prefs,Props0);
+                        true -> Props0
+                    end,
 
                 wings_pb:update(0.8, ?__(3,"converting binary")),
                 #st{shapes=NewShps} = St2 =
@@ -550,7 +563,7 @@ get_table_names(Key, List0)->
         _ -> undefined
     end.
 
-make_merge_dlg(Obj, Lgt, Mtl, Img, SGr, Vws, Plt, Sel, Locked, Hidden) ->
+make_merge_dlg(Obj, Lgt, Mtl, Img, SGr, Vws, Plt, Sel, Scn, Locked, Hidden) ->
     [
         {vframe, [
             {vframe,[
@@ -562,12 +575,15 @@ make_merge_dlg(Obj, Lgt, Mtl, Img, SGr, Vws, Plt, Sel, Locked, Hidden) ->
                         make_dlg_item(?__(5,"Selection Groups"),SGr,SGr=/=[],selgroups) ++
                         make_dlg_item(?__(6,"Saved Views"),Vws,Vws=/=[],views),
                     1, [{style, buttons}]},
-                {hframe, [
-                    {?__(7,"Unlock locked elements"),false, [{key, unlock},{hook,dlg_hook_enable(Locked)}]},
-                    panel,
-                    {?__(8,"Unhide hidden elements"),false, [{key, unhide},{hook,dlg_hook_enable(Hidden)}]},
-                    panel,
-                    {?__(9,"Merge Palette"),Plt, [{key, palette},{hook,dlg_hook_enable(Plt)}]}
+                {hframe,[
+                    {vframe, [
+                        {?__(7,"Unlock locked elements"),false, [{key, unlock},{hook,dlg_hook_enable(Locked)}]},
+                        {?__(9,"Merge Palette"),Plt, [{key, palette},{hook,dlg_hook_enable(Plt)}]}
+                    ]},
+                    {vframe, [
+                        {?__(8,"Unhide hidden elements"),false, [{key, unhide},{hook,dlg_hook_enable(Hidden)}]},
+                        {?__(17,"Merge render settings"),Scn, [{key, scene_pref},{hook,dlg_hook_enable(Scn)}]}
+                    ]}
                 ]}
             ],[{margin,false}]},
             {vframe,[

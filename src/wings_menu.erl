@@ -124,6 +124,9 @@ build_command(Name, Names, false) ->
 have_option_box(Ps) ->
     proplists:is_defined(option, Ps).
 
+have_color(Ps) ->
+    proplists:is_defined(color, Ps).
+
 have_magnet(Ps) ->
     proplists:is_defined(magnet, Ps).
 
@@ -394,8 +397,23 @@ setup_popup([{Desc, Name, Help, Props, HK}|Es], Id, Sizer, Sz = {Sz1,Sz2}, Paren
 			     [{flag, ?wxALIGN_CENTER}]),
 		 [SBM];
 	     false ->
-		 wxSizer:add(Line, 16, 16),
-		 []
+                 case have_color(Props) of
+                     true ->
+                         {_,H} = wxWindow:getSize(T1),
+                         {R,G,B} = case wings_color:rgb3bv(proplists:get_value(color, Props)) of
+                                       {R0,G0,B0} -> {R0,G0,B0};
+                                       {R0,G0,B0,_} -> {R0,G0,B0}
+                                   end,
+                         Image0 = wxImage:new(1,1,<<R,G,B>>),
+                         Image = wxImage:rescale(Image0,10,H-2),
+                         Bitmap = wxBitmap:new(Image),
+                         wxSizer:add(Line, SBM = wxStaticBitmap:new(Panel, Id+1, Bitmap),
+                             [{flag, ?wxALIGN_CENTER}]),
+                         [SBM];
+                     false ->
+                         wxSizer:add(Line, 16, 16),
+                         []
+                 end
 	 end,
     wxSizer:addSpacer(Line, 3),
     %% Windows doesn't catch enter_window on Panel below statictext
