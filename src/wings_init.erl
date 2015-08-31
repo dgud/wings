@@ -108,6 +108,7 @@ setup_std_events(Canvas) ->
     wxWindow:connect(Canvas, left_down),
     wxWindow:connect(Canvas, middle_up),
     wxWindow:connect(Canvas, middle_down),
+    wxWindow:connect(Canvas, left_dclick),
     wxWindow:connect(Canvas, right_up),
     wxWindow:connect(Canvas, right_down),
     wxWindow:connect(Canvas, mousewheel),

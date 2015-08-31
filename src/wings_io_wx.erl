@@ -432,6 +432,10 @@ sdl_mouse(M=#wxMouse{type=Type,
 	right_up ->
 	    #mousebutton{button=?SDL_BUTTON_RIGHT, state=?SDL_RELEASED,
 			 which=0, mod=ModState, x=X,y=Y};
+	left_dclick ->
+	    #mousebutton{button=?SDL_BUTTON_LEFT, state=?SDL_PRESSED,
+			 which=0, mod=ModState, x=X,y=Y};
+
 	mousewheel ->
 	    Butt = case Wheel > 0 of
 		       true -> ?SDL_BUTTON_X1;
