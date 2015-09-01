@@ -490,6 +490,7 @@ handle_event_3(got_focus, _) ->
     info_line(),
     keep;
 handle_event_3(lost_focus, _) -> keep;
+handle_event_3(grab_lost, _) -> keep;
 handle_event_3({note,menu_aborted}, St) ->
     main_loop(clear_temp_sel(St));
 handle_event_3({note,_}, _) ->
