@@ -1055,8 +1055,11 @@ build(Ask, {button, Label, Action, Flags}, Parent, Sizer, In) ->
 
     Hook = case Action of
 	       done ->
+		   UserHook = proplists:get_value(hook, Flags),
 		   fun(Key, button_pressed, Store) ->
-			   wings_dialog:set_value(Key, true, Store)
+			   wings_dialog:set_value(Key, true, Store),
+			   UserHook == undefined orelse
+			       UserHook(Key, button_pressed, Store)
 		   end;
 	       _ ->
 		   proplists:get_value(hook, Flags)

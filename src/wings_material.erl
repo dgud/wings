@@ -459,7 +459,7 @@ apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
 	end,
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_DIFFUSE, prop_get(diffuse, OpenGL)),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_AMBIENT, prop_get(ambient, OpenGL)),
-    apply_texture(prop_get(diffuse, Maps, none)),    
+    apply_texture(prop_get(diffuse, Maps, false)),
     apply_normal_map(get_normal_map(Maps0)),  %% Combine with vertex colors
     DeApply.
 
@@ -477,7 +477,7 @@ shader_texture(What, Enable) ->
 	    ok
     end.
 
-apply_texture(none) -> no_texture();
+apply_texture(false) -> no_texture();
 apply_texture(Image) ->
     case wings_pref:get_value(show_textures) of
 	false -> no_texture();
@@ -652,7 +652,6 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     {Spec0,_} = ask_prop_get(specular, OpenGL0),
     Shine0 = prop_get(shininess, OpenGL0),
     {Emiss0,_} = ask_prop_get(emission, OpenGL0),
-    Maps0 = show_maps(Mat0),
     Preview = fun(GLCanvas, Fields) ->
 		      mat_preview(GLCanvas,Fields,prop_get(maps,Mat0))
 	      end,
@@ -661,10 +660,8 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 		      wxWindow:refresh(GLCanvas)
 	      end,
     RHook = {hook, Refresh},
-    %% Hook = {hook,fun(is_disabled, {_Var,_I,Sto}) ->
-    %% 			 gb_trees:get(vertex_colors, Sto) == set;
-    %% 		    (_, _) -> void
-    %% 		 end},
+    Maps0 = show_maps(Mat0, Refresh),
+
     AnyTexture = has_texture(Mat0),
     VtxColMenu = vertex_color_menu(AnyTexture, VertexColors0),
     Qs1 = {vframe,
@@ -751,27 +748,39 @@ update_maps_1([false|More], [M|Maps], Acc) ->
     update_maps_1(More, Maps, [M|Acc]);
 update_maps_1([true|More], [_|Maps], Acc) ->
     update_maps_1(More, Maps, Acc);
+update_maps_1([{diffuse_tex, _}|More], Maps, Acc) ->
+    update_maps_1(More, Maps, Acc);
 update_maps_1(More, [], Acc) -> {Acc,More}.
 
-show_maps(Mat) ->
+show_maps(Mat, Refresh) ->
     case prop_get(maps, Mat) of
 	[] -> [];
 	Maps ->
-	    MapDisp = [show_map(M) || M <- sort(Maps)],
+	    MapDisp = [show_map(M, Refresh) || M <- sort(Maps)],
 	    [{vframe,MapDisp,[{title,?__(1,"Textures")}]}]
     end.
 
-show_map({Type,Image}) ->
-    Texture = 
+show_map({Type,Image}, Refresh) ->
+    Texture =
 	case wings_image:info(Image) of
 	    none ->
 		[{label,flatten(io_lib:format(?__(1,"~p: <image deleted>"), [Type]))}];
 	    #e3d_image{name=Name,width=W,height=H,bytes_pp=PP} ->
+		Hook = fun(Key, button_pressed, Store) ->
+			       Refresh(Key, button_pressed, Store),
+			       Type =:= diffuse andalso
+				   wings_dialog:set_value(diffuse_tex, false, Store),
+			       wings_dialog:show({texture, Image}, false, Store)
+		       end,
 		Label = flatten(io_lib:format(?__(2,"~p: ~p [~px~px~p]"),
 					      [Type,Name,W,H,PP*8])),
-		[{label, Label},{button,?__(3,"Delete"),done}]
+		Value = case Type of
+			    diffuse -> [{value, true, [{key, diffuse_tex}]}];
+			    _ -> []
+			end,
+		[{label, Label},{button,?__(3,"Delete"), done, [{hook, Hook}]}|Value]
 	end,
-    {hframe, Texture}.
+    {hframe, Texture, [{key, {texture, Image}}]}.
 
 ask_prop_get(Key, Props) ->
     {R,G,B,Alpha} = prop_get(Key, Props),
@@ -818,7 +827,10 @@ mat_preview(Canvas, Common, Maps) ->
     Obj = glu:newQuadric(),
     glu:quadricDrawStyle(Obj, ?GLU_FILL),
     glu:quadricNormals(Obj, ?GLU_SMOOTH),
-    case apply_texture(prop_get(diffuse, Maps, none)) of
+    UseDiffTex = try wings_dialog:get_value(diffuse_tex, Common)
+		 catch _:_ -> false
+		 end,
+    case apply_texture(UseDiffTex andalso prop_get(diffuse, Maps, false)) of
 	true ->
 	    glu:quadricTexture(Obj, ?GLU_TRUE);
 	false ->
