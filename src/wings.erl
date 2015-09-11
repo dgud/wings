@@ -180,7 +180,7 @@ minor_gl_version() ->
     case ets:lookup(wings_gl_ext, version) of
 	[{_,VerTuple}] when VerTuple < Req ->
 	    fatal("Wings3D requires OpenGL ~p.~p or higher.",
-		  [Minor,Major]);
+		  [Major,Minor]);
 	_ ->
 	    ok
     end.
