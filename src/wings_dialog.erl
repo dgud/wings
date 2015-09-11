@@ -1517,6 +1517,8 @@ text_to_html([{bullet, List}|Rest], Acc) ->
     text_to_html(Rest, [BulletList|Acc]);
 text_to_html([], Acc) -> Acc.
 
+paragraph_to_html([$\n|Text]) ->
+    ["<br>",paragraph_to_html(Text)];
 paragraph_to_html([C|Text]) when is_integer(C) ->
     [C|paragraph_to_html(Text)];
 paragraph_to_html([{bold, Text}|Rest]) ->
