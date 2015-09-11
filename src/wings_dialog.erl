@@ -1381,7 +1381,7 @@ create_slider(Ask, Def, Flags, {MaxSize,Validator}, Parent, TopSizer) when is_nu
     PreviewFun = notify_event_handler(Ask, preview),
     UpdateText = fun(#wx{event=#wxCommand{commandInt=Where}}, _) ->
 			 PreviewFun(),
-			 wxTextCtrl:setValue(Text, to_str(ToText(Where)))
+			 wxTextCtrl:changeValue(Text, to_str(ToText(Where)))
 		 end,
     wxSlider:connect(Slider, command_slider_updated, [{callback, UpdateText}]),
     UpdateTextWheel = fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, _) ->
@@ -1389,7 +1389,8 @@ create_slider(Ask, Def, Flags, {MaxSize,Validator}, Parent, TopSizer) when is_nu
 			  case Validator(Str) of
 			      {true, Val} ->
 				  PreviewFun(),
-				  wxTextCtrl:setValue(Text, to_str(Val));
+				  wxSlider:setValue(Slider, ToSlider(Val)),
+				  wxTextCtrl:changeValue(Text, to_str(Val));
 			      _ ->
 				  ignore
 			  end
