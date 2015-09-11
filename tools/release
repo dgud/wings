@@ -1,0 +1,283 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+%%
+%%  release --
+%%
+%%     Release wings into the given target directory.
+%%
+%%  Copyright (c) 2014 Bjorn Gustavsson
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+-mode(compile).
+-include_lib("kernel/include/file.hrl").
+
+%% Change these when compiler version is changed on windows
+-define(WIN32_VCREDIST_VERSION, "10.00.30319.1").
+-define(WIN64_VCREDIST_VERSION, "10.00.30319.1").
+
+main(_) ->
+    try
+	release(),
+	init:stop(0)
+    catch
+	throw:{fatal,Reason} ->
+	    io:put_chars(Reason),
+	    init:stop(1);
+	Class:Error ->
+	    Stk = erlang:get_stacktrace(),
+	    io:format("~p:~p in ~p\n", [Class,Error,Stk]),
+	    init:stop(2)
+    end.
+
+release() ->
+    ok = file:set_cwd(code:lib_dir(wings)),
+    WingsVsn = get_vsn("vsn.mk", "WINGS_VSN"),
+    Build = filename:absname("build"),
+    run("rm", ["-rf",Build]),
+    _ = file:make_dir(Build),
+    case filelib:wildcard(filename:join(Build, "*")) of
+	[] ->
+	    ok;
+	[_|_] ->
+	    fatal("Directory \"~s\" is not empty\n", [Build])
+    end,
+    case os:type() of
+	{unix,darwin} ->
+	    mac_release(Build, WingsVsn);
+	{unix,_} ->
+	    unix_release(Build, WingsVsn);
+	{win32,nt} ->
+	    win_release(Build, WingsVsn)
+    end.
+
+mac_release(BuildRoot, WingsVsn) ->
+    MacDir = filename:join(code:lib_dir(wings), "macosx"),
+    AppName = "Wings3D",
+    Root = filename:join(BuildRoot, AppName++".app"),
+    Contents = filename:join(Root, "Contents"),
+    Resources = filename:join(Contents, "Resources"),
+    Script = filename:join([Contents,"MacOS","Wings3D"]),
+    ok = filelib:ensure_dir(Script),
+    {ok,_} = file:copy(filename:join(MacDir, "Wings3D.sh"), Script),
+    ok = file:write_file_info(Script, #file_info{mode=8#555}),
+    ok = file:set_cwd(MacDir),
+    copy("Info.plist", Contents),
+    ResourceFiles = ["wings3d.icns","wings_doc.icns"],
+    [copy(F, Resources) || F <- ResourceFiles],
+    copy("InfoPlist.strings", filename:join(Resources, "English.lproj")),
+    release_otp(Resources),
+    run("codesign", ["-s","Developer ID",Root]),
+    ok = file:set_cwd(code:lib_dir(wings)),
+    MakeDmg = filename:join([code:lib_dir(wings),"macosx","make_dmg"]),
+    run(MakeDmg, ["wings-"++WingsVsn++"-macosx.dmg",Root,"Wings3D "++WingsVsn++".app"]),
+    ok.
+
+unix_release(BuildRoot, WingsVsn) ->
+    UnixDir = filename:join(code:lib_dir(wings), "unix"),
+    {unix,Flavor} = os:type(),
+    Name = "wings-" ++ WingsVsn ++ "-" ++ atom_to_list(Flavor),
+    Root = filename:join(BuildRoot, Name),
+    release_otp(Root),
+    ok = file:set_cwd(UnixDir),
+    copy("wings.appdata.xml", Root),
+
+    {ok,Install0} = file:read_file(filename:join(UnixDir, "install_wings.src")),
+    Install = re:replace(Install0, "%WINGS_VSN%", WingsVsn, [global]),
+    Installer = filename:join(Root, "install_wings"),
+    ok = file:write_file(Installer, Install),
+    ok = file:write_file_info(Installer, #file_info{mode=8#555}),
+    MakeSelf = filename:join(UnixDir, "makeself.sh"),
+    ok = file:set_cwd(code:lib_dir(wings)),
+    run(MakeSelf, ["--bzip2",Root,Name++".bzip2.run","Wings3D",
+		   "./install_wings",WingsVsn]),
+    ok.
+
+win_release(Root, WingsVsn) ->
+    release_otp(Root),
+    BitSize = erlang:system_info(wordsize)*8,
+    VcVersion = setup_vcredist(BitSize, Root),
+    WinDir = filename:join(code:lib_dir(wings), "win32"),
+    ok = file:set_cwd(WinDir),
+    WinFiles = [nsi_file(BitSize), "Wings3D.exe", "wings.ico",
+		"install.ico", "uninstall.ico"],
+    [copy(File, Root) || File <- WinFiles],
+    ok = file:set_cwd(Root),
+    run(makensis, ["/DREDIST_DLL_VERSION="++VcVersion,
+		   "/DWINGS_VERSION="++WingsVsn,
+		   nsi_file(BitSize)]),
+    ok.
+
+setup_vcredist(BitSize, Root) ->
+    VCRedist = os:getenv("WINGS_VCREDIST"),
+    (VCRedist == false) andalso fatal("No WINGS_VCREDIST in env", []),
+    (ok == file:set_cwd(filename:dirname(VCRedist))) orelse
+	fatal("dirname(WINGS_VCREDIST) failed: ~ts~n",[VCRedist]),
+    case BitSize of
+	32 ->
+	    copy("vcredist_x86.exe", Root),
+	    ?WIN32_VCREDIST_VERSION;
+	64 ->
+	    copy("vcredist_x64.exe", Root),
+	    ?WIN64_VCREDIST_VERSION
+    end.
+
+nsi_file(32) -> "wings.nsi";
+nsi_file(64) -> "wings64.nsi".
+
+release_otp(TargetDir0) ->
+    TargetDir = filename:absname(TargetDir0),
+    Lib = filename:join(TargetDir, "lib"),
+    [copy_app(App, Lib) || App <- wings_apps()],
+    copy_erts(TargetDir),
+    ok.
+
+copy_erts(TargetDir) ->
+    Files = case os:type() of
+		{unix,_} ->
+		    %% Do not copy to erts-VSN/bin, then the start scripts must find
+		    %% erts-VSN in start script
+		    {["beam.smp","child_setup","erlexec","inet_gethost"], []};
+		{win32,nt} ->
+		    %% To get Windows working without install, erts-VSN must exist
+		    {["erl.exe", "werl.exe"],
+		     ["erlexec.dll", "beam.smp.dll","inet_gethost.exe"]}
+	    end,
+    copy_erts(TargetDir, Files).
+
+copy_erts(TargetDir, {BinExecFiles, ErtsExecFiles}) ->
+    ErtsPath0 = filename:join([code:root_dir(),"erts-*"]),
+    ErtsPath  = filelib:wildcard(ErtsPath0),
+
+    %% Hard code erts version 0 so that we do not need to figure 
+    %% that out in installer package
+    TargetBin = filename:join(TargetDir, "bin"),
+    TargetErts = filename:join([TargetDir, "erts-0", "bin"]),
+
+    ok = file:set_cwd(filename:join(ErtsPath, "bin")),
+    %% To WINGS/erts-0/bin
+    [copy(File, TargetErts) || File <- ErtsExecFiles],
+    %% To WINGS/bin
+    [copy(File, TargetBin) || File <- BinExecFiles],
+    ok = file:set_cwd(filename:join(code:root_dir(), "bin")),
+    copy("start.boot", TargetBin),
+    ok.
+
+copy_app(App0, Lib) ->
+    AppDir = code:lib_dir(App0),
+    ok = file:set_cwd(AppDir),
+    ok = file:set_cwd(".."),
+    App = list_to_atom(filename:basename(AppDir)),
+    Wcs = [["ebin","*.{beam,bundle,png,lang}"],
+	   ["plugins","**","*.{beam,so,dll,lang}"],
+	   ["plugins","autouv","*.{auv,fs}"],
+	   ["priv","*.{so,dll}"],
+	   ["shaders","*"],
+	   ["textures","*"]
+	  ],
+    Files = lists:foldl(fun(Wc0, Acc) ->
+				Wc = filename:join([App|Wc0]),
+				Res = filelib:wildcard(Wc) ++ Acc,
+				Res
+			end, [], Wcs),
+    _ = [copy(File, Lib) || File <- Files],
+    fix_app_version(App0, Lib),
+    ok.
+
+copy(Source, Target0) ->
+    Target = filename:join(Target0, Source),
+    ok = filelib:ensure_dir(Target),
+    try
+	case filename:extension(Source) of
+	    ".beam" ->
+		{ok,Beam} = file:read_file(Source),
+		{ok,{_,Stripped}} = beam_lib:strip(Beam),
+		ok = file:write_file(Target, Stripped),
+		%% Only allow read access.
+		ok = file:write_file_info(Target, #file_info{mode=8#444});
+	    _ ->
+		%% Could be an executable file. Make sure that we preserve
+		%% the execution bit. Always turn off the write bit.
+		{ok,_} = file:copy(Source, Target),
+		{ok,#file_info{mode=Mode}=Info0} = file:read_file_info(Source),
+		Info = Info0#file_info{mode=Mode band 8#555},
+		ok = file:write_file_info(Target, Info),
+		case Mode band 8#111 of
+		    0 ->
+			ok;
+		    _ ->
+			%% Strip all executable files.
+			strip(Target)
+		end
+	end
+    catch error:Reason ->
+	    fatal("failed: copy ~ts ~ts~n\t with: ~p~n",[Source, Target, Reason])
+    end,
+    ok.
+
+fix_app_version(App0, Lib) ->
+    AppDir = code:lib_dir(App0),
+    App = atom_to_list(App0),
+    case filename:basename(AppDir) of
+	App ->
+	    VsnVar = string:to_upper(App) ++ "_VSN",
+	    Vsn = get_vsn(filename:join(AppDir, "vsn.mk"), VsnVar),
+	    ok = file:set_cwd(Lib),
+	    case file:rename(App, App++"-"++Vsn) of
+		ok -> ok;
+		Error ->
+		    io:format("ERROR: cd ~p~n  ~p => ~p ~n", 
+			      [Lib, App, App++"-"++Vsn]),
+		    error(Error)
+	    end;
+	_ ->
+	    ok
+    end.
+
+strip(File) ->
+    case os:type() of
+	{unix,darwin} ->
+	    os:cmd("strip -S " ++ File);
+	{unix,linux} ->
+	    os:cmd("strip --strip-debug --strip-unneeded " ++ File);
+	_ ->
+	    ok
+    end.
+
+get_vsn(VsnFile, VsnVar) ->
+    {ok,Bin} = file:read_file(VsnFile),
+    Re = "^" ++ VsnVar ++ "\\s*=\\s*(\\S+)\\s*$",
+    {match,[Vsn]} = re:run(Bin, Re, [multiline,{capture,all_but_first,binary}]),
+    binary_to_list(Vsn).
+
+run(Prog0, Args) ->
+    Prog = case os:find_executable(Prog0) of
+	       false ->
+		   fatal("~s not found (or not in $path)", [Prog0]);
+	       Path ->
+		   Path
+	   end,
+    P = open_port({spawn_executable,Prog},
+		  [{args,Args},binary,in,eof]),
+    get_data(P).
+
+get_data(Port) ->
+    get_data(Port, <<>>).
+
+get_data(Port, Sofar) ->
+    receive
+	{Port,eof} ->
+	    erlang:port_close(Port),
+	    Sofar;
+	{Port,{data,Bytes}} ->
+	    get_data(Port, <<Sofar/binary,Bytes/binary>>);
+	{'EXIT',Port, _} ->
+	    Sofar
+    end.
+
+wings_apps() ->
+    [cl,kernel,stdlib,wings,wx,xmerl].
+
+fatal(Format, Args) ->
+    throw({fatal,["release: "|io_lib:format(Format, Args)]}).

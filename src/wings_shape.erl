@@ -220,7 +220,7 @@ window(St) ->
 
 window({_,Client}=Name, Pos, Size, Ps, St) ->
     Title = title(Client),
-    Ost = #ost{first=0,lh=18,active=-1},
+    Ost = #ost{first=0,lh=max(18, ?LINE_HEIGHT),active=-1},
     Current = {current_state,St},
     Op = {seq,push,event(Current, Ost)},
     Props = [{display_lists,geom_display_lists}],
@@ -781,7 +781,7 @@ toggle_wire_folder(#we{id=Id0,pst=WePst}, #ost{st=#st{pst=Pst0}=St}) ->
 do_menu(-1, X, Y, _) ->
     Menu =
         [{?__(7,"Create Folder"),menu_cmd(create_folder)},
-         {?__(15,"Remove Selected From Folders"),
+         {?__(16,"Remove Selected From Folders"),
              menu_cmd(move_to_folder, ?NO_FLD)}],
     wings_menu:popup_menu(X, Y, objects, Menu);
 do_menu(Act, X, Y, #ost{os=Objs}) ->
@@ -789,7 +789,7 @@ do_menu(Act, X, Y, #ost{os=Objs}) ->
         {_,#we{id=Id,pst=Pst}} ->
             RF = case gb_trees:get(?FOLDERS, Pst) of
                 ?NO_FLD -> [];
-                _ -> [{?__(14,"Remove From Folder"),menu_cmd(remove_from_folder, Id)}]
+                _ -> [{?__(17,"Remove From Folder"),menu_cmd(remove_from_folder, Id)}]
             end,
             [{?STR(do_menu,1,"Duplicate"),menu_cmd(duplicate_object, Id),
               ?STR(do_menu,2,"Duplicate selected objects")},
@@ -861,11 +861,11 @@ draw_objects_1(N, [{_,#we{name=Name,pst=Pst}}|Wes], #ost{lh=Lh}=Ost, R, Active, 
     if
     Active =:= 0 ->
       gl:color3f(0, 0, 0.5),
-      gl:recti(NamePos-2, Y-?CHAR_HEIGHT, R-2, Y+4),
+      gl:recti(NamePos-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
       gl:color3f(1, 1, 1);
     true -> ok
     end,
-    wings_io:text_at(NamePos, Y, Name),
+    wings_io:text_at(NamePos, Y+2, Name),
     gl:color3b(0, 0, 0),
     draw_objects_1(N-1, Wes, Ost, R, Active-1, Y+Lh);
 draw_objects_1(N, [Folder|Wes], #ost{st=St,lh=Lh}=Ost, R, Active, Y) ->
@@ -873,12 +873,12 @@ draw_objects_1(N, [Folder|Wes], #ost{st=St,lh=Lh}=Ost, R, Active, Y) ->
     if
     Active =:= 0 ->
       gl:color3f(0, 0, 0.5),
-      gl:recti(NamePos-2, Y-?CHAR_HEIGHT, R-2, Y+4),
+      gl:recti(NamePos-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
       gl:color3f(1, 1, 1);
     true -> ok
     end,
     FolderInfo = folder_info(Folder, St),
-    wings_io:text_at(NamePos, Y, Folder++FolderInfo),
+    wings_io:text_at(NamePos, Y+2, Folder++FolderInfo),
     gl:color3b(0, 0, 0),
     draw_objects_1(N-1, Wes, Ost, R, Active-1, Y+Lh).
 
@@ -889,12 +889,12 @@ draw_bitmap_objects_1(N, [{_,#we{name=Name,pst=Pst}}|Wes], #ost{lh=Lh}=Ost, R, A
     if
     Active =:= 0 ->
       gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
-      gl:recti(NamePos-2, Y-?CHAR_HEIGHT, R-2, Y+4),
+      gl:recti(NamePos-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
       gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
     true ->
       gl:color3fv(wings_pref:get_value(outliner_geograph_text))
     end,
-    wings_io:text_at(NamePos, Y, Name),
+    wings_io:text_at(NamePos, Y+2, Name),
     gl:color3b(0, 0, 0),
     draw_bitmap_objects_1(N-1, Wes, Ost, R, Active-1, Y+Lh);
 draw_bitmap_objects_1(N, [Folder|Wes], #ost{st=St,lh=Lh}=Ost, R, Active, Y) ->
@@ -902,13 +902,13 @@ draw_bitmap_objects_1(N, [Folder|Wes], #ost{st=St,lh=Lh}=Ost, R, Active, Y) ->
     if
     Active =:= 0 ->
       gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
-      gl:recti(NamePos-2, Y-?CHAR_HEIGHT, R-2, Y+4),
+      gl:recti(NamePos-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
       gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
     true ->
       gl:color3fv(wings_pref:get_value(outliner_geograph_text))
     end,
     FolderInfo = folder_info(Folder, St),
-    wings_io:text_at(NamePos, Y, Folder++FolderInfo),
+    wings_io:text_at(NamePos, Y+2, Folder++FolderInfo),
     gl:color3b(0, 0, 0),
     draw_bitmap_objects_1(N-1, Wes, Ost, R, Active-1, Y+Lh).
 
@@ -937,7 +937,8 @@ draw_icons_1({_,#we{id=Id,perm=Perm,pst=Pst}=We},{N,#ost{sel=Sel,lh=Lh}=Ost,
     LockPos = lock_pos(),
     SelPos = sel_pos(Folder),
     WirePos = wire_pos(),
-    IconY = Y - 14,
+    Center = (Lh-16) div 2 + 4,
+    IconY = Y - Center - 8,
     Wire = gb_sets:is_member(Id, Wires),
     if
       Perm =:= 1; Perm =:= 3 ->
@@ -971,7 +972,8 @@ draw_icons_1({_,#we{id=Id,perm=Perm,pst=Pst}=We},{N,#ost{sel=Sel,lh=Lh}=Ost,
 draw_icons_1(Folder, {N,#ost{st=#st{sel=Sel,pst=Pst}=St,lh=Lh}=Ost,
   R,Active,Y,Wires}) when is_list(Folder)->
     FolderPos = folder_pos(),
-    IconY = Y - 13,
+    Center = (Lh-16) div 2 + 4,
+    IconY = Y - Center - 8,
     {_,Fld} = gb_trees:get(?FOLDERS, Pst),
     {_,Ids} = orddict:fetch(Folder, Fld),
     SelIds = gb_sets:from_list(orddict:fetch_keys(Sel)),
@@ -995,7 +997,8 @@ draw_bitmap_icons(_, done) -> done;
 draw_bitmap_icons(_, {0,_,_,_,_,_}) -> done;
 draw_bitmap_icons({_,#we{id=Id,perm=Perm,pst=Pst}=We}, {N,#ost{sel=Sel,lh=Lh}=Ost,
   R,Active,Y0,Wires}) ->
-    Y = Y0+2,
+    Center = (Lh-16) div 2-4,
+    Y = Y0-Center,
     Folder = gb_trees:get(?FOLDERS, Pst),
     EyePos = eye_pos(),
     LockPos = lock_pos(),
@@ -1065,7 +1068,8 @@ draw_bitmap_icons({_,#we{id=Id,perm=Perm,pst=Pst}=We}, {N,#ost{sel=Sel,lh=Lh}=Os
 draw_bitmap_icons(Folder, {N,#ost{st=St,lh=Lh}=Ost,
   R,Active,Y0,Wires}) when is_list(Folder)->
     FolderPos = folder_pos(),
-    Y = Y0+2,
+    Center = (Lh-16) div 2-4,
+    Y = Y0-Center,
     FolderIcon = case folder_status(Folder, St) of
       empty ->
         empty_folder_bitmap();
@@ -1829,56 +1833,42 @@ toggle_folder_all(Folder, #ost{st=#st{pst=Pst0}=St0}=Ost) ->
 
 create_folder_dialog() ->
     Qs = [{hframe,
-          [{label,?__(1,"Choose Folder Name")},
-           {text,?NEW_FLD,[]}]}],
-    wings_ask:dialog(true, ?__(2,"Create Folder"), Qs,
-           fun(Res) -> {create_folder,Res} end).
+	   [{label,?__(1,"Choose Folder Name")},
+	    {text,?NEW_FLD,[]}]}],
+    wings_dialog:dialog(true, ?__(2,"Create Folder"), Qs,
+			fun(Res) -> {create_folder,Res} end).
 
 rename_folder_dialog(OldName) ->
     Qs = [{hframe,
           [{label,?__(1,"Choose Folder Name")},
            {text,OldName,[]}]}],
-    wings_ask:dialog(true, ?__(2,"Rename Folder"), Qs,
-           fun(Res) -> {rename_folder,[OldName|Res]} end).
+    wings_dialog:dialog(true, ?__(2,"Rename Folder"), Qs,
+			fun(Res) -> {rename_folder,[OldName|Res]} end).
 
 rename_filtered_dialog(ManyObjs) ->
-    ModeHook=fun(Event, Params) ->
-            case Event of
-            update ->
-                {Var,_,Val,Store}=Params,
-                {store,gb_trees:update(Var,Val,Store)};
-            is_minimized ->
-                false;
-            is_disabled ->
-                {Var,_,Store}=Params,
-                case Var of
-                rn_search ->
-                    gb_trees:get(rn_mode,Store)=:=0;
-                rn_mode ->
-                    ManyObjs=:=false;
-                _ ->
-                    false
-                end
-            end
-    end,
+    ModeHook=fun(Me, What, Sto) ->
+		     case ManyObjs =:= false of
+			 true ->
+			     wings_dialog:enable(Me, false, Sto);
+			 false ->
+			     wings_dialog:enable(rn_search, What =:= 1, Sto)
+		     end
+	     end,
+    I4 = {info,?__(4,"Matching objects to be renamed. *'s may be used as wildcards")},
+    I5 = {info,?__(5,"New name. Use % to indicate numbered objects and %number% for the start counter")},
     Qs = [{vframe,
-          [{hradio, [{?__(6,"Selected objects"),0},
-                     {?__(7,"Search"),1}], 1,
-                     [{key,rn_mode},{title, ?__(8,"Apply to")},{hook,ModeHook}]
-                     },
-           {hframe, [{label,?__(1,"Search")},
-                     {text,"",[{info,?__(4,"Matching objects to be renamed. *'s may be used as wildcards")},
-                               {key,rn_search},{hook,ModeHook}]}]},
-           {hframe, [{label,?__(2,"Choose Name")},
-                     {text,"",[{info,[?__(5,"New name. Use % to indicate numbered objects and %number% for the start counter")]},
-                               {key,rn_name}]}]}]}],
-    wings_ask:dialog(true, ?__(3,"Replace"), Qs,
-           fun([{rn_mode,Mode},{rn_search,Filter},{rn_name,Mask}]=_Res) ->
-                case Mode of
-                0 -> {rename_selected_objects,[Mask]};
-                1 -> {rename_filtered_objects,[Filter,Mask]}
-                end
-           end).
+	   [{hradio, [{?__(6,"Selected objects"),0},
+		      {?__(7,"Search"),1}], 1,
+	     [{key,rn_mode},{title, ?__(8,"Apply to")}, {hook, ModeHook}]},
+	    {label_column, [{?__(1,"Search"), {text,"",[I4,{key,rn_search}]}},
+			    {?__(2,"Choose Name"), {text,"",[I5,{key,rn_name}]}}]}]}],
+    wings_dialog:dialog(true, ?__(3,"Replace"), Qs,
+			fun([{rn_mode,Mode},{rn_search,Filter},{rn_name,Mask}]=_Res) ->
+				case Mode of
+				    0 -> {rename_selected_objects,[Mask]};
+				    1 -> {rename_filtered_objects,[Filter,Mask]}
+				end
+			end).
 
 merge_st({_,_}=Data, _) ->
     Data;

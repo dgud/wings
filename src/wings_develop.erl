@@ -13,7 +13,7 @@
 %%
 
 -module(wings_develop).
--export([init/0,menu/1,command/2,
+-export([init/0,menu/0,command/2,
 	 time_command/2,gl_error_check/1]).
 
 -include("wings.hrl").
@@ -25,16 +25,16 @@ init() ->
 		develop_gl_errors]],
     ok.
 
-menu(_) ->
+menu() ->
     [{"Time Commands",time_commands,
       "Print each command's execution time to the console",
-      crossmark(develop_time_commands)},
+      wings_menu_util:crossmark(develop_time_commands)},
      {"Undo Stat",undo_stat,
       "Show statistics for how much memory each Undo state consumes",
-      crossmark(develop_undo_stat)},
+      wings_menu_util:crossmark(develop_undo_stat)},
      {"OpenGL Errors",opengl_errors,
       "Print information about OpenGL errors to the console",
-      crossmark(develop_gl_errors)},
+      wings_menu_util:crossmark(develop_gl_errors)},
      separator,
      {"Print Scene Size",print_scene_size,
       "Print the scene size to the console"},
@@ -82,9 +82,9 @@ time_command(CmdFun, Cmd) ->
 	    gl_error_check(Cmd),
 	    Res;
 	true ->
-	    Before = erlang:now(),
+	    Before = os:timestamp(),
 	    Res = CmdFun(),
-	    After = erlang:now(),
+	    After = os:timestamp(),
 	    Time = timer:now_diff(After, Before),
 	    Str = format_time(Time),
 	    case Res of
@@ -117,12 +117,6 @@ gl_error_check_1(Cmd0) ->
 		     true -> wings_util:stringify(Cmd0)
 		  end,
 	    io:format("~s caused OpenGL error ~s\n", [Cmd,Error])
-    end.
-
-crossmark(Key) ->
-    case wings_pref:get_value(Key) of
-	false -> [];
-	true -> [crossmark]
     end.
 
 toggle(Key) ->

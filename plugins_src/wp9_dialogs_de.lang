@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wp9_dialogs,
  [
   {check_filename,
@@ -8,11 +8,11 @@
   {dialog_1,
    [
     {1,"Suchen in"},
-    {2,"Aufwärts"},
+    {2,"AufwÃ¤rts"},
     {3,"Dateiname"},
     {4,"Dateiformat"},
     {5,"Abbrechen"},
-    {6," existiert; überschreiben?"},
+    {6," existiert; Ã¼berschreiben?"},
     {7,"Ja"},
     {8,"Nein"},
     {9,"UTF-8 kodierte Dateinamen"}
@@ -35,7 +35,7 @@
    ]},
   {ui,
    [
-    {1,"Öffnen"},
+    {1,"Ã–ffnen"},
     {2,"Speichern"}
    ]}
  ]}.

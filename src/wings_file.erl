@@ -12,8 +12,10 @@
 %%
 
 -module(wings_file).
--export([init/0,init_autosave/0,menu/1,command/2]).
+-export([init/0,init_autosave/0,menu/0,command/2]).
 -export([import_filename/2,export_filename/2,export_filename/3]).
+-export([unsaved_filename/0,autosave_filename/1]).
+-export([file_filters/1]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
@@ -24,6 +26,7 @@
 -import(filename, [dirname/1]).
 
 -define(WINGS, ".wings").
+-define(UNSAVED_NAME, "unsaved" ++ ?WINGS).
 
 %% export_filename([Prop], St, Continuation).
 %%   The St will only be used to setup the default filename.
@@ -34,7 +37,7 @@ export_filename(Prop0, #st{file=File}, Cont) ->
     Prop = case proplists:get_value(ext, Prop0) of
 	       undefined -> Prop0;
 	       Ext ->
-		   Def = filename:rootname(filename:basename(File), ".wings") ++ Ext,
+		   Def = filename:rootname(filename:basename(File), ?WINGS) ++ Ext,
 		   [{default_filename,Def}|Prop0]
 	   end,
     export_filename(Prop, Cont).
@@ -57,7 +60,7 @@ import_filename_1(Ps0, Cont) ->
     end,
     Ps = Ps0 ++ [{title,String},{directory,Dir}],
     Fun = fun(Name0) ->
-    	  Name=test_unc_path(Name0), 
+          Name=test_unc_path(Name0),
 		  case catch Cont(Name) of
 		      {command_error,Error} ->
 			  wings_u:message(Error);
@@ -75,18 +78,18 @@ import_filename_1(Ps0, Cont) ->
 %%   The Continuation fun will be called like this: Continuation(Filename).
 export_filename(Prop, Cont) ->
     case get(wings_not_running) of
-	undefined -> 
+	undefined ->
 	    export_filename_1(Prop, Cont);
 	{export, FileName} ->
 	    Cont(FileName)
     end.
-			 
+
 export_filename_1(Prop0, Cont) ->
     This = wings_wm:this(),
     Dir = wings_pref:get_value(current_directory),
     Prop = Prop0 ++ [{directory,Dir}],
     Fun = fun(Name0) ->
-    	  Name=test_unc_path(Name0), 
+          Name=test_unc_path(Name0),
 		  case catch Cont(Name) of
 		      {command_error,Error} ->
 			  wings_u:message(Error);
@@ -122,7 +125,7 @@ init() ->
 	    end
     end.
 
-menu(_) ->
+menu() ->
     ImpFormats = [{"Nendo (.ndo)...",ndo}],
     ExpFormats = [{"Nendo (.ndo)...",ndo}],
     Tail = [{?__(25,"Exit"),quit,?__(28,"Exit Wings 3D")}],
@@ -170,20 +173,19 @@ menu(_) ->
      separator|recent_files(Tail)].
 
 save_unused_mats() ->
-    case wings_pref:get_value(save_unused_materials) of
-	  true -> [crossmark];
-	  false -> []
-    end.
+    wings_menu_util:crossmark(save_unused_materials).
 
 command(new, St) ->
     new(St);
 command(confirmed_new, St) ->
+    del_unsaved_file(),
     confirmed_new(St);
 command(open, St) ->
     open(St);
 command(confirmed_open_dialog, _) ->
     confirmed_open_dialog();
 command({confirmed_open,Filename}, St) ->
+    del_unsaved_file(),
     confirmed_open(Filename, St);
 command({confirmed_open,Next,Filename}, _) ->
     Next(Filename);
@@ -203,7 +205,7 @@ command(save_selected, St) ->
     save_selected(St);
 command({save_selected,Filename}, St) ->
     save_selected(Filename, St);
-command(save_incr, St) -> 
+command(save_incr, St) ->
     save_incr(St);
 command(revert, St0) ->
     case revert(St0) of
@@ -264,16 +266,23 @@ command(quit, _) ->
 			  fun() -> {file,{save,{file,quit}}} end,
 			  fun() -> {file,confirmed_quit} end);
 command(confirmed_quit, _) ->
+    del_unsaved_file(),
     quit;
-command(Key, St) when is_integer(Key), 1 =< Key ->
+command({recent_file,Key}, St) when is_integer(Key), 1 =< Key ->
     Recent0 = wings_pref:get_value(recent_files, []),
     {_,File} = lists:nth(Key, Recent0),
     case filelib:is_file(File) of
 	true ->
 	    named_open(File, St);
 	false ->
+	    Last = length(Recent0),
 	    Recent = delete_nth(Recent0, Key),
 	    wings_pref:set_value(recent_files, Recent),
+	    wings_menu:update_menu(file, {recent_file, Last}, delete, []),
+	    lists:foreach(fun({Str, RKey, Help}) ->
+				  wings_menu:update_menu(file, RKey, Str, Help);
+			     (separator) -> ok
+			  end, recent_files(Recent, [])),
 	    wings_u:error_msg(?__(5,"This file has been moved or deleted."))
     end.
 
@@ -288,12 +297,14 @@ confirmed_new(#st{file=File}=St) ->
 
 new(#st{saved=true}=St0) ->
     St1 = clean_st(St0#st{file=undefined}),
+    %% clean_st/1 will remove all saved view, but will not reset the view. For a new project we should reset it.
+    wings_view:reset(),
     St2 = clean_images(wings_undo:init(St1)),
     St = wings_shape:create_folder_system(St2),
     wings_u:caption(St),
     {new,St#st{saved=true}};
 new(#st{}=St0) ->		      %File is not saved or autosaved.
-    wings_u:caption(St0#st{saved=false}), 
+    wings_u:caption(St0#st{saved=false}),
     wings_u:yes_no_cancel(str_save_changes(),
 			  fun() -> {file,{save,{file,new}}} end,
 			  fun() -> {file,confirmed_new} end).
@@ -371,7 +382,7 @@ merge(Name, St0) ->
 		  %%   Name: Original name of file to be opened.
 		  %%   File: Either original file or the autosave file
 		  St1 = St0#st{saved=wings_image:next_id()},
-		  case ?SLOW(wings_ff_wings:import(File, St0)) of
+		  case ?SLOW(wings_ff_wings:merge(File, St0)) of
 		      {error,Reason} ->
 			  clean_new_images(St1),
 			  wings_u:error_msg(?__(2,"Read failed: ") ++ Reason);
@@ -402,8 +413,12 @@ save_as(Next, St) ->
     export_filename(Ps, St, Cont).
 
 save_now(Next, #st{file=Name0}=St) ->
-    Name=test_unc_path(Name0), 
+    Name=test_unc_path(Name0),
     Backup = backup_filename(Name),
+    case wings_pref:get_value(file_recovered, false) of
+        true -> del_unsaved_file();
+        _ -> ok
+    end,
     file:rename(Name, Backup),
     file:delete(autosave_filename(Name)),
     case ?SLOW(wings_ff_wings:export(Name, St)) of
@@ -415,7 +430,12 @@ save_now(Next, #st{file=Name0}=St) ->
 	{error,Reason} ->
 	    wings_u:error_msg(?__(1,"Save failed: ") ++ Reason)
     end.
-    
+
+del_unsaved_file() ->
+    File = autosave_filename(unsaved_filename()),
+    catch file:delete(File),
+    wings_pref:set_value(file_recovered, false).
+
 test_unc_path([H|_]=FileName) when H=:=47 ->
 	case string:str(FileName, "//") of
 		1 -> FileName;
@@ -425,7 +445,7 @@ test_unc_path(FileName) -> FileName.
 
 maybe_send_action(ignore) -> keep;
 maybe_send_action(Action) -> wings_wm:later({action,Action}).
-    
+
 save_selected(#st{sel=[]}) ->
     wings_u:error_msg(?__(1,"This command requires a selection."));
 save_selected(St) ->
@@ -453,7 +473,7 @@ save_selected(Name, #st{shapes=Shs0,sel=Sel}=St0) ->
 save_incr(#st{saved=true}=St) -> St;
 save_incr(#st{file=undefined}=St0) ->
     save_as(ignore, St0);
-save_incr(#st{file=Name0}=St) -> 
+save_incr(#st{file=Name0}=St) ->
     Name = increment_name(Name0),
     save_now(ignore, St#st{file=Name}).
 
@@ -461,7 +481,7 @@ increment_name(Name0) ->
     Name1 = reverse(filename:rootname(Name0)),
     Name = case find_digits(Name1)  of
 	       {[],Base} ->
-		   Base ++ "_01.wings";
+		   Base ++ "_01" ++ ?WINGS;
 	       {Digits0,Base} ->
 		   Number = list_to_integer(Digits0),
 		   Digits = integer_to_list(Number+1),
@@ -469,12 +489,12 @@ increment_name(Name0) ->
 			    Neg when Neg =< 0 -> [];
 			    Nzs -> lists:duplicate(Nzs, $0)
 			end,
-		   Base ++ Zs ++ Digits ++ ".wings"
+		   Base ++ Zs ++ Digits ++ ?WINGS
 	   end,
     update_recent(Name0, Name),
     Name.
 
-find_digits(List) -> 
+find_digits(List) ->
     find_digits1(List, []).
 
 find_digits1([H|T], Digits) when $0 =< H, H =< $9 ->
@@ -499,7 +519,7 @@ use_autosave(File, Body) ->
     case file:read_file_info(File) of
 	{ok,SaveInfo} ->
 	    use_autosave_1(SaveInfo, File, Body);
-	{error, _} ->			     % use autosaved file if it exists 
+	{error, _} ->			     % use autosaved file if it exists
 	    Auto = autosave_filename(File),
 	    Body(case filelib:is_file(Auto) of
 		     true -> Auto;
@@ -545,7 +565,7 @@ init_autosave() ->
 
 get_autosave_event(Ref, St) ->
     {replace,fun(Ev) -> autosave_event(Ev, Ref, St) end}.
-    
+
 autosave_event(start_timer, OldTimer, St) ->
     wings_wm:cancel_timer(OldTimer),
     case {wings_pref:get_value(autosave),wings_pref:get_value(autosave_time)} of
@@ -566,7 +586,8 @@ autosave_event({current_state,St}, Timer, _) ->
     get_autosave_event(Timer, St);
 autosave_event(_, _, _) -> keep.
 
-autosave(#st{file=undefined} = St) -> St;
+autosave(#st{file=undefined} = St) ->
+	autosave(St#st{file=unsaved_filename()});
 autosave(#st{saved=true} = St) -> St;
 autosave(#st{saved=auto} = St) -> St;
 autosave(#st{file=Name}=St) ->
@@ -574,6 +595,11 @@ autosave(#st{file=Name}=St) ->
     %% Maybe this should be spawned to another process
     %% to let the autosaving be done in the background.
     %% But I don't want to copy a really big model either.
+
+    %% Set the current view export views read it..
+    %% Fix this later
+    View = wings_wm:get_prop(geom, current_view),
+    wings_view:set_current(View),
     case ?SLOW(wings_ff_wings:export(Auto, St)) of
 	ok ->
 	    wings_u:caption(St#st{saved=auto});
@@ -587,6 +613,10 @@ autosave_filename(File) ->
     Base = filename:basename(File),
     Dir = filename:dirname(File),
     filename:join(Dir, "#" ++ Base ++ "#").
+
+unsaved_filename() ->
+    Dir = wings_pref:get_dir(),
+    filename:join(Dir, ?UNSAVED_NAME).
 
 backup_filename(File) ->
     File ++ "~".
@@ -611,21 +641,29 @@ update_recent(Old, New) ->
     Recent = add_recent(NewFile, Recent1),
     wings_pref:set_value(recent_files, Recent).
 
-add_recent(File, [A,B,C,D,E|_]) -> [File,A,B,C,D,E];
-add_recent(File, Recent) -> [File|Recent].
+add_recent(NewFile, Present) ->
+    Recent = add_recent_1(NewFile, Present),
+    lists:foreach(fun({Str, Key, Help}) ->
+			  wings_menu:update_menu(file, Key, Str, Help);
+		     (separator) -> ok
+		  end, recent_files(Recent, [])),
+    Recent.
+
+add_recent_1(File, [A,B,C,D,E|_]) -> [File,A,B,C,D,E];
+add_recent_1(File, Recent) -> [File|Recent].
 
 recent_files(Tail) ->
-    case wings_pref:get_value(recent_files, []) of
-	[] -> Tail;
-	Files ->
-	    Help = ?__(1,"Open this recently used file"),
-	    recent_files_1(Files, 1, Help, [separator|Tail])
-    end.
+    recent_files(wings_pref:get_value(recent_files, []), Tail).
+
+recent_files([], Tail) -> Tail;
+recent_files(Files, Tail) ->
+    Help = ?__(1,"Open this recently used file"),
+    recent_files_1(Files, 1, Help, [separator|Tail]).
 
 recent_files_1([{Base0,Base1}|T], I, Help0, Tail) ->
     Base = wings_u:pretty_filename(Base0),
     Help = lists:flatten([Help0," -- "|wings_u:pretty_filename(Base1)]),
-    [{Base,I,Help}|recent_files_1(T, I+1, Help0, Tail)];
+    [{Base,{recent_file,I},Help}|recent_files_1(T, I+1, Help0, Tail)];
 recent_files_1([], _, _, Tail) -> Tail.
 
 %%
@@ -662,7 +700,7 @@ import_ndo(Name, St0) ->
     end.
 
 import_image() ->
-    Ps = [{extensions,wings_image:image_formats()}],
+    Ps = [{extensions,wings_image:image_formats()},{multiple,true}],
     Cont = fun(Name) -> {file,{import_image,Name}} end,
     import_filename(Ps, Cont).
 
@@ -702,25 +740,59 @@ do_export_ndo(Name, St) ->
 
 install_plugin() ->
     Props = case os:type() of
-        {win32,_} ->
+		{win32,_} ->
 		    [{title,"Install Plug-In"},
-             {extensions,
-             [{".gz", "GZip Compressed File"},
-              {".tar", "Tar File"},
-              {".tgz", "Compressed Tar File"},
-              {".beam", "Beam File"}]}];
-        _Other    ->
-            [{title,?__(1,"Install Plug-In")},
-             {extensions,
-             [{".gz",?__(2,"GZip Compressed File")},
-              {".tar",?__(3,"Tar File")},
-              {".tgz",?__(4,"Compressed Tar File")},
-              {".beam",?__(5,"Beam File")}]}]
-    end,
+		     {extensions,
+		      [{".gz", "GZip Compressed File"},
+		       {".tar", "Tar File"},
+		       {".tgz", "Compressed Tar File"},
+		       {".beam", "Beam File"}]}];
+		_Other    ->
+		    [{title,?__(1,"Install Plug-In")},
+		     {extensions,
+		      [{".gz",?__(2,"GZip Compressed File")},
+		       {".tar",?__(3,"Tar File")},
+		       {".tgz",?__(4,"Compressed Tar File")},
+		       {".beam",?__(5,"Beam File")}]}]
+	    end,
     Cont = fun(Name) -> {file,{install_plugin,Name}} end,
     import_filename(Props, Cont).
 
-%%%    
+file_filters(Prop) ->
+    Exts = case proplists:get_value(extensions, Prop, none) of
+	       none ->
+		   Ext = proplists:get_value(ext, Prop, ".wings"),
+		   ExtDesc = proplists:get_value(ext_desc, Prop,
+						 ?__(1,"Wings File")),
+		   [{Ext,ExtDesc}];
+	       Other -> Other
+	   end,
+    lists:flatten([file_add_all(Exts),
+		   file_filters_0(Exts++[{".*", ?__(2,"All Files")}])]).
+
+file_filters_0(Exts) ->
+    file_filters_1(lists:reverse(Exts),[]).
+
+file_filters_1([{Ext,Desc}|T], Acc) ->
+    Wildcard = "*" ++ Ext,
+    ExtString = [Desc," (",Wildcard,")","|",Wildcard|Acc],
+    case T of
+	[] -> ExtString;
+	_  ->
+	    file_filters_1(T, ["|"|ExtString])
+    end.
+
+file_add_all([_]) -> [];
+file_add_all(Exts) ->
+    All0 = ["*"++E || {E,_} <- Exts],
+    All = file_add_semicolons(All0),
+    [?__(1,"All Formats")++" (",All,")", "|", All, "|"].
+
+file_add_semicolons([E1|[_|_]=T]) ->
+    [E1,";"|file_add_semicolons(T)];
+file_add_semicolons(Other) -> Other.
+
+
 %%% Utilities.
 %%%
 

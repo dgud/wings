@@ -1,3 +1,1469 @@
+--- 1.5.4 ----------------------------------------------------------------------
+
+- The grid size is now adjusted automatically [Micheus]
+
+- Fixed crash in saved views (Thanks to Stem) [Micheus]
+
+- Fixed a bug with the routine to get vertex and point for
+  move/scale/rotate operations. (Thanks PuzzledPaul) [Micheus]
+
+- Fixed crash in Set Constrain->Percentage in Edge mode,
+  Thanks Arg Arg. [Micheus]
+
+- Fixed a crash caused by Flip command when the object has virtual mirror.
+  Thanks VladD for report it. [Micheus]
+
+- Made it possible to bind a hotkey to 'Lift' command, reported by
+  ptoing. [Micheus]
+
+- Fix autouv crashes. [Micheus]
+
+--- 1.5.3 ----------------------------------------------------------------------
+
+- Use (and require) OTP 17.0 which hopefully fixes unicode issues on
+  win32 [dgud]
+
+- Fix OpenCL so that it works on nvidia cards even though it's built
+  with a 1.2 framework [dgud]
+
+- JPG import now works on the Mac. [Björn Gustavsson]
+
+- Added a new option to Snap[RMB] (in Body mode) that enable the user
+  duplicate the object between reference and target. Thanks to Optigon
+  for suggest it. [Micheus]
+
+- Added a new option to auto save an unsaved project. [Micheus]
+
+- Fixed an issue related to font selection under Windows 7 - fonts'
+  name aren't displayed. [Micheus]
+
+- Fixed an issue related to edges highlight in Tweak and Sculpt that
+  was crashing wings when the object have hidden faces or
+  holes. Thanks to Extrudeface for the report. [Micheus]
+
+- Fixed a issue related to Select Group and Saved Camera windows not
+  be drawn using the alpha settings as defined in the
+  preferences. Thanks to Justanother1 for the report. [Micheus]
+
+- Fixed the duplicated IDs in the language file for "Rename"
+  operations available in the "Geometry Graph" window. Thanks to
+  TulipVorlax. [Micheus]
+
+- Fixed some issues related to images of materials exported by POV-Ray
+  plugin. Thanks to RyMopar that reported it. [Micheus]
+
+- Fixed an error in the "wings_u:relative_path_name" routine that was
+  rebuilding the full path in a wrong way. [Micheus]
+
+- Added support to save and restore the last view settings of a project. [Micheus]
+
+- Added option to customize the grid size. [Micheus]
+
+- Added a new option to Absolute-Move command (MMB) that enable the
+  user set the reference point. [Micheus]
+
+--- 1.5.2 ----------------------------------------------------------------------
+- Fix various crashes and instabilites. [dgud]
+
+- Automatically freeze mirrors when exporting, thanks to nemyax for the report. [Micheus]
+
+- Window can be used by users with unicode chars in the name on windows [dgud]
+
+- Fixed an issue setting the camera position with the dialog.
+  Thanks to ekolis. [Micheus]
+
+- Fixed more PovRay output formats
+  Thanks ekolis. [Micheus]
+
+--- 1.5.1 ----------------------------------------------------------------------
+- Remove the erlang window and make Wings appear more as a native application
+
+--- 1.5 ----------------------------------------------------------------------
+- Several levels of subdivision in smooth proxy can be drawn
+  This feature can be enabled in Preferences/Misc if OpenCL drivers can be found. [dgud]
+
+- Added the possibility to view normal/bump maps in the model window,
+  for uv-mapped surfaces. [dgud]
+
+- Added a Japanese translation provided by Tsukubado(tkbd), thank you. [dgud]
+
+- Korea3d and Szzz have updated the Korean and Chinese translations. [dgud]
+
+- Fixed secondary (always add temporary) selection, to only create temporary selection
+  if nothing was selected. Reported by Siber. [dgud]
+
+- Fixed selection bug where 'Select By Non Quadrangle Faces' did not work if anything was
+  selected. Reported by Deerwood. [dgud]
+
+- Fixed crash in autouv if every vertex was selected before unfold, reported by Deerwood [dgud]
+
+- Images loaded by "Import Image" now preserve its file extension
+  in its name shown in the Outline window as already is done by using
+  "Make External". (Thanks to FranOnTheEdge that reported this issue)
+  [Micheus]
+
+- Fixed the wrong placement of object in a folder after the project
+  has been loaded/reloaded. (Thanks to deerwood that reported this
+  bug) [Micheus]
+
+- Fixed merge cameras.
+  Now, any existing cameras in both files are maintained.
+  (Thanks to deerwood that reported this bug) [Micheus]
+
+- Visible and Locked states of lights were not restored after the
+  project has been loaded, despite they have been saved.
+  (Thanks to deerwood and ggaliens that reported this bug) [Micheus]
+
+- Multiple mouse buttons options in the context menu of Outliner window.
+  The option Select by material in the Outliner window doesn't
+  select the right elements if the selection mode isn't Face or
+  Body. It was fixed and added new parameters
+  that enable us to add support for "add to selection" and "remove from
+  selection" in context menu.
+  (Thanks to deerwood that reported the bug
+  and suggested the new options) [Micheus]
+
+- Fix unc paths on windows
+  (Thanks to jentzenm.unofficialsony that reported this bug) [Micheus]
+
+  When trying to saving a wings scene file to a path on the network
+  using unc path, an error occurs (Save failed: no such file or
+  directory) and the file was not saved. For some reason the first
+  slash is removed from the path name when Save dialog returns the
+  file name in the function wings_file:export_filename_1/2(after
+  executed wings_plugin:call_ui()). The same occurs with Open dialog
+  too. It seems to be a Erlang issue (I'm not sure). I did a
+  workaround, then I could Save/Export/Import using an "unc" path
+  without any problem. (Thanks to jentzenm.unofficialsony that
+  reported this bug) [Micheus]
+
+- Improvements to Information line management made it auto-sizable
+  when the message is longest than window width. [Micheus]
+
+- Fixed UV Torus crash
+  If a zero value has been inputted it will be overwritten with 3;
+  - added information for the fields U and V on Torus dialogs;
+  - Deutsch translation of 'lang' file by deerwood;
+  (Thanks to deerwood that reported this bug) [Micheus]
+
+- Text Primitives should be centered according to bounding box
+  that surrounds the text primitive being created. [Mark Whittemore]
+
+- Dialogs can now support model previews.
+  - Camera remains usable while dialog is active.
+  - Preview has 3 modes: Auto, Delayed, and Manual.
+  - Many existing dialogs have been updated to support
+    the new changes.(Shapes, Drag Args, Absolute Cmds,
+    Numeric Camera, and Selection tools).
+  - Combined primitives into single dialogs to save menu space.
+  - Values for Sliders and Text Entry Boxes with numeric
+    data can be increasd/decreased with the Scroll wheel.
+  - Constraints [Shift, Ctrl, Alt] work when changing
+    values using the scroll wheel within dialogs.
+    [optigon]
+
+- Move edges along normal fix. [optigon]
+
+- Added constraints to Sculpt mode menu. [optigon]
+
+- Fixed the wrong selection of elements when using the option
+  Material->Select in the Outline window if selection mode isn't Face
+  or Body. Also, its context menu supports multiple options and it was
+  added two new options: "Add to selection" and "Remove from
+  selection". (Thanks to deerwood that reported the bug and suggested
+  the new options) [Micheus]
+
+- Added a new option to Windows menu ("Selection Groups") that implements the selection commands in a window as follow:
+  LMB
+  - Select the group itens in the Geo win;
+  RMB
+  - With a group selected:
+  - above it self or in empty area: Delete/ Delete Invalid Groups;
+  - above another group: Delete/ Delete Invalid Groups/ Union/ Subtract/ Intersect;
+  - Without a group selected and none selection in Geo win:
+  - above a group: Delete/ Delete Invalid Groups;
+  - Without a group selected but with an selection in Geo win:
+  - above a group: New Group/ Delete/ Delete Invalid Groups/ Union/ Subtract/ Intersect/ Add to/ Subtract from;
+  - in an empty area: New Group;
+
+  It was suggested by Fonte Boa. [Micheus]
+
+-  Added a new option "Rename" group; suggested by Fonte Boa
+   Improved visual feedback by adding mouse tracking - the group name under mouse pointer is framed;
+   Changed the default window position to up/left side of the window desktop. [micheus]
+
+-  Wings core (wings.erl and wings_plugin.erl) was changed in order
+   to make possible all windows used in a plugin be saved/restored
+   automaticly; updated wpc_sel_win.erl in order to use the new
+   resource, saving and restoring its placement on Wings
+   desktop. [Micheus]
+
+- Added constraints to Sculpt mode menu. [optigon]
+
+- Fixed the wrong selection of elements when using the option
+  Material->Select in the Outline window if selection mode isn't Face
+  or Body. Also, its context menu supports multiple options and it was
+  added two new options: "Add to selection" and "Remove from
+  selection". (Thanks to deerwood that reported the bug and suggested
+  the new options) [Micheus]
+
+- Added Select|By|Name option in which selections using a matching name can be made by combining the "*" wildcard.
+  Added new options for Renaming objects in the Geometry Graph window:
+   LMB -> "Rename selected objects" (the current option)
+   MMB -> "Rename all selected objects" (the option already enabled in Body mode)
+   RMB -> "Rename objects filtered using a mask for name" (new option)
+
+  Now, Rename objects can be applied to several object at once, by
+  using a selection or a search mask (like *box*). Also, the new name
+  has a sequential number appended to it or placed in a defined
+  position by using the "%" wildcard. It's possible to define the
+  starter number by puting it between two "%" character (like:
+  Cube%100%). [Micheus]
+
+- Added two new options: Remove Invalid groups and Delete All groups.[Micheus]
+
+- It was improved the Image Plane resource by adding a dialog box for
+  enter options like: location, rotation around origin, lock it after
+  created and assign a transparent material for its back face (this make
+  possible to see trough the image plane in proxy mode). Thanks oort by the
+  idea and support as well to Ran13. [Micheus]
+
+- Added two new options: Remove Invalid groups and Delete All groups.[Micheus]
+
+- Move edges along normal fix. [optigon]
+
+- Fixed View ClipPlane bug [dgud]
+
+- Fixed crash caused by user hit ENTER in a dialog and the focus is in the expand/collapt button; (thanks to oort)
+  Fixed hard crash caused when a dynamic sub-menu (like Render) doesn't have any item; (thanks to oort)
+  Fixed the start value to Edge component. Different of the others it was starting from 1 - now it starts from 0;
+	(suggested by Caverman)
+  Fixed the bad display of values for the columns Volume and Area in the Tools->Scene Info. (thanks to ggaliens)
+  [Micheus]
+
+- Fixed the crash when exporting an object converted to light
+  (Object as area light). Thanks to sandman for report. [Micheus]
+
+- Fixed a bug when exporting an object converted to area light and that has hard edges. Thanks oort. [Micheus]
+
+- Added the ip_helper image to the projectsources. [Micheus]
+--- 1.4.1 ----------------------------------------------------------------------
+- Major update to the Traditional Chinese translation of Wings
+  including AutoUV, many plugins, tools, and other interface strings.
+  Many thanks to szzz for this amazing contribution! [optigon]
+
+- Wings could crash when launching and opening a file at the same
+  time . The cause was the ets table for fonts could not be written to
+  while the Progress Bar was active. ets tables can only be accessed from
+  the process they are created in unless specifically stated. In Wings the
+  PB run on a separate process so accessing the ets font table while the
+  PB was active led to a badarg since the call was not allowed. The font
+  table is now set to public so it can be accessed by any process.
+  (Thanks to dgud and those who reported the crash) [optigon]
+
+- Help dialog formatting adjustments for Asian fonts. [optigon]
+
+- Improvements to Body|Weld for handeling neighbouring faces. [optigon]
+
+- Update to the the Korean translation to include the interface
+  strings and some key plugins including AutoUV. Many thanks to korea3d
+  for this wonderful contribution and for reporting the string errors
+  he found during the process. [optigon]
+
+Notable new feature in 1.4 (compared to 1.2)
+============================================
+
+- Major rewrite of Tweak to integrate it into the Wings core. The new Tweak
+  features improved performance, additional tools, and more flexibility.
+
+- Lots of new tools:
+    - Plane Cut and Slice for cutting objects or face selections
+    - Rotate Unconstrained for multi-axis rotations
+    - Sculpt Mode lets you push, pull, inflate, pinch, and smooth your model
+    - Face|Bridge now connects any two face regions
+    - Body|Weld now manages neighbouring faces
+    - View Along Nearest Axis (use 1 hotkey instead of 6)
+
+- Interface improvements:
+    - Asian font support for Chinese, Japanese, and Korean
+    - Rollup windows into their titlebars
+    - Right-Click menus now sport a Menu Toolbar
+    - Folders and new icons for the Geometry Graph
+    - Four color themes to choose from in the Edit menu
+    - Save and load Preference Subsets from the File menu
+    - Automatic menu clipping for long menus
+    - Tweak Palette for selecting Tweak tools, magnets, and axis constraints
+    - Fix to properly restore the maximized Wings layout on Windows
+
+- Many bugfixes and improvements
+
+- Documentation for the new Tweak  and some of the other new features can be
+  found on the Wings3d Sourceforge Wiki:
+  http://sourceforge.net/apps/mediawiki/wings/index.php?title=Feature_Descriptions
+
+
+--- 1.3.2 ----------------------------------------------------------------------
+- Body|Combine and Weld would crash when magnet mask data present.
+  Now fixed. (Thanks to spacemanspiff7) [optigon]
+
+- Edge|Circularise|MMB now handles multiple open edge loops. [optigon]
+
+- Menu Toolbar pref added for mouse snap behaviour. [optigon]
+
+- Some window properties were not being loaded. Now fixed. [optigon]
+
+- New Feature: Select|Deselect Previous subtracts the previous
+  selection from current selection. [optigon]
+
+- Edge|Dissolve has been modified to succeed more often. [optigon]
+
+- Added pref to use larger icons for the Menu Toolbar. [optigon]
+
+- New Feature: Edge|Flow Connect connects edges with respect to
+  the angles of the surrounding geometry. [optigon]
+
+- Shell Extrude fix. Could crash if extruded in wireframe.
+  (Thanks to Fonte Boa) [optigon]
+
+- A bug in the tweak keyboard event handler has been fixed where
+  key up events were being recognised when they shouldn't.
+  (Thanks to Fonte Boa) [optigon]
+
+- Body|Weld could crash. Now fixed, (Thanks to Stem) [optigon]
+
+- Circularise RMB fix attempting to ensure that all arcs go in the
+  same direction. [optigon]
+
+- Select by Material from Outliner would not respect face and
+  object permissions. Now fixed. (Thanks to BlackHarmo) [optigon]
+
+- Added dialogs to Select|By|Face With and Vertices With. [optigon]
+
+- Select|Similar Materials now remembers if you selected Vertex
+  Colors or Materials. [optigon]
+
+- When there is a Hole or Hidden Face(s) in an object and also
+  View|Show Backfaces is checked, selections will now include backfaces.
+  [optigon]
+
+- Removed prefs to simplify interface. [optgon]
+
+- Intrude could crash on objects with VM. Now fixed.
+  (Thanks to Fonte Boa) [optigon]
+
+- Changes to Select|Less when dealing with Faces. Now respects
+  Virtual Mirror. Algorithm has been modified slightly to give better
+  results. [optigon]
+
+- Some fixes to Sculpt mode. [optigon]
+
+- Sweep Normal removed. Sweep virtual mirror handling improved, [optigon]
+
+- For Developers: Using Toolbar to reload modules won't clear selection.
+  [optigon]
+
+- Cancelling drag before moving the mouse when model is proxy
+  smoothed could crash. Now fixed. [optigon]
+
+- Shell Extrude had a bug that stopped it from being able to handle
+  multiple regions at once. Now fixed. (Thanks to BlackHarmo) [optigon]
+
+- Sometimes Body Weld would crash. Now an error message is displayed
+  for unresolvable welds. (Thanks to Fonte Boa) [optigon]
+
+- Tweak fixes including:
+  -Rollup Palette would rollup Tweak Palette.
+  -Tweak Axis Constraints would not toggle properly.
+  -Code cleanup to improve font handling.
+  (Thanks to BlackHarmo and Fonte Boa) [optigon]
+
+- Face|Hide now works like the Hole command. The left mouse button
+  hides selected faces, and the right mouse button unhides any hidden
+  adjacent face. Also, some wording changes to make the hide/unhide
+  routines more clear. [optigon]
+
+- Changes to image import to return error when image exceeds
+  graphics card limitations. [Micheus]
+
+- Added translation macros to the Ambient Occlusion plugin.
+  (Thanks to szzz) [optigon]
+
+- New Fonts: Wings now includes CJK fonts which support
+  Chinese, Japanese, and Korean. Helvetica and Terminus fonts
+  have also been added to offer some larger font sizes for
+  accessibility reasons.
+  
+  To support the character sets in excess of 40 000 glyphs required
+  for Asian language support, changes had to be made to the Wings font
+  handler. Large font maps could cause slowdown, so now Wings uses a
+  glyph accumulator to store only the glyphs required for the interface.
+  
+  Some further memory gains were afforded by only loading the fonts
+  being used instead of all of them. Wings always required a restart
+  to load a new font anyway, so no change to the user experience
+  should be noticed.
+  
+  Thanks to iskunk for lending his time and expertise this effort.
+  
+  Those interested in adding translations to Wings can inquire on the
+  Official Development Forum. Current efforts include a translation in
+  Simplified Chinese by szzz, and Korean translation by korea3d.
+  [optigon]
+
+--- 1.3.1 ----------------------------------------------------------------------
+- Added a 'wings_convert' script which can convert 3d files
+  without starting wings. Requires an erlang install (and escript
+  in your path) and a wings install.  On windows run with
+  c:/path/to/erlang/bin/escript /path/to/wings_convert --help [dgud]
+
+- AutoUV: Added a simple world space normal shader. [dgud]
+
+- Added Select|Edge Loop|Select Nth Ring. [optigon]
+
+- New Feature: Body|Explode scales objects from a defined center.
+  Includes standard and user axes, uniform, and radial axis options.
+  (Thanks to ggaliens for the idea) [optigon]
+
+- New Feature: Rollup any window by clicking on its titlebar.
+  The main Geometry window behaves differently and doesn't rollup.
+  Instead, it moves from the foreground to the background, either
+  covering or revealing any coexisting windows. [optigon]
+
+- AutoUV: Added Move Horizontal and Vertical. [optigon]
+
+- The arrow key and scroll wheel pan speed preferences have
+  been changed to offer a more useful range of adjustment. [optigon]
+
+- Minor changes to Tools|Connect to allow consecutive vertices
+  to be placed  on the same edge. [optigon]
+
+- Select|By|Sharp Edges now allows you to specify Peaks,
+  Valleys, or Both. [optigon]
+
+- Bug fix for Select Vertices with 6 or more edges. (Thanks to
+  ggaliens). [optigon]
+
+- For Developers: Added Show Cursor to the Develop menu. In cases
+  where the cursor disappears during a crash, use this option to bring
+  it back into view. I suggest hotkeying it so you don't have to fumble
+  blindly to the menu. [optigon]
+
+- Edge|Flatten (lmb) updated to recognize Edge groups instead of
+  flattening to a common center. Also new, Edge|Flatten|Edge Loops,
+  flattens any selected closed edge loop to it normal. [optigon]
+
+- New Feature: Edge|Crease makes a stylized extrusion, commonly
+  used for adding details such as wrinkles to organic models. [optigon]
+
+- New View Along Axis option to set the view to the Nearest Axis
+  whether that be X, Y, Z, or -X, -Y, -Z. Might be useful for those who
+  would like to reduce their overall number of hotkeys and use one
+  instead of six for axis navigation. [optigon]
+
+- New Feature: Select|Edge Loop while in vertex mode will now
+  convert consecutive vertices to edges. [optigon]
+
+- AutoUV: Added Edge|Circularise to AutoUV. [optigon]
+
+- New Feature: Vertex|Grid Snap takes a vertex selection and snaps
+  each vertex to the closest point on a virtual grid as you drag to
+  increase or decrease the grid's increment. [optigon]
+
+- Position Highlight for Point light crash fixed. (Thank to
+  Fonte Boa) [optigon]
+
+- Build fixes. On some systems, makeself.sh is named makeself.sh
+  and on others makeself, also they can reside in /usr/bin or
+  /usr/local/bin. Tried to catch all cases. [giniu]
+
+- In the Tools menu, Snap Image and Screenshot have been extended
+  in several useful ways. It is now possible to take a screenshot of
+  just the main viewport. Coupled with this feature are changes to
+  Snap Image, which now has options to Fit the image to the viewport's
+  dimensions. This new combination of features allows for better
+  projection painting workflows using a 2d painting program like Gimp.
+  The new Screenshot features are available through in its options
+  dialog. You can also save the current view to the Saved Views at
+  the same time and with the same name as the screenshot so that they
+  can be aligned later. Additionally, one can now scale the snap image
+  proportionally to its current x or y value, or reset the snap image
+  to its actual size. Also, when exporting or making an image external
+  from the Outliner, the image name will automatically update in the
+  Outliner to the filename you save it as. [optigon]
+
+- Add workaround option for mouse grab problems on linux.
+  See option in preferences/misc. [dgud]
+
+- Sweep extrusion normal fix. [optigon]
+
+- New Feature: Edge|Corner takes an edge selection and adds corner
+  geometry to any edges bordered by a 3 and 5 sided face. Then, adjust
+  the tension before finalizing the corner. [optigon]
+
+- New Feature: Plane Cut for Vertex, Face, and Body mode. Pick
+  the plane and point for the cut, or slice the selection into even
+  sections. Face and Body mode include a Loop Cut option. [optigon]
+
+- Added .svg importer to convert 2d vector drawings to 3d. [optigon]
+
+- Plugin Manager and menu format fixes. [optigon]
+
+- Welding objects with only two faces could crash. (Thanks to
+  Fonte Boa). [optigon]
+
+- The "Scene Info: Area & Volume" command (in the tools menu)
+  has been cosmetically improved and now properly displays the info
+  in a multiple-column tabular-format, which is much easier to read. [scorpius]
+
+- Mirroring a mirrored object could crash. Now fixed. (Thanks
+  to Fonte Boa) [optigon]
+
+- Image Planes are now created with a slight thickness and all
+  their edges set to hard. [optigon]
+
+- Face|Bridge has been extended to connect any two face regions
+  regardless of how many faces or vertices they each have. [optigon]
+
+- New View item to toggle Show Backfaces. [optigon]
+
+- Saved selection groups have been updated to allow Cycling
+  via hotkey, and this feature can be set to cycle only within the
+  current selection mode. I also added some selection group deletion
+  options. One option deletes all saved groups, and the other deletes
+  only those groups that are corrupt. [optigon]
+
+- I have changed the mouse buttons that perform secondary drag
+  operations. For instance, Move|Free has an option to drag in the
+  direction of the screen normal, and this option was bound to MMB.
+  Now it is activated by holding LMB instead. Simiar changes were
+  made to all the other tools that use a single secondary drag
+  parameter. Also, introducing Hold LMB into the mix, allowed me to
+  make Face|Sweep fully articulated between all four drag parameters
+  (Extrude, Angle, Scale, and Rotation). [optigon]
+
+- New Feature: Tools|Sculpt allows you to Push, Pull, Pinch, or
+  Smooth geometry by dragging the the mouse over your model. There
+  are Magnets and Strength parameters but it should be noted that
+  this tool does not attempt to compare with other specialty
+  sculpting programs. [optigon]
+
+- Rewrite of Tweak to integrate it into the Wings core. [optigon]
+
+- New interface features including:
+  - A Menu Toolbar with icons for undo/redo, repeat last command,
+  changing selection modes, and opening the Select or Tools
+  menus can be switched on/off via Preferences|User Interface.
+  
+  - A new facility for saving and loading preferences from and
+  into your current session, has been added to the File menu.
+  These new preference subsets are appended with the .pref
+  extension, and are saved separately from your 'master' Wings
+  preference file. Additionally, both the Save and Load dialogs
+  allow you to choose from preference catagories you'd like
+  to load or save from: hotkeys, graphical elements, etc.
+  
+  - New icons for the Outliner and Geometry Graph that allow you
+  to use custom colors for how they look. These icons can be
+  switched on in Preferences|User Interface.
+  
+  - Added canned color themes. Switch between them in Edit|Themes.
+  
+  - The Geometry Graph now has folders and objects are stored
+  alphabetically. You can create, rename, move objects between
+  folders, and expand and contract them. You can also toggle
+  wireframe, visibility, locking, and selections just within a
+  folders pressing MMB on the Object, Eye, Lock, and Wireframe
+  icons.
+  
+  - Added menu clipping. With all the additions to Wings over the
+  years, the menus have been getting too long for smaller screens.
+  To help the situation, I added a preference to set the Maximum
+  Menu Height in pixels under the Misc tab in the Preferences.
+  The default is set to 0, which auto clips menus to fit in the
+  main Geometry window.
+  
+  [optigon]
+
+- FBX plugin no longer supported, and removed from the wings source. [optigon]
+
+- The Windows make_installer has been changed to use the vcredist
+  included with Erlang and to work solely with Msys. [optigon]
+
+- Edge|Circularise MMB fix. Center calculated incorrectly. [optigon]
+
+--- 1.3.0 ----------------------------------------------------------------------
+- New Feature: Rotate|Unconstrained is a trackball style rotation tool
+  contributed by ania, complete with magnets, user input rotation points,
+  and accessibility from all selection modes. [Anna Celarek]
+
+- Added Conditional Deselection option to improve Smart Highlighting. When
+  checked, Deselect only enables Smart Highlighting when there is no selection,
+  otherwise the selection is cleared with the selection mode maintained.
+  [optigon]
+
+- Secondary selection Vectors now disregard the Virtual Mirror face, as they
+  should. [optigon]
+
+- The Select|By tools have been extended to search for elements within the
+  current selection, or if there is no selection, to search all visible objects.
+  In addition, Random now has a user input field. [optigon]
+
+- Fix to restore maximized Wings layout on MS Windows. [optigon]
+
+- Fixed a small StereoLithography export bug. [scorpius]
+
+--------------------------------------------------------------------------------
+Notable new features in 1.2 (compared to 1.0.2)
+===============================================
+
+* The object mode (vertex color/material) for objects has
+  been eliminated.
+  
+  Instead materials have a Vertex Colors setting that can be
+  "Ignore" (don't use vertex colors; default for new materials),
+  "Set" (to use vertex colors instead of the colors in the material),
+  and "Multiply" (to multiply vertex colors with the diffuse texture).
+  
+  The material "default" has "Set" as the value for the "Vertex Colors"
+  property, meaning that if you assign vertex colors to face having
+  the "default" material, the vertex colors will be visible.
+  
+  There is a new command (with a sub-menu) in the body mode menu called
+  "Vertex Attributes".
+  
+  When opening a .wings file written by Wings 1.1.7 or earlier, the
+  object modes for the objects in the file will be ignored. If there
+  are vertex colors, they will be visible on faces that have
+  the 'default' material assigned. For faces with other materials,
+  the colors or textures in the material will be shown (even if
+  the object was in vertex color mode).
+  
+  When saving a .wings file in this version of Wings and opening
+  it in an older version of Wings, all objects will be in
+  material mode (even if they have vertex colors).
+
+* Wings have had the _hole_ material for a long time to fake
+  holes by marking faces that should not be included when exporting.
+  
+  There is a new Face|Hole command to create a holes
+  that looks like holes also in the Geometry window.
+  
+  To remove a hole, select a face adjacent to the hole and RMB
+  click on the Face|Hole command to create a face to cover the
+  hole.
+  
+  When loading old .wings files, all faces containing the _hole_
+  material will be converted to the new type of hole.
+  
+  If you load a .wings file saved with this version of Wings in
+  an old release, the holes will become hidden faces, but they
+  will NOT have the _hole_ material (i.e. they will not behave
+  as holes when exported).
+
+* The smooth proxy is now updated directly when invoking
+  interactive commands.
+
+* Menu Cleanup: Consolidated Extrude with Extrude Region and Extract Region with
+  Extract Faces. Since there is now only one heading each for Extrude and
+  Extract, the mouse buttons that activate specific commands have been changed.
+
+* Collada export. Objects including UV coordinates and materials
+  are exported. Lights and cameras are not exported yet.
+
+* New in Tools menu: Ambient-Occlusion Generator/Baker. It works on a per-
+  vertex basis and uses a standard inside-out approach. Mesh subdivision
+  yields more accuracy. The results are stored in the vertex-colors and can
+  also be baked to a texture through AutoUV.
+
+* Many improvements and bug fixes in the Tweak mode.
+
+* The Wavefront (OBJ) exporter will now export smoothing
+  groups based on the hard edges in the model.
+
+Eliminated annoyances
+=====================
+
+* If View|Scene Lights has been turned on, but the scene
+  contains no lights, the usual modeling lights will be turned on
+  instead so the objects do not turn black.
+
+* When displaying objects that have a virtual mirror face in
+  the smooth preview mode (i.e. turning off workmode by pressing TAB),
+  the seam between the real part of the object and mirror image will
+  now be soft.
+
+Performance
+===========
+
+* Picking (i.e. finding out which face is under the mouse
+  cursor) is no longer done using OpenGL, but by our own
+  C code, which is both faster and more reliable.
+
+* The internal data structures for edge and vertex tables require
+  less memory than in Wings 1.0, which should also improve
+  peformance.
+
+* The display code has been extensively rewritten and now uses
+  vertex buffers in OpenGL. It should be faster in most
+  circumstances.
+--- 1.2.rc3 --------------------------------------------------------------------
+- Wings could not always save the preferences on Windows Vista
+  and Windows 7 because the registry has a different layout.
+  Wings will no longer attempt to use the registry to find an
+  appropriate directoy into which preferences should be saved,
+  but will use the documented Windows API function.
+  
+  Note to developers: You will need to adjust your scripts/shortcuts
+  for starting Wings. See BUILD.win32. [bjorng]
+
+- Dissolving or collapsing an isolated vertex could
+  cause a crash. (Thanks to ania.) [bjorng]
+
+- Fixed various hidden/hole face drawing problems. Hidden hard
+  edges was drawn reported by Ania. Smooth-preview showed edges on
+  hidden faces and the backside of visible faces was not shown in flat
+  shaded view. [dgud]
+
+--- 1.1.16 ---------------------------------------------------------------------
+- Wings now compiles cleanly on FreeBSD. [scorpius]
+
+- For developers: Erlang/OTP R13B02 is now required for building
+  Wings. [bjorng]
+
+- When importing holes were not always handled correctly.
+  There could be faces marked as holes internally, but the faces
+  would still be visible. Future operations (such as Combine), could
+  then cause the faces to suddenly disappear (i.e. become holes).
+  (Thanks to Siber.) [bjorng]
+
+- Wings will now validate holes when loading .wings files,
+  and remove from the list of holes any non-existent face or
+  face that is not invisible. (Importing objects with holes and
+  saving in a previous release of Wings could cause such
+  inconsistencies, as described in the previous release note.)
+  [bjorng]
+
+- Selecting many elements in many objects using marquee
+  selection is now much faster. (Thanks to ycarry for noticing
+  the slowness.) [bjorng]
+
+- The Separate command is now significantly faster when run
+  on objects with many sub-objects. (Thanks to ycarry for noticing
+  the slowness.) [bjorng]
+
+- Opening .wings files without vertex attributes is now
+  slightly faster. (Thanks to ycarry.) [bjorng]
+
+- Added Bbox Move and Scale to Selection tools. BBox now
+  displays with a visible center and uses the user define Vector
+  colour. [optigon]
+
+- Added colour prefs for the Menubar and Info Line Text. [optigon]
+
+--- 1.1.15 ---------------------------------------------------------------------
+- It was not possible to load JPEG, PNG, or GIF images (either
+  as textures or using the Image Plane commands) on Snow Leopard.
+  (Thanks to Riolan and nobrandname.) [bjorng]
+
+- The Tools|Virtual Mirror|Create command will now
+  automatically flatten the virtual mirror face. [bjorng]
+
+- The Select|Edge Loop|Edge Loop To Region command will
+  now allow virtual mirror and hole edges to close an edge loop.
+  (Suggested by FonteBoa.) [bjorng]
+
+- Combine and Separate became much slower in 1.1 if there
+  were many objects in the scene. This has been corrected.
+  (Thanks to ycarry.) [dgud/bjorng]
+
+- Select by material is now much faster for big objects with
+  more than one material. (Thanks for ycarry for noticing the
+  slowness.) [bjorng]
+
+- Gordo has designed new (much nicer) install and uninstall icons
+  for the installer on Windows. [bjorng]
+
+- Undoing a change of UV coordindates would not update the
+  AutoUV window. (Thanks to no204.) [bjorng]
+
+- Creating a new Geometry window and moving the mouse cursor
+  over the toolbar of the new window before doing anything else would
+  cause Wings to crash. (Thanks to BlackHarmo.) [bjorng]
+
+- Area lights can now be selected from both sides, not only
+  from the front face. (Thanks to Micheus.) [bjorng]
+
+- Newer LWO files may contain a sub form of POLS called SUBD.
+  Unfortunately, I have found no description on how to interpret those
+  forms. If you happen to know how to interpret those forms, please
+  post a message in the Programming forum. The LWO importer will now
+  quit with an error message instead of crashing when encountering
+  ae SUBD form. (Thanks to Siber.) [bjorng]
+
+- Fixes to Sweep. (Thanks to BlackHarmo and Fonte Boa). [optigon]
+
+- Windows could appear above the visible screen area. Now some code
+  checks for this as windows are loaded and moves them within the visible
+  range. [optigon]
+
+--- 1.1.14 ---------------------------------------------------------------------
+- If View|Scene Lights has been turned on, but the scene
+  contains no lights, the usual modeling lights will be turned on
+  instead so the objects do not turn black. [bjorng]
+
+- Undoing Absolute Command|Snap would undo the preceding
+  command too. (Thanks to BlackHarmo.) [bjorng]
+
+- In vertex selection mode, unselected vertices would not be
+  shown if there were any hidden faces or holes. [bjorng]
+
+- Some inconsistencies noticed by gordo in the user-interface
+  have been corrected. [bjorng]
+
+- New Feature: Collada export. Objects including
+  UV coordinates and materials are exported. Lights and
+  cameras are not exported yet. [metadave]
+
+--- 1.1.13 ---------------------------------------------------------------------
+- Selecting two objects, one with a virtual mirror and one
+  without a virtual mirror, and Tweaking the object with the virtual
+  mirror would cause a crash. (Thanks to BlackHarmo.)
+  
+  For developers: wings_pick:do_pick/3 and wpa:pick/3 returns more
+  information about what was picked in the second element of the
+  result tuple. Plug-ins that use the second element must
+  be updated. [bjorng]
+
+- Select|Edge Loop|Edge Loop (and Grow/Shrink Edge Loop) can
+  now select edge loops around holes. [bjorng]
+
+- This release for Mac OS X has been built with Snow
+  Leopard (10.6) as the host OS. It is still supposed to work on
+  Tiger (10.4) with either PPC or Intel CPUs, but I have no way to
+  actually test that. [bjorng]
+
+- On Windows, the wings_crash.dump file will now be written to the
+  Desktop, since writing it to the installation directory for Wings
+  would not work in Windows Vista or Windows 7. [bjorng]
+
+- Vertex colors that were completely white were not saved in
+  .wings files. (Thanks to tuxtax.) [bjorng]
+
+- The '+' and '-' keys on the keypad can now be used for
+  adjusting the magnet radius in Tweak mode. [bjorng]
+
+--- 1.1.12 ---------------------------------------------------------------------
+- For developers: In the source distribution, there is a new
+  text file CodingGuidelines containing coding guidelinings for
+  Erlang programming in general and Wings programming in particular.
+  (Thanks to optigon, deerwood, and scorpius for comments on the
+  first draft.) [bjorng]
+
+- For developers: Basic multiple column support has been
+  implemented in the table widget in wings_ask. [bjorng]
+
+- Doing a vertex bevel on an object with both vertex attributes
+  and a virtual mirror would cause a crash. (Thanks to ycarry.) [bjorng]
+
+- Exporting objects with holes and more than one material
+  would cause a crash. (Thanks to ycarry and TulipVorlax.) [bjorng]
+
+- Exporting a scene with area lights with the Yafray exporter
+  would cause a crash. (Thanks to spacemanspiff7.) [bjorng]
+
+--- 1.1.11 ---------------------------------------------------------------------
+- Clicking the Cancel button in the file dialog for Mac OS X
+  would cause a hard crash. (Thanks to ycarry.) [bjorng]
+
+- Wings have had the _hole_ material for a long time to fake
+  holes by marking faces that should not be included when exporting.
+  
+  This release introduce the command Face|Hole to create a holes
+  that looks like holes also in the Geometry window.
+  
+  To remove a hole, select a face adjacent to the hole and RMB
+  click on the Face|Hole command to create a face to cover the
+  hole.
+  
+  When loading old .wings files, all faces containing the _hole_
+  material will be converted to the new type of hole.
+  
+  If you load a .wings file saved with this version of Wings in
+  an old release, the holes will become hidden faces, but they
+  will NOT have the _hole_ material (i.e. they will not behave
+  as holes when exported). [bjorng]
+
+- The Turn Edge command will now only turn edges that have
+  visible faces on both sides. In previous releases, it would happily
+  turn edges next to invisible faces (even edges making up the
+  virtual mirror face). [bjorng]
+
+- Face|Extrude (on regions) could be slow if many faces were
+  selected in a pattern with many inner corners (e.g. the selection
+  obtained by first selecting a single face and then pressing
+  "F" repeatedly). [bjorng]
+
+- Palette window: Fixed crash and made the scan command aware
+  of the selection mode. (Thanks to Fonteboa and Deerwood.) [dgud]
+
+- Added an edge filter. Original idea and code from Ed Kolis. [dgud]
+
+- Yafray exporter:
+  * Changed default settings for Photon Spotlight.
+  
+  * Added to Help info.
+  
+  * Changed type for HDRI from HDRI to Image.
+  
+  * Added .EXR to HDRI Background file browser.
+  
+  * Added Prefilter option for Ambient light background. [oort]
+
+--- 1.1.10 ---------------------------------------------------------------------
+- Tools|Snap Image was broken in several ways. It will now
+  also preserve vertex colors. (Thanks to PuzzledPaul.) [bjorng]
+
+- Attempting to extrude an edge between two isolated vertices
+  would cause a crash. [bjorng]
+
+- Extrude in edge mode would distort UV coordinates and
+  vertex colors. That has been corrected. [bjorng]
+
+- When the hemispherical shader was active, vertex colors was
+  shown even for materials that disabled vertex colors, provided
+  that the object had at least one material with vertex colors
+  enabled. [bjorng]
+
+- Wings 1.1.9 (and 1.1.9.1) would crash when attempting to open
+  a .wings file containing area lights saved by a previous version of
+  Wings. This has been corrected.  Furthermore, when saving area
+  lights, they will be saved in the same way as in versions before
+  1.1.9. That means that a .wings file containing area lights saved
+  by this version of Wings cannot be opened by 1.1.9.x, but it can
+  be opened by older versions such as 1.0.1 and 1.1.8.
+  (Thanks to Micheus.) [bjorng]
+
+- Autouv: Fixed Face|Project Unfold crash when every face in
+  the chart was selected. [dgud]
+
+--- 1.1.9.1 --------------------------------------------------------------------
+- File dialogs would crash on Linux in the 1.1.9
+  release. [bjorn]
+
+--- 1.1.9 ----------------------------------------------------------------------
+- Calculations of smoothing groups in the Wavefront exporter
+  could crash if there was two different edges between the same pair
+  of vertices. (Thanks to Siber for reporting this bug.)
+  
+  For plugin developers: A new field, sg, containing an integer
+  representing the smoothing group has been added to the #e3d_face{}
+  record. Plug-ins using that record must be re-compiled. [bjorng]
+
+- In the Smoothed Preview mode, changes to vertex colors or
+  UV coordinates would not be visible. (Thanks to FonteBoa.) [bjorng]
+
+- Fixed the bugs in the View|Show Colors and View|Show Materials
+  reported by Micheus. Also made sure that a change to the vertex
+  color option of a material would immediately be seen in the
+  scene. [bjorng]
+
+- Repeat cmds for Extrude now fixed. (Thanks to Fonte Boa). [optigon]
+
+- Bevel for vertices now properly updates UV coordinates and
+  vertex colors dynamically during dragging. (In the Smoothed Preview
+  mode, the UV coordinates will only become correct when the drag
+  has finished.) [bjorng]
+
+- If the workaround against disappearing text was enabled,
+  there would be crash when attempting to display any character
+  not included in the fonts, which could happen when using the
+  file dialog on Linux to browse a file system where the filenames
+  are encoded using UTF-8. (Thanks to mifth.) [bjorng]
+
+- In the file dialog on Mac OS X, selecting a filename
+  containing non-US ASCII characters (such as the Swedish
+  letters ﾅ, ﾄ, or ﾖ) would cause a hard crash. [bjorng]
+
+- By default, the file dialog box for Linux now assumes
+  that filenames are encoded in UTF-8. There is a new checkbox
+  to revert to the previous behaviour (that is, to assume that
+  filenames are encoded in ISO latin1). [bjorng]
+
+--- 1.1.8 ----------------------------------------------------------------------
+- Switching to the Smoothed Preview mode would cause a crash
+  if there were any area lights in the scene. (Thanks to Micheus.)
+  [bjorng]
+
+- For plug-in developers: The new function wpa:version/0
+  returns the version string for Wings. [bjorng]
+
+- Edit|Repeat (Ctrl+D) was broken since 1.1.3. Either it did nothing
+  at all or caused a crashed. (Thanks to optigon and deerwood.) [bjorng]
+
+- Magnet Mask|Select bugs fixed. (Thanks to GetaVe and Fonte Boa). [optigon]
+
+- Using one of the commands Show Colors, Show Materials, or
+  Show Textures in the View|Show sub-menu, the scene would not be
+  immediately updated to reflect the change. Furthermore, if
+  Show Colors was turned off and there was an object with vertex
+  colors in the scene, there would be a crash. [bjorng]
+
+- AutoUV used to hold a copy of the scene to be able to
+  generate a texture with vertex colors or materials.
+  
+  This extra scene copy has been eliminated. When doing the initial
+  UV mapping of an object without previous UV coordinates, the
+  materials on the object will be converted to vertex colors (this
+  will only be done if there are no previous vertex colors in the
+  object AND if the object has non-default materials). The vertex
+  colors in the object can later be used to generate a texture.
+  
+  With this change, vertex colors generated by the Ambient Occlusion
+  command can now be baked into a texture. [bjorng]
+
+- If the material 'default' in a .wings file does not have exactly
+  the same properties as the 'default' material in Wings, the material
+  itself would be renamed to something else (typically 'default2'),
+  but the material for the faces that used the material would NOT
+  be assigned the new name. [bjorng]
+
+- The object mode (vertex color/material) for objects has
+  been eliminated.
+  
+  Instead materials have a Vertex Colors setting that can be
+  "Ignore" (don't use vertex colors; default for new materials),
+  "Set" (to use vertex colors instead of the colors in the material),
+  and "Multiply" (to multiply vertex colors with the diffuse texture).
+  
+  The material "default" has "Set" as the value for the "Vertex Colors"
+  property, meaning that if you assign vertex colors to face having
+  the "default" material, the vertex colors will be visible.
+  
+  There is a new command (with a sub-menu) in the body mode menu called
+  "Vertex Attributes".
+  
+  When opening a .wings file written by Wings 1.1.7 or earlier, the
+  object modes for the objects in the file will be ignored. If there
+  are vertex colors, they will be visible on faces that have
+  the 'default' material assigned. For faces with other materials,
+  the colors or textures in the material will be shown (even if
+  the object was in vertex color mode).
+  
+  When saving a .wings file in this version of Wings and opening
+  it in an older version of Wings, all objects will be in
+  material mode (even if they have vertex colors).
+  
+  For plug-in writers: #we.mode has been removed. It also means that
+  plug-ins that use #we{} needs to be re-compiled. [bjorng]
+
+--- 1.1.7 ----------------------------------------------------------------------
+- In rare circumstances, the progress bar could reach 1.0
+  (the far end) even if the operation was not finished and cause
+  Wings to crash hard. (Thanks to deerwood.) [bjorng]
+
+- The smooth proxy is now updated directly when invoking
+  interactive commands. [dgud]
+
+- New Feature: Create Bounding Box added to the primitives menu. [optigon]
+
+- Scale to Bounding Box selections now keep their original centre. [optigon]
+
+- Turn Edge now preserves Hard Edges. (Thanks to BlackHarmo). [optigon]
+
+- New Feature: Select|Edge Loop|To Complete Loops turns any selection
+  into an edge loop selection. Works from all selection modes and is based on
+  the request by deerwood to be able to extend loops beyond where they stop
+  when using the regular Edge Loop command (L). [optigon]
+
+- Dissolve and Collapse cmds now delete wholly selected efficiently. [optigon]
+
+- Shared vertices are now eliminated on import. (The
+  modeling commands in Wings does not allow creating of shared
+  vertices (also called waists), i.e. faces that only share vertices
+  but no edges, so it should not be allowed on import.) [bjorng]
+
+- When displaying objects that have a virtual mirror face in
+  the smooth preview mode (i.e. turning off workmode by pressing TAB),
+  the seam between the real part of the object and mirror image will
+  now be soft. The Smooth command (and the Smooth Proxy mode) will
+  still sub-divide faces around the virtual mirror face as if the
+  edges were hard, so Smoothing before freezing the mirror and
+  after freezing may still not give exactly the same result
+  (how close the result is depends on the object; for some objects
+  the difference may not be noticeable). [bjorng]
+
+- New Feature: Magnet Mask Deselect - Subtracts locked elements from
+  the current selection. (Thanks to Fonte Boa) [metadave, optigon]
+  
+  Magnet Mask Select - fixed: Adds locked elements to current selection.
+  (Thanks to Fonte Boa). [optigon]
+
+--- 1.1.6 ----------------------------------------------------------------------
+- Re-exporting an imported model with tesselation could
+  cause a crash. Also, when importing objects that had UV coordinates
+  on some faces but not all, UV coordinates would be discarded
+  on both side of edges that only had UV coordinates on one side.
+  (Thanks to Siber.) [bjorng]
+
+- Separating, then Combining an object with vertex
+  attributes would cause a crash. (Thanks to zdarby.) [bjorng]
+
+- Smoothing objects with hidden faces would crash. [bjorng]
+
+- The command Select By|Id would crash in body mode. [bjorng]
+
+- Eliminate selection glitches where elements behind a face
+  could be selected through the face. (Thanks to deerwood.) [bjorng]
+
+- Wings would freeze if there were empty objects in the
+  scene. (Empty objects can only be created by import or possibly
+  by a plug-in, as the core Wings commands will delete an object
+  that becomes empty.) [bjorng]
+
+- The Ambient Occlusion plugin will now correctly
+  ignore hidden or locked objects. [scorpius]
+
+- Some fixes and improvements to Edge|Circularise. Open edge loops
+  should process more uniformly. (Thanks to puzzledpaul). [optigon]
+
+- Warp mouse to proper position follow drag in Tweak. [optigon]
+
+- Toggling xyz constraints in tweak wouldn't update the info line.
+  Now fixed. [optigon]
+
+- Tweak Slide would not work correctly for single edges and
+  would not work at all for selections of two unconnected vertices.
+  Now fixed. (Thanks to Fonte Boa.) [optigon]
+
+- Tweak Slide would not stop at edges. Also made some
+  optimisations. [optigon]
+
+--- 1.1.5 ----------------------------------------------------------------------
+- Fixed Tweak drag Normal. (Thanks to Fonte Boa). [optigon]
+
+- Moving or duplicating a light in body mode would cause
+  a crash on the next attempt to select anything.
+  (Thanks to extrudeface.) [bjorng]
+
+- Marquee selection would selected locked vertices or edges.
+  (Thanks to ycarry.) [bjorng]
+
+- Select|Similar is now faster if the initial selection
+  contains elements that are similar to each other.
+  (Thanks to Ran13.) [bjorng]
+
+- The Wavefront (OBJ) exporter now tries to minimize
+  the number of smoothing groups. (Thanks to Ran13.) [bjorng]
+
+- Fixed loading models when in smooth-preview mode.
+  Reported by Ran13. [dgud]
+
+- There is a major internal change in how vertex attributes
+  (i.e. vertex colors and UV coordinates that are associated with
+  a vertex in a particular face) are handled.
+  
+  Vertex attributes used to be stored in the edge table (with
+  two words per edge always reserved for vertex attributes)
+  and each vertex could have EITHER a vertex color or
+  UV coordinates.
+  
+  Vertex attributes are now stored by themeselves. Objects
+  without vertex attributes will consume less memory (two
+  words per edge less than in previous releases). Each
+  vertex can now have both a vertex color and UV coordinates.
+  
+  The wings file format should be completely compatible. If
+  you load a wings file containing an object with both vertex
+  colors and UV coordinates into an older release of Wings,
+  only the UV coordinates will be kept. (If you resave such
+  a file from an older version of Wings, the vertex colors
+  will be permanently lost.)
+  
+  Most commands have not been updated yet to take full
+  advantage of the new vertex attribute implementation. So
+  while Ambient Occlusion will preserve existing UV coordinates,
+  there is no way yet to show vertex colors at the same time
+  as textures.
+  
+  You can use the commands "Material Mode" and "Vertex Color Mode" in
+  the body mode menu to switch between seeing materials/textures and
+  vertex colors. (The commands are not new, but there were few
+  situations in which they were needed in previous releases of Wings.)
+  In a future release, we will probably eliminate those commands and
+  extend materials so that you can choose whether vertex colors,
+  materials/textures, or a mixture of both should be shown.
+  
+  Performance seems to be about the same if there are no
+  vertex attributes, but somewhat slower for models with
+  vertex attributes.
+  
+  For developers: Plug-ins using #edge.a and #edge.b will not
+  compile. Instead use the new wings_va module that provides an API
+  to the vertex attributes. I have tried to comment each
+  exported function in the API. [bjorng]
+
+--- 1.1.4.1 --------------------------------------------------------------------
+- Having wireframe on and workmode off would cause a
+  crash. (Thanks to Siber.) [bjorng]
+
+- Select By|Vertices With could select hidden vertices
+  (i.e. vertices surrounded only by hidden faces). Similarly,
+  Select By|Random could select hidden edges or vertices,
+  and Select By|Short Edges and Select By|Sharp Edges could
+  select hidden edges. [bjorng]
+
+- The Wavefront (OBJ) exporter will now export smoothing
+  groups based on the hard edges in the model. [bjorng]
+
+- For developers: There is a new module wings_va
+  which is ultimately meant to encapsulate the details
+  of how vertex attributes (i.e. vertex colors and UV
+  coordinates) are stored. In this release, wings_va has
+  an API mostly for retrieving vertex attributes (i.e.
+  it does not yet handle updating of vertex attributes).
+  In particular, all functions in wings_face that could
+  retrieve vertex attributes (such as vinfo_ccw/2 and
+  fold_vinfo/4) have been removed. [bjorng]
+
+--- 1.1.4 ----------------------------------------------------------------------
+- For developers: Release notes to be included in a release
+  should no longer be directly added to NOTES-1.1 files, but
+  instead be written into the check-in comment. Everything in
+  a comment from "NOTE:" (without the quotations marks) at
+  the beginning of a line to the end of the check-in comment,
+  will be included in the release notes.
+  
+  To extract the release notes, run the script tools/extract_notes.
+  It will extract and print all notes for all commits after
+  the tag for the latest release. [bjorng]
+
+- The Edge Ring command (Select|Edge Loop|Edge Ring) would
+  select edges between hidden faces. [bjorng]
+
+- Selection (finding out which face is under the mouse
+  cursor) used to be done using a special selection render
+  mode in OpenGL. However, this mode does not work well
+  in all OpenGL drivers. Therefore I have implemented my
+  own code for selection handling in C as a driver for the
+  Erlang emulator. (Thanks to FonteBoa for testing.) [bjorng]
+
+- The proxy mode has been optimized by using vertex arrays. [dgud]
+
+--- 1.1.3 --------------------------------------------------------------------
+- Torsten Manz updated the German translation. [bjorng]
+
+- Menu Cleanup: Consolidated Extrude with Extrude Region and Extract Region with
+  Extract Faces. Since there is now only one heading each for Extrude and
+  Extract, the mouse buttons that activate specific commands have been changed.
+  Please see the related info lines for details. [optigon]
+
+- Crash when using Shift Spherical (mmb option) now fixed.
+  (Thanks to Fonte Boa.) [optigon]
+
+- Edge|Collapse now deletes edges more uniformly than the previous
+  implementation. Also, a Rmb option has been added to automatically cleanup
+  any newly created isolated vertices resulting from the collapse edges.
+  (Thanks to deerwood and Fonte Boa). [optigon]
+
+- On OpenGL implementations without support for multisampling,
+  there would be (harmless) error messages written to the console
+  Develop|OpenGL Errors had been turned on. Changed to only
+  attempt to use multisampling if the OpenGL implementation supports
+  it, and no longer showing the checkbox in the preferences for
+  turning on/off multisampling if the OpenGL implementation does
+  not support it. [bjorng]
+
+- If a command executed through a hotkey causes an error,
+  a dialog box with some help will be shown. [bjorng]
+
+- Major rewrite of how geometry data is sent to OpenGL. We used
+  to have a specially written driver, but for future compatibility
+  we cannot use a driver. Instead we use vertex arrays.
+
+  This is the first step in this direction and we expect to do
+  further optimizations. For the moment, some display updates
+  can be slower and some can be faster than before.
+
+  As part of this change, the OpenGL renderer has been removed.
+  Sorry for any inconvenience, but it had to go. [dgud & bjorng]
+
+- This release uses R13B01. A bug fix in the array module in R13B01
+  eliminates a crash that occurred when all edges in an object
+  were dissolved. [bjorng]
+
+- This development release also includes all bug fixes in the 1.0.1 release.
+
+--- 1.1.2 --------------------------------------------------------------------
+- Select Similar Normals with the option Connected Faces Only and
+  a selection comprising multiple objects would cause a crash.
+  (Thanks to pauljs75.) [bjorng]
+
+- Using the Slide command with Clean (Ctrl+Alt+L) would crash.
+  (Thanks to gordo.) [bjorng]
+
+- AutoUV: Doing ReMap UV and choosing Strech Optimization would
+  cause a crash. (Thanks to betelguese.) [bjorng]
+
+- When creating a texture from vertex colors in the AutoUV window, the
+  colors will be properly interpolated (smoothed). [scorpius]
+
+- Keyboard events in Tweak while dragging could cause slow downs. Now Fixed.
+  (Thanks to Fonte Boa.) [optigon]
+
+- Additional Geometry Windows can now be closed from within Tweak mode.
+  (Thanks to Fonte Boa.) [optigon]
+
+- Dragging in Tweak is no longer limited to the size of the current window.
+  [optigon]
+
+- Conflicts due to mouse events in adjacent Geometry Windows have been solved by
+  locking the focus to the original window during paint selection and dragging
+  in Tweak Mode. (Thanks to Fonte Boa.) [optigon]
+
+- New Tweak option to set Tweak Magnet Increment. [optigon]
+
+- Spherical UV mapping corrected. [dgud]
+
+- There are two new commands in the optional Develop menu:
+
+  * Develop|OpenGL Errors to check for and display OpenGL errors after
+    each command.
+  * Develop|Print Scene Size to print the scene size.
+
+  Also, the existing commands Time Commands and Undo Stat now handle
+  plug-in commands properly.
+
+  The command Tools|Memory Info has been removed. [bjorng]
+
+- New in Tools menu: Ambient-Occlusion Generator/Baker. It works on a per-
+  vertex basis and uses a standard inside-out approach. Mesh subdivision
+  yields more accuracy. The results are stored in the vertex-colors and can
+  also be baked to a texture through AutoUV. [scorpius]
+
+- Extended Shift plugin to work in all selection modes. [optigon]
+
+- New Plugin: Extract Faces. Like Extract Region but extracts individual faces.
+  [optigon]
+
+--- 1.1.1 -------------------------------------------------------------------
+- The data structure for the vertex tables has been changed.
+  (There is one vertex table to keep track of the vertex positions,
+  and another vertex table used for finding edges and face around
+  the vertex.) The new data structure is faster and uses less memory.
+  [bjorng]
+
+- When displaying vertices and edges, a feature in OpenGL called vertex
+  arrays is used to faster transfer the data from Wings into OpenGL.
+  This way of displaying geometry is slightly faster than the previous
+  method. [dgud, bjorng]
+
+- ESDL updated to 1.0.1. (The next release in the 1.1 series will probably
+  not work without that version of ESDL.) [bjorng]
+
+- Magnets are now drawn correctly in Tweak when selections across multiple
+  objects are dragged. [optigon]
+
+- Selectings multiple objects in Tweak and calling a command via a hotkey would
+  only affect one of the objects. Now corrected. [optigon]
+
+- Crash reported by Fonte Boa corrected. [optigon]
+
+- Tweak mode temporary selection fix. [optigon]
+
+--- 1.1 ---------------------------------------------------------------------
+- Added a new preference in the Misc tab to turn on a Develop menu
+  containing various tools for the Wings developers. [bjorng]
+
+- Added a command to the new Develop menu to automatically time
+  all executed commands. The command name and time will be printed
+  to the console. [bjorng]
+
+- Added a command to the new Develop menu to automatically print
+  out information about the undo queue. [bjorng]
+
+- The data structure for the edge table has been changed. The new
+  data structure is faster and uses less memory. Approximately 4
+  words (1 word = 4 bytes) per edge is saved.
+
+  Plug-ins that depend on the edge table being a gb_tree will not
+  work. More details can be found in the Change log (which follows
+  these notes at Sourceforge). [bjorng, optigon]
+
+-----------------------------------------------------------------------------
+--- 1.0.2 ----------------------------------------------------------------------
+- Edge|Collapse could crash in some cases. Now fixed. [optigon]
+
+- The Edge Ring command (Select|Edge Loop|Edge Ring) would
+  select edges between hidden faces. [bjorng]
+
+- Fixed Tweak drag Normal. (Thanks to Fonte Boa). [optigon]
+
+- In rare circumstances, the progress bar could reach 1.0
+  (the far end) even if the operation was not finished and cause
+  Wings to crash hard. (Thanks to deerwood.) [bjorng]
+
+- If the workaround against disappearing text was enabled,
+  there would be crash when attempting to display any character
+  not included in the fonts, which could happen when using the
+  file dialog on Linux to browse a file system where the filenames
+  are encoded using UTF-8. (Thanks to mifth.) [bjorng]
+
+- In the file dialog on Mac OS X, selecting a filename
+  containing non-US ASCII characters (such as the Swedish
+  letters ﾅ, ﾄ, or ﾖ) would cause a hard crash. [bjorng]
+
+- It was not possible to load JPEG, PNG, or GIF images (either
+  as textures or using the Image Plane commands) on Snow Leopard.
+  (Thanks to Riolan and nobrandname.) [bjorng]
+
+- This release for Mac OS X has been built with Snow
+  Leopard (10.6) as the host OS. It is still supposed to work on
+  Tiger (10.4) with either PPC or Intel CPUs, but I have no way to
+  actually test that. [bjorng]
+
+--- 1.0.1 -------------------------------------------------------------------
+- Magnets are now drawn correctly in Tweak when selections across multiple
+  objects are dragged. [optigon]
+
+- Selectings multiple objects in Tweak and calling a command via a hotkey would
+  only affect one of the objects. Now corrected. [optigon]
+
+- Tweak Crash to do with unchecked camera mode reported by Fonte Boa corrected.
+  [optigon]
+
+- Tweak mode temporary selection fix. [optigon]
+
+- Select Similar Normals with the option Connected Faces Only and
+  a selection comprising multiple objects would cause a crash.
+  (Thanks to pauljs75.) [bjorng]
+
+- When creating a texture from vertex colors in the AutoUV window, the
+  colors will be properly interpolated (smoothed). [scorpius]
+
+- Keyboard events in Tweak while dragging could cause slow downs. Now Fixed.
+  (Thanks to Fonte Boa.) [optigon]
+
+- Additional Geometry Windows can now be closed from within Tweak mode.
+  (Thanks to Fonte Boa.) [optigon]
+
+- Dragging in Tweak is no longer limited to the size of the current window.
+  [optigon]
+
+- Conflicts due to mouse events in adjacent Geometry Windows have been solved by
+  locking the focus to the original window during paint selection and dragging
+  in Tweak Mode. (Thanks to Fonte Boa.) [optigon]
+
+- New Tweak option to set Tweak Magnet Increment. [optigon]
+
+- Spherical UV mapping corrected. [dgud]
+
+- Doing a Doo-Sabin sub-division on multiple objects would leave an
+  invalid selection that could cause crashes. (Thanks to Fonte Boa.) [bjorng]
+
+- Very old Wings files could have invalid mirror faces, which would cause
+  crashes. Now clearing the mirror face if it is invalid when loading
+  a Wings file. [bjorng]
+
 --- 1.0 ---------------------------------------------------------------------
 - Gordo eliminated some color banding in the task switching icon on Windows
   and also cleaned up the edges on that icon. [bjorng]

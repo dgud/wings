@@ -14,7 +14,7 @@
 -module(wpc_plane).
 -export([init/0,menu/2,command/2]).
 -import(math, [sqrt/1,cos/1,pi/0,pow/2,exp/1]).
--include("wings_intl.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 init() -> true.
 
@@ -32,7 +32,7 @@ parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 
 plane_menu() ->
-    [{?__(1,"Various Planes"),plane,{?__(7,"Create a plane")},[option]}].
+    {?__(1,"Various Planes"),plane,{?__(7,"Create a plane")},[option]}.
 
 command({shape,{plane,Ask}}, St) -> make_plane(Ask, St);
 command(_, _) -> next.
@@ -72,7 +72,7 @@ plane_dialog() ->
 
 make_plane(Ask, St) when is_atom(Ask) ->
     Qs = plane_dialog(),
-    wings_ask:dialog_preview({shape,plane}, Ask, ?__(1,"Plane Options"), Qs, St);
+    wings_dialog:dialog_preview({shape,plane}, Ask, ?__(1,"Plane Options"), Qs, St);
 make_plane([{_,Nres},{_,Size},{_,Thickness},{_,regular},_,_,_], _) ->
     Vs = regular_plane_verts(Nres, Size, +Thickness/2) ++
 	 regular_plane_verts(Nres, Size, -Thickness/2),

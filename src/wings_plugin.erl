@@ -83,13 +83,25 @@ dialog_1(Dialog, Ps, [M|Tail]) ->
 	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
 	    wings_u:error_msg("~w:dialog/2: crashed", [M]);
 	NewPs when is_list(NewPs) ->
-	    dialog_1(Dialog, NewPs, Tail);
+	    Checked = check_dialog(NewPs, M),
+	    dialog_1(Dialog, Checked, Tail);
 	Other ->
 	    io:format("~w:dialog/2: bad return value: ~P\n", [M,Other,20]),
 	    wings_u:error_msg("~w:dialog/2: bad return value", [M])
     end;
 dialog_1(_Dialog, Ps, []) -> 
     Ps.
+
+% Check (and fix) plugin dialogs results (new format)
+check_dialog([Ok = {Name, Tuple}|Rest], Mod)
+  when is_list(Name), is_tuple(Tuple) ->
+    [Ok|check_dialog(Rest, Mod)];
+check_dialog([[PPs]|Rest], Mod) ->
+    [{atom_to_list(Mod), PPs}|check_dialog(Rest, Mod)];
+check_dialog([{Name, []}|Rest], Mod)
+  when is_list(Name) ->
+    [check_dialog(Rest, Mod)];
+check_dialog([], _) -> [].
 
 dialog_result(Dialog, Ps) when is_tuple(Dialog), is_list(Ps) ->
     dialog_result1(Dialog, Ps, get(wings_plugins)).
@@ -380,7 +392,7 @@ manager_command({edit,plugin_manager}, St) ->
 		  update_disabled(Disabled, St)
 	  end,
     Dialog = mk_dialog(Cps, false),
-    wings_ask:dialog(?__(1,"Plug-In Manager"), Dialog, Fun);
+    wings_dialog:dialog(?__(1,"Plug-In Manager"), Dialog, Fun);
 manager_command(_, _) -> next.
 
 update_disabled(Disabled, St) ->
@@ -402,12 +414,20 @@ mk_dialog_1([{C,Ms}|Cs]) ->
 mk_dialog_1([]) -> [].
 
 plugin_modules(C, Ms) ->
-    {hframe,[{vframe,[{atom_to_list(M),member(M, get(wings_plugins)),
-		       [{key,M},
-			{info,?__(1,"Enable or disable this plug-in ")++
-			 ?__(2,"(a disbled plug-in does not show up in menus)")}]} ||
-			 M <- Ms]},
-	     {vframe,[plugin_info(C, M) || M <- Ms]}]}.
+    Ps = [{info,?__(1,"Enable or disable this plug-in ")++
+	       ?__(2,"(a disbled plug-in does not show up in menus)")},
+	  {proportion, 1}],
+    {vframe,
+     [{hframe, [{atom_to_list(M), member(M, get(wings_plugins)), [{key,M}|Ps]},
+		plugin_info(C,M)]}
+      || M <- Ms]}.
+
+plugin_info(C, M) ->
+    case plugin_info_1(C, M) of
+	panel -> panel;
+	{label, Str} -> {label, Str, [{proportion, 2}]}
+    end.
+
 
 cat_label(command) -> ?__(1,"Commands");
 cat_label(export_import) -> ?__(2,"Import/export");
@@ -462,22 +482,22 @@ try_menu([N|Ns], M, Category) ->
     end;
 try_menu([], _, _) -> next.
 
-plugin_info(export_import, M) -> export_import_info(M);
-plugin_info(render, M) -> export_import_info(M);
-plugin_info(command, M) ->
+plugin_info_1(export_import, M) -> export_import_info(M);
+plugin_info_1(render, M) -> export_import_info(M);
+plugin_info_1(command, M) ->
     Names = command_menus(),
     Menus = collect_menus(Names, M),
     plugin_menu_info(Menus);
-plugin_info(primitive, M) ->
+plugin_info_1(primitive, M) ->
     Menus = collect_menus([{shape},{shape}], M),
     plugin_menu_info(Menus);
-plugin_info(select, M) ->
+plugin_info_1(select, M) ->
     Menus = collect_menus([{select}], M),
     plugin_menu_info(Menus);
-plugin_info(tool, M) ->
+plugin_info_1(tool, M) ->
     Menus = collect_menus([{tools}], M),
     plugin_menu_info(Menus);
-plugin_info(_, _) -> panel.
+plugin_info_1(_, _) -> panel.
 
 export_import_info(M) ->
     case collect_menus([{file,import},{file,export},{file,render}], M) of
@@ -643,6 +663,8 @@ get_win_data(WinName) ->
     Ps = get(wings_plugins),
     get_win_data_1(Ps, WinName).
 
+%% win_data/1 function allows many plugin's windows to be saved.
+%% it should returns: {Name, {Horiz alignment, Custom_data}}
 get_win_data_1([M|Ps], WinName) ->
 	case catch M:win_data(WinName) of
 	  {WinName,Data} -> {M,Data};

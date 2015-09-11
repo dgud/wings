@@ -84,24 +84,24 @@ magnet_mode_fun() ->
 
 dialog(Fun) ->
     R0 = wings_pref:get_value(magnet_radius),
-	wings_ask:dialog(?__(1,"Magnet Options"),
-      [{hframe,[{text,R0}],[{title,?__(2,"Influence Radius")}]}|common_dialog()],
-      fun([R,Route]) ->
-	      wings_pref:set_value(magnet_distance_route, Route),
-	      Type = wings_pref:get_value(magnet_type),
-	      Mag = {magnet,Type,Route,R},
-	      Fun(Mag)
-      end).
+    wings_dialog:dialog(?__(1,"Magnet Options"),
+			[{hframe,[{text,R0}],[{title,?__(2,"Influence Radius")}]}|common_dialog()],
+			fun([R,Route]) ->
+				wings_pref:set_value(magnet_distance_route, Route),
+				Type = wings_pref:get_value(magnet_type),
+				Mag = {magnet,Type,Route,R},
+				Fun(Mag)
+			end).
 
 dialog(Point, Fun) ->
-    wings_ask:dialog(?__(3,"Magnet Options"),
-		     common_dialog(),
-		     fun([Route]) ->
-			     wings_pref:set_value(magnet_distance_route, Route),
-			     Type = wings_pref:get_value(magnet_type),
-			     Mag = {magnet,Type,Route,Point},
-			     Fun(Mag)
-		     end).
+    wings_dialog:dialog(?__(3,"Magnet Options"),
+			common_dialog(),
+			fun([Route]) ->
+				wings_pref:set_value(magnet_distance_route, Route),
+				Type = wings_pref:get_value(magnet_type),
+				Mag = {magnet,Type,Route,Point},
+				Fun(Mag)
+			end).
 
 common_dialog() ->
     Route = wings_pref:get_value(magnet_distance_route),

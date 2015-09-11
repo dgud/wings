@@ -44,15 +44,15 @@ render(#st{selmode=Mode}=St) ->
 	false -> gl:disable(?GL_MULTISAMPLE);
 	undefined -> ok
     end,
-    SceneLights = wings_view:load_matrices(true),
-    ground_and_axes(),
-    mini_axis_icon(),
+    {PM,MM,SceneLights} = wings_view:load_matrices(true),
+    Yon = ground_and_axes(PM,MM),
+    mini_axis_icon(MM),
     show_saved_bb(St),
     show_bb_center(St),
     user_clipping_planes(on),
     render_objects(Mode, SceneLights),
     user_clipping_planes(off),
-    axis_letters(),
+    axis_letters(PM,MM,Yon),
     gl:lineWidth(1),
     wings_io:ortho_setup(),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
@@ -424,20 +424,21 @@ hard_edge_width(_) -> max(wings_pref:get_value(hard_edge_width) - 1, 1).
 draw_plugins(Flag,D,Selmode) ->
     wings_plugin:draw(Flag, D, Selmode).
 
-ground_and_axes() ->
+ground_and_axes(PM,MM) ->
     Axes = wings_wm:get_prop(show_axes),
-    groundplane(Axes),
-    case wings_pref:get_value(constrain_axes) of
-	true -> Yon = ?GROUND_GRID_SIZE * 10.0;
-	false -> #view{yon=Yon} = wings_view:current()
-    end,
+    GridSize = groundplane(Axes, PM, MM),
+    Yon = case wings_pref:get_value(constrain_axes) of
+	      true  -> GridSize;
+	      false -> (wings_view:current())#view.yon
+	  end,
     case Axes of
 	true ->
 	    axis(1, Yon, get_pref(x_color), get_pref(neg_x_color)),
 	    axis(2, Yon, get_pref(y_color), get_pref(neg_y_color)),
 	    axis(3, Yon, get_pref(z_color), get_pref(neg_z_color));
 	false -> ok
-    end.
+    end,
+    Yon.
 
 get_pref(Key) ->
     wings_pref:get_value(Key).
@@ -461,7 +462,7 @@ dummy_axis_letter() ->
     PM = list_to_tuple(gl:getDoublev(?GL_PROJECTION_MATRIX)),
     %% Since this is a workaround, we will do a real fetching
     %% of the viewport (rather than wings_wm:viewport/0).
-    [X,Y,W,H] = gl:getIntegerv(?GL_VIEWPORT),
+    [X,Y,W,H|_] = gl:getIntegerv(?GL_VIEWPORT),
     Viewport = {X,Y,W,H},
     dummy_axis_letter(MM, PM, Viewport).
 
@@ -480,7 +481,7 @@ dummy_axis_letter(_, _, {_,_,W,H}) ->
     gl:popMatrix(),
     gl:matrixMode(?GL_MODELVIEW).
 
-axis_letters() ->
+axis_letters(TPM,TMM,Yon0) ->
     case wings_wm:get_prop(show_axes) of
 	false ->
 	    case wings_pref:get_value(dummy_axis_letter) of
@@ -488,8 +489,8 @@ axis_letters() ->
 		true -> dummy_axis_letter()
 	    end;
 	true ->
-	    MM = list_to_tuple(gl:getDoublev(?GL_MODELVIEW_MATRIX)),
-	    PM = list_to_tuple(gl:getDoublev(?GL_PROJECTION_MATRIX)),
+	    PM = e3d_transform:matrix(TPM),
+	    MM = e3d_transform:matrix(TMM),
 	    ViewPort = wings_wm:viewport(),
 	    Start = {0.0,0.0,0.0},
 	    Origin = proj(Start, MM, PM),
@@ -498,14 +499,11 @@ axis_letters() ->
 	    gl:matrixMode(?GL_PROJECTION),
 	    gl:loadIdentity(),
 	    {_,_,W,H} = ViewPort,
-	    glu:ortho2D(0, W, 0, H),
+	    glu:ortho2D(0, W, H, 0),
 	    gl:matrixMode(?GL_MODELVIEW),
 	    gl:loadIdentity(),
-
-	    case wings_pref:get_value(constrain_axes) of
-		true -> Yon = ?GROUND_GRID_SIZE * 11.0;
-		false -> #view{yon=Yon} = wings_view:current()
-	    end,
+	    Yon = Yon0 + ?GROUND_GRID_SIZE,
+	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
 	    axis_letter_1(1, Yon, axisx, x_color, Info),
 	    axis_letter_1(2, Yon, axisy, y_color, Info),
 	    axis_letter_1(3, Yon, axisz, z_color, Info)
@@ -554,12 +552,11 @@ clip_1(_, [], _W) -> none.
 
 show_letter(X0, Y0, W, Char, {_,_,Vw,Vh}) ->
     X = trunc((0.5*X0/W+0.5)*(Vw-20) + 10),
-    Y = trunc((0.5*Y0/W+0.5)*(Vh-16) + 7),
+    Y = Vh - trunc((0.5*Y0/W+0.5)*(Vh-16) + 7),
     axis_text(X, Y, Char).
 
 axis_text(X, Y, C) ->
-    gl:rasterPos2i(X, Y),
-    wings_text:char(C).
+    wings_io:unclipped_text(X, Y, [C]).
 
 proj({X0,Y0,Z0}, MM, PM) ->
     e3d_mat:mul(PM, e3d_mat:mul(MM, {X0,Y0,Z0,1.0})).
@@ -575,15 +572,26 @@ sub({X1,Y1}, {X2,Y2}) ->
 add_prod({X1,Y1}, {X2,Y2}, S) when is_float(S) ->
     {S*X2+X1,S*Y2+Y1}.
 
-groundplane(Axes) ->
+calc_grid_size(PM,MM) ->
+    Viewport = {_,_,W,H} =  wings_wm:viewport(),
+    W1=max(W,H)/2.0,
+    {S,T,U} = wings_gl:unProject(W1, 0.0, 0.0,
+				 e3d_transform:matrix(MM),
+				 e3d_transform:matrix(PM),
+				 Viewport),
+    ?GROUND_GRID_SIZE*max(round(max(max(abs(S),abs(T)),abs(U))),10.0).
+
+groundplane(Axes,PM,MM) ->
+    GridSize = calc_grid_size(PM,MM),
     case (wings_wm:get_prop(show_groundplane) orelse
 	  (wings_pref:get_value(force_show_along_grid) andalso
 	   (wings_view:current())#view.along_axis =/= none)) of
-	true -> groundplane_1(Axes);
+	true -> groundplane_1(Axes, GridSize);
 	false -> ok
-    end.
+    end,
+    float(GridSize).
 
-groundplane_1(Axes) ->
+groundplane_1(Axes, Sz) ->
     #view{along_axis=Along} = wings_view:current(),
     gl:color3fv(wings_pref:get_value(grid_color)),
     gl:lineWidth(1),
@@ -595,7 +603,6 @@ groundplane_1(Axes) ->
 	_ -> gl:rotatef(90, 1, 0, 0)
     end,
     gl:'begin'(?GL_LINES),
-    Sz = ?GROUND_GRID_SIZE * 10,
     groundplane_2(-Sz, Sz, Sz, Axes),
     gl:'end'(),
     gl:popMatrix(),
@@ -692,13 +699,13 @@ disable_lighting() ->
 	false -> ok
     end.
 
-mini_axis_icon() ->
+mini_axis_icon(MM) ->
     case wings_pref:get_value(mini_axis) of 
     false -> ok;
     true ->
       gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
       {W,H} = wings_wm:win_size(),
-      Matrix1 = list_to_tuple(gl:getDoublev(?GL_MODELVIEW_MATRIX)),
+      Matrix1 = e3d_transform:matrix(MM),
       Matrix2 = setelement(13, Matrix1, -W/H+0.11),
       Matrix3 = setelement(14, Matrix2, -1.0+0.11),
       Matrix4 = setelement(15, Matrix3, 0.0),

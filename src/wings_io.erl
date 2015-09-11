@@ -263,7 +263,7 @@ info(X, Y, Info) ->
 		  gl:recti(X, Y, W, Y + N*?LINE_HEIGHT + 2)
 	  end),
     set_color(wings_pref:get_value(info_color)),
-    text_at(X + 4, Y + ?CHAR_HEIGHT-1, Info).
+    text_at(X + 4, Y + ?CHAR_HEIGHT, Info).
 
 info_lines(Info) ->
     info_lines_1(Info, 1).
@@ -420,8 +420,8 @@ gradient_rect_burst(X, Y, W, H, Color) ->
 			GreyValue = lists:nth(trunc((Idx/K)*17)+1, GradColors),
 			LineColor = mul_color(Color, GreyValue),
 			set_color(LineColor),
-			gl:vertex2f(X-0.5+W, Y-0.5+H-Idx),
-			gl:vertex2f(X-0.5,   Y-0.5+H-Idx)
+			gl:vertex2f(X+W, Y-0.5+H-Idx),
+			gl:vertex2f(X,   Y-0.5+H-Idx)
 		end,
     gl:lineWidth(1),
     gl:'begin'(?GL_LINES),
@@ -457,68 +457,7 @@ text_at(X, Y, S) ->
     end.
 
 unclipped_text(X, Y, S) ->
-    gl:rasterPos2i(X, Y),
-    try
-	text(S, X, Y, [])
-    catch
-	throw:{newline,More} ->
-	    unclipped_text(X, Y+?LINE_HEIGHT, More)
-    end.
-
-text([$\n|Cs], _, _, []) ->
-    throw({newline,Cs});
-text([$\n|Cs], _, _,Acc) ->
-    draw_reverse(Acc),
-    throw({newline,Cs});
-text([{bold,Str}|Cs], X0, Y, Acc) ->
-    draw_reverse(Acc),
-    X = X0 + wings_text:width(Acc) + wings_text:width(Str) + length(Str),
-    wings_text:bold(Str),
-    text(Cs, X, Y, []);
-text([{ul,Str}|Cs], X0, Y, Acc) ->
-    X1 = X0 + wings_text:width(Acc),
-    draw_reverse(Acc),
-    wings_text:draw(Str),
-    W = wings_text:width(Str),
-    X = X1 + W,
-    LineY = Y+2,
-    gl:'begin'(?GL_LINES),
-    gl:vertex2i(X1, LineY),
-    gl:vertex2i(X+1, LineY),
-    gl:'end'(),
-    gl:rasterPos2i(X, Y),
-    text(Cs, X, Y, []);
-text([{space,W}|Cs], X0, Y, Acc) ->
-    X = X0+W,
-    draw_reverse(Acc),
-    gl:rasterPos2i(X, Y),
-    text(Cs, X, Y, []);
-text([C|Cs], X0, Y, Acc) when is_integer(C) ->
-    if
-	C < 256 ->
-	    text(Cs, X0, Y, [C|Acc]);
-	true ->
-%% Unicode character.
-	    X = X0 + wings_text:width([C|Acc]),
-	    draw_reverse(Acc),
-	    wings_text:char(C),
-	    text(Cs, X, Y, [])
-    end;
-text([Atom|Cs], X0, Y, Acc) when is_atom(Atom) ->
-    X = X0 + wings_text:width([Atom|Acc]),
-    draw_reverse(Acc),
-    wings_text:char(Atom),
-    text(Cs, X, Y, []);
-text([L|Cs], X0, Y, Acc) when is_list(L) ->
-    X = X0 + wings_text:width(Acc),
-    draw_reverse(Acc),
-    text(L++Cs, X, Y, []);
-text([], _, _, Acc) -> draw_reverse(Acc).
-
-draw_reverse([]) -> ok;
-draw_reverse(S0) ->
-    S = reverse(S0),
-    wings_text:draw(S).
+    wings_text:render(X, Y, S).
 
 ortho_setup() ->
     gl:color3b(0, 0, 0),

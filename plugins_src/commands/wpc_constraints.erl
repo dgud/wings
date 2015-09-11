@@ -13,9 +13,9 @@
 
 -module(wpc_constraints).
 -export([init/0,menu/2,command/2]).
--include("wings.hrl").
+-define(NEED_ESDL, 1).
+-include_lib("wings/src/wings.hrl").
 -include("e3d.hrl").
--include_lib("esdl/include/sdl_keyboard.hrl").
 -define(NONZERO, 1.0e-6).
 
 init() ->
@@ -344,20 +344,20 @@ command({_Mode,{set_constraint,{to_axis,{none,Axis2}}}},St) ->
 %%% Scale Edge Mode
 command({edge,{set_constraint,{scale,{'ASK','ASK'}}}},St) ->
     wings:ask(selection_ask([along_axis1,along_axis2]), St,
-      fun({Pn0,Pp0,Pn1,Pp1},St0) ->
-          scale({{Pn0,Pp0},{Pn1,Pp1}},St0)
+      fun({Pn0,Pn1},St0) ->
+          scale({Pn0,Pn1},St0)
     end);
 command({edge,{set_constraint,{scale,{'ASK',none}}}},St) ->
-    wings:ask(selection_ask([along_axis1]), St, fun({Pn1,Pp1},St0) ->
-        scale({{Pn1,Pp1},{Pn1,Pp1}},St0)
+    wings:ask(selection_ask([along_axis1]), St, fun(Pn1,St0) ->
+        scale({Pn1,Pn1},St0)
     end);
 command({edge,{set_constraint,{scale,{'ASK',Axis2}}}},St) ->
-    wings:ask(selection_ask([along_axis1]), St, fun({Pn1,Pp1},St0) ->
-        scale({{Pn1,Pp1},Axis2},St0)
+    wings:ask(selection_ask([along_axis1]), St, fun({Pn1},St0) ->
+        scale({Pn1,Axis2},St0)
     end);
 command({edge,{set_constraint,{scale,{Axis1,'ASK'}}}},St) ->
-    wings:ask(selection_ask([along_axis2]), St, fun({Pn1,Pp1},St0) ->
-        scale({Axis1,{Pn1,Pp1}},St0)
+    wings:ask(selection_ask([along_axis2]), St, fun({Pn1},St0) ->
+        scale({Axis1,Pn1},St0)
     end);
 command({edge,{set_constraint,{scale,{Axis1,none}}}},St) ->
     scale({Axis1,Axis1},St);
@@ -365,8 +365,8 @@ command({edge,{set_constraint,{scale,{Axis1,Axis2}}}},St) ->
     scale({Axis1,Axis2},St);
 command({edge,{set_constraint,{scale,_}}},St) ->
     wings:ask(selection_ask([along_axis1,along_axis2]), St,
-      fun({Pn0,Pp0,Pn1,Pp1},St0) ->
-          scale({{Pn0,Pp0},{Pn1,Pp1}},St0)
+      fun({Pn0,Pn1},St0) ->
+          scale({Pn0,Pn1},St0)
     end);
 
 %%% Scale Face Mode

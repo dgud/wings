@@ -611,13 +611,16 @@ lsq_init_fs([F|Fs],P,We = #we{vp=Vtab},Ds0,N,Re0,Im0) ->
 	project_tri(array:get(A0,Vtab),array:get(B0,Vtab),
 		    array:get(C0,Vtab)), 
     %% Raimos old solution. 
-    SqrtDT = try math:sqrt(abs((X2-X1)*(Y3-Y1)-(Y2-Y1)*(X3-X1))) 
+    SqrtDT0 = try math:sqrt(abs((X2-X1)*(Y3-Y1)-(Y2-Y1)*(X3-X1)))
 	     catch _:_ -> 0.000001
 	     end,
+    SqrtDT = if SqrtDT0 =:= 0.0 -> 1.0;  % this can happen e.g. in a bevel/extrude without offset
+        true -> SqrtDT0
+    end,
     W1re = X3-X2, W1im = Y3-Y2, 
     W2re = X1-X3, W2im = Y1-Y3, 
     W3re = X2-X1, W3im = Y2-Y1,
-    
+
     Re=[[{A,W1re/SqrtDT},{B,W2re/SqrtDT},{C,W3re/SqrtDT}]|Re0],
     Im=[[{A,W1im/SqrtDT},{B,W2im/SqrtDT},{C,W3im/SqrtDT}]|Im0],
 
@@ -1027,7 +1030,7 @@ stretch_opt(We0, OVs) ->
     wings_pb:start(?__(1,"optimizing")),
     wings_pb:update(0.01, ?__(2,"initializing")),
 
-    {_,R1,R2} = now(),
+    {_,R1,R2} = os:timestamp(),
     random:seed(R2, R1, 128731),
 
     %% {FaceToStretchMean, FaceToStretchWorst,FaceToVerts,VertToFaces,VertToUvs}

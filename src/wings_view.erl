@@ -12,11 +12,11 @@
 %%
 
 -module(wings_view).
--export([menu/1,command/2,
+-export([menu/0,command/2,
 	 virtual_mirror/2,
-	 init/0,initial_properties/0,delete_all/1,
+	 init/0,initial_properties/0,delete_all/1,reset/0,
 	 current/0,set_current/1,
-	 load_matrices/1,projection/0,
+	 load_matrices/1,projection/0,projection/1,
 	 modelview/0,align_view_to_normal/1,
 	 eye_point/0,export_views/1,import_views/2,camera_info/2,
 	 freeze_mirror/1]).
@@ -27,7 +27,7 @@
 
 -import(lists, [foldl/3,zip/2]).
 
-menu(#st{views={CurrentView,Views}}=St) ->
+menu() ->
     L = wings_pref:get_value(number_of_lights),
     [{?__(68,"Show"),{show,
      [{?__(1,"Ground Plane"),show_groundplane,?__(2,"Show the ground plane"),
@@ -65,7 +65,7 @@ menu(#st{views={CurrentView,Views}}=St) ->
      {?__(7,"Wireframe"),wireframe,?__(8,"Display selected objects as a wireframe (same for all objects if nothing is selected)")},
      {?__(9,"Shade"),shade,?__(10,"Display selected objects as shaded (same for all objects if nothing is selected)")},
      {?__(11,"Toggle Wireframe"),toggle_wireframe,
-      ?__(12,"Toggle display mode for selected objects (same for all objects if nothing is selected)"),wireframe_crossmark(St)},
+      ?__(12,"Toggle display mode for selected objects (same for all objects if nothing is selected)")},
      {?__(19,"Show Edges"),show_edges,?__(20,"Show edges in workmode"),crossmark(show_edges)},
      {?__(72,"Show Backfaces"),show_backfaces,
       ?__(73,"Show backfaces when there is a hole or hiddwn faces in an object"),crossmark(show_backfaces)},
@@ -95,12 +95,13 @@ menu(#st{views={CurrentView,Views}}=St) ->
       {?__(66,"Highlight Aim"),highlight_aim,
        ?__(67,"Aim camera at mouseover highlight. (Requires 'Use Highlight as Temporary Selection' enabled, and an assigned hotkey)")},
       {?__(29,"Frame"),frame,?__(30,"Dolly to show all selected elements (or all objects if nothing is selected)")},
-      {?__(65,"Frame Disregards Mirror"),frame_mode,crossmark(frame_disregards_mirror)},
+      {?__(65,"Frame Disregards Mirror"),frame_disregards_mirror,crossmark(frame_disregards_mirror)},
       {?__(57,"Align to Selection"),align_to_selection,
        ?__(58,"Align the view to the normal of the selection")},
       separator,
-      {?__(33,"Saved Views: ")++integer_to_list(tuple_size(Views)),
-       {views,views_submenu(CurrentView, Views)}},
+      {?__(33,"Saved Views "),
+       {views, 	views_submenu()}},
+
       {?__(50,"View Along"),{along,[{?__(51,"+X"),x},
 				    {?__(52,"+Y"),y},
 				    {?__(53,"+Z"),z},
@@ -117,153 +118,18 @@ menu(#st{views={CurrentView,Views}}=St) ->
 crossmark(Key) ->
     wings_menu_util:crossmark(Key).
 
-wireframe_crossmark(#st{sel=[],shapes=Shs}) ->
-    {menubar,Client} = wings_wm:this(),
-    Wire = wings_wm:get_prop(Client, wireframed_objects),
-    case {gb_sets:size(Wire),gb_trees:size(Shs)} of
-	{0,_} -> [];
-	{Same,Same} -> [crossmark];
-	{_,_} -> [grey_crossmark]
-    end;
-wireframe_crossmark(#st{sel=Sel0}) ->
-    {menubar,Client} = wings_wm:this(),
-    Wire0 = wings_wm:get_prop(Client, wireframed_objects),
-    Sel = gb_sets:from_list([Id || {Id,_} <- Sel0]),
-    Wire = gb_sets:intersection(Sel, Wire0),
-    case {gb_sets:size(Wire),gb_sets:size(Sel)} of
-	{0,_} -> [];
-	{Same,Same} -> [crossmark];
-	{_,_} -> [grey_crossmark]
-    end.
+views_submenu() ->
+    [{?__(1,"Next"),next, ?__(11, "Move camera to next view")},
+     {?__(2,"Current"),current, ?__(12, "Move camera to current view")},
+     {?__(3,"Prev"),prev, ?__(13, "Move camera to current view")},
+     {?__(4,"Save..."),save, ?__(14,"Save this view"), [option]},
+     {?__(8,"Delete"),delete, ?__(18, "Delete the current view")}].
 
-views_submenu(CurrentView, Views) ->
-    {_,_,_,H} = wings_wm:viewport(desktop),
-    Lines = max((H div ?LINE_HEIGHT) - 3, 4),
-    S = tuple_size(Views),
-    C = if S > 0 -> view_index(CurrentView, S); true -> 0 end,
-    [{?__(1,"Next"),next,views_submenu_help(CurrentView, Views, next)},
-     {?__(2,"Current"),current,views_submenu_help(CurrentView, Views, current)},
-     {?__(3,"Prev"),prev,views_submenu_help(CurrentView, Views, prev)},
-     views_jumpmenu(CurrentView, Views, Lines),
-     {?__(4,"Save"),save,
-      ?__(5,"Save this view at ") ++"["++integer_to_list(C+1)++"]",[option]},
-     views_movemenu(CurrentView, Views, Lines),
-     {?__(7,"Rename..."),rename,views_submenu_help(CurrentView, Views, rename)},
-     {?__(8,"Delete"),delete,views_submenu_help(CurrentView, Views, delete)},
-     {?__(9,"Delete All..."),delete_all,
-      views_submenu_help(CurrentView, Views, delete_all)}].
-
-views_submenu_help(_CurrentView, {}, _Action) ->
-    ?__(1,"No saved views!");
-views_submenu_help(CurrentView, Views, Action) ->
-    S = tuple_size(Views),
-    case Action of
-	next ->
-	    N = view_index(CurrentView+1, S),
-	    {_,Legend} = element(N, Views),
-	    ?__(2,"Jump to \"")++Legend++"\"["++integer_to_list(N)++"]";
-	current ->
-	    C = view_index(CurrentView, S),
-	    {_,Legend} = element(C, Views),
-	    ?__(2,"Jump to \"")++Legend++"\"["++integer_to_list(C)++"]";
-	prev ->
-	    P = view_index(CurrentView-1, S),
-	    {_,Legend} = element(P, Views),
-	    ?__(2,"Jump to \"")++Legend++"\"["++integer_to_list(P)++"]";
-	rename ->
-	    C = view_index(CurrentView, S),
-	    {_,Legend} = element(C, Views),
-	    ?__(5,"Rename \"")++Legend++"\"["++integer_to_list(C)++"]";
-	delete ->
-	    C = view_index(CurrentView, S),
-	    {_,Legend} = element(view_index(CurrentView, S), Views),
-	    ?__(8,"Delete \"")++Legend++"\"["++integer_to_list(C)++"]";
-	delete_all ->
-	    ?__(11,"Delete all saved views")
-    end.
 
 view_index(I, N) when is_integer(I), is_integer(N), N > 0 ->
     J = (I-1) rem N,
     if J < 0 -> J + 1 + N;
        true -> J + 1
-    end.
-
-views_jumpmenu(_CurrentView, {}, _Lines) ->
-    {?__(1,"Jump"),current,?__(2,"No saved views!")};
-views_jumpmenu(CurrentView, Views, Lines) ->
-    S = tuple_size(Views),
-    P = view_index(CurrentView-1, S),
-    C = view_index(CurrentView, S),
-    N = view_index(CurrentView+1, S),
-    F = fun (I) ->
-		{_,Legend} = element(I, Views),
-		Help =
-		    case I of
-			P -> ?__(3,"Jump to prev[")++integer_to_list(I)++"]";
-			C -> ?__(5,"Jump to current[")++integer_to_list(I)++"]";
-			N -> ?__(7,"Jump to next[")++integer_to_list(I)++"]";
-			_ -> ?__(9,"Jump to [")++integer_to_list(I)++"]"
-		    end,
-		{Legend,I,Help}
-	end,
-    {?__(11,"Jump"),{jump,viewmenu(F, S, C, Lines)}}.
-
-views_movemenu(_CurrentView, {}, _Lines) ->
-    {?__(1,"Move Current"),current,?__(2,"No saved views!")};
-views_movemenu(CurrentView, Views, Lines) ->
-    S = tuple_size(Views),
-    P = view_index(CurrentView-1, S),
-    C = view_index(CurrentView, S),
-    N = view_index(CurrentView+1, S),
-    Lc = integer_to_list(C),
-    {_,CL} = element(C, Views),
-    F = fun (I) ->
-		{_,Legend} = element(I, Views),
-		Li = integer_to_list(I),
-		Help =
-		    case I of
-			P -> ?__( 3,"Move \"")++CL++"\"["++Lc++?__(5,"] to prev[")++Li++"]";
-			C -> ?__( 7,"Move \"")++CL++"\"["++Lc++?__(9,"] nowhere");
-			N -> ?__(10,"Move \"")++CL++"\"["++Lc++?__(12,"] to next[")++Li++"]";
-			_ -> ?__(14,"Move \"")++CL++"\"["++Lc++?__(16,"] to [")++Li++"]"
-		    end,
-		{Legend,I,Help}
-	end,
-    {?__(18,"Move Current"),{move,viewmenu(F, S, C, Lines)}}.
-
-%% Build a list of F(I) values for all view_index(I, S) starting from C
-%% half of them after C and half before, no more than Lines If the
-%% list has to be limited by Lines - insert an element 'separator'
-%% between the after and before elements, otherwise all view
-%% indexes from 1 upto S will be represented in the result with
-%% C last in the list.
-%%
-%% Like this when Lines == 4, S > 4 ->
-%%   [F(view_index(C+1, S)), F(view_index(C+2, S)), separator,
-%%    F(view_index(C-1, S)), F(view_index(C, S))].
-%%
-viewmenu(F, S, C, Lines) ->
-    N = view_index(C+1, S),
-    viewmenu_2(F, S, N, C, Lines, [], []).
-
-viewmenu_1(F, _S, N, N, _Lines, Next, Prev) ->
-    lists:reverse(Next, [F(N)|Prev]);
-viewmenu_1(F, S, N, P, Lines, Next, Prev) ->
-    Cnt = view_index(N-P, S),
-    if Cnt >= Lines ->
-	    lists:reverse(Next, [F(N),separator|Prev]);
-       true ->
-	    viewmenu_2(F, S, view_index(N+1, S), P, Lines, [F(N)|Next], Prev)
-    end.
-
-viewmenu_2(F, _S, P, P, _Lines, Next, Prev) ->
-    lists:reverse(Next, [F(P)|Prev]);
-viewmenu_2(F, S, N, P, Lines, Next, Prev) ->
-    Cnt = view_index(N-P, S),
-    if Cnt >= Lines ->
-	    lists:reverse(Next, [separator,F(P)|Prev]);
-       true ->
-	    viewmenu_1(F, S, N, view_index(P-1, S), Lines, Next, [F(P)|Prev])
     end.
 
 command(reset, St) ->
@@ -299,9 +165,9 @@ command(quick_preview, St) ->
 command(orthogonal_view, St) ->
     toggle_option(orthogonal_view),
     St;
-command({show,What}, St) ->
-    Prev = toggle_option(What),
-    if 
+command(Option={show,What}, St) ->
+    Prev = toggle_option(Option),
+    if
 	What =:= show_normals ->
 	    Prev andalso wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []);
 	What =:= show_materials; What =:= filter_texture ->
@@ -320,8 +186,7 @@ command({show,What}, St) ->
     end,
     St;
 command(show_edges, St) ->
-    Bool = wings_pref:get_value(show_edges),
-    wings_pref:set_value(show_edges, not Bool),
+    Bool = toggle_option(show_edges),
     case Bool of
 	false -> St;
 	true ->
@@ -329,8 +194,7 @@ command(show_edges, St) ->
 	    St
     end;
 command(show_backfaces, St) ->
-    Bool = wings_pref:get_value(show_backfaces),
-    wings_pref:set_value(show_backfaces, not Bool),
+    toggle_option(show_backfaces),
     St;
 command({highlight_aim,{Type,{Selmode,Sel,MM}}}, St) ->
     highlight_aim(Type, Selmode, Sel, MM, St),
@@ -343,10 +207,6 @@ command(aim, St) ->
     St;
 command(frame, St) ->
     frame(St),
-    St;
-command(frame_mode, St) ->
-    Bool = wings_pref:get_value(frame_disregards_mirror),
-    wings_pref:set_value(frame_disregards_mirror, not Bool),
     St;
 command({views,Views}, St) ->
     views(Views, St);
@@ -496,11 +356,15 @@ camera() ->
     LensLength = pget(lens_length, Props),
     Zoom = pget(zoom, Props),
     ZoomSlider = pget(zoom_slider, Props),
-    FovHook =
-	fun (update, {Var,_I,Val,Sto}) ->
-		{store,camera_update_1(Var, Val, Sto)};
-	    (_, _) -> void
-	end,
+    FovHook = fun(Var,Val,Sto) ->
+		      camera_update_1(Var, Val, Sto)
+	      end,
+    Disable = fun(Var, What, Sto) ->
+		      Keys = [negative_height, negative_width],
+		      wings_dialog:enable(Keys, What =/= custom, Sto),
+		      FovHook(Var, What, Sto)
+	      end,
+    FovHook2 = fun(Var,Val,Sto) -> camera_update_2(Var, Val, Sto) end,
     LensFrame =
 	{vframe,
 	 [{hframe,
@@ -508,37 +372,13 @@ camera() ->
 	    {menu,
 	     [{"24x36",{24,36}},{"60x60",{60,60}},{?__(4,"Custom"),custom}],
 	     NegativeFormat,
-	     [{key,negative_format},layout,
-	     {hook,
-	      fun (update, {Var,_I,Val,Sto}) ->
-		      {store,camera_update_1(Var, Val, Sto)};
-		  (_, _)  -> void
-	      end}]},
+	     [{key,negative_format},layout, {hook, Disable}]},
 	    {hframe,
-	     [{text,
-	       NegH,
-	       [{key,negative_height},{range,?RANGE_NEGATIVE_SIZE},
-		{hook,
-		 fun (update, {Var,_I,Val,Sto}) ->
-			 {store,camera_update_1(Var, Val, Sto)};
-		     (_, _)  -> void
-		 end}]},
+	     [{text, NegH, [{key,negative_height},{range,?RANGE_NEGATIVE_SIZE},
+			    {hook,FovHook}]},
 	      {label,?__(5,"x")},
-	      {text,
-	       NegW,
-	       [{key,negative_width},{range,?RANGE_NEGATIVE_SIZE},
-		{hook,
-		 fun (update, {Var,_I,Val,Sto}) ->
-			 {store,camera_update_1(Var, Val, Sto)};
-		     (_, _)  -> void
-		 end}]}],
-	     [{hook,
-	       fun (is_disabled, {_Var,_I,Sto}) ->
-		       gbget(negative_format, Sto) =/= custom;
-		   (update, {Var,_I,Val,Sto}) ->
-		       {store,camera_update_2(Var, Val, Sto)};
-		   (_, _) -> void
-	       end}]}]},
+	      {text, NegW, [{key,negative_width},{range,?RANGE_NEGATIVE_SIZE},
+			    {hook,FovHook}]}]}]},
 	  {hframe,
 	   [{menu,
 	     [{?__(6,"Wide-Angle Lens"),wide_angle},
@@ -548,41 +388,15 @@ camera() ->
 	      {?__(10,"Telephoto Lens"),tele},
 	      {?__(11,"Custom Lens"),custom}],
 	     LensType,
-	     [{key,lens_type},
-	      {hook,
-	       fun (is_minimized, {_Var,_I,Sto}) ->
-		       gbget(negative_format, Sto) =:= custom;
-		   (update, {Var,_I,Val,Sto}) ->
-		       {store,camera_update_2(Var, Val, Sto)};
-		   (_, _) -> void
-	       end}]},
+	     [{key,lens_type}, {hook,FovHook2}]},
 	    panel,
 	    {label,?__(12,"Length")},
-	    {text,
-	     LensLength,
-	     [{key,lens_length},
-	      {hook,
-	       fun (update, {Var,_I,Val,Sto}) ->
-		       {store,camera_update_2(Var, Val, Sto)};
-		   (_, _) -> void
-	       end}]}]},
+	    {text,LensLength,[{key,lens_length}, {hook,FovHook2}]}]},
 	  {hframe,
 	   [{slider,
 	     [{key,zoom_slider},{range,?RANGE_ZOOM_SLIDER},
-	      {value,ZoomSlider},
-	      {hook,
-	       fun (update, {Var,_I,Val,Sto}) ->
-		       {store,camera_update_2(Var, Val, Sto)};
-		   (_, _) -> void
-	       end}]},
-	    {text,
-	     Zoom,
-	     [{key,zoom},
-	      {hook,
-	       fun (update, {Var,_I,Val,Sto}) ->
-		       {store,camera_update_2(Var, Val, Sto)};
-		   (_, _) -> void
-	       end}]},
+	      {value,ZoomSlider}, {hook,FovHook2}]},
+	    {text, Zoom,[{key,zoom}, {hook,FovHook2}]},
 	    {label,?__(13,"x Zoom")}]}],
 	 [{title,?__(14,"Lens")},{minimized,true}]},
     Qs =
@@ -597,20 +411,20 @@ camera() ->
 	   {vframe,[help_button(camera_settings_fov),
 		    panel,
 		    panel]}]}],
-    wings_ask:dialog(?__(18,"Camera Settings"), Qs,
-		     fun([_,
-			  {negative_format,_},
-			  {negative_height,_},{negative_width,_},
-			  {lens_type,_},{lens_length,_},
-			  {zoom_slider,_},{zoom,_},
-			  {fov,Fov},Hither,Yon]=Ps) ->
-			     {NH,NW} = camera_propconv_negative_format(Ps),
-			     View = View0#view{fov=Fov,hither=Hither,yon=Yon},
-			     wings_wm:set_prop(Active, current_view, View),
-			     wings_pref:set_value(negative_height, NH),
-			     wings_pref:set_value(negative_width, NW),
-			     ignore
-		     end).
+    Apply = fun([{negative_format,_},
+		 {negative_height,_},{negative_width,_},
+		 {lens_type,_},{lens_length,_},
+		 {zoom_slider,_},{zoom,_},
+		 {fov,Fov},Hither,Yon]=Ps) ->
+		    {NH,NW} = camera_propconv_negative_format(Ps),
+		    View = View0#view{fov=Fov,hither=Hither,yon=Yon},
+		    wings_wm:set_prop(Active, current_view, View),
+		    wings_pref:set_value(negative_height, NH),
+		    wings_pref:set_value(negative_width, NW),
+		    ignore
+	    end,
+
+    wings_dialog:dialog(?__(18,"Camera Settings"), Qs, Apply).
 
 camera_update_1(Var, Val, Sto) ->
     Props = gbget(lists:delete(Var, [fov,negative_format,
@@ -729,13 +543,11 @@ camera_lens_length({60,60}, LensType) ->
 	  end);
 camera_lens_length(_, _) -> undefined.
 
-
-
 gbget([], _Sto) -> [];
-gbget([Key|Keys], Sto) -> [{Key,gb_trees:get(Key, Sto)}|gbget(Keys, Sto)];
-gbget(Key, Sto) -> gb_trees:get(Key, Sto).
+gbget([Key|Keys], Sto) -> [{Key,wings_dialog:get_value(Key, Sto)}|gbget(Keys, Sto)];
+gbget(Key, Sto) -> wings_dialog:get_value(Key, Sto).
 
-gbupdate(Key, Val, Sto) -> gb_trees:update(Key, Val, Sto).
+gbupdate(Key, Val, Sto) -> wings_dialog:set_value(Key, Val, Sto).
 
 gbupdate([], Sto) -> Sto;
 gbupdate([{Key,Val}|KVs], Sto) ->
@@ -761,9 +573,14 @@ auto_rotate(St) ->
     Delay = wings_pref:get_value(auto_rotate_delay),
     Tim = #tim{delay=Delay,st=St},
     Active = wings_wm:this(),
+    {{X0,Y0},{W,H}} = wings_wm:win_rect(Active),
+    X = X0 + W div 2, Y = Y0 + H div 2,
+    wings_io:warp(X,Y),
     wings_wm:callback(fun() -> wings_u:menu_restriction(Active, []) end),
     {seq,push,set_auto_rotate_timer(Tim)}.
 
+auto_rotate_event({action, Cmd={view, rotate_left}}, Tim) ->
+    auto_rotate_event_1(Cmd, Tim);
 auto_rotate_event(Event, #tim{timer=Timer,st=St}=Tim) ->
     case wings_camera:event(Event, St) of
 	next -> auto_rotate_event_1(Event, Tim);
@@ -780,6 +597,7 @@ auto_rotate_event_1(redraw, Tim) ->
     auto_rotate_redraw(Tim),
     keep;
 auto_rotate_event_1(#mousemotion{}, _) -> keep;
+auto_rotate_event_1(got_focus, _) -> keep;
 auto_rotate_event_1(#mousebutton{state=?SDL_PRESSED}, _) -> keep;
 auto_rotate_event_1(#keyboard{}=Kb, #tim{delay=Delay}=Tim) ->
     case wings_hotkey:event(Kb) of
@@ -818,7 +636,7 @@ auto_rotate_help() ->
 set_auto_rotate_timer(#tim{delay=Delay}=Tim) when Delay < 0 ->
     set_auto_rotate_timer(Tim#tim{delay=0});
 set_auto_rotate_timer(#tim{delay=Delay}=Tim0) ->
-    Timer = wings_io:set_timer(Delay, {view,rotate_left}),
+    Timer = wings_io:set_timer(Delay, {action, {view,rotate_left}}),
     Tim = Tim0#tim{timer=Timer},
     get_event(Tim).
 
@@ -829,17 +647,20 @@ get_event(Tim) ->
 %%% Other stuff.
 %%%
 
-toggle_option({show,Key}) ->
-%% process Show menu items
-    toggle_option(Key);
-toggle_option(Key) ->
+toggle_option(Key0) ->
+    Key = case Key0 of
+	      {show, K} -> K;
+	      _ -> Key0
+	  end,
     case wings_wm:lookup_prop(Key) of
 	none ->
 	    Prev = wings_pref:get_value(Key, false),
 	    wings_pref:set_value(Key, not Prev),
+	    wings_menu:update_menu_enabled(view, Key0, not Prev),
 	    Prev;
 	{value,Bool} ->
 	    wings_wm:set_prop(Key, not Bool),
+	    wings_menu:update_menu_enabled(view, Key0, not Bool),
 	    Bool
     end.
 
@@ -903,11 +724,15 @@ default_view() ->
 
 load_matrices(IncludeLights) ->
     gl:matrixMode(?GL_PROJECTION),
-    gl:loadIdentity(),
-    projection(),
-    modelview(IncludeLights).
+    TPM = projection(e3d_transform:identity()),
+    {UseSceneLights, TMM} = modelview(IncludeLights),
+    {TPM,TMM, UseSceneLights}.
 
 projection() ->
+    OP0 = gl:getDoublev(?GL_PROJECTION_MATRIX),
+    projection(e3d_transform:init(list_to_tuple(OP0))).
+
+projection(In) ->
     {W,H} = wings_wm:win_size(),
     Aspect = W/H,
     #view{distance=D,fov=Fov,hither=Hither,yon=Yon,along_axis=AA} =
@@ -915,13 +740,16 @@ projection() ->
     Ortho = wings_wm:get_prop(orthogonal_view)
 	orelse ((AA =/= none) andalso
 		wings_pref:get_value(force_ortho_along_axis)),
-    case Ortho of
-	false ->
-	    glu:perspective(Fov, Aspect, Hither, Yon);
-	true ->
-	    Sz = D*math:tan(Fov*math:pi()/180/2),
-	    gl:ortho(-Sz*Aspect, Sz*Aspect, -Sz, Sz, Hither, Yon)
-    end.
+    TP = case Ortho of
+	     false ->
+		 e3d_transform:perspective(Fov, Aspect, Hither, Yon);
+	     true ->
+		 Sz = D*math:tan(Fov*math:pi()/180/2),
+		 e3d_transform:ortho(-Sz*Aspect, Sz*Aspect, -Sz, Sz, Hither, Yon)
+	 end,
+    TPM = e3d_transform:mul(In, TP),
+    gl:loadMatrixd(e3d_transform:matrix(TPM)),
+    TPM.
 
 modelview() ->
     modelview(false).
@@ -944,17 +772,18 @@ modelview(IncludeLights) ->
 	    UseSceneLights = false
     end,
 
-    gl:translatef(PanX, PanY, -Dist),
-    gl:rotatef(El, 1, 0, 0),
-    gl:rotatef(Az, 0, 1, 0),
-    {OX,OY,OZ} = Origin,
-    gl:translatef(OX, OY, OZ),
+    TM0 = e3d_transform:translate(e3d_transform:identity(), {PanX, PanY, -Dist}),
+    TM1 = e3d_transform:rotate(TM0, El, {1.0,0.0,0.0}),
+    TM2 = e3d_transform:rotate(TM1, Az, {0.0,1.0,0.0}),
+    TMM = e3d_transform:translate(TM2, Origin),
+
+    gl:loadMatrixd(e3d_transform:matrix(TMM)),
 
     case UseSceneLights of
 	false -> ok;
 	true -> wings_light:global_lights()
     end,
-    UseSceneLights.
+    {UseSceneLights, TMM}.
 
 %% Calculate the location of the viewer in 3D space.
 %% (The (0,0,0) point multiplied by the inverse model transformation matrix.)
@@ -1123,13 +952,12 @@ views({move,J}, #st{views={CurrentView,Views}}=St) ->
 views(rename, #st{views={CurrentView,Views}}=St) ->
     J = view_index(CurrentView, tuple_size(Views)),
     {View,Legend} = element(J, Views),
-    wings_ask:dialog(
-      ?__(3,"Rename view"),
-      views_rename_qs([Legend]),
-      fun([NewLegend]) ->
-	      St#st{views={CurrentView,
-			   setelement(J, Views, {View,NewLegend})}}
-      end);
+    wings_dialog:dialog(?__(3,"Rename view"),
+			views_rename_qs([Legend]),
+			fun([NewLegend]) ->
+				St#st{views={CurrentView,
+					     setelement(J, Views, {View,NewLegend})}}
+			end);
 views(delete, #st{views={CurrentView,Views}}=St) ->
     View = current(),
     J = view_index(CurrentView, tuple_size(Views)),
@@ -1151,9 +979,9 @@ views(delete_all, St) ->
       end).
 
 views_save_dialog(Ask, Options) ->
-    wings_ask:dialog(Ask, ?__(1,"Save view as"),
-		     views_rename_qs(Options),
-		     fun(Opts) -> {view,{views,{save,Opts}}} end).
+    wings_dialog:dialog(Ask, ?__(1,"Save view as"),
+			views_rename_qs(Options),
+			fun(Opts) -> {view,{views,{save,Opts}}} end).
 
 views_rename_qs([Legend]) ->
     [{hframe,[{label,?__(1,"Name")},{text,Legend}]}].
@@ -1205,6 +1033,13 @@ toggle_lights() ->
 		 1 -> 2;
 		 2 -> 1
 	     end,
+    wings_menu:update_menu(view, toggle_lights, 
+			   one_of(Lights == 1, 
+				  ?__(2,"Two Lights"),
+				  ?__(1,"One Light")),
+			   one_of(Lights == 1, 
+				  ?__(4,"Use two work lights"),
+				  ?__(3,"Use one work light"))),
     wings_pref:set_value(number_of_lights, Lights).
 
 shader_set(N) ->
@@ -1384,8 +1219,23 @@ one_of(false,_, S) -> S.
 %%% Export and import of views.
 %%%
 
-export_views(#st{views={_,Views}}) ->
-    export_views_1(tuple_to_list(Views)).
+export_views(#st{views={_,Views0}}) ->
+    Views1 = tuple_to_list(Views0),
+    Views = case get(wings_not_running) of
+		undefined ->
+		    CurrentView = current(),
+		    case get_view_index(CurrentView,Views1) of
+			undefined ->
+			    [{CurrentView,"current_view"}]++Views1;
+			Idx ->
+			    View = element(Idx,Views0),
+			    Views2 = Views1 -- [View],  % tuple index starts from 1 and lists from 0
+			    [View]++Views2
+		    end;
+		_ ->
+		    Views1
+	    end,
+    export_views_1(Views).
 
 export_views_1([{View,Name}|Views]) ->
     Tags = [aim,distance_to_aim,azimuth,elevation,tracking,fov,hither,yon],
@@ -1393,13 +1243,28 @@ export_views_1([{View,Name}|Views]) ->
     [{view,Props}|export_views_1(Views)];
 export_views_1([]) -> [].
 
-import_views(Views, #st{views={CurrentView,OldViews}}=St) ->
-	NewViews0=import_views_1(Views),
-	OldViews0 = case OldViews of
-	{} -> [];
-	OldViews1 -> tuple_to_list(OldViews1)
-	end,
-    St#st{views={CurrentView,list_to_tuple(OldViews0++NewViews0)}}.
+import_views(Views, #st{views={CurrentView0,{}}}=St) -> % loading a project
+    NewViews0 = import_views_1(Views),
+    NewViews = case NewViews0 of
+		   [] ->
+		       reset(),
+		       CurrentView = CurrentView0,
+		       NewViews0;
+		   _ ->
+		       {{View,_},NewViews1} = remove_cur_view(NewViews0),
+		       (get(wings_not_running) == undefined) andalso set_current(View),
+		       CurrentView = case get_view_index(View,NewViews1) of
+					 undefined -> CurrentView0;
+					 Idx -> Idx
+				     end,
+		       NewViews1
+	       end,
+    St#st{views={CurrentView,list_to_tuple(NewViews)}};
+import_views(Views, #st{views={CurrentView,OldViews}}=St) -> % merging a project
+    NewViews0 = import_views_1(Views),
+    {{_,_},NewViews1} = remove_cur_view(NewViews0),
+    NewViews = tuple_to_list(OldViews)++NewViews1,
+    St#st{views={CurrentView,list_to_tuple(NewViews)}}.
 
 import_views_1([{view,As}|Views]) ->
     [import_view(As)|import_views_1(Views)];
@@ -1430,6 +1295,29 @@ import_view([], #view{azimuth=Az,elevation=El}=View, undefined) ->
     {View#view{along_axis=along(Az, El)},view_legend(View)};
 import_view([], #view{azimuth=Az,elevation=El}=View, Name) ->
     {View#view{along_axis=along(Az, El)},Name}.
+
+
+%%%
+%%% import/export utilities
+%%%
+
+get_view_index(#view{}=View, Views) when is_tuple(Views) ->
+    get_view_index(View, tuple_to_list(Views));
+get_view_index(#view{}=View, Views) ->
+    get_view_index_1(View, Views, 0).
+get_view_index_1(#view{}, [], _) -> undefined;
+get_view_index_1(#view{}=View, [{View,_Name}|_], Acc) -> Acc+1;
+get_view_index_1(#view{}=View, [_|Views], Acc) ->
+    get_view_index_1(View,Views,Acc+1).
+
+remove_cur_view([View|_]=Views0) ->
+    Views = case View of
+        {_, "current_view"} ->
+            Views0 -- [View];
+        _ ->
+            Views0
+    end,
+    {View,Views}.
 
 %%%
 %%% Camera info.

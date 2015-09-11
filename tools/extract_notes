@@ -13,8 +13,9 @@
 -mode(compile).
 
 main(_) ->
+    ok = io:setopts(standard_io, [{encoding, unicode}]),
     PrevRel = binary_to_list(chomp(git(["describe","--abbrev=0"]))),
-    Log = git(["log","--reverse",PrevRel++".."]),
+    Log = git(["log","--no-color","--reverse",PrevRel++".."]),
     extract_notes(Log),
     init:stop().
 

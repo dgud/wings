@@ -34,10 +34,10 @@ error_msg(Format, Arg) ->
     error_msg(lists:flatten(io_lib:format(Format, Arg))).
 
 message(Message) ->
-    Qs = {vframe,
-	  [{label,Message},
-	   {hframe,[{button,ok,[ok]}]}]},
-    wings_ask:dialog("", Qs, fun(_) -> ignore end).
+    Qs = {vframe_dialog,
+	  [{label,Message}],
+	  [{buttons,[ok]}]},
+    wings_dialog:dialog("", Qs, fun(_) -> ignore end).
 
 menu_restriction(Win, Allowed) ->
     case wings_wm:get_menubar(Win) of
@@ -51,36 +51,32 @@ geom_windows() ->
     geom_windows_1(wings_wm:windows()).
 
 get_matrices(Id, MM) ->
-    wings_view:load_matrices(false),
-    case MM of
-	mirror ->
-	    Matrix = wings_dl:mirror_matrix(Id),
-	    gl:multMatrixf(Matrix);
-	original -> ok
-    end,
+    {TPM, TMV0, _} = wings_view:load_matrices(false),
+    TMV = case MM of
+	      mirror ->
+		  Matrix = wings_dl:mirror_matrix(Id),
+		  e3d_mat:mul(e3d_transform:matrix(TMV0),Matrix);
+	      original -> e3d_transform:matrix(TMV0)
+	  end,
     {_,_,W,H} =  wings_wm:viewport(),
-    ModelMatrix = gl:getDoublev(?GL_MODELVIEW_MATRIX),
-    ProjMatrix = gl:getDoublev(?GL_PROJECTION_MATRIX),
-    {ModelMatrix,ProjMatrix,{0,0,W,H}}.
+    {TMV,e3d_transform:matrix(TPM),{0,0,W,H}}.
 
 yes_no(Question, Yes) ->
     yes_no(Question, Yes, ignore).
 
 yes_no(Question, Yes, No) ->
-    Qs = {vframe,
-	  [{label,Question,[{break,45*?CHAR_WIDTH}]},
-	   {hframe,[{button,wings_s:yes(),yes_no_fun(Yes)},
-		    {button,wings_s:no(),yes_no_fun(No),[cancel]}]}]},
-    wings_ask:dialog("", Qs, fun(_) -> ignore end).
+    Qs = {vframe_dialog,
+	  [{label,Question,[{break,75*?CHAR_WIDTH}]}],
+	  [{buttons, [yes, no]}, {key, result}]
+	 },
+    wings_dialog:dialog("", Qs, fun([{result,Res}]) -> yes_no_cancel(Res, Yes, No, ignore) end).
 
 yes_no_cancel(Question, Yes, No) ->
-    Qs = {vframe,
-	  [{label,Question,[{break,45*?CHAR_WIDTH}]},
-	   {hframe,[{button,wings_s:yes(),yes_no_fun(Yes)},
-		    {button,wings_s:no(),yes_no_fun(No)},
-		    {button,wings_s:cancel(),
-		     yes_no_fun(ignore),[cancel]}]}]},
-    wings_ask:dialog("", Qs, fun(_) -> ignore end).
+    Qs = {vframe_dialog,
+	  [{label,Question,[{break,75*?CHAR_WIDTH}]}],
+	  [{buttons, [yes, no, cancel]}, {key, result}]
+	 },
+    wings_dialog:dialog("", Qs, fun([{result,Res}]) -> yes_no_cancel(Res, Yes, No, ignore) end).
 
 %% export_we(Filename, State)
 %%  Dump the winged-edge structure in a textual format.
@@ -106,9 +102,10 @@ crash_log(WinName, Reason, StackTrace) ->
     LogFileDir = log_file_dir(),
     LogName = filename:absname("wings_crash.dump", LogFileDir),
     F = open_log_file(LogName),
-    io:format(F, "Version: ~s\n", [?WINGS_VERSION]),
-    io:format(F, "Window: ~p\n", [WinName]),
-    io:format(F, "Reason: ~p\n\n", [Reason]),
+    io:format("Internal Error~n",[]),
+    [io:format(Fd, "Version: ~s\n", [?WINGS_VERSION]) || Fd <- [F, group_leader()]],
+    [io:format(Fd, "Window: ~p\n", [WinName])  || Fd <- [F, group_leader()]],
+    [io:format(Fd, "Reason: ~p\n\n", [Reason]) || Fd <- [F, group_leader()]],
     report_stacktrace(F, StackTrace),
     analyse(F, StackTrace),
     file:close(F),
@@ -119,6 +116,7 @@ report_stacktrace(F, [_|_]=StackTrace) ->
 				is_list(A) -> length(A);
 				true -> A
 			    end} || {M,N,A} <- StackTrace],
+    io:format("Stack trace:\n~P\n\n", [StackTrace, 20]),
     case ShortStackTrace =:= StackTrace of
 	false ->
 	    io:format(F, "Short stack trace:\n~p\n\n", [ShortStackTrace]),
@@ -169,29 +167,33 @@ pretty_filename(Name0) ->
     end.
 
 %% it returns a new file name using relative path
-%% Dst: it's the relative folder (used to be the project directory) 
+%% Dst: it's the relative folder (used to be the project directory)
 %% Src: file name (with full path) to be referenced
 %% it was implemented to be used in the exporters (see wpc_pov.erl)
 relative_path_name(Dst,Src) ->
     Fn=filename:basename(Src),
     Dir0=filename:split(get_dir(Dst)),
     Dir1=filename:split(get_dir(Src)),
-	case get_rel_path(Dir0,Dir1,[]) of
-		[] -> Fn;
-		Dir3 -> filename:join(Dir3,[Fn])
-	end.
+    case get_rel_path(Dir0,Dir1) of
+        [] -> Fn;
+        Dir3 -> filename:join(Dir3++[Fn])
+    end.
 
 get_dir(Dir) ->
-	case filelib:is_dir(Dir) of
-		true -> Dir;
-		_ -> filename:dirname(Dir)
-	end.
+    case filelib:is_dir(Dir) of
+        true -> Dir;
+        _ -> filename:dirname(Dir)
+    end.
 
-get_rel_path([]=_Dst, []=_Src, Acc) -> Acc;  % export and image dir are the same
-get_rel_path([_|T], [], Acc) -> get_rel_path(T,[],["../"]++Acc);  % image is in some up level directory
-get_rel_path([], [H|T], Acc) -> get_rel_path([],T,[H]++Acc);  % image is in some down level directory
-get_rel_path([H|T0], [H|T1], Acc) -> get_rel_path(T0,T1, Acc);  % continue checking in next dir level
-get_rel_path(_, Dst, _) -> Dst.  % image is in an other disk
+get_rel_path([D|_]=Dst,[D|_]=Src) ->    % paths are in the same drive - check relative path
+    get_rel_path(Dst,Src,[]);
+get_rel_path(_,Src) -> Src.   % paths are in a different Drive - ignore routine
+
+get_rel_path([]=_Dst, []=_Src, Acc) -> Acc;     % export and file dir are the same
+get_rel_path([_|T], [], Acc) -> get_rel_path(T,[],["../"]++Acc);    % file is in some dir level in the Dst
+get_rel_path([], [H|T], Acc) -> get_rel_path([],T,[H]++Acc);    % all previous dir match - file is in uppper dir level
+get_rel_path([H|T0], [H|T1], Acc) -> get_rel_path(T0,T1,["../"]++Acc);      % continue checking in next dir level
+get_rel_path(_, Dist, Acc) -> Acc++Dist.    % no more compatible subdir and file is in some down dir level
 
 
 wings() ->
@@ -221,15 +223,22 @@ win32_special_folder(R, FolderType) ->
 %%% Local functions.
 %%%
 
-yes_no_fun(ignore) -> fun(_) -> ignore end;
-yes_no_fun(Fun) ->
-    This = wings_wm:this(),
-    fun(_) ->
-	    case Fun() of
-		ignore -> ignore;
-		Action -> wings_wm:send(This, {action,Action})
-	    end
-    end.
+yes_no_cancel(ok,  Yes, _, _) -> invoke(Yes);
+yes_no_cancel(yes, Yes, _, _) -> invoke(Yes);
+yes_no_cancel(no, _, No, _)   -> invoke(No);
+yes_no_cancel(cancel, _, _, Cancel)   -> invoke(Cancel).
+
+invoke(Fun) when is_function(Fun) -> Fun();
+invoke(ignore) -> ignore.
+
+%% yes_no_fun(Fun) ->
+%%     This = wings_wm:this(),
+%%     fun(_) ->
+%% 	    case Fun() of
+%% 		ignore -> ignore;
+%% 		Action -> wings_wm:send(This, {action,Action})
+%% 	    end
+%%     end.
 
 geom_windows_1([geom|T]) ->
     [geom|geom_windows_1(T)];
@@ -257,7 +266,7 @@ log_file_dir({win32,_}) ->
 	  end,
     ok = win32reg:close(R),
     Res.
-	
+
 open_log_file(Name) ->
     {ok,F} = file:open(Name, [write]),
     {{Y,Mo,D},{H,Mi,_}} = erlang:localtime(),
@@ -307,7 +316,7 @@ dump_we(F, #we{name=Name,id=Id,es=Etab,fs=Ftab,
     io:format(F, "   next_id=~p\n", [Next]),
     dump_faces(F, gb_trees:to_list(Ftab)),
     dump_edges(F, array:sparse_to_orddict(Etab)).
-    
+
 dump_edges(F, Es) ->
     io:put_chars(F, "\n"),
     io:format(F, "Edge table\n", []),
@@ -323,7 +332,7 @@ dump_faces(F, Fs) ->
 
 %%
 %% Dumping of data structures.
-%% 
+%%
 
 show_edge(F, Edge, #edge{vs=Vs,ve=Ve,lf=Lf,rf=Rf,ltpr=Lpred,ltsu=Lsucc,
 			 rtpr=Rpred,rtsu=Rsucc}) ->

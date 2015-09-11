@@ -37,7 +37,6 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--ifdef(USE_WX_OPENGL).
 -define(genFramebuffers,genFramebuffers).
 -define(bindFramebuffer, bindFramebuffer).
 -define(framebufferTexture2D,framebufferTexture2D).
@@ -47,17 +46,6 @@
 -define(framebufferRenderbuffer,framebufferRenderbuffer).
 -define(checkFramebufferStatus, checkFramebufferStatus).
 -define(generateMipmap, generateMipmap).
--else.
--define(genFramebuffers,genFramebuffersEXT).
--define(bindFramebuffer, bindFramebufferEXT).
--define(framebufferTexture2D,framebufferTexture2DEXT).
--define(genRenderbuffers, genRenderbuffersEXT).
--define(bindRenderbuffer,bindRenderbufferEXT).
--define(renderbufferStorage,renderbufferStorageEXT).
--define(framebufferRenderbuffer,framebufferRenderbufferEXT).
--define(checkFramebufferStatus, checkFramebufferStatusEXT).
--define(generateMipmap, generateMipmapExt).
--endif.
 
 %%%
 %%% OpenGL extensions.
@@ -382,16 +370,19 @@ bindFramebuffer(W, Fbo) ->
     gl:?bindFramebuffer(W,Fbo).
 
 
--ifdef(USE_WX_OPENGL).
 callLists(List) ->  gl:callLists(List).
 
 project(X,Y,Z, Mod, Proj, View) ->
-    {_, RX,RY,RZ} = glu:project(X,Y,Z, list_to_tuple(Mod), list_to_tuple(Proj), View),
+    {_, RX,RY,RZ} = glu:project(X,Y,Z, mat(Mod), mat(Proj), View),
     {RX,RY,RZ}.
 
 unProject(X,Y,Z, Mod, Proj, View) ->
-    {_, RX,RY,RZ} = glu:unProject(X,Y,Z, list_to_tuple(Mod), list_to_tuple(Proj), View),
+    {_, RX,RY,RZ} = glu:unProject(X,Y,Z, mat(Mod), mat(Proj), View),
     {RX,RY,RZ}.
+
+mat(Mat) when tuple_size(Mat) =:= 16 ->  Mat;
+mat(Mat) when is_tuple(Mat) -> e3d_mat:expand(Mat);
+mat(List) when is_list(List) ->  mat(list_to_tuple(List)).
 
 triangulate(Normal, Pos0) ->
     {Tris0, BinPos} = glu:tesselate(Normal, Pos0),
@@ -423,31 +414,3 @@ drawElements(O,L,T = ?GL_UNSIGNED_INT,What) when is_list(What) ->
 drawElements(O,L,T,What) ->
     gl:drawElements(O,L,T,What).
 
--else.
-callLists(List) ->  gl:callLists(length(List), ?GL_UNSIGNED_INT, List).
-
-project(X,Y,Z, Mod, Proj, View) ->
-    glu:project(X,Y,Z, Mod, Proj, View).
-
-unProject(X,Y,Z, Mod, Proj, View) ->
-    glu:unProject(X,Y,Z, Mod, Proj, View).
-
-triangulate(Normal, Pos) ->
-    glu:triangulate(Normal,Pos).
-
-deleteTextures(List) ->
-    gl:deleteTextures(length(List), List).
-
-deleteRenderbuffers(List) ->
-    gl:deleteRenderbuffersEXT(length(List),List).
-
-deleteFramebuffers(List) ->
-    gl:deleteFramebuffersEXT(length(List),List).
-
-shaderSource(Handle, Src) ->
-    ok = gl:shaderSource(Handle, 1, Src, [-1]).
-
-drawElements(O,L,T,What) ->
-    gl:drawElements(O,L,T,What).
-
--endif.

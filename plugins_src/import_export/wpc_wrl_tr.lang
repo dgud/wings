@@ -1,13 +1,13 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_wrl,
  [
   {do_export,
    [
-    {1,"VRML Verme Seçenekleri"}
+    {1,"VRML Verme SeÃ§enekleri"}
    ]},
   {export,
    [
-    {1,"VRML Hatasý: ~P þunun içinde"}
+    {1,"VRML HatasÃ½: ~P Ã¾unun iÃ§inde"}
    ]},
   {props,
    [

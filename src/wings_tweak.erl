@@ -179,7 +179,7 @@ tweak_event_handler(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev,St) ->
           true -> keep;
           false ->
             ReturnAxis = toggle_data(Axis),
-            wings_pref:set_value(tweak_axis_toggle,[{Sym,ReturnAxis,now()}|Pressed]),
+            wings_pref:set_value(tweak_axis_toggle,[{Sym,ReturnAxis,os:timestamp()}|Pressed]),
             wings_io:change_event_handler(?SDL_KEYUP, ?SDL_ENABLE),
             toggle_axis(Axis),
             wings_wm:dirty(),
@@ -204,7 +204,7 @@ tweak_event_handler(#keyboard{sym=Sym,state=?SDL_RELEASED},_St) ->
     case lists:keytake(Sym,1,Pressed0) of
       {value,{Sym,Axis,PressTime},Pressed} ->
         ClickSpeed = wings_pref:get_value(tweak_click_speed),
-        case timer:now_diff(now(), PressTime) > ClickSpeed of
+        case timer:now_diff(os:timestamp(), PressTime) > ClickSpeed of
           true ->
             toggle_axis(Axis),
             wings_wm:dirty(),
@@ -299,10 +299,10 @@ handle_initial_event(#mousebutton{button=1,state=?SDL_RELEASED}, What, #st{shape
     end,
     wings_wm:send({object,wings_wm:this()}, {current_state,St}),
     wings_wm:dirty(),
-    initiate_tweak_handler(What, St, T#tweak{clk={one,now()}});
+    initiate_tweak_handler(What, St, T#tweak{clk={one,os:timestamp()}});
 handle_initial_event(#mousebutton{button=1,x=X0,y=Y0,state=?SDL_PRESSED}=Ev,
   _What, St, #tweak{clk={one,Clk},ox=X,oy=Y,st=TweakSt}) ->
-    case timer:now_diff(now(),Clk) < wings_pref:get_value(tweak_click_speed) of
+    case timer:now_diff(os:timestamp(),Clk) < wings_pref:get_value(tweak_click_speed) of
       true ->
         wings_pick:paint_pick(X0, Y0, TweakSt);
       false ->
@@ -438,7 +438,7 @@ handle_tweak_drag_event_0(#keyboard{sym=Sym,state=?SDL_RELEASED},T) ->
     case lists:keytake(Sym,1,Pressed0) of
       {value,{Sym,Axis,PressTime},Pressed} ->
         ClickSpeed = wings_pref:get_value(tweak_click_speed),
-        case timer:now_diff(now(), PressTime) > ClickSpeed of
+        case timer:now_diff(os:timestamp(), PressTime) > ClickSpeed of
           true ->
             toggle_axis(Axis),
             wings_wm:send({tweak,axis_palette}, update_palette);
@@ -683,16 +683,16 @@ begin_magnet_adjustment_fun(D, _) -> D.
 
 adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0,st=St}=T0) ->
     case Falloff0 + MouseMovement * wings_pref:get_value(tweak_mag_adj_sensitivity) of
-    Falloff when Falloff > 0 ->
-        T0#tweak{mag_rad=Falloff,st=St};
-    _otherwise -> T0#tweak{st=St}
+        Falloff when Falloff > 0 ->
+            T0#tweak{mag_rad=Falloff,st=St};
+        _otherwise -> T0#tweak{st=St}
     end.
 
 in_drag_adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0}=T) ->
     case Falloff0 + MouseMovement * wings_pref:get_value(tweak_mag_adj_sensitivity) of
-    Falloff when Falloff > 0 ->
-        setup_magnet(T#tweak{mag_rad=Falloff});
-    _otherwise -> T
+        Falloff when Falloff > 0 ->
+            setup_magnet(T#tweak{mag_rad=Falloff});
+        _otherwise -> T
     end.
 
 end_magnet_adjust({OrigId,El}) ->
@@ -1390,7 +1390,7 @@ setup_magnet_fun(Dl, _) -> Dl.
 
 begin_magnet(#tweak{magnet=false}=T, Vs, Center, We) ->
     Mirror = mirror_info(We),
-    {_,Near} = near(Center, Vs, [], Mirror, T, We),
+    Near = near(Center, Vs, [], Mirror, T, We),
     Mag = #mag{orig=Center,vs=Near},
     {[Va || {Va,_,_,_,_} <- Near],Mag,[]};
 begin_magnet(#tweak{magnet=true}=T, Vs, Center, #we{vp=Vtab0}=We) ->
@@ -1398,31 +1398,29 @@ begin_magnet(#tweak{magnet=true}=T, Vs, Center, #we{vp=Vtab0}=We) ->
     Vtab1 = sofs:from_external(array:sparse_to_orddict(Vtab0), [{vertex,info}]),
     Vtab2 = sofs:drestriction(Vtab1, sofs:set(Vs, [vertex])),
     Vtab = sofs:to_external(Vtab2),
-    {Influenced,Near} = near(Center, Vs, Vtab, Mirror, T, We),
+    Near = near(Center, Vs, Vtab, Mirror, T, We),
     Mag = #mag{orig=Center,vs=Near},
-    {[Va || {Va,_,_,_,_} <- Near],Mag,Influenced}.
+    {[Va || {Va,_,_,_,_} <- Near],Mag,[{Va,Inf} || {Va,_,_,_,Inf} <- Near]}.
 
 near(Center, Vs, MagVs0, Mirror, #tweak{mag_rad=R,mag_type=Type}, We) ->
     RSqr = R*R,
     MagVs = minus_locked_vs(MagVs0, We),
-    {Influenced,M} = foldl(fun({V,Pos}, {Influenced0,A}) ->
+    M = foldl(fun({V,Pos}, A) ->
               case e3d_vec:dist_sqr(Pos, Center) of
               DSqr when DSqr =< RSqr ->
                   D = math:sqrt(DSqr),
                   Inf = magnet_type_calc(Type, D, R),
-                  Influenced1=Influenced0++[{V,Inf}],
                   Matrix = mirror_matrix(V, Mirror),
-                  {Influenced1,[{V,Pos,Matrix,D,Inf}|A]};
-              _ -> {Influenced0,A}
+                  [{V,Pos,Matrix,D,Inf}|A];
+              _ -> A
               end;
-         (_, {Influenced0,A}) -> {Influenced0,A}
-          end, {[],[]}, MagVs),
-    Near=foldl(fun(V, A) ->
-          Matrix = mirror_matrix(V, Mirror),
-          Pos = wpa:vertex_pos(V, We),
-          [{V,Pos,Matrix,0.0,1.0}|A]
-      end, M, Vs),
-    {Influenced,Near}.
+         (_, A) -> A
+          end, [], MagVs),
+    foldl(fun(V, A) ->
+              Matrix = mirror_matrix(V, Mirror),
+              Pos = wpa:vertex_pos(V, We),
+              [{V,Pos,Matrix,0.0,1.0}|A]
+          end, M, Vs).
 
 %%% Magnet Mask
 minus_locked_vs(MagVs, #we{pst=Pst}) ->
@@ -1459,7 +1457,8 @@ draw_magnet(#tweak{magnet=true, mag_rad=R}) ->
         gl:enable(?GL_BLEND),
         gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
         wings_view:load_matrices(false),
-        wings_io:set_color(wings_pref:get_value(tweak_magnet_color)),
+        {CR,CG,CB,_}=wings_pref:get_value(tweak_magnet_color),
+        wings_io:set_color({CR,CG,CB,0.06}),
         draw_magnet_1(D, R),
         gl:popAttrib()
     end, []);
@@ -1531,7 +1530,7 @@ is_tweak_hotkey({tweak,Cmd}, #tweak{magnet=Magnet,sym=Sym,st=St0}=T0) ->
           case lists:keymember(Sym, 1, Pressed) of
             true -> keep;
             false ->
-              Data = [{Sym,ReturnAxis,now()}|Pressed],
+              Data = [{Sym,ReturnAxis,os:timestamp()}|Pressed],
               wings_pref:set_value(tweak_axis_toggle, Data),
               toggle_axis(Axis),
               wings_wm:send({tweak,axis_palette}, update_palette),
@@ -1602,6 +1601,7 @@ is_tweak_combo(#tweak{mode=Mode,st=St0}=T) ->
     {_,TweakKeys} = wings_pref:get_value(tweak_prefs),
     case orddict:find({B,{Ctrl,Shift,Alt}},TweakKeys) of
         {ok, Mode} -> keep;
+        {ok, NewMode} when element(1,Mode) =:= NewMode -> keep;
         {ok, NewMode} ->
             St = wings_dl:map(fun (D, _) ->
                       update_drag(D,T)  % used to find mid tweak model data
@@ -1873,11 +1873,11 @@ cycle_magnet() ->
       spike -> off
     end.
 
-crossmark({MagType, MagType}) -> [crossmark];
-crossmark({_, MagType}) when is_atom(MagType)-> [];
-crossmark("none") -> [];
-crossmark(false) -> [];
-crossmark(_) -> [crossmark].
+crossmark({MagType, MagType}) -> [{crossmark, true}];
+crossmark({_, MagType}) when is_atom(MagType)-> [{crossmark, false}];
+crossmark("none") -> [{crossmark, false}];
+crossmark(false) -> [{crossmark, false}];
+crossmark(_) -> [{crossmark, true}].
 
 
 %%%
@@ -1934,10 +1934,9 @@ command({axis_constraint, Axis}, St) ->
     wings_wm:send({tweak,axis_palette},update_palette),
     St;
 command({Mode,B}, St) when B =< 3->
-    Mod = sdl_keyboard:getModState(),
-    Ctrl = Mod band ?CTRL_BITS =/= 0,
-    Shift = Mod band ?SHIFT_BITS =/= 0,
-    Alt = Mod band ?ALT_BITS =/= 0,
+    Ctrl = wx_misc:getKeyState(?WXK_CONTROL),
+    Shift = wx_misc:getKeyState(?WXK_SHIFT),
+    Alt = wx_misc:getKeyState(?WXK_ALT),
     set_tweak_pref(Mode, B, {Ctrl, Shift, Alt}),
     wings_wm:send({tweak,tweak_palette},update_palette),
     St;
@@ -2099,30 +2098,30 @@ tweak_preferences_dialog(St) ->
     VecWidth = wings_pref:get_value(tweak_vector_width),
     TweakSpeed = wings_pref:get_value(tweak_speed),
     Menu = [{vframe,
-      [{hframe,[{slider,{text,ClkSpd,[{key,tweak_click_speed},{range,{1.0,5.0}}]}}],
-       [{title,?__(1,"Click Speed for Select/Deselect")}]},
+	     [{hframe,[{slider,{text,ClkSpd,[{key,tweak_click_speed},{range,{1.0,5.0}}]}}],
+	       [{title,?__(1,"Click Speed for Select/Deselect")}]},
 
-       {vframe,[{hframe,[{slider,{text,TweakSpeed,[{key,tweak_speed},{range,{0.01,1.0}}]}}]},
-       {label,?__(2,"Lower to increase control or raise to increase speed.")}],
-       [{title,?__(3,"Tweak Speed (Drag Response)")}]},
+	      {vframe,[{hframe,[{slider,{text,TweakSpeed,[{key,tweak_speed},{range,{0.01,1.0}}]}}]},
+		       {label,?__(2,"Lower to increase control or raise to increase speed.")}],
+	       [{title,?__(3,"Tweak Speed (Drag Response)")}]},
 
-       {hframe,[{slider,{text,MagAdj,[{key,tweak_mag_adj_sensitivity},{range,{0.1,2.0}}]}}],
-       [{title,?__(4,"Magnet Radius Adjustment Sensitivity")}]},
+	      {hframe,[{slider,{text,MagAdj,[{key,tweak_mag_adj_sensitivity},{range,{0.1,2.0}}]}}],
+	       [{title,?__(4,"Magnet Radius Adjustment Sensitivity")}]},
 
-       {label_column,[{color,?__(5,"Magnet Radius Display Color"),tweak_magnet_color}]},
-       {?__(11,"Show Magnet influence"),tweak_magnet_influence},
-       {hframe,
-        [{vframe,[{label,?__(6,"Length")},
-                  {label,?__(7,"Width")},
-                  {label,?__(8,"Color")}]},
-         {vframe,[{text,VecSize,[{key,tweak_vector_size},{range,{0.1,10.0}}]},
-                  {text,VecWidth,[{key,tweak_vector_width},{range,{1.0,10.0}}]},
-                  {color,tweak_vector_color}]}],
-        [{title,?__(9,"Tweak Vector")}]}
-      ]}],
+	      {label_column,[{color,?__(5,"Magnet Radius Display Color"),tweak_magnet_color}]},
+	      {?__(11,"Show Magnet influence"),tweak_magnet_influence},
+	      {hframe,
+	       [{vframe,[{label,?__(6,"Length")},
+			 {label,?__(7,"Width")},
+			 {label,?__(8,"Color")}]},
+		{vframe,[{text,VecSize,[{key,tweak_vector_size},{range,{0.1,10.0}}]},
+			 {text,VecWidth,[{key,tweak_vector_width},{range,{1.0,10.0}}]},
+			 {color,tweak_vector_color}]}],
+	       [{title,?__(9,"Tweak Vector")}]}
+	     ]}],
     PrefQs = [{Lbl, make_query(Ps)} || {Lbl, Ps} <- Menu],
-    wings_ask:dialog(?__(10,"Tweak Preferences"), PrefQs,
-    fun(Result) -> set_values(Result), St end).
+    wings_dialog:dialog(?__(10,"Tweak Preferences"), PrefQs,
+			fun(Result) -> set_values(Result), St end).
 
 make_query([_|_]=List)  ->
     [make_query(El) || El <- List];
@@ -2431,7 +2430,7 @@ help_msg_palette() ->
      bl(),$\s,?__(3,"Use the Tweak Palette to switch between Tweak Tools, Magnet Types, or Axis Constraints.")].
 
 cr() -> "\n\n".
-bl() -> bullet.
+bl() -> crossmark.
 
 %%%
 %%% Help Window Events
@@ -2583,17 +2582,20 @@ event(redraw, #tw{w=W,h=H}=Tw) ->
     draw_tweak_palette(Tw),
     keep;
 event(update_palette, Tw0) ->
-    #tw{menu=Menu}=Tw = update_tweak_palette(Tw0),
-    Cw = ?CHAR_WIDTH,
-    Win = wings_wm:this(),
-    N = length(Menu),
-    W = max_width(Menu, 0, Win),
-    Height = ?LINE_HEIGHT * N + 4,
-    Width = W + (Cw*4),
-    Size = {Width, Height},
-    wings_wm:resize(Win, Size),
-    wings_wm:dirty(),
-    get_event(Tw#tw{h=Height, w=Width, n=N});
+    case update_tweak_palette(Tw0) of
+	Tw0 -> keep;
+	#tw{menu=Menu}=Tw ->
+	    Cw = ?CHAR_WIDTH,
+	    Win = wings_wm:this(),
+	    N = length(Menu),
+	    W = max_width(Menu, 0, Win),
+	    Height = ?LINE_HEIGHT * N + 4,
+	    Width = W + (Cw*4),
+	    Size = {Width, Height},
+	    wings_wm:resize(Win, Size),
+	    wings_wm:dirty(),
+	    get_event(Tw#tw{h=Height, w=Width, n=N})
+    end;
 event(close, _) ->
     delete;
 event(#mousemotion{x=X,y=Y}, Tw) ->
@@ -2633,11 +2635,11 @@ draw_tweak_menu_items([{Name,{_,{Mode,_}},Help,Bound}|Menu], Y, #tw{w=W, current
     draw_menu_item(gradient_rect, Name, Bound, Help, Menu, Y, W, Tw);
 draw_tweak_menu_items([{Name,{_,{Mode,_}},_,_}|Menu], Y, #tw{w=W, mode=Mode}=Tw) ->
     draw_menu_item(gradient_border, Name, [], [], Menu, Y, W, Tw);
-draw_tweak_menu_items([{Name,{_,{_,_}},_,[crossmark]=B}|Menu], Y, #tw{w=W}=Tw) ->
+draw_tweak_menu_items([{Name,{_,{_,_}},_,[{crossmark, true}]=B}|Menu], Y, #tw{w=W}=Tw) ->
     draw_menu_item(border, Name, B, [], Menu, Y, W, Tw);
 draw_tweak_menu_items([{Name,{_,{_,_}},_,_}|Menu], Y, Tw) ->
     wings_io:set_color(wings_pref:get_value(menu_text)),
-    wings_io:text_at(?CHAR_WIDTH, Y - 2, ["  ",Name]),
+    wings_io:text_at(?CHAR_WIDTH, Y, ["  ",Name]),
     Ly = Y + ?LINE_HEIGHT,
     draw_tweak_menu_items(Menu, Ly, Tw);
 draw_tweak_menu_items([{Name,Cmd,Help}|Menu], Y, #tw{w=W, current={_,{_,Cmd}}}=Tw) ->
@@ -2646,7 +2648,7 @@ draw_tweak_menu_items([{Name,Cmd,Help}|Menu], Y, #tw{w=W, current={_,Cmd}}=Tw) -
     draw_menu_item(gradient_rect, Name, [], Help, Menu, Y, W, Tw);
 draw_tweak_menu_items([{Name,_,_}|Menu], Y, Tw) ->
     wings_io:set_color(wings_pref:get_value(menu_text)),
-    wings_io:text_at(?CHAR_WIDTH, Y - 2, ["  ",Name]),
+    wings_io:text_at(?CHAR_WIDTH, Y, ["  ",Name]),
     Ly = Y + ?LINE_HEIGHT,
     draw_tweak_menu_items(Menu, Ly, Tw);
 
@@ -2662,11 +2664,11 @@ draw_tweak_menu_items([{Name,Cmd,Help,_}|Menu], Y, #tw{w=W, current={_,Cmd}}=Tw)
 
 draw_tweak_menu_items([{Name,Cmd,_,_}|Menu], Y, #tw{w=W, mode={_,Cmd,_}}=Tw) ->
     draw_menu_item(gradient_border, Name, [], [], Menu, Y, W, Tw);
-draw_tweak_menu_items([{Name,_,_,[crossmark]=B}|Menu], Y, #tw{w=W}=Tw) ->
+draw_tweak_menu_items([{Name,_,_,[{crossmark, true}]=B}|Menu], Y, #tw{w=W}=Tw) ->
     draw_menu_item(border, Name, B, [], Menu, Y, W, Tw);
 draw_tweak_menu_items([{Name,_,_,_}|Menu], Y, Tw) ->
     wings_io:set_color(wings_pref:get_value(menu_text)),
-    wings_io:text_at(?CHAR_WIDTH, Y - 2, ["  ",Name]),
+    wings_io:text_at(?CHAR_WIDTH, Y, ["  ",Name]),
     Ly = Y + ?LINE_HEIGHT,
     draw_tweak_menu_items(Menu, Ly, Tw);
 
@@ -2706,35 +2708,35 @@ draw_menu_item(Style, Name, Bound, Help, Menu, Y, W, Tw) ->
                 case Mag of
                   true ->
                     TextCol = wings_pref:get_value(menu_hilited_text),
-                    wings_io:gradient_border(X1-1, Y1, X2-X1, Y2-Y1, MenuHl, TextCol, false),
+                    wings_io:gradient_border(X1-1, Y1-1, X2-X1, Y2-Y1, MenuHl, TextCol, false),
                     wings_io:set_color(TextCol);
                   false ->
                     MenuCol = wings_pref:get_value(menu_color),
                     MenuText = wings_pref:get_value(menu_text),
-                    wings_io:border(X1-1, Y1, X2-X1, Y2-Y1, MenuCol, MenuHl),
+                    wings_io:border(X1-1, Y1-1, X2-X1, Y2-Y1, MenuCol, MenuHl),
                     wings_io:set_color(MenuText)
                 end;
               _ ->
                 TextCol = wings_pref:get_value(menu_hilited_text),
-                wings_io:gradient_border(X1-1, Y1, X2-X1, Y2-Y1, MenuHl, TextCol, false),
+                wings_io:gradient_border(X1-1, Y1-1, X2-X1, Y2-Y1, MenuHl, TextCol, false),
                 wings_io:set_color(TextCol)
             end;
           false ->
             MenuCol = wings_pref:get_value(menu_color),
             MenuText = wings_pref:get_value(menu_text),
-            wings_io:border(X1-1, Y1, X2-X1, Y2-Y1, MenuCol, MenuHl),
+            wings_io:border(X1-1, Y1-1, X2-X1, Y2-Y1, MenuCol, MenuHl),
             wings_io:set_color(MenuText)
         end
     end,
-    wings_io:text_at(?CHAR_WIDTH, Y - 2, text_style(Bound, Name)),
+    wings_io:text_at(?CHAR_WIDTH, Y, text_style(Bound, Name)),
     Ly = Y + ?LINE_HEIGHT,
     if Help =:= [] -> ok; true -> wings_wm:message(Help) end,
     draw_tweak_menu_items(Menu, Ly, Tw).
 
-% Bound tools are in bold print
-text_style([crossmark],Name) ->
-    [bullet," ",Name];
-text_style([],Name) ->
+%% Bound tools are in bold print
+text_style([{crossmark, true}],Name) ->
+    [crossmark," ",Name];
+text_style(_,Name) ->
     ["  ",Name].
 
 %%%
@@ -2840,11 +2842,13 @@ cmd_prefix(Cmd) ->
 %% it will add the vertices influence information to Pst field of the we#
 set_edge_influence([],_,#we{pst=Pst}) ->
     remove_pst(Pst);
-set_edge_influence(Vs,VsDyn,#we{pst=Pst,es=Etab,vp=Vtab}=We) ->
+set_edge_influence(Vs,VsDyn,#we{pst=Pst,es=Etab}=We) ->
     case wings_pref:get_value(tweak_magnet_influence) of
     true ->
+        ColFrom = col_to_vec(wings_pref:get_value(edge_color)),
+        ColTo = col_to_vec(wings_pref:get_value(tweak_magnet_color)),
         Edges = wings_edge:from_vs(Vs,We),
-        EdDyn=to_edges_raw(Edges,VsDyn,Etab,Vtab),
+        EdDyn = to_edges_raw({ColFrom,ColTo},Edges,VsDyn,Etab),
         add_pst(EdDyn,Pst);
     _ ->
         Pst
@@ -2870,23 +2874,27 @@ remove_pst(Pst) ->
 %%%
 %%% Functions of general purpose
 %%%
-to_edges_raw([],_ , _, _) -> [];
-to_edges_raw(_, [] , _, _) -> [];
-to_edges_raw(Edges, VsDyn, Etab, Vtab) ->
-    to_edges_raw_1(Edges, VsDyn, Etab, Vtab, []).
+to_edges_raw(_, [], _ , _) -> {[],<<>>};
+to_edges_raw(_, _, [] , _) -> {[],<<>>};
+to_edges_raw({ColFrom,ColTo}, Edges, VsDyn, Etab) ->
+    ColRange=e3d_vec:sub(ColTo,ColFrom),
+    to_edges_raw_1(Edges, ColFrom, ColRange, VsDyn, Etab, {[],<<>>}).
 
-to_edges_raw_1([], _, _, _, Acc) -> Acc;
-to_edges_raw_1([Edge|Edges], VsDyn, Etab, Vtab, Acc) ->
+to_edges_raw_1([], _, _, _, _, Acc) -> Acc;
+to_edges_raw_1([Edge|Edges], Col, Range, VsDyn, Etab, {VAcc,ClBin0}) ->
     #edge{vs=Va0,ve=Vb0} = array:get(Edge, Etab),
-    Cola=get_vs_influence(Va0, VsDyn),
-    Colb=get_vs_influence(Vb0, VsDyn),
-    VsPair=[{Va0,Cola, Vb0,Colb}],
-    to_edges_raw_1(Edges, VsDyn, Etab, Vtab, VsPair++Acc).
+    Infa = get_vs_influence(Va0,VsDyn),
+    Infb = get_vs_influence(Vb0,VsDyn),
+    {R1,G1,B1} = color_gradient(Col,Range,Infa),
+    {R2,G2,B2} = color_gradient(Col,Range,Infb),
+    ClBin = <<R1:?F32,G1:?F32,B1:?F32,R2:?F32,G2:?F32,B2:?F32,ClBin0/binary>>,
+    VsPair={Va0,Vb0},
+    to_edges_raw_1(Edges, Col, Range, VsDyn, Etab, {[VsPair|VAcc],ClBin}).
 
 get_vs_influence(V, VsDyn) ->
     case lists:keysearch(V, 1, VsDyn) of
-    false -> 0.0;
-    {_, {_,Value}} -> Value
+        false -> 0.0;
+        {_, {_,Value}} -> Value
     end.
 
 %%%
@@ -2894,48 +2902,51 @@ get_vs_influence(V, VsDyn) ->
 %%%
 
 %% It generate the OpenGl list of colored vertices
-update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
+update_dlist({edge_info,{EdList,ClBin}},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
     Key = ?MODULE,
-    case EdgeInfo of
+    case EdList of
     [] ->
         D#dlo{plugins=[{Key,none}|Pdl]};
     _ ->
-        ColFrom=col_to_vec(wings_pref:get_value(edge_color)),
-        ColTo=col_to_vec(wings_pref:get_value(tweak_magnet_color)),
-        ColRange=e3d_vec:sub(ColTo,ColFrom),
-        EdgeList = gl:genLists(1),
-        gl:newList(EdgeList,?GL_COMPILE),
-        gl:'begin'(?GL_LINES),
-        pump_edges(EdgeInfo,Vtab,ColFrom,ColRange),
-        gl:'end'(),
-        gl:endList(),
-        D#dlo{plugins=[{Key,{edge,EdgeList}}|Pdl]}
+	    wx:batch(fun() ->
+			     EdBin = pump_edges(EdList,Vtab),
+			     EdgeList = gl:genLists(1),
+			     gl:newList(EdgeList,?GL_COMPILE),
+			     wings_draw_setup:enableColorPointer({0,ClBin}),
+			     wings_draw_setup:enableVertexPointer({0,EdBin}),
+			     gl:drawArrays(?GL_LINES, 0, byte_size(EdBin) div 12),
+			     gl:disableClientState(?GL_VERTEX_ARRAY),
+			     gl:disableClientState(?GL_COLOR_ARRAY),
+			     gl:endList(),
+			     D#dlo{plugins=[{Key,EdgeList}|Pdl]}
+		     end)
     end.
 
 %% pumping Lines
-pump_edges([],_,_,_) -> ok;
-pump_edges([{Id1,Inf1,Id2,Inf2}|SegInf],Vtab,Col,Range) ->
-    {R1,G1,B1}=color_gradient(Col,Range,Inf1),
-    {R2,G2,B2}=color_gradient(Col,Range,Inf2),
-    V1=array:get(Id1, Vtab),
-    V2=array:get(Id2, Vtab),
-    gl:color3f(R1,G1,B1),
-    gl:vertex3fv(V1),
-    gl:color3f(R2,G2,B2),
-    gl:vertex3fv(V2),
-    pump_edges(SegInf,Vtab,Col,Range).
+pump_edges(EdList, Vtab) ->
+    pump_edges_1(EdList, Vtab, <<>>).
+pump_edges_1([], _,Bin) -> Bin;
+pump_edges_1([{Id1,Id2}|SegInf], Vtab, VsBin0) ->
+    VsBin =
+        case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
+            {undefined,_} -> VsBin0;
+            {_,undefined} -> VsBin0;
+            {{X1,Y1,Z1},{X2,Y2,Z2}} ->
+                <<VsBin0/binary,X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>
+        end,
+    pump_edges_1(SegInf,Vtab,VsBin).
 
 %% It'll will provide de vertices data for 'update_dlist' function
 get_data(update_dlist, Data, Acc) ->  % for draw lists
     case gb_trees:lookup(edge_info, Data) of
-    none ->
-        {ok, Acc};
-    {_,EdgeInfo} ->
-        {ok, [{plugin, {?MODULE, {edge_info, EdgeInfo}}}|Acc]}
+        none ->
+            {ok, Acc};
+        {_,EdgeInfo} ->
+            {ok, [{plugin, {?MODULE, {edge_info, EdgeInfo}}}|Acc]}
     end.
 
 %% It'll use the list prepared by 'update_dlist' function and then draw it (only for plain draw)
-draw(plain, {edge,EdgeList}, _D, SelMode) ->
+draw(plain, EdgeList, _D, SelMode) ->
     gl:lineWidth(edge_width(SelMode)),
     wings_dl:call(EdgeList);
 draw(_,_,_,_) -> ok.

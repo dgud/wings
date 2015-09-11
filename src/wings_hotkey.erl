@@ -13,7 +13,7 @@
 
 -module(wings_hotkey).
 -export([event/1,event/2,matching/1,bind_unicode/3,bind_virtual/4,
-	 bind_from_event/2,unbind/1,hotkeys_by_commands/1,bindkey/2,
+	 command/2, bind_from_event/2,unbind/1,hotkeys_by_commands/1,bindkey/2,
 	 set_default/0,listing/0,handle_error/2]).
 
 -define(NEED_ESDL, 1).
@@ -68,6 +68,103 @@ lookup(Ev, Cmd) ->
 %%% Binding and unbinding of keys.
 %%%
 
+-record(cs, {info, st, op, action}).
+
+command(Cmd, St) ->
+    Str = ?__(1, "Select an menu item to bind/unbind a hotkey"),
+    Cs = #cs{info=Str, st=St, op=Cmd},
+    wings_wm:message(Str),
+    {push, fun(Ev) -> event_handler(Ev, Cs) end}.
+
+event_handler(redraw, CS=#cs{st=St}) ->
+    wings:redraw("", St),
+    {replace,fun(Ev) -> event_handler(Ev, CS) end};
+
+event_handler({action, Action}, #cs{op=unbind}) ->
+    do_unbind(Action);
+
+event_handler(Ev=#keyboard{which=menubar}, #cs{op=unbind}) ->
+    do_unbind(event(Ev));
+
+event_handler({action, Action}, CS=#cs{op=bind}) ->
+    wings_wm:message(hotkey_key_message(Action)),
+    wings_wm:dirty(),
+    {replace,fun(Ev) -> event_handler(Ev, CS#cs{action=Action}) end};
+
+event_handler(Ev0=#keyboard{which=menubar},
+	      CS=#cs{op=bind, action=undefined}) ->
+    Action = event(Ev0),
+    wings_wm:message(hotkey_key_message(Action)),
+    wings_wm:dirty(),
+    {replace,fun(Ev) -> event_handler(Ev, CS#cs{action=Action}) end};
+
+event_handler(Ev0= #mousebutton{}, #cs{st=St}) ->
+    case wings_menu:is_popup_event(Ev0) of
+	no -> keep;
+	{yes,Xglobal,Yglobal,_} ->
+	    wings:popup_menu(Xglobal, Yglobal, St)
+    end;
+
+event_handler(#mousemotion{}, _) -> keep;
+event_handler(#keyboard{sym=27}, _) ->
+    wings_wm:dirty(),
+    pop;
+
+event_handler(Ev = #keyboard{unicode=UC}, #cs{op=bind, action=Cmd})
+  when Cmd =/= undefined, UC =/= 0 ->
+    case wings_hotkey:event(Ev, Cmd) of
+	next ->
+	    do_bind(Ev, Cmd);
+	OtherCmd ->
+	    C = wings_util:stringify(OtherCmd),
+	    Q = ?__(1,"This key is already bound to the ") ++ C ++
+		?__(2," command. Do you want to re-define it?"),
+	    wings_u:yes_no(Q, fun() -> do_bind(Ev, Cmd) end)
+    end,
+    wings_wm:dirty(),
+    pop;
+
+event_handler(_Ev, _) ->
+    keep.
+
+do_unbind(Action) ->
+    case hotkeys_by_commands([Action]) of
+	[] -> none;	%No hotkeys for this entry.
+	Hotkeys ->
+	    hotkey_delete_dialog(Hotkeys, Action)
+    end,
+    wings_wm:dirty(),
+    pop.
+
+do_bind(Ev, Cmd) ->
+    Keyname = bind_from_event(Ev, Cmd),
+    wings_menu:update_menu_hotkey(Cmd, Keyname),
+    ignore.
+
+hotkey_delete_dialog(Hotkeys, Action) ->
+    Fun = fun(Res) ->
+		  wings_menu:update_menu_hotkey(Action, ""),
+		  [wings_hotkey:unbind(K) || {K,true} <- Res],
+		  ignore
+	  end,
+    Dialog = mk_dialog(Hotkeys),
+    wings_dialog:dialog(?__(1,"Delete Hotkeys"), Dialog, Fun).
+
+mk_dialog([{Key,Keyname,Cmd,Src}|T]) ->
+    [mk_key_item(Key, Keyname, Cmd, Src)|mk_dialog(T)];
+mk_dialog([]) ->
+    [separator,{label,?__(1,"Check all hotkeys to be deleted.")}].
+
+mk_key_item(Key, Keyname, Cmd, _Src) ->
+    {Keyname ++ ": " ++ Cmd,false,[{key,Key}]}.
+
+
+hotkey_key_message(Cmd) ->
+    [?__(1,"Press the key to bind the \""),
+     wings_util:stringify(Cmd),
+     ?__(2,"\" command to.")].
+
+
 bind_from_event(Ev, Cmd) ->
     Bkey = bindkey(Ev, Cmd),
     ets:insert(?KL, {Bkey,Cmd,user}),
@@ -109,8 +206,10 @@ bindkey(#keyboard{sym=Sym,mod=Mod,unicode=C}, Cmd) ->
 	    bkey(fix_bksp_and_del(Sym, C), Cmd);
 	[shift] when C =/= 0 ->
 	    bkey(C, Cmd);
+	Mods when Sym =/= 0 ->
+	    bkey({Sym,sort(Mods)}, Cmd);
 	Mods ->
-	    bkey({Sym,sort(Mods)}, Cmd)
+	    bkey({C,sort(Mods)}, Cmd)
     end.
 
 bkey(Key, {Mode,_}) ->
@@ -183,7 +282,7 @@ listing() ->
     listing_1(Keys, []).
 
 listing_1([{Mode,Keys}|T], Acc0) ->
-    Acc = [list_keys(Keys),list_header(Mode)|Acc0],
+    Acc = [{table, 2, list_header(Mode), list_keys(Keys)}|Acc0],
     listing_1(T, Acc);
 listing_1([], Acc) -> reverse(Acc).
 
@@ -202,8 +301,7 @@ list_keys([{Key,Cmd,Src}|T]) ->
 		 user -> ?STR(list_keys,1," (user-defined)");
 		 plugin -> ?STR(list_keys,2," (plug-in-defined)")
 	     end,
-    KeyStr ++ ": " ++ wings_util:stringify(Cmd) ++ SrcStr ++ 
-	"\n" ++ list_keys(T);
+    [[KeyStr,wings_util:stringify(Cmd) ++ SrcStr]|list_keys(T)];
 list_keys([]) -> [].
 
 
@@ -217,26 +315,28 @@ handle_error(Ev, Cmd) ->
     Msg1 = "Executing the command \"" ++ CmdStr ++ "\"\nbound to the hotkey " ++
 	KeyName ++ " caused an error.",
     Msg2 = "Possible causes:",
-    Msg3 = [bullet,$\s|"The hotkey was defined in a previous version of Wings,\n"
-	"and the command that it refers to has been changed,\n"
-	"removed, or renamed in this version of Wings."],
-    Msg4 = [bullet,$\s|"The hotkey refers to a command in a "
-	    " plug-in that is currently disabled,\n"
-	    "or to a previous version of a plug-in."],
-    Msg5 = [bullet,$\s|"A bug in the command itself. Try executing the command\n"
-	    "from the menu directly (i.e. not through a hotkey) -\n"
-	    "if it crashes it IS a bug. (Please report it.)"],
-    Qs = {vframe,
-	  [{label,Msg1},{panel,[]},
+    Msg3 = "The hotkey was defined in a previous version of Wings,"
+	"and the command that it refers to has been changed,"
+	"removed, or renamed in this version of Wings.",
+    Msg4 = "The hotkey refers to a command in a "
+	" plug-in that is currently disabled,"
+	"or to a previous version of a plug-in.",
+    Msg5 = "A bug in the command itself. Try executing the command"
+	"from the menu directly (i.e. not through a hotkey) -"
+	"if it crashes it IS a bug. (Please report it.)",
+    Msg6 = "Delete Hotkey: " ++ KeyName ++ " or press cancel to avoid any changes",
+    Qs = {vframe_dialog,
+	  [{label,Msg1}, separator,
 	   {label,Msg2},
 	   {label,Msg3},
 	   {label,Msg4},
-	   {label,Msg5},{panel,[]},
-	   {hframe,[{button,"Ignore",fun(_) -> ignore end,
-		     [{info,"Do nothing"}]},
-		    {button,"Delete Hotkey",fun(_) -> unbind(Key) end,
-		     [{info,"Delete the hotkey "++KeyName}]}]}]},
-    wings_ask:dialog("", Qs, fun(_) -> ignore end).
+	   {label,Msg5}, separator,
+	   {label,Msg6}],
+	  [{buttons, [ok, cancel], {key, result}}]},
+    wings_dialog:dialog("Delete HotKey", Qs,
+			fun([{result, ok}]) -> unbind(Key);
+			   (_) -> ignore
+			end).
 
 %%%
 %%% Local functions.
@@ -274,18 +374,20 @@ keyname($\t) -> ?STR(keyname,2,"Tab");
 keyname($\s) -> ?STR(keyname,3,"Space");
 keyname(C) when $a =< C, C =< $z -> [C-32];
 keyname(C) when $A =< C, C =< $Z ->
-    case get(wings_os_type) of
-	{unix,darwin} -> [shift,C];
-	_ -> ?STR(keyname,4,"Shift+")++ [C]
-    end;
+    ?STR(keyname,4,"Shift+")++ [C];
+    %% case get(wings_os_type) of
+    %% 	%%	{unix,darwin} -> [shift,C];
+    %% 	_ -> 
+
+    %% end;
 keyname(C) when is_integer(C), C < 256 -> [C];
 keyname(C) when is_integer(C), 63236 =< C, C =< 63247 ->
     [$F|integer_to_list(C-63235)];
-keyname(C) -> [$<|integer_to_list(C)++">"].
+keyname(C) -> [C].
 
 modname(Mods) ->
     case get(wings_os_type) of
-	{unix,darwin} -> mac_modname(Mods, []);
+	{unix,darwin} -> mac_modname(Mods);
 	_ -> modname_1(Mods)
     end.
 
@@ -293,11 +395,10 @@ modname_1([command|T]) -> "Meta+" ++modname_1(T);
 modname_1([Mod|T]) -> wings_s:modkey(Mod) ++ "+" ++modname_1(T);
 modname_1([]) -> [].
 
-mac_modname([ctrl|T], Acc) -> [$^|mac_modname(T, Acc)];
-mac_modname([shift|T], Acc) -> mac_modname(T, [shift|Acc]);
-mac_modname([alt|T], Acc) -> mac_modname(T, [option|Acc]);
-mac_modname([command|T], Acc) -> mac_modname(T, Acc++[command]);
-mac_modname([], Acc) -> Acc.
+mac_modname([ctrl|T]) -> "rawctrl+" ++ mac_modname(T);
+mac_modname([command|T]) -> "Ctrl+" ++ mac_modname(T);
+mac_modname([Mod|T]) -> wings_s:modkey(Mod) ++ "+" ++ mac_modname(T);
+mac_modname([]) -> [].
 
 vkeyname(?SDLK_BACKSPACE) -> ?STR(vkeyname,1,"Bksp");
 vkeyname(?SDLK_TAB) -> ?STR(vkeyname,2,"Tab");
@@ -327,7 +428,7 @@ vkeyname(?SDLK_HOME) -> ?STR(vkeyname,20,"Home");
 vkeyname(?SDLK_END) -> ?STR(vkeyname,21,"End");
 vkeyname(?SDLK_PAGEUP) -> ?STR(vkeyname,22,"Page Up");
 vkeyname(?SDLK_PAGEDOWN) ->?STR(vkeyname,23,"Page Down");
-vkeyname(_) -> ?STR(vkeyname,24,"UKEY").
+vkeyname(C) -> [C].
 
 %%%
 %%% Default keybindings.
@@ -381,6 +482,14 @@ default_keybindings() ->
      {{?SDLK_F5,[]},        {select,{by,{faces_with,5}}}},
      {{?SDLK_TAB,[]},       {view,workmode}},
      {{?SDLK_TAB,[shift]},  {view,quick_preview}},
+
+     {{?SDLK_INSERT,[ctrl]}, {hotkey, bind}},
+     {{$8, [ctrl, alt]},     {hotkey, bind}},   %% Swedish keyboards
+     {{$8, [ctrl]},          {hotkey, bind}},
+     {{?SDLK_DELETE,[ctrl]}, {hotkey, unbind}},
+     {{$9, [ctrl, alt]},     {hotkey, unbind}}, %% Swedish keyboards
+     {{$9, [ctrl]},          {hotkey, unbind}},
+
      {$\s,              {select,deselect}},
      {$a,               {view,highlight_aim}},
      {$A,               {view,frame}},

@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_absolute_move,
  [
   {draw,
@@ -21,15 +21,15 @@
     {6,"Ausrichten"},
     {7,"Abflachen"},
     {8,"Referenzpunkt"},
-    {9,"Verknüpfen"}
+    {9,"VerknÃ¼pfen"}
    ]},
   {mirror_error,
    [
-    {1,"Punkte der Spiegelebene können nicht verschoben werden"}
+    {1,"Punkte der Spiegelebene kÃ¶nnen nicht verschoben werden"}
    ]},
   {selection_ask,
    [
-    {1,"Referenzpunkt für Einrasten-Operation auswählen"},
-    {2,"Zielpunkt für Einrasten-Operation auswählen"}
+    {1,"Referenzpunkt fÃ¼r Einrasten-Operation auswÃ¤hlen"},
+    {2,"Zielpunkt fÃ¼r Einrasten-Operation auswÃ¤hlen"}
    ]}
  ]}.

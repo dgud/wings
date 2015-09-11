@@ -15,11 +15,12 @@
 -export([toplevel/6,toplevel_title/1,toplevel_title/2,set_knob/3]).
 -export([init/0,enter_event_loop/0,dirty/0,dirty_mode/1,pdirty/0,
 	 reinit_opengl/0,
-	 new/4,delete/1,raise/1,rollup/2,
+	 new/2, new/3, new/4,delete/1,raise/1,rollup/2,
 	 link/2,hide/1,show/1,is_hidden/1,
-	 later/1,send/2,psend/2,send_after_redraw/2,
+	 later/1,send/2,psend/2, psend/3,send_after_redraw/2,
+	 send_once_after_redraw/2,
 	 set_timer/2,cancel_timer/1,
-	 this/0,offset/3,move/2,move/3,resize/2,pos/1,windows/0,is_window/1,
+	 this/0,offset/3,move/2,move/3,resize/2,pos/1,windows/0,is_window/1, is_wxwindow/1,
 	 window_below/2,geom_below/2,resize_windows/2,
 	 update_window/2,clear_background/0,
 	 callback/1,current_state/1,get_current_state/0,notify/1,
@@ -67,8 +68,9 @@
 	 name,					%Name of window.
 	 stk,					%Event handler stack.
 	 props,					%Window properties.
-	 links=[],			  %Windows linked to this one.
-	 rollup=false			%Rollup window into Title Bar {controller,Name}
+	 links=[],			        %Windows linked to this one.
+	 rollup=false,			        %Rollup window into Title Bar {controller,Name}
+	 obj                                    %wx window
 	}).
 
 -record(se,					%Stack entry record.
@@ -96,13 +98,14 @@
 init() ->
     put(wm_dirty_mode, front),
     put(wm_cursor, arrow),
-    {W,H} = TopSize = wings_pref:get_value(window_size),
+    {W,H} = TopSize = wxWindow:getClientSize(get(gl_canvas)),
     put(wm_top_size, TopSize),
     translation_change(),
     put(wm_windows, gb_trees:empty()),
     new(desktop, {0,0,0}, {0,0}, {push,fun desktop_event/1}),
-    new(message, {0,0,?Z_LOWEST_DYNAMIC-1}, {0,0},
-	{push,fun message_event/1}),
+    StatusBar = wings_status:start(get(top_frame)),
+    new(message, StatusBar, {push, fun message_event/1}),
+
     init_opengl(),
     case wings_pref:get_value(win32_start_maximized) of
 	true -> wings_io:maximize();
@@ -115,12 +118,12 @@ init() ->
 desktop_event(_) -> keep.
 
 message(Message) ->
-	MsgData0=get_window_data(message),
-	put_window_data(message,MsgData0#win{z=highest_z()}),
-	wings_io:putback_event({wm,{message,get(wm_active),Message}}).
+    MsgData0=get_window_data(message),
+    put_window_data(message,MsgData0#win{z=highest_z()}),
+    wings_io:putback_event({wm,{message,get(wm_active),Message}}).
 
 message_right(Right) ->
-	wings_io:putback_event({wm,{message_right,get(wm_active),Right}}).
+    wings_io:putback_event({wm,{message_right,get(wm_active),Right}}).
 
 message(Message, Right) ->
     message(Message),
@@ -143,7 +146,10 @@ send(Name, Ev) ->
 
 %% Send from another erlang process than the main wings process
 psend(Name, Ev) ->
-    wings ! {timeout,make_ref(),{event,{wm,{send_to,Name,Ev}}}},
+    psend(send_to, Name, Ev).
+psend(Type, Name, Ev)
+  when Type =:= send_to; Type =:= send_once; Type =:= send_after_redraw ->
+    wings ! {timeout,make_ref(),{event,{wm,{Type,Name,Ev}}}},
     keep.
 
 send_once(Name, Ev) ->
@@ -152,6 +158,10 @@ send_once(Name, Ev) ->
 
 send_after_redraw(Name, Ev) ->
     wings_io:putback_event({wm,{send_after_redraw,Name,Ev}}).
+
+send_once_after_redraw(Name, Ev) ->
+    wings_io:putback_event_once({wm,{send_after_redraw,Name,Ev}}),
+    keep.
 
 current_state(St) ->
     DispLists = get_prop(this(), display_lists),
@@ -213,6 +223,17 @@ new(Name, {X,Y,Z0}, {W,H}, Op) when is_integer(X), is_integer(Y),
     Stk = handle_response(Op, dummy_event, default_stack(Name)),
     Props = gb_trees:from_orddict([{font,system_font}]),
     Win = #win{x=X,y=Y,z=Z,w=W,h=H,name=Name,stk=Stk,props=Props},
+    put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
+    dirty().
+
+new(Name, Obj) ->
+    new(Name, Obj, {push, default_object_event(Obj)}).
+
+new(Name, Obj, Op) when element(1, Obj) =:= wx_ref ->
+    Stk = handle_response(Op, dummy_event, default_stack(Name)),
+    Props = gb_trees:from_orddict([{font,system_font}]),
+    Z = highest_z(),
+    Win = #win{x=0,y=0,z=Z,w=0,h=0,name=Name,stk=Stk,props=Props, obj=Obj},
     put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
     dirty().
 
@@ -351,9 +372,17 @@ hide(Name) ->
 
 show(Name) ->
     case get_window_data(Name) of
+	#win{obj=Obj} when Obj =/= undefined -> show_wx(Obj);
 	#win{z=Z} when Z > 0 -> ok;
 	#win{z=Z}=Win -> put_window_data(Name, Win#win{z=-Z})
     end.
+
+show_wx(Frame) ->
+    case wxFrame:isIconized(Frame) of
+	true -> wxFrame:iconize(Frame, [{iconize, false}]);
+	false -> ok
+    end,
+    wxFrame:raise(Frame).
 
 is_hidden(Name) ->
     case get_window_data(Name) of
@@ -379,6 +408,15 @@ windows() ->
 
 is_window(Name) ->
     gb_trees:is_defined(Name, get(wm_windows)).
+
+is_wxwindow(Name) ->
+    case gb_trees:is_defined(Name, get(wm_windows)) of
+	true ->
+	    #win{obj=Obj} = get_window_data(Name),
+	    Obj =/= undefined;
+	false ->
+	    false
+    end.
 
 offset(Name, Xoffs, Yoffs) ->
     update_window(Name, [{dx,Xoffs},{dy,Yoffs}]).
@@ -504,12 +542,18 @@ win_rect() ->
     win_rect(this()).
 
 win_size(Name) ->
-    #win{w=W,h=H} = get_window_data(Name),
-    {W,H}.
+    #win{w=W,h=H,obj=Wx} = get_window_data(Name),
+    case Wx of
+	undefined -> {W,H};
+	_ -> wxWindow:getSize(Wx)
+    end.
 
 win_ul(Name) ->
-    #win{x=X,y=Y} = get_window_data(Name),
-    {X,Y}.
+    #win{x=X,y=Y,obj=Wx} = get_window_data(Name),
+    case Wx of
+	undefined -> {X,Y};
+	_ -> wxWindow:getScreenPosition(Wx)
+    end.
 
 win_ur(Name) ->
     #win{x=X,y=Y,w=W} = get_window_data(Name),
@@ -533,8 +577,11 @@ win_rect(Name) ->
 
 win_rollup({dialog,_}) -> no;
 win_rollup(Name) ->
-    #win{rollup=Rollup} = get_window_data(Name),
-    Rollup.
+    #win{rollup=Rollup, obj=Obj} = get_window_data(Name),
+    case Obj =:= undefined of
+	true -> Rollup;
+	false -> no
+    end.
 
 local2global(#mousebutton{x=X0,y=Y0}=Ev) ->
     {X,Y} = local2global(X0, Y0),
@@ -629,12 +676,14 @@ dispatch_event(#resize{w=W,h=H}) ->
     %% If the window has become maximized, we don't want
     %% to save the window size, but will keep the previous
     %% size.
+    wings_io:reset_video_mode_for_gl(W, H),
     case wings_io:is_maximized() of
-	false -> wings_pref:set_value(window_size, {W,H});
+	false ->
+	    {TW,TH} = wxWindow:getSize(get(top_frame)),
+	    wings_pref:set_value(window_size, {TW,TH});
 	true -> ok
     end,
     put(wm_top_size, {W,H}),
-    init_opengl(),
     resize_windows(W, H),
     dirty();
 dispatch_event(quit) ->
@@ -645,15 +694,44 @@ dispatch_event({wm,WmEvent}) ->
     wm_event(WmEvent);
 dispatch_event(Ev = {external,_}) ->
     send(geom,Ev);
+dispatch_event({menubar,Ev}) ->
+    menubar_event(geom, Ev);
+dispatch_event(#expose{active=Active}) ->
+    Active andalso dirty();
 dispatch_event(Event) ->
     case find_active(Event) of
+	Active when Event#keyboard.which =:= menubar ->
+	    menubar_event(Active, Event);
 	none ->
-%	    io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Event]),
+	    %% io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Event]),
 	    update_focus(none);
 	Active ->
 	    update_focus(Active),
 	    do_dispatch(Active, Event)
     end.
+
+menubar_event(Window, Event) ->
+    case get(mb_focus) of
+	undefined -> 
+	    menubar_focus(Window),
+	    menubar_event(Window, Event);
+	ignore -> 
+	    send(geom, Event);
+	Active ->
+	    send(Active,Event)
+    end.
+
+menubar_focus(Window) -> 
+    MB = case Window of 
+	     {_, geom} -> geom;
+	     {_, Geom={geom,_}} -> Geom;
+	     geom -> geom;
+	     Geom={geom,_} -> Geom;
+	     dialog_blanket -> dialog_blanket;
+	     _ -> ignore
+	 end,
+    %% MB == ignore andalso io:format("Set mb focus ~p ~p~n", [Window, MB]),
+    put(mb_focus, MB).
 
 update_focus(none) ->
     case erase(wm_focus) of
@@ -663,6 +741,7 @@ update_focus(none) ->
 	    do_dispatch(OldActive, lost_focus)
     end;
 update_focus(Active) ->
+    menubar_focus(Active),
     case put(wm_focus, Active) of
 	undefined ->
 	    dirty(),
@@ -675,18 +754,8 @@ update_focus(Active) ->
     end.
 
 resize_windows(W, H) ->
-    Event = #resize{w=W,h=H},
-
-    MsgData0 = get_window_data(message),
-    MsgH = ?CHAR_HEIGHT+9,
-    MsgY = H-MsgH,
-    MsgData1 = MsgData0#win{x=0,y=MsgY,w=W,h=MsgH},
-    put_window_data(message, MsgData1),
-    MsgData = send_event(MsgData1, Event#resize{w=W}),
-    put_window_data(message, MsgData),
-
     DesktopData0 = get_window_data(desktop),
-    DesktopData = DesktopData0#win{x=0,y=0,w=W,h=H-MsgH},
+    DesktopData = DesktopData0#win{x=0,y=0,w=W,h=H},
     put_window_data(desktop, DesktopData).
 
 do_dispatch(Active, Ev) ->
@@ -717,9 +786,40 @@ redraw_all() ->
 			     do_dispatch(Name, redraw)
 		     end, Windows),
     wings_io:swapBuffers(),
+    calc_stats(),
+    wings:release_all(),
     clean(),
     wings_io:set_cursor(get(wm_cursor)),
     event_loop().
+
+-ifndef(DEBUG).
+calc_stats() -> ok.
+-else.
+calc_stats() ->
+    Curr = erlang:monotonic_time(),
+    case put(time_stamp, Curr) of
+	undefined ->
+	    put(time_stat, {0, 0, 0, 999999999999999, -1}),
+	    ok;
+	Prev ->
+	    calc_stats(erlang:convert_time_unit(Curr-Prev, native, micro_seconds))
+    end.
+
+calc_stats(Diff) when Diff < 80000 ->
+    {N, Sum, SumSq, Min, Max} = get(time_stat),
+    case N rem 100 of
+	0 when N > 50 ->
+	    Mean = Sum / N,
+	    StdDev = math:sqrt((SumSq - (Sum*Sum/N))/(N - 1)),
+	    put(time_stat, {N+1, Sum+Diff, SumSq+Diff*Diff, 999999999999, -1}),
+	    io:format("~w ~.1f ~.3f ~w ~w~n", [N, Mean, StdDev, Min, Max]);
+	_ ->
+	    put(time_stat, {N+1, Sum+Diff, SumSq+Diff*Diff, min(Diff, Min), max(Diff, Max)}),
+	    ok
+    end;
+calc_stats(_) -> %% Do not add user wait times
+    ok.
+-endif.
 
 clear_background() ->
     Name = this(),
@@ -778,11 +878,18 @@ init_opengl() ->
 		    do_dispatch(Name, init_opengl)
 	    end, gb_trees:keys(get(wm_windows))).
 
-send_event(Win, {expose}) ->
-    dirty(),
-    Win;
 send_event(#win{z=Z}=Win, redraw) when Z < 0 ->
     Win;
+send_event(#win{name=Name,stk=[Se|_]=Stk0,obj=Obj}, Ev)
+  when Obj =/= undefined ->
+    OldActive = put(wm_active, Name),
+    Stk = handle_event(Se, Ev, Stk0),
+    case OldActive of
+	undefined -> erase(wm_active);
+	_ -> put(wm_active, OldActive)
+    end,
+    Win = get_window_data(Name),
+    Win#win{stk=Stk};
 send_event(#win{name=Name,x=X,y=Y0,w=W,h=H,stk=[Se|_]=Stk0}, Ev0) ->
     OldActive = put(wm_active, Name),
     Ev = translate_event(Ev0, X, Y0),
@@ -848,6 +955,7 @@ handle_response(Res, Event, Stk0) ->
 	next -> next_handler(Event, Stk0);
 	pop -> pop(Stk0);
 	delete -> delete;
+	defer -> defer_to_next_handler(Event, Stk0);
 	push ->
 	    [OldTop|_] = Stk0,
 	    [OldTop#se{h=dummy}|Stk0];
@@ -882,16 +990,21 @@ replace_handler(Handler, [Top|Stk]) -> [Top#se{h=Handler}|Stk].
 next_handler(Event, [_|[Next|_]=Stk]) ->
     handle_event(Next, Event, Stk).
 
+defer_to_next_handler(Event, [Top|[Next|_]=Stk]) ->
+    [Top|handle_event(Next, Event, Stk)].
+
+default_object_event(Object) ->
+    fun(Ev) ->
+	    wx_object:call(Object, Ev)
+    end.
+
 default_stack(Name) ->
     Handler = fun({crash,Crash}) ->
-		      StkTrace = erlang:get_stacktrace(),
-		      io:format("Window ~p crashed:\n~P\n~P\n",
-				[Name,Crash,20,StkTrace,40]),
-		      exit({window_crash,Name,Crash,StkTrace});
+		      wings_u:win_crash(Crash);
 		 (Other) ->
 		      io:format("Window ~p's crash handler got:\n~p\n",
 				[Name,Other]),
-		      exit({unexpected,Name,Other})
+		      delete
 	      end,
     [#se{h=Handler}].
 
@@ -941,6 +1054,9 @@ wm_event({send_after_redraw,Name,Ev}) ->
 	false -> ok;
 	true -> do_dispatch(Name, Ev)
     end;
+wm_event({send_once, Name, Ev}) ->
+    wings_io:putback_event_once({wm,{send_to,Name,Ev}}),
+    ok;
 wm_event({callback,Cb}) ->
     Cb();
 wm_event(init_opengl) ->
@@ -1175,136 +1291,14 @@ message_event(redraw) ->
     case get(wm_focus) of
 	undefined -> keep;
 	Active ->
-	    #win{stk=[#se{msg=Msg,msg_right=Right}|_]} = get_window_data(Active),
-	    Msg0=calculate_win_size(Msg,Right),
-	    message_redraw(Msg0, Right)
-	end;
+	    #win{name=Name, stk=[#se{msg=Msg,msg_right=Right}|_]}
+		= get_window_data(Active),
+	    wings_status:message(Name, Msg, Right),
+	    keep
+    end;
 message_event({action,_}=Action) ->
     send(geom, Action);
-message_event(got_focus) ->
-    message(?__(1,"This is the information line")),
-    dirty();
 message_event(_) -> keep.
-
-message_redraw(Msg, Right) ->
-    {W,_} = message_setup(),
-    if
-	Msg =:= [] -> ok;
-	true -> wings_io:text_at(0, -1, Msg)
-    end,
-    OsType = get(wings_os_type),
-    RMarg0 = case OsType of
-		 {unix,darwin} -> 27;
-		 _ -> 0
-	    end,
-
-    case Right of
-	[] -> ok;
-	_ ->
-	    Col = e3d_vec:mul(wings_pref:get_value(info_line_bg),0.6),
-	    Cw = ?CHAR_WIDTH,
-	    CH = ?CHAR_HEIGHT,
-	    Lh = ?LINE_HEIGHT,
-
-	    RightW = wings_text:width(Right),
-	    RMarg = RMarg0 + 2*Cw,
-		Pos = W - RightW - RMarg,
-		wings_io:sunken_rect(Pos-12, -CH, RightW+12, Lh-1, Col, Col),
-		wings_io:set_color(wings_pref:get_value(info_line_text)),
-		wings_io:text_at(Pos-6, -1, Right)
-    end,
-    case OsType of
-	{unix,darwin} ->
-	    wings_io:draw_icons(fun() ->
-					wings_io:draw_icon(W-25, -8, resize)
-				end);
-	_ -> ok
-    end,
-    keep.
-
-message_setup() ->
-    wings_io:ortho_setup(none),
-    {W,H} = win_size(),
-    wings_io:gradient_rect_burst(0, 0, W, H, wings_pref:get_value(info_line_bg)),
-    wings_io:set_color(wings_pref:get_value(info_line_text)),
-    gl:translatef(10, ?LINE_HEIGHT+2, 0),
-    {W,H}.
-
-calculate_win_size(Msg,Right) ->
-% this '+24' came from message_redraw() used in 'sunken_rect' function
-    Right_W=wings_text:width(lists:flatten(Right))+24,
-
-    OsType = get(wings_os_type),
-    RMarg0 = case OsType of
-		 {unix,darwin} -> 27;
-		 _ -> 0
-	    end,
-
-	{Msg0,WinSize}=check_text_width(Msg,Right_W+RMarg0),
-	resize_msg_win(WinSize),
-	Msg0.
-
-resize_msg_win({X0,Y0,W0,H0}) ->
-	MsgData0=get_window_data(message),
-	put_window_data(message,MsgData0#win{x=X0,y=Y0,w=W0,h=H0}),
-    OldActive = put(wm_active, message),
-    {_,TopH} = get(wm_top_size),
-    Y = TopH-(Y0+H0),
-    ViewPort = {X0,Y,W0,H0},
-    case put(wm_viewport, ViewPort) of
-	ViewPort -> ok;
-	_ -> gl:viewport(X0,Y,W0,H0)
-    end,
-    case OldActive of
-	undefined -> none;
-	_ -> put(wm_active, OldActive)
-    end.
-
-check_text_width(Msg,RightW) ->
-	{W,H0}=win_size(desktop),
-    MaxW=W-RightW,
-	Msg0=strip_lines(Msg,MaxW),
-	NrLn=count_lines(Msg0),
-	InfoH = case NrLn of
-		1 -> ?LINE_HEIGHT;
-		_ -> round(NrLn*?LINE_HEIGHT)
-	end,
-	H=InfoH+trunc(?LINE_HEIGHT/2)-1,
-	Y = H0-InfoH+?CHAR_HEIGHT+2,
-	{Msg0,{0,Y,W,H}}.
-
-strip_lines(Msg,W) ->
-	Msg0=lists:flatten(Msg),
-	Tw=wings_text:width(Msg0),
-	if Tw=<W -> Msg;
-	true ->
-		break_line(Msg0,W)
-	end.
-
-break_line(Msg,W) ->
-	Msg0=split_msg(Msg,[]),
-	MsgSpl=string:tokens(Msg0," "),
-	{_,MsgSp2}=lists:foldl(fun(E,{WAcc,Acc}) ->
-			WAcc0 = WAcc+wings_text:width(E)+?CHAR_WIDTH,
-			if WAcc0>W ->
-				{0,Acc++[$\n]++E++[" "]};
-			true -> {WAcc0,Acc++E++[" "]}
-			end
-		end ,{0,[]}, MsgSpl),
-	MsgSp2.
-
-split_msg([],Acc) -> Acc;
-split_msg([{_Fmt,_Txt}=H|T],Acc) ->
-	split_msg(T,Acc++[H]);
-split_msg([H|T],Acc) ->
-	split_msg(T,Acc++[H]).
-
-count_lines([]) -> 1;
-count_lines([$\n|S]) ->
-	count_lines(S)+1;
-count_lines([_|S]) ->
-	count_lines(S).
-
 
 %%%
 %%% Toplevel: create a window and a controller window at the same time.

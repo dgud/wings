@@ -35,16 +35,24 @@
 
 init() -> true.
 
-menu({window}, Menu) ->
-    Menu++[sel_group_menu()];
+menu({window}, Menu) -> Menu++[sel_group_menu()];
+menu({select}, Menu) -> 
+    PatchMenu = fun({String, {ssels, List}}) ->
+			{String, {ssels, List++[separator, sel_group_menu()]}};
+		   (Entry) -> Entry
+		end,
+    [PatchMenu(Entry) || Entry <- Menu];
 menu(_,Menu) -> 
-	Menu.
+    Menu.
 
 sel_group_menu() ->	
-	 {?__(1,"Selection Groups"), sel_groups,
+	 {?__(1,"Manage Selection Groups"), sel_groups_win,
 	  ?__(2,"Shows the selection groups window")}.
 
-command({window,sel_groups}, St) ->
+command({window,sel_groups_win}, St) ->
+    window(St),
+    keep;
+command({select, {ssels,sel_groups_win}}, St) ->
     window(St),
     keep;
 command({select, {ssels, {rename_group, {Id, Name}}}}, St) ->
@@ -89,6 +97,16 @@ get_event(Ost) ->
     {replace,fun(Ev) -> event(Ev, Ost) end}.
 
 event(redraw, Ost) ->
+    wings_io:ortho_setup(),
+    {W,H} = wings_wm:win_size(),
+    case wings_pref:get_value(bitmap_icons) of
+        false -> wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR);
+        true ->
+          wings_io:blend(wings_pref:get_value(outliner_geograph_bg),
+            fun(Color) ->
+              wings_io:border(0, 0, W-1, H-1, Color)
+            end)
+    end,
     draw_objects(Ost),
     keep;
 event({action,{sel_groups,Cmd}}, Ost) ->
@@ -98,7 +116,7 @@ event({action,{sel_groups,Cmd}}, Ost) ->
     {delete_groups,Mode} ->
         delete_groups(Mode);
     {new_group,_} ->
-        wings_wm:send(geom, {action,{select,new_group}});
+        wings_wm:send(geom, {action,{select,{ssels,new_group}}});
     _ ->
         wings_wm:send(geom, {action,{select,{ssels,Cmd}}})
     end,
@@ -340,7 +358,7 @@ rename({_,OldName}=Id) ->
               {label,?__(3,"New name")++": "},
               {text,"",[]}]}
            ]}],
-    wings_ask:dialog(?__(1,"Rename"), Qs,
+    wings_dialog:dialog(?__(1,"Rename"), Qs,
     fun([NewName]) ->
         wings_wm:send(geom, {action,{select,{ssels,{rename_group,{Id,NewName}}}}})
     end).
@@ -380,10 +398,7 @@ active_object(Y0, #ost{lh=Lh,first=First,n=N}) ->
     end.
 
 draw_objects(#ost{os=Objs0,first=First,lh=Lh,active=Active,tracking=Trk,n=N0}=Ost) ->
-    wings_io:ortho_setup(),
-    {W,H} = wings_wm:win_size(),
-    wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR),
-
+    {W,_H} = wings_wm:win_size(),
     Objs = lists:nthtail(First, Objs0),
     Lines = lines(Ost),
     N = case N0-First of

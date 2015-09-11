@@ -1,11 +1,11 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_turnedge,
  [
   {command_help,
    [
     {turn_ccw,"Kante gegen Uhrzeigersinn drehen"},
     {turn_cw,"Kante im Uhrzeigersinn drehen"},
-    {turn_optimized,"Kante nur drehen (im Uhrzeigersinn) wenn neue Kante kürzer wird"}
+    {turn_optimized,"Kante nur drehen (im Uhrzeigersinn) wenn neue Kante kÃ¼rzer wird"}
    ]},
   {command_name,
    [
@@ -13,6 +13,6 @@
    ]},
   {validate_edges,
    [
-    {1,"Ausgewählte Kanten dürfen nicht in der selben Fläche sein."}
+    {1,"AusgewÃ¤hlte Kanten dÃ¼rfen nicht in der selben FlÃ¤che sein."}
    ]}
  ]}.

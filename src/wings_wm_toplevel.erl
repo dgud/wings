@@ -140,20 +140,20 @@ ctrl_anchor_1(sw, Client, Th) ->
 
 get_ctrl_event(Cs) ->
     {replace,fun(Ev) -> ctrl_event(Ev, Cs) end}.
-		     
-ctrl_event(redraw, Cs) ->
-    ctrl_message(),
+
+ctrl_event(redraw, #ctrl{state=State}=Cs) ->
+    State =:= active andalso ctrl_message(),
     ctrl_redraw(Cs);
 ctrl_event(#mousebutton{button=1,state=?SDL_PRESSED},
 	   #ctrl{state=moving,prev_focus=Focus}=Cs) ->
     wings_wm:grab_focus(Focus),
-    get_ctrl_event(Cs#ctrl{state=idle});
+    get_ctrl_event(Cs#ctrl{state=active});
 
 ctrl_event(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED}, Cs) ->
     {_,Client} = Self = wings_wm:this(),
     Rollup = wings_wm:win_rollup(Client),
     Time = if Rollup ->  wings_wm:rollup(rolldown,Client), undefined;
-                true -> now()
+                true -> os:timestamp()
            end,
     wings_wm:raise(Client),
     Focus = wings_wm:grabbed_focus_window(),
@@ -162,7 +162,7 @@ ctrl_event(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED}, Cs) ->
 
 ctrl_event(#mousebutton{button=1,state=?SDL_RELEASED}, #ctrl{prev_focus=Focus,rollup=Time}=Cs) ->
     {_, Client} = wings_wm:this(),
-    T = if Time =:= undefined -> 300000; true -> timer:now_diff(now(),Time) end,
+    T = if Time =:= undefined -> 300000; true -> timer:now_diff(os:timestamp(),Time) end,
     Rollup = wings_wm:win_rollup(Client),
     case  Rollup of
       true when T < 300000 ->
@@ -173,7 +173,7 @@ ctrl_event(#mousebutton{button=1,state=?SDL_RELEASED}, #ctrl{prev_focus=Focus,ro
       _ -> no_change
     end,
     wings_wm:grab_focus(Focus),
-    get_ctrl_event(Cs#ctrl{state=idle});
+    get_ctrl_event(Cs#ctrl{state=active});
 ctrl_event(#mousebutton{button=2,state=?SDL_RELEASED}, Cs) ->
     case is_resizeable() of
 	false -> keep;
@@ -184,7 +184,7 @@ ctrl_event(#mousebutton{button=2,state=?SDL_RELEASED}, Cs) ->
 ctrl_event(#mousemotion{state=0},
 	   #ctrl{state=moving,prev_focus=Focus}=Cs) ->
     wings_wm:grab_focus(Focus),
-    get_ctrl_event(Cs#ctrl{state=idle});
+    get_ctrl_event(Cs#ctrl{state=active});
 ctrl_event(#mousemotion{x=X0,y=Y0}, #ctrl{state=moving,local={LocX,LocY}}) ->
     {X1,Y1} = wings_wm:local2global(X0, Y0),
     X = X1 - LocX,
@@ -198,27 +198,26 @@ ctrl_event(#mousemotion{x=X0,y=Y0}, #ctrl{state=moving,local={LocX,LocY}}) ->
     keep;
 ctrl_event(#mousebutton{}=Ev, _) ->
     case is_resizeable() of
-	false -> ok;
+	false -> keep;
 	true ->
 	    {_, Client} = wings_wm:this(),
 	    case Client of
 		geom -> ok;
 		_ ->
-	      wings_wm:rollup(rolldown,Client),
-	      wings_wm:raise(Client)
+		    wings_wm:rollup(rolldown,Client),
+		    wings_wm:raise(Client)
 	    end,
 	    case wings_menu:is_popup_event(Ev) of
 		{yes,X,Y,_} -> ctrl_menu(X, Y);
-		no -> ok
+		no -> keep
 	    end
-    end,
-    keep;
+    end;
 ctrl_event(#keyboard{}=Ev, _) ->
     {_,Client} = wings_wm:this(),
     wings_wm:send(Client, Ev);
 ctrl_event({window_updated,Client}, _) ->
     W = controller_width(Client),
-    H = ?LINE_HEIGHT+3,
+    H = title_height(),
     Pos = controller_pos(Client),
     Updates = [{pos,Pos},{w,W},{h,H}],
     Self = {controller,Client},
@@ -228,7 +227,12 @@ ctrl_event({action,{titlebar,Action}}, Cs) ->
     ctrl_command(Action, Cs);
 ctrl_event({title,Title}, Cs) ->
     get_ctrl_event(Cs#ctrl{title=Title});
-ctrl_event(_, _) -> keep.
+ctrl_event(got_focus, Cs) ->
+    get_ctrl_event(Cs#ctrl{state=active});
+ctrl_event(lost_focus, Cs) ->
+    get_ctrl_event(Cs#ctrl{state=idle});
+ctrl_event(_What, _Cs) ->
+    keep.
 
 ctrl_message() ->
     {_,Client} = wings_wm:this(),
@@ -252,8 +256,7 @@ ctrl_message() ->
 					 ?__(3,"Show menu"))
 	 end,
     M = wings_msg:join([Rollup, M0, M1]),
-    wings_wm:message(M),
-    wings_wm:dirty().
+    wings_wm:message(M).
 
 ctrl_redraw(#ctrl{title=Title}) ->
     wings_io:ortho_setup(none),
@@ -269,16 +272,17 @@ ctrl_redraw(#ctrl{title=Title}) ->
 	           title_active_color;
 	       {_,_} -> title_passive_color
 	   end,
-    wings_io:blend(wings_pref:get_value(Pref),
-		   fun(C) ->
-			   wings_io:gradient_border_burst(0, 0, W-1, TitleBarH-1, C)
-		   end),
+    Draw = case wings_pref:get_value(flat_color_panels, true) of
+	       true -> fun(C) -> wings_io:gradient_border(0, 0, W-1, TitleBarH-1, C) end;
+	       false -> fun(C) -> wings_io:gradient_border_burst(0, 0, W-1, TitleBarH-1, C) end
+	   end,
+    wings_io:blend(wings_pref:get_value(Pref), Draw),
     wings_io:set_color(wings_pref:get_value(title_text_color)),
-    wings_io:text_at(10, TitleBarH-5, Title),
+    wings_io:text_at(10, TitleBarH-2, Title),
     keep.
 
 title_height() ->
-    ?LINE_HEIGHT+3.
+    ?LINE_HEIGHT+4.
 
 ctrl_constrain_move(Client, Dx0, Dy0) ->
     {{DeskX,DeskY},{DeskW,DeskH}} = wings_wm:win_rect(desktop),
@@ -365,11 +369,11 @@ ctrl_command(size, _) ->
     {W0,H0} = wings_wm:win_size(Client),
     Qs = [{?__(1,"Width"),W0},
 	  {?__(2,"Height"),H0}],
-	   wings_ask:ask(?__(3,"Set Window Size"), Qs,
-		  fun([W,H]) ->
-			  ctrl_resize(Client, W, H),
-			  ignore
-		  end).
+    wings_dialog:ask(?__(3,"Set Window Size"), Qs,
+		     fun([W,H]) ->
+			     ctrl_resize(Client, W, H),
+			     ignore
+		     end).
 
 ctrl_resize(Client, W, H) ->
     {TopW,TopH} = wings_wm:top_size(),
@@ -781,7 +785,7 @@ close_event(_) -> keep.
 
 -define(MENU_MARGIN, ?CHAR_WIDTH).
 -define(MENU_ITEM_SPACING, ?CHAR_HEIGHT+8).
--define(MENU_HEIGHT, (?CHAR_HEIGHT+?CHAR_WIDTH)).
+-define(MENU_HEIGHT, (?LINE_HEIGHT+4)).
 
 -record(mb,
 	{sel=none,
@@ -833,8 +837,10 @@ menubar_event({window_updated,Client}, _) ->
     keep;
 menubar_event(_, _) -> keep.
 
-menu_open(Xrel, Name, Fun, #mb{st=St}=Mb) ->
-    Menu = Fun(St),
+menu_open(Xrel, Name, Menu0, #mb{st=St}=Mb) ->
+    Menu = if is_function(Menu0) -> Menu0(St);
+	      is_list(Menu0) -> Menu0
+	   end,
     {menubar,Client} = Self = wings_wm:this(),
     {X,Y} = wings_wm:win_ll(Self),
     wings_menu:menu(X+Xrel, Y-1, Client, Name, Menu),

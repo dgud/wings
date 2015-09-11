@@ -13,7 +13,7 @@
 
 -module(wings_sel_cmd).
 
--export([menu/1,command/2]).
+-export([menu/0,update_menu/1,command/2]).
 
 %% Utilities.
 -export([init/0,select_all/1]).
@@ -24,17 +24,20 @@
 init() ->
     wings_pref:set_default(saved_selections_cycle_by_mode,false).
 
-menu(St) ->
+update_menu(#st{selmode=Mode}) ->
+    FaceMode = Mode =:= face,
+    [wings_menu:update_menu_enabled(select, Cmd, FaceMode)
+     || {_, Cmd, _} <- faces_menu()].
+
+menu() ->
     Help = ?__(99," (from selection or all visible objects (if no selection))"),
     RHelp = random_help(),
     Objects = ?__(106," Objects"),
     [{?__(1,"Deselect"),deselect,?__(2,"Clear the selection")},
      separator,
-     {?__(3,"More"),more,more_help(St)},
-     {?__(4,"Less"),less,less_help(St)},
-     {?__(5,"Similar"),similar,similar_help(St)}]
-    ++ oriented_faces_menu(St) ++ similar_area_faces_menu(St)
-    ++ similar_material_faces(St) ++
+     {?__(3,"More"),more,more_help()},
+     {?__(4,"Less"),less,less_help()},
+     {?__(5,"Similar"),similar,similar_help()} | faces_menu()] ++
     [separator,
      {?__(6,"Edge Loop"),
       {edge_loop,
@@ -78,8 +81,8 @@ menu(St) ->
 	    hard_edges,?__(33,"Select all hard edges")++Help},
 	   {?__(34,"Isolated Vertices"),
 	    isolated_vertices,?__(35,"Select all isolated vertices")++Help},
-	   {?__(85,"Non-planar Faces"),
-	    nonplanar_faces,?__(86,"Select all non-planar faces")++Help,[option]},
+	   {?__(85,"Non-planar Faces..."),
+	    nonplanar_faces,?__(86,"Select all non-planar faces")++Help},
 	   {?__(36,"Vertices With"),
 	    {vertices_with,
 	     [{?__(37,"2 Edges"),2,Help},
@@ -112,10 +115,10 @@ menu(St) ->
 		     {"90%",90, RHelp},
 		     {"__%",true, RHelp}
 		     ]}},
-	   {?__(56,"Short Edges"),
-	    short_edges,?__(57,"Select (too) short edges")++Help,[option]},
-	   {?__(87,"Sharp Edges"),
-	    sharp_edges,?__(88,"Select sharp edges")++Help,[option]},
+	   {?__(56,"Short Edges..."),
+	    short_edges,?__(57,"Select (too) short edges")++Help},
+	   {?__(87,"Sharp Edges..."),
+	    sharp_edges,?__(88,"Select sharp edges")++Help},
 	   {?__(95,"Vertex Path"),
 	    {vertex_path,
 	     [{?__(89,"Fewest Edges Path"),
@@ -133,7 +136,7 @@ menu(St) ->
 	    by_name,?__(108,"Select objects by name. *'s may be used as wildcards")}]}},
      {?__(64,"Lights"),lights,?__(65,"Select all lights")},
      separator,
-     {sel_all_str(St),all,?__(66,"Select all elements")},
+     {?__(661, "All"), all,?__(66,"Select all elements")},
      separator,
      {?__(67,"Inverse"),inverse,?__(68,"Invert the selection")},
      separator,
@@ -149,121 +152,43 @@ menu(St) ->
       show_all,?__(76,"Show all objects that have been hidden")},
      {?__(105,"Unlock All Objects"),
       unlock_all,?__(78,"Unlock all locked objects")},
-     separator,
-     {?__(79,"Store Selection"),store_selection,
-      ?__(80,"Store the selection into the selection group named \"StoredSelection\"")},
-     {?__(81,"Recall Selection"),recall_selection,
-      ?__(82,"Recall the selection from the selection group named \"StoredSelection\"")},
-     separator,
-     {?__(83,"New Group..."),new_group,?__(84,"Create a new selection group")}|groups_menu(St)].
+     separator | groups_menu()].
 
 random_help() ->
     ?__(1,"Select random elements from current selection, or all visible objects (no selection)").
 
-sel_all_str(#st{selmode=vertex}) -> ?__(1,"All Vertices");
-sel_all_str(#st{selmode=edge}) -> ?__(2,"All Edges");
-sel_all_str(#st{selmode=face}) -> ?__(3,"All Faces");
-sel_all_str(#st{selmode=body}) -> ?__(4,"All Objects").
+faces_menu() ->
+  [{?__(1,"Similar Normals..."), oriented_faces,
+    ?__(11,"Select faces with normals similar to those of the already selected faces")},
+   {?__(2,"Similar Area"), similar_area,
+    ?__(21,"Select faces with areas similar to that of the already selected face")},
+   {?__(3,"Similar Material..."),similar_material,
+    ?__(31,"Select faces with a similar material to those already selected")}].
 
-oriented_faces_menu(#st{selmode=face}) ->
-  [{?__(1,"Similar Normals"), oriented_faces,
-    ?__(2,"Select faces with normals similar to those of the already selected faces"),[option]}];
-oriented_faces_menu(_) ->
-  [].
+groups_menu() ->
+    [{?__(22,"Selection Groups"),
+      {ssels,
+       [{?__(79,"Store Selection"),store_selection,
+	 ?__(80,"Store the selection into the selection group named \"StoredSelection\"")},
+	{?__(81,"Recall Selection"),recall_selection,
+	 ?__(82,"Recall the selection from the selection group named \"StoredSelection\"")},
+	separator,
+	{?__(83,"New Group..."),new_group,?__(84,"Create a new selection group")},
+	separator,
+	{?__(24,"Next Group"),next_group},
+	{?__(25,"Previous Group"),prev_group},
+	{?__(26,"Cycle In Selection Mode"),saved_selections_cycle_by_mode,
+	 ?__(27,"Cycle Prev/Next only within active selection mode"),
+	 wings_menu_util:crossmark(saved_selections_cycle_by_mode)}]}}].
 
-similar_area_faces_menu(#st{selmode=face}) ->
-  [{?__(1,"Similar Area"), similar_area,
-    ?__(2,"Select faces with areas similar to that of the already selected face"),[option]}];
-similar_area_faces_menu(_) ->
-  [].
+more_help() ->
+    ?__(1,"Select all elements adjacent to the selected elements").
 
-similar_material_faces(#st{selmode=face}) ->
-    [{?__(1,"Similar Material"),similar_material,
-      ?__(2,"Select faces with a similar material to those already selected"),[option]}];
-similar_material_faces(_) ->
-    [].
+less_help() ->
+    ?__(1,"Deselect all elements adjacent to the unselected elements").
 
-groups_menu(#st{ssels=Ssels}=St) ->
-    case gb_trees:is_empty(Ssels) of
-        true -> [];
-        false ->
-          [{?__(22,"Selection Groups"),
-            {ssels,
-             [{?__(1,"Delete Group"),
-               {delete_group,
-                groups_and_help(?__(2,"Delete group \""), "\"", St)}},
-               separator,
-               {?__(4,"Add to Group"),
-                {add_to_group,
-                 groups_and_help(?__(5,"Add current selection to group \""),
-                   "\"", St)}},
-               {?__(7,"Subtract from Group"),
-                {subtract_from_group,
-                 groups_and_help(?__(8,"Subtract current selection from group \""),
-                   "\"", St)}},
-               separator,
-               {?__(10,"Select Group"),
-                {select_group,
-                 groups_and_help(?__(11,"Select group \""), "\"", St)++
-                 [separator,
-                 {?__(24,"Next Group"),next},
-                 {?__(25,"Previous Group"),prev},
-                 {?__(26,"Cycle In Selection Mode"),saved_selections_cycle_by_mode,
-                  ?__(27,"Cycle Prev/Next only within active selection mode"),
-                  wings_menu_util:crossmark(saved_selections_cycle_by_mode)}]}},
-               separator,
-               {?__(13,"Union Group"),
-                {union_group,
-                 groups_and_help(?__(14,"Union group \""),
-                   ?__(15,"\" with current selection"), St)}},
-               {?__(16,"Subtract Group"),
-                {subtract_group,
-                 groups_and_help(?__(17,"Subtract group \""),
-                   ?__(18,"\" from current selection"), St)}},
-               {?__(19,"Intersect Group"),
-                {intersect_group,
-                 groups_and_help(?__(20,"Intersect group \""),
-                   ?__(21,"\" with current selection"), St)}}]}}]
-    end.
-
-groups_and_help(Help0, Help1, #st{ssels=Ssels}) ->
-    map(fun({Mode,Name}=Key) ->
-		Title = group_title(Name, Mode),
-		{Title,fun(help, _) -> {Help0++Name++Help1};
-			  (_, Ns) -> wings_menu:build_command(Key, Ns)
-		       end,Help0++Name++Help1}
-	end,
-	gb_trees:keys(Ssels)).
-
-group_title(Name, vertex) -> ?__(1,"vertex: ")++Name;
-group_title(Name, edge) -> ?__(2,"edge: ")++Name;
-group_title(Name, face) -> ?__(3,"face: ")++Name;
-group_title(Name, body) -> ?__(4,"body: ")++Name.
-
-more_help(#st{selmode=vertex}) ->
-    ?__(1,"Select all vertices adjacent to a selected vertex");
-more_help(#st{selmode=edge}) ->
-     ?__(2,"Select all edges adjacent to a selected edge");
-more_help(#st{selmode=face}) ->
-     ?__(3,"Select all faces sharing a vertex with a selected face");
-more_help(_) -> "".
-
-less_help(#st{selmode=vertex}) ->
-     ?__(1,"Deselect all vertices adjacent to an unselected vertex");
-less_help(#st{selmode=edge}) ->
-    ?__(2,"Deselect all edges adjacent to an unselected edge");
-less_help(#st{selmode=face}) ->
-    ?__(3,"Deselect all faces sharing a vertex with an unselected face");
-less_help(_) -> "".
-
-similar_help(#st{selmode=vertex}) ->
-    ?__(1,"Select vertices similar to the already selected vertices");
-similar_help(#st{selmode=edge}) ->
-    ?__(2,"Select edges similar to the already selected edges");
-similar_help(#st{selmode=face}) ->
-    ?__(3,"Select faces similar to the already selected faces");
-similar_help(#st{selmode=body}) ->
-    ?__(4,"Select objects with the same number of edges, faces, and vertices").
+similar_help() ->
+    ?__(1,"Select elements similar to the already selected elements").
 
 command({edge_loop,edge_loop}, #st{selmode=vertex}=St) ->
     {save_state,vs_to_edge_loop(St)};
@@ -305,40 +230,18 @@ command({by,Command}, St) ->
     by_command(Command, St);
 command(similar, St) ->
     {save_state,similar(St)};
+command(oriented_faces, St) ->
+    oriented_faces(true, St);
 command({oriented_faces,Ask}, St) ->
     oriented_faces(Ask, St);
+command(similar_area, St) ->
+    similar_area(true, St);
 command({similar_area,Ask}, St) ->
     similar_area(Ask, St);
+command(similar_material, St) ->
+    similar_material(true, St);
 command({similar_material,Ask}, St) ->
     similar_material(Ask, St);
-command({ssels,{select_group,saved_selections_cycle_by_mode}}, St) ->
-    Pref = wings_pref:get_value(saved_selections_cycle_by_mode),
-    wings_pref:set_value(saved_selections_cycle_by_mode, not Pref),
-    {save_state,St};
-command({ssels,{select_group,Id}}, St) when Id =:= next; Id =:= prev ->
-    {save_state,cycle_group(Id, St)};
-command({ssels,{select_group,Id}}, St) ->
-    {save_state,select_group(Id, St)};
-command({ssels,{union_group,Id}}, St) ->
-    {save_state,union_group(Id, St)};
-command({ssels,{subtract_group,Id}}, St) ->
-    {save_state,subtract_group(Id, St)};
-command({ssels,{intersect_group,Id}}, St) ->
-    {save_state,intersect_group(Id, St)};
-command({ssels,{add_to_group,Id}}, St) ->
-    {save_state,add_to_group(Id, St)};
-command({ssels,{subtract_from_group,Id}}, St) ->
-    {save_state,subtract_from_group(Id, St)};
-command({new_group_name, Name}, St) ->
-    {save_state,new_group_name(Name, St)};
-command(new_group, St) ->
-    new_group(St);
-command({ssels,{delete_group,invalid}}, St) ->
-    {save_state,delete_invalid_groups(St)};
-command({ssels,{delete_group,all}}, St) ->
-    {save_state,St#st{ssels=gb_trees:empty()}};
-command({ssels,{delete_group,Id}}, #st{ssels=Ssels}=St) ->
-    {save_state,St#st{ssels=gb_trees:delete(Id, Ssels)}};
 command(inverse, St) ->
     {save_state,inverse(St)};
 command(hide_selected, St) ->
@@ -353,11 +256,11 @@ command(unlock_all, St) ->
     {save_state,wings_shape:unlock_all(St)};
 command({adjacent,Type}, St) ->
     set_select_mode(Type, St);
-command(store_selection, #st{ssels=Ssels0,selmode=Mode,sel=Sel}=St) ->
+command({ssels, store_selection}, #st{ssels=Ssels0,selmode=Mode,sel=Sel}=St) ->
     Key = {Mode,"StoredSelection"},
     Ssels = gb_trees:enter(Key, Sel, Ssels0),
     {save_state,St#st{ssels=Ssels}};
-command(recall_selection, #st{selmode=Mode,ssels=Ssels}=St0) ->
+command({ssels, recall_selection}, #st{selmode=Mode,ssels=Ssels}=St0) ->
     Key = {Mode, "StoredSelection"},
     case gb_trees:is_defined(Key, Ssels) of
 	false -> St0;
@@ -365,6 +268,36 @@ command(recall_selection, #st{selmode=Mode,ssels=Ssels}=St0) ->
 	    St = select_group(Key, St0),
 	    {save_state,St}
     end;
+command({ssels,{select_group,saved_selections_cycle_by_mode}}, St) ->
+    Pref = wings_pref:get_value(saved_selections_cycle_by_mode),
+    wings_pref:set_value(saved_selections_cycle_by_mode, not Pref),
+    {save_state,St};
+command({ssels,next_group}, St) ->
+    {save_state,cycle_group(next_group, St)};
+command({ssels,prev_group}, St) ->
+    {save_state,cycle_group(prev_group, St)};
+command({ssels,{select_group,Id}}, St) ->
+    {save_state,select_group(Id, St)};
+command({ssels,{union_group,Id}}, St) ->
+    {save_state,union_group(Id, St)};
+command({ssels,{subtract_group,Id}}, St) ->
+    {save_state,subtract_group(Id, St)};
+command({ssels,{intersect_group,Id}}, St) ->
+    {save_state,intersect_group(Id, St)};
+command({ssels,{add_to_group,Id}}, St) ->
+    {save_state,add_to_group(Id, St)};
+command({ssels,{subtract_from_group,Id}}, St) ->
+    {save_state,subtract_from_group(Id, St)};
+command({new_group_name, Name}, St) ->
+    {save_state,new_group_name(Name, St)};
+command({ssels, new_group}, St) ->
+    new_group(St);
+command({ssels,{delete_group,invalid}}, St) ->
+    {save_state,delete_invalid_groups(St)};
+command({ssels,{delete_group,all}}, St) ->
+    {save_state,St#st{ssels=gb_trees:empty()}};
+command({ssels,{delete_group,Id}}, #st{ssels=Ssels}=St) ->
+    {save_state,St#st{ssels=gb_trees:delete(Id, Ssels)}};
 command(Type, St) ->
     set_select_mode(Type, St).
 
@@ -372,6 +305,8 @@ by_command(hard_edges, St) ->
     hard_edges(St);
 by_command(isolated_vertices, St) ->
     {save_state,select_isolated(St)};
+by_command(nonplanar_faces, St) ->
+    nonplanar_faces(true, St);
 by_command({nonplanar_faces,Ask}, St) ->
     nonplanar_faces(Ask, St);
 by_command({vertices_with,N}, St) ->
@@ -384,8 +319,12 @@ by_command(material_edges, St) ->
     material_edges(St);
 by_command({random, Percent}, St) ->
     random(Percent, St);
+by_command(short_edges, St) ->
+    short_edges(true, St);
 by_command({short_edges,Ask}, St) ->
     short_edges(Ask, St);
+by_command(sharp_edges, St) ->
+    sharp_edges(true, St);
 by_command({sharp_edges,Ask}, St) ->
     sharp_edges(Ask, St);
 by_command({vertex_path,fewest_edges_path}, St) ->
@@ -648,9 +587,9 @@ save_group(Key, Sel, #st{ssels=Ssels0}=St) ->
     St#st{ssels=Ssels}.
 
 new_group(_) ->
-    wings_ask:ask(?__(1,"Create New Group"),
-		  [{?__(2,"Group Name"), ""}],
-		  fun([String]) -> {select,{new_group_name,String}} end).
+    wings_dialog:ask(?__(1,"Create New Group"),
+		     [{?__(2,"Group Name"), ""}],
+		     fun([String]) -> {select,{new_group_name,String}} end).
 
 new_group_name(Name, #st{ssels=Ssels0,selmode=Mode,sel=Sel}=St) ->
     Key = {Mode,Name},
@@ -680,19 +619,19 @@ group_mode_string(body) ->
 %%%% Cycle Through Save Selections
 cycle_group(Dir, #st{selmode=SelMode,ssels=Ssels,sh=Sh}=St) ->
     case gb_trees:is_empty(Ssels) of
-      true -> St;
-      false ->
-        Keys0 = gb_trees:keys(Ssels),
-        Keys1 = case wings_pref:get_value(saved_selections_cycle_by_mode) of
-          true when Sh -> Keys0;
-          true -> [Key || {Mode,_}=Key <- Keys0, Mode =:= SelMode];
-          false -> Keys0
-        end,
-        Keys = case Dir of
-          next -> Keys1;
-          prev -> lists:reverse(Keys1)
-        end,
-        cycle_ss_keys(Keys,St)
+	true -> St;
+	false ->
+	    Keys0 = gb_trees:keys(Ssels),
+	    Keys1 = case wings_pref:get_value(saved_selections_cycle_by_mode) of
+			true when Sh -> Keys0;
+			true -> [Key || {Mode,_}=Key <- Keys0, Mode =:= SelMode];
+			false -> Keys0
+		    end,
+	    Keys = case Dir of
+		       next_group -> Keys1;
+		       prev_group -> lists:reverse(Keys1)
+		   end,
+	    cycle_ss_keys(Keys,St)
     end.
 
 cycle_ss_keys([],St) -> St;
@@ -874,12 +813,12 @@ compare(A, B) ->
 %%
 
 random(true, St) ->
-    Qs0 = [{hframe,[{slider,{text,wings_pref:get_value(random_select, 25.0),
+    Qs0 = [{hframe,[{slider,{text,float(wings_pref:get_value(random_select, 25.0)),
             [{range,{0.0,100.0}}]}}]}],
     Qs = [{vframe,Qs0}],
     Title =  ?__(1,"Select Random"),
     Cmd = {select,by,random},
-    wings_ask:dialog_preview(Cmd, true, Title, Qs, St);
+    wings_dialog:dialog_preview(Cmd, true, Title, Qs, St);
 random([Percent], St) -> random(Percent, St);
 random(Percent, #st{selmode=Mode, sel=[]}=St) ->
     P = Percent / 100,
@@ -908,7 +847,7 @@ short_edges(Ask, St) when is_atom(Ask) ->
     Qs = [{hframe,Qs0}],
     Title = ?__(2,"Select Short Edges"),
     Cmd = {select,by,short_edges},
-    wings_ask:dialog_preview(Cmd, Ask, Title, Qs, St);
+    wings_dialog:dialog_preview(Cmd, Ask, Title, Qs, St);
 short_edges([Tolerance], #st{sel=[]}=St0) ->
     St = wings_sel:make(fun(Edge, We) ->
 				short_edge(Tolerance, Edge, We)
@@ -1022,9 +961,9 @@ by_name(#st{shapes=Shs}) ->
     case gb_trees:is_empty(Shs) of
 	true -> wings_u:error_msg(?__(1,"Nothing to select."));
 	_ ->
-        wings_ask:ask(?__(2,"Select by name"),
-              [{?__(3,"Name"), ""}],
-              fun([String]) -> {select,{by,{by_name_with,String}}} end)
+	    wings_dialog:ask(?__(2,"Select by name"),
+			     [{?__(3,"Name"), ""}],
+			     fun([String]) -> {select,{by,{by_name_with,String}}} end)
     end.
 
 by_name_with(Filter, #st{shapes=Shs}=St) ->
@@ -1060,7 +999,7 @@ valid_sel(Prompt, Sel, #st{shapes=Shs,selmode=Mode}=St) ->
     end.
 
 ask(Qs, Fun, St) ->
-    wings_ask:ask(?__(1,"Select By Id"), {preview,Qs},
+    wings_dialog:ask(?__(1,"Select By Id"), {preview,Qs},
     fun
         ({dialog_preview,Res}) ->
             Sel = Fun(Res),
@@ -1134,7 +1073,7 @@ nonplanar_faces(Ask, St) when is_atom(Ask) ->
     Qs = [{label,?__(1,"Distance tolerance")},
 	  {text,1.0E-3,[{range,{1.0E-5,10.0}}]}],
     Title = ?__(2,"Select Non-planar Faces"),
-    wings_ask:dialog_preview({select,by,nonplanar_faces}, Ask, Title,
+    wings_dialog:dialog_preview({select,by,nonplanar_faces}, Ask, Title,
 	  [{hframe,Qs}], St);
 nonplanar_faces([Tolerance], #st{sel=[]}=St) ->
     Sel = fun(Face, We) ->
@@ -1158,8 +1097,9 @@ nonplanar_faces([Tolerance], #st{selmode=Mode}=St0) ->
 %%% Select similarly oriented faces.
 %%%
 
-oriented_faces(_, #st{selmode=Mode}) when Mode =/= face ->
-    keep;					%Wrong mode (invoked through hotkey).
+oriented_faces(_, #st{selmode=Mode, sel=Sel}) when Mode =/= face; Sel =:= [] ->
+    wings_u:error_msg(?__(4,"At least one face must be selected")),
+    keep;
 
 oriented_faces(Ask, St) when is_atom(Ask) ->
     Connected = wings_pref:get_value(similar_normals_connected,false),
@@ -1175,7 +1115,7 @@ oriented_faces(Ask, St) when is_atom(Ask) ->
     Qs = [{vframe,Qs0}],
     Title = ?__(2,"Select Similarly Oriented Faces"),
     Cmd = {select,oriented_faces},
-    wings_ask:dialog_preview(Cmd, Ask, Title, Qs, St);
+    wings_dialog:dialog_preview(Cmd, Ask, Title, Qs, St);
 
 oriented_faces([Tolerance,Connected,Save], #st{selmode=face, sel=[]}) ->
     wings_pref:set_value(similar_normals_connected,Connected),
@@ -1248,7 +1188,8 @@ any_matching_normal(CosTolerance, Norm, [N|T]) ->
 %%%
 %%% Select faces of the same material.
 %%%
-similar_material(_, #st{selmode=Mode}) when Mode =/= face ->
+similar_material(_, #st{selmode=Mode, sel=Sel}) when Mode =/= face; Sel =:= [] ->
+    wings_u:error_msg(?__(3,"At least one face must be selected")),
     keep; %Wrong mode (invoked through hotkey).
 
 similar_material(Ask, St) when is_atom(Ask) ->
@@ -1261,7 +1202,7 @@ similar_material(Ask, St) when is_atom(Ask) ->
     Qs = [{vframe,Qs0}],
     Title = ?__(4,"Select Faces with the same Material"),
     Cmd = {select,similar_material},
-    wings_ask:dialog_preview(Cmd, Ask, Title, Qs, St);
+    wings_dialog:dialog_preview(Cmd, Ask, Title, Qs, St);
 
 similar_material([Connected,Mode], #st{selmode=face,sel=[]}) ->
     wings_pref:set_value(similar_materials, Mode),
@@ -1355,7 +1296,7 @@ sharp_edges(Ask, St) when is_atom(Ask) ->
       {hradio,[{?__(3,"Peaks"),convex},
                {?__(4,"Valleys"),concave},
                {?__(5,"Both"),both}],both}],
-    wings_ask:dialog_preview({select,by,sharp_edges}, Ask,
+    wings_dialog:dialog_preview({select,by,sharp_edges}, Ask,
       ?__(2,"Select Sharp Edges"), [{vframe,Qs}], St);
 sharp_edges([Tolerance,Type], #st{sel=[]}=St0) ->
     CosTolerance = -math:cos(Tolerance * math:pi() / 180.0),
@@ -1428,30 +1369,30 @@ shortest_path(Method, St) ->
 find_path_verts(Method, Graph, Pa, Pb) ->
     case Method of
 	fewest_edges ->
-	    StartTime = now(),
+	    StartTime = os:timestamp(),
 	    PathVs = digraph:get_short_path(Graph, Pa, Pb),
-	    EndTime = now(),
+	    EndTime = os:timestamp(),
 	    io:fwrite("\nLength: ~p",[path_len(PathVs)]),
 	    io:fwrite(" (~.2f seconds",[timer:now_diff(EndTime,StartTime)/1.0e6]),
 	    io:fwrite(" Digraph)"),
 	    ok;
 	astar ->
-	    StartTime = now(),
+	    StartTime = os:timestamp(),
 	    {Gcosts,PrevNodes,Closed,Open} = astar_init(Graph, Pa),
 	    {Pm,Gm} = astar_loop(Open, Closed, Gcosts, PrevNodes, Graph, Pb, false),
 	    PathVs = get_path(Pb, Pm),
-	    EndTime = now(),
+	    EndTime = os:timestamp(),
 	    io:fwrite("\nLength: ~p",[dict:fetch(Pb,Gm)]),
 	    io:fwrite(" (~.2f seconds",[timer:now_diff(EndTime,StartTime)/1.0e6]),
 	    io:fwrite(" Astar)"),
 	    %io:fwrite(" Len: ~p",[path_len(PathVs)]),
 	    ok;
 	dijkstra ->
-	    StartTime = now(),
+	    StartTime = os:timestamp(),
 	    {Gcosts,PrevNodes,Open} = dijkstra_init(Graph, Pa),
 	    {Pm,Gm} = dijkstra_loop(Open, Gcosts, PrevNodes, Graph, Pb, false),
 	    PathVs = get_path(Pb, Pm),
-	    EndTime = now(),
+	    EndTime = os:timestamp(),
 	    io:fwrite("\nLength: ~p",[dict:fetch(Pb,Gm)]),
 	    io:fwrite(" (~.2f seconds",[timer:now_diff(EndTime,StartTime)/1.0e6]),
 	    io:fwrite(" Dijkstra)"),
@@ -1593,10 +1534,13 @@ build_digraph(Graph, E, Vtab) ->
 %%% Select faces with similar area
 %%%
 
+similar_area(_, #st{selmode=Mode, sel=Sel}) when Mode =/= face; Sel =:= [] ->
+    wings_u:error_msg(?__(10,"Exactly one face must be selected")),
+    keep;
 similar_area(Ask, St) when is_atom(Ask) ->
     Qs = [{label,?__(1,"Area Tolerance")},
 	  {text,0.001,[{range,{0.0,100.0}}]}],
-    wings_ask:dialog_preview({select,similar_area}, Ask,
+    wings_dialog:dialog_preview({select,similar_area}, Ask,
 	?__(2,"Select Similar Area"), [{hframe,Qs}], St);
 similar_area([Tolerance], St) ->
     #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
@@ -1654,12 +1598,12 @@ hard_edges(#st{selmode=Mode}=St0) ->
 vertices_with(true, St) ->
     Qs = [{vframe,
            [{hframe,[{label,?__(1,"Number of Edges")},
-             {text,2,[{range,{2,1000}}]}]},
-             {hradio,[{?__(3,"More"),more},
-               {?__(4,"Less"),less},
-               {?__(5,"Exactly"),exactly}],exactly}]}],
-    wings_ask:dialog_preview({select,by,vertices_with}, true,
-        ?__(2,"Select Vertices"), [{hframe,Qs}], St);
+		     {text,2,[{range,{2,1000}}]}]},
+	    {hradio,[{?__(3,"More"),more},
+		     {?__(4,"Less"),less},
+		     {?__(5,"Exactly"),exactly}],exactly}]}],
+    wings_dialog:dialog_preview({select,by,vertices_with}, true,
+				?__(2,"Select Vertices"), [{hframe,Qs}], St);
 vertices_with(N, #st{sel=[]}=St) ->
     Sel = fun(V, We) ->
 	  vertices_with(N, V, We)
@@ -1707,7 +1651,7 @@ faces_with({faces_with,true}, St) ->
              {hradio,[{?__(3,"More"),more},
                {?__(4,"Less"),less},
                {?__(5,"Exactly"),exactly}],exactly}]}],
-    wings_ask:dialog_preview({select,by,faces_with}, true,
+    wings_dialog:dialog_preview({select,by,faces_with}, true,
         ?__(2,"Select Faces"), [{hframe,Qs}], St);
 faces_with(Filter, #st{sel=[]}=St) ->
     Sel = fun(Face, We) ->
@@ -1742,8 +1686,8 @@ faces_with(Filter, Face, We) ->
 select_nth_ring(true, #st{selmode=edge}=St) ->
     Qs = [{label,?__(1,"Interval")},
 	  {text,2,[{range,{1,1000}}]}],
-    wings_ask:dialog_preview({select,edge_loop,nth_edge_ring}, true,
-	?__(2,"Select Every Nth Edge Ring"), [{hframe,Qs}], St);
+    wings_dialog:dialog_preview({select,edge_loop,nth_edge_ring}, true,
+				?__(2,"Select Every Nth Edge Ring"), [{hframe,Qs}], St);
 select_nth_ring([N], #st{selmode=edge}=St) ->
     {save_state,wings_edge:select_nth_ring(N,St)};
 select_nth_ring(N, #st{selmode=edge}=St) ->

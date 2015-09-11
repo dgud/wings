@@ -16,11 +16,14 @@ elif test -d .git -o -f .git &&
 	VN=$(git describe --abbrev=4 HEAD 2>/dev/null) &&
 	case "$VN" in
 	*$LF*) (exit 1) ;;
-	v[0-9]*)
+	v[0-9]*-*-*)
 		git update-index -q --refresh
 		test -z "$(git diff-index --name-only HEAD --)" ||
-		(VN="$VN-dirty"
-		WINGS_BRANCH=$(git symbolic-ref HEAD | sed 's/.*\///')) ;;
+		VN="$VN-dirty"
+		WINGS_BRANCH=$(git symbolic-ref HEAD | sed 's/.*\///') ;;
+	v[0-9]*)
+		test -z "$(git diff-index --name-only HEAD --)" ||
+		VN="$VN-dirty" ;;
 	esac
 then
         VN=$(echo "$VN" | sed -e 's/-/./g');

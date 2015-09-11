@@ -21,7 +21,8 @@
 	 next_id/0,delete_older/1,delete_from/1,delete/1,
 	 update/2,update_filename/2,draw_preview/5,
 	 window/1]).
--export([image_formats/0,image_read/1,image_write/1]).
+-export([image_formats/0,image_read/1,image_write/1,
+	 e3d_to_wxImage/1, wxImage_to_e3d/1]).
 -export([loop/1]).
 -export([draw_image/5,maybe_exceds_opengl_caps/1]).
 
@@ -35,8 +36,7 @@
 init(Opt) ->
     spawn_opt(fun() -> server(Opt) end, [link,{fullsweep_after,0}]).
 
-init_opengl() ->
-    req(init_opengl).
+init_opengl() -> ok.
 
 %%%
 %%% Interface against plug-ins.
@@ -94,6 +94,30 @@ image_write(Ps) ->
 	Result -> Result
     end.
 
+e3d_to_wxImage(I = #e3d_image{bytes_pp=4, width=W, height=H}) ->
+    #e3d_image{image=RGB} = e3d_image:convert(I, r8g8b8, 1, upper_left),
+    Wx = wxImage:new(W,H,RGB),
+    #e3d_image{image=Alpha} = e3d_image:convert(I, a8, 1, upper_left),
+    wxImage:setAlpha(Wx, Alpha),
+    Wx;
+e3d_to_wxImage(I = #e3d_image{bytes_pp=3, width=W, height=H}) ->
+    #e3d_image{image=RGB} = e3d_image:convert(I, r8g8b8, 1, upper_left),
+    wxImage:new(W,H,RGB);
+e3d_to_wxImage(I = #e3d_image{bytes_pp=1, width=W, height=H}) ->
+    #e3d_image{image=RGB} = e3d_image:convert(I, r8g8b8, 1, upper_left),
+    wxImage:new(W,H,RGB).
+
+wxImage_to_e3d(Wx) ->
+    wxImage = wx:getObjectType(Wx), %% Assert
+    E3d0 = #e3d_image{image=wxImage:getData(Wx),
+		      width=wxImage:getWidth(Wx),
+		      height=wxImage:getHeight(Wx),
+		      order = upper_left
+		     },
+    case wxImage:hasAlpha(Wx) of
+	true -> e3d_image:add_alpha(E3d0, wxImage:getAlpha(Wx));
+	false -> E3d0
+    end.
 
 %%%
 %%% Client API.
@@ -134,11 +158,9 @@ screenshot(Ask, _) when is_atom(Ask) ->
     Qs = [{?__(2,"Capture viewport only"),ViewPortOnly},
           {?__(3,"Add current view to Saved Views"),SaveView},
           {hframe,[{label,?__(4,"Name")},
-                    {text,?__(1,"Screenshot"),[]}]}],
-    wings_ask:dialog(Ask, ?__(1,"Screenshot"), [{vframe,Qs}],
-    fun(Res) ->
-        {tools,{screenshot,Res}}
-    end);
+		   {text,?__(1,"Screenshot"),[]}]}],
+    wings_dialog:dialog(Ask, ?__(1,"Screenshot"), [{vframe,Qs}],
+			fun(Res) -> {tools,{screenshot,Res}} end);
 screenshot([ViewPortOnly,SaveView,Name], St) ->
     wings_pref:set_value(screenshot_viewport_only, ViewPortOnly),
     wings_pref:set_value(screenshot_save_current_view, SaveView),
@@ -250,11 +272,12 @@ req(Req, Notify) ->
 
 server(Opt) ->
     register(wings_image, self()),
-    case Opt of 
+    case Opt of
 	wings_not_running ->
 	    put(wings_not_running, true);
 	_ ->
-	    wings_io:set_process_option(Opt)
+	    wings_io:set_process_option(Opt),
+	    init_background_tx()
     end,
     loop(#ist{images=gb_trees:empty()}).
 
@@ -276,14 +299,6 @@ loop(S0) ->
 	    exit({bad_message_to_wings_image,Other})
     end.
 
-handle(init_opengl, #ist{images=Images}=S) ->
-    %%erase(), %% Forget all textures!
-    [erase(Tex) || Tex <- get(), is_integer(Tex)],
-    foreach(fun({Id,Image}) ->
-		    make_texture(Id, Image)
-	    end, gb_trees:to_list(Images)),
-    init_background_tx(),
-    S;
 handle({new,#e3d_image{name=Name0}=Im0,false,Hide}, #ist{next=Id,images=Images0}=S) ->
     Name = make_unique(Name0, Images0),
     Im = maybe_convert(Im0#e3d_image{name=Name}),
@@ -737,169 +752,14 @@ is_hidden(#e3d_image{}) -> false.
 
 window(Id) ->
     Name = {image,Id},
+    %% This need to be fixed for wx!!
     case wings_wm:is_window(Name) of
 	true ->
 	    wings_wm:raise(Name);
 	false ->
-	    {Size,Title} = window_params(Id),
-	    Pos = {10,50,highest},
-	    Op = {seq,push,window_fun(Id)},
-	    Props = window_props(),
-	    wings_wm:toplevel(Name, Title, Pos, Size,
-			      [resizable,closable,{properties,Props}], Op),
-	    wings_wm:send(Name, {action,{viewer,100}})
+	    wings_image_viewer:new(info(Id)),
+	    keep
     end.
-
-window_params(Id) ->
-    #e3d_image{width=W0,height=H0,name=Name,bytes_pp=BytesPerPixel} = info(Id),
-    Title = flatten(io_lib:format(?__(1,"Image: ~s [~wx~wx~w]"),
-				  [Name,W0,H0,8*BytesPerPixel])),
-    {DeskW,DeskH} = wings_wm:win_size(desktop),
-    W = if
-	    W0 < 250 -> 250;
-	    W0+50 < DeskW -> W0+2;
-	    true -> DeskW - 50
-	end,
-    H = if
-	    H0+70 < DeskH -> H0+2;
-	    true -> DeskH - 70
-	end,
-    {{W,H},Title}.
-
-window_props() ->
-    View = #view{origin={0.0,0.0,0.0},
-		 distance=0.65,
-		 azimuth=0.0,
-		 elevation=0.0,
-		 pan_x=0.0,
-		 pan_y=0.0,
-		 fov=90.0,
-		 hither=0.001,
-		 yon=100.0},
-    [{current_view,View},
-     {orthogonal_view,true},
-     {allow_rotation,false},
-     {hide_sel_in_camera_moves,false}].
-
-window_fun(Id) ->
-    fun(Ev) ->
-	    event(Ev, Id)
-    end.
-
-event(redraw, Id) ->
-    redraw(Id),
-    keep;
-event(close, _) ->
-    delete;
-event(got_focus, _) ->
-    Msg2 = wings_camera:help(),
-    Msg3 = wings_msg:button_format([], [],?__(1,"Show menu")),
-    Message = wings_msg:join([Msg2,Msg3]),
-    wings_wm:message(Message),
-    keep;
-event({action,{viewer,Cmd}}, Id) ->
-    command(Cmd, Id);
-event(Ev, Id) ->
-    case wings_camera:event(Ev, #st{shapes=gb_trees:empty()},fun() -> redraw(Id) end) of
-	next -> event_1(Ev, Id);
-	Other -> Other
-    end.
-
-event_1(Ev, _) ->
-    case wings_menu:is_popup_event(Ev) of
-	no -> keep;
-	{yes,X,Y,_} ->
-	    Menu = [{"12%",12},
-		    {"25%",25},
-		    {"50%",50},
-		    separator,
-		    {"100%",100,?__(1,"Show in natural size")},
-		    separator,
-		    {"200%",200},
-		    {"400%",400},
-		    {"800%",800}
-		   ],
-	    wings_menu:popup_menu(X, Y, viewer, Menu)
-    end.
-
-command(Percent, Id) when is_integer(Percent) ->
-    View = wings_view:current(),
-    #e3d_image{width=Iw,height=Ih} = info(Id),
-    {_,H} = wings_wm:win_size(),
-    Dist = 100/2*H/Ih/Percent,
-    PanX = -(Iw/Ih/2),
-    PanY = -0.5,
-    wings_view:set_current(View#view{distance=Dist,pan_x=PanX,pan_y=PanY}),
-    wings_wm:dirty(),
-    keep.
-    
-redraw(Id) ->
-    case info(Id) of
-	none ->
-	    wings_wm:later(close),
-	    keep;
-	Im -> redraw_1(Id, Im)
-    end.
-
-redraw_1(Id, #e3d_image{width=Iw,height=Ih}) ->
-    gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-    wings_wm:clear_background(),
-
-    wings_view:load_matrices(false),
-    gl:enable(?GL_TEXTURE_2D),
-    gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE),
-    gl:disable(?GL_DEPTH_TEST),
-    draw_background(0, 0, Iw/Ih, 1),
-    gl:enable(?GL_BLEND),
-    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-    draw_image(Iw/Ih, 1, txid(Id)),
-    gl:bindTexture(?GL_TEXTURE_2D, 0),
-
-    %% Draw window border.
-    wings_io:ortho_setup(),
-    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
-    {W,H} = wings_wm:win_size(),
-    gl:rectf(0.5, 0.5, W-0.5, H-0.5),
-    #view{distance=Dist} = wings_view:current(),
-
-    gl:popAttrib(),
-
-    %% Info line.
-    Percent = 100/2*H/Ih/Dist,
-    wings_io:info(io_lib:format("~.2f%", [Percent])).
-
-draw_background(X, Y, W, H) ->
-    {Wwin,Hwin} = wings_wm:win_size(),
-    Ua = 0,
-    Va = 0,
-    Ub = Wwin div 16,
-    Vb = Hwin div 16,
-    gl:bindTexture(?GL_TEXTURE_2D, txid(background)),
-    gl:'begin'(?GL_QUADS),
-    gl:texCoord2f(Ua, Va),
-    gl:vertex2f(X, Y),
-    gl:texCoord2f(Ua, Vb),
-    gl:vertex2f(X, Y+H),
-    gl:texCoord2f(Ub, Vb),
-    gl:vertex2f(X+W, Y+H),
-    gl:texCoord2f(Ub, Va),
-    gl:vertex2f(X+W, Y),
-    gl:'end'().
-
-draw_image(W, H, TxId) ->
-    Ua = 0, Ub = 1,
-    Va = 0, Vb = 1,
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    gl:'begin'(?GL_QUADS),
-    gl:texCoord2i(Ua, Va),
-    gl:vertex2f(0, 0),
-    gl:texCoord2i(Ua, Vb),
-    gl:vertex2f(0, H),
-    gl:texCoord2i(Ub, Vb),
-    gl:vertex2f(W, H),
-    gl:texCoord2i(Ub, Va),
-    gl:vertex2f(W, 0),
-    gl:'end'().
 
 draw_image(X, Y, W, H, TxId) ->
     Ua = 0, Ub = 1,
@@ -921,21 +781,23 @@ draw_image(X, Y, W, H, TxId) ->
 %%%
 
 create_image() ->
-    Qs = [{?__(1,"Width"),256,[{range,{8,1024}}]},
-	  {?__(2,"Height"),256,[{range,{8,1024}}]},
-	  {?__(3,"Pattern"),
-	   {menu,[{?__(4,"Grid"),grid},
-		  {?__(5,"Checkerboard"),checkerboard},
-		  {?__(6,"Vertical Bars"),vbars},
-		  {?__(7,"Horizontal Bars"),hbars},
-		  {?__(8,"White"),white},
-		  {?__(9,"Black"),black}],
-	    grid}}],
-    wings_ask:ask(?__(10,"Create Image"), Qs,
-		  fun([W,H,Pattern]) ->
-			  create_image_1(Pattern, W, H),
-			  ignore
-		  end).
+    Qs = [{hframe, [{vframe,[{label, ?__(1,"Width")},
+			     {label, ?__(2,"Height")}]},
+		    {vframe,[{text, 256,[{range,{8,1024}}]},
+			     {text, 256,[{range,{8,1024}}]}]}]},
+	  {vradio,
+	   [{?__(4,"Grid"),grid},
+	    {?__(5,"Checkerboard"),checkerboard},
+	    {?__(6,"Vertical Bars"),vbars},
+	    {?__(7,"Horizontal Bars"),hbars},
+	    {?__(8,"White"),white},
+	    {?__(9,"Black"),black}],
+	   grid, [{title, ?__(3,"Pattern")}]}],
+    wings_dialog:dialog(?__(10,"Create Image"), Qs,
+			fun([W,H,Pattern]) ->
+				create_image_1(Pattern, W, H),
+				ignore
+			end).
 
 create_image_1(Pattern, W, H) ->
     Pixels = pattern(Pattern, W, H),

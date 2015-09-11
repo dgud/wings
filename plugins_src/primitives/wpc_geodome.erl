@@ -13,7 +13,7 @@
 
 -module(wpc_geodome).
 -export([init/0, menu/2, command/2]).
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 init() -> true.
 
@@ -32,7 +32,7 @@ command(_, _) -> next.
 %%% The rest are local functions.
 
 make_geodome(Arg, St) when is_atom(Arg) ->
-    wings_ask:dialog_preview({shape,geodome}, Arg, ?__(1,"Geodesic Dome Options"), dialog(), St);
+    wings_dialog:dialog_preview({shape,geodome}, Arg, ?__(1,"Geodesic Dome Options"), dialog(), St);
 make_geodome(Arg, _) ->
     %set_pref(Arg), % save preferences
     ArgDict = dict:from_list(Arg),

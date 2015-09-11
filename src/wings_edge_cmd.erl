@@ -53,7 +53,9 @@ menu(X, Y, St) ->
 	    separator,
 	    {?__(14,"Hardness"),
 	     {hardness,[{?__(15,"Soft"),soft},
-			{?__(16,"Hard"),hard}]}},
+			        {?__(16,"Hard"),hard},
+			        {?__(24,"Invert"),invert}
+			        ]}},
 	    separator,
 	    {?__(17,"Loop Cut"),loop_cut,
 	     ?__(18,"Cut into two objects along edge loop")},
@@ -127,9 +129,9 @@ command(slide, St) ->
 command(cut_pick, St) ->
     cut_pick(St);
 command({cut,ask}, St) ->
-    wings_ask:ask(cut_command(),
-		  [{?__(1,"Segments"), 2}],
-		  fun([Ret]) -> cut(Ret, St) end);
+    wings_dialog:ask(cut_command(),
+		     [{?__(1,"Segments"), 2, []}],
+		     fun([Ret]) -> cut(Ret, St) end);
 command({cut,Num}, St) ->
     {save_state,cut(Num, St)};
 command(connect, St) ->
@@ -342,6 +344,13 @@ dissolve(St0) ->
 %%% The Hardness command.
 %%%
 
+hardness(invert, St) ->
+    wings_sel:map(fun(Edges, #we{he=Htab0}=We) ->
+			  WereSoft = gb_sets:subtract(Edges,Htab0),
+			  Outside = gb_sets:subtract(Htab0,Edges),
+			  NowHard = gb_sets:union(WereSoft,Outside),
+			  We#we{he=NowHard}
+		  end, St);
 hardness(soft, St) ->
     wings_sel:map(fun(Edges, #we{he=Htab0}=We) ->
 			  Htab = gb_sets:difference(Htab0, Edges),

@@ -37,14 +37,23 @@ init() -> true.
 
 menu({window}, Menu) ->
     Menu++[camera_menu()];
+menu({view}, Menu) ->
+    PatchMenu = fun({String, {views, List}}) ->
+			{String, {views, List++[separator, camera_menu()]}};
+		   (Entry) -> Entry
+		end,
+    [PatchMenu(Entry) || Entry <- Menu];
 menu(_,Menu) -> 
 	Menu.
 
 camera_menu() ->
-	 {?__(1,"Saved Views"), saved_views,
+	 {?__(1,"Manage Saved Views"), saved_views,
 	  ?__(2,"Shows all saved views")}.
 
 command({window,saved_views}, St) ->
+    window(St),
+    keep;
+command({view,{views, saved_views}}, St) ->
     window(St),
     keep;
 command(_,_) ->
@@ -85,6 +94,16 @@ get_event(Ost) ->
     {replace,fun(Ev) -> event(Ev, Ost) end}.
 
 event(redraw, Ost) ->
+    wings_io:ortho_setup(),
+    {W,H} = wings_wm:win_size(),
+    case wings_pref:get_value(bitmap_icons) of
+        false -> wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR);
+        true ->
+          wings_io:blend(wings_pref:get_value(outliner_geograph_bg),
+            fun(Color) ->
+              wings_io:border(0, 0, W-1, H-1, Color)
+            end)
+    end,
     draw_objects(Ost),
     keep;
 event({action,{saved_views,Cmd}}, #ost{st=#st{views={_,Views0}}=St0}=Ost) ->
@@ -133,18 +152,15 @@ event(#mousebutton{button=1,y=Y,state=?SDL_PRESSED}, #ost{active=Act}=Ost)
 	    ok
     end,
     get_event(Ost);
-event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #ost{active=Act0}=Ost) ->
+event(#mousebutton{button=1,x=X,y=Y,state=?SDL_RELEASED}, #ost{}=Ost) ->
     wings_wm:release_focus(),
     case active_object(Y, Ost) of
-	Act0 ->  keep;
-	Act ->
-	  if Act=/=-1 ->
-          {X0,Y0} = wings_wm:local2global(X, Y),
-	      wings_wm:send(geom_focused(X0,Y0), {action, {view, {views, {jump,Act+1}}}}),
-          wings_wm:dirty(),
-          get_event(Ost#ost{active=Act});
-      true -> keep
-	  end
+	Act when Act =/= -1 ->
+	    {X0,Y0} = wings_wm:local2global(X, Y),
+	    wings_wm:send(geom_focused(X0,Y0), {action, {view, {views, {jump,Act+1}}}}),
+	    wings_wm:dirty(),
+	    get_event(Ost#ost{active=Act});
+	_ -> keep
     end;
 event(#mousebutton{button=4,state=?SDL_RELEASED}, Ost) ->
     zoom_step(-1*lines(Ost) div 4, Ost);
@@ -238,7 +254,9 @@ update_state_2(#st{views={CurrentView,Views}}=St, #ost{os=Objs0}=Ost) ->
 	_ -> wings_wm:dirty()
     end,
     N = length(Objs),
-    Act = CurrentView-1,
+    Act = if CurrentView > 0 -> CurrentView-1;
+      true -> CurrentView
+    end,
     Ost#ost{st=St,os=Objs,n=N,active=Act}.
 
 update_scroller(#ost{n=0}) ->
@@ -300,10 +318,7 @@ active_object(Y0, #ost{lh=Lh,first=First,n=N}) ->
     end.
 
 draw_objects(#ost{os=Objs0,first=First,lh=Lh,active=Active,tracking=Trk,n=N0}=Ost) ->
-    wings_io:ortho_setup(),
-    {W,H} = wings_wm:win_size(),
-    wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR),
-
+    {W,_H} = wings_wm:win_size(),
     Objs = lists:nthtail(First, Objs0),
     Lines = lines(Ost),
     N = case N0-First of

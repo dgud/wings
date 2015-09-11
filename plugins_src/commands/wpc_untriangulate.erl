@@ -72,10 +72,10 @@ command(_,_) -> next.
 untriangulate(Ask, _) when is_atom(Ask) ->
     init_pref(),
     Qs = get_ask_list(),
-    wings_ask:dialog(Ask, ?__(1,"Untriangulate (v0.2)"), [{vframe, Qs}],
-                     fun(Res) ->
-                         {face, {tesselate, {untriangulate, Res}}}
-                     end);
+    wings_dialog:dialog(Ask, ?__(1,"Untriangulate (v0.2)"), [{vframe, Qs}],
+			fun(Res) ->
+				{face, {tesselate, {untriangulate, Res}}}
+			end);
 
 untriangulate([AlgoLevelAtom, Angle,
                {usemat, Mat},

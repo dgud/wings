@@ -42,7 +42,6 @@ MODULES= \
 	user_default \
 	wings \
 	wings_align \
-	wings_ask \
 	wings_body \
 	wings_camera \
 	wings_cl \
@@ -53,6 +52,7 @@ MODULES= \
 	wings_console \
 	wings_deform \
 	wings_develop \
+	wings_dialog \
 	wings_dissolve \
 	wings_dl \
 	wings_drag \
@@ -71,13 +71,14 @@ MODULES= \
 	wings_ff_ndo \
 	wings_ff_wings \
 	wings_gl \
+	wings_glfont \
 	wings_help \
 	wings_hotkey \
 	wings_image \
+	wings_image_viewer \
 	wings_import \
 	wings_init \
 	wings_io \
-	wings_io_sdl \
 	wings_io_wx \
 	wings_job \
 	wings_light \
@@ -106,6 +107,7 @@ MODULES= \
 	wings_shape \
 	wings_shapes \
 	wings_start \
+	wings_status \
 	wings_subdiv \
 	wings_theme \
 	wings_toolbar \
@@ -124,8 +126,11 @@ MODULES= \
 	wings_we_build \
 	wings_we_util \
 	wings_wm \
+	wings_wm_menu \
 	wings_wm_toplevel \
-	wpa
+	wpa \
+	ww_color_ctrl \
+	ww_color_slider
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
@@ -158,9 +163,6 @@ clean:
 $(EBIN)/wings_u.beam: $(ESRC)/wings_u.erl
 	$(ERLC) '-Dwings_branch="$(WINGS_BRANCH)"' $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
 
-$(EBIN)/wings_text.beam: $(ESRC)/wings_text.erl
-	$(ERLC) -I../fonts_src $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
-
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
 
@@ -169,7 +171,7 @@ $(EBIN)/%.beam: $(ESRC)/%.erl
 # ----------------------------------------------------
 $(EBIN)/wings_export.beam $(EBIN)/wings_file.beam $(EBIN)/wings_help.beam $(EBIN)/wings_pref.beam $(EBIN)/wings_u.beam $(EBIN)/wpa.beam: ../vsn.mk
 
-$(EBIN)/wings_text.beam: ../fonts_src/font_version.hrl
+$(EBIN)/wings_text.beam: ../intl_tools/wings_chars.hrl
 
 $(TARGET_FILES): $(EBIN)/wings_lang.beam wings.hrl
 

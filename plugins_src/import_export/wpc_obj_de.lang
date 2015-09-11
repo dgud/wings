@@ -1,10 +1,10 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_obj,
  [
   {dialog,
    [
     {1,"Eine Gruppe pro Material"},
-    {2,"Vue d'Esprit Behelfslösung"}
+    {2,"Vue d'Esprit BehelfslÃ¶sung"}
    ]},
   {do_export,
    [

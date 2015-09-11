@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_circularise,
  [
   {angle_help,
@@ -9,36 +9,36 @@
   {check_selection,
    [
     {1,"Keine Auswahl"},
-    {2,"Knoten muß aus der ursprünglichen Kantenschleife sein"},
-    {4,"Nur eine Kante oder ein Knoten darf ausgewählt sein"}
+    {2,"Knoten muÃŸ aus der ursprÃ¼nglichen Kantenschleife sein"},
+    {4,"Nur eine Kante oder ein Knoten darf ausgewÃ¤hlt sein"}
    ]},
   {circ_norm_help,
    [
-    {1," [2] Flächen-Normale umkehren"},
-    {2," [2] ursprüngliche Flächen-Normale"}
+    {1," [2] FlÃ¤chen-Normale umkehren"},
+    {2," [2] ursprÃ¼ngliche FlÃ¤chen-Normale"}
    ]},
   {circ_sel_error,
    [
-    {2,"Auswahl muß aus einer einzelnen geschlossenen oder offenen Kantenschleife bestehen"}
+    {2,"Auswahl muÃŸ aus einer einzelnen geschlossenen oder offenen Kantenschleife bestehen"}
    ]},
   {circ_sel_error_1,
    [
-    {1,"Ausgewählte Kantenschleifen dürfen keine gemeinsamen Knoten haben"}
+    {1,"AusgewÃ¤hlte Kantenschleifen dÃ¼rfen keine gemeinsamen Knoten haben"}
    ]},
   {circ_sel_error_3,
    [
-    {2,"Auswahlen mit vereinzelten Kanten können nicht verarbeitet werden"}
+    {2,"Auswahlen mit vereinzelten Kanten kÃ¶nnen nicht verarbeitet werden"}
    ]},
   {circ_sel_error_4,
    [
-    {2,"Kantenschleifen dürfen sich nicht schneiden und müssen alle offen oder geschlossen sein."}
+    {2,"Kantenschleifen dÃ¼rfen sich nicht schneiden und mÃ¼ssen alle offen oder geschlossen sein."}
    ]},
   {circular_arc_menu,
    [
-    {1,"Kreisförmig"},
-    {2,"Ausgewählte Kantenschleife durch ebenen, ausgleichen und aufblasen kreisförmig machen"},
-    {4,"Eine einzelne offene oder geschlossene Schleife anhand zweiter Auswahl kreisförmig machen"},
-    {5,"Gemeinsame Ebene auswählen, auf die alle Kantenschleifen eingeebnet werden"}
+    {1,"KreisfÃ¶rmig"},
+    {2,"AusgewÃ¤hlte Kantenschleife durch ebenen, ausgleichen und aufblasen kreisfÃ¶rmig machen"},
+    {4,"Eine einzelne offene oder geschlossene Schleife anhand zweiter Auswahl kreisfÃ¶rmig machen"},
+    {5,"Gemeinsame Ebene auswÃ¤hlen, auf die alle Kantenschleifen eingeebnet werden"}
    ]},
   {flatten_help,
    [
@@ -48,7 +48,7 @@
   {norm_help,
    [
     {1,"  [2] Winkel-Normale umkehren"},
-    {2,"  [2] ursprüngliche Winkel-Normale"}
+    {2,"  [2] ursprÃ¼ngliche Winkel-Normale"}
    ]},
   {radius_help,
    [
@@ -57,14 +57,14 @@
    ]},
   {secondary_sel_ask,
    [
-    {1,"Knoten oder Kante der ursprünglichen Kantenschleife auswählen, der den stabilen Strahl zum Zentrum markiert"},
-    {2,"Mittelpunkt wählen"},
-    {3,"Ebene wählen"}
+    {1,"Knoten oder Kante der ursprÃ¼nglichen Kantenschleife auswÃ¤hlen, der den stabilen Strahl zum Zentrum markiert"},
+    {2,"Mittelpunkt wÃ¤hlen"},
+    {3,"Ebene wÃ¤hlen"}
    ]},
   {selection_ask,
    [
-    {1,"Ebene wählen"},
-    {2,"Zentrums-Punkt wählen"},
-    {3,"Punkt auswählen, von dem aus das Zentrum relativ zur gewählten Ebene und den Enden der Kantenauswahl berechnet wird"}
+    {1,"Ebene wÃ¤hlen"},
+    {2,"Zentrums-Punkt wÃ¤hlen"},
+    {3,"Punkt auswÃ¤hlen, von dem aus das Zentrum relativ zur gewÃ¤hlten Ebene und den Enden der Kantenauswahl berechnet wird"}
    ]}
  ]}.

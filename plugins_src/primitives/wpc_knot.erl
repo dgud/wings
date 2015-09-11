@@ -14,7 +14,7 @@
 -module(wpc_knot).
 -export([init/0,menu/2,command/2]).
 
--include("wings_intl.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 init() -> true.
 
@@ -33,7 +33,7 @@ command(_, _) -> next.
 %%% The rest are local functions.
 
 make_knot(Arg, St) when is_atom(Arg) ->
-    wings_ask:dialog_preview({shape,knot}, Arg, "Torus Knot Options", dialog(), St);
+    wings_dialog:dialog_preview({shape,knot}, Arg, "Torus Knot Options", dialog(), St);
 make_knot(Arg, _) ->
     ArgDict = dict:from_list(Arg),
     TypeFlag = dict:fetch(typeflag, ArgDict),

@@ -22,7 +22,7 @@
 
 -export([init/0,menu/2,command/2,active/0]).
 
--record(s, {reply,name,w,h,sx=1.0,sy=1.0,tx=0.0,ty=0.0}).
+-record(s, {reply,name,w,h,sx=1.0,sy=1.0,tx=0.0,ty=0.0,r=0.0}).
 
 init() ->
     true.
@@ -77,6 +77,7 @@ snap_menu() ->
           {?__(1,"Horizontal"),x},
           {?__(3,"Vertical"),y}]},
       ?__(25,"Fit image to the dimensions of the viewport")},
+     {?__(34,"Rotate Snap Image"),auv_snap_rotate,?__(35,"Rotate the background image")},
      {?__(19,"Exit Snap Mode"),exit_snap_mode,?__(20,"Exit the snap mode")},
      separator].
 
@@ -98,6 +99,8 @@ command({_,{auv_snap_fit,Op}}, St) ->
     fit(Op,St);
 command({tools,snap_image_mode}, St) ->
     select_image(St);
+command({_,auv_snap_rotate}, St) ->
+    rotate(St);
 command({_,exit_snap_mode}, St) ->
     cancel(St);
 command(_, _) -> next.
@@ -118,32 +121,29 @@ snap(St0) ->
 select_image(_St) ->
     Images = find_images(),
     case Images of
-	[] -> 
+	[] ->
 	    wpa:error_msg(?__(1,"No images present, import an image first."));
-	_ ->
-	    Qs = [{vframe, Images}],
-	    Select = fun([Reply]) ->		     
+	[{_, Def}|_] ->
+	    Qs = [{vradio, Images, Def}],
+	    Select = fun([Reply]) ->
 			     TId = wings_image:txid(Reply),
 			     Draw = fun(St) -> draw_image(TId,St) end,
 			     wings:register_postdraw_hook(geom, ?MODULE,Draw),
-			     _I = #e3d_image{width=W, height=H, name =Name} = 
+			     _I = #e3d_image{width=W, height=H, name =Name} =
 				 wings_image:info(Reply),
 			     %%			     io:format("~p~n", [_I]),
 			     put(?MODULE,#s{reply=Reply,name=Name,w=W,h=H}),
 			     ignore
 		     end,
-	    wings_ask:dialog(?__(2,"Choose Image to snap"),Qs,Select)
+	    wings_dialog:dialog(?__(2,"Choose Image to snap"),Qs,Select)
     end.
 
 find_images() ->
     case wings_image:images() of
 	[] -> [];
-	Imgs = [{Def,_}|_] -> find_images_1(Imgs, Def, 0)
+	Imgs ->
+	    [{Name, Id} || {Id,#e3d_image{name=Name}} <- Imgs]
     end.
-
-find_images_1([{Id,#e3d_image{name=Name}}|Tail], Def, Key) ->
-    [{key_alt,{Key,Def},Name,Id}|find_images_1(Tail, Def, Key-1)];
-find_images_1([], _Def, _Key) -> [].
 
 scale({auv_snap_prop,Proportional}, St) ->
     State = #s{sx=Ix,sy=Iy} = get(?MODULE),
@@ -200,6 +200,20 @@ move(Op, St) ->
     Flags = [{initial, [-Ix,-Iy]}],
     wings_drag:setup(Tvs,Units,Flags,St).
 
+rotate(St) ->
+    #s{r=R0}=get(?MODULE),
+    RotateFun = fun({finish,_}, Dlo) -> Dlo;
+		 ([R], Dlo) ->
+		      State = get(?MODULE),
+			  put(?MODULE, State#s{r=R}),
+		      Dlo
+	      end,
+
+    Tvs   = {general, [{find_a_id(St), RotateFun}]},
+    Units = [{rx, {-360.0,360.0}}],
+    Flags = [{initial, [R0]}],
+    wings_drag:setup(Tvs,Units,Flags,St).
+
 fit(Op, St) ->
     #s{w=IW,h=IH}=S = get(?MODULE),
     {_,_,W,H} = wings_wm:viewport(),
@@ -243,7 +257,7 @@ draw_image(Image,_St) ->
     {_,_,W,H} = wings_wm:viewport(),
     {Xs,Ys,Xe,Ye} = {0,0,1,1},
 
-    #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty} = get(?MODULE),
+    #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty,r=Rot} = get(?MODULE),
     {X,Y} = scale(W,H,IW,IH),
 
     Center = 0.5,
@@ -251,23 +265,34 @@ draw_image(Image,_St) ->
     Xrange = (X*Size)/2,
     Yrange = (Y*Size)/2,
 
-    gl:texCoord2f(Tx/2+(Center-Sx*Xrange),Ty/2+(Center-Sy*Yrange)),
+    plot_uv({Tx/2,Ty/2},{-Sx*Xrange,-Sy*Yrange},Center,Rot),
     gl:vertex2f(Xs,Ys),
-    gl:texCoord2f(Tx/2+(Center+Sx*Xrange),Ty/2+(Center-Sy*Yrange)),
+    plot_uv({Tx/2,Ty/2},{Sx*Xrange,-Sy*Yrange},Center,Rot),
     gl:vertex2f(Xe,Ys),
-    gl:texCoord2f(Tx/2+(Center+Sx*Xrange),Ty/2+(Center+Sy*Yrange)),
+    plot_uv({Tx/2,Ty/2},{Sx*Xrange,Sy*Yrange},Center,Rot),
     gl:vertex2f(Xe,Ye),
-    gl:texCoord2f(Tx/2+(Center-Sx*Xrange),Ty/2+(Center+Sy*Yrange)),
+    plot_uv({Tx/2,Ty/2},{-Sx*Xrange,Sy*Yrange},Center,Rot),
     gl:vertex2f(Xs,Ye),
 
     gl:'end'(),
     gl:popAttrib().
 
+plot_uv({Tx,Ty},{OffX0,OffY0},Center,Degree) ->
+    {OffX,OffY}=rotate(Degree, {OffX0,OffY0}),
+    {TxX,TyY}=rotate(Degree, {Tx,Ty}),
+    gl:texCoord2f(TxX+(Center+OffX),TyY+(Center+OffY)).
+
+rotate(Dgree0, {X,Y}) ->
+    Dgree=(math:pi()/180.0*-Dgree0),
+    Cosf=math:cos(Dgree),
+    Sinf=math:sin(Dgree),
+    {X*Cosf-Y*Sinf, Y*Cosf+X*Sinf}.
+
 calc_uv_fun() ->
     %% First do all the view-dependent calculations that are
     %% common for all vertices.
     {MM,PM,{_,_,W,H}=Viewport} = wings_u:get_matrices(0, original),
-    #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty} = get(?MODULE),
+    #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty,r=Rot} = get(?MODULE),
     {Xs,Ys} = scale(W, H, IW, IH),
 
     %% In the fun, do the calculations that are specific
@@ -275,7 +300,9 @@ calc_uv_fun() ->
     fun({X,Y,Z}) ->
 	    {S,T,_} = wings_gl:project(X, Y, Z, MM, PM, Viewport),
 	    Center = 0.5,
-	    {Tx/2+(S/W*Xs*Sx+Center-Sx*Xs/2),Ty/2+(T/H*Sy*Ys+Center-Sy*Ys/2)}
+	    {XA0,YA0}={Tx/2+(S/W*Xs*Sx+Center-Sx*Xs/2),Ty/2+(T/H*Sy*Ys+Center-Sy*Ys/2)},
+	    {XA,YA}=rotate(Rot,{XA0-Center,YA0-Center}),
+	    {Center+XA,Center+YA}
     end.
 
 scale(W, H, IW, IH) ->

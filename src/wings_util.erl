@@ -78,6 +78,7 @@ make_vector(Axis) when Axis == last_axis; Axis == default_axis ->
     {_,Vec} = wings_pref:get_value(Axis),
     Vec.
 
+
 key_format(Key, Msg) ->
     [Key,160,Msg].
 

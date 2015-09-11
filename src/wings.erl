@@ -17,11 +17,12 @@
 -export([mode_restriction/1,clear_mode_restriction/0,get_mode_restriction/0]).
 -export([ask/3]).
 -export([save_windows/0,save_windows_1/1,restore_windows_1/2,set_geom_props/2]).
--export([handle_drop/3]).
+-export([handle_drop/3, popup_menu/3]).
 -export([init_menubar/0]).
 -export([highlight_aim_setup/1]).
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).
 -export([info_line/0]).
+-export([keep/1, release_all/0]).
 
 -export([new_st/0]).
 
@@ -55,7 +56,7 @@ halt_loop(Wings) ->
     receive
 	{'EXIT',Wings,normal} ->
 	    %% Normal termination.
-	    halt();
+	    init:stop();
 	{'EXIT',Wings,{window_crash,Name,Reason,StkTrace}} ->
 	    %% Crash in a window with an error reason and stack trace.
 	    Log = wings_u:crash_log(Name, Reason, StkTrace),
@@ -90,7 +91,7 @@ do_spawn(File, Flags) ->
     spawn_opt(erlang, apply, [Fun,[]],
           [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags]).
 
-init(File) ->
+init(File0) ->
     register(wings, self()),
     
     OsType = os:type(),
@@ -101,7 +102,10 @@ init(File) ->
     wings_lang:init(),
     
     group_leader(wings_console:start(), self()),
-    wings_init:init(),
+    File = case wings_init:init() of
+	       none -> File0;
+	       File1 -> File1
+	   end,
     wings_text:init(),
     wings_image:init(wings_io:get_process_option()),
     wings_plugin:init(),
@@ -121,40 +125,84 @@ init(File) ->
     wings_u:caption(St),
     wings_wm:init(),
     wings_file:init_autosave(),
-    init_menubar(),
-    wings_pb:init(),
-    wings_ask:init(),
+    wings_pb:start_link(get(top_frame)),
+    wings_dialog:init(),
     wings_job:init(),
     wings_develop:init(),
     wings_tweak:init(),
-
+    Env = wings_io:get_process_option(),
+    Keeper = spawn_link(fun() -> 
+				wings_io:set_process_option(Env),
+				keeper([]) 
+			end),
+    register(wings_keeper, Keeper),
     Op = main_loop_noredraw(St),		%Replace crash handler
-                        %with this handler.
+						%with this handler.
     
     Props = initial_properties(),
     {{X,Y},{W,H}} = wings_wm:win_rect(desktop),
     wings_wm:toplevel(geom, geom_title(geom),
-              {X,Y,highest}, {W,H-80},
-              [resizable,{anchor,nw},
-               {toolbar,
-            fun(A, B, C) -> wings_toolbar:create(A, B, C) end},
-               menubar,{properties,Props}],
-              Op),
-    wings_wm:menubar(geom, get(wings_menu_template)),
+		      {X,Y,highest}, {W,H-80},
+		      [resizable,{anchor,nw},
+		       {toolbar,fun(A, B, C) -> wings_toolbar:create(A, B, C) end},
+		       {properties,Props}],
+		      Op),
+    put(wm_active, {menubar, geom}),
+    Menus = init_menubar(),
+    erase(wm_active),
+    %% wings_wm:menubar(geom, Menus),
+    wings_menu:wx_menubar(Menus),
     set_drag_filter(geom),
+
+    check_requirements(),
 
     open_file(File),
     restore_windows(St),
     case catch wings_wm:enter_event_loop() of
-    {'EXIT',normal} ->
+	{'EXIT',normal} ->
 	    wings_pref:finish(),
 	    wings_io:quit();
-    {'EXIT',Reason} ->
+	{'EXIT',Reason} ->
 	    io:format("~P\n", [Reason,20]),
 	    wings_io:quit(),
 	    exit(Reason)
     end.
 
+%% Check minimum system requirements.
+check_requirements() ->
+    minor_gl_version(),
+    have_fbo().
+
+minor_gl_version() ->
+    Major = 2,
+    Minor = 1,
+    Req = {Major,Minor,0},
+    case ets:lookup(wings_gl_ext, version) of
+	[{_,VerTuple}] when VerTuple < Req ->
+	    fatal("Wings3D requires OpenGL ~p.~p or higher.",
+		  [Major,Minor]);
+	_ ->
+	    ok
+    end.
+
+have_fbo() ->
+    case wings_gl:have_fbo() of
+	true ->
+	    ok;
+	false ->
+	    fatal("Wings3D requires the OpenGL frame buffer "
+		  "object extension.")
+    end.
+
+fatal(Format, Args) ->
+    fatal(io_lib:format(Format, Args)).
+
+fatal(Str) ->
+    Parent = get(top_frame),
+    Dialog = wxMessageDialog:new(Parent, Str, [{caption,"Fatal Error"}]),
+    wxMessageDialog:showModal(Dialog),
+    wings_io:quit(),
+    exit(normal).
 
 new_st() ->
     Empty = gb_trees:empty(),
@@ -189,11 +237,11 @@ new_viewer(Name, {X,Y}, Size, Props, ToolbarHidden, St) ->
 		       {toolbar,fun(A, B, C) ->
 					wings_toolbar:create(A, B, C)
 				end},
-		       menubar,
+		       %% menubar,
 		       {properties,Props}],
 		      Op),
-    wings_wm:menubar(Name, get(wings_menu_template)),
-    wings_wm:send({menubar,Name}, {current_state,St}),
+    %% wings_wm:menubar(Name, get(wings_menu_template)),
+    %% wings_wm:send({menubar,Name}, {current_state,St}),
     wings_wm:send({toolbar,Name}, {current_state,St}),
     set_drag_filter(Name),
     if
@@ -208,7 +256,17 @@ free_viewer_num(N) ->
 	true -> free_viewer_num(N+1)
     end.
 
-open_file(none) -> ok;
+open_file(none) ->
+    USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
+    Recovered = filelib:is_file(USFile),
+    wings_pref:set_value(file_recovered, Recovered),
+    case Recovered of
+        true ->
+            open_file(USFile),
+            wings_u:message(?__(1,"Wings3D has recovered an unsaved file."));
+        _ -> ok
+    end;
+
 open_file(Name) -> wings_wm:send(geom, {open_file,Name}).
 
 init_opengl(St) ->
@@ -271,7 +329,14 @@ save_state(St0, St1) ->
          #st{saved=false} -> St2;
          _Other -> wings_u:caption(St2#st{saved=false})
      end,
+    update_menus(St),
     main_loop(clear_temp_sel(St)).
+
+update_menus(St) ->
+    wings_menu:update_menu(edit, repeat, command_name(?__(1,"Repeat"), St)),
+    wings_menu:update_menu(edit, repeat_args, command_name(?__(2,"Repeat Args"), St)),
+    wings_menu:update_menu(edit, repeat_drag, command_name(?__(3,"Repeat Drag"), St)),
+    wings_sel_cmd:update_menu(St).
 
 ask(Ask, St, Cb) ->
     wings_vec:do_ask(Ask, St, Cb).
@@ -287,17 +352,27 @@ main_loop_noredraw(St) ->
     {replace,fun(Event) -> handle_event(Event, St) end}.
 
 handle_event({crash,Crash}, St) ->
-    crash_logger(Crash, St);
+    crash_logger(Crash),
+    main_loop(St);
 handle_event({crash_in_other_window,LogName}, St) ->
-    get_crash_event(LogName, St);
+    crash_dialog(LogName),
+    main_loop(St);
 handle_event({open_file,Name}, St0) ->
     case catch ?SLOW(wings_ff_wings:import(Name, St0)) of
-    #st{}=St1 ->
-        wings_pref:set_value(current_directory, filename:dirname(Name)),
-        St = wings_shape:recreate_folder_system(St1),
-        main_loop(wings_u:caption(St#st{saved=true,file=Name}));
-    {error,_} ->
-        main_loop(St0)
+	#st{}=St1 ->
+	    St2 = wings_shape:recreate_folder_system(St1),
+	    USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
+	    St = case USFile of
+		     Name ->
+			 St2#st{saved=auto,file=undefined};
+		     _ ->
+			 wings_pref:set_value(current_directory, filename:dirname(Name)),
+			 St2#st{saved=true,file=Name}
+		 end,
+	    update_menus(St),
+	    main_loop(wings_u:caption(St));
+	{error,_} ->
+	    main_loop(St0)
     end;
 handle_event(Ev, St) ->
     case wings_camera:event(Ev, St) of
@@ -377,9 +452,9 @@ handle_event_3(#mousemotion{}, _St) -> keep;
 handle_event_3(init_opengl, St) ->
     wings_wm:current_state(St),
     init_opengl(St),
-    wings_draw:refresh_dlists(St),
     keep;
 handle_event_3(#expose{}, St) ->
+    io:format("Should not happen ~n",[]),
     handle_event_3(redraw, St);
 handle_event_3(resized, _) -> keep;
 handle_event_3(close, _) ->
@@ -415,6 +490,7 @@ handle_event_3(got_focus, _) ->
     info_line(),
     keep;
 handle_event_3(lost_focus, _) -> keep;
+handle_event_3(grab_lost, _) -> keep;
 handle_event_3({note,menu_aborted}, St) ->
     main_loop(clear_temp_sel(St));
 handle_event_3({note,_}, _) ->
@@ -424,7 +500,6 @@ handle_event_3({drop,Pos,DropData}, St) ->
 handle_event_3(language_changed, _) ->
     This = wings_wm:this(),
     wings_wm:toplevel_title(This, geom_title(This)),
-    wings_wm:menubar(This, get(wings_menu_template)),
     keep;
 handle_event_3({external,no_more_basic_menus}, _St) ->
     wings_help:no_more_basic_menus();
@@ -447,14 +522,14 @@ handle_event_3({adv_menu_abort, Ev}, _St) ->
 handle_event_3({menu_toolbar,_}=Ev, St) ->
     menu_toolbar_action(Ev, St);
 handle_event_3({camera,Ev,NextEv}, St) ->
-%% used by preview dialogs in wings_ask.erl (blanket event)
+    %% used by preview dialogs in (blanket event)
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_camera:event(Ev#mousebutton{x=X,y=Y}, St) of
       next -> NextEv;
       Other -> Other
     end;
 handle_event_3({move_dialog,Position}, _) ->
-%% used by preview dialogs in wings_ask.erl
+    %% used by preview dialogs
     W = wings_wm:windows(),
     This = lists:keyfind(dialog, 1, W),
     wings_wm:move(This, Position);
@@ -588,9 +663,11 @@ execute_command(Cmd, Ev, St) ->
     %% we know may be from an ancient version Wings or for a
     %% plug-in that has been disabled.
     try
+	wings_menu:check_item(Cmd),
 	command(Cmd, St)
     catch
-	error:_ ->
+	error:Reason ->
+	    io:format("~p:~p: Error: ~p ~p~n", [?MODULE, ?LINE, Reason, erlang:get_stacktrace()]),
 	    wings_hotkey:handle_error(Ev, Cmd),
 	    St#st{repeatable=ignore}
     end.
@@ -852,7 +929,11 @@ command_1({wings_job,Command}, St) ->
 
 %% Tweak menu
 command_1({tweak, Cmd}, St) ->
-    wings_tweak:command(Cmd, St).
+    wings_tweak:command(Cmd, St);
+
+%% Hotkey setup or delete
+command_1({hotkey, Cmd}, St) ->
+    wings_hotkey:command(Cmd, St).
 
 
 popup_menu(X, Y, #st{sel=[]}=St) ->
@@ -870,25 +951,24 @@ popup_menu(X, Y, #st{selmode=Mode}=St) ->
     end.
 
 init_menubar() ->
-    Tail0 = [{?__(7,"Help"),help,fun wings_help:menu/1}],
+    Tail0 = [{?__(7,"Help"),help,wings_help:menu()}],
     Tail = case wings_pref:get_value(show_develop_menu) of
 	       true ->
-		   [{"Develop",develop,fun wings_develop:menu/1}|Tail0];
+		   [{"Develop",develop,wings_develop:menu()}|Tail0];
 	       false ->
 		   Tail0
 	   end,
-    Menus = [{?__(1,"File"),file,fun wings_file:menu/1},
-	     {?__(2,"Edit"),edit,fun edit_menu/1},
-	     {?__(3,"View"),view,fun wings_view:menu/1},
-	     {?__(4,"Select"),select,fun wings_sel_cmd:menu/1},
-	     {?__(5,"Tools"),tools,fun tools_menu/1},
-	     {?__(6,"Window"),window,fun window_menu/1}|Tail],
-    put(wings_menu_template, Menus).
+    [{?__(1,"File"),file,wings_file:menu()},
+     {?__(2,"Edit"),edit,edit_menu()},
+     {?__(3,"View"),view,wings_view:menu()},
+     
+     {?__(4,"Select"),select,wings_sel_cmd:menu()},
+     {?__(5,"Tools"), tools, tools_menu()},
+     {?__(6,"Window"),window,window_menu()}|Tail].
 
-edit_menu(St) ->
-    UndoInfo = lists:flatten([?__(1,
-                   "Delete undo history to reclaim memory"),
-                  " (",undo_info(St),")"]),
+edit_menu() ->
+    St = #st{},
+    UndoInfo = ?__(1,"Delete undo history to reclaim memory"),
     [{?__(3,"Undo/Redo"),undo_toggle,
       ?__(4,"Undo or redo the last command")},
      {?__(5,"Redo"),redo,
@@ -900,26 +980,13 @@ edit_menu(St) ->
      {command_name(?__(10,"Repeat Args"), St),repeat_args},
      {command_name(?__(11,"Repeat Drag"), St),repeat_drag},
      separator,
-     wings_pref_dlg:menu(St),
+     wings_pref_dlg:menu(),
      {?__(12,"Plug-in Preferences"),{plugin_preferences,[]}},
      wings_theme:menu(),
      separator,
      {?__(13,"Purge Undo History"),purge_undo,UndoInfo}|patches()].
 
-undo_info(St) ->
-    {Un,Rn} = wings_undo:info(St),
-    Undo = case Un of
-           0 -> ?__(1,"there are no undo states");
-           1 -> ?__(2,"there is one undo state");
-           _ -> io_lib:format(?__(3,"there are ~p undo states"), [Un])
-       end,
-    case Rn of
-    0 -> Undo;
-    1 -> [Undo|?__(4,"; one operation can be redone")];
-    _ -> [Undo|io_lib:format(?__(5,"; ~p operations can be redone"), [Rn])]
-    end.
-
-tools_menu(_) ->
+tools_menu() ->
     [{?__(8,"Align"),{align,tool_dirs(align)}},
      {?__(9,"Center"),{center,tool_dirs(center)}},
      separator,
@@ -950,7 +1017,7 @@ tools_menu(_) ->
     {?__(22,"Freeze"),freeze,
      ?__(23,"Create real geometry from the virtual mirrors")}]}},
      separator,
-     {?__(24,"Screenshot"), screenshot,
+     {?__(24,"Screenshot..."), screenshot,
       ?__(25,"Grab an image of the window (export it from the outliner)"),[option]},
      separator,
      {?__(26,"Scene Info: Area & Volume"), area_volume_info,
@@ -962,23 +1029,27 @@ tools_menu(_) ->
      separator,
      {?__(40,"Tweak"),tweak_menu,?__(41,"Open the Tweak menu")}].
 
-window_menu(_) ->
+window_menu() ->
     Name = case wings_wm:this() of
-           {_,geom} ->
-           ?__(1,"Geometry Graph");
-           {_,{geom,N}} ->
-           ?__(2,"Geometry Graph #") ++ integer_to_list(N)
-       end,
-    [{?__(3,"Outliner"),outliner,
-      ?__(4,"Open the outliner window (showing materials and objects)")},
-     {Name,object,
-      ?__(5,"Open a Geometry Graph window (showing objects)")},
-     {?__(6,"Palette"), palette,?__(7,"Open the color palette window")},
-     {?__(12,"Tweak Palette"), tweak_palette,
-      ?__(13,"Open palettes from which tweak tools may be selected or bound to modifier keys")},
-     separator,
-     {?__(8,"New Geometry Window"),geom_viewer, ?__(9,"Open a new Geometry window")},
-     {?__(10,"Console"),console,?__(11,"Open a console window for information messages")}].
+	       {_,geom} ->
+		   ?__(1,"Geometry Graph");
+	       {_,{geom,N}} ->
+		   ?__(2,"Geometry Graph #") ++ integer_to_list(N);
+	       _ -> ignore
+	   end,
+    if Name =:= ignore -> [];
+       true ->
+	    [{?__(3,"Outliner"),outliner,
+	      ?__(4,"Open the outliner window (showing materials and objects)")},
+	     {Name,object,
+	      ?__(5,"Open a Geometry Graph window (showing objects)")},
+	     {?__(6,"Palette"), palette,?__(7,"Open the color palette window")},
+	     {?__(12,"Tweak Palette"), tweak_palette,
+	      ?__(13,"Open palettes from which tweak tools may be selected or bound to modifier keys")},
+	     separator,
+	     {?__(8,"New Geometry Window"),geom_viewer, ?__(9,"Open a new Geometry window")},
+	     {?__(10,"Log Window"),console,?__(11,"Open a log window for information messages")}]
+    end.
 
 tool_dirs(Tool) ->
     Help = case Tool of
@@ -996,11 +1067,11 @@ tool_dirs(Tool) ->
 
 patches() ->
     case wings_start:get_patches() of
-    none -> [];
-    {enabled,Desc} ->
-        [separator,{?__(1,"Use ")++Desc,disable_patches,[crossmark]}];
-    {disabled,Desc} ->
-        [separator,{?__(1,"Use ")++Desc,enable_patches}]
+	none -> [];
+	{enabled,Desc} ->
+	    [separator,{?__(1,"Use ")++Desc,disable_patches,[{crossmark, true}]}];
+	{disabled,Desc} ->
+	    [separator,{?__(1,"Use ")++Desc,enable_patches,[{crossmark, false}]}]
     end.
 
 set_temp_sel(#st{sh=Sh,selmode=Mode}, St) ->
@@ -1012,26 +1083,12 @@ clear_temp_sel(#st{temp_sel={Mode,Sh}}=St) ->
 
 
 purge_undo(St) ->
-    This = wings_wm:this(),
     {Un,Rn} = wings_undo:info(St),
-    Qs = {vframe,
-         [{label,?__(1,"Undo states: ") ++ integer_to_list(Un)},
-          {label,?__(2,"Redo states: ")  ++ integer_to_list(Rn)},
-       separator|
-       if
-           Un+Rn =:= 0 ->
-           [{label,?__(3,"Nothing to remove")},
-            {hframe,[{button,ok}]}];
-           true ->
-           [{label,?__(4,"Remove all states (NOT undoable)?")},
-            {hframe,[{button,wings_s:yes(),
-                  fun(_) ->
-                      Action = {action,{edit,confirmed_purge_undo}},
-                      wings_wm:send(This, Action)
-                  end},
-                 {button,wings_s:no(),cancel,[cancel]}]}]
-       end]},
-    wings_ask:dialog("", Qs, fun(_) -> ignore end).
+    Qs = [{vframe,
+	   [{label,?__(1,"Undo states: ") ++ integer_to_list(Un)},
+	    {label,?__(2,"Redo states: ")  ++ integer_to_list(Rn)}]}],
+    wings_dialog:dialog("Purge Undo", Qs,
+			fun(_) -> {edit,confirmed_purge_undo} end).
 
 info(#st{sel=[]}) ->
     [],
@@ -1489,32 +1546,16 @@ do_use_command(#mousebutton{x=X,y=Y}, Cmd0, #st{sel=[]}=St0) ->
     end;
 do_use_command(_, Cmd, _) -> wings_wm:later({action,Cmd}).
 
-crash_logger(Crash, St) ->
+crash_logger(Crash) ->
     LogName = wings_u:crash_log(geom, Crash),
-    get_crash_event(LogName, St).
+    crash_dialog(LogName).
 
-get_crash_event(Log, St) ->
-    wings_wm:dirty(),
-    {replace,fun(Ev) -> crash_handler(Ev, Log, St) end}.
-
-crash_handler(redraw, Log, _St) ->
-    wings_wm:clear_background(),
-    wings_io:ortho_setup(),
-    wings_io:text_at(10, 2*?LINE_HEIGHT,
-             ?__(1,
-              "Internal error - log written to") ++
-             " " ++ Log),
-    wings_io:text_at(10, 4*?LINE_HEIGHT,
-             ?__(2,
-              "Click a mouse button to continue working")),
-    wings_msg:button(?__(3,"Continue working")),
-    keep;
-crash_handler(#mousebutton{}, _, St) ->
-    wings_wm:message(""),
-    wings_wm:menubar(wings_wm:this(), get(wings_menu_template)),
-    main_loop(St);
-crash_handler(_, Log, St) ->
-    get_crash_event(Log, St).
+crash_dialog(LogName) ->
+    Parent = wings_dialog:get_dialog_parent(),
+    Str = ?__(1, "Internal error - log written to") ++ " " ++ LogName,
+    Dialog = wxMessageDialog:new(Parent, Str, [{caption,"Internal Error"}]),
+    wxMessageDialog:showModal(Dialog),
+    wings_dialog:reset_dialog_parent(Dialog).
 
 %%%
 %%% Drag & Drop.
@@ -1587,18 +1628,22 @@ save_windows_1([]) -> [].
 
 save_window(Name, Ns) ->
     {MaxX,MaxY} = wings_wm:win_size(desktop),
-    {PosX0,PosY0} = case Name of
-      {tweak, Palette} ->
-        wings_wm:win_ul({tweak, Palette});
-      _ ->
-        wings_wm:win_ur({controller,Name})
-    end,
-    PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
-    PosY = if PosY0 < 0 -> 20; PosY0 > MaxY -> 20; true -> PosY0 end,
+    Pos = case wings_wm:is_wxwindow(Name) of
+	      true  -> wings_wm:win_ul(Name);
+	      false ->
+		  {PosX0,PosY0} = case Name of
+				      {tweak, Palette} ->
+					  wings_wm:win_ul({tweak, Palette});
+				      _ ->
+					  wings_wm:win_ur({controller,Name})
+				  end,
+		  PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
+		  PosY = if PosY0 < 0 -> 20; PosY0 > MaxY -> 20; true -> PosY0 end,
+		  {PosX,PosY}
+	  end,
     Size = wings_wm:win_size(Name),
     Rollup = {rollup, wings_wm:win_rollup(Name)},
-    W = {Name, {PosX,PosY}, Size, [Rollup]},
-    [W|save_windows_1(Ns)].
+    [{Name, Pos, Size, [Rollup]}|save_windows_1(Ns)].
 
 save_geom_window(Name, Ns) ->
     {Pos,Size} = wings_wm:win_rect(Name),
@@ -1623,16 +1668,9 @@ save_geom_props([], Acc) -> Acc.
 
 save_plugin_window(Name, Ns) ->
     case wings_plugin:get_win_data(Name) of
-      {M, {HAlign,CtmData}} when (HAlign=:=left) orelse (HAlign=:=right) ->
-        {MaxX,MaxY} = wings_wm:win_size(desktop),
-        {PosX0,PosY0} = case HAlign of
-            left -> wings_wm:win_ul({controller,Name});
-            right -> wings_wm:win_ur({controller,Name})
-        end,
-        PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
-        PosY = if PosY0 < 0 -> 20; PosY0 > MaxY -> 20; true -> PosY0 end,
-        Size = wings_wm:win_size(Name),
-        WinInfo = {M, {Name, {PosX,PosY}, Size, CtmData}},
+      {M, {_,CtmData}} ->
+        {Pos,Size} = wings_wm:win_rect(Name),
+        WinInfo = {M, {Name, Pos, Size, CtmData}},
         [WinInfo|save_windows_1(Ns)];
       _ ->
         save_windows_1(Ns)
@@ -1673,7 +1711,8 @@ restore_windows_1([{{geom,_}=Name,Pos0,Size,Ps0}|Ws], St) ->
 restore_windows_1([{Name,Pos,Size}|Ws0], St) -> % OldFormat
     restore_windows_1([{Name,Pos,Size,[]}|Ws0], St);
 restore_windows_1([{Module,{{plugin,_}=Name,{_,_}=Pos,{_,_}=Size,CtmData}}|Ws], St) ->
-	wings_plugin:restore_window(Module, Name, validate_pos(Pos), Size, CtmData, St),
+	wings_plugin:restore_window(Module, Name, Pos, Size, CtmData, St),
+    wings_wm:move(Name, Pos, Size),  % ensure the window be placed in the right position *
     restore_windows_1(Ws, St);
 restore_windows_1([{{object,_}=Name,{_,_}=Pos,{_,_}=Size,Ps}|Ws], St) ->
     wings_shape:window(Name, validate_pos(Pos), Size, Ps, St),
@@ -1720,6 +1759,9 @@ move_windows([{Name,Pos,_}|Windows]) ->
 move_windows([{Name,Pos,_,_}|Windows]) ->
     move_windows_1(Name, Pos),
     move_windows(Windows);
+move_windows([{_Module,{{plugin,_}=Name,Pos,_,_}}|Windows]) ->
+    move_windows_1(Name, Pos),
+    move_windows(Windows);
 move_windows([]) -> ok.
 
 move_windows_1(geom,Pos) ->
@@ -1728,8 +1770,10 @@ move_windows_1({geom,_}=Name,Pos) ->
     wings_wm:move(Name,Pos);
 move_windows_1({tweak, _}=Name,Pos) ->
     wings_wm:move(Name,Pos);
+move_windows_1({plugin,_}=Name,Pos) ->
+    wings_wm:move(Name,Pos);
 move_windows_1(Name,{X,Y}) ->
-    case wings_wm:is_window(Name) of
+    case wings_wm:is_window(Name) andalso not wings_wm:is_wxwindow(Name) of
       true ->
         {W,H} = wings_wm:win_size({controller,Name}),
         wings_wm:move(Name,{X-W,Y+H});
@@ -1746,11 +1790,12 @@ geom_pos({X,Y}=Pos) ->
              Upper0+ToolbarH
          end,
     {_,TitleH} = wings_wm:win_size({controller,geom}),
-    {_,MenuBarH} = wings_wm:win_size({menubar,geom}),
-    case Upper1 + TitleH + MenuBarH of
-    Upper when Y < Upper -> 
-      {X,Upper};
-    _ -> Pos
+    %% {_,MenuBarH} = wings_wm:win_size({menubar,geom}),
+    %%case Upper1 + TitleH + MenuBarH of
+    case Upper1 + TitleH of
+	Upper when Y < Upper ->
+	    {X,Upper};
+	_ -> Pos
     end.
 
 geom_props(B) when B == false; B == true ->
@@ -1817,7 +1862,7 @@ area_volume_info(St) ->
             D = lists:max([length(D) || {{_,_},{_,_},{_,_},{_,D}} <- Rows]) + 4,
             Qs = [{table,[{" #"," Name"," Area"," Volume"}|Rows],[{col_widths,{A,B,C,D}}]}],
             Ask = fun(_Res) -> ignore end,
-            wings_ask:dialog(?__(5,"Scene Info: Area & Volume"), Qs, Ask)
+            wings_dialog:dialog(?__(5,"Scene Info: Area & Volume"), Qs, Ask)
     end.
 
 get_object_info(Id, Shapes) ->
@@ -1829,8 +1874,8 @@ get_object_info(Id, Shapes) ->
     Volume =lists:sum([V || {_,V} <- Both]),
     ToString = fun(Item) ->
 	case Item of
-	    Item when is_float(Item), Item < 1.0 ->
-		Decimals = 1 - round(math:log10(Item)-0.5),
+	    Item when is_float(Item), Item < 1.0, Item =/= 0.0 ->
+		Decimals = 1 - round(math:log10(abs(Item))-0.5),
 		if Decimals > 8 -> "0.00000";
 		   true -> lists:flatten(io_lib:format("~10.*f", [Decimals, Item]))
 		end;
@@ -1896,8 +1941,8 @@ menu_toolbar_action({menu_toolbar, {B, OrigXY, Side}}, #st{selmode=Mode}=St)
       {history,4} -> {edit,redo};
       {history,5} -> {edit,undo};
       {edge,B} when Mode =:= edge ->
-          C = wings_io:is_modkey_pressed(?KMOD_CTRL),
-          A = wings_io:is_modkey_pressed(?KMOD_ALT),
+          C = wings_io:is_modkey_pressed(?CTRL_BITS),
+          A = wings_io:is_modkey_pressed(?ALT_BITS),
           case B of
             4 when C -> {select,{edge_loop,edge_link_incr}};
             4 when A -> {select,{edge_loop,edge_ring_incr}};
@@ -1915,14 +1960,6 @@ menu_toolbar_action({menu_toolbar, {B, OrigXY, Side}}, #st{selmode=Mode}=St)
         wings_wm:send_after_redraw(geom, {menu_toolbar,OrigXY}),
         do_command(Cmd, none, St#st{temp_sel=none})
     end;
-menu_toolbar_action({menu_toolbar,{{X,_},Cmd,St}}, _St) ->
-    Menu =  case Cmd of
-        select -> wings_sel_cmd:menu(St#st{temp_sel=none});
-        tools -> tools_menu(St#st{temp_sel=none})
-    end,
-    {_,X0,Y0} = wings_wm:local_mouse_state(),
-    {_,Y} = wings_wm:local2global(X0, Y0),
-    wings_menu:popup_menu(X, Y + ?LINE_HEIGHT div 2, Cmd, Menu);
 menu_toolbar_action({menu_toolbar,{new_mode,1,OrigXY,Side}}, #st{selmode=Side}=St) ->
     menu_toolbar_action({menu_toolbar,OrigXY}, St);
 menu_toolbar_action({menu_toolbar,{new_mode,B,OrigXY,Side}}, St) ->
@@ -1978,3 +2015,33 @@ menu_toolbar_action({menu_toolbar,{X,_}}, St) ->
         {_,Y} = wings_wm:local2global(X0, Y0),
         popup_menu(X, Y + ?LINE_HEIGHT div 2, St)
     end.
+
+%% Garbage collection works too good sometimes and data
+%% sent to opengl can be garbage collected before it is 
+%% used in consecutiv calls.
+%% Specially now that a multithreaded emulator is used,
+%% and the calls to the driver are buffered until the 
+%% gui thread is scheduled in.
+%% To be able keep the data alive we send it to another process,
+%% instead of keeping the transient data in some datastructures.
+%% Invoke release_all after each frame is drawn so we can release the data.
+
+keep(Data) ->
+    wings_keeper ! {keep, Data},
+    ok.
+
+release_all() ->
+    wings_keeper ! release_all,
+    ok.
+
+keeper(Kept) ->
+    receive 
+	{keep, Data} ->
+	    keeper([Data|Kept]);
+	release_all ->
+	    %% Do a sync call to gui thread when it returns
+	    %% we know all previous calls have been done
+	    _ = wings_io:is_key_pressed($\s),
+	    keeper([])
+    end.
+	    

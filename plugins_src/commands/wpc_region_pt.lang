@@ -1,19 +1,19 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_region,
  [
   {menu,
    [
-    {1,"Região"},
-    {2,"Move uma região ao longo da perpendicular de sua seqüência de arestas."},
-    {3,"Região"},
-    {4,"Altera a Escala de uma região a partir do plano de sua seqüência de arestas."},
-    {5,"Região"},
-    {6,"Gira uma região a partir da perpendicular de sua seqüência de arestas."},
-    {7,"Região"},
-    {8,"Achata uma região de acordo com a perpendicular de sua seqüência de arestas."}
+    {1,"RegiÃ£o"},
+    {2,"Move uma regiÃ£o ao longo da perpendicular de sua seqÃ¼Ãªncia de arestas."},
+    {3,"RegiÃ£o"},
+    {4,"Altera a Escala de uma regiÃ£o a partir do plano de sua seqÃ¼Ãªncia de arestas."},
+    {5,"RegiÃ£o"},
+    {6,"Gira uma regiÃ£o a partir da perpendicular de sua seqÃ¼Ãªncia de arestas."},
+    {7,"RegiÃ£o"},
+    {8,"Achata uma regiÃ£o de acordo com a perpendicular de sua seqÃ¼Ãªncia de arestas."}
    ]},
   {region_error,
    [
-    {1,"Cada região deve ter exatamente uma seqüência de arestas."}
+    {1,"Cada regiÃ£o deve ter exatamente uma seqÃ¼Ãªncia de arestas."}
    ]}
  ]}.

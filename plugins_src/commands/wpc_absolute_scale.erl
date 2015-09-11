@@ -198,67 +198,72 @@ selection_ask([target|Rest],Ask) ->
 
 draw_window({{_,{CX,CY,CZ}}, {_, SugCenter}, {_,{SX,SY,SZ}=Size}, {_, {SugX, SugY, SugZ}}, {_,Whole}, {_,Single}}, Sel, St) ->
     Frame1 = [{hframe,
-                 [draw_window1(size, {{SX,SY,SZ},{SugX,SugY,SugZ}}),
-                  draw_window1(aspect, {SX,SY,SZ}),
-                  draw_window1(center, {CX,CY,CZ})]}],
+	       [draw_window1(size, {{SX,SY,SZ},{SugX,SugY,SugZ}}),
+		draw_window1(aspect, {SX,SY,SZ}),
+		draw_window1(center, {CX,CY,CZ})]}],
     Frame2 = if
-                  Whole == ask -> [draw_window1(whole, Single)];
-                  true -> []
-              end,
+		 Whole == ask -> [draw_window1(whole, Single)];
+		 true -> []
+	     end,
     Frame3 = if
-                  SugCenter == none -> [];
-                  true -> [draw_window1(sugc, true)]
-              end,
+		 SugCenter == none -> [];
+		 true -> [draw_window1(sugc, true)]
+	     end,
     Frame = [{vframe, Frame1 ++ Frame2 ++ Frame3}],
     Name = draw_window1(name,default),
-    wings_ask:dialog(Name, {preview,Frame},
-       fun
-           ({dialog_preview,Scale}) ->
-               {preview,St,translate(Scale,SugCenter,Size,Sel,St)};
-           (cancel) -> St;
-           (Scale) ->
-               {commit,St,translate(Scale,SugCenter,Size,Sel,St)}
-       end).
+    wings_dialog:dialog(Name, {preview,Frame},
+			fun
+			    ({dialog_preview,Scale}) ->
+			       {preview,St,translate(Scale,SugCenter,Size,Sel,St)};
+			    (cancel) -> St;
+			    (Scale) ->
+			       {commit,St,translate(Scale,SugCenter,Size,Sel,St)}
+		       end).
 
 draw_window1(name,_) ->
     ?__(1,"Absolute scale options");
 draw_window1(size, {{X,Y,Z},{SugX,SugY,SugZ}}) ->
     {vframe,[
         {hframe,[{label,?__(2,"Set new size")++":"}]},
-        {hframe,[{label,"X:"},{text,SugX,[{key,sx},disable(X,0.0)]}]},
-        {hframe,[{label,"Y:"},{text,SugY,[{key,sy},disable(Y,0.0)]}]},
-        {hframe,[{label,"Z:"},{text,SugZ,[{key,sz},disable(Z,0.0)]}]}
+        {label_column,[
+            {"X:",{text,SugX,[{key,sx},disable(X==0.0)]}},
+            {"Y:",{text,SugY,[{key,sy},disable(Y==0.0)]}},
+            {"Z:",{text,SugZ,[{key,sz},disable(Z==0.0)]}}
+        ]}
     ]};
 draw_window1(center,{X,Y,Z}) ->
     {vframe,[
         {hframe,[{label,?__(3,"Set scale center")++":"}]},
-        {hframe,[{label,"X:"},{text,X,[{key,cx},disable(sugc,true)]}]},
-        {hframe,[{label,"Y:"},{text,Y,[{key,cy},disable(sugc,true)]}]},
-        {hframe,[{label,"Z:"},{text,Z,[{key,cz},disable(sugc,true)]}]}
+        {label_column,[
+             {"X:",{text,X,[{key,cx}]}},
+             {"Y:",{text,Y,[{key,cy}]}},
+             {"Z:",{text,Z,[{key,cz}]}}
+        ]}
     ]};
 draw_window1(aspect,{X,Y,Z}) ->
     {vframe,[
-        {hframe,[{label,?__(6,"Link")++":"}]},
-        {hframe,[{"",false,[{key,ax},disable(X,0.0)]}]},
-        {hframe,[{"",false,[{key,ay},disable(Y,0.0)]}]},
-        {hframe,[{"",false,[{key,az},disable(Z,0.0)]}]}
+        {hframe,[{label,"   " ++ ?__(6,"Link")++":"}]},
+        {label_column,[
+            {" ",{hframe,[{"",false,[{key,ax},disable(X==0.0)]}],[{border, 3}]}},
+            {" ",{hframe,[{"",false,[{key,ay},disable(Y==0.0)]}],[{border, 3}]}},
+            {" ",{hframe,[{"",false,[{key,az},disable(Z==0.0)]}],[{border, 3}]}}
+        ]}
     ]};
 draw_window1(whole,true) ->
     {?__(4,"Scale whole object"),false,[{key,whole}]};
 draw_window1(whole,false) ->
     {?__(5,"Scale whole objects"),false,[{key,whole}]};
 draw_window1(sugc,_) ->
-    {?__(7,"Fit selection to target"),false,[{key,sugc}]}.
+    {?__(7,"Fit selection to target"),false,
+     [{key,sugc}, {hook, fun disable/3}]}.
 
-disable(sugc,_) ->
-    {hook, fun (is_disabled, {_Var,_I,Store}) ->
-                   gb_trees:is_defined(sugc,Store) andalso gb_trees:get(sugc, Store);
-               (_, _) -> void
-           end};
-disable(X,Value) ->
-    {hook, fun (is_disabled, _) -> X == Value;
-               (_, _) -> void
-           end}.
+disable(sugc, Bool, Store) ->
+    _ = [wings_dialog:enable(Key, not Bool, Store) || Key <- [cx,cy,cz]].
+
+disable(Bool) ->
+    {hook, fun(Key, _, Store) ->
+		   wings_dialog:enable(Key, not Bool, Store)
+	   end}.
 
 checkChained(Data) -> 
     [{_,Factor}|_]=lists:keysort(1,checkChained(Data, [{0.0,1.0}])),

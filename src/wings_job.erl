@@ -262,7 +262,7 @@ lowercase([C|T]) ->
 %% elapsed times to match the render function printout.
 %%
 export_done(ExportTS) ->
-    RenderTS = erlang:now(),
+    RenderTS = os:timestamp(),
     io:format("Export time:     ~s~n", 
 	      [wings_job:timestr(RenderTS, ExportTS)]),
     ok.
@@ -272,7 +272,7 @@ export_done(ExportTS) ->
 %%   Handler(Error) -> Error.
 %%
 render(ExportTS, Renderer, ArgStr, PortOpts, Handler) ->
-    RenderTS = erlang:now(),
+    RenderTS = os:timestamp(),
        case altname(Renderer) of
 	   {error,_}=Error ->
 	       io:format("~nRenderer ~p not found: ~p~n", 
@@ -284,7 +284,7 @@ render(ExportTS, Renderer, ArgStr, PortOpts, Handler) ->
 		   fun (ExitStatus) ->
 			   io:format("~nRendering Job returned: ~p~n", 
 				     [ExitStatus]),
-			   FinishTS = erlang:now(),
+			   FinishTS = os:timestamp(),
 			   io:format("Export time:     ~s~n"++
 				     "Render time:     ~s~n"++
 				     "Total time:      ~s~n",
@@ -474,7 +474,7 @@ timestr_us(Us) ->
 %% the event of an OS restart if called not more often than once
 %% a second provided that an OS restart takes more than one second.
 uniqstr() ->
-    {Ms,S,_} = now(),
+    {Ms,S,_} = os:timestamp(),
     os:getpid()++"-"++uniqstr(Ms*1000000 + S).
 %%
 -define(UNIQBASE, (10+$Z-$A+1)).

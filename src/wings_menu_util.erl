@@ -379,11 +379,12 @@ dir_help_1(_, _) -> "".
 crossmark(Key) ->
     Val = case wings_pref:get_value(Key) of
 	      undefined ->
-		  {_,Client} = wings_wm:this(),
-		  wings_wm:get_prop(Client, Key);
+		  case wings_wm:this() of
+		      Client = {autouv, _} ->
+			  wings_wm:get_prop(Client, Key);
+		      {_,Client} ->
+			  wings_wm:get_prop(Client, Key)
+		  end;
 	      Other -> Other
 	  end,
-    case Val of
-	false -> [];
-	true -> [crossmark]
-    end.
+    [{crossmark, Val}].

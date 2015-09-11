@@ -17,16 +17,12 @@ run all plug-ins and to build an installation package.
 
 - The Wings source files. http://www.wings3d.com
 
-- Erlang/OTP R16B01 or later. http://www.erlang.org
-
-- SDL development library. http://www.libsdl.org.
-  (There are pre-built libraries for most platforms.)
-
-- ESDL. http://github.com/dgud/esdl
+- Erlang/OTP 18.1 or later. http://www.erlang.org
+-- Preferably compiled against wxWidgets-3.0.2 or later.
 
 - CL. http://github.com/tonyrog/cl
 
-- rebar (needed for building ESDL and CL).
+- rebar (needed for building CL).
 
 - A GNU compatible "make" program. Included with most unix-like
   systems; otherwise get it from http://www.gnu.org.
@@ -43,11 +39,9 @@ Summary of build process
 The following is a quick summary of the build process.
 
 * Download and install Erlang/OTP.
-* Download and install SDL.
 * Install OpenGL header files (if needed).
 * Install rebar.
 * Setup $ERL_LIBS.
-* Download and install ESDL.
 * Download and build cl.
 * Download and unpack the Wings source file.
 * Run "make".
@@ -72,38 +66,6 @@ Floating point exceptions have caused Wings to crash occasionally.
 When you have built Erlang/OTP, modify the PATH environment variable
 so that the "erl" and "erlc" programs can be started from a shell prompt.
 
-Installing SDL
-==============
-
-Install SDL, if not already installed. On Linux systems, the SDL may be
-already pre-installed. You'll probably need to install header files,
-though, by installing the "SDL-devel" package.
-
-Make sure that the "sdl-config" program is found in PATH.
-
-I build SDL from source, using the following configure commands:
-
-./configure --disable-video-aalib --disable-video-directfb --prefix=$HOME
-make
-make install
-
-That will install the library and header files in my home directory,
-not disturbing the pre-installed SDL libraries installed in the system.
-
-The --disable-video-aalib option disables use of aalib, to avoid problems
-running the built Wings on other Linux distributions that don't have
-aalib. I use --disable-video-directfb because the directfb stuff
-caused build problems and it is not required by Wings anyway.
-
-Installing OpenGL header files
-==============================
-
-Even though OpenGL support comes pre-installed in many Linux distributions,
-you may need to install header files to be able to succefully compile
-ESDL.
-
-For instance, in openSuse you'll need to install the "mesa-devel" package.
-
 Installing rebar
 ================
 
@@ -125,24 +87,7 @@ Example:
 
    export ERL_LIBS=/Users/bjorng/src
 
-Installing ESDL
-===============
-
-Make sure that the "sdl-config" program can be found in PATH.
-Verify like this:
-
-   which sdl-config
-   sdl-config --libs
-
-Download and build like this:
-
-   cd $ERL_LIBS
-   git clone https://github.com/dgud/esdl.git
-   cd esdl
-   rebar compile
-
-
-Installing CL 
+Installing CL
 ===============
 
 Download and build like this:
@@ -278,11 +223,6 @@ you'll need the following additional software:
 
 - makeself.sh for building the installation package
   (a self-extractable bzip2 archive). http://megastep.org/makeself
-
-- libjpeg for build the jpeg plug-in. libjpeg is pre-installed in most Linux
-  distributions. You'll probably need to install header files, though, by
-  installing the package libjpg-devel. Otherwise, get the sources from:
-  http://www.ijg.org
 
 Make sure that your current directory is the directory in which the
 sources were unpacked.

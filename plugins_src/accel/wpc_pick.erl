@@ -47,23 +47,27 @@
 -define(FL, 32/native-float).
 
 init() ->
-    Dir = filename:dirname(code:which(?MODULE)),
-    Name = "wings_pick_drv",
-    case erl_ddll:load_driver(Dir, Name) of
-	ok -> ok;
-	{error,Reason} ->
-	    io:format("Failed to load ~s in ~s\n~s\n",
-		      [Name,Dir,erl_ddll:format_error(Reason)]),
-	    erlang:halt()
+    case get(wings_not_running) of
+	undefined ->
+	    Dir = filename:dirname(code:which(?MODULE)),
+	    Name = "wings_pick_drv",
+	    case erl_ddll:load_driver(Dir, Name) of
+		ok -> ok;
+		{error,Reason} ->
+		    io:format("Failed to load ~s in ~s\n~s\n",
+			      [Name,Dir,erl_ddll:format_error(Reason)]),
+		    erlang:halt()
+	    end,
+	    try
+		Port = open_port({spawn_driver,Name}, [binary]),
+		register(wings_pick_port, Port)
+	    catch error:_ ->
+		    io:format("Failed to open port ~s.\n", [Name]),
+		    erlang:halt()
+	    end;
+	_ ->
+	    ignore
     end,
-    try
-	Port = open_port({spawn_driver,Name}, [binary]),
-	register(wings_pick_port, Port)
-    catch error:_ ->
-	io:format("Failed to open port ~s.\n", [Name]),
-	erlang:halt()
-    end,
-
     false.
 
 %% pick_matrix(X, Y, Xs, Ys, ViewPort) -> PickMatrix
@@ -71,16 +75,11 @@ init() ->
 %%  but with a diffrent viewing volume (the cube (0...1)^3
 %%  instead of (-1...1)^3).
 %%
-%%  Typical use:
-%%
-%%    gl:loadIdentity(),
-%%    wpc_pick:pick_matrix(...),
-%%    glu:perspective(...).
-%%
 pick_matrix(X, Y, Xs, Ys, ViewPort) ->
-    gl:translatef(0.5, 0.5, 0.5),
-    gl:scalef(0.5, 0.5, 0.5),
-    glu:pickMatrix(X, Y, Xs, Ys, ViewPort).
+    M0 = e3d_transform:translate(e3d_transform:identity(), {0.5, 0.5, 0.5}),
+    M1 = e3d_transform:scale(M0, {0.5,0.5,0.5}),
+    Pick = e3d_transform:pick(X, Y, Xs, Ys, ViewPort),
+    e3d_transform:mul(M1, Pick).
 
 %% matrix(ModelViewMatrix, ProjectionMatrix)
 %%  Set the matrix to use for picking by combining the model

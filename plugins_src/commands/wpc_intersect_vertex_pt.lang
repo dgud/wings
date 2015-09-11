@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_intersect_vertex,
  [
   {adv_submenu,
@@ -9,28 +9,28 @@
    ]},
   {intersect,
    [
-    {1,"Linha e plano est„o em estreito paralelismo::\nimpossÌvel achar a interseÁ„o."}
+    {1,"Linha e plano est√£o em estreito paralelismo::\nimposs√≠vel achar a interse√ß√£o."}
    ]},
   {menu_item,
    [
-    {1,"InterseÁ„o"},
+    {1,"Interse√ß√£o"},
     {2,"Permanecer sobre a linha"},
-    {3,"Move vÈrtice ao longo da LINHA de direÁ„o escolhida para interseÁ„o com o PLANO escolhido"},
+    {3,"Move v√©rtice ao longo da LINHA de dire√ß√£o escolhida para interse√ß√£o com o PLANO escolhido"},
     {4,"Permanece no plano"},
-    {5,"Move vÈrtice ao longo do PLANO com a perpendicular escolhida para a interseÁ„o com a LINHA escolhida"},
+    {5,"Move v√©rtice ao longo do PLANO com a perpendicular escolhida para a interse√ß√£o com a LINHA escolhida"},
     {6,"Pick all"},
     {7,"Move vertex to intersection of LINE of chosen direction and location with PLANE with chosen normal and location"},
-    {8,"InterseÁ„o"}
+    {8,"Interse√ß√£o"}
    ]},
   {submenu_items,
    [
-    {1,"Escolha a direÁ„o da linha - a linha passara atravÈs do(s) vÈrtice(s) selecionado(s)"},
-    {2,"Escolha o plano para interseÁ„o"},
-    {3,"Escolha a perpendicular do plano - o plano passar· atravÈs do(s) vÈrtice(s) selecionado(s)"},
+    {1,"Escolha a dire√ß√£o da linha - a linha passara atrav√©s do(s) v√©rtice(s) selecionado(s)"},
+    {2,"Escolha o plano para interse√ß√£o"},
+    {3,"Escolha a perpendicular do plano - o plano passar√° atrav√©s do(s) v√©rtice(s) selecionado(s)"},
     {4,"Escolha a linha para interceptar"},
-    {5,"Escolha a direÁ„o da linha"},
-    {6,"Escolha o ponto para a linha passar atravÈs"},
+    {5,"Escolha a dire√ß√£o da linha"},
+    {6,"Escolha o ponto para a linha passar atrav√©s"},
     {7,"Escolha a perpendicular do plano"},
-    {8,"Escolha o ponto para o plano passar atravÈs"}
+    {8,"Escolha o ponto para o plano passar atrav√©s"}
    ]}
  ]}.

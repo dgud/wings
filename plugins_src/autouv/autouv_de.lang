@@ -1,29 +1,29 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {auv_mapping,
  [
   {chart_normal,
    [
-    {1,"Normale für Karte kann nicht berechnet werden."}
+    {1,"Normale fÃ¼r Karte kann nicht berechnet werden."}
    ]},
   {find_axes,
    [
-    {1,"Karte bzw. Schnitte können nicht sphärisch/zylindrisch projiziert werden.\nEs kann nicht festgestellt werden, welche Achse X, Y und Z sein soll.\nAuffalten verwenden oder eine der Projektionsabbildungen."}
+    {1,"Karte bzw. Schnitte kÃ¶nnen nicht sphÃ¤risch/zylindrisch projiziert werden.\nEs kann nicht festgestellt werden, welche Achse X, Y und Z sein soll.\nAuffalten verwenden oder eine der Projektionsabbildungen."}
    ]},
   {get_face_vspos,
    [
-    {1,"Fehler: Fläche ist nicht trianguliert ~p mit ~p Knoten"}
+    {1,"Fehler: FlÃ¤che ist nicht trianguliert ~p mit ~p Knoten"}
    ]},
   {map_chart,
    [
-    {1,"Eine geschlossene Oberfläche kann nicht projiziert werden (Entweder in zwei oder mehr Karten aufteilen oder die Oberfläche an einigen Kanten aufschneiden.)"},
-    {2,"Ein Schnitt in einer geschlossenen Fläche muss aus mindestens zwei Kanten bestehen."},
-    {3,"Mindestens 2 Knoten (pro Karte) müssen ausgewählt sein"},
+    {1,"Eine geschlossene OberflÃ¤che kann nicht projiziert werden (Entweder in zwei oder mehr Karten aufteilen oder die OberflÃ¤che an einigen Kanten aufschneiden.)"},
+    {2,"Ein Schnitt in einer geschlossenen FlÃ¤che muss aus mindestens zwei Kanten bestehen."},
+    {3,"Mindestens 2 Knoten (pro Karte) mÃ¼ssen ausgewÃ¤hlt sein"},
     {4,"Fehler:"},
     {5,"Interner Fehler"}
    ]},
   {map_chart_1,
    [
-    {1,"Numerisches Problem, wahrscheinlich eine fehlerhafte Fläche mit Flächeninhalt null."},
+    {1,"Numerisches Problem, wahrscheinlich eine fehlerhafte FlÃ¤che mit FlÃ¤cheninhalt null."},
     {2,"Interner Fehler:"},
     {3,"Fehler"}
    ]},
@@ -50,7 +50,7 @@
     {1,"Entfalten"},
     {2,"Normal-Projektion"},
     {3,"Kamera-Projektion"},
-    {4,"Sphärische Karte"},
+    {4,"SphÃ¤rische Karte"},
     {5,"Zylindrische Karte"}
    ]},
   {seg_event,
@@ -67,7 +67,7 @@
   {seg_init_message,
    [
     {1,"Auswahl"},
-    {2,"Menü anzeigen"}
+    {2,"MenÃ¼ anzeigen"}
    ]},
   {seg_map_charts,
    [
@@ -75,7 +75,7 @@
     {2,"segmentiere"},
     {3,"normalisiere"},
     {4,"schneide"},
-    {5,"Keine abbildbaren Flächen."},
+    {5,"Keine abbildbaren FlÃ¤chen."},
     {6,"abbilden"}
    ]},
   {seg_map_charts_1,
@@ -84,10 +84,10 @@
    ]},
   {seg_mode_menu,
    [
-    {1,"Kanten für Schnitt markieren"},
+    {1,"Kanten fÃ¼r Schnitt markieren"},
     {2,"Kanten-Markierung aufheben"},
-    {3,"Markierte Kanten auswählen"},
-    {4,"Flächen ignorieren"},
+    {3,"Markierte Kanten auswÃ¤hlen"},
+    {4,"FlÃ¤chen ignorieren"},
     {5,"Auswahl"}
    ]}
  ]}.
@@ -99,11 +99,11 @@
    ]},
   {draw_options,
    [
-    {1,"Größe"},
+    {1,"GrÃ¶ÃŸe"},
     {2,"Render"},
     {3,"Zeichnen Optionen"},
     {4,"Neuer Durchgang"},
-    {5,"Unbenutzte Durchgänge löschen"}
+    {5,"Unbenutzte DurchgÃ¤nge lÃ¶schen"}
    ]},
   {options,
    [
@@ -125,30 +125,30 @@
    [
     {1,"Keine"},
     {2,"Kanten zeichnen"},
-    {3,"Flächen zeichnen"}
+    {3,"FlÃ¤chen zeichnen"}
    ]}
  ]}.
 {wpc_autouv,
  [
   {align_error,
    [
-    {1,"Zwei Knoten oder eine Kante auswählen"}
+    {1,"Zwei Knoten oder eine Kante auswÃ¤hlen"}
    ]},
   {auv_menu,
    [
     {1,"UV Abbildung"},
     {2,"UV Abbildung oder Textur erzeugen"},
-    {3,"Segmentier-Modus erzwingen (alte Segmente löschen)"},
+    {3,"Segmentier-Modus erzwingen (alte Segmente lÃ¶schen)"},
     {25,"Objekt(e) neu segmentieren"}
    ]},
   {command_menu,
    [
     {2,"Verschieben"},
-    {3,"Ausgewählte Karten verschieben"},
+    {3,"AusgewÃ¤hlte Karten verschieben"},
     {4,"Skalieren"},
-    {5,"Ausgewählte Karten verschieben"},
+    {5,"AusgewÃ¤hlte Karten verschieben"},
     {6,"Rotieren"},
-    {7,"Ausgewählte Karten rotieren"},
+    {7,"AusgewÃ¤hlte Karten rotieren"},
     {8,"Verschieben nach"},
     {9,"Zentrieren"},
     {10,"Zum Zentrum verschieben"},
@@ -170,13 +170,13 @@
     {26,"Auswahl horizontal umdrehen"},
     {27,"Vertikal"},
     {28,"Auswahl vertikal umdrehen"},
-    {29,"Ausgewählte Karten umdrehen"},
+    {29,"AusgewÃ¤hlte Karten umdrehen"},
     {30,"Straffen"},
     {31,"UV-Koordinaten auf gemeinsamen Mittelpunkt verschieben"},
     {32,"Verbergen"},
-    {33,"Ausgewählte Karten verbergen, aber UV-Koordinaten beibehalten"},
-    {34,"Löschen"},
-    {35,"UV-Koordinaten ausgewählter Karten löschen"},
+    {33,"AusgewÃ¤hlte Karten verbergen, aber UV-Koordinaten beibehalten"},
+    {34,"LÃ¶schen"},
+    {35,"UV-Koordinaten ausgewÃ¤hlter Karten lÃ¶schen"},
     {36,"UV neu abbilden"},
     {37,"Ausdehnung optimieren"},
     {38,"Ausdehnung der Karte optimieren"},
@@ -184,63 +184,63 @@
     {40,"Karte entfalten"},
     {41,"Normalprojektion"},
     {42,"UVs von der Karten-Normalen projizieren"},
-    {43,"Sphärisch"},
-    {44,"Sphärische Abbildung"},
-    {45,"UV-Koordinaten mit gewähltem Algorithmus berechnen"},
+    {43,"SphÃ¤risch"},
+    {44,"SphÃ¤rische Abbildung"},
+    {45,"UV-Koordinaten mit gewÃ¤hltem Algorithmus berechnen"},
     {47,"Verschieben"},
-    {48,"Ausgewählte Flächen verschieben"},
+    {48,"AusgewÃ¤hlte FlÃ¤chen verschieben"},
     {49,"Skalieren"},
-    {50,"Ausgewählte Flächen skalieren"},
+    {50,"AusgewÃ¤hlte FlÃ¤chen skalieren"},
     {51,"Rotieren"},
-    {52,"Ausgewählte Flächen rotieren"},
+    {52,"AusgewÃ¤hlte FlÃ¤chen rotieren"},
     {53,"Frei"},
     {54,"Auswahl frei rotieren"},
     {55,"Karte auf X"},
-    {56,"Karte rotieren und ausgewählte Kante an X-Achse ausrichten"},
+    {56,"Karte rotieren und ausgewÃ¤hlte Kante an X-Achse ausrichten"},
     {57,"Karte auf Y"},
-    {58,"Karte rotieren und ausgewählte Kante an Y-Achse ausrichten"},
+    {58,"Karte rotieren und ausgewÃ¤hlte Kante an Y-Achse ausrichten"},
     {60,"Verschieben"},
-    {61,"Ausgewählte Kanten verschieben"},
+    {61,"AusgewÃ¤hlte Kanten verschieben"},
     {62,"Skalieren"},
-    {63,"Ausgewählte Kanten skalieren"},
+    {63,"AusgewÃ¤hlte Kanten skalieren"},
     {64,"Rotieren"},
     {65,"Rotieren Befehl"},
-    {66,"Vernähen"},
-    {67,"Kanten/Karten vernähen"},
+    {66,"VernÃ¤hen"},
+    {67,"Kanten/Karten vernÃ¤hen"},
     {68,"Aufschneiden"},
-    {69,"Ausgewählte Kanten aufschneiden"},
+    {69,"AusgewÃ¤hlte Kanten aufschneiden"},
     {70,"Frei"},
     {71,"Auswahl frei rotieren"},
     {72,"Karte auf X"},
-    {73,"Karte rotieren und (imaginäre) Kante auf ausgewählte Knoten zur X-Achse ausrichten"},
+    {73,"Karte rotieren und (imaginÃ¤re) Kante auf ausgewÃ¤hlte Knoten zur X-Achse ausrichten"},
     {74,"Karte auf Y"},
-    {75,"Karte rotieren und (imaginäre) Kante auf ausgewählte Knoten zur Y-Achse ausrichten"},
+    {75,"Karte rotieren und (imaginÃ¤re) Kante auf ausgewÃ¤hlte Knoten zur Y-Achse ausrichten"},
     {77,"Verschieben"},
-    {78,"Ausgewählte Knoten verschieben"},
+    {78,"AusgewÃ¤hlte Knoten verschieben"},
     {79,"Skalieren"},
-    {80,"Ausgewählte Knoten skalieren"},
+    {80,"AusgewÃ¤hlte Knoten skalieren"},
     {81,"Rotieren"},
     {82,"Rotieren Befehl"},
     {83,"Ebnen"},
     {84,"Horizontal ebnen"},
     {85,"Vertikal ebnen"},
-    {86,"Ausgewählte Knoten ebnen"},
+    {86,"AusgewÃ¤hlte Knoten ebnen"},
     {87,"Straffen"},
     {88,"UV Koordinaten auf gemeinsamen Mittelpunkt verschieben"},
     {89,"Auffalten"},
-    {90,"Karte auffalten (ohne ausgewählte Knoten zu verschieben)"},
-    {91,"Sphärische Abbildung"},
-    {92,"Sphärische Projektion mit ausgewählten Knoten als Nord-/Südpol erzeugen"},
-    {411,"Größen normalisieren"},
-    {412,"Kartengrößen normalisieren, so das jede Karte ihren korrespondierende 2D Flächeninhalt erhält"},
+    {90,"Karte auffalten (ohne ausgewÃ¤hlte Knoten zu verschieben)"},
+    {91,"SphÃ¤rische Abbildung"},
+    {92,"SphÃ¤rische Projektion mit ausgewÃ¤hlten Knoten als Nord-/SÃ¼dpol erzeugen"},
+    {411,"GrÃ¶ÃŸen normalisieren"},
+    {412,"KartengrÃ¶ÃŸen normalisieren, so das jede Karte ihren korrespondierende 2D FlÃ¤cheninhalt erhÃ¤lt"},
     {521,"Projizieren-entfalten"},
-    {522,"Projiziere ausgewählte Flächen von der Normalen und den Rest der Karte entfalten"},
+    {522,"Projiziere ausgewÃ¤hlte FlÃ¤chen von der Normalen und den Rest der Karte entfalten"},
     {641,"Gleiten"},
     {642,"Kante entlang Nachbarkanten gleiten lassen"},
     {643,"Verteilen"},
     {644,"Horizontal verteilen"},
     {645,"Vertikal verteilen"},
-    {646,"Knoten gleichmäßig verteilen"}
+    {646,"Knoten gleichmÃ¤ÃŸig verteilen"}
    ]},
   {create_window,
    [
@@ -248,27 +248,27 @@
    ]},
   {drag_filter,
    [
-    {1,"Ablegen: Texturbild ändern"}
+    {1,"Ablegen: Texturbild Ã¤ndern"}
    ]},
   {handle_event_3,
    [
     {1,"Auswahl"},
-    {2,"Menü anzeigen"}
+    {2,"MenÃ¼ anzeigen"}
    ]},
   {menu,
    [
     {1,"UV Bearbeitungsfenster"},
-    {2,"UV Bearbeitungsfenster für jedes ausgewählte Objekt öffnen"}
+    {2,"UV Bearbeitungsfenster fÃ¼r jedes ausgewÃ¤hlte Objekt Ã¶ffnen"}
    ]},
   {menubar,
    [
     {1,"Bearbeiten"},
-    {2,"Rückgängig/Wiederherstellen"},
-    {3,"Letzten Befehls rückgängig machen oder wiederherstellen"},
-    {4,"Rückgängig"},
-    {5,"Letzten Befehl rückgängig machen"},
+    {2,"RÃ¼ckgÃ¤ngig/Wiederherstellen"},
+    {3,"Letzten Befehls rÃ¼ckgÃ¤ngig machen oder wiederherstellen"},
+    {4,"RÃ¼ckgÃ¤ngig"},
+    {5,"Letzten Befehl rÃ¼ckgÃ¤ngig machen"},
     {6,"Wiederherstellen"},
-    {7,"Letzten rückgängig-Befehl wiederherstellen"},
+    {7,"Letzten rÃ¼ckgÃ¤ngig-Befehl wiederherstellen"},
     {8,"Ansicht"},
     {9,"Hintergrundbild an/aus"},
     {10,"Anzeige des Textur-Hintergrundbildes umschalten"},
@@ -292,8 +292,8 @@
    ]},
   {reunfold,
    [
-    {1,"Zwei Knoten auswählen, Den Nord- und den Südpol"},
-    {2,"Mindestens zwei Knoten pro Karte müssen festgesteckt sein"},
+    {1,"Zwei Knoten auswÃ¤hlen, Den Nord- und den SÃ¼dpol"},
+    {2,"Mindestens zwei Knoten pro Karte mÃ¼ssen festgesteckt sein"},
     {3,"neu abbilden"},
     {4,"Karte"}
    ]},
@@ -312,7 +312,7 @@
    ]},
   {stitch_charts,
    [
-    {1,"So viele Karten können nicht gleichzeitig vernäht werden"}
+    {1,"So viele Karten kÃ¶nnen nicht gleichzeitig vernÃ¤ht werden"}
    ]},
   {stretch_directions,
    [
@@ -337,12 +337,12 @@
     {3,"Fangen-Modus beenden"},
     {4,"Fangen-Modus beenden"},
     {5,"Bild fangen"},
-    {6,"Hintergrundbild ausgewählten Flächen durch Zuweisung von UV Koordinaten zuweisen"}
+    {6,"Hintergrundbild ausgewÃ¤hlten FlÃ¤chen durch Zuweisung von UV Koordinaten zuweisen"}
    ]},
   {select_image,
    [
-    {1,"Kein Bild verfügbar; zuvor ein Bild importieren."},
-    {2,"Zu fangendes Bild wählen"}
+    {1,"Kein Bild verfÃ¼gbar; zuvor ein Bild importieren."},
+    {2,"Zu fangendes Bild wÃ¤hlen"}
    ]},
   {set_materials,
    [

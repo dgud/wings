@@ -1,20 +1,20 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wings,
  [
   {area_info,
    [
-    {40," Flächeninhalt ~s"}
+    {40," FlÃ¤cheninhalt ~s"}
    ]},
   {area_volume_info,
    [
     {1,"Objektname"},
-    {2,"Fläche"},
+    {2,"FlÃ¤che"},
     {3,"Volumen"},
-    {5,"Szeneninfo: Fläche & Volumen"}
+    {5,"Szeneninfo: FlÃ¤che & Volumen"}
    ]},
   {cannot_repeat,
    [
-    {1,"Wiederholen nicht möglich"}
+    {1,"Wiederholen nicht mÃ¶glich"}
    ]},
   {crash_handler,
    [
@@ -29,18 +29,18 @@
    ]},
   {edit_menu,
    [
-    {1,"Rückgängig Historie löschen um Speicher freizugeben"},
-    {3,"Rückgängig/Wiederherstellen"},
-    {4,"Letzten Befehls rückgängig machen oder wiederherstellen"},
+    {1,"RÃ¼ckgÃ¤ngig Historie lÃ¶schen um Speicher freizugeben"},
+    {3,"RÃ¼ckgÃ¤ngig/Wiederherstellen"},
+    {4,"Letzten Befehls rÃ¼ckgÃ¤ngig machen oder wiederherstellen"},
     {5,"Wiederherstellen"},
-    {6,"Letzten Rückgängig-Befehl wiederherstellen"},
-    {7,"Rückgängig"},
-    {8,"Letzten Befehl rückgängig machen"},
+    {6,"Letzten RÃ¼ckgÃ¤ngig-Befehl wiederherstellen"},
+    {7,"RÃ¼ckgÃ¤ngig"},
+    {8,"Letzten Befehl rÃ¼ckgÃ¤ngig machen"},
     {9,"Wiederholen"},
     {10,"Parameter wiederholen"},
     {11,"Vorgang wiederholen"},
-    {12,"Einstellungen für Erweiterungen"},
-    {13,"Rückgängig Historie leeren"}
+    {12,"Einstellungen fÃ¼r Erweiterungen"},
+    {13,"RÃ¼ckgÃ¤ngig Historie leeren"}
    ]},
   {enhanced_info,
    [
@@ -48,7 +48,7 @@
     {42,"\nAbstand ~s"},
     {43,"Objekt~s"},
     {45,"Differenz ~s"},
-	{48,"Fläche ~s"}
+	{48,"FlÃ¤che ~s"}
    ]},
   {geom_title,
    [
@@ -59,40 +59,40 @@
    [
     {1,"Keine Auswahl"},
     {2,"Ablegen abbrechen"},
-    {3,"Material ausgewählten Flächen zuweisen"},
+    {3,"Material ausgewÃ¤hlten FlÃ¤chen zuweisen"},
     {4,"Material \""},
-    {5,"\" nur ausgewählten Flächen zuweisen"},
-    {6,"Material allen Flächen zuweisen"},
+    {5,"\" nur ausgewÃ¤hlten FlÃ¤chen zuweisen"},
+    {6,"Material allen FlÃ¤chen zuweisen"},
     {7,"Material \""},
-    {8,"\" allen Flächen in Objekten mit einer Auswahl zuweisen"},
-    {9,"Material allen Flächen zuweisen"},
+    {8,"\" allen FlÃ¤chen in Objekten mit einer Auswahl zuweisen"},
+    {9,"Material allen FlÃ¤chen zuweisen"},
     {10,"Material \""},
-    {11,"\" allen Flächen in Objekten mit einer Auswahl zuweisen"}
+    {11,"\" allen FlÃ¤chen in Objekten mit einer Auswahl zuweisen"}
    ]},
   {handle_event_3,
    [
-    {1,"Auswählen"},
-    {2,"Kontextmenü anzeigen"}
+    {1,"AuswÃ¤hlen"},
+    {2,"KontextmenÃ¼ anzeigen"}
    ]},
   {hole_info,
    [
     {1,"Loch"},
-    {2,"Löcher"}
+    {2,"LÃ¶cher"}
    ]},
   {info_1,
    [
-    {1,"Knoten ~p ausgewählt"},
+    {1,"Knoten ~p ausgewÃ¤hlt"},
     {2,"Knoten"},
-    {3,"~p Knoten ausgewählt"},
-    {4,"Kante ~p ausgewählt"},
+    {3,"~p Knoten ausgewÃ¤hlt"},
+    {4,"Kante ~p ausgewÃ¤hlt"},
     {5,"Kanten"},
-    {6,"~p Kanten ausgewählt"},
-    {7,"Fläche ~p ausgewählt"},
-    {8,"Flächen"},
-    {9,"~p Flächen ausgewählt"},
-    {10,"~p Knoten in ~p Objekte ausgewählt"},
-    {11,"~p Kanten in ~p Objekten ausgewählt"},
-    {12,"~p Flächen in ~p Objekte ausgewählt"}
+    {6,"~p Kanten ausgewÃ¤hlt"},
+    {7,"FlÃ¤che ~p ausgewÃ¤hlt"},
+    {8,"FlÃ¤chen"},
+    {9,"~p FlÃ¤chen ausgewÃ¤hlt"},
+    {10,"~p Knoten in ~p Objekte ausgewÃ¤hlt"},
+    {11,"~p Kanten in ~p Objekten ausgewÃ¤hlt"},
+    {12,"~p FlÃ¤chen in ~p Objekte ausgewÃ¤hlt"}
    ]},
   {init_menubar,
    [
@@ -106,12 +106,12 @@
    ]},
   {item_list,
    [
-    {1," ausgewählt"}
+    {1," ausgewÃ¤hlt"}
    ]},
   {measure,
    [
     {1,". Position ~s ~s ~s"},
-    {3,". Mittelpunkt ~s ~s ~s. Länge ~s"},
+    {3,". Mittelpunkt ~s ~s ~s. LÃ¤nge ~s"},
     {4,". Mittelpunkt ~s ~s ~s.\nMaterial ~s."},
     {5,". Abstand ~s  <~s, ~s, ~s>"},
     {6,". Winkel ~s"}
@@ -122,14 +122,14 @@
    ]},
   {purge_undo,
    [
-    {1,"Schritte rückgängig: "},
+    {1,"Schritte rÃ¼ckgÃ¤ngig: "},
     {2,"Schritte wiederherstellen: "},
-    {3,"Keine Schritte zum löschen"},
-    {4,"Alle Schritte löschen (NICHT umkehrbar)?"}
+    {3,"Keine Schritte zum lÃ¶schen"},
+    {4,"Alle Schritte lÃ¶schen (NICHT umkehrbar)?"}
    ]},
   {shape_info,
    [
-    {2,"~p Objekte, ~p Flächen, ~p Kanten, ~p Knoten"},
+    {2,"~p Objekte, ~p FlÃ¤chen, ~p Kanten, ~p Knoten"},
     {new_object_info,"Objekt ~p \"~s\" hat ~p Polygone, ~p Kanten, ~p Knoten~s~s."}
    ]},
   {tools_menu,
@@ -141,33 +141,33 @@
     {12,"Proportional in gespeicherten 3D-Rahmen skalieren"},
     {13,"In gespeicherten 3D-Rahmen verschieben"},
     {14,"Standardachse festlegen"},
-    {15,"Achse für spätere Verwendung mit jedem \"Standardachse\" Befehl "},
-    {16,"(z.B. Skalieren|Standardachse) definieren und speichern (über Referenzpunkt)"},
+    {15,"Achse fÃ¼r spÃ¤tere Verwendung mit jedem \"Standardachse\" Befehl "},
+    {16,"(z.B. Skalieren|Standardachse) definieren und speichern (Ã¼ber Referenzpunkt)"},
     {17,"Virtueller Spiegel"},
     {18,"Erzeugen"},
-    {19,"Virtuellen Spiegel aus ausgewählter Fläche erzeugen"},
+    {19,"Virtuellen Spiegel aus ausgewÃ¤hlter FlÃ¤che erzeugen"},
     {20,"Brechen"},
     {21,"Virtuelle Spiegel von allen Objekten entfernen"},
     {22,"Einfrieren"},
     {23,"Reale Geometrie aus virtuellen Spiegeln erzeugen"},
     {24,"Bildschirmfoto"},
-    {25,"Erstellt ein Abbild des Fensters (kann aus der Inhaltsübersicht exportiert werden)"},
-    {26,"Szeneninfo: Flächeninhalt & Volumen"},
-    {27,"Berechnet Flächeninhalt und Volumen für jedes Objekte in der Szene"},
+    {25,"Erstellt ein Abbild des Fensters (kann aus der InhaltsÃ¼bersicht exportiert werden)"},
+    {26,"Szeneninfo: FlÃ¤cheninhalt & Volumen"},
+    {27,"Berechnet FlÃ¤cheninhalt und Volumen fÃ¼r jedes Objekte in der Szene"},
     {28,"Auf Bodenplatte"},
-    {29,"Ausgewählte Objekte auf die Bodenplatte positionieren"},
+    {29,"AusgewÃ¤hlte Objekte auf die Bodenplatte positionieren"},
     {30,"Vereinheitlichen"},
-    {31,"Ausgewählte Objekte in einheitliche Sphäre einpassen und auf den Ursprung verschieben"},
+    {31,"AusgewÃ¤hlte Objekte in einheitliche SphÃ¤re einpassen und auf den Ursprung verschieben"},
     {32,"3D-Rahmen auf Auswahl verschieben"},
     {33,"3D-Rahmen auf Auswahl skalieren"}
    ]},
   {undo_info,
    [
-    {1,"es gibt keine Rückgängig-Schritte"},
-    {2,"es gibt einen Rückgängig-Schritt"},
-    {3,"es gibt ~p Rückgängig-Schritte"},
-    {4,"; eine Aktion kann rückgängig gemacht werden"},
-    {5,"; ~p Aktionen? können rückgängig gemacht werden"}
+    {1,"es gibt keine RÃ¼ckgÃ¤ngig-Schritte"},
+    {2,"es gibt einen RÃ¼ckgÃ¤ngig-Schritt"},
+    {3,"es gibt ~p RÃ¼ckgÃ¤ngig-Schritte"},
+    {4,"; eine Aktion kann rÃ¼ckgÃ¤ngig gemacht werden"},
+    {5,"; ~p Aktionen? kÃ¶nnen rÃ¼ckgÃ¤ngig gemacht werden"}
    ]},
   {vtx_attributes,
    [
@@ -177,46 +177,29 @@
    [
     {1,"Geometrie Graph"},
     {2,"Geometrie Graph #"},
-    {3,"Inhaltsübersicht"},
-    {4,"Öffnet die Inhaltsübersicht (zeigt Materialien und Objekte)"},
-    {5,"Öffnet die Geometrie Übersicht (zeigt Objekte)"},
+    {3,"InhaltsÃ¼bersicht"},
+    {4,"Ã–ffnet die InhaltsÃ¼bersicht (zeigt Materialien und Objekte)"},
+    {5,"Ã–ffnet die Geometrie Ãœbersicht (zeigt Objekte)"},
     {6,"Farbpalette"},
-    {7,"Öffnet das Farbpaletten-Fenster"},
+    {7,"Ã–ffnet das Farbpaletten-Fenster"},
     {8,"Neues Geometriefenster"},
-    {9,"Öffnet ein neues Geometriefenster"},
+    {9,"Ã–ffnet ein neues Geometriefenster"},
     {10,"Konsole"},
-    {11,"Öffnet ein Konsolenfenster für Informationsmeldungen"}
-   ]}
- ]}.
-{wings_ask,
- [
-  {button_label,
-   [
-    {1,"OK"}
-   ]},
-  {frame_event,
-   [
-    {1,"Diesen Rahmen aufklappen; anderen Rahmen zuklappen"},
-    {2,"Rahmen aufklappen"},
-    {3,"Diesen Rahmen zuklappen"}
-   ]},
-  {mktree,
-   [
-    {1,"Durchsuchen"}
+    {11,"Ã–ffnet ein Konsolenfenster fÃ¼r Informationsmeldungen"}
    ]}
  ]}.
 {wings_body,
  [
   {arealight_conv,
    [
-    {1,"Flächenlicht zu Objekt"},
-    {2,"Ausgewählte Flächenlichter in Objekte umwandeln"},
-    {3,"Objekt zu Flächenlicht"},
-    {4,"Ausgewählte Objekte in Flächenlichter umwandeln"}
+    {1,"FlÃ¤chenlicht zu Objekt"},
+    {2,"AusgewÃ¤hlte FlÃ¤chenlichter in Objekte umwandeln"},
+    {3,"Objekt zu FlÃ¤chenlicht"},
+    {4,"AusgewÃ¤hlte Objekte in FlÃ¤chenlichter umwandeln"}
    ]},
   {auto_smooth,
    [
-    {1,"Automatisches Glätten Parameter"},
+    {1,"Automatisches GlÃ¤tten Parameter"},
     {2,"Knitterwinkel"}
    ]},
   {clean_isolated_vertices,
@@ -227,13 +210,13 @@
   {cleanup,
    [
     {1,"Kurze Kanten"},
-    {2,"Längen-Toleranz"},
+    {2,"LÃ¤ngen-Toleranz"},
     {3,"Isolierte Knoten"},
-    {4,"Aufräumen"}
+    {4,"AufrÃ¤umen"}
    ]},
   {cleanup_rep_1,
    [
-    {1,"Wiederholte Knoten ~p in Fläche ~p\n"}
+    {1,"Wiederholte Knoten ~p in FlÃ¤che ~p\n"}
    ]},
   {cleanup_waists_1,
    [
@@ -245,7 +228,7 @@
    ]},
   {delete_2edged_faces_1,
    [
-    {1,"Fläche"},
+    {1,"FlÃ¤che"},
     {2,"hat nur eine Kante"}
    ]},
   {flip_str,
@@ -254,44 +237,44 @@
    ]},
   {flip_ask,
    [
-    {1,"Achse auswählen entlang der Objekt gespiegelt wird"},
-    {2,"Punkt entlang der gewählten Achse auswählen um Objekt zu spiegeln"}
+    {1,"Achse auswÃ¤hlen entlang der Objekt gespiegelt wird"},
+    {2,"Punkt entlang der gewÃ¤hlten Achse auswÃ¤hlen um Objekt zu spiegeln"}
    ]},
   {menu,
    [
     {2,"Verschieben"},
     {3,"Spiegeln"},
     {10,"Invertieren"},
-    {11,"Alle Normalen umdrehen. Dreht das Objekt von innen nach außen."},
+    {11,"Alle Normalen umdrehen. Dreht das Objekt von innen nach auÃŸen."},
     {12,"Straffen"},
     {13,"Knoten gegen gemeinsamen Mittelpunkt verschieben"},
-    {14,"Glätten"},
-    {15,"Alle Flächen unterteilen, um dem Objekt ein weicheres Aussehen zu geben"},
+    {14,"GlÃ¤tten"},
+    {15,"Alle FlÃ¤chen unterteilen, um dem Objekt ein weicheres Aussehen zu geben"},
     {16,"Kombinieren"},
     {17,"Mehrere Objekte zu einem Objekt kombinieren"},
     {18,"Separieren"},
     {19,"Kombiniertes Objekt in seine Bestandteile zerlegen"},
-    {20,"Verschweißen"},
-    {21,"Nahezu übereinstimmende Paare von Flächen verschmelzen"},
-    {22,"Aufräumen"},
-    {23,"Verschiedene Mängel beseitigen"},
-    {24,"Auto glätten"},
-    {25,"Harte oder weiche Kanten abhängig vom Winkel der Flächen setzen"},
+    {20,"VerschweiÃŸen"},
+    {21,"Nahezu Ã¼bereinstimmende Paare von FlÃ¤chen verschmelzen"},
+    {22,"AufrÃ¤umen"},
+    {23,"Verschiedene MÃ¤ngel beseitigen"},
+    {24,"Auto glÃ¤tten"},
+    {25,"Harte oder weiche Kanten abhÃ¤ngig vom Winkel der FlÃ¤chen setzen"},
     {26,"Duplizieren"},
-    {27,"Löschen"},
-    {28,"Ausgewählte Objekte löschen"},
+    {27,"LÃ¶schen"},
+    {28,"AusgewÃ¤hlte Objekte lÃ¶schen"},
     {29,"Umbenennen..."},
-    {30,"Ausgewählte Objekte umbenennen"},
+    {30,"AusgewÃ¤hlte Objekte umbenennen"},
     {31,"Alle zeigen"},
-    {32,"Alle Flächen des Objekts zeigen"},
+    {32,"Alle FlÃ¤chen des Objekts zeigen"},
     {33,"Knoten-Attribute"},
     {34,"Objekt entlang ~s Achse spiegeln"},
-    {35,"Punkt wählen an dem Objekt entlang ~s Achse gespiegelt wird"},
+    {35,"Punkt wÃ¤hlen an dem Objekt entlang ~s Achse gespiegelt wird"},
     {36,"Objekt entlang globaler ~s Achse spiegeln"},
-    {37,"Wählen"},
-    {38,"Achse wählen entlang der Objekt gespiegelt wird"},
-    {39,"Achse und Punkt wählen entlang denen Objekt gespiegelt wird"},
-    {40,"Globale Achse wählen entlang der Objekt gespiegelt wird"},
+    {37,"WÃ¤hlen"},
+    {38,"Achse wÃ¤hlen entlang der Objekt gespiegelt wird"},
+    {39,"Achse und Punkt wÃ¤hlen entlang denen Objekt gespiegelt wird"},
+    {40,"Globale Achse wÃ¤hlen entlang der Objekt gespiegelt wird"},
     {41,"Farben in Materialien"},
     {42,"Knoten-Farben in Materialien umwandeln"},
     {43,"Materialen in Farben"},
@@ -310,7 +293,7 @@
   {vertex_color_item,
    [
     {1,"Knoten-Farbe"},
-    {3,"Knotenfarbe auf ausgewählte Objekte übertragen"}
+    {3,"Knotenfarbe auf ausgewÃ¤hlte Objekte Ã¼bertragen"}
    ]},
   {weld,
    [
@@ -319,7 +302,7 @@
    ]},
   {weld_1,
    [
-    {1,"Keine Flächen zum verschmelzen gefunden."}
+    {1,"Keine FlÃ¤chen zum verschmelzen gefunden."}
    ]}
  ]}.
 {wings_camera,
@@ -337,7 +320,7 @@
   {info,
    [
     {1,"Hinweis: Nur der Nendo Kamera-Modus kann mit einer Ein-Tasten-Maus bedient werden"},
-    {2,"Hinweis: Nur Nendo und Blender Kamera-Modus können mit einer Zwei-Tasten-Maus bedient werden"},
+    {2,"Hinweis: Nur Nendo und Blender Kamera-Modus kÃ¶nnen mit einer Zwei-Tasten-Maus bedient werden"},
     {3,"Hinweis: Der "},
     {4," Kamera-Modus erfordert mindestens eine Zwei-Tasten-Maus"},
     {5,"Hinweis: Der "},
@@ -366,8 +349,8 @@
     {2,"Kamera-Modus"},
     {3,"Schwenkgeschwindigkeit"},
     {4,"Mausrad zoomt"},
-    {5,"Vorwärts zoomt rein"},
-    {6,"Vorwärts zoomt raus"},
+    {5,"VorwÃ¤rts zoomt rein"},
+    {6,"VorwÃ¤rts zoomt raus"},
     {7,"Zoomfaktor"},
     {9,"Mausrad"},
     {10,"Alternativer Zoomfaktor (Alt+Rad)"},
@@ -389,19 +372,19 @@
  [
   {check_consistency,
    [
-    {1,"Kollabieren würde eine inkonsistente Objektstrukur ergeben."}
+    {1,"Kollabieren wÃ¼rde eine inkonsistente Objektstrukur ergeben."}
    ]},
   {check_vertices_1,
    [
     {1,"Nicht kollabierbarer Knoten"},
-    {2,"würde Mittelstück hinterlassen.\n"}
+    {2,"wÃ¼rde MittelstÃ¼ck hinterlassen.\n"}
    ]}
  ]}.
 {wings_color,
  [
   {choose_1,
    [
-    {1,"Farbe wählen"}
+    {1,"Farbe wÃ¤hlen"}
    ]}
  ]}.
 {wings_console,
@@ -436,30 +419,30 @@
    ]},
   {crumple_dirs,
    [
-    {1,"Zufällig"},
-    {2,"einer zufälligen Richtung verschieben"},
+    {1,"ZufÃ¤llig"},
+    {2,"einer zufÃ¤lligen Richtung verschieben"},
     {4,"seiner Normalen verschieben"},
-    {8,"Jeden Knoten um einen zufälligen Betrag verschieben"}
+    {8,"Jeden Knoten um einen zufÃ¤lligen Betrag verschieben"}
    ]},
   {dir,
    [
-    {1,"Ausgewählte Knoten um "},
+    {1,"AusgewÃ¤hlte Knoten um "},
     {2," drehen mit dem Mittelpunkt der Auswahl als Zentrum"},
     {3," drehen mit dem Ursprung als Zentrum"}
    ]},
   {inflate_fun,
    [
-    {1,"Zentrum und Radius wählen"},
+    {1,"Zentrum und Radius wÃ¤hlen"},
     {2,"Elemente aufblasen"},
-    {3,"Mittelpunkt wählen"},
-    {4,"Punkt zum Definieren des Radius wählen"}
+    {3,"Mittelpunkt wÃ¤hlen"},
+    {4,"Punkt zum Definieren des Radius wÃ¤hlen"}
    ]},
   {sub_menu,
    [
     {1,"Elemente aufblasen"},
-    {2,"Zentrum und Radius wählen"},
+    {2,"Zentrum und Radius wÃ¤hlen"},
     {3,"Zerknittern"},
-    {4,"Knoten zufällig verschieben"},
+    {4,"Knoten zufÃ¤llig verschieben"},
     {5,"Aufblasen"},
     {6,"Zuspitzen"},
     {7,"Verdrehen"},
@@ -470,9 +453,9 @@
     {1,"Zuspitzen in "},
     {2," Richtung (mit Effekt auf "},
     {3,")"},
-    {4,"Effekt-Achse wählen"},
-    {5,"Mittelpunkt der Achse wählen"},
-    {6,"Ursprung für zuspitzen wählen"},
+    {4,"Effekt-Achse wÃ¤hlen"},
+    {5,"Mittelpunkt der Achse wÃ¤hlen"},
+    {6,"Ursprung fÃ¼r zuspitzen wÃ¤hlen"},
     {7,"Effekt auf "}
    ]}
  ]}.
@@ -480,7 +463,7 @@
  [
   {dissolve_1,
    [
-    {1,"Auflösen würde zu inkonsistenter Objektstruktur führen."}
+    {1,"AuflÃ¶sen wÃ¼rde zu inkonsistenter Objektstruktur fÃ¼hren."}
    ]}
  ]}.
 {wings_drag,
@@ -534,7 +517,7 @@
  [
   {dissolve_edge_2,
    [
-    {1,"Auflösen würde zu unmöglich geformter Fläche führen."}
+    {1,"AuflÃ¶sen wÃ¼rde zu unmÃ¶glich geformter FlÃ¤che fÃ¼hren."}
    ]}
  ]}.
 {wings_edge_cmd,
@@ -555,12 +538,12 @@
   {cut_entry,
    [
     {1,"In "},
-    {2," Segmente gleicher Länge aufteilen"}
+    {2," Segmente gleicher LÃ¤nge aufteilen"}
    ]},
   {cut_fun,
    [
-    {1,"In Segmente gleicher Länge aufteilen"},
-    {2,"An frei wählbarer Position teilen"}
+    {1,"In Segmente gleicher LÃ¤nge aufteilen"},
+    {2,"An frei wÃ¤hlbarer Position teilen"}
    ]},
   {cut_pick_error,
    [
@@ -575,28 +558,28 @@
     {2,"Verschieben"},
     {3,"Gleiten"},
     {4,"Kante entlang Nachbarkanten gleiten lassen"},
-    {5,"Ausstoßen"},
+    {5,"AusstoÃŸen"},
     {6,"Verbinden"},
-    {7,"Neue Kante durch verbinden der Mittelpunkte der ausgewählten Kanten erzeugen."},
+    {7,"Neue Kante durch verbinden der Mittelpunkte der ausgewÃ¤hlten Kanten erzeugen."},
     {8,"Abkanten"},
-    {9,"Ausgewählte Kanten abkanten"},
-    {10,"Auflösen"},
-    {11,"Ausgewählte Kanten eliminieren"},
+    {9,"AusgewÃ¤hlte Kanten abkanten"},
+    {10,"AuflÃ¶sen"},
+    {11,"AusgewÃ¤hlte Kanten eliminieren"},
     {12,"Kollabieren"},
     {13,"Kanten eliminieren und durch Knoten ersetzen"},
-    {14,"Härte"},
+    {14,"HÃ¤rte"},
     {15,"Weich"},
     {16,"Hart"},
     {17,"Schleifen-Schnitt"},
     {18,"Objekte entlang Kantenschleifen in zwei Objekte aufteilen"},
     {19,"Knoten-Farbe"},
-    {20,"Knoten-Farben auf ausgewählte Kanten anwenden"},
-    {21,"Kanten löschen, durch Knoten ersetzen und neu entstandene isolierte Knoten entfernen"},
-    {50,"Ausgewählte Kanten eliminieren und übrig gebliebene isolierte Knoten entfernen."}
+    {20,"Knoten-Farben auf ausgewÃ¤hlte Kanten anwenden"},
+    {21,"Kanten lÃ¶schen, durch Knoten ersetzen und neu entstandene isolierte Knoten entfernen"},
+    {50,"AusgewÃ¤hlte Kanten eliminieren und Ã¼brig gebliebene isolierte Knoten entfernen."}
    ]},
   {plain_cut_menu,
    [
-    {2,"In Kanten gleicher Länge aufteilen"}
+    {2,"In Kanten gleicher LÃ¤nge aufteilen"}
    ]},
   {slide_help_mode,
    [
@@ -604,8 +587,8 @@
     {2,"Relativ"},
     {3,"Richtung einfrieren"},
     {4,"Richtung freigeben"},
-    {5,"An nächster Kante anhalten"},
-    {6,"Über nächste Kante weiter"}
+    {5,"An nÃ¤chster Kante anhalten"},
+    {6,"Ãœber nÃ¤chste Kante weiter"}
    ]}
  ]}.
 {wings_export,
@@ -614,7 +597,7 @@
    [
     {1,"exportiere"},
     {2,"vorbereiten"},
-    {4,"Exportierer abgestürzt"}
+    {4,"Exportierer abgestÃ¼rzt"}
    ]}
  ]}.
 {wings_extrude_edge,
@@ -625,112 +608,112 @@
    ]},
   {extrude_problem,
    [
-    {1,"Ausstoßen/abkanten nicht möglich; zwei oder mehr Knoten sind wahrscheinlich zu nah aneinander.\nVersuchen Sie es mit dem \"Aufräumen\" Befehl."}
+    {1,"AusstoÃŸen/abkanten nicht mÃ¶glich; zwei oder mehr Knoten sind wahrscheinlich zu nah aneinander.\nVersuchen Sie es mit dem \"AufrÃ¤umen\" Befehl."}
    ]}
  ]}.
 {wings_face_cmd,
  [
   {bridge,
    [
-    {1,"Flächen müssen die gleiche Anzahl Knoten haben."},
-    {2,"Flächen dürfen nicht in die selbe Richtung zeigen."},
-    {3,"Flächen dürfen nicht benachbart sein."}
+    {1,"FlÃ¤chen mÃ¼ssen die gleiche Anzahl Knoten haben."},
+    {2,"FlÃ¤chen dÃ¼rfen nicht in die selbe Richtung zeigen."},
+    {3,"FlÃ¤chen dÃ¼rfen nicht benachbart sein."}
    ]},
   {bridge_error,
    [
-    {1,"Genau zwei Flächen müssen ausgewählt sein"}
+    {1,"Genau zwei FlÃ¤chen mÃ¼ssen ausgewÃ¤hlt sein"}
    ]},
   {clone_on,
    [
-    {1,"Es darf nur eine Fläche ausgewählt sein"}
+    {1,"Es darf nur eine FlÃ¤che ausgewÃ¤hlt sein"}
    ]},
   {clone_on_selection,
    [
-    {1,"Ziel-Elemente auswählen auf der die Duplikate aufgesetzt werden sollen"}
+    {1,"Ziel-Elemente auswÃ¤hlen auf der die Duplikate aufgesetzt werden sollen"}
    ]},
   {create_hole_1,
    [
-    {1,"Ein Loch kann nicht alle Flächen eines Objekts einschließen."}
+    {1,"Ein Loch kann nicht alle FlÃ¤chen eines Objekts einschlieÃŸen."}
    ]},
    {intrude,
    [
-    {1,"Eindringen nicht möglich wenn alle Flächen ausgewählt sind."}
+    {1,"Eindringen nicht mÃ¶glich wenn alle FlÃ¤chen ausgewÃ¤hlt sind."}
    ]},
   {lift_check_selection,
    [
-    {1,"Ausgewählte Fläche und Kanten passen nicht zueinander."},
-    {2,"Ausgewählte Fläche und Knoten passen nicht zueinander."}
+    {1,"AusgewÃ¤hlte FlÃ¤che und Kanten passen nicht zueinander."},
+    {2,"AusgewÃ¤hlte FlÃ¤che und Knoten passen nicht zueinander."}
    ]},
   {lift_fun,
    [
-    {1,"Anheben, Fläche um Kante oder Knoten drehen"},
+    {1,"Anheben, FlÃ¤che um Kante oder Knoten drehen"},
     {2,"In Standardrichtungen anheben"}
    ]},
   {lift_sel_mismatch,
    [
-    {1,"Ausgewählte Fläche und Kanten passen nicht zueinander."}
+    {1,"AusgewÃ¤hlte FlÃ¤che und Kanten passen nicht zueinander."}
    ]},
   {lift_selection,
    [
-    {1,"Kante oder Knoten als Drehachse auswählen."}
+    {1,"Kante oder Knoten als Drehachse auswÃ¤hlen."}
    ]},
   {lift_vtx_sel_mismatch,
    [
-    {1,"Ausgewählte Fläche und Knoten passen nicht zueinander."}
+    {1,"AusgewÃ¤hlte FlÃ¤che und Knoten passen nicht zueinander."}
    ]},
   {menu,
    [
     {2,"Verschieben"},
-    {3,"Ausstoßen"},
+    {3,"AusstoÃŸen"},
     {8,"Eindringen"},
-    {9,"Objekt aushöhlen und ausgewählte Flächen zu Löchern machen"},
+    {9,"Objekt aushÃ¶hlen und ausgewÃ¤hlte FlÃ¤chen zu LÃ¶chern machen"},
     {10,"Abkanten"},
-    {11,"Kanten ausgewählter Flächen abkanten"},
-    {12,"Überbrücken"},
-    {13,"Erzeugt Brücke oder Tunnel zwischen zwei Flächen"},
+    {11,"Kanten ausgewÃ¤hlter FlÃ¤chen abkanten"},
+    {12,"ÃœberbrÃ¼cken"},
+    {13,"Erzeugt BrÃ¼cke oder Tunnel zwischen zwei FlÃ¤chen"},
     {14,"Ausbeulen"},
-    {15,"Ausgewählte Flächen ausbeulen"},
+    {15,"AusgewÃ¤hlte FlÃ¤chen ausbeulen"},
     {16,"Anheben"},
     {17,"Aufsetzen"},
-    {18,"Objekt verschieben und rotieren, mit gewählter Fläche an anderem Element ausrichten"},
+    {18,"Objekt verschieben und rotieren, mit gewÃ¤hlter FlÃ¤che an anderem Element ausrichten"},
     {19,"Objekt duplizieren und auf Element(e) aufsetzen"},
     {20,"Spiegeln"},
-    {21,"Objekt an ausgewählter Flächen spiegeln und zu einem Objekt vereinigen"},
+    {21,"Objekt an ausgewÃ¤hlter FlÃ¤chen spiegeln und zu einem Objekt vereinigen"},
     {22,"Spiegeln und separate Objekte erzeugen"},
-    {23,"Auflösen"},
-    {24,"Alle Kanten zwischen ausgewählten Flächen eliminieren"},
+    {23,"AuflÃ¶sen"},
+    {24,"Alle Kanten zwischen ausgewÃ¤hlten FlÃ¤chen eliminieren"},
     {25,"Kollabieren"},
-    {26,"Flächen eliminieren und durch Kanten ersetzen"},
-    {27,"Glätten"},
-    {28,"Ausgewählte Flächen unterteilen um sie zu glätten (Catmull-Clark)"},
+    {26,"FlÃ¤chen eliminieren und durch Kanten ersetzen"},
+    {27,"GlÃ¤tten"},
+    {28,"AusgewÃ¤hlte FlÃ¤chen unterteilen um sie zu glÃ¤tten (Catmull-Clark)"},
     {29,"Parkettierung"},
     {30,"Knoten-Farbe"},
-    {31,"Knoten-Farben auf ausgewählte Flächen anwenden"},
+    {31,"Knoten-Farben auf ausgewÃ¤hlte FlÃ¤chen anwenden"},
     {32,"Verbergen"},
-    {33,"Ausgewählte Flächen verbergen"},
-    {34,"Ausgewählte Flächen eleminieren und verbleibende isolierte Ecken löschen"},
+    {33,"AusgewÃ¤hlte FlÃ¤chen verbergen"},
+    {34,"AusgewÃ¤hlte FlÃ¤chen eleminieren und verbleibende isolierte Ecken lÃ¶schen"},
     {35,"Extrahieren"},
-    {36,"Hülle Extrahieren"},
+    {36,"HÃ¼lle Extrahieren"},
     {37,"Loch"},
     {38,"Loch erzeugen"},
-    {39,"An ausgewählte Ebene grenzende Löcher entfernen"}
+    {39,"An ausgewÃ¤hlte Ebene grenzende LÃ¶cher entfernen"}
    ]},
   {put_on,
    [
-    {1,"Es darf nur eine Fläche ausgewählt sein."}
+    {1,"Es darf nur eine FlÃ¤che ausgewÃ¤hlt sein."}
    ]},
   {put_on_check_selection,
    [
     {1,"Auswahl darf nicht im selben Objekt sein."},
-    {2,"Nur ein Element auswählen."}
+    {2,"Nur ein Element auswÃ¤hlen."}
    ]},
   {put_on_selection,
    [
-    {1,"Zielelement auswählen, auf das das Quellobjekt aufgesetzt werden soll"}
+    {1,"Zielelement auswÃ¤hlen, auf das das Quellobjekt aufgesetzt werden soll"}
    ]},
   {smooth,
    [
-    {1,"glätten"}
+    {1,"glÃ¤tten"}
    ]}
  ]}.
 {wings_ff_ndo,
@@ -747,7 +730,7 @@
    ]},
   {import,
    [
-    {1,"Nendo 1.0 Dateien werden nicht unterstützt"},
+    {1,"Nendo 1.0 Dateien werden nicht unterstÃ¼tzt"},
     {2,"keine Nendo Datei"}
    ]},
   {import_1,
@@ -773,7 +756,7 @@
    ]},
   {skip_faces,
    [
-    {1," Flächen ~w\n"}
+    {1," FlÃ¤chen ~w\n"}
    ]}
  ]}.
 {wings_ff_wings,
@@ -789,16 +772,16 @@
    ]},
   {import,
    [
-    {1,"öffne Wings Datei"},
+    {1,"Ã¶ffne Wings Datei"},
     {2,"lese Datei"}
    ]},
   {import_1,
    [
-    {1,"konvertiere binär"},
-    {2,"Pre-0.80 Wings Format wird nicht länger unterstützt."},
-    {3,"Pre-0.92 Wings Format wird nicht länger unterstützt."},
+    {1,"konvertiere binÃ¤r"},
+    {2,"Pre-0.80 Wings Format wird nicht lÃ¤nger unterstÃ¼tzt."},
+    {3,"Pre-0.92 Wings Format wird nicht lÃ¤nger unterstÃ¼tzt."},
     {4,"unbekanntes Wings Format"},
-    {5,"beschädigte Wings Datei"},
+    {5,"beschÃ¤digte Wings Datei"},
     {6,"keine Wings Datei (oder altes Wings Format)"}
    ]},
   {import_image,
@@ -830,9 +813,9 @@
    [
     {1,"Umkehrung fehlgeschlagen: "},
     {2,"Export"},
-    {3,"Ausgewählte exportieren"},
-    {4,"Wollen Sie ihre Änderungen vor dem Beenden speichern?"},
-    {5,"Diese Datei wurde verschoben oder gelöscht."}
+    {3,"AusgewÃ¤hlte exportieren"},
+    {4,"Wollen Sie ihre Ã„nderungen vor dem Beenden speichern?"},
+    {5,"Diese Datei wurde verschoben oder gelÃ¶scht."}
    ]},
   {confirmed_open,
    [
@@ -840,7 +823,7 @@
    ]},
   {confirmed_open_dialog,
    [
-    {1,"Öffnen"}
+    {1,"Ã–ffnen"}
    ]},
   {export_filename,
    [
@@ -870,22 +853,22 @@
    [
     {3,"Neu"},
     {4,"Neue, leere Szene erzeugen"},
-    {5,"Öffnen..."},
-    {6,"Gespeicherte Szene öffnen"},
-    {7,"Zusammenführen..."},
-    {8,"Gespeicherte Szene in die aktuelle Szene einfügen"},
+    {5,"Ã–ffnen..."},
+    {6,"Gespeicherte Szene Ã¶ffnen"},
+    {7,"ZusammenfÃ¼hren..."},
+    {8,"Gespeicherte Szene in die aktuelle Szene einfÃ¼gen"},
     {9,"Speichern"},
     {10,"Aktuelle Szene speichern"},
     {11,"Speichern unter..."},
     {12,"Aktuelle Szene unter anderem Namen speichern"},
     {13,"Auswahl speichern..."},
-    {14,"Ausgewählte Objekte oder Flächen speichern"},
+    {14,"AusgewÃ¤hlte Objekte oder FlÃ¤chen speichern"},
     {15,"Inkrementell speichern"},
     {16,"Szene erneut laden"},
     {17,"Zuletzt gespeicherten Zustand der aktuellen Szene neu laden"},
     {18,"Import"},
     {19,"Export"},
-    {20,"Ausgewählte exportieren"},
+    {20,"AusgewÃ¤hlte exportieren"},
     {21,"Bild importieren..."},
     {22,"Bilddatei importieren"},
     {23,"Rendern"},
@@ -895,16 +878,16 @@
     {27,"Erweiterung installieren"},
     {28,"Wings 3D beenden"},
     {29,"Nicht verwendete Materialien speichern"},
-    {30,"Nicht verwendete Materialien beim Speichern einer .wings Datei einschließen"}
+    {30,"Nicht verwendete Materialien beim Speichern einer .wings Datei einschlieÃŸen"}
    ]},
   {merge,
    [
-    {1,"Zusammenführen"},
+    {1,"ZusammenfÃ¼hren"},
     {2,"Lesen fehlgeschlagen: "}
    ]},
   {recent_files,
    [
-    {1,"Diese zuletzt benutzte Datei öffnen"}
+    {1,"Diese zuletzt benutzte Datei Ã¶ffnen"}
    ]},
   {save_as,
    [
@@ -916,12 +899,12 @@
    ]},
   {save_selected,
    [
-    {1,"Dieser Befehl erfordert ausgewählte Elemente."},
+    {1,"Dieser Befehl erfordert ausgewÃ¤hlte Elemente."},
     {2,"Auswahl speichern"}
    ]},
   {str_save_changes,
    [
-    {1,"Wollen Sie ihre Änderungen speichern?"}
+    {1,"Wollen Sie ihre Ã„nderungen speichern?"}
    ]},
   {use_autosave_1,
    [
@@ -936,23 +919,23 @@
  [
   {def_commands,
    [
-    {1,"Standard Befehle können unter "},
+    {1,"Standard Befehle kÃ¶nnen unter "},
     {4," im Reiter \"Erweitert\" eingeschaltet werden."},
-    {5,"Es können zwei Standard Befehle definiert werden. Um einen zuvor ausgeführten Befehl als Standard Befehl zu definieren, drücken Sie:"},
-    {8,"Um einen definierten Standard Befehle zu verwenden, drücken Sie:"},
+    {5,"Es kÃ¶nnen zwei Standard Befehle definiert werden. Um einen zuvor ausgefÃ¼hrten Befehl als Standard Befehl zu definieren, drÃ¼cken Sie:"},
+    {8,"Um einen definierten Standard Befehle zu verwenden, drÃ¼cken Sie:"},
     {11,"Hinweis: Im "},
     {13," und im "},
     {15," Kamera-Modus kann der zweite Standard Befehl nicht verwendet werden."}
    ]},
   {def_hotkeys,
    [
-    {1,"Jeder Menübefehl kann einer Kurztaste zugewiesen werden."},
+    {1,"Jeder MenÃ¼befehl kann einer Kurztaste zugewiesen werden."},
     {4,"Um einen Befehl einer Kurztaste zuzuweisen:"},
-    {5,"1. Öffnen Sie das Menü, dass den Befehl enthält und markieren Sie den Befehl."},
-    {6,"2. Drücken Sie die [Einfg] oder die [/] Taste."},
-    {8,"4. Die Informationszeile fordert Sie auf die Taste zu drücken, der sie den Befehl zuweisen wollen."},
-    {9,"Um eine Kurztaste zu löschen, markieren Sie den Menübefehl auf die gleiche Weise und drücken Sie die [Entf] oder die [\\] Taste. Ein Dialog erscheint, der alle Tasten auflistet, denen der Befehl zugewiesen ist. Markieren Sie alle Tasten, die Sie löschen wollen."},
-    {10,"3. Wenn der Befehl unterschiedliche Dinge bewirkt, je nachdem welche Maus-Taste gedrückt wird, erscheint in der Informationszeile die Aufforderung, eine Maus-Taste zu drücken um zu festzulegen, welche Variante des Befehl der Kurztaste zugewiesen werden soll (Hinweis: Der Mauszeiger muss in dem Menü bleiben, während Sie klicken)."}
+    {5,"1. Ã–ffnen Sie das MenÃ¼, dass den Befehl enthÃ¤lt und markieren Sie den Befehl."},
+    {6,"2. DrÃ¼cken Sie die [Einfg] oder die [/] Taste."},
+    {8,"4. Die Informationszeile fordert Sie auf die Taste zu drÃ¼cken, der sie den Befehl zuweisen wollen."},
+    {9,"Um eine Kurztaste zu lÃ¶schen, markieren Sie den MenÃ¼befehl auf die gleiche Weise und drÃ¼cken Sie die [Entf] oder die [\\] Taste. Ein Dialog erscheint, der alle Tasten auflistet, denen der Befehl zugewiesen ist. Markieren Sie alle Tasten, die Sie lÃ¶schen wollen."},
+    {10,"3. Wenn der Befehl unterschiedliche Dinge bewirkt, je nachdem welche Maus-Taste gedrÃ¼ckt wird, erscheint in der Informationszeile die Aufforderung, eine Maus-Taste zu drÃ¼cken um zu festzulegen, welche Variante des Befehl der Kurztaste zugewiesen werden soll (Hinweis: Der Mauszeiger muss in dem MenÃ¼ bleiben, wÃ¤hrend Sie klicken)."}
    ]},
   {edit_prefs,
    [
@@ -961,10 +944,10 @@
    ]},
   {getting_started,
    [
-    {1,"Wenn Sie anfangen mit Wings zu arbeiten, achten Sie auf die Informationszeile am unteren Bildschirmrand. Generell zeigt sie an, welche Funktionen die Maustasten aktuell auslösen."},
-    {2,"Zuerst werden die Aktionen für die Maus-Tasten angezeigt, bezeichnet mit "},
-    {7,"Allgemein wird L (Linke Maustaste) zum auswählen und bestätigen verwendet, M (Mittlere Maustaste) für die Steuerung der Kamera und R (Rechte Maustaste) für den Zugriff auf das Kontextmenü."},
-    {8,"Beachten Sie, das die einzelnen Maustasten in den Kontextmenüs Befehle unterschiedlich aufrufen. Ganz allgmein liegt der typischste Aufruf auf der linken Maustaste, während die vorgeschrittenen Aufrufe auf der mittleren und der rechten Maustaste liegen."},
+    {1,"Wenn Sie anfangen mit Wings zu arbeiten, achten Sie auf die Informationszeile am unteren Bildschirmrand. Generell zeigt sie an, welche Funktionen die Maustasten aktuell auslÃ¶sen."},
+    {2,"Zuerst werden die Aktionen fÃ¼r die Maus-Tasten angezeigt, bezeichnet mit "},
+    {7,"Allgemein wird L (Linke Maustaste) zum auswÃ¤hlen und bestÃ¤tigen verwendet, M (Mittlere Maustaste) fÃ¼r die Steuerung der Kamera und R (Rechte Maustaste) fÃ¼r den Zugriff auf das KontextmenÃ¼."},
+    {8,"Beachten Sie, das die einzelnen Maustasten in den KontextmenÃ¼s Befehle unterschiedlich aufrufen. Ganz allgmein liegt der typischste Aufruf auf der linken Maustaste, wÃ¤hrend die vorgeschrittenen Aufrufe auf der mittleren und der rechten Maustaste liegen."},
     {left_def,"Linke Maustaste"},
     {middle_def,"Mittlere Maustaste oder Mausrad"},
     {right_def,"Rechte Maustaste"},
@@ -974,14 +957,14 @@
    [
     {1,"Einstieg"},
     {2,"Verwenden einer Maus mit einer oder zwei Tasten"},
-    {3,"Französische und deutsche Tastaturen"},
+    {3,"FranzÃ¶sische und deutsche Tastaturen"},
     {4,"Definierte Kurztasten"},
     {5,"Kurztasten definieren"},
     {6,"Licht Grundlagen"},
     {8,"Standard Befehle"},
     {9,"Performanz Hinweise"},
     {10,"OpenGL Informationen"},
-    {11,"Über Wings 3D"}
+    {11,"Ãœber Wings 3D"}
    ]},
   {help_window,
    [
@@ -989,14 +972,14 @@
    ]},
   {international,
    [
-    {1,"Auf französischen und deutschen Tastaturen (und möglicherweise weiteren) ist der Rückgängig/Wiederherstellen-Befehl nicht an die Taste [Z] gebunden (Dies kann sich in einer künftigen Version von Wings ändern)."},
-    {2,"Auf französischen Tastaturen, liegt der Rückgängig/Wiederherstellen-Befehl auf der Taste [W] ([Strg]+[W], [Strg]+[Alt]+[W] und so weiter)."},
-    {3,"Auf deutschen Tastaturen, liegt der Rückgängig/Wiederherstellen-Befehl auf der Taste [Y] ([Strg]+[Y], [Strg]+[Alt]+[Y] und so weiter)."}
+    {1,"Auf franzÃ¶sischen und deutschen Tastaturen (und mÃ¶glicherweise weiteren) ist der RÃ¼ckgÃ¤ngig/Wiederherstellen-Befehl nicht an die Taste [Z] gebunden (Dies kann sich in einer kÃ¼nftigen Version von Wings Ã¤ndern)."},
+    {2,"Auf franzÃ¶sischen Tastaturen, liegt der RÃ¼ckgÃ¤ngig/Wiederherstellen-Befehl auf der Taste [W] ([Strg]+[W], [Strg]+[Alt]+[W] und so weiter)."},
+    {3,"Auf deutschen Tastaturen, liegt der RÃ¼ckgÃ¤ngig/Wiederherstellen-Befehl auf der Taste [Y] ([Strg]+[Y], [Strg]+[Alt]+[Y] und so weiter)."}
    ]},
   {lights,
    [
-    {1,"1. Eine Lichtquelle wird über den gleichnamigen Befehl im Kontextmenü erzeugt (Rechts-Klick wenn keine Auswahl aktiv ist)."},
-    {2,"2. Auswahl einer Lichtquelle durch Links-Klick darauf. Wenn eine Lichtquelle ausgewählt ist, ruft ein Rechts-Klick ein spezielles Kontextmenü auf."},
+    {1,"1. Eine Lichtquelle wird Ã¼ber den gleichnamigen Befehl im KontextmenÃ¼ erzeugt (Rechts-Klick wenn keine Auswahl aktiv ist)."},
+    {2,"2. Auswahl einer Lichtquelle durch Links-Klick darauf. Wenn eine Lichtquelle ausgewÃ¤hlt ist, ruft ein Rechts-Klick ein spezielles KontextmenÃ¼ auf."},
     {3,"3. Um Wings zu veranlassen erzeugte Lichtquellen auch zu verwenden, benutzen sie den Befehl "},
     {4,"Ansicht"},
     {5,"Lichtquellen der Szene"},
@@ -1004,13 +987,13 @@
    ]},
   {message,
    [
-    {1,"Hilfefenster schließen"}
+    {1,"Hilfefenster schlieÃŸen"}
    ]},
   {one_or_two,
    [
     {1,"Beachten Sie dass nur der "},
     {2," und der "},
-    {3," Modus mit einer Zwei-Tasten-Maus genutzt werden können. Nur der "},
+    {3," Modus mit einer Zwei-Tasten-Maus genutzt werden kÃ¶nnen. Nur der "},
     {4," Modus kann mit einer Ein-Tasten-Maus genutzt werden."}
    ]},
   {opengl_info,
@@ -1020,13 +1003,13 @@
     {3,"Version: "},
     {4,"Versions-Tupel: "},
     {5,"Rot Bits"},
-    {6,"Grün Bits"},
+    {6,"GrÃ¼n Bits"},
     {7,"Blau Bits"},
     {8,"Alpha Bits"},
     {9,"Tiefen Bits"},
     {10,"Schablonen Bits"},
     {11,"Akkum. Rot Bits"},
-    {12,"Akkum. Grün Bits"},
+    {12,"Akkum. GrÃ¼n Bits"},
     {13,"Akkum. Blau Bits"},
     {14,"Akkum. Alpha Bits"},
     {15,"Max. Anzahl Lichtquellen"},
@@ -1035,8 +1018,8 @@
     {18,"Max. Tiefe Projektions-Stapelspeicher"},
     {19,"Max. Tiefe Textur-Stapelspeicher"},
     {20,"Unterpixel Bits"},
-    {21,"Max. 3D Texturgröße"},
-    {22,"Max. Texturgröße"},
+    {21,"Max. 3D TexturgrÃ¶ÃŸe"},
+    {22,"Max. TexturgrÃ¶ÃŸe"},
     {23,"Max. Pixel Abbildungstabelle"},
     {24,"Max. Tiefe Namen-Stapelspeicher"},
     {25,"Max. Schachtelungstiefe der Anzeigenliste"},
@@ -1049,12 +1032,12 @@
     {32,"Farbpuffer speichern Indizes"},
     {33,"Doppelpufferung"},
     {34,"Stereo Puffer"},
-    {35,"Bereich für aliased Punktgrößen"},
-    {36,"Bereich antialiased Punktgrößen"},
-    {37,"Bereich für aliased Linienbreiten"},
-    {38,"Bereich für antialiased Linienbreiten"},
-    {39,"Empfohlene maximale Anzahl Indizes für drawRangeElement()"},
-    {40,"Empfohlene maximale Anzahl Knoten für drawRangeElement()"},
+    {35,"Bereich fÃ¼r aliased PunktgrÃ¶ÃŸen"},
+    {36,"Bereich antialiased PunktgrÃ¶ÃŸen"},
+    {37,"Bereich fÃ¼r aliased Linienbreiten"},
+    {38,"Bereich fÃ¼r antialiased Linienbreiten"},
+    {39,"Empfohlene maximale Anzahl Indizes fÃ¼r drawRangeElement()"},
+    {40,"Empfohlene maximale Anzahl Knoten fÃ¼r drawRangeElement()"},
     {41,"Max. Anzahl Textureinheiten"},
     {42,"Anzahl Komprimierungsformate"},
     {43,"Max. Anzahl Knoteneinheiten"},
@@ -1063,19 +1046,19 @@
    ]},
   {performance_tips,
    [
-    {1,"Die Geschwindigkeit von Wings hängt von verschiedenen Parametern ab, wie"},
+    {1,"Die Geschwindigkeit von Wings hÃ¤ngt von verschiedenen Parametern ab, wie"},
     {2,"der Geschwindigkeit des Prozessors"},
-    {3,"der Art und Größe des Prozessor-Zwischenspeichers"},
-    {4,"der Größe und Geschwindigkeit des Hauptspeichers"},
+    {3,"der Art und GrÃ¶ÃŸe des Prozessor-Zwischenspeichers"},
+    {4,"der GrÃ¶ÃŸe und Geschwindigkeit des Hauptspeichers"},
     {5,"des Typs der Grafikkarte"},
-    {6,"der Größe des Grafikspeichers"},
+    {6,"der GrÃ¶ÃŸe des Grafikspeichers"},
     {7,"der Mondphase"},
-    {8,"Es ist daher schwer sichere Hinweise zu geben, wie die Geschwindigkeit von Wings zu steigern ist. Die folgenden Hinweise KÖNNEN die Geschwindigkeit verbessern:"},
-    {9,"Versuchen Sie unterschiedliche Farbtiefen und verschiedene Bildschirmauflösungen. Besonders auf Grafikkarten mit wenig Speicher können viele Farben und/oder eine hohe Auflösung die Geschwindigkeit drastisch reduzieren. Ein kleineres Wings-Fenster (nicht maximiert) kann ebenfalls helfen."},
-    {10,"Schließen Sie nicht benötigte Wings-Fenster."},
-    {11,"Stellen Sie sicher, dass sich Geometriefenster nicht überlappen."},
-    {12,"Verwenden Sie so wenige (aktive) Lichtquellen wie möglich. Mehr Lichtquellen ist auf den meisten Grafikkarten gleichbedeutend mit einer geringeren Geschwindigkeit."},
-    {13,"Wenn möglich verwenden Sie den Befehl "},
+    {8,"Es ist daher schwer sichere Hinweise zu geben, wie die Geschwindigkeit von Wings zu steigern ist. Die folgenden Hinweise KÃ–NNEN die Geschwindigkeit verbessern:"},
+    {9,"Versuchen Sie unterschiedliche Farbtiefen und verschiedene BildschirmauflÃ¶sungen. Besonders auf Grafikkarten mit wenig Speicher kÃ¶nnen viele Farben und/oder eine hohe AuflÃ¶sung die Geschwindigkeit drastisch reduzieren. Ein kleineres Wings-Fenster (nicht maximiert) kann ebenfalls helfen."},
+    {10,"SchlieÃŸen Sie nicht benÃ¶tigte Wings-Fenster."},
+    {11,"Stellen Sie sicher, dass sich Geometriefenster nicht Ã¼berlappen."},
+    {12,"Verwenden Sie so wenige (aktive) Lichtquellen wie mÃ¶glich. Mehr Lichtquellen ist auf den meisten Grafikkarten gleichbedeutend mit einer geringeren Geschwindigkeit."},
+    {13,"Wenn mÃ¶glich verwenden Sie den Befehl "},
     {14,"Werkzeuge"},
     {15,"Virtueller Spiegel"},
     {16,"."},
@@ -1087,28 +1070,28 @@
     {22,"Verwenden Sie den Befehl "},
     {23,"Ansicht"},
     {24,"Texturen anzeigen"},
-    {25," um Texturen während des modellierens auszuschalten."},
+    {25," um Texturen wÃ¤hrend des modellierens auszuschalten."},
     {26,"Arbeiten Sie im Drahtmodell-Modus."},
     {27,"Einige Grafikkarten zeigen Kanten nur sehr langsam an. Schalten Sie die Kantenanzeige mit dem Befehl "},
     {28,"Ansicht"},
     {29,"Kanten anzeigen"},
     {30," aus."},
-    {31,"Weniger Rückgängig-Ebenene verwenden. 4 oder weniger Ebenen (Standard 32) ermöglicht das arbeiten an Modellen mit 8-mal mehr Details. In diesem Fall empfiehlt sich eine kürzere Periode (Standard 10 Min.) beim automatischen Speichern."}
+    {31,"Weniger RÃ¼ckgÃ¤ngig-Ebenene verwenden. 4 oder weniger Ebenen (Standard 32) ermÃ¶glicht das arbeiten an Modellen mit 8-mal mehr Details. In diesem Fall empfiehlt sich eine kÃ¼rzere Periode (Standard 10 Min.) beim automatischen Speichern."}
    ]},
   {splash_contents,
    [
     {1,"Wings 3D ist ein von Nendo und"},
     {2,"Mirai von IZware inspirierter Polygon-Modellierer."},
     {3,"Wings 3D kommt ohne jegliche Garantie,"},
-    {4,"ist aber für jede Art von Nutzung frei"},
-    {5,"(einschließlich kommerzieller Nutzung)."},
+    {4,"ist aber fÃ¼r jede Art von Nutzung frei"},
+    {5,"(einschlieÃŸlich kommerzieller Nutzung)."},
     {6,"Copyright"},
     {7,"& andere"},
     {8,"JPEG Bibliothek: Copyright"}
    ]},
   {use_one_or_two,
    [
-    {1,"Um eine Maus mit nur einer oder zwei Tasten zu verwenden, müssen Sie im "},
+    {1,"Um eine Maus mit nur einer oder zwei Tasten zu verwenden, mÃ¼ssen Sie im "},
     {2," Dialog einstellen, wie viele Tasten die Maus hat."}
    ]}
  ]}.
@@ -1116,19 +1099,19 @@
  [
   {keyname,
    [
-    {1,"Rücktaste"},
+    {1,"RÃ¼cktaste"},
     {2,"Tab"},
     {3,"Leertaste"},
     {4,"Umsch+"}
    ]},
   {list_header,
    [
-    {1,"Kurztasten für alle Modi"},
+    {1,"Kurztasten fÃ¼r alle Modi"},
     {2,"Kurztasten im Objektmodus"},
     {3,"Kurztasten im Kantenmodus"},
-    {4,"Kurztasten im Flächenmodus"},
-    {5,"Kurztasten für Lichtquellen"},
-    {6,"Kurztasten für Knoten"}
+    {4,"Kurztasten im FlÃ¤chenmodus"},
+    {5,"Kurztasten fÃ¼r Lichtquellen"},
+    {6,"Kurztasten fÃ¼r Knoten"}
    ]},
   {list_keys,
    [
@@ -1137,16 +1120,16 @@
    ]},
   {vkeyname,
    [
-    {1,"Rücktaste"},
+    {1,"RÃ¼cktaste"},
     {2,"Tab"},
     {3,"Eingabe"},
     {4,"Pause"},
     {5,"Esc"},
     {6,"Leertaste"},
-    {7,"Löschen"},
+    {7,"LÃ¶schen"},
     {8,"Entf"},
-    {9,"÷"},
-    {10,"×"},
+    {9,"Ã·"},
+    {10,"Ã—"},
     {11,"-"},
     {12,"+"},
     {13,"Eingabe"},
@@ -1172,23 +1155,23 @@
   {create_image,
    [
     {1,"Breite"},
-    {2,"Höhe"},
+    {2,"HÃ¶he"},
     {3,"Muster"},
     {4,"Gitter"},
     {5,"Schachbrett"},
     {6,"Vertikale Balken"},
     {7,"Horizontale Balken"},
-    {8,"Weiß"},
+    {8,"WeiÃŸ"},
     {9,"Schwarz"},
     {10,"Bild erzeugen"}
    ]},
   {event,
    [
-    {1,"Menü anzeigen"}
+    {1,"MenÃ¼ anzeigen"}
    ]},
   {event_1,
    [
-    {1,"In natürlicher Größe zeigen"}
+    {1,"In natÃ¼rlicher GrÃ¶ÃŸe zeigen"}
    ]},
   {screenshot,
    [
@@ -1224,11 +1207,11 @@
    ]},
   {color,
    [
-    {1,"Nur eine Lichtquelle auswählen."}
+    {1,"Nur eine Lichtquelle auswÃ¤hlen."}
    ]},
   {edit,
    [
-    {1,"Nur eine Lichtquelle auswählen."},
+    {1,"Nur eine Lichtquelle auswÃ¤hlen."},
     {2,"Umgebungslicht Eigenschaften"},
     {3,"Lichtquelle Eigenschaften"}
    ]},
@@ -1273,8 +1256,8 @@
     {6,"Spot-Lichtquelle erzeugen"},
     {7,"Umgebung"},
     {8,"Umgebungslichtquelle erzeugen"},
-    {9,"Fläche"},
-    {10,"Licht emittierende Fläche erzeugen"}
+    {9,"FlÃ¤che"},
+    {10,"Licht emittierende FlÃ¤che erzeugen"}
    ]},
   {menu,
    [
@@ -1282,33 +1265,33 @@
     {3,"Position Zielpunkt"},
     {4,"Zielpunkt oder Ort der Lichtquelle festlegen"},
     {5,"Farbe"},
-    {6,"Farbton, Helligkeit und Sättigung interaktiv justieren"},
-    {7,"Dämpfung"},
+    {6,"Farbton, Helligkeit und SÃ¤ttigung interaktiv justieren"},
+    {7,"DÃ¤mpfung"},
     {8,"linear"},
-    {9,"Interaktiv einstellen, wie sich das Licht abschwächt, während es sich von der Quelle entfernt (linearer Faktor)"},
+    {9,"Interaktiv einstellen, wie sich das Licht abschwÃ¤cht, wÃ¤hrend es sich von der Quelle entfernt (linearer Faktor)"},
     {10,"quadratisch"},
-    {11,"Interaktiv einstellen, wie sich das Licht abschwächt, während es sich von der Quelle entfernt (quadratischer Faktor)"},
-    {12,"Spot-Öffnungswinkel"},
-    {13,"Öffnungswinkel des Lichtkegels des Spot-Lichts interaktiv einstellen"},
+    {11,"Interaktiv einstellen, wie sich das Licht abschwÃ¤cht, wÃ¤hrend es sich von der Quelle entfernt (quadratischer Faktor)"},
+    {12,"Spot-Ã–ffnungswinkel"},
+    {13,"Ã–ffnungswinkel des Lichtkegels des Spot-Lichts interaktiv einstellen"},
     {14,"Spot Abnahme"},
-    {15,"Interaktiv einstellen, wie sich das Licht weiter entfernt vom Zentrum des Spot-Lichts abschwächt"},
+    {15,"Interaktiv einstellen, wie sich das Licht weiter entfernt vom Zentrum des Spot-Lichts abschwÃ¤cht"},
     {16,"Eigenschaften..."},
     {17,"Lichtquelle Eigenschaften"},
     {18,"Duplizieren"},
-    {19,"Ausgewähltes Licht duplizieren und verschieben"},
-    {20,"Löschen"},
-    {21,"Ausgewählte Lichtquellen löschen"}
+    {19,"AusgewÃ¤hltes Licht duplizieren und verschieben"},
+    {20,"LÃ¶schen"},
+    {21,"AusgewÃ¤hlte Lichtquellen lÃ¶schen"}
    ]},
   {plugin_results,
    [
-    {1,"Erweiterung \"Lichtquelle Bearbeiten\" hinterließ Müll:~n ~P~n"},
-    {2,"Erweiterung(en) hinterließ(en) Müll"}
+    {1,"Erweiterung \"Lichtquelle Bearbeiten\" hinterlieÃŸ MÃ¼ll:~n ~P~n"},
+    {2,"Erweiterung(en) hinterlieÃŸ(en) MÃ¼ll"}
    ]},
   {qs_att,
    [
     {1,"linear"},
     {2,"quadratisch"},
-    {3,"Dämpfung"}
+    {3,"DÃ¤mpfung"}
    ]},
   {qs_specific,
    [
@@ -1318,7 +1301,7 @@
    ]},
   {selected_light,
    [
-    {1,"Nur eine Lichtquelle auswählen."}
+    {1,"Nur eine Lichtquelle auswÃ¤hlen."}
    ]},
   {spot_angle,
    [
@@ -1356,8 +1339,8 @@
   {magnet_route,
    [
     {midpoint,"Mittelpunkt"},
-    {shortest,"Kürzeste"},
-    {surface,"Oberfläche"}
+    {shortest,"KÃ¼rzeste"},
+    {surface,"OberflÃ¤che"}
    ]},
   {magnet_shape_str,
    [
@@ -1404,8 +1387,8 @@
    ]},
   {plugin_results,
    [
-    {1,"Erweiterung \"Material Bearbeiten\" hinterließ Müll:~n ~P~n"},
-    {2,"Erweiterung(en) hinterließ(en) Müll"}
+    {1,"Erweiterung \"Material Bearbeiten\" hinterlieÃŸ MÃ¼ll:~n ~P~n"},
+    {2,"Erweiterung(en) hinterlieÃŸ(en) MÃ¼ll"}
    ]},
   {rename,
    [
@@ -1413,9 +1396,9 @@
    ]},
   {show_map,
    [
-    {1,"~p: <Bild gelöscht>"},
+    {1,"~p: <Bild gelÃ¶scht>"},
     {2,"~p: ~p [~px~px~p]"},
-    {3,"Löschen"}
+    {3,"LÃ¶schen"}
    ]},
   {show_maps,
    [
@@ -1431,32 +1414,32 @@
    ]},
   {help_text_1,
    [
-    {1," - Untermenü"}
+    {1," - UntermenÃ¼"}
    ]},
   {hotkey_delete_dialog,
    [
-    {1,"Kurztasten löschen"}
+    {1,"Kurztasten lÃ¶schen"}
    ]},
   {hotkey_key_message,
    [
-    {1,"Drücken Sie die Taste, der Sie den Befehl \""},
+    {1,"DrÃ¼cken Sie die Taste, der Sie den Befehl \""},
     {2,"\" zuweisen wollen."}
    ]},
   {hotkey_mouse_message,
    [
-    {1,"Klicken Sie mit der Maustaste um den zuzuweisenden Befehl auszuwählen"}
+    {1,"Klicken Sie mit der Maustaste um den zuzuweisenden Befehl auszuwÃ¤hlen"}
    ]},
   {magnet_help,
    [
-    {2,"Klick für Magnet"}
+    {2,"Klick fÃ¼r Magnet"}
    ]},
   {mk_dialog,
    [
-    {1,"Markieren Sie alle zu löschenden Kurztasten."}
+    {1,"Markieren Sie alle zu lÃ¶schenden Kurztasten."}
    ]},
   {norm_help_adv,
    [
-    {1,"Optionen Dialog öffnen"}
+    {1,"Optionen Dialog Ã¶ffnen"}
    ]}
  ]}.
 {wings_menu_util,
@@ -1481,71 +1464,71 @@
     {1,"Elemente verschieben "},
     {2,"Frei rotieren"},
     {3,"Um die Normale jedes Elements rotieren"},
-    {4,"Jedes Element ausstoßen, dann verschieben "},
-    {5,"Flächen als Region ausstoßen, dann Flächen entlang Normale der Region verschieben"},
-    {6,"Flächen als Region ausstoßen, dann Flächen verschieben "},
-    {7,"Flächen extrahieren, dann Flächen entlang Normale der Region verschieben"},
-    {8,"Flächen extrahieren, dann Flächen verschieben "},
+    {4,"Jedes Element ausstoÃŸen, dann verschieben "},
+    {5,"FlÃ¤chen als Region ausstoÃŸen, dann FlÃ¤chen entlang Normale der Region verschieben"},
+    {6,"FlÃ¤chen als Region ausstoÃŸen, dann FlÃ¤chen verschieben "},
+    {7,"FlÃ¤chen extrahieren, dann FlÃ¤chen entlang Normale der Region verschieben"},
+    {8,"FlÃ¤chen extrahieren, dann FlÃ¤chen verschieben "},
     {9,"Elemente auf Normalenebene ebnen"},
-    {10,"Fläche entlang ihrer Normalen anheben"},
-    {11,"Fläche anheben und verschieben "},
+    {10,"FlÃ¤che entlang ihrer Normalen anheben"},
+    {11,"FlÃ¤che anheben und verschieben "},
     {12,"Duplizieren und frei bewegen "},
     {13,"Elemente verschieben entlang der "},
-    {14,"Element ausstoßen und verschieben entlang der "},
-    {15,"Flächen als Region ausstoßen und verschieben entlang der "},
-    {16,"Flächen extrahieren und verschieben entlang der "},
+    {14,"Element ausstoÃŸen und verschieben entlang der "},
+    {15,"FlÃ¤chen als Region ausstoÃŸen und verschieben entlang der "},
+    {16,"FlÃ¤chen extrahieren und verschieben entlang der "},
     {17,"Rotieren um "},
     {18,"Skalieren "},
     {19,"Skalieren entlang der "},
     {20,"Ebnen senkrecht zur "},
     {21,"Ebnen und verschieben nach "},
-    {22,"Fläche anheben entlang der "},
+    {22,"FlÃ¤che anheben entlang der "},
     {23,"Duplizieren, dann verschieben entlang der "},
     {24,"Jedes Element extrahieren, dann verschieben "},
     {25,"Elemente extrahieren, dann verschieben entlang "},
-    {26,"Flächen als Region extrahieren und ausstoßen, dann verschieben entlang "}
+    {26,"FlÃ¤chen als Region extrahieren und ausstoÃŸen, dann verschieben entlang "}
    ]},
   {dirs,
    [
     {1,"Entlang Standardachse verschieben"},
-    {2,"Achse wählen entlang der verschoben wird"},
+    {2,"Achse wÃ¤hlen entlang der verschoben wird"},
     {3,"Entlang der Standardachse verschieben"},
     {4,"Entlang Normale der Auswahl verschieben"},
-    {5,"Entlang ausgewählter Achse verschieben"},
-    {6,"Entlang Standardachse ausstoßen"},
-    {7,"Entlang Normale der Auswahl ausstoßen"},
-    {8,"Achse auswählen entlang der ausgestoßen wird"},
+    {5,"Entlang ausgewÃ¤hlter Achse verschieben"},
+    {6,"Entlang Standardachse ausstoÃŸen"},
+    {7,"Entlang Normale der Auswahl ausstoÃŸen"},
+    {8,"Achse auswÃ¤hlen entlang der ausgestoÃŸen wird"},
     {12,"Entlang Standardachse extrahieren"},
     {15,"Duplizieren und entlang Standardachse verschieben"},
     {16,"Duplizieren, nicht verschieben"},
-    {17,"Duplizieren und Achse auswählen entlang der verschoben wird"},
-    {22,"Hülle extrahieren und entlang Standardachse ausstoßen"},
-    {23,"Hülle extrahieren und entlang Normale der Auswahl ausstoßen"},
-    {24,"Achse wählen und Hülle entlang dieser extrahieren und ausstoßen"}
+    {17,"Duplizieren und Achse auswÃ¤hlen entlang der verschoben wird"},
+    {22,"HÃ¼lle extrahieren und entlang Standardachse ausstoÃŸen"},
+    {23,"HÃ¼lle extrahieren und entlang Normale der Auswahl ausstoÃŸen"},
+    {24,"Achse wÃ¤hlen und HÃ¼lle entlang dieser extrahieren und ausstoÃŸen"}
    ]},
   {dirs_help,
    [
-    {18,"Achse wählen entlang der alle Flächen ausgestoßen werden"},
+    {18,"Achse wÃ¤hlen entlang der alle FlÃ¤chen ausgestoÃŸen werden"},
     {19,"Pick axis to extrude each region of faces along"},
-    {20,"Achse wählen entlang der alle Flächen ausgestoßen werden"},
+    {20,"Achse wÃ¤hlen entlang der alle FlÃ¤chen ausgestoÃŸen werden"},
     {21,"Pick axis to extract each region of faces along"}
    ]},
   {flatten,
    [
     {1,"Ebnen"},
     {2,"Auf die Standardebenen ebnen"},
-    {3,"Ebene und Referenzpunkt auf der Ebene wählen"},
-    {4,"Ebene wählen"}
+    {3,"Ebene und Referenzpunkt auf der Ebene wÃ¤hlen"},
+    {4,"Ebene wÃ¤hlen"}
    ]},
   {flatten_fun_1,
    [
-    {1,"Punkt auf der Ebene wählen"}
+    {1,"Punkt auf der Ebene wÃ¤hlen"}
    ]},
   {rotate,
    [
     {1,"Rotieren um die Standardachse"},
-    {2,"Achse und Referenzpunkt auswählen"},
-    {3,"Achse auswählen um die rotiert werden soll"}
+    {2,"Achse und Referenzpunkt auswÃ¤hlen"},
+    {3,"Achse auswÃ¤hlen um die rotiert werden soll"}
    ]},
   {rotate_1,
    [
@@ -1553,24 +1536,24 @@
    ]},
   {rotate_fun,
    [
-    {1,"Punkt auswählen, durch den die Achse geht"}
+    {1,"Punkt auswÃ¤hlen, durch den die Achse geht"}
    ]},
   {scale,
    [
-    {1,"Nach außen um Standardachse skalieren"},
-    {2,"Achse wählen und Punkt von dem aus skaliert wird"},
-    {3,"Achse wählen entlang der nach außen skaliert wird"},
+    {1,"Nach auÃŸen um Standardachse skalieren"},
+    {2,"Achse wÃ¤hlen und Punkt von dem aus skaliert wird"},
+    {3,"Achse wÃ¤hlen entlang der nach auÃŸen skaliert wird"},
     {4,"Entlang Standardachse skalieren"},
-    {5,"Achse wählen und Punkt von dem aus skaliert wird"},
-    {6,"Achse wählen entlang der skaliert wird"}
+    {5,"Achse wÃ¤hlen und Punkt von dem aus skaliert wird"},
+    {6,"Achse wÃ¤hlen entlang der skaliert wird"}
    ]},
   {scale_fun,
    [
-    {1,"Punkt wählen von dem aus skaliert wird"}
+    {1,"Punkt wÃ¤hlen von dem aus skaliert wird"}
    ]},
   {uniform_scale,
    [
-    {1,"Punkt wählen von dem aus skaliert wird"},
+    {1,"Punkt wÃ¤hlen von dem aus skaliert wird"},
     {2,"Einheitlich vom Mittelpunkt der Auswahl aus skalieren"}
    ]}
  ]}.
@@ -1586,60 +1569,60 @@
     {2,"Bild exportieren"},
     {3,"Duplizieren"},
     {4,"Bild duplizieren"},
-    {5,"Löschen"},
-    {6,"Bild löschen"},
+    {5,"LÃ¶schen"},
+    {6,"Bild lÃ¶schen"},
     {7,"Umbenennen"},
     {8,"Bild umbenennen"},
-    {9,"Bild auswählen"},
-    {10,"Bild auswählen und einem Material als Textur zuweisen"}
+    {9,"Bild auswÃ¤hlen"},
+    {10,"Bild auswÃ¤hlen und einem Material als Textur zuweisen"}
    ]},
   {delete_image,
    [
     {1,"Dieses Bild wird von einem Material verwendet."},
-    {2,"Sind Sie sicher das Sie das Bild löschen wollen (NICHT rückgängig zu machen)?"}
+    {2,"Sind Sie sicher das Sie das Bild lÃ¶schen wollen (NICHT rÃ¼ckgÃ¤ngig zu machen)?"}
    ]},
   {do_menu,
    [
     {1,"Material bearbeiten..."},
     {2,"Material Eigenschaften bearbeiten"},
     {3,"Auswahl zuweisen"},
-    {4,"Material ausgewählten Flächen oder Körpern zuweisen"},
+    {4,"Material ausgewÃ¤hlten FlÃ¤chen oder KÃ¶rpern zuweisen"},
     {5,"Auswahl"},
-    {6,"Alle Flächen mit diesem Material auswählen"},
+    {6,"Alle FlÃ¤chen mit diesem Material auswÃ¤hlen"},
     {7,"Duplizieren"},
     {8,"Material duplizieren"},
-    {9,"Löschen"},
-    {10,"Material löschen"},
+    {9,"LÃ¶schen"},
+    {10,"Material lÃ¶schen"},
     {11,"Umbenennen"},
     {12,"Material umbenennen"},
     {13,"Duplizieren"},
     {14,"Objekt Duplizieren"},
-    {15,"Löschen"},
-    {16,"Objekt löschen"},
+    {15,"LÃ¶schen"},
+    {16,"Objekt lÃ¶schen"},
     {17,"Umbenennen"},
     {18,"Objekt umbenennen"},
     {19,"Lichtquelle bearbeiten..."},
     {20,"Lichtquellen Eigenschaften bearbeiten"},
     {21,"Duplizieren"},
     {22,"Lichtquelle duplizieren"},
-    {23,"Löschen"},
-    {24,"Lichtquelle löschen"},
+    {23,"LÃ¶schen"},
+    {24,"Lichtquelle lÃ¶schen"},
     {25,"Umbenennen"},
     {26,"Lichtquelle umbenennen"},
-    {121,"Gewähltes Objekt ablegen"},
-    {122,"Zuvor gewähltes Objekt auf diesem Material ablegen"}
+    {121,"GewÃ¤hltes Objekt ablegen"},
+    {122,"Zuvor gewÃ¤hltes Objekt auf diesem Material ablegen"}
    ]},
   {event,
    [
     {1,"Auswahl"},
-    {2,"Inhaltsverzeichnis-Menü (bei Auswahl) oder Erzeugen-Menü (ohne Auswahl)"}
+    {2,"Inhaltsverzeichnis-MenÃ¼ (bei Auswahl) oder Erzeugen-MenÃ¼ (ohne Auswahl)"}
    ]},
   {handle_drop,
    [
     {1,"Texturtyp"},
     {2,"Diffus"},
     {3,"Glanz"},
-    {4,"Beule (Höhen abbilden)"},
+    {4,"Beule (HÃ¶hen abbilden)"},
     {5,"Beule (Normal abbilden)"}
    ]},
   {image_menu,
@@ -1667,7 +1650,7 @@
    ]},
   {title,
    [
-    {1,"Inhaltsübersicht"}
+    {1,"InhaltsÃ¼bersicht"}
    ]}
  ]}.
 {wings_palette,
@@ -1691,12 +1674,12 @@
     {2,"Farbe bearbeiten"},
     {3,"Interpolieren"},
     {4,"Leere Farben interpolieren"},
-    {5,"Alle löschen"},
+    {5,"Alle lÃ¶schen"},
     {6,"Palette leeren"},
     {7,"Komprimieren"},
     {8,"Palette komprimieren"},
     {9,"Farben suchen"},
-    {10,"Farben der ausgewählten Objekte suchen"},
+    {10,"Farben der ausgewÃ¤hlten Objekte suchen"},
     {11,"Export"},
     {12,"Palette in Datei exportieren"},
     {13,"Import"},
@@ -1706,8 +1689,8 @@
    [
     {1,"Farbe der Auswahl zuweisen"},
     {2,"Farbe bearbeiten"},
-    {3,"Menü anzeigen"},
-    {4,"Farbe löschen"}
+    {3,"MenÃ¼ anzeigen"},
+    {4,"Farbe lÃ¶schen"}
    ]},
   {title,
    [
@@ -1725,17 +1708,17 @@
  [
   {area_info,
    [
-    {40," Flächeninhalt ~s"}
+    {40," FlÃ¤cheninhalt ~s"}
    ]},
   {clear_hilite_marquee_mode,
    [
-    {ctrl_action,"Abwählen"},
-    {shift_action,"Nur Elemente aus/ab-wählen die vollständig im Auswahlrahmen sind"}
+    {ctrl_action,"AbwÃ¤hlen"},
+    {shift_action,"Nur Elemente aus/ab-wÃ¤hlen die vollstÃ¤ndig im Auswahlrahmen sind"}
    ]},
   {enhanced_hl_info,
    [
     {1,". Position <~s  ~s  ~s>"},
-    {3,". Mittelpunkt <~s  ~s  ~s>\nLänge ~s"},
+    {3,". Mittelpunkt <~s  ~s  ~s>\nLÃ¤nge ~s"},
     {4,". Mittelpunkt <~s  ~s  ~s> \nMaterial ~s."}
    ]},
   {handle_hilite_event,
@@ -1744,7 +1727,7 @@
     {3,"Objekt"},
     {4,"Knoten"},
     {5,"Kante"},
-    {6,"Fläche"}
+    {6,"FlÃ¤che"}
    ]}
  ]}.
 {wings_plugin,
@@ -1761,7 +1744,7 @@
    ]},
   {def_ui_plugin,
    [
-    {1,"Wings erneut installieren. Fehlende Erweiterung für ~p."}
+    {1,"Wings erneut installieren. Fehlende Erweiterung fÃ¼r ~p."}
    ]},
   {install,
    [
@@ -1778,8 +1761,8 @@
    ]},
   {install_verify_files,
    [
-    {1,"Datei \"~s\" enthält eine Datei mit einem absoluten Pfad"},
-    {2,"Datei \"~s\" enthält keine Wings Erweiterungen"}
+    {1,"Datei \"~s\" enthÃ¤lt eine Datei mit einem absoluten Pfad"},
+    {2,"Datei \"~s\" enthÃ¤lt keine Wings Erweiterungen"}
    ]},
   {manager_command,
    [
@@ -1800,13 +1783,13 @@
   {plugin_modules,
    [
     {1,"Erweiterung aktivieren/deaktivieren "},
-    {2,"(deaktivierte Erweiterungen erscheinen nicht in den Menüs)"}
+    {2,"(deaktivierte Erweiterungen erscheinen nicht in den MenÃ¼s)"}
    ]},
   {plugin_root_menu,
    [
-    {1,"Körper: "},
+    {1,"KÃ¶rper: "},
     {2,"Kante: "},
-    {3,"Fläche: "},
+    {3,"FlÃ¤che: "},
     {4,"Knoten: "},
     {5,"Auswahl|"},
     {6,"Werkzeuge|"}
@@ -1818,52 +1801,52 @@
    [
     {1,"Standard Befehle"},
     {2,"Erlaubt die Definition von Befehlen die mit Strg+L oder Umsch-M aufgerufen werden."},
-    {3,"Hervorhebung als temporäre Auswahl verwenden"},
+    {3,"Hervorhebung als temporÃ¤re Auswahl verwenden"},
     {4,"Wenn keine Auswahl vorhanden, "},
     {5,"wirken Befehle auf den hervorgehobenen Elemente"},
     {6,"Auswahl beim Ziehen verbergen"},
     {7,"Auswahl bei allen interaktiven Befehlen nicht anzeigen"},
     {8,"Auswahl bei Kamerabewegung verbergen"},
-    {9,"Auswahl nicht anzeigen, während die Kamera bewegt wird."},
-    {12,"Temporäre Auswahl für erfahrene Anwender"},
-    {13,"Im Modus für die zweite Auswahl, erweitert ein Rechts-Klick die Auswahl"},
-    {14,"Länge"},
-    {15,"Länge des Vektors der zweiten Auswahl"},
+    {9,"Auswahl nicht anzeigen, wÃ¤hrend die Kamera bewegt wird."},
+    {12,"TemporÃ¤re Auswahl fÃ¼r erfahrene Anwender"},
+    {13,"Im Modus fÃ¼r die zweite Auswahl, erweitert ein Rechts-Klick die Auswahl"},
+    {14,"LÃ¤nge"},
+    {15,"LÃ¤nge des Vektors der zweiten Auswahl"},
     {16,"Breite"},
     {17,"Vektorbreite (in Pixeln)"},
     {18,"Farbe"},
     {19,"Vektorfarbe"},
     {20,"Vektor-Darstellung"},
-    {21,"Spiegel für Auswahl verwenden"},
-    {22,"Standardmäßig virtuellen Spiegel für zweite Auswahl verwenden"},
-    {23,"Größe"},
-    {24,"Größe des benutzerdefinierten Sichtbereichsbegrenzung"},
+    {21,"Spiegel fÃ¼r Auswahl verwenden"},
+    {22,"StandardmÃ¤ÃŸig virtuellen Spiegel fÃ¼r zweite Auswahl verwenden"},
+    {23,"GrÃ¶ÃŸe"},
+    {24,"GrÃ¶ÃŸe des benutzerdefinierten Sichtbereichsbegrenzung"},
     {25,"Farbe"},
     {26,"Farbe der benutzerdefinierten Sichtbereichsbegrenzung"},
     {27,"Sichtbereichsbegrenzung"},
-    {28,"Ausgewählte Geometrie"},
-    {29,"Nicht ausgewählte Geometrie"},
+    {28,"AusgewÃ¤hlte Geometrie"},
+    {29,"Nicht ausgewÃ¤hlte Geometrie"},
     {30,"Ausrichtungs-Ziel hervorheben"},
-    {36,"Modus-Umschaltungen setzen die Modellposition zurück"},
+    {36,"Modus-Umschaltungen setzen die Modellposition zurÃ¼ck"},
     {37,"Betrifft nur Werkzeuge mit mehr als einem Ziehen-Modus wie z.B. Kante|Gleiten"},
     {38,"Ziehen Reaktion anpassen"},
-    {39,"Verhältnis ziehen zu Mausrotation anpassen. Standardeinstellungen wenn nicht markiert."},
+    {39,"VerhÃ¤ltnis ziehen zu Mausrotation anpassen. Standardeinstellungen wenn nicht markiert."},
     {40,"Faktor in Abstand von der Kamera"},
     {43,"Faktor in Abstand von der Kamera"},
     {49,"Ziehen Einstellungen"},
-    {50,"Mausgeschwindikeit für Ziehen"},
-    {51,"Mausgeschwindikeit für Skalierung"},
-    {52,"Mausgeschwindikeit für Drehung"},
+    {50,"Mausgeschwindikeit fÃ¼r Ziehen"},
+    {51,"Mausgeschwindikeit fÃ¼r Skalierung"},
+    {52,"Mausgeschwindikeit fÃ¼r Drehung"},
     {53,"Wings im Modus Feineinstellungen starten"},
-    {54,"Bei temporärer Markierung Auswahl über Kurztaste erweitern"},
-    {55,"Beeinflusst: Auswahl|Alle, Kantenschleife, Kantenring, Auswahle|Ähnliche, Ähnliche Normalen, Ähliche Flächen und Gleiches Material"}
+    {54,"Bei temporÃ¤rer Markierung Auswahl Ã¼ber Kurztaste erweitern"},
+    {55,"Beeinflusst: Auswahl|Alle, Kantenschleife, Kantenring, Auswahle|Ã„hnliche, Ã„hnliche Normalen, Ã„hliche FlÃ¤chen und Gleiches Material"}
    ]},
   {command,
    [
     {1,"Allgemein"},
     {2,"Kamera"},
     {3,"Erweitert"},
-    {4,"Benutzeroberfläche"},
+    {4,"BenutzeroberflÃ¤che"},
     {5,"Verschiedenes"},
     {6,"Einstellungen"},
     {31,"Bedingungen"}
@@ -1875,11 +1858,11 @@
     {3,"Skalieren"},
     {4,"Standard Kombinationstasten"},
     {9,"Abstands Zwangsbedingungen"},
-    {10,"Alternative Abstände"},
+    {10,"Alternative AbstÃ¤nde"},
     {11,"Zwangsbedingungen speichern nach..."},
-    {12,"Bedingung gebunden an ~s für Abstandsoperationen."},
-    {13,"Bedingung gebunden an ~s für Rotationen."},
-    {14,"Bedingung gebunden an ~s für Skalierungs-Operationen."},
+    {12,"Bedingung gebunden an ~s fÃ¼r Abstandsoperationen."},
+    {13,"Bedingung gebunden an ~s fÃ¼r Rotationen."},
+    {14,"Bedingung gebunden an ~s fÃ¼r Skalierungs-Operationen."},
     {15," Alternative Zwangsbedingungen auf Kehrwert (1/Wert)."},
     {16," Alternative Zwangsbedingungen auf Supplement (180 minus Winkel)."},
     {17,"(Standard 1/~s)"},
@@ -1888,25 +1871,25 @@
     {22,"Abstands-Bedingungen"},
     {23,"Rotations-Bedingungen"},
     {25,"Skalierungsfaktoren"},
-    {29,"Alternative Abstände"},
-    {30,"Löschen des Wertes oder Eingabe von '0' setzen Zwangsbedingungen auf Wings Standard zurück"},
+    {29,"Alternative AbstÃ¤nde"},
+    {30,"LÃ¶schen des Wertes oder Eingabe von '0' setzen Zwangsbedingungen auf Wings Standard zurÃ¼ck"},
     {31,"Zwangsbedingungen Einstellungen"},
     {32,"Standardwerte f. Zwangsbedingungen"},
     {33,"Alternative Zwangsbedigungen verwenden"},
-    {34,"Wenn markiert, alternative Abstände, Kehrwert des Skalierungsfaktors und Supplementwinkel erwenden."},
-    {35," Beim ziehen direktes umschalten durch drücken von [Umsch]+[Tab]."}
+    {34,"Wenn markiert, alternative AbstÃ¤nde, Kehrwert des Skalierungsfaktors und Supplementwinkel erwenden."},
+    {35," Beim ziehen direktes umschalten durch drÃ¼cken von [Umsch]+[Tab]."}
    ]},
   {gen_prefs,
    [
-    {1,"Größe nicht ausgewählte"},
-    {2,"Größe unselektierter Knoten in Pixeln (0.0 = nicht zeigen)"},
-    {3,"Größe ausgewählte"},
-    {4,"Größe ausgewählter Knoten in Pixel"},
+    {1,"GrÃ¶ÃŸe nicht ausgewÃ¤hlte"},
+    {2,"GrÃ¶ÃŸe unselektierter Knoten in Pixeln (0.0 = nicht zeigen)"},
+    {3,"GrÃ¶ÃŸe ausgewÃ¤hlte"},
+    {4,"GrÃ¶ÃŸe ausgewÃ¤hlter Knoten in Pixel"},
     {5,"Knoten-Darstellung"},
-    {6,"Breite nicht ausgewählte"},
-    {7,"Breite nicht ausgewählter Kanten in Pixeln"},
-    {8,"Breite ausgewählter"},
-    {9,"Breite ausgewählter Kanten in Pixeln"},
+    {6,"Breite nicht ausgewÃ¤hlte"},
+    {7,"Breite nicht ausgewÃ¤hlter Kanten in Pixeln"},
+    {8,"Breite ausgewÃ¤hlter"},
+    {9,"Breite ausgewÃ¤hlter Kanten in Pixeln"},
     {10,"Weiche Kanten"},
     {11,"Farbe weicher Kanten"},
     {12,"Harte Kanten"},
@@ -1914,20 +1897,20 @@
     {14,"Kanten-Darstellung"},
     {15,"Knoten"},
     {16,"Kanten"},
-    {17,"Flächen"},
-    {18,"Körper"},
-    {19,"Nicht ausgewählt"},
-    {20,"Ausgewählt"},
+    {17,"FlÃ¤chen"},
+    {18,"KÃ¶rper"},
+    {19,"Nicht ausgewÃ¤hlt"},
+    {20,"AusgewÃ¤hlt"},
     {21,"Geschicktes hervorheben"},
     {22,"Hervorhebungen"},
-    {23,"Ausgewählte Flächen flächig"},
-    {24,"Ausgewählte Flächen gerastert"},
+    {23,"AusgewÃ¤hlte FlÃ¤chen flÃ¤chig"},
+    {24,"AusgewÃ¤hlte FlÃ¤chen gerastert"},
     {25,"Auswahlfarbe"},
     {26,"Auswahl"},
     {27,"Text"},
     {28,"Farbe des Informationstext"},
     {29,"Hintergrund"},
-    {30,"Hintergrundfarbe für Informationstext (einschließlich Transparenz)"},
+    {30,"Hintergrundfarbe fÃ¼r Informationstext (einschlieÃŸlich Transparenz)"},
     {31,"Informationstext"},
     {32,"Farbe"},
     {33,"Anzeigen bei Hauptachsenausrichtung"},
@@ -1941,13 +1924,13 @@
     {41,"-Y Farbe"},
     {42,"-Z Farbe"},
     {43,"Achsen"},
-    {44,"Länge"},
-    {45,"Länge der Normalen"},
+    {44,"LÃ¤nge"},
+    {45,"LÃ¤nge der Normalen"},
     {46,"Farbe"},
     {47,"Farbe der Normalen"},
     {48,"Normalen-Darstellung"},
     {49,"Achsen immer auf Gitter"},
-    {50,"Antialiasing für Kanten"},
+    {50,"Antialiasing fÃ¼r Kanten"},
     {51,"Standard"},
     {52,"Farbe des Standard-Materials setzen"},
     {55,"Materialien"},
@@ -1956,14 +1939,14 @@
     {58,"Breite in Pixeln harter Kanten"},
     {59,"Breite"},
     {60,"Breite von Normalen"},
-    {61,"Ausführlich"},
-    {62,"Zusätzliche Informationen für ausgewählte Elemente anzeigen"},
+    {61,"AusfÃ¼hrlich"},
+    {62,"ZusÃ¤tzliche Informationen fÃ¼r ausgewÃ¤hlte Elemente anzeigen"},
     {63,"Mouseover"},
-    {64,"Zusätzliche Informationen für hervorgehobene Elemente anzeigen, wenn Maus darüber bewegt wird"},
-    {65,"Größe der Knoten der Magnetmaske"},
-    {66,"Pixelgröße der Kanten der Magenetmaske"},
-    {67,"Nicht ausgewählte Knoten"},
-    {68,"Farbe nicht ausgewählter Knoten"},
+    {64,"ZusÃ¤tzliche Informationen fÃ¼r hervorgehobene Elemente anzeigen, wenn Maus darÃ¼ber bewegt wird"},
+    {65,"GrÃ¶ÃŸe der Knoten der Magnetmaske"},
+    {66,"PixelgrÃ¶ÃŸe der Kanten der Magenetmaske"},
+    {67,"Nicht ausgewÃ¤hlte Knoten"},
+    {68,"Farbe nicht ausgewÃ¤hlter Knoten"},
     {69,"Magnetmaske"},
     {70,"Kantenfarbe der Magnetmaske"},
     {aa_ortho1,"Ortho.-Modus bei Hauptachsenausrichtung"},
@@ -1976,46 +1959,46 @@
    ]},
   {misc_prefs,
    [
-    {1,"Deckkraft-Einstellungen werden in dieser OpenGL Version nicht unterstützt"},
+    {1,"Deckkraft-Einstellungen werden in dieser OpenGL Version nicht unterstÃ¼tzt"},
     {2,"Automatisch alle"},
     {3,"Minuten speichern"},
-    {4,"Rückgängig Schritte"},
+    {4,"RÃ¼ckgÃ¤ngig Schritte"},
     {5,"Winkel"},
-    {6,"Verzögerung (ms)"},
+    {6,"VerzÃ¶gerung (ms)"},
     {7,"Ansicht rotieren"},
-    {8,"Käfig"},
+    {8,"KÃ¤fig"},
     {9,"Einige Kanten"},
     {10,"Alle Kanten"},
     {11,"Schattiert-Modus Kanten-Stil"},
-    {12,"Stationäre Deckkraft"},
+    {12,"StationÃ¤re Deckkraft"},
     {13,"Bewegungs-Deckkraft"},
     {14,"Proxy Modus"},
-    {15,"Text in Menüs und Dialogen verschwindet"},
+    {15,"Text in MenÃ¼s und Dialogen verschwindet"},
     {16,"Problem tritt bei einigen Matrox-Karten auf"},
-    {17,"Wings stürzt ab wenn Achsen ausgeschaltet werden"},
+    {17,"Wings stÃ¼rzt ab wenn Achsen ausgeschaltet werden"},
     {18,"Problem tritt bei einigen Matrox-Karten auf"},
     {19,"Kamerabewegungen und interaktive Befehle springen"},
     {20,"Problem tritt unter Mac OS X 10.3 (Panther) auf"},
-    {21,"Behelfslösungen"},
+    {21,"BehelfslÃ¶sungen"},
     {22,"Anzeigeprobleme bei Kanten?"},
     {23,"Kantenversatz:"},
-    {24,"Entwicklermenü anzeigen"},
-    {25,"Menü mit Werkzeugen für Wings-Entwickler anzeigen"}
+    {24,"EntwicklermenÃ¼ anzeigen"},
+    {25,"MenÃ¼ mit Werkzeugen fÃ¼r Wings-Entwickler anzeigen"}
    ]},
   {smart_set_value_1,
    [
-    {1,"Änderungen der Systemschriftart werden\nbeim nächsten Start von Wings 3D wirksam."},
-    {2,"Änderungen der Werkzeugleistensymbole werden\nbeim nächsten Start von Wings 3D wirksam."},
-    {3,"Änderungen der Standard-Material Farbe werden beim\nnächsten Start von Wings 3D wirksam."}
+    {1,"Ã„nderungen der Systemschriftart werden\nbeim nÃ¤chsten Start von Wings 3D wirksam."},
+    {2,"Ã„nderungen der Werkzeugleistensymbole werden\nbeim nÃ¤chsten Start von Wings 3D wirksam."},
+    {3,"Ã„nderungen der Standard-Material Farbe werden beim\nnÃ¤chsten Start von Wings 3D wirksam."}
    ]},
   {ui_prefs,
    [
     {1,"Systemschriftart"},
     {2,"Arbeitsbereich/Geometrie Hintergrund"},
-    {3,"Menütext"},
-    {4,"Menühervorhebung"},
-    {5,"Menütext hervorgehoben"},
-    {6,"Menühintergrund"},
+    {3,"MenÃ¼text"},
+    {4,"MenÃ¼hervorhebung"},
+    {5,"MenÃ¼text hervorgehoben"},
+    {6,"MenÃ¼hintergrund"},
     {7,"Dialogtext (aktiv)"},
     {8,"Dialogtext (inaktiv)"},
     {9,"Dialoghintergrund"},
@@ -2026,25 +2009,25 @@
     {14,"Kein Fortschrittsbalken"},
     {15,"Konsolenschriftart"},
     {16,"Breite"},
-    {17,"Höhe"},
+    {17,"HÃ¶he"},
     {18,"Zeilenspeicher"},
     {19,"Hintergrund"},
     {20,"Text"},
     {21,"Eingabemarkierung"},
     {22,"Konsole"},
     {23,"Sprache"},
-    {24,"Objekte in der Inhaltsübersicht"},
+    {24,"Objekte in der InhaltsÃ¼bersicht"},
     {25,"Bild nach dem Rendern anzeigen"},
     {26,"Bild nach dem Rendern laden"},
     {27,"Erweiterte Werkzeugleistensymbole"},
-    {28,"Menüleiste Hintergrund"},
+    {28,"MenÃ¼leiste Hintergrund"},
     {29,"Informationstext Hintergrund"},
     {30,"Informationstext Vordergrund"},
-    {31,"Menüleiste Vordergrund"},
-    {50,"Oberflächensymbole"},
+    {31,"MenÃ¼leiste Vordergrund"},
+    {50,"OberflÃ¤chensymbole"},
     {51,"Klassisch"},
-    {52,"Blauer Würfel"},
-    {53,"Lila Röhre"}
+    {52,"Blauer WÃ¼rfel"},
+    {53,"Lila RÃ¶hre"}
    ]},
   {viewer_prefs,
    [
@@ -2055,7 +2038,7 @@
   {workaround_1,
    [
     {1,"Problem"},
-    {2,"Behelfslösung verwenden?"}
+    {2,"BehelfslÃ¶sung verwenden?"}
    ]}
  ]}.
 {wings_rotate,
@@ -2066,14 +2049,14 @@
    ]},
   {faces_to_vertices,
    [
-    {1,"Magnetisch-rotieren mehrerer Flächen-Regionen\nerfordert gemeinsame Knoten oder Kanten."}
+    {1,"Magnetisch-rotieren mehrerer FlÃ¤chen-Regionen\nerfordert gemeinsame Knoten oder Kanten."}
    ]}
  ]}.
 {wings_s,
  [
   {accept,
    [
-    {1,"Übernehmen"}
+    {1,"Ãœbernehmen"}
    ]},
   {camera_mode,
    [
@@ -2134,39 +2117,39 @@
    ]},
   {faces_to_vertices,
    [
-    {1,"Magnetisch-skalieren mehrerer Flächen-Regionen\nerfordert gemeinsame Knoten oder Kanten."}
+    {1,"Magnetisch-skalieren mehrerer FlÃ¤chen-Regionen\nerfordert gemeinsame Knoten oder Kanten."}
    ]}
  ]}.
 {wings_sel_cmd,
  [
   {ask,
    [
-    {1,"Über Id auswählen"}
+    {1,"Ãœber Id auswÃ¤hlen"}
    ]},
   {group_mode_string,
    [
-    {body,"Körper Auswahl Gruppe"},
+    {body,"KÃ¶rper Auswahl Gruppe"},
     {edge,"Kanten Auswahl Gruppe"},
-    {face,"Flächen Auswahl Gruppe"},
+    {face,"FlÃ¤chen Auswahl Gruppe"},
     {vertex,"Knoten Auswahl Gruppe"}
    ]},
   {group_title,
    [
     {1,"Knoten: "},
     {2,"Kante: "},
-    {3,"Fläche: "},
-    {4,"Körper: "}
+    {3,"FlÃ¤che: "},
+    {4,"KÃ¶rper: "}
    ]},
   {groups_menu,
    [
-    {1,"Gruppe löschen"},
-    {2,"Gruppe löschen \""},
-    {4,"Zu Gruppe hinzufügen"},
-    {5,"Aktuelle Auswahl hinzufügen zu Gruppe \""},
+    {1,"Gruppe lÃ¶schen"},
+    {2,"Gruppe lÃ¶schen \""},
+    {4,"Zu Gruppe hinzufÃ¼gen"},
+    {5,"Aktuelle Auswahl hinzufÃ¼gen zu Gruppe \""},
     {7,"Von Gruppe subtrahieren"},
     {8,"Aktuelle Auswahl abziehen von Gruppe \""},
-    {10,"Gruppe auswählen"},
-    {11,"Gruppe auswählen \""},
+    {10,"Gruppe auswÃ¤hlen"},
+    {11,"Gruppe auswÃ¤hlen \""},
     {13,"Gruppe vereinigen"},
     {14,"Vereinige Gruppe \""},
     {15,"\" mit aktueller Auswahl"},
@@ -2179,14 +2162,14 @@
    ]},
   {item_by_id,
    [
-    {1,"Keine Auswahl möglich."},
+    {1,"Keine Auswahl mÃ¶glich."},
     {2,"Objekt Id"}
    ]},
   {less_help,
    [
-    {1,"Angrenzende Knoten eines nicht ausgewählten Knoten abwählen"},
-    {2,"Angrenzende Kanten einer nicht ausgewählten Kante abwählen"},
-    {3,"Flächen mit gemeinsamen Knoten einer nicht ausgewählten Fläche abwählen"}
+    {1,"Angrenzende Knoten eines nicht ausgewÃ¤hlten Knoten abwÃ¤hlen"},
+    {2,"Angrenzende Kanten einer nicht ausgewÃ¤hlten Kante abwÃ¤hlen"},
+    {3,"FlÃ¤chen mit gemeinsamen Knoten einer nicht ausgewÃ¤hlten FlÃ¤che abwÃ¤hlen"}
    ]},
   {menu,
    [
@@ -2194,20 +2177,20 @@
     {2,"Aktuelle Auswahl aufheben"},
     {3,"Weitere"},
     {4,"Weniger"},
-    {5,"Ähnliche"},
+    {5,"Ã„hnliche"},
     {6,"Kantenschleife"},
     {7,"Kantenschleife"},
     {8,"Kanten-Auswahl zur Schleife erweitern; "},
-    {9,"Flächen-Auswahl in ausgewählte Rand-Kanten umwandeln"},
+    {9,"FlÃ¤chen-Auswahl in ausgewÃ¤hlte Rand-Kanten umwandeln"},
     {10,"Kantenschleife der Region"},
-    {11,"Alle Flächen auf einer Seite einer Kantenschleife auswählen"},
+    {11,"Alle FlÃ¤chen auf einer Seite einer Kantenschleife auswÃ¤hlen"},
     {12,"Kantenring"},
     {13,"Kanten-Auswahl zum Ring erweitern"},
     {14,"Vorherige Kantenschleife"},
-    {15,"Vorherige Kantenschleife auswählen"},
-    {16,"Nächste Kantenschleife"},
-    {17,"Nächste Kantenschleife auswählen"},
-    {18,"Kantenschleife vergrößern"},
+    {15,"Vorherige Kantenschleife auswÃ¤hlen"},
+    {16,"NÃ¤chste Kantenschleife"},
+    {17,"NÃ¤chste Kantenschleife auswÃ¤hlen"},
+    {18,"Kantenschleife vergrÃ¶ÃŸern"},
     {19,"Auswahl um eine Kante in Schleifenrichtung erweitern"},
     {20,"Kantenschleife verkleinern"},
     {21,"Kanten-Auswahl um eine in Schleifenrichtung verkleinern"},
@@ -2218,43 +2201,43 @@
     {26,"Angrenzende"},
     {27,"Knoten"},
     {28,"Kanten"},
-    {29,"Flächen"},
+    {29,"FlÃ¤chen"},
     {30,"Objekte"},
     {31,"Nach Eigenschaft"},
     {32,"Harte Kanten"},
-    {33,"Alle harten Kanten auswählen"},
+    {33,"Alle harten Kanten auswÃ¤hlen"},
     {34,"Isolierte Knoten"},
-    {35,"Alle isolierten Ecken auswählen"},
+    {35,"Alle isolierten Ecken auswÃ¤hlen"},
     {36,"Knoten mit"},
     {37,"2 Kanten"},
     {38,"3 Kanten"},
     {39,"4 Kanten"},
     {40,"5 Kanten"},
-    {41,"Flächen mit"},
+    {41,"FlÃ¤chen mit"},
     {42,"2 Kanten"},
     {43,"3 Kanten"},
     {44,"4 Kanten"},
     {45,"5 oder mehr"},
-    {46,"Zufällig"},
+    {46,"ZufÃ¤llig"},
     {56,"Kurze Kanten"},
-    {57,"(Zu) kurze Kanten auswählen"},
+    {57,"(Zu) kurze Kanten auswÃ¤hlen"},
     {58,"Material-Kanten"},
-    {59,"Alle Kanten zwischen unterschiedlichen Materialien auswählen"},
-    {60,"UV-abgebildete Flächen"},
-    {61,"Alle Flächen mit UV-Koordinaten auswählen"},
+    {59,"Alle Kanten zwischen unterschiedlichen Materialien auswÃ¤hlen"},
+    {60,"UV-abgebildete FlÃ¤chen"},
+    {61,"Alle FlÃ¤chen mit UV-Koordinaten auswÃ¤hlen"},
     {62,"Id..."},
-    {63,"Über numerische ID auswählen"},
+    {63,"Ãœber numerische ID auswÃ¤hlen"},
     {64,"Lichtquellen"},
-    {65,"Alle Lichtquellen auswählen"},
-    {66,"Alle Elemente auswählen"},
+    {65,"Alle Lichtquellen auswÃ¤hlen"},
+    {66,"Alle Elemente auswÃ¤hlen"},
     {67,"Umkehren"},
     {68,"Auswahl umkehren"},
-    {69,"Ausgewählte Objekte verbergen"},
-    {70,"Alle (ganz oder teilweise) ausgewählten Objekte verbergen"},
-    {71,"Nicht ausgewählte Objekte verbergen"},
+    {69,"AusgewÃ¤hlte Objekte verbergen"},
+    {70,"Alle (ganz oder teilweise) ausgewÃ¤hlten Objekte verbergen"},
+    {71,"Nicht ausgewÃ¤hlte Objekte verbergen"},
     {72,"Objekte ohne Auswahl verbergen"},
-    {73,"Nicht ausgewählte sperren"},
-    {74,"Nicht ausgewählte Objekte sperren"},
+    {73,"Nicht ausgewÃ¤hlte sperren"},
+    {74,"Nicht ausgewÃ¤hlte Objekte sperren"},
     {75,"Alle zeigen"},
     {76,"Alle verborgenen Objekte zeigen"},
     {77,"Alle entsperren"},
@@ -2265,30 +2248,30 @@
     {82,"Auswahl der Auswahlgruppe \"GespeicherteAuswahl\" abrufen"},
     {83,"Neue Gruppe..."},
     {84,"Neue Auswahlgruppe anlegen"},
-    {85,"Nicht ebene Flächen"},
-    {86,"Alle nicht ebenen Flächen auswählen"},
+    {85,"Nicht ebene FlÃ¤chen"},
+    {86,"Alle nicht ebenen FlÃ¤chen auswÃ¤hlen"},
     {87,"Scharfe Kanten"},
-    {88,"Scharfe Kanten auswählen"},
+    {88,"Scharfe Kanten auswÃ¤hlen"},
     {89,"Pfad mit wenigsten Kanten"},
-    {90,"Pfad mit den wenigsten Kanten zwischen zwei Knoten auswählen"},
-    {91,"Kürzester Pfad (Dijkstra)"},
-    {92,"Kürzesten Pfad zwischen zwei Knoten auswählen (Dijkstra)"},
-    {93,"Kürzester Pfad (A-Star)"},
-    {94,"Kürzesten Pfad zwischen zwei Knoten auswählen (A-Star)"},
+    {90,"Pfad mit den wenigsten Kanten zwischen zwei Knoten auswÃ¤hlen"},
+    {91,"KÃ¼rzester Pfad (Dijkstra)"},
+    {92,"KÃ¼rzesten Pfad zwischen zwei Knoten auswÃ¤hlen (Dijkstra)"},
+    {93,"KÃ¼rzester Pfad (A-Star)"},
+    {94,"KÃ¼rzesten Pfad zwischen zwei Knoten auswÃ¤hlen (A-Star)"},
     {95,"Knoten-Pfad"},
-    {96,"Schleifen vervollständigen"},
-    {97,"Wechselt in den Kantenmodus und vervollständigt die Schleifenauswahl"},
+    {96,"Schleifen vervollstÃ¤ndigen"},
+    {97,"Wechselt in den Kantenmodus und vervollstÃ¤ndigt die Schleifenauswahl"},
     {401,"6 oder mehr"},
-    {nq0,"Nicht viereckige Flächen"},
-    {nq1,"Alle nicht viereckigen Flächen"},
-    {nq2,"Ungeradzahlige nicht viereckige Flächen"},
-    {nq3,"Geradzahlige nicht viereckige Flächen"}
+    {nq0,"Nicht viereckige FlÃ¤chen"},
+    {nq1,"Alle nicht viereckigen FlÃ¤chen"},
+    {nq2,"Ungeradzahlige nicht viereckige FlÃ¤chen"},
+    {nq3,"Geradzahlige nicht viereckige FlÃ¤chen"}
    ]},
   {more_help,
    [
-    {1,"Angrenzende Knoten eines ausgewählten Knoten auswählen"},
-    {2,"Angrenzende Kanten einer ausgewählten Kante auswählen"},
-    {3,"Angrenzende Flächen einer ausgewählten Fläche auswählen"}
+    {1,"Angrenzende Knoten eines ausgewÃ¤hlten Knoten auswÃ¤hlen"},
+    {2,"Angrenzende Kanten einer ausgewÃ¤hlten Kante auswÃ¤hlen"},
+    {3,"Angrenzende FlÃ¤chen einer ausgewÃ¤hlten FlÃ¤che auswÃ¤hlen"}
    ]},
   {new_group,
    [
@@ -2302,81 +2285,81 @@
   {nonplanar_faces,
    [
     {1,"Abstands-Toleranz"},
-    {2,"Nicht plane Flächen auswählen"}
+    {2,"Nicht plane FlÃ¤chen auswÃ¤hlen"}
    ]},
   {oriented_faces,
    [
     {1,"Winkel-Toleranz"},
-    {2,"Ähnlich ausgerichtete Flächen auswählen"},
-    {3,"Nur verbundene Fläche"},
-    {4,"Mindestens eine Fläche muß ausgewählt sein"},
+    {2,"Ã„hnlich ausgerichtete FlÃ¤chen auswÃ¤hlen"},
+    {3,"Nur verbundene FlÃ¤che"},
+    {4,"Mindestens eine FlÃ¤che muÃŸ ausgewÃ¤hlt sein"},
     {5,"Winkel speichern"}
    ]},
   {oriented_faces_menu,
    [
-    {1,"Ähnliche Normalen"},
-    {2,"Flächen mit ähnlichen Normalen wie der ausgewählten Fläche auswählen"}
+    {1,"Ã„hnliche Normalen"},
+    {2,"FlÃ¤chen mit Ã¤hnlichen Normalen wie der ausgewÃ¤hlten FlÃ¤che auswÃ¤hlen"}
    ]},
   {sel_all_str,
    [
     {1,"Alle Knoten"},
     {2,"Alle Kanten"},
-    {3,"Alle Flächen"},
+    {3,"Alle FlÃ¤chen"},
     {4,"Alle Objekte"}
    ]},
   {sharp_edges,
    [
     {1,"Max. Winkel"},
-    {2,"Scharfe Kanten auswählen"}
+    {2,"Scharfe Kanten auswÃ¤hlen"}
    ]},
   {short_edges,
    [
-    {1,"Längen-Toleranz"},
-    {2,"Kurze Kanten auswählen"}
+    {1,"LÃ¤ngen-Toleranz"},
+    {2,"Kurze Kanten auswÃ¤hlen"}
    ]},
   {shortest_path,
    [
-    {1,"Genau zwei Knoten auf dem selben\nObjekt müssen ausgewählt werden"},
-    {2,"Genau zwei Knoten müssen ausgewählt werden"}
+    {1,"Genau zwei Knoten auf dem selben\nObjekt mÃ¼ssen ausgewÃ¤hlt werden"},
+    {2,"Genau zwei Knoten mÃ¼ssen ausgewÃ¤hlt werden"}
    ]},
   {similar_area,
    [
-    {1,"Flächen-Toleranz"},
-    {2,"Ähnliche Flächen auswählen"},
-    {3,"Genau eine Fläche auf einem\nObjekt muss ausgewählte sein."},
-    {4,"Genau eine Fläche muss ausgewählte sein."}
+    {1,"FlÃ¤chen-Toleranz"},
+    {2,"Ã„hnliche FlÃ¤chen auswÃ¤hlen"},
+    {3,"Genau eine FlÃ¤che auf einem\nObjekt muss ausgewÃ¤hlte sein."},
+    {4,"Genau eine FlÃ¤che muss ausgewÃ¤hlte sein."}
    ]},
   {similar_area_faces_menu,
    [
-    {1,"Ähnliche Fläche"},
-    {2,"Flächen mit ähnlicher Fläche wie die ausgewählte Fläche auswählen"}
+    {1,"Ã„hnliche FlÃ¤che"},
+    {2,"FlÃ¤chen mit Ã¤hnlicher FlÃ¤che wie die ausgewÃ¤hlte FlÃ¤che auswÃ¤hlen"}
    ]},
   {similar_help,
    [
-    {1,"Knoten die dem ausgewählten Knoten ähnlich sind auswählen"},
-    {2,"Kanten die der ausgewählten Kante ähnlich sind auswählen"},
-    {3,"Flächen die der ausgewählten Fläche ähnlich sind auswählen"},
-    {4,"Objekte mit der selben Anzahl Kanten, Flächen und Knoten auswählen"}
+    {1,"Knoten die dem ausgewÃ¤hlten Knoten Ã¤hnlich sind auswÃ¤hlen"},
+    {2,"Kanten die der ausgewÃ¤hlten Kante Ã¤hnlich sind auswÃ¤hlen"},
+    {3,"FlÃ¤chen die der ausgewÃ¤hlten FlÃ¤che Ã¤hnlich sind auswÃ¤hlen"},
+    {4,"Objekte mit der selben Anzahl Kanten, FlÃ¤chen und Knoten auswÃ¤hlen"}
    ]},
   {similar_material,
    [
-    {2,"Nur verbundene Flächen"},
-    {3,"Mindestens eine Fläche muß ausgewählt sein"},
-    {4,"Flächen mit dem selben Material auswählen"},
+    {2,"Nur verbundene FlÃ¤chen"},
+    {3,"Mindestens eine FlÃ¤che muÃŸ ausgewÃ¤hlt sein"},
+    {4,"FlÃ¤chen mit dem selben Material auswÃ¤hlen"},
     {5,"Materialien"},
     {6,"Knotenfarbe"}
    ]},
   {similar_material_faces,
    [
     {1,"Gleiches Material"},
-    {2,"Flächen mit dem selben Material wie den bereits ausgewählten auswählen"}
+    {2,"FlÃ¤chen mit dem selben Material wie den bereits ausgewÃ¤hlten auswÃ¤hlen"}
    ]},
   {valid_sel,
    [
     {1,"Diese Objekt-Id "},
-    {2," ist ungültig."},
+    {2," ist ungÃ¼ltig."},
     {3,"Die "},
-    {4," ist ungültig."}
+    {4," ist ungÃ¼ltig."}
    ]}
  ]}.
 {wings_shape,
@@ -2384,24 +2367,24 @@
   {do_menu,
    [
     {1,"Duplizieren"},
-    {2,"Ausgewählte Objekte duplizieren"},
-    {3,"Löschen"},
-    {4,"Ausgewählte Objekte löschen"},
+    {2,"AusgewÃ¤hlte Objekte duplizieren"},
+    {3,"LÃ¶schen"},
+    {4,"AusgewÃ¤hlte Objekte lÃ¶schen"},
     {5,"Umbenennen"},
-    {6,"Ausgewählte Objekte umbenennen"}
+    {6,"AusgewÃ¤hlte Objekte umbenennen"}
    ]},
   {help,
    [
     {1,"Auswahl"},
-    {2,"Menü anzeigen"},
+    {2,"MenÃ¼ anzeigen"},
     {3,"Sichtbarkeit des aktiven Objekts umschalten"},
     {4,"Sichtbarkeit aller anderen Objekte umschalten"},
     {5,"Aktives Objekt sperren/freigeben"},
     {6,"Alle Objekte sperren/freigeben"},
-    {7,"Auswahl für aktives Objekt umschalten"},
-    {8,"Auswahl für alle anderen Objekte umschalten"},
-    {9,"Schattiert/Drahtmodell für aktives Objekt umschalten"},
-    {10,"Schattiert/Drahtmodell für alle anderen Objekte umschalten"}
+    {7,"Auswahl fÃ¼r aktives Objekt umschalten"},
+    {8,"Auswahl fÃ¼r alle anderen Objekte umschalten"},
+    {9,"Schattiert/Drahtmodell fÃ¼r aktives Objekt umschalten"},
+    {10,"Schattiert/Drahtmodell fÃ¼r alle anderen Objekte umschalten"}
    ]},
   {title,
    [
@@ -2414,20 +2397,20 @@
   {cone,
    [
     {1,"Abschnitte"},
-    {2,"Höhe"},
+    {2,"HÃ¶he"},
     {3,"X Durchmesser"},
     {4,"Y Durchmesser"}
    ]},
   {cube,
    [
-    {1,"X Kantenlänge"},
-    {2,"Y Kantenlänge"},
-    {3,"Z Kantenlänge"}
+    {1,"X KantenlÃ¤nge"},
+    {2,"Y KantenlÃ¤nge"},
+    {3,"Z KantenlÃ¤nge"}
    ]},
   {cylinder,
    [
     {1,"Abschnitte"},
-    {2,"Höhe"},
+    {2,"HÃ¶he"},
     {3,"X Durchmesser Deckel"},
     {4,"Z Durchmesser Deckel"},
     {5,"X Durchmesser Boden"},
@@ -2435,18 +2418,18 @@
    ]},
   {dodecahedron,
    [
-    {1,"Kantenlänge"}
+    {1,"KantenlÃ¤nge"}
    ]},
   {grid,
    [
     {1,"Zeilen/Spalten"},
     {2,"X Abstand"},
     {3,"Z Abstand"},
-    {4,"Höhe"}
+    {4,"HÃ¶he"}
    ]},
   {icosahedron,
    [
-    {1,"Kantenlänge"}
+    {1,"KantenlÃ¤nge"}
    ]},
   {menu,
    [
@@ -2456,7 +2439,7 @@
   {prim_help,
    [
     {cone,"Kegel erzeugen"},
-    {cube,"Würfel erzeugen"},
+    {cube,"WÃ¼rfel erzeugen"},
     {cylinder,"Zylinder erzeugen"},
     {dodecahedron,"Dodekaeder erzeugen"},
     {grid,"Gitter erzeugen"},
@@ -2473,7 +2456,7 @@
   {prim_name,
    [
     {cone,"Kegel"},
-    {cube,"Würfel"},
+    {cube,"WÃ¼rfel"},
     {cylinder,"Zylinder"},
     {dodecahedron,"Dodekaeder"},
     {grid,"Gitter"},
@@ -2496,31 +2479,31 @@
    ]},
   {tetrahedron,
    [
-    {1,"Kantenlänge"}
+    {1,"KantenlÃ¤nge"}
    ]},
   {torus,
    [
     {1,"Abschnitte"},
     {2,"Scheiben"},
     {4,"Kleiner Radius"},
-    {31,"Großer X Radius"},
-    {32,"Großer Z Radius"}
+    {31,"GroÃŸer X Radius"},
+    {32,"GroÃŸer Z Radius"}
    ]}
  ]}.
 {wings_subdiv,
  [
   {face_centers,
    [
-    {1,"Fläche "},
+    {1,"FlÃ¤che "},
     {2," hat nur zwei Kanten."}
    ]},
   {smooth,
    [
-    {1,"glätte"},
-    {2,"berechne Flächenmittelpunkte"},
+    {1,"glÃ¤tte"},
+    {2,"berechne FlÃ¤chenmittelpunkte"},
     {3,"schneide Kanten"},
     {4,"aktualisiere Materialien"},
-    {5,"erzeuge neue Flächen Flächen"},
+    {5,"erzeuge neue FlÃ¤chen FlÃ¤chen"},
     {6,"verschiebe Knoten"},
     {7,"fertigstellen"}
    ]}
@@ -2537,30 +2520,30 @@
  [
   {button_help_1,
    [
-    {1,"Abwählen"}
+    {1,"AbwÃ¤hlen"}
    ]},
   {button_help_2,
    [
-    {1,"Angrenzende Knoten auswählen"},
+    {1,"Angrenzende Knoten auswÃ¤hlen"},
     {2,"In Knoten-Auswahl Modus wechseln"},
-    {3,"Angrenzende Kanten auswählen"},
+    {3,"Angrenzende Kanten auswÃ¤hlen"},
     {4,"In Kanten-Auswahl Modus wechseln"},
-    {5,"Angrenzende Flächen auswählen"},
-    {6,"In Flächen Auswahl Modus wechseln"},
-    {7,"In Körper-Auswahl Modus wechseln"}
+    {5,"Angrenzende FlÃ¤chen auswÃ¤hlen"},
+    {6,"In FlÃ¤chen Auswahl Modus wechseln"},
+    {7,"In KÃ¶rper-Auswahl Modus wechseln"}
    ]},
   {button_help_3,
    [
-    {1,"Letzten Befehl rückgängig machen"},
-    {2,"Letzten rückgängig-Befehl wiederherstellen"},
-    {3,"Gespeicherte Szene öffnen"},
+    {1,"Letzten Befehl rÃ¼ckgÃ¤ngig machen"},
+    {2,"Letzten rÃ¼ckgÃ¤ngig-Befehl wiederherstellen"},
+    {3,"Gespeicherte Szene Ã¶ffnen"},
     {4,"Aktuelle Szene speichern"},
     {5,"Wings Einstellungen bearbeiten"}
    ]},
   {messages,
    [
     {axes,"Achsen"},
-    {change_to,"Ändern in"},
+    {change_to,"Ã„ndern in"},
     {flat,"Flache Schattierung"},
     {groundplane,"Bodenplatte"},
     {hide,"Verbergen"},
@@ -2584,19 +2567,19 @@
    [
     {1,"Knoten"},
     {2,"Kante"},
-    {3,"Fläche"},
-    {4,"Körper"},
+    {3,"FlÃ¤che"},
+    {4,"KÃ¶rper"},
     {5,"Licht"},
     {6,"Datei"},
     {7,"Bearbeiten"},
     {8,"Ansicht"},
-    {9,"Auswählen"},
+    {9,"AuswÃ¤hlen"},
     {10,"Werkzeuge"},
     {11,"Fenster"},
     {12,"Hilfe"},
     {13,"Neu"},
-    {14,"Öffnen"},
-    {15,"Zusammenführen"},
+    {14,"Ã–ffnen"},
+    {15,"ZusammenfÃ¼hren"},
     {16,"Speichern"},
     {17,"Speichern unter"},
     {18,"Auswahl speichern"},
@@ -2609,13 +2592,13 @@
     {25,"Rendern"},
     {26,"Erweiterung installieren"},
     {27,"Beenden"},
-    {28,"Rückgängig/Wiederherstellen"},
-    {29,"Rückgängig"},
+    {28,"RÃ¼ckgÃ¤ngig/Wiederherstellen"},
+    {29,"RÃ¼ckgÃ¤ngig"},
     {30,"Wiederherstellen"},
     {31,"Wiederholen"},
     {32,"Parameter wiederholen"},
     {33,"Verschieben wiederholen"},
-    {34,"Rückgängig Historie leeren"},
+    {34,"RÃ¼ckgÃ¤ngig Historie leeren"},
     {35,"Einstellungen"},
     {36,"Einstell."},
     {37,"Erweiterung verwalten"},
@@ -2627,9 +2610,9 @@
     {43,"Schattiert"},
     {44,"Drahtmodell umschalten"},
     {45,"Kanten anzeigen"},
-    {46,"Drahtmodell-Rückseiten anzeigen"},
-    {47,"Geglättete Darstellung umschalten"},
-    {48,"Schnelle geglättete Vorschau"},
+    {46,"Drahtmodell-RÃ¼ckseiten anzeigen"},
+    {47,"GeglÃ¤ttete Darstellung umschalten"},
+    {48,"Schnelle geglÃ¤ttete Vorschau"},
     {49,"3D-Rahmen anzeigen"},
     {50,"Clipping Plane"},
     {51,"Normalen anzeigen"},
@@ -2639,19 +2622,19 @@
     {55,"Lichtquellen der Szene"},
     {56,"Lichtquellen umschalten"},
     {57,"Orthogonale Ansicht"},
-    {58,"Ansicht zurücksetzen"},
+    {58,"Ansicht zurÃ¼cksetzen"},
     {59,"Ausrichten"},
     {60,"Ausrichtung hervorheben"},
     {61,"Rahmen"},
     {62,"Rahmen-Modus"},
     {63,"An Auswahl ausrichten"},
-    {64,"Nächste(r)"},
+    {64,"NÃ¤chste(r)"},
     {65,"Vorherige(r)"},
     {66,"Aktuelle(r)"},
     {67,"Springe"},
     {68,"Entlang"},
     {69,"Umbenennen"},
-    {70,"Alle löschen"},
+    {70,"Alle lÃ¶schen"},
     {71,"Kamera Einstellungen"},
     {72,"Ansicht rotieren"},
     {73,"Auswahl aufheben"},
@@ -2662,45 +2645,45 @@
     {78,"Kantenschleife der Region"},
     {79,"Kantenring"},
     {80,"Vorherige Kantenschleife"},
-    {81,"Nächste Kantenschleife"},
-    {82,"Kantenschleife vergrößern"},
+    {81,"NÃ¤chste Kantenschleife"},
+    {82,"Kantenschleife vergrÃ¶ÃŸern"},
     {83,"Kantenschleife verkleinern"},
-    {84,"Kantenschleife vergrößern"},
+    {84,"Kantenschleife vergrÃ¶ÃŸern"},
     {85,"Kantenring verkleinern"},
     {86,"Angrenzende"},
     {87,"Umkehren"},
-    {88,"Ausgewählte verbergen"},
-    {89,"Nicht ausgewählte verbergen"},
-    {90,"Nicht ausgewählte sperren"},
+    {88,"AusgewÃ¤hlte verbergen"},
+    {89,"Nicht ausgewÃ¤hlte verbergen"},
+    {90,"Nicht ausgewÃ¤hlte sperren"},
     {91,"Alle zeigen"},
     {92,"Auswahl speichern"},
     {93,"Auswahl abrufen"},
     {94,"Neue Gruppe"},
-    {95,"Ähnliche Normalen"},
-    {96,"Ähnliche Fläche"},
-    {97,"Gruppe löschen"},
-    {98,"Zu Gruppe hinzufügen"},
+    {95,"Ã„hnliche Normalen"},
+    {96,"Ã„hnliche FlÃ¤che"},
+    {97,"Gruppe lÃ¶schen"},
+    {98,"Zu Gruppe hinzufÃ¼gen"},
     {99,"Von Gruppe subtrahieren"},
-    {100,"Gruppe auswählen"},
+    {100,"Gruppe auswÃ¤hlen"},
     {101,"Gruppe vereinigen"},
     {102,"Gruppe subtrahieren"},
     {103,"Gruppe schneiden"},
     {104,"an"},
     {105,"harten Kanten"},
     {106,"isolierten Knoten"},
-    {107,"nicht ebenen Flächen"},
+    {107,"nicht ebenen FlÃ¤chen"},
     {108,"Knoten mit"},
-    {109,"Flächen mit"},
+    {109,"FlÃ¤chen mit"},
     {110,"Nicht viereckige"},
     {111,"Ungerade"},
     {112,"Gerade"},
-    {113,"Zufällig"},
+    {113,"ZufÃ¤llig"},
     {114,"Kurze Kanten"},
     {115,"Scharfe Kanten"},
     {116,"Knoten-Pfad"},
     {117,"Pfad mit wenigsten Kanten"},
-    {118,"Kürzester Pfad (Dijkstra)"},
-    {119,"Kürzester Pfad (A-Star)"},
+    {118,"KÃ¼rzester Pfad (Dijkstra)"},
+    {119,"KÃ¼rzester Pfad (A-Star)"},
     {120,"Material-Kanten"},
     {121,"Ausrichten"},
     {122,"3D-Rahmen speichern"},
@@ -2718,7 +2701,7 @@
     {134,"Vereinheitlichen"},
     {135,"Feineinstellungen"},
     {136,"Bild fangen"},
-    {137,"Inhaltsübersicht"},
+    {137,"InhaltsÃ¼bersicht"},
     {138,"Geometrie Graph"},
     {139,"Palette"},
     {140,"Konsole"},
@@ -2732,14 +2715,14 @@
     {149,"Standard-Befehle"},
     {150,"Performanz Hinweise"},
     {151,"OpenGL Informationen"},
-    {152,"Über"},
+    {152,"Ãœber"},
     {153,"Formen"},
     {154,"Tetraeder"},
     {155,"Oktaeder"},
     {156,"Oktotod"},
     {157,"Dodekaeder"},
     {158,"Ikosaeder"},
-    {159,"Würfel"},
+    {159,"WÃ¼rfel"},
     {160,"Zylinder"},
     {161,"Kegel"},
     {162,"Kugel"},
@@ -2750,12 +2733,12 @@
     {167,"Bild-Ebene"},
     {168,"Text"},
     {169,"Zahnrad"},
-    {170,"Röhre"},
-    {171,"Geodätische Kugel"},
+    {170,"RÃ¶hre"},
+    {171,"GeodÃ¤tische Kugel"},
     {172,"Torus-Knoten"},
-    {173,"N-Würfel"},
+    {173,"N-WÃ¼rfel"},
     {174,"N-Gon"},
-    {175,"Reguläre Ebene"},
+    {175,"RegulÃ¤re Ebene"},
     {176,"Klumpige Ebene"},
     {177,"Gewellte Ebene"},
     {178,"Sombrero Ebene"},
@@ -2763,7 +2746,7 @@
     {180,"Feder"},
     {181,"UV Torus"},
     {182,"Klumpiger Torus"},
-    {183,"Spiralförmiger Torus"},
+    {183,"SpiralfÃ¶rmiger Torus"},
     {184,"Normal"},
     {185,"Frei"},
     {186,"Zentrum"},
@@ -2779,7 +2762,7 @@
     {196,"Wahr"},
     {197,"Falsch"},
     {198,"Alle"},
-    {199,"Alle auswählen"},
+    {199,"Alle auswÃ¤hlen"},
     {200,"Radial X"},
     {201,"Radial Y"},
     {202,"Radial Z"},
@@ -2795,18 +2778,18 @@
     {212,"Einheitlich"},
     {213,"Auspressen"},
     {214,"Extrahieren"},
-    {215,"Auflösen"},
+    {215,"AuflÃ¶sen"},
     {216,"Kollabieren"},
-    {217,"Löschen"},
+    {217,"LÃ¶schen"},
     {218,"Ebnen"},
-    {219,"Glätten"},
+    {219,"GlÃ¤tten"},
     {220,"Straffen"},
     {221,"Abkanten"},
-    {222,"Verschweißen"},
+    {222,"VerschweiÃŸen"},
     {223,"Kantenfarbe"},
     {224,"Einrasten"},
     {225,"Einrasten|Numerische Eingabe"},
-    {226,"Auf Zielgröße skalieren"},
+    {226,"Auf ZielgrÃ¶ÃŸe skalieren"},
     {227,"Skalieren|Zentrum"},
     {228,"Schneiden"},
     {229,"Auf einer Geraden"},
@@ -2823,21 +2806,21 @@
     {240,"Zylindrisch aufblasen"},
     {241,"Scheren"},
     {242,"Gleiten"},
-    {243,"Auflösen bereinigen"},
+    {243,"AuflÃ¶sen bereinigen"},
     {244,"Schnitt"},
     {245,"Verbinden"},
-    {246,"Härte"},
+    {246,"HÃ¤rte"},
     {247,"Weich"},
     {248,"Hart"},
-    {249,"Kreisförmig"},
-    {250,"Kreisförmig|Zentrum"},
+    {249,"KreisfÃ¶rmig"},
+    {250,"KreisfÃ¶rmig|Zentrum"},
     {251,"Schleifen Schnitt"},
     {252,"Gegen Uhrzeigersinn drehen"},
     {253,"Im Uhrzeigersinn drehen"},
     {254,"Optimiertes drehen"},
-    {255,"Brücken"},
+    {255,"BrÃ¼cken"},
     {256,"Ausbeulen"},
-    {257,"Region ausstoßen"},
+    {257,"Region ausstoÃŸen"},
     {258,"Region extrahieren"},
     {259,"Auswahl ausziehen"},
     {260,"Region ausziehen"},
@@ -2863,11 +2846,11 @@
     {280,"Doo Sabin"},
     {281,"Kombinieren"},
     {282,"Separieren"},
-    {283,"Aufräumen"},
-    {284,"Automatisches Glätten"},
+    {283,"AufrÃ¤umen"},
+    {284,"Automatisches GlÃ¤tten"},
     {285,"Duplizieren"},
     {286,"Knoten-Farbe-Modus"},
-    {287,"Objekt zu Flächenlicht"},
+    {287,"Objekt zu FlÃ¤chenlicht"},
     {288,"Materialien zu Farben"},
     {289,"Schneiden"},
     {290,"Eben verschieben"}
@@ -2877,14 +2860,14 @@
  [
   {add_help_text,
    [
-    {1,"Achse wählen (und Punkt)"},
-    {2,"Achse wählen"},
-    {3,"Punkt wählen"},
-    {4,"Äußeren Punkt für Einflussgrenze des Magneten wählen"}
+    {1,"Achse wÃ¤hlen (und Punkt)"},
+    {2,"Achse wÃ¤hlen"},
+    {3,"Punkt wÃ¤hlen"},
+    {4,"Ã„uÃŸeren Punkt fÃ¼r Einflussgrenze des Magneten wÃ¤hlen"}
    ]},
   {add_magnet,
    [
-    {1,"Äußeren Punkt für Einflussgrenze des Magneten wählen"}
+    {1,"Ã„uÃŸeren Punkt fÃ¼r Einflussgrenze des Magneten wÃ¤hlen"}
    ]},
   {check_magnet_point,
    [
@@ -2893,8 +2876,8 @@
   {check_point,
    [
     {1,"Mittelpunkt der Auswahl gespeichert."},
-    {2,"Virtuellen Spiegel bei Referenzpunkt-Berechnung ausschließen"},
-    {3,"Virtuellen Spiegel bei Referenzpunkt-Berechnung einschließen"}
+    {2,"Virtuellen Spiegel bei Referenzpunkt-Berechnung ausschlieÃŸen"},
+    {3,"Virtuellen Spiegel bei Referenzpunkt-Berechnung einschlieÃŸen"}
    ]},
   {common_magnet_message,
    [
@@ -2902,7 +2885,7 @@
    ]},
   {common_message,
    [
-    {1,"Ausführen"},
+    {1,"AusfÃ¼hren"},
     {2,"Weiter"}
    ]},
   {exit_menu,
@@ -2922,34 +2905,34 @@
     {10,"Mittelwert der Knoten-Normalen als Achse verwenden"},
     {11,"Mittelwert der Knoten-Normalen als Achse gespeichert."},
     {12,"Richtung zwischen Knoten als Achse verwenden"},
-    {13,"3-Punkt Flächen-Normale als Achse gespeichert."},
+    {13,"3-Punkt FlÃ¤chen-Normale als Achse gespeichert."},
     {14,"Knotenschleifen-Normale als Achse gespeichert."},
     {15,"Mehr-Knoten-Auswahl muss geschlossene Kantenschleife ergeben."},
-    {16,"Flächen-Normale als Achse gespeichert."},
-    {17,"Richtung zwischen Flächen-Zentren als Achse gespeichert."},
-    {18,"Mittelwert der Flächen-Normalen verwenden"},
-    {19,"Mittelwert der Flächen-Normalen als Achse gespeichert."},
-    {20,"Richtung zwischen Flächen-Zentren verwenden"},
+    {16,"FlÃ¤chen-Normale als Achse gespeichert."},
+    {17,"Richtung zwischen FlÃ¤chen-Zentren als Achse gespeichert."},
+    {18,"Mittelwert der FlÃ¤chen-Normalen verwenden"},
+    {19,"Mittelwert der FlÃ¤chen-Normalen als Achse gespeichert."},
+    {20,"Richtung zwischen FlÃ¤chen-Zentren verwenden"},
     {21,"Kantenschleifen-Normale der Region als Achse gespeichert."},
-    {22,"Multi-Flächen-Auswahl muss eine einzige Kantenschleife haben."},
-    {23,"Knoten, Kanten oder Flächen auswählen."},
+    {22,"Multi-FlÃ¤chen-Auswahl muss eine einzige Kantenschleife haben."},
+    {23,"Knoten, Kanten oder FlÃ¤chen auswÃ¤hlen."},
     {24,"Kreuzvektor speichern"},
     {25,"Kreuzprodukt der Kanten als Achse speichern"},
     {26,"Richtung zwischen Kanten speichern"},
-    {27,"Knoten dürfen keine gemeinsamen Koordinaten haben, wenn eine 3-Punkt Normalenebenen definiert wird."},
+    {27,"Knoten dÃ¼rfen keine gemeinsamen Koordinaten haben, wenn eine 3-Punkt Normalenebenen definiert wird."},
     {28,"Achse zwischen den Zentren der Kantenschleifen als Achse gespeichert."},
-    {29,"Mehrfachauswahlen von Kanten müssen eine oder zwei geschlossene Kantenschleifen bilden."}
+    {29,"Mehrfachauswahlen von Kanten mÃ¼ssen eine oder zwei geschlossene Kantenschleifen bilden."}
    ]},
   {guard_string,
    [
-    {1,"Elemente nur eines Objekts auswählen"},
-    {2," oder ein Element in jedem der zwei Objekte auswählen"},
+    {1,"Elemente nur eines Objekts auswÃ¤hlen"},
+    {2," oder ein Element in jedem der zwei Objekte auswÃ¤hlen"},
     {3," oder drei beliebige Knoten."},
     {4,",\noder eine einzelne Kantenschleife auf jedem Objekt "}
    ]},
   {magnet_message,
    [
-    {1,"Ausführen "},
+    {1,"AusfÃ¼hren "},
     {2,"Magnet Optionen"}
    ]}
  ]}.
@@ -2960,19 +2943,19 @@
     {2,"Verschieben"},
     {3,"Auspressen"},
     {4,"Verbinden"},
-    {5,"Neue Kante durch verbinden der ausgewählten Knoten erzeugen"},
+    {5,"Neue Kante durch verbinden der ausgewÃ¤hlten Knoten erzeugen"},
     {6,"Straffen"},
-    {7,"Ausgewählte Knoten gegen gemeinsamen Mittelpunkt verschieben"},
+    {7,"AusgewÃ¤hlte Knoten gegen gemeinsamen Mittelpunkt verschieben"},
     {8,"Abkanten"},
-    {9,"Flächen aus ausgewählten Knoten erzeugen"},
-    {10,"Auflösen"},
-    {11,"Ausgewählte Knoten eliminieren (löscht Auswahl)"},
+    {9,"FlÃ¤chen aus ausgewÃ¤hlten Knoten erzeugen"},
+    {10,"AuflÃ¶sen"},
+    {11,"AusgewÃ¤hlte Knoten eliminieren (lÃ¶scht Auswahl)"},
     {12,"Kollabieren"},
-    {13,"Ausgewählte Knoten eliminieren (erzeugt Flächen-Auswahl)"},
+    {13,"AusgewÃ¤hlte Knoten eliminieren (erzeugt FlÃ¤chen-Auswahl)"},
     {14,"Deformieren"},
     {15,"Knoten-Farbe"},
-    {16,"Knoten-Farben auf ausgewählte Knoten anwenden"},
-    {17,"Knoten verbinden und neue Kante selektiert zurückliefern"}
+    {16,"Knoten-Farben auf ausgewÃ¤hlte Knoten anwenden"},
+    {17,"Knoten verbinden und neue Kante selektiert zurÃ¼ckliefern"}
    ]}
  ]}.
 {wings_view,
@@ -2980,7 +2963,7 @@
   {auto_rotate_help,
    [
     {1,"Rotation anhalten"},
-    {2,"Geschwindigkeit erhöhen"},
+    {2,"Geschwindigkeit erhÃ¶hen"},
     {3,"Geschwindigkeit verringern"}
    ]},
   {camera,
@@ -2994,7 +2977,7 @@
     {9,"Portrait-Teleobjektiv"},
     {10,"Teleobjektiv"},
     {11,"Benutzerdefiniertes Objektiv"},
-    {12,"Länge"},
+    {12,"LÃ¤nge"},
     {13,"x Zoom"},
     {14,"Objektiv"},
     {15,"Vertikaler Sichtbereich"},
@@ -3006,9 +2989,9 @@
    [
     {1,"Kamera Einstellungen: Sichtbereich"},
     {2,"Definiert den vertikalen Sichtbereich, d.h. den Winkel zwischen der unteren und der oberen Grenze die die Kamera sieht."},
-    {3,"Die Objektivkontrolle setzt den Sichtbereich in Anlehnung an gebräuchlichere Einheiten, zumindest für einen Fotografen. Die Größe des Negativs wird in den Benutzereinstellungen eingestellt."},
-    {4,"Die Objektivkontrolle passt die Höhe des Bildes an das ausgewählte Objektiv an. Wenn in den Objektiveinstellungen für die Negativgröße nicht das selbe Seitenverhältnis wie für das Geometriefenster eingestellt ist, wird die Breite falsch wiedergegeben."},
-    {5,"Hinweis: Der Zoom-Faktor ist relativ zu einem Standardobjektiv der Diagonalen des Negativs, wobei nur die Höhe des Negativs die effektive Länge des Objektivs beeinflusst."}
+    {3,"Die Objektivkontrolle setzt den Sichtbereich in Anlehnung an gebrÃ¤uchlichere Einheiten, zumindest fÃ¼r einen Fotografen. Die GrÃ¶ÃŸe des Negativs wird in den Benutzereinstellungen eingestellt."},
+    {4,"Die Objektivkontrolle passt die HÃ¶he des Bildes an das ausgewÃ¤hlte Objektiv an. Wenn in den Objektiveinstellungen fÃ¼r die NegativgrÃ¶ÃŸe nicht das selbe SeitenverhÃ¤ltnis wie fÃ¼r das Geometriefenster eingestellt ist, wird die Breite falsch wiedergegeben."},
+    {5,"Hinweis: Der Zoom-Faktor ist relativ zu einem Standardobjektiv der Diagonalen des Negativs, wobei nur die HÃ¶he des Negativs die effektive LÃ¤nge des Objektivs beeinflusst."}
    ]},
   {menu,
    [
@@ -3019,29 +3002,29 @@
     {5,"Arbeitsmodus"},
     {6,"Flaches/weiches Schattieren umschalten"},
     {7,"Drahtmodell"},
-    {8,"Ausgewählte Objekte als Drahtmodell darstellen (gilt für alle Objekte wenn keines ausgewählt ist)"},
+    {8,"AusgewÃ¤hlte Objekte als Drahtmodell darstellen (gilt fÃ¼r alle Objekte wenn keines ausgewÃ¤hlt ist)"},
     {9,"Schattiert"},
-    {10,"Ausgewählte Objekte schattiert anzeigen (gilt für alle Objekte wenn keines ausgewählt ist)"},
+    {10,"AusgewÃ¤hlte Objekte schattiert anzeigen (gilt fÃ¼r alle Objekte wenn keines ausgewÃ¤hlt ist)"},
     {11,"Drahtmodell/Schattiert umschalten"},
-    {12,"Darstellung für ausgewählte Objekte umschalten (gilt für alle Objekte wenn keines ausgewählt ist)"},
+    {12,"Darstellung fÃ¼r ausgewÃ¤hlte Objekte umschalten (gilt fÃ¼r alle Objekte wenn keines ausgewÃ¤hlt ist)"},
     {13,"Proxy Modus umschalten"},
-    {14,"Geglättete Darstellung für ausgewählte Objekte umschalten"},
-    {15,"Schnelle geglättete Vorschau"},
-    {16,"Geglättete Darstellung für alle Objekte umschalten"},
+    {14,"GeglÃ¤ttete Darstellung fÃ¼r ausgewÃ¤hlte Objekte umschalten"},
+    {15,"Schnelle geglÃ¤ttete Vorschau"},
+    {16,"GeglÃ¤ttete Darstellung fÃ¼r alle Objekte umschalten"},
     {17,"Gespeicherte 3D-Rahmen"},
     {18,"Alle gespeicherten 3D-Rahmen anzeigen"},
     {19,"Kanten anzeigen"},
     {20,"Kanten im Arbeitsmodus anzeigen"},
-    {21,"Drahtmodell-Rückseiten anzeigen"},
-    {22,"Rückseiten von Drahtmodellen anzeigen"},
+    {21,"Drahtmodell-RÃ¼ckseiten anzeigen"},
+    {22,"RÃ¼ckseiten von Drahtmodellen anzeigen"},
     {23,"Normalen anzeigen"},
-    {24,"Normalen für ausgewählte Elemente anzeigen"},
-    {25,"Ansicht zurücksetzen"},
-    {26,"Ansicht auf Standardansicht zurücksetzen"},
+    {24,"Normalen fÃ¼r ausgewÃ¤hlte Elemente anzeigen"},
+    {25,"Ansicht zurÃ¼cksetzen"},
+    {26,"Ansicht auf Standardansicht zurÃ¼cksetzen"},
     {27,"Ausrichten"},
-    {28,"Kamera auf ausgewählte Element ausrichten"},
+    {28,"Kamera auf ausgewÃ¤hlte Element ausrichten"},
     {29,"Rahmen"},
-    {30,"Heranfahren um alle ausgewählten Elemente anzuzeigen (oder alle Objekte wenn keine ausgewählt sind)"},
+    {30,"Heranfahren um alle ausgewÃ¤hlten Elemente anzuzeigen (oder alle Objekte wenn keine ausgewÃ¤hlt sind)"},
     {31,"Orthogonale Ansicht"},
     {32,"Orthogonale/perspektivische Ansicht umschalten"},
     {33,"Gespeicherte Ansichten: "},
@@ -3069,21 +3052,21 @@
     {55,"-Y"},
     {56,"-Z"},
     {57,"An Auswahl ausrichten"},
-    {58,"Ansicht an Normale der ausgewählten Objekte ausrichten"},
+    {58,"Ansicht an Normale der ausgewÃ¤hlten Objekte ausrichten"},
     {59,"Ansicht rotieren"},
     {60,"Ansicht rotieren lassen"},
     {61,"Sichtbegrenzungen"},
-    {62,"Zusätzliche Sichtbegrenzungen umschalten (verwendet Standardachsen)"},
+    {62,"ZusÃ¤tzliche Sichtbegrenzungen umschalten (verwendet Standardachsen)"},
     {65,"Rahmen ignoriert Spiegel"},
     {66,"Ausrichtung hervorheben"},
-    {67,"Kamera auf Maus-Markierung ausrichten (Setzt 'Hervorhebung als temporäre Auswahl verwenden' und eine zugewiesene Kurztaste voraus)."},
+    {67,"Kamera auf Maus-Markierung ausrichten (Setzt 'Hervorhebung als temporÃ¤re Auswahl verwenden' und eine zugewiesene Kurztaste voraus)."},
     {68,"Zeige"},
     {69,"Zentrum von 3D-Rahmen anzeigen"},
     {70,"Das Zentrum jedes gespeicherten 3D-Rahmens anzeigen"}
    ]},
   {shader_submenu,
    [
-    {1,"Nächster"},
+    {1,"NÃ¤chster"},
     {2,"Vorheriger"},
     {3,"Schattiere: "}
    ]},
@@ -3105,8 +3088,8 @@
     {1,"Ansicht ist bereits die aktuelle Ansicht"},
     {2,"Keine gespeicherten Ansichten"},
     {3,"Ansicht umbenennen"},
-    {4,"Sie müssen in der aktuellen Ansicht sein"},
-    {5,"Wollen Sie wirklich alle gespeicherten Ansichten löschen?"}
+    {4,"Sie mÃ¼ssen in der aktuellen Ansicht sein"},
+    {5,"Wollen Sie wirklich alle gespeicherten Ansichten lÃ¶schen?"}
    ]},
   {views_jump,
    [
@@ -3118,7 +3101,7 @@
     {2,"Keine gespeicherten Ansichten!"},
     {3,"Springe zu vorigen ["},
     {5,"Springe zu aktuellen ["},
-    {7,"Springe zur nächsten ["},
+    {7,"Springe zur nÃ¤chsten ["},
     {9,"Spring zu ["},
     {11,"Springe zu"}
    ]},
@@ -3135,7 +3118,7 @@
     {7,"Verschiebe \""},
     {9,"] nirgendwohin"},
     {10,"Verschiebe \""},
-    {12,"] zur Nächsten ["},
+    {12,"] zur NÃ¤chsten ["},
     {14,"Verschiebe \""},
     {16,"] nach ["},
     {18,"Aktuelle verschieben"}
@@ -3150,30 +3133,30 @@
    ]},
   {views_submenu,
    [
-    {1,"Nächste"},
+    {1,"NÃ¤chste"},
     {2,"Aktuelle"},
     {3,"Vorherige"},
     {4,"Speichern"},
     {5,"Ansicht speichern in "},
     {7,"Umbenennen..."},
-    {8,"Löschen"},
-    {9,"Alle löschen..."}
+    {8,"LÃ¶schen"},
+    {9,"Alle lÃ¶schen..."}
    ]},
   {views_submenu_help,
    [
     {1,"Keine gespeicherten Ansichten!"},
     {2,"Springe zu \""},
     {5,"Umbenennen \""},
-    {8,"Löschen \""},
-    {11,"Alle gespeicherten Ansichten löschen"}
+    {8,"LÃ¶schen \""},
+    {11,"Alle gespeicherten Ansichten lÃ¶schen"}
    ]},
   {virtual_mirror,
    [
-    {1,"Für einen virtuellen Spiegel muss eine Fläche ausgewählt sein."}
+    {1,"FÃ¼r einen virtuellen Spiegel muss eine FlÃ¤che ausgewÃ¤hlt sein."}
    ]},
   {virtual_mirror_fun,
    [
-    {1,"Pro Objekt darf nur eine Fläche ausgewählt sein"}
+    {1,"Pro Objekt darf nur eine FlÃ¤che ausgewÃ¤hlt sein"}
    ]}
  ]}.
 {wings_we,
@@ -3187,7 +3170,7 @@
    [
     {1,"vorbereiten"},
     {2,"Knoten Normalen"},
-    {3,"Knoten Normalen je Fläche"}
+    {3,"Knoten Normalen je FlÃ¤che"}
    ]},
   {normals_2,
    [
@@ -3205,25 +3188,25 @@
  [
   {close_event,
    [
-    {1,"Fenster schließen"}
+    {1,"Fenster schlieÃŸen"}
    ]},
   {ctrl_command,
    [
     {1,"Breite"},
-    {2,"Höhe"},
-    {3,"Fenstergröße festlegen"}
+    {2,"HÃ¶he"},
+    {3,"FenstergrÃ¶ÃŸe festlegen"}
    ]},
   {ctrl_menu,
    [
     {1,"Anpassen"},
     {2,"Beide"},
-    {3,"Fenster nutzt verfügbaren Platz durch ausdehnen in alle alle Richtungen"},
+    {3,"Fenster nutzt verfÃ¼gbaren Platz durch ausdehnen in alle alle Richtungen"},
     {4,"Horizontal"},
-    {5,"Fenster nutzt verfügbaren Platz durch horizontales ausdehnen"},
+    {5,"Fenster nutzt verfÃ¼gbaren Platz durch horizontales ausdehnen"},
     {6,"Vertikal"},
-    {7,"Fenster nutzt verfügbaren Platz durch vertikales ausdehnen"},
-    {8,"Größe"},
-    {9,"Fenstergröße numerisch festlegen"}
+    {7,"Fenster nutzt verfÃ¼gbaren Platz durch vertikales ausdehnen"},
+    {8,"GrÃ¶ÃŸe"},
+    {9,"FenstergrÃ¶ÃŸe numerisch festlegen"}
    ]},
   {ctrl_menu_toolbar,
    [
@@ -3236,16 +3219,16 @@
    [
     {1,"Verschieben durch ziehen"},
     {2,"Anpassen"},
-    {3,"Menü anzeigen"}
+    {3,"MenÃ¼ anzeigen"}
    ]},
   {ctrl_resize,
    [
-    {1,"Zu große Fenstergröße angegeben"}
+    {1,"Zu groÃŸe FenstergrÃ¶ÃŸe angegeben"}
    ]},
   {resize_event,
    [
-    {1,"Größe ändern"},
-    {2,"Größe ändern, Seitenverhältnis beibehalten"}
+    {1,"GrÃ¶ÃŸe Ã¤ndern"},
+    {2,"GrÃ¶ÃŸe Ã¤ndern, SeitenverhÃ¤ltnis beibehalten"}
    ]}
  ]}.
 {wpa,
@@ -3254,9 +3237,9 @@
    [
     {1,"Y und Z Achse tauschen"},
     {6,"Unterteilungsschritte"},
-    {7,"Standard Dateityp für Texturen"},
+    {7,"Standard Dateityp fÃ¼r Texturen"},
     {color,"Knoten-Farben exportieren"},
-    {norms,"Normalen-/Glättungs-Gruppen exportieren"},
+    {norms,"Normalen-/GlÃ¤ttungs-Gruppen exportieren"},
     {tess,"Parkettierung"},
     {tess0,"Keine"},
     {tess3,"Triangulation"},
@@ -3273,7 +3256,7 @@
    ]},
   {export_selected,
    [
-    {1,"Objekte oder Flächen auswählen."}
+    {1,"Objekte oder FlÃ¤chen auswÃ¤hlen."}
    ]},
   {format_error,
    [

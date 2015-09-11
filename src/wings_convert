@@ -75,6 +75,7 @@ strip_path("crs/"  ++ Path) -> lists:reverse(Path);
 strip_path(Path)            -> lists:reverse(Path).    
 
 convert(Fs, Opts) ->
+    put(wings_not_running, {import, Fs}),
     wings_pref:init(),   %% Preference ets table is needed
     wings_file:init(),   %% more preferences
     wings_image:init(wings_not_running), %% Needed for image export
@@ -203,7 +204,6 @@ get_module(_, []) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 import_file(File, Opts) ->
-    put(wings_not_running, {import, File}),
     verbose("~s => ", [File], Opts#opts.verbose),
     try import_file_1(File,Opts) of	
 	{error,Reason} ->

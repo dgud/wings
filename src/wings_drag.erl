@@ -488,11 +488,11 @@ get_drag_event_1(Drag) ->
 %% handled as an intention to cancel the command.
 handle_drag_event(#mousebutton{button=3,state=?SDL_PRESSED}=Ev,
   #drag{rmb_timer=0}=Drag) ->
-    StartTimer = now(),
+    StartTimer = os:timestamp(),
     handle_drag_event(Ev, Drag#drag{rmb_timer=StartTimer});
 handle_drag_event(#mousebutton{button=1,state=?SDL_PRESSED}=Ev,
   #drag{lmb_timer=0}=Drag) ->
-    StartTimer = now(),
+    StartTimer = os:timestamp(),
     handle_drag_event(Ev, Drag#drag{lmb_timer=StartTimer});
 handle_drag_event(#keyboard{sym=9, mod=Mod},Drag)->
     case Mod band ?SHIFT_BITS =/= 0 of
@@ -517,12 +517,18 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
 	    handle_drag_event_0(Ev,Drag#drag{lmb_timer=0,rmb_timer=0})
     end;
 
+handle_drag_event(grab_lost, #drag{}) ->
+    wings_dl:map(fun invalidate_fun/2, []),
+    wings_tweak:toggle_draw(true),
+    wings_wm:later(revert_state),
+    pop;
+
 handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
   #drag{rmb_timer=StartTime}=Drag) when StartTime =/= 0 ->
 %% When Rmb is released we subtract the StartTime (when the Rmb was pressed)
 %% from the Stop time (relased) and if the result is less than 500000 ms, then
 %% we cancel the drag. If not we continue the drag using the 
-    Stop = now(),
+    Stop = os:timestamp(),
     Time = timer:now_diff(Stop, StartTime),
     % io:format("Time ~p\n",[Time]),
     case Time < 500000 of
@@ -540,7 +546,7 @@ handle_drag_event(#mousebutton{button=1,x=X,y=Y,mod=Mod,state=?SDL_RELEASED},
   #drag{lmb_timer=StartTime}=Drag0) when StartTime =/= 0 ->
 %% When Lmb timer is less than 500000 ms, we Accept and finish the drag, if
 %% not, then we continue using the lmb parameter.
-    Stop = now(),
+    Stop = os:timestamp(),
     Time = timer:now_diff(Stop, StartTime),
     % io:format("Time ~p\n",[Time]),
     case Time < 500000 of
@@ -637,7 +643,7 @@ handle_drag_event_1({drag_arguments,Move}, Drag0) ->
 handle_drag_event_1(view_changed, Drag) ->
     get_drag_event(view_changed(Drag));
 handle_drag_event_1({move_dialog,Position}, Drag) ->
-%% used by preview dialogs in wings_ask.erl
+    %% used by preview dialogs
     W = wings_wm:windows(),
     This = lists:keyfind(dialog, 1, W),
     wings_wm:move(This, Position),
@@ -701,14 +707,14 @@ numeric_input(Drag0) ->
 	    {{_,M},D} -> {M,D};
 		Other -> Other
 	end,
-    wings_ask:dialog(?__(1,"Numeric Input"),
-		     {drag_preview, make_query(Move0, Drag)},
-		     fun
-		         ({dialog_preview,Res}) ->
-			         {numeric_preview,make_move(Res, Drag)};
-			     (Res) ->
-			         {drag_arguments,make_move(Res, Drag)}
-		     end).
+    wings_dialog:dialog(?__(1,"Numeric Input"),
+			{drag_preview, make_query(Move0, Drag)},
+			fun
+			    ({dialog_preview,Res}) ->
+				{numeric_preview,make_move(Res, Drag)};
+			    (Res) ->
+				{drag_arguments,make_move(Res, Drag)}
+			end).
 
 make_query(Move, #drag{unit=Units}) ->
     make_query_1(Units, Move).
@@ -725,7 +731,9 @@ make_query_1([U0|Units], [V|Vals]) ->
 	skip ->
 	     make_query_1(Units, Vals);
 	falloff ->
-	    [{hframe,[{label,qstr(falloff)},{text,V,[{range,{1.0E-6,infinity}}]}]}|
+	    [{hframe,[{label,qstr(falloff)},
+		      {text,V,[{range,{1.0E-6,infinity}},
+			       {width, undefined}]}]}|
 	     make_query_1(Units, Vals)];
 	U ->
 	    [{hframe,[{label,qstr(U)},{text,V,qrange(U0)}]}|
@@ -741,12 +749,12 @@ qstr(falloff) ->  ?__(5,"R");
 qstr(angle) ->	?__(6,"A");
 qstr(Atom) -> wings_util:stringify(Atom).
 
-qrange({_,{_,_}=Range}) -> [{range,Range}];
-qrange(_) -> [].
+qrange({_,{_,_}=Range}) -> [{range,Range}, {width, undefined}];
+qrange(_) -> [{width, undefined}].
 
 percent_qrange({_,{Min,Max}}) ->
-    [{range,{safe_mul_100(Min),safe_mul_100(Max)}}];
-percent_qrange(_) -> [].
+    [{range,{safe_mul_100(Min),safe_mul_100(Max)}}, {width, undefined}];
+percent_qrange(_) -> [{width, undefined}].
 
 safe_mul_100(A) ->
     case catch 100*A of

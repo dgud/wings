@@ -23,6 +23,23 @@
 
 %%%%%%%%%% Tools %%%%%%%%%%%
 
+%%% The function tries to load the preferences files without getting an error if it isn't unicode
+%%% It's applied to the .lang files
+local_consult(PrefFile) ->
+    case file:consult(PrefFile) of
+        {error,{_,file_io_server,invalid_unicode}} ->
+            latin1_file_to_unicode(PrefFile),
+            file:consult(PrefFile);
+        Res -> Res
+    end.
+
+%%% convert file from latin1 to unicode
+latin1_file_to_unicode(PrefFile) ->
+    {ok, Latin1} = file:read_file(PrefFile),
+    Utf8 = unicode:characters_to_binary(Latin1, latin1, utf8),
+    ok = file:write_file(PrefFile, Utf8).
+
+
 diff_lang_files(Dir) ->
     Ns = filelib:wildcard(filename:join(Dir, "*.lang")),
     R0 = [{get_en_template(N),N} || N <- Ns],
@@ -33,7 +50,7 @@ diff_lang_files(Dir) ->
     erlang:halt().
 
 diff_files_1([{EngTemplateFile,LangFiles}|T], Acc0) ->
-    case file:consult(EngTemplateFile) of
+    case local_consult(EngTemplateFile) of
 	{ok,Eng} ->
 	    Acc = [fun() ->
 			   diff_file(N, Eng),
@@ -69,7 +86,7 @@ prun_1(Fs, N, N) ->
     end.
 
 diff_file(LangFile, Eng) ->
-    {ok,Lang} = file:consult(LangFile),
+    {ok,Lang} = local_consult(LangFile),
     {ok,Fd} = file:open(LangFile, [write,append]),
     OldGroupLeader = group_leader(),
     group_leader(Fd, self()),
@@ -82,8 +99,8 @@ diff(LangFile) ->
     diff(LangFile, EngTemplFile).
     
 diff(LangFile, EngTmplFile) ->
-    {ok,Lang} = file:consult(LangFile),
-    {ok,Eng} = file:consult(EngTmplFile),
+    {ok,Lang} = local_consult(LangFile),
+    {ok,Eng} = local_consult(EngTmplFile),
     diff_2(Eng, Lang, LangFile).
 
 diff_2(Eng, Lang, LangFile) ->

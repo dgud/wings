@@ -99,17 +99,17 @@ Section "Base" SecWingsBase
 SectionIn 1 2 3 RO
 
   	SetOutPath "$INSTDIR"
-  	File /r AUTHORS license.terms Wings3D.exe
+  	File /r Wings3D.exe
   	SetOutPath "$INSTDIR\lib"
   	File /r lib\*.*
   	SetOutPath "$INSTDIR\bin"
   	File /r bin\*.*
+  	SetOutPath "$INSTDIR\erts-0"
+  	File /r erts-0\*.*
+	
   	SetOutPath "$INSTDIR"
 
   	WriteRegStr HKLM "SOFTWARE\Wings 3D\${WINGS_VERSION}" "" $INSTDIR
-
-; Install Erlang/OTP.
-  	ExecWait "$INSTDIR\Wings3D.exe --install"
 
 ; Create uninstaller before shortcuts
   	WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -272,6 +272,7 @@ Section Uninstall
   Delete "$QUICKLAUNCH\Wings 3D ${WINGS_VERSION}.lnk"
   RMDir /r "$INSTDIR\lib"
   RMDir /r "$INSTDIR\bin"
+  RMDir /r "$INSTDIR\erts-0"
   Delete "$INSTDIR\plugins.lnk"
   Delete "$INSTDIR\Uninstall.exe"
 

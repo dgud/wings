@@ -20,7 +20,10 @@
 -export([load/1, load/2, 
 	 convert/2, convert/3, convert/4, 
 	 save/2, save/3, save_bin/2, save_bin/3,
-	 bytes_pp/1, pad_len/2, format_error/1]).
+	 add_alpha/2,
+	 bytes_pp/1, pad_len/2, format_error/1,
+	 fix_outtype/3
+	]).
 
 %% Normal map handing
 -export([height2normal/2,
@@ -89,6 +92,22 @@ format_error({not_supported,Extension}) ->
     io_lib:format("Files of type ~s are not supported", [Extension]);
 format_error(Other) ->
     file:format_error(Other).
+
+%% Func: add_alpha(#e3d_image, Alpha : binary())
+%% Rets: #e3d_image | {error, Reason}
+%% Desc: Merges an alpha channel to rgb images
+add_alpha(I = #e3d_image{type=Type,bytes_pp=3,alignment=1,image=Data0}, Alpha) ->
+    Data = add_alpha(Data0, Alpha, <<>>),
+    I#e3d_image{bytes_pp=4, type=with_alpha(Type), image=Data}.
+%%    I#e3d_image{bytes_pp=1, type=g8, image=Alpha}.
+
+
+add_alpha(<<Col:24, Data/binary>>, <<A:8, Alpha/binary>>, Acc) ->
+    add_alpha(Data,Alpha, <<Acc/binary, Col:24, A:8>>);
+add_alpha(<<>>, <<>>, Acc) -> Acc.
+
+with_alpha(r8g8b8) -> r8g8b8a8;
+with_alpha(b8g8r8) -> b8g8r8a8.
 
 %% Func: convert(#e3d_image, NewType [,NewAlignment [,NewOrder ]])
 %% Rets: #e3d_image | {error, Reason}

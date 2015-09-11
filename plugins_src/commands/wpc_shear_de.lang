@@ -1,39 +1,39 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_shear,
  [
   {glide_plane_menu,
    [
-    {1,"Gleitebene Flächen gegenüber ~s.(Parallel zu der Knotenbewegung beschränkt ist)"},
-    {2,"Schervektor und Ursprung wählen (Messpunkt wird berechnet)"},
-    {3,"Schervektor, Ursprung und Messpunkt wählen"}
+    {1,"Gleitebene FlÃ¤chen gegenÃ¼ber ~s.(Parallel zu der Knotenbewegung beschrÃ¤nkt ist)"},
+    {2,"Schervektor und Ursprung wÃ¤hlen (Messpunkt wird berechnet)"},
+    {3,"Schervektor, Ursprung und Messpunkt wÃ¤hlen"}
    ]},
   {radial_menu,
    [
-    {3,"Knotenbewegung auf Schervektor-~s über ihre individuelle Gleitebene gegenüber ~s beschränken"},
+    {3,"Knotenbewegung auf Schervektor-~s Ã¼ber ihre individuelle Gleitebene gegenÃ¼ber ~s beschrÃ¤nken"},
     {4," (Ursprung und Messpunkt werden berechnet)"},
-    {5,"Ursprung und Messpunkt wählen"}
+    {5,"Ursprung und Messpunkt wÃ¤hlen"}
    ]},
   {selection_ask,
    [
-    {1,"Gleitebene auswählen"},
+    {1,"Gleitebene auswÃ¤hlen"},
     {2," (Ebene zu der alle Knoten parallel verschoben werden)"},
-    {3,"Ursprung auswählen (Punkt der die stationäre Gleitebene definiert)"},
-    {4,"Schervektor auswählen"},
+    {3,"Ursprung auswÃ¤hlen (Punkt der die stationÃ¤re Gleitebene definiert)"},
+    {4,"Schervektor auswÃ¤hlen"},
     {5," (Richtungsknoten bewegen sich auf ihren individuellen Gleitebenen)"},
-    {6,"Messpunkt auswählen"},
+    {6,"Messpunkt auswÃ¤hlen"},
     {7," (Punkt, relativ zu dem Bewegungen in der Gleitebene gemessen werden)"},
-    {8,"Schervektor erneut auswählen"},
+    {8,"Schervektor erneut auswÃ¤hlen"},
     {9,". Kann nicht senkrecht zu vorgegebenen Gleitebene sein"},
-    {10,"Messpunkt erneut auswählen"},
+    {10,"Messpunkt erneut auswÃ¤hlen"},
     {11,". Muss auf eindeutiger Gleitebene zum vorgegebenen Ursprungs sein"},
-    {12,"Gleitebene erneut auswählen"},
+    {12,"Gleitebene erneut auswÃ¤hlen"},
     {13," Kann nicht parallel zum vorgegebenen Schervektor sein"}
    ]},
   {shear,
    [
     {1,"Scheren"},
     {2,"Scheren XYZ"},
-    {3,"Gleitebene parallel zu der Bewegungen beschränkt werden, Schervektor und Ursprung die die stationäre Gleitebene definieren und Messpunkt für den Abstand wählen"}
+    {3,"Gleitebene parallel zu der Bewegungen beschrÃ¤nkt werden, Schervektor und Ursprung die die stationÃ¤re Gleitebene definieren und Messpunkt fÃ¼r den Abstand wÃ¤hlen"}
    ]},
   {shear_anchor_help,
    [

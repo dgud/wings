@@ -1,11 +1,11 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_arc_intersect,
  [
   {arc_intersect_menu,
    [
     {1,"Auf Ziel rotieren"},
     {2,"Um gegebenes Zentrum von Punkt A nach Punkt B rotieren"},
-    {3,"Punkt auf Fl‰che rotieren"},
+    {3,"Punkt auf Fl√§che rotieren"},
     {4,"Um gegebenes Zentrum mit dem durch Vektoren A und B gegebenen Winkel rotieren"}
    ]},
   {arc_intersect_mode_help,
@@ -19,17 +19,17 @@
   {flip_help_1,
    [
     {1,"Winkel umkehren"},
-    {2,"Zur¸ckschalten"}
+    {2,"Zur√ºckschalten"}
    ]},
   {selection_ask,
    [
-    {1,"Rotationsachse w‰hlen"},
-    {2,"Rotationszentrum w‰hlen"},
-    {3,"Punkt A w‰hlen"},
-    {4,"Punkt B w‰hlen"},
-    {5,"Vektor A w‰hlen"},
-    {6,"Vektor B w‰hlen"},
-    {7,"Punkt w‰hlen"},
-    {8,"Ebene w‰hlen"}
+    {1,"Rotationsachse w√§hlen"},
+    {2,"Rotationszentrum w√§hlen"},
+    {3,"Punkt A w√§hlen"},
+    {4,"Punkt B w√§hlen"},
+    {5,"Vektor A w√§hlen"},
+    {6,"Vektor B w√§hlen"},
+    {7,"Punkt w√§hlen"},
+    {8,"Ebene w√§hlen"}
    ]}
  ]}.

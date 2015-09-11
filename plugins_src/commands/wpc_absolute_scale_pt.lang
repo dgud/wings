@@ -1,4 +1,4 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_absolute_scale,
  [
   {draw,
@@ -7,22 +7,22 @@
     {2,"Alterar Escala"},
     {3,"Alterar Escala para um tamanho exato, em coordenadas absolutas."},
     {4,"Alterar Escala para um tamanho alvo."},
-    {5,"Alterar escala escolhendo o centro da operaÁ„o."}
+    {5,"Alterar escala escolhendo o centro da opera√ß√£o."}
    ]},
   {draw_window1,
    [
-    {1,"OpÁ„o para o comando Alterar Escala (Absoluto)"},
+    {1,"Op√ß√£o para o comando Alterar Escala (Absoluto)"},
     {2,"Novo tamanho"},
     {3,"Novo centro da escala"},
     {4,"Alterar a escala do objeto inteiro"},
     {5,"Alterar a escala dos objetos inteiros"},
     {6,"Ligar"},
-    {7,"Liga a seleÁ„o ao alvo"}
+    {7,"Liga a sele√ß√£o ao alvo"}
    ]},
   {selection_ask,
    [
     {1,"Selecione o centro da escala"},
     {2,"Selecione a escala alvo - base"},
-    {3,"Selecione a escala alvo - extens„o"}
+    {3,"Selecione a escala alvo - extens√£o"}
    ]}
  ]}.

@@ -205,8 +205,8 @@ button_was_hit(X, #but{buttons=Buttons}) ->
 
 button_was_hit_1(X, [{Pos,Name}|_]) when Pos =< X, X < Pos+?BUTTON_WIDTH ->
     Action = case Name of
-		 groundplane -> {view,show_groundplane};
-		 axes -> {view,show_axes};
+		 groundplane -> {view,{show, show_groundplane}};
+		 axes -> {view,{show, show_axes}};
 		 flatshade -> {view,flatshade};
 		 smooth -> {view,workmode};
 		 perspective -> {view,orthogonal_view};
@@ -218,6 +218,7 @@ button_was_hit_1(X, [{Pos,Name}|_]) when Pos =< X, X < Pos+?BUTTON_WIDTH ->
 		 Other -> {select,Other}
 	     end,
     {toolbar,Client} = wings_wm:this(),
+    wings_menu:check_item(Action),
     wings_wm:send(Client, {action,Action});
 button_was_hit_1(X, [_|Is]) ->
     button_was_hit_1(X, Is);

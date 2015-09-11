@@ -12,7 +12,7 @@
 %%
 
 -module(wings_ff_wings).
--export([import/2,export/2]).
+-export([import/2,merge/2,export/2]).
 
 -include("wings.hrl").
 -include("e3d_image.hrl").
@@ -25,9 +25,14 @@
 import(Name, St) ->
     wings_pb:start(?__(1,"opening wings file")),
     wings_pb:update(0.07, ?__(2,"reading file")),
-    wings_pb:done(import_1(Name, St)).
+    wings_pb:done(import_1(Name, false, St)).
 
-import_1(Name, St0) ->
+merge(Name, St) ->
+    wings_pb:start(?__(1,"opening wings file")),
+    wings_pb:update(0.07, ?__(2,"reading file")),
+    wings_pb:done(import_1(Name, true, St)).
+
+import_1(Name, MrgDlg, St0) ->
     case file:read_file(Name) of
 	{ok,<<?WINGS_HEADER,Sz:32,Data/binary>>} when byte_size(Data) =:= Sz ->
 	    wings_pb:update(0.08, ?__(1,"converting binary")),
@@ -39,7 +44,9 @@ import_1(Name, St0) ->
                     {error,?__(3,"Pre-0.92 Wings format no longer supported.")};
 		{wings,2,{Shapes,Materials,Props}} ->
 		    Dir = filename:dirname(Name),
-                    import_vsn2(Shapes, Materials, Props, Dir, St0);
+                    if MrgDlg -> import_vsn2_dlg(Shapes, Materials, Props, Dir, St0);
+                       true -> import_vsn2(Shapes, Materials, Props, Dir, St0)
+                    end;
 		{wings,_,_} ->
 		    {error,?__(4,"unknown wings format")};
 		Other ->
@@ -72,6 +79,634 @@ import_vsn2(Shapes, Materials0, Props, Dir, St0) ->
     St = import_props(Props, St1),
     wings_pb:update(1.0,?__(2,"objects")),
     import_objects(Shapes, NameMap, St).
+
+import_vsn2_dlg(Shapes0, Materials0, Props5, Dir,
+                #st{selmode=Mode0,sel=Sel0,shapes=Shps0,mat=Mat0,ssels=Ssels0,views={_,Views0}}=St0) ->
+    %% Current elements names
+    {OldShpNames,OldLgtNames} = lists:foldr(
+                                fun(#we{name=Name}=We, {OAcc,LAcc}) when ?IS_LIGHT(We) ->
+                                        {OAcc, LAcc++[Name]};
+                                   (#we{name=Name}, {OAcc,LAcc}) ->
+                                        {OAcc++[Name], LAcc}
+                                end, {[],[]}, gb_trees:values(Shps0)),
+    OldMtlNames = gb_trees:keys(Mat0),
+    OldVwsNames = [Name || {_,Name} <- tuple_to_list(Views0)],
+    OldSelGroups = [Id || {{_Mode,_Name}=Id,_} <- gb_trees:to_list(Ssels0)],
+
+    %% New elements names
+    ObjInfo = [{Name, case import_perm(Props) of
+                           0 -> {0,0};
+                           1 -> {1,0}; % locked
+                           2 -> {0,1}; % hidden
+                           3 -> {1,1}; % hidden_locked
+                           {_,_} -> {1,0} % hidden
+                       end} || {object,Name,_,Props} <- Shapes0],
+
+    ShpNames = [Name || {Name,_} <- ObjInfo],
+    {Locked,Hidden} = lists:foldr(fun({_, {L, H}}, {LAcc, HAcc}) ->
+                                    {LAcc+L, HAcc+H}
+                                end, {0,0}, ObjInfo),
+
+    %% getting Lights name
+    PrpLights = proplists:get_value(lights,Props5,[]),
+    LgtNames = [Name || {Name,_} <- PrpLights],
+
+    %% getting Materials name
+    MtlNames = [Name || {Name,_} <- Materials0]--[default],
+
+    %% getting Views name
+    PrpViews1 = proplists:get_value(views,Props5,[]),
+    VwsNames0 = [proplists:get_value(name,Fields) || {view, Fields} <- PrpViews1],
+    VwsNames = VwsNames0 --["current_view"],
+
+    %% getting Images name
+    PrpImages = proplists:get_value(images,Props5,[]),
+    ImgNames = lists:foldr(fun({_Id,ImgProps}, Acc)->
+                                 Status=case proplists:get_value(filename, ImgProps) of
+                                            undefined -> "";
+                                            _ -> " ("++?__(4,"External")++")"
+                                        end,
+                                 Acc ++[proplists:get_value(name,ImgProps)++Status]
+                         end, [], PrpImages),
+
+    %% getting Selection Groups names and ID
+    PrpSelGrp = get_sel_groups(Props5,[]),
+    SelGrNames = [{{{Mode,Name},Name ++" (" ++ atom_to_list(Mode) ++ ")"}} || {{_,Name},{Mode,_}} <- PrpSelGrp],
+
+    %% getting Palettes
+    PrpPalette = proplists:get_value(palette,Props5,[]),
+    %% getting Selections
+    PrpSel = proplists:get_value(selection,Props5,[]),
+    %% getting Scene options for render plugins
+    PrpScenes = proplists:get_value(scene_prefs,Props5,[]),
+
+    %% preparing the dialog
+    Qs = make_merge_dlg(ShpNames,LgtNames,MtlNames,ImgNames,SelGrNames,VwsNames,
+                        PrpPalette=/=[],PrpSel=/=[],PrpScenes=/=[],Locked=/=0,Hidden=/=0),
+    Fun=fun(Result) ->
+                wings_pb:start(?__(1,"processing merge options...")),
+                MrgObj=proplists:get_value({objects,mrg},Result),    % all/selected/none
+                MrgLgt=proplists:get_value({lights,mrg},Result),     % all/selected/none
+                MrgMtl=proplists:get_value({materials,mrg},Result),  % all/used/selected/none
+                MrgImg=proplists:get_value({images,mrg},Result),     % all/used/none
+                MrgSgr=proplists:get_value({selgroups,mrg},Result),  % used/none
+                MrgVws=proplists:get_value({views,mrg},Result),      % all/selected/none
+                MrgPlt=proplists:get_value(palette,Result),          % false/true
+                MrgScn=proplists:get_value(scene_pref,Result),       % false/true
+                NewSel=proplists:get_value(new_sel,Result),          % false/true
+                ObjOpt=proplists:get_value({objects,opt},Result),    % keep/delete
+                LgtOpt=proplists:get_value({lights,opt},Result),     % keep/delete
+                MtlOpt=proplists:get_value({materials,opt},Result),  % keep/delete
+                VwsOpt=proplists:get_value({views,opt},Result),      % keep/delete
+                SelOpt=proplists:get_value(sel_opt,Result),          % keep/add/replace
+                Unlock=proplists:get_value(unlock,Result),           % false/true
+                Unhide=proplists:get_value(unhide,Result),           % false/true
+
+                {Shps,Objs1,Lgts0} =
+                    case {MrgObj,MrgLgt} of
+                        {none,none} -> {Shps0,[],[]};  % there are no object and light to be processed
+                        _ ->
+                            {Shapes2,ShpChkNames} = prepare_items_list(objects,Result,Shapes0,OldShpNames),
+                            {Lights2,LgtChkNames} = prepare_items_list(lights,Result,PrpLights,OldLgtNames),
+
+                            Shapes3 = case ObjOpt of
+                                        none -> [];
+                                        _ -> Shapes2
+                                    end,
+
+                            {_,Shps1,Objs0,_,Lgts1,_} =
+                                lists:foldl(fun process_obj_light/2,
+                                            {{{MrgLgt,LgtOpt},{MrgObj,ObjOpt}},[],Shapes3,ShpChkNames,Lights2,LgtChkNames},
+                                            gb_trees:to_list(Shps0)),
+                            {gb_trees:from_orddict(Shps1),Objs0,Lgts1}
+                    end,
+
+                %% processing materials lists in accord with the user choice
+                Materials1 = if MrgMtl=:=used -> used_material_list(Materials0,Objs1,Lgts0);
+                              true -> Materials0
+                           end,
+                {Materials2,MtlChkNames0} = prepare_items_list(materials,Result,Materials1,OldMtlNames),
+                MtlChkNames = [atom_to_list(I) || I <- (MtlChkNames0--[default])],  % material uses atom names
+                {_,Mtls0,NMtls0,_,RMtls} =
+                    lists:foldl(fun process_material/2,
+                                {{MrgMtl,MtlOpt},[],Materials2,MtlChkNames,[]},
+                                gb_trees:to_list(Mat0)),
+
+                %% removing images references from materials if none is going to be imported
+                NMtls = if MrgImg =:= none ->
+                              lists:foldl(fun({Name,Props0}, Acc) ->
+                                                  Props = case proplists:get_value(maps,Props0,[]) of
+                                                            [] -> Props0;
+                                                            _ -> proplists:delete(maps,Props0)++[{maps,[]}]
+                                                        end,
+                                                  Acc++[{Name,Props}]
+                                          end, [], NMtls0);
+                         true -> NMtls0
+                      end,
+
+                Mtls = gb_trees:from_orddict(Mtls0),
+
+                Objs = replace_materials(RMtls,Unlock,Unhide,Objs1),
+
+                Lgts = replace_light_visibility(Lgts0,Unlock,Unhide),
+
+                Props4 = proplists:delete(lights, Props5)++[{lights,Lgts}],
+
+                %% processing Images lists in accord with the user choice
+                Props3 =
+                    case MrgImg of
+                        used ->
+                            UsedImg0=
+                                lists:foldl(fun({_,Props}, Acc) ->
+                                                    case proplists:get_value(maps,Props,[]) of
+                                                        [] -> Acc;
+                                                        Map -> lists:foldl(fun({_Type,Id}, Acc0) ->
+                                                                                   gb_sets:add(Id,Acc0)
+                                                                           end, Acc, Map)
+                                                    end
+                                            end, gb_sets:new(), NMtls),
+                            Images=
+                                gb_sets:fold(fun(Id, Acc) ->
+                                                     Acc++[{Id,proplists:get_value(Id,PrpImages)}]
+                                             end, [], UsedImg0),
+                            proplists:delete(images, Props4)++[{images,Images}];
+                        _ ->
+                            merge_prop({images,MrgImg}, Props4)
+                    end,
+
+                %% processing Views lists in accord with the user choice
+                Props2 =
+                    if MrgVws=/=none ->
+                        %% we need to remove the current_view from the elements list here,
+                        %% since it was not present in the names table for selection
+                        PrpViews =
+                            case find_view_name("current_view",PrpViews1,1) of
+                                {Idx0,_} ->
+                                    lists:delete(lists:nth(Idx0,PrpViews1),PrpViews1);
+                                _ -> PrpViews1
+                            end,
+
+                        {Views,VwsChkNames}=prepare_items_list(views,Result,PrpViews,OldVwsNames),
+                        {_,Vws0,NVws,_,_RVws}=
+                            lists:foldl(fun process_view/2,
+                                        {{MrgVws,VwsOpt},[],Views,VwsChkNames,[]}, tuple_to_list(Views0)),
+                        Vws = list_to_tuple(Vws0),
+                        proplists:delete(views,Props3)++[{views,NVws}];
+                    true ->
+                        Vws = Views0,
+                        proplists:delete(views,Props3)
+                    end,
+
+                %% processing Selection Groups lists in accord with the user choice
+                Props1 =
+                    if MrgSgr=/=none ->
+                            PrpSelGrp0 = used_selgroup_list(Result,PrpSelGrp,Shapes0),
+                            {SelGrp,SgrChkNames}=prepare_items_list(selgroups,Result,PrpSelGrp0,OldSelGroups),
+                            {_,_,NSgr,_,_RSgr}=
+                                lists:foldr(fun process_selgroup/2,
+                                            {MrgSgr,[],SelGrp,SgrChkNames,[]},SelGrp),
+                            remove_selgroups(Props2)++NSgr;
+                        true ->
+                            remove_selgroups(Props2)
+                    end,
+
+                Props0 =
+                    if MrgPlt=:=false ->
+                            proplists:delete(palette,Props1);
+                        true -> Props1
+                    end,
+                Props =
+                    if MrgScn=:=false ->
+                            proplists:delete(scene_prefs,Props0);
+                        true -> Props0
+                    end,
+
+                wings_pb:update(0.8, ?__(3,"converting binary")),
+                #st{shapes=NewShps} = St2 =
+                    wings_pb:done(import_vsn2(Objs, NMtls, Props, Dir, St0#st{shapes=Shps,mat=Mtls,views={tuple_size(Vws),Vws}})),
+                St1 =
+                    if (SelOpt=/=keep) and NewSel ->
+                            SelShp = gb_trees:to_list(NewShps) -- gb_trees:to_list(Shps0),
+                            case SelShp of
+                                [] -> St2;
+                                _ ->
+                                    #st{sel=SelTmp} = wings_sel:make(fun(_,#we{}) -> true
+                                                                   end,body,St2#st{shapes=gb_trees:from_orddict(SelShp)}),
+                                    St2#st{selmode=body,sel=SelTmp}
+                            end;
+                       true -> St2
+                    end,
+                St = wings_sel:valid_sel(merge_sel(SelOpt,Mode0,Sel0,St1)),
+                wings_shape:recreate_folder_system(St#st{saved=false})
+        end,
+    wings_dialog:dialog("Merge", Qs, Fun),
+    St0.
+
+get_sel_groups([], Acc) -> Acc;
+get_sel_groups([{{selection_group,_},_}=H|T], Acc) -> get_sel_groups(T,Acc++[H]);
+get_sel_groups([_|T], Acc) -> get_sel_groups(T,Acc).
+
+remove_selgroups(List) ->
+    remove_selgroups_0(List, []).
+remove_selgroups_0([], Acc) -> Acc;
+remove_selgroups_0([{{selection_group,_},_}|T], Acc) ->
+    remove_selgroups_0(T,Acc);
+remove_selgroups_0([H|T], Acc) ->
+    remove_selgroups_0(T,Acc++[H]).
+
+process_obj_light({_Id,#we{name=Name}=We}=I, {{{MrgLgt,LgtOpt},_}=Opt, AShp, AObj, ASNames, ALgt, ALNames}) when ?IS_LIGHT(We) ->
+    case MrgLgt of
+        none ->
+            {Opt,AShp++[I],AObj,ASNames,ALgt,ALNames};
+        _ ->
+            LgtRst=lists:keyfind(Name,1,ALgt),
+            case LgtRst of
+                {Name,F0} ->
+                    if LgtOpt=:=keep ->  % Keep if existent object (same name)
+                            Name0 = wings_util:unique_name(Name, ALNames),
+                            ALgt0 = lists:keydelete(Name,1,ALgt),
+                            {Opt,AShp++[I],AObj,ASNames,ALgt0++[{Name0,F0}],ALNames++[Name0]};
+                        true ->  % Delete an existent object
+                            {Opt,AShp,AObj,ASNames,ALgt,ALNames}
+                    end;
+                _ -> {Opt,AShp++[I],AObj,ASNames,ALgt,ALNames}
+            end
+    end;
+process_obj_light({_Id,#we{name=Name}}=I, {{_,{MrgObj,ObjOpt}}=Opt, AShp, AObj, ASNames, ALgt, ALNames}) ->
+    case MrgObj of
+        none ->
+            {Opt,AShp++[I],AObj,ASNames,ALgt,ALNames};
+        _ ->
+            ObjRst = lists:keyfind(Name,2,AObj),
+            case ObjRst of
+                {object,Name,F0,F1} ->
+                    if ObjOpt=:=keep ->
+                            Name0 = wings_util:unique_name(Name, ASNames),
+                            AObj0 = lists:keydelete(Name,2,AObj),
+                            {Opt,AShp++[I],AObj0++[{object,Name0,F0,F1}],ASNames++[Name0],ALgt,ALNames};
+                        true ->
+                            {Opt,AShp,AObj,ASNames,ALgt,ALNames}
+                    end;
+                _ ->
+                    {Opt,AShp++[I],AObj,ASNames,ALgt,ALNames}
+            end
+    end.
+
+process_material({Name,_}=I, {{MrgMtl,MtlOpt}=Opt, AOld, ANew, AMNames, ARplNames}) ->
+        case MrgMtl of
+            none ->
+                {Opt,AOld++[I],ANew,AMNames,ARplNames};
+            _ ->
+                MtlRst = lists:keyfind(Name,1,ANew),
+                case MtlRst of
+                    {Name,Props0} ->
+                        if MtlOpt=:=keep ->  % Keep if existent material (same name)
+                                Name0 = list_to_atom(wings_util:unique_name(atom_to_list(Name), AMNames)),
+                                ANew0 = lists:keydelete(Name,1,ANew),
+                                {Opt,AOld++[I],ANew0++[{Name0,Props0}],AMNames++[Name0],ARplNames++[{Name,Name0}]};
+                            true ->  % Delete an existent material
+                                {Opt,AOld,ANew,AMNames,ARplNames}
+                        end;
+                    _ ->
+                        {Opt,AOld++[I],ANew,AMNames,ARplNames}
+                end
+        end.
+
+process_view({_,Name}=I, {{MrgVws,VwsOpt}=Opt, AOld, ANew, AMNames, ARplNames}) ->
+    case MrgVws of
+        none ->
+            {Opt,AOld++[I],ANew,AMNames,ARplNames};
+        _ ->
+            case find_view_name(Name,ANew,1) of
+                {Idx,{view,Props0}} ->
+                    if VwsOpt=:=keep ->  % Keep if existent view (same name)
+                            Name0 = wings_util:unique_name(Name, AMNames),
+                            ANew0 = lists:delete(lists:nth(Idx,ANew),ANew),
+                            Props = [{name,Name0}]++proplists:delete(name,Props0),
+                            {Opt, AOld++[I],ANew0++[{view,Props}],AMNames++[Name0],ARplNames++[{Name,Name0}]};
+                        true ->  % Delete an existent selection
+                            {Opt,AOld,ANew,AMNames,ARplNames}
+                    end;
+                _ ->
+                    {Opt,AOld++[I],ANew,AMNames,ARplNames}
+            end
+    end.
+
+process_selgroup({Key,{Mode,_}}=I, {MrgSgr, AOld, ANew, AMNames, ARplNames}) ->
+    case MrgSgr of
+        none ->
+            {MrgSgr,AOld++[I],ANew,AMNames,ARplNames};
+        _ ->
+            %% Selection Groups can have duplicate names (Key), but not for the same selection mode
+            %% we need to check all new selection for duplicate
+            SgrRst = lists:foldr(fun(Item,Res)->
+                                    case Item of
+                                        {Key,{Mode,_}} -> Item;
+                                        _ -> Res
+                                    end
+                                end, undefined, ANew),
+            case SgrRst of
+                {{_,Name}=Key,Props0} ->
+                    AMNames0=[Name0 || {Mode0,Name0} <- AMNames, Mode0=:=Mode],
+                    Name0 = wings_util:unique_name(Name, AMNames0),
+                    ANew0 = lists:delete(SgrRst,ANew),
+                    {MrgSgr,AOld++[I],ANew0++[{{selection_group,Name0},Props0}],AMNames++[{Mode,Name0}],ARplNames++[{{Mode,Name},{Mode,Name0}}]};
+                _ ->
+                    {MrgSgr,AOld++[I],ANew,AMNames,ARplNames}
+            end
+    end.
+
+find_view_name(_, [], _) -> undefined;
+find_view_name(Name, [{view,Props}=H|T], Idx) ->
+    {_,Name0} = lists:keyfind(name,1,Props),
+    if  Name0 =:= Name -> {Idx,H};
+        true -> find_view_name(Name,T, Idx+1)
+    end.
+
+replace_materials([], Unlock, Unhide, Shs) when Unlock=:=true; Unhide=:=true ->
+    [replace_materials_0({Unlock,Unhide},Sh0) || Sh0 <- Shs];
+replace_materials([], _, _, Shs) -> Shs;
+replace_materials(Names, Unlock, Unhide, Shs) ->
+    [replace_materials_0(Names,{Unlock,Unhide},Sh0) || Sh0 <- Shs].
+
+replace_materials_0(NewPerm, {object,Name,Winged, Props0}) ->
+    Props=replace_perm(NewPerm, Props0),
+    {object,Name,Winged,Props}.
+replace_materials_0(Names, NewPerm, {object,Name,{winged,Es,Fs0,Vs,He}, Props0}) ->
+    Fs=lists:reverse(replace_materials_1(Fs0,Names,[])),
+    Props=replace_perm(NewPerm, Props0),
+    {object,Name,{winged,Es,Fs,Vs,He},Props}.
+
+replace_materials_1([], _, Acc) -> Acc;
+replace_materials_1([[{material,Name}]=H|T], Names, Acc) ->
+    Fs=case lists:keyfind(Name,1,Names) of
+           {Name,NewName} -> [{material,NewName}];
+           _ -> H
+       end,
+    replace_materials_1(T, Names, [Fs|Acc]);
+replace_materials_1([H|T], Names, Acc) ->
+    replace_materials_1(T, Names, [H|Acc]).
+
+replace_perm({Unlock,Unhide}, Props) ->
+    State=proplists:get_value(state, Props),
+    case replace_perm_0(State,Unlock,Unhide) of
+        State -> Props;
+        ignore -> Props;
+        undefined -> proplists:delete(state, Props);
+        NewPerm -> proplists:delete(state, Props)++[{state,NewPerm}]
+    end.
+
+replace_perm_0(locked, true=_Unlock, _Unhide) -> undefined;
+replace_perm_0(locked, _, _) -> locked;
+replace_perm_0(hidden, _, true) -> undefined;
+replace_perm_0(hidden, _, _) -> hidden;
+replace_perm_0({hidden,_,_}, _, true) -> undefined;
+replace_perm_0(hidden_locked, true, true) -> undefined;
+replace_perm_0(hidden_locked, true, false) -> hidden;
+replace_perm_0(hidden_locked, false, true) -> locked;
+replace_perm_0(_, _, _) -> ignore.
+
+replace_light_visibility(Lgts, Unlock, Unhide) ->
+    [{Name, replace_light_perm(Props,Unlock,Unhide)} || {Name,Props} <- Lgts].
+
+replace_light_perm(Props1,Unlock,Unhide) ->
+    Props0 =
+        if Unhide=:=true -> lists:keyreplace(visible,1,Props1,{visible,true});
+            true -> Props1
+        end,
+    if Unlock=:=true -> lists:keyreplace(locked,1,Props0,{locked,false});
+        true -> Props0
+    end.
+
+prepare_items_list(Key, Result, Elements, OldElmNames) ->
+    MrgOpt = proplists:get_value({Key,mrg},Result),
+    case get_table_names({Key,table},Result) of
+        {Sel, ElmNames0} ->  % Data contains values (text or atom) relative to the text list
+            case MrgOpt of
+                Op when Op=:=all; Op=:=used ->
+                    {Elements,merge_names(OldElmNames,ElmNames0)};
+                selected ->
+                    case Sel of
+                        [] ->
+                            {[],[]}; % user can has choose Selected, but didn't select an item
+                        _ ->
+                            {SelItems,SelNames} =
+                                lists:foldl(fun(Idx, {IAcc,NAcc})->
+                                                    {IAcc++[lists:nth(Idx+1,Elements)],
+                                                     NAcc++[lists:nth(Idx+1,ElmNames0)]}
+                                            end,{[],[]},Sel),
+                            {SelItems,merge_names(OldElmNames,SelNames)}
+                    end;
+                none ->
+                    {[],[]}
+            end;
+        _ ->  {[],[]}
+    end.
+
+used_material_list(_,[]=_Objs,_) -> [];
+used_material_list(Materials0, Objs,_Lgts) ->
+    Fs0=[Fs || {object,_,{winged,_,Fs,_,_},_} <- Objs],
+    UsedMtl=gb_sets:from_list(lists:flatten(Fs0)),
+    Materials=gb_sets:fold(fun({material,Name}, Acc) ->
+                                   case proplists:lookup(Name,Materials0) of
+                                       none -> Acc;
+                                       M -> Acc++[M]
+                                   end
+                           end, [], UsedMtl),
+    Materials.
+
+used_selgroup_list(_,_,[]=_Shapes) -> [];
+used_selgroup_list(Result,SelGroup, Shapes) ->
+    MrgOpt = proplists:get_value({objects,mrg},Result),
+    if MrgOpt=/=none ->
+            SelObjs =
+                case get_table_names({objects,table},Result) of
+                    {Sel, ElmNames} ->
+                        case Sel of
+                            [] ->
+                                {_, Res} = lists:foldr(fun(Item, {Id,Acc}) ->
+                                    {Id,Acc++[{Id,element(2,Item)}]}
+                                end,{0,[]},Shapes),
+                                Res;
+                            _ ->
+                                [{Idx,lists:nth(Idx+1,ElmNames)} || Idx <- Sel] % Data contains values (text or atom) relative to the text list
+                        end;
+                    _ -> []
+                end,
+            lists:foldl(fun({{selection_group,_}=Key,{Mode,Sel0}}, Acc) ->
+                            Sel2 = lists:foldr(fun({Id,_}=Sel1, Acc0) ->
+                                                    case lists:keymember(Id, 1, SelObjs) of
+                                                        true -> Acc0++[Sel1];
+                                                        _ -> Acc0
+                                                    end
+                                                 end, [], Sel0),
+                            if Sel2=/=[] ->
+                                    Acc++[{Key,{Mode,Sel2}}];
+                                true -> Acc
+                            end
+                        end,[],SelGroup);
+        true -> []
+    end.
+
+merge_sel(replace, _, _, St) -> St;
+merge_sel(keep, SrcMode, SrcSel, St) ->
+    St#st{selmode=SrcMode,sel=SrcSel};
+merge_sel(add, SrcMode, SrcSel, #st{selmode=MrgMode}=St0) ->
+    St=if SrcMode=/=MrgMode -> wings_sel_conv:mode(SrcMode,St0);
+          true -> St0
+       end,
+    #st{sel=MrgSel}=St,
+    Sel=gb_sets:union(gb_sets:from_list(MrgSel), gb_sets:from_list(SrcSel)),
+    St#st{sel=gb_sets:to_list(Sel)}.
+
+merge_prop({Key, Import}, Props) ->
+    case Import of
+        none -> proplists:delete(Key, Props);
+        _ -> Props
+    end.
+
+%% returns a list without duplicated names
+merge_names(LstNames0, LstNames1) ->
+    NSet0=sets:from_list(LstNames0),
+    NSet1=sets:from_list(LstNames1),
+    sets:to_list(sets:union(NSet0,NSet1)).
+
+%% returns the selected element idx and the list of elements names
+get_table_names(Key, List0)->
+    List=[I || I <- List0, is_tuple(I)],
+    case proplists:get_value(Key,List,undefined) of
+        {Sel,Rows} -> {Sel, [Name || {{Name,_Label}} <-Rows]};
+        _ -> undefined
+    end.
+
+make_merge_dlg(Obj, Lgt, Mtl, Img, SGr, Vws, Plt, Sel, Scn, Locked, Hidden) ->
+    [
+        {vframe, [
+            {vframe,[
+                {oframe,
+                        make_dlg_item(?__(1,"Objects"),Obj,Obj=/=[],objects) ++
+                        make_dlg_item(?__(2,"Lights"),Lgt,Lgt=/=[],lights) ++
+                        make_dlg_item(?__(3,"Materials"),Mtl,Mtl=/=[],materials) ++
+                        make_dlg_item(?__(4,"Images"),Img,Img=/=[],images) ++
+                        make_dlg_item(?__(5,"Selection Groups"),SGr,SGr=/=[],selgroups) ++
+                        make_dlg_item(?__(6,"Saved Views"),Vws,Vws=/=[],views),
+                    1, [{style, buttons}]},
+                {hframe,[
+                    {vframe, [
+                        {?__(7,"Unlock locked elements"),false, [{key, unlock},{hook,dlg_hook_enable(Locked)}]},
+                        {?__(9,"Merge Palette"),Plt, [{key, palette},{hook,dlg_hook_enable(Plt)}]}
+                    ]},
+                    {vframe, [
+                        {?__(8,"Unhide hidden elements"),false, [{key, unhide},{hook,dlg_hook_enable(Hidden)}]},
+                        {?__(17,"Merge render settings"),Scn, [{key, scene_pref},{hook,dlg_hook_enable(Scn)}]}
+                    ]}
+                ]}
+            ],[{margin,false}]},
+            {vframe,[
+                {?__(15,"Make all new Selection"),false,[{key, new_sel},{hook,dlg_hook_enable(true)},
+                    {info, ?__(16,"It makes all new elements selected in accord with the options bellow")}]
+                },
+                {hradio, [
+                    {?__(10,"Ignore"),keep},
+                    {?__(11,"Add to current"),add},
+                    {?__(12,"Replace the current"),replace}
+                ], keep, [{key,sel_opt},{hook,dlg_hook_enable(Sel)},
+                    {info, ?__(14,"Defines what to do with selections present in the file being merged")}]}
+            ],[{title,?__(13,"Selection options")},{margin,false}]}
+        ]}
+    ].
+
+make_dlg_item(Title, List, Enabled, Key) ->
+    Rows=
+        case Key of
+            Key when Key =:= selgroups -> List;
+            _ ->
+                [{{Name, if is_atom(Name) -> atom_to_list(Name);
+                             true -> Name
+                         end}} || Name <- List]
+        end,
+    Fields0=[
+        {table,[{?__(1,"Element name")}|Rows],[{key,{Key,table}},{max_rows,10},{col_widths,{40}},{hook,fun dlg_hook_select/3}]},
+        make_dlg_opt_mrg0(Enabled, Key)],
+    Fields1=make_dlg_opt_mrg1(Enabled, Key),
+    [{Title ++io_lib:format(" (~p)",[length(List)]), {vframe, Fields0++Fields1}}].
+
+make_dlg_opt_mrg0(Enabled, Key) ->
+    {hframe, [
+        {hradio,
+            make_dlg_opt_mrg0_0(Key),
+            merge_opt_default(Enabled,Key),[{key,{Key,mrg}},{title,?__(1,"What to merge")},
+            {hook,dlg_hook_enable(Enabled)},
+            {info,?__(2,"Define what element(s) to merge into the current scene")}]}
+    ],[{margin,false}]}.
+
+make_dlg_opt_mrg0_0(images) ->
+    [{?__(1,"All")++" ",all},
+     {?__(2,"Only used by any material")++" ",used},
+     {?__(3,"None")++" ",none}];
+make_dlg_opt_mrg0_0(materials) ->
+    [{?__(1,"All")++" ",all},
+     {?__(4,"Selected")++" ",selected},
+     {?__(5,"Used by chosen objects")++" ",used},
+     {?__(3,"None")++" ",none}];
+make_dlg_opt_mrg0_0(selgroups) ->
+    [{?__(5,"Used by chosen objects")++" ",used},
+     {?__(3,"None")++" ",none}];
+make_dlg_opt_mrg0_0(_) ->
+    [{?__(1,"All")++" ",all},
+     {?__(4,"Selected")++" ",selected},
+     {?__(3,"None")++" ",none}].
+
+make_dlg_opt_mrg1(_, Key) when Key=:=images; Key=:=selgroups -> [];
+make_dlg_opt_mrg1(Enabled, Key) ->
+    [{hframe, [
+        {hradio, [
+            {?__(3,"Rename new"),keep},
+            {?__(4,"Replace current"),delete}
+        ],keep,[{key,{Key,opt}}, {title,?__(1,"Same name action")},
+            {hook,dlg_hook_enable(Enabled)},
+            {info,?__(2,"Define what to do if there is an other element with identical name in the current scene")}]}
+    ],[{margin,false}]}].
+
+dlg_hook_select({Item,_}, _, _) when Item=:=images; Item=:=selgroups -> ok;
+dlg_hook_select({Item,_}=_Key, _Ctrl, Store) ->
+    wings_dialog:set_value({Item,mrg}, selected, Store).
+
+dlg_hook_enable(Enabled) ->
+    fun(Key, Value, Store)->
+            case Key of
+                {objects,opt} ->
+                    Value0 =
+                        case wings_dialog:get_value({lights,opt}, Store) of
+                            [] -> false;
+                            Val -> Val =/= none
+                        end,
+                    wings_dialog:enable(sel_opt, (Value =/= none) or Value0 , Store);
+                {lights,opt} ->
+                    Value0 =
+                        case wings_dialog:get_value({objects,opt}, Store) of
+                            [] -> false;
+                            Val -> Val =/= none
+                        end,
+                    wings_dialog:enable(sel_opt, (Value =/= none) or Value0 , Store);
+                new_sel ->
+                    Value0 = if Value =:= true -> add;
+                                 true -> keep
+                             end,
+                    wings_dialog:set_value(sel_opt, Value0, Store);
+                sel_opt ->
+                    if Value =:= keep ->
+                            wings_dialog:set_value(new_sel, false, Store);
+                        true -> ok
+                    end;
+                _ ->
+                    wings_dialog:enable(Key, Enabled, Store)
+            end
+    end.
+
+merge_opt_default(false, _) -> none;
+merge_opt_default(_, Key) when Key =:= images; Key =:= materials; Key=:=selgroups -> used;
+merge_opt_default(_, _) -> all.
 
 optimize_name_map([{Name,_}|Ms], NameMap, Acc) ->
     case gb_trees:lookup(Name, NameMap) of

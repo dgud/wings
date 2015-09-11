@@ -12,7 +12,7 @@
 %%
 
 -module(wings_pref).
--export([init/0,finish/0,load/0,
+-export([init/0,finish/0,load/0, get_dir/0,
 	 lowpass/2,
 	 get_value/1,get_value/2,set_value/2,set_default/2,
 	 delete_value/1,
@@ -39,27 +39,54 @@ init() ->
 
 load() ->
     case old_pref_file() of
-	none ->
-	    %% No preference file found. We must turn
-	    %% on the advanced menus.
-	    set_value(advanced_menus, true),
-	    set_value(legacy_colors_checked, true),
-	    ok;
-	PrefFile ->
-	    io:format("wings-~s\nReading preferences from: ~s\n",
-		    [?WINGS_VERSION, PrefFile]),
-	    case file:consult(PrefFile) of
-		{ok,List0} ->
-		    List = clean(List0),
-		    catch ets:insert(wings_state, List),
-		    check_user_keys(List),
-		    check_legacy_colors(List),
-		    win32_window_layout(),
-		    no_more_basic_menus();
-		{error,_Reason} ->
-		    ok
-	    end
+        none ->
+            %% No preference file found. We must turn
+            %% on the advanced menus.
+            set_value(advanced_menus, true),
+            set_value(legacy_colors_checked, true),
+            ok;
+        PrefFile ->
+            io:format("wings-~s\nReading preferences from: ~s\n",
+                [?WINGS_VERSION, PrefFile]),
+            case local_consult(PrefFile) of
+                {ok,List0} ->
+                    List = clean(List0),
+                    catch ets:insert(wings_state, List),
+                    check_user_keys(List),
+                    check_legacy_colors(List),
+                    win32_window_layout(),
+                    no_more_basic_menus();
+                {error,_Reason} ->
+                    ok
+            end
     end.
+
+%%% The function tries to load the preferences files without getting an error if it isn't unicode
+%%% It's applied to the Preferences.txt and Preference Subset.pref files
+local_consult(PrefFile) ->
+    case file:consult(PrefFile) of
+         {error,{_,file_io_server,invalid_unicode}} ->
+             latin1_file_to_unicode(PrefFile),
+             file:consult(PrefFile);
+         Res -> Res
+    end.
+
+%%% convert file from latin1 to unicode
+latin1_file_to_unicode(PrefFile) ->
+    {ok, Latin1} = file:read_file(PrefFile),
+    Utf8 = unicode:characters_to_binary(Latin1, latin1, utf8),
+    ok = file:write_file(PrefFile, Utf8).
+
+get_dir() ->
+    PFile = case get_value(pref_directory) of
+		undefined -> 
+		    File = get_pref_directory("backup_prefs.txt"),
+		    set_value(pref_directory,File),
+		    File;
+		File -> File
+	    end,
+    filename:dirname(PFile).
+
 
 %%%% Restore window layout on MS Windows
 win32_window_layout() ->
@@ -86,7 +113,7 @@ no_more_basic_menus() ->
 	    %% Either this is the first launch and the user used
 	    %% the basic menus, or (s)he has still not turned off
 	    %% the informational dialog.
-	    set_value(no_basic_menu_info, false),
+	    set_value(no_basic_menu_info, true),
 	    self() ! {external,no_more_basic_menus},
 	    ok
     end,
@@ -112,8 +139,8 @@ finish() ->
     end.
 
 finish_save_prefs(PrefFile) ->
-    List0 = ets:tab2list(wings_state),
-    List = prune_defaults(List0),
+    List0 = prune_temp(ets:tab2list(wings_state)),
+    List  = prune_defaults(List0),
     Format = "~p. \n",
     PostProcess = case os:type() of
 		      {win32,_} -> fun insert_crs/1;
@@ -126,7 +153,8 @@ finish_save_prefs(PrefFile) ->
 	       (Else) -> PostProcess(io_lib:format(Format, [Else]))
 	    end,
     Str = lists:map(Write, List),
-    catch file:write_file(PrefFile, Str),
+    Bin = unicode:characters_to_binary(io_lib:format("~ts",[Str])),
+    catch file:write_file(PrefFile, Bin),
     ok.
 
 lowpass(X, Y) ->
@@ -153,6 +181,12 @@ insert_crs(C) when is_integer(C) -> C.
 
 prune_defaults(List) ->
     List -- defaults().
+
+prune_temp([{{temp,_}, _}|List]) ->
+    prune_temp(List);
+prune_temp([First|Rest]) ->
+    [First | prune_temp(Rest)];
+prune_temp([]) -> [].
 
 win32_save_maximized() ->
     case os:type() of
@@ -343,7 +377,7 @@ delete_scene_value(Key) ->
 
 
 defaults() ->
-    wings_theme:olive_theme()++
+    wings_theme:native_theme()++
     [
      %% Put any non-constant preferences here.
      {jumpy_camera,os:type() =:= {unix,darwin}},
@@ -386,7 +420,7 @@ defaults() ->
      {dummy_axis_letter,false},
      {polygon_offset_f,1.0},
      {polygon_offset_r,1.0},
-     {multisample,undefined},
+     {multisample, true},
      {ungrab_bug, false},
 
      %% Advanced features.
@@ -619,100 +653,98 @@ colors(ColorPrefs, List) ->
 %% Command is initiated in wings_file.erl
 pref({load,Request,St}) ->
     case Request of
-      custom_theme ->
-        pref(load);
-      olive_theme ->
-        LegacyColors = wings_theme:legacy_colors(),
-        Defaults = defaults(),
-        Colors = colors(LegacyColors, Defaults),
-        load_pref_category([{graphical,true}],[{graphical,Colors}],St),
-        init_opengl(),
-        keep;
-      Theme when is_atom(Theme) ->
-        Colors = wings_theme:Theme(),
-        load_pref_category([{graphical,true}],[{graphical,Colors}],St),
-        init_opengl(),
-        keep;
-      Key when is_integer(Key) ->
-        Recent0 = get_value(recent_prefs),
-        PrefDir = lists:nth(Key, Recent0),
-        case filelib:is_file(PrefDir) of
-          true ->
-              wings_pref:set_value(pref_directory, PrefDir),
-              pref(load);
-          false ->
-              Recent = delete_nth(Recent0, Key),
-              wings_pref:set_value(recent_prefs, Recent),
-              wings_u:error_msg(?__(11,"This file has been moved or deleted."))
-        end
+	custom_theme ->
+	    pref(load);
+	olive_theme ->
+	    LegacyColors = wings_theme:legacy_colors(),
+	    Defaults = defaults(),
+	    Colors = colors(LegacyColors, Defaults),
+	    load_pref_category([{graphical,true}],[{graphical,Colors}],St),
+	    init_opengl(),
+	    keep;
+	Theme when is_atom(Theme) ->
+	    Colors = wings_theme:Theme(),
+	    load_pref_category([{graphical,true}],[{graphical,Colors}],St),
+	    init_opengl(),
+	    keep;
+	Key when is_integer(Key) ->
+	    Recent0 = get_value(recent_prefs),
+	    PrefDir = lists:nth(Key, Recent0),
+	    case filelib:is_file(PrefDir) of
+		true ->
+		    wings_pref:set_value(pref_directory, PrefDir),
+		    pref(load);
+		false ->
+		    Recent = delete_nth(Recent0, Key),
+		    wings_pref:set_value(recent_prefs, Recent),
+		    wings_u:error_msg(?__(11,"This file has been moved or deleted."))
+	    end
     end;
 
 pref(Action) -> %% load|save dialog
-    Disable = fun (is_disabled, {_Var,_I, Store}) ->
-              not gb_trees:get(hotkeys,Store);
-              (_, _) -> void
+    FileName = "Preference Subset.pref",
+    Directory = case get_value(pref_directory) of
+		    undefined -> get_pref_directory(FileName);
+		    Dir -> Dir
+		end,
+
+    Keys = case file:consult(Directory) of
+	       {ok,List} when Action =:= load -> orddict:fetch_keys(List);
+	       _ -> []
+	   end,
+    Disable = fun (_Var, Enable, Store) ->
+		      Action =:= load andalso
+			  wings_dialog:enable(hotkey_radio, Enable, Store)
               end,
     case Action of
         load ->
-          Title = ?__(1,"Load Preference Subset"),
-          Button = [{button,
-                     ?__(14,"Select Valid Preference Fields for Current File"),
-                     done,[{key,update}]},separator],
-          Dialog = open_dialog,
-          Options =
-           [separator,
-            {hframe,[{vradio,[{?__(9,"Merge hotkeys"),merge},
-                              {?__(10,"Remove existing hotkeys first"),remove}],
-                               merge}],[{hook,Disable}]},panel];
+	    Title = ?__(1,"Load Preference Subset"),
+	    Dialog = open_dialog,
+	    Options =
+		[separator,
+		 {vradio,[{?__(9,"Merge hotkeys"),merge},
+			  {?__(10,"Remove existing hotkeys first"),remove}],
+		  merge, [{key, hotkey_radio}]},
+		 panel];
         save ->
-          Title = ?__(2,"Save Preference Subset"),
-          Button = [],
-          Dialog = save_dialog,
-          Options = [panel]
-    end,
-    FileName = "Preference Subset.pref",
-    Directory = case get_value(pref_directory) of
-      undefined -> get_pref_directory(FileName);
-      Dir -> Dir
-    end,
-
-    Keys = case file:consult(Directory) of
-      {ok,List} when Action =:= load -> orddict:fetch_keys(List);
-      _ -> []
+	    Title = ?__(2,"Save Preference Subset"),
+	    Dialog = save_dialog,
+	    Options = [panel]
     end,
     PrefFeilds =
         [{hframe,
           [{vframe,
             [{?__(3,"Graphical Settings"),member(graphical,Keys),[{key,graphical}]},
              {?__(4,"Camera Settings"),member(camera,Keys),[{key,camera}]},
-             {?__(5,"Hotkeys"),member(hotkeys,Keys),[{key,hotkeys}]}]},
+             {?__(5,"Hotkeys"),member(hotkeys,Keys),[{key,hotkeys}, {hook, Disable}]}]},
            {vframe,
             [{?__(6,"Window and View Settings"),member(windows,Keys),[{key,windows}]},
              {?__(7,"Constraints"),member(constraints,Keys),[{key,constraints}]},
              {?__(8,"General Settings"),member(settings,Keys),[{key,settings}]}]}
-         ]}],
+	  ]}],
     FileBrowser =
-        [{button, {text, Directory, [{key, pref_directory},
-            {props, [{dialog_type, Dialog},
-            {extensions, [{".pref", "Preference Subset"}]}]}]}}],
-    Qs = Button ++ PrefFeilds ++ Options ++ FileBrowser,
-    wings_ask:dialog(true, Title, Qs,
-        fun(Res) ->
-            case lists:keyfind(update, 1, Res) of
-              {_,true} ->
-                  {_,PrefDir} = lists:keyfind(pref_directory, 1, Res),
-                  case filelib:is_file(PrefDir) of
-                    true -> wings_pref:set_value(pref_directory, PrefDir);
-                    false -> ok
-                  end,
-                  {file,{load_pref,custom_theme}};
-              _ -> {file,{pref,{Action,Res}}}
-            end
-        end).
+        [{button, {text, Directory,
+		   [{key, pref_directory},
+		    {props, [{dialog_type, Dialog},
+			     {extensions, [{".pref", "Preference Subset"}]}]}]}}],
+    Qs = PrefFeilds ++ Options ++ FileBrowser,
+    Do = fun(Res) ->
+		 case lists:keyfind(update, 1, Res) of
+		     {_,true} ->
+			 {_,PrefDir} = lists:keyfind(pref_directory, 1, Res),
+			 case filelib:is_file(PrefDir) of
+			     true -> wings_pref:set_value(pref_directory, PrefDir);
+			     false -> ok
+			 end,
+			 {file,{load_pref,custom_theme}};
+		     _ -> {file,{pref,{Action,Res}}}
+		 end
+	 end,
+    wings_dialog:dialog(Title, Qs, Do).
 
 pref({save, Res}, St) -> %save a .pref
     DelayedPrefs = ets:tab2list(wings_delayed_update),
-    Prefs0 = ets:tab2list(wings_state),
+    Prefs0 = prune_temp(ets:tab2list(wings_state)),
     List = foldl(fun({Key, _}=Pref, Acc) ->
             lists:keystore(Key, 1, Acc, Pref)
         end, Prefs0, DelayedPrefs),
@@ -725,12 +757,12 @@ pref({load, Res0}, St) -> %% load a .pref
     {_,Dir} = lists:keyfind(pref_directory,1,Res),
     case lists:suffix(".pref",Dir) of
       true ->
-        case file:consult(Dir) of
+        case local_consult(Dir) of
           {ok,List} ->
             load_pref_category(sort(Res),List,St),
             init_opengl();
           {error,Reason} ->
-          io:format(Reason),
+            io:format(".pref loading error: ~p\n",[Reason]),
             ok
         end;
       false ->
@@ -776,27 +808,26 @@ write_pref(Dir, ColorPref) ->
     set_value(pref_directory,Dir).
 
 treat_hotkeys(Res) ->
-    case lists:member(merge,Res) of
-      true ->
-        lists:delete(merge,Res);
-      false ->
-        case lists:member(remove,Res) of
-          true ->
-            List = ets:tab2list(wings_state),
-            lists:foreach(fun({Hotkey,_,_}) ->
-                      ets:delete(wings_state,Hotkey);
-                            (_) -> ok
-                    end, List),
-            lists:delete(remove,Res);
-          false -> Res
-        end
+    case proplists:get_value(hotkeys, Res, false) of
+	false -> Res;
+	true ->
+	    case proplists:get_value(hotkey_radio, Res) of
+		merge -> Res;
+		remove ->
+		    List = prune_temp(ets:tab2list(wings_state)),
+		    lists:foreach(fun({Hotkey,_,_})
+					when element(1, Hotkey) =:= bindkey ->
+					  ets:delete(wings_state,Hotkey);
+				     (_) -> ok
+				  end, List),
+		    Res
+	    end
     end.
 
 init_opengl() ->
     case wings_io:is_maximized() of
       false ->
-        {W, H} = TopSize = get_value(window_size),
-        put(wm_top_size, TopSize),
+        {W, H} = wings_wm:top_size(),
         wings_wm:reinit_opengl(),
         wings_wm:resize_windows(W, H),
         wings_wm:dirty();
@@ -1048,6 +1079,8 @@ load_pref_category([{Other,true}|Options], List, St) ->
           end, clean(Prefs));
         false -> ok
     end,
+    load_pref_category(Options, List, St);
+load_pref_category([{hotkey_radio, _}|Options], List, St) ->
     load_pref_category(Options, List, St);
 load_pref_category([], _, _) -> ok.
 

@@ -164,12 +164,17 @@ handle_sculpt_event_1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
 handle_sculpt_event_1(#mousebutton{button=3,mod=Mod,x=X,y=Y,state=?SDL_RELEASED}, Sc)
   when Mod band ?CTRL_BITS =/= 0 ->
     sculpt_menu(X, Y, Sc);
-handle_sculpt_event_1(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev, Sc) ->
+handle_sculpt_event_1(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev, #sculpt{st=St}=Sc) ->
     case is_altkey_magnet_event(Sym,Mod) of
       true ->
         {_,X,Y} = wings_wm:local_mouse_state(),
-        {GX,GY} = wings_wm:local2global(X, Y),
-        adjust_magnet(GX, GY, Sc);
+        case wings_pick:do_pick(X,Y,St) of
+          {_, _, _} ->
+              {GX,GY} = wings_wm:local2global(X, Y),
+              adjust_magnet(GX, GY, Sc);
+          none ->
+              keep
+        end;
       _ ->
         handle_key(Sym, Ev, Sc)
     end;
@@ -223,6 +228,9 @@ handle_magnet_event(#mousebutton{button=5,state=?SDL_RELEASED}, X, Y, Sc0) ->
 handle_magnet_event(#mousebutton{button=Button}, X, Y, Sc)
   when Button =:= 4; Button =:= 5 ->
     update_magnet_handler(X, Y, Sc);
+handle_magnet_event(#mousebutton{}=Ev, X, Y, Sc) ->
+    wings_wm:later(Ev),
+    end_magnet_event(X, Y, Sc);
 handle_magnet_event(#keyboard{sym=Sym,state=?SDL_RELEASED}, X, Y, Sc)
   when Sym =:= ?SDLK_LALT; Sym =:= ?SDLK_RALT ->
     end_magnet_event(X, Y, Sc);
@@ -859,15 +867,15 @@ prefs(#sculpt{str=Str}) ->
     Confine = wings_pref:get_value(sculpt_initial),
     ShowInfluence = wings_pref:get_value(sculpt_magnet_influence),
     Menu = [{vframe,
-      [{hframe,[{slider,{text,Strength,[{key,sculpt_strength},{range,{1,100}}]}}],
-         [{title,?__(1,"Strength")}]}]}],
+	     [{hframe,[{slider,{text,Strength,[{key,sculpt_strength},{range,{1,100}}]}}],
+	       [{title,?__(1,"Strength")}]}]}],
     C = [separator,{?__(3,"Confine sculpt to initial object"),
-          Confine,[{key,sculpt_initial}]},
+		    Confine,[{key,sculpt_initial}]},
          {?__(4,"Show Magnet influence"),
           ShowInfluence,[{key,sculpt_magnet_influence}]}],
     PrefQs = [{Lbl, make_query(Ps)} || {Lbl, Ps} <- Menu] ++ C,
-    wings_ask:dialog(?__(10,"Sculpt Preferences"), PrefQs,
-    fun(Result) -> set_values(Result) end).
+    wings_dialog:dialog(?__(10,"Sculpt Preferences"), PrefQs,
+			fun(Result) -> set_values(Result) end).
 
 make_query([_|_]=List) ->
     [make_query(El) || El <- List];
@@ -1084,7 +1092,7 @@ update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
         pump_edges(EdgeInfo,Vtab,ColFrom,ColRange),
         gl:'end'(),
         gl:endList(),
-        D#dlo{plugins=[{Key,{edge,EdgeList}}|Pdl]}
+        D#dlo{plugins=[{Key,EdgeList}|Pdl]}
     end.
 
 %% pumping Lines
@@ -1092,12 +1100,15 @@ pump_edges([],_,_,_) -> ok;
 pump_edges([{Id1,Inf1,Id2,Inf2}|SegInf],Vtab,Col,Range) ->
     {R1,G1,B1}=color_gradient(Col,Range,Inf1),
     {R2,G2,B2}=color_gradient(Col,Range,Inf2),
-    V1=array:get(Id1, Vtab),
-    V2=array:get(Id2, Vtab),
-    gl:color3f(R1,G1,B1),
-    gl:vertex3fv(V1),
-    gl:color3f(R2,G2,B2),
-    gl:vertex3fv(V2),
+    case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
+        {undefined,_} -> ok;
+        {_,undefined} -> ok;
+        {V1,V2} ->
+            gl:color3f(R1,G1,B1),
+            gl:vertex3fv(V1),
+            gl:color3f(R2,G2,B2),
+            gl:vertex3fv(V2)
+    end,
     pump_edges(SegInf,Vtab,Col,Range).
 
 %% It'll will provide de vertices data for 'update_dlist' function
@@ -1110,7 +1121,7 @@ get_data(update_dlist, Data, Acc) ->  % for draw lists
     end.
 
 %% It'll use the list prepared by 'update_dlist' function and then draw it (only for plain draw)
-draw(plain, {edge,EdgeList}, _D, SelMode) ->
+draw(plain, EdgeList, _D, SelMode) ->
     gl:lineWidth(edge_width(SelMode)),
     wings_dl:call(EdgeList);
 draw(_,_,_,_) -> ok.

@@ -13,51 +13,33 @@
 
 -include("../intl_tools/wings_intl.hrl").
 
+-ifndef(USE_WX).     %% We require wx in this branch
+-define(USE_WX, 1).
+-endif.
+
 -ifdef(NEED_ESDL).
--include_lib("esdl/include/sdl.hrl").
--include_lib("esdl/include/sdl_events.hrl").
--include_lib("esdl/include/sdl_video.hrl").
--include_lib("esdl/include/sdl_keyboard.hrl").
--include_lib("esdl/include/sdl_mouse.hrl").
--include_lib("esdl/src/sdl_util.hrl").
+-include("sdl_events.hrl").
+-include("sdl_keyboard.hrl").
+-include("sdl_mouse.hrl").
 -define(CTRL_BITS, ?KMOD_CTRL).
 -define(ALT_BITS, ?KMOD_ALT).
 -define(SHIFT_BITS, ?KMOD_SHIFT).
 -define(META_BITS, ?KMOD_META).
 -endif.
 
-%% Some macros used when we change esdl version
-%% should be cleaned up, removed when everything 
-%% works.  (See also wings_gl)
-
 -ifdef(NEED_OPENGL).
--ifndef(NEED_ESDL).
--include_lib("esdl/include/sdl.hrl"). %% We need SDL_USES_WX_GL
--endif.
-
--ifdef(SDL_USES_WX_GL).
--define(USE_WX_OPENGL, 1).
--endif.
-
--ifndef(USE_WX_OPENGL).
--include_lib("esdl/include/gl.hrl").
--include_lib("esdl/include/glu.hrl").
--else.
 -include_lib("wx/include/gl.hrl").
 -include_lib("wx/include/glu.hrl").
 -endif.
--endif.
 
--ifdef(USE_WX).
 -include_lib("wx/include/wx.hrl").
--endif.
 
 -define(WINGS_VERSION, ?wings_version).
 
 -define(CHAR_HEIGHT, wings_text:height()).
--define(CHAR_WIDTH, wings_text:height() div 2). %% because of double wide Chinese fonts
+-define(CHAR_WIDTH, wings_text:width()).
 
--define(LINE_HEIGHT, (?CHAR_HEIGHT+2)).
+-define(LINE_HEIGHT, (?CHAR_HEIGHT)).
 -define(GROUND_GRID_SIZE, 1).
 -define(CAMERA_DIST, (8.0*?GROUND_GRID_SIZE)).
 -define(NORMAL_LINEWIDTH, 1.0).
@@ -85,6 +67,7 @@
 -record(io,
 	{tex=[],				%Textures.
 	 grab_count=0,				%Number of grabs.
+	 key_up=false,                          %Subscribed to key_up
 	 cursors,				%Mouse cursors.
 	 raw_icons				%Raw icon bundle.
 	}).
@@ -100,6 +83,7 @@
 
 -define(SLOW(Cmd), begin wings_io:hourglass(), Cmd end).
 -define(TC(Cmd), wings_util:tc(fun() -> Cmd end, ?MODULE, ?LINE)).
+-define(WHERE,   try 1=2 catch _:_ -> erlang:get_stacktrace() end).
 
 -ifdef(DEBUG).
 -define(ASSERT(E), case E of
@@ -112,6 +96,11 @@
 -define(ASSERT(E),ok).
 -define(CHECK_ERROR(), ok).
 -endif.
+
+%% Use for non saved global gui resources, avoids the dictionary
+%% Example: runtime fonts
+-define(GET(Key), wings_pref:get_value({temp, Key})).
+-define(SET(Key,Value), wings_pref:set_value({temp, Key}, Value)).
 
 %%
 %% Types.
@@ -134,16 +123,16 @@
 %% State and records
 %% Main state record containing all objects and other important state.
 -record(st,
-	{shapes=gb_trees:empty() :: gb_tree(),	%All visible objects
+	{shapes=gb_trees:empty() :: gb_trees:tree(),%All visible objects
 	 selmode=face :: sel_mode(),		%Selection mode.
 	 sh=false :: boolean(),			%Smart highlighting active.
 	 sel=[],				%Current sel: [{Id,GbSet}]
-	 ssels=gb_trees:empty() :: gb_tree(),   %Saved selections:
+	 ssels=gb_trees:empty() :: gb_trees:tree(),   %Saved selections:
 
 	 %% Selection only temporary?
 	 temp_sel=none :: 'none' | {sel_mode(),boolean()},
 
-	 mat=gb_trees:empty() :: gb_tree(),	%Defined materials (GbTree).
+	 mat=gb_trees:empty() :: gb_trees:tree(),%Defined materials (GbTree).
 	 pal=[],                                %Palette
 	 file,					%Current filename.
 	 saved=false :: 'false'  | 'true' | 'auto' | integer(),
@@ -155,7 +144,7 @@
 
 	 edge_loop=none,			%Previous edge loop.
 	 views={0,{}},				%{Current,TupleOfViews}
-	 pst=gb_trees:empty() :: gb_tree(),     %Plugin State Info
+	 pst=gb_trees:empty() :: gb_trees:tree(), %Plugin State Info
 						%   gb_tree where key is plugin	module 
 
 	 %% Previous commands.
@@ -169,7 +158,7 @@
 
 	 %% Undo information.
 	 last_cmd=empty_scene,		        %Last command.
-	 undo=queue:new() :: queue(),		%Undo (de)queue.
+	 undo=queue:new() :: queue:queue(),	%Undo (de)queue.
 	 next_is_undo=true :: boolean(),	%State of undo/redo toggle.
 	 undone=[] :: list()		        %States that were undone.
 	}).
@@ -186,14 +175,14 @@
 						%  The GbSet contains the
 						%  object's selection.
 	 name="" :: string() | tuple(),		%Name. (AutoUV stores other things here.)
-	 es=array:new() :: array(),		%array containing edges
-	 lv=none :: 'none' | array(),	        %Left vertex attributes
-	 rv=none :: 'none' | array(),	        %Right vertex attributes,
-	 fs :: gb_tree(),		        %Faces
-	 he=gb_sets:empty() :: gb_set(),	%Hard edges
-	 vc :: array(),		                %Connection info (=incident edge)
+	 es=array:new() :: array:array(),	%array containing edges
+	 lv=none :: 'none' | array:array(),	%Left vertex attributes
+	 rv=none :: 'none' | array:array(),	%Right vertex attributes,
+	 fs :: gb_trees:tree(),		        %Faces
+	 he=gb_sets:empty() :: gb_sets:set(),	%Hard edges
+	 vc :: array:array(),	                %Connection info (=incident edge)
 						% for vertices.
-	 vp=array:new() :: array(),		%Vertex positions.
+	 vp=array:new() :: array:array(),	%Vertex positions.
 	 pst=gb_trees:empty(),                  %Plugin State Info, 
 						%   gb_tree where key is plugin module
 	 mat=default,				%Materials.

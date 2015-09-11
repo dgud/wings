@@ -17,6 +17,9 @@
 -export([init/0]).
 
 init() ->
-    pnoise:start(),
+    case get(wings_not_running) of
+	undefined -> pnoise:start();
+	_ -> ignore
+    end,
     false.
 

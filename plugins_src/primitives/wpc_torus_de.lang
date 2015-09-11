@@ -1,11 +1,11 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_torus,
  [
   {make_lu_torus,
    [
     {1,"Klumpigen Torus erzeugen"},
-    {2,"U Auflösung"},
-    {3,"V Auflösung"},
+    {2,"U AuflÃ¶sung"},
+    {3,"V AuflÃ¶sung"},
     {4,"Ringradius"},
     {5,"Kreisradius"},
     {6,"Buckel"},
@@ -13,9 +13,9 @@
    ]},
   {make_sp_torus,
    [
-    {1,"Spiralförmigen Torus erzeugen"},
-    {2,"U Auflösung"},
-    {3,"V Auflösung"},
+    {1,"SpiralfÃ¶rmigen Torus erzeugen"},
+    {2,"U AuflÃ¶sung"},
+    {3,"V AuflÃ¶sung"},
     {4,"Ringradius"},
     {5,"Kreisradius"},
     {6,"Windungen"},
@@ -24,8 +24,8 @@
   {make_uv_torus,
    [
     {1,"UV Torus erzeugen"},
-    {2,"U Auflösung"},
-    {3,"V Auflösung"},
+    {2,"U AuflÃ¶sung"},
+    {3,"V AuflÃ¶sung"},
     {4,"Ringradius"},
     {5,"Kreisradius"}
    ]},
@@ -33,6 +33,6 @@
    [
     {1,"UV Torus"},
     {2,"Klumpiger Torus"},
-    {3,"Spiralförmiger Torus"}
+    {3,"SpiralfÃ¶rmiger Torus"}
    ]}
  ]}.
