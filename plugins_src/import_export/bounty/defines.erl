@@ -1,6 +1,9 @@
--define(TAG, thebounty).
+%%
+%% 
+%%
+-define(TAG, bounty).
 -define(KEY(K), {?TAG,(K)}).
--define(TAG_RENDER, thebounty_render).
+-define(TAG_RENDER, bounty_render).
 
 key(Key) -> {key,?KEY(Key)}.
 
@@ -9,7 +12,7 @@ key(Key) -> {key,?KEY(Key)}.
 %%% Default values
 -define(DEF_DIALOGS, auto).
 -define(DEF_RENDERER, "yafaray-xml").
--define(DEF_PLUGINS_PATH, "c:/thebounty/bin/plugins").
+-define(DEF_PLUGINS_PATH, "c:/thebounty/plugins").
 -define(DEF_OPTIONS, "").
 -define(DEF_THREADS_AUTO, true).
 -define(DEF_THREADS_NUMBER, 1).
