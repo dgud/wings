@@ -88,7 +88,7 @@ export_prefs() ->
         {aperture,?DEF_APERTURE},
         {bokeh_type,?DEF_BOKEH_TYPE},
         {height,?DEF_HEIGHT},
-        {aperture,?DEF_APERTURE},
+        %{aperture,?DEF_APERTURE},% povman: double definition?
         {bokeh_bias,?DEF_BOKEH_BIAS},
         {bokeh_rotation,?DEF_BOKEH_ROTATION},
         {dof_distance,?DEF_DOF_DISTANCE}].

@@ -86,7 +86,7 @@ key(Key) -> {key,?KEY(Key)}.
 
 %% Arealight
 -define(DEF_AREALIGHT, false).
--define(DEF_AREALIGHT_SAMPLES, 50).
+-define(DEF_AREALIGHT_SAMPLES, 16).
 -define(DEF_AREALIGHT_PSAMPLES, 0).
 -define(DEF_DUMMY, false).
 -define(DEF_QMC_METHOD, 0).
@@ -135,7 +135,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_CAUSTIC_RADIUS, 0.5).
 -define(DEF_DO_AO, false).
 -define(DEF_AO_DISTANCE, 5.0).
--define(DEF_AO_SAMPLES, 32.0).
+-define(DEF_AO_SAMPLES, 16.0).
 -define(DEF_AO_COLOR, {1.0,1.0,1.0}).
 -define(DEF_AA_PASSES, 3).
 -define(DEF_AA_MINSAMPLES, 1).
@@ -149,8 +149,8 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_SHADOW_DEPTH, 2).
 -define(DEF_RAYDEPTH, 12).
 -define(DEF_BIAS, 0.001).
--define(DEF_WIDTH, 200).
--define(DEF_HEIGHT, 200).
+-define(DEF_WIDTH, 320).
+-define(DEF_HEIGHT, 240).
 -define(DEF_LENS_TYPE, perspective).
 -define(DEF_LENS_ORTHO_SCALE, 7.0).
 -define(DEF_LENS_ANGULAR_CIRCULAR, true).
