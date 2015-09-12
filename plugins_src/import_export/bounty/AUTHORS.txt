@@ -1,0 +1,14 @@
+%%
+%%  This file is strongly based on YafaRay Plugin User Interface.
+%%  Use the convertion code from Micheus to use wxWidgets dialogs.
+%%
+%%  Copyright (c) with some authors:
+%%		2003-2008 Raimo Niskanen
+%%      2013-2015 Code Convertion from Yafray to YafaRay by Bernard Oortman (Wings3d user oort)
+%%      2015 Micheus (porting to use wx dialogs)
+%%		2015 Pedro Alcaide (porting to use wxWidgets dialogs for TheBounty Renderer)
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%

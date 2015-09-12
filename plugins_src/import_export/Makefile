@@ -16,7 +16,8 @@
 
 ESRC=.
 WINGS_INTL=../../intl_tools
-EBIN=../../plugins/import_export
+EBIN=D:/apps/wings3d201/lib/wings-2.0.1/plugins/import_export
+#../../plugins/import_export
 ERLC=erlc
 WINGS_SRC=../../src
 WINGS_EBIN=../../ebin
@@ -29,22 +30,23 @@ TYPE_FLAGS=
 endif
 
 MODULES= \
-	wpc_3ds \
-	wpc_ai \
-	wpc_bzw \
-	wpc_collada \
-	wpc_hlines \
-	wpc_kerky \
-	wpc_lwo \
-	wpc_obj \
-	wpc_pov \
-	wpc_ps \
-	wpc_rwx \
-	wpc_stl \
-	wpc_svg_path \
-	wpc_wrl \
-	wpc_x \
-	wpc_yafaray
+	wpc_bounty
+#	wpc_3ds \
+#	wpc_ai \
+#	wpc_bzw \
+#	wpc_collada \
+#	wpc_hlines \
+#	wpc_kerky \
+#	wpc_lwo \
+#	wpc_obj \
+#	wpc_pov \
+#	wpc_ps \
+#	wpc_rwx \
+#	wpc_stl \
+#	wpc_svg_path \
+#	wpc_wrl \
+#	wpc_x \
+#	wpc_yafaray
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
