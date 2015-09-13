@@ -4,7 +4,7 @@
 %
 
 menu_blend_mode() ->
-	[{?__(6,"Mix"),mix},
+    [{?__(6,"Mix"),mix},
      {?__(7,"Add"),add},
      {?__(8,"Multiply"),mul},
      {?__(109,"Subtract"),sub},
@@ -13,20 +13,19 @@ menu_blend_mode() ->
      {?__(112,"Difference"),dif},
      {?__(113,"Darken"),dar},
      {?__(114,"Lighten"),lig}].
-	 
+     
 menu_distortion_type() ->
-	[
-		{?__(87,"Blender-Distort"),blender},
-		{?__(88,"Cellnoise"),cellnoise},
-        {?__(89,"New Perlin"),newperlin},
-        {?__(90,"Perlin"),stdperlin},
-        {?__(91,"Voronoi Crackle"),voronoi_crackle},
-        {?__(92,"Voronoi F1"),voronoi_f1},
-        {?__(93,"Voronoi F2"),voronoi_f2},
-        {?__(94,"Voronoi F3"),voronoi_f3},
-        {?__(95,"Voronoi F4"),voronoi_f4},
-        {?__(96,"Voronoi F1F2"),voronoi_f2f1}
-     ].		
+    [{?__(87,"Blender-Distort"),blender},
+    {?__(88,"Cellnoise"),cellnoise},
+    {?__(89,"New Perlin"),newperlin},
+    {?__(90,"Perlin"),stdperlin},
+    {?__(91,"Voronoi Crackle"),voronoi_crackle},
+    {?__(92,"Voronoi F1"),voronoi_f1},
+    {?__(93,"Voronoi F2"),voronoi_f2},
+    {?__(94,"Voronoi F3"),voronoi_f3},
+    {?__(95,"Voronoi F4"),voronoi_f4},
+    {?__(96,"Voronoi F1F2"),voronoi_f2f1}].
+    
 modulator_dialogs(Modulators0, Maps) ->
     ModCount = length(Modulators0),
     Modulators =

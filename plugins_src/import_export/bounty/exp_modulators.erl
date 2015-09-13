@@ -8,7 +8,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
 
             AlphaIntensity = proplists:get_value(alpha_intensity, Ps, ?DEF_MOD_ALPHA_INTENSITY),
 
-			%%% Start Change Number from Texname for UpperLayer
+            %%% Start Change Number from Texname for UpperLayer
 
             UpperLayerName =
                 case AlphaIntensity of
@@ -16,7 +16,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
                     _-> re:replace(Texname,"_1","_2",[global])
                 end,
 
-			%%% Start Change Number from Texname for Stencil Input
+            %%% Start Change Number from Texname for Stencil Input
 
             StencilInputName =
                 case AlphaIntensity of
@@ -38,28 +38,24 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
 %            _SizeZ = proplists:get_value(size_z, Ps, ?DEF_MOD_SIZE_Z),
             TextureType = proplists:get_value(texture_type, Ps, ?DEF_TEXTURE_TYPE),
             Diffuse = proplists:get_value(diffuse, Ps, ?DEF_MOD_DIFFUSE),
-%%	    _Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
-%%	    Ambient = proplists:get_value(ambient, Ps, ?DEF_MOD_AMBIENT),
+%%      _Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
+%%      Ambient = proplists:get_value(ambient, Ps, ?DEF_MOD_AMBIENT),
             Shininess = proplists:get_value(shininess, Ps, ?DEF_MOD_SHININESS),
             Normal = proplists:get_value(normal, Ps, ?DEF_MOD_NORMAL),
 %%            _Color = Diffuse * Opacity,
 %%            _HardValue = Shininess,
 %%            _Transmission = Diffuse * (1.0 - Opacity),
-%%	    _Reflection = Ambient,
+%%      _Reflection = Ambient,
             TexCo =
                 case Type of
-                    image -> "<texco sval=\"uv\"/>";
-                    jpeg -> "<texco sval=\"uv\"/>";
-                    {map,_} -> "<texco sval=\"uv\"/>";
-                    marble -> "<texco sval=\"global\"/>";
-                    wood -> "<texco sval=\"global\"/>";
-                    clouds -> "<texco sval=\"global\"/>";
+                    {image,jpeg,map,_}-> "<texco sval=\"uv\"/>";
+                    {marble, wood,clouds} -> "<texco sval=\"global\"/>";
                     _ -> ""
                 end,
 
             ModeNumber =
                 case Mode of
-                    mix -> "0";
+                    %mix -> "0"; % test..
                     add -> "1";
                     mul -> "2";
                     sub -> "3";
@@ -68,7 +64,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
                     dif -> "6";
                     dar -> "7";
                     lig -> "8";
-                    _ -> ""
+                    _ -> "0"
                 end,
 
 %% Start Identify Modulator # (w_default_Name_1 or w_default_Name_2)
@@ -150,68 +146,68 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
 %%Stencil Export Start
                     println(F, " <!--Start Stencil Section Here-->
 
-		 		<list_element>
-		 		<element sval=\"shader_node\"/>
-		 		<name sval=\"~s\"/>
-		 		<input sval=\"~s_mod\"/>
+                <list_element>
+                <element sval=\"shader_node\"/>
+                <name sval=\"~s\"/>
+                <input sval=\"~s_mod\"/>
 
-		 		<noRGB bval=\"true\"/>
-		 		<stencil bval=\"true\"/>
-		 		"++UpperLayer++"
+                <noRGB bval=\"true\"/>
+                <stencil bval=\"true\"/>
+                "++UpperLayer++"
 
-		 		<type sval=\"layer\"/>
-		 		<mode ival=\""++ModeNumber++"\"/>
-		 		</list_element>
+                <type sval=\"layer\"/>
+                <mode ival=\""++ModeNumber++"\"/>
+                </list_element>
 
-		 		<list_element>
-		 		<element sval=\"shader_node\"/>
-		 		<name sval=\"~s_mod\"/>
-		 		"++TexCo++"
-		 		<mapping sval=\"plain\"/>
-		 		<texture sval=\"~s\"/>
-		 		<type sval=\"texture_mapper\"/>
-		 		<bump_strength fval=\"~.3f\"/>
-		 		</list_element>
+                <list_element>
+                <element sval=\"shader_node\"/>
+                <name sval=\"~s_mod\"/>
+                "++TexCo++"
+                <mapping sval=\"plain\"/>
+                <texture sval=\"~s\"/>
+                <type sval=\"texture_mapper\"/>
+                <bump_strength fval=\"~.3f\"/>
+                </list_element>
 
-		 		<diffuse_shader sval=\"diff_layer2\"/>
+                <diffuse_shader sval=\"diff_layer2\"/>
                                 <list_element>
                                 <element sval=\"shader_node\"/>
                                 <name sval=\"diff_layer2\"/>
-		 		<input sval=\""++StencilInputName++"_mod\"/>
-		 		<upper_layer sval=\""++StencilUpperLayerName2++"\"/>
+                <input sval=\""++StencilInputName++"_mod\"/>
+                <upper_layer sval=\""++StencilUpperLayerName2++"\"/>
                                 <type sval=\"layer\"/>
-		 		<mode ival=\""++ModeNumber++"\"/>
+                <mode ival=\""++ModeNumber++"\"/>
                                 </list_element>
 
-	<!--End Stencil Section Here-->",
+    <!--End Stencil Section Here-->",
                         [Texname,Texname,Texname,Texname,Normal
                         ]);
 %%Stencil Export End
                 _ ->
 
                     println(F, "  "++ShaderName++"
-		 		<list_element>
-		 		<element sval=\"shader_node\"/>
-		 		<name sval=\"~s\"/>
-		 		<input sval=\"~s_mod\"/>
+                <list_element>
+                <element sval=\"shader_node\"/>
+                <name sval=\"~s\"/>
+                <input sval=\"~s_mod\"/>
                                 "++UpperLayer++"
-				"++UpperColor++"
-				"++UseAlpha++"
-		 		<type sval=\"layer\"/>
-		 		<mode ival=\""++ModeNumber++"\"/>
-				<colfac fval=\"~.3f\"/>
-				<valfac fval=\"~.3f\"/>
-		 		</list_element>
-		 		<list_element>
-		 		<element sval=\"shader_node\"/>
-		 		<name sval=\"~s_mod\"/>
-		 		"++TexCo++"
-		 		<mapping sval=\"plain\"/>
-		 		<texture sval=\"~s\"/>
-		 		<type sval=\"texture_mapper\"/>
+                "++UpperColor++"
+                "++UseAlpha++"
+                <type sval=\"layer\"/>
+                <mode ival=\""++ModeNumber++"\"/>
+                <colfac fval=\"~.3f\"/>
+                <valfac fval=\"~.3f\"/>
+                </list_element>
+                <list_element>
+                <element sval=\"shader_node\"/>
+                <name sval=\"~s_mod\"/>
+                "++TexCo++"
+                <mapping sval=\"plain\"/>
+                <texture sval=\"~s\"/>
+                <type sval=\"texture_mapper\"/>
 
-		 		<bump_strength fval=\"~.3f\"/>
-		 		</list_element>",
+                <bump_strength fval=\"~.3f\"/>
+                </list_element>",
                         [Texname,Texname,Diffuse,Shininess,Texname,Texname,Normal
                         ])
 
