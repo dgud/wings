@@ -2,6 +2,31 @@
 %
 %
 %
+
+menu_blend_mode() ->
+	[{?__(6,"Mix"),mix},
+     {?__(7,"Add"),add},
+     {?__(8,"Multiply"),mul},
+     {?__(109,"Subtract"),sub},
+     {?__(110,"Screen"),scr},
+     {?__(111,"Divide"),divide},
+     {?__(112,"Difference"),dif},
+     {?__(113,"Darken"),dar},
+     {?__(114,"Lighten"),lig}].
+	 
+menu_distortion_type() ->
+	[
+		{?__(87,"Blender-Distort"),blender},
+		{?__(88,"Cellnoise"),cellnoise},
+        {?__(89,"New Perlin"),newperlin},
+        {?__(90,"Perlin"),stdperlin},
+        {?__(91,"Voronoi Crackle"),voronoi_crackle},
+        {?__(92,"Voronoi F1"),voronoi_f1},
+        {?__(93,"Voronoi F2"),voronoi_f2},
+        {?__(94,"Voronoi F3"),voronoi_f3},
+        {?__(95,"Voronoi F4"),voronoi_f4},
+        {?__(96,"Voronoi F1F2"),voronoi_f2f1}
+     ].		
 modulator_dialogs(Modulators0, Maps) ->
     ModCount = length(Modulators0),
     Modulators =
@@ -95,17 +120,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 {?__(5,"Enabled"),Enabled,[{key,{?TAG,enabled,M}},{hook,Hook_Enable}]},
                 panel,
                 {hframe, [
-                    {menu,[
-                        {?__(6,"Mix"),mix},
-                        {?__(7,"Add"),add},
-                        {?__(8,"Multiply"),mul},
-                        {?__(109,"Subtract"),sub},
-                        {?__(110,"Screen"),scr},
-                        {?__(111,"Divide"),divide},
-                        {?__(112,"Difference"),dif},
-                        {?__(113,"Darken"),dar},
-                        {?__(114,"Lighten"),lig}
-                    ],Mode,[]},
+                    {menu,menu_blend_mode(), Mode,[]},
                     panel,
                     {menu,[
                         {?__(115,"Alpha Off"),off},
@@ -174,17 +189,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         panel,
                         {?__(25,"Hard Noise"),Hard},
                         %% Start Noise Basis Select
-                        {menu,[{?__(36,"Blender-Basis"),blender},
-                            {?__(37,"Cellnoise"),cellnoise},
-                            {?__(38,"New Perlin"),newperlin},
-                            {?__(39,"Perlin"),stdperlin},
-                            {?__(40,"Voronoi Crackle"),voronoi_crackle},
-                            {?__(41,"Voronoi F1"),voronoi_f1},
-                            {?__(42,"Voronoi F2"),voronoi_f2},
-                            {?__(43,"Voronoi F3"),voronoi_f3},
-                            {?__(44,"Voronoi F4"),voronoi_f4},
-                            {?__(45,"Voronoi F1F2"),voronoi_f2f1}],
-                            NoiseBasis,[]}
+                        {menu,menu_distortion_type(),NoiseBasis,[]}
                         %% End Noise Basis Select
                     ],[key({pnl_base1,M})]},
 
@@ -337,18 +342,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     {vframe, [
                         {hframe, [
                             %% Start Distorted Noise Type Select
-                            {menu,[
-                                {?__(87,"Blender-Distort"),blender},
-                                {?__(88,"Cellnoise"),cellnoise},
-                                {?__(89,"New Perlin"),newperlin},
-                                {?__(90,"Perlin"),stdperlin},
-                                {?__(91,"Voronoi Crackle"),voronoi_crackle},
-                                {?__(92,"Voronoi F1"),voronoi_f1},
-                                {?__(93,"Voronoi F2"),voronoi_f2},
-                                {?__(94,"Voronoi F3"),voronoi_f3},
-                                {?__(95,"Voronoi F4"),voronoi_f4},
-                                {?__(96,"Voronoi F1F2"),voronoi_f2f1}
-                            ],DistortionType,[]},
+                            {menu,menu_distortion_type(),DistortionType,[]},
                             %% End Distorted Noise Type Select
                             {label,?__(107,"Noise Size")},{text,DistortionNoiseSize,[range(distortion_noisesize)]},
                             {label,?__(108,"Distortion")},{text,DistortionIntensity,[range(distortion_intensity)]}
@@ -357,7 +351,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 ],[key({pnl_type,M})]}
             ],[key({pnl_mod,M})]}
         ]},
-    [{?__(35,"Texture")++" "++integer_to_list(M)++mod_legend(Enabled, Mode, Type), ModFrame}];
+    [{?__(35,"Shader")++" "++integer_to_list(M)++mod_legend(Enabled, Mode, Type), ModFrame}];
 
 modulator_dialog(_Modulator, _Maps, _) ->
     []. % Discard old modulators that anyone may have
