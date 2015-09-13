@@ -12,7 +12,7 @@ key(Key) -> {key,?KEY(Key)}.
 %%% Default values
 -define(DEF_DIALOGS, auto).
 -define(DEF_RENDERER, "yafaray-xml").
--define(DEF_PLUGINS_PATH, "c:/thebounty/plugins").
+-define(DEF_PLUGINS_PATH, os:getenv("BOUNTY_ROOT")++"/plugins").
 -define(DEF_OPTIONS, "").
 -define(DEF_THREADS_AUTO, true).
 -define(DEF_THREADS_NUMBER, 1).
