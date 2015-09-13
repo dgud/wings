@@ -36,7 +36,7 @@
 
 %%%
 %% start split code to include files
--include("bounty/defines.erl").
+-include("defines.erl").
 
 %% used to fix old data that now can be out of range and crash Wings3d
 fit_range(Value,Id) ->
@@ -230,7 +230,7 @@ props(export_selected, _Attr) ->
 %%%
 %%% Dialogues and results: Material
 %%--------------------------------------------------------------------------------------------
--include("bounty/ui_material.erl").
+-include("ui_material.erl").
 %%--------------------------------------------------------------------------------------------
 
 
@@ -275,11 +275,11 @@ material_result(_Name, Mat0, Res0) ->
 %%-----------------------------
 % start modulators code here?? try..
 %%-----------------------------
--include("bounty/ui_modulators.erl").
+-include("ui_modulators.erl").
 %-------------------------------------
 %%%
 %%% Ligth dialogs
--include("bounty/ui_lights.erl").
+-include("ui_lights.erl").
 %------------------------------------>
 
 	
@@ -318,7 +318,7 @@ pref_result(Attr, St) ->
     init_pref(),
     St.
 %%%%%
--include("bounty/ui_general.erl").
+-include("ui_general.erl").
 
 
 %%% TO DO: this implementation depends on wings_dialog changes for button operation
@@ -518,17 +518,17 @@ section(F, Name) ->
 
 %%% Export Material Properties
 %%%
--include("bounty/exp_material.erl").
+-include("exp_material.erl").
 
 %%% End Blend Materials Export
 %%--------------------------------------------------------------------
 
 %%% Start Texture Export
--include("bounty/exp_texture.erl").
+-include("exp_texture.erl").
 %%----------------------------------------------------------
 
 
--include("bounty/exp_modulators.erl").
+-include("exp_modulators.erl").
 
 %----------------------------------------------------------------------------------------
 
@@ -541,16 +541,16 @@ section(F, Name) ->
 %
 %
 % split geometry
--include("bounty/exp_geometry.erl").
+-include("exp_geometry.erl").
 %%
 % split export light code
--include("bounty/exp_light.erl").
+-include("exp_light.erl").
 
--include("bounty/exp_camera.erl").
+-include("exp_camera.erl").
 
--include("bounty/exp_world.erl").
+-include("exp_world.erl").
 
--include("bounty/exp_render.erl").
+-include("exp_render.erl").
 
 %-----------------------------------------------------------------------------------
 
@@ -813,5 +813,5 @@ print_mesh(#e3d_mesh{type=T,vs=Vs,vc=Vc,tx=Tx,ns=Ns,fs=Fs,he=He,matrix=M}) ->
 %%---------------------------------------------------
 %% split tooltip help text to file
 %%--------------------------------------------------
--include("bounty/ui_help.erl").
+-include("ui_help.erl").
 
