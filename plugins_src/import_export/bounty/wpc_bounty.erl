@@ -1,6 +1,6 @@
 %%                                                                          
 %%  This file is part of TheBounty exporter for Wings3D,
-%%	forked from YafaRay Wings3d exporter.
+%%  forked from YafaRay Wings3d exporter.
 %%
 %%  Copyright (C) 2013, 2015  Pedro Alcaide aka 'povmaniac' and others
 %%
@@ -14,7 +14,7 @@
 %%  This program is distributed in the hope that it will be useful,
 %%  but WITHOUT ANY WARRANTY; without even the implied warranty of
 %%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-%%	See the  GNU General Public License for more details
+%%  See the  GNU General Public License for more details
 %%  You should have received a copy of the GNU General Public License
 %%  along with this program. If not, see <http://www.gnu.org/licenses/>.
 %%
@@ -79,7 +79,7 @@ command(_Spec, _St) ->
 
 dialog({material_editor_setup,Name,Mat}, Dialog) ->
     maybe_append(edit, Dialog, material_dialog(Name, Mat));
-	
+    
 dialog({material_editor_result,Name,Mat}, Res) ->
     case is_plugin_active(edit) of
         false -> {Mat,Res};
@@ -148,20 +148,20 @@ is_plugin_active(Condition) ->
     end.
 
 menu_entry(export) ->
-    [{?__(1,"Bounty")++" (.xml)...",?TAG}];
+    [{?__(1,"TheBounty")++" (.xml)...",?TAG}];
 menu_entry(_) ->
     %% render or pref
-    [{?__(1,"Bounty")++"...",?TAG}].
+    [{?__(1,"TheBounty")++"...",?TAG}].
 
 command_file(render=Op, _St) ->
     case get_var(rendering) of
         false ->
-            export_dialog(Op, ?__(2,"Bounty Render Options"));
+            export_dialog(Op, ?__(2,"TheBounty Render Options"));
         true ->
             wpa:error_msg(?__(1,"Already rendering."))
     end;
 command_file(Op, _St) ->
-    export_dialog(Op, ?__(3,"Bounty Export Options")).
+    export_dialog(Op, ?__(3,"TheBounty Export Options")).
 
 command_file(render, Attr, St) when is_list(Attr) ->
     set_prefs(Attr),
@@ -213,15 +213,15 @@ props(render, Attr) ->
 props(export, _Attr) ->
     {Title,File} =
         case os:type() of
-            {win32,_} -> {"Export","Bounty File"};
-            _Other    -> {?__(2,"Export"),?__(5,"Bounty File")}
+            {win32,_} -> {"Export","TheBounty File"};
+            _Other    -> {?__(2,"Export"),?__(5,"TheBounty File")}
         end,
     [{title,Title},{ext,".xml"},{ext_desc,File}];
 
 props(export_selected, _Attr) ->
     {Title,File} =
         case os:type() of
-            {win32,_} -> {"Export Selected","Bounty File"};
+            {win32,_} -> {"Export Selected","TheBounty File"};
             _Other    -> {?__(4,"Export Selected"),?__(5,"Bounty File")}
         end,
     [{title,Title},{ext,".xml"},{ext_desc,File}].
@@ -271,27 +271,28 @@ material_result(_Name, Mat0, Res0) ->
     Ps = [{Key,Val} || {?KEY(Key),Val} <- Ps4] ++Ps3,
     Mat = [?KEY(Ps)|keydelete(?TAG, 1, Mat0)],
     {Mat,Res}.
-	
+    
 %%-----------------------------
-% start modulators code here?? try..
+% split modulators code
 %%-----------------------------
 -include("ui_modulators.erl").
-%-------------------------------------
-%%%
-%%% Ligth dialogs
--include("ui_lights.erl").
-%------------------------------------>
 
-	
+%%%
+%%% Split Ligth dialogs
+%!-----------------------------
+-include("ui_lights.erl").
+%------------------------------
+
+    
 pref_dialog(St) ->
     [{dialogs,Dialogs},{renderer,Renderer},{pluginspath,PluginsPath},
      {options,Options},{shader_type,ShaderType}] = 
-		get_user_prefs([
-			{dialogs,?DEF_DIALOGS},
-			{renderer,?DEF_RENDERER},
+        get_user_prefs([
+            {dialogs,?DEF_DIALOGS},
+            {renderer,?DEF_RENDERER},
             {pluginspath,?DEF_PLUGINS_PATH},
             {options,?DEF_OPTIONS},
-			{shader_type,?DEF_SHADER_TYPE}]),
+            {shader_type,?DEF_SHADER_TYPE}]),
 
     Dialog = [
         {vframe, [
@@ -317,9 +318,10 @@ pref_result(Attr, St) ->
     set_user_prefs(Attr),
     init_pref(),
     St.
-%%%%%
+%%%
+%!-----------------------------
 -include("ui_general.erl").
-
+%!-----------------------------
 
 %%% TO DO: this implementation depends on wings_dialog changes for button operation
 %%%
@@ -452,20 +454,20 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     println(F),
     println(F, "</scene>"),
     close(F),
-	%!-------------------------
+    %!-------------------------
     %! Command line parameters
-	%!-------------------------
+    %!-------------------------
     [{options,Options}] = get_user_prefs([{options,?DEF_OPTIONS}]),
     [{pluginspath,PluginsPath}] = get_user_prefs([{pluginspath,?DEF_PLUGINS_PATH}]),
-		case {get_var(renderer),Render} of
-			{_,false} ->
-				wings_job:export_done(ExportTS),
-				io:nl();
-			{false,true} ->
-				%% Should not happen since the file->render dialog
-				%% must have been disabled
-				if KeepXML -> ok; 
-				true -> file:delete(ExportFile) end,
+        case {get_var(renderer),Render} of
+            {_,false} ->
+                wings_job:export_done(ExportTS),
+                io:nl();
+            {false,true} ->
+                %% Should not happen since the file->render dialog
+                %% must have been disabled
+                if KeepXML -> ok; 
+                true -> file:delete(ExportFile) end,
             no_renderer;
         {_,true} when ExportFile == RenderFile ->
             export_file_is_render_file;
@@ -494,10 +496,10 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                 end,
             file:delete(RenderFile),
             set_var(rendering, true),
-		Arguments = "-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat),
-	    wings_job:render(
-				ExportTS,Renderer,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
-				%ExportTS,Renderer,"-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+        Arguments = "-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat),
+        wings_job:render(
+                ExportTS,Renderer,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+                %ExportTS,Renderer,"-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
 warn_multiple_backgrounds([]) ->
