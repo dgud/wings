@@ -89,7 +89,7 @@ dialog({material_editor_result,Name,Mat}, Res) ->
 dialog({light_editor_setup,Name,Ps}, Dialog) ->
     case get_var(dialogs) of
         false-> Dialog;
-        _ -> Dialog ++ [{?__(1,"Bounty"), light_dialog(Name, Ps)}]
+        _ -> Dialog ++ [{?__(1,"TheBounty"), light_dialog(Name, Ps)}]
     end;
 
 dialog({light_editor_result,Name,Ps0}, Res) ->
@@ -282,13 +282,14 @@ material_result(_Name, Mat0, Res0) ->
 -include("bounty/ui_lights.erl").
 %------------------------------------>
 
+	
 pref_dialog(St) ->
-    [{dialogs,Dialogs},{renderer,Renderer},%{pluginspath,PluginsPath},
+    [{dialogs,Dialogs},{renderer,Renderer},{pluginspath,PluginsPath},
      {options,Options},{shader_type,ShaderType}] = 
 		get_user_prefs([
 			{dialogs,?DEF_DIALOGS},
 			{renderer,?DEF_RENDERER},
-            %{pluginspath,?DEF_PLUGINS_PATH},
+            {pluginspath,?DEF_PLUGINS_PATH},
             {options,?DEF_OPTIONS},
 			{shader_type,?DEF_SHADER_TYPE}]),
 
@@ -304,7 +305,7 @@ pref_dialog(St) ->
             ]},
             {label_column, [
                 {?__(4,"Executable"),{button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}}},
-                %{?__(7,"TheBounty Plugins Path"),{button,{text,PluginsPath,[{key,pluginspath},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},
+                {?__(7,"TheBounty Plugins Path"),{button,{text,PluginsPath,[{key,pluginspath},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},
                 {?__(5,"Options"),{text,Options,[{key,options}]}},
                 {?__(8,"Default Shader"),{menu,menu_shader(), ShaderType, [{key,shader_type}]}}
             ]}
@@ -434,7 +435,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     BgName =
         case BgLights of
             [] ->
-                BgColor = proplists:get_value(background_color, Attr,                                             ?DEF_BACKGROUND_COLOR),
+                BgColor = proplists:get_value(background_color, Attr, ?DEF_BACKGROUND_COLOR),
                 Ps = [{?TAG,[{background,constant},{background_color,BgColor}]}],
                 export_background(F, ConstBgName, Ps),
                 ConstBgName;
@@ -455,7 +456,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     %! Command line parameters
 	%!-------------------------
     [{options,Options}] = get_user_prefs([{options,?DEF_OPTIONS}]),
-    %[{pluginspath,PluginsPath}] =	get_user_prefs([{pluginspath,?DEF_PLUGINS_PATH}]),
+    [{pluginspath,PluginsPath}] = get_user_prefs([{pluginspath,?DEF_PLUGINS_PATH}]),
 		case {get_var(renderer),Render} of
 			{_,false} ->
 				wings_job:export_done(ExportTS),
@@ -493,9 +494,10 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                 end,
             file:delete(RenderFile),
             set_var(rendering, true),
+		Arguments = "-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat),
 	    wings_job:render(
-				ExportTS, Renderer,AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
-				%Renderer,"-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+				ExportTS,Renderer,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+				%ExportTS,Renderer,"-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
 warn_multiple_backgrounds([]) ->
