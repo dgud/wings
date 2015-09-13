@@ -21,9 +21,9 @@ export_light(F, Name, point, OpenGL, Attr) ->
     Position = proplists:get_value(position, OpenGL, {0.0,0.0,0.0}),
     Diffuse = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
     LightType = proplists:get_value(type, Attr, ?DEF_POINT_TYPE),
-	
+    
     println(F, "<light name=\"~s\">",[Name]),
-	println(F, "\t<power fval=\"~.3f\"/>",[Power]),
+    println(F, "\t<power fval=\"~.3f\"/>",[Power]),
     case LightType of
         spherelight ->
             println(F,
@@ -59,7 +59,7 @@ export_light(F, Name, infinite, OpenGL, YafaRay) ->
     case Type of
         directional when Power > 0.0 ->
             println(F, "<light name=\"~s\">",[Name]),
-			println(F, "\t<type sval=\"~w\"/>",[Type]),
+            println(F, "\t<type sval=\"~w\"/>",[Type]),
             println(F, "\t<power fval=\"~.3f\"/>",[Power]),
 
             %% Add Semi-infinite Start
@@ -69,7 +69,7 @@ export_light(F, Name, infinite, OpenGL, YafaRay) ->
                 false ->
                     InfiniteRadius = proplists:get_value(infinite_radius, YafaRay, ?DEF_INFINITE_RADIUS),
                     println(F, "<infinite bval=\"~s\"/>",[format(InfiniteTrue)]),
-					println(F, "<radius fval=\"~.10f\"/>",[InfiniteRadius]),
+                    println(F, "<radius fval=\"~.10f\"/>",[InfiniteRadius]),
                     export_pos(F, from, Position);
                 true -> ok
             end,
@@ -109,31 +109,31 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
     ConeAngle = proplists:get_value(cone_angle, OpenGL, ?DEF_CONE_ANGLE),
     Diffuse = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
     Type = proplists:get_value(type, YafaRay, ?DEF_SPOT_TYPE),
-	
+    
     println(F, "<light name=\"~s\">",[Name]),
-	println(F, "\t<power fval=\"~.3f\"/>",[Power]),
+    println(F, "\t<power fval=\"~.3f\"/>",[Power]),
     case Type of
         spotlight ->
 
-            SpotPhotonOnly = 	proplists:get_value(spot_photon_only, YafaRay, ?DEF_SPOT_PHOTON_ONLY),
-            SpotSoftShadows = 	proplists:get_value(spot_soft_shadows, YafaRay, ?DEF_SPOT_SOFT_SHADOWS),
-            SpotIESSamples = 	proplists:get_value(spot_ies_samples, YafaRay,  ?DEF_SPOT_IES_SAMPLES),
-            CastShadows = 		proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
+            SpotPhotonOnly =    proplists:get_value(spot_photon_only, YafaRay, ?DEF_SPOT_PHOTON_ONLY),
+            SpotSoftShadows =   proplists:get_value(spot_soft_shadows, YafaRay, ?DEF_SPOT_SOFT_SHADOWS),
+            SpotIESSamples =    proplists:get_value(spot_ies_samples, YafaRay,  ?DEF_SPOT_IES_SAMPLES),
+            CastShadows =       proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
             SpotExponent =      proplists:get_value(spot_exponent, OpenGL, ?DEF_SPOT_EXPONENT),
-				
+                
             SpotBlend = proplists:get_value(spot_blend, YafaRay, ?DEF_SPOT_BLEND),
-			
+            
             SpotFuzzyness = proplists:get_value(spot_fuzzyness, YafaRay, ?DEF_SPOT_FUZZYNESS),
-			
+            
             println(F, "\t<type sval=\"spotlight\"/>"),
-			println(F, "\t<cast_shadows bval=\"~s\"/>",[format(CastShadows)]),
-			println(F, "\t<photon_only bval=\"~s\"/>",[SpotPhotonOnly]),
-			println(F, "\t<cone_angle fval=\"~.3f\"/>",[ConeAngle]),
+            println(F, "\t<cast_shadows bval=\"~s\"/>",[format(CastShadows)]),
+            println(F, "\t<photon_only bval=\"~s\"/>",[SpotPhotonOnly]),
+            println(F, "\t<cone_angle fval=\"~.3f\"/>",[ConeAngle]),
             println(F, "\t<beam_falloff fval=\"~.10f\"/>",[SpotExponent]),
-			println(F, "\t<blend fval=\"~.3f\"/>",[SpotBlend]),
-			println(F, "\t<soft_shadows bval=\"~s\"/>",[SpotSoftShadows]),
-			println(F, "\t<shadowFuzzyness fval=\"~.3f\"/>",[SpotFuzzyness]),
-			println(F, "\t<samples ival=\"~w\"/>",[SpotIESSamples]);
+            println(F, "\t<blend fval=\"~.3f\"/>",[SpotBlend]),
+            println(F, "\t<soft_shadows bval=\"~s\"/>",[SpotSoftShadows]),
+            println(F, "\t<shadowFuzzyness fval=\"~.3f\"/>",[SpotFuzzyness]),
+            println(F, "\t<samples ival=\"~w\"/>",[SpotIESSamples]);
 
         spot_ies ->
 
@@ -143,10 +143,10 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
 
             SpotIESSamples = proplists:get_value(spot_ies_samples, YafaRay,  ?DEF_SPOT_IES_SAMPLES),
 
-	    println(F, "\t<type sval=\"ieslight\"/>"),
-		println(F, "\t<cone_angle fval=\"~.3f\"/>",[ConeAngle]),
-		println(F, "\t<soft_shadows bval=\"~s\"/>",[SpotSoftShadows]),
-		println(F, "\t<samples ival=\"~w\"/>",[SpotIESSamples]),
+        println(F, "\t<type sval=\"ieslight\"/>"),
+        println(F, "\t<cone_angle fval=\"~.3f\"/>",[ConeAngle]),
+        println(F, "\t<soft_shadows bval=\"~s\"/>",[SpotSoftShadows]),
+        println(F, "\t<samples ival=\"~w\"/>",[SpotIESSamples]),
         println(F, "\t<file sval=\"~s\"/>",[SpotIESFilename])
     end,
     export_pos(F, from, Position),
