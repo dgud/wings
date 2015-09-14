@@ -214,7 +214,7 @@ props(export, _Attr) ->
     {Title,File} =
         case os:type() of
             {win32,_} -> {"Export","TheBounty File"};
-            _Other    -> {?__(2,"Export"),?__(5,"TheBounty File")}
+            _Other    -> {?__(2,"Export"),?__(3,"TheBounty File")}
         end,
     [{title,Title},{ext,".xml"},{ext_desc,File}];
 
@@ -323,35 +323,6 @@ pref_result(Attr, St) ->
 -include("ui_general.erl").
 %!-----------------------------
 
-%%% TO DO: this implementation depends on wings_dialog changes for button operation
-%%%
-%%% Increase split_list # +1 per line if add Render Settings to Dialog
-%%%
-%% export_dialog_loop({Op,Fun}=Keep, Attr) ->
-%%     io:format("export_dialog_loop...\n",[]),
-%%     {Prefs,Buttons} = split_list(Attr, 78),
-%%     case Buttons of
-%%         [true,false,false] -> % Save
-%%             set_user_prefs(Prefs),
-%%             {dialog,
-%%              export_dialog_qs(Op, Attr),
-%%              export_dialog_fun(Keep)};
-%%         [false,true,false] -> % Load
-%%             {dialog,
-%%              export_dialog_qs(Op,
-%%                               get_user_prefs(export_prefs())
-%%                               ++[save,load,reset]),
-%%              export_dialog_fun(Keep)};
-%%         [false,false,true] -> % Reset
-%%             {dialog,
-%%              export_dialog_qs(Op,
-%%                               export_prefs()++[save,load,reset]),
-%%              export_dialog_fun(Keep)};
-%%         [false,false,false] -> % Ok
-%%             Fun(Prefs)
-%%     end.
-
-
 %%% Export and rendering functions
 %%%
 
@@ -391,7 +362,9 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
 
                 "<scene type=\"triangle\">", [filename:basename(ExportFile), CreatorChg]),
     %%
-    section(F, "Materials"),
+    %!----------------------
+    % export shaders
+    %!----------------------
     MatsGb =
         foldl(fun ({Name,Mat}, Gb) ->
                       export_shader(F, "w_"++format(Name), Mat, ExportDir),
@@ -407,20 +380,17 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
           end, gb_trees:empty(), Mats),
 
 
-    %%
-
-    %%Start Micheus Code for Meshlights Even Better
+    %% Micheus Code for Meshlights Even Better
     section(F, "Objects"),
     foldr(fun (#e3d_object{name=Name,obj=Mesh}, Id) ->
                   export_object(F, "w_"++format(Name), Mesh, MatsGb, Id),
                   println(F),
                   Id+1
           end, 1, Objs),
-    %%End Micheus Code for Meshlights Even Better
 
-
-    %%
-    section(F, "Lights"),
+    %!----------------------
+    % export scene lights
+    %!----------------------
     BgLights =
         reverse(
           foldl(fun ({Name,Ps}=Light, Bgs) ->
@@ -432,7 +402,11 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                         end
                 end, [], Lights)),
     %%
-    section(F, "Background, Camera, Filter and Render"),
+    %section(F, "Background, Camera, Filter and Render"),
+    %!----------------------
+    % environment background
+    % TODO: need review
+    %!----------------------
     warn_multiple_backgrounds(BgLights),
     BgName =
         case BgLights of
@@ -447,13 +421,20 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                 N
         end,
     println(F),
+    %!----------------------
+    % export camera 
+    %!----------------------
     export_camera(F, CameraName, Attr),
     println(F),
+    %!----------------------
+    % export render options
+    %!----------------------
     export_render(F, CameraName, BgName, filename:basename(RenderFile), Attr),
     %%
     println(F),
     println(F, "</scene>"),
     close(F),
+    
     %!-------------------------
     %! Command line parameters
     %!-------------------------
@@ -499,7 +480,6 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
         Arguments = "-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat),
         wings_job:render(
                 ExportTS,Renderer,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
-                %ExportTS,Renderer,"-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
 warn_multiple_backgrounds([]) ->
@@ -518,33 +498,18 @@ section(F, Name) ->
     println(F, [io_lib:nl(),"<!-- Section ",Name," -->",io_lib:nl()]).
 
 
-%%% Export Material Properties
-%%%
+%%% Export Material code
 -include("exp_material.erl").
 
-%%% End Blend Materials Export
-%%--------------------------------------------------------------------
-
-%%% Start Texture Export
+%% Texture Export code
 -include("exp_texture.erl").
-%%----------------------------------------------------------
 
-
+%% split material modulators
 -include("exp_modulators.erl").
 
-%----------------------------------------------------------------------------------------
-
-%export_rgb(F, Type, {R,G,B,_}) ->
-%    export_rgb(F, Type, {R,G,B});
-%export_rgb(F, Type, {R,G,B}) ->
-%    println(F, ["\t<",format(Type)," r=\"",format(R),"\" g=\"",format(G),"\" b=\"",format(B),"\"/>"]).
-
-
-%
-%
 % split geometry
 -include("exp_geometry.erl").
-%%
+
 % split export light code
 -include("exp_light.erl").
 
@@ -553,8 +518,6 @@ section(F, Name) ->
 -include("exp_world.erl").
 
 -include("exp_render.erl").
-
-%-----------------------------------------------------------------------------------
 
 
 %%% Noisy file output functions. Fail if anything goes wrong.
