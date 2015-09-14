@@ -69,7 +69,7 @@ export_prefs() ->
         {exr_flag_compression,?DEF_EXR_FLAG_COMPRESSION},
         {aa_passes,?DEF_AA_PASSES},
         {aa_minsamples,?DEF_AA_MINSAMPLES},
-        {aa_jitterfirst,?DEF_AA_JITTERFIRST},
+        %{aa_jitterfirst,?DEF_AA_JITTERFIRST},
         {aa_threshold,?DEF_AA_THRESHOLD},
         {aa_pixelwidth,?DEF_AA_PIXELWIDTH},
         {clamp_rgb,?DEF_CLAMP_RGB},
@@ -303,9 +303,9 @@ export_dialog_qs(Op, Attr) ->
                                 {?__(139, "Lanczos Filter"), lanczos}
                             ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]},
                             panel,
-                            {hframe, [
-                                {?__(16, "Jitter First"), get_pref(aa_jitterfirst,Attr),[{key,aa_jitterfirst}]}
-                            ]},
+                            %{hframe, [
+                            %    {?__(16, "Jitter First"), get_pref(aa_jitterfirst,Attr),[{key,aa_jitterfirst}]}
+                            %]},
                             panel,
                             {hframe, [
                                 {?__(19, "Clamp RGB"), get_pref(clamp_rgb,Attr),[{key,clamp_rgb}]}
