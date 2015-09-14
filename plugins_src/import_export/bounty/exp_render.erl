@@ -72,70 +72,69 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     
     
     println(F, "<integrator name=\"default\">"),
-    println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
-    println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
-    println(F, "<shadowDepth ival=\"~w\"/>",[ShadowDepth]),
+    println(F, "\t<raydepth ival=\"~w\"/>",[Raydepth]),
+    println(F, "\t<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
+    println(F, "\t<shadowDepth ival=\"~w\"/>",[ShadowDepth]),
 
     case Lighting_Method of
         directlighting ->
-            println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
-            println(F, "<caustics bval=\"~s\"/>",[UseCaustics]),
+            println(F, "\t<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "\t<caustics bval=\"~s\"/>",[UseCaustics]),
             case UseCaustics of
                     true ->            
-                        println(F, "<photons ival=\"~w\"/>",[Caustic_Photons]),
-                        println(F, "<caustic_depth ival=\"~w\"/>",[Caustic_Depth]),
-                        println(F, "<caustic_mix ival=\"~w\"/>",[Caustic_Mix]),
-                        println(F, "<caustic_radius fval=\"~.10f\"/>",[Caustic_Radius]);
+                        println(F, "\t<photons ival=\"~w\"/>",[Caustic_Photons]),
+                        println(F, "\t<caustic_depth ival=\"~w\"/>",[Caustic_Depth]),
+                        println(F, "\t<caustic_mix ival=\"~w\"/>",[Caustic_Mix]),
+                        println(F, "\t<caustic_radius fval=\"~.10f\"/>",[Caustic_Radius]);
 
-                    false -> println(F,"")
+                    false -> ""
             end,
-            println(F, "<do_AO bval=\"~s\"/>",[Do_AO]),
+            println(F, "\t<do_AO bval=\"~s\"/>",[Do_AO]),
             case Do_AO of
                     true ->
                         println(F, "\t<AO_distance fval=\"~.10f\"/>",[AO_Distance]),
-                        println(F, "<AO_samples fval=\"~.10f\"/>",[AO_Samples]),
+                        println(F, "\t<AO_samples fval=\"~.10f\"/>",[AO_Samples]),
                         export_rgb(F, "AO_color",AO_Color);
-                    false -> println(F, "")
+                    false -> ""
             end;
 
         photonmapping ->
-            println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
-            println(F, "<photons ival=\"~w\"/>",[PM_Diffuse_Photons]),
-            println(F, "<bounces ival=\"~w\"/>",[PM_Bounces]),
-            println(F, "<search ival=\"~w\"/>",[PM_Search]),
-            println(F, "<diffuseRadius fval=\"~.10f\"/>",[PM_Diffuse_Radius]),
-            println(F, "<cPhotons ival=\"~w\"/>",[PM_Caustic_Photons]),
-            println(F, "<causticRadius fval=\"~.10f\"/>",[PM_Caustic_Radius]),
-            println(F, "<caustic_mix ival=\"~w\"/>",[PM_Caustic_Mix]),
-            println(F, "<finalGather bval=\"~s\"/>",[PM_Use_FG]),
-            println(F, "<fg_bounces ival=\"~w\"/>",[PM_FG_Bounces]),
-            println(F, "<fg_samples ival=\"~w\"/>",[PM_FG_Samples]),
-            println(F, "<show_map bval=\"~s\"/>",[PM_FG_Show_Map]);
-            %println(F," ");
+            println(F, "\t<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "\t<photons ival=\"~w\"/>",[PM_Diffuse_Photons]),
+            println(F, "\t<bounces ival=\"~w\"/>",[PM_Bounces]),
+            println(F, "\t<search ival=\"~w\"/>",[PM_Search]),
+            println(F, "\t<diffuseRadius fval=\"~.10f\"/>",[PM_Diffuse_Radius]),
+            println(F, "\t<cPhotons ival=\"~w\"/>",[PM_Caustic_Photons]),
+            println(F, "\t<causticRadius fval=\"~.10f\"/>",[PM_Caustic_Radius]),
+            println(F, "\t<caustic_mix ival=\"~w\"/>",[PM_Caustic_Mix]),
+            println(F, "\t<finalGather bval=\"~s\"/>",[PM_Use_FG]),
+            println(F, "\t<fg_bounces ival=\"~w\"/>",[PM_FG_Bounces]),
+            println(F, "\t<fg_samples ival=\"~w\"/>",[PM_FG_Samples]),
+            println(F, "\t<show_map bval=\"~s\"/>",[PM_FG_Show_Map]);
 
         pathtracing ->
-            println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
-            println(F, "<photons ival=\"~w\"/>",[PT_Diffuse_Photons]),
+            println(F, "\t<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "\t<photons ival=\"~w\"/>",[PT_Diffuse_Photons]),
             %% TO DO: review case when not caustic is active
-            println(F, "<bounces ival=\"~w\"/>",[PT_Bounces]),
-            println(F, "<caustic_type sval=\"~s\"/>",[PT_Caustic_Type]),
-            println(F, "<caustic_radius fval=\"~.10f\"/>",[PT_Caustic_Radius]),
-            println(F, "<caustic_mix ival=\"~w\"/>",[PT_Caustic_Mix]),
-            println(F, "<caustic_depth ival=\"~w\"/>",[PT_Caustic_Depth]),
-            println(F, "<path_samples ival=\"~w\"/>",[PT_Samples]);
+            println(F, "\t<bounces ival=\"~w\"/>",[PT_Bounces]),
+            println(F, "\t<caustic_type sval=\"~s\"/>",[PT_Caustic_Type]),
+            println(F, "\t<caustic_radius fval=\"~.10f\"/>",[PT_Caustic_Radius]),
+            println(F, "\t<caustic_mix ival=\"~w\"/>",[PT_Caustic_Mix]),
+            println(F, "\t<caustic_depth ival=\"~w\"/>",[PT_Caustic_Depth]),
+            println(F, "\t<path_samples ival=\"~w\"/>",[PT_Samples]);
 
         bidirectional ->
-            println(F, "<type sval=\"~s\"/>",[Lighting_Method]);
+            println(F, "\t<type sval=\"~s\"/>",[Lighting_Method]);
 
         sppm ->
-            println(F, "<type sval=\"SPPM\"/>"),
-            println(F, "<photons ival=\"~w\"/>",[SPPM_Photons]),
-            println(F, "<bounces ival=\"~w\"/>",[SPPM_Bounces]),
-            println(F, "<searchNum ival=\"~w\"/>",[SPPM_Search]),
-            println(F, "<photonRadius fval=\"~.10f\"/>",[SPPM_Radius]),
-            println(F, "<times fval=\"~.10f\"/>",[SPPM_Times]),
-            println(F, "<passNums ival=\"~w\"/>",[SPPM_Passes]),
-            println(F, "<pmIRE bval=\"~s\"/>",[format(SPPM_Ire)])
+            println(F, "\t<type sval=\"SPPM\"/>"),
+            println(F, "\t<photons ival=\"~w\"/>",[SPPM_Photons]),
+            println(F, "\t<bounces ival=\"~w\"/>",[SPPM_Bounces]),
+            println(F, "\t<searchNum ival=\"~w\"/>",[SPPM_Search]),
+            println(F, "\t<photonRadius fval=\"~.10f\"/>",[SPPM_Radius]),
+            println(F, "\t<times fval=\"~.10f\"/>",[SPPM_Times]),
+            println(F, "\t<passNums ival=\"~w\"/>",[SPPM_Passes]),
+            println(F, "\t<pmIRE bval=\"~s\"/>",[format(SPPM_Ire)])
 
     end,
 
@@ -143,37 +142,30 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         {pathtracing,photonmapping,directlighting} ->
             case  UseSSS of
                 true ->
-                    println(F, "<useSSS bval=\"true\"/>"),
-                    println(F, "<sssPhotons ival=\"~w\"/>",[SSS_Photons]),
-                    println(F, "<sssDepth ival=\"~w\"/>",[SSS_Depth]),
-                    println(F, "<sssScale fval=\"~.10f\"/>",[SSS_Scale]),
-                    println(F, "<singleScatterSamples ival=\"~w\"/>",[SSS_SingleScatter_Samples]);
+                    println(F, "\t<useSSS bval=\"true\"/>"),
+                    println(F, "\t<sssPhotons ival=\"~w\"/>",[SSS_Photons]),
+                    println(F, "\t<sssDepth ival=\"~w\"/>",[SSS_Depth]),
+                    println(F, "\t<sssScale fval=\"~.10f\"/>",[SSS_Scale]),
+                    println(F, "\t<singleScatterSamples ival=\"~w\"/>",[SSS_SingleScatter_Samples]);
 
                 false -> ""
             end;
         _ -> ""
     end,
 
-    println(F, "</integrator>"),
-
+    println(F, "</integrator>\n"),
+    % volume integrator
+    println(F, "<integrator name=\"volintegr\">"),
+    println(F, "\t<type sval=\"~s\"/>",[Volintegr_Type]),
     case Volintegr_Type of
-        none ->
-            println(F," "),
-            println(F, "<integrator name=\"volintegr\">"),
-            println(F, "<type sval=\"~s\"/>",[Volintegr_Type]),
-            println(F, "</integrator>"),
-            println(F," ");
-
         singlescatterintegrator ->
-            println(F," "),
-            println(F, "<integrator name=\"volintegr\">"),
-            println(F, "<type sval=\"SingleScatterIntegrator\"/>"),
-            println(F, "<adaptive bval=\"~s\"/>",[format(Volintegr_Adaptive)]),
-            println(F, "<optimize bval=\"~s\"/>",[format(Volintegr_Optimize)]),
-            println(F, "<stepSize fval=\"~.10f\"/>",[Volintegr_Stepsize]),
-            println(F, "</integrator>"),
-            println(F," ")
+            println(F, "\t<type sval=\"SingleScatterIntegrator\"/>"),
+            println(F, "\t<adaptive bval=\"~s\"/>",[format(Volintegr_Adaptive)]),
+            println(F, "\t<optimize bval=\"~s\"/>",[format(Volintegr_Optimize)]),
+            println(F, "\t<stepSize fval=\"~.10f\"/>",[Volintegr_Stepsize]);
+        _ -> ""
     end,
+    println(F, "</integrator>\n"),
 
     ExrFlags =
         case RenderFormat of
@@ -183,6 +175,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
                  format(ExrFlagCompression)];
             _ -> ""
         end,
+    %
     println(F, "<render>"),
     println(F, "\t<camera_name sval=\"~s\"/>",[CameraName]),
     println(F, "\t<filter_type sval=\"~s\"/>",[AA_Filter_Type]),
@@ -190,11 +183,12 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     println(F, "\t<AA_threshold fval=\"~.10f\"/>",[AA_threshold]),
     println(F, "\t<AA_minsamples ival=\"~w\"/>",[AA_minsamples]),
     println(F, "\t<AA_pixelwidth fval=\"~.10f\"/>",[AA_pixelwidth]),
+    %
     case SaveAlpha of
         premultiply ->
             println(F, "\t<tpremult bval=\"true\"/>");
         backgroundmask ->
-                println(F, "\talpha_backgroundmask=\"on\"/~n");
+                println(F, "\t<alpha_backgroundmask bval=\"true\"/>"); % povman: deprecated
             _ -> ""
         end,
         println(F, "\t<clamp_rgb bval=\"~s\"/>",[format(ClampRGB)]),
@@ -210,30 +204,21 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         println(F, "\t<width ival=\"~w\"/>",[Width]), 
         println(F, "\t<height ival=\"~w\"/>",[Height]),
         println(F, "\t<outfile sval=\"~s\"/>",[Outfile]),
-        %println(F, "\t<indirect_samples sval=\"0\"/>"
-        %println(F, "\t<indirect_power sval=\"1.0\"/>"
+        %println(F, "\t<indirect_samples sval=\"0\"/>"), % TO DO: review..
+        %println(F, "\t<indirect_power sval=\"1.0\"/>"), %
         println(F, "\t<exposure fval=\"~.10f\"/>",[Exposure]),
         println(F, "\t<save_alpha bval=\"~s\"/>",[format(SaveAlpha)]),
-        %end,
         println(F, "\t<gamma fval=\"~.10f\"/>",[Gamma]),
         
-        %case RenderFormat of
-        %        tga -> [];
-        %        _   -> [format(RenderFormat)]
-        %    end,
-        %    case RenderFormat of
-        %        exr -> [ExrFlags];
-        %        _   -> []
-        %    end,
 
-    println(F, "<integrator_name sval=\"default\"/>"),
+    println(F, "\t<integrator_name sval=\"default\"/>"),
 
-    case ThreadsAuto of
-        true -> println(F, "<threads ival=\"-1\"/>");
-
-        false -> println(F, "<threads ival=\"~w\"/>",[ThreadsNumber])
-
+    NThreads = case ThreadsAuto of
+        true -> -1;
+        false -> [ThreadsNumber]
     end,
+    println(F, "\t<threads ival=\"~w\"/>",[NThreads]),
 
-    println(F, "<volintegrator_name sval=\"volintegr\"/>"),
+
+    println(F, "\t<volintegrator_name sval=\"volintegr\"/>"),
     println(F, "</render>").
