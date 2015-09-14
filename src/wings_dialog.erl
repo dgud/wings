@@ -685,7 +685,9 @@ setup_hook(_What, _) ->
 return_result(Fun, Values, Owner) ->
     case Fun(Values) of
 	ignore ->
-	    ok;
+	    keep;
+	{return, Result} ->
+	    Result;
 	#st{}=St ->
 	    wings_wm:send(Owner, {new_state,St});
 	{commit,#st{}=St0,#st{}=St}->
@@ -696,8 +698,7 @@ return_result(Fun, Values, Owner) ->
 	    wings_wm:send_after_redraw(Owner, {action,Action});
 	Action when is_tuple(Action); is_atom(Action) ->
 	    wings_wm:send(Owner, {action,Action})
-    end,
-    keep.
+    end.
 
 to_label_column(Qs) ->
     lists:map(fun label_col/1, Qs).

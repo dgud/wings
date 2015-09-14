@@ -157,7 +157,8 @@ send_once(Name, Ev) ->
     keep.
 
 send_after_redraw(Name, Ev) ->
-    wings_io:putback_event({wm,{send_after_redraw,Name,Ev}}).
+    wings_io:putback_event({wm,{send_after_redraw,Name,Ev}}),
+    keep.
 
 send_once_after_redraw(Name, Ev) ->
     wings_io:putback_event_once({wm,{send_after_redraw,Name,Ev}}),
