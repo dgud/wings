@@ -358,9 +358,11 @@ wc_open_window(#state{lines=Lines}=State, Opts) ->
 	      undefined -> {-1, -1};
 	      SavedPos -> SavedPos
 	  end,
-    Win = wxFrame:new(?GET(top_frame), ?wxID_ANY, Title, [{size, Size}, {pos, Pos}]),
-    Style = ?wxTE_MULTILINE bor ?wxTE_READONLY bor ?wxTE_RICH2,
-    Ctrl = wxTextCtrl:new(Win, ?wxID_ANY, [{style, Style}]),
+    FStyle = ?wxCAPTION bor ?wxCLOSE_BOX bor ?wxRESIZE_BORDER,
+    Win = wxMiniFrame:new(?GET(top_frame), ?wxID_ANY, Title,
+			  [{size, Size}, {pos, Pos}, {style, FStyle}]),
+    TStyle = ?wxTE_MULTILINE bor ?wxTE_READONLY bor ?wxTE_RICH2,
+    Ctrl = wxTextCtrl:new(Win, ?wxID_ANY, [{style, TStyle}]),
 
     wxWindow:setFont(Ctrl, Font),
     wxWindow:setBackgroundColour(Ctrl, wings_color:rgb4bv(wings_pref:get_value(console_color))),
