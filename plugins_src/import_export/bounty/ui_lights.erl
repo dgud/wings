@@ -33,28 +33,28 @@ light_dialog(_Name, point, Ps) ->
     ArealightSamples = proplists:get_value(arealight_samples, Ps, ?DEF_AREALIGHT_SAMPLES),
 
     Hook_Show =
-	fun(Key, Value, Store) ->
-	    case Key of
-		?KEY(type) ->
-		    wings_dialog:show(?KEY(pnl_sphere), Value =:= spherelight, Store)
-	    end
-	end,
+    fun(Key, Value, Store) ->
+        case Key of
+        ?KEY(type) ->
+            wings_dialog:show(?KEY(pnl_sphere), Value =:= spherelight, Store)
+        end
+    end,
 
     [
-	{hradio,[
+    {hradio,[
             {?__(3,"Pointlight"),pointlight},
-	    {?__(5,"Spherelight"),spherelight}
+        {?__(5,"Spherelight"),spherelight}
         ],Type,[key(type),{hook,Hook_Show}]},
         {hframe, [
             {hframe, [
-		{label,?__(15,"Radius")},
-		{text,ArealightRadius,[range(arealight_radius),key(arealight_radius)]}
+        {label,?__(15,"Radius")},
+        {text,ArealightRadius,[range(arealight_radius),key(arealight_radius)]}
             ]},
             panel,
             {hframe, [
-		{label,?__(17,"Samples")},
-		{text,ArealightSamples,[range(samples),key(arealight_samples)]}
-	    ]}
+        {label,?__(17,"Samples")},
+        {text,ArealightSamples,[range(samples),key(arealight_samples)]}
+        ]}
         ],[key(pnl_sphere),{margin,false}]}
     ];
 
@@ -79,42 +79,42 @@ light_dialog(_Name, spot, Ps) ->
         end,
 
     Hook_Show =
-	fun(Key, Value, Store) ->
-	    case Key of
-		?KEY(type) ->
-		    wings_dialog:show(?KEY(pnl_ies), Value =:= spot_ies, Store),
-		    wings_dialog:show(?KEY(pnl_spt_photon), Value =:= spotlight, Store),
+    fun(Key, Value, Store) ->
+        case Key of
+        ?KEY(type) ->
+            wings_dialog:show(?KEY(pnl_ies), Value =:= spot_ies, Store),
+            wings_dialog:show(?KEY(pnl_spt_photon), Value =:= spotlight, Store),
                     wings_dialog:update(?KEY(pnl_spot_light), Store)
-	    end
-	end,
+        end
+    end,
 
     [
-	{hradio,[
+    {hradio,[
             {?__(29,"Spotlight"),spotlight},
-	    {?__(30,"IES"),spot_ies}
+        {?__(30,"IES"),spot_ies}
         ],Type,[key(type),{hook,Hook_Show}]},
         {vframe, [
-	    {hframe, [
-		{label,?__(100,"Filename")},
-		{button,{text,SpotIESFilename,[key(spot_ies_filename),{width,35},{props,BrowsePropsIES}]}}
-	    ],[key(pnl_ies)]},
+        {hframe, [
+        {label,?__(100,"Filename")},
+        {button,{text,SpotIESFilename,[key(spot_ies_filename),{width,35},{props,BrowsePropsIES}]}}
+        ],[key(pnl_ies)]},
             {vframe, [
-		{hframe, [
+        {hframe, [
                     {label,?__(101,"Blend")},
                     {text,SpotBlend,[key(spot_blend),range(spot_blend)]},
                     panel,
-		    {?__(97,"Photon Only"),SpotPhotonOnly,[key(spot_photon_only)]},
+            {?__(97,"Photon Only"),SpotPhotonOnly,[key(spot_photon_only)]},
                     panel
-		],[key(pnl_spt_photon)]},
-    		{hframe, [
-		    {?__(38,"Soft Shadows"),SpotSoftShadows,[key(spot_soft_shadows),{hook,Hook_Enabled}]},
-		    panel,
-		    {label,?__(35,"Samples")},
-		    {text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]},
+        ],[key(pnl_spt_photon)]},
+            {hframe, [
+            {?__(38,"Soft Shadows"),SpotSoftShadows,[key(spot_soft_shadows),{hook,Hook_Enabled}]},
+            panel,
+            {label,?__(35,"Samples")},
+            {text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]},
                     panel,
                     {label,?__(102,"Fuzzyness")},
                     {text,SpotFuzzyness,[range(spot_fuzzyness),key(spot_fuzzyness)]}
-		]}
+        ]}
             ],[{margin,false}]}
         ],[key(pnl_spot_light),[{margin,false}]]}
     ];
@@ -147,31 +147,31 @@ light_dialog(_Name, infinite, Ps) ->
     DarkskyCausticPhotons = proplists:get_value(darksky_causticphotons, Ps, ?DEF_DARKSKY_CAUSTICPHOTONS),
 
     Hook_Enabled =
-	fun(Key, Value, Store) ->
-	    case Key of
+    fun(Key, Value, Store) ->
+        case Key of
                 ?KEY(infinite_true) ->
                     wings_dialog:enable(?KEY(pnl_inf_radius), Value =:= false, Store);
                 ?KEY(sun_real) ->
                     wings_dialog:enable(?KEY(pnl_sun_real), Value =/= ?DEF_SUN_REAL, Store);
-		?KEY(sky_background_light) ->
-		    wings_dialog:enable(?KEY(pnl_bkg_power), Value =/= ?DEF_SKY_BACKGROUND_LIGHT, Store),
+        ?KEY(sky_background_light) ->
+            wings_dialog:enable(?KEY(pnl_bkg_power), Value =/= ?DEF_SKY_BACKGROUND_LIGHT, Store),
                     wings_dialog:enable(?KEY(pnl_bkg_photons), Value =/=?DEF_SKY_BACKGROUND_LIGHT, Store)
-	    end
-	end,
+        end
+    end,
     Hook_Show =
-	fun(Key, Value, Store) ->
-	    case Key of
-		?KEY(type) ->
-		    wings_dialog:show(?KEY(pnl_sunlight), Value =:= sunlight, Store),
-		    wings_dialog:show(?KEY(pnl_directional), Value =:= directional, Store),
+    fun(Key, Value, Store) ->
+        case Key of
+        ?KEY(type) ->
+            wings_dialog:show(?KEY(pnl_sunlight), Value =:= sunlight, Store),
+            wings_dialog:show(?KEY(pnl_directional), Value =:= directional, Store),
                     wings_dialog:update(?KEY(pnl_base1),Store);
                 ?KEY(background) ->
                     wings_dialog:show(?KEY(pnl_darksky_altitude), Value =:= darksky, Store),
                     wings_dialog:show(?KEY(darksky_night), Value =:= darksky, Store),
                     wings_dialog:show(?KEY(pnl_sky), Value =/= undefined, Store),
                     wings_dialog:update(?KEY(pnl_sky), Store)
-	    end
-	end,
+        end
+    end,
     [
         {vframe, [
             {vframe, [
@@ -215,8 +215,8 @@ light_dialog(_Name, infinite, Ps) ->
                 ],Bg,[key(background),{hook,Hook_Show}]},
                 {vframe, [
                     {hframe, [
-			{label_column, [
-			    {?__(47,"Turbidity"),{text,Turbidity,[range(turbidity),key(turbidity)]}},
+                        {label_column, [
+                            {?__(47,"Turbidity"),{text,Turbidity,[range(turbidity),key(turbidity)]}},
                             {"a: "++?__(48,"Horizon Brightness"),{text,A_var,[key(a_var)]}},
                             {"b: "++?__(49,"Horizon Spread"),{text,B_var,[key(b_var)]}}
                         ],[{margin,false}]},
@@ -224,7 +224,7 @@ light_dialog(_Name, infinite, Ps) ->
                             {"c: "++?__(50,"Sun Brightness"),{text,C_var,[key(c_var)]}},
                             {"d: "++?__(51,"Sun Distance"),{text,D_var,[key(d_var)]}},
                             {"e: "++?__(52,"Backscattered Light"),{text,E_var,[key(e_var)]}}
-			],[{margin,false}]}
+                        ],[{margin,false}]}
                     ],[{margin,false}]},
 
                     {hframe,[
@@ -311,8 +311,8 @@ light_dialog(_Name, ambient, Ps) ->
             case Key of
                 ?KEY(background) ->
                     wings_dialog:show(?KEY(pnl_file), is_member(Value, ['HDRI',image]), Store),
-		    wings_dialog:show(?KEY(pnl_img_hdri), Value =:= 'HDRI', Store),
-		    wings_dialog:show(?KEY(pnl_img_bkg), Value =:= image, Store),
+                    wings_dialog:show(?KEY(pnl_img_hdri), Value =:= 'HDRI', Store),
+                    wings_dialog:show(?KEY(pnl_img_bkg), Value =:= image, Store),
                     wings_dialog:show(?KEY(pnl_const), Value =:= constant, Store),
                     wings_dialog:show(?KEY(pnl_gradient), Value =:= gradientback, Store),
                     wings_dialog:show(?KEY(pnl_background), Value =/= undefined, Store),
@@ -325,17 +325,16 @@ light_dialog(_Name, ambient, Ps) ->
         %% Backgrounds
         {vframe, [
             {value,Type,[key(type)]},
-	    {hframe, [
-		{label,?__(91,"Background Light/Environment")++" "},
-		{menu, [
+            {hframe, [
+                {label,?__(91,"Background Light/Environment")++" "},
+                {menu, [
                     {?__(79,"HDRI"),'HDRI'},
-		    {?__(80,"Image"),image},
-		    {?__(81,"Constant"),constant},
-		    {?__(105,"Gradient"),gradientback},
+                    {?__(80,"Image"),image},
+                    {?__(81,"Constant"),constant},
+                    {?__(105,"Gradient"),gradientback},
                     {?__(82,"None"), undefined}
                 ], Bg, [key(background),{hook,Hook_Show}]}
-	    ]},
-
+            ]},
             {vframe, [
                 %% HDRI Background
                 {vframe, [
@@ -354,9 +353,12 @@ light_dialog(_Name, ambient, Ps) ->
                                 ],[key(pnl_img_hdri),{margin,false}]}
                             ],[{margin,false}]}},
                         {?__(108,"Rotation"),
-                                {text,BgRotation,[range(background_rotation),key(background_rotation)]}}
-                    ],[{margin,false}]}
-                ],[key(pnl_file),{margin,false}]},
+                            {text,BgRotation,[range(background_rotation),key(background_rotation)]}
+                        }
+                    ],[{margin,false}]
+                }],
+                [key(pnl_file),{margin,false}]
+                },
                 %% Constant Background
                 {hframe, [
                     {label,?__(90,"Color")},

@@ -1,6 +1,6 @@
 %
 %
-% ligts..
+% lights..
 %
 %
 export_light(F, Name, Ps) ->
@@ -21,17 +21,17 @@ export_light(F, Name, point, OpenGL, Attr) ->
     Position = proplists:get_value(position, OpenGL, {0.0,0.0,0.0}),
     Diffuse = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
     LightType = proplists:get_value(type, Attr, ?DEF_POINT_TYPE),
-    
+
     println(F, "<light name=\"~s\">",[Name]),
     println(F, "\t<power fval=\"~.3f\"/>",[Power]),
     case LightType of
         spherelight ->
             println(F,
                 "\t<radius fval=\"~.10f\"/>",
-                [proplists:get_value(arealight_radius, Attr, ?DEF_AREALIGHT_RADIUS)]),
-            println(F, 
+					[proplists:get_value(arealight_radius, Attr, ?DEF_AREALIGHT_RADIUS)]),
+            println(F,
                 "\t<samples ival=\"~w\"/>",
-                [proplists:get_value(arealight_samples, Attr, ?DEF_AREALIGHT_SAMPLES)]),
+					[proplists:get_value(arealight_samples, Attr, ?DEF_AREALIGHT_SAMPLES)]),
             println(F,
                 "\t<type sval=\"spherelight\"/>");
         _ ->
@@ -86,9 +86,11 @@ export_light(F, Name, infinite, OpenGL, YafaRay) ->
         %% Directional Infinite Light End
         %% Sunlight Infinite Light Start
         sunlight when Power > 0.0 ->
-            println(F,"<light name=\"~s\"> <type sval=\"~w\"/> "++
-                        "<power fval=\"~.10f\"/> <samples ival=\"~w\"/> <angle fval=\"~.3f\"/>",
-                    [Name, Type, Power, SunSamples, SunAngle]),
+            println(F, "<light name=\"~s\">",[Name]),
+            println(F, "\t<type sval=\"~w\"/>",[Type]),
+            println(F, "\t<power fval=\"~.10f\"/>",[Power]),
+            println(F, "\t<samples ival=\"~w\"/>",[SunSamples]),
+            println(F, "\t<angle fval=\"~.3f\"/>",[SunAngle]),
 
             export_pos(F, direction, Position),
             export_rgb(F, color, Diffuse),
@@ -109,7 +111,7 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
     ConeAngle = proplists:get_value(cone_angle, OpenGL, ?DEF_CONE_ANGLE),
     Diffuse = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
     Type = proplists:get_value(type, YafaRay, ?DEF_SPOT_TYPE),
-    
+
     println(F, "<light name=\"~s\">",[Name]),
     println(F, "\t<power fval=\"~.3f\"/>",[Power]),
     case Type of
@@ -120,11 +122,11 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
             SpotIESSamples =    proplists:get_value(spot_ies_samples, YafaRay,  ?DEF_SPOT_IES_SAMPLES),
             CastShadows =       proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
             SpotExponent =      proplists:get_value(spot_exponent, OpenGL, ?DEF_SPOT_EXPONENT),
-                
+
             SpotBlend = proplists:get_value(spot_blend, YafaRay, ?DEF_SPOT_BLEND),
-            
+
             SpotFuzzyness = proplists:get_value(spot_fuzzyness, YafaRay, ?DEF_SPOT_FUZZYNESS),
-            
+
             println(F, "\t<type sval=\"spotlight\"/>"),
             println(F, "\t<cast_shadows bval=\"~s\"/>",[format(CastShadows)]),
             println(F, "\t<photon_only bval=\"~s\"/>",[SpotPhotonOnly]),
@@ -170,26 +172,24 @@ export_light(F, Name, ambient, _OpenGL, YafaRay) ->
             case proplists:get_value(use_maxdistance, YafaRay,
                                      ?DEF_USE_MAXDISTANCE) of
                 true ->
-                    Maxdistance = proplists:get_value(maxdistance, YafaRay,
-                                                      ?DEF_MAXDISTANCE),
-                    println(F, "    <maxdistance fval=\"~.10f\"/>",
-                            [Maxdistance]);
+                    Maxdistance = proplists:get_value(maxdistance, YafaRay, ?DEF_MAXDISTANCE),
+                    println(F, "\t<maxdistance fval=\"~.10f\"/>",[Maxdistance]);
+				
                 false -> ok
             end,
 
             println(F, ""),
             Bg;
         hemilight -> Bg;
+		%
         pathlight when Power > 0.0 ->
             println(F,"<light type sval=\"~w\" name sval=\"~s\" power fval=\"~.3f\"",
                     [Type,Name,Power]),
-            UseQMC = proplists:get_value(use_QMC, YafaRay,
-                                         ?DEF_USE_QMC),
+            UseQMC = proplists:get_value(use_QMC, YafaRay,?DEF_USE_QMC),
             Depth = proplists:get_value(depth, YafaRay, ?DEF_DEPTH),
             CausDepth = proplists:get_value(caus_depth, YafaRay, ?DEF_CAUS_DEPTH),
             Direct = proplists:get_value(direct, YafaRay, ?DEF_DIRECT),
-            Samples = proplists:get_value(samples, YafaRay,
-                                          ?DEF_SAMPLES),
+            Samples = proplists:get_value(samples, YafaRay, ?DEF_SAMPLES),
             print(F, "       use_QMC=\"~s\" samples=\"~w\" "
                   "depth=\"~w\" caus_depth=\"~w\"",
                   [format(UseQMC),Samples,Depth,CausDepth]),
@@ -200,20 +200,15 @@ export_light(F, Name, ambient, _OpenGL, YafaRay) ->
                     case proplists:get_value(cache, YafaRay, ?DEF_CACHE) of
                         true ->
                             CacheSize =
-                                proplists:get_value(cache_size, YafaRay,
-                                                    ?DEF_CACHE_SIZE),
+                                proplists:get_value(cache_size, YafaRay,?DEF_CACHE_SIZE),
                             AngleThreshold =
-                                proplists:get_value(angle_threshold, YafaRay,
-                                                    ?DEF_ANGLE_THRESHOLD),
+                                proplists:get_value(angle_threshold, YafaRay,?DEF_ANGLE_THRESHOLD),
                             ShadowThreshold =
-                                proplists:get_value(shadow_threshold, YafaRay,
-                                                    ?DEF_SHADOW_THRESHOLD),
+                                proplists:get_value(shadow_threshold, YafaRay, ?DEF_SHADOW_THRESHOLD),
                             Gradient =
-                                proplists:get_value(gradient, YafaRay,
-                                                    ?DEF_GRADIENT),
+                                proplists:get_value(gradient, YafaRay, ?DEF_GRADIENT),
                             ShowSamples =
-                                proplists:get_value(show_samples, YafaRay,
-                                                    ?DEF_SHOW_SAMPLES),
+                                proplists:get_value(show_samples, YafaRay, ?DEF_SHOW_SAMPLES),
                             Search =
                                 proplists:get_value(search, YafaRay, ?DEF_SEARCH),
                             print(F, " cache=\"on\"~n"
@@ -222,20 +217,19 @@ export_light(F, Name, ambient, _OpenGL, YafaRay) ->
                                   "       shadow_threshold=\"~.10f\" "
                                   "gradient=\"~s\"~n"
                                   "       show_samples=\"~s\" search=\"~w\"",
-                                  [CacheSize,AngleThreshold,
-                                   ShadowThreshold,format(Gradient),
-                                   format(ShowSamples),Search]);
+                                  [CacheSize,AngleThreshold, ShadowThreshold,
+								  format(Gradient), format(ShowSamples),Search]);
                         false -> ok
                     end
             end,
             println(F, ">"),
-            PathlightMode = proplists:get_value(pathlight_mode, YafaRay,
-                                                ?DEF_PATHLIGHT_MODE),
+            PathlightMode = 
+				proplists:get_value(pathlight_mode, YafaRay, ?DEF_PATHLIGHT_MODE),
             case PathlightMode of
                 undefined ->
                     ok;
                 _ ->
-                    println(F, "    <mode sval=\"~s\"/>",
+                    println(F, "<mode sval=\"~s\"/>",
                             [format(PathlightMode)])
             end,
             case proplists:get_value(use_maxdistance, YafaRay,
@@ -252,18 +246,14 @@ export_light(F, Name, ambient, _OpenGL, YafaRay) ->
         pathlight -> Bg;
         globalphotonlight ->
             println(F,"<light type sval=\"~w\" name sval=\"~s\"", [Type,Name]),
-            GplPhotons = proplists:get_value(
-                           globalphotonlight_photons, YafaRay,
-                           ?DEF_GLOBALPHOTONLIGHT_PHOTONS),
-            GplRadius = proplists:get_value(
-                          globalphotonlight_radius, YafaRay,
-                          ?DEF_GLOBALPHOTONLIGHT_RADIUS),
-            GplDepth = proplists:get_value(
-                         globalphotonlight_depth, YafaRay,
-                         ?DEF_GLOBALPHOTONLIGHT_DEPTH),
-            GplSearch = proplists:get_value(
-                          globalphotonlight_search, YafaRay,
-                          ?DEF_GLOBALPHOTONLIGHT_SEARCH),
+            GplPhotons = 
+				proplists:get_value(globalphotonlight_photons, YafaRay, ?DEF_GLOBALPHOTONLIGHT_PHOTONS),
+            GplRadius = 
+				proplists:get_value(globalphotonlight_radius, YafaRay,?DEF_GLOBALPHOTONLIGHT_RADIUS),
+            GplDepth = 
+				proplists:get_value(globalphotonlight_depth, YafaRay,?DEF_GLOBALPHOTONLIGHT_DEPTH),
+            GplSearch = 
+				proplists:get_value(globalphotonlight_search, YafaRay,?DEF_GLOBALPHOTONLIGHT_SEARCH),
             println(F,"       photons ival=\"~w\" radius=\"~.3f\" "
                     "depth=\"~w\" search=\"~w\">",
                     [GplPhotons,GplRadius,GplDepth,GplSearch]),
@@ -277,13 +267,15 @@ export_light(F, Name, area, OpenGL, YafaRay) ->
     Color = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
     #e3d_mesh{vs=Vs,fs=Fs0} = proplists:get_value(mesh, OpenGL, #e3d_mesh{}),
     VsT = list_to_tuple(Vs),
+	
     Power = proplists:get_value(power, YafaRay, ?DEF_ATTN_POWER),
-    Samples = proplists:get_value(arealight_samples, YafaRay,
-                                  ?DEF_AREALIGHT_SAMPLES),
+    Samples = proplists:get_value(arealight_samples, YafaRay, ?DEF_AREALIGHT_SAMPLES),
     Dummy = proplists:get_value(dummy, YafaRay, ?DEF_DUMMY),
+	
     Fs = foldr(fun (Face, Acc) ->
                        e3d_mesh:quadrangulate_face(Face, Vs)++Acc
                end, [], Fs0),
+	%
     As = e3d_mesh:face_areas(Fs, Vs),
     Area = foldl(fun (A, Acc) -> A+Acc end, 0.0, As),
     AFs = zip_lists(As, Fs),
