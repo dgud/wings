@@ -178,8 +178,7 @@ event(Ev, Ost) ->
 	_ -> keep
     end.
 
-handle_drop({image,Id,_}, {material,Name,_,_}, {X0,Y0}, _Ost) ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
+handle_drop({image,Id,_}, {material,Name,_,_}, {X,Y}, _Ost) ->
     Menu = [{?__(1,"Texture Type"),ignore},
 	    separator,
 	    {?__(2,"Diffuse"),tx_cmd(diffuse, Id, Name)},
@@ -187,7 +186,7 @@ handle_drop({image,Id,_}, {material,Name,_,_}, {X0,Y0}, _Ost) ->
 	    {?__(4,"Bump (HeightMap)"),tx_cmd(bump, Id, Name)},
 	    {?__(5,"Bump (NormalMap)"),tx_cmd(normal, Id, Name)}],
     wings_menu:popup_menu(X, Y, outliner, Menu);
-handle_drop(_Drop, _On, _, _) -> 
+handle_drop(_Drop, _On, _, _) ->
     keep.
 
 tx_cmd(Type, Id, Mat) ->

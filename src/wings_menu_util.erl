@@ -383,6 +383,8 @@ crossmark(Key) ->
 		      Client = {autouv, _} ->
 			  wings_wm:get_prop(Client, Key);
 		      {_,Client} ->
+			  wings_wm:get_prop(Client, Key);
+		      Client when is_atom(Client) ->    % Client is     'geom' when updating from wings_pref_dlg
 			  wings_wm:get_prop(Client, Key)
 		  end;
 	      Other -> Other

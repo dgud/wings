@@ -263,7 +263,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_BACKGROUND_MAPPING, probe).
 -define(DEF_BACKGROUND_POWER, 5.0).
 -define(DEF_BACKGROUND_PREFILTER, true).
--define(DEF_BACKGROUND_ENLIGHT, true).
+-define(DEF_BACKGROUND_ENLIGHT, false).
 -define(DEF_AMBIENT_DIFFUSEPHOTONS, false).
 -define(DEF_AMBIENT_CAUSTICPHOTONS, false).
 -define(DEF_BACKGROUND_ROTATION, 0.0).
@@ -1322,8 +1322,8 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     ]},
                     {vframe,[
                         {slider,{text,fit_range(Diffuse,modulation),[range(modulation)]}},
-                        {slider,{text,Shininess,[range(modulation)]}},
-                        {slider,{text,Normal,[range(modulation)]}}
+                        {slider,{text,fit_range(Shininess,modulation),[range(modulation)]}},
+                        {slider,{text,fit_range(Normal,modulation),[range(modulation)]}}
                     ]}
                 ],[{margin,false}]},
                 {menu, MapsItems++[
@@ -2479,7 +2479,7 @@ export_dialog_qs(Op, Attr) ->
                 ],[{title, ?__(20, "Anti-Aliasing")},{margin,false}]},
 
                 {hframe, [
-                    {label, ?__(21, "Default Color")++" "},
+                    {label, ?__(21, "Color")++" "},
                     {color, get_pref(background_color,Attr), [{key,background_color}]},
                     panel,
                     {label, ?__(22, "Alpha Channel")++" "},
@@ -2870,16 +2870,23 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     %%
     section(F, "Background, Camera, Filter and Render"),
     warn_multiple_backgrounds(BgLights),
+    if BgLights =/= [] ->
+            [{_,Ps0}|_] = BgLights,
+            ValidBg = proplists:get_value(?TAG, Ps0, undefined) =/= undefined;
+        true -> ValidBg = false
+    end,
+
     BgName =
-        case BgLights of
-            [] ->
+        case ValidBg of
+            false ->
                 BgColor = proplists:get_value(background_color, Attr,
                                               ?DEF_BACKGROUND_COLOR),
                 Ps = [{?TAG,[{background,constant},
                              {background_color,BgColor}]}],
                 export_background(F, ConstBgName, Ps),
                 ConstBgName;
-            [{Name,Ps}|_] ->
+            _ ->
+                [{Name,Ps}|_] = BgLights,
                 N = "w_"++format(Name),
                 export_background(F, N, Ps),
                 N
@@ -6002,8 +6009,8 @@ help(text, pref_dialog) ->
       "be found in the executables search path; or, the absolute path of "
       "that executable."),
      %%
-     ?__(73,"Yafaray Plugins Path: The path to the YafaRay plugins folder "
-      "('c:/yafaray/bin/plugins'). YafaRay will not work without this."),
+     ?__(73,"YafaRay Plugins Path: The path to the YafaRay raytrace renderer plugins "
+      "folder('c:/yafaray/bin/plugins'). YafaRay will not work without this."),
      %%
      ?__(74,"Options: Rendering command line options to be inserted between the "
       "executable and the .xml filename, -dp (add render settings badge) "

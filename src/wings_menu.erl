@@ -137,8 +137,11 @@ have_magnet(Ps, _) ->
 
 wx_popup_menu_init(X0,Y0,Names,Menus0) ->
     Owner = wings_wm:this(),
-    wx_popup_menu(X0,Y0,Names,Menus0,false,Owner),
-    {push, fun(Ev) -> popup_event_handler(Ev, Owner) end}.
+    Popup = fun(X,Y) -> 
+		    wx_popup_menu(X,Y,Names,Menus0,false,Owner)
+	    end,
+    Popup(X0,Y0),
+    {push, fun(Ev) -> popup_event_handler(Ev, Owner, Popup) end}.
 
 wx_popup_menu(X,Y,Names,Menus0,Magnet,Owner) ->
     Parent = get(top_frame),
@@ -194,9 +197,9 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     wxPopupTransientWindow:popup(Dialog),
     wxPopupTransientWindow:setFocus(Panel),
     %% Color active menuitem
-    {_, MouseY} = wxWindow:screenToClient(Panel, ScreenPos),
-    case find_active_panel(Panel, MouseY) of
-	false -> ignore;
+    {MX, MY} = wxWindow:screenToClient(Panel, ScreenPos),
+    case find_active_panel(Panel, MX, MY) of
+	{false,_} -> ignore;
 	{ActId, ActPanel} ->
 	    self() ! #wx{id=ActId, obj= ActPanel, event=#wxMouse{type=enter_window}}
     end,
@@ -204,28 +207,34 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
 
 %% If the mouse is not moved after popping up the menu, the meny entry
 %% is not active, find_active_panel finds the active row.
-find_active_panel(Panel, MouseY) ->
+find_active_panel(Panel, MX, MY) ->
+    {_,_,WinWidth,_} = wxWindow:getRect(Panel),
+    case MX > 0 andalso MX < WinWidth of
+	true -> find_active_panel_1(Panel, MY);
+	false -> {false, outside}
+    end.
+
+find_active_panel_1(Panel, MY) ->
     MainSizer = wxWindow:getSizer(Panel),
     [_,SizerItem,_] = wxSizer:getChildren(MainSizer),
     Sizer = wxSizerItem:getSizer(SizerItem),
     Children = wxSizer:getChildren(Sizer),
-    Active = fun(SItem) ->
+    Active = fun(SItem, _) ->
 		     {_, SY, _, SH} = wxSizerItem:getRect(SItem),
-		     case MouseY > (SY) andalso MouseY < (SY+SH) of 
-			 false -> false;
+		     case MY > (SY) andalso MY < (SY+SH) of 
+			 false -> {false, outside};
 			 true ->
 			     Active = wxSizerItem:getWindow(SItem),
 			     case wx:is_null(Active) orelse wxWindow:getId(Active) of
-				    true -> false;
-				 Id when Id < 0 -> false;
+				 true -> {false, inside};
+				 Id when Id < 0 -> {false, inside};
 				 Id -> throw({Id, wx:typeCast(Active,wxPanel)})
 			     end
 		     end
 	     end,
     try 
-	lists:foreach(Active, Children),
-	false
-    catch Found -> 
+	lists:foldl(Active, {false, inside}, Children)
+    catch Found ->
 	    Found
     end.
 
@@ -240,14 +249,17 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 	    #menu_pop{msg=Msg} = lists:keyfind(Id, 2, Entries),
 	    wings_wm:psend(Owner, {message, Msg}),
 	    popup_events(Dialog, Panel, Entries, Magnet, Line, Ns, Owner);
-	#wx{id=Id0, event=Ev=#wxMouse{type=What, y=Y}} ->
-	    Id = case Id0 > 0 orelse find_active_panel(Panel, Y) of
+	#wx{id=Id0, event=Ev=#wxMouse{type=What, y=Y, x=X}} ->
+	    Id = case Id0 > 0 orelse find_active_panel(Panel, X, Y) of
 		     true -> Id0;
-		     false -> false;
+		     {false, _} = No -> No;
 		     {AId, _} -> AId
 		 end,
 	    case Id of
-		false ->
+		{false, outside} when What =:= right_up ->
+		    wxPopupTransientWindow:dismiss(Dialog),
+		    wings_wm:psend(Owner, restart_menu);
+		{false, _} ->
 		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner);
 		_Integer ->
 		    wxPopupTransientWindow:dismiss(Dialog),
@@ -309,14 +321,18 @@ mouse_index(left_up) -> 1;
 mouse_index(middle_up) -> 2;
 mouse_index(right_up) -> 3.
 
-popup_event_handler(cancel, _) ->
+popup_event_handler(cancel, _, _) ->
     wxPanel:setFocus(get(gl_canvas)),
     pop;
-popup_event_handler({activate, Cmd}, Owner) ->
+popup_event_handler({activate, Cmd}, Owner, _) ->
     Cmd =:= ignore orelse wings_wm:send_after_redraw(Owner, {action,Cmd}),
     wxPanel:setFocus(get(gl_canvas)),
     pop;
-popup_event_handler({submenu, {What, MagnetClick}, Names, Opts, Menus}, Owner) ->
+popup_event_handler(restart_menu, _Owner, Popup) ->
+    {_, X, Y} = wings_io:get_mouse_state(),
+    Popup(X,Y);
+popup_event_handler({submenu, {What, MagnetClick}, Names, Opts, Menus}, 
+		    Owner, Fun) ->
     {_, X, Y} = wings_io:get_mouse_state(),
     case is_function(Menus) of
 	true ->
@@ -327,18 +343,18 @@ popup_event_handler({submenu, {What, MagnetClick}, Names, Opts, Menus}, Owner) -
 		    wx_popup_menu(X,Y, Names, Next, MagnetClick, Owner);
 		Action when is_tuple(Action); is_atom(Action) ->
 		    Magnet = is_magnet_active(Opts, MagnetClick),
-		    popup_event_handler({activate, insert_magnet_flags(Action, Magnet)}, Owner)
+		    popup_event_handler({activate, insert_magnet_flags(Action, Magnet)}, Owner, Fun)
 	    end;
 	false ->
 	    wx_popup_menu(X,Y,Names,Menus,MagnetClick,Owner)
     end;
-popup_event_handler({message, Msg}, _Owner) ->
+popup_event_handler({message, Msg}, _Owner, _) ->
     wings_wm:message(Msg, ""),
     keep;
-popup_event_handler(redraw,_) ->
+popup_event_handler(redraw,_,_) ->
     defer;
-popup_event_handler(#mousemotion{},_) -> defer;
-popup_event_handler(_Ev,_) ->
+popup_event_handler(#mousemotion{},_,_) -> defer;
+popup_event_handler(_Ev,_,_) ->
     %% io:format("Hmm ~p ~n",[_Ev]),
     keep.
 

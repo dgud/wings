@@ -190,10 +190,18 @@ get_rel_path([D|_]=Dst,[D|_]=Src) ->    % paths are in the same drive - check re
 get_rel_path(_,Src) -> Src.   % paths are in a different Drive - ignore routine
 
 get_rel_path([]=_Dst, []=_Src, Acc) -> Acc;     % export and file dir are the same
-get_rel_path([_|T], [], Acc) -> get_rel_path(T,[],["../"]++Acc);    % file is in some dir level in the Dst
-get_rel_path([], [H|T], Acc) -> get_rel_path([],T,[H]++Acc);    % all previous dir match - file is in uppper dir level
-get_rel_path([H|T0], [H|T1], Acc) -> get_rel_path(T0,T1,["../"]++Acc);      % continue checking in next dir level
-get_rel_path(_, Dist, Acc) -> Acc++Dist.    % no more compatible subdir and file is in some down dir level
+get_rel_path([_|T], [], Acc) ->             % file is in some dir level in the Dst
+    get_rel_path(T,[],["../"]++Acc);
+get_rel_path([], [H|T], Acc)->              % all previous dir match - file is in uppper dir level
+    get_rel_path([],T,[H]++Acc);
+get_rel_path([H|T0], [H|T1], Acc) ->        % continue checking in next dir level
+    get_rel_path(T0,T1,Acc);
+get_rel_path(Dst, Src, _Acc) ->             % no more compatible subdir and file is in some down dir level
+    get_rel_path_0(Dst,Src).
+
+get_rel_path_0([], Acc) -> Acc;
+get_rel_path_0([_|T], Acc) ->
+    get_rel_path_0(T, ["../"]++Acc).
 
 
 wings() ->
