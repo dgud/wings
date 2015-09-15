@@ -4,8 +4,8 @@
 %
 
 menu_blend_mode() ->
-    [{?__(6,"Mix"),mix},
-     {?__(7,"Add"),add},
+    [{?__(105,"Mix"),mix},
+     {?__(106,"Add"),add},
      {?__(8,"Multiply"),mul},
      {?__(109,"Subtract"),sub},
      {?__(110,"Screen"),scr},
@@ -54,7 +54,8 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     Filename = proplists:get_value(filename, Ps, ?DEF_MOD_FILENAME),
     BrowseProps = [{dialog_type,open_dialog},
                    {extensions,[{".jpg",?__(3,"JPEG compressed image")},
-                                {".tga",?__(4,"Targa bitmap")}]}],
+                                {".tga",?__(4,"Targa bitmap")},
+                                {".png",?__(6,"Portable network graphics")}]}],
     Color1 = proplists:get_value(color1, Ps, ?DEF_MOD_COLOR1),
     Color2 = proplists:get_value(color2, Ps, ?DEF_MOD_COLOR2),
     Depth = proplists:get_value(depth, Ps, ?DEF_MOD_DEPTH),
