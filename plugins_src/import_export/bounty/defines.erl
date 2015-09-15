@@ -210,7 +210,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_ZENITH_COLOR, {0.4,0.5,1.0}).
 -define(DEF_GRADIENT_BACK_POWER, 1.0).
 -define(DEF_TURBIDITY, 3.0).
--define(DEF_SUNSKY_VAR, 4.0).
+-define(DEF_SUNSKY_VAR, 1.0).
 -define(DEF_SUN_SAMPLES, 16).
 -define(DEF_SUN_ANGLE, 0.5).
 -define(DEF_SKY_BACKGROUND_LIGHT, false).
@@ -221,7 +221,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_DARKSKY_DIFFUSEPHOTONS, false).
 -define(DEF_DARKSKY_CAUSTICPHOTONS, false).
 -define(DEF_SUN_REAL, false).
--define(DEF_SUN_REAL_POWER, 50.0).
+-define(DEF_SUN_REAL_POWER, 5.0).
 
 %% Infinite Light
 -define(DEF_INFINITE_TYPE, sunlight).

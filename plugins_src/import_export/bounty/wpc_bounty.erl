@@ -306,12 +306,12 @@ pref_dialog(St) ->
             ]},
             {label_column, [
                 {?__(4,"Executable"),{button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}}},
-                {?__(7,"TheBounty Plugins Path"),{button,{text,PluginsPath,[{key,pluginspath},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},
-                {?__(5,"Options"),{text,Options,[{key,options}]}},
-                {?__(8,"Default Shader"),{menu,menu_shader(), ShaderType, [{key,shader_type}]}}
+                {?__(5,"TheBounty Plugins Path"),{button,{text,PluginsPath,[{key,pluginspath},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},
+                {?__(6,"Options"),{text,Options,[{key,options}]}},
+                {?__(7,"Default Shader"),{menu,menu_shader(), ShaderType, [{key,shader_type}]}}
             ]}
         ], [{title,""}]}],
-    wpa:dialog(?__(6,"TheBounty Options"), Dialog, fun (Attr) -> pref_result(Attr,St) end).
+    wpa:dialog(?__(8,"TheBounty Options"), Dialog, fun (Attr) -> pref_result(Attr,St) end).
 
 
 pref_result(Attr, St) ->
