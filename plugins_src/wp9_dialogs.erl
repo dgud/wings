@@ -43,8 +43,11 @@ file_dialog(Type, Prop, Title, Cont) ->
     DefName = proplists:get_value(default_filename, Prop, ""),
     Filters = wings_file:file_filters(Prop),
     Multiple = proplists:get_value(multiple, Prop, false),
-    Type0 = if Multiple =:= true -> Type bor ?wxFD_MULTIPLE;
-               true -> Type
+    Type1 = if (Type =:= ?wxFD_SAVE) -> Type bor ?wxFD_OVERWRITE_PROMPT;
+                true -> Type
+            end,
+    Type0 = if Multiple =:= true -> Type1 bor ?wxFD_MULTIPLE;
+               true -> Type1
             end,
     Dlg = wxFileDialog:new(Frame,
                            [{message, Title},

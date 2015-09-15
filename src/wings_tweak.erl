@@ -1457,8 +1457,8 @@ draw_magnet(#tweak{magnet=true, mag_rad=R}) ->
         gl:enable(?GL_BLEND),
         gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
         wings_view:load_matrices(false),
-        {CR,CG,CB,_}=wings_pref:get_value(tweak_magnet_color),
-        wings_io:set_color({CR,CG,CB,0.06}),
+        {CR,CG,CB,CA}=wings_pref:get_value(tweak_magnet_color),
+        wings_io:set_color({CR,CG,CB,CA}),
         draw_magnet_1(D, R),
         gl:popAttrib()
     end, []);
