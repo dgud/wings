@@ -156,14 +156,14 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     println(F, "</integrator>\n"),
     % volume integrator
     println(F, "<integrator name=\"volintegr\">"),
-    println(F, "\t<type sval=\"~s\"/>",[Volintegr_Type]),
     case Volintegr_Type of
         singlescatterintegrator ->
             println(F, "\t<type sval=\"SingleScatterIntegrator\"/>"),
             println(F, "\t<adaptive bval=\"~s\"/>",[format(Volintegr_Adaptive)]),
             println(F, "\t<optimize bval=\"~s\"/>",[format(Volintegr_Optimize)]),
             println(F, "\t<stepSize fval=\"~.10f\"/>",[Volintegr_Stepsize]);
-        _ -> ""
+        _ -> 
+            println(F, "\t<type sval=\"none\"/>")
     end,
     println(F, "</integrator>\n"),
 
