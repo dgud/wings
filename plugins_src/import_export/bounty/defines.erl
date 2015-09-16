@@ -25,7 +25,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_EXR_FLAG_COMPRESSION, compression_zip).
 
 %% Shader
--define(DEF_SHADER_TYPE, shinydiffuse).
+-define(DEF_MATERIAL_TYPE, shinydiffuse).
 -define(DEF_TIR, false).
 -define(DEF_GLASS_IR_DEPTH, 3).
 -define(DEF_IOR, 1.4).
@@ -267,6 +267,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_MOD_SIZE_Z, 1.0).
 -define(DEF_MOD_OPACITY, 1.0).
 -define(DEF_MOD_DIFFUSE, 1.0).
+-define(DEF_MOD_COLORFACTOR, 1.0).
 %%-define(DEF_MOD_SPECULAR, 0.0).
 %%-define(DEF_MOD_AMBIENT, 0.0).
 -define(DEF_MOD_SHININESS, 1.0).
@@ -303,7 +304,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_MOD_DISTORTION_INTENSITY, 10.0).
 -define(DEF_MOD_DISTORTION_NOISESIZE, 1.0).
 -define(DEF_MOD_ALPHA_INTENSITY, off).
--define(DEF_TEXTURE_TYPE, diffusetexture).
+-define(DEF_SHADER_TYPE, diffuse).
 
 range(T) -> {range,range_1(T)}.
 
@@ -329,6 +330,7 @@ range_1(glass_ir_depth)         -> {0,32};
 range_1(min_refle)              -> {0.0,1.0};
 range_1(size)                   -> {0.0,infinity};
 range_1(modulation)             -> {-5.0,5.0};
+range_1(mod_colorfactor)        -> {-1.0,1.0};
 range_1(turbulence)             -> {?NONZERO,infinity};
 range_1(scale)                  -> {?NONZERO,infinity};
 range_1(cell_size)              -> {0.0,infinity};

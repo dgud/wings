@@ -5,11 +5,12 @@
 export_shader(F, Name, Mat, ExportDir) ->
     YafaRay = proplists:get_value(?TAG, Mat, []),
 
-    DefShaderType = get_pref(shader_type, YafaRay),
-    ShaderType =
-        proplists:get_value(shader_type, YafaRay, DefShaderType),
+    %DefShaderType = get_pref(shader_type, YafaRay),
+	DefMatType = get_pref(shader_type, YafaRay),
+    MatType =
+        proplists:get_value(shader_type, YafaRay, DefMatType), %DefShaderType),
 
-    case ShaderType of
+    case MatType of
 
         shinydiffuse ->
             export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay);
@@ -125,7 +126,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
             "        <transparency fval=\"~.10f\"/>~n"
             "        <diffuse_reflect fval=\"~.10f\"/>~n"
             "        <specular_reflect fval=\"~.10f\"/>~n"
-            "        <emit fval=\"~.10f\"/>~n",
+            "        <emit fval=\"~.10f\"/>",
             [IOR,format(TIR),TransmitFilter,Translucency,Transparency,DiffuseReflect,SpecularReflect,Emit]),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
@@ -771,11 +772,12 @@ export_lightmat_shader(F, Name, Mat, ExportDir, YafaRay) ->
 export_shaderblend(F, Name, Mat, ExportDir) ->
     YafaRay = proplists:get_value(?TAG, Mat, []),
 
-    DefShaderType = get_pref(shader_type, YafaRay),
-    ShaderType =
-        proplists:get_value(shader_type, YafaRay, DefShaderType),
+    %DefShaderType = get_pref(shader_type, YafaRay),
+	DefMatType = get_pref(shader_type, YafaRay),
+    MatType =
+        proplists:get_value(shader_type, YafaRay, DefMatType),
 
-    case ShaderType of
+    case MatType of
 
         blend_mat ->
             export_blend_mat_shader(F, Name, Mat, ExportDir, YafaRay);

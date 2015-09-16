@@ -286,13 +286,13 @@ material_result(_Name, Mat0, Res0) ->
     
 pref_dialog(St) ->
     [{dialogs,Dialogs},{renderer,Renderer},{pluginspath,PluginsPath},
-     {options,Options},{shader_type,ShaderType}] = 
+     {options,Options},{shader_type,MatType}] = 
         get_user_prefs([
             {dialogs,?DEF_DIALOGS},
             {renderer,?DEF_RENDERER},
             {pluginspath,?DEF_PLUGINS_PATH},
             {options,?DEF_OPTIONS},
-            {shader_type,?DEF_SHADER_TYPE}]),
+            {shader_type,?DEF_MATERIAL_TYPE}]),
 
     Dialog = [
         {vframe, [
@@ -308,7 +308,7 @@ pref_dialog(St) ->
                 {?__(4,"Executable"),{button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}}},
                 {?__(5,"TheBounty Plugins Path"),{button,{text,PluginsPath,[{key,pluginspath},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},
                 {?__(6,"Options"),{text,Options,[{key,options}]}},
-                {?__(7,"Default Shader"),{menu,menu_shader(), ShaderType, [{key,shader_type}]}}
+                {?__(7,"Default Material"),{menu,menu_shader(), MatType, [{key,shader_type}]}}
             ]}
         ], [{title,""}]}],
     wpa:dialog(?__(8,"TheBounty Options"), Dialog, fun (Attr) -> pref_result(Attr,St) end).
@@ -372,7 +372,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                       gb_trees:insert(Name, Mat, Gb)
               end, gb_trees:empty(), Mats),
     %%
-                                                %*   MatsBlend =
+    %*   MatsBlend =
     foldl(fun ({Name,Mat}, Gb) ->
                   export_shaderblend(F, "w_"++format(Name), Mat, ExportDir),
                   println(F),

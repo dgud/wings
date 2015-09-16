@@ -43,13 +43,14 @@ modulator_dialogs([Modulator|Modulators], Maps, M) ->
 modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     {Enabled,Mode,Type} = mod_enabled_mode_type(Ps, Maps),
     AlphaIntensity = proplists:get_value(alpha_intensity, Ps, ?DEF_MOD_ALPHA_INTENSITY),
-    TextureType = proplists:get_value(texture_type, Ps, ?DEF_TEXTURE_TYPE),
+    ShaderType = proplists:get_value(texture_type, Ps, ?DEF_SHADER_TYPE),
     SizeX = proplists:get_value(size_x, Ps, ?DEF_MOD_SIZE_X),
     SizeY = proplists:get_value(size_y, Ps, ?DEF_MOD_SIZE_Y),
     SizeZ = proplists:get_value(size_z, Ps, ?DEF_MOD_SIZE_Z),
-    Diffuse = proplists:get_value(diffuse, Ps, ?DEF_MOD_DIFFUSE),
+    % povman: Diffuse = proplists:get_value(diffuse, Ps, ?DEF_MOD_DIFFUSE),
+	ModColorFactor = proplists:get_value(mod_colorfactor, Ps, ?DEF_MOD_COLORFACTOR),
 %%    Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
-    Shininess = proplists:get_value(shininess, Ps, ?DEF_MOD_SHININESS),
+    %Shininess = proplists:get_value(shininess, Ps, ?DEF_MOD_SHININESS),
     Normal = proplists:get_value(normal, Ps, ?DEF_MOD_NORMAL),
     Filename = proplists:get_value(filename, Ps, ?DEF_MOD_FILENAME),
     BrowseProps = [{dialog_type,open_dialog},
@@ -132,15 +133,15 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     ],AlphaIntensity,[]},
                     panel,
                     {menu,[
-                        {?__(121,"Diffuse (Shiny Diffuse, Glossy, SSS)"),diffusetexture},
-                        {?__(122,"Mirror Color (Shiny Diffuse, Glass)"),mirrorcolortexture},
-                        {?__(123,"Mirror (Shiny Diffuse)"),mirrortexture},
-                        {?__(124,"Glossy (Glossy)"),glossytexture},
-                        {?__(125,"Glossy Reflect (Glossy)"),glossyreflecttexture},
-                        {?__(126,"Transparency (Shiny Diffuse)"),transparencytexture},
-                        {?__(127,"Translucency (Shiny Diffuse)"),translucencytexture},
-                        {?__(128,"Bump (All)"),bumptexture}
-                    ],TextureType,[]}
+                        {?__(121,"Diffuse (Shiny Diffuse, Glossy, SSS)"),diffuse},
+                        {?__(122,"Mirror Color (Shiny Diffuse, Glass)"),mirror_color},
+                        {?__(123,"Mirror (Shiny Diffuse)"),mirror},
+                        {?__(124,"Glossy (Glossy)"),glossy},
+                        {?__(125,"Glossy Reflect (Glossy)"),glossy_reflect},
+                        {?__(126,"Transparency (Shiny Diffuse)"),transparency},
+                        {?__(127,"Translucency (Shiny Diffuse)"),translucency},
+                        {?__(128,"Bump (All)"),bump}
+                    ],ShaderType,[]}
                 ],[key({pnl_mode,M}),{margin,false},{hook,Hook_Show}]}
             ]},
             {vframe, [
@@ -158,12 +159,12 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 {hframe,[
                     {vframe,[
                         {label,?__(13,"Color Factor")},
-                        {label,?__(16,"Value Factor")},
+                        %{label,?__(16,"Value Factor")},
                         {label,?__(17,"Normal")}
                     ]},
                     {vframe,[
-                        {slider,{text,fit_range(Diffuse,modulation),[range(modulation)]}},
-                        {slider,{text,Shininess,[range(modulation)]}},
+                        {slider,{text,fit_range(ModColorFactor,mod_colorfactor),[range(mod_colorfactor)]}},
+                        %{slider,{text,Shininess,[range(modulation)]}},
                         {slider,{text,Normal,[range(modulation)]}}
                     ]}
                 ],[{margin,false}]},
@@ -415,8 +416,8 @@ modulator(Res0, M) ->
     {EnabledTag,Enabled} = lists:keyfind(EnabledTag, 1, Res1),
     {TypeTag,Type} = lists:keyfind(TypeTag, 1, Res1),
     Res2 = lists:keydelete(EnabledTag, 1, lists:keydelete(TypeTag, 1, Res1)),
-    [Mode,AlphaIntensity,TextureType,SizeX,SizeY,SizeZ,
-     Diffuse,Shininess,Normal,
+    [Mode,AlphaIntensity,ShaderType,SizeX,SizeY,SizeZ,
+     ModColorFactor, Normal,
      Filename,
      Color1,Color2,Hard,NoiseBasis,NoiseSize,Depth,
      Sharpness,Turbulence,Shape,
@@ -429,10 +430,12 @@ modulator(Res0, M) ->
             Rest -> Rest
         end,
     Ps = [{enabled,Enabled},{mode,Mode},{alpha_intensity,AlphaIntensity},
-          {texture_type,TextureType},
+          {texture_type,ShaderType},
           {size_x,SizeX},{size_y,SizeY},{size_z,SizeZ},
-          {diffuse,Diffuse},
-          {shininess,Shininess},{normal,Normal},
+          %{diffuse,Diffuse},
+		  {mod_colorfactor,ModColorFactor},
+          %{shininess,Shininess},
+		  {normal,Normal},
           {type,Type},
           {filename,Filename},{color1,Color1},{color2,Color2},{hard,Hard},
           {noise_basis,NoiseBasis},{noise_size,NoiseSize},{depth,Depth},
@@ -464,9 +467,10 @@ modulator_init(Mode) ->
         {size_x,?DEF_MOD_SIZE_X},
         {size_y,?DEF_MOD_SIZE_Y},
         {size_z,?DEF_MOD_SIZE_Z},
-        {diffuse,?DEF_MOD_DIFFUSE},
+        %{diffuse,?DEF_MOD_DIFFUSE},
+		{mod_colorfactor,?DEF_MOD_COLORFACTOR}, %povman test..
 %        {specular,?DEF_MOD_SPECULAR},
-        {shininess,?DEF_MOD_SHININESS},
+        %{shininess,?DEF_MOD_SHININESS},
         {normal,?DEF_MOD_NORMAL},
         {type,?DEF_MOD_TYPE},
         {filename,?DEF_MOD_FILENAME},
