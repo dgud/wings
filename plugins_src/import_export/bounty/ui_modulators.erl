@@ -48,7 +48,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     SizeY = proplists:get_value(size_y, Ps, ?DEF_MOD_SIZE_Y),
     SizeZ = proplists:get_value(size_z, Ps, ?DEF_MOD_SIZE_Z),
     % povman: Diffuse = proplists:get_value(diffuse, Ps, ?DEF_MOD_DIFFUSE),
-	ModColorFactor = proplists:get_value(mod_colorfactor, Ps, ?DEF_MOD_COLORFACTOR),
+    ModColorFactor = proplists:get_value(mod_colorfactor, Ps, ?DEF_MOD_COLORFACTOR),
 %%    Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
     %Shininess = proplists:get_value(shininess, Ps, ?DEF_MOD_SHININESS),
     Normal = proplists:get_value(normal, Ps, ?DEF_MOD_NORMAL),
@@ -363,12 +363,12 @@ mod_enabled_mode_type(Ps, Maps) ->
             off -> {false,?DEF_MOD_MODE};
             Mode1 -> {proplists:get_value(enabled, Ps, ?DEF_MOD_ENABLED),Mode1}
         end,
-    Type = proplists:get_value(type, Ps, ?DEF_MOD_TYPE),
+    Type = proplists:get_value(type, Ps, ?DEF_MOD_TEXTURETYPE),
     case Type of
         {map,Map} ->
             case lists:keymember(Map, 1, Maps) of
                 true -> {Enabled,Mode,Type};
-                false -> {false,Mode,?DEF_MOD_TYPE}
+                false -> {false,Mode,?DEF_MOD_TEXTURETYPE}
             end;
         _ -> {Enabled,Mode,Type}
     end.
@@ -433,9 +433,9 @@ modulator(Res0, M) ->
           {texture_type,ShaderType},
           {size_x,SizeX},{size_y,SizeY},{size_z,SizeZ},
           %{diffuse,Diffuse},
-		  {mod_colorfactor,ModColorFactor},
+          {mod_colorfactor,ModColorFactor},
           %{shininess,Shininess},
-		  {normal,Normal},
+          {normal,Normal},
           {type,Type},
           {filename,Filename},{color1,Color1},{color2,Color2},{hard,Hard},
           {noise_basis,NoiseBasis},{noise_size,NoiseSize},{depth,Depth},
@@ -468,11 +468,9 @@ modulator_init(Mode) ->
         {size_y,?DEF_MOD_SIZE_Y},
         {size_z,?DEF_MOD_SIZE_Z},
         %{diffuse,?DEF_MOD_DIFFUSE},
-		{mod_colorfactor,?DEF_MOD_COLORFACTOR}, %povman test..
-%        {specular,?DEF_MOD_SPECULAR},
-        %{shininess,?DEF_MOD_SHININESS},
+        {mod_colorfactor,?DEF_MOD_COLORFACTOR},
         {normal,?DEF_MOD_NORMAL},
-        {type,?DEF_MOD_TYPE},
+        {type,?DEF_MOD_TEXTURETYPE}, %% cambiar por 'texturetype
         {filename,?DEF_MOD_FILENAME},
         {color1,?DEF_MOD_COLOR1},
         {color2,?DEF_MOD_COLOR2},

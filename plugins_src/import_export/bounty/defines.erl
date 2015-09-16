@@ -272,7 +272,7 @@ key(Key) -> {key,?KEY(Key)}.
 %%-define(DEF_MOD_AMBIENT, 0.0).
 -define(DEF_MOD_SHININESS, 1.0).
 -define(DEF_MOD_NORMAL, 0.0).
--define(DEF_MOD_TYPE, image).
+-define(DEF_MOD_TEXTURETYPE, clouds). % cambiar por texturetype
 -define(DEF_MOD_FILENAME, "").
 -define(DEF_MOD_COLOR1, {0.0,0.0,0.0}).
 -define(DEF_MOD_COLOR2, {1.0,1.0,1.0}).
