@@ -28,7 +28,7 @@ ui({file,open_dialog,Prop,Cont}, _Next) ->
     file_dialog(?wxFD_OPEN, Prop, Title, Cont);
 ui({file,save_dialog,Prop,Cont}, _Next) ->
     Title = proplists:get_value(title, Prop, ?__(2,"Save")),
-    file_dialog(?wxFD_SAVE, Prop, Title, Cont);
+    file_dialog(?wxFD_SAVE bor ?wxFD_OVERWRITE_PROMPT, Prop, Title, Cont);
 ui({image,formats,Formats}, _Next) ->
     image_formats(Formats);
 ui({image,read,Prop}, _Next) ->
@@ -43,11 +43,8 @@ file_dialog(Type, Prop, Title, Cont) ->
     DefName = proplists:get_value(default_filename, Prop, ""),
     Filters = wings_file:file_filters(Prop),
     Multiple = proplists:get_value(multiple, Prop, false),
-    Type1 = if (Type =:= ?wxFD_SAVE) -> Type bor ?wxFD_OVERWRITE_PROMPT;
-                true -> Type
-            end,
-    Type0 = if Multiple =:= true -> Type1 bor ?wxFD_MULTIPLE;
-               true -> Type1
+    Type0 = if Multiple =:= true -> Type bor ?wxFD_MULTIPLE;
+               true -> Type
             end,
     Dlg = wxFileDialog:new(Frame,
                            [{message, Title},
