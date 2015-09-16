@@ -28,10 +28,10 @@ export_light(F, Name, point, OpenGL, Attr) ->
         spherelight ->
             println(F,
                 "\t<radius fval=\"~.10f\"/>",
-					[proplists:get_value(arealight_radius, Attr, ?DEF_AREALIGHT_RADIUS)]),
+                    [proplists:get_value(arealight_radius, Attr, ?DEF_AREALIGHT_RADIUS)]),
             println(F,
                 "\t<samples ival=\"~w\"/>",
-					[proplists:get_value(arealight_samples, Attr, ?DEF_AREALIGHT_SAMPLES)]),
+                    [proplists:get_value(arealight_samples, Attr, ?DEF_AREALIGHT_SAMPLES)]),
             println(F,
                 "\t<type sval=\"spherelight\"/>");
         _ ->
@@ -174,14 +174,14 @@ export_light(F, Name, ambient, _OpenGL, YafaRay) ->
                 true ->
                     Maxdistance = proplists:get_value(maxdistance, YafaRay, ?DEF_MAXDISTANCE),
                     println(F, "\t<maxdistance fval=\"~.10f\"/>",[Maxdistance]);
-				
+                
                 false -> ok
             end,
 
             println(F, ""),
             Bg;
         hemilight -> Bg;
-		%
+        %
         pathlight when Power > 0.0 ->
             println(F,"<light type sval=\"~w\" name sval=\"~s\" power fval=\"~.3f\"",
                     [Type,Name,Power]),
@@ -218,13 +218,13 @@ export_light(F, Name, ambient, _OpenGL, YafaRay) ->
                                   "gradient=\"~s\"~n"
                                   "       show_samples=\"~s\" search=\"~w\"",
                                   [CacheSize,AngleThreshold, ShadowThreshold,
-								  format(Gradient), format(ShowSamples),Search]);
+                                  format(Gradient), format(ShowSamples),Search]);
                         false -> ok
                     end
             end,
             println(F, ">"),
             PathlightMode = 
-				proplists:get_value(pathlight_mode, YafaRay, ?DEF_PATHLIGHT_MODE),
+                proplists:get_value(pathlight_mode, YafaRay, ?DEF_PATHLIGHT_MODE),
             case PathlightMode of
                 undefined ->
                     ok;
@@ -235,10 +235,8 @@ export_light(F, Name, ambient, _OpenGL, YafaRay) ->
             case proplists:get_value(use_maxdistance, YafaRay,
                                      ?DEF_USE_MAXDISTANCE) of
                 true ->
-                    Maxdistance = proplists:get_value(maxdistance, YafaRay,
-                                                      ?DEF_MAXDISTANCE),
-                    println(F, "    <maxdistance fval=\"~.10f\"/>",
-                            [Maxdistance]);
+                    Maxdistance = proplists:get_value(maxdistance, YafaRay, ?DEF_MAXDISTANCE),
+                    println(F, "<maxdistance fval=\"~.10f\"/>", [Maxdistance]);
                 false -> ok
             end,
             println(F, "</light>"),
@@ -247,13 +245,13 @@ export_light(F, Name, ambient, _OpenGL, YafaRay) ->
         globalphotonlight ->
             println(F,"<light type sval=\"~w\" name sval=\"~s\"", [Type,Name]),
             GplPhotons = 
-				proplists:get_value(globalphotonlight_photons, YafaRay, ?DEF_GLOBALPHOTONLIGHT_PHOTONS),
+                proplists:get_value(globalphotonlight_photons, YafaRay, ?DEF_GLOBALPHOTONLIGHT_PHOTONS),
             GplRadius = 
-				proplists:get_value(globalphotonlight_radius, YafaRay,?DEF_GLOBALPHOTONLIGHT_RADIUS),
+                proplists:get_value(globalphotonlight_radius, YafaRay,?DEF_GLOBALPHOTONLIGHT_RADIUS),
             GplDepth = 
-				proplists:get_value(globalphotonlight_depth, YafaRay,?DEF_GLOBALPHOTONLIGHT_DEPTH),
+                proplists:get_value(globalphotonlight_depth, YafaRay,?DEF_GLOBALPHOTONLIGHT_DEPTH),
             GplSearch = 
-				proplists:get_value(globalphotonlight_search, YafaRay,?DEF_GLOBALPHOTONLIGHT_SEARCH),
+                proplists:get_value(globalphotonlight_search, YafaRay,?DEF_GLOBALPHOTONLIGHT_SEARCH),
             println(F,"       photons ival=\"~w\" radius=\"~.3f\" "
                     "depth=\"~w\" search=\"~w\">",
                     [GplPhotons,GplRadius,GplDepth,GplSearch]),
@@ -267,15 +265,15 @@ export_light(F, Name, area, OpenGL, YafaRay) ->
     Color = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
     #e3d_mesh{vs=Vs,fs=Fs0} = proplists:get_value(mesh, OpenGL, #e3d_mesh{}),
     VsT = list_to_tuple(Vs),
-	
+    
     Power = proplists:get_value(power, YafaRay, ?DEF_ATTN_POWER),
     Samples = proplists:get_value(arealight_samples, YafaRay, ?DEF_AREALIGHT_SAMPLES),
     Dummy = proplists:get_value(dummy, YafaRay, ?DEF_DUMMY),
-	
+    
     Fs = foldr(fun (Face, Acc) ->
                        e3d_mesh:quadrangulate_face(Face, Vs)++Acc
                end, [], Fs0),
-	%
+    %
     As = e3d_mesh:face_areas(Fs, Vs),
     Area = foldl(fun (A, Acc) -> A+Acc end, 0.0, As),
     AFs = zip_lists(As, Fs),
