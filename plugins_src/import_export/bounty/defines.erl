@@ -22,7 +22,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_GAMMA, 2.2).
 -define(DEF_EXPOSURE, 1.4).
 -define(DEF_RENDER_FORMAT, tga).
--define(DEF_EXR_FLAG_COMPRESSION, compression_zip).
+-define(DEF_EXR_FLAG_COMPRESSION, exr_none).
 
 %% Shader
 -define(DEF_MATERIAL_TYPE, shinydiffuse).
@@ -64,15 +64,15 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_DISPERSION_JITTER, false).
 -define(DEF_FAKE_SHADOWS, false).
 -define(DEF_TRANSPARENCY, 0.0).
--define(DEF_TRANSMIT_FILTER, 0.5).
+-define(DEF_TRANSMIT_FILTER, 1.0).
 -define(DEF_TRANSLUCENCY, 0.0).
 -define(DEF_SSS_TRANSLUCENCY, 1.0).
 -define(DEF_SIGMAS_FACTOR, 1.0).
--define(DEF_DIFFUSE_REFLECT, 0.2).
+-define(DEF_DIFFUSE_REFLECT, 1.0).
 -define(DEF_SPECULAR_REFLECT, 0.0).
 -define(DEF_GLOSSY_REFLECT, 0.01).
 -define(DEF_EMIT, 0.0).
--define(DEF_EXPONENT, 25.0).
+-define(DEF_EXPONENT, 50.0).
 -define(DEF_ANISOTROPIC, false).
 -define(DEF_ANISOTROPIC_U, 5.0).
 -define(DEF_ANISOTROPIC_V, 1500.0).
@@ -204,7 +204,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_POWER, 1.0).
 -define(DEF_BACKGROUND_INFINITE, undefined).
 -define(DEF_BACKGROUND_AMBIENT, constant).
--define(DEF_BACKGROUND_COLOR, {0.0,0.0,0.0}).
+-define(DEF_BACKGROUND_COLOR, {0.25,0.25,0.50}).
 -define(DEF_CONSTANT_BACK_POWER, 1.0).
 -define(DEF_HORIZON_COLOR, {1.0,1.0,1.0}).
 -define(DEF_ZENITH_COLOR, {0.4,0.5,1.0}).
