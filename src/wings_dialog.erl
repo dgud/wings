@@ -17,7 +17,7 @@
 -export([init/0,
 	 info/3,
 	 ask/3, ask/4, ask/5,
-	 dialog/3, dialog/4,
+	 dialog/3, dialog/4, dialog/5,
 	 ask_preview/5, dialog_preview/5
 	]).
 
@@ -225,29 +225,35 @@ ask_preview(Cmd, Bool, Title, Qs, St) ->
     ask(Bool, Title, preview, Qs, preview_fun(Cmd, St)).
 
 dialog_preview(Cmd, Bool, Title, Qs, St) ->
-    dialog(Bool, Title, preview, Qs, preview_fun(Cmd, St)).
+    dialog_1(Bool, Title, preview, Qs, preview_fun(Cmd, St)).
 
 %% Currently a modal dialog
 %%   (orginal wings let camera events trough)
 ask(Title, Qs0, Fun) ->
     {PreviewCmd, Qs} = preview_cmd(Qs0),
-    dialog(true, Title, PreviewCmd, queries(Qs), Fun).
+    dialog_1(true, Title, PreviewCmd, queries(Qs), Fun).
 ask(Ask, Title, Qs0, Fun) ->
     {PreviewCmd, Qs} = preview_cmd(Qs0),
-    dialog(Ask, Title, PreviewCmd, queries(Qs), Fun).
+    dialog_1(Ask, Title, PreviewCmd, queries(Qs), Fun).
 ask(Ask, Title, PreviewCmd, Qs, Fun) ->
-    dialog(Ask, Title, PreviewCmd, queries(Qs), Fun).
+    dialog_1(Ask, Title, PreviewCmd, queries(Qs), Fun).
 
 dialog(Title, Qs0, Fun) ->
     {PreviewCmd, Qs} = preview_cmd(Qs0),
-    dialog(true, Title, PreviewCmd, Qs, Fun).
+    dialog_1(true, Title, PreviewCmd, Qs, Fun).
+dialog(Title, Qs0, Fun, HelpFun) when is_list(Title)  ->
+    {PreviewCmd, Qs} = preview_cmd(Qs0),
+    dialog_1(true, Title, PreviewCmd, Qs, Fun, HelpFun);
 dialog(Ask, Title, Qs0, Fun) ->
     {PreviewCmd, Qs} = preview_cmd(Qs0),
-    dialog(Ask, Title, PreviewCmd, Qs, Fun).
-dialog(Ask, Title, PreviewCmd, Qs0, Fun) when is_list(Qs0) ->
+    dialog_1(Ask, Title, PreviewCmd, Qs, Fun).
+dialog(Ask, Title, Qs0, Fun, HelpFun) ->
+    {PreviewCmd, Qs} = preview_cmd(Qs0),
+    dialog_1(Ask, Title, PreviewCmd, Qs, Fun, HelpFun).
+dialog_1(Ask, Title, PreviewCmd, Qs0, Fun) when is_list(Qs0) ->
     Qs = {vframe_dialog, Qs0, [{buttons, [ok, cancel]}]},
-    dialog(Ask, Title, PreviewCmd, Qs, Fun);
-dialog(Ask, Title, PreviewCmd, Qs, Fun) when not is_list(Qs) ->
+    dialog_1(Ask, Title, PreviewCmd, Qs, Fun);
+dialog_1(Ask, Title, PreviewCmd, Qs, Fun) when not is_list(Qs) ->
     case element(1,Qs) of
 	preview -> error(Qs);
 	drag_preview_cmd -> error(Qs);
@@ -256,6 +262,9 @@ dialog(Ask, Title, PreviewCmd, Qs, Fun) when not is_list(Qs) ->
     {Dialog, Fields} = build_dialog(Ask andalso PreviewCmd, Title, Qs),
     %% io:format("Enter Dialog ~p ~p ~p~n",[Ask,PreviewCmd, Fields]),
     enter_dialog(Ask, PreviewCmd, Dialog, Fields, Fun).
+dialog_1(Ask, Title, PreviewCmd, Qs0, Fun, HelpFun) when is_list(Qs0) ->
+    Qs = {vframe_dialog, Qs0, [{buttons, [ok, cancel]},{help, HelpFun}]},
+    dialog_1(Ask, Title, PreviewCmd, Qs, Fun).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -760,6 +769,7 @@ build(Ask, Qs, Parent, Sizer) ->
 build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
     Def = proplists:get_value(value, Flags, ?wxID_OK),
     Buttons = proplists:get_value(buttons, Flags, [ok, cancel]),
+    HelpFun = proplists:get_value(help, Flags, undefined),
     ButtMask = lists:foldl(fun(ok, Butts)     -> ?wxOK bor Butts;
 			      (cancel, Butts) -> ?wxCANCEL bor Butts;
 			      (yes, Butts)    -> ?wxYES bor Butts;
@@ -780,6 +790,19 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 			 _ ->
 			     ignore %% Preview connects it self
 		     end,
+		     case HelpFun of
+                         HelpFun when is_function(HelpFun)->
+			     {Title,Content} = HelpFun(),
+			     BtnHelp = wxButton:new(Dialog,?wxID_HELP),
+			     wxSizer:insert(Ok, 0, BtnHelp, []),
+			     Help = fun(#wx{},_) ->
+                                 info(Title,Content, [{top_frame, Dialog}])
+			     end,
+			     wxDialog:connect(Dialog, command_button_clicked,
+			                      [{id, ?wxID_HELP}, {callback,Help}]);
+		         _ -> ignore
+		     end,
+
 		     Ok
 	     end,
     In = build(Ask, {vframe, Qs, [{proportion,1}]}, Parent, Sizer, []),

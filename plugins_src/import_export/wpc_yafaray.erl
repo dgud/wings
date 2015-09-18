@@ -2155,7 +2155,7 @@ pref_result(Attr, St) ->
 export_dialog(Op, Title) ->
     wpa:dialog(true, Title,
                export_dialog_qs(Op, get_prefs(export_prefs())),
-                fun(Attr) -> {file,{Op,{?TAG,Attr}}} end).
+               fun(Attr) -> {file,{Op,{?TAG,Attr}}} end, fun () -> help_export() end).
 
 %% Export Render Options Dialog Settings
 export_prefs() ->
@@ -2486,8 +2486,7 @@ export_dialog_qs(Op, Attr) ->
                     {menu, [
                         {?__(23, "Off"), false},
                         {?__(61, "On"), true},
-                        {?__(24, "Premultiply"), premultiply},
-                        {?__(25, "Backgroundmask"), backgroundmask}
+                        {?__(24, "Premultiply"), premultiply}
                     ], get_pref(save_alpha,Attr), [{key,save_alpha}]},
                     panel,
                     {?__(159, "Transp Refraction"),get_pref(background_transp_refract,Attr),
@@ -5432,6 +5431,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         directlighting ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
             println(F, "<shadowDepth ival=\"~w\"/>",[ShadowDepth]),
@@ -5440,6 +5440,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         photonmapping ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
             println(F, "<shadowDepth ival=\"~w\"/>",[ShadowDepth]),
@@ -5459,6 +5460,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         pathtracing ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
             println(F, "<shadowDepth ival=\"~w\"/>",[ShadowDepth]),
@@ -5474,12 +5476,14 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         bidirectional ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F," ");
 
         sppm ->
             println(F," "),
             println(F, "<type sval=\"SPPM\"/>"),
+            println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<photons ival=\"~w\"/>",[SPPM_Photons]),
             println(F, "<bounces ival=\"~w\"/>",[SPPM_Bounces]),
             println(F, "<searchNum ival=\"~w\"/>",[SPPM_Search]),
@@ -5585,12 +5589,9 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         case SaveAlpha of
             premultiply ->
                 "        <premult bval=\"true\"/>~n";
-            backgroundmask ->
-                "        alpha_backgroundmask=\"on\"/~n";
             _ -> ""
         end++
         "        <clamp_rgb bval=\"~s\"/>~n"
-        "        <bg_transp_refract bval=\"~s\"/>~n"
         "    <background_name sval=\"~s\"/>~n"++
         case RenderFormat of
             tga -> "";
@@ -5611,16 +5612,11 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         "    <indirect_samples sval=\"0\"/>~n"
         "    <indirect_power sval=\"1.0\"/>~n"
         "    <exposure fval=\"~.10f\"/>~n"++
-        case SaveAlpha of
-            false -> "";
-            _ ->
-                "    <save_alpha bval=\"on\"/>~n"
-        end++
         "    <gamma fval=\"~.10f\"/>~n"
         "    ",
         [CameraName,AA_Filter_Type,AA_passes,AA_threshold,
             AA_minsamples,AA_pixelwidth,
-            format(ClampRGB),format(BackgroundTranspRefract),BackgroundName]++
+            format(ClampRGB),BackgroundName]++
             case RenderFormat of
                 tga -> [];
                 _   -> [format(RenderFormat)]
@@ -5890,6 +5886,11 @@ print_mesh(#e3d_mesh{type=T,vs=Vs,vc=Vc,tx=Tx,ns=Ns,fs=Fs,he=He,matrix=M}) ->
               [T,Vs,Vc,Tx,Ns,Fs,He,M]).
 -endif.
 
+help_export() ->
+    Title = help(title, {options_dialog,general}),
+    Text = help(text, {options_dialog,general}),
+    {Title,Text}.
+
 help_button(Subject) ->
     Title = help(title, Subject),
     TextFun = fun () -> help(text, Subject) end,
@@ -6015,4 +6016,42 @@ help(text, pref_dialog) ->
      ?__(74,"Options: Rendering command line options to be inserted between the "
       "executable and the .xml filename, -dp (add render settings badge) "
       "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All)."
-      "The YafaRay Fork Build, TheBounty by Povmaniac, IS REQUIRED FOR SUBSURFACE SCATTERING." )].
+      "The YafaRay Fork Build, TheBounty by Povmaniac, IS REQUIRED FOR SUBSURFACE SCATTERING." )];
+
+help(title, {options_dialog,_}) ->
+    ?__(81,"YafaRay Render Options");
+help(text, {options_dialog,general}) ->
+    [[{bold,?__(82,"Transparent Shadows:")++" "}],
+        ?__(83,"Enable when a Glass material with Fake Shadows is used and when Transparency "
+        "Maps are used."),
+        [{bold,?__(84,"Transparent Refraction:")++" "}],
+        ?__(85,"Disable if using Alpha Channel in Background, when Glass materials are used, "
+        "and a refracted background needs to appear in the glass."),
+     [{bold,?__(86,"Bidirectional Path Tracing:")++" "}],
+        ?__(87,"This lighting method in the Lighting tab requires a high number of Passes "
+        "in the Anti-Aliasing section of the General Options tab. Anti-Aliasing Threshold "
+        "should be set to 0.0."),
+     [{bold,?__(88,"Subsurface Scattering:")++" "}],
+        ?__(89,"This feature, in the Lighting tab, is not available with all Lighting methods. "
+        "An object with Translucent (SSS) material  is required."),
+     [{bold,?__(90,"Volumetrics:")++" "}],
+        ?__(91,"This feature in the Lighting tab, adds fog or clouds to your scene, assuming "
+        "there is a Volume object with a Material name of \"TEmytex\"."),
+     [{bold,?__(92,"Camera Width and Height:")++" "}],
+        ?__(93,"This setting, in the Camera tab, controls the size of the rendered image. The size "
+        "of the Geometry window affects camera framing. The proportions for Camera Width and "
+        "Height and the Geometry window  width and height need to be the same.  For example, to "
+        "render an (800 x 600) image the Geometry window needs to be (800 x 600) or (400 x 300) in size."),
+     [{bold,?__(94,"Depth of Field (DOF):")++" "}],
+        ?__(95,"Use the \"pinhole\" f-stop setting, in the Camera tab, to disable Depth of Field. "
+        "Using Depth of Field results in longer render times. Consider simulating DOF with an "
+        "image editor, if DOF is needed and render times are too long."),
+     [{bold,?__(96,"No image rendered:")++" "}],
+        ?__(97,"Check the Log Window for information. When rendering with Lighting methods with "
+        "Global Illumination, no image will be rendered if not enough photons are present.  "
+        "Try adding more lights to your scene."),
+     [{bold,?__(98,"Rendering Error:")++" "}],
+        ?__(99,"Check the Log Window for information. The error message may be the result of enabling "
+        "Subsurface Scattering, in the Lighting tab, when using a version of YafaRay that does not "
+        "support that feature.")
+    ].
