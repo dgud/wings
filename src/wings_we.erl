@@ -34,7 +34,8 @@
 	 visible/1,visible/2,visible_vs/1,visible_vs/2,
 	 visible_edges/1,visible_edges/2,fully_visible_edges/2,
 	 validate_mirror/1,mirror_flatten/2,mirror_projection/1,
-	 create_mirror/2,freeze_mirror/1,break_mirror/1,centroid/1,volume/1]).
+	 create_mirror/2,freeze_mirror/1,break_mirror/1,
+     centroid/1,volume/1,perimeter/1,surface_area/1]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
@@ -1236,7 +1237,21 @@ centroid_parts(Face, We) ->
     Centroid = e3d_vec:average([V1,V2,V3,{0.0,0.0,0.0}]),
     {Volume,Centroid}.	
     
-    
+perimeter(#we{es=Etab}=We) -> 
+    MyAcc = fun({_Ei, #edge{vs=VS,ve=VE}}, Acc) -> 
+        Pt1 = wings_vertex:pos(VS,We),
+        Pt2 = wings_vertex:pos(VE,We),
+        D = e3d_vec:dist(Pt1,Pt2),
+        D + Acc
+    end,
+    lists:foldl(MyAcc, 0.0, array:sparse_to_orddict(Etab)).
+
+surface_area(#we{fs=Ftab}=We) -> 
+    SAs = lists:map(
+         fun(Fi) -> abs(wings_face:area(Fi,We)) end,
+         gb_trees:keys(Ftab) ),
+    lists:sum(SAs).
+
 volume(#we{}=We0) ->
     We = wings_tesselation:triangulate(We0),
     #we{fs=Ftab}=We,
