@@ -17,7 +17,9 @@
 	 norm_sub/2,mul/2,divide/2,neg/1,dot/2,cross/2,
 	 len/1,dist/2,dist_sqr/2,
 	 norm/1,norm/3,normal/3,normal/1,average/1,average/2,average/4,
-	 bounding_box/1,area/3,degrees/2,plane/3,plane_side/2,plane_dist/2]).
+	 bounding_box/1,area/3,degrees/2,
+   plane/1,plane/2,plane/3,
+   plane_side/2,plane_dist/2]).
 
 -include("e3d.hrl").
 
