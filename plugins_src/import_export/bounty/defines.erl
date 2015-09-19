@@ -309,6 +309,7 @@ key(Key) -> {key,?KEY(Key)}.
 range(T) -> {range,range_1(T)}.
 
 %% Material ranges
+range_1(zero_to_one)            -> {0.0,1.0}; % float type, of course
 range_1(volume_sigma_a)         -> {0.0,1.0};
 range_1(volume_sigma_s)         -> {0.0,1.0};
 range_1(volume_height)          -> {0.0,1000.0};
@@ -372,6 +373,8 @@ range_1(oren_nayar_sigma)       -> {0.0,1.0};
 %% Light ranges
 range_1(power)                  -> {0.0,infinity};
 range_1(bias)                   -> {0.0,1.0};
+%add
+range_1(verbosity_level)		-> {0,3};
 range_1(res)                    -> {0,infinity};
 range_1(radius)                 -> {0,infinity};
 range_1(blur)                   -> {0.0,1.0};
@@ -444,7 +447,7 @@ range_1(threads_number)         -> {1,100};
 range_1(aa_pixelwidth)          -> {1.0,2.0};
 range_1(aa_passes)              -> {0,infinity};
 range_1(aa_threshold)           -> {0.0,1.0};
-range_1(aa_minsamples)          -> {1,infinity};
+range_1(aa_samples)             -> {1,infinity};
 range_1(gamma)                  -> {0.0,infinity};
 range_1(exposure)               -> {0.0,infinity};
 range_1(pixels)                 -> {1,infinity};
