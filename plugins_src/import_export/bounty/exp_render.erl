@@ -49,7 +49,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     println(F,
         "\t<AA_threshold fval=\"~.10f\"/>",[proplists:get_value(aa_threshold, Attr)]),
     println(F,
-        "\t<AA_minsamples ival=\"~w\"/>",[proplists:get_value(aa_minsamples, Attr)]),
+        "\t<AA_minsamples ival=\"~w\"/>",[proplists:get_value(aa_samples, Attr)]),
     println(F,
         "\t<AA_pixelwidth fval=\"~.10f\"/>",[proplists:get_value(aa_pixelwidth, Attr)]),
     %
@@ -58,7 +58,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         "\t<save_alpha bval=\"~s\"/>",[format(SaveAlpha)]),
     case SaveAlpha of
         premultiply ->
-            println(F, "\t<premult bval=\"true\"/>");
+            println(F, "\t<premult bval=\"false\"/>");
         %backgroundmask ->
         %    println(F, "\t<alpha_backgroundmask bval=\"true\"/>"); % povman: deprecated
         _ -> ""
@@ -94,8 +94,8 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     println(F, "\t<outfile sval=\"~s\"/>",[Outfile]),
     %println(F, "\t<indirect_samples sval=\"0\"/>"), % TO DO: review..
     %println(F, "\t<indirect_power sval=\"1.0\"/>"), %
-    println(F,
-        "\t<exposure fval=\"~.10f\"/>",[proplists:get_value(exposure, Attr)]),
+    %println(F,
+    %    "\t<exposure fval=\"~.10f\"/>",[proplists:get_value(exposure, Attr)]),
     println(F,
         "\t<gamma fval=\"~.10f\"/>",[proplists:get_value(gamma, Attr)]),
     println(F,

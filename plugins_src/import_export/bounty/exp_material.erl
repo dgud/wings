@@ -3,33 +3,33 @@
 %
 %
 export_shader(F, Name, Mat, ExportDir) ->
-    YafaRay = proplists:get_value(?TAG, Mat, []),
+    MatAttr = proplists:get_value(?TAG, Mat, []),
 
-    %DefShaderType = get_pref(shader_type, YafaRay),
-    DefMatType = get_pref(shader_type, YafaRay),
     MatType =
-        proplists:get_value(shader_type, YafaRay, DefMatType), %DefShaderType),
+        proplists:get_value(shader_type, MatAttr, ?DEF_MATERIAL_TYPE),
 
     case MatType of
 
         shinydiffuse ->
-            export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay);
+            export_shinydiffuse_shader(F, Name, Mat, ExportDir, MatAttr);
+
         glossy ->
-            export_glossy_shader(F, Name, Mat, ExportDir, YafaRay);
+            export_glossy_shader(F, Name, Mat, ExportDir, MatAttr);
+
         coatedglossy ->
-            export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay);
+            export_coatedglossy_shader(F, Name, Mat, ExportDir, MatAttr);
 
         translucent ->
-            export_translucent_shader(F, Name, Mat, ExportDir, YafaRay);
+            export_translucent_shader(F, Name, Mat, ExportDir, MatAttr);
 
         glass ->
-            export_glass_shader(F, Name, Mat, ExportDir, YafaRay);
+            export_glass_shader(F, Name, Mat, ExportDir, MatAttr);
 
         lightmat ->
-            export_lightmat_shader(F, Name, Mat, ExportDir, YafaRay);
+            export_lightmat_shader(F, Name, Mat, ExportDir, MatAttr);
 
         rough_glass ->
-            export_rough_glass_shader(F, Name, Mat, ExportDir, YafaRay);
+            export_rough_glass_shader(F, Name, Mat, ExportDir, MatAttr);
 
         blend_mat ->
             ok
@@ -66,8 +66,8 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
     %% XXX Wings scaling of shininess is weird. Commonly this value
     %% is the cosine power and as such in the range 0..infinity.
     %% OpenGL limits this to 0..128 which mostly is sufficient.
-    println(F, "       <hard fval=\"~.10f\"/>",
-            [proplists:get_value(shininess, OpenGL)*128.0]),
+    %println(F, "       <hard fval=\"~.10f\"/>",
+    %        [proplists:get_value(shininess, OpenGL)*128.0]),
     export_rgb(F, mirror_color,
                proplists:get_value(reflected, YafaRay, DefReflected)),
     export_rgb(F, color,
@@ -120,11 +120,11 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
     println(F, "\t<IOR fval=\"~.10f\"/>",[IOR]),
     println(F, "\t<fresnel_effect bval=\"~s\"/>",[format(TIR)]),
     println(F, "\t<transmit_filter fval=\"~.10f\"/>~n"
-            "        <translucency fval=\"~.10f\"/>~n"
-            "        <transparency fval=\"~.10f\"/>~n"
-            "        <diffuse_reflect fval=\"~.10f\"/>~n"
-            "        <specular_reflect fval=\"~.10f\"/>~n"
-            "        <emit fval=\"~.10f\"/>",
+            "\t<translucency fval=\"~.10f\"/>~n"
+            "\t<transparency fval=\"~.10f\"/>~n"
+            "\t<diffuse_reflect fval=\"~.10f\"/>~n"
+            "\t<specular_reflect fval=\"~.10f\"/>~n"
+            "\t<emit fval=\"~.10f\"/>",
             [TransmitFilter,Translucency,Transparency,DiffuseReflect,SpecularReflect,Emit]),
 
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
@@ -232,8 +232,6 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
                     [OrenNayarSigma])
     end,
 
-
-
     println(F, "  <diffuse_reflect fval=\"~.10f\"/>~n"
             "        <glossy_reflect fval=\"~.10f\"/>~n"
             "        <exponent fval=\"~.10f\"/>~n",
@@ -251,13 +249,8 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
           end, 1, Modulators),
     println(F, "</material>").
 
-
-
-
 %%% Export Coated Glossy Material
 %%%
-
-
 export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
@@ -312,7 +305,6 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
     AbsorptionColor =
         proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
 
-
     case AbsorptionColor of
         [ ] -> ok;
         {AbsR,AbsG,AbsB} ->
@@ -352,8 +344,6 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
                     [OrenNayarSigma])
     end,
 
-
-
     println(F, "        <IOR fval=\"~.10f\"/>~n"
             "        <diffuse_reflect fval=\"~.10f\"/>~n"
             "        <glossy_reflect fval=\"~.10f\"/>~n"
@@ -375,11 +365,8 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
           end, 1, Modulators),
     println(F, "</material>").
 
-
-
 %%% Export Translucent (SSS) Material
 %%%
-
 
 export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
@@ -408,8 +395,6 @@ export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
     SSS_AbsorptionColor =
         proplists:get_value(sss_absorption_color, YafaRay, ?DEF_SSS_ABSORPTION_COLOR),
 
-
-
     ScatterColor =
         proplists:get_value(scatter_color, YafaRay, ?DEF_SCATTER_COLOR),
 
@@ -419,7 +404,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
     %% XXX Wings scaling of shininess is weird. Commonly this value
     %% is the cosine power and as such in the range 0..infinity.
     %% OpenGL limits this to 0..128 which mostly is sufficient.
-    println(F, "       <hard ival=\"~.10f\"/>",
+    println(F, "\t<hard ival=\"~.10f\"/>",
             [proplists:get_value(shininess, OpenGL)*128.0]),
     export_rgb(F, glossy_color,
                proplists:get_value(reflected, YafaRay, DefReflected)),
@@ -428,8 +413,6 @@ export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
 
     export_rgb(F, specular_color,
                proplists:get_value(sss_specular_color, YafaRay, SSS_Specular_Color)),
-
-
 
     case SSS_AbsorptionColor of
         [ ] -> ok;
@@ -446,9 +429,6 @@ export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
                proplists:get_value(scatter_color, YafaRay, ScatterColor)),
 
     IOR = proplists:get_value(ior, YafaRay, ?DEF_IOR),
-
-
-
 
     SigmaSfactor = proplists:get_value(sigmas_factor, YafaRay, ?DEF_SIGMAS_FACTOR),
 
@@ -479,7 +459,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
 
 
     end,
-    println(F, "        <IOR fval=\"~.10f\"/>~n"
+    println(F, "\t<IOR fval=\"~.10f\"/>~n"
             "        <sigmaS_factor fval=\"~.10f\"/>~n"
             "        <diffuse_reflect fval=\"~.10f\"/>~n"
             "        <glossy_reflect fval=\"~.10f\"/>~n"
@@ -537,13 +517,9 @@ export_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
                proplists:get_value(transmitted, YafaRay, DefTransmitted)),
 
     IOR = proplists:get_value(ior, YafaRay, ?DEF_IOR),
-
     Glass_IR_Depth = proplists:get_value(glass_ir_depth, YafaRay, ?DEF_GLASS_IR_DEPTH),
-
     TransmitFilter = proplists:get_value(transmit_filter, YafaRay, ?DEF_TRANSMIT_FILTER),
-
     DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
-
     AbsorptionColor =
         proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
 
@@ -559,9 +535,7 @@ export_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
 
             println(F, "<absorption_dist fval=\"~.10f\"/>"
                     "        <transmit_filter fval=\"~.10f\"/>~n"
-
                    ,[AbsD,TransmitFilter])
-
     end,
     DispersionPower =
         proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
@@ -600,8 +574,6 @@ export_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
                   N % Ignore old modulators
           end, 1, Modulators),
     println(F, "</material>").
-
-
 
 %%% Export Rough Glass Material
 %%%
@@ -701,9 +673,7 @@ export_rough_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
           end, 1, Modulators),
     println(F, "</material>").
 
-
-%%% Export Light Material
-%%%
+%%% Export Light Material%%%
 
 export_lightmat_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
@@ -729,21 +699,13 @@ export_lightmat_shader(F, Name, Mat, ExportDir, YafaRay) ->
     Lightmat_Color =
         proplists:get_value(lightmat_color, YafaRay, DefLightmatColor),
 
-
-
-
     %% XXX Wings scaling of shininess is weird. Commonly this value
     %% is the cosine power and as such in the range 0..infinity.
     %% OpenGL limits this to 0..128 which mostly is sufficient.
 
     export_rgb(F, color,
                proplists:get_value(lightmat_color, YafaRay, Lightmat_Color)),
-
-
     Lightmat_Power = proplists:get_value(lightmat_power, YafaRay, ?DEF_LIGHTMAT_POWER),
-
-
-
     println(F, "  <power fval=\"~.10f\"/>~n",
             [Lightmat_Power]),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
@@ -758,11 +720,6 @@ export_lightmat_shader(F, Name, Mat, ExportDir, YafaRay) ->
                   N % Ignore old modulators
           end, 1, Modulators),
     println(F, "</material>").
-
-
-
-
-
 
 %%% End of Basic Materials Export
 %%%
