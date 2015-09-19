@@ -189,11 +189,11 @@ plane({X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}) ->
         D = -A*CX-B*CY-C*CZ,                  
         {{A,B,C},D}.
 %% Calculate plane coefficients using first three points in a flat polygon. 
-plane([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}|T]) ->
-        {A,B,C} = e3d_vec:normal([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}|T]),
-        {CX,CY,CZ} = e3d_vec:average([{X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}]),
-        D = -A*CX-B*CY-C*CZ,                  
-        {{A,B,C},D}.
+plane([{_,_,_},{_,_,_},{_,_,_}|_]=Polygon) ->
+        {A,B,C} = e3d_vec:normal(Polygon),
+        {CX,CY,CZ} = e3d_vec:average(Polygon),
+        plane({CX,CY,CZ},{A,B,C}).
+
 
 %% Helper function used to sort points according to which side of a plane they are on.	
 plane_side({X,Y,Z},{{A,B,C},D}) ->
