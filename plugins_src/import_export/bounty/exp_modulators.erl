@@ -1,6 +1,19 @@
+%%
+%%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
+%%  Copyright (C) 2013-2015 Pedro Alcaide, aka povmaniac.
+%%  Contact: thebountyrenderer@gmail.com
+%%
+%%  This program is free software; you can redistribute it and/or modify
+%%  it under the terms of the GNU GPL as published by the FSF;
+%%  either version 2 of the License, or (at your option) any later version.
+%%  See the GNU General Public License for more details.
+%%
+
 %
-%
-%
+%  Export material shaders modulators
+%  TO DO:
+%  Split mapping code part and make an function
+%  for mapping multiple modulators ( layer )
 %
 
 export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
@@ -28,18 +41,18 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             % povman: change TextureType variable to most clarified ShaderType
             % TextureType = proplists:get_value(texture_type, Ps, ?DEF_TEXTURE_TYPE),
             %-----------------------------------------------------------------------
-			
+
             ShaderType = proplists:get_value(texture_type, Ps, ?DEF_SHADER_TYPE),
+			%{marble, wood,clouds} -> "global";
             TexCo =
                 case TexType of
-                    {image,jpeg,map,_}-> "uv"; %"<texco sval=\"uv\"/>";
-                    {marble, wood,clouds} -> "global"; %"<texco sval=\"global\"/>";
-                    _ -> "uv"
+                    diffuse -> "uv";
+					image -> "uv";
+					jpeg -> "uv";
+					map -> "uv"; %"<texco sval=\"uv\"/>";
+					_ -> "global"
                 end,
 
-            %% Start Identify Modulator # (w_default_Name_1 or w_default_Name_2)
-            Split=re:split(Texname,"_",[{return, list}]),
-            Num=lists:last(Split),
             %UpperLayer =
             %    case {Num,BlendMode,AlphaIntensity} of
             %        {"1",mix,_} ->  "";
@@ -58,7 +71,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             %        {_,stencil} -> "<use_alpha bval=\"true\"/>";
             %        _ -> ""
             %    end,
-            % TextureShaderType            
+            % TextureShaderType
 
             %ShaderName =
             %    case {Num,BlendMode} of
@@ -70,16 +83,17 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             %%------------------------------------------------------------------------------------->
 
             %% Identify Modulator # (w_default_Name_1 or w_default_Name_2)
-            Split=re:split(Texname,"_",[{return, list}]),
-            Num=lists:last(Split),
+            %Split=re:split(Texname,"_",[{return, list}]),
+            %Num=lists:last(Split),
 
-            %DoColor = case ShaderType of
-            %        {diffuse, mirror_color, glossy_reflect, glossy} -> true;                    
-            %        {mirror, transparency, translucency, bump}-> false                    
-            %    end,
-			
-			DoColor = true,
-
+            DoColor = case ShaderType of
+                    diffuse -> true;
+                    mirror_color -> true;
+                    glossy_reflect -> true;
+                    glossy -> true;
+                    _ -> false
+                    %{mirror,transparency,translucency,bump}-> false
+                end,
             %
             %_ShaderName =
             %    case {Num, BlendMode} of
@@ -106,15 +120,13 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             %
             println(F,"\t\t<~s fval=\"~w\"/>",[FactorType,Factor]),
             %
-            CellType = intensity, %proplists:get_value(cell_type, Ps, ?DEF_MOD_CELLTYPE),
+            CellType = proplists:get_value(cell_type, Ps, ?DEF_MOD_CELLTYPE),
             %%--------------------------->
-            erlang:display("Texture type is :"++TexType),
-
             IsColor = % revise
                 case TexType of
                     image -> true;
                     {map,_} -> true;
-                    voronoi -> 
+                    voronoi ->
                         case CellType of
                             intensity -> true;
                             _ -> false % maybe this case.. fail
@@ -153,7 +165,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             println(F, "\t\t<negative bval=\"false\"/>"),
             %
             println(F, "\t\t<noRGB bval=\"false\"/>"),
-            
+
             % _StencilMode = proplists:get_value(stencil_mode, Ps, ?DEF_MOD_STENCIL),
             % erlang:display("Modulator. Stencil value is: "++StencilMode),
 
@@ -187,13 +199,13 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             Ulayer = "",
             %
             case Ulayer of
-                "" -> 
+                "" ->
                     case DoColor of
                         true ->
                             println(F,
                                 "\t\t<upper_color r=\"1\" g=\"1\" b=\"1\" a=\"1\"/>\n"
                                 "\t\t<upper_value fval=\"0\"/>");
-                        false -> 
+                        false ->
                             println(F,
                                 "\t\t<upper_color r=\"0\" g=\"0\" b=\"0\" a=\"1\"/>\n" % alpha = 1 ??
                                 "\t\t<upper_value fval=\"~w\"/>",[Factor])
