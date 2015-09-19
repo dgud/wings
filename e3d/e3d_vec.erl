@@ -172,9 +172,23 @@ area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
     N2 = D10*D21-D11*D20,
     math:sqrt(N0*N0+N1*N1+N2*N2)*0.5.
     
+    
+%% Calculate plane coefficients from point {CX,CY,CZ} and normal {A,B,C}    
+%% Use reference of  : http://mathworld.wolfram.com/Plane.html
+plane({CX,CY,CZ}, {A,B,C}) 
+    when is_float(CX), is_float(CY), is_float(CZ),
+         is_float(A),  is_float(A),  is_float(A) ->
+     D = -A*CX-B*CY-C*CZ,                  
+     {{A,B,C},D}.
 %% Calculate plane coefficients for a plane on which the triangle lies   
 plane({X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}) ->
         {A,B,C} = e3d_vec:normal({X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}),
+        {CX,CY,CZ} = e3d_vec:average([{X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}]),
+        D = -A*CX-B*CY-C*CZ,                  
+        {{A,B,C},D}.
+%% Calculate plane coefficients using first three points in a flat polygon. 
+plane([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}|T]) ->
+        {A,B,C} = e3d_vec:normal([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}|T]),
         {CX,CY,CZ} = e3d_vec:average([{X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}]),
         D = -A*CX-B*CY-C*CZ,                  
         {{A,B,C},D}.
