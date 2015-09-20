@@ -909,8 +909,8 @@ command_1({tools,{virtual_mirror,Cmd}}, St) ->
     wings_view:virtual_mirror(Cmd, St);
 command_1({tools, {screenshot,Ask}}, St) ->
     wings_image:screenshot(Ask,St);
-command_1({tools, area_volume_info}, St) ->
-    area_volume_info(St),
+command_1({tools, object_info}, St) ->
+    object_info(St),
     St;
 command_1({tools, put_on_ground}, St) ->
     {save_state,wings_align:put_on_ground(St)};
@@ -1022,7 +1022,7 @@ tools_menu() ->
      {?__(24,"Screenshot..."), screenshot,
       ?__(25,"Grab an image of the window (export it from the outliner)"),[option]},
      separator,
-     {?__(26,"Scene Info: Area & Volume"), area_volume_info,
+     {?__(26,"Scene Info: Area & Volume"), object_info,
       ?__(27,"Calculate area and volume for each object in the scene")},
      {?__(28,"Put on Ground"), put_on_ground,
       ?__(29,"Put selected objects on the ground plane")},
@@ -1852,45 +1852,62 @@ get_mode_restriction() ->
     {value,Other} -> Other
     end.
 
-area_volume_info(St) ->
+%%%% Get Objects Info and display in a table, one row per object.
+object_info(St) ->
     #st{shapes=Shapes} = St,
+    HRow = {
+            ?__(1,"#"),
+            ?__(2,"Name"),
+            ?__(3,"Area"),
+            ?__(4,"Perimeter"),
+            ?__(5,"Volume"), 
+            ?__(6,"#E"), 
+            ?__(7,"#F"), 
+            ?__(8,"#V") }, 
     case gb_trees:is_empty(Shapes) of
-        true -> wings_u:error_msg(?__(1,"No objects in scene"));
+        true -> wings_u:error_msg(?__(9,"No objects in scene"));
         false ->
             Rows = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
-            A = lists:max([length(A) || {{_,A},{_,_},{_,_},{_,_}} <- Rows]) + 2,
-            B = lists:max([length(B) || {{_,_},{_,B},{_,_},{_,_}} <- Rows]) + 2,
-            C = lists:max([length(C) || {{_,_},{_,_},{_,C},{_,_}} <- Rows]) + 2,
-            D = lists:max([length(D) || {{_,_},{_,_},{_,_},{_,D}} <- Rows]) + 4,
-            Qs = [{table,[{" #"," Name"," Area"," Volume"}|Rows],[{col_widths,{A,B,C,D}}]}],
-            Ask = fun(_Res) -> ignore end,
-            wings_dialog:dialog(?__(5,"Scene Info: Area & Volume"), Qs, Ask)
+            ColumnWidthList = column_widths(Rows),
+            Qs = [{table,[HRow|Rows],[{max_rows, min(length(Rows),20)}, {col_widths,
+               list_to_tuple(ColumnWidthList)}]}
+                ],
+            Ask = fun(_Res) -> ignore end, 
+            wings_dialog:dialog(?__(10,"Scene Info: "), Qs, Ask)
     end.
 
 get_object_info(Id, Shapes) ->
-    We0 = gb_trees:get(Id, Shapes),
+    #we{es=Etab0,fs=Ftab0,vp=VPos0} = We0 = gb_trees:get(Id, Shapes),
     We = wings_tesselation:triangulate(We0),
     #we{id=Id,name=Name,fs=Ftab} = We,
     Both = [area_volume(Face, We) || Face <- gb_trees:keys(Ftab)],
+    FacePerimeter = fun(Face) ->
+        Es = wings_face:to_edges([Face],We0),
+        [ begin 
+            #edge{vs=VS, ve=VE} = array:get(Ei,Etab0),
+            e3d_vec:dist(array:get(VS,VPos0), array:get(VE,VPos0))
+          end
+          || Ei <- Es]
+    end,
+    PerimeterList0 = [ FacePerimeter(Face) || Face <- gb_trees:keys(Ftab0) ],
+    %% don't count each edge two times !
+    Perimeter = lists:sum(lists:flatten(PerimeterList0)) / 2.0,
     Area =  lists:sum([A || {A,_} <- Both]),
     Volume =lists:sum([V || {_,V} <- Both]),
     ToString = fun(Item) ->
-	case Item of
-	    Item when is_float(Item), Item < 1.0, Item =/= 0.0 ->
-		Decimals = 1 - round(math:log10(abs(Item))-0.5),
-		if Decimals > 8 -> "0.00000";
-		   true -> lists:flatten(io_lib:format("~10.*f", [Decimals, Item]))
-		end;
-	    Item when is_float(Item) ->
-		lists:flatten(io_lib:format("~10.2f", [Item]));
-	    Item when is_integer(Item) ->
-  		   integer_to_list(Item);
-	    Item when is_list(Item) ->
-  		   Item
-  	end
+        case Item of
+            Item when is_float(Item) -> 
+                leftJust(Item);
+            Item when is_integer(Item) ->
+                integer_to_list(Item);
+            Item when is_list(Item) ->
+                Item
+        end
     end,
-    [Id2,Name2,Area2,Volume2] = lists:map(ToString, [Id,Name,Area,Volume]),
-    {{Id,Id2},{Name,Name2},{Area,Area2},{Volume,Volume2}}.
+    NEdge   = array:sparse_size(Etab0),
+    NFace   = gb_trees:size(Ftab0),
+    NVertex = array:sparse_size(VPos0),
+    list_to_tuple([{X,ToString(X)}||X<-[Id,Name,Area,Perimeter,Volume,NEdge,NFace,NVertex]]).
 
 area_volume(Face, We) ->
     [V1,V2,V3] = wings_face:vertex_positions(Face, We),
@@ -1901,6 +1918,26 @@ area_volume(Face, We) ->
     Area = e3d_vec:len(Cp)/2.0,
     Volume = e3d_vec:dot(V1, Bc)/6.0,
     {Area, Volume}.
+
+%% get maximal column widths needed to display each column in characters.
+column_widths(Rows) -> 
+    [Row|_] = Rows,
+    NCols = size(Row),
+    MyAcc = fun(Col,Acc) ->
+        Temp = [ begin 
+                   {_,A} = element(Col,RowTuple),
+                   length(A)
+                 end
+                  || RowTuple <- Rows],
+        Mx = lists:max(Temp)+3, % add a bit of padding
+        [Mx|Acc]
+    end,
+    lists:foldr(MyAcc,[], lists:seq(1,NCols)).
+
+leftJust(X) when is_float(X) ->
+     Y = lists:flatten(io_lib:format("~10.3f", [X])),
+     re:replace(Y,"[\ ]","0",[{return,list},global]).
+%%%%
 
 highlight_aim_setup(St0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
