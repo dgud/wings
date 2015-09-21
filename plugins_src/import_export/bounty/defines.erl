@@ -259,6 +259,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_GLOBALPHOTONLIGHT_SEARCH, 200).
 
 %% Modulator
+-define(DEF_MOD_DEFCOLOR, {1.0,0.0,1.0}).
 -define(DEF_MOD_ENABLED, true).
 -define(DEF_MOD_MODE, mix).
 -define(DEF_MOD_SIZE, 1.0).
@@ -308,8 +309,14 @@ key(Key) -> {key,?KEY(Key)}.
 
 range(T) -> {range,range_1(T)}.
 
-%% Material ranges
+%% generic ranges
 range_1(zero_to_one)            -> {0.0,1.0}; % float type, of course
+range_1(zero_to_five)           -> {0.0,5.0}; % float type, of course
+range_1(zero_to_ten)            -> {0.0,10.0}; % float type, of course
+range_1(zero_to_twenty)         -> {0.0,2.0}; % float type, of course
+range_1(neg_one_to_one)         -> {-1.0,1.0}; % float type, of course
+
+%% Material ranges
 range_1(volume_sigma_a)         -> {0.0,1.0};
 range_1(volume_sigma_s)         -> {0.0,1.0};
 range_1(volume_height)          -> {0.0,1000.0};
@@ -325,7 +332,7 @@ range_1(lightportal_power)      -> {0.0,10000.0};
 range_1(lightportal_samples)    -> {0,512};
 range_1(meshlight_power)        -> {0.0,10000.0};
 range_1(meshlight_samples)      -> {0,512};
-range_1(autosmooth_angle)       -> {0.0,180.0};
+range_1(autosmooth_angle)       -> {0.0,181.0};
 range_1(ior)                    -> {0.0,3.0};
 range_1(glass_ir_depth)         -> {0,32};
 range_1(min_refle)              -> {0.0,1.0};
@@ -368,7 +375,7 @@ range_1(anisotropic_v)          -> {1.0,2000.0};
 range_1(roughness)              -> {0.0,1.0};
 range_1(lightmat_power)         -> {0.0,10.0};
 range_1(blend_value)            -> {0.0,1.0};
-range_1(oren_nayar_sigma)       -> {0.0,1.0};
+range_1(sigma)                  -> {0.0,1.0};
 
 %% Light ranges
 range_1(power)                  -> {0.0,infinity};
@@ -434,7 +441,7 @@ range_1(sppm_passes)            -> {0,infinity};
 range_1(sss_photons)            -> {0,infinity};
 range_1(sss_depth)              -> {1.0,50.0};
 range_1(sss_scale)              -> {0.0,100.0};
-range_1(sss_singlescatter_samples)      -> {0.0,50.0};
+range_1(sss_scatter_samples)    -> {0.0,50.0};
 range_1(caustic_photons)        -> {0,infinity};
 range_1(caustic_depth)          -> {0,infinity};
 range_1(caustic_mix)            -> {0,infinity};
