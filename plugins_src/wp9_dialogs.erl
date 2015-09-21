@@ -28,7 +28,7 @@ ui({file,open_dialog,Prop,Cont}, _Next) ->
     file_dialog(?wxFD_OPEN, Prop, Title, Cont);
 ui({file,save_dialog,Prop,Cont}, _Next) ->
     Title = proplists:get_value(title, Prop, ?__(2,"Save")),
-    file_dialog(?wxFD_SAVE, Prop, Title, Cont);
+    file_dialog(?wxFD_SAVE bor ?wxFD_OVERWRITE_PROMPT, Prop, Title, Cont);
 ui({image,formats,Formats}, _Next) ->
     image_formats(Formats);
 ui({image,read,Prop}, _Next) ->

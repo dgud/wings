@@ -31,13 +31,16 @@
 %% export_filename([Prop], St, Continuation).
 %%   The St will only be used to setup the default filename.
 %%   The Continuation fun will be called like this: Continuation(Filename).
-export_filename(Prop, #st{file=undefined}, Cont) ->
-    export_filename(Prop, Cont);
 export_filename(Prop0, #st{file=File}, Cont) ->
     Prop = case proplists:get_value(ext, Prop0) of
 	       undefined -> Prop0;
 	       Ext ->
-		   Def = filename:rootname(filename:basename(File), ?WINGS) ++ Ext,
+		   BaseName =
+		       case File of
+                           undefined -> "untitled";
+                           _ -> filename:basename(File)
+		       end,
+		   Def = filename:rootname(BaseName, ?WINGS) ++ Ext,
 		   [{default_filename,Def}|Prop0]
 	   end,
     export_filename(Prop, Cont).
