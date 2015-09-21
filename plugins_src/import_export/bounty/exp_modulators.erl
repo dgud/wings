@@ -21,37 +21,8 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
         {false,_,_} ->
             off;
         {true,BlendMode,TexType} ->
-
-            %AlphaIntensity = proplists:get_value(alpha_intensity, Ps, ?DEF_MOD_ALPHA_INTENSITY),
-            %UpperLayerName =  case AlphaIntensity of
-            %        stencil -> re:replace(Texname,"_2","_1",[global]);
-            %        _-> re:replace(Texname,"_1","_2",[global])
-            %    end,
-            %StencilInputName =
-            %    case AlphaIntensity of
-            %        stencil -> re:replace(Texname,"_2","_3",[global]);
-            %        _-> ""
-            %    end,
-            %StencilUpperLayerName2 =
-            %    case AlphaIntensity of
-            %        stencil -> re:replace(Texname,"_1","_2",[global]);
-            %        _-> ""
-            %    end,
-            %-----------------------------------------------------------------------
-            % povman: change TextureType variable to most clarified ShaderType
-            % TextureType = proplists:get_value(texture_type, Ps, ?DEF_TEXTURE_TYPE),
-            %-----------------------------------------------------------------------
-
-            ShaderType = proplists:get_value(texture_type, Ps, ?DEF_SHADER_TYPE),
-			%{marble, wood,clouds} -> "global";
-            TexCo =
-                case TexType of
-                    diffuse -> "uv";
-					image -> "uv";
-					jpeg -> "uv";
-					map -> "uv"; %"<texco sval=\"uv\"/>";
-					_ -> "global"
-                end,
+            %
+            ShaderType = proplists:get_value(shader_type, Ps, ?DEF_SHADER_TYPE),            
 
             %UpperLayer =
             %    case {Num,BlendMode,AlphaIntensity} of
@@ -86,14 +57,15 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             %Split=re:split(Texname,"_",[{return, list}]),
             %Num=lists:last(Split),
 
-            DoColor = case ShaderType of
-                    diffuse -> true;
-                    mirror_color -> true;
-                    glossy_reflect -> true;
-                    glossy -> true;
-                    _ -> false
-                    %{mirror,transparency,translucency,bump}-> false
-                end,
+            DoColor = 
+                case ShaderType of
+                diffuse -> true;
+                mirror_color -> true;
+                glossy_reflect -> true;
+                glossy -> true;
+                _ -> false
+                %{mirror,transparency,translucency,bump}-> false
+            end,
             %
             %_ShaderName =
             %    case {Num, BlendMode} of
@@ -110,7 +82,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             println(F,"\t<list_element>"),
 
             %% shader factor amount controled with 'Factor Modulator' slider in UI
-            Factor = proplists:get_value(mod_colorfactor, Ps, ?DEF_MOD_COLORFACTOR),
+            Factor = proplists:get_value(diffuse_factor, Ps, ?DEF_MOD_COLORFACTOR),
             %% Try use value or color
             FactorType =
                 case DoColor of
@@ -137,9 +109,11 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             println(F,"\t\t<color_input bval=\"~s\"/>",[IsColor]),
 
             % def color for 'blended' by default
-            println(F,"\t\t<def_col r=\"0.81\" g=\"0.8\" b=\"0.81\" a=\"1\"/>"),
+            {Ar, Ag, Ab} = proplists:get_value(def_color, Ps, ?DEF_MOD_DEFCOLOR),
+            
+            println(F,"\t\t<def_col r=\"~w\" g=\"~w\" b=\"~w\" a=\"1\"/>",[Ar,Ag,Ab]),
             %
-            println(F,"\t\t<def_val fval=\"1\"/>"),
+            println(F,"\t\t<def_val fval=\"~w\"/>",[proplists:get_value(def_value, Ps, 1.0)]),
 
             % swich to use texture values
             %
@@ -162,15 +136,15 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             %
             println(F, "\t\t<name sval=\"~s\"/>",[Texname]),
             %
-            println(F, "\t\t<negative bval=\"false\"/>"),
+            println(F, "\t\t<negative bval=\"~s\"/>",[proplists:get_value(negative, Ps, false)]),
             %
-            println(F, "\t\t<noRGB bval=\"false\"/>"),
+            println(F, "\t\t<noRGB bval=\"~s\"/>",[proplists:get_value(no_rgb, Ps, false)]),
 
-            % _StencilMode = proplists:get_value(stencil_mode, Ps, ?DEF_MOD_STENCIL),
+            Stencil = proplists:get_value(stencil, Ps, false),
             % erlang:display("Modulator. Stencil value is: "++StencilMode),
 
 
-            println(F, "\t\t<stencil bval=\"false\"/>"),
+            println(F, "\t\t<stencil bval=\"~s\"/>",[Stencil]),
 
             % for layers, is need 'stencil' param and more review code.. :)
             %%
@@ -228,14 +202,15 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
                 "\t\t<element sval=\"shader_node\"/>"),
 
             % projection mapping coordinates type
-            MappingType = "plain", %proplists:get_value(projection, Ps, ?DEF_PROJECTION),
+            % TODO: create UI option
+            MappingType = proplists:get_value(projection, Ps, plain),
 
             println(F, "\t\t<mapping sval=\"~s\"/>",[MappingType]),
             println(F, "\t\t<name sval=\"~s_mod\"/>",[Texname]),
             %
-            OffX = proplists:get_value(offsetx, Ps, 0.0),
-            OffY = proplists:get_value(offsety, Ps, 0.0),
-            OffZ = proplists:get_value(offsetz, Ps, 0.0),
+            OffX = proplists:get_value(offset_x, Ps, 0.0),
+            OffY = proplists:get_value(offset_y, Ps, 0.0),
+            OffZ = proplists:get_value(offset_z, Ps, 0.0),
             %
             println(F,
                 "\t\t<offset x=\"~w\" y=\"~w\" z=\"~w\"/>",
@@ -255,9 +230,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
                     [SizeX, SizeY, SizeZ]),
 
             % texture coordinates type
-            % povman comment: Coordinates = proplists:get_value(coordinates, Ps, ?DEF_COORDINATES),
-            %
-            println(F, "\t\t<texco sval=\"~s\"/>",[TexCo]), %Coordinates]),
+            println(F, "\t\t<texco sval=\"~s\"/>",[proplists:get_value(coordinates, Ps, global)]),
             println(F, "\t\t<texture sval=\"~s\"/>",[Texname]),
             println(F, "\t\t<type sval=\"texture_mapper\"/>"),
             % if bumpmap..

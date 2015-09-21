@@ -1,21 +1,28 @@
-%
-%
-%
-%
+%%
+%%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
+%%  Copyright (C) 2015 Pedro Alcaide, aka povmaniac.
+%%  See AUTHORS.txt file for more info about authors and license.
+%%
+
+%!
+%! UI modulators options
+%! work in progress.
+%!
+
 
 menu_blend_mode() ->
     [{?__(105,"Mix"),mix},
      {?__(106,"Add"),add},
-     {?__(8,"Multiply"),mul},
+     {?__(107,"Multiply"),mul},
      {?__(109,"Subtract"),sub},
      {?__(110,"Screen"),scr},
      {?__(111,"Divide"),divide},
      {?__(112,"Difference"),dif},
      {?__(113,"Darken"),dar},
      {?__(114,"Lighten"),lig}].
-     
+
 menu_distortion_type() ->
-    [{?__(87,"Blender-Distort"),blender},
+   [{?__(87,"Blender-Distort"),blender},
     {?__(88,"Cellnoise"),cellnoise},
     {?__(89,"New Perlin"),newperlin},
     {?__(90,"Perlin"),stdperlin},
@@ -25,7 +32,10 @@ menu_distortion_type() ->
     {?__(94,"Voronoi F3"),voronoi_f3},
     {?__(95,"Voronoi F4"),voronoi_f4},
     {?__(96,"Voronoi F1F2"),voronoi_f2f1}].
-    
+
+% TODO: change this part of code for generate only the
+% allowed modulators for each material
+%
 modulator_dialogs(Modulators0, Maps) ->
     ModCount = length(Modulators0),
     Modulators =
@@ -41,22 +51,45 @@ modulator_dialogs([Modulator|Modulators], Maps, M) ->
     modulator_dialogs(Modulators, Maps, M+1).
 
 modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
-    {Enabled,Mode,Type} = mod_enabled_mode_type(Ps, Maps),
-    AlphaIntensity = proplists:get_value(alpha_intensity, Ps, ?DEF_MOD_ALPHA_INTENSITY),
-    ShaderType = proplists:get_value(texture_type, Ps, ?DEF_SHADER_TYPE),
+    {Enabled,BlendMode,Type} = mod_enabled_mode_type(Ps, Maps),
+    %AlphaIntensity = proplists:get_value(alpha_intensity, Ps, ?DEF_MOD_ALPHA_INTENSITY),
+    %ShaderType = proplists:get_value(shader_type, Ps, ?DEF_SHADER_TYPE), % only use for logical UI
+
+    Stencil = proplists:get_value(stencil, Ps, false),
+    Negative = proplists:get_value(negative, Ps, false),
+    NoRGB = proplists:get_value(no_rgb, Ps, false),
+    DefColor = proplists:get_value(def_color, Ps, ?DEF_MOD_DEFCOLOR),
+    %DefValue = proplists:get_value(def_value, Ps, 1.0),
+
+    Coordinates = proplists:get_value(coordinates, Ps, global),
     SizeX = proplists:get_value(size_x, Ps, ?DEF_MOD_SIZE_X),
     SizeY = proplists:get_value(size_y, Ps, ?DEF_MOD_SIZE_Y),
     SizeZ = proplists:get_value(size_z, Ps, ?DEF_MOD_SIZE_Z),
+    Projection = proplists:get_value(projection, Ps, plain),
+    OffsetX = proplists:get_value(offset_x, Ps, 0.0),
+    OffsetY = proplists:get_value(offset_y, Ps, 0.0),
+    OffsetZ = proplists:get_value(offset_z, Ps, 0.0),
+
     % povman: Diffuse = proplists:get_value(diffuse, Ps, ?DEF_MOD_DIFFUSE),
-    ModColorFactor = proplists:get_value(mod_colorfactor, Ps, ?DEF_MOD_COLORFACTOR),
-%%    Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
+    DiffuseLayer = proplists:get_value(diffuse_layer, Ps, false),
+    DiffuseFactor = proplists:get_value(diffuse_factor, Ps, ?DEF_MOD_COLORFACTOR),
+    MirrorLayer = proplists:get_value(mirror, Ps, false),
+    MirrorFactor = proplists:get_value(mirror_factor, Ps, ?DEF_MOD_COLORFACTOR),
+	MirrorColorLayer = proplists:get_value(mirror_color, Ps, false),
+	MirrorColorFactor = proplists:get_value(mirror_color_factor, Ps, 1.0),
+	TransparentLayer = proplists:get_value(transparency, Ps, false),
+	TransparentFactor = proplists:get_value(transparent_factor, Ps, 1.0),
+	TranslucentLayer = proplists:get_value(translucency, Ps, false),
+	TranslucentFactor = proplists:get_value(translucent_factor, Ps, 1.0),
+	BumpLayer = proplists:get_value(bump, Ps, false),
+    BumpFactor = proplists:get_value(bump_factor, Ps, 1.0),
+    %%    Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
     %Shininess = proplists:get_value(shininess, Ps, ?DEF_MOD_SHININESS),
-    Normal = proplists:get_value(normal, Ps, ?DEF_MOD_NORMAL),
+    %Normal = proplists:get_value(normal, Ps, ?DEF_MOD_NORMAL),
     Filename = proplists:get_value(filename, Ps, ?DEF_MOD_FILENAME),
-    BrowseProps = [{dialog_type,open_dialog},
-                   {extensions,[{".jpg",?__(3,"JPEG compressed image")},
-                                {".tga",?__(4,"Targa bitmap")},
-                                {".png",?__(6,"Portable network graphics")}]}],
+	BrowseProps = [{dialog_type, open_dialog},
+					{extensions, [{".jpg", "JPEG"}, {".png", "PNG"},{".bmp", "Bitmap"}, 
+								{".gif", "GIF"}, {".exr", "EXR"}, {".tiff", "TIFF"}]}],
     Color1 = proplists:get_value(color1, Ps, ?DEF_MOD_COLOR1),
     Color2 = proplists:get_value(color2, Ps, ?DEF_MOD_COLOR2),
     Depth = proplists:get_value(depth, Ps, ?DEF_MOD_DEPTH),
@@ -86,6 +119,9 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
 
     DistortionIntensity = proplists:get_value(distortion_intensity, Ps, ?DEF_MOD_DISTORTION_INTENSITY),
     DistortionNoiseSize = proplists:get_value(distortion_noisesize, Ps, ?DEF_MOD_DISTORTION_NOISESIZE),
+    %% test
+    %MatType =  proplists:get_value(material_type, Ps, shinydiffuse),
+    % end
 
     MapsItems = [{atom_to_list(Map),{map,Map}} || {Map,_} <- Maps],
 
@@ -116,79 +152,103 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     end,
 
     ModFrame =
-        {vframe, [
-            {hframe, [
-                {?__(5,"Enabled"),Enabled,[{key,{?TAG,enabled,M}},{hook,Hook_Enable}]},
-                panel,
-                {hframe, [
-                    {menu,menu_blend_mode(), Mode,[]},
+        {vframe, [ %% vertical frame que engloba todo el panel
+            {hframe, [ % horiz. para el boton Enable
+                {?__(6,"Enabled"),Enabled,[{key,{?TAG,enabled,M}},{hook,Hook_Enable}]}%,
+            ]},
+            {vframe,[
+                {hframe,[ % este panel es del key, pnl_mode
+                    {label,?__(7,"Blend Mode" )},
+                    {menu,menu_blend_mode(), BlendMode,[]},
                     panel,
-                    {menu,[
-                        {?__(115,"Alpha Off"),off},
-                        {?__(116,"Alpha Transparency"),transparency},
-                        {?__(117,"Diffuse+Alpha Transparency"),diffusealphatransparency},
-                        {?__(118,"Alpha Translucency"),translucency},
-                        {?__(119,"Specularity"),specularity},
-                        {?__(120,"Stencil"),stencil}
-                    ],AlphaIntensity,[]},
-                    panel,
-                    {menu,[
-                        {?__(121,"Diffuse (Shiny Diffuse, Glossy, SSS)"),diffuse},
-                        {?__(122,"Mirror Color (Shiny Diffuse, Glass)"),mirror_color},
-                        {?__(123,"Mirror (Shiny Diffuse)"),mirror},
-                        {?__(124,"Glossy (Glossy)"),glossy},
-                        {?__(125,"Glossy Reflect (Glossy)"),glossy_reflect},
-                        {?__(126,"Transparency (Shiny Diffuse)"),transparency},
-                        {?__(127,"Translucency (Shiny Diffuse)"),translucency},
-                        {?__(128,"Bump (All)"),bump}
-                    ],ShaderType,[]}
-                ],[key({pnl_mode,M}),{margin,false},{hook,Hook_Show}]}
+                    {?__(8," Stencil "), Stencil},
+                    {?__(9," Negative "), Negative},
+                    {?__(10," No RGB "), NoRGB},
+                    {label,?__(11," Def. Color: ")},{color,DefColor}
+					%{label,?__(12," Def. Value:")},{text,DefValue,[range(size),{width,4}]},
+                ],[key({pnl_mode,M}),{title,"Stencil"},{margin,false},{hook,Hook_Show}]}
             ]},
             {vframe, [
-                {hframe,[
+                %!---------------------
+                %! Texture mapping
+                %!---------------------
+                {vframe,[
                     {hframe,[
-                        {label,?__(10,"Size X")},{text,SizeX,[range(size)]}
+                        {label,?__(15,"Coordinates:")},
+                        {menu,[
+                            {?__(16,"UV"),uv},
+                            {?__(17,"Orco"),orco},
+                            {?__(18,"Global"),global}
+                        ],Coordinates,[]
+                        }, panel,
+                        {label,?__(19,"Size:    X ")},{text,SizeX,[range(size),{width,5}]},
+                        {label,?__(20," Y ")},{text,SizeY,[range(size),{width,5}]},
+                        {label,?__(21," Z ")},{text,SizeZ,[range(size),{width,5}]}
                     ]},
                     {hframe,[
-                        {label,?__(11,"Y")},{text,SizeY,[range(size)]}
-                    ]},
+                        {label,?__(22,"Projection:   ")},
+                        {menu,[
+                            {?__(23,"Flat"),plain},
+                            {?__(24,"Cube"),cube},
+                            {?__(25,"Tube"),tube},
+                            {?__(26,"Sphere"),sphere}
+                        ],Projection,[]
+                        }, panel,
+                        {label,?__(27,"Offset: X")},{text,OffsetX,[range(size),{width,5}]},
+                        {label,?__(28," Y ")},{text,OffsetY,[range(size),{width,5}]},
+                        {label,?__(29," Z ")},{text,OffsetZ,[range(size),{width,5}]}
+                    ]}, % place here new frame's for fill to the end
                     {hframe,[
-                        {label,?__(12,"Z")},{text,SizeZ,[range(size)]}
+
                     ]}
-                ],[{margin,false}]},
-                {hframe,[
-                    {vframe,[
-                        {label,?__(13,"Color Factor")},
-                        %{label,?__(16,"Value Factor")},
-                        {label,?__(17,"Normal")}
-                    ]},
-                    {vframe,[
-                        {slider,{text,fit_range(ModColorFactor,mod_colorfactor),[range(mod_colorfactor)]}},
-                        %{slider,{text,Shininess,[range(modulation)]}},
-                        {slider,{text,Normal,[range(modulation)]}}
+                ],[{title,"Texture Mapping"},{margin,false}]},
+                %!-----------------------------------------
+                %! layers to mapping texture
+                %!-----------------------------------------
+                {vframe,[
+                    {hframe,[
+                        {vframe,[
+                            {?__(35,"Diffuse Color"),DiffuseLayer},
+                            {?__(36,"Mirror Amount"),MirrorLayer},
+                            {?__(37,"Mirror Color"),MirrorColorLayer},
+                            {?__(38,"Transparency"),TransparentLayer},
+                            {?__(39,"Translucency"),TranslucentLayer},
+                            {?__(40,"Bump Mapping"),BumpLayer}
+                        ]},
+                        {vframe,[
+                            {slider,{text,DiffuseFactor,[range(zero_to_one)]}},
+                            {slider,{text,MirrorFactor,[range(zero_to_one)]}},
+                            {slider,{text,MirrorColorFactor,[range(zero_to_one)]}},
+                            {slider,{text,TransparentFactor,[range(zero_to_one)]}},
+                            {slider,{text,TranslucentFactor,[range(zero_to_one)]}},
+                            {slider,{text,BumpFactor,[range(neg_one_to_one)]}}                            
+                        ]}                        
                     ]}
-                ],[{margin,false}]},
+                ],[{title,"Influence"},{margin,false}]},
+                %!-----------------------
+                %! textures
+                %!-----------------------
                 {menu, MapsItems++[
-                    {?__(18,"Image"),image},
-                    {?__(19,"Clouds"),clouds},
-                    {?__(20,"Marble"),marble},
-                    {?__(21,"Wood"),wood},
-                    {?__(46,"Voronoi"),voronoi},
-                    {?__(62,"Musgrave"),musgrave},
-                    {?__(82,"Distorted Noise"),distorted_noise}
+                    {?__(50,"Image"),image},
+                    {?__(51,"Clouds"),clouds},
+                    {?__(52,"Marble"),marble},
+                    {?__(53,"Wood"),wood},
+                    {?__(54,"Voronoi"),voronoi},
+                    {?__(55,"Musgrave"),musgrave},
+                    {?__(56,"Distorted Noise"),distorted_noise}
                 ],Type,[{key,{?TAG,type,M}}, {hook,Hook_Show}]},
                 {vframe, [
                     {hframe, [
-                        {label,?__(22,"Filename")},
+                        {label,?__(57,"Filename")},
                         {button,{text,Filename,[{width,35},{props,BrowseProps}]}}
                     ],[key({pnl_image,M}), {show,false}]},
                     %% Clouds,Marble,Wood Specific Procedurals Line 1
                     {hframe, [
-                        {label,?__(23,"Texture")},{color,Color1},
+                        {label,?__(58,"Texture")},{color,Color1},
                         panel,
-                        {label,?__(24,"Base")},{color,Color2},
+                        {label,?__(59,"Base")},{color,Color2},
                         panel,
-                        {?__(25,"Hard Noise"),Hard},
+                        {?__(60,"Hard Noise"),Hard},
                         %% Start Noise Basis Select
                         {menu,menu_distortion_type(),NoiseBasis,[]}
                         %% End Noise Basis Select
@@ -197,11 +257,11 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     %% Clouds,Marble,Wood Specific Procedurals Line 2
                     {hframe, [
                         {hframe, [
-                            {label,?__(26,"Noise Size")},
+                            {label,?__(61,"Noise Size")},
                             {text,NoiseSize,[range(noise_size)]}
                         ]},
                         {hframe, [
-                            {label,?__(27,"Noise Depth")},
+                            {label,?__(62,"Noise Depth")},
                             {text,Depth,[range(noise_depth)]}
                         ]}
                     ],[key({pnl_base2,M}),{margin,false},{show,false}]},
@@ -209,7 +269,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     %% Marble Specific Procedurals
                     {hframe, [
                         {hframe, [
-                            {label,?__(28,"Sharpness")},
+                            {label,?__(63,"Sharpness")},
                             {text,Sharpness,[range(sharpness)]}
                         ],[key({pnl_sharpness,M})]},
                         %],[hook(open, [member,{?TAG,type,M},marble])]},
@@ -217,14 +277,14 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         %% Marble,Wood Specific Procedurals
                         {hframe, [
                             {hframe, [
-                                {label,?__(29,"Turbulence")},
+                                {label,?__(64,"Turbulence")},
                                 {text,Turbulence,[range(turbulence)]}
                             ]},
                             %% Start Shape Select
                             {menu,[
-                                {?__(30,"sin"),"sin"},
-                                {?__(31,"saw"),saw},
-                                {?__(32,"tri"),tri}
+                                {?__(65,"sin"),"sin"},
+                                {?__(66,"saw"),saw},
+                                {?__(67,"tri"),tri}
                             ],Shape,[]}
                             %% End Shape Select
                         ],[key({pnl_turb,M}),{margin,false}]},
@@ -233,8 +293,8 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe, [
                             %% Start Wood Type Select
                             {menu,[
-                                {?__(33,"Rings"),rings},
-                                {?__(34,"Bands"),bands}
+                                {?__(68,"Rings"),rings},
+                                {?__(69,"Bands"),bands}
                             ],WoodType,[]}
                             %% End Wood Type Select
                         ],[key({pnl_wood,M})]}
@@ -246,19 +306,19 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe, [
                             %% Start Voronoi Cell Type Select
                             {menu,[
-                                {?__(47,"Intensity"),intensity},
-                                {?__(48,"Color"),col1},
-                                {?__(49,"Color+Outline"),col2},
-                                {?__(50,"Color+Outline+Intensity"),col3}
+                                {?__(70,"Intensity"),intensity},
+                                {?__(71,"Color"),col1},
+                                {?__(72,"Color+Outline"),col2},
+                                {?__(73,"Color+Outline+Intensity"),col3}
                             ],CellType,[]},
                             %% End Voronoi Cell Type Select
                             panel,
                             %% Start Voronoi Cell Shape Select
-                            {menu,[{?__(51,"Actual Distance"),actual},
-                                   {?__(52,"Distance Squared"),squared},
-                                   {?__(53,"Manhattan"),manhattan},
-                                   {?__(54,"Chebychev"),chebychev},
-                                   {?__(55,"Minkovsky"),minkovsky}],
+                            {menu,[{?__(74,"Actual Distance"),actual},
+                                   {?__(75,"Distance Squared"),squared},
+                                   {?__(76,"Manhattan"),manhattan},
+                                   {?__(77,"Chebychev"),chebychev},
+                                   {?__(78,"Minkovsky"),minkovsky}],
                                 CellShape,[]}
                             %% End Voronoi Cell Shape Select
                         ],[{margin,false}]},
@@ -267,11 +327,11 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         %% Start Voronoi Line 2
                         {hframe, [
                             {hframe, [
-                                {label,?__(56,"Cell Size")},
+                                {label,?__(79,"Cell Size")},
                                 {text,CellSize,[range(cell_size)]}
                             ]},
                             {hframe, [
-                                {label,?__(57,"Intensity")},
+                                {label,?__(80,"Intensity")},
                                 {text,Intensity,[range(intensity)]}
                             ]}
                         ],[{margin,false}]},
@@ -280,19 +340,19 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         %% Start Voronoi Line 3
                         {hframe, [
                             {hframe, [
-                                {label,?__(58,"W1")},
+                                {label,?__(81,"W1")},
                                 {text,CellWeight1,[range(cell_weight1)]}
                             ]},
                             {hframe, [
-                                {label,?__(59,"W2")},
+                                {label,?__(82,"W2")},
                                 {text,CellWeight2,[range(cell_weight2)]}
                             ]},
                             {hframe, [
-                                {label,?__(60,"W3")},
+                                {label,?__(83,"W3")},
                                 {text,CellWeight3,[range(cell_weight3)]}
                             ]},
                             {hframe, [
-                                {label,?__(61,"W4")},
+                                {label,?__(84,"W4")},
                                 {text,CellWeight4,[range(cell_weight4)]}
                             ]}
                         ],[{margin,false}]}
@@ -304,18 +364,18 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe,[
                             %% Start Musgrave Type Select
                             {menu,[
-                                {?__(63,"Multifractal"),multifractal},
-                                {?__(64,"Ridged"),ridgedmf},
-                                {?__(65,"Hybrid"),hybridmf},
-                                {?__(66,"FBM"),fBm}
+                                {?__(85,"Multifractal"),multifractal},
+                                {?__(86,"Ridged"),ridgedmf},
+                                {?__(87,"Hybrid"),hybridmf},
+                                {?__(88,"FBM"),fBm}
                             ],MusgraveType,[]},
                             panel,
                             {hframe,[
-                                {label,?__(77,"Noise Size")},
+                                {label,?__(89,"Noise Size")},
                                 {text,MusgraveNoiseSize,[range(musgrave_noisesize)]}
                             ]},
                             {hframe,[
-                                {label,?__(78,"Intensity")},
+                                {label,?__(90,"Intensity")},
                                 {text,MusgraveIntensity,[range(musgrave_intensity)]}
                             ]}
                         ],[{margin,false}]},
@@ -324,15 +384,15 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         %% Start Musgrave Line 2
                         {hframe, [
                             {hframe, [
-                                {label,?__(79,"Contrast (H)")},
+                                {label,?__(91,"Contrast (H)")},
                                 {text,MusgraveContrast,[range(musgrave_contrast)]}
                             ]},
                             {hframe, [
-                                {label,?__(80,"Lacunarity")},
+                                {label,?__(92,"Lacunarity")},
                                 {text,MusgraveLacunarity,[range(musgrave_lacunarity)]}
                             ]},
                             {hframe, [
-                                {label,?__(81,"Octaves")},
+                                {label,?__(93,"Octaves")},
                                 {text,MusgraveOctaves,[range(musgrave_octaves)]}
                             ]}
                         ],[{margin,false}]}
@@ -345,14 +405,14 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                             %% Start Distorted Noise Type Select
                             {menu,menu_distortion_type(),DistortionType,[]},
                             %% End Distorted Noise Type Select
-                            {label,?__(107,"Noise Size")},{text,DistortionNoiseSize,[range(distortion_noisesize)]},
-                            {label,?__(108,"Distortion")},{text,DistortionIntensity,[range(distortion_intensity)]}
+                            {label,?__(94,"Noise Size")},{text,DistortionNoiseSize,[range(distortion_noisesize)]},
+                            {label,?__(95,"Distortion")},{text,DistortionIntensity,[range(distortion_intensity)]}
                         ],[{margin,false}]}
                     ],[key({pnl_dist_noise,M}),{show,false}]}
                 ],[key({pnl_type,M})]}
             ],[key({pnl_mod,M})]}
         ]},
-    [{?__(35,"Shader")++" "++integer_to_list(M)++mod_legend(Enabled, Mode, Type), ModFrame}];
+    [{?__(100,"Shader")++" "++integer_to_list(M)++mod_legend(Enabled, BlendMode, Type), ModFrame}];
 
 modulator_dialog(_Modulator, _Maps, _) ->
     []. % Discard old modulators that anyone may have
@@ -416,12 +476,21 @@ modulator(Res0, M) ->
     {EnabledTag,Enabled} = lists:keyfind(EnabledTag, 1, Res1),
     {TypeTag,Type} = lists:keyfind(TypeTag, 1, Res1),
     Res2 = lists:keydelete(EnabledTag, 1, lists:keydelete(TypeTag, 1, Res1)),
-    [Mode,AlphaIntensity,ShaderType,SizeX,SizeY,SizeZ,
-     ModColorFactor, Normal,
+    %!------------------------------------------------------------------
+    %! !!! IMPORTANTE !!!:
+    %! los elementos de la siguiente lista deben guardar el mismo
+    %! orden en el que aparecen o son usados en el UI.
+    %!-------------------------------------------------------------------
+    [Mode,
+     Stencil,Negative,NoRGB,DefColor,% DefValue,
+     Coordinates, SizeX, SizeY, SizeZ,
+     Projection, OffsetX, OffsetY, OffsetZ,
+     DiffuseLayer, MirrorLayer, MirrorColorLayer, TransparentLayer, TranslucentLayer, BumpLayer,
+     DiffuseFactor, MirrorFactor, MirrorColorFactor, TransparentFactor,TranslucentFactor, BumpFactor,
      Filename,
      Color1,Color2,Hard,NoiseBasis,NoiseSize,Depth,
-     Sharpness,Turbulence,Shape,
-     WoodType,CellType,CellShape,CellSize,Intensity,CellWeight1,CellWeight2,CellWeight3,CellWeight4,
+     Sharpness,Turbulence,Shape,WoodType,
+     CellType,CellShape,CellSize,Intensity,CellWeight1,CellWeight2,CellWeight3,CellWeight4,
      MusgraveType,MusgraveNoiseSize,MusgraveIntensity,MusgraveContrast,
      MusgraveLacunarity,MusgraveOctaves,DistortionType,
      DistortionNoiseSize,DistortionIntensity] =
@@ -429,13 +498,27 @@ modulator(Res0, M) ->
             [Minimized|Rest] when is_boolean(Minimized) -> Rest;  % for keep compatibility with previous W3D version
             Rest -> Rest
         end,
-    Ps = [{enabled,Enabled},{mode,Mode},{alpha_intensity,AlphaIntensity},
-          {texture_type,ShaderType},
+    %!--------------------------------------------------------
+    %! Aqui mantendremos el mismo orden de uso del UI
+    %!---------------------------------------------------------
+    Ps = [{enabled,Enabled},{mode,Mode},
+          {stencil, Stencil}, {negative,Negative},{no_rgb, NoRGB},{def_color,DefColor},
+          %{def_value, DefValue},
+          %{material_type,ShaderType}, % only for logical UI, don't is need activate here ?
+          {coordinates, Coordinates},
           {size_x,SizeX},{size_y,SizeY},{size_z,SizeZ},
-          %{diffuse,Diffuse},
-          {mod_colorfactor,ModColorFactor},
-          %{shininess,Shininess},
-          {normal,Normal},
+          {projection, Projection},
+          {offset_x,OffsetX},{offset_y,OffsetY},{offset_z,OffsetZ},
+          {diffuse_layer, DiffuseLayer},
+          {mirror, MirrorLayer},
+		  {mirror_color, MirrorColorLayer},
+		  {transparency, TransparentLayer},
+		  {translucency,TranslucentLayer},
+		  {bump,BumpLayer},
+          {diffuse_factor,DiffuseFactor},
+          {mirror_factor, MirrorFactor},
+		  {mirror_color_factor, MirrorColorFactor},{transparent_factor,TransparentFactor},
+		  {translucent_factor, TranslucentFactor},{bump_factor, BumpFactor},
           {type,Type},
           {filename,Filename},{color1,Color1},{color2,Color2},{hard,Hard},
           {noise_basis,NoiseBasis},{noise_size,NoiseSize},{depth,Depth},
@@ -463,13 +546,32 @@ modulator_add(M,Acc) ->
 modulator_init(Mode) ->
     Ps = [{enabled,false},
         {mode,Mode},
-        {alpha_intensity,?DEF_MOD_ALPHA_INTENSITY},
+        {stencil, false},
+        {negative, false},
+        {no_rgb, false},
+        {def_color,?DEF_MOD_DEFCOLOR},
+        %{def_value, 1.0},
+        {coordinates, global},
         {size_x,?DEF_MOD_SIZE_X},
         {size_y,?DEF_MOD_SIZE_Y},
         {size_z,?DEF_MOD_SIZE_Z},
-        %{diffuse,?DEF_MOD_DIFFUSE},
-        {mod_colorfactor,?DEF_MOD_COLORFACTOR},
-        {normal,?DEF_MOD_NORMAL},
+        {projection, plain},
+        {offset_x, 0.0},
+        {offset_y, 0.0},
+        {offset_z, 0.0},
+        {diffuse_layer, false},
+        {mirror, false},
+		{mirror_color, false},
+		{transparency, false},
+		{translucency,false},
+		{bump,false},
+        {diffuse_factor,?DEF_MOD_COLORFACTOR},
+        {mirror_factor, 1.0},
+		{mirror_color_factor, 1.0},
+		{transparent_factor, 1.0},
+		{translucent_factor, 1.0},
+		{bump_factor, 1.0},
+        %{normal,?DEF_MOD_NORMAL},
         {type,?DEF_MOD_TEXTURETYPE}, %% cambiar por 'texturetype
         {filename,?DEF_MOD_FILENAME},
         {color1,?DEF_MOD_COLOR1},
