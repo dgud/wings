@@ -206,10 +206,10 @@ init() ->
     init_history().
 
 %% Display a text window (Info converted to html)
-info(Title, Info, Options) ->
-    Parent = proplists:get_value(top_frame, Options, get(top_frame)),
-    Size   = {size, {500, 400}},
-    Frame  = wxFrame:new(Parent, ?wxID_ANY, Title, [Size]),
+info(Title, Info, _Options) ->
+    Parent = get_dialog_parent(),
+    Flags  = [{size, {500, 400}}, {style, ?wxCAPTION bor ?wxRESIZE_BORDER bor ?wxCLOSE_BOX}],
+    Frame  = wxMiniFrame:new(Parent, ?wxID_ANY, Title, Flags),
     Panel  = wxHtmlWindow:new(Frame, []),
     Sizer  = wxBoxSizer:new(?wxVERTICAL),
     Html = text_to_html(Info),
@@ -782,7 +782,7 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 		     end,
 		     Ok
 	     end,
-    In = build(Ask, {vframe, Qs}, Parent, Sizer, []),
+    In = build(Ask, {vframe, Qs, [{proportion,1}]}, Parent, Sizer, []),
     [#in{key=proplists:get_value(key,Flags), def=Def,
 	 output= undefined =/= proplists:get_value(key,Flags),
 	 type=dialog_buttons, wx=Create}|In];
