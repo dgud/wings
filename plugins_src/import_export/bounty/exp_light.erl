@@ -30,8 +30,7 @@ export_light(F, Name, point, OpenGL, Attr) ->
                 "\t<radius fval=\"~.10f\"/>",
                     [proplists:get_value(arealight_radius, Attr, ?DEF_AREALIGHT_RADIUS)]),
             println(F,
-                "\t<samples ival=\"~w\"/>",
-                    [proplists:get_value(arealight_samples, Attr, ?DEF_AREALIGHT_SAMPLES)]),
+                "\t<samples ival=\"~w\"/>",[proplists:get_value(arealight_samples, Attr, 16)]),
             println(F,
                 "\t<type sval=\"spherelight\"/>");
         _ ->
@@ -80,7 +79,6 @@ export_light(F, Name, infinite, OpenGL, YafaRay) ->
             println(F, "</light>"),
             Bg;
 
-
         directional -> Bg;
 
         %% Directional Infinite Light End
@@ -117,39 +115,24 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
     case Type of
         spotlight ->
 
-            SpotPhotonOnly =    proplists:get_value(spot_photon_only, YafaRay, ?DEF_SPOT_PHOTON_ONLY),
             SpotSoftShadows =   proplists:get_value(spot_soft_shadows, YafaRay, ?DEF_SPOT_SOFT_SHADOWS),
             SpotIESSamples =    proplists:get_value(spot_ies_samples, YafaRay,  ?DEF_SPOT_IES_SAMPLES),
-            CastShadows =       proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
-            SpotExponent =      proplists:get_value(spot_exponent, OpenGL, ?DEF_SPOT_EXPONENT),
-
-            SpotBlend = proplists:get_value(spot_blend, YafaRay, ?DEF_SPOT_BLEND),
-
-            SpotFuzzyness = proplists:get_value(spot_fuzzyness, YafaRay, ?DEF_SPOT_FUZZYNESS),
 
             println(F, "\t<type sval=\"spotlight\"/>"),
-            println(F, "\t<cast_shadows bval=\"~s\"/>",[format(CastShadows)]),
-            println(F, "\t<photon_only bval=\"~s\"/>",[SpotPhotonOnly]),
+            println(F, "\t<photon_only bval=\"~s\"/>",[proplists:get_value(spot_photon_only, YafaRay, false)]),
             println(F, "\t<cone_angle fval=\"~.3f\"/>",[ConeAngle]),
-            println(F, "\t<beam_falloff fval=\"~.10f\"/>",[SpotExponent]),
-            println(F, "\t<blend fval=\"~.3f\"/>",[SpotBlend]),
+            println(F, "\t<blend fval=\"~.3f\"/>",[proplists:get_value(spot_blend, YafaRay, ?DEF_SPOT_BLEND)]),
             println(F, "\t<soft_shadows bval=\"~s\"/>",[SpotSoftShadows]),
-            println(F, "\t<shadowFuzzyness fval=\"~.3f\"/>",[SpotFuzzyness]),
+            println(F, "\t<shadowFuzzyness fval=\"~.3f\"/>",[proplists:get_value(spot_fuzzyness, YafaRay, ?DEF_SPOT_FUZZYNESS)]),
             println(F, "\t<samples ival=\"~w\"/>",[SpotIESSamples]);
 
         spot_ies ->
 
-            SpotSoftShadows = proplists:get_value(spot_soft_shadows, YafaRay, ?DEF_SPOT_SOFT_SHADOWS),
-
-            SpotIESFilename = proplists:get_value(spot_ies_filename, YafaRay, ?DEF_SPOT_IES_FILENAME),
-
-            SpotIESSamples = proplists:get_value(spot_ies_samples, YafaRay,  ?DEF_SPOT_IES_SAMPLES),
-
-        println(F, "\t<type sval=\"ieslight\"/>"),
-        println(F, "\t<cone_angle fval=\"~.3f\"/>",[ConeAngle]),
-        println(F, "\t<soft_shadows bval=\"~s\"/>",[SpotSoftShadows]),
-        println(F, "\t<samples ival=\"~w\"/>",[SpotIESSamples]),
-        println(F, "\t<file sval=\"~s\"/>",[SpotIESFilename])
+            println(F, "\t<type sval=\"ieslight\"/>"),
+			println(F, "\t<cone_angle fval=\"~.3f\"/>",[ConeAngle]), % povman: sure affect when is IES type?
+			println(F, "\t<soft_shadows bval=\"~s\"/>",[proplists:get_value(spot_soft_shadows, YafaRay, ?DEF_SPOT_SOFT_SHADOWS)]),
+			println(F, "\t<samples ival=\"~w\"/>",[proplists:get_value(spot_ies_samples, YafaRay, ?DEF_SPOT_IES_SAMPLES)]),
+			println(F, "\t<file sval=\"~s\"/>",[proplists:get_value(spot_ies_filename, YafaRay, ?DEF_SPOT_IES_FILENAME)])
     end,
     export_pos(F, from, Position),
     export_pos(F, to, AimPoint),
@@ -262,12 +245,13 @@ export_light(F, Name, ambient, _OpenGL, YafaRay) ->
 %% Export Area Light
 
 export_light(F, Name, area, OpenGL, YafaRay) ->
+    %
     Color = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
     #e3d_mesh{vs=Vs,fs=Fs0} = proplists:get_value(mesh, OpenGL, #e3d_mesh{}),
     VsT = list_to_tuple(Vs),
     
     Power = proplists:get_value(power, YafaRay, ?DEF_ATTN_POWER),
-    Samples = proplists:get_value(arealight_samples, YafaRay, ?DEF_AREALIGHT_SAMPLES),
+    Samples = proplists:get_value(arealight_samples, YafaRay, 16),
     Dummy = proplists:get_value(dummy, YafaRay, ?DEF_DUMMY),
     
     Fs = foldr(fun (Face, Acc) ->
