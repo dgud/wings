@@ -1,7 +1,14 @@
-%
-%
-%
-%
+%%
+%%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
+%%  Copyright (C) 2015 Pedro Alcaide, aka povmaniac.
+%%  Contact: thebountyrenderer@gmail.com
+%%
+%%  This program is free software; you can redistribute it and/or modify
+%%  it under the terms of the GNU GPL as published by the FSF;
+%%  either version 2 of the License, or (at your option) any later version.
+%%  See the GNU General Public License for more details.
+%%
+
 export_dialog(Op, Title) ->
     wpa:dialog(true, Title,
                export_dialog_qs(Op, get_prefs(export_prefs())),
@@ -57,11 +64,9 @@ export_prefs() ->
         {sss_photons,?DEF_SSS_PHOTONS},
         {sss_depth,?DEF_SSS_DEPTH},
         {sss_scale,?DEF_SSS_SCALE},
-        {sss_singlescatter_samples,?DEF_SSS_SINGLESCATTER_SAMPLES},
+        {sss_scatter_samples,?DEF_SSS_SINGLESCATTER_SAMPLES},
         {raydepth,?DEF_RAYDEPTH},
         {gamma,?DEF_GAMMA},
-        %{bias,?DEF_BIAS},
-        %{exposure,?DEF_EXPOSURE},
         {transparent_shadows,?DEF_TRANSPARENT_SHADOWS},
         {shadow_depth,?DEF_SHADOW_DEPTH},
         %
@@ -69,8 +74,7 @@ export_prefs() ->
         {z_pass, false},
         %
         {render_format,?DEF_RENDER_FORMAT},
-        {exr_flag_float,false},
-        {exr_flag_zbuf,false},
+        {exr_float,false},
         {exr_flag_compression,?DEF_EXR_FLAG_COMPRESSION},
         {aa_passes,?DEF_AA_PASSES},
         %add
@@ -78,14 +82,11 @@ export_prefs() ->
         {draw_params, false},
         {aa_moresamples,?DEF_AA_PASSES },
         {aa_samples,?DEF_AA_MINSAMPLES},
-        %{aa_jitterfirst,?DEF_AA_JITTERFIRST},
         {aa_threshold,?DEF_AA_THRESHOLD},
         {aa_pixelwidth,?DEF_AA_PIXELWIDTH},
         {clamp_rgb,?DEF_CLAMP_RGB},
         {aa_filter_type,?DEF_AA_FILTER_TYPE},
-        {background_color,?DEF_BACKGROUND_COLOR},
-        {save_alpha,?DEF_SAVE_ALPHA},
-        {background_transp_refract,?DEF_BACKGROUND_TRANSP_REFRACT},
+        % camera
         {lens_type,?DEF_LENS_TYPE},
         {lens_ortho_scale,?DEF_LENS_ORTHO_SCALE},
         {lens_angular_circular,?DEF_LENS_ANGULAR_CIRCULAR},
@@ -97,24 +98,20 @@ export_prefs() ->
         {aperture,?DEF_APERTURE},
         {bokeh_type,?DEF_BOKEH_TYPE},
         {height,?DEF_HEIGHT},
-        %{aperture,?DEF_APERTURE},% povman: double definition?
         {bokeh_bias,?DEF_BOKEH_BIAS},
         {bokeh_rotation,?DEF_BOKEH_ROTATION},
-        {dof_distance,?DEF_DOF_DISTANCE} % start---------------------------
-        %{background, ?DEF_BACKGROUND_AMBIENT},
-        %{background_color,?DEF_BACKGROUND_COLOR},
-        %{horizon_color, ?DEF_HORIZON_COLOR},
-        %{zenith_color, ?DEF_ZENITH_COLOR},
-        %{background_filename_image, ?DEF_BACKGROUND_FILENAME},
-        %{background_filename_HDRI, ?DEF_BACKGROUND_FILENAME},
-        %{background_mapping, ?DEF_BACKGROUND_MAPPING},
-        %{background_enlight, ?DEF_BACKGROUND_ENLIGHT},
-        %{ambient_diffusephotons, ?DEF_AMBIENT_DIFFUSEPHOTONS},
-        %{ambient_causticphotons, ?DEF_AMBIENT_CAUSTICPHOTONS},
-        %{background_rotation, ?DEF_BACKGROUND_ROTATION},
-        %{samples, 8},
-        %{type, ?DEF_AMBIENT_TYPE}
-
+        {dof_distance,?DEF_DOF_DISTANCE},
+        %{save_alpha,?DEF_SAVE_ALPHA},
+        {environment, constant},
+        {turbidity, 2.0},{a_var, 1.0},{b_var, 1.0},{c_var, 1.0},{d_var, 1.0},{e_var, 1.0},
+        {altitude, 1.0},{add_sun, false},{sun_power, 1.0},{background_light, false},
+        {background_power, 1.0},{background_samples, 8},{to_diffuse_photons, false},
+        {to_caustics_photons, false},{night, false},
+        % start---------------------------
+        {background_color, {0.25,0.25,0.50}}, {horizon_color, ?DEF_HORIZON_COLOR},{zenith_color, ?DEF_ZENITH_COLOR},
+        {back_filename, ""}, {background_mapping, probe},{use_ibl, false},
+        {ambient_diffusephotons, false}, {ambient_causticphotons, false}, {background_rotation, 0.0},
+        {samples, 8}
         ].
 
 f_stop_str(Value) when is_float(Value) ->
@@ -133,18 +130,13 @@ export_dialog_qs(Op, Attr) ->
     Custom = f_stop_str(-1.0),
     ApertureList = [
         {F, f_stop_str(math:sqrt(A)),math:sqrt(A)}
-        || {F, A} <- [{"1.0", 1 / 1},
-                        {"1.4", 1 / 2},
-                        {"2", 1 / 4},
-                        {"2.8", 1 / 8},
-                        {"4", 1 / 16},
-                        {"5.6", 1 / 32},
-                        {"8", 1 / 64},
-                        {"11", 1 / 128},
-                        {"16", 1 / 256},
-                        {"22", 1 / 512},
-                        {"32", 1 / 1024},
-                        {?__(47, "pinhole"), 0.0}]],
+        || {F, A} <- [{"1.0", 1 / 1},{"1.4", 1 / 2},
+                      {"2",   1 / 4},{"2.8", 1 / 8},
+                      {"4",   1 / 16},{"5.6", 1 / 32},
+                      {"8",   1 / 64},{"11",  1 / 128},
+                      {"16",  1 / 256},{"22",  1 / 512},
+                      {"32",  1 / 1024},{?__(47, "pinhole"), 0.0}]],
+
     {ApertureIdx,_} = f_stop_find(f_stop_str(Aperture),ApertureList),
 
     Hook_Enable = fun(Key, Value, Store) ->
@@ -232,12 +224,179 @@ export_dialog_qs(Op, Attr) ->
 %%     ButtonsHook = fun(Key,_,_Store) ->
 %%         io:format("Button ~p pressed...\n",[Key])
 %%     end,
+%!----------------------------------------
+%!----------------------------------------
+    WHook_Enabled =
+    fun(Key, Value, Store) ->
+        case Key of
+            ?KEY(add_sun) ->
+                wings_dialog:enable(?KEY(pnl_add_sun), Value =/= ?DEF_SUN_REAL, Store);
+            ?KEY(background_light) ->
+                wings_dialog:enable(?KEY(pnl_bkg_power), Value =/= ?DEF_SKY_BACKGROUND_LIGHT, Store),
+                wings_dialog:enable(?KEY(pnl_bkg_photons), Value =/=?DEF_SKY_BACKGROUND_LIGHT, Store);
+			?KEY(use_ibl) ->
+				wings_dialog:enable(?KEY(pnl_enlight_samples), Value =/= false, Store)%,
+                %wings_dialog:enable(?KEY(pnl_enlight_photons), Value =/= false, Store)
+        end
+    end,
+    WHook_Show =
+    fun(Key, Value, Store) ->
+        case Key of
+            ?KEY(environment) ->
+                wings_dialog:show(?KEY(pnl_sky), Value =:= darksky, Store), %=/= undefined, Store),
+				wings_dialog:update(?KEY(pnl_sky), Store)
+				wings_dialog:show(?KEY(pnl_background), Value =:= constant, Store),
+                wings_dialog:update(?KEY(pnl_background), Store)
+        end
+    end,
+    %!----------------------------------------
+    %! Environment background 150 ->
+    %!----------------------------------------
+	BrowsePropsHDRI = [{dialog_type,open_dialog},
+                       {extensions,[
+                            {".hdr",?__(398,"High Dynamic Range image")},
+                            {".exr",?__(399,"OpenEXR image")}]
+                        }],
+    World =
+    {?__(400, "World") ,
+        {vframe,[
+            {menu, [
+                {?__(401,"Constant"),constant},
+                {?__(402,"Gradient"),gradientback},
+                {?__(403,"Texture"),texture},
+                {?__(404,"Sunsky"),sunsky},
+                {?__(405,"DarkSky"),darksky}
+            ], get_pref(environment,Attr), [key(environment), {hook,WHook_Show}]},
+            %!------------------------------------
+            %! DarkSky
+            %!------------------------------------
+            {vframe, [
+                {hframe, [
+                    {label_column, [
+                        {?__(407,"Turbidity"),{text,get_pref(turbidity,Attr),[range(turbidity),key(turbidity),{width, 5}]}},
+                        {?__(408,"Horizon Brightness"),{text,get_pref(a_var,Attr),[key(a_var),{width, 5}]}},
+                        {?__(409,"Horizon Spread"),{text,get_pref(b_var,Attr),[key(zero_to_ten),{width, 5}]}}
+                    ],[{margin,false}]},
+                    {label_column, [
+                        {?__(410,"Sun Brightness"),{text,get_pref(c_var,Attr),[key(c_var),{width, 5}]}},
+                        {?__(411,"Sun Distance"),{text,get_pref(d_var,Attr),[key(d_var),{width, 5}]}},
+                        {?__(412,"Backscattered Light"),{text,get_pref(e_var,Attr),[key(e_var),{width, 5}]}}
+                    ],[{margin,false}]}
+                ],[{margin,false}]},
+            
+                {hframe,[
+                    {hframe,[
+                        {label,?__(413,"Altitude")},
+                        {text,get_pref(altitude,Attr),[range(altitude),key(altitude)]}
+                    ],[key(pnl_darksky_altitude),{margin,false}]
+                    }
+                ]},
 
+                {hframe,[
+                    {?__(414,"Add Sun"),get_pref(add_sun, Attr),[key(add_sun),{hook,WHook_Enabled}]},
+                    panel, panel,
+                    {?__(416,"Add Skylight"),get_pref(background_light, Attr),[key(background_light),{hook,WHook_Enabled}]}%,
+                    %panel,
+                    %{hframe,[
+                    %    {label,?__(415,"Sun Power")},
+                    %    {text, get_pref(sun_power, Attr),[range(sun_power),key(sun_power),{width,4}]}
+                    %    ],[key(pnl_add_sun),{margin,false}]
+                    %}
+                ]},
+
+                {vframe,[
+                    {hframe, [
+                    %{?__(416,"Skylight"),get_pref(background_light, Attr),[key(background_light),{hook,WHook_Enabled}]},
+                        {hframe,[
+                            {label,?__(415,"Sun Power")},
+                            {text, get_pref(sun_power, Attr),[range(sun_power),key(sun_power),{width,5}]}
+                            ],[key(pnl_add_sun),{margin,false}]
+                        },
+                        %panel,
+                        {hframe, [
+                            {label,?__(417," Sky Power")},
+                            {text,get_pref(background_power, Attr),[range(zero_to_ten),key(sky_background_power),{width,5}]},
+                            {label,?__(418,"Samples")},
+                            {text,get_pref(background_samples, Attr),[range(background_samples),key(background_samples),{width,5}]}
+                        ], [key(pnl_bkg_power),{margin,false}]}
+                    ]},
+                    {hframe, [
+                        {?__(419,"Diffuse Photons"),get_pref(to_diffuse_photons,Attr),[key(to_diffuse_photons)]},
+                        panel,
+                        {?__(420,"Caustic Photons"),get_pref(to_caustics_photons, Attr),[key(to_caustics_photons)]}
+                    ],[key(pnl_bkg_photons)]}
+                ],[{margin,false}]
+                },
+                {vframe,[
+                    {?__(421,"Night"),get_pref(night, Attr),[key(night)]}
+                ]}
+            ],[key(pnl_sky),{margin,false}]
+            },
+			% end darksky
+			{vframe, [
+                %% HDRI Background
+                {vframe, [
+                    {label_column, [
+                        {?__(425,"Filename"),
+                            {vframe, [
+                                {hframe, [
+                                    {button,{text,get_pref(back_filename, Attr),[key(back_filename),{width,35},{props,BrowsePropsHDRI}]}},
+                                    {menu, [
+                                        {?__(426,"Light Probe"),probe},
+                                        {?__(427,"Spherical"),spherical}
+                                    ], get_pref(background_mapping, Attr), [key(background_mapping)]}
+                                ],[key(pnl_img_hdri),{margin,false}]}
+                            ],[{margin,false}]}},
+                        {?__(428,"Rotation"),
+                            {text,get_pref(background_rotation, Attr),[range(background_rotation),key(background_rotation)]}
+                        }
+                    ],[{margin,false}]
+                }],
+                [key(pnl_file),{margin,false}]
+                },
+                %% Constant Background
+                {hframe, [
+                    {label,?__(429,"Color")},
+                    {color,get_pref(background_color, Attr),[key(background_color)]}
+                ],[key(pnl_const),{show,false}]},
+                %% Gradient Background
+                {hframe,[
+                    {label,?__(430,"Horizon Color")},
+                    {color,get_pref(horizon_color, Attr),[key(horizon_color)]},
+                    panel,
+                    {label,?__(431,"Zenith Color")},
+                    {color,get_pref(zenith_color, Attr),[key(zenith_color)]}
+                ],[key(pnl_gradient),{show,false}]},
+                %% Common parameters
+                {vframe,[
+                    {hframe,[
+                        {hframe,[
+                            {?__(432,"Use IBL"),get_pref(use_ibl, Attr),[key(use_ibl),{hook,WHook_Enabled}]}
+                        ]},
+                        panel,
+                        {hframe,[
+                            {label,?__(433,"Samples")},
+                            {text,get_pref(samples, Attr),[range(samples),key(samples)]}
+                        ],[key(pnl_enlight_samples),{margin,false}]}
+                    ],[{margin,false}]},
+                    {hframe, [
+                        {?__(94,"Diffuse Photons"),get_pref(ambient_diffusephotons, Attr),[key(ambient_diffusephotons)]},
+                        panel,
+                        {?__(96,"Caustic Photons"),get_pref(ambient_causticphotons, Attr),[key(ambient_causticphotons)]}
+                    ],[key(pnl_enlight_photons)]}
+                ]}
+            ],[key(pnl_background),{margin,false}]}
+            % end import code
+        ],[{title, ?__(450, "Environment")},{margin,false}]}
+    },
+    %!-------------------------
+    %!
+    %!-------------------------
     GeneralOpt =
         {?__(100, "General options"),
             {vframe, [
                 %!----------------------------------------
-                %! Pre-Render group 100-110
+                %! Pre-Render group 100-105
                 %!----------------------------------------
                 {hframe, [
                     {hframe, [
@@ -262,9 +421,9 @@ export_dialog_qs(Op, Attr) ->
                 %----------------------------
                 {hframe, [
                     {label_column, [
-                        {?__(105, "Raydepth"),
+                        {?__(105, "Raydepth "),
                             {text, get_pref(raydepth,Attr),[range(raydepth),{key,raydepth},{width,5}]}},
-                        {?__(106, "Gamma"),
+                        {?__(106, "Gamma Out"),
                             {text, get_pref(gamma,Attr),[range(gamma),{key,gamma},{width,5}]}}
                     ]},
                     {vframe, [
@@ -276,8 +435,8 @@ export_dialog_qs(Op, Attr) ->
                             {label, ?__(108, "Shadows Depth")},
                             {text, get_pref(shadow_depth,Attr), [range(shadow_depth),{key,shadow_depth}]}
                         ], [key(pnl_transp_shadow), {enabled,false},{margin,false}]}
-                    ]}, %panel, % separa columnas..
-                    {vframe, [ % nueva----
+                    ]},
+                    {vframe, [
                         {hframe, [
                             {label, "Threads "},
                             {text, get_pref(threads_number,Attr), [range(threads_number),{key,threads_number}]}
@@ -292,11 +451,8 @@ export_dialog_qs(Op, Attr) ->
                             {menu, [
                                 {?__(111, "Mute"), mute},
                                 {"Info", info},
-                                {"Warning", warn},
-                                {"Error", fail}
-                                %{?__(112, "Info"), info},
-                                %{?__(113, "Warning"), warn},
-                                %{?__(114, "Error"), fail}
+                                {"Warning", warning},
+                                {"Error", error}
                             ], get_pref(verbosity_level,Attr), [{key,verbosity_level}]}
                         ]},
                         {hframe,[
@@ -308,7 +464,7 @@ export_dialog_qs(Op, Attr) ->
                             {?__(116, "Clay Pass"), get_pref(clay_pass,Attr), [{key,clay_pass}]}%,{width,5}]}
                         ]},
                         {hframe,[
-                            {?__(117, "Z Pass"), get_pref(z_pass,Attr), [{key,z_pass}]}%,{width,5}]}
+                            {?__(117, "Z-Depth"), get_pref(z_pass,Attr), [{key,z_pass}]}%,{width,5}]}
                         ]}
                     ]}
                 ],[{title, ?__(125, "General settings")},{margin,false}]},
@@ -318,7 +474,7 @@ export_dialog_qs(Op, Attr) ->
                 %----------------------------
                 {hframe, [
                     {hframe, [
-                        {label, ?__(130, "Output ")},
+                        {label, ?__(130, "Format ")},
                         {menu, [
                             {Ext ++ " (" ++ Desc ++ ")", Format}
                             || {Format, Ext, Desc} <- wings_job:render_formats(),
@@ -328,9 +484,7 @@ export_dialog_qs(Op, Attr) ->
                     ]},
                     panel,
                     {hframe, [
-                        {?__(131, "Float"), get_pref(exr_flag_float,Attr), [{key,exr_flag_float}]},
-                        panel,
-                        {?__(132, "Zbuf"), get_pref(exr_flag_zbuf,Attr), [{key,exr_flag_zbuf}]},
+                        {?__(131, "Float"), get_pref(exr_float,Attr), [{key,exr_float}]},
                         panel,
                         {label, ?__(133, "Compression ")},
                         %------------------------------------
@@ -361,7 +515,7 @@ export_dialog_qs(Op, Attr) ->
                             ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]},
                             panel,
                             {hframe, [
-                                {label, ?__(141, "Add samples")},{text, get_pref(aa_moresamples,Attr), [{key,aa_moresamples}]}
+                                {label, ?__(141, "Add. Samples")},{text, get_pref(aa_moresamples,Attr), [{key,aa_moresamples}]}
                             ]}, panel,
                             {hframe, [
                                 {?__(142, "Clamp RGB"), get_pref(clamp_rgb,Attr),[{key,clamp_rgb}]}
@@ -375,39 +529,22 @@ export_dialog_qs(Op, Attr) ->
                             {label_column, [
                                 {?__(145, "Threshold"),
                                     {text, get_pref(aa_threshold,Attr),[range(aa_threshold),{key,aa_threshold}]}},
-                                {?__(146, "Pixelwidth"),{text, get_pref(aa_pixelwidth,Attr),
-                                    [range(aa_pixelwidth),{key,aa_pixelwidth}]}}
+                                {?__(146, "Pixelwidth"),
+                                    {text, get_pref(aa_pixelwidth,Attr),[range(aa_pixelwidth),{key,aa_pixelwidth}]}}
                             ]}
                         ],[{margin,false}]}
                     ],[{margin,false}]}
-                ],[{title, ?__(147, "Anti-Aliasing")},{margin,false}]},
-                %!----------------------------------------
-                %! Environment background 150 ->
-                %!----------------------------------------
-                {hframe, [
-                    {label, ?__(150, "Default Color")++" "},
-                    {color, get_pref(background_color,Attr), [{key,background_color}]},
-                    panel,
-                    {label, ?__(151, "Alpha Channel")++" "},
-                    {menu, [
-                        {?__(152, "Off"), false},
-                        {?__(153, "On"), true},
-                        {?__(154, "Premultiply"), premultiply},
-                        {?__(155, "Backgroundmask"), backgroundmask}
-                    ], get_pref(save_alpha,Attr), [{key,save_alpha}]},
-                    panel,
-                    {?__(156, "Transp Refraction"),
-                        get_pref(background_transp_refract,Attr),[{key,background_transp_refract}]}
-                ],[{title, ?__(157, "Background")},{margin,false}]}
+                ],[{title, ?__(147, "Anti-Aliasing")},{margin,false}]}%,
 
-%%                 % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
-%%                 {hframe, [
-%%                     {button, ?__(55, "Save"), save, [{info, ?__(56, "Save to user preferences")},{hook,ButtonsHook}]},
-%%                     {button, ?__(57, "Load"), load, [{info, ?__(58, "Load from user preferences")},{hook,ButtonsHook}]},
-%%                     {button, ?__(59, "Reset"), reset, [{info, ?__(60, "Reset to default values")},{hook,ButtonsHook}]}
-%%                 ]}
+                % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
+                %{hframe, [
+                %{button, ?__(55, "Save"), save, [{info, ?__(56, "Save to user preferences")},{hook,ButtonsHook}]},
+                %{button, ?__(57, "Load"), load, [{info, ?__(58, "Load from user preferences")},{hook,ButtonsHook}]},
+                %{button, ?__(59, "Reset"), reset, [{info, ?__(60, "Reset to default values")},{hook,ButtonsHook}]}
+                %]}
             ]}
         },
+
     %!----------------------------------------
     %! Lighting group tab 200 ->
     %!----------------------------------------
@@ -533,7 +670,7 @@ export_dialog_qs(Op, Attr) ->
                                 ]},
                                 {label_column, [
                                     {?__(271, "Scale"),{text, get_pref(sss_scale,Attr), [{key,sss_scale},range(sss_scale)]}},
-                                    {?__(272, "SingleScatter Samples"),{text, get_pref(sss_singlescatter_samples,Attr), [{key,sss_singlescatter_samples},range(sss_singlescatter_samples)]}}
+                                    {?__(272, "SingleScatter Samples"),{text, get_pref(sss_scatter_samples,Attr), [{key,sss_scatter_samples},range(sss_scatter_samples)]}}
                                 ]}
                             ],[key(pnl_sss_opt), {margin,false}]}
                         ],[{title, ?__(273, "SubSurface Scattering")},{margin,false}]}
@@ -624,10 +761,13 @@ export_dialog_qs(Op, Attr) ->
                     {hframe, [
                         {label, ?__(315, "DOF Type ")},
                         {menu, [
-                            {?__(316, "Disk1"), disk1}, {?__(317, "Disk2"), disk2},
+                            {?__(316, "Disk1"), disk1},
+                            {?__(317, "Disk2"), disk2},
                             {?__(318, "Triangle"), triangle},
-                            {?__(319, "Square"), square}, {?__(320, "Pentagon"), pentagon},
-                            {?__(321, "Hexagon"), hexagon}, {?__(322, "Ring"), ring}
+                            {?__(319, "Square"), square},
+                            {?__(320, "Pentagon"), pentagon},
+                            {?__(321, "Hexagon"), hexagon},
+                            {?__(322, "Ring"), ring}
                         ], get_pref(bokeh_type,Attr), [{key,bokeh_type}]},
                         panel,
                         {label, ?__(323, "Bias ")},
@@ -656,7 +796,8 @@ export_dialog_qs(Op, Attr) ->
         {oframe, [
             GeneralOpt,
             Lighting,
-            Camera
+            Camera,
+            World
         ], 1, [{style, buttons}]}
     ].
 
