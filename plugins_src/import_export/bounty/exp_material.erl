@@ -112,7 +112,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
     case OrenNayar of
         false -> ok;
         _ ->
-            OrenNayarSigma = proplists:get_value(oren_nayar_sigma, YafaRay, ?DEF_OREN_NAYAR_SIGMA),
+            OrenNayarSigma = proplists:get_value(sigma, YafaRay, ?DEF_OREN_NAYAR_SIGMA),
             println(F, "\t<diffuse_brdf sval=\"oren_nayar\"/>"),
             println(F, "\t<sigma fval=\"~.10f\"/>",[OrenNayarSigma])
     end,
@@ -171,7 +171,7 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
     %% XXX Wings scaling of shininess is weird. Commonly this value
     %% is the cosine power and as such in the range 0..infinity.
     %% OpenGL limits this to 0..128 which mostly is sufficient.
-    println(F, "       <hard fval=\"~.10f\"/>",
+    println(F, "\t<hard fval=\"~.10f\"/>",
             [proplists:get_value(shininess, OpenGL)*128.0]),
     export_rgb(F, color,
                proplists:get_value(reflected, YafaRay, DefReflected)),
@@ -224,11 +224,10 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
     case OrenNayar of
         false -> ok;
         _ ->
-            OrenNayarSigma = proplists:get_value(oren_nayar_sigma, YafaRay,
-                                                 ?DEF_OREN_NAYAR_SIGMA),
+            OrenNayarSigma = proplists:get_value(sigma, YafaRay, ?DEF_OREN_NAYAR_SIGMA),
 
-            println(F, "        <diffuse_brdf sval=\"oren_nayar\"/>~n"
-                    "        <sigma fval=\"~.10f\"/>",
+            println(F, "\t<diffuse_brdf sval=\"oren_nayar\"/>~n"
+                    "\t<sigma fval=\"~.10f\"/>",
                     [OrenNayarSigma])
     end,
 
@@ -336,7 +335,7 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
     case OrenNayar of
         false -> ok;
         _ ->
-            OrenNayarSigma = proplists:get_value(oren_nayar_sigma, YafaRay,
+            OrenNayarSigma = proplists:get_value(sigma, YafaRay,
                                                  ?DEF_OREN_NAYAR_SIGMA),
 
             println(F, "        <diffuse_brdf sval=\"oren_nayar\"/>~n"

@@ -10,8 +10,8 @@ material_dialog(_Name, Mat) ->
     YafaRay = proplists:get_value(?TAG, Mat, []),
 	%MatAttr = proplists:get_value(?TAG, Mat, []),
     %DefShaderType = get_pref(shader_type, YafaRay),
-	DefMatType = get_pref(shader_type, YafaRay),
-    ShaderType = proplists:get_value(shader_type, YafaRay, DefMatType),
+	%DefMatType = get_pref(shader_type, YafaRay),
+    MaterialType = proplists:get_value(material_type, YafaRay, ?DEF_MATERIAL_TYPE),
     Object_Type = proplists:get_value(object_type, YafaRay, ?DEF_OBJECT_TYPE),
     Volume_Type = proplists:get_value(volume_type, YafaRay, ?DEF_VOLUME_TYPE),
     Volume_Sigma_a = proplists:get_value(volume_sigma_a, YafaRay, ?DEF_VOLUME_SIGMA_A),
@@ -80,7 +80,7 @@ material_dialog(_Name, Mat) ->
     %%
     DiffuseReflect = proplists:get_value(diffuse_reflect, YafaRay, ?DEF_DIFFUSE_REFLECT),
     OrenNayar = proplists:get_value(oren_nayar, YafaRay, ?DEF_OREN_NAYAR),
-    OrenNayar_Sigma = proplists:get_value(oren_nayar_sigma, YafaRay, ?DEF_OREN_NAYAR_SIGMA),
+    OrenNayar_Sigma = proplists:get_value(sigma, YafaRay, ?DEF_OREN_NAYAR_SIGMA),
 
     %% Glossy and Coated Glossy Properties
     %%
@@ -129,7 +129,7 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:show(?KEY(pnl_desnity_volume), Value =:= expdensityvolume, Store),
                     wings_dialog:show(?KEY(pnl_noise_volume), Value =:= noisevolume, Store),
                     wings_dialog:update(?KEY(pnl_volume_type), Store);
-                ?KEY(shader_type) ->
+                ?KEY(material_type) ->
 					%% IOR
 					wings_dialog:show(?KEY(pnl_ior), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
 					%% Internal Reflection
@@ -291,7 +291,7 @@ material_dialog(_Name, Mat) ->
     %%
     ShaderFrame =
         {vframe, [
-            {menu,menu_shader(),ShaderType,[key(shader_type),{hook,Hook_Show}]},
+            {menu,menu_shader(),MaterialType,[key(material_type),{hook,Hook_Show}]},
 
             %% label column
             {vframe, [
@@ -411,7 +411,7 @@ material_dialog(_Name, Mat) ->
                 {hframe, [
                     {"Oren-Nayar",OrenNayar,[key(oren_nayar),{hook,Hook_Enable}]},
                     {label_column,[
-                        {"Sigma", {text,OrenNayar_Sigma,[range(oren_nayar_sigma),key(oren_nayar_sigma)]}}
+                        {"Sigma", {text,OrenNayar_Sigma,[range(sigma),key(sigma)]}}
                     ],[key(pnl_sigma_shiny),{margin,false}]}
                 ],[key(pnl_on),{show,false},{margin,false}]},
                 %% 18th row
@@ -440,7 +440,7 @@ material_dialog(_Name, Mat) ->
         },
 
     [{
-        ?__(1,"TheBounty"),
+        ?__(1,"TheBounty Material"),
         {vframe, [
             {oframe, [
                 {"Material", ShaderFrame},
@@ -468,3 +468,21 @@ def_absorption_color({Dr,Dg,Db,_Da}) ->
 def_transmitted({Dr,Dg,Db,_Da}) ->
     Dt = 1-0,
     {Dr*Dt,Dg*Dt,Db*Dt}.
+	
+%% test move modulator def from wpc_bounty
+def_modulators([]) ->
+    [];
+def_modulators([{diffuse,_}|Maps]) ->
+    [{modulator,[{type,{map,diffuse}},{diffuse,1.0}]}
+     |def_modulators(Maps)];
+def_modulators([{ambient,_}|Maps]) ->
+    [{modulator,[{type,{map,ambient}},{ambient,1.0}]}
+     |def_modulators(Maps)];
+def_modulators([{bump,_}|Maps]) ->
+    [{modulator,[{type,{map,bump}},{normal,1.0}]}
+     |def_modulators(Maps)];
+def_modulators([{gloss,_}|Maps]) ->
+    [{modulator,[{type,{map,gloss}},{shininess,1.0}]}
+     |def_modulators(Maps)];
+def_modulators([_|Maps]) ->
+    def_modulators(Maps).
