@@ -17,7 +17,9 @@
 	 norm_sub/2,mul/2,divide/2,neg/1,dot/2,cross/2,
 	 len/1,dist/2,dist_sqr/2,
 	 norm/1,norm/3,normal/3,normal/1,average/1,average/2,average/4,
-	 bounding_box/1,area/3,degrees/2,plane/3,plane_side/2,plane_dist/2]).
+	 bounding_box/1,area/3,degrees/2,
+   plane/1,plane/2,plane/3,
+   plane_side/2,plane_dist/2]).
 
 -include("e3d.hrl").
 
@@ -155,40 +157,6 @@ normal({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
 	error:badarith -> {0.0,0.0,0.0}
     end.
 
--spec area(e3d_vector(), e3d_vector(), e3d_vector()) -> float().
-
-area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
-  when is_float(V10), is_float(V11), is_float(V12),
-       is_float(V20), is_float(V21), is_float(V22),
-       is_float(V30), is_float(V31), is_float(V32) ->
-    D10 = V10-V20,
-    D11 = V11-V21,
-    D12 = V12-V22,
-    D20 = V20-V30,
-    D21 = V21-V31,
-    D22 = V22-V32,
-    N0 = D11*D22-D12*D21,
-    N1 = D12*D20-D10*D22,
-    N2 = D10*D21-D11*D20,
-    math:sqrt(N0*N0+N1*N1+N2*N2)*0.5.
-    
-%% Calculate plane coefficients for a plane on which the triangle lies   
-plane({X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}) ->
-        {A,B,C} = e3d_vec:normal({X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}),
-        {CX,CY,CZ} = e3d_vec:average([{X1,Y1,Z1}, {X2,Y2,Z2}, {X3,Y3,Z3}]),
-        D = -A*CX-B*CY-C*CZ,                  
-        {{A,B,C},D}.
-
-%% Helper function used to sort points according to which side of a plane they are on.	
-plane_side({X,Y,Z},{{A,B,C},D}) ->
-    Temp=A*X+B*Y+C*Z+D,
-    if  Temp < 0.0000 -> -1;  true -> 1 end.
-
-%% Using Coeff to calculate signed distance from point to plane.
-plane_dist({X,Y,Z},{{A,B,C},D}) ->
-	(A*X+B*Y+C*Z+D)/math:sqrt(A*A+B*B+C*C).
-        
-
 %% normal([{X,Y,Z}]) ->
 %%  Calculate the averaged normal for the polygon using Newell's method.
 
@@ -284,6 +252,50 @@ average({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32}, {V40,V41,V42})
     when is_float(V10), is_float(V11), is_float(V12) ->
     L = 0.25,
     {L*(V10+V20+V30+V40),L*(V11+V21+V31+V41),L*(V12+V22+V32+V42)}.
+
+
+-spec area(e3d_vector(), e3d_vector(), e3d_vector()) -> float().
+
+area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
+  when is_float(V10), is_float(V11), is_float(V12),
+       is_float(V20), is_float(V21), is_float(V22),
+       is_float(V30), is_float(V31), is_float(V32) ->
+    D10 = V10-V20,
+    D11 = V11-V21,
+    D12 = V12-V22,
+    D20 = V20-V30,
+    D21 = V21-V31,
+    D22 = V22-V32,
+    N0 = D11*D22-D12*D21,
+    N1 = D12*D20-D10*D22,
+    N2 = D10*D21-D11*D20,
+    math:sqrt(N0*N0+N1*N1+N2*N2)*0.5.
+
+%% Calculate plane coefficients from point {CX,CY,CZ} and normal {A,B,C}
+%% Use reference of  : http://mathworld.wolfram.com/Plane.html
+-spec plane(Center::e3d_vector(), Normal::e3d_vector()) -> e3d_plane().
+plane({CX,CY,CZ}, {A,B,C})
+  when is_float(CX), is_float(CY), is_float(CZ),
+       is_float(A),  is_float(A),  is_float(A) ->
+    D = -A*CX-B*CY-C*CZ,
+    {{A,B,C},D}.
+
+-spec plane(e3d_point(),e3d_point(),e3d_point()) -> e3d_plane().
+plane(P1, P2, P3) ->
+    plane(average([P1,P2,P3]), normal(P1,P2,P3)).
+
+-spec plane([e3d_point()]) -> e3d_plane().
+plane(Polygon) ->
+    plane(average(Polygon), normal(Polygon)).
+
+%% Helper function used to sort points according to which side of a plane they are on.
+plane_side({X,Y,Z},{{A,B,C},D}) ->
+    Temp=A*X+B*Y+C*Z+D,
+    if  Temp < 0.0000 -> -1;  true -> 1 end.
+
+%% Using Coeff to calculate signed distance from point to plane.
+plane_dist({X,Y,Z},{{A,B,C},D}) ->
+    (A*X+B*Y+C*Z+D)/math:sqrt(A*A+B*B+C*C).
 
 
 %% Should be removed and calls should be changed to e3d_bv instead.

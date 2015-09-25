@@ -178,11 +178,13 @@ minor_gl_version() ->
     Minor = 1,
     Req = {Major,Minor,0},
     case ets:lookup(wings_gl_ext, version) of
-	[{_,VerTuple}] when VerTuple < Req ->
-	    fatal("Wings3D requires OpenGL ~p.~p or higher.",
-		  [Major,Minor]);
-	_ ->
-	    ok
+    [{_,{MajorCurrent,MinorCurrent,_}=VerTuple}] when VerTuple < Req ->
+        fatal("Wings3D requires OpenGL ~p.~p or higher.\nYour available version ~p.~p",
+          [Major,Minor,   MajorCurrent,MinorCurrent]);
+    [{_,{_,_,_}=_VerTuple}]  ->  % assert that a 3 tuple is returned as expected
+        ok;
+    Unexpected ->
+        fatal("Unexpected current OpenGL info : ~p", [ Unexpected ])
     end.
 
 have_fbo() ->
