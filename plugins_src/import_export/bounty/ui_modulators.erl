@@ -59,7 +59,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     Negative = proplists:get_value(negative, Ps, false),
     NoRGB = proplists:get_value(no_rgb, Ps, false),
     DefColor = proplists:get_value(def_color, Ps, ?DEF_MOD_DEFCOLOR),
-    %DefValue = proplists:get_value(def_value, Ps, 1.0),
+    DefValue = proplists:get_value(def_value, Ps, 1.0),
 
     Coordinates = proplists:get_value(coordinates, Ps, global),
     SizeX = proplists:get_value(size_x, Ps, ?DEF_MOD_SIZE_X),
@@ -75,21 +75,21 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     DiffuseFactor = proplists:get_value(diffuse_factor, Ps, ?DEF_MOD_COLORFACTOR),
     MirrorLayer = proplists:get_value(mirror, Ps, false),
     MirrorFactor = proplists:get_value(mirror_factor, Ps, ?DEF_MOD_COLORFACTOR),
-	MirrorColorLayer = proplists:get_value(mirror_color, Ps, false),
-	MirrorColorFactor = proplists:get_value(mirror_color_factor, Ps, 1.0),
-	TransparentLayer = proplists:get_value(transparency, Ps, false),
-	TransparentFactor = proplists:get_value(transparent_factor, Ps, 1.0),
-	TranslucentLayer = proplists:get_value(translucency, Ps, false),
-	TranslucentFactor = proplists:get_value(translucent_factor, Ps, 1.0),
-	BumpLayer = proplists:get_value(bump, Ps, false),
+    MirrorColorLayer = proplists:get_value(mirror_color, Ps, false),
+    MirrorColorFactor = proplists:get_value(mirror_color_factor, Ps, 1.0),
+    TransparentLayer = proplists:get_value(transparency, Ps, false),
+    TransparentFactor = proplists:get_value(transparent_factor, Ps, 1.0),
+    TranslucentLayer = proplists:get_value(translucency, Ps, false),
+    TranslucentFactor = proplists:get_value(translucent_factor, Ps, 1.0),
+    BumpLayer = proplists:get_value(bump, Ps, false),
     BumpFactor = proplists:get_value(bump_factor, Ps, 1.0),
     %%    Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
     %Shininess = proplists:get_value(shininess, Ps, ?DEF_MOD_SHININESS),
     %Normal = proplists:get_value(normal, Ps, ?DEF_MOD_NORMAL),
     Filename = proplists:get_value(filename, Ps, ?DEF_MOD_FILENAME),
-	BrowseProps = [{dialog_type, open_dialog},
-					{extensions, [{".jpg", "JPEG"}, {".png", "PNG"},{".bmp", "Bitmap"}, 
-								{".gif", "GIF"}, {".exr", "EXR"}, {".tiff", "TIFF"}]}],
+    BrowseProps = [{dialog_type, open_dialog},
+                    {extensions, [{".jpg", "JPEG"}, {".png", "PNG"},{".bmp", "Bitmap"},
+                                {".gif", "GIF"}, {".exr", "EXR"}, {".tiff", "TIFF"}]}],
     Color1 = proplists:get_value(color1, Ps, ?DEF_MOD_COLOR1),
     Color2 = proplists:get_value(color2, Ps, ?DEF_MOD_COLOR2),
     Depth = proplists:get_value(depth, Ps, ?DEF_MOD_DEPTH),
@@ -157,15 +157,19 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 {?__(6,"Enabled"),Enabled,[{key,{?TAG,enabled,M}},{hook,Hook_Enable}]}%,
             ]},
             {vframe,[
-                {hframe,[ % este panel es del key, pnl_mode
-                    {label,?__(7,"Blend Mode" )},
-                    {menu,menu_blend_mode(), BlendMode,[]},
-                    panel,
-                    {?__(8," Stencil "), Stencil},
-                    {?__(9," Negative "), Negative},
-                    {?__(10," No RGB "), NoRGB},
-                    {label,?__(11," Def. Color: ")},{color,DefColor}
-					%{label,?__(12," Def. Value:")},{text,DefValue,[range(size),{width,4}]},
+                {vframe,[ % este panel es del key, pnl_mode
+                    {hframe,[
+                        {label,?__(7,"Blend Mode" )},
+                        {menu,menu_blend_mode(), BlendMode,[]},
+                        panel,
+                        {?__(8," Stencil "), Stencil},
+                        {?__(9," Negative "), Negative},
+                        {?__(10," No RGB "), NoRGB}
+                    ]},
+                    {hframe,[
+                        {label,?__(11," Def. Color: ")},{color,DefColor},
+                        {label,?__(12," Def. Value:")},{slider,{text,DefValue,[range(zero_to_one)]}}
+                    ]}
                 ],[key({pnl_mode,M}),{title,"Stencil"},{margin,false},{hook,Hook_Show}]}
             ]},
             {vframe, [
@@ -221,8 +225,8 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                             {slider,{text,MirrorColorFactor,[range(zero_to_one)]}},
                             {slider,{text,TransparentFactor,[range(zero_to_one)]}},
                             {slider,{text,TranslucentFactor,[range(zero_to_one)]}},
-                            {slider,{text,BumpFactor,[range(neg_one_to_one)]}}                            
-                        ]}                        
+                            {slider,{text,BumpFactor,[range(neg_one_to_one)]}}
+                        ]}
                     ]}
                 ],[{title,"Influence"},{margin,false}]},
                 %!-----------------------
@@ -482,7 +486,7 @@ modulator(Res0, M) ->
     %! orden en el que aparecen o son usados en el UI.
     %!-------------------------------------------------------------------
     [Mode,
-     Stencil,Negative,NoRGB,DefColor,% DefValue,
+     Stencil,Negative,NoRGB,DefColor, DefValue,
      Coordinates, SizeX, SizeY, SizeZ,
      Projection, OffsetX, OffsetY, OffsetZ,
      DiffuseLayer, MirrorLayer, MirrorColorLayer, TransparentLayer, TranslucentLayer, BumpLayer,
@@ -502,8 +506,8 @@ modulator(Res0, M) ->
     %! Aqui mantendremos el mismo orden de uso del UI
     %!---------------------------------------------------------
     Ps = [{enabled,Enabled},{mode,Mode},
-          {stencil, Stencil}, {negative,Negative},{no_rgb, NoRGB},{def_color,DefColor},
-          %{def_value, DefValue},
+          {stencil,Stencil},{negative,Negative},{no_rgb,NoRGB},{def_color,DefColor},
+          {def_value, DefValue},
           %{material_type,ShaderType}, % only for logical UI, don't is need activate here ?
           {coordinates, Coordinates},
           {size_x,SizeX},{size_y,SizeY},{size_z,SizeZ},
@@ -511,14 +515,14 @@ modulator(Res0, M) ->
           {offset_x,OffsetX},{offset_y,OffsetY},{offset_z,OffsetZ},
           {diffuse_layer, DiffuseLayer},
           {mirror, MirrorLayer},
-		  {mirror_color, MirrorColorLayer},
-		  {transparency, TransparentLayer},
-		  {translucency,TranslucentLayer},
-		  {bump,BumpLayer},
+          {mirror_color, MirrorColorLayer},
+          {transparency, TransparentLayer},
+          {translucency,TranslucentLayer},
+          {bump,BumpLayer},
           {diffuse_factor,DiffuseFactor},
           {mirror_factor, MirrorFactor},
-		  {mirror_color_factor, MirrorColorFactor},{transparent_factor,TransparentFactor},
-		  {translucent_factor, TranslucentFactor},{bump_factor, BumpFactor},
+          {mirror_color_factor, MirrorColorFactor},{transparent_factor,TransparentFactor},
+          {translucent_factor, TranslucentFactor},{bump_factor, BumpFactor},
           {type,Type},
           {filename,Filename},{color1,Color1},{color2,Color2},{hard,Hard},
           {noise_basis,NoiseBasis},{noise_size,NoiseSize},{depth,Depth},
@@ -550,29 +554,24 @@ modulator_init(Mode) ->
         {negative, false},
         {no_rgb, false},
         {def_color,?DEF_MOD_DEFCOLOR},
-        %{def_value, 1.0},
+        {def_value, 1.0},
         {coordinates, global},
-        {size_x,?DEF_MOD_SIZE_X},
-        {size_y,?DEF_MOD_SIZE_Y},
-        {size_z,?DEF_MOD_SIZE_Z},
+        {size_x,1.0},{size_y,1.0},{size_z,1.0},
         {projection, plain},
-        {offset_x, 0.0},
-        {offset_y, 0.0},
-        {offset_z, 0.0},
+        {offset_x, 0.0},{offset_y, 0.0},{offset_z, 0.0},
         {diffuse_layer, false},
         {mirror, false},
-		{mirror_color, false},
-		{transparency, false},
-		{translucency,false},
-		{bump,false},
-        {diffuse_factor,?DEF_MOD_COLORFACTOR},
+        {mirror_color, false},
+        {transparency, false},
+        {translucency, false},
+        {bump,false},
+        {diffuse_factor, 1.0},
         {mirror_factor, 1.0},
-		{mirror_color_factor, 1.0},
-		{transparent_factor, 1.0},
-		{translucent_factor, 1.0},
-		{bump_factor, 1.0},
-        %{normal,?DEF_MOD_NORMAL},
-        {type,?DEF_MOD_TEXTURETYPE}, %% cambiar por 'texturetype
+        {mirror_color_factor, 1.0},
+        {transparent_factor, 1.0},
+        {translucent_factor, 1.0},
+        {bump_factor, 1.0},
+        {type,?DEF_MOD_TEXTURETYPE}, %% change to 'texturetype
         {filename,?DEF_MOD_FILENAME},
         {color1,?DEF_MOD_COLOR1},
         {color2,?DEF_MOD_COLOR2},
