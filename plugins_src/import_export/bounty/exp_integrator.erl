@@ -134,7 +134,7 @@ export_integrator(F, Attr) ->
                     println(F,
                         "\t<sssScale fval=\"~.10f\"/>",[proplists:get_value(sss_scale, Attr)]),
                     println(F,
-                        "\t<singleScatterSamples ival=\"~w\"/>",[proplists:get_value(sss_singlescatter_samples, Attr)]);
+                        "\t<singleScatterSamples ival=\"~w\"/>",[proplists:get_value(sss_scatter_samples, Attr)]);
                 false -> ok
             end;
         _ -> ok

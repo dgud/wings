@@ -235,13 +235,13 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_BACKGROUND_FILENAME, "").
 -define(DEF_BACKGROUND_EXPOSURE_ADJUST, 1.0).
 -define(DEF_BACKGROUND_MAPPING, probe).
--define(DEF_BACKGROUND_POWER, 5.0).
+-define(DEF_BACKGROUND_POWER, 1.0).
 -define(DEF_BACKGROUND_PREFILTER, true).
--define(DEF_BACKGROUND_ENLIGHT, true).
+-define(DEF_BACKGROUND_ENLIGHT, false).
 -define(DEF_AMBIENT_DIFFUSEPHOTONS, false).
 -define(DEF_AMBIENT_CAUSTICPHOTONS, false).
 -define(DEF_BACKGROUND_ROTATION, 0.0).
--define(DEF_SAMPLES, 128).
+-define(DEF_SAMPLES, 32).
 
 %% Pathlight
 -define(DEF_PATHLIGHT_MODE, undefined).
@@ -309,12 +309,18 @@ key(Key) -> {key,?KEY(Key)}.
 
 range(T) -> {range,range_1(T)}.
 
-%% generic ranges
-range_1(zero_to_one)            -> {0.0,1.0}; % float type, of course
-range_1(zero_to_five)           -> {0.0,5.0}; % float type, of course
-range_1(zero_to_ten)            -> {0.0,10.0}; % float type, of course
-range_1(zero_to_twenty)         -> {0.0,2.0}; % float type, of course
-range_1(neg_one_to_one)         -> {-1.0,1.0}; % float type, of course
+%% generic float ranges
+range_1(zero_to_one)            -> {0.0,1.0};
+range_1(zero_to_five)           -> {0.0,5.0};
+range_1(zero_to_ten)            -> {0.0,10.0};
+range_1(zero_to_twenty)         -> {0.0,20.0};
+range_1(neg_one_to_one)         -> {-1.0,1.0};
+
+% integer type
+range_1(izero_to_one)            -> {0,1};
+range_1(izero_to_five)           -> {0,5};
+range_1(izero_to_ten)            -> {0,10};
+range_1(izero_to_twenty)         -> {0,20};
 
 %% Material ranges
 range_1(volume_sigma_a)         -> {0.0,1.0};
@@ -381,7 +387,7 @@ range_1(sigma)                  -> {0.0,1.0};
 range_1(power)                  -> {0.0,infinity};
 range_1(bias)                   -> {0.0,1.0};
 %add
-range_1(verbosity_level)		-> {0,3};
+range_1(verbosity_level)        -> {0,3};
 range_1(res)                    -> {0,infinity};
 range_1(radius)                 -> {0,infinity};
 range_1(blur)                   -> {0.0,1.0};
@@ -396,7 +402,7 @@ range_1(depth)                  -> {0,infinity};
 range_1(fixedradius)            -> {0.0,infinity};
 range_1(search)                 -> {0,infinity};
 range_1(cluster)                -> {0.0,infinity};
-range_1(turbidity)              -> {0.0,infinity};
+range_1(turbidity)              -> {0.0,5.0};
 range_1(angle_threshold)        -> {0.0,1.0};
 range_1(raydepth)               -> {1,infinity};
 range_1(shadow_depth)           -> {1,64};
@@ -410,11 +416,13 @@ range_1(maxdistance)            -> {0.0,infinity};
 range_1(infinite_radius)        -> {0.0,infinity};
 range_1(sun_samples)            -> {0,infinity};
 range_1(sun_angle)              -> {0.0,80.0};
+
+%backg
 range_1(background_rotation)    -> {0.0,360.0};
 range_1(sky_background_power)   -> {0.0,infinity};
-range_1(sky_background_samples) -> {0,infinity};
-range_1(darksky_altitude)       -> {0.0,infinity};
-range_1(sun_real_power)         -> {0.0,infinity};
+range_1(background_samples)     -> {0,infinity};
+range_1(altitude)               -> {0.0,infinity};
+range_1(sun_power)              -> {0.0,infinity};
 
 %% Render ranges
 range_1(pm_diffuse_photons)     -> {1,100000000};
@@ -464,3 +472,13 @@ range_1(lens_angular_angle)     -> {0.0,360.0};
 range_1(aperture)               -> {0.0,infinity};
 range_1(bokeh_rotation)         -> {-180.0,180.0};
 range_1(dof_distance)           -> {0.0,250.0}.
+
+%% used to fix old data that now can be out of range and crash Wings3d
+fit_range(Value,Id) ->
+    {Low,High}=range_1(Id),
+    if Value < Low -> Low;
+        true ->
+            if Value > High -> High;
+                true -> Value
+            end
+    end.
