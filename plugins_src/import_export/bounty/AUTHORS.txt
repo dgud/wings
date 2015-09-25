@@ -1,5 +1,5 @@
 %%
-%%  This file is based on YafaRay Plugin User Interface.
+%%  Thebounty exporter is based on YafaRay Plugin User Interface.
 %%  Use the part of code from Micheus to use wxWidgets dialogs.
 %%
 %%  Copyright (c) with some authors:

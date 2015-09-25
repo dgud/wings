@@ -244,7 +244,7 @@ export_dialog_qs(Op, Attr) ->
         case Key of
             ?KEY(environment) ->
                 wings_dialog:show(?KEY(pnl_sky), Value =:= darksky, Store), %=/= undefined, Store),
-				wings_dialog:update(?KEY(pnl_sky), Store)
+				wings_dialog:update(?KEY(pnl_sky), Store),
 				wings_dialog:show(?KEY(pnl_background), Value =:= constant, Store),
                 wings_dialog:update(?KEY(pnl_background), Store)
         end
