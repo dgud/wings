@@ -17,8 +17,8 @@
 export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     %
     RenderFormat = proplists:get_value(render_format, Attr),
-    %ExrFlagFloat = proplists:get_value(exr_flag_float, Attr),
-    %ExrFlagZbuf = proplists:get_value(exr_flag_zbuf, Attr),
+    %ExrFlagFloat = proplists:get_value(exr_float, Attr),
+    %ExrFlagZbuf = proplists:get_value(exr_zbuf, Attr),
     %ExrFlagCompression = proplists:get_value(exr_flag_compression, Attr),
 
     %
@@ -30,14 +30,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
             exr_zblo -> 3;   exr_piz -> 4;    exr_pxr24 -> 5;
             exr_b44 -> 6;    exr_b44a -> 7;   _ -> 0
         end,
-    %ExrFlags =
-    %    case RenderFormat of
-    %        exr ->
-    %            [if ExrFlagFloat -> "float "; true -> "" end,
-    %             if ExrFlagZbuf -> "zbuf "; true -> "" end,
-    %             format(ExrFlagCompression)];
-    %        _ -> ""
-    %    end,
+    
     %--------------------------------------------------------------
 
     println(F, "<render>"),
@@ -77,7 +70,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     case RenderFormat of
         exr ->
             PixelType =
-                case proplists:get_value(exr_flag_float , Attr) of
+                case proplists:get_value(exr_float , Attr) of
                     true -> 2; %! 32 bits float
                     _ -> 1     %! 16 bits
                 end,

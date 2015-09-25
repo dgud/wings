@@ -1,19 +1,19 @@
-%%                                                                          
+%%
 %%  This file is part of TheBounty exporter for Wings3D,
 %%  forked from YafaRay Wings3d exporter.
 %%
 %%  Copyright (C) 2013, 2015  Pedro Alcaide aka 'povmaniac' and others
 %%
-%%  See /bounty/AUTHORS.txt file for some info.
+%%  See AUTHORS.txt file for more info about authors and license.
 %%---------------------------------------------------------------------
-%%  This program is free software; you can redistribute it and/or 
-%%  modify it under the terms of the GNU General Public License as 
+%%  This program is free software; you can redistribute it and/or
+%%  modify it under the terms of the GNU General Public License as
 %%  published by the Free Software Foundation; either version 2 of
 %%  the License, or (at your option) any later version.
 %%
 %%  This program is distributed in the hope that it will be useful,
 %%  but WITHOUT ANY WARRANTY; without even the implied warranty of
-%%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+%%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 %%  See the  GNU General Public License for more details
 %%  You should have received a copy of the GNU General Public License
 %%  along with this program. If not, see <http://www.gnu.org/licenses/>.
@@ -37,16 +37,6 @@
 %%%
 %% start split code to include files
 -include("defines.erl").
-
-%% used to fix old data that now can be out of range and crash Wings3d
-fit_range(Value,Id) ->
-    {Low,High}=range_1(Id),
-    if Value < Low -> Low;
-        true ->
-            if Value > High -> High;
-                true -> Value
-            end
-    end.
 
 %% Exported plugin callback functions
 %%
@@ -79,7 +69,7 @@ command(_Spec, _St) ->
 
 dialog({material_editor_setup,Name,Mat}, Dialog) ->
     maybe_append(edit, Dialog, material_dialog(Name, Mat));
-    
+
 dialog({material_editor_result,Name,Mat}, Res) ->
     case is_plugin_active(edit) of
         false -> {Mat,Res};
@@ -233,23 +223,7 @@ props(export_selected, _Attr) ->
 -include("ui_material.erl").
 %%--------------------------------------------------------------------------------------------
 
-
-def_modulators([]) ->
-    [];
-def_modulators([{diffuse,_}|Maps]) ->
-    [{modulator,[{type,{map,diffuse}},{diffuse,1.0}]}
-     |def_modulators(Maps)];
-def_modulators([{ambient,_}|Maps]) ->
-    [{modulator,[{type,{map,ambient}},{ambient,1.0}]}
-     |def_modulators(Maps)];
-def_modulators([{bump,_}|Maps]) ->
-    [{modulator,[{type,{map,bump}},{normal,1.0}]}
-     |def_modulators(Maps)];
-def_modulators([{gloss,_}|Maps]) ->
-    [{modulator,[{type,{map,gloss}},{shininess,1.0}]}
-     |def_modulators(Maps)];
-def_modulators([_|Maps]) ->
-    def_modulators(Maps).
+%% modulatrs def move to ui_material.erl
 
 
 material_result(_Name, Mat0, Res0) ->
@@ -271,7 +245,7 @@ material_result(_Name, Mat0, Res0) ->
     Ps = [{Key,Val} || {?KEY(Key),Val} <- Ps4] ++Ps3,
     Mat = [?KEY(Ps)|keydelete(?TAG, 1, Mat0)],
     {Mat,Res}.
-    
+
 %%-----------------------------
 % split modulators code
 %%-----------------------------
@@ -283,16 +257,16 @@ material_result(_Name, Mat0, Res0) ->
 -include("ui_lights.erl").
 %------------------------------
 
-    
+
 pref_dialog(St) ->
     [{dialogs,Dialogs},{renderer,Renderer},{pluginspath,PluginsPath},
-     {options,Options},{shader_type,MatType}] = 
+     {options,Options},{material_type,MatType}] =
         get_user_prefs([
             {dialogs,?DEF_DIALOGS},
             {renderer,?DEF_RENDERER},
             {pluginspath,?DEF_PLUGINS_PATH},
             {options,?DEF_OPTIONS},
-            {shader_type,?DEF_MATERIAL_TYPE}]),
+            {material_type,?DEF_MATERIAL_TYPE}]),
 
     Dialog = [
         {vframe, [
@@ -326,7 +300,7 @@ pref_result(Attr, St) ->
 %%% Export and rendering functions
 %%%
 
-export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
+export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     wpa:popup_console(),
     ExportTS = os:timestamp(),
     Render = proplists:get_value(?TAG_RENDER, Attr, false),
@@ -344,24 +318,23 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                  Filename};
             {false,_} ->
                 {value,{RenderFormat,Ext,_}} =
-                    lists:keysearch(RenderFormat, 1,
-                                    wings_job:render_formats()),
+                    lists:keysearch(RenderFormat, 1, wings_job:render_formats()),
                 {Filename,filename:rootname(Filename)++Ext}
         end,
     F = open(ExportFile, export),
     io:format(?__(1,"Exporting  to:")++" ~s~n"++
-                  ?__(2,"for render to:")++" ~s~n", [ExportFile,RenderFile]),
+              ?__(2,"for render to:")++" ~s~n", [ExportFile,RenderFile]),
     CreatorChg = re:replace(Creator,"-","_",[global]),
     CameraName = "x_Camera",
-    ConstBgName = "x_ConstBackground",
+    BgName = "x_WorldBackground",
     Lights = proplists:get_value(lights, Attr, []),
     %%
-    println(F,  "<?xml version=\"1.0\"?>~n"++
-                "<!-- ~s: Exported from ~s -->~n"++
-                "~n"++
+    println(F,
+        "<?xml version=\"1.0\"?>\n"
+        "<!-- ~s: Exported from ~s -->\n"
+        "<scene type=\"triangle\">\n",
+         [filename:basename(ExportFile), CreatorChg]),
 
-                "<scene type=\"triangle\">", [filename:basename(ExportFile), CreatorChg]),
-    %%
     %!----------------------
     % export shaders
     %!----------------------
@@ -408,25 +381,32 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     % TODO: need review
     %!----------------------
     warn_multiple_backgrounds(BgLights),
-    BgName =
-        case BgLights of
-            [] ->
-                BgColor = proplists:get_value(background_color, Attr, ?DEF_BACKGROUND_COLOR),
-                Ps = [{?TAG,[{background,constant},{background_color,BgColor}]}],
-                export_background(F, ConstBgName, Ps),
-                ConstBgName;
-            [{Name,Ps}|_] ->
-                N = "w_"++format(Name),
-                export_background(F, N, Ps),
-                N
-        end,
+    %BgName =
+    %    case BgLights of
+    %        [] ->
+    %            BgColor = proplists:get_value(background_color, Attr, ?DEF_BACKGROUND_COLOR),
+    %            Ps = [{?TAG,[{background,constant},{background_color,BgColor}]}],
+    %            export_background(F, ConstBgName, Ps),
+    %            ConstBgName;
+    %        [{Name,Ps}|_] ->
+    %            N = "w_"++format(Name),
+    %            export_background(F, N, Ps),
+    %            N
+    %    end,
+
+    %% test for next background
+    export_background(F, BgName, Attr), %(F, N, Ps),
+
     println(F),
     %!----------------------
-    % export camera 
+    % export camera
     %!----------------------
     export_camera(F, CameraName, Attr),
     println(F),
-    %!----------------------
+
+    %% test:  split integrator code
+    export_integrator(F, Attr),
+    %!------------------------
     % export render options
     %!----------------------
     export_render(F, CameraName, BgName, filename:basename(RenderFile), Attr),
@@ -434,7 +414,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     println(F),
     println(F, "</scene>"),
     close(F),
-    
+
     %!-------------------------
     %! Command line parameters
     %!-------------------------
@@ -447,7 +427,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
             {false,true} ->
                 %% Should not happen since the file->render dialog
                 %% must have been disabled
-                if KeepXML -> ok; 
+                if KeepXML -> ok;
                 true -> file:delete(ExportFile) end,
             no_renderer;
         {_,true} when ExportFile == RenderFile ->
@@ -517,6 +497,8 @@ section(F, Name) ->
 
 -include("exp_world.erl").
 
+-include("exp_integrator.erl").
+
 -include("exp_render.erl").
 
 
@@ -576,7 +558,7 @@ close(F) ->
 
 
 
-%% Convert certain terms to printable strings in a
+%% Convert certain terms to printable strings in a a=\"1\"/>\n"
 %% hopefully efficient way.
 
 % test move declarations..
