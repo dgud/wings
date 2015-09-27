@@ -276,7 +276,7 @@ pref_dialog(St) ->
                     {?__(2,"Automatic Dialogs"),auto},
                     {?__(3,"Enabled Dialogs"),enabled}
                 ], Dialogs,[{key,dialogs}]},
-                panel, help_button(pref_dialog)
+                panel%, help_button(pref_dialog)
             ]},
             {label_column, [
                 {?__(4,"Executable"),{button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}}},

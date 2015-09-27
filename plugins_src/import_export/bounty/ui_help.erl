@@ -3,10 +3,10 @@
 % Tooltip help text
 %
 
-help_button(Subject) ->
-    Title = help(title, Subject),
-    TextFun = fun () -> help(text, Subject) end,
-    {help,Title,TextFun}.
+%help_button(Subject) ->
+%    Title = help(title, Subject),
+%    TextFun = fun () -> help(text, Subject) end,
+%    {help,Title,TextFun}.
 
 help(title, {material_dialog,object}) ->
     ?__(6,"TheBounty Material Properties: Object Parameters");

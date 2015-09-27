@@ -200,8 +200,8 @@ material_dialog(_Name, Mat) ->
                 panel,
                 {hframe, [
                     {label,?__(7,"Angle")},
-                    {slider,{text,AutosmoothAngle,[range(autosmooth_angle),key(autosmooth_angle)]}},
-                    help_button({material_dialog,object})
+                    {slider,{text,AutosmoothAngle,[range(autosmooth_angle),key(autosmooth_angle)]}}%,
+                    %help_button({material_dialog,object})
                 ],[key(pnl_autosmooth),{margin,false}]}
             ]},
 

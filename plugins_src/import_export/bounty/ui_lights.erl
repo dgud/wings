@@ -31,8 +31,8 @@ light_dialog(Name, Ps) ->
                 {label,?__(1,"Power")},
                 {text,Power,[range(power),key(power)]}
             ]},
-            panel, panel, panel, panel, % povman test
-            help_button({light_dialog,LightType})
+            panel, panel, panel, panel%, % povman test
+            %help_button({light_dialog,LightType})
         ]}],
     {vframe, PowerStr ++ light_dialog(Name, LightType, YafaRay)}.
 

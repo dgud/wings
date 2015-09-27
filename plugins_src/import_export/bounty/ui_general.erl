@@ -12,7 +12,7 @@
 export_dialog(Op, Title) ->
     wpa:dialog(true, Title,
                export_dialog_qs(Op, get_prefs(export_prefs())),
-                fun(Attr) -> {file,{Op,{?TAG,Attr}}} end).
+               fun(Attr) -> {file,{Op,{?TAG,Attr}}} end).
 
 %% Export Render Options Dialog Settings
 export_prefs() ->
@@ -235,7 +235,7 @@ export_dialog_qs(Op, Attr) ->
                 wings_dialog:enable(?KEY(pnl_bkg_power), Value =/= ?DEF_SKY_BACKGROUND_LIGHT, Store),
                 wings_dialog:enable(?KEY(pnl_bkg_photons), Value =/=?DEF_SKY_BACKGROUND_LIGHT, Store);
 			?KEY(use_ibl) ->
-				wings_dialog:enable(?KEY(pnl_enlight_samples), Value =/= false, Store)%,
+				wings_dialog:enable(?KEY(pnl_ibl_samples), Value =/= false, Store)%,
                 %wings_dialog:enable(?KEY(pnl_enlight_photons), Value =/= false, Store)
         end
     end,
@@ -354,7 +354,9 @@ export_dialog_qs(Op, Attr) ->
                 }],
                 [key(pnl_file),{margin,false}]
                 },
-                %% Constant Background
+				%!------------------------
+                %! Constant Background
+				%!------------------------
                 {hframe, [
                     {label,?__(429,"Color")},
                     {color,get_pref(background_color, Attr),[key(background_color)]}
@@ -377,7 +379,7 @@ export_dialog_qs(Op, Attr) ->
                         {hframe,[
                             {label,?__(433,"Samples")},
                             {text,get_pref(samples, Attr),[range(samples),key(samples)]}
-                        ],[key(pnl_enlight_samples),{margin,false}]}
+                        ],[key(pnl_ibl_samples),{margin,false}]}
                     ],[{margin,false}]},
                     {hframe, [
                         {?__(94,"Diffuse Photons"),get_pref(ambient_diffusephotons, Attr),[key(ambient_diffusephotons)]},
