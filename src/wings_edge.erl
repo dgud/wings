@@ -20,6 +20,7 @@
 	 cut/3,fast_cut/3,screaming_cut/3,
 	 dissolve_edges/2,dissolve_edge/2,
 	 hardness/3,
+     set_length/3,
 	 patch_edge/4,patch_edge/5,
 	 select_nth_ring/2]).
 
@@ -27,6 +28,19 @@
 
 -include("wings.hrl").
 -import(lists, [foldl/3,sort/1]).
+%% Set the length of an edge ... while maintaining its midpoint and orientation.
+set_length(Es, Len, #we{}=We) when is_list(Es) andalso is_float(Len) -> 
+    lists:foldl(fun(Ei, Acc) -> set_length(Ei, Len, Acc) end, We, Es);
+set_length(Ei, Len, #we{es=Etab, vp=VPos}=We) when is_integer(Ei), is_float(Len) ->
+    #edge{vs=VS,ve=VE} = array:get(Ei, Etab),
+    Pt1 = wings_vertex:pos(VS, We),
+    Pt2 = wings_vertex:pos(VE, We),
+    MidPt = e3d_vec:average([Pt1,Pt2]),
+    Dir = e3d_vec:norm(e3d_vec:sub(Pt1,MidPt)), 
+    Pt1b = e3d_vec:add(MidPt, e3d_vec:mul(Dir, 0.5*Len)),
+    Pt2b = e3d_vec:add(MidPt, e3d_vec:mul(Dir,-0.5*Len)),
+    VPos2 = array:set(VE, Pt2b, array:set(VS,Pt1b,VPos)),
+    We#we{vp=VPos2}.
 
 from_vs(Vs, We) when is_list(Vs) ->
     from_vs(Vs, We, []);
