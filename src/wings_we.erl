@@ -35,7 +35,9 @@
 	 visible_edges/1,visible_edges/2,fully_visible_edges/2,
 	 validate_mirror/1,mirror_flatten/2,mirror_projection/1,
 	 create_mirror/2,freeze_mirror/1,break_mirror/1,
-     centroid/1,volume/1,perimeter/1,surface_area/1]).
+     centroid/1,volume/1,perimeter/1,surface_area/1,
+     set_volume/2
+     ]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
@@ -45,6 +47,17 @@
 %%% API.
 %%%
 
+set_volume(Vol, #we{}=We) -> 
+    VolCur = wings_we:volume(We),
+    Sz0   = math:pow(VolCur, 0.3333333),
+    Sz1   = math:pow(Vol, 0.3333333),
+    Sz = Sz1/Sz0,
+    Scal = e3d_mat:scale(Sz,Sz,Sz),
+    {CX,CY,CZ} = wings_vertex:center(We),
+    Tr1 = e3d_mat:translate({-CX,-CY,-CZ}),
+    Tr2 = e3d_mat:translate({CX,CY,CZ}),
+    Mat = e3d_mat:mul([Tr1,Scal,Tr2]),
+    wings_we:transform_vs(Mat, We).
 %% Apply fun on all we's.
 map(Fun, St = #st{shapes=Shs0}) ->
     Objs0 = lists:map(Fun, gb_trees:values(Shs0)),
