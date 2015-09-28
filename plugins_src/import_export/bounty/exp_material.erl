@@ -39,10 +39,10 @@ export_shader(F, Name, Mat, ExportDir) ->
 %%% Export Shiny Diffuse Material
 %%%
 
-export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
+export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
-    Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
+    Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_texture(F, [Name,$_,format(N)],
                                       Maps, ExportDir, M) of
@@ -62,70 +62,35 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
     Specular = alpha(proplists:get_value(specular, OpenGL)),
     DefReflected = Specular,
     DefTransmitted = def_transmitted(DiffuseA),
-
-    %% XXX Wings scaling of shininess is weird. Commonly this value
-    %% is the cosine power and as such in the range 0..infinity.
-    %% OpenGL limits this to 0..128 which mostly is sufficient.
-    %println(F, "       <hard fval=\"~.10f\"/>",
-    %        [proplists:get_value(shininess, OpenGL)*128.0]),
     export_rgb(F, mirror_color,
-               proplists:get_value(reflected, YafaRay, DefReflected)),
+               proplists:get_value(reflected, Attr, DefReflected)),
     export_rgb(F, color,
-               proplists:get_value(transmitted, YafaRay, DefTransmitted)),
+               proplists:get_value(transmitted, Attr, DefTransmitted)),
 
-    IOR = proplists:get_value(ior, YafaRay, ?DEF_IOR),
-    TIR = proplists:get_value(tir, YafaRay, ?DEF_TIR),
-
-
-    Transparency = proplists:get_value(transparency, YafaRay, ?DEF_TRANSPARENCY),
-    TransmitFilter = proplists:get_value(transmit_filter, YafaRay, ?DEF_TRANSMIT_FILTER),
-    Translucency = proplists:get_value(translucency, YafaRay, ?DEF_TRANSLUCENCY),
-    DiffuseReflect = proplists:get_value(diffuse_reflect, YafaRay, ?DEF_DIFFUSE_REFLECT),
-    SpecularReflect = proplists:get_value(specular_reflect, YafaRay, ?DEF_SPECULAR_REFLECT),
-    Emit = proplists:get_value(emit, YafaRay, ?DEF_EMIT),
-    OrenNayar = proplists:get_value(oren_nayar, YafaRay, ?DEF_OREN_NAYAR),
-
-    %DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
-    %AbsorptionColor = proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
-    %case AbsorptionColor of
-    %    [ ] -> ok;
-    %    {AbsR,AbsG,AbsB} ->
-    %        AbsD =
-    %            proplists:get_value(absorption_dist, YafaRay,
-    %                                ?DEF_ABSORPTION_DIST),
-    %        export_rgb(F, absorption, {-math:log(max(AbsR, ?NONZERO))/AbsD,
-    %                                   -math:log(max(AbsG, ?NONZERO))/AbsD,
-    %                                   -math:log(max(AbsB, ?NONZERO))/AbsD})
-    %end,
-    %DispersionPower = proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    %case DispersionPower of
-    %    0.0 -> ok;
-    %    _   ->
-    %        DispersionSamples = proplists:get_value(dispersion_samples, YafaRay, ?DEF_DISPERSION_SAMPLES),
-    %        DispersionJitter = proplists:get_value(dispersion_jitter, YafaRay, ?DEF_DISPERSION_JITTER),
-    %        println(F, "       "
-    %                "        <dispersion_samples ival=\"~w\"/>~n"
-    %                "        <dispersion_jitter bval=\"~s\"/>",
-    %                [DispersionSamples,format(DispersionJitter)])
-    %end,
-
+    OrenNayar = proplists:get_value(oren_nayar, Attr, ?DEF_OREN_NAYAR),
     case OrenNayar of
         false -> ok;
         _ ->
-            OrenNayarSigma = proplists:get_value(sigma, YafaRay, ?DEF_OREN_NAYAR_SIGMA),
             println(F, "\t<diffuse_brdf sval=\"oren_nayar\"/>"),
-            println(F, "\t<sigma fval=\"~.10f\"/>",[OrenNayarSigma])
+            println(F, "\t<sigma fval=\"~.10f\"/>",[proplists:get_value(sigma, Attr, ?DEF_OREN_NAYAR_SIGMA)])
     end,
 
-    println(F, "\t<IOR fval=\"~.10f\"/>",[IOR]),
-    println(F, "\t<fresnel_effect bval=\"~s\"/>",[format(TIR)]),
-    println(F, "\t<transmit_filter fval=\"~.10f\"/>~n"
-            "\t<translucency fval=\"~.10f\"/>~n"
-            "\t<transparency fval=\"~.10f\"/>~n"
-            "\t<diffuse_reflect fval=\"~.10f\"/>~n"
-            "\t<specular_reflect fval=\"~.10f\"/>~n"
-            "\t<emit fval=\"~.10f\"/>",
-            [TransmitFilter,Translucency,Transparency,DiffuseReflect,SpecularReflect,Emit]),
+    println(F,
+        "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, ?DEF_IOR)]),
+    println(F,
+        "\t<fresnel_effect bval=\"~s\"/>",[format(proplists:get_value(tir, Attr, ?DEF_TIR))]),
+    println(F,
+        "\t<transmit_filter fval=\"~.10f\"/>",[proplists:get_value(transmit_filter, Attr, ?DEF_TRANSMIT_FILTER)]),
+    println(F,
+        "\t<translucency fval=\"~.10f\"/>",[proplists:get_value(translucency, Attr, ?DEF_TRANSLUCENCY)]),
+    println(F,
+        "\t<transparency fval=\"~.10f\"/>",[proplists:get_value(transparency, Attr, ?DEF_TRANSPARENCY)]),
+    println(F,
+        "\t<diffuse_reflect fval=\"~.10f\"/>",[proplists:get_value(diffuse_reflect, Attr, ?DEF_DIFFUSE_REFLECT)]),
+    println(F,
+        "\t<specular_reflect fval=\"~.10f\"/>",[proplists:get_value(specular_reflect, Attr, ?DEF_SPECULAR_REFLECT)]),
+    println(F,
+        "\t<emit fval=\"~.10f\"/>",[proplists:get_value(emit, Attr, ?DEF_EMIT)]),
 
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
@@ -167,17 +132,11 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
     Specular = alpha(proplists:get_value(specular, OpenGL)),
     DefReflected = Specular,
     DefTransmitted = def_transmitted(DiffuseA),
-
-    %% XXX Wings scaling of shininess is weird. Commonly this value
-    %% is the cosine power and as such in the range 0..infinity.
-    %% OpenGL limits this to 0..128 which mostly is sufficient.
-    println(F, "\t<hard fval=\"~.10f\"/>",
-            [proplists:get_value(shininess, OpenGL)*128.0]),
+	
     export_rgb(F, color,
                proplists:get_value(reflected, YafaRay, DefReflected)),
     export_rgb(F, diffuse_color,
                proplists:get_value(transmitted, YafaRay, DefTransmitted)),
-
 
     DiffuseReflect = proplists:get_value(diffuse_reflect, YafaRay, ?DEF_DIFFUSE_REFLECT),
 
@@ -191,7 +150,6 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
 
     AbsorptionColor =
         proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
-
 
     case AbsorptionColor of
         [ ] -> ok;
@@ -235,6 +193,7 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
             "        <glossy_reflect fval=\"~.10f\"/>~n"
             "        <exponent fval=\"~.10f\"/>~n",
             [DiffuseReflect,GlossyReflect,Exponent]),
+
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of
@@ -254,55 +213,42 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
+
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
-                  case export_texture(F, [Name,$_,format(N)],
-                                      Maps, ExportDir, M) of
-                      off -> N+1;
-                      ok ->
-                          println(F),
+          case export_texture(F, [Name,$_,format(N)], Maps, ExportDir, M) of
+                   off -> N+1;
+                   ok ->
+                       println(F),
                           N+1
                   end;
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
+  
     println(F, "<material name=\"~s\">~n"++
-           "<type sval=\"coated_glossy\"/>", [Name]),
+           "\t<type sval=\"coated_glossy\"/>", [Name]),
+
     DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
 
     Specular = alpha(proplists:get_value(specular, OpenGL)),
     DefReflected = Specular,
     DefTransmitted = def_transmitted(DiffuseA),
 
-    %% XXX Wings scaling of shininess is weird. Commonly this value
-    %% is the cosine power and as such in the range 0..infinity.
-    %% OpenGL limits this to 0..128 which mostly is sufficient.
-    println(F, "       <hard fval=\"~.10f\"/>",
-            [proplists:get_value(shininess, OpenGL)*128.0]),
     export_rgb(F, color,
                proplists:get_value(reflected, YafaRay, DefReflected)),
     export_rgb(F, diffuse_color,
                proplists:get_value(transmitted, YafaRay, DefTransmitted)),
 
     IOR = proplists:get_value(ior, YafaRay, ?DEF_IOR),
-
     DiffuseReflect = proplists:get_value(diffuse_reflect, YafaRay, ?DEF_DIFFUSE_REFLECT),
-
     GlossyReflect = proplists:get_value(glossy_reflect, YafaRay, ?DEF_GLOSSY_REFLECT),
-
     Exponent = proplists:get_value(exponent, YafaRay, ?DEF_EXPONENT),
-
     Anisotropic = proplists:get_value(anisotropic, YafaRay, ?DEF_ANISOTROPIC),
-
     Anisotropic_U = proplists:get_value(anisotropic_u, YafaRay, ?DEF_ANISOTROPIC_U),
-
     Anisotropic_V = proplists:get_value(anisotropic_v, YafaRay, ?DEF_ANISOTROPIC_V),
-
     OrenNayar = proplists:get_value(oren_nayar, YafaRay, ?DEF_OREN_NAYAR),
-
     DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
-
-    AbsorptionColor =
-        proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
+    AbsorptionColor = proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
 
     case AbsorptionColor of
         [ ] -> ok;
@@ -335,22 +281,19 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
     case OrenNayar of
         false -> ok;
         _ ->
-            OrenNayarSigma = proplists:get_value(sigma, YafaRay,
-                                                 ?DEF_OREN_NAYAR_SIGMA),
-
-            println(F, "        <diffuse_brdf sval=\"oren_nayar\"/>~n"
-                    "        <sigma fval=\"~.10f\"/>",
-                    [OrenNayarSigma])
+            println(F, "\t<diffuse_brdf sval=\"oren_nayar\"/>\n"
+                    "\t<sigma fval=\"~.10f\"/>",[proplists:get_value(sigma, YafaRay, ?DEF_OREN_NAYAR_SIGMA)])
     end,
 
-    println(F, "        <IOR fval=\"~.10f\"/>~n"
-            "        <diffuse_reflect fval=\"~.10f\"/>~n"
-            "        <glossy_reflect fval=\"~.10f\"/>~n"
-            "        <anisotropic bval=\"~s\"/>~n"
-            "        <exp_u fval=\"~.10f\"/>~n"
-            "        <exp_v fval=\"~.10f\"/>~n"
-            "        <exponent fval=\"~.10f\"/>~n",
+    println(F, "\t<IOR fval=\"~.10f\"/>~n"
+            "\t<diffuse_reflect fval=\"~.10f\"/>~n"
+            "\t<glossy_reflect fval=\"~.10f\"/>~n"
+            "\t<anisotropic bval=\"~s\"/>~n"
+            "\t<exp_u fval=\"~.10f\"/>~n"
+            "\t<exp_v fval=\"~.10f\"/>~n"
+            "\t<exponent fval=\"~.10f\"/>~n",
             [IOR,DiffuseReflect,GlossyReflect,Anisotropic,Anisotropic_U,Anisotropic_V,Exponent]),
+			
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of

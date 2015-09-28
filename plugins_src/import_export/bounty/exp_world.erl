@@ -36,9 +36,10 @@ export_background(F, BgName, Ps) ->
             println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
             HorizonColor = proplists:get_value(horizon_color, Attr, ?DEF_HORIZON_COLOR),
             export_rgb(F, horizon_color, HorizonColor),
-
+            export_rgb(F, horizon_ground_color,{0.8,0.8,0.8}),
             ZenithColor = proplists:get_value(zenith_color, Attr, ?DEF_ZENITH_COLOR),
             export_rgb(F, zenith_color, ZenithColor),
+            export_rgb(F, zenith_ground_color,{0.3,0.3,0.3}),
 
             println(F, "\t<power fval=\"~w\"/>", [proplists:get_value(power, Attr, ?DEF_POWER)]);
 
@@ -89,27 +90,20 @@ export_background(F, BgName, Ps) ->
 %% Darksky Background Export
         darksky ->
 
-            DarkskyAltitude = proplists:get_value(darksky_altitude, Attr, ?DEF_DARKSKY_ALTITUDE),
-            %SkyBackgroundLight = proplists:get_value(sky_background_light, Attr, ?DEF_SKY_BACKGROUND_LIGHT),
-            %SkyBackgroundSamples = proplists:get_value(sky_background_samples, Attr, ?DEF_SKY_BACKGROUND_SAMPLES),
-
             SunReal = proplists:get_value(sun_real, Attr, ?DEF_SUN_REAL),
-            %SunRealPower = proplists:get_value(sun_real_power, Attr, ?DEF_SUN_REAL_POWER),
-
-            %DarkskyNight = proplists:get_value(darksky_night, Attr, ?DEF_DARKSKY_NIGHT),
             DarkskyDiffusePhotons = proplists:get_value(darksky_diffusephotons, Attr, ?DEF_DARKSKY_DIFFUSEPHOTONS),
             DarkskyCausticPhotons = proplists:get_value(darksky_causticphotons, Attr, ?DEF_DARKSKY_CAUSTICPHOTONS),
             Position = proplists:get_value(position, OpenGL, {1.0,1.0,1.0}),
             %
             println(F, "<background name=\"~s\">",[BgName]),
             println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
-            println(F, "\t<turbidity fval=\"~.3f\"/>",[proplists:get_value(turbidity, Attr, ?DEF_TURBIDITY)]),
-            println(F, "\t<a_var fval=\"~.3f\"/>",[proplists:get_value(a_var, Attr, ?DEF_SUNSKY_VAR)]),
-            println(F, "\t<b_var fval=\"~.3f\"/>",[proplists:get_value(b_var, Attr, ?DEF_SUNSKY_VAR)]),
-            println(F, "\t<c_var fval=\"~.3f\"/>",[proplists:get_value(c_var, Attr, ?DEF_SUNSKY_VAR)]),
-            println(F, "\t<d_var fval=\"~.3f\"/>",[proplists:get_value(d_var, Attr, ?DEF_SUNSKY_VAR)]),
-            println(F, "\t<e_var fval=\"~.3f\"/>",[proplists:get_value(e_var, Attr, ?DEF_SUNSKY_VAR)]),
-            println(F, "\t<altitude fval=\"~.3f\"/>",[DarkskyAltitude]),
+            println(F, "\t<turbidity fval=\"~.3f\"/>",[proplists:get_value(turbidity, Attr, 3.0)]),
+            println(F, "\t<a_var fval=\"~.3f\"/>",[proplists:get_value(a_var, Attr, 1.0)]),
+            println(F, "\t<b_var fval=\"~.3f\"/>",[proplists:get_value(b_var, Attr, 1.0)]),
+            println(F, "\t<c_var fval=\"~.3f\"/>",[proplists:get_value(c_var, Attr, 1.0)]),
+            println(F, "\t<d_var fval=\"~.3f\"/>",[proplists:get_value(d_var, Attr, 1.0)]),
+            println(F, "\t<e_var fval=\"~.3f\"/>",[proplists:get_value(e_var, Attr, 1.0)]),
+            println(F, "\t<altitude fval=\"~.3f\"/>",[proplists:get_value(altitude, Attr, 0.0)]),
 
             %% Add Sun Real Start
             case SunReal of

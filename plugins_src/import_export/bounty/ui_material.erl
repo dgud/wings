@@ -8,9 +8,9 @@ material_dialog(_Name, Mat) ->
     DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
     DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),
     YafaRay = proplists:get_value(?TAG, Mat, []),
-	%MatAttr = proplists:get_value(?TAG, Mat, []),
+    %MatAttr = proplists:get_value(?TAG, Mat, []),
     %DefShaderType = get_pref(shader_type, YafaRay),
-	%DefMatType = get_pref(shader_type, YafaRay),
+    %DefMatType = get_pref(shader_type, YafaRay),
     MaterialType = proplists:get_value(material_type, YafaRay, ?DEF_MATERIAL_TYPE),
     Object_Type = proplists:get_value(object_type, YafaRay, ?DEF_OBJECT_TYPE),
     Volume_Type = proplists:get_value(volume_type, YafaRay, ?DEF_VOLUME_TYPE),
@@ -102,7 +102,7 @@ material_dialog(_Name, Mat) ->
     Blend_Value = proplists:get_value(blend_value, YafaRay, ?DEF_BLEND_VALUE),
 
     Hook_Enable = fun(Key, Value, Store) ->
-		case Key of
+        case Key of
             ?KEY(oren_nayar) ->
                 wings_dialog:enable(?KEY(pnl_sigma_shiny), Value =/= ?DEF_OREN_NAYAR, Store);
             ?KEY(autosmooth) ->
@@ -111,7 +111,7 @@ material_dialog(_Name, Mat) ->
                 wings_dialog:enable(?KEY(pnl_exp_coated), Value =/= ?DEF_ANISOTROPIC, Store);
             ?KEY(dispersion_power) ->
                 wings_dialog:enable(?KEY(pnl_dsp_sam), Value > 0.0, Store)
-		end
+        end
     end,
     Hook_Show =
         fun(Key, Value, Store) ->
@@ -130,67 +130,67 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:show(?KEY(pnl_noise_volume), Value =:= noisevolume, Store),
                     wings_dialog:update(?KEY(pnl_volume_type), Store);
                 ?KEY(material_type) ->
-					%% IOR
-					wings_dialog:show(?KEY(pnl_ior), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
-					%% Internal Reflection
-					wings_dialog:show(?KEY(pnl_ir), Value =:= glass, Store),
-					%% Glossy Color
-					Gc = is_member(Value, [glossy,coatedglossy,translucent]),
-					Rl = is_member(Value, [glass,rough_glass]),
-					Rc = Value =:= shinydiffuse,
-					wings_dialog:show(?KEY(pnl_gc), Gc, Store),
-					%% Reflected Light
-					wings_dialog:show(?KEY(pnl_rl), Rl, Store),
-					%% Reflected Color
-					wings_dialog:show(?KEY(pnl_rc), Rc, Store),
-					wings_dialog:show(?KEY(pnl_rf), is_member(Value, [shinydiffuse,glass,rough_glass,glossy,coatedglossy,translucent]), Store),
-					%% Diffuse Color
-					wings_dialog:show(?KEY(pnl_dc_l), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
-					%% Filtered Light
-					wings_dialog:show(?KEY(pnl_fl_l), is_member(Value, [glass,rough_glass]), Store),
+                    %% IOR
+                    wings_dialog:show(?KEY(pnl_ior), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
+                    %% Internal Reflection
+                    wings_dialog:show(?KEY(pnl_ir), Value =:= glass, Store),
+                    %% Glossy Color
+                    Gc = is_member(Value, [glossy,coatedglossy,translucent]),
+                    Rl = is_member(Value, [glass,rough_glass]),
+                    Rc = Value =:= shinydiffuse,
+                    wings_dialog:show(?KEY(pnl_gc), Gc, Store),
+                    %% Reflected Light
+                    wings_dialog:show(?KEY(pnl_rl), Rl, Store),
+                    %% Reflected Color
+                    wings_dialog:show(?KEY(pnl_rc), Rc, Store),
+                    wings_dialog:show(?KEY(pnl_rf), is_member(Value, [shinydiffuse,glass,rough_glass,glossy,coatedglossy,translucent]), Store),
+                    %% Diffuse Color
+                    wings_dialog:show(?KEY(pnl_dc_l), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
+                    %% Filtered Light
+                    wings_dialog:show(?KEY(pnl_fl_l), is_member(Value, [glass,rough_glass]), Store),
                     wings_dialog:show(?KEY(pnl_fl), is_member(Value, [shinydiffuse,glass,rough_glass,glossy,coatedglossy,translucent]), Store),
-					%% Transparency
-					wings_dialog:show(?KEY(pnl_transp), Value =:= shinydiffuse, Store),
-					%% Specular Color
-					wings_dialog:show(?KEY(pnl_sc), Value =:= translucent, Store),
-					%% Absorption Color & Absorption Distance
-					wings_dialog:show(?KEY(pnl_abs_reg), is_member(Value, [glass,rough_glass]), Store),
-					wings_dialog:show(?KEY(pnl_abs_sss), Value =:= translucent, Store),
-					wings_dialog:show(?KEY(pnl_abs), is_member(Value, [glass,rough_glass,translucent]), Store),
-					%% Transmit Filter
-					wings_dialog:show(?KEY(pnl_tf), is_member(Value, [shinydiffuse,glass,rough_glass]), Store),
-					%% Translucency
-					wings_dialog:show(?KEY(pnl_transl), Value =:= shinydiffuse, Store),
+                    %% Transparency
+                    wings_dialog:show(?KEY(pnl_transp), Value =:= shinydiffuse, Store),
+                    %% Specular Color
+                    wings_dialog:show(?KEY(pnl_sc), Value =:= translucent, Store),
+                    %% Absorption Color & Absorption Distance
+                    wings_dialog:show(?KEY(pnl_abs_reg), is_member(Value, [glass,rough_glass]), Store),
+                    wings_dialog:show(?KEY(pnl_abs_sss), Value =:= translucent, Store),
+                    wings_dialog:show(?KEY(pnl_abs), is_member(Value, [glass,rough_glass,translucent]), Store),
+                    %% Transmit Filter
+                    wings_dialog:show(?KEY(pnl_tf), is_member(Value, [shinydiffuse,glass,rough_glass]), Store),
+                    %% Translucency
+                    wings_dialog:show(?KEY(pnl_transl), Value =:= shinydiffuse, Store),
                     wings_dialog:show(?KEY(pnl_transl_sss), Value =:= translucent, Store),
-					%% Scatter Color & SigmaS Factor
-					wings_dialog:show(?KEY(pnl_sct), Value =:= translucent, Store),
-					%% Diffuse Reflection
-					wings_dialog:show(?KEY(pnl_dr), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
-					%% Mirror Reflection & Emit Light
-					wings_dialog:show(?KEY(pnl_mr), Value =:= shinydiffuse, Store),
-					%% Glossy Reflection & Exponent
-					wings_dialog:show(?KEY(pnl_gr), is_member(Value, [glossy,coatedglossy,translucent]), Store),
-					%% Anisotropic
-					wings_dialog:show(?KEY(pnl_an), Value =:= coatedglossy, Store),
-					%% Roughness
-					wings_dialog:show(?KEY(pnl_rg), Value =:= rough_glass, Store),
-					%% Dispersion Power & Dispersion Samples
-					wings_dialog:show(?KEY(pnl_dsp), is_member(Value, [glass,rough_glass]), Store),
-					%% nayar
-					wings_dialog:show(?KEY(pnl_on), is_member(Value, [shinydiffuse,glossy,coatedglossy]), Store),
-					%% Fresnel Effect
-					wings_dialog:show(?KEY(pnl_fe), Value =:= shinydiffuse, Store),
-					%% Ligth Material: Color & Power
-					wings_dialog:show(?KEY(pnl_lm), Value =:= lightmat, Store),
-					%% Blend: Material 1, Material 2 & Blend Mix
-					wings_dialog:show(?KEY(pnl_bl), Value =:= blend_mat, Store),
-					%wings_dialog:update(?KEY(pnl_shader_l), Store),
+                    %% Scatter Color & SigmaS Factor
+                    wings_dialog:show(?KEY(pnl_sct), Value =:= translucent, Store),
+                    %% Diffuse Reflection
+                    wings_dialog:show(?KEY(pnl_dr), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
+                    %% Mirror Reflection & Emit Light
+                    wings_dialog:show(?KEY(pnl_mr), Value =:= shinydiffuse, Store),
+                    %% Glossy Reflection & Exponent
+                    wings_dialog:show(?KEY(pnl_gr), is_member(Value, [glossy,coatedglossy,translucent]), Store),
+                    %% Anisotropic
+                    wings_dialog:show(?KEY(pnl_an), Value =:= coatedglossy, Store),
+                    %% Roughness
+                    wings_dialog:show(?KEY(pnl_rg), Value =:= rough_glass, Store),
+                    %% Dispersion Power & Dispersion Samples
+                    wings_dialog:show(?KEY(pnl_dsp), is_member(Value, [glass,rough_glass]), Store),
+                    %% nayar
+                    wings_dialog:show(?KEY(pnl_on), is_member(Value, [shinydiffuse,glossy,coatedglossy]), Store),
+                    %% Fresnel Effect
+                    wings_dialog:show(?KEY(pnl_fe), Value =:= shinydiffuse, Store),
+                    %% Ligth Material: Color & Power
+                    wings_dialog:show(?KEY(pnl_lm), Value =:= lightmat, Store),
+                    %% Blend: Material 1, Material 2 & Blend Mix
+                    wings_dialog:show(?KEY(pnl_bl), Value =:= blend_mat, Store),
+                    %wings_dialog:update(?KEY(pnl_shader_l), Store),
                     wings_dialog:update(?KEY(pnl_shader), Store);
                 _ -> ok
             end
         end,
-		
-		%% Object Specific Material Properties Dialog
+        
+        %% Object Specific Material Properties Dialog
     %%
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
     ObjectFrame =
@@ -430,7 +430,7 @@ material_dialog(_Name, Mat) ->
                     {"Blend Mix", {slider, {text,Blend_Value,[range(blend_value),key(blend_value)]}}}
                 ],[key(pnl_bl),{show,false},{margin,false}]}
 
-	    ],[key(pnl_shader), {margin,false}]}
+        ],[key(pnl_shader), {margin,false}]}
         ]},
     %% End of Material Dialogs
 
@@ -468,7 +468,7 @@ def_absorption_color({Dr,Dg,Db,_Da}) ->
 def_transmitted({Dr,Dg,Db,_Da}) ->
     Dt = 1-0,
     {Dr*Dt,Dg*Dt,Db*Dt}.
-	
+    
 %% test move modulator def from wpc_bounty
 def_modulators([]) ->
     [];
