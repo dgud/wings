@@ -364,7 +364,7 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     %!----------------------
     % export scene lights
     %!----------------------
-    BgLights =
+    %BgLights =
         reverse(
           foldl(fun ({Name,Ps}=Light, Bgs) ->
                         Bg = export_light(F, "w_"++format(Name), Ps),
@@ -380,7 +380,7 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     % environment background
     % TODO: need review
     %!----------------------
-    warn_multiple_backgrounds(BgLights),
+    %warn_multiple_backgrounds(BgLights),
     %BgName =
     %    case BgLights of
     %        [] ->
@@ -462,17 +462,17 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
                 ExportTS,Renderer,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
-warn_multiple_backgrounds([]) ->
-    ok;
-warn_multiple_backgrounds([_]) ->
-    ok;
-warn_multiple_backgrounds(BgLights) ->
-    io:format(?__(1,"WARNING: Multiple backgrounds")++" - ", []),
-    foreach(fun ({Name,_}) ->
-                    io:put_chars([format(Name), $ ])
-            end, BgLights),
-    io:nl(),
-    ok.
+%warn_multiple_backgrounds([]) ->
+%    ok;
+%warn_multiple_backgrounds([_]) ->
+%    ok;
+%warn_multiple_backgrounds(BgLights) ->
+%    io:format(?__(1,"WARNING: Multiple backgrounds")++" - ", []),
+%    foreach(fun ({Name,_}) ->
+%                    io:put_chars([format(Name), $ ])
+%            end, BgLights),
+%    io:nl(),
+%    ok.
 
 section(F, Name) ->
     println(F, [io_lib:nl(),"<!-- Section ",Name," -->",io_lib:nl()]).
