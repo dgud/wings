@@ -1112,26 +1112,24 @@ build(Ask, {table, [Header|Rows], Flags}, Parent, Sizer, In) ->
 		             MaxR -> max(MaxR+1, 5)*20
 		         end,
 		Widths = tuple_to_list(proplists:get_value(col_widths, Flags, {})),
-		Width  = case Widths of
-			     [] -> -1;
-			     _ -> lists:sum([W*8 || W <- Widths]) + 50
-			 end,
 		Style  = case proplists:get_value(sel_style, Flags) of
 			     single -> ?wxLC_SINGLE_SEL bor ?wxLC_REPORT;
 			     _ -> ?wxLC_REPORT
 			 end,
-		Options = [{style, Style}, {size, {Width, Height}}],
+		Options = [{style, Style}, {size, {-1, Height}}],
 		Ctrl = wxListCtrl:new(Parent, Options),
-		AddHeader = fun(HeadStr, Column) ->
-				    wxListCtrl:insertColumn(Ctrl, Column, HeadStr, []),
+		{CW, _, _, _} = wxWindow:getTextExtent(Ctrl, "D"),
+		Li = wxListItem:new(),
+		AddHeader = fun({HeadStr,W}, Column) ->
+				    wxListItem:setText(Li, HeadStr),
+				    wxListItem:setAlign(Li, ?wxLIST_FORMAT_RIGHT),
+				    wxListCtrl:insertColumn(Ctrl, Column, Li),
+				    wxListCtrl:setColumnWidth(Ctrl, Column, W*CW+10),
 				    Column + 1
 			    end,
-		lists:foldl(AddHeader, 0, tuple_to_list(Header)),
-		SetWidth = fun(W, Column) ->
-				   wxListCtrl:setColumnWidth(Ctrl, Column, W*8),
-				   Column + 1
-			   end,
-		lists:foldl(SetWidth, 0, Widths),
+		lists:foldl(AddHeader, 0, lists:zip(tuple_to_list(Header), Widths)),
+		wxListItem:destroy(Li),
+
 		Add = fun({_, Str}, {Row, Column}) ->
 			      wxListCtrl:setItem(Ctrl, Row, Column, Str),
 			      {Row, Column+1}
