@@ -127,7 +127,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_SSS_PHOTONS, 1000).
 -define(DEF_SSS_DEPTH, 15.0).
 -define(DEF_SSS_SCALE, 2.0).
--define(DEF_SSS_SINGLESCATTER_SAMPLES, 32.0).
+-define(DEF_SSS_SINGLESCATTER_SAMPLES, 32).
 -define(DEF_USE_CAUSTICS, false).
 -define(DEF_CAUSTIC_PHOTONS, 900000).
 -define(DEF_CAUSTIC_DEPTH, 10).
@@ -449,7 +449,7 @@ range_1(sppm_passes)            -> {0,infinity};
 range_1(sss_photons)            -> {0,infinity};
 range_1(sss_depth)              -> {1.0,50.0};
 range_1(sss_scale)              -> {0.0,100.0};
-range_1(sss_scatter_samples)    -> {0.0,50.0};
+range_1(sss_scatter_samples)    -> {0,128};
 range_1(caustic_photons)        -> {0,infinity};
 range_1(caustic_depth)          -> {0,infinity};
 range_1(caustic_mix)            -> {0,infinity};
