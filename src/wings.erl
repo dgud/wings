@@ -1870,7 +1870,6 @@ object_info(St) ->
             Rows = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
 	    Header = list_to_tuple([{H,H}|| H <- tuple_to_list(HRow)]),
             ColumnWidthList = column_widths([Header|Rows]),
-	    io:format("Ws2 ~p~n",[ColumnWidthList]),
             Qs = [{table,[HRow|Rows],
 		   [{max_rows, max(length(Rows),20)},
 		    {col_widths, list_to_tuple(ColumnWidthList)}]}],
@@ -1878,47 +1877,28 @@ object_info(St) ->
             wings_dialog:dialog(?__(10,"Scene Info: "), Qs, Ask)
     end.
 
+
 get_object_info(Id, Shapes) ->
-    #we{es=Etab0,fs=Ftab0,vp=VPos0} = We0 = gb_trees:get(Id, Shapes),
-    We = wings_tesselation:triangulate(We0),
-    #we{id=Id,name=Name,fs=Ftab} = We,
-    Both = [area_volume(Face, We) || Face <- gb_trees:keys(Ftab)],
-    FacePerimeter = fun(Face) ->
-			    Es = wings_face:to_edges([Face],We0),
-			    [ begin
-				  #edge{vs=VS, ve=VE} = array:get(Ei,Etab0),
-				  e3d_vec:dist(array:get(VS,VPos0), array:get(VE,VPos0))
-			      end || Ei <- Es]
-		    end,
-    PerimeterList0 = [ FacePerimeter(Face) || Face <- gb_trees:keys(Ftab0) ],
-    %% don't count each edge two times !
-    Perimeter = lists:sum(lists:flatten(PerimeterList0)) / 2.0,
-    Area =  lists:sum([A || {A,_} <- Both]),
-    Volume =lists:sum([V || {_,V} <- Both]),
+    #we{id=Id,name=Name,es=Etab0,fs=Ftab0,vp=VPos0} = We0 = gb_trees:get(Id, Shapes),
+    Area      =  wings_we:surface_area(We0),
+    Volume    =  wings_we:volume(We0),
+    Perimeter =  wings_we:perimeter(We0),
     ToString = fun(Item) ->
 		       case Item of
 			   Item when is_float(Item) ->
-			       lists:flatten(io_lib:format("~.3f", [Item]));
+			       lists:flatten(io_lib:format("~.4f", [Item]));
 			   Item when is_integer(Item) ->
 			       integer_to_list(Item);
 			   Item when is_list(Item) ->
 			       Item
 		       end
 	       end,
-    NEdge   = array:sparse_size(Etab0),
+    NEdge   = wings_util:array_entries(Etab0),
     NFace   = gb_trees:size(Ftab0),
-    NVertex = array:sparse_size(VPos0),
+    NVertex =  wings_util:array_entries(VPos0),
     list_to_tuple([{X,ToString(X)}||X<-[Id,Name,Area,Perimeter,Volume,NEdge,NFace,NVertex]]).
 
-area_volume(Face, We) ->
-    [V1,V2,V3] = wings_face:vertex_positions(Face, We),
-    E1 = e3d_vec:sub(V1, V2),
-    E2 = e3d_vec:sub(V3, V2),
-    Cp = e3d_vec:cross(E1, E2),
-    Bc = e3d_vec:cross(V2, V3),
-    Area = e3d_vec:len(Cp)/2.0,
-    Volume = e3d_vec:dot(V1, Bc)/6.0,
-    {Area, Volume}.
+
 
 %% get maximal column widths needed to display each column in characters.
 column_widths(Rows) ->
