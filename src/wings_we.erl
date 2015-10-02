@@ -21,6 +21,7 @@
 	 invert_normals/1,
 	 merge/1,merge/2,
 	 renumber/2,renumber/3,
+     is_flat/1,
 	 uv_to_color/2,
 	 uv_mapped_faces/1,
 	 transform_vs/2,
@@ -1262,3 +1263,22 @@ volume_1(Face, We) ->
     [V1,V2,V3] = wings_face:vertex_positions(Face, We),
     Bc = e3d_vec:cross(V2, V3),
     e3d_vec:dot(V1, Bc)/6.0.
+    
+is_flat(#we{}=We0) ->
+    #we{fs=Ftab} = We =wings_tesselation:triangulate(We0),
+    {F0,_} = gb_trees:smallest(Ftab),
+    N0 = wings_face:normal(F0, We),
+    MyTest = fun (Fi) -> % all planes parallel within reason
+        Ni = wings_face:normal(Fi, We),
+        Ang = e3d_vec:degrees(N0, Ni),
+        Ang < 1.0 orelse Ang > 179.0
+    end,
+    Planar = lists:all(MyTest, gb_trees:keys(Ftab)),
+    Center = wings_vertex:center(We),
+    MyOne = fun (Fi) -> % centroid is located on EACH plane.
+        [Pt1, Pt2, Pt3 | _] = wings_face:vertex_positions(Fi, We),
+        Plane = e3d_vec:plane(Pt1, Pt2, Pt3),
+        D = e3d_vec:plane_dist(Center, Plane),
+        abs(D) < 1.0e-5
+    end,
+    Planar andalso lists:all(MyOne, gb_trees:keys(Ftab)).
