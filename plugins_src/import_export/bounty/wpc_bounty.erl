@@ -374,32 +374,15 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
                             _ -> [Light|Bgs]
                         end
                 end, [], Lights)),
-    %%
-    %section(F, "Background, Camera, Filter and Render"),
+    
     %!----------------------
     % environment background
-    % TODO: need review
     %!----------------------
-    %warn_multiple_backgrounds(BgLights),
-    %BgName =
-    %    case BgLights of
-    %        [] ->
-    %            BgColor = proplists:get_value(background_color, Attr, ?DEF_BACKGROUND_COLOR),
-    %            Ps = [{?TAG,[{background,constant},{background_color,BgColor}]}],
-    %            export_background(F, ConstBgName, Ps),
-    %            ConstBgName;
-    %        [{Name,Ps}|_] ->
-    %            N = "w_"++format(Name),
-    %            export_background(F, N, Ps),
-    %            N
-    %    end,
-
-    %% test for next background
     export_background(F, BgName, Attr), %(F, N, Ps),
-
     println(F),
+    
     %!----------------------
-    % export camera
+    %! export camera
     %!----------------------
     export_camera(F, CameraName, Attr),
     println(F),
@@ -407,8 +390,8 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     %% test:  split integrator code
     export_integrator(F, Attr),
     %!------------------------
-    % export render options
-    %!----------------------
+    %! export render options
+    %!------------------------
     export_render(F, CameraName, BgName, filename:basename(RenderFile), Attr),
     %%
     println(F),
@@ -462,21 +445,8 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
                 ExportTS,Renderer,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
-%warn_multiple_backgrounds([]) ->
-%    ok;
-%warn_multiple_backgrounds([_]) ->
-%    ok;
-%warn_multiple_backgrounds(BgLights) ->
-%    io:format(?__(1,"WARNING: Multiple backgrounds")++" - ", []),
-%    foreach(fun ({Name,_}) ->
-%                    io:put_chars([format(Name), $ ])
-%            end, BgLights),
-%    io:nl(),
-%    ok.
-
 section(F, Name) ->
     println(F, [io_lib:nl(),"<!-- Section ",Name," -->",io_lib:nl()]).
-
 
 %%% Export Material code
 -include("exp_material.erl").
@@ -556,18 +526,16 @@ close(F) ->
             erlang:error(Error, [F])
     end.
 
+%!---------------------------------------
+%! Convert certain terms to printable 
+%! strings in a hopefully efficient way.
+%!---------------------------------------
 
-
-%% Convert certain terms to printable strings in a a=\"1\"/>\n"
-%% hopefully efficient way.
-
-% test move declarations..
 export_rgb(F, Type, {R,G,B,_}) ->
     export_rgb(F, Type, {R,G,B});
+
 export_rgb(F, Type, {R,G,B}) ->
     println(F, ["\t<",format(Type)," r=\"",format(R),"\" g=\"",format(G),"\" b=\"",format(B),"\"/>"]).
-
-% end
 
 format(F) when is_float(F) ->
     I = abs(trunc(F)),
@@ -577,14 +545,19 @@ format(F) when is_float(F) ->
        true ->
             [integer_to_list(I)|format_decimals(D)]
     end;
+
 format(I) when is_integer(I) ->
     integer_to_list(I);
+
 format(true) ->
     "true";
+
 format(false) ->
     "false";
+
 format(A) when is_atom(A) ->
     atom_to_list(A);
+
 format(L) when is_list(L) ->
     L.
 
@@ -593,6 +566,7 @@ format_decimals(F) when is_float(F), F >= 0.0 ->
 
 format_decimals_1(0.0) ->
     ".0";
+
 format_decimals_1(F) when is_float(F) ->
     G = 10.0 * F,
     I = trunc(G),
@@ -658,6 +632,7 @@ get_pref(Key, [H|_]=KeyDefs) when is_tuple(H)  ->
         Def -> Def
     end,
     get_pref(Key,Def);
+
 get_pref(Key, Def) ->
     [{Key,Val}] = get_prefs([{Key,Def}]),
     Val.
@@ -667,6 +642,7 @@ get_prefs(KeyDefs) when is_list(KeyDefs) ->
 
 get_prefs_1([], _Undefined) ->
     [];
+
 get_prefs_1([{Key,Def}|KeyDefs], Undefined) ->
     [{Key,case wpa:scene_pref_get(?MODULE, Key, Undefined) of
               Undefined ->
@@ -716,8 +692,10 @@ split_list(List, Fun) when is_list(List), is_function(Fun) ->
 %%
 split_list1(List, 0, Head) ->
     {lists:reverse(Head),List};
+
 split_list1([], _Pos, _) ->
     badarg;
+
 split_list1([H|T], Pos, Head) ->
     split_list1(T, Pos-1, [H|Head]).
 %%
