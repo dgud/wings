@@ -34,20 +34,20 @@ material_dialog(_Name, Mat) ->
     Meshlight_Samples = proplists:get_value(meshlight_samples, YafaRay, ?DEF_MESHLIGHT_SAMPLES),
     Meshlight_Color = proplists:get_value(meshlight_color, YafaRay, ?DEF_MESHLIGHT_COLOR),
     Meshlight_Double_Sided = proplists:get_value(meshlight_double_sided, YafaRay, ?DEF_MESHLIGHT_DOUBLE_SIDED),
-    TIR = proplists:get_value(tir, YafaRay, ?DEF_TIR),
+    %TIR = proplists:get_value(tir, YafaRay, ?DEF_TIR),
+    Fresnel = proplists:get_value(fresnel, YafaRay, ?DEF_FRESNEL),
     AutosmoothAngle = proplists:get_value(autosmooth_angle, YafaRay, ?DEF_AUTOSMOOTH_ANGLE),
     Autosmooth = proplists:get_value(autosmooth, YafaRay,
                                      if AutosmoothAngle == 0.0 -> false;
                                         true -> ?DEF_AUTOSMOOTH end),
 
     %% IOR Material Property for all Materials except Glossy
-    %%
     IOR = proplists:get_value(ior, YafaRay, ?DEF_IOR),
-
-    %% Color Properties Transmitted = Diffuse and Refracted
-    %% Color Properties Reflected = Glossy and Reflected
     %%
-    Reflected = proplists:get_value(reflected, YafaRay, DefReflected),
+    %OGLDiffuse = dproplists:get_value(diffuse, OpenGL),
+    DiffuseColor = proplists:get_value(diffuse_color, YafaRay, {0.7,0.7,0.7}),
+    %OGLSpecular = proplists:get_value(specular, OpenGL),
+    MirrorColor = proplists:get_value(mirror_color, YafaRay, {0.7,0.7,0.7}),
     Transmitted = proplists:get_value(transmitted, YafaRay, DefTransmitted),
 
     %% Glass Properties
@@ -65,7 +65,7 @@ material_dialog(_Name, Mat) ->
     Transparency = proplists:get_value(transparency, YafaRay, ?DEF_TRANSPARENCY),
     TransmitFilter = proplists:get_value(transmit_filter, YafaRay, ?DEF_TRANSMIT_FILTER),
     Translucency = proplists:get_value(translucency, YafaRay, ?DEF_TRANSLUCENCY),
-    SpecularReflect = proplists:get_value(specular_reflect, YafaRay, ?DEF_SPECULAR_REFLECT),
+    MirrorReflect = proplists:get_value(mirror_reflect, YafaRay, ?DEF_SPECULAR_REFLECT),
     Emit = proplists:get_value(emit, YafaRay, ?DEF_EMIT),
 
     %% Translucency (SSS) Properties
@@ -103,6 +103,8 @@ material_dialog(_Name, Mat) ->
 
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
+            ?KEY(fresnel) ->
+                wings_dialog:enable(?KEY(pnl_ior_fresnel), Value =/= ?DEF_FRESNEL, Store);
             ?KEY(oren_nayar) ->
                 wings_dialog:enable(?KEY(pnl_sigma_shiny), Value =/= ?DEF_OREN_NAYAR, Store);
             ?KEY(autosmooth) ->
@@ -129,11 +131,19 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:show(?KEY(pnl_desnity_volume), Value =:= expdensityvolume, Store),
                     wings_dialog:show(?KEY(pnl_noise_volume), Value =:= noisevolume, Store),
                     wings_dialog:update(?KEY(pnl_volume_type), Store);
+                %!---------------------------------------
+                %!
+                %!---------------------------------------
                 ?KEY(material_type) ->
+                    %Trans = Value =:= shinydiffuse,
+                    %% Transparency
+                    wings_dialog:show(?KEY(pnl_diffuse), is_member(Value, [shinydiffuse,glossy,coatedglossy]), Store),
+                    wings_dialog:show(?KEY(pnl_transp), Value =:= shinydiffuse, Store),
+                    wings_dialog:show(?KEY(pnl_emitt), Value =:= shinydiffuse, Store),
                     %% IOR
-                    wings_dialog:show(?KEY(pnl_ior), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
+                    %wings_dialog:show(?KEY(pnl_ior), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
                     %% Internal Reflection
-                    wings_dialog:show(?KEY(pnl_ir), Value =:= glass, Store),
+                    %wings_dialog:show(?KEY(pnl_ir), Value =:= glass, Store),
                     %% Glossy Color
                     Gc = is_member(Value, [glossy,coatedglossy,translucent]),
                     Rl = is_member(Value, [glass,rough_glass]),
@@ -150,7 +160,7 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:show(?KEY(pnl_fl_l), is_member(Value, [glass,rough_glass]), Store),
                     wings_dialog:show(?KEY(pnl_fl), is_member(Value, [shinydiffuse,glass,rough_glass,glossy,coatedglossy,translucent]), Store),
                     %% Transparency
-                    wings_dialog:show(?KEY(pnl_transp), Value =:= shinydiffuse, Store),
+                    %wings_dialog:show(?KEY(pnl_transp), Value =:= shinydiffuse, Store),
                     %% Specular Color
                     wings_dialog:show(?KEY(pnl_sc), Value =:= translucent, Store),
                     %% Absorption Color & Absorption Distance
@@ -179,7 +189,7 @@ material_dialog(_Name, Mat) ->
                     %% nayar
                     wings_dialog:show(?KEY(pnl_on), is_member(Value, [shinydiffuse,glossy,coatedglossy]), Store),
                     %% Fresnel Effect
-                    wings_dialog:show(?KEY(pnl_fe), Value =:= shinydiffuse, Store),
+                    wings_dialog:show(?KEY(pnl_fresnel), Value =:= shinydiffuse, Store),
                     %% Ligth Material: Color & Power
                     wings_dialog:show(?KEY(pnl_lm), Value =:= lightmat, Store),
                     %% Blend: Material 1, Material 2 & Blend Mix
@@ -189,7 +199,7 @@ material_dialog(_Name, Mat) ->
                 _ -> ok
             end
         end,
-        
+
         %% Object Specific Material Properties Dialog
     %%
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
@@ -292,37 +302,63 @@ material_dialog(_Name, Mat) ->
     ShaderFrame =
         {vframe, [
             {menu,menu_shader(),MaterialType,[key(material_type),{hook,Hook_Show}]},
-
             %% label column
             {vframe, [
-                %% 1st row
-                {label_column, [
-                    {"IOR", {slider, {text,IOR,[range(ior),key(ior)]}}}
-                ],[key(pnl_ior),{margin,false}]},
-                %% 2nd row
-                {label_column, [
-                    {"Internal Reflection", {slider, {text,Glass_IR_Depth,[range(glass_ir_depth),key(glass_ir_depth)]}}}
-                ],[key(pnl_ir),{show,false},{margin,false}]},
-                %% 3rd row
+                {vframe, [
+                    {hframe, [
+                        {label, "Diffuse Color"},
+                        {slider, {color,DiffuseColor,[key(diffuse_color)]}}, panel
+                    ]},
+                    {hframe, [
+                        {label, "Diffuse Reflect"},
+                        {slider, {text,DiffuseReflect,[range(zero_to_one),key(diffuse_reflect)]}}, panel
+                    ]}
+                ],[key(pnl_diffuse),{show,false},{margin,false}]
+                },
+                {vframe,[
+                    {hframe,[
+                        {label,"Material Emitt"},{slider, {text,Emit,[range(emit),key(emit)]}}, panel
+                    ]}
+                ],[key(pnl_emitt),{show,false},{margin,false}]},
+                %!----------------------------------
+                %! Trans/parency/lucency/mittance..
+                %!----------------------------------
+                {vframe,[
+                    {hframe, [
+                        {label,"Transparency"}, {slider, {text,Transparency,[range(transparency),key(transparency)]}}, panel
+                    ]},
+                    {hframe, [
+                        {label,"Translucency"}, {slider, {text,Translucency,[range(translucency),key(translucency)]}}, panel
+                    ]},
+                    {hframe, [
+                        {label,"Transmittance"}, {slider, {text,TransmitFilter,[range(zero_to_one),key(transmit_filter)]}}, panel
+                    ]}
+                ],[key(pnl_transp),{show,false},{margin,false}]},
+                %!----------------------
+                %! Specular and fresnel
+                %!----------------------
+                {vframe,[
+                    {hframe, [
+                        {label, "Mirror Color"},{slider, {color,MirrorColor, [key(mirror_color)]}}, panel
+                    ],[key(pnl_sc)]},
+                    {hframe,[
+                        {label, "Mirror Reflect"},
+                        {slider, {text,MirrorReflect,[range(zero_to_one),key(mirror_reflect),{width,2}]}}, panel
+                    ],[key(pnl_sc)]},
+                    {hframe, [
+                        {"Fresnel Effect",Fresnel,[key(fresnel),{hook,Hook_Enable}]},
+                        {label_column, [
+                            {"IOR", {slider, {text,IOR,[range(ior),key(ior),{width,4}]}}}
+                        ],[key(pnl_ior_fresnel)]},
+                        panel,
+                        {"Oren-Nayar",OrenNayar,[key(oren_nayar),{hook,Hook_Enable}]},
+                        {label_column,[
+                            {"Sigma ", {text,OrenNayar_Sigma,[range(sigma),key(sigma),{width,4}]}}
+                        ],[key(pnl_sigma_shiny)]}
+                    ],[key(pnl_fresnel),{show,false},{margin,false}]}
+                ],[{margin,false}]
+                },
                 {hframe, [
-                    {hframe, [
-                        {label, "Reflected Color"}
-                    ],[key(pnl_rc),{show,false},{margin,false}]},
-                    {hframe, [
-                        {label, "Reflected Light"}
-                    ],[key(pnl_rl),{show,false},{margin,false}]},
-                    {hframe, [
-                        {label, "Glossy Color"}
-                    ],[key(pnl_gc),{margin,false}]},
-                    {hframe, [
-                        {slider, {color,Reflected,[key(reflected)]}}
-                    ],[{margin,false}]}
-                ],[key(pnl_rf)]},
-                %% 4th row
-                {hframe, [
-                    {vframe, [
-                        {label, "Diffuse Color"}
-                    ],[key(pnl_dc_l),{margin,false}]},
                     {vframe, [
                         {label, "Filtered Light"}
                     ],[key(pnl_fl_l),{show,false},{margin,false}]},
@@ -330,10 +366,6 @@ material_dialog(_Name, Mat) ->
                         {slider, {color,Transmitted,[key(transmitted)]}}
                     ],[{margin,false}]}
                 ],[key(pnl_fl)]},
-                %% 5th row
-                {label_column, [
-                    {"Transparency", {slider, {text,Transparency,[range(transparency),key(transparency)]}}}
-                ],[key(pnl_transp),{show,false},{margin,false}]},
                 %% 6th row
                 {label_column, [
                     {"Specular Color", {slider, {color,SSS_Specular_Color, [key(sss_specular_color)]}}}
@@ -352,13 +384,6 @@ material_dialog(_Name, Mat) ->
                 ],[key(pnl_abs),{margin,false}]},
                 %% 8th row
                 {label_column, [
-                    {"Transmit Filter", {slider, {text,TransmitFilter,[range(transmit_filter),key(transmit_filter)]}}}
-                ],[key(pnl_tf),{show,false},{margin,false}]},
-                %% 9th row
-                {label_column, [
-                    {"Translucency", {slider, {text,Translucency,[range(translucency),key(translucency)]}}}
-                ],[key(pnl_transl),{margin,false},{show,false}]},
-                {label_column, [
                     {"Translucency", {slider, {text,SSS_Translucency,[range(sss_translucency),key(sss_translucency)]}}}
                 ],[key(pnl_transl_sss),{margin,false}]},
                 %% 10th row
@@ -366,16 +391,6 @@ material_dialog(_Name, Mat) ->
                     {"Scatter Color", {slider, {color,ScatterColor,[key(scatter_color)]}}},
                     {"SigmaS Factor", {slider, {text,SigmaSfactor,[range(sigmas_factor),key(sigmas_factor)]}}}
                 ],[key(pnl_sct),{margin,false}]},
-                %% 11th row
-                {label_column, [
-                    {"Diffuse Reflection", {slider, {text,DiffuseReflect,[range(diffuse_reflect),key(diffuse_reflect)]}}}
-                ],[key(pnl_dr),{margin,false}]},
-                %% 12th row
-                {label_column, [
-                    {"Mirror Reflection", {slider, {text,SpecularReflect,[range(specular_reflect),key(specular_reflect)]}}},
-                    {"Emit Light", {slider, {text,Emit,[range(emit),key(emit)]}}}
-                ],[key(pnl_mr),{show,false},{margin,false}]},
-                %% 13th row
                 {label_column, [
                     {"Glossy Reflection", {slider, {text,GlossyReflect,[range(glossy_reflect),key(glossy_reflect)]}}},
                     {"Exponent", {slider, {text,Exponent,[range(exponent),key(exponent)]}}}
@@ -408,15 +423,18 @@ material_dialog(_Name, Mat) ->
                     {"Fake Shadows",FakeShadows,[key(fake_shadows)]}
                 ],[key(pnl_dsp),{show,false},{margin,false}]},
                 %% 17th row
-                {hframe, [
-                    {"Oren-Nayar",OrenNayar,[key(oren_nayar),{hook,Hook_Enable}]},
-                    {label_column,[
-                        {"Sigma", {text,OrenNayar_Sigma,[range(sigma),key(sigma)]}}
-                    ],[key(pnl_sigma_shiny),{margin,false}]}
-                ],[key(pnl_on),{show,false},{margin,false}]},
+                %{hframe, [
+                %    {"Oren-Nayar",OrenNayar,[key(oren_nayar),{hook,Hook_Enable}]},
+                %    {label_column,[
+                %        {"Sigma", {text,OrenNayar_Sigma,[range(sigma),key(sigma)]}}
+                %    ],[key(pnl_sigma_shiny),{margin,false}]}
+                %],[key(pnl_on),{show,false},{margin,false}]},
                 %% 18th row
+                %{label_column, [
+                %        {"IOR", {slider, {text,IOR,[range(ior),key(ior)]}}}
+                %    ],[key(pnl_ior),{margin,false}]},
                 {hframe, [
-                    {"Fresnel Effect",TIR,[key(tir)]}
+                    {"Fresnel Effect",Fresnel,[key(fresnel)]}
                 ],[key(pnl_fe),{show,false},{margin,false}]},
                 %% 19th row
                 {label_column, [
@@ -430,7 +448,7 @@ material_dialog(_Name, Mat) ->
                     {"Blend Mix", {slider, {text,Blend_Value,[range(blend_value),key(blend_value)]}}}
                 ],[key(pnl_bl),{show,false},{margin,false}]}
 
-        ],[key(pnl_shader), {margin,false}]}
+        ],[{title,"Material"},key(pnl_shader), {margin,false}]}
         ]},
     %% End of Material Dialogs
 
@@ -451,7 +469,7 @@ material_dialog(_Name, Mat) ->
         ]}
     }].
 
-%%% povman: need review 
+%%% povman: need review
 alpha({R,G,B,A}) -> {R*A,G*A,B*A}.
 
 %%% Define Lightmat Color
@@ -468,21 +486,25 @@ def_absorption_color({Dr,Dg,Db,_Da}) ->
 def_transmitted({Dr,Dg,Db,_Da}) ->
     Dt = 1-0,
     {Dr*Dt,Dg*Dt,Db*Dt}.
-    
+
 %% test move modulator def from wpc_bounty
 def_modulators([]) ->
     [];
 def_modulators([{diffuse,_}|Maps]) ->
     [{modulator,[{type,{map,diffuse}},{diffuse,1.0}]}
      |def_modulators(Maps)];
+
 def_modulators([{ambient,_}|Maps]) ->
     [{modulator,[{type,{map,ambient}},{ambient,1.0}]}
      |def_modulators(Maps)];
+
 def_modulators([{bump,_}|Maps]) ->
     [{modulator,[{type,{map,bump}},{normal,1.0}]}
      |def_modulators(Maps)];
+
 def_modulators([{gloss,_}|Maps]) ->
     [{modulator,[{type,{map,gloss}},{shininess,1.0}]}
      |def_modulators(Maps)];
+
 def_modulators([_|Maps]) ->
     def_modulators(Maps).

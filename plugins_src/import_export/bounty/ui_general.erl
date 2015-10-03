@@ -613,7 +613,7 @@ export_dialog_qs(Op, Attr) ->
                             ],[key(pnl_pm2)]},
                             {vframe,[
                                 {hframe,[
-                                    {label, ?__(245, "Caustic Type")++" "},
+                                    {label, ?__(245, "Caustic Type ")},
                                     {menu, [
                                         {?__(253, "path"), path},
                                         {?__(254, "photons"), photons},

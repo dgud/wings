@@ -5,8 +5,7 @@
 export_shader(F, Name, Mat, ExportDir) ->
     MatAttr = proplists:get_value(?TAG, Mat, []),
 
-    MatType =
-        proplists:get_value(shader_type, MatAttr, ?DEF_MATERIAL_TYPE),
+    MatType = proplists:get_value(material_type, MatAttr, ?DEF_MATERIAL_TYPE),
 
     case MatType of
 
@@ -44,8 +43,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
-                  case export_texture(F, [Name,$_,format(N)],
-                                      Maps, ExportDir, M) of
+          case export_texture(F, [Name,$_,format(N)],Maps, ExportDir, M) of
                       off -> N+1;
                       ok ->
                           println(F),
@@ -59,14 +57,12 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
 
     DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
 
-    Specular = alpha(proplists:get_value(specular, OpenGL)),
-    DefReflected = Specular,
-    DefTransmitted = def_transmitted(DiffuseA),
-    export_rgb(F, mirror_color,
-               proplists:get_value(reflected, Attr, DefReflected)),
-    export_rgb(F, color,
-               proplists:get_value(transmitted, Attr, DefTransmitted)),
-
+    %Specular = alpha(proplists:get_value(specular, OpenGL)),
+    %DefReflected = Specular,
+    %DefTransmitted = def_transmitted(DiffuseA),
+    export_rgb(F, color, proplists:get_value(diffuse_color, Attr, {0.7,0.7,0.7})),
+    export_rgb(F, mirror_color, proplists:get_value(mirror_color, Attr, ?DEF_SPECULAR_REFLECT)), %DefReflected)),
+    
     OrenNayar = proplists:get_value(oren_nayar, Attr, ?DEF_OREN_NAYAR),
     case OrenNayar of
         false -> ok;
@@ -408,6 +404,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
             "        <sss_transmit fval=\"~.10f\"/>~n"
             "        <exponent fval=\"~.10f\"/>~n",
             [IOR,SigmaSfactor,DiffuseReflect,GlossyReflect,SSS_Translucency,Exponent]),
+			
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of

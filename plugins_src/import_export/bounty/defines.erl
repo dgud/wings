@@ -25,6 +25,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_EXR_FLAG_COMPRESSION, exr_none).
 
 %% Shader
+-define(DEF_FRESNEL, false).
 -define(DEF_MATERIAL_TYPE, shinydiffuse).
 -define(DEF_TIR, false).
 -define(DEF_GLASS_IR_DEPTH, 3).
