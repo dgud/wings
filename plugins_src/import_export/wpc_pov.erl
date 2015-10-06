@@ -854,7 +854,7 @@ export_maps([{MapID, Map} | Maps], ExportDir) ->
             Filepath0 = filename:join(ExportDir, MapFile),
             case e3d_image:save(Map, Filepath0) of
                 {error, _} -> % file type not supported by Wings3d
-                    Filepath = filename:join(ExportDir, ImageName ++ ".png"),
+                    Filepath = filename:join(ExportDir, set_map_type(ImageName,".png")),
                     e3d_image:save(Map, Filepath);
                 _ -> Filepath = Filepath0
             end;
@@ -873,6 +873,12 @@ get_map_type(Filepath) ->
         ".tiff" -> tiff;
         _ -> sys
     end.
+
+%%% Ext parameter must include the "." - ex. ".jpg"
+set_map_type(Filepath0,Ext) ->
+    Filepath = filename:rootname(Filepath0),
+    Filepath ++ Ext.
+
 export_pigment_modifiers(F, Type, PovRay) ->
     case Type of
         color -> ok;
@@ -886,6 +892,7 @@ export_pigment_modifiers(F, Type, PovRay) ->
             io:format(F, "\t\t scale ~f\n", [proplists:get_value(pigment_scale, PovRay, 1.0)]),
             io:format(F, "\t\t frequency ~f\n", [proplists:get_value(pigment_frequency, PovRay, 1.0)])
     end.
+
 export_pigment(F, Pigment, PovRay, OpenGL, Maps, Attr, ExportDir) ->
     case proplists:get_value(finish_transparency, PovRay, filter) of
         filter -> Filter = "rgbf";

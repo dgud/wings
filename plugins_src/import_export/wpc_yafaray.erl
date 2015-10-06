@@ -770,7 +770,7 @@ material_dialog(_Name, Mat) ->
     Blend_Value = proplists:get_value(blend_value, YafaRay, ?DEF_BLEND_VALUE),
 
     Hook_Enable = fun(Key, Value, Store) ->
-	case Key of
+        case Key of
             ?KEY(oren_nayar) ->
                 wings_dialog:enable(?KEY(pnl_sigma_shiny), Value =/= ?DEF_OREN_NAYAR, Store);
             ?KEY(autosmooth) ->
@@ -779,7 +779,7 @@ material_dialog(_Name, Mat) ->
                 wings_dialog:enable(?KEY(pnl_exp_coated), Value =/= ?DEF_ANISOTROPIC, Store);
             ?KEY(dispersion_power) ->
                 wings_dialog:enable(?KEY(pnl_dsp_sam), Value > 0.0, Store)
-	end
+        end
     end,
     Hook_Show =
         fun(Key, Value, Store) ->
@@ -798,10 +798,10 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:show(?KEY(pnl_noise_volume), Value =:= noisevolume, Store),
                     wings_dialog:update(?KEY(pnl_volume_type), Store);
                 ?KEY(shader_type) ->
-		    %% IOR
-		    wings_dialog:show(?KEY(pnl_ior), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
-		    %% Internal Reflection
-		    wings_dialog:show(?KEY(pnl_ir), Value =:= glass, Store),
+                    %% IOR
+                    wings_dialog:show(?KEY(pnl_ior), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
+                    %% Internal Reflection
+                    wings_dialog:show(?KEY(pnl_ir), Value =:= glass, Store),
                     %% Glossy Color
                     Gc = is_member(Value, [glossy,coatedglossy,translucent]),
                     Rl = is_member(Value, [glass,rough_glass]),
@@ -812,46 +812,46 @@ material_dialog(_Name, Mat) ->
                     %% Reflected Color
                     wings_dialog:show(?KEY(pnl_rc), Rc, Store),
                     wings_dialog:show(?KEY(pnl_rf), is_member(Value, [shinydiffuse,glass,rough_glass,glossy,coatedglossy,translucent]), Store),
-		    %% Diffuse Color
-		    wings_dialog:show(?KEY(pnl_dc_l), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
-		    %% Filtered Light
-		    wings_dialog:show(?KEY(pnl_fl_l), is_member(Value, [glass,rough_glass]), Store),
+                    %% Diffuse Color
+                    wings_dialog:show(?KEY(pnl_dc_l), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
+                    %% Filtered Light
+                    wings_dialog:show(?KEY(pnl_fl_l), is_member(Value, [glass,rough_glass]), Store),
                     wings_dialog:show(?KEY(pnl_fl), is_member(Value, [shinydiffuse,glass,rough_glass,glossy,coatedglossy,translucent]), Store),
-		    %% Transparency
-		    wings_dialog:show(?KEY(pnl_transp), Value =:= shinydiffuse, Store),
-		    %% Specular Color
-		    wings_dialog:show(?KEY(pnl_sc), Value =:= translucent, Store),
-		    %% Absorption Color & Absorption Distance
+                    %% Transparency
+                    wings_dialog:show(?KEY(pnl_transp), Value =:= shinydiffuse, Store),
+                    %% Specular Color
+                    wings_dialog:show(?KEY(pnl_sc), Value =:= translucent, Store),
+                    %% Absorption Color & Absorption Distance
                     wings_dialog:show(?KEY(pnl_abs_reg), is_member(Value, [glass,rough_glass]), Store),
                     wings_dialog:show(?KEY(pnl_abs_sss), Value =:= translucent, Store),
                     wings_dialog:show(?KEY(pnl_abs), is_member(Value, [glass,rough_glass,translucent]), Store),
-		    %% Transmit Filter
-		    wings_dialog:show(?KEY(pnl_tf), is_member(Value, [shinydiffuse,glass,rough_glass]), Store),
-		    %% Translucency
-		    wings_dialog:show(?KEY(pnl_transl), Value =:= shinydiffuse, Store),
+                    %% Transmit Filter
+                    wings_dialog:show(?KEY(pnl_tf), is_member(Value, [shinydiffuse,glass,rough_glass]), Store),
+                    %% Translucency
+                    wings_dialog:show(?KEY(pnl_transl), Value =:= shinydiffuse, Store),
                     wings_dialog:show(?KEY(pnl_transl_sss), Value =:= translucent, Store),
-		    %% Scatter Color & SigmaS Factor
-		    wings_dialog:show(?KEY(pnl_sct), Value =:= translucent, Store),
-		    %% Diffuse Reflection
-		    wings_dialog:show(?KEY(pnl_dr), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
-		    %% Mirror Reflection & Emit Light
-		    wings_dialog:show(?KEY(pnl_mr), Value =:= shinydiffuse, Store),
-		    %% Glossy Reflection & Exponent
-		    wings_dialog:show(?KEY(pnl_gr), is_member(Value, [glossy,coatedglossy,translucent]), Store),
-		    %% Anisotropic
-		    wings_dialog:show(?KEY(pnl_an), Value =:= coatedglossy, Store),
-		    %% Roughness
-		    wings_dialog:show(?KEY(pnl_rg), Value =:= rough_glass, Store),
-		    %% Dispersion Power & Dispersion Samples
-		    wings_dialog:show(?KEY(pnl_dsp), is_member(Value, [glass,rough_glass]), Store),
+                    %% Scatter Color & SigmaS Factor
+                    wings_dialog:show(?KEY(pnl_sct), Value =:= translucent, Store),
+                    %% Diffuse Reflection
+                    wings_dialog:show(?KEY(pnl_dr), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
+                    %% Mirror Reflection & Emit Light
+                    wings_dialog:show(?KEY(pnl_mr), Value =:= shinydiffuse, Store),
+                    %% Glossy Reflection & Exponent
+                    wings_dialog:show(?KEY(pnl_gr), is_member(Value, [glossy,coatedglossy,translucent]), Store),
+                    %% Anisotropic
+                    wings_dialog:show(?KEY(pnl_an), Value =:= coatedglossy, Store),
+                    %% Roughness
+                    wings_dialog:show(?KEY(pnl_rg), Value =:= rough_glass, Store),
+                    %% Dispersion Power & Dispersion Samples
+                    wings_dialog:show(?KEY(pnl_dsp), is_member(Value, [glass,rough_glass]), Store),
                     %% nayar
                     wings_dialog:show(?KEY(pnl_on), is_member(Value, [shinydiffuse,glossy,coatedglossy]), Store),
-		    %% Fresnel Effect
-		    wings_dialog:show(?KEY(pnl_fe), Value =:= shinydiffuse, Store),
-		    %% Ligth Material: Color & Power
-		    wings_dialog:show(?KEY(pnl_lm), Value =:= lightmat, Store),
-		    %% Blend: Material 1, Material 2 & Blend Mix
-		    wings_dialog:show(?KEY(pnl_bl), Value =:= blend_mat, Store),
+                    %% Fresnel Effect
+                    wings_dialog:show(?KEY(pnl_fe), Value =:= shinydiffuse, Store),
+                    %% Ligth Material: Color & Power
+                    wings_dialog:show(?KEY(pnl_lm), Value =:= lightmat, Store),
+                    %% Blend: Material 1, Material 2 & Blend Mix
+                    wings_dialog:show(?KEY(pnl_bl), Value =:= blend_mat, Store),
 %                    wings_dialog:update(?KEY(pnl_shader_l), Store),
 
                     wings_dialog:update(?KEY(pnl_shader), Store);
@@ -1099,7 +1099,7 @@ material_dialog(_Name, Mat) ->
                     {"Blend Mix", {slider, {text,Blend_Value,[range(blend_value),key(blend_value)]}}}
                 ],[key(pnl_bl),{show,false},{margin,false}]}
 
-	    ],[key(pnl_shader), {margin,false}]}
+            ],[key(pnl_shader), {margin,false}]}
         ]},
     %% End of Material Dialogs
 
@@ -1202,9 +1202,8 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     Shininess = proplists:get_value(shininess, Ps, ?DEF_MOD_SHININESS),
     Normal = proplists:get_value(normal, Ps, ?DEF_MOD_NORMAL),
     Filename = proplists:get_value(filename, Ps, ?DEF_MOD_FILENAME),
-    BrowseProps = [{dialog_type,open_dialog},
-                   {extensions,[{".jpg",?__(3,"JPEG compressed image")},
-                                {".tga",?__(4,"Targa bitmap")}]}],
+    ImageFormats = images_format(),
+    BrowseProps = [{dialog_type,open_dialog}, {extensions,ImageFormats}],
     Color1 = proplists:get_value(color1, Ps, ?DEF_MOD_COLOR1),
     Color2 = proplists:get_value(color2, Ps, ?DEF_MOD_COLOR2),
     Depth = proplists:get_value(depth, Ps, ?DEF_MOD_DEPTH),
@@ -1714,28 +1713,28 @@ light_dialog(_Name, point, Ps) ->
     ArealightSamples = proplists:get_value(arealight_samples, Ps, ?DEF_AREALIGHT_SAMPLES),
 
     Hook_Show =
-	fun(Key, Value, Store) ->
-	    case Key of
-		?KEY(type) ->
-		    wings_dialog:show(?KEY(pnl_sphere), Value =:= spherelight, Store)
-	    end
-	end,
+        fun(Key, Value, Store) ->
+            case Key of
+                ?KEY(type) ->
+                    wings_dialog:show(?KEY(pnl_sphere), Value =:= spherelight, Store)
+            end
+        end,
 
     [
-	{hradio,[
+        {hradio,[
             {?__(3,"Pointlight"),pointlight},
-	    {?__(5,"Spherelight"),spherelight}
+            {?__(5,"Spherelight"),spherelight}
         ],Type,[key(type),{hook,Hook_Show}]},
         {hframe, [
             {hframe, [
-		{label,?__(15,"Radius")},
-		{text,ArealightRadius,[range(arealight_radius),key(arealight_radius)]}
+                {label,?__(15,"Radius")},
+                {text,ArealightRadius,[range(arealight_radius),key(arealight_radius)]}
             ]},
             panel,
             {hframe, [
-		{label,?__(17,"Samples")},
-		{text,ArealightSamples,[range(samples),key(arealight_samples)]}
-	    ]}
+                {label,?__(17,"Samples")},
+                {text,ArealightSamples,[range(samples),key(arealight_samples)]}
+            ]}
         ],[key(pnl_sphere),{margin,false}]}
     ];
 
@@ -1760,42 +1759,42 @@ light_dialog(_Name, spot, Ps) ->
         end,
 
     Hook_Show =
-	fun(Key, Value, Store) ->
-	    case Key of
-		?KEY(type) ->
-		    wings_dialog:show(?KEY(pnl_ies), Value =:= spot_ies, Store),
-		    wings_dialog:show(?KEY(pnl_spt_photon), Value =:= spotlight, Store),
+        fun(Key, Value, Store) ->
+            case Key of
+                ?KEY(type) ->
+                    wings_dialog:show(?KEY(pnl_ies), Value =:= spot_ies, Store),
+                    wings_dialog:show(?KEY(pnl_spt_photon), Value =:= spotlight, Store),
                     wings_dialog:update(?KEY(pnl_spot_light), Store)
-	    end
-	end,
+            end
+        end,
 
     [
-	{hradio,[
+        {hradio,[
             {?__(29,"Spotlight"),spotlight},
-	    {?__(30,"IES"),spot_ies}
+            {?__(30,"IES"),spot_ies}
         ],Type,[key(type),{hook,Hook_Show}]},
         {vframe, [
-	    {hframe, [
-		{label,?__(100,"Filename")},
-		{button,{text,SpotIESFilename,[key(spot_ies_filename),{width,35},{props,BrowsePropsIES}]}}
-	    ],[key(pnl_ies)]},
+            {hframe, [
+                {label,?__(100,"Filename")},
+                {button,{text,SpotIESFilename,[key(spot_ies_filename),{width,35},{props,BrowsePropsIES}]}}
+            ],[key(pnl_ies)]},
             {vframe, [
-		{hframe, [
+                {hframe, [
                     {label,?__(101,"Blend")},
                     {text,SpotBlend,[key(spot_blend),range(spot_blend)]},
                     panel,
-		    {?__(97,"Photon Only"),SpotPhotonOnly,[key(spot_photon_only)]},
+                    {?__(97,"Photon Only"),SpotPhotonOnly,[key(spot_photon_only)]},
                     panel
-		],[key(pnl_spt_photon)]},
-    		{hframe, [
-		    {?__(38,"Soft Shadows"),SpotSoftShadows,[key(spot_soft_shadows),{hook,Hook_Enabled}]},
-		    panel,
-		    {label,?__(35,"Samples")},
-		    {text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]},
+                ],[key(pnl_spt_photon)]},
+                {hframe, [
+                    {?__(38,"Soft Shadows"),SpotSoftShadows,[key(spot_soft_shadows),{hook,Hook_Enabled}]},
+                    panel,
+                    {label,?__(35,"Samples")},
+                    {text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]},
                     panel,
                     {label,?__(102,"Fuzzyness")},
                     {text,SpotFuzzyness,[range(spot_fuzzyness),key(spot_fuzzyness)]}
-		]}
+                ]}
             ],[{margin,false}]}
         ],[key(pnl_spot_light),[{margin,false}]]}
     ];
@@ -1828,31 +1827,31 @@ light_dialog(_Name, infinite, Ps) ->
     DarkskyCausticPhotons = proplists:get_value(darksky_causticphotons, Ps, ?DEF_DARKSKY_CAUSTICPHOTONS),
 
     Hook_Enabled =
-	fun(Key, Value, Store) ->
-	    case Key of
+        fun(Key, Value, Store) ->
+            case Key of
                 ?KEY(infinite_true) ->
                     wings_dialog:enable(?KEY(pnl_inf_radius), Value =:= false, Store);
                 ?KEY(sun_real) ->
                     wings_dialog:enable(?KEY(pnl_sun_real), Value =/= ?DEF_SUN_REAL, Store);
-		?KEY(sky_background_light) ->
-		    wings_dialog:enable(?KEY(pnl_bkg_power), Value =/= ?DEF_SKY_BACKGROUND_LIGHT, Store),
+                ?KEY(sky_background_light) ->
+                    wings_dialog:enable(?KEY(pnl_bkg_power), Value =/= ?DEF_SKY_BACKGROUND_LIGHT, Store),
                     wings_dialog:enable(?KEY(pnl_bkg_photons), Value =/=?DEF_SKY_BACKGROUND_LIGHT, Store)
-	    end
-	end,
+            end
+        end,
     Hook_Show =
-	fun(Key, Value, Store) ->
-	    case Key of
-		?KEY(type) ->
-		    wings_dialog:show(?KEY(pnl_sunlight), Value =:= sunlight, Store),
-		    wings_dialog:show(?KEY(pnl_directional), Value =:= directional, Store),
+        fun(Key, Value, Store) ->
+            case Key of
+                ?KEY(type) ->
+                    wings_dialog:show(?KEY(pnl_sunlight), Value =:= sunlight, Store),
+                    wings_dialog:show(?KEY(pnl_directional), Value =:= directional, Store),
                     wings_dialog:update(?KEY(pnl_base1),Store);
                 ?KEY(background) ->
                     wings_dialog:show(?KEY(pnl_darksky_altitude), Value =:= darksky, Store),
                     wings_dialog:show(?KEY(darksky_night), Value =:= darksky, Store),
                     wings_dialog:show(?KEY(pnl_sky), Value =/= undefined, Store),
                     wings_dialog:update(?KEY(pnl_sky), Store)
-	    end
-	end,
+            end
+        end,
     [
         {vframe, [
             {vframe, [
@@ -1896,8 +1895,8 @@ light_dialog(_Name, infinite, Ps) ->
                 ],Bg,[key(background),{hook,Hook_Show}]},
                 {vframe, [
                     {hframe, [
-			{label_column, [
-			    {?__(47,"Turbidity"),{text,Turbidity,[range(turbidity),key(turbidity)]}},
+                        {label_column, [
+                            {?__(47,"Turbidity"),{text,Turbidity,[range(turbidity),key(turbidity)]}},
                             {"a: "++?__(48,"Horizon Brightness"),{text,A_var,[key(a_var)]}},
                             {"b: "++?__(49,"Horizon Spread"),{text,B_var,[key(b_var)]}}
                         ],[{margin,false}]},
@@ -1905,7 +1904,7 @@ light_dialog(_Name, infinite, Ps) ->
                             {"c: "++?__(50,"Sun Brightness"),{text,C_var,[key(c_var)]}},
                             {"d: "++?__(51,"Sun Distance"),{text,D_var,[key(d_var)]}},
                             {"e: "++?__(52,"Backscattered Light"),{text,E_var,[key(e_var)]}}
-			],[{margin,false}]}
+                        ],[{margin,false}]}
                     ],[{margin,false}]},
 
                     {hframe,[
@@ -1962,9 +1961,8 @@ light_dialog(_Name, ambient, Ps) ->
     ZenithColor = proplists:get_value(zenith_color, Ps, ?DEF_ZENITH_COLOR),
     %%
     BgFnameImage = proplists:get_value(background_filename_image, Ps, ?DEF_BACKGROUND_FILENAME),
-    BrowsePropsImage = [{dialog_type,open_dialog},
-                        {extensions,[{".jpg",?__(54,"JPEG compressed image")},
-                                     {".tga",?__(55,"Targa bitmap")}]}],
+    ImageFormats = images_format(),
+    BrowsePropsImage = [{dialog_type,open_dialog}, {extensions,ImageFormats}],
     BgFnameHDRI = proplists:get_value(background_filename_HDRI, Ps,
                                       ?DEF_BACKGROUND_FILENAME),
     BrowsePropsHDRI = [{dialog_type,open_dialog},
@@ -1992,8 +1990,8 @@ light_dialog(_Name, ambient, Ps) ->
             case Key of
                 ?KEY(background) ->
                     wings_dialog:show(?KEY(pnl_file), is_member(Value, ['HDRI',image]), Store),
-		    wings_dialog:show(?KEY(pnl_img_hdri), Value =:= 'HDRI', Store),
-		    wings_dialog:show(?KEY(pnl_img_bkg), Value =:= image, Store),
+                    wings_dialog:show(?KEY(pnl_img_hdri), Value =:= 'HDRI', Store),
+                    wings_dialog:show(?KEY(pnl_img_bkg), Value =:= image, Store),
                     wings_dialog:show(?KEY(pnl_const), Value =:= constant, Store),
                     wings_dialog:show(?KEY(pnl_gradient), Value =:= gradientback, Store),
                     wings_dialog:show(?KEY(pnl_background), Value =/= undefined, Store),
@@ -2006,16 +2004,16 @@ light_dialog(_Name, ambient, Ps) ->
         %% Backgrounds
         {vframe, [
             {value,Type,[key(type)]},
-	    {hframe, [
-		{label,?__(91,"Background Light/Environment")++" "},
-		{menu, [
+            {hframe, [
+                {label,?__(91,"Background Light/Environment")++" "},
+                {menu, [
                     {?__(79,"HDRI"),'HDRI'},
-		    {?__(80,"Image"),image},
-		    {?__(81,"Constant"),constant},
-		    {?__(105,"Gradient"),gradientback},
+                    {?__(80,"Image"),image},
+                    {?__(81,"Constant"),constant},
+                    {?__(105,"Gradient"),gradientback},
                     {?__(82,"None"), undefined}
                 ], Bg, [key(background),{hook,Hook_Show}]}
-	    ]},
+            ]},
 
             {vframe, [
                 %% HDRI Background
@@ -2902,7 +2900,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     [{options,Options}] =
         get_user_prefs([{options,?DEF_OPTIONS}]),
     [{pluginspath,PluginsPath}] =
-	get_user_prefs([{pluginspath,?DEF_PLUGINS_PATH}]),
+        get_user_prefs([{pluginspath,?DEF_PLUGINS_PATH}]),
     case {get_var(renderer),Render} of
         {_,false} ->
             wings_job:export_done(ExportTS),
@@ -2939,7 +2937,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                 end,
             file:delete(RenderFile),
             set_var(rendering, true),
-	    wings_job:render(ExportTS, Renderer,"-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+            wings_job:render(ExportTS, Renderer,"-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
 warn_multiple_backgrounds([]) ->
@@ -3233,7 +3231,7 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
                   N % Ignore old modulators
           end, 1, Modulators),
     println(F, "<material name=\"~s\">~n"++
-	       "<type sval=\"coated_glossy\"/>", [Name]),
+               "<type sval=\"coated_glossy\"/>", [Name]),
     DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
 
     Specular = alpha(proplists:get_value(specular, OpenGL)),
@@ -3851,18 +3849,27 @@ export_texture(F, Name, Maps, ExportDir, {modulator,Ps}) when is_list(Ps) ->
             case proplists:get_value(Map, Maps, undefined) of
                 undefined ->
                     exit({unknown_texture_map,{?MODULE,?LINE,[Name,Map]}});
-                #e3d_image{name=ImageName}=Image ->
-                    MapFile = ImageName++".tga",
-                    ok = e3d_image:save(Image,
-                                        filename:join(ExportDir, MapFile)),
-                    export_texture(F, Name, image, MapFile)
+                #e3d_image{name=ImageName, filename = FileName}=Image ->
+                    case FileName of
+                        none ->
+                            MapFile = case get_map_type(ImageName) of
+                                          sys -> ImageName++".png";
+                                          _ -> ImageName
+                                      end,
+                            Filepath0 = filename:join(ExportDir, MapFile),
+                            case e3d_image:save(Image, Filepath0) of
+                                {error, _} -> % file type not supported by Wings3d
+                                    Filepath = filename:join(ExportDir, set_map_type(ImageName,".png")),
+                                    e3d_image:save(Image, Filepath);
+                                _ -> Filepath = Filepath0
+                            end;
+                        _ -> Filepath = FileName
+                    end,
+                    export_texture(F, Name, image, Filepath)
             end;
         {true,_,Type} ->
             export_texture(F, Name, Type, Ps)
     end.
-
-
-
 
 export_texture(F, Name, image, Filename) ->
     println(F, "<texture name=\"~s\">~n"++
@@ -3870,13 +3877,10 @@ export_texture(F, Name, image, Filename) ->
                 "<type sval=\"image\"/>~n" ++
                 "</texture>", [Name,Filename]);
 export_texture(F, Name, Type, Ps) ->
-
-%%% Start Work-Around for YafaRay Texture Name TEmytex Requirement for Noise Volume
-
+    %% Start Work-Around for YafaRay Texture Name TEmytex Requirement for Noise Volume
     TextureNameChg = re:replace(Name,"w_TEmytex_1","TEmytex",[global]),
     println(F, "<texture name=\"~s\"> <type sval=\"~s\"/>", [TextureNameChg,format(Type)]),
-
-%%% End Work-Around for YafaRay Texture Name TEmytex Requirement for Noise Volume
+    %% End Work-Around for YafaRay Texture Name TEmytex Requirement for Noise Volume
 
     Color1 = proplists:get_value(color1, Ps, ?DEF_MOD_COLOR1),
     Color2 = proplists:get_value(color2, Ps, ?DEF_MOD_COLOR2),
@@ -3888,127 +3892,105 @@ export_texture(F, Name, Type, Ps) ->
     println(F, "    <hard bval=\"~s\"/>" " <noise_type sval=\"~s\"/>"  " <size fval=\"~.6f\"/>", [format(Hard),NoiseBasis,NoiseSize]),
 
     case Type of
-
         clouds ->
             Depth = proplists:get_value(depth, Ps, ?DEF_MOD_DEPTH),
             println(F, "  <depth ival=\"~w\"/>" , [Depth]);
-
         marble ->
             Depth = proplists:get_value(depth, Ps, ?DEF_MOD_DEPTH),
-
-            Turbulence = proplists:get_value(turbulence, Ps,
-                                             ?DEF_MOD_TURBULENCE),
-
+            Turbulence = proplists:get_value(turbulence, Ps, ?DEF_MOD_TURBULENCE),
             Sharpness = proplists:get_value(sharpness, Ps, ?DEF_MOD_SHARPNESS),
-
             Shape = proplists:get_value(shape, Ps, ?DEF_MOD_SHAPE),
-
             println(F, "  <depth ival=\"~w\"/>" "      <turbulence fval=\"~.6f\"/>~n" "  <sharpness fval=\"~.6f\"/>" " <shape sval=\"~s\"/>", [Depth,Turbulence,Sharpness,Shape]);
         wood ->
-            WoodType = proplists:get_value(wood_type, Ps,
-                                           ?DEF_MOD_WOODTYPE),
-
-
-            Turbulence = proplists:get_value(turbulence, Ps,
-                                             ?DEF_MOD_TURBULENCE),
-
+            WoodType = proplists:get_value(wood_type, Ps, ?DEF_MOD_WOODTYPE),
+            Turbulence = proplists:get_value(turbulence, Ps, ?DEF_MOD_TURBULENCE),
             Shape = proplists:get_value(shape, Ps, ?DEF_MOD_SHAPE),
-
             %% Coordinate rotation, see export_pos/3.
             println(F, " <wood_type sval=\"~s\"/>"++
                         "    <turbulence fval=\"~.6f\"/>~n" " <shape sval=\"~s\"/>",
-                    [WoodType,Turbulence,Shape]);
-
+                        [WoodType,Turbulence,Shape]);
         voronoi ->
-            CellType = proplists:get_value(cell_type, Ps,
-                                           ?DEF_MOD_CELLTYPE),
-
-            CellShape = proplists:get_value(cell_shape, Ps,
-                                            ?DEF_MOD_CELLSHAPE),
-
-            CellSize = proplists:get_value(cell_size, Ps,
-                                           ?DEF_MOD_CELLSIZE),
-
-            Intensity = proplists:get_value(intensity, Ps,
-                                            ?DEF_MOD_INTENSITY),
-
-            CellWeight1 = proplists:get_value(cell_weight1, Ps,
-                                              ?DEF_MOD_CELL_WEIGHT1),
-
-            CellWeight2 = proplists:get_value(cell_weight2, Ps,
-                                              ?DEF_MOD_CELL_WEIGHT2),
-
-            CellWeight3 = proplists:get_value(cell_weight3, Ps,
-                                              ?DEF_MOD_CELL_WEIGHT3),
-
-            CellWeight4 = proplists:get_value(cell_weight4, Ps,
-                                              ?DEF_MOD_CELL_WEIGHT4),
-
+            CellType = proplists:get_value(cell_type, Ps, ?DEF_MOD_CELLTYPE),
+            CellShape = proplists:get_value(cell_shape, Ps, ?DEF_MOD_CELLSHAPE),
+            CellSize = proplists:get_value(cell_size, Ps, ?DEF_MOD_CELLSIZE),
+            Intensity = proplists:get_value(intensity, Ps, ?DEF_MOD_INTENSITY),
+            CellWeight1 = proplists:get_value(cell_weight1, Ps, ?DEF_MOD_CELL_WEIGHT1),
+            CellWeight2 = proplists:get_value(cell_weight2, Ps, ?DEF_MOD_CELL_WEIGHT2),
+            CellWeight3 = proplists:get_value(cell_weight3, Ps, ?DEF_MOD_CELL_WEIGHT3),
+            CellWeight4 = proplists:get_value(cell_weight4, Ps, ?DEF_MOD_CELL_WEIGHT4),
             %% Coordinate rotation, see export_pos/3.
             println(F, " <color_type sval=\"~s\"/>"++
                         "   <distance_metric sval=\"~s\"/>~n"
-                    "    <size fval=\"~.6f\"/>"++
+                        "    <size fval=\"~.6f\"/>"++
                         "    <intensity fval=\"~.6f\"/>~n"
-                    "    <weight1 fval=\"~.6f\"/>"++
+                        "    <weight1 fval=\"~.6f\"/>"++
                         "    <weight2 fval=\"~.6f\"/>~n"
-                    "    <weight3 fval=\"~.6f\"/>"++
+                        "    <weight3 fval=\"~.6f\"/>"++
                         "    <weight4 fval=\"~.6f\"/>",
-                    [CellType,CellShape,CellSize,Intensity,CellWeight1,CellWeight2,CellWeight3,CellWeight4]);
-
+                        [CellType,CellShape,CellSize,Intensity,CellWeight1,
+                         CellWeight2,CellWeight3,CellWeight4]);
         musgrave ->
-            MusgraveType = proplists:get_value(musgrave_type, Ps,
-                                               ?DEF_MOD_MUSGRAVE_TYPE),
-
+            MusgraveType = proplists:get_value(musgrave_type, Ps, ?DEF_MOD_MUSGRAVE_TYPE),
             NoiseBasis = proplists:get_value(noise_basis, Ps, ?DEF_MOD_NOISEBASIS),
-
             MusgraveNoiseSize = proplists:get_value(musgrave_noisesize, Ps, ?DEF_MOD_MUSGRAVE_NOISESIZE),
-
             MusgraveIntensity = proplists:get_value(musgrave_intensity, Ps, ?DEF_MOD_MUSGRAVE_INTENSITY),
-
             MusgraveContrast = proplists:get_value(musgrave_contrast, Ps, ?DEF_MOD_MUSGRAVE_CONTRAST),
-
             MusgraveLacunarity = proplists:get_value(musgrave_lacunarity, Ps, ?DEF_MOD_MUSGRAVE_LACUNARITY),
-
             MusgraveOctaves = proplists:get_value(musgrave_octaves, Ps, ?DEF_MOD_MUSGRAVE_OCTAVES),
-
             %% Coordinate rotation, see export_pos/3.
             println(F, " <musgrave_type sval=\"~s\"/>"++
                         " <noise_type sval=\"~s\"/>~n"
-                    "    <size fval=\"~.6f\"/>"++
+                        "    <size fval=\"~.6f\"/>"++
                         "    <intensity fval=\"~.6f\"/>~n"
-                    "    <H fval=\"~.6f\"/>"++
+                        "    <H fval=\"~.6f\"/>"++
                         "    <lacunarity fval=\"~.6f\"/>~n"
-                    "    <octaves fval=\"~.6f\"/>",
-                    [MusgraveType,NoiseBasis,MusgraveNoiseSize,
-                     MusgraveIntensity,MusgraveContrast,MusgraveLacunarity,MusgraveOctaves]);
-
+                        "    <octaves fval=\"~.6f\"/>",
+                        [MusgraveType,NoiseBasis,MusgraveNoiseSize,MusgraveIntensity,
+                         MusgraveContrast,MusgraveLacunarity,MusgraveOctaves]);
         distorted_noise ->
-
             NoiseBasis = proplists:get_value(noise_basis, Ps, ?DEF_MOD_NOISEBASIS),
-
-            DistortionType = proplists:get_value(distortion_type, Ps,
-                                                 ?DEF_MOD_DISTORTION_TYPE),
-
+            DistortionType = proplists:get_value(distortion_type, Ps, ?DEF_MOD_DISTORTION_TYPE),
             DistortionNoiseSize = proplists:get_value(distortion_noisesize, Ps, ?DEF_MOD_DISTORTION_NOISESIZE),
-
             DistortionIntensity = proplists:get_value(distortion_intensity, Ps, ?DEF_MOD_DISTORTION_INTENSITY),
-
-
             %% Coordinate rotation, see export_pos/3.
             println(F, " <noise_type1 sval=\"~s\"/>"++
                         " <noise_type2 sval=\"~s\"/>~n"
-                    "    <size fval=\"~.6f\"/>"++
+                        "    <size fval=\"~.6f\"/>"++
                         "    <distort fval=\"~.6f\"/>~n",
-                    [NoiseBasis,DistortionType,DistortionNoiseSize,
-                     DistortionIntensity]);
-
-
+                        [NoiseBasis,DistortionType,DistortionNoiseSize,DistortionIntensity]);
         _ ->
             ok
     end,
     println(F, "</texture>").
 
+%%% images file type used by Yafaray
+%%% http://www.yafaray.org/documentation/userguide/textureinput#imageinput
+get_map_type(Filepath) ->
+    Ext = filename:extension(Filepath),
+    case Ext of
+        ".tga" -> tga;
+        ".jpg" -> jpg;
+        ".png" -> png;
+        ".tiff" -> tiff;
+        ".hdr" -> hdr;
+        ".exr" -> exr;
+        _ -> sys
+    end.
 
+images_format() ->
+    ImgInfo = wings_job:render_formats(),
+    lists:foldr(fun(Type,Acc) ->
+        case lists:keyfind(Type,1,ImgInfo) of
+            {_,Ext,Desc} -> Acc ++[{Ext,Desc}];
+            _ -> Acc
+        end
+    end, [{".tiff","Tagged Image File Format"}], [tga,jpg,png,hdr,exr]).
+
+%%% Ext parameter must include the "." - ex. ".jpg"
+%%% that will replace the extension in case the file name already includes it.
+set_map_type(Filepath0,Ext) ->
+    Filepath = filename:rootname(Filepath0),
+    Filepath ++ Ext.
 
 export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
     case mod_enabled_mode_type(Ps, Maps) of
@@ -4049,9 +4031,9 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
 %%% End Change Number from Texname for Stencil UpperLayer Name 2
 
 
-%            _SizeX = proplists:get_value(size_x, Ps, ?DEF_MOD_SIZE_X),
-%            _SizeY = proplists:get_value(size_y, Ps, ?DEF_MOD_SIZE_Y),
-%            _SizeZ = proplists:get_value(size_z, Ps, ?DEF_MOD_SIZE_Z),
+            SizeX = proplists:get_value(size_x, Ps, ?DEF_MOD_SIZE_X),
+            SizeY = proplists:get_value(size_y, Ps, ?DEF_MOD_SIZE_Y),
+            SizeZ = proplists:get_value(size_z, Ps, ?DEF_MOD_SIZE_Z),
             TextureType = proplists:get_value(texture_type, Ps, ?DEF_TEXTURE_TYPE),
             Diffuse = proplists:get_value(diffuse, Ps, ?DEF_MOD_DIFFUSE),
 %%	    _Specular = proplists:get_value(specular, Ps, ?DEF_MOD_SPECULAR),
@@ -4166,69 +4148,69 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
 %%Stencil Export Start
                     println(F, " <!--Start Stencil Section Here-->
 
-		 		<list_element>
-		 		<element sval=\"shader_node\"/>
-		 		<name sval=\"~s\"/>
-		 		<input sval=\"~s_mod\"/>
+                                <list_element>
+                                <element sval=\"shader_node\"/>
+                                <name sval=\"~s\"/>
+                                <input sval=\"~s_mod\"/>
 
-		 		<noRGB bval=\"true\"/>
-		 		<stencil bval=\"true\"/>
-		 		"++UpperLayer++"
+                                <noRGB bval=\"true\"/>
+                                <stencil bval=\"true\"/>
+                                "++UpperLayer++"
 
-		 		<type sval=\"layer\"/>
-		 		<mode ival=\""++ModeNumber++"\"/>
-		 		</list_element>
+                                <type sval=\"layer\"/>
+                                <mode ival=\""++ModeNumber++"\"/>
+                                </list_element>
 
-		 		<list_element>
-		 		<element sval=\"shader_node\"/>
-		 		<name sval=\"~s_mod\"/>
-		 		"++TexCo++"
-		 		<mapping sval=\"plain\"/>
-		 		<texture sval=\"~s\"/>
-		 		<type sval=\"texture_mapper\"/>
-		 		<bump_strength fval=\"~.3f\"/>
-		 		</list_element>
+                                <list_element>
+                                <element sval=\"shader_node\"/>
+                                <name sval=\"~s_mod\"/>
+                                "++TexCo++"
+                                <mapping sval=\"plain\"/>
+                                <texture sval=\"~s\"/>
+                                <type sval=\"texture_mapper\"/>
+                                <bump_strength fval=\"~.3f\"/>
+                                </list_element>
 
-		 		<diffuse_shader sval=\"diff_layer2\"/>
+                                <diffuse_shader sval=\"diff_layer2\"/>
                                 <list_element>
                                 <element sval=\"shader_node\"/>
                                 <name sval=\"diff_layer2\"/>
-		 		<input sval=\""++StencilInputName++"_mod\"/>
-		 		<upper_layer sval=\""++StencilUpperLayerName2++"\"/>
+                                <input sval=\""++StencilInputName++"_mod\"/>
+                                <upper_layer sval=\""++StencilUpperLayerName2++"\"/>
                                 <type sval=\"layer\"/>
-		 		<mode ival=\""++ModeNumber++"\"/>
+                                <mode ival=\""++ModeNumber++"\"/>
                                 </list_element>
 
-	<!--End Stencil Section Here-->",
+        <!--End Stencil Section Here-->",
                         [Texname,Texname,Texname,Texname,Normal
                         ]);
 %%Stencil Export End
                 _ ->
 
                     println(F, "  "++ShaderName++"
-		 		<list_element>
-		 		<element sval=\"shader_node\"/>
-		 		<name sval=\"~s\"/>
-		 		<input sval=\"~s_mod\"/>
+                                <list_element>
+                                <element sval=\"shader_node\"/>
+                                <name sval=\"~s\"/>
+                                <input sval=\"~s_mod\"/>
                                 "++UpperLayer++"
-				"++UpperColor++"
-				"++UseAlpha++"
-		 		<type sval=\"layer\"/>
-		 		<mode ival=\""++ModeNumber++"\"/>
-				<colfac fval=\"~.3f\"/>
-				<valfac fval=\"~.3f\"/>
-		 		</list_element>
-		 		<list_element>
-		 		<element sval=\"shader_node\"/>
-		 		<name sval=\"~s_mod\"/>
-		 		"++TexCo++"
-		 		<mapping sval=\"plain\"/>
-		 		<texture sval=\"~s\"/>
-		 		<type sval=\"texture_mapper\"/>
-
-		 		<bump_strength fval=\"~.3f\"/>
-		 		</list_element>",
-                        [Texname,Texname,Diffuse,Shininess,Texname,Texname,Normal
+                                "++UpperColor++"
+                                "++UseAlpha++"
+                                <type sval=\"layer\"/>
+                                <mode ival=\""++ModeNumber++"\"/>
+                                <colfac fval=\"~.3f\"/>
+                                <valfac fval=\"~.3f\"/>
+                                </list_element>
+                                <list_element>
+                                <element sval=\"shader_node\"/>
+                                <name sval=\"~s_mod\"/>
+                                "++TexCo++"
+                                <mapping sval=\"plain\"/>
+                                <texture sval=\"~s\"/>
+                                <type sval=\"texture_mapper\"/>
+                                <scale x=\"~.3f\" y=\"~.3f\" z=\"~.3f\"/>
+                                <bump_strength fval=\"~.3f\"/>
+                                </list_element>",
+                        [Texname,Texname,Diffuse,Shininess,Texname,Texname,SizeX,SizeY,SizeZ,Normal
                         ])
 
             end
@@ -4700,7 +4682,7 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
             SpotIESSamples = proplists:get_value(spot_ies_samples, YafaRay,
                                                  ?DEF_SPOT_IES_SAMPLES),
 
-	    println(F, "<type sval=\"ieslight\"/> <cone_angle fval=\"~.3f\"/> <soft_shadows bval=\"~s\"/> <samples ival=\"~w\"/>~n"++
+            println(F, "<type sval=\"ieslight\"/> <cone_angle fval=\"~.3f\"/> <soft_shadows bval=\"~s\"/> <samples ival=\"~w\"/>~n"++
                         "       <file sval=\"~s\"/>",
                     [ConeAngle,SpotSoftShadows,SpotIESSamples,SpotIESFilename])
     end,
@@ -5577,8 +5559,8 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         case RenderFormat of
             exr ->
                 [if ExrFlagFloat -> "float "; true -> "" end,
-		 if ExrFlagZbuf -> "zbuf "; true -> "" end,
-		 format(ExrFlagCompression)];
+                 if ExrFlagZbuf -> "zbuf "; true -> "" end,
+                 format(ExrFlagCompression)];
             _ -> ""
         end,
     println(F, "<render> <camera_name sval=\"~s\"/> "
@@ -5957,8 +5939,8 @@ help(text,{light,spot}) ->
         "refractive and reflective caustic patterns. The IES option enables the use of "
         "IES files to simulate real world lights, which produce uniquely shaped lighting.")];
 help(text,{light,infinite}) ->
-    [[{bold,?__(75,"Infinite Light")}],
-        ?__(76,"A distant light with rays pointing in a certain direction. Typically used "
+    [[{bold,?__(76,"Infinite Light")}],
+        ?__(77,"A distant light with rays pointing in a certain direction. Typically used "
         "for Sunlight.\n"
         "Choose either Sunlight or Directional. Combine with the included Sunsky or Darktide "
         "Sunsky to simulate a sky background. Enable Skylight to emit light from the sky "
@@ -5966,8 +5948,8 @@ help(text,{light,infinite}) ->
         "rays of the infinite light in order to see the sun disc. With Darktide Sunsky, "
         "enable the Night option to simulate moon light.")];
 help(text,{light,ambient}) ->
-    [[{bold,?__(77,"Ambient Light")}],
-        ?__(78,"A light with rays pointing in every direction and emitting from all "
+    [[{bold,?__(78,"Ambient Light")}],
+        ?__(79,"A light with rays pointing in every direction and emitting from all "
         "directions, with no shadows.\n"
         "Choose between the various Background Light/Environment options to control "
         "the appearance of the background and lighting. Disable the Enlight option if "
@@ -5975,8 +5957,8 @@ help(text,{light,ambient}) ->
         "to reflect onto reflective surfaces. HDRI also produces realistic lighting "
         "when Enlight is enabled.")];
 help(text,{light,area}) ->
-    [[{bold,?__(79,"Area Light")}],
-        ?__(80,"A rectangular light with rays emitting from the entire surface. Use for "
+    [[{bold,?__(80,"Area Light")}],
+        ?__(81,"A rectangular light with rays emitting from the entire surface. Use for "
         "light coming through a window or florescent ceiling lights.\n"
         "Wings3D objects can be converted to Area Lights with the Object to Area Light "
         "command. Expect longer render times when using Area Lights.")];
@@ -5990,7 +5972,7 @@ help(text, pref_dialog) ->
      ++wings_help:cmd([?__(39,"File"),?__(40,"Export Selected"),?__(41,"YafaRay")])++" "++?__(42,"and")++" "
      ++wings_help:cmd([?__(43,"File"),?__(44,"Render"),?__(45,"YafaRay")])++" "++
      ?__(46,"are enabled if the rendering executable is found (in the path), "
-     "or if the rendering executable is specified with an absolute path."),
+        "or if the rendering executable is specified with an absolute path."),
      %%
      ?__(47,"Disabled Dialogs:")++" "
      ++wings_help:cmd([?__(48,"File"),?__(49,"Export"),?__(50,"YafaRay")])++", "
@@ -6006,14 +5988,15 @@ help(text, pref_dialog) ->
      ?__(71,"is the same as for \"Automatic Dialogs\"."),
      %%
      ?__(72,"Executable: The rendering command for the YafaRay raytrace "
-      "renderer ('c:/yafaray/bin/yafaray-xml.exe') that is supposed to "
-      "be found in the executables search path; or, the absolute path of "
-      "that executable."),
+        "renderer ('c:/yafaray/bin/yafaray-xml.exe') that is supposed to "
+        "be found in the executables search path; or, the absolute path of "
+        "that executable."),
      %%
      ?__(73,"YafaRay Plugins Path: The path to the YafaRay raytrace renderer plugins "
-      "folder('c:/yafaray/bin/plugins'). YafaRay will not work without this."),
+        "folder('c:/yafaray/bin/plugins'). YafaRay will not work without this."),
      %%
      ?__(74,"Options: Rendering command line options to be inserted between the "
+<<<<<<< HEAD
       "executable and the .xml filename, -dp (add render settings badge) "
       "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All)."
       "The YafaRay Fork Build, TheBounty by Povmaniac, IS REQUIRED FOR SUBSURFACE SCATTERING." )];
@@ -6055,3 +6038,9 @@ help(text, {options_dialog,general}) ->
         "Subsurface Scattering, in the Lighting tab, when using a version of YafaRay that does not "
         "support that feature.")
     ].
+=======
+        "executable and the .xml filename, -dp (add render settings badge) "
+        "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All)."),
+     ?__(75,"NOTE: The YafaRay Fork Build, 'TheBounty' by Povmaniac, is required for "
+        "SUBSURFACE SCATTERING, Translucent (SSS) Material.")].
+>>>>>>> Fixes to POV-Ray and Yafaray plugins
