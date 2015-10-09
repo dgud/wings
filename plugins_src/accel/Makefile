@@ -17,9 +17,11 @@ ifeq ($(findstring CYGWIN,$(OS)),CYGWIN)
   DEF_CC = mingw32-gcc
 endif
 
-ifeq ($(MSYSTEM),$(filter $(MSYSTEM), MINGW32 MINGW64))
+ifdef MSYSTEM
+ ifeq ($(MSYSTEM),$(filter $(MSYSTEM),MINGW32 MINGW64))
   USEMINGWGCC := true
   DEF_CC = gcc
+ endif
 endif
 
 LIBDIR = ../../plugins/accel
