@@ -5996,13 +5996,13 @@ help(text, pref_dialog) ->
         "folder('c:/yafaray/bin/plugins'). YafaRay will not work without this."),
      %%
      ?__(74,"Options: Rendering command line options to be inserted between the "
-<<<<<<< HEAD
       "executable and the .xml filename, -dp (add render settings badge) "
-      "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All)."
-      "The YafaRay Fork Build, TheBounty by Povmaniac, IS REQUIRED FOR SUBSURFACE SCATTERING." )];
+      "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All)."),
+     ?__(75,"NOTE: The YafaRay Fork Build, 'TheBounty' by Povmaniac, is required for "
+	 "SUBSURFACE SCATTERING, Translucent (SSS) Material.")];
 
 help(title, {options_dialog,_}) ->
-    ?__(81,"YafaRay Render Options");
+    ?__(811,"YafaRay Render Options");
 help(text, {options_dialog,general}) ->
     [[{bold,?__(82,"Transparent Shadows:")++" "}],
         ?__(83,"Enable when a Glass material with Fake Shadows is used and when Transparency "
@@ -6038,9 +6038,3 @@ help(text, {options_dialog,general}) ->
         "Subsurface Scattering, in the Lighting tab, when using a version of YafaRay that does not "
         "support that feature.")
     ].
-=======
-        "executable and the .xml filename, -dp (add render settings badge) "
-        "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All)."),
-     ?__(75,"NOTE: The YafaRay Fork Build, 'TheBounty' by Povmaniac, is required for "
-        "SUBSURFACE SCATTERING, Translucent (SSS) Material.")].
->>>>>>> Fixes to POV-Ray and Yafaray plugins

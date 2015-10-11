@@ -259,11 +259,10 @@ image_selector(Default) ->
 
 enable_opt() ->
     {hook,
-     fun(Key={_, Id}, Pass, Fields) ->
+     fun({_, Id}, Pass, Fields) ->
 	     Disable = Pass =:= ignore orelse Pass =:= auv_faces,
 	     wings_dialog:enable({opt_butt, Id},  not Disable, Fields),
-	     Changed = wings_dialog:get_value(Key, Fields) =/= Pass,
-	     Changed andalso wings_dialog:set_value({auv_opt, Id}, [], Fields)
+	     wings_dialog:set_value({auv_opt, Id}, [], Fields)
      end}.
 
 option_hook(Id,Renderers,Shaders) ->
