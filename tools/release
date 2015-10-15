@@ -171,7 +171,7 @@ copy_app(App0, Lib) ->
     App = list_to_atom(filename:basename(AppDir)),
     Wcs = [["ebin","*.{beam,bundle,png,lang}"],
 	   ["plugins","**","*.{beam,so,dll,lang}"],
-	   ["plugins","autouv","*.{auv,fs}"],
+	   ["plugins","autouv","*.{auv,fs,vs}"],
 	   ["priv","*.{so,dll}"],
 	   ["shaders","*"],
 	   ["textures","*"]
