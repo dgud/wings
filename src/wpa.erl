@@ -14,7 +14,7 @@
 %%       from the wings core modules.
 
 -module(wpa).
--export([ask/3,ask/4,dialog/3,dialog/4,error_msg/1,error_msg/2,
+-export([ask/3,ask/4,dialog/3,dialog/4,dialog/5,error_msg/1,error_msg/2,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
 	 bind_unicode/2,bind_virtual/3,
 	 import/2,import/3,import_filename/2,
@@ -71,8 +71,14 @@ ask(Bool, Title, Qs, Fun) ->
 dialog(Title, Qs, Fun) ->
     wings_dialog:dialog(Title, Qs, Fun).
 
+dialog(Title, Qs, Fun, HelpFun) when is_list(Title) ->
+    wings_dialog:dialog(Title, Qs, Fun, HelpFun);
+
 dialog(Bool, Title, Qs, Fun) ->
     wings_dialog:dialog(Bool, Title, Qs, Fun).
+
+dialog(Bool, Title, Qs, Fun, HelpFun) ->
+    wings_dialog:dialog(Bool, Title, Qs, Fun, HelpFun).
 
 %% Show String in a dialog box.
 error_msg(String) ->
