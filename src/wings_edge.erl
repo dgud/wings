@@ -21,12 +21,21 @@
 	 dissolve_edges/2,dissolve_edge/2,
 	 hardness/3,
 	 patch_edge/4,patch_edge/5,
-	 select_nth_ring/2]).
+	 select_nth_ring/2,
+	 length/2
+	]).
 
 -export([dissolve_isolated_vs/2]).
 
 -include("wings.hrl").
 -import(lists, [foldl/3,sort/1]).
+
+
+length(Ei, #we{es=Etab,vp=VPos}) ->
+    #edge{vs=VS,ve=VE} = array:get(Ei,Etab),
+    Pt1 = array:get(VS,VPos),
+    Pt2 = array:get(VE,VPos),
+    e3d_vec:dist(Pt1,Pt2).
 
 from_vs(Vs, We) when is_list(Vs) ->
     from_vs(Vs, We, []);
