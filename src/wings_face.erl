@@ -33,10 +33,27 @@
 	 patch_face/3,patch_face/4,
 	 delete_bad_faces/2,
 	 are_neighbors/3,is_planar/3]).
+    set_area/3
 
 -include("wings.hrl").
 -include("e3d.hrl").
 -import(lists, [reverse/1,sort/1]).
+%% Set the area (size) of an face ... while maintaining its center and orientation.
+set_area(Fs, Area, #we{}=We) when is_list(Fs), is_float(Area) -> 
+     lists:foldl(fun(Fi, Acc) -> set_area(Fi, Area, Acc) end, We, Fs);
+set_area(Fi, Area, #we{vp=VPos}=We) when is_integer(Fi), is_float(Area) ->
+    AreaCur = wings_face:area(Fi, We),
+    OrdinateSz   = math:pow(Area / AreaCur, 0.5),
+    Scal = e3d_mat:scale(OrdinateSz,OrdinateSz,OrdinateSz),
+    {CX,CY,CZ} = wings_face:center(Fi,We),
+    Tr1 = e3d_mat:translate({-CX,-CY,-CZ}),
+    Tr2 = e3d_mat:translate({CX,CY,CZ}),
+    Mat = e3d_mat:mul([Tr1,Scal,Tr2]),
+    Vs = wings_face:vertices_cw(Fi,We),
+    Pts1 = [ e3d_mat:mul_point(Mat,array:get(Vi,VPos)) || Vi<-Vs],
+    Dict = lists:zip(Vs,Pts1),
+    VPos2 = lists:foldl(fun({Vi,Pt}, Acc) ->  array:set(Vi,Pt,Acc) end, VPos, Dict),
+    We#we{vp=VPos2}.
 
 from_edges(Es, #we{es=Etab}) when is_list(Es) ->
     from_edges_1(Es, Etab, []);
