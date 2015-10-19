@@ -591,18 +591,22 @@ merge_1([], Vpt0, Et0, Ht0, Ho0) ->
     {Vpt,Et,Ht,Ho}.
 
 merge_plugins(Wes) ->
-    Psts  = [gb_trees:keys(We#we.pst) || We <- Wes],
+    Psts = [gb_trees:keys(We#we.pst) || We <- Wes],
     PMods = lists:usort(lists:append(Psts)),
-    Merge = fun(Mod,Acc) ->
-		    try
-			Pst = Mod:merge_we(Wes),
-			[{Mod, Pst}|Acc]
-		    catch _:_ -> Acc
+    Merge = fun (Mod, Acc) ->
+		    try Pst = Mod:merge_we(Wes), [{Mod, Pst} | Acc] catch
+		      _:_ -> 
+		      	% Honor all data ... even anonymous datas attached.
+		      	lists:foldl(fun(We, Acc1) -> 
+			       	   	Val = gb_trees:get(Mod,We#we.pst),
+			       	   	[{Mod,Val}|Acc1]
+		       		end,
+		       	    Acc, Wes)
 		    end
 	    end,
     Merged = lists:reverse(lists:foldl(Merge, [], PMods)),
     gb_trees:from_orddict(Merged).
-		    
+            
 merge_renumber(Wes0) ->
     [{_,We1}|Wes] = merge_bounds(Wes0, []),
     We = wings_va:gc(We1),
