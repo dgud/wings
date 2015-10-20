@@ -29,6 +29,7 @@ menu(X, Y, St) ->
     Menu = [{?__(2,"Move"),{move,Dir}},
 	    wings_menu_util:rotate(St),
 	    wings_menu_util:scale(St),
+	    {?__(101,"Size To Volume"),fix_volume,?__(102,"Set intrinic sizes (volumes) of object(s)")},
 	    separator,
 	    {?__(3,"Flip..."),{flip,
 	       [{wings_s:dir(x),flip_fun(x),
@@ -150,6 +151,10 @@ arealight_conv(object, T) ->
       ?__(4,"Convert selected objects to area lights")}|T];
 arealight_conv(mixed, T) -> T.
 
+command(fix_volume, St) ->
+	wings_dialog:dialog(?__(1,"Set Volume"), fix_volume('Ask'), fun(Result) ->
+    	fix_volume(Result, St)
+    end);
 command({move,Type}, St) ->
     wings_move:setup(Type, St);
 command({rotate,Type}, St) ->
@@ -499,6 +504,21 @@ delete_object(Objects, #st{shapes=Shs0}=St) ->
 			gb_trees:delete(Id, Shs)
 		end, Shs0, Objects),
     wings_sel:valid_sel(St#st{shapes=Shs}).
+
+%%%
+%%% Fix (SET) Volume Command 
+%%%
+
+fix_volume(Asks) when is_atom(Asks) ->
+    [{text, 1.0, [{width,10},{key,volume}]}].
+fix_volume([{volume,Sz}], #st{}=St) ->
+    wings_sel:fold(
+        fun(_, #we{id=ID}=We, Acc) ->
+            WeNew = wings_we:set_volume(Sz, We),
+            wings_shape:replace(ID, WeNew, Acc)
+        end,
+        St, St).
+
 
 %%%
 %%% The Flip command

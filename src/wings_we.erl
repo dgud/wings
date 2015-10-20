@@ -26,6 +26,7 @@
 	 transform_vs/2,
 	 separate/1,
 	 normals/3,
+     set_volume/2,
 	 new_items_as_ordset/3,new_items_as_gbset/3,
 	 is_consistent/1,is_face_consistent/2,
 	 hide_faces/2,show_faces/1,num_hidden/1,
@@ -1262,3 +1263,19 @@ volume_1(Face, We) ->
     [V1,V2,V3] = wings_face:vertex_positions(Face, We),
     Bc = e3d_vec:cross(V2, V3),
     e3d_vec:dot(V1, Bc)/6.0.
+
+
+set_volume(Vol, #we{}=We) ->
+	{CX, CY, CZ} = wings_vertex:center(We),
+    set_volume(Vol, {CX,CY,CZ}, We).
+
+set_volume(Vol, {CX,CY,CZ}, #we{}=We) ->
+    VolCur = wings_we:volume(We),
+    Sz0 = math:pow(VolCur, 3.33333333e-1),
+    Sz1 = math:pow(Vol, 3.33333333e-1),
+    Sz = Sz1 / Sz0,
+    Scal = e3d_mat:scale(Sz, Sz, Sz),
+    Tr1 = e3d_mat:translate({-CX, -CY, -CZ}),
+    Tr2 = e3d_mat:translate({CX, CY, CZ}),
+    Mat = e3d_mat:mul([Tr1, Scal, Tr2]),
+    wings_we:transform_vs(Mat, We).
