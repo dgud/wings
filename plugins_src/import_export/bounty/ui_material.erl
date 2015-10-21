@@ -1,5 +1,6 @@
 %%% Object Specific Material Properties
 %%%
+
 material_dialog(_Name, Mat) ->
     Maps = proplists:get_value(maps, Mat, []),
     OpenGL = proplists:get_value(opengl, Mat),
@@ -7,99 +8,101 @@ material_dialog(_Name, Mat) ->
     DefTransmitted = def_transmitted(proplists:get_value(diffuse, OpenGL)),
     DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
     DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),
-    YafaRay = proplists:get_value(?TAG, Mat, []),
+    Attr = proplists:get_value(?TAG, Mat, []),
     %MatAttr = proplists:get_value(?TAG, Mat, []),
-    %DefShaderType = get_pref(shader_type, YafaRay),
-    %DefMatType = get_pref(shader_type, YafaRay),
-    MaterialType = proplists:get_value(material_type, YafaRay, ?DEF_MATERIAL_TYPE),
-    Object_Type = proplists:get_value(object_type, YafaRay, ?DEF_OBJECT_TYPE),
-    Volume_Type = proplists:get_value(volume_type, YafaRay, ?DEF_VOLUME_TYPE),
-    Volume_Sigma_a = proplists:get_value(volume_sigma_a, YafaRay, ?DEF_VOLUME_SIGMA_A),
-    Volume_Sigma_s = proplists:get_value(volume_sigma_s, YafaRay, ?DEF_VOLUME_SIGMA_S),
-    Volume_Height = proplists:get_value(volume_height, YafaRay, ?DEF_VOLUME_HEIGHT),
-    Volume_Steepness = proplists:get_value(volume_steepness, YafaRay, ?DEF_VOLUME_STEEPNESS),
-    Volume_Attgridscale = proplists:get_value(volume_attgridscale, YafaRay, ?DEF_VOLUME_ATTGRIDSCALE),
-    Volume_Sharpness = proplists:get_value(volume_sharpness, YafaRay, ?DEF_VOLUME_SHARPNESS),
-    Volume_Cover = proplists:get_value(volume_cover, YafaRay, ?DEF_VOLUME_COVER),
-    Volume_Density = proplists:get_value(volume_density, YafaRay, ?DEF_VOLUME_DENSITY),
-    Volume_Minmax_X = proplists:get_value(volume_minmax_x, YafaRay, ?DEF_VOLUME_MINMAX_X),
-    Volume_Minmax_Y = proplists:get_value(volume_minmax_y, YafaRay, ?DEF_VOLUME_MINMAX_Y),
-    Volume_Minmax_Z = proplists:get_value(volume_minmax_z, YafaRay, ?DEF_VOLUME_MINMAX_Z),
-    Lightportal_Power = proplists:get_value(lightportal_power, YafaRay, ?DEF_LIGHTPORTAL_POWER),
-    Lightportal_Samples = proplists:get_value(lightportal_samples, YafaRay, ?DEF_LIGHTPORTAL_SAMPLES),
-    Lightportal_Diffusephotons = proplists:get_value(lightportal_diffusephotons, YafaRay, ?DEF_LIGHTPORTAL_DIFFUSEPHOTONS),
-    Lightportal_Causticphotons = proplists:get_value(lightportal_causticphotons, YafaRay, ?DEF_LIGHTPORTAL_CAUSTICPHOTONS),
-    Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, YafaRay, ?DEF_LIGHTPORTAL_PHOTON_ONLY),
-    Meshlight_Power = proplists:get_value(meshlight_power, YafaRay, ?DEF_MESHLIGHT_POWER),
-    Meshlight_Samples = proplists:get_value(meshlight_samples, YafaRay, ?DEF_MESHLIGHT_SAMPLES),
-    Meshlight_Color = proplists:get_value(meshlight_color, YafaRay, ?DEF_MESHLIGHT_COLOR),
-    Meshlight_Double_Sided = proplists:get_value(meshlight_double_sided, YafaRay, ?DEF_MESHLIGHT_DOUBLE_SIDED),
-    %TIR = proplists:get_value(tir, YafaRay, ?DEF_TIR),
-    Fresnel = proplists:get_value(fresnel, YafaRay, ?DEF_FRESNEL),
-    AutosmoothAngle = proplists:get_value(autosmooth_angle, YafaRay, ?DEF_AUTOSMOOTH_ANGLE),
-    Autosmooth = proplists:get_value(autosmooth, YafaRay,
+    %DefShaderType = get_pref(shader_type, Attr),
+    %DefMatType = get_pref(shader_type, Attr),
+    MaterialType = proplists:get_value(material_type, Attr, ?DEF_MATERIAL_TYPE),
+    Object_Type = proplists:get_value(object_type, Attr, ?DEF_OBJECT_TYPE),
+    Volume_Type = proplists:get_value(volume_type, Attr, ?DEF_VOLUME_TYPE),
+    Volume_Sigma_a = proplists:get_value(volume_sigma_a, Attr, ?DEF_VOLUME_SIGMA_A),
+    Volume_Sigma_s = proplists:get_value(volume_sigma_s, Attr, ?DEF_VOLUME_SIGMA_S),
+    Volume_Height = proplists:get_value(volume_height, Attr, ?DEF_VOLUME_HEIGHT),
+    Volume_Steepness = proplists:get_value(volume_steepness, Attr, ?DEF_VOLUME_STEEPNESS),
+    Volume_Attgridscale = proplists:get_value(volume_attgridscale, Attr, ?DEF_VOLUME_ATTGRIDSCALE),
+    Volume_Sharpness = proplists:get_value(volume_sharpness, Attr, ?DEF_VOLUME_SHARPNESS),
+    Volume_Cover = proplists:get_value(volume_cover, Attr, ?DEF_VOLUME_COVER),
+    Volume_Density = proplists:get_value(volume_density, Attr, ?DEF_VOLUME_DENSITY),
+    Volume_Minmax_X = proplists:get_value(volume_minmax_x, Attr, ?DEF_VOLUME_MINMAX_X),
+    Volume_Minmax_Y = proplists:get_value(volume_minmax_y, Attr, ?DEF_VOLUME_MINMAX_Y),
+    Volume_Minmax_Z = proplists:get_value(volume_minmax_z, Attr, ?DEF_VOLUME_MINMAX_Z),
+    Lightportal_Power = proplists:get_value(lightportal_power, Attr, ?DEF_LIGHTPORTAL_POWER),
+    Lightportal_Samples = proplists:get_value(lightportal_samples, Attr, ?DEF_LIGHTPORTAL_SAMPLES),
+    Lightportal_Diffusephotons = proplists:get_value(lightportal_diffusephotons, Attr, ?DEF_LIGHTPORTAL_DIFFUSEPHOTONS),
+    Lightportal_Causticphotons = proplists:get_value(lightportal_causticphotons, Attr, ?DEF_LIGHTPORTAL_CAUSTICPHOTONS),
+    Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, Attr, ?DEF_LIGHTPORTAL_PHOTON_ONLY),
+    Meshlight_Power = proplists:get_value(meshlight_power, Attr, ?DEF_MESHLIGHT_POWER),
+    Meshlight_Samples = proplists:get_value(meshlight_samples, Attr, ?DEF_MESHLIGHT_SAMPLES),
+    Meshlight_Color = proplists:get_value(meshlight_color, Attr, ?DEF_MESHLIGHT_COLOR),
+    Meshlight_Double_Sided = proplists:get_value(meshlight_double_sided, Attr, ?DEF_MESHLIGHT_DOUBLE_SIDED),
+    %TIR = proplists:get_value(tir, Attr, ?DEF_TIR),
+    AutosmoothAngle = proplists:get_value(autosmooth_angle, Attr, ?DEF_AUTOSMOOTH_ANGLE),
+    Autosmooth = proplists:get_value(autosmooth, Attr,
                                      if AutosmoothAngle == 0.0 -> false;
                                         true -> ?DEF_AUTOSMOOTH end),
+    
+    %!---------------------------
+    % shiny diffuse properties
+    %!---------------------------
+    DiffuseColor =   proplists:get_value(diffuse_color, Attr, {0.7,0.7,0.7}),
+    DiffuseReflect = proplists:get_value(diffuse_reflect, Attr, ?DEF_DIFFUSE_REFLECT),
+    MirrorColor =    proplists:get_value(mirror_color, Attr, {0.7,0.7,0.7}),
+    MirrorReflect =  proplists:get_value(mirror_reflect, Attr, ?DEF_SPECULAR_REFLECT),
+    Fresnel =        proplists:get_value(fresnel, Attr, ?DEF_FRESNEL),
+    
+    Emit =           proplists:get_value(emit, Attr, ?DEF_EMIT),
+    
+    Transparency =  proplists:get_value(transparency, Attr, ?DEF_TRANSPARENCY),
+    Translucency =  proplists:get_value(translucency, Attr, ?DEF_TRANSLUCENCY),
+    Transmittance = proplists:get_value(transmittance, Attr, ?DEF_TRANSMIT_FILTER),
+    IOR =           proplists:get_value(ior, Attr, ?DEF_IOR),
+    OrenNayar =     proplists:get_value(oren_nayar, Attr, ?DEF_OREN_NAYAR),
+    Sigma =         proplists:get_value(sigma, Attr, ?DEF_OREN_NAYAR_SIGMA),    
+    %Transmitted = proplists:get_value(transmitted, Attr, DefTransmitted),
+    
+    %!------------------------------------------------------------------
+    %! Glossy and Coated Glossy Properties.
+    %!   -difuse, mirror (color and amount) are declared on shiny panel
+    %!------------------------------------------------------------------
+    GlossyColor =   proplists:get_value(glossy_color, Attr, {0.9,0.9,0.9}),
+    GlossyReflect = proplists:get_value(glossy_reflect, Attr, 0.0), 
+    Anisotropic = proplists:get_value(anisotropic, Attr, ?DEF_ANISOTROPIC),
+    Exponent =    proplists:get_value(exponent, Attr, ?DEF_EXPONENT),
+    Exponent_U =  proplists:get_value(anisotropic_u, Attr, ?DEF_ANISOTROPIC_U),
+    Exponent_V =  proplists:get_value(anisotropic_v, Attr, ?DEF_ANISOTROPIC_V),
+    AsDiffuse  =  proplists:get_value(as_diffuse, Attr, false),
 
-    %% IOR Material Property for all Materials except Glossy
-    IOR = proplists:get_value(ior, YafaRay, ?DEF_IOR),
-    %%
-    %OGLDiffuse = dproplists:get_value(diffuse, OpenGL),
-    DiffuseColor = proplists:get_value(diffuse_color, YafaRay, {0.7,0.7,0.7}),
-    %OGLSpecular = proplists:get_value(specular, OpenGL),
-    MirrorColor = proplists:get_value(mirror_color, YafaRay, {0.7,0.7,0.7}),
-    Transmitted = proplists:get_value(transmitted, YafaRay, DefTransmitted),
+    %!--------------------------------------
+    %! Glass and Roughness glass properties
+    %---------------------------------------
+    AbsorptionColor = proplists:get_value(absorption_color, Attr, {0.99,0.99,0.99}),
+    AbsorptionDist = proplists:get_value(absorption_dist, Attr, ?DEF_ABSORPTION_DIST),
+    DispersionPower = proplists:get_value(dispersion_power, Attr, ?DEF_DISPERSION_POWER),
+    DispersionSamples = proplists:get_value(dispersion_samples, Attr, ?DEF_DISPERSION_SAMPLES),
+    FakeShadows = proplists:get_value(fake_shadows, Attr, ?DEF_FAKE_SHADOWS),
+    Roughness = proplists:get_value(roughness, Attr, ?DEF_ROUGHNESS),
+    %Glass_IR_Depth = proplists:get_value(glass_ir_depth, Attr, ?DEF_GLASS_IR_DEPTH),
 
-    %% Glass Properties
-    %%
-    AbsorptionColor = proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
-    AbsorptionDist = proplists:get_value(absorption_dist, YafaRay, ?DEF_ABSORPTION_DIST),
-    DispersionPower = proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    DispersionSamples = proplists:get_value(dispersion_samples, YafaRay, ?DEF_DISPERSION_SAMPLES),
-    FakeShadows = proplists:get_value(fake_shadows, YafaRay, ?DEF_FAKE_SHADOWS),
-    Roughness = proplists:get_value(roughness, YafaRay, ?DEF_ROUGHNESS),
-    Glass_IR_Depth = proplists:get_value(glass_ir_depth, YafaRay, ?DEF_GLASS_IR_DEPTH),
+    %!---------------------------------
+    %! Translucent material properties
+    %!---------------------------------
+    SSS_AbsorptionColor = proplists:get_value(sss_absorption_color, Attr, ?DEF_SSS_ABSORPTION_COLOR),
+    ScatterColor = proplists:get_value(scatter_color, Attr, ?DEF_SCATTER_COLOR),
+    SigmaSfactor = proplists:get_value(sigmas_factor, Attr, ?DEF_SIGMAS_FACTOR),
+    SSS_Translucency = proplists:get_value(sss_translucency, Attr, ?DEF_SSS_TRANSLUCENCY),
+    SSS_Specular_Color = proplists:get_value(sss_specular_color, Attr, ?DEF_SSS_SPECULAR_COLOR),
 
-    %% Shiny Diffuse Properties
-    %% Transmit Filter also for Glass and Rough Glass
-    Transparency = proplists:get_value(transparency, YafaRay, ?DEF_TRANSPARENCY),
-    TransmitFilter = proplists:get_value(transmit_filter, YafaRay, ?DEF_TRANSMIT_FILTER),
-    Translucency = proplists:get_value(translucency, YafaRay, ?DEF_TRANSLUCENCY),
-    MirrorReflect = proplists:get_value(mirror_reflect, YafaRay, ?DEF_SPECULAR_REFLECT),
-    Emit = proplists:get_value(emit, YafaRay, ?DEF_EMIT),
-
-    %% Translucency (SSS) Properties
-    %%
-    SSS_AbsorptionColor = proplists:get_value(sss_absorption_color, YafaRay, ?DEF_SSS_ABSORPTION_COLOR),
-    ScatterColor = proplists:get_value(scatter_color, YafaRay, ?DEF_SCATTER_COLOR),
-    SigmaSfactor = proplists:get_value(sigmas_factor, YafaRay, ?DEF_SIGMAS_FACTOR),
-    SSS_Translucency = proplists:get_value(sss_translucency, YafaRay, ?DEF_SSS_TRANSLUCENCY),
-    SSS_Specular_Color = proplists:get_value(sss_specular_color, YafaRay, ?DEF_SSS_SPECULAR_COLOR),
-
-    %% Shiny Diffuse, Glossy, Coated Glossy Properties
-    %%
-    DiffuseReflect = proplists:get_value(diffuse_reflect, YafaRay, ?DEF_DIFFUSE_REFLECT),
-    OrenNayar = proplists:get_value(oren_nayar, YafaRay, ?DEF_OREN_NAYAR),
-    OrenNayar_Sigma = proplists:get_value(sigma, YafaRay, ?DEF_OREN_NAYAR_SIGMA),
-
-    %% Glossy and Coated Glossy Properties
-    %%
-    GlossyReflect = proplists:get_value(glossy_reflect, YafaRay, ?DEF_GLOSSY_REFLECT),
-    Exponent = proplists:get_value(exponent, YafaRay, ?DEF_EXPONENT),
-    Anisotropic = proplists:get_value(anisotropic, YafaRay, ?DEF_ANISOTROPIC),
-    Anisotropic_U = proplists:get_value(anisotropic_u, YafaRay, ?DEF_ANISOTROPIC_U),
-    Anisotropic_V = proplists:get_value(anisotropic_v, YafaRay, ?DEF_ANISOTROPIC_V),
 
     %% Light Material Properties
     %%
-    Lightmat_Color = proplists:get_value(lightmat_color, YafaRay, DefLightmatColor),
-    Lightmat_Power = proplists:get_value(lightmat_power, YafaRay, ?DEF_LIGHTMAT_POWER),
+    Lightmat_Color = proplists:get_value(lightmat_color, Attr, DefLightmatColor),
+    Lightmat_Power = proplists:get_value(lightmat_power, Attr, ?DEF_LIGHTMAT_POWER),
 
     %% Blend Material Properties
     %%
-    Blend_Mat1 = proplists:get_value(blend_mat1, YafaRay, ?DEF_BLEND_MAT1),
-    Blend_Mat2 = proplists:get_value(blend_mat2, YafaRay, ?DEF_BLEND_MAT2),
-    Blend_Value = proplists:get_value(blend_value, YafaRay, ?DEF_BLEND_VALUE),
+    Blend_Mat1 = proplists:get_value(blend_mat1, Attr, ?DEF_BLEND_MAT1),
+    Blend_Mat2 = proplists:get_value(blend_mat2, Attr, ?DEF_BLEND_MAT2),
+    Blend_Value = proplists:get_value(blend_value, Attr, ?DEF_BLEND_VALUE),
 
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
@@ -136,18 +139,21 @@ material_dialog(_Name, Mat) ->
                 %!---------------------------------------
                 ?KEY(material_type) ->
                     %Trans = Value =:= shinydiffuse,
+                    Gc = is_member(Value, [glossy,coatedglossy,translucent]),
+                    Rl = is_member(Value, [glass,rough_glass]),
+                    Rc = Value =:= shinydiffuse,
                     %% Transparency
                     wings_dialog:show(?KEY(pnl_diffuse), is_member(Value, [shinydiffuse,glossy,coatedglossy]), Store),
-                    wings_dialog:show(?KEY(pnl_transp), Value =:= shinydiffuse, Store),
-                    wings_dialog:show(?KEY(pnl_emitt), Value =:= shinydiffuse, Store),
+                    wings_dialog:show(?KEY(pnl_transp), Rc, Store),
+                    wings_dialog:show(?KEY(pnl_emitt), Rc, Store),
+                    wings_dialog:show(?KEY(pnl_mirror), Rc, Store),
+                    wings_dialog:show(?KEY(pnl_mircol), Rc, Store),
                     %% IOR
                     %wings_dialog:show(?KEY(pnl_ior), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
                     %% Internal Reflection
                     %wings_dialog:show(?KEY(pnl_ir), Value =:= glass, Store),
                     %% Glossy Color
-                    Gc = is_member(Value, [glossy,coatedglossy,translucent]),
-                    Rl = is_member(Value, [glass,rough_glass]),
-                    Rc = Value =:= shinydiffuse,
+                    
                     wings_dialog:show(?KEY(pnl_gc), Gc, Store),
                     %% Reflected Light
                     wings_dialog:show(?KEY(pnl_rl), Rl, Store),
@@ -158,7 +164,7 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:show(?KEY(pnl_dc_l), is_member(Value, [shinydiffuse,glossy,coatedglossy,translucent]), Store),
                     %% Filtered Light
                     wings_dialog:show(?KEY(pnl_fl_l), is_member(Value, [glass,rough_glass]), Store),
-                    wings_dialog:show(?KEY(pnl_fl), is_member(Value, [shinydiffuse,glass,rough_glass,glossy,coatedglossy,translucent]), Store),
+                    wings_dialog:show(?KEY(pnl_fl), not is_member(Value, [blend_mat,lightmat]), Store),
                     %% Transparency
                     %wings_dialog:show(?KEY(pnl_transp), Value =:= shinydiffuse, Store),
                     %% Specular Color
@@ -200,9 +206,10 @@ material_dialog(_Name, Mat) ->
             end
         end,
 
-        %% Object Specific Material Properties Dialog
-    %%
-    Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
+    %!--------------------------------------------
+    %! Object Specific Material Properties Dialog
+    %!--------------------------------------------
+    Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
     ObjectFrame =
         {vframe, [
             {hframe, [
@@ -297,33 +304,33 @@ material_dialog(_Name, Mat) ->
         %% End Object Type Menu
         ]},
 
-    %% Shader Specific Material Properties Dialog
-    %%
+    %!-------------------------------
+    %! Material Properties Dialog
+    %!-------------------------------
     ShaderFrame =
         {vframe, [
             {menu,menu_shader(),MaterialType,[key(material_type),{hook,Hook_Show}]},
-            %% label column
             {vframe, [
+                %!-----------------------
+                %! shiny material panels
+                %!-----------------------          
                 {vframe, [
                     {hframe, [
                         {label, "Diffuse Color"},
                         {slider, {color,DiffuseColor,[key(diffuse_color)]}}, panel
                     ]},
                     {hframe, [
-                        {label, "Diffuse Reflect"},
-                        {slider, {text,DiffuseReflect,[range(zero_to_one),key(diffuse_reflect)]}}, panel
+                        {label, "Diffuse Reflect"},{slider,{text,DiffuseReflect,[range(zero_to_one),key(diffuse_reflect)]}}, panel
                     ]}
                 ],[key(pnl_diffuse),{show,false},{margin,false}]
                 },
-                {vframe,[
-                    {hframe,[
-                        {label,"Material Emitt"},{slider, {text,Emit,[range(emit),key(emit)]}}, panel
-                    ]}
-                ],[key(pnl_emitt),{show,false},{margin,false}]},
                 %!----------------------------------
                 %! Trans/parency/lucency/mittance..
                 %!----------------------------------
                 {vframe,[
+                    {hframe,[
+                        {label,"Material Emitt"},{slider, {text,Emit,[range(emit),key(emit)]}}, panel
+                    ]},
                     {hframe, [
                         {label,"Transparency"}, {slider, {text,Transparency,[range(transparency),key(transparency)]}}, panel
                     ]},
@@ -331,7 +338,7 @@ material_dialog(_Name, Mat) ->
                         {label,"Translucency"}, {slider, {text,Translucency,[range(translucency),key(translucency)]}}, panel
                     ]},
                     {hframe, [
-                        {label,"Transmittance"}, {slider, {text,TransmitFilter,[range(zero_to_one),key(transmit_filter)]}}, panel
+                        {label,"Transmittance"}, {slider, {text,Transmittance,[range(zero_to_one),key(transmittance)]}}, panel
                     ]}
                 ],[key(pnl_transp),{show,false},{margin,false}]},
                 %!----------------------
@@ -340,11 +347,11 @@ material_dialog(_Name, Mat) ->
                 {vframe,[
                     {hframe, [
                         {label, "Mirror Color"},{slider, {color,MirrorColor, [key(mirror_color)]}}, panel
-                    ],[key(pnl_sc)]},
+                    ],[key(pnl_mircol)]},
                     {hframe,[
                         {label, "Mirror Reflect"},
                         {slider, {text,MirrorReflect,[range(zero_to_one),key(mirror_reflect),{width,2}]}}, panel
-                    ],[key(pnl_sc)]},
+                    ],[key(pnl_mirror)]},
                     {hframe, [
                         {"Fresnel Effect",Fresnel,[key(fresnel),{hook,Hook_Enable}]},
                         {label_column, [
@@ -353,18 +360,39 @@ material_dialog(_Name, Mat) ->
                         panel,
                         {"Oren-Nayar",OrenNayar,[key(oren_nayar),{hook,Hook_Enable}]},
                         {label_column,[
-                            {"Sigma ", {text,OrenNayar_Sigma,[range(sigma),key(sigma),{width,4}]}}
+                            {"Sigma ", {text,Sigma,[range(sigma),key(sigma),{width,4}]}}
                         ],[key(pnl_sigma_shiny)]}
                     ],[key(pnl_fresnel),{show,false},{margin,false}]}
                 ],[{margin,false}]
                 },
+                %!---------------------
+                %! glossy material.
+                %!---------------------
+                {vframe, [
+                    {hframe, [ 
+                        {label, "Glossy Color"}, {slider, {color,GlossyColor,[key(glossy_color)]}}, panel
+                    ]},
+                    {hframe, [
+                        {label, "Glossy Reflect"},{slider,{text,GlossyReflect,[range(zero_to_one),key(glossy_reflect)]}}, panel
+                    ]},
+                    {hframe, [
+                        {"Anisotropic",Anisotropic,[key(anisotropic),{hook,Hook_Enable}]}
+                    ]},
+                    {hframe,[
+                        {label, "Exp U"}, {text,Exponent_U,[range(exponent_u),key(anisotropic_u) ]}, panel,
+                        {label, "Exp V"}, {text,Exponent_V,[range(exponent_v),key(anisotropic_v) ]}
+                    ],[key(pnl_exp_coated)]},
+                    {hframe,[
+                        {label, "Exponent"}, {slider, {text,Exponent,[range(exponent),key(exponent)]}}
+                    ]}
+                ],[key(pnl_an),{show,false},{margin,false}]
+                },
+                
+                
                 {hframe, [
                     {vframe, [
                         {label, "Filtered Light"}
-                    ],[key(pnl_fl_l),{show,false},{margin,false}]},
-                    {vframe, [
-                        {slider, {color,Transmitted,[key(transmitted)]}}
-                    ],[{margin,false}]}
+                    ],[key(pnl_fl_l),{show,false},{margin,false}]}
                 ],[key(pnl_fl)]},
                 %% 6th row
                 {label_column, [
@@ -394,20 +422,8 @@ material_dialog(_Name, Mat) ->
                 {label_column, [
                     {"Glossy Reflection", {slider, {text,GlossyReflect,[range(glossy_reflect),key(glossy_reflect)]}}},
                     {"Exponent", {slider, {text,Exponent,[range(exponent),key(exponent)]}}}
-                ],[key(pnl_gr),{margin,false}]},
-                %% 14th row
-                {hframe, [
-                    {hframe, [
-                        {"Anisotropic",Anisotropic,[key(anisotropic),{hook,Hook_Enable}]}
-                    ],[{margin,false}]},
-                    {hframe,[
-                        {label, "Exp U"},
-                        {text,Anisotropic_U,[range(anisotropic_u),key(anisotropic_u) ]},
-                        panel,
-                        {label, "Exp V"},
-                        {text,Anisotropic_V,[range(anisotropic_v),key(anisotropic_v) ]}
-                    ],[key(pnl_exp_coated),{margin,false}]}
-                ],[key(pnl_an),{show,false},{margin,false}]},
+                ],[key(pnl_gr),{margin,false}]
+                },
                 %% 15th row
                 {label_column, [
                     {"Roughness", {slider, {text,Roughness,[range(roughness),key(roughness)]}}}
@@ -421,18 +437,8 @@ material_dialog(_Name, Mat) ->
                         {"Dispersion Samples", {slider, {text, DispersionSamples,[range(dispersion_samples),key(dispersion_samples)]}}}
                     ],[key(pnl_dsp_sam),{margin,false}]},
                     {"Fake Shadows",FakeShadows,[key(fake_shadows)]}
-                ],[key(pnl_dsp),{show,false},{margin,false}]},
-                %% 17th row
-                %{hframe, [
-                %    {"Oren-Nayar",OrenNayar,[key(oren_nayar),{hook,Hook_Enable}]},
-                %    {label_column,[
-                %        {"Sigma", {text,OrenNayar_Sigma,[range(sigma),key(sigma)]}}
-                %    ],[key(pnl_sigma_shiny),{margin,false}]}
-                %],[key(pnl_on),{show,false},{margin,false}]},
-                %% 18th row
-                %{label_column, [
-                %        {"IOR", {slider, {text,IOR,[range(ior),key(ior)]}}}
-                %    ],[key(pnl_ior),{margin,false}]},
+                ],[key(pnl_dsp),{show,false},{margin,false}]
+                },           
                 {hframe, [
                     {"Fresnel Effect",Fresnel,[key(fresnel)]}
                 ],[key(pnl_fe),{show,false},{margin,false}]},
