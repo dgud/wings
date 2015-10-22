@@ -812,11 +812,13 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 
 build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
   when Ask =/= false ->
+    DY  =  wxSystemSettings:getMetric ( ?wxSYS_SCREEN_Y )*3 div 4, %% don't take entire screen. 
     1 =:= Def orelse error({default, 1}),
     buttons =:= proplists:get_value(style, Flags, buttons) orelse error(Flags),
-    NB = wxNotebook:new(Parent, ?wxID_ANY, []),
+    NB = wxNotebook:new(Parent, ?wxID_ANY, [ {pos,{-1,-1}},{size,{-1,DY}}  ]),
     AddPage = fun({Title, Data}, In) ->
-		      Panel = wxPanel:new(NB, []),
+              Panel = wxScrolledWindow:new(NB,  [ ]),
+              wxScrolledWindow:setScrollbars(Panel,-1,10,-1,10), % no horizontal
 		      case os:type() of
 			  {win32,_} ->
 			      BG = wxNotebook:getThemeBackgroundColour(NB),
@@ -825,7 +827,7 @@ build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
 		      end,
 		      Sizer  = wxBoxSizer:new(?wxVERTICAL),
 		      Out = build(Ask, Data, Panel, Sizer, In),
-		      wxPanel:setSizerAndFit(Panel, Sizer),
+              wxPanel:setSizer(Panel, Sizer),
 		      wxNotebook:addPage(NB, Panel, Title),
 		      Out
 	      end,
