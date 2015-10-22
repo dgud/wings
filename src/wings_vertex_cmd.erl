@@ -40,6 +40,10 @@ menu(X, Y, St) ->
 	     ?STR(menu,11,"Delete selected vertices (clearing selection)")},
 	    {?STR(menu,12,"Collapse"),collapse,
 	     ?STR(menu,13,"Delete selected vertices (creating a face selection)")},
+        {?STR(menu,18,"Bounding Hull Body"), {hull, [
+          {?STR(menu,19,"Convex Hull."), bounding_hull, ""}, 
+          {?STR(menu,20,"Oriented Box."), bounding_obox, ""}
+          ]}},
 	    separator,
 	    {?STR(menu,14,"Deform"),wings_deform:sub_menu(St)},
 	    separator,
@@ -55,6 +59,10 @@ connect_menu() ->
     end.
 
 %% Vertex menu.
+command({hull,bounding_obox},St) -> 
+    {save_state,bounding_obox(St)};
+command({hull,bounding_hull},St) -> 
+    {save_state,bounding_hull(St)};
 command({flatten,Plane}, St) ->
     flatten(Plane, St);
 command(connect, St) ->
@@ -89,7 +97,48 @@ command(vertex_color, St) ->
 		       end);
 command({'ASK',Ask}, St) ->
     wings:ask(Ask, St, fun command/2).
+
+
+
+%%%
+%%% Bounding Hulls ... make minimal hulls around a 
+%%% given set of points. Various techniques.
+%%%
+
+%% create a convex hull around a set of points
+bounding_hull(#st{sel=[{_,_}|_]}=St) ->
+    Pts = select_points(St),
+    Len = length(Pts),
+    if (Len < 3) -> wings_u:error_msg(?__(1,"Please supply at least 3 points."));
+    true -> ok
+    end,
+    #we{} = WeNew0 = wings_we:quickhull_to_we(Pts),
+    St2 = wings_shape:new("hull-convex",WeNew0,St),
+    St2#st{selmode=body,sel=[]}.
     
+%% create a bounding box best fit to a point cloud.
+bounding_obox(#st{sel=[{_,_}|_]}=St) ->
+    Pts = select_points(St),
+    Len = length(Pts),
+    if (Len < 3) -> wings_u:error_msg(?__(1,"Please supply at least 3 points."));
+    true -> ok
+    end,
+    Pts8 = e3d_bv:oriented_box(Pts),
+    #we{} = WeNew = wings_we:quickhull_to_we(Pts8),
+    St2 = wings_shape:new("hull",WeNew,St),
+    St2#st{selmode=body,sel=[]}.
+
+%% utility function for bounding operations. 
+select_points(#st{shapes=Shapes0,sel=Sel0}) ->
+    MyPts2 = fun({WeID,Set}, Acc) -> 
+        We = gb_trees:get(WeID,Shapes0),
+        Ps = [wings_vertex:pos(Vi,We)||Vi<-gb_sets:to_list(Set)], 
+        lists:append(Ps,Acc)
+    end,
+    lists:foldl(MyPts2,[],Sel0).
+
+
+
 %%%
 %%% The Flatten command.
 %%%

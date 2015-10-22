@@ -23,8 +23,8 @@
 	 inside/2]).
 
 %% Other Stuff
--export([eigen_vecs/1,quickhull/1,covariance_matrix/1]).
--import(e3d_vec, [dot/2,add/2,average/1,average/2,dist_sqr/2,normal/1]).
+-export([eigen_vecs/1,quickhull/1,covariance_matrix/1,oriented_box/1]).
+-import(e3d_vec, [dot/2,add/2,average/1,average/2,dist_sqr/2,normal/1,neg/1]).
 -import(lists, [foldl/3]).
 
 -include("e3d.hrl").
@@ -462,3 +462,32 @@ covariance_matrix(Faces) ->
      M21/D, M22/D, M23/D,
      M31/D, M32/D, M33/D}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Oriented Bounding Box
+%% return 8 corner points of the box closely fitting input
+%% point cloud.
+-spec oriented_box([e3d_point()]) -> [e3d_point()].
+oriented_box([{_,_,_},{_,_,_},{_,_,_}|_]=Pts)  ->
+    {_,{E1a, E2a, E3a}} = e3d_bv:eigen_vecs(Pts),
+    M1 = e3d_mat:rotate_s_to_t(E3a, {1.0,0.0,0.0}),
+    E2aa = e3d_mat:mul_point(M1, E2a),
+    M2 = e3d_mat:rotate_s_to_t(E2aa, {0.0,0.0,1.0}),
+    M3 = e3d_mat:mul([M1, M2]),  % match eigen vectors to standard x and z axes
+    NewPts = [e3d_mat:mul_point(M3, Pt) ||Pt<-Pts],
+    {Cx0,Cy0,Cz0} = e3d_bv:center(e3d_bv:box(NewPts)),
+    List = [M1, M2, e3d_mat:translate({-Cx0, -Cy0, -Cz0})],
+    Inverted = e3d_mat:mul([e3d_mat:invert(M0)
+			    || M0 <- lists:reverse(List)]),
+    Cb = e3d_mat:mul_point(Inverted, {0.0,0.0,0.0}),
+    {Min,Max} = e3d_bv:box(NewPts),  % This box gets lens of rotated eigen vecs
+    [L1,L2,L3] = lists:sort(tuple_to_list(e3d_vec:sub(Max,Min))),
+    E1 = e3d_vec:mul(e3d_vec:norm(E1a), L1*0.5),
+    E2 = e3d_vec:mul(e3d_vec:norm(E2a), L2*0.5),
+    E3 = e3d_vec:mul(e3d_vec:norm(E3a), L3*0.5),
+    [e3d_vec:add([Cb,  neg(E1),  neg(E2),  neg(E3)]),
+     e3d_vec:add([Cb,  E1,       neg(E2),  neg(E3)]),
+     e3d_vec:add([Cb,  E1,       E2,       neg(E3)]),
+     e3d_vec:add([Cb,  neg(E1),  E2,       neg(E3)]),
+     e3d_vec:add([Cb,  neg(E1),  neg(E2),  E3     ]),
+     e3d_vec:add([Cb,  E1,       neg(E2),  E3     ]),
+     e3d_vec:add([Cb,  E1,       E2,       E3     ]),
+     e3d_vec:add([Cb,  neg(E1),  E2,       E3     ])].
