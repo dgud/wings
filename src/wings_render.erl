@@ -426,9 +426,8 @@ draw_plugins(Flag,D,Selmode) ->
 
 ground_and_axes(PM,MM) ->
     Axes = wings_wm:get_prop(show_axes),
-    GridSize = groundplane(Axes, PM, MM),
     Yon = case wings_pref:get_value(constrain_axes) of
-	      true  -> GridSize;
+	      true  -> groundplane(Axes, PM, MM);
 	      false -> (wings_view:current())#view.yon
 	  end,
     case Axes of
@@ -574,10 +573,21 @@ add_prod({X1,Y1}, {X2,Y2}, S) when is_float(S) ->
 
 calc_grid_size(PM,MM) ->
     Viewport = {_,_,W,H} =  wings_wm:viewport(),
+    Aspect = W/H,
     W1=max(W,H)/2.0,
+    #view{fov=Fov,hither=Hither,yon=Yon,along_axis=AA} = wings_view:current(),
+    Ortho = wings_wm:get_prop(orthogonal_view)
+            orelse ((AA =/= none)
+            andalso wings_pref:get_value(force_ortho_along_axis)),
+    TPM = if Ortho =:= true ->
+            TP = e3d_transform:perspective(Fov, Aspect, Hither, Yon),
+            e3d_transform:mul(PM, TP);
+        true -> PM
+    end,
+
     {S,T,U} = wings_gl:unProject(W1, 0.0, 0.0,
 				 e3d_transform:matrix(MM),
-				 e3d_transform:matrix(PM),
+				 e3d_transform:matrix(TPM),
 				 Viewport),
     ?GROUND_GRID_SIZE*max(round(max(max(abs(S),abs(T)),abs(U))),10.0).
 
