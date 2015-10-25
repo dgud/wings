@@ -169,7 +169,12 @@ ortho(Left, Right, Bottom, Top, Near, Far) ->
 	    O,   O, O},
     %% Do this in 3 steps to avoid inverse calculation problems
     Mat1 = scale(init(Mat0), {IDx,IDy,IDz}),
-    translate(Mat1, {-(Right+Left)*IDx, -(Top+Bottom)*IDy, -(Far+Near)*IDz}).
+    Trans = translate(identity(), {-(Right+Left)*IDx, 
+				   -(Top+Bottom)*IDy, 
+				   -(Far+Near)*IDz}),
+    mul(Trans, Mat1).
+
+    
 
 %%--------------------------------------------------------------------
 %% @doc  Generates a perspective transformation
