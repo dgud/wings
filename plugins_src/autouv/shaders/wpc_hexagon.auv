@@ -1,0 +1,27 @@
+%%
+%%  wpc_hexagon.auv --
+%%
+%%     Config file for dotted camuflage shader
+%%
+%%  Copyright (c) 2015 Micheus
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_hexagon.auv,v 1.0 2015/10/16 21:40:0 micheus Exp $
+%%
+
+%%  Everything behind a '%' is a comment
+
+{name, "Hexagon"}.  % The name in the shader selector
+{vertex_shader, "standard.vs"}.   % Vertex shader used
+{fragment_shader, "hexagon.fs"}.  % Fragment shader used
+%% Uses these uniforms:
+%% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
+{uniform, float, "typeHex", 0.0, "Hexagon type (0,1,2,3)"}.
+{uniform, color, "colorHex", {0.3,0.1,0.1,0.0}, "Color"}.
+{uniform, float, "scaleHex", 10.0, "Scale (%)"}.
+{uniform, color, "colorThick", {0.12,0.12,0.12,0.0}, "Grid color"}.
+{uniform, float, "scaleThick", 1.0, "Grid scale (%)"}.
+{uniform, float, "shrink", 0.0, "Horizontal shrink"}.
+
