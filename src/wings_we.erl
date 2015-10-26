@@ -35,7 +35,9 @@
 	 visible_edges/1,visible_edges/2,fully_visible_edges/2,
 	 validate_mirror/1,mirror_flatten/2,mirror_projection/1,
 	 create_mirror/2,freeze_mirror/1,break_mirror/1,
-     centroid/1,volume/1,perimeter/1,surface_area/1]).
+     centroid/1,volume/1,perimeter/1,surface_area/1,
+     quickhull_to_we/1
+     ]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
@@ -1262,3 +1264,22 @@ volume_1(Face, We) ->
     [V1,V2,V3] = wings_face:vertex_positions(Face, We),
     Bc = e3d_vec:cross(V2, V3),
     e3d_vec:dot(V1, Bc)/6.0.
+
+    
+quickhull_to_we([{_, _, _} | _] = Points0) ->
+    Pts0 = e3d_bv:quickhull(Points0),
+    Pts = lists:flatten(Pts0),
+    MyAcc = fun (Idx, Acc) ->
+		    Face0 = #e3d_face{},
+		    Vs = [3*Idx+0,3*Idx+1,3*Idx+2],
+		    [Face0#e3d_face{vs=Vs}|Acc]
+	    end,
+    FaceCount = length(Pts0),
+    Mesh0 = #e3d_mesh{},
+    Mesh1 = Mesh0#e3d_mesh{fs =
+			       lists:foldl(MyAcc, [],
+					   lists:seq(0, FaceCount - 1))},
+    Mesh2 = Mesh1#e3d_mesh{vs = Pts},
+    Mesh3 = e3d_mesh:clean_faces(Mesh2),
+    Mesh4 = e3d_mesh:merge_vertices(Mesh3),
+    wings_import:import_mesh(material, Mesh4).
