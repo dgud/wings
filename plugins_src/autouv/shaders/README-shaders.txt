@@ -29,7 +29,6 @@ Will calculate each vertex normal and send it to the vertex shader, via
 gl_Normal.  'binormal' are sent through 'gl_MultiTexCoord2.xyz'.
 
 Other options:  Sent as uniforms
-{auv, auv_noise}. % sampler3D (calculate only first time) of noise  
 {auv, auv_bg}.    % sampler2D image of the previous pass
 {auv, auv_txsz}.  % vec2 width and heigth of image
 {auv, {auv_send_texture,"UserQuestion",true}}.    % Float 1.0 (true) or 0.0 (false) 

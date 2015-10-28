@@ -28,9 +28,7 @@ LIBDIR = ../../plugins/accel
 
 ERL_DIR := $(shell echo 'io:format("~s~n",[code:root_dir()]),init:stop().' | erl | sed -n '/^1>/s/^1> //p')
 ERL_INC = "$(ERL_DIR)/usr/include"
-BEAM = 	$(LIBDIR)/wpc_pnoise.beam \
-	$(LIBDIR)/pnoise.beam \
-	$(LIBDIR)/wpc_pick.beam
+BEAM = $(LIBDIR)/wpc_pick.beam
 
 UNIVERSAL_FLAGS =
 COMMON_CFLAGS = -Wall -Werror -O3
@@ -61,8 +59,7 @@ endif
 ERLC = erlc
 ERLC_FLAGS = -Werror -o $(LIBDIR) +debug_info
 
-DRV = $(LIBDIR)/perlin_noise_drv.$(SO_EXT) \
-      $(LIBDIR)/wings_pick_drv.$(SO_EXT)
+DRV = $(LIBDIR)/wings_pick_drv.$(SO_EXT)
 
 TARGET_FILES=$(BEAM) $(DRV)
 

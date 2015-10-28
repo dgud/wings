@@ -919,16 +919,6 @@ shader_uniforms([{uniform,{image,Unit},Name,_,_}|As],[{_,Id}|Opts],Conf) ->
     gl:bindTexture(?GL_TEXTURE_2D, TxId),
     gl:uniform1i(Loc, Unit),
     shader_uniforms(As,Opts,Conf);
-shader_uniforms([{auv,{auv_noise,Unit}}|Rest],Opts,Conf) ->
-    case wings_image:pnoiseid() of
-	0 -> throw("No noise texture available");
-	TxId -> 
-	    Loc = wings_gl:uloc(Conf#sh_conf.prog, "auv_noise"),
-	    gl:activeTexture(?GL_TEXTURE0 + Unit),
-	    gl:bindTexture(?GL_TEXTURE_3D, TxId),
-	    gl:uniform1i(Loc, Unit),
-            shader_uniforms(Rest,Opts,Conf)
-    end;
 shader_uniforms([{auv,{auv_bg,Unit}}|Rest],Opts,Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog, "auv_bg"),
     gl:activeTexture(?GL_TEXTURE0),
@@ -1021,9 +1011,6 @@ parse_sh_info([{fragment_shader,Name}|Opts],Sh,NI,Acc) ->
     parse_sh_info(Opts, Sh#sh{fs=Name},NI, Acc);
 parse_sh_info([{requires,List}|Opts],Sh,NI,Acc) when is_list(List) ->
     parse_sh_info(Opts, Sh#sh{reqs=List},NI, Acc);
-parse_sh_info([{auv,auv_noise}|Opts],Sh,NI,Acc) ->
-    What = {auv,{auv_noise,1}},
-    parse_sh_info(Opts, Sh#sh{args=[What|Sh#sh.args]},NI+1,Acc);
 parse_sh_info([{auv,auv_bg}|Opts],Sh,NI,Acc) ->
     What = {auv,{auv_bg,0}},
     parse_sh_info(Opts, Sh#sh{args=[What|Sh#sh.args]},NI,Acc);
