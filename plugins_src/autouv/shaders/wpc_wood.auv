@@ -16,9 +16,8 @@
 {name, "Wood"}.  % The name in the shader selector
 {vertex_shader, "standard.vs"}. % Vertex shader used
 {fragment_shader, "wood.fs"}.  % Fragment shader used
-{auv, auv_noise}.               % Use builtin 3d noise texture
 {auv, auv_bbpos3d}.             % Use bounding box for positions
-%% Uses these uniforms:  
+%% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
 {uniform, color, "darkWood", {0.45,0.22,0.0,1.0}, "Dark Rings"}.
 {uniform, color, "liteWood", {0.85,0.42,0.20,1.0}, "Lite Background"}.

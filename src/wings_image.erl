@@ -17,7 +17,7 @@
 	 rename/2,txid/1,info/1,images/0,
 	 screenshot/2,screenshot/1,viewport_screenshot/1,
 	 bumpid/1, default/1,
-	 is_normalmap/1, normal_cubemapid/0, pnoiseid/0,
+	 is_normalmap/1, normal_cubemapid/0,
 	 next_id/0,delete_older/1,delete_from/1,delete/1,
 	 update/2,update_filename/2,draw_preview/5,
 	 window/1]).
@@ -208,9 +208,6 @@ bumpid(Id) ->
 normal_cubemapid() ->
     req(normalCM, false).
 
-pnoiseid() ->
-    req(pnoise, false).
-
 default(Type) ->
     req({default,Type}, false).
 
@@ -354,13 +351,6 @@ handle(normalCM, S) ->
 	 TxId -> 
 	     TxId
      end,S};
-handle(pnoise, S) ->
-    {case get(pnoise) of
-	 undefined -> 
-	     create_pnoise();
-	 TxId -> 
-	     TxId
-     end,S};
 handle({default,all},S) ->
     All = [diffuse, bump, gloss],
     Ids = [{Type,element(1, handle({default,Type},S))} || Type <- All],
@@ -461,41 +451,6 @@ create_normal_cube_map() ->
 	false ->
 	    none
     end.
-
-create_pnoise() ->
-    try 
-	[NoiseMap] = gl:genTextures(1),
-	gl:bindTexture(?GL_TEXTURE_3D, NoiseMap),
-	Map = pnoise:s_map3d(128),
-
-	Assert = byte_size(Map),
-	Assert = 128*128*128*4,
-
-	gl:texParameteri(?GL_TEXTURE_3D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
-	case wings_gl:is_ext({1,4},'GL_SGIS_generate_mipmap') of
-	    true -> 
-		gl:texParameteri(?GL_TEXTURE_3D, ?GL_GENERATE_MIPMAP, 
-				 ?GL_TRUE),
-		gl:texParameteri(?GL_TEXTURE_3D, ?GL_TEXTURE_MIN_FILTER, 
-				 ?GL_NEAREST_MIPMAP_LINEAR);
-	    false ->
-		gl:texParameteri(?GL_TEXTURE_3D, ?GL_TEXTURE_MIN_FILTER, 
-				 ?GL_LINEAR)
-	end,
-	gl:texParameteri(?GL_TEXTURE_3D, ?GL_TEXTURE_WRAP_S, 
-			 ?GL_MIRRORED_REPEAT),
-	gl:texParameteri(?GL_TEXTURE_3D, ?GL_TEXTURE_WRAP_T, 
-			 ?GL_MIRRORED_REPEAT),
-	gl:texParameteri(?GL_TEXTURE_3D, ?GL_TEXTURE_WRAP_R, 
-			 ?GL_MIRRORED_REPEAT),
-	gl:texImage3D(?GL_TEXTURE_3D, 0, ?GL_RGBA, 128, 128, 128, 0, 
-		      ?GL_RGBA, ?GL_UNSIGNED_BYTE, Map),
-        put(pnoise,NoiseMap),
-	NoiseMap
-    catch _:_ -> 
-	    none
-    end.
-
 
 update_mipmaps(TxId, MipMaps) ->
     gl:enable(?GL_TEXTURE_2D),
