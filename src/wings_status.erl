@@ -19,6 +19,7 @@
 -include_lib("wx/include/wx.hrl").
 -record(state, {sb,
 		frame,
+		prev,
 		msgs=gb_trees:empty()}).
 
 -behaviour(wx_object).
@@ -55,15 +56,14 @@ init([Frame]) ->
 handle_event(_Ev, State) ->
     {noreply, State}.
 
-handle_cast({message, Win, Left, Right}, State = #state{sb=SB, msgs=GB0}) ->
+handle_cast({message, Win, Left, Right}, State = #state{sb=SB, prev=Prev, msgs=GB0}) ->
     GB = case gb_trees:lookup(Win, GB0) of
 	     none ->
 		 gb_trees:insert(Win, {str(Left,""), str(Right,"")}, GB0);
 	     {value, {OldL, OldR}} ->
 		 gb_trees:update(Win, {str(Left, OldL), str(Right, OldR)}, GB0)
 	 end,
-    update_status(gb_trees:lookup(Win, GB), SB),
-    {noreply, State#state{msgs=GB}}.
+    {noreply, State#state{msgs=GB, prev = update_status(gb_trees:lookup(Win, GB), Prev, SB)}}.
 
 handle_call(_Call, _From, State) ->
     io:format("Call ~p~n",[_Call]),
@@ -78,9 +78,11 @@ code_change(_, _, State) ->
 terminate(_, _) ->
     ok.
 
-update_status(none, SB) ->
+update_status({value, Prev}, Prev, _SB) ->
+    Prev;
+update_status(none, _, SB) ->
     set_status(none, SB);
-update_status({value, Text = {_, Right}}, SB) ->
+update_status({value, Text = {_, Right}}, _Prev, SB) ->
     RSz = case Right of
 	      "" -> 0;
 	      _ ->
@@ -98,10 +100,12 @@ update_status({value, Text = {_, Right}}, SB) ->
 
 set_status(none, SB) ->
     wxStatusBar:setStatusText(SB, "", [{number, 0}]),
-    wxStatusBar:setStatusText(SB, "", [{number, 1}]);
-set_status({Left, Right}, SB) ->
+    wxStatusBar:setStatusText(SB, "", [{number, 1}]),
+    none;
+set_status(Msgs={Left, Right}, SB) ->
     wxStatusBar:setStatusText(SB, Left,  [{number, 0}]),
-    wxStatusBar:setStatusText(SB, Right, [{number, 1}]).
+    wxStatusBar:setStatusText(SB, Right, [{number, 1}]),
+    Msgs.
 
 str(undefined, Old) -> Old;
 str(New, _) -> wings_menu:str_clean(New).
