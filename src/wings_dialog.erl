@@ -474,7 +474,7 @@ event_handler(#wx{id=?wxID_CANCEL},
 	    #st{}=St = Fun(cancel),
 	    wings_wm:send(Owner, {update_state,St});
 	drag_preview ->
-	    wings_io:grab()
+	    wings_wm:send(Owner, cancel)
     end,
     Pid ! closed,
     delete;

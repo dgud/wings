@@ -517,7 +517,8 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
 	    handle_drag_event_0(Ev,Drag#drag{lmb_timer=0,rmb_timer=0})
     end;
 
-handle_drag_event(grab_lost, #drag{}) ->
+handle_drag_event(Cancel, #drag{})
+  when Cancel =:= grab_lost; Cancel =:= cancel ->
     wings_dl:map(fun invalidate_fun/2, []),
     wings_tweak:toggle_draw(true),
     wings_wm:later(revert_state),
