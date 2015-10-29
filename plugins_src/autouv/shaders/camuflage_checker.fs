@@ -12,12 +12,15 @@
 //
 
 uniform vec4  colorPixels;
-uniform float scale;
+uniform float frequency;
 uniform vec2  auv_texsz;
 
+#define MAX_FREQUENCY 500.0
+
 void main( void ) {
-    vec2 uv = ( gl_FragCoord.xy / auv_texsz.y );
-    vec3 color = vec3(fract(sin(dot(floor(uv.xy*32.0+4.0),vec2(5.364,6.357)))*357.536));
+    vec2 uv = ( gl_FragCoord.xy / auv_texsz.xx );
+    float freq = frequency/MAX_FREQUENCY*10.0;
+    vec3 color = vec3(fract(sin(dot(floor(uv.xy*32.0*freq+4.0),vec2(5.364,6.357)))*4357.536));
 
     gl_FragColor = vec4(color*colorPixels.rgb, 1.0-colorPixels.a);
 }

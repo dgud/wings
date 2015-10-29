@@ -13,15 +13,15 @@
 
 uniform vec4  colorPixels;
 uniform float bright;
-uniform float scale;
+uniform float frequency;
 uniform vec2 auv_texsz;
 
-float rand(vec2 n) 
+float rand(vec2 n)
 {
 	return fract(cos(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
 }
 
-float noise(vec2 n) 
+float noise(vec2 n)
 {
 	const vec2 d = vec2(1.0, 1.0);
 
@@ -30,10 +30,10 @@ float noise(vec2 n)
 	return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(1.0 * b + d.yy), f.x), f.y);
 }
 
-float fbm(vec2 n) 
+float fbm(vec2 n)
 {
-	float total = 0.0, amplitude = (1.0*bright/100.0);
-	
+	float total = 0.0, amplitude = bright/100.0;
+
 	for (int i = 0; i < 4; i++) {
 		total += noise(n) * amplitude;
 		n += n;
@@ -42,11 +42,11 @@ float fbm(vec2 n)
 	return total;
 }
 
-void main(void) 
+void main(void)
 {
-	vec2 p = gl_FragCoord.xy * 30.0 / auv_texsz.xx - vec2(10.0,1.0)  * 0.1;
+	vec2 p = gl_FragCoord.xy * 40.0 / auv_texsz.xx - vec2(10.0,1.0)  * 0.1;
 
-	float q = fbm(p/scale);
-	
-	gl_FragColor = vec4(q*colorPixels.r,q*colorPixels.g,q*colorPixels.b,1.0-colorPixels.a);
+	float q = fbm(p*frequency*0.1);
+
+	gl_FragColor = vec4(colorPixels.rgb*q,1.0-colorPixels.a);
 }

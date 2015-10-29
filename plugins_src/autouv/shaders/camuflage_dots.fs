@@ -13,7 +13,8 @@
 
 uniform vec4  colorPixels;
 uniform float bright;
-uniform float scale;
+uniform float frequency;
+uniform vec2 auv_texsz;
 
 float rand(vec2 co){
   return fract(sin(dot(co.xy, vec2(152.9898, 778.233))) * 43758.5453);
@@ -21,7 +22,7 @@ float rand(vec2 co){
 
 void main (void) {
 	// Divide the coordinates into a grid of squares
-	vec2 v = (gl_FragCoord.xy  / 12.0) /scale;
+	vec2 v = (gl_FragCoord.xy / auv_texsz.xx)*(frequency+0.1);
 
 	// Calculate a pseudo-random brightness value for each square
 	float brightness = fract(rand(floor(v)));
@@ -29,5 +30,5 @@ void main (void) {
 	// Reduce brightness in pixels away from the square center
 	brightness *= 1.0*(bright/100.0) - length(fract(v) - vec2(0.5, 0.5));
 
-	gl_FragColor = vec4(colorPixels.r*brightness,colorPixels.g*brightness,colorPixels.b*brightness, 1.0-colorPixels.a);
+	gl_FragColor = vec4(vec3(colorPixels.rgb)*brightness, 1.0-colorPixels.a);
 }

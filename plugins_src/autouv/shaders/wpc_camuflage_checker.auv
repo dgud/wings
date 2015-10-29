@@ -10,15 +10,15 @@
 %%
 %%     $Id: wpc_camuflage_checker.auv,v 1.0 2015/10/16 21:40:0 micheus Exp $
 %%
- 
+
 %%  Everything behind a '%' is a comment
 
-{name, "Camuflage (Checker)"}.  % The name in the shader selector
-{vertex_shader, "standard.vs"}.   % Vertex shader used
+{name, "Camuflage (Checker)"}.      % The name in the shader selector
+{vertex_shader, "standard.vs"}.     % Vertex shader used
 {fragment_shader, "camuflage_checker.fs"}.  % Fragment shader used
-{auv, auv_texsz}.               % vec2 width and height
-%% Uses these uniforms:  
+{auv, auv_texsz}.                   % vec2 width and height
+%% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
 {uniform, color, "colorPixels", {0.24,0.3,0.01,0.0}, "Base Color"}.
-{uniform, float, "scale", 2.0, "Scale (%)"}.
+{uniform, {slider,0.0,500.0}, "frequency", 100.0, "Frequency"}.
 

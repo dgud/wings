@@ -1,0 +1,29 @@
+%%
+%%  wpc_voronoi.auv --
+%%
+%%     Config file for simple brick shader
+%%
+%%  Copyright (c) 2015 Micheus
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_voronoi.auv,v 1.0 2015/10/27 21:40:0 micheus Exp $
+%%
+
+%%  Everything behind a '%' is a comment
+
+{name, "Voronoi"}.                  % The name in the shader selector
+{vertex_shader, "standard.vs"}.     % Vertex shader used
+{fragment_shader, "voronoi.fs"}.    % Fragment shader used
+{auv, auv_texsz}.                   % vec2 width and height
+%% Uses these uniforms:
+%% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
+{uniform, menu, "type", "Standard", [{"Standard",0},
+        {"Smooth",1},{"Noise",2},{"Cloud",3}]}.
+{uniform, color, "color1", {0.8,0.8,0.8,0.0}, "Color 1"}.
+{uniform, color, "color2", {0.0,0.0,0.0,0.0}, "Color 2"}.
+{uniform, {slider,0.0,400.0}, "frequency", 15.0, "Frequency"}.
+{uniform, bool, "squared", false, "Squared"}.
+{uniform, bool, "invert", false, "Invert"}.
+

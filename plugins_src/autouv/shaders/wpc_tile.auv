@@ -10,18 +10,19 @@
 %%
 %%     $Id: wpc_tile.auv,v 1.0 2015/10/16 21:40:0 micheus Exp $
 %%
- 
+
 %%  Everything behind a '%' is a comment
 
-{name, "Tile"}.  % The name in the shader selector
+{name, "Tile"}.                 % The name in the shader selector
 {vertex_shader, "standard.vs"}. % Vertex shader used
-{fragment_shader, "tile.fs"}.  % Fragment shader used
-%% Uses these uniforms:  
+{fragment_shader, "tile.fs"}.   % Fragment shader used
+{auv, auv_texsz}.               % vec2 width and height
+%% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
-{uniform, color, "colorTile", {1.0,0.8,0.4,0.0}, "Color"}.
-{uniform, float, "scalex", 1.0, "Horiz. scale (%)"}.
-{uniform, float, "scaley", 1.0, "Vert. scale (%)"}.
-{uniform, float, "shift", 0.0, "Horiz. shift (%)"}.
+{uniform, color, "colorTile", {0.8,0.8,0.8,0.0}, "Color"}.
+{uniform, {slider,0.0,100.0}, "scalex", 10.0, "Horiz. scale (%)"}.
+{uniform, {slider,0.0,100.0}, "scaley", 10.0, "Vert. scale (%)"}.
+{uniform, {slider,0.0,100.0}, "shift", 0.0, "Horiz. shift (%)"}.
 {uniform, color, "colorMortar", {0.5,0.5,0.5,0.0}, "Mortar color"}.
-{uniform, float, "scaleMortar", 1.0, "Mortar scale (%)"}.
+{uniform, {slider,0.0,100.0}, "scaleMortar", 1.0, "Mortar scale (%)"}.
 
