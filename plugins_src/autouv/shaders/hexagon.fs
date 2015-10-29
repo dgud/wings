@@ -12,15 +12,16 @@
 //
 
 
-uniform float typeHex;
+uniform int   typeHex;
 uniform vec4  colorHex;
 uniform vec4  colorThick;
-uniform float scaleHex;
+uniform float frequency;
 uniform float scaleThick;
 uniform float shrink;
+uniform vec2 auv_texsz;
 
-#define hexaGridSize 2.0
-#define hexaGridThick 0.10
+#define hexaGridSize 10.0
+#define hexaGridThick 0.70
 
 vec4 kcolor;
 vec4 kbkcolor;
@@ -42,11 +43,11 @@ vec4 hexagon0(in float d,
 	          in float gridThickness)
 {
   float k = abs(d);
-  float tk = ((1.0/scaleHex)+(0.1 *min(gridThickness,99.8)));
+  float tk = ((1.0/frequency)+(0.1 *min(gridThickness,99.8)));
   if (k >= tk) {
-    return colorHex;
+    return vec4(colorHex.rgb,1.0-colorHex.a);
   } else {
-    return colorThick;
+    return vec4(colorThick.rgb, 1.0-colorThick.a);
   }
 }
 
@@ -54,8 +55,8 @@ vec4 hexagon1(in float d)
 {
   float k = d;
   float ik = (1.0-k);
-  kcolor = vec4(colorHex.r*k,colorHex.g*k,colorHex.b*k,1.0-colorHex.a);
-  kbkcolor = vec4(colorThick.r*ik,colorThick.g*ik,colorThick.b*ik,1.0-colorThick.a);
+  kcolor = vec4(vec3(colorHex.rgb)*k,1.0-colorHex.a);
+  kbkcolor = vec4(vec3(colorThick.rgb)*ik,1.0-colorThick.a);
   return vec4(kbkcolor+kcolor);
 }
 
@@ -63,8 +64,8 @@ vec4 hexagon2(in float d)
 {
   float k = min(d,1.0);
   float ik = (1.0-k);
-  kcolor = vec4(colorHex.r*k,colorHex.g*k,colorHex.b*k,1.0-colorHex.a);
-  kbkcolor = vec4(colorThick.r*ik,colorThick.g*ik,colorThick.b*ik,1.0-colorThick.a);
+  kcolor = vec4(vec3(colorHex.rgb)*k,1.0-colorHex.a);
+  kbkcolor = vec4(vec3(colorThick.rgb)*ik,1.0-colorThick.a);
   if (k >= 1.0) {
     return kcolor;
   } else if (ik >= 0.90) {
@@ -79,8 +80,8 @@ vec4 hexagon3(in float d,
 {
   float k = min(abs(d*(3.0/sqrt(gridThickness))),1.0);
   float ik = (1.0-k);
-  kcolor = vec4(colorHex.r*k,colorHex.g*k,colorHex.b*k,1.0-colorHex.a);
-  kbkcolor = vec4(colorThick.r*ik,colorThick.g*ik,colorThick.b*ik,1.0-colorThick.a);
+  kcolor = vec4(vec3(colorHex.rgb)*k,1.0-colorHex.a);
+  kbkcolor = vec4(vec3(colorThick.rgb)*ik,1.0-colorThick.a);
   if (k >= 0.70) {
     return kcolor;
   } else if (ik <= 1.0) {
@@ -95,14 +96,14 @@ void main(void)
   vec4 color;
   float d;
 
-  d = hexagonalGrid(gl_FragCoord.xy,
-                    hexaGridSize+(1.*scaleHex),
-                    hexaGridThick+(0.1*scaleThick));
-  if (typeHex == 1.0) {
+  d = hexagonalGrid(gl_FragCoord.xy/ auv_texsz.xx,
+                    hexaGridSize/(frequency*10.0),
+                    hexaGridThick/(0.1*scaleThick));
+  if (typeHex == 1) {
     color = hexagon1(d);
-  } else if (typeHex == 2.0) {
+  } else if (typeHex == 2) {
     color = hexagon2(d);
-  } else if (typeHex == 3.0) {
+  } else if (typeHex == 3) {
     color = hexagon3(d,hexaGridThick+(0.1*scaleThick));
   } else {
     color = hexagon0(d,hexaGridThick+(0.1*scaleThick));

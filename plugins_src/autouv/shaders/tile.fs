@@ -17,8 +17,9 @@ uniform float scaley;
 uniform float shift;
 uniform vec4  colorMortar;
 uniform float scaleMortar;
+uniform vec2 auv_texsz;
 
-#define size 10.0
+#define size 1.0
 
 
 void main( void ) {
@@ -34,10 +35,10 @@ void main( void ) {
 
 	//mortar
 	if ( mod(y+lw, bh) < lw || (mod(bx, bw)) < lw ) {
-		color = colorMortar.rgba;	
+		color = colorMortar.rgba;
 	} else {
 	    color = colorTile.rgba;
 	}
-	gl_FragColor = vec4(color.r,color.g,color.b,1.0-color.a);
+	gl_FragColor = vec4(vec3(color.rgb),1.0-color.a);
 }
 
