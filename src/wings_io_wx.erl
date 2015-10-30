@@ -141,9 +141,16 @@ get_mouse_state() ->
 				   rightDown=Right %% bool()
 				  } = MS,
 		     {X,Y} = wxWindow:screenToClient(get(gl_canvas), {X0,Y0}),
-		     {gui_state([{Left,   ?SDL_BUTTON_LMASK},
-				 {Middle, ?SDL_BUTTON_MMASK},
-				 {Right,  ?SDL_BUTTON_RMASK}], 0), X, Y}
+		     C = wings_io:is_modkey_pressed(?CTRL_BITS),
+		     if (C andalso Right) ->  % example ... used by Nendo two button folks.
+		     	{gui_state([{Left,   ?SDL_BUTTON_LMASK},
+					 {true, ?SDL_BUTTON_MMASK},
+					 {false,  ?SDL_BUTTON_RMASK}], 0), X, Y};
+		     true ->
+			     {gui_state([{Left,   ?SDL_BUTTON_LMASK},
+					 {Middle, ?SDL_BUTTON_MMASK},
+					 {Right,  ?SDL_BUTTON_RMASK}], 0), X, Y}
+			 end
 	     end).
 
 gui_state([{true,What}|Rest],Acc) ->
