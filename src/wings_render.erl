@@ -41,8 +41,7 @@ render(#st{selmode=Mode}=St) ->
     gl:enable(?GL_CULL_FACE),
     case wings_pref:get_value(multisample) of
 	true -> gl:enable(?GL_MULTISAMPLE);
-	false -> gl:disable(?GL_MULTISAMPLE);
-	undefined -> ok
+	_ -> gl:disable(?GL_MULTISAMPLE)
     end,
     {PM,MM,SceneLights} = wings_view:load_matrices(true),
     Yon = ground_and_axes(PM,MM),
