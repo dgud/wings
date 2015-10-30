@@ -249,12 +249,13 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 	    #menu_pop{msg=Msg} = lists:keyfind(Id, 2, Entries),
 	    wings_wm:psend(Owner, {message, Msg}),
 	    popup_events(Dialog, Panel, Entries, Magnet, Line, Ns, Owner);
-	#wx{id=Id0, event=Ev=#wxMouse{type=What, y=Y, x=X}} ->
+	#wx{id=Id0, event=Ev=#wxMouse{y=Y, x=X}} ->
 	    Id = case Id0 > 0 orelse find_active_panel(Panel, X, Y) of
 		     true -> Id0;
 		     {false, _} = No -> No;
 		     {AId, _} -> AId
 		 end,
+	    What = mouse_button(Ev),
 	    case Id of
 		{false, outside} when What =:= right_up ->
 		    wxPopupTransientWindow:dismiss(Dialog),
@@ -263,9 +264,9 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner);
 		_Integer ->
 		    wxPopupTransientWindow:dismiss(Dialog),
-		    MagnetClick = Magnet orelse 
+		    MagnetClick = Magnet orelse
 			magnet_pressed(wings_msg:free_rmb_modifier(), Ev),
-		    popup_result(lists:keyfind(Id, 2, Entries), 
+		    popup_result(lists:keyfind(Id, 2, Entries),
 				 {What, MagnetClick}, Ns, Owner)
 	    end;
 	#wx{event=#wxShow{}} ->
@@ -320,6 +321,22 @@ popup_result(#menu_pop{type=menu,name=Name,opts=Opts}, {Click,MagnetClick}, Name
 mouse_index(left_up) -> 1;
 mouse_index(middle_up) -> 2;
 mouse_index(right_up) -> 3.
+
+mouse_button(#wxMouse{type=What, controlDown = Ctrl, altDown = Alt, metaDown = Meta}) ->
+    case wings_pref:get_value(num_buttons) of
+        1 ->
+            case {What,Alt,Ctrl} of
+                {left_up,true,false} -> middle_up;
+                {left_up,false,true} -> right_up;
+                _ -> What
+            end;
+        2 ->
+            case {What,(Ctrl or Meta)} of
+                {right_up,true} -> middle_up;
+                _ -> What
+            end;
+        _ -> What
+    end.
 
 popup_event_handler(cancel, _, _) ->
     wxPanel:setFocus(get(gl_canvas)),
