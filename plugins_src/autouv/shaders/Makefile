@@ -22,6 +22,20 @@ FILES = standard.vs \
 	image_filter.fs \
 	wpc_edgefilter.auv \
 	edge_filter.fs \
+	wpc_brick.auv \
+	brick.fs \
+	wpc_camuflage_checker.auv \
+	camuflage_checker.fs \
+	wpc_camuflage_dots.auv \
+	camuflage_dots.fs \
+	wpc_camuflage_pixelated.auv \
+	camuflage_pixelated.fs \
+	wpc_hexagon.auv \
+	hexagon.fs \
+	wpc_tile.auv \
+	tile.fs \
+	wpc_voronoi.auv \
+	voronoi.fs \
 	README-shaders.txt
 
 
