@@ -25,14 +25,14 @@
 -import(lists, [foreach/2,reverse/1,sort/1,foldl/3,member/2]).
 -import(auv_segment, [map_vertex/2]).
 
--define(OPT_BG, [{type_sel,color},{undefined,ignore},{1.0,1.0,1.0,0.0}]).
--define(OPT_EDGES, [all_edges,{0.0,0.0,0.0},1.0,false]).
+-define(OPT_BG, [auv_background, {type_sel,color},{undefined,ignore},{1.0,1.0,1.0,0.0}]).
+-define(OPT_EDGES, [auv_edges, all_edges,{0.0,0.0,0.0},1.0,false]).
 -define(OPT_FACES, [texture]).
 
 -record(opt, {texsz = {512,512},   %% Texture size
 	      no_renderers = 4,
 	      renderers = [{auv_background, ?OPT_BG},
-			   {auv_edges, [all_edges]}]
+			   {auv_edges, [?OPT_EDGES]}]
 	     }).
 
 -record(sh, {id=ignore,
@@ -152,8 +152,8 @@ option_dialog(Id, Fields, Renderers, Shaders) ->
 	Opts = wings_dialog:get_value({auv_opt, Id}, Fields),
 	{StrName, Name} = renderer(Name,Renderers),
 	SetValue = fun(Res) ->
-			   wings_dialog:set_value({auv_opt, Id}, Res, Fields),
-			   %% We just change the values ignore result
+			   %% Change the value in the parent dialog
+			   wings_dialog:set_value({auv_opt, Id}, [Name|Res], Fields),
 			   ignore
 		   end,
 	wings_dialog:dialog(StrName,options(Name,Opts,Shaders),SetValue)
@@ -161,7 +161,7 @@ option_dialog(Id, Fields, Renderers, Shaders) ->
 	    io:format("EXIT: ~p ~p~n",[Crash, erlang:get_stacktrace()])
     end.
 
-options(auv_background, [{type_sel,Type},{Image,_},Color],_) ->
+options(auv_background, [auv_background, {type_sel,Type},{Image,_},Color],_) ->
     Enable = fun(_, What, Fields) ->
 		     IsImage = image == What,
 		     wings_dialog:enable(image_sel, IsImage, Fields),
@@ -175,7 +175,8 @@ options(auv_background, [{type_sel,Type},{Image,_},Color],_) ->
       [{key, col_sel}]}];
 options(auv_background, _Bad,Sh) ->
     options(auv_background, ?OPT_BG,Sh);
-options(auv_edges,[Type,Color,Size,UseVtxColors],_) ->
+
+options(auv_edges,[auv_edges, Type,Color,Size,UseVtxColors],_) ->
     [{vradio,[{?__(3,"Draw All Edges"),all_edges},
 	      {?__(4,"Draw Border Edges"), border_edges}],
       Type, []},
@@ -184,9 +185,16 @@ options(auv_edges,[Type,Color,Size,UseVtxColors],_) ->
      {?__(8,"Use vertex colors (on border edges)"),UseVtxColors}
     ];
 options(auv_edges,_,Sh) -> options(auv_edges,?OPT_EDGES,Sh);
-options({shader,Id},Vals,Sh) ->
+
+options({shader,Id}, Vals0, Sh) ->
     {value,Shader} = lists:keysearch(Id,#sh.id,Sh),
-    shader_options(Shader,Vals);
+    case Vals0 of
+	[{shader,Id}|Vals] ->
+	    shader_options(Shader,Vals);
+	_ ->
+	    shader_options(Shader,[])
+    end;
+
 options(Command,Vals,_) ->
     io:format("~p: ~p~n",[Command, Vals]),
     exit(unknown_default).
@@ -195,7 +203,7 @@ shader_options(#sh{args=Args,def=Defs,file=File}, Vals) ->
     case shader_menu(Args,reverse(Vals),[]) of
 	{failed,_} ->
 	    case shader_menu(Args,Defs,[]) of
-		{failed,What} -> 
+		{failed,What} ->
 		    io:format("AUV: Bad default value ~p in ~p~n",
 			      [What, File]),
 		    [];
@@ -259,10 +267,15 @@ image_selector(Default) ->
 
 enable_opt() ->
     {hook,
-     fun({_, Id}, Pass, Fields) ->
+     fun({_W, Id}, Pass, Fields) ->
 	     Disable = Pass =:= ignore orelse Pass =:= auv_faces,
 	     wings_dialog:enable({opt_butt, Id},  not Disable, Fields),
-	     wings_dialog:set_value({auv_opt, Id}, [], Fields)
+	     case wings_dialog:get_value({auv_opt, Id}, Fields) of
+		 [Pass|_] ->
+		     ok;
+		 _ -> %% Changed type reset options
+		     wings_dialog:set_value({auv_opt, Id}, [], Fields)
+	     end
      end}.
 
 option_hook(Id,Renderers,Shaders) ->
@@ -480,7 +493,7 @@ pref_to_list(#opt{texsz={TexSz,_TexSz}, no_renderers=NoR,
      r2list(Rs,1,NoR)].
 
 r2list([{Type, Opts}|Rest], Id, Max) when Id < Max ->
-    [{{auv_pass,Id}, Type},{{auv_opt,Id},Opts}|r2list(Rest,Id+1,Max)];
+    [{{auv_pass,Id}, Type},{{auv_opt,Id}, Opts}|r2list(Rest,Id+1,Max)];
 r2list([], Id, Max) when Id < Max ->
     [{{auv_pass,Id}, ignore},{{auv_opt,Id},[]}|r2list([],Id+1,Max)];
 r2list([], _Id, _Max)  -> [].
@@ -707,7 +720,7 @@ vs_lines([B],Last) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 get_passes(Passes,Shaders) ->
-    lists:foldr(fun(Pass,Acc) -> 
+    lists:foldr(fun(Pass,Acc) ->
 			case pass(Pass,Shaders) of
 			    Fun when is_function(Fun) ->
 				[Fun|Acc];
@@ -717,13 +730,13 @@ get_passes(Passes,Shaders) ->
 		end, [], Passes).
 
 pass({ignore,_},_) ->  ignore;
-pass({auv_background,[{type_sel,color},_,Color]},_) ->  
+pass({auv_background,[auv_background, {type_sel,color},_,Color]},_) ->
     fun(_Geom,_) ->
 	    {R,G,B,A} = fix(Color,true),
 	    gl:clearColor(R,G,B,A),
 	    gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT)
     end;
-pass({auv_background,[{type_sel,image},{_Name,Id},Color]},_) ->
+pass({auv_background,[auv_background, {type_sel,image},{_Name,Id},Color]},_) ->
     fun(_Geom,_) ->
 	    {R,G,B,A} = fix(Color,true),
 	    gl:clearColor(R,G,B,A),
@@ -739,7 +752,8 @@ pass({auv_background,[{type_sel,image},{_Name,Id},Color]},_) ->
     end;
 pass({auv_background, _},Sh) ->
     pass({auv_background, ?OPT_BG},Sh);
-pass({auv_edges, [all_edges,Color,Width,_UseMat]},_) ->
+
+pass({auv_edges, [auv_edges,all_edges,Color,Width,_UseMat]},_) ->
     R=fun(#chart{fs=Fs}) ->
 	      Draw = fun(#fs{vse=Vs}) ->
 			     Patched = vs_lines(Vs,hd(Vs)),
@@ -756,7 +770,7 @@ pass({auv_edges, [all_edges,Color,Width,_UseMat]},_) ->
 	    foreach(R, Charts),
 	    gl:disableClientState(?GL_VERTEX_ARRAY)
     end;
-pass({auv_edges, [border_edges,Color,Width,UseMat]},_) -> 
+pass({auv_edges, [auv_edges,border_edges,Color,Width,UseMat]},_) ->
     R= fun(#chart{oes=Es0}) ->
 	       Es = foldl(fun([A,B,_],Acc) -> [A,B|Acc] end, [], Es0),
 	       wings_gl:drawElements(?GL_LINES,length(Es),?GL_UNSIGNED_INT,Es)
@@ -801,24 +815,25 @@ pass({auv_faces,[_]},_) ->
     end;
 pass({auv_faces, _},Sh) ->
     pass({auv_faces,?OPT_FACES},Sh);
-pass({{shader,Id}, Opts},{Sh,Compiled}) ->
+
+pass({{shader,Id}, [{shader,Id}|Opts]},{Sh,Compiled}) ->
     shader_pass(lists:keysearch(Id,#sh.id,Sh),
 		lists:keysearch(Id,1,Compiled),Opts);
-pass({_R, _O},_) ->    
+pass({_R, _O},_) ->
     io:format("AUV: ~p:~p: Unknown Render Pass (~p) or options (~p) ~n",
 	      [?MODULE,?LINE,_R,_O]),
     ignore.
 
-shader_pass(Shader={value,#sh{def=Def}},Prog,[]) when Def /= [] ->    
+shader_pass(Shader={value,#sh{def=Def}},Prog,[]) when Def /= [] ->
     shader_pass(Shader, Prog, reverse(Def));
-shader_pass(_,false,_) ->    
+shader_pass(_,false,_) ->
     io:format("AUV: No shader program found skipped ~p~n", [?LINE]),
     ignore;
-shader_pass(false,_,_) ->    
+shader_pass(false,_,_) ->
     io:format("AUV: Not shader found skipped ~p~n", [?LINE]),
     ignore;
-shader_pass({value,#sh{name=_Name, args=Args,tex_units=TexUnits,reqs=Reqs}},
-	    {value,{_,Prog}},Opts) ->
+shader_pass({value,#sh{args=Args,tex_units=TexUnits,reqs=Reqs}},
+	    {value,{_,Prog}}, Opts) ->
     fun(Ts = #ts{charts=Charts},Config) ->
 	    gl:disable(?GL_DEPTH_TEST),
 	    gl:disable(?GL_ALPHA_TEST),
