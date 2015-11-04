@@ -142,10 +142,10 @@ gen_prefs() ->
 	   [{info, ?__(aa_ortho2,"Always go into orthogonal mode when the view is aligned along one of the major axes")}]}]}],
        [{title,?__(35,"Grid")}]},
       {hframe,
-       [{"Enable Multi-Sampling",multisample,
-	 [{info,"Anti-Alias the whole interface, "
-	   "including polygons."}]}],
-       [{title,"Anti-Aliasing"}]}]}.
+       [{?__(75,"Enable Multi-Sampling"),multisample,
+	 [{info,?__(74,"Anti-Alias the whole interface, "
+	   "including polygons.")}]}],
+       [{title,?__(73,"Anti-Aliasing")}]}]}.
 
 advanced_prefs() ->
     Disable = fun (_, Enable, Store) ->
