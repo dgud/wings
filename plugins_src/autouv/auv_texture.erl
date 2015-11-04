@@ -816,7 +816,7 @@ pass({auv_faces,[_]},_) ->
 pass({auv_faces, _},Sh) ->
     pass({auv_faces,?OPT_FACES},Sh);
 
-pass({{shader,Id}, [{shader,Id}|Opts]},{Sh,Compiled}) ->
+pass({{shader,Id}, Opts},{Sh,Compiled}) ->
     shader_pass(lists:keysearch(Id,#sh.id,Sh),
 		lists:keysearch(Id,1,Compiled),Opts);
 pass({_R, _O},_) ->
@@ -824,16 +824,16 @@ pass({_R, _O},_) ->
 	      [?MODULE,?LINE,_R,_O]),
     ignore.
 
-shader_pass(Shader={value,#sh{def=Def}},Prog,[]) when Def /= [] ->
-    shader_pass(Shader, Prog, reverse(Def));
+shader_pass(Shader={value,#sh{id=Id, def=Def}},Prog,[]) when Def /= [] ->
+    shader_pass(Shader, Prog, [{shader,Id}|reverse(Def)]);
 shader_pass(_,false,_) ->
     io:format("AUV: No shader program found skipped ~p~n", [?LINE]),
     ignore;
 shader_pass(false,_,_) ->
     io:format("AUV: Not shader found skipped ~p~n", [?LINE]),
     ignore;
-shader_pass({value,#sh{args=Args,tex_units=TexUnits,reqs=Reqs}},
-	    {value,{_,Prog}}, Opts) ->
+shader_pass({value,#sh{id=Id, args=Args,tex_units=TexUnits,reqs=Reqs}},
+	    {value,{_,Prog}}, [{shader,Id}|Opts]) ->
     fun(Ts = #ts{charts=Charts},Config) ->
 	    gl:disable(?GL_DEPTH_TEST),
 	    gl:disable(?GL_ALPHA_TEST),
