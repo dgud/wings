@@ -543,17 +543,17 @@ win_rect() ->
     win_rect(this()).
 
 win_size(Name) ->
-    #win{w=W,h=H,obj=Wx} = get_window_data(Name),
-    case Wx of
-	undefined -> {W,H};
-	_ -> wxWindow:getSize(Wx)
+    case get_window_data(Name) of
+	#win{w=W,h=H,obj=undefined} -> {W,H};
+	#win{obj=Wx} -> wxWindow:getSize(Wx)
     end.
 
 win_ul(Name) ->
-    #win{x=X,y=Y,obj=Wx} = get_window_data(Name),
-    case Wx of
-	undefined -> {X,Y};
-	_ -> wxWindow:getScreenPosition(Wx)
+    case get_window_data(Name) of
+	#win{x=X,y=Y,obj=undefined} ->
+	    {X,Y};
+	#win{obj=Wx} ->
+	    wxWindow:screenToClient(?GET(top_frame), wxWindow:getScreenPosition(Wx))
     end.
 
 win_ur(Name) ->
