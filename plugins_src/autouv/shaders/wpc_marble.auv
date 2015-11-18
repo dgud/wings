@@ -1,34 +1,33 @@
 %%
-%%  wpc_voronoi.auv --
+%%  wpc_marble.auv --
 %%
-%%     Config file for simple brick shader
+%%     Config file for stone shader
 %%
 %%  Copyright (c) 2015 Micheus
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_voronoi.auv,v 1.0 2015/10/27 21:40:0 micheus Exp $
+%%     $Id: wpc_marble.auv,v 1.0 2015/11/07 21:40:0 micheus Exp $
 %%
 
 %%  Everything behind a '%' is a comment
 
-{name, "Voronoi"}.                  % The name in the shader selector
+{name, "Marble"}.                   % The name in the shader selector
 {vertex_shader, "standard.vs"}.     % Vertex shader used
-{fragment_shader, "voronoi.fs"}.    % Fragment shader used
-%%{auv, auv_texsz}.                   % vec2 width and height
+{fragment_shader, "marble.fs"}.     % Fragment shader used
 {auv, auv_bbpos3d}.                 % Use bounding box for positions
 %% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
-%% types: Standard, Smooth, Noise, Cloud
-%%{uniform, float, "type", 0, "Type"}.
-{uniform, menu, "type", "Standard", [{"Standard",0},{"Smooth",1},
-                                     {"Cloud",2},{"Grain",3}]}.
-{uniform, color, "color1", {0.85,0.85,0.85,0.0}, "Color 1"}.
-{uniform, color, "color2", {0.0,0.0,0.0,0.0}, "Color 2"}.
+%% types: Marble
+{uniform, menu, "type", "Solid Marble (ignore colors)", [{"Solid Marble (ignore colors)",0},
+                        {"User Colors",1}]}.
+{uniform, color, "color1", {0.95,0.95,0.9025,0.0}, "Color 1"}.
+{uniform, color, "color2", {0.05,0.05,0.05,0.0}, "Color 2"}.
 {uniform, bool, "exchange", false, "Exchange colors"}.
-{uniform, {slider,0.0,400.0}, "frequency", 10.0, "Frequency"}.
-{uniform, bool, "squared", false, "Squared"}.
+{uniform, {slider,1.0,100.0}, "frequency", 1.5, "Frequency"}.
+{uniform, {slider,0.0,200.0}, "amplitude", 2.0, "Amplitude"}.
+{uniform, {slider,0.0,25.0}, "rougness", 16.0, "Turbulence"}.
 {uniform, {slider,-360.0,360.0}, "rotx", 0.0, "Rotate X"}.
 {uniform, {slider,-360.0,360.0}, "roty", 0.0, "Rotate Y"}.
 {uniform, {slider,-360.0,360.0}, "rotz", 0.0, "Rotate Z"}.

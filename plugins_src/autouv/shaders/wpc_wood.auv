@@ -4,23 +4,31 @@
 %%     Config file for simple wood shader
 %%
 %%  Copyright (c) 2006 Dan Gudmundsson
-%%
+%%                2015 Micheus (Added Perlin and Simples noise variant)
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
 %%     $Id: wpc_wood.auv,v 1.2 2006/01/27 15:17:56 dgud Exp $
 %%
- 
+
 %%  Everything behind a '%' is a comment
 
-{name, "Wood"}.  % The name in the shader selector
+{name, "Wood"}.                 % The name in the shader selector
 {vertex_shader, "standard.vs"}. % Vertex shader used
-{fragment_shader, "wood.fs"}.  % Fragment shader used
+{fragment_shader, "wood.fs"}.   % Fragment shader used
 {auv, auv_bbpos3d}.             % Use bounding box for positions
 %% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
-{uniform, color, "darkWood", {0.45,0.22,0.0,1.0}, "Dark Rings"}.
-{uniform, color, "liteWood", {0.85,0.42,0.20,1.0}, "Lite Background"}.
+{uniform, menu, "type", "Wood", [{"Wood",0},{"Wood (Perlin noise)",1},
+                                 {"Wood (Simplex noise)",2}]}.
+{uniform, color, "darkWood", {0.45,0.22,0.0,0.0}, "Dark Rings"}.
+{uniform, color, "liteWood", {0.85,0.42,0.20,0.0}, "Lite Background"}.
 {uniform, float, "frequency", 3.0, "Frequency"}.
 {uniform, float, "noiseScale", 8.0, "Noise Scale"}.
 {uniform, float, "scale", 1.0, "Scale"}.
+{uniform, float, "ringScale", 0.7, "Smoothness (Perlin/Simplex)"}.
+{uniform, float, "contrast", 3.0, "Contrast (Perlin/Simplex)"}.
+{uniform, {slider,-360.0,360.0}, "rotx", 0.0, "Rotate X"}.
+{uniform, {slider,-360.0,360.0}, "roty", 0.0, "Rotate Y"}.
+{uniform, {slider,-360.0,360.0}, "rotz", 0.0, "Rotate Z"}.
+

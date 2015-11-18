@@ -1,7 +1,7 @@
 #
 #  Makefile --
 #
-#     Makefile for copying shaders 
+#     Makefile for copying shaders
 #
 #  Copyright (c) 2006 Dan Gudmundsson
 #
@@ -34,14 +34,24 @@ FILES = standard.vs \
 	hexagon.fs \
 	wpc_tile.auv \
 	tile.fs \
+	wpc_stripes.auv \
+	stripes.fs \
 	wpc_voronoi.auv \
 	voronoi.fs \
+	wpc_marble.auv \
+	marble.fs \
+	wpc_noise_ext.auv \
+	noise_ext.fs \
+	wpc_lava.auv \
+	lava.fs \
+	wpc_caustics.auv \
+	caustics.fs \
 	README-shaders.txt
 
 
 TARGETFILES = $(FILES:%=$(DIR)/%)
 
-all: $(TARGETFILES) 
+all: $(TARGETFILES)
 
 $(DIR)/%: ./%
 	install -d $(DIR)
