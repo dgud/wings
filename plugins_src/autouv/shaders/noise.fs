@@ -116,7 +116,7 @@ void main(void)
     noise = snoise((ch_scale*(w3d_pos-ch_center))+ persistance); // *0.159155
     noise = 0.5 + 0.5 * noise;
     vec4 bg = texture2D(auv_bg, w3d_uv);
-    fColor = mix(color2, color1, noise);
+    fColor = mix(vec4(color2.rgb,1.0-color2.a), vec4(color1.rgb,1.0-color1.a), noise);
     float alpha = fColor.w;
     if(blend > 0.5) alpha *= abs(noise*2.0-1.0);
     // I make my own blending I want keep alpha to be max
