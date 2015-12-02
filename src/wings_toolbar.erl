@@ -118,7 +118,7 @@ button_redraw_sh(true, Buttons) ->
 	    gl:pushAttrib(?GL_POLYGON_BIT bor ?GL_LINE_BIT),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
 	    Right = lists:last(Pos),
-	    gl:color3f(1, 1, 1),
+	    gl:color3f(1.0, 1.0, 1.0),
 	    gl:recti(Left-1, 3, Right+?BUTTON_WIDTH, 3+?BUTTON_HEIGHT),
 	    gl:popAttrib()
     end.

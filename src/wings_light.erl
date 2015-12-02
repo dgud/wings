@@ -469,7 +469,7 @@ update(D) -> D.
 
 update_1(#we{light=#light{type=Type}}=We, #dlo{src_sel=SrcSel}) ->
     SelColor = case SrcSel of
-		   none -> {0,0,1};
+		   none -> {0.0,0.0,1.0};
 		   _ -> wings_pref:get_value(selected_color)
 	       end,
     update_fun(Type, SelColor, We).
@@ -480,7 +480,7 @@ update_fun(infinite, SelColor, #we{light=#light{aim=Aim}}=We) ->
     Vec = e3d_vec:norm_sub(Aim, LightPos),
     Data = [e3d_vec:mul(Vec, 0.2),e3d_vec:mul(Vec, 0.6)],
     D = fun() ->
-		gl:lineWidth(1),
+		gl:lineWidth(1.0),
 		gl:color4fv(LightCol),
 		gl:pushMatrix(),
 		{X,Y,Z} = LightPos,
@@ -507,7 +507,7 @@ update_fun(point, SelColor, We) ->
     N = length(Data0) * 4,
     Data = lines(Data0),
     D = fun() ->
-		gl:lineWidth(1),
+		gl:lineWidth(1.0),
 		gl:color4fv(LightCol),
 		gl:pushMatrix(),
 		{X,Y,Z} = LightPos,
@@ -536,7 +536,7 @@ update_fun(spot, SelColor, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
     Translate = e3d_vec:mul(SpotDir, H),
     Rot = e3d_mat:rotate_s_to_t({0.0,0.0,1.0}, e3d_vec:neg(SpotDir)),
     fun() ->
-	    gl:lineWidth(1),
+	    gl:lineWidth(1.0),
 	    gl:color4fv(LightCol),
 	    gl:pushMatrix(),
 	    Obj = glu:newQuadric(),
@@ -891,13 +891,13 @@ setup_light(Lnum, #light{type=ambient,ambient=Amb}, _We, _M) ->
     Lnum;
 setup_light(Lnum, #light{type=infinite,aim=Aim}=L, We, _M) ->
     {X,Y,Z} = e3d_vec:norm_sub(light_pos(We), Aim),
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,0}),
+    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,0.0}),
     setup_color(Lnum, L),
     gl:enable(Lnum),
     Lnum+1;
 setup_light(Lnum, #light{type=point}=L, We, _M) ->
     {X,Y,Z} = light_pos(We),
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1}),
+    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1.0}),
     gl:lightf(Lnum, ?GL_SPOT_CUTOFF, 180.0),
     setup_color(Lnum, L),
     setup_attenuation(Lnum, L),
@@ -907,7 +907,7 @@ setup_light(Lnum, #light{type=spot,aim=Aim,spot_angle=Angle,spot_exp=Exp}=L,
 	    We, _M) ->
     Pos = {X,Y,Z} = light_pos(We),
     Dir = e3d_vec:norm_sub(Aim, Pos),
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1}),
+    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1.0}),
     gl:lightf(Lnum, ?GL_SPOT_CUTOFF, Angle),
     gl:lightf(Lnum, ?GL_SPOT_EXPONENT, Exp),
     gl:lightfv(Lnum, ?GL_SPOT_DIRECTION, Dir),

@@ -48,9 +48,9 @@
 	 find_pinned_from_edges/2,
 	 split_edges_1/2]).
 
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 -include("auv.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -import(lists, [foldl/3,reverse/1]).
 
@@ -228,7 +228,7 @@ is_an_8([{E,_},{E,_}|R],_) -> %% Skip these
 is_an_8([{E,_}|R],HaveRemoved) -> %% Hmm we must take them in order
     case lists:keysearch(E,1,R) of %% O(N2) I know..
 	false -> is_an_8(R,HaveRemoved);
-	true when HaveRemoved =/= false ->
+	_ when HaveRemoved =/= false ->
 	    E;
 	_ ->
 	    case reverse(R) of

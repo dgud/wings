@@ -52,7 +52,7 @@ render(#st{selmode=Mode}=St) ->
     render_objects(Mode, SceneLights),
     user_clipping_planes(off),
     axis_letters(PM,MM,Yon),
-    gl:lineWidth(1),
+    gl:lineWidth(1.0),
     wings_io:ortho_setup(),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
     {W,H} = wings_wm:win_size(),
@@ -244,7 +244,7 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth0,transparent=Trans0,
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     enable_lighting(SceneLights),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
-    gl:polygonOffset(2, 2),
+    gl:polygonOffset(2.0, 2.0),
 
     case Proxy of
 	true ->
@@ -289,10 +289,10 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth0,transparent=Trans0,
     case wire(We) of
 	true when Proxy =:= false ->
 	    gl:color3fv(wings_pref:get_value(edge_color)),
-	    gl:lineWidth(1),
+	    gl:lineWidth(1.0),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
 	    gl:enable(?GL_POLYGON_OFFSET_LINE),
-	    gl:polygonOffset(1, 1),
+	    gl:polygonOffset(1.0, 1.0),
 	    wings_dl:call(Edges);
 	true ->
 	    wings_proxy:draw_smooth_edges(D);
@@ -320,7 +320,7 @@ draw_sel(#dlo{open=Open,sel=SelDlist}) ->
     sel_color(),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
-    gl:polygonOffset(1, 1),
+    gl:polygonOffset(1.0, 1.0),
     %Stippled selection style.
     gl:enable(?GL_POLYGON_STIPPLE),
     draw_face_sel(Open, SelDlist),
@@ -377,7 +377,7 @@ draw_orig_sel_1(_, DlistSel) ->
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     {R0,G0,B0} = wings_pref:get_value(selected_color),
     gl:color4f(R0, G0, B0, 0.5),
-    gl:polygonOffset(1, 1),
+    gl:polygonOffset(1.0, 1.0),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     wings_dl:call(DlistSel).
 
@@ -389,7 +389,7 @@ draw_hard_edges(#dlo{hard=Hard}, SelMode) ->
 	
 draw_normals(#dlo{normals=none}) -> ok;
 draw_normals(#dlo{normals=Ns}) ->
-    gl:color3f(0, 0, 1),
+    gl:color3f(0.0, 0.0, 1.0),
     gl:lineWidth(wings_pref:get_value(normal_vector_width)),
     wings_dl:call(Ns).
 
@@ -448,7 +448,7 @@ dummy_axis_letter(_, _, {_,_,W,H}) ->
     gl:matrixMode(?GL_PROJECTION),
     gl:pushMatrix(),
     gl:loadIdentity(),
-    glu:ortho2D(0, W, 0, H),
+    glu:ortho2D(0.0, float(W), 0.0, float(H)),
     gl:matrixMode(?GL_MODELVIEW),
     gl:pushMatrix(),
     gl:loadIdentity(),
@@ -477,7 +477,7 @@ axis_letters(TPM,TMM,Yon0) ->
 	    gl:matrixMode(?GL_PROJECTION),
 	    gl:loadIdentity(),
 	    {_,_,W,H} = ViewPort,
-	    glu:ortho2D(0, W, H, 0),
+	    glu:ortho2D(0.0, W, H, 0.0),
 	    gl:matrixMode(?GL_MODELVIEW),
 	    gl:loadIdentity(),
 	    Yon = Yon0 + ?GROUND_GRID_SIZE,
@@ -572,13 +572,13 @@ groundplane(Axes,PM,MM) ->
 groundplane_1(Axes, Sz) ->
     #view{along_axis=Along} = wings_view:current(),
     gl:color3fv(wings_pref:get_value(grid_color)),
-    gl:lineWidth(1),
+    gl:lineWidth(1.0),
     gl:matrixMode(?GL_MODELVIEW),
     gl:pushMatrix(),
     case Along of
-	x -> gl:rotatef(90, 0, 1, 0);
+	x -> gl:rotatef(90.0, 0.0, 1.0, 0.0);
 	z -> ok;
-	_ -> gl:rotatef(90, 1, 0, 0)
+	_ -> gl:rotatef(90.0, 1.0, 0.0, 0.0)
     end,
     gl:'begin'(?GL_LINES),
     groundplane_2(-Sz, Sz, Sz, Axes),
@@ -690,7 +690,7 @@ mini_axis_icon(MM) ->
       gl:matrixMode(?GL_PROJECTION),
       gl:pushMatrix(),
       gl:loadIdentity(),
-      gl:ortho(-W/H, W/H, -1, 1, 0.00001, 10000000.0),
+      gl:ortho(-W/H, W/H, -1.0, 1.0, 0.00001, 10000000.0),
       gl:matrixMode(?GL_MODELVIEW),
       gl:pushMatrix(),
       gl:loadIdentity(),
@@ -701,7 +701,7 @@ mini_axis_icon(MM) ->
       gl:popMatrix(),
       gl:matrixMode(?GL_MODELVIEW),
       gl:popAttrib()
-	end.
+    end.
 
 draw_mini_axis() ->
     {PA,PB} = {0.08,0.01},
@@ -711,15 +711,15 @@ draw_mini_axis() ->
     gl:'begin'(?GL_LINES),
     %% X Axis
     gl:color3fv(X),
-    gl:vertex3f(0,0,0),
+    gl:vertex3f(0.0,0.0,0.0),
     gl:vertex3f(0.1,0.0,0.0),
     %% Y Axis
     gl:color3fv(Y),
-    gl:vertex3f(0,0,0),
+    gl:vertex3f(0.0,0.0,0.0),
     gl:vertex3f(0.0,0.1,0.0),
     %% Z Axis
     gl:color3fv(Z),
-    gl:vertex3f(0,0,0),
+    gl:vertex3f(0.0,0.0,0.0),
     gl:vertex3f(0.0,0.0,0.1),
     View = wings_view:current(),
     case View#view.along_axis of

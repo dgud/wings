@@ -1628,8 +1628,6 @@ update_drag(D,#tweak{st=St}) -> {D,St}.
 %%% XYZ Tweak Constraints
 %%%
 
-actual_mode({Mode,_}) ->
-    actual_mode(Mode);
 actual_mode(Mode) ->
     axis_constraints(Mode).
 
@@ -2470,7 +2468,7 @@ help_event(redraw, #twk_help{text=Text0,knob=Knob}) ->
     {W,H} = wings_wm:win_size(tweak_help),
     {_,T2} = lists:split(Knob, Text0),
     wings_io:ortho_setup(),
-    wings_io:border(0, 0, W-1, H-1, {1,1,1}),
+    wings_io:border(0, 0, W-1, H-1, {1.0,1.0,1.0}),
     wings_io:text_at(?CHAR_WIDTH, ?LINE_HEIGHT+2, T2),
     keep;
 help_event(resized,  #twk_help{knob=Pos,lines=L0}=TwkHelp0) ->
@@ -2676,7 +2674,7 @@ draw_tweak_menu_items([separator|Menu], Y, #tw{w=W}=Tw) ->
     {X1,Y1,X2} = {?CHAR_WIDTH - 1, Y - (?LINE_HEIGHT div 2 - 2), W - ?CHAR_WIDTH + 1},
     TextCol = wings_pref:get_value(menu_text),
     wings_io:set_color(TextCol),
-    gl:lineWidth(1),
+    gl:lineWidth(1.0),
     gl:'begin'(?GL_LINES),
     gl:vertex2f(X1,Y1),
     gl:vertex2f(X2,Y1),

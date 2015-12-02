@@ -252,7 +252,7 @@ draw_1(#dlo{proxy_data=#sp{src_we=We}} = D, Dl, Wire,
 		Opacity ->
 		    gl:enable(?GL_BLEND),
 		    gl:blendFunc(?GL_CONSTANT_ALPHA, ?GL_ONE_MINUS_CONSTANT_ALPHA),
-		    gl:blendColor(0, 0, 0, Opacity)
+		    gl:blendColor(0.0, 0.0, 0.0, Opacity)
 	    end
     end,
     case wings_we:is_open(We) andalso wings_pref:get_value(show_backfaces) of
@@ -287,7 +287,7 @@ draw_edges(D, true, EdgeStyle) ->
 
 draw_edges_1(#dlo{edges=Edges}, cage) ->
     gl:color3fv(wings_pref:get_value(edge_color)),
-    gl:lineWidth(1),
+    gl:lineWidth(1.0),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
     gl:enable(?GL_POLYGON_OFFSET_LINE),
     wings_render:polygonOffset(1),
@@ -296,7 +296,7 @@ draw_edges_1(#dlo{edges=Edges}, cage) ->
     gl:enable(?GL_CULL_FACE);
 draw_edges_1(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
     gl:color3fv(wings_pref:get_value(edge_color)),
-    gl:lineWidth(1),
+    gl:lineWidth(1.0),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
     wings_dl:call(ProxyEdges).
 

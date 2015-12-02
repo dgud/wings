@@ -581,9 +581,9 @@ draw_objects_1(N, B, [O|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
 	    gl:recti(name_pos()-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
 	    gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
 	true ->
-	    gl:color3f(0, 0, 0.5),
+	    gl:color3f(0.0, 0.0, 0.5),
 	    gl:recti(name_pos()-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
-	    gl:color3f(1, 1, 1);
+	    gl:color3f(1.0, 1.0, 1.0);
 	false when B ->
 	    gl:color3fv(wings_pref:get_value(outliner_geograph_text));
 	false -> ok
@@ -684,7 +684,7 @@ draw_previews(N, [_|Objs], #ost{lh=Lh}=Ost, Y) ->
     draw_previews(N-1, Objs, Ost, Y+Lh).
 
 m_bitmap() ->
-    {7,8,0,0,8,0,
+    {7,8,0.0,0.0,8.0,0.0,
      <<2#10000010,
        2#10000010,
        2#10000010,
