@@ -54,11 +54,11 @@
 
 %%% @spec () -> kd-tree().
 %%% @doc Returns an empty Tree.
-empty() -> #e3d_kd3{tree=nil}.
+empty() -> #e3d_kd3{tree=[]}.
 
 %%% @spec (Tree::kd-tree()) -> boolean().
 %%% @doc Returns true if Tree is an empty tree.
-is_empty(#e3d_kd3{tree=nil}) -> true;
+is_empty(#e3d_kd3{tree=[]}) -> true;
 is_empty(#e3d_kd3{}) -> false.
 
 is_kd3(#e3d_kd3{}) -> true;
