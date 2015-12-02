@@ -401,10 +401,10 @@ error_msg(Line) ->
 
 draw_texture_square() ->
     gl:'begin'(?GL_QUADS),
-    gl:texCoord2f(0,0), gl:vertex2f(0,0),
-    gl:texCoord2f(1,0), gl:vertex2f(1,0),
-    gl:texCoord2f(1,1), gl:vertex2f(1,1),
-    gl:texCoord2f(0,1), gl:vertex2f(0,1),
+    gl:texCoord2f(0.0,0.0), gl:vertex2f(0.0,0.0),
+    gl:texCoord2f(1.0,0.0), gl:vertex2f(1.0,0.0),
+    gl:texCoord2f(1.0,1.0), gl:vertex2f(1.0,1.0),
+    gl:texCoord2f(0.0,1.0), gl:vertex2f(0.0,1.0),
     gl:'end'().
 
 
@@ -421,7 +421,7 @@ fill_bg_tex(#sh_conf{fbo_w=Prev}) ->
 get_texture(Wc, Wd, Hc, Hd, {W,H}=Info, DL, UsingFbo, ImageAcc)
   when Wc < Wd, Hc < Hd ->
     gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
-    gl:clearColor(1, 1, 1, 1),
+    gl:clearColor(1.0, 1.0, 1.0, 1.0),
     gl:shadeModel(?GL_SMOOTH),
     gl:disable(?GL_CULL_FACE),
     gl:disable(?GL_LIGHTING),

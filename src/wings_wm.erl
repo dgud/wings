@@ -871,7 +871,7 @@ init_opengl() ->
     wings_io:resize(),
     wings_image:init_opengl(),
     {R,G,B} = wings_pref:get_value(background_color),
-    gl:clearColor(R, G, B, 1),
+    gl:clearColor(R, G, B, 1.0),
     dirty(),
     foreach(fun(Name) ->
 		    do_dispatch(Name, init_opengl)

@@ -411,7 +411,7 @@ handle_splash_event(redraw) ->
     {Xs,Ys} = wings_wm:win_size(),
     wings_io:raised_rect(0, 0, Xs, Ys),
     gl:recti(3, 3, Xs-3, Ys-3),
-    gl:color3f(1, 1, 1),
+    gl:color3f(1.0, 1.0, 1.0),
     gl:recti(4, 4, Xs-4, Ys-4),
     draw_splash(splash_contents()),
     keep;
@@ -443,7 +443,7 @@ draw_splash(L) ->
     draw_splash_1(L, 0).
 
 draw_splash_1([{icon,Name,Iw,Ih}|T], Y) ->
-    gl:color3f(1, 0, 1),
+    gl:color3f(1.0, 0.0, 1.0),
     {W,_} = wings_wm:win_size(),
     X = W - Iw - ?MARGIN,
     wings_io:draw_icons(fun() -> wings_io:draw_icon(X, Y, Name) end),

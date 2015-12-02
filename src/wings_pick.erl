@@ -573,7 +573,7 @@ is_inside_rect({Px,Py,Pz}, {MM,PM,ViewPort,X1,Y1,X2,Y2}) ->
 
 draw_marquee(undefined, undefined, _) -> ok;
 draw_marquee(X, Y, #marquee{ox=Ox,oy=Oy}) ->
-    gl:color3f(1, 1, 1),
+    gl:color3f(1.0, 1.0, 1.0),
     gl:enable(?GL_COLOR_LOGIC_OP),
     gl:logicOp(?GL_XOR),
     gl:'begin'(?GL_LINE_LOOP),
