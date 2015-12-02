@@ -714,6 +714,7 @@ create_buffers(Ctxt, [Binary|Szs], Acc) ->
 create_buffers(_, [], Buffers) ->
     lists:reverse(Buffers).
 
+-spec release_buffers(term(), boolean()) -> no_return().
 release_buffers(Buffers, true) ->
     case get({?MODULE, cl}) of
 	undefined ->

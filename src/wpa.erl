@@ -81,9 +81,11 @@ dialog(Bool, Title, Qs, Fun, HelpFun) ->
     wings_dialog:dialog(Bool, Title, Qs, Fun, HelpFun).
 
 %% Show String in a dialog box.
+-spec error_msg(any()) -> no_return().
 error_msg(String) ->
     wings_u:error_msg(String).
 
+-spec error_msg(any(), any()) -> no_return().
 error_msg(Format, Args) ->
     wings_u:error_msg(Format, Args).
 
