@@ -358,6 +358,7 @@ new_attr(Color, UV) -> [Color|UV].
 %%     AttrA, AttrB, Attr = opaque representation of attributes
 %%   Average the attributes AttrA and AttrB
 %%
+-spec average_attrs(all_attributes(), all_attributes()) -> all_attributes().
 average_attrs(AttrA, AttrB) ->
     mix(0.5, AttrA, AttrB).
 average_attrs(List) ->
