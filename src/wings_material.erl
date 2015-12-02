@@ -193,35 +193,32 @@ select_material(Mat,SelAct,#st{selmode=SelMode,sel=Sel0,shapes=Shs}=St) ->
 %% sel_rem - remove #we's using Mat from any previous selection
 select_material_1(sel_rem,Sel1,Sel2,Acc) ->
     case Sel1 of
-    false -> Acc; % #we ins't in previous selection - nothing to do
-    _ ->
-        case subtract_sel(Sel1,Sel2) of
-        false -> Acc;
-        {_,GbNew}=Sel3 -> 
-        case gb_sets:is_empty(GbNew) of
-            true -> Acc;
-            _ -> [Sel3|Acc]
-            end
-        end
+	false -> Acc; % #we ins't in previous selection - nothing to do
+	_ ->
+	    {_,GbNew}=Sel3 = subtract_sel(Sel1,Sel2),
+	    case gb_sets:is_empty(GbNew) of
+		true -> Acc;
+		_ -> [Sel3|Acc]
+	    end
     end;
 %% select - select #we's using Mat - the original behavior
 %% sel_add - add #we's using Mat to any previous selection
 select_material_1(SelAct,Sel1,Sel2,Acc) ->
     case Sel2 of
-    false ->
-        case SelAct of
-        select -> Acc;
-        sel_add -> 
-            case concat_sel(Sel1,false) of
-            [] -> Acc;
-            Sel3 -> [Sel3|Acc]  % preserve previous selection of #we
-            end
-        end;
-    Sel2 ->
-        case SelAct of
-        select -> [Sel2|Acc]; % we are building a new selection 
-        sel_add -> [concat_sel(Sel1,Sel2)|Acc] % if so, we will update the previous selection
-        end
+	false ->
+	    case SelAct of
+		select -> Acc;
+		sel_add -> 
+		    case concat_sel(Sel1,false) of
+			[] -> Acc;
+			Sel3 -> [Sel3|Acc]  % preserve previous selection of #we
+		    end
+	    end;
+	Sel2 ->
+	    case SelAct of
+		select -> [Sel2|Acc]; % we are building a new selection 
+		sel_add -> [concat_sel(Sel1,Sel2)|Acc] % if so, we will update the previous selection
+	    end
     end.
 
 %% select the elements (face/edge/vertice) using the Mat
@@ -246,8 +243,6 @@ concat_sel(OldSel,false) -> OldSel;
 concat_sel({Id,GbSetOld},{Id,GbSetNew}) ->
     {Id,gb_sets:union(GbSetOld,GbSetNew)}.
 
-subtract_sel(false,false) -> false;
-subtract_sel(false,_) -> false;
 subtract_sel(OldSel,false) -> OldSel;
 subtract_sel({Id,GbSetOld},{Id,GbSetNew}) ->
     {Id,gb_sets:subtract(GbSetOld,GbSetNew)}.
@@ -700,12 +695,9 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 			    {vertex_colors,VertexColors}],
 		  Mat1 = keyreplace(opengl, 1, Mat0, {opengl,OpenGL}),
 		  {Mat2,More} = update_maps(Mat1, More0),
-		  case plugin_results(Name, Mat2, More) of
-		      {again,Mat} -> edit_dialog(Name, Assign, St, Mat);
-		      {ok,Mat}  ->
-			  Mtab = gb_trees:update(Name, Mat, Mtab0),
-			  maybe_assign(Assign, Name, St#st{mat=Mtab})
-		  end
+		  {ok,Mat} =  plugin_results(Name, Mat2, More),
+		  Mtab = gb_trees:update(Name, Mat, Mtab0),
+		  maybe_assign(Assign, Name, St#st{mat=Mtab})
 	  end,
     {dialog,Qs,Ask}.
 

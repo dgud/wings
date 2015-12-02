@@ -1217,12 +1217,8 @@ collapse_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
 
 %%% Along Average Normal
 sel_normal_0(Vs, D) ->
-    case sel_normal(Vs,D) of
-      [[]] ->
-          {0.0,0.0,0.0};
-      Normals ->
-          e3d_vec:norm(e3d_vec:add(Normals))
-    end.
+    Normals = sel_normal(Vs,D),
+    e3d_vec:norm(e3d_vec:add(Normals)).
 
 sel_normal( _, #dlo{src_we=#we{}=We,src_sel={face,Sel0}}) ->
     Faces = gb_sets:to_list(Sel0),

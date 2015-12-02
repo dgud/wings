@@ -338,14 +338,10 @@ edit_ambient_dialog(Name, Prop0,
 	  [{oframe, Qs1, 1, [{style, buttons}]}],
 	  [{buttons, [ok, cancel]}, {key, result}]},
     Fun = fun([Amb|Res]) ->
-		  case plugin_results(Name, Prop0, Res) of
-		      {ok,Prop} ->
-			  L = L0#light{ambient=Amb,prop=Prop},
-			  We = We0#we{light=L},
-			  St#st{shapes=gb_trees:update(Id, We, Shs)};
-		      {again,Prop} -> edit_ambient_dialog(Name, Prop,
-							  We0, Shs, St)
-		  end
+		  {ok,Prop} = plugin_results(Name, Prop0, Res),
+		  L = L0#light{ambient=Amb,prop=Prop},
+		  We = We0#we{light=L},
+		  St#st{shapes=gb_trees:update(Id, We, Shs)}
 	  end,
     {dialog,Qs,Fun}.
 

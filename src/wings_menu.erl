@@ -290,7 +290,6 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 
 magnet_pressed(?CTRL_BITS, #wxMouse{controlDown=true}) -> true;
 magnet_pressed(?ALT_BITS, #wxMouse{altDown=true}) -> true;
-magnet_pressed(?SHIFT_BITS, #wxMouse{shiftDown=true}) -> true;
 magnet_pressed(?META_BITS, #wxMouse{metaDown=true}) -> true;
 magnet_pressed(_, _) -> false.
 
@@ -451,10 +450,7 @@ setup_popup([{Desc, Name, Help, Props, HK}|Es], Id, Sizer, Sz = {Sz1,Sz2}, Paren
 setup_popup([], _, _, _, _, _, Acc) -> lists:reverse(Acc).
 
 create_color_box(Id, Panel, H, Props) ->
-    {R,G,B} = case wings_color:rgb3bv(proplists:get_value(color, Props)) of
-		  {R0,G0,B0} -> {R0,G0,B0};
-		  {R0,G0,B0,_} -> {R0,G0,B0}
-	      end,
+    {R,G,B} = wings_color:rgb3bv(proplists:get_value(color, Props)),
     Image = wxImage:new(1,1,<<R,G,B>>),
     wxImage:rescale(Image,10,H-2),
     Bitmap = wxBitmap:new(Image),
