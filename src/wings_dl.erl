@@ -18,7 +18,7 @@
 -export([init/0,delete_dlists/0,
 	 update/2,map/2,fold/2,changed_materials/1,
 	 display_lists/0,
-	 call/1,mirror_matrix/1]).
+	 call/1,mirror_matrix/1,extra/3]).
 
 %%% This module manages Vertex Buffer Objects (VBOs, represented by
 %%% #vab{} records) and display lists for all objects in a Geometry or
@@ -53,7 +53,8 @@
 -record(du,
 	{dl=[],					%Display list records.
 	 mat=gb_trees:empty(),			%Materials.
-	 used=[]				%Display lists in use.
+	 used=[],				%Display lists in use.
+	 extra=#{}
 	 }).
 
 init() ->
@@ -164,6 +165,25 @@ mirror_matrix(Id) -> fold(fun mirror_matrix/2, Id).
 mirror_matrix(#dlo{mirror=Matrix,src_we=#we{id=Id}}, Id) -> Matrix;
 mirror_matrix(_, Acc) -> Acc.
 
+%% extra(Category, Key, Update) -> CallableTerm.
+%%  Retrieve or register a drawable term for extra graphic
+%%  things that are not objects (e.g. the vector used in secondary
+%%  selection).
+
+extra(Category, Key, Update)
+  when is_atom(Category), is_function(Update, 1) ->
+    case get_dl_data() of
+	#du{extra=#{Category:={Key,Data}}} ->
+	    Data;
+	#du{extra=Extra0,used=Used0}=Du ->
+	    Data = Update(Key),
+	    Extra = Extra0#{Category=>{Key,Data}},
+	    Used1 = ordsets:from_list(update_seen_1(Data, [])),
+	    Used = ordsets:union(Used0, Used1),
+	    put_dl_data(Du#du{used=Used,extra=Extra}),
+	    Data
+    end.
+
 %%%
 %%% Local functions.
 %%%
@@ -235,8 +255,10 @@ map_1(Fun, [D0|Dlists], Data0, Seen0, Acc) ->
 map_1(_Fun, [], Data, Seen, Acc) ->
     update_last(Data, Seen, Acc).
 
-update_last(Data, Seen, Acc) ->
-    #du{used=Used0} = Du = get_dl_data(),
+update_last(Data, Seen0, Acc) ->
+    #du{used=Used0,extra=Extra} = Du = get_dl_data(),
+    InExtra = [E || {_,{_,E}} <- maps:to_list(Extra)],
+    Seen = update_seen_1(InExtra, Seen0),
     Used1 = sofs:relation(Used0),
     SeenKeys = sofs:domain(sofs:relation(Seen)),
     Unused0 = sofs:drestriction(Used1, SeenKeys),
