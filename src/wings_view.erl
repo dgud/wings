@@ -544,8 +544,7 @@ camera_lens_length({60,60}, LensType) ->
 camera_lens_length(_, _) -> undefined.
 
 gbget([], _Sto) -> [];
-gbget([Key|Keys], Sto) -> [{Key,wings_dialog:get_value(Key, Sto)}|gbget(Keys, Sto)];
-gbget(Key, Sto) -> wings_dialog:get_value(Key, Sto).
+gbget([Key|Keys], Sto) -> [{Key,wings_dialog:get_value(Key, Sto)}|gbget(Keys, Sto)].
 
 gbupdate(Key, Val, Sto) -> wings_dialog:set_value(Key, Val, Sto).
 
@@ -1301,8 +1300,6 @@ import_view([], #view{azimuth=Az,elevation=El}=View, Name) ->
 %%% import/export utilities
 %%%
 
-get_view_index(#view{}=View, Views) when is_tuple(Views) ->
-    get_view_index(View, tuple_to_list(Views));
 get_view_index(#view{}=View, Views) ->
     get_view_index_1(View, Views, 0).
 get_view_index_1(#view{}, [], _) -> undefined;

@@ -470,7 +470,6 @@ sdl_key(#wxKey{type=Type,controlDown = Ctrl, shiftDown = Shift,
     #keyboard{which=0, state=Pressed, scancode=Raw, unicode=Uni,
 	      mod=ModState, sym=Sym}.
 
-lower([], Char) -> Char;
 lower(?KMOD_SHIFT, Char) -> Char;
 lower(_, Char) ->
     string:to_lower(Char).

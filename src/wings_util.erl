@@ -691,9 +691,4 @@ translation_string(materials_to_colors)  -> ?__(288,"Materials to Colors");
 
 %%%% Others as yet to be added are proccessed here
 translation_string(Atom) when is_atom(Atom) ->
-    wings_util:cap(atom_to_list(Atom));
-
-translation_string(Int) when is_integer(Int) ->
-    integer_to_list(Int);
-
-translation_string(_Other) -> [].
+    wings_util:cap(atom_to_list(Atom)).
