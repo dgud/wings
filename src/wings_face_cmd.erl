@@ -956,10 +956,12 @@ get_edge(Edge, Etab) ->
 	Erec -> Erec
     end.
 
+-spec bridge_error() -> no_return().
 bridge_error() ->
     %?__(1,"Exactly two faces must be selected.")
     bridge_error(?__(2,"Exactly two face regions must be selected.")).
 
+-spec bridge_error(any()) -> no_return().
 bridge_error(Error) ->
     wings_u:error_msg(Error).
 
@@ -1040,6 +1042,7 @@ lift_from_edge(Dir, EdgeSel, St0) ->
 	{_,_} -> lift_sel_mismatch()
     end.
 
+-spec lift_sel_mismatch() -> no_return().
 lift_sel_mismatch() ->
     wings_u:error_msg(?__(1,"Face and edge selections don't match.")).
 	
@@ -1130,6 +1133,7 @@ lift_from_vertex(Dir, VsSel, St0) ->
 	{_,_} -> lift_vtx_sel_mismatch()
     end.
 
+-spec lift_vtx_sel_mismatch() -> no_return().
 lift_vtx_sel_mismatch() ->
     wings_u:error_msg(?__(1,"Face and vertex selections don't match.")).
 

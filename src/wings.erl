@@ -189,6 +189,7 @@ have_fbo() ->
 		  "object extension.")
     end.
 
+-spec fatal(any(),any()) -> no_return().
 fatal(Format, Args) ->
     fatal(io_lib:format(Format, Args)).
 

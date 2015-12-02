@@ -1993,10 +1993,12 @@ exceptions(sketchup,2,{false,true,false}) -> cam_conflict();
 exceptions(_,3,{true,false,false}) -> menu_conflict();
 exceptions(_,_,_) -> ok.
 
+-spec menu_conflict() -> no_return().
 menu_conflict() ->
     wings_u:error_msg(?__(1,"Key combo was not assigned.\n
     Those keys would conflict with the right click Tweak menu.")).
 
+-spec cam_conflict() -> no_return().
 cam_conflict() ->
     wings_u:error_msg(?__(1,"Key combo was not assigned.\n
     That key combination would conflict with the Camera buttons")).

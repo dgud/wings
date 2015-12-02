@@ -251,6 +251,7 @@ cut_pick(St) ->
     Flags = [{initial,[0]}],
     wings_drag:setup(Tvs, Units, Flags, wings_sel:set(vertex, Sel, St)).
 
+-spec cut_pick_error() -> no_return().
 cut_pick_error() ->
     wings_u:error_msg(?__(1,"Only one edge can be cut at an arbitrary position.")).
 
