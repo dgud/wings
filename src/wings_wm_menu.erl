@@ -42,12 +42,12 @@
 	 sel=none :: 'none'|pos_integer(),	%Selected item (1..tuple_size(Menu))
 	 sel_side=left :: 'left'|'right',	%Selection on left or right.
 	 ns=[],					%Name stack.
-	 menu :: menu_item(),	  	        %Normalized menu.
+	 menu :: {menu_item()},	  	        %Normalized menu.
 	 timer=make_ref(),			%Active submenu timer.
 	 level=?INITIAL_LEVEL,			%Menu level.
 	 type :: 'plain'|'popup',	        %Type of menu.
 	 owner,					%Owning window.
-	 flags=[] :: list(),			%Flags (magnet/dialog).
+	 flags=[] :: list()|boolean(),		%Flags (magnet/dialog).
 	 orig_xy				%Originally input global X and Y
 	}).
 
@@ -446,24 +446,10 @@ button_pressed(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_RELEASED},
 	       Mi) when B =< 3 ->
     wings_wm:dirty(),
     button_pressed(B, Mod, X, Y, Mi);
-button_pressed(#mousebutton{button=Button,x=X,y=Y,state=?SDL_PRESSED},
-  #mi{menu=Menu,sel_side=Side,w=Mw}=Mi)
-  when Button =:= 4; Button =:= 5 ->
-    case selected_item(Y, Mi) of
-        1 ->
-          case element(1,Menu) of
-              menu_toolbar when Side =:= right; Side =:= left ->
-                  menu_toolbar_action(Button, button_check(X, Mw), Mi);
-              menu_toolbar ->
-                  menu_toolbar_action(Button, Side, Mi);
-              _ -> keep
-          end;
-        _ -> keep
-    end;
 button_pressed(_, _) -> keep.
 
 button_pressed(Button, Mod, X, Y,
-  #mi{ns=Names,menu=Menu,type=Type,sel_side=Side,w=Mw,level=Level,owner=Owner}=Mi0) ->
+  #mi{ns=Names,menu=Menu,type=Type,w=Mw,level=Level,owner=Owner}=Mi0) ->
     clear_timer(Mi0),
     Mi = update_flags(Mod, Mi0),
     case selected_item(Y, Mi) of
@@ -483,19 +469,6 @@ button_pressed(Button, Mod, X, Y,
 		{_,Act0,_,_,Ps} when is_atom(Act0); is_integer(Act0) ->
 		    Act = was_option_hit(Button, Act0, X, Ps, Mi),
 		    do_action(Act, Names, Ps, Mi);
-		menu_toolbar ->
-		    case Side of
-		      right ->
-		        menu_toolbar_action(Button, button_check(X, Mw), Mi);
-		      left ->
-		        menu_toolbar_action(Button, button_check(X, Mw), Mi);
-		      history when Button =:= 2 ->
-		        keep;
-		      tools when Button =/= 1 ->
-		        keep;
-		      _ ->
-		        menu_toolbar_action(Button, Side, Mi)
-		    end;
 		{_,More,[],[],[more]} ->
 		    clear_timer(Mi),
 		    X0 = Mw-?CHAR_WIDTH,
@@ -503,16 +476,6 @@ button_pressed(Button, Mod, X, Y,
 		    menu_setup(Type, X1, Y1, more, More,
 		      #mi{ns=Names,level=Level+1,owner=Owner})
 	    end
-    end.
-
-menu_toolbar_action(Button, Side, #mi{ns=Names,owner=Owner,orig_xy=OrigXY}) ->
-    case lists:last(Names) of
-      N when N =:= select; N =:= tools; N =:= tweak ->
-        wings_wm:send_after_redraw(Owner, {menu_toolbar,{new_mode,Button,OrigXY,Side}}),
-        keep;
-      _ ->
-        wings_wm:send_after_redraw(Owner, {menu_toolbar,{Button,OrigXY,Side}}),
-        keep
     end.
 
 call_action(Act, Button, Ns, Ps, Mi = #mi{flags=Flags}) ->
@@ -533,18 +496,10 @@ do_action(Act0, Ns, Ps, #mi{flags=Flags} = Mi) ->
 	  end,
     send_action(Act, Mi).
 
-send_action(Action, #mi{type=popup,ns=Names,owner=Owner,orig_xy=OrigXY}=Mi) ->
-    Name = lists:last(Names),
-    case wings_pref:get_value(menu_toolbar) of
-      true when Name =:= select ->
-        wings_wm:send_after_redraw(Owner, {menu_toolbar, OrigXY}),
-        wings_wm:send(Owner, {action,Action}),
-        keep;
-      _ ->
-        clear_menu_selection(Mi),
-        wings_wm:send_after_redraw(Owner, {action,Action}),
-        delete_all(Mi)
-    end;
+send_action(Action, #mi{type=popup,owner=Owner}=Mi) ->
+    clear_menu_selection(Mi),
+    wings_wm:send_after_redraw(Owner, {action,Action}),
+    delete_all(Mi);
 send_action(Action, #mi{owner=Owner}=Mi) ->
     clear_menu_selection(Mi),
     wings_wm:send_after_redraw(Owner, {action,Action}),
@@ -786,47 +741,29 @@ redraw(Mi) ->
     wings_io:ortho_setup(),
     menu_show(Mi).
 
-update_highlight(X, Y, #mi{ns=Ns,menu=Menu,sel=OldSel,sel_side=OldSide,w=W}=Mi0) ->
+update_highlight(X, Y, #mi{menu=Menu,sel=OldSel,sel_side=OldSide,w=W}=Mi0) ->
     case selected_item(Y, Mi0) of
 	OldSel when is_integer(OldSel) ->
-	    case element(OldSel, Menu) of
-	      menu_toolbar ->
-	        case button_check(X, W) of
-	            OldSide -> Mi0;
-	            Icon ->
-	                menu_toolbar_help(lists:last(Ns), Icon),
-	                wings_wm:dirty(),
-	                Mi0#mi{sel_side=Icon}
-	        end;
-	      MenuItemData ->
-	        Ps = element(5, MenuItemData),
-	        RightWidth = right_width(Ps),
-	        Right = W - (2*RightWidth) - ?CHAR_WIDTH,
-	        Side = if
-	                 X < Right; RightWidth == 0 -> left;
-	                 true -> right
+	    MenuItemData  = element(OldSel, Menu),
+	    Ps = element(5, MenuItemData),
+	    RightWidth = right_width(Ps),
+	    Right = W - (2*RightWidth) - ?CHAR_WIDTH,
+	    Side = if
+		       X < Right; RightWidth == 0 -> left;
+		       true -> right
 	               end,
-	        if
-	          Side =:= OldSide -> Mi0;
-	          true ->
-	              help_text(Mi0),
-	              wings_wm:dirty(),
-	              Mi0#mi{sel_side=Side}
-	        end
+	    if
+		Side =:= OldSide -> Mi0;
+		true ->
+		    help_text(Mi0),
+		    wings_wm:dirty(),
+		    Mi0#mi{sel_side=Side}
 	    end;
 	Item when is_integer(Item) ->
-	    case element(Item, Menu) of
-	      menu_toolbar ->
-	        Icon = button_check(X, W),
-	        menu_toolbar_help(lists:last(Ns), Icon),
-	        wings_wm:dirty(),
-	        Mi0#mi{sel=Item,sel_side=Icon};
-	      _other ->
-	        Mi = Mi0#mi{sel=Item,sel_side=left},
-	        help_text(Mi),
-	        wings_wm:dirty(),
-	        Mi
-	    end;
+	    Mi = Mi0#mi{sel=Item,sel_side=left},
+	    help_text(Mi),
+	    wings_wm:dirty(),
+	    Mi;
 	_ ->
 	    Mi = Mi0#mi{sel=none},
 	    help_text(Mi),
@@ -883,7 +820,6 @@ selected_item_1(Y0, I, [H|Hs], #mi{sel=OldSel,menu=Menu}=Mi) ->
 			I-1 =< OldSel, OldSel =< I+2-> OldSel;
 			true -> none
 		    end;
-		menu_toolbar -> I;
 		_Other -> I
 	    end;
 	Y -> selected_item_1(Y, I+1, Hs, Mi)
@@ -910,16 +846,13 @@ build_command(Name, Names) ->
 	  Name, Names).
 
 menu_draw(_X, _Y, _Shortcut, _Mw, _I, [], _Mi) -> ok;
-menu_draw(X, Y, Shortcut, Mw, I, [H|Hs], #mi{sel_side=Side,menu=Menu,type=Type}=Mi) ->
+menu_draw(X, Y, Shortcut, Mw, I, [H|Hs], #mi{menu=Menu,type=Type}=Mi) ->
     ?CHECK_ERROR(),
     Elem = element(I, Menu),
     Text = menu_text(Elem, Type),
     case Elem of
 	separator ->
 	    draw_separator(X, Y, Mw);
-	menu_toolbar ->
-	    IconSize = wings_pref:get_value(menu_toolbar_size),
-	    draw_menu_toolbar(IconSize, Mw, Side);
 	{_,ignore,_,_,Ps} ->
 	    menu_draw_1(Y, Ps, I, Mi,
 			fun() -> wings_io:unclipped_text(X, Y, Text) end);
@@ -1003,8 +936,7 @@ menu_draw_1(_, _, _, _, DrawLeft, DrawRight) ->
 menu_text({Text,{_,Fun},_,_,_}, popup) when is_function(Fun) -> [$.,Text,$.];
 menu_text({Text,Fun,_,_,_}, popup) when is_function(Fun) -> [$.,Text,$.];
 menu_text({Text,_,_,_,_}, _) -> Text;
-menu_text(separator, _) -> [];
-menu_text(menu_toolbar, _) -> [].
+menu_text(separator, _) -> [].
 
 draw_hotkey(_, _, _, []) -> ok;
 draw_hotkey(X, Y, Pos, Hotkey) -> wings_io:text_at(X+Pos, Y, Hotkey).
@@ -1024,83 +956,6 @@ draw_menu_text(X, Y, Text, Props) ->
 	    gl:popAttrib(),
 	    wings_io:unclipped_text(X, Y, Text)
     end.
-
-menu_toolbar_help(_,tools) ->
-    Msg = wings_msg:button_format(?__(1,"Open the Tools menu")),
-    wings_wm:message(Msg);
-menu_toolbar_help(_,select) ->
-    Msg1 = wings_msg:button_format(?__(2,"Open the Select menu")),
-    Msg2 = wings_msg:button_format([], ?__(3,"Recall Stored Selection")),
-    Msg3 = wings_msg:button_format([], [], ?__(4,"Store Selection")),
-    Message = wings_msg:join([Msg1,Msg2,Msg3]),
-    wings_wm:message(Message);
-menu_toolbar_help(SelMode, deselect) ->
-    Msg1 = wings_msg:button_format(?__(5,"Deselect | Select All")),
-    Msg2 = [],
-    Msg3 = wings_msg:button_format([], [], ?__(6,"Deselect and close menu")),
-    Msg4 = scroll_help(SelMode, deselect),
-    Message = wings_msg:join([Msg1,Msg2,Msg3,Msg4]),
-    wings_wm:message(Message);
-menu_toolbar_help(SelMode, body) ->
-    Msg1 = wings_toolbar:button_help_2(body, SelMode),
-    Msg2 = scroll_help(SelMode, body),
-    Message = wings_msg:join([Msg1,Msg2]),
-    wings_wm:message(Message);
-menu_toolbar_help(SelMode, history) ->
-    Msg1 = wings_msg:button_format(wings_toolbar:button_help_2(undo, SelMode)),
-    Msg2 = wings_msg:button_format([],[],wings_toolbar:button_help_2(redo, SelMode)),
-    Msg3 = scroll_help(SelMode, history),
-    Message = wings_msg:join([Msg1,Msg2,Msg3]),
-    wings_wm:message(Message);
-menu_toolbar_help(SelMode, repeat) ->
-    Msg1 = wings_msg:button_format(?__(7,"Repeat Drag"),?__(8,"Repeat Args"),
-          ?__(9,"Repeat")),
-    Msg2 = scroll_help(SelMode, repeat),
-    Message = wings_msg:join([Msg1,Msg2]),
-    wings_wm:message(Message);
-menu_toolbar_help(SelMode, Icon) ->
-    Msg1 = wings_msg:button_format(wings_toolbar:button_help_2(Icon, SelMode)),
-    Msg2 = mmb_menu_toolbar_help(SelMode, Icon),
-    Msg3 = rmb_menu_toolbar_help(SelMode, Icon),
-    Msg4 = scroll_help(SelMode, Icon),
-    Message = wings_msg:join([Msg1,Msg2,Msg3,Msg4]),
-    wings_wm:message(Message).
-
-scroll_help(SelMode, Icon) ->
-    Scroll = wings_s:scroll() ++ ": ",
-    case Icon of
-        repeat -> Scroll ++ ?__(1,"Repeat Drag | Undo");
-        history ->  Scroll ++ ?__(2,"Undo | Redo");
-        edge when SelMode =:= edge ->
-            None = Scroll ++ ?__(3,"Next/Previous Edge Loop"),
-            Ctrl = wings_s:key(ctrl)++"+"++Scroll ++ ?__(4,"Grow/Shrink Edge Loop"),
-            Alt = wings_s:key(alt)++"+"++Scroll ++ ?__(5,"Grow/Shrink Edge Ring"),
-            wings_msg:join([None,Ctrl,Alt]);
-        _ -> Scroll ++ ?__(6,"Select More | Select Less")
-    end.
-
-mmb_menu_toolbar_help(edge,Icon) ->
-    Msg = case Icon of
-      vertex -> [];
-      edge -> ?__(1,"Edge Ring");
-      face -> [];
-      body -> []
-    end,
-    wings_msg:button_format([], Msg, []);
-mmb_menu_toolbar_help(_,_) -> [].
-
-rmb_menu_toolbar_help(SelMode,Icon) ->
-    Msg = case Icon of
-      _ when SelMode =:= body -> [];
-      vertex -> [];
-      edge when SelMode =:= vertex ->
-          ?__(3,"Select edges which have both vertices selected");
-      edge -> ?__(1,"Edge Loop");
-      face when SelMode =:= edge -> ?__(2,"Edge Loop to Region");
-      face -> [];
-      body -> []
-    end,
-    wings_msg:button_format([], [], Msg).
 
 help_text(#mi{sel=none}) ->
     wings_wm:message("");
@@ -1123,8 +978,7 @@ help_text_1({_,_,_,Help0,Ps}, Mi) ->
     %% Plain entry - not submenu.
     Help = help_text_2(Help0),
     magnet_help(Help, Ps, Mi);
-help_text_1(separator, _) -> ok;
-help_text_1(menu_toolbar, _) -> ok.
+help_text_1(separator, _) -> ok.
 
 help_text_2({S1,S2,S3}) -> wings_msg:button_format(S1, S2, S3);
 help_text_2(Help) -> Help.
@@ -1187,472 +1041,13 @@ draw_separator(X, Y, Mw) ->
     LeftX = X-2*Cw+0.5,
     RightX = X+Mw-4*Cw+0.5,
     UpperY = Y-?SEPARATOR_HEIGHT+0.5,
-    gl:lineWidth(1),
+    gl:lineWidth(1.0),
     wings_io:set_color(wings_pref:get_value(menu_text)),
     gl:'begin'(?GL_LINES),
     gl:vertex2f(LeftX, UpperY),
     gl:vertex2f(RightX, UpperY),
     gl:'end'(),
     gl:color3b(0, 0, 0).
-
-%% Icon bar in context menus for quick selection mode changes using the mouse
-draw_menu_toolbar(Size, Mw, Icon) ->
-    ?CHECK_ERROR(),
-    %Colors
-    Col1 = wings_pref:get_value(menu_text),
-    Col2 = wings_pref:get_value(selected_color),
-    Col3 = wings_pref:get_value(menu_color),
-    Col4 = case Col3 of
-      {R,G,B,_} -> {R,G,B};
-      RGB -> RGB
-    end,
-    % X positions
-    IconX = case Size of
-        big -> 24;
-        small -> 16
-    end,
-    MidX = Mw div 2,
-    Hx = MidX-IconX*5,
-    Rx = MidX-IconX*4,
-    Vx = MidX-IconX*2,
-    Ex = MidX-IconX,
-    Fx = MidX,
-    Bx = MidX+IconX,
-    Sx = MidX+IconX*3,
-    Tx = MidX+IconX*4,
-    % menu_toolbar background
-    ToolbarCol = e3d_vec:mul(Col4, 0.8),
-    wings_io:gradient_border(0, 0, Mw-1, IconX+4, ToolbarCol),
-    % toolbar box highlight
-    wings_io:set_color({1,1,1}),
-    SelBox = outline_bitmap(Size),
-    case Icon of
-        vertex -> draw_icon(Size, Vx, SelBox);
-        edge -> draw_icon(Size, Ex, SelBox);
-        face -> draw_icon(Size, Fx, SelBox);
-        body -> draw_icon(Size, Bx, SelBox);
-        history -> draw_icon(Size, Hx, SelBox);
-        repeat -> draw_icon(Size, Rx, SelBox);
-        select -> draw_icon(Size, Sx, SelBox);
-        tools -> draw_icon(Size, Tx, SelBox);
-        _deselect -> ok
-    end,
-    % Draw Icons
-    gl:color3fv(e3d_vec:mul(Col1,0.6)),
-    draw_icon(Size, Hx, history_bitmap(Size)),
-    draw_icon(Size, Rx, repeat_bitmap(Size)),
-    draw_icon(Size, Sx, select_bitmap(Size)),
-    draw_icon(Size, Tx, tools_bitmap(Size)),
-    CubeBitmap = cube_bitmap(Size),
-    draw_icon(Size, Vx, CubeBitmap),
-    draw_icon(Size, Ex, CubeBitmap),
-    draw_icon(Size, Fx, CubeBitmap),
-    draw_icon(Size, Bx, CubeBitmap),
-
-    % Add Selection Color to Cube icons
-    gl:color3fv(Col2),
-    draw_icon(Size, Vx, vertex_sel_bitmap(Size)),
-    draw_icon(Size, Ex, edge_sel_bitmap(Size)),
-    draw_icon(Size, Fx, face_sel_bitmap(Size)),
-    draw_icon(Size, Bx, body_sel_bitmap(Size)),
-    gl:color3b(0, 0, 0).
-
-draw_icon(big, X, Bitmap) ->
-    gl:rasterPos2i(X, 26),
-    gl:bitmap(24, 24, 0, 0, 24, 0, Bitmap);
-draw_icon(small, X, Bitmap) ->
-    gl:rasterPos2i(X, 18),
-    gl:bitmap(16, 16, 0, 0, 16, 0, Bitmap).
-
-button_check(X, Mw) ->
-    IconX = case wings_pref:get_value(menu_toolbar_size) of
-        big -> 24;
-        small -> 16
-    end,
-    MidX = Mw div 2,
-    if X < MidX-IconX*5 -> deselect;
-       X < MidX-IconX*4 -> history;
-       X < MidX-IconX*3 -> repeat;
-       X < MidX-IconX*2 -> deselect;
-       X < MidX-IconX -> vertex;
-       X < MidX -> edge;
-       X < MidX+IconX -> face;
-       X < MidX+IconX*2 -> body;
-       X < MidX+IconX*3 -> deselect;
-       X < MidX+IconX*4 -> select;
-       X < MidX+IconX*5 -> tools;
-       true -> deselect
-    end.
-
-repeat_bitmap(small) ->
-    <<
-    2#0000000000000000:16,
-    2#0000001111000000:16,
-    2#0000110000110000:16,
-    2#0001000000001000:16,
-    2#0010001111000100:16,
-    2#0010010000100100:16,
-    2#0100100000010010:16,
-    2#0100100000010010:16,
-    2#0100100100010010:16,
-    2#0100100110010010:16,
-    2#0010011111000100:16,
-    2#0010000110000100:16,
-    2#0001000100001000:16,
-    2#0000110000110000:16,
-    2#0000001111000000:16,
-    2#0000000000000000:16>>;
-repeat_bitmap(big) ->
-    <<
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000111111000000000:24,
-    2#000000011111111110000000:24,
-    2#000000111000000111000000:24,
-    2#000001100000000001100000:24,
-    2#000011000011110000110000:24,
-    2#000110001111111100011000:24,
-    2#000110001100001100011000:24,
-    2#001100011000000110001100:24,
-    2#001100011000000110001100:24,
-    2#001100011000100110001100:24,
-    2#001100011000110000001100:24,
-    2#001100001100111000001100:24,
-    2#001100001111111100001100:24,
-    2#000110000011111100011000:24,
-    2#000110000000111000011000:24,
-    2#000011000000110000110000:24,
-    2#000001100000100001100000:24,
-    2#000000111000000111000000:24,
-    2#000000011111111110000000:24,
-    2#000000000111111000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24>>.
-	
-history_bitmap(small) ->
-    <<
-    2#0000000000000000:16,
-    2#0000001111000000:16,
-    2#0000110000110000:16,
-    2#0001000001001000:16,
-    2#0010000001100100:16,
-    2#0010011111110100:16,
-    2#0100000001100010:16,
-    2#0100000001000010:16,
-    2#0100001000000010:16,
-    2#0100011000000010:16,
-    2#0010111111100100:16,
-    2#0010011000000100:16,
-    2#0001001000001000:16,
-    2#0000110000110000:16,
-    2#0000001111000000:16,
-    2#0000000000000000:16>>;
-history_bitmap(big) ->
-    <<
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000111111000000000:24,
-    2#000000011111111110000000:24,
-    2#000000111000000111000000:24,
-    2#000001100000010001100000:24,
-    2#000011000000011000110000:24,
-    2#000110000000011100011000:24,
-    2#000110001111111110011000:24,
-    2#001100011111111110001100:24,
-    2#001100010000011100001100:24,
-    2#001100000010011000001100:24,
-    2#001100000110010000001100:24,
-    2#001100001110000010001100:24,
-    2#001100011111111110001100:24,
-    2#000110011111111100011000:24,
-    2#000110001110000000011000:24,
-    2#000011000110000000110000:24,
-    2#000001100010000001100000:24,
-    2#000000111000000111000000:24,
-    2#000000011111111110000000:24,
-    2#000000000111111000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24>>.
-
-select_bitmap(small) ->
-    <<
-    2#0000000000000000:16,
-    2#0000001111000000:16,
-    2#0000110000110000:16,
-    2#0001000000001000:16,
-    2#0010000010000100:16,
-    2#0010000011000100:16,
-    2#0100000111100010:16,
-    2#0100000111110010:16,
-    2#0100001111000010:16,
-    2#0100001100000010:16,
-    2#0010010000000100:16,
-    2#0010000000000100:16,
-    2#0001000000001000:16,
-    2#0000110000110000:16,
-    2#0000001111000000:16,
-    2#0000000000000000:16>>;
-select_bitmap(big) ->
-    <<
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000111111000000000:24,
-    2#000000011111111110000000:24,
-    2#000000111000000111000000:24,
-    2#000001100000000001100000:24,
-    2#000011000000000000110000:24,
-    2#000110000000000100011000:24,
-    2#000110000010001110011000:24,
-    2#001100000011011100001100:24,
-    2#001100000111111000001100:24,
-    2#001100000111110000001100:24,
-    2#001100000111111000001100:24,
-    2#001100001111111100001100:24,
-    2#001100001111110000001100:24,
-    2#000110011110000000011000:24,
-    2#000110011000000000011000:24,
-    2#000011000000000000110000:24,
-    2#000001100000000001100000:24,
-    2#000000111000000111000000:24,
-    2#000000011111111110000000:24,
-    2#000000000111111000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24>>.
-
-tools_bitmap(small) ->
-    <<
-    2#0000000000000000:16,
-    2#0000001111000000:16,
-    2#0000110000110000:16,
-    2#0001000110001000:16,
-    2#0010000110000100:16,
-    2#0010000110000100:16,
-    2#0100000110000010:16,
-    2#0100000110000010:16,
-    2#0100001111000010:16,
-    2#0100011111100010:16,
-    2#0010011001100100:16,
-    2#0010001001000100:16,
-    2#0001000000001000:16,
-    2#0000110000110000:16,
-    2#0000001111000000:16,
-    2#0000000000000000:16>>;
-tools_bitmap(big) ->
-    <<
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000111111000000000:24,
-    2#000000011111111110000000:24,
-    2#000000111000000111000000:24,
-    2#000001100001100001100000:24,
-    2#000011000011110000110000:24,
-    2#000110000011110000011000:24,
-    2#000110000011110000011000:24,
-    2#001100000011110000001100:24,
-    2#001100000011110000001100:24,
-    2#001100000011110000001100:24,
-    2#001100000111111000001100:24,
-    2#001100001111111100001100:24,
-    2#001100001111111100001100:24,
-    2#000110001110011100011000:24,
-    2#000110001110011100011000:24,
-    2#000011000110011000110000:24,
-    2#000001100000000001100000:24,
-    2#000000111000000111000000:24,
-    2#000000011111111110000000:24,
-    2#000000000111111000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24>>.
-
-outline_bitmap(small) ->
-    <<
-    2#1111111111111111:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1000000000000001:16,
-    2#1111111111111111:16>>;
-outline_bitmap(big) ->
-    <<
-    2#111111111111111111111111:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#100000000000000000000001:24,
-    2#111111111111111111111111:24>>.
-
-cube_bitmap(small) ->
-    wings_shape:cube_bitmap();
-cube_bitmap(big) ->
-    <<
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000011110000000000:24,
-    2#000000001111111100000000:24,
-    2#000000111101101111000000:24,
-    2#000011110001100011110000:24,
-    2#000111000001100000111000:24,
-    2#000110000001100000011000:24,
-    2#000110000001100000011000:24,
-    2#000110000001100000011000:24,
-    2#000110000001100000011000:24,
-    2#000110000001100000011000:24,
-    2#000110000011110000011000:24,
-    2#000110001111111100011000:24,
-    2#000110111100001111011000:24,
-    2#000111110000000011111000:24,
-    2#000111100000000001111000:24,
-    2#000011111100001111110000:24,
-    2#000000111111111111000000:24,
-    2#000000000011110000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24>>.
-
-vertex_sel_bitmap(small) ->
-    wings_shape:vertex_sel_cube_bitmap();
-vertex_sel_bitmap(big) ->
-    <<
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000110000000000000000000:24,
-    2#001111000000000000000000:24,
-    2#001111000000000000000000:24,
-    2#000110000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000001100000000000:24,
-    2#000000000011110000000000:24,
-    2#000000000011110000000000:24,
-    2#000000000001100000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24>>.
-
-edge_sel_bitmap(small) ->
-    wings_shape:edge_sel_cube_bitmap();
-edge_sel_bitmap(big) ->
-    <<
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000110000000000:24,
-    2#000000000001111100000000:24,
-    2#000000000001101111000000:24,
-    2#000000000001100011110000:24,
-    2#000000000001100000111000:24,
-    2#000000000001100000011000:24,
-    2#000000000001100000011000:24,
-    2#000000000001100000011000:24,
-    2#000000000001100000011000:24,
-    2#000000000001100000011000:24,
-    2#000000000001110000011000:24,
-    2#000000000000111100011000:24,
-    2#000000000000001111011000:24,
-    2#000000000000000011111000:24,
-    2#000000000000000001110000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24>>.
-
-face_sel_bitmap(small) ->
-    wings_shape:face_sel_cube_bitmap();
-face_sel_bitmap(big) ->
-    <<
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000010000000000:24,
-    2#000000000000011100000000:24,
-    2#000000000000011111000000:24,
-    2#000000000000011111100000:24,
-    2#000000000000011111100000:24,
-    2#000000000000011111100000:24,
-    2#000000000000011111100000:24,
-    2#000000000000011111100000:24,
-    2#000000000000001111100000:24,
-    2#000000000000000011100000:24,
-    2#000000000000000000100000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24>>.
-
-body_sel_bitmap(small) ->
-    wings_shape:selcube_bitmap();
-body_sel_bitmap(big) ->
-    <<
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000010010000000000:24,
-    2#000000001110011100000000:24,
-    2#000000111110011111000000:24,
-    2#000001111110011111100000:24,
-    2#000001111110011111100000:24,
-    2#000001111110011111100000:24,
-    2#000001111110011111100000:24,
-    2#000001111110011111100000:24,
-    2#000001111100001111100000:24,
-    2#000001110000000011100000:24,
-    2#000001000011110000100000:24,
-    2#000000001111111100000000:24,
-    2#000000011111111110000000:24,
-    2#000000000011110000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24,
-    2#000000000000000000000000:24>>.
 
 move_if_outside(X0, Y, Mw, Mh, Mi) ->
     {W,H} = wings_wm:top_size(),

@@ -236,7 +236,7 @@ buff(Bin, Type, #cli{context=Context})
 
 image(Bin, Dim, Format, CL) ->
     image(Bin, Dim, Format, [read_only, copy_host_ptr], CL).
-image(Bin, {W,H}, Format = {_,_}, Alloc, #cli{context=Context})
+image(Bin, {W,H}, #cl_image_format{} = Format, Alloc, #cli{context=Context})
   when is_binary(Bin) ->
     {ok, Buff} = cl:create_image2d(Context, Alloc, Format, W, H, 0, Bin),
     Buff.
