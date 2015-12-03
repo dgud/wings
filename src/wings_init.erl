@@ -66,8 +66,8 @@ init() ->
 
     wxWindow:connect(Canvas, size),
     wxWindow:connect(Frame, close_window),
-    wxWindow:connect(Frame, command_menu_selected, [skip]),
-    wxWindow:connect(Frame, activate, [skip]),
+    wxWindow:connect(Frame, command_menu_selected, []),
+    wxWindow:connect(Frame, activate, []),
     try wxWindow:connect(Canvas, mouse_capture_lost)
     catch _:_ -> ok end, %% Not available in all wx versions yet.
 
