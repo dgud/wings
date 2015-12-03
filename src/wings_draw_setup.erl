@@ -16,21 +16,18 @@
 -export([we/3]).  %% For plugins
 
 -export([work/2,smooth/2,prepare/3,prepare/4,flat_faces/2]).
--export([enableVertexPointer/1,enableNormalPointer/1,
-	 enableColorPointer/1,enableTexCoordPointer/1,
-	 enableTangentCoordPointer/1,
-	 disableVertexPointer/1,disableNormalPointer/1,
-	 disableColorPointer/1,disableTexCoordPointer/1,
-	 disableTangentCoordPointer/1
-	]).
--export([face_vertex_count/1]).
-%% Tangent calcs
--export([add_ts/5, add_tangents/3]).
+-export([enable_pointers/2,disable_pointers/2]).
+-export([delete_vab/1]).
+-export([face_vertex_count/1,has_active_color/1]).
+
+%% Used by wings_proxy.
+-export([create_vab/4,create_tangent_vab/5,
+	 add_ts/5,add_tangents/3]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [reverse/1,sort/1]).
+-import(lists, [reverse/1,sort/1,foldl/3]).
 
 %%%
 %%% we(We, [Option], St) -> #vab{} See wings.hrl
@@ -94,59 +91,97 @@ check_attrib(_, D) ->
 %%% Help functions to activate and disable buffer pointers.
 %%%
 
-enableVertexPointer({Stride,BinVs}) ->
+has_active_color(#vab{face_vc=Color}) ->
+    Color =/= none.
+
+%% enable_pointers(#vab{}, [ExtraPointer]) ->
+%%    ExtraPointer = face_normals | vertex_normals | colors | uvs | tangents
+%%  Enable the vertex buffer pointer, and optionally other pointers.
+
+enable_pointers(#vab{id=Vbo,face_vs={Stride,BinVs}}=Vab, Extra) ->
+    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
     gl:vertexPointer(3, ?GL_FLOAT, Stride, BinVs),
     gl:enableClientState(?GL_VERTEX_ARRAY),
-    true.
+    [enable_pointer(What, Vab) || What <- Extra],
+    gl:bindBuffer(?GL_ARRAY_BUFFER, 0).
 
-enableNormalPointer({Stride,Ns}) ->
+%% disable_pointers(#vab{}, [ExtraPointer])
+%%    ExtraPointer = face_normals | vertex_normals | colors | uvs | tangents
+%%  Disable the vertex buffer pointer, and optionally other pointers.
+
+disable_pointers(#vab{}=Vab, Extra) ->
+    gl:disableClientState(?GL_VERTEX_ARRAY),
+    [disable_pointer(What, Vab) || What <- Extra],
+    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+    ok.
+
+enable_pointer(face_normals, #vab{face_fn={Stride,Ns}}) ->
     gl:normalPointer(?GL_FLOAT, Stride, Ns),
+    gl:enableClientState(?GL_NORMAL_ARRAY);
+enable_pointer(vertex_normals, #vab{id=MainVbo,face_sn={vbo,Vbo}}) ->
+    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
+    gl:normalPointer(?GL_FLOAT, 0, 0),
     gl:enableClientState(?GL_NORMAL_ARRAY),
-    true.
+    gl:bindBuffer(?GL_ARRAY_BUFFER, MainVbo);
+enable_pointer(vertex_normals, #vab{face_sn={Stride,Ns}}) ->
+    %% Only used by wings_cc.
+    gl:normalPointer(?GL_FLOAT, Stride, Ns),
+    gl:enableClientState(?GL_NORMAL_ARRAY);
+enable_pointer(colors, #vab{face_vc=FaceCol}) ->
+    case FaceCol of
+	none ->
+	    ok;
+	{Stride,Color} ->
+	    gl:colorPointer(3, ?GL_FLOAT, Stride, Color),
+	    gl:enableClientState(?GL_COLOR_ARRAY)
+    end;
+enable_pointer(uvs, #vab{face_uv=FaceUV}) ->
+    case FaceUV of
+	none ->
+	    ok;
+	{Stride,UV} ->
+	    gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV),
+	    gl:enableClientState(?GL_TEXTURE_COORD_ARRAY)
+    end;
+enable_pointer(tangents, #vab{face_ts=FaceTs}) ->
+    case FaceTs of
+	none ->
+	    ok;
+	{Stride,Ts} ->
+	    gl:vertexAttribPointer(?TANGENT_ATTR, 4, ?GL_FLOAT,
+				   ?GL_FALSE, Stride, Ts),
+	    gl:enableVertexAttribArray(?TANGENT_ATTR)
+    end.
 
-enableColorPointer({Stride,Color}) ->
-    gl:colorPointer(3, ?GL_FLOAT, Stride, Color),
-    gl:enableClientState(?GL_COLOR_ARRAY),
-    true;
-enableColorPointer(none) -> false.
-
-enableTexCoordPointer({Stride,UV}) ->
-    gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV),
-    gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),
-    true;
-enableTexCoordPointer(none) -> false.
-
-enableTangentCoordPointer({Stride,Tan}) ->
-    %% Check gl-version 2.0
-    gl:vertexAttribPointer(?TANGENT_ATTR, 4, ?GL_FLOAT, ?GL_FALSE, Stride, Tan),
-    gl:enableVertexAttribArray(?TANGENT_ATTR),
-    true;
-enableTangentCoordPointer(none) -> false.
-
-disableVertexPointer({_Stride,_BinVs}) ->
-    gl:disableClientState(?GL_VERTEX_ARRAY).
-
-disableNormalPointer({_Stride,_Ns}) ->
-    gl:disableClientState(?GL_NORMAL_ARRAY).
-
-disableColorPointer({_Stride,_Color}) ->
-    gl:disableClientState(?GL_COLOR_ARRAY);
-disableColorPointer(none) -> ok.
-
-disableTexCoordPointer({_Stride,_UV}) ->
-    gl:disableClientState(?GL_TEXTURE_COORD_ARRAY),
-    ok;
-disableTexCoordPointer(none) -> ok.
-
-disableTangentCoordPointer({_Stride,_UV}) ->
-    %% Check version
-    gl:disableVertexAttribArray(?TANGENT_ATTR);
-disableTangentCoordPointer(none) -> ok.
+disable_pointer(face_normals, _) ->
+    gl:disableClientState(?GL_NORMAL_ARRAY);
+disable_pointer(vertex_normals, _) ->
+    gl:disableClientState(?GL_NORMAL_ARRAY);
+disable_pointer(colors, #vab{face_vc=FaceVc}) ->
+    case FaceVc of
+	none -> ok;
+	{_,_} -> gl:disableClientState(?GL_COLOR_ARRAY)
+    end;
+disable_pointer(uvs, #vab{face_uv=FaceUV}) ->
+    case FaceUV of
+	none -> ok;
+	{_,_} -> gl:disableClientState(?GL_TEXTURE_COORD_ARRAY)
+    end;
+disable_pointer(tangents, #vab{face_ts=FaceTs}) ->
+    case FaceTs of
+	none -> ok;
+	{_,_} -> gl:disableVertexAttribArray(?TANGENT_ATTR)
+    end.
 
 face_vertex_count(#dlo{vab=#vab{mat_map=[{_Mat,_Type,Start,Count}|_]}}) ->
     Start+Count;
 face_vertex_count(#vab{mat_map=[{_Mat,_Type,Start,Count}|_]}) ->
     Start+Count.
+
+delete_vab(#vab{id=Vbo}) when is_integer(Vbo) ->
+    gl:deleteBuffers([Vbo]);
+delete_vab(#vab{}) ->
+    ok.
 
 %% Setup face_vs and face_fn and additional uv coords or vertex colors
 work(Dlo, St) ->
@@ -161,9 +196,10 @@ work(#dlo{vab=none,src_we=#we{fs=Ftab}}=D, St, Attr) ->
 work(#dlo{vab=#vab{face_vs=none},src_we=#we{fs=Ftab}}=D, St, Attr) ->
     Prepared = prepare(gb_trees:to_list(Ftab), D, St, Attr),
     flat_faces(Prepared, D);
-work(#dlo{vab=#vab{face_fn=none}}=D, _St, _) ->
-    %% Can this really happen?
-    setup_flat_normals(D);
+work(#dlo{vab=#vab{face_fn=none}=Vab}=D, St, Attr) ->
+    %% Can this really happen? If it can, it happens infrequently,
+    %% so we don't have to handle it efficiently.
+    work(D#dlo{vab=Vab#vab{face_vs=none}}, St, Attr);
 work(D, _, _) -> D.
 
 %% Setup face_vs and face_sn and additional uv coords or vertex colors
@@ -206,15 +242,8 @@ plain_flat_faces([{Mat,Fs}|T], #dlo{ns=Ns}=D, Start0, Vs0, Fmap0, MatInfo0) ->
     plain_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 plain_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> ->
-	    Ns = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs
-    end,
-    S = 24,
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv=none,
-		   face_map=FaceMap,mat_map=MatInfo}}.
+    Vab = create_vab([vertices,face_normals], Vs, FaceMap, MatInfo),
+    D#dlo{vab=Vab}.
 
 flat_faces_1([{Face,_}|Fs], Ns, Start, Vs, FaceMap) ->
     case array:get(Face, Ns) of
@@ -241,16 +270,8 @@ uv_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     uv_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 uv_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> ->
-	    Ns = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,UV/bytes>> = Ns
-    end,
-    S = 32,
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},
-		   face_map=FaceMap,mat_map=MatInfo}}.
+    Vab = create_vab([vertices,face_normals,uvs], Vs, FaceMap, MatInfo),
+    D#dlo{vab=Vab}.
 
 uv_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
     UVs = wings_va:face_attr(uv, Face, Edge, We),
@@ -280,17 +301,13 @@ tangent_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0, Ts0) ->
     tangent_flat_faces(T, D, Start, Vs, FaceMap, MatInfo, Ts);
 tangent_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> -> Ns = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,UV/bytes>> = Ns
-    end,
-    S = 32,
-    VsTs = array:map(fun(_V, {T, BT}) -> {e3d_vec:norm(T), e3d_vec:norm(BT)} end, VsTs0),
-    Ts = add_tangents(lists:reverse(RevF2V), VsTs, <<>>),
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV}, face_ts={16, Ts},
-		   face_map=FaceMap,mat_map=MatInfo}}.
+    VsTs = array:map(fun(_V, {T,BT}) ->
+			     {e3d_vec:norm(T),e3d_vec:norm(BT)}
+		     end, VsTs0),
+    Data = add_tangents(lists:reverse(RevF2V), VsTs, Vs),
+    What = [vertices,face_normals,uvs],
+    Vab = create_tangent_vab(What, Vs, Data, FaceMap, MatInfo),
+    D#dlo{vab=Vab}.
 
 tangent_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap, Ts0) ->
     UVs = wings_va:face_attr(uv, Face, Edge, We),
@@ -327,16 +344,8 @@ col_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     col_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
 col_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> ->
-	    Ns = Col = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,Col/bytes>> = Ns
-    end,
-    S = 36,
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_vc={S,Col},
-		   face_uv=none,face_map=FaceMap,mat_map=MatInfo}}.
+    Vab = create_vab([vertices,face_normals,colors], Vs, FaceMap, MatInfo),
+    D#dlo{vab=Vab}.
 
 col_flat_faces_1([{Face,Edge}|T], #dlo{ns=Ns,src_we=We}=D, Start, Vs0, Fmap0) ->
     Cols = wings_va:face_attr(color, Face, Edge, We),
@@ -365,18 +374,9 @@ col_uv_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     col_uv_faces(T, D, Start, Vs, FaceMap, MatInfo);
 col_uv_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> ->
-	    Ns = Col = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,Col/bytes>> = Ns,
-	    <<_:3/unit:32,UV/bytes>> = Col
-    end,
-    S = 44,
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},
-		   face_vc={S,Col},face_uv={S,UV},
-		   face_map=FaceMap,mat_map=MatInfo}}.
+    Vab = create_vab([vertices,face_normals,colors,uvs],
+		     Vs, FaceMap, MatInfo),
+    D#dlo{vab=Vab}.
 
 col_uv_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
     UVs = wings_va:face_attr([color|uv], Face, Edge, We),
@@ -406,20 +406,13 @@ col_tangent_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0, Ts0) ->
     col_tangent_faces(T, D, Start, Vs, FaceMap, MatInfo, Ts);
 col_tangent_faces([], D, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    case Vs of
-	<<>> ->
-	    Ns = Col = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,Col/bytes>> = Ns,
-	    <<_:3/unit:32,UV/bytes>> = Col
-    end,
-    VsTs = array:map(fun(_V, {T, BT}) -> {e3d_vec:norm(T), e3d_vec:norm(BT)} end, VsTs0),
-    Ts = add_tangents(lists:reverse(RevF2V), VsTs, <<>>),
-    S = 44,
-    D#dlo{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},
-		   face_vc={S,Col},face_uv={S,UV},face_ts={16, Ts},
-		   face_map=FaceMap,mat_map=MatInfo}}.
+    VsTs = array:map(fun(_V, {T,BT}) ->
+			     {e3d_vec:norm(T),e3d_vec:norm(BT)}
+		     end, VsTs0),
+    Data = add_tangents(lists:reverse(RevF2V), VsTs, Vs),
+    What = [vertices,face_normals,colors,uvs],
+    Vab = create_tangent_vab(What, Vs, Data, FaceMap, MatInfo),
+    D#dlo{vab=Vab}.
 
 col_tangent_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap, Ts0) ->
     UVs = wings_va:face_attr([color|uv], Face, Edge, We),
@@ -449,18 +442,6 @@ col_tangent_faces_1([], _, Start, Vs, FaceMap,Ts) ->
     {Start,Vs,FaceMap,Ts}.
 
 
-%% setup only normals
-setup_flat_normals(D=#dlo{vab=#vab{face_map=Fmap0}=Vab,ns=Ns}) ->
-    Fs = lists:keysort(2, array:sparse_to_orddict(Fmap0)),
-    FN = setup_flat_normals_1(Fs, Ns, <<>>),
-    D#dlo{vab=Vab#vab{face_fn={0,FN}}}.
-
-setup_flat_normals_1([{Face, {_, Count}}|Fs], Ns, FN) ->
-    [Normal|_] = array:get(Face,Ns),
-    setup_flat_normals_1(Fs, Ns, dup3(Count,FN,Normal));
-setup_flat_normals_1([],_,FN) ->
-    FN.
-
 setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,mirror=MM,
 			    vab=#vab{face_map=Fmap0}=Vab}) ->
     Ns1 = array:sparse_foldl(fun(F,[N|_], A) -> [{F,N}|A];
@@ -471,7 +452,11 @@ setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,mirror=MM,
     Ftab  = array:from_orddict(Flist),
     Fs    = lists:keysort(2, array:sparse_to_orddict(Fmap0)),
     SN = setup_smooth_normals(Fs, Ftab, Ns0, <<>>),
-    D#dlo{vab=Vab#vab{face_sn={0,SN}}}.
+    [Vbo] = gl:genBuffers(1),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
+    gl:bufferData(?GL_ARRAY_BUFFER, byte_size(SN), SN, ?GL_STATIC_DRAW),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+    D#dlo{vab=Vab#vab{face_sn={vbo,Vbo}}}.
 
 setup_smooth_normals([{Face,{_,3}}|Fs], Ftab, Flat, SN0) ->
     %% One triangle.
@@ -935,7 +920,7 @@ prepare(Ftab0, #we{}=We, St, Attr) ->
     prepare_1(Ftab, We, St, Attr).
 
 prepare_1(Ftab, We, St, Attr) ->
-    MatFaces = wings_facemat:mat_faces(Ftab, We),
+    MatFaces = mat_faces(Ftab, We),
     case wings_va:any_attributes(We) of
 	false when Attr =:= undefined ->
 	    %% Since there are no vertex attributes,
@@ -981,3 +966,72 @@ prepare_3([], Attr) -> Attr.
 prepare_4(Attr, plain) -> Attr;
 prepare_4(uv, color) -> color_uv;
 prepare_4(uv_tangent, color) -> color_uv_tangent.
+
+mat_faces(Ftab, We) ->
+    case wings_pref:get_value(show_materials) of
+	false ->
+	    [{default,Ftab}];
+	true ->
+	    wings_facemat:mat_faces(Ftab, We)
+    end.
+
+%% create_tangent_vab(What, VsData, AllData, FaceMap, MatInfo)
+%%  Create a #vab{} record with tangent data.
+
+create_tangent_vab(What, VsData, AllData, FaceMap, MatInfo) ->
+    Vab = create_vab(What, AllData, FaceMap, MatInfo),
+    VsSize = byte_size(VsData),
+    Vab#vab{data=VsData,face_ts={16,VsSize}}.
+
+%%%
+%%% Create a #vab{} record.
+%%%
+
+-type vab_item_tag() ::
+	'vertices' |
+	'face_normals' |
+	'colors' |
+	'uvs'.
+
+-spec create_vab([vab_item_tag()], binary(), any(), any()) -> #vab{}.
+
+create_vab(What, <<>>, FaceMap, MatInfo) ->
+    [Vbo] = gl:genBuffers(1),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
+    gl:bufferData(?GL_ARRAY_BUFFER, 0, <<>>, ?GL_STATIC_DRAW),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+    Vab = #vab{id=Vbo,face_map=FaceMap,mat_map=MatInfo},
+    foldl(fun(E, Vab0) ->
+		  set_vab_item(E, {0,0}, Vab0)
+	  end, Vab, What);
+create_vab(What, Data, FaceMap, MatInfo) ->
+    Stride = lists:foldl(fun(Item, Sum) ->
+				 Sum + width(Item)
+			 end, 0, What),
+    [Vbo] = gl:genBuffers(1),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
+    gl:bufferData(?GL_ARRAY_BUFFER, byte_size(Data), Data, ?GL_STATIC_DRAW),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+    Vab = #vab{id=Vbo,data=Data,face_map=FaceMap,mat_map=MatInfo},
+    create_vab_1(What, 0, Stride, Data, Vab).
+
+create_vab_1([H|T], Pos, Stride, Data0, Vab0) ->
+    Item = {Stride,Pos},
+    Vab = set_vab_item(H, Item, Vab0),
+    create_vab_1(T, Pos+width(H), Stride, Data0, Vab);
+create_vab_1([], _, _, _, Vab) -> Vab.
+
+set_vab_item(vertices, Item, Vab) ->
+    Vab#vab{face_vs=Item};
+set_vab_item(face_normals, Item, Vab) ->
+    Vab#vab{face_fn=Item};
+set_vab_item(colors, Item, Vab) ->
+    Vab#vab{face_vc=Item};
+set_vab_item(uvs, Item, Vab) ->
+    Vab#vab{face_uv=Item}.
+
+width(vertices) -> 3*4;
+width(face_normals) -> 3*4;
+width(vertex_normals) -> 3*4;
+width(uvs) -> 2*4;
+width(colors) -> 3*4.

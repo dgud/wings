@@ -117,7 +117,7 @@
 -type wings_cmd() :: tuple() | atom().
 -type maybe_wings_cmd() :: 'ignore' | wings_cmd().
 
--type wings_vtx_buffer() :: 'none' | {integer(),binary()}.
+-type wings_vtx_buffer() :: 'none' | {integer(),integer()}.
 
 
 %% State and records
@@ -296,15 +296,19 @@
 	 needed=[]
 	}).
 
-%% Vertex array buffers
+%% Vertex Buffer Objects. The name is #vab{} for historical reasons.
 -record(vab, 
 	{
+	  id :: non_neg_integer(), %Unique identifier for this instance.
+	  data,			 %Copy of data in VBO (for picking).
+
 	  %% Vertex buffers. Each vertex buffer looks like
 	  %% {Stride,Binary}, where Stride is the stride to be
 	  %% used when setting up the vertex buffer.
 	  face_vs  = none :: wings_vtx_buffer(), %Vertex binary for drawing faces
 	  face_fn  = none :: wings_vtx_buffer(), %Face Normals (flat but per vertex)
-	  face_sn  = none :: wings_vtx_buffer(), %Face Normals (smooth)
+	  face_sn  = none ::			%Face Normals (smooth)
+	    {'vbo',non_neg_integer()} | wings_vtx_buffer(),
 	  face_uv  = none :: wings_vtx_buffer(), %UV coords
 	  face_ts  = none :: wings_vtx_buffer(), %Tangent vector
 	  face_vc  = none :: wings_vtx_buffer(), %Vertex Colors coords

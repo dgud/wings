@@ -215,34 +215,28 @@ convert_to_vs(face,Sel,We) ->
 convert_to_vs(body,_,We) ->
     wings_we:visible_vs(We).
 
-update_dlist({vs,LockedVs},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}=We}=D, _) ->
+update_dlist({vs,LockedVs}, #dlo{plugins=Pdl,src_we=#we{vp=Vtab}=We}=D, _) ->
     Key = ?MODULE,
     Locked0 = gb_sets:to_list(LockedVs),
     Visible = wings_we:visible_vs(We),
-    Locked = [LVs || LVs <- Locked0, lists:member(LVs,Visible)],
-    Pos = positions(Locked,Vtab,[]),
-    case Pos of
-      [] ->
-        D#dlo{plugins=[{Key,none}|Pdl]};
-      _ ->
-        List = gl:genLists(1),
-        gl:newList(List,?GL_COMPILE),
-        gl:'begin'(?GL_POINTS),
-        pump_vertices(Pos),
-        gl:'end'(),
-        gl:endList(),
-        D#dlo{plugins=[{Key,List}|Pdl]}
+    Locked = [LVs || LVs <- Locked0, lists:member(LVs, Visible)],
+    case positions(Locked, Vtab, <<>>) of
+	<<>> ->
+	    D#dlo{plugins=[{Key,none}|Pdl]};
+	Data ->
+	    N = byte_size(Data) div 12,
+	    Draw0 = fun() ->
+			    gl:drawArrays(?GL_POINTS, 0, N)
+		    end,
+	    Draw = wings_vbo:new(Draw0, Data),
+	    D#dlo{plugins=[{Key,Draw}|Pdl]}
     end.
 
-pump_vertices([A|Vs]) ->
-    gl:vertex3fv(A),
-    pump_vertices(Vs);
-pump_vertices([]) -> ok.
-
-positions([V|Locked],Vtab,Acc) ->
-    Pos = array:get(V,Vtab),
-    positions(Locked,Vtab,[Pos|Acc]);
-positions([],_,Acc) -> Acc.
+positions([V|Vs], Vtab, Acc0) ->
+    {X,Y,Z} = array:get(V, Vtab),
+    Acc = <<Acc0/binary,X:?F32,Y:?F32,Z:?F32>>,
+    positions(Vs, Vtab, Acc);
+positions([], _, Acc) -> Acc.
 
 get_locked_vs(Pst) ->
     case gb_trees:lookup(?MODULE, Pst) of

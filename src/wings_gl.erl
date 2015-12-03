@@ -25,7 +25,7 @@
 -export([have_fbo/0, setup_fbo/2, delete_fbo/1]).
 
 %% GL wrappers
--export([callLists/1, project/6, unProject/6, 
+-export([project/6, unProject/6,
 	 triangulate/2, deleteTextures/1,
 	 bindFramebuffer/2, 
 	 drawElements/4
@@ -368,9 +368,6 @@ check_fbo_status(FB) ->
 
 bindFramebuffer(W, Fbo) ->
     gl:?bindFramebuffer(W,Fbo).
-
-
-callLists(List) ->  gl:callLists(List).
 
 project(X,Y,Z, Mod, Proj, View) ->
     {_, RX,RY,RZ} = glu:project(X,Y,Z, mat(Mod), mat(Proj), View),

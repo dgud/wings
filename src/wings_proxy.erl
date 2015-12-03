@@ -152,29 +152,18 @@ update_edges(D, Pd) ->
     update_edges_1(D, Pd, wings_pref:get_value(proxy_shaded_edge_style)).
 
 update_edges_1(_, _, cage) -> none;
-update_edges_1(_, #sp{vab=#vab{face_vs=BinVs,face_fn=Ns,mat_map=MatMap}}, all) ->
-    wings_draw_setup:enableVertexPointer(BinVs),
-    wings_draw_setup:enableNormalPointer(Ns),
-    Dl = gl:genLists(1),
-    gl:newList(Dl, ?GL_COMPILE),
+update_edges_1(_, #sp{vab=#vab{mat_map=MatMap}=Vab}, all) ->
     [{_Mat,_Type,Start,MCount}|_] = MatMap,
     Count = Start+MCount,
-    gl:drawArrays(?GL_QUADS, 0, Count),
-    gl:endList(),
-    wings_draw_setup:disableVertexPointer(BinVs),
-    wings_draw_setup:disableNormalPointer(Ns),
-    Dl;
+    fun() ->
+	    Extra = [face_normals],
+	    wings_draw_setup:enable_pointers(Vab, Extra),
+	    gl:drawArrays(?GL_QUADS, 0, Count),
+	    wings_draw_setup:disable_pointers(Vab, Extra)
+    end;
 update_edges_1(#dlo{}, #sp{type={wings_cc,_}, vab=#vab{face_es={0,Bin}}}, some) ->
-    Dl = gl:genLists(1),
-    gl:newList(Dl, ?GL_COMPILE),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    wings_draw:drawVertices(?GL_LINES, Bin),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    gl:endList(),
-    Dl;
+    vbo_draw_arrays(?GL_LINES, Bin);
 update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, some) ->
-    Dl = gl:genLists(1),
-    gl:newList(Dl, ?GL_COMPILE),
     Edges0 = wings_edge:from_vs(wings_util:array_keys(OldVtab), We),
     case wings_we:is_open(We) of
 	true ->
@@ -190,11 +179,14 @@ update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, so
 			      <<Bin/binary,X1:?F32,Y1:?F32,Z1:?F32,
 			       X2:?F32,Y2:?F32,Z2:?F32>>
 		      end, <<>>, Edges),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    wings_draw:drawVertices(?GL_LINES, Bin),
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    gl:endList(),
-    Dl.
+    vbo_draw_arrays(?GL_LINES, Bin).
+
+vbo_draw_arrays(Type, Data) ->
+    N = byte_size(Data) div 12,
+    D = fun() ->
+		gl:drawArrays(Type, 0, N)
+	end,
+    wings_vbo:new(D, Data).
 
 smooth(D=#dlo{proxy=false},_) -> D;
 smooth(D=#dlo{drag=Active},_) when Active =/= none -> D;
@@ -210,7 +202,12 @@ smooth(D=#dlo{proxy_data=#sp{smooth=none,
 		  Flist = wings_we:normals(PartialNs, We, MM),
 		  Ftab  = array:from_orddict(Flist),
 		  SN    = setup_smooth_normals(FN, Ftab, <<>>),
-		  Vab0#vab{face_sn={0,SN}};
+		  [Vbo] = gl:genBuffers(1),
+		  gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
+		  gl:bufferData(?GL_ARRAY_BUFFER, byte_size(SN), SN,
+				?GL_STATIC_DRAW),
+		  gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+		  Vab0#vab{face_sn={vbo,Vbo}};
 	      _ ->
 		  Vab0
 	  end,
@@ -489,16 +486,11 @@ plain_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, We, Start0, Vs0, Fmap0),
     MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
     plain_flat_faces(T, Pd, Start, Vs, FaceMap, MatInfo);
-plain_flat_faces([], Pd, _Start, Vs, FaceMap, MatInfo) ->
-    case Vs of
-	<<>> ->
-	    Ns = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs
-    end,
-    S = 24,
-    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv=none,
-		   face_map=reverse(FaceMap),mat_map=MatInfo}}.
+plain_flat_faces([], Pd, _Start, Vs, FaceMap0, MatInfo) ->
+    FaceMap = reverse(FaceMap0),
+    What = [vertices,face_normals],
+    Vab = wings_draw_setup:create_vab(What, Vs, FaceMap, MatInfo),
+    Pd#sp{vab=Vab}.
 
 flat_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap) ->
     VsPos  = wings_face:vertex_positions(Face, Edge, We),
@@ -511,17 +503,11 @@ uv_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = uv_flat_faces_1(Fs, We, Start0, Vs0, Fmap0),
     MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
     uv_flat_faces(T, Pd, Start, Vs, FaceMap, MatInfo);
-uv_flat_faces([], Pd, _Start, Vs, FaceMap, MatInfo) ->
-    case Vs of
-	<<>> ->
-	    Ns = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,UV/bytes>> = Ns
-    end,
-    S = 32,
-    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},
-		  face_map=reverse(FaceMap),mat_map=MatInfo}}.
+uv_flat_faces([], Pd, _Start, Vs, FaceMap0, MatInfo) ->
+    FaceMap = reverse(FaceMap0),
+    What = [vertices,face_normals,uvs],
+    Vab = wings_draw_setup:create_vab(What, Vs, FaceMap, MatInfo),
+    Pd#sp{vab=Vab}.
 
 uv_flat_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap) ->
     {VsPos,UV} = wings_va:face_pos_attr(uv, Face, Edge, We),
@@ -536,19 +522,16 @@ tangent_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0, Ts
     {Start,Vs,FaceMap, Ts} = tangent_flat_faces_1(Fs, We, Start0, Vs0, Fmap0, Ts0),
     MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
     tangent_flat_faces(T, Pd, Start, Vs, FaceMap, MatInfo, Ts);
-tangent_flat_faces([], Pd, _Start, Vs, FaceMap, MatInfo, {VsTs0, RevF2V}) ->
-    case Vs of
-	<<>> ->
-	    Ns = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,UV/bytes>> = Ns
-    end,
-    S = 32,
-    VsTs = array:map(fun(_V, {T, BT}) -> {e3d_vec:norm(T), e3d_vec:norm(BT)} end, VsTs0),
-    Ts = wings_draw_setup:add_tangents(lists:reverse(RevF2V), VsTs, <<>>),
-    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_uv={S,UV},face_ts={16, Ts},
-		   face_map=reverse(FaceMap),mat_map=MatInfo}}.
+tangent_flat_faces([], Pd, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
+    FaceMap = reverse(FaceMap0),
+    VsTs = array:map(fun(_V, {T, BT}) ->
+			     {e3d_vec:norm(T), e3d_vec:norm(BT)}
+		     end, VsTs0),
+    Data = wings_draw_setup:add_tangents(lists:reverse(RevF2V), VsTs, Vs),
+    What = [vertices,face_normals,uvs],
+    Vab = wings_draw_setup:create_tangent_vab(What, Vs, Data,
+					      FaceMap, MatInfo),
+    Pd#sp{vab=Vab}.
 
 tangent_flat_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap, Ts0) ->
     {VsPos,UV} = wings_va:face_pos_attr(uv, Face, Edge, We),
@@ -564,17 +547,11 @@ col_flat_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = col_flat_faces_1(Fs, We, Start0, Vs0, Fmap0),
     MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
     col_flat_faces(T, Pd, Start, Vs, FaceMap, MatInfo);
-col_flat_faces([], Pd, _Start, Vs, FaceMap, MatInfo) ->
-    case Vs of
-	<<>> ->
-	    Ns = Col = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,Col/bytes>> = Ns
-    end,
-    S = 36,
-    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},face_vc={S,Col},
-		   face_uv=none,face_map=reverse(FaceMap),mat_map=MatInfo}}.
+col_flat_faces([], Pd, _Start, Vs, FaceMap0, MatInfo) ->
+    FaceMap = reverse(FaceMap0),
+    What = [vertices,face_normals,colors],
+    Vab = wings_draw_setup:create_vab(What, Vs, FaceMap, MatInfo),
+    Pd#sp{vab=Vab}.
 
 col_flat_faces_1([{Face,Edge}|T], We, Start, Vs, Fmap) ->
     {VsPos,Col} = wings_va:face_pos_attr(color, Face, Edge, We),
@@ -589,19 +566,11 @@ col_uv_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = col_uv_faces_1(Fs, We, Start0, Vs0, Fmap0),
     MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
     col_uv_faces(T, Pd, Start, Vs, FaceMap, MatInfo);
-col_uv_faces([], Pd, _Start, Vs, FaceMap, MatInfo) ->
-    case Vs of
-	<<>> ->
-	    Ns = Col = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,Col/bytes>> = Ns,
-	    <<_:3/unit:32,UV/bytes>> = Col
-    end,
-    S = 44,
-    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},
-		   face_vc={S,Col},face_uv={S,UV},
-		   face_map=reverse(FaceMap),mat_map=MatInfo}}.
+col_uv_faces([], Pd, _Start, Vs, FaceMap0, MatInfo) ->
+    FaceMap = reverse(FaceMap0),
+    What = [vertices,face_normals,colors,uvs],
+    Vab = wings_draw_setup:create_vab(What, Vs, FaceMap, MatInfo),
+    Pd#sp{vab=Vab}.
 
 col_uv_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap) ->
     {VsPos,UV} = wings_va:face_pos_attr([color|uv], Face, Edge, We),
@@ -616,21 +585,16 @@ col_tangent_faces([{Mat,Fs}|T], #sp{we=We}=Pd, Start0, Vs0, Fmap0, MatInfo0, Ts0
     {Start,Vs,FaceMap, Ts} = col_tangent_faces_1(Fs, We, Start0, Vs0, Fmap0, Ts0),
     MatInfo = [{Mat,?GL_QUADS,Start0,Start-Start0}|MatInfo0],
     col_tangent_faces(T, Pd, Start, Vs, FaceMap, MatInfo, Ts);
-col_tangent_faces([], Pd, _Start, Vs, FaceMap, MatInfo, {VsTs0, RevF2V}) ->
-    case Vs of
-	<<>> ->
-	    Ns = Col = UV = Vs;
-	_ ->
-	    <<_:3/unit:32,Ns/bytes>> = Vs,
-	    <<_:3/unit:32,Col/bytes>> = Ns,
-	    <<_:3/unit:32,UV/bytes>> = Col
-    end,
-    S = 44,
-    VsTs = array:map(fun(_V, {T, BT}) -> {e3d_vec:norm(T), e3d_vec:norm(BT)} end, VsTs0),
-    Ts = wings_draw_setup:add_tangents(lists:reverse(RevF2V), VsTs, <<>>),
-    Pd#sp{vab=#vab{face_vs={S,Vs},face_fn={S,Ns},
-		   face_vc={S,Col},face_uv={S,UV},face_ts={16, Ts},
-		   face_map=reverse(FaceMap),mat_map=MatInfo}}.
+col_tangent_faces([], Pd, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
+    FaceMap = reverse(FaceMap0),
+    VsTs = array:map(fun(_V, {T,BT}) ->
+			     {e3d_vec:norm(T),e3d_vec:norm(BT)}
+		     end, VsTs0),
+    Data = wings_draw_setup:add_tangents(lists:reverse(RevF2V), VsTs, Vs),
+    What = [vertices,face_normals,colors,uvs],
+    Vab = wings_draw_setup:create_tangent_vab(What, Vs, Data,
+					      FaceMap, MatInfo),
+    Pd#sp{vab=Vab}.
 
 col_tangent_faces_1([{Face,Edge}|Fs], We, Start, Vs, FaceMap, Ts0) ->
     {VsPos,ColUV} = wings_va:face_pos_attr([color|uv], Face, Edge, We),

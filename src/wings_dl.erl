@@ -1,10 +1,11 @@
 %%
 %%  wings_dl.erl --
 %%
-%%     Manage display lists for objects in Geometry and AutoUV windows
-%%     (providing "garbage collection" of display lists).
+%%     Manage Vertex Buffer Objects (and display lists for objects in
+%%     Geometry and AutoUV windows (providing "garbage collection" of
+%%     display lists).
 %%
-%%  Copyright (c) 2001-2011 Bjorn Gustavsson
+%%  Copyright (c) 2001-2015 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -17,17 +18,16 @@
 -export([init/0,delete_dlists/0,
 	 update/2,map/2,fold/2,changed_materials/1,
 	 display_lists/0,
-	 call/1,mirror_matrix/1]).
+	 call/1,mirror_matrix/1,extra/3]).
 
-%%% This module manages display lists for all objects in a Geometry
-%%% or AutoUV window.
+%%% This module manages Vertex Buffer Objects (VBOs, represented by
+%%% #vab{} records) for all objects in a Geometry or AutoUV window.
 %%%
 %%% The major data structure of this module is a list of #dlo{}
 %%% records. There is one #dlo{} record for each visible object
 %%% (hidden objects have no #dlo{} record in the list). The #dlo{}
-%%% records holds several different type of display lists for
-%%% the corresponding object (e.g. a work display list for faces
-%%% in smooth mode), and also other needed information (e.g. the
+%%% record holds #vab{} records for rendering different aspects of the
+%%% corresponding object, and also other needed information (e.g. the
 %%% #we{} record for the object).
 %%%
 %%% The update/2 and map/2 functions are used for updating #dlo{}
@@ -36,8 +36,8 @@
 %%% new records (for newly added objects), while the map/2 function
 %%% only allows modification of already existing #dlo{} records.
 %%%
-%%% Both functions automatically deletes any display lists that
-%%% are no longer referenced by any #dlo{} record ("garbage collection").
+%%% Both functions automatically deletes VBOs that are no longer
+%%% referenced by any #dlo{} record ("garbage collection").
 %%%
 %%% The fold/2 function can be used for folding over all #dlo{}
 %%% records to collect information. The callback fun called by fold/2
@@ -50,7 +50,8 @@
 -record(du,
 	{dl=[],					%Display list records.
 	 mat=gb_trees:empty(),			%Materials.
-	 used=[]				%Display lists in use.
+	 used=[],				%Display lists in use.
+	 extra=#{}
 	 }).
 
 init() ->
@@ -58,7 +59,7 @@ init() ->
 	     undefined -> [];
 	     #du{dl=Dl0,used=Used} ->
 		 ?CHECK_ERROR(),
-		 foreach(fun(DL) -> gl:deleteLists(DL, 1) end, Used),
+		 gl:deleteBuffers(Used),
 		 gl:getError(),			%Clear error.
 		 clear_old_dl(Dl0)
 	 end,
@@ -137,9 +138,9 @@ fold(Fun, Acc) ->
     #du{dl=Dlists} = get_dl_data(),
     foldl(Fun, Acc, Dlists).
 
-%% call(DisplayListTerm)
-%%  Call the OpenGL display list using gl:callList/1 for
-%%  the display lists embedded in the display list term.
+%% call(Term)
+%%  Call OpenGL to render the geometry using the VBOs embedded in
+%%  the term.
 
 call(none) -> none;
 call({call,Dl,_}) -> call(Dl);
@@ -150,7 +151,7 @@ call({call_in_this_win,Win,Dl}) ->
     end;
 call([H|T]) -> call(H), call(T);
 call([]) -> ok;
-call(Dl) when is_integer(Dl) -> gl:callList(Dl).
+call(Draw) when is_function(Draw, 0) -> Draw().
 
 %% mirror_matrix(Id)
 %%  Return the mirror matrix for the object having id Id.
@@ -160,6 +161,25 @@ mirror_matrix(Id) -> fold(fun mirror_matrix/2, Id).
 mirror_matrix(#dlo{mirror=Matrix,src_we=#we{id=Id}}, Id) -> Matrix;
 mirror_matrix(_, Acc) -> Acc.
 
+%% extra(Category, Key, Update) -> CallableTerm.
+%%  Retrieve or register a drawable term for extra graphic
+%%  things that are not objects (e.g. the vector used in secondary
+%%  selection).
+
+extra(Category, Key, Update)
+  when is_atom(Category), is_function(Update, 1) ->
+    case get_dl_data() of
+	#du{extra=#{Category:={Key,Data}}} ->
+	    Data;
+	#du{extra=Extra0,used=Used0}=Du ->
+	    Data = Update(Key),
+	    Extra = Extra0#{Category=>{Key,Data}},
+	    Used1 = ordsets:from_list(update_seen_1(Data, [])),
+	    Used = ordsets:union(Used0, Used1),
+	    put_dl_data(Du#du{used=Used,extra=Extra}),
+	    Data
+    end.
+
 %%%
 %%% Local functions.
 %%%
@@ -167,7 +187,7 @@ mirror_matrix(_, Acc) -> Acc.
 delete_dlists() ->
     case erase(wings_wm:get_prop(display_lists)) of
 	#du{used=Used} ->
-	    foreach(fun(DL) -> gl:deleteLists(DL, 1) end, Used),
+	    gl:deleteBuffers(Used),
 	    gl:getError();			%Clear error.
 	_ ->
 	    ok
@@ -231,21 +251,19 @@ map_1(Fun, [D0|Dlists], Data0, Seen0, Acc) ->
 map_1(_Fun, [], Data, Seen, Acc) ->
     update_last(Data, Seen, Acc).
 
-update_last(Data, Seen, Acc) ->
-    #du{used=Used0} = Du = get_dl_data(),
+update_last(Data, Seen0, Acc) ->
+    #du{used=Used0,extra=Extra} = Du = get_dl_data(),
+    InExtra = [E || {_,{_,E}} <- maps:to_list(Extra)],
+    Seen = update_seen_1(InExtra, Seen0),
     Used = ordsets:from_list(Seen),
     put_dl_data(Du#du{used=Used,dl=reverse(Acc)}),
-    NotUsed = ordsets:subtract(Used0, Used),
-    delete_lists(NotUsed),
+    case ordsets:subtract(Used0, Used) of
+	[] ->
+	    ok;
+	[_|_]=NotUsed ->
+	    gl:deleteBuffers(NotUsed)
+    end,
     Data.
-
-delete_lists([]) -> ok;
-delete_lists([D1,D2|Dls]) when D1+1 =:= D2 ->
-    gl:deleteLists(D1, 2),
-    delete_lists(Dls);
-delete_lists([Dl|Dls]) ->
-    gl:deleteLists(Dl, 1),
-    delete_lists(Dls).
     
 update_seen(#dlo{plugins=Plugins}=D, Seen0) ->
     Seen = update_seen_1([V || {_,V} <- Plugins], Seen0),
@@ -264,8 +282,12 @@ update_seen_1({call,Dl1,Dl2}, Seen) ->
     update_seen_1(Dl1, update_seen_1(Dl2, Seen));
 update_seen_1({matrix,_,Dl}, Seen) ->
     update_seen_1(Dl, Seen);
-update_seen_1(Dl, Seen) when is_integer(Dl) ->
-    [Dl|Seen];
+update_seen_1(#vab{id=Id,face_sn={vbo,_}=Vbo}, Seen) ->
+    update_seen_1(Vbo, [Id|Seen]);
+update_seen_1(#vab{id=Id}, Seen) ->
+    [Id|Seen];
+update_seen_1({vbo,Id}, Seen) ->
+    [Id|Seen];
 update_seen_1(Dl, Seen) when is_tuple(Dl), element(1, Dl) =:= sp ->
     %% Proxy DL's
     update_seen_0(tuple_size(Dl), Dl, Seen);

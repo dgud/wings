@@ -2898,29 +2898,42 @@ get_vs_influence(V, VsDyn) ->
     end.
 
 %%%
-%%% Functions to produce the visual effect (inspired on wpc_magnet_mask.erl file)
+%%% Functions to produce the visual effect (inspired by wpc_magnet_mask)
 %%%
 
-%% It generate the OpenGl list of colored vertices
-update_dlist({edge_info,{EdList,ClBin}},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
+update_dlist({edge_info,{EdList,ClBin}},
+	     #dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
     Key = ?MODULE,
     case EdList of
-    [] ->
-        D#dlo{plugins=[{Key,none}|Pdl]};
-    _ ->
-	    wx:batch(fun() ->
-			     EdBin = pump_edges(EdList,Vtab),
-			     EdgeList = gl:genLists(1),
-			     gl:newList(EdgeList,?GL_COMPILE),
-			     wings_draw_setup:enableColorPointer({0,ClBin}),
-			     wings_draw_setup:enableVertexPointer({0,EdBin}),
-			     gl:drawArrays(?GL_LINES, 0, byte_size(EdBin) div 12),
-			     gl:disableClientState(?GL_VERTEX_ARRAY),
-			     gl:disableClientState(?GL_COLOR_ARRAY),
-			     gl:endList(),
-			     D#dlo{plugins=[{Key,EdgeList}|Pdl]}
-		     end)
+	[] ->
+	    D#dlo{plugins=[{Key,none}|Pdl]};
+	_ ->
+	    Draw = edge_fun(EdList, ClBin, Vtab),
+	    D#dlo{plugins=[{Key,Draw}|Pdl]}
     end.
+
+edge_fun(EdList, ClBin, Vtab) ->
+    EdBin = pump_edges(EdList,Vtab),
+    [VboEs,VboCl] = gl:genBuffers(2),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, VboEs),
+    gl:bufferData(?GL_ARRAY_BUFFER, byte_size(EdBin), EdBin, ?GL_STATIC_DRAW),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, VboCl),
+    gl:bufferData(?GL_ARRAY_BUFFER, byte_size(ClBin), ClBin, ?GL_STATIC_DRAW),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+    N = byte_size(EdBin) div 12,
+    D = fun() ->
+		gl:bindBuffer(?GL_ARRAY_BUFFER, VboEs),
+		gl:vertexPointer(3, ?GL_FLOAT, 0, 0),
+		gl:bindBuffer(?GL_ARRAY_BUFFER, VboCl),
+		gl:colorPointer(3, ?GL_FLOAT, 0, 0),
+		gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+		gl:enableClientState(?GL_COLOR_ARRAY),
+		gl:enableClientState(?GL_VERTEX_ARRAY),
+		gl:drawArrays(?GL_LINES, 0, N),
+		gl:disableClientState(?GL_VERTEX_ARRAY),
+		gl:disableClientState(?GL_COLOR_ARRAY)
+	end,
+    {call,D,[{vbo,VboEs},{vbo,VboCl}]}.
 
 %% pumping Lines
 pump_edges(EdList, Vtab) ->
@@ -2936,7 +2949,7 @@ pump_edges_1([{Id1,Id2}|SegInf], Vtab, VsBin0) ->
         end,
     pump_edges_1(SegInf,Vtab,VsBin).
 
-%% It'll will provide de vertices data for 'update_dlist' function
+%% It'll will provide the vertices data for 'update_dlist' function
 get_data(update_dlist, Data, Acc) ->  % for draw lists
     case gb_trees:lookup(edge_info, Data) of
         none ->
@@ -2960,4 +2973,4 @@ col_to_vec({R,G,B,_}) when is_integer(R) -> col_to_vec({R,G,B});
 col_to_vec({R,G,B,_}) -> col_to_vec({R,G,B}).
 
 color_gradient(Cb, Cr, Perc) ->
-    e3d_vec:add(Cb,e3d_vec:mul(Cr,Perc)).
+    e3d_vec:add_prod(Cb, Cr, Perc).
