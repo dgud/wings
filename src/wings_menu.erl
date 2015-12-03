@@ -193,7 +193,7 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
         end,
     menu_connect([Panel], [left_up, middle_up, right_up]),
     wxPopupTransientWindow:position(Dialog, {X,Y}, {0,0}),
-    wxPopupTransientWindow:connect(Panel, key_down, [skip]),
+    wxPopupTransientWindow:connect(Panel, key_down, []),
     wxPopupTransientWindow:popup(Dialog),
     wxPopupTransientWindow:setFocus(Panel),
     %% Color active menuitem
