@@ -656,7 +656,7 @@ toggle_sel_folder(#we{id=Id0,pst=WePst}, #ost{st=#st{selmode=Mode,shapes=Shs,
     Ids = gb_sets:to_list(Ids0),
     SelIds0 = orddict:fetch_keys(Sel0),
     SelIds1 = Ids -- SelIds0,
-    Sel = case gb_sets:is_empty(SelIds1) of
+    Sel = case SelIds1 =:= [] of
         true ->
             foldl(fun(Id, A) ->
                 orddict:erase(Id, A)
