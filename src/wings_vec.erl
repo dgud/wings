@@ -811,11 +811,8 @@ erase_vector() ->
     draw_vec(none).
 
 draw_vec(Vec) ->
-    VecDl = wings_dl:extra(current_vector, Vec, fun make_vec_fun/1),
-    wings_dl:call(VecDl).
+    wings_dl:draw(current_vector, Vec, fun make_vec_fun/1).
 
-make_vec_fun(none) ->
-    none;
 make_vec_fun({Center,Vec0}) ->
     Vec = e3d_vec:mul(Vec0, wings_pref:get_value(active_vector_size)),
     End = e3d_vec:add(Center, Vec),

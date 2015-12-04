@@ -18,7 +18,7 @@
 -export([init/0,delete_dlists/0,
 	 update/2,map/2,fold/2,changed_materials/1,
 	 display_lists/0,
-	 call/1,mirror_matrix/1,extra/3]).
+	 call/1,mirror_matrix/1,draw/3]).
 
 %%% This module manages Vertex Buffer Objects (VBOs, represented by
 %%% #vab{} records) for all objects in a Geometry or AutoUV window.
@@ -161,23 +161,48 @@ mirror_matrix(Id) -> fold(fun mirror_matrix/2, Id).
 mirror_matrix(#dlo{mirror=Matrix,src_we=#we{id=Id}}, Id) -> Matrix;
 mirror_matrix(_, Acc) -> Acc.
 
-%% extra(Category, Key, Update) -> CallableTerm.
-%%  Retrieve or register a drawable term for extra graphic
-%%  things that are not objects (e.g. the vector used in secondary
-%%  selection).
 
-extra(Category, Key, Update)
+%% draw(Category, Key, Update) -> ok.
+%%  Draw a non-object graphic thing by calling:
+%%
+%%    call(Update(Key))
+%%
+%%  Typically, Update/1 should return the result from
+%%  wings_vbo:new/[2,3]. The return value from Update/1 will be
+%%  saved and reused if draw/3 is kalled with the same Key within
+%%  a category.
+%%
+%%  The key 'none' is specially handled. It means that nothing
+%%  should be drawn and that Update/1 will not be called.
+
+draw(Category, Key, Update)
   when is_atom(Category), is_function(Update, 1) ->
     case get_dl_data() of
-	#du{extra=#{Category:={Key,Data}}} ->
-	    Data;
-	#du{extra=Extra0,used=Used0}=Du ->
-	    Data = Update(Key),
-	    Extra = Extra0#{Category=>{Key,Data}},
-	    Used1 = ordsets:from_list(update_seen_1(Data, [])),
-	    Used = ordsets:union(Used0, Used1),
-	    put_dl_data(Du#du{used=Used,extra=Extra}),
-	    Data
+	#du{extra=#{Category:={Key,Drawable}}} ->
+	    call(Drawable);
+	#du{extra=#{Category:={_,OldDrawable}}=Extra0}=Du ->
+	    NotUsed = ordsets:from_list(update_seen_1(OldDrawable, [])),
+	    gl:deleteBuffers(NotUsed),
+	    case Key of
+		none ->
+		    Extra = maps:remove(Category, Extra0),
+		    put_dl_data(Du#du{extra=Extra});
+		_ ->
+		    Drawable = Update(Key),
+		    Extra = Extra0#{Category:={Key,Drawable}},
+		    put_dl_data(Du#du{extra=Extra}),
+		    call(Drawable)
+	    end;
+	#du{extra=Extra0}=Du ->
+	    case Key of
+		none ->
+		    ok;
+		_ ->
+		    Drawable = Update(Key),
+		    Extra = Extra0#{Category=>{Key,Drawable}},
+		    put_dl_data(Du#du{extra=Extra}),
+		    call(Drawable)
+	    end
     end.
 
 %%%
@@ -251,10 +276,8 @@ map_1(Fun, [D0|Dlists], Data0, Seen0, Acc) ->
 map_1(_Fun, [], Data, Seen, Acc) ->
     update_last(Data, Seen, Acc).
 
-update_last(Data, Seen0, Acc) ->
-    #du{used=Used0,extra=Extra} = Du = get_dl_data(),
-    InExtra = [E || {_,{_,E}} <- maps:to_list(Extra)],
-    Seen = update_seen_1(InExtra, Seen0),
+update_last(Data, Seen, Acc) ->
+    #du{used=Used0} = Du = get_dl_data(),
     Used = ordsets:from_list(Seen),
     put_dl_data(Du#du{used=Used,dl=reverse(Acc)}),
     case ordsets:subtract(Used0, Used) of
@@ -264,7 +287,7 @@ update_last(Data, Seen0, Acc) ->
 	    gl:deleteBuffers(NotUsed)
     end,
     Data.
-    
+
 update_seen(#dlo{plugins=Plugins}=D, Seen0) ->
     Seen = update_seen_1([V || {_,V} <- Plugins], Seen0),
     update_seen_0(tuple_size(D), D, Seen).
