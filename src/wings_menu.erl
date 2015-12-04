@@ -613,12 +613,17 @@ setup_hotkey(MI, Cmd) ->
 	true -> %% Already have one use the new one
 	    Cmd;
 	false ->
-	    Old = wxMenuItem:getText(MI),
-	    case string:chr(Old, $\t) of
-		0 -> Cmd; %% Old string have no hotkey
-		Idx ->
-		    HotKeyStr = string:substr(Old, Idx),
-		    string:concat(Cmd, HotKeyStr)
+	    try wxMenuItem:getText(MI) of
+		Old ->
+		    case string:chr(Old, $\t) of
+			0 -> Cmd; %% Old string have no hotkey
+			Idx ->
+			    HotKeyStr = string:substr(Old, Idx),
+			    string:concat(Cmd, HotKeyStr)
+		    end
+	    catch _:Reason ->
+		    io:format("~p:~p GetTextFailed ~p ~p~n",[?MODULE,?LINE, MI, Reason]),
+		    Cmd
 	    end
     end.
 
