@@ -223,6 +223,7 @@ bevel_min_limit([{{Va,Vb},[{_,D1}]}|Tail], #we{vp=Vtab}=We, Min0) ->
     end;
 bevel_min_limit([], _, Min) -> Min.
 
+-spec extrude_problem() -> no_return().
 extrude_problem() ->
     M = ?__(1,"Can't extrude/bevel; two or more vertices are "
 	    "probably too near to each other.\n"

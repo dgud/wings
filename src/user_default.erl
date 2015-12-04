@@ -180,7 +180,7 @@ dialyze(Dirs0) when is_list(Dirs0) ->
 		      (plugins) ->
 			   get_plugin_dirs()
 		   end, Dirs0),
-    case dialyzer:run([{files,Dirs}]) of
+    case dialyzer:run([{files,Dirs}, {warnings, [no_improper_lists]}]) of
 	{ok,Ws} -> dialyze_1(Ws);
 	{ok,Ws,_} -> dialyze_1(Ws);
 	Other -> dialyze_1(Other)

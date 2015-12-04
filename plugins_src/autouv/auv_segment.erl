@@ -21,7 +21,7 @@
 -export([degrees/0, find_features/3, build_seeds/2]). %% Debugging
 -endif.
 
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 -include("auv.hrl").
 
 -import(lists, [reverse/1,mapfoldl/3,sort/1,foldl/3]).
@@ -91,7 +91,7 @@ solve_map_problem(Charts0, We) ->
     Neighbours0 = neighbour_charts(EdgesInCharts, Face2Chart, We#we.es, []),
     Map = color_map(Neighbours0, gb_trees:empty(), gb_sets:empty(), 0),
     MapC2Col = sofs:relation(Map),
-    T0 = sofs:range(sofs:relative_product({MapC2Col, FamC2F})),
+    T0 = sofs:range(sofs:relative_product([MapC2Col, FamC2F])),
     T1 = sofs:range(sofs:family_union(sofs:relation_to_family(T0))),
     T2 = sofs:to_external(T1),
     ?DBG("Map painting solved from ~p to ~p colors~n", [length(Charts0), length(T2)]), 

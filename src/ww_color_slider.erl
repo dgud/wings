@@ -341,6 +341,8 @@ test() ->
     Pid = spawn_link(fun() -> run_test() end),
     receive {'EXIT', Pid, Msg} -> Msg end.
 
+-spec run_test() -> no_return().
+
 run_test() ->
     Frame = wxFrame:new(wx:new(), -1, "FOO"),
     Panel = wxPanel:new(Frame),

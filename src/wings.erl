@@ -189,6 +189,7 @@ have_fbo() ->
 		  "object extension.")
     end.
 
+-spec fatal(any(),any()) -> no_return().
 fatal(Format, Args) ->
     fatal(io_lib:format(Format, Args)).
 
@@ -1962,12 +1963,8 @@ menu_toolbar_action({menu_toolbar, {B, OrigXY, Side}}, #st{selmode=Mode}=St)
       {_,4} -> {select,more};
       {_,5} -> {select,less}
     end,
-    case Cmd of
-      next -> keep;
-      _ ->
-        wings_wm:send_after_redraw(geom, {menu_toolbar,OrigXY}),
-        do_command(Cmd, none, St#st{temp_sel=none})
-    end;
+    wings_wm:send_after_redraw(geom, {menu_toolbar,OrigXY}),
+    do_command(Cmd, none, St#st{temp_sel=none});
 menu_toolbar_action({menu_toolbar,{new_mode,1,OrigXY,Side}}, #st{selmode=Side}=St) ->
     menu_toolbar_action({menu_toolbar,OrigXY}, St);
 menu_toolbar_action({menu_toolbar,{new_mode,B,OrigXY,Side}}, St) ->

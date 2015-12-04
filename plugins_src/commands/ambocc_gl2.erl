@@ -14,8 +14,8 @@
 -export([ambient_occlusion/1]).
 
 -define(NEED_OPENGL, 1).
--include_lib("wings.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/src/wings.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 
 -record(ao, {df, vabs, fbo, tex, cleanup_fbo, buf}).
 -define(TEX_SZ, 1024).
@@ -42,8 +42,8 @@ ambient_occlusion(St) ->
     St2.
 
 setup_gl() ->
-    gl:clearColor(1,1,1,0),  % Sky Color
-    gl:color4f(0,0,0,1),     % Obj Color
+    gl:clearColor(1.0,1.0,1.0,0.0),  % Sky Color
+    gl:color4f(0.0,0.0,0.0,1.0),     % Obj Color
     gl:shadeModel(?GL_FLAT),
     %% gl:disable(?GL_DEPTH_TEST),
     gl:disable(?GL_LIGHTING),

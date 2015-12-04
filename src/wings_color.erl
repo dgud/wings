@@ -342,9 +342,6 @@ get_element(Col, RGB) ->
 	{hsv, Index} -> element(Index, rgb_to_hsv(RGB))
     end.
 
-set_palette(undefined, Data) ->
-    DefPalette = [{G,G,G} || G <- lists:seq(0, 255, 255 div 15)],
-    set_palette(DefPalette, Data, 0);
 set_palette(Get, Data) when is_function(Get) ->
     set_palette(Get(), Data, 0).
 

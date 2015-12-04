@@ -292,7 +292,7 @@ border(X0, Y0, Mw, Mh, FillColor, BorderColor)
     X = X0 + 0.5,
     Y = Y0 + 0.5,
     set_color(FillColor),
-    gl:rectf(X0, Y0, X0+Mw, Y0+Mh),
+    gl:recti(X0, Y0, X0+Mw, Y0+Mh),
     set_color(BorderColor),
     gl:'begin'(?GL_LINE_LOOP),
     gl:vertex2f(X, Y+Mh),
@@ -303,7 +303,7 @@ border(X0, Y0, Mw, Mh, FillColor, BorderColor)
     gl:color3b(0, 0, 0).
 
 gradient_border_burst(X, Y, W, H, FillColor) ->
-    gradient_border_burst(X, Y, W, H, FillColor, {0,0,0}, false).
+    gradient_border_burst(X, Y, W, H, FillColor, {0.0,0.0,0.0}, false).
 
 gradient_border_burst(X0, Y0, Mw, Mh, FillColor, BorderColor, Double)
   when is_integer(X0), is_integer(Y0), is_integer(Mw), is_integer(Mh) ->
@@ -314,13 +314,13 @@ gradient_border_burst(X0, Y0, Mw, Mh, FillColor, BorderColor, Double)
     border_only(X, Y, Mw, Mh, Double).
 
 gradient_border(X, Y, W, H, FillColor) ->
-    gradient_border(X, Y, W, H, FillColor, {0,0,0}, false).
+    gradient_border(X, Y, W, H, FillColor, {0.0,0.0,0.0}, false).
 
 gradient_border(X0, Y0, Mw, Mh, FillColor, BorderColor, Double)
   when is_integer(X0), is_integer(Y0), is_integer(Mw), is_integer(Mh) ->
     X = X0 + 0.5,
     Y = Y0 + 0.5,
-    gradient_rect(X0, Y0, Mw, Mh, FillColor),
+    gradient_rect(float(X0), float(Y0), float(Mw), float(Mh), FillColor),
     set_color(BorderColor),
     border_only(X, Y, Mw, Mh, Double).
 
@@ -423,7 +423,7 @@ gradient_rect_burst(X, Y, W, H, Color) ->
 			gl:vertex2f(X+W, Y-0.5+H-Idx),
 			gl:vertex2f(X,   Y-0.5+H-Idx)
 		end,
-    gl:lineWidth(1),
+    gl:lineWidth(1.0),
     gl:'begin'(?GL_LINES),
     lists:foreach(Draw_Line, lists:seq(0, H-2)),
     gl:'end'().
@@ -476,7 +476,7 @@ ortho_setup_1() ->
     gl:matrixMode(?GL_PROJECTION),
     gl:loadIdentity(),
     {_,_,W,H} = wings_wm:viewport(),
-    glu:ortho2D(0, W, H, 0),
+    glu:ortho2D(0.0, float(W), float(H), 0.0),
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity().
 

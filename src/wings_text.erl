@@ -58,8 +58,6 @@ set_font_default(PrefKey) ->
 
 get_font_default(system_font) ->
     get_font_info(?wxNORMAL_FONT);
-get_font_default(menu_font) ->
-    get_font_info(?wxNORMAL_FONT);
 get_font_default(console_font) ->
     get_font_info(?wxSWISS_FONT).
 

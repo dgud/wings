@@ -656,7 +656,7 @@ toggle_sel_folder(#we{id=Id0,pst=WePst}, #ost{st=#st{selmode=Mode,shapes=Shs,
     Ids = gb_sets:to_list(Ids0),
     SelIds0 = orddict:fetch_keys(Sel0),
     SelIds1 = Ids -- SelIds0,
-    Sel = case gb_sets:is_empty(SelIds1) of
+    Sel = case SelIds1 =:= [] of
         true ->
             foldl(fun(Id, A) ->
                 orddict:erase(Id, A)
@@ -860,9 +860,9 @@ draw_objects_1(N, [{_,#we{name=Name,pst=Pst}}|Wes], #ost{lh=Lh}=Ost, R, Active, 
     NamePos = name_pos(Folder),
     if
     Active =:= 0 ->
-      gl:color3f(0, 0, 0.5),
+      gl:color3f(0.0, 0.0, 0.5),
       gl:recti(NamePos-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
-      gl:color3f(1, 1, 1);
+      gl:color3f(1.0, 1.0, 1.0);
     true -> ok
     end,
     wings_io:text_at(NamePos, Y+2, Name),
@@ -872,9 +872,9 @@ draw_objects_1(N, [Folder|Wes], #ost{st=St,lh=Lh}=Ost, R, Active, Y) ->
     NamePos = name_pos(folder),
     if
     Active =:= 0 ->
-      gl:color3f(0, 0, 0.5),
+      gl:color3f(0.0, 0.0, 0.5),
       gl:recti(NamePos-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
-      gl:color3f(1, 1, 1);
+      gl:color3f(1.0, 1.0, 1.0);
     true -> ok
     end,
     FolderInfo = folder_info(Folder, St),
@@ -1276,7 +1276,7 @@ send_client(Message) ->
 
 draw_bitmap_16(X, Y, Bitmap) ->
     gl:rasterPos2i(X, Y),
-    gl:bitmap(16, 16, 0, 0, 16, 0, Bitmap).
+    gl:bitmap(16, 16, 0.0, 0.0, 16.0, 0.0, Bitmap).
 
 locked_bitmap() ->
     <<

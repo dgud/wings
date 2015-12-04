@@ -92,26 +92,20 @@ update(ChangedVs, Data) ->
 %% Generates a subdivided #vab{}
 gen_vab(Base) ->
     try
-	case subdiv(Base, ?DEFAULT) of
-	    skip -> create_vab(<<>>, []);
-	    Data ->
-		gen_vab_1(Data, Base)
-	end
+	Data = subdiv(Base, ?DEFAULT),
+	gen_vab_1(Data, Base)
     catch
 	exit:{out_of_resources, Wanted, CardMax} ->
 	    io:format(?__(1,"OpenCL subd failed: wanted ~pMB only ~pMB available~n"), 
 		      [Wanted, CardMax]),
 	    DecBase = decrease_level(Base),
-	    gen_vab(DecBase)	   
+	    gen_vab(DecBase)
     end.
 %% Generates a subdivided #vab{} from Material Plan
 gen_vab(Plan, Base) ->
-    try 
-	case subdiv(Base, ?DEFAULT) of
-	    skip -> create_vab(<<>>, []);
-	    Data ->
-		gen_vab_1(Plan, Data, Base)
-	end
+    try
+	Data = subdiv(Base, ?DEFAULT),
+	gen_vab_1(Plan, Data, Base)
     catch
 	exit:{out_of_resources, Wanted, CardMax} ->
 	    io:format(?__(1,"OpenCL subd failed: wanted ~pMB only ~pMB available~n"), 
@@ -121,17 +115,15 @@ gen_vab(Plan, Base) ->
     end.
 
 %% Subdivide mesh
-subdiv(Base = #base{level=N, n=Total, type=Type}, Impl) when Total > 0 ->
+subdiv(Base = #base{level=N, type=Type}, Impl) ->
     case Impl of
 	opencl ->
 	    {In,Out,CL} = cl_allocate(Base, cl_setup()),
 	    Wait = cl_write_input(Base, In, Out, CL),
 	    subdiv_1(N, In, Out, Type, CL, Wait);
-	erlang ->		
+	erlang ->
 	    wings_cc_ref:subdiv(Base)
-    end;
-subdiv(_, _) ->
-    skip.
+    end.
 
 %% Generates a vab (and updates Data)
 %% Returns Vab
@@ -722,6 +714,7 @@ create_buffers(Ctxt, [Binary|Szs], Acc) ->
 create_buffers(_, [], Buffers) ->
     lists:reverse(Buffers).
 
+-spec release_buffers(term(), boolean()) -> no_return().
 release_buffers(Buffers, true) ->
     case get({?MODULE, cl}) of
 	undefined ->

@@ -195,8 +195,7 @@ rotate_s_to_t(S, T) ->
 	    rotate_s_to_t_1(V, E)
     end.
 
--spec transpose(e3d_compact_matrix() | 'identity') -> e3d_compact_matrix();
-	       (e3d_matrix()) -> e3d_matrix().
+-spec transpose(e3d_matrix()) -> e3d_matrix().
 
 transpose(identity=I) -> I;
 transpose({M1,M2,M3,M4,M5,M6,M7,M8,M9,0.0=Z,0.0,0.0}) ->

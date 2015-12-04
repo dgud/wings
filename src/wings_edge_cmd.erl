@@ -251,6 +251,7 @@ cut_pick(St) ->
     Flags = [{initial,[0]}],
     wings_drag:setup(Tvs, Units, Flags, wings_sel:set(vertex, Sel, St)).
 
+-spec cut_pick_error() -> no_return().
 cut_pick_error() ->
     wings_u:error_msg(?__(1,"Only one edge can be cut at an arbitrary position.")).
 
@@ -259,7 +260,7 @@ cut_pick_make_tvs(Edge, #we{id=Id,es=Etab,vp=Vtab,next_id=NewV}=We) ->
     Start = array:get(Va, Vtab),
     End = array:get(Vb, Vtab),
     Dir = e3d_vec:sub(End, Start),
-    Char = {7,7,3,3,7,0,
+    Char = {7,7,3.0,3.0,7.0,0.0,
 	    <<2#01111100,
 	     2#10000010,
 	     2#10000010,
@@ -277,14 +278,14 @@ cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
     {Sx,Sy,_} = wings_gl:project(X, Y, Z, MM, PM, ViewPort),
     Draw = fun() ->
 		   gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-		   gl:color3f(1, 0, 0),
+		   gl:color3f(1.0, 0.0, 0.0),
 		   gl:shadeModel(?GL_FLAT),
 		   gl:disable(?GL_DEPTH_TEST),
 		   gl:matrixMode(?GL_PROJECTION),
 		   gl:pushMatrix(),
 		   gl:loadIdentity(),
 		   {W,H} = wings_wm:win_size(),
-		   glu:ortho2D(0, W, 0, H),
+		   glu:ortho2D(0.0, W, 0.0, H),
 		   gl:matrixMode(?GL_MODELVIEW),
 		   gl:pushMatrix(),
 		   gl:loadIdentity(),

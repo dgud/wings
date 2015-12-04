@@ -1130,6 +1130,7 @@ connect_and_collapse(Face, [{Va,Vb}|CPList], NVs, StoredFs, We0) ->
         end
     end.
 
+-spec weld_error() -> no_return().
 weld_error() ->
     wings_u:error_msg(?__(1,"Weld could not be resolved")).
 

@@ -1217,12 +1217,8 @@ collapse_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
 
 %%% Along Average Normal
 sel_normal_0(Vs, D) ->
-    case sel_normal(Vs,D) of
-      [[]] ->
-          {0.0,0.0,0.0};
-      Normals ->
-          e3d_vec:norm(e3d_vec:add(Normals))
-    end.
+    Normals = sel_normal(Vs,D),
+    e3d_vec:norm(e3d_vec:add(Normals)).
 
 sel_normal( _, #dlo{src_we=#we{}=We,src_sel={face,Sel0}}) ->
     Faces = gb_sets:to_list(Sel0),
@@ -1628,8 +1624,6 @@ update_drag(D,#tweak{st=St}) -> {D,St}.
 %%% XYZ Tweak Constraints
 %%%
 
-actual_mode({Mode,_}) ->
-    actual_mode(Mode);
 actual_mode(Mode) ->
     axis_constraints(Mode).
 
@@ -1999,10 +1993,12 @@ exceptions(sketchup,2,{false,true,false}) -> cam_conflict();
 exceptions(_,3,{true,false,false}) -> menu_conflict();
 exceptions(_,_,_) -> ok.
 
+-spec menu_conflict() -> no_return().
 menu_conflict() ->
     wings_u:error_msg(?__(1,"Key combo was not assigned.\n
     Those keys would conflict with the right click Tweak menu.")).
 
+-spec cam_conflict() -> no_return().
 cam_conflict() ->
     wings_u:error_msg(?__(1,"Key combo was not assigned.\n
     That key combination would conflict with the Camera buttons")).
@@ -2470,7 +2466,7 @@ help_event(redraw, #twk_help{text=Text0,knob=Knob}) ->
     {W,H} = wings_wm:win_size(tweak_help),
     {_,T2} = lists:split(Knob, Text0),
     wings_io:ortho_setup(),
-    wings_io:border(0, 0, W-1, H-1, {1,1,1}),
+    wings_io:border(0, 0, W-1, H-1, {1.0,1.0,1.0}),
     wings_io:text_at(?CHAR_WIDTH, ?LINE_HEIGHT+2, T2),
     keep;
 help_event(resized,  #twk_help{knob=Pos,lines=L0}=TwkHelp0) ->
@@ -2676,7 +2672,7 @@ draw_tweak_menu_items([separator|Menu], Y, #tw{w=W}=Tw) ->
     {X1,Y1,X2} = {?CHAR_WIDTH - 1, Y - (?LINE_HEIGHT div 2 - 2), W - ?CHAR_WIDTH + 1},
     TextCol = wings_pref:get_value(menu_text),
     wings_io:set_color(TextCol),
-    gl:lineWidth(1),
+    gl:lineWidth(1.0),
     gl:'begin'(?GL_LINES),
     gl:vertex2f(X1,Y1),
     gl:vertex2f(X2,Y1),

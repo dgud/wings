@@ -193,9 +193,9 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
         end,
     menu_connect([Panel], [left_up, middle_up, right_up]),
     wxPopupTransientWindow:position(Dialog, {X,Y}, {0,0}),
-    wxPopupTransientWindow:connect(Panel, key_down, [skip]),
+    wxPopupTransientWindow:connect(Panel, char_hook, [{skip, true}]),
     wxPopupTransientWindow:popup(Dialog),
-    wxPopupTransientWindow:setFocus(Panel),
+    wxPanel:setFocusIgnoringChildren(Panel),
     %% Color active menuitem
     {MX, MY} = wxWindow:screenToClient(Panel, ScreenPos),
     case find_active_panel(Panel, MX, MY) of
@@ -290,7 +290,6 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 
 magnet_pressed(?CTRL_BITS, #wxMouse{controlDown=true}) -> true;
 magnet_pressed(?ALT_BITS, #wxMouse{altDown=true}) -> true;
-magnet_pressed(?SHIFT_BITS, #wxMouse{shiftDown=true}) -> true;
 magnet_pressed(?META_BITS, #wxMouse{metaDown=true}) -> true;
 magnet_pressed(_, _) -> false.
 
@@ -451,10 +450,7 @@ setup_popup([{Desc, Name, Help, Props, HK}|Es], Id, Sizer, Sz = {Sz1,Sz2}, Paren
 setup_popup([], _, _, _, _, _, Acc) -> lists:reverse(Acc).
 
 create_color_box(Id, Panel, H, Props) ->
-    {R,G,B} = case wings_color:rgb3bv(proplists:get_value(color, Props)) of
-		  {R0,G0,B0} -> {R0,G0,B0};
-		  {R0,G0,B0,_} -> {R0,G0,B0}
-	      end,
+    {R,G,B} = wings_color:rgb3bv(proplists:get_value(color, Props)),
     Image = wxImage:new(1,1,<<R,G,B>>),
     wxImage:rescale(Image,10,H-2),
     Bitmap = wxBitmap:new(Image),
@@ -561,7 +557,7 @@ update_menu(file, Item = {recent_file, _}, delete, _) ->
     [#menu_entry{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),
     true = wxMenu:delete(File, Id),
     ok;
-update_menu(Menu, Item, Cmd, Help) ->
+update_menu(Menu, Item, Cmd0, Help) ->
     Id = menu_item_id(Menu, Item),
     MI = case ets:lookup(wings_menus, Id) of
 	     [#menu_entry{object=MO}] ->
@@ -570,13 +566,14 @@ update_menu(Menu, Item, Cmd, Help) ->
 		 FileId = predefined_item(menu, Menu),
 		 [#menu_entry{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),
 		 N  = wxMenu:getMenuItemCount(File),
-		 MO = wxMenu:insert(File, N-2, Id, [{text, Cmd}]),
+		 MO = wxMenu:insert(File, N-2, Id, [{text, Cmd0}]),
 		 ME=#menu_entry{name=build_command(Item,[file]), object=MO,
 				wxid=Id, type=?wxITEM_NORMAL},
 		 true = ets:insert(wings_menus, ME),
 		 Id =:= ?wxID_FILE1 andalso wxMenu:insertSeparator(File, N-2),
 		 MO
 	 end,
+    Cmd = setup_hotkey(MI, Cmd0),
     wxMenuItem:setText(MI, Cmd),
     is_list(Help) andalso wxMenuItem:setHelp(MI, Help).
 
@@ -608,6 +605,20 @@ menu_item_id(Menu, Item) ->
 	    case ets:match_object(wings_menus, #menu_entry{name={Menu,Item}, _='_'}) of
 		[#menu_entry{wxid=Id}] -> Id;
 		[] -> false
+	    end
+    end.
+
+setup_hotkey(MI, Cmd) ->
+    case lists:member($\t, Cmd) of
+	true -> %% Already have one use the new one
+	    Cmd;
+	false ->
+	    Old = wxMenuItem:getText(MI),
+	    case string:chr(Old, $\t) of
+		0 -> Cmd; %% Old string have no hotkey
+		Idx ->
+		    HotKeyStr = string:substr(Old, Idx),
+		    string:concat(Cmd, HotKeyStr)
 	    end
     end.
 
