@@ -255,11 +255,9 @@ insert_hilite_dl_1(#dlo{open=Open,src_we=#we{id=Id}=We}=D,
     SelBack = wings_wm:lookup_prop(select_backface) =:= {value,true},
     Draw = if
 	       SelBack; ShowBack andalso Open ->
-		   fun() ->
-			   gl:disable(?GL_CULL_FACE),
-			   Draw0(),
-			   gl:enable(?GL_CULL_FACE)
-		   end;
+		   [fun() -> gl:disable(?GL_CULL_FACE) end,
+		    Draw0,
+		    fun() -> gl:enable(?GL_CULL_FACE) end];
 	       true ->
 		   Draw0
 	   end,
