@@ -193,9 +193,9 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
         end,
     menu_connect([Panel], [left_up, middle_up, right_up]),
     wxPopupTransientWindow:position(Dialog, {X,Y}, {0,0}),
-    wxPopupTransientWindow:connect(Panel, key_down, []),
+    wxPopupTransientWindow:connect(Panel, char_hook, [{skip, true}]),
     wxPopupTransientWindow:popup(Dialog),
-    wxPopupTransientWindow:setFocus(Panel),
+    wxPanel:setFocusIgnoringChildren(Panel),
     %% Color active menuitem
     {MX, MY} = wxWindow:screenToClient(Panel, ScreenPos),
     case find_active_panel(Panel, MX, MY) of
