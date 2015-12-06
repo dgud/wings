@@ -643,7 +643,6 @@ smart_set_value_1(Key, Val, St) ->
 			      "effect the next time Wings 3D is started."),
 		    wings_u:message(Str);
 		show_develop_menu ->
-		    wings:init_menubar(),
 		    foreach(fun(W) ->
 				    wings_wm:send(W, language_changed) end,
 			    wings_wm:windows());
