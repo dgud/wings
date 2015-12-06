@@ -18,10 +18,10 @@
 -export([ask/3]).
 -export([save_windows/0,save_windows_1/1,restore_windows_1/2,set_geom_props/2]).
 -export([handle_drop/3, popup_menu/3]).
--export([init_menubar/0]).
 -export([highlight_aim_setup/1]).
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).
--export([info_line/0]).
+-export([info_line/0, command_name/2]).
+-export([edit_menu/0, tools_menu/0, window_menu/0]).
 
 -export([new_st/0]).
 
@@ -97,17 +97,14 @@ init(File0) ->
     wings_hotkey:set_default(),
     wings_pref:load(),
     wings_lang:init(),
+    wings_plugin:init(),
 
     group_leader(wings_console:start(), self()),
-    File = case wings_frame:start() of
-	       none -> File0;
-	       File1 -> File1
-	   end,
+    {Frame, File} = wings_frame:start(File0),
     wings_init:connect_events(),
     wings_gl:init(),
     wings_text:init(),
     wings_image:init(wings_io:get_process_option()),
-    wings_plugin:init(),
     wings_color:init(),
     wings_io:init(),
 
@@ -122,9 +119,9 @@ init(File0) ->
     wings_sel_cmd:init(),
     wings_file:init(),
     wings_u:caption(St),
-    wings_wm:init(),
+    wings_wm:init(Frame),
     wings_file:init_autosave(),
-    wings_pb:start_link(get(top_frame)),
+    wings_pb:start_link(Frame),
     wings_dialog:init(),
     wings_job:init(),
     wings_develop:init(),
@@ -137,14 +134,9 @@ init(File0) ->
     wings_wm:toplevel(geom, geom_title(geom),
 		      {X,Y,highest}, {W,H-80},
 		      [resizable,{anchor,nw},
-		       {toolbar,fun(A, B, C) -> wings_toolbar:create(A, B, C) end},
 		       {properties,Props}],
 		      Op),
-    put(wm_active, {menubar, geom}),
-    Menus = init_menubar(),
-    erase(wm_active),
-    %% wings_wm:menubar(geom, Menus),
-    wings_menu:wx_menubar(Menus),
+
     set_drag_filter(geom),
 
     check_requirements(),
@@ -221,29 +213,17 @@ new_viewer(St) ->
     N = free_viewer_num(2),
     Active = wings_wm:this(),
     Props = [{display_data,geom_display_lists}|wings_wm:get_props(Active)],
-    ToolbarHidden = wings_wm:is_hidden({toolbar,Active}),
     Name = {geom,N},
-    new_viewer(Name, Pos, Size, Props, ToolbarHidden, St).
+    new_viewer(Name, Pos, Size, Props, St).
 
-new_viewer(Name, {X,Y}, Size, Props, ToolbarHidden, St) ->
+new_viewer(Name, {X,Y}, Size, Props, St) ->
     Op = main_loop_noredraw(St),
     Title = geom_title(Name),
     wings_wm:toplevel(Name, Title, {X,Y,highest}, Size,
 		      [resizable,closable,{anchor,nw},
-		       {toolbar,fun(A, B, C) ->
-					wings_toolbar:create(A, B, C)
-				end},
-		       %% menubar,
 		       {properties,Props}],
 		      Op),
-    %% wings_wm:menubar(Name, get(wings_menu_template)),
-    %% wings_wm:send({menubar,Name}, {current_state,St}),
-    wings_wm:send({toolbar,Name}, {current_state,St}),
     set_drag_filter(Name),
-    if
-	ToolbarHidden -> wings_wm:hide({toolbar,Name});
-	true -> ok
-    end,
     Name.
 
 free_viewer_num(N) ->
@@ -949,22 +929,6 @@ popup_menu(X, Y, #st{selmode=Mode}=St) ->
         end
     end.
 
-init_menubar() ->
-    Tail0 = [{?__(7,"Help"),help,wings_help:menu()}],
-    Tail = case wings_pref:get_value(show_develop_menu) of
-	       true ->
-		   [{"Develop",develop,wings_develop:menu()}|Tail0];
-	       false ->
-		   Tail0
-	   end,
-    [{?__(1,"File"),file,wings_file:menu()},
-     {?__(2,"Edit"),edit,edit_menu()},
-     {?__(3,"View"),view,wings_view:menu()},
-     
-     {?__(4,"Select"),select,wings_sel_cmd:menu()},
-     {?__(5,"Tools"), tools, tools_menu()},
-     {?__(6,"Window"),window,window_menu()}|Tail].
-
 edit_menu() ->
     St = #st{},
     UndoInfo = ?__(1,"Delete undo history to reclaim memory"),
@@ -975,9 +939,9 @@ edit_menu() ->
      {?__(7,"Undo"),undo,
       ?__(8,"Undo the last command")},
      separator,
-     {command_name(?__(9,"Repeat"), St),repeat},
-     {command_name(?__(10,"Repeat Args"), St),repeat_args},
-     {command_name(?__(11,"Repeat Drag"), St),repeat_drag},
+     {wings:command_name(?__(9,"Repeat"), St),repeat},
+     {wings:command_name(?__(10,"Repeat Args"), St),repeat_args},
+     {wings:command_name(?__(11,"Repeat Drag"), St),repeat_drag},
      separator,
      wings_pref_dlg:menu(),
      {?__(12,"Plug-in Preferences"),{plugin_preferences,[]}},
@@ -990,31 +954,31 @@ tools_menu() ->
      {?__(9,"Center"),{center,tool_dirs(center)}},
      separator,
      {?__(37,"Bounding Box"),
-       {bbox,
-         [{?__(10,"Save Bounding Box"),save_bb,
-           ?__(39,"Create bounding box around current selection")},
-          {?__(11,"Scale to Saved BB"),{scale_to_bb,tool_dirs(bb)}},
-          {?__(12,"Scale to Saved BB Proportionally"),{scale_to_bb_prop,tool_dirs(bb)}},
-          {?__(13,"Move to Saved BB"),{move_to_bb,wings_menu_util:all_xyz()}},
-          {?__(32,"Move BB to Selection"),{move_bb_to_sel,wings_menu_util:all_xyz()}},
-          {?__(33,"Scale BB to Selection"),{scale_bb_to_sel,tool_dirs(bb)}}]},
+      {bbox,
+       [{?__(10,"Save Bounding Box"),save_bb,
+	 ?__(39,"Create bounding box around current selection")},
+	{?__(11,"Scale to Saved BB"),{scale_to_bb,tool_dirs(bb)}},
+	{?__(12,"Scale to Saved BB Proportionally"),{scale_to_bb_prop,tool_dirs(bb)}},
+	{?__(13,"Move to Saved BB"),{move_to_bb,wings_menu_util:all_xyz()}},
+	{?__(32,"Move BB to Selection"),{move_bb_to_sel,wings_menu_util:all_xyz()}},
+	{?__(33,"Scale BB to Selection"),{scale_bb_to_sel,tool_dirs(bb)}}]},
       ?__(38,"Bounding boxes are useful for scaling or aligning objects")},
      separator,
      {?__(14,"Set Default Axis"),{set_default_axis,
-       [{?__(34,"Set Axis and Point"),axis_point},
-        {?__(35,"Set Axis"),axis},
-        {?__(36,"Set Point"),point}]},
+				  [{?__(34,"Set Axis and Point"),axis_point},
+				   {?__(35,"Set Axis"),axis},
+				   {?__(36,"Set Point"),point}]},
       ?__(15,"Define and store axis (with ref. point) for later use with any ")++
-      ?__(16,"\"Default Axis\" command (e.g. Scale|Default Axis)")},
+	  ?__(16,"\"Default Axis\" command (e.g. Scale|Default Axis)")},
      separator,
      {?__(17,"Virtual Mirror"),
       {virtual_mirror,
        [{?__(18,"Create"),create,
-     ?__(19,"Given a face selection, set up a virtual mirror")},
-    {?__(20,"Break"),break,
-     ?__(21,"Remove virtual mirrors for all objects")},
-    {?__(22,"Freeze"),freeze,
-     ?__(23,"Create real geometry from the virtual mirrors")}]}},
+	 ?__(19,"Given a face selection, set up a virtual mirror")},
+	{?__(20,"Break"),break,
+	 ?__(21,"Remove virtual mirrors for all objects")},
+	{?__(22,"Freeze"),freeze,
+	 ?__(23,"Create real geometry from the virtual mirrors")}]}},
      separator,
      {?__(24,"Screenshot..."), screenshot,
       ?__(25,"Grab an image of the window (export it from the outliner)"),[option]},
@@ -1052,10 +1016,10 @@ window_menu() ->
 
 tool_dirs(Tool) ->
     Help = case Tool of
-      align -> ?__(1,"Align two or more objects along the given axis according to their respective selection centers");
-      center -> ?__(2,"Center the selected objects along the given axis according to their cumulative selection center");
-      bb -> []
-    end,
+	       align -> ?__(1,"Align two or more objects along the given axis according to their respective selection centers");
+	       center -> ?__(2,"Center the selected objects along the given axis according to their cumulative selection center");
+	       bb -> []
+	   end,
     [{wings_s:dir(all),all,Help},
      {wings_s:dir(x),x,Help},
      {wings_s:dir(y),y,Help},
@@ -1647,8 +1611,7 @@ save_window(Name, Ns) ->
 save_geom_window(Name, Ns) ->
     {Pos,Size} = wings_wm:win_rect(Name),
     Rollup = {rollup, wings_wm:win_rollup(Name)},
-    Ps0 = [{toolbar_hidden,wings_wm:is_hidden({toolbar,Name})}],
-    Ps = save_geom_props(wings_wm:get_props(Name), Ps0),
+    Ps = save_geom_props(wings_wm:get_props(Name), []),
     Geom = {Name,Pos,Size,[Rollup|Ps]},
     [Geom|save_windows_1(Ns)].
 
@@ -1686,10 +1649,6 @@ restore_windows(St) ->
 
 restore_windows_1([{geom,{_,_}=Pos0,{_,_}=Size,Ps0}|Ws], St) ->
     Ps = geom_props(Ps0),
-    case proplists:get_bool(toolbar_hidden, Ps) of
-        true -> wings_wm:hide({toolbar,geom});
-        false -> ok
-    end,
     Pos = geom_pos(Pos0),
     wings_wm:move(geom, Pos, Size),
     set_geom_props(Ps, geom),
@@ -1697,8 +1656,7 @@ restore_windows_1([{geom,{_,_}=Pos0,{_,_}=Size,Ps0}|Ws], St) ->
     restore_windows_1(Ws, St);
 restore_windows_1([{{geom,_}=Name,Pos0,Size,Ps0}|Ws], St) ->
     Ps = geom_props(Ps0),
-    ToolbarHidden = proplists:get_bool(toolbar_hidden, Ps),
-    new_viewer(Name, {0,0}, Size, initial_properties(), ToolbarHidden, St),
+    new_viewer(Name, {0,0}, Size, initial_properties(), St),
     Pos = geom_pos(Pos0),
     wings_wm:move(Name, Pos, Size),
     set_geom_props(Ps, Name),
@@ -1781,24 +1739,14 @@ move_windows_1(Name,{X,Y}) ->
 %%%%
 
 geom_pos({X,Y}=Pos) ->
-    {_,Upper0} = wings_wm:win_ul(desktop),
-    Upper1 = case wings_wm:is_hidden({toolbar,geom}) of
-         true -> Upper0;
-         false ->
-             {_,ToolbarH} = wings_wm:win_size({toolbar,geom}),
-             Upper0+ToolbarH
-         end,
+    {_,Upper1} = wings_wm:win_ul(desktop),
     {_,TitleH} = wings_wm:win_size({controller,geom}),
-    %% {_,MenuBarH} = wings_wm:win_size({menubar,geom}),
-    %%case Upper1 + TitleH + MenuBarH of
     case Upper1 + TitleH of
 	Upper when Y < Upper ->
 	    {X,Upper};
 	_ -> Pos
     end.
 
-geom_props(B) when B == false; B == true ->
-    [{toolbar_hidden,B}];
 geom_props(L) when is_list(L) -> L;
 geom_props(_) -> [].
 
@@ -1829,13 +1777,11 @@ initial_properties() ->
     [{display_data,geom_display_lists}|wings_view:initial_properties()].
 
 mode_restriction(Modes) ->
-    Win = {toolbar,wings_wm:this()},
-    wings_wm:send(Win, {mode_restriction,Modes}),
+    Win = wings_wm:this(),
+    wings_wm:send(top_frame, {mode_restriction,Modes}),
     case Modes of
-    none ->
-        wings_wm:erase_prop(Win, mode_restriction);
-    _ ->
-        wings_wm:set_prop(Win, mode_restriction, Modes)
+	none -> wings_wm:erase_prop(Win, mode_restriction);
+	_ ->    wings_wm:set_prop(Win, mode_restriction, Modes)
     end.
 
 clear_mode_restriction() ->
@@ -1843,8 +1789,7 @@ clear_mode_restriction() ->
 
 get_mode_restriction() ->
     Name = wings_wm:this(),
-    Toolbar = {toolbar,Name},
-    case wings_wm:lookup_prop(Toolbar, mode_restriction) of
+    case wings_wm:lookup_prop(Name, mode_restriction) of
 	none -> [edge,vertex,face,body];
 	{value,Other} -> Other
     end.

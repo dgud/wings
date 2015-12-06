@@ -13,7 +13,7 @@
 
 -module(wings_wm).
 -export([toplevel/6,toplevel_title/1,toplevel_title/2,set_knob/3]).
--export([init/0,enter_event_loop/0,dirty/0,dirty_mode/1,pdirty/0,
+-export([init/1,enter_event_loop/0,dirty/0,dirty_mode/1,pdirty/0,
 	 reinit_opengl/0,
 	 new/2, new/3, new/4,delete/1,raise/1,rollup/2,
 	 link/2,hide/1,show/1,is_hidden/1,
@@ -97,13 +97,15 @@
 %%% {wm_current_state,Displists}
 %%%
 
-init() ->
+init(Frame) ->
     put(wm_dirty_mode, front),
     put(wm_cursor, arrow),
     {W,H} = TopSize = wxWindow:getClientSize(?GET(gl_canvas)),
     put(wm_top_size, TopSize),
     translation_change(),
     put(wm_windows, gb_trees:empty()),
+    new(top_frame, Frame, {push, fun wings_frame:forward_event/1}),
+    set_dd(top_frame, geom_display_lists), %% Selection mode updates
     new(desktop, {0,0,0}, {0,0}, {push,fun desktop_event/1}),
     StatusBar = wings_status:start(get(top_frame)),
     new(message, StatusBar, {push, fun message_event/1}),
@@ -741,17 +743,18 @@ menubar_event(Window, Event) ->
 	    send(Active,Event)
     end.
 
-menubar_focus(Window) -> 
-    MB = case Window of 
-	     {_, geom} -> geom;
-	     {_, Geom={geom,_}} -> Geom;
-	     geom -> geom;
-	     Geom={geom,_} -> Geom;
-	     dialog_blanket -> dialog_blanket;
-	     _ -> ignore
-	 end,
-    %% MB == ignore andalso io:format("Set mb focus ~p ~p~n", [Window, MB]),
-    put(mb_focus, MB).
+menubar_focus(Window) ->
+    {Send, Focus} = case Window of
+			{_, geom} -> {true, geom};
+			{_, Geom={geom,_}} -> {true, Geom};
+			geom -> {true, geom};
+			Geom={geom,_} -> {true, Geom};
+			dialog_blanket -> {false, dialog_blanket};
+			_ -> {false, ignore}
+		    end,
+    %% io:format("Set mb focus ~p ~p~n", [Window, Focus]),
+    Send andalso send(top_frame, {got_focus, Focus, get_props(Focus)}),
+    put(mb_focus, Focus).
 
 update_focus(none) ->
     case erase(wm_focus) of
@@ -761,15 +764,16 @@ update_focus(none) ->
 	    do_dispatch(OldActive, lost_focus)
     end;
 update_focus(Active) ->
-    menubar_focus(Active),
     case put(wm_focus, Active) of
 	undefined ->
 	    dirty(),
+	    menubar_focus(Active),
 	    do_dispatch(Active, got_focus);
 	Active -> ok;
 	OldActive ->
 	    dirty(),
 	    do_dispatch(OldActive, lost_focus),
+	    menubar_focus(Active),
 	    do_dispatch(Active, got_focus)
     end.
 
@@ -1064,6 +1068,7 @@ wm_event({menubar,Name,Menubar}) ->
 	    dirty()
     end;
 wm_event({send_to,Name,Ev}) ->
+    %%io:format("~p:~p: ~p ~P~n",[?MODULE,?LINE,Name,Ev,10]),
     case gb_trees:is_defined(Name, get(wm_windows)) of
 	false -> ok;
 	true -> do_dispatch(Name, Ev)
