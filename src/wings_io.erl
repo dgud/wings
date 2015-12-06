@@ -20,7 +20,7 @@
 
 	 is_maximized/0, maximize/0, set_title/1, reset_video_mode_for_gl/2,
 	 change_event_handler/2,
-	 set_icon/1, get_mask/1,
+	 read_icons/0, set_icon/1, get_mask/1,
 
 	 get_buffer/2, read_buffer/3, get_bin/1,
 	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
@@ -63,7 +63,7 @@
 %% Init and Quit
 
 init() ->
-    Icons = read_icons(),
+    Icons = read_icons(), %% Duplicate in wings_frame.erl
     put(?EVENT_QUEUE, queue:new()),
     ?BACKEND_MOD:init(Icons).
 
