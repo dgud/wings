@@ -36,11 +36,12 @@ draw(Draw, Data) ->
 
 draw(Draw0, Data0, Layout) ->
     Data = << <<A:?F32,B:?F32,C:?F32>> || {A,B,C} <- Data0 >>,
-    [Vbo] = gl:genBuffers(1),
+    [Vbo] = Buffers = gl:genBuffers(1),
     gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
     gl:bufferData(?GL_ARRAY_BUFFER, byte_size(Data), Data, ?GL_STATIC_DRAW),
     Draw = parse_layout(Layout, Vbo, Draw0),
     Draw(),
+    gl:deleteBuffers(Buffers),
     ok.
 
 parse_layout([vertex], Vbo, Draw) ->
