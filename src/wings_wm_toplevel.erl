@@ -68,13 +68,6 @@ ctrl_create_windows([vscroller|Flags], Client) ->
     Name = vscroller(Client, {X,Y,Z}),
     wings_wm:link(Client, Name),
     ctrl_create_windows(Flags, Client);
-ctrl_create_windows([{toolbar,Create}|Flags], Client) ->
-    {{X,Y},{W,_}} = wings_wm:win_rect(Client),
-    Z = wings_wm:win_z(Client),
-    Toolbar = {toolbar,Client},
-    Create(Toolbar, {X,Y,Z}, W),
-    wings_wm:link(Client, Toolbar),
-    ctrl_create_windows(Flags, Client);
 ctrl_create_windows([resizable|Flags], Client) ->
     Name = ctrl_new_resizer(Client, none),
     wings_wm:link(Client, Name),
@@ -301,7 +294,7 @@ ctrl_constrain_move(Client, Dx0, Dy0) ->
 		 Dx0
 	 end,
     {{_,Cy},{_,Ch}} = wings_wm:win_rect(Client),
-    Dy = if 
+    Dy = if
 	     Y0+Dy0 < DeskY ->
 		 DeskY-Y0;
 	     Cy+Ch+Dy0 >= DeskY+DeskH ->
@@ -323,49 +316,9 @@ ctrl_menu(X, Y) ->
 	       {?__(6,"Vertical"),vertical,
 		?__(7,"Let window use all available space by expanding it vertically")}
 	      ]}},
-	    {?__(8,"Size"),size,?__(9,"Set window size numerically")}|ctrl_menu_toolbar()],
+	    {?__(8,"Size"),size,?__(9,"Set window size numerically")}],
     wings_menu:popup_menu(X, Y, titlebar, Menu).
 
-ctrl_menu_toolbar() ->
-    {_,Client} = wings_wm:this(),
-    Toolbar = {toolbar,Client},
-    case wings_wm:is_window(Toolbar) of
-	false -> [];
-	true ->
-	    case wings_wm:is_hidden(Toolbar) of
-		false ->
-		    [{?__(1,"Hide Toolbar"),hide_toolbar,?__(2,"Hide the toolbar")}];
-		true ->
-		    [{?__(3,"Show Toolbar"),show_toolbar,?__(4,"Show the toolbar")}]
-	    end
-    end.
-
-ctrl_command(hide_toolbar, _) ->
-    {_,Client} = wings_wm:this(),
-    Toolbar = {toolbar,Client},
-    wings_wm:hide(Toolbar),
-    {_,H} = wings_wm:win_size(Toolbar),
-    wings_wm:update_window(Client, [{dy,-H},{dh,H}]),
-    case wings_wm:win_rollup(Client) of
-      true when Client /= geom ->
-        wings_wm:rollup(rolldown,Client),
-        wings_wm:raise(Client);
-      _ -> keep
-    end,
-    wings_wm:dirty();
-ctrl_command(show_toolbar, _) ->
-    {_,Client} = wings_wm:this(),
-    Toolbar = {toolbar,Client},
-    wings_wm:show({toolbar,Client}),
-    {_,H} = wings_wm:win_size(Toolbar),
-    wings_wm:update_window(Client, [{dy,H},{dh,-H}]),
-    case wings_wm:win_rollup(Client) of
-      true when Client /= geom ->
-        wings_wm:rollup(rolldown,Client),
-        wings_wm:raise(Client);
-      _ -> keep
-    end,
-    wings_wm:dirty();
 ctrl_command({fit,Fit}, _) ->
     ctrl_fit(Fit),
     keep;
@@ -489,8 +442,6 @@ fit_filter(Ns, Client, Below) ->
     Bottom = Top + H,
     fit_filter(Ns, Client, Below, {Left,Right,Top,Bottom}, []).
 
-fit_filter([{toolbar,_}|Ns], Client, Below, Dim, Acc) ->
-    fit_filter(Ns, Client, Below, Dim, Acc);
 fit_filter([{menubar,_}|Ns], Client, Below, Dim, Acc) ->
     fit_filter(Ns, Client, Below, Dim, Acc);
 fit_filter([{closer,_}|Ns], Client, Below, Dim, Acc) ->
@@ -515,7 +466,6 @@ is_helper_window({controller,Client}, Client) -> true;
 is_helper_window({vscroller,Client}, Client) -> true;
 is_helper_window({resizer,Client}, Client) -> true;
 is_helper_window({closer,Client}, Client) -> true;
-is_helper_window({toolbar,Client}, Client) -> true;
 is_helper_window({menubar,Client}, Client) -> true;
 is_helper_window(_, _) -> false.
 
@@ -914,7 +864,7 @@ controller_width(Client) ->
     end.
 
 menubar_pos(Client) ->
-    UL = toolbar_pos(Client),
+    UL = wings_wm:win_ul(Client),
     Name = {menubar,Client},
     case wings_wm:is_window({menubar,Client}) of
 	false -> UL;
@@ -922,18 +872,6 @@ menubar_pos(Client) ->
 	    {_,H} = wings_wm:win_size(Name),
 	    {X,Y} = UL,
 	    {X,Y-H}
-    end.
-
-toolbar_pos(Client) ->
-    UL = wings_wm:win_ul(Client),
-    Toolbar = {toolbar,Client},
-    case wings_wm:is_window(Toolbar) andalso not wings_wm:is_hidden(Toolbar) of
-	false ->
-	    UL;
-	true ->
-	    {_,ToolbarH} = wings_wm:win_size(Toolbar),
-	    {X,Y} = UL,
-	    {X,Y-ToolbarH}
     end.
 
 closer_pos(Client) ->

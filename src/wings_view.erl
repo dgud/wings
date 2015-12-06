@@ -116,7 +116,8 @@ menu() ->
       {?__(59,"Auto Rotate"),auto_rotate,?__(60,"Spin the view")}]].
 
 crossmark(Key) ->
-    wings_menu_util:crossmark(Key).
+    %% Start with everything false, update when values loaded
+    [{crossmark, wings_pref:get_value(Key, false)}].
 
 views_submenu() ->
     [{?__(1,"Next"),next, ?__(11, "Move camera to next view")},
@@ -655,11 +656,11 @@ toggle_option(Key0) ->
 	none ->
 	    Prev = wings_pref:get_value(Key, false),
 	    wings_pref:set_value(Key, not Prev),
-	    wings_menu:update_menu_enabled(view, Key0, not Prev),
+	    wings_wm:send(wings_frame, {menu,{view, Key0, not Prev}}),
 	    Prev;
 	{value,Bool} ->
 	    wings_wm:set_prop(Key, not Bool),
-	    wings_menu:update_menu_enabled(view, Key0, not Bool),
+	    wings_wm:send(top_frame, {menu,{view, Key0, not Bool}}),
 	    Bool
     end.
 
