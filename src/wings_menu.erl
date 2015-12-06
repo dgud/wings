@@ -14,8 +14,8 @@
 
 -module(wings_menu).
 -export([is_popup_event/1,menu/5,popup_menu/4,build_command/2,
-	 kill_menus/0]).
--export([wx_menubar/1, id_to_name/1, check_item/1, str_clean/1]).
+	 kill_menus/0, predefined_item/2]).
+-export([setup_menus/2, id_to_name/1, check_item/1, str_clean/1]).
 -export([update_menu/3, update_menu/4,
 	 update_menu_enabled/3, update_menu_hotkey/2]).
 
@@ -26,6 +26,14 @@
 -define(REPEAT, 99).
 -define(REPEAT_ARGS, 98).
 -define(REPEAT_DRAG, 97).
+-define(SEL_VERTEX, 96).
+-define(SEL_EDGE, 95).
+-define(SEL_FACE, 94).
+-define(SEL_BODY, 93).
+-define(VIEW_WORKMODE, 92).
+-define(VIEW_ORTHO, 91).
+-define(VIEW_AXES, 90).
+-define(VIEW_GROUND, 89).
 
 %% -record(menu_pop,
 %% 	{wxid,
@@ -659,12 +667,17 @@ update_menu(Menu, Item, Cmd0, Help) ->
 
 update_menu_enabled(Menu, Item, Enabled)
   when is_boolean(Enabled) ->
-    Id = menu_item_id(Menu, Item),
-    [#menu{object=MI}] = ets:lookup(wings_menus, Id),
-    case wxMenuItem:isCheckable(MI) of 
-	true  -> wxMenuItem:check(MI, [{check,Enabled}]);
-	false -> wxMenuItem:enable(MI, [{enable, Enabled}])
-    end.
+    case menu_item_id(Menu, Item) of
+	false -> ignore;
+	Id ->
+	    [#menu{object=MI}] = ets:lookup(wings_menus, Id),
+	    case wxMenuItem:isCheckable(MI) of 
+		true  -> wxMenuItem:check(MI, [{check,Enabled}]);
+		false -> wxMenuItem:enable(MI, [{enable, Enabled}])
+	    end
+    end;
+update_menu_enabled(_Menu, _Item, _Enabled) ->
+    ignore.
 
 update_menu_hotkey(Action, HotKeyStr) ->
     case ets:match_object(wings_menus, #menu{name=Action, _='_'}) of
@@ -684,6 +697,11 @@ menu_item_id(Menu, Item) ->
 	false ->
 	    case ets:match_object(wings_menus, #menu{name={Menu,Item}, _='_'}) of
 		[#menu{wxid=Id}] -> Id;
+		[] when Menu =:= view -> %% Auto find {view, {show, Item}} used for toolbar
+		    case ets:match_object(wings_menus, #menu{name={view,{show,Item}}, _='_'}) of
+			[#menu{wxid=Id}] -> Id;
+			[] -> false
+		    end;
 		[] -> false
 	    end
     end.
@@ -709,11 +727,7 @@ setup_hotkey(MI, Cmd) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-wx_menubar(Menus) ->
-    ets:new(wings_menus, [named_table, {keypos,2}]),
-    WinName = {menubar, geom},
-    put(wm_active, WinName),
-    MB = wxMenuBar:new(),
+setup_menus(MB, Menus) ->
     Enter = fun({Str, Name, List}, Id) ->
 		    {Menu, NextId} = setup_menu([Name], Id, List),
 		    wxMenuBar:append(MB, Menu, Str),
@@ -722,17 +736,13 @@ wx_menubar(Menus) ->
 		    true = ets:insert(wings_menus, ME),
 		    NextId+1
 	    end,
-    try
-	lists:foldl(Enter, 200, Menus),
-	wxFrame:setMenuBar(get(top_frame), MB),
-	ok
-    catch _ : Reason ->
-	    io:format("CRASH ~p ~p~n",[Reason, erlang:get_stacktrace()]),
-	    error(Reason)
-    end,
-    erase(wm_active),
-    ok.
+    lists:foldl(Enter, 200, Menus).
 
+
+id_to_name(?SEL_VERTEX) -> {select, vertex};
+id_to_name(?SEL_EDGE) -> {select, edge};
+id_to_name(?SEL_FACE) -> {select, face};
+id_to_name(?SEL_BODY) -> {select, body};
 id_to_name(Id) ->
     [#menu{name=Name}] = ets:lookup(wings_menus, Id),
     Name.
@@ -886,8 +896,35 @@ predefined_item(edit, Fun) when is_function(Fun) -> ?wxID_PREFERENCES;
 predefined_item(edit, repeat)  -> ?REPEAT;
 predefined_item(edit, repeat_args) -> ?REPEAT_ARGS;
 predefined_item(edit, repeat_drag) -> ?REPEAT_DRAG;
+%% Also all toolbar stuff (only once)
+predefined_item(select, vertex) -> ?SEL_VERTEX;
+predefined_item(select, edge) -> ?SEL_EDGE;
+predefined_item(select, face) -> ?SEL_FACE;
+predefined_item(select, body) -> ?SEL_BODY;
+
+predefined_item(view, workmode) -> ?VIEW_WORKMODE;
+predefined_item(view, orthogonal_view) -> ?VIEW_ORTHO;
+predefined_item(show, show_axes) -> ?VIEW_AXES;
+predefined_item(show, show_groundplane) -> ?VIEW_GROUND;
+
+predefined_item(toolbar, open) -> predefined_item(file, open);
+predefined_item(toolbar, save) -> predefined_item(file, save);
+predefined_item(toolbar, undo) -> predefined_item(edit, undo);
+predefined_item(toolbar, redo) -> predefined_item(edit, redo);
+predefined_item(toolbar, pref) -> predefined_item(edit, preferences);
+
+predefined_item(toolbar, vertex) -> predefined_item(select, vertex);
+predefined_item(toolbar, edge)   -> predefined_item(select, edge);
+predefined_item(toolbar, face)   -> predefined_item(select, face);
+predefined_item(toolbar, body)   -> predefined_item(select, body);
+
+predefined_item(toolbar, workmode)      -> predefined_item(view, workmode);
+predefined_item(toolbar, orthogonal_view) -> predefined_item(view, orthogonal_view);
+predefined_item(toolbar, show_groundplane) -> predefined_item(show, show_groundplane);
+predefined_item(toolbar, show_axes)        -> predefined_item(show, show_axes);
+
 predefined_item(_M, _C) ->
-    %% io:format("Ignore ~p ~p~n",[_M,_C]),
+%%    io:format("Ignore ~p ~p~n",[_M,_C]),
     false.
 
 colorB({R,G,B,A}) -> {trunc(R*255),trunc(G*255),trunc(B*255),trunc(A*255)};

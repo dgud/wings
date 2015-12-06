@@ -23,6 +23,7 @@
 	 gb_trees_smallest_key/1,gb_trees_largest_key/1,
 	 array_keys/1,array_smallest_key/1,array_greatest_key/1,
 	 array_is_empty/1,array_entries/1,
+	 mapsfind/3,
 	 nice_float/1,
 	 unique_name/2,
 	 is_name_masked/2,
@@ -194,6 +195,18 @@ simplify_float(F) ->
 simplify_float_1("0."++_=F) -> F;
 simplify_float_1("0"++F) -> simplify_float_1(F);
 simplify_float_1(F) -> F.
+
+%%
+%% Finds the first map containing Key:=Value
+%%
+-spec mapsfind(term(), term(), list()) -> map()|false.
+mapsfind(Value, Key, [H|T]) ->
+    case H of
+	#{Key:=Value} -> H;
+	_ -> mapsfind(Value, Key, T)
+    end;
+mapsfind(_, _, []) -> false.
+
 
 %%
 %% Create a unique name by appending digits.
