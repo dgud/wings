@@ -14,8 +14,6 @@
 DIR = ../../../plugins/autouv
 
 FILES = standard.vs \
-	wpc_noise.auv \
-	noise.fs \
 	wpc_wood.auv \
 	wood.fs \
 	wpc_filter.auv \
@@ -24,12 +22,6 @@ FILES = standard.vs \
 	edge_filter.fs \
 	wpc_brick.auv \
 	brick.fs \
-	wpc_camuflage_checker.auv \
-	camuflage_checker.fs \
-	wpc_camuflage_dots.auv \
-	camuflage_dots.fs \
-	wpc_camuflage_pixelated.auv \
-	camuflage_pixelated.fs \
 	wpc_hexagon.auv \
 	hexagon.fs \
 	wpc_tile.auv \
@@ -46,6 +38,8 @@ FILES = standard.vs \
 	lava.fs \
 	wpc_caustics.auv \
 	caustics.fs \
+	wpc_camuflage.auv \
+	camuflage.fs \
 	README-shaders.txt
 
 

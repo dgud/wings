@@ -1,7 +1,7 @@
 %%
 %%  wpc_caustics.auv --
 %%
-%%     Config file for lava and fire shader
+%%     Config file for Caustic shader
 %%
 %%  Copyright (c) 2015 Micheus
 %%  See the file "license.terms" for information on usage and redistribution

@@ -4,7 +4,7 @@
 %%     Config file for simple wood shader
 %%
 %%  Copyright (c) 2006 Dan Gudmundsson
-%%                2015 Micheus (Added Perlin and Simples noise variant)
+%%                2015 Micheus (Added Tree Trunk, Perlin and Simples noise variant)
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
@@ -19,16 +19,21 @@
 {auv, auv_bbpos3d}.             % Use bounding box for positions
 %% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
-{uniform, menu, "type", "Wood", [{"Wood",0},{"Wood (Perlin noise)",1},
-                                 {"Wood (Simplex noise)",2}]}.
-{uniform, color, "darkWood", {0.45,0.22,0.0,0.0}, "Dark Rings"}.
-{uniform, color, "liteWood", {0.85,0.42,0.20,0.0}, "Lite Background"}.
-{uniform, float, "frequency", 3.0, "Frequency"}.
-{uniform, float, "noiseScale", 8.0, "Noise Scale"}.
-{uniform, float, "scale", 1.0, "Scale"}.
-{uniform, float, "ringScale", 0.7, "Smoothness (Perlin/Simplex)"}.
-{uniform, float, "contrast", 3.0, "Contrast (Perlin/Simplex)"}.
+{uniform, menu, "type", "Tree Trunk", [{"Tree Trunk",0},{"Wood (Perlin noise)",1},
+                                       {"Wood (Simplex noise)",2}]}.
+{uniform, color, "liteWood", {0.85,0.58,0.20,0.0}, "Lite Background"}.
+{uniform, color, "darkWood", {0.50,0.27,0.10,0.0}, "Dark Rings (Perlin/Simplex)"}.
+{uniform, bool, "exchange", false, "Exchange colors (Perlin/Simplex)"}.
+{uniform, {slider,0.0,200.0}, "frequency", 10.0, "Frequency"}.
+{uniform, {slider,0.0,200.0}, "noiseScale",10.0, "Noise Scale"}.
+{uniform, {slider,0.0,100.0}, "scale", 1.0, "Scale"}.
+{uniform, {slider,0.0,100.0}, "ringScale", 0.70, "Smoothness (Perlin/Simplex)"}.
+{uniform, {slider,0.0,100.0}, "contrast", 10.0, "Contrast"}.
 {uniform, {slider,-360.0,360.0}, "rotx", 0.0, "Rotate X"}.
 {uniform, {slider,-360.0,360.0}, "roty", 0.0, "Rotate Y"}.
 {uniform, {slider,-360.0,360.0}, "rotz", 0.0, "Rotate Z"}.
+{uniform, {slider,-300.0,300.0}, "offsetx", 0.0, "Move X"}.
+{uniform, {slider,-300.0,300.0}, "offsety", 0.0, "Move Y"}.
+{uniform, {slider,-300.0,300.0}, "offsetz", 0.0, "Move Z"}.
+{uniform, {slider,-300.0,300.0}, "stretchy", 0.0, "Stretch Height"}.
 

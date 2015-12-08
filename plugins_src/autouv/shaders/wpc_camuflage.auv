@@ -1,33 +1,30 @@
 %%
-%%  wpc_marble.auv --
+%%  wpc_camuflage.auv --
 %%
-%%     Config file for Marble shader
+%%     Config file for camuflage shaders
 %%
 %%  Copyright (c) 2015 Micheus
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_marble.auv,v 1.0 2015/11/07 21:40:0 micheus Exp $
+%%     $Id: wpc_camuflage.auv,v 1.0 2015/12/02 21:40:0 micheus Exp $
 %%
 
 %%  Everything behind a '%' is a comment
 
-{name, "Marble"}.                   % The name in the shader selector
+{name, "Camuflage"}.                % The name in the shader selector
 {vertex_shader, "standard.vs"}.     % Vertex shader used
-{fragment_shader, "marble.fs"}.     % Fragment shader used
+{fragment_shader, "camuflage.fs"}.  % Fragment shader used
 {auv, auv_bbpos3d}.                 % Use bounding box for positions
 %% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
-%% types: Marble
-{uniform, menu, "type", "Solid Marble (ignore colors)", [{"Solid Marble (ignore colors)",0},
-                        {"User Colors",1}]}.
-{uniform, color, "color1", {0.95,0.95,0.9025,0.0}, "Color 1"}.
-{uniform, color, "color2", {0.05,0.05,0.05,0.0}, "Color 2"}.
+{uniform, menu, "type", "Checker", [{"Checker",0},{"Dots",1},{"Pixelated",2}]}.
+{uniform, color, "color1", {0.24,0.3,0.01,0.0}, "Color 1"}.
+{uniform, color, "color2", {0.0022,0.0778,0.1066,0.0}, "Color 2"}.
 {uniform, bool, "exchange", false, "Exchange colors"}.
-{uniform, {slider,1.0,100.0}, "frequency", 1.5, "Frequency"}.
-{uniform, {slider,0.0,200.0}, "amplitude", 2.0, "Amplitude"}.
-{uniform, {slider,0.0,25.0}, "rougness", 16.0, "Turbulence"}.
+{uniform, {slider,0.0,200.0}, "bright", 80.0, "Bright (%)"}.
+{uniform, {slider,0.0,500.0}, "frequency", 20.0, "Frequency"}.
 {uniform, {slider,-360.0,360.0}, "rotx", 0.0, "Rotate X"}.
 {uniform, {slider,-360.0,360.0}, "roty", 0.0, "Rotate Y"}.
 {uniform, {slider,-360.0,360.0}, "rotz", 0.0, "Rotate Z"}.

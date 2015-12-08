@@ -1,7 +1,7 @@
 //  caustics.fs --
 //
-//     Caustics shader based on 2D shaders:
-//       - ShaderFrog: http://shaderfrog.com/app/view/76
+//     Caustics 3D shader based on a 2D I found at ShaderFrog:
+//     - http://shaderfrog.com/app/view/76
 //
 //  Copyright (c) 2015 Micheus
 //
@@ -32,8 +32,7 @@ varying vec3 w3d_pos;
 #define TAU 6.28318530718
 #define MAX_ITER 6
 
-vec3 rotate(vec3 pos, float a, float b, float y)
-{
+vec3 rotate(vec3 pos, float a, float b, float y) {
   vec3 posn = normalize(pos);
   float ca = cos(-a);  // alpha
   float cb = cos(b);  // beta
@@ -94,6 +93,4 @@ void main() {
     } else if (mixmode == 1) {
         gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), min(d+c2.a*(1.0-d),1.0));
     }
-//    vec3 rgb = vec3( pow( abs( c ), 4.0 ) );
-//    gl_FragColor = vec4( rgb * color2.rgb + color1.rgb, 1.0 );
 }

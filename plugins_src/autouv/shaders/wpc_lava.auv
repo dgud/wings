@@ -19,7 +19,7 @@
 %% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
 {uniform, menu, "type", "Lava", [{"Lava", 0},{"Flame",1},{"Smooke",2},{"Travertine",3}]}.
-{uniform, color, "color1", {1.0,0.7,0.33,0.0}, "Base color"}.
+{uniform, color, "color1", {1.0,0.7,0.33,0.0}, "Base color (except for Flame)"}.
 {uniform, bool, "invert", false, "Invert"}.
 {uniform, {slider,0.0,300.0}, "brightness", 100.0, "Brightness (%)"}.
 {uniform, {slider,0,5}, "smoothlevel", 0, "Smooth level"}.
