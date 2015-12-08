@@ -13,7 +13,7 @@
 
 %%  Everything behind a '%' is a comment
 
-{name, "Brick"}.  % The name in the shader selector
+{name, "Brick"}.                % The name in the shader selector
 {vertex_shader, "standard.vs"}. % Vertex shader used
 {fragment_shader, "brick.fs"}.  % Fragment shader used
 {auv, auv_texsz}.               % vec2 width and height

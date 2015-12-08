@@ -1,7 +1,7 @@
 %%
 %%  wpc_voronoi.auv --
 %%
-%%     Config file for simple brick shader
+%%     Config file for Voronoi shader
 %%
 %%  Copyright (c) 2015 Micheus
 %%
@@ -16,12 +16,9 @@
 {name, "Voronoi"}.                  % The name in the shader selector
 {vertex_shader, "standard.vs"}.     % Vertex shader used
 {fragment_shader, "voronoi.fs"}.    % Fragment shader used
-%%{auv, auv_texsz}.                   % vec2 width and height
 {auv, auv_bbpos3d}.                 % Use bounding box for positions
 %% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
-%% types: Standard, Smooth, Noise, Cloud
-%%{uniform, float, "type", 0, "Type"}.
 {uniform, menu, "type", "Standard", [{"Standard",0},{"Smooth",1},
                                      {"Cloud",2},{"Grain",3}]}.
 {uniform, color, "color1", {0.85,0.85,0.85,0.0}, "Color 1"}.

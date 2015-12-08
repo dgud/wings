@@ -1,7 +1,9 @@
 //
 //  voronoi.fs --
 //
-//     Voronoi shader based from GLSL SandBox: http://glslsandbox.com/e#18294.0 and http://glslsandbox.com/e#17194.1
+//     Voronoi 3D shaders based on some I found at GLSL SandBox:
+//     - http://glslsandbox.com/e#18294.0
+//     - http://glslsandbox.com/e#17194.1
 //
 //  Copyright (c) 2015 Micheus
 //
@@ -28,8 +30,7 @@ varying vec3 w3d_pos;
 
 #define cf_rad 0.0174532925277778 // 2x3.1415.../360.0;
 
-vec3 rotate(vec3 pos, float a, float b, float y)
-{
+vec3 rotate(vec3 pos, float a, float b, float y) {
     vec3 posn = normalize(pos);
     float ca = cos(-a);  // alpha
     float cb = cos(b);  // beta
@@ -72,8 +73,7 @@ float noise(in vec2 uv) {
     return    mix(l.x, l.y, l.w);
 }
 
-float voronoi3d(const in vec3 uv)
-{
+float voronoi3d(const in vec3 uv) {
     vec3 p = floor(uv);
     vec3 f = fract(uv);
 	float d = 1.0;
@@ -90,8 +90,7 @@ float voronoi3d(const in vec3 uv)
 }
 
 //voronoi fbm
-float vfbm(float a, float f, const in vec3 uv, const in int it)
-{
+float vfbm(float a, float f, const in vec3 uv, const in int it) {
     float n = 0.;
     for(int i = 0; i < 32; i++)
     {

@@ -13,13 +13,12 @@
 
 %%  Everything behind a '%' is a comment
 
-{name, "Noise (Extra)"}.            % The name in the shader selector
+{name, "Noise"}.                    % The name in the shader selector
 {vertex_shader, "standard.vs"}.     % Vertex shader used
 {fragment_shader, "noise_ext.fs"}.  % Fragment shader used
 {auv, auv_bbpos3d}.                 % Use bounding box for positions
 %% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
-%% types: Standard, Smooth, Noise, Cloud
 {uniform, menu, "type", "Burn", [{"Perlin Noise",0},{"Perlin Noise (Smooth)",1},
                                  {"Rustry",2},{"Burn",3},{"Cloud",4},
                                  {"Concret",5},{"Pullover Pattern",6},{"Psychedelic",7},

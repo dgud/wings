@@ -1,10 +1,12 @@
 //
 //  wood.fs --
 //
-//     Simple wood shader stolen from RenderMonkey
+//     Wood 3D shaders based on some 2D version I found at ShaderFrog:
+//     - Perin and Simplex: http://shaderfrog.com/app/view/123
+//     - Tree Trunk: http://shaderfrog.com/app/view/282
 //
 //  Copyright (c) 2006 Dan Gudmundsson
-//                2015 Micheus (Added Perlin and Simples noise variant)
+//                2015 Micheus (Added Tree Trunk, Perlin and Simples noise variant)
 //
 //  See the file "license.terms" for information on usage and redistribution
 //  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -13,8 +15,9 @@
 //
 
 uniform int type;
-uniform vec4  darkWood;
 uniform vec4  liteWood;
+uniform vec4  darkWood;
+uniform bool exchange;
 uniform float frequency;
 uniform float noiseScale;
 uniform float scale;
@@ -23,7 +26,10 @@ uniform float contrast;
 uniform float rotx;
 uniform float roty;
 uniform float rotz;
-uniform int mixmode;
+uniform float offsetx;
+uniform float offsety;
+uniform float offsetz;
+uniform float stretchy;
 
 uniform vec3 auv_bbpos3d[2];
 varying vec3 w3d_pos;
@@ -33,19 +39,15 @@ varying vec3 w3d_pos;
 
 
 // From : Ian McEwan, Ashima Arts.
-
-vec4 permute(vec4 x)
-{
+vec4 permute(vec4 x) {
   return mod(((x*34.0)+1.0)*x, 289.0);
 }
 
-vec4 taylorInvSqrt(vec4 r)
-{
+vec4 taylorInvSqrt(vec4 r) {
   return 1.79284291400159 - 0.85373472095314 * r;
 }
 
-float snoise(vec3 v)
-{
+float snoise(vec3 v) {
   const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
   const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
 
@@ -125,8 +127,7 @@ vec3 fade(vec3 t) {
 }
 
 // Classic Perlin noise
-float cnoise(vec3 P)
-{
+float cnoise(vec3 P) {
   vec3 Pi0 = floor(P); // Integer part for indexing
   vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1
   Pi0 = mod(Pi0, 289.0 );
@@ -195,41 +196,42 @@ float cnoise(vec3 P)
 }
 // ***************************************************************************
 
-float f_auv_noise(float P, vec3 pos)
-{
-    float temp = P, total;
-    vec4 per = vec4(1.0,temp,temp*temp,temp*temp*temp*temp);
-    total = 1.0/dot(per, vec4(1.0));
-    per  *= total;
-    vec4 noise = snoise(pos);
-    return dot(per,noise);
+float rand( vec2 p ) {
+    return fract( sin( dot( p.xy, vec2(12.898, 78.233) ) ) * 43758.5453 );
 }
 
-float wings_wood(float noise)
-{
-  // Stretch along y axis
-  vec2 adjustedScaledPos = vec2(w3d_pos.x, w3d_pos.y*.25);
-  // Rings are defined by distance to z axis and wobbled along it
-  // and perturbed with some noise
-  float ring = 0.5*(1.0+sin(5.0*sin(frequency*w3d_pos.z)+
-                    frequency*(noiseScale*noise+
-                    6.28*length(adjustedScaledPos.xy))));
-  // Add some noise and get base color
-  return (ring + noise);
+float noise(vec2 _v, vec2 _freq) {
+    float fl1 = rand(floor(_v * _freq));
+    float fl2 = rand(floor(_v * _freq) + vec2(1.0, 0.0));
+    float fl3 = rand(floor(_v * _freq) + vec2(0.0, 1.0));
+    float fl4 = rand(floor(_v * _freq) + vec2(1.0, 1.0));
+    vec2 fr = fract(_v * _freq);
+    float r1 = mix(fl1, fl2, fr.x);
+    float r2 = mix(fl3, fl4, fr.x);
+    return mix(r1, r2, fr.y);
 }
 
-float new_wood(vec3 pos, float noise)
-{
+float perlin_noise(vec2 _pos, float _freq_start, float _amp_start, float _amp_ratio) {
+    float freq = _freq_start;
+    float amp = _amp_start;
+    float pn = noise(_pos, vec2(freq, freq)) * amp;
+    for (int i = 0; i < 4; i++) {
+        freq *= 2.0;
+        amp *= _amp_ratio;
+        pn += (noise(_pos, vec2(freq, freq)) * 2.0 - 1.0) * amp;
+    }
+    return pn;
+}
+
+
+float new_wood(vec3 pos, float noise) {
   float n = noise;
   float ring = fract(pos.z *frequency *scale + noiseScale *n);
-  ring *= contrast * (1.0 - ring);
-
-  // Adjust ring smoothness and shape, and add some noise
-  return (pow(ring, abs(ringScale)) + n);
+  ring *= (contrast*.1+0.05) * (1.0 - ring);
+  return (pow(ring, abs(ringScale*0.1+0.1)) + n);
 }
 
-vec3 rotate(vec3 pos, float a, float b, float y)
-{
+vec3 rotate(vec3 pos, float a, float b, float y) {
   vec3 posn = normalize(pos);
   float ca = cos(-a);  // alpha
   float cb = cos(b);  // beta
@@ -246,23 +248,31 @@ vec3 rotate(vec3 pos, float a, float b, float y)
   return vec3(pos4.xyz*length(pos));
 }
 
-void main(void)
-{
-  // Signed noise
+void main(void) {
+  float variation = noiseScale;
+  float secondaryVariation = 4.0;
+  float ringCount = 15.0+(40.0*frequency/20.0);
+  float ringDarkness = contrast*0.1;
+
   vec3 ch_center = (auv_bbpos3d[1]-auv_bbpos3d[0]);
   float ch_scale  = scale*1.41421/length(ch_center);
   ch_center = (ch_center/2.0) + auv_bbpos3d[0];
   vec3 pos = vec3(w3d_pos-ch_center);
+  pos.y *= (1.0+(-stretchy/300.0));
+  pos = vec3(pos.x+(-offsetx/300.0),pos.y+(-offsety/300.0),pos.z+(-offsetz/300.0));
+  float len = length(pos.xz);
   float rX = rotx*cf_rad;
   float rY = roty*cf_rad;
   float rZ = rotz*cf_rad;
   pos = rotate(pos,rX,rY,rZ);
-  pos = (ch_scale*pos)+0.5;
+  pos = (ch_scale*pos);
   float noise, lpr;
+  float d1, d2;
 
   if (type == 0) {
-      noise = 2.0 * f_auv_noise(0.5,pos) - 1.0;
-      lpr = wings_wood(noise);
+    float noise = perlin_noise(pos.xz + vec2(20.0, 20.0), 20.0, 0.5, 0.4)+perlin_noise(pos.xy + vec2(20, 20), 5.0, 0.5, 0.4)+perlin_noise(pos.zy + vec2(20, 20), 5.0, 0.5, 0.4);
+    d1 = smoothstep(0.7, 1.6, sin(ringCount * (len + variation * 0.01 * noise)));
+    d2 = smoothstep(0.8, 1.6, sin(ringCount * (4.0+4.0*(200.0-frequency)/200.0) * (len + secondaryVariation * 0.01 * noise)));
   } else if (type == 1) {
       noise = cnoise(pos);
       lpr = new_wood(pos, noise);
@@ -270,5 +280,19 @@ void main(void)
       noise = snoise(pos);
       lpr = new_wood(pos, noise);
   }
-  gl_FragColor = mix(vec4(darkWood.rgb,1.0-darkWood.a), vec4(liteWood.rgb,1.0-liteWood.a), lpr);
+
+	vec4 c1, c2;
+	if (exchange) {
+		c1 = darkWood;
+		c2 = liteWood;
+	} else {
+		c1 = liteWood;
+		c2 = darkWood;
+  }
+
+  if (type == 0) {
+    gl_FragColor = vec4(vec3(liteWood-(d1 *0.6 *ringDarkness)-(d2 *0.3 *ringDarkness)), 1.0-liteWood.a);
+  } else {
+    gl_FragColor = mix(vec4(c2.rgb,1.0-c2.a), vec4(c1.rgb,1.0-c1.a), lpr);
+  }
 }

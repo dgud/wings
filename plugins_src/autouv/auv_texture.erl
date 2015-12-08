@@ -934,7 +934,11 @@ shader_uniforms([{uniform,bool,Name,_,_}|As],[Val|Opts],Conf) ->
     shader_uniforms(As,Opts,Conf);
 shader_uniforms([{uniform,{slider,_,_},Name,_,_}|As],[Val|Opts],Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
-    gl:uniform1f(Loc,Val),
+	if is_integer(Val) ->
+			gl:uniform1i(Loc,Val);
+		true ->
+			gl:uniform1f(Loc,Val)
+	end,
     shader_uniforms(As,Opts,Conf);
 shader_uniforms([{uniform,{image,Unit},Name,_,_}|As],[{_,Id}|Opts],Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),

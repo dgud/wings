@@ -1,9 +1,10 @@
 //
 //  noise_ext.fs --
 //
-//     Different noise shaders based on:
-//       - GLSL SandBox: http://glslsandbox.com/e#18294.0 and http://glslsandbox.com/e#17194.1
-//       - Noise for GLSL 1.20 by Ashima: https://github.com/ashima/webgl-noise/wiki
+//     Different kind of 3D noise shaders based on some 2D I found at GLSL SandBox and Github:
+//      - http://glslsandbox.com/e#18294.0
+//      - http://glslsandbox.com/e#17194.1
+//      - Noise for GLSL 1.20 by Ashima: https://github.com/ashima/webgl-noise/wiki
 //
 //  Copyright (c) 2015 Micheus
 //
@@ -35,21 +36,18 @@ varying vec3 w3d_pos;
 //
 // Common code to Simplex and Perlin noise bellow
 // ***************************************************************************
-vec4 permute(vec4 x)
-{
+vec4 permute(vec4 x) {
   return mod(((x*34.0)+1.0)*x, 289.0);
 }
 
-vec4 taylorInvSqrt(vec4 r)
-{
+vec4 taylorInvSqrt(vec4 r) {
   return 1.79284291400159 - 0.85373472095314 * r;
 }
 
 // ***************************************************************************
 // Source: https://github.com/ashima/webgl-noise/blob/master/src/noise3D.glsl
 // ***************************************************************************
-float snoise(vec3 v)
-  {
+float snoise(vec3 v) {
   const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
   const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
 
@@ -131,8 +129,7 @@ vec3 fade(vec3 t) {
 }
 
 // Classic Perlin noise
-float cnoise(vec3 P)
-{
+float cnoise(vec3 P) {
   vec3 Pi0 = floor(P); // Integer part for indexing
   vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1
   Pi0 = mod(Pi0, 289.0);
@@ -201,8 +198,7 @@ float cnoise(vec3 P)
 }
 
 // Classic Perlin noise, periodic variant
-float pnoise(vec3 P, vec3 rep)
-{
+float pnoise(vec3 P, vec3 rep) {
   vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period
   vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period
   Pi0 = mod(Pi0, 289.0);
@@ -271,8 +267,7 @@ float pnoise(vec3 P, vec3 rep)
 }
 // ***************************************************************************
 
-float rand(vec3 pos)
-{
+float rand(vec3 pos) {
     return fract(sin(dot(pos.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 vec2 smooth2(vec2 uv) {
@@ -293,8 +288,7 @@ float noise(in vec2 uv) {
 
 //modified variations of fractal brownian motion
 // Concret
-float fbm(float a, float f, const in vec3 pos, const int it)
-{
+float fbm(float a, float f, const in vec3 pos, const int it) {
     float n = 0.;
     for(int i = 0; i < 32; i++)
     {
@@ -311,8 +305,7 @@ float fbm(float a, float f, const in vec3 pos, const int it)
 }
 
 // Rustry
-float fbm1(float a, float f, const in vec3 pos, const int it)
-{
+float fbm1(float a, float f, const in vec3 pos, const int it) {
     float n = 0.;
     for(int i = 0; i < 32; i++)
     {
@@ -327,8 +320,7 @@ float fbm1(float a, float f, const in vec3 pos, const int it)
 }
 
 // fBM using Perlin noise
-float fbm2(float a, float f, const in vec3 pos, const int it)
-{
+float fbm2(float a, float f, const in vec3 pos, const int it) {
     float n = 0.;
     for(int i = 0; i < 32; i++)
     {
@@ -342,20 +334,17 @@ float fbm2(float a, float f, const in vec3 pos, const int it)
     return n;
 }
 
-float worm_path(const in vec3 pos)
-{
+float worm_path(const in vec3 pos) {
     float n = cos(cnoise(pos));
     return (n-0.5)/0.5; // set the range to [0.0,1.0]
 }
 
-float woolen_yarn(vec3 pos)
-{
+float woolen_yarn(vec3 pos) {
     vec3 f = vec3(1.0,1.5,1.5);
     return pnoise(pos*5.0,f);
 }
 
-vec3 rotate(vec3 pos, float a, float b, float y)
-{
+vec3 rotate(vec3 pos, float a, float b, float y) {
     vec3 posn = normalize(pos);
     float ca = cos(-a);  // alpha
     float cb = cos(b);  // beta
@@ -427,7 +416,7 @@ void main( void ) {
     }
 
     if (mixmode == 0) {
-        if (type == 3) {           // Burn
+        if (type == 3) {  // Burn
             gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), 1.0-min(c1.a*(1.0-d)+c2.a*d,1.0));
         } else {
             gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), 1.0-min(c1.a*(1.0-d)+c2.a*d,1.0));

@@ -1,7 +1,7 @@
 //
 //  marble.fs --
 //
-//     Marble shader based on: article "Building a better marble" by Christian Marten
+//     Marble 3D shader based in the article "Building a better marble" by Christian Marten
 //     - http://www.tinysg.de/techGuides/tg1_proceduralMarble.html
 //
 //  Copyright (c) 2015 Micheus
@@ -36,18 +36,15 @@ varying vec3 w3d_pos;
 // https://github.com/ashima/webgl-noise/wiki
 // Source: https://github.com/ashima/webgl-noise/blob/master/src/noise3D.glsl
 // ***************************************************************************
-vec4 permute(vec4 x)
-{
+vec4 permute(vec4 x) {
   return mod(((x*34.0)+1.0)*x, 289.0);
 }
 
-vec4 taylorInvSqrt(vec4 r)
-{
+vec4 taylorInvSqrt(vec4 r) {
   return 1.79284291400159 - 0.85373472095314 * r;
 }
 
-float snoise(vec3 v)
-  {
+float snoise(vec3 v) {
   const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
   const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
 
@@ -122,8 +119,7 @@ float snoise(vec3 v)
 }
 // ***************************************************************************
 
-vec3 rotate(vec3 pos, float a, float b, float y)
-{
+vec3 rotate(vec3 pos, float a, float b, float y) {
     vec3 posn = normalize(pos);
     float ca = cos(-a);  // alpha
     float cb = cos(b);  // beta
@@ -140,13 +136,11 @@ vec3 rotate(vec3 pos, float a, float b, float y)
     return vec3(pos4.xyz*length(pos));
 }
 
-float rand(vec3 pos)
-{
+float rand(vec3 pos) {
     return fract(sin(dot(pos.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
-float turbulence2 (vec3 P, int numFreq)
-{
+float turbulence2 (vec3 P, int numFreq) {
     float val = 0.0;
     float freq = 1.0;
     for (int i=0; i<numFreq; i++) {
@@ -157,8 +151,7 @@ float turbulence2 (vec3 P, int numFreq)
 }
 
 // Expects -1<x<1
-float marble_color (float x, int level)
-{
+float marble_color (float x, int level) {
     vec3 col;
     x = 0.5*(x+1.);          // transform -1<x<1 to 0<x<1
     for (int i=0; i<level; i++) {
@@ -167,8 +160,7 @@ float marble_color (float x, int level)
     return x;
 }
 
-float calc_marble(vec3 pos, float f, float a, int r)
-{
+float calc_marble(vec3 pos, float f, float a, int r) {
      const float PI = 3.1415;
 
      float asc = f* snoise (vec3(1.5));  // use this as m in t=my+x, rather than just using t=x.

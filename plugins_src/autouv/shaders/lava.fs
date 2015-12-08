@@ -1,8 +1,8 @@
 //  lava.fs --
 //
-//     Lava and Fire shader based on 2D shaders:
-//       - ShaderFrog (Lava): http://shaderfrog.com/app/view/76
-//       - ShaderFrog (Oil or Fire): http://shaderfrog.com/app/view/35
+//     Lava and Fire 3D shader based on 2D I found at Shader Frog:
+//     - Lava: http://shaderfrog.com/app/view/76
+//     - Oil or Fire: http://shaderfrog.com/app/view/35
 //
 //  Copyright (c) 2015 Micheus
 //
@@ -28,8 +28,7 @@ varying vec3 w3d_pos;
 
 #define cf_rad 0.0174532925277778 // 2x3.1415.../360.0;
 
-vec3 rotate(vec3 pos, float a, float b, float y)
-{
+vec3 rotate(vec3 pos, float a, float b, float y) {
   vec3 posn = normalize(pos);
   float ca = cos(-a);  // alpha
   float cb = cos(b);  // beta
@@ -46,8 +45,7 @@ vec3 rotate(vec3 pos, float a, float b, float y)
   return vec3(pos4.xyz*length(pos));
 }
 
-float apply_smooth(float d, int level)
-{
+float apply_smooth(float d, int level) {
   for (int i=0; i < level; i++) {
     d = sqrt(d);
   }
@@ -176,7 +174,7 @@ vec3 flame(float q, vec3 pos) {
   const vec3 c6 = vec3(0.9);
 
 	vec3 r = vec3(fbm(1.0,pos + q + 0.7 - pos.x - pos.y),
-	              fbm(1.0,pos + q - 0.4 - pos.y - pos.z),
+	              fbm(1.0,pos + q - 0.4),
 	              fbm(1.0,pos + q + 0.1 - pos.z - pos.x));
 	return vec3(mix(c1, c2, fbm(1.0,pos + r)) + mix(c3, c4, r.x) - mix(c5, c6, r.y));
 
@@ -205,6 +203,7 @@ void main(void) {
     d = apply_smooth(d,smoothlevel);
   } else {
     d = fbm(1.0+convolution/100.0, pos*0.50 - 0.1);
+    d = apply_smooth(d,smoothlevel);
   }
 
   if (invert) {
