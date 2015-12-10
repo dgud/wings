@@ -1,0 +1,27 @@
+%%
+%%  wpc_stripes.auv --
+%%
+%%     Config file for simple brick shader
+%%
+%%  Copyright (c) 2015 Micheus
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_stripes.auv,v 1.0 2015/10/26 21:40:0 micheus Exp $
+%%
+ 
+%%  Everything behind a '%' is a comment
+
+{name, "Stripes"}.                  % The name in the shader selector
+{vertex_shader, "standard.vs"}.     % Vertex shader used
+{fragment_shader, "stripes.fs"}.    % Fragment shader used
+{auv, auv_texsz}.                   % vec2 width and height
+%% Uses these uniforms:  
+%% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
+{uniform, color, "color1", {0.8,0.5,0.5,0.0}, "Color 1"}.
+{uniform, color, "color2", {0.1,0.1,0.5,0.0}, "Color 2"}.
+{uniform, {slider,0.000,100.0}, "thickness", 15.0, "Thickness (%)"}.
+{uniform, {slider,0.0,360.0}, "angle", 60.0, "Angle"}.
+{uniform, {slider,0.0,100.0}, "frequency", 20.0, "Frequency"}.
+

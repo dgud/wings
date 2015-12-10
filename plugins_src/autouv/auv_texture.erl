@@ -916,7 +916,16 @@ shader_uniforms([{uniform,float,Name,_,_}|As],[Val|Opts],Conf) ->
 shader_uniforms([{uniform,menu,Name,_,_}|As],[Vals|Opts],Conf) 
   when is_list(Vals) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
-    foldl(fun(Val,Cnt) -> gl:uniform1f(Loc+Cnt,Val),Cnt+1 end,0,Vals),
+    foldl(fun(Val,Cnt) when is_integer(Val) ->
+                gl:uniform1i(Loc+Cnt,Val),Cnt+1;
+             (Val,Cnt) ->
+                gl:uniform1f(Loc+Cnt,Val),Cnt+1
+          end,0,Vals),
+    shader_uniforms(As,Opts,Conf);
+shader_uniforms([{uniform,menu,Name,_,_}|As],[Vals|Opts],Conf)
+    when is_integer(Vals) ->
+    Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
+    gl:uniform1i(Loc,Vals),
     shader_uniforms(As,Opts,Conf);
 shader_uniforms([{uniform,bool,Name,_,_}|As],[Val|Opts],Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
@@ -925,7 +934,11 @@ shader_uniforms([{uniform,bool,Name,_,_}|As],[Val|Opts],Conf) ->
     shader_uniforms(As,Opts,Conf);
 shader_uniforms([{uniform,{slider,_,_},Name,_,_}|As],[Val|Opts],Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
-    gl:uniform1f(Loc,Val),
+	if is_integer(Val) ->
+			gl:uniform1i(Loc,Val);
+		true ->
+			gl:uniform1f(Loc,Val)
+	end,
     shader_uniforms(As,Opts,Conf);
 shader_uniforms([{uniform,{image,Unit},Name,_,_}|As],[{_,Id}|Opts],Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),

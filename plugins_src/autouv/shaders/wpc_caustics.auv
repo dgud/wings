@@ -1,0 +1,33 @@
+%%
+%%  wpc_caustics.auv --
+%%
+%%     Config file for Caustic shader
+%%
+%%  Copyright (c) 2015 Micheus
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_caustics.auv,v 1.2 2006/11/25 10:00:00 micheus Exp $
+%%
+
+%%  Everything behind a '%' is a comment
+
+{name, "Caustics"}.                 % The name in the shader selector
+{vertex_shader, "standard.vs"}.     % Vertex shader used
+{fragment_shader, "caustics.fs"}.   % Fragment shader used
+{auv, auv_bbpos3d}.                 % Use bounding box for positions
+%% Uses these uniforms:
+%% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
+{uniform, color, "color1", {0.08,0.3,0.27,0.0}, "Base color"}.
+{uniform, color, "color2", {0.95,0.95,0.95,0.0}, "Bright color"}.
+{uniform, bool, "exchange", false, "Exchange colors"}.
+{uniform, {slider,0.0,100.0}, "brightness", 50.0, "Brightness (%)"}.
+{uniform, {slider,0.0,100.0}, "density", 50.0, "Density (%)"}.
+{uniform, {slider,0.1,300.0}, "speed", 0.1, "Disturb"}.
+{uniform, {slider,0.0,100.0}, "sharpness", 0.0, "Sharpness (%)"}.
+{uniform, {slider,-360.0,360.0}, "rotx", 0.0, "Rotate X"}.
+{uniform, {slider,-360.0,360.0}, "roty", 0.0, "Rotate Y"}.
+{uniform, {slider,-360.0,360.0}, "rotz", 0.0, "Rotate Z"}.
+{uniform, menu, "mixmode", "Add", [{"Add",0},{"Mask",1}]}.
+{uniform, bool, "invmask", false, "Invert Mask"}.
+

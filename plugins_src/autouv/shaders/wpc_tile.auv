@@ -1,0 +1,28 @@
+%%
+%%  wpc_tile.auv --
+%%
+%%     Config file for simple tile shader
+%%
+%%  Copyright (c) 2015 Micheus
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_tile.auv,v 1.0 2015/10/16 21:40:0 micheus Exp $
+%%
+
+%%  Everything behind a '%' is a comment
+
+{name, "Tile"}.                 % The name in the shader selector
+{vertex_shader, "standard.vs"}. % Vertex shader used
+{fragment_shader, "tile.fs"}.   % Fragment shader used
+{auv, auv_texsz}.               % vec2 width and height
+%% Uses these uniforms:
+%% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
+{uniform, color, "colorTile", {0.8,0.8,0.8,0.0}, "Color"}.
+{uniform, {slider,0.0,100.0}, "scalex", 10.0, "Horiz. scale (%)"}.
+{uniform, {slider,0.0,100.0}, "scaley", 10.0, "Vert. scale (%)"}.
+{uniform, {slider,0.0,100.0}, "shift", 0.0, "Horiz. shift (%)"}.
+{uniform, color, "colorMortar", {0.5,0.5,0.5,0.0}, "Mortar color"}.
+{uniform, {slider,0.0,100.0}, "scaleMortar", 1.0, "Mortar scale (%)"}.
+

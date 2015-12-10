@@ -1,0 +1,30 @@
+%%
+%%  wpc_hexagon.auv --
+%%
+%%     Config file for dotted camuflage shader
+%%
+%%  Copyright (c) 2015 Micheus
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_hexagon.auv,v 1.0 2015/10/16 21:40:0 micheus Exp $
+%%
+
+%%  Everything behind a '%' is a comment
+
+{name, "Hexagon"}.                  % The name in the shader selector
+{vertex_shader, "standard.vs"}.     % Vertex shader used
+{fragment_shader, "hexagon.fs"}.    % Fragment shader used
+{auv, auv_texsz}.                   % vec2 width and height
+%% Uses these uniforms:
+%% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
+{uniform, menu, "typeHex", "Default", [{"Default",0},
+        {"Pineapple fruit style",1},{"Honeycomb style",2},
+        {"Beveled gradation",3}]}.
+{uniform, color, "colorHex", {0.3,0.1,0.1,0.0}, "Color"}.
+{uniform, color, "colorThick", {0.12,0.12,0.12,0.0}, "Grid color"}.
+{uniform, {slider,0.0,100.0}, "scaleThick", 5.0, "Grid scale (%)"}.
+{uniform, {slider,0.0,400.0}, "frequency", 30.0, "Frequency"}.
+{uniform, float, "shrink", 0.0, "Horizontal shrink"}.
+
