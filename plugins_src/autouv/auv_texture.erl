@@ -341,7 +341,7 @@ render_image(#ts{uv=UVpos,pos=Pos,n=Ns,bi=BiNs,vc=Vc}=Geom,
     case lists:member(binormal, Reqs) of
 	true -> 	    
 	    gl:clientActiveTexture(?GL_TEXTURE2),
-	    gl:texCoordPointer(3,?GL_FLOAT,0,BiNs),
+	    gl:texCoordPointer(4,?GL_FLOAT,0,BiNs),
 	    gl:clientActiveTexture(?GL_TEXTURE0);
 	false ->
 	    ignore
@@ -535,19 +535,21 @@ setup(#st{bb=#uvstate{id=RId,st=#st{shapes=Sh0}}}=St, Reqs) ->
     We = gb_trees:get(RId,Sh0),
     {Charts,{_Cnt,UVpos,Vpos,Ns,Ts,BB,Vc}} = setup_charts(St, We, Reqs),
     #ts{charts=Charts,
-	uv =to_bin(UVpos,uv),
-	pos=to_bin(Vpos,pos),
-	n  =to_bin(Ns,pos),
-	bi =to_bin(Ts,pos),
+	uv = to_bin(UVpos,uv),
+	pos= to_bin(Vpos,pos),
+	n  = to_bin(Ns,pos),
+	bi = build_tangents(Ts),
 	bb = BB,
-	vc=to_bin(Vc, vertex)}.
+	vc = to_bin(Vc, vertex)}.
 
 setup_charts(#st{shapes=Cs0,selmode=Mode,sel=Sel}, We, Reqs) ->
     Ns = case member(normal, Reqs) orelse member(binormal, Reqs) of
 	     true -> setup_normals(We);
 	     false -> []
 	 end,
-    Start = {0,[],[],[],[],[],[]}, %% {UvPos,3dPos,Normal,Tangent,Vc}
+    Z = e3d_vec:zero(),
+    TSA = array:new([{default, {Z,Z}}]),
+    Start = {0,[],[],[],{TSA,[]},[],[]}, %% {UvPos,3dPos,Normal,Tangent,Vc}
     Shapes = if Sel =:= [] -> 
 		     gb_trees:values(Cs0);
 		Mode =:= body -> 
@@ -563,14 +565,13 @@ setup_charts(#st{shapes=Cs0,selmode=Mode,sel=Sel}, We, Reqs) ->
 setup_chart(#we{id=Id}=Ch, Ns, Reqs, WWe, State0) ->
     OEs0 = outer_verts(Ch),
     BB = [],
-    {Fs,{OEs,UvBB,State}}  = 
-	create_faces(Ch, WWe, Ns, Reqs, {OEs0,BB,State0}),
+    {Fs,{OEs,UvBB,State}} = create_faces(Ch, WWe, Ns, Reqs, {OEs0,BB,State0}),
     {#chart{id=Id,fs=Fs,oes=OEs,bb_uv=UvBB},State}.
 
 create_faces(#we{vp=Vtab,name=#ch{vmap=Vmap}}=We,
 	     #we{vp=Vt3d}=RealWe, NTab, Reqs, State) ->
     Fs = wings_we:visible(We),
-    C=fun(Face,{OEs,UvBB,{Cnt,UVpos,Vpos,Ns,Ts,PosBB,Vc}}) ->
+    C=fun(Face,{OEs,UvBB,{Cnt,UVpos,Vpos,Ns,Ts0,PosBB,Vc}}) ->
 	      Vs0 = wings_face:vertices_ccw(Face,We),
 	      UVcoords = [array:get(V, Vtab) || V <- Vs0],
 	      Coords   = [array:get(map_vertex(V,Vmap),Vt3d) 
@@ -592,7 +593,7 @@ create_faces(#we{vp=Vtab,name=#ch{vmap=Vmap}}=We,
 		       Len -> triangulate(FaceVs,UVcoords)
 		   end,
 %	      io:format("Face ~p Normals ~p~n", [Face,Normals]),
-	      Tangents = fix_tang_vecs(Vs,Coords,UVcoords,Normals,Reqs), 
+	      Ts = calc_tang_vecs(Vs,Vs0,Coords,UVcoords,Normals,Ts0,Reqs),
 	      Indx = fun(I) -> [V+Cnt || V <- I] end,
 	      {#fs{vs=Indx(Vs),vse=Indx(FaceVs),id=Face},
 	       {map_oes(OEs, Vs0, Cnt+Len-1, Face),
@@ -601,7 +602,7 @@ create_faces(#we{vp=Vtab,name=#ch{vmap=Vmap}}=We,
 		 UVcoords ++ UVpos,
 		 Coords   ++ Vpos,
 		 Normals  ++ Ns,
-		 Tangents ++ Ts,
+		 Ts,
 		 e3d_vec:bounding_box(PosBB ++ Coords),
 		 OldVc   ++ Vc}}}
       end,
@@ -629,28 +630,117 @@ fix_normals([V|R],Ns,Vmap) ->
     [find(map_vertex(V,Vmap),Ns)|fix_normals(R,Ns,Vmap)];
 fix_normals([],_,_) -> [].
 
-fix_tang_vecs(_,_,_,[],_) -> [];
-fix_tang_vecs(_Vs,Coords,_UVCoords,Normals,Reqs) ->
+%%%% Tangent calc
+
+calc_tang_vecs(_,_,_,_,[],Ts,_) -> Ts;
+calc_tang_vecs(Vs,VsIds,Coords,UVCoords,Normals,Ts0,Reqs) ->
+    %% io:format("Vs ~p ~n",[Vs]),
+    %% io:format("Coords ~p ~n",[Coords]),
+    %% io:format("UV ~p ~n",[UVCoords]),
+    %% io:format("Normals ~p ~n",[Normals]),
     case lists:member(binormal,Reqs) of
 	true ->
-	    %% Not tested enough, but I think it's better
-	    binormals(Normals,e3d_vec:normal(Coords));
+	    N = e3d_vec:norm(e3d_vec:average(Normals)),
+	    calc_tang_vecs_1([V+1||V <- Vs], VsIds, Coords, UVCoords, N, Ts0);
 	false ->
-	    []
+	    Ts0
     end.
 
-binormals(Normals,FaceNormal) ->
-    Q = e3d_q:rotate_s_to_t({0.0,0.0,1.0},FaceNormal),
-    R = fun(N) -> 
-		D = e3d_q:rotate_s_to_t(FaceNormal,N),
-%		io:format("Z-N ~p~nN-n ~p~n",[Q,D]),
-		R = e3d_q:mul(D,Q),
-		Bi = e3d_q:vec_rotate({0.0,1.0,0.0},R),
-%		io:format("~p ~p~n",[R,Bi]),
-		e3d_vec:norm(e3d_vec:cross(Bi,N))
+calc_tang_vecs_1([Vi1,Vi2,Vi3|Vis], VsIds, Coords, UVCoords, N, {Ts, F2V}) ->
+    {X1,Y1,Z1} = e3d_vec:sub(lists:nth(Vi2,Coords), lists:nth(Vi1,Coords)),
+    {X2,Y2,Z2} = e3d_vec:sub(lists:nth(Vi3,Coords), lists:nth(Vi1,Coords)),
+    {U1,V1,_} = lists:nth(Vi1, UVCoords),
+    {U2,V2,_} = lists:nth(Vi2, UVCoords),
+    {U3,V3,_} = lists:nth(Vi3, UVCoords),
+    S1 = U2-U1,
+    S2 = U3-U1,
+    T1 = V2-V1,
+    T2 = V3-V1,
+    Vs = [lists:nth(Vi1, VsIds),lists:nth(Vi2,VsIds),lists:nth(Vi3,VsIds)],
+    try
+	F = 1.0 / (S1*T2 - S2*T1),
+	Tangent = {F*(T2*X1-T1*X2), F*(T2*Y1-T1*Y2), F*(T2*Z1-T1*Z2)},
+	BiTangent = {F*(S1*X2-S2*X1), F*(S1*Y2-S2*Y1), F*(S1*Z2-S2*Z1)},
+	H = case e3d_vec:dot(e3d_vec:cross(N, Tangent), BiTangent) < 0.0 of
+		true  -> 1;
+		false -> -1
+	    end,
+	Tss0 = {add_tangent(Vs, Tangent, BiTangent, Ts), [{N,H,Vs}|F2V]},
+	calc_tang_vecs_1(Vis, VsIds, Coords, UVCoords, N, Tss0)
+    catch _:badarith ->
+	    Tss1 = {Ts, [{N,0,Vs}|F2V]},
+	    calc_tang_vecs_1(Vis, VsIds, Coords, UVCoords, N, Tss1)
+    end;
+calc_tang_vecs_1([], _, _, _, _, Tss) ->
+    Tss.
+
+add_tangent([V|Vs], Tangent, BiTangent, Ts) ->
+    {T0, B0} = array:get(V,Ts),
+    T1 = e3d_vec:add(T0, Tangent),
+    T2 = e3d_vec:add(B0, BiTangent),
+    add_tangent(Vs, Tangent, BiTangent, array:set(V, {T1, T2}, Ts));
+add_tangent([], _, _, Ts) -> Ts.
+
+build_tangents({VsTs0, RevF2V}) ->
+    VsTs = array:map(fun(_V, {T, BT}) -> {e3d_vec:norm(T), e3d_vec:norm(BT)} end, VsTs0),
+    build_tangents(lists:reverse(RevF2V), VsTs, <<>>).
+
+build_tangents([{N, H, Face}|Fs], Ts, Bin0) ->
+    Bin = add_tangents1(Face, Ts, H, N, undefined, Bin0),
+    build_tangents(Fs, Ts, Bin);
+build_tangents([], _, Bin) -> Bin.
+
+add_tangents1([V|Vs], Ts, H0, N, Prev, Bin0) ->
+    case array:get(V, Ts) of
+	{{0.0, 0.0, 0.0}, BiT} ->
+	    {Tan = {X,Y,Z}, H} = get_tangent(Prev, BiT, H0, N),
+	    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32, H:?F32>>,
+	    add_tangents1(Vs, Ts, H, N, Tan, Bin);
+	{Tan = {X,Y,Z}, _} when H0 /= 0 ->
+	    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32, H0:?F32>>,
+	    add_tangents1(Vs, Ts, H0, N, Tan, Bin);
+	{Tan = {X,Y,Z}, BiT} ->
+	    H = case e3d_vec:dot(e3d_vec:cross(N, Tan), BiT) < 0.0 of
+		    true  -> 1;
+		    false -> -1
+		end,
+	    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32, H:?F32>>,
+	    add_tangents1(Vs, Ts, H, N, Tan, Bin)
+    end;
+add_tangents1([], _, _, _, _, Bin) -> Bin.
+
+get_tangent(undefined, {0.0,0.0,0.0}, H0, N) ->
+    H = if H0 =:= 0 -> -1; true -> H0 end,
+    {cross_axis(N), H};
+get_tangent(undefined, BiT, 0, N) ->
+    T = e3d_vec:cross(BiT, N),
+    H = case e3d_vec:dot(e3d_vec:cross(N, T), BiT) < 0.0 of
+	    true  -> 1;
+	    false -> -1
 	end,
-    [R(N) || N <- Normals].
-   
+    {T, H};
+get_tangent(undefined, BiT, H, N) ->
+    {e3d_vec:cross(BiT, N), H};
+get_tangent(Prev, _, H, _) ->
+    {Prev, H}.
+
+cross_axis(N = {NX,NY,NZ}) ->
+    try
+	V2 = case abs(NX) > abs(NY) of
+		 true ->
+		     ILen = 1.0 / math:sqrt(NX*NX+NZ*NZ),
+		     {-NZ*ILen, 0.0, NX * ILen};
+		 false ->
+		     ILen = 1.0 / math:sqrt(NY*NY+NZ*NZ),
+		     {0.0, NZ*ILen, -NY * ILen}
+	     end,
+	e3d_vec:cross(N, V2)
+    catch _:badarith ->
+	    {1.0, 0.0,0.0}
+    end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 fix_vc(Vs, Face, We, Vmap) ->
     try 
 	Uvc = wings_va:face_attr([vertex|color], Face, We),
@@ -1108,7 +1198,7 @@ compile_shader(Id, {value,#sh{name=Name,vs=VsF,fs=FsF}}, Acc) ->
 	Vs = wings_gl:compile(vertex, read_file(VsF)),
         Fs = wings_gl:compile(fragment, read_file(FsF)),
         Prog = wings_gl:link_prog([Vs,Fs]),
-	io:format("AUV: ~s ok~n", [Name]),
+	io:format("AUV: Shader ´~s´ ok~n", [Name]),
 	[{Id,Prog}|Acc]
     catch throw:What ->
 	    io:format("AUV: Error ~s ~n",[What]),
