@@ -631,6 +631,12 @@ setup_hook(#in{key=Key, wx=Ctrl, type=col_slider, hook=UserHook}, Fields) ->
 						UserHook(Key, Col, Fields)
 					end}]),
     ok;
+setup_hook(#in{key=Key, wx=Ctrl, type=slider, hook=UserHook, data={FromSlider,_}}, Fields) ->
+    wxSlider:connect(Ctrl, scroll_thumbtrack,
+		     [{callback, fun(#wx{event=#wxScroll{commandInt=Val}}, _) ->
+					 UserHook(Key, FromSlider(Val), Fields)
+				 end}]),
+    ok;
 
 setup_hook({Key, #in{wx=Ctrl, type=fontpicker, hook=UserHook}}, Fields) ->
     wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed,
