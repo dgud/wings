@@ -604,10 +604,9 @@ gldraw_connect(Pos0, Pos1) ->
     glu:ortho2D(0, W, 0, H),
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
-    gl:'begin'(?GL_LINES),
-    gl:vertex3fv(Pos0),
-    gl:vertex3fv(Pos1),
-    gl:'end'(),
+    wings_vbo:draw(fun() ->
+			   gl:drawArrays(?GL_LINES, 0, 2)
+		   end, [Pos0,Pos1]),
     gl:popAttrib().
 
 slide(C=#cs{st=St=#st{shapes=Sh},we=Shape,v=[#vi{id=Id1,mm=MM}|_]},S,E) ->
