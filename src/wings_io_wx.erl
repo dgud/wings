@@ -403,9 +403,7 @@ sdl_mouse(M=#wxMouse{type=Type,
 		     altDown = Alt,      metaDown = Meta,
 		     wheelRotation=Wheel
 		    }) ->
-    Mods = [{Ctrl, ?KMOD_CTRL}, {Shift, ?KMOD_SHIFT},
-	    {Alt, ?KMOD_ALT}, {Meta, ?KMOD_META}],
-    ModState = gui_state(Mods, 0),
+    ModState = translate_modifiers(Shift, Ctrl, Alt, Meta),
     case Type of
 	motion ->
 	    Mouse = [{Left,   ?SDL_BUTTON_LMASK},
@@ -450,11 +448,10 @@ sdl_mouse(M=#wxMouse{type=Type,
 sdl_key(#wxKey{type=Type,controlDown = Ctrl, shiftDown = Shift,
 	       altDown = Alt, metaDown = Meta,
 	       keyCode = Code, uniChar = Uni0, rawCode = Raw}) ->
-    Mods = [{Shift, ?KMOD_SHIFT},{Ctrl, ?KMOD_CTRL},
-	    {Alt, ?KMOD_ALT}, {Meta, ?KMOD_META}],
+    ModState = translate_modifiers(Shift, Ctrl, Alt, Meta),
+
     %% key_down events are always uppercase
     %% maybe we should use (the translated) char events instead?
-    ModState = gui_state(Mods, 0),
     Pressed = case Type of
 		  char -> ?SDL_PRESSED;
 		  char_hook -> ?SDL_PRESSED;
@@ -469,6 +466,20 @@ sdl_key(#wxKey{type=Type,controlDown = Ctrl, shiftDown = Shift,
     %% 	      [Type, Ctrl, Shift, Alt, Meta, Code, Uni0, Sym, Uni]),
     #keyboard{which=0, state=Pressed, scancode=Raw, unicode=Uni,
 	      mod=ModState, sym=Sym}.
+
+translate_modifiers(Shift, Ctrl, Alt, Meta) ->
+    Mods0 = [{Shift,?KMOD_SHIFT},{Alt,?KMOD_ALT}],
+    Mods = case os:type() of
+	       {unix,darwin} ->
+		   %% WX on Mac returns Command as Ctrl and Ctrl
+		   %% as Meta. Switch it back here so we don't have
+		   %% to deal with that confusion in the rest of
+		   %% the Wings code.
+		   [{Ctrl,?KMOD_META},{Meta,?KMOD_CTRL}|Mods0];
+	       _ ->
+		   [{Ctrl,?KMOD_CTRL},{Meta,?KMOD_META}|Mods0]
+	   end,
+    gui_state(Mods, 0).
 
 lower(?KMOD_SHIFT, Char) -> Char;
 lower(_, Char) ->
