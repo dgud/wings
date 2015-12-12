@@ -1000,7 +1000,8 @@ create_vab(What, <<>>, FaceMap, MatInfo) ->
     gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
     gl:bufferData(?GL_ARRAY_BUFFER, 0, <<>>, ?GL_STATIC_DRAW),
     gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
-    Vab = #vab{id=Vbo,face_map=FaceMap,mat_map=MatInfo},
+    Empty = <<>>,
+    Vab = #vab{id=Vbo,data=Empty,face_map=FaceMap,mat_map=MatInfo},
     foldl(fun(E, Vab0) ->
 		  set_vab_item(E, {0,0}, Vab0)
 	  end, Vab, What);
