@@ -301,7 +301,8 @@ norm_add_hotkey(Fun, Elem, Hotkeys, Props) when is_function(Fun) ->
 norm_add_hotkey({'ASK',_}=Ask, Elem, Hotkeys, Props) ->
     norm_add_hotkey(reduce_ask(Ask), Elem, Hotkeys, Props);
 norm_add_hotkey(Name, Elem, Hotkeys, Props) ->
-    Key = match_hotkey(Name, Hotkeys, have_option_box(Props)),
+    Key0 = match_hotkey(Name, Hotkeys, have_option_box(Props)),
+    Key = wings_hotkey:format_hotkey(Key0, pretty),
     setelement(3, Elem, Key).
 
 match_hotkey(Name, [{{_,Name},Key}|_], false) -> Key;
