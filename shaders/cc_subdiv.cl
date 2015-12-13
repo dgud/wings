@@ -4,6 +4,7 @@
 // @doc Catmull Clark subdivision
 
 #define PL_UNITS 4
+#define MAX_FLOAT 3.4e38f
 
 typedef struct {
   int start;
@@ -92,7 +93,7 @@ __kernel void gen_faces(
 			)
 {
   int i;
-  const int face_id = get_global_id(0);
+  const uint face_id = get_global_id(0);
   if (face_id >= noFs)
       return;
   const FaceIndex fi = FiIn[face_id];
@@ -175,7 +176,7 @@ __kernel void gen_edges(__global float4 *VsIn,
 			const uint noVs,
 			const uint noEs)
 {
-  const int edge_id = get_global_id(0);
+  const uint edge_id = get_global_id(0);
   if (edge_id >= noEs)
       return;
   float4 center = {0.0f,0.0f,0.0f,0.0f};
@@ -315,7 +316,7 @@ __kernel void move_verts(
 			 const uint noOutVs
 			 )
 {
-  const int v_id = get_global_id(0);
+  const uint v_id = get_global_id(0);
   float4 v_out, zero = {0.0f,0.0f,0.0f,0.0f};
   if(v_id >= noOutVs)
     return;
@@ -369,7 +370,7 @@ __kernel void subd_vcolor(
 			 )
 {
     int i;
-    const int face_id = get_global_id(0);
+    const uint face_id = get_global_id(0);
     if (face_id >= noFs)
 	return;
     const FaceIndex fi = FiIn[face_id];
@@ -415,7 +416,7 @@ __kernel void subd_uv(
 		      )
 {
     int i;
-    const int face_id = get_global_id(0);
+    const uint face_id = get_global_id(0);
     if (face_id >= noFs)
 	return;
     const FaceIndex fi = FiIn[face_id];
@@ -456,7 +457,7 @@ __kernel void subd_col_uv(
 			 )
 {
     int i;
-    const int face_id = get_global_id(0);
+    const uint face_id = get_global_id(0);
     if (face_id >= noFs)
 	return;
     const FaceIndex fi = FiIn[face_id];
@@ -497,7 +498,7 @@ __kernel void create_vab_all(
 				const uint noFs
 				)
 {
-    const int id = get_global_id(0);
+    const uint id = get_global_id(0);
     if(id >= noFs) 
 	return;
     const int f_sz = 4*6;
@@ -639,7 +640,7 @@ __kernel void gen_some_edges(__global int4   *EsIn,
 			     uint level,
 			     const uint noEs)
 {
-    const int edge_id = get_global_id(0);
+    const uint edge_id = get_global_id(0);
     if (edge_id >= noEs)
 	return;
     ccfloat3 v1, v2;
@@ -662,9 +663,9 @@ __kernel void gen_some_edges(__global int4   *EsIn,
     edge = EsIn[in];
     if(edge.y < 0 || edge.w < 0 || edge.z < 0) {  
 	// Indicates hole edge hide it far away
-	v1.x = MAXFLOAT;
-	v1.y = MAXFLOAT;
-	v1.z = MAXFLOAT;
+	v1.x = MAX_FLOAT;
+	v1.y = MAX_FLOAT;
+	v1.z = MAX_FLOAT;
 	v2 = v1;
     } else {
 	if(edge.x < 0) { // Hard edge
@@ -889,7 +890,7 @@ __kernel void gen_tangents_uv(__global float4 *VsIn,
     uint face_id = id*chunk_sz;
     uint stop = min(face_id+chunk_sz, NoFs);
     
-    for(int i = face_id; i < stop; i++) {
+    for(uint i = face_id; i < stop; i++) {
        int4 face = FsIn[i];
        float4 v1 = VsIn[face.x];
        float4 v2 = VsIn[face.y];
@@ -994,10 +995,9 @@ __kernel void gen_tangents(__global int4   *FsIn,
 			   const uint NoVs
 			   )
 {
-    const int Fid = get_global_id(0);
+    const uint Fid = get_global_id(0);
     if(Fid >= NoFs) return;
     
-    int StartBi = NoFs*4;
     int4 face = FsIn[Fid];
     int vstart = Fid*4;
     ccfloat3 normal = Vab[(Fid*4*2)+1]; // Every vertex have the same normal
@@ -1010,9 +1010,9 @@ __kernel void gen_tangents(__global int4   *FsIn,
 
 float4 calc_tan(float4 Tan, float4 Bi, float4 normal)
 {
-    float h = -1.0;
-    if (dot(cross(normal, Tan), Bi) < 0.0)
-	h = 1.0;
+    float h = -1.0f;
+    if (dot(cross(normal, Tan), Bi) < 0.0f)
+	h = 1.0f;
     float4 temp = normalize(Tan);
     temp.w = h;
     return temp;
