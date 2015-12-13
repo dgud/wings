@@ -375,18 +375,13 @@ keyname($\s) -> ?STR(keyname,3,"Space");
 keyname(C) when $a =< C, C =< $z -> [C-32];
 keyname(C) when $A =< C, C =< $Z ->
     ?STR(keyname,4,"Shift+")++ [C];
-    %% case get(wings_os_type) of
-    %% 	%%	{unix,darwin} -> [shift,C];
-    %% 	_ -> 
-
-    %% end;
 keyname(C) when is_integer(C), C < 256 -> [C];
 keyname(C) when is_integer(C), 63236 =< C, C =< 63247 ->
     [$F|integer_to_list(C-63235)];
 keyname(C) -> [C].
 
 modname(Mods) ->
-    case get(wings_os_type) of
+    case os:type() of
 	{unix,darwin} -> mac_modname(Mods);
 	_ -> modname_1(Mods)
     end.
@@ -453,7 +448,7 @@ set_default() ->
       end, default_keybindings()).
 
 convert_modifiers(Mod) ->
-    case get(wings_os_type) of
+    case os:type() of
 	{unix,darwin} ->
 	    map(fun(ctrl) -> command;
 		   (Other) -> Other end, Mod);

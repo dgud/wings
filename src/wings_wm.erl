@@ -193,8 +193,9 @@ notify(Note) ->
 dirty_mode(front=Mode) ->
     put(wm_dirty_mode, Mode);
 dirty_mode(back=Mode) ->
-    case get(wings_os_type) of
-	{unix,darwin} -> ok;
+    case os:type() of
+	{unix,darwin} ->
+	    ok;
 	_ ->
 	    gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
 	    put(wm_dirty_mode, Mode)

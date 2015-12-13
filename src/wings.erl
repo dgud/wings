@@ -93,8 +93,6 @@ do_spawn(File, Flags) ->
 init(File0) ->
     register(wings, self()),
     
-    OsType = os:type(),
-    put(wings_os_type, OsType),
     wings_pref:init(),
     wings_hotkey:set_default(),
     wings_pref:load(),
