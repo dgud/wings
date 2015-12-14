@@ -2157,10 +2157,8 @@ set_values([]) -> ok.
 tweak_info_line() ->
     M1 = ?__(1,"L: Click Select"),
     M2 = ?__(2,"LL: Paint Select"),
-    Rmb = button(3) ++ ": ",
-    TMenu = ?__(3,"Tweak Menu"),
-    M3 = [Rmb,?__(4,"Menu")],
-    M4 = [modifier({true,f,f}),Rmb,TMenu],
+    M3 = wings_msg:button_format([], [], ?__(4,"Menu")),
+    M4 = wings_msg:rmb_format(?__(3,"Tweak Menu")),
     Message = wings_msg:join([M1,M2,M3,M4]),
     wings_wm:message(Message).
 
