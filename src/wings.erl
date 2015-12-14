@@ -402,31 +402,19 @@ handle_event_1(Ev, St) ->
     Other -> Other
     end.
 
-handle_event_2(#mousebutton{x=X,y=Y}=Ev0, #st{sel=Sel}=St0) ->
-    case wings_menu:is_popup_event(Ev0) of
-    no ->
-        handle_event_3(Ev0, St0);
-    {yes,Xglobal,Yglobal,Mod} ->
-        case Mod band ?CTRL_BITS =/= 0 of
-          true ->
-              wings_tweak:menu(Xglobal,Yglobal);
-          false ->
-              case Sel of
-                [] ->
-                    case wings_pick:do_pick(X, Y, St0) of
-                      {add,_,St} ->
-                          Ev = wings_wm:local2global(Ev0),
-                          wings_io:putback_event(Ev),
-                          wings_wm:later({temporary_selection,St});
-                      _ ->
-                          popup_menu(Xglobal, Yglobal, St0)
-                    end;
-                _ ->
-                    popup_menu(Xglobal, Yglobal, St0)
-              end
-        end
+handle_event_2(#mousebutton{}=Ev, St) ->
+    case wings_menu:is_popup_event(Ev) of
+	no ->
+	    handle_event_3(Ev, St);
+	{yes,Xglobal,Yglobal,Mod} ->
+	    TweakBits = wings_msg:free_rmb_modifier(),
+	    case Mod band TweakBits =/= 0 of
+		true ->
+		    wings_tweak:menu(Xglobal, Yglobal);
+		false ->
+		    handle_popup_event(Ev, Xglobal, Yglobal, St)
+	    end
     end;
-
 handle_event_2(Ev, St) -> handle_event_3(Ev, St).
 
 handle_event_3(#keyboard{}=Ev, St0) ->
@@ -535,21 +523,36 @@ handle_event_3({hotkey_in_menu,#keyboard{}=Ev,OrigXY}, St0) ->
 	    do_command(Cmd, Ev, St)
     end.
 
+handle_popup_event(Ev0, Xglobal, Yglobal, St0) ->
+    #mousebutton{x=X,y=Y} = Ev0,
+    #st{sel=Sel} = St0,
+    case Sel of
+	[] ->
+	    case wings_pick:do_pick(X, Y, St0) of
+		{add,_,St} ->
+		    Ev = wings_wm:local2global(Ev0),
+		    wings_io:putback_event(Ev),
+		    wings_wm:later({temporary_selection,St});
+		_ ->
+		    popup_menu(Xglobal, Yglobal, St0)
+	    end;
+	_ ->
+	    popup_menu(Xglobal, Yglobal, St0)
+    end.
 
 info_line() ->
     case wings_pref:get_value(tweak_active) of
-      false ->
-        Msg1 = wings_msg:button_format(?__(1,"Select")),
-        Msg2 = wings_camera:help(),
-        Msg3 = wings_msg:button_format([], [], ?__(2,"Show menu")),
-        TweakMenu = wings_msg:button_format([], [], ?__(3,"Tweak menu")),
-        Msg4 = [wings_s:key(ctrl), "+", TweakMenu],
-        Message = wings_msg:join([Msg1,Msg2,Msg3,Msg4]),
-        wings_tweak:tweak_disabled_msg(),
-        wings_wm:message(Message);
-      true ->
-        wings_tweak:tweak_info_line(),
-        wings_tweak:tweak_magnet_help()
+	false ->
+	    Msg1 = wings_msg:button_format(?__(1,"Select")),
+	    Msg2 = wings_camera:help(),
+	    Msg3 = wings_msg:button_format([], [], ?__(2,"Show menu")),
+	    Msg4 = wings_msg:rmb_format(?__(3,"Tweak menu")),
+	    Message = wings_msg:join([Msg1,Msg2,Msg3,Msg4]),
+	    wings_tweak:tweak_disabled_msg(),
+	    wings_wm:message(Message);
+	true ->
+	    wings_tweak:tweak_info_line(),
+	    wings_tweak:tweak_magnet_help()
     end.
 
 do_hotkey(Ev, #st{sel=[]}=St0) ->
