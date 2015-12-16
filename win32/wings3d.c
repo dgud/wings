@@ -19,6 +19,8 @@
 #include <shlobj.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <shellapi.h>
+#include <direct.h>
 
 static void install(void);
 static void print_path(FILE* fp, char* path);
@@ -106,7 +108,7 @@ install(void)
   FILE* fp = fopen("bin/erl.ini", "w");
   char dir[MAX_PATH];
 
-  getcwd(dir, MAX_PATH);
+  _getcwd(dir, MAX_PATH);
   if (fp == NULL) {
     MessageBox(NULL, "Failed to install Erlang/OTP components", NULL, MB_OK);
     exit(1);
