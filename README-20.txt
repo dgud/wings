@@ -1,3 +1,41 @@
+--- 2.0.2 ----------------------------------------------------------------------
+
+- Fixed the background color exported when a Ambient light is used. Thanks oort;
+
+- Fixed a crash caused by editing an old projects that a material can contain
+  modulators with values out-of-range; Thanks oort.
+
+- Fixed a bad path formation caused by a missing condition in the routine to
+  get relative paths used by POV-Ray plugin. [micheus]
+
+- Fixed the sub- menu location for the "Drop picked object" option.
+  In the current implementation it seems there is no need for translate the
+  cursor cordinate. Thanks oort; [micheus]
+
+- Fixed the cause of Wings3d crash when 'Enable Develop Menu' was
+  enable/disable. Thanks oort; [micheus]
+
+- Fixed the missed control over the transparency color of magnet
+  in the Tweak tool. [micheus]
+
+- Fixed the missed dialog prompt action before overriden a file. Thanks oort.
+  - Fixed wrong beharviour when trying to save an untitled file. Thanks tkbd. [micheus]
+
+- Added help content to Yafaray Export dialog. by oort;
+  - Fixed Transparency Refraction option in the Yafaray plugin. by oort; [micheus]
+
+- Fix autouv texture generation, reported by tkbd.
+  Many bugfixes and new shaders [micheus, dgud]
+
+- For two mouse buttons settings the menu was ignoring the combo CTRL+RMB
+  and was acting just like a RMB. Thanks to ggaliens. [micheus]
+
+- Various other bugs reported on the forum. [dgud, micheus]
+
+- Rewrote the internal rendering to use vbo instead of display lists. [bjorn]
+
+- Fixed keyboard handling on mac. [bjorn]
+
 --- 2.0.1 ----------------------------------------------------------------------
 
 - Added OpenGL version check, for future version requirements [bjorng]
