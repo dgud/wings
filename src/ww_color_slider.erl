@@ -79,6 +79,7 @@ init([Parent, Id, Col, Opts0]) ->
     Brush = wxBrush:new(BGC),
     wxPanel:connect(Panel, left_down),
     wxPanel:connect(Panel, left_up),
+    wxPanel:connect(Panel, motion),
     wxPanel:connect(Panel, set_focus),
     wxPanel:connect(Panel, kill_focus),
     wxPanel:connect(Panel, char_hook, [callback]),
@@ -176,7 +177,7 @@ handle_sync_event(#wx{event=#wxKey{keyCode=Key}}, Event,
 
 %% Other events
 handle_event(#wx{event=#wxMouse{type=motion, x=X}},
-	     #state{this=This, mode=Mode, curr=Curr} = State0) ->
+	     #state{this=This, mode=Mode, curr=Curr, capture=true} = State0) ->
     State = State0#state{curr=slider_pos(This, X, Mode, Curr)},
     [apply_callback(H, get_curr_color(State)) || H <- State#state.handlers],
     {noreply, State};
@@ -185,13 +186,11 @@ handle_event(#wx{event=#wxMouse{type=left_down, x=X}},
 	     #state{this=This, mode=Mode, curr=Curr} = State0) ->
     wxPanel:setFocus(This),
     wxPanel:captureMouse(This),
-    wxPanel:connect(This, motion),
     State = State0#state{curr=slider_pos(This, X, Mode, Curr), capture=true},
     [apply_callback(H, get_curr_color(State)) || H <- State#state.handlers],
     {noreply, State};
 handle_event(#wx{event=#wxMouse{type=left_up}},
 	     #state{this=This, capture=Captured} = State) ->
-    wxPanel:disconnect(This, motion),
     Captured andalso wxPanel:releaseMouse(This),
     wxWindow:refresh(This),
     {noreply, State#state{capture=false}};
@@ -199,8 +198,8 @@ handle_event(#wx{event=#wxFocus{type=What}}, #state{this=This} = State) ->
     wxWindow:refresh(This),
     {noreply, State#state{focus=What=:=set_focus}};
 
-handle_event(#wx{event=#wxErase{}}, State) ->
-    %% io:format("Skip Ev ~p~n",[Ev]),
+handle_event(_Ev, State) ->
+    %% io:format("Skip Ev ~p~n",[_Ev]),
     {noreply, State}.
 
 handle_call({connect, Opts}, From, #state{handlers=Curr} = State) ->
