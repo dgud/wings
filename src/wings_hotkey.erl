@@ -14,7 +14,8 @@
 -module(wings_hotkey).
 -export([event/1,event/2,matching/1,bind_unicode/3,bind_virtual/4,
 	 command/2, bind_from_event/2,unbind/1,hotkeys_by_commands/1,bindkey/2,
-	 set_default/0,listing/0,handle_error/2]).
+	 set_default/0,listing/0,handle_error/2,
+	 format_hotkey/2]).
 
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -24,6 +25,23 @@
 -compile({parse_transform,ms_transform}).
 
 -define(KL, wings_state).
+
+%%%
+%%% Format hotkeys.
+%%%
+
+
+%% format_hotkey(Hotkey, wx|pretty) -> String.
+
+format_hotkey(Hotkey, Style) ->
+    case Hotkey of
+	[] ->
+	    [];
+	{C,Mods} ->
+	    modname(Mods, Style) ++ vkeyname(C);
+	_ ->
+	    keyname(Hotkey, Style)
+    end.
 
 %%%
 %%% Hotkey lookup and translation.
@@ -168,7 +186,7 @@ hotkey_key_message(Cmd) ->
 bind_from_event(Ev, Cmd) ->
     Bkey = bindkey(Ev, Cmd),
     ets:insert(?KL, {Bkey,Cmd,user}),
-    keyname(Bkey).
+    format_hotkey(Bkey, wx).
 
 
 unbind(Key) ->
@@ -183,8 +201,12 @@ hotkeys_by_commands_1([C|Cs], Acc) ->
 hotkeys_by_commands_1([], Acc) ->
     hotkeys_by_commands_2(sort(Acc)).
 
-hotkeys_by_commands_2([{Key,Cmd,Src}|T]) ->
-    Info = {Key,keyname(Key),wings_util:stringify(Cmd),Src},
+hotkeys_by_commands_2([{Key0,Cmd,Src}|T]) ->
+    Key = case Key0 of
+	      {bindkey,Key1} -> Key1;
+	      {bindkey,_Mode,Key1} -> Key1
+	  end,
+    Info = {Key,format_hotkey(Key, wx),wings_util:stringify(Cmd),Src},
     [Info|hotkeys_by_commands_2(T)];
 hotkeys_by_commands_2([]) -> [].
     
@@ -230,7 +252,7 @@ matching_global(Names) ->
     Spec = [{{{bindkey,'$2'},Spec0,'$3'},
 	     [],
 	     [{{'$1',{{'$3','$2'}}}}]}],
-    [{Name,mkeyname(Key)} || {Name,Key} <- ets:select(?KL, Spec)].
+    [{Name,m_sortkey(Key)} || {Name,Key} <- ets:select(?KL, Spec)].
 
 matching_mode(Names) ->
     Mode = lists:last(Names),
@@ -241,12 +263,13 @@ matching_mode(Names) ->
 	    Spec = [{{{bindkey,Mode,'$2'},Spec0,'$3'},
 		     [],
 		     [{{'$1',{{'$3','$2'}}}}]}],
-	    [{Name,mkeyname(Key)} || {Name,Key} <- ets:select(?KL, Spec)]
+	    [{Name,m_sortkey(Key)} || {Name,Key} <- ets:select(?KL, Spec)]
     end.
 
-mkeyname({user,K}) -> {1,keyname(K)};
-mkeyname({default,K}) -> {2,keyname(K)};
-mkeyname({plugin,K}) -> {3,keyname(K)}.
+m_sortkey({user,K}) -> {1,K};
+m_sortkey({default,K}) -> {2,K};
+m_sortkey({plugin,K}) -> {3,K}.
+
 
 suitable_mode(light) -> true;
 suitable_mode(vertex) -> true;
@@ -274,9 +297,9 @@ suitable_mode(Menu) ->
 
 listing() ->
     MatchSpec = ets:fun2ms(fun({{bindkey,K},Cmd,Src}) ->
-				   {all,{{bindkey,K},Cmd,Src}};
+				   {all,{K,Cmd,Src}};
 			      ({{bindkey,Mode,K},Cmd,Src}) ->
-				   {Mode,{{bindkey,K},Cmd,Src}}
+				   {Mode,{K,Cmd,Src}}
 			   end),
     Keys = wings_util:rel2fam(ets:select(?KL, MatchSpec)),
     listing_1(Keys, []).
@@ -295,7 +318,7 @@ list_header(vertex) -> ?STR(list_header,6,"Hotkeys for vertices");
 list_header(A) -> atom_to_list(A).
 
 list_keys([{Key,Cmd,Src}|T]) ->
-    KeyStr = keyname(Key),
+    KeyStr = format_hotkey(Key, pretty),
     SrcStr = case Src of
 		 default -> "";
 		 user -> ?STR(list_keys,1," (user-defined)");
@@ -310,7 +333,7 @@ list_keys([]) -> [].
 %%%
 handle_error(Ev, Cmd) ->
     Key = bindkey(Ev, Cmd),
-    KeyName = keyname(Key),
+    KeyName = format_hotkey(Key, pretty),
     CmdStr = wings_util:stringify(Cmd),
     Msg1 = "Executing the command \"" ++ CmdStr ++ "\"\nbound to the hotkey " ++
 	KeyName ++ " caused an error.",
@@ -363,42 +386,63 @@ modifiers(Mod, Acc) when Mod band ?KMOD_META =/= 0 ->
     modifiers(Mod bxor Pressed, [command|Acc]);
 modifiers(_, Acc) -> lists:sort(Acc).
 
-keyname({bindkey,Key}) ->
-    keyname(Key);
-keyname({bindkey,_Mode,Key}) ->
-    keyname(Key);
-keyname({C,Mods}) ->
-    modname(Mods) ++ vkeyname(C);
-keyname($\b) -> ?STR(keyname,1,"Bksp");
-keyname($\t) -> ?STR(keyname,2,"Tab");
-keyname($\s) -> ?STR(keyname,3,"Space");
-keyname(C) when $a =< C, C =< $z -> [C-32];
-keyname(C) when $A =< C, C =< $Z ->
-    ?STR(keyname,4,"Shift+")++ [C];
-    %% case get(wings_os_type) of
-    %% 	%%	{unix,darwin} -> [shift,C];
-    %% 	_ -> 
 
-    %% end;
-keyname(C) when is_integer(C), C < 256 -> [C];
-keyname(C) when is_integer(C), 63236 =< C, C =< 63247 ->
-    [$F|integer_to_list(C-63235)];
-keyname(C) -> [C].
+%%%
+%%% Format hotkeys.
+%%%
 
-modname(Mods) ->
-    case get(wings_os_type) of
-	{unix,darwin} -> mac_modname(Mods);
-	_ -> modname_1(Mods)
+modname(Mods, Style) ->
+    case os:type() of
+	{unix,darwin} ->
+	    case Style of
+		wx -> mac_modname_wx(Mods);
+		pretty -> mac_modname(Mods)
+	    end;
+	_ ->
+	    modname_1(Mods)
     end.
 
 modname_1([command|T]) -> "Meta+" ++modname_1(T);
 modname_1([Mod|T]) -> wings_s:modkey(Mod) ++ "+" ++modname_1(T);
 modname_1([]) -> [].
 
-mac_modname([ctrl|T]) -> "rawctrl+" ++ mac_modname(T);
-mac_modname([command|T]) -> "Ctrl+" ++ mac_modname(T);
-mac_modname([Mod|T]) -> wings_s:modkey(Mod) ++ "+" ++ mac_modname(T);
-mac_modname([]) -> [].
+mac_modname_wx([ctrl|T]) -> "rawctrl+" ++ mac_modname_wx(T);
+mac_modname_wx([command|T]) -> "Ctrl+" ++ mac_modname_wx(T);
+mac_modname_wx([Mod|T]) -> wings_s:modkey(Mod) ++ "+" ++ mac_modname_wx(T);
+mac_modname_wx([]) -> [].
+
+mac_modname(Mods0) ->
+    Mods1 = [{mac_mod_sortkey(M),M} || M <- Mods0],
+    Mods2 = sort(Mods1),
+    [mac_mod(M) || {_,M} <- Mods2].
+
+mac_mod_sortkey(shift) -> 1;
+mac_mod_sortkey(alt) -> 2;
+mac_mod_sortkey(ctrl) -> 3;
+mac_mod_sortkey(command) -> 4.
+
+mac_mod(shift) -> 8679;
+mac_mod(alt) -> 8997;
+mac_mod(ctrl) -> 8963;
+mac_mod(command) -> 8984.
+
+keyname($\b, _Style) -> ?STR(keyname,1,"Bksp");
+keyname($\t, _Style) -> ?STR(keyname,2,"Tab");
+keyname($\s, _Style) -> ?STR(keyname,3,"Space");
+keyname(C, _Style) when $a =< C, C =< $z -> [C-32];
+keyname(C, wx) when $A =< C, C =< $Z ->
+    ?STR(keyname,4,"Shift+") ++ [C];
+keyname(C, pretty) when $A =< C, C =< $Z ->
+    case os:type() of
+	{unix,darwin} ->
+	    [mac_mod(shift),C];
+	_ ->
+	    ?STR(keyname,4,"Shift+") ++ [C]
+    end;
+keyname(C, _Style) when is_integer(C), C < 256 -> [C];
+keyname(C, _Style) when is_integer(C), 63236 =< C, C =< 63247 ->
+    [$F|integer_to_list(C-63235)];
+keyname(C, _Style) -> [C].
 
 vkeyname(?SDLK_BACKSPACE) -> ?STR(vkeyname,1,"Bksp");
 vkeyname(?SDLK_TAB) -> ?STR(vkeyname,2,"Tab");
@@ -453,7 +497,7 @@ set_default() ->
       end, default_keybindings()).
 
 convert_modifiers(Mod) ->
-    case get(wings_os_type) of
+    case os:type() of
 	{unix,darwin} ->
 	    map(fun(ctrl) -> command;
 		   (Other) -> Other end, Mod);

@@ -21,7 +21,7 @@
 
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--import(lists, [foldl/3,reverse/1]).
+-import(lists, [foldl/3,reverse/1,sort/1]).
 
 -define(REPEAT, 99).
 -define(REPEAT_ARGS, 98).
@@ -150,7 +150,8 @@ wx_popup_menu(X,Y,Names,Menus0,Magnet,Owner) ->
     is_list(Menus0) orelse erlang:error(Menus0),
     Menus1  = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus0),
     Entries0 = [normalize_menu_wx(Entry, HotKeys, Names) || Entry <- lists:flatten(Menus1)],
-    CreateMenu = fun() -> setup_dialog(Parent,Entries0, Magnet, Pos) end,
+    Entries1 = format_hotkeys(Entries0, pretty),
+    CreateMenu = fun() -> setup_dialog(Parent, Entries1, Magnet, Pos) end,
     Env = wx:get_env(),
     spawn_link(fun() ->
 		       try
@@ -661,7 +662,8 @@ setup_menu(Names, Id, Menus1) when is_list(Menus1) ->
     Menu   = wxMenu:new(),
     Menus2  = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus1),
     HotKeys = wings_hotkey:matching(Names),
-    Menus = [normalize_menu_wx(Entry, HotKeys, Names) || Entry <- Menus2],
+    Menus3 = [normalize_menu_wx(Entry, HotKeys, Names) || Entry <- Menus2],
+    Menus = format_hotkeys(Menus3, wx),
     Next  = create_menu(Menus, Id, Names, Menu),
     {Menu, Next}.
 
@@ -669,7 +671,6 @@ normalize_menu_wx(separator, _, _) -> separator;
 normalize_menu_wx({S,Fun,Help,Ps}, Hotkeys, Ns) when is_function(Fun) ->
     Name = Fun(1, Ns),
     HK = match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps)),
-    %% io:format("Norm: ~p~n",[Name]),
     {S,Fun,Help,Ps,HK};
 normalize_menu_wx({S, {Name, SubMenu}}, Hotkeys, Ns)
   when is_list(SubMenu); is_function(SubMenu) ->
@@ -701,6 +702,15 @@ normalize_menu_wx({S,Name,Ps},Hotkeys, _Ns) ->
     HK = match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps)),
     {S,Name,[],Ps, HK}.
 
+format_hotkeys([separator=H|T], Style) ->
+    [H|format_hotkeys(T, Style)];
+format_hotkeys([H|T], Style) ->
+    Pos = 5,
+    Hotkey0 = element(Pos, H),
+    Hotkey = wings_hotkey:format_hotkey(Hotkey0, Style),
+    [setelement(Pos, H, Hotkey)|format_hotkeys(T, Style)];
+format_hotkeys([], _Style) -> [].
+
 create_menu([separator|Rest], Id, Names, Menu) ->
     wxMenu:appendSeparator(Menu),
     create_menu(Rest, Id, Names, Menu);
@@ -720,15 +730,7 @@ create_menu([], NextId, _, _) ->
     NextId.
 
 menu_item({Desc0, Name, Help, Props, HotKey}, Parent, Id, Names) ->
-    Desc = case HotKey of
-	       [] -> Desc0;
-	       KeyStr ->
-		   %% Quote to avoid windows stealing keys
-		   case os:type() of
-		       {win32, _} -> Desc0 ++ "\t'" ++ KeyStr ++ "'";
-		       _ -> Desc0 ++ "\t" ++ KeyStr
-		   end
-	   end,
+    Desc = menu_item_desc(Desc0, HotKey),
     MenuId = predefined_item(hd(Names),Name, Id),
     Command = case have_option_box(Props) of
 		  true ->
@@ -756,6 +758,15 @@ menu_item({Desc0, Name, Help, Props, HotKey}, Parent, Id, Names) ->
     true = ets:insert(wings_menus,
 		      #menu_entry{name=Cmd,object=MI, wxid=MenuId, type=Type}),
     {MI, Check}.
+
+menu_item_desc(Desc, []) ->
+    Desc;
+menu_item_desc(Desc, HotKey) ->
+    %% Quote to avoid Windows stealing keys.
+    case os:type() of
+	{win32, _} -> Desc ++ "\t'" ++ HotKey ++ "'";
+	_ -> Desc ++ "\t" ++ HotKey
+    end.
 
 %% We want to use the prefdefined id where they exist (mac) needs for it's
 %% specialized menus but we want our shortcuts hmm.
