@@ -8,4 +8,5 @@ export EMU
 export ROOTDIR
 export BINDIR
 export PROGNAME
+unset ERL_LIBS
 exec "$BINDIR/erlexec" -smp -noshell -run wings_start start_halt ${1+"$@"}
