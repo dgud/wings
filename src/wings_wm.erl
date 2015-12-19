@@ -98,7 +98,7 @@
 init() ->
     put(wm_dirty_mode, front),
     put(wm_cursor, arrow),
-    {W,H} = TopSize = wxWindow:getClientSize(get(gl_canvas)),
+    {W,H} = TopSize = wxWindow:getClientSize(?GET(gl_canvas)),
     put(wm_top_size, TopSize),
     translation_change(),
     put(wm_windows, gb_trees:empty()),
