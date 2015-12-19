@@ -153,7 +153,7 @@ wx_popup_menu_init(X0,Y0,Names,Menus0) ->
 
 wx_popup_menu(X,Y,Names,Menus0,Magnet,Owner) ->
     Parent = get(top_frame),
-    Pos = wxWindow:clientToScreen(get(gl_canvas), X,Y),
+    Pos = wxWindow:clientToScreen(?GET(gl_canvas), X,Y),
     HotKeys = wings_hotkey:matching(Names),
     is_list(Menus0) orelse erlang:error(Menus0),
     Menus1   = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus0),
