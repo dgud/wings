@@ -1254,7 +1254,7 @@ build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
 build(Ask, {custom_gl, CW, CH, Fun}, Parent, Sizer, In) ->
     build(Ask, {custom_gl, CW, CH, Fun, []}, Parent, Sizer, In);
 build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
-    Context = wxGLCanvas:getContext(get(gl_canvas)),
+    Context = wxGLCanvas:getContext(?GET(gl_canvas)),
     Create = fun() ->
 		     Canvas = wxGLCanvas:new(Parent, Context,
 					     [{size, {CW,CH}},
