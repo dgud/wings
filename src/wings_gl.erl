@@ -12,8 +12,8 @@
 %%
 
 -module(wings_gl).
--export([init_extensions/0,is_ext/1,is_ext/2,
-	 init_restrictions/0,is_restriction/1,
+-export([init/0,is_ext/1,is_ext/2,
+	 is_restriction/1,
 	 error_string/1]).
 
 %% GLSL exports
@@ -46,6 +46,10 @@
 -define(framebufferRenderbuffer,framebufferRenderbuffer).
 -define(checkFramebufferStatus, checkFramebufferStatus).
 -define(generateMipmap, generateMipmap).
+
+init() ->
+    init_extensions(),
+    init_restrictions().
 
 %%%
 %%% OpenGL extensions.

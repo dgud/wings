@@ -92,17 +92,19 @@ do_spawn(File, Flags) ->
 
 init(File0) ->
     register(wings, self()),
-    
+
     wings_pref:init(),
     wings_hotkey:set_default(),
     wings_pref:load(),
     wings_lang:init(),
-    
+
     group_leader(wings_console:start(), self()),
-    File = case wings_init:init() of
+    File = case wings_frame:start() of
 	       none -> File0;
 	       File1 -> File1
 	   end,
+    wings_init:connect_events(),
+    wings_gl:init(),
     wings_text:init(),
     wings_image:init(wings_io:get_process_option()),
     wings_plugin:init(),
@@ -111,7 +113,7 @@ init(File0) ->
 
     wings_camera:init(),
     wings_vec:init(),
-        
+
     St0 = new_st(),
     St1 = wings_sel:reset(St0),
     St2 = wings_undo:init(St1),
