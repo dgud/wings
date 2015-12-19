@@ -47,7 +47,7 @@ quit() ->
     wx:destroy().
 
 get_process_option() ->
-    Canvas = get(gl_canvas),
+    Canvas = ?GET(gl_canvas),
     What = [{wx:get_env(), Canvas}],
     What.
 set_process_option([{Env, Canvas}]) ->
@@ -57,7 +57,6 @@ set_process_option([{Env, Canvas}]) ->
 
 batch(Fun) ->  wx:batch(Fun).
 foreach(Fun, List) -> wx:foreach(Fun, List).
-
 
 is_maximized() ->
     wxTopLevelWindow:isMaximized(get(top_frame)).
@@ -79,10 +78,10 @@ set_icon(IconBase) ->
     Bitmap = wxBitmap:new(Bmp),
     Icon = wxIcon:new(),
     wxIcon:copyFromBitmap(Icon, Bitmap),
-    wxFrame:setIcon(get(top_frame), Icon).
+    wxFrame:setIcon(?GET(top_frame), Icon).
 
 swapBuffers() ->
-    wxGLCanvas:swapBuffers(get(gl_canvas)).
+    wxGLCanvas:swapBuffers(?GET(gl_canvas)).
 
 version_info() ->
     Ver = io_lib:format("~p.~p.~p.~p",
@@ -140,7 +139,7 @@ get_mouse_state() ->
 				   middleDown=Middle,
 				   rightDown=Right %% bool()
 				  } = MS,
-		     {X,Y} = wxWindow:screenToClient(get(gl_canvas), {X0,Y0}),
+		     {X,Y} = wxWindow:screenToClient(?GET(gl_canvas), {X0,Y0}),
 		     {gui_state([{Left,   ?SDL_BUTTON_LMASK},
 				 {Middle, ?SDL_BUTTON_MMASK},
 				 {Right,  ?SDL_BUTTON_RMASK}], 0), X, Y}
@@ -178,7 +177,7 @@ reset_grab(Release) ->
     %%sdl_mouse:showCursor(true),
     put(wm_cursor, arrow),
     set_cursor(arrow),
-    Release andalso wxWindow:releaseMouse(get(gl_canvas)).
+    Release andalso wxWindow:releaseMouse(?GET(gl_canvas)).
 
 grab() ->
     %%io:format("Grab mouse~n", []),
@@ -190,7 +189,7 @@ grab() ->
     put_state(Io#io{grab_count=Cnt+1}).
 
 do_grab(0) ->
-    wxWindow:captureMouse(get(gl_canvas));
+    wxWindow:captureMouse(?GET(gl_canvas));
 do_grab(_N) -> ok.
 
 ungrab(X, Y) ->
@@ -201,7 +200,7 @@ ungrab(X, Y) ->
 	    put_state(Io#io{grab_count=Cnt-1}),
 	    case Cnt-1 of
 		0 ->
-		    wxWindow:releaseMouse(get(gl_canvas)),
+		    wxWindow:releaseMouse(?GET(gl_canvas)),
 		    warp(X, Y),
 		    put(wm_cursor, arrow),
 		    set_cursor(arrow),
@@ -218,7 +217,7 @@ is_grabbed() ->
     end.
 
 warp(X, Y) ->
-    wxWindow:warpPointer(get(top_frame), X, Y).
+    wxWindow:warpPointer(?GET(top_frame), X, Y).
 
 %%% Memory
 get_buffer(Size,Type) ->
@@ -377,22 +376,9 @@ wx_translate_1(#wx{event=#wxPaint{}}) ->
     #expose{active=true};
 wx_translate_1(#wx{event=#wxSize{size={W,H}}}) ->
     #resize{w=W,h=H};
-wx_translate_1(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}) ->
-    Name = wings_menu:id_to_name(Id),
-    ME = case ets:match(wings_state, {{bindkey,'$1'}, Name, '_'}) of
-	     [] -> {menubar, {action, Name}};
-	     [[KeyComb]|_] -> make_key_event(KeyComb)
-	 end,
-    %% io:format("ME ~p~n",[ME]),
-    ME;
 wx_translate_1(#wx{event={wxMouseCaptureLost, _}}) ->
     reset_grab(false),
     grab_lost;
-wx_translate_1(#wx{event=#wxActivate{active=Active}}) ->
-    Active == true andalso wxWindow:setFocus(get(gl_canvas)),
-    #expose{active=Active};
-wx_translate_1(#wx{event=#wxClose{}}) ->
-    {quit};
 wx_translate_1(Ev) ->
     Ev.
 
