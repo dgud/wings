@@ -101,6 +101,7 @@
 %% Example: runtime fonts
 -define(GET(Key), wings_pref:get_value({temp, Key})).
 -define(SET(Key,Value), wings_pref:set_value({temp, Key}, Value)).
+-define(DELETE(Key), wings_pref:delete_value({temp, Key})).
 
 %%
 %% Types.
