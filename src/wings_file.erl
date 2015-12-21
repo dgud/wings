@@ -562,7 +562,7 @@ init_autosave() ->
 	    Op = {seq,push,get_autosave_event(make_ref(), #st{saved=auto})},
 	    wings_wm:new(Name, {0,0,1}, {0,0}, Op),
 	    wings_wm:hide(Name),
-	    wings_wm:set_prop(Name, display_lists, geom_display_lists)
+	    wings_wm:set_dd(Name, geom_display_lists)
     end,
     wings_wm:send(Name, start_timer).
 
