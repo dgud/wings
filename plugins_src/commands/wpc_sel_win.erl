@@ -88,7 +88,7 @@ window(?WIN_NAME, Pos, Size, CtmData, St) ->
     Ost = #ost{first=0,lh=18,n=0,active=-1,tracking=-1},
     Current = {current_state,St},
     Op = {seq,push,event(Current, Ost)},
-    Props = [{display_lists,geom_display_lists}],
+    Props = [{display_data,geom_display_lists}],
     wings_wm:toplevel(?WIN_NAME, title(), Pos, Size,
 		      [{sizeable,?PANE_COLOR},closable,vscroller,{anchor,ne},
 		       {properties,Props}|Ps], Op).

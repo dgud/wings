@@ -53,7 +53,7 @@ window(Pos, Size, Ps, St) ->
     Ost = #ost{first=0,lh=max(18,?LINE_HEIGHT),active=-1},
     Current = {current_state,St},
     Op = {seq,push,event(Current, Ost)},
-    Props = [{display_lists,geom_display_lists}],
+    Props = [{display_data,geom_display_lists}],
     wings_wm:toplevel(outliner, title(), Pos, Size,
 		      [{sizeable,?PANE_COLOR},closable,vscroller,{anchor,ne},
 		       {properties,Props}|Ps], Op),

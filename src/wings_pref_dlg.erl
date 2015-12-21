@@ -36,12 +36,7 @@ command(prefs, St) ->
 	       {?__(5,"Misc"),misc_prefs()}],
     PrefQs = [{Lbl,make_query(Ps)} || {Lbl,Ps} <- PrefQs0],
     Qs = [{oframe,PrefQs,1,[{style,buttons}]}],
-    wings_dialog:dialog(?__(6,"Preferences"), Qs,
-			fun(Res) ->
-				Dl = wings_wm:get_prop(geom, display_lists),
-				wings_wm:set_prop(wings_wm:this(), display_lists, Dl),
-				set_values(Res, St)
-			end).
+    wings_dialog:dialog(?__(6,"Preferences"), Qs, fun(Res) -> set_values(Res, St) end).
 
 set_values([{Key,Val}|Kvs], St) ->
     smart_set_value(Key, Val, St),

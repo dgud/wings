@@ -49,7 +49,9 @@
 %% Window property mangagement.
 -export([get_props/1,get_prop/1,get_prop/2,lookup_prop/1,lookup_prop/2,
 	 set_prop/2,set_prop/3,erase_prop/1,erase_prop/2,
-	 is_prop_defined/2]).
+	 is_prop_defined/2,
+	 get_dd/0, get_dd/1, set_dd/2
+	]).
 
 %% Useful sizes
 -export([title_height/0,vscroller_width/0]).
@@ -70,6 +72,7 @@
 	 props,					%Window properties.
 	 links=[],			        %Windows linked to this one.
 	 rollup=false,			        %Rollup window into Title Bar {controller,Name}
+	 dd=none, 				%Display data cache
 	 obj                                    %wx window
 	}).
 
@@ -149,7 +152,7 @@ psend(Name, Ev) ->
     psend(send_to, Name, Ev).
 psend(Type, Name, Ev)
   when Type =:= send_to; Type =:= send_once; Type =:= send_after_redraw ->
-    wings ! {timeout,make_ref(),{event,{wm,{Type,Name,Ev}}}},
+    wings ! {wm,{Type,Name,Ev}},
     keep.
 
 send_once(Name, Ev) ->
@@ -165,25 +168,23 @@ send_once_after_redraw(Name, Ev) ->
     keep.
 
 current_state(St) ->
-    DispLists = get_prop(this(), display_lists),
-    case put({wm_current_state,DispLists}, St) of
+    #win{dd=DispData} = get_window_data(this()),
+    case put({wm_current_state,DispData}, St) of
 	St -> ok;
 	_ ->
 	    NewState = {current_state,St},
-	    foreach(fun(#win{props=Props,name=Name}) ->
-			    case gb_trees:lookup(display_lists, Props) of
+	    foreach(fun(#win{dd=DD,name=Name}) ->
+			    case DD of
 				none -> ok;
-				{value,DispLists} ->
-				    send(Name, NewState);
-				{value,_} ->
-				    send(Name, {current_state,DispLists,St})
+				DispData -> send(Name, NewState);
+				_ -> send(Name, {current_state,DispData,St})
 			    end
 		    end, gb_trees:values(get(wm_windows)))
     end.
 
 get_current_state() ->
-    DispLists = get_prop(this(), display_lists),
-    get({wm_current_state,DispLists}).
+    #win{dd=DispData} = get_window_data(this()),
+    get({wm_current_state,DispData}).
 
 notify(Note) ->
     Msg = {note,Note},
@@ -645,6 +646,16 @@ erase_prop(Win, Name) ->
 is_prop_defined(Win, Name) ->
     #win{props=Props} = get_window_data(Win),
     gb_trees:is_defined(Name, Props).
+
+get_dd() ->
+    get_dd(this()).
+get_dd(Win) ->
+    #win{dd=DD} = get_window_data(Win),
+    DD.
+
+set_dd(Win, Value) ->
+    Data = get_window_data(Win),
+    put_window_data(Win, Data#win{dd=Value}).
 
 enter_event_loop() ->
     init_opengl(),

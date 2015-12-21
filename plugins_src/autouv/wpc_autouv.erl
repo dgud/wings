@@ -127,7 +127,7 @@ create_window(Action, Name, Id, #st{shapes=Shs}=St) ->
     Segment = if element(1,Action) == edit -> ""; true -> ?__(1,"Segmenting") end,
     Title = "AutoUV "++ Segment ++": " ++ ObjName,
     {X0,Y,W,H} = init_drawarea(),
-    Props = [{display_lists,Name}|wings_view:initial_properties()],
+    Props = [{display_data,Name}|wings_view:initial_properties()],
     CreateToolbar = fun(N, P, Wi) -> wings_toolbar:create(N, P, Wi) end,
     X = if element(1,Action) == edit -> X0; true -> 10 end,
     wings_wm:toplevel(Name, Title, {X,Y,highest}, {W,H},

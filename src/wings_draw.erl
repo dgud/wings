@@ -285,7 +285,7 @@ more_need([], _, Acc) ->
     ordsets:from_list(Acc).
 
 wins_of_same_class() ->
-    case wings_wm:get_prop(display_lists) of
+    case wings_wm:get_dd() of
 	geom_display_lists -> wings_u:geom_windows();
 	_ -> [wings_wm:this()]
     end.
