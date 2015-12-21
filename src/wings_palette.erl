@@ -80,7 +80,7 @@ create_window(Pos0, Size, Ps, St) ->
 	   (_) -> no
 	end,
     wings_wm:set_prop(palette, drag_filter, F),
-    wings_wm:set_prop(palette, display_lists, geom_display_lists),
+    wings_wm:set_dd(palette, geom_display_lists),
     keep.
 
 change_state(Window, St) ->
