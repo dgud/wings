@@ -69,7 +69,6 @@
 	 w,h,					%Size.
 	 name,					%Name of window.
 	 stk,					%Event handler stack.
-	 props,					%Window properties.
 	 links=[],			        %Windows linked to this one.
 	 rollup=false,			        %Rollup window into Title Bar {controller,Name}
 	 dd=none, 				%Display data cache
@@ -224,8 +223,8 @@ new(Name, {X,Y,Z0}, {W,H}, Op) when is_integer(X), is_integer(Y),
 				    is_integer(W), is_integer(H) ->
     Z = new_resolve_z(Z0),
     Stk = handle_response(Op, dummy_event, default_stack(Name)),
-    Props = gb_trees:from_orddict([{font,system_font}]),
-    Win = #win{x=X,y=Y,z=Z,w=W,h=H,name=Name,stk=Stk,props=Props},
+    new_props(Name, [{font,system_font}]),
+    Win = #win{x=X,y=Y,z=Z,w=W,h=H,name=Name,stk=Stk},
     put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
     dirty().
 
@@ -234,9 +233,9 @@ new(Name, Obj) ->
 
 new(Name, Obj, Op) when element(1, Obj) =:= wx_ref ->
     Stk = handle_response(Op, dummy_event, default_stack(Name)),
-    Props = gb_trees:from_orddict([{font,system_font}]),
+    new_props(Name, [{font,system_font}]),
     Z = highest_z(),
-    Win = #win{x=0,y=0,z=Z,w=0,h=0,name=Name,stk=Stk,props=Props, obj=Obj},
+    Win = #win{x=0,y=0,z=Z,w=0,h=0,name=Name,stk=Stk,obj=Obj},
     put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
     dirty().
 
@@ -264,6 +263,7 @@ delete_windows(Name, W0) ->
     case gb_trees:lookup(Name, W0) of
 	none -> W0;
 	{value,#win{links=Links}} ->
+	    delete_props(Name),
 	    This = this(),
 	    W = gb_trees:delete_any(Name, W0),
 	    foldl(fun(L, A) when L =/= This ->
@@ -609,42 +609,49 @@ local_mouse_state() ->
     {X,Y} = global2local(X0, Y0),
     {B,X,Y}.
 
+new_props(Win, Props0) ->
+    Props = gb_trees:from_orddict(Props0),
+    ?SET({Win, props}, Props).
+
+delete_props(Win) ->
+    ?DELETE({Win, props}).
+
 get_props(Win) ->
-    #win{props=Props} = get_window_data(Win),
+    Props = ?GET({Win, props}),
     gb_trees:to_list(Props).
 
 get_prop(Name) ->
     get_prop(this(), Name).
 
 get_prop(Win, Name) ->
-    #win{props=Props} = get_window_data(Win),
+    Props = ?GET({Win, props}),
     gb_trees:get(Name, Props).
-    
+
 lookup_prop(Name) ->
     lookup_prop(this(), Name).
 
 lookup_prop(Win, Name) ->
-    #win{props=Props} = get_window_data(Win),
+    Props = ?GET({Win, props}),
     gb_trees:lookup(Name, Props).
 
 set_prop(Name, Value) ->
     set_prop(this(), Name, Value).
 
 set_prop(Win, Name, Value) ->
-    #win{props=Props0} = Data = get_window_data(Win),
+    Props0 = ?GET({Win, props}),
     Props = gb_trees:enter(Name, Value, Props0),
-    put_window_data(Win, Data#win{props=Props}).
+    ?SET({Win, props}, Props).
 
 erase_prop(Name) ->
     erase_prop(this(), Name).
 
 erase_prop(Win, Name) ->
-    #win{props=Props0} = Data = get_window_data(Win),
+    Props0 = ?GET({Win, props}),
     Props = gb_trees:delete_any(Name, Props0),
-    put_window_data(Win, Data#win{props=Props}).
+    ?SET({Win, props}, Props).
 
 is_prop_defined(Win, Name) ->
-    #win{props=Props} = get_window_data(Win),
+    Props = ?GET({Win, props}),
     gb_trees:is_defined(Name, Props).
 
 get_dd() ->
