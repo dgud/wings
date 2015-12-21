@@ -220,7 +220,7 @@ new_viewer(St) ->
     Size = {W div 2-40,H div 2-40},
     N = free_viewer_num(2),
     Active = wings_wm:this(),
-    Props = wings_wm:get_props(Active),
+    Props = [{display_data,geom_display_lists}|wings_wm:get_props(Active)],
     ToolbarHidden = wings_wm:is_hidden({toolbar,Active}),
     Name = {geom,N},
     new_viewer(Name, Pos, Size, Props, ToolbarHidden, St).
@@ -1826,7 +1826,7 @@ set_geom_props([], Name) ->
     wings_wm:set_prop(Name, tweak_draw, true).
 
 initial_properties() ->
-    [{display_lists,geom_display_lists}|wings_view:initial_properties()].
+    [{display_data,geom_display_lists}|wings_view:initial_properties()].
 
 mode_restriction(Modes) ->
     Win = {toolbar,wings_wm:this()},

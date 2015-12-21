@@ -40,7 +40,7 @@
 create({toolbar,Client}=Name, Pos, W) ->
     ButtonH = ?BUTTON_HEIGHT+6,
     wings_wm:new(Name, Pos, {W,ButtonH}, init_button()),
-    wings_wm:set_prop(Name, display_lists, wings_wm:get_prop(Client, display_lists)).
+    wings_wm:set_dd(Name, wings_wm:get_dd(Client)).
 
 init_button() ->
     {seq,push,get_button_event(#but{})}.

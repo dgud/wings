@@ -210,7 +210,7 @@ draw(Category, Key, Update)
 %%%
 
 delete_dlists() ->
-    case erase(wings_wm:get_prop(display_lists)) of
+    case erase(wings_wm:get_dd()) of
 	#du{used=Used} ->
 	    gl:deleteBuffers(Used),
 	    gl:getError();			%Clear error.
@@ -224,13 +224,13 @@ clear_old_dl([#dlo{src_we=We,proxy_data=Pd0,ns=Ns}|T]) ->
 clear_old_dl([]) -> [].
 
 get_dl_data() ->
-    case wings_wm:lookup_prop(display_lists) of
+    case wings_wm:get_dd() of
 	none -> undefined;
-	{value,DlName} -> get(DlName)
+	DlName -> get(DlName)
     end.
 
 put_dl_data(Data) ->
-    put(wings_wm:get_prop(display_lists), Data).
+    put(wings_wm:get_dd(), Data).
 
 update_1(Fun, [D0|Dlists], Data0, Seen0, Acc) ->
     case Fun(D0, Data0) of

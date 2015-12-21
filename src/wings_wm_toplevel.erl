@@ -41,7 +41,12 @@ new_controller(Client, Title, Flags) ->
     case keyfind(properties, 1, Flags) of
 	false -> ok;
 	{properties,Props} ->
-	    foreach(fun({K,V}) -> wings_wm:set_prop(Client, K, V) end, Props)
+	    foreach(fun({display_data,V}) ->
+			    wings_wm:set_dd(Client, V);
+		       ({K,V}) ->
+			    wings_wm:set_prop(Client, K, V)
+		    end,
+		    Props)
     end,
     Controller = {controller,Client},
     ctrl_create_windows(reverse(sort(Flags)), Client),
@@ -798,7 +803,7 @@ create_menubar(Client) ->
     Z = wings_wm:win_z(Client),
     wings_wm:new(Name, {1,1,Z}, {1,?MENU_HEIGHT},
 		 {seq,push,get_menu_event(#mb{sel=none})}),
-    wings_wm:set_prop(Name, display_lists, wings_wm:get_prop(Client, display_lists)),
+    wings_wm:set_dd(Name, wings_wm:get_prop(Client)),
     Name.
 
 get_menu_event(Mb) ->
