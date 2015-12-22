@@ -733,8 +733,8 @@ update_mini_axis_icon({Along,{X,Y,Z}}) ->
 	    Z,{0.0,0.0,0.0},			%Z Axis
 	    Z,{0.0,0.0,0.1}|Arrows],
     N = case Along of
-	    none -> 3*4 + 3*4;
-	    _ -> 3*4 + 2*4
+	    none -> 3*2 + 3*4;
+	    _ -> 3*2 + 2*4
 	end,
     D = fun() ->
 		gl:drawArrays(?GL_LINES, 0, N)
