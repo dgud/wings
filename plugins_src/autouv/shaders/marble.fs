@@ -185,7 +185,7 @@ void main( void ) {
     pos = (ch_scale*pos)+0.5;
 
     vec4 c1, c2;
-    float d = calc_marble(pos,frequency,amplitude,int(trunc(rougness)));
+    float d = calc_marble(pos,frequency,amplitude,int(floor(rougness)));
 	if (type == 0) {
         c1 = vec4(0.95,0.95,0.9025,0.0);        // scale x from 0<x<1 to 0.2<x<0.95 // b -> slightly reduce blue component (make color "warmer"):
         c2 = vec4(0.05,0.05,0.05,0.0);
