@@ -2249,11 +2249,11 @@ toggle_bold(Axis0, Axis, Hotkeys) ->
       {none,Name} when Axis0 =:= Axis; Axis0 ->
         [?__(2,"Active Axis: "),{bold,Name}];
       Keys when Axis0 =:= Axis; Axis0 ->
-        [Keys,": ", {bold,axis_string(Axis)}];
+        [wings_hotkey:format_hotkey(Keys, pretty),": ", {bold,axis_string(Axis)}];
       {none,_} ->
         [];
       Keys ->
-        [Keys,": ", axis_string(Axis)]
+        [wings_hotkey:format_hotkey(Keys, pretty),": ", axis_string(Axis)]
     end.
 
 xyzkey_help({_,_}, _) -> [];
