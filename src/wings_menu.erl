@@ -81,6 +81,7 @@ match_hotkey(_N, [], _) ->
     [].
 
 reduce_name({'ASK',_}=Ask) -> Ask;
+reduce_name({tweak,Val}) -> Val;
 reduce_name({Key,{_,_}=Tuple}) when is_atom(Key) ->
     reduce_name(Tuple);
 reduce_name({Key,Val}) when is_atom(Key) -> Val;

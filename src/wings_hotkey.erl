@@ -118,9 +118,13 @@ event_handler(Ev0=#keyboard{which=menubar},
 
 event_handler(Ev0= #mousebutton{}, #cs{st=St}) ->
     case wings_menu:is_popup_event(Ev0) of
-	no -> keep;
-	{yes,Xglobal,Yglobal,_} ->
-	    wings:popup_menu(Xglobal, Yglobal, St)
+        no -> keep;
+        {yes,Xglobal,Yglobal,Mod} ->
+            TweakBits = wings_msg:free_rmb_modifier(),
+            case Mod band TweakBits =/= 0 of
+		true ->  wings_tweak:menu(Xglobal, Yglobal);
+		false -> wings:popup_menu(Xglobal, Yglobal, St)
+            end
     end;
 
 event_handler(#mousemotion{}, _) -> keep;
@@ -184,13 +188,13 @@ hotkey_key_message(Cmd) ->
 
 
 bind_from_event(Ev, Cmd) ->
-    Bkey = bindkey(Ev, Cmd),
+    {bindkey, Hotkey} = Bkey = bindkey(Ev, Cmd),
     ets:insert(?KL, {Bkey,Cmd,user}),
-    format_hotkey(Bkey, wx).
+    format_hotkey(Hotkey, wx).
 
 
 unbind(Key) ->
-    ets:delete(?KL, Key).
+    ets:delete(?KL, {bindkey, Key}).
 
 hotkeys_by_commands(Cs) ->
     hotkeys_by_commands_1(Cs, []).
