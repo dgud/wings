@@ -2264,21 +2264,20 @@ xyzkey_help([X,Y,Z], Hotkeys) ->
     StrX = if X -> [{bold,XStr}]; true -> XStr end,
     StrY = if Y -> [{bold,YStr}]; true -> YStr end,
     StrZ = if Z -> [{bold,ZStr}]; true -> ZStr end,
-
     XKeys = case matching_hotkey(x, Hotkeys) of
       {none,_} when X -> [?__(1,"Active Axis: "),StrX];
-      {_,_} -> [];
-      XName -> ["[",XName,"]: ",StrX]
+      {none,_} -> [];
+      Xkey -> ["[",wings_hotkey:format_hotkey(Xkey, pretty),"]: ",StrX]
     end,
     YKeys = case matching_hotkey(y, Hotkeys) of
       {none,_} when Y -> [?__(1,"Active Axis: "),StrY];
-      {_,_} -> [];
-      YName -> ["[",YName,"]: ",StrY]
+      {none,_} -> [];
+      Ykey -> ["[",wings_hotkey:format_hotkey(Ykey, pretty),"]: ",StrY]
     end,
     ZKeys = case matching_hotkey(z, Hotkeys) of
       {none,_} when Z -> [?__(1,"Active Axis: "),StrZ];
-      {_,_} -> [];
-      ZName -> ["[",ZName,"]: ",StrZ]
+      {none,_} -> [];
+      Zkey -> ["[",wings_hotkey:format_hotkey(Zkey, pretty),"]: ",StrZ]
     end,
     wings_msg:join([XKeys,YKeys,ZKeys]).
 
@@ -2335,7 +2334,7 @@ tweak_magnet_help() ->
       Mag ->
         Hotkeys = wings_hotkey:matching([tweak_magnet,tweak]),
         MKey = case lists:keyfind(mag_adjust, 1, Hotkeys) of
-          {_, Keys} -> "[" ++ Keys ++ "]";
+          {_, Keys} -> "[" ++ wings_hotkey:format_hotkey(Keys, pretty) ++ "]";
           false -> wings_s:key(alt)
         end,
         M1 = [?__(1,"Magnet: "),magnet_type(MagType)],
