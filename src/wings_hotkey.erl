@@ -177,8 +177,10 @@ mk_dialog([{Key,Keyname,Cmd,Src}|T]) ->
 mk_dialog([]) ->
     [separator,{label,?__(1,"Check all hotkeys to be deleted.")}].
 
+mk_key_item(Key, Keyname, Cmd, _Src) when is_tuple(Key) ->
+    {Keyname ++ ": " ++ Cmd,false,[{key,Key}]};
 mk_key_item(Key, Keyname, Cmd, _Src) ->
-    {Keyname ++ ": " ++ Cmd,false,[{key,Key}]}.
+    {Keyname ++ ": " ++ Cmd,false,[{key,{Key}}]}.
 
 
 hotkey_key_message(Cmd) ->
@@ -193,6 +195,8 @@ bind_from_event(Ev, Cmd) ->
     format_hotkey(Hotkey, wx).
 
 
+unbind({Key}) ->
+    unbind(Key);
 unbind(Key) ->
     ets:delete(?KL, {bindkey, Key}).
 
