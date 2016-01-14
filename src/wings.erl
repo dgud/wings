@@ -1853,14 +1853,17 @@ object_info(St) ->
     HRow = {
       ?__(1,"#"),
       ?__(2,"Name"),
-      ?__(3,"Area"),
-      ?__(4,"Perimeter"),
+      ?__(3,"A:Area"),
+      ?__(4,"P:Perimeter"),
       ?__(5,"Volume"),
       ?__(6,"Edges"),
       ?__(7,"Faces"),
-      ?__(8,"Verts") },
+      ?__(8,"Verts"),
+      ?__(9,"P/Edges"),
+      ?__(10,"A/Faces")
+       },
     case gb_trees:is_empty(Shapes) of
-        true -> wings_u:error_msg(?__(9,"No objects in scene"));
+        true -> wings_u:error_msg(?__(11,"No objects in scene"));
         false ->
             Rows = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
 	    Header = list_to_tuple([{H,H}|| H <- tuple_to_list(HRow)]),
@@ -1869,7 +1872,7 @@ object_info(St) ->
 		   [{max_rows, max(length(Rows),20)},
 		    {col_widths, list_to_tuple(ColumnWidthList)}]}],
             Ask = fun(_Res) -> ignore end,
-            wings_dialog:dialog(?__(10,"Scene Info: "), Qs, Ask)
+            wings_dialog:dialog(?__(12,"Scene Info: "), Qs, Ask)
     end.
 
 
@@ -1891,7 +1894,10 @@ get_object_info(Id, Shapes) ->
     NEdge   = wings_util:array_entries(Etab0),
     NFace   = gb_trees:size(Ftab0),
     NVertex =  wings_util:array_entries(VPos0),
-    list_to_tuple([{X,ToString(X)}||X<-[Id,Name,Area,Perimeter,Volume,NEdge,NFace,NVertex]]).
+    E_Avg = Perimeter/NEdge,
+    F_Avg = Area/NFace,
+    list_to_tuple([{X,ToString(X)}||X<-
+        [Id,Name,Area,Perimeter,Volume,NEdge,NFace,NVertex,E_Avg,F_Avg]]).
 
 
 
