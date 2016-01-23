@@ -190,9 +190,14 @@ hotkey_key_message(Cmd) ->
 
 
 bind_from_event(Ev, Cmd) ->
-    {bindkey, Hotkey} = Bkey = bindkey(Ev, Cmd),
-    ets:insert(?KL, {Bkey,Cmd,user}),
-    format_hotkey(Hotkey, wx).
+    Bkey0 = bindkey(Ev, Cmd),
+	Bkey = case Bkey0 of
+		{bindkey, _Key1} -> Bkey0;
+		{bindkey, _Mode, Key1} -> {bindkey, Key1}
+	end,
+	{bindkey, Key} = Bkey,
+	ets:insert(?KL, {Bkey,Cmd,user}),
+    format_hotkey(Key, wx).
 
 
 unbind({Key}) ->
