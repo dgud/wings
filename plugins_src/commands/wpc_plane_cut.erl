@@ -339,6 +339,7 @@ plane_cut(Cut, {Axis0,Point}, St0) ->
         {save_state,wings_sel:valid_sel(St)}
     end.
 
+-spec planecut_error() -> no_return().
 planecut_error() ->
     wings_u:error_msg(?__(1,"This is taking too long.\nTry again with a smaller selection.")).
 

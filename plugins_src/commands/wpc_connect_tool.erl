@@ -598,10 +598,10 @@ gldraw_connect(Pos0, Pos1) ->
     gl:disable(?GL_LIGHTING),
     gl:disable(?GL_DEPTH_TEST),
     gl:disable(?GL_ALPHA_TEST),
-    gl:color3f(0, 0, 0),
+    gl:color3f(0.0, 0.0, 0.0),
     gl:matrixMode(?GL_PROJECTION),
     gl:loadIdentity(),
-    glu:ortho2D(0, W, 0, H),
+    glu:ortho2D(0.0, W, 0.0, H),
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
     wings_vbo:draw(fun() ->

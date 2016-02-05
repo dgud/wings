@@ -736,6 +736,7 @@ check_element(#st{sel=[{_,Sel}]}) ->
 check_element(_St) ->
     element_error().
 
+-spec element_error() -> no_return().
 element_error() ->
     Str = ?__(1,"Exactly one element must be selected"),
     wings_u:error_msg(Str).
@@ -753,6 +754,7 @@ check_angle_sel(#st{sel=[{_,Sel1},{_,Sel2}]}) ->
 check_angle_sel(_St) ->
     angle_error().
 
+-spec angle_error() -> no_return().
 angle_error() ->
     wings_u:error_msg(?__(1,"Exactly two elements must be selected")).
 

@@ -45,7 +45,7 @@ create_bbox(#st{bb=BB}=St) ->
             {{2.0,2.0,2.0},{0.0,0.0,0.0}};
         [B1,B2] ->
             {Bx0,By0,Bz0} = e3d_vec:sub(B1,B2),
-            Center = e3d_vec:add(B2,e3d_vec:divide({Bx0,By0,Bz0},2)),
+            Center = e3d_vec:add(B2,e3d_vec:divide({Bx0,By0,Bz0},2.0)),
             {{abs(Bx0),abs(By0),abs(Bz0)},Center}
     end,
     X = wings_s:dir(x),
@@ -83,7 +83,7 @@ create_bbox(#st{bb=BB}=St) ->
 save_bbox([Bx,By,Bz,Cx,Cy,Cz], St) ->
     Center = {Cx,Cy,Cz},
     Bb = {abs(Bx),abs(By),abs(Bz)},
-    HalfB = e3d_vec:divide(Bb,2),
+    HalfB = e3d_vec:divide(Bb,2.0),
     BBox = [e3d_vec:sub(Center,HalfB), e3d_vec:add(Center,HalfB)],
     St#st{bb=BBox}.
 

@@ -133,8 +133,8 @@ read_frame() ->
     get_ao_factor(ImageBin).
 
 setup_gl() ->
-    gl:clearColor(1,1,1,0),  % Sky Color
-    gl:color4f(0,0,0,1),     % Obj Color
+    gl:clearColor(1.0,1.0,1.0,0.0),  % Sky Color
+    gl:color4f(0.0,0.0,0.0,1.0),     % Obj Color
     gl:shadeModel(?GL_FLAT),
     gl:disable(?GL_LIGHTING),
     gl:disable(?GL_CULL_FACE).

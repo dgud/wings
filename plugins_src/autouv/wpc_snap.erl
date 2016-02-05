@@ -255,7 +255,7 @@ draw_image(Image,_St) ->
     gl:'begin'(?GL_QUADS),
     gl:color4f(1.0, 1.0, 1.0, 0.55),   %%Semitransparant
     {_,_,W,H} = wings_wm:viewport(),
-    {Xs,Ys,Xe,Ye} = {0,0,1,1},
+    {Xs,Ys,Xe,Ye} = {0.0,0.0,1.0,1.0},
 
     #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty,r=Rot} = get(?MODULE),
     {X,Y} = scale(W,H,IW,IH),

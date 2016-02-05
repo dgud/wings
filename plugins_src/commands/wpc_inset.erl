@@ -854,7 +854,10 @@ bump(Vpos,_,0.0) ->
 bump(Vpos,FNorm,Bump)->
     e3d_vec:add(Vpos, e3d_vec:mul(FNorm,Bump)).
 
+-spec loop_error_1() -> no_return().
 loop_error_1() ->
     wings_u:error_msg(?__(1,"Inset/Offset Region doesn't work for wholly selected objects")).
+
+-spec loop_error_2() -> no_return().
 loop_error_2() ->
     wings_u:error_msg(?__(1,"Offset Region requires that neighbouring faces\nshare at least one edge")).

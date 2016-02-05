@@ -343,9 +343,9 @@ draw_objects_1(N, [{_,Name}|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
       gl:recti(2, Y-?CHAR_HEIGHT, R-2, Y+4),
       gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
     true ->
-      gl:color3f(0, 0, 0.5),
+      gl:color3f(0.0, 0.0, 0.5),
       gl:recti(2, Y-?CHAR_HEIGHT, R-2, Y+4),
-      gl:color3f(1, 1, 1);
+      gl:color3f(1.0, 1.0, 1.0);
     false -> ok
     end,
     wings_io:text_at(4, Y, Name),

@@ -511,6 +511,7 @@ rotate(Vpos,Norm,{Cx,Cy,Cz},Angle) ->
     A2 = e3d_mat:mul(A1, e3d_mat:translate(-Cx,-Cy,-Cz)),
     e3d_mat:mul_point(A2,Vpos).
 
+-spec sweep_error() -> no_return().
 sweep_error() ->
     wings_u:error_msg(?__(3,"Sweep Region won't work for selections where the average normal is (0,0,0)")).
 
