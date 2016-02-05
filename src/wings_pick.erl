@@ -681,7 +681,7 @@ raw_pick(X0, Y0, St) ->
     {W,H} = wings_wm:win_size(),
     X = float(X0),
     Y = H-float(Y0),
-    S = 5,
+    S = 5.0,
     Ms = set_pick_matrix(X, Y, S, S, W, H),
     case wings_wm:lookup_prop(select_backface) of
 	{value,true} ->

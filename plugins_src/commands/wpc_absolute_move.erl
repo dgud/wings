@@ -224,6 +224,7 @@ check_mirror([{Obj,VSet}|Rest],Shs) ->
             end
     end.
 
+-spec mirror_error() -> no_return().
 mirror_error() ->
     wings_u:error_msg(?__(1,"You cannot move vertices from mirror plane")).
 

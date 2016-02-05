@@ -168,7 +168,7 @@ dialyze() ->
     dialyze([core,plugins]).
 
 dialyze(all) ->
-    dialyze([core,wx,plugins]);
+    dialyze([core,wx,cl,plugins]);
 dialyze(Atom) when is_atom(Atom) ->
     dialyze([Atom]);
 dialyze(Dirs0) when is_list(Dirs0) ->
@@ -177,6 +177,8 @@ dialyze(Dirs0) when is_list(Dirs0) ->
 			   [filename:join(WingsLib, "ebin")];
 		      (wx) ->
 			   [filename:dirname(code:which(wx))];
+		      (cl) ->
+			   [filename:dirname(code:which(cl))];
 		      (plugins) ->
 			   get_plugin_dirs()
 		   end, Dirs0),

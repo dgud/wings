@@ -216,6 +216,7 @@ connect_five_sided(NewVertex, CV, Va, Face, We0) ->
         corner_error()
     end.
 
+-spec corner_error() -> no_return().
 corner_error() ->
     wings_u:error_msg(?__(1,"Sorry, that selection goes beyond the scope of this tool.")).
 

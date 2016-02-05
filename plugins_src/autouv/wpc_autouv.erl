@@ -1743,6 +1743,7 @@ align_chart(Dir, V1={X1,Y1,_},V2={X2,Y2,_}, We) ->
     Center = e3d_vec:average(V1,V2),
     rotate_chart(-Deg,Center,We).
 
+-spec align_error() -> no_return().
 align_error() ->
     wings_u:error_msg(?__(1,"Select two vertices or one edge")).
 
@@ -1922,23 +1923,23 @@ draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
     %% Draw border around the UV space.
     gl:enable(?GL_DEPTH_TEST),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
-    gl:lineWidth(1),
-    gl:color3f(0, 0, 0.7),
-    gl:translatef(0, 0, -0.5),
+    gl:lineWidth(1.0),
+    gl:color3f(0.0, 0.0, 0.7),
+    gl:translatef(0.0, 0.0, -0.5),
     gl:'begin'(?GL_LINES),
     G = fun(V) ->
-		gl:vertex2f(V,20),  gl:vertex2f(V,-20),
-		gl:vertex2f(20,V),  gl:vertex2f(-20,V)
+		gl:vertex2f(V,20.0),  gl:vertex2f(V,-20.0),
+		gl:vertex2f(20.0,V),  gl:vertex2f(-20.0,V)
 	end,
     lists:foreach(G, lists:seq(-20,20)),
     gl:'end'(),
-    gl:lineWidth(3),
-    gl:color3f(0, 0, 1.0),
+    gl:lineWidth(3.0),
+    gl:color3f(0.0, 0.0, 1.0),
     gl:recti(0, 0, 1, 1),
 
     %% Draw the background texture.
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    gl:color3f(1, 1, 1),			%Clear
+    gl:color3f(1.0, 1.0, 1.0),			%Clear
     case get({?MODULE,show_background}) of
 	false -> ok;
 	_ -> 
@@ -1950,10 +1951,10 @@ draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
 	    gl:bindTexture(?GL_TEXTURE_2D, Tx)
     end,
     gl:'begin'(?GL_QUADS),
-    gl:texCoord2f(0, 0),    gl:vertex3f(0, 0, -0.99999),
-    gl:texCoord2f(1, 0),    gl:vertex3f(1, 0, -0.99999),
-    gl:texCoord2f(1, 1),    gl:vertex3f(1, 1, -0.99999),
-    gl:texCoord2f(0, 1),    gl:vertex3f(0, 1, -0.99999),
+    gl:texCoord2f(0.0, 0.0),    gl:vertex3f(0.0, 0.0, -0.99999),
+    gl:texCoord2f(1.0, 0.0),    gl:vertex3f(1.0, 0.0, -0.99999),
+    gl:texCoord2f(1.0, 1.0),    gl:vertex3f(1.0, 1.0, -0.99999),
+    gl:texCoord2f(0.0, 1.0),    gl:vertex3f(0.0, 1.0, -0.99999),
     gl:'end'(), 
     gl:disable(?GL_TEXTURE_2D),
 
