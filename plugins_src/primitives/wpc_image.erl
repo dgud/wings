@@ -67,24 +67,21 @@ make_image(Name,Ask,St) when is_atom(Ask) ->
 
 
 make_image(FileName, Image0, Ask, St) when is_atom(Ask) ->
-    case load_img_plane(FileName,Image0) of
-    {error,_} -> ok;
-    {Id_Img_Plane,_,_}=ImData ->
-        Img_Helper = load_ip_helper(),
-	Owner = wings_wm:this(),
-        wings_dialog:dialog(Ask, ?__(2,"Image Plane"), {preview,image_dialog(FileName, Img_Helper)},
-          fun
-            ({dialog_preview,Res}) ->
-                St1 = make_image_0(ImData,Res,Owner,St),
-                {preview,St1,St1};
-            (cancel) ->
-                unload_img_plane(Id_Img_Plane,St),
-                St;
-            (Res) ->
-                St1 = make_image_0(ImData,Res,Owner,St),
-                {commit,St1,St1}
-          end)
-    end.
+    {Id_Img_Plane,_,_}=ImData=load_img_plane(FileName,Image0),
+    Img_Helper = load_ip_helper(),
+    Owner = wings_wm:this(),
+    wings_dialog:dialog(Ask, ?__(2,"Image Plane"), 
+			{preview,image_dialog(FileName, Img_Helper)},
+			fun({dialog_preview,Res}) ->
+				St1 = make_image_0(ImData,Res,Owner,St),
+				{preview,St1,St1};
+			   (cancel) ->
+				unload_img_plane(Id_Img_Plane,St),
+				St;
+			   (Res) ->
+				St1 = make_image_0(ImData,Res,Owner,St),
+				{commit,St1,St1}
+			end).
 
 image_dialog(FileName, Helper) ->
     FName = filename:rootname(filename:basename(FileName)),

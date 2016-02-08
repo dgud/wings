@@ -268,8 +268,6 @@ adjust_magnet_radius(_, #sculpt{rad=Rad0}=Sc) ->
 %%% Adjust Strength
 %%%
 
-adjust_strength(0, Sc) ->
-    Sc;
 adjust_strength(MouseMovement, #sculpt{str=Str0}=Sc) when MouseMovement < 0 ->
     case Str0 - strength_increment() of
         Str when Str > 0.001 ->
