@@ -391,7 +391,7 @@ trygen(File, Text, Nsubsteps) ->
 %% try the sysfontdir again.
 font_file(Name, Dir) ->
     Name1 = case Dir of
-		"" -> Name;
+		"." -> Name;
 		_ -> filename:join([Dir,Name])
 	    end,
     case filelib:is_regular(Name1) of
@@ -404,12 +404,12 @@ font_file(Name, Dir) ->
 				Fname -> Fname
 			    end,
 		    case Dir of
-			"" -> filename:join([sysfontdir(),Name2]);
+			"." -> filename:join([sysfontdir(),Name2]);
 			_ -> filename:absname(Dir ++ "\\" ++ Name2)
 		    end;
 		_ ->
 		    case Dir of
-			"" -> filename:join([sysfontdir(),Name]);
+			"." -> filename:join([sysfontdir(),Name]);
 			_ -> Name1
 		    end
 	    end
