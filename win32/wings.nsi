@@ -231,6 +231,7 @@ Function DllVersionGoodEnough
     continue1:		
     IntOp $R5 $R1 & 0x0000FFFF
     StrCpy $2 "$R2.$R3.$R4.$R5"
+    ; MessageBox MB_OK $2
     ${VersionCompare} $2 ${REDIST_DLL_VERSION} $R0
     Return
 FunctionEnd
@@ -322,36 +323,34 @@ done:
 SectionEnd ; end of uninstall section
 
 Function .onInit
-   ;; Turn off all clutter options by default.
-
-   SectionGetFlags ${SecWingsClutterQuickLaunch} $0
-   IntOp $0 $0 & ~1
-   SectionSetFlags ${SecWingsClutterQuickLaunch} $0
-
-   SectionGetFlags ${SecWingsClutterDesktop} $0
-   IntOp $0 $0 & ~1
-   SectionSetFlags ${SecWingsClutterDesktop} $0
-
-   SectionGetFlags 0 $MYTEMP 
-;   MessageBox MB_YESNO "Found $SYSDIR\msvcr100.dll" IDYES FoundLbl
-   IfFileExists $SYSDIR\msvcr100.dll MaybeFoundInSystemLbl
-   SearchSxsLbl:	
-        FindFirst $0 $1 $WINDIR\WinSxS\x86*
+   Var /GLOBAL archprefix
+   Var /GLOBAL sysnativedir
+   Var /GLOBAL winvermajor
+   Var /GLOBAL winverminor
+   Var /GLOBAL redistdllname
+   
+   SectionGetFlags 0 $MYTEMP
+   StrCpy $archprefix "x86"
+   StrCpy $sysnativedir "$SYSDIR"
+   StrCpy $redistdllname "MSVCR120.dll"
+   IfFileExists $sysnativedir\$redistdllname MaybeFoundInSystemLbl
+   SearchSxSLbl:
+        FindFirst $0 $1 $WINDIR\WinSxS\$archprefix*
         LoopLbl:
 	    StrCmp $1 "" NotFoundLbl
-	    IfFileExists $WINDIR\WinSxS\$1\msvcr100.dll MaybeFoundInSxsLbl
+	    IfFileExists $WINDIR\WinSxS\$1\$redistdllname MaybeFoundInSxSLbl
 	    FindNext $0 $1
 	    Goto LoopLbl
-        MaybeFoundInSxsLbl:
-	    GetDllVersion $WINDIR\WinSxS\$1\msvcr100.dll $R0 $R1
+        MaybeFoundInSxSLbl:
+	    GetDllVersion $WINDIR\WinSxS\$1\$redistdllname $R0 $R1
 	    Call DllVersionGoodEnough
 	    FindNext $0 $1
 	    IntCmp 2 $R0 LoopLbl
-	    Goto FoundLbl  
+	    Goto FoundLbl
    MaybeFoundInSystemLbl:
-	GetDllVersion $SYSDIR\msvcr100.dll $R0 $R1
+	GetDllVersion $sysnativedir\$redistdllname $R0 $R1
 	Call DllVersionGoodEnough
-	IntCmp 2 $R0 SearchSxSLbl  
+	IntCmp 2 $R0 SearchSxSLbl
    FoundLbl:
 	IntOp $MYTEMP $MYTEMP & 4294967294
 	SectionSetFlags 0 $MYTEMP
@@ -362,5 +361,6 @@ Function .onInit
 	SectionSetFlags 0 $MYTEMP
 	SectionSetText 0 "Microsoft DLL's (needed)"
 	Return
-FunctionEnd 
+FunctionEnd
+
 ; eof
