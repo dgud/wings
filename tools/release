@@ -14,8 +14,8 @@
 -include_lib("kernel/include/file.hrl").
 
 %% Change these when compiler version is changed on windows
--define(WIN32_VCREDIST_VERSION, "10.00.30319.1").
--define(WIN64_VCREDIST_VERSION, "10.00.30319.1").
+-define(WIN32_VCREDIST_VERSION, "12.00.21005.1").
+-define(WIN64_VCREDIST_VERSION, "12.00.21005.1").
 
 main(_) ->
     try
@@ -114,14 +114,23 @@ setup_vcredist(BitSize, Root) ->
     (VCRedist == false) andalso fatal("No WINGS_VCREDIST in env", []),
     (ok == file:set_cwd(filename:dirname(VCRedist))) orelse
 	fatal("dirname(WINGS_VCREDIST) failed: ~ts~n",[VCRedist]),
-    case BitSize of
-	32 ->
-	    copy("vcredist_x86.exe", Root),
-	    ?WIN32_VCREDIST_VERSION;
-	64 ->
-	    copy("vcredist_x64.exe", Root),
-	    ?WIN64_VCREDIST_VERSION
-    end.
+    {File, Vsn} = case BitSize of
+		      32 -> {"vcredist_x86.exe", ?WIN32_VCREDIST_VERSION};
+		      64 -> {"vcredist_x64.exe", ?WIN64_VCREDIST_VERSION}
+		  end,
+    Quoted0 = filename:join(filename:dirname(VCRedist), File),
+    Quoted  = "\"" ++ string:join(string:tokens(Quoted0, "/"), "\\\\") ++ "\"",
+    Res0 = os:cmd("wmic datafile where name=" ++ Quoted ++ " get version"),
+    VcVsn = [list_to_integer(V) || V <- tl(string:tokens(Res0, ".\s\r\n"))],
+    redist_version_ok(VcVsn, [list_to_integer(V) || V <- string:tokens(Vsn, ".")]),
+    copy(File, Root),
+    Vsn.
+
+redist_version_ok([Major, Minor, Release, Build], [Major, Minor, ReqRel, ReqBuild])
+  when (Release =:= ReqRel andalso Build >= ReqBuild); (Release > ReqRel) ->
+    ok;
+redist_version_ok(Current, Required) ->
+    fatal("Wrong VCREDIST version: ~p (~p)~n", [Current, Required]).
 
 nsi_file(32) -> "wings.nsi";
 nsi_file(64) -> "wings64.nsi".
