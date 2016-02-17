@@ -183,7 +183,7 @@ handle_event(#wx{event=#wxMouse{type=motion, x=X}},
     {noreply, State};
 
 handle_event(#wx{event=#wxMouse{type=left_down, x=X}},
-	     #state{this=This, mode=Mode, curr=Curr} = State0) ->
+	     #state{this=This, mode=Mode, curr=Curr, capture=false} = State0) ->
     wxPanel:setFocus(This),
     wxPanel:captureMouse(This),
     State = State0#state{curr=slider_pos(This, X, Mode, Curr), capture=true},

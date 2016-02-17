@@ -118,9 +118,15 @@ event_handler(Ev0=#keyboard{which=menubar},
 
 event_handler(Ev0= #mousebutton{}, #cs{st=St}) ->
     case wings_menu:is_popup_event(Ev0) of
-	no -> keep;
-	{yes,Xglobal,Yglobal,_} ->
-	    wings:popup_menu(Xglobal, Yglobal, St)
+        no -> keep;
+        {yes,Xglobal,Yglobal,Mod} ->
+            TweakBits = wings_msg:free_rmb_modifier(),
+            case Mod band TweakBits =/= 0 of
+            true ->
+                wings_tweak:menu(Xglobal, Yglobal);
+            false ->
+                wings:popup_menu(Xglobal, Yglobal, St)
+            end
     end;
 
 event_handler(#mousemotion{}, _) -> keep;
@@ -173,8 +179,10 @@ mk_dialog([{Key,Keyname,Cmd,Src}|T]) ->
 mk_dialog([]) ->
     [separator,{label,?__(1,"Check all hotkeys to be deleted.")}].
 
+mk_key_item(Key, Keyname, Cmd, _Src) when is_tuple(Key) ->
+    {Keyname ++ ": " ++ Cmd,false,[{key,Key}]};
 mk_key_item(Key, Keyname, Cmd, _Src) ->
-    {Keyname ++ ": " ++ Cmd,false,[{key,Key}]}.
+    {Keyname ++ ": " ++ Cmd,false,[{key,{Key}}]}.
 
 
 hotkey_key_message(Cmd) ->
@@ -184,13 +192,20 @@ hotkey_key_message(Cmd) ->
 
 
 bind_from_event(Ev, Cmd) ->
-    Bkey = bindkey(Ev, Cmd),
-    ets:insert(?KL, {Bkey,Cmd,user}),
-    format_hotkey(Bkey, wx).
+    Bkey0 = bindkey(Ev, Cmd),
+	Bkey = case Bkey0 of
+		{bindkey, _Key1} -> Bkey0;
+		{bindkey, _Mode, Key1} -> {bindkey, Key1}
+	end,
+	{bindkey, Key} = Bkey,
+	ets:insert(?KL, {Bkey,Cmd,user}),
+    format_hotkey(Key, wx).
 
 
+unbind({Key}) ->
+    unbind(Key);
 unbind(Key) ->
-    ets:delete(?KL, Key).
+    ets:delete(?KL, {bindkey, Key}).
 
 hotkeys_by_commands(Cs) ->
     hotkeys_by_commands_1(Cs, []).
