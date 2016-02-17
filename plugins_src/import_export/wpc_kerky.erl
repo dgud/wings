@@ -117,7 +117,6 @@ maybe_append(Condition, Menu, PluginMenu) ->
 is_plugin_active(Condition) ->
     case Condition of
         export -> get_var(dialogs);
-        edit -> get_var(dialogs);
         render -> get_var(renderer)
     end.
 

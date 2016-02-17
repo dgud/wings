@@ -120,7 +120,6 @@ maybe_append(Condition, Menu, PluginMenu) ->
 is_plugin_active(Condition) ->
     case Condition of
         export -> get_var(dialogs);
-        edit -> get_var(dialogs);
         render -> get_var(renderer)
     end.
 
@@ -2522,7 +2521,6 @@ pov_output_exts() ->
     OSDep ++ [{png, "+FN"}, {tga, "+FT"}].
 
 %%% returns the file extension and description of the file type
-get_ext_info([]) -> {"", ""};
 get_ext_info(ExtInfo) ->
     Exts = pov_output_exts(),
     lists:foldl(fun({Key, Ext, Dsc}, Acc) ->

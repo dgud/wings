@@ -5897,30 +5897,30 @@ help(text, {material_dialog,object}) ->
     ?__(12,"Autosmooth Angle: Controls YafaRay simulated smoothing of a mesh. "
       "For best results, adjust the Subdivisions setting under YafaRay Render "
       "Options to control real mesh smoothing.")];
-help(title, {material_dialog,fresnel}) ->
-    ?__(15,"YafaRay Material Properties: Fresnel Parameters");
-help(text, {material_dialog,fresnel}) ->
-    [?__(16,"Fresnel Parameters affect how rays reflect off and refract in "
-      "glass-like materials. This is a different light model than the "
-      "OpenGL (Diffuse,Specular,Shininess) model and they do not often "
-      "go well together. "
-      "A Photon Light must be present to produce Caustics."),
-     ?__(17,"Mapping to YafaRay shader parameters:"),
-     ?__(18,"Index Of Refraction -> 'ior' -> 1.5 for Glass/Caustics."),
-     ?__(19,"Total Internal Reflection -> 'tir' -> Enable for Glass."),
-     ?__(20,"Minimum Reflection -> 'min_refle' -> 1.0 for Metal."),
-     ?__(21,"Reflected -> 'reflected' -> Reflective Caustics."),
-     ?__(22,"Transmitted -> 'transmitted' -> Glass/Refractive Caustics."),
-     ?__(23,"Use Default -> Sets 'transmitted' to Diffuse * (1 - Opacity). "
-      "This makes a semi-transparent object in OpenGL look the same in "
-      "YafaRay provided that Index Of Refraction is 1.1 minimum."),
-     ?__(24,"Grazing Angle Colors -> Use the secondary Reflected and Transmitted "
-      "colors following that show from grazing angles of the material. "
-      "For a glass with green edges set Transmitted to white and "
-      "Grazing Angle Transmitted to green."),
-     ?__(25,"Absorption -> Sets the desired color for white light travelling "
-      "the given distance through the material.")];
-%%
+%%help(title, {material_dialog,fresnel}) ->
+%%    ?__(15,"YafaRay Material Properties: Fresnel Parameters");
+%%help(text, {material_dialog,fresnel}) ->
+%%    [?__(16,"Fresnel Parameters affect how rays reflect off and refract in "
+%%      "glass-like materials. This is a different light model than the "
+%%      "OpenGL (Diffuse,Specular,Shininess) model and they do not often "
+%%      "go well together. "
+%%      "A Photon Light must be present to produce Caustics."),
+%%     ?__(17,"Mapping to YafaRay shader parameters:"),
+%%     ?__(18,"Index Of Refraction -> 'ior' -> 1.5 for Glass/Caustics."),
+%%     ?__(19,"Total Internal Reflection -> 'tir' -> Enable for Glass."),
+%%     ?__(20,"Minimum Reflection -> 'min_refle' -> 1.0 for Metal."),
+%%     ?__(21,"Reflected -> 'reflected' -> Reflective Caustics."),
+%%     ?__(22,"Transmitted -> 'transmitted' -> Glass/Refractive Caustics."),
+%%     ?__(23,"Use Default -> Sets 'transmitted' to Diffuse * (1 - Opacity). "
+%%      "This makes a semi-transparent object in OpenGL look the same in "
+%%      "YafaRay provided that Index Of Refraction is 1.1 minimum."),
+%%     ?__(24,"Grazing Angle Colors -> Use the secondary Reflected and Transmitted "
+%%      "colors following that show from grazing angles of the material. "
+%%      "For a glass with green edges set Transmitted to white and "
+%%      "Grazing Angle Transmitted to green."),
+%%     ?__(25,"Absorption -> Sets the desired color for white light travelling "
+%%      "the given distance through the material.")];
+%%%%
 help(title, {light_dialog,_}) ->
     ?__(26,"YafaRay Light Properties");
 help(text, {light_dialog,Type}) ->
