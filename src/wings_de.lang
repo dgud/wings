@@ -5,47 +5,38 @@
    [
     {40," Flächeninhalt ~s"}
    ]},
-  {area_volume_info,
-   [
-    {1,"Objektname"},
-    {2,"Fläche"},
-    {3,"Volumen"},
-    {5,"Szeneninfo: Fläche & Volumen"}
-   ]},
   {cannot_repeat,
    [
-    {1,"Wiederholen nicht möglich"}
+    {1,"Kann nicht wiederholen"}
    ]},
-  {crash_handler,
+  {crash_dialog,
    [
-    {1,"Interner Fehler - Siehe Logdatei"},
-    {2,"Maus-Klick um weiterzuarbeiten"},
-    {3,"Weiterarbeiten"}
+    {1,"Interner Fehler - Log geschrieben in"}
    ]},
   {define_command,
    [
     {1,"Wollen Sie"},
-    {2,"als Standard-Befehl definieren"}
+    {2,"als Standardbefehl definieren"}
    ]},
   {edit_menu,
    [
-    {1,"Rückgängig Historie löschen um Speicher freizugeben"},
+    {1,"Rückgängig-Historie löschen um Speicher freizugeben"},
     {3,"Rückgängig/Wiederherstellen"},
-    {4,"Letzten Befehls rückgängig machen oder wiederherstellen"},
+    {4,"Den letzten Befehl rückgängig machen oder wiederherstellen"},
     {5,"Wiederherstellen"},
-    {6,"Letzten Rückgängig-Befehl wiederherstellen"},
+    {6,"Den letzten Rückgängig-Befehl wiederherstellen"},
     {7,"Rückgängig"},
-    {8,"Letzten Befehl rückgängig machen"},
+    {8,"Den letzten Befehl rückgängig machen"},
     {9,"Wiederholen"},
-    {10,"Parameter wiederholen"},
+    {10,"Argumente wiederholen"},
     {11,"Vorgang wiederholen"},
-    {12,"Einstellungen für Erweiterungen"},
-    {13,"Rückgängig Historie leeren"}
+    {12,"Plugin-Einstellungen"},
+    {13,"Rückgängig-Historie permanent löschen"}
    ]},
   {enhanced_info,
    [
     {41,"Kante~s ~s"},
-    {42,"\nAbstand ~s"},
+    {42,"\nDistanz ~s"},
     {43,"Objekt~s"},
     {45,"Differenz ~s"},
 	{48,"Fläche ~s"}
@@ -58,21 +49,16 @@
   {handle_drop_1,
    [
     {1,"Keine Auswahl"},
-    {2,"Ablegen abbrechen"},
+    {2,"Ablegen-Operation abbrechen"},
     {3,"Material ausgewählten Flächen zuweisen"},
-    {4,"Material \""},
+    {4,"Material zuweisen \""},
     {5,"\" nur ausgewählten Flächen zuweisen"},
     {6,"Material allen Flächen zuweisen"},
-    {7,"Material \""},
+    {7,"Material zuweisen \""},
     {8,"\" allen Flächen in Objekten mit einer Auswahl zuweisen"},
     {9,"Material allen Flächen zuweisen"},
-    {10,"Material \""},
+    {10,"Material zuweisen \""},
     {11,"\" allen Flächen in Objekten mit einer Auswahl zuweisen"}
-   ]},
-  {handle_event_3,
-   [
-    {1,"Auswählen"},
-    {2,"Kontextmenü anzeigen"}
    ]},
   {hole_info,
    [
@@ -81,26 +67,32 @@
    ]},
   {info_1,
    [
-    {1,"Knoten ~p ausgewählt"},
-    {2,"Knoten"},
-    {3,"~p Knoten ausgewählt"},
+    {1,"Vertex ~p ausgewählt"},
+    {2,"Vertices"},
+    {3,"~p Vertices ausgewählt"},
     {4,"Kante ~p ausgewählt"},
     {5,"Kanten"},
     {6,"~p Kanten ausgewählt"},
     {7,"Fläche ~p ausgewählt"},
     {8,"Flächen"},
     {9,"~p Flächen ausgewählt"},
-    {10,"~p Knoten in ~p Objekte ausgewählt"},
-    {11,"~p Kanten in ~p Objekten ausgewählt"},
-    {12,"~p Flächen in ~p Objekte ausgewählt"}
+    {10,"~p Vertices ausgewählt in ~p Objekten"},
+    {11,"~p Kanten ausgewählt in ~p Objekten"},
+    {12,"~p Flächen ausgewählt in ~p Objekten"}
+   ]},
+  {info_line,
+   [
+    {1,"Auswählen"},
+    {2,"Menü zeigen"},
+    {3,"Optimierungsmenü"}
    ]},
   {init_menubar,
    [
     {1,"Datei"},
     {2,"Bearbeiten"},
     {3,"Ansicht"},
-    {4,"Auswahl"},
-    {5,"Werkzeuge"},
+    {4,"Auswählen"},
+    {5,"Tools"},
     {6,"Fenster"},
     {7,"Hilfe"}
    ]},
@@ -113,79 +105,107 @@
     {1,". Position ~s ~s ~s"},
     {3,". Mittelpunkt ~s ~s ~s. Länge ~s"},
     {4,". Mittelpunkt ~s ~s ~s.\nMaterial ~s."},
-    {5,". Abstand ~s  <~s, ~s, ~s>"},
+    {5,". Distanz ~s  <~s, ~s, ~s>"},
     {6,". Winkel ~s"}
+   ]},
+  {object_info,
+   [
+    {1,"#"},
+    {2,"Name"},
+    {3,"Area"},
+    {4,"Perimeter"},
+    {5,"Volumen"},
+    {6,"Kanten"},
+    {7,"Flächen"},
+    {8,"Verts"},
+    {9,"Keine Objekte in Szene"},
+    {10,"Szeneinfo: "}
+   ]},
+  {open_file,
+   [
+    {1,"Wings3D hat eine nicht gespeicherte Datei wiederhergestellt."}
    ]},
   {patches,
    [
-    {1,"Verwende "}
+    {1,"Verwenden "}
    ]},
   {purge_undo,
    [
     {1,"Schritte rückgängig: "},
-    {2,"Schritte wiederherstellen: "},
-    {3,"Keine Schritte zum löschen"},
-    {4,"Alle Schritte löschen (NICHT umkehrbar)?"}
+    {2,"Schritte wiederherstellen: "}
    ]},
   {shape_info,
    [
-    {2,"~p Objekte, ~p Flächen, ~p Kanten, ~p Knoten"},
-    {new_object_info,"Objekt ~p \"~s\" hat ~p Polygone, ~p Kanten, ~p Knoten~s~s."}
+    {2,"~p Objekte, ~p Flächen, ~p Kanten, ~p Vertices"},
+    {new_object_info,"Objekt ~p \"~s\" hat ~p Polygone, ~p Kanten, ~p Vertices~s~s."}
+   ]},
+  {tool_dirs,
+   [
+    {1,"Align two or more objects along the given axis according to their respective selection centers"},
+    {2,"Center the selected objects along the given axis according to their cumulative selection center"}
    ]},
   {tools_menu,
    [
     {8,"Ausrichten"},
     {9,"Zentrieren"},
-    {10,"3D-Rahmen speichern"},
-    {11,"Auf gespeicherten 3D-Rahmen skalieren"},
-    {12,"Proportional in gespeicherten 3D-Rahmen skalieren"},
-    {13,"In gespeicherten 3D-Rahmen verschieben"},
+    {10,"Begrenzungsrahmen speichern"},
+    {11,"Skalieren auf gespeicherten BR"},
+    {12,"Proportional skalieren auf gespeicherten BR"},
+    {13,"Verschieben zu gespeicherten BR"},
     {14,"Standardachse festlegen"},
-    {15,"Achse für spätere Verwendung mit jedem \"Standardachse\" Befehl "},
-    {16,"(z.B. Skalieren|Standardachse) definieren und speichern (über Referenzpunkt)"},
+    {15,"Achse definieren und sichern (mit Ref.-pkt.) für spätere Verwendung mit jedem "},
+    {16,"\"Standardachse\"-Befehl (bspw. Skalieren|Standardachse)"},
     {17,"Virtueller Spiegel"},
-    {18,"Erzeugen"},
-    {19,"Virtuellen Spiegel aus ausgewählter Fläche erzeugen"},
+    {18,"Erstellen"},
+    {19,"Eine Flächenauswahl geben, einen virtuellen Spiegel einrichten"},
     {20,"Brechen"},
-    {21,"Virtuelle Spiegel von allen Objekten entfernen"},
+    {21,"Virtuelle Spiegel für alle Objekte entfernen"},
     {22,"Einfrieren"},
-    {23,"Reale Geometrie aus virtuellen Spiegeln erzeugen"},
-    {24,"Bildschirmfoto"},
-    {25,"Erstellt ein Abbild des Fensters (kann aus der Inhaltsübersicht exportiert werden)"},
-    {26,"Szeneninfo: Flächeninhalt & Volumen"},
+    {23,"Reale Geometrie aus den virtuellen Spiegeln erstellen"},
+    {24,"Screenshot..."},
+    {25,"Erfasst ein Bild des Fensters (exportiert es aus dem Gliederunsgeditor)"},
+    {26,"Szeneinfo"},
     {27,"Berechnet Flächeninhalt und Volumen für jedes Objekte in der Szene"},
-    {28,"Auf Bodenplatte"},
-    {29,"Ausgewählte Objekte auf die Bodenplatte positionieren"},
+    {28,"Setzen auf Grund"},
+    {29,"Ausgewählte Objekte auf die Grundebene setzen"},
     {30,"Vereinheitlichen"},
     {31,"Ausgewählte Objekte in einheitliche Sphäre einpassen und auf den Ursprung verschieben"},
-    {32,"3D-Rahmen auf Auswahl verschieben"},
-    {33,"3D-Rahmen auf Auswahl skalieren"}
+    {32,"BR zu Auswahl verschieben"},
+    {33,"BR auf Auswahl skalieren"},
+    {34,"Achse und Punkt festlegen"},
+    {35,"Achse festlegen"},
+    {36,"Punkt festlegen"},
+    {37,"Begrenzungsrahmen"},
+    {38,"Begrenzungsrahmen sind nützlich für die Skalierung oder Ausrichtung von Objekten"},
+    {39,"Begrenzungsrahmen rund um die aktuelle Auswahl erstellen"},
+    {40,"Optimieren"},
+    {41,"Das Optimierungsmenü öffnen"}
    ]},
-  {undo_info,
+  {update_menus,
    [
-    {1,"es gibt keine Rückgängig-Schritte"},
-    {2,"es gibt einen Rückgängig-Schritt"},
-    {3,"es gibt ~p Rückgängig-Schritte"},
-    {4,"; eine Aktion kann rückgängig gemacht werden"},
-    {5,"; ~p Aktionen? können rückgängig gemacht werden"}
+    {1,"Wiederholen"},
+    {2,"Argumente wiederholen"},
+    {3,"Repeat Drag"}
    ]},
   {vtx_attributes,
    [
-    {1,"Knoten-Attribute"}
+    {1,"Vertex-Attribute"}
    ]},
   {window_menu,
    [
-    {1,"Geometrie Graph"},
-    {2,"Geometrie Graph #"},
-    {3,"Inhaltsübersicht"},
-    {4,"Öffnet die Inhaltsübersicht (zeigt Materialien und Objekte)"},
-    {5,"Öffnet die Geometrie Übersicht (zeigt Objekte)"},
-    {6,"Farbpalette"},
+    {1,"Geometrie-Graph"},
+    {2,"Geometrie-Graph #"},
+    {3,"Gliederungseditor"},
+    {4,"Öffnet das Gliederungseditor-Fenster (zeigt Materialien und Objekte)"},
+    {5,"Öffnet ein Geometrie-Graph-Fenster (zeigt Objekte)"},
+    {6,"Palette"},
     {7,"Öffnet das Farbpaletten-Fenster"},
     {8,"Neues Geometriefenster"},
     {9,"Öffnet ein neues Geometriefenster"},
-    {10,"Konsole"},
-    {11,"Öffnet ein Konsolenfenster für Informationsmeldungen"}
+    {10,"Logfenster"},
+    {11,"Öffnet ein Logfenster für Informationsmeldungen"},
+    {12,"Palette optimieren"},
+    {13,"Öffnet Paletten, aus welchen Optimierungstools ausgewählt oder gebunden werden können, um Tasten zu modifizieren"}
    ]}
  ]}.
 {wings_body,
@@ -193,34 +213,34 @@
   {arealight_conv,
    [
     {1,"Flächenlicht zu Objekt"},
-    {2,"Ausgewählte Flächenlichter in Objekte umwandeln"},
+    {2,"Ausgewählte Flächenlichter zu Objekten konvertieren"},
     {3,"Objekt zu Flächenlicht"},
-    {4,"Ausgewählte Objekte in Flächenlichter umwandeln"}
+    {4,"Ausgewählte Objekte zu Flächenlichtern konvertieren"}
    ]},
   {auto_smooth,
    [
     {1,"Automatisches Glätten Parameter"},
-    {2,"Knitterwinkel"}
+    {2,"Faltungsinkel"}
    ]},
   {clean_isolated_vertices,
    [
-    {1,"1 isolierter Knoten entfernt\n"},
-    {2,"~p isolierte Knoten entfernt\n"}
+    {1,"1 isolierter Vertex entfernt\n"},
+    {2,"~p isolierte Vertices entfernt\n"}
    ]},
   {cleanup,
    [
     {1,"Kurze Kanten"},
-    {2,"Längen-Toleranz"},
-    {3,"Isolierte Knoten"},
+    {2,"Längentoleranz"},
+    {3,"Isolierte Vertices"},
     {4,"Aufräumen"}
    ]},
   {cleanup_rep_1,
    [
-    {1,"Wiederholte Knoten ~p in Fläche ~p\n"}
+    {1,"Wiederholter Vertex ~p in Fläche ~p\n"}
    ]},
   {cleanup_waists_1,
    [
-    {1,"Mittel-Knoten entfernt: ~p\n"}
+    {1,"Entfernt Mittel-Vertex: ~p\n"}
    ]},
   {color_material,
    [
@@ -231,80 +251,89 @@
     {1,"Fläche"},
     {2,"hat nur eine Kante"}
    ]},
+  {flip_ask,
+   [
+    {1,"Achse auswählen um Objekt entlang umzudrehen"},
+    {2,"Punkt entlang der gewählten Achse auswählen um Objekt umzudrehen"}
+    ]},
   {flip_str,
    [
     {1,"[Alt]+Klick um Objekt zu duplizieren"}
    ]},
-  {flip_ask,
-   [
-    {1,"Achse auswählen entlang der Objekt gespiegelt wird"},
-    {2,"Punkt entlang der gewählten Achse auswählen um Objekt zu spiegeln"}
-   ]},
   {menu,
    [
     {2,"Verschieben"},
-    {3,"Spiegeln"},
+    {3,"Umdrehen"},
     {10,"Invertieren"},
-    {11,"Alle Normalen umdrehen. Dreht das Objekt von innen nach außen."},
+    {11,"Alle Normalen umdrehen, dreht das Objekt von innen nach außen."},
     {12,"Straffen"},
-    {13,"Knoten gegen gemeinsamen Mittelpunkt verschieben"},
+    {13,"Vertices in Richtung durchschnittl. Mittelpunkt verschieben"},
     {14,"Glätten"},
-    {15,"Alle Flächen unterteilen, um dem Objekt ein weicheres Aussehen zu geben"},
+    {15,"Alle Flächen unterteilen, um dem Objekt ein glatteres Aussehen zu geben"},
     {16,"Kombinieren"},
-    {17,"Mehrere Objekte zu einem Objekt kombinieren"},
+    {17,"Multiple Objekte zu einem einzelnen Objekt kombinieren"},
     {18,"Separieren"},
-    {19,"Kombiniertes Objekt in seine Bestandteile zerlegen"},
+    {19,"Kombiniertes Objekt in seine Komponenten zerlegen"},
     {20,"Verschweißen"},
-    {21,"Nahezu übereinstimmende Paare von Flächen verschmelzen"},
+    {21,"Nahezu übereinstimmende Paare von Flächen zusammenführen"},
     {22,"Aufräumen"},
-    {23,"Verschiedene Mängel beseitigen"},
-    {24,"Auto glätten"},
-    {25,"Harte oder weiche Kanten abhängig vom Winkel der Flächen setzen"},
+    {23,"Verschiedene Mängel entfernen"},
+    {24,"Autom. glätten"},
+    {25,"Harte oder weiche Kanten festlegen, abhängig vom Winkel zwischen Flächen"},
     {26,"Duplizieren"},
     {27,"Löschen"},
-    {28,"Ausgewählte Objekte löschen"},
+    {28,"Die ausgewählten Objekte löschen"},
     {29,"Umbenennen..."},
     {30,"Ausgewählte Objekte umbenennen"},
-    {31,"Alle zeigen"},
-    {32,"Alle Flächen des Objekts zeigen"},
-    {33,"Knoten-Attribute"},
-    {34,"Objekt entlang ~s Achse spiegeln"},
-    {35,"Punkt wählen an dem Objekt entlang ~s Achse gespiegelt wird"},
-    {36,"Objekt entlang globaler ~s Achse spiegeln"},
+    {32,"Alle Flächen für dieses Objekt zeigen"},
+    {33,"Vertex-Attribute"},
+    {34,"Objekt entlang ~s Achse umdrehen"},
+    {35,"Punkt wählen um Objekt entlang ~s Achse umzudrehen"},
+    {36,"Objekt entlang globaler ~s Achse umdrehen"},
     {37,"Wählen"},
-    {38,"Achse wählen entlang der Objekt gespiegelt wird"},
-    {39,"Achse und Punkt wählen entlang denen Objekt gespiegelt wird"},
-    {40,"Globale Achse wählen entlang der Objekt gespiegelt wird"},
-    {41,"Farben in Materialien"},
-    {42,"Knoten-Farben in Materialien umwandeln"},
+    {38,"Achse wählen um Objekt entlang umzudrehen"},
+    {39,"Achse und Punkt wählen um Objekt entlang umzudrehen"},
+    {40,"Globale Achse wählen um Objekt entlang der Objekt umzudrehen"},
+    {41,"Farben zu Materialien"},
+    {42,"Vertex-Farben zu Materialien konvertieren"},
     {43,"Materialen in Farben"},
-    {44,"Materialien in Knoten-Farben umwandeln"},
+    {44,"Materialien zu Vertex-Farben konvertieren"},
     {45,"Farben entfernen"},
-    {46,"Alle Knoten-Farben entfernen"},
-    {47,"UV Koordinaten entfernen"},
-    {48,"Alle UV Koordinaten entfernen"},
+    {46,"Alle Vertex-Farben entfernen"},
+    {47,"UV-Koordinaten entfernen"},
+    {48,"Alle UV-Koordinaten entfernen"},
     {49,"Alle Attribute entfernen"},
-    {50,"Alle Knoten-Farben und UV Koordinaten entfernen"}
+    {50,"Alle Vertex-Farben und UV-Koordinaten entfernen"},
+    {51,"Add a common prefix to each selected object"},
+    {52,"Flächen einblenden"}
    ]},
   {rename_1,
    [
     {1,"Umbenennen"}
    ]},
+  {rename_prefix,
+   [
+    {1,"Präfix ausgewählter Objekte"}
+   ]},
   {vertex_color_item,
    [
-    {1,"Knoten-Farbe"},
-    {3,"Knotenfarbe auf ausgewählte Objekte übertragen"}
+    {1,"Vertex-Farbe"},
+    {3,"Vertex-Farben auf ausgewählte Objekte anwenden"}
    ]},
   {weld,
    [
-    {1,"Abstand Toleranz"},
-    {2,"Verschmelzen"}
+    {1,"Distanztoleranz"},
+    {2,"Verschweißen"}
    ]},
-  {weld_1,
+  {weld_error,
    [
-    {1,"Keine Flächen zum verschmelzen gefunden."}
+    {1,"Weld could not be resolved"}
+   ]},
+  {weld_objects,
+   [
+    {1,"Keine Flächen zum Verschweißen gefunden."}
    ]}
- ]}.
+  ]}.
 {wings_camera,
  [
   {desc,
@@ -319,53 +348,66 @@
    ]},
   {info,
    [
-    {1,"Hinweis: Nur der Nendo Kamera-Modus kann mit einer Ein-Tasten-Maus bedient werden"},
-    {2,"Hinweis: Nur Nendo und Blender Kamera-Modus können mit einer Zwei-Tasten-Maus bedient werden"},
+    {1,"Hinweis: Nur der Nendo-Kameramodus kann mit einer Ein-Tasten-Maus verwendet werden"},
+    {2,"Hinweis: Nur der Nendo- und Blender-Kamermodus können mit einer Zwei-Tasten-Maus verwendet werden"},
     {3,"Hinweis: Der "},
-    {4," Kamera-Modus erfordert mindestens eine Zwei-Tasten-Maus"},
+    {4," Kameramodus erfordert mindestens eine Zwei-Tasten-Maus"},
     {5,"Hinweis: Der "},
-    {6," Kamera-Modus erfordert eine Drei-Tasten-Maus"}
+    {6," Kameramodus erfordert eine Drei-Tasten-Maus"}
    ]},
   {message,
    [
-    {2,"Zum heranfahren Maus ziehen"},
-    {3,"Zum taumeln Maus bewegen"},
+    {2,"Ziehen für Dolly"},
+    {3,"Maus verschieben zum taumeln"},
     {4,"[Q]"},
-    {5,"Zum schwenken Maus bewegen"},
+    {5,"Maus verschieben zum Folgen"},
     {6,"Abbrechen/Ansicht wiederherstellen"},
     {7,"Ansicht wiederherstellen"},
-    {8,"Zum Schwenken ziehen"}
+    {8,"Ziehen zum Schwenken"}
    ]},
   {mode_help,
    [
-    {1,"Schwenken"},
-    {2,"Heranfahren"},
+    {1,"Folgen"},
+    {2,"Dolly"},
     {3,"Taumeln"},
-    {4,"Mausrad: Heranfahren"}
+    {4,"Mausrad: Dolly"}
    ]},
   {prefs,
    [
     {1,"Maustasten"},
-    {2,"Kamera-Modus"},
+    {2,"Kameramodus"},
     {3,"Schwenkgeschwindigkeit"},
     {4,"Mausrad zoomt"},
-    {5,"Vorwärts zoomt rein"},
-    {6,"Vorwärts zoomt raus"},
     {7,"Zoomfaktor"},
     {9,"Mausrad"},
     {10,"Alternativer Zoomfaktor (Alt+Rad)"},
-    {11,"Mausrad schwenkt & rotiert"},
+    {11,"Mausrad schwenkt & dreht"},
     {12,"Schwenkgeschwindigkeit"},
     {13,"Rotationsschritt in Grad"},
     {15,"Unidirektionale Kamera"},
     {16,"Schwenkgeschwindigkeit Pfeil-Tasten"},
-    {17,"Hilfetexte in Informationszeile anzeigen"},
-    {18,"Schwenken mit Pfeiltasten"},
-    {19,"Rotationsgeschwindigkeit"}
+    {17,"Hilfetexte in Informationszeile zeigen"},
+    {19,"Rotationsgeschwindigkeit"},
+    {20,"Zooming in aims Camera"}
    ]},
   {scroll_help,
    [
-    {1,"  [Strg](+[Alt])+Rad: schwenken  [Umsch](+[Alt])+Rad: rotieren"}
+    {1,"  [Strg](+[Alt])+Rad: Schwenken  [Umsch](+[Alt])+Rad: Drehen"}
+   ]}
+ ]}.
+{wings_cc,
+ [
+  {cl_setup,
+   [
+    {1,"Could not setup OpenCL, disabling proxy smooth."}
+   ]},
+  {decrease_level,
+   [
+    {1,"Could not acquire needed memory, decreasing to Subd-Level ~p~n"}
+   ]},
+  {gen_vab,
+   [
+    {1,"OpenCL subd failed: wanted ~pMB only ~pMB available~n"}
    ]}
  ]}.
 {wings_collapse,
@@ -376,7 +418,7 @@
    ]},
   {check_vertices_1,
    [
-    {1,"Nicht kollabierbarer Knoten"},
+    {1,"Nicht kollabierbarer Vertex"},
     {2,"würde Mittelstück hinterlassen.\n"}
    ]}
  ]}.
@@ -389,25 +431,13 @@
  ]}.
 {wings_console,
  [
-  {do_window,
-   [
-    {1,"Konsole "},
-    {2,"x"}
-   ]},
-  {handle_action,
-   [
-    {1,"Schreiben"},
-    {3,"Textdatei"},
-    {4,"Fehler beim Schreiben: ~w"}
-   ]},
-  {popup_menu,
-   [
-    {1,"In Datei schreiben"},
-    {2,"Konsoleninhalt in Datei wegschreiben"}
-   ]},
   {server_loop,
    [
     {1,":~w unbekannte(r|s) ~p~n empfangen"}
+   ]},
+  {wc_open_window,
+   [
+    {1,"Wings3D Log"}
    ]}
  ]}.
 {wings_deform,
@@ -415,18 +445,18 @@
   {check_range,
    [
     {1,"Ausdehnung entlang der "},
-    {2," Achse ist zu kurz."}
+    {2,"Achse ist zu kurz."}
    ]},
   {crumple_dirs,
    [
     {1,"Zufällig"},
-    {2,"einer zufälligen Richtung verschieben"},
-    {4,"seiner Normalen verschieben"},
-    {8,"Jeden Knoten um einen zufälligen Betrag verschieben"}
+    {2,"einer zufälligen Richtung"},
+    {4,"seiner Normalen"},
+    {8,"Jeden Vertex entlang verschieben um einen zufälligen Betrag"}
    ]},
   {dir,
    [
-    {1,"Ausgewählte Knoten um "},
+    {1,"Ausgewählte Vertices verdrehen um "},
     {2," drehen mit dem Mittelpunkt der Auswahl als Zentrum"},
     {3," drehen mit dem Ursprung als Zentrum"}
    ]},
@@ -442,20 +472,20 @@
     {1,"Elemente aufblasen"},
     {2,"Zentrum und Radius wählen"},
     {3,"Zerknittern"},
-    {4,"Knoten zufällig verschieben"},
+    {4,"Vertices zufällig verschieben"},
     {5,"Aufblasen"},
-    {6,"Zuspitzen"},
+    {6,"Verjüngen"},
     {7,"Verdrehen"},
     {8,"Drehen"}
    ]},
   {taper_item,
    [
-    {1,"Zuspitzen in "},
-    {2," Richtung (mit Effekt auf "},
+    {1,"Verjüngen entlang "},
+    {2," (mit Effekt auf "},
     {3,")"},
-    {4,"Effekt-Achse wählen"},
+    {4,"Effektachse wählen"},
     {5,"Mittelpunkt der Achse wählen"},
-    {6,"Ursprung für zuspitzen wählen"},
+    {6,"Ursprung für Verjüngen wählen"},
     {7,"Effekt auf "}
    ]}
  ]}.
@@ -463,22 +493,24 @@
  [
   {dissolve_1,
    [
-    {1,"Auflösen würde zu inkonsistenter Objektstruktur führen."}
+    {1,"Auflösen würde zu einer inkonsistenter Objektstruktur führen."}
    ]}
  ]}.
 {wings_drag,
  [
+  {drag_help,
+   [
+    {1,"Move along Screen Normal"},
+    {2,"Skalieren"},
+    {3,"2. Wert anpassen"},
+    {4,"Drehen"},
+    {5,"3. Wert anpassen"},
+    {6,"4. Wert anpassen"}
+   ]},
   {help_message,
    [
     {1,"Numerische Eingabe"},
     {2,"Zwangsbedingungs-Satz umschalten"}
-   ]},
-  {fpmove_help,
-   [
-    {1,"Einstellen des 4. Parameters durch ziehen"},
-    {2,"Rotation einstellen durch ziehen"},
-    {3,"Skalierung einstellen durch ziehen"},
-    {4,"Zum Einstellen ziehen"}
    ]},
   {make_query_1,
    [
@@ -488,9 +520,13 @@
    [
     {1,"Numerische Eingabe"}
    ]},
+  {plus_drag_string,
+   [
+    {1,"+Drag: "}
+   ]},
   {qstr,
    [
-    {1,"Dx"},
+    {1,"D"},
     {2,"Dx"},
     {3,"Dy"},
     {4,"Dz"},
@@ -505,19 +541,13 @@
   {switch,
    [
     {1," (verwende alternative Zwangsbedingungen)"}
-   ]},
-  {zmove_help,
-   [
-    {1,"Verschieben entlang Z durch ziehen"},
-    {2,"Einstellen des 3. Parameters durch ziehen"},
-	{3,"Skalieren durch ziehen"}
    ]}
  ]}.
 {wings_edge,
  [
   {dissolve_edge_2,
    [
-    {1,"Auflösen würde zu unmöglich geformter Fläche führen."}
+    {1,"Auflösen würde zu einer unmöglich geformter Fläche führen."}
    ]}
  ]}.
 {wings_edge_cmd,
@@ -528,58 +558,61 @@
    ]},
   {cut_ask_entry,
    [
-    {1,"In <N> Segmente aufteilen"},
+    {1,"Schneiden in <N> Segmente"},
     {2,"Anzahl eingeben..."}
    ]},
   {cut_command,
    [
-    {1,"Aufteilen"}
+    {1,"Schneiden"}
    ]},
   {cut_entry,
    [
-    {1,"In "},
-    {2," Segmente gleicher Länge aufteilen"}
+    {1,"Schneiden in "},
+    {2," Kanten von gleicher Länge"}
    ]},
   {cut_fun,
    [
-    {1,"In Segmente gleicher Länge aufteilen"},
-    {2,"An frei wählbarer Position teilen"}
+    {1,"Schneiden in Kanten von gleicher Länge"},
+    {2,"Schneiden nn beliebiger Position"}
    ]},
   {cut_pick_error,
    [
-    {1,"Nur eine Kante kann an beliebiger Stelle geteilt werden."}
+    {1,"Nur eine Kante kann an einer beliebiger Stelle geschnitten werden."}
    ]},
   {loop_cut,
    [
-    {1,"Kantenschleife teilt ~p nicht in zwei (oder mehr) Teile."}
+    {1,"Kanten-Loop teilt ~p nicht in zwei (oder mehr) Parts."}
    ]},
   {menu,
    [
     {2,"Verschieben"},
     {3,"Gleiten"},
     {4,"Kante entlang Nachbarkanten gleiten lassen"},
-    {5,"Ausstoßen"},
+    {5,"Extrudieren"},
     {6,"Verbinden"},
-    {7,"Neue Kante durch verbinden der Mittelpunkte der ausgewählten Kanten erzeugen."},
-    {8,"Abkanten"},
-    {9,"Ausgewählte Kanten abkanten"},
+    {7,"Eine neue Kante durch Verbinden der Mittelpunkte der ausgewählten Kanten erstellen."},
+    {8,"Beveln"},
+    {9,"Ausgewählte Kanten runden"},
     {10,"Auflösen"},
     {11,"Ausgewählte Kanten eliminieren"},
     {12,"Kollabieren"},
-    {13,"Kanten eliminieren und durch Knoten ersetzen"},
+    {13,"Kanten löschen, diese durch Vertices ersetzen"},
     {14,"Härte"},
     {15,"Weich"},
     {16,"Hart"},
-    {17,"Schleifen-Schnitt"},
-    {18,"Objekte entlang Kantenschleifen in zwei Objekte aufteilen"},
-    {19,"Knoten-Farbe"},
-    {20,"Knoten-Farben auf ausgewählte Kanten anwenden"},
-    {21,"Kanten löschen, durch Knoten ersetzen und neu entstandene isolierte Knoten entfernen"},
-    {50,"Ausgewählte Kanten eliminieren und übrig gebliebene isolierte Knoten entfernen."}
+    {17,"Loop-Schnitt"},
+    {18,"Schneiden in zwei Objekte entlang Kanten-Loop"},
+    {19,"Vertex-Farbe"},
+    {20,"Vertex-Farben auf ausgewählte Kanten anwenden"},
+    {21,"Kanten löschen, diese Vertices ersetzen und neu entstandene isolierte Vertices entfernen"},
+    {22,"Falten"},
+    {23,"Extrusion commonly used for adding wrinkles to organic models"},
+    {24,"Invertieren"},
+    {50,"Ausgewählte Kanten eliminieren und übrig gebliebene isolierte Verts entfernen."}
    ]},
   {plain_cut_menu,
    [
-    {2,"In Kanten gleicher Länge aufteilen"}
+    {2,"Schneiden in Kanten von gleicher Länge"}
    ]},
   {slide_help_mode,
    [
@@ -587,41 +620,40 @@
     {2,"Relativ"},
     {3,"Richtung einfrieren"},
     {4,"Richtung freigeben"},
-    {5,"An nächster Kante anhalten"},
-    {6,"Über nächste Kante weiter"}
+    {5,"Stoppen an anderen Kanten"},
+    {6,"Fortsetzen über andere Kanten"}
    ]}
  ]}.
 {wings_export,
  [
   {export,
    [
-    {1,"exportiere"},
-    {2,"vorbereiten"},
-    {4,"Exportierer abgestürzt"}
+    {1,"wird exportiert"},
+    {2,"wird vorbereitet"},
+    {4,"Exportmodul abgestürzt"}
    ]}
  ]}.
 {wings_extrude_edge,
  [
   {bevel_faces,
    [
-    {1,"Objekt ist zu klein zum abkanten."}
+    {1,"Objekt ist zu klein zum Beveln."}
    ]},
   {extrude_problem,
    [
-    {1,"Ausstoßen/abkanten nicht möglich; zwei oder mehr Knoten sind wahrscheinlich zu nah aneinander.\nVersuchen Sie es mit dem \"Aufräumen\" Befehl."}
+    {1,"Kann nicht extrudieren/beveln; zwei oder mehr Vertices sind wahrscheinlich zu nah aneinander.\nVersuchen Sie es mit dem \"Aufräumen\"-Befehl."}
    ]}
  ]}.
 {wings_face_cmd,
  [
-  {bridge,
+  {bridge_1,
    [
-    {1,"Flächen müssen die gleiche Anzahl Knoten haben."},
-    {2,"Flächen dürfen nicht in die selbe Richtung zeigen."},
+    {2,"Flächen dürfen nicht in dieselbe Richtung zeigen."},
     {3,"Flächen dürfen nicht benachbart sein."}
    ]},
   {bridge_error,
    [
-    {1,"Genau zwei Flächen müssen ausgewählt sein"}
+    {1,"Exakt zwei Flächen müssen ausgewählt sein"}
    ]},
   {clone_on,
    [
@@ -629,25 +661,25 @@
    ]},
   {clone_on_selection,
    [
-    {1,"Ziel-Elemente auswählen auf der die Duplikate aufgesetzt werden sollen"}
+    {1,"Zielelemente auswählen auf der die Klone aufgesetzt werden sollen"}
    ]},
   {create_hole_1,
    [
     {1,"Ein Loch kann nicht alle Flächen eines Objekts einschließen."}
    ]},
-   {intrude,
+  {intrude,
    [
-    {1,"Eindringen nicht möglich wenn alle Flächen ausgewählt sind."}
+    {1,"Intrudieren funktioniert nicht, wenn alle Flächen ausgewählt sind."}
    ]},
   {lift_check_selection,
    [
     {1,"Ausgewählte Fläche und Kanten passen nicht zueinander."},
-    {2,"Ausgewählte Fläche und Knoten passen nicht zueinander."}
+    {2,"Ausgewählte Fläche und Vertex passen nicht zueinander."}
    ]},
   {lift_fun,
    [
-    {1,"Anheben, Fläche um Kante oder Knoten drehen"},
-    {2,"In Standardrichtungen anheben"}
+    {1,"Anheben, Fläche um Kante oder Vertex drehen"},
+    {2,"Anheben in Standardrichtungen"}
    ]},
   {lift_sel_mismatch,
    [
@@ -655,48 +687,50 @@
    ]},
   {lift_selection,
    [
-    {1,"Kante oder Knoten als Drehachse auswählen."}
+    {1,"Kante oder Vertex als Drehachse auswählen."}
    ]},
   {lift_vtx_sel_mismatch,
    [
-    {1,"Ausgewählte Fläche und Knoten passen nicht zueinander."}
+    {1,"Ausgewählte Fläche und Vertex passen nicht zueinander."}
    ]},
   {menu,
    [
     {2,"Verschieben"},
-    {3,"Ausstoßen"},
-    {8,"Eindringen"},
+    {3,"Extrudieren"},
+    {8,"Intrudieren"},
     {9,"Objekt aushöhlen und ausgewählte Flächen zu Löchern machen"},
-    {10,"Abkanten"},
-    {11,"Kanten ausgewählter Flächen abkanten"},
+    {10,"Beveln"},
+    {11,"Kanten der ausgewählten Flächen runden"},
     {12,"Überbrücken"},
-    {13,"Erzeugt Brücke oder Tunnel zwischen zwei Flächen"},
-    {14,"Ausbeulen"},
-    {15,"Ausgewählte Flächen ausbeulen"},
+    {13,"Eine Brücke oder einen Tunnel zwischen zwei Flächen erstellen"},
+    {14,"Bump"},
+    {15,"Bump der ausgewählten Flächen erstellen"},
     {16,"Anheben"},
     {17,"Aufsetzen"},
-    {18,"Objekt verschieben und rotieren, mit gewählter Fläche an anderem Element ausrichten"},
-    {19,"Objekt duplizieren und auf Element(e) aufsetzen"},
+    {18,"Objekt verschieben und drehen, mit gewählter Fläche an anderem Element ausrichten"},
+    {19,"Objekt klonen und auf Element(e) aufsetzen"},
     {20,"Spiegeln"},
-    {21,"Objekt an ausgewählter Flächen spiegeln und zu einem Objekt vereinigen"},
-    {22,"Spiegeln und separate Objekte erzeugen"},
+    {21,"Objekt um ausgewählte Flächen spiegeln und zu Objekt zusammenführen"},
+    {22,"Spiegeln und separate Objekte erstellen"},
     {23,"Auflösen"},
     {24,"Alle Kanten zwischen ausgewählten Flächen eliminieren"},
     {25,"Kollabieren"},
-    {26,"Flächen eliminieren und durch Kanten ersetzen"},
+    {26,"Flächen löschen, diese durch Vertices ersetzen"},
     {27,"Glätten"},
     {28,"Ausgewählte Flächen unterteilen um sie zu glätten (Catmull-Clark)"},
-    {29,"Parkettierung"},
-    {30,"Knoten-Farbe"},
-    {31,"Knoten-Farben auf ausgewählte Flächen anwenden"},
-    {32,"Verbergen"},
-    {33,"Ausgewählte Flächen verbergen"},
-    {34,"Ausgewählte Flächen eleminieren und verbleibende isolierte Ecken löschen"},
+    {29,"Tesselieren"},
+    {30,"Vertex-Farbe"},
+    {31,"Vertex-Farben auf ausgewählte Flächen anwenden"},
+    {32,"Ausblenden"},
+    {33,"Die ausgewählten Flächen ausblenden"},
+    {34,"Ausgewählte Flächen eleminieren und verbleibende isolierte Verts entfernen"},
     {35,"Extrahieren"},
-    {36,"Hülle Extrahieren"},
+    {36,"Hülle Extrudieren"},
     {37,"Loch"},
-    {38,"Loch erzeugen"},
-    {39,"An ausgewählte Ebene grenzende Löcher entfernen"}
+    {38,"Loch erstellen"},
+    {39,"An ausgewählte Flächen grenzende Löcher entfernen"},
+    {40," oder Flächenregionen"},
+    {41,"faces adjacent to selection einblenden"}
    ]},
   {put_on,
    [
@@ -704,7 +738,7 @@
    ]},
   {put_on_check_selection,
    [
-    {1,"Auswahl darf nicht im selben Objekt sein."},
+    {1,"Auswahl darf nicht in demselben Objekt sein."},
     {2,"Nur ein Element auswählen."}
    ]},
   {put_on_selection,
@@ -735,54 +769,38 @@
    ]},
   {import_1,
    [
-    {1,"~w Objekt(s)\n"}
-   ]},
-  {read_edges,
-   [
-    {1," Kanten ~w\n"}
-   ]},
-  {read_object_1,
-   [
-    {1,"~w: ~s: vis=~p Empfindlichkeit=~p\n"}
+    {1,"~w Objekt(e)\n"}
    ]},
   {read_objects,
    [
     {1,"  ~w leere(s) Objekt(e)\n"},
-    {2,"  Abfall: ~w\n"}
-   ]},
-  {read_vertices,
-   [
-    {1," Knoten ~w\n"}
-   ]},
-  {skip_faces,
-   [
-    {1," Flächen ~w\n"}
+    {2,"  garbage: ~w\n"}
    ]}
  ]}.
 {wings_ff_wings,
  [
   {export,
    [
-    {1,"speichere"},
+    {1,"wird gespeichert"},
     {2,"Lichtquellen"},
-    {3,"neu nummerieren"},
+    {3,"wird neu nummeriert"},
     {4,"Objekte"},
-    {5,"komprimiere"},
-    {6,"schreibe Datei"}
+    {5,"wird komprimiert"},
+    {6,"Datei wird geschrieben"}
    ]},
   {import,
    [
-    {1,"öffne Wings Datei"},
-    {2,"lese Datei"}
+    {1,"Wings-Datei wird geöffnet"},
+    {2,"Datei wird eingelesen"}
    ]},
   {import_1,
    [
     {1,"konvertiere binär"},
     {2,"Pre-0.80 Wings Format wird nicht länger unterstützt."},
     {3,"Pre-0.92 Wings Format wird nicht länger unterstützt."},
-    {4,"unbekanntes Wings Format"},
-    {5,"beschädigte Wings Datei"},
-    {6,"keine Wings Datei (oder altes Wings Format)"}
+    {4,"unbekanntes Wings-Format"},
+    {5,"beschädigte Wings-Datei"},
+    {6,"keine Wings Datei (oder altes Wings-Format)"}
    ]},
   {import_image,
    [
@@ -791,12 +809,67 @@
    ]},
   {import_props,
    [
-    {1,"<Gespeicherte Auswahl>"}
+    {1,"<Gesicherte Auswahl>"}
    ]},
   {import_vsn2,
    [
     {1,"Bilder und Materialien"},
     {2,"Objekte"}
+   ]},
+  {import_vsn2_dlg,
+   [
+    {1,"processing Zusammenführen-Optionen..."},
+    {3,"converting binary"},
+    {4,"Extern"}
+   ]},
+  {make_dlg_item,
+   [
+    {1,"Elementname"}
+   ]},
+  {make_dlg_opt_mrg0,
+   [
+    {1,"Was zusammenführen"},
+    {2,"Das(die Element(e) definieren, die in der aktuellen Szene zusammengeführt werden"}
+   ]},
+  {make_dlg_opt_mrg0_0,
+   [
+    {1,"All"},
+    {2,"Only used by any material"},
+    {3,"None"},
+    {4,"Selected"},
+    {5,"Used by chosen objects"}
+   ]},
+  {make_dlg_opt_mrg1,
+   [
+    {1,"Same name action"},
+    {2,"Define what to do if there is an other element with identical name in the current scene"},
+    {3,"Rename new"},
+    {4,"Replace current"}
+   ]},
+  {make_merge_dlg,
+   [
+    {1,"Objekte"},
+    {2,"Lichtquellen"},
+    {3,"Materialien"},
+    {4,"Bilder"},
+    {5,"Auswahlgruppen"},
+    {6,"Gespeicherte Ansichten"},
+    {7,"Gesperrte Elemente entsperren"},
+    {8,"Ausgeblendete Elemente einblenden"},
+    {9,"Palette zusammenführen"},
+    {10,"Ignorieren"},
+    {11,"Hinzufügen zu aktuell"},
+    {12,"Das Aktuelle ersetzen"},
+    {13,"Auswahloptionen"},
+    {14,"Defines what to do with selections present in der Datei zusammengeführt werden"},
+    {15,"Make all new Selection"},
+    {16,"It makes all new elements selected in accord with the options bellow"},
+    {17,"Rendereinstellungen zusammenführen"}
+   ]},
+  {merge,
+   [
+    {1,"opening wings file"},
+    {2,"reading file"}
    ]},
   {translate_map_images_2,
    [
@@ -829,13 +902,23 @@
    [
     {1,"Export"}
    ]},
-  {import_filename,
+  {file_add_all,
+   [
+    {1,"All Formats"}
+   ]},
+  {file_filters,
+   [
+    {1,"Wings File"},
+    {2,"All Files"}
+   ]},
+  {import_filename_1,
    [
     {1,"Import"}
    ]},
   {import_image,
    [
-    {1,"Laden fehlgeschlagen \"~s\": ~s\n"}
+    {1,"Laden fehlgeschlagen \"~s\": ~s\n"},
+    {2,"The image cannot be loaded.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"}
    ]},
   {import_ndo,
    [
@@ -843,7 +926,7 @@
    ]},
   {install_plugin,
    [
-    {1,"Installiere Erweiterung"},
+    {1,"Plugin installieren"},
     {2,"GZip komprimierte Datei"},
     {3,"Tar Datei"},
     {4,"Komprimierte Tar Datei"},
@@ -852,15 +935,15 @@
   {menu,
    [
     {3,"Neu"},
-    {4,"Neue, leere Szene erzeugen"},
+    {4,"Eine neue, leere Szene erstellen"},
     {5,"Öffnen..."},
     {6,"Gespeicherte Szene öffnen"},
     {7,"Zusammenführen..."},
-    {8,"Gespeicherte Szene in die aktuelle Szene einfügen"},
+    {8,"Eine zuvor gespeicherte Szene in der aktuellen Szene zusammenführen"},
     {9,"Speichern"},
-    {10,"Aktuelle Szene speichern"},
+    {10,"Die aktuelle Szene speichern"},
     {11,"Speichern unter..."},
-    {12,"Aktuelle Szene unter anderem Namen speichern"},
+    {12,"Die aktuelle Szene unter einem neuen Namen speichern"},
     {13,"Auswahl speichern..."},
     {14,"Ausgewählte Objekte oder Flächen speichern"},
     {15,"Inkrementell speichern"},
@@ -868,26 +951,31 @@
     {17,"Zuletzt gespeicherten Zustand der aktuellen Szene neu laden"},
     {18,"Import"},
     {19,"Export"},
-    {20,"Ausgewählte exportieren"},
+    {20,"Ausgewähltes exportieren"},
     {21,"Bild importieren..."},
     {22,"Bilddatei importieren"},
     {23,"Rendern"},
-    {24,"Erweiterung installieren"},
+    {24,"Plugin installieren"},
     {25,"Beenden"},
-    {26,"Dateinamen inkrementieren und Szene speichern"},
-    {27,"Erweiterung installieren"},
+    {26,"Neuen Dateinamen generieren und speichern"},
+    {27,"Plugin installieren"},
     {28,"Wings 3D beenden"},
     {29,"Nicht verwendete Materialien speichern"},
-    {30,"Nicht verwendete Materialien beim Speichern einer .wings Datei einschließen"}
+    {30,"Nicht verwendete Materialien beim Speichern einer .wings Datei einschließen"},
+    {31,"Save Preference Subset..."},
+    {32,"Save a preference subset from your current settings"},
+    {33,"Load Preference Subset"},
+    {35,"Laden..."},
+    {36,"Load a previously saved preference subset"}
    ]},
   {merge,
    [
     {1,"Zusammenführen"},
-    {2,"Lesen fehlgeschlagen: "}
+    {2,"Einlesen fehlgeschlagen: "}
    ]},
   {recent_files,
    [
-    {1,"Diese zuletzt benutzte Datei öffnen"}
+    {1,"Diese zuletzt verwendete Datei öffnen"}
    ]},
   {save_as,
    [
@@ -899,43 +987,42 @@
    ]},
   {save_selected,
    [
-    {1,"Dieser Befehl erfordert ausgewählte Elemente."},
+    {1,"Dieser Befehl erfordert eine Auswahl."},
     {2,"Auswahl speichern"}
    ]},
   {str_save_changes,
    [
-    {1,"Wollen Sie ihre Änderungen speichern?"}
+    {1,"Wollen Sie Ihre Änderungen speichern?"}
    ]},
   {use_autosave_1,
    [
-    {1,"Es existiert eine automatisch gespeicherte Datei mit neuerem Datum.\nWollen Sie stattdessen diese Datei laden?"}
+    {1,"Eine autom. gespeicherte Datei mit einem späteren Zeitstempel ist bereits vorhanden.\nWollen Sie stattdessen die autom. gespeicherte Datei laden?"}
    ]},
   {wings_prop,
    [
-    {1,"Wings Datei"}
+    {1,"Wings-Datei"}
    ]}
  ]}.
 {wings_help,
  [
   {def_commands,
    [
-    {1,"Standard Befehle können unter "},
+    {1,"Standardbefehle können unter "},
     {4," im Reiter \"Erweitert\" eingeschaltet werden."},
-    {5,"Es können zwei Standard Befehle definiert werden. Um einen zuvor ausgeführten Befehl als Standard Befehl zu definieren, drücken Sie:"},
-    {8,"Um einen definierten Standard Befehle zu verwenden, drücken Sie:"},
+    {5,"Es können zwei Standardbefehle definiert werden. Um einen zuvor ausgeführten Befehl als Standardbefehl zu definieren, drücken Sie:"},
+    {8,"Um einen definierten Befehl zu verwenden, drücken Sie:"},
     {11,"Hinweis: Im "},
     {13," und im "},
-    {15," Kamera-Modus kann der zweite Standard Befehl nicht verwendet werden."}
+    {15," Kameramodi kann der zweite Standardbefehl nicht verwendet werden."}
    ]},
   {def_hotkeys,
    [
-    {1,"Jeder Menübefehl kann einer Kurztaste zugewiesen werden."},
-    {4,"Um einen Befehl einer Kurztaste zuzuweisen:"},
+    {1,"Jedem Befehl, der in einem Menü erscheint, kann ein Tastatur-Shortcut (Hotkey) zugewiesen werden."},
+    {4,"Um einen Befehl einem Hotkey zuzuweisen:"},
     {5,"1. Öffnen Sie das Menü, dass den Befehl enthält und markieren Sie den Befehl."},
     {6,"2. Drücken Sie die [Einfg] oder die [/] Taste."},
-    {8,"4. Die Informationszeile fordert Sie auf die Taste zu drücken, der sie den Befehl zuweisen wollen."},
-    {9,"Um eine Kurztaste zu löschen, markieren Sie den Menübefehl auf die gleiche Weise und drücken Sie die [Entf] oder die [\\] Taste. Ein Dialog erscheint, der alle Tasten auflistet, denen der Befehl zugewiesen ist. Markieren Sie alle Tasten, die Sie löschen wollen."},
-    {10,"3. Wenn der Befehl unterschiedliche Dinge bewirkt, je nachdem welche Maus-Taste gedrückt wird, erscheint in der Informationszeile die Aufforderung, eine Maus-Taste zu drücken um zu festzulegen, welche Variante des Befehl der Kurztaste zugewiesen werden soll (Hinweis: Der Mauszeiger muss in dem Menü bleiben, während Sie klicken)."}
+    {8,"4. Die Informationszeile fordert Sie auf die Taste zu drücken, der Sie den Befehl zuweisen wollen."},
+    {9,"Um einen Hotkey zu löschen, markieren Sie den Menübefehl auf die gleiche Weise und drücken Sie die [Entf] oder die [\\] Taste. Ein Dialog erscheint, der alle Tasten auflistet, denen der Befehl zugewiesen ist. Markieren Sie alle Tasten, die Sie löschen wollen."}
    ]},
   {edit_prefs,
    [
@@ -947,24 +1034,25 @@
     {1,"Wenn Sie anfangen mit Wings zu arbeiten, achten Sie auf die Informationszeile am unteren Bildschirmrand. Generell zeigt sie an, welche Funktionen die Maustasten aktuell auslösen."},
     {2,"Zuerst werden die Aktionen für die Maus-Tasten angezeigt, bezeichnet mit "},
     {7,"Allgemein wird L (Linke Maustaste) zum auswählen und bestätigen verwendet, M (Mittlere Maustaste) für die Steuerung der Kamera und R (Rechte Maustaste) für den Zugriff auf das Kontextmenü."},
-    {8,"Beachten Sie, das die einzelnen Maustasten in den Kontextmenüs Befehle unterschiedlich aufrufen. Ganz allgmein liegt der typischste Aufruf auf der linken Maustaste, während die vorgeschrittenen Aufrufe auf der mittleren und der rechten Maustaste liegen."},
+    {8,"Hinweis: Die einzelnen Maustasten in den Kontextmenüs Befehle unterschiedlich aufrufen. Ganz allgmein liegt der typischste Aufruf auf der linken Maustaste, während die vorgeschrittenen Aufrufe auf der mittleren und der rechten Maustaste liegen."},
     {left_def,"Linke Maustaste"},
     {middle_def,"Mittlere Maustaste oder Mausrad"},
     {right_def,"Rechte Maustaste"},
-    {two_a,"gefolgt von einer beliebigen Kurztastenfunktion."}
+    {two_a,"gefolgt von beliebigen Hotkey-Aktionenn."}
    ]},
   {header,
    [
-    {1,"Einstieg"},
-    {2,"Verwenden einer Maus mit einer oder zwei Tasten"},
+    {1,"Erste Schritte"},
+    {2,"Verwendung einer Maus mit einer oder zwei Tasten"},
     {3,"Französische und deutsche Tastaturen"},
-    {4,"Definierte Kurztasten"},
-    {5,"Kurztasten definieren"},
-    {6,"Licht Grundlagen"},
-    {8,"Standard Befehle"},
-    {9,"Performanz Hinweise"},
-    {10,"OpenGL Informationen"},
-    {11,"Über Wings 3D"}
+    {4,"Definierte Hotkeys"},
+    {5,"Wie Hotkeys definieren"},
+    {6,"Lichtgrundlagen"},
+    {8,"Standardbefehle"},
+    {9,"Performanztipps"},
+    {10,"Software-/OpenGL-Info"},
+    {11,"Über Wings 3D"},
+    {12,"Optimierung"}
    ]},
   {help_window,
    [
@@ -972,18 +1060,18 @@
    ]},
   {international,
    [
-    {1,"Auf französischen und deutschen Tastaturen (und möglicherweise weiteren) ist der Rückgängig/Wiederherstellen-Befehl nicht an die Taste [Z] gebunden (Dies kann sich in einer künftigen Version von Wings ändern)."},
-    {2,"Auf französischen Tastaturen, liegt der Rückgängig/Wiederherstellen-Befehl auf der Taste [W] ([Strg]+[W], [Strg]+[Alt]+[W] und so weiter)."},
-    {3,"Auf deutschen Tastaturen, liegt der Rückgängig/Wiederherstellen-Befehl auf der Taste [Y] ([Strg]+[Y], [Strg]+[Alt]+[Y] und so weiter)."}
+    {1,"Auf französischen und deutschen Tastaturen (und möglicherweise weitere) ist der Rückgängig-/Wiederherstellen-Befehl nicht an die Taste [Z] gebunden (Dies kann sich in einer künftigen Version von Wings ändern)."},
+    {2,"Auf französischen Tastaturen, liegt der Rückgängig-/Wiederherstellen-Befehl auf der Taste [W] ([Strg]+[W], [Strg]+[Alt]+[W] und so weiter)."},
+    {3,"Auf deutschen Tastaturen, liegt der Rückgängig-/Wiederherstellen-Befehl auf der Taste [Y] ([Strg]+[Y], [Strg]+[Alt]+[Y] und so weiter)."}
    ]},
   {lights,
    [
-    {1,"1. Eine Lichtquelle wird über den gleichnamigen Befehl im Kontextmenü erzeugt (Rechts-Klick wenn keine Auswahl aktiv ist)."},
+    {1,"1. Lichtquellen werden unter Verwendung des gleichnamigen Befehls im Primitive-Menü erstellt (Rechts-Klick wenn keine Auswahl aktiv ist)."},
     {2,"2. Auswahl einer Lichtquelle durch Links-Klick darauf. Wenn eine Lichtquelle ausgewählt ist, ruft ein Rechts-Klick ein spezielles Kontextmenü auf."},
-    {3,"3. Um Wings zu veranlassen erzeugte Lichtquellen auch zu verwenden, benutzen sie den Befehl "},
+    {3,"3. Um Wings zu veranlassen, von Ihnen erstellte Lichtquellen zu verwenden, benutzen sie den "},
     {4,"Ansicht"},
-    {5,"Lichtquellen der Szene"},
-    {6,"."}
+    {5,"Szenelichtquellen"},
+    {6," Befehl."}
    ]},
   {message,
    [
@@ -991,15 +1079,15 @@
    ]},
   {one_or_two,
    [
-    {1,"Beachten Sie dass nur der "},
-    {2," und der "},
-    {3," Modus mit einer Zwei-Tasten-Maus genutzt werden können. Nur der "},
-    {4," Modus kann mit einer Ein-Tasten-Maus genutzt werden."}
+    {1,"Hinweis: Nur der "},
+    {2," und "},
+    {3," Modi mit einer Zwei-Tasten-Maus verwendet werden können. Nur der "},
+    {4," Modus kann mit einer Ein-Tasten-Maus verwendet werden."}
    ]},
   {opengl_info,
    [
     {1,"Hersteller: "},
-    {2,"Schattierer: "},
+    {2,"Renderer: "},
     {3,"Version: "},
     {4,"Versions-Tupel: "},
     {5,"Rot Bits"},
@@ -1013,20 +1101,20 @@
     {13,"Akkum. Blau Bits"},
     {14,"Akkum. Alpha Bits"},
     {15,"Max. Anzahl Lichtquellen"},
-    {16,"Max. Begrenzungsebenen"},
+    {16,"Max. Clippingebenen"},
     {17,"Max. Tiefe Modellansicht Stapelspeicher"},
     {18,"Max. Tiefe Projektions-Stapelspeicher"},
     {19,"Max. Tiefe Textur-Stapelspeicher"},
     {20,"Unterpixel Bits"},
-    {21,"Max. 3D Texturgröße"},
+    {21,"Max. 3D-Texturgröße"},
     {22,"Max. Texturgröße"},
     {23,"Max. Pixel Abbildungstabelle"},
     {24,"Max. Tiefe Namen-Stapelspeicher"},
     {25,"Max. Schachtelungstiefe der Anzeigenliste"},
     {26,"Max. Polynom-Ordnung Auswerteeinrichtung"},
-    {27,"Max. Sichtbereichs Dimensionen"},
-    {28,"Max. Tiefe Attribut-Stapelspeicher"},
-    {29,"Max. Tiefe Client-Attribute Stapelspeicher"},
+    {27,"Max. Viewport-Dimensionen"},
+    {28,"Max. Tiefe des Attribut-Stapels"},
+    {29,"Max. Tiefe des Client-Attribut-Stapels"},
     {30,"Anzahl der Hilfspuffer"},
     {31,"Farbpuffer speichern RGBA"},
     {32,"Farbpuffer speichern Indizes"},
@@ -1036,47 +1124,47 @@
     {36,"Bereich antialiased Punktgrößen"},
     {37,"Bereich für aliased Linienbreiten"},
     {38,"Bereich für antialiased Linienbreiten"},
-    {39,"Empfohlene maximale Anzahl Indizes für drawRangeElement()"},
-    {40,"Empfohlene maximale Anzahl Knoten für drawRangeElement()"},
-    {41,"Max. Anzahl Textureinheiten"},
-    {42,"Anzahl Komprimierungsformate"},
-    {43,"Max. Anzahl Knoteneinheiten"},
-    {44,"OpenGL Erweiterungen"},
+    {39,"Empfohlene max. Anzahl der Indizes für drawRangeElement()"},
+    {40,"Empfohlene max. Anzahl der Vertices für drawRangeElement()"},
+    {41,"Max. Anzahl der Textureinheiten"},
+    {42,"Anzahl der Kompressionsformate"},
+    {43,"Max. Anzahl der vertex-Einheiten"},
+    {44,"OpenGL-Erweiterungen"},
     {45,"Sample buffers"}
    ]},
   {performance_tips,
    [
-    {1,"Die Geschwindigkeit von Wings hängt von verschiedenen Parametern ab, wie"},
-    {2,"der Geschwindigkeit des Prozessors"},
-    {3,"der Art und Größe des Prozessor-Zwischenspeichers"},
-    {4,"der Größe und Geschwindigkeit des Hauptspeichers"},
-    {5,"des Typs der Grafikkarte"},
-    {6,"der Größe des Grafikspeichers"},
-    {7,"der Mondphase"},
-    {8,"Es ist daher schwer sichere Hinweise zu geben, wie die Geschwindigkeit von Wings zu steigern ist. Die folgenden Hinweise KÖNNEN die Geschwindigkeit verbessern:"},
-    {9,"Versuchen Sie unterschiedliche Farbtiefen und verschiedene Bildschirmauflösungen. Besonders auf Grafikkarten mit wenig Speicher können viele Farben und/oder eine hohe Auflösung die Geschwindigkeit drastisch reduzieren. Ein kleineres Wings-Fenster (nicht maximiert) kann ebenfalls helfen."},
+    {1,"Die Performance von Wings ist von vielen verschiedenen Dingen abhängig, wie bspw."},
+    {2,"Geschwindigkeit der CPU"},
+    {3,"Typ und Größe des CPU-Caches"},
+    {4,"Größe und Geschwindigkeit des Speichers"},
+    {5,"Typ der Grafikkarte"},
+    {6,"Größe des Grafikspeichers"},
+    {7,"der Mondphase."},
+    {8," Daher ist es schwierig sichere Hinweise zu geben, wie sich die Performance von Wings steigern lässt. Die folgenden Hinweise KÖNNEN die Performance verbessern:"},
+    {9,"Versuchen Sie unterschiedliche Farbtiefen und verschiedene Bildschirmauflösungen. Besonders auf Grafikkarten mit wenig Speicher können viele Farben und/oder eine hohe Auflösung die Performance drastisch reduzieren. Ein kleineres Wings-Fenster (nicht maximiert) kann ebenfalls helfen."},
     {10,"Schließen Sie nicht benötigte Wings-Fenster."},
     {11,"Stellen Sie sicher, dass sich Geometriefenster nicht überlappen."},
-    {12,"Verwenden Sie so wenige (aktive) Lichtquellen wie möglich. Mehr Lichtquellen ist auf den meisten Grafikkarten gleichbedeutend mit einer geringeren Geschwindigkeit."},
+    {12,"Verwenden Sie so wenige (aktive) Lichtquellen wie möglich. Mehr Lichtquellen ist bei den meisten Grafikkarten gleichbedeutend mit einer geringeren Geschwindigkeit."},
     {13,"Wenn möglich verwenden Sie den Befehl "},
-    {14,"Werkzeuge"},
+    {14,"Tools"},
     {15,"Virtueller Spiegel"},
     {16,"."},
-    {17,"Verbergen Sie Modelle, mit denen Sie im Moment nicht arbeiten."},
-    {18,"Verwenden Sie den Befehl "},
+    {17,"Blenden Sie Modelle aus, an denen Sie im Moment nicht arbeiten."},
+    {18,"Verwenden Sie den "},
     {19,"Ansicht"},
-    {20,"Farben anzeigen"},
-    {21," um die Knoten-Farbe auszuschalten, wenn ihr Modell Knoten-Farben verwendet."},
-    {22,"Verwenden Sie den Befehl "},
+    {20,"Farben zeigen"},
+    {21," Befehl, um die die Anzeige der Vertex-Farbe auszuschalten, wenn ihr Modell Vertex-Farben verwendet."},
+    {22,"Verwenden Sie den "},
     {23,"Ansicht"},
-    {24,"Texturen anzeigen"},
-    {25," um Texturen während des modellierens auszuschalten."},
-    {26,"Arbeiten Sie im Drahtmodell-Modus."},
-    {27,"Einige Grafikkarten zeigen Kanten nur sehr langsam an. Schalten Sie die Kantenanzeige mit dem Befehl "},
+    {24,"Texturen zeigen"},
+    {25," Befehl, um Texturen während des Modellierens auszuschalten."},
+    {26,"Arbeiten Sie im Wireframe-Modus."},
+    {27,"Einige Grafikkarten zeigen Kanten verlangsamt an. Schalten Sie die Kantenanzeige aus unter Verwendung des "},
     {28,"Ansicht"},
-    {29,"Kanten anzeigen"},
-    {30," aus."},
-    {31,"Weniger Rückgängig-Ebenene verwenden. 4 oder weniger Ebenen (Standard 32) ermöglicht das arbeiten an Modellen mit 8-mal mehr Details. In diesem Fall empfiehlt sich eine kürzere Periode (Standard 10 Min.) beim automatischen Speichern."}
+    {29,"Kanten zeigen"},
+    {30," Befehl."},
+    {31,"Verwenden Sie weniger Rückgängig-Schritte. Eine Einstellung auf 4 oder weniger (Standard 32) ermöglicht Ihnen das Arbeiten an Modellen mit achtmal mehr Details. In diesem Fall kann die Verwendung einer kürzeren Periode (Standard 10 Min.) zum autom. Speichern ratsam sein."}
    ]},
   {splash_contents,
    [
@@ -1086,8 +1174,8 @@
     {4,"ist aber für jede Art von Nutzung frei"},
     {5,"(einschließlich kommerzieller Nutzung)."},
     {6,"Copyright"},
-    {7,"& andere"},
-    {8,"JPEG Bibliothek: Copyright"}
+    {7,"& Andere"},
+    {8,"JPEG Library: Copyright"}
    ]},
   {use_one_or_two,
    [
@@ -1097,6 +1185,24 @@
  ]}.
 {wings_hotkey,
  [
+  {command,
+   [
+    {1,"Select an menu item to bind/unbind a hotkey"}
+   ]},
+  {event_handler,
+   [
+    {1,"This key is already bound to the "},
+    {2," command. Do you want to re-define it?"}
+   ]},
+  {hotkey_delete_dialog,
+   [
+    {1,"Hotkeys löschen"}
+   ]},
+  {hotkey_key_message,
+   [
+    {1,"Press the key to bind the \""},
+    {2,"\" command to."}
+   ]},
   {keyname,
    [
     {1,"Rücktaste"},
@@ -1106,23 +1212,27 @@
    ]},
   {list_header,
    [
-    {1,"Kurztasten für alle Modi"},
-    {2,"Kurztasten im Objektmodus"},
-    {3,"Kurztasten im Kantenmodus"},
-    {4,"Kurztasten im Flächenmodus"},
-    {5,"Kurztasten für Lichtquellen"},
-    {6,"Kurztasten für Knoten"}
+    {1,"Hotkeys in allen Modi"},
+    {2,"Hotkeys in Objektmodus"},
+    {3,"Hotkeys in Kantenmodus"},
+    {4,"Hotkeys in Flächenmodus"},
+    {5,"Hotkeys für Lichtquellen"},
+    {6,"Hotkeys für Vertices"}
    ]},
   {list_keys,
    [
     {1," (benutzerdefiniert)"},
-    {2," (Durch Erweiterung definiert)"}
+    {2," (per Plugin definiert)"}
+   ]},
+  {mk_dialog,
+   [
+    {1,"Check all hotkeys to be deleted."}
    ]},
   {vkeyname,
    [
     {1,"Rücktaste"},
     {2,"Tab"},
-    {3,"Eingabe"},
+    {3,"Enter"},
     {4,"Pause"},
     {5,"Esc"},
     {6,"Leertaste"},
@@ -1132,7 +1242,7 @@
     {10,"×"},
     {11,"-"},
     {12,"+"},
-    {13,"Eingabe"},
+    {13,"Enter"},
     {14,"="},
     {15,"Auf"},
     {16,"Ab"},
@@ -1142,8 +1252,7 @@
     {20,"Pos1"},
     {21,"Ende"},
     {22,"Bild auf"},
-    {23,"Bild ab"},
-    {24,"UKEY"}
+    {23,"Bild ab"}
    ]}
  ]}.
 {wings_image,
@@ -1163,47 +1272,28 @@
     {7,"Horizontale Balken"},
     {8,"Weiß"},
     {9,"Schwarz"},
-    {10,"Bild erzeugen"}
-   ]},
-  {event,
-   [
-    {1,"Menü anzeigen"}
-   ]},
-  {event_1,
-   [
-    {1,"In natürlicher Größe zeigen"}
+    {10,"Bild erstellen"}
    ]},
   {screenshot,
    [
-    {1,"<<Bildschirmkopie>>"}
-   ]},
-  {window_params,
-   [
-    {1,"Bild: ~s [~wx~wx~w]"}
+    {1,"Screenshot"},
+    {2,"Nur Viewport erfassen"},
+    {3,"Aktuelle Ansicht zu gespeicherten Ansichten hinzufügen"},
+    {4,"Name"}
    ]}
  ]}.
-{wings_init,
+{wings_image_viewer,
  [
-  {display_actual_mode,
+  {init,
    [
-    {1,"Aktuell: RGBA: ~p ~p ~p ~p Tiefe: ~p Matrize: ~p Akkum: ~p ~p ~p ~p\n"}
-   ]},
-  {try_video_modes,
-   [
-    {1,"Versuche OpenGL Modi\n"}
-   ]},
-  {video_mode_failure,
-   [
-    {2,"Es wurde kein passender OpenGL Modus gefunden.\n\n"},
-    {3,"Stellen Sie sicher, das OpenGL Treiber installiert sind.\n\n"},
-    {5,"Kein passender OpenGL Modus gefunden (sind OpenGL Treiber installiert?)"}
+    {1,"Bild: ~s [~wx~w]}"}
    ]}
  ]}.
 {wings_light,
  [
   {attenuation,
    [
-    {1,"Keine Punkt- oder Spot-Lichtquelle."}
+    {1,"Kein Punkt- oder Spot-Licht."}
    ]},
   {color,
    [
@@ -1212,34 +1302,32 @@
   {edit,
    [
     {1,"Nur eine Lichtquelle auswählen."},
-    {2,"Umgebungslicht Eigenschaften"},
-    {3,"Lichtquelle Eigenschaften"}
+    {2,"Umgebungslicht-Eigenschaften"},
+    {3,"Lichteigenschaften"}
    ]},
   {edit_ambient_dialog,
    [
     {1,"Umgebung"},
-    {2,"Farbe"},
-    {3,"OK"}
+    {2,"Farbe"}
    ]},
   {edit_dialog,
    [
     {1,"Diffus"},
     {2,"Umgebung"},
-    {3,"Spiegelnd"},
-    {4,"Farben"},
-    {5,"OK"}
+    {3,"Specular"},
+    {4,"Farben"}
    ]},
   {export_camera_lights,
    [
     {1,"Umgebung"},
     {2,"Unendlich"},
-    {3,"Unendlich1"},
-    {4,"Unendlich2"}
+    {3,"Unendlich 1"},
+    {4,"Unendlich 2"}
    ]},
   {info,
    [
     {1,"Lichtquelle ~s:"},
-    {2,"\nPosition ~s ~s ~s"}
+    {2,"\nPos. ~s ~s ~s"}
    ]},
   {info_1,
    [
@@ -1249,55 +1337,55 @@
   {light_types,
    [
     {1,"Unendlich"},
-    {2,"Weit entfernte gerichtete Lichtquelle erzeugen (wie die Sonne)"},
+    {2,"Eine weit entfernte, gerichtete Lichtquelle erstellen (wie die Sonne)"},
     {3,"Punkt"},
-    {4,"Punktlichtquelle erzeugen, die in alle Richtungen abstrahlt"},
+    {4,"Eine Lichtquelle erstellen, die Licht in jede Richtung abstrahlt"},
     {5,"Spot"},
-    {6,"Spot-Lichtquelle erzeugen"},
+    {6,"Ein Spot-Licht erstellen"},
     {7,"Umgebung"},
-    {8,"Umgebungslichtquelle erzeugen"},
+    {8,"Eine Umgebungslichtquelle erstellen"},
     {9,"Fläche"},
-    {10,"Licht emittierende Fläche erzeugen"}
+    {10,"Eine Fläche erstellen, die Licht abstrahlt"}
    ]},
   {menu,
    [
     {2,"Verschieben"},
     {3,"Position Zielpunkt"},
-    {4,"Zielpunkt oder Ort der Lichtquelle festlegen"},
+    {4,"Zielpunkt oder Ort der Lichtquelle postionieren"},
     {5,"Farbe"},
-    {6,"Farbton, Helligkeit und Sättigung interaktiv justieren"},
+    {6,"Farbton, Helligkeit und Sättigung interaktiv anpassen"},
     {7,"Dämpfung"},
-    {8,"linear"},
-    {9,"Interaktiv einstellen, wie sich das Licht abschwächt, während es sich von der Quelle entfernt (linearer Faktor)"},
-    {10,"quadratisch"},
-    {11,"Interaktiv einstellen, wie sich das Licht abschwächt, während es sich von der Quelle entfernt (quadratischer Faktor)"},
-    {12,"Spot-Öffnungswinkel"},
-    {13,"Öffnungswinkel des Lichtkegels des Spot-Lichts interaktiv einstellen"},
-    {14,"Spot Abnahme"},
-    {15,"Interaktiv einstellen, wie sich das Licht weiter entfernt vom Zentrum des Spot-Lichts abschwächt"},
-    {16,"Eigenschaften..."},
-    {17,"Lichtquelle Eigenschaften"},
+    {8,"Linear"},
+    {9,"Interaktiv anpassen, wie das Licht sich abschwächt, während es sich von der Quelle entfernt (linearer Faktor)"},
+    {10,"Quadratisch"},
+    {11,"Interaktiv anpassen, wie das Licht sich abschwächt, während es sich von der Quelle entfernt (quadratischer Faktor)"},
+    {12,"Spot-Winkel"},
+    {13,"Winkel des Kegels des Spot-Lichts interaktiv anpassen"},
+    {14,"Spot-Falloff"},
+    {15,"Interaktiv anpassen, wie das Licht sich weiter entfernt vom Zentrum des Spot-Lichts abschwächt"},
+    {16,"Eigenschaften bearbeiten..."},
+    {17,"Lichteigenschaften bearbeiten"},
     {18,"Duplizieren"},
-    {19,"Ausgewähltes Licht duplizieren und verschieben"},
+    {19,"Ausgewählte Lichtquellen duplizieren und verschieben"},
     {20,"Löschen"},
     {21,"Ausgewählte Lichtquellen löschen"}
    ]},
   {plugin_results,
    [
-    {1,"Erweiterung \"Lichtquelle Bearbeiten\" hinterließ Müll:~n ~P~n"},
-    {2,"Erweiterung(en) hinterließ(en) Müll"}
+    {1,"Lichteditor-Plugin(s) hinterließ(en) Müll:~n ~P~n"},
+    {2,"Plugin(s) hinterließ(en) Müll"}
    ]},
   {qs_att,
    [
-    {1,"linear"},
-    {2,"quadratisch"},
+    {1,"Linear"},
+    {2,"Quadratisch"},
     {3,"Dämpfung"}
    ]},
   {qs_specific,
    [
     {1,"Winkel"},
-    {2,"Abnahme"},
-    {3,"Spot Parameter"}
+    {2,"Falloff"},
+    {3,"Spot-Parameter"}
    ]},
   {selected_light,
    [
@@ -1316,30 +1404,30 @@
  [
   {check_radius,
    [
-    {1,"Einfluss-Radius zu klein."}
+    {1,"Einflussradius zu klein."}
    ]},
   {common_dialog,
    [
-    {4,"Abstand Route"}
+    {4,"Distanzstrecke"}
    ]},
   {dialog,
    [
-    {1,"Magnet Optionen"},
-    {2,"Wirk-Radius"},
-    {3,"Magnet Optionen"}
+    {1,"Magnetoptionen"},
+    {2,"Einflussradius"},
+    {3,"Magnetoptionen"}
    ]},
   {drag_help,
    [
-    {1,"[+] or [-] Radius einstellen "}
+    {1,"[+] oder [-] Radius anpassen "}
    ]},
   {info_string,
    [
-    {1,"Abstand route: "}
+    {1,"Magnetstrecke: "}
    ]},
   {magnet_route,
    [
     {midpoint,"Mittelpunkt"},
-    {shortest,"Kürzeste"},
+    {shortest,"Am kürzesten"},
     {surface,"Oberfläche"}
    ]},
   {magnet_shape_str,
@@ -1354,17 +1442,16 @@
  [
   {edit,
    [
-    {1,"Material Eigenschaften: "}
+    {1,"Materialeigenschaften: "}
    ]},
   {edit_dialog,
    [
     {1,"Diffus"},
     {2,"Umgebung"},
-    {3,"Spiegelnd"},
+    {3,"Specular"},
     {4,"Emission"},
     {5,"Glanz"},
-    {6,"Deckkraft"},
-    {7,"OK"}
+    {6,"Opazität"}
    ]},
   {load_map_1,
    [
@@ -1373,7 +1460,7 @@
   {material_fun,
    [
     {1,"Vorhandenes Material der Auswahl zuweisen"},
-    {2,"Neues Material erzeugen und zuweisen"}
+    {2,"Neues Material erstellen und zuweisen"}
    ]},
   {material_menu,
    [
@@ -1387,8 +1474,8 @@
    ]},
   {plugin_results,
    [
-    {1,"Erweiterung \"Material Bearbeiten\" hinterließ Müll:~n ~P~n"},
-    {2,"Erweiterung(en) hinterließ(en) Müll"}
+    {1,"Materialeditor-Plugin(s) hinterließ(en) Müll:~n ~P~n"},
+    {2,"Plugin(s) hinterließ(en) Müll"}
    ]},
   {rename,
    [
@@ -1407,39 +1494,23 @@
  ]}.
 {wings_menu,
  [
-  {handle_key_event,
-   [
-    {1,"Taste ist bereits dem Befehl "},
-    {2," zugewiesen. Wollen Sie den Befehl neu zuweisen?"}
-   ]},
-  {help_text_1,
-   [
-    {1," - Untermenü"}
-   ]},
-  {hotkey_delete_dialog,
-   [
-    {1,"Kurztasten löschen"}
-   ]},
-  {hotkey_key_message,
-   [
-    {1,"Drücken Sie die Taste, der Sie den Befehl \""},
-    {2,"\" zuweisen wollen."}
-   ]},
-  {hotkey_mouse_message,
-   [
-    {1,"Klicken Sie mit der Maustaste um den zuzuweisenden Befehl auszuwählen"}
-   ]},
   {magnet_help,
    [
-    {2,"Klick für Magnet"}
+    {2,"Click for Magnet"}
    ]},
-  {mk_dialog,
+  {opt_help,
    [
-    {1,"Markieren Sie alle zu löschenden Kurztasten."}
+    {1,"Optionsdialog öffnen"}
    ]},
-  {norm_help_adv,
+  {setup_popup,
    [
-    {1,"Optionen Dialog öffnen"}
+    {1," Untermenü"}
+   ]},
+  {tooltip,
+   [
+    {1,"Left mouse button"},
+    {2,"Middle mouse button"},
+    {3,"Right mouse button"}
    ]}
  ]}.
 {wings_menu_util,
@@ -1452,98 +1523,106 @@
    ]},
   {dir_help,
    [
-    {3,"letzten Achse"},
-    {4,"Standardachse"},
+    {3,"Die letzte Achse"},
+    {4,"Die Standardachse"},
     {7,"um"},
     {10,"entlang ihrer Normalen"},
     {11,"frei in alle Richtungen"},
-    {12,"In alle Richtungen einheitlich skalieren"}
+    {12,"Einheitlich skalieren in alle Richtungen"}
    ]},
   {dir_help_1,
    [
-    {1,"Elemente verschieben "},
-    {2,"Frei rotieren"},
-    {3,"Um die Normale jedes Elements rotieren"},
-    {4,"Jedes Element ausstoßen, dann verschieben "},
-    {5,"Flächen als Region ausstoßen, dann Flächen entlang Normale der Region verschieben"},
-    {6,"Flächen als Region ausstoßen, dann Flächen verschieben "},
+    {1,"Jedes Element verschieben "},
+    {2,"Frei drehen"},
+    {3,"Um die Normale jedes Elements drehen"},
+    {4,"Jedes Element extrudieren, dieses dann verschieben "},
+    {5,"Flächen als Region extrudieren, dann Flächen entlang Normale der Region verschieben"},
+    {6,"Flächen als Region extrudieren, dann Flächen verschieben "},
     {7,"Flächen extrahieren, dann Flächen entlang Normale der Region verschieben"},
     {8,"Flächen extrahieren, dann Flächen verschieben "},
     {9,"Elemente auf Normalenebene ebnen"},
     {10,"Fläche entlang ihrer Normalen anheben"},
-    {11,"Fläche anheben und verschieben "},
+    {11,"Fläche anheben und diese verschieben "},
     {12,"Duplizieren und frei bewegen "},
-    {13,"Elemente verschieben entlang der "},
-    {14,"Element ausstoßen und verschieben entlang der "},
-    {15,"Flächen als Region ausstoßen und verschieben entlang der "},
-    {16,"Flächen extrahieren und verschieben entlang der "},
-    {17,"Rotieren um "},
+    {13,"Jedes Element verschieben entlang "},
+    {14,"Elemente extrudier, dann verschieben entlang "},
+    {15,"Flächen als Region extrudieren, dann verschieben entlang "},
+    {16,"Flächen extrahieren, dann verschieben entlang "},
+    {17,"Drehen um "},
     {18,"Skalieren "},
-    {19,"Skalieren entlang der "},
+    {19,"Skalieren entlang "},
     {20,"Ebnen senkrecht zur "},
     {21,"Ebnen und verschieben nach "},
     {22,"Fläche anheben entlang der "},
     {23,"Duplizieren, dann verschieben entlang der "},
     {24,"Jedes Element extrahieren, dann verschieben "},
     {25,"Elemente extrahieren, dann verschieben entlang "},
-    {26,"Flächen als Region extrahieren und ausstoßen, dann verschieben entlang "}
+    {26,"Flächen als Region extrahieren und extrudieren, dann verschieben entlang "},
+    {27,"Flächen als Region extrahieren und extrudieren, then move faces along the region's normal"},
+    {28,"Flächen als Region extrahieren und extrudieren, then move faces "}
    ]},
   {dirs,
    [
     {1,"Entlang Standardachse verschieben"},
-    {2,"Achse wählen entlang der verschoben wird"},
-    {3,"Entlang der Standardachse verschieben"},
+    {2,"Achse wählen zum Verschieben entlang"},
+    {3,"Verschieben entlang Standardachse"},
     {4,"Entlang Normale der Auswahl verschieben"},
     {5,"Entlang ausgewählter Achse verschieben"},
-    {6,"Entlang Standardachse ausstoßen"},
-    {7,"Entlang Normale der Auswahl ausstoßen"},
-    {8,"Achse auswählen entlang der ausgestoßen wird"},
+    {6,"Extrudieren entlang Standardachse"},
+    {7,"Extrudieren entlang Normale der Auswahl"},
+    {8,"Achse wählen zum Extrudieren entlang"},
     {12,"Entlang Standardachse extrahieren"},
     {15,"Duplizieren und entlang Standardachse verschieben"},
     {16,"Duplizieren, nicht verschieben"},
     {17,"Duplizieren und Achse auswählen entlang der verschoben wird"},
-    {22,"Hülle extrahieren und entlang Standardachse ausstoßen"},
-    {23,"Hülle extrahieren und entlang Normale der Auswahl ausstoßen"},
-    {24,"Achse wählen und Hülle entlang dieser extrahieren und ausstoßen"}
+    {22,"Hülle extrahieren und entlang Standardachse extrudieren"},
+    {23,"Hülle extrahieren und entlang Normale der Auswahl extrudieren"},
+    {24,"Achse wählen und Hülle entlang dieser extrahieren und extrudieren"}
    ]},
   {dirs_help,
    [
-    {18,"Achse wählen entlang der alle Flächen ausgestoßen werden"},
+    {18,"Achse wählen entlang der jede Fläche extrudiert wird"},
     {19,"Pick axis to extrude each region of faces along"},
-    {20,"Achse wählen entlang der alle Flächen ausgestoßen werden"},
+    {20,"Achse wählen entlang der jede Fläche extrahiert wird"},
     {21,"Pick axis to extract each region of faces along"}
    ]},
   {flatten,
    [
     {1,"Ebnen"},
-    {2,"Auf die Standardebenen ebnen"},
-    {3,"Ebene und Referenzpunkt auf der Ebene wählen"},
+    {2,"Ebnen auf Standardebenen"},
+    {3,"Ebene wählen und Referenzpunkt auf Ebene"},
     {4,"Ebene wählen"}
+   ]},
+  {flatten_edge_loops,
+   [
+    {1,"Kanten-Loops"},
+    {2,"Flatten each closed edge loop to its normal"}
    ]},
   {flatten_fun_1,
    [
-    {1,"Punkt auf der Ebene wählen"}
+    {1,"Punkt auf Ebene wählen"}
    ]},
   {rotate,
    [
-    {1,"Rotieren um die Standardachse"},
-    {2,"Achse und Referenzpunkt auswählen"},
-    {3,"Achse auswählen um die rotiert werden soll"}
+    {1,"Drehen um Standardachse"},
+    {2,"Achse und Referenzpunkt wählen"},
+    {3,"Achse wählen um die gedreht werden soll"}
    ]},
   {rotate_1,
    [
-    {1,"Rotieren"}
+    {1,"Drehen"}
    ]},
   {rotate_fun,
    [
-    {1,"Punkt auswählen, durch den die Achse geht"}
+    {1,"Punkt wählen, durch den die Achse geht"},
+    {2,"Through Origin"}
    ]},
   {scale,
    [
     {1,"Nach außen um Standardachse skalieren"},
     {2,"Achse wählen und Punkt von dem aus skaliert wird"},
     {3,"Achse wählen entlang der nach außen skaliert wird"},
-    {4,"Entlang Standardachse skalieren"},
+    {4,"Skalieren entlang Standardachse"},
     {5,"Achse wählen und Punkt von dem aus skaliert wird"},
     {6,"Achse wählen entlang der skaliert wird"}
    ]},
@@ -1566,13 +1645,13 @@
   {common_image_menu,
    [
     {1,"Export..."},
-    {2,"Bild exportieren"},
+    {2,"Das Bild exportieren"},
     {3,"Duplizieren"},
-    {4,"Bild duplizieren"},
+    {4,"Ausgewähltes Bild duplizieren"},
     {5,"Löschen"},
-    {6,"Bild löschen"},
+    {6,"Ausgewähltes Bild löschen"},
     {7,"Umbenennen"},
-    {8,"Bild umbenennen"},
+    {8,"Ausgewähltes Bild umbenennen"},
     {9,"Bild auswählen"},
     {10,"Bild auswählen und einem Material als Textur zuweisen"}
    ]},
@@ -1584,57 +1663,60 @@
   {do_menu,
    [
     {1,"Material bearbeiten..."},
-    {2,"Material Eigenschaften bearbeiten"},
-    {3,"Auswahl zuweisen"},
-    {4,"Material ausgewählten Flächen oder Körpern zuweisen"},
-    {5,"Auswahl"},
-    {6,"Alle Flächen mit diesem Material auswählen"},
+    {2,"Materialeigenschaften bearbeiten"},
+    {3,"Zuweisen der Auswahl"},
+    {4,"Das Material den ausgewählten Flächen oder Körpern zuweisen"},
+    {5,"Auswählen"},
+    {6,"Alle Elemente auswählen, die dieses Material haben"},
     {7,"Duplizieren"},
-    {8,"Material duplizieren"},
+    {8,"Dieses Material duplizieren"},
     {9,"Löschen"},
-    {10,"Material löschen"},
+    {10,"Dieses Material löschen"},
     {11,"Umbenennen"},
-    {12,"Material umbenennen"},
+    {12,"Dieses Material umbenennen"},
     {13,"Duplizieren"},
-    {14,"Objekt Duplizieren"},
+    {14,"Dieses Objekt duplizieren"},
     {15,"Löschen"},
-    {16,"Objekt löschen"},
+    {16,"Dieses Objekt löschen"},
     {17,"Umbenennen"},
-    {18,"Objekt umbenennen"},
+    {18,"Dieses Objekt umbenennen"},
     {19,"Lichtquelle bearbeiten..."},
-    {20,"Lichtquellen Eigenschaften bearbeiten"},
+    {20,"Lichteigenschaften bearbeiten"},
     {21,"Duplizieren"},
-    {22,"Lichtquelle duplizieren"},
+    {22,"Diese Lichtquelle duplizieren"},
     {23,"Löschen"},
-    {24,"Lichtquelle löschen"},
+    {24,"Diese Lichtquelle löschen"},
     {25,"Umbenennen"},
-    {26,"Lichtquelle umbenennen"},
+    {26,"Diese Lichtquelle umbenennen"},
+    {27,"Add all elements that have this material to selection"},
+    {28,"Remove all elements that have this material from selection"},
     {121,"Gewähltes Objekt ablegen"},
-    {122,"Zuvor gewähltes Objekt auf diesem Material ablegen"}
+    {122,"Ein zuvor gewähltes Objekt auf diesem Material ablegen"}
    ]},
   {event,
    [
-    {1,"Auswahl"},
-    {2,"Inhaltsverzeichnis-Menü (bei Auswahl) oder Erzeugen-Menü (ohne Auswahl)"}
+    {1,"Auswählen"},
+    {2,"Gliederungseditor-Menü (bei Auswahl) oder Erstellungsmenü (wenn keine Auswahl) zeigen"}
    ]},
   {handle_drop,
    [
     {1,"Texturtyp"},
     {2,"Diffus"},
     {3,"Glanz"},
-    {4,"Beule (Höhen abbilden)"},
-    {5,"Beule (Normal abbilden)"}
+    {4,"Bump (Height-Map)"},
+    {5,"Bump (Normal-Map)"}
    ]},
   {image_menu,
    [
-    {1,"Anzeigen"},
-    {2,"Zeigt das Bild in einem Fenster an"}
+    {1,"Zeigen"},
+    {2,"Zeigt das Bild in einem Fenster"}
    ]},
   {image_menu_1,
    [
     {1,"Extern machen..."},
     {2,"Aktualisieren"},
-    {3,"Intern machen"}
+    {3,"Intern machen"},
+    {11,"Update image to the contents of the saved file"}
    ]},
   {make_external,
    [
@@ -1650,7 +1732,7 @@
    ]},
   {title,
    [
-    {1,"Inhaltsübersicht"}
+    {1,"Gliederungseditor"}
    ]}
  ]}.
 {wings_palette,
@@ -1660,13 +1742,13 @@
     {1,"Keine Startfarbe gefunden."},
     {2,"Keine Endfarbe gefunden."},
     {3,"Export"},
-    {5,"Wings Palette"},
+    {5,"Wings-Palette"},
     {6,"Export Fehler: ~w"},
     {7,"Import"},
-    {9,"Wings Palette"},
+    {9,"Wings-Palette"},
     {10,"Keine Palette gefunden"},
-    {11,"Import Fehler: ~w"},
-    {12,"Import Fehler: ~w"}
+    {11,"Importfehler: ~w"},
+    {12,"Importfehler: ~w"}
    ]},
   {do_menu,
    [
@@ -1674,12 +1756,12 @@
     {2,"Farbe bearbeiten"},
     {3,"Interpolieren"},
     {4,"Leere Farben interpolieren"},
-    {5,"Alle löschen"},
+    {5,"Alles löschen"},
     {6,"Palette leeren"},
-    {7,"Komprimieren"},
+    {7,"Kompakt"},
     {8,"Palette komprimieren"},
     {9,"Farben suchen"},
-    {10,"Farben der ausgewählten Objekte suchen"},
+    {10,"Farben aus Auswahl suchen"},
     {11,"Export"},
     {12,"Palette in Datei exportieren"},
     {13,"Import"},
@@ -1689,7 +1771,7 @@
    [
     {1,"Farbe der Auswahl zuweisen"},
     {2,"Farbe bearbeiten"},
-    {3,"Menü anzeigen"},
+    {3,"Menü zeigen"},
     {4,"Farbe löschen"}
    ]},
   {title,
@@ -1699,9 +1781,9 @@
  ]}.
 {wings_pb,
  [
-  {loop,
+  {handle_call,
    [
-    {1,"fertig"}
+    {1,"fertiggestellt"}
    ]}
  ]}.
 {wings_pick,
@@ -1709,11 +1791,6 @@
   {area_info,
    [
     {40," Flächeninhalt ~s"}
-   ]},
-  {clear_hilite_marquee_mode,
-   [
-    {ctrl_action,"Abwählen"},
-    {shift_action,"Nur Elemente aus/ab-wählen die vollständig im Auswahlrahmen sind"}
    ]},
   {enhanced_hl_info,
    [
@@ -1723,11 +1800,16 @@
    ]},
   {handle_hilite_event,
    [
-    {2,"(im Spiegel)"},
+    {2,"(in Spiegel)"},
     {3,"Objekt"},
-    {4,"Knoten"},
+    {4,"Vertex"},
     {5,"Kante"},
     {6,"Fläche"}
+   ]},
+  {marquee_message,
+   [
+    {ctrl_action,"Abwählen"},
+    {shift_action,"Nur Elemente ganz innerhalb des Rahmens (ab-)auswählen"}
    ]}
  ]}.
 {wings_plugin,
@@ -1738,108 +1820,119 @@
     {2,"Import/Export"},
     {3,"Primitive"},
     {4,"Render"},
-    {5,"Auswahl"},
-    {6,"Werkzeuge"},
-    {7,"Unklassifiziert"}
+    {5,"Auswählen"},
+    {6,"Tools"},
+    {7,"Nicht klassifiziert"}
    ]},
   {def_ui_plugin,
    [
-    {1,"Wings erneut installieren. Fehlende Erweiterung für ~p."}
+    {1,"Wings neu installieren. Fehlendes Plugin für ~p."}
    ]},
   {install,
    [
-    {1,"Erweiterung erfolgreich installiert."}
+    {1,"Das Plugin wurde erfolgreich installiert."}
    ]},
   {install_beam,
    [
     {1,"Installation von \"~s\" fehlgeschlagen: ~p"},
-    {2,"Datei \"~s\" ist keine Wings Erweiterung"}
+    {2,"Datei \"~s\" ist kein Wings-Plugin-Modul"}
    ]},
   {install_file_type,
    [
     {1,"Datei \"~s\": Unbekannter Dateityp"}
    ]},
+  {install_tar,
+   [
+    {1,"Install of \"~s\" failed: ~p"}
+   ]},
   {install_verify_files,
    [
     {1,"Datei \"~s\" enthält eine Datei mit einem absoluten Pfad"},
-    {2,"Datei \"~s\" enthält keine Wings Erweiterungen"}
+    {2,"Datei \"~s\" enthält keine Wings-Plugin-Module"}
    ]},
   {manager_command,
    [
-    {1,"Erweiterungen verwalten"}
+    {1,"Plugin-Manager"}
    ]},
   {manager_entry,
    [
-    {1,"Erweiterungen verwalten..."}
+    {1,"Plugin-Manager..."}
    ]},
   {plugin_dir,
    [
-    {1,"Kein \"plugins\" Verzeichnis gefunden"}
+    {1,"Kein \"plugins\"-Verzeichnis gefunden"}
    ]},
   {plugin_menu_info_3,
    [
-    {1,"(Erweiterung Verwaltung konnte keine weiteren Informationen finden)"}
+    {1,"(Der Plugin-Manager konnte keine weiteren Informationen finden)"}
    ]},
   {plugin_modules,
    [
-    {1,"Erweiterung aktivieren/deaktivieren "},
-    {2,"(deaktivierte Erweiterungen erscheinen nicht in den Menüs)"}
+    {1,"Dieses Plugin aktivieren oder deaktivieren "},
+    {2,"(ein deaktiviertes Plugin erscheint nicht in Menüs)"}
    ]},
   {plugin_root_menu,
    [
     {1,"Körper: "},
     {2,"Kante: "},
     {3,"Fläche: "},
-    {4,"Knoten: "},
-    {5,"Auswahl|"},
-    {6,"Werkzeuge|"}
+    {4,"Vertex: "},
+    {5,"Auswählen|"},
+    {6,"Tools|"}
+   ]}
+ ]}.
+{wings_pref,
+ [
+  {pref,
+   [
+    {1,"Load Preference Subset"},
+    {2,"Save Preference Subset"},
+    {3,"Graphische Einstellungen"},
+    {4,"Kameraeinstellungen"},
+    {5,"Hotkeys"},
+    {6,"Fenster- und Ansichtseinstellungen"},
+    {7,"Constraints"},
+    {8,"Allgemeine Einstellungen"},
+    {9,"Hotkeys zusammenführen"},
+    {10,"Vorhandene Hotkeys erst entfernen"},
+    {11,"Diese Datei ist verschoben oder gelöscht worden."},
+    {13,"Keine .pref-Datei"}
+   ]},
+  {recent_pref_help,
+   [
+    {1,"Load a recent Preference Subset"}
    ]}
  ]}.
 {wings_pref_dlg,
  [
   {advanced_prefs,
    [
-    {1,"Standard Befehle"},
-    {2,"Erlaubt die Definition von Befehlen die mit Strg+L oder Umsch-M aufgerufen werden."},
-    {3,"Hervorhebung als temporäre Auswahl verwenden"},
-    {4,"Wenn keine Auswahl vorhanden, "},
-    {5,"wirken Befehle auf den hervorgehobenen Elemente"},
-    {6,"Auswahl beim Ziehen verbergen"},
-    {7,"Auswahl bei allen interaktiven Befehlen nicht anzeigen"},
-    {8,"Auswahl bei Kamerabewegung verbergen"},
-    {9,"Auswahl nicht anzeigen, während die Kamera bewegt wird."},
-    {12,"Temporäre Auswahl für erfahrene Anwender"},
-    {13,"Im Modus für die zweite Auswahl, erweitert ein Rechts-Klick die Auswahl"},
+    {1,"Standardbefehle"},
+    {2,"Erlaubt das Definieren von Befehlen, die mit Strg+L oder Strg-M aufgerufen werden können."},
+    {6,"Auswahl beim Ziehen ausblenden"},
+    {7,"Die Auswahl bei allen interaktiven Befehlen nicht zeigen"},
+    {8,"Auswahl bei Kamerabewegung ausblenden"},
+    {9,"Die Auswahl nicht zeigen, wenn die Kamera bewegt wird."},
     {14,"Länge"},
-    {15,"Länge des Vektors der zweiten Auswahl"},
+    {15,"Länge des Vektors in sekundären Auswahlen"},
     {16,"Breite"},
-    {17,"Vektorbreite (in Pixeln)"},
+    {17,"Breite des Vektors (in Pixel)"},
     {18,"Farbe"},
-    {19,"Vektorfarbe"},
+    {19,"Farbe des Vektors"},
     {20,"Vektor-Darstellung"},
-    {21,"Spiegel für Auswahl verwenden"},
-    {22,"Standardmäßig virtuellen Spiegel für zweite Auswahl verwenden"},
     {23,"Größe"},
-    {24,"Größe des benutzerdefinierten Sichtbereichsbegrenzung"},
+    {24,"Größe des benutzerdef. Clipping-Indikators"},
     {25,"Farbe"},
-    {26,"Farbe der benutzerdefinierten Sichtbereichsbegrenzung"},
-    {27,"Sichtbereichsbegrenzung"},
-    {28,"Ausgewählte Geometrie"},
-    {29,"Nicht ausgewählte Geometrie"},
-    {30,"Ausrichtungs-Ziel hervorheben"},
-    {36,"Modus-Umschaltungen setzen die Modellposition zurück"},
-    {37,"Betrifft nur Werkzeuge mit mehr als einem Ziehen-Modus wie z.B. Kante|Gleiten"},
+    {26,"Farbe des benutzerdef. Clipping-Indikators"},
+    {27,"Indikator der Clippingebene"},
     {38,"Ziehen Reaktion anpassen"},
-    {39,"Verhältnis ziehen zu Mausrotation anpassen. Standardeinstellungen wenn nicht markiert."},
-    {40,"Faktor in Abstand von der Kamera"},
-    {43,"Faktor in Abstand von der Kamera"},
+    {39,"Verhältnis ziehen zu Mausrotation anpassen. Verwendet Standardeinstellungen, wenn deaktiviert."},
     {49,"Ziehen Einstellungen"},
-    {50,"Mausgeschwindikeit für Ziehen"},
-    {51,"Mausgeschwindikeit für Skalierung"},
-    {52,"Mausgeschwindikeit für Drehung"},
-    {53,"Wings im Modus Feineinstellungen starten"},
-    {54,"Bei temporärer Markierung Auswahl über Kurztaste erweitern"},
-    {55,"Beeinflusst: Auswahl|Alle, Kantenschleife, Kantenring, Auswahle|Ähnliche, Ähnliche Normalen, Ähliche Flächen und Gleiches Material"}
+    {50,"Mausgeschwindikeit bei Ziehen"},
+    {51,"Mausgeschwindikeit bei Skalierung"},
+    {52,"Mausgeschwindikeit bei Rotation"},
+    {54,"Auswahl via Hotkey bei temporärer Hervorhebung erweitern"},
+    {55,"Beeinflusst: Auswahl|Alle, Kanten-Loop, Kantenring, Auswahle|Ähnliche, Ähnliche Normalen, Ähliche Flächen und Gleiches Material"}
    ]},
   {command,
    [
@@ -1853,177 +1946,182 @@
    ]},
   {constraint_prefs,
    [
-    {1,"Abstand"},
+    {1,"Distanz"},
     {2,"Rotation"},
     {3,"Skalieren"},
-    {4,"Standard Kombinationstasten"},
-    {9,"Abstands Zwangsbedingungen"},
-    {10,"Alternative Abstände"},
-    {11,"Zwangsbedingungen speichern nach..."},
-    {12,"Bedingung gebunden an ~s für Abstandsoperationen."},
+    {4,"Standard-Kombinationstasten"},
+    {9,"Distanzeinschränkungen"},
+    {10,"Alternative Distanzen"},
+    {11,"Zwangsbedingungen speichern in..."},
+    {12,"Bedingung gebunden an ~s für Distanzoperationen."},
     {13,"Bedingung gebunden an ~s für Rotationen."},
-    {14,"Bedingung gebunden an ~s für Skalierungs-Operationen."},
-    {15," Alternative Zwangsbedingungen auf Kehrwert (1/Wert)."},
-    {16," Alternative Zwangsbedingungen auf Supplement (180 minus Winkel)."},
+    {14,"Bedingung gebunden an ~s für Skalierungsoperationen."},
+    {15," Alternative Zwangsbedingungen auf Kehrwert (1,0/Wert)."},
+    {16," Alternative Zwangsbedingungen auf Supplement (180,0 minus Winkel)."},
     {17,"(Standard 1/~s)"},
     {18,"(Standard 5/8)"},
     {19,"(Standard 3/64)"},
-    {22,"Abstands-Bedingungen"},
-    {23,"Rotations-Bedingungen"},
+    {22,"Distanzeinschränkungen"},
+    {23,"Rotationseinschränkungen"},
     {25,"Skalierungsfaktoren"},
-    {29,"Alternative Abstände"},
+    {29,"Alternative Distanzen"},
     {30,"Löschen des Wertes oder Eingabe von '0' setzen Zwangsbedingungen auf Wings Standard zurück"},
     {31,"Zwangsbedingungen Einstellungen"},
-    {32,"Standardwerte f. Zwangsbedingungen"},
+    {32,"Standardwerte f. Einschränkungen"},
     {33,"Alternative Zwangsbedigungen verwenden"},
-    {34,"Wenn markiert, alternative Abstände, Kehrwert des Skalierungsfaktors und Supplementwinkel erwenden."},
-    {35," Beim ziehen direktes umschalten durch drücken von [Umsch]+[Tab]."}
+    {34,"Wenn markiert, alternative Distanzen, Kehrwert des Skalierungsfaktors und Supplementwinkel erwenden."},
+    {35," Beim Ziehen direktes umschalten durch drücken von [Umsch]+[Tab]."}
    ]},
   {gen_prefs,
    [
-    {1,"Größe nicht ausgewählte"},
-    {2,"Größe unselektierter Knoten in Pixeln (0.0 = nicht zeigen)"},
-    {3,"Größe ausgewählte"},
-    {4,"Größe ausgewählter Knoten in Pixel"},
-    {5,"Knoten-Darstellung"},
-    {6,"Breite nicht ausgewählte"},
-    {7,"Breite nicht ausgewählter Kanten in Pixeln"},
-    {8,"Breite ausgewählter"},
-    {9,"Breite ausgewählter Kanten in Pixeln"},
+    {1,"Größe für nicht Ausgewähltes"},
+    {2,"Größe (in Pixel) der nicht ausgewählten Vertices (0,0 = nicht zeigen)"},
+    {3,"Größe für Ausgewähltes"},
+    {4,"Größe (in Pixel) ser ausgewählten Vertices"},
+    {5,"Vertex-Darstellung"},
+    {6,"Breite für nicht Ausgewähltes"},
+    {7,"Breite (in Pixel) der nicht ausgewählten Kanten"},
+    {8,"Breite für Ausgewähltes"},
+    {9,"Breite (in Pixel) der ausgewählten Kanten"},
     {10,"Weiche Kanten"},
-    {11,"Farbe weicher Kanten"},
+    {11,"Farbe der weichen Kanten"},
     {12,"Harte Kanten"},
-    {13,"Farbe harter Kanten"},
+    {13,"Farbe der harten Kanten"},
     {14,"Kanten-Darstellung"},
-    {15,"Knoten"},
-    {16,"Kanten"},
-    {17,"Flächen"},
-    {18,"Körper"},
+    {18,"Objekte"},
     {19,"Nicht ausgewählt"},
     {20,"Ausgewählt"},
-    {21,"Geschicktes hervorheben"},
-    {22,"Hervorhebungen"},
-    {23,"Ausgewählte Flächen flächig"},
-    {24,"Ausgewählte Flächen gerastert"},
+    {22,"Hervorhebung"},
     {25,"Auswahlfarbe"},
     {26,"Auswahl"},
     {27,"Text"},
-    {28,"Farbe des Informationstext"},
+    {28,"Farbe des Informationstextes"},
     {29,"Hintergrund"},
     {30,"Hintergrundfarbe für Informationstext (einschließlich Transparenz)"},
     {31,"Informationstext"},
     {32,"Farbe"},
-    {33,"Anzeigen bei Hauptachsenausrichtung"},
-    {34,"Gitter immer anzeigen, wenn die Ansicht entlang einer der Hauptachsen ausgerichtet ist"},
+    {33,"Achsen-ausgerichtetes Gitter erzwingen"},
+    {34,"Das Gitter immer zeigen, wenn die Ansicht entlang einer der Hauptachsen ausgerichtet ist"},
     {35,"Gitter"},
-    {36,"Achsenbezeichner"},
-    {37,"+X Farbe"},
-    {38,"+Y Farbe"},
-    {39,"+Z Farbe"},
-    {40,"-X Farbe"},
-    {41,"-Y Farbe"},
-    {42,"-Z Farbe"},
+    {37,"Farbe +X"},
+    {38,"Farbe +Y"},
+    {39,"+Farbe +Z"},
+    {40,"Farbe -X"},
+    {41,"Farbe -Y"},
+    {42,"Farbe -Z"},
     {43,"Achsen"},
     {44,"Länge"},
     {45,"Länge der Normalen"},
     {46,"Farbe"},
     {47,"Farbe der Normalen"},
     {48,"Normalen-Darstellung"},
-    {49,"Achsen immer auf Gitter"},
-    {50,"Antialiasing für Kanten"},
+    {49,"Achsen auf Gitter einschränken"},
+    {50,"Kanten mit Antialiasing zeichnen"},
     {51,"Standard"},
-    {52,"Farbe des Standard-Materials setzen"},
+    {52,"Die Farbe des Standardmaterials festlegen"},
     {55,"Materialien"},
     {56,"Mini-Achse zeigen"},
-    {57,"Breite harte Kanten"},
-    {58,"Breite in Pixeln harter Kanten"},
+    {57,"Breite der harten Kanten"},
+    {58,"Breite (in Pixel) der harten Kanten"},
     {59,"Breite"},
-    {60,"Breite von Normalen"},
+    {60,"Breite der Normalen"},
     {61,"Ausführlich"},
-    {62,"Zusätzliche Informationen für ausgewählte Elemente anzeigen"},
-    {63,"Mouseover"},
-    {64,"Zusätzliche Informationen für hervorgehobene Elemente anzeigen, wenn Maus darüber bewegt wird"},
-    {65,"Größe der Knoten der Magnetmaske"},
-    {66,"Pixelgröße der Kanten der Magenetmaske"},
-    {67,"Nicht ausgewählte Knoten"},
-    {68,"Farbe nicht ausgewählter Knoten"},
+    {62,"Zusätzliche Informationen über ausgewählte Elemente zeigen"},
+    {65,"Vertex-Größe der Magnetmaske"},
+    {66,"Größe (in Pixel) der Magnetmasken-Vertices"},
+    {67,"Nicht ausgewählte Vertices"},
+    {68,"Farben der nicht ausgewählten Vertices"},
     {69,"Magnetmaske"},
-    {70,"Kantenfarbe der Magnetmaske"},
-    {aa_ortho1,"Ortho.-Modus bei Hauptachsenausrichtung"},
-    {aa_ortho2,"In Orthogonal Modus wechseln, wenn die Ansicht entlang einer der Hauptachsen ausgerichtet ist"}
+    {70,"Farbe der Magnetmasken-Vertices"},
+    {71,"Bedingte Abwahl"},
+    {72,"Das Abwählen keeps you in the same Selection Mode, unless there is no selection"},
+    {73,"Antialiasing"},
+    {74,"Die ganze Oberfläche mit Antialiasing, einschließlich Polygone."},
+    {75,"Multi-Sampling aktivieren"},
+    {aa_ortho1,"Achsen-ausgerichteten Ortho-Modus erzwingen"},
+    {aa_ortho2,"Immer zu Orthogonal-Modus wechseln, wenn die Ansicht entlang einer der Hauptachsen ausgerichtet ist"}
    ]},
   {menu,
    [
     {1,"Einstellungen..."},
-    {2,"Wings3D Einstellungen bearbeiten"}
+    {2,"Die Einstellungen für Wings bearbeiten"}
    ]},
   {misc_prefs,
    [
-    {1,"Deckkraft-Einstellungen werden in dieser OpenGL Version nicht unterstützt"},
-    {2,"Automatisch alle"},
-    {3,"Minuten speichern"},
-    {4,"Rückgängig Schritte"},
+    {1,"Opazitätseinstellungen werden bei Verwendung dieser OpenGL-Version nicht unterstützt"},
+    {2,"Autom. speichern je"},
+    {3,"Minuten"},
+    {4,"Rückgängig-Schritte"},
     {5,"Winkel"},
     {6,"Verzögerung (ms)"},
-    {7,"Ansicht rotieren"},
+    {7,"Autom. drehen"},
     {8,"Käfig"},
     {9,"Einige Kanten"},
     {10,"Alle Kanten"},
-    {11,"Schattiert-Modus Kanten-Stil"},
-    {12,"Stationäre Deckkraft"},
-    {13,"Bewegungs-Deckkraft"},
-    {14,"Proxy Modus"},
-    {15,"Text in Menüs und Dialogen verschwindet"},
-    {16,"Problem tritt bei einigen Matrox-Karten auf"},
-    {17,"Wings stürzt ab wenn Achsen ausgeschaltet werden"},
-    {18,"Problem tritt bei einigen Matrox-Karten auf"},
-    {19,"Kamerabewegungen und interaktive Befehle springen"},
+    {11,"Kantenstil in Modus mit Shading"},
+    {12,"Stationäre Opazität"},
+    {13,"Bewegungsopazität"},
+    {14,"Proxy-Modus"},
+    {19,"Kamerabewegungen und interaktive Befehle sind sprunghaft"},
     {20,"Problem tritt unter Mac OS X 10.3 (Panther) auf"},
-    {21,"Behelfslösungen"},
+    {21,"Workarounds"},
     {22,"Anzeigeprobleme bei Kanten?"},
-    {23,"Kantenversatz:"},
-    {24,"Entwicklermenü anzeigen"},
-    {25,"Menü mit Werkzeugen für Wings-Entwickler anzeigen"}
+    {23,"Kanten-Offsets:"},
+    {24,"Entwicklermenü zeigen"},
+    {25,"Ein Menü mit Tools für Wings-Entwickler zeigen"},
+    {26,"Camera moves steals focus"},
+    {27,"Problem tritt unter Linux auf"},
+    {28,"Maximale Menühöhe (in Pixel)"},
+    {29,"Menus are clipped and in 'Mehr...'-Untermenü fortsetzen."},
+    {30,"Less than 1 sets menu clipping to auto."},
+    {40,"A value of 0 will use the standard implementation, a larger value takes more memory (experimental feature requires good OpenCL drivers)"},
+    {41,"OpenCL-Treiber sind erforderlich "},
+    {42,"OpenCL proxy level"}
    ]},
   {smart_set_value_1,
    [
-    {1,"Änderungen der Systemschriftart werden\nbeim nächsten Start von Wings 3D wirksam."},
-    {2,"Änderungen der Werkzeugleistensymbole werden\nbeim nächsten Start von Wings 3D wirksam."},
-    {3,"Änderungen der Standard-Material Farbe werden beim\nnächsten Start von Wings 3D wirksam."}
+    {1,"Änderungen an der Systemschriftart werden\nbeim nächsten Start von Wings 3D wirksam."},
+    {2,"Änderungen an den Oberflächensymbolen werden\nbeim nächsten Start von Wings 3D wirksam."},
+    {3,"Änderungen am Standardmaterial Farbe werden beim\nnächsten Start von Wings 3D wirksam."},
+    {4,"The change to the console font will take\neffect the next time Wings 3D is started."},
+    {5,"The language change will take effect\nthe next time Wings 3D is started."}
    ]},
   {ui_prefs,
    [
     {1,"Systemschriftart"},
-    {2,"Arbeitsbereich/Geometrie Hintergrund"},
+    {2,"Desktop-/Geometriehintergrund"},
     {3,"Menütext"},
     {4,"Menühervorhebung"},
     {5,"Menütext hervorgehoben"},
     {6,"Menühintergrund"},
-    {7,"Dialogtext (aktiv)"},
-    {8,"Dialogtext (inaktiv)"},
-    {9,"Dialoghintergrund"},
     {10,"Titeltext"},
     {11,"Titelhintergrund (inaktiv)"},
     {12,"Titelhintergrund (aktiv)"},
     {13,"Farben"},
-    {14,"Kein Fortschrittsbalken"},
     {15,"Konsolenschriftart"},
     {16,"Breite"},
     {17,"Höhe"},
     {18,"Zeilenspeicher"},
     {19,"Hintergrund"},
     {20,"Text"},
-    {21,"Eingabemarkierung"},
     {22,"Konsole"},
     {23,"Sprache"},
-    {24,"Objekte in der Inhaltsübersicht"},
-    {25,"Bild nach dem Rendern anzeigen"},
-    {26,"Bild nach dem Rendern laden"},
+    {24,"Flache Panels"},
+    {25,"Den OS-nativen Farbdialog verwenden"},
     {27,"Erweiterte Werkzeugleistensymbole"},
     {28,"Menüleiste Hintergrund"},
     {29,"Informationstext Hintergrund"},
     {30,"Informationstext Vordergrund"},
     {31,"Menüleiste Vordergrund"},
+    {32,"Adaptive Symbole"},
+    {33,"Symbole im Gliederungseditor und Geometrie-Graph that allow for further color theming"},
+    {34,"Gliederungseditor/Geometrie-Graph"},
+    {35,"Hintergrund"},
+    {36,"Text"},
+    {37,"Highlighter"},
+    {38,"Highlighted Text"},
+    {39,"Deaktiviert"},
+    {42,"View render with external viewer"},
     {50,"Oberflächensymbole"},
     {51,"Klassisch"},
     {52,"Blauer Würfel"},
@@ -2031,25 +2129,25 @@
    ]},
   {viewer_prefs,
    [
-    {1,"Betrachter"},
+    {1,"Viewer"},
     {2,"Optionen"},
     {3,"..Dateiname.."}
    ]},
   {workaround_1,
    [
     {1,"Problem"},
-    {2,"Behelfslösung verwenden?"}
+    {2,"Workaround verwenden?"}
    ]}
  ]}.
 {wings_rotate,
  [
   {edges_to_vertices,
    [
-    {1,"Magnetisch-rotieren mehrerer Kanten-Regionen\nerfordert gemeinsame Knoten."}
+    {1,"Magnetisch-drehen bei multiplen Kantenregionen\nerfordert explizit einen Drehursprung."}
    ]},
   {faces_to_vertices,
    [
-    {1,"Magnetisch-rotieren mehrerer Flächen-Regionen\nerfordert gemeinsame Knoten oder Kanten."}
+    {1,"Magnetisch-drehen bei multiplen Flächenregionen\nerfordert explizit einen Drehursprung."}
    ]}
  ]}.
 {wings_s,
@@ -2078,10 +2176,10 @@
     {all,"Alle"},
     {da,"Standardachse"},
     {f,"Frei"},
-    {la,"vorherige Achse"},
+    {la,"letzte Achse"},
     {n,"Normale"},
     {r,"Radial"},
-    {the_axis,"~s Achse"},
+    {the_axis,"Die ~s Achse"},
     {u,"Einheitlich"},
     {x,"X"},
     {y,"Y"},
@@ -2104,6 +2202,10 @@
    [
     {1,"Nein"}
    ]},
+  {scroll,
+   [
+    {scroll,"Scroll"}
+   ]},
   {yes,
    [
     {1,"Ja"}
@@ -2113,102 +2215,110 @@
  [
   {edges_to_vertices,
    [
-    {1,"Magnetisch-skalieren mehrerer Kanten-Regionen\nerfordert gemeinsame Knoten."}
+    {1,"Magnetisch-skalieren bei multiplen Kantenregionen\nerfordert explizit einen Skalierungsursprung."}
    ]},
   {faces_to_vertices,
    [
-    {1,"Magnetisch-skalieren mehrerer Flächen-Regionen\nerfordert gemeinsame Knoten oder Kanten."}
+    {1,"Magnetisch-skalieren bei multiplen Flächenregionen\nerfordert explizit einen Skalierungsursprung."}
    ]}
  ]}.
 {wings_sel_cmd,
  [
   {ask,
    [
-    {1,"Über Id auswählen"}
+    {1,"Auswählen nach ID"}
+   ]},
+  {by_name,
+   [
+    {1,"Nichts zum Auswählen."},
+    {2,"Auswählen nach Namen"},
+    {3,"Name"}
+   ]},
+  {faces_menu,
+   [
+    {1,"Similar Normals..."},
+    {2,"Similar Area"},
+    {3,"Similar Material..."},
+    {11,"Select faces with normals similar to those of the already selected faces"},
+    {21,"Select faces with areas similar to that of the already selected face"},
+    {31,"Select faces with a similar material to those already selected"}
+   ]},
+  {faces_with,
+   [
+    {1,"Anzahl der Kanten"},
+    {2,"Flächen auswählen"},
+    {3,"Mehr"},
+    {4,"Weniger"},
+    {5,"Exakt"}
    ]},
   {group_mode_string,
    [
-    {body,"Körper Auswahl Gruppe"},
-    {edge,"Kanten Auswahl Gruppe"},
-    {face,"Flächen Auswahl Gruppe"},
-    {vertex,"Knoten Auswahl Gruppe"}
-   ]},
-  {group_title,
-   [
-    {1,"Knoten: "},
-    {2,"Kante: "},
-    {3,"Fläche: "},
-    {4,"Körper: "}
+    {body,"Körper-Auswahlgruppe"},
+    {edge,"Kanten-Auswahlgruppe"},
+    {face,"Flächen-Auswahlgruppe"},
+    {vertex,"Vertex-Auswahlgruppe"}
    ]},
   {groups_menu,
    [
-    {1,"Gruppe löschen"},
-    {2,"Gruppe löschen \""},
-    {4,"Zu Gruppe hinzufügen"},
-    {5,"Aktuelle Auswahl hinzufügen zu Gruppe \""},
-    {7,"Von Gruppe subtrahieren"},
-    {8,"Aktuelle Auswahl abziehen von Gruppe \""},
-    {10,"Gruppe auswählen"},
-    {11,"Gruppe auswählen \""},
-    {13,"Gruppe vereinigen"},
-    {14,"Vereinige Gruppe \""},
-    {15,"\" mit aktueller Auswahl"},
-    {16,"Gruppe subtrahieren"},
-    {17,"Gruppe subtrahieren \""},
-    {18,"\" von aktueller Auswahl"},
-    {19,"Gruppe schneiden"},
-    {20,"Gruppe schneiden \""},
-    {21,"\" mit aktueller Auswahl"}
+    {22,"Auswahlgruppen"},
+    {24,"Nächste Gruppe"},
+    {25,"Vorherige Gruppe"},
+    {26,"Cycle In Selection Mode"},
+    {27,"Cycle Prev/Next only within active selection mode"},
+    {79,"Auswahl sichern"},
+    {80,"Store the selection into the selection group named \"StoredSelection\""},
+    {81,"Recall Selection"},
+    {82,"Recall the selection from the selection group named \"StoredSelection\""},
+    {83,"Neue Gruppe..."},
+    {84,"Eine neue Auswahlgruppe erstellen"}
    ]},
   {item_by_id,
    [
-    {1,"Keine Auswahl möglich."},
-    {2,"Objekt Id"}
+    {1,"Nichts zum Auswählen."},
+    {2,"Objekt ID"}
    ]},
   {less_help,
    [
-    {1,"Angrenzende Knoten eines nicht ausgewählten Knoten abwählen"},
-    {2,"Angrenzende Kanten einer nicht ausgewählten Kante abwählen"},
-    {3,"Flächen mit gemeinsamen Knoten einer nicht ausgewählten Fläche abwählen"}
+    {1,"Alle angrenzenden Elemente der nicht ausgewählten Elemente abwählen"}
    ]},
   {menu,
    [
-    {1,"Auswahl aufheben"},
-    {2,"Aktuelle Auswahl aufheben"},
-    {3,"Weitere"},
+    {1,"Abwählen"},
+    {2,"Die Auswahl aufheben"},
+    {3,"Mehr"},
     {4,"Weniger"},
-    {5,"Ähnliche"},
-    {6,"Kantenschleife"},
-    {7,"Kantenschleife"},
-    {8,"Kanten-Auswahl zur Schleife erweitern; "},
-    {9,"Flächen-Auswahl in ausgewählte Rand-Kanten umwandeln"},
-    {10,"Kantenschleife der Region"},
-    {11,"Alle Flächen auf einer Seite einer Kantenschleife auswählen"},
+    {5,"Ähnlich"},
+    {6,"Kanten-Loop"},
+    {7,"Kanten-Loop"},
+    {8,"Kanten-Auswahl zu Loop erweitern; "},
+    {9,"Flächen-Auswahl zu ausgewählten Rand-Kanten konvertieren"},
+    {10,"Kanten-Loop zu Region"},
+    {11,"Alle Flächen auf einer Seite eines Kanten-Loop auswählen"},
     {12,"Kantenring"},
-    {13,"Kanten-Auswahl zum Ring erweitern"},
-    {14,"Vorherige Kantenschleife"},
-    {15,"Vorherige Kantenschleife auswählen"},
-    {16,"Nächste Kantenschleife"},
-    {17,"Nächste Kantenschleife auswählen"},
-    {18,"Kantenschleife vergrößern"},
-    {19,"Auswahl um eine Kante in Schleifenrichtung erweitern"},
-    {20,"Kantenschleife verkleinern"},
-    {21,"Kanten-Auswahl um eine in Schleifenrichtung verkleinern"},
+    {13,"Kanten-Auswahl zu Ring erweitern"},
+    {14,"Vorheriger Kanten-Loop"},
+    {15,"Den vorherigen Kanten-Loop auswählen"},
+    {16,"Nächster Kanten-Loop"},
+    {17,"Den nächsten Kanten-Loop auswählen"},
+    {18,"Kanten-Loop vergrößern"},
+    {19,"Auswahl um eine Kante in Loop-Richtung erweitern"},
+    {20,"Kanten-Loop verkleinern"},
+    {21,"Kanten-Auswahl um eine in Loop-Richtung verkleinern"},
     {22,"Kanten-Ring erweitern"},
     {23,"Auswahl um eine Kante in Ring-Richtung erweitern"},
     {24,"Kanten-Ring verkleinern"},
     {25,"Auswahl um eine Kante in Ring-Richtung verkleinern"},
-    {26,"Angrenzende"},
-    {27,"Knoten"},
+    {26,"Angrenzend"},
+    {27,"Vertices"},
     {28,"Kanten"},
     {29,"Flächen"},
     {30,"Objekte"},
-    {31,"Nach Eigenschaft"},
+    {31,"Nach"},
     {32,"Harte Kanten"},
     {33,"Alle harten Kanten auswählen"},
-    {34,"Isolierte Knoten"},
-    {35,"Alle isolierten Ecken auswählen"},
-    {36,"Knoten mit"},
+    {34,"Isolierte Vertices"},
+    {35,"Alle isolierten Vertices auswählen"},
+    {36,"Vertices mit"},
     {37,"2 Kanten"},
     {38,"3 Kanten"},
     {39,"4 Kanten"},
@@ -2220,48 +2330,53 @@
     {45,"5 oder mehr"},
     {46,"Zufällig"},
     {56,"Kurze Kanten"},
-    {57,"(Zu) kurze Kanten auswählen"},
-    {58,"Material-Kanten"},
-    {59,"Alle Kanten zwischen unterschiedlichen Materialien auswählen"},
-    {60,"UV-abgebildete Flächen"},
-    {61,"Alle Flächen mit UV-Koordinaten auswählen"},
-    {62,"Id..."},
-    {63,"Über numerische ID auswählen"},
+    {57,"Auswählen (zu) kurzer Kanten"},
+    {58,"Materialkanten"},
+    {59,"Alle Kanten zwischen verschiedenen Materialien auswählen"},
+    {60,"UV-gemappte Flächen"},
+    {61,"Alle Kanten mit UV-Koordinaten auswählen"},
+    {62,"ID..."},
+    {63,"Auswählen nach numerischer ID"},
     {64,"Lichtquellen"},
     {65,"Alle Lichtquellen auswählen"},
     {66,"Alle Elemente auswählen"},
     {67,"Umkehren"},
     {68,"Auswahl umkehren"},
-    {69,"Ausgewählte Objekte verbergen"},
-    {70,"Alle (ganz oder teilweise) ausgewählten Objekte verbergen"},
-    {71,"Nicht ausgewählte Objekte verbergen"},
-    {72,"Objekte ohne Auswahl verbergen"},
-    {73,"Nicht ausgewählte sperren"},
-    {74,"Nicht ausgewählte Objekte sperren"},
-    {75,"Alle zeigen"},
-    {76,"Alle verborgenen Objekte zeigen"},
-    {77,"Alle entsperren"},
+    {69,"Ausgewähltes ausblenden"},
+    {70,"Alle (teilweise oder ganz) ausgewählten Objekte ausblenden"},
+    {71,"Nicht Ausgewähltes ausblenden"},
+    {72,"Objekte ausblenden, die keine Auswahl haben"},
+    {73,"Nicht Ausgewähltes sperren"},
+    {74,"Objekte sperren, die keine Auswahl haben"},
+    {76,"Alle Objekte zeigen, die ausgeblendet worden sind"},
     {78,"Alle gesperrten Objekte entsperren"},
-    {79,"Auswahl speichern"},
-    {80,"Auswahl in Auswahlgruppe \"GespeicherteAuswahl\" speichern"},
-    {81,"Auswahl abrufen"},
-    {82,"Auswahl der Auswahlgruppe \"GespeicherteAuswahl\" abrufen"},
-    {83,"Neue Gruppe..."},
-    {84,"Neue Auswahlgruppe anlegen"},
-    {85,"Nicht ebene Flächen"},
-    {86,"Alle nicht ebenen Flächen auswählen"},
+    {85,"Nicht-planare Flächen..."},
+    {86,"Alle nicht-planaren Flächen auswählen"},
     {87,"Scharfe Kanten"},
     {88,"Scharfe Kanten auswählen"},
     {89,"Pfad mit wenigsten Kanten"},
-    {90,"Pfad mit den wenigsten Kanten zwischen zwei Knoten auswählen"},
+    {90,"Pfad mit den wenigsten Kanten zwischen zwei Vertices auswählen"},
     {91,"Kürzester Pfad (Dijkstra)"},
-    {92,"Kürzesten Pfad zwischen zwei Knoten auswählen (Dijkstra)"},
+    {92,"Kürzesten Pfad zwischen zwei Vertices auswählen (Dijkstra)"},
     {93,"Kürzester Pfad (A-Star)"},
-    {94,"Kürzesten Pfad zwischen zwei Knoten auswählen (A-Star)"},
-    {95,"Knoten-Pfad"},
-    {96,"Schleifen vervollständigen"},
-    {97,"Wechselt in den Kantenmodus und vervollständigt die Schleifenauswahl"},
+    {94,"Kürzesten Pfad zwischen zwei Vertices auswählen (A-Star)"},
+    {95,"Vertex-Pfad"},
+    {96,"Loops vervollständigen"},
+    {97,"Wechseln in Kantenmodus und Loop-Auswahl vervollständigen"},
+    {98,"; convert consecutive vertices to edges"},
+    {99," (aus Auswahl oder alle sichtbaren Objekte (wenn keine Auswahl))"},
+    {100,"Jeden Nth Ring"},
+    {101,"Second"},
+    {102,"Third"},
+    {103,"Nth..."},
+    {104,"Alle Objekte einblenden"},
+    {105,"Alle Objekte entsperren"},
+    {106," Objekte"},
+    {107,"Name..."},
+    {108,"Objekte nach Namen auswählen. *'s may be used as wildcards"},
     {401,"6 oder mehr"},
+    {402,"Spezifizieren..."},
+    {661,"Alles"},
     {nq0,"Nicht viereckige Flächen"},
     {nq1,"Alle nicht viereckigen Flächen"},
     {nq2,"Ungeradzahlige nicht viereckige Flächen"},
@@ -2269,9 +2384,7 @@
    ]},
   {more_help,
    [
-    {1,"Angrenzende Knoten eines ausgewählten Knoten auswählen"},
-    {2,"Angrenzende Kanten einer ausgewählten Kante auswählen"},
-    {3,"Angrenzende Flächen einer ausgewählten Fläche auswählen"}
+    {1,"Alle agrenzenden Elemente der ausgewählten Elemente auswählen"}
    ]},
   {new_group,
    [
@@ -2280,66 +2393,63 @@
    ]},
   {new_group_name,
    [
-    {exists,"existiert bereits."}
+    {exists,"ist bereits vorhanden."}
    ]},
   {nonplanar_faces,
    [
-    {1,"Abstands-Toleranz"},
-    {2,"Nicht plane Flächen auswählen"}
+    {1,"Distanztoleranz"},
+    {2,"Nicht-planare Flächen auswählen"}
    ]},
   {oriented_faces,
    [
-    {1,"Winkel-Toleranz"},
+    {1,"Winkeltoleranz"},
     {2,"Ähnlich ausgerichtete Flächen auswählen"},
     {3,"Nur verbundene Fläche"},
-    {4,"Mindestens eine Fläche muß ausgewählt sein"},
+    {4,"Mindestens eine Fläche muss ausgewählt sein"},
     {5,"Winkel speichern"}
    ]},
-  {oriented_faces_menu,
+  {random,
    [
-    {1,"Ähnliche Normalen"},
-    {2,"Flächen mit ähnlichen Normalen wie der ausgewählten Fläche auswählen"}
+    {1,"Zufällig auswählen"}
    ]},
-  {sel_all_str,
+  {random_help,
    [
-    {1,"Alle Knoten"},
-    {2,"Alle Kanten"},
-    {3,"Alle Flächen"},
-    {4,"Alle Objekte"}
+    {1,"Select random elements from current selection, or all visible objects (no selection)"}
+   ]},
+  {select_nth_ring,
+   [
+    {1,"Intervall"},
+    {2,"Jeden Nth Kantenring auswählen"}
    ]},
   {sharp_edges,
    [
     {1,"Max. Winkel"},
-    {2,"Scharfe Kanten auswählen"}
+    {2,"Scharfe Kanten auswählen"},
+    {3,"Peaks"},
+    {4,"Valleys"},
+    {5,"Beides"}
    ]},
   {short_edges,
    [
-    {1,"Längen-Toleranz"},
+    {1,"Längentoleranz"},
     {2,"Kurze Kanten auswählen"}
    ]},
   {shortest_path,
    [
-    {1,"Genau zwei Knoten auf dem selben\nObjekt müssen ausgewählt werden"},
-    {2,"Genau zwei Knoten müssen ausgewählt werden"}
+    {1,"Exakt zwei Vertices auf demselben\nObjekt müssen ausgewählt sein"},
+    {2,"Exakt zwei Vertices müssen ausgewählt sein"}
    ]},
   {similar_area,
    [
     {1,"Flächen-Toleranz"},
     {2,"Ähnliche Flächen auswählen"},
-    {3,"Genau eine Fläche auf einem\nObjekt muss ausgewählte sein."},
-    {4,"Genau eine Fläche muss ausgewählte sein."}
-   ]},
-  {similar_area_faces_menu,
-   [
-    {1,"Ähnliche Fläche"},
-    {2,"Flächen mit ähnlicher Fläche wie die ausgewählte Fläche auswählen"}
+    {3,"Exakt eine Fläche auf einem\n einzelnen Objekt muss ausgewählt sein."},
+    {4,"Exakt eine Fläche muss ausgewählt sein."},
+    {10,"Exakt eine Fläche muss ausgewählt sein"}
    ]},
   {similar_help,
    [
-    {1,"Knoten die dem ausgewählten Knoten ähnlich sind auswählen"},
-    {2,"Kanten die der ausgewählten Kante ähnlich sind auswählen"},
-    {3,"Flächen die der ausgewählten Fläche ähnlich sind auswählen"},
-    {4,"Objekte mit der selben Anzahl Kanten, Flächen und Knoten auswählen"}
+    {1,"Elemente ähnlich den bereits ausgewählten Elementen auswählen"}
    ]},
   {similar_material,
    [
@@ -2347,23 +2457,35 @@
     {3,"Mindestens eine Fläche muß ausgewählt sein"},
     {4,"Flächen mit dem selben Material auswählen"},
     {5,"Materialien"},
-    {6,"Knotenfarbe"}
-   ]},
-  {similar_material_faces,
-   [
-    {1,"Gleiches Material"},
-    {2,"Flächen mit dem selben Material wie den bereits ausgewählten auswählen"}
+    {6,"Vertex-Farbe"}
    ]},
   {valid_sel,
    [
-    {1,"Diese Objekt-Id "},
+    {1,"Die Objekt ID "},
     {2," ist ungültig."},
     {3,"Die "},
     {4," ist ungültig."}
+   ]},
+  {vertices_with,
+   [
+    {1,"Anzahl der Kanten"},
+    {2,"Vertices auswählen"},
+    {3,"Mehr"},
+    {4,"Weniger"},
+    {5,"Exakt"}
    ]}
  ]}.
 {wings_shape,
  [
+  {create_folder,
+   [
+    {1,"Ein Ordner mit diesem Namen ist bereits vorhanden"}
+   ]},
+  {create_folder_dialog,
+   [
+    {1,"Ordnername wählen"},
+    {2,"Ordner erstellen"}
+   ]},
   {do_menu,
    [
     {1,"Duplizieren"},
@@ -2371,50 +2493,68 @@
     {3,"Löschen"},
     {4,"Ausgewählte Objekte löschen"},
     {5,"Umbenennen"},
-    {6,"Ausgewählte Objekte umbenennen"}
+    {6,"Ausgewählte Objekte umbenennen"},
+    {7,"Ordner erstellen"},
+    {8,"Ordner umbenennen"},
+    {9,"Ordner löschen"},
+    {10,"Ordner und seine Inhalte löschen"},
+    {11,"Verschieben zu Ordner"},
+    {12,"Ausgewählte Objekte zu diesem Ordner verschieben"},
+    {13,"Leerer Ordner"},
+    {14,"Alle ausgewählten Objekte umbenennen"},
+    {15,"Objekte mittels Search and Replace umbenennen"},
+    {16,"Ausgewähltes aus Ordnern entfernen"},
+    {17,"Entfernen aus Ordner"}
    ]},
   {help,
    [
     {1,"Auswahl"},
-    {2,"Menü anzeigen"},
+    {2,"Menü zeigen"},
     {3,"Sichtbarkeit des aktiven Objekts umschalten"},
     {4,"Sichtbarkeit aller anderen Objekte umschalten"},
-    {5,"Aktives Objekt sperren/freigeben"},
-    {6,"Alle Objekte sperren/freigeben"},
+    {5,"Aktives Objekt sperren/entsperren"},
+    {6,"Alle Objekte sperren/entsperren"},
     {7,"Auswahl für aktives Objekt umschalten"},
     {8,"Auswahl für alle anderen Objekte umschalten"},
-    {9,"Schattiert/Drahtmodell für aktives Objekt umschalten"},
-    {10,"Schattiert/Drahtmodell für alle anderen Objekte umschalten"}
+    {9,"Mit Shading/Wireframe für aktives Objekt umschalten"},
+    {10,"Mit Shading/Wireframe für alle anderen Objekte umschalten"},
+    {11,"Toggle folder open/closed"},
+    {12,"Toggle all folders open/closed"},
+    {13,"Sichtbarkeit für Objekte in Ordnern umschalten"},
+    {14,"Objekte in Ordner sperren/entsperren"},
+    {15,"Mit Shading/Wireframe für Objekte in Ordnern umschalten"},
+    {16,"Auswahl für Ordner umschalten"}
+   ]},
+  {rename_filtered_dialog,
+   [
+    {1,"Search"},
+    {2,"Name wählen"},
+    {3,"Ersetzen"},
+    {4,"Matching objects to be renamed. *'s may be used as wildcards"},
+    {5,"Neuer Name. Use % to indicate numbered objects and %number% for the start counter"},
+    {6,"Ausgewählte Objekte"},
+    {7,"Search"},
+    {8,"Anwenden auf"}
+   ]},
+  {rename_folder_dialog,
+   [
+    {1,"Ordnername wählen"},
+    {2,"Ordner umbenennen"}
    ]},
   {title,
    [
-    {1,"Geometrie Graph"},
-    {2,"Geometrie Graph #"}
+    {1,"Geometrie-Graph"},
+    {2,"Geometrie-Graph #"}
    ]}
  ]}.
 {wings_shapes,
  [
   {cone,
    [
-    {1,"Abschnitte"},
+    {1,"Sektionen"},
     {2,"Höhe"},
-    {3,"X Durchmesser"},
-    {4,"Y Durchmesser"}
-   ]},
-  {cube,
-   [
-    {1,"X Kantenlänge"},
-    {2,"Y Kantenlänge"},
-    {3,"Z Kantenlänge"}
-   ]},
-  {cylinder,
-   [
-    {1,"Abschnitte"},
-    {2,"Höhe"},
-    {3,"X Durchmesser Deckel"},
-    {4,"Z Durchmesser Deckel"},
-    {5,"X Durchmesser Boden"},
-    {6,"Z Durchmesser Boden"}
+    {3,"Durchmesser X"},
+    {5,"Durchmesser Y"}
    ]},
   {dodecahedron,
    [
@@ -2431,33 +2571,23 @@
    [
     {1,"Kantenlänge"}
    ]},
-  {menu,
-   [
-    {15,"Mehr"},
-    {16,"Mehr Primitive"}
-   ]},
   {prim_help,
    [
-    {cone,"Kegel erzeugen"},
-    {cube,"Würfel erzeugen"},
-    {cylinder,"Zylinder erzeugen"},
-    {dodecahedron,"Dodekaeder erzeugen"},
-    {grid,"Gitter erzeugen"},
-    {icosahedron,"Ikosaeder erzeugen"},
-    {image,"Bild erzeugen..."},
-    {light,"Lichtquelle erzeugen"},
-    {material,"Material erzeugen..."},
-    {octahedron,"Oktaeder erzeugen"},
-    {octotoad,"Oktotod erzeugen"},
-    {sphere,"Kugel erzeugen"},
-    {tetrahedron,"Tetraeder erzeugen"},
-    {torus,"Torus erzeugen"}
+    {cone,"Einen Kegel erstellen"},
+    {dodecahedron,"Einen Dodekaeder erstellen"},
+    {grid,"Ein Gitter erstellen"},
+    {icosahedron,"Einen Ikosaeder erstellen"},
+    {image,"Ein Bild erstellen..."},
+    {light,"Eine Lichtquelle erstellen"},
+    {material,"Ein Material erstellen..."},
+    {octahedron,"Einen Oktaeder erstellen"},
+    {octotoad,"Eiinen Oktotod erstellen"},
+    {sphere,"Eine Kugel erstellen"},
+    {tetrahedron,"Einen Tetraeder erstellen"}
    ]},
   {prim_name,
    [
     {cone,"Kegel"},
-    {cube,"Würfel"},
-    {cylinder,"Zylinder"},
     {dodecahedron,"Dodekaeder"},
     {grid,"Gitter"},
     {icosahedron,"Ikosaeder"},
@@ -2467,27 +2597,18 @@
     {octahedron,"Oktaeder"},
     {octotoad,"Oktotod"},
     {sphere,"Kugel"},
-    {tetrahedron,"Tetraeder"},
-    {torus,"Torus"}
+    {tetrahedron,"Tetraeder"}
    ]},
   {sphere,
    [
-    {1,"Abschnitte"},
+    {1,"Sektionen"},
     {2,"Scheiben"},
-    {3,"X Radius"},
-    {4,"Y Radius"}
+    {3,"Radius X"},
+    {4,"Radius Y"}
    ]},
   {tetrahedron,
    [
     {1,"Kantenlänge"}
-   ]},
-  {torus,
-   [
-    {1,"Abschnitte"},
-    {2,"Scheiben"},
-    {4,"Kleiner Radius"},
-    {31,"Großer X Radius"},
-    {32,"Großer Z Radius"}
    ]}
  ]}.
 {wings_subdiv,
@@ -2499,13 +2620,13 @@
    ]},
   {smooth,
    [
-    {1,"glätte"},
-    {2,"berechne Flächenmittelpunkte"},
-    {3,"schneide Kanten"},
-    {4,"aktualisiere Materialien"},
-    {5,"erzeuge neue Flächen Flächen"},
-    {6,"verschiebe Knoten"},
-    {7,"fertigstellen"}
+    {1,"wird geglättet"},
+    {2,"Flächenzentren werden berechnet"},
+    {3,"Kanten werden geschnitten"},
+    {4,"Materialien werden aktualisiert"},
+    {5,"Neue Flächen werden erstellt"},
+    {6,"Vertices werden verschoben"},
+    {7,"wird fertiggestellt"}
    ]}
  ]}.
 {wings_tesselation,
@@ -2516,6 +2637,21 @@
     {2,"Quadrangulieren"}
    ]}
  ]}.
+{wings_theme,
+ [
+  {menu,
+   [
+    {1,"Themes"},
+    {2,"Classic Green Theme"},
+    {3,"Change the display colors to the original Wings3D theme with the green titlebars"},
+    {4,"Olive Theme"},
+    {5,"Grey Blue Theme"},
+    {6,"Dark Blue Theme"},
+    {7,"Change color scheme"},
+    {10,"Natives Theme"},
+    {11,"Change color scheme to colors that tries to mimic the OS"}
+   ]}
+ ]}.
 {wings_toolbar,
  [
   {button_help_1,
@@ -2524,57 +2660,282 @@
    ]},
   {button_help_2,
    [
-    {1,"Angrenzende Knoten auswählen"},
-    {2,"In Knoten-Auswahl Modus wechseln"},
+    {1,"Angrenzende Vertices auswählen"},
+    {2,"Wechseln in Vertex-Auswahlmodus"},
     {3,"Angrenzende Kanten auswählen"},
-    {4,"In Kanten-Auswahl Modus wechseln"},
+    {4,"Wechseln in Kanten-Auswahlmodus"},
     {5,"Angrenzende Flächen auswählen"},
-    {6,"In Flächen Auswahl Modus wechseln"},
-    {7,"In Körper-Auswahl Modus wechseln"}
+    {6,"Wechseln in Flächen-Auswahlmodus"},
+    {7,"Wechseln in Körper-Auswahlmodus"}
    ]},
   {button_help_3,
    [
-    {1,"Letzten Befehl rückgängig machen"},
-    {2,"Letzten rückgängig-Befehl wiederherstellen"},
-    {3,"Gespeicherte Szene öffnen"},
-    {4,"Aktuelle Szene speichern"},
-    {5,"Wings Einstellungen bearbeiten"}
+    {1,"Den letzten Befehl rückgängig machen"},
+    {2,"Den letzten Rückgängig-Befehl wiederherstellen"},
+    {3,"Eine zuvor gespeicherte Szene öffnen"},
+    {4,"Die aktuelle Szene speichern"},
+    {5,"Die Einstellungen für Wings bearbeiten"}
    ]},
   {messages,
    [
     {axes,"Achsen"},
-    {change_to,"Ändern in"},
-    {flat,"Flache Schattierung"},
-    {groundplane,"Bodenplatte"},
-    {hide,"Verbergen"},
+    {change_to,"Ändern zu"},
+    {flat,"Flat-Shading"},
+    {groundplane,"Grundebene"},
+    {hide,"Ausblenden"},
     {orthogonal,"Orthogonale Ansicht"},
     {perspective,"Perspektivische Ansicht"},
-    {show,"Zeige"},
-    {show_objects,"Zeige Objekte mit"},
-    {smooth,"Weiche Schattierung"}
+    {show,"Zeigen"},
+    {show_objects,"Objekte zeigen mit"},
+    {smooth,"Geglättetes Shading"}
+   ]}
+ ]}.
+{wings_tweak,
+ [
+  {axis_string,
+   [
+    {1,"Standardachse"},
+    {2,"Element-Normale"},
+    {3,"Element-Normale (Kanten)"},
+    {4,"Radial"},
+    {5,"Von Cursor"},
+    {6,"Von Element"},
+    {7,"Von Standardpunkt"}
+   ]},
+  {cam_conflict,
+   [
+    {1,"Tastenkombo wurde nicht zugewiesen.\n\n    That key combination would conflict with the Camera buttons"}
+   ]},
+  {camera_msg,
+   [
+    {1,"[C]: Tumble camera  [S]: Schwenken  [D]: Dolly"}
+   ]},
+  {constraints_menu,
+   [
+    {1,"Sperrt Bewegung der Normale der Auswahl."},
+    {2,"Sperrt Bewegung der Standardachse."},
+    {3,"Sperrt Bewegung auf die Radial der aktuellen Optimierungsachse."},
+    {5,"Sperrt Bewegung auf der ~s Achse."},
+    {6,"Constrained movement to normal of element marked by Optmierungsvektor."},
+    {7,"Scale from mouse cursor."},
+    {8,"Scale from element marked by Optimierungsvektor."},
+    {9,"Scale from Default Point."},
+    {10,"Clear Constraints"},
+    {11,"Clear all locked axes."}
+   ]},
+  {extra_msg,
+   [
+    {1,"Slide Collapse"}
+   ]},
+  {help_msg_axes,
+   [
+    {1,"--Achseneinschränkungen--"},
+    {2,"Achseneinschränkungen only affect Tweak Move and Scale operations."},
+    {3,"[F1], [F2], and [F3] can be held to constrain movement to the 3 cardinal axes, X, Y, and Z."},
+    {4,"Click axis constraint hotkeys to toggle them."},
+    {5,"Any of the axes can be toggled to stay on via the Tweak Menu or the Tweak Palette."},
+    {6,"Die Achsen Von Element und Von Punkt aktivieren den Optimierungsvektor."},
+    {7,"Achsen können kombiniert werden."}
+   ]},
+  {help_msg_basic,
+   [
+    {1,"--Was heißt Optimierung?--"},
+    {2,"Tweak lets you edit a model quickly by clicking and dragging geometry."},
+    {3,"While Tweak is enabled, all the regular Wings commands are still available,"},
+    {4," but certain mouse buttons and modifier keys will activate the Tweak tools."}
+   ]},
+  {help_msg_hotkeys,
+   [
+    {1,"--Hotkeyed Tweak Tools--"},
+    {2,"An alternative to usings Tweak Key combinations is to assign hotkeys to the various Tweak Tools usings the [Insert] method."},
+    {3,"Pressing the hotkey assigns that Tweak Tool to Lmb."}
+   ]},
+  {help_msg_keys,
+   [
+    {1,"--Assigning Tweak Keys--"},
+    {2,"Each of the Tweak Tools ~s can be assigned a modifier key combination (Ctrl, Shift, Alt)."},
+    {3," und "},
+    {4,"To assign a key combination to a Tweak Tool:"},
+    {5,"\t1) Open the Tweak Menu."},
+    {6,"\t2) Highlight one of the Tweak Tools."},
+    {7,"\t3) Press and hold the modifier key combination and/or press the activating mouse button."}
+   ]},
+  {help_msg_magnet,
+   [
+    {1,"--Magnete--"},
+    {2,"Magneten für Soft-Selection erlauben."},
+    {3,"Es gibt 3 Magnettypen: Dome, Straight, and Spike."},
+    {4,"Den Radius des Magneten anpassen by holding [Alt] and moving the mouse."},
+    {5,"Commands for switching magnets can be assigned to hotkeys in the Tweak Menu|Magnete."},
+    {6,"Magnetoptionen können in the Tweak Preferences festgelegt werden."}
+   ]},
+  {help_msg_palette,
+   [
+    {1,"--Tweak Palette (Fenster|Tweak Palette)--"},
+    {2,"The Tweak Palette is a group of 3 windows that contain the main commands from the Tweak Menu."},
+    {3,"Use the Tweak Palette to switch between Tweak Tools, Magnet Types, or Axis Constraints."}
+   ]},
+  {help_msg_using_keys,
+   [
+    {1,"--Using Tweak--"},
+    {2,"1) Tweak aktiviert."},
+    {3,"2) Highlight or select one or more elements of geometry."},
+    {4,"3) Press the Tweak Key combination and associated mouse button to activate Tweak."},
+    {5,"4) Drag geometry to it new position."},
+    {6,"5) Release the mouse button to complete the Tweak."},
+    {7,"Releasing the Tweak Keys will not end the Tweak event."},
+    {8,"This allows other hotkeys to be used in mid-tweak to activate another Tweak tool, an axis constraint, aim the camera, oder anpassen des Magnetradius."},
+    {9,"Pressing [C] in mid-tweak tumbles the camera."},
+    {10,"Pressing [S] or the Arrow Keys in mid-tweak pans the camera."},
+    {11,"Pressing [D] in mid-tweak dollies the camera."},
+    {12,"Pressing [Spacebar] in mid-tweak switches to the Tweak Tool assigned to the Lmb."},
+    {13,"Holding [F] while finalizing a Slide operation collapses all newly created short edges."}
+   ]},
+  {help_window,
+   [
+    {1,"Tweak Help"}
+   ]},
+  {mag_thelp,
+   [
+    {1,"Dieser Magnet pulls and pushes geometry with an even and rounded effect."},
+    {2,"Dieser Magnet pulls and pushes geometry with a straight effect."},
+    {3,"Dieser Magnet pulls and pushes geometry out zu einem scharfen Punkt."}
+   ]},
+  {magnet_type,
+   [
+    {1,"Dome"},
+    {2,"Straight"},
+    {3,"Spike"}
+   ]},
+  {menu,
+   [
+    {1,"Optimierung ist eine Sammlung von Tools zur schnellen Anpassung eines Mesh."},
+    {2,"Tweak aktivieren"},
+    {3,"Tweak deaktivieren"},
+    {4,"Magnete"},
+    {5,"Achseneinschränkungen"},
+    {6,"Move selection relative to screen, or constrained to an axis."},
+    {7,"Move selection along average normal."},
+    {8,"Scale selection relative to screen, or constrained to an axis."},
+    {9,"Scale elements uniformly from the selection center."},
+    {10,"Relax selection toward the average plane of neighbors."},
+    {11,"Slide elements along adjacent edges."},
+    {13,"Tweak Preferences"},
+    {14,"Preferences for Tweak"}
+   ]},
+  {menu_conflict,
+   [
+    {1,"Tastenkombo wurde nicht zugewiesen.\n\n    Those keys would conflict with the right click Tweak menu."}
+   ]},
+  {mode,
+   [
+    {1,"Verschieben"},
+    {2,"Normale verschieben"},
+    {3,"Skalieren"},
+    {4,"Einheitlich skalieren"},
+    {5,"Relax"},
+    {6,"Slide"}
+   ]},
+  {palette_title,
+   [
+    {1,"Tweak"},
+    {2,"Tweak Magnet"},
+    {3,"Tweak Axis"}
+   ]},
+  {spacebar_msg,
+   [
+    {1,"[Space]: Switch to Tweak tool assigned to L"}
+   ]},
+  {toggle_bold,
+   [
+    {1,"Aktiver Punkt: "},
+    {2,"Aktive Achse: "}
+   ]},
+  {tweak_disabled_msg,
+   [
+    {1,"Tweak: Disabled"}
+   ]},
+  {tweak_info_line,
+   [
+    {1,"L: Click Select"},
+    {2,"LL: Paint Select"},
+    {3,"Tweak Menu"},
+    {4,"Menü"}
+   ]},
+  {tweak_magnet_help,
+   [
+    {1,"Magnet: "},
+    {2,"Magnet: Aus"},
+    {3,"+Ziehen: "},
+    {4,"Radius anpassen"}
+   ]},
+  {tweak_magnet_menu,
+   [
+    {1,"Magnet deaktivieren"},
+    {2,"Magnet aktivieren"},
+    {3,"Tweak magnets are similar to 'soft selection'."},
+    {5,"Radius Adjust Key"},
+    {6,"Press [Insert] to customize hotkey zur Anpassung des Magnetradius. "},
+    {7,"Without a hotkey assigned, wird der Magnetradius by holding [Alt] angepasst."},
+    {8,"Radius zurücksetzen"},
+    {9,"Den Magnetradius auf 1,0 zurücksetzen"},
+    {10,"Nächster Magnettyp"},
+    {11,"Can be hotkeyed to cycle through the magnets."}
+   ]},
+  {tweak_magnet_radius_help,
+   [
+    {1,"Drag right to increase and left to decrease the magnet radius."},
+    {2,"Magnet ist derzeitig aus."}
+   ]},
+  {tweak_menu_item,
+   [
+    {1,"Binding: "},
+    {2,"Set: "},
+    {3,"Tauschen: "},
+    {4,"Hold modifiers and/or press any mouse button."},
+    {5,"Press another tool's key binding."},
+    {6,"Unbind: "}
+   ]},
+  {tweak_preferences_dialog,
+   [
+    {1,"Click Geschwindigkeit für Auswählen/Abwählen"},
+    {2,"Lower to increase control or raise to increase speed."},
+    {3,"Tweak Speed (Drag Response)"},
+    {4,"Magnet Radius Anpassungs Sensitivity"},
+    {5,"Magnet Radius Display Color"},
+    {6,"Länge"},
+    {7,"Breite"},
+    {8,"Farbe"},
+    {9,"Tweak Vector"},
+    {10,"Tweak Preferences"},
+    {11,"Magneteinfluss zeigen"}
+   ]},
+  {xyzkey_help,
+   [
+    {1,"Aktive Achse: "}
    ]}
  ]}.
 {wings_u,
  [
   {caption,
    [
-    {1,"automatisch gespeichert"}
+    {1,"autom. gespeichert"}
    ]}
  ]}.
 {wings_util,
  [
   {translation_string,
    [
-    {1,"Knoten"},
+    {1,"Vertex"},
     {2,"Kante"},
     {3,"Fläche"},
     {4,"Körper"},
-    {5,"Licht"},
+    {5,"Lichtquelle"},
     {6,"Datei"},
     {7,"Bearbeiten"},
     {8,"Ansicht"},
     {9,"Auswählen"},
-    {10,"Werkzeuge"},
+    {10,"Tools"},
     {11,"Fenster"},
     {12,"Hilfe"},
     {13,"Neu"},
@@ -2582,146 +2943,146 @@
     {15,"Zusammenführen"},
     {16,"Speichern"},
     {17,"Speichern unter"},
-    {18,"Auswahl speichern"},
-    {19,"Inkrementell speichern"},
-    {20,"Szene erneut laden"},
+    {18,"Ausgewähltes speichern"},
+    {19,"Save Incrementally"},
+    {20,"Revert"},
     {21,"Importieren"},
-    {22,"Export"},
-    {23,"Auswahl exportieren"},
+    {22,"Exportieren"},
+    {23,"Ausgewähltes exportieren"},
     {24,"Bild importieren"},
-    {25,"Rendern"},
-    {26,"Erweiterung installieren"},
-    {27,"Beenden"},
+    {25,"Render"},
+    {26,"Plugin installieren"},
+    {27,"Exit"},
     {28,"Rückgängig/Wiederherstellen"},
     {29,"Rückgängig"},
     {30,"Wiederherstellen"},
     {31,"Wiederholen"},
-    {32,"Parameter wiederholen"},
-    {33,"Verschieben wiederholen"},
-    {34,"Rückgängig Historie leeren"},
+    {32,"Argumente wiederholen"},
+    {33,"Repeat Drag"},
+    {34,"Purge Undo"},
     {35,"Einstellungen"},
-    {36,"Einstell."},
-    {37,"Erweiterung verwalten"},
-    {38,"Bodenplatte anzeigen"},
-    {39,"Achsen anzeigen"},
-    {40,"Info-Text anzeigen"},
+    {36,"Einst."},
+    {37,"Plugin-Manager"},
+    {38,"Grundebene zeigen"},
+    {39,"Achsen zeigen"},
+    {40,"Infotext zeigen"},
     {41,"Arbeitsmodus"},
-    {42,"Drahtmodell"},
-    {43,"Schattiert"},
-    {44,"Drahtmodell umschalten"},
-    {45,"Kanten anzeigen"},
-    {46,"Drahtmodell-Rückseiten anzeigen"},
-    {47,"Geglättete Darstellung umschalten"},
-    {48,"Schnelle geglättete Vorschau"},
-    {49,"3D-Rahmen anzeigen"},
-    {50,"Clipping Plane"},
-    {51,"Normalen anzeigen"},
-    {52,"Farben anzeigen"},
-    {53,"Materialien anzeigen"},
-    {54,"Texturen anzeigen"},
-    {55,"Lichtquellen der Szene"},
-    {56,"Lichtquellen umschalten"},
-    {57,"Orthogonale Ansicht"},
-    {58,"Ansicht zurücksetzen"},
-    {59,"Ausrichten"},
-    {60,"Ausrichtung hervorheben"},
-    {61,"Rahmen"},
-    {62,"Rahmen-Modus"},
-    {63,"An Auswahl ausrichten"},
-    {64,"Nächste(r)"},
-    {65,"Vorherige(r)"},
-    {66,"Aktuelle(r)"},
-    {67,"Springe"},
+    {42,"Wireframe"},
+    {43,"Shading"},
+    {44,"Wireframe umschalten"},
+    {45,"Kanten zeigen"},
+    {46,"Wireframe-Rückseiten zeigen"},
+    {47,"Toggle Smooth Proxy"},
+    {48,"Quick Smoothed Preview"},
+    {49,"Begrenzungsrahmen zeigen"},
+    {50,"Clippingebene"},
+    {51,"Normalen zeigen"},
+    {52,"Farben zeigen"},
+    {53,"Materialien zeigen"},
+    {54,"Texturen zeigen"},
+    {55,"Szenelichtquellen"},
+    {56,"Toggle Lights"},
+    {57,"Orthographic View"},
+    {58,"Reset View"},
+    {59,"Aim"},
+    {60,"Highlight Aim"},
+    {61,"Frame"},
+    {62,"Frame-Modus"},
+    {63,"Ausrichten auf Auswahl"},
+    {64,"Next"},
+    {65,"Prev"},
+    {66,"Aktuell"},
+    {67,"Jump"},
     {68,"Entlang"},
     {69,"Umbenennen"},
-    {70,"Alle löschen"},
-    {71,"Kamera Einstellungen"},
-    {72,"Ansicht rotieren"},
-    {73,"Auswahl aufheben"},
+    {70,"Alles löschen"},
+    {71,"Kameraeinstellungen"},
+    {72,"Autom. drehen"},
+    {73,"Abwählen"},
     {74,"Mehr"},
     {75,"Weniger"},
-    {76,"Gleiche"},
-    {77,"Kantenschleife"},
-    {78,"Kantenschleife der Region"},
+    {76,"Ähnlich"},
+    {77,"Kanten-Loop"},
+    {78,"Kanten-Loop zu Region"},
     {79,"Kantenring"},
-    {80,"Vorherige Kantenschleife"},
-    {81,"Nächste Kantenschleife"},
-    {82,"Kantenschleife vergrößern"},
-    {83,"Kantenschleife verkleinern"},
-    {84,"Kantenschleife vergrößern"},
-    {85,"Kantenring verkleinern"},
-    {86,"Angrenzende"},
-    {87,"Umkehren"},
-    {88,"Ausgewählte verbergen"},
-    {89,"Nicht ausgewählte verbergen"},
-    {90,"Nicht ausgewählte sperren"},
-    {91,"Alle zeigen"},
-    {92,"Auswahl speichern"},
-    {93,"Auswahl abrufen"},
+    {80,"Vorheriger Kanten-Loop"},
+    {81,"Nächster Kanten-Loop"},
+    {82,"Edge Link Increase"},
+    {83,"Edge Link Decrease"},
+    {84,"Edge Ring Increase"},
+    {85,"Edge Ring Decrease"},
+    {86,"Adjacent"},
+    {87,"Inverse"},
+    {88,"Ausgewähltes ausblenden"},
+    {89,"Nicht Ausgewähltes ausblenden"},
+    {90,"Nicht Ausgewähltes sperren"},
+    {91,"Alles zeigen"},
+    {92,"Auswahl sichern"},
+    {93,"Recall Selection"},
     {94,"Neue Gruppe"},
-    {95,"Ähnliche Normalen"},
-    {96,"Ähnliche Fläche"},
+    {95,"Similar Normals"},
+    {96,"Similar Area"},
     {97,"Gruppe löschen"},
-    {98,"Zu Gruppe hinzufügen"},
-    {99,"Von Gruppe subtrahieren"},
+    {98,"Hinzufügen zu Gruppe"},
+    {99,"Subtract aus Gruppe"},
     {100,"Gruppe auswählen"},
-    {101,"Gruppe vereinigen"},
-    {102,"Gruppe subtrahieren"},
-    {103,"Gruppe schneiden"},
-    {104,"an"},
-    {105,"harten Kanten"},
-    {106,"isolierten Knoten"},
-    {107,"nicht ebenen Flächen"},
-    {108,"Knoten mit"},
+    {101,"Union Group"},
+    {102,"Subtract Group"},
+    {103,"Intersect Group"},
+    {104,"Nach"},
+    {105,"Harte Kanten"},
+    {106,"Isolierte Vertices"},
+    {107,"Nicht-planare Flächen"},
+    {108,"Vertices mit"},
     {109,"Flächen mit"},
-    {110,"Nicht viereckige"},
-    {111,"Ungerade"},
-    {112,"Gerade"},
+    {110,"Non Quadrangle"},
+    {111,"Odd"},
+    {112,"Even"},
     {113,"Zufällig"},
     {114,"Kurze Kanten"},
     {115,"Scharfe Kanten"},
-    {116,"Knoten-Pfad"},
+    {116,"Vertex-Pfad"},
     {117,"Pfad mit wenigsten Kanten"},
     {118,"Kürzester Pfad (Dijkstra)"},
     {119,"Kürzester Pfad (A-Star)"},
-    {120,"Material-Kanten"},
+    {120,"Materialkanten"},
     {121,"Ausrichten"},
-    {122,"3D-Rahmen speichern"},
-    {123,"Auf 3D-Rahmen skalieren"},
-    {124,"Proportional in 3D-Rahmen skalieren"},
-    {125,"In 3D-Rahmen verschieben"},
+    {122,"Begrenzungsrahmen speichern"},
+    {123,"Skalieren auf Begrenzungsrahmen"},
+    {124,"Proportional skalieren auf Begrenzungsrahmen"},
+    {125,"Verschieben zu Begrenzungsrahmen"},
     {126,"Virtueller Spiegel"},
-    {127,"Erzeugen"},
-    {128,"Brechen"},
+    {127,"Erstellen"},
+    {128,"Break"},
     {129,"Einfrieren"},
-    {130,"Bildschirmfoto"},
-    {131,"Bereichs-Volumeninfo"},
-    {132,"Speicherverbrauch"},
-    {133,"Auf Bodenplatte"},
+    {130,"Screenshot"},
+    {131,"Area Volume Info"},
+    {132,"Memory Usage"},
+    {133,"Setzen auf Grund"},
     {134,"Vereinheitlichen"},
-    {135,"Feineinstellungen"},
-    {136,"Bild fangen"},
-    {137,"Inhaltsübersicht"},
-    {138,"Geometrie Graph"},
+    {135,"Optimieren"},
+    {136,"Bild einrasten"},
+    {137,"Gliederungseditor"},
+    {138,"Geometrie-Graph"},
     {139,"Palette"},
     {140,"Konsole"},
-    {141,"Neues Geometrie Fenster"},
-    {142,"UV Editor Window"},
-    {143,"Einstieg"},
+    {141,"Neues Geometriefenster"},
+    {142,"UV-Editor-Fenster"},
+    {143,"Erste Schritte"},
     {144,"Maustasten"},
     {145,"Internationale Tastaturen"},
-    {146,"Definierte Kurztasten"},
-    {147,"Kurztasten definieren"},
-    {149,"Standard-Befehle"},
-    {150,"Performanz Hinweise"},
-    {151,"OpenGL Informationen"},
+    {146,"Definierte Hotkeys"},
+    {147,"Defining Hotkeys"},
+    {149,"Standardbefehle"},
+    {150,"Performanztipps"},
+    {151,"OpenGL-Info"},
     {152,"Über"},
     {153,"Formen"},
-    {154,"Tetraeder"},
-    {155,"Oktaeder"},
-    {156,"Oktotod"},
-    {157,"Dodekaeder"},
-    {158,"Ikosaeder"},
+    {154,"Tetrahedron"},
+    {155,"Octahedron"},
+    {156,"Octotoad"},
+    {157,"Dodecahedron"},
+    {158,"Icosahedron"},
     {159,"Würfel"},
     {160,"Zylinder"},
     {161,"Kegel"},
@@ -2730,27 +3091,27 @@
     {164,"Gitter"},
     {165,"Material"},
     {166,"Bild"},
-    {167,"Bild-Ebene"},
+    {167,"Bildebene"},
     {168,"Text"},
-    {169,"Zahnrad"},
-    {170,"Röhre"},
-    {171,"Geodätische Kugel"},
-    {172,"Torus-Knoten"},
-    {173,"N-Würfel"},
+    {169,"Gear"},
+    {170,"Tube"},
+    {171,"Geo Dome"},
+    {172,"Torus Knot"},
+    {173,"N-Cube"},
     {174,"N-Gon"},
-    {175,"Reguläre Ebene"},
-    {176,"Klumpige Ebene"},
-    {177,"Gewellte Ebene"},
-    {178,"Sombrero Ebene"},
-    {179,"Spirale"},
-    {180,"Feder"},
-    {181,"UV Torus"},
-    {182,"Klumpiger Torus"},
-    {183,"Spiralförmiger Torus"},
-    {184,"Normal"},
+    {175,"Regular Plane"},
+    {176,"Lumpy Plane"},
+    {177,"Wavy Plane"},
+    {178,"Sombrero Plane"},
+    {179,"Spiral"},
+    {180,"Spring"},
+    {181,"UV-Torus"},
+    {182,"Lumpy Torus"},
+    {183,"Spiral Torus"},
+    {184,"Normale"},
     {185,"Frei"},
-    {186,"Zentrum"},
-    {187,"Zentrale Achse"},
+    {186,"Tentrieren"},
+    {187,"Central Axis"},
     {188,"X"},
     {189,"Y"},
     {190,"Z"},
@@ -2758,11 +3119,11 @@
     {192,"-Y"},
     {193,"-Z"},
     {194,"Letzte Achse"},
-    {195,"Standard Achse"},
+    {195,"Standardachse"},
     {196,"Wahr"},
     {197,"Falsch"},
-    {198,"Alle"},
-    {199,"Alle auswählen"},
+    {198,"Alles"},
+    {199,"Alles wählen"},
     {200,"Radial X"},
     {201,"Radial Y"},
     {202,"Radial Z"},
@@ -2770,90 +3131,90 @@
     {204,"LMB"},
     {205,"MMB"},
     {206,"RMB"},
-    {207,"relativ"},
-    {208,"absolut"},
+    {207,"Relativ"},
+    {208,"Absolut"},
     {209,"Verschieben"},
-    {210,"Rotieren"},
+    {210,"Drehen"},
     {211,"Skalieren"},
     {212,"Einheitlich"},
-    {213,"Auspressen"},
+    {213,"Extrudieren"},
     {214,"Extrahieren"},
     {215,"Auflösen"},
-    {216,"Kollabieren"},
+    {216,"Collapse"},
     {217,"Löschen"},
-    {218,"Ebnen"},
+    {218,"Flatten"},
     {219,"Glätten"},
-    {220,"Straffen"},
-    {221,"Abkanten"},
+    {220,"Tighten"},
+    {221,"Beveln"},
     {222,"Verschweißen"},
-    {223,"Kantenfarbe"},
+    {223,"Vertex-Farbe"},
     {224,"Einrasten"},
-    {225,"Einrasten|Numerische Eingabe"},
-    {226,"Auf Zielgröße skalieren"},
-    {227,"Skalieren|Zentrum"},
-    {228,"Schneiden"},
-    {229,"Auf einer Geraden"},
-    {230,"In einer Ebene"},
-    {231,"Kanten verbinden"},
+    {225,"Einrasten|Numerischer Eintrag"},
+    {226,"Skalieren auf Zielgröße"},
+    {227,"Skalieren|Zentrieren"},
+    {228,"Intersect"},
+    {229,"Stay on Line"},
+    {230,"Stay on Plane"},
+    {231,"Verbundene Kanten"},
     {232,"Biegen"},
-    {233,"Versetzen"},
-    {234,"Deformieren"},
-    {235,"Zerknittern"},
-    {236,"Zuspitzen"},
+    {233,"Shift"},
+    {234,"Verformen"},
+    {235,"Crumple"},
+    {236,"Verjüngen"},
     {237,"Verdrehen"},
-    {238,"Drehen"},
-    {239,"Aufblasen"},
-    {240,"Zylindrisch aufblasen"},
+    {238,"Torque"},
+    {239,"Inflate"},
+    {240,"Inflate Cylindrically"},
     {241,"Scheren"},
-    {242,"Gleiten"},
-    {243,"Auflösen bereinigen"},
-    {244,"Schnitt"},
+    {242,"Slide"},
+    {243,"Auflösen Clean"},
+    {244,"Schneiden"},
     {245,"Verbinden"},
     {246,"Härte"},
     {247,"Weich"},
     {248,"Hart"},
-    {249,"Kreisförmig"},
-    {250,"Kreisförmig|Zentrum"},
-    {251,"Schleifen Schnitt"},
-    {252,"Gegen Uhrzeigersinn drehen"},
-    {253,"Im Uhrzeigersinn drehen"},
-    {254,"Optimiertes drehen"},
-    {255,"Brücken"},
-    {256,"Ausbeulen"},
-    {257,"Region ausstoßen"},
+    {249,"Circularise"},
+    {250,"Circularise|Zentrieren"},
+    {251,"Loop-Schnitt"},
+    {252,"Turn CCW"},
+    {253,"Turn CW"},
+    {254,"Turn Optimized"},
+    {255,"Bridge"},
+    {256,"Bump"},
+    {257,"Region extrudieren"},
     {258,"Region extrahieren"},
-    {259,"Auswahl ausziehen"},
-    {260,"Region ausziehen"},
-    {261,"Extrakt ausziehen"},
-    {262,"Einsetzen"},
-    {263,"Eindringen"},
-    {264,"Anheben"},
-    {265,"Aufsetzen"},
-    {266,"Duplizieren auf"},
-    {267,"Spiegel"},
-    {268,"Separat spiegeln"},
-    {269,"Parkettierung"},
+    {259,"Sweep Extrude"},
+    {260,"Sweep Region"},
+    {261,"Sweep Extract"},
+    {262,"Inset"},
+    {263,"Intrudieren"},
+    {264,"Lift"},
+    {265,"Put On"},
+    {266,"Klonen On"},
+    {267,"Spiegeln"},
+    {268,"Mirror Separate"},
+    {269,"Tesselieren"},
     {270,"Triangulieren"},
     {271,"Quadrangulieren"},
-    {272,"De-triangulieren"},
-    {273,"Verbergen"},
+    {272,"Tiangulieren aufheben"},
+    {273,"Ausblenden"},
     {274,"AutoUV"},
-    {275,"Segmentieren"},
-    {276,"Vorherige Segmentierung"},
-    {277,"Segmentierung forcieren"},
-    {278,"Spiegeln"},
+    {275,"Segment"},
+    {276,"Segment Alt"},
+    {277,"Segment erzwingen"},
+    {278,"Umdrehen"},
     {279,"Invertieren"},
     {280,"Doo Sabin"},
     {281,"Kombinieren"},
-    {282,"Separieren"},
-    {283,"Aufräumen"},
-    {284,"Automatisches Glätten"},
+    {282,"Separate"},
+    {283,"Cleanup"},
+    {284,"Autom. glätten"},
     {285,"Duplizieren"},
-    {286,"Knoten-Farbe-Modus"},
-    {287,"Objekt zu Flächenlicht"},
+    {286,"Vertex-Farbe-Modus"},
+    {287,"Zu Flächenlicht"},
     {288,"Materialien zu Farben"},
-    {289,"Schneiden"},
-    {290,"Eben verschieben"}
+    {289,"Drehen auf Ziel"},
+    {290,"Planar verschieben"}
    ]}
  ]}.
 {wings_vec,
@@ -2863,11 +3224,11 @@
     {1,"Achse wählen (und Punkt)"},
     {2,"Achse wählen"},
     {3,"Punkt wählen"},
-    {4,"Äußeren Punkt für Einflussgrenze des Magneten wählen"}
+    {4,"Äußeren Grenzpunkt für Magneteinfluss wählen"}
    ]},
   {add_magnet,
    [
-    {1,"Äußeren Punkt für Einflussgrenze des Magneten wählen"}
+    {1,"Äußeren Grenzpunkt für Magneteinfluss wählen"}
    ]},
   {check_magnet_point,
    [
@@ -2876,8 +3237,8 @@
   {check_point,
    [
     {1,"Mittelpunkt der Auswahl gespeichert."},
-    {2,"Virtuellen Spiegel bei Referenzpunkt-Berechnung ausschließen"},
-    {3,"Virtuellen Spiegel bei Referenzpunkt-Berechnung einschließen"}
+    {2,"Disregard virtual mirror in reference point calculation"},
+    {3,"Include virtual mirror in reference point calculation"}
    ]},
   {common_magnet_message,
    [
@@ -2886,7 +3247,7 @@
   {common_message,
    [
     {1,"Ausführen"},
-    {2,"Weiter"}
+    {2,"Fortsetzen"}
    ]},
   {exit_menu,
    [
@@ -2899,41 +3260,41 @@
     {3,"Kanten-Normale als Achse gespeichert"},
     {4,"Kanten-Richtung speichern"},
     {5,"Richtung zwischen Kanten als Achse gespeichert."},
-    {6,"Kantenschleifen-Normale als Achse gespeichert."},
-    {8,"Knoten-Normale gespeichert."},
-    {9,"Richtung zwischen Knoten als Achse gespeichert."},
-    {10,"Mittelwert der Knoten-Normalen als Achse verwenden"},
-    {11,"Mittelwert der Knoten-Normalen als Achse gespeichert."},
-    {12,"Richtung zwischen Knoten als Achse verwenden"},
+    {6,"Kanten-Loop-Normale als Achse gespeichert."},
+    {8,"Vertex-Normale gespeichert."},
+    {9,"Richtung zwischen Vertices als Achse gespeichert."},
+    {10,"Mittelwert der Vertex-Normalen als Achse verwenden"},
+    {11,"Mittelwert der Vertex-Normalen als Achse gespeichert."},
+    {12,"Richtung zwischen Vertices als Achse verwenden"},
     {13,"3-Punkt Flächen-Normale als Achse gespeichert."},
-    {14,"Knotenschleifen-Normale als Achse gespeichert."},
-    {15,"Mehr-Knoten-Auswahl muss geschlossene Kantenschleife ergeben."},
+    {14,"Vertex-Loopn-Normale als Achse gespeichert."},
+    {15,"Multi-Vertex-Auswahl muss einen eizelnen geschlossenen Kanten-Loop bilden."},
     {16,"Flächen-Normale als Achse gespeichert."},
     {17,"Richtung zwischen Flächen-Zentren als Achse gespeichert."},
     {18,"Mittelwert der Flächen-Normalen verwenden"},
     {19,"Mittelwert der Flächen-Normalen als Achse gespeichert."},
-    {20,"Richtung zwischen Flächen-Zentren verwenden"},
-    {21,"Kantenschleifen-Normale der Region als Achse gespeichert."},
-    {22,"Multi-Flächen-Auswahl muss eine einzige Kantenschleife haben."},
-    {23,"Knoten, Kanten oder Flächen auswählen."},
+    {20,"Richtung zwischen zwei Flächenzentren verwenden"},
+    {21,"Kanten-Lopp-Normale für Region gespeichert als Achse."},
+    {22,"Multiselektion von Flächen muss einen einzelnen Kanten-Loop haben."},
+    {23,"Vertices, Kanten oder Flächen auswählen."},
     {24,"Kreuzvektor speichern"},
-    {25,"Kreuzprodukt der Kanten als Achse speichern"},
+    {25,"Kreuzprodukt der Kanten gespeichert als Achse"},
     {26,"Richtung zwischen Kanten speichern"},
-    {27,"Knoten dürfen keine gemeinsamen Koordinaten haben, wenn eine 3-Punkt Normalenebenen definiert wird."},
-    {28,"Achse zwischen den Zentren der Kantenschleifen als Achse gespeichert."},
-    {29,"Mehrfachauswahlen von Kanten müssen eine oder zwei geschlossene Kantenschleifen bilden."}
+    {27,"Vertices können sich nicht Koordinaten teilen, wenn eine 3-Punkt-Ebenennormale definiert wird."},
+    {28,"Achse zwischen den Zentren des Kanten-Loop als Achse gespeichert."},
+    {29,"Multiselektion von Kanten muss entweder einen einzelnen oder zwei geschlossene Kanten-Loops bilden."}
    ]},
   {guard_string,
    [
-    {1,"Elemente nur eines Objekts auswählen"},
+    {1,"Nur Parts eines Objekts auswählen"},
     {2," oder ein Element in jedem der zwei Objekte auswählen"},
-    {3," oder drei beliebige Knoten."},
-    {4,",\noder eine einzelne Kantenschleife auf jedem Objekt "}
+    {3," oder drei beliebige Vertices."},
+    {4,",\noder einen einzelnen Kanten-Loop bei jedem Objekt "}
    ]},
   {magnet_message,
    [
     {1,"Ausführen "},
-    {2,"Magnet Optionen"}
+    {2,"Magnetoptionen"}
    ]}
  ]}.
 {wings_vertex_cmd,
@@ -2941,28 +3302,28 @@
   {menu,
    [
     {2,"Verschieben"},
-    {3,"Auspressen"},
+    {3,"Extrudieren"},
     {4,"Verbinden"},
-    {5,"Neue Kante durch verbinden der ausgewählten Knoten erzeugen"},
+    {5,"Eine neue Kante durch Verbinden ausgewählter Vertices erstellen"},
     {6,"Straffen"},
-    {7,"Ausgewählte Knoten gegen gemeinsamen Mittelpunkt verschieben"},
-    {8,"Abkanten"},
-    {9,"Flächen aus ausgewählten Knoten erzeugen"},
+    {7,"Ausgewählte Vertices in Richtung durchschnittl. Mittelpunkt verschieben"},
+    {8,"Beveln"},
+    {9,"Flächen der ausgewählten Vertices erstellen"},
     {10,"Auflösen"},
-    {11,"Ausgewählte Knoten eliminieren (löscht Auswahl)"},
+    {11,"Ausgewählte Vertices löschen (löscht Auswahl)"},
     {12,"Kollabieren"},
-    {13,"Ausgewählte Knoten eliminieren (erzeugt Flächen-Auswahl)"},
-    {14,"Deformieren"},
-    {15,"Knoten-Farbe"},
-    {16,"Knoten-Farben auf ausgewählte Knoten anwenden"},
-    {17,"Knoten verbinden und neue Kante selektiert zurückliefern"}
+    {13,"Ausgewählte Vertices löschen (erstellt eine Flächenauswahl)"},
+    {14,"Verformen"},
+    {15,"Vertex-Farbe"},
+    {16,"Vertex-Farben auf ausgewählte Vertices anwenden"},
+    {17,"Vertices verbinden und neue Kante selektiert zurückliefern"}
    ]}
  ]}.
 {wings_view,
  [
   {auto_rotate_help,
    [
-    {1,"Rotation anhalten"},
+    {1,"Rotation stoppen"},
     {2,"Geschwindigkeit erhöhen"},
     {3,"Geschwindigkeit verringern"}
    ]},
@@ -2971,79 +3332,79 @@
     {1,"Negativformat"},
     {4,"Benutzerdefiniert"},
     {5,"x"},
-    {6,"Weitwinkel-Objektiv"},
-    {7,"Moderates Weitwinkel-Objektiv"},
-    {8,"Standard-Objektiv"},
+    {6,"Weitwinkelobjektiv"},
+    {7,"Moderates Weitwinkelobjektiv"},
+    {8,"Standardobjektiv"},
     {9,"Portrait-Teleobjektiv"},
     {10,"Teleobjektiv"},
-    {11,"Benutzerdefiniertes Objektiv"},
+    {11,"Benutzerdef. Objektiv"},
     {12,"Länge"},
     {13,"x Zoom"},
     {14,"Objektiv"},
-    {15,"Vertikaler Sichtbereich"},
-    {16,"Nahe Sichtbegrenzung"},
-    {17,"Ferne Sichtbegrenzung"},
-    {18,"Kamera Einstellungen"}
+    {15,"Sichtfeld"},
+    {16,"Vordere Clippingebene"},
+    {17,"Hintere Clippingebene"},
+    {18,"Kameraeinstellungen"}
    ]},
   {help,
    [
-    {1,"Kamera Einstellungen: Sichtbereich"},
-    {2,"Definiert den vertikalen Sichtbereich, d.h. den Winkel zwischen der unteren und der oberen Grenze die die Kamera sieht."},
-    {3,"Die Objektivkontrolle setzt den Sichtbereich in Anlehnung an gebräuchlichere Einheiten, zumindest für einen Fotografen. Die Größe des Negativs wird in den Benutzereinstellungen eingestellt."},
-    {4,"Die Objektivkontrolle passt die Höhe des Bildes an das ausgewählte Objektiv an. Wenn in den Objektiveinstellungen für die Negativgröße nicht das selbe Seitenverhältnis wie für das Geometriefenster eingestellt ist, wird die Breite falsch wiedergegeben."},
-    {5,"Hinweis: Der Zoom-Faktor ist relativ zu einem Standardobjektiv der Diagonalen des Negativs, wobei nur die Höhe des Negativs die effektive Länge des Objektivs beeinflusst."}
+    {1,"Kameraeinstellungen: Sichtfeld"},
+    {2,"Definiert das vertikale Sichtfeld, d. h., den Winkel von unterer zu oberer Begrenzung, die von der Kamera zu sehen ist."},
+    {3,"Die Objektivsteuerung legt das Sichtfeld in Anlehnung an gebräuchlichere Einheiten, zumindest für einen Fotografen. Die Größe des Negativs wird in den Benutzereinstellungen eingestellt."},
+    {4,"Die Objektivsteuerung passt die Höhe des Bildes an das ausgewählte Objektiv an. Wenn in den Objektiveinstellungen für die Negativgröße nicht das selbe Seitenverhältnis wie für das Geometriefenster eingestellt ist, wird die Breite falsch wiedergegeben."},
+    {5,"Hinweis: Der Zoomfaktor ist relativ zu einem Standardobjektiv der Diagonalen des Negativs, wobei nur die Höhe des Negativs die effektive Länge des Objektivs beeinflusst."}
    ]},
   {menu,
    [
-    {1,"Bodenplatte"},
-    {2,"Bodenplatte anzeigen"},
+    {1,"Grundebene"},
+    {2,"Die Grundebene zeigen"},
     {3,"Achsen"},
-    {4,"Koordinatenachsen anzeigen"},
+    {4,"Die Koordinatenachsen zeigen"},
     {5,"Arbeitsmodus"},
-    {6,"Flaches/weiches Schattieren umschalten"},
-    {7,"Drahtmodell"},
-    {8,"Ausgewählte Objekte als Drahtmodell darstellen (gilt für alle Objekte wenn keines ausgewählt ist)"},
-    {9,"Schattiert"},
-    {10,"Ausgewählte Objekte schattiert anzeigen (gilt für alle Objekte wenn keines ausgewählt ist)"},
-    {11,"Drahtmodell/Schattiert umschalten"},
-    {12,"Darstellung für ausgewählte Objekte umschalten (gilt für alle Objekte wenn keines ausgewählt ist)"},
-    {13,"Proxy Modus umschalten"},
+    {6,"Flat-/geglättetes Shading umschalten"},
+    {7,"Wireframe"},
+    {8,"Ausgewählte Objekte als Wireframe anzeigen (gilt für alle Objekte, wenn nichts ausgewählt ist)"},
+    {9,"Shading"},
+    {10,"Ausgewählte Objekte mit Shading anzeigen (gilt für alle Objekte, wenn nichts ausgewählt ist)"},
+    {11,"Wireframe umschalten"},
+    {12,"Anzeigemodus für ausgewählte Objekte umschalten (gilt für alle Objekte, wenn nichts ausgewählt ist)"},
+    {13,"Proxy-Modus umschalten"},
     {14,"Geglättete Darstellung für ausgewählte Objekte umschalten"},
     {15,"Schnelle geglättete Vorschau"},
     {16,"Geglättete Darstellung für alle Objekte umschalten"},
-    {17,"Gespeicherte 3D-Rahmen"},
-    {18,"Alle gespeicherten 3D-Rahmen anzeigen"},
-    {19,"Kanten anzeigen"},
-    {20,"Kanten im Arbeitsmodus anzeigen"},
-    {21,"Drahtmodell-Rückseiten anzeigen"},
-    {22,"Rückseiten von Drahtmodellen anzeigen"},
-    {23,"Normalen anzeigen"},
-    {24,"Normalen für ausgewählte Elemente anzeigen"},
+    {17,"Gespeicherte Begrenzungsrahmen zeigen"},
+    {18,"Alle gespeicherten Begrenzungsrahmen zeigen"},
+    {19,"Kanten zeigen"},
+    {20,"Kanten im Arbeitsmodus zeigen"},
+    {21,"Wireframe-Rückseiten zeigen"},
+    {22,"Rückseiten von Wireframes zeigen"},
+    {23,"Normalen zeigen"},
+    {24,"Normalen für ausgewählte Elemente zeigen"},
     {25,"Ansicht zurücksetzen"},
-    {26,"Ansicht auf Standardansicht zurücksetzen"},
+    {26,"Ansicht auf die Standardposition zurücksetzen"},
     {27,"Ausrichten"},
-    {28,"Kamera auf ausgewählte Element ausrichten"},
-    {29,"Rahmen"},
-    {30,"Heranfahren um alle ausgewählten Elemente anzuzeigen (oder alle Objekte wenn keine ausgewählt sind)"},
+    {28,"Die Kamera auf das ausgewählte Element richten"},
+    {29,"Frame"},
+    {30,"Dolly, um alle ausgewählten Elemente zu zeigen (oder alle Objekte, wenn nichts ausgewählt ist)"},
     {31,"Orthogonale Ansicht"},
     {32,"Orthogonale/perspektivische Ansicht umschalten"},
     {33,"Gespeicherte Ansichten: "},
-    {34,"Kamera Einstellungen..."},
-    {35,"Sichtbereich und nahe und ferne Sichtbegrenzung setzen"},
-    {36,"Lichtquellen der Szene"},
-    {37,"Lichtquellen der Szene verwenden"},
+    {34,"Kameraeinstellungen..."},
+    {35,"Sichtfeld, vordere und hintere Clippingebene festlegen"},
+    {36,"Szenelichtquellen"},
+    {37,"Die in der Szene definierten Lichtquellen verwenden"},
     {38,"Zwei Lichtquellen"},
     {39,"Eine Lichtquelle"},
     {40,"Mit zwei Lichtquellen arbeiten"},
     {41,"Mit einer Lichtquelle arbeiten"},
-    {42,"Farben anzeigen"},
-    {43,"Knoten-Farben von Objekte im \"Knoten\" Modus anzeigen"},
-    {44,"Materialien anzeigen"},
-    {45,"Materialien von Objekten im \"Material\" Modus anzeigen"},
-    {46,"Texturen anzeigen"},
-    {47,"Texturen von Objekten im \"Material\" Modus anzeigen"},
-    {48,"Info Text anzeigen"},
-    {49,"Anzeigen eines informativen Texts am oberen Rand dieses Geometriefensters"},
+    {42,"Farben zeigen"},
+    {43,"Vertex-Farben zeigen"},
+    {44,"Materialien zeigen"},
+    {45,"Materialien zeigen"},
+    {46,"Texturen zeigen"},
+    {47,"Texturen zeigen"},
+    {48,"Infotext zeigen"},
+    {49,"Einen informativen Text am oberen Rand dieses Geometriefensters zeigen"},
     {50,"Ansicht entlang"},
     {51,"+X"},
     {52,"+Y"},
@@ -3051,41 +3412,55 @@
     {54,"-X"},
     {55,"-Y"},
     {56,"-Z"},
-    {57,"An Auswahl ausrichten"},
-    {58,"Ansicht an Normale der ausgewählten Objekte ausrichten"},
-    {59,"Ansicht rotieren"},
-    {60,"Ansicht rotieren lassen"},
-    {61,"Sichtbegrenzungen"},
-    {62,"Zusätzliche Sichtbegrenzungen umschalten (verwendet Standardachsen)"},
-    {65,"Rahmen ignoriert Spiegel"},
+    {57,"Ausrichten auf Auswahl"},
+    {58,"Die Ansicht auf die Normale der Auswahl ausrichten"},
+    {59,"Autom. drehen"},
+    {60,"Die Ansicht drehen lassen"},
+    {61,"Clippingebenen"},
+    {62,"Zusätzliche Clippingebenen umschalten (verwendet Standardachsen)"},
+    {65,"Frame ignoriert Spiegel"},
     {66,"Ausrichtung hervorheben"},
-    {67,"Kamera auf Maus-Markierung ausrichten (Setzt 'Hervorhebung als temporäre Auswahl verwenden' und eine zugewiesene Kurztaste voraus)."},
-    {68,"Zeige"},
-    {69,"Zentrum von 3D-Rahmen anzeigen"},
-    {70,"Das Zentrum jedes gespeicherten 3D-Rahmens anzeigen"}
+    {67,"Kamera auf Maus-Markierung ausrichten (Erfordert die Aktivierung von 'Hervorhebung als temporäre Auswahl verwenden' und einen zugewiesenen Hotkey)"},
+    {68,"Zeigen"},
+    {69,"Zentrum von Begrenzungsrahmen zeigen"},
+    {70,"Das Zentrum von jedem gespeicherten Begrenzungsrahmens anzeigen"},
+    {71,"Nearest Axis"},
+    {72,"Rückseiten zeigen"},
+    {73,"Rückseiten zeigen, wenn es ein Loch oder ausgeblendete Flächen in einem Objekt gibt"},
+    {74,"Texturen filtern"},
+    {75,"Aktiviert Textur-Filterung für alle Texturen. (Filterung für accurate Anzeigevon sehr gering aufgelösten Texturen deaktivieren)"},
+    {76,"Normal-Maps zeigen"},
+    {77,"Normal-Maps zum Anzeigen rauer Materialien verwenden"}
    ]},
   {shader_submenu,
    [
     {1,"Nächster"},
     {2,"Vorheriger"},
-    {3,"Schattiere: "}
+    {3,"Shader: "}
+   ]},
+  {toggle_lights,
+   [
+    {1,"Eine Lichtquelle"},
+    {2,"Zwei Lichtquellen"},
+    {3,"Use one work lightquelle verwenden"},
+    {4,"Use two work lightquellen verwenden"}
    ]},
   {view_legend,
    [
-    {2,"entlang +X"},
-    {3,"entlang +Y"},
-    {4,"entlang +Z"},
-    {5,"entlang -X"},
-    {6,"entlang -Y"},
-    {7,"entlang -Z"},
-    {8,"in Richtung Ursprung"},
-    {9,"in Richtung "},
-    {distance,"Abstand"},
+    {2,"Entlang +X"},
+    {3,"Entlang +Y"},
+    {4,"Entlang +Z"},
+    {5,"Entlang -X"},
+    {6,"Entlang -Y"},
+    {7,"Entlang -Z"},
+    {8,"In Richtung Ursprung"},
+    {9,"In Richtung "},
+    {distance,"Distanz"},
     {from,"Von"}
    ]},
   {views,
    [
-    {1,"Ansicht ist bereits die aktuelle Ansicht"},
+    {1,"Diese Ansicht ist bereits die aktuelle"},
     {2,"Keine gespeicherten Ansichten"},
     {3,"Ansicht umbenennen"},
     {4,"Sie müssen in der aktuellen Ansicht sein"},
@@ -3093,35 +3468,11 @@
    ]},
   {views_jump,
    [
-    {1,"Ansicht existiert nicht"}
-   ]},
-  {views_jumpmenu,
-   [
-    {1,"Springe zu"},
-    {2,"Keine gespeicherten Ansichten!"},
-    {3,"Springe zu vorigen ["},
-    {5,"Springe zu aktuellen ["},
-    {7,"Springe zur nächsten ["},
-    {9,"Spring zu ["},
-    {11,"Springe zu"}
+    {1,"Kein solcher Ansichtsslot"}
    ]},
   {views_move,
    [
-    {1,"Ansicht existiert nicht: ["}
-   ]},
-  {views_movemenu,
-   [
-    {1,"Aktuelle verschieben"},
-    {2,"Keine gespeicherten Ansichten!"},
-    {3,"Verschiebe \""},
-    {5,"] zur Vorherigen ["},
-    {7,"Verschiebe \""},
-    {9,"] nirgendwohin"},
-    {10,"Verschiebe \""},
-    {12,"] zur Nächsten ["},
-    {14,"Verschiebe \""},
-    {16,"] nach ["},
-    {18,"Aktuelle verschieben"}
+    {1,"Keine solche Ansicht ["}
    ]},
   {views_rename_qs,
    [
@@ -3129,66 +3480,94 @@
    ]},
   {views_save_dialog,
    [
-    {1,"Ansicht speichern als"}
+    {1,"Ansicht speichern unter"}
    ]},
   {views_submenu,
    [
     {1,"Nächste"},
-    {2,"Aktuelle"},
+    {2,"Aktuell"},
     {3,"Vorherige"},
-    {4,"Speichern"},
-    {5,"Ansicht speichern in "},
-    {7,"Umbenennen..."},
+    {4,"Speichern..."},
     {8,"Löschen"},
-    {9,"Alle löschen..."}
-   ]},
-  {views_submenu_help,
-   [
-    {1,"Keine gespeicherten Ansichten!"},
-    {2,"Springe zu \""},
-    {5,"Umbenennen \""},
-    {8,"Löschen \""},
-    {11,"Alle gespeicherten Ansichten löschen"}
+    {11,"Kamera zu nächster Ansicht verschieben"},
+    {12,"Kamera zu aktueller Ansicht verschieben"},
+    {13,"Kamera zu aktueller Ansicht verschieben"},
+    {14,"Diese Ansicht speichern"},
+    {18,"Die aktuelle Ansicht löschen"}
    ]},
   {virtual_mirror,
    [
-    {1,"Für einen virtuellen Spiegel muss eine Fläche ausgewählt sein."}
+    {1,"Virtueller Spiegel erforder eine Flächenauswahl."}
    ]},
   {virtual_mirror_fun,
    [
-    {1,"Pro Objekt darf nur eine Fläche ausgewählt sein"}
+    {1,"Nur eine einzelne Fläche darf pro Objekt ausgewählt sein"}
    ]}
  ]}.
 {wings_we,
  [
   {all_soft,
    [
-    {1,"vorbereiten"},
-    {2,"sammeln"}
+    {1,"wird vorbereitet"},
+    {2,"wird gesammelt"}
    ]},
   {mixed_edges,
    [
     {1,"vorbereiten"},
-    {2,"Knoten Normalen"},
-    {3,"Knoten Normalen je Fläche"}
+    {2,"Vertex-Normalen"},
+    {3,"Vertex-Normalen pro Fläche"}
    ]},
   {normals_2,
    [
-    {1,"Weiche Normalen berechnen"}
+    {1,"Weiche Normalen werden berechnet"}
    ]}
  ]}.
-{wings_wm,
+{wings_wm_menu,
  [
-  {message_event,
+  {handle_key_event,
    [
-    {1,"Dies ist die Informationszeile"}
+    {1,"This key is already bound to the "},
+    {2," Befehl. Wollen Sie ihn neu definieren?"}
+   ]},
+  {help_text_1,
+   [
+    {1," Untermenü"}
+   ]},
+  {hotkey_delete_dialog,
+   [
+    {1,"Hotkeys löschen"}
+   ]},
+  {hotkey_key_message,
+   [
+    {1,"Press the key to bind the \""},
+    {2,"\" command to."}
+   ]},
+  {hotkey_mouse_message,
+   [
+    {1,"Click a mouse button to choose command to bind"}
+   ]},
+  {magnet_help,
+   [
+    {2,"Klicken für Magnet"}
+   ]},
+  {mk_dialog,
+   [
+    {1,"Alle Hotkeys prüfen, die gelöscht werden."}
+   ]},
+  {norm_help_adv,
+   [
+    {1,"Optionsdialog öffnen"}
+   ]},
+  {normalize_menu,
+   [
+    {1,"Mehr..."}
    ]}
  ]}.
 {wings_wm_toplevel,
  [
   {close_event,
    [
-    {1,"Fenster schließen"}
+    {1,"Dieses Fenster schließen"}
    ]},
   {ctrl_command,
    [
@@ -3199,12 +3578,12 @@
   {ctrl_menu,
    [
     {1,"Anpassen"},
-    {2,"Beide"},
-    {3,"Fenster nutzt verfügbaren Platz durch ausdehnen in alle alle Richtungen"},
+    {2,"Beides"},
+    {3,"Fenster verwendet allen verfügbaren Raum durch Erweitern in alle Richtungen"},
     {4,"Horizontal"},
-    {5,"Fenster nutzt verfügbaren Platz durch horizontales ausdehnen"},
+    {5,"Fenster verwendet allen verfügbaren Raum durch horizontales Erweitern"},
     {6,"Vertikal"},
-    {7,"Fenster nutzt verfügbaren Platz durch vertikales ausdehnen"},
+    {7,"Fenster verwendet allen verfügbaren Raum durch vertikales Erweitern"},
     {8,"Größe"},
     {9,"Fenstergröße numerisch festlegen"}
    ]},
@@ -3217,42 +3596,50 @@
    ]},
   {ctrl_message,
    [
-    {1,"Verschieben durch ziehen"},
+    {1,"Ziehen zum Verschieben"},
     {2,"Anpassen"},
-    {3,"Menü anzeigen"}
+    {3,"Menü zeigen"},
+    {4,"Klicken, um Fenster zu zeigen"},
+    {5,"Klicken, to rollup window into titlebar"},
+    {6,"Klicken, um Geometriefenster nach vorne zu bringen"},
+    {7,"Klicken, um Geometriefenster nach hinten zu senden"}
    ]},
   {ctrl_resize,
    [
-    {1,"Zu große Fenstergröße angegeben"}
+    {1,"Größe zu groß spezifiziert"}
    ]},
   {resize_event,
    [
-    {1,"Größe ändern"},
-    {2,"Größe ändern, Seitenverhältnis beibehalten"}
+    {1,"Größe verändern"},
+    {2,"Größe verändern, aktuelles Seitenverhältnis beibehalten"}
    ]}
  ]}.
 {wpa,
  [
   {dialog_template,
    [
-    {1,"Y und Z Achse tauschen"},
-    {6,"Unterteilungsschritte"},
-    {7,"Standard Dateityp für Texturen"},
-    {color,"Knoten-Farben exportieren"},
+    {1,"Tauschen Y- und Z-Achse"},
+    {6,"Subdivision-Schritte"},
+    {7,"Standardtextur-Dateityp"},
+    {color,"Vertex-Farben exportieren"},
     {norms,"Normalen-/Glättungs-Gruppen exportieren"},
-    {tess,"Parkettierung"},
+    {tess,"Tesselation"},
     {tess0,"Keine"},
     {tess3,"Triangulation"},
     {tess4,"Quadrangulation"},
-    {uv,"UV Koordinaten exportieren"}
+    {units,"Einheiten"},
+    {units0,"Zentimeter"},
+    {units1,"Decimeter"},
+    {units2,"Meter"},
+    {uv,"UV-Koordinaten exportieren"}
    ]},
   {do_import,
    [
-    {1,"lese Datei"}
+    {1,"Datei wird eingelesen"}
    ]},
   {export_scale_s,
    [
-    {1,"Export Skalierung"}
+    {1,"Skalierung exportieren"}
    ]},
   {export_selected,
    [
@@ -3268,6 +3655,6 @@
    ]},
   {import_scale_s,
    [
-    {1,"Import Skalierung"}
+    {1,"Skalierung importieren"}
    ]}
  ]}.
