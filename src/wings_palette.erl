@@ -34,7 +34,7 @@
 
 -define(BORD, 2).
 
--record(state, {self, frame, win, sz, bsz, cols, timer, empty}).
+-record(state, {self, win, sz, bsz, cols, timer, empty}).
 
 -behaviour(wx_object).
 
@@ -75,12 +75,14 @@ create_window(Pos0, Size, Ps, St) ->
     Pos = wxWindow:clientToScreen(Frame, Pos0),
     Window = wx_object:start_link(?MODULE, [Frame, Pos, Size, Ps, Cols], []),
     wings_wm:new(palette, Window, {push,change_state(Window, St)}),
+
     F = fun({color,_}) -> yes;
 	   ({material, _}) -> yes;
 	   (_) -> no
 	end,
     wings_wm:set_prop(palette, drag_filter, F),
     wings_wm:set_dd(palette, geom_display_lists),
+    wings_frame:register_win(Window),
     keep.
 
 change_state(Window, St) ->
@@ -262,8 +264,7 @@ init([Parent, Pos, Size = {W,_}, _Ps, Cols0]) ->
 	wxWindow:destroy(Tmp),
 	{ColsW,ColsH} = calc_size(Cols0,W,BW,false),
 	%% io:format("Init Size ~p => ~p~n",[BSz, {ColsW, ColsH}]),
-	FStyle = {style, ?wxCAPTION bor ?wxCLOSE_BOX bor ?wxRESIZE_BORDER},
-	Frame = wxMiniFrame:new(Parent, ?wxID_ANY, title(), [FStyle, {pos, Pos}]),
+	Frame = wings_frame:make_external_win(Parent, title(), [{pos, Pos}]),
 	wxWindow:setClientSize(Frame, Size),
 	Win = wxScrolledWindow:new(Frame),
 	Sz = wxGridSizer:new(ColsW, [{vgap, ?BORD},{hgap, ?BORD}]),
@@ -278,9 +279,8 @@ init([Parent, Pos, Size = {W,_}, _Ps, Cols0]) ->
 	wxWindow:connect(Win, size, [{skip, true}]),
 	wxFrame:connect(Frame, activate),
 	wxFrame:show(Frame),
-	{Frame, #state{self=self(),
-		       frame=Frame, win=Win, sz=Sz,
-		       cols=Cols, bsz=BSz, empty=Empty}}
+	{Win, #state{self=self(), win=Win, sz=Sz,
+		     cols=Cols, bsz=BSz, empty=Empty}}
     catch _:Reason ->
 	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, erlang:get_stacktrace()])
     end.
@@ -451,8 +451,8 @@ handle_cast({new_state, StColors},
     lists:foldl(Update, 1, Cols),
     {noreply, State#state{cols=Cols}};
 
-handle_cast(Req, State) ->
-    io:format("~p:~p Got unexpected cast ~p~n", [?MODULE,?LINE, Req]),
+handle_cast(_Req, State) ->
+    %% io:format("~p:~p Got unexpected cast ~p~n", [?MODULE,?LINE, _Req]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -475,8 +475,8 @@ handle_info(Msg, State) ->
 code_change(_From, _To, State) ->
     State.
 
-terminate(_Reason, #state{frame=Frame}) ->
-    wxFrame:destroy(Frame),
+terminate(_Reason, _) ->
+    io:format("terminate: ~p (~p)~n",[?MODULE, _Reason]),
     wings ! {external, fun(_) -> wings_wm:delete(palette) end},
     normal.
 

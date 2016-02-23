@@ -130,7 +130,7 @@ code_change() -> req(code_change).
 
 do_window(Name, _Ps) ->
     {ok, Window} = req({window, wings_io:get_process_option(), []}),
-    wings_wm:new(Name, Window, {push, fun(_) -> keep end}).
+    wings_wm:new(Name, Window).
 
 %%% I/O server ----------------------------------------------------------------
 
@@ -304,7 +304,7 @@ put_chars_1([Line|NLs], Lines, Cnt, Save) ->
 %%% Wings console requests
 %%%
 
-wings_console_event(State, #wx{event=#wxClose{}}) ->
+wings_console_event(State, #wx{event=#wxWindowDestroy{}}) ->
     wings ! {external, fun(_) -> wings_wm:delete(?WIN_NAME) end},
     State#state{win=undefined, ctrl=undefined};
 wings_console_event(#state{ctrl=Ctrl} = State, #wx{event=#wxSize{size={W0,H0}}}) ->
@@ -358,9 +358,7 @@ wc_open_window(#state{lines=Lines}=State, Opts) ->
 	      undefined -> {-1, -1};
 	      SavedPos -> SavedPos
 	  end,
-    FStyle = ?wxCAPTION bor ?wxCLOSE_BOX bor ?wxRESIZE_BORDER,
-    Win = wxMiniFrame:new(?GET(top_frame), ?wxID_ANY, Title,
-			  [{size, Size}, {pos, Pos}, {style, FStyle}]),
+    Win = wings_frame:make_external_win(?GET(top_frame), Title, [{size, Size}, {pos, Pos}]),
     TStyle = ?wxTE_MULTILINE bor ?wxTE_READONLY bor ?wxTE_RICH2,
     Ctrl = wxTextCtrl:new(Win, ?wxID_ANY, [{style, TStyle}]),
 
@@ -369,9 +367,10 @@ wc_open_window(#state{lines=Lines}=State, Opts) ->
     wxWindow:setForegroundColour(Ctrl, wings_color:rgb4bv(wings_pref:get_value(console_text_color))),
     wxTextCtrl:appendText(Ctrl, [[Line,$\n] || Line <- queue:to_list(Lines)]),
     wxFrame:show(Win),
-    wxFrame:connect(Win, close_window, [{skip, true}]),
-    wxFrame:connect(Win, size, [{skip, true}]),
-    {State#state{win=Win, ctrl=Ctrl}, {ok, Win}}.
+    wxWindow:connect(Ctrl, destroy, [{skip, true}]),
+    wxFrame:connect(Ctrl, size, [{skip, true}]),
+    wings_frame:register_win(Ctrl),
+    {State#state{win=Win, ctrl=Ctrl}, {ok, Ctrl}}.
 
 %%% Other support functions
 %%%
