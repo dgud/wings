@@ -12,7 +12,7 @@
 %%
 
 -module(wings_image_viewer).
--export([new/1, new/2]).
+-export([new/2, new/3]).
 
 %% Internal exports
 -export([init/1, terminate/2, code_change/3,
@@ -26,62 +26,62 @@
 
 %%%%%%%% API %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-new(Image) -> new(Image, []).
+new(WinName, Image) -> new(WinName, Image, []).
 
-new(E3d=#e3d_image{name=Name}, Opts) ->
-    new(wings_image:e3d_to_wxImage(E3d),
+new(WinName, E3d=#e3d_image{name=Name}, Opts) ->
+    new(WinName, wings_image:e3d_to_wxImage(E3d),
 	[{name,Name}, destroy_after|Opts]);
-new(Filename, Opts) when is_list(Filename) ->
+new(WinName, Filename, Opts) when is_list(Filename) ->
     BlockWxMsgs = wxLogNull:new(),
     Img = wxImage:new(Filename),
     true = wxImage:ok(Img), %% Assert
     wxLogNull:destroy(BlockWxMsgs),
-    new(Img, [{name,Filename}, destroy_after|Opts]);
-new(Image, Opts) ->
+    new(WinName, Img, [{name,Filename}, destroy_after|Opts]);
+new(WinName, Image, Opts) ->
     wxImage = wx:getObjectType(Image), %% Assert
-    Parent = case get(top_frame) of
+    Parent = case ?GET(top_frame) of
 		 undefined -> wx:null();
 		 TopFrame -> TopFrame
 	     end,
-    Frame = wx_object:start_link(?MODULE, [Parent, Image, Opts], []),
-    wxFrame:show(Frame),
-    Frame.
+    Window = wx_object:start_link(?MODULE, [Parent, WinName, Image, Opts], []),
+    wings_frame:register_win(Window),
+    wings_wm:new(WinName, Window),
+    keep.
 
 
 %%%%%%%% Progress bar internals %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--record(state, {frame, panel, bitmap, bgb, scale=1.0, menu, origo={0,0}, prev}).
+-record(state, {panel, ref, bitmap, bgb, scale=1.0, menu, origo={0,0}, prev}).
 
-init([Parent, Image, Opts]) ->
+init([Parent, Ref, Image, Opts]) ->
     Name = proplists:get_value(name, Opts, ""),
     H0 = wxImage:getHeight(Image),
     W0 = wxImage:getWidth(Image),
     Title = lists:flatten(io_lib:format(?__(1,"Image: ~s [~wx~w]"),[Name,W0,H0])),
-    Frame = wxFrame:new(Parent, -1, Title,
-			[{size,{min(800,max(200,W0+100)), min(600,max(150,H0+100))}}]),
+    Size = {size,{min(800,max(200,W0+100)), min(600,max(150,H0+100))}},
+    Frame = wings_frame:make_external_win(Parent, Title, [Size]),
     Panel = wxPanel:new(Frame, [{style, ?wxFULL_REPAINT_ON_RESIZE}]),
 
-    wxPanel:connect(Panel, paint, [callback]),
-    wxPanel:connect(Panel, erase_background), %% WIN32 only?
+    BM = wxBitmap:new(Image),
+    proplists:get_value(destroy_after, Opts, false)
+	andalso wxImage:destroy(Image),
+    BGB = wxBrush:new({200,200,200}, [{style, ?wxCROSS_HATCH}]),
 
     wxPanel:connect(Panel, mousewheel),
     wxPanel:connect(Panel, right_up),
     wxPanel:connect(Panel, left_down),
     wxPanel:connect(Panel, motion),
-
-    BM = wxBitmap:new(Image),
-    proplists:get_value(destroy_after, Opts, false)
-	andalso wxImage:destroy(Image),
-
-    wxFrame:createStatusBar(Frame),
-    wxFrame:setStatusText(Frame, io_lib:format("Scale: ~w%", [100])),
-    BGB = wxBrush:new({200,200,200}, [{style, ?wxCROSS_HATCH}]),
-    {Frame, #state{frame=Frame, panel=Panel, bitmap=BM, bgb=BGB}}.
+    wxPanel:connect(Panel, erase_background), %% WIN32 only?
+    wxPanel:connect(Panel, paint, [callback]),
+    %% wxFrame:createStatusBar(Frame),
+    %% wxFrame:setStatusText(Frame, io_lib:format("Scale: ~w%", [100])),
+    wxFrame:show(Frame),
+    {Panel, #state{ref=Ref, panel=Panel, bitmap=BM, bgb=BGB}}.
 
 -define(wxGC, wxGraphicsContext).
 
 handle_sync_event(#wx{obj=Panel, event=#wxPaint{}}, _,
-		  #state{frame=Frame, bitmap=Image, bgb=BGB, scale=Scale, origo={X,Y}}) ->
+		  #state{bitmap=Image, bgb=BGB, scale=Scale, origo={X,Y}}) ->
     DC = case os:type() of
 	     {win32, _} -> %% Flicker on windows
 	     	 wx:typeCast(wxBufferedPaintDC:new(Panel), wxPaintDC);
@@ -102,7 +102,7 @@ handle_sync_event(#wx{obj=Panel, event=#wxPaint{}}, _,
     ?wxGC:scale(GC, Scale, Scale),
     ?wxGC:drawBitmap(GC, Image, 0,0, W,H),
     wxPaintDC:destroy(DC),
-    wxFrame:setStatusText(Frame, io_lib:format("Scale: ~w%", [round(Scale*100.0)])),
+    %% wxFrame:setStatusText(Frame, io_lib:format("Scale: ~w%", [round(Scale*100.0)])),
     ok.
 
 handle_event(#wx{event=#wxMouse{type=mousewheel, wheelRotation=Rot}},
@@ -147,16 +147,18 @@ handle_event(#wx{event=#wxMouse{type=left_down,x=X,y=Y}}, State) ->
 handle_event(#wx{event=#wxErase{}}, State) ->
     {noreply, State}.
 
-handle_call(Req, _From, State) ->
-    {reply, {error, Req}, State}.
+handle_call(_Req, _From, State) ->
+    {reply, keep, State}.
 
-handle_cast(_, State) -> State.
+handle_cast(_, State) -> {noreply, State}.
 
-handle_info(_, State) -> State.
+handle_info(_, State) -> {noreply, State}.
 
 code_change(_, _, State) -> State.
 
-terminate(_, #state{bgb=BGB, bitmap=BM}) ->
+terminate(_Reason, #state{ref=Ref, bgb=BGB, bitmap=BM}) ->
+    %%    io:format("terminate: ~p (~p)~n",[?MODULE, _Reason]),
+    wings ! {external, fun(_) -> wings_wm:delete(Ref) end},
     wxBitmap:destroy(BM),
     wxBrush:destroy(BGB),
     ok.

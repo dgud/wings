@@ -231,7 +231,7 @@ new(Name, {X,Y,Z0}, {W,H}, Op) when is_integer(X), is_integer(Y),
     dirty().
 
 new(Name, Obj) ->
-    new(Name, Obj, {push, default_object_event(Obj)}).
+    new(Name, Obj, {push, fun(_Ev) -> keep end}).
 
 new(Name, Obj, Op) when element(1, Obj) =:= wx_ref ->
     Stk = handle_response(Op, dummy_event, default_stack(Name)),
@@ -263,7 +263,13 @@ delete(Name) ->
 
 delete_windows(Name, W0) ->
     case gb_trees:lookup(Name, W0) of
-	none -> W0;
+	none when element(1, Name) =:= wx_ref ->
+	    case wx2win(Name, W0) of
+		false -> W0;
+		#win{name=WName} -> delete_windows(WName, W0)
+	    end;
+	none ->
+	    W0;
 	{value,#win{links=Links}} ->
 	    delete_props(Name),
 	    This = this(),
@@ -422,6 +428,13 @@ is_wxwindow(Name) ->
 	false ->
 	    false
     end.
+
+%% wx2win(Obj) ->
+%%     wx2win(Obj, get(wm_windows)).
+
+wx2win(Obj, W0) ->
+    All = gb_trees:values(W0),
+    lists:keyfind(Obj, #win.obj, All).
 
 offset(Name, Xoffs, Yoffs) ->
     update_window(Name, [{dx,Xoffs},{dy,Yoffs}]).
@@ -1015,11 +1028,6 @@ next_handler(Event, [_|[Next|_]=Stk]) ->
 
 defer_to_next_handler(Event, [Top|[Next|_]=Stk]) ->
     [Top|handle_event(Next, Event, Stk)].
-
-default_object_event(Object) ->
-    fun(Ev) ->
-	    wx_object:call(Object, Ev)
-    end.
 
 default_stack(Name) ->
     Handler = fun({crash,Crash}) ->
