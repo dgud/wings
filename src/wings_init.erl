@@ -40,9 +40,12 @@ connect_events() ->
     connect_events(?GET(gl_canvas)).
 
 connect_events(Canvas) ->
+    %% Re-attaches the OpenGL Context to Window when is [re] created/showed
+    wxWindow:connect(Canvas, create, [{callback, fun(_, _) -> wxGLCanvas:setCurrent(Canvas) end}]),
+    wxWindow:connect(Canvas, show, [{callback, fun(_, _) -> wxGLCanvas:setCurrent(Canvas) end}]),
     case os:type() of
 	{unix, _} ->
-	    %% wxWindow:connect(Canvas, paint, [skip]); No need active does this
+	    wxWindow:connect(Canvas, paint, [{skip, true}]),
 	    ok;
 	{win32, _} ->
 	    wxWindow:connect(Canvas, paint, [{callback, fun redraw/2}]),

@@ -278,6 +278,17 @@ read_events(Eq0, Prev, Wait) ->
 	    read_events(q_in(Ev, q_in(Prev, Eq0)), undefined, 0);
 	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
 	    {Event, q_in(Prev, Eq0)};
+	{lock, Pid} -> %% Order ?
+	    Pid ! {locked, self()},
+	    F = fun GetUnlock () ->
+			receive {unlock, Pid, Fun} -> Fun()
+			after 2000 ->
+				io:format("~p: waiting for unlock from ~p~n", [self(), Pid]),
+				GetUnlock()
+			end
+		end,
+	    F(),
+	    read_events(Eq0, Prev, 0);
 	External ->
 	    read_events(q_in(External, q_in(Prev, Eq0)), undefined, 0)
     after Wait ->
