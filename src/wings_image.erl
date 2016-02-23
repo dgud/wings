@@ -712,7 +712,7 @@ window(Id) ->
 	true ->
 	    wings_wm:raise(Name);
 	false ->
-	    wings_image_viewer:new(info(Id)),
+	    wings_image_viewer:new(Name, info(Id)),
 	    keep
     end.
 

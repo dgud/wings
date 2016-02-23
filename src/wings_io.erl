@@ -27,6 +27,7 @@
 	 get_process_option/0,set_process_option/1,
 
 	 batch/1, foreach/2,
+	 lock/1, unlock/2, lock/2, lock/3,
 
 	 blend/2,
 	 border/5,border/6,border_only/4,border_only/5,
@@ -78,6 +79,41 @@ get_process_option() ->
 
 set_process_option(Opts) ->
     ?BACKEND_MOD:set_process_option(Opts).
+
+lock(Pid, Fun) ->
+    lock(Pid, Fun, fun() -> ok end).
+
+lock(Pid, Fun, Other) when is_function(Fun), is_function(Other) ->
+    lock(Pid),
+    try Fun()
+    after
+	unlock(Pid, Other)
+    end.
+
+lock(Pid) when is_pid(Pid) ->
+    case self() == Pid of
+	true -> error(locking_self);
+	false ->
+	    Monitor = erlang:monitor(process, Pid),
+	    Pid ! {lock, self()},
+	    F = fun GetLock () ->
+			receive
+			    {locked, Pid} ->
+				erlang:demonitor(Monitor, [flush]),
+				ok;
+			    {'DOWN',Monitor, _,_,_} ->
+				ok
+			after 2000 ->
+				io:format("~p: Can not lock ~p~n", [self(), Pid]),
+				GetLock()
+			end
+		end,
+	    F()
+    end.
+
+unlock(Pid, Fun) ->
+    Pid ! {unlock, self(), Fun},
+    ok.
 
 %% Batch processing
 foreach(Fun, List) ->
