@@ -558,6 +558,7 @@ update_menu(file, Item = {recent_file, _}, delete, _) ->
     FileId = predefined_item(menu, file),
     [#menu_entry{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),
     true = wxMenu:delete(File, Id),
+    ets:delete(wings_menus, Id),
     ok;
 update_menu(Menu, Item, Cmd0, Help) ->
     Id = menu_item_id(Menu, Item),
