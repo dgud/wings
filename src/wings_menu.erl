@@ -65,6 +65,8 @@ is_popup_event(#mousebutton{button=3,x=X0,y=Y0,state=?SDL_RELEASED,mod=Mod}) ->
     {yes,X,Y,Mod};
 is_popup_event(#wx{obj=Win, event=#wxMouse{type=right_up, x=X0, y=Y0}}) ->
     {yes, wxWindow:clientToScreen(Win, X0, Y0)};
+is_popup_event(#wx{event=#wxCommand{type=command_right_click}}) ->
+    {yes, wx_misc:getMousePosition()};
 is_popup_event(_Event) ->
     no.
 
