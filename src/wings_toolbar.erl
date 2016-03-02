@@ -58,10 +58,9 @@ button_sh_filter(edge, true) -> true;
 button_sh_filter(face, true) -> true;
 button_sh_filter(_, _) -> false.
 
-init(Frame, RawIcons) ->
+init(Frame, Icons) ->
     wxSystemOptions:setOption("msw.remap", 2),
     TB = wxFrame:createToolBar(Frame),
-    Icons = binary_to_term(RawIcons),
     Bs = [make_bitmap(B, Icons) || B <- buttons()],
     Tools = case wings_pref:get_value(extended_toolbar) of
 		true -> Bs;
@@ -115,24 +114,20 @@ icon_name(show_groundplane) -> groundplane;
 icon_name(show_axes) -> axes;
 icon_name(Name) -> Name.
 
-make_bitmap(#{name:=Name,art:=undefined}=B, RawIcons) ->
-    {_,{Bpp, W, H, Bin0}} = lists:keyfind(icon_name(Name), 1, RawIcons),
-    {Colors, Alpha} = setup_image(Bin0, Bpp, W),
-    Image = wxImage:new(W,H,Colors, [{static_data, true}]),
-    wxImage:setAlpha(Image, Alpha, [{static_data, true}]),
+make_bitmap(#{name:=Name,art:=undefined}=B, Imgs) ->
+    {_,_,Image} = lists:keyfind(icon_name(Name), 1, Imgs),
     Bm = wxBitmap:new(Image),
     true = wxBitmap:ok(Bm),
-    wxImage:destroy(Image),
     B#{bm=>Bm};
-make_bitmap(#{art:=Art}=B, RawIcons) ->
+make_bitmap(#{art:=Art}=B, Images) ->
     BM = wxArtProvider:getBitmap(Art, [{client, "wxART_TOOLBAR"}]),
     case BM == ?wxNullBitmap of
 	true -> %% Load our backup bitmap
-	    make_bitmap(B#{art:=undefined}, RawIcons);
+	    make_bitmap(B#{art:=undefined}, Images);
 	false ->
 	    B#{bm=>BM}
     end;
-make_bitmap(separator, _RawIcons) -> separator.
+make_bitmap(separator, _Images) -> separator.
 
 add_tools(separator, TB) ->
     wxToolBar:addStretchableSpace(TB);
@@ -154,33 +149,6 @@ add_tools(#{id:=Id, bm:=BM, type:=Type, name:=Tool}, TB) ->
 
 button_kind(toggle) -> ?wxITEM_CHECK;
 button_kind(normal) -> ?wxITEM_NORMAL.
-
-%% FIXME when icons are fixed
-%% Poor mans version of alpha channel
-setup_image(Bin0, 3, Width) ->
-    RowLen = 3*Width,
-    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RowLen/binary>> <= Bin0])),
-    rgb3(Bin, <<>>, <<>>);
-setup_image(Bin0, 4, Width) ->
-    RowLen = 4*Width,
-    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RowLen/binary>> <= Bin0])),
-    rgb4(Bin, <<>>, <<>>).
-
-rgb3(<<8684676:24, Rest/binary>>, Cs, As) ->
-    rgb3(Rest, <<Cs/binary, 8684676:24>>, <<As/binary, 0:8>>);
-rgb3(<<R:8,G:8,B:8, Rest/binary>>, Cs, As) ->
-    A0 = abs(R-132)/123,
-    A1 = abs(G-132)/123,
-    A2 = abs(B-132)/123,
-    A = trunc(255*min(1.0, max(max(A0,A1),A2))),
-    rgb3(Rest, <<Cs/binary, R:8, G:8, B:8>>, <<As/binary, A:8>>);
-rgb3(<<>>, Cs, As) ->
-    {Cs,As}.
-
-rgb4(<<C:24, A:8, R/binary>>, Cs, As) ->
-    rgb4(R, <<Cs/binary, C:24>>, <<As/binary, A:8>>);
-rgb4(<<>>, Cs, As) ->
-    {Cs,As}.
 
 button_help(Tool) ->
     button_help_2(icon_name(Tool), undecided).
