@@ -11,7 +11,7 @@
 
 -module(wings_frame).
 
--export([top_menus/0, make_external_win/3, register_win/1]).
+-export([top_menus/0, make_external_win/3, register_win/1, get_icon_images/0]).
 
 -export([start/1, forward_event/1]).
 
@@ -49,13 +49,22 @@ top_menus() ->
      {?__(5,"Tools"), tools, wings:tools_menu()},
      {?__(6,"Window"),window,wings:window_menu()}|Tail].
 
-make_external_win(Parent, Title, Opts) ->
+make_external_win(Parent, Title, Opts0) ->
     FStyle = {style, ?wxCAPTION bor ?wxCLOSE_BOX bor ?wxRESIZE_BORDER},
-    wxMiniFrame:new(Parent, ?wxID_ANY, Title, [FStyle|Opts]).
+    {Size, Opts} = case lists:keytake(size, 1, Opts0) of
+		       {value, {size, Sz}, Os} -> {Sz, Os};
+		       false  -> {false, Opts0}
+		   end,
+    Frame = wxMiniFrame:new(Parent, ?wxID_ANY, Title, [FStyle|Opts]),
+    Size =/= false andalso wxWindow:setClientSize(Frame, Size),
+    Frame.
 
 register_win(Window) ->
     Frame = wx:typeCast(wxWindow:getParent(Window), wxMiniFrame),
     wx_object:call(?MODULE, {new_window, Frame, Window}).
+
+get_icon_images() ->
+    wx_object:call(?MODULE, get_images).
 
 %%%%%%%% Internals %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Inside wings (process)
@@ -91,11 +100,12 @@ start_file(File0) ->
 %% Window in new (frame) process %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--record(state, {toolbar, windows, overlay}).
+-record(state, {toolbar, windows, overlay, images}).
 -record(split, {obj, mode, w1, w2}).
 
 init(_Opts) ->
     try
+	process_flag(trap_exit, true),
 	wings_pref:set_default(window_size, {780,570}),
 	TopSize = wings_pref:get_value(window_size),
 	Frame = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
@@ -109,8 +119,8 @@ init(_Opts) ->
 	Canvas = wings_init:create(win(Top)),
 	wxSplitterWindow:initialize(win(Top), Canvas),
 	?SET(gl_canvas, Canvas),
-	Icons = wings_io:read_icons(),
-	Toolbar = wings_toolbar:init(Frame, Icons),
+	IconImgs = make_icons(),
+	Toolbar = wings_toolbar:init(Frame, IconImgs),
 
 	wxWindow:connect(Frame, close_window),
 	wxWindow:connect(Frame, command_menu_selected, []),
@@ -120,11 +130,10 @@ init(_Opts) ->
 	init_menubar(Frame),
 	%% Must be shown to initialize OpenGL context.
 	receive #wx{obj=Frame, event=#wxShow{}} -> ok end,
-	put(raw_icons, Icons), %% Do not want it in the state (large crashdumps while debugging)
 	Wins = #{frame=>Frame, ch=>Top#split{w1=Canvas}, szr=>Sizer,
 		 loose=>#{}, action=>undefined, op=>undefined},
 	Overlay = overlay_frame(Frame),
-	{Frame, #state{toolbar=Toolbar, windows=Wins, overlay=Overlay}}
+	{Frame, #state{toolbar=Toolbar, images=IconImgs, windows=Wins, overlay=Overlay}}
     catch _:Reason ->
 	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, erlang:get_stacktrace()])
     end.
@@ -165,6 +174,9 @@ handle_call({new_window, Frame, Panel}, _From,
 	    #state{windows=Wins=#{loose:=Loose}}=State) ->
     wxWindow:connect(Frame, move),
     {reply, ok, State#state{windows=Wins#{loose:=Loose#{Frame => Panel}}}};
+
+handle_call(get_images, _From, #state{images=Icons} = State) ->
+    {reply, Icons, State};
 
 handle_call(Req, _From, State) ->
     io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, Req]),
@@ -210,6 +222,7 @@ code_change(_From, _To, State) ->
     State.
 
 terminate(_Reason, #state{windows=#{frame:=Frame}}) ->
+    io:format("~p: terminate: ~p~n",[?MODULE, _Reason]),
     catch wxFrame:destroy(Frame),
     normal.
 
@@ -673,6 +686,42 @@ macosx_workaround() ->
 zero() ->
     0.0.
 
+%% Returns a list of wxImages
+make_icons() ->
+    MakeImage = fun({Name, {Bpp, W, H, Bin0}}) ->
+			{Colors, Alpha} = setup_image(Bin0, Bpp, W),
+			Image = wxImage:new(W,H,Colors),
+			wxImage:setAlpha(Image, Alpha),
+			{Name, {W,H}, Image}
+		end,
+    [MakeImage(Raw) || Raw <- binary_to_term(wings_io:read_icons())].
+
+%% FIXME when icons are fixed
+%% Poor mans version of alpha channel
+setup_image(Bin0, 3, Width) ->
+    RowLen = 3*Width,
+    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RowLen/binary>> <= Bin0])),
+    rgb3(Bin, <<>>, <<>>);
+setup_image(Bin0, 4, Width) ->
+    RowLen = 4*Width,
+    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RowLen/binary>> <= Bin0])),
+    rgb4(Bin, <<>>, <<>>).
+
+rgb3(<<8684676:24, Rest/binary>>, Cs, As) ->
+    rgb3(Rest, <<Cs/binary, 8684676:24>>, <<As/binary, 0:8>>);
+rgb3(<<R:8,G:8,B:8, Rest/binary>>, Cs, As) ->
+    A0 = abs(R-132)/123,
+    A1 = abs(G-132)/123,
+    A2 = abs(B-132)/123,
+    A = trunc(255*min(1.0, max(max(A0,A1),A2))),
+    rgb3(Rest, <<Cs/binary, R:8, G:8, B:8>>, <<As/binary, A:8>>);
+rgb3(<<>>, Cs, As) ->
+    {Cs,As}.
+
+rgb4(<<C:24, A:8, R/binary>>, Cs, As) ->
+    rgb4(R, <<Cs/binary, C:24>>, <<As/binary, A:8>>);
+rgb4(<<>>, Cs, As) ->
+    {Cs,As}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Menubar
