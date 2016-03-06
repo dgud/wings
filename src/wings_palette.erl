@@ -131,7 +131,7 @@ get_all_colors(#st{pal=Pal}) ->
     end.
 
 
-do_menu(Id,{X,Y},Cols) ->
+do_menu(Win, Id, Pos, Cols) ->
     Menu = [{?__(1,"Edit"),{'VALUE',{edit,Id}},?__(2,"Edit color")}],
     Smooth = case lists:nth(Id, Cols) of
 		 none ->
@@ -146,7 +146,7 @@ do_menu(Id,{X,Y},Cols) ->
 	    separator,
 	    {?__(11,"Export"), export,?__(12,"Export palette to file")},
 	    {?__(13,"Import"), import,?__(14,"Import palette from file")}],
-    wings_menu:popup_menu(X,Y,palette,Menu ++ Smooth ++ Rest).
+    wings_menu:popup_menu(Win,Pos,palette,Menu ++ Smooth ++ Rest).
 
 write_file(Name, Cols) ->
     case file:open(Name, [write]) of
@@ -322,11 +322,10 @@ handle_event(#wx{id=Id, event=#wxMouse{type=left_up}}, #state{cols=Cols} = State
 	    {noreply, State}
     end;
 
-handle_event(Ev=#wx{id=Id, event=#wxMouse{}}, #state{cols=Cols}=State) ->
+handle_event(Ev=#wx{id=Id, event=#wxMouse{}}, #state{cols=Cols, win=Win}=State) ->
     case wings_menu:is_popup_event(Ev) of
 	{yes, GlobalPos} ->
-	    LocalFramePos = wxWindow:screenToClient(?GET(top_frame), GlobalPos),
-	    wings_wm:psend(palette, {apply, false, fun(_) -> do_menu(Id, LocalFramePos, Cols) end});
+	    wings_wm:psend(palette, {apply, false, fun(_) -> do_menu(Win, Id, GlobalPos, Cols) end});
 	_ ->
 	    io:format("Ignored ~p~n",[Ev]),
 	    ok

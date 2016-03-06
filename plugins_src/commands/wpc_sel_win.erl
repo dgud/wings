@@ -332,8 +332,7 @@ invoke_menu(#state{sel=Indx, lc=LC, shown=Shown, ss=SS}) ->
 	    ignore;
 	Menus ->
 	    Pos = wx_misc:getMousePosition(),
-	    {X,Y} = wxWindow:screenToClient(?GET(top_frame), Pos),
-	    Cmd = fun() -> wings_menu:popup_menu(X,Y, sel_groups, Menus) end,
+	    Cmd = fun() -> wings_menu:popup_menu(LC, Pos, sel_groups, Menus) end,
 	    wings_wm:psend(?WIN_NAME, {apply, false, Cmd})
     end.
 
