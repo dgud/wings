@@ -13,13 +13,16 @@
 %%
 
 -module(wings_shapes).
--export([menu/3,command/2]).
+-export([menu/2, command/2]).
 -include("wings.hrl").
 
 -import(lists, [map/2,seq/2,seq/3]).
 -import(math, [sqrt/1,cos/1,sin/1,pi/0]).
 
-menu(X, Y, _) ->
+menu(Parent, Pos) ->
+    wings_menu:popup_menu(Parent, Pos, shape, menu()).
+
+menu() ->
     Opt = [option],
     Menu0 = [
 	     {sphere,Opt},
@@ -37,8 +40,8 @@ menu(X, Y, _) ->
 	      prim_help(light)},
 	     material,
 	     image],
-    Menu = [prim_trans(Item) || Item <- Menu0],
-    wings_menu:popup_menu(X, Y, shape, Menu).
+    [prim_trans(Item) || Item <- Menu0].
+
 
 prim_trans(separator) ->
     separator;
