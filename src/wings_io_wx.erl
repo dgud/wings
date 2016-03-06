@@ -217,7 +217,7 @@ is_grabbed() ->
     end.
 
 warp(X, Y) ->
-    wxWindow:warpPointer(?GET(top_frame), X, Y).
+    wxWindow:warpPointer(?GET(gl_canvas), X, Y).
 
 %%% Memory
 get_buffer(Size,Type) ->
