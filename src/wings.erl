@@ -915,8 +915,10 @@ command_1({hotkey, Cmd}, St) ->
     wings_hotkey:command(Cmd, St).
 
 
-popup_menu(X, Y, #st{sel=[]}=St) ->
-    wings_shapes:menu(X, Y, St);
+popup_menu(X, Y, #st{sel=[]}) ->
+    Canvas = ?GET(gl_canvas),
+    Pos = wxWindow:clientToScreen(Canvas, {X,Y}),
+    wings_shapes:menu(Canvas, Pos);
 popup_menu(X, Y, #st{selmode=Mode}=St) ->
     case wings_light:is_any_light_selected(St) of
     true -> wings_light:menu(X, Y, St);
