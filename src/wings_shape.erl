@@ -23,7 +23,7 @@
 
 -export([create_folder_system/1,recreate_folder_system/1,update_folders/1,
 	 create_folder/2, rename_folder/3, delete_folder/2, empty_folder/2,
-	 move_to_folder/2, folder_status/2, folder_info/2
+	 move_to_folder/2, move_to_folder/3, folder_status/2, folder_info/2
 	]).
 
 -export([draw_bitmap_16/3,cube_bitmap/0,selcube_bitmap/0,
