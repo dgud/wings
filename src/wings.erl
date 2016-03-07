@@ -809,7 +809,7 @@ command_1({window,geom_viewer}, St) ->
 command_1({window,outliner}, St) ->
     wings_outliner:window(St);
 command_1({window,object}, St) ->
-    wings_shape:window(St);
+    wings_geom_win:window(St);
 command_1({window,palette}, St) ->
     wings_palette:window(St);
 command_1({window,console}, _St) ->
@@ -1674,7 +1674,7 @@ restore_windows_1([{Module,{{plugin,_}=Name,{_,_}=Pos,{_,_}=Size,CtmData}}|Ws], 
     wings_wm:move(Name, Pos, Size),  % ensure the window be placed in the right position *
     restore_windows_1(Ws, St);
 restore_windows_1([{{object,_}=Name,{_,_}=Pos,{_,_}=Size,Ps}|Ws], St) ->
-    wings_shape:window(Name, validate_pos(Pos), Size, Ps, St),
+    wings_geom_win:window(Name, validate_pos(Pos), Size, Ps, St),
     restore_windows_1(Ws, St);
 restore_windows_1([{outliner,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
     wings_outliner:window(validate_pos(Pos), Size, Ps, St),
