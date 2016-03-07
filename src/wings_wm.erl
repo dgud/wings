@@ -20,7 +20,8 @@
 	 later/1,send/2,psend/2, psend/3,send_after_redraw/2,
 	 send_once_after_redraw/2,
 	 set_timer/2,cancel_timer/1,
-	 this/0,offset/3,move/2,move/3,resize/2,pos/1,windows/0,is_window/1, is_wxwindow/1,
+	 this/0,offset/3,move/2,move/3,resize/2,pos/1,windows/0,is_window/1,
+	 is_wxwindow/1,wxwindow/1,
 	 window_below/2,geom_below/2,resize_windows/2,
 	 update_window/2,clear_background/0,
 	 callback/1,current_state/1,get_current_state/0,notify/1,
@@ -428,6 +429,10 @@ is_wxwindow(Name) ->
 	false ->
 	    false
     end.
+
+wxwindow(Name) ->
+    #win{obj=Obj} = get_window_data(Name),
+    Obj.
 
 %% wx2win(Obj) ->
 %%     wx2win(Obj, get(wm_windows)).
