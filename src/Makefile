@@ -71,6 +71,7 @@ MODULES= \
 	wings_ff_ndo \
 	wings_ff_wings \
 	wings_frame \
+	wings_geom_win \
 	wings_gl \
 	wings_glfont \
 	wings_help \
