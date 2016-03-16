@@ -4,6 +4,7 @@
 %%     Functions for reading TrueType fonts (.tt)
 %%
 %%  Copyright (c) 2001-2011 Howard Trickey
+%%         Debug version by tkbd
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -12,7 +13,7 @@
 %%
 
 -module(wpc_tt).
--export([init/0,menu/2,command/2,trygen/3,	% trygen is for debugging
+-export([init/0,menu/2,command/2,trygen/4,	% trygen is for debugging
 	 findpolyareas/1,polyareas_to_faces/1,subdivide_pas/2]). % for ai
 
 -import(lists, [reverse/1,sort/2,keysearch/3,duplicate/2,nthtail/2,
@@ -28,7 +29,7 @@
 	 cmap,				% 256-element tuple, maps char -> glyph
 	 loca,				% (nglyph+1)-element tuple, maps glyph -> offset in glyf
 	 adv,				% nglyph-element tuple: maps glyph -> amount to advance x
-	 glyf}).			% glyf table (binary)
+     glyf}).			% glyf table (binary)
 
 -record(polyarea,
 	{boundary,			%list of cedges (CCW oriented, closed)
@@ -75,40 +76,82 @@ make_text(Ask, St) when is_atom(Ask) ->
 		   _ -> DefFont
 	       end,
 
+    Selfont = wpa:pref_get(wpc_tt, selfont, DefFont),
+
+    Codi = wpa:pref_get(wpc_tt, codi, horizontal), % Writing mode (vertical or horizontal direction)
     Text = wpa:pref_get(wpc_tt, text, "Wings 3D"),
-    Bisect = wpa:pref_get(wpc_tt, bisections, 0),
-    GbtFonts = process_ttfs(FontDir),
-    %% io:format("FontList: ~p\n\n",[gb_trees:to_list(GbtFonts)]),
+    Bisect = wpa:pref_get(wpc_tt, bisections, 1),
+
+    GbtFonts0 = process_ttfs(FontDir,gb_trees:empty()),
+
+
+%% Add MacOSX user installed font data (These fonts locate User/Username/Library/Fonts)
+
+	{_OS,Unix_type} = os:type(),
+	GbtFonts =  case Unix_type of 
+			 darwin -> process_ttfs(os:getenv("HOME")++"/Library/Fonts",GbtFonts0);
+			      _ -> GbtFonts0
+			 end,
+
+%% Display the path of fonts installed.
+   io:format("FontList: ~p\n\n",[gb_trees:to_list(GbtFonts)]), % TEST
+
+
+%% For make pull-down menu from GbtFont tree ( Font name and filepath )
+   FLs = foldl(fun( {{ Name, Style1 , Style2 }, Path },Acc0)  ->
+        case Name of 
+                undefined ->Acc0; 
+                _ -> 
+                Style1_1 = if Style1 == normal -> '' ;true-> Style1 end,
+                Style2_1 = if Style2 == normal -> '' ;true-> Style2 end,
+                lists:append( Acc0 , [{ Name ++" - " ++ atom_to_list(Style1_1) ++" "++ atom_to_list(Style2_1)  ,  Path }])
+        end
+    end, [{"= Use Native Font Selector =","__usefontselector__"}], gb_trees:to_list(GbtFonts) ), % It is intentional. See gen() function.
+
+%%
+%% User Interface
+%%
+
     Dlg = [{vframe,
 	    [{hframe,
 	      [{vframe,
 		[{label,?__(2,"Text")},
+         {label,?__(6,"Direction")},
+   		 {label,?__(7,"TrueType Fonts List")},
 		 {label,?__(5,"Number of edge bisections")},
-		 {label,?__(3,"TrueType font")}]},
+		 {label,?__(3,"TrueType font Selector")}]},
 	       {vframe,
 		[{text,Text,[{key,{wpc_tt,text}}]},
-		 {slider,{text,Bisect,[{key,{wpc_tt,bisections}},
+        {hradio,
+           [{?__(8,"Horizontal"),horizontal},
+            {?__(9,"Vertical"),vertical}],
+            Codi,[{key,{wpc_tt,codi}}]},
+         { menu, FLs , Selfont ,   [{key, {wpc_tt,selfont}}]  },
+         {slider,{text,Bisect,[{key,{wpc_tt,bisections}},
 				       {range, {0, 3}}]}},
 		 {fontpicker,FontInfo,[{key,{wpc_tt,font}}]}]},
 	       {vframe,[help_button()]}]}]}],
     wings_dialog:dialog(Ask,?__(1,"Create Text"), {preview, Dlg},
-			fun({dialog_preview,[T,N,{_,Ctrl}]=_Res}) ->
+			fun({dialog_preview,[T,Cd,Se,N,{_,Ctrl}]=_Res}) ->
 				{_, FPath} = get_font_file(GbtFonts,Ctrl),
-				{preview,{shape,{text,[T,N,{fontdir,FPath}]}},St};
+				{preview,{shape,{text,[T,Cd,Se,N,{fontdir,FPath}]}},St};
 			   (cancel) ->
 				St;
-			   ([T,N,{_,WxFont}]=_Res) when is_tuple(WxFont) ->
+			   ([T,Cd,Se,N,{_,WxFont}]=_Res) when is_tuple(WxFont) ->
 				{NewFontI, FPath} = get_font_file(GbtFonts,WxFont),
 				wpa:pref_set(wpc_tt, fontname, NewFontI),
 				wpa:pref_set(wpc_tt, text, element(2,T)),
-				wpa:pref_set(wpc_tt, bisections, element(2,N)),
-				{commit,{shape,{text,[T,N,{fontdir,FPath}]}},St}
+                wpa:pref_set(wpc_tt, codi, element(2,Cd)),
+                wpa:pref_set(wpc_tt, selfont, element(2,Se)),
+                wpa:pref_set(wpc_tt, bisections, element(2,N)),
+				{commit,{shape,{text,[T,Cd,Se,N,{fontdir,FPath}]}},St}
 			end);
 
-make_text([{_,T},{_,N},{_,DirFont}], _) ->
+make_text([{_,T},{_,Cd},{_,Se},{_,N},{_,DirFont}], _) ->
     F = filename:basename(DirFont),
     D = filename:dirname(DirFont),
-    gen(F, D, T, N).
+    gen(F, D, T, Cd, Se, N).
+
 
 help_button() ->
     Title = ?__(1,"Browsing for Fonts on Windows"),
@@ -119,11 +162,19 @@ help() ->
     [?__(1,"Only TrueType fonts can be used and they must be"
 	 "installed in standard operating system directory for fonts.")].
 
-gen(_Font, _Dir, "", _Nsubsteps) ->
+gen(_Font, _Dir, "", _Cd , _Se, _Nsubsteps) ->
     keep;
-gen(Font, Dir, Text, Nsubsteps) ->
-    File = font_file(Font, Dir),
-    case catch trygen(File, Text, Nsubsteps) of
+gen(Font, Dir, Text, Cd, Se,  Nsubsteps) ->
+
+ %% Use either native font selector or font menu.
+    File = case Se of 
+        "__usefontselector__" ->  font_file(Font, Dir);
+        _ -> Se
+      end,
+
+        io:format( "Original_path =  ~p , Fixed_path: ~p ~n", [Dir,File]),  %% For debug
+
+    case catch trygen(File, Text, Cd , Nsubsteps) of
 	{new_shape,Name,Fs0,Vs,He} ->
 	    Fs = [#e3d_face{vs=Vsidx} || Vsidx <- Fs0],
 	    Mesh = #e3d_mesh{type=polygon, vs=Vs, fs=Fs, he=He},
@@ -137,7 +188,7 @@ gen(Font, Dir, Text, Nsubsteps) ->
 	    wpa:error_msg(?__(3,"Text failed: internal error"))
     end.
 
-process_ttfs(Dir) ->
+process_ttfs(Dir,Tree) ->
     Add = fun(FileName, Acc) ->
 		  case read_ttf_name(FileName) of
 		      {FName,FStyle,FWeight} ->
@@ -145,7 +196,7 @@ process_ttfs(Dir) ->
 		      _ -> Acc
 		  end
 	  end,
-    filelib:fold_files(Dir, ".ttf|.TTF", true, Add, gb_trees:empty()).
+    filelib:fold_files(Dir, ".ttf|.TTF", true, Add, Tree).
 
 read_ttf_name(File) ->
     case file:read_file(File) of
@@ -167,7 +218,23 @@ read_ttf_name(File) ->
 %% Bold). Here, we'll try to get the font with a most close appearance of that selected by the user.
 get_font_file(GbtFonts, WxFont) ->
     FontInfo = wings_text:get_font_info(WxFont),
+
+%% Debug info for test
+
+   A = wxFont:getNativeFontInfoDesc(WxFont),
+   B = wxFont:getNativeFontInfoUserDesc(WxFont),
+   C = wxFont:getStyle(WxFont), 
+   D = wxFont:getFaceName(WxFont), 
+   E = wxFont:getFamily(WxFont), 
+   F = wxFont:getWeight(WxFont), 
+   io:format("~n~n NativeInfoDesc: ~ts ~n NativeInfoDesc(User):~ts ~n Style:~p  FaceName: ~ts FamilyStr: ~p Weight: ~p   \n\n",[A,B,C,D,E,F]),
+
+%%
+
     #{face:=FName, style:=FStyle, weight:=FWeight} = FontInfo,
+
+    io:format("User Selected Name : \"~ts\" Style : \"~ts\" Weight : \"~ts\" \n",[FName,FStyle,FWeight]), % Return from native font selector
+
     case get_font_file(0,GbtFonts,FName,FStyle,FWeight) of
         undefined -> {FontInfo, "unknown"};
         FPath -> {FontInfo, FPath}
@@ -193,7 +260,7 @@ parsett_header(_File, Bin) ->
     FontInfo = font_info(Bin),
     Family = proplists:get_value(family, FontInfo, undefined),
     {Style, Weight} = font_styles(Bin),
-    %% io:format("File: ~p ~p ~p ~p~n", [_File,Family, Style, Weight]),
+    io:format("File: ~p ~p ~p ~p ~n", [_File,Family, Style, Weight]), %%chk
     {Family,Style,Weight}.
 
 %% Return the requested string from font
@@ -238,7 +305,7 @@ get_font_info(N, <<PId:?U16, EId:?U16, LId:?U16, NId:?U16,
     Enc = check_enc(Encoding, WEnc),
     case lists:member(info(NId), WIds) of
 	true when Platform =:= WPlatform, Enc, Lang =:= WLang ->
-	    %% io:format("Encoding ~p Platform ~p Eid ~p~n",[Encoding, Platform, EId]),
+	     %io:format("Encoding ~p Platform ~p Eid ~p~n",[Encoding, Platform, EId]),%%chk
 	    [{info(NId), string(String, Encoding)}|
 	     get_font_info(N-1, Rest, Strings, WIds, WPlatform, WEnc, WLang)];
 	_ ->
@@ -368,13 +435,13 @@ font_styles(Bin) ->
 	    {normal, normal}
     end.
 
-trygen(File, Text, Nsubsteps) ->
+trygen(File, Text, Cd, Nsubsteps) ->
     case file:read_file(File) of
 	{ok,Filecontents} ->
 	    case ttfpart(Filecontents) of
 		{ok, TTFpart} ->
 		    Ttf = parsett(TTFpart),
-		    Pa = getpolyareas(Text, Ttf, Nsubsteps),
+		    Pa = getpolyareas(Text, Ttf, Nsubsteps, Cd),
 		    {Vs0,Fs,He} = polyareas_to_faces(Pa),
 		    {CX,CY,CZ} = e3d_vec:average(tuple_to_list(e3d_bv:box(Vs0))),
 		    Vs = [{X-CX,Y-CY,Z-CZ} || {X,Y,Z} <- Vs0],
@@ -391,7 +458,7 @@ trygen(File, Text, Nsubsteps) ->
 %% try the sysfontdir again.
 font_file(Name, Dir) ->
     Name1 = case Dir of
-		"." -> Name;
+		"" -> Name;
 		_ -> filename:join([Dir,Name])
 	    end,
     case filelib:is_regular(Name1) of
@@ -404,12 +471,12 @@ font_file(Name, Dir) ->
 				Fname -> Fname
 			    end,
 		    case Dir of
-			"." -> filename:join([sysfontdir(),Name2]);
+			"" -> filename:join([sysfontdir(),Name2]);
 			_ -> filename:absname(Dir ++ "\\" ++ Name2)
 		    end;
 		_ ->
 		    case Dir of
-			"." -> filename:join([sysfontdir(),Name]);
+			"" -> filename:join([sysfontdir(),Name]);
 			_ -> Name1
 		    end
 	    end
@@ -623,12 +690,13 @@ parsett(<<_C1,_C2,_C3,_C4,Ntabs:16/unsigned,_Srchrng:16/unsigned,
     Offset = 12 + (Ntabs*16),
     Tabs = gettabs(Dirs1, B1, Offset),
     Nglyph = parsemaxptab(Tabs),
-    Cmap = parsecmaptab(Tabs),
+    Cmap = parsecmaptab(Tabs,Nglyph),
     {Uperem, ShortLoca} = parseheadtab(Tabs),
     Loca = parselocatab(Tabs, Nglyph, ShortLoca),
     Nhmetrics = parsehheatab(Tabs),
     Adv = parsehmtxtab(Tabs, Nglyph, Nhmetrics),
     Glyf = findtab("glyf", Tabs),
+         io:format( "Nglyph ~p ,Uperem ~p    ~n", [Nglyph,Uperem]),  %%add for fontinfo
     #ttfont{nglyph=Nglyph, uperem=Uperem, cmap=Cmap, loca=Loca, adv=Adv, glyf=Glyf};
 parsett(_) ->
     throw({error,?__(1,"Bad offset table")}).
@@ -696,22 +764,42 @@ parsemaxptab(Tabs) ->
 %%
 %% Currently, we can handle format 0 (single byte table)
 %% and format 4 (two-byte, segmented encoding format)
-parsecmaptab(Tabs) ->
+parsecmaptab(Tabs,Ng) ->
     Tab = findtab("cmap", Tabs),
     <<0:16,Nsubtabs:16,T1/binary>> = Tab,
     ST = getcmapsubtabs(Nsubtabs, T1, Tab, []),
-    SortST = sort(fun cmapcmp/2, ST),
+    
+    
+  %% SubTable Detection
+  %% FixMe : more smart code...
+    io:format( "SubTable ~p ~n", [ST]),% for Debug
+
+   SortST =case ST of
+               [{3,1,4,_}|_] -> ST;
+               _ -> sort(fun cmapcmp/2, ST)
+     end,
+    
+    io:format( "Sorted table ~p ~n", [SortST]),% for Debug
+
     case SortST of
-	[{_P,_E,0,Off}|_] ->
-	    list_to_tuple(binary_to_list(Tab,Off+1+6,Off+256+6));
+	[{1,0,0,_},{_P,_E,4,Off}|_] ->
+	    cmapf4(Tab, Off);
+    [{P,E,0,Off}|_] ->
+         io:format( "ParseCmap0  ~p ~p ~p ~n", [P,E,Off]), 
+        if Ng > 256 ->
+            cmapf4(Tab,off);
+        true ->
+            list_to_tuple(binary_to_list(Tab,Off+1+6,Off+256+6))
+        end;
 	[{_P,_E,4,Off}|_] ->
 	    cmapf4(Tab, Off);
-	_ -> throw({error,?__(1,"No suitable character map")})
+
+    _ -> throw({error,?__(1,"No suitable character map")})
     end.
 
 getcmapsubtabs(0, _, _, Acc) ->
     Acc;
-getcmapsubtabs(N, <<Pid:16,Eid:16,Off:32,T/binary>>, Tab, Acc) ->
+getcmapsubtabs(N, <<Pid:16,Eid:16,Off:?U32,T/binary>>, Tab, Acc) ->
     {Fhigh,Flow} = list_to_tuple(binary_to_list(Tab,Off+1,Off+2)),
     Format = toushort(Fhigh,Flow),
     getcmapsubtabs(N-1, T, Tab, [{Pid,Eid,Format,Off}|Acc]).
@@ -725,7 +813,9 @@ cmapcmp({P1,E1,F1,_},{P2,E2,F2,_}) ->
 	F2 == 0 -> false;
 	F1 == 4, F2 /= 4 -> true;
 	F2 == 4 -> false;
-	true ->
+	F1 == 4, F2 /= 4 -> true;
+	F2 == 4 -> false;
+ true ->
 	    if
 		P1 < P2 -> true;
 		P1 > P2 -> false;
@@ -737,6 +827,9 @@ cmapcmp({P1,E1,F1,_},{P2,E2,F2,_}) ->
 		    end
 	    end
     end.
+
+
+
 
 %% Format 4 cmap subtables have this format:
 %%  uint16 - format (will be 4)
@@ -754,11 +847,14 @@ cmapcmp({P1,E1,F1,_},{P2,E2,F2,_}) ->
 %%  uint16 * variable : Glyph index array
 %%
 %% segments are sorted in increasing endCode value
+
 cmapf4(Tab, Off) ->
-    <<_Before:Off/binary,4:16,Len:16,_Lang:16,SegcountX2:16,_SrchRng:16,
+
+ <<_Before:Off/binary,4:16,Len:16,_Lang:16,SegcountX2:16,_SrchRng:16,
       _EntSel:16,_RngSh:16,
       BEnds:SegcountX2/binary,_Pad:16,BStarts:SegcountX2/binary,
-      BDeltas:SegcountX2/binary, T/binary>> = Tab,
+      BDeltas:SegcountX2/binary, T/binary>> =Tab,
+ 
     N = SegcountX2 div 2,
     NGI = (Len - 8*2 - 4*SegcountX2) div 2,
     {Ends,_} = takeushorts(N, binary_to_list(BEnds)),
@@ -767,17 +863,18 @@ cmapf4(Tab, Off) ->
     {ROffsGlinds,_} = takeushorts(N+NGI, binary_to_list(T,1,SegcountX2+2*NGI)),
     docmapf4(1,N,Ends,Starts,Deltas,ROffsGlinds,0,[]).
 
+
 docmapf4(I,N,_Ends,_Starts,_Deltas,_ROffsGlinds,Alen,Acc)
-  when (I > N) or (Alen >= 256) ->
+  when (I > N) ->
     fincmapf4(Acc,Alen);
 docmapf4(I,N,Ends,Starts,Deltas,ROffsGlinds,Alen,Acc) ->
     E = element(I,Ends),
     S = element(I,Starts),
     D = element(I,Deltas),
     R = element(I,ROffsGlinds),
-    E2 = if E > 255 -> 255; true -> E end,
-    S2 = if S >= Alen -> S; true -> Alen end,
-    case (S2 >= 256) or (S2 > E2) of
+    E2 = E,
+    S2 = S, if S >= Alen -> S; true -> Alen end,
+    case (S2 > E2)  of
 	true -> fincmapf4(Acc,Alen);
 	false ->
 	    Padlen = S2 - Alen,
@@ -794,12 +891,11 @@ docmapf4(I,N,Ends,Starts,Deltas,ROffsGlinds,Alen,Acc) ->
 	    docmapf4(I+1,N,Ends,Starts,Deltas,ROffsGlinds,Alen2,Acc2)
     end.
 
-fincmapf4(Acc,Alen) when Alen == 256 -> list_to_tuple(Acc);
 fincmapf4(Acc,Alen) when Alen < 256 ->
     Padlen = 256 - Alen,
     list_to_tuple(Acc ++ lists:duplicate(Padlen,0));
-fincmapf4(Acc,Alen) when Alen > 256 ->
-    list_to_tuple(lists:sublist(Acc, 1, 256)).
+fincmapf4(Acc,Alen) when Alen >= 256 ->
+    list_to_tuple(lists:sublist(Acc, 1, Alen)). %% Limit enhance for CJK font.
 
 %% offset 0 case of format 4: just add D to [S, S+1, ..., E]
 %% to get mapped glyphs.
@@ -880,22 +976,39 @@ hmtx(Nglyph, Nhmetrics, <<Aw:16/unsigned,_Lsb:16,T/binary>>, Acc) ->
 	    hmtx(Ng1, Nh1, T, Acc1)
     end.
 
-getpolyareas(Text, Ttf, Nsubsteps) ->
-    Pas = getpolyareas(Text, Ttf, 0, []),
+getpolyareas(Text, Ttf, Nsubsteps, Cd) ->
+    Pas = getpolyareas(Text, Ttf, 0, Cd, []),
     Pas1 = clean_pas(Pas),
     subdivide_pas(Pas1, Nsubsteps).
 
-getpolyareas([], _, _, Acc) ->
+getpolyareas([], _, _,_, Acc) ->
     flatten(reverse(Acc));
-getpolyareas([C|Rest], #ttfont{nglyph=Ng,adv=Adv,cmap=Cmap}=Ttf, X, Acc) ->
+getpolyareas([C|Rest], #ttfont{nglyph=Ng, adv=Adv, cmap=Cmap, uperem=Uperem}=Ttf, X, Cd, Acc) ->
+
+Cmap_size = tuple_size(Cmap),
+C1 = unicode_normalization(C, Cmap_size, Cd),%% For normalize of charcode.
+GB = element(C1+1, Cmap),
+
+io:format( "*Cmap size ~p Ng ~p  Code: ~p ~ts  Elm_Adv:~p ~n", [Cmap_size,Ng,C1,<<C1/utf8>>, element(GB+1, Adv) ]),
+
     {X1,Acc1} =
-	case (C >= 0) and (C < 256) of
+	case (C1 >= 0) and (C1 < 65536) of
 	    true ->
-		G = element(C+1, Cmap),
+		G = element(C1+1, Cmap),
+        
 		if
 		    G < Ng ->
-			Xnew = X + element(G+1, Adv),
-			case glyphpolyareas(G, Ttf, X) of
+
+			%% For vertical writing
+			Xnew  = case Cd of
+			    horizontal -> 
+			        X + element(G+1, Adv);
+			    _ ->
+			        Xbase = element(G+1, Adv),
+			        X - Xbase * coffset(C1,Xbase,Uperem)
+			    end,
+
+			case glyphpolyareas(G, Ttf, X, Cd) of
 			    nil ->
 				{Xnew, Acc};
 			    Pa ->
@@ -907,7 +1020,60 @@ getpolyareas([C|Rest], #ttfont{nglyph=Ng,adv=Adv,cmap=Cmap}=Ttf, X, Acc) ->
 	    false ->
 		{X, Acc}
 	end,
-    getpolyareas(Rest, Ttf, X1, Acc1).
+    getpolyareas(Rest, Ttf, X1, Cd, Acc1).
+
+
+%% Typography and Unicode Normalization
+%%
+%% To convert to WhiteSpace(=32) if chrcode exceeds the Cmap area of the font.
+%% So no problem to trying to create a text that contains CJK characters at Helvetica font.
+
+unicode_normalization(C, Cmap_size, Cd) ->
+Nc = if C > Cmap_size -> 32; 
+          true ->
+            if Cd == vertical ->
+			     % if vertical mode,normalize to vertical glyph for CJK Typography
+			     case C of
+					  33 -> 65045;
+					  58 -> 8229;
+					  63 -> 65046;
+					  8229 -> 65072;
+					  8230 -> 8942;
+					  12289 -> 65041;
+					  12290 -> 65042;
+					  12296 -> 65087;
+					  12297 -> 65088;
+					  12298 -> 65085;
+					  12299 -> 65086;
+					  12300 -> 65089;
+					  12301 -> 65090;
+					  12302 -> 65091;
+					  12303 -> 65092;
+					  12304 -> 65083;
+					  12305 -> 65084;
+					  12308 -> 65081;
+					  12309 -> 65082;
+					  12310 -> 65047;
+					  12311 -> 65048;
+					  65288 -> 65077;
+					  65289 -> 65078;
+					  65292 -> 65040;
+					  65339 -> 65095;
+					  65341 -> 65096;
+					  65371 -> 65079;
+					  65373 -> 65080;
+				  _ -> C
+			     end;
+			   true -> C
+            end
+      end,
+Nc.
+
+
+%% Vertical Offset for latin charactors 
+coffset(C,Xbase,Uperem) when (C < 1415) -> 1 + ((Uperem-Xbase)/Xbase)*0.75; % Unicode point;EXCLAMATION MARK:21 to ARMENIAN SMALL LIGATURE ECH:1415
+coffset(_,_,_) -> 1.0.
+
 
 %% Get contours for glyph G (known to be in range 0..nglyph-1).
 %% Return nil if no data or no contours for glyph G.
@@ -920,7 +1086,7 @@ getpolyareas([C|Rest], #ttfont{nglyph=Ng,adv=Adv,cmap=Cmap}=Ttf, X, Acc) ->
 %%  FWord - ymax
 %%  then comes data for simple or compound glyph
 
-glyphpolyareas(G, #ttfont{loca=Loca,glyf=Glyf,uperem=Uperem}, X) ->
+glyphpolyareas(G, #ttfont{loca=Loca,glyf=Glyf,uperem=Uperem}, X, Cd) ->
     Off = element(G+1, Loca),
     Len = element(G+2, Loca) - Off,
     if
@@ -939,7 +1105,7 @@ glyphpolyareas(G, #ttfont{loca=Loca,glyf=Glyf,uperem=Uperem}, X) ->
 		    %% Calculate scale so Em box measures 2 by 2
 		    %% (about the scale of wings primatives)
 		    Scale = 2.0/float(Uperem),
-		    gpa(nthtail(4*2, T1), Ncont, X, Scale)
+		    gpa(nthtail(4*2, T1), Ncont, X, Cd, Scale)
 	    end
     end.
 
@@ -964,7 +1130,7 @@ glyphpolyareas(G, #ttfont{loca=Loca,glyf=Glyf,uperem=Uperem}, X) ->
 %%  4 (16): x-same (used in conjunction with x-short)
 %%  5 (32): y-same
 
-gpa(Gdat, Ncont, Xorg, Scale) ->
+gpa(Gdat, Ncont, Xorg, Cd, Scale) ->
     {Eoc,T1} = takeushorts(Ncont,Gdat),
     Npt = element(Ncont, Eoc)+1,
     [Ninstrh,Ninstrl | T2] = T1,
@@ -973,8 +1139,16 @@ gpa(Gdat, Ncont, Xorg, Scale) ->
     {Flags,T4} = gflags(Npt, T3),
     {X0,T5} = gcoords(Npt, T4, Flags, 2, 16),
     {Y0,_} = gcoords(Npt, T5, Flags, 4, 32),
-    X = makeabs(X0, Xorg, Scale),
-    Y = makeabs(Y0, 0, Scale),
+
+
+  % For Vertical writing
+  {X,Y} = case Cd of
+                horizontal -> 
+                    { makeabs(X0, Xorg, Scale), makeabs(Y0, 0, Scale)};
+                _ ->
+                    { makeabs(X0,    0, Scale), makeabs(Y0, Xorg, Scale)}
+                end,
+    
     Cntrs = contours(Ncont, Eoc, X, Y, Flags),
     Ccntrs = map(fun getcedges/1, Cntrs),
     Ccntrs1 = lists:filter(fun (V) -> length(V) > 2 end, Ccntrs),
