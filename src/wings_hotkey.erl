@@ -421,23 +421,19 @@ modname_1([]) -> [].
 
 mac_modname_wx([ctrl|T]) -> "rawctrl+" ++ mac_modname_wx(T);
 mac_modname_wx([command|T]) -> "Ctrl+" ++ mac_modname_wx(T);
-mac_modname_wx([Mod|T]) -> wings_s:modkey(Mod) ++ "+" ++ mac_modname_wx(T);
+mac_modname_wx([alt|T]) -> "Alt+" ++ mac_modname_wx(T);
+mac_modname_wx([shift|T]) -> "Shift+" ++ mac_modname_wx(T);
 mac_modname_wx([]) -> [].
 
 mac_modname(Mods0) ->
     Mods1 = [{mac_mod_sortkey(M),M} || M <- Mods0],
     Mods2 = sort(Mods1),
-    [mac_mod(M) || {_,M} <- Mods2].
+    [wings_s:modkey(M) || {_,M} <- Mods2].
 
 mac_mod_sortkey(shift) -> 1;
 mac_mod_sortkey(alt) -> 2;
 mac_mod_sortkey(ctrl) -> 3;
 mac_mod_sortkey(command) -> 4.
-
-mac_mod(shift) -> 8679;
-mac_mod(alt) -> 8997;
-mac_mod(ctrl) -> 8963;
-mac_mod(command) -> 8984.
 
 keyname($\b, _Style) -> ?STR(keyname,1,"Bksp");
 keyname($\t, _Style) -> ?STR(keyname,2,"Tab");
@@ -448,7 +444,7 @@ keyname(C, wx) when $A =< C, C =< $Z ->
 keyname(C, pretty) when $A =< C, C =< $Z ->
     case os:type() of
 	{unix,darwin} ->
-	    [mac_mod(shift),C];
+	    wings_s:modkey(shift)++[C];
 	_ ->
 	    ?STR(keyname,4,"Shift+") ++ [C]
     end;

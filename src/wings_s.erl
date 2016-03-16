@@ -32,11 +32,22 @@ rmb() -> ?STR(mouse_b,r,"R").
 scroll() -> ?__(scroll,"Scroll").
 
 %% Modifier keys.
-shift() ->   ?STR(mod,shift,"Shift").
-ctrl() ->    ?STR(mod,ctrl,"Ctrl").
-alt() ->     ?STR(mod,alt,"Alt").
-command() -> ?STR(mod,command,"Command").		%Command key on Mac.
+shift() ->   str2char(shift, ?STR(mod,shift,"Shift")).
+ctrl() ->    str2char(ctrl, ?STR(mod,ctrl,"Ctrl")).
+alt() ->     str2char(alt, ?STR(mod,alt,"Alt")).
+command() -> str2char(command, ?STR(mod,command,"Command")).		%Command key on Mac.
 
+str2char(Mod, Str) ->
+    case os:type() of
+	{unix, darwin} -> [mac_mod(Mod)];
+	_ -> Str
+    end.
+
+mac_mod(shift) -> 8679;
+mac_mod(alt) -> 8997;
+mac_mod(ctrl) -> 8963;
+mac_mod(command) -> 8984.
+	    
 modkey(shift) -> shift();
 modkey(ctrl) -> ctrl();
 modkey(alt) -> alt();
