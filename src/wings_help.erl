@@ -249,17 +249,27 @@ hotkeys(Head) ->
     help_window(Head, Help).
 
 def_hotkeys(Head) ->
+    Ctrl = case os:type() of
+	       {unix, darwin} -> command;
+	       _ -> ctrl
+	   end,
+    Insert0 = wings_hotkey:format_hotkey({?SDLK_INSERT,[Ctrl]},pretty),
+    Insert1 = wings_hotkey:format_hotkey({$8, [Ctrl]}, pretty),
+    Delete0 = wings_hotkey:format_hotkey({?SDLK_DELETE,[Ctrl]},pretty),
+    Delete1 = wings_hotkey:format_hotkey({$9, [Ctrl]}, pretty),
+
     Help = [?__(1,"Any command that appears in a menu, can be assigned a keyboard short-cut (hotkey)."),
 	    ?__(4,"To assign a hotkey to a command:"),
-	    ?__(6,"1. Press [Ctrl-Insert] or [Ctrl-Alt-8] key."),
+	    io_lib:format(?__(6,"1. Press ~ts or ~ts key."), [Insert0,Insert1]),
 	    ?__(5,"2. Select (with the correct mouse button) the menu item of the command"),
 	    ?__(8,"3. The information line asks you to press the key that the command "
 		"should be assigned to."),
 
-	    ?__(9,"To delete a hotkey, similarly press the [Ctrl-Delete] or [Ctrl-Alt-9] key and "
-		"select the command in a menu. A dialog box listing all keys "
-		"bound to the command will appear. "
-		"Check all hotkeys you want to delete.")],
+	    io_lib:format(?__(9,"To delete a hotkey, similarly press the"
+			      "~ts or ~ts key and "
+			      "select the command in a menu. A dialog box listing all keys "
+			      "bound to the command will appear. "
+			      "Check all hotkeys you want to delete."), [Delete0,Delete1])],
     help_window(Head, Help).
 
 lights(Head) ->
