@@ -43,7 +43,7 @@ circular_arc_menu(edge) ->
       (2,_Ns) -> {edge,circularise_center};
       (3,_Ns) -> {edge,{circularise,{'ASK',[plane]}}}
     end,
-    {Name, F, Help, []};
+    {Name, {circular, F}, Help, []};
 circular_arc_menu({auv,edge}) ->
     {?__(1,"Circularise"),circularise,
      ?__(2,"Flatten, equalise, and inflate selected edge loops making them circular")}.

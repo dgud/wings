@@ -43,7 +43,7 @@ inset_menu() ->
       (3,_Ns) -> {face,inset_region};
       (_, _)  -> ignore
     end,
-    {Title,Fun,{HelpL,HelpM,HelpR},[]}.
+    {Title,{inset, Fun},{HelpL,HelpM,HelpR},[]}.
 
 title() ->
     ?__(1,"Inset").
