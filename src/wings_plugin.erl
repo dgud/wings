@@ -592,8 +592,9 @@ normalize_menu([{Name,Menu}|T]) ->
     end;
 normalize_menu([]) -> [].
 
-plugin_key({_,{Key,_},_}) when is_atom(Key) -> Key;
 plugin_key({_,{Key,_}}) when is_atom(Key) -> Key;
+plugin_key({_,{Key,_},_}) when is_atom(Key) -> Key;
+plugin_key({_,{Key,_},_, _}) when is_atom(Key) -> Key;
 plugin_key({_,Key,_}) when is_atom(Key) -> Key;
 plugin_key({_,Key,_,_}) when is_atom(Key) -> Key;
 plugin_key(Other) when is_tuple(Other) -> list_to_atom(element(1, Other));
