@@ -317,7 +317,7 @@ draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,{CX,CY,CZ}=Center},{_,Default}
     Frame1 = {label_column,[{" ", lists:reverse(Headers)},
 			    {"X:", lists:reverse(RX)},
 			    {"Y:", lists:reverse(RY)},
-			    {"Y:", lists:reverse(RZ)}]},
+			    {"Z:", lists:reverse(RZ)}]},
 
     Frame6 = if % Lock is true only for Snap and this extra check box must be used only with it
 		 Lock and (SelMode == body) ->
