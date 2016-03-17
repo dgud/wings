@@ -91,10 +91,11 @@ init(Frame, Icons) ->
     update({selmode, geom, face, true}, State).
 
 buttons() ->
+    Os = os:type(),
     [make_button(open, normal, "wxART_FILE_OPEN"),
      make_button(save, normal, "wxART_FILE_SAVE"),
-     make_button(undo, normal, "wxART_UNDO"),
-     make_button(redo, normal, "wxART_REDO"),
+     make_button(undo, normal, os(Os, "wxART_UNDO")),
+     make_button(redo, normal, os(Os, "wxART_REDO")),
      separator,
      make_button(vertex, toggle),
      make_button(edge, toggle),
@@ -104,6 +105,9 @@ buttons() ->
      make_button(pref, normal),
      make_button(workmode,toggle), make_button(orthogonal_view, toggle),
      make_button(show_groundplane, toggle), make_button(show_axes, toggle)].
+
+os({unix, linux}, Art) -> Art;
+os(_, _) -> undefined.
 
 make_button(Name, Type) ->
     make_button(Name, Type, undefined).

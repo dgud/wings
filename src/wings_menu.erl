@@ -472,7 +472,7 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     wxSizer:addSpacer(Line, 10),
     BM = case {OpBox = have_option_box(Props),have_color(Props)} of
 	     {true,_} ->
-		 Bitmap = wxArtProvider:getBitmap("wxART_LIST_VIEW",[{client, "wxART_MENU"}]),
+		 Bitmap = get_pref_bitmap(),
 		 SBM = wxStaticBitmap:new(Panel, Id+1, Bitmap),
 		 wxSizer:add(Line, SBM, [{flag, ?wxALIGN_CENTER}]),
 		 [SBM];
@@ -499,6 +499,18 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
 setup_popup([#menu{type=opt}=ME|Es], Sizer, Sz, Cs, Parent, Magnet, Acc) ->
     setup_popup(Es, Sizer, Sz, Cs, Parent, Magnet, [ME|Acc]);
 setup_popup([], _, _, _, _, _, Acc) -> lists:reverse(Acc).
+
+get_pref_bitmap() ->
+    case ?GET(small_pref_bm) of
+	undefined ->
+	    Images = wings_frame:get_icon_images(),
+	    {_, _Sz, Img} = lists:keyfind(small_pref, 1, Images),
+	    BM = wxBitmap:new(wxImage:copy(Img)),
+	    ?SET(small_pref_bm, BM),
+	    BM;
+	BM ->
+	    BM
+    end.
 
 create_color_box(Id, Panel, H, Props) ->
     {R,G,B} = wings_color:rgb3bv(proplists:get_value(color, Props)),
