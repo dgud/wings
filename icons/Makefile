@@ -37,7 +37,7 @@ ERL_COMPILE_FLAGS += -Werror +debug_info
 
 opt debug: collect_bmp.beam $(TARGET_FILES)
 
-$(EBIN)/wings_icon_%.bundle: ${wildcard %/*.bmp} ${wildcard %/*.tga} collect_bmp.beam about_wings.bmp
+$(EBIN)/wings_icon_%.bundle: %/*.bmp %/*.png collect_bmp.beam about_wings.bmp
 	erl $(ERL_FLAGS) -noinput -run collect_bmp start . $(ESRC)/$* $@ -s erlang halt
 
 clean:

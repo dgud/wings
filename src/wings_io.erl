@@ -310,17 +310,17 @@ put_state(Io) ->
 
 read_icons() ->
     Ebin = filename:dirname(code:which(?MODULE)),
-    case wings_pref:get_value(interface_icons) of
-	classic -> IconFile = filename:join(Ebin, "wings_icon_classic.bundle");
-	bluecube -> IconFile = filename:join(Ebin, "wings_icon_bluecube.bundle");
-	purpletube -> IconFile = filename:join(Ebin, "wings_icon_purpletube.bundle")
-    end,
-    Patch = fun({about_wings, {3, W, H, Bin0}}) ->
-		    RL = 3*W,
-		    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RL/binary>> <= Bin0])),
-		    {about_wings, {W, H, Bin}};
-	       ({Name, {Bpp, W, H, Bin0}}) ->
-		    {Rgb, Alpha} = setup_image(Bin0, Bpp, W),
+    IconFile = case wings_pref:get_value(interface_icons) of
+		   classic    -> filename:join(Ebin, "wings_icon_classic.bundle");
+		   bluecube   -> filename:join(Ebin, "wings_icon_bluecube.bundle");
+		   purpletube -> filename:join(Ebin, "wings_icon_purpletube.bundle")
+	       end,
+    Patch = fun({about_wings, {3, W, H, Bin0, <<>>}}) ->
+		    {about_wings, {W, H, Bin0}};
+	       ({Name, {3, W, H, Bin, <<>>}}) ->
+		    {Rgb, Alpha} = rgb3(Bin, <<>>, <<>>),
+		    {Name, {W, H, Rgb, Alpha}};
+	       ({Name, {4, W, H, Rgb, Alpha}}) ->
 		    {Name, {W, H, Rgb, Alpha}}
 	    end,
     {ok, Bin} = file:read_file(IconFile),
@@ -328,15 +328,6 @@ read_icons() ->
 
 %% FIXME when icons are fixed
 %% Poor mans version of alpha channel
-setup_image(Bin0, 3, Width) ->
-    RowLen = 3*Width,
-    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RowLen/binary>> <= Bin0])),
-    rgb3(Bin, <<>>, <<>>);
-setup_image(Bin0, 4, Width) ->
-    RowLen = 4*Width,
-    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RowLen/binary>> <= Bin0])),
-    rgb4(Bin, <<>>, <<>>).
-
 rgb3(<<8684676:24, Rest/binary>>, Cs, As) ->
     rgb3(Rest, <<Cs/binary, 8684676:24>>, <<As/binary, 0:8>>);
 rgb3(<<R:8,G:8,B:8, Rest/binary>>, Cs, As) ->
@@ -346,11 +337,6 @@ rgb3(<<R:8,G:8,B:8, Rest/binary>>, Cs, As) ->
     A = trunc(255*min(1.0, max(max(A0,A1),A2))),
     rgb3(Rest, <<Cs/binary, R:8, G:8, B:8>>, <<As/binary, A:8>>);
 rgb3(<<>>, Cs, As) ->
-    {Cs,As}.
-
-rgb4(<<C:24, A:8, R/binary>>, Cs, As) ->
-    rgb4(R, <<Cs/binary, C:24>>, <<As/binary, A:8>>);
-rgb4(<<>>, Cs, As) ->
     {Cs,As}.
 
 %% pad_image(Image, W, W, H, TxH) ->
