@@ -142,7 +142,11 @@ handle_call(done, _From,  #state{level=Level, msg=[_|Msg], refresh=Refresh} = S0
     {reply, ok, S0#state{level=Level-1,msg=Msg}, Refresh};
 
 handle_call(cancel, _From, #state{frame=Frame, pb=PB}) ->
-    {reply, ok, #state{frame=Frame, pb=PB}};
+    case PB of
+	undefined -> ignore;
+	_ -> wxGauge:destroy(PB)
+    end,
+    {reply, ok, #state{frame=Frame}};
 
 handle_call(pause, _From, S0) ->
     S = draw_position(calc_position(S0)),
@@ -164,7 +168,7 @@ terminate(_, _) ->
 
 draw_position(#state{pb=PB, msg=Msg, pos=Pos} = S) ->
     wings_status:message(?PB, build_msg(Msg)),
-    PB =:= undefined orelse wxGauge:setValue(PB, trunc(Pos * 100)),
+    PB =:= undefined orelse wxGauge:setValue(PB, max(100, trunc(Pos * 100))),
     S.
 
 update(Msg, Percent, #state{msg=[_|Msg0],stats=Stats0,t0=Time0}=S) ->
