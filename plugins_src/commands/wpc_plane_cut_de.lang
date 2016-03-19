@@ -1,0 +1,50 @@
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
+{wpc_plane_cut,
+ [
+  {axis_menu,
+   [
+    {1,"Schneiden in gleiche Teile entlang der ~s Achse"},
+    {2," und Loop-Schnitt das Ergebnis"},
+    {3,"Objekt um die ~s Achse schneiden"},
+    {4,"Objekte oder Flächen um die ~s Achse bei jedem ausgewählten Vertex schneiden"},
+    {5,"Flächen um die ~s Achse schneiden"},
+    {6,"Auswahl in gleiche Teile entlang der ~s Achse schneiden"}
+   ]},
+  {check_selection,
+   [
+    {1,"Nichts ausgewählt"}
+   ]},
+  {menu_heading,
+   [
+    {1,"Ebenen-Schnitt"},
+    {2,"Schneiden"}
+   ]},
+  {object_menu,
+   [
+    {1,"Objekte in gleiche Teile entlang Standardachse schneiden"},
+    {2,"Achse wählen und Loop-Schnitt das Ergebnis"},
+    {3,"Achse wählen"},
+    {4,"Schneiden um Standardachse"},
+    {5,"Ebene wählen ud Loop-Schnitt das Ergebnis"},
+    {6,"Ebene wählen"}
+   ]},
+  {plane_cut_menu,
+   [
+    {1,"Schneiden um Standardachse"},
+    {2,"Auswahl in gleiche Teile schneiden; Ebene wählen"},
+    {3,"Ebene wählen"},
+    {4,"Schneiden um Standardachse bei jedem ausgewählten Vertex"}
+   ]},
+  {planecut_error,
+   [
+    {1,"Dies dauert zu lange.\nVersuchen Sie es mit einer kleineren Auswahl erneut."}
+   ]},
+  {secondary_sel_ask,
+   [
+    {2,"Die Objekte oder Flächen zum Schneiden auswählen"}
+   ]},
+  {slices_dialog,
+   [
+    {1,"Schneiden in gleiche Teile"}
+   ]}
+ ]}.

@@ -4,15 +4,15 @@
   {doo_sabin,
    [
     {1,"Doo-Sabin"},
-    {2,"Glätten Durchlauf 1"},
-    {3,"Glätten Durchlauf 2"},
-    {4,"Auflösen Durchlauf 1"},
-    {5,"Auflösen Durchlauf 2"},
-    {6,"Aktualisiere Auswahl"}
+    {2,"Glättungsdurchlauf 1"},
+    {3,"Glättungsdurchlauf 2"},
+    {4,"Auflösungsdurchlauf 1"},
+    {5,"Auflösungsdurchlauf 2"},
+    {6,"Aktualisierung der Auswahl"}
    ]},
   {menu_entry,
    [
-    {1,"Doo Sabin Unterteilung"},
-    {2,"Doo-Sabin Unterteilung nach WasaMonkey ausführen (Warnung: Verhunzt alle UV-Koordinaten)"}
+    {1,"Doo-Sabin-Subdivision"},
+    {2,"Führt eine Doo-Sabin-Subdivision nach WasaMonkey aus (WARNUNG: Wirft alle UV-Koordinaten durcheinander)"}
    ]}
  ]}.

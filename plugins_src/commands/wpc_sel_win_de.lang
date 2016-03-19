@@ -1,0 +1,68 @@
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
+{wpc_sel_win,
+ [
+  {delete_groups,
+   [
+    {1,"Wollen Sie wirklich alle Auswahlgruppen löschen?"},
+    {2,"Wollen Sie wirklich ungültige Gruppen entfernen?"}
+   ]},
+  {do_menu,
+   [
+    {1,"Aktuelle Auswahl"}
+   ]},
+  {event,
+   [
+    {1,"Auswählen"},
+    {2,"Zeigt Auswahlgruppen-Menü"}
+   ]},
+  {group_basic_menu,
+   [
+    {5,"Hinzufügen zu Gruppe"},
+    {6,"Aktuelle Auswahl zu Gruppe hinzufügen \""},
+    {7,"Entfernen aus Gruppe"},
+    {8,"Aktuelle Auswahl aus Gruppe entfernen \""}
+   ]},
+  {group_bool_menu,
+   [
+    {11,"Gruppe vereinigen"},
+    {12,"Gruppe vereinigen \""},
+    {13,"\" mit \""},
+    {14,"Gruppe entfernen"},
+    {15,"Gruppe entfernen \""},
+    {16,"\" aus \""},
+    {17,"Gruppe teilen"},
+    {18,"Gruppe teilen \""},
+    {19,"\" mit \""}
+   ]},
+  {group_del_menu,
+   [
+    {3,"Gruppe löschen"},
+    {4,"Gruppe löschen \""},
+    {20,"Umbenennen"},
+    {21,"Gruppe umbenennen \""},
+    {22,"Alle löschen"},
+    {23,"Alle Gruppen löschen"},
+    {24,"Ungültige Gruppen entfernen"},
+    {25,"Entfernt alle ungültigen Gruppen"}
+   ]},
+  {group_ins_menu,
+   [
+    {1,"Neue Gruuppe..."},
+    {2,"Eine neue Auswahlgruppe erstellen"}
+   ]},
+  {rename,
+   [
+    {1,"Umbenennen"},
+    {2,"Aktueller Name"},
+    {3,"Neuer Name"}
+   ]},
+  {sel_group_menu,
+   [
+    {1,"Auswahlgruppen verwalten"},
+    {2,"Zeigt das Auswahlgruppen-Fenster"}
+   ]},
+  {title,
+   [
+    {1,"Auswahlgruppen"}
+   ]}
+ ]}.

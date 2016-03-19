@@ -1,0 +1,15 @@
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
+{wpc_flow_connect,
+ [
+  {flow_connect,
+   [
+    {1,"Fluss verbinden"},
+    {2,"Kanten hinsichtlich der umgebenden Geometrie verbinden"},
+    {3,"Fluss verbinden und Kanten in Position verschieben"}
+   ]},
+  {help,
+   [
+    {1,"Verschieben in Richtung der Flächen-Normalen"},
+    {2,"Verschieben in Richtung des Geometrieflusses"}
+   ]}
+ ]}.

@@ -3,50 +3,50 @@
  [
   {abs_rel_help,
    [
-    {1,"Abstand"},
+    {1,"Distanz"},
     {2,"Prozent"}
    ]},
   {extrude_norm_help1,
    [
-    {1,"Ausbeulen: Flächennormale"},
-    {2,"Ausbeulen: Normale der Region"}
+    {1,"Bump: Flächen-Normale"},
+    {2,"Bump: Region-Normale"}
    ]},
   {lmb_help,
    [
-    {1,"Fläche in jede ausgewählte Fläche einsetzen"}
+    {1,"Eine Fläche innerhalb jeder ausgewählten Fläche einsetzen"}
    ]},
   {loop_error_1,
    [
-    {1,"Region einsetzen/versetzen für vollständig ausgewählte Objekte nicht möglich"}
+    {1,"Region einsetzen/versetzen funktioniert nicht bei vollständig ausgewählten Objekten"}
    ]},
   {loop_error_2,
    [
-    {1,"Region versetzen bedingt, das benachbarte Flächen\nmindestens eine gemeinsame Kante haben"}
+    {1,"Region versetzen erfordert, dass benachbarte Flächen\n sich mindestens eine Kante teilen"}
    ]},
   {mmb_help,
    [
-    {1,"Region versetzen durch erzeugen neuer Kanten um jede Flächengruppenauswahl"}
+    {1,"Region versetzen erstellt neue Kanten um jede Flächen-Gruppenauswahl"}
    ]},
   {mode_help,
    [
-    {1,"Skalieren mit kürzestem Vektor um: "}
+    {1,"Skalieren mit kürzestem Vektor für: "}
    ]},
   {rmb_help,
    [
-    {1,"Region einsetzen durch erzeugen neuer Kanten in jeder Flächengruppenauswahl"}
+    {1,"Region einsetzen erstellt neue Kanten innerhalb jeder Flächen-Gruppenauswahl"}
    ]},
   {stop_edge_help,
    [
-    {1,"Stop am Kantenende"},
-    {2,"Fortsetzen über Kantenende"}
+    {1,"Stoppen bei Kanten"},
+    {2,"Fortsetzen über Kanten"}
    ]},
   {string,
    [
-    {2,"Entlang der Kanten"},
+    {2,"Entlang Kanten"},
     {3,"Durchschnitt"},
-    {4,"Körper"},
+    {4,"Objekt"},
     {5,"Fläche"},
-    {6,"Mittelwert entlang Kanten"}
+    {6,"Durchschnittlich entlang Kanten"}
    ]},
   {title,
    [

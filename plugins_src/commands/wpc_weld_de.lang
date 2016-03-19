@@ -3,26 +3,26 @@
  [
   {draw_menu,
    [
-    {1,"Verschmelzen"},
-    {2,"Ausgewählte Knoten miteinander verschmelzen (an gemeinsamer Kante)"}
+    {1,"Verschweißen"},
+    {2,"Ausgewählten Vertex mit einem anderen verschweißen (teilen sich gemeinsame Kante)"}
    ]},
   {weld,
    [
-    {1,"Sie können nicht auf der Spiegelfläche verschmelzen"},
-    {2,"Objekt muss mindesten 4 Knoten haben"},
-    {3,"Sie können nur einen Knoten verschmelzen"}
+    {1,"Sie können nicht auf Spiegelebene verschweißen"},
+    {2,"Objekt muss mindesten 4 Vertices haben"},
+    {3,"Sie können nur einen Vertex verschweißen"}
    ]},
   {weld_check_selection,
    [
-    {1,"Ein Knoten kann nicht mit sich selbst verschmolzen werden"},
-    {2,"Zu verschmelzende Knoten müssen eine gemeinsame Kante haben"},
-    {3,"Sie können nur auf einen Punkt verschmelzen"},
-    {4,"Keine Auswahl"},
-    {5,"Sie können nur innerhalb des selben Objekts verschmelzen"},
-    {6,"Verschmelzen würde Zwischenstück übrig lassen"}
+    {1,"Sie können nicht einen Veretx mit sich selbst verschweißen"},
+    {2,"Vertices, die Sie verschweißen wollen, müssen Kante teilen"},
+    {3,"Sie können nur zu einem Punkt verschweißen"},
+    {4,"Nichts ausgewählt"},
+    {5,"Sie können nur im selben Objekt verschweißen"},
+    {6,"Verschweißen würde ein Zwischenstück übrig lassen"}
    ]},
   {weld_select,
    [
-    {1,"Ziel-Knoten für Verschmelzung auswählen (Knoten müssen eine gemeinsame Kante haben) "}
+    {1,"Ziel-Vertex für Verschweißen-Operation auswählen (beide Vertices müssen sich eine gemeinsame Kante teilen) "}
    ]}
  ]}.

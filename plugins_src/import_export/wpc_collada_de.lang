@@ -1,12 +1,12 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_collada,
  [
   {do_export,
    [
-    {1,"Collada Export Optionen"}
+    {1,"Collada-Exportoptionen"}
    ]},
   {props,
    [
-    {1,"Collada Datei"}
+    {1,"Collada-Datei"}
    ]}
  ]}.

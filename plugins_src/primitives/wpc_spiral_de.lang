@@ -1,19 +1,19 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_spiral,
  [
   {make_spiral,
    [
-    {1,"Spirale erzeugen"},
-    {2,"Windungen"},
+    {1,"Spirale erstellen"},
+    {2,"Loops"},
     {3,"Segmente"},
-    {4,"Abschnitte"}
+    {4,"Sektionen"}
    ]},
   {make_spring,
    [
-    {1,"Feder erzeugen"},
-    {2,"Windungen"},
-    {3,"Segments"},
-    {4,"Abschnitte"}
+    {1,"Feder erstellen"},
+    {2,"Loops"},
+    {3,"Segmente"},
+    {4,"Sektionen"}
    ]},
   {spiral_menu,
    [

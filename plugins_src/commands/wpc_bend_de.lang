@@ -3,41 +3,41 @@
  [
   {adv_submenu_clamped,
    [
-    {1,"Feststellen, plastisch biegen"},
-    {2,"Feststellen, um Pivotpunkt biegen"},
-    {3,"Feststellen, mit Radius biegen"}
+    {1,"Befestigt, plastisch biegen"},
+    {2,"Befestigt, Pivot biegen"},
+    {3,"Befestigt, oberen Radius biegen"}
    ]},
   {adv_submenu_noclamp,
    [
     {1,"Plastisch biegen"},
-    {2,"Um Pivotpunkt biegen"},
-    {3,"Mit Radius biegen"}
+    {2,"Pivot biegen"},
+    {3,"Oberen Radius biegen"}
    ]},
   {bend_verts,
    [
-    {1,"Biegen mit dieser Konfiguration nicht möglich"}
+    {1,"Konfiguraion wird keine Biegung ergeben"}
    ]},
   {menu,
    [
     {1,"Biegen"},
-    {2,"Feststellen & biegen"}
+    {2,"Biegen befestigt"}
    ]},
   {submenu_clamp,
    [
-    {1,"Oberen Fixpunkt wählen"},
-    {2,"Unteren Fixpunkt wählen"}
+    {1,"Oberen Befestigungspunkt wählen"},
+    {2,"Unteren Befestigungspunkt wählen"}
    ]},
   {submenu_items,
    [
-    {1,"Stabmitte wählen"},
-    {2,"Stabende wählen"},
-    {3,"Biegenormale wählen"},
-    {4,"Stabmitte wählen"},
-    {5,"Stabende wählen"},
+    {1,"Stagenzentrum wählen"},
+    {2,"Stange oben wählen"},
+    {3,"Biegen-Normale wählen"},
+    {4,"Stangenzentrum wählen"},
+    {5,"Stange oben wählen"},
     {6,"Pivot-Achse wählen"},
-    {7,"Pivot-Punkt wählen"},
-    {8,"Stabmitte wählen"},
-    {9,"Stabende wählen"},
-    {10,"Biegenormale wählen"}
+    {7,"Pivot-Location wählen"},
+    {8,"Stangenzentrum wählen"},
+    {9,"Stange oben wählen"},
+    {10,"Biegen-Normale wählen"}
    ]}
  ]}.

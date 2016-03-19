@@ -1,17 +1,45 @@
 %% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_image,
  [
+  {image_dialog,
+   [
+    {3,"Vorne"},
+    {4,"Hinten"},
+    {5,"Rechts"},
+    {6,"Links"},
+    {7,"Oben"},
+    {8,"Unten"},
+    {9,"Ansicht"},
+    {10,"Ausrichten mit..."},
+    {11,"Location in Übereinstimmung mit Platzierungshelfer (Bild auf der rechten Seite)"},
+    {12,"Material "},
+    {13,"Material und Objekt "},
+    {14,"Keine "},
+    {15,"Bildname verwenden für..."},
+    {16,"Erlauben, dass der Bildname für das Bildebenen-Material und/oder -Objekt verwendet wird"},
+    {17,"Name"},
+    {18,"Name für das Bildebenen-Objekt"},
+    {19,"Offset"},
+    {20,"Offset von Ursprung (nur positive Werte)"},
+    {21,"Rotation"},
+    {22,"Rotation um den Ursprung (positiv ist gegen Uhrzeigersinn)"},
+    {23,"Nach Erstellen sperren"},
+    {24,"Bildebenen-Objekt sperren"},
+    {25,"Transparente Rückseite"},
+    {26,"Transparentes Material der Rückseite zuweisen"}
+   ]},
   {image_menu,
    [
     {1,"Bildebene..."},
-    {2,"Ebene mit Bild darin erzeugen"}
+    {2,"Eine Ebene mit einem enthaltenen Bild erstellen"}
+   ]},
+  {load_img_plane,
+   [
+    {1,"Das Bild kann nicht als Textur geladen werden.~nDatei: \"~s\"~n GLU-Fehler: ~p - ~s~n"}
    ]},
   {make_image,
    [
-    {1,"Fehler beim Laden von \"~s\": ~s\n"}
-   ]},
-  {make_image_1,
-   [
-    {1,"Bild kann nicht als Textur geladen werden (es ist eventuell zu groß)."}
+    {1,"Laden fehlgeschlagen \"~s\": ~s\n"},
+    {2,"Bildebene"}
    ]}
  ]}.

@@ -3,37 +3,37 @@
  [
   {glide_plane_menu,
    [
-    {1,"Gleitebene Flächen gegenüber ~s.(Parallel zu der Knotenbewegung beschränkt ist)"},
-    {2,"Schervektor und Ursprung wählen (Messpunkt wird berechnet)"},
+    {1,"Gleitebenen-Oberflächen zugewandt ~s.(Parallel zu welchen Vertex-Bewegung beschränkt wird)"},
+    {2,"Schervektor und Ursprung wählen (Messpunkt wird automatisch berechnet)"},
     {3,"Schervektor, Ursprung und Messpunkt wählen"}
    ]},
   {radial_menu,
    [
-    {3,"Knotenbewegung auf Schervektor-~s über ihre individuelle Gleitebene gegenüber ~s beschränken"},
-    {4," (Ursprung und Messpunkt werden berechnet)"},
+    {3,"Vertex-Bewegung auf Schervektor-~s über ihre individuelle Gleitebene zugewandt ~s beschränken"},
+    {4,". (Ursprung und Messpunkt werden automatisch berechnet)"},
     {5,"Ursprung und Messpunkt wählen"}
    ]},
   {selection_ask,
    [
     {1,"Gleitebene auswählen"},
-    {2," (Ebene zu der alle Knoten parallel verschoben werden)"},
-    {3,"Ursprung auswählen (Punkt der die stationäre Gleitebene definiert)"},
+    {2," (Ebene zu welcher alle Vertices parallel verschoben werden)"},
+    {3,"Ursprung auswählen (Punkt, der stationäre Gleitebene definiert)"},
     {4,"Schervektor auswählen"},
-    {5," (Richtungsknoten bewegen sich auf ihren individuellen Gleitebenen)"},
+    {5," (Richtungs-Vertices werden über ihre individuellen Gleitebenen verschoben)"},
     {6,"Messpunkt auswählen"},
-    {7," (Punkt, relativ zu dem Bewegungen in der Gleitebene gemessen werden)"},
-    {8,"Schervektor erneut auswählen"},
-    {9,". Kann nicht senkrecht zu vorgegebenen Gleitebene sein"},
-    {10,"Messpunkt erneut auswählen"},
-    {11,". Muss auf eindeutiger Gleitebene zum vorgegebenen Ursprungs sein"},
-    {12,"Gleitebene erneut auswählen"},
-    {13," Kann nicht parallel zum vorgegebenen Schervektor sein"}
+    {7," (Punkt, gemäß welchem Bewegung über Gleitebene gemessen wird)"},
+    {8,"Schervektor neu auswählen"},
+    {9,". Kann nicht senkrecht zu spezifizierter Gleitebene sein"},
+    {10,"Messpunkt neu auswählen"},
+    {11,". Muss auf eindeutiger Gleitebene zu spezifiziertem Ursprungs sein"},
+    {12,"Gleitebene neu auswählen"},
+    {13," Kann nicht parallel zu spezifiziertem Schervektor sein"}
    ]},
   {shear,
    [
     {1,"Scheren"},
     {2,"Scheren XYZ"},
-    {3,"Gleitebene parallel zu der Bewegungen beschränkt werden, Schervektor und Ursprung die die stationäre Gleitebene definieren und Messpunkt für den Abstand wählen"}
+    {3,"Gleitebene, parallel zu welcher Bewegung beschränkt wird, Schervektor, durch stationäre Gleitebene definierter Ursprung und Messpunkt für Distanz wählen"}
    ]},
   {shear_anchor_help,
    [

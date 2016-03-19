@@ -3,27 +3,27 @@
  [
   {chart_normal,
    [
-    {1,"Normale für Karte kann nicht berechnet werden."}
+    {1,"Kann nicht Normale für Chart berechnen."}
    ]},
   {find_axes,
    [
-    {1,"Karte bzw. Schnitte können nicht sphärisch/zylindrisch projiziert werden.\nEs kann nicht festgestellt werden, welche Achse X, Y und Z sein soll.\nAuffalten verwenden oder eine der Projektionsabbildungen."}
+    {1,"Ich kann derzeitig keine sphärische/zylindrische Map diesen Typs der Chart/Schnitte projizieren.\nIch kann nicht herausfinden, welche Achse Sie als X, Y und Z wollen.\nVerwenden Sie bitte Abwickelung oder eine der Projektions-Mappings."}
    ]},
   {get_face_vspos,
    [
-    {1,"Fehler: Fläche ist nicht trianguliert ~p mit ~p Knoten"}
+    {1,"Fehler: Fläche ist nicht trianguliert ~p mit ~p Vertices"}
    ]},
   {map_chart,
    [
-    {1,"Eine geschlossene Oberfläche kann nicht projiziert werden (Entweder in zwei oder mehr Karten aufteilen oder die Oberfläche an einigen Kanten aufschneiden.)"},
-    {2,"Ein Schnitt in einer geschlossenen Fläche muss aus mindestens zwei Kanten bestehen."},
-    {3,"Mindestens 2 Knoten (pro Karte) müssen ausgewählt sein"},
+    {1,"Eine geschlossene Oberfläche kann nicht gemappt werden (Entweder diese in zwei oder mehr Charts teilen oder sie entlang einiger Kanten schneiden.)"},
+    {2,"Ein Schnitt in einer geschlossenen Oberfläche muss aus mindestens zwei Kanten bestehen."},
+    {3,"Mindestens 2 Vertices (pro Chart) müssen ausgewählt sein"},
     {4,"Fehler:"},
     {5,"Interner Fehler"}
    ]},
   {map_chart_1,
    [
-    {1,"Numerisches Problem, wahrscheinlich eine fehlerhafte Fläche mit Flächeninhalt null."},
+    {1,"Numerisches Problem, wahrscheinlich eine fehlerhafte Fläche mit einem leeren Bereich."},
     {2,"Interner Fehler:"},
     {3,"Fehler"}
    ]},
@@ -33,54 +33,54 @@
    ]},
   {stretch_opt,
    [
-    {1,"optimiere"},
-    {2,"initialisiere"},
-    {3,"Summe nach Ausdehnung (Mittelwert) ~p"}
+    {1,"wird optimiert"},
+    {2,"wird initialisiert"},
+    {3,"Summe nach Dehnung (Mittel) ~p"}
    ]},
   {stretch_setup,
    [
-    {1,"Summe Ausdehnung (schlechteste) ~p"},
-    {2,"Summe Ausdehnung (Mittelwert) ~p"}
+    {1,"Dehnungssumme (am schlechtesten) ~p"},
+    {2,"Dehnungssumme (Mittel) ~p"}
    ]}
  ]}.
 {auv_seg_ui,
  [
   {mappers,
    [
-    {1,"Entfalten"},
+    {1,"Abwickeln"},
     {2,"Normal-Projektion"},
     {3,"Kamera-Projektion"},
-    {4,"Sphärische Karte"},
-    {5,"Zylindrische Karte"}
+    {4,"Sphärische Map"},
+    {5,"Zylindrische Map"}
    ]},
   {seg_event,
    [
-    {1,"segmentiere"}
+    {1,"wird segmentiert"}
    ]},
   {seg_event_3,
    [
-    {1,"Weiter"},
-    {2,"Segmentierung durch"},
+    {1,"Fortsetzen"},
+    {2,"Segment von"},
     {3,"Projektion"},
-    {4,"Merkmal-Erkennung"}
+    {4,"Merkmalerkennung"}
    ]},
   {seg_init_message,
    [
-    {1,"Auswahl"},
-    {2,"Menü anzeigen"}
+    {1,"Auswählen"},
+    {2,"Menü zeigen"}
    ]},
   {seg_map_charts,
    [
-    {1,"abbilden vorbereiten"},
-    {2,"segmentiere"},
-    {3,"normalisiere"},
-    {4,"schneide"},
-    {5,"Keine abbildbaren Flächen."},
-    {6,"abbilden"}
+    {1,"Mapping wird vorbereitet"},
+    {2,"wird segmentiert"},
+    {3,"wird normalisiert"},
+    {4,"wird geschnitten"},
+    {5,"Keine mappbaren Flächen."},
+    {6,"Mapping"}
    ]},
   {seg_map_charts_1,
    [
-    {1,"Karte"}
+    {1,"Chart"}
    ]},
   {seg_mode_menu,
    [
@@ -88,7 +88,7 @@
     {2,"Kanten-Markierung aufheben"},
     {3,"Markierte Kanten auswählen"},
     {4,"Flächen ignorieren"},
-    {5,"Auswahl"}
+    {5,"Auswählen"}
    ]}
  ]}.
 {auv_texture,
@@ -101,19 +101,17 @@
    [
     {1,"Größe"},
     {2,"Render"},
-    {3,"Zeichnen Optionen"},
-    {4,"Neuer Durchgang"},
-    {5,"Unbenutzte Durchgänge löschen"}
+    {3,"Zeichenoptionen"}
    ]},
   {options,
    [
     {1,"Bild"},
     {2,"Farbe"},
     {3,"Alle Kanten zeichnen"},
-    {4,"Rand-Kanten zeichnen"},
+    {4,"Grenzkanten zeichnen"},
     {5,"Kantenfarbe:"},
     {6,"Kantenbreite:"},
-    {8,"Material-Farben verwenden"}
+    {8,"Vertex-Farben verwenden (an Grenzkanten)"}
    ]},
   {render_passes,
    [
@@ -132,196 +130,206 @@
  [
   {align_error,
    [
-    {1,"Zwei Knoten oder eine Kante auswählen"}
+    {1,"Zwei Vertices oder eine Kante auswählen"}
    ]},
   {auv_menu,
    [
-    {1,"UV Abbildung"},
-    {2,"UV Abbildung oder Textur erzeugen"},
-    {3,"Segmentier-Modus erzwingen (alte Segmente löschen)"},
+    {1,"UV-Mapping"},
+    {2,"UV-Mapping oder Textur generieren"},
+    {3,"Segmentierungsmodus erzwingen (alte Segmente löschen)"},
     {25,"Objekt(e) neu segmentieren"}
    ]},
   {command_menu,
    [
     {2,"Verschieben"},
-    {3,"Ausgewählte Karten verschieben"},
+    {3,"Ausgewählte Charts verschieben"},
     {4,"Skalieren"},
-    {5,"Ausgewählte Karten verschieben"},
-    {6,"Rotieren"},
-    {7,"Ausgewählte Karten rotieren"},
-    {8,"Verschieben nach"},
+    {5,"Ausgewählte Charts skalieren"},
+    {6,"Drehen"},
+    {7,"Ausgewählte Charts drehen"},
+    {8,"Verschieben zu"},
     {9,"Zentrieren"},
-    {10,"Zum Zentrum verschieben"},
-    {11,"X zentrieren"},
-    {12,"Zum horizontalen Zentrum verschieben"},
-    {13,"Y zentrieren"},
-    {14,"Zum vertikalen Zentrum verschieben"},
+    {10,"Verschieben zu Zentrum"},
+    {11,"Zentrieren X"},
+    {12,"Verschieben zu horizontalem Zentrum"},
+    {13,"Zentrieren Y"},
+    {14,"Verschieben zu vertikalem Zentrum"},
     {15,"Unten"},
-    {16,"An unteren Rand verschieben"},
+    {16,"Verschieben zu unterem Rand"},
     {17,"Oben"},
-    {18,"An oberen Rand verschieben"},
+    {18,"Verschieben zu oberem Rand"},
     {19,"Links"},
-    {20,"An linken Rand verschieben"},
+    {20,"Verschieben zu linkem Rand"},
     {21,"Rechts"},
-    {22,"An rechten Rand verschieben"},
-    {23,"Karten auf Position verschieben"},
+    {22,"Verschieben zu rechtem Rand"},
+    {23,"Charts zu Position verschieben"},
     {24,"Umdrehen"},
     {25,"Horizontal"},
     {26,"Auswahl horizontal umdrehen"},
     {27,"Vertikal"},
     {28,"Auswahl vertikal umdrehen"},
-    {29,"Ausgewählte Karten umdrehen"},
-    {30,"Straffen"},
-    {31,"UV-Koordinaten auf gemeinsamen Mittelpunkt verschieben"},
-    {32,"Verbergen"},
-    {33,"Ausgewählte Karten verbergen, aber UV-Koordinaten beibehalten"},
+    {29,"Ausgewählte Charts umdrehen"},
+    {30,"Spannen"},
+    {31,"UV-Koordinaten zu durchschnittl. Mittelpunkt verschieben"},
+    {32,"Ausblenden"},
+    {33,"Ausgewählte Charts ausblenden, aber UV-Koordinaten beibehalten"},
     {34,"Löschen"},
-    {35,"UV-Koordinaten ausgewählter Karten löschen"},
-    {36,"UV neu abbilden"},
-    {37,"Ausdehnung optimieren"},
-    {38,"Ausdehnung der Karte optimieren"},
-    {39,"Entfalten"},
-    {40,"Karte entfalten"},
-    {41,"Normalprojektion"},
-    {42,"UVs von der Karten-Normalen projizieren"},
+    {35,"UV-Koordinaten für die ausgewählten Charts entfernen"},
+    {36,"UV neu mappen"},
+    {37,"Dehnungsoptimierung"},
+    {38,"Die Dehnung der Chart optimieren"},
+    {39,"Abwickeln"},
+    {40,"Die Chart abwickeln"},
+    {41,"Normale projizieren"},
+    {42,"UVs von Chart-Normale projizieren"},
     {43,"Sphärisch"},
-    {44,"Sphärische Abbildung"},
-    {45,"UV-Koordinaten mit gewähltem Algorithmus berechnen"},
+    {44,"Sphärisches Mapping"},
+    {45,"Neue UVs mit gewähltem Algorithmus berechnen"},
     {47,"Verschieben"},
     {48,"Ausgewählte Flächen verschieben"},
     {49,"Skalieren"},
     {50,"Ausgewählte Flächen skalieren"},
-    {51,"Rotieren"},
-    {52,"Ausgewählte Flächen rotieren"},
+    {51,"Drehen"},
+    {52,"Ausgewählte Flächen drehen"},
     {53,"Frei"},
-    {54,"Auswahl frei rotieren"},
-    {55,"Karte auf X"},
-    {56,"Karte rotieren und ausgewählte Kante an X-Achse ausrichten"},
-    {57,"Karte auf Y"},
-    {58,"Karte rotieren und ausgewählte Kante an Y-Achse ausrichten"},
+    {54,"Auswahl frei drehen"},
+    {55,"Cahrt zu X"},
+    {56,"Chart drehen, um ausgewählte Kante auf X-Achse auszurichten"},
+    {57,"Chart zu Y"},
+    {58,"Chart drehen, um ausgewählte Kante auf Y-Achse auszurichten"},
     {60,"Verschieben"},
     {61,"Ausgewählte Kanten verschieben"},
     {62,"Skalieren"},
     {63,"Ausgewählte Kanten skalieren"},
-    {64,"Rotieren"},
-    {65,"Rotieren Befehl"},
+    {64,"Drehen"},
+    {65,"Drehen-Befehle"},
     {66,"Vernähen"},
-    {67,"Kanten/Karten vernähen"},
-    {68,"Aufschneiden"},
-    {69,"Ausgewählte Kanten aufschneiden"},
+    {67,"Kanten/Charts vernähen"},
+    {68,"Schneiden"},
+    {69,"Ausgewählte Kanten schneiden"},
     {70,"Frei"},
-    {71,"Auswahl frei rotieren"},
-    {72,"Karte auf X"},
-    {73,"Karte rotieren und (imaginäre) Kante auf ausgewählte Knoten zur X-Achse ausrichten"},
-    {74,"Karte auf Y"},
-    {75,"Karte rotieren und (imaginäre) Kante auf ausgewählte Knoten zur Y-Achse ausrichten"},
+    {71,"Auswahl frei drehen"},
+    {72,"Chart zu X"},
+    {73,"Chart drehen, um (imaginäre) Kantenverbund ausgewählter Verts auf X-Achse auszurichten"},
+    {74,"Chart zu Y"},
+    {75,"Chart drehen, um (imaginäre) Kantenverbund ausgewählter Verts auf Y-Achse auszurichten"},
     {77,"Verschieben"},
-    {78,"Ausgewählte Knoten verschieben"},
+    {78,"Ausgewählte Vertices verschieben"},
     {79,"Skalieren"},
-    {80,"Ausgewählte Knoten skalieren"},
-    {81,"Rotieren"},
-    {82,"Rotieren Befehl"},
+    {80,"Ausgewählte Vertices skalieren"},
+    {81,"Drehen"},
+    {82,"Drehen-Befehle"},
     {83,"Ebnen"},
     {84,"Horizontal ebnen"},
     {85,"Vertikal ebnen"},
-    {86,"Ausgewählte Knoten ebnen"},
-    {87,"Straffen"},
-    {88,"UV Koordinaten auf gemeinsamen Mittelpunkt verschieben"},
-    {89,"Auffalten"},
-    {90,"Karte auffalten (ohne ausgewählte Knoten zu verschieben)"},
-    {91,"Sphärische Abbildung"},
-    {92,"Sphärische Projektion mit ausgewählten Knoten als Nord-/Südpol erzeugen"},
+    {86,"Ausgewählte Vertices ebnen"},
+    {87,"Spannen"},
+    {88,"UV-Koordinaten zu durchschnittl. Mittelpunkt verschieben"},
+    {89,"Abwickeln"},
+    {90,"Die Chart abwickeln (ohne Verschieben der ausgewählten Vertices)"},
+    {91,"Sphärische Map"},
+    {92,"Ein sphärisches Mapping mit ausgewählten Vertices, die Nord-/Südpol bilden, erstellen"},
     {411,"Größen normalisieren"},
-    {412,"Kartengrößen normalisieren, so das jede Karte ihren korrespondierende 2D Flächeninhalt erhält"},
-    {521,"Projizieren-entfalten"},
-    {522,"Projiziere ausgewählte Flächen von der Normalen und den Rest der Karte entfalten"},
-    {641,"Gleiten"},
-    {642,"Kante entlang Nachbarkanten gleiten lassen"},
+    {412,"Chart-Größen normalisieren, sodass jede Chart ihren korrespondierenden 2D-Bereich erhält"},
+    {521,"Projizieren-Abwickeln"},
+    {522,"Ausgewählte Flächen von Normale projizieren und den Rest der Chart abwickeln"},
+    {641,"Schieben"},
+    {642,"Schieben entlang Nachbarkanten"},
     {643,"Verteilen"},
-    {644,"Horizontal verteilen"},
-    {645,"Vertikal verteilen"},
-    {646,"Knoten gleichmäßig verteilen"}
+    {644,"Verteilen horizontal"},
+    {645,"Verteilen vertikal"},
+    {646,"Vertices gleichmäßig verteilen"}
    ]},
   {create_window,
    [
-    {1,"segmentiere"}
+    {1,"wird segmentiert"}
    ]},
   {drag_filter,
    [
-    {1,"Ablegen: Texturbild ändern"}
+    {1,"Ablegen: Das Texturbild ändern"}
    ]},
   {handle_event_3,
    [
-    {1,"Auswahl"},
-    {2,"Menü anzeigen"}
+    {1,"Auswählen"},
+    {2,"Menü zeigen"}
    ]},
   {menu,
    [
-    {1,"UV Bearbeitungsfenster"},
-    {2,"UV Bearbeitungsfenster für jedes ausgewählte Objekt öffnen"}
+    {1,"UV-Editor-Fenster"},
+    {2,"Ein UV-Editor-Fenster für jedes ausgewählte Objekt öffnen"}
    ]},
   {menubar,
    [
     {1,"Bearbeiten"},
     {2,"Rückgängig/Wiederherstellen"},
-    {3,"Letzten Befehls rückgängig machen oder wiederherstellen"},
-    {4,"Rückgängig"},
-    {5,"Letzten Befehl rückgängig machen"},
-    {6,"Wiederherstellen"},
-    {7,"Letzten rückgängig-Befehl wiederherstellen"},
+    {3,"Den letzten Befehl rückgängig machen oder wiederherstellen"},
+    {4,"Wiederherstellen"},
+    {5,"Den letzten offenen Befehl wiederherstellen"},
+    {6,"Rückgängig"},
+    {7,"Den letzten Befehl rückgängig machen"},
     {8,"Ansicht"},
-    {9,"Hintergrundbild an/aus"},
+    {9,"Hintergrundbild zeigen/ausblenden"},
     {10,"Anzeige des Textur-Hintergrundbildes umschalten"},
-    {11,"Auswahl"},
+    {11,"Auswählen"},
     {71,"Wiederholen"},
-    {72,"Letzten Befehl wiederholen"},
-    {74,"Parameter wiederholen"},
-    {75,"Letzten Befehl mit den selben Parametern wiederholen"},
-    {76,"Ziehen wiederholen"},
-    {77,"Letzten Befehl mit den selben Parametern und dem selben Abstand wiederholen"}
+    {72,"Den letzten Befehl wiederholen"},
+    {74,"Argumente wiederholen"},
+    {75,"Den letzten Befehl mit gleichen Argumenten wiederholen"},
+    {76,"Zug wiederholen"},
+    {77,"Den letzten Befehl mit gleichen Argumenten derselben Distanz wiederholen"}
+   ]},
+  {move_directions,
+   [
+    {1,"Frei"},
+    {2,"Verschieben in beide Richtungen"},
+    {3,"Horizontal"},
+    {4,"Verscheiben horizontal (Richtung X)"},
+    {5,"Vertikal"},
+    {6,"Verschieben vertikal (Richtung Y)"}
    ]},
   {option_menu,
    [
-    {1,"Textur erzeugen"},
-    {2,"Textur erzeugen und dem Modell zuweisen"}
+    {1,"Textur erstellen"},
+    {2,"Eine Textur erzeugen und dem Modell anfügen"}
    ]},
   {remap,
    [
-    {1,"neu abbilden"},
-    {2,"Karte"}
+    {1,"Mapping neu"},
+    {2,"Chart"}
    ]},
   {reunfold,
    [
-    {1,"Zwei Knoten auswählen, Den Nord- und den Südpol"},
-    {2,"Mindestens zwei Knoten pro Karte müssen festgesteckt sein"},
-    {3,"neu abbilden"},
-    {4,"Karte"}
+    {1,"Zwei Vertices auswählen, den Nord- und Südpol"},
+    {2,"Mindestens zwei Vertices pro Chart müssen angeheftet sein"},
+    {3,"Mapping neu"},
+    {4,"Chart"},
+    {5,"Alle Vertices können nicht angeheftet werden"}
    ]},
   {scale_directions,
    [
     {1,"Einheitlich"},
-    {2,"In beide Richtungen skalieren"},
+    {2,"Skalieren in beide Richtungen"},
     {3,"Horizontal"},
-    {4,"Horizontal skalieren (X Richtung)"},
+    {4,"Horizontal skalieren (Richtung X)"},
     {5,"Vertikal"},
-    {6,"Vertikal skalieren (Y Richtung)"}
+    {6,"Vertikal skalieren (Richtung Y)"}
    ]},
   {start_uvmap,
    [
-    {1,"Keine Auswahl"}
+    {1,"Nichts ausgewählt"}
    ]},
   {stitch_charts,
    [
-    {1,"So viele Karten können nicht gleichzeitig vernäht werden"}
+    {1,"Hmm, ich kann nicht so viele Charts gleichzeitig vernähen"}
    ]},
   {stretch_directions,
    [
-    {1,"Einheitlich maximieren"},
+    {1,"Max. einheitlich"},
     {2,"Entweder horizontal oder vertikal maximieren"},
-    {3,"Horizontal maximieren"},
-    {4,"Horizontal maximieren (X Richtung)"},
-    {5,"Vertikal maximieren"},
-    {6,"Vertikal maximieren (Y Richtung)"}
+    {3,"Max. horizontal"},
+    {4,"Horizontal maximieren (Richtung X)"},
+    {5,"Max. vertikal"},
+    {6,"Vertikal maximieren (Richtung Y)"}
    ]}
  ]}.
 {wpc_snap,
@@ -332,46 +340,58 @@
    ]},
   {menu,
    [
-    {1,"Bild fangen"},
-    {2,"Fangen-Modus starten und UV Koordinaten auf einem Bild fangen"},
-    {3,"Fangen-Modus beenden"},
-    {4,"Fangen-Modus beenden"},
-    {5,"Bild fangen"},
-    {6,"Hintergrundbild ausgewählten Flächen durch Zuweisung von UV Koordinaten zuweisen"}
+    {1,"Bild einrasten"},
+    {2,"Einrasten-Modus starten für \"Snapping\" UV-Koordinaten auf einem Bild"},
+    {3,"Einrasten-Modus beenden"},
+    {4,"Einrasten-Modus beenden"},
+    {5,"Bild einrasten"},
+    {6,"Hintergrundbild auf ausgewählten Flächen platzieren durch Zuweisung der UV-Koordinaten zu diesen"}
+   ]},
+  {proportional_scale,
+   [
+    {1,"...auf aktuell X"},
+    {2,"Y-Wert des Bildes proportional auf seinen aktuellen X-Wert skalieren"},
+    {3,"...auf aktuell Y"},
+    {4,"X-Wert des Bildes proportional auf seinen aktuellen Y-Wert skalieren"},
+    {5,"Tatsächliche Größe"},
+    {6,"Bild auf seine tatsächliche Größe zurücksetzen"}
    ]},
   {select_image,
    [
-    {1,"Kein Bild verfügbar; zuvor ein Bild importieren."},
-    {2,"Zu fangendes Bild wählen"}
-   ]},
-  {set_materials,
-   [
-    {1,"Bild kann nicht auf Objekte mit Knoten-Farben abgelegt werden"}
+    {1,"Keine Bilder präsent, zuerst ein Bild importieren."},
+    {2,"Bild zum Einrasten wählen"}
    ]},
   {snap_menu,
    [
     {1,"Horizontal"},
-    {2,"Hintergrundbild horizontal skalieren"},
+    {2,"Das Hintergrundbild horizontal skalieren"},
     {3,"Vertikal"},
-    {4,"Hintergrundbild vertikal skalieren"},
+    {4,"Das Hintergrundbild vertikal skalieren"},
     {5,"Frei"},
-    {6,"Hintergrundbild frei skalieren"},
+    {6,"Das Hintergrundbild frei skalieren"},
     {7,"Einheitlich"},
-    {8,"Hintergrundbild einheitlich skalieren"},
-    {9,"Horizontal"},
-    {10,"Hintergrundbild horizontal verschieben"},
-    {11,"Vertikal"},
-    {12,"Hintergrundbild vertikal verschieben"},
-    {13,"Frei"},
-    {14,"Hintergrundbild frei verschieben"},
-    {15,"Gefangenes Bild skalieren"},
-    {16,"Hintergrundbild skalieren"},
-    {17,"Gefangenes Bild verschieben"},
-    {18,"Hintergrundbild verschieben"},
-    {19,"Fangen-Modus beenden"},
-    {20,"Fangen-Modus beenden"}
+    {8,"Das Hintergrundbild einheitlich skalieren"},
+    {10,"Das Hintergrundbild horizontal verschieben"},
+    {12,"Das Hintergrundbild vertikal verschieben"},
+    {14,"Das Hintergrundbild frei verschieben"},
+    {15,"Eingerastetes Bild skalieren"},
+    {16,"Das Hintergrundbild skalieren"},
+    {17,"Eingerastetes Bild verschieben"},
+    {18,"Das Hintergrundbild verschieben"},
+    {19,"Einrasten-Modus beenden"},
+    {20,"Den Einrasten-Modus beenden"},
+    {21,"Eingerastetes Bild anpassen"},
+    {22,"Beides"},
+    {25,"Bild auf die Dimensionen des Viewports anpassen"},
+    {26,"Zentrieren X"},
+    {27,"Das Hintergrundbild horizontal zentrieren"},
+    {28,"Zentrieren Y"},
+    {29,"Das Hintergrundbild vertikal zentrieren"},
+    {30,"Zentrieren"},
+    {31,"Das Hintergrundbild auf den Viewport zentrieren"},
+    {32,"Proportional"},
+    {33,"Bildskalierung proportional erzeugen"},
+    {34,"Eingerastetes Bild drehen"},
+    {35,"Das Hintergrundbild drehen"}
    ]}
  ]}.
-%% [auv_texture,options,7] is not used
-%% [auv_texture,options,9] is not used
-%% [auv_texture,options,10] is not used
