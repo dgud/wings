@@ -1,0 +1,21 @@
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ambocc,
+ [
+  {ambient,
+   [
+    {1,"Ambient"}
+   ]},
+  {ambient_occlusion,
+   [
+    {1,"OpenGL AmbOcc Zeit: ~.1fs (~s)\n"}
+   ]},
+  {menu,
+   [
+    {1,"Ambient Occlusion"},
+    {2,"Ambient-Occlusion Vertex-Farben via OpenGL hinzufügen"}
+   ]},
+  {process_obj,
+   [
+    {1,"Verarbeitung: ~s\n"}
+   ]}
+ ]}.

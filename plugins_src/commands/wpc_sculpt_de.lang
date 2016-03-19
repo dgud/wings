@@ -1,0 +1,88 @@
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
+{wpc_sculpt,
+ [
+  {constraint_info,
+   [
+    {1,"Standard"},
+    {2,"Radial von ~s"},
+    {3,"Keine"},
+    {4,"Einschränkung: ~s"}
+   ]},
+  {constraints_menu,
+   [
+    {1,"Bewegung auf die ~s Achse einschränken."},
+    {3,"Standardachse"},
+    {4,"Standard"},
+    {5,"Radial von ~s"},
+    {6,"Radial der Standardachse"},
+    {7,"Bewegung auf die radiale der ~s Achse einschränken."},
+    {8,"Einschränkungen löschen"}
+   ]},
+  {exit_string,
+   [
+    {1,"Beenden"}
+   ]},
+  {help,
+   [
+    {1,"L: Sculpting"},
+    {2,"[Strg]+R: Sculpting-Menü"},
+    {3,"Magnet: ~s"},
+    {4,"Alt+Ziehen: Radius anpassen"},
+    {5,"Alt+Scroll(+[Shift]): "},
+    {6,"Stärke anpassen"},
+    {7,"Stärke: ~p"},
+    {8,"Radius: ~s"},
+    {9,"Ohne (Magnet ist aus)"},
+    {10,"Sculpting-Modus"},
+    {11,"Halten [Strg]: Schieben"},
+    {12,"Halten [Strg]: Aufblasen"},
+    {13,"Halten [Shift]: Glätten"}
+   ]},
+  {magtype,
+   [
+    {1,"Glocke"},
+    {2,"Kuppel"},
+    {3,"Gerade"},
+    {4,"Spitze"},
+    {5,"Absolut"}
+   ]},
+  {mode,
+   [
+    {1,"Schieben"},
+    {2,"Ziehen"},
+    {3,"Drücken"},
+    {4,"Glätten"},
+    {5,"Aufblasen"}
+   ]},
+  {prefs,
+   [
+    {1,"Stärke"},
+    {3,"Sculpten auf Ausgangsobjekt beschränken"},
+    {4,"Magneteinfluss zeigen"},
+    {10,"Sculpting-Einstellungen"}
+   ]},
+  {sculpt_heading,
+   [
+    {1,"Sculpting"},
+    {2,"Wechseln in Sculpting-Modus"}
+   ]},
+  {sculpt_menu,
+   [
+    {1,"Magnet Ein/Aus"},
+    {2,"Magnetmaske Ein/Aus"},
+    {3,"Einstellungen"},
+    {4,"Das Sculpting-Tool Ziehen/Schieben aktivieren"},
+    {5,"Das Sculpting-Tool Drücken/Aufblasen aktivieren"},
+    {6,"Den Glättungspinsel aktivieren"},
+    {7,"Den Kuppel-Magneten aktivieren"},
+    {8,"Den Absolut-Magneten aktivieren"},
+    {9,"Den Gerade-Magneten aktivieren"},
+    {10,"Den Spitze-Magneten aktivieren"},
+    {11,"Den Glocke-Magneten aktivieren"},
+    {12,"Den Magneten ein- oder ausschalten"},
+    {13,"Die Magnetmaske umschalten. Maskierungsoptionen sind im Menü Tools zu finden."},
+    {14,"Einstellungen des Sculpting-Modus"},
+    {15,"Sculpting-Modus beenden"},
+    {16,"Acheneinschränkungen"}
+   ]}
+ ]}.

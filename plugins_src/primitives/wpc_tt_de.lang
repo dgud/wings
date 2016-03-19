@@ -13,8 +13,9 @@
   {gen,
    [
     {1,"Text fehlgeschlagen: "},
-    {2,"Fehler gefangen: "},
-    {3,"Text fehlgeschlagen: interner Fehler"}
+    {2,"Fehler abgefangen: "},
+    {3,"Text fehlgeschlagen: Interner Fehler"},
+    {4,"Text fehlgeschlagen: Lokalisieren der TTF-Datei für den ausgewählten Font fehlgeschlagen"}
    ]},
   {getdirs,
    [
@@ -24,32 +25,29 @@
    [
     {1,"Tabellenversatz/-grössen falsch"}
    ]},
-  {help_button,
-   [
-    {1,"Suchen nach Schriftarten unter Windows"}
-   ]},
   {help,
    [
-    {1,"Unter Windows können Schriftarten im Verzeichnis 'WINDOWS/Fonts' über die Schaltfläche 'Durchsuchen' nicht ausgewählt werden, da es sich um ein Systemverzeichnis handelt."},
-    {3,"Um trotzdem TrueType Schriftarten zu verwenden, können Sie das Verzeichnis 'WINDOWS/Fonts' kopieren und außerhalb der Systemverzeichnisse ablegen."},
-    {4,"Sie können dann die Kopie des Schriftarten Verzeichnisses über die Schaltfläche 'Durchsuchen' aufrufen und eine Schriftart auswählen."},
-    {5,"Nach der Erzeugung eines 3D Text Objekts aus dem neuen Verzeichnis speichert Wings das Verzeichnis für den nächsten Aufruf."}
+    {1,"Nur TrueType-Fonts können verwendet werden und diese müssen im Standardverzeichnis des Betriebssystems für Fonts installiert sein."}
+   ]},
+  {help_button,
+   [
+    {1,"Suchen nach Fonts unter Windows"}
    ]},
   {make_text,
    [
-    {1,"Text erzeugen"},
+    {1,"Text erstellen"},
     {2,"Text"},
-    {3,"TrueType Schriftart"},
-    {5,"Anzahl der Kanten-Halbierungen"}
+    {3,"TrueType-Font"},
+    {5,"Anzahl der Kantenhalbierungen"}
    ]},
   {menu_entry,
    [
     {1,"Text"},
-    {2,"Text in 3D Objekt konvertieren"}
+    {2,"Text zu einem 3D-Objekt konvertieren"}
    ]},
   {parsecmaptab,
    [
-    {1,"Keine passende Zeichentabelle"}
+    {1,"Keine geeignete Zeichentabelle"}
    ]},
   {parsett,
    [
@@ -57,6 +55,10 @@
    ]},
   {trygen,
    [
-    {1,"Keine TrueType Sektion in "}
+    {1,"Kann keine TrueType-Sektion finden in "}
+   ]},
+  {win_font_substitutes,
+   [
+    {1,"Font-Substitute"}
    ]}
  ]}.

@@ -4,36 +4,36 @@
   {get_ask_list,
    [
     {1,"Algorithmus-Stärke"},
-    {2,"Größere Algorithmus-Stärken sind langsamer, können aber bessere Ergebnisse produzieren"},
-    {3,"Max. Kanten-Winkel"},
-    {4,"Maximaler Winkel zwischen Kanten die aufgelöst werden"},
+    {2,"Höhere Algorithmus-Stärken sind langsamer, können aber bessere Ergebnisse produzieren"},
+    {3,"Max. Kantenwinkel"},
+    {4,"Maximaler Winkel der Kanten die aufgelöst werden"},
     {5,"Materialien prüfen"},
-    {6,"Kanten entlang Material-Grenzen nicht auflösen"},
-    {7,"UV Koordinaten prüfen"},
-    {8,"Kanten entlang Grenzen disjunkter Texturkoordinaten nicht auflösen"},
-    {9,"Harte Kanten beachten"},
+    {6,"Kanten entlang Materialgrenzen nicht auflösen"},
+    {7,"UV-Koordinaten prüfen"},
+    {8,"Kanten entlang Grenzen disjunkter Texturkoordinaten-Grenzen nicht auflösen"},
+    {9,"Harte Kanten prüfen"},
     {10,"Harte Kanten nicht auflösen"},
-    {11,"Wölbung prüfen"},
-    {12,"Gewölbte Polygone vermeiden"}
+    {11,"Konkavität prüfen"},
+    {12,"Keine konkaven Polygone produzieren"}
    ]},
   {menu,
    [
-    {1,"De-triangulieren"},
-    {2,"Gruppen von Dreiecken in Vierecke konvertieren"},
-    {3,"De-triangulieren"}
+    {1,"Triangulation aufheben"},
+    {2,"Sets aus Dreiecken (Triangle) in Vierecke (Quads) konvertieren"},
+    {3,"Triangulation aufheben"}
    ]},
   {pref_edit,
    [
-    {1,"De-triangulieren Einstellungen (v0.2)"}
+    {1,"´Triangulation aufheben´-Einstellungen (v0.2)"}
    ]},
   {process_edges,
    [
-    {1,"De-triangulieren"},
-    {2,"Zielkanten wählen"},
-    {3,"Bilde Auswahlbaum"}
+    {1,"Triangulation aufheben"},
+    {2,"Zielkanten werden gewählt"},
+    {3,"Auswahlbaum wird erstellt"}
    ]},
   {untriangulate,
    [
-    {1,"De-triangulieren (v0.2)"}
+    {1,"Triangulation aufheben (v0.2)"}
    ]}
  ]}.

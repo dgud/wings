@@ -1,13 +1,13 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_x,
  [
   {do_export,
    [
-    {1,"DirectX Export Optionen"}
+    {1,"DirectX-Exportoptionen"}
    ]},
   {export,
    [
-    {1,"DirectX Fehler: ~P in ~p~n"}
+    {1,"DirectX-Fehler: ~P in ~p~n"}
    ]},
   {menu_entry,
    [
@@ -15,6 +15,6 @@
    ]},
   {props,
    [
-    {1,"DirectX Datei"}
+    {1,"DirectX-Datei"}
    ]}
  ]}.

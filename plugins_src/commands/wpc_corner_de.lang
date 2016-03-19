@@ -1,0 +1,17 @@
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
+{wpc_corner,
+ [
+  {corner,
+   [
+    {1,"Sie können zu Kanten nur Ecken hinzufügen, die eine 3-seitige\nFläche an einem Ende und eine 5-seitige Fläche an dem anderen haben."}
+   ]},
+  {corner_error,
+   [
+    {1,"Sorry, diese Auswahl geht über den Umfang dieses Tool hinaus."}
+   ]},
+  {corner_menu,
+   [
+    {1,"Ecke"},
+    {2,"Ecken aus Kantenringen erzeugen, abgeschlossen von einer 3- und 5-seitigen Fläche"}
+   ]}
+ ]}.

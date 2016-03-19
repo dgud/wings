@@ -3,20 +3,20 @@
  [
   {dialog,
    [
-    {1,"facettierte Lichtberechnung"},
+    {1,"Facettiertes Licht-Sampling"},
     {2,"Dateigröße optimieren?"},
     {3,"Umgebung"},
     {4,"Diffus"},
-    {5,"Spiegelnd"},
-    {6,"Export-Skalierung"},
-    {7,"Unterteilungsschritte"}
+    {5,"Specular"},
+    {6,"Export skalieren"},
+    {7,"Subdivision-Schritte"}
    ]},
   {do_export,
    [
-    {1,"Renderware Export Optionen"}
+    {1,"Renderware-Exportoptionen"}
    ]},
   {props,
    [
-    {1,"Criterion Renderware Datei"}
+    {1,"Criterion Renderware-Datei"}
    ]}
  ]}.

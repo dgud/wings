@@ -3,13 +3,12 @@
  [
   {axis_menu,
    [
-    {2,"Ausziehen relativ zum Anteil am Auswahlradius"}
+    {2,"Extrudieren relativ zu Prozentsatz des Radius der Auswahl"}
    ]},
   {axis_menu_string,
    [
-    {1,"Relativ zum Bildschirm frei ausziehen"},
-    {2,"Ohne seitwärts Bewegung entlang der Normalen ausziehen "},
-    {3,"Wenn die ~s Achse senkrecht zur Auszieh-Normalen ist, werden alle Bewegungen auf deren radiale Ebene beschränkt. Andernfalls verhält sie sich wie eine off-axis Komponente."}
+    {1,"Frei sweepen relativ zu Screen"},
+    {3,"Wenn die ~s Achse senkrecht zur Extrusions-Normalen ist, werden alle Bewegungen auf ihre radiale Ebene beschränkt. Andernfalls verhält sie sich wie eine Off-Axis-Komponente."}
    ]},
   {base_help,
    [
@@ -18,42 +17,46 @@
    ]},
   {cntr_help,
    [
-    {1,"[1] Auswahl-Zentrum"},
-    {2,"[1] Region-Zentrum"}
+    {1,"[1] Auswahlzentrum"},
+    {2,"[1] Regionzentrum"}
    ]},
   {lock_help,
    [
     {1,"  [3] Achse sperren"},
-    {2,"  [3] Relativ zum Bildschirm"}
+    {2,"  [3] Screen relativ"}
    ]},
   {menu_string_1,
    [
-    {1,"Entlang der Normalen ausziehen, verwendet Standard Querachse"},
-    {2,"Region entlang ihrer Normalen ausziehen, verwendet Standard Querachse"},
-    {3,"Region extrahieren und entlang ihrer Normalen ausziehen, verwendet Standard Querachse"}
+    {1,"Extrudieren entlang Normale, unter Verwendung von Standardseite zu Seitenachse"},
+    {2,"Region entlang ihrer Normalen extrudieren, unter Verwendung von Standardseite zu Seitenachse"},
+    {3,"Region extrahieren und entlang ihrer Normalen extrudieren, unter Verwendung von Standardseite zu Seitenachse"}
    ]},
   {menu_title,
    [
-    {1,"Ausziehen"},
-    {2,"Region ausziehen"},
-    {3,"Auswal ausziehen"}
+    {1,"Sweepen"},
+    {2,"Region sweepen"},
+    {3,"Sweep extrahieren"}
    ]},
   {selection_ask,
    [
-    {1,"Die Wahl einer Achse senkrecht zur Normalen der Extraktion, beschränkt alle Bewegungen auf deren radiale Ebene. Andernfalls verhält sie sich wie eine off-axis Komponente."}
+    {1,"Bei Wahl einer Achse senkrecht zur Extrusions-Normalen werden alle Bewegungen auf ihre Radialebene einschränken. Andernfalls verhält sie sich wie eine off-axis Komponente."}
    ]},
   {sweep_error,
    [
-    {2,"Region ausziehen für vollständig ausgewählte Objekte nicht möglich"}
+    {2,"Region sweepen funktioniert nicht für Auswahlen wo die durchschnittl. Normale (0,0,0) ist"}
    ]},
   {sweep_menu,
    [
-    {3,"Achse auswählen"},
-    {4,"Achse wählen und relativ zum Anteil am Auswahlradius ausziehen"}
+    {3,"Achse wählen"},
+    {4,"Achse wählen und relativ zu Prozentsatz des Radius der Auswahl extrudieren"}
+   ]},
+  {sweep_menu_headings,
+   [
+    {1,"Eine gegehrte Extrusion erzeugen, die skaliert und interaktiv verdreht werden kann"}
    ]},
   {warp_help,
    [
     {1,"  [2] Form beibehalten"},
-    {2,"  [2] Verwindung erlauben"}
+    {2,"  [2] Verziehen erlauben"}
    ]}
  ]}.

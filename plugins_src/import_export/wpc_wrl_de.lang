@@ -1,16 +1,16 @@
-%% -*- mode:erlang; erlang-indent-level: 2 -*-
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_wrl,
  [
   {do_export,
    [
-    {1,"VRML Export Optionen"}
+    {1,"VRML-Exportoptionen"}
    ]},
   {export,
    [
-    {1,"VRML Fehler: ~P in"}
+    {1,"VRML-Fehler: ~P in"}
    ]},
   {props,
    [
-    {1,"VRML 2.0 Datei"}
+    {1,"VRML 2.0-Datei"}
    ]}
  ]}.

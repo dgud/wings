@@ -1,0 +1,12 @@
+%% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
+{ambocc_gl2,
+ [
+  {ambient_occlusion,
+   [
+    {1,"OpenGL AmbOcc GL2 Zeit: ~.1fs (~s)\n"}
+   ]},
+  {process_obj,
+   [
+    {1,"Verarbeitung: ~s\n"}
+   ]}
+ ]}.
