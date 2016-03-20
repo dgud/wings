@@ -287,7 +287,11 @@ attach_floating(true, Overlay, #{op:=#{mwin:=Container, mpath:=Path}, loose:=Loo
 	    %% io:format("Attach window ~p ~p~n", [Container, Path]),
 	    St = State#{loose:=maps:remove(Container,Loose), action:=undefined, op:=undefined},
 	    DoWhileLocked = fun() -> attach_window(Path, Container, Window, St) end,
-	    After = fun() -> timer:sleep(200), wings_io:reset_video_mode_for_gl(0,0) end,
+	    After = fun() ->
+			    timer:sleep(200),
+			    wings_io:reset_video_mode_for_gl(0,0),
+			    wx_object:get_pid(Window) ! parent_changed
+		    end,
 	    wings_io:lock(whereis(wings), DoWhileLocked, After)
     end;
 attach_floating(_B, _, State) ->
@@ -494,6 +498,7 @@ detach_window(#wxMouse{type=motion, leftDown=true, x=X,y=Y},
 			  end,
 	    {{Frame,NewWin}, Root} = wings_io:lock(whereis(wings), WhileLocked),
 	    check_tree(Root, maps:get(ch, State)),
+	    wx_object:get_pid(NewWin) ! parent_changed,
 	    wxWindow:captureMouse(Bar),
 	    State#{action:=detach_move,
 		   op:=Op#{frame=>Frame, disp=>Displace},
