@@ -82,6 +82,8 @@ command({duplicate,MatList}, St) ->
     duplicate_material(MatList, St);
 command({delete,MatList}, St) ->
     delete_material(MatList, St);
+command({rename, Old, New}, St) ->
+    rename_1([{list_to_atom(Old),New}], St, []);
 command({rename,MatList0}, St) ->
     case MatList0 -- ["default"] of
 	[] -> St;
