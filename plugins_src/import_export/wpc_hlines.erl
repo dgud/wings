@@ -460,7 +460,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 
 
 
-						% io:format("EyePos ~p   ~n",[Pos_eye]),
+	    %% io:format("EyePos ~p   ~n",[Pos_eye]),
 
 	    LSpos = {get_pref(fill_shade_type, ?DEF_FILL_SHADE_TYPE), get_pref( light_pos, ?DEF_LIGHT_POS) },
 
@@ -610,14 +610,14 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 
 
 
-						%  add_Mesh / add_trimesh  Is_open/transparent
+	    %%  add_Mesh / add_trimesh  Is_open/transparent
 						%
-						% EDGE_DICT:
-						% [{crease,[{3,7},{6,7},{0,2},{0,4},{5,7},{0,1}]},
-						%  {outline,[{2,3},{4,6},{1,3},{1,5},{4,5},{2,6}]}]
+	    %% EDGE_DICT:
+	    %% [{crease,[{3,7},{6,7},{0,2},{0,4},{5,7},{0,1}]},
+	    %%  {outline,[{2,3},{4,6},{1,3},{1,5},{4,5},{2,6}]}]
 						%
 
-						% io:format("EDGE_DICT:~n ~p ~n",[Edge_dict]),
+	    %% io:format("EDGE_DICT:~n ~p ~n",[Edge_dict]),
 
 
 	    wings_pb:update(0.3, ?__(4,"reading objects")++" 100%"),
@@ -625,14 +625,14 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 	    io:format("Exporting"),
 
 %%% for debug function (Warnings are get,but don't delete these functions)
-						%   tree__to_list/1
-						%   tree__from_list/1
-						%   project/2
+	    %%   tree__to_list/1
+	    %%   tree__from_list/1
+	    %%   project/2
 
 	    %%io:format("*\tVC_tree=~w~n", [VC_tree]),
-						%    VCs1 = tree__to_list(VC_tree),
+	    %%    VCs1 = tree__to_list(VC_tree),
 	    %%io:format("*\tVCs=~w~n", [VCs1]),
-						%    V2C_tree = tree__from_list(project(Proj, VCs1)),
+	    %%    V2C_tree = tree__from_list(project(Proj, VCs1)),
 	    %%io:format("*\tV2C_tree=~w~n", [V2C_tree]),
 
 						%io:format("*\tFace_tree=~w~n", [Face_tree]),
@@ -663,18 +663,18 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 				 end, qtree__new(bbox_2d(View_port)), Face_tree),
 
 
-						% Line Group structure by Line Code
-						% Edge dict + Style(Line width,color etc) = Line Group
-						% [{ "Outline", %Line_Code
-						%      [
-						%       Width,
-						%       { x0, y0 },
-						%       { x1, y1 },
-						%            :
-						%            :
-						%        { x  ,y },
-						%        {R,G,B},
-						%        "Pattern" ]
+	    %% Line Group structure by Line Code
+	    %% Edge dict + Style(Line width,color etc) = Line Group
+	    %% [{ "Outline", %Line_Code
+	    %%      [
+	    %%       Width,
+	    %%       { x0, y0 },
+	    %%       { x1, y1 },
+	    %%            :
+	    %%            :
+	    %%        { x  ,y },
+	    %%        {R,G,B},
+	    %%        "Pattern" ]
 
 	    {Line_groups, Edges_total} =
 		foldl(fun({Line_code, { Line_width ,Edges, Line_color,Line_pattern} }, {Dict_acc, Edge_count}) ->
@@ -695,7 +695,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 			  {Edge_type2, Edges  } <- Edge_dict,
 			  Edge_type1 =:= Edge_type2]),
 
-						% io:format("LGP: ~p ~n",[Line_groups]),
+	    %% io:format("LGP: ~p ~n",[Line_groups]),
 
 
 	    Prog_step = get_max(Edges_total div 20, 250),
@@ -735,8 +735,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 
 		%% End Draw Face
 
-		false -> ok;
-		_ -> ok
+		false -> ok
 	    end,
 
 	    %%
@@ -758,7 +757,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 		    %% Begin Draw Edge
 
 		    foldl(fun({ Line_code, {Line_width ,Edges, Line_color,Line_pattern} }, {Group_count, Edge_count0}) ->
-						% Line code is only acces dictionary
+				  %% Line code is only acces dictionary
 				  {Ls0, Edge_count} = foldl(fun(EVIt, {Ls_acc0, Edge_count_acc0}) ->
 								    EVCt = vct(EVIt, VC_tree),
 								    {Ls_acc, Edge_count_acc} =
@@ -809,8 +808,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 
 		%% End Draw Edge
 
-		false -> ok;
-		_ -> ok
+		false -> ok
 	    end,
 
 
@@ -851,24 +849,22 @@ incr([], _Incr)  -> [];
 incr([A | T], Incr) -> [incr(A, Incr) | incr(T, Incr)];
 incr(A, Incr) -> A + Incr.
 
-						%
-						%  [9, 2, 5, 3] -> [{9, 2}, {2, 5}, {5, 3}, {3, 9}]
-						%
+%%
+%%  [9, 2, 5, 3] -> [{9, 2}, {2, 5}, {5, 3}, {3, 9}]
+%%
 pair(L) when is_list(L) -> pair(hd(L), L).
-pair(_, []) -> [];
+%pair(_, []) -> [];
 pair(H, [E]) -> [{E, H}];
 pair(H, [E | T]) -> [{E, hd(T)} | pair(H, T)].
 
-normalize([])                -> [];
-normalize([{P, Q} | T])      -> [normalize({P, Q}) | normalize(T)];
 normalize({P, Q}) when P > Q -> {Q, P};
 normalize({P, Q})            -> {P, Q}.
 
-						%
-						%  [9, 2, 5, 3] -> [{2, 9}, {2, 5}, {3, 5}, {3, 9}]
-						%
+%%
+%%  [9, 2, 5, 3] -> [{2, 9}, {2, 5}, {3, 5}, {3, 9}]
+%%
 npair(L) when is_list(L) -> npair(hd(L), L).
-npair(_, []) -> [];
+%npair(_, []) -> [];
 npair(H, [E]) -> [normalize({E, H})];
 npair(H, [E | T]) -> [normalize({E, hd(T)}) | npair(H, T)].
 
@@ -1070,7 +1066,7 @@ add_mesh(MFs, VCs, _Eps, % need VCs for e3d_mesh:triangulate_face
 			      false ->
 				  lists:foldl(fun(#e3d_face{vs=TVIs},
 						  {VC_tree_acc1, Edge_dict_acc1, Face_tree_acc1} ) ->
-						%  'Edge_dict_acc0' shadowed in 'fun' if this to fix ,then  triangle polygon not display(For example: Torus knot)
+						      %%  'Edge_dict_acc0' shadowed in 'fun' if this to fix ,then  triangle polygon not display(For example: Torus knot)
 						      {FN, FD} = FP ,
 						      FP0 ={ FN, FD+FD*0.001*(Z_dist_offset*DP_factor) }, %  Overlap faces offset : experiment  mul(FN, 0.001*Z_dist_offset)
 						      add_face(TVIs, ctree__get(TVIs, VC_tree0), %%%%% ctree_get in args
@@ -1131,22 +1127,22 @@ is_material([{_FT1, _TN1, Mat1}, {_FT2, _TN2, Mat2}])
 is_material(_) -> false.
 
 
-						% Mat1 == Mat2  is edge, Mat /= Mat2 not edge
-						% EVIt ga naito dame
+%% Mat1 == Mat2  is edge, Mat /= Mat2 not edge
+%% EVIt ga naito dame
 is_material_transp(_EVIt,AFs,_ThreshCosA, _Mats_dict) when length(AFs) < 2 -> true;
 is_material_transp(_EVIt,[{FT1, TN1, Mat1}, {FT2, TN2, Mat2}] ,ThreshCosA, Mats_dict)
   when (FT1 =:= back) and (FT2 =:= back);  Mat1 /= Mat2  ->
     Trans = is_transparent(Mat1,Mats_dict),
-						% io:format("MT ~p ~n",[Trans]),
-						% io:format("D  ~p . ~p ~p ~p . ~p ~p ~p ~n", [EVIt,   FT1, TN1, Mat1, FT2, TN2, Mat2 ] ),
+    %% io:format("MT ~p ~n",[Trans]),
+    %% io:format("D  ~p . ~p ~p ~p . ~p ~p ~p ~n", [EVIt,   FT1, TN1, Mat1, FT2, TN2, Mat2 ] ),
     case (dot(TN1, TN2) =< ThreshCosA) of
 	true ->  Trans; false -> false end;
 is_material_transp(_,_,_,_) -> false.
 
 
-						%
-						% From src/wings_material.erl
-						%
+%%
+%% From src/wings_material.erl
+%%
 is_transparent(Mat_name ,Mats_dict) ->
     Data =  case  hd(dict__fetch( hd(Mat_name), Mats_dict))  of
 		{false, _RGBA} ->
@@ -1159,7 +1155,7 @@ is_transparent(Mat_name ,Mats_dict) ->
 
 
 
-						% Non hard edge draw (for crease  material outline )
+%% Non hard edge draw (for crease  material outline )
 
 edge_type_group(EVIt, AFs, ThreshCosA, HardEdge_set, Edge_set,Mats_dict) ->
     case is_visible(AFs) of
@@ -1206,7 +1202,7 @@ edge_type_group(EVIt, AFs, ThreshCosA, HardEdge_set, Edge_set,Mats_dict) ->
             none
     end.
 
-						% Regular = All edge draw by same style
+%% Regular = All edge draw by same style
 
 edge_type_copy(EVIt, AFs, ThreshCosA, HardEdge_set, Edge_set,Mats_dict) ->
     case is_visible(AFs)
@@ -1236,9 +1232,9 @@ group_edges(ThreshCosA, HardEdge_set, Edge_set, Edge_type_fun,
 		      end
 	      end, Edges_dict_acc0, Edge_dict).
 
-						%
-						% Utilities
-						%
+%%
+%% Utilities
+%%
 
 
 get_min(A, B) when A < B -> A;
@@ -1259,7 +1255,7 @@ neg({X, Y}) -> {-X, -Y}.
 mul({X, Y, Z}, S) -> {X * S, Y * S, Z * S};
 mul({X, Y}, S) -> {X * S, Y * S}.
 
-divide({X, Y, Z}, S) -> {X / S, Y / S, Z / S};
+%divide({X, Y, Z}, S) -> {X / S, Y / S, Z / S};
 divide({X, Y}, S) -> {X / S, Y / S}.
 
 cross({X1, Y1, Z1}, {X2, Y2, Z2}) ->
@@ -1303,9 +1299,9 @@ persp_sf({_, D}) -> abs(D) =< 0.001.
 
 ortho_sf({{_, _, Z}, _}) -> abs(Z) =< 0.001.
 
-						%
-						% Cohen-Sutherland
-						%
+%%
+%% Cohen-Sutherland
+%%
 outcode({X, Y, Z}, {{Xmin, Ymin, Zmin}, {Xmax, Ymax, Zmax}}) ->
     C0 = if X < Xmin -> 1; true -> 0 end,
     C1 = if X > Xmax -> 2; true -> 0 end,
@@ -1339,40 +1335,20 @@ outcode({X, Y, Z}, {HSx, HSy, Zmin, Zmax, Zf}) ->
 		       end,
     C4 = if Z < Zmin -> 16; true -> 0 end,
     C5 = if Z > Zmax -> 32; true -> 0 end,
-    C0 bor C1 bor C2 bor C3 bor C4 bor C5;
-outcode({X, Y, Z}, {{{Xmin, Ymin}, {Xmax, Ymax}}, Zf}) ->
-    R =  Z / Zf,
-    Rx_min = Xmin * R,
-    Ry_min = Ymin * R,
-    Rx_max = Xmax * R,
-    Ry_max = Ymax * R,
-    {C0, C1, C2, C3} = if
-			   Z > 0.0 ->
-			       {if X < Rx_min -> 0; true -> 1 end,
-				if X > Rx_max -> 0; true -> 2 end,
-				if Y < Ry_min -> 0; true -> 4 end,
-				if Y > Ry_max -> 0; true -> 8 end}
-				   ;
-			   true ->
-			       {if X < Rx_min -> 1; true -> 0 end,
-				if X > Rx_max -> 2; true -> 0 end,
-				if Y < Ry_min -> 4; true -> 0 end,
-				if Y > Ry_max -> 8; true -> 0 end}
-		       end,
-    C0 bor C1 bor C2 bor C3.
+    C0 bor C1 bor C2 bor C3 bor C4 bor C5.
 
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {{Xmin, _, _}, _}) when X < Xmin ->
-    {Xmin, Y + DY * (Xmin - X) / DX, Z + DZ * (Xmin - X) / DX};
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {_, {Xmax, _, _}}) when X > Xmax ->
-    {Xmax, Y + DY * (Xmax - X) / DX, Z + DZ * (Xmax - X) / DX};
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {{_, Ymin, _}, _}) when Y < Ymin ->
-    {X + DX * (Ymin - Y) / DY, Ymin, Z + DZ * (Ymin - Y) / DY};
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {_, {_, Ymax, _}}) when Y > Ymax ->
-    {X + DX * (Ymax - Y) / DY, Ymax, Z + DZ * (Ymax - Y) / DY};
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {{_, _, Zmin}, _}) when Z < Zmin ->
-    {X + DX * (Zmin - Z) / DZ, Y + DY * (Zmin - Z) / DZ, Zmin};
-to_boundary({X, Y, Z}, {DX, DY, DZ}, {_, {_, _, Zmax}}) when Z > Zmax ->
-    {X + DX * (Zmax - Z) / DZ, Y + DY * (Zmax - Z) / DZ, Zmax};
+%% to_boundary({X, Y, Z}, {DX, DY, DZ}, {{Xmin, _, _}, _}) when X < Xmin ->
+%%     {Xmin, Y + DY * (Xmin - X) / DX, Z + DZ * (Xmin - X) / DX};
+%% to_boundary({X, Y, Z}, {DX, DY, DZ}, {_, {Xmax, _, _}}) when X > Xmax ->
+%%     {Xmax, Y + DY * (Xmax - X) / DX, Z + DZ * (Xmax - X) / DX};
+%% to_boundary({X, Y, Z}, {DX, DY, DZ}, {{_, Ymin, _}, _}) when Y < Ymin ->
+%%     {X + DX * (Ymin - Y) / DY, Ymin, Z + DZ * (Ymin - Y) / DY};
+%% to_boundary({X, Y, Z}, {DX, DY, DZ}, {_, {_, Ymax, _}}) when Y > Ymax ->
+%%     {X + DX * (Ymax - Y) / DY, Ymax, Z + DZ * (Ymax - Y) / DY};
+%% to_boundary({X, Y, Z}, {DX, DY, DZ}, {{_, _, Zmin}, _}) when Z < Zmin ->
+%%     {X + DX * (Zmin - Z) / DZ, Y + DY * (Zmin - Z) / DZ, Zmin};
+%% to_boundary({X, Y, Z}, {DX, DY, DZ}, {_, {_, _, Zmax}}) when Z > Zmax ->
+%%     {X + DX * (Zmax - Z) / DZ, Y + DY * (Zmax - Z) / DZ, Zmax};
 to_boundary({X, Y, Z}, {DX, DY, DZ}, Zlim) when is_float(Zlim) ->
     {X + DX * (Zlim - Z) / DZ, Y + DY * (Zlim - Z) / DZ, Zlim};
 to_boundary({X, Y}, {DX, DY}, {{Xmin, _}, _}) when X < Xmin ->
@@ -1864,8 +1840,8 @@ transvc(BB, Offset, Scale, [VCt | T]) ->
     [mul(add(VCt, Offset), Scale) | transvc(BB, Offset, Scale, T)].
 
 %% A function for debug
-						% project(_, []) -> [];
-						% project(Proj, [C | T]) -> [Proj(C) | project(Proj, T)].
+%% project(_, []) -> [];
+%% project(Proj, [C | T]) -> [Proj(C) | project(Proj, T)].
 
 
 merge(LS1, _BB1, [], _Dthr) -> [LS1];
@@ -2061,9 +2037,9 @@ get_scale_factor()->
 s_r(Val)->
     io_lib:format("~.2f",[Val]).
 
-						% RGB=( 0, 255 ,0 ) -> #00FF00  ~F.P.Pad (F=2 P=16 PadChar=0)
+%% RGB=( 0, 255 ,0 ) -> #00FF00  ~F.P.Pad (F=2 P=16 PadChar=0)
 set_fill_hex_color(R,G,B)->io_lib:format("#~2.16.0B~2.16.0B~2.16.0B",[get_min(255,R), get_min(255,G), get_min(255,B)]).
-						% set_fill_rgb_color(R,G,B)-> io_lib:format("~B,~B,~B",[R,G,B]).
+%% set_fill_rgb_color(R,G,B)-> io_lib:format("~B,~B,~B",[R,G,B]).
 
 %% Shade 0: None
 set_face_shade( Mode, _FP, {R,G,B}, Shade, _Lpos ) when Shade == 0  ->
@@ -2075,7 +2051,7 @@ set_face_shade( Mode, _FP, {R,G,B}, Shade, _Lpos ) when Shade == 0  ->
 %% Shade 1: Normal
 set_face_shade( Mode, {FN, _FD}, {R,G,B}, Shade ,_Lpos ) when Shade == 1  ->
     {_Nx, _Ny, Nz0} = FN, Nz = abs(Nz0),
-						% io:format("RGB: ~p,~p,~p~n",[round(R*Nz*255),round(G*Nz*255),round(B*Nz*255)]),
+    %% io:format("RGB: ~p,~p,~p~n",[round(R*Nz*255),round(G*Nz*255),round(B*Nz*255)]),
     case Mode of
 	eps -> {R*Nz,G*Nz,B*Nz};
 	svg_class -> " style=\"fill:"++ set_fill_hex_color(round(R*Nz*255),round(G*Nz*255),round(B*Nz*255)) ++"\"";
@@ -2126,7 +2102,7 @@ set_face_shade( Mode, {FN, _FD}, {R,G,B}, Shade,Lpos ) ->
 	_ -> " style=\"fill:"++ set_fill_hex_color(round(R*Nz*255),round(G*Nz*255),round(B*Nz*255)) ++"\""
     end.
 
-						% Shade
+%% Shade
 define_fill_type() ->
     [
      { ?__(1,"None")    ,0},
@@ -2139,7 +2115,7 @@ define_fill_type() ->
      { ?__(8,"Hatching"),7}
     ].
 
-						% Light_positon            Name {Lx, Ly, Lz, Illuminence Factor}
+%% Light_positon            Name {Lx, Ly, Lz, Illuminence Factor}
 define_light_pos() ->
     [ 
       { ?__(1,"Up to Down") , {-480,-512, 500,0.00096} },
@@ -2153,7 +2129,7 @@ define_light_pos() ->
 
     ].
 
-						% Line style  ( dotted pattern )
+%% Line style  ( dotted pattern )
 define_dot_styles() ->
     [
      { "None"  , "0"},
@@ -2235,8 +2211,7 @@ define_svg_filter( Mode, Type) ->
 add_svg_filter(Mode,Type) when Type > 1 ->
     case Mode of
 	fill -> " filter=\"url(#fill_style"++ integer_to_list(Type)++")\" ";
-	line -> " filter=\"url(#line_style"++ integer_to_list(Type)++")\" ";
-	true -> ""
+	line -> " filter=\"url(#line_style"++ integer_to_list(Type)++")\" "
     end;
 add_svg_filter(_, _) -> "".
 
@@ -2390,7 +2365,7 @@ add_svg_filters(F,Is_style_catalog,Fill_type, Line_type) ->
 	    add_svg_filter_tag( F, line,  Line_type )
     end.
 
-						% For Catalog  mode (All styles are display, Non 3D)
+%% For Catalog  mode (All styles are display, Non 3D)
 add_svg_catalog_base(F) ->
 
     Svg_color_int = get_svg_color_int(),
@@ -2399,14 +2374,14 @@ add_svg_catalog_base(F) ->
     io:fwrite(   F, "<text transform=\"matrix(1 0 0 1 2 25)\" stroke=\"none\" font-family=\"Arial Black\" font-size=\"16\">Wings3D<tspan font-family=\"Arial\" font-size=\"8\" >" ++ wpa:version() ++ "</tspan> SVG Setting Help <tspan font-family=\"Arial\" x=\"0\" dy=\"20\">The Style/Filter preset catalog.(~ts)</tspan></text>\n",[Svg_color_int]),
     io:put_chars(F,"\t<text transform=\"matrix(1 0 0 1 220 70)\" stroke=\"none\" font-family=\"Arial Black\" font-size=\"9\">SVG Artistic styles<tspan x=\"0\" dy=\"10\">for a fill and a line</tspan></text>\n"),
 
-						% Filter Style
+    %% Filter Style
     lists:foldl(fun( A, { Col0, Row0, Cnt }) ->
 			{Col, Row} = if Cnt rem 7 == 0 -> {Col0 + 1, 0}; true -> {Col0, Row0 + 1} end,
 			{Name, _No} = A, add_svg_style_catalog(F,Name, Row, Col, Cnt),
 			{Col, Row, Cnt + 1 }
 		end, {0, 0, 1}, define_svg_filter(ui, 0)),  % Export All style
 
-						% Dot Line Style
+    %% Dot Line Style
     io:put_chars(F,"\t<text transform=\"matrix(1 0 0 1 100 70)\" stroke=\"none\" font-family=\"Arial Black\" font-size=\"9\">The line styles <tspan x=\"0\" dy=\"10\">in the lucent Material</tspan></text>\n"),
     lists:foldl(fun({Name, Dot_style},Cnt0 ) ->
 			io:put_chars(F,
@@ -2416,7 +2391,7 @@ add_svg_catalog_base(F) ->
 			Cnt0 + 1
 		end, 0, define_dot_styles()),
 
-						% Line width
+    %% Line width
     Pos = 70, % length(define_dot_styles()) + 1,
     lists:foldl(
       fun( _Width, Cnt0 ) when Cnt0 == 0 ->
@@ -2563,14 +2538,14 @@ write_svg_line_group(F, BB_size, Ls, _Line_code, _Line_width, _Line_color, _Line
 
 
 
-						% Use Var strole
+%% Use Var strole
 write_svg_line_group(F, {_Wbb, Hbb}, Ls ,Var_stroke, Line_color_hex) when Var_stroke =:= true ->
     foreach(fun({{X1, Y1}, {X2, Y2}}) ->
 		    {Sx,Sy} = sub({X1, Y1}, {X2, Y2}),
 		    Dist = math:sqrt(Sx*Sx+Sy*Sy),
 		    Qx= X1-Sx*0.07+8, Qy= Y1-Sy*0.25,
 
-						% io:format("Dist ~p,~p ~n", [Sx,Sy]),
+		    %% io:format("Dist ~p,~p ~n", [Sx,Sy]),
 
 		    if Dist < 11 ->
 			    io:fwrite(F, "\t<path"
@@ -2583,7 +2558,7 @@ write_svg_line_group(F, {_Wbb, Hbb}, Ls ,Var_stroke, Line_color_hex) when Var_st
 		    end
 	    end, Ls);
 
-						% Use Path element
+%% Use Path element
 write_svg_line_group(F, {_Wbb, Hbb}, Ls,_Var_stroke,_Line_color_hex) ->
     foreach(fun({{X1, Y1}, {X2, Y2}}) ->
 		    io:fwrite(F, "\t<path"
@@ -2591,19 +2566,19 @@ write_svg_line_group(F, {_Wbb, Hbb}, Ls,_Var_stroke,_Line_color_hex) ->
 			      [X2, Hbb - Y2, X1, Hbb - Y1])
 	    end, Ls).
 
-						% Use Line element
-						% write_svg_line_group(F, {_Wbb, Hbb}, Ls) ->
-						%    foreach(fun({{X1, Y1}, {X2, Y2}}) ->
-						%        io:fwrite(F, "\t<line"
-						%            " x1=\"~.1f\" y1=\"~.1f\" x2=\"~.1f\" y2=\"~.1f\"/>\n",
-						%            [X2, Hbb - Y2, X1, Hbb - Y1])
-						%    end, Ls).
+%% Use Line element
+%% write_svg_line_group(F, {_Wbb, Hbb}, Ls) ->
+%%    foreach(fun({{X1, Y1}, {X2, Y2}}) ->
+%%        io:fwrite(F, "\t<line"
+%%            " x1=\"~.1f\" y1=\"~.1f\" x2=\"~.1f\" y2=\"~.1f\"/>\n",
+%%            [X2, Hbb - Y2, X1, Hbb - Y1])
+%%    end, Ls).
 
 
 write_svg_footer(F) -> io:put_chars(F, "</svg>\n").
 
 
-						% {FV2Cs,FP,Mat} = Fs
+%% {FV2Cs,FP,Mat} = Fs
 write_svg_polygons(_F, _BB_size, [],  _Mats_dict,_LSpos) -> ok;
 write_svg_polygons(F, {_Wbb, Hbb} = _BB_size, Fs,  Mats_dict, {Shade,Lpos}) ->
 
@@ -2665,7 +2640,7 @@ write_svg_polygons(F, {_Wbb, Hbb} = _BB_size, Fs,  Mats_dict, {Shade,Lpos}) ->
 					       end, {0,[]}, FV2Cs),
 			  io:put_chars(F, Vtxs),
 			  if Cnt0 >= length(Fs)-1 -> io:put_chars(F, "\"/>\n"); true->ok end,
-						% io:format("~p,~p ~n",[ Mat,PrevMat]),
+			  %% io:format("~p,~p ~n",[ Mat,PrevMat]),
 			  poly_pb(Cnt0, length(Fs)),
 			  CurrentMat = Mat, CurrentNorm = Norm, Cnt = Cnt0+1,
 			  {CurrentMat,CurrentNorm,Cnt}
@@ -2696,7 +2671,7 @@ write_svg_polygons(F, {_Wbb, Hbb} = _BB_size, Fs,  Mats_dict, {Shade,Lpos}) ->
 
 
 
-						% Progress bar
+%% Progress bar
 poly_pb(Cnt, Total) when round(Total - Cnt + 1 / 100) rem 100 == 0 ->
     Percent = (Total - (Cnt + 1)) ,
     Percent2 = integer_to_list(round(Percent)),
@@ -2743,9 +2718,9 @@ dict__fetch(Key, KVs) ->
 
 tree__empty() -> {0, gb_trees:empty()}.
 
-tree__insert([], Tree_acc) -> Tree_acc;
-tree__insert([Value | T], Tree_acc) ->
-    tree__insert(T, tree__insert(Value, Tree_acc));
+%% tree__insert([], Tree_acc) -> Tree_acc;
+%% tree__insert([Value | T], Tree_acc) ->
+%%     tree__insert(T, tree__insert(Value, Tree_acc));
 tree__insert(Value, {Next_key, GBtree} = _Tree) ->
     {Next_key + 1, gb_trees:insert(Next_key, Value, GBtree)}.
 
@@ -2756,23 +2731,23 @@ tree__get([Key | T], Tree, Values_acc) ->
 tree__get(Keys, Tree) when is_list(Keys) -> tree__get(Keys, Tree, []);
 tree__get(Key, {_Next_key, GBtree} = _Tree) -> gb_trees:get(Key, GBtree).
 
-						% tree__last_key({Next_key, _GBtree} = _Tree) -> Next_key - 1.
+%% tree__last_key({Next_key, _GBtree} = _Tree) -> Next_key - 1.
 
 tree__next_key({Next_key, _GBtree} = _Tree) -> Next_key.
 
 						%tree__from_list(Values) when is_list(Values) ->
-						%    tree__insert(Values, tree__empty()).
+%%    tree__insert(Values, tree__empty()).
 
-						% tree__to_list({_Next_key, GBtree} = _Tree) -> gb_trees:values(GBtree).
+%% tree__to_list({_Next_key, GBtree} = _Tree) -> gb_trees:values(GBtree).
 
-						% tree__do_map(_Fun, none, GBtree_acc0) -> GBtree_acc0;
-						% tree__do_map(Fun, {Key, Value, GBtree_iter0}, GBtree_acc0) ->
-						%    GBtree_acc = gb_trees:insert(Key, Fun(Value), GBtree_acc0),
-						%    tree__do_map(Fun, gb_trees:next(GBtree_iter0), GBtree_acc).
+%% tree__do_map(_Fun, none, GBtree_acc0) -> GBtree_acc0;
+%% tree__do_map(Fun, {Key, Value, GBtree_iter0}, GBtree_acc0) ->
+%%    GBtree_acc = gb_trees:insert(Key, Fun(Value), GBtree_acc0),
+%%    tree__do_map(Fun, gb_trees:next(GBtree_iter0), GBtree_acc).
 
 						%tree__map(Fun, {Next_key, GBtree} = _Tree) ->
-						%    Iter = gb_trees:iterator(GBtree),
-						%    {Next_key, tree__do_map(Fun, gb_trees:next(Iter), gb_trees:empty())}.
+%%    Iter = gb_trees:iterator(GBtree),
+%%    {Next_key, tree__do_map(Fun, gb_trees:next(Iter), gb_trees:empty())}.
 
 tree__do_fold(_Fun, Acc0, none) -> Acc0;
 tree__do_fold(Fun, Acc0, {Key, Value, GBtree_iter0}) ->
@@ -2946,29 +2921,29 @@ splitpoly__clip(BPs, VIs0, VC_tree0) ->
         R -> R
     end.
 
-						% ztree__empty() -> nil.
+%% ztree__empty() -> nil.
 
 						%ztree__insert(Obj, Obj_zlim, nil) -> {[Obj], Obj_zlim, nil, nil};
 						%ztree__insert(Obj, {Obj_zmin, Obj_zmax} = Obj_zlim,
-						%    {Objs, {Node_zmin, Node_zmax} = Node_zlim, Near, Far}) ->
-						%    if
-						%        Obj_zmin >= Node_zmax ->
-						%            {Objs, Node_zlim, ztree__insert(Obj, Obj_zlim, Near), Far}
-						%            ;
-						%        Obj_zmax =< Node_zmin ->
-						%            {Objs, Node_zlim, Near, ztree__insert(Obj, Obj_zlim, Far)}
-						%            ;
-						%        true ->
+%%    {Objs, {Node_zmin, Node_zmax} = Node_zlim, Near, Far}) ->
+%%    if
+%%        Obj_zmin >= Node_zmax ->
+%%            {Objs, Node_zlim, ztree__insert(Obj, Obj_zlim, Near), Far}
+%%            ;
+%%        Obj_zmax =< Node_zmin ->
+%%            {Objs, Node_zlim, Near, ztree__insert(Obj, Obj_zlim, Far)}
+%%            ;
+%%        true ->
 %%% min max
-						%            {[Obj | Objs],
-						%                Node_zlim,
+%%            {[Obj | Objs],
+%%                Node_zlim,
 %%                {get_min(Obj_zmin, Node_zmin), get_max(Obj_zmax, Node_zmax)},
-						%                Near, Far}
-						%    end.
+%%                Near, Far}
+%%    end.
 
 						%ztree__to_list(nil, List) -> List;
 						%ztree__to_list({Objs, _Node_zlim, Near, Far}, List) ->
-						%    ztree__to_list(Far, Objs ++ ztree__to_list(Near, List)).
+%%    ztree__to_list(Far, Objs ++ ztree__to_list(Near, List)).
 						%ztree__to_list(Ztree) -> ztree__to_list(Ztree, []).
 
 
@@ -2991,7 +2966,7 @@ ctree__get2d(VIs, {_Proj, Tree}=_VC_tree) when is_list(VIs) ->
 ctree__get2d(VI, {_Proj, Tree}=_VC_tree) ->
     {_VC, V2C} = tree__get(VI, Tree), V2C.
 
-						% ctree__last_key({_Proj, Tree}=_VC_tree) -> tree__last_key(Tree).
+%% ctree__last_key({_Proj, Tree}=_VC_tree) -> tree__last_key(Tree).
 
 ctree__next_key({_Proj, Tree}=_VC_tree) -> tree__next_key(Tree).
 
@@ -3000,8 +2975,8 @@ ctree__from_list(Proj, Values) when is_list(Values) ->
 
 
 
-						%  This function return true / false
-						%  AVCs && BVCs  =  [ true or false ]   AVCs is Front etc...
+%%  This function return true / false
+%%  AVCs && BVCs  =  [ true or false ]   AVCs is Front etc...
 intersect(AVCs, BVCs, Eps) ->
     lists:all(fun({AVC1, AVC2}) ->
 		      DA = sub(AVC2, AVC1),
@@ -3030,12 +3005,12 @@ bspt__insert(FI0, {FVIs0, FP0, Mat0} = F0, FZt0,
 
 
 
-						% Output Priority
-						% Scene  (Output for scene mainly made many sliced polygons,and file size larger.)
-						%   intersect() true  false -> BAD Z order(for complex compotision ), but circular object OK  Default
+	    %% Output Priority
+	    %% Scene  (Output for scene mainly made many sliced polygons,and file size larger.)
+	    %%   intersect() true  false -> BAD Z order(for complex compotision ), but circular object OK  Default
 
-						% Path (Divide nice shapes and small size,but messed if it has overlapped objects.)
-						%    intersect() false true -> Good Z order, but circular object NG
+	    %% Path (Divide nice shapes and small size,but messed if it has overlapped objects.)
+	    %%    intersect() false true -> Good Z order, but circular object NG
 
 	    Result = intersect(FV2Cs0, FV2Cs, ?EPS2 * ?EPS2),
 
@@ -3046,15 +3021,15 @@ bspt__insert(FI0, {FVIs0, FP0, Mat0} = F0, FZt0,
 			      _ -> false
 			  end,
 
-						%  io:format("Overlap: ~p ~n",[Overlap_priority]),
+	    %%  io:format("Overlap: ~p ~n",[Overlap_priority]),
 
-						% Front_VCs = ctree__get(Front_VIs, VC_tree),
-						% Back_VCs = ctree__get(Back_VIs, VC_tree),
-						% {Front_zmin, Front_zmax} = Front_Zt = face_zlim(Front_VCs),
-						% {Back_zmin, Back_zmax} = Back_Zt = face_zlim(Back_VCs),
+	    %% Front_VCs = ctree__get(Front_VIs, VC_tree),
+	    %% Back_VCs = ctree__get(Back_VIs, VC_tree),
+	    %% {Front_zmin, Front_zmax} = Front_Zt = face_zlim(Front_VCs),
+	    %% {Back_zmin, Back_zmax} = Back_Zt = face_zlim(Back_VCs),
 
-						% {FZmin0, FZmax0} = FZt0,
-						% {FZmin, FZmax} = FZt,
+	    %% {FZmin0, FZmax0} = FZt0,
+	    %% {FZmin, FZmax} = FZt,
 
             case Overlapped of
                 true ->
@@ -3098,7 +3073,7 @@ bspt__to_list(Bspt) ->
     {FEs_rev, _Dup_set} =
 	lists:foldl(fun
 			({nil, _F} = FE, {FEs_acc0, Dup_set_acc0}) ->
-			    {[FE | FEs_acc0], Dup_set_acc0};
+			   {[FE | FEs_acc0], Dup_set_acc0};
 			({FI, _F} = FE, {FEs_acc0, Dup_set_acc0}) ->
 			   case gb_sets:is_member(FI, Dup_set_acc0) of
 			       true ->
