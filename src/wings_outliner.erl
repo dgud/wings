@@ -14,26 +14,21 @@
 -module(wings_outliner).
 -export([window/1,window/4]).
 
+-export([init/1,
+	 handle_call/3, handle_cast/2,
+	 handle_event/2, handle_sync_event/3,
+	 handle_info/2, code_change/3, terminate/2
+	]).
+
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 -include("e3d_image.hrl").
--import(lists, [foldl/3,reverse/1,keydelete/3]).
+-import(lists, [keydelete/3]).
 
 %%%
 %%% Outliner window.
 %%%
--record(ost,
-	{st,					%Current St.
-	 n,					%Number of objects.
-	 first,					%First object to show.
-	 sel,					%Current selection.
-	 os,					%All objects.
-	 active,				%Number of active object.
-	 lh,					%Line height.
-	 drag_ok=false,				%Drag is possible.
-	 save_drag=none                         %Dragged object
-	}).
 
 window(St) ->
     case wings_wm:is_window(outliner) of
@@ -49,242 +44,15 @@ window(St) ->
 	    keep
     end.
 
-window(Pos, Size, Ps, St) ->
-    Ost = #ost{first=0,lh=max(18,?LINE_HEIGHT),active=-1},
-    Current = {current_state,St},
-    Op = {seq,push,event(Current, Ost)},
-    Props = [{display_data,geom_display_lists}],
-    wings_wm:toplevel(outliner, title(), Pos, Size,
-		      [{sizeable,?PANE_COLOR},closable,vscroller,{anchor,ne},
-		       {properties,Props}|Ps], Op),
-    F = fun({image,_,_}) -> yes;
-	   (_) -> no
-	end,
-    wings_wm:set_prop(outliner, drag_filter, F).
-
-get_event(Ost) ->
-    {replace,fun(Ev) -> event(Ev, Ost) end}.
-
-event(redraw, Ost) ->
-    wings_io:ortho_setup(),
-    {W,H} = wings_wm:win_size(),
-    case wings_pref:get_value(bitmap_icons) of
-        false -> wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR);
-        true ->
-          wings_io:blend(wings_pref:get_value(outliner_geograph_bg),
-            fun(Color) ->
-              wings_io:border(0, 0, W-1, H-1, Color)
-            end)
-    end,
-    draw_objects(Ost),
-    keep;
-event(resized, Ost) ->
-    update_scroller(Ost),
-    keep;
-event(close, _) ->
-    delete;
-event(got_focus, _) ->
-    Msg = wings_msg:button_format(?__(1,"Select"), [],
-				  ?__(2,"Show outliner menu (if selection) or creation menu (if no selection)")),
-    wings_wm:message(Msg),
-    keep;
-event({current_state,St}, Ost0) ->
-    Ost = update_state(St, Ost0),
-    update_scroller(Ost),
-    get_event(Ost);
-event({note,image_change}, #ost{st=St}=Ost0) ->
-    Ost = update_state(St, Ost0),
-    update_scroller(Ost),
-    get_event(Ost);
-event(#mousemotion{state=Bst,y=Y}, #ost{active=Act}=Ost)
-  when Act >= 0, Bst == 0 ->
-    wings_wm:allow_drag(Act =:= active_object(Y, Ost)),
-    keep;
-event(#mousemotion{state=Bst,y=Y}=Ev, #ost{active=Act,os=Objs,drag_ok=true}=Ost)
-  when Act >= 0, Bst band ?SDL_BUTTON_LMASK =/= 0 ->
-    case active_object(Y, Ost) of
-	Act -> keep;
-	_ ->
-	    drag_and_drop(Ev, lists:nth(Act+1, Objs)),
-	    keep
-    end;
-event(#mousebutton{button=1,y=Y,state=?SDL_PRESSED}, #ost{active=Act}=Ost)
-  when Act >= 0 ->
-    case active_object(Y, Ost) of
-	Act ->
-	    wings_wm:grab_focus(),
-	    get_event(Ost#ost{drag_ok=true});
-	_ ->
-	    get_event(Ost#ost{drag_ok=false})
-    end;
-event(#mousebutton{button=1,y=Y,state=?SDL_RELEASED}, #ost{active=Act0}=Ost) ->
-    wings_wm:release_focus(),
-    case active_object(Y, Ost) of
-	Act0 -> keep;
-	Act ->
-	    wings_wm:allow_drag(true),
-	    wings_wm:dirty(),
-	    get_event(Ost#ost{active=Act})
-    end;
-event(#mousebutton{button=4,state=?SDL_RELEASED}, Ost) ->
-    zoom_step(-1*lines(Ost) div 4, Ost);
-event(#mousebutton{button=5,state=?SDL_RELEASED}, Ost) ->
-    zoom_step(lines(Ost) div 4, Ost);
-event(#mousebutton{}=Ev, #ost{st=St,active=Act}=Ost) ->
-    case wings_menu:is_popup_event(Ev) of
-	no -> keep;
-	{yes,X,Y,_} ->
-	    if
-		Act =:= -1 -> wings_shapes:menu(X, Y, St);
-		true -> do_menu(Act, X, Y, Ost)
-	    end
-    end;
-event(scroll_page_up, Ost) ->
-    zoom_step(-lines(Ost), Ost);
-event(scroll_page_down, Ost) ->
-    zoom_step(lines(Ost), Ost);
-event({set_knob_pos,Pos}, #ost{first=First0,n=N}=Ost0) ->
-    case round(N*Pos) of
-	First0 -> keep;
-	First when First < N ->
-	    wings_wm:dirty(),
-	    Ost = Ost0#ost{first=First,active=-1},
-	    update_scroller(Ost),
-	    get_event(Ost);
-	_ -> keep
-    end;
-event({action,{outliner,Cmd}}, Ost) ->
-    command(Cmd, Ost);
-event({action,{shape,_}}=Act, _) ->
-    wings_wm:send(geom, Act);
-event(lost_focus, _) ->
-    wings_wm:allow_drag(false),
-    keep;
-event({drop,{_,Y}=Pos,DropData}, #ost{os=Objs}=Ost) ->
-    case active_object(Y, Ost) of
-	-1 -> keep;
-	Act ->
-	    Obj = lists:nth(Act+1, Objs),
-	    handle_drop(DropData, Obj, Pos, Ost)
-    end;
-event(language_changed, _) ->
-    wings_wm:toplevel_title(title()),
-    keep;
-event(Ev, Ost) ->
-    case wings_hotkey:event(Ev) of
-	{select,deselect} ->
-	    wings_wm:dirty(),
-	    get_event(Ost#ost{active=-1});
-	_ -> keep
-    end.
-
-handle_drop({image,Id,_}, {material,Name,_,_}, {X,Y}, _Ost) ->
-    Menu = [{?__(1,"Texture Type"),ignore},
-	    separator,
-	    {?__(2,"Diffuse"),tx_cmd(diffuse, Id, Name)},
-	    {?__(3,"Gloss"),tx_cmd(gloss, Id, Name)},
-	    {?__(4,"Bump (HeightMap)"),tx_cmd(bump, Id, Name)},
-	    {?__(5,"Bump (NormalMap)"),tx_cmd(normal, Id, Name)}],
-    wings_menu:popup_menu(X, Y, outliner, Menu);
-handle_drop(_Drop, _On, _, _) ->
+window(Pos0, Size, Ps, St) ->
+    Parent = ?GET(top_frame),
+    Pos = wxWindow:clientToScreen(Parent, Pos0),
+    Shapes = get_state(St),
+    Window = wx_object:start_link(?MODULE, [Parent, Pos, Size, Ps, Shapes], []),
+    wings_wm:new(?MODULE, Window, {push, change_state(Window, St)}),
+    wings_wm:set_dd(?MODULE, geom_display_lists),
+    wings_frame:register_win(Window),
     keep.
-
-tx_cmd(Type, Id, Mat) ->
-    {'VALUE',{assign_texture,Type,Id,Mat}}.
-
-do_menu(-1, _, _, _) -> keep;
-do_menu(Act, X, Y, #ost{os=Objs}) ->
-    Menu = case lists:nth(Act+1, Objs) of
-	       Mat = {material,Name,_,_} ->
-		   [{?__(1,"Edit Material..."),menu_cmd(edit_material, Name),
-		     ?__(2,"Edit material properties")},
-		    {?__(3,"Assign to Selection"),menu_cmd(assign_material, Name),
-		     ?__(4,"Assign the material to the selected faces or bodies")},
-		    separator,
-		    {?__(5,"Select"),select_menu(Name),
-				{?__(6,"Select all elements that have this material"),
-				 ?__(27,"Add all elements that have this material to selection"),
-				 ?__(28,"Remove all elements that have this material from selection")},[]},
-		    separator,
-		    {?__(7,"Duplicate"),menu_cmd(duplicate_material, Name),
-		     ?__(8,"Duplicate this material")},
-		    {?__(9,"Delete"),menu_cmd(delete_material, Name),
-		     ?__(10,"Delete this material")},
-		    {?__(11,"Rename"),menu_cmd(rename_material, Name),
-		     ?__(12,"Rename this material")},
-		    separator,
-		    {?__(121,"Drop picked object"),
-		     menu_cmd(drop_object,{{X,Y},Mat}),
-		     ?__(122,"Drop a previously picked object on this material")}];
-	       {object,Id,_} ->
-		   [{?__(13,"Duplicate"),menu_cmd(duplicate_object, Id),
-		     ?__(14,"Duplicate this object")},
-		    {?__(15,"Delete"),menu_cmd(delete_object, Id),
-		     ?__(16,"Delete this object")},
-		    {?__(17,"Rename"),menu_cmd(rename_object, Id),
-		     ?__(18,"Rename this object")}];
-	       {light,Id,_} ->
-		   [{?__(19,"Edit Light..."),menu_cmd(edit_light, Id),
-		     ?__(20,"Edit light properties")},
-		    separator,
-		    {?__(21,"Duplicate"),menu_cmd(duplicate_object, Id),
-		     ?__(22,"Duplicate this light")},
-		    {?__(23,"Delete"),menu_cmd(delete_object, Id),
-		     ?__(24,"Delete this light")},
-		    {?__(25,"Rename"),menu_cmd(rename_object, Id),
-		     ?__(26,"Rename this light")}];
-	       {image,Id,Im} ->
-		   image_menu(Id, Im);
-	       ignore -> none;
-	       {image_preview,_} -> none
-	   end,
-    if
-	Menu == none -> keep;
-	true -> wings_menu:popup_menu(X, Y, outliner, Menu)
-    end.
-
-select_menu(Name) ->
-    fun(1, _Ns) ->
-	    button_menu_cmd(select_material, [Name,select]);
-       (2, _Ns) ->
-	    button_menu_cmd(select_material, [Name,sel_add]);
-       (3, _Ns) ->
-	    button_menu_cmd(select_material, [Name,sel_rem]);
-       (_, _) -> ignore
-    end.
-
-image_menu(Id, Im) ->
-    [{?__(1,"Show"),menu_cmd(show_image, Id),
-      ?__(2,"Show the image in a window")}|image_menu_1(Id, Im)].
-
-%% Currently disabled.
-image_menu_1(Id, #e3d_image{filename=none}) ->
-    [{?__(1,"Make External..."),menu_cmd(make_external, Id)}|common_image_menu(Id)];
-image_menu_1(Id, _) ->
-    [{?__(2,"Refresh"),menu_cmd(refresh_image, Id),?__(11,"Update image to the contents of the saved file")},
-     {?__(3,"Make Internal"),menu_cmd(make_internal, Id)}|common_image_menu(Id)].
-
-common_image_menu(Id) ->
-    [separator,
-     {?__(1,"Export..."),menu_cmd(export_image, Id),
-      ?__(2,"Export the image")},
-     separator,
-     {?__(3,"Duplicate"),menu_cmd(duplicate_image, Id),
-      ?__(4,"Duplicate selected image")},
-     {?__(5,"Delete"),menu_cmd(delete_image, Id),
-      ?__(6,"Delete selected image")},
-     {?__(7,"Rename"),menu_cmd(rename_image, Id),
-      ?__(8,"Rename selected image")},
-     separator, 
-     {?__(9,"Pick up Image"), menu_cmd(pick_image, Id), 
-      ?__(10,"Pick up the Image to it put on a material as a texture")}
-    ].
-
-menu_cmd(Cmd, Id) ->
-    {'VALUE',{Cmd,Id}}.
-
-button_menu_cmd(Cmd, Id) ->
-    {outliner,{Cmd,Id}}.
 
 command({edit_material,Name}, _Ost) ->
     wings_wm:send(geom, {action,{material,{edit,Name}}});
@@ -298,17 +66,13 @@ command({delete_material,Name}, _Ost) ->
     wings_wm:send(geom, {action,{material,{delete,[Name]}}});
 command({rename_material,Name}, _Ost) ->
     wings_wm:send(geom, {action,{material,{rename,[Name]}}});
-command({drop_object, _}, #ost{save_drag=none}) ->
-    keep;
-command({drop_object, {Pos, OnObject}}, Ost = #ost{save_drag=Saved}) ->
-    handle_drop(Saved, OnObject, Pos, Ost);
-command({assign_texture,Type,Id,Name0}, #ost{st=#st{mat=Mtab}}) ->
+command({assign_texture,Type,Id,Name0}, #st{mat=Mtab}) ->
     Name = list_to_atom(Name0),
     Mat0 = gb_trees:get(Name, Mtab),
     {Maps0,Mat1} = prop_get_delete(maps, Mat0),
     Maps = [{Type,Id}|keydelete(Type, 1, Maps0)],
     Mat  = [{maps,Maps}|Mat1],
-    case Type of 
+    case Type of
 	normal -> wings_image:is_normalmap(Id);
 	_ -> ignore
     end,
@@ -338,9 +102,6 @@ command({make_external,Id}, _) ->
     make_external(Id);
 command({export_image,Id}, _) ->
     export_image(Id);
-command({pick_image, Id}, Ost1) ->
-    Ost=Ost1#ost{save_drag={image,Id,dummy}},
-    get_event(Ost);
 command(Cmd, _) ->
     io:format(?__(1,"NYI: ~p\n"), [Cmd]),
     keep.
@@ -356,7 +117,7 @@ duplicate_image(Id) ->
     wings_wm:send(geom, need_save),
     keep.
 
-delete_image(Id, #ost{st=St}) ->
+delete_image(Id, St) ->
     Used = wings_material:used_images(St),
     case gb_sets:is_member(Id, Used) of
 	true ->
@@ -414,7 +175,7 @@ refresh_image(Id) ->
 	    keep;
 	{error,R} ->
 	    Msg = e3d_image:format_error(R),
-	    wings_u:message(?__(1,"Failed to refresh \"") 
+	    wings_u:message(?__(1,"Failed to refresh \"")
 			       ++ Filename ++ "\": " ++ Msg)
     end.
 
@@ -444,306 +205,15 @@ export_image(Id) ->
 %%% Drag and drop.
 %%%
 
-drag_and_drop(Ev, What) ->
-    DropData = drop_data(What),
-    {W,_} = wings_wm:win_size(),
-    wings_wm:drag(Ev, {W-4,?LINE_HEIGHT}, DropData).
-    
-drop_data({object,Id,_}) -> {object,Id};
-drop_data({light,Id,_}) -> {light,Id};
-drop_data({image,Id,Info}) -> {image,Id,Info};
-drop_data({material,Name,_,_}) -> {material,Name}.
+%% drag_and_drop(Ev, What) ->
+%%     DropData = drop_data(What),
+%%     {W,_} = wings_wm:win_size(),
+%%     wings_wm:drag(Ev, {W-4,?LINE_HEIGHT}, DropData).
 
-%%%
-%%% Updating the state.
-%%%
-
-update_state(St, #ost{first=OldFirst}=Ost0) ->
-    #ost{first=First0} = Ost = update_state_1(St, Ost0),
-    case clamp(First0, Ost) of
-	OldFirst -> Ost;
-	First ->
-	    wings_wm:dirty(),
-	    Ost#ost{first=First}
-    end.
-
-update_state_1(St, Ost) ->
-    update_state_2(St, Ost).
-
-update_state_2(#st{mat=Mat,shapes=Shs0}=St, #ost{os=Objs0,active=Act0}=Ost) ->
-    Lights = [{light,Id,Name} || #we{id=Id,name=Name}=We <- gb_trees:values(Shs0),
-			         ?IS_ANY_LIGHT(We)],
-    Materials = [make_mat(M) || M <- gb_trees:to_list(Mat)],
-    Objs = Lights ++ Materials ++ update_images(),
-    case Objs of
-	Objs0 -> ok;
-	_ -> wings_wm:dirty()
-    end,
-    N = length(Objs),
-    Act = if
-	      Act0 >= N -> N-1;
-	      true -> Act0
-	  end,
-    Ost#ost{st=St,os=Objs,n=N,active=Act}.
-
-update_images() ->
-    Ims = foldl(fun({Id,Im}, A) ->
-			[ignore,{image_preview,Id},{image,Id,Im}|A]
-		end, [], wings_image:images()),
-    reverse(Ims).
-
-make_mat({Name,Mp}) ->
-    OpenGL = proplists:get_value(opengl, Mp),
-    {R,G,B,_} = Color = proplists:get_value(diffuse, OpenGL),
-    TextColor = case lists:max([R,G,B]) of
-		    V when V < 0.5 -> {1,1,1};
-		    _ -> {0,0,0}
-		end,
-    {material,atom_to_list(Name),Color,TextColor}.
-
-update_scroller(#ost{n=0}) ->
-    Name = wings_wm:this(),
-    wings_wm:set_knob(Name, 0.0, 1.0);
-update_scroller(#ost{first=First,n=N}=Ost) ->
-    Name = wings_wm:this(),
-    Lines = lines(Ost),
-    wings_wm:set_knob(Name, First/N, Lines/N).
-
-zoom_step(Step, #ost{first=First0}=Ost0) ->
-    case clamp(First0+Step, Ost0) of
-	First0 -> keep;
-	First ->
-	    wings_wm:dirty(),
-	    Ost = Ost0#ost{first=First},
-	    update_scroller(Ost),
-	    get_event(Ost)
-    end.
-
-clamp(F, #ost{n=N}=Ost) ->
-    Max = case N-lines(Ost) of
-	      Neg when Neg < 0 -> 0;
-	      Other -> Other
-	  end,
-    if
-	F < 0 -> 0;
-	F > Max -> Max;
-	true -> F
-    end.
-    
-active_object(Y0, #ost{lh=Lh,first=First,n=N,os=Os}) ->
-    case Y0 - top_of_first_object() of
-	Y when Y < 0 -> -1;
-	Y1 ->
-	    case Y1 div Lh of
-		Y when First+Y < N ->
-		    Act = First+Y,
-		    %% Ugly hack until we rewrite different element
-		    %% type to have different height.
-		    case lists:nth(Act+1, Os) of
-			{image_preview,_} -> Act-1;
-			ignore -> Act-2;
-			_ -> Act
-		    end;
-		_ -> -1
-	    end
-    end.
-
-draw_objects(#ost{os=Objs0,first=First,lh=Lh,active=Active,n=N0}=Ost) ->
-    Objs = lists:nthtail(First, Objs0),
-    R = right_pos(),
-    Lines = lines(Ost),
-    N = case N0-First of
-	    N1 when N1 < Lines -> N1;
-	    _ -> Lines
-	end,
-	B = wings_pref:get_value(bitmap_icons),
-    draw_icons(N, B, Objs, Ost, Lh-2),
-    draw_objects_1(N, B, Objs, Ost, R, Active-First, Lh-2).
-
-draw_objects_1(0, _, _, _, _, _, _) -> ok;
-draw_objects_1(N, B, [O|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
-    case O of
-	{material,Name,Color,TextColor} ->
-	    Center = (Lh-10) div 2-4,
-	    wings_io:border(4, Y-Center-12, 12, 12, Color),
-	    gl:color3fv(TextColor),
-	    gl:rasterPos2f(7.5, Y-Center-1),
-	    wings_io:draw_char(m_bitmap()),
-	    gl:color3b(0, 0, 0);
-	{image,_,#e3d_image{name=Name}} -> ok;
-	{_,_,Name} -> ok;
-	{image_preview,_} -> Name = [];
-	ignore -> Name = []
-    end,
-    case Active =:= 0 of
-	true when B ->
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
-	    gl:recti(name_pos()-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
-	true ->
-	    gl:color3f(0.0, 0.0, 0.5),
-	    gl:recti(name_pos()-2, Y-?CHAR_HEIGHT+2, R-2, Y+4),
-	    gl:color3f(1.0, 1.0, 1.0);
-	false when B ->
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_text));
-	false -> ok
-    end,
-    wings_io:text_at(name_pos(), Y+2, Name),
-    gl:color3b(0, 0, 0),
-    draw_objects_1(N-1, B, Objs, Ost, R, Active-1, Y+Lh).
-
-draw_icons(N, B, Objs, #ost{lh=_Lh}=Ost, Y) ->
-    case B of
-	false ->
-	    wings_io:draw_icons(fun() -> draw_icons_1(N, Objs, Ost, Y) end);
-	true ->
-	    wings_io:draw_icons(fun() -> draw_bitmap_icons(N, Objs, Ost, Y) end)
-    end,
-    gl:enable(?GL_TEXTURE_2D),
-    gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE),
-    draw_previews(N, Objs, Ost, Y-?CHAR_HEIGHT+4),
-    gl:bindTexture(?GL_TEXTURE_2D, 0),
-    gl:disable(?GL_TEXTURE_2D).
-
-draw_icons_1(0, _, _, _) -> ok;
-draw_icons_1(N, [ignore|Objs], #ost{lh=Lh}=Ost, Y) ->
-    draw_icons_1(N-1, Objs, Ost, Y+Lh);
-draw_icons_1(N, [O|Objs], #ost{lh=Lh}=Ost, Y0) ->
-    X = 4,
-    Type = element(1, O),
-    Center = (Lh-16+2) div 2-4,
-    Y = Y0-Center-16, %% 16 Is height of icon
-    case Type of
-	object ->
-	    wings_io:draw_icon(X, Y, small_object);
-	light ->
-	    wings_io:draw_icon(X, Y, small_light);
-	image ->
-	    case O of
-		{_,_,#e3d_image{filename=none}} ->
-		    wings_io:draw_icon(X, Y, small_image);
-		_ ->
-		    wings_io:draw_icon(X, Y, small_image2)
-	    end;
-	image_preview -> ok;
-	material -> ok
-    end,
-    draw_icons_1(N-1, Objs, Ost, Y0+Lh).
-
-draw_bitmap_icons(0, _, _, _) -> ok;
-draw_bitmap_icons(N, [ignore|Objs], #ost{lh=Lh}=Ost, Y) ->
-    draw_bitmap_icons(N-1, Objs, Ost, Y+Lh);
-draw_bitmap_icons(N, [O|Objs], #ost{lh=Lh}=Ost, Y0) ->
-    X = 4,
-    Center = (Lh-16+2) div 2-4, %% 16 Is height of icon
-    Y = Y0-Center,
-    Type = element(1, O),
-    case Type of
-	object ->
-	    Cube = wings_shape:cube_bitmap(),
-	    wings_shape:draw_bitmap_16(X, Y, Cube),
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_disabled)),
-	    ShadeCube = wings_shape:selcube_bitmap(),
-	    wings_shape:draw_bitmap_16(X, Y, ShadeCube);
-	light ->
-	    gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
-	    Light = wings_shape:light_bitmap_0(),
-	    wings_shape:draw_bitmap_16(X, Y, Light),
-	    gl:color3fv({1.0, 1.0, 0.5}),
-	    LightObj = wings_shape:light_bitmap_1(),
-	    wings_shape:draw_bitmap_16(X, Y, LightObj);
-	image ->
-	    case O of
-	      {_,_,#e3d_image{filename=none}} ->
-	        gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
-	        ImgObj0 = img_bitmap_0(),
-	        wings_shape:draw_bitmap_16(X, Y, ImgObj0),
-	        gl:color3fv(wings_pref:get_value(outliner_geograph_disabled)),
-	        ImgObj1 = img_bitmap_1(),
-	        wings_shape:draw_bitmap_16(X, Y, ImgObj1);
-	      _ ->
-	        gl:color3fv(wings_pref:get_value(outliner_geograph_disabled)),
-	        ImgObj0 = img_bitmap_0(),
-	        wings_shape:draw_bitmap_16(X, Y, ImgObj0),
-	        gl:color3fv(wings_pref:get_value(outliner_geograph_text)),
-	        ImgObj1 = img_bitmap_1(),
-	        wings_shape:draw_bitmap_16(X, Y, ImgObj1)
-	    end;
-	image_preview -> ok;
-	material -> ok
-    end,
-    gl:color3b(0, 0, 0),
-    draw_bitmap_icons(N-1, Objs, Ost, Y0 + Lh).
-
-draw_previews(0, _, _, _) -> ok;
-draw_previews(N, [{image_preview,Im}|Objs], #ost{lh=Lh}=Ost, Y) ->
-    W = H = 2*Lh,
-    wings_image:draw_preview(name_pos(), Y, W, H, Im),
-    draw_previews(N-1, Objs, Ost, Y+Lh);
-draw_previews(N, [_|Objs], #ost{lh=Lh}=Ost, Y) ->
-    draw_previews(N-1, Objs, Ost, Y+Lh).
-
-m_bitmap() ->
-    {7,8,0.0,0.0,8.0,0.0,
-     <<2#10000010,
-       2#10000010,
-       2#10000010,
-       2#10010010,
-       2#10111010,
-       2#10101010,
-       2#11000110,
-       2#10000010>>}.
-
-img_bitmap_0() ->
-     <<2#0000000000000000:16,
-       2#0000000000000000:16,
-       2#0011111100000000:16,
-       2#0011111100000000:16,
-       2#0011111100000000:16,
-       2#0011111100000000:16,
-       2#0011111100000000:16,
-       2#0011111100000000:16,
-       2#0000000011111100:16,
-       2#0000000011111100:16,
-       2#0000000011111100:16,
-       2#0000000011111100:16,
-       2#0000000011111100:16,
-       2#0000000011111100:16,
-       2#0000000000000000:16,
-       2#0000000000000000:16>>.
-
-img_bitmap_1() ->
-     <<2#0000000000000000:16,
-       2#0000000000000000:16,
-       2#0000000011111100:16,
-       2#0000000011111100:16,
-       2#0000000011111100:16,
-       2#0000000011111100:16,
-       2#0000000011111100:16,
-       2#0000000011111100:16,
-       2#0011111100000000:16,
-       2#0011111100000000:16,
-       2#0011111100000000:16,
-       2#0011111100000000:16,
-       2#0011111100000000:16,
-       2#0011111100000000:16,
-       2#0000000000000000:16,
-       2#0000000000000000:16>>.
-
-
-top_of_first_object() ->
-    0.
-
-right_pos() ->
-    {W,_} = wings_wm:win_size(),
-    W-13.
-
-name_pos() ->
-    22.
-
-lines(#ost{lh=Lh}) ->
-    {_,_,_,H} = wings_wm:viewport(),
-    H div Lh.
+%% drop_data({object,Id,_}) -> {object,Id};
+%% drop_data({light,Id,_}) -> {light,Id};
+%% drop_data({image,Id,Info}) -> {image,Id,Info};
+%% drop_data({material,Name,_,_}) -> {material,Name}.
 
 title() ->
     ?__(1,"Outliner").
@@ -751,3 +221,408 @@ title() ->
 rename(Id, File) ->
     Name = filename:basename(File),
     wings_image:rename(Id, Name).
+
+rename_obj(Id, NewName, #st{shapes=Shs}=St) ->
+    case gb_trees:get(Id, Shs) of
+	#we{name=NewName} -> ignore;
+	We0 ->
+	    We = We0#we{name=NewName},
+	    Shapes = gb_trees:update(Id, We, Shs),
+	    wings_wm:send(geom, {new_state, St#st{shapes=Shapes}})
+    end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+change_state(Window, St) ->
+    fun(Ev) -> forward_event(Ev, Window, St) end.
+
+forward_event(redraw, _Window, _St) -> keep;
+forward_event({current_state, St}, Window, St0) ->
+    case (SelSt = get_state(St)) =:= get_state(St0) of
+	true  -> ignore;
+	false ->
+	    wx_object:cast(Window, {new_state,SelSt})
+    end,
+    {replace, change_state(Window, St)};
+forward_event({apply, ReturnSt, Fun}, Window, St0) ->
+    %% Apply ops from window in wings process
+    case ReturnSt of
+	true ->
+	    St = Fun(St0),
+	    {replace, change_state(Window, St)};
+	false ->
+	    Fun(St0)
+    end;
+forward_event({action,{outliner,Cmd}}, _Window, St) ->
+    command(Cmd, St);
+forward_event({action,{shape,_}}=Act, _, _) ->
+    wings_wm:send(geom, Act);
+forward_event(Ev, Window, _) ->
+    wx_object:cast(Window, Ev),
+    keep.
+
+get_state(#st{mat=Mat,shapes=Shs0}) ->
+    Lights = [light_info(We) || We <- gb_trees:values(Shs0),
+				?IS_ANY_LIGHT(We)],
+    Materials = [mat_info(M) || M <- gb_trees:to_list(Mat)],
+    Images = [image_info(Im) || Im <- wings_image:images()],
+    Lights ++ Materials ++ Images.
+
+light_info(#we{id=Id,name=Name}) ->
+    #{type=>light,id=>Id,name=>Name}.
+
+mat_info({Name,Mp}) ->
+    OpenGL = proplists:get_value(opengl, Mp),
+    Maps = proplists:get_value(maps, Mp, []),
+    {R,G,B,_} = proplists:get_value(diffuse, OpenGL),
+    Col = {trunc(R*15),trunc(G*15),trunc(B*15)},
+    #{type=>mat, name=>atom_to_list(Name), color=>Col, maps=>Maps}.
+
+image_info({Id, #e3d_image{name=Name}=Im}) ->
+    #{type=>image, name=>Name, id=>Id, image=>Im}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Window in new (frame) process %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+-record(state, {top, szr, tc, os, il, imap, shown, drag}).
+
+init([Parent, Pos, Size, _Ps, Os]) ->
+    Frame = wings_frame:make_external_win(Parent, title(), [{size, Size}, {pos, Pos}]),
+    {IL, IMap0} = load_icons(),
+    Panel = wxPanel:new(Frame),
+    Szr = wxBoxSizer:new(?wxVERTICAL),
+    TC = make_tree(Panel, IL),
+    wxSizer:add(Szr, TC, [{proportion,1}, {flag, ?wxEXPAND}]),
+    wxPanel:setSizer(Panel, Szr),
+    {Shown,IMap} = update_object(Os, TC, IL, IMap0),
+    wxWindow:connect(Panel, enter_window),
+    wxWindow:show(Frame),
+    {Panel, #state{top=Panel, szr=Szr, tc=TC, os=Os, shown=Shown, il=IL, imap=IMap}}.
+
+handle_sync_event(#wx{event=#wxTree{item=Indx}}, Drag,
+		  #state{tc=TC, shown=Shown}) ->
+    case lists:keyfind(Indx, 1, Shown) of
+	{_, #{type:=image}=Obj} ->
+	    wx_misc:setCursor(wxCursor:new(?wxCURSOR_HAND)),
+	    wxTreeEvent:allow(Drag),
+	    wx_object:get_pid(TC) ! {drag, Obj};
+	_ -> ignore %% for now
+    end,
+    ok.
+
+handle_event(#wx{event=#wxMouse{type=right_up, x=X, y=Y}}, #state{tc=TC} = State) ->
+    {Indx, _} = wxTreeCtrl:hitTest(TC, {X,Y}),
+    make_menus(Indx, wxWindow:clientToScreen(TC, {X,Y}), State),
+    {noreply, State};
+handle_event(#wx{event=#wxTree{type=command_tree_item_menu, item=Indx, pointDrag=Pos}},
+	     #state{tc=TC} = State) ->
+    make_menus(Indx, wxWindow:clientToScreen(TC, Pos), State),
+    {noreply, State};
+handle_event(#wx{event=#wxCommand{type=command_right_click}}, State) ->
+    #wxMouseState{x=X,y=Y} = wx_misc:getMouseState(),
+    make_menus(0, {X,Y}, State),
+    {noreply, State};
+
+handle_event(#wx{event=#wxTree{type=command_tree_end_label_edit, item=Indx}},
+	     #state{shown=Tree, tc=TC} = State) ->
+    NewName = wxTreeCtrl:getItemText(TC, Indx),
+    case lists:keyfind(Indx, 1, Tree) of
+	{_, #{type:=mat, name:=Old}} ->
+	    wings_wm:psend(geom, {action,{material,{rename, Old, NewName}}});
+	{_, #{type:=image, id:=Id}} ->
+	    Apply = fun(_) ->
+			    wings_image:rename(Id, NewName),
+			    wings_wm:psend(geom, need_save),
+			    keep
+		    end,
+	    wings_wm:psend(?MODULE, {apply, false, Apply});
+	{_, #{id:=Id}} ->
+	    Apply = fun(St) -> rename_obj(Id, NewName, St), keep end,
+	    wings_wm:psend(?MODULE, {apply, false, Apply})
+    end,
+    {noreply, State};
+
+handle_event(#wx{event=#wxTree{type=command_tree_end_drag, item=Indx, pointDrag=Pos0}},
+	     #state{shown=Tree, drag=Drag, tc=TC} = State) ->
+    wx_misc:setCursor(?wxNullCursor),
+    case lists:keyfind(Indx, 1, Tree) of
+	{_, #{type:=mat} = Mat} when Drag =/= undefined ->
+	    Menu = handle_drop(Drag, Mat),
+	    Pos = wxWindow:clientToScreen(TC, Pos0),
+	    Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, outliner, Menu) end,
+	    wings_wm:psend(?MODULE, {apply, false, Cmd});
+	_ ->
+	    ignore
+    end,
+    {noreply, State#state{drag=undefined}};
+
+handle_event(#wx{event=#wxMouse{type=enter_window}}, State) ->
+    Msg = wings_msg:button_format(?__(1,"Select"), [],
+				  ?__(2,"Show outliner menu (if selection)"
+				      " or creation menu (if no selection)")),
+    wings_status:message(?MODULE, Msg),
+    {noreply, State};
+
+handle_event(#wx{} = Ev, State) ->
+    io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, Ev]),
+    {noreply, State}.
+
+handle_call(Req, _From, State) ->
+    io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, Req]),
+    {reply, ok, State}.
+
+handle_cast({new_state, Os}, #state{tc=TC, il=IL, imap=IMap0} = State) ->
+    {Shown,IMap} = update_object(Os, TC, IL, IMap0),
+    {noreply, State#state{os=Os, shown=Shown, imap=IMap}};
+
+handle_cast(_Req, State) ->
+    io:format("~p:~p Got unexpected cast ~p~n", [?MODULE,?LINE, _Req]),
+    {noreply, State}.
+
+handle_info(parent_changed,
+	    #state{top=Top, szr=Szr, tc=TC0, os=Os, il=IL, imap=IMap} = State) ->
+    case os:type() of
+	{win32, _} ->
+	    %% Windows or wxWidgets somehow messes up the icons when reparented,
+	    %% Recreating the tree ctrl solves it
+	    TC = make_tree(Top, IL),
+	    wxSizer:replace(Szr, TC0, TC),
+	    wxSizer:recalcSizes(Szr),
+	    wxWindow:destroy(TC0),
+	    {Shown,_} = update_object(Os, TC, IL, IMap),
+	    {noreply, State#state{tc=TC, shown=Shown}};
+	_ ->
+	    {noreply, State}
+    end;
+handle_info({drag, Obj}, State) ->
+    {noreply, State#state{drag=Obj}};
+handle_info(Msg, State) ->
+    io:format("~p:~p Got unexpected info ~p~n", [?MODULE,?LINE, Msg]),
+    {noreply, State}.
+
+%%%%%%%%%%%%%%%%%%%%%%
+
+code_change(_From, _To, State) ->
+    State.
+
+terminate(_Reason, #state{}) ->
+    io:format("terminate: ~p (~p)~n",[?MODULE, _Reason]),
+    wings ! {external, fun(_) -> wings_wm:delete(?MODULE) end},
+    normal.
+
+%%%%%%%%%%%%%%%%%%%%%%
+
+make_tree(Parent, IL) ->
+    TreeStyle = ?wxTR_EDIT_LABELS bor ?wxTR_HIDE_ROOT bor ?wxTR_HAS_BUTTONS
+	bor ?wxTR_LINES_AT_ROOT bor ?wxTR_NO_LINES,
+    TC = set_pid(wxTreeCtrl:new(Parent, [{style, TreeStyle}]), self()),
+    wxTreeCtrl:setImageList(TC, IL),
+    wxWindow:connect(TC, command_tree_end_label_edit),
+    wxWindow:connect(TC, command_tree_begin_drag, [callback]),
+    wxWindow:connect(TC, command_tree_end_drag, []),
+    case os:type() of
+	{win32, _} ->
+	    wxWindow:connect(TC, command_tree_item_menu, [{skip, false}]),
+	    wxWindow:connect(TC, command_right_click, []);
+	_ ->
+	    wxWindow:connect(TC, right_up, [{skip, true}])
+    end,
+    TC.
+
+update_object(Os, TC, IL, Imap0) ->
+    Sorted = [{{order(T), wings_util:cap(N)},O} || #{type:=T,name:=N} = O <- Os],
+    wxTreeCtrl:deleteAllItems(TC),
+    Root = wxTreeCtrl:addRoot(TC, []),
+    Do = fun({_, #{name:=Name}=O}, {Acc0,Imap00}) ->
+		 {Indx, Imap} = image_index(O, IL, Imap00),
+		 Item = wxTreeCtrl:appendItem(TC, Root, Name, [{image, Indx}]),
+		 Acc = [{Item, O}|Acc0],
+		 case maps:get(maps, O, []) of
+		     [] -> {Acc, Imap};
+		     Maps -> add_maps(Maps, TC, Item, IL, Imap, Os, Acc)
+		 end
+		 %% {Node,_} = lists:keyfind(Curr, 2, All),
+		 %% wxTreeCtrl:selectItem(TC, Node),
+		 %% wxTreeCtrl:ensureVisible(TC, Node),
+	 end,
+    wx:foldl(Do, {[],Imap0}, Sorted).
+
+add_maps([{_MType,Mid}|Rest], TC, Dir, IL, Imap0, Os,Acc) ->
+    [O = #{name:=MName}] = [O || #{type:=image, id:=Id} = O <- Os, Id =:= Mid],
+    {Indx, Imap} = image_index(O, IL, Imap0),
+    Item = wxTreeCtrl:appendItem(TC, Dir, MName, [{image, Indx}]),
+    add_maps(Rest, TC, Dir, IL, Imap, Os, [{Item, O}|Acc]);
+add_maps([], TC, Dir, _, Imap, _, Acc) ->
+    wxTreeCtrl:expand(TC,Dir),
+    {Acc, Imap}.
+
+order(light) -> 1;
+order(mat)   -> 2;
+order(image) -> 3.
+
+image_index(#{type:=Type}, _IL, Map) when Type =:= light; Type =:= image ->
+    #{Type:=Index} = Map,
+    {Index, Map};
+image_index(#{type:=mat, color:=Col}, IL, Map) ->
+    case maps:get(Col, Map, undefined) of
+	undefined ->
+	    %% {3, Map};
+	    Indx = wxImageList:getImageCount(IL),
+	    wxImageList:add(IL, mat_bitmap(Col)),
+	    {Indx, Map#{Col=>Indx}};
+	Indx ->
+	    {Indx, Map}
+    end.
+
+load_icons() ->
+    Imgs = wings_frame:get_icon_images(),
+    IL = wxImageList:new(16,16),
+    Add = fun(Name) ->
+		  {_, Sz, Img} = lists:keyfind(Name, 1, Imgs),
+		  true = wxImage:ok(Img),
+		  Q = [{quality,?wxIMAGE_QUALITY_NORMAL}],
+		  Small = case Sz of
+			      {16,16} -> wxImage:copy(Img);
+			      _ -> wxImage:scale(Img,16,16,Q)
+			  end,
+		  wxImageList:add(IL, wxBitmap:new(Small)),
+		  wxImage:destroy(Small)
+	  end,
+    wx:foreach(Add, [
+		     small_image,perspective, %small_object,
+		     small_light
+		    ]),
+    wxImageList:add(IL, mat_bitmap({15,15,15})),
+    {IL, #{object=>1, image=>0, light=>2, mat=>3}}.
+
+mat_bitmap({R,G,B}) ->
+    Mask = <<2#1111111111111111:16,
+	     2#1000000000000001:16,
+	     2#1000000000000001:16,
+	     2#1000000000000001:16,
+	     2#1001100000110001:16,
+	     2#1000110001100001:16,
+	     2#1000101010100001:16,
+	     2#1000101110100001:16,
+	     2#1000100100100001:16,
+	     2#1000100000100001:16,
+	     2#1000100000100001:16,
+	     2#1001110001110001:16,
+	     2#1000000000000001:16,
+	     2#1000000000000001:16,
+	     2#1000000000000001:16,
+	     2#1111111111111111:16
+	   >>,
+    BG = ((R*16) bsl 16) bor ((G*16) bsl 8) bor (B*16),
+    FG = case lists:max([R,G,B]) of
+	     V when V > 7 -> 16#040404;
+	     _ -> 16#F0F0F0
+	 end,
+    RGB = << <<(case Bit of 0 -> BG; 1 -> FG end):24>> || <<Bit:1>> <= Mask>>,
+    Image = wxImage:new(16,16,RGB),
+    %%io:format("ok ~p ~p ~p(~p)~n",[wxImage:ok(Image), wxImage:hasAlpha(Image), size(RGB),16*16*3]),
+    BM = wxBitmap:new(Image),
+    wxImage:destroy(Image),
+    BM.
+
+%% missing wx_object function
+set_pid({wx_ref, Ref, Type, []}, Pid) when is_pid(Pid) ->
+    {wx_ref, Ref, Type, Pid}.
+
+%%%%%%%%%%%
+make_menus(0, Pos, #state{tc=TC}) ->
+    wings_wm:psend(?MODULE, {apply, false, fun(_) -> wings_shapes:menu(TC,Pos) end});
+make_menus(Indx, Pos, #state{tc=TC, shown=Tree}) ->
+    {_, Obj} = lists:keyfind(Indx, 1, Tree),
+    Menus = do_menu(Obj),
+    Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, outliner, Menus) end,
+    wings_wm:psend(?MODULE, {apply, false, Cmd}).
+
+do_menu(#{type:=mat, name:=Name}) ->
+    [{?__(1,"Edit Material..."),menu_cmd(edit_material, Name),
+      ?__(2,"Edit material properties")},
+     {?__(3,"Assign to Selection"),menu_cmd(assign_material, Name),
+      ?__(4,"Assign the material to the selected faces or bodies")},
+     separator,
+     {?__(5,"Select"),select_menu(Name),
+      {?__(6,"Select all elements that have this material"),
+       ?__(27,"Add all elements that have this material to selection"),
+       ?__(28,"Remove all elements that have this material from selection")},[]},
+     separator,
+     {?__(7,"Duplicate"),menu_cmd(duplicate_material, Name),
+      ?__(8,"Duplicate this material")},
+     {?__(9,"Delete"),menu_cmd(delete_material, Name),
+      ?__(10,"Delete this material")},
+     {?__(11,"Rename"),menu_cmd(rename_material, Name),
+      ?__(12,"Rename this material")}];
+do_menu(#{type:=object, id:=Id}) ->
+    [{?__(13,"Duplicate"),menu_cmd(duplicate_object, Id),
+      ?__(14,"Duplicate this object")},
+     {?__(15,"Delete"),menu_cmd(delete_object, Id),
+      ?__(16,"Delete this object")},
+     {?__(17,"Rename"),menu_cmd(rename_object, Id),
+      ?__(18,"Rename this object")}];
+do_menu(#{type:=light, id:=Id}) ->
+    [{?__(19,"Edit Light..."),menu_cmd(edit_light, Id),
+      ?__(20,"Edit light properties")},
+     separator,
+     {?__(21,"Duplicate"),menu_cmd(duplicate_object, Id),
+      ?__(22,"Duplicate this light")},
+     {?__(23,"Delete"),menu_cmd(delete_object, Id),
+      ?__(24,"Delete this light")},
+     {?__(25,"Rename"),menu_cmd(rename_object, Id),
+      ?__(26,"Rename this light")}];
+do_menu(#{type:=image, id:=Id, image:=Im}) ->
+    image_menu(Id, Im).
+
+image_menu(Id, Im) ->
+    [{?__(1,"Show"),menu_cmd(show_image, Id),
+      ?__(2,"Show the image in a window")}|image_menu_1(Id, Im)].
+
+%% Currently disabled.
+image_menu_1(Id, #e3d_image{filename=none}) ->
+    [{?__(1,"Make External..."),menu_cmd(make_external, Id)}|common_image_menu(Id)];
+image_menu_1(Id, _) ->
+    [{?__(2,"Refresh"),menu_cmd(refresh_image, Id),?__(11,"Update image to the contents of the saved file")},
+     {?__(3,"Make Internal"),menu_cmd(make_internal, Id)}|common_image_menu(Id)].
+
+common_image_menu(Id) ->
+    [separator,
+     {?__(1,"Export..."),menu_cmd(export_image, Id),
+      ?__(2,"Export the image")},
+     separator,
+     {?__(3,"Duplicate"),menu_cmd(duplicate_image, Id),
+      ?__(4,"Duplicate selected image")},
+     {?__(5,"Delete"),menu_cmd(delete_image, Id),
+      ?__(6,"Delete selected image")},
+     {?__(7,"Rename"),menu_cmd(rename_image, Id),
+      ?__(8,"Rename selected image")}
+    ].
+
+handle_drop(#{type:=image, id:=Id}, #{type:=mat, name:=Name}) ->
+    [{?__(1,"Texture Type"),ignore},
+     separator,
+     {?__(2,"Diffuse"),tx_cmd(diffuse, Id, Name)},
+     {?__(3,"Gloss"),tx_cmd(gloss, Id, Name)},
+     {?__(4,"Bump (HeightMap)"),tx_cmd(bump, Id, Name)},
+     {?__(5,"Bump (NormalMap)"),tx_cmd(normal, Id, Name)}].
+
+tx_cmd(Type, Id, Mat) ->
+    {'VALUE',{assign_texture,Type,Id,Mat}}.
+
+select_menu(Name) ->
+    fun(1, _Ns) ->
+	    button_menu_cmd(select_material, [Name,select]);
+       (2, _Ns) ->
+	    button_menu_cmd(select_material, [Name,sel_add]);
+       (3, _Ns) ->
+	    button_menu_cmd(select_material, [Name,sel_rem]);
+       (_, _) -> ignore
+    end.
+
+menu_cmd(Cmd, Id) ->
+    {'VALUE',{Cmd,Id}}.
+
+button_menu_cmd(Cmd, Id) ->
+    {outliner,{Cmd,Id}}.
