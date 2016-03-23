@@ -1585,15 +1585,15 @@ text_to_html(Paragraphs) ->
     Html = text_to_html(Paragraphs, Header),
     lists:reverse(["</html>"|Html]).
 
-text_to_html([[_|_] = Paragraph|Ps], Acc) ->
-    text_to_html(Ps, ["</p>", paragraph_to_html(Paragraph), "<p>"|Acc]);
-text_to_html([Table = {table,_,_,_}|Ps], Acc) ->
+text_to_html([{table,_,_,_}=Table|Ps], Acc) ->
     text_to_html(Ps, [table_to_html(Table)|Acc]);
 text_to_html([{bullet, List}|Rest], Acc) ->
-    BulletList = ["</p><ul>",
+    BulletList = ["<ul>",
 		  ["<li>" ++ paragraph_to_html(Item) ++ "</li>" || Item <- List],
-		  "</ul><p>"],
+		  "</ul>"],
     text_to_html(Rest, [BulletList|Acc]);
+text_to_html([Paragraph|Ps], Acc) ->
+    text_to_html(Ps, ["</p>", paragraph_to_html(Paragraph), "<p>"|Acc]);
 text_to_html([], Acc) -> Acc.
 
 paragraph_to_html([$\n|Text]) ->
@@ -1606,6 +1606,10 @@ paragraph_to_html([{ul, Text}|Rest]) ->
     ["<u>", paragraph_to_html(Text), "</u>"| paragraph_to_html(Rest)];
 paragraph_to_html([Table={table, _, _, _}|Rest]) ->
     ["</p>", table_to_html(Table), "<p>" | paragraph_to_html(Rest)];
+paragraph_to_html([{bullet, List}|Rest]) ->
+    ["</p><ul>",
+     ["<li>" ++ paragraph_to_html(Item) ++ "</li>" || Item <- List],
+     "</ul><p>" | paragraph_to_html(Rest)];
 paragraph_to_html([C|Text]) when is_list(C) ->
     [paragraph_to_html(C), paragraph_to_html(Text)];
 paragraph_to_html([]) -> [].
