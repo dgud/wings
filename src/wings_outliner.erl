@@ -291,8 +291,10 @@ init([Parent, Pos, Size, _Ps, Os]) ->
     Frame = wings_frame:make_external_win(Parent, title(), [{size, Size}, {pos, Pos}]),
     {IL, IMap0} = load_icons(),
     Panel = wxPanel:new(Frame),
+    #{bg:=BG} = Cs = wings_frame:get_colors(),
     Szr = wxBoxSizer:new(?wxVERTICAL),
-    TC = make_tree(Panel, IL),
+    wxPanel:setBackgroundColour(Panel, BG),
+    TC = make_tree(Panel, Cs, IL),
     wxSizer:add(Szr, TC, [{proportion,1}, {flag, ?wxEXPAND}]),
     wxPanel:setSizer(Panel, Szr),
     {Shown,IMap} = update_object(Os, TC, IL, IMap0),
@@ -386,7 +388,7 @@ handle_info(parent_changed,
 	{win32, _} ->
 	    %% Windows or wxWidgets somehow messes up the icons when reparented,
 	    %% Recreating the tree ctrl solves it
-	    TC = make_tree(Top, IL),
+	    TC = make_tree(Top, wings_frame:colors(), IL),
 	    wxSizer:replace(Szr, TC0, TC),
 	    wxSizer:recalcSizes(Szr),
 	    wxWindow:destroy(TC0),
@@ -413,10 +415,12 @@ terminate(_Reason, #state{}) ->
 
 %%%%%%%%%%%%%%%%%%%%%%
 
-make_tree(Parent, IL) ->
+make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     TreeStyle = ?wxTR_EDIT_LABELS bor ?wxTR_HIDE_ROOT bor ?wxTR_HAS_BUTTONS
 	bor ?wxTR_LINES_AT_ROOT bor ?wxTR_NO_LINES,
     TC = set_pid(wxTreeCtrl:new(Parent, [{style, TreeStyle}]), self()),
+    wxTreeCtrl:setBackgroundColour(TC, BG),
+    wxTreeCtrl:setForegroundColour(TC, FG),
     wxTreeCtrl:setImageList(TC, IL),
     wxWindow:connect(TC, command_tree_end_label_edit),
     wxWindow:connect(TC, command_tree_begin_drag, [callback]),
