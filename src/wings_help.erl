@@ -67,8 +67,6 @@ header(about) ->
 header(tweak_help) ->
     ?__(12,"Tweak").
 
-command(tweak_help, St) ->
-    wings_tweak:command(show_help, St);
 command(Item, _St) ->
     command_1(Item, header(Item)).
 
@@ -90,6 +88,9 @@ command_1(performance_tips, Header) ->
     performance_tips(Header);
 command_1(opengl_info, Header) ->
     opengl_info(Header);
+command_1(tweak_help, Header) ->
+    Msg = wings_tweak:help_msg(),
+    help_window(Header, Msg);
 command_1(about, Header) ->
     about(Header).
 
@@ -265,7 +266,7 @@ def_hotkeys(Head) ->
 	    ?__(8,"3. The information line asks you to press the key that the command "
 		"should be assigned to."),
 
-	    io_lib:format(?__(9,"To delete a hotkey, similarly press the"
+	    io_lib:format(?__(9,"To delete a hotkey, similarly press the "
 			      "~ts or ~ts key and "
 			      "select the command in a menu. A dialog box listing all keys "
 			      "bound to the command will appear. "
@@ -285,13 +286,12 @@ lights(Head) ->
 opengl_info(Head) ->
     gl:getError(),			%Clear any previous error.
     [{_,VerTuple}] = ets:lookup(wings_gl_ext, version),
-    BackendVersion = "2D-API: " ++ wings_io:version_info(),
     Versions = {table, 2, "Version information",
 		[[?__(1,"Vendor"),gl:getString(?GL_VENDOR)],
 		 [?__(2,"Renderer"), gl:getString(?GL_RENDERER)],
 		 [?__(3,"Version"),gl:getString(?GL_VERSION)],
-		 [?__(4,"Version tuple"), lists:flatten(io_lib:format("~p\n", [VerTuple])) ++
-		      BackendVersion]]},
+		 [?__(4,"Version tuple"), lists:flatten(io_lib:format("~p\n", [VerTuple]))],
+		 [?__(400, "2D-API:"), wings_io:version_info()]]},
         GL = {table, 2, "OpenGL Information",
 	      get_info([{?__(5,"Red bits"),?GL_RED_BITS},
 			{?__(6,"Green bits"),?GL_GREEN_BITS},
