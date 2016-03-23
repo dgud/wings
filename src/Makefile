@@ -116,6 +116,7 @@ MODULES= \
 	wings_tesselation \
 	wings_text \
 	wings_tweak \
+	wings_tweak_win \
 	wings_u \
 	wings_undo \
 	wings_util \
