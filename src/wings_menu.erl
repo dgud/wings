@@ -19,9 +19,15 @@
 -export([update_menu/3, update_menu/4,
 	 update_menu_enabled/3, update_menu_hotkey/2]).
 
+%% Reuse in tweak windows
+-export([normalize_menu_wx/3, calc_min_sizes/4,
+	 format_hotkeys/2, setup_popup/6,
+	 setup_colors/3,
+	 entry_msg/2, entry_cmd/2, entry_wins/1, set_entry_id/2]).
+
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--import(lists, [foldl/3,reverse/1,sort/1]).
+-import(lists, [foldl/3,reverse/1]).
 
 -define(REPEAT, 99).
 -define(REPEAT_ARGS, 98).
@@ -34,14 +40,6 @@
 -define(VIEW_ORTHO, 91).
 -define(VIEW_AXES, 90).
 -define(VIEW_GROUND, 89).
-
-%% -record(menu_pop,
-%% 	{wxid,
-%% 	 name,
-%% 	 type,
-%% 	 opts,
-%% 	 msg=""
-%% 	}).
 
 %% menu entries, the name, type and opts are used differently
 %% depending on if they are used in top_level menus or pop menus
@@ -58,7 +56,6 @@
 	       help = [], % Strings
 	       opts = [], % options
 	       hk=[]}).   % hotkey
-
 
 is_popup_event(#mousebutton{button=3,x=X0,y=Y0,state=?SDL_RELEASED,mod=Mod}) ->
     {X,Y} = wings_wm:local2global(X0, Y0),
@@ -271,8 +268,7 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 			  setup_colors(Obj, colorB(menu_hilite),colorB(menu_hilited_text))
 		  end,
 	    Line = wx:batch(Set),
-	    #menu{help=Msg} = lists:keyfind(Id, 2, Entries),
-	    wings_wm:psend(Owner, {message, Msg}),
+	    wings_wm:psend(Owner, {message, entry_msg(Id, Entries)}),
 	    popup_events(Dialog, Panel, Entries, Magnet, Line, Ns, Owner);
 	#wx{id=Id0, event=Ev=#wxMouse{y=Y, x=X}} ->
 	    Id = case Id0 > 0 orelse find_active_panel(Panel, X, Y) of
@@ -489,7 +485,9 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     wxPanel:setSizerAndFit(Panel, Line),
     wxSizer:add(Sizer, Panel, [{flag, ?wxEXPAND}, {proportion, 1}]),
     menu_connect([Panel,T1,T2|BM], [left_up, middle_up, right_up, enter_window]),
-    setup_popup(Es, Sizer, Sz, Parent,Magnet, [ME#menu{help=CmdMsg}|Acc]);
+    Win = #{panel=>Panel, label=>T1, hotkey=>T2},
+    Pop = ME#menu{wxid=Id, help=CmdMsg, object=Win},
+    setup_popup(Es, Sizer, Sz, Parent,Magnet, [Pop|Acc]);
 setup_popup([#menu{type=opt}=ME|Es], Sizer, Sz, Parent, Magnet, Acc) ->
     setup_popup(Es, Sizer, Sz, Parent, Magnet, [ME|Acc]);
 setup_popup([], _, _, _, _, Acc) -> lists:reverse(Acc).
@@ -503,6 +501,19 @@ create_color_box(Id, Panel, H, Props) ->
     wxImage:destroy(Image),
     wxBitmap:destroy(Bitmap),
     SBM.
+
+entry_msg(Id, Entries) ->
+    #menu{help=Msg} = lists:keyfind(Id, 2, Entries),
+    Msg.
+
+entry_cmd(Id, Entries) ->
+    #menu{name=Cmd} = lists:keyfind(Id, 2, Entries),
+    Cmd.
+entry_wins(#menu{object=Win}) ->
+    Win.
+
+set_entry_id(Id, ME) ->
+    ME#menu{wxid=Id}.
 
 menu_connect(Windows, Evs) ->
     [ [wxWindow:connect(Win, Ev) || Ev <- Evs] || Win <- Windows].
@@ -761,7 +772,10 @@ normalize_menu_wx(separator, _, _) ->
     #menu{type=separator};
 normalize_menu_wx({S,Fun,Help,Ps}, Hotkeys, Ns) when is_function(Fun) ->
     Name = Fun(1, Ns),
-    HK = match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps)),
+    HK = case proplists:get_value(hotkey, Ps) of
+	     undefined -> match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps));
+	     String -> String
+	 end,
     #menu{type=menu, desc=S, name=Fun, help=Help, opts=Ps, hk=HK};
 normalize_menu_wx({S, {Name, SubMenu}}, Hotkeys, Ns)
   when is_list(SubMenu); is_function(SubMenu) ->
@@ -782,7 +796,10 @@ normalize_menu_wx({S,{Name,Fun},Help,Ps}, Hotkeys, Ns)
     #menu{type=submenu, desc=S, name={Name, Fun},
 	  help=submenu_help(Help, Fun, [Name|Ns]), opts=Ps, hk=HK};
 normalize_menu_wx({S,Name,Help,Ps}, Hotkeys, _Ns) ->
-    HK = match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps)),
+    HK = case proplists:get_value(hotkey, Ps) of
+	     undefined -> match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps));
+	     String -> String
+	 end,
     #menu{desc=S, name=Name, help=Help, opts=Ps, hk=HK};
 normalize_menu_wx({S,Name}, Hotkeys, _Ns) ->
     HK = match_hotkey(reduce_name(Name), Hotkeys, false),
@@ -796,7 +813,10 @@ normalize_menu_wx({S,Name,Help}, Hotkeys, _Ns)
     HK = match_hotkey(reduce_name(Name), Hotkeys, false),
     #menu{desc=S,name=Name,help=Help,hk=HK};
 normalize_menu_wx({S,Name,Ps},Hotkeys, _Ns) ->
-    HK = match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps)),
+    HK = case proplists:get_value(hotkey, Ps) of
+	     undefined -> match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps));
+	     String -> String
+	 end,
     #menu{desc=S,name=Name,opts=Ps,hk=HK}.
 
 name_for_hotkey(Name, Ns, Fun) when is_function(Fun) ->
@@ -928,7 +948,7 @@ predefined_item(_M, _C) ->
 %%    io:format("Ignore ~p ~p~n",[_M,_C]),
     false.
 
-colorB({R,G,B,A}) -> {trunc(R*255),trunc(G*255),trunc(B*255),trunc(A*255)};
-colorB({R,G,B}) -> {trunc(R*255),trunc(G*255),trunc(B*255),255};
 colorB(Pref) when is_atom(Pref) ->
-    colorB(wings_pref:get_value(Pref)).
+    wings_color:rgb4bv(wings_pref:get_value(Pref));
+colorB(Col) -> wings_color:rgb4bv(Col).
+
