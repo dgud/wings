@@ -392,6 +392,7 @@ get_shape_state({_,Client}, #st{sel=Sel, shapes=Shs, pst=Pst}) ->
 
 init([Parent, Pos, {W,_}=Size, _Ps, {_,Client}=Name, SS]) ->
     Frame = wings_frame:make_external_win(Parent, title(Client), [{size, Size}, {pos, Pos}]),
+    #{bg:=BG, text:=FG} = wings_frame:get_colors(),
     Splitter = wxSplitterWindow:new(Frame, [{style, ?wxSP_3DSASH bor ?wxSP_LIVE_UPDATE}]),
     wxSplitterWindow:setMinimumPaneSize(Splitter, 1),
     wxSplitterWindow:setSashGravity(Splitter, 0.25),
@@ -399,10 +400,14 @@ init([Parent, Pos, {W,_}=Size, _Ps, {_,Client}=Name, SS]) ->
     
     TreeStyle = ?wxTR_EDIT_LABELS bor ?wxTR_NO_BUTTONS bor ?wxTR_NO_LINES,
     TC  = wxTreeCtrl:new(Splitter, [{style, TreeStyle}]),
+    wxTreeCtrl:setBackgroundColour(TC, BG),
+    wxTreeCtrl:setForegroundColour(TC, FG),
     wxTreeCtrl:assignImageList(TC, load_icons()),
 
     LCStyle = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS bor ?wxLC_SINGLE_SEL,
     LC = wxListCtrl:new(Splitter, [{style, LCStyle}]),
+    wxListCtrl:setBackgroundColour(LC, BG),
+    wxListCtrl:setForegroundColour(LC, FG),
     wxListCtrl:assignImageList(LC, load_icons(), ?wxIMAGE_LIST_SMALL),
     wxListCtrl:insertColumn(LC, 0, "", [{width, ?wxLIST_AUTOSIZE_USEHEADER}]),
     wxListCtrl:insertColumn(LC, 1, "", [{width, column_width()}]),

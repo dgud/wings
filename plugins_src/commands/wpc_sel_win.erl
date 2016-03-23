@@ -167,10 +167,13 @@ delete_all_groups(#st{}=St) ->
 
 init([Parent, Pos, Size, _Ps, SS]) ->
     Frame = wings_frame:make_external_win(Parent, title(), [{size, Size}, {pos, Pos}]),
+    #{bg:=BG, text:=FG} = wings_frame:get_colors(),
     Panel = wxPanel:new(Frame),
     Szr = wxBoxSizer:new(?wxVERTICAL),
     Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS,
     LC = wxListCtrl:new(Panel, [{style, Style}]),
+    wxListCtrl:setBackgroundColour(LC, BG),
+    wxListCtrl:setForegroundColour(LC, FG),
     wxSizer:add(Szr, LC, [{proportion,1}, {flag, ?wxEXPAND}]),
     IconImgs = wings_frame:get_icon_images(),
     wxListCtrl:assignImageList(LC, load_icons(IconImgs), ?wxIMAGE_LIST_SMALL),
