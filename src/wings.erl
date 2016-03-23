@@ -816,9 +816,9 @@ command_1({window,console}, _St) ->
     wings_console:window(),
     keep;
 command_1({window,tweak_palette}, St) ->
-    wings_tweak:palette(tweak_palette, St),
-    wings_tweak:palette(mag_palette, St),
-    wings_tweak:palette(axis_palette, St),
+    wings_tweak_win:window(tweak_palette, St),
+    wings_tweak_win:window(tweak_magnet, St),
+    wings_tweak_win:window(axis_constraint, St),
     keep;
 
 %% Body menu.
@@ -1670,7 +1670,7 @@ restore_windows_1([{{geom,_}=Name,Pos0,Size,Ps0}|Ws], St) ->
 restore_windows_1([{Name,Pos,Size}|Ws0], St) -> % OldFormat
     restore_windows_1([{Name,Pos,Size,[]}|Ws0], St);
 restore_windows_1([{Module,{{plugin,_}=Name,{_,_}=Pos,{_,_}=Size,CtmData}}|Ws], St) ->
-	wings_plugin:restore_window(Module, Name, Pos, Size, CtmData, St),
+    wings_plugin:restore_window(Module, Name, Pos, Size, CtmData, St),
     wings_wm:move(Name, Pos, Size),  % ensure the window be placed in the right position *
     restore_windows_1(Ws, St);
 restore_windows_1([{{object,_}=Name,{_,_}=Pos,{_,_}=Size,Ps}|Ws], St) ->
@@ -1685,14 +1685,14 @@ restore_windows_1([{console,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
 restore_windows_1([{palette,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
     wings_palette:window(validate_pos(Pos), Size, Ps, St),
     restore_windows_1(Ws, St);
-restore_windows_1([{{tweak, tweak_palette},{_,_}=Pos, _, Ps}|Ws], St) ->
-    wings_tweak:palette(tweak_palette, validate_pos(Pos), Ps, St),
+restore_windows_1([{{tweak, tweak_palette},{_,_}=Pos, Size, Ps}|Ws], St) ->
+    wings_tweak_win:window(tweak_palette, validate_pos(Pos), Size, Ps, St),
     restore_windows_1(Ws, St);
-restore_windows_1([{{tweak, mag_palette},{_,_}=Pos, _, Ps}|Ws], St) ->
-    wings_tweak:palette(mag_palette, validate_pos(Pos), Ps, St),
+restore_windows_1([{{tweak, tweak_magnet},{_,_}=Pos, Size, Ps}|Ws], St) ->
+    wings_tweak_win:window(tweak_magnet, validate_pos(Pos), Size, Ps, St),
     restore_windows_1(Ws, St);
-restore_windows_1([{{tweak, axis_palette},{_,_}=Pos, _, Ps}|Ws], St) ->
-    wings_tweak:palette(axis_palette, validate_pos(Pos), Ps, St),
+restore_windows_1([{{tweak, axis_constraint},{_,_}=Pos, Size, Ps}|Ws], St) ->
+    wings_tweak_win:window(axis_constraint, validate_pos(Pos), Size, Ps, St),
     restore_windows_1(Ws, St);
 restore_windows_1([_|Ws], St) ->
     restore_windows_1(Ws, St);
