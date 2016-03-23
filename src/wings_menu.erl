@@ -21,7 +21,7 @@
 
 %% Reuse in tweak windows
 -export([normalize_menu_wx/3, calc_min_sizes/4,
-	 format_hotkeys/2, setup_popup/6,
+	 format_hotkeys/2, setup_popup/7,
 	 setup_colors/3,
 	 entry_msg/2, entry_cmd/2, entry_wins/1, set_entry_id/2]).
 
@@ -194,12 +194,13 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     Panel = wxPanel:new(Dialog),
     wxPanel:setFont(Panel, ?GET(system_font_wx)),
     %% wxPanel:setBackgroundStyle(Panel, ?wxBG_STYLE_TRANSPARENT),
-    wxWindow:setBackgroundColour(Panel, colorB(wings_pref:get_value(menu_color))),
-    wxWindow:setBackgroundColour(Dialog, colorB(wings_pref:get_value(menu_color))),
+    Cols = {BG,_FG} = {colorB(menu_color),colorB(menu_text)},
+    wxWindow:setBackgroundColour(Panel, BG),
+    wxWindow:setBackgroundColour(Dialog, BG),
     Main = wxBoxSizer:new(?wxHORIZONTAL),
     Sizer = wxBoxSizer:new(?wxVERTICAL),
     MinHSzs = calc_min_sizes(Entries0, Panel, 5, 5),
-    Entries = setup_popup(Entries0, Sizer, MinHSzs, Panel, Magnet, []),
+    Entries = setup_popup(Entries0, Sizer, MinHSzs, Cols, Panel, Magnet, []),
     wxSizer:setMinSize(Sizer, 225, -1),
     wxSizer:addSpacer(Main, 5),
     wxSizer:add(Main, Sizer, [{proportion, 1}, {border, 5}, {flag, ?wxEXPAND bor ?wxALL}]),
@@ -416,17 +417,17 @@ calc_min_sizes([#menu{}|Es], Win, C1, C2) ->
 calc_min_sizes([], _, C1, C2) ->
     {C1, C2}.
 
-setup_popup([#menu{type=separator}|Es], Sizer, Sz, Parent, Magnet, Acc) ->
+setup_popup([#menu{type=separator}|Es], Sizer, Sz, Cs, Parent, Magnet, Acc) ->
     Line = wxStaticLine:new(Parent, [{size,{-1,2}}]),
     wxSizer:addSpacer(Sizer, 4),
     wxSizer:add(Sizer, Line, [{border, 10}, {proportion, 0},
 			      {flag, ?wxEXPAND bor ?wxLEFT bor ?wxRIGHT}]),
     wxSizer:addSpacer(Sizer, 4),
-    setup_popup(Es, Sizer, Sz, Parent, Magnet, Acc);
+    setup_popup(Es, Sizer, Sz, Cs, Parent, Magnet, Acc);
 setup_popup([#menu{type=submenu, wxid=Id, desc=Desc, help=Help0, opts=Ps, hk=HK}=ME|Es],
-	    Sizer, Sz = {Sz1,Sz2}, Parent, Magnet, Acc) ->
+	    Sizer, Sz = {Sz1,Sz2}, Cs, Parent, Magnet, Acc) ->
     Panel = wxPanel:new(Parent, [{winid, Id}]),
-    setup_colors([Panel], colorB(menu_color), colorB(menu_text)),
+    setup_colors([Panel], Cs),
     Line = wxBoxSizer:new(?wxHORIZONTAL),
     wxSizer:addSpacer(Line, 3),
     Controls =
@@ -449,15 +450,15 @@ setup_popup([#menu{type=submenu, wxid=Id, desc=Desc, help=Help0, opts=Ps, hk=HK}
 	      true -> Help0
 	   end,
     {TipMsg, CmdMsg} = tooltip(Help, false, have_magnet(Ps, Magnet)),
-    [wxWindow:setToolTip(Win, wxToolTip:new(TipMsg)) || Win <- [Panel,T1]],
+    [wxWindow:setToolTip(Win, wxToolTip:new(TipMsg)) || Win <- Controls],
     wxPanel:setSizerAndFit(Panel, Line),
     wxSizer:add(Sizer, Panel, [{flag, ?wxEXPAND},{proportion, 1}]),
     menu_connect(Controls, [left_up, middle_up, right_up, enter_window]),
-    setup_popup(Es, Sizer, Sz, Parent, Magnet, [ME#menu{help=CmdMsg}|Acc]);
+    setup_popup(Es, Sizer, Sz, Cs, Parent, Magnet, [ME#menu{help=CmdMsg}|Acc]);
 setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=ME|Es],
-	    Sizer, Sz = {Sz1,Sz2}, Parent, Magnet, Acc) ->
+	    Sizer, Sz = {Sz1,Sz2}, Cs, Parent, Magnet, Acc) ->
     Panel = wxPanel:new(Parent, [{winid, Id}]),
-    setup_colors([Panel], colorB(menu_color), colorB(menu_text)),
+    setup_colors([Panel], Cs),
     Line  = wxBoxSizer:new(?wxHORIZONTAL),
     wxSizer:addSpacer(Line, 3),
     wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc),[{proportion, 0},{flag, ?wxALIGN_CENTER}]),
@@ -492,10 +493,10 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     menu_connect([Panel,T1,T2|BM], [left_up, middle_up, right_up, enter_window]),
     Win = #{panel=>Panel, label=>T1, hotkey=>T2},
     Pop = ME#menu{wxid=Id, help=CmdMsg, object=Win},
-    setup_popup(Es, Sizer, Sz, Parent,Magnet, [Pop|Acc]);
-setup_popup([#menu{type=opt}=ME|Es], Sizer, Sz, Parent, Magnet, Acc) ->
-    setup_popup(Es, Sizer, Sz, Parent, Magnet, [ME|Acc]);
-setup_popup([], _, _, _, _, Acc) -> lists:reverse(Acc).
+    setup_popup(Es, Sizer, Sz, Cs, Parent, Magnet, [Pop|Acc]);
+setup_popup([#menu{type=opt}=ME|Es], Sizer, Sz, Cs, Parent, Magnet, Acc) ->
+    setup_popup(Es, Sizer, Sz, Cs, Parent, Magnet, [ME|Acc]);
+setup_popup([], _, _, _, _, _, Acc) -> lists:reverse(Acc).
 
 create_color_box(Id, Panel, H, Props) ->
     {R,G,B} = wings_color:rgb3bv(proplists:get_value(color, Props)),
@@ -522,6 +523,9 @@ set_entry_id(Id, ME) ->
 
 menu_connect(Windows, Evs) ->
     [ [wxWindow:connect(Win, Ev) || Ev <- Evs] || Win <- Windows].
+
+setup_colors(Windows, {BG, FG}) ->
+    setup_colors(Windows, BG, FG).
 
 setup_colors(Windows, Background, Foreground) when is_list(Windows) ->
     [wxWindow:setBackgroundColour(Win, Background) || Win <- Windows],

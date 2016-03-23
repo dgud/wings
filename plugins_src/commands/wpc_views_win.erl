@@ -143,10 +143,13 @@ get_view_state(#st{views=Views}) -> Views.
 
 init([Parent, Pos, Size, _Ps, VS]) ->
     Frame = wings_frame:make_external_win(Parent, title(), [{size, Size}, {pos, Pos}]),
+    #{bg:=BG, text:=FG} = wings_frame:get_colors(),
     Panel = wxPanel:new(Frame),
     Szr = wxBoxSizer:new(?wxVERTICAL),
     Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS,
     LC = wxListCtrl:new(Panel, [{style, Style}]),
+    wxListCtrl:setBackgroundColour(LC, BG),
+    wxListCtrl:setForegroundColour(LC, FG),
     wxSizer:add(Szr, LC, [{proportion,1}, {flag, ?wxEXPAND}]),
     wxListCtrl:insertColumn(LC, 0, "", [{width, ?wxLIST_AUTOSIZE_USEHEADER}]),
     wxPanel:setSizer(Panel, Szr),
