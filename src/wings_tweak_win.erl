@@ -95,7 +95,7 @@ tweak_tool(Button, Modifiers) ->
 %% Window in new (frame) process %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--record(state, {name, shown, mode, menu, prev}).
+-record(state, {name, shown, mode, menu, prev, cols}).
 
 init([Parent, Pos, Size, _Ps, Name, {Mode, Menus}]) ->
     Frame = wings_frame:make_external_win(Parent, title(Name), [{size, Size}, {pos, Pos}]),
@@ -105,14 +105,15 @@ init([Parent, Pos, Size, _Ps, Name, {Mode, Menus}]) ->
 		|| Entry <- lists:flatten(Menus)],
     Entries1 = wings_menu:format_hotkeys(Entries0, pretty),
     wxPanel:setFont(Panel, ?GET(system_font_wx)),
-    wxWindow:setBackgroundColour(Panel, colorB(menu_color)),
+    #{bg:=BG, text:=FG} = Cols = wings_frame:get_colors(),
+    wxWindow:setBackgroundColour(Panel, BG),
     Main = wxBoxSizer:new(?wxHORIZONTAL),
     Sizer = wxBoxSizer:new(?wxVERTICAL),
     MinHSzs = wings_menu:calc_min_sizes(Entries1, Panel, 5, 5),
     {Entries2,_} = lists:mapfoldl(fun(ME, Id) -> {wings_menu:set_entry_id(Id, ME), Id+1} end,
 				  500, Entries1),
-    Entries = wings_menu:setup_popup(Entries2, Sizer, MinHSzs, Panel, false, []),
-    update_lines(Menus, Entries),
+    Entries = wings_menu:setup_popup(Entries2, Sizer, MinHSzs, {BG,FG}, Panel, false, []),
+    update_lines(Menus, Entries, Cols),
     wxSizer:setMinSize(Sizer, 225, -1),
     wxSizer:addSpacer(Main, 5),
     wxSizer:add(Main, Sizer, [{proportion, 1}, {border, 5}, {flag, ?wxALL}]),
@@ -121,7 +122,7 @@ init([Parent, Pos, Size, _Ps, Name, {Mode, Menus}]) ->
     wxSizer:fit(Main, Panel),
     wxSizer:setSizeHints(Main, Frame),
     wxWindow:show(Frame),
-    {Panel, #state{name=Name, shown=Entries, mode=Mode, menu=Menus}}.
+    {Panel, #state{name=Name, shown=Entries, cols=Cols, mode=Mode, menu=Menus}}.
 
 handle_event(#wx{id=Id, obj=_Obj, event=#wxMouse{type=enter_window}},
 	     #state{name=Name, shown=Entries, prev=_Prev} = State) ->
@@ -146,8 +147,8 @@ handle_call(Req, _From, State) ->
     io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, Req]),
     {reply, ok, State}.
 
-handle_cast({update, {_Mode, Menus}}, #state{shown=Entries0} = State) ->
-    update_lines(Menus, Entries0),
+handle_cast({update, {_Mode, Menus}}, #state{cols=Cs, shown=Entries0} = State) ->
+    update_lines(Menus, Entries0, Cs),
     {noreply, State};
 handle_cast(_Req, State) ->
     io:format("~p:~p Got unexpected cast ~p~n", [?MODULE,?LINE, _Req]),
@@ -171,10 +172,9 @@ terminate(_Reason, #state{name=Name}) ->
 
 %%%%%%%%%%%%%%%%%%%%%%
 
-update_lines([separator|Ms], Es) ->
-    update_lines(Ms, Es);
-update_lines([{Name,_Cmd,_,Os}|Ms], [Entry|Es]) ->
-    %% io:format("~p ~p = ~P~n",[Name, _Cmd, Entry, 20]),
+update_lines([separator|Ms], Es, Cs) ->
+    update_lines(Ms, Es, Cs);
+update_lines([{Name,_Cmd,_,Os}|Ms], [Entry|Es], Cs) ->
     #{label:=T1, hotkey:=T2, panel:=Panel} = wings_menu:entry_wins(Entry),
     wxStaticText:setLabel(T1, Name),
     case proplists:get_value(hotkey, Os) of
@@ -182,12 +182,11 @@ update_lines([{Name,_Cmd,_,Os}|Ms], [Entry|Es]) ->
     	String    -> wxStaticText:setLabel(T2, String)
     end,
     case proplists:get_value(crossmark, Os, false) of
-	true  -> wings_menu:setup_colors(Panel, colorB(menu_hilite), colorB(menu_hilited_text));
-	false -> wings_menu:setup_colors(Panel, colorB(menu_color), colorB(menu_text))
+	true  -> wings_menu:setup_colors(Panel, maps:get(hl_bg, Cs), maps:get(hl_text, Cs));
+	false -> wings_menu:setup_colors(Panel, maps:get(bg, Cs), maps:get(text, Cs))
     end,
-    update_lines(Ms, Es);
-update_lines([], []) ->
-    %% io:format("Last ~p~n", [_E]),
+    update_lines(Ms, Es, Cs);
+update_lines([], [], _) ->
     ok.
 
 title({_,tweak_palette}) ->
@@ -226,8 +225,4 @@ tweak_mode_cmd(Mode, #wxMouse{type=Type, controlDown=Ctrl,shiftDown=Shift,altDow
 	    right_up -> 3
 	end,
     {set_tweak_pref, Mode, B, {Ctrl, Shift, Alt}}.
-
-colorB(Pref) when is_atom(Pref) ->
-    wings_color:rgb4bv(wings_pref:get_value(Pref));
-colorB(Col) -> wings_color:rgb4bv(Col).
 

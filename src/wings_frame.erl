@@ -11,7 +11,7 @@
 
 -module(wings_frame).
 
--export([top_menus/0, make_external_win/3, register_win/1, get_icon_images/0]).
+-export([top_menus/0, make_external_win/3, register_win/1, get_icon_images/0, get_colors/0]).
 
 -export([start/1, forward_event/1]).
 
@@ -66,6 +66,13 @@ register_win(Window) ->
 get_icon_images() ->
     wx_object:call(?MODULE, get_images).
 
+get_colors() ->
+    #{bg   => wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_bg)),
+      text => wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_text)),
+      hl_bg   => wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_hl)),
+      hl_text => wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_hl_text))
+     }.
+
 %%%%%%%% Internals %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Inside wings (process)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -100,7 +107,7 @@ start_file(File0) ->
 %% Window in new (frame) process %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--record(state, {toolbar, windows, overlay, images}).
+-record(state, {toolbar, windows, overlay, images, active}).
 -record(split, {obj, mode, w1, w2}).
 
 init(_Opts) ->
@@ -161,6 +168,26 @@ handle_event(#wx{event=#wxActivate{active=Active}}, State) ->
     Active == true andalso wxWindow:setFocus(?GET(gl_canvas)),
     wings ! #expose{active=Active},
     {noreply, State};
+handle_event(#wx{event=#wxMouse{type=enter_window},userData=Win}, 
+	     #state{active=Prev} = State) ->
+    ABG = wings_color:rgb4bv(wings_pref:get_value(title_active_color)),
+    PBG = wings_color:rgb4bv(wings_pref:get_value(title_passive_color)),
+    % io:format("~s Type ~p ~p ~p~n",[Label, Type, ABG, PBG]),
+    try
+	#{bar:=PBar} = Prev,
+	_ = wxWindow:getSize(PBar), %% Sync check PBar validity
+	wxWindow:setBackgroundColour(PBar, PBG),
+	wxWindow:refresh(PBar)
+    catch _:_ -> ignore
+    end,
+    case Win of
+	#{bar:=ABar} -> 
+	    wxWindow:setBackgroundColour(ABar, ABG),
+	    wxWindow:refresh(ABar);
+	_ -> ignore
+    end,
+    {noreply, State#state{active=Win}};
+
 handle_event(#wx{event=#wxClose{}}, State) ->
     wings ! {quit},
     {noreply, State};
@@ -210,7 +237,9 @@ handle_info({close_window, Obj, _Str}, #state{windows=#{ch:=Child}=Wins} = State
     Close = fun(Where, Other, GrandP) -> close_window(Obj, Where, Other, GrandP) end,
     case update_win(Obj, Child, Child, Close) of
 	false -> error({child_no_exists, Obj});
-	{ok, Root}  -> {noreply, State#state{windows=Wins#{ch:=Root}}}
+	{ok, Root}  -> 
+	    check_tree(Root, Child),
+	    {noreply, State#state{windows=Wins#{ch:=Root}}}
     end;
 handle_info(Msg, State) ->
     io:format("~p:~p Got unexpected info ~p~n", [?MODULE,?LINE, Msg]),
@@ -242,21 +271,21 @@ preview_attach(false, Pos, Win,
 	    State#state{windows=setup_timer(Win, Path, delete_timer(Wins))}
     end;
 preview_attach(_MouseDown, _Pos, _Win, State) ->
-    %% There comes and initial move event when window is created
+    %% There comes an initial move event when window is created
     %% ignore that
     State.
 
 preview_rect({Obj, Path}, Win) ->
     Dir = lists:last(Path),
     {X,Y,W0,H0} = wxWindow:getScreenRect(win(Obj)),
-    {MaxW, MaxH} = wxWindow:getSize(Win),
+    {MaxW, MaxH} = wxWindow:getClientSize(Win),
     W = min(W0 div 2, MaxW),
     H = min(H0 div 2, MaxH),
     case Dir of
-	left  -> {{X,      Y, W, H0}, W-W0};
-	right -> {{X+W0-W, Y, W, H0}, -W};
-	up    -> {{X,      Y, W0, H}, H-H0};
-	down  -> {{X, Y+H0-H, W0, H}, -H}
+	left  -> {{X,      Y, W, H0}, W-(W0-25)};
+	right -> {{X+W0-W, Y, W, H0}, -W-25};
+	up    -> {{X,      Y, W0, H}, H-(H0-25)};
+	down  -> {{X, Y+H0-H, W0, H}, -H-25}
     end.
 
 overlay_frame(Parent) ->
@@ -284,13 +313,13 @@ attach_floating(true, Overlay, #{op:=#{mwin:=Container, mpath:=Path}, loose:=Loo
 	    State#{action:=undefined, op:=undefined};
 	Window ->
 	    overlay_hide(Overlay),
-	    %% io:format("Attach window ~p ~p~n", [Container, Path]),
+	    %% io:format("Attach window ~p ~p ~p~n",[Container,Path,wxWindow:getClientSize(Window)]),
 	    St = State#{loose:=maps:remove(Container,Loose), action:=undefined, op:=undefined},
 	    DoWhileLocked = fun() -> attach_window(Path, Container, Window, St) end,
 	    After = fun() ->
 			    timer:sleep(200),
 			    wings_io:reset_video_mode_for_gl(0,0),
-			    wx_object:get_pid(Window) ! parent_changed
+			    catch wx_object:get_pid(Window) ! parent_changed
 		    end,
 	    wings_io:lock(whereis(wings), DoWhileLocked, After)
     end;
@@ -311,6 +340,7 @@ attach_window({_,Path}=Split, Container, NewWin, #{szr:=Sz, ch:=#split{obj=Paren
 			     wxSizer:layout(Sz);
 			 true -> ignore
 		     end,
+		     %% io:format("Size after ~p~n", [wxWindow:getClientSize(NewWin)]),
 		     check_tree(Root, Child),
 		     State#{ch:=Root}
 	     end,
@@ -498,7 +528,7 @@ detach_window(#wxMouse{type=motion, leftDown=true, x=X,y=Y},
 			  end,
 	    {{Frame,NewWin}, Root} = wings_io:lock(whereis(wings), WhileLocked),
 	    check_tree(Root, maps:get(ch, State)),
-	    wx_object:get_pid(NewWin) ! parent_changed,
+	    catch wx_object:get_pid(NewWin) ! parent_changed,
 	    wxWindow:captureMouse(Bar),
 	    State#{action:=detach_move,
 		   op:=Op#{frame=>Frame, disp=>Displace},
@@ -616,36 +646,46 @@ setup_timer(#{op:=Op} = St) ->
     {ok, TRef} = timer:send_after(200, check_stopped_move),
     St#{op:=Op#{mtimer=>TRef}}.
 
--define(WIN_BAR_HEIGHT, 20).
+-define(WIN_BAR_HEIGHT, 16).
 
 make_internal_win(Parent, ChildWin, Label) ->
     Win = wxPanel:new(Parent, []),
-    [Bar|_] = Wins = make_bar(Win, Label),
+    PBG = wings_color:rgb4bv(wings_pref:get_value(title_passive_color)),
+    [Bar|_] = Wins = make_bar(Win, PBG, Label),
     Top = wxBoxSizer:new(?wxVERTICAL),
-    wxSizer:add(Top, Bar, [{flag, ?wxEXPAND}]),
+    wxSizer:add(Top, Bar, [{proportion, 0}, {flag, ?wxEXPAND}]),
     wxWindow:reparent(ChildWin, Win), %% Send event here
-    wxSizer:add(Top, ChildWin,  [{proportion, 1}, {flag, ?wxEXPAND}]),
+    wxSizer:add(Top, ChildWin,  [{proportion, 1}, {flag, ?wxEXPAND bor ?wxALL}, {border, 2}]),
     wxWindow:setSizer(Win, Top),
     Info = #{bar=>Bar, win=>Win, child=>ChildWin, label=>Label},
+    wxWindow:connect(Win, enter_window, [{userData, Info}]),
     [wxWindow:connect(W, Ev, [{userData, {move, Info}}])
      || Ev <- [left_down, left_up, motion], W <- Wins],
     Win.
 
-make_bar(Parent, Label) ->
-    Bar = wxPanel:new(Parent, [{size, {-1, ?WIN_BAR_HEIGHT}}]),
-    BG = wings_pref:get_value(title_passive_color),
+make_bar(Parent, BG, Label) ->
+    Bar = wxPanel:new(Parent, [{style, ?wxBORDER_SIMPLE}, {size, {-1, ?WIN_BAR_HEIGHT}}]),
     FG = wings_pref:get_value(title_text_color),
-    wxPanel:setFont(Bar, ?GET(system_font_wx)),
-    wxWindow:setBackgroundColour(Bar, wings_color:rgb4bv(BG)),
+    #{size:=Sz} = FI = wings_text:get_font_info(?GET(system_font_wx)),
+    Font = wings_text:make_wxfont(FI#{size:=Sz-2}),
+    wxPanel:setFont(Bar, Font),
+    wxWindow:setBackgroundColour(Bar, BG),
     wxWindow:setForegroundColour(Bar, wings_color:rgb4bv(FG)),
     WBSz = wxBoxSizer:new(?wxHORIZONTAL),
-    wxSizer:addSpacer(WBSz, 20),
+    wxSizer:addSpacer(WBSz, 15),
     wxSizer:add(WBSz, ST=wxStaticText:new(Bar, ?wxID_ANY, Label), [{flag, ?wxALIGN_CENTER}]),
+    {_, H} = wxWindow:getSize(ST),
     wxSizer:addStretchSpacer(WBSz),
-    Bitmap = wxArtProvider:getBitmap("wxART_CROSS_MARK",[{client, "wxART_FRAME_ICON"}]),
-    SBM = wxStaticBitmap:new(Bar, ?wxID_EXIT, Bitmap),
+    Bitmap0 = wxArtProvider:getBitmap("wxART_CROSS_MARK",[{client, "wxART_MESSAGE_BOX"}]),
+    %% Im0 = wxBitmap:convertToImage(Bitmap0),
+    %% Im1 = wxImage:scale(Im0,H,H,[{quality, ?wxIMAGE_QUALITY_HIGH}]),
+    %% Bitmap = wxBitmap:new(Im1), wxImage:destroy(Im1), wxImage:destroy(Im0),
+    SBM = wxStaticBitmap:new(Bar, ?wxID_EXIT, Bitmap0),
+    %% io:format("ST = ~p~n",[wxWindow:getSize(ST)]),
+    %% io:format("SBM = ~p~n",[wxWindow:getSize(SBM)]),
     wxSizer:add(WBSz, SBM, [{flag, ?wxALIGN_CENTER}]),
-    wxSizer:addSpacer(WBSz, 5),
+    wxSizer:addSpacer(WBSz, 3),
+    wxWindow:setSize(Bar, {-1, H+2}),
     wxWindow:setSizer(Bar, WBSz),
     Self = self(),
     CB = fun(_, Ev) ->
