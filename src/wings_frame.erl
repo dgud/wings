@@ -11,7 +11,9 @@
 
 -module(wings_frame).
 
--export([top_menus/0, make_external_win/3, register_win/1, get_icon_images/0, get_colors/0]).
+-export([top_menus/0, make_win/2,
+	 register_win/1, register_win/2,
+	 get_icon_images/0, get_colors/0]).
 
 -export([start/1, forward_event/1]).
 
@@ -31,7 +33,6 @@ start(File0) ->
     macosx_workaround(),
     Frame = wx_object:start_link({local, ?MODULE}, ?MODULE, [args], []),
     put(top_frame, Frame),
-    wxGLCanvas:setCurrent(?GET(gl_canvas)),
     {Frame, start_file(File0)}.
 
 top_menus() ->
@@ -49,19 +50,31 @@ top_menus() ->
      {?__(5,"Tools"), tools, wings:tools_menu()},
      {?__(6,"Window"),window,wings:window_menu()}|Tail].
 
-make_external_win(Parent, Title, Opts0) ->
+make_win(Title, Opts) ->
+    make_win(?GET(top_frame), Title, Opts).
+make_win(Parent, Title, Opts0) ->
     FStyle = {style, ?wxCAPTION bor ?wxCLOSE_BOX bor ?wxRESIZE_BORDER},
-    {Size, Opts} = case lists:keytake(size, 1, Opts0) of
-		       {value, {size, Sz}, Os} -> {Sz, Os};
-		       false  -> {false, Opts0}
-		   end,
+    {Size, Opts1} = case lists:keytake(size, 1, Opts0) of
+			{value, {size, Sz}, Os1} -> {Sz, Os1};
+			false  -> {false, Opts0}
+		    end,
+    Opts = case lists:keytake(pos, 1, Opts1) of
+	       {value, {pos, Pos0}, Os2} ->
+		   Parent = ?GET(top_frame),
+		   Pos = wxWindow:clientToScreen(Parent, Pos0),
+		   [{pos,Pos}| Os2];
+	       false  ->
+		   Opts1
+	   end,
     Frame = wxMiniFrame:new(Parent, ?wxID_ANY, Title, [FStyle|Opts]),
     Size =/= false andalso wxWindow:setClientSize(Frame, Size),
     Frame.
 
 register_win(Window) ->
-    Frame = wx:typeCast(wxWindow:getParent(Window), wxMiniFrame),
-    wx_object:call(?MODULE, {new_window, Frame, Window}).
+    register_win(Window, [external]).
+
+register_win(Window,Ps) ->
+    wx_object:call(?MODULE, {new_window, Window, Ps}).
 
 get_icon_images() ->
     wx_object:call(?MODULE, get_images).
@@ -123,20 +136,16 @@ init(_Opts) ->
 	wxSizer:add(Sizer, win(Top), [{proportion, 1}, {flag, ?wxEXPAND}]),
 	wxSizer:setSizeHints(Sizer, win(Top)),
 	wxFrame:setSizer(Frame, Sizer),
-	Canvas = wings_init:create(win(Top)),
+	Canvas = wxPanel:new(win(Top)),
+	wxWindow:setBackgroundColour(Canvas, {0,123,123}),
 	wxSplitterWindow:initialize(win(Top), Canvas),
-	?SET(gl_canvas, Canvas),
 	IconImgs = make_icons(),
 	Toolbar = wings_toolbar:init(Frame, IconImgs),
 
 	wxWindow:connect(Frame, close_window),
 	wxWindow:connect(Frame, command_menu_selected, []),
 	wxWindow:connect(Frame, activate, []),
-	wxWindow:connect(Frame, show),
-	wxFrame:show(Frame),
 	init_menubar(Frame),
-	%% Must be shown to initialize OpenGL context.
-	receive #wx{obj=Frame, event=#wxShow{}} -> ok end,
 	Wins = #{frame=>Frame, ch=>Top#split{w1=Canvas}, szr=>Sizer,
 		 loose=>#{}, action=>undefined, op=>undefined},
 	Overlay = overlay_frame(Frame),
@@ -164,11 +173,11 @@ handle_event(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}, State) ->
     %% io:format("ME ~p~n",[ME]),
     wings ! ME,
     {noreply, State};
-handle_event(#wx{event=#wxActivate{active=Active}}, State) ->
+handle_event(#wx{event=#wxActivate{active=Active}}=Ev, State) ->
     Active == true andalso wxWindow:setFocus(?GET(gl_canvas)),
-    wings ! #expose{active=Active},
+    wings ! Ev,
     {noreply, State};
-handle_event(#wx{event=#wxMouse{type=enter_window},userData=Win}, 
+handle_event(#wx{event=#wxMouse{type=enter_window},userData=Win},
 	     #state{active=Prev} = State) ->
     ABG = wings_color:rgb4bv(wings_pref:get_value(title_active_color)),
     PBG = wings_color:rgb4bv(wings_pref:get_value(title_passive_color)),
@@ -181,7 +190,7 @@ handle_event(#wx{event=#wxMouse{type=enter_window},userData=Win},
     catch _:_ -> ignore
     end,
     case Win of
-	#{bar:=ABar} -> 
+	#{bar:=ABar} ->
 	    wxWindow:setBackgroundColour(ABar, ABG),
 	    wxWindow:refresh(ABar);
 	_ -> ignore
@@ -197,11 +206,22 @@ handle_event(Ev, State) ->
 
 %%%%%%%%%%%%%%%%%%%%%%
 
-handle_call({new_window, Frame, Panel}, _From,
-	    #state{windows=Wins=#{loose:=Loose}}=State) ->
-    wxWindow:connect(Frame, move),
-    {reply, ok, State#state{windows=Wins#{loose:=Loose#{Frame => Panel}}}};
-
+handle_call({new_window, Window, Ps}, _From,
+	    #state{windows=Wins=#{loose:=Loose, ch:=Top}}=State) ->
+    External = proplists:get_value(external, Ps),
+    Geom = proplists:get_value(top, Ps),
+    if External ->
+	    Frame = wx:typeCast(wxWindow:getParent(Window), wxMiniFrame),
+	    wxWindow:connect(Frame, move),
+	    {reply, ok, State#state{windows=Wins#{loose:=Loose#{Frame => Window}}}};
+       Geom -> %% Specialcase for geom window
+	    Title = proplists:get_value(title, Ps),
+	    #split{w1=Dummy} = Top,
+	    Win = make_internal_win(win(Top), Window, Title),
+	    wxSplitterWindow:replaceWindow(win(Top), Dummy, Win),
+	    wxWindow:destroy(Dummy),
+	    {reply, ok, State#state{windows=Wins#{ch:=Top#split{w1=Win}}}}
+    end;
 handle_call(get_images, _From, #state{images=Icons} = State) ->
     {reply, Icons, State};
 
@@ -606,7 +626,7 @@ start_drag(DX, DY) ->
 	orelse (DY > wxSystemSettings:getMetric(?wxSYS_DRAG_Y)).
 
 make_external_win(Parent, Child, {X0,Y0, W, H} = _Dim, Label) ->
-    Frame = make_external_win(Parent, Label, [{pos, {X0,Y0}}, {size, {W,H}}]),
+    Frame = make_win(Parent, Label, [{pos, {X0,Y0}}, {size, {W,H}}]),
     wxWindow:connect(Frame, move),
     wxWindow:reparent(Child, Frame),
     wxWindow:refresh(Child),

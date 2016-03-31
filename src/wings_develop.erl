@@ -68,10 +68,8 @@ command(font_libs, _) ->
     wings_u:message(Str);
 command(show_cursor, _) ->
     case wings_io:is_grabbed() of
-      true ->
-          {_,X,Y} = wings_io:get_mouse_state(),
-          wings_io:ungrab(X,Y);
-      false -> ok
+	true  -> wings_io:reset_grab();
+	false -> ok
     end,
     keep.
 

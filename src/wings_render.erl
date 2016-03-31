@@ -52,11 +52,6 @@ render(#st{selmode=Mode}=St) ->
     render_objects(Mode, SceneLights),
     user_clipping_planes(off),
     axis_letters(PM,MM,Yon),
-    gl:lineWidth(1.0),
-    wings_io:ortho_setup(),
-    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
-    {W,H} = wings_wm:win_size(),
-    gl:rectf(W-0.5, 0.5, 0.5, H-0.5),
     gl:popAttrib(),
     wings_develop:gl_error_check("Rendering scene").
 

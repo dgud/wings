@@ -32,22 +32,20 @@ window(Name, St) ->
 	    keep;
 	false ->
 	    Pos = case Name of
-		      tweak_palette -> {5,150};
-		      tweak_magnet -> {25,170};
+		      tweak_palette   -> {5,150};
+		      tweak_magnet    -> {25,170};
 		      axis_constraint -> {45,190}
 		  end,
 	    wings_tweak_win:window(Name, Pos, {-1,-1}, [], St),
 	    keep
     end.
 
-window(Name0, Pos0, Size, Ps, St) ->
+window(Name0, Pos, Size, Ps, St) ->
     Name = {tweak, Name0},
-    Parent = ?GET(top_frame),
-    Pos = wxWindow:clientToScreen(Parent, Pos0),
     State = get_state(Name),
-    Window = wx_object:start_link(?MODULE, [Parent, Pos, Size, Ps, Name, State], []),
-    wings_wm:new(Name, Window, {push,change_state(Window, St)}),
-    wings_frame:register_win(Window),
+    Frame = wings_frame:make_win(title(Name), [{size, Size}, {pos, Pos}]),
+    Window = wx_object:start_link(?MODULE, [Frame, Ps, Name, State], []),
+    wings_wm:toplevel(Name, Window, [], {push,change_state(Window, St)}),
     keep.
 
 %%%%%%%% Window internals %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -97,8 +95,7 @@ tweak_tool(Button, Modifiers) ->
 
 -record(state, {name, shown, mode, menu, prev, cols}).
 
-init([Parent, Pos, Size, _Ps, Name, {Mode, Menus}]) ->
-    Frame = wings_frame:make_external_win(Parent, title(Name), [{size, Size}, {pos, Pos}]),
+init([Frame, _Ps, Name, {Mode, Menus}]) ->
     Panel = wxPanel:new(Frame),
     HotKeys = wings_hotkey:matching([tweak]),
     Entries0 = [wings_menu:normalize_menu_wx(Entry, HotKeys, [tweak])

@@ -65,22 +65,20 @@ window(St) ->
 	    wings_wm:raise(?WIN_NAME),
 	    keep;
 	false ->
-	    {{DeskX,DeskY},{_DeskW,DeskH}} = wings_wm:win_rect(desktop),
+	    {_DeskW,DeskH} = wings_wm:top_size(),
 	    W = 18*?CHAR_WIDTH,
-	    Pos = {DeskX+5,DeskY+105},
+	    Pos = {5,105},
 	    Size = {W,DeskH div 3},
 	    window(?WIN_NAME, Pos, Size, [], St),
 	    keep
     end.
 
-window(WinName, Pos0, Size, Ps, St) ->
-    Parent = ?GET(top_frame),
+window(WinName, Pos, Size, Ps, St) ->
     View = get_view_state(St),
-    Pos = wxWindow:clientToScreen(Parent, Pos0),
-    Window = wx_object:start_link(?MODULE, [Parent, Pos, Size, Ps, View], []),
-    wings_wm:new(WinName, Window, {push,change_state(Window, St)}),
-    wings_wm:set_dd(WinName, geom_display_lists),
-    wings_frame:register_win(Window),
+    Frame = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}]),
+    Window = wx_object:start_link(?MODULE, [Frame, Ps, View], []),
+    Fs = [{display_data, geom_display_lists}],
+    wings_wm:toplevel(WinName, Window, Fs, {push,change_state(Window, St)}),
     keep.
 
 title() ->
@@ -141,8 +139,7 @@ get_view_state(#st{views=Views}) -> Views.
 
 -record(state, {lc, views, drag}).
 
-init([Parent, Pos, Size, _Ps, VS]) ->
-    Frame = wings_frame:make_external_win(Parent, title(), [{size, Size}, {pos, Pos}]),
+init([Frame, _Ps, VS]) ->
     #{bg:=BG, text:=FG} = wings_frame:get_colors(),
     Panel = wxPanel:new(Frame),
     Szr = wxBoxSizer:new(?wxVERTICAL),

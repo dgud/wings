@@ -39,22 +39,20 @@ window(St) ->
 	    wings_wm:raise(Name),
 	    keep;
 	false ->
-	    {{_,DeskY},{DeskW,DeskH}} = wings_wm:win_rect(desktop),
+	    {DeskW,DeskH} = wings_wm:top_size(),
 	    W = 28*?CHAR_WIDTH,
-	    Pos = {DeskW-5,DeskY+55},
+	    Pos  = {DeskW-5, 0},
 	    Size = {W,DeskH div 2},
 	    window({object, wings_wm:this()}, Pos, Size, [], St),
 	    keep
     end.
 
-window(Name, Pos0, Size, Ps, St) ->
-    Parent = ?GET(top_frame),
-    Pos = wxWindow:clientToScreen(Parent, Pos0),
+window({_,Client}=Name, Pos, Size, Ps, St) ->
     Shapes = get_shape_state(Name, St),
-    Window = wx_object:start_link(?MODULE, [Parent, Pos, Size, Ps, Name, Shapes], []),
-    wings_wm:new(Name, Window, {push,change_state(Window, St)}),
-    wings_wm:set_dd(Name, geom_display_lists),
-    wings_frame:register_win(Window),
+    Frame = wings_frame:make_win(title(Client), [{size, Size}, {pos, Pos}]),
+    Window = wx_object:start_link(?MODULE, [Frame, Size, Ps, Name, Shapes], []),
+    Fs = [{display_data, geom_display_lists}],
+    wings_wm:toplevel(Name, Window, Fs, {push,change_state(Window, St)}),
     keep.
 
 title(geom) ->
@@ -390,8 +388,7 @@ get_shape_state({_,Client}, #st{sel=Sel, shapes=Shs, pst=Pst}) ->
 
 -define(ICW, column_width()).
 
-init([Parent, Pos, {W,_}=Size, _Ps, {_,Client}=Name, SS]) ->
-    Frame = wings_frame:make_external_win(Parent, title(Client), [{size, Size}, {pos, Pos}]),
+init([Frame, {W,_}, _Ps, Name, SS]) ->
     #{bg:=BG, text:=FG} = wings_frame:get_colors(),
     Splitter = wxSplitterWindow:new(Frame, [{style, ?wxSP_3DSASH bor ?wxSP_LIVE_UPDATE}]),
     wxSplitterWindow:setMinimumPaneSize(Splitter, 1),

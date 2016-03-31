@@ -744,10 +744,7 @@ make_query(Tuple) when is_tuple(Tuple) ->
 make_query(Other) -> Other.
 
 set_console() ->
-	case wings_wm:is_window(console) of
-	  true ->
-		{Pos,Size} = wings_wm:win_rect(console),
-		wings_console:window(),
-		wings_wm:move(console, Pos, Size);
-	  false -> ok
-	end.
+    case wings_wm:is_window(console) of
+	true  -> wings_console:window();
+	false -> ok
+    end.

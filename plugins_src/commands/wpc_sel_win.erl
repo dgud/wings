@@ -69,21 +69,19 @@ window(St) ->
 	    wings_wm:raise(?WIN_NAME),
 	    keep;
 	false ->
-	    {{DeskX,DeskY},{_DeskW,DeskH}} = wings_wm:win_rect(desktop),
+	    {_DeskW,DeskH} = wings_wm:top_size(),
 	    W = 18*?CHAR_WIDTH,
-	    Pos = {DeskX+5,DeskY+105},
+	    Pos  = {5, 5},
 	    Size = {W,DeskH div 3},
 	    window(?WIN_NAME, Pos, Size, [], St)
     end.
 
-window(?WIN_NAME, Pos0, Size, Ps, St) ->
-    Parent = ?GET(top_frame),
+window(?WIN_NAME, Pos, Size, Ps, St) ->
     Sel = get_sel_state(St),
-    Pos = wxWindow:clientToScreen(Parent, Pos0),
-    Window = wx_object:start_link(?MODULE, [Parent, Pos, Size, Ps, Sel], []),
-    wings_wm:new(?WIN_NAME, Window, {push,change_state(Window, Sel)}),
-    wings_wm:set_dd(?WIN_NAME, geom_display_lists),
-    wings_frame:register_win(Window),
+    Frame = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}]),
+    Window = wx_object:start_link(?MODULE, [Frame, Ps, Sel], []),
+    Fs = [{display_data, geom_display_lists}],
+    wings_wm:toplevel(?WIN_NAME, Window, Fs, {push,change_state(Window, Sel)}),
     keep.
 
 %%%%%%%% Selection Window internals %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -165,8 +163,7 @@ delete_all_groups(#st{}=St) ->
 
 -record(state, {lc, shown, sel, ss}).
 
-init([Parent, Pos, Size, _Ps, SS]) ->
-    Frame = wings_frame:make_external_win(Parent, title(), [{size, Size}, {pos, Pos}]),
+init([Frame, _Ps, SS]) ->
     #{bg:=BG, text:=FG} = wings_frame:get_colors(),
     Panel = wxPanel:new(Frame),
     Szr = wxBoxSizer:new(?wxVERTICAL),
