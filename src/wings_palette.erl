@@ -46,8 +46,8 @@ window(St) ->
 	    wings_wm:raise(palette),
 	    keep;
 	false ->
-	    {{_,DeskY},{DeskW,_DeskH}} = wings_wm:win_rect(desktop),
-	    Pos  = {DeskW-5,DeskY+55},
+	    {DeskW,_DeskH} = wings_wm:top_size(),
+	    Pos  = {DeskW-5, 0},
 	    Size = {?COLS_W*?BOX_W+?COLS_W*?BORD+?BORD*2,
 		    ?COLS_H*?BOX_H+?COLS_H*?BORD+?BORD*2},
 	    create_window(Pos, Size, [], St),
@@ -69,20 +69,16 @@ palette(#st{pal=Pal0}) ->
 %% Inside wings (process)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-create_window(Pos0, Size, Ps, St) ->
-    Frame = ?GET(top_frame),
+create_window(Pos, Size, Ps, St) ->
     Cols = get_all_colors(St),
-    Pos = wxWindow:clientToScreen(Frame, Pos0),
-    Window = wx_object:start_link(?MODULE, [Frame, Pos, Size, Ps, Cols], []),
-    wings_wm:new(palette, Window, {push,change_state(Window, St)}),
-
+    Frame = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}]),
+    Window = wx_object:start_link(?MODULE, [Frame, Size, Ps, Cols], []),
     F = fun({color,_}) -> yes;
 	   ({material, _}) -> yes;
 	   (_) -> no
 	end,
-    wings_wm:set_prop(palette, drag_filter, F),
-    wings_wm:set_dd(palette, geom_display_lists),
-    wings_frame:register_win(Window),
+    Fs = [{drag_filter, F}, {display_data, geom_display_lists}],
+    wings_wm:toplevel(palette, Window, Fs, {push,change_state(Window, St)}),
     keep.
 
 change_state(Window, St) ->
@@ -256,15 +252,14 @@ export(Cols) ->
 %% Window in new process %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-init([Parent, Pos, Size = {W,_}, _Ps, Cols0]) ->
+init([Frame, {W,_}, _Ps, Cols0]) ->
     try
 	Empty = make_bitmap(none),
-	Tmp = make_button(Parent, -1, none, Empty),
+	Tmp = make_button(Frame, -1, none, Empty),
 	BSz = {BW,_} = wxWindow:getSize(Tmp),
 	wxWindow:destroy(Tmp),
 	{ColsW,ColsH} = calc_size(Cols0,W,BW,false),
 	%% io:format("Init Size ~p => ~p~n",[BSz, {ColsW, ColsH}]),
-	Frame = wings_frame:make_external_win(Parent, title(), [{size,Size},{pos, Pos}]),
 	Win = wxScrolledWindow:new(Frame),
 	Sz = wxGridSizer:new(ColsW, [{vgap, ?BORD},{hgap, ?BORD}]),
 	Cols = add_empty(Cols0,ColsW,ColsH),

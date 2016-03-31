@@ -190,7 +190,7 @@ tweak_event_handler(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev,St) ->
 		false ->
 		    ReturnAxis = toggle_data(Axis),
 		    wings_pref:set_value(tweak_axis_toggle,[{Sym,ReturnAxis,os:timestamp()}|Pressed]),
-		    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_ENABLE),
+		    wings_io:change_event_handler(?SDL_KEYUP, true),
 		    toggle_axis(Axis),
 		    wings_wm:dirty(),
 		    wings_wm:send({tweak,axis_constraint}, update_palette),
@@ -224,7 +224,7 @@ tweak_event_handler(#keyboard{sym=Sym,state=?SDL_RELEASED},_St) ->
 	    wings_pref:set_value(tweak_axis_toggle,Pressed),
 	    case Pressed of
 		[] ->
-		    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_IGNORE),
+		    wings_io:change_event_handler(?SDL_KEYUP, false),
 		    keep;
 		_ -> keep
 	    end;
@@ -233,7 +233,7 @@ tweak_event_handler(#keyboard{sym=Sym,state=?SDL_RELEASED},_St) ->
 
 tweak_event_handler(lost_focus,_) ->
     wings_pref:set_value(tweak_axis_toggle,[]),
-    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_IGNORE),
+    wings_io:change_event_handler(?SDL_KEYUP, true),
     next;
 tweak_event_handler(_,_) ->
     next.
@@ -364,7 +364,7 @@ handle_initial_event(Ev, What, St, T) ->
     enter_tweak_handler(Ev, What, St, T).
 
 enter_tweak_handler(Ev, What, St, #tweak{id={Action,_},st=#st{sel=Sel}=St0}=T) ->
-    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_ENABLE),
+    wings_io:change_event_handler(?SDL_KEYUP, false),
     wings_wm:grab_focus(),
     case wings_io:is_grabbed() of
 	true -> ok;
@@ -509,7 +509,7 @@ handle_tweak_drag_event_2(#mousebutton{button=B,state=?SDL_RELEASED}, T) when B 
     case  wings_io:get_mouse_state() of
 	{0,_,_} ->
 	    case wings_pref:get_value(tweak_axis_toggle) of
-		[] -> wings_io:change_event_handler(?SDL_KEYUP, ?SDL_IGNORE);
+		[] -> wings_io:change_event_handler(?SDL_KEYUP, false);
 		_ -> ok
 	    end,
 	    end_drag(T);
@@ -534,7 +534,7 @@ magnet_adjust(#tweak{st=St0}=T0) ->
     end.
 
 magnet_handler_setup({Id,Elem,_}=What, X, Y, St, T0) ->
-    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_ENABLE),
+    wings_io:change_event_handler(?SDL_KEYUP, true),
     {GX,GY} = wings_wm:local2global(X, Y),
     IdElem = {Id,[Elem]},
     wings_wm:grab_focus(),
@@ -647,7 +647,7 @@ end_magnet_event(#tweak{st=St}=T) ->
     end_magnet_event({new_state,St},T).
 
 end_magnet_event(Ev,#tweak{id=Id}=T) ->
-    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_IGNORE),
+    wings_io:change_event_handler(?SDL_KEYUP, false),
     save_magnet_prefs(T),
     end_magnet_adjust(Id),
     wings_wm:later(Ev),
@@ -899,9 +899,8 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,pos0=Orig,pst=none,  %% pst =:= none
 				{uniform,TweakPos}
 			end
 		end,
-    {_,XX,YY} = wings_io:get_mouse_state(), %% Mouse Position
+    {_,MSX,MSY} = wings_wm:local_mouse_state(), %% Mouse Position
     {_,YY0} = wings_wm:win_size(wings_wm:this()), %% Window Size global
-    {MSX,MSY} = wings_wm:global2local(XX,YY), %% Global Size to Local
 
     %% Cursor Position according to the model coordinates
     CursorPos = screen_to_obj(Matrices,{float(MSX), float(YY0 - MSY), Zs}),
@@ -1600,7 +1599,7 @@ is_tweak_hotkey(_, T) ->
 is_tweak_combo(#tweak{st=#st{selmode=body}}) ->
     keep; % Still haven't add Scale
 is_tweak_combo(#tweak{mode=Mode,st=St0}=T) ->
-    {B,X,Y} = wings_io:get_mouse_state(),
+    {B,X0,Y0} = wings_io:get_mouse_state(),
     Ctrl = wings_io:is_modkey_pressed(?CTRL_BITS),
     Shift = wings_io:is_modkey_pressed(?SHIFT_BITS),
     Alt = wings_io:is_modkey_pressed(?ALT_BITS),
@@ -1613,6 +1612,7 @@ is_tweak_combo(#tweak{mode=Mode,st=St0}=T) ->
 				      update_drag(D,T)  % used to find mid tweak model data
 			      end, St0),
             do_tweak_0(0, 0, 0, 0, {move,screen}),
+	    {X,Y} = wings_wm:screen2local({X0,Y0}),
             update_tweak_handler(T#tweak{mode=NewMode,st=St,ox=X,oy=Y,cx=0,cy=0});
         _ -> keep
     end.

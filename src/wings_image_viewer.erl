@@ -39,13 +39,14 @@ new(WinName, Filename, Opts) when is_list(Filename) ->
     new(WinName, Img, [{name,Filename}, destroy_after|Opts]);
 new(WinName, Image, Opts) ->
     wxImage = wx:getObjectType(Image), %% Assert
-    Parent = case ?GET(top_frame) of
-		 undefined -> wx:null();
-		 TopFrame -> TopFrame
-	     end,
-    Window = wx_object:start_link(?MODULE, [Parent, WinName, Image, Opts], []),
-    wings_frame:register_win(Window),
-    wings_wm:new(WinName, Window),
+    Name = proplists:get_value(name, Opts, ""),
+    H0 = wxImage:getHeight(Image),
+    W0 = wxImage:getWidth(Image),
+    Title = lists:flatten(io_lib:format(?__(1,"Image: ~s [~wx~w]"),[Name,W0,H0])),
+    Size = {size,{min(800,max(200,W0+100)), min(600,max(150,H0+100))}},
+    Frame = wings_frame:make_win(Title, [Size]),
+    Window = wx_object:start_link(?MODULE, [Frame, WinName, Image, Opts], []),
+    wings_wm:toplevel(WinName, Window, [], {push, fun(_Ev) -> keep end}),
     keep.
 
 
@@ -53,13 +54,7 @@ new(WinName, Image, Opts) ->
 
 -record(state, {panel, ref, bitmap, bgb, scale=1.0, menu, origo={0,0}, prev}).
 
-init([Parent, Ref, Image, Opts]) ->
-    Name = proplists:get_value(name, Opts, ""),
-    H0 = wxImage:getHeight(Image),
-    W0 = wxImage:getWidth(Image),
-    Title = lists:flatten(io_lib:format(?__(1,"Image: ~s [~wx~w]"),[Name,W0,H0])),
-    Size = {size,{min(800,max(200,W0+100)), min(600,max(150,H0+100))}},
-    Frame = wings_frame:make_external_win(Parent, Title, [Size]),
+init([Frame, Ref, Image, Opts]) ->
     Panel = wxPanel:new(Frame, [{style, ?wxFULL_REPAINT_ON_RESIZE}]),
 
     BM = wxBitmap:new(Image),

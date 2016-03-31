@@ -99,11 +99,21 @@ init(File0) ->
     wings_lang:init(),
     wings_plugin:init(),
 
+    St0 = new_st(),
+    St1 = wings_sel:reset(St0),
+    St2 = wings_undo:init(St1),
+    St = wings_shape:create_folder_system(St2),
+
     group_leader(wings_console:start(), self()),
+
     {Frame, File} = wings_frame:start(File0),
-    wings_init:connect_events(),
-    wings_gl:init(),
+    Geom = wings_init:create(Frame, undefined),
+
+    wings_gl:init(),    %% Needs to be initialized before make_geom_window
     wings_text:init(),
+    wings_wm:init(Frame),
+    check_requirements(),
+
     wings_image:init(wings_io:get_process_option()),
     wings_color:init(),
     wings_io:init(),
@@ -111,35 +121,18 @@ init(File0) ->
     wings_camera:init(),
     wings_vec:init(),
 
-    St0 = new_st(),
-    St1 = wings_sel:reset(St0),
-    St2 = wings_undo:init(St1),
-    St = wings_shape:create_folder_system(St2),
     wings_view:init(),
     wings_sel_cmd:init(),
     wings_file:init(),
     wings_u:caption(St),
-    wings_wm:init(Frame),
     wings_file:init_autosave(),
     wings_pb:start_link(Frame),
     wings_dialog:init(),
     wings_job:init(),
     wings_develop:init(),
     wings_tweak:init(),
-    Op = main_loop_noredraw(St),		%Replace crash handler
-						%with this handler.
-    
-    Props = initial_properties(),
-    {{X,Y},{W,H}} = wings_wm:win_rect(desktop),
-    wings_wm:toplevel(geom, geom_title(geom),
-		      {X,Y,highest}, {W,H-80},
-		      [resizable,{anchor,nw},
-		       {properties,Props}],
-		      Op),
 
-    set_drag_filter(geom),
-
-    check_requirements(),
+    make_geom_window(Geom, St),
 
     open_file(File),
     restore_windows(St),
@@ -152,6 +145,16 @@ init(File0) ->
 	    wings_io:quit(),
 	    exit(Reason)
     end.
+
+make_geom_window(GeomGL, St) ->
+    Op = main_loop_noredraw(St),	%Replace crash handler
+    Props = initial_properties(),        %with this handler.
+    wings_frame:register_win(GeomGL, [top, {title, geom_title(geom)}]),
+    wings_wm:new(geom, GeomGL, Op),
+    [wings_wm:set_prop(geom, K, V)|| {K,V} <- Props],
+    wings_wm:set_dd(geom, geom_display_lists),
+    set_drag_filter(geom),
+    GeomGL.
 
 %% Check minimum system requirements.
 check_requirements() ->
@@ -208,21 +211,20 @@ new_st() ->
        }.
 
 new_viewer(St) ->
-    {Pos,{W,H}} = wings_wm:win_rect(desktop),
+    {W,H} = wings_wm:top_size(),
     Size = {W div 2-40,H div 2-40},
     N = free_viewer_num(2),
-    Active = wings_wm:this(),
-    Props = [{display_data,geom_display_lists}|wings_wm:get_props(Active)],
+    Props = [{display_data,geom_display_lists}|wings_wm:get_props(geom)],
     Name = {geom,N},
-    new_viewer(Name, Pos, Size, Props, St).
+    new_viewer(Name, {50,50}, Size, Props, St).
 
-new_viewer(Name, {X,Y}, Size, Props, St) ->
+new_viewer(Name, Pos, Size, Props, St) ->
     Op = main_loop_noredraw(St),
     Title = geom_title(Name),
-    wings_wm:toplevel(Name, Title, {X,Y,highest}, Size,
-		      [resizable,closable,{anchor,nw},
-		       {properties,Props}],
-		      Op),
+    Frame = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}]),
+    Context = wxGLCanvas:getContext(?GET(gl_canvas)),
+    Canvas = wings_init:create(Frame, Context),
+    wings_wm:toplevel(Name, Canvas, Props, Op),
     set_drag_filter(Name),
     Name.
 
@@ -417,9 +419,6 @@ handle_event_3(init_opengl, St) ->
     wings_wm:current_state(St),
     init_opengl(St),
     keep;
-handle_event_3(#expose{}, St) ->
-    io:format("Should not happen ~n",[]),
-    handle_event_3(redraw, St);
 handle_event_3(resized, _) -> keep;
 handle_event_3(close, _) ->
     Active = wings_wm:this(),
@@ -470,7 +469,6 @@ handle_event_3({external,no_more_basic_menus}, _St) ->
 handle_event_3({external,not_possible_to_save_prefs}, _St) ->
     wings_help:not_possible_to_save_prefs();
 handle_event_3({external, win32_start_maximized}, _St) ->
-    restore_windows_pos(),
     keep;
 handle_event_3({external, Fun}, St) 
   when is_function(Fun) ->
@@ -483,36 +481,21 @@ handle_event_3(ignore, _St) ->
 handle_event_3({adv_menu_abort, Ev}, _St) ->
     This = wings_wm:actual_focus_window(),
     wings_wm:send(This,Ev);
-handle_event_3({menu_toolbar,_}=Ev, St) ->
-    menu_toolbar_action(Ev, St);
 handle_event_3({camera,Ev,NextEv}, St) ->
     %% used by preview dialogs in (blanket event)
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_camera:event(Ev#mousebutton{x=X,y=Y}, St) of
       next -> NextEv;
       Other -> Other
-    end;
-handle_event_3({move_dialog,Position}, _) ->
-    %% used by preview dialogs
-    W = wings_wm:windows(),
-    This = lists:keyfind(dialog, 1, W),
-    wings_wm:move(This, Position);
-handle_event_3({hotkey_in_menu,#keyboard{}=Ev,OrigXY}, St0) ->
-    case do_hotkey(Ev, St0) of
-	next -> keep;
-	{Cmd,St} ->
-	    wings_wm:send_after_redraw(geom, {menu_toolbar,OrigXY}),
-	    do_command(Cmd, Ev, St)
     end.
 
-handle_popup_event(Ev0, Xglobal, Yglobal, St0) ->
-    #mousebutton{x=X,y=Y} = Ev0,
+handle_popup_event(Ev, Xglobal, Yglobal, St0) ->
+    #mousebutton{x=X,y=Y} = Ev,
     #st{sel=Sel} = St0,
     case Sel of
 	[] ->
 	    case wings_pick:do_pick(X, Y, St0) of
 		{add,_,St} ->
-		    Ev = wings_wm:local2global(Ev0),
 		    wings_io:putback_event(Ev),
 		    wings_wm:later({temporary_selection,St});
 		_ ->
@@ -894,8 +877,7 @@ command_1({tools, put_on_ground}, St) ->
 command_1({tools, unitize}, St) ->
     {save_state,wings_align:unitize(St)};
 command_1({tools, tweak_menu}, _St) ->
-    {_,X0,Y0} = wings_wm:local_mouse_state(),
-    {X,Y} = wings_wm:local2global(X0, Y0),
+    {_,X,Y} = wings_wm:local_mouse_state(),
     wings_tweak:menu(X, Y);
 
 %% Develop menu.
@@ -916,9 +898,7 @@ command_1({hotkey, Cmd}, St) ->
 
 
 popup_menu(X, Y, #st{sel=[]}) ->
-    Canvas = ?GET(gl_canvas),
-    Pos = wxWindow:clientToScreen(Canvas, {X,Y}),
-    wings_shapes:menu(Canvas, Pos);
+    wings_shapes:menu(wings_wm:this_win(), wings_wm:local2screen({X,Y}));
 popup_menu(X, Y, #st{selmode=Mode}=St) ->
     case wings_light:is_any_light_selected(St) of
     true -> wings_light:menu(X, Y, St);
@@ -1592,29 +1572,19 @@ save_windows_1([_|T]) -> save_windows_1(T);
 save_windows_1([]) -> [].
 
 save_window(Name, Ns) ->
-    {MaxX,MaxY} = wings_wm:win_size(desktop),
-    Pos = case wings_wm:is_wxwindow(Name) of
-	      true  -> wings_wm:win_ul(Name);
-	      false ->
-		  {PosX0,PosY0} = case Name of
-				      {tweak, Palette} ->
-					  wings_wm:win_ul({tweak, Palette});
-				      _ ->
-					  wings_wm:win_ur({controller,Name})
-				  end,
-		  PosX = if PosX0 < 0 -> 20; PosX0 > MaxX -> 20; true -> PosX0 end,
-		  PosY = if PosY0 < 0 -> 20; PosY0 > MaxY -> 20; true -> PosY0 end,
-		  {PosX,PosY}
-	  end,
-    Size = wings_wm:win_size(Name),
-    Rollup = {rollup, wings_wm:win_rollup(Name)},
-    [{Name, Pos, Size, [Rollup]}|save_windows_1(Ns)].
+    case wings_wm:is_wxwindow(Name) of
+	true  ->
+	    Pos = wings_wm:win_ul(Name),
+	    Size = wings_wm:win_size(Name),
+	    [{Name, Pos, Size, []}|save_windows_1(Ns)];
+	false ->
+	    save_windows_1(Ns)
+    end.
 
 save_geom_window(Name, Ns) ->
     {Pos,Size} = wings_wm:win_rect(Name),
-    Rollup = {rollup, wings_wm:win_rollup(Name)},
     Ps = save_geom_props(wings_wm:get_props(Name), []),
-    Geom = {Name,Pos,Size,[Rollup|Ps]},
+    Geom = {Name,Pos,Size,Ps},
     [Geom|save_windows_1(Ns)].
 
 save_geom_props([{show_axes,_}=P|T], Acc) ->
@@ -1649,29 +1619,22 @@ restore_windows(St) ->
     Windows = [W || {_,W} <- Windows1],
     restore_windows_1(Windows, St).
 
-restore_windows_1([{geom,{_,_}=Pos0,{_,_}=Size,Ps0}|Ws], St) ->
+restore_windows_1([{geom,{_,_}=_Pos0,{_,_}=_Size,Ps0}|Ws], St) ->
     Ps = geom_props(Ps0),
-    Pos = geom_pos(Pos0),
-    wings_wm:move(geom, Pos, Size),
+    %% Pos = geom_pos(Pos0),
+    %% wings_wm:move(geom, Pos, Size),
     set_geom_props(Ps, geom),
     wings_wm:set_prop(geom, tweak_draw, true),
     restore_windows_1(Ws, St);
-restore_windows_1([{{geom,_}=Name,Pos0,Size,Ps0}|Ws], St) ->
+restore_windows_1([{{geom,_}=Name,Pos,Size,Ps0}|Ws], St) ->
     Ps = geom_props(Ps0),
-    new_viewer(Name, {0,0}, Size, initial_properties(), St),
-    Pos = geom_pos(Pos0),
-    wings_wm:move(Name, Pos, Size),
+    new_viewer(Name, Pos, Size, initial_properties(), St),
     set_geom_props(Ps, Name),
-    case lists:keyfind(rollup,1,Ps0) of
-        false -> ok;
-        Rollup -> wings_wm:update_window(Name,[Rollup])
-    end,
     restore_windows_1(Ws, St);
 restore_windows_1([{Name,Pos,Size}|Ws0], St) -> % OldFormat
     restore_windows_1([{Name,Pos,Size,[]}|Ws0], St);
 restore_windows_1([{Module,{{plugin,_}=Name,{_,_}=Pos,{_,_}=Size,CtmData}}|Ws], St) ->
     wings_plugin:restore_window(Module, Name, Pos, Size, CtmData, St),
-    wings_wm:move(Name, Pos, Size),  % ensure the window be placed in the right position *
     restore_windows_1(Ws, St);
 restore_windows_1([{{object,_}=Name,{_,_}=Pos,{_,_}=Size,Ps}|Ws], St) ->
     wings_geom_win:window(Name, validate_pos(Pos), Size, Ps, St),
@@ -1702,51 +1665,6 @@ validate_pos({X,Y}=Pos) ->
     case Y < 0 of
       false -> Pos;
       true -> {X,20}
-    end.
-
-%%%% Restore window positions on MS Windows
-restore_windows_pos() ->
-    case wings_pref:get_value(saved_windows) of
-    undefined -> ok;
-    Windows ->
-       move_windows(Windows)
-    end.
-
-move_windows([{Name,Pos,_}|Windows]) ->
-    move_windows_1(Name, Pos),
-    move_windows(Windows);
-move_windows([{Name,Pos,_,_}|Windows]) ->
-    move_windows_1(Name, Pos),
-    move_windows(Windows);
-move_windows([{_Module,{{plugin,_}=Name,Pos,_,_}}|Windows]) ->
-    move_windows_1(Name, Pos),
-    move_windows(Windows);
-move_windows([]) -> ok.
-
-move_windows_1(geom,Pos) ->
-    wings_wm:move(geom,Pos);
-move_windows_1({geom,_}=Name,Pos) ->
-    wings_wm:move(Name,Pos);
-move_windows_1({tweak, _}=Name,Pos) ->
-    wings_wm:move(Name,Pos);
-move_windows_1({plugin,_}=Name,Pos) ->
-    wings_wm:move(Name,Pos);
-move_windows_1(Name,{X,Y}) ->
-    case wings_wm:is_window(Name) andalso not wings_wm:is_wxwindow(Name) of
-      true ->
-        {W,H} = wings_wm:win_size({controller,Name}),
-        wings_wm:move(Name,{X-W,Y+H});
-      false -> ok
-    end.
-%%%%
-
-geom_pos({X,Y}=Pos) ->
-    {_,Upper1} = wings_wm:win_ul(desktop),
-    {_,TitleH} = wings_wm:win_size({controller,geom}),
-    case Upper1 + TitleH of
-	Upper when Y < Upper ->
-	    {X,Upper};
-	_ -> Pos
     end.
 
 geom_props(L) when is_list(L) -> L;
@@ -1875,98 +1793,4 @@ hotkey_select_setup(Cmd,St0) ->
     case wings_pick:do_pick(X, Y, St0) of
       {add,_,St} -> {Cmd,St};
       _Other     -> {Cmd,St0}
-    end.
-%%%
-%%% Menu toolbar
-%%%
-
-%% Do action and reload new menu. Menus are killed if an error message appears,
-%% or if the cmd leads to a drag sequence.
-menu_toolbar_action({menu_toolbar, {B, OrigXY,repeat}}, St) ->
-%% Repeat Icon
-    Cmd = case B of
-        1 -> repeat_drag;
-        2 -> repeat_args;
-        3 -> repeat;
-        4 -> repeat_drag;
-        5 -> undo
-    end,
-    wings_wm:send_after_redraw(geom, {menu_toolbar,OrigXY}),
-    do_command({edit,Cmd}, none, St#st{temp_sel=none});
-menu_toolbar_action({menu_toolbar, {B, OrigXY, Side}}, #st{selmode=Mode}=St)
-%% When Scroll Wheel
-  when B =:= 4; B =:= 5 ->
-    Cmd = case {Side, B} of
-      {history,4} -> {edit,redo};
-      {history,5} -> {edit,undo};
-      {edge,B} when Mode =:= edge ->
-          C = wings_io:is_modkey_pressed(?CTRL_BITS),
-          A = wings_io:is_modkey_pressed(?ALT_BITS),
-          case B of
-            4 when C -> {select,{edge_loop,edge_link_incr}};
-            4 when A -> {select,{edge_loop,edge_ring_incr}};
-            4 -> {select,{edge_loop,next_edge_loop}};
-            5 when C -> {select,{edge_loop,edge_link_decr}};
-            5 when A -> {select,{edge_loop,edge_ring_decr}};
-            5 -> {select,{edge_loop,prev_edge_loop}}
-          end;
-      {_,4} -> {select,more};
-      {_,5} -> {select,less}
-    end,
-    wings_wm:send_after_redraw(geom, {menu_toolbar,OrigXY}),
-    do_command(Cmd, none, St#st{temp_sel=none});
-menu_toolbar_action({menu_toolbar,{new_mode,1,OrigXY,Side}}, #st{selmode=Side}=St) ->
-    menu_toolbar_action({menu_toolbar,OrigXY}, St);
-menu_toolbar_action({menu_toolbar,{new_mode,B,OrigXY,Side}}, St) ->
-    menu_toolbar_action({menu_toolbar,{B,OrigXY,Side}}, St);
-menu_toolbar_action({menu_toolbar,{B,OrigXY,Side}}, #st{sel=Sel}=St0) ->
-    {Cmd, St, Kill} = case {Side, Sel} of
-        {deselect,_} when B =:= 3 ->
-            {{select,deselect}, St0, true};
-        {deselect, []} ->
-            {{select,all},St0,false};
-        {edge,_} when B =:= 3 ->
-            {{select,{edge_loop,edge_loop}}, St0, false};
-        {edge,_} when B =:= 2 ->
-            {{select,{edge_loop,edge_ring}}, St0, false};
-        {face,_} when B =:= 3 ->
-            {{select,{edge_loop,edge_loop_to_region}}, St0, false};
-        {history,_} when B =:= 1 ->
-            {{edit,undo}, St0, false};
-        {history,_} when B =:= 3 ->
-            {{edit,redo}, St0, false};
-        {select,[]} when B =:= 3 -> {{select,deselect},St0,false};
-        {select,_} when B =:= 3 -> {{select,store_selection},St0,false};
-        {select,_} when B =:= 2 -> {{select,recall_selection},St0,false};
-        {select,_} -> {select,St0,false};
-        {tools,_} -> {tools,St0,false};
-        {SelMode, []} ->
-            {{select,SelMode}, St0#st{selmode=SelMode}, true};
-        {SelMode,_} ->
-            {{select,SelMode}, St0, false}
-    end,
-    if Cmd =:= select; Cmd =:= tools ->
-             wings_wm:send_after_redraw(geom, {menu_toolbar,{OrigXY,Cmd,St}}),
-             keep;
-       Kill ->
-             wings_wm:send_after_redraw(geom, {action,Cmd}),
-             wings_menu:kill_menus();
-       true ->
-             wings_wm:send_after_redraw(geom, {menu_toolbar,OrigXY}),
-             do_command(Cmd, none, St#st{temp_sel=none})
-    end;
-menu_toolbar_action({menu_toolbar,{X,_}}, St) ->
-    Windows = wings_wm:windows(),
-    ExtraMenus = lists:filter(fun
-      ({menu,N}) -> N > 2;
-      (_) -> false
-    end, Windows),
-    lists:foreach(fun(M) -> wings_wm:delete(M) end, ExtraMenus),
-    %% Kill menu if an error message popped up
-    case lists:keymember(blanket, 1, Windows) of
-      true -> wings_menu:kill_menus();
-      false ->
-        {_,X0,Y0} = wings_wm:local_mouse_state(),
-        {_,Y} = wings_wm:local2global(X0, Y0),
-        popup_menu(X, Y + ?LINE_HEIGHT div 2, St)
     end.

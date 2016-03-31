@@ -825,16 +825,7 @@ treat_hotkeys(Res) ->
     end.
 
 init_opengl() ->
-    case wings_io:is_maximized() of
-      false ->
-        {W, H} = wings_wm:top_size(),
-        wings_wm:reinit_opengl(),
-        wings_wm:resize_windows(W, H),
-        wings_wm:dirty();
-      true ->
-        wings_wm:reinit_opengl(),
-        wings_wm:dirty()
-    end.
+    wings_wm:dirty().
 
 update_recent_prefs(Dir) ->
     Recent0 = get_value(recent_prefs,[]),
@@ -1038,10 +1029,7 @@ load_pref_category([{windows,true}|Options], List, St) ->
                       true -> wings_wm:hide({toolbar,geom});
                       false -> ok
                     end,
-                    wings:set_geom_props(Props,Name),
-                    Pos = element(2,Window),
-                    Size = element(3,Window),
-                    wings_wm:move(Name,Pos,Size);
+                    wings:set_geom_props(Props,Name);
                   true ->
                     wings_wm:delete(Name),
                     wings:restore_windows_1([Window], St);
