@@ -15,7 +15,7 @@
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
--include_lib("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 -import(lists, [foldl/3,sort/1,reverse/1,member/2]).
 
@@ -201,7 +201,7 @@ handle_sculpt_event_1(_,_) ->
 
 adjust_magnet(X, Y, Sc) ->
     wings_io:grab(),
-    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_ENABLE),
+    wings_io:change_event_handler(?SDL_KEYUP, true),
     update_magnet_handler(X, Y, Sc).
 
 update_magnet_handler(X, Y, Sc) ->
@@ -240,7 +240,7 @@ handle_magnet_event(_, X, Y, Sc) ->
     end_magnet_event(X, Y, Sc).
 
 end_magnet_event(X, Y, #sculpt{str=Str}=Sc) ->
-    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_IGNORE),
+    wings_io:change_event_handler(?SDL_KEYUP, false),
     wings_pref:set_value(sculpt_strength, Str),
     wings_io:ungrab(X, Y),
     wings_wm:dirty(),

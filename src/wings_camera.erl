@@ -248,11 +248,13 @@ tweak_cam_event(Ev, Sym, Camera, St) ->
 
 quit_tweak_cam() ->
     case wings_io:get_mouse_state() of
-      {0,X,Y} ->
-        wings_wm:later(#mousebutton{button=1,x=X,y=Y,mod=0,state=?SDL_RELEASED}),
-        pop;
-      _ ->
-        pop
+	{0,X0,Y0} ->
+	    {X,Y} = wings_wm:screen2local({X0,Y0}),
+	    wings_wm:later(#mousebutton{which=wings_wm:this_win(),
+					button=1,x=X,y=Y,mod=0,state=?SDL_RELEASED}),
+	    pop;
+	_ ->
+	    pop
     end.
 
 %%%
@@ -500,7 +502,7 @@ tds_help() ->
 maya(#mousebutton{x=X0,y=Y0,mod=Mod,state=?SDL_PRESSED}, Redraw)
   when Mod band ?ALT_BITS =/= 0, Mod band ?CTRL_BITS =:= 0, Mod band ?SHIFT_BITS =:= 0 ->
     {X,Y} = wings_wm:local2global(X0, Y0),
-    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_ENABLE),
+    wings_io:change_event_handler(?SDL_KEYUP, true),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),
     message(maya_help()),
@@ -544,7 +546,7 @@ get_maya_event(Camera, Redraw) ->
     {replace,fun(Ev) -> maya_event(Ev, Camera, Redraw) end}.
 
 maya_stop_camera(Camera) ->
-    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_IGNORE),
+    wings_io:change_event_handler(?SDL_KEYUP, false),
     stop_camera(Camera).
 
 maya_help() ->

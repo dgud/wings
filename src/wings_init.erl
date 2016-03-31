@@ -12,7 +12,7 @@
 %%
 
 -module(wings_init).
--export([create/1, connect_events/0, connect_events/1, gl_attributes/0]).
+-export([create/2, gl_attributes/0]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -32,12 +32,24 @@ gl_attributes() ->
      ?WX_GL_SAMPLES, 4,
      0].
 
-create(Parent) ->
+create(Frame, Context) ->
     Style = ?wxFULL_REPAINT_ON_RESIZE bor ?wxWANTS_CHARS,
-    wxGLCanvas:new(Parent, [{attribList, gl_attributes()}, {style, Style}]).
-
-connect_events() ->
-    connect_events(?GET(gl_canvas)).
+    Flags = [{attribList, gl_attributes()}, {style, Style}],
+    GL = case Context of
+	     undefined ->
+		 Win = wxGLCanvas:new(Frame, Flags),
+		 ?SET(gl_canvas, Win),
+		 Win;
+	     _ ->
+		 wxGLCanvas:new(Frame, Context, Flags)
+	 end,
+    connect_events(GL),
+    wxFrame:connect(Frame, show),
+    wxFrame:show(Frame),
+    receive #wx{event=#wxShow{}} -> ok end,
+    wxGLCanvas:setCurrent(GL),
+    wxWindow:disconnect(Frame, show),
+    GL.
 
 connect_events(Canvas) ->
     %% Re-attaches the OpenGL Context to Window when is [re] created/showed
@@ -58,6 +70,15 @@ connect_events(Canvas) ->
     setup_std_events(Canvas),
     wxWindow:setFocus(Canvas), %% Get keyboard focus
     ok.
+
+%% init_context(GL) ->
+%%     wxWindow:connect(GL, show),
+%%     wxWindow:connect(GL, create),
+%%     wxWindow:show(GL),
+%%     receive #wx{event=#wxShow{}} -> ok end,
+%%     %% Must be shown to initialize OpenGL context.
+%%     wxGLCanvas:setCurrent(GL),
+%%     wxWindow:disconnect(GL, show).
 
 %%%%%%%%%%%%%%%%%%%%%%
 
