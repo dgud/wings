@@ -45,7 +45,6 @@
 
 -export([reset_grab/0,grab/0,ungrab/2,is_grabbed/0,warp/2]).
 -export([ortho_setup/0,ortho_setup/1]).
--export([swapBuffers/0]).
 
 -export([put_state/1, get_state/0]).
 
@@ -70,9 +69,6 @@ init() ->
 
 quit() ->
     ?BACKEND_MOD:quit().
-
-swapBuffers() ->
-    ?BACKEND_MOD:swapBuffers().
 
 get_process_option() ->
     ?BACKEND_MOD:get_process_option().
@@ -139,7 +135,7 @@ set_cursor(Cursor) ->
     ?BACKEND_MOD:set_cursor(Cursor).
 
 grab() ->
-    ?BACKEND_MOD:grab().
+    ?BACKEND_MOD:grab(wings_wm:this_win()).
 ungrab(X,Y) ->
     ?BACKEND_MOD:ungrab(X,Y).
 
@@ -150,7 +146,7 @@ is_grabbed() ->
     ?BACKEND_MOD:is_grabbed().
 
 warp(X,Y) ->
-    ?BACKEND_MOD:warp(X,Y).
+    ?BACKEND_MOD:warp(wings_wm:this_win(), X,Y).
 
 get_mouse_state() ->
     ?BACKEND_MOD:get_mouse_state().
@@ -283,8 +279,7 @@ read_icons() ->
 resize() ->
     #io{raw_icons=RawIcons} = Io = get_state(),
     Tex = load_textures(RawIcons),
-    put_state(Io#io{tex=Tex}),
-    wings_text:resize().
+    put_state(Io#io{tex=Tex}).
 
 info(Info) ->
     info(0, 0, Info).

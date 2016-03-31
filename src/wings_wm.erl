@@ -12,27 +12,30 @@
 %%
 
 -module(wings_wm).
--export([toplevel/6,toplevel_title/1,toplevel_title/2,set_knob/3]).
+-export([toplevel/4,toplevel_title/1,toplevel_title/2]).
 -export([init/1,enter_event_loop/0,dirty/0,dirty_mode/1,pdirty/0,
-	 reinit_opengl/0,
-	 new/2, new/3, new/4,delete/1,raise/1,rollup/2,
+	 new/2, new/3, new/4,delete/1,raise/1,
 	 link/2,hide/1,show/1,is_hidden/1,
 	 later/1,send/2,psend/2, psend/3,send_after_redraw/2,
 	 send_once_after_redraw/2,
 	 set_timer/2,cancel_timer/1,
-	 this/0,offset/3,move/2,move/3,resize/2,pos/1,windows/0,is_window/1,
+	 this/0,this_win/0,
+	 offset/3,pos/1,windows/0,is_window/1,
 	 is_wxwindow/1,wxwindow/1,
-	 window_below/2,geom_below/2,resize_windows/2,
+	 window_below/2,geom_below/2,
 	 update_window/2,clear_background/0,
 	 callback/1,current_state/1,get_current_state/0,notify/1,
 	 local2global/1,local2global/2,global2local/2,local_mouse_state/0,
+	 local2screen/1, screen2local/1,
 	 translation_change/0,is_geom/0]).
 
 %% Window information.
--export([top_size/0,viewport/0,viewport/1,
-	 win_size/0,win_ul/0,win_rect/0,
-	 win_size/1,win_ul/1,win_ur/1,win_ll/1,win_lr/1,win_z/1,
-	 win_rect/1,win_rollup/1]).
+-export([top_size/0,
+	 viewport/0, viewport/1,
+	 win_size/0, win_size/1,
+	 win_rect/0, win_rect/1,
+	 win_ul/0, win_ul/1, win_ur/1,win_ll/1,win_lr/1,win_z/1
+	]).
 
 %% Focus management.
 -export([grab_focus/0,grab_focus/1,release_focus/0,
@@ -55,7 +58,7 @@
 	]).
 
 %% Useful sizes
--export([title_height/0,vscroller_width/0]).
+-export([title_height/0]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -71,7 +74,6 @@
 	 name,					%Name of window.
 	 stk,					%Event handler stack.
 	 links=[],			        %Windows linked to this one.
-	 rollup=false,			        %Rollup window into Title Bar {controller,Name}
 	 dd=none, 				%Display data cache
 	 obj                                    %wx window
 	}).
@@ -101,26 +103,46 @@
 init(Frame) ->
     put(wm_dirty_mode, front),
     put(wm_cursor, arrow),
-    {W,H} = TopSize = wxWindow:getClientSize(?GET(gl_canvas)),
-    put(wm_top_size, TopSize),
     translation_change(),
     put(wm_windows, gb_trees:empty()),
     new(top_frame, Frame, {push, fun wings_frame:forward_event/1}),
     set_dd(top_frame, geom_display_lists), %% Selection mode updates
-    new(desktop, {0,0,0}, {0,0}, {push,fun desktop_event/1}),
     StatusBar = wings_status:start(get(top_frame)),
     new(message, StatusBar, {push, fun message_event/1}),
 
-    init_opengl(),
     case wings_pref:get_value(win32_start_maximized) of
 	true -> wings_io:maximize();
 	_ -> ignore
     end,
 
-    dirty_mode(back),
-    resize_windows(W, H).
+    dirty_mode(back).
 
-desktop_event(_) -> keep.
+new(Name, {X,Y}, Size, Op) ->
+    new(Name, {X,Y,highest}, Size, Op);
+new(Name, {X,Y,Z0}, {W,H}, Op) when is_integer(X), is_integer(Y),
+				    is_integer(W), is_integer(H) ->
+    Z = new_resolve_z(Z0),
+    Stk = handle_response(Op, dummy_event, default_stack(Name)),
+    new_props(Name, [{font,system_font}]),
+    Win = #win{x=X,y=Y,z=Z,w=W,h=H,name=Name,stk=Stk},
+    io:format("~p:~p: ~p ~p~n",[?MODULE, ?LINE, Name, {W,H}]),
+    put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
+    dirty().
+
+new(Name, Obj) ->
+    new(Name, Obj, {push, fun(_Ev) -> keep end}).
+
+new(Name, Obj, Op) when element(1, Obj) =:= wx_ref ->
+    Stk = handle_response(Op, dummy_event, default_stack(Name)),
+    new_props(Name, [{font,system_font}]),
+    Z = highest_z(),
+    {W,H} = wxWindow:getClientSize(Obj),
+    io:format("~p:~p: ~p ~p~n",[?MODULE, ?LINE, Name, Obj]),
+    use_opengl(Obj) andalso init_opengl(),
+    Win = #win{x=0,y=0,z=Z,w=W,h=H,name=Name,stk=Stk,obj=Obj},
+    put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
+    put(Obj, Name),
+    dirty().
 
 message(Message) ->
     MsgData0=get_window_data(message),
@@ -219,28 +241,6 @@ clean() ->
 
 callback(Cb) ->
     wings_io:putback_event({wm,{callback,Cb}}).
-    
-new(Name, {X,Y}, Size, Op) ->
-    new(Name, {X,Y,highest}, Size, Op);
-new(Name, {X,Y,Z0}, {W,H}, Op) when is_integer(X), is_integer(Y),
-				    is_integer(W), is_integer(H) ->
-    Z = new_resolve_z(Z0),
-    Stk = handle_response(Op, dummy_event, default_stack(Name)),
-    new_props(Name, [{font,system_font}]),
-    Win = #win{x=X,y=Y,z=Z,w=W,h=H,name=Name,stk=Stk},
-    put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
-    dirty().
-
-new(Name, Obj) ->
-    new(Name, Obj, {push, fun(_Ev) -> keep end}).
-
-new(Name, Obj, Op) when element(1, Obj) =:= wx_ref ->
-    Stk = handle_response(Op, dummy_event, default_stack(Name)),
-    new_props(Name, [{font,system_font}]),
-    Z = highest_z(),
-    Win = #win{x=0,y=0,z=Z,w=0,h=0,name=Name,stk=Stk,obj=Obj},
-    put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
-    dirty().
 
 new_resolve_z(highest) ->
     case highest_z() + 1 of
@@ -257,7 +257,7 @@ delete(Name) ->
 	true -> ok
     end,
     case is_window(get(wm_focus)) of
-	false -> update_focus(find_active(none));
+	false -> update_focus(find_active());
 	true -> ok
     end,
     dirty().
@@ -290,73 +290,6 @@ raise(Name) ->
 		_ -> ok
 	    end
     end.
-
-rollup(Action, Name) ->
-    case (Action =:= rolldown) =:= win_rollup(Name) of
-      true ->
-        WinData = gb_trees:values(get(wm_windows)),
-        rollup(Action, WinData, Name);
-      false ->
-        ok
-    end.
-
-rollup(Action, [#win{name={closer,Name}}|T], Name) ->
-    rollup(Action,T, Name);
-rollup(Action, [#win{name={controller,Name}}|T], Name) when Name /= geom ->
-    rollup(Action, T, Name);
-rollup(rollup, [#win{name=geom}=W|T], geom) ->
-    put_window_data(geom, W#win{z=?Z_LOWEST_DYNAMIC, rollup=true}),
-    rollup(rollup, T, geom);
-rollup(rolldown, [#win{name=geom}=W|T], geom) ->
-    put_window_data(geom, W#win{rollup=false}),
-    rollup(rolldown, T, geom);
-rollup(rollup, [#win{name={object,geom}}|T], geom) ->
-    rollup(rollup, T, geom);
-
-rollup(rollup, [#win{z=Z,name={toolbar,Name}=Win}=W|T], Name) when Name /= geom ->
-    case Z < -1 of
-      true -> ok;
-      false -> 
-        put_window_data(Win, W#win{z=-1})
-    end,
-    rollup(rollup, T, Name);
-rollup(rolldown, [#win{z=Z,name={toolbar,Name}=Win}=W|T], Name) when Name /= geom ->
-    case Z < -1 of
-      true -> ok;
-      false -> 
-        put_window_data(Win, W#win{z=win_z({controller,Name})})
-    end,
-    rollup(rolldown, T, Name);
-
-rollup(Action, [#win{z=Z,name={toolbar,geom}=Win}=W|T], geom) ->
-    case Z < 0 of
-     true -> ok;
-     false ->
-       put_window_data(Win, W#win{z=?Z_LOWEST_DYNAMIC})
-    end,
-    rollup(Action, T, geom);
-
-rollup(rollup, [#win{name={_,geom}=Win}=W|T], geom) ->
-    put_window_data(Win, W#win{z=?Z_LOWEST_DYNAMIC, rollup=true}),
-    rollup(rollup, T, geom);
-rollup(rolldown, [#win{name={_,geom}}|T], geom) ->
-    rollup(rolldown, T, geom);
-rollup(rollup, [#win{z=Z,name=Name}=W|T], Name) ->
-    put_window_data(Name, W#win{z=-Z, rollup=true}),
-    rollup(rollup, T, Name);
-rollup(rolldown, [#win{z=Z,name=Name}=W|T], Name) ->
-    put_window_data(Name, W#win{z=-Z, rollup=false}),
-    rollup(rolldown, T, Name);
-rollup(rollup, [#win{name={_,Name}=Win}|T], Name) ->
-    hide(Win),
-    rollup(rollup, T, Name);
-rollup(rolldown, [#win{name={_,Name}=Win}|T], Name) ->
-    show(Win),
-    rollup(rolldown, T, Name);
-rollup(Action, [_|T], Name) ->
-    rollup(Action, T, Name);
-rollup(_, [], _) ->
-    dirty().
 
 highest_z() ->
     highest_z_1(gb_trees:values(get(wm_windows)), 0).
@@ -408,6 +341,10 @@ this() ->
 	Active -> Active
     end.
 
+this_win() ->
+    #win{obj=Obj} = get_window_data(this()),
+    Obj.
+
 is_geom() ->
     case this() of
       geom -> true;
@@ -444,15 +381,6 @@ wx2win(Obj, W0) ->
 offset(Name, Xoffs, Yoffs) ->
     update_window(Name, [{dx,Xoffs},{dy,Yoffs}]).
 
-move(Name, Pos) ->
-    update_window(Name, [{pos,Pos}]).
-
-move(Name, Pos, {W,H}) ->
-    update_window(Name, [{pos,Pos},{w,W},{h,H}]).
-
-resize(Name, {W,H}) ->
-    update_window(Name, [{w,W},{h,H}]).
-
 update_window(Name, Updates) ->
     #win{z=Z0} = Data0 = get_window_data(Name),
     Data = update_window_1(Updates, Data0),
@@ -462,7 +390,7 @@ update_window(Name, Updates) ->
     Msg = {window_updated,Name},
     case Data of
 	#win{z=Z0} -> ok;
-	#win{z=Z} -> update_linked_z(Links, Z-Z0)
+	#win{z=Z}  -> update_linked_z(Links, Z-Z0)
     end,
     case Updates of
 	[{z,_}] -> ok;
@@ -502,8 +430,6 @@ update_window_1([{w,W}|T], Win) ->
     update_window_1(T, Win#win{w=W});
 update_window_1([{h,H}|T], Win) ->
     update_window_1(T, Win#win{h=H});
-update_window_1([{rollup,Rollup}|T], Win) ->
-    update_window_1(T, Win#win{rollup=Rollup});
 update_window_1([], Win) ->
     range_check(Win).
 
@@ -536,7 +462,7 @@ actual_focus_window() ->
     get(wm_focus).
 
 top_size() ->
-    get(wm_top_size).
+    wxWindow:getClientSize(?GET(top_frame)).
 
 set_timer(Time, Event) ->
     Active = get(wm_active),
@@ -558,17 +484,19 @@ win_size() ->
     {_,_,W,H} = get(wm_viewport),
     {W,H}.
 
-win_ul() ->
-    win_ul(this()).
+win_size(Name) ->
+    #win{w=W,h=H} = get_window_data(Name),
+    {W,H}.
 
 win_rect() ->
     win_rect(this()).
 
-win_size(Name) ->
-    case get_window_data(Name) of
-	#win{w=W,h=H,obj=undefined} -> {W,H};
-	#win{obj=Wx} -> wxWindow:getSize(Wx)
-    end.
+win_rect(Name) ->
+    #win{x=X,y=Y,w=W,h=H} = get_window_data(Name),
+    {{X,Y},{W,H}}.
+
+win_ul() ->
+    win_ul(this()).
 
 win_ul(Name) ->
     case get_window_data(Name) of
@@ -594,17 +522,20 @@ win_z(Name) ->
     #win{z=Z} = get_window_data(Name),
     Z.
 
-win_rect(Name) ->
-    #win{x=X,y=Y,w=W,h=H} = get_window_data(Name),
-    {{X,Y},{W,H}}.
+local2screen(Win, {_,_}=Pos) ->
+    wxWindow:clientToScreen(Win, Pos).
 
-win_rollup({dialog,_}) -> no;
-win_rollup(Name) ->
-    #win{rollup=Rollup, obj=Obj} = get_window_data(Name),
-    case Obj =:= undefined of
-	true -> Rollup;
-	false -> no
-    end.
+local2screen(#mousebutton{x=X0,y=Y0}=Ev) ->
+    {X,Y} = local2screen(this_win(), {X0,Y0}),
+    Ev#mousebutton{x=X,y=Y};
+local2screen(#mousemotion{x=X0,y=Y0}=Ev) ->
+    {X,Y} = local2screen(this_win(), {X0,Y0}),
+    Ev#mousemotion{x=X,y=Y};
+local2screen(Pos) ->
+    local2screen(this_win(), Pos).
+
+screen2local(Pos) ->
+    wxWindow:screenToClient(this_win(), Pos).
 
 local2global(#mousebutton{x=X0,y=Y0}=Ev) ->
     {X,Y} = local2global(X0, Y0),
@@ -615,18 +546,20 @@ local2global(#mousemotion{x=X0,y=Y0}=Ev) ->
 local2global(Ev) -> Ev.
 
 local2global(X, Y) ->
-    {_,TopH} = get(wm_top_size),
-    {Xorig,Yorig,_,H} = viewport(),
-    {Xorig+X,(TopH-Yorig-H)+Y}.
+    %% {_,TopH} = get(wm_top_size),
+    %% {Xorig,Yorig,_,H} = viewport(),
+    %% {Xorig+X,(TopH-Yorig-H)+Y}.
+    {X,Y}.
 
 global2local(X, Y) ->
-    {_,TopH} = get(wm_top_size),
-    {Xorig,Yorig,_,H} = viewport(),
-    {X-Xorig,Y-(TopH-Yorig-H)}.
+    %% {_,TopH} = get(wm_top_size),
+    %% {Xorig,Yorig,_,H} = viewport(),
+    %% {X-Xorig,Y-(TopH-Yorig-H)}.
+    {X,Y}.
 
 local_mouse_state() ->
     {B,X0,Y0} = wings_io:get_mouse_state(),
-    {X,Y} = global2local(X0, Y0),
+    {X,Y} = screen2local({X0, Y0}),
     {B,X,Y}.
 
 new_props(Win, Props0) ->
@@ -711,20 +644,18 @@ dispatch_matching(Filter) ->
     Evs = reverse(Evs0),
     foreach(fun dispatch_event/1, Evs).
 
-dispatch_event(#resize{w=W,h=H}) ->
+dispatch_event(#mousemotion{which=Obj}=Event) ->
+    do_dispatch(get(Obj), Event);
+dispatch_event(#mousebutton{which=Obj}=Event) ->
+    do_dispatch(get(Obj), Event);
+dispatch_event(#keyboard{which=Obj}=Event) ->
+    do_dispatch(get(Obj), Event);
+
+dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
     ?CHECK_ERROR(),
-    %% If the window has become maximized, we don't want
-    %% to save the window size, but will keep the previous
-    %% size.
-    wings_io:reset_video_mode_for_gl(W, H),
-    case wings_io:is_maximized() of
-	false ->
-	    {TW,TH} = wxWindow:getSize(get(top_frame)),
-	    wings_pref:set_value(window_size, {TW,TH});
-	true -> ok
-    end,
-    put(wm_top_size, {W,H}),
-    resize_windows(W, H),
+    #win{name=Name} = Geom0 = get_window_data(Obj),
+    Geom = Geom0#win{x=0,y=0,w=W,h=H},
+    put_window_data(Name, Geom),
     dirty();
 dispatch_event(quit) ->
     foreach(fun(Name) ->
@@ -736,14 +667,19 @@ dispatch_event(Ev = {external,_}) ->
     send(geom,Ev);
 dispatch_event({menubar,Ev}) ->
     menubar_event(geom, Ev);
-dispatch_event(#expose{active=Active}) ->
+dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
     Active andalso dirty();
+dispatch_event(#wx{event=#wxPaint{}}) ->
+    dirty();
+dispatch_event(#wx{obj=Obj}=Event) ->
+    do_dispatch(get(Obj), Event);
+
 dispatch_event(Event) ->
-    case find_active(Event) of
+    case find_active() of
 	Active when Event#keyboard.which =:= menubar ->
 	    menubar_event(Active, Event);
 	none ->
-	    %% io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Event]),
+	    io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Event]),
 	    update_focus(none);
 	Active ->
 	    update_focus(Active),
@@ -795,15 +731,10 @@ update_focus(Active) ->
 	    do_dispatch(Active, got_focus)
     end.
 
-resize_windows(W, H) ->
-    DesktopData0 = get_window_data(desktop),
-    DesktopData = DesktopData0#win{x=0,y=0,w=W,h=H},
-    put_window_data(desktop, DesktopData).
-
 do_dispatch(Active, Ev) ->
     case gb_trees:lookup(Active, get(wm_windows)) of
-	none -> 
-%	    io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Ev]),
+	none ->
+	    io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Ev]),
 	    ok;
 	{value,Win0} ->
 	    case send_event(Win0, Ev) of
@@ -818,20 +749,32 @@ do_dispatch(Active, Ev) ->
 
 redraw_all() ->
     %% Remove late buffers clear due to problems with ATI cards when AA.
-    gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
     Windows = keysort(2, gb_trees:to_list(get(wm_windows))),
-    wings_io:foreach(fun({Name,_}) ->
-			     dispatch_matching(fun({wm,{send_to,N,_}}) ->
-						       N =:= Name;
-						  (_) -> false
-					       end),
-			     do_dispatch(Name, redraw)
-		     end, Windows),
-    wings_io:swapBuffers(),
+    wings_io:foreach(fun redraw_win/1, Windows),
     calc_stats(),
     clean(),
     wings_io:set_cursor(get(wm_cursor)),
     event_loop().
+
+redraw_win({Name, #win{w=W,h=H,obj=Obj}}) ->
+    DoSwap = case use_opengl(Obj) of
+		 true ->
+		     wxGLCanvas:setCurrent(Obj),
+		     gl:viewport(0,0,W,H),
+		     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
+		     true;
+		 false ->
+		     false
+	     end,
+    dispatch_matching(fun({wm,{send_to,N,_Ev}}) ->
+			      N =:= Name;
+			 (_) -> false
+		      end),
+    do_dispatch(Name, redraw),
+    DoSwap andalso wxGLCanvas:swapBuffers(Obj).
+
+use_opengl(undefined) -> false;
+use_opengl(Obj) -> wx:getObjectType(Obj) =:= wxGLCanvas.
 
 -ifndef(DEBUG).
 calc_stats() -> ok.
@@ -863,51 +806,12 @@ calc_stats(_) -> %% Do not add user wait times
 -endif.
 
 clear_background() ->
-    Name = this(),
+    gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT).
 
-    %% Optimization: Check if we really need to clear the area
-    %% occupied by the window. Given a slow OpenGL implementation,
-    %% it is a big win.
-    case any_window_below(Name) of
-	true -> clear_background_1(Name);
-	false -> ok
-    end.
-
-clear_background_1(Name) ->
-    {X,Y,W,H} = viewport(Name),
-    gl:scissor(X, Y, W, H),
-    gl:enable(?GL_SCISSOR_TEST),
-    gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
-    gl:disable(?GL_SCISSOR_TEST).
-
-any_window_below(Name) ->
-    Windows = gb_trees:values(get(wm_windows)),
-    #win{x=X,y=Y,z=Z,w=W,h=H} = get_window_data(Name),
-    any_window_below_1(Windows, Name, Z, {X,Y,X+W,Y+H}).
-
-any_window_below_1([#win{name=Name}|T], Name, Z, Rect) ->
-    any_window_below_1(T, Name, Z, Rect);
-any_window_below_1([#win{z=ThisZ}|T], Name, Z, Rect) when Z < ThisZ; ThisZ =< 0 ->
-    any_window_below_1(T, Name, Z, Rect);
-any_window_below_1([W|T], Name, Z, Rect) ->
-    case possible_intersection(W, Rect) of
-	true -> true;
-	false -> any_window_below_1(T, Name, Z, Rect)
-    end;
-any_window_below_1([], _, _, _) -> false.
-
-possible_intersection(#win{x=X,y=Y,w=W,h=H}, {Left,Top,Right,Bot}) ->
-    if
-	Right =< X; Bot =< Y; X+W =< Left; Y+H =< Top -> false;
-	true -> true
-    end.
-
-reinit_opengl() ->
-    wings_io:putback_event({wm,init_opengl}).
-
-init_opengl() ->
-    {W,H} = get(wm_top_size),
+init_opengl() -> % (_Name, _Canvas) ->
+    {W,H} = top_size(),
     wings_io:reset_video_mode_for_gl(W, H),
+    %% wxGLCanvas:setCurrent(Canvas),
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
     gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
     wings_io:resize(),
@@ -921,9 +825,19 @@ init_opengl() ->
 
 send_event(#win{z=Z}=Win, redraw) when Z < 0 ->
     Win;
-send_event(#win{name=Name,stk=[Se|_]=Stk0,obj=Obj}, Ev)
+send_event(#win{name=Name,w=W,h=H,stk=[Se|_]=Stk0,obj=Obj}, Ev0)
   when Obj =/= undefined ->
+    ViewPort = {0,0,W,H},
+    case use_opengl(Obj) of
+	true ->
+	    case put(wm_viewport, ViewPort) of
+		ViewPort -> ok;
+		_ -> gl:viewport(0, 0, W, H)
+	    end;
+	false -> ignore
+    end,
     OldActive = put(wm_active, Name),
+    Ev = translate_event(Ev0, 0, 0),
     Stk = handle_event(Se, Ev, Stk0),
     case OldActive of
 	undefined -> erase(wm_active);
@@ -931,16 +845,8 @@ send_event(#win{name=Name,stk=[Se|_]=Stk0,obj=Obj}, Ev)
     end,
     Win = get_window_data(Name),
     Win#win{stk=Stk};
-send_event(#win{name=Name,x=X,y=Y0,w=W,h=H,stk=[Se|_]=Stk0}, Ev0) ->
+send_event(#win{name=Name,stk=[Se|_]=Stk0}, Ev) ->
     OldActive = put(wm_active, Name),
-    Ev = translate_event(Ev0, X, Y0),
-    {_,TopH} = get(wm_top_size),
-    Y = TopH-(Y0+H),
-    ViewPort = {X,Y,W,H},
-    case put(wm_viewport, ViewPort) of
-	ViewPort -> ok;
-	_ -> gl:viewport(X, Y, W, H)
-    end,
     Stk = handle_event(Se, Ev, Stk0),
     case OldActive of
 	undefined -> erase(wm_active);
@@ -965,14 +871,17 @@ translate_event(#mousebutton{button=B0,x=X,y=Y,state=?SDL_RELEASED}=M, Ox, Oy) -
 translate_event({drop,{X,Y},DropData}, Ox, Oy) ->
     {drop,{X-Ox,Y-Oy},DropData};
 translate_event(Ev, _, _) -> Ev.
-    
+
 handle_event(State, Event, Stk) ->
     try
 	case State of
 	    #se{h=Handler} -> Handler(Event);
-	    Fun when is_function(Fun) -> Fun()
+	    Handler when is_function(Handler) -> Handler()
 	end of
 	Res ->
+	    case State of #se{h=H} -> H;
+		H when is_function(H) -> H
+	    end,
 	    handle_response(Res, Event, Stk)
     catch
 	throw:{command_error,Error} ->
@@ -1103,30 +1012,34 @@ wm_event(init_opengl) ->
 %%% Finding the active window.
 %%%
 
-find_active(Ev) ->
+find_active() ->
     case get(wm_focus_grab) of
- 	undefined -> find_active_0(Ev);
+ 	undefined -> window_below(wx_misc:getMousePosition());
  	Focus -> Focus
     end.
 
-find_active_0(Ev) ->
-    case Ev of
-	#mousebutton{x=X,y=Y} -> ok;
-	#mousemotion{x=X,y=Y} -> ok;
-	_ -> {_,X,Y} = wings_io:get_mouse_state()
-    end,
-    window_below(X, Y).
+window_below(X,Y) ->
+    window_below({X,Y}).
+window_below(Pos) ->
+    Win0 = wx_misc:findWindowAtPoint(Pos),
+    case wx:is_null(Win0) of
+	true -> none;
+	_ ->
+	    All = windows(),
+	    find_window(All, All, Win0)
+    end.
 
-window_below(X, Y) ->
-    All = reverse(sort(gb_trees:values(get(wm_windows)))),
-    window_below_1(All, X, Y).
-
-window_below_1([#win{x=Wx,y=Wy,w=W,h=H,name=Name,z=Z}|T], X, Y) when Z >= 0 ->
-    case {X-Wx,Y-Wy} of
-	{Rx,Ry} when 0 =< Rx, Rx < W,0 =< Ry, Ry < H -> Name;
-	_ -> window_below_1(T, X, Y)
+find_window([#win{name=Name, obj=Obj}|Wins], All, Win) ->
+    case wings_util:wxequal(Obj, Win) of
+	true -> Name;
+	false -> find_window(Wins, All, Win)
     end;
-window_below_1(_, _, _) -> none.
+find_window([], All, Win) ->
+    P = wxWindow:getParent(Win),
+    case wx:is_null(P) of
+	true -> none;
+	false -> find_window(All, All, P)
+    end.
 
 geom_below(X, Y) ->
     Windows = windows(),
@@ -1266,10 +1179,13 @@ lookup_window_data(Name) ->
 	{value,Val} -> Val
     end.
 
+get_window_data({wx_ref,_,_,_} = Obj) ->
+    gb_trees:get(get(Obj), get(wm_windows));
 get_window_data(Name) ->
     gb_trees:get(Name, get(wm_windows)).
 
-put_window_data(Name, Data) ->
+put_window_data(Name, #win{name=N1}=Data) ->
+    Name = N1, %% Assert
     put(wm_windows, gb_trees:update(Name, Data, get(wm_windows))).
 
 %%%
@@ -1343,23 +1259,22 @@ message_event(_) -> keep.
 %%% can optionally add other things such as a scroller.
 %%%
 
-toplevel(Name, Title, Pos, Size, Flags, Op) ->
-    wings_wm_toplevel:toplevel(Name, Title, Pos, Size, Flags, Op).
+toplevel(Name, Window, Props, Op) ->
+    new(Name, Window, Op),
+    wings_frame:register_win(Window),
+    Do = fun({display_data, V}) -> set_dd(Name, V);
+	    ({K, V}) -> wings_wm:set_prop(Name, K, V)
+	 end,
+    [Do(KV) || KV <- Props],
+    ok.
+
 
 toplevel_title(Title) ->
-    Win = this(),
-    send({controller,Win}, {title,Title}),
-    ok.
+    toplevel_title(this(), Title).
 
 toplevel_title(Win, Title) ->
-    send({controller,Win}, {title,Title}),
+    wings_frame:set_title(Win, Title),
     ok.
 
-set_knob(Name, Pos, Proportion) ->
-    wings_wm_toplevel:set_knob(Name, Pos, Proportion).
-
 title_height() ->
-    wings_wm_toplevel:title_height().
-
-vscroller_width() ->
-    wings_wm_toplevel:vscroller_width().
+    wings_frame:title_height().

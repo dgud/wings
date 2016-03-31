@@ -36,22 +36,20 @@ window(St) ->
 	    wings_wm:raise(outliner),
 	    keep;
 	false ->
-	    {{_,DeskY},{DeskW,DeskH}} = wings_wm:win_rect(desktop),
+	    {DeskW, DeskH} = wings_wm:top_size(),
 	    W = 28*?CHAR_WIDTH,
-	    Pos = {DeskW-5,DeskY+55},
+	    Pos  = {DeskW-5, 0},
 	    Size = {W,DeskH div 2},
 	    window(Pos, Size, [], St),
 	    keep
     end.
 
-window(Pos0, Size, Ps, St) ->
-    Parent = ?GET(top_frame),
-    Pos = wxWindow:clientToScreen(Parent, Pos0),
+window(Pos, Size, Ps, St) ->
     Shapes = get_state(St),
-    Window = wx_object:start_link(?MODULE, [Parent, Pos, Size, Ps, Shapes], []),
-    wings_wm:new(?MODULE, Window, {push, change_state(Window, St)}),
-    wings_wm:set_dd(?MODULE, geom_display_lists),
-    wings_frame:register_win(Window),
+    Frame = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}]),
+    Window = wx_object:start_link(?MODULE, [Frame, Ps, Shapes], []),
+    Fs = [{display_data, geom_display_lists}],
+    wings_wm:toplevel(?MODULE, Window, Fs, {push, change_state(Window, St)}),
     keep.
 
 command({edit_material,Name}, _Ost) ->
@@ -287,8 +285,7 @@ image_info({Id, #e3d_image{name=Name}=Im}) ->
 
 -record(state, {top, szr, tc, os, il, imap, shown, drag}).
 
-init([Parent, Pos, Size, _Ps, Os]) ->
-    Frame = wings_frame:make_external_win(Parent, title(), [{size, Size}, {pos, Pos}]),
+init([Frame,  _Ps, Os]) ->
     {IL, IMap0} = load_icons(),
     Panel = wxPanel:new(Frame),
     #{bg:=BG} = Cs = wings_frame:get_colors(),
@@ -388,7 +385,7 @@ handle_info(parent_changed,
 	{win32, _} ->
 	    %% Windows or wxWidgets somehow messes up the icons when reparented,
 	    %% Recreating the tree ctrl solves it
-	    TC = make_tree(Top, wings_frame:colors(), IL),
+	    TC = make_tree(Top, wings_frame:get_colors(), IL),
 	    wxSizer:replace(Szr, TC0, TC),
 	    wxSizer:recalcSizes(Szr),
 	    wxWindow:destroy(TC0),

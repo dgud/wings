@@ -128,9 +128,27 @@ code_change() -> req(code_change).
 %%% Scrollable console window.
 %%%
 
-do_window(Name, _Ps) ->
-    {ok, Window} = req({window, wings_io:get_process_option(), []}),
-    wings_wm:new(Name, Window).
+do_window(Name, Opts) ->
+    Title = ?STR(wc_open_window,1,"Wings3D Log"),
+    Font = ?GET(console_font_wx),
+    Size = case proplists:get_value(size, Opts) of
+	       undefined ->
+		   Width0  = wings_pref:get_value(console_width),
+		   Height0 = wings_pref:get_value(console_height),
+		   {CW,CH,_,_} = wxWindow:getTextExtent(?GET(top_frame), "W", [{theFont,Font}]),
+		   W = max(3 + (Width0*CW) + 3, 400),
+		   H = max(1 + (Height0*CH) + 4, 100),
+		   {W,H};
+	       SavedSize ->
+		   SavedSize
+	   end,
+    Pos = case proplists:get_value(pos, Opts) of
+	      undefined -> {-1, -1};
+	      SavedPos -> SavedPos
+	  end,
+    Win = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}]),
+    {ok, Window} = req({window, wings_io:get_process_option(), Win, Font}),
+    wings_wm:toplevel(Name, Window, [], {push, fun(_Ev) -> keep end}).
 
 %%% I/O server ----------------------------------------------------------------
 
@@ -314,9 +332,9 @@ wings_console_event(#state{ctrl=Ctrl} = State, #wx{event=#wxSize{size={W0,H0}}})
     wings_pref:set_value(console_height, H div CH),
     State.
 
-wings_console_request(State0, {window, WxEnv, Opts}) ->
+wings_console_request(State0, {window, WxEnv, Win, Font}) ->
     wings_io:set_process_option(WxEnv),
-    wc_open_window(State0, Opts);
+    wc_open_window(State0, Win, Font);
 wings_console_request(State, {setopts,Opts}) ->
     wc_setopts(State, Opts);
 wings_console_request(State, {getopts,Opts}) ->
@@ -340,25 +358,7 @@ wc_getopts(#state{save_lines=SaveLines}=State, [save_lines|Opts], R) ->
 wc_getopts(State, _, _) ->
     {State,{error,badarg}}.
 
-wc_open_window(#state{lines=Lines}=State, Opts) ->
-    Title = ?STR(wc_open_window,1,"Wings3D Log"),
-    Font = ?GET(console_font_wx),
-    Size = case proplists:get_value(size, Opts) of
-	       undefined ->
-		   Width0  = wings_pref:get_value(console_width),
-		   Height0 = wings_pref:get_value(console_height),
-		   {CW,CH,_,_} = wxWindow:getTextExtent(?GET(top_frame), "W", [{theFont,Font}]),
-		   W = max(3 + (Width0*CW) + 3, 400),
-		   H = max(1 + (Height0*CH) + 4, 100),
-		   {W,H};
-	       SavedSize ->
-		   SavedSize
-	   end,
-    Pos = case proplists:get_value(pos, Opts) of
-	      undefined -> {-1, -1};
-	      SavedPos -> SavedPos
-	  end,
-    Win = wings_frame:make_external_win(?GET(top_frame), Title, [{size, Size}, {pos, Pos}]),
+wc_open_window(#state{lines=Lines}=State, Win, Font) ->
     TStyle = ?wxTE_MULTILINE bor ?wxTE_READONLY bor ?wxTE_RICH2,
     Ctrl = wxTextCtrl:new(Win, ?wxID_ANY, [{style, TStyle}]),
 
@@ -369,7 +369,6 @@ wc_open_window(#state{lines=Lines}=State, Opts) ->
     wxFrame:show(Win),
     wxWindow:connect(Ctrl, destroy, [{skip, true}]),
     wxFrame:connect(Ctrl, size, [{skip, true}]),
-    wings_frame:register_win(Ctrl),
     {State#state{win=Win, ctrl=Ctrl}, {ok, Ctrl}}.
 
 %%% Other support functions

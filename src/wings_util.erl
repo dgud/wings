@@ -24,6 +24,7 @@
 	 array_keys/1,array_smallest_key/1,array_greatest_key/1,
 	 array_is_empty/1,array_entries/1,
 	 mapsfind/3,
+	 wxequal/2, wxset_pid/2,
 	 nice_float/1,
 	 unique_name/2,
 	 is_name_masked/2,
@@ -207,6 +208,12 @@ mapsfind(Value, Key, [H|T]) ->
     end;
 mapsfind(_, _, []) -> false.
 
+
+%% Missing wx funcs
+-record(wx_ref, {ref, type, state}).
+wxequal(#wx_ref{ref=Ref1}, #wx_ref{ref=Ref2}) -> Ref1 =:= Ref2.
+wxset_pid(#wx_ref{}=R, Pid) when is_pid(Pid) ->
+    R#wx_ref{state=Pid}.
 
 %%
 %% Create a unique name by appending digits.
