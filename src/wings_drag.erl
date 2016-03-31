@@ -84,7 +84,7 @@ setup(Tvs, Units, Flags, St) ->
 %% cause drag response problems.
 cursor_boundary(P) ->
     {{Wx,Wy},{W,H}} = wings_wm:win_rect(),
-    {_,Mx,My} = wings_io:get_mouse_state(),
+    {_,Mx,My} = wings_wm:local_mouse_state(),
     X = if Mx-P > Wx ->
             if Mx+P < Wx+W -> Mx;
                true -> Wx+W-P
@@ -627,7 +627,7 @@ handle_drag_event_1(#mousemotion{}=Ev, Drag0) ->
     Drag = motion(Ev, Drag0),
     get_drag_event(Drag);
 handle_drag_event_1({numeric_preview,Move}, Drag0) ->
-    {_,X,Y} = wings_io:get_mouse_state(),
+    {_,X,Y} = wings_wm:local_mouse_state(),
     Drag1 = possible_falloff_update(Move, Drag0#drag{x=X,y=Y}),
     Drag = ?SLOW(motion_update(Move, Drag1)),
     get_drag_event(Drag);
@@ -643,12 +643,6 @@ handle_drag_event_1({drag_arguments,Move}, Drag0) ->
 
 handle_drag_event_1(view_changed, Drag) ->
     get_drag_event(view_changed(Drag));
-handle_drag_event_1({move_dialog,Position}, Drag) ->
-    %% used by preview dialogs
-    W = wings_wm:windows(),
-    This = lists:keyfind(dialog, 1, W),
-    wings_wm:move(This, Position),
-    get_drag_event(Drag);
 handle_drag_event_1({action,{drag_arguments,_}=DragArgs}, _) ->
     wings_wm:later(DragArgs);
 handle_drag_event_1({action,numeric_input}, Drag) ->
@@ -792,15 +786,13 @@ view_changed(#drag{flags=Flags}=Drag0) ->
     case member(screen_relative, Flags) of
 	false -> Drag0;
 	true ->
-	    case member(keep_drag,Flags) of
-	      true ->
-	        wings_dl:map(fun view_changed_fun/2, []),
-	        {_,X,Y} = wings_io:get_mouse_state(),
-	        Drag0#drag{x=X,y=Y};
-	      false ->
+	    {_,X,Y} = wings_wm:local_mouse_state(),
 	    wings_dl:map(fun view_changed_fun/2, []),
-	    {_,X,Y} = wings_io:get_mouse_state(),
-	        Drag0#drag{x=X,y=Y,xs=0,ys=0,zs=0,p4=0,p5=0,psum=[0,0,0,0,0]}
+	    case member(keep_drag,Flags) of
+		true ->
+		    Drag0#drag{x=X,y=Y};
+		false ->
+		    Drag0#drag{x=X,y=Y,xs=0,ys=0,zs=0,p4=0,p5=0,psum=[0,0,0,0,0]}
 	    end
     end.
 

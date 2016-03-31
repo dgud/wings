@@ -13,7 +13,7 @@
 %%
 
 -module(wings_menu).
--export([is_popup_event/1,menu/5,popup_menu/4,build_command/2,
+-export([is_popup_event/1,popup_menu/4,build_command/2,
 	 kill_menus/0, predefined_item/2]).
 -export([setup_menus/2, id_to_name/1, check_item/1, str_clean/1]).
 -export([update_menu/3, update_menu/4,
@@ -67,13 +67,9 @@ is_popup_event(#wx{event=#wxCommand{type=command_right_click}}) ->
 is_popup_event(_Event) ->
     no.
 
-
-menu(X, Y, Owner, Name, Menu) ->
-    wings_wm_menu:menu(X, Y, Owner, Name, Menu).
-
 popup_menu(X, Y, Name, Menu) %% Should be removed, the next should be used !!
   when is_number(X), is_number(Y) ->
-    Win = ?GET(gl_canvas),
+    Win = wings_wm:this_win(),
     wx_popup_menu_init(Win, wxWindow:clientToScreen(Win, X, Y), [Name], Menu);
 popup_menu(Parent, {_,_} = GlobalPos, Name, Menu) ->
     wx_popup_menu_init(Parent, GlobalPos, [Name], Menu).
@@ -341,7 +337,6 @@ mouse_button(#wxMouse{type=What, controlDown = Ctrl, altDown = Alt, metaDown = M
     end.
 
 popup_event_handler(cancel, _, _) ->
-    wxPanel:setFocus(get(gl_canvas)),
     pop;
 popup_event_handler({click, Id, Click, Ns}, {Parent,Owner}=Own, Entries0) ->
     case popup_result(lists:keyfind(Id, 2, Entries0), Click, Ns, Owner) of

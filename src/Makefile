@@ -130,8 +130,6 @@ MODULES= \
 	wings_we_build \
 	wings_we_util \
 	wings_wm \
-	wings_wm_menu \
-	wings_wm_toplevel \
 	wpa \
 	ww_color_ctrl \
 	ww_color_slider
