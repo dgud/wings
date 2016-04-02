@@ -47,7 +47,7 @@ window(St) ->
 	    keep;
 	false ->
 	    {DeskW,_DeskH} = wings_wm:top_size(),
-	    Pos  = {DeskW-5, 0},
+	    Pos  = {DeskW-50, 0},
 	    Size = {?COLS_W*?BOX_W+?COLS_W*?BORD+?BORD*2,
 		    ?COLS_H*?BOX_H+?COLS_H*?BORD+?BORD*2},
 	    create_window(Pos, Size, [], St),

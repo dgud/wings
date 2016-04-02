@@ -1256,10 +1256,8 @@ build(Ask, {custom_gl, CW, CH, Fun}, Parent, Sizer, In) ->
 build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
     Context = wxGLCanvas:getContext(?GET(gl_canvas)),
     Create = fun() ->
-		     Canvas = wxGLCanvas:new(Parent, Context,
-					     [{size, {CW,CH}},
-					      {attribList, wings_init:gl_attributes()}
-					     ]),
+		     Ps = [{size, {CW,CH}},wings_gl:attributes()],
+		     Canvas = wxGLCanvas:new(Parent, Context, Ps),
 		     add_sizer(custom, Sizer, Canvas, Flags),
 		     Canvas
 	     end,
