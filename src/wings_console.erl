@@ -148,7 +148,7 @@ do_window(Name, Opts) ->
 	  end,
     Win = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}]),
     {ok, Window} = req({window, wings_io:get_process_option(), Win, Font}),
-    wings_wm:toplevel(Name, Window, [], {push, fun(_Ev) -> keep end}).
+    wings_wm:toplevel(Name, Window, [], {push, fun(Ev) -> req({event, Ev}), keep end}).
 
 %%% I/O server ----------------------------------------------------------------
 
@@ -323,7 +323,6 @@ put_chars_1([Line|NLs], Lines, Cnt, Save) ->
 %%%
 
 wings_console_event(State, #wx{event=#wxWindowDestroy{}}) ->
-    wings ! {external, fun(_) -> wings_wm:delete(?WIN_NAME) end},
     State#state{win=undefined, ctrl=undefined};
 wings_console_event(#state{ctrl=Ctrl} = State, #wx{event=#wxSize{size={W0,H0}}}) ->
     {CW,CH,_,_} = wxWindow:getTextExtent(Ctrl, "W"),
@@ -340,6 +339,13 @@ wings_console_request(State, {setopts,Opts}) ->
 wings_console_request(State, {getopts,Opts}) ->
     wc_getopts(State, Opts, []);
 wings_console_request(State, get_state) ->
+    {State,State};
+wings_console_request(State, {event, Ev}) ->
+    case Ev of
+	close -> wings ! {external, fun(_) -> wings_wm:delete(?WIN_NAME) end};
+	_ -> %% io:format("~p: Got ~p~n",[?MODULE, Ev]),
+	    ignore
+    end,
     {State,State};
 wings_console_request(State, Request) ->
     {State,{error,{request,Request}}}.

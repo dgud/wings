@@ -31,14 +31,14 @@
 %%%
 
 window(St) ->
-    case wings_wm:is_window(outliner) of
+    case wings_wm:is_window(?MODULE) of
 	true ->
-	    wings_wm:raise(outliner),
+	    wings_wm:raise(?MODULE),
 	    keep;
 	false ->
 	    {DeskW, DeskH} = wings_wm:top_size(),
 	    W = 28*?CHAR_WIDTH,
-	    Pos  = {DeskW-5, 0},
+	    Pos  = {DeskW-50, 0},
 	    Size = {W,DeskH div 2},
 	    window(Pos, Size, [], St),
 	    keep
@@ -251,7 +251,7 @@ forward_event({apply, ReturnSt, Fun}, Window, St0) ->
 	false ->
 	    Fun(St0)
     end;
-forward_event({action,{outliner,Cmd}}, _Window, St) ->
+forward_event({action,{?MODULE,Cmd}}, _Window, St) ->
     command(Cmd, St);
 forward_event({action,{shape,_}}=Act, _, _) ->
     wings_wm:send(geom, Act);
@@ -349,7 +349,7 @@ handle_event(#wx{event=#wxTree{type=command_tree_end_drag, item=Indx, pointDrag=
 	{_, #{type:=mat} = Mat} when Drag =/= undefined ->
 	    Menu = handle_drop(Drag, Mat),
 	    Pos = wxWindow:clientToScreen(TC, Pos0),
-	    Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, outliner, Menu) end,
+	    Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, ?MODULE, Menu) end,
 	    wings_wm:psend(?MODULE, {apply, false, Cmd});
 	_ ->
 	    ignore
@@ -537,7 +537,7 @@ make_menus(0, Pos, #state{tc=TC}) ->
 make_menus(Indx, Pos, #state{tc=TC, shown=Tree}) ->
     {_, Obj} = lists:keyfind(Indx, 1, Tree),
     Menus = do_menu(Obj),
-    Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, outliner, Menus) end,
+    Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, ?MODULE, Menus) end,
     wings_wm:psend(?MODULE, {apply, false, Cmd}).
 
 do_menu(#{type:=mat, name:=Name}) ->
@@ -626,4 +626,4 @@ menu_cmd(Cmd, Id) ->
     {'VALUE',{Cmd,Id}}.
 
 button_menu_cmd(Cmd, Id) ->
-    {outliner,{Cmd,Id}}.
+    {?MODULE,{Cmd,Id}}.
