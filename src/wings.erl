@@ -92,7 +92,7 @@ do_spawn(File, Flags) ->
 
 init(File0) ->
     register(wings, self()),
-
+    erlang:system_flag(backtrace_depth, 25),
     wings_pref:init(),
     wings_hotkey:set_default(),
     wings_pref:load(),
@@ -149,7 +149,7 @@ init(File0) ->
 make_geom_window(GeomGL, St) ->
     Op = main_loop_noredraw(St),	%Replace crash handler
     Props = initial_properties(),        %with this handler.
-    wings_frame:register_win(GeomGL, [top, {title, geom_title(geom)}]),
+    wings_frame:register_win(GeomGL, geom, [top, {title, geom_title(geom)}]),
     wings_wm:new(geom, GeomGL, Op),
     [wings_wm:set_prop(geom, K, V)|| {K,V} <- Props],
     wings_wm:set_dd(geom, geom_display_lists),
@@ -421,8 +421,6 @@ handle_event_3(init_opengl, St) ->
     keep;
 handle_event_3(resized, _) -> keep;
 handle_event_3(close, _) ->
-    Active = wings_wm:this(),
-    wings_wm:delete({object,Active}),
     delete;
 handle_event_3(redraw, St) ->
     redraw(St),

@@ -125,7 +125,7 @@ new(Name, {X,Y,Z0}, {W,H}, Op) when is_integer(X), is_integer(Y),
     Stk = handle_response(Op, dummy_event, default_stack(Name)),
     new_props(Name, [{font,system_font}]),
     Win = #win{x=X,y=Y,z=Z,w=W,h=H,name=Name,stk=Stk},
-    io:format("~p:~p: ~p ~p~n",[?MODULE, ?LINE, Name, {W,H}]),
+    %% io:format("~p:~p: ~p ~p~n",[?MODULE, ?LINE, Name, {W,H}]),
     put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
     dirty().
 
@@ -137,8 +137,8 @@ new(Name, Obj, Op) when element(1, Obj) =:= wx_ref ->
     new_props(Name, [{font,system_font}]),
     Z = highest_z(),
     {W,H} = wxWindow:getClientSize(Obj),
-    io:format("~p:~p: ~p ~p~n",[?MODULE, ?LINE, Name, Obj]),
-    use_opengl(Obj) andalso init_opengl(),
+    %% io:format("~p:~p: ~p ~p~n",[?MODULE, ?LINE, Name, Obj]),
+    use_opengl(Obj) andalso init_opengl(Name, Obj),
     Win = #win{x=0,y=0,z=Z,w=W,h=H,name=Name,stk=Stk,obj=Obj},
     put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
     put(Obj, Name),
@@ -250,6 +250,7 @@ new_resolve_z(highest) ->
 new_resolve_z(Z) when is_integer(Z), Z >= 0-> Z.
 
 delete(Name) ->
+    wings_frame:close(wxwindow(Name)),
     Windows = delete_windows(Name, get(wm_windows)),
     put(wm_windows, Windows),
     case is_window(get(wm_focus_grab)) of
@@ -618,7 +619,6 @@ set_dd(Win, Value) ->
     put_window_data(Win, Data#win{dd=Value}).
 
 enter_event_loop() ->
-    init_opengl(),
     event_loop().
 
 event_loop() ->
@@ -650,7 +650,6 @@ dispatch_event(#mousebutton{which=Obj}=Event) ->
     do_dispatch(get(Obj), Event);
 dispatch_event(#keyboard{which=Obj}=Event) ->
     do_dispatch(get(Obj), Event);
-
 dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
     ?CHECK_ERROR(),
     #win{name=Name} = Geom0 = get_window_data(Obj),
@@ -734,7 +733,7 @@ update_focus(Active) ->
 do_dispatch(Active, Ev) ->
     case gb_trees:lookup(Active, get(wm_windows)) of
 	none ->
-	    io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Ev]),
+	    io:format("~p:~p: Dropped Event ~p: ~p~n",[?MODULE,?LINE, Active, Ev]),
 	    ok;
 	{value,Win0} ->
 	    case send_event(Win0, Ev) of
@@ -808,20 +807,16 @@ calc_stats(_) -> %% Do not add user wait times
 clear_background() ->
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT).
 
-init_opengl() -> % (_Name, _Canvas) ->
-    {W,H} = top_size(),
-    wings_io:reset_video_mode_for_gl(W, H),
-    %% wxGLCanvas:setCurrent(Canvas),
+init_opengl(Name, Canvas) ->
+    %% {W,H} = top_size(),
+    %% wings_io:reset_video_mode_for_gl(W, H),
+    wxGLCanvas:setCurrent(Canvas),
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
     gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
     wings_io:resize(),
-    wings_image:init_opengl(),
     {R,G,B} = wings_pref:get_value(background_color),
     gl:clearColor(R, G, B, 1.0),
-    dirty(),
-    foreach(fun(Name) ->
-		    do_dispatch(Name, init_opengl)
-	    end, gb_trees:keys(get(wm_windows))).
+    send(Name, init_opengl).
 
 send_event(#win{z=Z}=Win, redraw) when Z < 0 ->
     Win;
@@ -1004,9 +999,7 @@ wm_event({send_once, Name, Ev}) ->
     wings_io:putback_event_once({wm,{send_to,Name,Ev}}),
     ok;
 wm_event({callback,Cb}) ->
-    Cb();
-wm_event(init_opengl) ->
-    init_opengl().
+    Cb().
     
 %%%
 %%% Finding the active window.
@@ -1025,12 +1018,12 @@ window_below(Pos) ->
     case wx:is_null(Win0) of
 	true -> none;
 	_ ->
-	    All = windows(),
+	    All = gb_trees:values(get(wm_windows)),
 	    find_window(All, All, Win0)
     end.
 
 find_window([#win{name=Name, obj=Obj}|Wins], All, Win) ->
-    case wings_util:wxequal(Obj, Win) of
+    case Obj =/= undefined andalso wings_util:wxequal(Obj, Win) of
 	true -> Name;
 	false -> find_window(Wins, All, Win)
     end;
@@ -1261,13 +1254,12 @@ message_event(_) -> keep.
 
 toplevel(Name, Window, Props, Op) ->
     new(Name, Window, Op),
-    wings_frame:register_win(Window),
+    wings_frame:register_win(Window, Name, [external]),
     Do = fun({display_data, V}) -> set_dd(Name, V);
 	    ({K, V}) -> wings_wm:set_prop(Name, K, V)
 	 end,
     [Do(KV) || KV <- Props],
     ok.
-
 
 toplevel_title(Title) ->
     toplevel_title(this(), Title).
