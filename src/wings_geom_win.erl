@@ -41,8 +41,8 @@ window(St) ->
 	false ->
 	    {DeskW,DeskH} = wings_wm:top_size(),
 	    W = 28*?CHAR_WIDTH,
-	    Pos  = {DeskW-5, 0},
-	    Size = {W,DeskH div 2},
+	    Pos  = {DeskW-50, DeskH div 2},
+	    Size = {W, DeskH div 2},
 	    window({object, wings_wm:this()}, Pos, Size, [], St),
 	    keep
     end.
