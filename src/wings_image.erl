@@ -12,7 +12,7 @@
 %%
 
 -module(wings_image).
--export([init/1,init_opengl/0,
+-export([init/1,
 	 from_file/1,new/2,new_temp/2,new_hidden/2, create/1,
 	 rename/2,txid/1,info/1,images/0,
 	 screenshot/2,screenshot/1,viewport_screenshot/1,
@@ -35,8 +35,6 @@
 
 init(Opt) ->
     spawn_opt(fun() -> server(Opt) end, [link,{fullsweep_after,0}]).
-
-init_opengl() -> ok.
 
 %%%
 %%% Interface against plug-ins.
