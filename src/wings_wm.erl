@@ -324,11 +324,17 @@ show(Name) ->
     end.
 
 show_wx(Frame) ->
-    case wxFrame:isIconized(Frame) of
-	true -> wxFrame:iconize(Frame, [{iconize, false}]);
-	false -> ok
-    end,
-    wxFrame:raise(Frame).
+    case wxWindow:isTopLevel(Frame) of
+	true ->
+	    case wxFrame:isIconized(Frame) of
+		true -> wxFrame:iconize(Frame, [{iconize, false}]);
+		false -> ok
+	    end,
+	    wxFrame:raise(Frame),
+	    wxFrame:requestUserAttention(Frame);
+	false ->
+	    ok
+    end.
 
 is_hidden(Name) ->
     case get_window_data(Name) of
@@ -738,11 +744,12 @@ update_focus(Active) ->
 do_dispatch(Active, Ev) ->
     case gb_trees:lookup(Active, get(wm_windows)) of
 	none ->
-	    io:format("~p:~p: Dropped Event ~p: ~p~n",[?MODULE,?LINE, Active, Ev]),
+	    % io:format("~p:~p: Dropped Event ~p: ~p~n",[?MODULE,?LINE, Active, Ev]),
 	    ok;
 	{value,Win0} ->
 	    case send_event(Win0, Ev) of
 		#win{name=Name,stk=delete} ->
+		    %% io:format("~p:~p delete~n",[?MODULE,?LINE]),
 		    delete(Name);
 		#win{stk=[]} ->
 		    ok;
@@ -1033,10 +1040,9 @@ find_window([#win{name=Name, obj=Obj}|Wins], All, Win) ->
 	false -> find_window(Wins, All, Win)
     end;
 find_window([], All, Win) ->
-    P = wxWindow:getParent(Win),
-    case wx:is_null(P) of
-	true -> none;
-	false -> find_window(All, All, P)
+    try wxWindow:getParent(Win) of
+	P -> wx:is_null(P) orelse find_window(All, All, P)
+    catch _:_ -> none
     end.
 
 geom_below(X, Y) ->
