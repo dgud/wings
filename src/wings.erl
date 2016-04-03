@@ -90,7 +90,7 @@ do_spawn(File, Flags) ->
     spawn_opt(erlang, apply, [Fun,[]],
           [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags]).
 
-init(File0) ->
+init(File) ->
     register(wings, self()),
     erlang:system_flag(backtrace_depth, 25),
     wings_pref:init(),
@@ -106,7 +106,7 @@ init(File0) ->
 
     group_leader(wings_console:start(), self()),
 
-    {Frame, File} = wings_frame:start(File0),
+    Frame = wings_frame:start(),
     Geom = wings_init:create(Frame, undefined),
 
     wings_gl:init(),    %% Needs to be initialized before make_geom_window
@@ -132,9 +132,8 @@ init(File0) ->
     wings_develop:init(),
     wings_tweak:init(),
 
-    make_geom_window(Geom, St),
-
     open_file(File),
+    make_geom_window(Geom, St),
     restore_windows(St),
     case catch wings_wm:enter_event_loop() of
 	{'EXIT',normal} ->
@@ -234,18 +233,27 @@ free_viewer_num(N) ->
 	true -> free_viewer_num(N+1)
     end.
 
-open_file(none) ->
+open_file(File0) ->
     USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
     Recovered = filelib:is_file(USFile),
     wings_pref:set_value(file_recovered, Recovered),
-    case Recovered of
-        true ->
-            open_file(USFile),
-            wings_u:message(?__(1,"Wings3D has recovered an unsaved file."));
-        _ -> ok
-    end;
-
-open_file(Name) -> wings_wm:send(geom, {open_file,Name}).
+    %% On the Mac, if Wings was started by clicking on a .wings file,
+    Msgs0 = wxe_master:fetch_msgs(),
+    Msgs = [F || F <- Msgs0, filelib:is_regular(F)],
+    File = case Msgs of
+	       [F|_] -> F;
+	       [] -> File0
+	   end,
+    if Recovered ->
+	    wings_u:message(?__(1,"Wings3D has recovered an unsaved file.")),
+	    wings_wm:send_after_redraw(geom, {open_file,USFile});
+       File =:= none ->
+	    timer:sleep(200), %% For splash screen :-)
+	    ignore;
+       true ->
+	    timer:sleep(200), %% For splash screen :-)
+	    wings_wm:send_after_redraw(geom, {open_file,USFile})
+    end.
 
 init_opengl(St) ->
     wings_render:init(),
@@ -416,9 +424,8 @@ handle_event_3({vec_command,Command,St}, _) when is_function(Command) ->
 handle_event_3(#mousebutton{}, _St) -> keep;
 handle_event_3(#mousemotion{}, _St) -> keep;
 handle_event_3(init_opengl, St) ->
-    wings_wm:current_state(St),
     init_opengl(St),
-    keep;
+    main_loop_noredraw(St);
 handle_event_3(resized, _) -> keep;
 handle_event_3(close, _) ->
     delete;
