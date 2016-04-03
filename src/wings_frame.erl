@@ -14,7 +14,7 @@
 -export([top_menus/0, make_win/2, register_win/3, close/1,
 	 get_icon_images/0, get_colors/0]).
 
--export([start/1, forward_event/1]).
+-export([start/0, forward_event/1]).
 
 %% Internal
 -behaviour(wx_object).
@@ -27,12 +27,12 @@
 
 %% API  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-start(File0) ->
+start() ->
     wx:new(),
     macosx_workaround(),
     Frame = wx_object:start_link({local, ?MODULE}, ?MODULE, [args], []),
     put(top_frame, Frame),
-    {Frame, start_file(File0)}.
+    Frame.
 
 top_menus() ->
     Tail0 = [{?__(7,"Help"),help,wings_help:menu()}],
@@ -105,16 +105,6 @@ forward_event(_Ev) ->
     %% io:format("Dropped ~P~n", [_Ev, 20]),
     keep.
 
-start_file(File0) ->
-    %% On the Mac, if Wings was started by clicking on a .wings file,
-    %% we must retrieve the name of the file here.
-    Msgs0 = wxe_master:fetch_msgs(),
-    Msgs = [F || F <- Msgs0, filelib:is_regular(F)],
-    case Msgs of
-	[F|_] -> F;
-	[] -> File0
-    end.
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Window in new (frame) process %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -129,18 +119,17 @@ init(_Opts) ->
 	wings_pref:set_default(window_size, {780,570}),
 	TopSize = wings_pref:get_value(window_size),
 	Frame = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
+	IconImgs = make_icons(),
 	?SET(top_frame, Frame),
 	set_icon(),
 	Sizer = wxBoxSizer:new(?wxVERTICAL),
 	Top = make(Frame),
+	Canvas = make_splash(wxPanel:new(win(Top)), IconImgs),
 	wxSizer:add(Sizer, win(Top), [{proportion, 1}, {flag, ?wxEXPAND}]),
+	wxSplitterWindow:initialize(win(Top), Canvas),
+	Toolbar = wings_toolbar:init(Frame, IconImgs),
 	wxSizer:setSizeHints(Sizer, win(Top)),
 	wxFrame:setSizer(Frame, Sizer),
-	Canvas = wxPanel:new(win(Top)),
-	wxWindow:setBackgroundColour(Canvas, {0,123,123}),
-	wxSplitterWindow:initialize(win(Top), Canvas),
-	IconImgs = make_icons(),
-	Toolbar = wings_toolbar:init(Frame, IconImgs),
 
 	wxWindow:connect(Frame, close_window),
 	wxWindow:connect(Frame, command_menu_selected, []),
@@ -153,6 +142,15 @@ init(_Opts) ->
     catch _:Reason ->
 	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, erlang:get_stacktrace()])
     end.
+
+make_splash(Canvas, Imgs) ->
+    Szr = wxBoxSizer:new(?wxHORIZONTAL),
+    wxSizer:addStretchSpacer(Szr),
+    {Splash, _} = wings_help:about_panel(Canvas,Imgs),
+    wxSizer:add(Szr, Splash, [{flag, ?wxALIGN_CENTER}]),
+    wxSizer:addStretchSpacer(Szr),
+    wxPanel:setSizer(Canvas, Szr),
+    Canvas.
 
 %%%%%%%%%%%%%%%%%%%%%%%
 
@@ -232,6 +230,7 @@ handle_call({new_window, Window, Name, Ps}, _From,
 	    wxWindow:connect(Frame, close_window),
 	    {reply, ok, State#state{windows=Wins#{loose:=Loose#{Frame => Win}}}};
        Geom -> %% Specialcase for geom window
+	    io:format("Replace splash with geom~n",[]),
 	    Title = proplists:get_value(title, Ps),
 	    #split{w1=Dummy} = Top,
 	    Win1 = Win0#win{title=Title},
@@ -806,7 +805,12 @@ zero() ->
 
 %% Returns a list of wxImages
 make_icons() ->
-    MakeImage = fun({Name, {Bpp, W, H, Bin0}}) ->
+    MakeImage = fun({about_wings, {3, W, H, Bin0}}) ->
+			RL = 3*W,
+			Bin = iolist_to_binary(lists:reverse([Row || <<Row:RL/binary>> <= Bin0])),
+			Image = wxImage:new(W,H,Bin),
+			{about_wings, {W,H}, Image};
+		   ({Name, {Bpp, W, H, Bin0}}) ->
 			{Colors, Alpha} = setup_image(Bin0, Bpp, W),
 			Image = wxImage:new(W,H,Colors),
 			wxImage:setAlpha(Image, Alpha),

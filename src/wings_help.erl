@@ -14,7 +14,7 @@
 -module(wings_help).
 -export([menu/0,command/2]).
 -export([cmd/1,help_window/2,no_more_basic_menus/0,
-	 not_possible_to_save_prefs/0]).
+	 not_possible_to_save_prefs/0, about_panel/2]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -403,79 +403,32 @@ about(_) ->
 %%     \  /  \ 	/      |  |  | 	|  |  |__      	   \   |   |
 %%	\/    \/       |  |  | 	|__|   __|	\__/   |__/
 %%		       	     	 __|
-    {Xs0,Ys} = splash_size(),
-    Xs = Xs0+2*?MARGIN,
-    {W,H} = wings_wm:top_size(),
-    X = trunc((W-Xs) / 2),
-    Y = trunc((H-Ys) / 2),
-    Op = {push,fun handle_splash_event/1},
-    wings_wm:delete(help),
-    wings_wm:new(help, {X,Y,highest}, {Xs,Ys+?LINE_HEIGHT}, Op),
-    wings_wm:grab_focus(help),
-    wings_wm:dirty(),
+    Flags  = [{style, ?wxCAPTION bor ?wxRESIZE_BORDER bor ?wxCLOSE_BOX}],
+    Frame = wxMiniFrame:new(?GET(top_frame), ?wxID_ANY, ?__(1, "About"), Flags),
+    Icons = wings_frame:get_icon_images(),
+    {_Panel,Szr} = about_panel(Frame, Icons),
+    wxSizer:setSizeHints(Szr, Frame),
+    wxWindow:centerOnParent(Frame),
+    wxWindow:show(Frame),
     keep.
 
-handle_splash_event(redraw) ->
-    message(),
-    wings_io:ortho_setup(),
-    {Xs,Ys} = wings_wm:win_size(),
-    wings_io:raised_rect(0, 0, Xs, Ys),
-    gl:recti(3, 3, Xs-3, Ys-3),
-    gl:color3f(1.0, 1.0, 1.0),
-    gl:recti(4, 4, Xs-4, Ys-4),
-    draw_splash(splash_contents()),
-    keep;
-handle_splash_event(#mousemotion{}) -> keep;
-handle_splash_event(got_focus) -> message();
-handle_splash_event(lost_focus) -> keep;
-handle_splash_event(_) -> delete.
+about_panel(Parent, Imgs) ->
+    Panel = wxPanel:new(Parent),
+    Szr = wxBoxSizer:new(?wxVERTICAL),
+    {_, _Sz, Img} = lists:keyfind(about_wings, 1, Imgs),
+    Center = [{flag, ?wxALIGN_CENTER bor ?wxALL},  {border, 15}],
+    Right  = [{flag, ?wxALIGN_RIGHT bor ?wxRIGHT}, {border, 15}],
+    wxSizer:add(Szr, wxStaticBitmap:new(Panel, ?wxID_ANY, wxBitmap:new(Img)), Center),
+    Add = fun({spacer, _, H}) -> wxSizer:addSpacer(Szr, H);
+	     ({text, String}) -> wxSizer:add(Szr, wxStaticText:new(Panel, ?wxID_ANY, String), Right)
+	  end,
+    wx:foreach(Add, splash_contents()),
+    wxSizer:addSpacer(Szr, 15),
+    wxPanel:setSizer(Panel, Szr),
+    {Panel, Szr}.
 
-message() ->
-    wings_msg:button(?__(1,"Close help window")),
-    keep.
-
-splash_size() ->
-    splash_size(splash_contents()).
-
-splash_size(L) ->
-    splash_size_1(L, 0, 0).
-
-splash_size_1([{icon,_,W,H}|T], W0, H0) ->
-    splash_size_1(T, max(W, W0), H0+H);
-splash_size_1([{text,Text}|T], W0, H0) ->
-    Tw = wings_text:width(Text),
-    splash_size_1(T, max(W0, Tw), H0+?CHAR_HEIGHT+4);
-splash_size_1([{spacer,W,H}|T], W0, H0) ->
-    splash_size_1(T, max(W0, W), H0+H);
-splash_size_1([], W, H) -> {W,H}.
-
-draw_splash(L) ->
-    draw_splash_1(L, 0).
-
-draw_splash_1([{icon,Name,Iw,Ih}|T], Y) ->
-    gl:color3f(1.0, 0.0, 1.0),
-    {W,_} = wings_wm:win_size(),
-    X = W - Iw - ?MARGIN,
-    wings_io:draw_icons(fun() -> wings_io:draw_icon(X, Y, Name) end),
-    draw_splash_1(T, Y+Ih);
-draw_splash_1([{text,Text}|T], Y) ->
-    gl:color3b(0, 0, 0),
-    Th = ?CHAR_HEIGHT,
-    {W,_} = wings_wm:win_size(),
-    Tw = wings_text:width(Text),
-    X = W - Tw - ?MARGIN,
-    wings_io:text_at(X, Y+Th, Text),
-    draw_splash_1(T, Y+Th+4);
-draw_splash_1([{spacer,_,H}|T], Y) ->
-    draw_splash_1(T, Y+H);
-draw_splash_1([_|T], Y) ->
-    draw_splash_1(T, Y);
-draw_splash_1([], _) -> ok.
-    
 splash_contents() ->
-    [{spacer,0,14},
-     {icon,about_wings,331,139},
-     {text,[{bold,?WINGS_VERSION}]},
+    [{text,  ?WINGS_VERSION},
      {spacer,0,10},
      {text,?__(1,"Wings 3D is a subdivision modeler inspired")},
      {text,?__(2,"by Nendo and Mirai from IZware.")},
@@ -484,11 +437,8 @@ splash_contents() ->
      {text,?__(4,"but is completely free for any kind of use")},
      {text,?__(5,"(including commercial).")},
      {spacer,0,10},
-     {text,?__(6,"Copyright") 
-      ++ [$\s,169] ++ " 2001-2015 "++"Bj" ++ [246] ++ "rn Gustavsson " ++
-      ?__(7,"& Others")},
-     {text,?__(8,"JPEG library: Copyright") ++ [$\s,169] ++
-      " 1991-1998 Thomas G. Lane"}
+     {text,?__(6,"Copyright") ++ [$\s,169] ++ " 2001-2016 Björn Gustavsson "},
+     {text,"Dan Gudmundsson" ++	?__(7," and Others")}
     ].
 
 edit_prefs() ->
