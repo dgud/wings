@@ -107,9 +107,9 @@ init(File) ->
     group_leader(wings_console:start(), self()),
 
     Frame = wings_frame:start(),
-    Geom = wings_init:create(Frame, undefined),
-
-    wings_gl:init(),    %% Needs to be initialized before make_geom_window
+    GeomGL = wings_gl:init(Frame),
+    %% Needs to be initialized before make_geom_window
+    %% and before the others that use gl functions
     wings_text:init(),
     wings_wm:init(Frame),
     check_requirements(),
@@ -133,7 +133,7 @@ init(File) ->
     wings_tweak:init(),
 
     open_file(File),
-    make_geom_window(Geom, St),
+    make_geom_window(GeomGL, St),
     restore_windows(St),
     case catch wings_wm:enter_event_loop() of
 	{'EXIT',normal} ->
@@ -148,11 +148,11 @@ init(File) ->
 make_geom_window(GeomGL, St) ->
     Op = main_loop_noredraw(St),	%Replace crash handler
     Props = initial_properties(),        %with this handler.
-    wings_frame:register_win(GeomGL, geom, [top, {title, geom_title(geom)}]),
     wings_wm:new(geom, GeomGL, Op),
     [wings_wm:set_prop(geom, K, V)|| {K,V} <- Props],
     wings_wm:set_dd(geom, geom_display_lists),
     set_drag_filter(geom),
+    wings_frame:register_win(GeomGL, geom, [top, {title, geom_title(geom)}]),
     GeomGL.
 
 %% Check minimum system requirements.
@@ -222,7 +222,7 @@ new_viewer(Name, Pos, Size, Props, St) ->
     Title = geom_title(Name),
     Frame = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}]),
     Context = wxGLCanvas:getContext(?GET(gl_canvas)),
-    Canvas = wings_init:create(Frame, Context),
+    Canvas = wings_gl:window(Frame, Context, true),
     wings_wm:toplevel(Name, Canvas, Props, Op),
     set_drag_filter(Name),
     Name.

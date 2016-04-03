@@ -12,7 +12,8 @@
 %%
 
 -module(wings_gl).
--export([init/0,is_ext/1,is_ext/2,
+-export([init/1, window/3, attributes/0,
+	 is_ext/1,is_ext/2,
 	 is_restriction/1,
 	 error_string/1]).
 
@@ -27,7 +28,7 @@
 %% GL wrappers
 -export([project/6, unProject/6,
 	 triangulate/2, deleteTextures/1,
-	 bindFramebuffer/2, 
+	 bindFramebuffer/2,
 	 drawElements/4
 	]).
 
@@ -37,19 +38,112 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--define(genFramebuffers,genFramebuffers).
--define(bindFramebuffer, bindFramebuffer).
--define(framebufferTexture2D,framebufferTexture2D).
--define(genRenderbuffers, genRenderbuffers).
--define(bindRenderbuffer,bindRenderbuffer).
--define(renderbufferStorage,renderbufferStorage).
--define(framebufferRenderbuffer,framebufferRenderbuffer).
--define(checkFramebufferStatus, checkFramebufferStatus).
--define(generateMipmap, generateMipmap).
+-ifndef(WX_GL_SAMPLE_BUFFERS).     %% New in wxWidgets-3.0
+-define(WX_GL_SAMPLE_BUFFERS,17).  %% 1 for multisampling support (antialiasing)
+-define(WX_GL_SAMPLES,18).         %% 4 for 2x2 antialiasing supersampling on most graphics cards
+-endif.
 
-init() ->
+init(Parent) ->
+    GL = window(Parent, undefined, true),
     init_extensions(),
-    init_restrictions().
+    init_restrictions(),
+    GL.
+
+attributes() ->
+    {attribList,
+     [?WX_GL_RGBA,
+      ?WX_GL_MIN_RED,8,?WX_GL_MIN_GREEN,8,?WX_GL_MIN_BLUE,8,
+      ?WX_GL_DEPTH_SIZE, 24, ?WX_GL_STENCIL_SIZE, 8,
+      ?WX_GL_DOUBLEBUFFER,
+      ?WX_GL_SAMPLE_BUFFERS,1,
+      ?WX_GL_SAMPLES, 4,
+      0]}.
+
+window(Parent, Context, Connect) ->
+    Style = ?wxFULL_REPAINT_ON_RESIZE bor ?wxWANTS_CHARS,
+    Flags = [attributes(), {style, Style}],
+    GL = case Context of
+	     undefined ->
+		 Win = wxGLCanvas:new(Parent, Flags),
+		 ?SET(gl_canvas, Win),
+		 Win;
+	     _ ->
+		 wxGLCanvas:new(Parent, Context, Flags)
+	 end,
+    Connect andalso connect_events(GL),
+    wxWindow:connect(Parent, show),
+    wxFrame:show(Parent),
+    receive #wx{event=#wxShow{}} -> ok end,
+    wxGLCanvas:setCurrent(GL),
+    wxWindow:disconnect(Parent, show),
+    GL.
+
+%% Event handling for OpenGL windows
+
+connect_events(Canvas) ->
+    %% Re-attaches the OpenGL Context to Window when is [re] created/showed
+    wxWindow:connect(Canvas, create, [{callback, fun(_, _) -> wxGLCanvas:setCurrent(Canvas) end}]),
+    wxWindow:connect(Canvas, show, [{callback, fun(_, _) -> catch wxGLCanvas:setCurrent(Canvas) end}]),
+    case os:type() of
+	{unix, _} ->
+	    wxWindow:connect(Canvas, paint, [{skip, true}]),
+	    ok;
+	{win32, _} ->
+	    wxWindow:connect(Canvas, paint, [{callback, fun redraw/2}]),
+	    wxWindow:connect(Canvas, erase_background, [{callback, fun redraw/2}])
+    end,
+
+    wxWindow:connect(Canvas, size),
+    catch wxWindow:connect(Canvas, mouse_capture_lost), %% Not available in old wx's.
+
+    setup_std_events(Canvas),
+    wxWindow:setFocus(Canvas), %% Get keyboard focus
+    ok.
+
+redraw(#wx{obj=Canvas, event=#wxPaint{}},_) ->
+    %% Must do a PaintDC and destroy it
+    DC = wxPaintDC:new(Canvas),
+    wxPaintDC:destroy(DC),
+    %% wings ! #wx{event=#wxPaint{}}; No need activate handle this
+    ok;
+redraw(_, _) ->  %% For erase background events
+    wings ! #wx{event=#wxPaint{}}.
+
+setup_std_events(Canvas) ->
+    wxWindow:connect(Canvas, motion),
+    wxWindow:connect(Canvas, left_up),
+    wxWindow:connect(Canvas, left_down),
+    wxWindow:connect(Canvas, middle_up),
+    wxWindow:connect(Canvas, middle_down),
+    wxWindow:connect(Canvas, left_dclick),
+    wxWindow:connect(Canvas, right_up),
+    wxWindow:connect(Canvas, right_down),
+    wxWindow:connect(Canvas, mousewheel),
+    %% wxWindow:connect(Canvas, char_hook, []),
+    wxWindow:connect(Canvas, key_down, [{callback, fun key_callback_win32/2}]),
+    wxWindow:connect(Canvas, key_up), %% Normally suppressed
+    wxWindow:connect(Canvas, char).
+
+key_callback_win32(Ev = #wx{event=Key=#wxKey{rawFlags=Raw}},Obj) ->
+    %% See WM_SYSKEYDOWN message in msdn
+    %% https://msdn.microsoft.com/en-us/library/windows/desktop/ms646286(v=vs.85).aspx
+    Repeat = (Raw band (1 bsl 30)) > 1,
+    %% AltGr  = (Raw band (1 bsl 24)) > 1,
+    %% Repeat orelse io:format("Ev ~p~n   ~.2B => Repeat ~p AltGr ~p~n",
+    %%  			    [Key, Raw, Repeat, AltGr]),
+    case forward_key(Key) of
+	true when Repeat -> ignore;
+	%% true when AltGr -> ignore;
+	true -> wings ! Ev;
+	false -> wxEvent:skip(Obj)
+    end.
+
+forward_key(#wxKey{controlDown=true}) -> true;
+forward_key(#wxKey{altDown=true}) -> true;
+forward_key(#wxKey{metaDown=true}) -> true;
+forward_key(#wxKey{shiftDown=true, keyCode=?WXK_SHIFT}) -> true;
+forward_key(_) -> false.
+
 
 %%%
 %%% OpenGL extensions.
@@ -266,8 +360,8 @@ setup_fbo(Size, What) ->
     end.
 
 setup_fbo_1(Size, Types) ->
-    [FB] = gl:?genFramebuffers(1),
-    gl:?bindFramebuffer(?GL_FRAMEBUFFER_EXT, FB),
+    [FB] = gl:genFramebuffers(1),
+    gl:bindFramebuffer(?GL_FRAMEBUFFER_EXT, FB),
     {Bfs,_} = lists:foldl(fun(What, {Acc, ColCount}) ->
 				  case setup_fbo_2(What, Size, ColCount) of
 				      {color, _} = Res ->
@@ -307,42 +401,42 @@ setup_fbo_2({color, Options}, {W,H}, Count) ->
     GEN_MM = proplists:get_value(gen_mipmap, Options, ?GL_FALSE),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, GEN_MM),
     if GEN_MM =:= ?GL_TRUE ->
-	    gl:?generateMipmap(?GL_TEXTURE_2D);
+	    gl:generateMipmap(?GL_TEXTURE_2D);
        true -> ok
     end,
 
-    gl:?framebufferTexture2D(?GL_FRAMEBUFFER_EXT,
+    gl:framebufferTexture2D(?GL_FRAMEBUFFER_EXT,
 			     ?GL_COLOR_ATTACHMENT0_EXT + Count,
 			     ?GL_TEXTURE_2D, Col, 0),
     {color, Col};
 setup_fbo_2({depth, Options}, {W,H}, _) ->
-    [Depth] = gl:?genRenderbuffers(1),
+    [Depth] = gl:genRenderbuffers(1),
     %% Init depth texture
-    gl:?bindRenderbuffer(?GL_RENDERBUFFER_EXT, Depth),
+    gl:bindRenderbuffer(?GL_RENDERBUFFER_EXT, Depth),
     Internal = proplists:get_value(internal, Options, ?GL_DEPTH_COMPONENT24),
-    gl:?renderbufferStorage(?GL_RENDERBUFFER_EXT,Internal, W, H),
-    gl:?framebufferRenderbuffer(?GL_FRAMEBUFFER_EXT,
+    gl:renderbufferStorage(?GL_RENDERBUFFER_EXT,Internal, W, H),
+    gl:framebufferRenderbuffer(?GL_FRAMEBUFFER_EXT,
 				?GL_DEPTH_ATTACHMENT_EXT,
 				?GL_RENDERBUFFER_EXT, Depth),
     {depth, Depth}.
 
 delete_fbo(List) ->
-    gl:?framebufferTexture2D(?GL_FRAMEBUFFER_EXT,
+    gl:framebufferTexture2D(?GL_FRAMEBUFFER_EXT,
 			     ?GL_COLOR_ATTACHMENT0_EXT,
 			     ?GL_TEXTURE_2D,0,0),
     Textures = [Col || {color, Col} <- List],
     deleteTextures(Textures),
-    gl:?framebufferRenderbuffer(?GL_FRAMEBUFFER_EXT,
+    gl:framebufferRenderbuffer(?GL_FRAMEBUFFER_EXT,
 				?GL_DEPTH_ATTACHMENT_EXT,
 				?GL_RENDERBUFFER_EXT, 0),
     Depth = [D || {depth, D} <- List],
     deleteRenderbuffers(Depth),
-    gl:?bindFramebuffer(?GL_FRAMEBUFFER_EXT, 0),
+    gl:bindFramebuffer(?GL_FRAMEBUFFER_EXT, 0),
     FB = [F || {framebuffer, F} <- List],
     deleteFramebuffers(FB).
 
 check_fbo_status(FB) ->
-    case gl:?checkFramebufferStatus(?GL_FRAMEBUFFER_EXT) of
+    case gl:checkFramebufferStatus(?GL_FRAMEBUFFER_EXT) of
 	?GL_FRAMEBUFFER_COMPLETE_EXT ->
 	    FB;
 	?GL_FRAMEBUFFER_UNSUPPORTED_EXT ->
@@ -371,7 +465,7 @@ check_fbo_status(FB) ->
 %%%%%%%%%%%%% Wrappers for functions that differs between wx and esdl
 
 bindFramebuffer(W, Fbo) ->
-    gl:?bindFramebuffer(W,Fbo).
+    gl:bindFramebuffer(W,Fbo).
 
 project(X,Y,Z, Mod, Proj, View) ->
     {_, RX,RY,RZ} = glu:project(X,Y,Z, mat(Mod), mat(Proj), View),
