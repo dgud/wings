@@ -652,10 +652,15 @@ dispatch_event(#keyboard{which=Obj}=Event) ->
     do_dispatch(get(Obj), Event);
 dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
     ?CHECK_ERROR(),
-    #win{name=Name} = Geom0 = get_window_data(Obj),
-    Geom = Geom0#win{x=0,y=0,w=W,h=H},
-    put_window_data(Name, Geom),
-    dirty();
+    case W > 0 andalso H > 0 of
+	true ->
+	    #win{name=Name} = Geom0 = get_window_data(Obj),
+	    Geom = Geom0#win{x=0,y=0,w=W,h=H},
+	    put_window_data(Name, Geom),
+	    dirty();
+	false ->
+	    ignore
+    end;
 dispatch_event(quit) ->
     foreach(fun(Name) ->
 		    send(Name, quit)
@@ -1254,11 +1259,11 @@ message_event(_) -> keep.
 
 toplevel(Name, Window, Props, Op) ->
     new(Name, Window, Op),
-    wings_frame:register_win(Window, Name, [external]),
     Do = fun({display_data, V}) -> set_dd(Name, V);
 	    ({K, V}) -> wings_wm:set_prop(Name, K, V)
 	 end,
     [Do(KV) || KV <- Props],
+    wings_frame:register_win(Window, Name, [external]),
     ok.
 
 toplevel_title(Title) ->

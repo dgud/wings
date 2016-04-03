@@ -230,7 +230,6 @@ handle_call({new_window, Window, Name, Ps}, _From,
 	    wxWindow:connect(Frame, close_window),
 	    {reply, ok, State#state{windows=Wins#{loose:=Loose#{Frame => Win}}}};
        Geom -> %% Specialcase for geom window
-	    io:format("Replace splash with geom~n",[]),
 	    Title = proplists:get_value(title, Ps),
 	    #split{w1=Dummy} = Top,
 	    Win1 = Win0#win{title=Title},
