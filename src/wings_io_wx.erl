@@ -330,11 +330,11 @@ get_motion(Motion, Eq0) ->
 
 % Resize window causes all strange of events and order
 % on different platforms
-filter_resize(#wx{event=#wxSize{}}=Ev0, Eq0) ->
+filter_resize(#wx{obj=Obj, event=#wxSize{}}=Ev0, Eq0) ->
     case queue:out(Eq0) of
 	{{value, #wx{event=#wxPaint{}}}, Eq} ->
 	    filter_resize(Ev0, Eq);
-	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
+	{{value, #wx{obj=Obj, event=#wxSize{}}=Ev}, Eq} ->
 	    filter_resize(Ev, Eq);
 	{{value, #wx{event=#wxActivate{}}}, Eq} ->
 	    filter_resize(Ev0, Eq);
