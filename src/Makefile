@@ -79,7 +79,6 @@ MODULES= \
 	wings_image \
 	wings_image_viewer \
 	wings_import \
-	wings_init \
 	wings_io \
 	wings_io_wx \
 	wings_job \
