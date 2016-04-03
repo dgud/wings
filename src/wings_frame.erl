@@ -111,7 +111,7 @@ forward_event(_Ev) ->
 
 -record(state, {toolbar, windows, overlay, images, active}).
 -record(split, {obj, mode, w1, w2}).
--record(win, {frame, win, name, title, bar}).
+-record(win, {frame, win, name, title, bar, ps}).
 
 init(_Opts) ->
     try
@@ -225,14 +225,14 @@ handle_call({new_window, Window, Name, Ps}, _From,
     if External ->
 	    Frame = wx:typeCast(wxWindow:getParent(Window), wxMiniFrame),
 	    Title = wxFrame:getTitle(Frame),
-	    Win = Win0#win{frame=Frame, title=Title},
+	    Win = Win0#win{frame=Frame, title=Title, ps=#{close=>true, move=>true}},
 	    wxWindow:connect(Frame, move),
 	    wxWindow:connect(Frame, close_window),
 	    {reply, ok, State#state{windows=Wins#{loose:=Loose#{Frame => Win}}}};
        Geom -> %% Specialcase for geom window
 	    Title = proplists:get_value(title, Ps),
 	    #split{w1=Dummy} = Top,
-	    Win1 = Win0#win{title=Title},
+	    Win1 = Win0#win{title=Title, ps=#{close=>false, move=>false}},
 	    Win = make_internal_win(win(Top), Win1),
 	    wxSplitterWindow:replaceWindow(win(Top), Dummy, win(Win)),
 	    wxWindow:destroy(Dummy),
@@ -386,7 +386,7 @@ attach_floating(_B, _, State) ->
     %% Spurious Move events on windows
     State.
 
-attach_window({_,Path}=Split, Frame, NewWin, #{szr:=Sz, ch:=#split{obj=Parent}=Child} = State) ->
+attach_window({_,Path}=Split, Frame, NewWin, #{szr:=Szr, ch:=#split{obj=Parent}=Child} = State) ->
     Attach = fun() ->
 		     {_,Pos} = preview_rect(Split, NewWin),
 		     Win = make_internal_win(Parent, NewWin),
@@ -394,11 +394,10 @@ attach_window({_,Path}=Split, Frame, NewWin, #{szr:=Sz, ch:=#split{obj=Parent}=C
 		     Root = split_win(Path, Win, Child, Pos),
 		     case win(Root) =:= win(Child) of
 			 false ->
-			     wxSizer:replace(Sz, win(Child), win(Root));
+			     wxSizer:replace(Szr, win(Child), win(Root));
 			 true -> ignore
 		     end,
-		     wxSizer:layout(Sz),
-		     %% io:format("Size after ~p~n", [wxWindow:getClientSize(NewWin)]),
+		     wxSizer:layout(Szr),
 		     check_tree(Root, Child),
 		     State#{ch:=Root}
 	     end,
@@ -425,10 +424,10 @@ split_win([Which|Path], NewWin, #split{mode=Mode} = Node, Pos) ->
 make(Parent) ->
     Style = case os:type() of
 		{unix, darwin} -> ?wxSP_3DSASH bor ?wxSP_LIVE_UPDATE;
+		{win32, _} -> ?wxSP_LIVE_UPDATE;
 		_ -> ?wxSP_3D bor ?wxSP_LIVE_UPDATE
 	    end,
     New = wxSplitterWindow:new(Parent, [{style, Style}]),
-    %% wxSplitterWindow:setSashSize(New, 20),
     wxSplitterWindow:setSashGravity(New, 0.5),
     wxSplitterWindow:setMinimumPaneSize(New, 50),
     #split{obj=New}.
@@ -549,7 +548,7 @@ update_win(Win, #split{w1=W1, w2=W2}=Parent, _, Fun) ->
 update_win(_, _, _, _) -> false.
 
 close_window(Delete, Split, Other, GrandP) ->
-    io:format("Close ~p~n",[Delete]),
+    % io:format("Close ~p~n",[Delete]),
     case GrandP of
 	Split when is_record(Other, win) -> %% TopLevel
 	    wxWindow:reparent(win(Other), win(GrandP)),
@@ -559,7 +558,7 @@ close_window(Delete, Split, Other, GrandP) ->
 	Split when is_record(Other, split) ->
 	    Frame = wxWindow:getParent(win(GrandP)),
 	    wxWindow:reparent(win(Other), Frame),
-	    wxWindow:destroy(GrandP),
+	    wxWindow:destroy(win(GrandP)),
 	    {ok, Other};
 	#split{} ->
 	    wxWindow:reparent(win(Other), win(GrandP)),
@@ -723,25 +722,34 @@ setup_timer(#{op:=Op} = St) ->
 
 -define(WIN_BAR_HEIGHT, 16).
 
-make_internal_win(Parent, #win{title=Label, win=Child}=WinC) ->
+make_internal_win(Parent, #win{title=Label, win=Child, ps=#{close:=Close, move:=Move}}=WinC) ->
     Win = wxPanel:new(Parent, []),
     PBG = wings_color:rgb4bv(wings_pref:get_value(title_passive_color)),
-    {Bar,ST} = Wins = make_bar(Win, PBG, Label),
+    {Bar,ST} = Wins = make_bar(Win, PBG, Label, Close),
+    case os:type() of
+	{win32, _} ->  wxWindow:setDoubleBuffered(Bar, true);
+	_ -> ignore
+    end,
     Top = wxBoxSizer:new(?wxVERTICAL),
-    wxSizer:add(Top, Bar, [{proportion, 0}, {flag, ?wxEXPAND}]),
+    BorderB = ?wxLEFT bor ?wxRIGHT bor ?wxUP,
+    wxSizer:add(Top, Bar, [{proportion, 0}, {flag, ?wxEXPAND bor BorderB}, {border, 2}]),
     wxWindow:reparent(Child, Win), %% Send event here
-    wxSizer:add(Top, Child,  [{proportion, 1}, {flag, ?wxEXPAND bor ?wxALL}, {border, 2}]),
+    BorderC = ?wxLEFT bor ?wxRIGHT bor ?wxDOWN,
+    wxSizer:add(Top, Child,  [{proportion, 1}, {flag, ?wxEXPAND bor BorderC}, {border, 2}]),
     wxWindow:setSizer(Win, Top),
     wxWindow:connect(Win, enter_window),
-    [wxWindow:connect(W, Ev, [{userData, {move, Win}}])
-     || Ev <- [left_down, left_up, motion], W <- [Bar,ST]],
+    Move andalso [wxWindow:connect(W, Ev, [{userData, {move, Win}}])
+		  || Ev <- [left_down, left_up, motion], W <- [Bar,ST]],
     WinC#win{frame=Win, bar=Wins}.
 
-make_bar(Parent, BG, Label) ->
+make_bar(Parent, BG, Label, Close) ->
     Bar = wxPanel:new(Parent, [{style, ?wxBORDER_SIMPLE}, {size, {-1, ?WIN_BAR_HEIGHT}}]),
     FG = wings_pref:get_value(title_text_color),
     #{size:=Sz} = FI = wings_text:get_font_info(?GET(system_font_wx)),
-    Font = wings_text:make_wxfont(FI#{size:=Sz-2}),
+    Font = case os:type() of
+	       {unix, darwin} -> wings_text:make_wxfont(FI#{size:=Sz-1});
+	       _ -> wings_text:make_wxfont(FI#{size:=Sz-2})
+	   end,
     wxPanel:setFont(Bar, Font),
     wxWindow:setBackgroundColour(Bar, BG),
     wxWindow:setForegroundColour(Bar, wings_color:rgb4bv(FG)),
@@ -750,24 +758,33 @@ make_bar(Parent, BG, Label) ->
     wxSizer:add(WBSz, ST=wxStaticText:new(Bar, ?wxID_ANY, Label), [{flag, ?wxALIGN_CENTER}]),
     {_, H} = wxWindow:getSize(ST),
     wxSizer:addStretchSpacer(WBSz),
-    Bitmap0 = wxArtProvider:getBitmap("wxART_CROSS_MARK",[{client, "wxART_MESSAGE_BOX"}]),
-    %% Im0 = wxBitmap:convertToImage(Bitmap0),
-    %% Im1 = wxImage:scale(Im0,H,H,[{quality, ?wxIMAGE_QUALITY_HIGH}]),
-    %% Bitmap = wxBitmap:new(Im1), wxImage:destroy(Im1), wxImage:destroy(Im0),
-    SBM = wxStaticBitmap:new(Bar, ?wxID_EXIT, Bitmap0),
-    %% io:format("ST = ~p~n",[wxWindow:getSize(ST)]),
-    %% io:format("SBM = ~p~n",[wxWindow:getSize(SBM)]),
-    wxSizer:add(WBSz, SBM, [{flag, ?wxALIGN_CENTER}]),
+    Close andalso make_close_button(Parent, Bar, WBSz, H),
     wxSizer:addSpacer(WBSz, 3),
     wxWindow:setSize(Bar, {-1, H+2}),
     wxWindow:setSizer(Bar, WBSz),
+    {Bar,ST}.
+
+make_close_button(Parent, Bar, WBSz, H) ->
+    Bitmap0 = wxArtProvider:getBitmap("wxART_CROSS_MARK",[{client, "wxART_MESSAGE_BOX"}]),
+    Bitmap = case os:type() of
+		{unix, linux} ->
+		     Im0 = wxBitmap:convertToImage(Bitmap0),
+		     Im1 = wxImage:scale(Im0,H,H,[{quality, ?wxIMAGE_QUALITY_HIGH}]),
+		     BM = wxBitmap:new(Im1),
+		     wxImage:destroy(Im1), wxImage:destroy(Im0),
+		     BM;
+		 {_, _} -> %% Do not scale on windows
+		     Bitmap0
+	     end,
+    SBM = wxStaticBitmap:new(Bar, ?wxID_EXIT, Bitmap),
+    %% io:format("SBM = ~p~n",[wxWindow:getSize(SBM)]),
+    wxSizer:add(WBSz, SBM, [{flag, ?wxALIGN_CENTER}]),
     Self = self(),
     CB = fun(_, Ev) ->
 		 wxMouseEvent:skip(Ev),
 		 Self ! {close_window, Parent}
 	 end,
-    wxWindow:connect(SBM, left_up, [{callback, CB}]),
-    {Bar,ST}.
+    wxWindow:connect(SBM, left_up, [{callback, CB}]).
 
 check_tree(#split{} = T, Orig) ->
     try
