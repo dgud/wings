@@ -31,7 +31,8 @@ menu(X, Y, St) ->
 	    wings_menu_util:flatten(),
 	    separator,
 	    {?STR(menu,4,"Connect"),connect_menu(),
-	     {?STR(menu,5,"Create a new edge by connecting selected vertices"),"",
+	     {?STR(menu,5,"Create a new edge by connecting selected vertices"),
+          ?STR(menu,18,"Create new edges by cuts between two selected vertices"),
 	      ?STR(menu,17,"Connect vertices and return the new edge selected")},[]},
 	    {?STR(menu,6,"Tighten"),tighten,
 	     ?STR(menu,7,"Move selected vertices towards average midpoint"),[magnet]},
@@ -50,8 +51,8 @@ menu(X, Y, St) ->
 connect_menu() ->
     fun
       (1, _Ns) -> {vertex,connect};
-      (3, _Ns) -> {vertex,connecting_edge};
-      (_, _) -> ignore
+      (2, _Ns) -> {vertex,connect_cuts};
+      (3, _Ns) -> {vertex,connecting_edge}
     end.
 
 %% Vertex menu.
@@ -59,6 +60,8 @@ command({flatten,Plane}, St) ->
     flatten(Plane, St);
 command(connect, St) ->
     {save_state,connect(St)};
+command(connect_cuts, St) ->
+    {save_state,connect_cuts(St)};
 command(connecting_edge, St) ->
     {save_state,connecting_edge(St)};
 command(tighten, St) ->
@@ -427,7 +430,7 @@ bevel_scale_factor(Va, Vb, #we{vp=Vtab}) ->
 %%% The Connect command.
 %%%
 
-connect(St) ->
+connect(#st{}=St) ->
     wings_sel:map(fun connect/2, St).
 
 connect(Vs0, #we{mirror=MirrorFace}=We) ->
@@ -447,6 +450,46 @@ connecting_edge(Vs0, #we{mirror=MirrorFace, id=Id}=We0, A) ->
        end, We0, FaceVs),
     Sel = wings_we:new_items_as_gbset(edge, We0, We1),
     {We1,[{Id,Sel}|A]}.
+
+connect_cuts(#st{sel=[{WeID,Set}]}=St0) ->
+    Sz = gb_sets:size(Set),
+    if (Sz == 2 orelse Sz == 3) ->
+        ok;
+    true ->
+        wings_u:error_msg("Defined only for two or three selected vertices.")
+    end,
+    #we{} = We = gb_trees:get(WeID,St0#st.shapes),
+    List = gb_sets:to_list(Set),
+    Dict = combinations(List),
+    MyAcc = fun({VS0,VE0}, {_Set,#we{}=_We}) ->
+        {Set2,We2} = wings_vertex:connect(VS0,VE0,_We),
+        {gb_sets:union(Set2,_Set), We2}
+    end,
+    {VsConn,We5} = lists:foldl(MyAcc, {gb_sets:empty(), We}, Dict),
+    St1 = wings_shape:replace(WeID,We5,St0),
+    Es = wings_edge:from_vs(gb_sets:to_list(VsConn), We5),
+    TwoVs = fun(Ei) ->
+        #edge{vs=VS,ve=VE} = array:get(Ei,We5#we.es),
+        SetTwo = gb_sets:from_list([VS,VE]),
+        I = gb_sets:intersection(SetTwo,VsConn),
+        gb_sets:size(I) == 2
+    end,
+    Es2 = gb_sets:from_list(lists:filter(TwoVs, Es)),
+    NoWinged = fun(Ei) ->  %% exclude if all four wings are in the selection
+         #edge{ltpr=Ea,ltsu=Eb,rtpr=Ec,rtsu=Ed} = array:get(Ei,We5#we.es),
+         SetWing = gb_sets:from_list([Ea,Eb,Ec,Ed]),
+         I = gb_sets:intersection(Es2,SetWing),
+         gb_sets:size(I) /= 4
+    end,
+    Es3 = gb_sets:filter(NoWinged, Es2),
+    St1#st{selmode=edge,sel=[{WeID,Es3}]};
+connect_cuts(#st{}) ->
+    wings_u:error_msg("Defined only for two or three selected vertices, single object.").
+
+combinations(List) -> 
+    Dict = [ if (A /= B) -> {A,B}; true -> [] end || A<-List,B<-List],
+    lists:flatten(Dict).
+
 
 %%%
 %%% The Tighten command.
