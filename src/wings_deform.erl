@@ -128,14 +128,14 @@ crumple(Dir, St) ->
     wings_drag:setup(Tvs, [{percent,{-20.0,20.0}}], St).
 
 crumple(normal, Vs0, #we{id=Id}=We, Acc) ->
-    {Sa,Sb,Sc} = os:timestamp(),
+    ExpSeed = rand:export_seed(rand:seed_s(exs64)),
     Vs = gb_sets:to_list(Vs0),
     VsPos0 = wings_util:add_vpos(Vs, We),
     VsPos = [{V,Pos,wings_vertex:normal(V, We)} || {V,Pos} <- VsPos0],
     Fun = fun([Dx], A) ->
-		  random:seed(Sa, Sb, Sc),
+		  rand:seed(ExpSeed),
 		  foldl(fun({V,Pos0,N}, VsAcc) ->
-				{R1,_,_} = rnd(Dx/10),
+				R1 = rand:normal()*Dx/10,
 				Pos = e3d_vec:add_prod(Pos0, N, R1),
 				[{V,Pos}|VsAcc]
 			end, A, VsPos)
@@ -143,11 +143,11 @@ crumple(normal, Vs0, #we{id=Id}=We, Acc) ->
     [{Id,{Vs,Fun}}|Acc];
 crumple(Dir, Vs0, #we{id=Id}=We, Acc) ->
     {Xmask,Ymask,Zmask} = crumple_mask(Dir),
-    {Sa,Sb,Sc} = os:timestamp(),
+    ExpSeed = rand:export_seed(rand:seed_s(exs64)),
     Vs = gb_sets:to_list(Vs0),
     VsPos = wings_util:add_vpos(Vs, We),
     Fun = fun([Dx], A) ->
-		  random:seed(Sa, Sb, Sc),
+		  rand:seed(ExpSeed),
 		  foldl(fun({V,{X0,Y0,Z0}}, VsAcc) ->
 				{R1,R2,R3} = rnd(Dx/4),
 				X = X0 + R1*Xmask,
@@ -164,20 +164,7 @@ crumple_mask(z) -> {0,0,1};
 crumple_mask(random) -> {1,1,1}.
 
 rnd(Sc) when is_float(Sc) ->
-    %% Use Box-Muller's method for generation of normally-distributed
-    %% random numbers.
-    X1 = random:uniform(),
-    X2 = random:uniform(),
-    A1 = 2*?PI*X2,
-    R1 = math:sqrt(-2.0*math:log(X1)),
-    Y1 = R1*math:cos(A1),
-    Y2 = R1*math:sin(A1),
-    
-    X3 = random:uniform(),
-    X4 = random:uniform(),
-    Y3 = math:sqrt(-2.0*math:log(X3))*math:cos(2*?PI*X4),
-    
-    {Sc*(Y1-0.5),Sc*(Y2-0.5),Sc*(Y3-0.5)}.
+    {Sc*rand:normal(),Sc*rand:normal(),Sc*rand:normal()}.
 
 %%
 %% The Inflate deformer.
