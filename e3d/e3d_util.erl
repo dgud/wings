@@ -53,7 +53,7 @@ remove_chars([{Key,Orig}|T], Max, Acc) when length(Key) >= Max ->
     New = {sublist(Key, Max-1)++sublist(Orig, Max+1, 999999),Orig},
     remove_chars(T, Max, [New|Acc]);
 remove_chars([{Key,Orig}|T], Max, Acc) ->
-    C = trunc($a+random:uniform(26)),
+    C = trunc($a+rand:uniform(26)),
     remove_chars(T, Max, [{[C|Key],Orig}|Acc]);
 remove_chars([], Max, Acc) ->
     L0 = [{sublist(Key, Max),Key} || {Key,_} <- Acc],

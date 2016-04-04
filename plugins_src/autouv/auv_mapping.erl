@@ -1030,9 +1030,6 @@ stretch_opt(We0, OVs) ->
     wings_pb:start(?__(1,"optimizing")),
     wings_pb:update(0.01, ?__(2,"initializing")),
 
-    {_,R1,R2} = os:timestamp(),
-    random:seed(R2, R1, 128731),
-
     %% {FaceToStretchMean, FaceToStretchWorst,FaceToVerts,VertToFaces,VertToUvs}
     {F2S2,_F2S8,Uvs,State,Scale} = stretch_setup(Fs,We0,OVs),
 
@@ -1103,8 +1100,8 @@ stretch_iter2(_,V2S,F2S2,Uvs,_) ->
     {V2S, F2S2, Uvs}.
 
 random_line() ->
-    X   = random:uniform()-0.5,
-    Y   = random:uniform()-0.5,
+    X   = rand:uniform()-0.5,
+    Y   = rand:uniform()-0.5,
     Len = math:sqrt(X*X+Y*Y),
     {X/Len,Y/Len}.
 
