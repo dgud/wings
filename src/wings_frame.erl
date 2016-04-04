@@ -11,7 +11,7 @@
 
 -module(wings_frame).
 
--export([top_menus/0, make_win/2, register_win/3, close/1,
+-export([top_menus/0, make_win/2, register_win/3, close/1, set_focus/1,
 	 get_icon_images/0, get_colors/0]).
 
 -export([start/0, forward_event/1]).
@@ -24,6 +24,11 @@
 
 -define(NEED_ESDL, 1). %% event mapping
 -include("wings.hrl").
+
+-define(IS_GEOM(Name),
+	((Name =:= geom)
+	 orelse (element(1, Name) =:= geom)
+	 orelse (element(1, Name) =:= autouv))).
 
 %% API  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -85,12 +90,18 @@ get_colors() ->
 close(Win) ->
     wx_object:cast(?MODULE, {close, Win}).
 
+set_focus(Win) ->
+    wx_object:cast(?MODULE, {active, Win}).
+
 %%%%%%%% Internals %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Inside wings (process)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 forward_event({current_state, #st{selmode=Mode, sh=Sh}}) ->
-    wx_object:cast(?MODULE, {selmode, Mode, Sh}),
+    wx_object:cast(?MODULE, {selmode, geom, Mode, Sh}),
+    keep;
+forward_event({current_state, Win, #st{selmode=Mode, sh=Sh}}) ->
+    wx_object:cast(?MODULE, {selmode, Win, Mode, Sh}),
     keep;
 forward_event({mode_restriction, _}=Restrict) ->
     wx_object:cast(?MODULE, Restrict),
@@ -171,29 +182,26 @@ handle_event(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}, State) ->
     %% io:format("ME ~p~n",[ME]),
     wings ! ME,
     {noreply, State};
-handle_event(#wx{event=#wxActivate{active=Active}}=Ev, State) ->
-    Active == true andalso wxWindow:setFocus(?GET(gl_canvas)),
-    wings ! Ev,
-    {noreply, State};
+
 handle_event(#wx{obj=Obj, event=#wxMouse{type=enter_window}},
-	     #state{active=Prev, windows=#{ch:=Root}} = State) ->
-    ABG = wings_color:rgb4bv(wings_pref:get_value(title_active_color)),
-    PBG = wings_color:rgb4bv(wings_pref:get_value(title_passive_color)),
+	     #state{windows=#{ch:=Root}} = State) ->
     % io:format("~s Type ~p ~p ~p~n",[Label, Type, ABG, PBG]),
-    try
-	#win{bar={PBar,_}} = Prev,
-	_ = wxWindow:getSize(PBar), %% Sync check PBar validity
-	wxWindow:setBackgroundColour(PBar, PBG),
-	wxWindow:refresh(PBar)
-    catch _:_ -> ignore
-    end,
     case find_win(Obj, Root) of
 	false ->
-	    {noreply, State#state{active=undefined}};
-	#win{bar={ABar,_}} = Win ->
-	    wxWindow:setBackgroundColour(ABar, ABG),
-	    wxWindow:refresh(ABar),
-	    {noreply, State#state{active=Win}}
+	    {noreply, update_active(undefined, State)};
+	#win{name=Name} when ?IS_GEOM(Name) ->
+	    {noreply, State}; % handled by wings_wm
+	#win{name=Name} ->
+	    wings ! {wm, {active, Name}},
+	    {noreply, update_active(Name, State)}
+    end;
+
+handle_event(#wx{event=#wxActivate{active=Active}}=Ev, State) ->
+    %% io:format("Active ~p~n",[Active]),
+    wings ! Ev,
+    case Active of
+	false -> {noreply, update_active(undefined, State)};
+	true  -> {noreply, State}
     end;
 
 handle_event(#wx{obj=Obj, event=#wxClose{}}, #state{windows=Wins}=State) ->
@@ -246,7 +254,7 @@ handle_call(Req, _From, State) ->
     {reply, ok, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
-handle_cast({selmode, _, _}=Sel, #state{toolbar=TB}=State) ->
+handle_cast({selmode, _, _, _}=Sel, #state{toolbar=TB}=State) ->
     {noreply, State#state{toolbar=wings_toolbar:update(Sel, TB)}};
 handle_cast({mode_restriction, _}=Restrict, #state{toolbar=TB}=State) ->
     {noreply, State#state{toolbar=wings_toolbar:update(Restrict, TB)}};
@@ -254,13 +262,15 @@ handle_cast({menu, {Menu, Key, Value}=Update}, #state{toolbar=TB}=State) ->
     wings_menu:update_menu_enabled(Menu, Key, Value),
     wings_toolbar:update(Update, TB),
     {noreply, State};
-handle_cast({got_focus, _Window, Props}, #state{toolbar=TB}=State) ->
+handle_cast({got_focus, Window, Props}, #state{toolbar=TB0}=State) ->
     Fun = fun(Menu, Key, Value) ->
 		  wings_menu:update_menu_enabled(Menu, Key, Value),
-		  wings_toolbar:update({Menu, Key, Value}, TB)
+		  wings_toolbar:update({Menu, Key, Value}, TB0)
 	  end,
     [Fun(view, Key, Value) || {Key, Value} <- Props, is_boolean(Value)],
-    {noreply, State};
+    ModeRest = proplists:get_value(mode_restriction, Props, none),
+    TB = wings_toolbar:update({active, Window, ModeRest}, TB0),
+    {noreply, update_active(Window, State#state{toolbar=TB})};
 handle_cast({close, Win}, #state{windows=#{ch:=Child,loose:=Loose,szr:=Szr}=Wins}=State) ->
     case find_win(Win, Child) of
 	false ->
@@ -316,6 +326,27 @@ terminate(_Reason, #state{windows=#{frame:=Frame}}) ->
 
 %%%%%%%%%%%%%%%%%%%%%%
 %% Window Management
+
+update_active(Name, #state{active=Prev, windows=#{ch:=Root}}=State) ->
+    ABG = wings_color:rgb4bv(wings_pref:get_value(title_active_color)),
+    PBG = wings_color:rgb4bv(wings_pref:get_value(title_passive_color)),
+    try
+	#win{bar={PBar,_}} = find_win(Prev, Root),
+	_ = wxWindow:getSize(PBar), %% Sync to check PBar validity
+	wxWindow:setBackgroundColour(PBar, PBG),
+	wxWindow:refresh(PBar)
+    catch _:_ -> ignore
+    end,
+    try find_win(Name, Root) of
+	false ->
+	    State#state{active=undefined};
+	#win{bar={ABar,_}} ->
+	    wxWindow:setBackgroundColour(ABar, ABG),
+	    wxWindow:refresh(ABar),
+	    State#state{active=Name}
+    catch _:_ ->
+	    State
+    end.
 
 preview_attach(false, Pos, Frame,
 	       #state{windows=#{action:=Action}=Wins, overlay=Overlay}=State)
@@ -525,8 +556,11 @@ find_win(Frame, #split{w1=W1,w2=W2}) ->
 	false -> W2 =/= undefined andalso find_win(Frame, W2);
 	Win -> Win
     end;
+find_win(Name, #win{name=Name} = Win)  -> Win;
 find_win(Frame, #win{frame=F, win=W}=Win) ->
-    case wings_util:wxequal(Frame,F) orelse wings_util:wxequal(Frame,W) of
+    IsRef = is_tuple(Frame) andalso element(1, Frame) =:= wx_ref,
+    case IsRef andalso (wings_util:wxequal(Frame,F) orelse
+			wings_util:wxequal(Frame,W)) of
 	true -> Win;
 	false -> false
     end.
