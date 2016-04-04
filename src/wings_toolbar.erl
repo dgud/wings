@@ -20,11 +20,26 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Toolbar
 
-update({selmode, Mode, Sh}, #{mode:=Mode, sh:=Sh}=TB) ->
+update({active, Win, Restr}, #{active:=Win, restr:=Restr}=St) ->
+    St;
+update({active, Win, Restr}, #{me:=TB, wins:=Wins}=St) ->
+    case maps:get(Win, Wins, false) of
+	false ->
+	    update({active, geom, Restr}, St);
+	{Mode,Sh} ->
+	    update_selection(TB, Mode, Sh, Restr),
+	    St#{mode:=Mode, sh:=Sh, active:=Win, restr=>Restr}
+    end;
+update({selmode, _, Mode, Sh}, #{mode:=Mode, sh:=Sh}=TB) ->
     TB;
-update({selmode, Mode, Sh}, #{me:=TB, restr:=Restr}=St) ->
-    update_selection(TB, Mode, Sh, Restr),
-    St#{mode:=Mode, sh:=Sh};
+update({selmode, Win, Mode, Sh}, #{active:=Active, me:=TB, restr:=Restr, wins:=Wins}=St) ->
+    case Active of
+	Win ->
+	    update_selection(TB, Mode, Sh, Restr),
+	    St#{mode:=Mode, sh:=Sh, wins=>Wins#{Win=>{Mode, Sh}}};
+	_ ->
+	    St#{wins=>Wins#{Win=>{Mode, Sh}}}
+    end;
 update({mode_restriction, Restr}, #{me:=TB, mode:=Mode, sh:=Sh}=St) ->
     update_selection(TB, Mode, Sh, Restr),
     St#{restr:=Restr};
@@ -46,8 +61,8 @@ update_selection(TB, Mode, Sh, Restr) ->
     States = [{Butt, wings_menu:predefined_item(toolbar, Butt),
 	       Butt =:= Mode orelse button_sh_filter(Butt, Sh)}
 	      || Butt <- All],
-    [wxToolBar:enableTool(TB, Id, lists:member(Butt, Enabled)) || {Butt, Id, _} <- States],
-    [wxToolBar:toggleTool(TB, Id, State) || {_, Id, State} <- States].
+    [wxToolBar:toggleTool(TB, Id, State) || {_, Id, State} <- States],
+    [wxToolBar:enableTool(TB, Id, lists:member(Butt, Enabled)) || {Butt, Id, _} <- States].
 
 button_restrict(Buttons, none) -> Buttons;
 button_restrict(_Buttons, Restr) -> Restr.
@@ -72,8 +87,8 @@ init(Frame, Icons) ->
     %% wxToolBar:connect(TB, comand_tool_rclicked, [{skip, true}]),
     %% wxToolBar:connect(TB, comand_tool_enter, [{skip, true}]),
     wxToolBar:realize(TB),
-    State = #{me=>TB, mode=>vertex, sh=>true, restr=>none, bs=>Bs},
-    update({selmode, face, true}, State).
+    State = #{me=>TB, mode=>vertex, sh=>true, restr=>none, bs=>Bs, active=>geom, wins=>#{}},
+    update({selmode, geom, face, true}, State).
 
 buttons() ->
     [make_button(open, normal, "wxART_FILE_OPEN"),

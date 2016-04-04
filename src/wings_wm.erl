@@ -22,7 +22,6 @@
 	 this/0,this_win/0,
 	 offset/3,pos/1,windows/0,is_window/1,
 	 is_wxwindow/1,wxwindow/1,
-	 window_below/2,geom_below/2,
 	 update_window/2,clear_background/0,
 	 callback/1,current_state/1,get_current_state/0,notify/1,
 	 local2global/1,local2global/2,global2local/2,local_mouse_state/0,
@@ -43,9 +42,6 @@
 
 %% Setting the information bar message.
 -export([message/1,message/2,message_right/1]).
-
-%% Menubar management.
--export([menubar/2,get_menubar/1]).
 
 %% Drag & Drop support.
 -export([drag/3,drag/4,allow_drag/1]).
@@ -81,8 +77,7 @@
 -record(se,					%Stack entry record.
 	{h,					%Handler (fun).
 	 msg=[],				%Current message.
-	 msg_right=[],				%Right-side message.
-	 menubar=[]				%Menubar for this window.
+	 msg_right=[]				%Right-side message.
 	}).
 
 %%%
@@ -155,13 +150,6 @@ message_right(Right) ->
 message(Message, Right) ->
     message(Message),
     message_right(Right).
-
-menubar(Name, Menubar) ->
-    wings_io:putback_event({wm,{menubar,Name,Menubar}}).
-
-get_menubar(Name) ->
-    #win{stk=[#se{menubar=Bar}|_]} = get_window_data(Name),
-    Bar.
 
 later(Ev) ->
     wings_io:putback_event({wm,{send_to,this(),Ev}}),
@@ -349,8 +337,7 @@ this() ->
     end.
 
 this_win() ->
-    #win{obj=Obj} = get_window_data(this()),
-    Obj.
+    wxwindow(this()).
 
 is_geom() ->
     case this() of
@@ -359,7 +346,7 @@ is_geom() ->
       _ -> false
     end.
 
-windows() ->	    
+windows() ->
     gb_trees:keys(get(wm_windows)).
 
 is_window(Name) ->
@@ -368,8 +355,7 @@ is_window(Name) ->
 is_wxwindow(Name) ->
     case gb_trees:is_defined(Name, get(wm_windows)) of
 	true ->
-	    #win{obj=Obj} = get_window_data(Name),
-	    Obj =/= undefined;
+	    wxwindow(Name) =/= undefined;
 	false ->
 	    false
     end.
@@ -651,11 +637,37 @@ dispatch_matching(Filter) ->
     foreach(fun dispatch_event/1, Evs).
 
 dispatch_event(#mousemotion{which=Obj}=Event) ->
-    do_dispatch(get(Obj), Event);
+    Win = get(Obj),
+    case get(wm_focus) of
+	Win ->
+	    do_dispatch(Win, Event);
+	Focused ->
+	    case get(wm_timer) of
+		undefined ->
+		    put(wm_timer, wings_io:set_timer(300, {wm, {timer_active, Win, Focused}}));
+		_ -> ignore
+	    end,
+	    do_dispatch(Win, Event)
+    end;
 dispatch_event(#mousebutton{which=Obj}=Event) ->
+    update_focus(get(Obj)),
     do_dispatch(get(Obj), Event);
 dispatch_event(#keyboard{which=Obj}=Event) ->
-    do_dispatch(get(Obj), Event);
+    case Obj of
+	menubar -> do_dispatch(menubar_focus(), Event);
+	_ -> do_dispatch(get(Obj), Event)
+    end;
+dispatch_event({menubar,Ev}) ->
+    do_dispatch(menubar_focus(), Ev);
+dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
+    case Active of
+	true ->
+	    update_focus(menubar_focus()),
+	    dirty();
+	false ->
+	    update_focus(none),
+	    ignore
+    end;
 dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
     ?CHECK_ERROR(),
     case W > 0 andalso H > 0 of
@@ -668,17 +680,11 @@ dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
 	    ignore
     end;
 dispatch_event(quit) ->
-    foreach(fun(Name) ->
-		    send(Name, quit)
-	    end, gb_trees:keys(get(wm_windows)));
+    foreach(fun(Name) -> send(Name, quit) end, gb_trees:keys(get(wm_windows)));
 dispatch_event({wm,WmEvent}) ->
     wm_event(WmEvent);
 dispatch_event(Ev = {external,_}) ->
     send(geom,Ev);
-dispatch_event({menubar,Ev}) ->
-    menubar_event(geom, Ev);
-dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
-    Active andalso dirty();
 dispatch_event(#wx{event=#wxPaint{}}) ->
     dirty();
 dispatch_event(#wx{obj=Obj}=Event) ->
@@ -686,67 +692,52 @@ dispatch_event(#wx{obj=Obj}=Event) ->
 
 dispatch_event(Event) ->
     case find_active() of
-	Active when Event#keyboard.which =:= menubar ->
-	    menubar_event(Active, Event);
 	none ->
 	    io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Event]),
 	    update_focus(none);
 	Active ->
-	    update_focus(Active),
 	    do_dispatch(Active, Event)
     end.
 
-menubar_event(Window, Event) ->
-    case get(mb_focus) of
-	undefined -> 
-	    menubar_focus(Window),
-	    menubar_event(Window, Event);
-	ignore -> 
-	    send(geom, Event);
-	Active ->
-	    send(Active,Event)
-    end.
+menubar_focus() ->
+    menubar_focus_1([get(wm_focus), get(wm_focus_prev)]).
 
-menubar_focus(Window) ->
-    {Send, Focus} = case Window of
-			{_, geom} -> {true, geom};
-			{_, Geom={geom,_}} -> {true, Geom};
-			geom -> {true, geom};
-			Geom={geom,_} -> {true, Geom};
-			dialog_blanket -> {false, dialog_blanket};
-			_ -> {false, ignore}
-		    end,
-    %% io:format("Set mb focus ~p ~p~n", [Window, Focus]),
-    Send andalso send(top_frame, {got_focus, Focus, get_props(Focus)}),
-    put(mb_focus, Focus).
+menubar_focus_1([undefined|Rest]) ->
+    menubar_focus_1(Rest);
+menubar_focus_1([Win|Rest]) ->
+    case lookup_window_data(Win) of
+	none -> menubar_focus_1(Rest);
+	_ -> Win
+    end;
+menubar_focus_1([]) -> geom.
 
 update_focus(none) ->
     case erase(wm_focus) of
 	undefined -> ok;
 	OldActive ->
-	    dirty(),
+	    put(wm_focus_prev, OldActive),
 	    do_dispatch(OldActive, lost_focus)
     end;
 update_focus(Active) ->
     case put(wm_focus, Active) of
-	undefined ->
-	    dirty(),
-	    menubar_focus(Active),
-	    do_dispatch(Active, got_focus);
 	Active -> ok;
+	undefined ->
+	    wxWindow:setFocus(wxwindow(Active)),
+	    send(top_frame, {got_focus, Active, get_props(Active)}),
+	    do_dispatch(Active, got_focus);
 	OldActive ->
-	    dirty(),
 	    do_dispatch(OldActive, lost_focus),
-	    menubar_focus(Active),
+	    wxWindow:setFocus(wxwindow(Active)),
+	    send(top_frame, {got_focus, Active, get_props(Active)}),
 	    do_dispatch(Active, got_focus)
     end.
 
 do_dispatch(Active, Ev) ->
-    case gb_trees:lookup(Active, get(wm_windows)) of
+    case lookup_window_data(Active) of
 	none ->
-	    % io:format("~p:~p: Dropped Event ~p: ~p~n",[?MODULE,?LINE, Active, Ev]),
+	    io:format("~p:~p: Dropped Event ~p: ~p~n",[?MODULE,?LINE, Active, Ev]),
 	    ok;
-	{value,Win0} ->
+	Win0 ->
 	    case send_event(Win0, Ev) of
 		#win{name=Name,stk=delete} ->
 		    %% io:format("~p:~p delete~n",[?MODULE,?LINE]),
@@ -844,7 +835,7 @@ send_event(#win{name=Name,w=W,h=H,stk=[Se|_]=Stk0,obj=Obj}, Ev0)
 	false -> ignore
     end,
     OldActive = put(wm_active, Name),
-    Ev = translate_event(Ev0, 0, 0),
+    Ev = translate_event(Ev0),
     Stk = handle_event(Se, Ev, Stk0),
     case OldActive of
 	undefined -> erase(wm_active);
@@ -862,22 +853,20 @@ send_event(#win{name=Name,stk=[Se|_]=Stk0}, Ev) ->
     Win = get_window_data(Name),
     Win#win{stk=Stk}.
 
-translate_event(#mousemotion{state=Mask0,x=X,y=Y,mod=Mod0}=M, Ox, Oy) ->
+translate_event(#mousemotion{state=Mask0,mod=Mod0}=M) ->
     {Mask,Mod} = translate_bmask(Mask0, Mod0),
-    M#mousemotion{state=Mask,x=X-Ox,y=Y-Oy,mod=Mod};
-translate_event(#mousebutton{button=B0,x=X,y=Y,mod=Mod0,state=?SDL_PRESSED}=M, Ox, Oy) ->
+    M#mousemotion{state=Mask, mod=Mod};
+translate_event(#mousebutton{button=B0,mod=Mod0,state=?SDL_PRESSED}=M) ->
     {B,Mod} = translate_button(B0, Mod0),
-    M#mousebutton{button=B,x=X-Ox,y=Y-Oy,mod=Mod};
-translate_event(#mousebutton{button=B0,x=X,y=Y,state=?SDL_RELEASED}=M, Ox, Oy) ->
+    M#mousebutton{button=B,mod=Mod};
+translate_event(#mousebutton{button=B0,state=?SDL_RELEASED}=M) ->
     case erase({button_up,B0}) of
-	undefined ->
-	    M#mousebutton{x=X-Ox,y=Y-Oy};
-	{B,Mod} ->
-	    M#mousebutton{button=B,x=X-Ox,y=Y-Oy,mod=Mod}
+	undefined -> M;
+	{B,Mod} ->   M#mousebutton{button=B,mod=Mod}
     end;
-translate_event({drop,{X,Y},DropData}, Ox, Oy) ->
-    {drop,{X-Ox,Y-Oy},DropData};
-translate_event(Ev, _, _) -> Ev.
+translate_event({drop,{X,Y},DropData}) ->
+    {drop,{X,Y},DropData};
+translate_event(Ev) -> Ev.
 
 handle_event(State, Event, Stk) ->
     try
@@ -964,17 +953,17 @@ default_stack(Name) ->
 %%% Handling Wm Events.
 %%%
 
-wm_event(dirty) -> 
+wm_event(dirty) ->
     dirty();
 wm_event({message,Name,Msg}) ->
     case lookup_window_data(Name) of
 	none -> ok;
 	#win{stk=[#se{msg=Msg}|_]} -> ok;
 	#win{stk=[Top0|Stk]}=Data0 ->
-		Top = Top0#se{msg=Msg},
-		Data = Data0#win{stk=[Top|Stk]},
-		put_window_data(Name, Data),
-		dirty()
+	    Top = Top0#se{msg=Msg},
+	    Data = Data0#win{stk=[Top|Stk]},
+	    put_window_data(Name, Data),
+	    dirty()
     end;
 wm_event({message_right,Name,Right0}) ->
     Right = lists:flatten(Right0),
@@ -982,20 +971,24 @@ wm_event({message_right,Name,Right0}) ->
 	none -> ok;
 	#win{stk=[#se{msg_right=Right}|_]} -> ok;
 	#win{stk=[Top0|Stk]}=Data0 ->
-		Top = Top0#se{msg_right=Right},
-		Data = Data0#win{stk=[Top|Stk]},
-		put_window_data(Name, Data),
-		dirty()
-    end;
-wm_event({menubar,Name,Menubar}) ->
-    case lookup_window_data(Name) of
-	none -> ok;
-	#win{stk=[#se{menubar=Menubar}|_]} -> ok;
-	#win{stk=[Top|Stk]}=Data0 ->
-	    Data = Data0#win{stk=[Top#se{menubar=Menubar}|Stk]},
+	    Top = Top0#se{msg_right=Right},
+	    Data = Data0#win{stk=[Top|Stk]},
 	    put_window_data(Name, Data),
 	    dirty()
     end;
+wm_event({active, _Name}) ->
+    update_focus(none);
+wm_event({timer_active, Name, Prev}) ->
+    erase(wm_timer),
+    case get(wm_focus) of
+	Prev ->
+	    case find_active() of
+		Name -> update_focus(Name);
+		_ -> ignore
+	    end;
+	_ -> ignore
+    end;
+
 wm_event({send_to,Name,Ev}) ->
     %%io:format("~p:~p: ~p ~P~n",[?MODULE,?LINE,Name,Ev,10]),
     case gb_trees:is_defined(Name, get(wm_windows)) of
@@ -1012,14 +1005,14 @@ wm_event({send_once, Name, Ev}) ->
     ok;
 wm_event({callback,Cb}) ->
     Cb().
-    
+
 %%%
-%%% Finding the active window.
+%%% Finding the active geom window, wings_wm only handles focus of geom windows
 %%%
 
 find_active() ->
     case get(wm_focus_grab) of
- 	undefined -> window_below(wx_misc:getMousePosition());
+ 	undefined -> geom_below(wx_misc:getMousePosition());
  	Focus -> Focus
     end.
 
@@ -1029,7 +1022,7 @@ window_below(Pos) ->
     Win0 = wx_misc:findWindowAtPoint(Pos),
     case wx:is_null(Win0) of
 	true -> none;
-	_ ->
+	false ->
 	    All = gb_trees:values(get(wm_windows)),
 	    find_window(All, All, Win0)
     end.
@@ -1041,22 +1034,24 @@ find_window([#win{name=Name, obj=Obj}|Wins], All, Win) ->
     end;
 find_window([], All, Win) ->
     try wxWindow:getParent(Win) of
-	P -> wx:is_null(P) orelse find_window(All, All, P)
+	P -> case wx:is_null(P) of
+                 true -> none;
+                 false -> find_window(All, All, P)
+             end
     catch _:_ -> none
     end.
 
-geom_below(X, Y) ->
-    Windows = windows(),
-    Geoms = [geom|[Geom|| {geom,_}=Geom <- Windows]],
-    {Window,_} = foldl(fun(Name, {_,Z0}=Acc) ->
-        #win{x=Wx,y=Wy,w=W,h=H,z=Z} = get_window_data(Name),
-        case {X-Wx,Y-Wy} of
-            {Rx,Ry} when 0 =< Rx, Rx < W,0 =< Ry, Ry < H, Z >= Z0 -> {Name,Z};
-            _ -> Acc
-        end
-    end, {none,0}, Geoms),
-    Window.
-
+geom_below(Pos) ->
+    Win0 = wx_misc:findWindowAtPoint(Pos),
+    case wx:is_null(Win0) of
+	true -> none;
+	false ->
+            All = windows(),
+            Geoms0 = [geom|[Geom|| {Win,_}=Geom <- All,
+                                   Win =:= geom orelse Win =:= autouv]],
+            Geoms = [get_window_data(Name) || Name <- Geoms0],
+            find_window(Geoms, Geoms, Win0)
+    end.
 
 %%%
 %%% Drag and drop support.

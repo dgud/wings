@@ -244,12 +244,12 @@ get_bin(Buff) ->
 
 change_event_handler(?SDL_KEYUP, true) ->
     case get_state() of
-	#io{key_up=true} -> false;
+	#io{key_up=true} -> ok;
 	Io -> put_state(Io#io{key_up=true})
     end;
 change_event_handler(?SDL_KEYUP, false) ->
     case get_state() of
-	#io{key_up=false} -> false;
+	#io{key_up=false} -> ok;
 	Io -> put_state(Io#io{key_up=false})
     end.
 
@@ -270,7 +270,7 @@ read_events(Eq0) ->
 read_events(Eq0, Prev, Wait) ->
     receive
 	#wx{event=#wxMouse{type=motion}} = Ev ->
-	    read_events(Eq0, Ev, 0);
+	    read_events(Eq0, Ev, 0+1);
 	#wx{} = Ev ->
 	    read_events(q_in(Ev, q_in(Prev, Eq0)), undefined, 0);
 	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
@@ -291,7 +291,7 @@ read_events(Eq0, Prev, Wait) ->
     after Wait ->
 	    case read_one(q_in(Prev, Eq0)) of
 		{#wx{event=#wxMouse{type=motion}} = Ev, Eq} ->
-		    get_motion(Ev, Eq); % Throw old motions
+		    {wx_translate(Ev),Eq};
 		{empty, Eq} ->
 		    read_events(Eq, undefined, infinity);
 		{Ev, Eq} ->
@@ -304,11 +304,6 @@ q_in(Ev, Eq) -> queue:in(Ev, Eq).
 
 read_one(Eq0) ->
     case queue:out(Eq0) of
-	{{value,#wxMouse{type=motion}=Event},Eq} ->
-	    case put(prev_mouse, Event) of
-		Event -> read_one(Eq);
-		_ -> {Event, Eq}
-	    end;
 	{{value,#wx{event=#wxKey{type=key_up}}=Event},Eq} ->
 	    case get_state() of
 		#io{key_up=true} -> {Event, Eq};
@@ -320,14 +315,6 @@ read_one(Eq0) ->
 	    Empty
     end.
 
-get_motion(Motion, Eq0) ->
-    case read_one(Eq0) of
-	{#wx{event=#wxMouse{type=motion}}=New,Eq} ->
-	    get_motion(New, Eq);
-	_Other ->
-	    {wx_translate(Motion),Eq0}
-    end.
-
 % Resize window causes all strange of events and order
 % on different platforms
 filter_resize(#wx{obj=Obj, event=#wxSize{}}=Ev0, Eq0) ->
@@ -336,7 +323,7 @@ filter_resize(#wx{obj=Obj, event=#wxSize{}}=Ev0, Eq0) ->
 	    filter_resize(Ev0, Eq);
 	{{value, #wx{obj=Obj, event=#wxSize{}}=Ev}, Eq} ->
 	    filter_resize(Ev, Eq);
-	{{value, #wx{event=#wxActivate{}}}, Eq} ->
+	{{value, #wx{event=#wxActivate{active=true}}}, Eq} ->
 	    filter_resize(Ev0, Eq);
 	_ ->
 	    {wx_translate(Ev0), Eq0}
@@ -347,7 +334,7 @@ filter_resize(#wx{event=#wxPaint{}}=Ev0, Eq0) ->
 	    filter_resize(Ev0, Eq);
 	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
 	    filter_resize(Ev, Eq);
-	{{value, #wx{event=#wxActivate{}}}, Eq} ->
+	{{value, #wx{event=#wxActivate{active=true}}}, Eq} ->
 	    filter_resize(Ev0, Eq);
 	_ ->
 	    {wx_translate(Ev0), Eq0}
@@ -358,8 +345,6 @@ filter_resize(#wx{event=#wxActivate{}}=Ev0, Eq0) ->
 	{{value, #wx{event=#wxPaint{}}}, Eq} ->
 	    filter_resize(Ev0, Eq);
 	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
-	    filter_resize(Ev, Eq);
-	{{value, #wx{event=#wxActivate{}}=Ev}, Eq} ->
 	    filter_resize(Ev, Eq);
 	_ ->
 	    {wx_translate(Ev0), Eq0}
