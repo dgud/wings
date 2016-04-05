@@ -33,7 +33,7 @@ start() ->
     wx:new(),
     macosx_workaround(),
     Frame = wx_object:start_link({local, ?MODULE}, ?MODULE, [args], []),
-    put(top_frame, Frame),
+    ?SET(top_frame, Frame),
     Frame.
 
 top_menus() ->
@@ -61,8 +61,8 @@ make_win(Parent, Title, Opts0) ->
 		    end,
     Opts = case lists:keytake(pos, 1, Opts1) of
 	       {value, {pos, Pos0}, Os2} ->
-		   Parent = ?GET(top_frame),
-		   Pos = wxWindow:clientToScreen(Parent, Pos0),
+		   TopFrame = ?GET(top_frame),
+		   Pos = wxWindow:clientToScreen(TopFrame, Pos0),
 		   [{pos,Pos}| Os2];
 	       false  ->
 		   Opts1
@@ -125,8 +125,7 @@ init(_Opts) ->
 	TopSize = wings_pref:get_value(window_size),
 	Frame = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
 	IconImgs = make_icons(),
-	?SET(top_frame, Frame),
-	set_icon(),
+	set_icon(Frame),
 	Sizer = wxBoxSizer:new(?wxVERTICAL),
 	Top = make(Frame),
 	Canvas = make_splash(wxPanel:new(win(Top)), IconImgs),
@@ -139,7 +138,15 @@ init(_Opts) ->
 	wxWindow:connect(Frame, close_window),
 	wxWindow:connect(Frame, command_menu_selected, []),
 	wxWindow:connect(Frame, activate, []),
-	init_menubar(Frame),
+	case os:type() of
+	    {_, darwin} ->
+		Me = self(),
+		CB = fun(_,_) -> io:format("INIT MENUS~n"),
+			     Me ! {init_menus, Frame} end,
+		wxWindow:connect(Frame, show, [{callback, CB}]);
+	    _ ->
+		init_menubar(Frame)
+	end,
 	Wins = #{frame=>Frame, ch=>Top#split{w1=Canvas}, szr=>Sizer,
 		 loose=>#{}, action=>undefined, op=>undefined},
 	Overlay = overlay_frame(Frame),
@@ -283,6 +290,13 @@ handle_cast({close, Win}, #state{windows=#{ch:=Child,loose:=Loose,szr:=Szr}=Wins
 		    {noreply, State#state{windows=Wins#{ch:=Root}}}
 	    end
     end;
+handle_cast({init_menus, Frame}, State) ->
+    case os:type() of
+	{_, darwin} -> init_menubar(Frame);
+	_ -> ignore
+    end,
+    {noreply, State};
+
 handle_cast(Req, State) ->
     io:format("~p:~p Got unexpected cast ~p~n", [?MODULE,?LINE, Req]),
     {noreply, State}.
@@ -831,10 +845,10 @@ tree_consistent(#split{w1=W1, mode=Mode, w2=W2})
 tree_consistent(#win{}) -> true.
 
 %%%%%%%%%%%%%%%%%%%%%%
-set_icon() ->
+set_icon(Frame) ->
     Ebin = filename:dirname(code:which(?MODULE)),
     IconFile = filename:join(Ebin, "wings_icon_379x379"),
-    wings_io:set_icon(IconFile).
+    wings_io:set_icon(Frame, IconFile).
 
 macosx_workaround() ->
     try 1.0/zero()

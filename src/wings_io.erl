@@ -20,7 +20,7 @@
 
 	 is_maximized/0, maximize/0, set_title/1, reset_video_mode_for_gl/2,
 	 change_event_handler/2,
-	 read_icons/0, set_icon/1, get_mask/1,
+	 read_icons/0, set_icon/2, get_mask/1,
 
 	 get_buffer/2, read_buffer/3, get_bin/1,
 	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
@@ -173,8 +173,8 @@ reset_video_mode_for_gl(W,H) ->
 version_info() ->
     ?BACKEND_MOD:version_info().
 
-set_icon(IconBase) ->
-    ?BACKEND_MOD:set_icon(IconBase).
+set_icon(Frame, IconBase) ->
+    ?BACKEND_MOD:set_icon(Frame, IconBase).
 
 %% get_mask(WBMFileName) -> Binary | null
 %%  Read a mask from a WBM file.
