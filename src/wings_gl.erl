@@ -45,6 +45,7 @@
 
 init(Parent) ->
     GL = window(Parent, undefined, true),
+    wx_object:cast(Parent, {init_menus, Parent}),
     init_extensions(),
     init_restrictions(),
     GL.

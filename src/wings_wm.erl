@@ -103,7 +103,7 @@ init(Frame) ->
     put(wm_windows, gb_trees:empty()),
     new(top_frame, Frame, {push, fun wings_frame:forward_event/1}),
     set_dd(top_frame, geom_display_lists), %% Selection mode updates
-    StatusBar = wings_status:start(get(top_frame)),
+    StatusBar = wings_status:start(Frame),
     new(message, StatusBar, {push, fun message_event/1}),
 
     case wings_pref:get_value(win32_start_maximized) of
