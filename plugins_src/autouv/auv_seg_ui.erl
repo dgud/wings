@@ -36,11 +36,6 @@
 start(Op, #we{id=Id}=We0, OrigWe, St0) ->
     Modes = [vertex,edge,face],
     wings:mode_restriction(Modes),
-    This = wings_wm:this(),
-    Allowed = [view,select],
-    Menu  = [Item || {_,Name,_}=Item <- wings_frame:top_menus(),
-		     member(Name, Allowed)],
-    wings_wm:menubar(This, Menu),
     wings_pref:set_value(scene_lights, false), %% ugly hack 
     
     St1 = seg_create_materials(St0),
