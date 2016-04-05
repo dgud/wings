@@ -126,13 +126,13 @@ create_window(Action, Name, Id, #st{shapes=Shs}=St) ->
     Op = {replace,fun(Ev) -> auv_event(Ev, St) end},
     Segment = if element(1,Action) == edit -> ""; true -> ?__(1,"Segmenting") end,
     Title = "AutoUV "++ Segment ++": " ++ ObjName,
-    {X0,Y,W,H} = init_drawarea(),
+
+    {Pos,Size} = init_drawarea(),
+    Frame = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}]),
+    Context = wxGLCanvas:getContext(?GET(gl_canvas)),
+    Canvas = wings_gl:window(Frame, Context, true),
     Props = [{display_data,Name}|wings_view:initial_properties()],
-    CreateToolbar = fun(N, P, Wi) -> wings_toolbar:create(N, P, Wi) end,
-    X = if element(1,Action) == edit -> X0; true -> 10 end,
-    wings_wm:toplevel(Name, Title, {X,Y,highest}, {W,H},
-		      [resizable,closable,menubar,{properties,Props},
-		       {toolbar,CreateToolbar}], Op),
+    wings_wm:toplevel(Name, Canvas, Props, Op),
     wings_wm:send(Name, {init,{Action,We}}).
 
 auv_event({init,Op}, St) ->
@@ -186,7 +186,7 @@ init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
     GeomSt = insert_initial_uvcoords(Charts, Id, MatName, GeomSt1),
     EditWin = {autouv,Id},
     case wings_wm:is_window(EditWin) of
-	true -> 
+	true ->
 	    wings_wm:send(EditWin, {add_faces,Fs,GeomSt}),
 	    wings_wm:send(geom, {new_state,GeomSt});
 	false ->
@@ -247,66 +247,7 @@ create_uv_state(Charts, MatName, Fs, We, #st{shapes=Shs0}=GeomSt) ->
     end,
     wings:register_postdraw_hook(Win, ?MODULE,
 				 fun draw_background/1),
-    wings_wm:menubar(Win, menubar()),
-    wings_wm:send({menubar,Win}, {current_state,St}),
     St.
-
-menubar() ->
-    [{?__(1,"Edit"),edit,
-      fun(_) ->
-	      [{?__(2,"Undo/Redo"),undo_toggle,?__(3,"Undo or redo the last command")},
-	       {?__(4,"Redo"),redo,?__(5,"Redo the last command that was undone")},
-	       {?__(6,"Undo"),undo,?__(7,"Undo the last command")},
-	       {?__(71,"Repeat"),repeat,?__(72,"Repeat the last command")},
-	       {?__(74,"Repeat Args"),repeat_args,
-		?__(75,"Repeat the last command with same arguments")},
-	       {?__(76,"Repeat Drag"),repeat_drag,
-		?__(77,"Repeat the last command with same arguments the same distance")}
-	      ]
-      end},
-     {?__(8,"View"),view,
-      fun(_St) ->
-	      Menu0 = wings_view:menu(),
-	      ShwBgImg = {?__(9,"Show/Hide Background Image"),toggle_background,
-	                  ?__(10,"Toggle display of the background texture image")},
-	      Menu = [I || I <- Menu0, keep_view_item(I)],
-	      [ShwBgImg|redundant_separators(Menu)]
-      end},
-     {?__(11,"Select"),select,
-      fun(_St) ->
-	      Menu0 = wings_sel_cmd:menu(),
-	      Menu = [I || I <- Menu0,
-			   keep_sel_item(I)],
-	      redundant_separators(Menu)
-      end}].
-
-
-keep_view_item(separator) -> true;
-keep_view_item({_,aim,_}) -> true;
-keep_view_item({_,highlight_aim,_}) -> true;
-keep_view_item({_,frame,_}) -> true;
-keep_view_item(_) -> false.
-
-keep_sel_item(separator) -> true;
-keep_sel_item({_,more,_}) -> true;
-keep_sel_item({_,less,_}) -> true;
-keep_sel_item({_,similar,_}) -> true;
-keep_sel_item({_,inverse,_}) -> true;
-keep_sel_item({_,all,_}) -> true;
-keep_sel_item({_,deselect,_}) -> true;
-keep_sel_item({_,{edge_loop,_}}) -> true;
-keep_sel_item({_,{adjacent,_}}) -> true;
-keep_sel_item({_,hide_selected,_}) -> true;
-keep_sel_item({_,hide_unselected,_}) -> true;
-keep_sel_item({_,show_all,_}) -> true;
-keep_sel_item(_) -> false.
-
-redundant_separators([]) -> [];
-redundant_separators([separator]) -> [];
-redundant_separators([separator|[separator|_]=T]) ->
-    redundant_separators(T);
-redundant_separators([H|T]) ->
-    [H|redundant_separators(T)].
 
 insert_initial_uvcoords(Charts, Id, MatName, #st{shapes=Shs0}=St) ->
     We0 = gb_trees:get(Id, Shs0),
@@ -1965,10 +1906,10 @@ redraw(St) ->
     wings:redraw(St).
 
 init_drawarea() ->
-    {{X,TopY},{W0,TopH}} = wings_wm:win_rect(desktop),
+    {W0,H0} = wings_wm:top_size(),
     W = W0 div 2,
-    {X+W,TopY+75,W,TopH-100}.
-    
+    {{W,75},{W,H0-100}}.
+
 cleanup_before_exit() ->
     wings:unregister_postdraw_hook(wings_wm:this(), ?MODULE),
     wings_dl:delete_dlists().
