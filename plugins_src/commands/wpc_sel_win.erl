@@ -92,6 +92,7 @@ change_state(Window, SelSt) ->
     fun(Ev) -> forward_event(Ev, Window, SelSt) end.
 
 forward_event(redraw, _Window, _St) -> keep;
+forward_event({current_state, _,_}, _Window, _St) -> keep;
 forward_event({current_state, St}, Window, SelSt0) ->
     case (SelSt = get_sel_state(St)) =:= SelSt0 of
 	true  -> ignore;

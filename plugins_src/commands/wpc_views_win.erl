@@ -92,6 +92,7 @@ change_state(Window, St) ->
     fun(Ev) -> forward_event(Ev, Window, St) end.
 
 forward_event(redraw, _Window, _St) -> keep;
+forward_event({current_state, _,_}, _Window, _St) -> keep;
 forward_event({current_state, St}, Window, St0) ->
     case (New = get_view_state(St)) =:= get_view_state(St0) of
 	true  -> ignore;
