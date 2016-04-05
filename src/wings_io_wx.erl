@@ -23,7 +23,7 @@
 	 set_cursor/1,hourglass/0,eyedropper/0,
 	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
 	 get_buffer/2, read_buffer/3, get_bin/1,
-	 is_maximized/0, maximize/0, set_title/1, set_icon/1,
+	 is_maximized/0, maximize/0, set_title/1, set_icon/2,
 	 get_process_option/0,set_process_option/1
 	]).
 -export([batch/1, foreach/2]).
@@ -42,7 +42,7 @@ init(Icons) ->
     put_state(#io{raw_icons=Icons,cursors=Cursors}).
 
 quit() ->
-    Frame = get(top_frame),
+    Frame = ?GET(top_frame),
     wxFrame:destroy(Frame),
     wx:destroy().
 
@@ -59,10 +59,10 @@ batch(Fun) ->  wx:batch(Fun).
 foreach(Fun, List) -> wx:foreach(Fun, List).
 
 is_maximized() ->
-    wxTopLevelWindow:isMaximized(get(top_frame)).
+    wxTopLevelWindow:isMaximized(?GET(top_frame)).
 
 maximize() ->
-    wxTopLevelWindow:maximize(get(top_frame)).
+    wxTopLevelWindow:maximize(?GET(top_frame)).
 
 reset_video_mode_for_gl(_W, _H) ->
     %% Needed on mac for some reason
@@ -71,14 +71,14 @@ reset_video_mode_for_gl(_W, _H) ->
     ok.
 
 set_title(Title) ->
-    wxTopLevelWindow:setTitle(get(top_frame), Title).
+    wxTopLevelWindow:setTitle(?GET(top_frame), Title).
 
-set_icon(IconBase) ->
+set_icon(Frame, IconBase) ->
     Bmp = wxImage:new(IconBase ++ ".png"),
     Bitmap = wxBitmap:new(Bmp),
     Icon = wxIcon:new(),
     wxIcon:copyFromBitmap(Icon, Bitmap),
-    wxFrame:setIcon(?GET(top_frame), Icon).
+    wxFrame:setIcon(Frame, Icon).
 
 version_info() ->
     Ver = io_lib:format("~p.~p.~p.~p",
