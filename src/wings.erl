@@ -188,7 +188,7 @@ fatal(Format, Args) ->
     fatal(io_lib:format(Format, Args)).
 
 fatal(Str) ->
-    Parent = get(top_frame),
+    Parent = ?GET(top_frame),
     Dialog = wxMessageDialog:new(Parent, Str, [{caption,"Fatal Error"}]),
     wxMessageDialog:showModal(Dialog),
     wings_io:quit(),
