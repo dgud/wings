@@ -206,8 +206,8 @@ init() ->
     init_history().
 
 %% Display a text window (Info converted to html)
-info(Title, Info, _Options) ->
-    Parent = get_dialog_parent(),
+info(Title, Info, Options) ->
+    Parent = proplists:get_value(parent, Options, get_dialog_parent()),
     Flags  = [{size, {500, 400}}, {style, ?wxCAPTION bor ?wxRESIZE_BORDER bor ?wxCLOSE_BOX}],
     Frame  = wxMiniFrame:new(Parent, ?wxID_ANY, Title, Flags),
     Panel  = wxHtmlWindow:new(Frame, []),
@@ -219,7 +219,6 @@ info(Title, Info, _Options) ->
     wxWindow:setSizer(Frame, Sizer),
     wxFrame:show(Frame),
     keep.
-
 
 ask_preview(Cmd, Bool, Title, Qs, St) ->
     ask(Bool, Title, preview, Qs, preview_fun(Cmd, St)).
@@ -398,7 +397,8 @@ queries(Qs0) ->
 
 get_dialog_parent() ->
     case ?GET(dialog_parent) of
-	undefined -> ?GET(top_frame);
+	undefined ->
+	    wings_wm:this_win();
 	Tuple when element(1, Tuple) =:= wx_ref ->
 	    Tuple
     end.
@@ -803,8 +803,8 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 			     BtnHelp = wxButton:new(Dialog,?wxID_HELP),
 			     wxSizer:insert(Ok, 0, BtnHelp, []),
 			     Help = fun(#wx{},_) ->
-                                 info(Title,Content, [{top_frame, Dialog}])
-			     end,
+					    info(Title,Content, [{parent, Dialog}])
+				    end,
 			     wxDialog:connect(Dialog, command_button_clicked,
 			                      [{id, ?wxID_HELP}, {callback,Help}]);
 		         _ -> ignore
@@ -1193,9 +1193,8 @@ build(Ask, {image, ImageOrFile}, Parent, Sizer, In) ->
     In;
 
 build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
-    TopFrame = get(top_frame),
     Display = fun(_,_) ->
-		      info(Title, Fun(), [{top_frame, TopFrame}])
+		      info(Title, Fun(), [{parent, Parent}])
 	      end,
     Create = fun() ->
 		     Button = wxButton:new(Parent, ?wxID_HELP),
