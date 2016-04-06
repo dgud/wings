@@ -13,11 +13,8 @@
 
 -module(wp9_dialogs).
 -export([init/1]).
--import(lists, [sort/1]).
 
--include_lib("wings/intl_tools/wings_intl.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
--include_lib("wx/include/wx.hrl").  %% includes wx headers
+-include_lib("wings/src/wings.hrl").
 
 init(Next) ->
     wpa:pref_set_default(?MODULE, utf8, true),
@@ -38,7 +35,7 @@ ui({image,write,Prop}, _Next) ->
 ui(What, Next) -> Next(What).
 
 file_dialog(Type, Prop, Title, Cont) ->
-    Frame = get(top_frame),
+    Frame = proplists:get_value(parent, Prop, ?GET(top_frame)),
     DefDir = proplists:get_value(directory, Prop),
     DefName = proplists:get_value(default_filename, Prop, ""),
     Filters = wings_file:file_filters(Prop),
