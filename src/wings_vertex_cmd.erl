@@ -32,7 +32,7 @@ menu(X, Y, St) ->
 	    separator,
 	    {?STR(menu,4,"Connect"),connect_menu(),
 	     {?STR(menu,5,"Create a new edge by connecting selected vertices"),
-          ?STR(menu,18,"Create new edges by cuts between two selected vertices"),
+	      ?STR(menu,18,"Create new edges through faces between two selected vertices"),
 	      ?STR(menu,17,"Connect vertices and return the new edge selected")},[]},
 	    {?STR(menu,6,"Tighten"),tighten,
 	     ?STR(menu,7,"Move selected vertices towards average midpoint"),[magnet]},
@@ -446,50 +446,33 @@ connecting_edge(St0) ->
 connecting_edge(Vs0, #we{mirror=MirrorFace, id=Id}=We0, A) ->
     FaceVs = wings_vertex:per_face(Vs0, We0),
     We1 = lists:foldl(fun({Face,_}, Acc) when Face =:= MirrorFace -> Acc;
-       ({Face,Vs}, Acc) -> wings_vertex:connect(Face, Vs, Acc)
-       end, We0, FaceVs),
+			 ({Face,Vs}, Acc) -> wings_vertex:connect(Face, Vs, Acc)
+		      end, We0, FaceVs),
     Sel = wings_we:new_items_as_gbset(edge, We0, We1),
     {We1,[{Id,Sel}|A]}.
 
-connect_cuts(#st{sel=[{WeID,Set}]}=St0) ->
+connect_cuts(#st{sel=[{WeID,Set}]}=St) ->
     Sz = gb_sets:size(Set),
-    if (Sz == 2 orelse Sz == 3) ->
-        ok;
-    true ->
-        wings_u:error_msg("Defined only for two or three selected vertices.")
+    case 1 < Sz andalso Sz < 4 of
+	true -> ok;
+	false -> connect_cuts(error)
     end,
-    #we{} = We = gb_trees:get(WeID,St0#st.shapes),
+    We0  = gb_trees:get(WeID,St#st.shapes),
     List = gb_sets:to_list(Set),
     Dict = combinations(List),
-    MyAcc = fun({VS0,VE0}, {_Set,#we{}=_We}) ->
-        {Set2,We2} = wings_vertex:connect(VS0,VE0,_We),
-        {gb_sets:union(Set2,_Set), We2}
-    end,
-    {VsConn,We5} = lists:foldl(MyAcc, {gb_sets:empty(), We}, Dict),
-    St1 = wings_shape:replace(WeID,We5,St0),
-    Es = wings_edge:from_vs(gb_sets:to_list(VsConn), We5),
-    TwoVs = fun(Ei) ->
-        #edge{vs=VS,ve=VE} = array:get(Ei,We5#we.es),
-        SetTwo = gb_sets:from_list([VS,VE]),
-        I = gb_sets:intersection(SetTwo,VsConn),
-        gb_sets:size(I) == 2
-    end,
-    Es2 = gb_sets:from_list(lists:filter(TwoVs, Es)),
-    NoWinged = fun(Ei) ->  %% exclude if all four wings are in the selection
-         #edge{ltpr=Ea,ltsu=Eb,rtpr=Ec,rtsu=Ed} = array:get(Ei,We5#we.es),
-         SetWing = gb_sets:from_list([Ea,Eb,Ec,Ed]),
-         I = gb_sets:intersection(Es2,SetWing),
-         gb_sets:size(I) /= 4
-    end,
-    Es3 = gb_sets:filter(NoWinged, Es2),
-    St1#st{selmode=edge,sel=[{WeID,Es3}]};
-connect_cuts(#st{}) ->
-    wings_u:error_msg("Defined only for two or three selected vertices, single object.").
+    Connect = fun({VS0,VE0}, {Set0,#we{}=We1}) ->
+		      {Set2,We2} = wings_vertex:connect_cut(VS0,VE0,We1),
+		      {gb_sets:union(Set2,Set0), We2}
+	      end,
+    {Es,We} = lists:foldl(Connect, {gb_sets:empty(), We0}, Dict),
+    %% Make selection
+    wings_shape:replace(WeID, We, St#st{selmode=edge,sel=[{WeID,Es}]});
+connect_cuts(_) ->
+    Msg = ?__(1, "Defined only for two or three selected vertices, single object."),
+    wings_u:error_msg(Msg).
 
-combinations(List) -> 
-    Dict = [ if (A /= B) -> {A,B}; true -> [] end || A<-List,B<-List],
-    lists:flatten(Dict).
-
+combinations(List) ->
+    [{A,B} || A<-List, B<-List, A < B].
 
 %%%
 %%% The Tighten command.
