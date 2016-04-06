@@ -20,7 +20,7 @@
 	 normal/2,per_face/2,
 	 flatten/3,flatten/4,
 	 dissolve_isolated/2,
-	 connect/2,connect/3,force_connect/4,
+	 connect/3,connect_cut/3,force_connect/4,
 	 pos/2,outer_vertices_ccw/2,reachable/2,
 	 isolated/1,edge_through/3,edge_through/4]).
 
@@ -144,7 +144,7 @@ bounding_box(#we{vp=Vtab}=We, BB) ->
     do_bounding_box(array:sparse_to_list(Vtab), We, BB);
 bounding_box(Vs, We) ->
     bounding_box(Vs, We, none).
-    
+
 bounding_box(Vs, We, BB) when is_list(Vs) ->
     bounding_box_1(ordsets:from_list(Vs), We, BB);
 bounding_box(Vs, We, BB) ->
@@ -161,7 +161,7 @@ do_bounding_box(Vs, #we{mirror=none}, BB) ->
     do_bounding_box_1(Vs, BB);
 do_bounding_box(Vs0, #we{}=We, BB) ->
     Mtx = wings_we:mirror_projection(We),
-    Vs = foldl(fun(P0, A) -> 
+    Vs = foldl(fun(P0, A) ->
 		       P = e3d_mat:mul_point(Mtx, P0),
 		       [P,P0|A]
 	       end, [], Vs0),
@@ -233,119 +233,170 @@ dissolve_isolated(Vs, We) ->
     wings_edge:dissolve_isolated_vs(Vs, We).
 
 %% Connect vertices (which must share a face).
-connect(Vs, #we{}=We) when not(is_list(Vs)) ->
-    connect(gb_sets:to_list(Vs),We);
-connect([], #we{}=We) -> We;
-connect(Vs, #we{}=We) when is_list(Vs) -> 
-    Fs = wings_face:from_vs(Vs, We),
-    connect(Fs,Vs,We).
-%% connect verts on all faces as possible
-connect([],_,          #we{}=We) -> We;
-connect([Fi|FsMore],Vs,#we{}=We) when is_list(Vs) ->
-    VsFace = wings_face:to_vertices([Fi],We),
-    I = gb_sets:to_list(
-            gb_sets:intersection(
-                    gb_sets:from_list(VsFace),
-                    gb_sets:from_list(Vs))),
-    case I of 
-        [_,_|_]=I -> 
-            We2 = connect(Fi,I,We),
-            connect(FsMore,Vs,We2);
-        _ -> connect(FsMore,Vs,We)
-    end;
-
-connect(Face, [_], We)        when is_integer(Face) -> We;
-connect(Face, Vs, #we{} = We0) when is_integer(Face), is_list(Vs) ->
+connect(_Face, [_], We) -> We;
+connect(Face, Vs, #we{} = We0) ->
     case polygon_pairs(Face, Vs, We0) of
-      no -> min_distance_pairs(Face, Vs, We0);
-      #we{} = We -> We
-    end;
+	no -> min_distance_pairs(Face, Vs, We0);
+	#we{} = We -> We
+    end.
 
-connect(VS0,VE0,#we{}=We) when is_integer(VS0),is_integer(VE0) -> 
-    Tol = 0.00001,
-    {Mid, A_B_C_D, Plane1, Plane2} = calc_planes(VS0,VE0,We),
-    ETree = collect_edges(A_B_C_D, Tol, We),
+%% Connect Va Vb maybe trough several faces, returns {gbset(NewEdges), We}
+connect_cut(VS0, VE0, #we{}=We0) when is_integer(VS0),is_integer(VE0) ->
+    CutPlane = calc_planes(VS0,VE0,We0),
+    ETree = collect_edges(CutPlane, VS0, VE0, We0),
     Es = gb_sets:from_list(gb_trees:keys(ETree)),
-    FaceSet = collect_faces(Mid,Plane1,Plane2,Es,We),
-    EsI = limit_edges(VS0, VE0, FaceSet, Es, We),
-    MyCuts = fun(Ei, {#we{}=WeAcc,AccVs}) ->
-        Pos = gb_trees:get(Ei,ETree),
-        {We1,Idx} = wings_edge:screaming_cut(Ei, Pos, WeAcc),
-        {We1,gb_sets:add(Idx,AccVs)}
-    end,
-    {We2,Vs} = gb_sets:fold(MyCuts, {We,gb_sets:from_list([VS0,VE0])}, EsI),
-    We5 = wings_vertex:connect(gb_sets:add(VS0,gb_sets:add(VE0,Vs)),We2),
-    {gb_sets:union(Vs,gb_sets:from_list([VS0,VE0])),We5}.
 
-%% calc_planes : The three planes will divide the surface like ...
-%% All three are as perpendicular to surface as possible to compute
-%%  |               |
-%%  |               |
-%% VS0 ----------- VE0
-%%  |               |
-%%  |               |
+    CutEs = case select_cut_edges(VS0, VE0, Es, We0) of
+		fail ->
+		    wings_u:error_msg(?__(1, "Could not connect vertices."));
+		CEs when is_list(CEs) -> CEs;
+		{Path1,Path2} ->
+		    case path_length(Path1, ETree, We0, 0.0) <
+			path_length(Path2, ETree, We0, 0.0) of
+			true -> Path1;
+			false -> Path2
+		    end
+	    end,
+    Cut = fun({Ei,Face}, {WeAcc,AccVs}) ->
+		  case gb_trees:get(Ei,ETree) of
+		      {reuse_vertex,V} ->
+			  {WeAcc, [V,Face|AccVs]};
+		      Pos ->
+			  {We1,Idx} = wings_edge:fast_cut(Ei, Pos, WeAcc),
+			  {We1, [Idx,Face|AccVs]}
+		  end;
+	     (FaceOrVertex, {WeAcc, AccVs}) ->
+		  {WeAcc, [FaceOrVertex|AccVs]}
+	  end,
+    {We2,Vs1} = lists:foldl(Cut, {We0, []}, CutEs),
+    connect_vs(Vs1, We2, []).
+
+connect_vs([Va, Face|[Vb|_]=Vs], #we{next_id=Edge}=We0, Acc) ->
+    case edge_through(Va, Vb, Face, We0) of
+	none ->
+	    {We,_} = force_connect(Va, Vb, Face, We0),
+	    connect_vs(Vs, We, [Edge|Acc]);
+	Exist ->
+	    connect_vs(Vs, We0, [Exist|Acc])
+    end;
+connect_vs([_], We, Acc) -> {gb_sets:from_list(Acc), We}.
+
+path_length([V1,_Face,V2], ETree, We, Acc) ->  %% The last have a faceid before it
+    e3d_vec:dist(v(V1, ETree, We),v(V2, ETree, We)) + Acc;
+path_length([V1|[V2|_]=Vs], ETree, We, Acc) ->
+    Dist = e3d_vec:dist(v(V1, ETree, We),v(V2, ETree, We)),
+    path_length(Vs, ETree, We, Dist + Acc);
+path_length([_], _, _, Acc) -> Acc.
+
+v({Edge, _Face}, ETree, We) ->
+    case gb_trees:get(Edge,ETree) of
+	{reuse_vertex,V} -> pos(V, We);
+	Pos -> Pos
+    end;
+v(V, _ETree, We) ->
+    pos(V, We).
+
+select_cut_edges(VS0, VE0, Es, We) ->
+    FS0 = wings_face:from_vs([VS0], We),
+    Start00 = wings_face:fold_faces(
+		fun(Face, V, _Edge, _E, _Acc) when V =:= VE0 ->
+			[{stop, Face}];
+		   (Face, _V, EdgeId, E, Acc) ->
+			case collect_cut_edge(Face, Es, EdgeId, E, []) of
+			    []  -> Acc;
+			    [S1] -> [S1,Face|Acc]
+			end
+		end, [], FS0, We),
+    case lists:reverse(Start00) of
+	[{stop,Face}] ->
+	    [VE0, Face, VS0];
+	[F1, S1] ->
+	    [VE0|select_cut_edges(S1, VE0, Es, We, [F1, VS0])];
+	[F1, S1, F2, S2] ->
+	    R1 = select_cut_edges(S1, VE0, Es, We, [F1, VS0]),
+	    R2 = select_cut_edges(S2, VE0, Es, We, [F2, VS0]),
+	    case {R1, R2} of
+		{fail, fail} -> fail;
+		{fail, R2} -> [VE0|R2];
+		{R1, fail} -> [VE0|R1];
+		_ -> {[VE0|R2], [VE0|R1]}
+	    end
+    end.
+
+select_cut_edges({stop,_Face}, _, _, _, CEs) ->
+    CEs;
+select_cut_edges({Edge, Face}=New, Stop, Es0, We, CEs) ->
+    Es = gb_sets:del_element(Edge, Es0),
+    Next = wings_face:fold(fun(V, _EdgeId, _E, _Acc) when V =:= Stop ->
+				   [{stop,Face}];
+			      (_V, EdgeId, E, Acc) ->
+				   collect_cut_edge(Face, Es, EdgeId, E, Acc)
+			   end, [fail], Face, We),
+    select_cut_edges(hd(Next), Stop, Es, We, [New|CEs]);
+select_cut_edges(fail, _, _, _, _) -> fail.
+
+collect_cut_edge(_Face, _Es, _Edge, _E, [stop]=R) -> R;
+collect_cut_edge(Face, Es, Edge, E, Acc) ->
+    case gb_sets:is_member(Edge, Es) of
+	false -> Acc;
+	true ->
+	    Next = wings_face:other(Face, E),
+	    [{Edge, Next}|Acc]
+    end.
 
 calc_planes(VS0, VE0, We) ->
-    Pt1a  = wings_vertex:pos(VS0,We),
-    Pt2a  = wings_vertex:pos(VE0,We),
-    V1 = e3d_vec:sub(Pt2a,Pt1a),
-    Mid = e3d_vec:average([Pt1a,Pt2a]),
-    Norm0 = e3d_vec:average([wings_vertex:normal(VS0,We), wings_vertex:normal(VE0,We)]),
-    Cross = e3d_vec:norm(e3d_vec:cross(V1,Norm0)),
-    A_B_C_D = e3d_vec:plane(Mid,Cross), %% slicer plane
-    Plane1 = e3d_vec:plane(Pt1a,e3d_vec:norm(V1)),
-    Plane2 = e3d_vec:plane(Pt2a,e3d_vec:norm(V1)),
-    {Mid, A_B_C_D, Plane1, Plane2}.
+    P1  = wings_vertex:pos(VS0,We),
+    P2  = wings_vertex:pos(VE0,We),
+    Vec = e3d_vec:norm(e3d_vec:sub(P2, P1)),
+    Mid = e3d_vec:average(P1, P2),
+    N1 = wings_vertex:normal(VS0,We),
+    N2 = wings_vertex:normal(VE0, We),
+    AverN = e3d_vec:average(N1, N2),
+    Wanted = [N || N <- [AverN, N1, N2],
+		   e3d_vec:len(N) > 0.0001,
+		   abs(e3d_vec:dot(Vec, N)) < 0.9999],
+    Normal = case Wanted of
+		 [N|_] -> N;
+		 [] ->
+		     {X,Y,Z} = Vec,
+		     if abs(X) < abs(Z), abs(Y) < abs(Z) -> {1.0, 0.0, 0.0};
+			abs(Z) < abs(X), abs(Y) < abs(X) -> {0.0, 0.0, 1.0};
+			true -> {1.0, 0.0, 0.0}
+		     end
+	     end,
+    e3d_vec:plane(Mid, e3d_vec:cross(Vec,Normal)).
 
-collect_edges({{_,_,_},_}=Plane, Tol, #we{es=Etab}=We) when is_float(Tol) -> 
-    MyAcc = fun(Ei, _Val, Acc) ->
-        #edge{vs=VS,ve=VE} = array:get(Ei,Etab),
-        Pt1 = wings_vertex:pos(VS,We),
-        Pt2 = wings_vertex:pos(VE,We),
-        S1 = e3d_vec:plane_side(Pt1, Plane),
-        S2 = e3d_vec:plane_side(Pt2, Plane),
-        D1 = abs(e3d_vec:plane_dist(Pt1, Plane)),
-        D2 = abs(e3d_vec:plane_dist(Pt2, Plane)),
-        if (S1 /= S2 andalso D1 > Tol andalso D2 > Tol) -> 
-            Dir = e3d_vec:norm(e3d_vec:sub(Pt2,Pt1)),
-            Percent = D1/(D1+D2),
-            PtX = e3d_vec:add(Pt1, e3d_vec:mul(Dir, Percent*wings_edge:length(Ei,We))),
-            gb_trees:enter(Ei,PtX,Acc); 
-        true -> 
-            Acc 
-        end
-    end,
-    array:sparse_foldl(MyAcc, gb_trees:empty(), Etab).
-
-collect_faces(Mid, Plane1, Plane2, Es, #we{}=We) ->
-    FaceSet = wings_face:from_edges(Es,We),
-    MyFs = fun(Fi, Acc) ->
-        Center = wings_face:center(Fi, We),
-        S1a = e3d_vec:plane_side(Mid, Plane1),
-        S2a = e3d_vec:plane_side(Center, Plane1),
-        S1b = e3d_vec:plane_side(Mid, Plane2),
-        S2b = e3d_vec:plane_side(Center, Plane2),
-        if (S1a ==S2a) andalso (S1b ==S2b) -> gb_sets:add(Fi,Acc); true -> Acc end
-    end,
-    gb_sets:fold(MyFs, gb_sets:empty(), FaceSet).
-
-%% Limit edges to those which form a continuous field of edges between
-%% vertices VS0 and VE0
-limit_edges(VS0, VE0, FaceSet, Es, #we{}=We) ->
-    %% if the initial verts are not in the face region ... remove edges.
-    FaceRgns = wings_sel:strict_face_regions(FaceSet, We), 
-    EsIa = wings_edge:from_faces(FaceSet, We),
-    EsIb = gb_sets:intersection(EsIa,Es),
-    ConnectsOnly = fun(Region, Acc) ->  %% if the initial verts are on in the face region ... remove edges.
-        _Vs = wings_face:to_vertices(Region,We), 
-        _Es = wings_edge:from_faces(Region,We),
-        I = gb_sets:intersection(gb_sets:from_list(_Vs),gb_sets:from_list([VS0,VE0])),
-        case gb_sets:is_empty(I) of 
-            true -> gb_sets:subtract(Acc,_Es);
-            false -> Acc
-        end
-    end,
-    lists:foldl(ConnectsOnly, EsIb, FaceRgns).
+%% Collect all edges on the cut plane and calc edge cut distance
+collect_edges(Plane, Va, Vb, #we{es=Etab}=We) ->
+    Tol = 0.0001,
+    Filter =
+	fun(Ei, _Val, Acc) ->
+		#edge{vs=VS,ve=VE} = array:get(Ei,Etab),
+		Pt1 = wings_vertex:pos(VS,We),
+		Pt2 = wings_vertex:pos(VE,We),
+		S1 = e3d_vec:plane_side(Pt1, Plane),
+		S2 = e3d_vec:plane_side(Pt2, Plane),
+		D1 = abs(e3d_vec:plane_dist(Pt1, Plane)),
+		D2 = abs(e3d_vec:plane_dist(Pt2, Plane)),
+		if
+		    D1 < Tol ->
+			Skip = 2 =/= length([VS,VE] -- [Va,Vb]),
+			if D2 < Tol -> Acc;
+			   Skip -> Acc;
+			   true -> gb_trees:enter(Ei,{reuse_vertex, VS},Acc)
+			end;
+		    D2 < Tol -> %% There will come another edge where D1 < Tol
+			Acc;
+		    S1 =/= S2 ->
+			Dir = e3d_vec:norm(e3d_vec:sub(Pt2,Pt1)),
+			Percent = D1/(D1+D2),
+			PtX = e3d_vec:add(Pt1, e3d_vec:mul(Dir, Percent*wings_edge:length(Ei,We))),
+			gb_trees:enter(Ei,PtX,Acc);
+		    true ->
+			Acc
+		end
+	end,
+    array:sparse_foldl(Filter, gb_trees:empty(), Etab).
 
 %% Create pairs by walking the edge of the face. If we can connect
 %% all selected vertices for the face we are done. The result will
@@ -426,8 +477,8 @@ min_distance_pairs_1(Faces0, Vs0, We0) ->
 	    {Face,Faces1} = gb_sets:take_smallest(Faces0),
 	    case nearest_pair_smart(Face, Vs0, We0) of  % dgud
 		no ->
-		    case nearest_pair(Face, Vs0, We0) of  
-			no -> 
+		    case nearest_pair(Face, Vs0, We0) of
+			no ->
 			    min_distance_pairs_1(Faces1, Vs0, We0);
 			{{Va,Vb},{We,NewFace}} ->
 			    Faces = gb_sets:insert(NewFace, Faces0),
@@ -446,9 +497,9 @@ min_distance_pairs_1(Faces0, Vs0, We0) ->
 %%     A  B  C
 %%  +__*_ *__*_+
 %%   \       |  \
-%%    \      |   \ 
+%%    \      |   \
 %%     \      |   \
-%%      \     |    \ 
+%%      \     |    \
 %%       \    |     \
 %%        \   |      \
 %%         +--*--*--*-+
@@ -477,7 +528,7 @@ nearest_pair_smart_1([], _, Face, We, Acc=[Last|_]) when length(Acc) > 1 ->
     connect_pairs([Last|reverse(Acc)],Face,We);
 nearest_pair_smart_1([], _, _, _, _) ->
     no.
-    
+
 nearest_pair(Face, AllVs, #we{vp=Vtab}=We) ->
     Vs0 = ordsets:from_list(wings_face:vertices_ccw(Face, We)),
     Vs = ordsets:intersection(Vs0, AllVs),
@@ -743,7 +794,7 @@ reachable_edges_1([], Etab, Ws, Reachable) ->
 %%  Returns a list containing all isolated vertices in We.
 
 isolated(#we{vp=Vtab}=We) ->
-    Vs0 = foldl(fun(V, A) -> 
+    Vs0 = foldl(fun(V, A) ->
 			isolated_1(V, We, A)
 		end, [], wings_util:array_keys(Vtab)),
     Vs1 = sofs:relation(Vs0),
@@ -761,7 +812,7 @@ isolated_1(V, We, Acc) ->
 	[A,B] -> [{A,V},{B,V}|Acc];
 	[_|_] -> Acc
     end.
-	
+
 %% stable_faces(Faces, We) -> StableFaces
 %%  Returns a list of the stable faces. Stable faces have at least
 %%  three corner vertices (vertices with 3 or more neighboring edges),
