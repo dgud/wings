@@ -451,24 +451,27 @@ connecting_edge(Vs0, #we{mirror=MirrorFace, id=Id}=We0, A) ->
     Sel = wings_we:new_items_as_gbset(edge, We0, We1),
     {We1,[{Id,Sel}|A]}.
 
-connect_cuts(#st{sel=[{WeID,Set}]}=St) ->
-    Sz = gb_sets:size(Set),
-    case 1 < Sz andalso Sz < 4 of
-	true -> ok;
-	false -> connect_cuts(error)
-    end,
-    We0  = gb_trees:get(WeID,St#st.shapes),
-    List = gb_sets:to_list(Set),
-    Dict = combinations(List),
-    Connect = fun({VS0,VE0}, {Set0,#we{}=We1}) ->
-		      {Set2,We2} = wings_vertex:connect_cut(VS0,VE0,We1),
-		      {gb_sets:union(Set2,Set0), We2}
-	      end,
-    {Es,We} = lists:foldl(Connect, {gb_sets:empty(), We0}, Dict),
-    %% Make selection
-    wings_shape:replace(WeID, We, St#st{selmode=edge,sel=[{WeID,Es}]});
+connect_cuts(#st{}=St0) ->
+    Do = fun(Set, #we{id=Id}=We0, #st{sel=Sel} = St) ->
+		 Sz = gb_sets:size(Set),
+		 case 1 < Sz andalso Sz < 4 of
+		     true -> ok;
+		     false -> connect_cuts(error)
+		 end,
+		 List = gb_sets:to_list(Set),
+		 Dict = combinations(List),
+		 Connect = fun({VS0,VE0}, {Set0,#we{}=We1}) ->
+				   {Set2,We2} = wings_vertex:connect_cut(VS0,VE0,We1),
+				   {gb_sets:union(Set2,Set0), We2}
+			   end,
+		 {Es,We} = lists:foldl(Connect, {gb_sets:empty(), We0}, Dict),
+		 %% Make selection
+		 wings_shape:replace(Id, We, wings_sel:set([{Id,Es}|Sel], St))
+	 end,
+    wings_sel:fold(Do, St0#st{selmode=edge, sel=[]}, St0);
+
 connect_cuts(_) ->
-    Msg = ?__(1, "Defined only for two or three selected vertices, single object."),
+    Msg = ?__(1, "Defined only for two or three selected vertices, per object."),
     wings_u:error_msg(Msg).
 
 combinations(List) ->
