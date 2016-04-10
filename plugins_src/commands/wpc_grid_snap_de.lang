@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_grid_snap,
+ [
+  {command,
+   [
+    {1,"Ursprung des virtuellen Gitters"}
+   ]},
+  {grid_snap_menu,
+   [
+    {1,"Ursprung numerisch eingeben"},
+    {2,"Ursprungspunkt wählen, auf dem das Gitter basiert"}
+   ]},
+  {menu_heading,
+   [
+    {1,"Jeden Vertex auf ein virtuelles Gitter einrasten"},
+    {2,"Gitter einrasten"},
+    {3," Entlang X"},
+    {4," Entlang Y"},
+    {5," Entlang Z"},
+    {6," Um radial"}
+   ]}
+ ]}.

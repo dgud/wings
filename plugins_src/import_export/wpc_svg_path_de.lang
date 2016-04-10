@@ -1,0 +1,28 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_svg_path,
+ [
+  {command,
+   [
+    {1,".svg Pfad-Importoptionen"},
+    {2,"Anzahl der Kantenhalbierungen"},
+    {3,"(Für beste Ergebnisse beim Import aus Inkscape\nkonvertieren Sie alle Objekte zu Pfaden und speichern sie als eine Ebene .svg)"},
+    {4,".svg-Datei"}
+   ]},
+  {make_svg,
+   [
+    {1,"Inkscape .svg Pfad-Import fehlgeschlagen"},
+    {2,"Interner Fehler bei Inkscape .svg Pfad-Import"}
+   ]},
+  {parse_chars,
+   [
+    {1,"Keine geschlossenen Pfade."}
+   ]},
+  {parse_path,
+   [
+    {3,"Konnte diese Datei nicht verarbeiten."}
+   ]},
+  {try_import_svg,
+   [
+    {1,"Keine .svg-Datei"}
+   ]}
+ ]}.

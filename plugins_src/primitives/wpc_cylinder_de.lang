@@ -1,0 +1,37 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_cylinder,
+ [
+  {cylinder,
+   [
+    {1,"Zylinder"}
+   ]},
+  {cylinder_dialog,
+   [
+    {1,"Sektionen"},
+    {2,"Höhe"},
+    {3,"Radius X oben"},
+    {4,"Radius Z oben"},
+    {5,"Radius X unten"},
+    {6,"Radius Z unten"},
+    {8,"Röhre"},
+    {9,"Zahnrad"},
+    {10,"Zylindertyp"},
+    {11,"Dicke"}
+   ]},
+  {make_cylinder,
+   [
+    {1,"Zylinderoptionen"}
+   ]},
+  {make_gear,
+   [
+    {1,"Zahnrad"}
+   ]},
+  {make_tube,
+   [
+    {1,"Röhre"}
+   ]},
+  {menu,
+   [
+    {2,"Einen Zylinder erstellen"}
+   ]}
+ ]}.
