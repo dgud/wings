@@ -1,0 +1,31 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_views_win,
+ [
+  {camera_menu,
+   [
+    {1,"Gespeicherte Ansichten verwalten"},
+    {2,"Zeigt alle gespeicherten Ansichten"}
+   ]},
+  {event,
+   [
+    {1,"Auswählen"},
+    {2,"Zeigt Menü gespeicherter Ansichten"}
+   ]},
+  {title,
+   [
+    {1,"Gespeicherte Ansichten"}
+   ]},
+  {views_menu,
+   [
+    {1,"Speichern..."},
+    {2,"Diese Ansicht speichern in "},
+    {3,"Ersetzen "},
+    {4,"Ersetzt \""},
+    {5,"Umbenennen..."},
+    {6,"Umbenennen \""},
+    {7,"Löschen"},
+    {8,"Löschen \""},
+    {9,"Alle löschen..."},
+    {10,"Alle gespeicherten Ansichten löschen"}
+   ]}
+ ]}.

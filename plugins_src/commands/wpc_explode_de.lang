@@ -1,0 +1,29 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_explode,
+ [
+  {axis_menu,
+   [
+    {1,"Objekte entlang ~s Achse von Mittelpunkt der Auswahl explodieren"},
+    {2,"Punkt wählen"},
+    {3,"Objekte entlang Radial der Standardachse explodieren"},
+    {4,"Radial und Punkt wählen"},
+    {5,"Radial wählen und von Mittelpunkt der Auswahl explodieren"},
+    {6,"Radial"},
+    {7,"Objekte gleichmäßig von Mittelpunkt der Auswahl explodieren"}
+   ]},
+  {explode_menu,
+   [
+    {1,"Objekte entlang einer Standardachse relativ zu einem Punkt verteilen"},
+    {2,"Achse und Punkt wählen"},
+    {3,"Achse wählen und von Mittelpunkt der Auswahl explodieren"}
+   ]},
+  {menu_heading,
+   [
+    {1,"Explodieren"}
+   ]},
+  {radial_menu,
+   [
+    {1,"Objekte entlang Radial der ~s Achse explodieren"},
+    {2,"Punkt wählen"}
+   ]}
+ ]}.

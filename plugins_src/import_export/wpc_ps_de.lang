@@ -3,18 +3,18 @@
  [
   {command,
    [
-    {2,"Anzahl der Kanten-Halbierungen"},
-    {4,"PS/EPS Import Optionen"},
-    {5,"PostScript Datei"},
-    {6,"Encapsulated PostScript Datei"}
+    {2,"Anzahl der Kantenhalbierungen"},
+    {4,"PS/EPS-Importoptionen"},
+    {5,"PostScript-Datei"},
+    {6,"Encapsulated PostScript-Datei"}
    ]},
   {make_ps,
    [
-    {1,"PS Import fehlgeschlagen"},
-    {2,"PS Import interner Fehler"}
+    {1,"PS-Import fehlgeschlagen"},
+    {2,"Interner Fehler bei PS-Import"}
    ]},
   {try_import_ps,
    [
-    {1,"Dies ist keine Adobe PostScript Datei"}
+    {1,"Keine Adobe PostScript-Datei"}
    ]}
  ]}.

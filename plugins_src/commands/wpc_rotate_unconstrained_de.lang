@@ -1,0 +1,14 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_rotate_unconstrained,
+ [
+  {orbitrot_menu,
+   [
+    {1,"Nicht eingeschränkt"},
+    {2,"Frei um Auswahl drehen "},
+    {3,"Rotationszentrum wählen"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Zentrum der Rotation wählen"}
+   ]}
+ ]}.
