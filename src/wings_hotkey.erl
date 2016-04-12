@@ -346,19 +346,24 @@ list_keys([]) -> [].
 %%%
 handle_error(Ev, Cmd) ->
     Key = bindkey(Ev, Cmd),
-    KeyName = format_hotkey(Key, pretty),
-    CmdStr = wings_util:stringify(Cmd),
-    Msg1 = "Executing the command \"" ++ CmdStr ++ "\"\nbound to the hotkey " ++
-	KeyName ++ " caused an error.",
+    KeyName = 
+    case Key of 
+      {bindkey,_MODE,KEY_OR_TUPLE} -> 
+            lists:flatten(io_lib:format("~p",[{bindkey,KEY_OR_TUPLE}]));
+      _ ->  lists:flatten(io_lib:format("~p",[Key])) % Prob never happens but OK if does.
+    end,
+    CmdStr = cmd_to_string(Cmd), 
+    Msg1 = "Executing the command " ++ CmdStr ++ " bound to the hotkey " ++
+	    KeyName  ++ " caused an error.",
     Msg2 = "Possible causes:",
     Msg3 = "The hotkey was defined in a previous version of Wings,"
-	"and the command that it refers to has been changed,"
-	"removed, or renamed in this version of Wings.",
+	" and the command that it refers to has been changed,"
+	" removed, or renamed in this version of Wings.",
     Msg4 = "The hotkey refers to a command in a "
 	" plug-in that is currently disabled,"
-	"or to a previous version of a plug-in.",
+	" or to a previous version of a plug-in.",
     Msg5 = "A bug in the command itself. Try executing the command"
-	"from the menu directly (i.e. not through a hotkey) -"
+	" from the menu directly (i.e. not through a hotkey) -"
 	"if it crashes it IS a bug. (Please report it.)",
     Msg6 = "Delete Hotkey: " ++ KeyName ++ " or press cancel to avoid any changes",
     Qs = {vframe_dialog,
@@ -373,6 +378,12 @@ handle_error(Ev, Cmd) ->
 			fun([{result, ok}]) -> unbind(Key);
 			   (_) -> ignore
 			end).
+
+cmd_to_string(X) when is_atom(X) -> atom_to_list(X);
+cmd_to_string({X,Tuple}) when is_atom(X), is_tuple(Tuple) -> 
+   "{" ++ atom_to_list(X)  ++ "," ++ cmd_to_string(Tuple) ++ "}";
+cmd_to_string({X,Y}) when is_atom(X),is_atom(Y) -> 
+    "{" ++ atom_to_list(X) ++ "," ++ atom_to_list(Y) ++ "}".
 
 %%%
 %%% Local functions.
