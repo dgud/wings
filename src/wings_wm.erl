@@ -241,8 +241,8 @@ delete(Name) ->
     wings_frame:close(wxwindow(Name)),
     Windows = delete_windows(Name, get(wm_windows)),
     put(wm_windows, Windows),
-    case is_window(get(wm_focus_grab)) of
-	false -> erase(wm_focus_grab);
+    case is_window(grabbed_focus_window()) of
+	false -> release_focus();
 	true -> ok
     end,
     case is_window(get(wm_focus)) of
@@ -254,9 +254,9 @@ delete(Name) ->
 delete_windows(Name, W0) ->
     case gb_trees:lookup(Name, W0) of
 	none when element(1, Name) =:= wx_ref ->
-	    case wx2win(Name, W0) of
+	    case wx2win(Name) of
 		false -> W0;
-		#win{name=WName} -> delete_windows(WName, W0)
+		WName -> delete_windows(WName, W0)
 	    end;
 	none ->
 	    W0;
@@ -361,15 +361,17 @@ is_wxwindow(Name) ->
     end.
 
 wxwindow(Name) ->
-    #win{obj=Obj} = get_window_data(Name),
-    Obj.
+    try
+	#win{obj=Obj} = get_window_data(Name),
+	Obj
+    catch _:_ -> undefined
+    end.
 
-%% wx2win(Obj) ->
-%%     wx2win(Obj, get(wm_windows)).
-
-wx2win(Obj, W0) ->
-    All = gb_trees:values(W0),
-    lists:keyfind(Obj, #win.obj, All).
+wx2win(Obj) ->
+    case get(Obj) of
+	undefined -> none;
+	Win -> Win
+    end.
 
 offset(Name, Xoffs, Yoffs) ->
     update_window(Name, [{dx,Xoffs},{dy,Yoffs}]).
@@ -436,23 +438,42 @@ pos(Name) ->
     #win{x=X,y=Y} = get_window_data(Name),
     {X,Y}.
 
-grab_focus() -> 
+grab_focus() ->
     grab_focus(get(wm_active)).
-	   
-grab_focus(Name) -> 
+
+grab_focus(Name) ->
     case is_window(Name) of
-	true -> put(wm_focus_grab, Name);
-	false -> erase(wm_focus_grab)
+	true  ->
+%%	    {_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
+%%	    io:format("Grab ~p~n",[Where]),
+	    case get(wm_focus_grab) of
+		undefined -> put(wm_focus_grab, [Name]);
+		Stack -> put(wm_focus_grab, [Name|Stack])
+	    end;
+	false -> ok
     end.
 
-release_focus() -> 
-    erase(wm_focus_grab).
+release_focus() ->
+    case get(wm_focus_grab) of
+	undefined -> ok;
+	[_] -> erase(wm_focus_grab);
+	[_|Stack] -> put(wm_focus_grab, Stack)
+    end.
 
 grabbed_focus_window() ->
-    get(wm_focus_grab).
+    case get(wm_focus_grab) of
+	[Win|_] -> Win;
+	undefined -> undefined
+    end.
 
 actual_focus_window() ->
-    get(wm_focus).
+    get_focus_window().
+
+get_focus_window() ->
+    case grabbed_focus_window() of
+	undefined -> get(wm_focus);
+	Win -> {grabbed, Win}
+    end.
 
 top_size() ->
     wxWindow:getClientSize(?GET(top_frame)).
@@ -637,25 +658,34 @@ dispatch_matching(Filter) ->
     foreach(fun dispatch_event/1, Evs).
 
 dispatch_event(#mousemotion{which=Obj}=Event) ->
-    Win = get(Obj),
-    case get(wm_focus) of
+    Win = wx2win(Obj),
+    case get_focus_window() of
 	Win ->
 	    do_dispatch(Win, Event);
-	Focused ->
+	{grabbed, Grab} ->
+	    do_dispatch(Grab, Event);
+	Focused when Win =/= none ->
 	    case get(wm_timer) of
 		undefined ->
 		    put(wm_timer, wings_io:set_timer(300, {wm, {timer_active, Win, Focused}}));
 		_ -> ignore
 	    end,
-	    do_dispatch(Win, Event)
+	    do_dispatch(Win, Event);
+	_ ->
+	    ignore
     end;
 dispatch_event(#mousebutton{which=Obj}=Event) ->
-    update_focus(get(Obj)),
-    do_dispatch(get(Obj), Event);
+    Win = update_focus(wx2win(Obj)),
+    do_dispatch(Win, Event);
 dispatch_event(#keyboard{which=Obj}=Event) ->
-    case Obj of
-	menubar -> do_dispatch(menubar_focus(), Event);
-	_ -> do_dispatch(get(Obj), Event)
+    case get_focus_window() of
+	{grabbed, Grab} ->
+	    do_dispatch(Grab, Event);
+	_ ->
+	    case Obj of
+		menubar -> do_dispatch(menubar_focus(), Event);
+		_ -> do_dispatch(wx2win(Obj), Event)
+	    end
     end;
 dispatch_event({menubar,Ev}) ->
     do_dispatch(menubar_focus(), Ev);
@@ -688,8 +718,12 @@ dispatch_event(Ev = {external,_}) ->
 dispatch_event(#wx{event=#wxPaint{}}) ->
     dirty();
 dispatch_event(#wx{obj=Obj}=Event) ->
-    do_dispatch(get(Obj), Event);
-
+    case get_focus_window() of
+	{grabbed, Grab} ->
+	    do_dispatch(Grab, Event);
+	_ ->
+	    do_dispatch(get(Obj), Event)
+    end;
 dispatch_event(Event) ->
     case find_active() of
 	none ->
@@ -700,7 +734,7 @@ dispatch_event(Event) ->
     end.
 
 menubar_focus() ->
-    menubar_focus_1([get(wm_focus), get(wm_focus_prev)]).
+    menubar_focus_1([grabbed_focus_window(), get(wm_focus), get(wm_focus_prev)]).
 
 menubar_focus_1([undefined|Rest]) ->
     menubar_focus_1(Rest);
@@ -713,23 +747,38 @@ menubar_focus_1([]) -> geom.
 
 update_focus(none) ->
     case erase(wm_focus) of
-	undefined -> ok;
+	undefined -> none;
 	OldActive ->
-	    put(wm_focus_prev, OldActive),
-	    do_dispatch(OldActive, lost_focus)
+	    case grabbed_focus_window() of
+		undefined ->
+		    put(wm_focus_prev, OldActive),
+		    do_dispatch(OldActive, lost_focus),
+		    none;
+		Win ->
+		    Win
+	    end
     end;
 update_focus(Active) ->
-    case put(wm_focus, Active) of
-	Active -> ok;
+    case grabbed_focus_window() of
 	undefined ->
-	    wxWindow:setFocus(wxwindow(Active)),
-	    send(top_frame, {got_focus, Active, get_props(Active)}),
-	    do_dispatch(Active, got_focus);
-	OldActive ->
-	    do_dispatch(OldActive, lost_focus),
-	    wxWindow:setFocus(wxwindow(Active)),
-	    send(top_frame, {got_focus, Active, get_props(Active)}),
-	    do_dispatch(Active, got_focus)
+	    case put(wm_focus, Active) of
+		Active -> Active;
+		undefined ->
+		    Obj = wxwindow(Active),
+		    Obj =/= undefined andalso wxWindow:setFocus(Obj),
+		    send(top_frame, {got_focus, Active, get_props(Active)}),
+		    do_dispatch(Active, got_focus),
+		    Active;
+		OldActive ->
+		    do_dispatch(OldActive, lost_focus),
+		    Obj = wxwindow(Active),
+		    Obj =/= undefined andalso wxWindow:setFocus(Obj),
+		    send(top_frame, {got_focus, Active, get_props(Active)}),
+		    do_dispatch(Active, got_focus),
+		    Active
+	    end;
+	Win ->
+	    Win
     end.
 
 do_dispatch(Active, Ev) ->
@@ -811,8 +860,6 @@ clear_background() ->
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT).
 
 init_opengl(Name, Canvas) ->
-    %% {W,H} = top_size(),
-    %% wings_io:reset_video_mode_for_gl(W, H),
     wxGLCanvas:setCurrent(Canvas),
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
     gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
@@ -1011,7 +1058,7 @@ wm_event({callback,Cb}) ->
 %%%
 
 find_active() ->
-    case get(wm_focus_grab) of
+    case grabbed_focus_window() of
  	undefined -> geom_below(wx_misc:getMousePosition());
  	Focus -> Focus
     end.
