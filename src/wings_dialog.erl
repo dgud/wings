@@ -398,7 +398,10 @@ queries(Qs0) ->
 get_dialog_parent() ->
     case ?GET(dialog_parent) of
 	undefined ->
-	    wings_wm:this_win();
+	    case wings_wm:this_win() of
+		undefined -> ?GET(top_frame);
+		Win -> Win
+	    end;
 	Tuple when element(1, Tuple) =:= wx_ref ->
 	    Tuple
     end.
@@ -457,6 +460,7 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
     Op = {push,fun(Ev) -> event_handler(Ev, State) end},
     {TopW,TopH} = wings_wm:top_size(),
     wings_wm:new(dialog_blanket, {0,0,highest}, {TopW,TopH}, Op),
+    wings_wm:grab_focus(dialog_blanket),
     keep.
 
 notify_event_handler(false, _Msg) -> fun() -> ignore end;
