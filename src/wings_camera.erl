@@ -889,11 +889,11 @@ dist_factor(Dist) ->
     max(abs(Dist), 0.2).
 
 stop_camera(#camera{ox=Ox,oy=Oy}) ->
+    wings_wm:release_focus(),
     case wings_io:ungrab(Ox, Oy) of
 	still_grabbed ->
 	    wings_wm:later(view_changed);
 	no_grab ->
-	    wings_wm:release_focus(),
 	    wings_wm:dirty()
     end,
     update_sel(fun show_sel_fun/2),

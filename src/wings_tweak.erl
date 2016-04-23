@@ -233,7 +233,7 @@ tweak_event_handler(#keyboard{sym=Sym,state=?SDL_RELEASED},_St) ->
 
 tweak_event_handler(lost_focus,_) ->
     wings_pref:set_value(tweak_axis_toggle,[]),
-    wings_io:change_event_handler(?SDL_KEYUP, true),
+    wings_io:change_event_handler(?SDL_KEYUP, false),
     next;
 tweak_event_handler(_,_) ->
     next.
