@@ -1517,27 +1517,26 @@ set_drag_filter(Name) ->
     end,
     wings_wm:set_prop(Name, drag_filter, F).
 
-handle_drop(DropData, {X0,Y0}, St) ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
-    handle_drop_1(DropData, X, Y, St).
+handle_drop(DropData, ScreenPos, St) ->
+    handle_drop_1(DropData, ScreenPos, St).
 
-handle_drop_1(_, X, Y, #st{sel=[]}) ->
-    wings_menu:popup_menu(X, Y, drop,
-              [{?__(1,"No Selection"),cancel_drop, ?__(2,"Cancel drop operation")}]);
-handle_drop_1({material,Name}, X, Y, #st{selmode=face}) ->
+handle_drop_1(_, Pos, #st{sel=[]}) ->
+    wings_menu:popup_menu(wings_wm:this_win(), Pos, drop,
+			  [{?__(1,"No Selection"),cancel_drop, ?__(2,"Cancel drop operation")}]);
+handle_drop_1({material,Name}, Pos, #st{selmode=face}) ->
     Menu = [{ ?__(3,"Assign material to selected faces"),menu_cmd(assign_to_sel, Name),
           ?__(4,"Assign material \"")++Name++ ?__(5,"\" only to selected faces")},
         { ?__(6,"Assign material to all faces"),
          menu_cmd(assign_to_body, Name),
           ?__(7,"Assign material \"")++Name++
               ?__(8,"\" to all faces in objects having a selection")}],
-    wings_menu:popup_menu(X, Y, drop, Menu);
-handle_drop_1({material,Name}, X, Y, _) ->
+    wings_menu:popup_menu(wings_wm:this_win(), Pos, drop, Menu);
+handle_drop_1({material,Name}, Pos, _) ->
     Menu = [{ ?__(9,"Assign material to all faces"),
           menu_cmd(assign_to_body, Name),
           ?__(10,"Assign material \"")++Name++
           ?__(11,"\" to all faces in objects having a selection")}],
-    wings_menu:popup_menu(X, Y, drop, Menu).
+    wings_menu:popup_menu(wings_wm:this_win(), Pos, drop, Menu).
     
 menu_cmd(Cmd, Id) ->
     {'VALUE',{Cmd,Id}}.

@@ -13,7 +13,7 @@
 
 -module(wings_u).
 -export([error_msg/1,error_msg/2,message/1,get_matrices/2,
-	 geom_windows/0,menu_restriction/2,
+	 geom_windows/0,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
 	 export_we/2,win_crash/1,crash_log/2,crash_log/3,
 	 pretty_filename/1,relative_path_name/2,caption/1,win32_special_folder/2]).
@@ -38,14 +38,6 @@ message(Message) ->
 	  [{label,Message}],
 	  [{buttons,[ok]}]},
     wings_dialog:dialog("", Qs, fun(_) -> ignore end).
-
-menu_restriction(Win, Allowed) ->
-    case wings_wm:get_menubar(Win) of
-	none -> wings_wm:menubar(Win, []);
-	Mb0 ->
-	    Mb = [Item || {_,Name,_}=Item <- Mb0, member(Name, Allowed)],
-	    wings_wm:menubar(Win, Mb)
-    end.
 
 geom_windows() ->
     geom_windows_1(wings_wm:windows()).
