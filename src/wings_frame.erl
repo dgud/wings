@@ -12,6 +12,7 @@
 -module(wings_frame).
 
 -export([top_menus/0, make_win/2, register_win/3, close/1, set_focus/1,
+	 get_overlay/0, overlay_draw/3, overlay_hide/1,
 	 get_icon_images/0, get_colors/0]).
 
 -export([start/0, forward_event/1]).
@@ -90,6 +91,9 @@ close(Win) ->
 set_focus(Win) ->
     wx_object:cast(?MODULE, {active, Win}).
 
+get_overlay() ->
+    wx_object:call(?MODULE, get_overlay).
+
 %%%%%%%% Internals %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Inside wings (process)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -141,15 +145,14 @@ init(_Opts) ->
 	case os:type() of
 	    {_, darwin} ->
 		Me = self(),
-		CB = fun(_,_) -> io:format("INIT MENUS~n"),
-			     Me ! {init_menus, Frame} end,
+		CB = fun(_,_) -> Me ! {init_menus, Frame} end,
 		wxWindow:connect(Frame, show, [{callback, CB}]);
 	    _ ->
 		init_menubar(Frame)
 	end,
 	Wins = #{frame=>Frame, ch=>Top#split{w1=Canvas}, szr=>Sizer,
 		 loose=>#{}, action=>undefined, op=>undefined},
-	Overlay = overlay_frame(Frame),
+	Overlay = make_overlay(Frame),
 	{Frame, #state{toolbar=Toolbar, images=IconImgs, windows=Wins, overlay=Overlay}}
     catch _:Reason ->
 	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, erlang:get_stacktrace()])
@@ -250,6 +253,9 @@ handle_call({new_window, Window, Name, Ps}, _From,
 handle_call(get_images, _From, #state{images=Icons} = State) ->
     {reply, Icons, State};
 
+handle_call(get_overlay, _From, #state{overlay=Overlay}=State) ->
+    {reply, Overlay, State};
+
 handle_call(Req, _From, State) ->
     io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, Req]),
     {reply, ok, State}.
@@ -278,6 +284,7 @@ handle_cast({close, Win}, #state{windows=#{ch:=Child,loose:=Loose,szr:=Szr}=Wins
 		    wxMiniFrame:destroy(Frame),
 		    {noreply, State#state{windows=Wins#{loose:=maps:remove(Frame, Loose)}}};
 		false ->
+		    %% wxWindow:destroy(Win),
 		    {noreply, State}
 	    end;
 	#win{frame=Obj} ->
@@ -363,7 +370,7 @@ preview_attach(false, Pos, Frame,
 	    State#state{windows=delete_timer(Wins)};
 	Path ->
 	    {Rect,_} = preview_rect(Path, Frame),
-	    overlay_draw(Overlay, Rect),
+	    overlay_draw(Overlay, Rect, 170),
 	    State#state{windows=setup_timer(Frame, Path, delete_timer(Wins))}
     end;
 preview_attach(_MouseDown, _Pos, _Frame, State) ->
@@ -384,17 +391,17 @@ preview_rect({Obj, Path}, Frame) ->
 	down  -> {{X, Y+H0-H, W0, H}, -H-25}
     end.
 
-overlay_frame(Parent) ->
+make_overlay(Parent) ->
     Flags = ?wxFRAME_TOOL_WINDOW bor
 	?wxFRAME_FLOAT_ON_PARENT bor
 	?wxFRAME_NO_TASKBAR bor
 	?wxNO_BORDER,
     Overlay = wxFrame:new(Parent, -1, "", [{style, Flags}]),
-    wxFrame:setBackgroundColour(Overlay, {95,138,255, 200}),
-    catch wxFrame:setTransparent(Overlay, 170),
+    wxFrame:setBackgroundColour(Overlay, {95,138,255,200}),
     Overlay.
 
-overlay_draw(Overlay, Rect) ->
+overlay_draw(Overlay, Rect, Alpha) ->
+    catch wxFrame:setTransparent(Overlay, Alpha),
     wxFrame:setSize(Overlay, Rect),
     wxFrame:show(Overlay).
 

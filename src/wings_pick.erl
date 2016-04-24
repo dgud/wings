@@ -14,7 +14,7 @@
 -module(wings_pick).
 -export([event/2,event/3,hilite_event/3, hilite_event/4]).
 -export([do_pick/3,raw_pick/3]).
--export([marquee_pick/3,paint_pick/3]).
+-export([paint_pick/3]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -32,8 +32,8 @@
 
 %% For marquee picking.
 -record(marquee,
-	{ox,oy,					%Original X,Y.
-	 cx,cy,					%Current X,Y.
+	{o, 					% start pos
+	 overlay,				% overlay win
 	 st
 	}).
 
@@ -56,7 +56,7 @@ event(#mousemotion{}=Mm, #st{selmode=Mode}=St, Redraw) ->
     end;
 event(#mousebutton{button=1,x=X,y=Y,mod=Mod,state=?SDL_PRESSED}, St, _)
         when Mod band (?SHIFT_BITS bor ?CTRL_BITS) =/= 0 ->
-    marquee_pick(X, Y, St);
+    setup_marquee(X, Y, St);
 event(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED}, St, _) ->
     paint_pick(X, Y, St);
 event(_, _, _) -> next.
@@ -77,14 +77,10 @@ hilite_event(_, _, _,_) -> next.
 hilite_enabled(body) -> wings_pref:get_value(body_hilite);
 hilite_enabled(_) -> true.
 
-marquee_pick(X, Y, St)  ->
-    Pick = #marquee{ox=X,oy=Y,st=St},
-    clear_hilite_marquee_mode(Pick).
 paint_pick(X, Y, St0) ->
     case do_pick(X, Y, St0) of
 	none ->
-	    Pick = #marquee{ox=X,oy=Y,st=St0},
-	    clear_hilite_marquee_mode(Pick);
+	    setup_marquee(X, Y, St0);
 	{PickOp,_,St} ->
 	    wings_wm:grab_focus(),
 	    wings_wm:dirty(),
@@ -92,6 +88,11 @@ paint_pick(X, Y, St0) ->
 	    Pick = #pick{st=St,op=PickOp},
 	    {seq,push,get_pick_event(Pick)}
     end.
+
+setup_marquee(X,Y, St) ->
+    OL = wings_frame:get_overlay(),
+    Pick = #marquee{o=wings_wm:local2screen({X,Y}),st=St, overlay=OL},
+    clear_hilite_marquee_mode(Pick).
 
 %%
 %% Highlighting on mouse move.
@@ -425,10 +426,8 @@ clear_hilite_marquee_mode(#marquee{st=St}=Pick) ->
 	     wings_wm:later(now_enter_marquee_mode),
 	     keep;
 	(now_enter_marquee_mode) ->
+	     wings_io:grab(),
 	     wings_wm:grab_focus(wings_wm:this()),
-	     wings_io:ortho_setup(),
-	     gl:flush(),
-	     gl:drawBuffer(?GL_FRONT),
 	     get_marquee_event(Pick);
 	(Ev) ->
 	     wings_io:putback_event(Ev),
@@ -449,19 +448,17 @@ marquee_message() ->
 get_marquee_event(Pick) ->
     {replace,fun(Ev) -> marquee_event(Ev, Pick) end}.
 
-marquee_event(redraw, #marquee{cx=Cx,cy=Cy,st=St}=M) ->
-    gl:drawBuffer(?GL_BACK),
+marquee_event(redraw, #marquee{st=St}) ->
     wings:redraw(St),
-    gl:drawBuffer(?GL_FRONT),
-    wings_io:ortho_setup(),
-    draw_marquee(Cx, Cy, M),
     keep;
-marquee_event(init_opengl, #marquee{st=St}) ->
-    wings:init_opengl(St);
-marquee_event(#mousemotion{x=X,y=Y}, #marquee{cx=Cx,cy=Cy}=M) ->
-    draw_marquee(Cx, Cy, M),
-    draw_marquee(X, Y, M),
-    get_marquee_event(M#marquee{cx=X,cy=Y});
+marquee_event(#mousemotion{x=X0,y=Y0}, #marquee{o={OX,OY}, overlay=OL}) ->
+    {X,Y} = wings_wm:local2screen({X0,Y0}),
+    MinX = min(X,OX),
+    MinY = min(Y,OY),
+    W = max(X,OX) - MinX,
+    H = max(Y,OY) - MinY,
+    wings_frame:overlay_draw(OL, {MinX,MinY,W,H}, 170),
+    keep;
 marquee_event(#mousebutton{x=X0,y=Y0,mod=Mod,button=1,state=?SDL_RELEASED}, M) ->
     {Inside,Op} =
 	if
@@ -474,8 +471,8 @@ marquee_event(#mousebutton{x=X0,y=Y0,mod=Mod,button=1,state=?SDL_RELEASED}, M) -
 	    true ->
 		{false,add}
 	end,
-    #marquee{ox=Ox,oy=Oy,st=St0} = M,
-    gl:drawBuffer(?GL_BACK),
+    #marquee{o=Orig,st=St0,overlay=OL} = M,
+    {Ox,Oy} = wings_wm:screen2local(Orig),
     X = (Ox+X0)/2.0,
     Y = (Oy+Y0)/2.0,
     W = abs(Ox-X)*2.0,
@@ -486,6 +483,8 @@ marquee_event(#mousebutton{x=X0,y=Y0,mod=Mod,button=1,state=?SDL_RELEASED}, M) -
 	    St = marquee_update_sel(Op, Hits, St0),
 	    wings_wm:later({new_state,St})
     end,
+    wings_frame:overlay_hide(OL),
+    wings_io:ungrab(X0,Y0),
     wings_wm:release_focus(),
     wings_wm:later(revert_state),
     wings_wm:dirty_mode(back),
@@ -570,31 +569,6 @@ is_inside_rect({Px,Py,Pz}, {MM,PM,ViewPort,X1,Y1,X2,Y2}) ->
     {Sx,Sy,_} = wings_gl:project(Px, Py, Pz, MM, PM, ViewPort),
     X1 < Sx andalso Sx < X2 andalso
 	Y1 < Sy andalso Sy < Y2.
-
-draw_marquee(X, Y, M) ->
-    Key = marquee_key(X, Y, M),
-    Update = fun update_marquee/1,
-    wings_dl:draw(pick_marquee, Key, Update).
-
-marquee_key(undefined, undefined, _) ->
-    none;
-marquee_key(X, Y, #marquee{ox=Ox,oy=Oy}) ->
-    {X,Y,Ox,Oy}.
-
-update_marquee({X,Y,Ox,Oy}) ->
-    Data = [{X,Oy,0},
-	    {X,Y,0},
-	    {Ox,Y,0},
-	    {Ox,Oy,0}],
-    D = fun() ->
-		gl:color3f(1.0, 1.0, 1.0),
-		gl:enable(?GL_COLOR_LOGIC_OP),
-		gl:logicOp(?GL_XOR),
-		gl:drawArrays(?GL_LINE_LOOP, 0, 4),
-		gl:flush(),
-		gl:disable(?GL_COLOR_LOGIC_OP)
-	end,
-    wings_vbo:new(D, Data).
 
 marquee_update_sel(Op, Hits0, #st{selmode=body}=St) ->
     Hits1 = sofs:relation(Hits0, [{id,data}]),
