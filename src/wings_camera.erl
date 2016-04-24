@@ -261,9 +261,8 @@ quit_tweak_cam() ->
 %%% Blender style camera.
 %%%
 
-blender(#mousebutton{button=2,state=?SDL_PRESSED,x=X0,y=Y0,mod=Mod}, Redraw)
+blender(#mousebutton{button=2,state=?SDL_PRESSED,x=X,y=Y,mod=Mod}, Redraw)
   when Mod band ?ALT_BITS =:= 0 ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),
     message(blender_help()),
@@ -304,9 +303,8 @@ blender_help() ->
 %%% Nendo style camera.
 %%%
 
-nendo(#mousebutton{button=2,x=X0,y=Y0,mod=Mod,state=?SDL_RELEASED}, Redraw)
+nendo(#mousebutton{button=2,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Redraw)
   when Mod band ?CTRL_BITS =:= 0 ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),
     MoveTumbles = allow_rotation(),
@@ -374,9 +372,8 @@ nendo_message(false) ->
 %%% Mirai style camera.
 %%%
 
-mirai(#mousebutton{button=2,x=X0,y=Y0,mod=Mod,state=?SDL_RELEASED}, Redraw)
+mirai(#mousebutton{button=2,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Redraw)
   when Mod band ?CTRL_BITS =:= 0 ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),
     MoveTumbles = allow_rotation(),
@@ -449,8 +446,7 @@ mirai_message(false) ->
 %%% 3ds max style camera.
 %%%
 
-tds(#mousebutton{button=2,x=X0,y=Y0,state=?SDL_PRESSED}, Redraw) ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
+tds(#mousebutton{button=2,x=X,y=Y,state=?SDL_PRESSED}, Redraw) ->
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),
     message(wings_msg:join(tds_help(), 
@@ -499,9 +495,8 @@ tds_help() ->
 %%% Maya style camera.
 %%%
 
-maya(#mousebutton{x=X0,y=Y0,mod=Mod,state=?SDL_PRESSED}, Redraw)
+maya(#mousebutton{x=X,y=Y,mod=Mod,state=?SDL_PRESSED}, Redraw)
   when Mod band ?ALT_BITS =/= 0, Mod band ?CTRL_BITS =:= 0, Mod band ?SHIFT_BITS =:= 0 ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
     wings_io:change_event_handler(?SDL_KEYUP, true),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),
@@ -561,9 +556,8 @@ maya_help() ->
 %%% Motionbuilder style camera.
 %%%
 
-mb(#mousebutton{button=1,mod=Mod,x=X0,y=Y0,state=?SDL_PRESSED}, Redraw)
+mb(#mousebutton{button=1,mod=Mod,x=X,y=Y,state=?SDL_PRESSED}, Redraw)
   when Mod band (?SHIFT_BITS bor ?CTRL_BITS) =/= 0 ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),
     message(mb_help()),
@@ -608,9 +602,8 @@ mb_help() ->
 %%% Sketchup style camera.
 %%%
 
-sketchup(#mousebutton{button=2,state=?SDL_PRESSED,x=X0,y=Y0,mod=Mod}, Redraw)
+sketchup(#mousebutton{button=2,state=?SDL_PRESSED,x=X,y=Y,mod=Mod}, Redraw)
   when (Mod band (?ALT_BITS  bor ?CTRL_BITS)) =:= 0  ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),
     message(sketchup_help()),
@@ -649,9 +642,8 @@ sketchup_help() ->
 %%% Wings 3D camera suggested by oort
 %%%
 
-wings_cam(#mousebutton{button=2,x=X0,y=Y0,mod=Mod,state=?SDL_RELEASED}, Redraw)
+wings_cam(#mousebutton{button=2,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Redraw)
   when Mod band (?CTRL_BITS bor ?SHIFT_BITS bor ?ALT_BITS) =:= 0 ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
     Camera = #camera{x=X,y=Y,ox=X,oy=Y},
     grab(),
     wings_cam_message(),
@@ -768,7 +760,7 @@ aim_zoom(Dir, St0) ->
             true ->
               Client = wings_wm:this(),
               {X0,Y0} = wings_wm:win_size(Client),
-              {X,Y} = wings_wm:local2global(X0 div 2, Y0 div 2),
+              {X,Y} = {X0 div 2, Y0 div 2},
               wings_io:warp(X,Y),
               zoom_step(Dir)
         end;
@@ -899,9 +891,8 @@ stop_camera(#camera{ox=Ox,oy=Oy}) ->
     update_sel(fun show_sel_fun/2),
     pop.
 
-camera_mouse_range(X0, Y0, #camera{x=OX,y=OY, xt=Xt0, yt=Yt0}=Camera) ->
+camera_mouse_range(X1, Y1, #camera{x=OX,y=OY, xt=Xt0, yt=Yt0}=Camera) ->
 %%    io:format("Camera Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xt0,Yt0}]),
-    {X1,Y1} = wings_wm:local2global(X0, Y0),
     XD0 = (X1 - OX),
     YD0 = (Y1 - OY),
     {XD,YD} = wings_pref:lowpass(XD0 + Xt0, YD0 + Yt0),

@@ -13,13 +13,13 @@
 -behaviour(wx_object).
 %% Callbacks
 -export([init/1, terminate/2, code_change/3,
-	 handle_event/2, handle_cast/2, handle_info/2,
+	 handle_sync_event/3, handle_event/2, handle_cast/2, handle_info/2,
 	 handle_call/3]).
 
 %% API
--export([new/3, new/4, getColor/1, setColor/2]).
+-export([new/3, new/4, getColor/1, setColor/2, connect/2, connect/3]).
 
--compile(export_all).
+-export([test/0]). % Test
 
 new(Parent, Id, Col) ->
     new(Parent, Id, Col, []).
