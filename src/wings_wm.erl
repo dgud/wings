@@ -21,12 +21,11 @@
 	 set_timer/2,cancel_timer/1,
 	 this/0,this_win/0,
 	 offset/3,pos/1,windows/0,is_window/1,
-	 is_wxwindow/1,wxwindow/1,
+	 is_wxwindow/1,wxwindow/1,wx2win/1,
 	 window_below/2,geom_below/2,
 	 update_window/2,clear_background/0,
 	 callback/1,current_state/1,get_current_state/0,notify/1,
-	 local2global/1,local2global/2,global2local/2,local_mouse_state/0,
-	 local2screen/1, screen2local/1,
+	 local2screen/1, screen2local/1, local_mouse_state/0,
 	 translation_change/0,is_geom/0]).
 
 %% Window information.
@@ -255,10 +254,7 @@ delete(Name) ->
 delete_windows(Name, W0) ->
     case gb_trees:lookup(Name, W0) of
 	none when element(1, Name) =:= wx_ref ->
-	    case wx2win(Name) of
-		false -> W0;
-		WName -> delete_windows(WName, W0)
-	    end;
+	    delete_windows(wx2win(Name), W0);
 	none ->
 	    W0;
 	{value,#win{links=Links}} ->
@@ -551,26 +547,6 @@ local2screen(Pos) ->
 
 screen2local(Pos) ->
     wxWindow:screenToClient(this_win(), Pos).
-
-local2global(#mousebutton{x=X0,y=Y0}=Ev) ->
-    {X,Y} = local2global(X0, Y0),
-    Ev#mousebutton{x=X,y=Y};
-local2global(#mousemotion{x=X0,y=Y0}=Ev) ->
-    {X,Y} = local2global(X0, Y0),
-    Ev#mousemotion{x=X,y=Y};
-local2global(Ev) -> Ev.
-
-local2global(X, Y) ->
-    %% {_,TopH} = get(wm_top_size),
-    %% {Xorig,Yorig,_,H} = viewport(),
-    %% {Xorig+X,(TopH-Yorig-H)+Y}.
-    {X,Y}.
-
-global2local(X, Y) ->
-    %% {_,TopH} = get(wm_top_size),
-    %% {Xorig,Yorig,_,H} = viewport(),
-    %% {X-Xorig,Y-(TopH-Yorig-H)}.
-    {X,Y}.
 
 local_mouse_state() ->
     {B,X0,Y0} = wings_io:get_mouse_state(),
@@ -912,8 +888,6 @@ translate_event(#mousebutton{button=B0,state=?SDL_RELEASED}=M) ->
 	undefined -> M;
 	{B,Mod} ->   M#mousebutton{button=B,mod=Mod}
     end;
-translate_event({drop,{X,Y},DropData}) ->
-    {drop,{X,Y},DropData};
 translate_event(Ev) -> Ev.
 
 handle_event(State, Event, Stk) ->
@@ -1140,8 +1114,7 @@ drag(#mousebutton{x=X,y=Y,button=B}, Rect, Redraw, DropData) ->
     State = 1 bsl (B-1),
     drag_1(X, Y, State, Rect, Redraw, DropData).
 
-drag_1(X0, Y0, State, {W,H}, Redraw, DropData) ->
-    {X1,Y1} = wings_wm:local2global(X0, Y0),
+drag_1(X1, Y1, State, {W,H}, Redraw, DropData) ->
     X = X1 - W div 2,
     Y = Y1 - H div 2,
     Drag = #drag{data=DropData,bstate=State,redraw=Redraw},
@@ -1162,7 +1135,7 @@ drag_event(redraw, #drag{redraw=Redraw}) ->
 drag_event(#mousemotion{x=X0,y=Y0}, #drag{over=Over0}=Drag0) ->
     {W,H} = wings_wm:win_size(),
     offset(dragger, X0 - W div 2, Y0 - H div 2),
-    {X,Y} = local2global(X0, Y0),
+    {X,Y} = local2screen({X0, Y0}),
     hide(dragger),
     Over = window_below(X, Y),
     show(dragger),

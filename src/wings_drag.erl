@@ -348,14 +348,12 @@ do_drag(#drag{flags=Flags}=Drag, none) ->
     end,
     {_,X,Y} = wings_wm:local_mouse_state(),
     Ev = #mousemotion{x=X,y=Y,state=0},
-    {GX,GY} = wings_wm:local2global(X, Y),
     wings_tweak:toggle_draw(false),
-    {seq,push,handle_drag_event_1(Ev, Drag#drag{x=GX,y=GY})};
+    {seq,push,handle_drag_event_2(Ev, Drag#drag{x=X,y=Y})};
 do_drag(#drag{unit=Units}=Drag0, Move) when length(Units) =:= length(Move) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     Ev = #mousemotion{x=X,y=Y,state=0},
-    {GX,GY} = wings_wm:local2global(X, Y),
-    Drag1 = motion(Ev, Drag0#drag{x=GX,y=GY}),
+    Drag1 = motion(Ev, Drag0#drag{x=X,y=Y}),
     ungrab(Drag1),
     Drag2 = possible_falloff_update(Move, Drag1),
     Drag = ?SLOW(motion_update(Move, Drag2)),
@@ -366,8 +364,7 @@ do_drag(#drag{unit=Units}=Drag0, Move) when length(Units) =:= length(Move) ->
 do_drag(Drag0, _) ->
     wings_menu:kill_menus(),
     {_,X,Y} = wings_wm:local_mouse_state(),
-    {GX,GY} = wings_wm:local2global(X, Y),
-    ungrab(Drag0#drag{x=GX,y=GY}),
+    ungrab(Drag0#drag{x=X,y=Y}),
     wings_wm:later(revert_state),
     keep.
 
@@ -480,58 +477,57 @@ get_drag_event(Drag) ->
     get_drag_event_1(Drag).
 
 get_drag_event_1(Drag) ->
-    {replace,fun(Ev) -> handle_drag_event(Ev, Drag) end}.
+    {replace,fun(Ev) -> handle_drag_event_0(Ev, Drag) end}.
 
 %% When the Rmb is pressed we store the time in order to determine if the
 %% intention is to drag or cancel the command. Later, when the Rmb is released
 %% we take the time again. If the time interval is short then the event is
 %% handled as an intention to cancel the command.
-handle_drag_event(#mousebutton{button=3,state=?SDL_PRESSED}=Ev,
-  #drag{rmb_timer=0}=Drag) ->
+handle_drag_event_0(#mousebutton{button=3,state=?SDL_PRESSED}=Ev,
+		  #drag{rmb_timer=0}=Drag) ->
     StartTimer = os:timestamp(),
-    handle_drag_event(Ev, Drag#drag{rmb_timer=StartTimer});
-handle_drag_event(#mousebutton{button=1,state=?SDL_PRESSED}=Ev,
-  #drag{lmb_timer=0}=Drag) ->
+    handle_drag_event_0(Ev, Drag#drag{rmb_timer=StartTimer});
+handle_drag_event_0(#mousebutton{button=1,state=?SDL_PRESSED}=Ev,
+		  #drag{lmb_timer=0}=Drag) ->
     StartTimer = os:timestamp(),
-    handle_drag_event(Ev, Drag#drag{lmb_timer=StartTimer});
-handle_drag_event(#keyboard{sym=9, mod=Mod},Drag)->
+    handle_drag_event_0(Ev, Drag#drag{lmb_timer=StartTimer});
+handle_drag_event_0(#keyboard{sym=9, mod=Mod},Drag)->
     case Mod band ?SHIFT_BITS =/= 0 of
-      true ->
-        case wings_pref:get_value(con_alternate) of
-          true ->  wings_pref:set_value(con_alternate,false);
-          false -> wings_pref:set_value(con_alternate,true)
-        end, get_drag_event(Drag);
-      false ->
-          ungrab(Drag),
-          numeric_input(Drag)
+	true ->
+	    case wings_pref:get_value(con_alternate) of
+		true ->  wings_pref:set_value(con_alternate,false);
+		false -> wings_pref:set_value(con_alternate,true)
+	    end, get_drag_event(Drag);
+	false ->
+	    ungrab(Drag),
+	    numeric_input(Drag)
     end;
-handle_drag_event(#mousebutton{button=2,state=?SDL_RELEASED},
-  #drag{lmb_timer=0,mmb_timer=C,rmb_timer=0}=Drag) when C > 2 ->
+handle_drag_event_0(#mousebutton{button=2,state=?SDL_RELEASED},
+		  #drag{lmb_timer=0,mmb_timer=C,rmb_timer=0}=Drag) when C > 2 ->
     get_drag_event_1(Drag#drag{mmb_timer=0});
-handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
-  #drag{mmb_timer=C}=Drag) when C > 2 ->
+handle_drag_event_0(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
+		  #drag{mmb_timer=C}=Drag) when C > 2 ->
     if
 	Mod band ?CTRL_BITS =/= 0 ->
 	    get_drag_event_1(Drag#drag{lmb_timer=0,mmb_timer=0,rmb_timer=0});
 	true ->
-	    handle_drag_event_0(Ev,Drag#drag{lmb_timer=0,rmb_timer=0})
+	    handle_drag_event_1(Ev,Drag#drag{lmb_timer=0,rmb_timer=0})
     end;
 
-handle_drag_event(Cancel, #drag{})
+handle_drag_event_0(Cancel, #drag{})
   when Cancel =:= grab_lost; Cancel =:= cancel ->
     wings_dl:map(fun invalidate_fun/2, []),
     wings_tweak:toggle_draw(true),
     wings_wm:later(revert_state),
     pop;
 
-handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
-  #drag{rmb_timer=StartTime}=Drag) when StartTime =/= 0 ->
-%% When Rmb is released we subtract the StartTime (when the Rmb was pressed)
-%% from the Stop time (relased) and if the result is less than 500000 ms, then
-%% we cancel the drag. If not we continue the drag using the 
+handle_drag_event_0(#mousebutton{button=3,state=?SDL_RELEASED},
+		  #drag{rmb_timer=StartTime}=Drag) when StartTime =/= 0 ->
+    %% When Rmb is released we subtract the StartTime (when the Rmb was pressed)
+    %% from the Stop time (relased) and if the result is less than 500000 ms, then
+    %% we cancel the drag. If not we continue the drag using the 
     Stop = os:timestamp(),
     Time = timer:now_diff(Stop, StartTime),
-    % io:format("Time ~p\n",[Time]),
     case Time < 500000 of
         false ->
             get_drag_event_1(Drag#drag{lmb_timer=0,mmb_timer=0,rmb_timer=0});
@@ -541,36 +537,35 @@ handle_drag_event(#mousebutton{button=3,state=?SDL_RELEASED},
             wings_tweak:toggle_draw(true),
             wings_wm:later(revert_state),
             pop
-	end;
+    end;
 
-handle_drag_event(#mousebutton{button=1,x=X,y=Y,mod=Mod,state=?SDL_RELEASED},
-  #drag{lmb_timer=StartTime}=Drag0) when StartTime =/= 0 ->
-%% When Lmb timer is less than 500000 ms, we Accept and finish the drag, if
-%% not, then we continue using the lmb parameter.
+handle_drag_event_0(#mousebutton{button=1,x=X,y=Y,mod=Mod,state=?SDL_RELEASED},
+		  #drag{lmb_timer=StartTime}=Drag0) when StartTime =/= 0 ->
+    %% When Lmb timer is less than 500000 ms, we Accept and finish the drag, if
+    %% not, then we continue using the lmb parameter.
     Stop = os:timestamp(),
     Time = timer:now_diff(Stop, StartTime),
-    % io:format("Time ~p\n",[Time]),
     case Time < 500000 of
         false ->
-          get_drag_event_1(Drag0#drag{lmb_timer=0,mmb_timer=0,rmb_timer=0});
+	    get_drag_event_1(Drag0#drag{lmb_timer=0,mmb_timer=0,rmb_timer=0});
         true ->
-          Ev = #mousemotion{x=X,y=Y,state=0,mod=Mod},
-          Drag = ?SLOW(motion(Ev, Drag0)),
-          quit_drag(Drag)
-	end;
-handle_drag_event(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Drag0)
+	    Ev = #mousemotion{x=X,y=Y,state=0,mod=Mod},
+	    Drag = ?SLOW(motion(Ev, Drag0)),
+	    quit_drag(Drag)
+    end;
+handle_drag_event_0(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Drag0)
   when B =:= 1; B =:= 3 ->
-%% This function guards against reported crashes of the rmb being held, and
-%% clicking the lmb. I can't reproduce this crash, but I don't doubt that it
-%% happens. The probable cause is likely to do with misinterpreted or conflated
-%% mouse button hits. ~Richard Jones
+    %% This function guards against reported crashes of the rmb being held, and
+    %% clicking the lmb. I can't reproduce this crash, but I don't doubt that it
+    %% happens. The probable cause is likely to do with misinterpreted or conflated
+    %% mouse button hits. ~Richard Jones
     Ev = #mousemotion{x=X,y=Y,state=0,mod=Mod},
     Drag = ?SLOW(motion(Ev, Drag0)),
     quit_drag(Drag);
 
-handle_drag_event(Event, Drag = #drag{st=St}) ->
+handle_drag_event_0(Event, Drag = #drag{st=St}) ->
     case wings_camera:event(Event, St, fun() -> redraw(Drag) end) of
-	next -> handle_drag_event_0(Event, Drag);
+	next -> handle_drag_event_1(Event, Drag);
 	keep ->
 	    %% Clear any potential marker for an edge about to be
 	    %% cut (Cut RMB).
@@ -581,8 +576,8 @@ handle_drag_event(Event, Drag = #drag{st=St}) ->
 	    #drag{xs=Xs0,ys=Ys0,zs=Zs0,p4=P4th0,p5=P5th0,psum=Psum0,unit=Unit,
 	          unit_sc=Us0} = Drag,
 	    Us = unit_scales(Unit),
-		Psum = adjust_unit_scaling(Psum0,Us,Us0),
-		[Xs,Ys,Zs,P4th,P5th] = adjust_unit_scaling([Xs0,Ys0,Zs0,P4th0,P5th0],Us,Us0),
+	    Psum = adjust_unit_scaling(Psum0,Us,Us0),
+	    [Xs,Ys,Zs,P4th,P5th] = adjust_unit_scaling([Xs0,Ys0,Zs0,P4th0,P5th0],Us,Us0),
 	    get_drag_event(Drag#drag{xs=Xs,ys=Ys,zs=Zs,p4=P4th,p5=P5th,psum=Psum,unit_sc=Us});
 	Other ->
 	    %% Clear any potential marker for an edge about to be
@@ -593,10 +588,10 @@ handle_drag_event(Event, Drag = #drag{st=St}) ->
 	    Other
     end.
 
-handle_drag_event_0(#keyboard{unicode=C}=Ev,
+handle_drag_event_1(#keyboard{unicode=C}=Ev,
 		    #drag{mode_fun=ModeFun,mode_data=ModeData0}=Drag0) ->
     case ModeFun({key,C}, ModeData0) of
-	none -> handle_drag_event_1(Ev, Drag0);
+	none -> handle_drag_event_2(Ev, Drag0);
 	ModeData ->
 	    wings_wm:dirty(),
 	    wings_wm:message_right(ModeFun(help, ModeData)),
@@ -616,22 +611,22 @@ handle_drag_event_0(#keyboard{unicode=C}=Ev,
 		   end,
 	    get_drag_event(Drag)
     end;
-handle_drag_event_0(Ev, Drag) ->
-    handle_drag_event_1(Ev, Drag).
+handle_drag_event_1(Ev, Drag) ->
+    handle_drag_event_2(Ev, Drag).
 
-handle_drag_event_1(redraw, Drag) ->
+handle_drag_event_2(redraw, Drag) ->
     help_message(Drag),
     redraw(Drag),
     get_drag_event_1(Drag);
-handle_drag_event_1(#mousemotion{}=Ev, Drag0) ->
+handle_drag_event_2(#mousemotion{}=Ev, Drag0) ->
     Drag = motion(Ev, Drag0),
     get_drag_event(Drag);
-handle_drag_event_1({numeric_preview,Move}, Drag0) ->
+handle_drag_event_2({numeric_preview,Move}, Drag0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     Drag1 = possible_falloff_update(Move, Drag0#drag{x=X,y=Y}),
     Drag = ?SLOW(motion_update(Move, Drag1)),
     get_drag_event(Drag);
-handle_drag_event_1({drag_arguments,Move}, Drag0) ->
+handle_drag_event_2({drag_arguments,Move}, Drag0) ->
     ungrab(Drag0),
     Drag1 = possible_falloff_update(Move, Drag0),
     Drag = ?SLOW(motion_update(Move, Drag1)),
@@ -641,21 +636,21 @@ handle_drag_event_1({drag_arguments,Move}, Drag0) ->
     wings_wm:later(DragEnded),
     pop;
 
-handle_drag_event_1(view_changed, Drag) ->
+handle_drag_event_2(view_changed, Drag) ->
     get_drag_event(view_changed(Drag));
-handle_drag_event_1({action,{drag_arguments,_}=DragArgs}, _) ->
+handle_drag_event_2({action,{drag_arguments,_}=DragArgs}, _) ->
     wings_wm:later(DragArgs);
-handle_drag_event_1({action,numeric_input}, Drag) ->
+handle_drag_event_2({action,numeric_input}, Drag) ->
     numeric_input(Drag);
-handle_drag_event_1({action,{numeric_preview,Move}}, _) ->
+handle_drag_event_2({action,{numeric_preview,Move}}, _) ->
     wings_wm:later({numeric_preview,Move});
-handle_drag_event_1({camera,Ev,NextEv}, #drag{st=St}) ->
+handle_drag_event_2({camera,Ev,NextEv}, #drag{st=St}) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_camera:event(Ev#mousebutton{x=X,y=Y}, St) of
       next -> NextEv;
       Other -> Other
     end;
-handle_drag_event_1(Event, #drag{st=St}=Drag0) ->
+handle_drag_event_2(Event, #drag{st=St}=Drag0) ->
     case wings_hotkey:event(Event,St) of
 	next ->
 	    get_drag_event(Drag0);
@@ -699,9 +694,9 @@ numeric_input(Drag0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     Ev = #mousemotion{x=X,y=Y,state=0,mod=0},
     {Move0,Drag} = case mouse_translate(Ev, Drag0) of
-	    {{_,M},D} -> {M,D};
-		Other -> Other
-	end,
+		       {{_,M},D} -> {M,D};
+		       Other -> Other
+		   end,
     wings_dialog:dialog(?__(1,"Numeric Input"),
 			{drag_preview, make_query(Move0, Drag)},
 			fun
@@ -832,7 +827,7 @@ mouse_pre_translate(Mode, #mousemotion{state=Mask,mod=Mod}=Ev,Drag)
 mouse_pre_translate(_, #mousemotion{mod=Mod}=Ev,Drag) ->
     {Ev,Mod,Drag}.
 
-mouse_range(#mousemotion{x=X0, y=Y0, state=Mask},
+mouse_range(#mousemotion{x=X, y=Y, state=Mask},
 		#drag{x=OX, y=OY,
 			xs=Xs0, ys=Ys0, zs=Zs0, p4=P4th0,p5=P5th0,
 			psum=Psum0,
@@ -846,7 +841,6 @@ mouse_range(#mousemotion{x=X0, y=Y0, state=Mask},
 		true -> Psum0;
 		false -> [Xs0,Ys0,Zs0,P4th0,P5th0]
     end,
-    {X,Y} = wings_wm:local2global(X0, Y0),
 
     case wings_pref:lowpass(X-OX, Y-OY) of
 		{0,0} ->
@@ -854,7 +848,6 @@ mouse_range(#mousemotion{x=X0, y=Y0, state=Mask},
 			{{no_change,LastMove},Drag};
 
 		{XD0,YD0} ->
-	
 			CS = constraints_scale(Unit,Mod,UnitScales),
 			XD = CS*(XD0 + Xt0),
 			YD = CS*(YD0 + Yt0),

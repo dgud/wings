@@ -242,25 +242,24 @@ tweak_event_handler(_,_) ->
 %%% Start Tweak
 %%%
 
-handle_tweak_event_1(#tweak{ox=X, oy=Y, st=#st{sel=Sel}=St0}=T) ->
+handle_tweak_event_1(#tweak{ox=X,oy=Y, st=#st{sel=Sel}=St0}=T) ->
     case wings_pick:do_pick(X,Y,St0) of
 	{add, What, St} when Sel =:= [] ->
 	    from_element_point(X,Y,St0),
-	    tweak_handler_setup(add, What, X, Y, St, T);
+	    tweak_handler_setup(add, What, St, T);
 	{add, What, St} ->
 	    from_element_point(X,Y,St),
-	    tweak_handler_setup(add, What, X, Y, St, T);
+	    tweak_handler_setup(add, What, St, T);
 	{delete, What, _} ->
 	    from_element_point(X,Y,St0),
-	    tweak_handler_setup(delete, What, X, Y, St0, T);
+	    tweak_handler_setup(delete, What, St0, T);
 	none ->
 	    next
     end.
 
-tweak_handler_setup(Action, {Id,Elem,_}=What, X, Y, St, T0) ->
-    {GX,GY} = wings_wm:local2global(X,Y),
+tweak_handler_setup(Action, {Id,Elem,_}=What, St, T0) ->
     IdElem = {Id,[Elem]},
-    T = T0#tweak{id={Action,IdElem},ox=GX,oy=GY,cx=0,cy=0},
+    T = T0#tweak{id={Action,IdElem},cx=0,cy=0},
     {seq,push,initiate_tweak_handler(What, St, T)}.
 
 
@@ -327,9 +326,8 @@ handle_initial_event({new_state,St}, _, _, _) ->
     pop;
 handle_initial_event(#mousemotion{x=X,y=Y}=Ev, What, St,
 		     #tweak{ox=OX,oy=OY,cx=CX,cy=CY,clk=Clk}=T) ->
-    {GX,GY} = wings_wm:local2global(X, Y),
-    DX = GX-OX, %since last move X
-    DY = GY-OY, %since last move Y
+    DX = X-OX, %since last move X
+    DY = Y-OY, %since last move Y
     DxOrg = DX+CX, %total X
     DyOrg = DY+CY, %total Y
     Total = math:sqrt(DxOrg * DxOrg + DyOrg * DyOrg),
@@ -429,9 +427,8 @@ handle_tweak_drag_event_0(#mousemotion{x=X,y=Y},
 	    scale_uniform -> actual_mode(TweakMode);
 	    _ -> TweakMode
 	end,
-    {GX,GY} = wings_wm:local2global(X, Y),
-    DX = GX-OX, %since last move X
-    DY = GY-OY, %since last move Y
+    DX = X-OX, %since last move X
+    DY = Y-OY, %since last move Y
     DxOrg = DX+CX, %total X
     DyOrg = DY+CY, %total Y
     wings_io:warp(OX,OY),
@@ -535,13 +532,12 @@ magnet_adjust(#tweak{st=St0}=T0) ->
 
 magnet_handler_setup({Id,Elem,_}=What, X, Y, St, T0) ->
     wings_io:change_event_handler(?SDL_KEYUP, true),
-    {GX,GY} = wings_wm:local2global(X, Y),
     IdElem = {Id,[Elem]},
     wings_wm:grab_focus(),
     wings_io:grab(),
     begin_magnet_adjustment(What, St),
     tweak_magnet_radius_help(true),
-    T = T0#tweak{id=IdElem,ox=GX,oy=GY,cx=0,cy=0},
+    T = T0#tweak{id=IdElem,ox=X,oy=Y,cx=0,cy=0},
     {seq,push,update_magnet_handler(T)}.
 
 %%%
@@ -563,9 +559,8 @@ handle_magnet_event(redraw, #tweak{st=St}=T) ->
     update_magnet_handler(T);
 handle_magnet_event({new_state,St}, T) ->
     end_magnet_event(T#tweak{st=St});
-handle_magnet_event(#mousemotion{x=X, y=Y},#tweak{ox=OX, oy=OY}=T0) ->
-    {GX,_} = wings_wm:local2global(X, Y),
-    DX = GX-OX, %since last move X
+handle_magnet_event(#mousemotion{x=X},#tweak{ox=OX, oy=OY}=T0) ->
+    DX = X-OX, %since last move X
     wings_io:warp(OX,OY),
     T = adjust_magnet_radius(DX,T0),
     wings_wm:dirty(),
@@ -594,9 +589,8 @@ tweak_drag_mag_adjust(#tweak{st=#st{selmode=body}}) -> keep;
 tweak_drag_mag_adjust(#tweak{magnet=false}) -> keep;
 tweak_drag_mag_adjust(#tweak{mode=Mode, cx=CX, cy=CY, ox=OX, oy=OY}=T0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
-    {GX,GY} = wings_wm:local2global(X, Y),
-    DX = GX-OX, %since last move X
-    DY = GY-OY, %since last move Y
+    DX = X-OX, %since last move X
+    DY = Y-OY, %since last move Y
     DxOrg = DX+CX, %total X
     DyOrg = DY+CY, %total Y
     wings_io:warp(OX,OY),
@@ -622,9 +616,8 @@ handle_in_drag_magnet_ev(redraw, #tweak{magnet=Mag,st=St}=T) ->
     tweak_magnet_radius_help(Mag),
     draw_magnet(T),
     in_drag_radius_no_redraw(T);
-handle_in_drag_magnet_ev(#mousemotion{x=X, y=Y},#tweak{ox=OX, oy=OY}=T0) ->
-    {GX,_} = wings_wm:local2global(X, Y),
-    DX = GX-OX, %since last move X
+handle_in_drag_magnet_ev(#mousemotion{x=X},#tweak{ox=OX, oy=OY}=T0) ->
+    DX = X-OX, %since last move X
     wings_io:warp(OX,OY),
     T = in_drag_adjust_magnet_radius(DX,T0),
     update_in_drag_radius_handler(T);
@@ -1686,15 +1679,14 @@ show_cursor(_,_) ->
 show_cursor_1(X0,Y0) ->
     {W,H} = wings_wm:win_size(),
     {X1,Y1} = {trunc(X0), H - trunc(Y0)},
-    X2 = if X1 < 0 -> 20;
-            X1 > W -> W-20;
-            true -> X1
-	 end,
-    Y2 = if Y1 < 0 -> 20;
-            Y1 > H -> H-20;
-            true -> Y1
-	 end,
-    {X,Y} = wings_wm:local2global(X2,Y2),
+    X = if X1 < 0 -> 20;
+	   X1 > W -> W-20;
+	   true -> X1
+	end,
+    Y = if Y1 < 0 -> 20;
+	   Y1 > H -> H-20;
+	   true -> Y1
+	end,
     wings_wm:release_focus(),
     wings_io:ungrab(X,Y).
 
