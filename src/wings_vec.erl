@@ -157,18 +157,17 @@ handle_event_1(Event, Ss, St) ->
 	Other -> Other
     end.
 
-handle_event_2(#mousebutton{x=X,y=Y}=Ev0, Ss, St0) ->
-    case wings_menu:is_popup_event(Ev0) of
+handle_event_2(#mousebutton{x=X,y=Y}=Ev, Ss, St0) ->
+    case wings_menu:is_popup_event(Ev) of
 	{yes,Xglobal,Yglobal,Mod} ->
 	    case temp_selection(X, Y, St0) of
 		none ->
 		    exit_menu(Xglobal, Yglobal, Mod, Ss, St0);
 		#st{}=St ->
-		    Ev = wings_wm:local2global(Ev0),
 		    wings_io:putback_event(Ev),
 		    wings_wm:later({new_state,St})
 	    end;
-	no -> handle_event_3(Ev0, Ss, St0)
+	no -> handle_event_3(Ev, Ss, St0)
     end;
 handle_event_2(Ev, Ss, St) -> handle_event_3(Ev, Ss, St).
 
