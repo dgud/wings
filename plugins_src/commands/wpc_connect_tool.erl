@@ -49,8 +49,6 @@ menu(_, Menu) -> Menu.
 
 command({tools,connect}, St0) ->
     wings:mode_restriction([vertex,edge]), %% ,face
-    Active = wings_wm:this(),
-    wings_wm:callback(fun() -> wings_u:menu_restriction(Active, [view]) end),
     St = wings_undo:init(St0#st{selmode=edge,sel=[],sh=true}),
     wings_draw:refresh_dlists(St),
     C = #cs{ost=St0, st=St},

@@ -19,7 +19,7 @@
 -include("wings.hrl").
 
 -ifdef(USE_WX).
--export([init/1, quit/0, version_info/0,
+-export([init/0, quit/0, version_info/0,
 	 set_cursor/1,hourglass/0,eyedropper/0,
 	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
 	 get_buffer/2, read_buffer/3, get_bin/1,
@@ -37,9 +37,9 @@
 
 -import(wings_io, [put_state/1, get_state/0]).
 
-init(Icons) ->
+init() ->
     Cursors = build_cursors(),
-    put_state(#io{raw_icons=Icons,cursors=Cursors}).
+    ?SET(cursors, Cursors).
 
 quit() ->
     Frame = ?GET(top_frame),
@@ -122,7 +122,7 @@ blank(PreDef) ->
     end.
 
 set_cursor(CursorId) ->
-    #io{cursors=Cursors} = get_state(),
+    Cursors = ?GET(cursors),
     Cursor = proplists:get_value(CursorId, Cursors),
     wx_misc:setCursor(Cursor),
     put(active_cursor, CursorId),

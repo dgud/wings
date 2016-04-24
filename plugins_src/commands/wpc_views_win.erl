@@ -214,7 +214,7 @@ handle_event(#wx{event=#wxList{type=command_list_item_right_click}}, State) ->
     {noreply, State};
 
 handle_event(#wx{event=#wxList{type=command_list_begin_drag, itemIndex=Indx}}, #state{lc=LC}=State) ->
-    wxWindow:setCursor(?GET(top_frame), wxCursor:new(?wxCURSOR_HAND)),
+    wings_io:set_cursor(pointing_hand),
     wxListCtrl:captureMouse(LC),
     {noreply, State#state{drag=Indx}};
 handle_event(#wx{event=#wxMouse{type=left_up, x=X,y=Y}},
@@ -225,7 +225,7 @@ handle_event(#wx{event=#wxMouse{type=left_up, x=X,y=Y}},
 	Drag ->
 	    Pos = {X,Y},
 	    wxListCtrl:releaseMouse(LC),
-	    wxWindow:setCursor(?GET(top_frame), ?wxNullCursor),
+	    wings_io:set_cursor(arrow),
 	    case handle_drop(wxListCtrl:hitTest(LC,Pos, 0), Drag, Pos, Vs0, LC) of
 		false ->
 		    {noreply, State#state{drag=undefined}};
@@ -240,8 +240,8 @@ handle_event(#wx{event=#wxMouse{type=left_up, x=X,y=Y}},
 	    end
     end;
 
-handle_event(#wx{} = Ev, State) ->
-    io:format("~p:~p Got unexpected event ~p~n", [?WIN_NAME,?LINE, Ev]),
+handle_event(#wx{} = _Ev, State) ->
+    %% io:format("~p:~p Got unexpected event ~p~n", [?WIN_NAME,?LINE, _Ev]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -254,11 +254,11 @@ handle_cast({new_state, Views}, #state{lc=LC, views=Old}=State) ->
     update_views(Views, Old, LC),
     {noreply, State#state{views=Views}};
 handle_cast(_Req, State) ->
-    io:format("~p:~p Got unexpected cast ~p~n", [?WIN_NAME,?LINE, _Req]),
+    %% io:format("~p:~p Got unexpected cast ~p~n", [?WIN_NAME,?LINE, _Req]),
     {noreply, State}.
 
-handle_info(Msg, State) ->
-    io:format("~p:~p Got unexpected info ~p~n", [?WIN_NAME,?LINE, Msg]),
+handle_info(_Msg, State) ->
+    %% io:format("~p:~p Got unexpected info ~p~n", [?WIN_NAME,?LINE, _Msg]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -267,7 +267,6 @@ code_change(_From, _To, State) ->
     State.
 
 terminate(_Reason, _) ->
-    io:format("terminate: ~p (~p)~n",[?WIN_NAME, _Reason]),
     wings ! {external, fun(_) -> wings_wm:delete(?WIN_NAME) end},
     normal.
 

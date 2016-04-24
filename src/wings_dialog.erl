@@ -506,10 +506,8 @@ event_handler(preview, #eh{fs=Fields, apply=Fun, owner=Owner}) ->
 	    %%io:format("~p:~p: ~p~n",[?MODULE,?LINE,{preview,[Owner,{action,Action}]}]),
 	    wings_wm:send(Owner, {action,Action})
     end;
-event_handler(#mousebutton{x=X0,y=Y0}=Ev, _) ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
-    Win = wings_wm:geom_below(X, Y),
-    wings_wm:send(Win, {camera,Ev,keep});
+event_handler(#mousebutton{which=Obj}=Ev, _) ->
+    wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
 event_handler(#mousemotion{}, _) -> keep;
 event_handler(_Ev, _) ->
     %% io:format("unhandled Ev ~p~n",[_Ev]),
