@@ -868,45 +868,15 @@ zero() ->
 
 %% Returns a list of wxImages
 make_icons() ->
-    MakeImage = fun({about_wings, {3, W, H, Bin0}}) ->
-			RL = 3*W,
-			Bin = iolist_to_binary(lists:reverse([Row || <<Row:RL/binary>> <= Bin0])),
+    MakeImage = fun({Name, {W, H, Bin}}) ->
 			Image = wxImage:new(W,H,Bin),
-			{about_wings, {W,H}, Image};
-		   ({Name, {Bpp, W, H, Bin0}}) ->
-			{Colors, Alpha} = setup_image(Bin0, Bpp, W),
-			Image = wxImage:new(W,H,Colors),
+			{Name, {W,H}, Image};
+		   ({Name, {W, H, Rgb, Alpha}}) ->
+			Image = wxImage:new(W,H,Rgb),
 			wxImage:setAlpha(Image, Alpha),
 			{Name, {W,H}, Image}
 		end,
-    [MakeImage(Raw) || Raw <- binary_to_term(wings_io:read_icons())].
-
-%% FIXME when icons are fixed
-%% Poor mans version of alpha channel
-setup_image(Bin0, 3, Width) ->
-    RowLen = 3*Width,
-    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RowLen/binary>> <= Bin0])),
-    rgb3(Bin, <<>>, <<>>);
-setup_image(Bin0, 4, Width) ->
-    RowLen = 4*Width,
-    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RowLen/binary>> <= Bin0])),
-    rgb4(Bin, <<>>, <<>>).
-
-rgb3(<<8684676:24, Rest/binary>>, Cs, As) ->
-    rgb3(Rest, <<Cs/binary, 8684676:24>>, <<As/binary, 0:8>>);
-rgb3(<<R:8,G:8,B:8, Rest/binary>>, Cs, As) ->
-    A0 = abs(R-132)/123,
-    A1 = abs(G-132)/123,
-    A2 = abs(B-132)/123,
-    A = trunc(255*min(1.0, max(max(A0,A1),A2))),
-    rgb3(Rest, <<Cs/binary, R:8, G:8, B:8>>, <<As/binary, A:8>>);
-rgb3(<<>>, Cs, As) ->
-    {Cs,As}.
-
-rgb4(<<C:24, A:8, R/binary>>, Cs, As) ->
-    rgb4(R, <<Cs/binary, C:24>>, <<As/binary, A:8>>);
-rgb4(<<>>, Cs, As) ->
-    {Cs,As}.
+    [MakeImage(Raw) || Raw <- wings_io:read_icons()].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Menubar
