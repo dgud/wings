@@ -460,7 +460,7 @@ handle_event(#wx{event=#wxTree{type=command_tree_end_label_edit, item=Indx}},
 
 handle_event(#wx{event=#wxList{type=command_list_begin_drag, itemIndex=Indx}},
 	     #state{lc=LC}=State) ->
-    wxWindow:setCursor(?GET(top_frame), wxCursor:new(?wxCURSOR_HAND)),
+    wings_io:set_cursor(pointing_hand),
     wxListCtrl:captureMouse(LC),
     {noreply, State#state{drag=Indx}};
 
@@ -507,7 +507,7 @@ handle_event(#wx{event=#wxMouse{type=left_up, x=X,y=Y}},
 	    Pos1 = wxWindow:clientToScreen(LC, Pos0),
 	    Pos  = wxWindow:screenToClient(TC, Pos1),
 	    wxListCtrl:releaseMouse(LC),
-	    wxWindow:setCursor(?GET(top_frame), ?wxNullCursor),
+	    wings_io:set_cursor(arrow),
 	    case handle_drop(wxTreeCtrl:hitTest(TC, Pos), State) of
 		false ->
 		    {noreply, State#state{drag=undefined}};

@@ -68,7 +68,6 @@
 	{tex=[],				%Textures.
 	 grab_stack=[],				%Grab stack.
 	 key_up=false,                          %Subscribed to key_up
-	 cursors,				%Mouse cursors.
 	 raw_icons				%Raw icon bundle.
 	}).
 
