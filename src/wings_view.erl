@@ -576,7 +576,6 @@ auto_rotate(St) ->
     {{X0,Y0},{W,H}} = wings_wm:win_rect(Active),
     X = X0 + W div 2, Y = Y0 + H div 2,
     wings_io:warp(X,Y),
-    wings_wm:callback(fun() -> wings_u:menu_restriction(Active, []) end),
     {seq,push,set_auto_rotate_timer(Tim)}.
 
 auto_rotate_event({action, Cmd={view, rotate_left}}, Tim) ->

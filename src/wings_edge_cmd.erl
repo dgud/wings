@@ -290,7 +290,7 @@ cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
 		   gl:pushMatrix(),
 		   gl:loadIdentity(),
 		   gl:rasterPos2f(Sx, Sy),
-		   wings_io:draw_char(Char),
+		   wings_io:draw_bitmap(Char),
 		   gl:popMatrix(),
 		   gl:matrixMode(?GL_PROJECTION),
 		   gl:popMatrix(),

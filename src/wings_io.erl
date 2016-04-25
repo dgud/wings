@@ -14,13 +14,12 @@
 -module(wings_io).
 
 -export([init/0,quit/0,
-	 resize/0,
 	 set_cursor/1,hourglass/0,eyedropper/0,
 	 info/1, info/3, version_info/0,
 
 	 is_maximized/0, maximize/0, set_title/1, reset_video_mode_for_gl/2,
 	 change_event_handler/2,
-	 read_icons/0, set_icon/2, get_mask/1,
+	 read_icons/0, set_icon/2,
 
 	 get_buffer/2, read_buffer/3, get_bin/1,
 	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
@@ -29,17 +28,10 @@
 	 batch/1, foreach/2,
 	 lock/1, unlock/2, lock/2, lock/3,
 
-	 blend/2,
-	 border/5,border/6,border_only/4,border_only/5,
-	 gradient_border/5,gradient_border_burst/5,
-	 gradient_border_burst/7,gradient_border/7,
-	 sunken_rect/4,sunken_rect/5,sunken_rect/6,sunken_rect/7,
-	 sunken_gradient/7,
-	 raised_rect/4,raised_rect/5,raised_rect/6,
-	 gradient_rect/5,gradient_rect_burst/5,
-	 text_at/2,text_at/3,unclipped_text/3,
-	 draw_icons/1,draw_icon/3,draw_char/1,
+	 unclipped_text/3,
+	 draw_bitmap/1,
 	 set_color/1]).
+
 -export([putback_event/1,putback_event_once/1,get_event/0,get_matching_events/1,
 	 set_timer/2,cancel_timer/1,enter_event/1]).
 
@@ -52,30 +44,21 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--import(lists, [flatmap/2,keyfind/3,reverse/1]).
-
--ifdef(USE_WX).
--define(BACKEND_MOD, wings_io_wx).
--else.
--define(BACKEND_MOD, wings_io_sdl).
--endif.
-
 %% Init and Quit
 
 init() ->
-    Icons = read_icons(), %% Duplicate in wings_frame.erl
     put(?EVENT_QUEUE, queue:new()),
-    put_state(#io{raw_icons=Icons}),
-    ?BACKEND_MOD:init().
+    put_state(#io{}),
+    wings_io_wx:init().
 
 quit() ->
-    ?BACKEND_MOD:quit().
+    wings_io_wx:quit().
 
 get_process_option() ->
-    ?BACKEND_MOD:get_process_option().
+    wings_io_wx:get_process_option().
 
 set_process_option(Opts) ->
-    ?BACKEND_MOD:set_process_option(Opts).
+    wings_io_wx:set_process_option(Opts).
 
 lock(Pid, Fun) ->
     lock(Pid, Fun, fun() -> ok end).
@@ -114,108 +97,84 @@ unlock(Pid, Fun) ->
 
 %% Batch processing
 foreach(Fun, List) ->
-    ?BACKEND_MOD:foreach(Fun, List).
+    wings_io_wx:foreach(Fun, List).
 
 batch(Fun) ->
-    ?BACKEND_MOD:batch(Fun).
+    wings_io_wx:batch(Fun).
 
 %% Cursor support and Mouse handling
 
 eyedropper() ->
-    ?BACKEND_MOD:eyedropper().
+    wings_io_wx:eyedropper().
 
 hourglass() ->
     case get(wings_not_running) of
 	undefined -> 
-	    ?BACKEND_MOD:hourglass();
+	    wings_io_wx:hourglass();
 	_ ->
 	    ignore
     end.
 
 set_cursor(Cursor) ->
-    ?BACKEND_MOD:set_cursor(Cursor).
+    wings_io_wx:set_cursor(Cursor).
 
 grab() ->
-    ?BACKEND_MOD:grab(wings_wm:this_win()).
+    wings_io_wx:grab(wings_wm:this_win()).
 ungrab(X,Y) ->
-    ?BACKEND_MOD:ungrab(X,Y).
+    wings_io_wx:ungrab(X,Y).
 
 reset_grab() ->
-    ?BACKEND_MOD:reset_grab().
+    wings_io_wx:reset_grab().
 
 is_grabbed() ->
-    ?BACKEND_MOD:is_grabbed().
+    wings_io_wx:is_grabbed().
 
 warp(X,Y) ->
-    ?BACKEND_MOD:warp(wings_wm:this_win(), X,Y).
+    wings_io_wx:warp(wings_wm:this_win(), X,Y).
 
 get_mouse_state() ->
-    ?BACKEND_MOD:get_mouse_state().
+    wings_io_wx:get_mouse_state().
 
 is_modkey_pressed(Key) ->
-    ?BACKEND_MOD:is_modkey_pressed(Key).
+    wings_io_wx:is_modkey_pressed(Key).
 
 is_key_pressed(Key) ->
-    ?BACKEND_MOD:is_key_pressed(Key).
+    wings_io_wx:is_key_pressed(Key).
 
 %% Window handling
 is_maximized() ->
-    ?BACKEND_MOD:is_maximized().
+    wings_io_wx:is_maximized().
 
 maximize() ->
-    ?BACKEND_MOD:maximize().
+    wings_io_wx:maximize().
 
 set_title(Title) ->
-    ?BACKEND_MOD:set_title(Title).
+    wings_io_wx:set_title(Title).
 
 reset_video_mode_for_gl(W,H) ->
-    ?BACKEND_MOD:reset_video_mode_for_gl(W,H).
+    wings_io_wx:reset_video_mode_for_gl(W,H).
 
 version_info() ->
-    ?BACKEND_MOD:version_info().
+    wings_io_wx:version_info().
 
 set_icon(Frame, IconBase) ->
-    ?BACKEND_MOD:set_icon(Frame, IconBase).
-
-%% get_mask(WBMFileName) -> Binary | null
-%%  Read a mask from a WBM file.
-%%  Wbmp format reference: http://en.wikipedia.org/wiki/Wbmp
-%%
-get_mask(IconBase) ->
-    case file:read_file(IconBase) of
-	{ok,Bin} -> get_mask_1(Bin);
-	{error,_} -> null
-    end.
-
-get_mask_1(<<0,0,T0/binary>>) ->
-    try
-	{_W,T} = get_uintvar(T0, 0),
-	{_H,Bits} = get_uintvar(T, 0),
-	Bits
-    catch _:_ ->
-	    null
-    end.
-
-get_uintvar(<<1:1,N:7,T/binary>>, Acc) ->
-    get_uintvar(T, (Acc bsl 7) bor N);
-get_uintvar(<<0:1,N:7,T/binary>>, Acc) ->
-    {(Acc bsl 7) bor N,T}.
+    wings_io_wx:set_icon(Frame, IconBase).
 
 %% Memory handling
 
 get_buffer(Size, Type) ->
-    ?BACKEND_MOD:get_buffer(Size, Type).
+    wings_io_wx:get_buffer(Size, Type).
 
 read_buffer(Buff, Size, Type) ->
-    ?BACKEND_MOD:read_buffer(Buff, Size, Type).
+    wings_io_wx:read_buffer(Buff, Size, Type).
 
 get_bin(Buff) ->
-    ?BACKEND_MOD:get_bin(Buff).
+    wings_io_wx:get_bin(Buff).
 
 %% Events
 %%  This is probably slow in wx (should be avoided)
 change_event_handler(EvType,What) ->
-    ?BACKEND_MOD:change_event_handler(EvType,What).
+    wings_io_wx:change_event_handler(EvType,What).
 
 enter_event(Ev) ->
     Eq0 = get(?EVENT_QUEUE),
@@ -231,7 +190,7 @@ get_event() ->
 
 get_event2() ->
     Eq0 = get(?EVENT_QUEUE),
-    {Event,Eq} = ?BACKEND_MOD:read_events(Eq0),
+    {Event,Eq} = wings_io_wx:read_events(Eq0),
     put(?EVENT_QUEUE, Eq),
     Event.
 
@@ -265,22 +224,6 @@ putback_event_once(Ev) ->
     end.
 
 %%%%%%%%%%%
-
-
-read_icons() ->
-    Ebin = filename:dirname(code:which(?MODULE)),
-    case wings_pref:get_value(interface_icons) of
-	classic -> IconFile = filename:join(Ebin, "wings_icon_classic.bundle");
-	bluecube -> IconFile = filename:join(Ebin, "wings_icon_bluecube.bundle");
-	purpletube -> IconFile = filename:join(Ebin, "wings_icon_purpletube.bundle")
-    end,
-    {ok,Bin} = file:read_file(IconFile),
-    Bin.
-
-resize() ->
-    #io{raw_icons=RawIcons} = Io = get_state(),
-    Tex = load_textures(RawIcons),
-    put_state(Io#io{tex=Tex}).
 
 info(Info) ->
     info(0, 0, Info).
@@ -316,164 +259,8 @@ blend(Color, Draw) ->
     Draw(Color),
     gl:disable(?GL_BLEND).
 
-border(X, Y, W, H, FillColor) ->
-    border(X, Y, W, H, FillColor, {0.0,0.0,0.0}).
-
-border(X0, Y0, Mw, Mh, FillColor, BorderColor)
-  when is_integer(X0), is_integer(Y0), is_integer(Mw), is_integer(Mh) ->
-    X = X0 + 0.5,
-    Y = Y0 + 0.5,
-    set_color(FillColor),
-    gl:recti(X0, Y0, X0+Mw, Y0+Mh),
-    set_color(BorderColor),
-    gl:'begin'(?GL_LINE_LOOP),
-    gl:vertex2f(X, Y+Mh),
-    gl:vertex2f(X, Y),
-    gl:vertex2f(X+Mw, Y),
-    gl:vertex2f(X+Mw, Y+Mh),
-    gl:'end'(),
-    gl:color3b(0, 0, 0).
-
-gradient_border_burst(X, Y, W, H, FillColor) ->
-    gradient_border_burst(X, Y, W, H, FillColor, {0.0,0.0,0.0}, false).
-
-gradient_border_burst(X0, Y0, Mw, Mh, FillColor, BorderColor, Double)
-  when is_integer(X0), is_integer(Y0), is_integer(Mw), is_integer(Mh) ->
-    X = X0 + 0.5,
-    Y = Y0 + 0.5,
-    gradient_rect_burst(X0, Y0, Mw, Mh, FillColor),
-    set_color(BorderColor),
-    border_only(X, Y, Mw, Mh, Double).
-
-gradient_border(X, Y, W, H, FillColor) ->
-    gradient_border(X, Y, W, H, FillColor, {0.0,0.0,0.0}, false).
-
-gradient_border(X0, Y0, Mw, Mh, FillColor, BorderColor, Double)
-  when is_integer(X0), is_integer(Y0), is_integer(Mw), is_integer(Mh) ->
-    X = X0 + 0.5,
-    Y = Y0 + 0.5,
-    gradient_rect(float(X0), float(Y0), float(Mw), float(Mh), FillColor),
-    set_color(BorderColor),
-    border_only(X, Y, Mw, Mh, Double).
-
-border_only(X, Y, Mw, Mh) ->
-    border_only(X, Y, Mw, Mh, false).
-
-border_only(X, Y, Mw, Mh, Double) ->
-    gl:'begin'(?GL_LINE_LOOP),
-    gl:vertex2f(X, Y+Mh),
-    gl:vertex2f(X, Y),
-    gl:vertex2f(X+Mw, Y),
-    gl:vertex2f(X+Mw, Y+Mh),
-    gl:'end'(),
-    case Double of
-	false -> ok;
-	true ->
-	    gl:'begin'(?GL_LINE_LOOP),
-	    gl:vertex2f(X-1, Y+Mh+1),
-	    gl:vertex2f(X-1, Y-1),
-	    gl:vertex2f(X+Mw+1, Y-1),
-	    gl:vertex2f(X+Mw+1, Y+Mh+1),
-	    gl:'end'()
-    end,
-    gl:color3b(0, 0, 0).
-
-add_color({R,G,B}, N) -> {R+N,G+N,B+N};
-add_color({R,G,B,A}, N) -> {R+N,G+N,B+N,A}.
-
-mul_color({R,G,B}, N) -> {R*N,G*N,B*N};
-mul_color({R,G,B,A}, N) -> {R*N,G*N,B*N,A}.
-
 set_color({_,_,_}=RGB) -> gl:color3fv(RGB);
 set_color({_,_,_,_}=RGBA) -> gl:color4fv(RGBA).
-
-raised_rect(X, Y, Mw, Mh) ->
-    raised_rect(X, Y, Mw, Mh, ?PANE_COLOR, ?PANE_COLOR).
-
-raised_rect(X, Y, Mw, Mh, FillColor) ->
-    raised_rect(X, Y, Mw, Mh, FillColor, ?PANE_COLOR).
-
-raised_rect(X, Y, Mw, Mh, FillColor, PaneColor) ->
-    sunken_rect(X+Mw, Y+Mh, -Mw, -Mh, FillColor, PaneColor).
-
-sunken_rect(X, Y, Mw, Mh) ->
-    sunken_rect(X, Y, Mw, Mh, ?PANE_COLOR, ?PANE_COLOR, false).
-
-sunken_rect(X, Y, Mw, Mh, FillColor) ->
-    sunken_rect(X, Y, Mw, Mh, FillColor, ?PANE_COLOR, false).
-
-sunken_rect(X, Y, Mw, Mh, FillColor, PaneColor) ->
-    sunken_rect(X, Y, Mw, Mh, FillColor, PaneColor, false).
-
-sunken_rect(X0, Y0, Mw0, Mh0, FillColor, PaneColor, Active) ->
-    X = X0 + 0.5,
-    Y = Y0 + 0.5,
-    Mw = Mw0 + 0.5,
-    Mh = Mh0 + 0.5,
-    set_color(FillColor),
-    gl:rectf(X0, Y0, X0+Mw0, Y0+Mh0),
-    sunken_border(X, Y, Mw, Mh, PaneColor, Active),
-    gl:color3b(0, 0, 0).
-
-sunken_gradient(X0, Y0, Mw0, Mh0, FillColor, PaneColor, Active) ->
-    X = X0 + 0.5,
-    Y = Y0 + 0.5,
-    Mw = Mw0 + 0.5,
-    Mh = Mh0 + 0.5,
-    gradient_rect(X0, Y0, Mw, Mh, FillColor),
-    sunken_border(X, Y, Mw, Mh, PaneColor, Active),
-    gl:color3b(0, 0, 0).
-
-sunken_border(X, Y, Mw, Mh, _, true) ->
-    gl:color3b(0, 0, 0),
-    border_only(X-1, Y, Mw, Mh, true);
-sunken_border(X, Y, Mw, Mh, PaneColor, false) ->
-    gl:'begin'(?GL_LINES),
-    set_color(wings_color:mix(?BEVEL_LOWLIGHT_MIX, {0,0,0}, PaneColor)),
-    gl:vertex2f(X, Y+Mh),
-    gl:vertex2f(X, Y),
-    gl:vertex2f(X, Y),
-    gl:vertex2f(X+Mw, Y),
-    set_color(wings_color:mix(?BEVEL_HIGHLIGHT_MIX, {1,1,1}, PaneColor)),
-    gl:vertex2f(X+Mw, Y),
-    gl:vertex2f(X+Mw, Y+Mh),
-    gl:vertex2f(X+Mw, Y+Mh),
-    gl:vertex2f(X, Y+Mh),
-    gl:'end'().
-
-gradient_rect_burst(X, Y, W, H, Color) ->
-    GradColors = [0.882353, 0.882353, 0.850980, 0.807843, 0.776471, 0.729412,
-		  0.701961, 0.666667, 0.619608, 0.741176, 0.733333, 0.760784,
-		  0.784314, 0.811765, 0.854902, 0.890196, 0.890196],
-	K = if H=<17 -> H;
- 		true -> H-1
-	end,
-    Draw_Line = fun(Idx) ->
-			GreyValue = lists:nth(trunc((Idx/K)*17)+1, GradColors),
-			LineColor = mul_color(Color, GreyValue),
-			set_color(LineColor),
-			gl:vertex2f(X+W, Y-0.5+H-Idx),
-			gl:vertex2f(X,   Y-0.5+H-Idx)
-		end,
-    gl:lineWidth(1.0),
-    gl:'begin'(?GL_LINES),
-    lists:foreach(Draw_Line, lists:seq(0, H-2)),
-    gl:'end'().
-
-gradient_rect(X, Y, W, H, Color) ->
-    gl:shadeModel(?GL_SMOOTH),
-    gl:'begin'(?GL_QUADS),
-    set_color(Color),
-    gl:vertex2f(X+W, Y+H),
-    gl:vertex2f(X, Y+H),
-    set_color(add_color(Color, 0.09)),
-    gl:vertex2f(X, Y),
-    gl:vertex2f(X+W, Y),
-    gl:'end'(),
-    gl:shadeModel(?GL_FLAT).
-
-text_at(X, S) ->
-    text_at(X, 0, S).
 
 text_at(X, Y, S) ->
     case wings_gl:is_restriction(broken_scissor) of
@@ -490,6 +277,9 @@ text_at(X, Y, S) ->
 
 unclipped_text(X, Y, S) ->
     wings_text:render(X, Y, S).
+
+draw_bitmap({A,B,C,D,E,F,Bitmap}) ->
+    gl:bitmap(A, B, C, D, E, F, Bitmap).
 
 ortho_setup() ->
     gl:color3b(0, 0, 0),
@@ -518,149 +308,66 @@ get_state() ->
 put_state(Io) ->
     put(wings_io, Io).
 
-draw_icons(Body) ->
-    gl:enable(?GL_TEXTURE_2D),
-    gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE),
-    Body(),
-    gl:bindTexture(?GL_TEXTURE_2D, 0),
-    gl:disable(?GL_TEXTURE_2D),
-    erase(?ACTIVE_TX).
-
-draw_icon(X, Y, Icon) ->
-    #io{tex=Tex} = get_state(),
-    case keyfind(Icon, 1, Tex) of
-	false -> ok;
-	{Icon,{Id,W,H,MinU,MinV,MaxU,MaxV}} ->
-	    case get(?ACTIVE_TX) of
-		Id -> ok;
-		_ ->
-		    gl:bindTexture(?GL_TEXTURE_2D, Id),
-		    put(?ACTIVE_TX, Id)
+read_icons() ->
+    Ebin = filename:dirname(code:which(?MODULE)),
+    case wings_pref:get_value(interface_icons) of
+	classic -> IconFile = filename:join(Ebin, "wings_icon_classic.bundle");
+	bluecube -> IconFile = filename:join(Ebin, "wings_icon_bluecube.bundle");
+	purpletube -> IconFile = filename:join(Ebin, "wings_icon_purpletube.bundle")
+    end,
+    Patch = fun({about_wings, {3, W, H, Bin0}}) ->
+		    RL = 3*W,
+		    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RL/binary>> <= Bin0])),
+		    {about_wings, {W, H, Bin}};
+	       ({Name, {Bpp, W, H, Bin0}}) ->
+		    {Rgb, Alpha} = setup_image(Bin0, Bpp, W),
+		    {Name, {W, H, Rgb, Alpha}}
 	    end,
-	    gl:'begin'(?GL_QUADS),
-	    gl:texCoord2f(MinU, MaxV),
-	    gl:vertex2i(X, Y),
-	    gl:texCoord2f(MinU, MinV),
-	    gl:vertex2i(X, Y+H),
-	    gl:texCoord2f(MaxU, MinV),
-	    gl:vertex2i(X+W, Y+H),
-	    gl:texCoord2f(MaxU, MaxV),
-	    gl:vertex2i(X+W, Y),
-	    gl:'end'()
-    end.
+    {ok, Bin} = file:read_file(IconFile),
+    [Patch(Raw) || Raw <- binary_to_term(Bin)].
 
-draw_char({A,B,C,D,E,F,Bitmap}) ->
-    gl:bitmap(A, B, C, D, E, F, Bitmap).
+%% FIXME when icons are fixed
+%% Poor mans version of alpha channel
+setup_image(Bin0, 3, Width) ->
+    RowLen = 3*Width,
+    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RowLen/binary>> <= Bin0])),
+    rgb3(Bin, <<>>, <<>>);
+setup_image(Bin0, 4, Width) ->
+    RowLen = 4*Width,
+    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RowLen/binary>> <= Bin0])),
+    rgb4(Bin, <<>>, <<>>).
 
-load_textures(Bin) ->
-    case catch binary_to_term(Bin) of
-	{'EXIT',_} -> [];
-	Icons0 ->
-	    gl:pushAttrib(?GL_TEXTURE_BIT),
-	    Icons1 = create_buttons(Icons0),
-	    Icons = lists:keysort(2, Icons1),
-	    Tex = create_textures(Icons),
-	    gl:popAttrib(),
-	    Tex
-    end.
+rgb3(<<8684676:24, Rest/binary>>, Cs, As) ->
+    rgb3(Rest, <<Cs/binary, 8684676:24>>, <<As/binary, 0:8>>);
+rgb3(<<R:8,G:8,B:8, Rest/binary>>, Cs, As) ->
+    A0 = abs(R-132)/123,
+    A1 = abs(G-132)/123,
+    A2 = abs(B-132)/123,
+    A = trunc(255*min(1.0, max(max(A0,A1),A2))),
+    rgb3(Rest, <<Cs/binary, R:8, G:8, B:8>>, <<As/binary, A:8>>);
+rgb3(<<>>, Cs, As) ->
+    {Cs,As}.
 
-create_textures(Icons) ->
-    [TxId] = gl:genTextures(1),
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_CLAMP),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_CLAMP),
-    Mem0 = wings_io:get_buffer(3*?TX_WIDTH*?TX_HEIGHT, ?GL_BYTE),
-    Mem = wings_io:get_bin(Mem0),
-    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_RGB,
-		  ?TX_WIDTH, ?TX_HEIGHT, 0, ?GL_RGB, ?GL_UNSIGNED_BYTE, Mem),
-    create_textures_1(Icons, TxId, 0, 0, 0).
+rgb4(<<C:24, A:8, R/binary>>, Cs, As) ->
+    rgb4(R, <<Cs/binary, C:24>>, <<As/binary, A:8>>);
+rgb4(<<>>, Cs, As) ->
+    {Cs,As}.
 
-create_textures_1([{_,{3,W,H,_}}|_]=Icons, Id, U, V, RowH)
-  when W =< 32, H =< 32, U+W > ?TX_WIDTH ->
-    create_textures_1(Icons, Id, 0, V+RowH, 0);
-create_textures_1([{Name,{3,W,H,Icon}}|T], Id, U, V, RowH0)
-  when W =< 32, H =< 32 ->
-    gl:texSubImage2D(?GL_TEXTURE_2D, 0, U, V,
-		     W, H, ?GL_RGB, ?GL_UNSIGNED_BYTE, Icon),
-    MinU = div_uv(U, ?TX_WIDTH),
-    MinV = div_uv(V, ?TX_HEIGHT),
-    MaxU = (U+W) / ?TX_WIDTH,
-    MaxV = (V+H) / ?TX_HEIGHT,
-    RowH = lists:max([RowH0,H]),
-    [{Name,{Id,W,H,MinU,MinV,MaxU,MaxV}}|create_textures_1(T, Id, U+W, V, RowH)];
-create_textures_1(Icons, _, _, _, _) ->
-    create_textures_2(Icons).
+%% pad_image(Image, W, W, H, TxH) ->
+%%     pad_image_1(Image, H, TxH);
+%% pad_image(Image0, W, TxW, H, TxH) ->
+%%     Image = pad_image_hor(Image0, W, TxW, H),
+%%     pad_image_1(Image, H, TxH).
 
-create_textures_2([{Name,{Bpp,W,H,Icon0}}|T]) ->
-    TxW = max(nearest_power_of_two(W), W),
-    TxH = max(nearest_power_of_two(H), H),
-    Icon = pad_image(Icon0, W, TxW, H, TxH),
-    [TxId] = gl:genTextures(1),
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_CLAMP),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_CLAMP),
-    Format = case Bpp of
-		 3 -> ?GL_RGB;
-		 4 -> ?GL_RGBA
-	     end,
-    gl:texImage2D(?GL_TEXTURE_2D, 0, Format,
-		  TxW, TxH, 0, Format, ?GL_UNSIGNED_BYTE, Icon),
-    [{Name,{TxId,W,H,0,0,W/TxW,H/TxH}}|create_textures_2(T)];
-create_textures_2([]) -> [].
+%% pad_image_1(Image, H, TxH) ->
+%%     <<Image/binary,0:((byte_size(Image)*TxH) div H)/unit:8>>.
 
-div_uv(0, _) -> 0;
-div_uv(X, X) -> 1;
-div_uv(X, Y) -> X/Y.
+%% pad_image_hor(Image, W, TxW, H) ->
+%%     OldRowSize = byte_size(Image) div H,
+%%     NewRowSize = (OldRowSize * TxW) div W,
+%%     Diff = NewRowSize - OldRowSize,
+%%     << <<Row/binary,0:Diff/unit:8>> || <<Row:OldRowSize/binary>> <= Image >>.
 
-nearest_power_of_two(N) ->
-    nearest_power_of_two(N, 1).
-
-nearest_power_of_two(N, B) when N =< B -> B;
-nearest_power_of_two(N, B) -> nearest_power_of_two(N, B bsl 1).
-
-pad_image(Image, W, W, H, TxH) ->
-    pad_image_1(Image, H, TxH);
-pad_image(Image0, W, TxW, H, TxH) ->
-    Image = pad_image_hor(Image0, W, TxW, H),
-    pad_image_1(Image, H, TxH).
-
-pad_image_1(Image, H, TxH) ->
-    <<Image/binary,0:((byte_size(Image)*TxH) div H)/unit:8>>.
-
-pad_image_hor(Image, W, TxW, H) ->
-    OldRowSize = byte_size(Image) div H,
-    NewRowSize = (OldRowSize * TxW) div W,
-    Diff = NewRowSize - OldRowSize,
-    << <<Row/binary,0:Diff/unit:8>> || <<Row:OldRowSize/binary>> <= Image >>.
-
-create_buttons(Icons0) ->
-    flatmap(fun({Name,{3,32,28,Icon}}) ->
-		    [{{Name,down},create_button(fun active/5, Icon)},
-		     {{Name,up},create_button(fun inactive/5, Icon)}];
-	       (Other) -> [Other]
-	    end, Icons0).
-
-create_button(Tr, Icon) ->
-    create_button(Tr, Icon, 0, 0, []).
-
-create_button(Tr, T, 32, Y, Acc) ->
-    create_button(Tr, T, 0, Y+1, Acc);
-create_button(_Tr, <<>>, _X, _Y, Acc) ->
-    {3,?ICON_WIDTH,?ICON_HEIGHT,list_to_binary(reverse(Acc))};
-create_button(Tr, <<R:8,G:8,B:8,T/binary>>, X, Y, Acc) ->
-    create_button(Tr, T, X+1, Y, [Tr(X, Y, R, G, B)|Acc]).
-
-active(X, Y, R, G, B) ->
-    if
-	X < 1; X > 30; Y < 1; Y > 26 -> [255,255,255];
-	true -> [R,G,B]
-    end.
-
-inactive(_X, _Y, R, G, B) -> [R,G,B].
 
 %%%
 %%% Timer support.

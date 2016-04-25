@@ -33,8 +33,6 @@
 -include("wings.hrl").
 -include_lib("cl/include/cl.hrl").
 
--compile(export_all).
-
 -define(PL_UNITS, 4).
 
 -record(v, {pos,                     % position

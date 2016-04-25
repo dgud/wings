@@ -12,7 +12,7 @@
 %%
 
 -module(wings_wm).
--export([toplevel/4,toplevel_title/1,toplevel_title/2]).
+-export([toplevel/4,toplevel_title/2]).
 -export([init/1,enter_event_loop/0,dirty/0,dirty_mode/1,pdirty/0,
 	 new/2, new/3, new/4,delete/1,raise/1,
 	 link/2,hide/1,show/1,is_hidden/1,
@@ -53,13 +53,10 @@
 	 get_dd/0, get_dd/1, set_dd/2
 	]).
 
-%% Useful sizes
--export([title_height/0]).
-
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--import(lists, [foldl/3,sort/1,keysort/2,reverse/1,foreach/2,member/2]).
+-import(lists, [foldl/3,keysort/2,reverse/1,foreach/2,member/2]).
 
 -define(Z_LOWEST_DYNAMIC, 10).
 
@@ -840,7 +837,6 @@ init_opengl(Name, Canvas) ->
     wxGLCanvas:setCurrent(Canvas),
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
     gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
-    wings_io:resize(),
     {R,G,B} = wings_pref:get_value(background_color),
     gl:clearColor(R, G, B, 1.0),
     send(Name, init_opengl).
@@ -1286,12 +1282,6 @@ toplevel(Name, Window, Props, Op) ->
     wings_frame:register_win(Window, Name, [external]),
     ok.
 
-toplevel_title(Title) ->
-    toplevel_title(this(), Title).
-
 toplevel_title(Win, Title) ->
     wings_frame:set_title(Win, Title),
     ok.
-
-title_height() ->
-    wings_frame:title_height().

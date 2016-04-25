@@ -123,6 +123,15 @@ filter_unref(wings_start, start, 0) -> false;
 filter_unref(wings_start, start, 1) -> false;
 filter_unref(wings_start, start_halt, 0) -> false;
 filter_unref(wings_start, start_halt, 1) -> false;
+filter_unref(_, init, 1) -> false;
+filter_unref(_, handle_event, 2) -> false;
+filter_unref(_, handle_sync_event, 3) -> false;
+filter_unref(_, handle_call, 3) -> false;
+filter_unref(_, handle_cast, 2) -> false;
+filter_unref(_, handle_info,2) -> false;
+filter_unref(_, code_change, 3) -> false;
+filter_unref(_, terminate, 2) -> false;
+
 filter_unref(M, F, A) ->
     case atom_to_list(M) of
 	"wpc_"++_ ->
