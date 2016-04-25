@@ -303,7 +303,7 @@ handle_sync_event(#wx{event=#wxTree{item=Indx}}, Drag,
 		  #state{tc=TC, shown=Shown}) ->
     case lists:keyfind(Indx, 1, Shown) of
 	{_, #{type:=image}=Obj} ->
-	    wx_misc:setCursor(wxCursor:new(?wxCURSOR_HAND)),
+	    wings_io:set_cursor(pointing_hand),
 	    wxTreeEvent:allow(Drag),
 	    wx_object:get_pid(TC) ! {drag, Obj};
 	_ -> ignore %% for now
@@ -344,7 +344,7 @@ handle_event(#wx{event=#wxTree{type=command_tree_end_label_edit, item=Indx}},
 
 handle_event(#wx{event=#wxTree{type=command_tree_end_drag, item=Indx, pointDrag=Pos0}},
 	     #state{shown=Tree, drag=Drag, tc=TC} = State) ->
-    wx_misc:setCursor(?wxNullCursor),
+    wings_io:set_cursor(arrow),
     case lists:keyfind(Indx, 1, Tree) of
 	{_, #{type:=mat} = Mat} when Drag =/= undefined ->
 	    Menu = handle_drop(Drag, Mat),

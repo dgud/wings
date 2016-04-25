@@ -52,7 +52,7 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 
--import(lists, [flatmap/2,keyfind/3,member/2,reverse/1,reverse/2]).
+-import(lists, [flatmap/2,keyfind/3,reverse/1]).
 
 -ifdef(USE_WX).
 -define(BACKEND_MOD, wings_io_wx).
@@ -65,7 +65,8 @@
 init() ->
     Icons = read_icons(), %% Duplicate in wings_frame.erl
     put(?EVENT_QUEUE, queue:new()),
-    ?BACKEND_MOD:init(Icons).
+    put_state(#io{raw_icons=Icons}),
+    ?BACKEND_MOD:init().
 
 quit() ->
     ?BACKEND_MOD:quit().
