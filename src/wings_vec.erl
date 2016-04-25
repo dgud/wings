@@ -142,7 +142,6 @@ handle_event({ask_init,Do,Done}, #ss{selmodes=Modes}=Ss,
     wings_dl:map(fun(#dlo{orig_sel=none,sel=Dlist}=D, _) ->
 			 D#dlo{orig_sel=Dlist,orig_mode=Mode}
 		 end, []),
-    wings_u:menu_restriction(wings_wm:this(), [view,select]),
     St = wings_sel:reset(mode_restriction(Modes, St0)),
     pick_next(Do, Done, Ss, St);
 handle_event(Event, Ss, St) ->

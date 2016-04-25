@@ -65,10 +65,8 @@
 -define(ACTIVE_TX, wings_io_active_tx).
 
 -record(io,
-	{tex=[],				%Textures.
-	 grab_stack=[],				%Grab stack.
-	 key_up=false,                          %Subscribed to key_up
-	 raw_icons				%Raw icon bundle.
+	{grab_stack=[],				%Grab stack.
+	 key_up=false                          %Subscribed to key_up
 	}).
 
 -define(EVENT_QUEUE, wings_io_event_queue).
