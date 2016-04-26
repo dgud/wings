@@ -33,6 +33,8 @@
 
 %% format_hotkey(Hotkey, wx|pretty) -> String.
 
+format_hotkey({bindkey,_Mode,Hotkey}, Style) ->
+	format_hotkey(Hotkey, Style);
 format_hotkey(Hotkey, Style) ->
     case Hotkey of
 	[] ->
@@ -254,7 +256,7 @@ bkey(Key, Mode) ->
 	true -> {bindkey,Mode,Key};
 	false -> {bindkey,Key}
     end.
-    
+
 matching(Names) ->
     M0 = matching_global(Names) ++ matching_mode(Names),
     M = wings_util:rel2fam(M0),
