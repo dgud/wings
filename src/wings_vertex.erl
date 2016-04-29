@@ -243,33 +243,21 @@ connect(Face, Vs, #we{} = We0) ->
 %% Connect Va Vb maybe trough several faces, returns {gbset(NewEdges), We}
 connect_cut(VS0, VE0, #we{}=We0) when is_integer(VS0),is_integer(VE0) ->
     CutPlane = calc_planes(VS0,VE0,We0),
-    ETree = collect_edges(CutPlane, VS0, VE0, We0),
-    Es = gb_sets:from_list(gb_trees:keys(ETree)),
-
-    CutEs = case select_cut_edges(VS0, VE0, Es, We0) of
-		fail ->
-		    wings_u:error_msg(?__(1, "Could not connect vertices."));
-		CEs when is_list(CEs) -> CEs;
-		{Path1,Path2} ->
-		    case path_length(Path1, ETree, We0, 0.0) <
-			path_length(Path2, ETree, We0, 0.0) of
-			true -> Path1;
-			false -> Path2
-		    end
-	    end,
-    Cut = fun({Ei,Face}, {WeAcc,AccVs}) ->
-		  case gb_trees:get(Ei,ETree) of
-		      {reuse_vertex,V} ->
-			  {WeAcc, [V,Face|AccVs]};
-		      Pos ->
-			  {We1,Idx} = wings_edge:fast_cut(Ei, Pos, WeAcc),
-			  {We1, [Idx,Face|AccVs]}
-		  end;
-	     (FaceOrVertex, {WeAcc, AccVs}) ->
-		  {WeAcc, [FaceOrVertex|AccVs]}
-	  end,
-    {We2,Vs1} = lists:foldl(Cut, {We0, []}, CutEs),
-    connect_vs(Vs1, We2, []).
+    ETree = collect_edges(CutPlane, ordsets:from_list([VS0, VE0]), We0),
+    try
+	CutEs = select_cut_edges(VS0, VE0, ETree, We0),
+	Cut = fun({edge, Ei, Pos, Face}, {WeAcc,AccVs}) ->
+		      {We1,Idx} = wings_edge:fast_cut(Ei, Pos, WeAcc),
+		      {We1, [Idx,Face|AccVs]};
+		 ({vertex,_,V,Face}, {WeAcc, AccVs}) ->
+		      {WeAcc, [V,Face|AccVs]}
+	      end,
+	{We2,Vs1} = lists:foldl(Cut, {We0, []}, CutEs),
+	connect_vs(Vs1, We2, [])
+    catch _:_Reason ->
+	    %% io:format("~p: ~p~n", [Reason, erlang:get_stacktrace()]),
+	    wings_u:error_msg(?__(1, "Could not connect vertices."))
+    end.
 
 connect_vs([Va, Face|[Vb|_]=Vs], #we{next_id=Edge}=We0, Acc) ->
     case edge_through(Va, Vb, Face, We0) of
@@ -279,22 +267,16 @@ connect_vs([Va, Face|[Vb|_]=Vs], #we{next_id=Edge}=We0, Acc) ->
 	Exist ->
 	    connect_vs(Vs, We0, [Exist|Acc])
     end;
-connect_vs([_], We, Acc) -> {gb_sets:from_list(Acc), We}.
+connect_vs([_, undefined], We, Acc) ->
+    {gb_sets:from_list(Acc), We}.
 
-path_length([V1,_Face,V2], ETree, We, Acc) ->  %% The last have a faceid before it
-    e3d_vec:dist(v(V1, ETree, We),v(V2, ETree, We)) + Acc;
-path_length([V1|[V2|_]=Vs], ETree, We, Acc) ->
-    Dist = e3d_vec:dist(v(V1, ETree, We),v(V2, ETree, We)),
-    path_length(Vs, ETree, We, Dist + Acc);
-path_length([_], _, _, Acc) -> Acc.
+path_length([V1|[V2|_]=Vs], We, Acc) ->
+    Dist = e3d_vec:dist(v(V1, We),v(V2, We)),
+    path_length(Vs, We, Dist + Acc);
+path_length([_], _, Acc) -> Acc.
 
-v({Edge, _Face}, ETree, We) ->
-    case gb_trees:get(Edge,ETree) of
-	{reuse_vertex,V} -> pos(V, We);
-	Pos -> Pos
-    end;
-v(V, _ETree, We) ->
-    pos(V, We).
+v({edge, _, Pos, _}, _We) -> Pos;
+v({vertex,_, V, _}, We) ->    pos(V, We).
 
 select_cut_edges(VS0, VE0, Es, We) ->
     FS0 = wings_face:from_vs([VS0], We),
@@ -302,47 +284,110 @@ select_cut_edges(VS0, VE0, Es, We) ->
 		fun(Face, V, _Edge, _E, _Acc) when V =:= VE0 ->
 			[{stop, Face}];
 		   (Face, _V, EdgeId, E, Acc) ->
-			case collect_cut_edge(Face, Es, EdgeId, E, []) of
-			    []  -> Acc;
-			    [S1] -> [S1,Face|Acc]
+			case collect_cut_edge(Face, Es, EdgeId, E, Acc) of
+			    Acc -> Acc;
+			    [{vertex, _, V,_},{vertex,_,V,_}|_] -> Acc;
+			    [S1|Acc] -> [S1,Face|Acc]
 			end
 		end, [], FS0, We),
-    case lists:reverse(Start00) of
-	[{stop,Face}] ->
-	    [VE0, Face, VS0];
-	[F1, S1] ->
-	    [VE0|select_cut_edges(S1, VE0, Es, We, [F1, VS0])];
-	[F1, S1, F2, S2] ->
-	    R1 = select_cut_edges(S1, VE0, Es, We, [F1, VS0]),
-	    R2 = select_cut_edges(S2, VE0, Es, We, [F2, VS0]),
-	    case {R1, R2} of
-		{fail, fail} -> fail;
-		{fail, R2} -> [VE0|R2];
-		{R1, fail} -> [VE0|R1];
-		_ -> {[VE0|R2], [VE0|R1]}
+    select_start_edges(filter_edges(Start00, []), VS0, VE0, Es, We).
+
+filter_edges([_,Face|[_,Face|_]=Start], Acc) ->
+    filter_edges(Start, Acc);
+filter_edges([EI,Face|Start], Acc) ->
+    filter_edges(Start, [Face,EI|Acc]);
+filter_edges([{stop,Face}|_], _) -> [{stop,Face}];
+filter_edges([], Acc) -> Acc.
+
+select_start_edges([{stop,Face}], VS0, VE0, _Es, _We) ->
+    [{vertex, undefined, VE0, undefined}, {vertex, undefined, VS0, Face}];
+select_start_edges([F1, S1], VS0, VE0, Es, We) when is_integer(F1) ->
+    case select_cut_edges_2(S1, VE0, Es, We, [{vertex,undefined,VS0, F1}]) of
+	fail -> throw(fail);
+	R1   -> [VE0|R1]
+    end;
+select_start_edges([F1, S1, F2, S2], VS0, VE0, Es, We) ->
+    R1 = select_cut_edges_2(S1, VE0, Es, We, [{vertex,undefined,VS0,F1}]),
+    R2 = select_cut_edges_2(S2, VE0, Es, We, [{vertex,undefined,VS0,F2}]),
+    case {R1, R2} of
+	{fail, fail} -> throw(fail);
+	{fail, R2} -> [{vertex,undefined,VE0,undefined}|R2];
+	{R1, fail} -> [{vertex,undefined,VE0,undefined}|R1];
+	_ ->
+	    Path1 = [{vertex,undefined,VE0,undefined}|R2],
+	    Path2 = [{vertex,undefined,VE0,undefined}|R1],
+	    case path_length(Path1, We, 0.0) < path_length(Path2, We, 0.0) of
+		true -> Path1;
+		false -> Path2
 	    end
     end.
 
-select_cut_edges({stop,_Face}, _, _, _, CEs) ->
+select_cut_edges_2({stop,_Face}, _, _, _, CEs) ->
     CEs;
-select_cut_edges({Edge, Face}=New, Stop, Es0, We, CEs) ->
-    Es = gb_sets:del_element(Edge, Es0),
+select_cut_edges_2({Type, Edge, VId, Face}=New, Stop, Es0, We, CEs) ->
+    Es = gb_trees:delete(Edge,Es0),
     Next = wings_face:fold(fun(V, _EdgeId, _E, _Acc) when V =:= Stop ->
 				   [{stop,Face}];
+			      (_V, _EdgeId, _E, [{stop,_}]=Acc) -> Acc;
 			      (_V, EdgeId, E, Acc) ->
 				   collect_cut_edge(Face, Es, EdgeId, E, Acc)
 			   end, [fail], Face, We),
-    select_cut_edges(hd(Next), Stop, Es, We, [New|CEs]);
-select_cut_edges(fail, _, _, _, _) -> fail.
+    case {Type, CEs} of
+	{vertex, [{vertex, _, VId, _}|Acc]} -> %% Ignore alread connect VId
+	    select_cut_edges_2(hd(Next), Stop, Es, We, [New|Acc]);
+	_ ->
+	    select_cut_edges_2(hd(Next), Stop, Es, We, [New|CEs])
+    end;
+select_cut_edges_2(fail, _, _, _, _) -> fail.
 
 collect_cut_edge(_Face, _Es, _Edge, _E, [stop]=R) -> R;
 collect_cut_edge(Face, Es, Edge, E, Acc) ->
-    case gb_sets:is_member(Edge, Es) of
-	false -> Acc;
-	true ->
+    case gb_trees:lookup(Edge, Es) of
+	none -> Acc;
+	{value,{reuse_vertex, V}} ->
 	    Next = wings_face:other(Face, E),
-	    [{Edge, Next}|Acc]
+	    [{vertex, Edge, V, Next}|Acc];
+	{value,Dist} ->
+	    Next = wings_face:other(Face, E),
+	    [{edge, Edge, Dist, Next}|Acc]
     end.
+
+%% Collect all edges on the cut plane and calc edge cut distance
+collect_edges(Plane, Ignore, #we{es=Etab}=We) ->
+    Tol = 0.0001,
+    Filter =
+	fun(Ei, _Val, Acc) ->
+		#edge{vs=VS,ve=VE} = array:get(Ei,Etab),
+		Pt1 = wings_vertex:pos(VS,We),
+		Pt2 = wings_vertex:pos(VE,We),
+		S1 = e3d_vec:plane_side(Pt1, Plane),
+		S2 = e3d_vec:plane_side(Pt2, Plane),
+		D1 = abs(e3d_vec:plane_dist(Pt1, Plane)),
+		D2 = abs(e3d_vec:plane_dist(Pt2, Plane)),
+		if
+		    D1 < Tol ->
+			Add = D2 >= Tol andalso
+			    ordsets:is_disjoint(ordsets:from_list([VS,VE]),Ignore),
+			reuse_vertex(Add, VS, Ei, Acc);
+		    D2 < Tol ->
+			Add = D1 >= Tol andalso
+			    ordsets:is_disjoint(ordsets:from_list([VS,VE]),Ignore),
+			reuse_vertex(Add, VE, Ei, Acc);
+		    S1 =/= S2 ->
+			Dir = e3d_vec:norm(e3d_vec:sub(Pt2,Pt1)),
+			Percent = D1/(D1+D2),
+			PtX = e3d_vec:add(Pt1, e3d_vec:mul(Dir, Percent*wings_edge:length(Ei,We))),
+			gb_trees:enter(Ei,PtX,Acc);
+		    true ->
+			Acc
+		end
+	end,
+    array:sparse_foldl(Filter, gb_trees:empty(), Etab).
+
+reuse_vertex(false, _, _Ei, Acc) ->
+    Acc;
+reuse_vertex(true, VS, Ei, Acc) ->
+    gb_trees:enter(Ei,{reuse_vertex, VS}, Acc).
 
 calc_planes(VS0, VE0, We) ->
     P1  = wings_vertex:pos(VS0,We),
@@ -366,37 +411,6 @@ calc_planes(VS0, VE0, We) ->
 	     end,
     e3d_vec:plane(Mid, e3d_vec:cross(Vec,Normal)).
 
-%% Collect all edges on the cut plane and calc edge cut distance
-collect_edges(Plane, Va, Vb, #we{es=Etab}=We) ->
-    Tol = 0.0001,
-    Filter =
-	fun(Ei, _Val, Acc) ->
-		#edge{vs=VS,ve=VE} = array:get(Ei,Etab),
-		Pt1 = wings_vertex:pos(VS,We),
-		Pt2 = wings_vertex:pos(VE,We),
-		S1 = e3d_vec:plane_side(Pt1, Plane),
-		S2 = e3d_vec:plane_side(Pt2, Plane),
-		D1 = abs(e3d_vec:plane_dist(Pt1, Plane)),
-		D2 = abs(e3d_vec:plane_dist(Pt2, Plane)),
-		if
-		    D1 < Tol ->
-			Skip = 2 =/= length([VS,VE] -- [Va,Vb]),
-			if D2 < Tol -> Acc;
-			   Skip -> Acc;
-			   true -> gb_trees:enter(Ei,{reuse_vertex, VS},Acc)
-			end;
-		    D2 < Tol -> %% There will come another edge where D1 < Tol
-			Acc;
-		    S1 =/= S2 ->
-			Dir = e3d_vec:norm(e3d_vec:sub(Pt2,Pt1)),
-			Percent = D1/(D1+D2),
-			PtX = e3d_vec:add(Pt1, e3d_vec:mul(Dir, Percent*wings_edge:length(Ei,We))),
-			gb_trees:enter(Ei,PtX,Acc);
-		    true ->
-			Acc
-		end
-	end,
-    array:sparse_foldl(Filter, gb_trees:empty(), Etab).
 
 %% Create pairs by walking the edge of the face. If we can connect
 %% all selected vertices for the face we are done. The result will
