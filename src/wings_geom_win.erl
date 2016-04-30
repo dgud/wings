@@ -731,13 +731,11 @@ load_icons() ->
 		  wxImageList:add(IL, wxBitmap:new(Small)),
 		  wxImage:destroy(Small)
 	  end,
-    wx:foreach(Add, [perspective, %small_object,
-		     body, %, small_sel,
+    wx:foreach(Add, [perspective, body,
 		     small_eye, small_closed_eye,
 		     small_unlocked, small_locked,
 		     small_light, small_sel_light,
-		     edge, %small_wire,
-		     close_folder
+		     edge
 		    ]),
     IL.
 
