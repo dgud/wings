@@ -27,28 +27,30 @@
 -define(REPEAT_ARGS, 98).
 -define(REPEAT_DRAG, 97).
 
--record(menu_pop,
-	{wxid,
-	 name,
-	 type,
-	 opts,
-	 msg=""
-	}).
+%% -record(menu_pop,
+%% 	{wxid,
+%% 	 name,
+%% 	 type,
+%% 	 opts,
+%% 	 msg=""
+%% 	}).
 
-%% Top level menu entries
--record(menu_entry, {wxid, name, object, type}).
+%% menu entries, the name, type and opts are used differently
+%% depending on if they are used in top_level menus or pop menus
+%%
+%%   The Help field is normalized to
+%%      String       for plain (pull-down) menus
+%%      {L,M,R}      for pop-up menus
+%%
+-record(menu, {wxid,      % wxId number
+	       object,    % wxObject
+	       name,      % menu_name atom or fun {atom, fun}
+	       type=menu, % menu | submenu | separator
+	       desc,      % Displayed string
+	       help = [], % Strings
+	       opts = [], % options
+	       hk=[]}).   % hotkey
 
-%%%
-%%% Inside this module, each entry in a menu is kept in the following
-%%% normalized format:
-%%%
-%%%   separator      OR
-%%%   {Text,Name,Hotkey,Help,Properties}
-%%%
-%%%   The Help field is normalized to
-%%%      String       for plain (pull-down) menus
-%%%      {L,M,R}      for pop-up menus
-%%%
 
 is_popup_event(#mousebutton{button=3,x=X0,y=Y0,state=State,mod=Mod}) ->
     {X,Y} = wings_wm:local2global(X0, Y0),
@@ -138,34 +140,41 @@ have_magnet(Ps, _) ->
 
 wx_popup_menu_init(X0,Y0,Names,Menus0) ->
     Owner = wings_wm:this(),
-    Popup = fun(X,Y) -> 
+    Popup = fun(X,Y) ->
 		    wx_popup_menu(X,Y,Names,Menus0,false,Owner)
 	    end,
-    Popup(X0,Y0),
-    {push, fun(Ev) -> popup_event_handler(Ev, Owner, Popup) end}.
+    Entries = Popup(X0,Y0),
+    {push, fun(Ev) -> popup_event_handler(Ev, Owner, Entries, Popup) end}.
 
 wx_popup_menu(X,Y,Names,Menus0,Magnet,Owner) ->
     Parent = get(top_frame),
     Pos = wxWindow:clientToScreen(get(gl_canvas), X,Y),
     HotKeys = wings_hotkey:matching(Names),
     is_list(Menus0) orelse erlang:error(Menus0),
-    Menus1  = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus0),
+    Menus1   = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus0),
     Entries0 = [normalize_menu_wx(Entry, HotKeys, Names) || Entry <- lists:flatten(Menus1)],
     Entries1 = format_hotkeys(Entries0, pretty),
-    CreateMenu = fun() -> setup_dialog(Parent, Entries1, Magnet, Pos) end,
+    {Entries2,_}  = lists:foldl(fun(ME, {List, Id}) ->
+					{[ME#menu{wxid=Id},
+					  ME#menu{wxid=Id+1, type=opt}|List],
+					 Id+2}
+				end, {[],500}, Entries1),
+    Entries = reverse(Entries2),
+    MEs0 = [ME#menu{name=undefined} || ME <- Entries],
+    CreateMenu = fun() -> setup_dialog(Parent, MEs0, Magnet, Pos) end,
     Env = wx:get_env(),
     spawn_link(fun() ->
 		       try
 			   wx:set_env(Env),
-			   {Dialog, Panel, Entries} = wx:batch(CreateMenu),
-			   popup_events(Dialog, Panel, Entries, Magnet, undefined, Names, Owner),
+			   {Dialog, Panel, MEs} = wx:batch(CreateMenu),
+			   popup_events(Dialog, Panel, MEs, Magnet, undefined, Names, Owner),
 			   wxPopupTransientWindow:destroy(Dialog)
 		       catch _:Reason ->
 			       io:format("CRASH ~p ~p~n",[Reason, erlang:get_stacktrace()])
 		       end,
 		       normal
 	       end),
-    keep.
+    Entries.
 
 setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     X  = X0-20,
@@ -179,7 +188,7 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     Main = wxBoxSizer:new(?wxHORIZONTAL),
     Sizer = wxBoxSizer:new(?wxVERTICAL),
     MinHSzs = calc_min_sizes(Entries0, Panel, 5, 5),
-    Entries = setup_popup(Entries0, 500, Sizer, MinHSzs, Panel, Magnet, []),
+    Entries = setup_popup(Entries0, Sizer, MinHSzs, Panel, Magnet, []),
     wxSizer:setMinSize(Sizer, 225, -1),
     wxSizer:addSpacer(Main, 5),
     wxSizer:add(Main, Sizer, [{proportion, 1}, {border, 5}, {flag, ?wxEXPAND bor ?wxALL}]),
@@ -223,7 +232,7 @@ find_active_panel_1(Panel, MY) ->
     Children = wxSizer:getChildren(Sizer),
     Active = fun(SItem, _) ->
 		     {_, SY, _, SH} = wxSizerItem:getRect(SItem),
-		     case MY > (SY) andalso MY < (SY+SH) of 
+		     case MY > (SY) andalso MY < (SY+SH) of
 			 false -> {false, outside};
 			 true ->
 			     Active = wxSizerItem:getWindow(SItem),
@@ -234,7 +243,7 @@ find_active_panel_1(Panel, MY) ->
 			     end
 		     end
 	     end,
-    try 
+    try
 	lists:foldl(Active, {false, inside}, Children)
     catch Found ->
 	    Found
@@ -248,7 +257,7 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 			  setup_colors(Obj, colorB(menu_hilite),colorB(menu_hilited_text))
 		  end,
 	    Line = wx:batch(Set),
-	    #menu_pop{msg=Msg} = lists:keyfind(Id, 2, Entries),
+	    #menu{help=Msg} = lists:keyfind(Id, 2, Entries),
 	    wings_wm:psend(Owner, {message, Msg}),
 	    popup_events(Dialog, Panel, Entries, Magnet, Line, Ns, Owner);
 	#wx{id=Id0, event=Ev=#wxMouse{y=Y, x=X}} ->
@@ -268,8 +277,7 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 		    wxPopupTransientWindow:dismiss(Dialog),
 		    MagnetClick = Magnet orelse
 			magnet_pressed(wings_msg:free_rmb_modifier(), Ev),
-		    popup_result(lists:keyfind(Id, 2, Entries),
-				 {What, MagnetClick}, Ns, Owner)
+		    wings_wm:psend(Owner, {click, Id, {What, MagnetClick}, Ns})
 	    end;
 	#wx{event=#wxShow{}} ->
 	    case wxTopLevelWindow:isShown(Dialog) of
@@ -295,30 +303,6 @@ magnet_pressed(?ALT_BITS, #wxMouse{altDown=true}) -> true;
 magnet_pressed(?META_BITS, #wxMouse{metaDown=true}) -> true;
 magnet_pressed(_, _) -> false.
 
-popup_result(#menu_pop{type=submenu, name={Name, Menus}, opts=Opt}, What, Names, Owner) ->
-    wings_wm:psend(Owner, {submenu, What, [Name|Names], Opt, Menus});
-popup_result(#menu_pop{type=opt,name=Name}, _Click, Names, Owner) ->
-    wings_wm:psend(Owner, {activate, build_command({Name,true}, Names)});
-popup_result(#menu_pop{type=menu,name=CmdFun,opts=Opts}, {Click,MagnetClick}, Names, Owner)
-  when is_function(CmdFun) ->
-    Cmd = CmdFun(mouse_index(Click), Names),
-    Magnet = is_magnet_active(Opts, MagnetClick),
-    wings_wm:psend(Owner, {activate, insert_magnet_flags(Cmd, Magnet)});
-popup_result(#menu_pop{type=menu,name=Name,opts=Opts}, {Click,MagnetClick}, Names, Owner) ->
-    case {have_option_box(Opts), Name} of
-	{true,_} ->
-	    wings_wm:psend(Owner, {activate, build_command({Name,Click=/=left_up}, Names)});
-	{false, {'VALUE', Cmd}} ->
-	    Magnet = is_magnet_active(Opts, MagnetClick),
-	    wings_wm:psend(Owner, {activate, build_command(Cmd, Names, Magnet)});
-	{false, {_Name, Cmd}} when is_tuple(Cmd) ->
-	    Magnet = is_magnet_active(Opts, MagnetClick),
-	    wings_wm:psend(Owner, {activate, insert_magnet_flags(Cmd, Magnet)});
-	{false, _} ->
-	    Magnet = is_magnet_active(Opts, MagnetClick),
-	    wings_wm:psend(Owner, {activate, build_command(Name, Names, Magnet)})
-    end.
-
 mouse_index(left_up) -> 1;
 mouse_index(middle_up) -> 2;
 mouse_index(right_up) -> 3.
@@ -339,63 +323,97 @@ mouse_button(#wxMouse{type=What, controlDown = Ctrl, altDown = Alt, metaDown = M
         _ -> What
     end.
 
-popup_event_handler(cancel, _, _) ->
+popup_event_handler(cancel, _, _,_) ->
     wxPanel:setFocus(get(gl_canvas)),
     pop;
-popup_event_handler({activate, Cmd}, Owner, _) ->
-    Cmd =:= ignore orelse wings_wm:send_after_redraw(Owner, {action,Cmd}),
-    wxPanel:setFocus(get(gl_canvas)),
-    pop;
-popup_event_handler(restart_menu, _Owner, Popup) ->
+popup_event_handler({click, Id, Click, Ns}, Owner, Entries0, Popup) ->
+    case popup_result(lists:keyfind(Id, 2, Entries0), Click, Ns, Owner) of
+	pop -> pop;
+	{submenu, Names, Menus, MagnetClick} ->
+	    {_, X, Y} = wings_io:get_mouse_state(),
+	    Entries = wx_popup_menu(X,Y, Names, Menus, MagnetClick, Owner),
+	    {replace, fun(Ev) -> popup_event_handler(Ev, Owner, Entries, Popup) end}
+    end;
+popup_event_handler(restart_menu, Owner, _Entries, Popup) ->
     {_, X, Y} = wings_io:get_mouse_state(),
-    Popup(X,Y);
-popup_event_handler({submenu, {What, MagnetClick}, Names, Opts, Menus}, 
-		    Owner, Fun) ->
-    {_, X, Y} = wings_io:get_mouse_state(),
+    {replace, fun(Ev) -> popup_event_handler(Ev, Owner, Popup(X,Y), Popup) end};
+popup_event_handler({message, Msg}, _Owner, _, _) ->
+    wings_wm:message(Msg, ""),
+    keep;
+popup_event_handler(redraw,_,_,_) ->
+    defer;
+popup_event_handler(#mousemotion{},_,_,_) -> defer;
+popup_event_handler(_Ev,_,_,_) ->
+    %% io:format("Hmm ~p ~n",[_Ev]),
+    keep.
+
+popup_result(#menu{type=submenu, name={Name, Menus}, opts=Opts}, {What, MagnetClick}, Names0, Owner) ->
+    Names = [Name|Names0],
     case is_function(Menus) of
 	true ->
 	    case Menus(mouse_index(What), Names) of
 		ignore ->
-		    wx_popup_menu(X,Y,Names, Menus(1, Names), MagnetClick, Owner);
+		    {submenu, Names, Menus(1, Names), MagnetClick};
 		Next when is_list(Next) ->
-		    wx_popup_menu(X,Y, Names, Next, MagnetClick, Owner);
+		    {submenu, Names, Next, MagnetClick};
 		Action when is_tuple(Action); is_atom(Action) ->
 		    Magnet = is_magnet_active(Opts, MagnetClick),
-		    popup_event_handler({activate, insert_magnet_flags(Action, Magnet)}, Owner, Fun)
+		    Cmd = insert_magnet_flags(Action, Magnet),
+		    Cmd =:= ignore orelse wings_wm:send_after_redraw(Owner, {action,Cmd}),
+		    pop
 	    end;
 	false ->
-	    wx_popup_menu(X,Y,Names,Menus,MagnetClick,Owner)
+	    {submenu, Names, Menus, MagnetClick}
     end;
-popup_event_handler({message, Msg}, _Owner, _) ->
-    wings_wm:message(Msg, ""),
-    keep;
-popup_event_handler(redraw,_,_) ->
-    defer;
-popup_event_handler(#mousemotion{},_,_) -> defer;
-popup_event_handler(_Ev,_,_) ->
-    %% io:format("Hmm ~p ~n",[_Ev]),
-    keep.
 
-calc_min_sizes([separator|Es], Win, C1, C2) ->
-    calc_min_sizes(Es, Win, C1, C2);
-calc_min_sizes([{submenu, Desc, _, _, _, _}|Es], Win, C1, C2) ->
+popup_result(#menu{type=opt,name=Name}, _Click, Names, Owner) ->
+    Cmd = build_command({Name,true}, Names),
+    Cmd =:= ignore orelse wings_wm:send_after_redraw(Owner, {action,Cmd}),
+    pop;
+popup_result(#menu{type=menu,name=CmdFun,opts=Opts}, {Click,MagnetClick}, Names, Owner)
+  when is_function(CmdFun) ->
+    Cmd0 = CmdFun(mouse_index(Click), Names),
+    Magnet = is_magnet_active(Opts, MagnetClick),
+    Cmd = insert_magnet_flags(Cmd0, Magnet),
+    Cmd =:= ignore orelse wings_wm:send_after_redraw(Owner, {action,Cmd}),
+    pop;
+popup_result(#menu{type=menu,name=Name,opts=Opts}, {Click,MagnetClick}, Names, Owner) ->
+    Cmd = case {have_option_box(Opts), Name} of
+	      {true,_} -> build_command({Name,Click=/=left_up}, Names);
+	      {false, {'VALUE', Cmd0}} ->
+		  Magnet = is_magnet_active(Opts, MagnetClick),
+		  build_command(Cmd0, Names, Magnet);
+	      {false, {_Name, Cmd0}} when is_tuple(Cmd0) ->
+		  Magnet = is_magnet_active(Opts, MagnetClick),
+		  insert_magnet_flags(Cmd0, Magnet);
+	      {false, _} ->
+		  Magnet = is_magnet_active(Opts, MagnetClick),
+		  build_command(Name, Names, Magnet)
+	  end,
+    Cmd =:= ignore orelse wings_wm:send_after_redraw(Owner, {action,Cmd}),
+    pop.
+
+calc_min_sizes([#menu{type=submenu, desc=Desc}|Es], Win, C1, C2) ->
     {W, _, _, _} = wxWindow:getTextExtent(Win, Desc),
     calc_min_sizes(Es, Win, max(W+5, C1), C2);
-calc_min_sizes([{Desc, _, _, _, HK}|Es], Win, C1, C2) ->
+calc_min_sizes([#menu{type=menu, desc=Desc, hk=HK}|Es], Win, C1, C2) ->
     {WStr, _, _, _} = wxWindow:getTextExtent(Win, Desc),
     {WHK, _, _, _} = wxWindow:getTextExtent(Win, HK),
     calc_min_sizes(Es, Win, max(WStr+5, C1), max(WHK+5, C2));
+calc_min_sizes([#menu{}|Es], Win, C1, C2) ->
+    calc_min_sizes(Es, Win, C1, C2);
 calc_min_sizes([], _, C1, C2) ->
     {C1, C2}.
 
-setup_popup([separator|Es], Id, Sizer, Sz, Parent, Magnet, Acc) ->
+setup_popup([#menu{type=separator}|Es], Sizer, Sz, Parent, Magnet, Acc) ->
     Line = wxStaticLine:new(Parent, [{size,{-1,2}}]),
     wxSizer:addSpacer(Sizer, 4),
-    wxSizer:add(Sizer, Line, [{border, 10}, {proportion, 0}, 
+    wxSizer:add(Sizer, Line, [{border, 10}, {proportion, 0},
 			      {flag, ?wxEXPAND bor ?wxLEFT bor ?wxRIGHT}]),
     wxSizer:addSpacer(Sizer, 4),
-    setup_popup(Es, Id, Sizer, Sz, Parent, Magnet, Acc);
-setup_popup([{submenu, Desc, Name, Help0, Ps, _HK}|Es], Id, Sizer, Sz, Parent, Magnet, Acc) ->
+    setup_popup(Es, Sizer, Sz, Parent, Magnet, Acc);
+setup_popup([#menu{type=submenu, wxid=Id, desc=Desc, help=Help0, opts=Ps}=ME|Es],
+	    Sizer, Sz, Parent, Magnet, Acc) ->
     Panel = wxPanel:new(Parent, [{winid, Id}]),
     setup_colors([Panel], colorB(menu_color), colorB(menu_text)),
     Line = wxBoxSizer:new(?wxHORIZONTAL),
@@ -410,9 +428,9 @@ setup_popup([{submenu, Desc, Name, Help0, Ps, _HK}|Es], Id, Sizer, Sz, Parent, M
     {TipMsg, CmdMsg} = tooltip(Help, false, have_magnet(Ps, Magnet)),
     [wxWindow:setToolTip(Win, wxToolTip:new(TipMsg)) || Win <- [Panel,T1]],
     menu_connect([Panel,T1], [left_up, middle_up, right_up, enter_window]),
-    Pop = #menu_pop{wxid=Id, type=submenu, name=Name, opts=Ps, msg=CmdMsg},
-    setup_popup(Es, Id+2, Sizer, Sz, Parent, Magnet, [Pop|Acc]);
-setup_popup([{Desc, Name, Help, Props, HK}|Es], Id, Sizer, Sz = {Sz1,Sz2}, Parent, Magnet, Acc) ->
+    setup_popup(Es, Sizer, Sz, Parent, Magnet, [ME#menu{help=CmdMsg}|Acc]);
+setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=ME|Es],
+	    Sizer, Sz = {Sz1,Sz2}, Parent, Magnet, Acc) ->
     Panel = wxPanel:new(Parent, [{winid, Id}]),
     setup_colors([Panel], colorB(menu_color), colorB(menu_text)),
     Line  = wxBoxSizer:new(?wxHORIZONTAL),
@@ -447,9 +465,10 @@ setup_popup([{Desc, Name, Help, Props, HK}|Es], Id, Sizer, Sz = {Sz1,Sz2}, Paren
     wxPanel:setSizerAndFit(Panel, Line),
     wxSizer:add(Sizer, Panel, [{flag, ?wxEXPAND}, {proportion, 1}]),
     menu_connect([Panel,T1,T2|BM], [left_up, middle_up, right_up, enter_window]),
-    Pop = #menu_pop{wxid=Id, type=menu, name=Name, opts=Props, msg=CmdMsg},
-    setup_popup(Es, Id+2, Sizer, Sz, Parent,Magnet,[Pop#menu_pop{wxid=Id+1, type=opt},Pop|Acc]);
-setup_popup([], _, _, _, _, _, Acc) -> lists:reverse(Acc).
+    setup_popup(Es, Sizer, Sz, Parent,Magnet, [ME#menu{help=CmdMsg}|Acc]);
+setup_popup([#menu{type=opt}=ME|Es], Sizer, Sz, Parent, Magnet, Acc) ->
+    setup_popup(Es, Sizer, Sz, Parent, Magnet, [ME|Acc]);
+setup_popup([], _, _, _, _, Acc) -> lists:reverse(Acc).
 
 create_color_box(Id, Panel, H, Props) ->
     {R,G,B} = wings_color:rgb3bv(proplists:get_value(color, Props)),
@@ -543,9 +562,9 @@ submenu_help(Help, _, _) ->
     Help.
 
 check_item(Name) ->
-    case ets:match_object(wings_menus, #menu_entry{name=Name, type=?wxITEM_CHECK, _ = '_'}) of
+    case ets:match_object(wings_menus, #menu{name=Name, type=?wxITEM_CHECK, _ = '_'}) of
 	[] -> ok;
-	[#menu_entry{object=MenuItem}] -> %% Toggle checkmark
+	[#menu{object=MenuItem}] -> %% Toggle checkmark
 	    Checked = wxMenuItem:isChecked(MenuItem),
 	    wxMenuItem:check(MenuItem, [{check, not Checked}])
     end.
@@ -556,22 +575,22 @@ update_menu(Menu, Item, Cmd) ->
 update_menu(file, Item = {recent_file, _}, delete, _) ->
     Id = menu_item_id(file, Item),
     FileId = predefined_item(menu, file),
-    [#menu_entry{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),
+    [#menu{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),
     true = wxMenu:delete(File, Id),
     ets:delete(wings_menus, Id),
     ok;
 update_menu(Menu, Item, Cmd0, Help) ->
     Id = menu_item_id(Menu, Item),
     MI = case ets:lookup(wings_menus, Id) of
-	     [#menu_entry{object=MO}] ->
+	     [#menu{object=MO}] ->
 		 MO;
 	     [] when Menu =:= file, element(1, Item) =:= recent_file ->
 		 FileId = predefined_item(menu, Menu),
-		 [#menu_entry{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),
+		 [#menu{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),
 		 N  = wxMenu:getMenuItemCount(File),
 		 MO = wxMenu:insert(File, N-2, Id, [{text, Cmd0}]),
-		 ME=#menu_entry{name=build_command(Item,[file]), object=MO,
-				wxid=Id, type=?wxITEM_NORMAL},
+		 ME=#menu{name=build_command(Item,[file]), object=MO,
+			  wxid=Id, type=?wxITEM_NORMAL},
 		 true = ets:insert(wings_menus, ME),
 		 Id =:= ?wxID_FILE1 andalso wxMenu:insertSeparator(File, N-2),
 		 MO
@@ -583,16 +602,16 @@ update_menu(Menu, Item, Cmd0, Help) ->
 update_menu_enabled(Menu, Item, Enabled)
   when is_boolean(Enabled) ->
     Id = menu_item_id(Menu, Item),
-    [#menu_entry{object=MI}] = ets:lookup(wings_menus, Id),
+    [#menu{object=MI}] = ets:lookup(wings_menus, Id),
     case wxMenuItem:isCheckable(MI) of 
 	true  -> wxMenuItem:check(MI, [{check,Enabled}]);
 	false -> wxMenuItem:enable(MI, [{enable, Enabled}])
     end.
 
 update_menu_hotkey(Action, HotKeyStr) ->
-    case ets:match_object(wings_menus, #menu_entry{name=Action, _='_'}) of
+    case ets:match_object(wings_menus, #menu{name=Action, _='_'}) of
 	[] -> ok; %% Ignore it is a popupmenu entry
-	[#menu_entry{object=MI}] ->
+	[#menu{object=MI}] ->
 	    Label = wxMenuItem:getLabel(MI),
 	    case HotKeyStr of
 		"" -> wxMenuItem:setText(MI, Label);
@@ -605,8 +624,8 @@ menu_item_id(Menu, Item) ->
 	Id when is_integer(Id) ->
 	    Id;
 	false ->
-	    case ets:match_object(wings_menus, #menu_entry{name={Menu,Item}, _='_'}) of
-		[#menu_entry{wxid=Id}] -> Id;
+	    case ets:match_object(wings_menus, #menu{name={Menu,Item}, _='_'}) of
+		[#menu{wxid=Id}] -> Id;
 		[] -> false
 	    end
     end.
@@ -641,7 +660,7 @@ wx_menubar(Menus) ->
 		    {Menu, NextId} = setup_menu([Name], Id, List),
 		    wxMenuBar:append(MB, Menu, Str),
 		    MenuId = predefined_item(menu, Name, NextId),
-		    ME=#menu_entry{name=[Name], object=Menu, wxid=MenuId, type=submenu},
+		    ME=#menu{name=[Name], object=Menu, wxid=MenuId, type=submenu},
 		    true = ets:insert(wings_menus, ME),
 		    NextId+1
 	    end,
@@ -657,7 +676,7 @@ wx_menubar(Menus) ->
     ok.
 
 id_to_name(Id) ->
-    [#menu_entry{name=Name}] = ets:lookup(wings_menus, Id),
+    [#menu{name=Name}] = ets:lookup(wings_menus, Id),
     Name.
 
 setup_menu(Names, Id, Menus1) when is_list(Menus1) ->
@@ -669,58 +688,59 @@ setup_menu(Names, Id, Menus1) when is_list(Menus1) ->
     Next  = create_menu(Menus, Id, Names, Menu),
     {Menu, Next}.
 
-normalize_menu_wx(separator, _, _) -> separator;
+normalize_menu_wx(separator, _, _) ->
+    #menu{type=separator};
 normalize_menu_wx({S,Fun,Help,Ps}, Hotkeys, Ns) when is_function(Fun) ->
     Name = Fun(1, Ns),
     HK = match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps)),
-    {S,Fun,Help,Ps,HK};
+    #menu{type=menu, desc=S, name=Fun, help=Help, opts=Ps, hk=HK};
 normalize_menu_wx({S, {Name, SubMenu}}, Hotkeys, Ns)
   when is_list(SubMenu); is_function(SubMenu) ->
     HK = match_hotkey(reduce_name(Name), Hotkeys, false),
-    {submenu, S, {Name, SubMenu}, submenu_help("", SubMenu, [Name|Ns]), [], HK};
+    #menu{type=submenu, desc=S, name={Name, SubMenu}, help=submenu_help("", SubMenu, [Name|Ns]), hk=HK};
 normalize_menu_wx({S, {Name, SubMenu}, Ps}, Hotkeys, Ns)
   when is_list(SubMenu); is_function(SubMenu) ->
     HK = match_hotkey(reduce_name(Name), Hotkeys, false),
-    {submenu, S, {Name, SubMenu}, submenu_help("", SubMenu, [Name|Ns]), Ps, HK};
+    #menu{type=submenu, desc=S, name={Name, SubMenu},
+	  help=submenu_help("", SubMenu, [Name|Ns]), opts=Ps, hk=HK};
 normalize_menu_wx({S,{Name,Fun},Help,Ps}, Hotkeys, Ns)
   when is_function(Fun); is_list(Fun) ->
     HK = match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps)),
-    {submenu, S, {Name, Fun}, submenu_help(Help, Fun, [Name|Ns]), Ps, HK};
+    #menu{type=submenu, desc=S, name={Name, Fun},
+	  help=submenu_help(Help, Fun, [Name|Ns]), opts=Ps, hk=HK};
 normalize_menu_wx({S,Name,Help,Ps}, Hotkeys, _Ns) ->
     HK = match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps)),
-    {S,Name,Help,Ps,HK};
+    #menu{desc=S, name=Name, help=Help, opts=Ps, hk=HK};
 normalize_menu_wx({S,Name}, Hotkeys, _Ns) ->
     HK = match_hotkey(reduce_name(Name), Hotkeys, false),
-    {S,Name,[],[],HK};
+    #menu{desc=S, name=Name, hk=HK};
 normalize_menu_wx({S,Name,[C|_]=Help}, Hotkeys, _Ns)
   when is_integer(C) ->
     HK = match_hotkey(reduce_name(Name), Hotkeys, false),
-    {S,Name,Help,[], HK};
+    #menu{desc=S,name=Name,help=Help,hk=HK};
 normalize_menu_wx({S,Name,Help}, Hotkeys, _Ns)
   when is_tuple(Help), tuple_size(Help) =< 3 ->
     HK = match_hotkey(reduce_name(Name), Hotkeys, false),
-    {S,Name,Help,[], HK};
+    #menu{desc=S,name=Name,help=Help,hk=HK};
 normalize_menu_wx({S,Name,Ps},Hotkeys, _Ns) ->
     HK = match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps)),
-    {S,Name,[],Ps, HK}.
+    #menu{desc=S,name=Name,opts=Ps,hk=HK}.
 
-format_hotkeys([separator=H|T], Style) ->
+format_hotkeys([#menu{type=separator}=H|T], Style) ->
     [H|format_hotkeys(T, Style)];
-format_hotkeys([H|T], Style) ->
-    Pos = 5,
-    Hotkey0 = element(Pos, H),
-    Hotkey = wings_hotkey:format_hotkey(Hotkey0, Style),
-    [setelement(Pos, H, Hotkey)|format_hotkeys(T, Style)];
+format_hotkeys([#menu{hk=HK0}=H|T], Style) ->
+    Hotkey = wings_hotkey:format_hotkey(HK0, Style),
+    [H#menu{hk=Hotkey}|format_hotkeys(T, Style)];
 format_hotkeys([], _Style) -> [].
 
-create_menu([separator|Rest], Id, Names, Menu) ->
+create_menu([#menu{type=separator}|Rest], Id, Names, Menu) ->
     wxMenu:appendSeparator(Menu),
     create_menu(Rest, Id, Names, Menu);
-create_menu([{submenu, Desc, {Name, SubMenu0}, Help, _Ps, _HK}|Rest], Id, Names, Menu)
+create_menu([#menu{type=submenu, desc=Desc, name={Name,SubMenu0}, help=Help}=ME0|Rest], Id, Names, Menu)
   when is_list(SubMenu0) ->
     {SMenu, NextId} = setup_menu([Name|Names], Id, SubMenu0),
     wxMenu:append(Menu, ?wxID_ANY, Desc, SMenu, [{help, Help}]),
-    ME=#menu_entry{name=[Name|Names], object=SMenu, wxid=NextId, type=submenu},
+    ME=ME0#menu{name=[Name|Names], object=SMenu, wxid=NextId},
     true = ets:insert(wings_menus, ME),
     create_menu(Rest, NextId+1, Names, Menu);
 create_menu([MenuEntry|Rest], Id, Names, Menu) ->
@@ -731,7 +751,7 @@ create_menu([MenuEntry|Rest], Id, Names, Menu) ->
 create_menu([], NextId, _, _) ->
     NextId.
 
-menu_item({Desc0, Name, Help, Props, HotKey}, Parent, Id, Names) ->
+menu_item(#menu{desc=Desc0, name=Name, help=Help, opts=Props, hk=HotKey}=ME, Parent, Id, Names) ->
     Desc = menu_item_desc(Desc0, HotKey),
     MenuId = predefined_item(hd(Names),Name, Id),
     Command = case have_option_box(Props) of
@@ -757,8 +777,7 @@ menu_item({Desc0, Name, Help, Props, HotKey}, Parent, Id, Names) ->
 	      true -> Command(1, #st{});
 	      false -> build_command(Command, Names)
 	  end,
-    true = ets:insert(wings_menus,
-		      #menu_entry{name=Cmd,object=MI, wxid=MenuId, type=Type}),
+    true = ets:insert(wings_menus, ME#menu{name=Cmd,object=MI, wxid=MenuId, type=Type}),
     {MI, Check}.
 
 menu_item_desc(Desc, []) ->
