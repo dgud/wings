@@ -269,8 +269,9 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 	    What = mouse_button(Ev),
 	    case Id of
 		{false, outside} when What =:= right_up ->
-		    wxPopupTransientWindow:dismiss(Dialog),
-		    wings_wm:psend(Owner, restart_menu);
+		    Pos = wxWindow:clientToScreen(Dialog,{X,Y}),
+		    wxPopupTransientWindow:position(Dialog, Pos, {0,0}),
+		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner);
 		{false, _} ->
 		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner);
 		_Integer ->
@@ -334,9 +335,6 @@ popup_event_handler({click, Id, Click, Ns}, Owner, Entries0, Popup) ->
 	    Entries = wx_popup_menu(X,Y, Names, Menus, MagnetClick, Owner),
 	    {replace, fun(Ev) -> popup_event_handler(Ev, Owner, Entries, Popup) end}
     end;
-popup_event_handler(restart_menu, Owner, _Entries, Popup) ->
-    {_, X, Y} = wings_io:get_mouse_state(),
-    {replace, fun(Ev) -> popup_event_handler(Ev, Owner, Popup(X,Y), Popup) end};
 popup_event_handler({message, Msg}, _Owner, _, _) ->
     wings_wm:message(Msg, ""),
     keep;
