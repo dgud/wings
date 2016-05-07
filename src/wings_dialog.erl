@@ -819,7 +819,6 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
   when Ask =/= false ->
     DY  =  wxSystemSettings:getMetric(?wxSYS_SCREEN_Y)*5 div 6, %% don't take entire screen.
-    1 =:= Def orelse error({default, 1}),
     buttons =:= proplists:get_value(style, Flags, buttons) orelse error(Flags),
     NB = wxNotebook:new(Parent, ?wxID_ANY),
     AddPage = fun({Title, Data}, In) ->
@@ -839,6 +838,10 @@ build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
 		      Out
 	      end,
     In = lists:foldl(AddPage, In0, Tabs),
+    case Def =< length(In) of
+	true -> wxNotebook:setSelection(NB, Def+1);
+	false -> ignore
+    end,
     wxSizer:add(WinSizer, NB, [{proportion, 1},{flag, ?wxEXPAND}]),
     In;
 build(Ask, {vframe, Qs}, Parent, Sizer, In) ->
