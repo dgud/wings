@@ -1,3 +1,14 @@
+--- 2.0.4 ----------------------------------------------------------------------
+
+- Further updates of the German translataion by Roy. [Björn Gustavsson]
+
+- Improved connect cut command to work in more cases [dgud]
+
+- Fix memory duplication when opening face/edge menu. [dgud]
+
+- Fixed a crash caused by the format_hotkey routine when an error was
+  handled in wings_hotkey module. Thanks ggaliens. [micheus]
+
 --- 2.0.3 ----------------------------------------------------------------------
 
 - Added possibilty to cut and connect 2 or 3 vertices with MMB
@@ -133,4 +144,3 @@
   Ported all render plugins to use the new gui. [Micheus]
 
 - Added a file merge dialog so the user can choose what to import. [micheus]
-
