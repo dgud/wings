@@ -391,10 +391,8 @@ popup_result(#menu{type=menu,name=Name,opts=Opts}, {Click,MagnetClick}, Names, O
     Cmd =:= ignore orelse wings_wm:send_after_redraw(Owner, {action,Cmd}),
     pop.
 
-calc_min_sizes([#menu{type=submenu, desc=Desc}|Es], Win, C1, C2) ->
-    {W, _, _, _} = wxWindow:getTextExtent(Win, Desc),
-    calc_min_sizes(Es, Win, max(W+5, C1), C2);
-calc_min_sizes([#menu{type=menu, desc=Desc, hk=HK}|Es], Win, C1, C2) ->
+calc_min_sizes([#menu{type=Type, desc=Desc, hk=HK}|Es], Win, C1, C2)
+  when Type=:=menu;Type=:=submenu ->
     {WStr, _, _, _} = wxWindow:getTextExtent(Win, Desc),
     {WHK, _, _, _} = wxWindow:getTextExtent(Win, HK),
     calc_min_sizes(Es, Win, max(WStr+5, C1), max(WHK+5, C2));
@@ -410,22 +408,36 @@ setup_popup([#menu{type=separator}|Es], Sizer, Sz, Parent, Magnet, Acc) ->
 			      {flag, ?wxEXPAND bor ?wxLEFT bor ?wxRIGHT}]),
     wxSizer:addSpacer(Sizer, 4),
     setup_popup(Es, Sizer, Sz, Parent, Magnet, Acc);
-setup_popup([#menu{type=submenu, wxid=Id, desc=Desc, help=Help0, opts=Ps}=ME|Es],
-	    Sizer, Sz, Parent, Magnet, Acc) ->
+setup_popup([#menu{type=submenu, wxid=Id, desc=Desc, help=Help0, opts=Ps, hk=HK}=ME|Es],
+	    Sizer, Sz = {Sz1,Sz2}, Parent, Magnet, Acc) ->
     Panel = wxPanel:new(Parent, [{winid, Id}]),
     setup_colors([Panel], colorB(menu_color), colorB(menu_text)),
     Line = wxBoxSizer:new(?wxHORIZONTAL),
     wxSizer:addSpacer(Line, 3),
-    wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc),
-		[{proportion, 1},{flag, ?wxALIGN_CENTER}]),
-    wxPanel:setSizerAndFit(Panel, Line),
-    wxSizer:add(Sizer, Panel, [{flag, ?wxEXPAND},{proportion, 1}]),
+    Controls =
+	case HK of
+	    [] ->
+		wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc), [{proportion, 1},{flag, ?wxALIGN_CENTER}]),
+		[Panel,T1];
+	    _ ->
+		wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc), [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
+		wxSizer:setItemMinSize(Line, T1, Sz1, -1),
+		wxSizer:addSpacer(Line, 10),
+		wxSizer:addStretchSpacer(Line),
+		wxSizer:add(Line, T2 = wxStaticText:new(Panel, Id, HK),  [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
+		wxSizer:setItemMinSize(Line, T2, Sz2, -1),
+		wxSizer:addSpacer(Line, 10),
+		wxSizer:add(Line, 16, 16),
+		[Panel,T1,T2]
+	end,
     Help = if Help0 =:= [] -> Desc ++ ?__(1," submenu");
 	      true -> Help0
 	   end,
     {TipMsg, CmdMsg} = tooltip(Help, false, have_magnet(Ps, Magnet)),
     [wxWindow:setToolTip(Win, wxToolTip:new(TipMsg)) || Win <- [Panel,T1]],
-    menu_connect([Panel,T1], [left_up, middle_up, right_up, enter_window]),
+    wxPanel:setSizerAndFit(Panel, Line),
+    wxSizer:add(Sizer, Panel, [{flag, ?wxEXPAND},{proportion, 1}]),
+    menu_connect(Controls, [left_up, middle_up, right_up, enter_window]),
     setup_popup(Es, Sizer, Sz, Parent, Magnet, [ME#menu{help=CmdMsg}|Acc]);
 setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=ME|Es],
 	    Sizer, Sz = {Sz1,Sz2}, Parent, Magnet, Acc) ->
@@ -694,16 +706,20 @@ normalize_menu_wx({S,Fun,Help,Ps}, Hotkeys, Ns) when is_function(Fun) ->
     #menu{type=menu, desc=S, name=Fun, help=Help, opts=Ps, hk=HK};
 normalize_menu_wx({S, {Name, SubMenu}}, Hotkeys, Ns)
   when is_list(SubMenu); is_function(SubMenu) ->
-    HK = match_hotkey(reduce_name(Name), Hotkeys, false),
-    #menu{type=submenu, desc=S, name={Name, SubMenu}, help=submenu_help("", SubMenu, [Name|Ns]), hk=HK};
+    Name0 = name_for_hotkey(Name, Ns, SubMenu),
+    HK = match_hotkey(reduce_name(Name0), Hotkeys, false),
+    #menu{type=submenu, desc=S, name={Name, SubMenu},
+	  help=submenu_help("", SubMenu, [Name|Ns]), hk=HK};
 normalize_menu_wx({S, {Name, SubMenu}, Ps}, Hotkeys, Ns)
   when is_list(SubMenu); is_function(SubMenu) ->
-    HK = match_hotkey(reduce_name(Name), Hotkeys, false),
+    Name0 = name_for_hotkey(Name, Ns, SubMenu),
+    HK = match_hotkey(reduce_name(Name0), Hotkeys, false),
     #menu{type=submenu, desc=S, name={Name, SubMenu},
 	  help=submenu_help("", SubMenu, [Name|Ns]), opts=Ps, hk=HK};
 normalize_menu_wx({S,{Name,Fun},Help,Ps}, Hotkeys, Ns)
   when is_function(Fun); is_list(Fun) ->
-    HK = match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps)),
+    Name0 = name_for_hotkey(Name, Ns, Fun),
+    HK = match_hotkey(reduce_name(Name0), Hotkeys, have_option_box(Ps)),
     #menu{type=submenu, desc=S, name={Name, Fun},
 	  help=submenu_help(Help, Fun, [Name|Ns]), opts=Ps, hk=HK};
 normalize_menu_wx({S,Name,Help,Ps}, Hotkeys, _Ns) ->
@@ -723,6 +739,13 @@ normalize_menu_wx({S,Name,Help}, Hotkeys, _Ns)
 normalize_menu_wx({S,Name,Ps},Hotkeys, _Ns) ->
     HK = match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps)),
     #menu{desc=S,name=Name,opts=Ps,hk=HK}.
+
+name_for_hotkey(Name, Ns, Fun) when is_function(Fun) ->
+    case Fun(1, Ns) of
+	SM when is_tuple(SM) -> SM;
+	_ -> Name
+    end;
+name_for_hotkey(Name, _, _) -> Name.
 
 format_hotkeys([#menu{type=separator}=H|T], Style) ->
     [H|format_hotkeys(T, Style)];
