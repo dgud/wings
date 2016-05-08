@@ -41,7 +41,7 @@
    ]},
   {edit_menu,
    [
-    {1,"Efface l'historique d'annulation pour libèrer de la mémoire"},
+    {1,"Efface l'historique d'annulation pour libérer de la mémoire"},
     {3,"Annuler/Rétablir"},
     {4,"Annule ou rétablit la dernière commande"},
     {5,"Rétablir"},
@@ -69,7 +69,7 @@
    ]},
   {handle_drop_1,
    [
-    {1,"Aucune Sélection"},
+    {1,"Aucune sélection"},
     {2,"Annuler l'opération de déposer"},
     {3,"Assigner le matériau aux facettes sélectionnées"},
     {4,"Assigner le matériau « "},
@@ -104,7 +104,7 @@
   {info_line,
    [
     {1,"Selectionner"},
-    {2,"Montrer menu"},
+    {2,"Afficher menu"},
     {3,"Menu Ajuster"}
    ]},
   {init_menubar,
@@ -183,7 +183,7 @@
     {36,"Définir le point"},
     {37,"Boite englobante"},
     {38,"La boite englobante est utile pour aligner et mettre à l'échelle les objets"},
-    {39,"Céer une boite englobante autour de la sélection"},
+    {39,"Créer une boite englobante autour de la sélection"},
     {40,"Ajuster"},
     {41,"Ouvrir le menu Ajuster"}
     ]},
@@ -567,7 +567,7 @@
  [
   {dissolve_edge_2,
    [
-    {1,"Réduire risque de créer une facette mal formée."}
+    {1,"Réduire le risque de créer une facette mal formée."}
    ]}
  ]}.
 {wings_edge_cmd,
@@ -2574,8 +2574,8 @@
     {2,"Montrer le menu"},
     {3,"Basculer la visibilité de l'objet"},
     {4,"Basculer la visibilté de tous les autres objets"},
-    {5,"(Dé)verouiller l'objet actif"},
-    {6,"(Dé)verouiller tous les objets"},
+    {5,"(Dé)verrouiller l'objet actif"},
+    {6,"(Dé)verrouiller tous les objets"},
     {7,"Basculer la sélection de l'objet actif"},
     {8,"Basculer la sélection de tous les autres objets"},
     {9,"Basculer le fil de fer de l'objet actif"},
@@ -2583,7 +2583,7 @@
     {11,"Basculer le dossier ouvert/fermé"},
     {12,"Basculer tous les dossiers ouverts/fermés"},
     {13,"Basculer la visibilité des objets du dossier"},
-    {14,"(Dé)verouiller les objets du dossier"},
+    {14,"(Dé)verrouiller les objets du dossier"},
     {15,"Basculer le fil de fer des objets du dossier"},
     {16,"Basculer la sélection des objets du dossier"}
    ]},
@@ -2782,7 +2782,7 @@
    ]},
   {cam_conflict,
    [
-    {1,"La commande n'a pas été aasignée au raccourci.\n\n    Cette combinaison serait en conflit avec les contrôle de la caméra"}
+    {1,"La commande n'a pas été assignée au raccourci.\n\n    Cette combinaison serait en conflit avec les contrôle de la caméra"}
    ]},
   {camera_msg,
    [
@@ -3532,7 +3532,7 @@
     {2,"Aucune vue mémorisée"},
     {3,"Renommer la vue"},
     {4,"Vous devez être dans la vue courante"},
-    {5,"Êtes-vous certain de vouloir supprimer toutes les vues mémorisées ?"}
+    {5,"Voulez-vous vraiment supprimer toutes les vues mémorisées ?"}
    ]},
   {views_jump,
    [
@@ -3580,7 +3580,7 @@
     {2,"Courante"},
     {3,"Précédente"},
     {4,"Mémoriser"},
-    {5,"Mémoriser cette vue a "},
+    {5,"Mémoriser cette vue à "},
     {7,"Renommer..."},
     {8,"Supprimer"},
     {9,"Tout supprimer..."}
