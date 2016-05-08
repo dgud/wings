@@ -1,6 +1,6 @@
 --- 2.0.4 ----------------------------------------------------------------------
 
-- Further updates of the German translataion by Roy. [Björn Gustavsson]
+- Further updates of the German translation by Roy. [Björn Gustavsson]
 
 - Improved connect cut command to work in more cases [dgud]
 
@@ -8,6 +8,8 @@
 
 - Fixed a crash caused by the format_hotkey routine when an error was
   handled in wings_hotkey module. Thanks ggaliens. [micheus]
+
+- Update French translation. [Enzo]
 
 --- 2.0.3 ----------------------------------------------------------------------
 
