@@ -143,6 +143,8 @@ have_magnet(_, true) -> activated;
 have_magnet(Ps, _) ->
     proplists:is_defined(magnet, Ps).
 
+item_checked(Ps) ->
+    proplists:get_value(crossmark, Ps).
 
 wx_popup_menu_init(Parent,GlobalPos,Names,Menus0) ->
     Owner = wings_wm:this(),
@@ -444,7 +446,15 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     Panel = wxPanel:new(Parent, [{winid, Id}]),
     setup_colors([Panel], Cs),
     Line  = wxBoxSizer:new(?wxHORIZONTAL),
-    wxSizer:addSpacer(Line, 3),
+    case item_checked(Props) of
+	true ->
+	    Checker = wxArtProvider:getBitmap("wxART_TICK_MARK",[{client, "wxART_MENU"}]),
+	    CBM = wxStaticBitmap:new(Panel, -1, Checker),
+	    wxSizer:add(Line, CBM, [{flag, ?wxALIGN_CENTER}]);
+	_ ->
+	    wxSizer:addSpacer(Line, 3)
+    end,
+
     wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc),[{proportion, 0},{flag, ?wxALIGN_CENTER}]),
     wxSizer:setItemMinSize(Line, T1, Sz1, -1),
     wxSizer:addSpacer(Line, 10),
