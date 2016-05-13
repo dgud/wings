@@ -2147,7 +2147,16 @@ pref_dialog(St) ->
 
 pref_result(Attr, St) ->
     set_user_prefs(Attr),
+    OldVal = get_var(renderer),
     init_pref(),
+    case get_var(renderer) of
+        OldVal -> ok;
+        false ->
+            wings_menu:update_menu(file, {render, ?TAG}, delete);
+        _ ->
+            [{Label, _}] = menu_entry(render),
+            wings_menu:update_menu(file, {render, ?TAG}, {append, -1, Label})
+    end,
     St.
 
 export_dialog(Op, Title) ->
