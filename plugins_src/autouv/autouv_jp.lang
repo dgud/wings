@@ -84,7 +84,7 @@
   {seg_event_3,
    [
     % "Continue"
-    {1,"続ける"},
+    {1,"次の工程へ進む..."},
     % "Segment by"
     {2,"セグメント化する..."},
     % "Projection"
@@ -651,6 +651,10 @@
     % "Proportional"
     {32,"※プロポーショナル"},
     % "Make image scale proportional"
-    {33,"画像の比率を保ったまま拡大縮小します"}
+    {33,"画像の比率を保ったまま拡大縮小します"},
+    % "Rotate Snap Image"
+    {34,"※回転"},
+    % "Rotate the background image"
+    {35,"イメージを回転させます"}
    ]}
  ]}.
