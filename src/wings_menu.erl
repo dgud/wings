@@ -130,6 +130,11 @@ build_command(Name, Names, true) ->
 build_command(Name, Names, false) ->
     build_command(Name, Names).
 
+build_names(Term, Acc) when not is_tuple(Term) -> Acc;
+build_names({_,Term2}, Acc) when is_boolean(Term2) -> Acc;
+build_names({Term1,Term2}, Acc) ->
+    build_names(Term2, [Term1]++Acc).
+
 have_option_box(Ps) ->
     proplists:is_defined(option, Ps).
 
@@ -143,6 +148,8 @@ have_magnet(_, true) -> activated;
 have_magnet(Ps, _) ->
     proplists:is_defined(magnet, Ps).
 
+item_checked(Ps) ->
+    proplists:get_value(crossmark, Ps).
 
 wx_popup_menu_init(Parent,GlobalPos,Names,Menus0) ->
     Owner = wings_wm:this(),
@@ -444,7 +451,15 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     Panel = wxPanel:new(Parent, [{winid, Id}]),
     setup_colors([Panel], Cs),
     Line  = wxBoxSizer:new(?wxHORIZONTAL),
-    wxSizer:addSpacer(Line, 3),
+    case item_checked(Props) of
+	true ->
+	    Checker = wxArtProvider:getBitmap("wxART_TICK_MARK",[{client, "wxART_MENU"}]),
+	    CBM = wxStaticBitmap:new(Panel, -1, Checker),
+	    wxSizer:add(Line, CBM, [{flag, ?wxALIGN_CENTER}]);
+	_ ->
+	    wxSizer:addSpacer(Line, 3)
+    end,
+
     wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc),[{proportion, 0},{flag, ?wxALIGN_CENTER}]),
     wxSizer:setItemMinSize(Line, T1, Sz1, -1),
     wxSizer:addSpacer(Line, 10),
@@ -607,6 +622,49 @@ update_menu(file, Item = {recent_file, _}, delete, _) ->
     true = wxMenu:delete(File, Id),
     ets:delete(wings_menus, Id),
     ok;
+update_menu(Menu, Item, delete, _) ->
+    case menu_item_id(Menu, Item) of
+	false -> ok;
+	Id ->
+	    case ets:lookup(wings_menus, Id) of
+		[#menu{object=MenuItem}] ->
+		    ParentMenu = wxMenuItem:getMenu(MenuItem),
+		    true = wxMenu:delete(ParentMenu, Id),
+		    ets:delete(wings_menus, Id),
+		    ok;
+		_ ->
+		    ok
+	    end
+    end;
+update_menu(Menu, Item, {append, Pos0, Cmd0}, Help) ->
+    case menu_item_id(Menu, Item) of
+	false ->
+	    AddItem =
+		fun(SubMenu, Name) ->
+		    Pos =
+			if Pos0 >= 0 -> min(wxMenu:getMenuItemCount(SubMenu), Pos0);
+			true -> wxMenu:getMenuItemCount(SubMenu)
+			end,
+		    MO = wxMenu:insert(SubMenu, Pos, -1, [{text, Cmd0}]),
+		    Id = wxMenuItem:getId(MO),
+		    ME=#menu{name=Name, object=MO,
+			     wxid=Id, type=?wxITEM_NORMAL},
+		    true = ets:insert(wings_menus, ME),
+		    Cmd = setup_hotkey(MO, Cmd0),
+		    wxMenuItem:setText(MO, Cmd),
+		    is_list(Help) andalso wxMenuItem:setHelp(MO, Help)
+		end,
+
+	    Names = build_names(Item, [Menu]),
+	    case ets:match_object(wings_menus, #menu{name=Names, _ = '_'}) of
+		[#menu{object=SubMenu}] ->
+		    AddItem(SubMenu, build_command(Item, [Menu]));
+		_ ->
+		    io:format("update_menu: Item rejected (~p|~p)\n",[Menu,Item])
+	    end;
+	_ ->
+	    ok
+    end;
 update_menu(Menu, Item, Cmd0, Help) ->
     Id = menu_item_id(Menu, Item),
     MI = case ets:lookup(wings_menus, Id) of
@@ -839,7 +897,7 @@ menu_item_desc(Desc, HotKey) ->
 	_ -> Desc ++ "\t" ++ HotKey
     end.
 
-%% We want to use the prefdefined id where they exist (mac) needs for it's
+%% We want to use the predefined id where they exist (mac) needs for it's
 %% specialized menus but we want our shortcuts hmm.
 %% We also get little predefined icons for OS's that have that.
 predefined_item(Menu, Item, DefId) ->

@@ -138,7 +138,17 @@ event_handler(Ev = #keyboard{unicode=UC}, #cs{op=bind, action=Cmd})
   when Cmd =/= undefined, UC =/= 0 ->
     case wings_hotkey:event(Ev, Cmd) of
 	next ->
-	    do_bind(Ev, Cmd);
+	    case hotkeys_by_commands([Cmd]) of
+		[] -> do_bind(Ev, Cmd);
+		Hotkeys ->
+		    HKs = ["[" ++ Hotkey ++"]" || {_, Hotkey, _, _} <- Hotkeys],
+		    Q = ?__(3,"This command is already bound to ") ++ string:join(HKs, ", ") ++
+			?__(4," hotkey. Do you want to re-define it?"),
+		    wings_u:yes_no(Q, fun() ->
+					[wings_hotkey:unbind(Key) || {Key, _, _, _} <- Hotkeys],
+					do_bind(Ev, Cmd)
+				      end)
+	    end;
 	OtherCmd ->
 	    C = wings_util:stringify(OtherCmd),
 	    Q = ?__(1,"This key is already bound to the ") ++ C ++
@@ -192,20 +202,19 @@ hotkey_key_message(Cmd) ->
 
 
 bind_from_event(Ev, Cmd) ->
-    Bkey0 = bindkey(Ev, Cmd),
-	Bkey = case Bkey0 of
-		{bindkey, _Key1} -> Bkey0;
-		{bindkey, _Mode, Key1} -> {bindkey, Key1}
-	end,
-	{bindkey, Key} = Bkey,
-	ets:insert(?KL, {Bkey,Cmd,user}),
+    Bkey = bindkey(Ev, Cmd),
+    Key = case Bkey of
+	    {bindkey, Key1} -> Key1;
+	    {bindkey, _Mode, Key1} -> Key1
+    end,
+    ets:insert(?KL, {Bkey,Cmd,user}),
     format_hotkey(Key, wx).
 
 
 unbind({Key}) ->
     unbind(Key);
 unbind(Key) ->
-    ets:delete(?KL, {bindkey, Key}).
+    ets:delete(?KL, Key).
 
 hotkeys_by_commands(Cs) ->
     hotkeys_by_commands_1(Cs, []).
@@ -221,7 +230,7 @@ hotkeys_by_commands_2([{Key0,Cmd,Src}|T]) ->
 	      {bindkey,Key1} -> Key1;
 	      {bindkey,_Mode,Key1} -> Key1
 	  end,
-    Info = {Key,format_hotkey(Key, wx),wings_util:stringify(Cmd),Src},
+    Info = {Key0,format_hotkey(Key, wx),wings_util:stringify(Cmd),Src},
     [Info|hotkeys_by_commands_2(T)];
 hotkeys_by_commands_2([]) -> [].
     
