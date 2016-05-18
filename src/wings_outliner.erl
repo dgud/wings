@@ -255,6 +255,10 @@ forward_event({action,{?MODULE,Cmd}}, _Window, St) ->
     command(Cmd, St);
 forward_event({action,{shape,_}}=Act, _, _) ->
     wings_wm:send(geom, Act);
+forward_event({note, image_change}, Window, St) ->
+    SelSt = get_state(St),
+    wx_object:cast(Window, {new_state,SelSt}),
+    keep;
 forward_event(Ev, Window, _) ->
     wx_object:cast(Window, Ev),
     keep.
@@ -396,8 +400,8 @@ handle_info(parent_changed,
     end;
 handle_info({drag, Obj}, State) ->
     {noreply, State#state{drag=Obj}};
-handle_info(Msg, State) ->
-    io:format("~p:~p Got unexpected info ~p~n", [?MODULE,?LINE, Msg]),
+handle_info(_Msg, State) ->
+    %% io:format("~p:~p Got unexpected info ~p~n", [?MODULE,?LINE, _Msg]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -406,7 +410,6 @@ code_change(_From, _To, State) ->
     State.
 
 terminate(_Reason, #state{}) ->
-    io:format("terminate: ~p (~p)~n",[?MODULE, _Reason]),
     wings ! {external, fun(_) -> wings_wm:delete(?MODULE) end},
     normal.
 
@@ -441,7 +444,9 @@ update_object(Os, TC, IL, Imap0) ->
 		 Acc = [{Item, O}|Acc0],
 		 case maps:get(maps, O, []) of
 		     [] -> {Acc, Imap};
-		     Maps -> add_maps(Maps, TC, Item, IL, Imap, Os, Acc)
+		     Maps ->
+			 io:format("~P~nin ~P~n",[Maps, 20, Os, 20]),
+			 add_maps(Maps, TC, Item, IL, Imap, Os, Acc)
 		 end
 		 %% {Node,_} = lists:keyfind(Curr, 2, All),
 		 %% wxTreeCtrl:selectItem(TC, Node),
@@ -450,10 +455,14 @@ update_object(Os, TC, IL, Imap0) ->
     wx:foldl(Do, {[],Imap0}, Sorted).
 
 add_maps([{_MType,Mid}|Rest], TC, Dir, IL, Imap0, Os,Acc) ->
-    [O = #{name:=MName}] = [O || #{type:=image, id:=Id} = O <- Os, Id =:= Mid],
-    {Indx, Imap} = image_index(O, IL, Imap0),
-    Item = wxTreeCtrl:appendItem(TC, Dir, MName, [{image, Indx}]),
-    add_maps(Rest, TC, Dir, IL, Imap, Os, [{Item, O}|Acc]);
+    case [O || #{type:=image, id:=Id} = O <- Os, Id =:= Mid] of
+	[O = #{name:=MName}] ->
+	    {Indx, Imap} = image_index(O, IL, Imap0),
+	    Item = wxTreeCtrl:appendItem(TC, Dir, MName, [{image, Indx}]),
+	    add_maps(Rest, TC, Dir, IL, Imap, Os, [{Item, O}|Acc]);
+	[] ->
+	    add_maps(Rest, TC, Dir, IL, Imap0, Os, Acc)
+    end;
 add_maps([], TC, Dir, _, Imap, _, Acc) ->
     wxTreeCtrl:expand(TC,Dir),
     {Acc, Imap}.
