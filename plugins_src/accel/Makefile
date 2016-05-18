@@ -24,6 +24,14 @@ ifdef MSYSTEM
  endif
 endif
 
+## UseMCL := $(shell cl.exe 2>&1 | grep Microsoft)
+
+ifneq (x$(UseMCL),x)
+  UseMCL = true
+  USEMINGWGCC = false
+  DEF_CC = cl.exe
+endif
+
 LIBDIR = ../../plugins/accel
 
 ERL_DIR := $(shell echo 'io:format("~s~n",[code:root_dir()]),init:stop().' | erl | sed -n '/^1>/s/^1> //p')
@@ -31,24 +39,32 @@ ERL_INC = "$(ERL_DIR)/usr/include"
 BEAM = $(LIBDIR)/wpc_pick.beam
 
 UNIVERSAL_FLAGS =
-COMMON_CFLAGS = -Wall -Werror -O3
+COMMON_CFLAGS = -Wall
 
-ifdef USEMINGWGCC
+ifeq ($(UseMCL),true)
+ OUT = -Fe:
  SO_EXT = dll
- LIBS = -shared
- GL_LIBS = -lopengl32 -lglu32
- CFLAGS = $(COMMON_CFLAGS)
+ LIBS = -LD
+ CFLAGS = -nologo -Zi -Ox
 else
- SO_EXT = so
- DEF_CC = $(CC)
- ifeq ($(OS),Darwin)
-   CFLAGS = $(UNIVERSAL_FLAGS) $(COMMON_CFLAGS)
-   LIBS = $(UNIVERSAL_FLAGS) -bundle -flat_namespace -undefined suppress
-   GL_LIBS =
+ OUT = -o
+ ifdef USEMINGWGCC
+  SO_EXT = dll
+  LIBS = -mdll
+  GL_LIBS = -lopengl32 -lglu32
+  CFLAGS = $(COMMON_CFLAGS) -Werror -O3
  else
-   LIBS = -shared -fpic
-   GL_LIBS = -L/usr/local/lib -lGLU -lGL
-   CFLAGS = $(COMMON_CFLAGS)
+  SO_EXT = so
+  DEF_CC = $(CC)
+  ifeq ($(OS),Darwin)
+    CFLAGS = $(UNIVERSAL_FLAGS) $(COMMON_CFLAGS) -Werror -O3
+    LIBS = $(UNIVERSAL_FLAGS) -bundle -flat_namespace -undefined suppress
+    GL_LIBS =
+  else
+    LIBS = -shared -fpic
+    GL_LIBS = -L/usr/local/lib -lGLU -lGL
+    CFLAGS = $(COMMON_CFLAGS) -Werror -O3
+  endif
  endif
 endif
 
@@ -71,8 +87,8 @@ $(LIBDIR)/%.beam: %.erl
 
 $(LIBDIR)/%.$(SO_EXT): %.c
 	install -d $(LIBDIR)
-	$(GCC) $(COMMON_CFLAGS) -I$(ERL_INC) -o $@ $< $(LIBS) $(GL_LIBS)
+	$(GCC) $(CFLAGS) -I$(ERL_INC) $(OUT) $@ $< $(LIBS) $(GL_LIBS)
 
 clean:
-	rm -f $(TARGET_FILES)
+	rm -f $(TARGET_FILES) vc*.pdb wings_pick_drv.obj
 	rm -f core
