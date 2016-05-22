@@ -683,6 +683,9 @@ dispatch_event(#wx{obj=Obj}=Event) ->
 	_ ->
 	    do_dispatch(get(Obj), Event)
     end;
+dispatch_event({'EXIT', Pid, Reason}) ->
+    io:format("EXIT ~p (~p) ~P~n", [Pid, "win?", Reason, 30]),
+    ignore;
 dispatch_event(Event) ->
     case find_active() of
 	none ->
