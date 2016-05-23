@@ -85,6 +85,7 @@ change_state(Window, St) ->
     fun(Ev) -> forward_event(Ev, Window, St) end.
 
 forward_event(redraw, _Window, _St) -> keep;
+forward_event({current_state, _, _}, _Window, _St0) -> keep;
 forward_event({current_state, #st{pal=Cols}=St}, Window, #st{pal=Cols0}) ->
     (Cols =:= Cols0) orelse wx_object:cast(Window, {new_state, Cols}),
     {replace, change_state(Window, St)};
