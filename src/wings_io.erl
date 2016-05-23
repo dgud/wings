@@ -310,15 +310,13 @@ put_state(Io) ->
 
 read_icons() ->
     Ebin = filename:dirname(code:which(?MODULE)),
-    case wings_pref:get_value(interface_icons) of
-	classic -> IconFile = filename:join(Ebin, "wings_icon_classic.bundle");
-	bluecube -> IconFile = filename:join(Ebin, "wings_icon_bluecube.bundle");
-	purpletube -> IconFile = filename:join(Ebin, "wings_icon_purpletube.bundle")
-    end,
+    IconFile = case wings_pref:get_value(interface_icons) of
+		   classic    -> filename:join(Ebin, "wings_icon_classic.bundle");
+		   bluecube   -> filename:join(Ebin, "wings_icon_bluecube.bundle");
+		   purpletube -> filename:join(Ebin, "wings_icon_purpletube.bundle")
+	       end,
     Patch = fun({about_wings, {3, W, H, Bin0, <<>>}}) ->
-		    RL = 3*W,
-		    Bin = iolist_to_binary(lists:reverse([Row || <<Row:RL/binary>> <= Bin0])),
-		    {about_wings, {W, H, Bin}};
+		    {about_wings, {W, H, Bin0}};
 	       ({Name, {3, W, H, Bin, <<>>}}) ->
 		    {Rgb, Alpha} = rgb3(Bin, <<>>, <<>>),
 		    {Name, {W, H, Rgb, Alpha}};
