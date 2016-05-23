@@ -368,12 +368,12 @@ handle_event(#wx{event=#wxMouse{type=enter_window}}, State) ->
     wings_status:message(?MODULE, Msg),
     {noreply, State};
 
-handle_event(#wx{} = Ev, State) ->
-    io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, Ev]),
+handle_event(#wx{} = _Ev, State) ->
+    %%io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, _Ev]),
     {noreply, State}.
 
-handle_call(Req, _From, State) ->
-    io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, Req]),
+handle_call(_Req, _From, State) ->
+    %%io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, _Req]),
     {reply, ok, State}.
 
 handle_cast({new_state, Os}, #state{tc=TC, il=IL, imap=IMap0} = State) ->
@@ -446,7 +446,6 @@ update_object(Os, TC, IL, Imap0) ->
 		 case maps:get(maps, O, []) of
 		     [] -> {Acc, Imap};
 		     Maps ->
-			 io:format("~P~nin ~P~n",[Maps, 20, Os, 20]),
 			 add_maps(Maps, TC, Item, IL, Imap, Os, Acc)
 		 end
 		 %% {Node,_} = lists:keyfind(Curr, 2, All),
