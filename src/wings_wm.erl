@@ -349,10 +349,17 @@ is_wxwindow(Name) ->
     end.
 
 wxwindow(Name) ->
-    #win{obj=Obj} = get_window_data(Name),
-    Obj.
+    try
+	#win{obj=Obj} = get_window_data(Name),
+	Obj
+    catch _:_ -> undefined
+    end.
 
-wx2win(Obj) -> get(Obj).
+wx2win(Obj) ->
+    case get(Obj) of
+	undefined -> none;
+	Win -> Win
+    end.
 
 offset(Name, Xoffs, Yoffs) ->
     update_window(Name, [{dx,Xoffs},{dy,Yoffs}]).
@@ -619,22 +626,24 @@ dispatch_matching(Filter) ->
     foreach(fun dispatch_event/1, Evs).
 
 dispatch_event(#mousemotion{which=Obj}=Event) ->
-    Win = get(Obj),
+    Win = wx2win(Obj),
     case get_focus_window() of
 	Win ->
 	    do_dispatch(Win, Event);
 	{grabbed, Grab} ->
 	    do_dispatch(Grab, Event);
-	Focused ->
+	Focused when Win =/= none ->
 	    case get(wm_timer) of
 		undefined ->
 		    put(wm_timer, wings_io:set_timer(300, {wm, {timer_active, Win, Focused}}));
 		_ -> ignore
 	    end,
-	    do_dispatch(Win, Event)
+	    do_dispatch(Win, Event);
+	_ ->
+	    ignore
     end;
 dispatch_event(#mousebutton{which=Obj}=Event) ->
-    Win = update_focus(get(Obj)),
+    Win = update_focus(wx2win(Obj)),
     do_dispatch(Win, Event);
 dispatch_event(#keyboard{which=Obj}=Event) ->
     case get_focus_window() of
@@ -643,7 +652,7 @@ dispatch_event(#keyboard{which=Obj}=Event) ->
 	_ ->
 	    case Obj of
 		menubar -> do_dispatch(menubar_focus(), Event);
-		_ -> do_dispatch(get(Obj), Event)
+		_ -> do_dispatch(wx2win(Obj), Event)
 	    end
     end;
 dispatch_event({menubar,Ev}) ->
@@ -726,13 +735,15 @@ update_focus(Active) ->
 	    case put(wm_focus, Active) of
 		Active -> Active;
 		undefined ->
-		    wxWindow:setFocus(wxwindow(Active)),
+		    Obj = wxwindow(Active),
+		    Obj =/= undefined andalso wxWindow:setFocus(Obj),
 		    send(top_frame, {got_focus, Active, get_props(Active)}),
 		    do_dispatch(Active, got_focus),
 		    Active;
 		OldActive ->
 		    do_dispatch(OldActive, lost_focus),
-		    wxWindow:setFocus(wxwindow(Active)),
+		    Obj = wxwindow(Active),
+		    Obj =/= undefined andalso wxWindow:setFocus(Obj),
 		    send(top_frame, {got_focus, Active, get_props(Active)}),
 		    do_dispatch(Active, got_focus),
 		    Active
