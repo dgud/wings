@@ -660,12 +660,6 @@ handle_event_3({action,{select,Command}}, St0) ->
 	#st{}=St -> ok
     end,
     new_state(St);
-handle_event_3({action,{edit,undo_toggle}}=Act, _) ->
-    wings_wm:send(geom, Act);
-handle_event_3({action,{edit,undo}}=Act, _) ->
-    wings_wm:send(geom, Act);
-handle_event_3({action,{edit,redo}}=Act, _) ->
-    wings_wm:send(geom, Act);
 handle_event_3({action,{edit,repeat}}, St) ->
     repeat(command, St);
 handle_event_3({action,{edit,repeat_args}}, St) ->
@@ -677,7 +671,7 @@ handle_event_3({action,{view,toggle_background}}, _) ->
     put({?MODULE,show_background},not Old),
     wings_wm:dirty();
 
-handle_event_3({action,Ev}, St) ->
+handle_event_3({action,Ev}=Act, St) ->
     case Ev of  %% Keyboard shortcuts end up here (I believe)
 	{_, {move,_}} ->
 	    handle_command(move,St);
@@ -717,7 +711,8 @@ handle_event_3({action,Ev}, St) ->
 	{edit,repeat_drag} ->
 	    repeat(drag, St);
 	_ ->
-%%	    io:format("Miss Action ~p~n", [Ev]),
+	    wings_wm:send(geom, Act),
+	    %% io:format("Miss Action ~P~n", [Ev, 20]),
 	    keep
     end;
 handle_event_3(got_focus, _) ->
@@ -728,7 +723,7 @@ handle_event_3(got_focus, _) ->
     wings_wm:message(Message, ""),
     wings_wm:dirty();
 handle_event_3(_Event, _) ->
-%%    io:format("MissEvent ~p~n", [_Event]),
+    %% io:format("MissEvent ~P~n", [_Event, 20]),
     keep.
 
 clear_temp_sel(#st{temp_sel=none}=St) -> St;
