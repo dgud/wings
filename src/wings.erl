@@ -98,6 +98,8 @@ init(File) ->
     wings_pref:load(),
     wings_lang:init(),
     wings_plugin:init(),
+    wings_sel_cmd:init(),
+    wings_file:init(),
 
     St0 = new_st(),
     St1 = wings_sel:reset(St0),
@@ -122,8 +124,6 @@ init(File) ->
     wings_vec:init(),
 
     wings_view:init(),
-    wings_sel_cmd:init(),
-    wings_file:init(),
     wings_u:caption(St),
     wings_file:init_autosave(),
     wings_pb:start_link(Frame),

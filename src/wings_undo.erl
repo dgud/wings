@@ -215,7 +215,7 @@ change_type_1(Mode, Sel, Objs, Mat, _Next) ->
 			    mat_change(Mat)],
 		      S =/= []], "; ").
 
-mode_sel_change({Old,New}, Sel) ->
+mode_sel_change({Old,New}, Sel) when is_atom(Old), is_atom(New) ->
     C = atom_to_list(Old) ++ " => " ++ atom_to_list(New),
     case Sel of
 	[_] -> C;
