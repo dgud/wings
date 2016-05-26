@@ -605,7 +605,7 @@ close_window(Delete, Split, Other, GrandP) ->
 	Split when is_record(Other, split) ->
 	    Frame = wxWindow:getParent(win(GrandP)),
 	    wxWindow:reparent(win(Other), Frame),
-	    wxWindow:destroy(GrandP),
+	    wxWindow:destroy(win(GrandP)),
 	    {ok, Other};
 	#split{} ->
 	    wxWindow:reparent(win(Other), win(GrandP)),

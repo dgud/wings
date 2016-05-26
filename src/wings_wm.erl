@@ -306,11 +306,17 @@ show(Name) ->
     end.
 
 show_wx(Frame) ->
-    case wxFrame:isIconized(Frame) of
-	true -> wxFrame:iconize(Frame, [{iconize, false}]);
-	false -> ok
-    end,
-    wxFrame:raise(Frame).
+    case wxWindow:isTopLevel(Frame) of
+	true ->
+	    case wxFrame:isIconized(Frame) of
+		true -> wxFrame:iconize(Frame, [{iconize, false}]);
+		false -> ok
+	    end,
+	    wxFrame:raise(Frame),
+	    wxFrame:requestUserAttention(Frame);
+	false ->
+	    ok
+    end.
 
 is_hidden(Name) ->
     case get_window_data(Name) of
