@@ -823,12 +823,12 @@ random([Percent], St) -> random(Percent, St);
 random(Percent, #st{selmode=Mode, sel=[]}=St) ->
     P = Percent / 100,
     wings_pref:set_value(random_select, Percent),
-    {save_state, wings_sel:make(fun(_, _) -> random:uniform() < P end, Mode, St)};
+    {save_state, wings_sel:make(fun(_, _) -> rand:uniform() < P end, Mode, St)};
 random(Percent, St) ->
     P = Percent / 100,
     NewSel = wings_sel:fold(fun(Sel0, #we{id=Id}, Acc) ->
             Sel1 = gb_sets:to_list(Sel0),
-            Sel2 = [Elem || Elem <- Sel1, random:uniform() < P ],
+            Sel2 = [Elem || Elem <- Sel1, rand:uniform() < P ],
             case Sel2 of
               [] -> Acc;
               _ -> [{Id,gb_sets:from_list(Sel2)}|Acc]
