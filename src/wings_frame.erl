@@ -26,7 +26,10 @@
 -define(NEED_ESDL, 1). %% event mapping
 -include("wings.hrl").
 
--define(IS_GEOM(Name), ((Name =:= geom) orelse (element(1, Name) =:= geom))).
+-define(IS_GEOM(Name),
+	((Name =:= geom)
+	 orelse (element(1, Name) =:= geom)
+	 orelse (element(1, Name) =:= autouv))).
 
 %% API  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -99,7 +102,10 @@ get_overlay() ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 forward_event({current_state, #st{selmode=Mode, sh=Sh}}) ->
-    wx_object:cast(?MODULE, {selmode, Mode, Sh}),
+    wx_object:cast(?MODULE, {selmode, geom, Mode, Sh}),
+    keep;
+forward_event({current_state, Win, #st{selmode=Mode, sh=Sh}}) ->
+    wx_object:cast(?MODULE, {selmode, Win, Mode, Sh}),
     keep;
 forward_event({mode_restriction, _}=Restrict) ->
     wx_object:cast(?MODULE, Restrict),
@@ -261,7 +267,7 @@ handle_call(Req, _From, State) ->
     {reply, ok, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
-handle_cast({selmode, _, _}=Sel, #state{toolbar=TB}=State) ->
+handle_cast({selmode, _, _, _}=Sel, #state{toolbar=TB}=State) ->
     {noreply, State#state{toolbar=wings_toolbar:update(Sel, TB)}};
 handle_cast({mode_restriction, _}=Restrict, #state{toolbar=TB}=State) ->
     {noreply, State#state{toolbar=wings_toolbar:update(Restrict, TB)}};
@@ -269,13 +275,15 @@ handle_cast({menu, {Menu, Key, Value}=Update}, #state{toolbar=TB}=State) ->
     wings_menu:update_menu_enabled(Menu, Key, Value),
     wings_toolbar:update(Update, TB),
     {noreply, State};
-handle_cast({got_focus, Window, Props}, #state{toolbar=TB}=State) ->
+handle_cast({got_focus, Window, Props}, #state{toolbar=TB0}=State) ->
     Fun = fun(Menu, Key, Value) ->
 		  wings_menu:update_menu_enabled(Menu, Key, Value),
-		  wings_toolbar:update({Menu, Key, Value}, TB)
+		  wings_toolbar:update({Menu, Key, Value}, TB0)
 	  end,
     [Fun(view, Key, Value) || {Key, Value} <- Props, is_boolean(Value)],
-    {noreply, update_active(Window, State)};
+    ModeRest = proplists:get_value(mode_restriction, Props, none),
+    TB = wings_toolbar:update({active, Window, ModeRest}, TB0),
+    {noreply, update_active(Window, State#state{toolbar=TB})};
 handle_cast({close, Win}, #state{windows=#{ch:=Child,loose:=Loose,szr:=Szr}=Wins}=State) ->
     case find_win(Win, Child) of
 	false ->
