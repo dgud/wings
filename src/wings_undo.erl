@@ -39,7 +39,7 @@
 
 	 %% For the Develop menu.
 	 cmd,
-	 info :: #info{}
+	 info :: #info{} | undefined
 	}).
 
 init(St) ->

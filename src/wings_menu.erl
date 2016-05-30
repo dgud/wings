@@ -217,7 +217,12 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     case find_active_panel(Panel, MX, MY) of
 	{false,_} -> ignore;
 	{ActId, ActPanel} ->
-	    self() ! #wx{id=ActId, obj= ActPanel, event=#wxMouse{type=enter_window}}
+	    self() ! #wx{id=ActId, obj= ActPanel,
+			 event=#wxMouse{type=enter_window,x=0,y=0,
+					leftDown=false,middleDown=false,rightDown=false,
+					controlDown=false,shiftDown=false,altDown=false,metaDown=false,
+					wheelRotation=0, wheelDelta=0, linesPerAction=0
+				       }}
     end,
     {Dialog, Panel, Entries}.
 

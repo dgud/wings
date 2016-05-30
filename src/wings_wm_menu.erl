@@ -34,18 +34,18 @@
 
 %% Menu information kept for menus.
 -record(mi,
-	{ymarg :: non_neg_integer(),		%Margin at top and bottom
-	 shortcut :: non_neg_integer(),		%Position for shortcut (pixels)
-	 w :: pos_integer(),			%Width of menu (pixels)
-	 h :: pos_integer(),			%Height of menu (pixels)
-	 hs :: list(pos_integer()),		%Height of each entry.
+	{ymarg :: non_neg_integer()|undefined,	%Margin at top and bottom
+	 shortcut :: non_neg_integer()|undefined,%Position for shortcut (pixels)
+	 w :: pos_integer()|undefined,		%Width of menu (pixels)
+	 h :: pos_integer()|undefined,		%Height of menu (pixels)
+	 hs :: list(pos_integer())|undefined,	%Height of each entry.
 	 sel=none :: 'none'|pos_integer(),	%Selected item (1..tuple_size(Menu))
 	 sel_side=left :: 'left'|'right',	%Selection on left or right.
 	 ns=[],					%Name stack.
-	 menu :: {menu_item()},	  	        %Normalized menu.
+	 menu :: {menu_item()}|undefined,       %Normalized menu.
 	 timer=make_ref(),			%Active submenu timer.
 	 level=?INITIAL_LEVEL,			%Menu level.
-	 type :: 'plain'|'popup',	        %Type of menu.
+	 type=plain :: 'plain'|'popup',	        %Type of menu.
 	 owner,					%Owning window.
 	 flags=[] :: list()|boolean(),		%Flags (magnet/dialog).
 	 orig_xy				%Originally input global X and Y

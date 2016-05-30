@@ -483,9 +483,7 @@ sysfontdir() ->
 		    "/~";
 		_ ->
 		    Dir
-	    end;
-	_ ->
-	    "/~"		% go to home dir
+	    end
     end.
 
 default_font() ->

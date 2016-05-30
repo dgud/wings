@@ -483,35 +483,36 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 
 	    Is_ortho = proplists:get_value(ortho_view, Props),
 
-	    {Proj, Front_face, Side_face, Wvp, Hvp} =
-		if
-		    Is_ortho ->
-			{fun({X, Y, _Z}) -> {X, Y};
-			    ({{X1, Y1, _Z1}, {X2, Y2, _Z2}}) ->
-				 {{X1, Y1}, {X2, Y2}}
-			 end,
-			 fun ortho_ff/1,
-			 fun ortho_sf/1,
-			 Distance * ARw / Flen,
-			 Distance * ARh / Flen}
-			    ;
-		    true ->
-			{fun({X, Y, Z}) ->
-				 Rz = case catch Zf / Z of
-					  R when is_float(R) -> R; _ -> ?BIG end,
-				 {X * Rz, Y * Rz};
-			    ({{X1, Y1, Z1}, {X2, Y2, Z2}}) ->
-				 Rz_1 = case catch Zf / Z1 of
-					    R1 when is_float(R1) -> R1; _ -> ?BIG end,
-				 Rz_2 = case catch Zf / Z2 of
-					    R2 when is_float(R2) -> R2; _ -> ?BIG end,
-				 {{X1 * Rz_1, Y1 * Rz_1}, {X2 * Rz_2, Y2 * Rz_2}}
-			 end,
-			 fun persp_ff/1,
-			 fun persp_sf/1,
-			 ARw,
-			 ARh}
-		end,
+	    Proj = if Is_ortho ->
+	    		   fun({X, Y, _Z}) -> {X, Y};
+	    		      ({{X1, Y1, _Z1}, {X2, Y2, _Z2}}) ->
+	    			   {{X1, Y1}, {X2, Y2}}
+	    		   end;
+	    	      true ->
+	    		   fun({X, Y, Z}) ->
+	    			   Rz = case catch Zf / Z of
+	    				    R when is_float(R) -> R; _ -> ?BIG end,
+	    			   {X * Rz, Y * Rz};
+	    		      ({{X1, Y1, Z1}, {X2, Y2, Z2}}) ->
+	    			   Rz_1 = case catch Zf / Z1 of
+	    				      R1 when is_float(R1) -> R1; _ -> ?BIG end,
+	    			   Rz_2 = case catch Zf / Z2 of
+	    				      R2 when is_float(R2) -> R2; _ -> ?BIG end,
+	    			   {{X1 * Rz_1, Y1 * Rz_1}, {X2 * Rz_2, Y2 * Rz_2}}
+	    		   end
+	    	   end,
+	    Front_face = if Is_ortho -> fun ortho_ff/1;
+	    		    true -> fun persp_ff/1
+	    		 end,
+	    Side_face = if Is_ortho -> fun ortho_sf/1;
+	    		   true -> fun persp_sf/1
+	    		end,
+	    Wvp = if Is_ortho -> Distance * ARw / Flen;
+	    	     true -> ARw
+	    	  end,
+	    Hvp = if Is_ortho -> Distance * ARh / Flen;
+	    	     true -> ARh
+	    	  end,
 
 	    View_port = {{-Wvp / 2.0, -Hvp / 2.0, -Yonder},
 			 {Wvp / 2.0, Hvp / 2.0, -Hither}},
