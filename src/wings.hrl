@@ -166,7 +166,7 @@
 %% The Winged-Edge data structure.
 %% See http://www.cs.mtu.edu/~shene/COURSES/cs3621/NOTES/model/winged-e.html
 -record(we,
-	{id :: non_neg_integer(),		%Shape id.
+	{id :: non_neg_integer()|undefined,	%Shape id. (undefined during construction)
 	 perm=0,				%Permissions:
 						% 0 - Everything allowed.
 						% 1 - Visible, can't select.
@@ -178,10 +178,10 @@
 	 es=array:new() :: array:array(),	%array containing edges
 	 lv=none :: 'none' | array:array(),	%Left vertex attributes
 	 rv=none :: 'none' | array:array(),	%Right vertex attributes,
-	 fs :: gb_trees:tree(),		        %Faces
+	 fs :: gb_trees:tree() | undefined,	%Faces (undefined during construction)
 	 he=gb_sets:empty() :: gb_sets:set(),	%Hard edges
-	 vc :: array:array(),	                %Connection info (=incident edge)
-						% for vertices.
+	 vc :: array:array() | undefined,       %Connection info (=incident edge)
+						% for vertices. (undefined during re-construction)
 	 vp=array:new() :: array:array(),	%Vertex positions.
 	 pst=gb_trees:empty(),                  %Plugin State Info, 
 						%   gb_tree where key is plugin module

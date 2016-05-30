@@ -12,7 +12,8 @@
 %%
 
 -module(wings_u).
--export([error_msg/1,error_msg/2,message/1,get_matrices/2,
+-export([error_msg/1,error_msg/2,message/1,debug/1,
+	 get_matrices/2,
 	 geom_windows/0,menu_restriction/2,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
 	 export_we/2,win_crash/1,crash_log/2,crash_log/3,
