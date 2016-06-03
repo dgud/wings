@@ -1,17 +1,13 @@
 %% -*- mode:erlang; erlang-indent-level: 2 -*-
 {wpc_pov,
  [
+  {dialog,
+   [
+    {1,"POV-Ray"}
+   ]},
   {do_export,
    [
     {1,"POV-Ray 수출 옵션"}
-   ]},
-  {enumerate_colormap_controls,
-   [
-    {1,"Delete"}
-   ]},
-  {enumerate_normalmap_controls,
-   [
-    {1,"Delete"}
    ]},
   {export,
    [
@@ -84,7 +80,8 @@
     {61,"OutdoorHQ"},
     {62,"OutdoorLight"},
     {63,"IndoorLQ"},
-    {64,"IndoorHQ"}
+    {64,"IndoorHQ"},
+    {65,"General option"}
    ]},
   {light_dialog,
    [
@@ -97,7 +94,6 @@
     {7,"Photons"},
     {8,"Refraction"},
     {9,"Reflection"},
-    {10,"POV-Ray 옵션"},
     {11,"Tightness"},
     {12,"Cylinder"},
     {13,"Size 1"},
@@ -210,9 +206,10 @@
     {95,"Magnitude"},
     {96,"Normal"},
     {97,"Texture"},
-    {98,"POV-Ray 옵션"}
+    {98,"POV-Ray 옵션"},
+    {100,"POV-Ray"}
    ]},
-  {menu,
+  {menu_entry,
    [
     {1,"POV-Ray"}
    ]},
@@ -244,10 +241,6 @@
     {24,"Spiral1"},
     {25,"Spiral2"},
     {26,"Waves"}
-   ]},
-  {povray_menu,
-   [
-    {1,"POV-Ray (.pov)"}
    ]},
   {pref_dialog,
    [

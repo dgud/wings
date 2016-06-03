@@ -23,6 +23,7 @@
 -define(TAG, povray36).
 -define(KEY(K), {?TAG, (K)}).
 -define(TAG_RENDER, povray36_render).
+-define(LOCAL_MODULE, ?MODULE).
 
 -define(DEF_RENDERER, "c:/program files/POV-Ray for Windows v3.6/bin/pvengine.exe").
 -define(DEF_LINUX_RENDERER, "povray").
@@ -68,6 +69,7 @@ export_transform_vec(Vec) ->
 
 %%% initialize plugin with plugin preferences
 init() ->
+    ets:new(?LOCAL_MODULE, [named_table,public,ordered_set]),
     init_pref(),
     set_var(rendering, false),
     true.
@@ -80,9 +82,18 @@ init_pref() ->
     end,
 
     Renderer = get_pref(renderer, LocalRenderer),
-    RendererPath = case Renderer of
-                       [] -> false;
+    RendererPath =
+        case filename:pathtype(Renderer) of
+            absolute ->
+                case filelib:is_file(Renderer)of
+                    false -> false;
                        _ -> Renderer
+                end;
+            _ ->
+                case wings_job:find_executable(Renderer) of
+                    false -> false;
+                    Path -> Path
+                end
                    end,
     case get_pref(dialogs, ?DEF_DIALOGS) of
         auto ->
@@ -120,6 +131,7 @@ maybe_append(Condition, Menu, PluginMenu) ->
 is_plugin_active(Condition) ->
     case Condition of
         export -> get_var(dialogs);
+        edit -> get_var(dialogs);
         render -> get_var(renderer)
     end.
 
@@ -184,10 +196,7 @@ command(_Spec, _St) ->
 
 %%% Material / Light Dialogs
 dialog({material_editor_setup, Name, Mat}, Dialog) ->
-    case get_var(dialogs) of
-        false -> Dialog;
-        _ -> Dialog ++ [{?__(1,"POV-Ray"), material_dialog(Name, Mat)}]
-    end;
+    maybe_append(edit, Dialog, material_dialog(Name, Mat));
 dialog({material_editor_result, Name, Mat}, Res) ->
     case get_var(dialogs) of
         false -> {Mat, Res};
@@ -807,7 +816,6 @@ export_materials(F, [{Name, Mat} | Mats], Attr, ExportDir) ->
             io:put_chars(F, "\t finish {\n"),
             export_finish(F, OpenGL, PovRay),
             io:put_chars(F, "\t }\n"),
-            %io:put_chars(F, "#end\n"),
             io:put_chars(F, "}\n")
 
     end,
@@ -1296,8 +1304,6 @@ export_vectors2D(F, [{X, Y} | List], Count) ->
 export_texture_names(_F, [], _AM) ->
     ok;
 export_texture_names(F, [Name | Mats], AllMats) ->
-    %% io:format(F, ", texture{~s(camera_location)}", [clean_name("wm_"++atom_to_list(Name))]),
-
     %% find out if ghost material, don't decorate name if so
     {_N, Mat} = material_of_name(Name, AllMats),
     PovRay = proplists:get_value(?TAG, Mat, []),
@@ -1688,7 +1694,6 @@ export_dialog(Op) ->
 %%% Construct material dialog, return list of controls
 material_dialog(_Name, Mat) ->
     Maps = proplists:get_value(maps, Mat, []),
-						%OpenGL = proplists:get_value(opengl, Mat),
     PovRay = proplists:get_value(?TAG, Mat, []),
 
     BrowseProps = [{dialog_type, open_dialog},
@@ -2260,7 +2265,9 @@ material_dialog(_Name, Mat) ->
 			     TxtNormal], 1, [{style, buttons}]}
 		  ], [{title, ?__(97, "Texture")},key(texture_minimized)]}
         },
-    {vframe, [
+    [{
+        ?__(100,"POV-Ray"),
+        {vframe, [
 	      {?__(1, "Exclude Material Definition (requires external definition)"),
 	       proplists:get_value(ghost_material, PovRay, false), [key(ghost_material),{hook,Hook_Show}]},
 	      {vframe, [
@@ -2271,8 +2278,8 @@ material_dialog(_Name, Mat) ->
 				  QsPhotons,
 				  QsTexture], 1, [{style, buttons}]}
 		       ], [{title, ?__(98, "POV-Ray Options")}, key(pnl_material), {show,true}]}
-	     ]}.
-
+	     ]}
+    }].
 enumerate_image_maps([]) ->
     [];
 enumerate_image_maps([{MapType, _I} | Maps]) ->
@@ -2426,7 +2433,7 @@ light_dialog(Name, Light) ->
                     [] -> [];
                     LightExt0 -> [separator, {vframe, LightExt0}]
                 end,
-            {vframe, LightBase++LightExt} %, [{title, ?__(10, "POV-Ray Options")}]}
+            {vframe, LightBase++LightExt}
     end.
 light_dialog(_Name, spot, PovRay) ->
     [
@@ -2450,15 +2457,13 @@ light_dialog(_Name, area, PovRay) ->
             ]}
         ]},
         {hframe, [
- %           {hframe, [
-                {menu, [
-                    {?__(15, "No Adaptive"), none},
-                    {?__(16, "Adaptive 1"), 1},
-                    {?__(17, "Adaptive 2"), 2},
-                    {?__(18, "Adaptive 3"), 3},
-                    {?__(19, "Adaptive 4"), 4}
-                ], proplists:get_value(adaptive, PovRay, none), [key(adaptive)]},
-%                ]},
+            {menu, [
+                {?__(15, "No Adaptive"), none},
+                {?__(16, "Adaptive 1"), 1},
+                {?__(17, "Adaptive 2"), 2},
+                {?__(18, "Adaptive 3"), 3},
+                {?__(19, "Adaptive 4"), 4}
+            ], proplists:get_value(adaptive, PovRay, none), [key(adaptive)]},
             panel,
             {hframe, [
                 {?__(20, "Jitter"), proplists:get_value(jitter, PovRay, false), [key(jitter)]},
@@ -2614,13 +2619,16 @@ get_user_prefs(KeyDefs) when is_list(KeyDefs) ->
 set_var(Name, undefined) ->
     erase_var(Name);
 set_var(Name, Value) ->
-    put({?MODULE, Name}, Value).
+    ets:insert(?LOCAL_MODULE, {Name,Value}).
 
 get_var(Name) ->
-    get({?MODULE, Name}).
+    case ets:lookup(?LOCAL_MODULE, Name) of
+        [] -> undefined;
+        [{Name,Val}] -> Val
+    end.
 
 erase_var(Name) ->
-    erase({?MODULE, Name}).
+    ets:delete(?LOCAL_MODULE, Name).
 
 %%% General purpose function used by Enable/Show hooks.
 %%%
