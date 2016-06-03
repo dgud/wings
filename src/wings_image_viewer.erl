@@ -45,6 +45,8 @@ new(Image, Opts) ->
 	     end,
     Frame = wx_object:start_link(?MODULE, [Parent, Image, Opts], []),
     wxFrame:show(Frame),
+    [Panel|_] = wxWindow:getChildren(Frame),
+    wxWindow:refresh(Panel),
     Frame.
 
 
@@ -68,7 +70,6 @@ init([Parent, Image, Opts]) ->
     wxPanel:connect(Panel, right_up),
     wxPanel:connect(Panel, left_down),
     wxPanel:connect(Panel, motion),
-
     BM = wxBitmap:new(Image),
     proplists:get_value(destroy_after, Opts, false)
 	andalso wxImage:destroy(Image),
