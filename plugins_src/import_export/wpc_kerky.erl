@@ -20,6 +20,7 @@
 -define(TAG, kerkythea).
 -define(KEY(K), {?TAG,(K)}).
 -define(TAG_RENDER, kerkythea_render).
+-define(LOCAL_MODULE, ?MODULE).
 
 -define(DEF_RENDERER, "C:/Program Files/Kerkythea Rendering System/Kerkythea.exe").
 -define(DEF_LINUX_RENDERER, "kerkythea").
@@ -67,6 +68,7 @@ export_transform_cam_vec(Vec)->
 
 %%% initialize plugin with plugin preferences
 init() ->
+    ets:new(?LOCAL_MODULE, [named_table,public,ordered_set]),
     init_pref(),
     set_var(rendering, false),
     true.
@@ -80,9 +82,17 @@ init_pref() ->
 
     Renderer = get_pref(renderer, LocalRenderer),
     RendererPath =
-        case Renderer of
-            [] -> false;
+        case filename:pathtype(Renderer) of
+            absolute ->
+                case filelib:is_file(Renderer)of
+                    false -> false;
             _ -> Renderer
+                end;
+            _ ->
+                case wings_job:find_executable(Renderer) of
+                    false -> false;
+                    Path -> Path
+                end
         end,
     case get_pref(dialogs, ?DEF_DIALOGS) of
         auto ->
@@ -117,6 +127,7 @@ maybe_append(Condition, Menu, PluginMenu) ->
 is_plugin_active(Condition) ->
     case Condition of
         export -> get_var(dialogs);
+        edit -> get_var(dialogs);
         render -> get_var(renderer)
     end.
 
@@ -2057,18 +2068,21 @@ clean_name([L | Name])->
 
 %%% Set and get global variables (in the process dictionary)
 %%% per wings session for this module.
-%%%
 set_var(Name, undefined) ->
     erase_var(Name);
 set_var(Name, Value) ->
-    put({?MODULE,Name}, Value).
+    ets:insert(?LOCAL_MODULE, {Name,Value}).
 
 get_var(Name) ->
-    get({?MODULE,Name}).
+    case ets:lookup(?LOCAL_MODULE, Name) of
+        [] -> undefined;
+        [{Name,Val}] -> Val
+    end.
 
 erase_var(Name) ->
-    erase({?MODULE,Name}).
+    ets:delete(?LOCAL_MODULE, Name).
 
+%%% routines to fill the Help dialogs
 help_button(Subject) ->
     Title = help(title, Subject),
     TextFun = fun () -> help(text, Subject) end,
