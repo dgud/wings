@@ -118,9 +118,12 @@ event_handler(Ev0=#keyboard{which=menubar},
     wings_wm:dirty(),
     {replace,fun(Ev) -> event_handler(Ev, CS#cs{action=Action}) end};
 
-event_handler(Ev0= #mousebutton{}, #cs{st=St}) ->
+event_handler(Ev0= #mousebutton{}, #cs{info=Str, st=St}) ->
     case wings_menu:is_popup_event(Ev0) of
-        no -> keep;
+        no ->
+	    wings_wm:message(Str),
+	    wings_wm:dirty(),
+	    keep;
         {yes,Xglobal,Yglobal,Mod} ->
             TweakBits = wings_msg:free_rmb_modifier(),
             case Mod band TweakBits =/= 0 of
