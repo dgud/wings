@@ -30,6 +30,7 @@
 -define(TAG, yafaray).
 -define(KEY(K), {?TAG,(K)}).
 -define(TAG_RENDER, yafaray_render).
+-define(LOCAL_MODULE, ?MODULE).
 
 key(Key) -> {key,?KEY(Key)}.
 
@@ -38,7 +39,7 @@ key(Key) -> {key,?KEY(Key)}.
 %%% Default values
 -define(DEF_DIALOGS, auto).
 -define(DEF_RENDERER, "yafaray-xml").
--define(DEF_PLUGINS_PATH, "c:/thebounty/bin/plugins").
+-define(DEF_PLUGINS_PATH, "c:/yafaray/bin/plugins").
 -define(DEF_OPTIONS, "").
 -define(DEF_THREADS_AUTO, true).
 -define(DEF_THREADS_NUMBER, 1).
@@ -494,6 +495,7 @@ fit_range(Value,Id) ->
 %%
 
 init() ->
+    ets:new(?LOCAL_MODULE, [named_table,public,ordered_set]),
     init_pref(),
     set_var(rendering, false),
     true.
@@ -549,7 +551,10 @@ init_pref() ->
     RendererPath =
         case filename:pathtype(Renderer) of
             absolute ->
-                Renderer;
+                case filelib:is_file(Renderer)of
+                    false -> false;
+                    _ -> Renderer
+                end;
             _ ->
                 case wings_job:find_executable(Renderer) of
                     false -> false;
@@ -5801,17 +5806,19 @@ get_user_prefs(KeyDefs) when is_list(KeyDefs) ->
 
 %% Set and get global variables (in the process dictionary)
 %% per wings session for this module.
-
 set_var(Name, undefined) ->
     erase_var(Name);
 set_var(Name, Value) ->
-    put({?MODULE,Name}, Value).
+    ets:insert(?LOCAL_MODULE, {Name,Value}).
 
 get_var(Name) ->
-    get({?MODULE,Name}).
+    case ets:lookup(?LOCAL_MODULE, Name) of
+        [] -> undefined;
+        [{Name,Val}] -> Val
+    end.
 
 erase_var(Name) ->
-    erase({?MODULE,Name}).
+    ets:delete(?LOCAL_MODULE, Name).
 
 menu_shader() ->
     [{?__(1,"Shiny Diffuse"),shinydiffuse},

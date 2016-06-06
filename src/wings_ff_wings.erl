@@ -45,7 +45,7 @@ import_1(Name, MrgDlg, St0) ->
 		{wings,2,{Shapes,Materials,Props}} ->
 		    Dir = filename:dirname(Name),
                     if MrgDlg -> import_vsn2_dlg(Shapes, Materials, Props, Dir, St0);
-                       true -> import_vsn2(Shapes, Materials, Props, Dir, St0)
+                       true -> ?SLOW(import_vsn2(Shapes, Materials, Props, Dir, St0))
                     end;
 		{wings,_,_} ->
 		    {error,?__(4,"unknown wings format")};
@@ -299,7 +299,7 @@ import_vsn2_dlg(Shapes0, Materials0, Props5, Dir,
                 St = wings_sel:valid_sel(merge_sel(SelOpt,Mode0,Sel0,St1)),
                 wings_shape:recreate_folder_system(St#st{saved=false})
         end,
-    wings_dialog:dialog("Merge", Qs, Fun),
+    wings_dialog:dialog("Merge", Qs, ?SLOW(Fun)),
     St0.
 
 get_sel_groups([], Acc) -> Acc;

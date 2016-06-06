@@ -1,13 +1,9 @@
 %% -*- coding:utf-8; mode:erlang; erlang-indent-level: 2 -*-
 {wpc_pov,
  [
-  {enumerate_colormap_controls,
+  {dialog,
    [
-    {1,"Löschen"}
-   ]},
-  {enumerate_normalmap_controls,
-   [
-    {1,"Löschen"}
+    {1,"POV-Ray"}
    ]},
   {do_export,
    [
@@ -84,7 +80,8 @@
     {61,"Außen HQ"},
     {62,"Außen-Licht"},
     {63,"Innen NQ"},
-    {64,"Innen HQ"}
+    {64,"Innen HQ"},
+    {65,"General Optionen"}
    ]},
   {light_dialog,
    [
@@ -97,7 +94,6 @@
     {7,"Photonen"},
     {8,"Lichtbrechung"},
     {9,"Reflektion"},
-    {10,"POV-Ray Optionen"},
     {11,"Straffheit"},
     {12,"Zylinder"},
     {13,"Größe 1"},
@@ -210,7 +206,8 @@
     {95,"Magnitude"},
     {96,"Normale"},
     {97,"Textur"},
-    {98,"POV-Ray Optionen"}
+    {98,"POV-Ray Optionen"},
+    {100,"POV-Ray"}
    ]},
   {menu,
    [
@@ -244,10 +241,6 @@
     {24,"Spirale 1"},
     {25,"Spirale 2"},
     {26,"Wellen"}
-   ]},
-  {povray_menu,
-   [
-    {1,"POV-Ray (.pov)"}
    ]},
   {pref_dialog,
    [
