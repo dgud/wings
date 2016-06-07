@@ -48,12 +48,11 @@ ambient_occlusion(St) ->
     StartTime = os:timestamp(),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     setup_gl(),
-    {Vabs,DrawFun} = make_disp_list(St),
+    DrawFun = make_disp_list(St),
     #st{shapes=Shapes} = St,
     ProcessObject = fun(_, We) -> process_obj(We, DrawFun) end,
     Shapes2 = ?SLOW(gb_trees:map(ProcessObject, Shapes)),
     St2 = St#st{shapes=Shapes2},
-    _ = [wings_draw_setup:delete_vab(Vab) || Vab <- Vabs],
     gl:popAttrib(),
     EndTime = os:timestamp(),
     Seconds = timer:now_diff(EndTime,StartTime)/1.0e6,
@@ -97,7 +96,7 @@ make_disp_list(St) ->
 		   _ = [draw_vab(Vab) || Vab <- Vabs],
 		   ok
 	   end,
-    {Vabs,Draw}.
+    Draw.
 
 is_plain_geometry(#we{perm=P}=We) ->
     not (?IS_NOT_VISIBLE(P) orelse
