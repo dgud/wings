@@ -300,6 +300,7 @@ init([Frame,  _Ps, Os]) ->
     wxSizer:add(Szr, TC, [{proportion,1}, {flag, ?wxEXPAND}]),
     wxPanel:setSizer(Panel, Szr),
     {Shown,IMap} = update_object(Os, TC, IL, IMap0),
+    wxTreeCtrl:clollapseAll(),
     wxWindow:connect(Panel, enter_window),
     wxWindow:show(Frame),
     {Panel, #state{top=Panel, szr=Szr, tc=TC, os=Os, shown=Shown, il=IL, imap=IMap}}.
@@ -454,12 +455,12 @@ update_object(Os, TC, IL, Imap0) ->
 	 end,
     wx:foldl(Do, {[],Imap0}, Sorted).
 
-add_maps([{_MType,Mid}|Rest], TC, Dir, IL, Imap0, Os,Acc) ->
+add_maps([{MType,Mid}|Rest], TC, Dir, IL, Imap0, Os,Acc) ->
     case [O || #{type:=image, id:=Id} = O <- Os, Id =:= Mid] of
 	[O = #{name:=MName}] ->
-	    {Indx, Imap} = image_index(O, IL, Imap0),
+	    Indx = image_maps_index(MType),
 	    Item = wxTreeCtrl:appendItem(TC, Dir, MName, [{image, Indx}]),
-	    add_maps(Rest, TC, Dir, IL, Imap, Os, [{Item, O}|Acc]);
+	    add_maps(Rest, TC, Dir, IL, Imap0, Os, [{Item, O}|Acc]);
 	[] ->
 	    add_maps(Rest, TC, Dir, IL, Imap0, Os, Acc)
     end;
@@ -485,6 +486,15 @@ image_index(#{type:=mat, color:=Col}, IL, Map) ->
 	    {Indx, Map}
     end.
 
+image_maps_index(Type) ->
+    case Type of
+    	diffuse -> 6;
+	gloss -> 5;
+	bump -> 4;
+	normal -> 3;
+	_ -> undefined
+    end.
+
 load_icons() ->
     Imgs = wings_frame:get_icon_images(),
     IL = wxImageList:new(16,16),
@@ -501,7 +511,8 @@ load_icons() ->
 	  end,
     wx:foreach(Add, [
 		     small_image,perspective, %small_object,
-		     small_light
+		     small_light,
+		     small_normal,small_bump,small_gloss,small_diffuse
 		    ]),
     wxImageList:add(IL, mat_bitmap({15,15,15})),
     {IL, #{object=>1, image=>0, light=>2, mat=>3}}.
