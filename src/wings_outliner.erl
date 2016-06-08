@@ -278,7 +278,7 @@ mat_info({Name,Mp}) ->
     OpenGL = proplists:get_value(opengl, Mp),
     Maps = proplists:get_value(maps, Mp, []),
     {R,G,B,_} = proplists:get_value(diffuse, OpenGL),
-    Col = {trunc(R*15),trunc(G*15),trunc(B*15)},
+    Col = {trunc(R*16),trunc(G*16),trunc(B*16)},
     #{type=>mat, name=>atom_to_list(Name), color=>Col, maps=>Maps}.
 
 image_info({Id, #e3d_image{name=Name}=Im}) ->
@@ -304,6 +304,14 @@ init([Frame,  _Ps, Os]) ->
     wxWindow:connect(Panel, enter_window),
     {Panel, #state{top=Panel, szr=Szr, tc=TC, os=Os, shown=Shown, il=IL, imap=IMap}}.
 
+handle_sync_event(#wx{event=#wxTree{type=command_tree_begin_label_edit, item=Indx}}, From,
+		  #state{shown=Tree}) ->
+    case lists:keyfind(Indx, 1, Tree) of
+	{_, #{type:=mat, name:="default"}} -> wxTreeEvent:veto(From);
+	false -> wxTreeEvent:veto(From);  % false is returned for the root items: 'Lights', 'Materials', 'Images'
+	_ -> ignore
+    end,
+    ok;
 handle_sync_event(#wx{event=#wxTree{item=Indx}}, Drag,
 		  #state{tc=TC, shown=Shown}) ->
     case lists:keyfind(Indx, 1, Shown) of
@@ -320,14 +328,16 @@ handle_event(#wx{event=#wxMouse{type=right_up, x=X, y=Y}}, #state{tc=TC} = State
     make_menus(Indx, wxWindow:clientToScreen(TC, {X,Y}), State),
     {noreply, State};
 handle_event(#wx{event=#wxTree{type=command_tree_item_menu, item=Indx, pointDrag=Pos}},
-	     #state{tc=TC} = State) ->
-    make_menus(Indx, wxWindow:clientToScreen(TC, Pos), State),
+	     #state{shown=Tree, tc=TC} = State) ->
+    case lists:keyfind(Indx, 1, Tree) of
+	false -> ignore;
+	_ -> make_menus(Indx, wxWindow:clientToScreen(TC, Pos), State)
+    end,
     {noreply, State};
 handle_event(#wx{event=#wxCommand{type=command_right_click}}, State) ->
     #wxMouseState{x=X,y=Y} = wx_misc:getMouseState(),
     make_menus(0, {X,Y}, State),
     {noreply, State};
-
 handle_event(#wx{event=#wxTree{type=command_tree_end_label_edit, item=Indx}},
 	     #state{shown=Tree, tc=TC} = State) ->
     NewName = wxTreeCtrl:getItemText(TC, Indx),
@@ -370,6 +380,22 @@ handle_event(#wx{event=#wxTree{type=command_tree_end_drag, item=Indx, pointDrag=
     end,
     {noreply, State#state{drag=undefined}};
 
+handle_event(#wx{event=#wxTree{type=command_tree_item_activated, item=Indx}},
+	     #state{shown=Tree, tc=_TC} = State) ->
+    case lists:keyfind(Indx, 1, Tree) of
+        false ->
+            io:format("~p:~p Unknown Item activated ~p~n", [?MODULE,?LINE, Indx]);
+        {_, #{type:=mat, name:=Name}} ->
+            wings_wm:psend(?MODULE, {action, {?MODULE, {edit_material, Name}}});
+        {_, #{type:=image, id:=Id}} ->
+            wings_wm:psend(?MODULE, {action, {?MODULE, {show_image, Id}}});
+        {_, #{type:=light, id:=Id}} ->
+            wings_wm:psend(?MODULE, {action, {?MODULE, {edit_light, Id}}});
+        {_, What} ->
+            io:format("~p:~p Item activated ~p~n", [?MODULE,?LINE, What])
+    end,
+    {noreply, State};
+
 handle_event(#wx{event=#wxMouse{type=enter_window}}, State) ->
     Msg = wings_msg:button_format(?__(1,"Select"), [],
 				  ?__(2,"Show outliner menu (if selection)"
@@ -389,6 +415,8 @@ handle_cast({new_state, Os}, #state{tc=TC, il=IL, imap=IMap0} = State) ->
     {Shown,IMap} = update_object(Os, TC, IL, IMap0),
     {noreply, State#state{os=Os, shown=Shown, imap=IMap}};
 
+handle_cast(quit, State) ->
+    {noreply, State};
 handle_cast(_Req, State) ->
     io:format("~p:~p Got unexpected cast ~p~n", [?MODULE,?LINE, _Req]),
     {noreply, State}.
@@ -433,8 +461,10 @@ make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     wxTreeCtrl:setForegroundColour(TC, FG),
     wxTreeCtrl:setImageList(TC, IL),
     wxWindow:connect(TC, command_tree_end_label_edit),
+    wxWindow:connect(TC, command_tree_begin_label_edit, [callback]),
     wxWindow:connect(TC, command_tree_begin_drag, [callback]),
     wxWindow:connect(TC, command_tree_end_drag, []),
+    wxWindow:connect(TC, command_tree_item_activated, []),
     case os:type() of
 	{win32, _} ->
 	    wxWindow:connect(TC, command_tree_item_menu, [{skip, false}]),
@@ -448,50 +478,89 @@ update_object(Os, TC, IL, Imap0) ->
     Sorted = [{{order(T), wings_util:cap(N)},O} || #{type:=T,name:=N} = O <- Os],
     wxTreeCtrl:deleteAllItems(TC),
     Root = wxTreeCtrl:addRoot(TC, []),
-    Do = fun({_, #{name:=Name}=O}, {Acc0,Imap00}) ->
+    Lights = wxTreeCtrl:appendItem(TC, Root, root_name(light)),
+    Materials = wxTreeCtrl:appendItem(TC, Root, root_name(mat)),
+    Images = wxTreeCtrl:appendItem(TC, Root, root_name(image)),
+    Do = fun({_, #{type:=Type, name:=Name}=O}, {Acc0,Imap00}) ->
 		 {Indx, Imap} = image_index(O, IL, Imap00),
-		 Item = wxTreeCtrl:appendItem(TC, Root, Name, [{image, Indx}]),
+		 Item =
+		     case Type of
+			 light -> wxTreeCtrl:appendItem(TC, Lights, Name, [{image, Indx}]);
+			 mat -> wxTreeCtrl:appendItem(TC, Materials, Name, [{image, Indx}]);
+			 image -> wxTreeCtrl:appendItem(TC, Images, Name, [{image, Indx}])
+		     end,
 		 Acc = [{Item, O}|Acc0],
-		 case maps:get(maps, O, []) of
-		     [] -> {Acc, Imap};
-		     Maps ->
-			 add_maps(Maps, TC, Item, IL, Imap, Os, Acc)
+		 if Type =:= mat ->
+		     case maps:get(maps, O, []) of
+			 [] -> {Acc, Imap};
+			 Maps ->
+			     add_maps(Maps, TC, Item, IL, Imap, Os, Acc)
+		     end;
+		 true -> {Acc, Imap}
 		 end
 		 %% {Node,_} = lists:keyfind(Curr, 2, All),
 		 %% wxTreeCtrl:selectItem(TC, Node),
 		 %% wxTreeCtrl:ensureVisible(TC, Node),
 	 end,
-    wx:foldl(Do, {[],Imap0}, Sorted).
+    Res = wx:foldl(Do, {[],Imap0}, Sorted),
+    wxTreeCtrl:expand(TC, Lights),
+    wxTreeCtrl:setItemBold(TC, Lights),
+    wxTreeCtrl:expand(TC, Materials),
+    wxTreeCtrl:setItemBold(TC, Materials),
+    wxTreeCtrl:expand(TC, Images),
+    wxTreeCtrl:setItemBold(TC, Images),
+    wxTreeCtrl:selectItem(TC, Lights),
+    Res.
 
-add_maps([{_MType,Mid}|Rest], TC, Dir, IL, Imap0, Os,Acc) ->
+add_maps([{MType,Mid}|Rest], TC, Dir, IL, Imap0, Os,Acc) ->
     case [O || #{type:=image, id:=Id} = O <- Os, Id =:= Mid] of
 	[O = #{name:=MName}] ->
-	    {Indx, Imap} = image_index(O, IL, Imap0),
+	    Indx = image_maps_index(MType),
 	    Item = wxTreeCtrl:appendItem(TC, Dir, MName, [{image, Indx}]),
-	    add_maps(Rest, TC, Dir, IL, Imap, Os, [{Item, O}|Acc]);
+	    add_maps(Rest, TC, Dir, IL, Imap0, Os, [{Item, O}|Acc]);
 	[] ->
 	    add_maps(Rest, TC, Dir, IL, Imap0, Os, Acc)
     end;
-add_maps([], TC, Dir, _, Imap, _, Acc) ->
-    wxTreeCtrl:expand(TC,Dir),
+add_maps([], _TC, _Dir, _, Imap, _, Acc) ->
+    %% wxTreeCtrl:expand(TC,Dir),
     {Acc, Imap}.
 
 order(light) -> 1;
 order(mat)   -> 2;
 order(image) -> 3.
 
-image_index(#{type:=Type}, _IL, Map) when Type =:= light; Type =:= image ->
-    #{Type:=Index} = Map,
+root_name(light) -> ?__(1, "Lights");
+root_name(mat) -> ?__(2, "Materials");
+root_name(image) -> ?__(3, "Images").
+
+image_index(#{type:=light}, _IL, Map) ->
+    #{light:=Index} = Map,
+    {Index, Map};
+image_index(#{type:=image, image:=#e3d_image{filename=FName}}, _IL, Map) ->
+    #{image:=Index0} = Map,
+    Index = case FName of
+		none -> Index0+1;
+		_ ->    Index0
+	    end,
     {Index, Map};
 image_index(#{type:=mat, color:=Col}, IL, Map) ->
     case maps:get(Col, Map, undefined) of
 	undefined ->
-	    %% {3, Map};
 	    Indx = wxImageList:getImageCount(IL),
 	    wxImageList:add(IL, mat_bitmap(Col)),
 	    {Indx, Map#{Col=>Indx}};
 	Indx ->
 	    {Indx, Map}
+    end.
+
+image_maps_index(Type) ->
+    case Type of
+    	diffuse -> 4;
+	gloss -> 5;
+	bump -> 6;
+	normal -> 7;
+	material -> 8;
+	_ -> undefined
     end.
 
 load_icons() ->
@@ -509,41 +578,35 @@ load_icons() ->
 		  wxImage:destroy(Small)
 	  end,
     wx:foreach(Add, [
-		     small_image,perspective, %small_object,
-		     small_light
+		     small_image,small_image2,perspective, %small_object,
+		     small_light,
+		     small_diffuse,small_gloss,small_bump,small_normal,
+		     material
 		    ]),
-    wxImageList:add(IL, mat_bitmap({15,15,15})),
     {IL, #{object=>1, image=>0, light=>2, mat=>3}}.
 
-mat_bitmap({R,G,B}) ->
-    Mask = <<2#1111111111111111:16,
-	     2#1000000000000001:16,
-	     2#1000000000000001:16,
-	     2#1000000000000001:16,
-	     2#1001100000110001:16,
-	     2#1000110001100001:16,
-	     2#1000101010100001:16,
-	     2#1000101110100001:16,
-	     2#1000100100100001:16,
-	     2#1000100000100001:16,
-	     2#1000100000100001:16,
-	     2#1001110001110001:16,
-	     2#1000000000000001:16,
-	     2#1000000000000001:16,
-	     2#1000000000000001:16,
-	     2#1111111111111111:16
-	   >>,
-    BG = ((R*16) bsl 16) bor ((G*16) bsl 8) bor (B*16),
-    FG = case lists:max([R,G,B]) of
-	     V when V > 7 -> 16#040404;
-	     _ -> 16#F0F0F0
-	 end,
-    RGB = << <<(case Bit of 0 -> BG; 1 -> FG end):24>> || <<Bit:1>> <= Mask>>,
-    Image = wxImage:new(16,16,RGB),
-    %%io:format("ok ~p ~p ~p(~p)~n",[wxImage:ok(Image), wxImage:hasAlpha(Image), size(RGB),16*16*3]),
+mat_bitmap(Col) ->
+    {_, _, Orig} = lists:keyfind(material, 1, wings_frame:get_icon_images()),
+    Image = wxImage:copy(Orig),
+    RGB = wxImage:getData(Image),
+    Alpha = wxImage:getAlpha(Image),
+    RGBNew = mat_bitmap_masked(RGB, Col),
+    wxImage:setData(Image, RGBNew),
+    wxImage:setAlpha(Image, Alpha),
     BM = wxBitmap:new(Image),
     wxImage:destroy(Image),
     BM.
+
+mat_bitmap_masked(RGB, Col) ->
+    mat_bitmap_masked(RGB, Col, <<>>).
+
+mat_bitmap_masked(<<R:8,_G:8,_B:8,RGB/binary>>, {Rc,Gc,Bc}=Col, Acc) ->
+    Mul = R/255,
+    R0 = min(trunc(Mul*Rc*16), 255),
+    G0 = min(trunc(Mul*Gc*16), 255),
+    B0 = min(trunc(Mul*Bc*16), 255),
+    mat_bitmap_masked(RGB, Col, <<Acc/binary,R0:8,G0:8,B0:8>>);
+mat_bitmap_masked(<<>>, _, Acc) -> Acc.
 
 %% missing wx_object function
 set_pid({wx_ref, Ref, Type, []}, Pid) when is_pid(Pid) ->
@@ -553,10 +616,14 @@ set_pid({wx_ref, Ref, Type, []}, Pid) when is_pid(Pid) ->
 make_menus(0, Pos, #state{tc=TC}) ->
     wings_wm:psend(?MODULE, {apply, false, fun(_) -> wings_shapes:menu(TC,Pos) end});
 make_menus(Indx, Pos, #state{tc=TC, shown=Tree}) ->
-    {_, Obj} = lists:keyfind(Indx, 1, Tree),
-    Menus = do_menu(Obj),
-    Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, ?MODULE, Menus) end,
-    wings_wm:psend(?MODULE, {apply, false, Cmd}).
+    case lists:keyfind(Indx, 1, Tree) of
+        {_, Obj} ->
+            Menus = do_menu(Obj),
+            Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, ?MODULE, Menus) end,
+            wings_wm:psend(?MODULE, {apply, false, Cmd});
+        false ->  %% Material or light or images r-clicked
+            ok
+    end.
 
 do_menu(#{type:=mat, name:=Name}) ->
     [{?__(1,"Edit Material..."),menu_cmd(edit_material, Name),
