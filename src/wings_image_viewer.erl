@@ -71,6 +71,7 @@ init([Frame, Ref, Image, Opts]) ->
     %% wxFrame:createStatusBar(Frame),
     %% wxFrame:setStatusText(Frame, io_lib:format("Scale: ~w%", [100])),
     wxFrame:show(Frame),
+    wxWindow:refresh(Panel),
     {Panel, #state{ref=Ref, panel=Panel, bitmap=BM, bgb=BGB}}.
 
 -define(wxGC, wxGraphicsContext).

@@ -385,7 +385,7 @@ merge(Name, St0) ->
 		  %%   Name: Original name of file to be opened.
 		  %%   File: Either original file or the autosave file
 		  St1 = St0#st{saved=wings_image:next_id()},
-		  case ?SLOW(wings_ff_wings:merge(File, St0)) of
+		  case wings_ff_wings:merge(File, St0) of
 		      {error,Reason} ->
 			  clean_new_images(St1),
 			  wings_u:error_msg(?__(2,"Read failed: ") ++ Reason);

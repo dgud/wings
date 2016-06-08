@@ -1050,7 +1050,9 @@ set_constraint({Shift,Ctrl,Alt}, Key, Val) ->
     end,
     ComboStr = mod(ModKeyCombo),
     Tag = tag(Key),
-    io:format("The ~s constraint bound to ~s is now set to ~p\n\n",[Tag,ComboStr,Val]),
+    Msg = io_lib:format(?__(1,"The ~ts constraint bound to ~ts is now set to ~p"),[Tag,ComboStr,Val]),
+    io:format("~ts\n",[Msg]),
+    wings_u:message(Msg),
     wings_pref:set_value(list_to_atom(Key++ModKeyCombo), Val).
 
 tag(Key) ->
