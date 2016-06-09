@@ -986,11 +986,11 @@ save_pref_category([{windows,Bool}|Options], List, Defaults, St, Acc0) ->
     C2 = lists:keyfind(console_save_lines,1,List),
     C3 = lists:keyfind(console_width,1,List),
     WinSize = lists:keyfind(window_size,1,List),
-    WP = wings:save_windows_1(wings_wm:windows()),
-    Windows = [WinSize,C1,C2,C3|WP],
-    Acc = if Bool -> [{windows,Windows}|Acc0];
+    {WC,WF} = wings_frame:export_layout(),
+    Windows = [WinSize,C1,C2,C3],
+    Acc = if Bool -> [{windows,WF}, {windows_cont, WC}|Acc0];
              true -> Acc0 end,
-    NewList = (List--Windows)--[{saved_windows,WP}],
+    NewList = (List--Windows)--[{saved_windows,WF}, {saved_windows_cont,WC}],
     save_pref_category(Options, NewList,  Defaults--Windows, St, Acc);
 save_pref_category([], _, _, _, Acc) -> Acc.
 
@@ -1002,59 +1002,30 @@ load_pref_category([{pref_directory,Dir}|Options], List, St) ->
 load_pref_category([{_,false}|Options], List, St) ->
     load_pref_category(Options, List, St);
 load_pref_category([{graphical,true}|Options], List, St) ->
-%% Load color preferences
+    %% Load color preferences
     Colors = case lists:keyfind(graphical, 1, List) of
-        {_,C} -> C;
-        false -> []
-    end,
+		 {_,C} -> C;
+		 false -> []
+	     end,
     catch wings_pref_dlg:set_values(Colors, St),
     load_pref_category(Options, List, St);
 load_pref_category([{windows,true}|Options], List, St) ->
-%% Load preference windows and remove any old windows
-    OldWindows = wings:save_windows_1(wings_wm:windows()),
-    case lists:keyfind(windows, 1, List) of
-        {_,Windows0} ->
-            foreach(fun
-              ({_,Prop}=P) when is_integer(Prop) ->
-                ets:insert(wings_state,P);
-              ({window_size,_}=P) ->
-                ets:insert(wings_state,P),
-                init_opengl();
-              (Window) ->
-                Name = element(1,Window),
-                case wings_wm:is_window(Name) of
-                  true when Name =:= geom ->
-                    Props = element(4,Window),
-                    case proplists:get_bool(toolbar_hidden, Props) of
-                      true -> wings_wm:hide({toolbar,geom});
-                      false -> ok
-                    end,
-                    wings:set_geom_props(Props,Name);
-                  true ->
-                    wings_wm:delete(Name),
-                    wings:restore_windows_1([Window], St);
-                  false ->
-                    wings:restore_windows_1([Window], St)
-                end
-            end,Windows0),
-            %% Delete old windows
-            foreach(fun(OldWindow) ->
-                OldName = element(1,OldWindow),
-                case lists:keymember(OldName,1,Windows0) of
-                  false -> wings_wm:delete(OldName);
-                  _ -> ok
-                end
-              end, OldWindows);
-        false -> ok
+    %% Load preference windows and remove any old windows
+    case {lists:keyfind(windows, 1, List), lists:keyfind(windows_cont, 1, List)} of
+        {{_,WF}, false} ->
+	    wings_frame:import_layout({[], WF}, St);
+	{{_,WF}, {_,WC}} ->
+	    wings_frame:import_layout({WC, WF}, St);
+        _ -> ok
     end,
     load_pref_category(Options, List, St);
-% Load Hotkeys
+%% Load Hotkeys
 load_pref_category([{hotkeys,true}|Options], List, St) ->
     case lists:keyfind(hotkeys, 1, List) of
         {_,Prefs} ->
-          foreach(fun(Hkey) ->
-            ets:insert(wings_state, Hkey)
-          end, clean(Prefs));
+	    foreach(fun(Hkey) ->
+			    ets:insert(wings_state, Hkey)
+		    end, clean(Prefs));
         false -> wings_hotkey:set_default()
     end,
     load_pref_category(Options, List, St);
@@ -1062,9 +1033,9 @@ load_pref_category([{hotkeys,true}|Options], List, St) ->
 load_pref_category([{Other,true}|Options], List, St) ->
     case lists:keyfind(Other, 1, List) of
         {_,Prefs} ->
-          foreach(fun(P) ->
-            ets:insert(wings_state, P)
-          end, clean(Prefs));
+	    foreach(fun(P) ->
+			    ets:insert(wings_state, P)
+		    end, clean(Prefs));
         false -> ok
     end,
     load_pref_category(Options, List, St);

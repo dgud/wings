@@ -146,9 +146,9 @@ do_window(Name, Opts) ->
 	      undefined -> {-1, -1};
 	      SavedPos -> SavedPos
 	  end,
-    Win = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}]),
+    {Win, Ps} = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}|Opts]),
     {ok, Window} = req({window, wings_io:get_process_option(), Win, Font}),
-    wings_wm:toplevel(Name, Window, [], {push, fun(Ev) -> req({event, Ev}), keep end}).
+    wings_wm:toplevel(Name, Window, Ps, {push, fun(Ev) -> req({event, Ev}), keep end}).
 
 %%% I/O server ----------------------------------------------------------------
 
@@ -323,6 +323,7 @@ put_chars_1([Line|NLs], Lines, Cnt, Save) ->
 %%%
 
 wings_console_event(State, #wx{event=#wxWindowDestroy{}}) ->
+    wings ! {wm, {delete, ?WIN_NAME}},
     State#state{win=undefined, ctrl=undefined};
 wings_console_event(#state{ctrl=Ctrl} = State, #wx{event=#wxSize{size={W0,H0}}}) ->
     {CW,CH,_,_} = wxWindow:getTextExtent(Ctrl, "W"),
@@ -342,7 +343,7 @@ wings_console_request(State, get_state) ->
     {State,State};
 wings_console_request(State, {event, Ev}) ->
     case Ev of
-	close -> wings ! {external, fun(_) -> wings_wm:delete(?WIN_NAME) end};
+	close -> wings ! {wm, {delete, ?WIN_NAME}};
 	_ -> %% io:format("~p: Got ~p~n",[?MODULE, Ev]),
 	    ignore
     end,
@@ -372,7 +373,6 @@ wc_open_window(#state{lines=Lines}=State, Win, Font) ->
     wxWindow:setBackgroundColour(Ctrl, wings_color:rgb4bv(wings_pref:get_value(console_color))),
     wxWindow:setForegroundColour(Ctrl, wings_color:rgb4bv(wings_pref:get_value(console_text_color))),
     wxTextCtrl:appendText(Ctrl, [[Line,$\n] || Line <- queue:to_list(Lines)]),
-    wxFrame:show(Win),
     wxWindow:connect(Ctrl, destroy, [{skip, true}]),
     wxFrame:connect(Ctrl, size, [{skip, true}]),
     {State#state{win=Win, ctrl=Ctrl}, {ok, Ctrl}}.
