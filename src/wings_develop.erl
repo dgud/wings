@@ -26,7 +26,9 @@ init() ->
     ok.
 
 menu() ->
-    [{"Time Commands",time_commands,
+    [{"Save layout", save_layout, "long line"},
+     {"Load layout", load_layout, "long line"},
+     {"Time Commands",time_commands,
       "Print each command's execution time to the console",
       wings_menu_util:crossmark(develop_time_commands)},
      {"Undo Stat",undo_stat,
@@ -42,6 +44,16 @@ menu() ->
      {"Loaded Font Glyphs",font_libs},
      {"Show Cursor",show_cursor,
       "Unhide the cursor in case of a crash and it disappears"}].
+
+command(save_layout, _) ->
+    Contained = wings_frame:export_layout(),
+    io:format("Save: ~p~n",[Contained]),
+    put(debug_win_layout, Contained),
+    keep;
+command(load_layout, St) ->
+    WinList = get(debug_win_layout),
+    wings_frame:import_layout(WinList, St),
+    keep;
 
 command(time_commands, _) ->
     toggle(develop_time_commands),
