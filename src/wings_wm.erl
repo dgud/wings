@@ -47,7 +47,7 @@
 
 %% Window property mangagement.
 -export([get_props/1,get_prop/1,get_prop/2,lookup_prop/1,lookup_prop/2,
-	 set_prop/2,set_prop/3,erase_prop/1,erase_prop/2,
+	 set_win_props/2, set_prop/2,set_prop/3,erase_prop/1,erase_prop/2,
 	 is_prop_defined/2,
 	 get_dd/0, get_dd/1, set_dd/2
 	]).
@@ -253,7 +253,8 @@ delete_windows(Name, W0) ->
 	    delete_windows(wx2win(Name), W0);
 	none ->
 	    W0;
-	{value,#win{links=Links}} ->
+	{value,#win{obj=Obj, links=Links}} ->
+	    erase(Obj),
 	    delete_props(Name),
 	    This = this(),
 	    W = gb_trees:delete_any(Name, W0),
@@ -262,6 +263,7 @@ delete_windows(Name, W0) ->
 		     (_, A) -> A
 		  end, W, Links)
     end.
+
 raise(Name) ->
     case get_window_data(Name) of
 	#win{z=Z} when Z < ?Z_LOWEST_DYNAMIC -> ok;
@@ -499,8 +501,9 @@ win_rect() ->
     win_rect(this()).
 
 win_rect(Name) ->
-    #win{x=X,y=Y,w=W,h=H} = get_window_data(Name),
-    {{X,Y},{W,H}}.
+    {X0,Y0,W,H} = wxWindow:getRect(wxwindow(Name)),
+    {X,Y} = wxWindow:screenToClient(?GET(top_frame),{X0,Y0}),
+    {X,Y,W,H}.
 
 win_ul() ->
     win_ul(this()).
@@ -577,7 +580,16 @@ lookup_prop(Win, Name) ->
 set_prop(Name, Value) ->
     set_prop(this(), Name, Value).
 
+set_prop(Win, fov, Fov) ->
+    View = get_prop(geom, current_view),
+    set_prop_1(Win, current_view, View#view{fov=Fov});
+set_prop(Win, clipping_planes, {Hither, Yon}) ->
+    View = wings_wm:get_prop(geom, current_view),
+    set_prop(Win, current_view, View#view{hither=Hither,yon=Yon});
 set_prop(Win, Name, Value) ->
+    set_prop_1(Win, Name, Value).
+
+set_prop_1(Win, Name, Value) ->
     Props0 = ?GET({Win, props}),
     Props = gb_trees:enter(Name, Value, Props0),
     ?SET({Win, props}, Props).
@@ -673,7 +685,7 @@ dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
     end;
 dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
     ?CHECK_ERROR(),
-    case W > 0 andalso H > 0 of
+    case W > 0 andalso H > 0 andalso not (wx2win(Obj) =:= none) of
 	true ->
 	    #win{name=Name} = Geom0 = get_window_data(Obj),
 	    Geom = Geom0#win{x=0,y=0,w=W,h=H},
@@ -972,6 +984,36 @@ default_stack(Name) ->
 
 wm_event(dirty) ->
     dirty();
+wm_event({active, _Name}) ->
+    update_focus(none);
+wm_event({timer_active, Name, Prev}) ->
+    erase(wm_timer),
+    case get(wm_focus) of
+	Prev ->
+	    case find_active() of
+		Name -> update_focus(Name);
+		_ -> ignore
+	    end;
+	_ -> ignore
+    end;
+wm_event({delete, Win}) ->
+    delete(Win);
+
+wm_event({send_to,Name,Ev}) ->
+    %%io:format("~p:~p: ~p ~P~n",[?MODULE,?LINE,Name,Ev,10]),
+    case gb_trees:is_defined(Name, get(wm_windows)) of
+	false -> ok;
+	true -> do_dispatch(Name, Ev)
+    end;
+wm_event({send_after_redraw,Name,Ev}) ->
+    case gb_trees:is_defined(Name, get(wm_windows)) of
+	false -> ok;
+	true -> do_dispatch(Name, Ev)
+    end;
+wm_event({send_once, Name, Ev}) ->
+    wings_io:putback_event_once({wm,{send_to,Name,Ev}}),
+    ok;
+
 wm_event({message,Name,Msg}) ->
     case lookup_window_data(Name) of
 	none -> ok;
@@ -993,33 +1035,6 @@ wm_event({message_right,Name,Right0}) ->
 	    put_window_data(Name, Data),
 	    dirty()
     end;
-wm_event({active, _Name}) ->
-    update_focus(none);
-wm_event({timer_active, Name, Prev}) ->
-    erase(wm_timer),
-    case get(wm_focus) of
-	Prev ->
-	    case find_active() of
-		Name -> update_focus(Name);
-		_ -> ignore
-	    end;
-	_ -> ignore
-    end;
-
-wm_event({send_to,Name,Ev}) ->
-    %%io:format("~p:~p: ~p ~P~n",[?MODULE,?LINE,Name,Ev,10]),
-    case gb_trees:is_defined(Name, get(wm_windows)) of
-	false -> ok;
-	true -> do_dispatch(Name, Ev)
-    end;
-wm_event({send_after_redraw,Name,Ev}) ->
-    case gb_trees:is_defined(Name, get(wm_windows)) of
-	false -> ok;
-	true -> do_dispatch(Name, Ev)
-    end;
-wm_event({send_once, Name, Ev}) ->
-    wings_io:putback_event_once({wm,{send_to,Name,Ev}}),
-    ok;
 wm_event({callback,Cb}) ->
     Cb().
 
@@ -1276,13 +1291,27 @@ message_event(_) -> keep.
 
 toplevel(Name, Window, Props, Op) ->
     new(Name, Window, Op),
+    set_win_props(Name, Props),
+    wings_frame:register_win(Window, Name, Props),
+    ok.
+
+set_win_props(Name, Props) ->
     Do = fun({display_data, V}) -> set_dd(Name, V);
-	    ({K, V}) -> wings_wm:set_prop(Name, K, V)
+	    ({K, V}) ->
+		 is_valid_prop(K) andalso
+		     set_prop(Name, K, V)
 	 end,
-    [Do(KV) || KV <- Props],
-    wings_frame:register_win(Window, Name, [external]),
+    Props1 = [KV || {_,_} = KV <- Props],
+    [Do(KV) || KV <- lists:ukeysort(1,Props1)], %% Unique props first key in list overrides
     ok.
 
 toplevel_title(Win, Title) ->
     wings_frame:set_title(Win, Title),
     ok.
+
+is_valid_prop(size) ->  false;
+is_valid_prop(pos) -> false;
+is_valid_prop(internal) -> false;
+is_valid_prop(external) -> false;
+is_valid_prop(_) ->  true.
+

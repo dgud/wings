@@ -73,11 +73,11 @@ window(St) ->
 	    keep
     end.
 
-window(WinName, Pos, Size, Ps, St) ->
+window(WinName, Pos, Size, Ps0, St) ->
     View = get_view_state(St),
-    Frame = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}]),
+    {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
     Window = wx_object:start_link(?MODULE, [Frame, Ps, View], []),
-    Fs = [{display_data, geom_display_lists}],
+    Fs = [{display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(WinName, Window, Fs, {push,change_state(Window, St)}),
     keep.
 
@@ -143,6 +143,7 @@ get_view_state(#st{views=Views}) -> Views.
 init([Frame, _Ps, VS]) ->
     #{bg:=BG, text:=FG} = wings_frame:get_colors(),
     Panel = wxPanel:new(Frame),
+    wxPanel:setFont(Panel, ?GET(system_font_wx)),
     Szr = wxBoxSizer:new(?wxVERTICAL),
     Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS,
     LC = wxListCtrl:new(Panel, [{style, Style}]),
@@ -174,7 +175,6 @@ init([Frame, _Ps, VS]) ->
     wxWindow:connect(LC, command_list_begin_drag),
     wxWindow:connect(LC, left_up, [{skip, true}]),
     wxWindow:connect(LC, size, [{skip, true}]),
-    wxWindow:show(Frame),
     {Panel, #state{lc=LC, views=VS}}.
 
 handle_event(#wx{event=#wxList{type=command_list_end_label_edit, itemIndex=Indx}},
@@ -226,7 +226,7 @@ handle_event(#wx{event=#wxMouse{type=left_up, x=X,y=Y}},
 	    Pos = {X,Y},
 	    wxListCtrl:releaseMouse(LC),
 	    wings_io:set_cursor(arrow),
-	    case handle_drop(wxListCtrl:hitTest(LC,Pos, 0), Drag, Pos, Vs0, LC) of
+	    case handle_drop(hitTest(LC,Pos), Drag, Pos, Vs0, LC) of
 		false ->
 		    {noreply, State#state{drag=undefined}};
 		Vs ->
@@ -243,6 +243,12 @@ handle_event(#wx{event=#wxMouse{type=left_up, x=X,y=Y}},
 handle_event(#wx{} = _Ev, State) ->
     %% io:format("~p:~p Got unexpected event ~p~n", [?WIN_NAME,?LINE, _Ev]),
     {noreply, State}.
+
+hitTest(LC, Pos) ->
+    try wxListCtrl:hitTest(LC,Pos) of
+        {Index, _, _} -> Index
+    catch error:undef -> wxListCtrl:hitTest(LC,Pos, 0)
+    end.
 
 %%%%%%%%%%%%%%%%%%%%%%
 
@@ -267,7 +273,7 @@ code_change(_From, _To, State) ->
     State.
 
 terminate(_Reason, _) ->
-    wings ! {external, fun(_) -> wings_wm:delete(?WIN_NAME) end},
+    wings ! {wm, {delete, ?WIN_NAME}},
     normal.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%

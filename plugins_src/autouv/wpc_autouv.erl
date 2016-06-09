@@ -128,10 +128,10 @@ create_window(Action, Name, Id, #st{shapes=Shs}=St) ->
     Title = "AutoUV "++ Segment ++": " ++ ObjName,
 
     {Pos,Size} = init_drawarea(),
-    Frame = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}]),
+    {Frame,Ps} = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}]),
     Context = wxGLCanvas:getContext(?GET(gl_canvas)),
-    Canvas = wings_gl:window(Frame, Context, true),
-    Props = [{display_data,Name}|wings_view:initial_properties()],
+    Canvas = wings_gl:window(Frame, Context, true, true),
+    Props = [{display_data,Name}|wings_view:initial_properties()++Ps],
     wings_wm:toplevel(Name, Canvas, Props, Op),
     wings_wm:send(Name, {init,{Action,We}}).
 

@@ -12,7 +12,7 @@
 %%
 
 -module(wings_gl).
--export([init/1, window/3, attributes/0,
+-export([init/1, window/4, attributes/0,
 	 is_ext/1,is_ext/2,
 	 is_restriction/1,
 	 error_string/1]).
@@ -44,7 +44,7 @@
 -endif.
 
 init(Parent) ->
-    GL = window(Parent, undefined, true),
+    GL = window(Parent, undefined, true, true),
     wx_object:cast(Parent, {init_menus, Parent}),
     init_extensions(),
     init_restrictions(),
@@ -60,7 +60,7 @@ attributes() ->
       ?WX_GL_SAMPLES, 4,
       0]}.
 
-window(Parent, Context, Connect) ->
+window(Parent, Context, Connect, Show) ->
     Style = ?wxFULL_REPAINT_ON_RESIZE bor ?wxWANTS_CHARS,
     Flags = [attributes(), {style, Style}],
     GL = case Context of
@@ -72,9 +72,14 @@ window(Parent, Context, Connect) ->
 		 wxGLCanvas:new(Parent, Context, Flags)
 	 end,
     Connect andalso connect_events(GL),
-    wxWindow:connect(Parent, show),
-    wxFrame:show(Parent),
-    receive #wx{event=#wxShow{}} -> ok end,
+    case Show of
+	true ->
+	    wxWindow:connect(Parent, show),
+	    wxFrame:show(Parent),
+	    receive #wx{event=#wxShow{}} -> ok end;
+	false ->
+	    ok
+    end,
     wxGLCanvas:setCurrent(GL),
     wxWindow:disconnect(Parent, show),
     GL.

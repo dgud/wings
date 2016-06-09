@@ -47,11 +47,11 @@ window(St) ->
 	    keep
     end.
 
-window({_,Client}=Name, Pos, Size, Ps, St) ->
+window({_,Client}=Name, Pos, Size, Ps0, St) ->
     Shapes = get_shape_state(Name, St),
-    Frame = wings_frame:make_win(title(Client), [{size, Size}, {pos, Pos}]),
+    {Frame,Ps} = wings_frame:make_win(title(Client), [{size, Size}, {pos, Pos}|Ps0]),
     Window = wx_object:start_link(?MODULE, [Frame, Size, Ps, Name, Shapes], []),
-    Fs = [{display_data, geom_display_lists}],
+    Fs = [{display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(Name, Window, Fs, {push,change_state(Window, St)}),
     keep.
 
@@ -392,6 +392,7 @@ get_shape_state({_,Client}, #st{sel=Sel, shapes=Shs, pst=Pst}) ->
 init([Frame, {W,_}, _Ps, Name, SS]) ->
     #{bg:=BG, text:=FG} = wings_frame:get_colors(),
     Splitter = wxSplitterWindow:new(Frame, [{style, ?wxSP_3DSASH bor ?wxSP_LIVE_UPDATE}]),
+    wxSplitterWindow:setFont(Splitter, ?GET(system_font_wx)),
     wxSplitterWindow:setMinimumPaneSize(Splitter, 1),
     wxSplitterWindow:setSashGravity(Splitter, 0.25),
     wxSplitterWindow:connect(Splitter, enter_window),
@@ -422,7 +423,6 @@ init([Frame, {W,_}, _Ps, Name, SS]) ->
     Shown = update_shapes(sort_folder(SS), SS, undefined, LC),
     
     connect_events(TC, LC),
-    wxWindow:show(Frame),
     {Splitter, #state{self=self(), name=Name,
 		      sp=Splitter,
 		      tc=TC, tree=Tree,
@@ -569,7 +569,7 @@ code_change(_From, _To, State) ->
 
 terminate(_Reason, #state{name=Name}) ->
     %% io:format("terminate: ~p:~p (~p)~n",[?MODULE, Name, _Reason]),
-    wings ! {external, fun(_) -> wings_wm:delete(Name) end},
+    wings ! {wm, {delete, Name}},
     normal.
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -803,25 +803,34 @@ gen_event(Which, false, {ItemIndex, Col}, Pid, WX) ->
     Pid ! WX#wx{event=#wxList{type=Which, itemIndex=ItemIndex, col=Col}},
     ok.
 
+calc_position(Pos, TW, LC) ->
+    ItemIndex = try wxListCtrl:hitTest(LC, Pos) of
+                    %% SI only works on some windows versions
+                    %% so we calc column index ourselves
+                    {Index, _Flags, _SI} -> Index
+                catch  error:undef ->  %% Erlang-18 and earlier
+                        wxListCtrl:hitTest(LC, Pos, 0)
+                end,
+    case ItemIndex >= 0 of
+        true  -> {ItemIndex, column_index(Pos, TW)};
+        false -> {-1, -1}
+    end.
 
-calc_position({X,_}=Pos, TW, LC) ->
-    ItemIndex = wxListCtrl:hitTest(LC, Pos, 0),
-    Col = case ItemIndex >= 0 of
-	      false -> -1;
-	      true  ->
-		  C0 = column_width()+2, C1 = TW, C2 = C1 + column_width(),
-		  C3 = C2 + column_width(), C4 = C3 + column_width(),
-		  %% io:format("~p ~p ~n", [X, [C0,C1,C2,C3,C4]]),
-		  if X < 0 -> -1;
-		     X < C0 -> 0;
-		     X < C1 -> 1;
-		     X < C2 -> 2;
-		     X < C3 -> 3;
-		     X < C4 -> 4;
-		     true -> -1
-		  end
-	  end,
-    {ItemIndex, Col}.
+column_index({X, _}, TW) ->
+    C0 = column_width()+2,
+    C1 = TW,
+    C2 = C1 + column_width(),
+    C3 = C2 + column_width(),
+    C4 = C3 + column_width(),
+    %% io:format("~p ~p ~n", [X, [C0,C1,C2,C3,C4]]),
+    if X < 0 -> -1;
+       X < C0 -> 0;
+       X < C1 -> 1;
+       X < C2 -> 2;
+       X < C3 -> 3;
+       X < C4 -> 4;
+       true -> -1
+    end.
 
 column_width() ->
     case os:type() of
