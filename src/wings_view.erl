@@ -573,8 +573,8 @@ auto_rotate(St) ->
     Delay = wings_pref:get_value(auto_rotate_delay),
     Tim = #tim{delay=Delay,st=St},
     Active = wings_wm:this(),
-    {{X0,Y0},{W,H}} = wings_wm:win_rect(Active),
-    X = X0 + W div 2, Y = Y0 + H div 2,
+    {W,H} = wings_wm:win_size(Active),
+    X = W div 2, Y = H div 2,
     wings_io:warp(X,Y),
     {seq,push,set_auto_rotate_timer(Tim)}.
 

@@ -76,11 +76,11 @@ window(St) ->
 	    window(?WIN_NAME, Pos, Size, [], St)
     end.
 
-window(?WIN_NAME, Pos, Size, Ps, St) ->
+window(?WIN_NAME, Pos, Size, Ps0, St) ->
     Sel = get_sel_state(St),
-    Frame = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}]),
+    {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
     Window = wx_object:start_link(?MODULE, [Frame, Ps, Sel], []),
-    Fs = [{display_data, geom_display_lists}],
+    Fs = [{display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(?WIN_NAME, Window, Fs, {push,change_state(Window, Sel)}),
     keep.
 
@@ -199,7 +199,6 @@ init([Frame, _Ps, SS]) ->
     end,
     wxWindow:connect(LC, command_list_end_label_edit),
     wxWindow:connect(LC, size, [{skip, true}]),
-    wxWindow:show(Frame),
     {Panel, #state{lc=LC, shown=Shown, ss=SS, sel=none}}.
 
 handle_event(#wx{event=#wxList{type=command_list_item_activated, itemIndex=Indx}},
@@ -279,7 +278,7 @@ code_change(_From, _To, State) ->
 
 terminate(_Reason, _) ->
     io:format("terminate: ~p (~p)~n",[?WIN_NAME, _Reason]),
-    wings ! {external, fun(_) -> wings_wm:delete(?WIN_NAME) end},
+    wings ! {wm, {delete, ?WIN_NAME}},
     normal.
 
 %%%%%%%%%%%%%%%%%%%%%%

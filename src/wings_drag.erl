@@ -83,19 +83,19 @@ setup(Tvs, Units, Flags, St) ->
 %% make sure cursor isn't too close to the edge of the window since this can
 %% cause drag response problems.
 cursor_boundary(P) ->
-    {{Wx,Wy},{W,H}} = wings_wm:win_rect(),
+    {W,H} = wings_wm:win_size(),
     {_,Mx,My} = wings_wm:local_mouse_state(),
-    X = if Mx-P > Wx ->
-            if Mx+P < Wx+W -> Mx;
-               true -> Wx+W-P
-            end;
-           true -> Wx+P
+    X = if Mx-P > 0 ->
+		if Mx+P < W -> Mx;
+		   true -> W-P
+		end;
+           true -> P
         end,
-    Y = if My-P > Wy ->
-            if My+P < Wy+H -> My;
-               true -> Wy+H-P
-            end;
-           true -> Wy+P
+    Y = if My-P > 0 ->
+		if My+P < H -> My;
+		   true -> H-P
+		end;
+           true -> P
         end,
     wings_io:warp(X, Y).
 

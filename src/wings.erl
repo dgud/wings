@@ -16,7 +16,7 @@
 -export([redraw/1,redraw/2,init_opengl/1,command/2]).
 -export([mode_restriction/1,clear_mode_restriction/0,get_mode_restriction/0]).
 -export([ask/3]).
--export([save_windows/0,save_windows_1/1,restore_windows_1/2,set_geom_props/2]).
+-export([new_viewer/5, save_windows/0]).
 -export([handle_drop/3, popup_menu/3]).
 -export([highlight_aim_setup/1]).
 -export([register_postdraw_hook/3,unregister_postdraw_hook/2]).
@@ -220,10 +220,11 @@ new_viewer(St) ->
 new_viewer(Name, Pos, Size, Props, St) ->
     Op = main_loop_noredraw(St),
     Title = geom_title(Name),
-    Frame = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}]),
+    {Frame,Ps} = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}|Props]),
     Context = wxGLCanvas:getContext(?GET(gl_canvas)),
-    Canvas = wings_gl:window(Frame, Context, true),
-    wings_wm:toplevel(Name, Canvas, Props, Op),
+    Show = proplists:is_defined(external, Ps),
+    Canvas = wings_gl:window(Frame, Context, true, Show),
+    wings_wm:toplevel(Name, Canvas, Ps ++ initial_properties(), Op),
     set_drag_filter(Name),
     Name.
 
@@ -1553,152 +1554,17 @@ drop_command(cancel_drop, St) -> St.
 %%%
 
 save_windows() ->
-    Saved = save_windows_1(wings_wm:windows()),
-    wings_pref:set_value(saved_windows, Saved).
-
-save_windows_1([console|Ns]) ->
-    save_window(console, Ns);
-save_windows_1([palette|Ns]) ->
-    save_window(palette, Ns);
-save_windows_1([{tweak, _}=Tweak|Ns]) ->
-    save_window(Tweak, Ns);
-save_windows_1([outliner|Ns]) ->
-    save_window(outliner, Ns);
-save_windows_1([{object,_}=N|Ns]) ->
-    save_window(N, Ns);
-save_windows_1([geom=N|Ns]) ->
-    save_geom_window(N, Ns);
-save_windows_1([{geom,_}=N|Ns]) ->
-    save_geom_window(N, Ns);
-save_windows_1([{plugin,_}=N|Ns]) ->
-    save_plugin_window(N, Ns);
-save_windows_1([_|T]) -> save_windows_1(T);
-save_windows_1([]) -> [].
-
-save_window(Name, Ns) ->
-    case wings_wm:is_wxwindow(Name) of
-	true  ->
-	    Pos = wings_wm:win_ul(Name),
-	    Size = wings_wm:win_size(Name),
-	    [{Name, Pos, Size, []}|save_windows_1(Ns)];
-	false ->
-	    save_windows_1(Ns)
-    end.
-
-save_geom_window(Name, Ns) ->
-    {Pos,Size} = wings_wm:win_rect(Name),
-    Ps = save_geom_props(wings_wm:get_props(Name), []),
-    Geom = {Name,Pos,Size,Ps},
-    [Geom|save_windows_1(Ns)].
-
-save_geom_props([{show_axes,_}=P|T], Acc) ->
-    save_geom_props(T, [P|Acc]);
-save_geom_props([{show_groundplane,_}=P|T], Acc) ->
-    save_geom_props(T, [P|Acc]);
-save_geom_props([{current_view,View}|T], Acc) ->
-    #view{fov=Fov,hither=Hither,yon=Yon} = View,
-    save_geom_props(T, [{fov,Fov},{clipping_planes,Hither,Yon}|Acc]);
-save_geom_props([{show_info_text,_}=P|T], Acc) ->
-    save_geom_props(T, [P|Acc]);
-save_geom_props([_|T], Acc) ->
-    save_geom_props(T, Acc);
-save_geom_props([], Acc) -> Acc.
-
-save_plugin_window(Name, Ns) ->
-    case wings_plugin:get_win_data(Name) of
-      {M, {_,CtmData}} ->
-        {Pos,Size} = wings_wm:win_rect(Name),
-        WinInfo = {M, {Name, Pos, Size, CtmData}},
-        [WinInfo|save_windows_1(Ns)];
-      _ ->
-        save_windows_1(Ns)
-    end.
+    {Contained, Free} = wings_frame:export_layout(),
+    wings_pref:set_value(saved_windows, Free),
+    wings_pref:set_value(saved_cont_windows, Contained).
 
 restore_windows(St) ->
-    %% Sort windows using names as keys to make sure we
-    %% create the geometry windows before the object windows.
-    %% (Because we set up links.)
-    Windows0 = wings_pref:get_value(saved_windows, []),
-    Windows1 = sort([{element(1, W),W} || W <- Windows0]),
-    Windows = [W || {_,W} <- Windows1],
-    restore_windows_1(Windows, St).
-
-restore_windows_1([{geom,{_,_}=_Pos0,{_,_}=_Size,Ps0}|Ws], St) ->
-    Ps = geom_props(Ps0),
-    %% Pos = geom_pos(Pos0),
-    %% wings_wm:move(geom, Pos, Size),
-    set_geom_props(Ps, geom),
-    wings_wm:set_prop(geom, tweak_draw, true),
-    restore_windows_1(Ws, St);
-restore_windows_1([{{geom,_}=Name,Pos,Size,Ps0}|Ws], St) ->
-    Ps = geom_props(Ps0),
-    new_viewer(Name, Pos, Size, initial_properties(), St),
-    set_geom_props(Ps, Name),
-    restore_windows_1(Ws, St);
-restore_windows_1([{Name,Pos,Size}|Ws0], St) -> % OldFormat
-    restore_windows_1([{Name,Pos,Size,[]}|Ws0], St);
-restore_windows_1([{Module,{{plugin,_}=Name,{_,_}=Pos,{_,_}=Size,CtmData}}|Ws], St) ->
-    wings_plugin:restore_window(Module, Name, Pos, Size, CtmData, St),
-    restore_windows_1(Ws, St);
-restore_windows_1([{{object,_}=Name,{_,_}=Pos,{_,_}=Size,Ps}|Ws], St) ->
-    wings_geom_win:window(Name, validate_pos(Pos), Size, Ps, St),
-    restore_windows_1(Ws, St);
-restore_windows_1([{outliner,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
-    wings_outliner:window(validate_pos(Pos), Size, Ps, St),
-    restore_windows_1(Ws, St);
-restore_windows_1([{console,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
-    wings_console:window(console, validate_pos(Pos), Size, Ps),
-    restore_windows_1(Ws, St);
-restore_windows_1([{palette,{_,_}=Pos,{_,_}=Size, Ps}|Ws], St) ->
-    wings_palette:window(validate_pos(Pos), Size, Ps, St),
-    restore_windows_1(Ws, St);
-restore_windows_1([{{tweak, tweak_palette},{_,_}=Pos, Size, Ps}|Ws], St) ->
-    wings_tweak_win:window(tweak_palette, validate_pos(Pos), Size, Ps, St),
-    restore_windows_1(Ws, St);
-restore_windows_1([{{tweak, tweak_magnet},{_,_}=Pos, Size, Ps}|Ws], St) ->
-    wings_tweak_win:window(tweak_magnet, validate_pos(Pos), Size, Ps, St),
-    restore_windows_1(Ws, St);
-restore_windows_1([{{tweak, axis_constraint},{_,_}=Pos, Size, Ps}|Ws], St) ->
-    wings_tweak_win:window(axis_constraint, validate_pos(Pos), Size, Ps, St),
-    restore_windows_1(Ws, St);
-restore_windows_1([_|Ws], St) ->
-    restore_windows_1(Ws, St);
-restore_windows_1([], _) -> ok.
-
-validate_pos({X,Y}=Pos) ->
-    case Y < 0 of
-      false -> Pos;
-      true -> {X,20}
-    end.
-
-geom_props(L) when is_list(L) -> L;
-geom_props(_) -> [].
-
-set_geom_props([{show_axes,B}|T], Name) ->
-    wings_wm:set_prop(Name, show_axes, B),
-    set_geom_props(T, Name);
-set_geom_props([{show_groundplane,B}|T], Name) ->
-    wings_wm:set_prop(Name, show_groundplane, B),
-    set_geom_props(T, Name);
-set_geom_props([{show_info_text,B}|T], Name) ->
-    wings_wm:set_prop(Name, show_info_text, B),
-    set_geom_props(T, Name);
-set_geom_props([{fov,Fov}|T], Name) ->
-    View = wings_wm:get_prop(Name, current_view),
-    wings_wm:set_prop(Name, current_view, View#view{fov=Fov}),
-    set_geom_props(T, Name);
-set_geom_props([{clipping_planes,Hither,Yon}|T], Name)
-  when Hither > 0, Hither < Yon  ->
-    View = wings_wm:get_prop(Name, current_view),
-    wings_wm:set_prop(Name, current_view, View#view{hither=Hither,yon=Yon}),
-    set_geom_props(T, Name);
-set_geom_props([_|T], Name) ->
-    set_geom_props(T, Name);
-set_geom_props([], Name) ->
-    wings_wm:set_prop(Name, tweak_draw, true).
+    Free = wings_pref:get_value(saved_windows, []),
+    Contained = wings_pref:get_value(saved_cont_windows, []),
+    wings_frame:import_layout({Contained, Free}, St).
 
 initial_properties() ->
-    [{display_data,geom_display_lists}|wings_view:initial_properties()].
+    [{tweak_draw,true},{display_data,geom_display_lists}|wings_view:initial_properties()].
 
 mode_restriction(Modes) ->
     Win = wings_wm:this(),

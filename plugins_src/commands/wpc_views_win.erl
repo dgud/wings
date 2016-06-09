@@ -73,11 +73,11 @@ window(St) ->
 	    keep
     end.
 
-window(WinName, Pos, Size, Ps, St) ->
+window(WinName, Pos, Size, Ps0, St) ->
     View = get_view_state(St),
-    Frame = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}]),
+    {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
     Window = wx_object:start_link(?MODULE, [Frame, Ps, View], []),
-    Fs = [{display_data, geom_display_lists}],
+    Fs = [{display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(WinName, Window, Fs, {push,change_state(Window, St)}),
     keep.
 
@@ -174,7 +174,6 @@ init([Frame, _Ps, VS]) ->
     wxWindow:connect(LC, command_list_begin_drag),
     wxWindow:connect(LC, left_up, [{skip, true}]),
     wxWindow:connect(LC, size, [{skip, true}]),
-    wxWindow:show(Frame),
     {Panel, #state{lc=LC, views=VS}}.
 
 handle_event(#wx{event=#wxList{type=command_list_end_label_edit, itemIndex=Indx}},
@@ -267,7 +266,7 @@ code_change(_From, _To, State) ->
     State.
 
 terminate(_Reason, _) ->
-    wings ! {external, fun(_) -> wings_wm:delete(?WIN_NAME) end},
+    wings ! {wm, {delete, ?WIN_NAME}},
     normal.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
