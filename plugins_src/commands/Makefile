@@ -32,7 +32,6 @@ MODULES= \
 	wpc_absolute_move \
 	wpc_absolute_scale \
 	wpc_ambocc \
-	ambocc_gl2 \
 	wpc_arc_intersect \
 	wpc_bend \
 	wpc_circularise \
