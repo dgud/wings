@@ -69,15 +69,15 @@ palette(#st{pal=Pal0}) ->
 %% Inside wings (process)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-create_window(Pos, Size, Ps, St) ->
-    Cols = get_all_colors(St),
-    Frame = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}]),
+create_window(Pos, Size, Ps0, St) ->
+    Cols  = get_all_colors(St),
+    {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
     Window = wx_object:start_link(?MODULE, [Frame, Size, Ps, Cols], []),
     F = fun({color,_}) -> yes;
 	   ({material, _}) -> yes;
 	   (_) -> no
 	end,
-    Fs = [{drag_filter, F}, {display_data, geom_display_lists}],
+    Fs = [{drag_filter, F}, {display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(palette, Window, Fs, {push,change_state(Window, St)}),
     keep.
 
@@ -273,7 +273,6 @@ init([Frame, {W,_}, _Ps, Cols0]) ->
 	wxScrolledWindow:setScrollRate(Win, 0, ?BOX_H+?BORD),
 	wxWindow:connect(Win, size, [{skip, true}]),
 	wxFrame:connect(Frame, activate),
-	wxFrame:show(Frame),
 	{Win, #state{self=self(), win=Win, sz=Sz,
 		     cols=Cols, bsz=BSz, empty=Empty}}
     catch _:Reason ->
@@ -323,7 +322,7 @@ handle_event(Ev=#wx{id=Id, event=#wxMouse{}}, #state{cols=Cols, win=Win}=State) 
 	{yes, GlobalPos} ->
 	    wings_wm:psend(palette, {apply, false, fun(_) -> do_menu(Win, Id, GlobalPos, Cols) end});
 	_ ->
-	    io:format("Ignored ~p~n",[Ev]),
+	    %% io:format("Ignored ~p~n",[Ev]),
 	    ok
     end,
     {noreply, State};
@@ -347,14 +346,14 @@ handle_event(#wx{event=#wxActivate{active=Active}}, State) ->
 	false -> ignore
     end,
     {noreply, State};
-handle_event(Ev, State) ->
-    io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, Ev]),
+handle_event(_Ev, State) ->
+    %% io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, _Ev]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
 
-handle_call(Req, _From, State) ->
-    io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, Req]),
+handle_call(_Req, _From, State) ->
+    %% io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, _Req]),
     {reply, ok, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -460,8 +459,8 @@ handle_info(Msg={resize, Size}, State0) ->
 	    State = resize(Size, State0),
 	    {noreply, State#state{timer=undefined}}
     end;
-handle_info(Msg, State) ->
-    io:format("~p:~p Got unexpected info ~p~n", [?MODULE,?LINE, Msg]),
+handle_info(_Msg, State) ->
+    %io:format("~p:~p Got unexpected info ~p~n", [?MODULE,?LINE, _Msg]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -470,8 +469,8 @@ code_change(_From, _To, State) ->
     State.
 
 terminate(_Reason, _) ->
-    io:format("terminate: ~p (~p)~n",[?MODULE, _Reason]),
-    wings ! {external, fun(_) -> wings_wm:delete(palette) end},
+    %io:format("terminate: ~p (~p)~n",[?MODULE, _Reason]),
+    wings ! {wm, {delete, palette}},
     normal.
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -609,7 +608,7 @@ calc_size(Cols, W, BW, ReduceOne) ->
     ColsW0 = (W-4) div (BW+?BORD),
     ColsW = if ColsW0 < 1 ->
 		    1;
-	       ReduceOne ->
+	       ReduceOne, ColsW0 > 1 ->
 		    ColsW0 - 1;
 	       true ->
 		    ColsW0

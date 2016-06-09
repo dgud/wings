@@ -40,12 +40,12 @@ window(Name, St) ->
 	    keep
     end.
 
-window(Name0, Pos, Size, Ps, St) ->
+window(Name0, Pos, Size, Ps0, St) ->
     Name = {tweak, Name0},
     State = get_state(Name),
-    Frame = wings_frame:make_win(title(Name), [{size, Size}, {pos, Pos}]),
-    Window = wx_object:start_link(?MODULE, [Frame, Ps, Name, State], []),
-    wings_wm:toplevel(Name, Window, [], {push,change_state(Window, St)}),
+    {Frame,Ps} = wings_frame:make_win(title(Name), [{size, Size}, {pos, Pos}|Ps0]),
+    Window = wx_object:start_link(?MODULE, [Frame, Name, State], []),
+    wings_wm:toplevel(Name, Window, Ps, {push,change_state(Window, St)}),
     keep.
 
 %%%%%%%% Window internals %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -95,8 +95,8 @@ tweak_tool(Button, Modifiers) ->
 
 -record(state, {name, shown, mode, menu, prev, cols}).
 
-init([Frame, _Ps, Name, {Mode, Menus}]) ->
-    Panel = wxPanel:new(Frame),
+init([Frame, Name, {Mode, Menus}]) ->
+    Panel = wxPanel:new(Frame, [{style, ?wxBORDER_SIMPLE}]),
     HotKeys = wings_hotkey:matching([tweak]),
     Entries0 = [wings_menu:normalize_menu_wx(Entry, HotKeys, [tweak])
 		|| Entry <- lists:flatten(Menus)],
@@ -117,8 +117,7 @@ init([Frame, _Ps, Name, {Mode, Menus}]) ->
     wxSizer:addSpacer(Main, 5),
     wxPanel:setSizer(Panel, Main),
     wxSizer:fit(Main, Panel),
-    wxSizer:setSizeHints(Main, Frame),
-    wxWindow:show(Frame),
+    ?GET(top_frame) =:= Frame orelse wxSizer:setSizeHints(Main, Frame),
     {Panel, #state{name=Name, shown=Entries, cols=Cols, mode=Mode, menu=Menus}}.
 
 handle_event(#wx{id=Id, obj=_Obj, event=#wxMouse{type=enter_window}},
@@ -164,7 +163,7 @@ code_change(_From, _To, State) ->
 
 terminate(_Reason, #state{name=Name}) ->
     io:format("terminate: ~p:~p (~p)~n",[?MODULE, Name, _Reason]),
-    wings ! {external, fun(_) -> wings_wm:delete(Name) end},
+    wings ! {wm, {delete, Name}},
     normal.
 
 %%%%%%%%%%%%%%%%%%%%%%

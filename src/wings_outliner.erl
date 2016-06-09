@@ -44,11 +44,11 @@ window(St) ->
 	    keep
     end.
 
-window(Pos, Size, Ps, St) ->
+window(Pos, Size, Ps0, St) ->
     Shapes = get_state(St),
-    Frame = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}]),
+    {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
     Window = wx_object:start_link(?MODULE, [Frame, Ps, Shapes], []),
-    Fs = [{display_data, geom_display_lists}],
+    Fs = [{display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(?MODULE, Window, Fs, {push, change_state(Window, St)}),
     keep.
 
@@ -293,6 +293,7 @@ image_info({Id, #e3d_image{name=Name}=Im}) ->
 init([Frame,  _Ps, Os]) ->
     {IL, IMap0} = load_icons(),
     Panel = wxPanel:new(Frame),
+    wxPanel:setFont(Panel, ?GET(system_font_wx)),
     #{bg:=BG} = Cs = wings_frame:get_colors(),
     Szr = wxBoxSizer:new(?wxVERTICAL),
     wxPanel:setBackgroundColour(Panel, BG),
@@ -301,7 +302,6 @@ init([Frame,  _Ps, Os]) ->
     wxPanel:setSizer(Panel, Szr),
     {Shown,IMap} = update_object(Os, TC, IL, IMap0),
     wxWindow:connect(Panel, enter_window),
-    wxWindow:show(Frame),
     {Panel, #state{top=Panel, szr=Szr, tc=TC, os=Os, shown=Shown, il=IL, imap=IMap}}.
 
 handle_sync_event(#wx{event=#wxTree{item=Indx}}, Drag,
@@ -411,7 +411,7 @@ code_change(_From, _To, State) ->
     State.
 
 terminate(_Reason, #state{}) ->
-    wings ! {external, fun(_) -> wings_wm:delete(?MODULE) end},
+    wings ! {wm, {delete, ?MODULE}},
     normal.
 
 %%%%%%%%%%%%%%%%%%%%%%

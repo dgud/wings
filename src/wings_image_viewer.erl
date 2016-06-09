@@ -44,9 +44,9 @@ new(WinName, Image, Opts) ->
     W0 = wxImage:getWidth(Image),
     Title = lists:flatten(io_lib:format(?__(1,"Image: ~s [~wx~w]"),[Name,W0,H0])),
     Size = {size,{min(800,max(200,W0+100)), min(600,max(150,H0+100))}},
-    Frame = wings_frame:make_win(Title, [Size]),
+    {Frame,Ps} = wings_frame:make_win(Title, [Size]),
     Window = wx_object:start_link(?MODULE, [Frame, WinName, Image, Opts], []),
-    wings_wm:toplevel(WinName, Window, [], {push, fun(_Ev) -> keep end}),
+    wings_wm:toplevel(WinName, Window, Ps, {push, fun(_Ev) -> keep end}),
     wxWindow:refresh(Window),
     keep.
 
@@ -154,7 +154,7 @@ code_change(_, _, State) -> State.
 
 terminate(_Reason, #state{ref=Ref, bgb=BGB, bitmap=BM}) ->
     %%    io:format("terminate: ~p (~p)~n",[?MODULE, _Reason]),
-    wings ! {external, fun(_) -> wings_wm:delete(Ref) end},
+    wings ! {wm, {delete, Ref}},
     wxBitmap:destroy(BM),
     wxBrush:destroy(BGB),
     ok.
