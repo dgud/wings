@@ -303,6 +303,14 @@ init([Frame,  _Ps, Os]) ->
     wxWindow:connect(Panel, enter_window),
     {Panel, #state{top=Panel, szr=Szr, tc=TC, os=Os, shown=Shown, il=IL, imap=IMap}}.
 
+handle_sync_event(#wx{event=#wxTree{type=command_tree_begin_label_edit, item=Indx}}, From,
+		  #state{shown=Tree}) ->
+    case lists:keyfind(Indx, 1, Tree) of
+	{_, #{type:=mat, name:="default"}} -> wxTreeEvent:veto(From);
+	false -> wxTreeEvent:veto(From);  % false is returned for the root items: 'Lights', 'Materials', 'Images'
+	_ -> ignore
+    end,
+    ok;
 handle_sync_event(#wx{event=#wxTree{item=Indx}}, Drag,
 		  #state{tc=TC, shown=Shown}) ->
     case lists:keyfind(Indx, 1, Shown) of
@@ -319,14 +327,16 @@ handle_event(#wx{event=#wxMouse{type=right_up, x=X, y=Y}}, #state{tc=TC} = State
     make_menus(Indx, wxWindow:clientToScreen(TC, {X,Y}), State),
     {noreply, State};
 handle_event(#wx{event=#wxTree{type=command_tree_item_menu, item=Indx, pointDrag=Pos}},
-	     #state{tc=TC} = State) ->
-    make_menus(Indx, wxWindow:clientToScreen(TC, Pos), State),
+	     #state{shown=Tree, tc=TC} = State) ->
+    case lists:keyfind(Indx, 1, Tree) of
+	false -> ignore;
+	_ -> make_menus(Indx, wxWindow:clientToScreen(TC, Pos), State)
+    end,
     {noreply, State};
 handle_event(#wx{event=#wxCommand{type=command_right_click}}, State) ->
     #wxMouseState{x=X,y=Y} = wx_misc:getMouseState(),
     make_menus(0, {X,Y}, State),
     {noreply, State};
-
 handle_event(#wx{event=#wxTree{type=command_tree_end_label_edit, item=Indx}},
 	     #state{shown=Tree, tc=TC} = State) ->
     NewName = wxTreeCtrl:getItemText(TC, Indx),
@@ -423,6 +433,7 @@ make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     wxTreeCtrl:setForegroundColour(TC, FG),
     wxTreeCtrl:setImageList(TC, IL),
     wxWindow:connect(TC, command_tree_end_label_edit),
+    wxWindow:connect(TC, command_tree_begin_label_edit, [callback]),
     wxWindow:connect(TC, command_tree_begin_drag, [callback]),
     wxWindow:connect(TC, command_tree_end_drag, []),
     case os:type() of
@@ -438,9 +449,17 @@ update_object(Os, TC, IL, Imap0) ->
     Sorted = [{{order(T), wings_util:cap(N)},O} || #{type:=T,name:=N} = O <- Os],
     wxTreeCtrl:deleteAllItems(TC),
     Root = wxTreeCtrl:addRoot(TC, []),
-    Do = fun({_, #{name:=Name}=O}, {Acc0,Imap00}) ->
+    Lights = wxTreeCtrl:appendItem(TC, Root, root_name(light)),
+    Materials = wxTreeCtrl:appendItem(TC, Root, root_name(mat)),
+    Images = wxTreeCtrl:appendItem(TC, Root, root_name(image)),
+    Do = fun({_, #{type:=Type, name:=Name}=O}, {Acc0,Imap00}) ->
 		 {Indx, Imap} = image_index(O, IL, Imap00),
-		 Item = wxTreeCtrl:appendItem(TC, Root, Name, [{image, Indx}]),
+		 Item =
+		     case Type of
+			 light -> wxTreeCtrl:appendItem(TC, Lights, Name, [{image, Indx}]);
+			 mat -> wxTreeCtrl:appendItem(TC, Materials, Name, [{image, Indx}]);
+			 image -> wxTreeCtrl:appendItem(TC, Images, Name, [{image, Indx}])
+		     end,
 		 Acc = [{Item, O}|Acc0],
 		 case maps:get(maps, O, []) of
 		     [] -> {Acc, Imap};
@@ -451,7 +470,15 @@ update_object(Os, TC, IL, Imap0) ->
 		 %% wxTreeCtrl:selectItem(TC, Node),
 		 %% wxTreeCtrl:ensureVisible(TC, Node),
 	 end,
-    wx:foldl(Do, {[],Imap0}, Sorted).
+    Res = wx:foldl(Do, {[],Imap0}, Sorted),
+    wxTreeCtrl:expand(TC, Lights),
+    wxTreeCtrl:setItemBold(TC, Lights),
+    wxTreeCtrl:expand(TC, Materials),
+    wxTreeCtrl:setItemBold(TC, Materials),
+    wxTreeCtrl:expand(TC, Images),
+    wxTreeCtrl:setItemBold(TC, Images),
+    wxTreeCtrl:selectItem(TC, Lights),
+    Res.
 
 add_maps([{MType,Mid}|Rest], TC, Dir, IL, Imap0, Os,Acc) ->
     case [O || #{type:=image, id:=Id} = O <- Os, Id =:= Mid] of
@@ -462,13 +489,17 @@ add_maps([{MType,Mid}|Rest], TC, Dir, IL, Imap0, Os,Acc) ->
 	[] ->
 	    add_maps(Rest, TC, Dir, IL, Imap0, Os, Acc)
     end;
-add_maps([], TC, Dir, _, Imap, _, Acc) ->
-    wxTreeCtrl:expand(TC,Dir),
+add_maps([], _TC, _Dir, _, Imap, _, Acc) ->
+    %% wxTreeCtrl:expand(TC,Dir),
     {Acc, Imap}.
 
 order(light) -> 1;
 order(mat)   -> 2;
 order(image) -> 3.
+
+root_name(light) -> ?__(1, "Lights");
+root_name(mat) -> ?__(2, "Materials");
+root_name(image) -> ?__(3, "Images").
 
 image_index(#{type:=Type}, _IL, Map) when Type =:= light; Type =:= image ->
     #{Type:=Index} = Map,
