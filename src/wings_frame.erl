@@ -11,7 +11,7 @@
 
 -module(wings_frame).
 
--export([top_menus/0, make_win/2, register_win/3, close/1, set_focus/1,
+-export([top_menus/0, make_win/2, register_win/3, close/1, set_focus/1, set_title/2,
 	 export_layout/0, import_layout/2,
 	 get_overlay/0, overlay_draw/3, overlay_hide/1,
 	 get_icon_images/0, get_colors/0]).
@@ -123,6 +123,9 @@ close(Win) ->
 
 set_focus(Win) ->
     wx_object:cast(?MODULE, {active, Win}).
+
+set_title(Win, Title) ->
+    wx_object:cast(?MODULE, {set_title, Win, Title}).
 
 get_overlay() ->
     wx_object:call(?MODULE, get_overlay).
@@ -437,6 +440,26 @@ handle_cast({init_menus, Frame}, State) ->
     end,
     {noreply, State};
 
+handle_cast({set_title, Win, Title}, #state{windows=#{ch:=Root, loose:=Loose}=Wins} = State) ->
+    case find_win(Win, Root) of
+	false ->
+	    case lists:keyfind(Win, 1, maps:to_list(Loose)) of
+		false -> {noreply, State};
+		#win{win=Obj, frame=Frame} = WinR ->
+		    wxTopLevelWindow:setTitle(Frame, Title),
+		    {noreply, State#state{windows=Wins#{loose:=Loose#{Obj:=WinR#win{title=Title}}}}}
+	    end;
+	#win{frame=Obj, bar={_, ST}} = WinR ->
+	    wxStaticText:setLabel(ST, Title),
+	    SetLabel = fun(#split{w1=W1}=Where, _Other, _Grand) when W1=:=WinR ->
+			       {ok, Where#split{w1=WinR#win{title=Title}}};
+			  (#split{w2=W2}=Where, _Other, _Grand) when W2=:=WinR ->
+			       {ok, Where#split{w2=WinR#win{title=Title}}}
+		       end,
+	    {ok, Tree} = update_win(Obj, Root, Root, SetLabel),
+	    check_tree(Tree, Root),
+	    {noreply, State#state{windows=Wins#{ch:=Tree}}}
+    end;
 handle_cast(Req, State) ->
     io:format("~p:~p Got unexpected cast ~p~n", [?MODULE,?LINE, Req]),
     {noreply, State}.
