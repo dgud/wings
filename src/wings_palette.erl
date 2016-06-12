@@ -608,7 +608,7 @@ calc_size(Cols, W, BW, ReduceOne) ->
     ColsW0 = (W-4) div (BW+?BORD),
     ColsW = if ColsW0 < 1 ->
 		    1;
-	       ReduceOne ->
+	       ReduceOne, ColsW0 > 1 ->
 		    ColsW0 - 1;
 	       true ->
 		    ColsW0
