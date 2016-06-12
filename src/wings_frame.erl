@@ -223,7 +223,7 @@ restore_window({{tweak, Win},Pos, Size, Ps}, St) ->
     wings_tweak_win:window(Win, Pos, Size, Ps, St);
 restore_window({{plugin,_}=Name,Pos,{_,_}=Size,CtmData0}, St) ->
     Module = proplists:get_value(module, CtmData0),
-    CtmData = proplists:delete(CtmData0),
+    CtmData = proplists:delete(module, CtmData0),
     wings_plugin:restore_window(Module, Name, Pos, Size, CtmData, St);
 restore_window({Module,{{plugin,_}=Name,Pos,{_,_}=Size,CtmData}}, St) -> %% Old plugin format
     wings_plugin:restore_window(Module, Name, Pos, Size, CtmData, St);
@@ -773,14 +773,14 @@ close_win(Win, #state{windows=#{ch:=Tree,loose:=Loose,szr:=Szr}=Wins}=State) ->
 		    State
 	    end;
 	#win{frame=Obj} ->
-	    Close = fun(Where, Other, GrandP) -> close_window(Obj, Where, Other, GrandP) end,
+	    Close = fun(Where, Other, GrandP) -> close_window(Obj, Where, Other, GrandP, Szr) end,
 	    {ok, Root} = update_win(Obj, Tree, Tree, Close),
 	    check_tree(Root, Tree),
 	    wxSizer:layout(Szr),
 	    State#state{windows=Wins#{ch:=Root}}
     end.
 
-close_window(Delete, Split, Other, GrandP) ->
+close_window(Delete, Split, Other, GrandP, Szr) ->
     case GrandP of
 	Split when is_record(Other, win) -> %% TopLevel
 	    wxWindow:reparent(win(Other), win(GrandP)),
@@ -790,6 +790,7 @@ close_window(Delete, Split, Other, GrandP) ->
 	Split when is_record(Other, split) ->
 	    Frame = wxWindow:getParent(win(GrandP)),
 	    wxWindow:reparent(win(Other), Frame),
+	    wxSizer:replace(Szr, win(GrandP), win(Other)),
 	    wxWindow:destroy(win(GrandP)),
 	    {ok, Other};
 	#split{} ->

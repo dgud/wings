@@ -117,7 +117,7 @@ init([Frame, Name, {Mode, Menus}]) ->
     wxSizer:addSpacer(Main, 5),
     wxPanel:setSizer(Panel, Main),
     wxSizer:fit(Main, Panel),
-    wxSizer:setSizeHints(Main, Frame),
+    ?GET(top_frame) =:= Frame orelse wxSizer:setSizeHints(Main, Frame),
     {Panel, #state{name=Name, shown=Entries, cols=Cols, mode=Mode, menu=Menus}}.
 
 handle_event(#wx{id=Id, obj=_Obj, event=#wxMouse{type=enter_window}},
