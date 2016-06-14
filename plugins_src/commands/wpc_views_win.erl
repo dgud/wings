@@ -179,15 +179,20 @@ init([Frame, _Ps, VS]) ->
 handle_event(#wx{event=#wxList{type=command_list_end_label_edit, itemIndex=Indx}},
 	     #state{views={Curr, Views}, lc=LC} = State) ->
     NewName = wxListCtrl:getItemText(LC, Indx),
-    case element(Indx+1, Views) of
-	{_, NewName} -> ignore;
-	{ViewInfo,_} ->
-	    Rename = fun(#st{}=St0) ->
-			     St = St0#st{views={Curr, setelement(Indx+1, Views, {ViewInfo,NewName})}},
-			     wings_wm:send(geom, {new_state,St}),
-			     St0 %% Intentional so we get updates to window process
-		     end,
-	    wings_wm:psend(?WIN_NAME, {apply, true, Rename})
+    if NewName =/= [] ->
+	case element(Indx+1, Views) of
+	    {_, NewName} -> ignore;
+	    {ViewInfo,_} ->
+		Rename = fun(#st{}=St0) ->
+				 St = St0#st{views={Curr, setelement(Indx+1, Views, {ViewInfo,NewName})}},
+				 wings_wm:send(geom, {new_state,St}),
+				 St0 %% Intentional so we get updates to window process
+			 end,
+		wings_wm:psend(?WIN_NAME, {apply, true, Rename})
+	end;
+    true ->
+	{_, Old} = element(Indx+1, Views),
+	wxListCtrl:setItemText(LC, Indx, Old)
     end,
     {noreply, State};
 
