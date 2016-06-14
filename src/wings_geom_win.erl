@@ -77,7 +77,10 @@ rename_folder_dialog(OldName) ->
           [{label,?__(1,"Choose Folder Name")},
            {text,OldName,[]}]}],
     wings_dialog:dialog(true, ?__(2,"Rename Folder"), Qs,
-			fun(Res) -> {rename_folder,[OldName|Res]} end).
+			fun([[]]) -> ignore;
+			   (Res) ->
+				{rename_folder,[OldName|Res]}
+			end).
 
 rename_filtered_dialog(ManyObjs) ->
     ModeHook=fun(Me, What, Sto) ->
@@ -445,18 +448,28 @@ handle_event(#wx{event=#wxList{itemIndex=Indx, col=Col}},
     wings_wm:psend(Name, {apply, false, Cmd}),
     {noreply, State};
 handle_event(#wx{event=#wxList{type=command_list_end_label_edit, itemIndex=Indx}},
-	     #state{lc=LC, name=Name, shown=Shown} = State) ->
+	     #state{lc=LC, name=Name, shown=Shown, shapes=SS} = State) ->
     NewName = wxListCtrl:getItemText(LC, Indx),
     {shape, Id} = get_id(Indx, Shown),
-    Apply = fun(St) -> rename(Id, NewName, St), keep end,
-    wings_wm:psend(Name, {apply, false, Apply}),
+    if NewName =/= [] ->
+	Apply = fun(St) -> rename(Id, NewName, St), keep end,
+	wings_wm:psend(Name, {apply, false, Apply});
+    true ->
+	Items = maps:get(shs, SS),
+	#{name:=Old} = lists:nth(Id, Items),
+	wxListCtrl:setItemText(LC, Indx, Old)
+    end,
     {noreply, State};
 
 handle_event(#wx{event=#wxTree{type=command_tree_end_label_edit, item=Indx}},
 	     #state{name=Name, tree=Tree, tc=TC} = State) ->
     NewName = wxTreeCtrl:getItemText(TC, Indx),
     {_, OldName} = lists:keyfind(Indx, 1, Tree),
-    wings_wm:psend(Name, {action, {rename_folder, [OldName, NewName]}}),
+    if NewName =/= [] ->
+    	wings_wm:psend(Name, {action, {rename_folder, [OldName, NewName]}});
+    true ->
+	wxTreeCtrl:setItemText(TC, Indx, OldName)
+    end,
     {noreply, State};
 
 handle_event(#wx{event=#wxList{type=command_list_begin_drag, itemIndex=Indx}},
@@ -736,6 +749,7 @@ get_id(Indx, SHS) ->
     end.
 
 connect_events(TC, LC) ->
+    wxWindow:connect(TC, command_tree_begin_label_edit, [callback]),
     wxWindow:connect(TC, command_tree_end_label_edit),
     wxWindow:connect(TC, command_tree_sel_changed),
     wxWindow:connect(TC, command_tree_item_menu, [{skip, true}]),
@@ -764,6 +778,13 @@ handle_sync_event(#wx{event=#wxMouse{}} = Ev, _EvObj, #state{drag=Drag, self=Pid
     ok;
 %% Calc item and column our selves send a generated event
 %% a bit tricky to get it working on all OS's
+handle_sync_event(#wx{obj=TC, event=#wxTree{type=command_tree_begin_label_edit, item=Indx}},
+		  From, #state{}) ->
+    case wxTreeCtrl:getItemParent(TC, Indx) of
+	0 -> wxTreeEvent:veto(From);  % 0 is returned for the root item: 'Objects'
+	_ -> ignore
+    end,
+    ok;
 handle_sync_event(#wx{obj=LC, event=Event}=Ev, EvObj, #state{lc=LC, tw=TW, self=Pid}) ->
     try
 	{ok, Which, Pos} = event_info(Event, LC),

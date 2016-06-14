@@ -130,7 +130,8 @@ delete_material([], St) ->
 rename(Mats, St) ->
     Qs = rename_qs(Mats),
     wings_dialog:dialog(?__(1,"Rename"), Qs,
-			fun(NewNames) ->
+			fun([{_,[]}]) -> ignore;
+			   (NewNames) ->
 				rename_1(NewNames, St, [])
 			end).
 
