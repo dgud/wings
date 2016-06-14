@@ -738,13 +738,16 @@ rename(Objects, #st{shapes=Shs}=St) ->
 rename_1(Wes, St) ->
     Qs = rename_qs(Wes),
     wings_dialog:dialog(?__(1,"Rename"), Qs,
-			fun(NewNames) ->
+			fun([[]]) -> ignore;
+			   (NewNames) ->
 				rename_1(NewNames, Wes, St)
 			end).
 
 rename_1(Names, Wes, #st{shapes=Shs}=St) ->
     rename_2(Names, Wes, Shs, St).
 
+rename_2([[]|Ns], [#we{}|Wes], Shs0, St) ->
+    rename_2(Ns, Wes, Shs0, St);
 rename_2([N|Ns], [#we{id=Id}=We|Wes], Shs0, St) ->
     Shs = gb_trees:update(Id, We#we{name=N}, Shs0),
     rename_2(Ns, Wes, Shs, St);

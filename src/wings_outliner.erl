@@ -340,19 +340,28 @@ handle_event(#wx{event=#wxCommand{type=command_right_click}}, State) ->
 handle_event(#wx{event=#wxTree{type=command_tree_end_label_edit, item=Indx}},
 	     #state{shown=Tree, tc=TC} = State) ->
     NewName = wxTreeCtrl:getItemText(TC, Indx),
-    case lists:keyfind(Indx, 1, Tree) of
-	{_, #{type:=mat, name:=Old}} ->
-	    wings_wm:psend(geom, {action,{material,{rename, Old, NewName}}});
-	{_, #{type:=image, id:=Id}} ->
-	    Apply = fun(_) ->
-			    wings_image:rename(Id, NewName),
-			    wings_wm:psend(geom, need_save),
-			    keep
-		    end,
-	    wings_wm:psend(?MODULE, {apply, false, Apply});
-	{_, #{id:=Id}} ->
-	    Apply = fun(St) -> rename_obj(Id, NewName, St), keep end,
-	    wings_wm:psend(?MODULE, {apply, false, Apply})
+    if NewName =/= [] ->
+	case lists:keyfind(Indx, 1, Tree) of
+	    {_, #{type:=mat, name:=Old}} ->
+		wings_wm:psend(geom, {action,{material,{rename, Old, NewName}}});
+	    {_, #{type:=image, id:=Id}} ->
+		Apply = fun(_) ->
+				wings_image:rename(Id, NewName),
+				wings_wm:psend(geom, need_save),
+				keep
+			end,
+		wings_wm:psend(?MODULE, {apply, false, Apply});
+	    {_, #{id:=Id}} ->
+		Apply = fun(St) -> rename_obj(Id, NewName, St), keep end,
+		wings_wm:psend(?MODULE, {apply, false, Apply})
+	end;
+    true ->
+	case lists:keyfind(Indx, 1, Tree) of
+	    {_, #{name:=Old}} ->
+		wxTreeCtrl:setItemText(TC, Indx, Old);
+	    _ ->
+		ignore
+	end
     end,
     {noreply, State};
 

@@ -131,7 +131,8 @@ rename({_,OldName}=Id) ->
               {text,"",[]}]}
            ]}],
     wings_dialog:dialog(?__(1,"Rename"), Qs,
-    fun([NewName]) ->
+    fun([[]]) -> ignore;
+       ([NewName]) ->
         wings_wm:send(geom, {action,{select,{ssels,{rename_group,{Id,NewName}}}}})
     end).
 
@@ -208,12 +209,18 @@ handle_event(#wx{event=#wxList{type=command_list_item_activated, itemIndex=Indx}
     {noreply, State#state{sel=Indx}};
 
 handle_event(#wx{event=#wxList{type=command_list_end_label_edit, itemIndex=Indx}},
-	     #state{shown=Shown, lc=LC} = State) ->
+	     #state{shown=Shown, lc=LC, ss=SS} = State) ->
     Id = array:get(Indx, Shown),
     NewName = wxListCtrl:getItemText(LC, Indx),
-    case Id of
-	{_, NewName} -> ignore;
-	_ -> wings_wm:psend(geom, {action,{select,{ssels,{rename_group,{Id,NewName}}}}})
+    if NewName =/= [] ->
+	case Id of
+	    {_, NewName} -> ignore;
+	    _ -> wings_wm:psend(geom, {action,{select,{ssels,{rename_group,{Id,NewName}}}}})
+	end;
+    true ->
+	Items = maps:get(ssels, SS),
+	{_, Old} = lists:nth(Indx+1, Items),
+	wxListCtrl:setItemText(LC, Indx, Old)
     end,
     {noreply, State};
 

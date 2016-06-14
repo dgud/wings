@@ -953,7 +953,8 @@ views(rename, #st{views={CurrentView,Views}}=St) ->
     {View,Legend} = element(J, Views),
     wings_dialog:dialog(?__(3,"Rename view"),
 			views_rename_qs([Legend]),
-			fun([NewLegend]) ->
+			fun([[]]) -> ignore;
+			   ([NewLegend]) ->
 				St#st{views={CurrentView,
 					     setelement(J, Views, {View,NewLegend})}}
 			end);
