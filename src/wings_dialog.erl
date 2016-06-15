@@ -398,11 +398,10 @@ queries(Qs0) ->
 get_dialog_parent() ->
     case ?GET(dialog_parent) of
 	undefined ->
-	    Parent = case wings_wm:this() of
-			 none -> top_frame;
-			 Win -> Win
-		     end,
-	    wings_wm:wxwindow(Parent);
+	    case wings_wm:this_win() of
+		undefined -> ?GET(top_frame);
+		Win -> Win
+	    end;
 	Tuple when element(1, Tuple) =:= wx_ref ->
 	    Tuple
     end.
