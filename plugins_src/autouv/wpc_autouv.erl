@@ -711,7 +711,7 @@ handle_event_3({action,Ev}=Act, St) ->
 	{edit,repeat_drag} ->
 	    repeat(drag, St);
 	_ ->
-	    wings_wm:send(geom, Act),
+	    wings_wm:send_after_redraw(geom, Act),
 	    %% io:format("Miss Action ~P~n", [Ev, 20]),
 	    keep
     end;
