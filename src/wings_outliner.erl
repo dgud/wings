@@ -278,7 +278,7 @@ mat_info({Name,Mp}) ->
     OpenGL = proplists:get_value(opengl, Mp),
     Maps = proplists:get_value(maps, Mp, []),
     {R,G,B,_} = proplists:get_value(diffuse, OpenGL),
-    Col = {trunc(R*15),trunc(G*15),trunc(B*15)},
+    Col = {trunc(R*255),trunc(G*255),trunc(B*255)},
     #{type=>mat, name=>atom_to_list(Name), color=>Col, maps=>Maps}.
 
 image_info({Id, #e3d_image{name=Name}=Im}) ->
@@ -518,7 +518,7 @@ image_index(#{type:=mat, color:=Col}, IL, Map) ->
 	undefined ->
 	    %% {3, Map};
 	    Indx = wxImageList:getImageCount(IL),
-	    wxImageList:add(IL, mat_bitmap(Col)),
+	    wxImageList:add(IL, mat_bitmap(Col, IL)),
 	    {Indx, Map#{Col=>Indx}};
 	Indx ->
 	    {Indx, Map}
@@ -526,10 +526,11 @@ image_index(#{type:=mat, color:=Col}, IL, Map) ->
 
 image_maps_index(Type) ->
     case Type of
-    	diffuse -> 6;
-	gloss -> 5;
-	bump -> 4;
-	normal -> 3;
+    	diffuse -> 3;
+	gloss -> 4;
+	bump -> 5;
+	normal -> 6;
+	material -> 7;
 	_ -> undefined
     end.
 
@@ -550,40 +551,35 @@ load_icons() ->
     wx:foreach(Add, [
 		     small_image,perspective, %small_object,
 		     small_light,
-		     small_normal,small_bump,small_gloss,small_diffuse
+		     small_diffuse,small_gloss,small_bump,small_normal,
+		     material
 		    ]),
-    wxImageList:add(IL, mat_bitmap({15,15,15})),
     {IL, #{object=>1, image=>0, light=>2, mat=>3}}.
 
-mat_bitmap({R,G,B}) ->
-    Mask = <<2#1111111111111111:16,
-	     2#1000000000000001:16,
-	     2#1000000000000001:16,
-	     2#1000000000000001:16,
-	     2#1001100000110001:16,
-	     2#1000110001100001:16,
-	     2#1000101010100001:16,
-	     2#1000101110100001:16,
-	     2#1000100100100001:16,
-	     2#1000100000100001:16,
-	     2#1000100000100001:16,
-	     2#1001110001110001:16,
-	     2#1000000000000001:16,
-	     2#1000000000000001:16,
-	     2#1000000000000001:16,
-	     2#1111111111111111:16
-	   >>,
-    BG = ((R*16) bsl 16) bor ((G*16) bsl 8) bor (B*16),
-    FG = case lists:max([R,G,B]) of
-	     V when V > 7 -> 16#040404;
-	     _ -> 16#F0F0F0
-	 end,
-    RGB = << <<(case Bit of 0 -> BG; 1 -> FG end):24>> || <<Bit:1>> <= Mask>>,
-    Image = wxImage:new(16,16,RGB),
-    %%io:format("ok ~p ~p ~p(~p)~n",[wxImage:ok(Image), wxImage:hasAlpha(Image), size(RGB),16*16*3]),
+mat_bitmap(Col, IL) ->
+    #{bg:=BG} = wings_frame:get_colors(),
+    Bmp = wxImageList:getBitmap(IL, image_maps_index(material)),
+    Image = wxBitmap:convertToImage(Bmp),
+    RGB = wxImage:getData(Image),
+    RGBNew = mat_bitmap_masked(RGB, BG, Col),
+    wxImage:setData(Image, RGBNew),
     BM = wxBitmap:new(Image),
     wxImage:destroy(Image),
     BM.
+
+mat_bitmap_masked(RGB, BG, Col) ->
+    mat_bitmap_masked(RGB, BG, Col, <<>>).
+mat_bitmap_masked(<<>>, _, _, Acc) -> Acc;
+mat_bitmap_masked(<<R:8,_G:8,_B:8,RGB/binary>>, {Rb,Gb,Bb,_}=BG, {Rc,Gc,Bc}=Col, Acc) ->
+    if R > 3 ->	% transparent color is "converted" by wxBitmap to values of [1,2,3]
+	Mul = R/255,
+	R0 = min(trunc(Mul*Rc), 255),
+	G0 = min(trunc(Mul*Gc), 255),
+	B0 = min(trunc(Mul*Bc), 255),
+	mat_bitmap_masked(RGB, BG, Col, <<Acc/binary,R0:8,G0:8,B0:8>>);
+    true ->
+	mat_bitmap_masked(RGB, BG, Col, <<Acc/binary,Rb:8,Gb:8,Bb:8>>)
+    end.
 
 %% missing wx_object function
 set_pid({wx_ref, Ref, Type, []}, Pid) when is_pid(Pid) ->
