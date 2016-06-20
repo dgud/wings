@@ -184,11 +184,11 @@ handle_event(#wx{event=#wxMouse{type=motion, x=X}},
 
 handle_event(#wx{event=#wxMouse{type=left_down, x=X}},
 	     #state{this=This, mode=Mode, curr=Curr, capture=false} = State0) ->
-    wxPanel:setFocus(This),
+    %% wxPanel:setFocus(This),  %% crashes on win64 when in autouv..
     wxPanel:captureMouse(This),
     State = State0#state{curr=slider_pos(This, X, Mode, Curr), capture=true},
     [apply_callback(H, get_curr_color(State)) || H <- State#state.handlers],
-    {noreply, State};
+    {noreply, State#state{focus=true}};
 handle_event(#wx{event=#wxMouse{type=left_up}},
 	     #state{this=This, capture=Captured} = State) ->
     Captured andalso wxPanel:releaseMouse(This),
