@@ -1,3 +1,32 @@
+--- 2.0.5 ----------------------------------------------------------------------
+
+- Updates to the Japanese translation [tkbd]
+
+- Fixed a hotkey issue that was not enabling replace a previous binded key as
+  well as it was ignoring the hotkey deletion. Thanks ggaliens. [micheus]
+
+- Added logic that allow the Yafaray - after the engine path be provided -
+  get its render option available under File->Render option whithout need to
+  restart Wings3D. Thanks oort for ask about it. [micheus]
+
+- Fixed the problem with crash in the Ambient Occlusion plug-in. [Björn Gustavsson]
+
+- Fixed the bad text formatting in the module wpc_constraints that was
+  causing Wing3d crash. Thanks to tkbd. [micheus]
+
+  Also, as suggested by the user tkbd, it was added a message dialog that
+  shows to the user the message about the constraint that just has been set. [micheus]
+
+- In OSX, when merge dialog is shown the mouse cursor becomes a clock.
+  Thanks to tkbd. [micheus]
+
+- Handle filename with unicode characters, reported by beng27 [dgud]
+
+- Moving the mouse over 'Various Plans' dialog icon was causing Wings3d
+  crach. Thanks to tkbd. [micheus]
+
+- Fixed other hotkey issues. [dgud]
+
 --- 2.0.4 ----------------------------------------------------------------------
 
 - Further updates of the German translation by Roy. [Björn Gustavsson]
