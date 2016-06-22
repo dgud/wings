@@ -516,7 +516,6 @@ image_index(#{type:=Type}, _IL, Map) when Type =:= light; Type =:= image ->
 image_index(#{type:=mat, color:=Col}, IL, Map) ->
     case maps:get(Col, Map, undefined) of
 	undefined ->
-	    %% {3, Map};
 	    Indx = wxImageList:getImageCount(IL),
 	    wxImageList:add(IL, mat_bitmap(Col, IL)),
 	    {Indx, Map#{Col=>Indx}};
@@ -556,30 +555,30 @@ load_icons() ->
 		    ]),
     {IL, #{object=>1, image=>0, light=>2, mat=>3}}.
 
-mat_bitmap(Col, IL) ->
-    #{bg:=BG} = wings_frame:get_colors(),
-    Bmp = wxImageList:getBitmap(IL, image_maps_index(material)),
-    Image = wxBitmap:convertToImage(Bmp),
+mat_bitmap(Col, _IL) ->
+    {_, _, Orig} = lists:keyfind(material, 1, wings_frame:get_icon_images()),
+    Image = wxImage:copy(Orig),
     RGB = wxImage:getData(Image),
-    RGBNew = mat_bitmap_masked(RGB, BG, Col),
+    Alpha = wxImage:getAlpha(Image),
+    %io:format("Alpha: ~p ~p ~p~n",[wxImage:hasMask(Image), wxImage:hasAlpha(Image), Alpha]),
+    RGBNew = mat_bitmap_masked(RGB, Col),
     wxImage:setData(Image, RGBNew),
+    wxImage:setAlpha(Image, Alpha),
     BM = wxBitmap:new(Image),
     wxImage:destroy(Image),
     BM.
 
-mat_bitmap_masked(RGB, BG, Col) ->
-    mat_bitmap_masked(RGB, BG, Col, <<>>).
-mat_bitmap_masked(<<>>, _, _, Acc) -> Acc;
-mat_bitmap_masked(<<R:8,_G:8,_B:8,RGB/binary>>, {Rb,Gb,Bb,_}=BG, {Rc,Gc,Bc}=Col, Acc) ->
-    if R > 3 ->	% transparent color is "converted" by wxBitmap to values of [1,2,3]
-	Mul = R/255,
-	R0 = min(trunc(Mul*Rc), 255),
-	G0 = min(trunc(Mul*Gc), 255),
-	B0 = min(trunc(Mul*Bc), 255),
-	mat_bitmap_masked(RGB, BG, Col, <<Acc/binary,R0:8,G0:8,B0:8>>);
-    true ->
-	mat_bitmap_masked(RGB, BG, Col, <<Acc/binary,Rb:8,Gb:8,Bb:8>>)
-    end.
+mat_bitmap_masked(RGB, Col) ->
+    mat_bitmap_masked(RGB, Col, <<>>).
+
+mat_bitmap_masked(<<R:8,_G:8,_B:8,RGB/binary>>, {Rc,Gc,Bc}=Col, Acc) ->
+    Mul = R/255,
+    R0 = min(trunc(Mul*Rc), 255),
+    G0 = min(trunc(Mul*Gc), 255),
+    B0 = min(trunc(Mul*Bc), 255),
+    mat_bitmap_masked(RGB, Col, <<Acc/binary,R0:8,G0:8,B0:8>>);
+mat_bitmap_masked(<<>>, _, Acc) -> Acc.
+
 
 %% missing wx_object function
 set_pid({wx_ref, Ref, Type, []}, Pid) when is_pid(Pid) ->
