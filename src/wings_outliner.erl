@@ -278,7 +278,7 @@ mat_info({Name,Mp}) ->
     OpenGL = proplists:get_value(opengl, Mp),
     Maps = proplists:get_value(maps, Mp, []),
     {R,G,B,_} = proplists:get_value(diffuse, OpenGL),
-    Col = {trunc(R*15),trunc(G*15),trunc(B*15)},
+    Col = {trunc(R*16),trunc(G*16),trunc(B*16)},
     #{type=>mat, name=>atom_to_list(Name), color=>Col, maps=>Maps}.
 
 image_info({Id, #e3d_image{name=Name}=Im}) ->
@@ -573,9 +573,9 @@ mat_bitmap_masked(RGB, Col) ->
 
 mat_bitmap_masked(<<R:8,_G:8,_B:8,RGB/binary>>, {Rc,Gc,Bc}=Col, Acc) ->
     Mul = R/255,
-    R0 = min(trunc(Mul*Rc), 255),
-    G0 = min(trunc(Mul*Gc), 255),
-    B0 = min(trunc(Mul*Bc), 255),
+    R0 = min(trunc(Mul*Rc*16), 255),
+    G0 = min(trunc(Mul*Gc*16), 255),
+    B0 = min(trunc(Mul*Bc*16), 255),
     mat_bitmap_masked(RGB, Col, <<Acc/binary,R0:8,G0:8,B0:8>>);
 mat_bitmap_masked(<<>>, _, Acc) -> Acc.
 
