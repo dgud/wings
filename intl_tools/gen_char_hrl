@@ -103,8 +103,18 @@ list_regions(Rs, _Line, Fd) ->
     list_regions(Rs, 0, Fd).
 
 handle(File, Acc) ->
-    {ok, Data} = file:consult(File),
-    lists:foldl(fun parse_data/2, Acc, Data).
+    try
+        {ok, Data} = file:consult(File),
+        lists:foldl(fun parse_data/2, Acc, Data)
+   catch error:Reason ->
+        io:format("Failed to parse the language file:\n ~ts\n", [File]),
+        case Reason of
+            {badmatch,{error,{Line,erl_parse,Msg}}} ->
+                io:format(" Msg: ~p\n Tip: Check line prior to ~w\n", [lists:flatten(Msg), Line]);
+            _ -> ok
+        end,
+        erlang:error(Reason)
+    end.
 
 parse_data({Atom, Data}, Acc) when is_atom(Atom) ->
     parse_data(Data, Acc);
