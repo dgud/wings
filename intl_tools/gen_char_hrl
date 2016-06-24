@@ -51,6 +51,7 @@ main([]) ->
     end.
 
 scan([Lang|Langs], Dir, Acc) ->
+    io:format("Parsing language: ~ts\n",[Lang]),
     Res = filelib:fold_files(Dir, ".*" ++ Lang ++ ".lang$", true, fun handle/2, Acc),
     scan(Langs, Dir, Res);
 scan([], _, Acc) -> 
@@ -103,6 +104,7 @@ list_regions(Rs, _Line, Fd) ->
     list_regions(Rs, 0, Fd).
 
 handle(File, Acc) ->
+    io:format(" => ~ts\n",[File]),
     {ok, Data} = file:consult(File),
     lists:foldl(fun parse_data/2, Acc, Data).
 
