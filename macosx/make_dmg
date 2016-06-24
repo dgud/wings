@@ -4,7 +4,7 @@
 #
 #     Packages the built Wings application into a .dmg file.
 #
-#  Copyright (c) 2002-2009 Bjorn Gustavsson
+#  Copyright (c) 2002-2016 Bjorn Gustavsson
 #
 #  See the file "license.terms" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -16,13 +16,8 @@ temp_dmg="wings-macosx.$$.dmg"
 dmg="$1"
 src="$2"
 dst="$3"
-mnt=$(pwd)/mount
 
 rm -f $temp_dmg $dmg
-hdiutil create -quiet -megabytes 100 -volname "Wings3D" -fs HFS+ -layout NONE $temp_dmg
-hdiutil attach -private -mountpoint $mnt $temp_dmg
-base=$(basename "$src")
-ditto "$src" "$mnt/$dst"
-hdiutil detach $mnt
-hdiutil convert "$temp_dmg" -format UDZO -o $dmg -imagekey zlib-level=9
+hdiutil create -srcfolder $src -volname "Wings3D" -fs HFS+ -layout NONE -format UDBZ $temp_dmg
+hdiutil convert "$temp_dmg" -format UDBZ -o $dmg
 rm $temp_dmg
