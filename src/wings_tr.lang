@@ -928,11 +928,10 @@
    [
     {1,"Bir menüde görünen herhangi komut, bir klavye kısayoluna atanabilir."},
     {4,"Bir komuta kısayol atamak için:"},
-    {5,"1. Komutu içeren menüyü açın ve komutu vurgulayın."},
-    {6,"2. [Insert] veya [/] tuşuna basın."},
-    {7,"3. Eğer komut (gelişmiş menüler aktifken) hangi fare tuşuna basıldığına göre farklı şeyler yapıyorsa, bilgi satırında kısayolu komutun hangi şekline atanacağını belirlemek için bir fare tuşuna basmanızı isteyen bir mesaj olacaktır. (Not: Fare imleci tıkladığınızda menünün içinde kalmalıdır.)"},
-    {8,"4. Bilgi satırı komutun atanacağı tuşa basmanızı ister."},
-    {9,"Bir kısayolu silmek için, benzer şekilde menüde komutu vurgulayın, ve [Del] veya [\\] tuşuna basın. Komuta atanmış bütün tuşları listeleyen bir pencere ortaya çıkacaktır. Silmek istediğiniz bütün kısayolları tikleyin."}
+    {6,"1. ~ts veya ~ts tuşuna basın."},
+    {5,"2. Komutu içeren menüyü açın ve komutu vurgulayın."},
+    {8,"3. Bilgi satırı komutun atanacağı tuşa basmanızı ister."},
+    {9,"Bir kısayolu silmek için, benzer şekilde menüde komutu vurgulayın, ve ~ts veya ~ts tuşuna basın. Komuta atanmış bütün tuşları listeleyen bir pencere ortaya çıkacaktır. Silmek istediğiniz bütün kısayolları tikleyin."}
    ]},
   {edit_prefs,
    [
