@@ -1767,8 +1767,12 @@
   {def_hotkeys,
    [
     {1,"Qualquer comando que apareça em um menu pode ser atribuído a um atalho de teclado."},
-    {2,"Para atribuir um atalho a um comando, abra o menu contendo o comando. Com o comando realçado, tecle [Insert] ou a tecla [/], e então pressione a tecla à qual você deseja atribuir o comando."},
-    {3,"Para apagar um atalho, do mesmo modo realce o comando em um menu, e pressione a tecla [Del} ou {\\}."}
+    {4,"Para atribuir um atalho a um comando:"},
+    {6,"1. Tecle ~ts ou ~ts."},
+    {5,"2. Selecine (com o botão do mouse apropriado) o item de menu do comando"},
+    {8,"3. A linha de informação mostra mensagem solicitando que voce pressione a tecla a ser associada ao comando"},
+    {9,"Para apagar um atalho, similarmente tecle ~ts ou ~ts e selecione o comando em um menu."
+     "Uma caixa de dialogo listará todas as teclas associadas ao comando. Marque todos os atalhos que voce deseja deletar."}
    ]},
   {edit_prefs,
    [
