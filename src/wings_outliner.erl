@@ -470,10 +470,13 @@ update_object(Os, TC, IL, Imap0) ->
 			 image -> wxTreeCtrl:appendItem(TC, Images, Name, [{image, Indx}])
 		     end,
 		 Acc = [{Item, O}|Acc0],
-		 case maps:get(maps, O, []) of
-		     [] -> {Acc, Imap};
-		     Maps ->
-			 add_maps(Maps, TC, Item, IL, Imap, Os, Acc)
+		 if Type =:= mat ->
+		     case maps:get(maps, O, []) of
+			 [] -> {Acc, Imap};
+			 Maps ->
+			     add_maps(Maps, TC, Item, IL, Imap, Os, Acc)
+		     end;
+		 true -> {Acc, Imap}
 		 end
 		 %% {Node,_} = lists:keyfind(Curr, 2, All),
 		 %% wxTreeCtrl:selectItem(TC, Node),
@@ -510,8 +513,15 @@ root_name(light) -> ?__(1, "Lights");
 root_name(mat) -> ?__(2, "Materials");
 root_name(image) -> ?__(3, "Images").
 
-image_index(#{type:=Type}, _IL, Map) when Type =:= light; Type =:= image ->
-    #{Type:=Index} = Map,
+image_index(#{type:=light}, _IL, Map) ->
+    #{light:=Index} = Map,
+    {Index, Map};
+image_index(#{type:=image, image:=#e3d_image{filename=FName}}, _IL, Map) ->
+    #{image:=Index0} = Map,
+    case FName of
+	none -> Index = Index0+1;
+	_ -> Index = Index0
+    end,
     {Index, Map};
 image_index(#{type:=mat, color:=Col}, IL, Map) ->
     case maps:get(Col, Map, undefined) of
@@ -525,11 +535,11 @@ image_index(#{type:=mat, color:=Col}, IL, Map) ->
 
 image_maps_index(Type) ->
     case Type of
-    	diffuse -> 3;
-	gloss -> 4;
-	bump -> 5;
-	normal -> 6;
-	material -> 7;
+    	diffuse -> 4;
+	gloss -> 5;
+	bump -> 6;
+	normal -> 7;
+	material -> 8;
 	_ -> undefined
     end.
 
@@ -548,7 +558,7 @@ load_icons() ->
 		  wxImage:destroy(Small)
 	  end,
     wx:foreach(Add, [
-		     small_image,perspective, %small_object,
+		     small_image,small_image2,perspective, %small_object,
 		     small_light,
 		     small_diffuse,small_gloss,small_bump,small_normal,
 		     material
