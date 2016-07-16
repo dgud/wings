@@ -79,6 +79,10 @@ kill_menus() ->
 	false -> ok
     end.
 
+match_hotkey([Cmd1, Cmd2, Cmd3], HotKeys, Opt) ->
+    [match_hotkey(Cmd1, HotKeys, Opt),
+     match_hotkey(Cmd2, HotKeys, Opt),
+     match_hotkey(Cmd3, HotKeys, Opt)];
 match_hotkey(Name, [{{_,Name},Key}|_], false) -> Key;
 match_hotkey(Name, [{Name,Key}|_], false) -> Key;
 match_hotkey(Name, [{{Name,false},Key}|_], true) -> Key;
@@ -88,6 +92,10 @@ match_hotkey(Name, [_|T], OptionBox) ->
 match_hotkey(_N, [], _) ->
     [].
 
+reduce_name([Cmd1, Cmd2, Cmd3]) ->
+    [reduce_name(Cmd1),
+     reduce_name(Cmd2),
+     reduce_name(Cmd3)];
 reduce_name({'ASK',_}=Ask) -> Ask;
 reduce_name({tweak,Val}) -> Val;
 reduce_name({Key,{_,_}=Tuple}) when is_atom(Key) ->
@@ -404,7 +412,7 @@ popup_result(#menu{type=menu,name=Name,opts=Opts}, {Click,MagnetClick}, Names, O
 calc_min_sizes([#menu{type=Type, desc=Desc, hk=HK}|Es], Win, C1, C2)
   when Type=:=menu;Type=:=submenu ->
     {WStr, _, _, _} = wxWindow:getTextExtent(Win, Desc),
-    {WHK, _, _, _} = wxWindow:getTextExtent(Win, HK),
+    {WHK, _, _, _} = wxWindow:getTextExtent(Win, get_hotkey(1,HK)),
     calc_min_sizes(Es, Win, max(WStr+5, C1), max(WHK+5, C2));
 calc_min_sizes([#menu{}|Es], Win, C1, C2) ->
     calc_min_sizes(Es, Win, C1, C2);
@@ -425,16 +433,16 @@ setup_popup([#menu{type=submenu, wxid=Id, desc=Desc, help=Help0, opts=Ps, hk=HK}
     Line = wxBoxSizer:new(?wxHORIZONTAL),
     wxSizer:addSpacer(Line, 3),
     Controls =
-	case HK of
+	case get_hotkey(1,HK) of
 	    [] ->
 		wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc), [{proportion, 1},{flag, ?wxALIGN_CENTER}]),
 		[Panel,T1];
-	    _ ->
+	    HK0 ->
 		wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc), [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
 		wxSizer:setItemMinSize(Line, T1, Sz1, -1),
 		wxSizer:addSpacer(Line, 10),
 		wxSizer:addStretchSpacer(Line),
-		wxSizer:add(Line, T2 = wxStaticText:new(Panel, Id, HK),  [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
+		wxSizer:add(Line, T2 = wxStaticText:new(Panel, Id, HK0),  [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
 		wxSizer:setItemMinSize(Line, T2, Sz2, -1),
 		wxSizer:addSpacer(Line, 10),
 		wxSizer:add(Line, 16, 16),
@@ -443,7 +451,7 @@ setup_popup([#menu{type=submenu, wxid=Id, desc=Desc, help=Help0, opts=Ps, hk=HK}
     Help = if Help0 =:= [] -> Desc ++ ?__(1," submenu");
 	      true -> Help0
 	   end,
-    {TipMsg, CmdMsg} = tooltip(Help, false, have_magnet(Ps, Magnet)),
+    {TipMsg, CmdMsg} = tooltip(Help, false, have_magnet(Ps, Magnet), HK),
     [wxWindow:setToolTip(Win, wxToolTip:new(TipMsg)) || Win <- Controls],
     wxPanel:setSizerAndFit(Panel, Line),
     wxSizer:add(Sizer, Panel, [{flag, ?wxEXPAND},{proportion, 1}]),
@@ -459,7 +467,7 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     wxSizer:setItemMinSize(Line, T1, Sz1, -1),
     wxSizer:addSpacer(Line, 10),
     wxSizer:addStretchSpacer(Line),
-    wxSizer:add(Line, T2 = wxStaticText:new(Panel, Id, HK),  [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
+    wxSizer:add(Line, T2 = wxStaticText:new(Panel, Id, get_hotkey(1,HK)), [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
     wxSizer:setItemMinSize(Line, T2, Sz2, -1),
     wxSizer:addSpacer(Line, 10),
     BM = case {OpBox = have_option_box(Props),have_color(Props)} of
@@ -480,7 +488,7 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     wxSizer:addSpacer(Line, 3),
     %% Windows doesn't catch enter_window on Panel below statictext
     %% so we need to set tooltip on all sub-windows
-    {TipMsg, CmdMsg} = tooltip(Help, OpBox, have_magnet(Props, Magnet)),
+    {TipMsg, CmdMsg} = tooltip(Help, OpBox, have_magnet(Props, Magnet), HK),
     [wxWindow:setToolTip(Win, wxToolTip:new(TipMsg)) || Win <- [Panel,T1,T2|BM]],
     wxPanel:setSizerAndFit(Panel, Line),
     wxSizer:add(Sizer, Panel, [{flag, ?wxEXPAND}, {proportion, 1}]),
@@ -536,40 +544,46 @@ setup_colors(Window, Background, Foreground) ->
 	    setup_colors(wx:typeCast(wxWindow:getParent(Window), wxPanel), Background, Foreground)
     end.
 
-tooltip("", false, false) -> {"",""};
-tooltip(Help, OptBox, Magnet) when is_list(Help) ->
-    tooltip(Help, "", opt_help(OptBox), Magnet);
-tooltip({Help}, OptBox, Magnet) ->
-    tooltip(Help, "", opt_help(OptBox), Magnet);
-tooltip({HelpL, HelpM}, OptBox, Magnet) ->
-    tooltip(HelpL, HelpM, opt_help(OptBox), Magnet);
-tooltip({HelpL, HelpM, ""}, OptBox, Magnet) ->
-    tooltip(HelpL, HelpM, opt_help(OptBox), Magnet);
-tooltip({HelpL, HelpM, HelpR}, _, Magnet) ->
-    tooltip(HelpL, HelpM, HelpR, Magnet).
+tooltip("", false, false, _) -> {"",""};
+tooltip(Help, OptBox, Magnet, HK) when is_list(Help) ->
+    tooltip(Help, "", opt_help(OptBox), Magnet, HK);
+tooltip({Help}, OptBox, Magnet, HK) ->
+    tooltip(Help, "", opt_help(OptBox), Magnet, HK);
+tooltip({HelpL, HelpM}, OptBox, Magnet, HK) ->
+    tooltip(HelpL, HelpM, opt_help(OptBox), Magnet, HK);
+tooltip({HelpL, HelpM, ""}, OptBox, Magnet, HK) ->
+    tooltip(HelpL, HelpM, opt_help(OptBox), Magnet, HK);
+tooltip({HelpL, HelpM, HelpR}, _, Magnet, HK) ->
+    tooltip(HelpL, HelpM, HelpR, Magnet, HK).
 
-tooltip("", "", "", Magnet) ->
+tooltip("", "", "", Magnet, _) ->
     Str = magnet_help(str, Magnet),
     {Str, Str};
-tooltip(HelpL, "", "", Magnet) ->
+tooltip(HelpL, "", "", Magnet, _) ->
     {str_clean(HelpL) ++ magnet_help(tip, Magnet),
      wings_msg:join(HelpL,magnet_help(str, Magnet))};
-tooltip(HelpL, HelpM, "", Magnet) ->
-    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts~n" ++
-		       ?__(2, "Middle mouse button") ++ ": ~ts",
+tooltip(HelpL, HelpM, "", Magnet, HK) ->
+    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts" ++ tooltip_hk(1,HK) ++ "~n" ++
+		       ?__(2, "Middle mouse button") ++ ": ~ts" ++ tooltip_hk(2,HK),
 		   [HelpL, HelpM]) ++ magnet_help(tip, Magnet),
      wings_msg:join(wings_msg:button_format(HelpL, HelpM, ""),magnet_help(str, Magnet))};
-tooltip(HelpL, "", HelpR, Magnet) ->
-    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts~n" ++
-		       ?__(3, "Right mouse button") ++ ": ~ts",
+tooltip(HelpL, "", HelpR, Magnet, HK) ->
+    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts" ++ tooltip_hk(1,HK) ++ "~n" ++
+		       ?__(3, "Right mouse button") ++ ": ~ts" ++ tooltip_hk(3,HK),
 		   [HelpL, HelpR]) ++ magnet_help(tip, Magnet),
      wings_msg:join(wings_msg:button_format(HelpL, "", HelpR), magnet_help(str, Magnet))};
-tooltip(HelpL, HelpM, HelpR, Magnet) ->
-    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts~n" ++
-		       ?__(2, "Middle mouse button") ++ ": ~ts~n" ++
-		       ?__(3, "Right mouse button") ++ ": ~ts",
+tooltip(HelpL, HelpM, HelpR, Magnet, HK) ->
+    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts" ++ tooltip_hk(1,HK) ++ "~n" ++
+		       ?__(2, "Middle mouse button") ++ ": ~ts" ++ tooltip_hk(2,HK) ++ "~n" ++
+		       ?__(3, "Right mouse button") ++ ": ~ts" ++ tooltip_hk(3,HK),
 		   [HelpL, HelpM, HelpR]) ++ magnet_help(tip, Magnet),
      wings_msg:join(wings_msg:button_format(HelpL, HelpM, HelpR), magnet_help(str, Magnet))}.
+
+tooltip_hk(Mb, HK) ->
+    case get_hotkey(Mb, HK) of
+	[] -> "";
+	HKStr -> io_lib:format("  | ~ts", [HKStr])
+    end.
 
 str_clean([Char|Cs]) when is_integer(Char) ->
     [Char|str_clean(Cs)];
@@ -774,9 +788,8 @@ setup_menu(Names, Id, Menus1) when is_list(Menus1) ->
 normalize_menu_wx(separator, _, _) ->
     #menu{type=separator};
 normalize_menu_wx({S,Fun,Help,Ps}, Hotkeys, Ns) when is_function(Fun) ->
-    Name = Fun(1, Ns),
     HK = case proplists:get_value(hotkey, Ps) of
-	     undefined -> match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps));
+	     undefined -> match_hotkey(reduce_name([Fun(1, Ns),Fun(2, Ns),Fun(3, Ns)]), Hotkeys, have_option_box(Ps));
 	     String -> String
 	 end,
     #menu{type=menu, desc=S, name=Fun, help=Help, opts=Ps, hk=HK};
@@ -824,13 +837,24 @@ normalize_menu_wx({S,Name,Ps},Hotkeys, _Ns) ->
 
 name_for_hotkey(Name, Ns, Fun) when is_function(Fun) ->
     case Fun(1, Ns) of
-	SM when is_tuple(SM) -> SM;
+	SM when is_tuple(SM) -> [SM, Fun(2, Ns), Fun(3, Ns)];
 	_ -> Name
     end;
 name_for_hotkey(Name, _, _) -> Name.
 
+get_hotkey(1,[HK1, _, _]) -> HK1;
+get_hotkey(2,[_, HK2, _]) -> HK2;
+get_hotkey(3,[_, _, HK3]) -> HK3;
+get_hotkey(1,HK) -> HK;
+get_hotkey(_,_) -> "".
+
 format_hotkeys([#menu{type=separator}=H|T], Style) ->
     [H|format_hotkeys(T, Style)];
+format_hotkeys([#menu{hk=[HK1,HK2,HK3]}=H|T], Style) ->
+    Hotkey1 = wings_hotkey:format_hotkey(HK1, Style),
+    Hotkey2 = wings_hotkey:format_hotkey(HK2, Style),
+    Hotkey3 = wings_hotkey:format_hotkey(HK3, Style),
+    [H#menu{hk=[Hotkey1, Hotkey2, Hotkey3]}|format_hotkeys(T, Style)];
 format_hotkeys([#menu{hk=HK0}=H|T], Style) ->
     Hotkey = wings_hotkey:format_hotkey(HK0, Style),
     [H#menu{hk=Hotkey}|format_hotkeys(T, Style)];
