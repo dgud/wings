@@ -1554,6 +1554,8 @@ drop_command(cancel_drop, St) -> St.
 %%%
 
 save_windows() ->
+    TopSize = wxWindow:getSize(?GET(top_frame)),
+    wings_pref:set_value(window_size, TopSize),
     {Contained, Free} = wings_frame:export_layout(),
     wings_pref:set_value(saved_windows, Free),
     wings_pref:set_value(saved_cont_windows, Contained).

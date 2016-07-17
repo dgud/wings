@@ -12,7 +12,7 @@
 -module(wings_frame).
 
 -export([top_menus/0, make_win/2, register_win/3, close/1, set_focus/1, set_title/2,
-	 export_layout/0, import_layout/2,
+	 export_layout/0, import_layout/2, update_layout/1,
 	 get_overlay/0, overlay_draw/3, overlay_hide/1,
 	 get_icon_images/0, get_colors/0]).
 
@@ -108,6 +108,9 @@ export_layout() ->
     Free = [AddProps(Win) || Win <- Free0, save_window(element(1,Win))],
     {Contained, Free}.
 
+update_layout(Contained) ->
+    wx_object:call(?MODULE, {update_layout,Contained}).
+
 get_icon_images() ->
     wx_object:call(?MODULE, get_images).
 
@@ -141,6 +144,7 @@ validate_pos(_, _, _) -> {-1, -1}.
 import_layout({Contained, Free}, St) ->
     reset_layout(),
     Contained =/= [] andalso imp_layout(Contained, [], undefined, St),
+    update_layout(Contained),
     _ = [restore_window(Win, St) || Win <- Free],
     ok.
 
@@ -411,9 +415,30 @@ handle_call(get_images, _From, #state{images=Icons} = State) ->
 handle_call(get_overlay, _From, #state{overlay=Overlay}=State) ->
     {reply, Overlay, State};
 
+handle_call({update_layout,Contained0}, _From, #state{windows=#{ch:=Split}}=State) ->
+    Contained =
+        lists:foldl(fun({Type, _, _}=C, Acc) when Type=:=split; Type=:=split_rev ->
+			    Acc ++ [C];
+		       (_, Acc) -> Acc
+		    end, [], Contained0),
+    update_layout(Contained, Split),
+    {reply, ok, State};
+
 handle_call(Req, _From, State) ->
     io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, Req]),
     {reply, ok, State}.
+
+update_layout([{_,Mode,Permille}|Contained], #split{obj=Obj, mode=Mode, w1=W10, w2=W20}) ->
+    {W,H} = wxWindow:getClientSize(Obj),
+    Pos =
+	case Mode of
+	    splitVertically   -> round(W * Permille / 1000);
+	    splitHorizontally -> round(H * Permille / 1000)
+	end,
+    wxSplitterWindow:setSashPosition(Obj, Pos),
+    update_layout(Contained, W10),
+    update_layout(Contained, W20);
+update_layout(_, _) -> ok.
 
 %%%%%%%%%%%%%%%%%%%%%%
 handle_cast({selmode, _, _, _}=Sel, #state{toolbar=TB}=State) ->
@@ -943,8 +968,8 @@ win(Obj) -> Obj.
 pos_from_permille({permille, Permille}, Mode, Obj) ->
     {W,H} = wxWindow:getClientSize(Obj),
     case Mode of
-	splitVertically   -> round(W * Permille / 1000)-(W-25);
-	splitHorizontally -> round(H * Permille / 1000)-(H-25)
+	splitVertically   -> round(W * Permille / 1000)-W;
+	splitHorizontally -> round(H * Permille / 1000)-H
     end;
 pos_from_permille(Pos, _, _) -> Pos.
 
