@@ -1,11 +1,12 @@
 %%
 %%  wpc_yafaray.erl
 %%
-%%     YafaRay Plugin User Interface.
+%%     YafaRay Plugin User Interface, for YafaRay Core v3
 %%
 %%  Copyright (c) 2003-2008 Raimo Niskanen
 %%                2013-2015 Code Convertion from Yafray to YafaRay by Bernard Oortman (Wings3d user oort)
 %%                2015 Micheus (porting to use wx dialogs)
+%%                2016 David Bluecame (adaptation for YafaRay Core v3)
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -172,7 +173,8 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_CLAMP_RGB, true).
 -define(DEF_AA_FILTER_TYPE, box).
 -define(DEF_TRANSPARENT_SHADOWS, false).
--define(DEF_BACKGROUND_TRANSP_REFRACT, true).
+-define(DEF_BACKGROUND_TRANSP, false).
+-define(DEF_BACKGROUND_TRANSP_REFRACT, false).
 -define(DEF_SHADOW_DEPTH, 2).
 -define(DEF_RAYDEPTH, 12).
 -define(DEF_BIAS, 0.001).
@@ -269,6 +271,8 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_AMBIENT_CAUSTICPHOTONS, false).
 -define(DEF_BACKGROUND_ROTATION, 0.0).
 -define(DEF_SAMPLES, 128).
+-define(DEF_IBL_CLAMP_SAMPLING, 0.0).
+-define(DEF_SMARTIBL_BLUR, 0.0).
 
 %% Pathlight
 -define(DEF_PATHLIGHT_MODE, undefined).
@@ -399,7 +403,6 @@ range_1(power)                  -> {0.0,infinity};
 range_1(bias)                   -> {0.0,1.0};
 range_1(res)                    -> {0,infinity};
 range_1(radius)                 -> {0,infinity};
-range_1(blur)                   -> {0.0,1.0};
 range_1(samples)                -> {1,infinity};
 range_1(spot_ies_samples)       -> {1,512};
 range_1(glow_intensity)         -> {0.0,1.0};
@@ -430,6 +433,8 @@ range_1(sky_background_power)   -> {0.0,infinity};
 range_1(sky_background_samples) -> {0,infinity};
 range_1(darksky_altitude)	-> {0.0,infinity};
 range_1(sun_real_power)		-> {0.0,infinity};
+range_1(smartibl_blur)	-> {0.0,0.75};
+range_1(ibl_clamp_sampling)	-> {0.0,infinity};
 
 %% Render ranges
 range_1(pm_diffuse_photons)     -> {1,100000000};
@@ -1981,6 +1986,8 @@ light_dialog(_Name, ambient, Ps) ->
     %%
     Type = proplists:get_value(type, Ps, ?DEF_AMBIENT_TYPE),
     Samples = proplists:get_value(samples, Ps, ?DEF_SAMPLES),
+    Ibl_clamp_sampling = proplists:get_value(ibl_clamp_sampling, Ps, ?DEF_IBL_CLAMP_SAMPLING),
+    Smartibl_blur = proplists:get_value(smartibl_blur, Ps, ?DEF_SMARTIBL_BLUR),
 
     Hook_Enabled =
         fun(Key, Value, Store) ->
@@ -2063,7 +2070,11 @@ light_dialog(_Name, ambient, Ps) ->
                         panel,
                         {hframe,[
                             {label,?__(60,"Samples")},
-                            {text,Samples,[range(samples),key(samples)]}
+                            {text,Samples,[range(samples),key(samples)]},
+                            {label,?__(125,"Ibl_clamp_sampling")},
+                            {text,Ibl_clamp_sampling,[range(ibl_clamp_sampling),key(ibl_clamp_sampling)]},
+                            {label,?__(126,"Smartibl_blur")},
+                            {text,Smartibl_blur,[range(smartibl_blur),key(smartibl_blur)]}
                         ],[key(pnl_enlight_samples),{margin,false}]}
                     ],[{margin,false}]},
                     {hframe, [
@@ -2116,9 +2127,9 @@ light_result([{?KEY(arealight_samples),_}|_]=Ps) ->
     split_list(Ps, 1);
 %%% Ambient
 light_result([{?KEY(background),_}|_]=Ps) ->
-    split_list(Ps, 10);
+    split_list(Ps, 12);
 light_result([{?KEY(type),hemilight}|_]=Ps) ->
-    split_list(Ps, 13);
+    split_list(Ps, 15);
 light_result(Ps) ->
 %%    erlang:display({?MODULE,?LINE,Ps}),
     {[],Ps}.
@@ -2238,6 +2249,7 @@ export_prefs() ->
         {aa_filter_type,?DEF_AA_FILTER_TYPE},
         {background_color,?DEF_BACKGROUND_COLOR},
         {save_alpha,?DEF_SAVE_ALPHA},
+        {background_transp,?DEF_BACKGROUND_TRANSP},
         {background_transp_refract,?DEF_BACKGROUND_TRANSP_REFRACT},
         {lens_type,?DEF_LENS_TYPE},
         {lens_ortho_scale,?DEF_LENS_ORTHO_SCALE},
@@ -2502,7 +2514,10 @@ export_dialog_qs(Op, Attr) ->
                     ], get_pref(save_alpha,Attr), [{key,save_alpha}]},
                     panel,
                     {?__(159, "Transp Refraction"),get_pref(background_transp_refract,Attr),
-                                                    [{key,background_transp_refract}]}
+                        [{key,background_transp_refract}]},
+                    panel,
+                    {?__(161, "Transp Background"),get_pref(background_transp,Attr),
+                        [{key,background_transp}]}
                 ],[{title, ?__(26, "Background")},{margin,false}]}
 
 %%                 % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
@@ -2928,6 +2943,12 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
             export_file_is_render_file;
         {Renderer,true} ->
             SaveAlpha = proplists:get_value(save_alpha, Attr),
+            PluginsOpt =  case wings_job:quote(PluginsPath) of
+                                "" -> "";
+                                _ ->
+                                    "-pp "++wings_job:quote(PluginsPath)
+                            end,
+
             AlphaChannel =  case SaveAlpha of
                                 false -> "";
                                 _ ->
@@ -2951,7 +2972,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                 end,
             file:delete(RenderFile),
             set_var(rendering, true),
-            wings_job:render(ExportTS, Renderer,"-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+            wings_job:render(ExportTS, Renderer,"-ccd"++" "++PluginsOpt++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
 warn_multiple_backgrounds([]) ->
@@ -5261,6 +5282,12 @@ export_background(F, Name, Ps) ->
             BgRotation = proplists:get_value(background_rotation, YafaRay,
                 ?DEF_BACKGROUND_ROTATION),
 
+            Ibl_clamp_sampling = proplists:get_value(ibl_clamp_sampling, YafaRay,
+                ?DEF_IBL_CLAMP_SAMPLING),
+
+            Smartibl_blur = proplists:get_value(smartibl_blur, YafaRay,
+                ?DEF_SMARTIBL_BLUR),
+
             Samples = proplists:get_value(samples, YafaRay,
                 ?DEF_SAMPLES),
 
@@ -5291,7 +5318,10 @@ export_background(F, Name, Ps) ->
                     println(F, "<ibl bval=\"true\"/>"),
                     println(F, "<ibl_samples ival=\"~w\"/>",[Samples]),
                     println(F, "<with_diffuse bval=\"~s\"/>",[AmbientDiffusePhotons]),
-                    println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]);
+                    println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]),
+                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]),
+                    println(F, "<ibl_clamp_sampling fval=\"~w\"/>",[Ibl_clamp_sampling]);
+
                 false ->
                     println(F, "<ibl bval=\"false\"/>")
             end,
@@ -5309,6 +5339,12 @@ export_background(F, Name, Ps) ->
                 ?DEF_SAMPLES),
             BgRotation = proplists:get_value(background_rotation, YafaRay,
                 ?DEF_BACKGROUND_ROTATION),
+
+            Ibl_clamp_sampling = proplists:get_value(ibl_clamp_sampling, YafaRay,
+                ?DEF_IBL_CLAMP_SAMPLING),
+
+            Smartibl_blur = proplists:get_value(smartibl_blur, YafaRay,
+                ?DEF_SMARTIBL_BLUR),
 
             AmbientDiffusePhotons = proplists:get_value(ambient_diffusephotons, YafaRay, ?DEF_AMBIENT_DIFFUSEPHOTONS),
 
@@ -5336,7 +5372,9 @@ export_background(F, Name, Ps) ->
                     println(F, "<ibl bval=\"true\"/>"),
                     println(F, "<ibl_samples ival=\"~w\"/>",[Samples]),
                     println(F, "<with_diffuse bval=\"~s\"/>",[AmbientDiffusePhotons]),
-                    println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]);
+                    println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]),
+                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]),
+                    println(F, "<ibl_clamp_sampling fval=\"~w\"/>",[Ibl_clamp_sampling]);
                 false ->
                     println(F, "<ibl bval=\"false\"/>")
             end,
@@ -5357,6 +5395,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     AA_pixelwidth = proplists:get_value(aa_pixelwidth, Attr),
     AA_threshold = proplists:get_value(aa_threshold, Attr),
     ClampRGB = proplists:get_value(clamp_rgb, Attr),
+    BackgroundTransp = proplists:get_value(background_transp, Attr),
     BackgroundTranspRefract = proplists:get_value(background_transp_refract, Attr),
     AA_Filter_Type = proplists:get_value(aa_filter_type, Attr),
     SaveAlpha = proplists:get_value(save_alpha, Attr),
@@ -5427,6 +5466,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         directlighting ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
@@ -5436,6 +5476,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         photonmapping ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
@@ -5456,6 +5497,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         pathtracing ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
@@ -5472,6 +5514,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         bidirectional ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F," ");
@@ -5479,6 +5522,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         sppm ->
             println(F," "),
             println(F, "<type sval=\"SPPM\"/>"),
+            println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<photons ival=\"~w\"/>",[SPPM_Photons]),
             println(F, "<bounces ival=\"~w\"/>",[SPPM_Bounces]),
@@ -6009,7 +6053,7 @@ help(text, pref_dialog) ->
         "that executable."),
      %%
      ?__(73,"YafaRay Plugins Path: The path to the YafaRay raytrace renderer plugins "
-        "folder('c:/yafaray/bin/plugins'). YafaRay will not work without this."),
+        "folder('c:/yafaray/bin/plugins'). Older YafaRay versions  will not work without this. YafaRay v3.0.0 or higher no longer needs this and can be empty (but in that case make sure the field is empty and no blank spaces are inserted in it)."),
      %%
      ?__(74,"Options: Rendering command line options to be inserted between the "
       "executable and the .xml filename, -dp (add render settings badge) "
