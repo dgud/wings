@@ -271,8 +271,8 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_AMBIENT_CAUSTICPHOTONS, false).
 -define(DEF_BACKGROUND_ROTATION, 0.0).
 -define(DEF_SAMPLES, 128).
--define(DEF_IBL_CLAMP_SAMPLING, 0.0).
--define(DEF_SMARTIBL_BLUR, 0.0).
+-define(DEF_IBL_CLAMP_SAMPLING, 0.0).   % only available for YafaRay v3.0.1 or higher
+-define(DEF_SMARTIBL_BLUR, 0.0).    % only available for YafaRay v3.0.1 or higher
 
 %% Pathlight
 -define(DEF_PATHLIGHT_MODE, undefined).
@@ -335,6 +335,13 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_MOD_DISTORTION_NOISESIZE, 1.0).
 -define(DEF_MOD_ALPHA_INTENSITY, off).
 -define(DEF_TEXTURE_TYPE, diffusetexture).
+
+%% Render Passes, only available for YafaRay v3.0.1 or higher
+-define(DEF_RENDER_PASS, disabled).
+-define(DEF_PASS_MASK_MAT_INDEX, 0).
+-define(DEF_PASS_MASK_INVERT, false).
+-define(DEF_PASS_MASK_ONLY, false).
+
 
 range(T) -> {range,range_1(T)}.
 
@@ -433,8 +440,8 @@ range_1(sky_background_power)   -> {0.0,infinity};
 range_1(sky_background_samples) -> {0,infinity};
 range_1(darksky_altitude)	-> {0.0,infinity};
 range_1(sun_real_power)		-> {0.0,infinity};
-range_1(smartibl_blur)	-> {0.0,0.75};
-range_1(ibl_clamp_sampling)	-> {0.0,infinity};
+range_1(smartibl_blur)	-> {0.0,0.75};  % only available for YafaRay v3.0.1 or higher
+range_1(ibl_clamp_sampling)	-> {0.0,infinity};  % only available for YafaRay v3.0.1 or higher
 
 %% Render ranges
 range_1(pm_diffuse_photons)     -> {1,100000000};
@@ -483,7 +490,11 @@ range_1(lens_angular_max_angle) -> {0.0,360.0};
 range_1(lens_angular_angle)     -> {0.0,360.0};
 range_1(aperture)               -> {0.0,infinity};
 range_1(bokeh_rotation)         -> {-180.0,180.0};
-range_1(dof_distance)           -> {0.0,250.0}.
+range_1(dof_distance)           -> {0.0,250.0};
+
+%% Render passes ranges, only available for YafaRay v3.0.1 or higher
+range_1(pass_mask_mat_index)    -> {0,infinity}.
+
 
 %% used to fix old data that now can be out of range and crash Wings3d
 fit_range(Value,Id) ->
@@ -1986,8 +1997,8 @@ light_dialog(_Name, ambient, Ps) ->
     %%
     Type = proplists:get_value(type, Ps, ?DEF_AMBIENT_TYPE),
     Samples = proplists:get_value(samples, Ps, ?DEF_SAMPLES),
-    Ibl_clamp_sampling = proplists:get_value(ibl_clamp_sampling, Ps, ?DEF_IBL_CLAMP_SAMPLING),
-    Smartibl_blur = proplists:get_value(smartibl_blur, Ps, ?DEF_SMARTIBL_BLUR),
+    Ibl_clamp_sampling = proplists:get_value(ibl_clamp_sampling, Ps, ?DEF_IBL_CLAMP_SAMPLING),  % only available for YafaRay v3.0.1 or higher
+    Smartibl_blur = proplists:get_value(smartibl_blur, Ps, ?DEF_SMARTIBL_BLUR), % only available for YafaRay v3.0.1 or higher
 
     Hook_Enabled =
         fun(Key, Value, Store) ->
@@ -2071,10 +2082,10 @@ light_dialog(_Name, ambient, Ps) ->
                         {hframe,[
                             {label,?__(60,"Samples")},
                             {text,Samples,[range(samples),key(samples)]},
-                            {label,?__(125,"Ibl_clamp_sampling")},
-                            {text,Ibl_clamp_sampling,[range(ibl_clamp_sampling),key(ibl_clamp_sampling)]},
-                            {label,?__(126,"Smartibl_blur")},
-                            {text,Smartibl_blur,[range(smartibl_blur),key(smartibl_blur)]}
+                            {label,?__(125,"Clamp IBL sampling")},
+                            {text,Ibl_clamp_sampling,[range(ibl_clamp_sampling),key(ibl_clamp_sampling)]},  % only available for YafaRay v3.0.1 or higher
+                            {label,?__(126,"SmartIBL blur")},
+                            {text,Smartibl_blur,[range(smartibl_blur),key(smartibl_blur)]}  % only available for YafaRay v3.0.1 or higher
                         ],[key(pnl_enlight_samples),{margin,false}]}
                     ],[{margin,false}]},
                     {hframe, [
@@ -2182,6 +2193,10 @@ export_dialog(Op, Title) ->
 
 %% Export Render Options Dialog Settings
 export_prefs() ->
+    RenderPass =
+        lists:foldl(fun(N, Acc) ->
+                         Acc++[{{pass,N},?DEF_RENDER_PASS}]
+                     end, [], lists:seq(1,32)),
     [{subdivisions,?DEF_SUBDIVISIONS},
         {keep_xml,?DEF_KEEP_XML},
         {threads_number,?DEF_THREADS_NUMBER},
@@ -2265,7 +2280,7 @@ export_prefs() ->
         {aperture,?DEF_APERTURE},
         {bokeh_bias,?DEF_BOKEH_BIAS},
         {bokeh_rotation,?DEF_BOKEH_ROTATION},
-        {dof_distance,?DEF_DOF_DISTANCE}].
+        {dof_distance,?DEF_DOF_DISTANCE}] ++ RenderPass.
 
 f_stop_str(Value) when is_float(Value) ->
     %% we must use the same number of decimals used in the aperture edit box
@@ -2770,12 +2785,84 @@ export_dialog_qs(Op, Attr) ->
             ],[{title,""}]}
         },
 
+    %% RenderPasses group, only available for YafaRay v3.0.1 or higher
+    RenderPasses =
+        {?__(167, "Render Passes"),
+            {vframe, render_pass_frame(Attr)}
+        },
+
     [
         {oframe, [
             GeneralOpt,
             Lighting,
-            Camera
+            Camera,
+            RenderPasses
         ], 1, [{style, buttons}]}
+    ].
+
+render_pass_frame(Attr) ->
+    PassLabel = ?__(1,"Render Pass"),
+    lists:foldl(fun(N, Acc) ->
+          Id = {pass,N},
+          Value = get_pref(Id, Attr),
+          Acc++[{hframe, [
+                        {label, PassLabel ++ io_lib:format(" (~w)", [N])},
+                        {menu, render_pass_menu(), Value ,[key(Id)]}
+                   ]}]
+        end, [], lists:seq(1,32)).
+        
+render_pass_menu() ->
+    [
+        {?__(1,"Disabled"),'disabled'},
+        {?__(2,"Basic: Combined image"),'combined'},
+        {?__(3,"Basic: Diffuse"),'diffuse'},
+        {?__(4,"Basic: Diffuse (no shadows)"),'diffuse-noshadow'},
+        {?__(5,"Basic: Shadow"),'shadow'},
+        {?__(6,"Basic: Environment"),'env'},
+        {?__(7,"Basic: Indirect"),'indirect'},
+        {?__(8,"Basic: Emit"),'emit'},
+        {?__(9,"Basic: Reflection"),'reflect'},
+        {?__(10,"Basic: Refraction"),'refract'},
+        {?__(11,"Basic: Mist"),'mist'},
+        {?__(12,"Z-Depth (absolute)"),'z-depth-abs'},
+        {?__(13,"Z-Depth (normalized)"),'z-depth-norm'},
+        {?__(14,"Ambient Occlusion (color)"),'ao'},
+        {?__(15,"Ambient Occlusion (clay)"),'ao-clay'},
+        {?__(16,"Index-Object (auto)"),'obj-index-auto'},
+        {?__(17,"Index-Material (auto)"),'mat-index-auto'},
+        {?__(18,"Index-Material (absolute)"),'mat-index-abs'},
+        {?__(19,"Index-Material (normalized)"),'mat-index-norm'},
+        {?__(21,"Index-Material Mask"),'mat-index-mask'},
+        {?__(22,"Index-Material Mask Shadow"),'mat-index-mask-shadow'},
+        {?__(23,"Index-Material Mask All (Object+Shadow)"),'mat-index-mask-all'},
+        {?__(24,"Adv: Reflection"),'adv-reflect'},
+        {?__(25,"Adv: Refraction"),'adv-refract'},
+        {?__(26,"Adv: Indirect"),'adv-indirect'},
+        {?__(27,"Adv: Photon Radiance map"),'adv-radiance'},
+        {?__(28,"Adv: Diffuse Indirect"),'adv-diffuse-indirect'},
+        {?__(29,"Adv: Diffuse color"),'adv-diffuse-color'},
+        {?__(30,"Adv: Glossy"),'adv-glossy'},
+        {?__(31,"Adv: Glossy Indirect"),'adv-glossy-indirect'},
+        {?__(32,"Adv: Glossy color"),'adv-glossy-color'},
+        {?__(33,"Adv: Transmissive"),'adv-trans'},
+        {?__(34,"Adv: Trans.Indirect"),'adv-trans-indirect'},
+        {?__(35,"Adv: Trans.color"),'adv-trans-color'},
+        {?__(36,"Adv: SubSurface"),'adv-subsurface'},
+        {?__(37,"Adv: SubSurf.Indirect"),'adv-subsurface-indirect'},
+        {?__(38,"Adv: SubSurf.color"),'adv-subsurface-color'},
+        {?__(39,"Adv: Surface Integration"),'adv-surface-integration'},
+        {?__(40,"Adv: Volume Integration"),'adv-volume-integration'},
+        {?__(41,"Adv: Volume Transmittance"),'adv-volume-transmittance'},
+        {?__(42,"Debug: AA sample count"),'debug-aa-samples'},
+        {?__(43,"Debug: UV"),'debug-uv'},
+        {?__(44,"Debug: dSdV"),'debug-dsdv'},
+        {?__(45,"Debug: dSdU"),'debug-dsdu'},
+        {?__(46,"Debug: dPdV"),'debug-dpdv'},
+        {?__(47,"Debug: dPdU"),'debug-dpdu'},
+        {?__(48,"Debug: NV"),'debug-nv'},
+        {?__(49,"Debug: NU"),'debug-nu'},
+        {?__(50,"Debug: Normals (geometric)"),'debug-normal-geom'},
+        {?__(51,"Debug: Normals (smooth)"),'debug-normal-smooth'}
     ].
 
 %%% TO DO: this implementation depends on wings_dialog changes for button operation
@@ -5283,10 +5370,10 @@ export_background(F, Name, Ps) ->
                 ?DEF_BACKGROUND_ROTATION),
 
             Ibl_clamp_sampling = proplists:get_value(ibl_clamp_sampling, YafaRay,
-                ?DEF_IBL_CLAMP_SAMPLING),
+                ?DEF_IBL_CLAMP_SAMPLING),   % only available for YafaRay v3.0.1 or higher
 
             Smartibl_blur = proplists:get_value(smartibl_blur, YafaRay,
-                ?DEF_SMARTIBL_BLUR),
+                ?DEF_SMARTIBL_BLUR),    % only available for YafaRay v3.0.1 or higher
 
             Samples = proplists:get_value(samples, YafaRay,
                 ?DEF_SAMPLES),
@@ -5319,8 +5406,8 @@ export_background(F, Name, Ps) ->
                     println(F, "<ibl_samples ival=\"~w\"/>",[Samples]),
                     println(F, "<with_diffuse bval=\"~s\"/>",[AmbientDiffusePhotons]),
                     println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]),
-                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]),
-                    println(F, "<ibl_clamp_sampling fval=\"~w\"/>",[Ibl_clamp_sampling]);
+                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]), % only available for YafaRay v3.0.1 or higher
+                    println(F, "<ibl_clamp_sampling fval=\"~w\"/>",[Ibl_clamp_sampling]);   % only available for YafaRay v3.0.1 or higher
 
                 false ->
                     println(F, "<ibl bval=\"false\"/>")
@@ -5341,10 +5428,10 @@ export_background(F, Name, Ps) ->
                 ?DEF_BACKGROUND_ROTATION),
 
             Ibl_clamp_sampling = proplists:get_value(ibl_clamp_sampling, YafaRay,
-                ?DEF_IBL_CLAMP_SAMPLING),
+                ?DEF_IBL_CLAMP_SAMPLING),   % only available for YafaRay v3.0.1 or higher
 
             Smartibl_blur = proplists:get_value(smartibl_blur, YafaRay,
-                ?DEF_SMARTIBL_BLUR),
+                ?DEF_SMARTIBL_BLUR),    % only available for YafaRay v3.0.1 or higher
 
             AmbientDiffusePhotons = proplists:get_value(ambient_diffusephotons, YafaRay, ?DEF_AMBIENT_DIFFUSEPHOTONS),
 
@@ -5373,8 +5460,8 @@ export_background(F, Name, Ps) ->
                     println(F, "<ibl_samples ival=\"~w\"/>",[Samples]),
                     println(F, "<with_diffuse bval=\"~s\"/>",[AmbientDiffusePhotons]),
                     println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]),
-                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]),
-                    println(F, "<ibl_clamp_sampling fval=\"~w\"/>",[Ibl_clamp_sampling]);
+                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]), % only available for YafaRay v3.0.1 or higher
+                    println(F, "<ibl_clamp_sampling fval=\"~w\"/>",[Ibl_clamp_sampling]);   % only available for YafaRay v3.0.1 or higher
                 false ->
                     println(F, "<ibl bval=\"false\"/>")
             end,
