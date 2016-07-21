@@ -337,7 +337,38 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_TEXTURE_TYPE, diffusetexture).
 
 %% Render Passes, only available for YafaRay v3.0.1 or higher
--define(DEF_RENDER_PASS, disabled).
+-define(DEF_RENDER_PASS1, disabled).
+-define(DEF_RENDER_PASS2, disabled).
+-define(DEF_RENDER_PASS3, disabled).
+-define(DEF_RENDER_PASS4, disabled).
+-define(DEF_RENDER_PASS5, disabled).
+-define(DEF_RENDER_PASS6, disabled).
+-define(DEF_RENDER_PASS7, disabled).
+-define(DEF_RENDER_PASS8, disabled).
+-define(DEF_RENDER_PASS9, disabled).
+-define(DEF_RENDER_PASS10, disabled).
+-define(DEF_RENDER_PASS11, disabled).
+-define(DEF_RENDER_PASS12, disabled).
+-define(DEF_RENDER_PASS13, disabled).
+-define(DEF_RENDER_PASS14, disabled).
+-define(DEF_RENDER_PASS15, disabled).
+-define(DEF_RENDER_PASS16, disabled).
+-define(DEF_RENDER_PASS17, disabled).
+-define(DEF_RENDER_PASS18, disabled).
+-define(DEF_RENDER_PASS19, disabled).
+-define(DEF_RENDER_PASS20, disabled).
+-define(DEF_RENDER_PASS21, disabled).
+-define(DEF_RENDER_PASS22, disabled).
+-define(DEF_RENDER_PASS23, disabled).
+-define(DEF_RENDER_PASS24, disabled).
+-define(DEF_RENDER_PASS25, disabled).
+-define(DEF_RENDER_PASS26, disabled).
+-define(DEF_RENDER_PASS27, disabled).
+-define(DEF_RENDER_PASS28, disabled).
+-define(DEF_RENDER_PASS29, disabled).
+-define(DEF_RENDER_PASS30, disabled).
+-define(DEF_RENDER_PASS31, disabled).
+-define(DEF_RENDER_PASS32, disabled).
 -define(DEF_PASS_MASK_MAT_INDEX, 0).
 -define(DEF_PASS_MASK_INVERT, false).
 -define(DEF_PASS_MASK_ONLY, false).
@@ -2193,10 +2224,6 @@ export_dialog(Op, Title) ->
 
 %% Export Render Options Dialog Settings
 export_prefs() ->
-    RenderPass =
-        lists:foldl(fun(N, Acc) ->
-                         Acc++[{{pass,N},?DEF_RENDER_PASS}]
-                     end, [], lists:seq(1,32)),
     [{subdivisions,?DEF_SUBDIVISIONS},
         {keep_xml,?DEF_KEEP_XML},
         {threads_number,?DEF_THREADS_NUMBER},
@@ -2280,7 +2307,40 @@ export_prefs() ->
         {aperture,?DEF_APERTURE},
         {bokeh_bias,?DEF_BOKEH_BIAS},
         {bokeh_rotation,?DEF_BOKEH_ROTATION},
-        {dof_distance,?DEF_DOF_DISTANCE}] ++ RenderPass.
+        {dof_distance,?DEF_DOF_DISTANCE},
+        {dof_distance,?DEF_DOF_DISTANCE},
+        {render_pass1,?DEF_RENDER_PASS1},
+        {render_pass2,?DEF_RENDER_PASS2},
+        {render_pass3,?DEF_RENDER_PASS3},
+        {render_pass4,?DEF_RENDER_PASS4},
+        {render_pass5,?DEF_RENDER_PASS5},
+        {render_pass6,?DEF_RENDER_PASS6},
+        {render_pass7,?DEF_RENDER_PASS7},
+        {render_pass8,?DEF_RENDER_PASS8},
+        {render_pass9,?DEF_RENDER_PASS9},
+        {render_pass10,?DEF_RENDER_PASS10},
+        {render_pass11,?DEF_RENDER_PASS11},
+        {render_pass12,?DEF_RENDER_PASS12},
+        {render_pass13,?DEF_RENDER_PASS13},
+        {render_pass14,?DEF_RENDER_PASS14},
+        {render_pass15,?DEF_RENDER_PASS15},
+        {render_pass16,?DEF_RENDER_PASS16},
+        {render_pass17,?DEF_RENDER_PASS17},
+        {render_pass18,?DEF_RENDER_PASS18},
+        {render_pass19,?DEF_RENDER_PASS19},
+        {render_pass20,?DEF_RENDER_PASS20},
+        {render_pass21,?DEF_RENDER_PASS21},
+        {render_pass22,?DEF_RENDER_PASS22},
+        {render_pass23,?DEF_RENDER_PASS23},
+        {render_pass24,?DEF_RENDER_PASS24},
+        {render_pass25,?DEF_RENDER_PASS25},
+        {render_pass26,?DEF_RENDER_PASS26},
+        {render_pass27,?DEF_RENDER_PASS27},
+        {render_pass28,?DEF_RENDER_PASS28},
+        {render_pass29,?DEF_RENDER_PASS29},
+        {render_pass30,?DEF_RENDER_PASS30},
+        {render_pass31,?DEF_RENDER_PASS31},
+        {render_pass32,?DEF_RENDER_PASS32}].
 
 f_stop_str(Value) when is_float(Value) ->
     %% we must use the same number of decimals used in the aperture edit box
@@ -2788,7 +2848,136 @@ export_dialog_qs(Op, Attr) ->
     %% RenderPasses group, only available for YafaRay v3.0.1 or higher
     RenderPasses =
         {?__(167, "Render Passes"),
-            {vframe, render_pass_frame(Attr)}
+            {vframe, [
+                {hframe, [
+                    {label,?__(171,"Render pass1")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass1,Attr), [{key,render_pass1}]}
+                ]},
+                {hframe, [
+                    {label,?__(172,"Render pass2")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass2,Attr), [{key,render_pass2}]}
+                ]},
+                {hframe, [
+                    {label,?__(173,"Render pass3")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass3,Attr), [{key,render_pass3}]}
+                ]},
+                {hframe, [
+                    {label,?__(174,"Render pass4")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass4,Attr), [{key,render_pass4}]}
+                ]},
+                {hframe, [
+                    {label,?__(175,"Render pass5")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass5,Attr), [{key,render_pass5}]}
+                ]},
+                {hframe, [
+                    {label,?__(176,"Render pass6")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass6,Attr), [{key,render_pass6}]}
+                ]},
+                {hframe, [
+                    {label,?__(177,"Render pass7")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass7,Attr), [{key,render_pass7}]}
+                ]},
+                {hframe, [
+                    {label,?__(178,"Render pass8")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass8,Attr), [{key,render_pass8}]}
+                ]},
+                {hframe, [
+                    {label,?__(179,"Render pass9")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass9,Attr), [{key,render_pass9}]}
+                ]},
+                {hframe, [
+                    {label,?__(180,"Render pass10")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass10,Attr), [{key,render_pass10}]}
+                ]},
+                {hframe, [
+                    {label,?__(181,"Render pass11")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass11,Attr), [{key,render_pass11}]}
+                ]},
+                {hframe, [
+                    {label,?__(182,"Render pass12")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass12,Attr), [{key,render_pass12}]}
+                ]},
+                {hframe, [
+                    {label,?__(183,"Render pass13")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass13,Attr), [{key,render_pass13}]}
+                ]},
+                {hframe, [
+                    {label,?__(184,"Render pass14")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass14,Attr), [{key,render_pass14}]}
+                ]},
+                {hframe, [
+                    {label,?__(185,"Render pass15")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass15,Attr), [{key,render_pass15}]}
+                ]},
+                {hframe, [
+                    {label,?__(186,"Render pass16")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass16,Attr), [{key,render_pass16}]}
+                ]},
+                {hframe, [
+                    {label,?__(187,"Render pass17")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass17,Attr), [{key,render_pass17}]}
+                ]},
+                {hframe, [
+                    {label,?__(188,"Render pass18")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass18,Attr), [{key,render_pass18}]}
+                ]},
+                {hframe, [
+                    {label,?__(189,"Render pass19")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass19,Attr), [{key,render_pass19}]}
+                ]},
+                {hframe, [
+                    {label,?__(190,"Render pass20")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass20,Attr), [{key,render_pass20}]}
+                ]},
+                {hframe, [
+                    {label,?__(191,"Render pass21")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass21,Attr), [{key,render_pass21}]}
+                ]},
+                {hframe, [
+                    {label,?__(192,"Render pass22")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass22,Attr), [{key,render_pass22}]}
+                ]},
+                {hframe, [
+                    {label,?__(193,"Render pass23")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass23,Attr), [{key,render_pass23}]}
+                ]},
+                {hframe, [
+                    {label,?__(194,"Render pass24")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass24,Attr), [{key,render_pass24}]}
+                ]},
+                {hframe, [
+                    {label,?__(195,"Render pass25")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass25,Attr), [{key,render_pass25}]}
+                ]},
+                {hframe, [
+                    {label,?__(196,"Render pass26")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass26,Attr), [{key,render_pass26}]}
+                ]},
+                {hframe, [
+                    {label,?__(197,"Render pass27")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass27,Attr), [{key,render_pass27}]}
+                ]},
+                {hframe, [
+                    {label,?__(198,"Render pass28")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass28,Attr), [{key,render_pass28}]}
+                ]},
+                {hframe, [
+                    {label,?__(199,"Render pass29")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass29,Attr), [{key,render_pass29}]}
+                ]},
+                {hframe, [
+                    {label,?__(200,"Render pass30")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass30,Attr), [{key,render_pass30}]}
+                ]},
+                {hframe, [
+                    {label,?__(201,"Render pass31")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass31,Attr), [{key,render_pass31}]}
+                ]},
+                {hframe, [
+                    {label,?__(202,"Render pass32")}, 
+                    {menu, render_pass_menu(), get_pref(render_pass32,Attr), [{key,render_pass32}]}
+                ]}
+            ]}
         },
 
     [
@@ -2799,17 +2988,6 @@ export_dialog_qs(Op, Attr) ->
             RenderPasses
         ], 1, [{style, buttons}]}
     ].
-
-render_pass_frame(Attr) ->
-    PassLabel = ?__(1,"Render Pass"),
-    lists:foldl(fun(N, Acc) ->
-          Id = {pass,N},
-          Value = get_pref(Id, Attr),
-          Acc++[{hframe, [
-                        {label, PassLabel ++ io_lib:format(" (~w)", [N])},
-                        {menu, render_pass_menu(), Value ,[key(Id)]}
-                   ]}]
-        end, [], lists:seq(1,32)).
         
 render_pass_menu() ->
     [
