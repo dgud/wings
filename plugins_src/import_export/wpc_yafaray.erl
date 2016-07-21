@@ -2946,7 +2946,7 @@ export_dialog_qs(Op, Attr) ->
                     {label,?__(202,"Render pass32")}, 
                     {menu, render_pass_menu(), get_pref(render_pass32,Attr), [{key,render_pass32}]}
                 ]}
-            ]}
+            ],[key(pnl_render_passes)]}
         },
 
     [
