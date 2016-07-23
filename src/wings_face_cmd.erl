@@ -57,11 +57,12 @@ menu(X, Y, St) ->
 	      ?__(22,"Mirror and create separate objects")},[]},
 	    {?__(23,"Dissolve"),dissolve_fun(),
 	     {?__(24,"Eliminate all edges between selected faces"),[],
-		  ?__(34,"Eliminate selected faces and remove remaining isolated verts")},[]},
+	      ?__(34,"Eliminate selected faces and remove remaining isolated verts")},[]},
 	    {?__(25,"Collapse"),collapse,
 	     ?__(26,"Delete faces, replacing them with vertices")},
-	    {?__(27,"Smooth"),smooth,
-	     ?__(28,"Subdivide selected faces to smooth them (Catmull-Clark)")},
+	    {?__(27,"Subdivide"),subdiv_fun(),
+	     {?__(28,"Subdivide selected faces to smooth them (Catmull-Clark)"),[],
+	      ?__(42,"Subdivide selected faces")},[]},
 	    {?__(29,"Tesselate"),{tesselate,wings_tesselation:submenu()}},
 	    separator,
 	    {?__(32,"Hide"),hide_fun(),
@@ -80,6 +81,13 @@ dissolve_fun() ->
     fun
 	(1, _Ns) -> {face,dissolve};
 	(3, _Ns) -> {face,clean_dissolve};
+	(_, _) -> ignore
+    end.
+
+subdiv_fun() ->
+    fun
+	(1, _Ns) -> {face,smooth};
+	(3, _Ns) -> {face,subdiv};
 	(_, _) -> ignore
     end.
 
@@ -149,6 +157,8 @@ command(bridge, St) ->
     {save_state,wings_shape:recreate_folder_system(bridge(St))};
 command(smooth, St) ->
     ?SLOW({save_state,smooth(St)});
+command(subdiv, St) ->
+    ?SLOW({save_state,subdiv(St)});
 command(auto_smooth, St) ->
     wings_body:auto_smooth(St);
 command({lift,Lift}, St) ->
@@ -612,6 +622,33 @@ do_flatten_normal(Faces, Center, We) ->
     N = e3d_vec:norm(e3d_vec:add(N0)),
     Vs = wings_face:to_vertices(Faces, We),
     wings_vertex:flatten(Vs, N, Center, We).
+
+%%%
+%%% The Subdivide command.
+%%%
+
+subdiv(St0) ->
+    {St,Sel} = wings_sel:mapfold(fun subdiv/3, [], St0),
+    wings_sel:set(Sel, St).
+
+subdiv(Faces0, #we{id=Id}=We0, Acc) ->
+    Rs = wings_sel:face_regions(Faces0, We0),
+    wings_pb:start(?__(1,"subdividing")),
+    We1 = wings_pb:done(subdiv_regions(Rs, 1, length(Rs), We0)),
+    NewSelFaces = wings_we:new_items_as_ordset(face, We0, We1),
+    We = wings_we:mirror_flatten(We0, We1),
+    {We,[{Id,gb_sets:from_ordset(NewSelFaces)}|Acc]}.
+
+subdiv_regions([Faces0|Rs], I, N, #we{he=Htab}=We0) ->
+    wings_pb:update(I/N, io_lib:format("~p/~p\n", [I,N])),
+    HardEdges0 = wings_face:outer_edges(Faces0, We0),
+    HardEdges = gb_sets:union(gb_sets:from_list(HardEdges0), Htab),
+    Faces = gb_sets:to_list(Faces0),
+    {Vs,Es} = all_edges(Faces0, We0),
+    We = wings_subdiv:subdiv(Faces, Vs, Es, HardEdges, We0),
+    subdiv_regions(Rs, I+1, N, We);
+subdiv_regions([], _, _, We) -> We.
+
 
 %%%
 %%% The Smooth command.
