@@ -41,9 +41,10 @@ menu(X, Y, St) ->
 	     ?__(9,"Carve out interior of object, making selected faces holes")},
 	    {?__(10,"Bevel"),bevel,
 	     ?__(11,"Round off edges of selected faces")},
-	    {?__(12,"Bridge"),bridge,
-	     ?__(13,"Create a bridge or tunnel between two faces") ++
-	     ?__(40," or face regions")},
+	    {?__(12,"Bridge"),bridge_fun(),
+	     {?__(13,"Create a bridge or tunnel between two faces") ++
+	      ?__(40," or face regions"),[],
+	      ?__(43,"Create a bridge or tunnel from reference vertexes")},[]},
 	    separator,
 	    {?__(14,"Bump"),bump,
 	     ?__(15,"Create bump of selected faces")},
@@ -88,6 +89,13 @@ subdiv_fun() ->
     fun
 	(1, _Ns) -> {face,smooth};
 	(3, _Ns) -> {face,subdiv};
+	(_, _) -> ignore
+end.
+
+bridge_fun() ->
+    fun
+	(1, _Ns) -> {face,bridge};
+	(3, _Ns) -> {face,{bridge,reference}};
 	(_, _) -> ignore
     end.
 
@@ -154,7 +162,9 @@ command(dissolve, St) ->
 command(clean_dissolve, St) ->
     {save_state,wings_shape:update_folders(clean_dissolve(St))};
 command(bridge, St) ->
-    {save_state,wings_shape:recreate_folder_system(bridge(St))};
+    {save_state,wings_shape:recreate_folder_system(bridge([],St))};
+command({bridge,reference}, St) ->
+    bridge_ref(St);
 command(smooth, St) ->
     ?SLOW({save_state,smooth(St)});
 command(subdiv, St) ->
@@ -741,7 +751,7 @@ smooth_connect_3(Va, Vb, Face, Hide, We0) ->
 %%% The Bridge command.
 %%%
 
-bridge(#st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
+bridge(Reference, #st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
     case {gb_sets:to_list(FacesA),gb_sets:to_list(FacesB)} of
 	{[FA],[FB0]} ->
 	    #we{next_id=Id}=WeA = wings_we:break_mirror(gb_trees:get(IdA, Shapes0)),
@@ -753,7 +763,15 @@ bridge(#st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
 	    Sel = [{IdA,gb_sets:from_list([FA,FB])}],
 	    St1 = wings_sel:set(Sel, St0),
 	    St = St1#st{shapes=Shapes},
-	    bridge(St);
+	    Reference0 =
+		case Reference of
+		    [{IdA,VrA},{IdB,VrB}] ->
+			[gb_sets:smallest(VrA),new_vertex_id(gb_sets:smallest(VrB),wings_face:vertices_ccw(FB0,WeB0),wings_face:vertices_ccw(FB,We))];
+		    [{IdB,VrB},{IdA,VrA}] ->
+			[gb_sets:smallest(VrB),new_vertex_id(gb_sets:smallest(VrA),wings_face:vertices_ccw(FA,We),wings_face:vertices_ccw(FB,We))];
+		    _ -> []
+		end,
+	    bridge(Reference0, St);
 	{[_],FB0} ->
 	    WeB0 = gb_trees:get(IdB, Shapes0),
 	    case wings_sel:face_regions(FB0, WeB0) of
@@ -762,7 +780,7 @@ bridge(#st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
 	        Face = wings_we:new_items_as_gbset(face, WeB0, WeB),
 	        Shapes = gb_trees:update(IdB, WeB, Shapes0),
 	        St = St0#st{shapes=Shapes,sel=[{IdA,FacesA},{IdB,Face}]},
-	        bridge(St);
+	        bridge(Reference, St);
 	      _ -> bridge_error()
 	    end;
 	{FA0,[_]} ->
@@ -773,7 +791,7 @@ bridge(#st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
 	        Face = wings_we:new_items_as_gbset(face, WeA0, WeA),
 	        Shapes = gb_trees:update(IdA, WeA, Shapes0),
 	        St = St0#st{shapes=Shapes,sel=[{IdA,Face},{IdB,FacesB}]},
-	        bridge(St);
+	        bridge(Reference, St);
 	      _ -> bridge_error()
 	    end;
 	{FA0,FB0} ->
@@ -790,17 +808,17 @@ bridge(#st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
 	            FaceA = wings_we:new_items_as_gbset(face, WeA0, WeA),
 	            Shapes = gb_trees:update(IdA, WeA, Shapes1),
 	            St = St0#st{shapes=Shapes,sel=[{IdA,FaceA},{IdB,FaceB}]},
-	            bridge(St);
+	            bridge(Reference, St);
 	          _ -> bridge_error()
 	        end;
 	      _ -> bridge_error()
 	    end
     end;
-bridge(#st{shapes=Shapes0,sel=[{Id,Faces0}]}=St0) ->
+bridge(Reference, #st{shapes=Shapes0,sel=[{Id,Faces0}]}=St0) ->
     case gb_sets:to_list(Faces0) of
 	[FA,FB] ->
 	    We0 = gb_trees:get(Id, Shapes0),
-	    We = bridge_0(FA, FB, We0),
+	    We = bridge_0(Reference, FA, FB, We0),
 	    Shapes = gb_trees:update(Id, We, Shapes0),
 	    St0#st{shapes=Shapes,sel=[]};
 	FaceSel ->
@@ -811,21 +829,86 @@ bridge(#st{shapes=Shapes0,sel=[{Id,Faces0}]}=St0) ->
 	        Faces = wings_we:new_items_as_gbset(face, We0, We),
 	        Shapes = gb_trees:update(Id, We, Shapes0),
 	        St = St0#st{shapes=Shapes,sel=[{Id,Faces}]},
-	        bridge(St);
+	        bridge(Reference, St);
 	      _ -> bridge_error()
 	    end
     end;
-bridge(_St) ->
+bridge(_, _St) ->
     bridge_error().
 
-bridge_0(FaceA, FaceB, We0) ->
+bridge_ref(#st{shapes=Shps, sel=[{IdA,FsA},{IdB,FsB}]}=St) ->
+    WeA = gb_trees:get(IdA,Shps),
+    WeB = gb_trees:get(IdB,Shps),
+    VsA = wings_face:to_vertices(FsA, WeA),
+    VsB = wings_face:to_vertices(FsB, WeB),
+    wings:ask(bridge_selection({IdA,VsA}, {IdB,VsB}), St, fun bridge_ref/2).
+
+bridge_ref(Reference, St) ->
+    {save_state,wings_shape:recreate_folder_system(bridge(Reference, St))}.
+
+bridge_selection({IdA,VsA}, {IdB,VsB}) ->
+    Desc  = ?__(1,"Select a single vertex as reference from each selected face or region border."),
+    Desc1 = ?__(2,"Nothing selected."),
+    Desc2 = ?__(3,"You must select only one vertex on each face/region."),
+    Desc3 = ?__(4,"Invalid selection."),
+    Fun = fun
+	      (check, #st{sel=[]}) ->
+		  {none, Desc1};
+	      (check, #st{sel=[{Id,Vs}]}=_St) when Id =:= IdA; Id =:= IdB ->
+		  V =
+		  case Id of
+		      IdA -> bridge_sel_validate(Vs,VsA);
+		      IdB -> bridge_sel_validate(Vs,VsB)
+		  end,
+		  if V =:= false -> {none, Desc2};
+		      true -> {none, []}
+		  end;
+	      (check, #st{sel=[{IdA0,VsA0},{IdB0,VsB0}]}=_St)
+		  when IdA0 =:= IdA; IdB0 =:= IdB; IdA0 =:= IdB; IdB0 =:= IdA ->
+
+		  Aa = bridge_sel_validate(VsA0,VsA),
+		  Bb = bridge_sel_validate(VsB0,VsB),
+		  Ab = bridge_sel_validate(VsA0,VsB),
+		  Ba = bridge_sel_validate(VsB0,VsA),
+		  case {Aa,Bb,Ab,Ba} of
+		      {Va,Vb,false,false} when Va =/= false, Vb =/= false -> {none, []};
+		      {false,false,Vb,Va} when Vb =/= false, Va =/= false -> {none, []};
+		      _ -> {none, Desc2}
+		  end;
+	      (check, _St) ->
+		  {none, Desc3};
+	      (exit, {_,_,#st{sel=[{_,VsA0},{_,VsB0}]=Sel}}) ->
+		  Aa = bridge_sel_validate(VsA0,VsA),
+		  Bb = bridge_sel_validate(VsB0,VsB),
+		  Ba = bridge_sel_validate(VsB0,VsA),
+		  Ab = bridge_sel_validate(VsA0,VsB),
+		  case {Aa,Bb,Ba, Ab} of
+		      {false,_,false,_} -> error;
+		      {_,false,_,false} -> error;
+		      _ -> {result,Sel}
+		  end;
+	      (exit,_) -> error
+	  end,
+    {[{Fun,Desc}],[],[],[vertex]}.
+
+bridge_sel_validate(Vs, VsList) ->
+    case gb_sets:to_list(Vs) of
+	[V] ->
+	    case lists:member(V, VsList) of
+		false -> false;
+		_ -> V
+	    end;
+	_ -> false
+    end.
+
+bridge_0(Reference, FaceA, FaceB, We0) ->
     VsA0 = wings_face:vertices_ccw(FaceA, We0),
     VsB0 = wings_face:vertices_ccw(FaceB, We0),
     SizeA = length(VsA0),
     SizeB = length(VsB0),
     case SizeA =:= SizeB of
       true ->
-        bridge_1(FaceA, VsA0, FaceB, VsB0, We0);
+        bridge_1(Reference, FaceA, VsA0, FaceB, VsB0, We0);
       false ->
         if
           SizeA > SizeB ->
@@ -833,13 +916,13 @@ bridge_0(FaceA, FaceB, We0) ->
             [Va|Vs] = VsB0,
             We = cut_in_extra_edges_0(Vs, Va, SizeB, Diff, FaceB, We0),
             VsB = wings_face:vertices_ccw(FaceB, We),
-            bridge_1(FaceA, VsA0, FaceB, VsB, We);
+            bridge_1(Reference, FaceA, VsA0, FaceB, VsB, We);
           true ->
             Diff = SizeB - SizeA,
             [Va|Vs] = VsA0,
             We = cut_in_extra_edges_0(Vs, Va, SizeA, Diff, FaceA, We0),
             VsA = wings_face:vertices_ccw(FaceA, We),
-            bridge_1(FaceA, VsA, FaceB, VsB0, We)
+            bridge_1(Reference, FaceA, VsA, FaceB, VsB0, We)
         end
     end.
 
@@ -870,7 +953,7 @@ cut_in_extra_edges([Va|Vs], Vb, V, Parts, Face, 1, N, Diff0, We0) ->
 cut_in_extra_edges([Va|Vs], _, V,Parts, Face, Count, N, Diff, We) ->
     cut_in_extra_edges(Vs, Va, V, Parts, Face, Count-1, N, Diff, We).
 
-bridge_1(FaceA, VsA, FaceB, VsB, #we{vp=Vtab}=We) ->
+bridge_1(Reference, FaceA, VsA, FaceB, VsB, #we{vp=Vtab}=We) ->
     An = wings_face:face_normal_cw(VsA, Vtab),
     Bn = wings_face:face_normal_cw(VsB, Vtab),
     case e3d_vec:dot(An, Bn) of
@@ -881,7 +964,10 @@ bridge_1(FaceA, VsA, FaceB, VsB, #we{vp=Vtab}=We) ->
 		true ->
 		    bridge_error(?__(3,"Faces must not be neighbors."));
 		false ->
-		    bridge(FaceA, VsA, FaceB, VsB, We)
+		    case Reference of
+			[VsAr,VsBr] -> bridge_ref(FaceA, VsAr, FaceB, VsBr, We);
+			_ -> bridge(FaceA, VsA, FaceB, VsB, We)
+		    end
 	    end
     end.
 
@@ -908,6 +994,29 @@ try_bridge(N, Len, Va0, FaceA, IterA0, Vb, FaceB, IterB, Ids, We0,
     {Va,_,_,_} = wings_face:next_cw(IterA),
     try_bridge(N-1, Len, Va, FaceA, IterA,
 	       Vb, FaceB, IterB, Ids, We0, Best).
+
+bridge_ref(FaceA, Va, FaceB, Vb, We0) ->
+    Len = wings_face:vertices(FaceA, We0),
+    {Ids,We} = wings_we:new_wrap_range(Len, 2, We0),
+    IterA = wings_face:skip_to_cw(Va, wings_face:iterator(FaceA, We)),
+    IterB = wings_face:skip_to_ccw(Vb, wings_face:iterator(FaceB, We)),
+    try_bridge_ref(Len, Len, Va, FaceA, IterA,
+		   Vb, FaceB, IterB, Ids, We, {9.9E307,We}).
+
+try_bridge_ref(0, _Len, _Va, _FaceA, _IterA, _Vb, _FaceB, _IterB, _, _, {_,We}) ->
+    We;
+try_bridge_ref(N, Len, Va0, FaceA, IterA0, Vb0, FaceB, IterB0, Ids, We0,
+	       {EdgeSum0,_}=Best0) ->
+    We = do_bridge(Len, Va0, FaceA, IterA0, Vb0, FaceB, IterB0, Ids, We0, We0),
+    Best = case sum_edge_lens(Len, Ids, We, 0) of
+	       Min when Min < EdgeSum0 -> {Min,We};
+	       _ -> Best0
+	   end,
+    {_,_,_,IterA} = wings_face:next_cw(IterA0),
+    {Va,_,_,_} = wings_face:next_cw(IterA),
+    {Vb,_,_,IterB} = wings_face:next_ccw(IterB0),
+    try_bridge_ref(N-1, Len, Va, FaceA, IterA,
+		   Vb, FaceB, IterB, Ids, We0, Best).
 
 sum_edge_lens(0, _Ids, _We, Sum) -> Sum;
 sum_edge_lens(N, Ids0, #we{es=Etab,vp=Vtab}=We, Sum) ->
@@ -992,6 +1101,12 @@ get_edge(Edge, Etab) ->
 	undefined-> #edge{};
 	Erec -> Erec
     end.
+
+new_vertex_id(OldV, []=_OldVs, _NewVs) -> OldV;
+new_vertex_id(OldV, _OldVs, []=_NewVs) -> OldV;
+new_vertex_id(OldV, [OldV|_], [NewV|_]) -> NewV;
+new_vertex_id(OldV, [_|OldVs], [_|NewVs]) ->
+    new_vertex_id(OldV, OldVs, NewVs).
 
 -spec bridge_error() -> no_return().
 bridge_error() ->
