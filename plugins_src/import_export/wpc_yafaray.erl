@@ -2861,7 +2861,10 @@ render_pass_menu() ->
         {?__(48,"Debug: NV"),'debug-nv'},
         {?__(49,"Debug: NU"),'debug-nu'},
         {?__(50,"Debug: Normals (geometric)"),'debug-normal-geom'},
-        {?__(51,"Debug: Normals (smooth)"),'debug-normal-smooth'}
+        {?__(51,"Debug: Normals (smooth)"),'debug-normal-smooth'},
+        {?__(52,"Debug: LE Light Dirac"),'debug-light-estimation-light-dirac'},
+        {?__(53,"Debug: LE Light Sampling"),'debug-light-estimation-light-sampling'},
+        {?__(54,"Debug: LE Mat Sampling"),'debug-light-estimation-mat-sampling'}
     ].
 
 %%% TO DO: this implementation depends on wings_dialog changes for button operation
