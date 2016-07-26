@@ -55,7 +55,6 @@ key(Key) -> {key,?KEY(Key)}.
 %% Shader
 -define(DEF_SHADER_TYPE, shinydiffuse).
 -define(DEF_TIR, false).
--define(DEF_GLASS_IR_DEPTH, 3).
 -define(DEF_IOR, 1.4).
 -define(DEF_MIN_REFLE, 0.0).
 -define(DEF_OBJECT_TYPE, mesh).
@@ -363,7 +362,6 @@ range_1(meshlight_power)        -> {0.0,10000.0};
 range_1(meshlight_samples)      -> {0,512};
 range_1(autosmooth_angle)       -> {0.0,180.0};
 range_1(ior)                    -> {0.0,3.0};
-range_1(glass_ir_depth)         -> {0,32};
 range_1(min_refle)              -> {0.0,1.0};
 range_1(size)                   -> {0.0,infinity};
 range_1(modulation)             -> {-5.0,5.0};
@@ -747,7 +745,6 @@ material_dialog(_Name, Mat) ->
     DispersionSamples = proplists:get_value(dispersion_samples, YafaRay, ?DEF_DISPERSION_SAMPLES),
     FakeShadows = proplists:get_value(fake_shadows, YafaRay, ?DEF_FAKE_SHADOWS),
     Roughness = proplists:get_value(roughness, YafaRay, ?DEF_ROUGHNESS),
-    Glass_IR_Depth = proplists:get_value(glass_ir_depth, YafaRay, ?DEF_GLASS_IR_DEPTH),
 
     %% Shiny Diffuse Properties
     %% Transmit Filter also for Glass and Rough Glass
@@ -821,8 +818,6 @@ material_dialog(_Name, Mat) ->
                 ?KEY(shader_type) ->
                     %% IOR
                     wings_dialog:show(?KEY(pnl_ior), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
-                    %% Internal Reflection
-                    wings_dialog:show(?KEY(pnl_ir), Value =:= glass, Store),
                     %% Glossy Color
                     Gc = is_member(Value, [glossy,coatedglossy,translucent]),
                     Rl = is_member(Value, [glass,rough_glass]),
@@ -989,10 +984,6 @@ material_dialog(_Name, Mat) ->
                 {label_column, [
                     {"IOR", {slider, {text,IOR,[range(ior),key(ior)]}}}
                 ],[key(pnl_ior),{margin,false}]},
-                %% 2nd row
-                {label_column, [
-                    {"Internal Reflection", {slider, {text,Glass_IR_Depth,[range(glass_ir_depth),key(glass_ir_depth)]}}}
-                ],[key(pnl_ir),{show,false},{margin,false}]},
                 %% 3rd row
                 {hframe, [
                     {hframe, [
@@ -3626,8 +3617,6 @@ export_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
 
     IOR = proplists:get_value(ior, YafaRay, ?DEF_IOR),
 
-    Glass_IR_Depth = proplists:get_value(glass_ir_depth, YafaRay, ?DEF_GLASS_IR_DEPTH),
-
     TransmitFilter = proplists:get_value(transmit_filter, YafaRay, ?DEF_TRANSMIT_FILTER),
 
     DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
@@ -3673,11 +3662,10 @@ export_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
         proplists:get_value(fake_shadows, YafaRay, ?DEF_FAKE_SHADOWS),
 
     println(F, "        <IOR fval=\"~.10f\"/>~n"
-            "        <glass_internal_reflect_depth ival=\"~w\"/>~n"
             "           <fake_shadows bval=\"~s\"/>~n"
 
             "",
-            [IOR,Glass_IR_Depth,format(FakeShadows)]),
+            [IOR,format(FakeShadows)]),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of
