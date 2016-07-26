@@ -82,18 +82,12 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_USE_HARDNESS, false).
 -define(DEF_AUTOSMOOTH, true).
 -define(DEF_AUTOSMOOTH_ANGLE, 60.0).
--define(DEF_SSS_ABSORPTION_COLOR, {0.649,0.706,0.655}).
--define(DEF_SCATTER_COLOR, {0.599,0.680,0.511}).
--define(DEF_SSS_SPECULAR_COLOR, {1.0,1.0,1.0}).
 -define(DEF_ABSORPTION_DIST, 3.0).
 -define(DEF_DISPERSION_POWER, 0.0).
--define(DEF_DISPERSION_SAMPLES, 10).
--define(DEF_DISPERSION_JITTER, false).
 -define(DEF_FAKE_SHADOWS, false).
 -define(DEF_TRANSPARENCY, 0.0).
 -define(DEF_TRANSMIT_FILTER, 0.5).
 -define(DEF_TRANSLUCENCY, 0.0).
--define(DEF_SSS_TRANSLUCENCY, 1.0).
 -define(DEF_SIGMAS_FACTOR, 1.0).
 -define(DEF_DIFFUSE_REFLECT, 0.2).
 -define(DEF_SPECULAR_REFLECT, 0.0).
@@ -150,11 +144,6 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_VOLINTEGR_ADAPTIVE, true).
 -define(DEF_VOLINTEGR_OPTIMIZE, true).
 -define(DEF_VOLINTEGR_STEPSIZE, 0.2).
--define(DEF_USE_SSS, false).
--define(DEF_SSS_PHOTONS, 1000).
--define(DEF_SSS_DEPTH, 15.0).
--define(DEF_SSS_SCALE, 2.0).
--define(DEF_SSS_SINGLESCATTER_SAMPLES, 32.0).
 -define(DEF_USE_CAUSTICS, false).
 -define(DEF_CAUSTIC_PHOTONS, 900000).
 -define(DEF_CAUSTIC_DEPTH, 10).
@@ -168,8 +157,6 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_AA_MINSAMPLES, 1).
 -define(DEF_AA_PIXELWIDTH, 1.5).
 -define(DEF_AA_THRESHOLD, 0.02).
--define(DEF_AA_JITTERFIRST, true).
--define(DEF_CLAMP_RGB, true).
 -define(DEF_AA_FILTER_TYPE, box).
 -define(DEF_TRANSPARENT_SHADOWS, false).
 -define(DEF_BACKGROUND_TRANSP, false).
@@ -270,7 +257,6 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_AMBIENT_CAUSTICPHOTONS, false).
 -define(DEF_BACKGROUND_ROTATION, 0.0).
 -define(DEF_SAMPLES, 128).
--define(DEF_IBL_CLAMP_SAMPLING, 0.0).   % only available for YafaRay v3.0.1 or higher
 -define(DEF_SMARTIBL_BLUR, 0.0).    % only available for YafaRay v3.0.1 or higher
 
 %% Pathlight
@@ -385,11 +371,9 @@ range_1(noise_depth)		-> {0,infinity};
 range_1(noise_size)		-> {0.0,infinity};
 range_1(absorption_dist)	-> {0.1,100.0};
 range_1(dispersion_power)	-> {0.0,1.0};
-range_1(dispersion_samples)	-> {1,512};
 range_1(transparency)           -> {0.0,1.0};
 range_1(transmit_filter)        -> {0.0,1.0};
 range_1(translucency)           -> {0.0,1.0};
-range_1(sss_translucency)	-> {0.0,1.0};
 range_1(sigmas_factor)          -> {1.0,10.0};
 range_1(diffuse_reflect)        -> {0.0,1.0};
 range_1(specular_reflect)       -> {0.0,1.0};
@@ -439,7 +423,6 @@ range_1(sky_background_samples) -> {0,infinity};
 range_1(darksky_altitude)	-> {0.0,infinity};
 range_1(sun_real_power)		-> {0.0,infinity};
 range_1(smartibl_blur)	-> {0.0,0.75};  % only available for YafaRay v3.0.1 or higher
-range_1(ibl_clamp_sampling)	-> {0.0,infinity};  % only available for YafaRay v3.0.1 or higher
 
 %% Render ranges
 range_1(pm_diffuse_photons)     -> {1,100000000};
@@ -463,10 +446,6 @@ range_1(sppm_search)		-> {1,10000};
 range_1(sppm_radius)		-> {0.0,100.0};
 range_1(sppm_times)		-> {0.0,20.0};
 range_1(sppm_passes)		-> {0,infinity};
-range_1(sss_photons)            -> {0,infinity};
-range_1(sss_depth)              -> {1.0,50.0};
-range_1(sss_scale)              -> {0.0,100.0};
-range_1(sss_singlescatter_samples)      -> {0.0,50.0};
 range_1(caustic_photons)        -> {0,infinity};
 range_1(caustic_depth)          -> {0,infinity};
 range_1(caustic_mix)            -> {0,infinity};
@@ -742,7 +721,6 @@ material_dialog(_Name, Mat) ->
     AbsorptionColor = proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
     AbsorptionDist = proplists:get_value(absorption_dist, YafaRay, ?DEF_ABSORPTION_DIST),
     DispersionPower = proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    DispersionSamples = proplists:get_value(dispersion_samples, YafaRay, ?DEF_DISPERSION_SAMPLES),
     FakeShadows = proplists:get_value(fake_shadows, YafaRay, ?DEF_FAKE_SHADOWS),
     Roughness = proplists:get_value(roughness, YafaRay, ?DEF_ROUGHNESS),
 
@@ -753,14 +731,6 @@ material_dialog(_Name, Mat) ->
     Translucency = proplists:get_value(translucency, YafaRay, ?DEF_TRANSLUCENCY),
     SpecularReflect = proplists:get_value(specular_reflect, YafaRay, ?DEF_SPECULAR_REFLECT),
     Emit = proplists:get_value(emit, YafaRay, ?DEF_EMIT),
-
-    %% Translucency (SSS) Properties
-    %%
-    SSS_AbsorptionColor = proplists:get_value(sss_absorption_color, YafaRay, ?DEF_SSS_ABSORPTION_COLOR),
-    ScatterColor = proplists:get_value(scatter_color, YafaRay, ?DEF_SCATTER_COLOR),
-    SigmaSfactor = proplists:get_value(sigmas_factor, YafaRay, ?DEF_SIGMAS_FACTOR),
-    SSS_Translucency = proplists:get_value(sss_translucency, YafaRay, ?DEF_SSS_TRANSLUCENCY),
-    SSS_Specular_Color = proplists:get_value(sss_specular_color, YafaRay, ?DEF_SSS_SPECULAR_COLOR),
 
     %% Shiny Diffuse, Glossy, Coated Glossy Properties
     %%
@@ -794,9 +764,7 @@ material_dialog(_Name, Mat) ->
             ?KEY(autosmooth) ->
                 wings_dialog:enable(?KEY(pnl_autosmooth), Value =/= ?DEF_OREN_NAYAR, Store);
             ?KEY(anisotropic) ->
-                wings_dialog:enable(?KEY(pnl_exp_coated), Value =/= ?DEF_ANISOTROPIC, Store);
-            ?KEY(dispersion_power) ->
-                wings_dialog:enable(?KEY(pnl_dsp_sam), Value > 0.0, Store)
+                wings_dialog:enable(?KEY(pnl_exp_coated), Value =/= ?DEF_ANISOTROPIC, Store)
         end
     end,
     Hook_Show =
@@ -839,13 +807,11 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:show(?KEY(pnl_sc), Value =:= translucent, Store),
                     %% Absorption Color & Absorption Distance
                     wings_dialog:show(?KEY(pnl_abs_reg), is_member(Value, [glass,rough_glass]), Store),
-                    wings_dialog:show(?KEY(pnl_abs_sss), Value =:= translucent, Store),
                     wings_dialog:show(?KEY(pnl_abs), is_member(Value, [glass,rough_glass,translucent]), Store),
                     %% Transmit Filter
                     wings_dialog:show(?KEY(pnl_tf), is_member(Value, [shinydiffuse,glass,rough_glass]), Store),
                     %% Translucency
                     wings_dialog:show(?KEY(pnl_transl), Value =:= shinydiffuse, Store),
-                    wings_dialog:show(?KEY(pnl_transl_sss), Value =:= translucent, Store),
                     %% Scatter Color & SigmaS Factor
                     wings_dialog:show(?KEY(pnl_sct), Value =:= translucent, Store),
                     %% Diffuse Reflection
@@ -1015,15 +981,8 @@ material_dialog(_Name, Mat) ->
                 {label_column, [
                     {"Transparency", {slider, {text,Transparency,[range(transparency),key(transparency)]}}}
                 ],[key(pnl_transp),{show,false},{margin,false}]},
-                %% 6th row
-                {label_column, [
-                    {"Specular Color", {slider, {color,SSS_Specular_Color, [key(sss_specular_color)]}}}
-                ],[key(pnl_sc),{margin,false}]},
                 %% 7th row
                 {vframe, [
-                    {label_column, [
-                        {"Absorption Color", {slider, {color,SSS_AbsorptionColor,[key(sss_absorption_color)]}}}
-                    ],[key(pnl_abs_sss),{margin,false},{show,false}]},
                     {label_column, [
                         {"Absorption Color", {slider, {color,AbsorptionColor,[key(absorption_color)]}}}
                     ],[key(pnl_abs_reg),{margin,false}]},
@@ -1039,14 +998,6 @@ material_dialog(_Name, Mat) ->
                 {label_column, [
                     {"Translucency", {slider, {text,Translucency,[range(translucency),key(translucency)]}}}
                 ],[key(pnl_transl),{margin,false},{show,false}]},
-                {label_column, [
-                    {"Translucency", {slider, {text,SSS_Translucency,[range(sss_translucency),key(sss_translucency)]}}}
-                ],[key(pnl_transl_sss),{margin,false}]},
-                %% 10th row
-                {label_column, [
-                    {"Scatter Color", {slider, {color,ScatterColor,[key(scatter_color)]}}},
-                    {"SigmaS Factor", {slider, {text,SigmaSfactor,[range(sigmas_factor),key(sigmas_factor)]}}}
-                ],[key(pnl_sct),{margin,false}]},
                 %% 11th row
                 {label_column, [
                     {"Diffuse Reflection", {slider, {text,DiffuseReflect,[range(diffuse_reflect),key(diffuse_reflect)]}}}
@@ -1083,9 +1034,6 @@ material_dialog(_Name, Mat) ->
                     {label_column, [
                         {"Dispersion Power", {slider, {text,DispersionPower,[range(dispersion_power),key(dispersion_power),{hook,Hook_Enable}]}}}
                     ],[{margin,false}]},
-                    {label_column, [
-                        {"Dispersion Samples", {slider, {text, DispersionSamples,[range(dispersion_samples),key(dispersion_samples)]}}}
-                    ],[key(pnl_dsp_sam),{margin,false}]},
                     {"Fake Shadows",FakeShadows,[key(fake_shadows)]}
                 ],[key(pnl_dsp),{show,false},{margin,false}]},
                 %% 17th row
@@ -1302,7 +1250,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     ],AlphaIntensity,[]},
                     panel,
                     {menu,[
-                        {?__(121,"Diffuse (Shiny Diffuse, Glossy, SSS)"),diffusetexture},
+                        {?__(121,"Diffuse (Shiny Diffuse, Glossy)"),diffusetexture},
                         {?__(122,"Mirror Color (Shiny Diffuse, Glass)"),mirrorcolortexture},
                         {?__(123,"Mirror (Shiny Diffuse)"),mirrortexture},
                         {?__(124,"Glossy (Glossy)"),glossytexture},
@@ -1988,7 +1936,6 @@ light_dialog(_Name, ambient, Ps) ->
     %%
     Type = proplists:get_value(type, Ps, ?DEF_AMBIENT_TYPE),
     Samples = proplists:get_value(samples, Ps, ?DEF_SAMPLES),
-    Ibl_clamp_sampling = proplists:get_value(ibl_clamp_sampling, Ps, ?DEF_IBL_CLAMP_SAMPLING),  % only available for YafaRay v3.0.1 or higher
     Smartibl_blur = proplists:get_value(smartibl_blur, Ps, ?DEF_SMARTIBL_BLUR), % only available for YafaRay v3.0.1 or higher
 
     Hook_Enabled =
@@ -2073,8 +2020,6 @@ light_dialog(_Name, ambient, Ps) ->
                         {hframe,[
                             {label,?__(60,"Samples")},
                             {text,Samples,[range(samples),key(samples)]},
-                            {label,?__(125,"Clamp IBL sampling")},
-                            {text,Ibl_clamp_sampling,[range(ibl_clamp_sampling),key(ibl_clamp_sampling)]},  % only available for YafaRay v3.0.1 or higher
                             {label,?__(126,"SmartIBL blur")},
                             {text,Smartibl_blur,[range(smartibl_blur),key(smartibl_blur)]}  % only available for YafaRay v3.0.1 or higher
                         ],[key(pnl_enlight_samples),{margin,false}]}
@@ -2231,11 +2176,6 @@ export_prefs() ->
         {volintegr_adaptive,?DEF_VOLINTEGR_ADAPTIVE},
         {volintegr_optimize,?DEF_VOLINTEGR_OPTIMIZE},
         {volintegr_stepsize,?DEF_VOLINTEGR_STEPSIZE},
-        {use_sss,?DEF_USE_SSS},
-        {sss_photons,?DEF_SSS_PHOTONS},
-        {sss_depth,?DEF_SSS_DEPTH},
-        {sss_scale,?DEF_SSS_SCALE},
-        {sss_singlescatter_samples,?DEF_SSS_SINGLESCATTER_SAMPLES},
         {raydepth,?DEF_RAYDEPTH},
         {gamma,?DEF_GAMMA},
         {bias,?DEF_BIAS},
@@ -2248,10 +2188,8 @@ export_prefs() ->
         {exr_flag_compression,?DEF_EXR_FLAG_COMPRESSION},
         {aa_passes,?DEF_AA_PASSES},
         {aa_minsamples,?DEF_AA_MINSAMPLES},
-        {aa_jitterfirst,?DEF_AA_JITTERFIRST},
         {aa_threshold,?DEF_AA_THRESHOLD},
         {aa_pixelwidth,?DEF_AA_PIXELWIDTH},
-        {clamp_rgb,?DEF_CLAMP_RGB},
         {aa_filter_type,?DEF_AA_FILTER_TYPE},
         {background_color,?DEF_BACKGROUND_COLOR},
         {save_alpha,?DEF_SAVE_ALPHA},
@@ -2313,8 +2251,6 @@ export_dialog_qs(Op, Attr) ->
                 wings_dialog:enable(?KEY(pnl_use_ao), Value =:= true, Store);
             pm_use_fg ->
                 wings_dialog:enable(?KEY(pnl_use_fg), Value =:= true, Store);
-            use_sss ->
-                wings_dialog:enable(?KEY(pnl_sss_opt), Value =:= true, Store);
             transparent_shadows ->
                 wings_dialog:enable(?KEY(pnl_transp_shadow), Value =:= true, Store);
             render_format ->
@@ -2369,9 +2305,6 @@ export_dialog_qs(Op, Attr) ->
                 wings_dialog:show(?KEY(pnl_pm3), Value =:= photonmapping, Store),
                 %% Path Tracing - GI
                 wings_dialog:show(?KEY(pnl_pt3), Value =:= pathtracing, Store),
-
-                wings_dialog:enable(?KEY(pnl_sss), is_member(Value,[directlighting,photonmapping,pathtracing]), Store),
-                wings_dialog:enable(?KEY(pnl_sss_opt), wings_dialog:get_value(use_sss, Store) =:= true, Store),
 
                 wings_dialog:update(?KEY(pnl_light), Store);
             volintegr_type ->
@@ -2481,15 +2414,7 @@ export_dialog_qs(Op, Attr) ->
                                 {?__(137, "Gaussian Filter"), gauss},
                                 {?__(138, "Mitchell-Netravali Filter"), mitchell},
                                 {?__(139, "Lanczos Filter"), lanczos}
-                            ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]},
-                            panel,
-                            {hframe, [
-                                {?__(16, "Jitter First"), get_pref(aa_jitterfirst,Attr),[{key,aa_jitterfirst}]}
-                            ]},
-                            panel,
-                            {hframe, [
-                                {?__(19, "Clamp RGB"), get_pref(clamp_rgb,Attr),[{key,clamp_rgb}]}
-                            ]}
+                            ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]}
                         ],[{margin,false}]},
                         {hframe, [
                             {label_column, [
@@ -2644,25 +2569,7 @@ export_dialog_qs(Op, Attr) ->
                                 {?__(152, "Path Samples"),{text, get_pref(pt_samples,Attr), [{key,pt_samples},range(pt_samples)]}}
                             ], [key(pnl_pt3)]}
                         ], [{margin,false}]}
-                    ],[key(pnl_light)]},
-
-                    {vframe, [
-                        {vframe, [
-                            {hframe,[
-                                {?__(76, "Enabled"), get_pref(use_sss,Attr), [{key,use_sss},{hook,Hook_Enable}]}
-                            ]},
-                            {hframe, [
-                                {label_column, [
-                                    {?__(77, "Photons"),{text, get_pref(sss_photons,Attr), [{key,sss_photons},range(sss_photons)]}},
-                                    {?__(78, "Depth"),{text, get_pref(sss_depth,Attr), [{key,sss_depth},range(sss_depth)]}}
-                                ]},
-                                {label_column, [
-                                    {?__(79, "Scale"),{text, get_pref(sss_scale,Attr), [{key,sss_scale},range(sss_scale)]}},
-                                    {?__(80, "SingleScatter Samples"),{text, get_pref(sss_singlescatter_samples,Attr), [{key,sss_singlescatter_samples},range(sss_singlescatter_samples)]}}
-                                ]}
-                            ],[key(pnl_sss_opt), {margin,false}]}
-                        ],[{title, ?__(74, "SubSurface Scattering")},{margin,false}]}
-                    ],[key(pnl_sss)]}
+                    ],[key(pnl_light)]}
                 ],[{title, ""}]},
 
                 %% Volumetrics group
@@ -3099,9 +3006,6 @@ export_shader(F, Name, Mat, ExportDir) ->
         coatedglossy ->
             export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay);
 
-        translucent ->
-            export_translucent_shader(F, Name, Mat, ExportDir, YafaRay);
-
         glass ->
             export_glass_shader(F, Name, Mat, ExportDir, YafaRay);
 
@@ -3177,17 +3081,6 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
             export_rgb(F, absorption, {-math:log(max(AbsR, ?NONZERO))/AbsD,
                                        -math:log(max(AbsG, ?NONZERO))/AbsD,
                                        -math:log(max(AbsB, ?NONZERO))/AbsD})
-    end,
-    DispersionPower = proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples = proplists:get_value(dispersion_samples, YafaRay, ?DEF_DISPERSION_SAMPLES),
-            DispersionJitter = proplists:get_value(dispersion_jitter, YafaRay, ?DEF_DISPERSION_JITTER),
-            println(F, "       "
-                    "        <dispersion_samples ival=\"~w\"/>~n"
-                    "        <dispersion_jitter bval=\"~s\"/>",
-                    [DispersionSamples,format(DispersionJitter)])
     end,
 
     case OrenNayar of
@@ -3283,23 +3176,6 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
             export_rgb(F, absorption, {-math:log(max(AbsR, ?NONZERO))/AbsD,
                                        -math:log(max(AbsG, ?NONZERO))/AbsD,
                                        -math:log(max(AbsB, ?NONZERO))/AbsD})
-    end,
-    DispersionPower =
-        proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples =
-                proplists:get_value(dispersion_samples, YafaRay,
-                                    ?DEF_DISPERSION_SAMPLES),
-            DispersionJitter =
-                proplists:get_value(dispersion_jitter, YafaRay,
-                                    ?DEF_DISPERSION_JITTER),
-            println(F, "       "
-                    "        <dispersion_samples ival=\"~w\"/>~n"
-                    "        <dispersion_jitter bval=\"~s\"/>",
-                    [DispersionSamples,
-                     format(DispersionJitter)])
     end,
 
     case OrenNayar of
@@ -3404,23 +3280,6 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
                                        -math:log(max(AbsG, ?NONZERO))/AbsD,
                                        -math:log(max(AbsB, ?NONZERO))/AbsD})
     end,
-    DispersionPower =
-        proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples =
-                proplists:get_value(dispersion_samples, YafaRay,
-                                    ?DEF_DISPERSION_SAMPLES),
-            DispersionJitter =
-                proplists:get_value(dispersion_jitter, YafaRay,
-                                    ?DEF_DISPERSION_JITTER),
-            println(F, "       "
-                    "        <dispersion_samples ival=\"~w\"/>~n"
-                    "        <dispersion_jitter bval=\"~s\"/>",
-                    [DispersionSamples,
-                     format(DispersionJitter)])
-    end,
 
     case OrenNayar of
         false -> ok;
@@ -3443,130 +3302,6 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
             "        <exp_v fval=\"~.10f\"/>~n"
             "        <exponent fval=\"~.10f\"/>~n",
             [IOR,DiffuseReflect,GlossyReflect,Anisotropic,Anisotropic_U,Anisotropic_V,Exponent]),
-    foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
-                  case export_modulator(F, [Name,$_,format(N)],
-                                        Maps, M, Opacity) of
-                      off -> N+1;
-                      ok ->
-                          println(F),
-                          N+1
-                  end;
-              (_, N) ->
-                  N % Ignore old modulators
-          end, 1, Modulators),
-    println(F, "</material>").
-
-
-
-%%% Export Translucent (SSS) Material
-%%%
-
-
-export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
-    OpenGL = proplists:get_value(opengl, Mat),
-    Maps = proplists:get_value(maps, Mat, []),
-    Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
-    foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
-                  case export_texture(F, [Name,$_,format(N)],
-                                      Maps, ExportDir, M) of
-                      off -> N+1;
-                      ok ->
-                          println(F),
-                          N+1
-                  end;
-              (_, N) ->
-                  N % Ignore old modulators
-          end, 1, Modulators),
-    println(F, "<material name=\"~s\">~n"++
-                "<type sval=\"translucent\"/>", [Name]),
-    DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
-
-    Specular = alpha(proplists:get_value(specular, OpenGL)),
-    DefReflected = Specular,
-    DefTransmitted = def_transmitted(DiffuseA),
-
-
-    SSS_AbsorptionColor =
-        proplists:get_value(sss_absorption_color, YafaRay, ?DEF_SSS_ABSORPTION_COLOR),
-
-
-
-    ScatterColor =
-        proplists:get_value(scatter_color, YafaRay, ?DEF_SCATTER_COLOR),
-
-    SSS_Specular_Color =
-        proplists:get_value(sss_specular_color, YafaRay, ?DEF_SSS_SPECULAR_COLOR),
-
-    %% XXX Wings scaling of shininess is weird. Commonly this value
-    %% is the cosine power and as such in the range 0..infinity.
-    %% OpenGL limits this to 0..128 which mostly is sufficient.
-    println(F, "       <hard ival=\"~.10f\"/>",
-            [proplists:get_value(shininess, OpenGL)*128.0]),
-    export_rgb(F, glossy_color,
-               proplists:get_value(reflected, YafaRay, DefReflected)),
-    export_rgb(F, color,
-               proplists:get_value(transmitted, YafaRay, DefTransmitted)),
-
-    export_rgb(F, specular_color,
-               proplists:get_value(sss_specular_color, YafaRay, SSS_Specular_Color)),
-
-
-
-    case SSS_AbsorptionColor of
-        [ ] -> ok;
-        {AbsR,AbsG,AbsB} ->
-            AbsD =
-                proplists:get_value(absorption_dist, YafaRay,
-                                    ?DEF_ABSORPTION_DIST),
-            export_rgb(F, sigmaA, {-math:log(max(AbsR, ?NONZERO))/AbsD,
-                                   -math:log(max(AbsG, ?NONZERO))/AbsD,
-                                   -math:log(max(AbsB, ?NONZERO))/AbsD})
-    end,
-
-    export_rgb(F, sigmaS,
-               proplists:get_value(scatter_color, YafaRay, ScatterColor)),
-
-    IOR = proplists:get_value(ior, YafaRay, ?DEF_IOR),
-
-
-
-
-    SigmaSfactor = proplists:get_value(sigmas_factor, YafaRay, ?DEF_SIGMAS_FACTOR),
-
-    DiffuseReflect = proplists:get_value(diffuse_reflect, YafaRay, ?DEF_DIFFUSE_REFLECT),
-
-    GlossyReflect = proplists:get_value(glossy_reflect, YafaRay, ?DEF_GLOSSY_REFLECT),
-
-    SSS_Translucency = proplists:get_value(sss_translucency, YafaRay, ?DEF_SSS_TRANSLUCENCY),
-
-    Exponent = proplists:get_value(exponent, YafaRay, ?DEF_EXPONENT),
-
-    DispersionPower =
-        proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples =
-                proplists:get_value(dispersion_samples, YafaRay,
-                                    ?DEF_DISPERSION_SAMPLES),
-            DispersionJitter =
-                proplists:get_value(dispersion_jitter, YafaRay,
-                                    ?DEF_DISPERSION_JITTER),
-            println(F, "       "
-                    "        <dispersion_samples ival=\"~w\"/>~n"
-                    "        <dispersion_jitter bval=\"~s\"/>",
-                    [DispersionSamples,
-                     format(DispersionJitter)])
-
-
-    end,
-    println(F, "        <IOR fval=\"~.10f\"/>~n"
-            "        <sigmaS_factor fval=\"~.10f\"/>~n"
-            "        <diffuse_reflect fval=\"~.10f\"/>~n"
-            "        <glossy_reflect fval=\"~.10f\"/>~n"
-            "        <sss_transmit fval=\"~.10f\"/>~n"
-            "        <exponent fval=\"~.10f\"/>~n",
-            [IOR,SigmaSfactor,DiffuseReflect,GlossyReflect,SSS_Translucency,Exponent]),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of
@@ -3643,23 +3378,10 @@ export_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
                    ,[AbsD,TransmitFilter])
 
     end,
+
     DispersionPower =
         proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples =
-                proplists:get_value(dispersion_samples, YafaRay,
-                                    ?DEF_DISPERSION_SAMPLES),
-
-            println(F, "        <dispersion_power fval=\"~.10f\"/>~n"
-                    "        <dispersion_samples ival=\"~w\"/>~n",
-
-                    [DispersionPower,DispersionSamples
-                    ])
-
-
-    end,
+        println(F, "        <dispersion_power fval=\"~.10f\"/>~n", [DispersionPower]),
 
     FakeShadows =
         proplists:get_value(fake_shadows, YafaRay, ?DEF_FAKE_SHADOWS),
@@ -3745,23 +3467,10 @@ export_rough_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
                     "        <transmit_filter fval=\"~.10f\"/>~n"
                     "        <roughness fval=\"~.10f\"/>~n",[AbsD,TransmitFilter,Roughness])
     end,
+
     DispersionPower =
         proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples =
-                proplists:get_value(dispersion_samples, YafaRay,
-                                    ?DEF_DISPERSION_SAMPLES),
-
-            println(F, "        <dispersion_power fval=\"~.10f\"/>~n"
-                    "        <dispersion_samples ival=\"~w\"/>~n",
-
-                    [DispersionPower,DispersionSamples
-                    ])
-
-
-    end,
+        println(F, "        <dispersion_power fval=\"~.10f\"/>~n", [DispersionPower]),
 
     FakeShadows =
         proplists:get_value(fake_shadows, YafaRay, ?DEF_FAKE_SHADOWS),
@@ -5368,9 +5077,6 @@ export_background(F, Name, Ps) ->
             BgRotation = proplists:get_value(background_rotation, YafaRay,
                 ?DEF_BACKGROUND_ROTATION),
 
-            Ibl_clamp_sampling = proplists:get_value(ibl_clamp_sampling, YafaRay,
-                ?DEF_IBL_CLAMP_SAMPLING),   % only available for YafaRay v3.0.1 or higher
-
             Smartibl_blur = proplists:get_value(smartibl_blur, YafaRay,
                 ?DEF_SMARTIBL_BLUR),    % only available for YafaRay v3.0.1 or higher
 
@@ -5405,8 +5111,7 @@ export_background(F, Name, Ps) ->
                     println(F, "<ibl_samples ival=\"~w\"/>",[Samples]),
                     println(F, "<with_diffuse bval=\"~s\"/>",[AmbientDiffusePhotons]),
                     println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]),
-                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]), % only available for YafaRay v3.0.1 or higher
-                    println(F, "<ibl_clamp_sampling fval=\"~w\"/>",[Ibl_clamp_sampling]);   % only available for YafaRay v3.0.1 or higher
+                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]); % only available for YafaRay v3.0.1 or higher
 
                 false ->
                     println(F, "<ibl bval=\"false\"/>")
@@ -5425,9 +5130,6 @@ export_background(F, Name, Ps) ->
                 ?DEF_SAMPLES),
             BgRotation = proplists:get_value(background_rotation, YafaRay,
                 ?DEF_BACKGROUND_ROTATION),
-
-            Ibl_clamp_sampling = proplists:get_value(ibl_clamp_sampling, YafaRay,
-                ?DEF_IBL_CLAMP_SAMPLING),   % only available for YafaRay v3.0.1 or higher
 
             Smartibl_blur = proplists:get_value(smartibl_blur, YafaRay,
                 ?DEF_SMARTIBL_BLUR),    % only available for YafaRay v3.0.1 or higher
@@ -5459,8 +5161,7 @@ export_background(F, Name, Ps) ->
                     println(F, "<ibl_samples ival=\"~w\"/>",[Samples]),
                     println(F, "<with_diffuse bval=\"~s\"/>",[AmbientDiffusePhotons]),
                     println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]),
-                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]), % only available for YafaRay v3.0.1 or higher
-                    println(F, "<ibl_clamp_sampling fval=\"~w\"/>",[Ibl_clamp_sampling]);   % only available for YafaRay v3.0.1 or higher
+                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]); % only available for YafaRay v3.0.1 or higher
                 false ->
                     println(F, "<ibl bval=\"false\"/>")
             end,
@@ -5480,7 +5181,6 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     AA_minsamples = proplists:get_value(aa_minsamples, Attr),
     AA_pixelwidth = proplists:get_value(aa_pixelwidth, Attr),
     AA_threshold = proplists:get_value(aa_threshold, Attr),
-    ClampRGB = proplists:get_value(clamp_rgb, Attr),
     BackgroundTransp = proplists:get_value(background_transp, Attr),
     BackgroundTranspRefract = proplists:get_value(background_transp_refract, Attr),
     AA_Filter_Type = proplists:get_value(aa_filter_type, Attr),
@@ -5496,11 +5196,6 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     ExrFlagCompression = proplists:get_value(exr_flag_compression, Attr),
     Width = proplists:get_value(width, Attr),
     Height = proplists:get_value(height, Attr),
-    UseSSS = proplists:get_value(use_sss, Attr),
-    SSS_Photons = proplists:get_value(sss_photons, Attr),
-    SSS_Depth = proplists:get_value(sss_depth, Attr),
-    SSS_Scale = proplists:get_value(sss_scale, Attr),
-    SSS_SingleScatter_Samples = proplists:get_value(sss_singlescatter_samples, Attr),
     UseCaustics = proplists:get_value(use_caustics, Attr),
     Caustic_Photons = proplists:get_value(caustic_photons, Attr),
     Caustic_Depth = proplists:get_value(caustic_depth, Attr),
@@ -5652,21 +5347,6 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     end,
 
 
-    case UseSSS of
-        true ->
-            println(F, "<useSSS bval=\"true\"/>"),
-            println(F, "<sssPhotons ival=\"~w\"/>",[SSS_Photons]),
-            println(F, "<sssDepth ival=\"~w\"/>",[SSS_Depth]),
-            println(F, "<sssScale fval=\"~.10f\"/>",[SSS_Scale]),
-            println(F, "<singleScatterSamples ival=\"~w\"/>",[SSS_SingleScatter_Samples]);
-
-        false ->
-            println(F, "<ibl bval=\"false\"/>")
-
-    end,
-
-
-
     println(F, "</integrator>"),
 
 
@@ -5718,7 +5398,6 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
                 "        <premult bval=\"true\"/>~n";
             _ -> ""
         end++
-        "        <clamp_rgb bval=\"~s\"/>~n"
         "    <background_name sval=\"~s\"/>~n"++
         case RenderFormat of
             tga -> "";
@@ -5742,8 +5421,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         "    <gamma fval=\"~.10f\"/>~n"
         "    ",
         [CameraName,AA_Filter_Type,AA_passes,AA_threshold,
-            AA_minsamples,AA_pixelwidth,
-            format(ClampRGB),BackgroundName]++
+            AA_minsamples,AA_pixelwidth,BackgroundName]++
             case RenderFormat of
                 tga -> [];
                 _   -> [format(RenderFormat)]
@@ -5969,7 +5647,6 @@ menu_shader() ->
         {?__(3,"Rough Glass"),rough_glass},
         {?__(4,"Glossy"),glossy},
         {?__(5,"Coated Glossy"),coatedglossy},
-        {?__(6,"Translucent (SSS)"),translucent},
         {?__(7,"Light Material"),lightmat},
         {?__(8,"Blend"),blend_mat}].
 
@@ -6156,9 +5833,7 @@ help(text, pref_dialog) ->
      %%
      ?__(74,"Options: Rendering command line options to be inserted between the "
       "executable and the .xml filename, -dp (add render settings badge) "
-      "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All)."),
-     ?__(75,"NOTE: The YafaRay Fork Build, 'TheBounty' by Povmaniac, is required for "
-	 "SUBSURFACE SCATTERING, Translucent (SSS) Material.")];
+      "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All).")];
 
 help(title, {options_dialog,_}) ->
     ?__(811,"YafaRay Render Options");
@@ -6173,9 +5848,6 @@ help(text, {options_dialog,general}) ->
         ?__(87,"This lighting method in the Lighting tab requires a high number of Passes "
         "in the Anti-Aliasing section of the General Options tab. Anti-Aliasing Threshold "
         "should be set to 0.0."),
-     [{bold,?__(88,"Subsurface Scattering:")++" "}],
-        ?__(89,"This feature, in the Lighting tab, is not available with all Lighting methods. "
-        "An object with Translucent (SSS) material  is required."),
      [{bold,?__(90,"Volumetrics:")++" "}],
         ?__(91,"This feature in the Lighting tab, adds fog or clouds to your scene, assuming "
         "there is a Volume object with a Material name of \"TEmytex\"."),
