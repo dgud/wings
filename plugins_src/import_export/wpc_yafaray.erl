@@ -1,12 +1,12 @@
 %%
 %%  wpc_yafaray.erl
 %%
-%%     YafaRay Plugin User Interface, for YafaRay Core v3
+%%     YafaRay Plugin User Interface, for YafaRay Core v3.0.2
 %%
 %%  Copyright (c) 2003-2008 Raimo Niskanen
 %%                2013-2015 Code Convertion from Yafray to YafaRay by Bernard Oortman (Wings3d user oort)
 %%                2015 Micheus (porting to use wx dialogs)
-%%                2016 David Bluecame (adaptation for YafaRay Core v3)
+%%                2016 David Bluecame (adaptation for YafaRay Core v3.0.2)
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -48,7 +48,6 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_KEEP_XML, false).
 -define(DEF_SAVE_ALPHA, false).
 -define(DEF_GAMMA, 2.2).
--define(DEF_EXPOSURE, 1.4).
 -define(DEF_RENDER_FORMAT, tga).
 -define(DEF_EXR_FLAG_COMPRESSION, compression_zip).
 
@@ -257,7 +256,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_AMBIENT_CAUSTICPHOTONS, false).
 -define(DEF_BACKGROUND_ROTATION, 0.0).
 -define(DEF_SAMPLES, 128).
--define(DEF_SMARTIBL_BLUR, 0.0).    % only available for YafaRay v3.0.1 or higher
+-define(DEF_SMARTIBL_BLUR, 0.0).
 
 %% Pathlight
 -define(DEF_PATHLIGHT_MODE, undefined).
@@ -321,7 +320,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_MOD_ALPHA_INTENSITY, off).
 -define(DEF_TEXTURE_TYPE, diffusetexture).
 
-%% Render Passes, only available for YafaRay v3.0.1 or higher
+%% Render Passes
 -define(DEF_RENDER_PASS, disabled).
 -define(DEF_PASS_MASK_MAT_INDEX, 0).
 -define(DEF_PASS_MASK_INVERT, false).
@@ -422,7 +421,7 @@ range_1(sky_background_power)   -> {0.0,infinity};
 range_1(sky_background_samples) -> {0,infinity};
 range_1(darksky_altitude)	-> {0.0,infinity};
 range_1(sun_real_power)		-> {0.0,infinity};
-range_1(smartibl_blur)	-> {0.0,0.75};  % only available for YafaRay v3.0.1 or higher
+range_1(smartibl_blur)	-> {0.0,0.75};
 
 %% Render ranges
 range_1(pm_diffuse_photons)     -> {1,100000000};
@@ -460,7 +459,6 @@ range_1(aa_passes)              -> {0,infinity};
 range_1(aa_threshold)           -> {0.0,1.0};
 range_1(aa_minsamples)          -> {1,infinity};
 range_1(gamma)                  -> {0.0,infinity};
-range_1(exposure)               -> {0.0,infinity};
 range_1(pixels)                 -> {1,infinity};
 range_1(lens_ortho_scale)       -> {0.0,100.0};
 range_1(lens_angular_max_angle) -> {0.0,360.0};
@@ -468,8 +466,6 @@ range_1(lens_angular_angle)     -> {0.0,360.0};
 range_1(aperture)               -> {0.0,infinity};
 range_1(bokeh_rotation)         -> {-180.0,180.0};
 range_1(dof_distance)           -> {0.0,250.0};
-
-%% Render passes ranges, only available for YafaRay v3.0.1 or higher
 range_1(pass_mask_mat_index)    -> {0,infinity}.
 
 
@@ -1032,7 +1028,7 @@ material_dialog(_Name, Mat) ->
                 %% 16th row
                 {vframe, [
                     {label_column, [
-                        {"Dispersion Power", {slider, {text,DispersionPower,[range(dispersion_power),key(dispersion_power),{hook,Hook_Enable}]}}}
+                        {"Dispersion Power", {slider, {text,DispersionPower,[range(dispersion_power),key(dispersion_power)]}}}
                     ],[{margin,false}]},
                     {"Fake Shadows",FakeShadows,[key(fake_shadows)]}
                 ],[key(pnl_dsp),{show,false},{margin,false}]},
@@ -1936,8 +1932,8 @@ light_dialog(_Name, ambient, Ps) ->
     %%
     Type = proplists:get_value(type, Ps, ?DEF_AMBIENT_TYPE),
     Samples = proplists:get_value(samples, Ps, ?DEF_SAMPLES),
-    Smartibl_blur = proplists:get_value(smartibl_blur, Ps, ?DEF_SMARTIBL_BLUR), % only available for YafaRay v3.0.1 or higher
-
+    Smartibl_blur = proplists:get_value(smartibl_blur, Ps, ?DEF_SMARTIBL_BLUR),
+    
     Hook_Enabled =
         fun(Key, Value, Store) ->
             case Key of
@@ -2021,7 +2017,7 @@ light_dialog(_Name, ambient, Ps) ->
                             {label,?__(60,"Samples")},
                             {text,Samples,[range(samples),key(samples)]},
                             {label,?__(126,"SmartIBL blur")},
-                            {text,Smartibl_blur,[range(smartibl_blur),key(smartibl_blur)]}  % only available for YafaRay v3.0.1 or higher
+                            {text,Smartibl_blur,[range(smartibl_blur),key(smartibl_blur)]}
                         ],[key(pnl_enlight_samples),{margin,false}]}
                     ],[{margin,false}]},
                     {hframe, [
@@ -2179,7 +2175,6 @@ export_prefs() ->
         {raydepth,?DEF_RAYDEPTH},
         {gamma,?DEF_GAMMA},
         {bias,?DEF_BIAS},
-        {exposure,?DEF_EXPOSURE},
         {transparent_shadows,?DEF_TRANSPARENT_SHADOWS},
         {shadow_depth,?DEF_SHADOW_DEPTH},
         {render_format,?DEF_RENDER_FORMAT},
@@ -2359,8 +2354,7 @@ export_dialog_qs(Op, Attr) ->
                         {?__(5, "Gamma"),{text, get_pref(gamma,Attr), [range(gamma),{key,gamma}]}}
                     ]},
                     {label_column, [
-                        {?__(6, "Bias"),{text, get_pref(bias,Attr), [range(bias),{key,bias}]}},
-                        {?__(7, "Exposure"),{text, get_pref(exposure,Attr), [range(exposure),{key,exposure}]}}
+                        {?__(6, "Bias"),{text, get_pref(bias,Attr), [range(bias),{key,bias}]}}
                     ]},
                     {vframe, [
                         {vframe, [
@@ -2683,7 +2677,6 @@ export_dialog_qs(Op, Attr) ->
             ],[{title,""}]}
         },
 
-    %% RenderPasses group, only available for YafaRay v3.0.1 or higher
     RenderPasses =
         {?__(167, "Render Passes"),
             {hframe, render_pass_frame(Attr),[{title,""}]}
@@ -2916,7 +2909,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     println(F),
     export_camera(F, CameraName, Attr),
     println(F),
-    export_render(F, CameraName, BgName, filename:basename(RenderFile), Attr),
+    export_render(F, CameraName, BgName, Attr),
     %%
     println(F),
     println(F, "</scene>"),
@@ -3708,7 +3701,7 @@ export_texture(F, Name, image, Filename) ->
                 "</texture>", [Name,Filename]);
 export_texture(F, Name, Type, Ps) ->
     %% Start Work-Around for YafaRay Texture Name TEmytex Requirement for Noise Volume
-    TextureNameChg = re:replace(Name,"w_TEmytex_1","TEmytex",[global]),
+    TextureNameChg = re:replace(Name,"w_TEmytex_1","TEmytex",[global]),     %FIXME DAVID: IS THIS NECESSARY?????
     println(F, "<texture name=\"~s\"> <type sval=\"~s\"/>", [TextureNameChg,format(Type)]),
     %% End Work-Around for YafaRay Texture Name TEmytex Requirement for Noise Volume
 
@@ -4181,7 +4174,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
                     println(F, "<sharpness fval=\"~.10f\"/>",[Volume_Sharpness]),
                     println(F, "<cover fval=\"~.10f\"/>",[Volume_Cover]),
                     println(F, "<density fval=\"~.10f\"/>",[Volume_Density]),
-                    println(F, "<texture sval=\"TEmytex\"/>")
+                    println(F, "<texture sval=\"TEmytex\"/>")   %FIXME DAVID: is this still necessary????
 
             end,
 
@@ -5078,8 +5071,8 @@ export_background(F, Name, Ps) ->
                 ?DEF_BACKGROUND_ROTATION),
 
             Smartibl_blur = proplists:get_value(smartibl_blur, YafaRay,
-                ?DEF_SMARTIBL_BLUR),    % only available for YafaRay v3.0.1 or higher
-
+                ?DEF_SMARTIBL_BLUR),
+                
             Samples = proplists:get_value(samples, YafaRay,
                 ?DEF_SAMPLES),
 
@@ -5111,8 +5104,8 @@ export_background(F, Name, Ps) ->
                     println(F, "<ibl_samples ival=\"~w\"/>",[Samples]),
                     println(F, "<with_diffuse bval=\"~s\"/>",[AmbientDiffusePhotons]),
                     println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]),
-                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]); % only available for YafaRay v3.0.1 or higher
-
+                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]);
+                    
                 false ->
                     println(F, "<ibl bval=\"false\"/>")
             end,
@@ -5132,7 +5125,7 @@ export_background(F, Name, Ps) ->
                 ?DEF_BACKGROUND_ROTATION),
 
             Smartibl_blur = proplists:get_value(smartibl_blur, YafaRay,
-                ?DEF_SMARTIBL_BLUR),    % only available for YafaRay v3.0.1 or higher
+                ?DEF_SMARTIBL_BLUR),
 
             AmbientDiffusePhotons = proplists:get_value(ambient_diffusephotons, YafaRay, ?DEF_AMBIENT_DIFFUSEPHOTONS),
 
@@ -5161,7 +5154,7 @@ export_background(F, Name, Ps) ->
                     println(F, "<ibl_samples ival=\"~w\"/>",[Samples]),
                     println(F, "<with_diffuse bval=\"~s\"/>",[AmbientDiffusePhotons]),
                     println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]),
-                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]); % only available for YafaRay v3.0.1 or higher
+                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]);
                 false ->
                     println(F, "<ibl bval=\"false\"/>")
             end,
@@ -5176,7 +5169,7 @@ export_background(F, Name, Ps) ->
 
 
 
-export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
+export_render(F, CameraName, BackgroundName, Attr) ->
     AA_passes = proplists:get_value(aa_passes, Attr),
     AA_minsamples = proplists:get_value(aa_minsamples, Attr),
     AA_pixelwidth = proplists:get_value(aa_pixelwidth, Attr),
@@ -5189,11 +5182,6 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     TransparentShadows = proplists:get_value(transparent_shadows, Attr),
     ShadowDepth = proplists:get_value(shadow_depth, Attr),
     Gamma = proplists:get_value(gamma, Attr),
-    Exposure = proplists:get_value(exposure, Attr),
-    RenderFormat = proplists:get_value(render_format, Attr),
-    ExrFlagFloat = proplists:get_value(exr_flag_float, Attr),
-    ExrFlagZbuf = proplists:get_value(exr_flag_zbuf, Attr),
-    ExrFlagCompression = proplists:get_value(exr_flag_compression, Attr),
     Width = proplists:get_value(width, Attr),
     Height = proplists:get_value(height, Attr),
     UseCaustics = proplists:get_value(use_caustics, Attr),
@@ -5370,24 +5358,6 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
             println(F," ")
     end,
 
-
-
-
-
-
-
-
-
-
-
-    ExrFlags =
-        case RenderFormat of
-            exr ->
-                [if ExrFlagFloat -> "float "; true -> "" end,
-                 if ExrFlagZbuf -> "zbuf "; true -> "" end,
-                 format(ExrFlagCompression)];
-            _ -> ""
-        end,
     println(F, "<render> <camera_name sval=\"~s\"/> "
     "<filter_type sval=\"~s\"/>"
     "<AA_passes ival=\"~w\"/>~n"
@@ -5399,39 +5369,12 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
             _ -> ""
         end++
         "    <background_name sval=\"~s\"/>~n"++
-        case RenderFormat of
-            tga -> "";
-            _   -> "    <output_type sval=\"~s\"/>~n"
-        end++
-        case RenderFormat of
-            exr -> "    <exr_flags sval=\"~s\"/>~n";
-            _   -> ""
-        end++
-
-
-
-
-
-
         "    <width ival=\"~w\"/> <height ival=\"~w\"/>~n"
-        "    <outfile sval=\"~s\"/>~n"
-        "    <indirect_samples sval=\"0\"/>~n"
-        "    <indirect_power sval=\"1.0\"/>~n"
-        "    <exposure fval=\"~.10f\"/>~n"++
         "    <gamma fval=\"~.10f\"/>~n"
         "    ",
         [CameraName,AA_Filter_Type,AA_passes,AA_threshold,
             AA_minsamples,AA_pixelwidth,BackgroundName]++
-            case RenderFormat of
-                tga -> [];
-                _   -> [format(RenderFormat)]
-            end++
-            case RenderFormat of
-                exr -> [ExrFlags];
-                _   -> []
-            end++
-
-            [Width,Height,Outfile,Exposure,Gamma]),
+            [Width,Height,Gamma]),
 
     println(F, "<integrator_name sval=\"default\"/>"),
 
@@ -5446,7 +5389,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     println(F, "</render>"),
 
 
-    %% Render Passes, only available for YafaRay v3.0.1 or higher
+    %% Render Passes
 
     println(F, "<render_passes name=\"render_passes\">"),
 
