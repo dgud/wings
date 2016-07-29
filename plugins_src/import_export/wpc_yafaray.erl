@@ -3700,10 +3700,7 @@ export_texture(F, Name, image, Filename) ->
                 "<type sval=\"image\"/>~n" ++
                 "</texture>", [Name,Filename]);
 export_texture(F, Name, Type, Ps) ->
-    %% Start Work-Around for YafaRay Texture Name TEmytex Requirement for Noise Volume
-    TextureNameChg = re:replace(Name,"w_TEmytex_1","TEmytex",[global]),     %FIXME DAVID: IS THIS NECESSARY?????
-    println(F, "<texture name=\"~s\"> <type sval=\"~s\"/>", [TextureNameChg,format(Type)]),
-    %% End Work-Around for YafaRay Texture Name TEmytex Requirement for Noise Volume
+    println(F, "<texture name=\"~s\"> <type sval=\"~s\"/>", [Name,format(Type)]),
 
     Color1 = proplists:get_value(color1, Ps, ?DEF_MOD_COLOR1),
     Color2 = proplists:get_value(color2, Ps, ?DEF_MOD_COLOR2),
@@ -4174,7 +4171,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
                     println(F, "<sharpness fval=\"~.10f\"/>",[Volume_Sharpness]),
                     println(F, "<cover fval=\"~.10f\"/>",[Volume_Cover]),
                     println(F, "<density fval=\"~.10f\"/>",[Volume_Density]),
-                    println(F, "<texture sval=\"TEmytex\"/>")   %FIXME DAVID: is this still necessary????
+                    println(F, "<texture sval=\"w_~s_1\"/>",[DefaultMaterial])
 
             end,
 
@@ -4221,19 +4218,23 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
 
     end,
 
-    export_vertices(F, Vs),
+    case Object_Type of
+        volume -> ok;
+        _ ->
+            export_vertices(F, Vs),
 
-    %% Add Export UV_Vectors Part 1 Start
-    case HasUV of
-        "false" -> ok;
-        "true" -> println(F, "        "),
-                  println(F, "<!--uv_vectors Quantity=\"~w\" -->",[length(Tx)]),
-                  println(F, "        "),
-                  export_vectors2D(F, Tx)
+            %% Add Export UV_Vectors Part 1 Start
+            case HasUV of
+                "false" -> ok;
+                "true" -> println(F, "        "),
+                          println(F, "<!--uv_vectors Quantity=\"~w\" -->",[length(Tx)]),
+                          println(F, "        "),
+                          export_vectors2D(F, Tx)
+            end,
+            %% Add Export UV_Vectors Part 1 End
+
+            export_faces(F, Fs, DefaultMaterial, list_to_tuple(Tx), list_to_tuple(Vc))
     end,
-    %% Add Export UV_Vectors Part 1 End
-
-    export_faces(F, Fs, DefaultMaterial, list_to_tuple(Tx), list_to_tuple(Vc)),
 
     case Object_Type of
         mesh ->
@@ -4257,13 +4258,18 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F," ")
     end,
 
-    case Autosmooth of
-        false ->
-            println(F, "");
-        true ->
-            println(F, "    <smooth ID=\"~w\" angle=\"~.3f\"/>", [Id,AutosmoothAngle])
-    end,
 
+    case Object_Type of
+        volume -> ok;
+        _ ->
+            case Autosmooth of
+                false ->
+                    println(F, "");
+                true ->
+                    println(F, "    <smooth ID=\"~w\" angle=\"~.3f\"/>", [Id,AutosmoothAngle])
+            end
+    end,
+    
     io:format(?__(6,"done")++"~n").
 
 
@@ -5663,7 +5669,7 @@ help(text, {material_dialog,object}) ->
     [?__(7,"Object Parameters are applied to whole objects, namely those "
       "that have this material on a majority of their faces."),
     ?__(8,"Mesh: Standard 3D mesh."),
-    ?__(9,"Volume: Defines an area for Volumetrics. The material name must be TEmytex. "
+    ?__(9,"Volume: Defines an area for Volumetrics. "
       "Control simulated size by adjusting Min/Max settings. "
       "When using the Noise option, a Texture must also be defined in the Material "
       "Properties. Volumetrics must also be enabled under YafaRay Render Options."),
@@ -5793,7 +5799,7 @@ help(text, {options_dialog,general}) ->
         "should be set to 0.0."),
      [{bold,?__(90,"Volumetrics:")++" "}],
         ?__(91,"This feature in the Lighting tab, adds fog or clouds to your scene, assuming "
-        "there is a Volume object with a Material name of \"TEmytex\"."),
+        "there is a Volume object. For noise volumes, the first texture in the associated material will be used."),
      [{bold,?__(92,"Camera Width and Height:")++" "}],
         ?__(93,"This setting, in the Camera tab, controls the size of the rendered image. The size "
         "of the Geometry window affects camera framing. The proportions for Camera Width and "
