@@ -326,6 +326,20 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_PASS_MASK_INVERT, false).
 -define(DEF_PASS_MASK_ONLY, false).
 
+%% Logging and Parameters Badge
+-define(DEF_LOG_SAVE_TXT, false).
+-define(DEF_LOG_SAVE_HTML, false).
+-define(DEF_LOG_VERBOSITY_CONSOLE, info).
+-define(DEF_LOG_VERBOSITY_TXT_HTML, info).
+-define(DEF_BADGE_POSITION, none).
+-define(DEF_BADGE_TITLE, "").
+-define(DEF_BADGE_AUTHOR, "").
+-define(DEF_BADGE_CONTACT, "").
+-define(DEF_BADGE_COMMENTS, "").
+-define(DEF_BADGE_CUSTOM_ICON_PATH, "").
+-define(DEF_BADGE_DRAW_RENDER_SETTINGS, true).
+-define(DEF_BADGE_DRAW_AA_NOISE_SETTINGS, true).
+
 
 range(T) -> {range,range_1(T)}.
 
@@ -2205,7 +2219,20 @@ export_prefs() ->
         {aperture,?DEF_APERTURE},
         {bokeh_bias,?DEF_BOKEH_BIAS},
         {bokeh_rotation,?DEF_BOKEH_ROTATION},
-        {dof_distance,?DEF_DOF_DISTANCE}] ++ RenderPass.
+        {dof_distance,?DEF_DOF_DISTANCE},
+        {log_save_txt,?DEF_LOG_SAVE_TXT},
+        {log_save_html,?DEF_LOG_SAVE_HTML},
+        {log_verbosity_console,?DEF_LOG_VERBOSITY_CONSOLE},
+        {log_verbosity_txt_html,?DEF_LOG_VERBOSITY_TXT_HTML},
+        {badge_position,?DEF_BADGE_POSITION},
+        {badge_title,?DEF_BADGE_TITLE},
+        {badge_author,?DEF_BADGE_AUTHOR},
+        {badge_contact,?DEF_BADGE_CONTACT},
+        {badge_comments,?DEF_BADGE_COMMENTS},
+        {badge_custom_icon_path,?DEF_BADGE_CUSTOM_ICON_PATH},
+        {badge_draw_render_settings,?DEF_BADGE_DRAW_RENDER_SETTINGS},
+        {badge_draw_aa_noise_settings,?DEF_BADGE_DRAW_AA_NOISE_SETTINGS}
+        ] ++ RenderPass.
 
 f_stop_str(Value) when is_float(Value) ->
     %% we must use the same number of decimals used in the aperture edit box
@@ -2678,6 +2705,47 @@ export_dialog_qs(Op, Attr) ->
             ],[{title,""}]}
         },
 
+    Logging_Badge =
+        {?__(168, "Logging/Badge"),
+            {vframe, [
+                {hframe, [
+                    {label, ?__(170, "Badge position ")},
+                    {menu, [
+                        {?__(171, "Top"), top},
+                        {?__(172, "Bottom"), bottom},
+                        {?__(173, "None"), none}
+                    ], get_pref(badge_position,Attr), [{key,badge_position}]},
+                    {?__(174, "Draw Render Settings "), get_pref(badge_draw_render_settings,Attr),[{key,badge_draw_render_settings}]},
+                    {?__(175, "Draw AA/Noise Settings "), get_pref(badge_draw_aa_noise_settings,Attr),[{key,badge_draw_aa_noise_settings}]}
+                ]},
+                {hframe, [
+                    {label, ?__(180, "Console Verbosity ")},
+                    {menu, verbosity_menu(), get_pref(log_verbosity_console,Attr), [{key,log_verbosity_console}]},
+                    {label, ?__(181, "Log TXT/HTML Verbosity ")},
+                    {menu, verbosity_menu(), get_pref(log_verbosity_txt_html,Attr), [{key,log_verbosity_txt_html}]}
+                ]},
+                {hframe, [
+                    {?__(182, "Save TXT log "), get_pref(log_save_txt,Attr), [{key,log_save_txt}]},
+                    {?__(183, "Save HTML log "), get_pref(log_save_html,Attr), [{key,log_save_html}]}
+                ]},
+                {hframe, [
+                    {label, ?__(184, "Title ")}, {text, get_pref(badge_title,Attr), [{key,badge_title}]}
+                ]},
+                {hframe, [
+                    {label, ?__(185, "Author ")}, {text, get_pref(badge_author,Attr), [{key,badge_author}]}
+                ]},
+                {hframe, [
+                    {label, ?__(186, "Contact info ")}, {text, get_pref(badge_contact,Attr), [{key,badge_contact}]}
+                ]},
+                {hframe, [
+                    {label, ?__(187, "Comments ")}, {text, get_pref(badge_comments,Attr), [{key,badge_comments}]}
+                ]},
+                {hframe, [
+                    {label, ?__(188, "Custom icon path ")}, {text, get_pref(badge_custom_icon_path,Attr), [{key,badge_custom_icon_path}]}
+                ]}
+            ],[{title,""}]}
+        },
+
     RenderPasses =
         {?__(167, "Render Passes"),
             {hframe, render_pass_frame(Attr),[{title,""}]}
@@ -2688,9 +2756,22 @@ export_dialog_qs(Op, Attr) ->
             GeneralOpt,
             Lighting,
             Camera,
+            Logging_Badge,
             RenderPasses
         ], 1, [{style, buttons}]}
     ].
+
+verbosity_menu() ->
+    [
+        {?__(1,"Debug"),'debug'},
+        {?__(2,"Verbose"),'verbose'},
+        {?__(3,"Info"),'info'},
+        {?__(4,"Params"),'params'},
+        {?__(5,"Warning"),'warning'},
+        {?__(6,"Error"),'error'},
+        {?__(7,"Mute (silent)"),'mute'}
+    ].
+
         
 render_pass_id(N) when is_integer(N) ->
     list_to_atom("render_pass"++integer_to_list(N)).
@@ -2913,6 +2994,9 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     export_render(F, CameraName, BgName, Attr),
     %%
     println(F),
+    export_logging_badge(F, Attr),
+    %%
+    println(F),
     println(F, "</scene>"),
     close(F),
     %%
@@ -2932,6 +3016,8 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
         {_,true} when ExportFile == RenderFile ->
             export_file_is_render_file;
         {Renderer,true} ->
+            LogVerbosityConsole = proplists:get_value(log_verbosity_console, Attr),
+            LogVerbosityTxtHtml = proplists:get_value(log_verbosity_txt_html, Attr),
             SaveAlpha = proplists:get_value(save_alpha, Attr),
             PluginsOpt =  case wings_job:quote(PluginsPath) of
                                 "" -> "";
@@ -2962,7 +3048,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                 end,
             file:delete(RenderFile),
             set_var(rendering, true),
-            wings_job:render(ExportTS, Renderer,"-ccd"++" "++PluginsOpt++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+            wings_job:render(ExportTS, Renderer,"-ccd"++" "++PluginsOpt++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++"-vl "++format(LogVerbosityConsole)++" "++"-lvl "++format(LogVerbosityTxtHtml)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
 warn_multiple_backgrounds([]) ->
@@ -5408,6 +5494,32 @@ export_render(F, CameraName, BackgroundName, Attr) ->
     println(F, "</render_passes>").
 
 
+export_logging_badge(F, Attr) ->
+    LogSaveTxt = proplists:get_value(log_save_txt, Attr),
+    LogSaveHtml = proplists:get_value(log_save_html, Attr),
+    BadgePosition = proplists:get_value(badge_position, Attr),
+    BadgeTitle = proplists:get_value(badge_title, Attr),
+    BadgeAuthor = proplists:get_value(badge_author, Attr),
+    BadgeContact = proplists:get_value(badge_contact, Attr),
+    BadgeComments = proplists:get_value(badge_comments, Attr),
+    BadgeCustomIconPath = proplists:get_value(badge_custom_icon_path, Attr),
+    BadgeDrawRenderSettings = proplists:get_value(badge_draw_render_settings, Attr),
+    BadgeDrawAANoiseSettings = proplists:get_value(badge_draw_aa_noise_settings, Attr),
+    
+    println(F, "<logging_badge name=\"logging_badge\">"),
+    println(F, "	<logging_saveLog bval=\"~s\"/>", [LogSaveTxt]),
+    println(F, "	<logging_saveHTML bval=\"~s\"/>", [LogSaveHtml]),
+    println(F, "	<logging_paramsBadgePosition sval=\"~s\"/>", [BadgePosition]),
+    println(F, "	<logging_title sval=\"~s\"/>", [BadgeTitle]),
+    println(F, "	<logging_author sval=\"~s\"/>", [BadgeAuthor]),
+    println(F, "	<logging_contact sval=\"~s\"/>", [BadgeContact]),
+    println(F, "	<logging_comments sval=\"~s\"/>", [BadgeComments]),
+    println(F, "	<logging_customIcon sval=\"~s\"/>", [BadgeCustomIconPath]),
+    println(F, "	<logging_drawRenderSettings bval=\"~s\"/>", [BadgeDrawRenderSettings]),
+    println(F, "	<logging_drawAANoiseSettings bval=\"~s\"/>", [BadgeDrawAANoiseSettings]),
+    println(F, "</logging_badge>").
+
+
 %%% Noisy file output functions. Fail if anything goes wrong.
 %%%
 
@@ -5784,8 +5896,7 @@ help(text, pref_dialog) ->
         "folder('c:/yafaray/bin/plugins'). Older YafaRay versions  will not work without this. YafaRay v3.0.0 or higher no longer needs this and can be empty (but in that case make sure the field is empty and no blank spaces are inserted in it)."),
      %%
      ?__(74,"Options: Rendering command line options to be inserted between the "
-      "executable and the .xml filename, -dp (add render settings badge) "
-      "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All).")];
+      "executable and the .xml filename.")];
 
 help(title, {options_dialog,_}) ->
     ?__(811,"YafaRay Render Options");
