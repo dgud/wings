@@ -895,6 +895,7 @@ material_dialog(_Name, Mat) ->
                                 {?__(132,"Density"), {text,Volume_Density,[range(volume_density),key(volume_density)]}}
                             ], [key(pnl_noise_volume),{margin,false}]},
                             %% End Noise Volume - ONLY
+                            % FIXME: This is not really good, volume Min/Max coordinates should be automatically calculated based on the object bounds, not entered manually by the user. This is counter-intuitive.
                             {label_column, [
                                 {?__(133,"Min/Max X"), {text,Volume_Minmax_X,[range(volume_minmax_x),key(volume_minmax_x)]}},
                                 {?__(134,"Min/Max Y"), {text,Volume_Minmax_Y,[range(volume_minmax_y),key(volume_minmax_y)]}},
@@ -4177,6 +4178,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
 
 
             println(F, "<attgridScale ival=\"~w\"/>",[Volume_Attgridscale]),
+            % FIXME: This is not really good, volume Min/Max coordinates should be automatically calculated based on the object bounds, not entered manually by the user. This is counter-intuitive.
             println(F, "<maxX fval=\"~.10f\"/>",[Volume_Minmax_Z]),
             println(F, "<maxY fval=\"~.10f\"/>",[Volume_Minmax_X]),
             println(F, "<maxZ fval=\"~.10f\"/>",[Volume_Minmax_Y]),
@@ -5669,10 +5671,11 @@ help(text, {material_dialog,object}) ->
     [?__(7,"Object Parameters are applied to whole objects, namely those "
       "that have this material on a majority of their faces."),
     ?__(8,"Mesh: Standard 3D mesh."),
+    % FIXME: This is not really good, volume Min/Max coordinates should be automatically calculated based on the object bounds, not entered manually by the user. This is counter-intuitive.
     ?__(9,"Volume: Defines an area for Volumetrics. "
       "Control simulated size by adjusting Min/Max settings. "
       "When using the Noise option, a Texture must also be defined in the Material "
-      "Properties. Volumetrics must also be enabled under YafaRay Render Options."),
+      "Properties, in that case the first texture will be used. Volumetrics must also be enabled under YafaRay Render Options."),
     ?__(10,"Mesh Light: Use for Neon lights or other glowing meshes. "
       "Limit the number of mesh lights in your scene, since render times are longer. "
       "Mesh Lights provide faster rendering than converting meshes to area lights "
