@@ -152,11 +152,6 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_AO_DISTANCE, 5.0).
 -define(DEF_AO_SAMPLES, 32.0).
 -define(DEF_AO_COLOR, {1.0,1.0,1.0}).
--define(DEF_AA_PASSES, 3).
--define(DEF_AA_MINSAMPLES, 1).
--define(DEF_AA_PIXELWIDTH, 1.5).
--define(DEF_AA_THRESHOLD, 0.02).
--define(DEF_AA_FILTER_TYPE, box).
 -define(DEF_TRANSPARENT_SHADOWS, false).
 -define(DEF_BACKGROUND_TRANSP, false).
 -define(DEF_BACKGROUND_TRANSP_REFRACT, false).
@@ -340,6 +335,25 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_BADGE_DRAW_RENDER_SETTINGS, true).
 -define(DEF_BADGE_DRAW_AA_NOISE_SETTINGS, true).
 
+%% AA and Noise Control Parameters, only available for YafaRay v3.0.2 or higher
+-define(DEF_AA_PASSES, 3).
+-define(DEF_AA_MINSAMPLES, 1).
+-define(DEF_AA_INCSAMPLES, 1).
+-define(DEF_AA_PIXELWIDTH, 1.5).
+-define(DEF_AA_THRESHOLD, 0.05).
+-define(DEF_AA_FILTER_TYPE, gauss).
+-define(DEF_AA_NOISE_RESAMPLED_FLOOR, 0.0).
+-define(DEF_AA_NOISE_SAMPLE_MULTIPLIER_FACTOR, 1.0).
+-define(DEF_AA_NOISE_LIGHT_SAMPLE_MULTIPLIER_FACTOR, 1.0).
+-define(DEF_AA_NOISE_INDIRECT_SAMPLE_MULTIPLIER_FACTOR, 1.0).
+-define(DEF_AA_NOISE_DETECT_COLOR_NOISE, false).
+-define(DEF_AA_NOISE_DARK_DETECTION_TYPE, none).
+-define(DEF_AA_NOISE_DARK_THRESHOLD_FACTOR, 0.9).
+-define(DEF_AA_NOISE_VARIANCE_EDGE_SIZE, 10).
+-define(DEF_AA_NOISE_VARIANCE_PIXELS, 0).
+-define(DEF_AA_NOISE_CLAMP_SAMPLES, 0.0).
+-define(DEF_AA_NOISE_CLAMP_INDIRECT, 0.0).
+
 
 range(T) -> {range,range_1(T)}.
 
@@ -468,10 +482,6 @@ range_1(ao_samples)             -> {1.0,128.0};
 range_1(volintegr_stepsize)     -> {0.0,100.0};
 range_1(subdivisions)		-> {0,10};
 range_1(threads_number)         -> {1,100};
-range_1(aa_pixelwidth)          -> {1.0,2.0};
-range_1(aa_passes)              -> {0,infinity};
-range_1(aa_threshold)           -> {0.0,1.0};
-range_1(aa_minsamples)          -> {1,infinity};
 range_1(gamma)                  -> {0.0,infinity};
 range_1(pixels)                 -> {1,infinity};
 range_1(lens_ortho_scale)       -> {0.0,100.0};
@@ -480,7 +490,23 @@ range_1(lens_angular_angle)     -> {0.0,360.0};
 range_1(aperture)               -> {0.0,infinity};
 range_1(bokeh_rotation)         -> {-180.0,180.0};
 range_1(dof_distance)           -> {0.0,250.0};
-range_1(pass_mask_mat_index)    -> {0,infinity}.
+range_1(pass_mask_mat_index)    -> {0,infinity};
+
+%% AA and Noise Control Parameters
+range_1(aa_pixelwidth)          -> {1.0,2.0};
+range_1(aa_passes)              -> {0,infinity};
+range_1(aa_threshold)           -> {0.0,1.0};
+range_1(aa_minsamples)          -> {1,infinity};
+range_1(aa_incsamples)          -> {1,infinity};
+range_1(aa_noise_resampled_floor) -> {0.0,100.0};
+range_1(aa_noise_sample_multiplier_factor) -> {0.0,4.0};
+range_1(aa_noise_light_sample_multiplier_factor) -> {0.0,4.0};
+range_1(aa_noise_indirect_sample_multiplier_factor) -> {0.0,4.0};
+range_1(aa_noise_dark_threshold_factor) -> {0.0,1.0};
+range_1(aa_noise_variance_edge_size) -> {4,20};
+range_1(aa_noise_variance_pixels) -> {0,10};
+range_1(aa_noise_clamp_samples) -> {0.0,infinity};
+range_1(aa_noise_clamp_indirect) -> {0.0,infinity}.
 
 
 %% used to fix old data that now can be out of range and crash Wings3d
@@ -2198,9 +2224,21 @@ export_prefs() ->
         {exr_flag_compression,?DEF_EXR_FLAG_COMPRESSION},
         {aa_passes,?DEF_AA_PASSES},
         {aa_minsamples,?DEF_AA_MINSAMPLES},
+        {aa_incsamples,?DEF_AA_INCSAMPLES},
         {aa_threshold,?DEF_AA_THRESHOLD},
         {aa_pixelwidth,?DEF_AA_PIXELWIDTH},
         {aa_filter_type,?DEF_AA_FILTER_TYPE},
+        {aa_noise_resampled_floor,?DEF_AA_NOISE_RESAMPLED_FLOOR},
+        {aa_noise_sample_multiplier_factor,?DEF_AA_NOISE_SAMPLE_MULTIPLIER_FACTOR},
+        {aa_noise_light_sample_multiplier_factor,?DEF_AA_NOISE_LIGHT_SAMPLE_MULTIPLIER_FACTOR},
+        {aa_noise_indirect_sample_multiplier_factor,?DEF_AA_NOISE_INDIRECT_SAMPLE_MULTIPLIER_FACTOR},
+        {aa_noise_detect_color_noise,?DEF_AA_NOISE_DETECT_COLOR_NOISE},
+        {aa_noise_dark_detection_type,?DEF_AA_NOISE_DARK_DETECTION_TYPE},
+        {aa_noise_dark_threshold_factor,?DEF_AA_NOISE_DARK_THRESHOLD_FACTOR},
+        {aa_noise_variance_edge_size,?DEF_AA_NOISE_VARIANCE_EDGE_SIZE},
+        {aa_noise_variance_pixels,?DEF_AA_NOISE_VARIANCE_PIXELS},
+        {aa_noise_clamp_samples,?DEF_AA_NOISE_CLAMP_SAMPLES},
+        {aa_noise_clamp_indirect,?DEF_AA_NOISE_CLAMP_INDIRECT},       
         {background_color,?DEF_BACKGROUND_COLOR},
         {save_alpha,?DEF_SAVE_ALPHA},
         {background_transp,?DEF_BACKGROUND_TRANSP},
@@ -2426,35 +2464,6 @@ export_dialog_qs(Op, Attr) ->
                     ], [key(pnl_exr_option),{enabled,false},{margin,false}]}
                 ],[{margin,false}]},
 
-                %% Antialising group
-                {hframe, [
-                    {vframe, [
-                        {hframe, [
-                            {label, ?__(165, "Method")++" "},
-                            {menu, [
-                                {?__(136, "Box Filter"), box},
-                                {?__(137, "Gaussian Filter"), gauss},
-                                {?__(138, "Mitchell-Netravali Filter"), mitchell},
-                                {?__(139, "Lanczos Filter"), lanczos}
-                            ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]}
-                        ],[{margin,false}]},
-                        {hframe, [
-                            {label_column, [
-                                {?__(14, "Passes"),{text, get_pref(aa_passes,Attr),
-                                                        [range(aa_passes),{key,aa_passes}]}},
-                                {?__(15, "Min Samples"),{text, get_pref(aa_minsamples,Attr),
-                                                        [range(aa_minsamples),{key,aa_minsamples}]}}
-                            ]},
-                            {label_column, [
-                                {?__(17, "Threshold"),{text, get_pref(aa_threshold,Attr),
-                                    [range(aa_threshold),{key,aa_threshold}]}},
-                                {?__(18, "Pixelwidth"),{text, get_pref(aa_pixelwidth,Attr),
-                                    [range(aa_pixelwidth),{key,aa_pixelwidth}]}}
-                            ]}
-                        ],[{margin,false}]}
-                    ],[{margin,false}]}
-                ],[{title, ?__(20, "Anti-Aliasing")},{margin,false}]},
-
                 {hframe, [
                     {label, ?__(21, "Color")++" "},
                     {color, get_pref(background_color,Attr), [{key,background_color}]},
@@ -2479,6 +2488,94 @@ export_dialog_qs(Op, Attr) ->
 %%                     {button, ?__(57, "Load"), load, [{info, ?__(58, "Load from user preferences")},{hook,ButtonsHook}]},
 %%                     {button, ?__(59, "Reset"), reset, [{info, ?__(60, "Reset to default values")},{hook,ButtonsHook}]}
 %%                 ]}
+            ]}
+        },
+
+    %% AA and Noise Control group
+    Noise_AA_Control =
+        {?__(189, "Noise / AA Control"),
+            {vframe, [
+                {hframe, [
+                    {vframe, [
+                        {hframe, [
+                            {label, ?__(165, "Method ")},
+                            {menu, [
+                                {?__(136, "Box Filter"), box},
+                                {?__(137, "Gaussian Filter"), gauss},
+                                {?__(138, "Mitchell-Netravali Filter"), mitchell},
+                                {?__(139, "Lanczos Filter"), lanczos}
+                            ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]}
+                        ],[{margin,false}]},
+                        {hframe, [
+                            {label_column, [
+                                {?__(15, "Min Samples "),{text, get_pref(aa_minsamples,Attr),
+                                                        [range(aa_minsamples),{key,aa_minsamples}]}},
+                                {?__(14, "AA Passes "),{text, get_pref(aa_passes,Attr),
+                                                        [range(aa_passes),{key,aa_passes}]}},
+                                {?__(190, "Additional Samples "),{text, get_pref(aa_incsamples,Attr),
+                                                        [range(aa_incsamples),{key,aa_incsamples}]}}
+                            ]},
+                            {label_column, [
+                                {?__(17, "AA Threshold "),{text, get_pref(aa_threshold,Attr),
+                                    [range(aa_threshold),{key,aa_threshold}]}},
+                                {?__(18, "Pixelwidth "),{text, get_pref(aa_pixelwidth,Attr),
+                                    [range(aa_pixelwidth),{key,aa_pixelwidth}]}}
+                            ]}
+                        ],[{margin,false}]}
+                    ],[{title, ?__(191, "Basic controls")},{margin,false}]},
+                    
+                    {vframe, [
+                        {hframe, [
+                            {label, ?__(193, "AA Dark thresh. compensation ")},
+                            {menu, [
+                                {?__(194, "None"), none},
+                                {?__(195, "Linear"), linear},
+                                {?__(196, "Curve"), curve}
+                            ], get_pref(aa_noise_dark_detection_type,Attr), [{key,aa_noise_dark_detection_type}]}
+                        ],[{margin,false}]},
+                        {hframe, [
+                            {label_column, [
+                                {?__(197, "AA Dark thr.factor "),{text, get_pref(aa_noise_dark_threshold_factor,Attr),
+                                                        [range(aa_noise_dark_threshold_factor),{key,aa_noise_dark_threshold_factor}]}},
+                                {?__(198, "AA Resampled Floor (% image) "),{text, get_pref(aa_noise_resampled_floor,Attr),
+                                                        [range(aa_noise_resampled_floor),{key,aa_noise_resampled_floor}]}}
+                            ]}
+                        ],[{margin,false}]},
+                        {?__(199, "Detect Color Noise "), get_pref(aa_noise_detect_color_noise,Attr), [{key,aa_noise_detect_color_noise}]}
+
+                    ],[{title, ?__(192, "Additional controls")},{margin,false}]}
+                ],[{margin,false}]},
+                
+                {hframe, [
+                    {vframe, [
+                        {hframe, [
+                            {label_column, [
+                                {?__(200, "Variance Window "),{text, get_pref(aa_noise_variance_edge_size,Attr), [range(aa_noise_variance_edge_size),{key,aa_noise_variance_edge_size}]}},
+                                {?__(201, "Variance Pixels "),{text, get_pref(aa_noise_variance_pixels,Attr), [range(aa_noise_variance_pixels),{key,aa_noise_variance_pixels}]}}
+                            ]}
+                        ],[{margin,false}]}
+                    ],[{title, ?__(202, "Optional Variance noise detection (pixels = 0 disables it)")},{margin,false}]},
+                    {vframe, [
+                        {hframe, [
+                            {label_column, [
+                                {?__(203, "Clamp all samples "),{text, get_pref(aa_noise_clamp_samples,Attr), [range(aa_noise_clamp_samples),{key,aa_noise_clamp_samples}]}},
+                                {?__(204, "Clamp indirect samples "),{text, get_pref(aa_noise_clamp_indirect,Attr), [range(aa_noise_clamp_indirect),{key,aa_noise_clamp_indirect}]}}
+                            ]}
+                        ],[{margin,false}]}
+                    ],[{title, ?__(205, "Clamping for noise reduction (0.0 disables clamp)")},{margin,false}]}
+                ],[{margin,false}]},
+
+                {hframe, [
+                    {vframe, [
+                        {hframe, [
+                            {label_column, [
+                                {?__(206, "Samples multiplier factor "),{text, get_pref(aa_noise_sample_multiplier_factor,Attr), [range(aa_noise_sample_multiplier_factor),{key,aa_noise_sample_multiplier_factor}]}},
+                                {?__(207, "Light samples multiplier factor "),{text, get_pref(aa_noise_light_sample_multiplier_factor,Attr), [range(aa_noise_light_sample_multiplier_factor),{key,aa_noise_light_sample_multiplier_factor}]}},
+                                {?__(208, "Indirect samples multiplier factor "),{text, get_pref(aa_noise_indirect_sample_multiplier_factor,Attr), [range(aa_noise_indirect_sample_multiplier_factor),{key,aa_noise_indirect_sample_multiplier_factor}]}}
+                            ]}
+                        ],[{margin,false}]}
+                    ],[{title, ?__(209, "Sampling factor Pass multipliers")},{margin,false}]}
+                ],[{margin,false}]}
             ]}
         },
 
@@ -2754,6 +2851,7 @@ export_dialog_qs(Op, Attr) ->
     [
         {oframe, [
             GeneralOpt,
+            Noise_AA_Control,
             Lighting,
             Camera,
             Logging_Badge,
@@ -5266,8 +5364,20 @@ export_background(F, Name, Ps) ->
 export_render(F, CameraName, BackgroundName, Attr) ->
     AA_passes = proplists:get_value(aa_passes, Attr),
     AA_minsamples = proplists:get_value(aa_minsamples, Attr),
+    AA_incsamples = proplists:get_value(aa_incsamples, Attr),
     AA_pixelwidth = proplists:get_value(aa_pixelwidth, Attr),
     AA_threshold = proplists:get_value(aa_threshold, Attr),
+    AA_noise_resampled_floor = proplists:get_value(aa_noise_resampled_floor, Attr),
+    AA_noise_sample_multiplier_factor = proplists:get_value(aa_noise_sample_multiplier_factor, Attr),
+    AA_noise_light_sample_multiplier_factor = proplists:get_value(aa_noise_light_sample_multiplier_factor, Attr),
+    AA_noise_indirect_sample_multiplier_factor = proplists:get_value(aa_noise_indirect_sample_multiplier_factor, Attr),
+    AA_noise_detect_color_noise = proplists:get_value(aa_noise_detect_color_noise, Attr),
+    AA_noise_dark_detection_type = proplists:get_value(aa_noise_dark_detection_type, Attr),
+    AA_noise_dark_threshold_factor = proplists:get_value(aa_noise_dark_threshold_factor, Attr),
+    AA_noise_variance_edge_size = proplists:get_value(aa_noise_variance_edge_size, Attr),
+    AA_noise_variance_pixels = proplists:get_value(aa_noise_variance_pixels, Attr),
+    AA_noise_clamp_samples = proplists:get_value(aa_noise_clamp_samples, Attr),
+    AA_noise_clamp_indirect = proplists:get_value(aa_noise_clamp_indirect, Attr),
     BackgroundTransp = proplists:get_value(background_transp, Attr),
     BackgroundTranspRefract = proplists:get_value(background_transp_refract, Attr),
     AA_Filter_Type = proplists:get_value(aa_filter_type, Attr),
@@ -5456,7 +5566,20 @@ export_render(F, CameraName, BackgroundName, Attr) ->
     "<filter_type sval=\"~s\"/>"
     "<AA_passes ival=\"~w\"/>~n"
     "        <AA_threshold fval=\"~.10f\"/>~n"
-    "        <AA_minsamples ival=\"~w\"/> <AA_pixelwidth fval=\"~.10f\"/>~n"++
+    "        <AA_minsamples ival=\"~w\"/>"
+    "        <AA_inc_samples ival=\"~w\"/>"
+    "        <AA_pixelwidth fval=\"~.10f\"/>~n"
+    "        <AA_resampled_floor fval=\"~.10f\"/>"
+    "        <AA_sample_multiplier_factor fval=\"~.10f\"/>"
+    "        <AA_light_sample_multiplier_factor fval=\"~.10f\"/>"
+    "        <AA_indirect_sample_multiplier_factor fval=\"~.10f\"/>"
+    "        <AA_detect_color_noise bval=\"~s\"/>"
+    "        <AA_dark_detection_type sval=\"~s\"/>"
+    "        <AA_dark_threshold_factor fval=\"~.10f\"/>"
+    "        <AA_variance_edge_size ival=\"~w\"/>"
+    "        <AA_variance_pixels ival=\"~w\"/>"
+    "        <AA_clamp_samples fval=\"~.10f\"/>"
+    "        <AA_clamp_indirect fval=\"~.10f\"/>"++
         case SaveAlpha of
             premultiply ->
                 "        <premult bval=\"true\"/>~n";
@@ -5467,7 +5590,7 @@ export_render(F, CameraName, BackgroundName, Attr) ->
         "    <gamma fval=\"~.10f\"/>~n"
         "    ",
         [CameraName,AA_Filter_Type,AA_passes,AA_threshold,
-            AA_minsamples,AA_pixelwidth,BackgroundName]++
+            AA_minsamples,AA_incsamples,AA_pixelwidth,AA_noise_resampled_floor,AA_noise_sample_multiplier_factor,AA_noise_light_sample_multiplier_factor,AA_noise_indirect_sample_multiplier_factor,AA_noise_detect_color_noise,AA_noise_dark_detection_type,AA_noise_dark_threshold_factor,AA_noise_variance_edge_size,AA_noise_variance_pixels,AA_noise_clamp_samples,AA_noise_clamp_indirect,BackgroundName]++
             [Width,Height,Gamma]),
 
     println(F, "<integrator_name sval=\"default\"/>"),
