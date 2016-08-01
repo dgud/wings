@@ -45,9 +45,9 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_THREADS_NUMBER, 1).
 -define(DEF_SUBDIVISIONS, 0).
 -define(DEF_KEEP_XML, false).
--define(DEF_SAVE_ALPHA, false).
+-define(DEF_SAVE_ALPHA, true).
 -define(DEF_GAMMA, 2.2).
--define(DEF_RENDER_FORMAT, tga).
+-define(DEF_RENDER_FORMAT, png).
 -define(DEF_EXR_FLAG_COMPRESSION, compression_zip).
 
 %% Shader
@@ -155,13 +155,13 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_BACKGROUND_TRANSP, false).
 -define(DEF_BACKGROUND_TRANSP_REFRACT, false).
 -define(DEF_SHADOW_DEPTH, 2).
--define(DEF_RAYDEPTH, 12).
+-define(DEF_RAYDEPTH, 4).
 -define(DEF_SHADOW_BIAS_AUTO, true).
 -define(DEF_SHADOW_BIAS, 0.0005).
 -define(DEF_RAY_MINDIST_AUTO, true).
 -define(DEF_RAY_MINDIST, 0.00005).
--define(DEF_WIDTH, 200).
--define(DEF_HEIGHT, 200).
+-define(DEF_WIDTH, 640).
+-define(DEF_HEIGHT, 480).
 -define(DEF_LENS_TYPE, perspective).
 -define(DEF_LENS_ORTHO_SCALE, 7.0).
 -define(DEF_LENS_ANGULAR_CIRCULAR, true).
@@ -2424,7 +2424,7 @@ export_dialog_qs(Op, Attr) ->
                 %% Render group
                 {hframe, [
                     {label_column, [
-                        {?__(4, "Raydepth"),{text, get_pref(raydepth,Attr), [range(raydepth),{key,raydepth}]}},
+                        {?__(4, "Ray depth"),{text, get_pref(raydepth,Attr), [range(raydepth),{key,raydepth}]}},
                         {?__(5, "Gamma"),{text, get_pref(gamma,Attr), [range(gamma),{key,gamma}]}}
                     ]},
                     {vframe, [
@@ -2435,7 +2435,7 @@ export_dialog_qs(Op, Attr) ->
                             ], get_pref(transparent_shadows,Attr), [{key,transparent_shadows},{hook,Hook_Enable}]}
                         ]},
                         {hframe, [
-                            {label, ?__(135, "Depth")},
+                            {label, ?__(135, "Shadow depth")},
                             {text, get_pref(shadow_depth,Attr), [range(shadow_depth),{key,shadow_depth}]}
                         ], [key(pnl_transp_shadow), {enabled,false},{margin,false}]}
                     ]}
@@ -6036,7 +6036,7 @@ help(text, pref_dialog) ->
      ?__(71,"is the same as for \"Automatic Dialogs\"."),
      %%
      ?__(72,"Executable: The rendering command for the YafaRay raytrace "
-        "renderer ('c:/yafaray/bin/yafaray-xml.exe') that is supposed to "
+        "renderer ('c:/yafaray_v3/bin/yafaray-xml.exe') that is supposed to "
         "be found in the executables search path; or, the absolute path of "
         "that executable."),
      %%
