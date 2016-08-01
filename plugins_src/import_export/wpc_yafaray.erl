@@ -40,7 +40,6 @@ key(Key) -> {key,?KEY(Key)}.
 %%% Default values
 -define(DEF_DIALOGS, auto).
 -define(DEF_RENDERER, "yafaray-xml").
--define(DEF_PLUGINS_PATH, "c:/yafaray/bin/plugins").
 -define(DEF_OPTIONS, "").
 -define(DEF_THREADS_AUTO, true).
 -define(DEF_THREADS_NUMBER, 1).
@@ -2120,9 +2119,8 @@ light_result(Ps) ->
 
 
 pref_dialog(St) ->
-    [{dialogs,Dialogs},{renderer,Renderer},{pluginspath,PluginsPath},
+    [{dialogs,Dialogs},{renderer,Renderer},
      {options,Options},{shader_type,ShaderType}] = get_user_prefs([{dialogs,?DEF_DIALOGS},{renderer,?DEF_RENDERER},
-                                                                   {pluginspath,?DEF_PLUGINS_PATH},
                                                                    {options,?DEF_OPTIONS},{shader_type,?DEF_SHADER_TYPE}]),
 
     Dialog = [
@@ -2138,7 +2136,6 @@ pref_dialog(St) ->
             ]},
             {label_column, [
                 {?__(4,"Executable"),{button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}}},
-                {?__(7,"Yafaray Plugins Path"),{button,{text,PluginsPath,[{key,pluginspath},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},
                 {?__(5,"Options"),{text,Options,[{key,options}]}},
                 {?__(8,"Default Shader"),{menu,menu_shader(), ShaderType, [{key,shader_type}]}}
             ]}
@@ -3100,8 +3097,6 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     %%
     [{options,Options}] =
         get_user_prefs([{options,?DEF_OPTIONS}]),
-    [{pluginspath,PluginsPath}] =
-        get_user_prefs([{pluginspath,?DEF_PLUGINS_PATH}]),
     case {get_var(renderer),Render} of
         {_,false} ->
             wings_job:export_done(ExportTS),
@@ -3117,12 +3112,6 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
             LogVerbosityConsole = proplists:get_value(log_verbosity_console, Attr),
             LogVerbosityTxtHtml = proplists:get_value(log_verbosity_txt_html, Attr),
             SaveAlpha = proplists:get_value(save_alpha, Attr),
-            PluginsOpt =  case wings_job:quote(PluginsPath) of
-                                "" -> "";
-                                _ ->
-                                    "-pp "++wings_job:quote(PluginsPath)
-                            end,
-
             AlphaChannel =  case SaveAlpha of
                                 false -> "";
                                 _ ->
@@ -3146,7 +3135,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                 end,
             file:delete(RenderFile),
             set_var(rendering, true),
-            wings_job:render(ExportTS, Renderer,"-ccd"++" "++PluginsOpt++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++"-vl "++format(LogVerbosityConsole)++" "++"-lvl "++format(LogVerbosityTxtHtml)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+            wings_job:render(ExportTS, Renderer,"-ccd"++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++"-vl "++format(LogVerbosityConsole)++" "++"-lvl "++format(LogVerbosityTxtHtml)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
 warn_multiple_backgrounds([]) ->
@@ -6014,9 +6003,6 @@ help(text, pref_dialog) ->
         "renderer ('c:/yafaray/bin/yafaray-xml.exe') that is supposed to "
         "be found in the executables search path; or, the absolute path of "
         "that executable."),
-     %%
-     ?__(73,"YafaRay Plugins Path: The path to the YafaRay raytrace renderer plugins "
-        "folder('c:/yafaray/bin/plugins'). Older YafaRay versions  will not work without this. YafaRay v3.0.0 or higher no longer needs this and can be empty (but in that case make sure the field is empty and no blank spaces are inserted in it)."),
      %%
      ?__(74,"Options: Rendering command line options to be inserted between the "
       "executable and the .xml filename.")];
