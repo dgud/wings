@@ -49,6 +49,8 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_GAMMA, 2.2).
 -define(DEF_RENDER_FORMAT, png).
 -define(DEF_EXR_FLAG_COMPRESSION, compression_zip).
+-define(DEF_TILE_SIZE, 32).
+-define(DEF_TILE_ORDER, centre).
 
 %% Shader
 -define(DEF_SHADER_TYPE, shinydiffuse).
@@ -455,6 +457,7 @@ range_1(sun_real_power)		-> {0.0,infinity};
 range_1(smartibl_blur)	-> {0.0,0.75};
 
 %% Render ranges
+range_1(tile_size)              -> {1,256};
 range_1(pm_diffuse_photons)     -> {1,100000000};
 range_1(pm_bounces)             -> {0,50};
 range_1(pm_search)              -> {1,10000};
@@ -2175,6 +2178,8 @@ export_prefs() ->
         {keep_xml,?DEF_KEEP_XML},
         {threads_number,?DEF_THREADS_NUMBER},
         {threads_auto,?DEF_THREADS_AUTO},
+        {tile_size,?DEF_TILE_SIZE},
+        {tile_order,?DEF_TILE_ORDER},
         {lighting_method,?DEF_LIGHTING_METHOD},
         {use_caustics,?DEF_USE_CAUSTICS},
         {caustic_photons,?DEF_CAUSTIC_PHOTONS},
@@ -2438,6 +2443,17 @@ export_dialog_qs(Op, Attr) ->
                             {label, ?__(135, "Shadow depth")},
                             {text, get_pref(shadow_depth,Attr), [range(shadow_depth),{key,shadow_depth}]}
                         ], [key(pnl_transp_shadow), {enabled,false},{margin,false}]}
+                    ]},
+                    {vframe, [
+                        {hframe, [
+                            {label, ?__(216, "Tile size ")},
+                            {text, get_pref(tile_size,Attr), [range(tile_size),{key,tile_size}]},
+                            {menu, [
+                                {?__(217, "Centre"), centre},
+                                {?__(218, "Random"), random},
+                                {?__(219, "Linear"), linear}
+                            ], get_pref(tile_order,Attr), [{key,tile_order}]}
+                        ], [{margin,false}]}
                     ]}
                 ],[{title, ?__(8, "Render")},{margin,false}]},
 
@@ -5401,6 +5417,8 @@ export_render(F, CameraName, BackgroundName, Attr) ->
     Raydepth = proplists:get_value(raydepth, Attr),
     TransparentShadows = proplists:get_value(transparent_shadows, Attr),
     ShadowDepth = proplists:get_value(shadow_depth, Attr),
+    TileSize = proplists:get_value(tile_size, Attr),
+    TileOrder = proplists:get_value(tile_order, Attr),
     Gamma = proplists:get_value(gamma, Attr),
     Width = proplists:get_value(width, Attr),
     Height = proplists:get_value(height, Attr),
@@ -5613,10 +5631,12 @@ export_render(F, CameraName, BackgroundName, Attr) ->
         "    <adv_shadow_bias_value fval=\"~.10f\"/>~n"
         "    <adv_auto_min_raydist_enabled bval=\"~s\"/>~n"
         "    <adv_min_raydist_value fval=\"~.10f\"/>~n"
+        "    <tile_size ival=\"~w\"/>"
+        "    <tiles_order sval=\"~s\"/>"
         "    ",
         [CameraName,AA_Filter_Type,AA_passes,AA_threshold,
             AA_minsamples,AA_incsamples,AA_pixelwidth,AA_noise_resampled_floor,AA_noise_sample_multiplier_factor,AA_noise_light_sample_multiplier_factor,AA_noise_indirect_sample_multiplier_factor,AA_noise_detect_color_noise,AA_noise_dark_detection_type,AA_noise_dark_threshold_factor,AA_noise_variance_edge_size,AA_noise_variance_pixels,AA_noise_clamp_samples,AA_noise_clamp_indirect,BackgroundName]++
-            [Width,Height,Gamma]++[Shadow_bias_auto, Shadow_bias, Ray_mindist_auto, Ray_mindist]),
+            [Width,Height,Gamma]++[Shadow_bias_auto, Shadow_bias, Ray_mindist_auto, Ray_mindist]++[TileSize, TileOrder]),
 
     println(F, "<integrator_name sval=\"default\"/>"),
 
