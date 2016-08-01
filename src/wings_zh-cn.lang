@@ -1463,16 +1463,14 @@
     {1,"任何命令，在出现一个菜单，可以分配一个键盘捷径（热键）。"},
     % "To assign a hotkey to a command:"
     {4,"要指定一个热键命令："},
-    % "1. Open the menu containing the command and highlight the command."
-    {5,"1。打开菜单，里面包含的命令，并强调该命令。"},
-    % "2. Press the [Insert] or [/] key."
-    {6,"2。按[插入]或[/]键。"},
-    % "4. The information line asks you to press the key that the command should be assigned to."
-    {8,"4。该信息行要求你按该命令应分配的关键。"},
+    % "1. Press the [Insert] or [/] key."
+    {6,"1。按~ts或~ts键。"},
+    % "2. Open the menu containing the command and highlight the command."
+    {5,"2。打开菜单，里面包含的命令，并强调该命令。"},
+    % "3. The information line asks you to press the key that the command should be assigned to."
+    {8,"3。该信息行要求你按该命令应分配的关键。"},
     % "To delete a hotkey, similarly highlight the command in a menu, and press the [Del] or [\\] key. A dialog box listing all keys bound to the command will appear. Check all hotkeys you want to delete."
-    {9,"要删除一个热键，同样突出了一个菜单命令，然后按[德尔]或[\ \]键。一个对话框，列出绑定到命令所有的键就会出现。检查所有的热键要删除。"},
-    % "3. If the command does different things depending on which mouse button is pressed there will be a message in the information line asking you to press a mouse button to choose which variant of the command to assign to the hotkey. (Note: The mouse cursor must remain inside the menu when you click.)"
-    {10,"3。如果该命令根据不同的事情上按下鼠标按钮将会出现在信息，要求您按下一个按钮，鼠标线的消息选择哪个命令的变体分配给热键。 （注：鼠标光标必须保持内部的菜单时，你点击。）"}
+    {9,"要删除一个热键，同样突出了一个菜单命令，然后按~ts或~ts键。一个对话框，列出绑定到命令所有的键就会出现。检查所有的热键要删除。"}
    ]},
   {edit_prefs,
    [

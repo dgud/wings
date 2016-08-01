@@ -990,11 +990,10 @@
    [
     {1,"Toute commande qui figure dans un menu peut être assignée à une touche de raccourci."},
     {4,"Pour assigner une commande à une touche de raccourci :"},
-    {5,"1. Affichez le menu contenant la commande et placez le curseur vis-à-vis d'elle de sorte qu'elle soit surlignée."},
-    {6,"2. Appuyez sur la touche [Insér.] ou la touche [/]."},
-    {8,"4. La ligne d'information demande alors d'appuyer sur la touche du clavier à laquelle vous souhaitez lier la commande."},
-    {9,"Pour effacer un raccourcis, ouvrez le menu et placez le curseur de la souris sur la commande Appuyez sur la touche [Suppr.] ou la touche [\\]. Une fenêtre énumérant toutes les touches déjà assignées à la commande apparaitra afin de vous permettre de choisir quels raccourcis vous souhaitez supprimer. Cochez les cases des raccourcis à effacer et validez."},
-    {10,"3. Si la commande produit différent résultats selon quel bouton de souris est utilisé pour la sélectionner, la ligne d'information affichera un message vous demandant d'appuyer sur le bouton de souris correspondant à la commande à laquelle vous souhaitez assigner le raccourcis. Le curseur de la souris ne doit pas bouger pendant cette opération afin de rester sur le menu."}
+    {6,"1. Appuyez sur la touche ~ts ou la touche ~ts."},
+    {5,"2. Affichez le menu contenant la commande et placez le curseur vis-à-vis d'elle de sorte qu'elle soit surlignée."},
+    {8,"3. La ligne d'information demande alors d'appuyer sur la touche du clavier à laquelle vous souhaitez lier la commande."},
+    {9,"Pour effacer un raccourcis, Appuyez sur la touche ~ts ou la touche ~ts ouvrez le menu et placez le curseur de la souris sur la commande. Une fenêtre énumérant toutes les touches déjà assignées à la commande apparaitra afin de vous permettre de choisir quels raccourcis vous souhaitez supprimer. Cochez les cases des raccourcis à effacer et validez."}
     ]},
   {edit_prefs,
    [

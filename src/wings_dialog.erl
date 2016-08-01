@@ -839,7 +839,7 @@ build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
 	      end,
     In = lists:foldl(AddPage, In0, Tabs),
     case Def =< length(In) of
-	true -> wxNotebook:setSelection(NB, Def+1);
+	true -> wxNotebook:setSelection(NB, Def);
 	false -> ignore
     end,
     wxSizer:add(WinSizer, NB, [{proportion, 1},{flag, ?wxEXPAND}]),

@@ -263,7 +263,12 @@ show_faces_1([_|_]=Fs, [FaceMat|Fms], Acc) ->
 show_faces_1([], Fs, Acc) -> sort(Acc++Fs).
 
 renumber_1([{F,M}|T], Fmap, Acc) ->
-    renumber_1(T, Fmap, [{gb_trees:get(F, Fmap),M}|Acc]);
+    try
+        renumber_1(T, Fmap, [{gb_trees:get(F, Fmap),M}|Acc])
+    catch
+        error:_  ->
+            renumber_1(T, Fmap, Acc)
+    end;
 renumber_1([], _, Acc) -> sort(Acc).
 
 %% rev_compress([{Face,Mat}], [{Face,Mat}]) -> [{Face,Mat}] | Mat.
