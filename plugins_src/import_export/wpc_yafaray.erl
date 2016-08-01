@@ -41,6 +41,8 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_DIALOGS, auto).
 -define(DEF_RENDERER, "yafaray-xml").
 -define(DEF_OPTIONS, "").
+-define(DEF_RENDER_PASSES_ENABLE, false).
+-define(DEF_RENDER_PASSES, 10).
 -define(DEF_THREADS_AUTO, true).
 -define(DEF_THREADS_NUMBER, 1).
 -define(DEF_SUBDIVISIONS, 0).
@@ -497,6 +499,7 @@ range_1(aperture)               -> {0.0,infinity};
 range_1(bokeh_rotation)         -> {-180.0,180.0};
 range_1(dof_distance)           -> {0.0,250.0};
 range_1(pass_mask_mat_index)    -> {0,infinity};
+range_1(render_passes)          -> {1,32};
 
 %% AA and Noise Control Parameters
 range_1(aa_pixelwidth)          -> {1.0,2.0};
@@ -2127,9 +2130,19 @@ light_result(Ps) ->
 
 pref_dialog(St) ->
     [{dialogs,Dialogs},{renderer,Renderer},
-     {options,Options},{shader_type,ShaderType}] = get_user_prefs([{dialogs,?DEF_DIALOGS},{renderer,?DEF_RENDERER},
-                                                                   {options,?DEF_OPTIONS},{shader_type,?DEF_SHADER_TYPE}]),
-
+     {options,Options},{shader_type,ShaderType},
+     {render_passes_enable,PassesEnable},
+     {render_passes,RenderPasses}] = get_user_prefs([{dialogs,?DEF_DIALOGS},{renderer,?DEF_RENDERER},
+                                                     {options,?DEF_OPTIONS},{shader_type,?DEF_SHADER_TYPE},
+                                                     {render_passes_enable,?DEF_RENDER_PASSES_ENABLE},
+                                                     {render_passes,?DEF_RENDER_PASSES}]),
+    Hook_Enable = fun(Key, Value, Store) ->
+        case Key of
+            render_passes_enable ->
+                wings_dialog:enable(render_passes, Value =:= true, Store);
+            _ -> ok
+        end
+    end,
     Dialog = [
         {vframe, [
             {hframe, [
@@ -2145,6 +2158,11 @@ pref_dialog(St) ->
                 {?__(4,"Executable"),{button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}}},
                 {?__(5,"Options"),{text,Options,[{key,options}]}},
                 {?__(8,"Default Shader"),{menu,menu_shader(), ShaderType, [{key,shader_type}]}}
+            ]},
+            {hframe,[
+                {?__(9,"Render Passes Enable"), PassesEnable, [{key,render_passes_enable},{hook,Hook_Enable}]},
+                panel,
+                {slider, {text, RenderPasses,[{key,render_passes},range(render_passes)]}}
             ]}
         ], [{title,""}]}],
     wpa:dialog(?__(6,"YafaRay Options"), Dialog, fun (Attr) -> pref_result(Attr,St) end).
@@ -2170,10 +2188,11 @@ export_dialog(Op, Title) ->
 
 %% Export Render Options Dialog Settings
 export_prefs() ->
+    {_,Max} = range_1(render_passes),
     RenderPass =
         lists:foldl(fun(N, Acc) ->
                          Acc++[{render_pass_id(N),?DEF_RENDER_PASS}]
-                     end, [], lists:seq(1,32)),
+                     end, [], lists:seq(1,Max)),
     [{subdivisions,?DEF_SUBDIVISIONS},
         {keep_xml,?DEF_KEEP_XML},
         {threads_number,?DEF_THREADS_NUMBER},
@@ -2310,6 +2329,8 @@ export_dialog_qs(Op, Attr) ->
                         {"32", 1 / 1024},
                         {?__(47, "pinhole"), 0.0}]],
     {ApertureIdx,_} = f_stop_find(f_stop_str(Aperture),ApertureList),
+    ImageFormats = images_format(),
+    BrowseProps = [{dialog_type,open_dialog}, {extensions,ImageFormats}],
 
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
@@ -2424,7 +2445,7 @@ export_dialog_qs(Op, Attr) ->
                                                     [{key,threads_auto},{hook,Hook_Enable}]}
                         ]}
                     ],[{margin,false}]}
-                ],[{title, ?__(3, "Pre-rendering")},{margin,false}]},
+                ],[{title, ?__(3, "Pre-rendering")},{margin,true}]},
 
                 %% Render group
                 {hframe, [
@@ -2455,19 +2476,19 @@ export_dialog_qs(Op, Attr) ->
                             ], get_pref(tile_order,Attr), [{key,tile_order}]}
                         ], [{margin,false}]}
                     ]}
-                ],[{title, ?__(8, "Render")},{margin,false}]},
+                ],[{title, ?__(8, "Render")},{margin,true}]},
 
                 %% Output group
                 {hframe, [
-                    {hframe, [
-                        {label, ?__(13, "Output")++" "},
-                        {menu, [
-                            {Ext ++ " (" ++ Desc ++ ")", Format}
-                            || {Format, Ext, Desc} <- wings_job:render_formats(),
-                            (Format == tga) or (Format == tif) or (Format == png) or
-                            (Format == hdr) or (Format == exr)
-                        ], get_pref(render_format,Attr), [{key,render_format},{hook,Hook_Enable}]}
-                    ]},
+		    {label_column, [
+			{?__(13, "Output")++" ", {
+			    menu, [
+				{Ext ++ " (" ++ Desc ++ ")", Format}
+				|| {Format, Ext, Desc} <- wings_job:render_formats(),
+				(Format == tga) or (Format == tif) or (Format == png) or
+				(Format == hdr) or (Format == exr)
+			    ], get_pref(render_format,Attr), [{key,render_format},{hook,Hook_Enable}]}
+			}]},
                     panel,
                     {hframe, [
                         {?__(9, "Float"), get_pref(exr_flag_float,Attr), [{key,exr_flag_float}]},
@@ -2501,7 +2522,7 @@ export_dialog_qs(Op, Attr) ->
                     panel,
                     {?__(161, "Transp Background"),get_pref(background_transp,Attr),
                         [{key,background_transp}]}
-                ],[{title, ?__(26, "Background")},{margin,false}]}
+                ],[{title, ?__(26, "Background")},{margin,true}]}
 
 %%                 % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
 %%                 {hframe, [
@@ -2514,7 +2535,7 @@ export_dialog_qs(Op, Attr) ->
 
     %% AA and Noise Control group
     Noise_AA_Control =
-        {?__(189, "Noise / AA Control"),
+        {?__(189, "Noise/AA Control"),
             {vframe, [
                 {hframe, [
                     {vframe, [
@@ -2526,7 +2547,7 @@ export_dialog_qs(Op, Attr) ->
                                 {?__(138, "Mitchell-Netravali Filter"), mitchell},
                                 {?__(139, "Lanczos Filter"), lanczos}
                             ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]}
-                        ],[{margin,false}]},
+                        ],[{margin,true}]},
                         {hframe, [
                             {label_column, [
                                 {?__(15, "Min Samples "),{text, get_pref(aa_minsamples,Attr),
@@ -2543,28 +2564,24 @@ export_dialog_qs(Op, Attr) ->
                                     [range(aa_pixelwidth),{key,aa_pixelwidth}]}}
                             ]}
                         ],[{margin,false}]}
-                    ],[{title, ?__(191, "Basic controls")},{margin,false}]},
-                    
+                    ],[{title, ?__(191, "Basic controls")},{margin,true}]},
                     {vframe, [
-                        {hframe, [
-                            {label, ?__(193, "AA Dark thresh. compensation ")},
-                            {menu, [
-                                {?__(194, "None"), none},
-                                {?__(195, "Linear"), linear},
-                                {?__(196, "Curve"), curve}
-                            ], get_pref(aa_noise_dark_detection_type,Attr), [{key,aa_noise_dark_detection_type}]}
-                        ],[{margin,false}]},
-                        {hframe, [
-                            {label_column, [
-                                {?__(197, "AA Dark thr.factor "),{text, get_pref(aa_noise_dark_threshold_factor,Attr),
-                                                        [range(aa_noise_dark_threshold_factor),{key,aa_noise_dark_threshold_factor}]}},
-                                {?__(198, "AA Resampled Floor (% image) "),{text, get_pref(aa_noise_resampled_floor,Attr),
-                                                        [range(aa_noise_resampled_floor),{key,aa_noise_resampled_floor}]}}
-                            ]}
-                        ],[{margin,false}]},
-                        {?__(199, "Detect Color Noise "), get_pref(aa_noise_detect_color_noise,Attr), [{key,aa_noise_detect_color_noise}]}
-
-                    ],[{title, ?__(192, "Additional controls")},{margin,false}]}
+			{label_column, [
+			    {?__(193, "AA Dark thresh. compensation "),{
+				menu, [
+				    {?__(194, "None"), none},
+				    {?__(195, "Linear"), linear},
+				    {?__(196, "Curve"), curve}
+				], get_pref(aa_noise_dark_detection_type,Attr), [{key,aa_noise_dark_detection_type}]}},
+			    {?__(197, "AA Dark thr.factor "),{text, get_pref(aa_noise_dark_threshold_factor,Attr),
+						    [range(aa_noise_dark_threshold_factor),{key,aa_noise_dark_threshold_factor}]}},
+			    {?__(198, "AA Resampled Floor (% image) "),{text, get_pref(aa_noise_resampled_floor,Attr),
+						    [range(aa_noise_resampled_floor),{key,aa_noise_resampled_floor}]}}
+			]},
+		    	{hframe, [
+			    {?__(199, "Detect Color Noise "), get_pref(aa_noise_detect_color_noise,Attr), [{key,aa_noise_detect_color_noise}]}
+                        ],[{margin,true}]}
+                    ],[{title, ?__(192, "Additional controls")},{margin,true}]}
                 ],[{margin,false}]},
                 
                 {hframe, [
@@ -2575,7 +2592,7 @@ export_dialog_qs(Op, Attr) ->
                                 {?__(201, "Variance Pixels "),{text, get_pref(aa_noise_variance_pixels,Attr), [range(aa_noise_variance_pixels),{key,aa_noise_variance_pixels}]}}
                             ]}
                         ],[{margin,false}]}
-                    ],[{title, ?__(202, "Optional Variance noise detection (pixels = 0 disables it)")},{margin,false}]},
+                    ],[{title, ?__(202, "Optional Variance noise detection (pixels = 0 disables it)")},{margin,true}]},
                     {vframe, [
                         {hframe, [
                             {label_column, [
@@ -2583,9 +2600,8 @@ export_dialog_qs(Op, Attr) ->
                                 {?__(204, "Clamp indirect samples "),{text, get_pref(aa_noise_clamp_indirect,Attr), [range(aa_noise_clamp_indirect),{key,aa_noise_clamp_indirect}]}}
                             ]}
                         ],[{margin,false}]}
-                    ],[{title, ?__(205, "Clamping for noise reduction (0.0 disables clamp)")},{margin,false}]}
+                    ],[{title, ?__(205, "Clamping for noise reduction (0.0 disables clamp)")},{margin,true}]}
                 ],[{margin,false}]},
-
                 {hframe, [
                     {vframe, [
                         {hframe, [
@@ -2595,7 +2611,7 @@ export_dialog_qs(Op, Attr) ->
                                 {?__(208, "Indirect samples multiplier factor "),{text, get_pref(aa_noise_indirect_sample_multiplier_factor,Attr), [range(aa_noise_indirect_sample_multiplier_factor),{key,aa_noise_indirect_sample_multiplier_factor}]}}
                             ]}
                         ],[{margin,false}]}
-                    ],[{title, ?__(209, "Sampling factor Pass multipliers")},{margin,false}]}
+                    ],[{title, ?__(209, "Sampling factor Pass multipliers")},{margin,true}]}
                 ],[{margin,false}]}
             ]}
         },
@@ -2729,7 +2745,7 @@ export_dialog_qs(Op, Attr) ->
                         {?__(92, "Optimize"), get_pref(volintegr_optimize,Attr),[{key,volintegr_optimize}]}
                     ], [key(pnl_volumetric)]}
                 ],[{title, ?__(88, "Volumetrics")}]}
-            ],[{margin,false}]}
+            ],[{margin,true}]}
         },
 
 
@@ -2820,7 +2836,7 @@ export_dialog_qs(Op, Attr) ->
                         ]}
                     ],[key(pnl_dof_sliders),{margin,false}]}
                 ],[key(pnl_camera)]}
-            ],[{title,""}]}
+            ],[{title,""}, {margin,true}]}
         },
 
     Logging_Badge =
@@ -2833,41 +2849,36 @@ export_dialog_qs(Op, Attr) ->
                         {?__(172, "Bottom"), bottom},
                         {?__(173, "None"), none}
                     ], get_pref(badge_position,Attr), [{key,badge_position}]},
+                    panel,
                     {?__(174, "Draw Render Settings "), get_pref(badge_draw_render_settings,Attr),[{key,badge_draw_render_settings}]},
+                    panel,
                     {?__(175, "Draw AA/Noise Settings "), get_pref(badge_draw_aa_noise_settings,Attr),[{key,badge_draw_aa_noise_settings}]}
                 ]},
                 {hframe, [
                     {label, ?__(180, "Console Verbosity ")},
                     {menu, verbosity_menu(), get_pref(log_verbosity_console,Attr), [{key,log_verbosity_console}]},
+                    panel,
                     {label, ?__(181, "Log TXT/HTML Verbosity ")},
                     {menu, verbosity_menu(), get_pref(log_verbosity_txt_html,Attr), [{key,log_verbosity_txt_html}]}
                 ]},
                 {hframe, [
                     {?__(182, "Save TXT log "), get_pref(log_save_txt,Attr), [{key,log_save_txt}]},
+                    panel,
                     {?__(183, "Save HTML log "), get_pref(log_save_html,Attr), [{key,log_save_html}]}
                 ]},
-                {hframe, [
-                    {label, ?__(184, "Title ")}, {text, get_pref(badge_title,Attr), [{key,badge_title}]}
-                ]},
-                {hframe, [
-                    {label, ?__(185, "Author ")}, {text, get_pref(badge_author,Attr), [{key,badge_author}]}
-                ]},
-                {hframe, [
-                    {label, ?__(186, "Contact info ")}, {text, get_pref(badge_contact,Attr), [{key,badge_contact}]}
-                ]},
-                {hframe, [
-                    {label, ?__(187, "Comments ")}, {text, get_pref(badge_comments,Attr), [{key,badge_comments}]}
-                ]},
-                {hframe, [
-                    {label, ?__(188, "Custom icon path ")}, {text, get_pref(badge_custom_icon_path,Attr), [{key,badge_custom_icon_path}]}
+                panel,
+                {label_column, [
+                    {?__(184, "Title "), {text, get_pref(badge_title,Attr), [{key,badge_title}]}},
+                    {?__(185, "Author "), {text, get_pref(badge_author,Attr), [{key,badge_author}]}},
+                    {?__(186, "Contact info "), {text, get_pref(badge_contact,Attr), [{key,badge_contact}]}},
+                    {?__(187, "Comments "), {text, get_pref(badge_comments,Attr), [{key,badge_comments}]}},
+                    {?__(188, "Custom icon path "), {button,{text, get_pref(badge_custom_icon_path,Attr),
+                                                             [{key,badge_custom_icon_path}, {props,BrowseProps}]}}}
                 ]}
-            ],[{title,""}]}
+            ],[{title,""}, {margin,true}]}
         },
 
-    RenderPasses =
-        {?__(167, "Render Passes"),
-            {hframe, render_pass_frame(Attr),[{title,""}]}
-        },
+    RenderPasses = build_render_pass_frame(?__(167, "Render Passes"), Attr),
 
     Advanced =
         {?__(213, "Advanced"),
@@ -2875,13 +2886,15 @@ export_dialog_qs(Op, Attr) ->
                 {hframe, [
                     {?__(210, "Automatic Shadow Bias"), get_pref(shadow_bias_auto,Attr), [{key,shadow_bias_auto},{hook,Hook_Show}]},
                     {hframe, [
-                        {label, ?__(6, "     Shadow Bias")}, {text, get_pref(shadow_bias,Attr), [range(shadow_bias),{key,shadow_bias}]}
+			panel,
+                        {label, ?__(6, "Shadow Bias")}, {text, get_pref(shadow_bias,Attr), [range(shadow_bias),{key,shadow_bias}]}
                     ],[key(pnl_shadow_bias),{margin,false}]}
                 ]},
                 {hframe, [
                     {?__(211, "Automatic Min Ray Distance"), get_pref(ray_mindist_auto,Attr), [{key,ray_mindist_auto},{hook,Hook_Show}]},
                     {hframe, [
-                        {label, ?__(212, "     Min Ray Distance")}, {text, get_pref(ray_mindist,Attr), [range(ray_mindist),{key,ray_mindist}]}
+			panel,
+                        {label, ?__(212, "Min Ray Distance")}, {text, get_pref(ray_mindist,Attr), [range(ray_mindist),{key,ray_mindist}]}
                     ],[key(pnl_ray_mindist),{margin,false}]}
                 ]}
             ]}
@@ -2893,8 +2906,8 @@ export_dialog_qs(Op, Attr) ->
             Noise_AA_Control,
             Lighting,
             Camera,
-            Logging_Badge,
-            RenderPasses,
+            Logging_Badge] ++
+            RenderPasses ++ [
             Advanced
         ], 1, [{style, buttons}]}
     ].
@@ -2910,24 +2923,50 @@ verbosity_menu() ->
         {?__(7,"Mute (silent)"),'mute'}
     ].
 
-        
 render_pass_id(N) when is_integer(N) ->
     list_to_atom("render_pass"++integer_to_list(N)).
 
-render_pass_frame(Attr) ->
+build_render_pass_frame(Label, Attr) ->
+    [{render_passes_enable,PassesEnable},
+     {render_passes,MaxRenderPasses}] = get_user_prefs([{render_passes_enable,?DEF_RENDER_PASSES_ENABLE},
+                                                        {render_passes,?DEF_RENDER_PASSES}]),
+
+    {_,Max} = range_1(render_passes),
+    UsedPasses =
+        lists:foldl(fun(N, Acc) ->
+            Id = render_pass_id(N),
+            case get_pref(Id, Attr) of
+                ?DEF_RENDER_PASS -> Acc;
+                _ -> N
+            end
+        end,0, lists:seq(1,Max)),
+    Passes =
+        case {PassesEnable,(UsedPasses =/= 0)} of
+            {fase,true} -> UsedPasses;
+            {true,true} -> max(MaxRenderPasses, UsedPasses);
+            {true,false} -> MaxRenderPasses;
+            _ -> 0
+        end,
+    if (Passes =/= 0) ->
+        [{Label, {hframe, render_pass_frame(Attr,Passes),[{title,""}]}}];
+    true -> []
+    end.
+
+render_pass_frame(Attr, Passes) ->
+    ItemCol = max(1,Passes/2),
     PassLabel = ?__(1,"Pass"),
     {Col1,Col2} =
         lists:foldl(fun(N, {Acc1, Acc2}) ->
-        Id = render_pass_id(N),
-                Value = get_pref(Id, Attr),
-                if N=<16 ->
-                    {Acc1++[{PassLabel ++ io_lib:format("~w", [N]),
-                        {menu, render_pass_menu(), Value ,[{key,Id}]}}], Acc2};
-                true ->
-                    {Acc1, Acc2++[{PassLabel ++ io_lib:format("~w", [N]),
-                        {menu, render_pass_menu(), Value ,[{key,Id}]}}]}
-                end
-            end, {[],[]}, lists:seq(1,32)),
+            Id = render_pass_id(N),
+            Value = get_pref(Id, Attr),
+            if N=<ItemCol ->
+                {Acc1++[{PassLabel ++ io_lib:format("~w", [N]),
+                    {menu, render_pass_menu(), Value ,[{key,Id}]}}], Acc2};
+            true ->
+                {Acc1, Acc2++[{PassLabel ++ io_lib:format("~w", [N]),
+                    {menu, render_pass_menu(), Value ,[{key,Id}]}}]}
+            end
+        end, {[],[]}, lists:seq(1,Passes)),
     [{vframe, [{label_column, Col1}]}, {vframe, [{label_column, Col2}]}].
 
 render_pass_menu() ->
