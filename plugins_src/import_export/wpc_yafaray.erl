@@ -5636,7 +5636,7 @@ export_logging_badge(F, Attr) ->
 %%%
 
 open(Filename, export) ->
-    case file:open(Filename, [write,raw,delayed_write]) of
+    case file:open(Filename, [write,{encoding, utf8},delayed_write]) of
         {ok, F} ->
             F;
         Error ->
