@@ -156,7 +156,10 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_BACKGROUND_TRANSP_REFRACT, false).
 -define(DEF_SHADOW_DEPTH, 2).
 -define(DEF_RAYDEPTH, 12).
--define(DEF_BIAS, 0.001).
+-define(DEF_SHADOW_BIAS_AUTO, true).
+-define(DEF_SHADOW_BIAS, 0.0005).
+-define(DEF_RAY_MINDIST_AUTO, true).
+-define(DEF_RAY_MINDIST, 0.00005).
 -define(DEF_WIDTH, 200).
 -define(DEF_HEIGHT, 200).
 -define(DEF_LENS_TYPE, perspective).
@@ -415,7 +418,8 @@ range_1(oren_nayar_sigma)	-> {0.0,1.0};
 
 %% Light ranges
 range_1(power)                  -> {0.0,infinity};
-range_1(bias)                   -> {0.0,1.0};
+range_1(shadow_bias)            -> {0.0,1.0};
+range_1(ray_mindist)            -> {0.0,1.0};
 range_1(res)                    -> {0,infinity};
 range_1(radius)                 -> {0,infinity};
 range_1(samples)                -> {1,infinity};
@@ -2212,7 +2216,10 @@ export_prefs() ->
         {volintegr_stepsize,?DEF_VOLINTEGR_STEPSIZE},
         {raydepth,?DEF_RAYDEPTH},
         {gamma,?DEF_GAMMA},
-        {bias,?DEF_BIAS},
+        {shadow_bias_auto,?DEF_SHADOW_BIAS_AUTO},
+        {shadow_bias,?DEF_SHADOW_BIAS},
+        {ray_mindist_auto,?DEF_RAY_MINDIST_AUTO},
+        {ray_mindist,?DEF_RAY_MINDIST},
         {transparent_shadows,?DEF_TRANSPARENT_SHADOWS},
         {shadow_depth,?DEF_SHADOW_DEPTH},
         {render_format,?DEF_RENDER_FORMAT},
@@ -2371,6 +2378,10 @@ export_dialog_qs(Op, Attr) ->
                 wings_dialog:show(?KEY(pnl_lens_scale), Value =:= orthographic, Store),
                 wings_dialog:show(?KEY(pnl_lens_angle), Value =:= angular, Store),
                 wings_dialog:update(?KEY(pnl_camera), Store);
+            shadow_bias_auto ->
+                wings_dialog:show(?KEY(pnl_shadow_bias), Value =:= false, Store);
+            ray_mindist_auto ->
+                wings_dialog:show(?KEY(pnl_ray_mindist), Value =:= false, Store);
             _ -> ok
         end
     end,
@@ -2415,9 +2426,6 @@ export_dialog_qs(Op, Attr) ->
                     {label_column, [
                         {?__(4, "Raydepth"),{text, get_pref(raydepth,Attr), [range(raydepth),{key,raydepth}]}},
                         {?__(5, "Gamma"),{text, get_pref(gamma,Attr), [range(gamma),{key,gamma}]}}
-                    ]},
-                    {label_column, [
-                        {?__(6, "Bias"),{text, get_pref(bias,Attr), [range(bias),{key,bias}]}}
                     ]},
                     {vframe, [
                         {vframe, [
@@ -2845,6 +2853,24 @@ export_dialog_qs(Op, Attr) ->
             {hframe, render_pass_frame(Attr),[{title,""}]}
         },
 
+    Advanced =
+        {?__(213, "Advanced"),
+            {vframe, [
+                {hframe, [
+                    {?__(210, "Automatic Shadow Bias"), get_pref(shadow_bias_auto,Attr), [{key,shadow_bias_auto},{hook,Hook_Show}]},
+                    {hframe, [
+                        {label, ?__(6, "     Shadow Bias")}, {text, get_pref(shadow_bias,Attr), [range(shadow_bias),{key,shadow_bias}]}
+                    ],[key(pnl_shadow_bias),{margin,false}]}
+                ]},
+                {hframe, [
+                    {?__(211, "Automatic Min Ray Distance"), get_pref(ray_mindist_auto,Attr), [{key,ray_mindist_auto},{hook,Hook_Show}]},
+                    {hframe, [
+                        {label, ?__(212, "     Min Ray Distance")}, {text, get_pref(ray_mindist,Attr), [range(ray_mindist),{key,ray_mindist}]}
+                    ],[key(pnl_ray_mindist),{margin,false}]}
+                ]}
+            ]}
+        },
+
     [
         {oframe, [
             GeneralOpt,
@@ -2852,7 +2878,8 @@ export_dialog_qs(Op, Attr) ->
             Lighting,
             Camera,
             Logging_Badge,
-            RenderPasses
+            RenderPasses,
+            Advanced
         ], 1, [{style, buttons}]}
     ].
 
@@ -5418,6 +5445,11 @@ export_render(F, CameraName, BackgroundName, Attr) ->
     Volintegr_Stepsize = proplists:get_value(volintegr_stepsize, Attr),
     ThreadsAuto = proplists:get_value(threads_auto, Attr),
     ThreadsNumber = proplists:get_value(threads_number, Attr),
+    Shadow_bias_auto = proplists:get_value(shadow_bias_auto, Attr),
+    Shadow_bias = proplists:get_value(shadow_bias, Attr),
+    Ray_mindist_auto = proplists:get_value(ray_mindist_auto, Attr),
+    Ray_mindist = proplists:get_value(ray_mindist, Attr),
+
     
     println(F," "),
     println(F, "<integrator name=\"default\">"),
@@ -5577,10 +5609,14 @@ export_render(F, CameraName, BackgroundName, Attr) ->
         "    <background_name sval=\"~s\"/>~n"++
         "    <width ival=\"~w\"/> <height ival=\"~w\"/>~n"
         "    <gamma fval=\"~.10f\"/>~n"
+        "    <adv_auto_shadow_bias_enabled bval=\"~s\"/>~n"
+        "    <adv_shadow_bias_value fval=\"~.10f\"/>~n"
+        "    <adv_auto_min_raydist_enabled bval=\"~s\"/>~n"
+        "    <adv_min_raydist_value fval=\"~.10f\"/>~n"
         "    ",
         [CameraName,AA_Filter_Type,AA_passes,AA_threshold,
             AA_minsamples,AA_incsamples,AA_pixelwidth,AA_noise_resampled_floor,AA_noise_sample_multiplier_factor,AA_noise_light_sample_multiplier_factor,AA_noise_indirect_sample_multiplier_factor,AA_noise_detect_color_noise,AA_noise_dark_detection_type,AA_noise_dark_threshold_factor,AA_noise_variance_edge_size,AA_noise_variance_pixels,AA_noise_clamp_samples,AA_noise_clamp_indirect,BackgroundName]++
-            [Width,Height,Gamma]),
+            [Width,Height,Gamma]++[Shadow_bias_auto, Shadow_bias, Ray_mindist_auto, Ray_mindist]),
 
     println(F, "<integrator_name sval=\"default\"/>"),
 
