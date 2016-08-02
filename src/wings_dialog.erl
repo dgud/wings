@@ -67,7 +67,7 @@
 %% flag makes the checkbox value and the return value of the field to
 %% be the inverted minimized state (the maximized state ;-).
 %%
-%% {oframe,Fields[,Flags]}                      -- Overlay frame
+%% {oframe,Fields,Focused[,Flags]}                      -- Overlay frame
 %%     Flags = [Flag]
 %%     Flag = {title,String}|{style,Style}|{key,Key}|{hook,Hook}|layout
 %%     Style = menu|buttons  -- menu is default
@@ -839,7 +839,7 @@ build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
 	      end,
     In = lists:foldl(AddPage, In0, Tabs),
     case Def =< length(In) of
-	true -> wxNotebook:setSelection(NB, Def+1);
+	true -> wxNotebook:setSelection(NB, Def-1);
 	false -> ignore
     end,
     wxSizer:add(WinSizer, NB, [{proportion, 1},{flag, ?wxEXPAND}]),
