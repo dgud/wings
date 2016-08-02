@@ -53,6 +53,18 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_EXR_FLAG_COMPRESSION, compression_zip).
 -define(DEF_TILE_SIZE, 32).
 -define(DEF_TILE_ORDER, centre).
+-define(DEF_IMG_AUTOSAVE_TYPE, none).
+-define(DEF_IMG_AUTOSAVE_PASSES, 1).
+-define(DEF_IMG_AUTOSAVE_SECONDS, 300.0).
+-define(DEF_IMG_DENOISE_ENABLE, false).
+-define(DEF_IMG_DENOISE_MIX, 0.8).
+-define(DEF_IMG_DENOISE_H_LUM, 5).
+-define(DEF_IMG_DENOISE_H_CHROM, 5).
+-define(DEF_FILM_PROCESSING, none).
+-define(DEF_FILM_BINARY_FORMAT, true).
+-define(DEF_FILM_AUTOSAVE_TYPE, none).
+-define(DEF_FILM_AUTOSAVE_PASSES, 1).
+-define(DEF_FILM_AUTOSAVE_SECONDS, 300.0).
 
 %% Shader
 -define(DEF_SHADER_TYPE, shinydiffuse).
@@ -499,6 +511,13 @@ range_1(aperture)               -> {0.0,infinity};
 range_1(bokeh_rotation)         -> {-180.0,180.0};
 range_1(dof_distance)           -> {0.0,250.0};
 range_1(pass_mask_mat_index)    -> {0,infinity};
+range_1(img_autosave_passes)    -> {1,infinity};
+range_1(img_autosave_seconds)   -> {3.0,infinity};
+range_1(img_denoise_mix)        -> {0.0,1.0};
+range_1(img_denoise_h_lum)      -> {2,40};
+range_1(img_denoise_h_chrom)    -> {2,40};
+range_1(film_autosave_passes)   -> {1,infinity};
+range_1(film_autosave_seconds)  -> {3.0,infinity};
 range_1(render_passes)          -> {1,32};
 
 %% AA and Noise Control Parameters
@@ -2286,6 +2305,18 @@ export_prefs() ->
         {bokeh_bias,?DEF_BOKEH_BIAS},
         {bokeh_rotation,?DEF_BOKEH_ROTATION},
         {dof_distance,?DEF_DOF_DISTANCE},
+        {img_autosave_type,?DEF_IMG_AUTOSAVE_TYPE},
+        {img_autosave_passes,?DEF_IMG_AUTOSAVE_PASSES},
+        {img_autosave_seconds,?DEF_IMG_AUTOSAVE_SECONDS},
+        {img_denoise_enable,?DEF_IMG_DENOISE_ENABLE},
+        {img_denoise_mix,?DEF_IMG_DENOISE_MIX},
+        {img_denoise_h_lum,?DEF_IMG_DENOISE_H_LUM},
+        {img_denoise_h_chrom,?DEF_IMG_DENOISE_H_CHROM},
+        {film_processing,?DEF_FILM_PROCESSING},
+        {film_binary_format,?DEF_FILM_BINARY_FORMAT},
+        {film_autosave_type,?DEF_FILM_AUTOSAVE_TYPE},
+        {film_autosave_passes,?DEF_FILM_AUTOSAVE_PASSES},
+        {film_autosave_seconds,?DEF_FILM_AUTOSAVE_SECONDS},
         {log_save_txt,?DEF_LOG_SAVE_TXT},
         {log_save_html,?DEF_LOG_SAVE_HTML},
         {log_verbosity_console,?DEF_LOG_VERBOSITY_CONSOLE},
@@ -2408,6 +2439,17 @@ export_dialog_qs(Op, Attr) ->
                 wings_dialog:show(?KEY(pnl_shadow_bias), Value =:= false, Store);
             ray_mindist_auto ->
                 wings_dialog:show(?KEY(pnl_ray_mindist), Value =:= false, Store);
+            img_autosave_type ->
+                wings_dialog:show(?KEY(pnl_img_autosave_seconds), Value =:= 'time-interval', Store),
+                wings_dialog:show(?KEY(pnl_img_autosave_passes), Value =:= 'pass-interval', Store);
+            img_denoise_enable ->
+                wings_dialog:show(?KEY(pnl_img_denoise), Value =:= 'true', Store);
+            film_processing ->
+                wings_dialog:show(?KEY(pnl_film_binary_format), Value =/= none, Store),
+                wings_dialog:show(?KEY(pnl_film_save_options), Value =/= none, Store);
+            film_autosave_type ->
+                wings_dialog:show(?KEY(pnl_film_autosave_seconds), Value =:= 'time-interval', Store),
+                wings_dialog:show(?KEY(pnl_film_autosave_passes), Value =:= 'pass-interval', Store);
             _ -> ok
         end
     end,
@@ -2522,7 +2564,70 @@ export_dialog_qs(Op, Attr) ->
                     panel,
                     {?__(161, "Transp Background"),get_pref(background_transp,Attr),
                         [{key,background_transp}]}
-                ],[{title, ?__(26, "Background")},{margin,true}]}
+                ],[{title, ?__(26, "Background")},{margin,true}]},
+
+                %% Image Autosaving group
+                {hframe, [
+                    {label, ?__(221, "Autosave interval")++" "},
+                    {menu, [
+                        {"Passes interval", 'pass-interval'},
+                        {"Time interval", 'time-interval'},
+                        {"Disabled", none}
+                    ], get_pref(img_autosave_type,Attr), [{key,img_autosave_type},{hook,Hook_Show}]},
+                    {hframe, [
+                        panel,
+                        {label, ?__(222, "Interval (s)")}, {text, get_pref(img_autosave_seconds,Attr), [range(img_autosave_seconds),{key,img_autosave_seconds}]}
+                    ],[key(pnl_img_autosave_seconds),{margin,true}]},
+                    {hframe, [
+                        panel,
+                        {label, ?__(223, "Interval (passes)")}, {text, get_pref(img_autosave_passes,Attr), [range(img_autosave_passes),{key,img_autosave_passes}]}
+                    ],[key(pnl_img_autosave_passes),{margin,true}]}
+                ],[{title, ?__(220, "Output Image AutoSave options")},{margin,true}]},
+
+                %% Image Denoise group
+                {hframe, [
+                    {?__(232, "Image Output DeNoise"),get_pref(img_denoise_enable,Attr), [{key,img_denoise_enable},{hook,Hook_Show}]},
+                    {hframe, [
+                        panel,
+                        {label, ?__(233, "Denoise Mix")++" "}, {text, get_pref(img_denoise_mix,Attr), [range(img_denoise_mix),{key,img_denoise_mix}]},
+                        panel,
+                        {label, ?__(234, "Denoise hLum")++" "}, {text, get_pref(img_denoise_h_lum,Attr), [range(img_denoise_h_lum),{key,img_denoise_h_lum}]},
+                        panel,
+                        {label, ?__(235, "Denoise hChrom")++" "}, {text, get_pref(img_denoise_h_chrom,Attr), [range(img_denoise_h_chrom),{key,img_denoise_h_chrom}]}
+                    ],[key(pnl_img_denoise),{margin,true}]}
+                ],[{title, ?__(231, "Output Image de-noise options")},{margin,true}]},
+
+
+                %% Internal Film Processing/Autosaving group
+                {vframe, [
+                    {hframe, [
+                        {label, ?__(226, "Film processing type")++" "},
+                            {menu, [
+                                {"Load and Save", 'load-save'},
+                                {"Save", save},
+                                {"Disabled", none}
+                            ], get_pref(film_processing,Attr), [{key,film_processing},{hook,Hook_Show}]},
+                        {hframe, [
+                            {?__(227, "Film binary format"),get_pref(film_binary_format,Attr), [{key,film_binary_format}]}
+                        ],[key(pnl_film_binary_format),{margin,true}]}
+                    ]},
+                    {hframe, [
+                        {label, ?__(228, "Film Autosave interval")++" "},
+                        {menu, [
+                            {"Passes interval", 'pass-interval'},
+                            {"Time interval", 'time-interval'},
+                            {"Disabled", none}
+                        ], get_pref(film_autosave_type,Attr), [{key,film_autosave_type},{hook,Hook_Show}]},
+                        {hframe, [
+                            panel,
+                            {label, ?__(229, "Interval (s)")}, {text, get_pref(film_autosave_seconds,Attr), [range(film_autosave_seconds),{key,film_autosave_seconds}]}
+                        ],[key(pnl_film_autosave_seconds),{margin,true}]},
+                        {hframe, [
+                            panel,
+                            {label, ?__(230, "Interval (passes)")}, {text, get_pref(film_autosave_passes,Attr), [range(film_autosave_passes),{key,film_autosave_passes}]}
+                        ],[key(pnl_film_autosave_passes),{margin,true}]}
+                    ],[key(pnl_film_save_options),{margin,true}]}
+                ],[{title, ?__(224, "Internal Film Processing/AutoSave options")},{margin,true}]}
 
 %%                 % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
 %%                 {hframe, [
@@ -5506,6 +5611,18 @@ export_render(F, CameraName, BackgroundName, Attr) ->
     Shadow_bias = proplists:get_value(shadow_bias, Attr),
     Ray_mindist_auto = proplists:get_value(ray_mindist_auto, Attr),
     Ray_mindist = proplists:get_value(ray_mindist, Attr),
+    Img_autosave_type = proplists:get_value(img_autosave_type, Attr),
+    Img_autosave_passes = proplists:get_value(img_autosave_passes, Attr),
+    Img_autosave_seconds = proplists:get_value(img_autosave_seconds, Attr),
+    Img_denoise_enable = proplists:get_value(img_denoise_enable, Attr),
+    Img_denoise_mix = proplists:get_value(img_denoise_mix, Attr),
+    Img_denoise_h_lum = proplists:get_value(img_denoise_h_lum, Attr),
+    Img_denoise_h_chrom = proplists:get_value(img_denoise_h_chrom, Attr),
+    Film_processing = proplists:get_value(film_processing, Attr),
+    Film_binary_format = proplists:get_value(film_binary_format, Attr),
+    Film_autosave_type = proplists:get_value(film_autosave_type, Attr),
+    Film_autosave_passes = proplists:get_value(film_autosave_passes, Attr),
+    Film_autosave_seconds = proplists:get_value(film_autosave_seconds, Attr),
 
     
     println(F," "),
@@ -5640,42 +5757,55 @@ export_render(F, CameraName, BackgroundName, Attr) ->
             println(F," ")
     end,
 
-    println(F, "<render> <camera_name sval=\"~s\"/> "
-    "<filter_type sval=\"~s\"/>"
-    "<AA_passes ival=\"~w\"/>~n"
+    println(F, "<render>~n"
+    "        <camera_name sval=\"~s\"/>~n"
+    "        <filter_type sval=\"~s\"/>~n"
+    "        <AA_passes ival=\"~w\"/>~n"
     "        <AA_threshold fval=\"~.10f\"/>~n"
-    "        <AA_minsamples ival=\"~w\"/>"
-    "        <AA_inc_samples ival=\"~w\"/>"
+    "        <AA_minsamples ival=\"~w\"/>~n"
+    "        <AA_inc_samples ival=\"~w\"/>~n"
     "        <AA_pixelwidth fval=\"~.10f\"/>~n"
-    "        <AA_resampled_floor fval=\"~.10f\"/>"
-    "        <AA_sample_multiplier_factor fval=\"~.10f\"/>"
-    "        <AA_light_sample_multiplier_factor fval=\"~.10f\"/>"
-    "        <AA_indirect_sample_multiplier_factor fval=\"~.10f\"/>"
-    "        <AA_detect_color_noise bval=\"~s\"/>"
-    "        <AA_dark_detection_type sval=\"~s\"/>"
-    "        <AA_dark_threshold_factor fval=\"~.10f\"/>"
-    "        <AA_variance_edge_size ival=\"~w\"/>"
-    "        <AA_variance_pixels ival=\"~w\"/>"
-    "        <AA_clamp_samples fval=\"~.10f\"/>"
-    "        <AA_clamp_indirect fval=\"~.10f\"/>"++
+    "        <AA_resampled_floor fval=\"~.10f\"/>~n"
+    "        <AA_sample_multiplier_factor fval=\"~.10f\"/>~n"
+    "        <AA_light_sample_multiplier_factor fval=\"~.10f\"/>~n"
+    "        <AA_indirect_sample_multiplier_factor fval=\"~.10f\"/>~n"
+    "        <AA_detect_color_noise bval=\"~s\"/>~n"
+    "        <AA_dark_detection_type sval=\"~s\"/>~n"
+    "        <AA_dark_threshold_factor fval=\"~.10f\"/>~n"
+    "        <AA_variance_edge_size ival=\"~w\"/>~n"
+    "        <AA_variance_pixels ival=\"~w\"/>~n"
+    "        <AA_clamp_samples fval=\"~.10f\"/>~n"
+    "        <AA_clamp_indirect fval=\"~.10f\"/>~n"++
         case SaveAlpha of
             premultiply ->
                 "        <premult bval=\"true\"/>~n";
             _ -> ""
         end++
-        "    <background_name sval=\"~s\"/>~n"++
-        "    <width ival=\"~w\"/> <height ival=\"~w\"/>~n"
-        "    <gamma fval=\"~.10f\"/>~n"
-        "    <adv_auto_shadow_bias_enabled bval=\"~s\"/>~n"
-        "    <adv_shadow_bias_value fval=\"~.10f\"/>~n"
-        "    <adv_auto_min_raydist_enabled bval=\"~s\"/>~n"
-        "    <adv_min_raydist_value fval=\"~.10f\"/>~n"
-        "    <tile_size ival=\"~w\"/>"
-        "    <tiles_order sval=\"~s\"/>"
-        "    ",
+    "        <background_name sval=\"~s\"/>~n"++
+    "        <width ival=\"~w\"/> <height ival=\"~w\"/>~n"
+    "        <gamma fval=\"~.10f\"/>~n"
+    "        <adv_auto_shadow_bias_enabled bval=\"~s\"/>~n"
+    "        <adv_shadow_bias_value fval=\"~.10f\"/>~n"
+    "        <adv_auto_min_raydist_enabled bval=\"~s\"/>~n"
+    "        <adv_min_raydist_value fval=\"~.10f\"/>~n"
+    "        <tile_size ival=\"~w\"/>~n"
+    "        <tiles_order sval=\"~s\"/>~n"
+    "        <film_autosave_interval_passes ival=\"~w\"/>~n"
+    "        <film_autosave_interval_seconds fval=\"~.10f\"/>~n"
+    "        <film_autosave_interval_type sval=\"~s\"/>~n"
+    "        <film_save_binary_format bval=\"~s\"/>~n"
+    "        <film_save_load sval=\"~s\"/>~n"
+    "        <images_autosave_interval_passes ival=\"~w\"/>~n"
+    "        <images_autosave_interval_seconds fval=\"~.10f\"/>~n"
+    "        <images_autosave_interval_type sval=\"~s\"/>~n"
+    "        <denoiseEnabled bval=\"~s\"/>~n"
+    "        <denoiseHLum ival=\"~w\"/>~n"
+    "        <denoiseHCol ival=\"~w\"/>~n"
+    "        <denoiseMix fval=\"~.10f\"/>~n"
+    "        ",
         [CameraName,AA_Filter_Type,AA_passes,AA_threshold,
             AA_minsamples,AA_incsamples,AA_pixelwidth,AA_noise_resampled_floor,AA_noise_sample_multiplier_factor,AA_noise_light_sample_multiplier_factor,AA_noise_indirect_sample_multiplier_factor,AA_noise_detect_color_noise,AA_noise_dark_detection_type,AA_noise_dark_threshold_factor,AA_noise_variance_edge_size,AA_noise_variance_pixels,AA_noise_clamp_samples,AA_noise_clamp_indirect,BackgroundName]++
-            [Width,Height,Gamma]++[Shadow_bias_auto, Shadow_bias, Ray_mindist_auto, Ray_mindist]++[TileSize, TileOrder]),
+            [Width,Height,Gamma]++[Shadow_bias_auto, Shadow_bias, Ray_mindist_auto, Ray_mindist]++[TileSize, TileOrder]++[Film_autosave_passes, Film_autosave_seconds, Film_autosave_type, Film_binary_format, Film_processing, Img_autosave_passes, Img_autosave_seconds, Img_autosave_type, Img_denoise_enable, Img_denoise_h_lum, Img_denoise_h_chrom, Img_denoise_mix]),
 
     println(F, "<integrator_name sval=\"default\"/>"),
 
