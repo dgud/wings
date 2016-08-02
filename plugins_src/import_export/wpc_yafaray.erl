@@ -5824,10 +5824,15 @@ export_render(F, CameraName, BackgroundName, Attr) ->
 
     println(F, "<render_passes name=\"render_passes\">"),
 
+    {_,Max} = range_1(render_passes),
+
     lists:foldl(fun(N, _) ->
         RPValue = proplists:get_value(render_pass_id(N), Attr),
-        println(F, "	<pass_RenderPass_~w sval=\"~s\"/>",[N,RPValue])
-    end, [], lists:seq(1,32)),
+        case RPValue of
+            undefined -> println(F, "	<pass_RenderPass_~w sval=\"disabled\"/>",[N]);
+            _ -> println(F, "	<pass_RenderPass_~w sval=\"~s\"/>",[N,RPValue])
+        end
+    end, [], lists:seq(1,Max)),
     println(F, "</render_passes>").
 
 
