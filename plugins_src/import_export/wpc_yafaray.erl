@@ -1,12 +1,12 @@
 %%
 %%  wpc_yafaray.erl
 %%
-%%     YafaRay Plugin User Interface, for YafaRay Core v3.0.2
+%%     YafaRay Plugin User Interface, for YafaRay Core v3.0.3
 %%
 %%  Copyright (c) 2003-2008 Raimo Niskanen
 %%                2013-2015 Code Convertion from Yafray to YafaRay by Bernard Oortman (Wings3d user oort)
 %%                2015 Micheus (porting to use wx dialogs)
-%%                2016 David Bluecame (adaptation for YafaRay Core v3.0.2)
+%%                2016 David Bluecame (adaptation for YafaRay Core v3.0.3)
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -43,6 +43,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_OPTIONS, "").
 -define(DEF_RENDER_PASSES_ENABLE, false).
 -define(DEF_RENDER_PASSES, 10).
+-define(DEF_COMPUTER_NODE, 0).
 -define(DEF_THREADS_AUTO, true).
 -define(DEF_THREADS_NUMBER, 1).
 -define(DEF_SUBDIVISIONS, 0).
@@ -353,7 +354,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_BADGE_DRAW_RENDER_SETTINGS, true).
 -define(DEF_BADGE_DRAW_AA_NOISE_SETTINGS, true).
 
-%% AA and Noise Control Parameters, only available for YafaRay v3.0.2 or higher
+%% AA and Noise Control Parameters
 -define(DEF_AA_PASSES, 3).
 -define(DEF_AA_MINSAMPLES, 1).
 -define(DEF_AA_INCSAMPLES, 1).
@@ -519,6 +520,7 @@ range_1(img_denoise_h_chrom)    -> {2,40};
 range_1(film_autosave_passes)   -> {1,infinity};
 range_1(film_autosave_seconds)  -> {3.0,infinity};
 range_1(render_passes)          -> {1,32};
+range_1(computer_node)          -> {0,1000};
 
 %% AA and Noise Control Parameters
 range_1(aa_pixelwidth)          -> {1.0,2.0};
@@ -2151,10 +2153,13 @@ pref_dialog(St) ->
     [{dialogs,Dialogs},{renderer,Renderer},
      {options,Options},{shader_type,ShaderType},
      {render_passes_enable,PassesEnable},
-     {render_passes,RenderPasses}] = get_user_prefs([{dialogs,?DEF_DIALOGS},{renderer,?DEF_RENDERER},
+     {render_passes,RenderPasses},
+     {computer_node,ComputerNode}]
+     = get_user_prefs([{dialogs,?DEF_DIALOGS},{renderer,?DEF_RENDERER},
                                                      {options,?DEF_OPTIONS},{shader_type,?DEF_SHADER_TYPE},
                                                      {render_passes_enable,?DEF_RENDER_PASSES_ENABLE},
-                                                     {render_passes,?DEF_RENDER_PASSES}]),
+                                                     {render_passes,?DEF_RENDER_PASSES},
+                                                     {computer_node,?DEF_COMPUTER_NODE}]),
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
             render_passes_enable ->
@@ -2176,7 +2181,8 @@ pref_dialog(St) ->
             {label_column, [
                 {?__(4,"Executable"),{button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}}},
                 {?__(5,"Options"),{text,Options,[{key,options}]}},
-                {?__(8,"Default Shader"),{menu,menu_shader(), ShaderType, [{key,shader_type}]}}
+                {?__(8,"Default Shader"),{menu,menu_shader(), ShaderType, [{key,shader_type}]}},
+                {?__(10,"Computer Node"),{text, ComputerNode,[{key,computer_node}]}}
             ]},
             {hframe,[
                 {?__(9,"Render Passes Enable"), PassesEnable, [{key,render_passes_enable},{hook,Hook_Enable}]},
@@ -2582,7 +2588,7 @@ export_dialog_qs(Op, Attr) ->
                         panel,
                         {label, ?__(223, "Interval (passes)")}, {text, get_pref(img_autosave_passes,Attr), [range(img_autosave_passes),{key,img_autosave_passes}]}
                     ],[key(pnl_img_autosave_passes),{margin,true}]}
-                ],[{title, ?__(220, "Output Image AutoSave options")},{margin,true}]},
+                ],[{title, ?__(220, "Output Image AutoSave options. Too small intervals can cause slowdowns/hangs")},{margin,true}]},
 
                 %% Image Denoise group
                 {hframe, [
@@ -2627,7 +2633,7 @@ export_dialog_qs(Op, Attr) ->
                             {label, ?__(230, "Interval (passes)")}, {text, get_pref(film_autosave_passes,Attr), [range(film_autosave_passes),{key,film_autosave_passes}]}
                         ],[key(pnl_film_autosave_passes),{margin,true}]}
                     ],[key(pnl_film_save_options),{margin,true}]}
-                ],[{title, ?__(224, "Internal Film Processing/AutoSave options")},{margin,true}]}
+                ],[{title, ?__(224, "Internal Film Processing/AutoSave options. Too small intervals can cause slowdowns/hangs")},{margin,true}]}
 
 %%                 % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
 %%                 {hframe, [
@@ -5538,6 +5544,7 @@ export_background(F, Name, Ps) ->
 
 
 export_render(F, CameraName, BackgroundName, Attr) ->
+    ComputerNode = get_pref(computer_node, Attr),
     AA_passes = proplists:get_value(aa_passes, Attr),
     AA_minsamples = proplists:get_value(aa_minsamples, Attr),
     AA_incsamples = proplists:get_value(aa_incsamples, Attr),
@@ -5758,6 +5765,7 @@ export_render(F, CameraName, BackgroundName, Attr) ->
     end,
 
     println(F, "<render>~n"
+    "        <adv_computer_node ival=\"~w\"/>~n"
     "        <camera_name sval=\"~s\"/>~n"
     "        <filter_type sval=\"~s\"/>~n"
     "        <AA_passes ival=\"~w\"/>~n"
@@ -5803,7 +5811,7 @@ export_render(F, CameraName, BackgroundName, Attr) ->
     "        <denoiseHCol ival=\"~w\"/>~n"
     "        <denoiseMix fval=\"~.10f\"/>~n"
     "        ",
-        [CameraName,AA_Filter_Type,AA_passes,AA_threshold,
+        [ComputerNode,CameraName,AA_Filter_Type,AA_passes,AA_threshold,
             AA_minsamples,AA_incsamples,AA_pixelwidth,AA_noise_resampled_floor,AA_noise_sample_multiplier_factor,AA_noise_light_sample_multiplier_factor,AA_noise_indirect_sample_multiplier_factor,AA_noise_detect_color_noise,AA_noise_dark_detection_type,AA_noise_dark_threshold_factor,AA_noise_variance_edge_size,AA_noise_variance_pixels,AA_noise_clamp_samples,AA_noise_clamp_indirect,BackgroundName]++
             [Width,Height,Gamma]++[Shadow_bias_auto, Shadow_bias, Ray_mindist_auto, Ray_mindist]++[TileSize, TileOrder]++[Film_autosave_passes, Film_autosave_seconds, Film_autosave_type, Film_binary_format, Film_processing, Img_autosave_passes, Img_autosave_seconds, Img_autosave_type, Img_denoise_enable, Img_denoise_h_lum, Img_denoise_h_chrom, Img_denoise_mix]),
 
