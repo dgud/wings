@@ -35,6 +35,21 @@
 
 -define(MAX_VERTEX, 10).
 
+%% Environment light
+-define(DEF_AMBIENT_TYPE, none).
+-define(DEF_BACKGROUND_AMBIENT, undefined).
+-define(DEF_HORIZON_COLOR, {1.0,1.0,1.0}).
+-define(DEF_HORIZON_ELEVATION, 30.0).
+-define(DEF_ZENITH_COLOR, {0.4,0.5,1.0}).
+-define(DEF_ZENITH_ELEVATION, 120.0).
+-define(DEF_BACKGROUND_ROTATION, 0.0).
+-define(DEF_BACKGROUND_FILENAME, "").
+-define(DEF_SKYBOX_SCALE, 1.0).
+-define(DEF_DOME_SHOW_IMAGE, true).
+-define(DEF_GAMMA_CORRECTION, 1.0).
+-define(DEF_HDRI_GAMMA, 1.2).
+-define(DEF_IMAGE_GAMMA, 2.2).
+
 -record(camera_info, {pos, dir, up, fov}).
 
 key(Key) -> {key, ?KEY(Key)}.
@@ -497,6 +512,7 @@ export_camera(F, Attr, CorrectedFOV, Width, Height) ->
 export_lights(_F, [], _I) ->
     ok;
 export_lights(F, [Light | Lights], Index) ->
+    set_var(gamma_macro, false),
     {Name, Ps} = Light,
     export_light(F, Name, Ps, Index),
     export_lights(F, Lights, Index + 1).
@@ -508,7 +524,8 @@ export_light(F, Name, Ps, Index) ->
             PovRay = proplists:get_value(?TAG, Ps, []),
             Type = proplists:get_value(type, OpenGL, []),
             case Type of
-                ambient -> ok;
+                ambient ->
+                    export_light(F, Name, Type, OpenGL, PovRay);
                 _ ->
                     io:format(F, "#declare ~s = light_source {\n", [clean_name("wl_" ++ integer_to_list(Index) ++ "_" ++ Name)]),
                     export_light_basics(F, OpenGL, PovRay),
@@ -598,6 +615,11 @@ export_light(F, _Name, infinite, OpenGL, _PovRay) ->
     {Dxo, Dyo, Dzo} = proplists:get_value(aim_point, OpenGL, {0.0, 0.0, 0.0}),
     {Dx, Dy, Dz} = export_transform_pos({Dxo, Dyo, Dzo}),
     io:format(F, "\t point_at <~f, ~f, ~f>\n", [Dx, Dy, Dz]);
+export_light(F, _Name, ambient, _OpenGL, PovRay) ->
+    case proplists:get_value(bg_type, PovRay, undefined) of
+        undefined -> ok;
+        Type -> export_light_2(F, Type, PovRay)
+    end;
 export_light(_F, _Name, _Type, _OpenGL, _PovRay) ->
     ok.
 
@@ -685,6 +707,104 @@ export_light_1(F, looks_like, OpenGL, PovRay) ->
 
     io:format(F, "\n\t\t //#local average_center = <~f, ~f, ~f>;\n\t\t }\n", [Sx / VLen, Sy / VLen, Sz / VLen]),
     io:put_chars(F, "\t } }\n").
+
+export_light_2(F, hdri, PovRay) ->
+    FileName =proplists:get_value(bg_filename_hdri, PovRay, ?DEF_BACKGROUND_FILENAME),
+    ImgType = get_map_type(FileName),
+    BgRotation = proplists:get_value(bg_rotation, PovRay, ?DEF_BACKGROUND_ROTATION),
+    Gamma = proplists:get_value(bg_gamma_correction, PovRay, ?DEF_GAMMA_CORRECTION),
+    io:put_chars(F, "sky_sphere{\n"),
+    io:put_chars(F, "\tpigment{\n"),
+    io:format(F,    "\t\timage_map{ ~p \"~ts\"\n", [ImgType, FileName]),
+    io:format(F,    "\t\t\tgamma ~p\n", [Gamma]),
+    io:put_chars(F, "\t\t\tmap_type 1     // Spherical\n"),
+    io:put_chars(F, "\t\t\tinterpolate 2  // Bilinear\n"),
+    io:put_chars(F, "\t\t}\n"),
+    io:put_chars(F, "\t}\n"),
+    io:format(F,    "\trotate<0,~p,0>\n",[BgRotation]),
+    io:put_chars(F, "}\n\n");
+export_light_2(F, skybox, PovRay) ->
+    FileName =proplists:get_value(bg_filename_image, PovRay, ?DEF_BACKGROUND_FILENAME),
+    ImgType = get_map_type(FileName),
+    BgRotation = proplists:get_value(bg_rotation, PovRay, ?DEF_BACKGROUND_ROTATION),
+    BgScale = proplists:get_value(bg_box_scale, PovRay, ?DEF_SKYBOX_SCALE),
+    Gamma = proplists:get_value(bg_gamma_correction, PovRay, ?DEF_GAMMA_CORRECTION),
+    export_gamma_macro(F, get_var(gamma_macro)),
+    io:put_chars(F, "box{ <-1, -1, -1>,< 1, 1, 1>\n"),
+    io:put_chars(F, "\ttexture{ uv_mapping\n"),
+    io:put_chars(F, "\t\tCorrect_Pigment_Gamma( // gamma correction (needed)\n"),
+    io:put_chars(F, "\t\t\tpigment{\n"),
+    io:format(F,    "\t\t\t\timage_map{ ~p \"~ts\"\n", [ImgType, FileName]),
+    io:put_chars(F, "\t\t\t\t\tmap_type 0     //  planar\n"),
+    io:put_chars(F, "\t\t\t\t\tinterpolate 2  //  bilinear\n"),
+    io:put_chars(F, "\t\t\t\t\tonce\n"),
+    io:put_chars(F, "\t\t\t\t}\n"),
+    io:put_chars(F, "\t\t\t}\n"),
+    io:format(F,    "\t\t, ~p) // New_Gamma\n",[Gamma]),
+    io:put_chars(F, "\t\tfinish { ambient 0 diffuse 1 }\n"),
+    io:put_chars(F, "\t}\n"),
+    io:format(F,    "\trotate<0,~p,0>\n",[BgRotation]),
+    io:format(F,    "\tscale 10000 * ~p\n",[BgScale]),
+    io:put_chars(F, "}\n\n");
+export_light_2(F, skydome, PovRay) ->
+    FileName =proplists:get_value(bg_filename_image, PovRay, ?DEF_BACKGROUND_FILENAME),
+    ImgType = get_map_type(FileName),
+    BgRotation = proplists:get_value(bg_rotation, PovRay, ?DEF_BACKGROUND_ROTATION),
+    Gamma = proplists:get_value(bg_gamma_correction, PovRay, ?DEF_GAMMA_CORRECTION),
+    export_gamma_macro(F, get_var(gamma_macro)),
+    io:put_chars(F, "sky_sphere{\n"),
+    io:put_chars(F, "\tCorrect_Pigment_Gamma( // gamma correction (needed)\n"),
+    io:put_chars(F, "\t\tpigment{\n"),
+    io:format(F,    "\t\t\timage_map{ ~p \"~ts\"\n", [ImgType, FileName]),
+    io:put_chars(F, "\t\t\t\tmap_type 1    //  spherical\n"),
+    io:put_chars(F, "\t\t\t\tinterpolate 2 //  bilinear\n"),
+    io:put_chars(F, "\t\t\t\tonce\n"),
+    io:put_chars(F, "\t\t\t}\n"),
+    io:put_chars(F, "\t\tscale<1,1.02,1>\n"),
+    io:format(F,    "\t\trotate<0,~p,0>\n",[BgRotation]),
+    io:put_chars(F, "\t}\n"),
+    io:format(F,    "\t, ~p) // New_Gamma\n",[Gamma]),
+    io:put_chars(F, "}\n\n");
+export_light_2(F, gradient, PovRay) ->
+    {Hr, Hg, Hb} = proplists:get_value(bg_horizon_color, PovRay, ?DEF_HORIZON_COLOR),
+    {Zr, Zg, Zb} = proplists:get_value(bg_zenith_color, PovRay, ?DEF_ZENITH_COLOR),
+    HorizonElev = proplists:get_value(bg_horizon_elev, PovRay, ?DEF_HORIZON_COLOR),
+    ZenithElev = proplists:get_value(bg_zenith_elev, PovRay, ?DEF_ZENITH_ELEVATION),
+    io:put_chars(F, "sky_sphere{\n"),
+    io:put_chars(F, "\tpigment {\n"),
+    io:put_chars(F, "\t\tgradient y\n"),
+    io:put_chars(F, "\t\tcolor_map {\n"),
+    io:format(F,    "\t\t\t[(1-cos(radians(~p)))/2 color <~p,~p,~p>]  // horizon\n", [HorizonElev, Hr, Hg, Hb]),
+    io:format(F,    "\t\t\t[(1-cos(radians(~p)))/2 color <~p,~p,~p>]  // zenith\n", [ZenithElev, Zr, Zg, Zb]),
+    io:put_chars(F, "\t\t}\n"),
+    io:put_chars(F, "\t\tscale 2\n"),
+    io:put_chars(F, "\t\ttranslate -1\n"),
+    io:put_chars(F, "\t}\n"),
+    io:put_chars(F, "}\n\n").
+
+export_gamma_macro(_F, true) -> ok;
+export_gamma_macro(F, false) ->
+    io:put_chars(F, "//------------------------------------------------\n"),
+    io:put_chars(F, "// Macro for the adjustment of images\n"),
+    io:put_chars(F, "// for image_map with assumed_gamma = 1.0\n"),
+    io:put_chars(F, "// Reference: http://www.f-lohmueller.de/pov_tut/backgrnd/p_sky9.htm\n"),
+    io:put_chars(F, "// by Friedrich A. Lohmüller\n"),
+    io:put_chars(F, "//\n"),
+    io:put_chars(F, "#macro Correct_Pigment_Gamma(Orig_Pig, New_G)\n"),
+    io:put_chars(F, "\t#local Correct_Pig_fn = function{ pigment {Orig_Pig} }\n"),
+    io:put_chars(F, "\tpigment{\n"),
+    io:put_chars(F, "\t\taverage pigment_map{\n"),
+    io:put_chars(F, "\t\t[function{ pow(Correct_Pig_fn(x,y,z).x, New_G)}\n"),
+    io:put_chars(F, "\t\t color_map{[0 rgb 0][1 rgb<3,0,0>]}]\n"),
+    io:put_chars(F, "\t\t[function{ pow(Correct_Pig_fn(x,y,z).y, New_G)}\n"),
+    io:put_chars(F, "\t\t color_map{[0 rgb 0][1 rgb<0,3,0>]}]\n"),
+    io:put_chars(F, "\t\t[function{ pow(Correct_Pig_fn(x,y,z).z, New_G)}\n"),
+    io:put_chars(F, "\t\t color_map{[0 rgb 0][1 rgb<0,0,3>]}]\n"),
+    io:put_chars(F, "\t\t}\n"),
+    io:put_chars(F, "\t}\n"),
+    io:put_chars(F, "#end //\n"),
+    io:put_chars(F, "//------------------------------------------------\n\n"),
+    set_var(gamma_macro, true).
 
 %%% try to find out the ambient light multiplier in order to make the object glowing like we see in Wings3d.
 %%% By experiments, the multiplier should have the integer part with the same length for the minor
@@ -887,6 +1007,9 @@ get_map_type(Filepath) ->
         ".gif" -> gif;
         ".iff" -> iff;
         ".tiff" -> tiff;
+        ".tga" -> tga;
+        ".exr" -> exr;
+        ".hdr" -> hdr;
         _ -> sys
     end.
 
@@ -2390,7 +2513,13 @@ light_dialog(Name, Light) ->
         end
     end,
     case Type of
-        ambient -> [];
+        ambient -> % [];
+            LightExt =
+                case light_dialog(Name, Type, PovRay) of
+                    [] -> [];
+                    LightExt0 -> [{vframe, LightExt0}]
+                end,
+            {vframe, LightExt};
         _ ->
             LightBase = [
                 {hframe, [
@@ -2474,19 +2603,124 @@ light_dialog(_Name, area, PovRay) ->
             ]}
         ]}
     ];
+light_dialog(_Name, ambient, PovRay) ->
+    Bg = proplists:get_value(bg_type, PovRay, ?DEF_BACKGROUND_AMBIENT),
+    %%
+    BgFnameImage = proplists:get_value(bg_filename_image, PovRay, ?DEF_BACKGROUND_FILENAME),
+    ImageFormats = images_format(),
+    BrowsePropsImage = [{dialog_type,open_dialog},
+			{extensions,ImageFormats}],
+    GammaIMG = io_lib:format("=~p",[?DEF_IMAGE_GAMMA]),
+    %%
+    BgFnameHDRI = proplists:get_value(bg_filename_hdri, PovRay, ?DEF_BACKGROUND_FILENAME),
+    BrowsePropsHDRI = [{dialog_type,open_dialog},
+                       {extensions,images_format_filter([hdr,exr])}],
+    GammaHDRI = io_lib:format("=~p",[?DEF_HDRI_GAMMA]),
+    %%
+    Gamma = proplists:get_value(bg_gamma_correction, PovRay, ?DEF_GAMMA_CORRECTION),
+    BgRotation = proplists:get_value(bg_rotation, PovRay, ?DEF_BACKGROUND_ROTATION),
+    BgScale = proplists:get_value(bg_box_scale, PovRay, ?DEF_SKYBOX_SCALE),
+    %%
+    HorizonColor = proplists:get_value(bg_horizon_color, PovRay, ?DEF_HORIZON_COLOR),
+    HorizonElev = proplists:get_value(bg_horizon_elev, PovRay, ?DEF_HORIZON_ELEVATION),
+    ZenithColor = proplists:get_value(bg_zenith_color, PovRay, ?DEF_ZENITH_COLOR),
+    ZenithElev = proplists:get_value(bg_zenith_elev, PovRay, ?DEF_ZENITH_ELEVATION),
+
+    Hook_Show =
+        fun(Key, Value, Store) ->
+            case Key of
+                ?KEY(bg_type) ->
+                    wings_dialog:show(?KEY(pnl_file), is_member(Value, [hdri,skybox,skydome]), Store),
+                    wings_dialog:show(?KEY(pnl_img_hdri), Value =:= hdri, Store),
+                    wings_dialog:show(?KEY(pnl_img_bkg), is_member(Value, [skybox,skydome]), Store),
+                    wings_dialog:show(?KEY(pnl_box_scale), is_member(Value, [skybox,skydome]), Store),
+                    wings_dialog:show(?KEY(pnl_gradient), Value =:= gradient, Store),
+                    wings_dialog:show(?KEY(pnl_background), Value =/= undefined, Store),
+                    wings_dialog:update(?KEY(pnl_background), Store)
+            end
+        end,
+    [
+       %% Environment lights
+        {vframe, [
+            {hframe, [
+                {label,?__(30,"Background Light/Environment")++" "},
+                {menu, [
+                    {?__(31,"None"), undefined},
+                    {?__(32,"HDRI"),hdri},
+                    {?__(33,"SkyBox"),skybox},
+                    {?__(34,"SkyDome"),skydome},
+                    {?__(35,"Gradient"),gradient}
+                ], Bg, [key(bg_type),{hook,Hook_Show}]}
+            ]},
+
+            {vframe, [
+                %% HDRI/SkyBox/SkyDome Background
+                {vframe, [
+                    {hframe, [
+                        {label, ?__(36,"Filename") ++ "  "},
+                        {hframe, [
+                            {button,{text,BgFnameImage,[key(bg_filename_image),{width,35},{props,BrowsePropsImage}]}}
+                        ],[key(pnl_img_bkg),{margin,false},{show,false}]},
+                        {hframe, [
+                            {button,{text,BgFnameHDRI,[key(bg_filename_hdri),{width,35},{props,BrowsePropsHDRI}]}}
+                        ],[key(pnl_img_hdri),{margin,false}]}
+                    ]},
+                    {hframe, [
+                        {label, ?__(37,"Gamma Correction")},
+                        {text,Gamma,[key(bg_gamma_correction)]},
+                        {label, " " ++
+                                ?__(38,"* Suggested values: ") ++
+                                ?__(32,"HDRI") ++ GammaHDRI ++ "; " ++
+                                ?__(33,"SkyBox") ++ "/" ++
+                                ?__(34,"SkyDome") ++ GammaIMG ++"."}
+                    ]},
+                    {label_column, [
+                        {?__(39,"Rotation"),
+                                {slider,{text,BgRotation,[key(bg_rotation),range({-360.0, 360.0})]}}
+                        }
+                    ],[{margin,false}]},
+		    {label_column, [
+                        {?__(40,"Scale") ++" ",
+                        {text, BgScale, [range({0.0, infinity}),key(bg_box_scale)]}}
+                    ], [key(pnl_box_scale),{margin,false}]}
+                ],[key(pnl_file),{margin,false}]},
+                %% Gradient Background
+                {vframe,[
+		    {hframe, [
+			{label, ?__(42,"Zenith Color") ++ " "},
+			{color,ZenithColor,[key(bg_zenith_color)]},
+			panel,
+			{label, ?__(43,"Elevation") ++ " "},
+			{slider,{text,ZenithElev,[key(bg_zenith_elev),range({0.0, 180.0})]}}
+		    ]},
+		    {hframe, [
+			{label, ?__(44,"Horizon Color") ++ " "},
+			{color,HorizonColor,[key(bg_horizon_color)]},
+			panel,
+			{label, ?__(43,"Elevation") ++ " "},
+			{slider,{text,HorizonElev,[key(bg_horizon_elev),range({0.0, 180.0})]}}
+		    ]}
+                ],[key(pnl_gradient),{margin,false},{show,false}]}
+            ],[key(pnl_background),{margin,false}]}
+        ]}];
+
+
 light_dialog(_Name, _Type, _Povray) ->
     [].
 
 light_result(_Name, Light, Res) ->
-    OpenGL = proplists:get_value(opengl, Light),
-    Type = proplists:get_value(type, OpenGL, []),
-    case Type of
-        ambient -> {Light, Res};
-        _ ->
-            {Found, Remaining} = rip_all(?TAG, Res),
-            NewLight = [{?TAG, Found} | lists:keydelete(?TAG, 1, Light)],
-            {NewLight, Remaining}
-    end.
+%%    OpenGL = proplists:get_value(opengl, Light),
+%%    Type = proplists:get_value(type, OpenGL, []),
+%%    case Type of
+%%        ambient -> {Light, Res};
+%%        _ ->
+%%            {Found, Remaining} = rip_all(?TAG, Res),
+%%            NewLight = [{?TAG, Found} | lists:keydelete(?TAG, 1, Light)],
+%%            {NewLight, Remaining}
+%%    end.
+    {Found, Remaining} = rip_all(?TAG, Res),
+    NewLight = [{?TAG, Found} | lists:keydelete(?TAG, 1, Light)],
+    {NewLight, Remaining}.
 
 clean_name([]) ->
     [];
@@ -2521,6 +2755,20 @@ clean_name([L | Name]) ->
                     end
             end
     end.
+
+images_format_filter(FmtList) ->
+    ImgInfo = wings_job:render_formats(),
+    lists:foldr(fun(Type,Acc) ->
+        case lists:keyfind(Type,1,ImgInfo) of
+            {_,Ext,Desc} -> Acc ++[{Ext,Desc}];
+            _ -> Acc
+        end
+    end, [], FmtList).
+
+images_format() ->
+    images_format_filter([tga,jpg,png,hdr,exr]) ++
+    [{".tiff","Tagged Image File Format"},
+     {".gif","Graphics Interchange Format"}].
 
 %%%
 %%% functions to manage the output file type
