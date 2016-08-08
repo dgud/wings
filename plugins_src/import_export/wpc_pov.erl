@@ -956,7 +956,21 @@ export_finish(F, OpenGL, PovRay) ->
     {Sr, Sg, Sb, _} = proplists:get_value(specular, OpenGL, 1.0),
     {_H, _S, V} = wings_color:rgb_to_hsv(Sr, Sg, Sb),
     io:format(F, "\t\t specular ~f\n", [V]),
-    io:format(F, "\t\t roughness ~f\n", [1.01 - proplists:get_value(shininess, OpenGL, 1.0)]),
+    io:format(F, "\t\t roughness ~f\n", [1.00001 - proplists:get_value(shininess, OpenGL, 1.0)]),
+    case proplists:get_value(finish_phong, PovRay, 0.0) of
+        0.0 -> ok;
+        Phong ->
+            io:format(F, "\t\t phong ~f\n", [Phong]),
+            io:format(F, "\t\t phong_size ~f\n", [proplists:get_value(finish_phong_size, PovRay, 40.0)])
+    end,
+    case proplists:get_value(finish_irid_amount, PovRay, 0.0) of
+        0.0 -> ok;
+        Amount ->
+            io:format(F, "\t\t irid { ~f\n", [Amount]),
+            io:format(F, "\t\t\t thickness ~f\n", [proplists:get_value(finish_irid_thickness, PovRay, 0.2)]),
+            io:format(F, "\t\t\t turbulence ~f\n", [proplists:get_value(finish_irid_turbulence, PovRay, 0.15)]),
+            io:put_chars(F, "\t\t }\n")
+    end,
     case proplists:get_value(reflection_enabled, PovRay, false) of
         false -> ok;
         true -> io:put_chars(F, "\t\t reflection {\n"),
@@ -1923,7 +1937,7 @@ material_dialog(_Name, Mat) ->
 		    [{?__(2, "Diffuse"),
 		      {slider, {text, proplists:get_value(finish_diffuse, PovRay, 0.7),
 				[range({0.0, 1.0}), key(finish_diffuse)]}}},
-		     {?__(3, "Brilliance"),
+                     {?__(3, "Brilliance"),
 		      {slider, {text, proplists:get_value(finish_brilliance, PovRay, 1.0),
 				[range({0.0, 10.0}), key(finish_brilliance)]}}},
 		     {?__(4, "Metallic"),
@@ -1934,7 +1948,27 @@ material_dialog(_Name, Mat) ->
 				{?__(7, "Filter"), filter}],
 		       proplists:get_value(finish_transparency, PovRay, filter),
 		       [key(finish_transparency)]}}
-		    ]}], [{key,pnl_finished}]}
+		    ]},
+                   {label_column, [
+                       {?__(104, "Amount"),
+                        {slider, {text, proplists:get_value(finish_phong, PovRay, 0.0),
+                                  [range({0.0, 10.0}), key(finish_phong)]}}},
+                       {?__(74, "Size"),
+                        {slider, {text, proplists:get_value(finish_phong_size, PovRay, 40.0),
+                                  [range({0.0, 250.0}), key(finish_phong_size)]}}}
+                       ],[{title, ?__(101, "Phong")}]},
+                   {label_column, [
+                       {?__(104, "Amount"),
+                        {slider, {text, proplists:get_value(finish_irid_amount, PovRay, 0.0),
+                                  [range({0.0, 1.0}), key(finish_irid_amount)]}}},
+                       {?__(105, "Thickness"),
+                        {slider, {text, proplists:get_value(finish_irid_thickness, PovRay, 0.2),
+                                  [range({0.0, 100.0}), key(finish_irid_thickness)]}}},
+                       {?__(66, "Turbulence"),
+                        {slider, {text, proplists:get_value(finish_irid_turbulence, PovRay, 0.15),
+                                  [range({0.0, 100.0}), key(finish_irid_turbulence)]}}}
+                   ], [{title, ?__(103, "Iridescense")}]}
+         ], [{key,pnl_finished}]}
         },
     QsReflection =
         {?__(16, "Reflection"),
