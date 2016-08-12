@@ -12,7 +12,7 @@
 %%
 
 -module(wings_subdiv).
--export([smooth/1,smooth/5,inc_smooth/2,
+-export([subdiv/1, smooth/1,smooth/5,subdiv/5,inc_smooth/2,
 	 get_proxy_info/3, inc_smooth/4]).
 
 -export([smooth_faces_htab/1]).
@@ -20,6 +20,59 @@
 -include("wings.hrl").
 
 -import(lists, [reverse/1,reverse/2,sort/1,foldl/3]).
+
+%%% Simple subdivision
+
+%% subdiv(We) -> We'
+%%  Sub-divide an entire object.
+%%
+subdiv(We) ->
+    {Fs,Htab} = smooth_faces_htab(We),
+    #we{vp=Vtab,es=Etab} = We,
+    Vs = wings_util:array_keys(Vtab),
+    Es = wings_util:array_keys(Etab),
+    subdiv(true, Fs, Vs, Es, Htab, We).
+
+subdiv(Fs, Vs, Es, Htab, We) ->
+    subdiv(false, Fs, Vs, Es, Htab, We).
+
+subdiv(EntireObject, Fs, Vs, Es, Htab, #we{vp=Vp,next_id=Id}=We0) ->
+    wings_pb:start(?__(1,"subdividing")),
+    wings_pb:update(0.05, ?__(2,"calculating face centers")),
+    FacePos0 = face_centers(Fs, We0),
+
+    %% First do all topological changes to the edge table.
+    wings_pb:update(0.20, ?__(3,"cutting edges")),
+    We1 = cut_edges(Es, Htab, We0#we{vc=undefined}),
+    wings_pb:update(0.25, ?__(4,"updating materials")),
+    We2 = smooth_materials(Fs, FacePos0, We1),
+    wings_pb:update(0.47, ?__(5,"creating new faces")),
+    {We3,Hide} = smooth_faces(FacePos0, Id, We2),
+    wings_pb:update(0.60, ?__(6,"moving vertices")),
+
+    %% Now calculate all vertex positions.
+    {RevUpdatedVs,Mid} =
+	case EntireObject of
+	    true ->
+		soft_update_edge_vs_all(We0, Vp, Id);
+	    false ->
+		soft_update_edge_vs_some(Es, We0, Vp, Id)
+	end,
+    FacePos = gb_trees:from_orddict([{F,Pos} || {F,{Pos,_,_}} <- FacePos0]),
+    VtabTail = smooth_new_vs(FacePos0, Mid, RevUpdatedVs),
+    Vtab = soft_move_orig(EntireObject, Vs, FacePos, Htab, We0, VtabTail),
+
+    %% Done, except that we'll need to re-hide any hidden faces
+    %% and rebuild tables.
+    wings_pb:update(1.0, ?__(7,"finishing")),
+    We4 = We3#we{vp=Vtab},
+    We = if
+	     Hide =:= [] ->
+		 wings_we:rebuild(We4);
+	     true ->
+		 wings_we:hide_faces(Hide, We4) %Will force a rebuild.
+	 end,
+    wings_pb:done(We).
 
 %%% The Catmull-Clark subdivision algorithm is used, with
 %%% Tony DeRose's extensions for creases.
@@ -355,6 +408,29 @@ smooth_materials_3(Mat, NextFace, Face, Acc) ->
 %%% Moving of vertices.
 %%%
 
+soft_move_orig(EntireObject, Vs, FacePos, Htab, #we{vp=Vtab}=We, VtabTail) ->
+    MoveFun = smooth_move_orig_fun(Vtab, FacePos, Htab),
+    RevVtab =
+	case EntireObject of
+	    true ->
+		soft_move_orig_all(array:sparse_to_orddict(Vtab), MoveFun, We, []);
+	    _ ->
+		soft_move_orig_some(Vs, array:sparse_to_orddict(Vtab), MoveFun, We, [])
+	end,
+    array:from_orddict(reverse(RevVtab, VtabTail)).
+
+soft_move_orig_all([{V,Pos}|Vs], MoveFun, We, Acc) ->
+    soft_move_orig_all(Vs, MoveFun, We, [{V,Pos}|Acc]);
+soft_move_orig_all([], _FacePos, _MoveFun, Acc) -> Acc.
+
+soft_move_orig_some([V|Vs], [{V,Pos}|Vs2], MoveFun, We, Acc) ->
+    soft_move_orig_some(Vs, Vs2, MoveFun, We, [{V,Pos}|Acc]);
+soft_move_orig_some(Vs, [Pair|Vs2], MoveFun, We, Acc) ->
+    soft_move_orig_some(Vs, Vs2, MoveFun, We, [Pair|Acc]);
+soft_move_orig_some([], [], _, _, Acc) -> Acc;
+soft_move_orig_some([], Vs2, _, _, Acc) -> reverse(Vs2, Acc).
+
+
 smooth_move_orig(EntireObject, Vs, FacePos, Htab, #we{vp=Vtab}=We, VtabTail) ->
     MoveFun = smooth_move_orig_fun(Vtab, FacePos, Htab),
     RevVtab =
@@ -488,6 +564,30 @@ add_positions([],_,_,Sum) -> Sum.
 
 %% Update the position for the vertex that was created in the middle
 %% of each original edge.
+
+soft_update_edge_vs_all(#we{es=Etab}, Vtab, V) ->
+    soft_update_edge_vs_all(array:sparse_to_orddict(Etab), Vtab, V, []).
+
+soft_update_edge_vs_all([{_,Rec}|Es], Vtab, V, Acc) ->
+    Pos = soft_update_edge_vs_1(Rec, Vtab),
+    soft_update_edge_vs_all(Es, Vtab, V+1, [{V,Pos}|Acc]);
+soft_update_edge_vs_all([], _, V, Acc) ->
+    {Acc,V}.
+
+soft_update_edge_vs_some(Es, #we{es=Etab}, Vtab, V) ->
+    soft_update_edge_vs_some(Es, Etab, Vtab, V, []).
+
+soft_update_edge_vs_some([E|Es], Etab, Vtab, V, Acc) ->
+    Rec = array:get(E, Etab),
+    Pos = soft_update_edge_vs_1(Rec, Vtab),
+    soft_update_edge_vs_some(Es, Etab, Vtab, V+1, [{V,Pos}|Acc]);
+soft_update_edge_vs_some([], _, _, V, Acc) ->
+    {Acc,V}.
+
+soft_update_edge_vs_1(Rec, Vtab) ->
+    #edge{vs=Va,ve=Vb} = Rec,
+    e3d_vec:average(array:get(Va, Vtab), array:get(Vb, Vtab)).
+
 
 update_edge_vs_all(#we{es=Etab}, FacePos, Hard, Vtab, V) ->
     update_edge_vs_all(array:sparse_to_orddict(Etab),
