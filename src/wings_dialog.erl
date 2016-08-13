@@ -600,7 +600,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=radiobox, hook=UserHook, data=Keys}, Field
 					 UserHook(Key, Sel, Fields)
 				 end}]),
     UserHook(Key, lists:nth(1+wxRadioBox:getSelection(Ctrl),Keys),Fields);
-setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, def=Def, validator=Validate}, Fields) ->
+setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, wx_ext=Ext, def=Def, validator=Validate}, Fields) ->
     wxWindow:connect(Ctrl, command_text_updated,
 		     [{callback, fun(#wx{event=#wxCommand{cmdString=Str}}, Obj) ->
 					 wxEvent:skip(Obj),
@@ -608,6 +608,27 @@ setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, def=Def, validator=Va
 					 UserHook(Key, Val, Fields),
 					 ok
 				 end}]),
+    case Ext of
+	[Slider] ->
+        wxTextCtrl:connect(Ctrl, mousewheel,
+                 [{callback, fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, Obj) ->
+                         wxEvent:skip(Obj),
+                         Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
+                         case Validate(Str) of
+                             {true, Val} ->
+                                 UserHook(Key, Val, Fields),
+                                 ok;
+                             _ -> ok
+                         end
+                     end}]),
+        wxSlider:connect(Slider, scroll_thumbtrack,
+                 [{callback, fun(#wx{event=#wxScroll{commandInt=Val}}, Obj) ->
+                         wxEvent:skip(Obj),
+                         UserHook(Key, Val, Fields),
+                         ok
+                     end}]);
+	_ -> ignore
+    end,
     UserHook(Key,validate(Validate, wxTextCtrl:getValue(Ctrl), Def),Fields);
 setup_hook(#in{key=Key, wx=Ctrl, type=button, hook=UserHook}, Fields) ->
     wxButton:connect(Ctrl, command_button_clicked,
