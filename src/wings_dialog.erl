@@ -218,6 +218,7 @@ info(Title, Info, _Options) ->
     wxSizer:setSizeHints(Sizer, Panel),
     wxWindow:setSizer(Frame, Sizer),
     wxFrame:show(Frame),
+    wxScrolledWindow:setFocus(Panel),
     keep.
 
 
