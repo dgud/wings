@@ -1185,6 +1185,8 @@ def_modulators([_|Maps]) ->
 
 material_result(_Name, Mat0, Res0) ->
     %% take the Material settings
+    {Ps30, _Res1} = rip_all(?TAG, Res0),
+%    {Ps,Res} = modulator_result(Found, Res1),
     {Ps1,Res1} = split_list(Res0,
         fun
             ({{?TAG,enabled,1},_}) -> true;   % look for the first modulator
@@ -1201,6 +1203,8 @@ material_result(_Name, Mat0, Res0) ->
         end),
     Ps = [{Key,Val} || {?KEY(Key),Val} <- Ps4] ++Ps3,
     Mat = [?KEY(Ps)|keydelete(?TAG, 1, Mat0)],
+
+    io:format("NewMat: ~p\nMat: ~p\n\n",[?KEY(Ps30), Mat]),
     {Mat,Res}.
 
 modulator_dialogs(Modulators0, Maps) ->
@@ -6085,6 +6089,35 @@ split_list2([H|T]=List, Fun, Head) ->
         true -> {lists:reverse(Head),List};
         _ -> split_list2(T, Fun, [H|Head])
     end.
+
+%%% pulls out all the values stored as {{KeyTag, SubKey}, Value}
+%%% returns {ListOfFound, ListRemaining}
+%%% ListOfFound is a list of {SubKey, Value}
+rip_all(KeyTag, List) ->
+    Keys = proplists:get_keys(List),
+    io:format("Keys: ~p\n\n",[Keys]),
+    rip_all(KeyTag, Keys, List).
+rip_all(KeyTag, [Key | Keys], List) ->
+    case rip_keytag(KeyTag, Key) of
+	true ->
+	    {_SetTag, SubTag} = Key,
+	    Value = proplists:get_value(Key, List),
+	    ListNext = proplists:delete(Key, List),
+	    {Found, Remaining} = rip_all(KeyTag, Keys, ListNext),
+	    {[{SubTag, Value} | Found], Remaining};
+	false ->
+	    rip_all(KeyTag, Keys, List)
+    end;
+rip_all(_K, _KL, List) ->
+    {[], List}.
+
+rip_keytag(KeyTag, {SetTag, _}) ->
+    case KeyTag of
+	SetTag -> true;
+	_ -> false
+    end;
+rip_keytag(_KT, _ST) ->
+    false.
 
 
 %% Zip lists together into a list of tuples
