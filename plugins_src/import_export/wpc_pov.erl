@@ -44,8 +44,9 @@
 -define(DEF_ZENITH_ELEVATION, 120.0).
 -define(DEF_BACKGROUND_ROTATION, 0.0).
 -define(DEF_BACKGROUND_FILENAME, "").
+-define(DEF_BACKGROUND_POWER, 1.0).
 -define(DEF_SKYBOX_SCALE, 1.0).
--define(DEF_DOME_SHOW_IMAGE, true).
+-define(DEF_TRANSPARENT_BACKGROUND, false).
 -define(DEF_GAMMA_CORRECTION, 1.0).
 -define(DEF_HDRI_GAMMA, 1.2).
 -define(DEF_IMAGE_GAMMA, 2.2).
@@ -362,7 +363,10 @@ export(Filename, Contents, Attr) ->
     export_global(F, Attr),
     io:put_chars(F, "}\n"),
     {Br, Bg, Bb} = proplists:get_value(background, Attr, {0.0, 0.0, 0.0}),
-    io:format(F, "background { rgb <~f, ~f, ~f> }\n", [Br, Bg, Bb]),
+    case proplists:get_value(transp_bkg, Attr, ?DEF_TRANSPARENT_BACKGROUND) of
+        false -> io:format(F, "background { rgb <~f, ~f, ~f> }\n", [Br, Bg, Bb]);
+        true -> io:format(F, "background { rgbt <~f, ~f, ~f, 1.0> }\n", [Br, Bg, Bb])
+    end,
 
     export_interior(F, Attr),
     export_camera(F, Attr, CorrectedFOV, Width, Height),
@@ -386,21 +390,45 @@ export(Filename, Contents, Attr) ->
             wings_job:export_done(ExportTS),
             io:nl();
         {Renderer, true} ->
+            Threads = proplists:get_value(threads_number, Attr, 4),
             {RenderFormatId, RenderFormatStr} = get_output_param(Filename),
             set_var(render_format, RenderFormatId),
             set_user_prefs([{render_format, RenderFormatId}]),  % it ensures global preference is updated
             ArgStr = wings_job:quote(filename:basename(ExportFile)) ++ " +W" ++ wings_job:quote(integer_to_list(Width)) ++
+                case proplists:get_value(render_quality, Attr, none) of
+                    none -> [];
+                    quality1 -> " +Q1";
+                    quality3 -> " +Q3";
+                    quality4 -> " +Q4";
+                    quality5 -> " +Q5";
+                    quality7 -> " +Q7";
+                    quality8 -> " +Q8";
+                    quality11 -> " +Q11"
+                end ++
                 " +H" ++ wings_job:quote(integer_to_list(Height)) ++
+                case proplists:get_value(transp_bkg, Attr, ?DEF_TRANSPARENT_BACKGROUND) of
+                    true -> " +UA";
+                    false -> []
+                end ++
                 " " ++ RenderFormatStr ++
                 " +o" ++ wings_job:quote(filename:basename(Filename)) ++
                 case proplists:get_value(antialias, Attr, false) of
                     false -> [];
-                    true -> " +A" ++ wings_util:nice_float(proplists:get_value(aa_threshold, Attr, 0.3)) ++
-                        " +R" ++ integer_to_list(proplists:get_value(aa_depth, Attr, 1)) ++
+                    true ->
+                        " +A" ++ wings_util:nice_float(proplists:get_value(aa_threshold, Attr, 0.3)) ++
+                        " +R" ++ integer_to_list(proplists:get_value(aa_depth, Attr, 3)) ++
                         case proplists:get_value(aa_jitter, Attr, false) of
                             false -> [];
                             true -> " +J"
+                        end ++
+                        case proplists:get_value(aa_method, Attr, false) of
+                            aa_type1 -> []; % default
+                            aa_type2 -> " +AM2"
                         end
+                end ++
+                case proplists:get_value(threads_auto, Attr, true) of
+                    true -> [];
+                    false -> " +WT" ++ wings_job:quote(integer_to_list(Threads))
                 end,
 
             RA = get_var(renderargs),
@@ -429,6 +457,19 @@ export_global(F, Attr) ->
     case Radiosity of
         none -> ok;
         _ -> io:format(F, "\t radiosity { Rad_Settings(~s, off, off) }\n", [Radiosity])
+    end,
+    case proplists:get_value(sslt, Attr, false) of
+        false -> ok;
+        true ->
+            io:put_chars(F, "\t subsurface {\n"),
+            io:format(F, "\t\t samples ~p, ~p\n", [
+                        proplists:get_value(sslt_diff_scatt, Attr, 50),
+                        proplists:get_value(sslt_single_scatt, Attr, 50)]),
+            case proplists:get_value(sslt_radiosity, Attr, false) of
+                true -> io:put_chars(F, "\t\t radiosity true\n");
+                false -> ok
+            end,
+            io:put_chars(F, "\t }\n")
     end,
     case proplists:get_value(photons, Attr, false) of
         false -> ok;
@@ -708,63 +749,6 @@ export_light_1(F, looks_like, OpenGL, PovRay) ->
     io:format(F, "\n\t\t //#local average_center = <~f, ~f, ~f>;\n\t\t }\n", [Sx / VLen, Sy / VLen, Sz / VLen]),
     io:put_chars(F, "\t } }\n").
 
-export_light_2(F, hdri, PovRay) ->
-    FileName =proplists:get_value(bg_filename_hdri, PovRay, ?DEF_BACKGROUND_FILENAME),
-    ImgType = get_map_type(FileName),
-    BgRotation = proplists:get_value(bg_rotation, PovRay, ?DEF_BACKGROUND_ROTATION),
-    Gamma = proplists:get_value(bg_gamma_correction, PovRay, ?DEF_GAMMA_CORRECTION),
-    io:put_chars(F, "sky_sphere{\n"),
-    io:put_chars(F, "\tpigment{\n"),
-    io:format(F,    "\t\timage_map{ ~p \"~ts\"\n", [ImgType, FileName]),
-    io:format(F,    "\t\t\tgamma ~p\n", [Gamma]),
-    io:put_chars(F, "\t\t\tmap_type 1     // Spherical\n"),
-    io:put_chars(F, "\t\t\tinterpolate 2  // Bilinear\n"),
-    io:put_chars(F, "\t\t}\n"),
-    io:put_chars(F, "\t}\n"),
-    io:format(F,    "\trotate<0,~p,0>\n",[BgRotation]),
-    io:put_chars(F, "}\n\n");
-export_light_2(F, skybox, PovRay) ->
-    FileName =proplists:get_value(bg_filename_image, PovRay, ?DEF_BACKGROUND_FILENAME),
-    ImgType = get_map_type(FileName),
-    BgRotation = proplists:get_value(bg_rotation, PovRay, ?DEF_BACKGROUND_ROTATION),
-    BgScale = proplists:get_value(bg_box_scale, PovRay, ?DEF_SKYBOX_SCALE),
-    Gamma = proplists:get_value(bg_gamma_correction, PovRay, ?DEF_GAMMA_CORRECTION),
-    export_gamma_macro(F, get_var(gamma_macro)),
-    io:put_chars(F, "box{ <-1, -1, -1>,< 1, 1, 1>\n"),
-    io:put_chars(F, "\ttexture{ uv_mapping\n"),
-    io:put_chars(F, "\t\tCorrect_Pigment_Gamma( // gamma correction (needed)\n"),
-    io:put_chars(F, "\t\t\tpigment{\n"),
-    io:format(F,    "\t\t\t\timage_map{ ~p \"~ts\"\n", [ImgType, FileName]),
-    io:put_chars(F, "\t\t\t\t\tmap_type 0     //  planar\n"),
-    io:put_chars(F, "\t\t\t\t\tinterpolate 2  //  bilinear\n"),
-    io:put_chars(F, "\t\t\t\t\tonce\n"),
-    io:put_chars(F, "\t\t\t\t}\n"),
-    io:put_chars(F, "\t\t\t}\n"),
-    io:format(F,    "\t\t, ~p) // New_Gamma\n",[Gamma]),
-    io:put_chars(F, "\t\tfinish { ambient 0 diffuse 1 }\n"),
-    io:put_chars(F, "\t}\n"),
-    io:format(F,    "\trotate<0,~p,0>\n",[BgRotation]),
-    io:format(F,    "\tscale 10000 * ~p\n",[BgScale]),
-    io:put_chars(F, "}\n\n");
-export_light_2(F, skydome, PovRay) ->
-    FileName =proplists:get_value(bg_filename_image, PovRay, ?DEF_BACKGROUND_FILENAME),
-    ImgType = get_map_type(FileName),
-    BgRotation = proplists:get_value(bg_rotation, PovRay, ?DEF_BACKGROUND_ROTATION),
-    Gamma = proplists:get_value(bg_gamma_correction, PovRay, ?DEF_GAMMA_CORRECTION),
-    export_gamma_macro(F, get_var(gamma_macro)),
-    io:put_chars(F, "sky_sphere{\n"),
-    io:put_chars(F, "\tCorrect_Pigment_Gamma( // gamma correction (needed)\n"),
-    io:put_chars(F, "\t\tpigment{\n"),
-    io:format(F,    "\t\t\timage_map{ ~p \"~ts\"\n", [ImgType, FileName]),
-    io:put_chars(F, "\t\t\t\tmap_type 1    //  spherical\n"),
-    io:put_chars(F, "\t\t\t\tinterpolate 2 //  bilinear\n"),
-    io:put_chars(F, "\t\t\t\tonce\n"),
-    io:put_chars(F, "\t\t\t}\n"),
-    io:put_chars(F, "\t\tscale<1,1.02,1>\n"),
-    io:format(F,    "\t\trotate<0,~p,0>\n",[BgRotation]),
-    io:put_chars(F, "\t}\n"),
-    io:format(F,    "\t, ~p) // New_Gamma\n",[Gamma]),
-    io:put_chars(F, "}\n\n");
 export_light_2(F, gradient, PovRay) ->
     {Hr, Hg, Hb} = proplists:get_value(bg_horizon_color, PovRay, ?DEF_HORIZON_COLOR),
     {Zr, Zg, Zb} = proplists:get_value(bg_zenith_color, PovRay, ?DEF_ZENITH_COLOR),
@@ -780,6 +764,73 @@ export_light_2(F, gradient, PovRay) ->
     io:put_chars(F, "\t\tscale 2\n"),
     io:put_chars(F, "\t\ttranslate -1\n"),
     io:put_chars(F, "\t}\n"),
+    io:put_chars(F, "}\n\n");
+export_light_2(F, skybox, PovRay) ->
+    FileName =proplists:get_value(bg_filename_image, PovRay, ?DEF_BACKGROUND_FILENAME),
+    ImgType = get_map_type(FileName),
+    BgRotation = proplists:get_value(bg_rotation, PovRay, ?DEF_BACKGROUND_ROTATION),
+    BgScale = proplists:get_value(bg_box_scale, PovRay, ?DEF_SKYBOX_SCALE),
+    Gamma = proplists:get_value(bg_gamma_correction, PovRay, ?DEF_GAMMA_CORRECTION),
+    Power = proplists:get_value(bg_power, PovRay, ?DEF_BACKGROUND_POWER),
+    TranspBg = get_pref(transp_bkg, ?DEF_TRANSPARENT_BACKGROUND),
+    export_gamma_macro(F, get_var(gamma_macro)),
+    io:put_chars(F, "box{ <-1, -1, -1>,< 1, 1, 1>\n"),
+    io:put_chars(F, "\ttexture{ uv_mapping\n"),
+    io:put_chars(F, "\t\tCorrect_Pigment_Gamma( // gamma correction (needed)\n"),
+    io:put_chars(F, "\t\t\tpigment{\n"),
+    io:format(F,    "\t\t\t\timage_map{ ~p \"~ts\"\n", [ImgType, FileName]),
+    io:put_chars(F, "\t\t\t\t\tmap_type 0     //  planar\n"),
+    io:put_chars(F, "\t\t\t\t\tinterpolate 2  //  bilinear\n"),
+    io:put_chars(F, "\t\t\t\t\tonce\n"),
+    io:put_chars(F, "\t\t\t\t}\n"),
+    io:put_chars(F, "\t\t\t}\n"),
+    io:format(F,    "\t\t, ~p) // New_Gamma\n",[Gamma]),
+    io:format(F,    "\t\tfinish { ambient 0 diffuse 1 emission ~p}\n", [Power]),
+    io:put_chars(F, "\t}\n"),
+    io:format(F,    "\trotate<0,~p,0>\n",[BgRotation]),
+    io:format(F,    "\tscale 10000 * ~p\n",[BgScale]),
+    case TranspBg of
+        true ->
+            io:put_chars(F, "\thollow\n"),
+            io:put_chars(F, "\tno_image\n");
+        _ -> ok
+    end,
+    io:put_chars(F, "}\n\n");
+export_light_2(F, skydome, PovRay) ->
+    FileName =proplists:get_value(bg_filename_image, PovRay, ?DEF_BACKGROUND_FILENAME),
+    export_light_2_0(FileName, F, PovRay);
+export_light_2(F, hdri, PovRay) ->
+    FileName =proplists:get_value(bg_filename_hdri, PovRay, ?DEF_BACKGROUND_FILENAME),
+    export_light_2_0(FileName, F, PovRay).
+
+export_light_2_0(FileName, F, PovRay) ->
+    ImgType = get_map_type(FileName),
+    BgRotation = proplists:get_value(bg_rotation, PovRay, ?DEF_BACKGROUND_ROTATION),
+    BgScale = proplists:get_value(bg_box_scale, PovRay, ?DEF_SKYBOX_SCALE),
+    Gamma = proplists:get_value(bg_gamma_correction, PovRay, ?DEF_GAMMA_CORRECTION),
+    Power = proplists:get_value(bg_power, PovRay, ?DEF_BACKGROUND_POWER),
+    TranspBg = get_pref(transp_bkg, ?DEF_TRANSPARENT_BACKGROUND),
+    export_gamma_macro(F, get_var(gamma_macro)),
+    io:put_chars(F, "sphere{0,1\n"),
+    io:put_chars(F, "\tCorrect_Pigment_Gamma( // gamma correction (needed)\n"),
+    io:put_chars(F, "\t\tpigment{\n"),
+    io:format(F,    "\t\t\timage_map{ ~p \"~ts\"\n", [ImgType, FileName]),
+    io:put_chars(F, "\t\t\t\tmap_type 1    //  spherical\n"),
+    io:put_chars(F, "\t\t\t\tinterpolate 2 //  bilinear\n"),
+    io:put_chars(F, "\t\t\t\tonce\n"),
+    io:put_chars(F, "\t\t\t}\n"),
+    io:put_chars(F, "\t\tscale<1,1.02,1>\n"),
+    io:format(F,    "\t\trotate<0,~p,0>\n",[BgRotation]),
+    io:put_chars(F, "\t}\n"),
+    io:format(F,    "\t, ~p) // New_Gamma\n",[Gamma]),
+    io:format(F,    "\tfinish { ambient 0 diffuse 1 emission ~p}\n", [Power]),
+    io:format(F,    "\tscale 10000 * ~p\n",[BgScale]),
+    case TranspBg of
+        true ->
+            io:put_chars(F, "\thollow\n"),
+            io:put_chars(F, "\tno_image\n");
+        _ -> ok
+    end,
     io:put_chars(F, "}\n\n").
 
 export_gamma_macro(_F, true) -> ok;
@@ -970,6 +1021,16 @@ export_finish(F, OpenGL, PovRay) ->
             io:format(F, "\t\t\t thickness ~f\n", [proplists:get_value(finish_irid_thickness, PovRay, 0.2)]),
             io:format(F, "\t\t\t turbulence ~f\n", [proplists:get_value(finish_irid_turbulence, PovRay, 0.15)]),
             io:put_chars(F, "\t\t }\n")
+    end,
+    SSLTMul = proplists:get_value(finish_sslt_multiplier, PovRay, 0.0),
+    case {get_pref(sslt, false), SSLTMul} of
+        {_, 0.0} -> ok;
+        {true, SSLTMul} ->
+            {Tr, Tg, Tb} = proplists:get_value(finish_sslt_color, PovRay, {1.0, 1.0, 1.0}),
+            io:put_chars(F, "\t\t subsurface { \n"),
+            io:format(F,    "\t\t\t translucency <~f, ~f, ~f> * ~f\n", [max(Tr,0.001), max(Tg,0.001), max(Tb,0.001), SSLTMul]),
+            io:put_chars(F, "\t\t }\n");
+        _ -> ok
     end,
     case proplists:get_value(reflection_enabled, PovRay, false) of
         false -> ok;
@@ -1603,6 +1664,8 @@ export_dialog(Op) ->
 
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
+            threads_auto ->
+                wings_dialog:enable(threads_number, Value =:= false, Store);
             photons ->
                 wings_dialog:enable(pnl_photons, Value =:= true, Store),
                 wings_dialog:enable(media_photons, Value =:= true, Store),
@@ -1617,6 +1680,8 @@ export_dialog(Op) ->
                 wings_dialog:enable(pnl_fog, Value =:= 2, Store);
             media ->
                 wings_dialog:enable(pnl_media, Value =:= true, Store);
+            sslt ->
+                wings_dialog:enable(pnl_sslt, Value =:= true, Store);
             antialias ->
                 wings_dialog:enable(aa_jitter, Value =:= true, Store),
                 wings_dialog:enable(pnl_aa_params, Value =:= true, Store);
@@ -1630,36 +1695,93 @@ export_dialog(Op) ->
         {?__(65, "General option"),
             {vframe, [
                 {vframe, [
-                    {hframe, [
-                        {?__(1, "Export UVs"), get_pref(include_uvs, true), [exkey(include_uvs)]},
-                        panel,
-                        {?__(2, "Export Normals"), get_pref(export_normals, true), [exkey(export_normals)]}
-                    ]},
                     {label_column, [
                         {?__(3, "Subdivisions"),{slider, {text, get_pref(subdivisions, 0),
                                     [range({0, 10}), exkey(subdivisions)]}}}
-                    ]}
-                ], [{margin,false}]},
-                separator,
-                {label_column, [
-                    {?__(4, "Gamma"),{slider, {text, get_pref(assumed_gamma, 1.0),
-                                    [exkey(assumed_gamma), range({0.1, 10.0})]}}},
-                    {?__(5, "Max Trace"),{slider, {text, get_pref(max_trace_level, 5),
-                                    [exkey(max_trace_level), range({1, 256})]}}},
-                    {?__(6, "Background"),{slider, {color, get_pref(background, {0.0, 0.0, 0.0}),
-                                    [exkey(background)]}}},
-                    {?__(7, "Emissive Filter"),{slider, {color, get_pref(ambient, {0.0, 0.0, 0.0}),
-                                    [exkey(ambient)]}}},
-                    {?__(8, "Emissive Power"),{slider, {text, get_pref(ambient_power, 1.0),
-                                    [exkey(ambient_power), range({0.0, 50.0})]}}}
-                ]},
-                separator,
-                {hframe, [
-                    {hframe, [
-                        {?__(25, "Photons"), get_pref(photons, false), [exkey(photons), {hook,Hook_Enable}]}
                     ]},
                     {hframe, [
-                        {label, ?__(26, "Count")},
+                        {?__(1, "Export UVs"), get_pref(include_uvs, true), [exkey(include_uvs)]},
+                        panel,
+                        {?__(2, "Export Normals"), get_pref(export_normals, true), [exkey(export_normals)]},
+                        panel,
+                        {hframe, [
+                            {label, "Threads"++" "},
+                            {text, get_pref(threads_number,4), [range({1,512}),exkey(threads_number)]},
+                            {label, " "},
+                            {?__(67, "Auto"), get_pref(threads_auto,true),
+                             [exkey(threads_auto),{hook,Hook_Enable}]}
+                        ]}
+                    ]}
+                ], [{title, ?__(66, "Pre-rendering")},{margin,false}]},
+                {vframe, [
+                    {hframe, [
+                        {label_column, [
+                            {?__(4, "Gamma"),{text, get_pref(assumed_gamma, 1.0),
+                                        [exkey(assumed_gamma), range({0.1, 10.0})]}}
+                        ]},
+                        panel,
+                        {label_column, [
+                            {?__(5, "Max Trace"),{text, get_pref(max_trace_level, 5),
+                                        [exkey(max_trace_level), range({1, 256})]}}
+                        ]},
+                        panel,
+                        {label_column, [
+                            {?__(73, "Transparent Background"),{"", get_pref(transp_bkg, ?DEF_TRANSPARENT_BACKGROUND),
+                                                  [exkey(transp_bkg)]}}
+                        ]}
+                    ], [{margin,false}]},
+                    {label_column, [
+                        {?__(6, "Background"),{slider, {color, get_pref(background, {0.0, 0.0, 0.0}),
+                                        [exkey(background)]}}},
+                        {?__(7, "Emissive Filter"),{slider, {color, get_pref(ambient, {0.0, 0.0, 0.0}),
+                                        [exkey(ambient)]}}},
+                        {?__(8, "Emissive Power"),{slider, {text, get_pref(ambient_power, 1.0),
+                                        [exkey(ambient_power), range({0.0, 50.0})]}}},
+                        {?__(75, "Quality Settings"), {menu, [
+                                {?__(76, "Default"), none},
+                                {?__(77, "Just show quick colors (Use full ambient lighting only)"), quality1},
+                                {?__(78, "Show specified diffuse and ambient light"), quality3},
+                                {?__(79, "Render shadows, but no extended lights"), quality4},
+                                {?__(80, "Render shadows, including extended lights"), quality5},
+                                {?__(81, "Compute texture patterns, compute photons"), quality7},
+                                {?__(82, "Compute reflected, refracted, and transmitted rays"), quality8},
+                                {?__(83, "Compute media and radiosity"), quality11}
+                            ], get_pref(render_quality,none), [exkey(render_quality)]}}
+                    ]}
+                ], [{title, ?__(68, "Render")},{margin,false}]},
+                {vframe, [
+                    {hframe, [
+                        {?__(84, "Enabled"), get_pref(antialias, false), [exkey(antialias), {hook, Hook_Enable}]},
+                        panel,
+                        {?__(10, "Jitter"), get_pref(aa_jitter, false), [exkey(aa_jitter)]}
+                    ]},
+                    {hframe, [
+                        {label_column, [
+                            {?__(70, "Method"),
+                            {menu, [
+                                {?__(71, "Adaptive, non-recursive, super-sampling"), aa_type1},
+                                {?__(72, "Adaptive and recursive super-sampling"), aa_type2}
+                            ], get_pref(aa_method, aa_type1), [exkey(aa_method)]}}]},
+                        {label_column, [
+                            {?__(11, "Threshold"),
+                             {text, get_pref(aa_threshold, 0.3), [range({0.0, 3.0}), exkey(aa_threshold)]}}]},
+                        {label_column, [
+                            {?__(12, "Depth"),
+                             {text, get_pref(aa_depth, 3), [range({1, 9}), exkey(aa_depth)]}}]}
+                    ], [exkey(pnl_aa_params)]}
+                ], [{title, ?__(9, "Anti-Aliasing")}, {enabled, Render},{margin,false}]}
+            ]}
+        },
+
+    Lighting =
+        {?__(74, "Lighting"),
+            {vframe, [
+                {hframe, [
+                    {hframe, [
+                        {?__(84, "Enabled"), get_pref(photons, false), [exkey(photons), {hook,Hook_Enable}]}
+                    ]},
+                    {hframe, [
+                        {label, " " ++ ?__(26, "Count")},
                         {text, get_pref(photon_count, 10000), [exkey(photon_count)]}
                     ], [exkey(pnl_photons)]},
                     panel,
@@ -1670,10 +1792,27 @@ export_dialog(Op) ->
                         {label, ?__(26, "Count")},
                         {text, get_pref(media_photons_count, 100), [exkey(media_photons_count)]}
                     ], [exkey(pnl_media_photons)]}
-                ]},
-                separator,
+                ], [{title,?__(25, "Photons")}]},
+                {vframe, [
+                    {hframe, [
+                        {?__(84, "Enabled"), get_pref(sslt, false), [exkey(sslt), {hook,Hook_Enable}]}
+                    ]},
+                    {vframe, [
+                        {hframe, [
+                            {?__(89, "Use radiosity based diffuse illumination"),
+                             get_pref(sslt_radiosity, false), [exkey(sslt_radiosity)]}
+                        ]},
+                        {hframe, [
+                            {label, ?__(87, "Diffuse scattering")},
+                            {text, get_pref(sslt_diff_scatt, 50), [exkey(sslt_diff_scatt)]},
+                            panel,
+                            {label, ?__(88, "Single-scattering Approximation")},
+                            {text, get_pref(sslt_single_scatt, 50), [exkey(sslt_single_scatt)]}
+                        ],[{title, ?__(90, "Sampling")}]}
+                    ],[exkey(pnl_sslt),{margin,false}]}
+                ], [{title, ?__(86, "Subsurface Light Transport")}]},
                 {hframe, [
-                    {label, ?__(52, "Radiosity")},
+                    {label, ?__(85, "Preset")},
                     {menu, [
                         {?__(53, "None"), none},
                         {?__(54, "Default"), "Radiosity_Default"},
@@ -1688,102 +1827,86 @@ export_dialog(Op) ->
                         {?__(63, "IndoorLQ"), "Radiosity_IndoorLQ"},
                         {?__(64, "IndoorHQ"), "Radiosity_IndoorHQ"}
                     ], get_pref(radiosity,none),[exkey(radiosity)]}
-                ]}
-            ]}
+                ], [{title,?__(52, "Radiosity")}]}
+            ], [{margin,false}]}
         },
 
     Atmosphere =
         {?__(51, "Atmosphere"),
             {vframe, [
-                {hframe, [
-                    {vframe, [
-                        {?__(28, "Fog"), get_pref(fog, false), [exkey(fog), {hook, Hook_Enable}]}
-                    ]},
-                    {hframe, [
-                        panel,
-                        {label, ?__(29, "Type")},
-                        {menu, [
-                            {?__(30, "Constant"), 1},
-                            {?__(31, "Ground"), 2}
-                        ], get_pref(fog_type, 1),[exkey(fog_type),{hook, Hook_Enable}]}
-                    ],[exkey(pnl_fog_type)]}
-                ]},
-
-                {hframe, [
-                    {label_column, [
-                        {?__(32, "Fog Height"),{text, get_pref(fog_offset, 0.0), [exkey(fog_offset)]}},
-                        {?__(33, "Fog Fade"),{text, get_pref(fog_alt, 0.0), [exkey(fog_alt)]}}
-                    ],[exkey(pnl_fog),{margin,false}]},
-                    {label_column, [
-                        {?__(34, "Distance"),{text, get_pref(fog_distance, 0.0), [exkey(fog_distance)]}},
-                        {?__(35, "Color"),{color, get_pref(fog_color, {0.0, 0.0, 0.0, 0.0}), [exkey(fog_color)]}}
-                    ]}
-                ], [exkey(pnl_fog_params)]},
-                separator,
                 {vframe, [
                     {hframe, [
-                        {?__(36, "Media"), get_pref(media, false), [exkey(media), {hook,Hook_Enable}]},
-                        panel,
-                        {label, ?__(37, "Method")},
-                        {menu, [
-                            {?__(38, "Variance"), 1},
-                            {?__(39, "Even"), 2},
-                            {?__(40, "Adaptive"), 3}
-                        ], get_pref(media_method, 1),[exkey(media_method)]}
+                        {vframe, [
+                            {?__(84, "Enabled"), get_pref(fog, false), [exkey(fog), {hook, Hook_Enable}]}
+                        ]},
+                        {hframe, [
+                            panel,
+                            {label, ?__(29, "Type")},
+                            {menu, [
+                                {?__(30, "Constant"), 1},
+                                {?__(31, "Ground"), 2}
+                            ], get_pref(fog_type, 1),[exkey(fog_type),{hook, Hook_Enable}]}
+                        ],[exkey(pnl_fog_type)]}
                     ]},
+                    {hframe, [
+                        {label_column, [
+                            {?__(32, "Fog Height"),{text, get_pref(fog_offset, 0.0), [exkey(fog_offset)]}},
+                            {?__(33, "Fog Fade"),{text, get_pref(fog_alt, 0.0), [exkey(fog_alt)]}}
+                        ],[exkey(pnl_fog),{margin,false}]},
+                        {label_column, [
+                            {?__(34, "Distance"),{text, get_pref(fog_distance, 0.0), [exkey(fog_distance)]}},
+                            {?__(35, "Color"),{color, get_pref(fog_color, {0.0, 0.0, 0.0, 0.0}), [exkey(fog_color)]}}
+                        ]}
+                    ], [exkey(pnl_fog_params)]}
+                ], [{title,?__(28, "Fog")}, {margin,false}]},
+                {vframe, [
                     {vframe, [
                         {hframe, [
-                            {hframe, [
-                                {label, ?__(41, "Intervals")},
-                                {text, get_pref(media_intervals, 1), [exkey(media_intervals)]}
-                            ]},
-                            {hframe, [
-                                {label, ?__(42, "Samples")},
-                                {text, get_pref(media_samples, 1), [exkey(media_samples)]}
-                            ]}
-                        ]},
-                        {label_column, [
-                            {?__(45, "Emission"),{slider, {color, get_pref(emission, {0.0, 0.0, 0.0}), [exkey(emission)]}}},
-                            {?__(44, "Absorption"),{slider, {color, get_pref(absorbtion, {0.0, 0.0, 0.0}), [exkey(absorbtion)]}}},
-                            {?__(43, "Scattering"),{slider, {color, get_pref(scattering, {0.0, 0.0, 0.0}), [exkey(scattering)]}}}
-                        ],[{margin,false}]},
-                        {hframe, [
-                            {label, ?__(29, "Type")},
+                            {?__(84, "Enabled"), get_pref(media, false), [exkey(media), {hook,Hook_Enable}]},
                             panel,
+                            {label, ?__(37, "Method")},
                             {menu, [
-                                {?__(46, "Isotropic"), 1},
-                                {?__(47, "Mie Haze"), 2},
-                                {?__(48, "Mie Murky"), 3},
-                                {?__(49, "Rayleigh"), 4},
-                                {?__(50, "Henyey-Greenstein"), 5}
-                            ], get_pref(scattering_type, 1),[exkey(scattering_type)]}
-                        ]}
-                    ], [exkey(pnl_media),{margin,false}]}
-                ]}
+                                {?__(38, "Variance"), 1},
+                                {?__(39, "Even"), 2},
+                                {?__(40, "Adaptive"), 3}
+                            ], get_pref(media_method, 1),[exkey(media_method)]}
+                        ]},
+                        {vframe, [
+                            {hframe, [
+                                {hframe, [
+                                    {label, ?__(41, "Intervals")},
+                                    {text, get_pref(media_intervals, 1), [exkey(media_intervals)]}
+                                ]},
+                                {hframe, [
+                                    {label, ?__(42, "Samples")},
+                                    {text, get_pref(media_samples, 1), [exkey(media_samples)]}
+                                ]}
+                            ]},
+                            {label_column, [
+                                {?__(45, "Emission"),{slider, {color, get_pref(emission, {0.0, 0.0, 0.0}), [exkey(emission)]}}},
+                                {?__(44, "Absorption"),{slider, {color, get_pref(absorbtion, {0.0, 0.0, 0.0}), [exkey(absorbtion)]}}},
+                                {?__(43, "Scattering"),{slider, {color, get_pref(scattering, {0.0, 0.0, 0.0}), [exkey(scattering)]}}}
+                            ],[{margin,false}]},
+                            {hframe, [
+                                {label, ?__(29, "Type")},
+                                panel,
+                                {menu, [
+                                    {?__(46, "Isotropic"), 1},
+                                    {?__(47, "Mie Haze"), 2},
+                                    {?__(48, "Mie Murky"), 3},
+                                    {?__(49, "Rayleigh"), 4},
+                                    {?__(50, "Henyey-Greenstein"), 5}
+                                ], get_pref(scattering_type, 1),[exkey(scattering_type)]}
+                            ]}
+                        ], [exkey(pnl_media),{margin,false}]}
+                    ]}
+                ], [{title,?__(36, "Media")}, {margin,false}]}
             ]}
         },
 
     Camera =
         {?__(15, "Camera"),
             {vframe, [
-                {vframe, [
-                    {hframe, [
-                        {?__(9, "AntiAlias"), get_pref(antialias, false), [exkey(antialias), {hook, Hook_Enable}]},
-                        panel,
-                        {?__(10, "Jitter"), get_pref(aa_jitter, false), [exkey(aa_jitter)]}
-                    ]},
-                    {hframe, [
-                        {vframe, [
-                            {label, ?__(11, "AA Threshold")},
-                            {label, ?__(12, "AA Depth")}
-                        ]},
-                        {vframe, [
-                            {slider, {text, get_pref(aa_threshold, 0.3), [range({0.0, 3.0}), exkey(aa_threshold)]}},
-                            {slider, {text, get_pref(aa_depth, 1), [range({1, 9}), exkey(aa_depth)]}}
-                        ]}
-                    ], [exkey(pnl_aa_params)]}
-                ], [exkey(pnl_aa),{enabled, Render},{margin,false}]},
-                separator,
                 {hframe, [
                     {hframe, [
                         {label, ?__(13, "Width")},
@@ -1823,6 +1946,7 @@ export_dialog(Op) ->
     [
         {oframe, [
             GeneralOpt,
+            Lighting,
             Atmosphere,
             Camera
         ], 1, [{style, buttons}]}
@@ -1967,88 +2091,103 @@ material_dialog(_Name, Mat) ->
                        {?__(66, "Turbulence"),
                         {slider, {text, proplists:get_value(finish_irid_turbulence, PovRay, 0.15),
                                   [range({0.0, 100.0}), key(finish_irid_turbulence)]}}}
-                   ], [{title, ?__(103, "Iridescense")}]}
+                   ], [{title, ?__(103, "Iridescense")}]},
+                   {label_column, [
+                       {?__(107, "Translucency"),
+                        {slider, {color, proplists:get_value(finish_sslt_color, PovRay, {1.0, 1.0, 1.0}),
+                                  [key(finish_sslt_color)]}}},
+                       {?__(108, "Multiplier"),
+                        {slider, {text, proplists:get_value(finish_sslt_multiplier, PovRay, 0.0),
+                                  [range({0.0, 100.0}), key(finish_sslt_multiplier)]}}}
+                   ], [{title,?__(106, "Subsurface")}]}
+
          ], [{key,pnl_finished}]}
         },
     QsReflection =
         {?__(16, "Reflection"),
-	 {vframe, [{hframe,
-		    [{?__(9, "Enabled"), proplists:get_value(reflection_enabled, PovRay, false),
-		      [key(reflection_enabled), {hook, Hook_Enable}]},
-		     panel,
-		     {?__(10, "Variable"), proplists:get_value(reflection_variable, PovRay, false),
-		      [key(reflection_variable), {hook, Hook_Enable}]},
-		     panel,
-		     {?__(11, "Fresnel"), proplists:get_value(reflection_fresnel, PovRay, false),
-		      [key(reflection_fresnel)]}],[{border,3}]},
-		   {label_column,
-		    [{?__(12, "Minimum"),
-		      {slider, {color, proplists:get_value(reflection_minimum, PovRay, {0.0, 0.0, 0.0}),
-				[key(reflection_minimum)]}}},
-		     {?__(13, "Maximum"),
-		      {slider, {color, proplists:get_value(reflection_maximum, PovRay, {0.0, 0.0, 0.0}),
-				[key(reflection_maximum)]}}, [key(refl_max_row)]},
-		     {?__(14, "Falloff"),
-		      {slider, {text, proplists:get_value(reflection_falloff, PovRay, 1.0),
-				[range({0.0, 10.0}), key(reflection_falloff)]}}},
-		     {?__(15, "Exponent"),
-		      {slider, {text, proplists:get_value(reflection_exponent, PovRay, 1.0),
-				[range({0.0, 10.0}), key(reflection_exponent)]}}},
-		     {?__(4, "Metallic"),
-		      {slider, {text, proplists:get_value(reflection_metallic, PovRay, 0.0),
-				[range({0.0, 10.0}), key(reflection_metallic)]}}}
-		    ],[key(pnl_reflection)]}
-		  ]}
+	 {vframe, [
+             {hframe, [
+                 {?__(9, "Enabled"), proplists:get_value(reflection_enabled, PovRay, false),
+                   [key(reflection_enabled), {hook, Hook_Enable}]}
+             ],[{border,3}]},
+             {vframe,[
+                 {hframe, [
+                     {?__(10, "Variable"), proplists:get_value(reflection_variable, PovRay, false),
+                      [key(reflection_variable), {hook, Hook_Enable}]},
+                     panel,
+                     {?__(11, "Fresnel"), proplists:get_value(reflection_fresnel, PovRay, false),
+                      [key(reflection_fresnel)]}
+                  ],[{border,3}]},
+                 {label_column,
+                    [{?__(12, "Minimum"),
+                      {slider, {color, proplists:get_value(reflection_minimum, PovRay, {0.0, 0.0, 0.0}),
+                                [key(reflection_minimum)]}}},
+                     {?__(13, "Maximum"),
+                      {slider, {color, proplists:get_value(reflection_maximum, PovRay, {0.0, 0.0, 0.0}),
+                                [key(reflection_maximum)]}}, [key(refl_max_row)]},
+                     {?__(14, "Falloff"),
+                      {slider, {text, proplists:get_value(reflection_falloff, PovRay, 1.0),
+                                [range({0.0, 10.0}), key(reflection_falloff)]}}},
+                     {?__(15, "Exponent"),
+                      {slider, {text, proplists:get_value(reflection_exponent, PovRay, 1.0),
+                                [range({0.0, 10.0}), key(reflection_exponent)]}}},
+                     {?__(4, "Metallic"),
+                      {slider, {text, proplists:get_value(reflection_metallic, PovRay, 0.0),
+                                [range({0.0, 10.0}), key(reflection_metallic)]}}}
+                 ],[key(pnl_reflection)]}
+             ], [{title,""}]}
+         ]}
         },
 
     QsInterior =
         {?__(25, "Interior"),
-	 {vframe,
-	  [{hframe,
-            [{?__(24, "Extended Interior"), proplists:get_value(interior_extended, PovRay, false),
-	    [key(interior_extended),{hook,Hook_Enable}]}],[{border,3}]},
-	   {label_column,
-	    [{?__(17, "IOR"),
-	      {slider, {text, proplists:get_value(interior_ior, PovRay, 1.0),
-			[range({0.0, 3.0}), key(interior_ior)]}}},
-	     {?__(18, "Fake Caustics"),
-	      {slider, {text, proplists:get_value(interior_caustic, PovRay, 0.0),
-			[range({0.0, 1.0}), key(interior_caustic)]}}},
-	     {?__(19, "Dispersion"),
-	      {slider, {text, proplists:get_value(interior_dispersion, PovRay, 1.0),
-			[range({0.0, 2.0}), key(interior_dispersion)]}}},
-	     {?__(20, "Disp. Samples"),
-	      {slider, {text, proplists:get_value(interior_dispersion_samples, PovRay, 7),
-			[range({0, 50}), key(interior_dispersion_samples)]}}},
-	     {?__(21, "Fade Dist."),
-	      {slider, {text, proplists:get_value(interior_fade_distance, PovRay, 0.0),
-			[range({0.0, 10.0}), key(interior_fade_distance)]}}},
-	     {?__(22, "Fade Power"),
-	      {slider, {text, proplists:get_value(interior_fade_power, PovRay, 0.0),
-			[range({0.0, 10.0}), key(interior_fade_power)]}}},
-	     {?__(23, "Fade Color"),
-	      {slider, {color, proplists:get_value(interior_fade_color, PovRay, {0.0, 0.0, 0.0}),
-			[key(interior_fade_color)]}}
-	     }]}
-	  ]}},
+            {vframe, [
+                {hframe, [
+                    {?__(24, "Extended Interior"), proplists:get_value(interior_extended, PovRay, false),
+                        [key(interior_extended),{hook,Hook_Enable}]}],[{border,3}]},
+                {label_column, [
+                    {?__(17, "IOR"),
+                        {slider, {text, proplists:get_value(interior_ior, PovRay, 1.0),
+                                [range({0.0, 3.0}), key(interior_ior)]}}},
+                    {?__(18, "Fake Caustics"),
+                        {slider, {text, proplists:get_value(interior_caustic, PovRay, 0.0),
+                                [range({0.0, 1.0}), key(interior_caustic)]}}},
+                    {?__(19, "Dispersion"),
+                        {slider, {text, proplists:get_value(interior_dispersion, PovRay, 1.0),
+                                [range({0.0, 2.0}), key(interior_dispersion)]}}},
+                    {?__(20, "Disp. Samples"),
+                        {slider, {text, proplists:get_value(interior_dispersion_samples, PovRay, 7),
+                                [range({0, 50}), key(interior_dispersion_samples)]}}},
+                    {?__(21, "Fade Dist."),
+                        {slider, {text, proplists:get_value(interior_fade_distance, PovRay, 0.0),
+                                [range({0.0, 10.0}), key(interior_fade_distance)]}}},
+                    {?__(22, "Fade Power"),
+                        {slider, {text, proplists:get_value(interior_fade_power, PovRay, 0.0),
+                                [range({0.0, 10.0}), key(interior_fade_power)]}}},
+                    {?__(23, "Fade Color"),
+                        {slider, {color, proplists:get_value(interior_fade_color, PovRay, {0.0, 0.0, 0.0}),
+                                [key(interior_fade_color)]}}}
+                ], [{title,""}]}
+            ]}
+        },
 
     QsPhotons =
         {?__(30, "Photons"),
             {vframe, [
 	        {hframe, [
-		   {?__(9, "Enabled"), proplists:get_value(photons_enabled, PovRay, false), [key(photons_enabled), {hook,Hook_Enable}]},
-		   {hframe, [
-			     panel,
-			     {?__(26, "Target"), proplists:get_value(photons_target, PovRay, true), [key(photons_target)]},
-			     panel,
-			     {?__(27, "Collect"), proplists:get_value(photons_collect, PovRay, true), [key(photons_collect)]},
-			     panel,
-			     {?__(28, "Reflect"), proplists:get_value(photons_reflect, PovRay, true), [key(photons_reflect)]},
-			     panel,
-			     {?__(29, "Refract"), proplists:get_value(photons_refract, PovRay, true), [key(photons_refract)]}
-			    ],[key(pnl_photons)]}
-		],[{border,3}]}
-            ],[{margin,false}]}
+                    {?__(9, "Enabled"), proplists:get_value(photons_enabled, PovRay, false),
+                        [key(photons_enabled), {hook,Hook_Enable}]}
+                ],[{border,3}]},
+                {hframe, [
+                    {?__(26, "Target"), proplists:get_value(photons_target, PovRay, true), [key(photons_target)]},
+                    panel,
+                    {?__(27, "Collect"), proplists:get_value(photons_collect, PovRay, true), [key(photons_collect)]},
+                    panel,
+                    {?__(28, "Reflect"), proplists:get_value(photons_reflect, PovRay, true), [key(photons_reflect)]},
+                    panel,
+                    {?__(29, "Refract"), proplists:get_value(photons_refract, PovRay, true), [key(photons_refract)]}
+                ],[key(pnl_photons),{border,3}]}
+            ]}
         },
 
     TxtPigment =
@@ -2654,6 +2793,7 @@ light_dialog(_Name, ambient, PovRay) ->
     Gamma = proplists:get_value(bg_gamma_correction, PovRay, ?DEF_GAMMA_CORRECTION),
     BgRotation = proplists:get_value(bg_rotation, PovRay, ?DEF_BACKGROUND_ROTATION),
     BgScale = proplists:get_value(bg_box_scale, PovRay, ?DEF_SKYBOX_SCALE),
+    BgPower = proplists:get_value(bg_power, PovRay, ?DEF_BACKGROUND_POWER),
     %%
     HorizonColor = proplists:get_value(bg_horizon_color, PovRay, ?DEF_HORIZON_COLOR),
     HorizonElev = proplists:get_value(bg_horizon_elev, PovRay, ?DEF_HORIZON_ELEVATION),
@@ -2667,7 +2807,7 @@ light_dialog(_Name, ambient, PovRay) ->
                     wings_dialog:show(?KEY(pnl_file), is_member(Value, [hdri,skybox,skydome]), Store),
                     wings_dialog:show(?KEY(pnl_img_hdri), Value =:= hdri, Store),
                     wings_dialog:show(?KEY(pnl_img_bkg), is_member(Value, [skybox,skydome]), Store),
-                    wings_dialog:show(?KEY(pnl_box_scale), is_member(Value, [skybox,skydome]), Store),
+                    wings_dialog:show(?KEY(pnl_box_scale), is_member(Value, [hdri,skybox,skydome]), Store),
                     wings_dialog:show(?KEY(pnl_gradient), Value =:= gradient, Store),
                     wings_dialog:show(?KEY(pnl_background), Value =/= undefined, Store),
                     wings_dialog:update(?KEY(pnl_background), Store)
@@ -2710,13 +2850,20 @@ light_dialog(_Name, ambient, PovRay) ->
                     ]},
                     {label_column, [
                         {?__(39,"Rotation"),
-                                {slider,{text,BgRotation,[key(bg_rotation),range({-360.0, 360.0})]}}
+                         {slider,{text,BgRotation,[key(bg_rotation),range({-360.0, 360.0})]}}
                         }
                     ],[{margin,false}]},
-		    {label_column, [
-                        {?__(40,"Scale") ++" ",
-                        {text, BgScale, [range({0.0, infinity}),key(bg_box_scale)]}}
-                    ], [key(pnl_box_scale),{margin,false}]}
+                    {hframe, [
+                        {label_column, [
+                            {?__(45,"Power"),
+                                    {text,BgPower,[key(bg_power),range({0.0, 100.0})]}
+                            }
+                        ],[{margin,false}]},
+                        {label_column, [
+                            {?__(40,"Scale") ++" ",
+                            {text, BgScale, [range({0.0, 100.0}),key(bg_box_scale)]}}
+                        ], [key(pnl_box_scale),{margin,false}]}
+                    ],[{margin,false}]}
                 ],[key(pnl_file),{margin,false}]},
                 %% Gradient Background
                 {vframe,[
@@ -2811,10 +2958,10 @@ images_format() ->
 pov_output_exts() ->
     wings_job:render_formats(),
     OSDep = case os:type() of
-                {win32, _} -> [{bmp, "+FS"}];
+                {win32, _} -> [{bmp,"+FS"}];
                 _ -> []
             end,
-    OSDep ++ [{png, "+FN"}, {tga, "+FT"}].
+    OSDep ++ [{png,"+FN"}, {tga,"+FT"}, {exr,"+FE"}, {hdr,"+FH"}, {jpg,"+FJ"}].
 
 %%% returns the file extension and description of the file type
 get_ext_info(ExtInfo) ->
