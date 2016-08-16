@@ -234,8 +234,8 @@ export_dialog_qs(Op, Attr) ->
             ?KEY(background_light) ->
                 wings_dialog:enable(?KEY(pnl_bkg_power), Value =/= ?DEF_SKY_BACKGROUND_LIGHT, Store),
                 wings_dialog:enable(?KEY(pnl_bkg_photons), Value =/=?DEF_SKY_BACKGROUND_LIGHT, Store);
-			?KEY(use_ibl) ->
-				wings_dialog:enable(?KEY(pnl_ibl_samples), Value =/= false, Store)%,
+            ?KEY(use_ibl) ->
+                wings_dialog:enable(?KEY(pnl_ibl_samples), Value =/= false, Store)%,
                 %wings_dialog:enable(?KEY(pnl_enlight_photons), Value =/= false, Store)
         end
     end,
@@ -244,15 +244,15 @@ export_dialog_qs(Op, Attr) ->
         case Key of
             ?KEY(environment) ->
                 wings_dialog:show(?KEY(pnl_sky), Value =:= darksky, Store), %=/= undefined, Store),
-				wings_dialog:update(?KEY(pnl_sky), Store),
-				wings_dialog:show(?KEY(pnl_background), Value =:= constant, Store),
+                wings_dialog:update(?KEY(pnl_sky), Store),
+                wings_dialog:show(?KEY(pnl_background), Value =:= constant, Store),
                 wings_dialog:update(?KEY(pnl_background), Store)
         end
     end,
     %!----------------------------------------
     %! Environment background 150 ->
     %!----------------------------------------
-	BrowsePropsHDRI = [{dialog_type,open_dialog},
+    BrowsePropsHDRI = [{dialog_type,open_dialog},
                        {extensions,[
                             {".hdr",?__(398,"High Dynamic Range image")},
                             {".exr",?__(399,"OpenEXR image")}]
@@ -332,8 +332,8 @@ export_dialog_qs(Op, Attr) ->
                 ]}
             ],[key(pnl_sky),{margin,false}]
             },
-			% end darksky
-			{vframe, [
+            % end darksky
+            {vframe, [
                 %% HDRI Background
                 {vframe, [
                     {label_column, [
@@ -346,7 +346,8 @@ export_dialog_qs(Op, Attr) ->
                                         {?__(427,"Spherical"),spherical}
                                     ], get_pref(background_mapping, Attr), [key(background_mapping)]}
                                 ],[key(pnl_img_hdri),{margin,false}]}
-                            ],[{margin,false}]}},
+                            ],[{margin,false}]}
+                        },
                         {?__(428,"Rotation"),
                             {text,get_pref(background_rotation, Attr),[range(background_rotation),key(background_rotation)]}
                         }
@@ -354,9 +355,9 @@ export_dialog_qs(Op, Attr) ->
                 }],
                 [key(pnl_file),{margin,false}]
                 },
-				%!------------------------
+                %!------------------------
                 %! Constant Background
-				%!------------------------
+                %!------------------------
                 {hframe, [
                     {label,?__(429,"Color")},
                     {color,get_pref(background_color, Attr),[key(background_color)]}
@@ -613,7 +614,7 @@ export_dialog_qs(Op, Attr) ->
                             ],[key(pnl_pm2)]},
                             {vframe,[
                                 {hframe,[
-                                    {label, ?__(245, "Caustic Type")++" "},
+                                    {label, ?__(245, "Caustic Type ")},
                                     {menu, [
                                         {?__(253, "path"), path},
                                         {?__(254, "photons"), photons},

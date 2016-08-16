@@ -5,8 +5,7 @@
 export_shader(F, Name, Mat, ExportDir) ->
     MatAttr = proplists:get_value(?TAG, Mat, []),
 
-    MatType =
-        proplists:get_value(shader_type, MatAttr, ?DEF_MATERIAL_TYPE),
+    MatType = proplists:get_value(material_type, MatAttr, ?DEF_MATERIAL_TYPE),
 
     case MatType of
 
@@ -44,8 +43,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
-                  case export_texture(F, [Name,$_,format(N)],
-                                      Maps, ExportDir, M) of
+          case export_texture(F, [Name,$_,format(N)],Maps, ExportDir, M) of
                       off -> N+1;
                       ok ->
                           println(F),
@@ -54,19 +52,18 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
+		  
     println(F, "<material name=\"~s\">",[[Name]]),
     println(F, "\t<type sval=\"shinydiffusemat\"/>"),
 
     DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
+    %Specular = alpha(proplists:get_value(specular, OpenGL)),
+    %DefReflected = Specular,
+    %DefTransmitted = def_transmitted(DiffuseA),
+    export_rgb(F, color, proplists:get_value(diffuse_color, Attr, DiffuseA)),% {0.7,0.7,0.7})),
 
-    Specular = alpha(proplists:get_value(specular, OpenGL)),
-    DefReflected = Specular,
-    DefTransmitted = def_transmitted(DiffuseA),
-    export_rgb(F, mirror_color,
-               proplists:get_value(reflected, Attr, DefReflected)),
-    export_rgb(F, color,
-               proplists:get_value(transmitted, Attr, DefTransmitted)),
-
+    export_rgb(F, mirror_color, proplists:get_value(mirror_color, Attr, {0.7,0.7,0.7})), %DefReflected)),
+    
     OrenNayar = proplists:get_value(oren_nayar, Attr, ?DEF_OREN_NAYAR),
     case OrenNayar of
         false -> ok;
@@ -78,7 +75,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F,
         "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, ?DEF_IOR)]),
     println(F,
-        "\t<fresnel_effect bval=\"~s\"/>",[format(proplists:get_value(tir, Attr, ?DEF_TIR))]),
+        "\t<fresnel_effect bval=\"~s\"/>",[format(proplists:get_value(fresnel, Attr, ?DEF_TIR))]),
     println(F,
         "\t<transmit_filter fval=\"~.10f\"/>",[proplists:get_value(transmit_filter, Attr, ?DEF_TRANSMIT_FILTER)]),
     println(F,
@@ -88,7 +85,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F,
         "\t<diffuse_reflect fval=\"~.10f\"/>",[proplists:get_value(diffuse_reflect, Attr, ?DEF_DIFFUSE_REFLECT)]),
     println(F,
-        "\t<specular_reflect fval=\"~.10f\"/>",[proplists:get_value(specular_reflect, Attr, ?DEF_SPECULAR_REFLECT)]),
+        "\t<specular_reflect fval=\"~.10f\"/>",[proplists:get_value(mirror_reflect, Attr, ?DEF_SPECULAR_REFLECT)]),
     println(F,
         "\t<emit fval=\"~.10f\"/>",[proplists:get_value(emit, Attr, ?DEF_EMIT)]),
 
@@ -125,6 +122,7 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
+
     println(F, "<material name=\"~s\">~n"++
                 "<type sval=\"glossy\"/>", [Name]),
     DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
@@ -133,10 +131,9 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
     DefReflected = Specular,
     DefTransmitted = def_transmitted(DiffuseA),
 	
-    export_rgb(F, color,
-               proplists:get_value(reflected, YafaRay, DefReflected)),
-    export_rgb(F, diffuse_color,
-               proplists:get_value(transmitted, YafaRay, DefTransmitted)),
+    export_rgb(F, color, proplists:get_value(reflected, YafaRay, DefReflected)),
+	
+    export_rgb(F, diffuse_color, proplists:get_value(transmitted, YafaRay, DefTransmitted)),
 
     DiffuseReflect = proplists:get_value(diffuse_reflect, YafaRay, ?DEF_DIFFUSE_REFLECT),
 
